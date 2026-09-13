@@ -218,7 +218,11 @@
              (parsed (call-with-values
                        (lambda () (parse-library-clauses (cddr form)))
                        list))
-             (imports (reverse (caddr parsed)))
+              ;; Import groups stay in source order: restore replays them
+              ;; through import-into-library! (newest import wins), so a
+              ;; reversed record would let an early import (e.g. (goldfish))
+              ;; shadow a later, more specific one on warm starts.
+              (imports (caddr parsed))
              (renames (cadr parsed))
              (bindings (map (lambda (e)
                               (cons (car e) (purify-binding (cdr e))))
