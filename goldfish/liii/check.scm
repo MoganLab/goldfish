@@ -8,6 +8,7 @@
     check-catch
     check-report
     check-failed?
+    check-take-exit!
     check-true
     check-false
   ) ;export
@@ -87,16 +88,27 @@
       (syntax-rules ()
         ((test left right) (check left => right))))
 
+    ;; Exit intent for persistent test workers (see check-report).
+    (define pending-exit #f)
+
+    (define (check-take-exit!)
+      (let ((c pending-exit))
+        (set! pending-exit #f)
+        c))
+
     (define (check-report . msg)
       (if (not (null? msg)) (begin (display (car msg))))
       (srfi-78-check-report)
       ;; Persistent test workers run many files per process and record
-      ;; per-file results themselves: GOLDFISH_CHECK_NO_EXIT=1 skips the
-      ;; process exit (default off, single-file behavior unchanged).
+      ;; per-file results themselves: GOLDFISH_CHECK_NO_EXIT=1 records
+      ;; the exit instead of leaving the process (default off,
+      ;; single-file behavior unchanged). Workers take it per file
+      ;; with check-take-exit! (which also clears it).
       (let ((v (getenv "GOLDFISH_CHECK_NO_EXIT")))
-        (if (and (check-failed?)
-                 (or (not v) (member v '("0" "no" "false" "off"))))
-          (exit -1)))
+        (if (check-failed?)
+          (if (or (not v) (member v '("0" "no" "false" "off")))
+            (exit -1)
+            (set! pending-exit -1))))
     ) ;define
   ) ;begin
 ) ;define-library

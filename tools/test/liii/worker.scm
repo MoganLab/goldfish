@@ -13,8 +13,9 @@
 ;; Output per file (stdout, alongside the file's own output):
 ;;   ;;;WORKER <file> <code> <ms>      ; code: 0 pass, 1 failed checks, 2 error
 
-(import (goldfish) (liii os) (srfi srfi-19) (srfi srfi-78)
-        (liii subprocess))
+(import (goldfish) (liii os) (srfi srfi-19)
+        (except (srfi srfi-78) check-report)
+        (liii subprocess) (liii check))
 
 (define (now-ms)
   (let ((t (current-time)))
@@ -25,7 +26,8 @@
 ;;; minus this worker's own imports, which must not leak into test files).
 ;;; (goldfish) stays: it is both a -m seed and a worker import, and files
 ;;; need the seed copy.
-(define worker-own-imports '((liii os) (srfi srfi-19) (srfi srfi-78)))
+(define worker-own-imports '((liii os) (srfi srfi-19) (srfi srfi-78)
+                              (liii subprocess) (liii check)))
 
 (define seed-names
   (let ((all (reverse (map (lambda (u) (exp-library-name (car u)))
@@ -89,7 +91,11 @@
                              (newline)
                              2)
                       (begin (load f)
-                             (if (check-failed?) 1 0)))))
+                             ;; Verdict mirrors isolated exit codes: only
+                             ;; a recorded check-report exit fails the
+                             ;; file (reporter tests that fail checks on
+                             ;; purpose stay green, as isolated).
+                             (if (check-take-exit!) 1 0)))))
                   (lambda args
                     (display ";;;WORKER-ERROR ")
                     (display f)
