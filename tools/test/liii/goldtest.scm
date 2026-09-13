@@ -926,13 +926,13 @@
                  (begin
                    (display (string-append "[gf test] Not on main branch (currently on '"
                               branch
-                              "'), running all tests (--all). Use `gf test --help` for details."
+                              "'), running all tests (--all) in 2 phases: changed-since=main first, then the rest. Use `gf test --help` for details."
                             ) ;string-append
                    ) ;display
                    (newline)
-                   (display (string-append "Running: " exe " test --changed-since=main"))
+                   (display (string-append "Phase 1: " exe " test --changed-since=main"))
                    (newline)
-                   (display (string-append "Running: " exe " test tests"))
+                   (display (string-append "Phase 2: " exe " test tests (remaining)"))
                    (newline)
                    (newline)
                    (cons "main" #t)
@@ -1041,19 +1041,36 @@
             (when arg-value
               (display-filter-info arg-type arg-value)
             ) ;when
-            (when final-changed-since
-              (display (string-append "Running changed tests since: " final-changed-since))
-              (newline)
-            ) ;when
-            (let ((test-results (run-test-files test-files
-                                  (or (parse-test-jobs args) (detect-cpu-count))
-                                ) ;run-test-files
-                  ) ;test-results
-                 ) ;
+            (let* ((jobs (or (parse-test-jobs args) (detect-cpu-count)))
+                   (two-phases? (and need-run-all
+                                      (pair? changed-test-files)
+                                      (pair? remaining-test-files)))
+                   (test-results
+                     (if two-phases?
+                       (append
+                         (begin
+                           (display (string-append "Phase 1/2: running "
+                                                   (number->string (length changed-test-files))
+                                                   " changed tests since "
+                                                   final-changed-since))
+                           (newline)
+                           (run-test-files changed-test-files jobs))
+                         (begin
+                           (display (string-append "Phase 2/2: running "
+                                                   (number->string (length remaining-test-files))
+                                                   " remaining tests"))
+                           (newline)
+                           (run-test-files remaining-test-files jobs)))
+                       (begin
+                         (when final-changed-since
+                           (display (string-append "Running changed tests since: "
+                                                   final-changed-since))
+                           (newline))
+                         (run-test-files test-files jobs)))))
               (let ((failed (display-summary test-results)))
                 (exit (if (> failed 0) -1 0))
               ) ;let
-            ) ;let
+            ) ;let*
           ) ;begin
         ) ;if
       ) ;let*
