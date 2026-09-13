@@ -38,9 +38,9 @@ for prog in "$dir"/m2a-*.scm; do
     echo '(gf0-import the-expander-library)'
     echo '(gf0-evalv opt)'
   } > "$gf0r"
-  ./bin/gf "$s7r" > /dev/null 2>&1 || true   # warm caches, discard
-  s7out=$(./bin/gf "$s7r" 2>&1 || true)
-  gf0out=$(./bin/gf "$gf0r" 2>&1 || true)
+  ./bin/gf -I "$dir" "$s7r" > /dev/null 2>&1 || true   # warm caches, discard
+  s7out=$(./bin/gf -I "$dir" "$s7r" 2>&1 || true)
+  gf0out=$(./bin/gf -I "$dir" "$gf0r" 2>&1 || true)
   rm -f "$s7r" "$gf0r"
   if [ "$s7out" != "$gf0out" ]; then
     echo "DIFF(m2a) $prog"; fail=1
