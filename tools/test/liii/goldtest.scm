@@ -334,7 +334,6 @@
         "tests/expander/internal-surface-test.scm"
         ;; Stale import views pinned from partial sources (audit's
         ;; deliberate-failure loads); needs the view-lifetime fix.
-        "tests/expander/lib-cache-test.scm"
         "tests/expander/lib-cache-all-libs-test.scm"
         ;; Order/layout-sensitive in shared processes (proven pairs).
         "tests/liii/bag/bag-replace-test.scm"
@@ -350,6 +349,7 @@
         "tests/scheme/base/bytevector-p-test.scm"
         "tests/scheme/base/list-p-test.scm"
         "tests/scheme/base/list-tail-test.scm"
+        "tests/scheme/process-context-test.scm"
         ;; Worker-context check failures (mechanism TBD).
         "tests/compiler/syntax-ir-test.scm"
         "tests/goldfish/liii/project-test.scm"

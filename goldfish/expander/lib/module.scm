@@ -549,18 +549,29 @@
 (define (load-library-file-cached! recs . maybe-level)
   (let ((level (registry-level-arg maybe-level)))
     (for-each (lambda (rec)
-                (let ((defs (lib-cache-defs rec)))
+                (let ((defs (lib-cache-defs rec))
+                      (name (lib-cache-name rec)))
                   (for-each (lambda (lib)
                               (if (and (not (runtime-registered? lib))
-                                       (not (equal? lib (lib-cache-name rec))))
+                                       (not (equal? lib name)))
                                 (load-library! lib)))
                             (apply append (map collect-cache-module-refs defs)))
-                  (eval-defs defs (lib-cache-name rec) level)
-                  (if (> level 0)
-                    ;; No runtime module was registered (eval-defs drops
-                    ;; the baked registration at level >= 1); mark the
-                    ;; level-keyed instance loaded.
-                    (runtime-registered-add! (lib-cache-name rec) level))))
+                  ;; Defs evaluate at most once per level per session:
+                  ;; re-evaluation mints fresh record types (and closures),
+                  ;; orphaning every object created by the first evaluation
+                  ;; (e.g. a default comparator held in another library's
+                  ;; cells stops satisfying its own predicate).
+                  ;; Level 0 evaluates in the session-global rootlet, so a
+                  ;; guarded skip is exact; level >= 1 targets the current
+                  ;; unit inlet and keeps its per-load evaluation.
+                  (if (or (> level 0) (not (runtime-registered? name level)))
+                    (begin
+                      (eval-defs defs name level)
+                      (if (> level 0)
+                        ;; No runtime module was registered (eval-defs drops
+                        ;; the baked registration at level >= 1); mark the
+                        ;; level-keyed instance loaded.
+                        (runtime-registered-add! name level))))))
               recs)))
 
 ;;; eval-defs : (list sexp) name [level] -> void
