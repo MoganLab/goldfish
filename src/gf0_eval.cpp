@@ -36,12 +36,17 @@
 
 #include "gf.h"
 
+#include <cstdint>
 #include <cstring>
 #include <memory>
 #include <string>
 #include <unordered_set>
 #include <utility>
 #include <vector>
+#if defined(__linux__)
+#include <pthread.h>
+#include <sys/resource.h>
+#endif
 
 namespace goldfish {
 namespace gf0 {
@@ -93,6 +98,8 @@ static std::vector<Closure>      s_registry;
 static std::unordered_set<void*> s_boxes; // c_object boxes holding a registry index
 static Env                       s_top;   // session env (defines persist)
 static pointer                   s_unassigned= nullptr; // letrec slot sentinel
+static gf::int_                  s_closure_type= -1;
+static gf::int_                  s_unassigned_type= -1;
 
 static pointer
 pin (scheme* sc, pointer p) {
@@ -106,12 +113,63 @@ fail (scheme* sc, const char* msg, pointer irritant) {
                     gf::list (sc, gf::make_string (sc, msg), irritant));
 }
 
+static gf::int_
+c_type_cached (scheme* sc, const char* name, gf::int_* slot) {
+  // make_c_type mints a fresh tag per call; cache one tag per box kind
+  // (100k lambdas must not mint 100k type tags).
+  if (*slot == -1) *slot= gf::make_c_type (sc, name);
+  return *slot;
+}
+
+#if defined(__linux__)
+// Exact C-stack guard: tree-walking without TCO overflows ~900 nested
+// applies at 8MB (measured). Fail cleanly instead of segfaulting; proper
+// tail calls are M-VM (engine-owned control stack).
+static void*  s_stack_base= nullptr;
+static size_t s_stack_size= 0;
+static void
+stack_init_once () {
+  if (s_stack_base == nullptr) {
+    pthread_attr_t attr;
+    if (pthread_getattr_np (pthread_self (), &attr) == 0) {
+      pthread_attr_getstack (&attr, &s_stack_base, &s_stack_size);
+      pthread_attr_destroy (&attr);
+    }
+  }
+  if (s_stack_base == nullptr) {
+    // Fallback: rlimit size + a near-top anchor captured here (init runs
+    // near the top of the main stack). Conservative: fires early, never late.
+    struct rlimit rl;
+    if (getrlimit (RLIMIT_STACK, &rl) == 0 && rl.rlim_cur != RLIM_INFINITY) {
+      char anchor;
+      s_stack_base= (void*) ((uintptr_t) &anchor - (uintptr_t) rl.rlim_cur);
+      s_stack_size= (size_t) rl.rlim_cur;
+    }
+  }
+}
+static bool
+stack_low () {
+  if (s_stack_base == nullptr) return false;
+  char here;
+  uintptr_t sp= (uintptr_t) &here;
+  return sp < (uintptr_t) s_stack_base + (uintptr_t) (1 << 20);
+}
+#else
+static void stack_init_once () {}
+static bool stack_low () { return false; }
+#endif
+
 static pointer
 unassigned_box (scheme* sc) {
   if (s_unassigned == nullptr) {
+    // NOTE: the value slot must hold a REAL s7 object (here an integer),
+    // and the let slot a REAL let (rootlet): s7's GC marks both, and
+    // fake pointers / nil here segfault the marker on first collection
+    // (M2a deep-recursion crash).
     s_unassigned= pin (sc, gf::make_c_object_with_let (
-                           sc, gf::make_c_type (sc, "gf0-unassigned"),
-                           nullptr, gf::nil (sc)));
+                           sc, c_type_cached (sc, "gf0-unassigned", &s_unassigned_type),
+                           (void*) pin (sc, gf::make_integer (sc, -1)),
+                           gf::rootlet (sc)));
   }
   return s_unassigned;
 }
@@ -291,7 +349,7 @@ apply_closure (scheme* sc, const Closure& c, pointer arglist, pointer ctx) {
 static V
 apply_values (scheme* sc, pointer proc, const std::vector<pointer>& many, pointer ctx) {
   if (s_boxes.find ((void*) proc) != s_boxes.end ()) {
-    gf::int_ idx= (gf::int_) (intptr_t) gf::c_object_value (proc);
+    gf::int_ idx= gf::integer ((pointer) gf::c_object_value (proc));
     if (idx < 0 || (size_t) idx >= s_registry.size ())
       return single (fail (sc, "gf0: stale closure", proc));
     return apply_closure (sc, s_registry[(size_t) idx], args_to_list (sc, many), ctx);
@@ -302,6 +360,8 @@ apply_values (scheme* sc, pointer proc, const std::vector<pointer>& many, pointe
 
 static V
 eval (scheme* sc, pointer x, Env env) {
+  if (stack_low ())
+    return single (fail (sc, "gf0: C stack low (no TCO yet; see M-VM)", x));
   // Self-evaluating.
   if (gf::is_boolean (x) || gf::is_number (x) || gf::is_string (x) ||
       gf::is_character (x) || gf::is_null (sc, x) || gf::is_vector (x))
@@ -353,8 +413,9 @@ eval (scheme* sc, pointer x, Env env) {
     s_registry.push_back (c);
     gf::int_ idx= (gf::int_) (s_registry.size () - 1);
     pointer  box= pin (sc, gf::make_c_object_with_let (
-                         sc, gf::make_c_type (sc, "gf0-closure"),
-                         (void*) (intptr_t) idx, gf::nil (sc)));
+                         sc, c_type_cached (sc, "gf0-closure", &s_closure_type),
+                         (void*) pin (sc, gf::make_integer (sc, idx)),
+                         gf::rootlet (sc)));
     s_boxes.insert ((void*) box);
     return single (box);
   }
@@ -567,6 +628,7 @@ eval (scheme* sc, pointer x, Env env) {
 
 static void
 ensure_top (scheme* sc) {
+  stack_init_once ();
   if (s_top.frames == nullptr) {
     s_top.frames= std::make_shared<std::vector<std::shared_ptr<Frame>>> ();
     s_top.frames->push_back (std::make_shared<Frame> ());
@@ -583,7 +645,7 @@ f_gf0_apply (scheme* sc, pointer args) {
   pointer arglist= gf::car (tail);
   if (s_boxes.find ((void*) box) == s_boxes.end ())
     return fail (sc, "gf0: stale closure", box);
-  gf::int_ idx= (gf::int_) (intptr_t) gf::c_object_value (box);
+  gf::int_ idx= gf::integer ((pointer) gf::c_object_value (box));
   if (idx < 0 || (size_t) idx >= s_registry.size ())
     return fail (sc, "gf0: stale closure", box);
   V r= apply_closure (sc, s_registry[(size_t) idx], arglist, box);
