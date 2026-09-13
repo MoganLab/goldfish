@@ -75,3 +75,8 @@ s7 列为当前后端实测；guile 3.0.11 / racket 9.2 双方验证
 
 - `validate-core-sexp` 现为桩（非 pair 返 `#f`），管线执法靠
   `core-form?`/`core-node-of`；新引擎上线时二选一：补全它或删之。
+- `call/cc`/`dynamic-wind` 不可委托：s7 continuation 只捕获 s7 栈，
+  gf0 闭包传给 s7 的 `call/cc` 被拒（实测 wrong-type-arg），且即使
+  递入 s7 闭包、escape 也会丢 gf0 的 C++ 求值帧。须引擎自有控制栈
+  （M-VM），在此之前 gf0 高阶互操作止于 trampoline 回调
+  （`g_gf0-apply`，限单值）。

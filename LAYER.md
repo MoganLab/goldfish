@@ -29,7 +29,7 @@ L7 loader ─> L5 compiler ─> L4 expander-lib ─> L3 expander-rt ─> L2 core
 - **原语表 `g_*`**：无状态、单一职责的宿主调用，不含业务编排。
 - 每份契约**有计数、有版本**（opcode 数、原语数、格式标签数、格式版本），预算接口面而非文件内容。
 - **文件**：`src/gf.h` / `src/gf.cpp` / `src/gf_glue.hpp` 为唯一可 `#include "s7.h"` 且唯一可直接调用 `s7_*` 的位置；对外仅暴露 `gf::` 命名空间与 `gf::host_version`/`host_date`。`src/liii_*.cpp`、`scheme_*.cpp` 是按主题拆分的原语实现文件（属本层原语表，同样只经 `gf.h` 访问 s7）。
-- **冻结基线**：`tools/freeze-substrate.sh` 生成、`tools/substrate-baseline.txt` 存档——A `gf::` 转发 115（`src/gf_forwards.def`）、B `GF_GLUE` 声明式原语 37、C Scheme 可见 C++ 原语 117（114 个 `g_*` + `iota`/`read`/`version`，含 3 个 gf0 引擎入口）、D `core-language` 14。lint 逐行 diff，增长须同 commit 更新基线并说明理由。
+- **冻结基线**：`tools/freeze-substrate.sh` 生成、`tools/substrate-baseline.txt` 存档——A `gf::` 转发 115（`src/gf_forwards.def`）、B `GF_GLUE` 声明式原语 37、C Scheme 可见 C++ 原语 118（115 个 `g_*` + `iota`/`read`/`version`，含 4 个 gf0 引擎入口）、D `core-language` 14。lint 逐行 diff，增长须同 commit 更新基线并说明理由。
 
 ## L1 tiny
 
@@ -103,9 +103,9 @@ L7 loader ─> L5 compiler ─> L4 expander-lib ─> L3 expander-rt ─> L2 core
 - **核心语言**（tree-il 的语法面）：`quote define lambda if begin let let* letrec letrec* set!` 十个 special forms，加 `values call-with-values`（多值派生）与 `module-ref module-set`（跨库引用）——权威定义在 `goldfish/core/ir.scm` 的 `core-language` 表（含到 IR 节点的映射与文法）；其余一切形式按定义皆为调用。校验器 `validate-core-sexp` 供管线变更时执法。
 - 其余为底层语言内建（算术/string/vector/hash-table/port…），按 R7RS-small + 必要扩展对齐，不逐一枚举。
 
-### T2 平台能力（非语言；来自 OS/C 标准库，共 114 个 `g_*`，另 `iota`/`read`/`version` 三个非 g_ 名）
+### T2 平台能力（非语言；来自 OS/C 标准库，共 115 个 `g_*`，另 `iota`/`read`/`version` 三个非 g_ 名）
 
-- GF_GLUE 声明式原语 37（os 17 / path 11 / hashlib 6 / base64 2 / string-split 1）、njson 32、sys/time/process-context 20（含 4 时钟常量）、http 8、reader 7、char 5 + string->utf8、gf0 引擎入口 3。完整名单见 `tools/substrate-baseline.txt` 表 C。
+- GF_GLUE 声明式原语 37（os 17 / path 11 / hashlib 6 / base64 2 / string-split 1）、njson 32、sys/time/process-context 20（含 4 时钟常量）、http 8、reader 7、char 5 + string->utf8、gf0 引擎入口 4。完整名单见 `tools/substrate-baseline.txt` 表 C。
 
 ### T3 下沉候补（空）
 

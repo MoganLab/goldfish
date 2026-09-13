@@ -13,9 +13,14 @@
 //     boot); module-set is (set! (module-ref 'l 'n) v) with write-through
 //     via (setter module-ref). The ((setter module-ref) ..) shape needs no
 //     special case (generic call path handles it).
-//   Multi-values: eval yields V (single|multi); s7 calls go through a
-//     (call-with-values thunk list) eval-wrap so arity-0..n all collect
-//     uniformly (quoting makes the wrap value-exact).
+//   Multi-values: eval yields V (single|multi); s7 calls go through the
+//     same eval-wrap so arity-0..n all collect uniformly (quoting makes
+//     the wrap value-exact).
+//   Interop: s7 procedures apply via a (call-with-values thunk list)
+//     eval-wrap (uniform 0..n collection, s7 collapse rule); gf0 closures
+//     crossing into s7 are wrapped in a trampoline calling back through
+//     g_gf0-apply (callbacks must be single-valued; closure eq? across
+//     the boundary is not preserved).
 //   R7RS-strict (intentional s7 divergences, see CORE-SEMANTICS.md):
 //     single unspecified delivers 1 value; letrec init-period reads error.
 // Known limits (by design, not bugs): no TCO (C++ stack bounds recursion),
@@ -181,13 +186,32 @@ lookup_raw (scheme* sc, pointer sym, Env env) {
 // s7 call with uniform multi collection: (call-with-values
 // (lambda () (PROC 'A ...)) list) always yields a proper list, even for
 // 0 results. Quoting is value-exact for every type (symbols included).
+// gf0 closures crossing into s7 are wrapped in a trampoline lambda that
+// calls back via g_gf0-apply (s7 cannot apply c_object boxes; callbacks
+// must be single-valued).
+static pointer
+wrap_for_s7 (scheme* sc, pointer box) {
+  pointer quote_sym= pin (sc, gf::make_symbol (sc, "quote"));
+  pointer inner= pin (sc, gf::list (sc,
+    pin (sc, gf::make_symbol (sc, "g_gf0-apply")),
+    pin (sc, gf::list (sc, quote_sym, box)),
+    pin (sc, gf::make_symbol (sc, "args"))));
+  pointer expr= pin (sc, gf::list (sc,
+    pin (sc, gf::make_symbol (sc, "lambda")),
+    pin (sc, gf::make_symbol (sc, "args")),
+    inner));
+  return pin (sc, gf::eval (sc, expr, gf::rootlet (sc)));
+}
+
 static V
 s7call_vec (scheme* sc, pointer proc, const std::vector<pointer>& argv) {
   pointer quote_sym= pin (sc, gf::make_symbol (sc, "quote"));
   std::vector<pointer> qargs;
   qargs.reserve (argv.size ());
-  for (pointer a : argv)
-    qargs.push_back (pin (sc, gf::list (sc, quote_sym, a)));
+  for (pointer a : argv) {
+    pointer v= (s_boxes.find ((void*) a) != s_boxes.end ()) ? wrap_for_s7 (sc, a) : a;
+    qargs.push_back (pin (sc, gf::list (sc, quote_sym, v)));
+  }
   pointer callexpr= pin (sc, gf::cons (sc, pin (sc, gf::list (sc, quote_sym, proc)),
                                        pin (sc, args_to_list (sc, qargs))));
   pointer thunk= pin (sc, gf::list (sc, pin (sc, gf::make_symbol (sc, "lambda")),
@@ -551,6 +575,22 @@ ensure_top (scheme* sc) {
 }
 
 static gf::pointer
+f_gf0_apply (scheme* sc, pointer args) {
+  pointer box= gf::car (args);
+  pointer tail= gf::cdr (args);
+  if (!gf::is_pair (tail) || gf::is_pair (gf::cdr (tail)))
+    return fail (sc, "gf0: g_gf0-apply takes (box arglist)", args);
+  pointer arglist= gf::car (tail);
+  if (s_boxes.find ((void*) box) == s_boxes.end ())
+    return fail (sc, "gf0: stale closure", box);
+  gf::int_ idx= (gf::int_) (intptr_t) gf::c_object_value (box);
+  if (idx < 0 || (size_t) idx >= s_registry.size ())
+    return fail (sc, "gf0: stale closure", box);
+  V r= apply_closure (sc, s_registry[(size_t) idx], arglist, box);
+  return must_single (sc, r, box, "gf0: s7 callback must be single-valued");
+}
+
+static gf::pointer
 f_gf0_eval (scheme* sc, pointer args) {
   ensure_top (sc);
   V r= eval (sc, gf::car (args), s_top);
@@ -610,6 +650,8 @@ glue_gf0_eval (gf::scheme* sc) {
                        "(g_gf0-eval-values datum) => list of values from reference eval");
   gf::define_function (sc, "g_gf0-import-inlet", gf0::f_gf0_import_inlet, 1, 0, false,
                        "(g_gf0-import-inlet inlet) => unspecified, seed gf0 session env from an s7 inlet");
+  gf::define_function (sc, "g_gf0-apply", gf0::f_gf0_apply, 2, 0, false,
+                       "(g_gf0-apply box arglist) => value, apply a gf0 closure box (s7 callback entry)");
 }
 
 } // namespace goldfish

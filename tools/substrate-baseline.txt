@@ -176,6 +176,7 @@ g_getenvs
 g_getlogin
 g_getpid
 g_get-time-of-day
+g_gf0-apply
 g_gf0-eval
 g_gf0-eval-values
 g_gf0-import-inlet
@@ -272,7 +273,7 @@ g_which
 iota
 read
 version
-count=117
+count=118
 == D core-language ==
 begin
 call-with-values
