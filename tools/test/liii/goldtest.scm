@@ -296,10 +296,12 @@
 
     (define (run-test-files test-files jobs)
       ;; jobs<=1 keeps the original serial behavior (inline output);
-      ;; jobs>1 runs batches of `jobs' files concurrently.
+      ;; jobs>1 runs persistent chunk workers (plus the isolated path
+      ;; for denylisted files), falling back to serial runs when the
+      ;; worker program is unavailable.
       (if (<= jobs 1)
         (map (lambda (f) (run-test-file f)) test-files)
-        (if (and workers-enabled? (find-worker-program))
+        (if (find-worker-program)
           (run-test-worker-batches test-files jobs)
           (let loop ((files test-files) (acc '()))
             (if (null? files)
@@ -312,10 +314,6 @@
         ) ;if
       ) ;if
     ) ;define
-
-    (define workers-enabled?
-      (let ((v (get-environment-variable "GOLDFISH_TEST_WORKERS")))
-        (and v (not (member v '("0" "no" "false" "off"))) #t)))
 
     (define worker-chunk-size 32)
 
@@ -346,6 +344,7 @@
         "tests/liii/vector/vector-set-bang-test.scm"
         ;; Layout-sensitive under worker heap reuse (flake in chunks,
         ;; stable isolated).
+        "tests/liii/ascii/ascii-bytevector-p-test.scm"
         "tests/scheme/base/append-test.scm"
         "tests/scheme/base/assq-test.scm"
         "tests/scheme/base/bytevector-p-test.scm"
