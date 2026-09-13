@@ -49,6 +49,47 @@
     (define YELLOW (color 33))
     (define RESET (color 0))
 
+    ;; Opt-in per-file timing (GOLDFISH_TEST_TIMING=1): record each worker's
+    ;; wall milliseconds and report the distribution with the summary.
+    ;; Default off: output and .code file formats stay exactly as before.
+    (define timing-enabled?
+      (let ((v (get-environment-variable "GOLDFISH_TEST_TIMING")))
+        (and v (not (member v '("0" "no" "false" "off"))) #t)))
+
+    (define (now-ms)
+      ;; GNU date nanoseconds (Linux CI/dev); #f when unavailable.
+      (let ((tmp (test-path-join (os-temp-dir)
+                   (string-append "gf-test-clock-"
+                                  (number->string (getpid)) ".txt"))))
+        (shell-command (string-append "date +%s%N > " tmp " 2>&1"))
+        (let ((ms (if (file-exists? tmp)
+                    (let ((p (open-input-file tmp)))
+                      (let ((v (string->number (read-line p))))
+                        (close-input-port p)
+                        (if (and v (integer? v) (>= v 0))
+                          (quotient v 1000000)
+                          #f)))
+                    #f)))
+          (when (file-exists? tmp) (remove tmp))
+          ms)))
+
+    (define *test-timings* '())
+
+    (define (record-timing! f ms)
+      (when (and timing-enabled? ms)
+        (set! *test-timings* (cons (cons f ms) *test-timings*))))
+
+    (define (parse-code-line line)
+      ;; "exit" or "exit ms" -> (exit . ms-or-#f).
+      (let ((n (string-length line)))
+        (let loop ((i 0))
+          (if (>= i n)
+            (cons (string->number line) #f)
+            (if (char=? (string-ref line i) #\space)
+              (cons (string->number (substring line 0 i))
+                    (string->number (substring line (+ i 1) n)))
+              (loop (+ i 1)))))))
+
     (define (test-path-join . parts)
       ;; Normalize dotted-rest invocation for apply-style calls
       (let* ((parts (if (and (pair? parts) (pair? (car parts)) (string? (caar parts)))
@@ -114,7 +155,10 @@
         (newline)
         (display cmd)
         (newline)
-        (let ((result (os-call cmd)))
+        (let* ((t0 (and timing-enabled? (now-ms)))
+               (result (os-call cmd))
+               (t1 (and timing-enabled? (now-ms))))
+          (record-timing! test-file (and t0 t1 (- t1 t0)))
           (cons test-file result)
         ) ;let
       ) ;let
@@ -195,11 +239,17 @@
               (script (string-append
                         (string-join
                            (map (lambda (s)
-                                 (string-append "(" (shell-quote (executable))
-                                                " -m liii " (worker-extra-path-args)
-                                                (shell-quote (car s))
-                                               " > " (shell-quote (cadr s))
-                                               " 2>&1; echo $? > " (shell-quote (caddr s)) ") &"))
+                                 (let ((core (string-append (shell-quote (executable))
+                                                           " -m liii " (worker-extra-path-args)
+                                                           (shell-quote (car s))
+                                                           " > " (shell-quote (cadr s))
+                                                           " 2>&1")))
+                                   (if timing-enabled?
+                                     (string-append "(t0=$(date +%s%N); " core
+                                                    "; c=$?; t1=$(date +%s%N); echo $c $(( (t1-t0)/1000000 ))"
+                                                    " > " (shell-quote (caddr s)) ") &")
+                                     (string-append "(" core
+                                                    "; echo $? > " (shell-quote (caddr s)) ") &"))))
                               specs)
                          " ")
                        " wait"))
@@ -211,17 +261,15 @@
         (let ((results
                 (map (lambda (s)
                        (let* ((f (car s)) (out (cadr s)) (code (caddr s))
-                              (n (if (file-exists? code)
-                                   (let ((p (open-input-file code)))
-                                     (let ((v (string->number (read-line p))))
-                                       (close-input-port p)
-                                       v
-                                     ) ;let
-                                   ) ;let
-                                   #f
-                                 ) ;if
-                               ) ;n
+                              (parsed (if (file-exists? code)
+                                        (let ((p (open-input-file code)))
+                                          (let ((v (parse-code-line (read-line p))))
+                                            (close-input-port p)
+                                            v))
+                                        #f))
+                              (n (and parsed (car parsed)))
                              ) ;
+                         (record-timing! f (and parsed (cdr parsed)))
                          (when (and n (not (zero? n)))
                            (newline)
                            (display "----------->")
@@ -306,6 +354,49 @@
           (for-each (lambda (test-file) (display (string-append "    " test-file)) (newline))
             failed-files
           ) ;for-each
+        ) ;when
+        (when (and timing-enabled? (pair? *test-timings*))
+          (let* ((ms-list (map cdr *test-timings*))
+                 (total-ms (apply + ms-list))
+                 (sorted (list-sort (lambda (a b) (> (cdr a) (cdr b)))
+                                    *test-timings*))
+                 (buckets (let loop ((ls ms-list)
+                                     (b100 0) (b500 0) (b1000 0) (b5000 0) (bign 0))
+                            (if (null? ls)
+                              (list b100 b500 b1000 b5000 bign)
+                              (let ((m (car ls)))
+                                (loop (cdr ls)
+                                      (if (< m 100) (+ b100 1) b100)
+                                      (if (and (>= m 100) (< m 500)) (+ b500 1) b500)
+                                      (if (and (>= m 500) (< m 1000)) (+ b1000 1) b1000)
+                                      (if (and (>= m 1000) (< m 5000)) (+ b5000 1) b5000)
+                                      (if (>= m 5000) (+ bign 1) bign))))))
+                 (top (let loop ((ls sorted) (i 0) (acc '()))
+                        (if (or (null? ls) (>= i 10))
+                          (reverse acc)
+                          (loop (cdr ls) (+ i 1) (cons (car ls) acc))))))
+            (newline)
+            (display "=== Timing (ms) ===")
+            (newline)
+            (display (string-append "  Files: " (number->string (length ms-list))
+                                   ", total CPU: " (number->string total-ms)
+                                   ", avg: " (number->string (quotient total-ms (length ms-list)))
+                                   ", max: " (number->string (cdar sorted))))
+            (newline)
+            (display (string-append "  Buckets(ms): <100:" (number->string (car buckets))
+                                   " 100-500:" (number->string (cadr buckets))
+                                   " 500-1000:" (number->string (caddr buckets))
+                                   " 1000-5000:" (number->string (cadddr buckets))
+                                   " >=5000:" (number->string (car (cddddr buckets)))))
+            (newline)
+            (display "  Slowest:")
+            (newline)
+            (for-each (lambda (e)
+                        (display (string-append "    " (number->string (cdr e))
+                                               " " (car e)))
+                        (newline))
+              top)
+          ) ;let
         ) ;when
         (newline)
         failed
