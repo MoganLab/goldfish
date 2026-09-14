@@ -32,40 +32,40 @@
 
     (define (make-pending-close-from-token frame token)
       (make-pending-close
-        :frame frame
+        :frame  frame
         :offset (fix-token-offset token)
-        :end (fix-token-end token)
-        :line (fix-token-line token)
+        :end    (fix-token-end token)
+        :line   (fix-token-line token)
         :column (fix-token-column token)
       ) ;make-pending-close
     ) ;define
 
     (define (make-insert-edit offset reason frame)
       (make-fix-edit
-        :kind 'insert
-        :offset offset
-        :text ")"
-        :reason reason
+        :kind        'insert
+        :offset      offset
+        :text        ")"
+        :reason      reason
         :open-offset (open-frame-offset frame)
       ) ;make-fix-edit
     ) ;define
 
     (define (make-delete-edit token reason open-offset)
       (make-fix-edit
-        :kind 'delete
-        :start (fix-token-offset token)
-        :end (fix-token-end token)
-        :reason reason
+        :kind        'delete
+        :start       (fix-token-offset token)
+        :end         (fix-token-end token)
+        :reason      reason
         :open-offset open-offset
       ) ;make-fix-edit
     ) ;define
 
     (define (make-delete-edit-from-pending pending reason)
       (make-fix-edit
-        :kind 'delete
-        :start (pending-close-offset pending)
-        :end (pending-close-end pending)
-        :reason reason
+        :kind        'delete
+        :start       (pending-close-offset pending)
+        :end         (pending-close-end pending)
+        :reason      reason
         :open-offset (open-frame-offset (pending-close-frame pending))
       ) ;make-fix-edit
     ) ;define
@@ -274,8 +274,8 @@
               ) ;
           (values repaired
             (make-repair-report
-              :ok? ok?
-              :edits ordered-edits
+              :ok?         ok?
+              :edits       ordered-edits
               :diagnostics (reverse diagnostics)
             ) ;make-repair-report
           ) ;values
