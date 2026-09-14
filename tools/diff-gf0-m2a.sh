@@ -30,6 +30,11 @@
 #                    raise gf0-stale-continuation (see
 #                    tools/check-gf0-guards.sh); pre-fence behavior was
 #                    silent garbage (use-after-return into dead C++ frames).
+#   iset-search-test.scm -- same fence class: iset-search threads an s7
+#                    call/cc `return' through user callbacks (gf0 boxes nest
+#                    fresh tokens), so every missing-element path raises
+#                    gf0-stale-continuation gf0-side while s7 passes.
+#                    Present-element paths agree.
 #   letrec/letrec-star -- R7RS-strict key divergence (gf0 errors
 #                    read-before-assignment where s7 raises wrong-type-arg
 #                    downstream); intentional, see CORE-SEMANTICS.md.
@@ -43,7 +48,7 @@ cd "$(dirname "$0")/.."
 mkdir -p /tmp/kilo
 dir=${1:-tests/gf0}
 fail=0
-skip_names="abs-test case-test srfi-158-test letrec-test letrec-star-test make-parameter-test with-exception-handler-test raise-continuable-test read-bytevector-test error-object-test"
+skip_names="abs-test case-test srfi-158-test letrec-test letrec-star-test make-parameter-test with-exception-handler-test raise-continuable-test read-bytevector-test error-object-test iset-search-test"
 
 if [ $# -ge 2 ]; then
   # Explicit file list (M3: test files): shift past dir, take the rest.

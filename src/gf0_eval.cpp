@@ -652,6 +652,8 @@ static const struct HofLib { const char* lib; const char* name; int p0; int p1; 
   {"(srfi srfi-133)", "vector-partition", 0, -1},
   {"(srfi srfi-78)", "check:proc", 1, -1},
   {"(srfi srfi-128)", "make-comparator", -2, -1},
+  {"(srfi srfi-217)", "iset-search", 2, 3},
+  {"(srfi srfi-217)", "iset-search!", 2, 3},
   {nullptr, nullptr, -1, -1},
 };
 static std::vector<std::pair<pointer, int>> s_hof_procs;
@@ -1753,9 +1755,9 @@ static const char kStaleCcGuard[] =
   "    (define (%gf0-guarded-cc native proc) "
   "      (let ((tok (g_gf0-s7call-token))) "
   "        (native (lambda (k) "
-  "                  (proc (lambda (v) "
+  "                  (proc (lambda args "
   "                          (if (equal? tok (g_gf0-s7call-token)) "
-  "                              (k v) "
+  "                              (apply k args) "
   "                              (error 'gf0-stale-continuation "
   "                                     \"s7 continuation invoked after its s7call frame returned\"))))))))) "
   "  (define (call/cc proc) (%gf0-guarded-cc %gf0-native-call/cc proc)) "
