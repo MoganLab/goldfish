@@ -30,10 +30,11 @@
 //     the boundary is not preserved).
 //   R7RS-strict (intentional s7 divergences, see CORE-SEMANTICS.md):
 //     single unspecified delivers 1 value; letrec init-period reads error.
-// Known limits (by design, not bugs): no TCO (C++ stack bounds recursion),
-//   no unprotect (all held pointers are pinned for the session; debug-scale
-//   only), symbols compared by name (interning-robust), toplevel cells still
-//   delegate to the s7 rootlet (M2).
+// Known limits (by design, not bugs): no unprotect (all held pointers are
+//   pinned for the session; debug-scale only), symbols compared by name
+//   (interning-robust). Toplevel cells are gf0-owned since M2 (session top
+//   frame seeded once from the rootlet; later s7-side definitions invisible
+//   by design). TCO via the CEK loop; C-stack guard kept for s7call leaves.
 //
 // Errors are GfEx (C++ exception through gf0 frames only): fail() throws,
 // s7 errors convert at the s7call boundary (catch-wrap + marker), catch/
@@ -230,9 +231,21 @@ lexically_bound (pointer sym, Env env) {
   return false;
 }
 
+// User shadowing check: frame 0 is the host snapshot (M2 seed), never
+// user code. Seeded host names (call/cc, let, ...) must NOT count as
+// shadowed, or the syntax/call-cc gates misfire (M2 generator regress).
+static bool
+user_bound (pointer sym, Env env) {
+  for (size_t i= env.frames->size (); i-- > 0;) {
+    if (i == 0) continue;
+    if (frame_has (sym, (*env.frames)[i])) return true;
+  }
+  return false;
+}
+
 static bool
 is_frontend_syntax (pointer sym, Env env) {
-  if (!gf::is_symbol (sym) || lexically_bound (sym, env)) return false;
+  if (!gf::is_symbol (sym) || user_bound (sym, env)) return false;
   const char* want= gf::symbol_name (sym);
   for (const char** k= kFrontendSyntax; *k; ++k)
     if (std::strcmp (want, *k) == 0) return true;
@@ -260,8 +273,9 @@ lookup_raw (scheme* sc, pointer sym, Env env) {
       if (std::strcmp (gf::symbol_name (bs[j].sym), want) == 0)
         return bs[j].val;
   }
-  // Scaffolding: fall back to the s7 rootlet (toplevel cells, M2).
-  if (gf::is_defined (sc, want)) return gf::name_to_value (sc, want);
+  // M2: no live rootlet fallback. The session top frame is seeded from the
+  // rootlet once (ensure_top); anything not found is unbound, even if s7
+  // defines it later. Engines diverge by design from here on.
   return fail (sc, "gf0: unbound variable", sym);
 }
 
@@ -792,7 +806,7 @@ stepE (scheme* sc, pointer x, Env env, Kont& k) {
   }
   // Call: (proc args...).
   pointer head= gf::car (x);
-  if (is_cc_name (head) && !lexically_bound (head, env)) {
+  if (is_cc_name (head) && !user_bound (head, env)) {
     pointer rest= gf::cdr (x);
     if (!gf::is_pair (rest) || gf::is_pair (gf::cdr (rest)))
       return ctlVals (single (fail (sc, "gf0: call/cc takes exactly one proc", x)));
@@ -808,7 +822,7 @@ stepE (scheme* sc, pointer x, Env env, Kont& k) {
     return ctlExpr (gf::car (rest), env);
   }
   if (gf::is_symbol (head) && std::strcmp (gf::symbol_name (head), "dynamic-wind") == 0 &&
-      !lexically_bound (head, env)) {
+      !user_bound (head, env)) {
     pointer rest= gf::cdr (x);
     if (!gf::is_pair (rest) || !gf::is_pair (gf::cdr (rest)) ||
         !gf::is_pair (gf::cdr (gf::cdr (rest))) ||
@@ -851,10 +865,10 @@ lookup_assign (scheme* sc, Env env, pointer name, pointer v, pointer ctx) {
       }
     }
   }
-  if (gf::is_defined (sc, want)) { // s7 toplevel cell (scaffolding, M2)
-    gf::define (sc, gf::rootlet (sc), name, v);
-    return nullptr;
-  }
+  // M2: assignment targets gf0 frames only; the session top frame is
+  // seeded from the rootlet once (ensure_top). No live fallback.
+  (void) sc;
+  (void) ctx;
   fail (sc, "gf0: set! of unbound variable", name);
   return nullptr; // unreachable; keeps form
 }
@@ -1200,14 +1214,42 @@ gfex_to_error (scheme* sc, GfEx& e) {
   return gf::error (sc, type, args_to_list (sc, rest));
 }
 
+// Copy an inlet's (name . value) cells into the session top frame by
+// reference (pinned). Used once for the rootlet (M2 snapshot) and on
+// demand for library inlets (M2a artifact bridge: gensyms resolve only
+// in the-expander-library).
+static void
+seed_from_inlet (scheme* sc, pointer inlet) {
+  pointer alist= gf::let_to_list (sc, inlet);
+  for (; gf::is_pair (alist); alist= gf::cdr (alist)) {
+    pointer e= gf::car (alist);
+    pointer sym= nullptr;
+    pointer val= nullptr;
+    if (gf::is_pair (e) && gf::is_symbol (gf::car (e))) {
+      sym= gf::car (e);
+      pointer tail= gf::cdr (e);
+      val= gf::is_pair (tail) ? gf::car (tail) : tail;
+    }
+    if (sym != nullptr)
+      s_top.frames->back ()->bindings.push_back ({pin (sc, sym), pin (sc, val)});
+  }
+}
+
 static void
 ensure_top (scheme* sc) {
   stack_init_once ();
   if (s_top.frames == nullptr) {
     s_top.frames= std::make_shared<std::vector<std::shared_ptr<Frame>>> ();
+    // Frame 0 = host snapshot (M2 seed, never user code); frame 1+ = user.
+    // Shadow checks (user_bound) skip frame 0 so seeded host names never
+    // count as user shadowing; lookup/set! see all frames normally.
+    s_top.frames->push_back (std::make_shared<Frame> ());
+    // M2 snapshot: own every toplevel cell from here on. Primitives stay
+    // host values (referenced, never re-resolved); later s7-side rootlet
+    // definitions are invisible by design.
+    seed_from_inlet (sc, gf::rootlet (sc));
     s_top.frames->push_back (std::make_shared<Frame> ());
   }
-  (void) sc;
 }
 
 static gf::pointer
@@ -1262,20 +1304,7 @@ f_gf0_eval (scheme* sc, pointer args) {
 static gf::pointer
 f_gf0_import_inlet (scheme* sc, pointer args) {
   ensure_top (sc);
-  pointer inlet= gf::car (args);
-  pointer alist= gf::let_to_list (sc, inlet);
-  for (; gf::is_pair (alist); alist= gf::cdr (alist)) {
-    pointer e= gf::car (alist);
-    pointer sym= nullptr;
-    pointer val= nullptr;
-    if (gf::is_pair (e) && gf::is_symbol (gf::car (e))) {
-      sym= gf::car (e);
-      pointer tail= gf::cdr (e);
-      val= gf::is_pair (tail) ? gf::car (tail) : tail;
-    }
-    if (sym != nullptr)
-      s_top.frames->back ()->bindings.push_back ({pin (sc, sym), pin (sc, val)});
-  }
+  seed_from_inlet (sc, gf::car (args));
   return gf::unspecified (sc);
 }
 
