@@ -170,6 +170,21 @@
 
     ;; ; 检查 env 是否为 quote 形式
     ;; ; stem 模式下 quote 是普通符号，env 按普通列表输出，不糖化为 '
+    (define (keyword-node? node)
+      (and (atom? node) (keyword? (atom-value node)))
+    ) ;define
+
+    (define (no-keyword-args-form? tag-name)
+      (if (member tag-name
+            '("define" "define*" "define-values" "define-syntax" "define-macro"
+              "define-record-type" "define-library" "import" "export"
+             )
+          )
+        #t
+        #f
+      ) ;if
+    ) ;define
+
     (define (quote-env? node)
       (and (not (stem-mode?))
         (env? node)
@@ -302,6 +317,7 @@
           (if (or (not (pair? current))
                 (>= selected-count limit)
                 (newline-marker-datum? (car current))
+                (keyword? (car current))
               ) ;or
             (reverse result)
             (let* ((item (car current))
@@ -500,17 +516,30 @@
       (and (not (pair? item)) (not (vector? item)) (not (byte-vector? item)))
     ) ;define
 
-    ;; ; 判断一个 proper list 是否全部元素都是 atom 且数量达到 fill 阈值
-    (define (reader-fill-eligible? datum)
+    (define (reader-has-keyword? datum)
       (let loop
-        ((current datum) (count 0))
-        (cond ((null? current) (>= count fill-min-children))
-              ((and (pair? current) (reader-fill-atom? (car current)))
-               (loop (cdr current) (+ count 1))
-              ) ;
+        ((current datum))
+        (cond ((null? current) #f)
+              ((and (pair? current) (keyword? (car current))) #t)
+              ((pair? current) (loop (cdr current)))
               (else #f)
         ) ;cond
       ) ;let
+    ) ;define
+
+    ;; ; 判断一个 proper list 是否全部元素都是 atom 且数量达到 fill 阈值
+    (define (reader-fill-eligible? datum)
+      (and (not (reader-has-keyword? datum))
+        (let loop
+          ((current datum) (count 0))
+          (cond ((null? current) (>= count fill-min-children))
+                ((and (pair? current) (reader-fill-atom? (car current)))
+                 (loop (cdr current) (+ count 1))
+                ) ;
+                (else #f)
+          ) ;cond
+        ) ;let
+      ) ;and
     ) ;define
 
     ;; ; fill 布局：元素尽量填充到同一行（不超过 max-inline-length）。
@@ -553,31 +582,73 @@
     (define (reader-append-rest current result rest-indent prefix-ready? close-indent)
       (cond ((pair? current)
              (let ((item (car current)))
-               (if (newline-marker-datum? item)
-                 (reader-append-rest (cdr current)
-                   (string-append result (reader-newlines (cadr item)) (spaces rest-indent))
-                   rest-indent
-                   #t
-                   close-indent
-                 ) ;reader-append-rest
-                 (let ((is-last-comment? (and (null? (cdr current)) (comment-datum? item)))
-                       (item-text (format-reader-datum-at item
-                                    (if prefix-ready? (last-line-column result) rest-indent)
-                                  ) ;format-reader-datum-at
-                       ) ;item-text
-                      ) ;
-                   (reader-append-rest (cdr current)
-                     (string-append result
-                       (if prefix-ready? "" (string-append "\n" (spaces rest-indent)))
-                       item-text
-                       (if is-last-comment? (string-append "\n" (spaces close-indent)) "")
-                     ) ;string-append
-                     rest-indent
-                     #f
-                     close-indent
-                   ) ;reader-append-rest
-                 ) ;let
-               ) ;if
+               (cond ((newline-marker-datum? item)
+                      (reader-append-rest (cdr current)
+                        (string-append result (reader-newlines (cadr item)) (spaces rest-indent))
+                        rest-indent
+                        #t
+                        close-indent
+                      ) ;reader-append-rest
+                     ) ;
+                     ((and (keyword? item)
+                        (pair? (cdr current))
+                        (not (newline-marker-datum? (cadr current)))
+                        (not (comment-datum? (cadr current)))
+                      ) ;and
+                      (let* ((key-text (format-reader-datum-inline item))
+                             (val-item (cadr current))
+                             (val-inline (format-reader-datum-inline val-item))
+                             (key-line-prefix (if prefix-ready? "" (string-append "\n" (spaces rest-indent))))
+                             (fits-inline? (and (not (string-contains-newline? val-inline))
+                                             (<= (+ rest-indent (string-length key-text) 1 (string-length val-inline))
+                                               max-inline-length
+                                             ) ;<=
+                                           ) ;and
+                             ) ;fits-inline?
+                            ) ;
+                        (if fits-inline?
+                          (let ((line-text (string-append key-line-prefix key-text " " val-inline)))
+                            (reader-append-rest (cddr current)
+                              (string-append result line-text)
+                              rest-indent
+                              #f
+                              close-indent
+                            ) ;reader-append-rest
+                          ) ;let
+                          (let* ((key-line (string-append key-line-prefix key-text))
+                                 (val-text (format-reader-datum-at val-item rest-indent))
+                                 (val-line (string-append "\n" (spaces rest-indent) val-text))
+                                ) ;
+                            (reader-append-rest (cddr current)
+                              (string-append result key-line val-line)
+                              rest-indent
+                              #f
+                              close-indent
+                            ) ;reader-append-rest
+                          ) ;let*
+                        ) ;if
+                      ) ;let*
+                     ) ;
+                     (else
+                      (let ((is-last-comment? (and (null? (cdr current)) (comment-datum? item)))
+                            (item-text (format-reader-datum-at item
+                                         (if prefix-ready? (last-line-column result) rest-indent)
+                                       ) ;format-reader-datum-at
+                            ) ;item-text
+                           ) ;
+                        (reader-append-rest (cdr current)
+                          (string-append result
+                            (if prefix-ready? "" (string-append "\n" (spaces rest-indent)))
+                            item-text
+                            (if is-last-comment? (string-append "\n" (spaces close-indent)) "")
+                          ) ;string-append
+                          rest-indent
+                          #f
+                          close-indent
+                        ) ;reader-append-rest
+                      ) ;let
+                     ) ;else
+               ) ;cond
              ) ;let
             ) ;
             ((null? current) (reader-append-close result close-indent))
@@ -904,6 +975,7 @@
                     ) ;
                 (if (or (comment-node? child)
                       (newline-node? child)
+                      (and (keyword-node? child) (not (no-keyword-args-form? (env-tag-name node))))
                       (and child-is-env? (not allow-child-env?))
                       (> next-direct-env-count 1)
                     ) ;or
@@ -1081,9 +1153,20 @@
       ) ;cond
     ) ;define
 
+    (define (has-keyword-child? children)
+      (let loop
+        ((i 0))
+        (cond ((>= i (vector-length children)) #f)
+              ((keyword-node? (vector-ref children i)) #t)
+              (else (loop (+ i 1)))
+        ) ;cond
+      ) ;let
+    ) ;define
+
     ;; ; 判断 env 的 children 是否全部是可内联的 atom 且数量达到 fill 阈值
     (define (fill-eligible-children? children)
-      (and (>= (vector-length children) fill-min-children)
+      (and (not (has-keyword-child? children))
+        (>= (vector-length children) fill-min-children)
         (let loop
           ((i 0))
           (cond ((>= i (vector-length children)) #t)
@@ -1224,19 +1307,57 @@
                                                       (if (>= i (vector-length children))
                                                         result
                                                         (let ((child (vector-ref children i)))
-                                                          (if (newline-node? child)
-                                                            (begin
-                                                              (emit-newline! writer)
-                                                              (loop-rest (+ i 1) result)
-                                                            ) ;begin
-                                                            (begin
-                                                              (emit-newline! writer)
-                                                              (emit-spaces! writer child-indent)
-                                                              (let ((new-child (walk! child writer child-indent)))
-                                                                (loop-rest (+ i 1) (cons new-child result))
-                                                              ) ;let
-                                                            ) ;begin
-                                                          ) ;if
+                                                          (cond ((newline-node? child)
+                                                                 (begin
+                                                                   (emit-newline! writer)
+                                                                   (loop-rest (+ i 1) result)
+                                                                 ) ;begin
+                                                                ) ;
+                                                                ((and (not (no-keyword-args-form? (env-tag-name node)))
+                                                                   (keyword-node? child)
+                                                                   (< (+ i 1) (vector-length children))
+                                                                   (not (newline-node? (vector-ref children (+ i 1))))
+                                                                   (not (comment-node? (vector-ref children (+ i 1))))
+                                                                 ) ;and
+                                                                 (let* ((val (vector-ref children (+ i 1)))
+                                                                        (_ (emit-newline! writer))
+                                                                        (_ (emit-spaces! writer child-indent))
+                                                                        (new-key (walk! child writer child-indent))
+                                                                        (val-inline (try-inline val))
+                                                                        (fits-inline? (and (string? val-inline)
+                                                                                        (<= (+ (writer-column writer) 1 (string-length val-inline))
+                                                                                          max-inline-length
+                                                                                        ) ;<=
+                                                                                      ) ;and
+                                                                        ) ;fits-inline?
+                                                                       ) ;
+                                                                   (if fits-inline?
+                                                                     (begin
+                                                                       (emit-string! writer " ")
+                                                                       (let ((new-val (walk! val writer (writer-column writer))))
+                                                                         (loop-rest (+ i 2) (cons new-val (cons new-key result)))
+                                                                       ) ;let
+                                                                     ) ;begin
+                                                                     (begin
+                                                                       (emit-newline! writer)
+                                                                       (emit-spaces! writer child-indent)
+                                                                       (let ((new-val (walk! val writer child-indent)))
+                                                                         (loop-rest (+ i 2) (cons new-val (cons new-key result)))
+                                                                       ) ;let
+                                                                     ) ;begin
+                                                                   ) ;if
+                                                                 ) ;let*
+                                                                ) ;
+                                                                (else
+                                                                 (begin
+                                                                   (emit-newline! writer)
+                                                                   (emit-spaces! writer child-indent)
+                                                                   (let ((new-child (walk! child writer child-indent)))
+                                                                     (loop-rest (+ i 1) (cons new-child result))
+                                                                   ) ;let
+                                                                 ) ;begin
+                                                                ) ;else
+                                                          ) ;cond
                                                         ) ;let
                                                       ) ;if
                                                     ) ;let

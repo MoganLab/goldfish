@@ -177,9 +177,14 @@
                  ) ;
                  ((or env input timeout stdout stderr stdin)
                   (let-values (((out err code)
-                                (run-values command :cwd cwd :env env :input
-                                  input :timeout timeout :stdout stdout :stderr
-                                  stderr :stdin stdin
+                                (run-values command
+                                  :cwd cwd
+                                  :env env
+                                  :input input
+                                  :timeout timeout
+                                  :stdout stdout
+                                  :stderr stderr
+                                  :stdin stdin
                                 ) ;run-values
                                ) ;
                               ) ;
@@ -381,20 +386,13 @@
                   ((null? (cdr cmds))
                    (let-values (((out err code)
                                  (run-values (car cmds)
-                                   :cwd
-                                   cwd
-                                   :env
-                                   env
-                                   :timeout
-                                   timeout
-                                   :input
-                                   (if first? input #f)
-                                   :stdin
-                                   (if first? stdin #f)
-                                   :stdout
-                                   stdout
-                                   :stderr
-                                   stderr
+                                   :cwd cwd
+                                   :env env
+                                   :timeout timeout
+                                   :input (if first? input #f)
+                                   :stdin (if first? stdin #f)
+                                   :stdout stdout
+                                   :stderr stderr
                                  ) ;run-values
                                 ) ;
                                ) ;
@@ -404,16 +402,11 @@
                   (else
                     (let-values (((out err code)
                                   (run-values (car cmds)
-                                    :cwd
-                                    cwd
-                                    :env
-                                    env
-                                    :timeout
-                                    timeout
-                                    :input
-                                    (if first? input #f)
-                                    :stdin
-                                    (if first? stdin #f)
+                                    :cwd cwd
+                                    :env env
+                                    :timeout timeout
+                                    :input (if first? input #f)
+                                    :stdin (if first? stdin #f)
                                   ) ;run-values
                                  ) ;
                                 ) ;
@@ -486,18 +479,12 @@
                   ((null? (cdr cmds))
                    (let-values (((out err code)
                                  (run-values (car cmds)
-                                   :cwd
-                                   cwd
-                                   :env
-                                   env
-                                   :timeout
-                                   timeout
-                                   :input
-                                   input
-                                   :stdin
-                                   stdin
-                                   :stdout
-                                   'capture
+                                   :cwd cwd
+                                   :env env
+                                   :timeout timeout
+                                   :input input
+                                   :stdin stdin
+                                   :stdout 'capture
                                  ) ;run-values
                                 ) ;
                                ) ;
@@ -507,18 +494,12 @@
                   (else
                     (let-values (((out err code)
                                   (run-values (car cmds)
-                                    :cwd
-                                    cwd
-                                    :env
-                                    env
-                                    :timeout
-                                    timeout
-                                    :input
-                                    input
-                                    :stdin
-                                    stdin
-                                    :stdout
-                                    'capture
+                                    :cwd cwd
+                                    :env env
+                                    :timeout timeout
+                                    :input input
+                                    :stdin stdin
+                                    :stdout 'capture
                                   ) ;run-values
                                  ) ;
                                 ) ;

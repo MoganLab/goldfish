@@ -404,4 +404,40 @@
   "(let* ((x (a (b (c (d 1))))))\n  x\n) ;let*\n"
 ) ;check
 
+;; 1. 短 keyword 调用（<= 80 列）：保持单行
+(check (format-string "(model-profile :name \"K3\" :model \"kimi-k3\")")
+  =>
+  "(model-profile :name \"K3\" :model \"kimi-k3\")\n"
+) ;check
+
+;; 2. 多行 keyword 调用（首参为 keyword）：首行不留参数，各 key-value 成对同行换行对齐
+(check (format-string "(model-profile :name \"K3\" :model \"kimi-k3\" :base-url \"/api/v1/ai/siliconflow/chat\" :max-tokens 16384 :temperature #f :reasoning-effort \"low\" :proxy '() :default-system KIMI-VLM-DEFAULT-SYSTEM :site \"https://liiistem.cn\")")
+  =>
+  "(model-profile\n  :name \"K3\"\n  :model \"kimi-k3\"\n  :base-url \"/api/v1/ai/siliconflow/chat\"\n  :max-tokens 16384\n  :temperature #f\n  :reasoning-effort \"low\"\n  :proxy '()\n  :default-system KIMI-VLM-DEFAULT-SYSTEM\n  :site \"https://liiistem.cn\"\n) ;model-profile\n"
+) ;check
+
+;; 3. 带位置参数的 keyword 调用：位置参数在首行，后续 keyword 对换行对齐
+(check (format-string "(model-profile mp :model \"kimi-k3\" :base-url \"/api/v1/ai/siliconflow/chat\" :max-tokens 16384)")
+  =>
+  "(model-profile mp\n  :model \"kimi-k3\"\n  :base-url \"/api/v1/ai/siliconflow/chat\"\n  :max-tokens 16384\n) ;model-profile\n"
+) ;check
+
+;; 4. value 为多行表达式（如多行 if）：:model 与 if 换行且同列缩进；短 if 仍与 key 同行
+(check (format-string "(model-profile mp :model (if model-from-params? (legacy-model-id model-override) (model-profile-model mp)) :base-url (if base-from-params? base-override (model-profile-base-url mp)))")
+  =>
+  "(model-profile mp\n  :model\n  (if model-from-params?\n    (legacy-model-id model-override)\n    (model-profile-model mp)\n  ) ;if\n  :base-url (if base-from-params? base-override (model-profile-base-url mp))\n) ;model-profile\n"
+) ;check
+
+;; 5. value 超长（> 80 列）：value 另起一行且与 key 同列缩进
+(check (format-string "(model-profile :description \"this is a very very long description string that exceeds the eighty column line limit when placed together\")")
+  =>
+  "(model-profile\n  :description\n  \"this is a very very long description string that exceeds the eighty column line limit when placed together\"\n) ;model-profile\n"
+) ;check
+
+;; 6. define-record-type 等定义形式中的类型名为 keyword 时不误当成 keyword 参数
+(check (format-string "(define-record-type :trie\n  (make-trie* children value)\n  trie?\n)")
+  =>
+  "(define-record-type :trie\n  (make-trie* children value)\n  trie?\n) ;define-record-type\n"
+) ;check
+
 (check-report)
