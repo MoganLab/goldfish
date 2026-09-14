@@ -58,6 +58,13 @@ C++ 递归直 walk；本页是其继任者（M-VM）的开工令。
 
 ## 开工条件（M-VM 启动门）
 
-- M2a 语料 ≥8 程序全绿（含本页的 trampoline 回调路径）。
+- M2a ≥8 程序全绿（含本页的 trampoline 回调路径）。
 - 本页无异议。即启动：先把 eval 改写为 thunk 循环（call/cc 先
   `error "not implemented"` 占位），差分门全绿后再接 continuation。
+
+## M-VM-1 落地（thunk 循环，done）
+
+- `step()` 单步求值→值或 `Resume{env, body}`；`finish()`／`step_seq()`
+  平坦驱动。尾调用零 C++ 嵌套（10 万尾调用正确返回 5000050000）；
+  非尾静态嵌套照常递归，C-stack guard 留任。
+- call/cc 仍占位（未实现）；差分门 13/13 零修改通过，基线不动。
