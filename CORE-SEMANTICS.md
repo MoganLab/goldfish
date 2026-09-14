@@ -81,7 +81,17 @@ s7 列为当前后端实测；guile 3.0.11 / racket 9.2 双方验证
 | `(module-ref …)` 用户顶层 | unbound-variable | 不适用（loader 协议） | 同（loader 内才可用） |
 | 裸 `set-union` vs `(module-ref '(srfi srfi-113) 'set-union)` | 同一过程 | 不适用 | 同一过程 |
 
-## 未决（不阻塞 M1，上 reference 前定）
+## 错误 key 对等（check-catch 只比 key）
+
+- 未绑定（查/改）：`unbound-variable`（与 s7 同键；guile/s7 双 oracle 实测）。
+- 闭包元数、`values` 错位：`wrong-number-of-args`。
+- 非过程调用：**委托 s7 的 apply**，原生错误对象原样穿过
+  （如 `(apply 1 …)` 的 `syntax-error`），check-catch 逐字匹配。
+- `letrec` 未初始化读：`gf0-error`（s7 无此错，保持 R7RS-strict 分歧）。
+- s7 宽容而 R7RS 未定处（如多值喂单参算术）：跟 R7RS 从严，
+  暂无测试覆盖，日后若有测试按 oracle 复核。
+
+## 未决
 
 - `validate-core-sexp` 现为桩（非 pair 返 `#f`），管线执法靠
   `core-form?`/`core-node-of`；新引擎上线时二选一：补全它或删之。

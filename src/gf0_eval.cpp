@@ -53,6 +53,7 @@
 #include <cstring>
 #include <memory>
 #include <string>
+#include <unordered_map>
 #include <unordered_set>
 #include <utility>
 #include <vector>
@@ -72,21 +73,52 @@ struct V {
   bool                 multi;
   pointer              one;  // valid when !multi
   std::vector<pointer> many; // valid when multi
+  // Roots travel with values: shared ownership, unprotect when the last
+  // holder dies. Stops the pin-everything leak (M3 set-size: 1M-element
+  // loops pinned ~40 objects/iteration with no release -> 12GB OOM).
+  // A null roots means "externally rooted" (s7-stack args, datum subforms,
+  // frame/env/registry-held values); every holder must ensure one of these.
+  struct PinData {
+    scheme* sc;
+    std::vector<int> locs;
+    ~PinData () {
+      for (size_t i= locs.size (); i-- > 0;)
+        gf::gc_unprotect_at (sc, locs[i]);
+    }
+  };
+  std::shared_ptr<PinData> roots;
 };
+using Roots = std::shared_ptr<V::PinData>;
+static Roots
+make_roots (scheme* sc) {
+  Roots r= std::make_shared<V::PinData> ();
+  r->sc= sc;
+  return r;
+}
+static pointer
+keep_in (Roots& r, scheme* sc, pointer p) {
+  if (!r) r= make_roots (sc);
+  r->locs.push_back (gf::gc_protect (sc, p));
+  return p;
+}
 static V
-single (pointer p) {
+single (scheme* sc, pointer p) {
   V v;
   v.multi= false;
   v.one  = p;
+  keep_in (v.roots, sc, p);
   return v;
 }
 static V
-multi_vec (std::vector<pointer>&& m) {
+multi_vec (scheme* sc, std::vector<pointer>&& m) {
   V v;
   v.multi= true;
   v.many = std::move (m);
+  for (pointer p : v.many) keep_in (v.roots, sc, p);
   return v;
 }
+// NOTE: single/multi_vec REQUIRE sc (roots travel with values). No no-sc
+// overloads exist on purpose: unrooted Vs dangle across nested s7 evals.
 
 // Persistent lexical env: frames[0] is outermost; innermost last. Each
 // frame is individually shared so set! through any captured env mutates the
@@ -97,10 +129,28 @@ struct Binding {
 };
 struct Frame {
   std::vector<Binding> bindings;
+  // Roots for member values (shared with captures); unprotect when the
+  // last holder (frame users + Kont copies + captures) dies.
+  std::vector<Roots> roots;
 };
 struct Env {
   std::shared_ptr<std::vector<std::shared_ptr<Frame>>> frames;
 };
+// Bind name<-value(single) into a frame, rooting both for frame lifetime.
+static void
+frame_bind (scheme* sc, std::shared_ptr<Frame> fr, pointer name, V v) {
+  Roots r= make_roots (sc);
+  keep_in (r, sc, name);
+  if (v.roots) {
+    // share the value's roots (no double-protect bookkeeping needed)
+    fr->roots.push_back (v.roots);
+  }
+  else {
+    keep_in (r, sc, v.one);
+  }
+  fr->roots.push_back (r);
+  fr->bindings.push_back ({name, v.one});
+}
 struct Closure {
   pointer formals;
   pointer body; // list of body exprs
@@ -109,6 +159,7 @@ struct Closure {
 
 static std::vector<Closure>      s_registry;
 static std::unordered_set<void*> s_boxes; // c_object boxes holding a registry index
+static std::unordered_map<void*, pointer> s_wrap_fwd; // box -> wrapper (identity)
 static Env                       s_top;   // session env (defines persist)
 static pointer                   s_unassigned= nullptr; // letrec slot sentinel
 static gf::int_                  s_closure_type= -1;
@@ -126,23 +177,37 @@ pin (scheme* sc, pointer p) {
 // every gf0->s7 call (s7call_vec) converts s7 errors back at its boundary.
 struct GfEx {
   std::vector<pointer> args; // handler-visible: [key, info...]
+  Roots roots;               // roots for args (shared across copies)
 };
 static pointer s_raised_marker= nullptr; // pinned identity token, not a primitive
 
 static pointer
-fail (scheme* sc, const char* msg, pointer irritant) {
+fail_key (scheme* sc, const char* key, const char* msg, pointer irritant) {
   GfEx e;
-  e.args.push_back (pin (sc, gf::make_symbol (sc, "gf0-error")));
+  e.args.push_back (pin (sc, gf::make_symbol (sc, key)));
   e.args.push_back (pin (sc, gf::make_string (sc, msg)));
   e.args.push_back (pin (sc, irritant));
   throw e;
 }
 
+static pointer
+fail (scheme* sc, const char* msg, pointer irritant) {
+  return fail_key (sc, "gf0-error", msg, irritant);
+}
+
+static gf::pointer gf0_box_ref (gf::scheme* sc, gf::pointer args);
+
 static gf::int_
 c_type_cached (scheme* sc, const char* name, gf::int_* slot) {
   // make_c_type mints a fresh tag per call; cache one tag per box kind
   // (100k lambdas must not mint 100k type tags).
-  if (*slot == -1) *slot= gf::make_c_type (sc, name);
+  if (*slot == -1) {
+    *slot= gf::make_c_type (sc, name);
+    // SPIKE (M3 interop): applicable boxes. ref fires when a box occurs
+    // in function position; unassigned boxes stay inapplicable.
+    if (std::strcmp (name, "gf0-unassigned") != 0)
+      gf::c_type_set_ref (sc, *slot, gf0_box_ref);
+  }
   return *slot;
 }
 
@@ -257,11 +322,11 @@ static V eval (scheme* sc, pointer x, Env env);
 static pointer
 args_to_list (scheme* sc, const std::vector<pointer>& argv);
 
-static pointer
+static V
 must_single (scheme* sc, V v, pointer ctx, const char* what) {
   if (v.multi)
-    return fail (sc, what, ctx); // fail longjmps; return keeps form
-  return v.one;
+    fail_key (sc, "wrong-number-of-args", what, ctx); // throws; return keeps form
+  return v;
 }
 
 static pointer
@@ -275,8 +340,9 @@ lookup_raw (scheme* sc, pointer sym, Env env) {
   }
   // M2: no live rootlet fallback. The session top frame is seeded from the
   // rootlet once (ensure_top); anything not found is unbound, even if s7
-  // defines it later. Engines diverge by design from here on.
-  return fail (sc, "gf0: unbound variable", sym);
+  // defines it later. Engines diverge by design from here on. Key matches
+  // s7 (check-catch compares keys).
+  return fail_key (sc, "unbound-variable", "gf0: unbound variable", sym);
 }
 
 // s7 call with uniform multi collection: (call-with-values
@@ -287,79 +353,95 @@ lookup_raw (scheme* sc, pointer sym, Env env) {
 // must be single-valued).
 static pointer
 wrap_for_s7 (scheme* sc, pointer box) {
-  pointer quote_sym= pin (sc, gf::make_symbol (sc, "quote"));
+  Roots tmp;
+  pointer quote_sym= keep_in (tmp, sc, gf::make_symbol (sc, "quote"));
   // (lambda args (apply values (g_gf0-apply-values 'BOX args))): the
   // values-variant spreads multi through s7 natively, so callbacks keep
   // SRFI multi propagation (e.g. set-search! success/failure results).
-  pointer inner= pin (sc, gf::list (sc,
-    pin (sc, gf::make_symbol (sc, "g_gf0-apply-values")),
-    pin (sc, gf::list (sc, quote_sym, box)),
-    pin (sc, gf::make_symbol (sc, "args"))));
-  pointer call= pin (sc, gf::list (sc,
-    pin (sc, gf::make_symbol (sc, "apply")),
-    pin (sc, gf::make_symbol (sc, "values")),
+  pointer inner= keep_in (tmp, sc, gf::list (sc,
+    keep_in (tmp, sc, gf::make_symbol (sc, "g_gf0-apply-values")),
+    keep_in (tmp, sc, gf::list (sc, quote_sym, box)),
+    keep_in (tmp, sc, gf::make_symbol (sc, "args"))));
+  pointer call= keep_in (tmp, sc, gf::list (sc,
+    keep_in (tmp, sc, gf::make_symbol (sc, "apply")),
+    keep_in (tmp, sc, gf::make_symbol (sc, "values")),
     inner));
-  pointer expr= pin (sc, gf::list (sc,
-    pin (sc, gf::make_symbol (sc, "lambda")),
-    pin (sc, gf::make_symbol (sc, "args")),
+  pointer expr= keep_in (tmp, sc, gf::list (sc,
+    keep_in (tmp, sc, gf::make_symbol (sc, "lambda")),
+    keep_in (tmp, sc, gf::make_symbol (sc, "args")),
     call));
   return pin (sc, gf::eval (sc, expr, gf::rootlet (sc)));
 }
 
+static pointer wrap_box (scheme* sc, pointer box);
+
+static void hof_maybe_wrap (scheme* sc, pointer proc, std::vector<pointer>& argv);
+
 static V
 s7call_vec (scheme* sc, pointer proc, const std::vector<pointer>& argv) {
+  // Everything touched here is scope-rooted for the call, so callers need
+  // no pin discipline: argv/proc may be bare (holder-rooted elsewhere).
+  // Args pass RAW (no translation): identity/aliasing/record-tags intact,
+  // O(1) per call. Boxes in apply position are wrapped per the HOF table.
+  Roots tmp;
+  keep_in (tmp, sc, proc);
+  std::vector<pointer> argv_mut= argv;
+  hof_maybe_wrap (sc, proc, argv_mut);
+  for (pointer a : argv_mut) keep_in (tmp, sc, a);
   if (s_raised_marker == nullptr)
     s_raised_marker= pin (sc, gf::make_symbol (sc, "gf0-raised"));
-  pointer quote_sym= pin (sc, gf::make_symbol (sc, "quote"));
+  pointer quote_sym= keep_in (tmp, sc, gf::make_symbol (sc, "quote"));
   std::vector<pointer> qargs;
-  qargs.reserve (argv.size ());
-  for (pointer a : argv) {
-    pointer v= (s_boxes.find ((void*) a) != s_boxes.end ()) ? wrap_for_s7 (sc, a) : a;
-    qargs.push_back (pin (sc, gf::list (sc, quote_sym, v)));
+  qargs.reserve (argv_mut.size ());
+  for (pointer a : argv_mut) {
+    qargs.push_back (keep_in (tmp, sc, gf::list (sc, quote_sym, a)));
   }
-  pointer callexpr= pin (sc, gf::cons (sc, pin (sc, gf::list (sc, quote_sym, proc)),
-                                       pin (sc, args_to_list (sc, qargs))));
-  pointer thunk= pin (sc, gf::list (sc, pin (sc, gf::make_symbol (sc, "lambda")),
+  pointer callexpr= keep_in (tmp, sc, gf::cons (sc, keep_in (tmp, sc, gf::list (sc, quote_sym, proc)),
+                                       keep_in (tmp, sc, args_to_list (sc, qargs))));
+  pointer thunk= keep_in (tmp, sc, gf::list (sc, keep_in (tmp, sc, gf::make_symbol (sc, "lambda")),
                                     gf::nil (sc), callexpr));
   // Catch s7 errors AT this boundary and convert to GfEx (a longjmp here
   // would fly past gf0 frames to the wrong catcher). The handler spreads
   // (MARKER . handler-args) as multiple values, so a raised call collects
   // with MARKER in head position, unambiguous against value shapes.
-  pointer inner= pin (sc, gf::list (sc,
-    pin (sc, gf::make_symbol (sc, "catch")),
+  pointer inner= keep_in (tmp, sc, gf::list (sc,
+    keep_in (tmp, sc, gf::make_symbol (sc, "catch")),
     gf::t (sc),
     thunk,
-    pin (sc, gf::list (sc,
-      pin (sc, gf::make_symbol (sc, "lambda")),
-      pin (sc, gf::make_symbol (sc, "hargs")),
-      pin (sc, gf::list (sc,
-        pin (sc, gf::make_symbol (sc, "apply")),
-        pin (sc, gf::make_symbol (sc, "values")),
-        pin (sc, gf::list (sc,
-          pin (sc, gf::make_symbol (sc, "cons")),
-          pin (sc, gf::list (sc, quote_sym, s_raised_marker)),
-          pin (sc, gf::make_symbol (sc, "hargs"))))))))));
-  pointer outer= pin (sc, gf::list (sc,
-    pin (sc, gf::make_symbol (sc, "lambda")),
+    keep_in (tmp, sc, gf::list (sc,
+      keep_in (tmp, sc, gf::make_symbol (sc, "lambda")),
+      keep_in (tmp, sc, gf::make_symbol (sc, "hargs")),
+      keep_in (tmp, sc, gf::list (sc,
+        keep_in (tmp, sc, gf::make_symbol (sc, "apply")),
+        keep_in (tmp, sc, gf::make_symbol (sc, "values")),
+        keep_in (tmp, sc, gf::list (sc,
+          keep_in (tmp, sc, gf::make_symbol (sc, "cons")),
+          keep_in (tmp, sc, gf::list (sc, quote_sym, s_raised_marker)),
+          keep_in (tmp, sc, gf::make_symbol (sc, "hargs"))))))))));
+  pointer outer= keep_in (tmp, sc, gf::list (sc,
+    keep_in (tmp, sc, gf::make_symbol (sc, "lambda")),
     gf::nil (sc), inner));
-  pointer expr= pin (sc, gf::list (sc, pin (sc, gf::make_symbol (sc, "call-with-values")),
-                                   outer, pin (sc, gf::make_symbol (sc, "list"))));
+  pointer expr= keep_in (tmp, sc, gf::list (sc, keep_in (tmp, sc, gf::make_symbol (sc, "call-with-values")),
+                                   outer, keep_in (tmp, sc, gf::make_symbol (sc, "list"))));
   pointer collected= gf::eval (sc, expr, gf::rootlet (sc));
   std::vector<pointer> out;
   pointer tail= collected;
   for (; gf::is_pair (tail); tail= gf::cdr (tail))
-    out.push_back (pin (sc, gf::car (tail)));
+    out.push_back (keep_in (tmp, sc, gf::car (tail)));
   if (!gf::is_null (sc, tail))
-    return multi_vec (std::vector<pointer>{fail (sc, "gf0: improper collection", collected)});
+    return multi_vec (sc, std::vector<pointer>{fail (sc, "gf0: improper collection", collected)});
   if (!out.empty () && out[0] == s_raised_marker) {
     GfEx e;
-    for (size_t i= 1; i < out.size (); ++i) e.args.push_back (out[i]);
+    for (size_t i= 1; i < out.size (); ++i) {
+      e.args.push_back (out[i]);
+      keep_in (e.roots, sc, out[i]);
+    }
     throw e;
   }
-  // s7 collapse rule: exactly 1 yielded value is single (so (define x (+ 1 2))
+  // s7 collapse rule: exactly 1 yielded value is single (sc, so (define x (+ 1 2))
   // stays single); 0 or 2+ stay multi. Matches the s7/guile oracle.
-  if (out.size () == 1) return single (out[0]);
-  return multi_vec (std::move (out));
+  if (out.size () == 1) return single (sc, out[0]);
+  return multi_vec (sc, std::move (out));
 }
 
 static pointer
@@ -369,26 +451,34 @@ args_to_list (scheme* sc, const std::vector<pointer>& argv) {
                             const_cast<pointer*> (argv.data ()));
 }
 
-// Bind formals (proper / dotted / single symbol) to a value LIST.
+// Bind formals (proper / dotted / single symbol) to a value LIST,
+// rooting into the target frame (dies with the frame's last holder).
 static void
 bind_formals (scheme* sc, pointer formals, pointer arglist,
-              std::vector<Binding>& frame, pointer ctx) {
+              std::shared_ptr<Frame> fr, pointer ctx) {
+  std::vector<Binding>& frame= fr->bindings;
   for (; gf::is_pair (formals); formals= gf::cdr (formals)) {
     if (!gf::is_pair (arglist))
-      fail (sc, "gf0: too few arguments", ctx);
+      fail_key (sc, "wrong-number-of-args", "gf0: too few arguments", ctx);
     pointer name= gf::car (formals);
     if (!gf::is_symbol (name)) fail (sc, "gf0: non-symbol formal", name);
-    frame.push_back ({pin (sc, name), pin (sc, gf::car (arglist))});
+    V av;
+    av.multi= false;
+    av.one  = gf::car (arglist);
+    frame_bind (sc, fr, name, av);
     arglist= gf::cdr (arglist);
   }
   if (gf::is_symbol (formals)) { // rest arg
-    frame.push_back ({pin (sc, formals), pin (sc, arglist)});
+    V av;
+    av.multi= false;
+    av.one  = arglist;
+    frame_bind (sc, fr, formals, av);
   }
   else if (!gf::is_null (sc, formals)) {
     fail (sc, "gf0: improper formals", formals);
   }
   else if (gf::is_pair (arglist)) {
-    fail (sc, "gf0: too many arguments", ctx);
+    fail_key (sc, "wrong-number-of-args", "gf0: too many arguments", ctx);
   }
 }
 
@@ -404,8 +494,7 @@ push_frame (Env env) {
 static Env
 bind_call (scheme* sc, const Closure& c, pointer arglist, pointer ctx) {
   Env                   inner= push_frame (c.env);
-  std::vector<Binding>& frame= inner.frames->back ()->bindings;
-  bind_formals (sc, c.formals, arglist, frame, ctx);
+  bind_formals (sc, c.formals, arglist, inner.frames->back (), ctx);
   return inner;
 }
 
@@ -425,9 +514,26 @@ struct KF {
   pointer b;
   pointer c;
   std::vector<pointer> acc;
+  // Roots for acc/stored values; shared across Kont copies/captures.
+  std::vector<Roots> roots;
   int stage;
   bool flag;
 };
+// Store any pointer (expr datum or value) into a Kont frame with roots.
+static void
+kstore (scheme* sc, KF& fr, pointer& slot, pointer p) {
+  slot= p;
+  Roots r= make_roots (sc);
+  keep_in (r, sc, p);
+  fr.roots.push_back (r);
+}
+// Pin a value for Kont-frame lifetime (acc elements etc.).
+static void
+kpin (scheme* sc, KF& fr, pointer p) {
+  Roots r= make_roots (sc);
+  keep_in (r, sc, p);
+  fr.roots.push_back (r);
+}
 using Kont = std::vector<KF>;
 struct Ctl {
   bool isVals;
@@ -473,6 +579,114 @@ static std::vector<Winder> s_wind;
 static Ctl stepE (scheme* sc, pointer x, Env env, Kont& k);
 static Ctl plugInto (scheme* sc, KF fr, V v, Kont& k);
 static V runLoop (scheme* sc, Ctl c, Kont& k);
+
+// Bidirectional canonicalization (M3): gf0 boxes never cross into s7;
+// s7 sees the memoized wrapper, and wrappers coming back unwrap to the
+// box. Preserves eq?/assq/memq across the boundary (assoc-test).
+static pointer wrap_box (scheme* sc, pointer box);
+
+static pointer
+wrap_box (scheme* sc, pointer box) {
+  auto it= s_wrap_fwd.find ((void*) box);
+  if (it != s_wrap_fwd.end ()) return it->second;
+  pointer w= pin (sc, wrap_for_s7 (sc, box));
+  s_wrap_fwd[(void*) box]= w;
+  return w;
+}
+
+// s7 higher-order builtins that APPLY an argument: wrap gf0 boxes at the
+// recorded positions so s7 never sees a raw box in apply position.
+// Data positions pass RAW (no translation, no copies): identity, aliasing
+// and record-type tags all preserved; O(1) per call (no quadratic walk).
+// New HOFs surface as clean "attempt to apply" errors: add on demand.
+static const struct HofEntry { const char* name; int p0; int p1; } kHofs[] = {
+  {"map", 0, -1}, {"for-each", 0, -1}, {"filter", 0, -1},
+  {"fold-left", 0, -1}, {"fold-right", 0, -1}, {"reduce", 0, -1},
+  {"find", 0, -1}, {"find-tail", 0, -1}, {"any", 0, -1}, {"every", 0, -1},
+  {"remove", 0, -1}, {"remp", 0, -1}, {"partition", 0, -1},
+  {"sort", 1, -1}, {"sort!", 1, -1},
+  {"string-map", 0, -1}, {"string-for-each", 0, -1}, {"string-fold", 0, -1},
+  {"string-fold-right", 0, -1}, {"string-filter", 0, -1}, {"string-any", 0, -1},
+  {"string-every", 0, -1}, {"string-unfold", 1, 2},
+  {"vector-map", 0, -1}, {"vector-for-each", 0, -1}, {"vector-fold", 0, -1},
+  {"vector-fold-right", 0, -1}, {"vector-filter", 0, -1}, {"vector-any", 0, -1},
+  {"vector-every", 0, -1},
+  {"with-exception-handler", 0, -1}, {"call-with-port", 0, -1},
+  // Loader infrastructure applying callbacks internally (not user HOFs,
+  // same rule: wrap so s7 never sees a raw box in apply position).
+  {"register-runtime-module", 1, -1},
+  {nullptr, -1, -1},
+};
+// Library-bound HOFs (not in rootlet: resolved via the substrate registry
+// once their library is runtime-registered). Same rule, explicit (lib,name).
+static const struct HofLib { const char* lib; const char* name; int p0; int p1; } kHofLibs[] = {
+  {"(srfi srfi-133)", "vector-fold", 0, -1},
+  {"(srfi srfi-133)", "vector-fold-right", 0, -1},
+  {"(srfi srfi-133)", "vector-map!", 0, -1},
+  {"(srfi srfi-133)", "vector-any", 0, -1},
+  {"(srfi srfi-133)", "vector-every", 0, -1},
+  {"(srfi srfi-133)", "vector-count", 0, -1},
+  {"(srfi srfi-133)", "vector-index", 0, -1},
+  {"(srfi srfi-133)", "vector-skip", 0, -1},
+  {"(srfi srfi-133)", "vector-partition", 0, -1},
+  {"(srfi srfi-78)", "check:proc", 1, -1},
+  {"(srfi srfi-128)", "make-comparator", -2, -1},
+  {nullptr, nullptr, -1, -1},
+};
+static std::vector<std::pair<pointer, int>> s_hof_procs;
+static bool s_hof_init= false;
+static void
+hof_maybe_wrap (scheme* sc, pointer proc, std::vector<pointer>& argv) {
+  if (!s_hof_init) {
+    s_hof_init= true;
+    for (const HofEntry* e= kHofs; e->name != nullptr; ++e) {
+      if (!gf::is_defined (sc, e->name)) continue;
+      pointer p= pin (sc, gf::name_to_value (sc, e->name));
+      s_hof_procs.push_back ({p, e->p0});
+      if (e->p1 >= 0) s_hof_procs.push_back ({p, e->p1});
+    }
+    // Library HOFs: resolve through (module-ref 'lib 'name), guarded by
+    // runtime-registered? so unloaded libs stay silent (no error-port noise).
+    if (gf::is_defined (sc, "runtime-registered?") &&
+        gf::is_defined (sc, "module-ref")) {
+      pointer regq= gf::name_to_value (sc, "runtime-registered?");
+      for (const HofLib* e= kHofLibs; e->lib != nullptr; ++e) {
+        std::string libsrc= std::string ("'") + e->lib;
+        pointer lib= gf::eval_c_string (sc, libsrc.c_str ());
+        std::vector<pointer> one;
+        one.push_back (lib);
+        V r= s7call_vec (sc, regq, one);
+        if (r.multi || !gf::boolean (sc, r.one)) continue;
+        // Catch-wrapped: a missing export must yield #f, never longjmp out.
+        std::string expr= std::string ("(catch #t (lambda () (module-ref '") +
+                          e->lib + " '" + e->name + ")) (lambda args #f))";
+        pointer p= gf::eval_c_string (sc, expr.c_str ());
+        if (!gf::is_procedure (p)) continue;
+        pin (sc, p);
+        s_hof_procs.push_back ({p, e->p0});
+        if (e->p1 >= 0) s_hof_procs.push_back ({p, e->p1});
+      }
+    }
+  }
+  for (const auto& h : s_hof_procs) {
+    if (proc != h.first) continue;
+    // Position -2 = constructor taking a callback bundle: wrap every box.
+    if (h.second == -2) {
+      for (size_t i= 0; i < argv.size (); ++i) {
+        pointer a= argv[i];
+        if (s_boxes.find ((void*) a) != s_boxes.end () ||
+            s_cont_boxes.find ((void*) a) != s_cont_boxes.end ())
+          argv[i]= wrap_box (sc, a);
+      }
+      continue;
+    }
+    if (h.second < 0 || (size_t) h.second >= argv.size ()) continue;
+    pointer a= argv[(size_t) h.second];
+    if (s_boxes.find ((void*) a) != s_boxes.end () ||
+        s_cont_boxes.find ((void*) a) != s_cont_boxes.end ())
+      argv[(size_t) h.second]= wrap_box (sc, a);
+  }
+}
 static V callSync (scheme* sc, pointer proc);
 static bool same_winder (const Winder& a, const Winder& b);
 
@@ -481,7 +695,7 @@ static bool same_winder (const Winder& a, const Winder& b);
 static Ctl
 seqCtl (scheme* sc, Env env, pointer body, Kont& k) {
   (void) sc;
-  if (!gf::is_pair (body)) return ctlVals (single (gf::unspecified (sc)));
+  if (!gf::is_pair (body)) return ctlVals (single (sc, gf::unspecified (sc)));
   if (gf::is_null (sc, gf::cdr (body))) return ctlExpr (gf::car (body), env);
   KF fr;
   fr.tag= KK::Seq;
@@ -505,14 +719,14 @@ applyCtl (scheme* sc, pointer proc, const std::vector<pointer>& argvals, Kont& k
   if (s_boxes.find ((void*) proc) != s_boxes.end ()) {
     gf::int_ idx= gf::integer ((pointer) gf::c_object_value (proc));
     if (idx < 0 || (size_t) idx >= s_registry.size ())
-      return ctlVals (single (fail (sc, "gf0: stale closure", proc)));
+      return ctlVals (single (sc, fail (sc, "gf0: stale closure", proc)));
     const Closure& c= s_registry[(size_t) idx];
     return seqCtl (sc, bind_call (sc, c, args_to_list (sc, argvals), proc), c.body, k);
   }
   if (s_cont_boxes.find ((void*) proc) != s_cont_boxes.end ()) {
     gf::int_ idx= gf::integer ((pointer) gf::c_object_value (proc));
     if (idx < 0 || (size_t) idx >= s_conts.size ())
-      return ctlVals (single (fail (sc, "gf0: bad continuation invoke", proc)));
+      return ctlVals (single (sc, fail (sc, "gf0: bad continuation invoke", proc)));
     // R7RS: continuations take any number of values (s7/guile oracle:
     // zero args -> zero values, one -> single, n -> multi-n).
     // Splice winders: run afters of the abandoned suffix (innermost first),
@@ -528,12 +742,19 @@ applyCtl (scheme* sc, pointer proc, const std::vector<pointer>& argvals, Kont& k
     for (size_t i= common; i < s_wind.size (); ++i)
       callSync (sc, s_wind[i].before);
     k= s_conts[(size_t) idx].k; // copy-on-invoke: stored stays pristine (multi-shot)
-    if (argvals.size () == 1) return ctlVals (single (argvals[0]));
+    if (argvals.size () == 1) return ctlVals (single (sc, argvals[0]));
     std::vector<pointer> many= argvals;
-    return ctlVals (multi_vec (std::move (many)));
+    return ctlVals (multi_vec (sc, std::move (many)));
   }
   if (gf::is_procedure (proc)) return ctlVals (s7call_vec (sc, proc, argvals));
-  return ctlVals (single (fail (sc, "gf0: cannot apply (macros stay frontend)", proc)));
+  // Not applicable: delegate to s7's apply so the NATIVE error object
+  // (key + info, e.g. syntax-error for (apply 1 ...)) surfaces and
+  // check-catch matches exactly.
+  pointer s7apply= gf::name_to_value (sc, "apply");
+  std::vector<pointer> aargs;
+  aargs.push_back (proc);
+  for (pointer a : argvals) aargs.push_back (a);
+  return ctlVals (s7call_vec (sc, s7apply, aargs));
 }
 
 static pointer
@@ -562,35 +783,37 @@ is_cc_name (pointer x) {
 static Ctl
 stepE (scheme* sc, pointer x, Env env, Kont& k) {
   if (stack_low ())
-    return ctlVals (single (fail (sc, "gf0: C stack low (non-tail depth; see M-VM)", x)));
-  // Self-evaluating.
+    return ctlVals (single (sc, fail (sc, "gf0: C stack low (non-tail depth; see M-VM)", x)));
+  // Self-evaluating (keywords first: s7 keywords satisfy is_symbol but
+  // evaluate to themselves).
   if (gf::is_boolean (x) || gf::is_number (x) || gf::is_string (x) ||
-      gf::is_character (x) || gf::is_null (sc, x) || gf::is_vector (x))
-    return ctlVals (single (x));
+      gf::is_character (x) || gf::is_null (sc, x) || gf::is_vector (x) ||
+      gf::is_keyword (x))
+    return ctlVals (single (sc, x));
   if (gf::is_symbol (x)) {
     pointer v= lookup_raw (sc, x, env);
     if (v == unassigned_box (sc))
-      return ctlVals (single (fail (sc, "gf0: read before assignment (R7RS letrec)", x)));
-    return ctlVals (single (v));
+      return ctlVals (single (sc, fail (sc, "gf0: read before assignment (R7RS letrec)", x)));
+    return ctlVals (single (sc, v));
   }
-  if (!gf::is_pair (x)) return ctlVals (single (fail (sc, "gf0: cannot evaluate", x)));
+  if (!gf::is_pair (x)) return ctlVals (single (sc, fail (sc, "gf0: cannot evaluate", x)));
 
   if (is_head (x, "quote")) {
     if (!gf::is_pair (gf::cdr (x)) || gf::is_pair (gf::cdr (gf::cdr (x))))
-      return ctlVals (single (fail (sc, "gf0: bad quote", x)));
-    return ctlVals (single (gf::car (gf::cdr (x))));
+      return ctlVals (single (sc, fail (sc, "gf0: bad quote", x)));
+    return ctlVals (single (sc, gf::car (gf::cdr (x))));
   }
   if (is_head (x, "if")) {
     // NOTE: s7 nil is a live pointer, never nullptr; shape checks must use
     // is_pair/is_null, not pointer comparison.
     pointer rest1= gf::cdr (x);
-    if (!gf::is_pair (rest1)) return ctlVals (single (fail (sc, "gf0: bad if", x)));
+    if (!gf::is_pair (rest1)) return ctlVals (single (sc, fail (sc, "gf0: bad if", x)));
     pointer rest2= gf::cdr (rest1);
-    if (!gf::is_pair (rest2)) return ctlVals (single (fail (sc, "gf0: bad if", x)));
+    if (!gf::is_pair (rest2)) return ctlVals (single (sc, fail (sc, "gf0: bad if", x)));
     pointer rest3= gf::cdr (rest2);
     if (!(gf::is_null (sc, rest3) ||
           (gf::is_pair (rest3) && gf::is_null (sc, gf::cdr (rest3)))))
-      return ctlVals (single (fail (sc, "gf0: bad if", x)));
+      return ctlVals (single (sc, fail (sc, "gf0: bad if", x)));
     KF fr;
     fr.tag= KK::If;
     fr.env= env;
@@ -607,7 +830,7 @@ stepE (scheme* sc, pointer x, Env env, Kont& k) {
   }
   if (is_head (x, "lambda")) {
     if (!gf::is_pair (gf::cdr (x)))
-      return ctlVals (single (fail (sc, "gf0: bad lambda", x)));
+      return ctlVals (single (sc, fail (sc, "gf0: bad lambda", x)));
     Closure c;
     c.formals= pin (sc, gf::car (gf::cdr (x)));
     c.body   = pin (sc, gf::cdr (gf::cdr (x)));
@@ -619,7 +842,7 @@ stepE (scheme* sc, pointer x, Env env, Kont& k) {
                          (void*) pin (sc, gf::make_integer (sc, idx)),
                          gf::rootlet (sc)));
     s_boxes.insert ((void*) box);
-    return ctlVals (single (box));
+    return ctlVals (single (sc, box));
   }
   if (is_head (x, "define")) {
     pointer rest= gf::cdr (x);
@@ -627,7 +850,7 @@ stepE (scheme* sc, pointer x, Env env, Kont& k) {
              gf::is_pair (gf::cdr (rest)) &&
              gf::is_null (sc, gf::cdr (gf::cdr (rest)));
     if (!ok)
-      return ctlVals (single (fail (sc, "gf0: only (define name exp); sugar stays frontend", x)));
+      return ctlVals (single (sc, fail (sc, "gf0: only (define name exp); sugar stays frontend", x)));
     KF fr;
     fr.tag= KK::Define;
     fr.env= env;
@@ -649,7 +872,7 @@ stepE (scheme* sc, pointer x, Env env, Kont& k) {
       if (!gf::is_pair (tail) || gf::is_pair (gf::cdr (tail)) ||
           !gf::is_pair (gf::cdr (mr)) || !gf::is_pair (gf::cdr (gf::cdr (mr))) ||
           gf::is_pair (gf::cdr (gf::cdr (gf::cdr (mr)))))
-        return ctlVals (single (fail (sc, "gf0: bad module-set", x)));
+        return ctlVals (single (sc, fail (sc, "gf0: bad module-set", x)));
       KF fr;
       fr.tag= KK::Mod;
       fr.env= env;
@@ -664,7 +887,7 @@ stepE (scheme* sc, pointer x, Env env, Kont& k) {
     bool ok= gf::is_pair (rest) && gf::is_symbol (gf::car (rest)) &&
              gf::is_pair (gf::cdr (rest)) &&
              gf::is_null (sc, gf::cdr (gf::cdr (rest)));
-    if (!ok) return ctlVals (single (fail (sc, "gf0: bad set!", x)));
+    if (!ok) return ctlVals (single (sc, fail (sc, "gf0: bad set!", x)));
     KF fr;
     fr.tag= KK::Set;
     fr.env= env;
@@ -682,7 +905,7 @@ stepE (scheme* sc, pointer x, Env env, Kont& k) {
     pointer binds= gf::is_pair (rest) ? gf::car (rest) : nullptr;
     if (binds == nullptr ||
         (!gf::is_null (sc, binds) && !gf::is_pair (binds)))
-      return ctlVals (single (fail (sc, star ? "gf0: bad let*" : "gf0: bad let", x)));
+      return ctlVals (single (sc, fail (sc, star ? "gf0: bad let*" : "gf0: bad let", x)));
     Env inner= push_frame (env);
     if (!gf::is_pair (gf::car (rest)))
       return seqCtl (sc, inner, gf::cdr (rest), k);
@@ -690,7 +913,7 @@ stepE (scheme* sc, pointer x, Env env, Kont& k) {
       pointer b= gf::car (bs);
       if (!gf::is_pair (b) || !gf::is_symbol (gf::car (b)) ||
           !gf::is_pair (gf::cdr (b)) || gf::is_pair (gf::cdr (gf::cdr (b))))
-        return ctlVals (single (fail (sc, star ? "gf0: bad let* binding" : "gf0: bad let binding", x)));
+        return ctlVals (single (sc, fail (sc, star ? "gf0: bad let* binding" : "gf0: bad let binding", x)));
     }
     KF fr;
     fr.tag= KK::LetB;
@@ -709,17 +932,20 @@ stepE (scheme* sc, pointer x, Env env, Kont& k) {
     pointer binds= gf::is_pair (rest) ? gf::car (rest) : nullptr;
     if (binds == nullptr ||
         (!gf::is_null (sc, binds) && !gf::is_pair (binds)))
-      return ctlVals (single (fail (sc, "gf0: bad letrec", x)));
+      return ctlVals (single (sc, fail (sc, "gf0: bad letrec", x)));
     Env inner= push_frame (env);
-    std::vector<Binding>& frame= inner.frames->back ()->bindings;
+    std::shared_ptr<Frame> frame= inner.frames->back ();
     // Validate + pre-allocate all slots unassigned (R7RS: init-period reads
     // of any slot are an error; the reader reports the slot, not #<undefined>).
     for (pointer bs= gf::car (rest); gf::is_pair (bs); bs= gf::cdr (bs)) {
       pointer b= gf::car (bs);
       if (!gf::is_pair (b) || !gf::is_symbol (gf::car (b)) ||
           !gf::is_pair (gf::cdr (b)) || gf::is_pair (gf::cdr (gf::cdr (b))))
-        return ctlVals (single (fail (sc, "gf0: bad letrec binding", x)));
-      frame.push_back ({pin (sc, gf::car (b)), unassigned_box (sc)});
+        return ctlVals (single (sc, fail (sc, "gf0: bad letrec binding", x)));
+      V sv;
+      sv.multi= false;
+      sv.one  = unassigned_box (sc);
+      frame_bind (sc, frame, gf::car (b), sv);
     }
     if (!gf::is_pair (gf::car (rest)))
       return seqCtl (sc, inner, gf::cdr (rest), k);
@@ -741,7 +967,7 @@ stepE (scheme* sc, pointer x, Env env, Kont& k) {
     pointer binds= gf::is_pair (rest) ? gf::car (rest) : nullptr;
     if (binds == nullptr ||
         (!gf::is_null (sc, binds) && !gf::is_pair (binds)))
-      return ctlVals (single (fail (sc, "gf0: bad let-values", x)));
+      return ctlVals (single (sc, fail (sc, "gf0: bad let-values", x)));
     Env inner= push_frame (env);
     if (!gf::is_pair (gf::car (rest)))
       return seqCtl (sc, inner, gf::cdr (rest), k);
@@ -749,7 +975,7 @@ stepE (scheme* sc, pointer x, Env env, Kont& k) {
       pointer c= gf::car (cs);
       if (!gf::is_pair (c) || !gf::is_pair (gf::cdr (c)) ||
           gf::is_pair (gf::cdr (gf::cdr (c))))
-        return ctlVals (single (fail (sc, "gf0: bad let-values clause", x)));
+        return ctlVals (single (sc, fail (sc, "gf0: bad let-values clause", x)));
     }
     KF fr;
     fr.tag= KK::ValsB;
@@ -767,9 +993,9 @@ stepE (scheme* sc, pointer x, Env env, Kont& k) {
     pointer tail= gf::cdr (x);
     if (!gf::is_pair (tail)) {
       if (!gf::is_null (sc, tail))
-        return ctlVals (single (fail (sc, "gf0: improper values", x)));
+        return ctlVals (single (sc, fail (sc, "gf0: improper values", x)));
       std::vector<pointer> empty;
-      return ctlVals (multi_vec (std::move (empty)));
+      return ctlVals (multi_vec (sc, std::move (empty)));
     }
     KF fr;
     fr.tag= KK::Vals;
@@ -787,7 +1013,7 @@ stepE (scheme* sc, pointer x, Env env, Kont& k) {
     if (!gf::is_pair (rest) || !gf::is_pair (gf::cdr (rest)) ||
         !gf::is_pair (gf::cdr (gf::cdr (rest))) ||
         gf::is_pair (gf::cdr (gf::cdr (gf::cdr (rest)))))
-      return ctlVals (single (fail (sc, "gf0: bad catch", x)));
+      return ctlVals (single (sc, fail (sc, "gf0: bad catch", x)));
     KF fr;
     fr.tag= KK::CatchG;
     fr.env= env;
@@ -803,7 +1029,7 @@ stepE (scheme* sc, pointer x, Env env, Kont& k) {
     pointer rest= gf::cdr (x);
     if (!gf::is_pair (rest) || !gf::is_pair (gf::cdr (rest)) ||
         gf::is_pair (gf::cdr (gf::cdr (rest))))
-      return ctlVals (single (fail (sc, "gf0: bad call-with-values", x)));
+      return ctlVals (single (sc, fail (sc, "gf0: bad call-with-values", x)));
     KF fr;
     fr.tag= KK::CwvP;
     fr.env= env;
@@ -820,7 +1046,7 @@ stepE (scheme* sc, pointer x, Env env, Kont& k) {
   if (is_cc_name (head) && !user_bound (head, env)) {
     pointer rest= gf::cdr (x);
     if (!gf::is_pair (rest) || gf::is_pair (gf::cdr (rest)))
-      return ctlVals (single (fail (sc, "gf0: call/cc takes exactly one proc", x)));
+      return ctlVals (single (sc, fail (sc, "gf0: call/cc takes exactly one proc", x)));
     KF fr;
     fr.tag= KK::CcK;
     fr.env= env;
@@ -838,7 +1064,7 @@ stepE (scheme* sc, pointer x, Env env, Kont& k) {
     if (!gf::is_pair (rest) || !gf::is_pair (gf::cdr (rest)) ||
         !gf::is_pair (gf::cdr (gf::cdr (rest))) ||
         gf::is_pair (gf::cdr (gf::cdr (gf::cdr (rest)))))
-      return ctlVals (single (fail (sc, "gf0: bad dynamic-wind", x)));
+      return ctlVals (single (sc, fail (sc, "gf0: bad dynamic-wind", x)));
     KF fr;
     fr.tag= KK::DwK;
     fr.env= env;
@@ -856,7 +1082,7 @@ stepE (scheme* sc, pointer x, Env env, Kont& k) {
     // s7's own predicate rejects c_object boxes, so answer natively.
     pointer rest= gf::cdr (x);
     if (!gf::is_pair (rest) || gf::is_pair (gf::cdr (rest)))
-      return ctlVals (single (fail (sc, "gf0: bad procedure?", x)));
+      return ctlVals (single (sc, fail (sc, "gf0: bad procedure?", x)));
     KF fr;
     fr.tag= KK::ProcP;
     fr.env= env;
@@ -873,7 +1099,7 @@ stepE (scheme* sc, pointer x, Env env, Kont& k) {
     // R7RS apply with a gf0 proc: route natively (s7's apply rejects boxes).
     pointer rest= gf::cdr (x);
     if (!gf::is_pair (rest) || !gf::is_pair (gf::cdr (rest)))
-      return ctlVals (single (fail (sc, "gf0: bad apply", x)));
+      return ctlVals (single (sc, fail (sc, "gf0: bad apply", x)));
     KF fr;
     fr.tag= KK::ApplyP;
     fr.env= env;
@@ -886,7 +1112,7 @@ stepE (scheme* sc, pointer x, Env env, Kont& k) {
     return ctlExpr (gf::car (rest), env);
   }
   if (is_frontend_syntax (head, env))
-    return ctlVals (single (fail (sc, "gf0: not core; desugar via frontend", head)));
+    return ctlVals (single (sc, fail (sc, "gf0: not core; desugar via frontend", head)));
   KF fr;
   fr.tag= KK::CallP;
   fr.env= env;
@@ -900,13 +1126,16 @@ stepE (scheme* sc, pointer x, Env env, Kont& k) {
 }
 
 static pointer
-lookup_assign (scheme* sc, Env env, pointer name, pointer v, pointer ctx) {
+lookup_assign (scheme* sc, Env env, pointer name, V v, pointer ctx) {
   const char* want= gf::symbol_name (name);
   for (size_t i= env.frames->size (); i-- > 0;) {
-    std::vector<Binding>& bs= (*env.frames)[i]->bindings;
+    std::shared_ptr<Frame> fr= (*env.frames)[i];
+    std::vector<Binding>& bs= fr->bindings;
     for (size_t j= bs.size (); j-- > 0;) {
       if (std::strcmp (gf::symbol_name (bs[j].sym), want) == 0) {
-        bs[j].val= v;
+        bs[j].val= v.one;
+        if (v.roots) fr->roots.push_back (v.roots);
+        else { Roots r= make_roots (sc); keep_in (r, sc, v.one); fr->roots.push_back (r); }
         return nullptr;
       }
     }
@@ -915,7 +1144,7 @@ lookup_assign (scheme* sc, Env env, pointer name, pointer v, pointer ctx) {
   // seeded from the rootlet once (ensure_top). No live fallback.
   (void) sc;
   (void) ctx;
-  fail (sc, "gf0: set! of unbound variable", name);
+  fail_key (sc, "unbound-variable", "gf0: set! of unbound variable", name);
   return nullptr; // unreachable; keeps form
 }
 
@@ -926,24 +1155,24 @@ plugInto (scheme* sc, KF fr, V v, Kont& k) {
     return seqCtl (sc, fr.env, fr.b, k);
   }
   case KK::If: {
-    pointer t= must_single (sc, v, fr.a, "gf0: if test must be single-valued");
+    V t_v = must_single (sc, v, fr.a, "gf0: if test must be single-valued"); pointer t = t_v.one;
     if (!gf::boolean (sc, t))
       return fr.flag ? ctlExpr (fr.b, fr.env)
-                     : ctlVals (single (gf::unspecified (sc)));
+                     : ctlVals (single (sc, gf::unspecified (sc)));
     return ctlExpr (fr.a, fr.env);
   }
   case KK::CallP: {
-    pointer proc= must_single (sc, v, fr.b, "gf0: call head must be single-valued");
+    V proc_v = must_single (sc, v, fr.b, "gf0: call head must be single-valued"); pointer proc = proc_v.one;
     if (s_boxes.find ((void*) proc) == s_boxes.end () &&
         s_cont_boxes.find ((void*) proc) == s_cont_boxes.end () &&
         !gf::is_procedure (proc))
-      return ctlVals (single (fail (sc, "gf0: cannot apply (macros stay frontend)", proc)));
+      return ctlVals (single (sc, fail (sc, "gf0: cannot apply (macros stay frontend)", proc)));
     if (!gf::is_pair (fr.b))
       return applyCtl (sc, proc, std::vector<pointer> (), k);
     KF na;
     na.tag= KK::CallA;
     na.env= fr.env;
-    na.a  = pin (sc, proc);
+    na.a  = proc; kpin (sc, na, proc);
     na.b  = gf::cdr (fr.b);
     na.c  = nullptr;
     na.stage= 0;
@@ -952,8 +1181,8 @@ plugInto (scheme* sc, KF fr, V v, Kont& k) {
     return ctlExpr (gf::car (fr.b), fr.env);
   }
   case KK::CallA: {
-    pointer one= must_single (sc, v, fr.b, "gf0: arg must be single-valued");
-    fr.acc.push_back (pin (sc, one));
+    V one_v = must_single (sc, v, fr.b, "gf0: arg must be single-valued"); pointer one = one_v.one;
+    fr.acc.push_back (one); kpin (sc, fr, one);
     if (gf::is_pair (fr.b)) {
       pointer next= gf::car (fr.b);
       fr.b= gf::cdr (fr.b);
@@ -963,20 +1192,22 @@ plugInto (scheme* sc, KF fr, V v, Kont& k) {
     return applyCtl (sc, fr.a, fr.acc, k);
   }
   case KK::Define: {
-    pointer init= must_single (sc, v, fr.a, "gf0: define init must be single-valued");
-    fr.env.frames->back ()->bindings.push_back ({pin (sc, fr.a), pin (sc, init)});
-    return ctlVals (single (gf::unspecified (sc)));
+    V init_v = must_single (sc, v, fr.a, "gf0: define init must be single-valued"); pointer init = init_v.one;
+    (void) init;
+    frame_bind (sc, fr.env.frames->back (), fr.a, init_v);
+    return ctlVals (single (sc, gf::unspecified (sc)));
   }
   case KK::Set: {
-    pointer val= must_single (sc, v, fr.a, "gf0: set! value must be single-valued");
-    lookup_assign (sc, fr.env, fr.a, pin (sc, val), fr.a);
-    return ctlVals (single (gf::unspecified (sc)));
+    V val_v = must_single (sc, v, fr.a, "gf0: set! value must be single-valued"); pointer val = val_v.one;
+    (void) val;
+    lookup_assign (sc, fr.env, fr.a, val_v, fr.a);
+    return ctlVals (single (sc, gf::unspecified (sc)));
   }
   case KK::LetB: {
     pointer b= gf::car (fr.b);
-    pointer init= must_single (sc, v, b, "gf0: let init must be single-valued");
-    fr.inner.frames->back ()->bindings.push_back (
-      {pin (sc, gf::car (b)), pin (sc, init)});
+    V init_v = must_single (sc, v, b, "gf0: let init must be single-valued"); pointer init = init_v.one;
+    (void) init;
+    frame_bind (sc, fr.inner.frames->back (), gf::car (b), init_v);
     if (gf::is_pair (gf::cdr (fr.b))) {
       pointer nb= gf::car (gf::cdr (fr.b));
       fr.b= gf::cdr (fr.b);
@@ -988,8 +1219,9 @@ plugInto (scheme* sc, KF fr, V v, Kont& k) {
   }
   case KK::RecB: {
     pointer b= gf::car (fr.b);
-    pointer init= must_single (sc, v, b, "gf0: letrec init must be single-valued");
-    lookup_assign (sc, fr.env, gf::car (b), pin (sc, init), b);
+    V init_v = must_single (sc, v, b, "gf0: letrec init must be single-valued"); pointer init = init_v.one;
+    (void) init;
+    lookup_assign (sc, fr.env, gf::car (b), init_v, b);
     if (gf::is_pair (gf::cdr (fr.b))) {
       pointer nb= gf::car (gf::cdr (fr.b));
       fr.b= gf::cdr (fr.b);
@@ -1005,7 +1237,7 @@ plugInto (scheme* sc, KF fr, V v, Kont& k) {
     if (iv.multi) many= iv.many;
     else many.push_back (iv.one);
     bind_formals (sc, gf::car (c), args_to_list (sc, many),
-                  fr.inner.frames->back ()->bindings, c);
+                  fr.inner.frames->back (), c);
     if (gf::is_pair (gf::cdr (fr.b))) {
       pointer nc= gf::car (gf::cdr (fr.b));
       fr.b= gf::cdr (fr.b);
@@ -1015,18 +1247,18 @@ plugInto (scheme* sc, KF fr, V v, Kont& k) {
     return seqCtl (sc, fr.inner, fr.c, k);
   }
   case KK::Vals: {
-    pointer one= must_single (sc, v, fr.b, "gf0: values element must be single");
-    fr.acc.push_back (pin (sc, one));
+    V one_v = must_single (sc, v, fr.b, "gf0: values element must be single"); pointer one = one_v.one;
+    fr.acc.push_back (one); kpin (sc, fr, one);
     if (gf::is_pair (fr.b)) {
       pointer next= gf::car (fr.b);
       fr.b= gf::cdr (fr.b);
       k.push_back (fr);
       return ctlExpr (next, fr.env);
     }
-    return ctlVals (multi_vec (std::move (fr.acc)));
+    return ctlVals (multi_vec (sc, std::move (fr.acc)));
   }
   case KK::CwvP: {
-    pointer producer= must_single (sc, v, fr.b, "gf0: cwv producer must be single-valued");
+    V producer_v = must_single (sc, v, fr.b, "gf0: cwv producer must be single-valued"); pointer producer = producer_v.one;
     KF nq;
     nq.tag= KK::CwvQ;
     nq.env= fr.env;
@@ -1056,30 +1288,30 @@ plugInto (scheme* sc, KF fr, V v, Kont& k) {
     return ctlExpr (fr.b, fr.env);
   }
   case KK::CwvC: {
-    pointer consumer= must_single (sc, v, gf::nil (sc), "gf0: cwv consumer must be single-valued");
+    V consumer_v = must_single (sc, v, gf::nil (sc), "gf0: cwv consumer must be single-valued"); pointer consumer = consumer_v.one;
     return applyCtl (sc, consumer, fr.acc, k);
   }
   case KK::CatchG: {
     if (fr.stage == 0) {
-      pointer tag= must_single (sc, v, fr.b, "gf0: catch tag must be single-valued");
-      fr.a= pin (sc, tag);
+      V tag_v = must_single (sc, v, fr.b, "gf0: catch tag must be single-valued"); pointer tag = tag_v.one;
+      fr.a= tag; kpin (sc, fr, tag);
       fr.stage= 1;
       k.push_back (fr);
       return ctlExpr (fr.b, fr.env);
     }
     if (fr.stage == 1) {
-      pointer thunk= must_single (sc, v, fr.b, "gf0: catch thunk must be single-valued");
-      fr.acc.push_back (pin (sc, thunk));
+      V thunk_v = must_single (sc, v, fr.b, "gf0: catch thunk must be single-valued"); pointer thunk = thunk_v.one;
+      fr.acc.push_back (thunk); kpin (sc, fr, thunk);
       fr.stage= 2;
       k.push_back (fr);
       return ctlExpr (fr.c, fr.env);
     }
-    pointer handler= must_single (sc, v, fr.b, "gf0: catch handler must be single-valued");
+    V handler_v = must_single (sc, v, fr.b, "gf0: catch handler must be single-valued"); pointer handler = handler_v.one;
     KF nr;
     nr.tag= KK::CatchR;
     nr.env= fr.env;
     nr.a  = fr.a;
-    nr.b  = pin (sc, handler);
+    kstore (sc, nr, nr.b, handler);
     nr.c  = nullptr;
     nr.stage= 0;
     nr.flag= false;
@@ -1092,29 +1324,30 @@ plugInto (scheme* sc, KF fr, V v, Kont& k) {
   }
   case KK::Mod: {
     if (fr.stage == 0) {
-      pointer lib= must_single (sc, v, fr.b, "gf0: module lib must be single-valued");
-      fr.a= pin (sc, lib);
+      V lib_v = must_single (sc, v, fr.b, "gf0: module lib must be single-valued"); pointer lib = lib_v.one;
+      fr.a= lib; kpin (sc, fr, lib);
       fr.stage= 1;
       k.push_back (fr);
       return ctlExpr (fr.b, fr.env);
     }
     if (fr.stage == 1) {
-      pointer name= must_single (sc, v, fr.b, "gf0: module name must be single-valued");
-      fr.b= pin (sc, name);
+      V name_v = must_single (sc, v, fr.b, "gf0: module name must be single-valued"); pointer name = name_v.one;
+      kstore (sc, fr, fr.b, name);
       fr.stage= 2;
       k.push_back (fr);
       return ctlExpr (fr.c, fr.env);
     }
-    pointer val= must_single (sc, v, fr.b, "gf0: module-set value must be single-valued");
+    V val_v = must_single (sc, v, fr.b, "gf0: module-set value must be single-valued"); pointer val = val_v.one;
     pointer mr_proc= lookup_raw (sc, pin (sc, gf::make_symbol (sc, "module-ref")), fr.env);
     pointer setter= lookup_raw (sc, pin (sc, gf::make_symbol (sc, "setter")), fr.env);
     if (mr_proc == unassigned_box (sc) || !gf::is_procedure (mr_proc) ||
         setter == unassigned_box (sc) || !gf::is_procedure (setter))
-      return ctlVals (single (fail (sc, "gf0: module-ref unavailable (boot substrate?)", fr.b)));
+      return ctlVals (single (sc, fail (sc, "gf0: module-ref unavailable (boot substrate?)", fr.b)));
     std::vector<pointer> one;
     one.push_back (mr_proc);
-    pointer writer= must_single (sc, s7call_vec (sc, setter, one), fr.b,
+    V writer_v= must_single (sc, s7call_vec (sc, setter, one), fr.b,
                                  "gf0: (setter module-ref) must be single");
+    pointer writer= writer_v.one;
     // NOTE: writer applied via s7call (leaf, completes here); nested user
     // code cannot intervene, so flatness holds.
     std::vector<pointer> args3;
@@ -1123,10 +1356,10 @@ plugInto (scheme* sc, KF fr, V v, Kont& k) {
     args3.push_back (pin (sc, val));
     must_single (sc, s7call_vec (sc, writer, args3), fr.b,
                  "gf0: module write must be single-valued");
-    return ctlVals (single (gf::unspecified (sc)));
+    return ctlVals (single (sc, gf::unspecified (sc)));
   }
   case KK::CcK: {
-    pointer proc= must_single (sc, v, gf::nil (sc), "gf0: call/cc arg must be single-valued");
+    V proc_v = must_single (sc, v, gf::nil (sc), "gf0: call/cc arg must be single-valued"); pointer proc = proc_v.one;
     Saved s;
     s.k  = k;
     s.env= fr.env;
@@ -1137,10 +1370,10 @@ plugInto (scheme* sc, KF fr, V v, Kont& k) {
     return applyCtl (sc, proc, one, k);
   }
   case KK::ProcP: {
-    pointer arg= must_single (sc, v, gf::nil (sc), "gf0: procedure? arg must be single-valued");
+    V arg_v = must_single (sc, v, gf::nil (sc), "gf0: procedure? arg must be single-valued"); pointer arg = arg_v.one;
     if (s_boxes.find ((void*) arg) != s_boxes.end () ||
         s_cont_boxes.find ((void*) arg) != s_cont_boxes.end ())
-      return ctlVals (single (gf::t (sc)));
+      return ctlVals (single (sc, gf::t (sc)));
     std::vector<pointer> one;
     one.push_back (pin (sc, arg));
     return ctlVals (s7call_vec (sc, lookup_raw (sc, pin (sc, gf::make_symbol (sc, "procedure?")),
@@ -1148,13 +1381,13 @@ plugInto (scheme* sc, KF fr, V v, Kont& k) {
                                 one));
   }
   case KK::ApplyP: {
-    pointer proc= must_single (sc, v, fr.b, "gf0: apply head must be single-valued");
+    V proc_v = must_single (sc, v, fr.b, "gf0: apply head must be single-valued"); pointer proc = proc_v.one;
     if (!gf::is_pair (fr.b))
-      return ctlVals (single (fail (sc, "gf0: apply needs args", fr.b)));
+      return ctlVals (single (sc, fail (sc, "gf0: apply needs args", fr.b)));
     KF na;
     na.tag= KK::ApplyA;
     na.env= fr.env;
-    na.a  = pin (sc, proc);
+    na.a  = proc; kpin (sc, na, proc);
     na.b  = gf::cdr (fr.b);
     na.c  = nullptr;
     na.stage= 0;
@@ -1163,8 +1396,8 @@ plugInto (scheme* sc, KF fr, V v, Kont& k) {
     return ctlExpr (gf::car (fr.b), fr.env);
   }
   case KK::ApplyA: {
-    pointer one= must_single (sc, v, fr.b, "gf0: apply arg must be single-valued");
-    fr.acc.push_back (pin (sc, one));
+    V one_v = must_single (sc, v, fr.b, "gf0: apply arg must be single-valued"); pointer one = one_v.one;
+    fr.acc.push_back (one); kpin (sc, fr, one);
     if (gf::is_pair (fr.b)) {
       pointer next= gf::car (fr.b);
       fr.b= gf::cdr (fr.b);
@@ -1178,7 +1411,7 @@ plugInto (scheme* sc, KF fr, V v, Kont& k) {
     for (; gf::is_pair (tail); tail= gf::cdr (tail))
       combined.push_back (gf::car (tail));
     if (!gf::is_null (sc, tail))
-      return ctlVals (single (fail (sc, "gf0: apply last arg must be a list", tail)));
+      return ctlVals (single (sc, fail (sc, "gf0: apply last arg must be a list", tail)));
     return applyCtl (sc, fr.a, combined, k);
   }
   case KK::DwK: {
@@ -1186,8 +1419,8 @@ plugInto (scheme* sc, KF fr, V v, Kont& k) {
     // -> 4 after run (keeps thunk value). Winder pushed once after-proc is
     // known, before the thunk runs; popped on normal completion.
     if (fr.stage == 0) {
-      pointer before= must_single (sc, v, fr.b, "gf0: dynamic-wind before must be single-valued");
-      fr.a= pin (sc, before);
+      V before_v = must_single (sc, v, fr.b, "gf0: dynamic-wind before must be single-valued"); pointer before = before_v.one;
+      fr.a= before; kpin (sc, fr, before);
       fr.stage= 1;
       k.push_back (fr);
       return applyCtl (sc, before, std::vector<pointer> (), k);
@@ -1198,8 +1431,8 @@ plugInto (scheme* sc, KF fr, V v, Kont& k) {
       return ctlExpr (fr.c, fr.env);
     }
     if (fr.stage == 2) {
-      pointer after= must_single (sc, v, fr.c, "gf0: dynamic-wind after must be single-valued");
-      fr.c= pin (sc, after);
+      V after_v = must_single (sc, v, fr.c, "gf0: dynamic-wind after must be single-valued"); pointer after = after_v.one;
+      kstore (sc, fr, fr.c, after);
       fr.stage= 3;
       k.push_back (fr);
       Winder wd;
@@ -1211,8 +1444,8 @@ plugInto (scheme* sc, KF fr, V v, Kont& k) {
       return ctlExpr (fr.b, fr.env);
     }
     if (fr.stage == 3) {
-      pointer thunkproc= must_single (sc, v, fr.b, "gf0: dynamic-wind thunk must be single-valued");
-      fr.acc.push_back (pin (sc, thunkproc));
+      V thunkproc_v = must_single (sc, v, fr.b, "gf0: dynamic-wind thunk must be single-valued"); pointer thunkproc = thunkproc_v.one;
+      fr.acc.push_back (thunkproc); kpin (sc, fr, thunkproc);
       fr.stage= 4;
       k.push_back (fr);
       return applyCtl (sc, thunkproc, std::vector<pointer> (), k);
@@ -1220,16 +1453,17 @@ plugInto (scheme* sc, KF fr, V v, Kont& k) {
     if (fr.stage == 4) {
       // Thunk completed normally with value v: stash it, pop our winder,
       // run after, then return the stashed thunk value (stage 5).
-      fr.acc.push_back (pin (sc, must_single (sc, v, fr.b, "gf0: dynamic-wind thunk must be single-valued")));
+      V thunkproc_v= must_single (sc, v, fr.b, "gf0: dynamic-wind thunk must be single-valued");
+      fr.acc.push_back (thunkproc_v.one); kpin (sc, fr, thunkproc_v.one);
       if (!s_wind.empty ()) s_wind.pop_back ();
       fr.stage= 5;
       k.push_back (fr);
       return applyCtl (sc, fr.c, std::vector<pointer> (), k);
     }
     // stage 5: after ran (value ignored); thunk value is acc[1].
-    return ctlVals (single (fr.acc[1]));
+    return ctlVals (single (sc, fr.acc[1]));
   }
-  return ctlVals (single (fail (sc, "gf0: bad kont", fr.a)));
+  return ctlVals (single (sc, fail (sc, "gf0: bad kont", fr.a)));
 }
 }
 
@@ -1293,6 +1527,29 @@ run (scheme* sc, pointer x, Env env) {
   return runLoop (sc, ctlExpr (x, env), k);
 }
 
+static pointer gfex_to_error (scheme* sc, GfEx& e);
+
+// SPIKE: s7-side application of gf0 boxes (ref protocol). Convention per
+// s7.h: ref receives the full combination (obj . args); args here arrive
+// EVALUATED or not depending on path -- handled by probing both.
+static gf::pointer
+gf0_box_ref (gf::scheme* sc, gf::pointer args) {
+  if (!gf::is_pair (args)) return gf::nil (sc);
+  pointer box= gf::car (args);
+  std::vector<pointer> argvals;
+  for (pointer t= gf::cdr (args); gf::is_pair (t); t= gf::cdr (t))
+    argvals.push_back (gf::car (t));
+  try {
+    Kont k;
+    V r= runLoop (sc, applyCtl (sc, box, argvals, k), k);
+    if (!r.multi) return r.one;
+    return gf::values (sc, args_to_list (sc, r.many));
+  }
+  catch (GfEx& e) {
+    return gfex_to_error (sc, e);
+  }
+}
+
 
 // s7->gf0 entries convert GfEx back to gf::error (a C++ exception must
 // never cross s7 C frames). Shape preserves fail() rendering exactly:
@@ -1314,15 +1571,15 @@ seed_from_inlet (scheme* sc, pointer inlet) {
   pointer alist= gf::let_to_list (sc, inlet);
   for (; gf::is_pair (alist); alist= gf::cdr (alist)) {
     pointer e= gf::car (alist);
-    pointer sym= nullptr;
-    pointer val= nullptr;
     if (gf::is_pair (e) && gf::is_symbol (gf::car (e))) {
-      sym= gf::car (e);
+      pointer sym= gf::car (e);
       pointer tail= gf::cdr (e);
-      val= gf::is_pair (tail) ? gf::car (tail) : tail;
+      pointer val= gf::is_pair (tail) ? gf::car (tail) : tail;
+      V sv;
+      sv.multi= false;
+      sv.one  = val;
+      frame_bind (sc, s_top.frames->back (), sym, sv);
     }
-    if (sym != nullptr)
-      s_top.frames->back ()->bindings.push_back ({pin (sc, sym), pin (sc, val)});
   }
 }
 
@@ -1362,7 +1619,10 @@ f_gf0_apply (scheme* sc, pointer args) {
     // NOTE: improper non-empty tails surface in bind_formals; keep flat.
     Kont k;
     V r= runLoop (sc, applyCtl (sc, box, argvals, k), k);
-    return must_single (sc, r, box, "gf0: s7 callback must be single-valued");
+    // Trampoline returns feed S7 consumers: keep s7-canonical (wrapped)
+    // so host identity comparisons (equal?/assq) hold on that side.
+    V one_v= must_single (sc, r, box, "gf0: s7 callback must be single-valued");
+    return one_v.one;
   }
   catch (GfEx& e) {
     return gfex_to_error (sc, e);
@@ -1385,6 +1645,8 @@ f_gf0_apply_values (scheme* sc, pointer args) {
       argvals.push_back (gf::car (t));
     Kont k;
     V r= runLoop (sc, applyCtl (sc, box, argvals, k), k);
+    // Trampoline returns feed S7 consumers: raw (s7-canonical identity;
+    // wrappers only where s7 must apply, per the HOF table).
     if (!r.multi) {
       std::vector<pointer> one;
       one.push_back (r.one);

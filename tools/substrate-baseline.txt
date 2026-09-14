@@ -19,6 +19,7 @@ close_output_port
 closure_body
 c_object_value
 cons
+c_type_set_ref
 curlet
 current_error_port
 current_input_port
@@ -50,6 +51,7 @@ is_character
 is_defined
 is_eq
 is_integer
+is_keyword
 is_let
 is_list
 is_multiple_value
@@ -114,7 +116,7 @@ vector_elements
 vector_length
 vector_ref
 vector_set
-count=115
+count=117
 == B GF_GLUE ==
 g_access
 g_bytevector-base64-decode
