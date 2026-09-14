@@ -362,7 +362,8 @@
                                 (short . "h")
                                 (action . store-true)))
         (parser :add-argument '((name . "dry-run") (action . store-true)))
-        (parser :add-argument
+        (parser
+          :add-argument
           '((name . "extension")
             (short . "e")
             (type . string)

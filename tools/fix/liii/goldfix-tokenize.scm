@@ -220,8 +220,11 @@
                    (start-offset (vector-ref start-offsets idx))
                   ) ;
               (line-loop (- line-number 1)
-                (cons (make-fix-line :number line-number :start-offset
-                        start-offset :first-code-token first :tokens line-tokens
+                (cons (make-fix-line
+                        :number           line-number
+                        :start-offset     start-offset
+                        :first-code-token first
+                        :tokens           line-tokens
                       ) ;make-fix-line
                   result
                 ) ;cons
@@ -264,18 +267,13 @@
         ) ;define
         (define (add-token! type start end token-line token-column)
           (set! tokens
-            (cons (make-fix-token :type
-                    type
-                    :offset
-                    start
-                    :end
-                    end
-                    :line
-                    token-line
-                    :column
-                    token-column
-                    :text
-                    (substring source start end)
+            (cons (make-fix-token
+                    :type   type
+                    :offset start
+                    :end    end
+                    :line   token-line
+                    :column token-column
+                    :text   (substring source start end)
                   ) ;make-fix-token
               tokens
             ) ;cons
