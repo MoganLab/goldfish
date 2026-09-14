@@ -7,6 +7,14 @@
 # inlet). stdout must match byte-for-byte (load path echoes nothing; only
 # the program's own displays print). Cold-cache effects are warmed away by
 # a discard run first.
+#
+# M3 note: explicit test files may be passed after DIR. Two known files
+# cannot run through this whole-file path on EITHER engine (identical
+# failure, frontend -- not evaluation -- issues, out of scope):
+#   abs-test.scm  -- complex literal 1.0+2.0i misread under direct
+#                    compile-file-cached (normal `gf test` passes).
+#   case-test.scm -- constant-fold chokes whole-file ("not enough
+#                    arguments" in ((lambda vs vs) (producer))).
 set -eu
 cd "$(dirname "$0")/.."
 mkdir -p /tmp/kilo

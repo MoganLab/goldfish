@@ -415,7 +415,7 @@ bind_call (scheme* sc, const Closure& c, pointer arglist, pointer ctx) {
 // (all heap data; envs shared). s7call sites stay leaves.
 enum class KK {
   Seq, If, CallP, CallA, Define, Set, LetB, RecB, ValsB, Vals,
-  CwvP, CwvQ, CwvC, CatchG, CatchR, Mod, CcK, DwK,
+  CwvP, CwvQ, CwvC, CatchG, CatchR, Mod, CcK, DwK, ProcP, ApplyP, ApplyA,
 };
 struct KF {
   KK tag;
@@ -511,8 +511,10 @@ applyCtl (scheme* sc, pointer proc, const std::vector<pointer>& argvals, Kont& k
   }
   if (s_cont_boxes.find ((void*) proc) != s_cont_boxes.end ()) {
     gf::int_ idx= gf::integer ((pointer) gf::c_object_value (proc));
-    if (idx < 0 || (size_t) idx >= s_conts.size () || argvals.size () != 1)
+    if (idx < 0 || (size_t) idx >= s_conts.size ())
       return ctlVals (single (fail (sc, "gf0: bad continuation invoke", proc)));
+    // R7RS: continuations take any number of values (s7/guile oracle:
+    // zero args -> zero values, one -> single, n -> multi-n).
     // Splice winders: run afters of the abandoned suffix (innermost first),
     // adopt the target stack, run befores of the entered suffix.
     const std::vector<Winder>& tgt= s_conts[(size_t) idx].winders;
@@ -526,7 +528,9 @@ applyCtl (scheme* sc, pointer proc, const std::vector<pointer>& argvals, Kont& k
     for (size_t i= common; i < s_wind.size (); ++i)
       callSync (sc, s_wind[i].before);
     k= s_conts[(size_t) idx].k; // copy-on-invoke: stored stays pristine (multi-shot)
-    return ctlVals (single (argvals[0]));
+    if (argvals.size () == 1) return ctlVals (single (argvals[0]));
+    std::vector<pointer> many= argvals;
+    return ctlVals (multi_vec (std::move (many)));
   }
   if (gf::is_procedure (proc)) return ctlVals (s7call_vec (sc, proc, argvals));
   return ctlVals (single (fail (sc, "gf0: cannot apply (macros stay frontend)", proc)));
@@ -846,6 +850,41 @@ stepE (scheme* sc, pointer x, Env env, Kont& k) {
     k.push_back (fr);
     return ctlExpr (gf::car (rest), env);
   }
+  if (gf::is_symbol (head) && std::strcmp (gf::symbol_name (head), "procedure?") == 0 &&
+      !user_bound (head, env)) {
+    // R7RS: closures and continuations satisfy procedure? (s7/guile agree).
+    // s7's own predicate rejects c_object boxes, so answer natively.
+    pointer rest= gf::cdr (x);
+    if (!gf::is_pair (rest) || gf::is_pair (gf::cdr (rest)))
+      return ctlVals (single (fail (sc, "gf0: bad procedure?", x)));
+    KF fr;
+    fr.tag= KK::ProcP;
+    fr.env= env;
+    fr.a  = nullptr;
+    fr.b  = nullptr;
+    fr.c  = nullptr;
+    fr.stage= 0;
+    fr.flag= false;
+    k.push_back (fr);
+    return ctlExpr (gf::car (rest), env);
+  }
+  if (gf::is_symbol (head) && std::strcmp (gf::symbol_name (head), "apply") == 0 &&
+      !user_bound (head, env)) {
+    // R7RS apply with a gf0 proc: route natively (s7's apply rejects boxes).
+    pointer rest= gf::cdr (x);
+    if (!gf::is_pair (rest) || !gf::is_pair (gf::cdr (rest)))
+      return ctlVals (single (fail (sc, "gf0: bad apply", x)));
+    KF fr;
+    fr.tag= KK::ApplyP;
+    fr.env= env;
+    fr.a  = nullptr;
+    fr.b  = gf::cdr (rest);
+    fr.c  = nullptr;
+    fr.stage= 0;
+    fr.flag= false;
+    k.push_back (fr);
+    return ctlExpr (gf::car (rest), env);
+  }
   if (is_frontend_syntax (head, env))
     return ctlVals (single (fail (sc, "gf0: not core; desugar via frontend", head)));
   KF fr;
@@ -1096,6 +1135,51 @@ plugInto (scheme* sc, KF fr, V v, Kont& k) {
     std::vector<pointer> one;
     one.push_back (box);
     return applyCtl (sc, proc, one, k);
+  }
+  case KK::ProcP: {
+    pointer arg= must_single (sc, v, gf::nil (sc), "gf0: procedure? arg must be single-valued");
+    if (s_boxes.find ((void*) arg) != s_boxes.end () ||
+        s_cont_boxes.find ((void*) arg) != s_cont_boxes.end ())
+      return ctlVals (single (gf::t (sc)));
+    std::vector<pointer> one;
+    one.push_back (pin (sc, arg));
+    return ctlVals (s7call_vec (sc, lookup_raw (sc, pin (sc, gf::make_symbol (sc, "procedure?")),
+                                                fr.env),
+                                one));
+  }
+  case KK::ApplyP: {
+    pointer proc= must_single (sc, v, fr.b, "gf0: apply head must be single-valued");
+    if (!gf::is_pair (fr.b))
+      return ctlVals (single (fail (sc, "gf0: apply needs args", fr.b)));
+    KF na;
+    na.tag= KK::ApplyA;
+    na.env= fr.env;
+    na.a  = pin (sc, proc);
+    na.b  = gf::cdr (fr.b);
+    na.c  = nullptr;
+    na.stage= 0;
+    na.flag= false;
+    k.push_back (na);
+    return ctlExpr (gf::car (fr.b), fr.env);
+  }
+  case KK::ApplyA: {
+    pointer one= must_single (sc, v, fr.b, "gf0: apply arg must be single-valued");
+    fr.acc.push_back (pin (sc, one));
+    if (gf::is_pair (fr.b)) {
+      pointer next= gf::car (fr.b);
+      fr.b= gf::cdr (fr.b);
+      k.push_back (fr);
+      return ctlExpr (next, fr.env);
+    }
+    // Last arg must be a proper list; spread prefix + elements.
+    std::vector<pointer> combined;
+    for (size_t i= 0; i + 1 < fr.acc.size (); ++i) combined.push_back (fr.acc[i]);
+    pointer tail= fr.acc.back ();
+    for (; gf::is_pair (tail); tail= gf::cdr (tail))
+      combined.push_back (gf::car (tail));
+    if (!gf::is_null (sc, tail))
+      return ctlVals (single (fail (sc, "gf0: apply last arg must be a list", tail)));
+    return applyCtl (sc, fr.a, combined, k);
   }
   case KK::DwK: {
     // stages: 0 before-expr -> 1 thunk-expr -> 2 after-expr -> 3 thunk run
