@@ -9,20 +9,18 @@
         (value-error "tree-depth: tree is cyclic: ~S" tree)
         (let loop
           ((x tree))
-          (cond ((not (pair? x)) 0)
-                (else (+ 1
-                        (let elt-loop
-                          ((rest x) (max-d 0))
-                          (cond ((not (pair? rest)) max-d)
-                                (else (let ((d (if (pair? (car rest)) (loop (car rest)) 0)))
-                                        (elt-loop (cdr rest) (max max-d d))
-                                      ) ;let
-                                ) ;else
-                          ) ;cond
-                        ) ;let
-                      ) ;+
-                ) ;else
-          ) ;cond
+          (if (not (pair? x))
+            0
+            (+ 1
+              (let elt-loop
+                ((rest x) (max-d 0))
+                (if (not (pair? rest))
+                  max-d
+                  (elt-loop (cdr rest) (max max-d (loop (car rest))))
+                ) ;if
+              ) ;let
+            ) ;+
+          ) ;if
         ) ;let
       ) ;if
     ) ;define
