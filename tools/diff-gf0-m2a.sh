@@ -35,9 +35,10 @@
 #                    fresh tokens), so every missing-element path raises
 #                    gf0-stale-continuation gf0-side while s7 passes.
 #                    Present-element paths agree.
-#   letrec/letrec-star -- R7RS-strict key divergence (gf0 errors
-#                    read-before-assignment where s7 raises wrong-type-arg
-#                    downstream); intentional, see CORE-SEMANTICS.md.
+#   letrec/letrec-star/internal-define-values -- R7RS-strict key divergence
+#                    (gf0 errors read-before-assignment where s7 raises
+#                    wrong-type-arg downstream); intentional,
+#                    see CORE-SEMANTICS.md.
 #   make-parameter / with-exception-handler / raise-continuable /
 #   read-bytevector / error-object / lambda-star / bag-replace --
 #                    whole-file reference wiring or bundle identity:
@@ -61,12 +62,23 @@
 #                    only gf0-side. Suspect GC-timing in deeply nested box
 #                    callbacks; stale bundles were a red herring. Needs a
 #                    dedicated ASAN session; normal `gf test` passes.
+#   srfi-78-test / srfi-78-200_12_2 / srfi-78-simple-stacktrace --
+#                    stacktrace introspection: same checks fail on both
+#                    sides, only the trace text differs (s7 C stack vs
+#                    gf0 flat loop). Implementation-specific, cannot agree.
+#   sicp-test -- wall-clock: displays (runtime) timestamps that differ
+#                    between any two runs. Nothing to gate.
+#   boot-test / function-libraries-test -- import machinery, not evaluation:
+#                    eval-when + *load-path* mutation + probe-lib loading
+#                    (boot), registry introspection (function-libraries).
+#                    Whole-file differential cannot reproduce the loader
+#                    environment; per-form `gf test` passes.
 set -eu
 cd "$(dirname "$0")/.."
 mkdir -p /tmp/kilo
 dir=${1:-tests/gf0}
 fail=0
-skip_names="abs-test case-test srfi-158-test letrec-test letrec-star-test make-parameter-test with-exception-handler-test raise-continuable-test read-bytevector-test error-object-test iset-search-test reader-test cut-test signature-test make-hook-test lambda-star-test bag-replace-test packrat-test"
+skip_names="abs-test case-test srfi-158-test letrec-test letrec-star-test internal-define-values-test make-parameter-test with-exception-handler-test raise-continuable-test read-bytevector-test error-object-test iset-search-test reader-test cut-test signature-test make-hook-test lambda-star-test bag-replace-test packrat-test boot-test function-libraries-test srfi-78-test srfi-78-200_12_2_test srfi-78-simple-stacktrace-test sicp-test"
 
 if [ $# -ge 2 ]; then
   # Explicit file list (M3: test files): shift past dir, take the rest.
