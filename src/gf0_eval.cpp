@@ -394,7 +394,7 @@ bind_call (scheme* sc, const Closure& c, pointer arglist, pointer ctx) {
 // (all heap data; envs shared). s7call sites stay leaves.
 enum class KK {
   Seq, If, CallP, CallA, Define, Set, LetB, RecB, ValsB, Vals,
-  CwvP, CwvQ, CwvC, CatchG, CatchR, Mod, CcK,
+  CwvP, CwvQ, CwvC, CatchG, CatchR, Mod, CcK, DwK,
 };
 struct KF {
   KK tag;
@@ -430,17 +430,30 @@ ctlExpr (pointer x, Env env) {
   return c;
 }
 
+// Dynamic-wind stack (M-VM-2b second half): session-global, copied on
+// capture, spliced on invoke. depth = Kont size at push; a winder is due
+// when unwinding reaches depth <= its own.
+struct Winder {
+  pointer before;
+  pointer after;
+  Env env;
+  size_t depth;
+};
 struct Saved {
   Kont k;
   Env env;
+  std::vector<Winder> winders;
 };
 static std::vector<Saved>      s_conts;
 static std::unordered_set<void*> s_cont_boxes;
 static gf::int_                s_cont_type= -1;
+static std::vector<Winder> s_wind;
 
 static Ctl stepE (scheme* sc, pointer x, Env env, Kont& k);
 static Ctl plugInto (scheme* sc, KF fr, V v, Kont& k);
 static V runLoop (scheme* sc, Ctl c, Kont& k);
+static V callSync (scheme* sc, pointer proc);
+static bool same_winder (const Winder& a, const Winder& b);
 
 // Sequence control: empty -> unspecified value; single -> direct;
 // longer -> first now, rest in a Seq frame.
@@ -461,6 +474,10 @@ seqCtl (scheme* sc, Env env, pointer body, Kont& k) {
   return ctlExpr (gf::car (body), env);
 }
 
+static V runLoop (scheme* sc, Ctl c, Kont& k);
+static V callSync (scheme* sc, pointer proc);
+static bool same_winder (const Winder& a, const Winder& b);
+
 // Apply a resolved proc to value vector -> Control (never nests C++ eval).
 static Ctl
 applyCtl (scheme* sc, pointer proc, const std::vector<pointer>& argvals, Kont& k) {
@@ -475,6 +492,18 @@ applyCtl (scheme* sc, pointer proc, const std::vector<pointer>& argvals, Kont& k
     gf::int_ idx= gf::integer ((pointer) gf::c_object_value (proc));
     if (idx < 0 || (size_t) idx >= s_conts.size () || argvals.size () != 1)
       return ctlVals (single (fail (sc, "gf0: bad continuation invoke", proc)));
+    // Splice winders: run afters of the abandoned suffix (innermost first),
+    // adopt the target stack, run befores of the entered suffix.
+    const std::vector<Winder>& tgt= s_conts[(size_t) idx].winders;
+    size_t common= 0;
+    while (common < s_wind.size () && common < tgt.size () &&
+           same_winder (s_wind[common], tgt[common]))
+      ++common;
+    for (size_t i= s_wind.size (); i-- > common;)
+      callSync (sc, s_wind[i].after);
+    s_wind= tgt;
+    for (size_t i= common; i < s_wind.size (); ++i)
+      callSync (sc, s_wind[i].before);
     k= s_conts[(size_t) idx].k; // copy-on-invoke: stored stays pristine (multi-shot)
     return ctlVals (single (argvals[0]));
   }
@@ -483,10 +512,11 @@ applyCtl (scheme* sc, pointer proc, const std::vector<pointer>& argvals, Kont& k
 }
 
 static pointer
-cont_box (scheme* sc, const Kont& k, Env env) {
+cont_box (scheme* sc, const Kont& k, Env env, const std::vector<Winder>& w) {
   Saved s;
   s.k  = k;
   s.env= env;
+  s.winders= w;
   s_conts.push_back (s);
   gf::int_ idx= (gf::int_) (s_conts.size () - 1);
   pointer box= pin (sc, gf::make_c_object_with_let (
@@ -778,8 +808,23 @@ stepE (scheme* sc, pointer x, Env env, Kont& k) {
     return ctlExpr (gf::car (rest), env);
   }
   if (gf::is_symbol (head) && std::strcmp (gf::symbol_name (head), "dynamic-wind") == 0 &&
-      !lexically_bound (head, env))
-    return ctlVals (single (fail (sc, "gf0: dynamic-wind stub (M-VM-2b second half)", x)));
+      !lexically_bound (head, env)) {
+    pointer rest= gf::cdr (x);
+    if (!gf::is_pair (rest) || !gf::is_pair (gf::cdr (rest)) ||
+        !gf::is_pair (gf::cdr (gf::cdr (rest))) ||
+        gf::is_pair (gf::cdr (gf::cdr (gf::cdr (rest)))))
+      return ctlVals (single (fail (sc, "gf0: bad dynamic-wind", x)));
+    KF fr;
+    fr.tag= KK::DwK;
+    fr.env= env;
+    fr.a  = nullptr;
+    fr.b  = gf::car (gf::cdr (rest));
+    fr.c  = gf::car (gf::cdr (gf::cdr (rest)));
+    fr.stage= 0;
+    fr.flag= false;
+    k.push_back (fr);
+    return ctlExpr (gf::car (rest), env);
+  }
   if (is_frontend_syntax (head, env))
     return ctlVals (single (fail (sc, "gf0: not core; desugar via frontend", head)));
   KF fr;
@@ -1025,13 +1070,78 @@ plugInto (scheme* sc, KF fr, V v, Kont& k) {
     Saved s;
     s.k  = k;
     s.env= fr.env;
-    pointer box= cont_box (sc, s.k, s.env);
+    s.winders= s_wind;
+    pointer box= cont_box (sc, s.k, s.env, s.winders);
     std::vector<pointer> one;
     one.push_back (box);
     return applyCtl (sc, proc, one, k);
   }
+  case KK::DwK: {
+    // stages: 0 before-expr -> 1 thunk-expr -> 2 after-expr -> 3 thunk run
+    // -> 4 after run (keeps thunk value). Winder pushed once after-proc is
+    // known, before the thunk runs; popped on normal completion.
+    if (fr.stage == 0) {
+      pointer before= must_single (sc, v, fr.b, "gf0: dynamic-wind before must be single-valued");
+      fr.a= pin (sc, before);
+      fr.stage= 1;
+      k.push_back (fr);
+      return applyCtl (sc, before, std::vector<pointer> (), k);
+    }
+    if (fr.stage == 1) {
+      fr.stage= 2;
+      k.push_back (fr);
+      return ctlExpr (fr.c, fr.env);
+    }
+    if (fr.stage == 2) {
+      pointer after= must_single (sc, v, fr.c, "gf0: dynamic-wind after must be single-valued");
+      fr.c= pin (sc, after);
+      fr.stage= 3;
+      k.push_back (fr);
+      Winder wd;
+      wd.before= fr.a;
+      wd.after= after;
+      wd.env  = fr.env;
+      wd.depth= k.size ();
+      s_wind.push_back (wd);
+      return ctlExpr (fr.b, fr.env);
+    }
+    if (fr.stage == 3) {
+      pointer thunkproc= must_single (sc, v, fr.b, "gf0: dynamic-wind thunk must be single-valued");
+      fr.acc.push_back (pin (sc, thunkproc));
+      fr.stage= 4;
+      k.push_back (fr);
+      return applyCtl (sc, thunkproc, std::vector<pointer> (), k);
+    }
+    if (fr.stage == 4) {
+      // Thunk completed normally with value v: stash it, pop our winder,
+      // run after, then return the stashed thunk value (stage 5).
+      fr.acc.push_back (pin (sc, must_single (sc, v, fr.b, "gf0: dynamic-wind thunk must be single-valued")));
+      if (!s_wind.empty ()) s_wind.pop_back ();
+      fr.stage= 5;
+      k.push_back (fr);
+      return applyCtl (sc, fr.c, std::vector<pointer> (), k);
+    }
+    // stage 5: after ran (value ignored); thunk value is acc[1].
+    return ctlVals (single (fr.acc[1]));
   }
   return ctlVals (single (fail (sc, "gf0: bad kont", fr.a)));
+}
+}
+
+static V runLoop (scheme* sc, Ctl c, Kont& k);
+
+// Synchronous proc call for winder bodies (before/after run to completion
+// during a transfer). Nested driveLoop depth is bounded by winder nesting,
+// not user recursion.
+static V
+callSync (scheme* sc, pointer proc) {
+  Kont k2;
+  return runLoop (sc, applyCtl (sc, proc, std::vector<pointer> (), k2), k2);
+}
+
+static bool
+same_winder (const Winder& a, const Winder& b) {
+  return a.before == b.before && a.after == b.after && a.env.frames == b.env.frames;
 }
 
 static V
@@ -1051,18 +1161,23 @@ runLoop (scheme* sc, Ctl c, Kont& k) {
       }
     }
     catch (GfEx& e) {
-      bool handled= false;
-      while (!k.empty ()) {
+      // Unwind one frame at a time, running due afters innermost-first.
+      // A winder is due once unwinding reaches its push depth.
+      for (;;) {
+        while (!s_wind.empty () && s_wind.back ().depth >= k.size ()) {
+          Winder wd= s_wind.back ();
+          s_wind.pop_back ();
+          callSync (sc, wd.after);
+        }
+        if (k.empty ()) throw;
         KF fr= k.back ();
         k.pop_back ();
         if (fr.tag != KK::CatchR) continue;
         bool all= gf::is_boolean (fr.a) && gf::boolean (sc, fr.a);
         if (!all && (e.args.empty () || !gf::is_eq (fr.a, e.args[0]))) continue;
         c= applyCtl (sc, fr.b, e.args, k);
-        handled= true;
         break;
       }
-      if (!handled) throw;
     }
   }
 }

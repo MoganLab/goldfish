@@ -70,7 +70,6 @@ C++ 递归直 walk；本页是其继任者（M-VM）的开工令。
 - call/cc 仍占位（未实现）；差分门 13/13 零修改通过，基线不动。
 
 ## M-VM-2b 落地第一斧（CEK＋call/cc，done）
-
 - 全部 15 处嵌套 `eval()` 改为显式 Kont 帧（Seq/If/CallP/CallA/
   Define/Set/LetB/RecB/ValsB/Vals/CwvP/CwvQ/CwvC/CatchG/CatchR/
   Mod/CcK）；`runLoop()` 单循环驱动，无 C++ 递归求值。
@@ -81,6 +80,19 @@ C++ 递归直 walk；本页是其继任者（M-VM）的开工令。
 - 差分门 13/13 零修改通过；TCO 保持（10 万尾调用）；C-stack guard
   留任（s7call 叶路径）。基线不动（无新原语）。
 - 修的两个移植 bug：首 init 少一层 car；cwv 漏 producer 零参调用。
+
+## M-VM-2b 落地第二斧（dynamic-wind，done）
+
+- DwK 帧 6 阶段（before 求值→调 before→after 求值→推 winder→thunk
+  求值→调 thunk→弹 winder→调 after→回 thunk 值）；winder 栈全局，
+  depth 标记，capture 拷贝、invoke 按公共前缀 splice（弃段 afters
+  内→外、进段 befores 外→内）；GfEx unwind 逐帧弹并跑 due afters。
+- 验证：正常序 b,t,a＋回值；escape 穿 winder 跑 after；重入转移
+  轨迹 `(done a b a t b)` 逐字正确。
+- 排查记录：一次"挂起"实为测试本身的无限重入（invoke 点在续体
+  内，无状态推进）——引擎行为正确；另有一次构建期花括号失衡，
+  用自写 C 计数器定位到 plugInto 缺闭合（教训：大改写后先数括号）。
+- 基线不动（无新原语）。
 
 ## 参考与立场
 
