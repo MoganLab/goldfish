@@ -13,7 +13,15 @@ mkdir -p /tmp/kilo
 dir=${1:-tests/gf0}
 fail=0
 
-for prog in "$dir"/m2a-*.scm; do
+if [ $# -ge 2 ]; then
+  # Explicit file list (M3: test files): shift past dir, take the rest.
+  shift
+  files="$*"
+else
+  files="$dir"/m2a-*.scm
+fi
+
+for prog in $files; do
   [ -e "$prog" ] || continue
   s7r=$(mktemp /tmp/kilo/m2a-s7-XXXX.scm)
   gf0r=$(mktemp /tmp/kilo/m2a-gf0-XXXX.scm)

@@ -288,14 +288,21 @@ lookup_raw (scheme* sc, pointer sym, Env env) {
 static pointer
 wrap_for_s7 (scheme* sc, pointer box) {
   pointer quote_sym= pin (sc, gf::make_symbol (sc, "quote"));
+  // (lambda args (apply values (g_gf0-apply-values 'BOX args))): the
+  // values-variant spreads multi through s7 natively, so callbacks keep
+  // SRFI multi propagation (e.g. set-search! success/failure results).
   pointer inner= pin (sc, gf::list (sc,
-    pin (sc, gf::make_symbol (sc, "g_gf0-apply")),
+    pin (sc, gf::make_symbol (sc, "g_gf0-apply-values")),
     pin (sc, gf::list (sc, quote_sym, box)),
     pin (sc, gf::make_symbol (sc, "args"))));
+  pointer call= pin (sc, gf::list (sc,
+    pin (sc, gf::make_symbol (sc, "apply")),
+    pin (sc, gf::make_symbol (sc, "values")),
+    inner));
   pointer expr= pin (sc, gf::list (sc,
     pin (sc, gf::make_symbol (sc, "lambda")),
     pin (sc, gf::make_symbol (sc, "args")),
-    inner));
+    call));
   return pin (sc, gf::eval (sc, expr, gf::rootlet (sc)));
 }
 
@@ -1279,6 +1286,34 @@ f_gf0_apply (scheme* sc, pointer args) {
 }
 
 static gf::pointer
+f_gf0_apply_values (scheme* sc, pointer args) {
+  pointer box= gf::car (args);
+  pointer tail= gf::cdr (args);
+  if (!gf::is_pair (tail) || gf::is_pair (gf::cdr (tail)))
+    return fail (sc, "gf0: g_gf0-apply-values takes (box arglist)", args);
+  pointer arglist= gf::car (tail);
+  if (s_boxes.find ((void*) box) == s_boxes.end () &&
+      s_cont_boxes.find ((void*) box) == s_cont_boxes.end ())
+    return fail (sc, "gf0: stale closure", box);
+  try {
+    std::vector<pointer> argvals;
+    for (pointer t= arglist; gf::is_pair (t); t= gf::cdr (t))
+      argvals.push_back (gf::car (t));
+    Kont k;
+    V r= runLoop (sc, applyCtl (sc, box, argvals, k), k);
+    if (!r.multi) {
+      std::vector<pointer> one;
+      one.push_back (r.one);
+      return args_to_list (sc, one);
+    }
+    return args_to_list (sc, r.many);
+  }
+  catch (GfEx& e) {
+    return gfex_to_error (sc, e);
+  }
+}
+
+static gf::pointer
 f_gf0_eval (scheme* sc, pointer args) {
   ensure_top (sc);
   try {
@@ -1337,6 +1372,8 @@ glue_gf0_eval (gf::scheme* sc) {
                        "(g_gf0-import-inlet inlet) => unspecified, seed gf0 session env from an s7 inlet");
   gf::define_function (sc, "g_gf0-apply", gf0::f_gf0_apply, 2, 0, false,
                        "(g_gf0-apply box arglist) => value, apply a gf0 closure box (s7 callback entry)");
+  gf::define_function (sc, "g_gf0-apply-values", gf0::f_gf0_apply_values, 2, 0, false,
+                       "(g_gf0-apply-values box arglist) => list of values from a gf0 closure box");
 }
 
 } // namespace goldfish
