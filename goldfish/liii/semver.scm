@@ -31,13 +31,18 @@
       (and (not (string-null? s)) (string-every ascii-numeric? s))
     ) ;define
 
+    ;; SemVer 规范第 2 条：多位数不允许前导零
+    (define (leading-zero? s)
+      (and (> (string-length s) 1) (char=? (string-ref s 0) #\0))
+    ) ;define
+
     ;; 去除首尾空白，兼容剥离前导 'v' 或 'V'（若后紧跟数字）
     (define (semver-clean s)
       (if (not (string? s))
         ""
         (let* ((trimmed (string-trim-both s)) (tlen (string-length trimmed)))
           (if (and (> tlen 1)
-                (or (char=? (string-ref trimmed 0) #\v) (char=? (string-ref trimmed 0) #\V))
+                (ascii-ci=? (string-ref trimmed 0) #\v)
                 (ascii-numeric? (string-ref trimmed 1))
               ) ;and
             (substring trimmed 1 tlen)
@@ -47,6 +52,41 @@
       ) ;if
     ) ;define
 
+    ;; 按 '.' 切分并逐字段解析；任一字段非法则整体返回 #f
+    (define (parse-dotted-fields str field->value)
+      (let loop
+        ((parts (string-split str #\.)) (acc '()))
+        (if (null? parts)
+          (reverse acc)
+          (let ((v (field->value (car parts))))
+            (and v (loop (cdr parts) (cons v acc)))
+          ) ;let
+        ) ;if
+      ) ;let
+    ) ;define
+
+    ;; 核心段字段：必须为无前导零的纯数字（空字段由 string-all-digits? 拒绝）
+    (define (core-field->number p)
+      (and (string-all-digits? p) (not (leading-zero? p)) (string->number p))
+    ) ;define
+
+    ;; 预发布字段：纯数字按数值处理，其余须落在 prerelease 字符集内
+    (define (prerelease-field->id p)
+      (and (not (string-null? p))
+        (cond ((string-all-digits? p)
+               (and (not (leading-zero? p)) (cons 'num (string->number p)))
+              ) ;
+              ((string-every prerelease-char? p) (cons 'str p))
+              (else #f)
+        ) ;cond
+      ) ;and
+    ) ;define
+
+    ;; 构建元数据字段：非空，仅限 prerelease 字符集（与预发布不同，允许前导零）
+    (define (build-field->id p)
+      (and (not (string-null? p)) (string-every prerelease-char? p) p)
+    ) ;define
+
     ;; 解析 semver 字符串为 (semver core-nums pre-list) 结构，非法返回 #f
     (define (semver-parse s)
       (let ((cleaned (semver-clean s)))
@@ -54,6 +94,8 @@
           #f
           (let* ((plus-pos (string-index cleaned #\+))
                  (without-build (if plus-pos (substring cleaned 0 plus-pos) cleaned))
+                 (build-str (if plus-pos (substring cleaned (+ plus-pos 1) (string-length cleaned)) #f)
+                 ) ;build-str
                  (dash-pos (string-index without-build #\-))
                  (core-str (if dash-pos (substring without-build 0 dash-pos) without-build))
                  (pre-str (if dash-pos
@@ -61,57 +103,18 @@
                             #f
                           ) ;if
                  ) ;pre-str
+                 (core-nums (parse-dotted-fields core-str core-field->number))
+                 (build-ids (if build-str (parse-dotted-fields build-str build-field->id) '()))
                 ) ;
-            (let ((core-parts (string-split core-str #\.)))
-              (if (null? core-parts)
-                #f
-                (let loop
-                  ((parts core-parts) (nums '()))
-                  (if (null? parts)
-                    (let ((core-nums (reverse nums)))
-                      (if (not pre-str)
-                        (list 'semver core-nums '())
-                        (let ((pre-parts (string-split pre-str #\.)))
-                          (if (null? pre-parts)
-                            #f
-                            (let pre-loop
-                              ((ps pre-parts) (ids '()))
-                              (if (null? ps)
-                                (list 'semver core-nums (reverse ids))
-                                (let* ((p (car ps)) (plen (string-length p)))
-                                  (if (= plen 0)
-                                    #f
-                                    (if (string-all-digits? p)
-                                      (if (and (> plen 1) (char=? (string-ref p 0) #\0))
-                                        #f
-                                        (pre-loop (cdr ps) (cons (cons 'num (string->number p)) ids))
-                                      ) ;if
-                                      (if (string-every prerelease-char? p)
-                                        (pre-loop (cdr ps) (cons (cons 'str p) ids))
-                                        #f
-                                      ) ;if
-                                    ) ;if
-                                  ) ;if
-                                ) ;let*
-                              ) ;if
-                            ) ;let
-                          ) ;if
-                        ) ;let
-                      ) ;if
-                    ) ;let
-                    (let* ((p (car parts)) (plen (string-length p)))
-                      (if (or (= plen 0)
-                            (not (string-all-digits? p))
-                            (and (> plen 1) (char=? (string-ref p 0) #\0))
-                          ) ;or
-                        #f
-                        (loop (cdr parts) (cons (string->number p) nums))
-                      ) ;if
-                    ) ;let*
-                  ) ;if
-                ) ;let
-              ) ;if
-            ) ;let
+            (and core-nums
+              ;; 核心段至多三段（1~3 段合法，缺省段在比较时补零）
+              (<= (length core-nums) 3)
+              ;; 构建元数据若存在则须合法；其值不参与优先级比较，仅校验
+              build-ids
+              (let ((pre-ids (if pre-str (parse-dotted-fields pre-str prerelease-field->id) '())))
+                (and pre-ids (list 'semver core-nums pre-ids))
+              ) ;let
+            ) ;and
           ) ;let*
         ) ;if
       ) ;let
@@ -122,104 +125,83 @@
       (if (semver-parse s) #t #f)
     ) ;define
 
+    ;; 核心段逐位比较，缺失的段视为 0（故 1.0 等于 1.0.0）
+    (define (compare-core c1 c2)
+      (if (and (null? c1) (null? c2))
+        0
+        (let ((n1 (if (null? c1) 0 (car c1))) (n2 (if (null? c2) 0 (car c2))))
+          (cond ((< n1 n2) -1)
+                ((> n1 n2) 1)
+                (else (compare-core (if (null? c1) '() (cdr c1)) (if (null? c2) '() (cdr c2))))
+          ) ;cond
+        ) ;let
+      ) ;if
+    ) ;define
+
+    ;; 预发布标识符逐位比较：纯数字按数值比较、纯数字低于非纯数字、
+    ;; 非纯数字按 ASCII 字典序比较、标识符数量多者优先
+    (define (compare-prerelease ps1 ps2)
+      (cond ((and (null? ps1) (null? ps2)) 0)
+            ((null? ps1) -1)
+            ((null? ps2) 1)
+            (else (let* ((id1 (car ps1))
+                         (id2 (car ps2))
+                         (t1 (car id1))
+                         (v1 (cdr id1))
+                         (t2 (car id2))
+                         (v2 (cdr id2))
+                        ) ;
+                    (cond ((and (eq? t1 'num) (eq? t2 'num))
+                           (cond ((< v1 v2) -1)
+                                 ((> v1 v2) 1)
+                                 (else (compare-prerelease (cdr ps1) (cdr ps2)))
+                           ) ;cond
+                          ) ;
+                          ((eq? t1 'num) -1)
+                          ((eq? t2 'num) 1)
+                          (else (cond ((string<? v1 v2) -1)
+                                      ((string>? v1 v2) 1)
+                                      (else (compare-prerelease (cdr ps1) (cdr ps2)))
+                                ) ;cond
+                          ) ;else
+                    ) ;cond
+                  ) ;let*
+            ) ;else
+      ) ;cond
+    ) ;define
+
     ;; 按 SemVer 2.0.0 规范比较 s1 与 s2：
     ;; s1 < s2 返回 -1；s1 > s2 返回 1；s1 == s2 返回 0；任一非法返回 #f
     (define (semver-compare s1 s2)
       (let ((p1 (semver-parse s1)) (p2 (semver-parse s2)))
         (if (or (not p1) (not p2))
           #f
-          (let* ((core1 (cadr p1))
-                 (core2 (cadr p2))
-                 (pre1 (caddr p1))
-                 (pre2 (caddr p2))
-                 (len1 (length core1))
-                 (len2 (length core2))
-                 (max-len (max len1 len2 3))
-                ) ;
-            (let loop
-              ((i 0))
-              (if (< i max-len)
-                (let ((n1 (if (< i len1) (list-ref core1 i) 0))
-                      (n2 (if (< i len2) (list-ref core2 i) 0))
-                     ) ;
-                  (cond ((< n1 n2) -1)
-                        ((> n1 n2) 1)
-                        (else (loop (+ i 1)))
-                  ) ;cond
-                ) ;let
-                (let ((has1 (not (null? pre1))) (has2 (not (null? pre2))))
-                  (cond ((and (not has1) has2) 1)
-                        ((and has1 (not has2)) -1)
-                        ((and (not has1) (not has2)) 0)
-                        (else (let pre-loop
-                                ((ps1 pre1) (ps2 pre2))
-                                (cond ((and (null? ps1) (null? ps2)) 0)
-                                      ((null? ps1) -1)
-                                      ((null? ps2) 1)
-                                      (else (let* ((id1 (car ps1))
-                                                   (id2 (car ps2))
-                                                   (t1 (car id1))
-                                                   (v1 (cdr id1))
-                                                   (t2 (car id2))
-                                                   (v2 (cdr id2))
-                                                  ) ;
-                                              (cond ((and (eq? t1 'num) (eq? t2 'num))
-                                                     (cond ((< v1 v2) -1)
-                                                           ((> v1 v2) 1)
-                                                           (else (pre-loop (cdr ps1) (cdr ps2)))
-                                                     ) ;cond
-                                                    ) ;
-                                                    ((and (eq? t1 'num) (eq? t2 'str)) -1)
-                                                    ((and (eq? t1 'str) (eq? t2 'num)) 1)
-                                                    (else (cond ((string<? v1 v2) -1)
-                                                                ((string>? v1 v2) 1)
-                                                                (else (pre-loop (cdr ps1) (cdr ps2)))
-                                                          ) ;cond
-                                                    ) ;else
-                                              ) ;cond
-                                            ) ;let*
-                                      ) ;else
-                                ) ;cond
-                              ) ;let
-                        ) ;else
-                  ) ;cond
-                ) ;let
-              ) ;if
-            ) ;let
-          ) ;let*
+          (let ((core-cmp (compare-core (cadr p1) (cadr p2))))
+            (if (not (= core-cmp 0))
+              core-cmp
+              ;; 预发布版本优先级低于同核心段的正式版
+              (let ((pre1 (caddr p1)) (pre2 (caddr p2)))
+                (cond ((null? pre1) (if (null? pre2) 0 1))
+                      ((null? pre2) -1)
+                      (else (compare-prerelease pre1 pre2))
+                ) ;cond
+              ) ;let
+            ) ;if
+          ) ;let
         ) ;if
       ) ;let
     ) ;define
 
-    (define (semver>? s1 s2)
-      (let ((c (semver-compare s1 s2)))
-        (and c (= c 1))
-      ) ;let
+    ;; 由三路比较结果构造比较谓词；任一版本非法时返回 #f
+    (define (make-version-predicate rel)
+      (lambda (s1 s2) (let ((c (semver-compare s1 s2))) (and c (rel c 0))))
     ) ;define
 
-    (define (semver<? s1 s2)
-      (let ((c (semver-compare s1 s2)))
-        (and c (= c -1))
-      ) ;let
-    ) ;define
-
-    (define (semver=? s1 s2)
-      (let ((c (semver-compare s1 s2)))
-        (and c (= c 0))
-      ) ;let
-    ) ;define
-
-    (define (semver>=? s1 s2)
-      (let ((c (semver-compare s1 s2)))
-        (and c (or (= c 1) (= c 0)))
-      ) ;let
-    ) ;define
-
-    (define (semver<=? s1 s2)
-      (let ((c (semver-compare s1 s2)))
-        (and c (or (= c -1) (= c 0)))
-      ) ;let
-    ) ;define
+    (define semver>? (make-version-predicate >))
+    (define semver<? (make-version-predicate <))
+    (define semver=? (make-version-predicate =))
+    (define semver>=? (make-version-predicate >=))
+    (define semver<=? (make-version-predicate <=))
 
   ) ;begin
 ) ;define-library
