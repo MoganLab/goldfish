@@ -263,40 +263,42 @@
 
     (define (fix-changed-since since path-str dry-run extensions)
       (let ((scope (if (string=? path-str "") #f path-str)))
-        (cond ((and scope (not (or (path-file? (path scope)) (path-dir? (path scope)))))
-               (display (string-append "错误: 路径不存在 - " scope))
-               (newline)
-               (exit 1)
-              ) ;
-              (else (let ((files (if scope
-                                   (changed-scheme-files-since since scope extensions)
-                                   (changed-scheme-files-since since #f extensions)
-                                 ) ;if
-                          ) ;files
-                         ) ;
-                      (if (null? files)
-                        (begin
-                          (display (string-append "No changed Scheme files since " since))
-                          (newline)
-                          #t
-                        ) ;begin
-                        (call-with-values (lambda () (fix-file-list files dry-run))
-                          (lambda (total updated cached)
-                            (display (string-append "Total files fixed: "
-                                       (number->string total)
-                                       ", Files updated: "
-                                       (number->string updated)
-                                       ", Files cached: "
-                                       (number->string cached)
-                                     ) ;string-append
-                            ) ;display
-                            (newline)
-                            #t
-                          ) ;lambda
-                        ) ;call-with-values
-                      ) ;if
-                    ) ;let
-              ) ;else
+        (cond
+         ((and scope (not (or (path-file? (path scope)) (path-dir? (path scope)))))
+          (display (string-append "错误: 路径不存在 - " scope))
+          (newline)
+          (exit 1)
+         ) ;
+         (else
+           (let ((files (if scope
+                          (changed-scheme-files-since since scope extensions)
+                          (changed-scheme-files-since since #f extensions)
+                        ) ;if
+                 ) ;files
+                ) ;
+             (if (null? files)
+               (begin
+                 (display (string-append "No changed Scheme files since " since))
+                 (newline)
+                 #t
+               ) ;begin
+               (call-with-values (lambda () (fix-file-list files dry-run))
+                 (lambda (total updated cached)
+                   (display (string-append "Total files fixed: "
+                              (number->string total)
+                              ", Files updated: "
+                              (number->string updated)
+                              ", Files cached: "
+                              (number->string cached)
+                            ) ;string-append
+                   ) ;display
+                   (newline)
+                   #t
+                 ) ;lambda
+               ) ;call-with-values
+             ) ;if
+           ) ;let
+         ) ;else
         ) ;cond
       ) ;let
     ) ;define
@@ -308,36 +310,37 @@
           (if (>= i (vector-length entries))
             (values total updated cached)
             (let ((entry (vector-ref entries i)))
-              (cond ((path-file? entry)
-                     (let ((entry-str (path->string entry)))
-                       (if (file-extension-match? entry-str extensions)
-                         (let ((result (fix-file-core entry-str)))
-                           (cond ((eq? result 'cached) (loop (+ i 1) (+ total 1) updated (+ cached 1)))
-                                 ((eq? result 'updated)
-                                  (display (string-append "  Updated: " entry-str))
-                                  (newline)
-                                  (loop (+ i 1) (+ total 1) (+ updated 1) cached)
-                                 ) ;
-                                 ((eq? result 'skipped)
-                                  (display (string-append "  Skipped (run gf fmt first): " entry-str))
-                                  (newline)
-                                  (loop (+ i 1) (+ total 1) updated cached)
-                                 ) ;
-                                 (else (loop (+ i 1) (+ total 1) updated cached))
-                           ) ;cond
-                         ) ;let
-                         (loop (+ i 1) total updated cached)
-                       ) ;if
-                     ) ;let
-                    ) ;
-                    ((path-dir? entry)
-                     (call-with-values (lambda () (fix-directory (path->string entry) extensions))
-                       (lambda (sub-total sub-updated sub-cached)
-                         (loop (+ i 1) (+ total sub-total) (+ updated sub-updated) (+ cached sub-cached))
-                       ) ;lambda
-                     ) ;call-with-values
-                    ) ;
-                    (else (loop (+ i 1) total updated cached))
+              (cond
+               ((path-file? entry)
+                (let ((entry-str (path->string entry)))
+                  (if (file-extension-match? entry-str extensions)
+                    (let ((result (fix-file-core entry-str)))
+                      (cond ((eq? result 'cached) (loop (+ i 1) (+ total 1) updated (+ cached 1)))
+                            ((eq? result 'updated)
+                             (display (string-append "  Updated: " entry-str))
+                             (newline)
+                             (loop (+ i 1) (+ total 1) (+ updated 1) cached)
+                            ) ;
+                            ((eq? result 'skipped)
+                             (display (string-append "  Skipped (run gf fmt first): " entry-str))
+                             (newline)
+                             (loop (+ i 1) (+ total 1) updated cached)
+                            ) ;
+                            (else (loop (+ i 1) (+ total 1) updated cached))
+                      ) ;cond
+                    ) ;let
+                    (loop (+ i 1) total updated cached)
+                  ) ;if
+                ) ;let
+               ) ;
+               ((path-dir? entry)
+                (call-with-values (lambda () (fix-directory (path->string entry) extensions))
+                  (lambda (sub-total sub-updated sub-cached)
+                    (loop (+ i 1) (+ total sub-total) (+ updated sub-updated) (+ cached sub-cached))
+                  ) ;lambda
+                ) ;call-with-values
+               ) ;
+               (else (loop (+ i 1) total updated cached))
               ) ;cond
             ) ;let
           ) ;if

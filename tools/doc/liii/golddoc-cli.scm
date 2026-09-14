@@ -383,28 +383,29 @@
                ) ;stderr-line
                1
               ) ;
-              (else (if (member library-query (visible-libraries-for-function exported-name))
+              (else
+                (if (member library-query (visible-libraries-for-function exported-name))
+                  (begin
+                    (display-exported-without-docs exported-name (list library-query))
+                    1
+                  ) ;begin
+                  (let ((suggestions (suggest-library-functions library-query exported-name)))
+                    (if (null? suggestions)
                       (begin
-                        (display-exported-without-docs exported-name (list library-query))
+                        (stderr-line (string-append "Error: documentation file not found for function: "
+                                       exported-name " in library: "
+                                       library-query
+                                     ) ;string-append
+                        ) ;stderr-line
                         1
                       ) ;begin
-                      (let ((suggestions (suggest-library-functions library-query exported-name)))
-                        (if (null? suggestions)
-                          (begin
-                            (stderr-line (string-append "Error: documentation file not found for function: "
-                                           exported-name " in library: "
-                                           library-query
-                                         ) ;string-append
-                            ) ;stderr-line
-                            1
-                          ) ;begin
-                          (begin
-                            (display-library-function-suggestions library-query exported-name suggestions)
-                            1
-                          ) ;begin
-                        ) ;if
-                      ) ;let
+                      (begin
+                        (display-library-function-suggestions library-query exported-name suggestions)
+                        1
+                      ) ;begin
                     ) ;if
+                  ) ;let
+                ) ;if
               ) ;else
         ) ;cond
       ) ;let*
@@ -472,50 +473,52 @@
 
     (define (run-function-query function-name)
       (let ((library-queries (visible-libraries-for-function function-name)))
-        (cond ((null? library-queries)
-               (let ((suggestions (suggest-visible-functions function-name)))
-                 (if (null? suggestions)
-                   (begin
-                     (stderr-line (string-append "Error: function not found in *load-path*: " function-name)
-                     ) ;stderr-line
-                     (if (null? (find-function-index-paths)) (display-build-json-hint) #f)
-                     1
-                   ) ;begin
-                   (begin
-                     (display-function-suggestions function-name suggestions)
-                     1
-                   ) ;begin
-                 ) ;if
-               ) ;let
-              ) ;
-              (else (let ((documented-queries (documented-library-queries function-name library-queries))
-                         ) ;
-                      (cond ((null? documented-queries)
-                             (display-exported-without-docs function-name library-queries)
-                             1
-                            ) ;
-                            ((null? (cdr documented-queries))
-                             (display-doc-with-source (car documented-queries) function-name)
-                             0
-                            ) ;
-                            (else (display-doc-with-source (car documented-queries) function-name)
-                              (newline)
-                              (display ";; 该函数在其他库中也有实现:" (current-error-port))
-                              (newline (current-error-port))
-                              (for-each (lambda (library-query)
-                                          (display ";;   gf doc " (current-error-port))
-                                          (display library-query (current-error-port))
-                                          (display " " (current-error-port))
-                                          (write function-name (current-error-port))
-                                          (newline (current-error-port))
-                                        ) ;lambda
-                                (cdr documented-queries)
-                              ) ;for-each
-                              0
-                            ) ;else
-                      ) ;cond
-                    ) ;let
-              ) ;else
+        (cond
+         ((null? library-queries)
+          (let ((suggestions (suggest-visible-functions function-name)))
+            (if (null? suggestions)
+              (begin
+                (stderr-line (string-append "Error: function not found in *load-path*: " function-name)
+                ) ;stderr-line
+                (if (null? (find-function-index-paths)) (display-build-json-hint) #f)
+                1
+              ) ;begin
+              (begin
+                (display-function-suggestions function-name suggestions)
+                1
+              ) ;begin
+            ) ;if
+          ) ;let
+         ) ;
+         (else
+           (let ((documented-queries (documented-library-queries function-name library-queries))
+                ) ;
+             (cond ((null? documented-queries)
+                    (display-exported-without-docs function-name library-queries)
+                    1
+                   ) ;
+                   ((null? (cdr documented-queries))
+                    (display-doc-with-source (car documented-queries) function-name)
+                    0
+                   ) ;
+                   (else (display-doc-with-source (car documented-queries) function-name)
+                     (newline)
+                     (display ";; 该函数在其他库中也有实现:" (current-error-port))
+                     (newline (current-error-port))
+                     (for-each (lambda (library-query)
+                                 (display ";;   gf doc " (current-error-port))
+                                 (display library-query (current-error-port))
+                                 (display " " (current-error-port))
+                                 (write function-name (current-error-port))
+                                 (newline (current-error-port))
+                               ) ;lambda
+                       (cdr documented-queries)
+                     ) ;for-each
+                     0
+                   ) ;else
+             ) ;cond
+           ) ;let
+         ) ;else
         ) ;cond
       ) ;let
     ) ;define

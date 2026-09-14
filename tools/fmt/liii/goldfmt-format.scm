@@ -22,6 +22,7 @@
     (liii goldfmt-record)
     (liii goldfmt-rule)
     (liii goldfmt-scan)
+    (liii tree)
     (srfi srfi-13)
   ) ;import
 
@@ -749,6 +750,29 @@
       ) ;let
     ) ;define
 
+    (define (second-child-node node)
+      (if (or (not (env? node)) (string=? (env-tag-name node) ""))
+        #f
+        (let ((children (env-children node)))
+          (if (>= (vector-length children) 1) (vector-ref children 0) #f)
+        ) ;let
+      ) ;if
+    ) ;define
+
+    (define (node-datum node)
+      (if (env? node) (env-value node) (atom-value node))
+    ) ;define
+
+    (define (second-child-tree-depth-ge-4? node)
+      (let ((second (second-child-node node)))
+        (and second
+          (let ((datum (node-datum second)))
+            (and datum (>= (tree-depth datum) 4))
+          ) ;let
+        ) ;and
+      ) ;let
+    ) ;define
+
     ;; ; 返回内联文本字符串（可内联时）或 #f（不可内联时）
     (define (try-inline node)
       (cond ((comment-node? node) #t)
@@ -766,6 +790,7 @@
              ) ;and
              #f
             ) ;
+            ((second-child-tree-depth-ge-4? node) #f)
             (else (let ((candidate (format-inline node)))
                     (if (and (not (string-contains-newline? candidate))
                           (<= (string-length candidate) max-inline-length)
@@ -851,47 +876,58 @@
       (cdr pair)
     ) ;define
 
+    (define (let-form? tag-name)
+      (if (member tag-name '("let" "let*" "letrec" "letrec*" "let-values" "let*-values"))
+        #t
+        #f
+      ) ;if
+    ) ;define
+
     ;; ; 选择父环境第一行中保留的 children。
     ;; ; 返回值是 ((child . column) ...)；column 是 child 左括号实际所在列。
     (define (select-first-line-children node first-column)
-      (let ((children (env-children node))
-            (limit (first-line-limit (env-tag-name node)))
-            (allow-child-env? (allow-first-line-child-env? (env-tag-name node)))
-           ) ;
-        (let loop
-          ((i 0) (column first-column) (direct-env-count 0) (result '()))
-          (if (or (>= i (vector-length children)) (>= (length result) limit))
-            (reverse result)
-            (let* ((child (vector-ref children i))
-                   (child-is-env? (env? child))
-                   (next-direct-env-count (if child-is-env? (+ direct-env-count 1) direct-env-count)
-                   ) ;next-direct-env-count
-                  ) ;
-              (if (or (comment-node? child)
-                    (newline-node? child)
-                    (and child-is-env? (not allow-child-env?))
-                    (> next-direct-env-count 1)
-                  ) ;or
-                (reverse result)
-                (let* ((separator (child-separator node i))
-                       (child-column (+ column (string-length separator)))
-                       (next-result (cons (cons child child-column) result))
-                       (inline-text (try-inline child))
-                      ) ;
-                  (if inline-text
-                    (loop (+ i 1)
-                      (+ child-column (string-length inline-text))
-                      next-direct-env-count
-                      next-result
-                    ) ;loop
-                    (reverse next-result)
-                  ) ;if
-                ) ;let*
-              ) ;if
-            ) ;let*
-          ) ;if
+      (if (and (second-child-tree-depth-ge-4? node)
+               (not (let-form? (env-tag-name node))))
+        '()
+        (let ((children (env-children node))
+              (limit (first-line-limit (env-tag-name node)))
+              (allow-child-env? (allow-first-line-child-env? (env-tag-name node)))
+             ) ;
+          (let loop
+            ((i 0) (column first-column) (direct-env-count 0) (result '()))
+            (if (or (>= i (vector-length children)) (>= (length result) limit))
+              (reverse result)
+              (let* ((child (vector-ref children i))
+                     (child-is-env? (env? child))
+                     (next-direct-env-count (if child-is-env? (+ direct-env-count 1) direct-env-count)
+                     ) ;next-direct-env-count
+                    ) ;
+                (if (or (comment-node? child)
+                      (newline-node? child)
+                      (and child-is-env? (not allow-child-env?))
+                      (> next-direct-env-count 1)
+                    ) ;or
+                  (reverse result)
+                  (let* ((separator (child-separator node i))
+                         (child-column (+ column (string-length separator)))
+                         (next-result (cons (cons child child-column) result))
+                         (inline-text (try-inline child))
+                        ) ;
+                    (if inline-text
+                      (loop (+ i 1)
+                        (+ child-column (string-length inline-text))
+                        next-direct-env-count
+                        next-result
+                      ) ;loop
+                      (reverse next-result)
+                    ) ;if
+                  ) ;let*
+                ) ;if
+              ) ;let*
+            ) ;if
+          ) ;let
         ) ;let
-      ) ;let
+      ) ;if
     ) ;define
 
     (define (selected-count selected)

@@ -85,15 +85,17 @@
       (let ((files '()))
         (when (path-dir? dir)
           (let ((entries (listdir dir)))
-            (for-each (lambda (entry)
-                        (let ((full-path (test-path-join dir entry)))
-                          (cond ((path-dir? full-path) (set! files (append files (find-test-files full-path))))
-                                ((and (path-file? full-path) (string-ends? entry "-test.scm"))
-                                 (set! files (cons full-path files))
-                                ) ;
-                          ) ;cond
-                        ) ;let
-                      ) ;lambda
+            (for-each
+              (lambda (entry)
+                (let ((full-path (test-path-join dir entry)))
+                  (cond
+                   ((path-dir? full-path) (set! files (append files (find-test-files full-path))))
+                   ((and (path-file? full-path) (string-ends? entry "-test.scm"))
+                    (set! files (cons full-path files))
+                   ) ;
+                  ) ;cond
+                ) ;let
+              ) ;lambda
               entries
             ) ;for-each
           ) ;let
@@ -121,35 +123,42 @@
 
     (define (failed-test-files test-results)
       (map car
-        (filter (lambda (test-result) (not (zero? (cdr test-result)))) test-results)
+        (filter
+          (lambda (test-result) (not (zero? (cdr test-result))))
+          test-results
+        ) ;filter
       ) ;map
     ) ;define
 
     (define (display-summary test-results)
       (let ((total (length test-results))
-            (passed (count (lambda (x) (zero? (cdr x))) test-results))
+            (passed
+              (count (lambda (x) (zero? (cdr x))) test-results)
+            ) ;passed
             (failed-files (failed-test-files test-results))
-            (failed (- (length test-results) (count (lambda (x) (zero? (cdr x))) test-results))
+            (failed
+              (- (length test-results) (count (lambda (x) (zero? (cdr x))) test-results))
             ) ;failed
            ) ;
         (newline)
         (display "=== Test Summary ===")
         (newline)
         (newline)
-        (for-each (lambda (test-result)
-                    (let ((test-file (car test-result)) (exit-code (cdr test-result)))
-                      (display (string-append "  " test-file " ... "))
-                      (if (zero? exit-code)
-                        (display (string-append GREEN "PASS" RESET))
-                        (begin
-                          (display (string-append RED "FAIL" RESET))
-                          (display " exit-code=")
-                          (display exit-code)
-                        ) ;begin
-                      ) ;if
-                      (newline)
-                    ) ;let
-                  ) ;lambda
+        (for-each
+          (lambda (test-result)
+            (let ((test-file (car test-result)) (exit-code (cdr test-result)))
+              (display (string-append "  " test-file " ... "))
+              (if (zero? exit-code)
+                (display (string-append GREEN "PASS" RESET))
+                (begin
+                  (display (string-append RED "FAIL" RESET))
+                  (display " exit-code=")
+                  (display exit-code)
+                ) ;begin
+              ) ;if
+              (newline)
+            ) ;let
+          ) ;lambda
           test-results
         ) ;for-each
         (newline)
@@ -300,28 +309,30 @@
       (let ((marker-length 6))
         (let loop
           ((i 0))
-          (cond ((> i (- (string-length target) marker-length)) #f)
-                ((and (or (string=? (substring target i (+ i marker-length)) "/tests")
-                        (string=? (substring target i (+ i marker-length)) "\\tests")
-                      ) ;or
-                   (or (= (+ i marker-length) (string-length target))
-                     (char=? (string-ref target (+ i marker-length)) #\/)
-                     (char=? (string-ref target (+ i marker-length)) #\\)
-                   ) ;or
-                 ) ;and
-                 (let ((parent (substring target 0 i)) (next-pos (+ i marker-length)))
-                   (if (> (string-length parent) 0)
-                     (let ((tests-path (substring target (+ i 1))))
-                       (if (= next-pos (string-length target))
-                         (cons parent (string-append tests-path (string (string-ref target i))))
-                         (cons parent tests-path)
-                       ) ;if
-                     ) ;let
-                     #f
-                   ) ;if
-                 ) ;let
-                ) ;
-                (else (loop (+ i 1)))
+          (cond
+           ((> i (- (string-length target) marker-length)) #f)
+           ((and
+              (or (string=? (substring target i (+ i marker-length)) "/tests")
+                (string=? (substring target i (+ i marker-length)) "\\tests")
+              ) ;or
+              (or (= (+ i marker-length) (string-length target))
+                (char=? (string-ref target (+ i marker-length)) #\/)
+                (char=? (string-ref target (+ i marker-length)) #\\)
+              ) ;or
+            ) ;and
+            (let ((parent (substring target 0 i)) (next-pos (+ i marker-length)))
+              (if (> (string-length parent) 0)
+                (let ((tests-path (substring target (+ i 1))))
+                  (if (= next-pos (string-length target))
+                    (cons parent (string-append tests-path (string (string-ref target i))))
+                    (cons parent tests-path)
+                  ) ;if
+                ) ;let
+                #f
+              ) ;if
+            ) ;let
+           ) ;
+           (else (loop (+ i 1)))
           ) ;cond
         ) ;let
       ) ;let
@@ -342,18 +353,19 @@
              (let* ((target found-target) (tests-target (split-tests-target target)))
                (cond
                  ;; 情况 1: 路径包含 /tests/，按原有逻辑处理
-                 (tests-target (let ((parent (car tests-target)) (tests-path (cdr tests-target)))
-                                 (if (path-dir? parent)
-                                   (begin
-                                     (chdir parent)
-                                     ;; 切换目录后，将参数改为 tests/...（相对路径）
-                                     (cons (car args)
-                                       (map (lambda (arg) (if (equal? arg target) tests-path arg)) (cdr args))
-                                     ) ;cons
-                                   ) ;begin
-                                   args
-                                 ) ;if
-                               ) ;let
+                 (tests-target
+                   (let ((parent (car tests-target)) (tests-path (cdr tests-target)))
+                     (if (path-dir? parent)
+                       (begin
+                         (chdir parent)
+                         ;; 切换目录后，将参数改为 tests/...（相对路径）
+                         (cons (car args)
+                           (map (lambda (arg) (if (equal? arg target) tests-path arg)) (cdr args))
+                         ) ;cons
+                       ) ;begin
+                       args
+                     ) ;if
+                   ) ;let
                  ) ;tests-target
                  ;; 情况 2: 目标是目录且包含 tests 子目录
                  ((and (path-dir? target) (path-dir? (test-path-join target "tests")))
@@ -403,9 +415,10 @@
     ) ;define
 
     (define (git-current-branch)
-      (let* ((tmp-file (test-path-join (os-temp-dir)
-                         (string-append "gf-test-branch-" (number->string (getpid)) ".txt")
-                       ) ;test-path-join
+      (let* ((tmp-file
+               (test-path-join (os-temp-dir)
+                 (string-append "gf-test-branch-" (number->string (getpid)) ".txt")
+               ) ;test-path-join
              ) ;tmp-file
              (cmd (string-append "git rev-parse --abbrev-ref HEAD > " tmp-file " 2>&1"))
              (exit-code (os-call cmd))
@@ -427,9 +440,10 @@
     ) ;define
 
     (define (git-branch-exists? branch)
-      (let* ((tmp-file (test-path-join (os-temp-dir)
-                         (string-append "gf-branch-check-" (number->string (getpid)) ".txt")
-                       ) ;test-path-join
+      (let* ((tmp-file
+               (test-path-join (os-temp-dir)
+                 (string-append "gf-branch-check-" (number->string (getpid)) ".txt")
+               ) ;test-path-join
              ) ;tmp-file
              (cmd (string-append "git rev-parse --verify " branch " > " tmp-file " 2>&1"))
              (exit-code (os-call cmd))
@@ -450,61 +464,62 @@
 
     (define (route-test-command args all-mode)
       (let ((branch (git-current-branch)) (exe (executable)))
-        (cond ((and branch (not (string=? branch "main")) (git-branch-exists? "main"))
-               (if all-mode
-                 (begin
-                   (display (string-append "[gf test] Not on main branch (currently on '"
-                              branch
-                              "'), running all tests (--all). Use `gf test --help` for details."
-                            ) ;string-append
-                   ) ;display
-                   (newline)
-                   (display (string-append "Running: " exe " test --changed-since=main"))
-                   (newline)
-                   (display (string-append "Running: " exe " test tests"))
-                   (newline)
-                   (newline)
-                   (cons "main" #t)
-                 ) ;begin
-                 (begin
-                   (display (string-append "[gf test] Not on main branch (currently on '"
-                              branch
-                              "'), running changed tests since main. Use `gf test --help` for details."
-                            ) ;string-append
-                   ) ;display
-                   (newline)
-                   (display (string-append "Running: " exe " test --changed-since=main"))
-                   (newline)
-                   (newline)
-                   (cons "main" #f)
-                 ) ;begin
-               ) ;if
-              ) ;
-              ((and branch (not (string=? branch "main")))
-               (display "[gf test] Git repo has no main branch, running all tests. Use `gf test --help` for details."
+        (cond
+         ((and branch (not (string=? branch "main")) (git-branch-exists? "main"))
+          (if all-mode
+            (begin
+              (display (string-append "[gf test] Not on main branch (currently on '"
+                         branch
+                         "'), running all tests (--all). Use `gf test --help` for details."
+                       ) ;string-append
+              ) ;display
+              (newline)
+              (display (string-append "Running: " exe " test --changed-since=main"))
+              (newline)
+              (display (string-append "Running: " exe " test tests"))
+              (newline)
+              (newline)
+              (cons "main" #t)
+            ) ;begin
+            (begin
+              (display (string-append "[gf test] Not on main branch (currently on '"
+                         branch
+                         "'), running changed tests since main. Use `gf test --help` for details."
+                       ) ;string-append
+              ) ;display
+              (newline)
+              (display (string-append "Running: " exe " test --changed-since=main"))
+              (newline)
+              (newline)
+              (cons "main" #f)
+            ) ;begin
+          ) ;if
+         ) ;
+         ((and branch (not (string=? branch "main")))
+          (display "[gf test] Git repo has no main branch, running all tests. Use `gf test --help` for details."
+          ) ;display
+          (newline)
+          (display (string-append "Running: " exe " test tests"))
+          (newline)
+          (newline)
+          (cons #f #f)
+         ) ;
+         (branch (display "[gf test] On main branch, running all tests. Use `gf test --help` for details."
+                 ) ;display
+           (newline)
+           (display (string-append "Running: " exe " test tests"))
+           (newline)
+           (newline)
+           (cons #f #f)
+         ) ;branch
+         (else (display "[gf test] Not a git repository, running all tests. Use `gf test --help` for details."
                ) ;display
-               (newline)
-               (display (string-append "Running: " exe " test tests"))
-               (newline)
-               (newline)
-               (cons #f #f)
-              ) ;
-              (branch (display "[gf test] On main branch, running all tests. Use `gf test --help` for details."
-                      ) ;display
-                (newline)
-                (display (string-append "Running: " exe " test tests"))
-                (newline)
-                (newline)
-                (cons #f #f)
-              ) ;branch
-              (else (display "[gf test] Not a git repository, running all tests. Use `gf test --help` for details."
-                    ) ;display
-                (newline)
-                (display (string-append "Running: " exe " test tests"))
-                (newline)
-                (newline)
-                (cons #f #f)
-              ) ;else
+           (newline)
+           (display (string-append "Running: " exe " test tests"))
+           (newline)
+           (newline)
+           (cons #f #f)
+         ) ;else
         ) ;cond
       ) ;let
     ) ;define
@@ -534,10 +549,11 @@
                                  ) ;if
              ) ;changed-test-files
              ;; 在 --all 模式下，把未变更的测试追加在后面
-             (remaining-test-files (if need-run-all
-                                     (filter (lambda (f) (not (member f changed-test-files))) filtered-test-files)
-                                     '()
-                                   ) ;if
+             (remaining-test-files
+               (if need-run-all
+                 (filter (lambda (f) (not (member f changed-test-files))) filtered-test-files)
+                 '()
+               ) ;if
              ) ;remaining-test-files
              (test-files (if need-run-all
                            (append changed-test-files remaining-test-files)
@@ -574,10 +590,11 @@
               (display (string-append "Running changed tests since: " final-changed-since))
               (newline)
             ) ;when
-            (let ((test-results (fold (lambda (test-file acc) (newline) (cons (run-test-file test-file) acc))
-                                  (list)
-                                  test-files
-                                ) ;fold
+            (let ((test-results
+                    (fold (lambda (test-file acc) (newline) (cons (run-test-file test-file) acc))
+                      (list)
+                      test-files
+                    ) ;fold
                   ) ;test-results
                  ) ;
               (let ((failed (display-summary test-results)))

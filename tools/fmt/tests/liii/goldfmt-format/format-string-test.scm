@@ -369,4 +369,39 @@
 "OUT"
 )
 
+;; 第二个元素 tree-depth < 4 时，保持单行
+(check (format-string "(foo (a (b 1)) x)")
+  =>
+  "(foo (a (b 1)) x)\n"
+) ;check
+
+;; 第二个元素 tree-depth >= 4 时，在 head 后换行，第二元素另起一行
+(check (format-string "(foo (a (b (c (d 1)))) x)")
+  =>
+  "(foo\n  (a (b (c (d 1))))\n  x\n) ;foo\n"
+) ;check
+
+;; if 表达式的第二个元素（condition）tree-depth >= 4 时换行
+(check (format-string "(if (a (b (c (d 1)))) 0 1)")
+  =>
+  "(if\n  (a (b (c (d 1))))\n  0\n  1\n) ;if\n"
+) ;check
+
+;; 含有 quote 符号常量时 tree-depth 不被虚增，tree-depth=3 的 let 保持首行 bindings 同行
+(check (format-string "(let ((found (assoc 'default options)))\n  found\n)")
+  =>
+  "(let ((found (assoc 'default options)))\n  found\n) ;let\n"
+) ;check
+
+;; let/let* 特殊处理：bindings 即使 tree-depth >= 4 也保留在首行，不换行
+(check (format-string "(let ((x (a (b (c (d 1))))))\n  x\n)")
+  =>
+  "(let ((x (a (b (c (d 1))))))\n  x\n) ;let\n"
+) ;check
+
+(check (format-string "(let* ((x (a (b (c (d 1))))))\n  x\n)")
+  =>
+  "(let* ((x (a (b (c (d 1))))))\n  x\n) ;let*\n"
+) ;check
+
 (check-report)

@@ -53,11 +53,12 @@
     (define (normalize-object-alist value)
       (if (or (not (pair? value)) (equal? value '(())))
         '()
-        (map (lambda (entry)
-               (cons (car entry)
-                 (if (vector? (cdr entry)) (vector->list (cdr entry)) (cdr entry))
-               ) ;cons
-             ) ;lambda
+        (map
+          (lambda (entry)
+            (cons (car entry)
+              (if (vector? (cdr entry)) (vector->list (cdr entry)) (cdr entry))
+            ) ;cons
+          ) ;lambda
           value
         ) ;map
       ) ;if
@@ -67,18 +68,20 @@
       (if (not (string? entry))
         #f
         (let* ((trimmed (string-trim entry))
-               (body (and (string-starts? trimmed "(")
-                       (string-ends? trimmed ")")
-                       (substring trimmed 1 (- (string-length trimmed) 1))
-                     ) ;and
+               (body
+                 (and (string-starts? trimmed "(")
+                   (string-ends? trimmed ")")
+                   (substring trimmed 1 (- (string-length trimmed) 1))
+                 ) ;and
                ) ;body
                (parts (and body (string-split body " ")))
               ) ;
-          (if (and parts
-                (= (length parts) 2)
-                (not (string-null? (car parts)))
-                (not (string-null? (cadr parts)))
-              ) ;and
+          (if
+            (and parts
+              (= (length parts) 2)
+              (not (string-null? (car parts)))
+              (not (string-null? (cadr parts)))
+            ) ;and
             (string-append (car parts) "/" (cadr parts))
             #f
           ) ;if
@@ -117,21 +120,23 @@
 
     (define (merge-function-index-entries current entries)
       (let ((merged current))
-        (for-each (lambda (entry)
-                    (let* ((function-name (car entry))
-                           (libraries (string-list-only (cdr entry)))
-                           (cell (assoc function-name merged))
-                          ) ;
-                      (if cell
-                        (for-each (lambda (library-entry)
-                                    (set-cdr! cell (append-unique-string (cdr cell) library-entry))
-                                  ) ;lambda
-                          libraries
-                        ) ;for-each
-                        (set! merged (append merged (list (cons function-name libraries))))
-                      ) ;if
-                    ) ;let*
+        (for-each
+          (lambda (entry)
+            (let* ((function-name (car entry))
+                   (libraries (string-list-only (cdr entry)))
+                   (cell (assoc function-name merged))
+                  ) ;
+              (if cell
+                (for-each
+                  (lambda (library-entry)
+                    (set-cdr! cell (append-unique-string (cdr cell) library-entry))
                   ) ;lambda
+                  libraries
+                ) ;for-each
+                (set! merged (append merged (list (cons function-name libraries))))
+              ) ;if
+            ) ;let*
+          ) ;lambda
           entries
         ) ;for-each
         merged
@@ -172,16 +177,18 @@
             (let* ((entry (car entries))
                    (function-name (car entry))
                    (library-entries (cdr entry))
-                   (has-visible-library? (let visible-loop
-                                           ((remaining library-entries))
-                                           (and (not (null? remaining))
-                                             (or (let ((library-query (index-entry->library-query (car remaining))))
-                                                   (and library-query (visible-library-query? library-query))
-                                                 ) ;let
-                                               (visible-loop (cdr remaining))
-                                             ) ;or
-                                           ) ;and
-                                         ) ;let
+                   (has-visible-library?
+                     (let visible-loop
+                       ((remaining library-entries))
+                       (and (not (null? remaining))
+                         (or
+                           (let ((library-query (index-entry->library-query (car remaining))))
+                             (and library-query (visible-library-query? library-query))
+                           ) ;let
+                           (visible-loop (cdr remaining))
+                         ) ;or
+                       ) ;and
+                     ) ;let
                    ) ;has-visible-library?
                   ) ;
               (when (and has-visible-library? (not (set-contains? visible function-name)))

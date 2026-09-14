@@ -34,7 +34,8 @@
       (let ((value-length (string-length value)))
         (let loop
           ((index 0))
-          (if (or (>= index value-length) (not (char=? (string-ref value index) #\;)))
+          (if
+            (or (>= index value-length) (not (char=? (string-ref value index) #\;)))
             (substring value index value-length)
             (loop (+ index 1))
           ) ;if
@@ -75,11 +76,12 @@
           (not (string-starts? body "Licensed under"))
           (not (string-starts? body "http://"))
           (not (string-starts? body "添加 tools/"))
-          (let ((normalized (if (string-ends? body "函数测试")
-                              (string-trim-right (substring body 0 (- (string-length body) (string-length "函数测试")))
-                              ) ;string-trim-right
-                              body
-                            ) ;if
+          (let ((normalized
+                  (if (string-ends? body "函数测试")
+                    (string-trim-right (substring body 0 (- (string-length body) (string-length "函数测试")))
+                    ) ;string-trim-right
+                    body
+                  ) ;if
                 ) ;normalized
                ) ;
             (and (not (string-null? normalized)) normalized)
@@ -116,11 +118,12 @@
           ((remaining lines))
           (and (not (null? remaining))
             (let ((candidate (comment-line->candidate (car remaining))))
-              (if (and candidate
-                    (or (string=? (exported-name->test-stem candidate) file-stem)
-                      (file-documents-function? path candidate)
-                    ) ;or
-                  ) ;and
+              (if
+                (and candidate
+                  (or (string=? (exported-name->test-stem candidate) file-stem)
+                    (file-documents-function? path candidate)
+                  ) ;or
+                ) ;and
                 candidate
                 (loop (cdr remaining))
               ) ;if
@@ -161,7 +164,8 @@
                         ) ;and
              ) ;load-root
              (tests-root (and load-root (find-tests-root-for-load-root load-root)))
-             (library-dir (and tests-root (path->string (path-join tests-root group (cdr parts))))
+             (library-dir
+               (and tests-root (path->string (path-join tests-root group (cdr parts))))
              ) ;library-dir
             ) ;
         (if (not (and library-dir (path-dir? library-dir)))
@@ -224,23 +228,26 @@
               ((index 0) (parts '()))
               (if (>= index name-length)
                 (apply string-append (reverse parts))
-                (cond ((string-starts-at? name index "->")
-                       (loop (+ index 2) (cons (if (= (+ index 2) name-length) "-to" "-to-") parts))
-                      ) ;
-                      ((string-starts-at? name index ">=") (loop (+ index 2) (cons "-ge" parts)))
-                      ((string-starts-at? name index "<=") (loop (+ index 2) (cons "-le" parts)))
-                      ((char=? (string-ref name index) #\?) (loop (+ index 1) (cons "-p" parts)))
-                      ((char=? (string-ref name index) #\!) (loop (+ index 1) (cons "-bang" parts)))
-                      ((char=? (string-ref name index) #\/)
-                       (loop (+ index 1)
-                         (cons (if (= (+ index 1) name-length) "-slash" "-slash-") parts)
-                       ) ;loop
-                      ) ;
-                      ((char=? (string-ref name index) #\*) (loop (+ index 1) (cons "-star" parts)))
-                      ((char=? (string-ref name index) #\=) (loop (+ index 1) (cons "-eq" parts)))
-                      ((char=? (string-ref name index) #\<) (loop (+ index 1) (cons "-lt" parts)))
-                      ((char=? (string-ref name index) #\>) (loop (+ index 1) (cons "-gt" parts)))
-                      (else (loop (+ index 1) (cons (string (string-ref name index)) parts)))
+                (cond
+                 ((string-starts-at? name index "->")
+                  (loop (+ index 2) (cons (if (= (+ index 2) name-length) "-to" "-to-") parts))
+                 ) ;
+                 ((string-starts-at? name index ">=") (loop (+ index 2) (cons "-ge" parts)))
+                 ((string-starts-at? name index "<=") (loop (+ index 2) (cons "-le" parts)))
+                 ((char=? (string-ref name index) #\?) (loop (+ index 1) (cons "-p" parts)))
+                 ((char=? (string-ref name index) #\!) (loop (+ index 1) (cons "-bang" parts)))
+                 ((char=? (string-ref name index) #\/)
+                  (loop (+ index 1)
+                    (cons (if (= (+ index 1) name-length) "-slash" "-slash-") parts)
+                  ) ;loop
+                 ) ;
+                 ((char=? (string-ref name index) #\*) (loop (+ index 1) (cons "-star" parts)))
+                 ((char=? (string-ref name index) #\=) (loop (+ index 1) (cons "-eq" parts)))
+                 ((char=? (string-ref name index) #\<) (loop (+ index 1) (cons "-lt" parts)))
+                 ((char=? (string-ref name index) #\>) (loop (+ index 1) (cons "-gt" parts)))
+                 (else
+                   (loop (+ index 1) (cons (string (string-ref name index)) parts))
+                 ) ;else
                 ) ;cond
               ) ;if
             ) ;let
@@ -261,14 +268,15 @@
              (tests-root (and load-root (find-tests-root-for-load-root load-root)))
              (library-dir (and tests-root (path->string (path-join tests-root group library)))
              ) ;library-dir
-             (candidate (and tests-root
-                          (path->string (path-join tests-root
-                                          group
-                                          library
-                                          (string-append (exported-name->test-stem exported-name) "-test.scm")
-                                        ) ;path-join
-                          ) ;path->string
-                        ) ;and
+             (candidate
+               (and tests-root
+                 (path->string (path-join tests-root
+                                 group
+                                 library
+                                 (string-append (exported-name->test-stem exported-name) "-test.scm")
+                               ) ;path-join
+                 ) ;path->string
+               ) ;and
              ) ;candidate
             ) ;
         (cond ((and candidate (path-file? candidate)) candidate)

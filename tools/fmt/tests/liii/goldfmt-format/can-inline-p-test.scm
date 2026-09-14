@@ -131,4 +131,22 @@
   #f
 ) ;check
 
+;; 第二个元素 tree-depth < 4，且总长度 <= 80 时可单行
+(check (can-inline? (scan '(foo (a (b (c 1))) x)))
+  =>
+  #t
+) ;check
+
+;; 第二个元素 tree-depth >= 4 时，不可单行内联
+(check (can-inline? (scan '(foo (a (b (c (d 1)))) x)))
+  =>
+  #f
+) ;check
+
+;; 无 tag 列表不触发第二元素换行规则，总长短时仍可单行
+(check (can-inline? (scan '(((x)) (a (b (c (d 1)))))))
+  =>
+  #t
+) ;check
+
 (check-report)

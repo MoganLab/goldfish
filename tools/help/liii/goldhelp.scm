@@ -109,11 +109,12 @@
     (define (display-dynamic-commands tools)
       "Display dynamic commands from gfproject.json with one-line descriptions"
       (let ((tool-names (list-sort string<? (json-keys tools))))
-        (for-each (lambda (tool-name)
-                    (let ((desc (get-tool-description tools tool-name "en_US")))
-                      (display-command-line tool-name desc)
-                    ) ;let
-                  ) ;lambda
+        (for-each
+          (lambda (tool-name)
+            (let ((desc (get-tool-description tools tool-name "en_US")))
+              (display-command-line tool-name desc)
+            ) ;let
+          ) ;lambda
           tool-names
         ) ;for-each
       ) ;let
@@ -130,14 +131,16 @@
           (display-command-line "help" help-desc)
         ) ;let
         (if (not (json-null? tools))
-          (let ((other-tool-names (filter (lambda (name) (not (string=? name "help"))) (json-keys tools))
+          (let ((other-tool-names
+                  (filter (lambda (name) (not (string=? name "help"))) (json-keys tools))
                 ) ;other-tool-names
                ) ;
-            (for-each (lambda (tool-name)
-                        (let ((desc (get-tool-description tools tool-name "en_US")))
-                          (display-command-line tool-name desc)
-                        ) ;let
-                      ) ;lambda
+            (for-each
+              (lambda (tool-name)
+                (let ((desc (get-tool-description tools tool-name "en_US")))
+                  (display-command-line tool-name desc)
+                ) ;let
+              ) ;lambda
               (list-sort string<? other-tool-names)
             ) ;for-each
           ) ;let
