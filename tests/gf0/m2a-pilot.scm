@@ -16,3 +16,6 @@
 (display "vals: ")
 (display (call-with-values (lambda () (values 7 8)) list))
 (newline)
+(display "guarded: ")
+(display (guard (e (else 'caught-it)) (error 'pilot-err "x")))
+(newline)

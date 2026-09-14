@@ -34,6 +34,11 @@
 //   only), symbols compared by name (interning-robust), toplevel cells still
 //   delegate to the s7 rootlet (M2).
 //
+// Errors are GfEx (C++ exception through gf0 frames only): fail() throws,
+// s7 errors convert at the s7call boundary (catch-wrap + marker), catch/
+// error/throw work natively, and every s7->gf0 entry converts back to
+// gf::error. A C++ exception never crosses s7 C frames.
+//
 // Entry: (g_gf0-eval datum) evaluates one lowered datum in the session top
 // env (defines persist across datums of one process).
 // Driver: `gf eval-gf0 CODE` reads data forms, prints each result as a list
@@ -113,10 +118,22 @@ pin (scheme* sc, pointer p) {
   return p;
 }
 
+// Engine exception (M-VM-2a): unwound through gf0 C++ frames with
+// destructors running (unlike longjmp). NEVER crosses s7 C frames --
+// every s7->gf0 entry (f_gf0_*, trampoline) converts to gf::error, and
+// every gf0->s7 call (s7call_vec) converts s7 errors back at its boundary.
+struct GfEx {
+  std::vector<pointer> args; // handler-visible: [key, info...]
+};
+static pointer s_raised_marker= nullptr; // pinned identity token, not a primitive
+
 static pointer
 fail (scheme* sc, const char* msg, pointer irritant) {
-  return gf::error (sc, gf::make_symbol (sc, "gf0-error"),
-                    gf::list (sc, gf::make_string (sc, msg), irritant));
+  GfEx e;
+  e.args.push_back (pin (sc, gf::make_symbol (sc, "gf0-error")));
+  e.args.push_back (pin (sc, gf::make_string (sc, msg)));
+  e.args.push_back (pin (sc, irritant));
+  throw e;
 }
 
 static gf::int_
@@ -299,6 +316,8 @@ wrap_for_s7 (scheme* sc, pointer box) {
 
 static V
 s7call_vec (scheme* sc, pointer proc, const std::vector<pointer>& argv) {
+  if (s_raised_marker == nullptr)
+    s_raised_marker= pin (sc, gf::make_symbol (sc, "gf0-raised"));
   pointer quote_sym= pin (sc, gf::make_symbol (sc, "quote"));
   std::vector<pointer> qargs;
   qargs.reserve (argv.size ());
@@ -310,8 +329,29 @@ s7call_vec (scheme* sc, pointer proc, const std::vector<pointer>& argv) {
                                        pin (sc, args_to_list (sc, qargs))));
   pointer thunk= pin (sc, gf::list (sc, pin (sc, gf::make_symbol (sc, "lambda")),
                                     gf::nil (sc), callexpr));
+  // Catch s7 errors AT this boundary and convert to GfEx (a longjmp here
+  // would fly past gf0 frames to the wrong catcher). The handler spreads
+  // (MARKER . handler-args) as multiple values, so a raised call collects
+  // with MARKER in head position, unambiguous against value shapes.
+  pointer inner= pin (sc, gf::list (sc,
+    pin (sc, gf::make_symbol (sc, "catch")),
+    gf::t (sc),
+    thunk,
+    pin (sc, gf::list (sc,
+      pin (sc, gf::make_symbol (sc, "lambda")),
+      pin (sc, gf::make_symbol (sc, "hargs")),
+      pin (sc, gf::list (sc,
+        pin (sc, gf::make_symbol (sc, "apply")),
+        pin (sc, gf::make_symbol (sc, "values")),
+        pin (sc, gf::list (sc,
+          pin (sc, gf::make_symbol (sc, "cons")),
+          pin (sc, gf::list (sc, quote_sym, s_raised_marker)),
+          pin (sc, gf::make_symbol (sc, "hargs"))))))))));
+  pointer outer= pin (sc, gf::list (sc,
+    pin (sc, gf::make_symbol (sc, "lambda")),
+    gf::nil (sc), inner));
   pointer expr= pin (sc, gf::list (sc, pin (sc, gf::make_symbol (sc, "call-with-values")),
-                                   thunk, pin (sc, gf::make_symbol (sc, "list"))));
+                                   outer, pin (sc, gf::make_symbol (sc, "list"))));
   pointer collected= gf::eval (sc, expr, gf::rootlet (sc));
   std::vector<pointer> out;
   pointer tail= collected;
@@ -319,6 +359,11 @@ s7call_vec (scheme* sc, pointer proc, const std::vector<pointer>& argv) {
     out.push_back (pin (sc, gf::car (tail)));
   if (!gf::is_null (sc, tail))
     return multi_vec (std::vector<pointer>{fail (sc, "gf0: improper collection", collected)});
+  if (!out.empty () && out[0] == s_raised_marker) {
+    GfEx e;
+    for (size_t i= 1; i < out.size (); ++i) e.args.push_back (out[i]);
+    throw e;
+  }
   // s7 collapse rule: exactly 1 yielded value is single (so (define x (+ 1 2))
   // stays single); 0 or 2+ stay multi. Matches the s7/guile oracle.
   if (out.size () == 1) return single (out[0]);
@@ -650,6 +695,31 @@ step (scheme* sc, pointer x, Env env) {
       return val (single (fail (sc, "gf0: improper values", x)));
     return val (multi_vec (std::move (out)));
   }
+  if (is_head (x, "catch")) {
+    // Native s7-protocol catch (guard lowers to this): (catch TAG THUNK HANDLER).
+    // s7 errors inside surface as GfEx at the s7call boundary, so this try
+    // sees both gf0 and s7 errors uniformly. Non-matching keys rethrow.
+    pointer rest= gf::cdr (x);
+    if (!gf::is_pair (rest) || !gf::is_pair (gf::cdr (rest)) ||
+        !gf::is_pair (gf::cdr (gf::cdr (rest))) ||
+        gf::is_pair (gf::cdr (gf::cdr (gf::cdr (rest)))))
+      return val (single (fail (sc, "gf0: bad catch", x)));
+    pointer tag= must_single (sc, eval (sc, gf::car (rest), env), x,
+                              "gf0: catch tag must be single-valued");
+    pointer thunk= must_single (sc, eval (sc, gf::car (gf::cdr (rest)), env), x,
+                                "gf0: catch thunk must be single-valued");
+    pointer handler= must_single (sc, eval (sc, gf::car (gf::cdr (gf::cdr (rest))), env),
+                                  x, "gf0: catch handler must be single-valued");
+    try {
+      return val (apply_values (sc, thunk, std::vector<pointer> (), x));
+    }
+    catch (GfEx& e) {
+      bool all= gf::is_boolean (tag) && gf::boolean (sc, tag);
+      if (!all && (e.args.empty () || !gf::is_eq (tag, e.args[0])))
+        throw;
+      return val (apply_values (sc, handler, e.args, x));
+    }
+  }
   if (is_head (x, "call-with-values")) {
     pointer rest= gf::cdr (x);
     if (!gf::is_pair (rest) || !gf::is_pair (gf::cdr (rest)) ||
@@ -690,6 +760,17 @@ step (scheme* sc, pointer x, Env env) {
   return val (apply_values (sc, proc, argv, x));
 }
 
+// s7->gf0 entries convert GfEx back to gf::error (a C++ exception must
+// never cross s7 C frames). Shape preserves fail() rendering exactly:
+// error(args[0], rest-as-list).
+static pointer
+gfex_to_error (scheme* sc, GfEx& e) {
+  pointer type= e.args.empty () ? gf::make_symbol (sc, "gf0-error") : e.args[0];
+  std::vector<pointer> rest;
+  for (size_t i= 1; i < e.args.size (); ++i) rest.push_back (e.args[i]);
+  return gf::error (sc, type, args_to_list (sc, rest));
+}
+
 static void
 ensure_top (scheme* sc) {
   stack_init_once ();
@@ -712,22 +793,32 @@ f_gf0_apply (scheme* sc, pointer args) {
   gf::int_ idx= gf::integer ((pointer) gf::c_object_value (box));
   if (idx < 0 || (size_t) idx >= s_registry.size ())
     return fail (sc, "gf0: stale closure", box);
-  const Closure& c= s_registry[(size_t) idx];
-  V r= finish (sc, step_seq (sc, bind_call (sc, c, arglist, box), c.body));
-  return must_single (sc, r, box, "gf0: s7 callback must be single-valued");
+  try {
+    const Closure& c= s_registry[(size_t) idx];
+    V r= finish (sc, step_seq (sc, bind_call (sc, c, arglist, box), c.body));
+    return must_single (sc, r, box, "gf0: s7 callback must be single-valued");
+  }
+  catch (GfEx& e) {
+    return gfex_to_error (sc, e);
+  }
 }
 
 static gf::pointer
 f_gf0_eval (scheme* sc, pointer args) {
   ensure_top (sc);
-  V r= eval (sc, gf::car (args), s_top);
-  if (!r.multi) return r.one;
-  // Boundary multi TBD (M-VM): s7's spread protocol (splice_in_values
-  // stack-op dance) does not trigger for C-returned s7_values objects, so
-  // the reference boundary stays single-valued and strict (R7RS-like:
-  // multi in single position is an error). Collect with g_gf0-eval-values.
-  return fail (sc, "gf0: multi-valued at single boundary; use g_gf0-eval-values",
-               gf::car (args));
+  try {
+    V r= eval (sc, gf::car (args), s_top);
+    if (!r.multi) return r.one;
+    // Boundary multi TBD (M-VM): s7's spread protocol (splice_in_values
+    // stack-op dance) does not trigger for C-returned s7_values objects, so
+    // the reference boundary stays single-valued and strict (R7RS-like:
+    // multi in single position is an error). Collect with g_gf0-eval-values.
+    return fail (sc, "gf0: multi-valued at single boundary; use g_gf0-eval-values",
+                 gf::car (args));
+  }
+  catch (GfEx& e) {
+    return gfex_to_error (sc, e);
+  }
 }
 
 // Seed the session top env from an s7 inlet (e.g. the-expander-library):
@@ -758,13 +849,18 @@ f_gf0_import_inlet (scheme* sc, pointer args) {
 static gf::pointer
 f_gf0_eval_values (scheme* sc, pointer args) {
   ensure_top (sc);
-  V r= eval (sc, gf::car (args), s_top);
-  if (!r.multi) {
-    std::vector<pointer> one;
-    one.push_back (r.one);
-    return args_to_list (sc, one);
+  try {
+    V r= eval (sc, gf::car (args), s_top);
+    if (!r.multi) {
+      std::vector<pointer> one;
+      one.push_back (r.one);
+      return args_to_list (sc, one);
+    }
+    return args_to_list (sc, r.many);
   }
-  return args_to_list (sc, r.many);
+  catch (GfEx& e) {
+    return gfex_to_error (sc, e);
+  }
 }
 
 } // namespace gf0
