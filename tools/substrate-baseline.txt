@@ -5,6 +5,7 @@ arity
 array_to_list
 boolean
 byte_vector_elements
+byte_vector_set
 cadddr
 caddr
 cadr
@@ -73,6 +74,7 @@ make_boolean
 make_byte_vector
 make_character
 make_c_object_with_let
+make_complex
 make_c_type
 make_hash_table
 make_integer
@@ -116,7 +118,7 @@ vector_elements
 vector_length
 vector_ref
 vector_set
-count=117
+count=119
 == B GF_GLUE ==
 g_access
 g_bytevector-base64-decode

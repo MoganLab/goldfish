@@ -60,6 +60,7 @@ GF_FWD(pointer, make_integer, (scheme* sc, int_ num), s7_make_integer(sc, num))
 GF_FWD(double_, real, (pointer p), s7_real(p))
 GF_FWD(pointer, make_real, (scheme* sc, double_ num), s7_make_real(sc, num))
 GF_FWD(pointer, make_ratio, (scheme* sc, int_ num, int_ den), s7_make_ratio(sc, num, den))
+GF_FWD(pointer, make_complex, (scheme* sc, double_ re, double_ im), s7_make_complex(sc, re, im))
 GF_FWD(double_, number_to_real, (scheme* sc, pointer x), s7_number_to_real(sc, x))
 
 GF_FWD(const char*, string, (pointer p), s7_string(p))
@@ -76,6 +77,7 @@ GF_FWD(pointer, vector_set, (scheme* sc, pointer vec, int_ index, pointer a), s7
 GF_FWD(int_, vector_length, (pointer vec), s7_vector_length(vec))
 GF_FWD(pointer*, vector_elements, (pointer vec), s7_vector_elements(vec))
 GF_FWD(pointer, make_byte_vector, (scheme* sc, int_ len, int_ dims, int_* dim_info), s7_make_byte_vector(sc, len, dims, dim_info))
+GF_FWD(uint8_t, byte_vector_set, (pointer vec, int_ index, uint8_t value), s7_byte_vector_set(vec, index, value))
 GF_FWD(uint8_t*, byte_vector_elements, (pointer vec), s7_byte_vector_elements(vec))
 
 GF_FWD(pointer, make_hash_table, (scheme* sc, int_ size), s7_make_hash_table(sc, size))

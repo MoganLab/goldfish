@@ -29,7 +29,7 @@ L7 loader ─> L5 compiler ─> L4 expander-lib ─> L3 expander-rt ─> L2 core
 - **原语表 `g_*`**：无状态、单一职责的宿主调用，不含业务编排。
 - 每份契约**有计数、有版本**（opcode 数、原语数、格式标签数、格式版本），预算接口面而非文件内容。
 - **文件**：`src/gf.h` / `src/gf.cpp` / `src/gf_glue.hpp` 为唯一可 `#include "s7.h"` 且唯一可直接调用 `s7_*` 的位置；对外仅暴露 `gf::` 命名空间与 `gf::host_version`/`host_date`。`src/liii_*.cpp`、`scheme_*.cpp` 是按主题拆分的原语实现文件（属本层原语表，同样只经 `gf.h` 访问 s7）。
-- **冻结基线**：`tools/freeze-substrate.sh` 生成、`tools/substrate-baseline.txt` 存档——A `gf::` 转发 117（`src/gf_forwards.def`，含 `is_keyword`、`c_type_set_ref`）、B `GF_GLUE` 声明式原语 37、C Scheme 可见 C++ 原语 120（117 个 `g_*` + `iota`/`read`/`version`，含 5 个 gf0 引擎入口＋stale fence 的 `g_gf0-s7call-token`）、D `core-language` 14。lint 逐行 diff，增长须同 commit 更新基线并说明理由。
+- **冻结基线**：`tools/freeze-substrate.sh` 生成、`tools/substrate-baseline.txt` 存档——A `gf::` 转发 119（`src/gf_forwards.def`，含 `is_keyword`、`c_type_set_ref`、`make_complex`、`byte_vector_set`）、B `GF_GLUE` 声明式原语 37、C Scheme 可见 C++ 原语 120（117 个 `g_*` + `iota`/`read`/`version`，含 5 个 gf0 引擎入口＋stale fence 的 `g_gf0-s7call-token`）、D `core-language` 14。lint 逐行 diff，增长须同 commit 更新基线并说明理由。
 
 ## L1 tiny
 

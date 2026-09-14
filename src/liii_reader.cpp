@@ -17,6 +17,8 @@
 #include "gf.h"
 #include <string>
 #include <cstdlib>
+#include <limits>
+#include <vector>
 
 namespace goldfish {
 
@@ -184,6 +186,100 @@ tiny_read_char (gf::scheme* sc, gf::pointer port) {
   return gf::make_character (sc, c);
 }
 
+// Parse [lo,hi) of tok as an inexact real part: [sign] (digits[.digits][exp]
+// | digits/digits | inf.0 | nan.0). Whole-span or nothing; never errors.
+// s7 reads every a+bi inexact, so doubles match the full reader exactly.
+static bool
+tiny_parse_part (const std::string& tok, size_t lo, size_t hi, double& out) {
+  size_t p = lo;
+  double sign = 1.0;
+  if (p < hi && (tok[p] == '+' || tok[p] == '-')) {
+    if (tok[p] == '-') sign = -1.0;
+    p++;
+  }
+  if (p >= hi) return false;
+  auto rest_is = [&] (const char* w) -> bool {
+    size_t k = p;
+    for (size_t j = 0; w[j]; j++, k++)
+      if (k >= hi || tok[k] != w[j]) return false;
+    return k == hi;
+  };
+  if (rest_is ("inf.0")) {
+    out = sign * std::numeric_limits<double>::infinity ();
+    return true;
+  }
+  if (rest_is ("nan.0")) {
+    out = sign * std::numeric_limits<double>::quiet_NaN ();
+    return true;
+  }
+  size_t ds = p;
+  while (p < hi && tok[p] >= '0' && tok[p] <= '9') p++;
+  if (p < hi && tok[p] == '/' && p > ds) {
+    size_t ne = p++;
+    size_t qs = p;
+    while (p < hi && tok[p] >= '0' && tok[p] <= '9') p++;
+    if (p != hi || p == qs) return false;
+    double num = std::strtod (tok.substr (ds, ne - ds).c_str (), nullptr);
+    double den = std::strtod (tok.substr (qs, p - qs).c_str (), nullptr);
+    if (den == 0.0) return false;
+    out = sign * num / den;
+    return true;
+  }
+  if (p == ds && (p >= hi || tok[p] != '.')) return false;
+  std::string sub = tok.substr (lo, hi - lo);
+  for (char c : sub)
+    if (c == 'x' || c == 'X' || c == 'p' || c == 'P') return false;
+  char* end = nullptr;
+  double d = std::strtod (sub.c_str (), &end);
+  if (end == sub.c_str () + static_cast<std::ptrdiff_t> (sub.size ())) {
+    out = d;
+    return true;
+  }
+  return false;
+}
+
+// Parse tok as rectangular complex (lowercase i only: 3+4I errors in s7,
+// bare i is a symbol). Split at the last +/- that is not an exponent
+// marker (1e3+2e-2i); empty imag after a sign means 1 (1+i); no split
+// means pure imaginary (+i, 2i). Parts reuse tiny_parse_part.
+static bool
+tiny_parse_complex (const std::string& tok, double& re, double& im) {
+  if (tok.empty () || tok.back () != 'i') return false;
+  std::string body = tok.substr (0, tok.size () - 1);
+  if (body.empty ()) return false;
+  size_t signpos = (body[0] == '+' || body[0] == '-') ? 1 : 0;
+  size_t split = std::string::npos;
+  for (size_t k = body.size (); k-- > signpos;) {
+    if ((body[k] == '+' || body[k] == '-') &&
+        !(k > 0 && (body[k - 1] == 'e' || body[k - 1] == 'E'))) {
+      split = k;
+      break;
+    }
+  }
+  if (split == std::string::npos) {
+    if (body == "+" || body == "-") {
+      re = 0.0;
+      im = (body[0] == '+') ? 1.0 : -1.0;
+      return true;
+    }
+    double m = 0.0;
+    if (!tiny_parse_part (body, 0, body.size (), m)) return false;
+    re = 0.0;
+    im = m;
+    return true;
+  }
+  double r = 0.0, m = 0.0;
+  if (!tiny_parse_part (body, 0, split, r)) return false;
+  if (split + 1 == body.size ()) {
+    m = 1.0;
+  } else if (!tiny_parse_part (body, split, body.size (), m)) {
+    return false;
+  }
+  re = r;
+  im = m;
+  return true;
+}
+
 static gf::pointer
 tiny_read_token (gf::scheme* sc, gf::pointer port, gf::int_ first) {
   std::string tok;
@@ -250,6 +346,25 @@ tiny_read_token (gf::scheme* sc, gf::pointer port, gf::int_ first) {
       double d= std::strtod (tok.c_str (), &end);
       if (end == tok.c_str () + static_cast<std::ptrdiff_t> (tok.size ()))
         return gf::make_real (sc, d);
+    }
+  }
+  // Writer-printed numerics the branches above cannot take: rectangular
+  // complex (3.0+3.0i, 0.0+2.0i, +inf.0+1.0i, 1+i, 2i, +i) and standalone
+  // +inf.0/-inf.0/+nan.0. a+bi-shaped identifiers whose parts do not parse
+  // (a+bi, hi) stay symbols, as do bare i, 3+4I, and 1@2 (the writer
+  // normalizes polar to rectangular, so @ never reaches the cache).
+  {
+    double re = 0.0, im = 0.0;
+    if (tiny_parse_complex (tok, re, im))
+      return gf::make_complex (sc, re, im);
+    size_t q = 0;
+    if (q < tok.size () && (tok[q] == '+' || tok[q] == '-')) q++;
+    std::string tail = tok.substr (q);
+    if (tail == "inf.0" || tail == "nan.0") {
+      double v = (tail[0] == 'i') ? std::numeric_limits<double>::infinity ()
+                                  : std::numeric_limits<double>::quiet_NaN ();
+      if (q > 0 && tok[0] == '-') v = -v;
+      return gf::make_real (sc, v);
     }
   }
   return gf::make_symbol (sc, tok.c_str ());
@@ -587,6 +702,16 @@ tiny_read_form (gf::scheme* sc, gf::pointer port) {
   }
   if (c == '"')
     return tiny_read_string (sc, port);
+  if (c == '|') {
+    // Vertical-bar symbol: the writer escapes non-identifier symbols as
+    // |...| (with \| and \\); escapes mirror strings via the shared core.
+    // A | mid-token stays a token char (the full reader rejects foo|bar|
+    // as invalid, so the cache never carries one).
+    tiny_next (sc, port);  // consume |
+    gf::pointer s = tiny_read_string_core (sc, port, '|');
+    if (!gf::is_string (s)) return s;  // read-error, propagate
+    return gf::make_symbol (sc, gf::string (s));
+  }
   if (c == '#') {
     tiny_next (sc, port);
     gf::int_ d = tiny_peek (sc, port);
@@ -594,6 +719,39 @@ tiny_read_form (gf::scheme* sc, gf::pointer port) {
     if (d == 'f') { tiny_next (sc, port); return gf::f (sc); }
     if (d == '\\') { tiny_next (sc, port); return tiny_read_char (sc, port); }
     if (d == '(') { return tiny_read_vector (sc, port); }
+    if (d == 'u') {
+      // #u8( bytevector: the writer emits them, so the cache reader must
+      // take them back (else every bytevector bundle misses). Elements
+      // are writer-printed u8 integers; anything else is a loud error.
+      tiny_next (sc, port);  // consume u
+      if (tiny_peek (sc, port) != '8')
+        return gf::error (sc, gf::make_symbol (sc, "read-error"),
+                         gf::list (sc, gf::make_string (sc, "bad #u object")));
+      tiny_next (sc, port);  // consume 8
+      if (tiny_peek (sc, port) != '(')
+        return gf::error (sc, gf::make_symbol (sc, "read-error"),
+                         gf::list (sc, gf::make_string (sc, "bad #u8 object")));
+      tiny_next (sc, port);  // consume (
+      std::vector<gf::int_> els;
+      while (true) {
+        tiny_skip_ws (sc, port);
+        gf::int_ e = tiny_peek (sc, port);
+        if (e < 0)
+          return gf::error (sc, gf::make_symbol (sc, "read-error"),
+                           gf::list (sc, gf::make_string (sc, "unterminated bytevector")));
+        if (e == ')') { tiny_next (sc, port); break; }
+        gf::pointer el = tiny_read_form (sc, port);
+        if (!gf::is_integer (el) || gf::integer (el) < 0 || gf::integer (el) > 255)
+          return gf::error (sc, gf::make_symbol (sc, "read-error"),
+                           gf::list (sc, gf::make_string (sc, "bytevector element out of range")));
+        els.push_back (gf::integer (el));
+      }
+      gf::pointer bv = gf::make_byte_vector (sc, (gf::int_) els.size (), 1, nullptr);
+      int bloc = gf::gc_protect (sc, bv);
+      for (size_t bi = 0; bi < els.size (); bi++)
+        gf::byte_vector_set (bv, (gf::int_) bi, (uint8_t) els[bi]);      gf::gc_unprotect_at (sc, bloc);
+      return bv;
+    }
     if (d == 'x' || d == 'X') {
       // #x hexadecimal integer (bootstrap: only hex radix is needed)
       tiny_next (sc, port);

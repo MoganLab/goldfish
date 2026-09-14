@@ -630,7 +630,9 @@ static const struct HofEntry { const char* name; int p0; int p1; } kHofs[] = {
   {"vector-map", 0, -1}, {"vector-for-each", 0, -1}, {"vector-fold", 0, -1},
   {"vector-fold-right", 0, -1}, {"vector-filter", 0, -1}, {"vector-any", 0, -1},
   {"vector-every", 0, -1},
-  {"with-exception-handler", 0, -1}, {"call-with-port", 0, -1},
+  {"with-exception-handler", 0, 1}, {"call-with-port", 0, -1},
+  {"with-input-from-file", 1, -1}, {"with-output-to-file", 1, -1},
+  {"call-with-input-file", 1, -1}, {"call-with-output-file", 1, -1},
   // Loader infrastructure applying callbacks internally (not user HOFs,
   // same rule: wrap so s7 never sees a raw box in apply position).
   {"register-runtime-module", 1, -1},
@@ -807,7 +809,8 @@ stepE (scheme* sc, pointer x, Env env, Kont& k) {
   // evaluate to themselves).
   if (gf::is_boolean (x) || gf::is_number (x) || gf::is_string (x) ||
       gf::is_character (x) || gf::is_null (sc, x) || gf::is_vector (x) ||
-      gf::is_keyword (x))
+      gf::is_keyword (x) || x == gf::eof_object (sc) ||
+      x == gf::unspecified (sc) || x == gf::undefined (sc))
     return ctlVals (single (sc, x));
   if (gf::is_symbol (x)) {
     pointer v= lookup_raw (sc, x, env);
@@ -971,11 +974,11 @@ stepE (scheme* sc, pointer x, Env env, Kont& k) {
     KF fr;
     fr.tag= KK::RecB;
     fr.env= inner;
-    fr.a  = nullptr;
+    fr.a  = gf::car (rest);
     fr.b  = gf::car (rest);
     fr.c  = gf::cdr (rest);
     fr.stage= 0;
-    fr.flag= false;
+    fr.flag= (std::strcmp (gf::symbol_name (gf::car (x)), "letrec*") == 0);
     k.push_back (fr);
     return ctlExpr (gf::car (gf::cdr (gf::car (gf::car (rest)))), inner);
   }
@@ -1167,6 +1170,22 @@ lookup_assign (scheme* sc, Env env, pointer name, V v, pointer ctx) {
   return nullptr; // unreachable; keeps form
 }
 
+// s7 call protocol: argument value-lists concatenate, then arity checks
+// (list/+/vector splice; closures get spread args; fixed-arity mismatch
+// errors at apply). Splice multi into a Kont frame's acc.
+static void
+splice_into (scheme* sc, KF& fr, V& v) {
+  if (v.multi) {
+    for (pointer p : v.many) {
+      fr.acc.push_back (p);
+      kpin (sc, fr, p);
+    }
+  } else {
+    fr.acc.push_back (v.one);
+    kpin (sc, fr, v.one);
+  }
+}
+
 static Ctl
 plugInto (scheme* sc, KF fr, V v, Kont& k) {
   switch (fr.tag) {
@@ -1174,7 +1193,8 @@ plugInto (scheme* sc, KF fr, V v, Kont& k) {
     return seqCtl (sc, fr.env, fr.b, k);
   }
   case KK::If: {
-    V t_v = must_single (sc, v, fr.a, "gf0: if test must be single-valued"); pointer t = t_v.one;
+    // s7 tests the FIRST value (zero values count as true).
+    pointer t= v.multi ? (v.many.empty () ? gf::t (sc) : v.many[0]) : v.one;
     if (!gf::boolean (sc, t))
       return fr.flag ? ctlExpr (fr.b, fr.env)
                      : ctlVals (single (sc, gf::unspecified (sc)));
@@ -1200,8 +1220,7 @@ plugInto (scheme* sc, KF fr, V v, Kont& k) {
     return ctlExpr (gf::car (fr.b), fr.env);
   }
   case KK::CallA: {
-    V one_v = must_single (sc, v, fr.b, "gf0: arg must be single-valued"); pointer one = one_v.one;
-    fr.acc.push_back (one); kpin (sc, fr, one);
+    splice_into (sc, fr, v);
     if (gf::is_pair (fr.b)) {
       pointer next= gf::car (fr.b);
       fr.b= gf::cdr (fr.b);
@@ -1240,12 +1259,25 @@ plugInto (scheme* sc, KF fr, V v, Kont& k) {
     pointer b= gf::car (fr.b);
     V init_v = must_single (sc, v, b, "gf0: letrec init must be single-valued"); pointer init = init_v.one;
     (void) init;
-    lookup_assign (sc, fr.env, gf::car (b), init_v, b);
+    if (fr.flag) {
+      // letrec*: sequential, later inits see earlier bindings.
+      lookup_assign (sc, fr.env, gf::car (b), init_v, b);
+    } else {
+      // letrec: isolate; every init sees all slots unassigned (reads
+      // error), assignment happens once all inits are collected.
+      fr.acc.push_back (init_v.one);
+      kpin (sc, fr, init_v.one);
+    }
     if (gf::is_pair (gf::cdr (fr.b))) {
       pointer nb= gf::car (gf::cdr (fr.b));
       fr.b= gf::cdr (fr.b);
       k.push_back (fr);
       return ctlExpr (gf::car (gf::cdr (nb)), fr.env);
+    }
+    if (!fr.flag) {
+      pointer bs= fr.a;
+      for (size_t i= 0; gf::is_pair (bs); bs= gf::cdr (bs), ++i)
+        lookup_assign (sc, fr.env, gf::car (gf::car (bs)), single (sc, fr.acc[i]), b);
     }
     return seqCtl (sc, fr.env, fr.c, k);
   }
@@ -1266,8 +1298,7 @@ plugInto (scheme* sc, KF fr, V v, Kont& k) {
     return seqCtl (sc, fr.inner, fr.c, k);
   }
   case KK::Vals: {
-    V one_v = must_single (sc, v, fr.b, "gf0: values element must be single"); pointer one = one_v.one;
-    fr.acc.push_back (one); kpin (sc, fr, one);
+    splice_into (sc, fr, v);
     if (gf::is_pair (fr.b)) {
       pointer next= gf::car (fr.b);
       fr.b= gf::cdr (fr.b);
@@ -1415,8 +1446,7 @@ plugInto (scheme* sc, KF fr, V v, Kont& k) {
     return ctlExpr (gf::car (fr.b), fr.env);
   }
   case KK::ApplyA: {
-    V one_v = must_single (sc, v, fr.b, "gf0: apply arg must be single-valued"); pointer one = one_v.one;
-    fr.acc.push_back (one); kpin (sc, fr, one);
+    splice_into (sc, fr, v);
     if (gf::is_pair (fr.b)) {
       pointer next= gf::car (fr.b);
       fr.b= gf::cdr (fr.b);

@@ -97,8 +97,11 @@ s7 列为当前后端实测；guile 3.0.11 / racket 9.2 双方验证
 - 非过程调用：**委托 s7 的 apply**，原生错误对象原样穿过
   （如 `(apply 1 …)` 的 `syntax-error`），check-catch 逐字匹配。
 - `letrec` 未初始化读：`gf0-error`（s7 无此错，保持 R7RS-strict 分歧）。
-- s7 宽容而 R7RS 未定处（如多值喂单参算术）：跟 R7RS 从严，
-  暂无测试覆盖，日后若有测试按 oracle 复核。
+- 多值调用位统一 splice（实测 oracle）：实参值表 concat 后做元数检查。
+  `list`/`+`/`vector` 等原语接受展开（`(+ (values 1 2) 3)` → 6）；
+  闭包得展开后的实参（元数不符即 `wrong-number-of-args`）；
+  `(values <multi>)` 展开；`apply` 非尾实参加入展开；
+  `if` 取首值（零值判真）。`define`/`set!` 位仍须单值。
 
 ## 未决
 
