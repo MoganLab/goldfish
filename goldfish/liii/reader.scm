@@ -1136,13 +1136,44 @@
          (cond
            ((memq v stack) #t)
            ((not (expand! v)) #f)
-           (else
-            (let ((st (cons v stack)))
+            (else
+             (let ((st (cons v stack)))
               (let loop ((i 0))
                 (if (< i (vector-length v))
                   (or (descend (vector-ref v i) st)
                       (loop (+ i 1)))
                   #f))))))
+        (else #f)))))
+
+;;; has-sharing? : datum -> bool
+;;; Whether a record-free datum holds a pair/vector/bytevector reachable
+;;; by two paths: a cache round trip must preserve the alias (mutation
+;;; through one alias stays visible through the other), which needs the
+;;; graph pass labels (#n=/#n#). Linear: each node walked once.
+;;; Cycles count as sharing here; record-free cycles still error out in
+;;; write-roundtrip, so they never hang.
+
+(define (has-sharing? x)
+  (let ((seen '()))
+    (let walk ((v x))
+      (cond
+        ((pair? v)
+         (if (assq v seen)
+           #t
+           (begin (set! seen (cons (cons v #t) seen))
+                  (or (walk (car v)) (walk (cdr v))))))
+        ((bytevector? v)
+         (if (assq v seen)
+           #t
+           (begin (set! seen (cons (cons v #t) seen)) #f)))
+        ((vector? v)
+         (if (assq v seen)
+           #t
+           (begin (set! seen (cons (cons v #t) seen))
+                  (let loop ((i 0))
+                    (if (< i (vector-length v))
+                      (or (walk (vector-ref v i)) (loop (+ i 1)))
+                      #f)))))
         (else #f)))))
 
 ;;; write-roundtrip : datum port -> void
@@ -1156,10 +1187,13 @@
 ;;; itself, so a naive recursive writer loops forever.
 
 (define (write-roundtrip x p)
-  (if (not (has-record? x))
-    (begin
-      (when (has-cycle? x)
-        (error 'write-roundtrip "cannot serialize a cyclic datum without records" x))
+  ;; Record-free cycles still error (single-pass cannot label, and the
+  ;; tiny-reader cache path would only miss on cyclic labels anyway).
+  (when (and (not (has-record? x)) (has-cycle? x))
+    (error 'write-roundtrip "cannot serialize a cyclic datum without records" x))
+  ;; Shared record-free data takes the graph pass so labels preserve the
+  ;; aliasing; unshared record-free data keeps the fast single pass.
+  (if (and (not (has-record? x)) (not (has-sharing? x)))
       (let rec ((v x))
         (cond
           ((symbol? v) (write-roundtrip-symbol v p))
@@ -1205,8 +1239,8 @@
            (display ")" p))
           ((procedure? v)
            (error 'write-roundtrip "cannot serialize a procedure" v))
-          (else (write v p)))))
-    ;; Graph-aware pass (data contains records): count references, then
+          (else (write v p))))
+    ;; Graph-aware pass (records, or shared record-free data): count references, then
     ;; output with #n=/#n# labels for shared/cyclic containers.
     (let ((counts '()))
       (define (count-ref v)
@@ -1247,6 +1281,10 @@
                (let loop ((i 0))
                  (if (< i (vector-length v))
                    (begin (walk (vector-ref v i)) (loop (+ i 1)))))))
+            ;; Bytevector leaves: no descend, but count so shared ones
+            ;; still get labels.
+            ((bytevector? v)
+             (count-ref v))
             (else #f))))
       (let ((labels '())
             (next-label 0))
@@ -1283,14 +1321,11 @@
             ((null? v)
              (display "()" p))
             ((bytevector? v)
-             (display "#u8(" p)
-             (let loop ((i 0))
-               (if (< i (bytevector-length v))
-                 (begin
-                   (if (> i 0) (display #\space p))
-                   (display (bytevector-u8-ref v i) p)
-                   (loop (+ i 1)))))
-             (display ")" p))
+             (if (shared? v)
+               (if (has-label? v)
+                 (write-ref v)
+                 (begin (write-mark v) (wrt-bytes v)))
+               (wrt-bytes v)))
             ((record-instance? v)
              (if (shared? v)
                (if (has-label? v)
@@ -1334,6 +1369,15 @@
               (begin
                 (if (> i 0) (display #\space p))
                 (wrt (vector-ref v i))
+                (loop (+ i 1)))))
+          (display ")" p))
+        (define (wrt-bytes v)
+          (display "#u8(" p)
+          (let loop ((i 0))
+            (if (< i (bytevector-length v))
+              (begin
+                (if (> i 0) (display #\space p))
+                (display (bytevector-u8-ref v i) p)
                 (loop (+ i 1)))))
           (display ")" p))
         (define (wrt-record v)

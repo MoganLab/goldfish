@@ -466,8 +466,25 @@
                s))))
         ((and (pair? y) (eq? (car y) 'lib*))
          (deserialize-lib y))
-        ((pair? y) (cons (loop (car y)) (loop (cdr y))))
-        ((and (vector? y) (not (bytevector? y))) (vector-map loop y))
+        ;; Shared structure (#n= labels restored by the reader as one
+        ;; object) must rebuild to one object: mutation through one alias
+        ;; stays visible through the other. The writer only emits labels
+        ;; for completed (acyclic) objects, so store-after-build cannot
+        ;; loop; a second visit to the same serialized node reuses it.
+        ((pair? y)
+         (let ((cell (assq y memo)))
+           (if cell
+             (cdr cell)
+             (let ((p (cons (loop (car y)) (loop (cdr y)))))
+               (set! memo (cons (cons y p) memo))
+               p))))
+        ((and (vector? y) (not (bytevector? y)))
+         (let ((cell (assq y memo)))
+           (if cell
+             (cdr cell)
+             (let ((v (vector-map loop y)))
+               (set! memo (cons (cons y v) memo))
+               v))))
         (else y)))))
 
 ;;; Bundle schema: (bundle <version> <kind> <section>*).  Kinds and their

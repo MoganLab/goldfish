@@ -65,14 +65,45 @@ static void tiny_skip_ws (gf::scheme* sc, gf::pointer port) {
   }
 }
 
-static gf::pointer tiny_read_form (gf::scheme* sc, gf::pointer port);
+static gf::pointer tiny_read_form (gf::scheme* sc, gf::pointer port, struct TinyLabels& lab);
+
+static gf::pointer tiny_read_string_core (gf::scheme* sc, gf::pointer port, gf::int_ rdelim);
+
+// Graph labels (#n= def / #n# ref) the write-roundtrip graph pass emits
+// for shared structure: without them a cache round trip silently
+// duplicates shared vectors (mutation through one alias lost through
+// the other). Objects are GC-protected from definition until the
+// entry-point read returns; the owner unprotects them all.
+struct TinyLabels {
+  std::vector<gf::pointer> objs;
+  std::vector<int> locs;
+};
+
+static void
+tiny_labels_store (gf::scheme* sc, TinyLabels& lab, size_t n, gf::pointer obj) {
+  if (n >= lab.objs.size ()) {
+    lab.objs.resize (n + 1, nullptr);
+    lab.locs.resize (n + 1, -1);
+  }
+  if (lab.locs[n] >= 0) gf::gc_unprotect_at (sc, lab.locs[n]);
+  lab.objs[n] = obj;
+  lab.locs[n] = gf::gc_protect (sc, obj);
+}
+
+static void
+tiny_labels_release (gf::scheme* sc, TinyLabels& lab) {
+  for (int loc : lab.locs)
+    if (loc >= 0) gf::gc_unprotect_at (sc, loc);
+  lab.locs.clear ();
+  lab.objs.clear ();
+}
 
 static gf::pointer tiny_read_string_core (gf::scheme* sc, gf::pointer port, gf::int_ rdelim);
 
 // Read a #(...) vector: elements are read like a list (no dotted pair) into
 // a GC-protected list, then materialized as an s7 vector.
 static gf::pointer
-tiny_read_vector (gf::scheme* sc, gf::pointer port) {
+tiny_read_vector (gf::scheme* sc, gf::pointer port, TinyLabels& lab) {
   tiny_next (sc, port);  // consume '('
   gf::pointer head = gf::nil (sc);
   gf::pointer tail = gf::nil (sc);
@@ -87,7 +118,7 @@ tiny_read_vector (gf::scheme* sc, gf::pointer port) {
       tiny_next (sc, port);
       break;
     }
-    gf::pointer el = tiny_read_form (sc, port);
+    gf::pointer el = tiny_read_form (sc, port, lab);
     if (head_loc < 0) {
       head = gf::cons (sc, el, gf::nil (sc));
       tail = head;
@@ -601,7 +632,7 @@ f_g_read_string (gf::scheme* sc, gf::pointer args) {
 }
 
 static gf::pointer
-tiny_read_form (gf::scheme* sc, gf::pointer port) {
+tiny_read_form (gf::scheme* sc, gf::pointer port, TinyLabels& lab) {
   tiny_skip_ws (sc, port);
   gf::int_ c = tiny_peek (sc, port);
   if (c < 0)
@@ -642,7 +673,7 @@ tiny_read_form (gf::scheme* sc, gf::pointer port) {
             return gf::error (sc, gf::make_symbol (sc, "read-error"),
                              gf::list (sc, gf::make_string (sc, "dot with no element")));
           }
-          gf::pointer b = tiny_read_form (sc, port);
+          gf::pointer b = tiny_read_form (sc, port, lab);
           tiny_skip_ws (sc, port);
           if (tiny_peek (sc, port) != close) {
             gf::gc_unprotect_at (sc, head_loc);
@@ -658,7 +689,7 @@ tiny_read_form (gf::scheme* sc, gf::pointer port) {
         // read the rest and continue the list with it as an element.
         el = tiny_read_token (sc, port, '.');
       } else {
-        el = tiny_read_form (sc, port);
+        el = tiny_read_form (sc, port, lab);
       }
       if (first) {
         head = gf::cons (sc, el, gf::nil (sc));
@@ -683,12 +714,12 @@ tiny_read_form (gf::scheme* sc, gf::pointer port) {
   if (c == '\'') {
     tiny_next (sc, port);
     return gf::cons (sc, gf::make_symbol (sc, "quote"),
-                    gf::cons (sc, tiny_read_form (sc, port), gf::nil (sc)));
+                    gf::cons (sc, tiny_read_form (sc, port, lab), gf::nil (sc)));
   }
   if (c == '`') {
     tiny_next (sc, port);
     return gf::cons (sc, gf::make_symbol (sc, "quasiquote"),
-                    gf::cons (sc, tiny_read_form (sc, port), gf::nil (sc)));
+                    gf::cons (sc, tiny_read_form (sc, port, lab), gf::nil (sc)));
   }
   if (c == ',') {
     tiny_next (sc, port);
@@ -698,7 +729,7 @@ tiny_read_form (gf::scheme* sc, gf::pointer port) {
       name = "unquote-splicing";
     }
     return gf::cons (sc, gf::make_symbol (sc, name),
-                    gf::cons (sc, tiny_read_form (sc, port), gf::nil (sc)));
+                    gf::cons (sc, tiny_read_form (sc, port, lab), gf::nil (sc)));
   }
   if (c == '"')
     return tiny_read_string (sc, port);
@@ -718,7 +749,43 @@ tiny_read_form (gf::scheme* sc, gf::pointer port) {
     if (d == 't') { tiny_next (sc, port); return gf::t (sc); }
     if (d == 'f') { tiny_next (sc, port); return gf::f (sc); }
     if (d == '\\') { tiny_next (sc, port); return tiny_read_char (sc, port); }
-    if (d == '(') { return tiny_read_vector (sc, port); }
+    if (d == '(') { return tiny_read_vector (sc, port, lab); }
+    if (d >= '0' && d <= '9') {
+      // Graph label (#n= def / #n# ref): the write-roundtrip graph pass
+      // emits them for shared structure. Refs to an already-completed def
+      // restore the alias; anything else (notably forward refs from cyclic
+      // data, which the writer only emits with records) is a loud error
+      // so the cache misses instead of corrupting.
+      long n = 0;
+      while (true) {
+        gf::int_ h = tiny_peek (sc, port);
+        if (h < '0' || h > '9') break;
+        tiny_next (sc, port);
+        n = n * 10 + (h - '0');
+      }
+      gf::int_ m = tiny_peek (sc, port);
+      if (m == '=') {
+        tiny_next (sc, port);
+        gf::pointer obj = tiny_read_form (sc, port, lab);
+        // An s7 error object is not a value: propagate, store nothing.
+        if (gf::is_string (obj) || gf::is_pair (obj) || gf::is_vector (obj) ||
+            gf::is_null (sc, obj) || gf::is_number (obj) || gf::is_boolean (obj) ||
+            gf::is_symbol (obj) || gf::is_character (obj) || gf::is_keyword (obj) ||
+            obj == gf::eof_object (sc) || obj == gf::unspecified (sc) ||
+            obj == gf::undefined (sc))
+          tiny_labels_store (sc, lab, (size_t) n, obj);
+        return obj;
+      }
+      if (m == '#') {
+        tiny_next (sc, port);
+        if ((size_t) n < lab.objs.size () && lab.objs[(size_t) n] != nullptr)
+          return lab.objs[(size_t) n];
+        return gf::error (sc, gf::make_symbol (sc, "read-error"),
+                         gf::list (sc, gf::make_string (sc, "undefined label")));
+      }
+      return gf::error (sc, gf::make_symbol (sc, "read-error"),
+                       gf::list (sc, gf::make_string (sc, "bad # object")));
+    }
     if (d == 'u') {
       // #u8( bytevector: the writer emits them, so the cache reader must
       // take them back (else every bytevector bundle misses). Elements
@@ -740,7 +807,7 @@ tiny_read_form (gf::scheme* sc, gf::pointer port) {
           return gf::error (sc, gf::make_symbol (sc, "read-error"),
                            gf::list (sc, gf::make_string (sc, "unterminated bytevector")));
         if (e == ')') { tiny_next (sc, port); break; }
-        gf::pointer el = tiny_read_form (sc, port);
+    gf::pointer el = tiny_read_form (sc, port, lab);
         if (!gf::is_integer (el) || gf::integer (el) < 0 || gf::integer (el) > 255)
           return gf::error (sc, gf::make_symbol (sc, "read-error"),
                            gf::list (sc, gf::make_string (sc, "bytevector element out of range")));
@@ -822,16 +889,24 @@ tiny_read_form (gf::scheme* sc, gf::pointer port) {
 static gf::pointer
 f_tiny_read (gf::scheme* sc, gf::pointer args) {
   gf::pointer port = gf::car (args);
-  return tiny_read_form (sc, port);
+  TinyLabels lab;
+  gf::pointer v = tiny_read_form (sc, port, lab);
+  tiny_labels_release (sc, lab);
+  return v;
 }
 
 static gf::pointer
 f_tiny_read_with_default (gf::scheme* sc, gf::pointer args) {
+  TinyLabels lab;
+  gf::pointer v;
   if (gf::is_null (sc, args)) {
     gf::pointer ip = gf::current_input_port (sc);
-    return tiny_read_form (sc, ip);
+    v = tiny_read_form (sc, ip, lab);
+  } else {
+    v = tiny_read_form (sc, gf::car (args), lab);
   }
-  return tiny_read_form (sc, gf::car (args));
+  tiny_labels_release (sc, lab);
+  return v;
 }
 
 static gf::pointer
@@ -839,12 +914,14 @@ tiny_load_path (gf::scheme* sc, const char* path) {
   gf::pointer port = gf::open_input_file (sc, path, "r");
   gf::pointer env = gf::rootlet (sc);
   gf::pointer result = gf::unspecified (sc);
+  TinyLabels lab;
   while (true) {
-    gf::pointer d = tiny_read_form (sc, port);
+    gf::pointer d = tiny_read_form (sc, port, lab);
     if (d == gf::eof_object (sc))
       break;
     result = gf::eval (sc, d, env);
   }
+  tiny_labels_release (sc, lab);
   gf::close_input_port (sc, port);
   return result;
 }
