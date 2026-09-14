@@ -20,6 +20,7 @@
     (liii path)
     (liii raw-string)
     (liii string)
+    (liii syntax)
     (liii unicode)
     (liii list)
     (liii goldfmt-record)
@@ -183,18 +184,6 @@
       ) ;let
     ) ;define
 
-    ;; ; 辅助函数：判断是否为 quote 形式：(quote x) 或 (#_quote x)
-    (define (quote-form? lst)
-      (and (pair? lst)
-        (not (null? lst))
-        (or (eq? (car lst) 'quote)
-          (and (syntax? (car lst)) (string=? (object->string (car lst) #f) "#_quote"))
-        ) ;or
-        (not (null? (cdr lst)))
-        (null? (cddr lst))
-      ) ;and
-    ) ;define
-
     (define (internal-list-values-form? value)
       (and (pair? value) (procedure-name=? (car value) "#_list-values"))
     ) ;define
@@ -210,15 +199,6 @@
         (pair? (cdr value))
         (null? (cddr value))
         (internal-apply-values-form? (cadr value))
-      ) ;and
-    ) ;define
-
-    ;; ; 判断是否为正规化后的 (unquote x) 或 (unquote-splicing x) 形式
-    (define (unquote-form? value)
-      (and (pair? value)
-        (or (eq? (car value) 'unquote) (eq? (car value) 'unquote-splicing))
-        (pair? (cdr value))
-        (null? (cddr value))
       ) ;and
     ) ;define
 

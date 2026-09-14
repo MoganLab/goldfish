@@ -2,16 +2,8 @@
   (export tree-cyclic? tree-leaves tree-memq? tree-member? tree-set-memq
     tree-count tree-depth
   ) ;export
-  (import (scheme base) (liii error))
+  (import (scheme base) (liii error) (liii syntax))
   (begin
-    (define (quote-form? x)
-      (and (pair? x)
-        (or (eq? (car x) 'quote) (eq? (car x) #_quote))
-        (pair? (cdr x))
-        (null? (cddr x))
-      ) ;and
-    ) ;define
-
     (define (tree-depth tree)
       (if (tree-cyclic? tree)
         (value-error "tree-depth: tree is cyclic: ~S" tree)
