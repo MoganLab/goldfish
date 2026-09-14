@@ -6,9 +6,7 @@
   (begin
     (define (quote-form? x)
       (and (pair? x)
-        (or (eq? (car x) 'quote)
-          (and (syntax? (car x)) (string=? (object->string (car x) #f) "#_quote"))
-        ) ;or
+        (or (eq? (car x) 'quote) (eq? (car x) #_quote))
         (pair? (cdr x))
         (null? (cddr x))
       ) ;and
@@ -21,16 +19,15 @@
           ((x tree))
           (cond ((not (pair? x)) 0)
                 ((quote-form? x) (loop (cadr x)))
-                (else
-                  (+ 1
-                    (let elt-loop
-                      ((rest x) (max-d 0))
-                      (if (not (pair? rest))
-                        max-d
-                        (elt-loop (cdr rest) (max max-d (loop (car rest))))
-                      ) ;if
-                    ) ;let
-                  ) ;+
+                (else (+ 1
+                        (let elt-loop
+                          ((rest x) (max-d 0))
+                          (if (not (pair? rest))
+                            max-d
+                            (elt-loop (cdr rest) (max max-d (loop (car rest))))
+                          ) ;if
+                        ) ;let
+                      ) ;+
                 ) ;else
           ) ;cond
         ) ;let
