@@ -377,8 +377,27 @@ static pointer wrap_box (scheme* sc, pointer box);
 
 static void hof_maybe_wrap (scheme* sc, pointer proc, std::vector<pointer>& argv);
 
+// s7call token stack (stale-continuation fence): every gf0->s7 crossing
+// pushes a fresh token, popped by RAII (exception-safe: GfEx flies through
+// here). The s7-side guarded call/cc (installed by g_gf0-import-inlet)
+// stamps captures and refuses to invoke across a return boundary with an
+// explicit gf0-stale-continuation error instead of longjmp-ing into a dead
+// C++ frame (srfi-158 coroutines). Equality against the CURRENT innermost
+// token is nest-correct: invoke-inside still matches, invoke-after differs.
+static gf::int_ s_s7call_next= 1;
+static std::vector<gf::int_> s_s7call_stack;
+struct S7CallToken {
+  S7CallToken () {
+    s_s7call_stack.push_back (s_s7call_next++);
+  }
+  ~S7CallToken () {
+    s_s7call_stack.pop_back ();
+  }
+};
+
 static V
 s7call_vec (scheme* sc, pointer proc, const std::vector<pointer>& argv) {
+  S7CallToken fence;
   // Everything touched here is scope-rooted for the call, so callers need
   // no pin discipline: argv/proc may be bare (holder-rooted elsewhere).
   // Args pass RAW (no translation): identity/aliasing/record-tags intact,
@@ -1677,15 +1696,54 @@ f_gf0_eval (scheme* sc, pointer args) {
   }
 }
 
+static gf::pointer
+f_gf0_s7call_token (scheme* sc, pointer args) {
+  (void) args;
+  if (s_s7call_stack.empty ()) return gf::f (sc);
+  return gf::make_integer (sc, s_s7call_stack.back ());
+}
+
 // Seed the session top env from an s7 inlet (e.g. the-expander-library):
 // compiled artifacts reference library bindings by gensym, which only
 // resolve there. Copies (name . value) cells by reference (pinned); gf0
 // set! writes its own frames, never back into the inlet. M2a differential
 // bridge; toplevel cells (M2) retire it.
+//
+// Side effect: installs the s7-side stale-continuation fence at the rootlet
+// (all library lookup chains end there): call/cc and
+// call-with-current-continuation are shadowed by serial-guarded wrappers.
+// Same-crossing use is unaffected; cross-boundary invoke raises
+// gf0-stale-continuation. gf0's own call/cc stays native (name-intercepted
+// in stepE, never resolved through the inlet). Idempotent across re-imports.
+static const char kStaleCcGuard[] =
+  "(eval '(begin "
+  "  (unless (defined? '%gf0-native-call/cc) "
+  "    (define %gf0-native-call/cc call/cc) "
+  "    (define %gf0-native-call-with-current-continuation call-with-current-continuation) "
+  "    (define (%gf0-guarded-cc native proc) "
+  "      (let ((tok (g_gf0-s7call-token))) "
+  "        (native (lambda (k) "
+  "                  (proc (lambda (v) "
+  "                          (if (equal? tok (g_gf0-s7call-token)) "
+  "                              (k v) "
+  "                              (error 'gf0-stale-continuation "
+  "                                     \"s7 continuation invoked after its s7call frame returned\"))))))))) "
+  "  (define (call/cc proc) (%gf0-guarded-cc %gf0-native-call/cc proc)) "
+  "  (define (call-with-current-continuation proc) "
+  "    (%gf0-guarded-cc %gf0-native-call-with-current-continuation proc)) "
+  "  (if #f #f)) "
+  "  (rootlet))";
 static gf::pointer
 f_gf0_import_inlet (scheme* sc, pointer args) {
-  ensure_top (sc);
-  seed_from_inlet (sc, gf::car (args));
+  // Optional second arg #f = fence only: install the stale-cc shadow without
+  // touching gf0 state (no ensure_top, so the frame-0 rootlet snapshot is NOT
+  // taken yet). Load libraries AFTER this call so their call/cc wiring bakes
+  // guarded; then call with one arg to seed (snapshot now covers the libs).
+  bool fence_only= gf::is_pair (gf::cdr (args)) &&
+                   !gf::boolean (sc, gf::car (gf::cdr (args)));
+  if (!fence_only) ensure_top (sc);
+  if (!fence_only) seed_from_inlet (sc, gf::car (args));
+  gf::eval_c_string (sc, kStaleCcGuard);
   return gf::unspecified (sc);
 }
 
@@ -1714,12 +1772,16 @@ glue_gf0_eval (gf::scheme* sc) {
                        "(g_gf0-eval datum) => value, single-valued reference eval (multi is an error)");
   gf::define_function (sc, "g_gf0-eval-values", gf0::f_gf0_eval_values, 1, 0, false,
                        "(g_gf0-eval-values datum) => list of values from reference eval");
-  gf::define_function (sc, "g_gf0-import-inlet", gf0::f_gf0_import_inlet, 1, 0, false,
-                       "(g_gf0-import-inlet inlet) => unspecified, seed gf0 session env from an s7 inlet");
+  gf::define_function (sc, "g_gf0-import-inlet", gf0::f_gf0_import_inlet, 1, 1, false,
+                        "(g_gf0-import-inlet inlet [seed?]) => unspecified. Seed gf0 session env from an s7 inlet; "
+                        "with #f as second arg, install only the stale-cc fence (no seed, no snapshot yet): "
+                        "call fenced BEFORE loading libraries, then seed after so the snapshot covers them");
   gf::define_function (sc, "g_gf0-apply", gf0::f_gf0_apply, 2, 0, false,
                        "(g_gf0-apply box arglist) => value, apply a gf0 closure box (s7 callback entry)");
   gf::define_function (sc, "g_gf0-apply-values", gf0::f_gf0_apply_values, 2, 0, false,
-                       "(g_gf0-apply-values box arglist) => list of values from a gf0 closure box");
+                        "(g_gf0-apply-values box arglist) => list of values from a gf0 closure box");
+  gf::define_function (sc, "g_gf0-s7call-token", gf0::f_gf0_s7call_token, 0, 0, false,
+                        "(g_gf0-s7call-token) => innermost live s7call token, #f outside (stale-cc fence)");
 }
 
 } // namespace goldfish

@@ -59,6 +59,15 @@
   make-coroutine-generator）只能从 s7 求值侧调用，不进 M3 双门；
   gf0 原生 call/cc（堆 Kont，无 C 帧）不受此限（m2a-generator 为证）。
   这正是 Filinski 框架条件被违背的实例：两运行时控制模型不复合。
+- **stale fence（已实现，fail-closed）**：`g_gf0-import-inlet` 在 rootlet
+  装 serial-guard wrapper 覆盖 `call/cc` 双名；每次 s7call 压新 token，
+  invoke 时与当前最内 token 比对，不等即 `gf0-stale-continuation` 错误。
+  用户回调是 gf0 box（进 s7 必嵌新 s7call），故协程首 yield 即错——
+  这是对的：membership 谓词会放行 longjmp 穿活 C++ 帧（pin 泄漏，
+  1M yield 即 OOM）。定序铁律：fence 先行（`(gf0-import inlet #f)`，
+  不碰快照）→load（call/cc 装线期）→全量 import（frame-0 快照须覆盖
+  已载库；level-0 load 的 view 直接落在 rootlet）。见
+  `tools/check-gf0-guards.sh`（s7 侧 10/20/eof，gf0 侧 stale×3）。
 
 ## 实测 oracle（差分门，M2 照单验收）
 

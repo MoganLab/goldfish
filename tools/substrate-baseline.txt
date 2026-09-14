@@ -183,6 +183,7 @@ g_gf0-apply-values
 g_gf0-eval
 g_gf0-eval-values
 g_gf0-import-inlet
+g_gf0-s7call-token
 g_goldfish-library
 g_http-async-get
 g_http-async-head
@@ -276,7 +277,7 @@ g_which
 iota
 read
 version
-count=119
+count=120
 == D core-language ==
 begin
 call-with-values

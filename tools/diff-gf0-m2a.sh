@@ -23,12 +23,12 @@
 #                    compile-file-cached (normal `gf test` passes).
 #   case-test.scm -- constant-fold chokes whole-file ("not enough
 #                    arguments" in ((lambda vs vs) (producer))).
-#   srfi-158-test.scm -- make-coroutine-generator checks fail structurally:
-#                    s7-native call/cc captured inside the library cannot
-#                    survive gf0's s7call C++ frame lifetime (use-after-
-#                    return on later invoke; garbage values, luckily no
-#                    crash). All non-coroutine checks pass. See
-#                    CORE-SEMANTICS.md continuation boundary note.
+#   srfi-158-test.scm -- make-coroutine-generator is fail-closed by the
+#                    stale fence (gf0-stale-continuation on every yield;
+#                    see tools/check-gf0-guards.sh), so it cannot run the
+#                    dual gate: user callbacks are gf0 boxes, each nesting a
+#                    fresh token. Pre-fence behavior was silent garbage
+#                    (use-after-return into dead C++ frames, no crash).
 set -eu
 cd "$(dirname "$0")/.."
 mkdir -p /tmp/kilo
@@ -76,6 +76,9 @@ for prog in $files; do
       echo "(define gf0-import (eval 'g_gf0-import-inlet (rootlet)))"
       echo "(define gf0-evalv (eval 'g_gf0-eval-values (rootlet)))"
       echo "(define opt (compile-file-cached \"$prog\"))"
+      # Fence before load (call/cc wiring bakes at load time), full import
+      # after (frame-0 rootlet snapshot must cover the loaded libs).
+      echo '(gf0-import the-expander-library #f)'
       echo '(for-each (lambda (lib) (if (not (rt-reg? lib)) (load-lib! lib))) (cc-mrefs opt))'
       echo '(gf0-import the-expander-library)'
       echo '(gf0-evalv opt)'
