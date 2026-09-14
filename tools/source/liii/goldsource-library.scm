@@ -29,9 +29,10 @@
               (if (null? roots)
                 #f
                 (let ((load-root (car roots)))
-                  (if (and (string? load-root)
-                        (path-file? (path-join load-root group (string-append library ".scm")))
-                      ) ;and
+                  (if
+                    (and (string? load-root)
+                      (path-file? (path-join load-root group (string-append library ".scm")))
+                    ) ;and
                     load-root
                     (loop (cdr roots))
                   ) ;if

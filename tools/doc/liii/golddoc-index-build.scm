@@ -83,7 +83,8 @@
     ) ;define
 
     (define (sorted-index index)
-      (map (lambda (entry) (cons (car entry) (list-sort string<? (cdr entry))))
+      (map
+        (lambda (entry) (cons (car entry) (list-sort string<? (cdr entry))))
         (list-sort (lambda (left right) (string<? (car left) (car right))) index)
       ) ;map
     ) ;define
@@ -104,7 +105,8 @@
     ) ;define
 
     (define (library-name->entry library-name)
-      (if (not (and (list? library-name) (= (length library-name) 2)))
+      (if
+        (not (and (list? library-name) (= (length library-name) 2)))
         #f
         (let* ((group (library-name-part->string (car library-name)))
                (library (library-name-part->string (cadr library-name)))
@@ -194,21 +196,23 @@
 
     (define (build-index-for-load-root load-root)
       (let ((index '()))
-        (for-each (lambda (group-name)
-                    (let ((group-dir (path->string (path-join load-root group-name))))
-                      (if (and (path-dir? group-dir) (supported-test-group? group-name))
-                        (for-each (lambda (entry-name)
-                                    (let ((source-file (path->string (path-join group-dir entry-name))))
-                                      (if (and (path-file? source-file) (string-ends? entry-name ".scm"))
-                                        (set! index (index-add-source-file index source-file))
-                                      ) ;if
-                                    ) ;let
-                                  ) ;lambda
-                          (sorted-dir-entries group-dir)
-                        ) ;for-each
+        (for-each
+          (lambda (group-name)
+            (let ((group-dir (path->string (path-join load-root group-name))))
+              (if (and (path-dir? group-dir) (supported-test-group? group-name))
+                (for-each
+                  (lambda (entry-name)
+                    (let ((source-file (path->string (path-join group-dir entry-name))))
+                      (if (and (path-file? source-file) (string-ends? entry-name ".scm"))
+                        (set! index (index-add-source-file index source-file))
                       ) ;if
                     ) ;let
                   ) ;lambda
+                  (sorted-dir-entries group-dir)
+                ) ;for-each
+              ) ;if
+            ) ;let
+          ) ;lambda
           (sorted-dir-entries load-root)
         ) ;for-each
         (sorted-index index)
@@ -216,7 +220,10 @@
     ) ;define
 
     (define (index->json-value index)
-      (map (lambda (entry) (cons (car entry) (list->vector (cdr entry)))) index)
+      (map
+        (lambda (entry) (cons (car entry) (list->vector (cdr entry))))
+        index
+      ) ;map
     ) ;define
 
     (define (build-function-index-at! load-root tests-root)

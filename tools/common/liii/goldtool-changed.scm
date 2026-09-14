@@ -49,9 +49,10 @@
     ) ;define
 
     (define (changed-output-path)
-      (path->string (path-join (path-temp-dir)
-                      (string-append "goldfish-changed-" (number->string (getpid)) ".txt")
-                    ) ;path-join
+      (path->string
+        (path-join (path-temp-dir)
+          (string-append "goldfish-changed-" (number->string (getpid)) ".txt")
+        ) ;path-join
       ) ;path->string
     ) ;define
 
@@ -67,10 +68,11 @@
     (define (changed-files-since since . maybe-path)
       (let* ((output-path (changed-output-path))
              (scope (if (null? maybe-path) #f (car maybe-path)))
-             (scope-part (if (and scope (not (string=? scope "")))
-                           (string-append " " (shell-quote scope))
-                           ""
-                         ) ;if
+             (scope-part
+               (if (and scope (not (string=? scope "")))
+                 (string-append " " (shell-quote scope))
+                 ""
+               ) ;if
              ) ;scope-part
              (command (string-append "git diff --name-only --relative "
                         (shell-quote since)
@@ -107,7 +109,8 @@
     ) ;define
 
     (define (changed-scheme-files-since since . maybe-path)
-      (let* ((has-extension-param? (and (not (null? maybe-path)) (not (null? (cdr maybe-path))))
+      (let* ((has-extension-param?
+               (and (not (null? maybe-path)) (not (null? (cdr maybe-path))))
              ) ;has-extension-param?
              (extensions (if has-extension-param? (cadr maybe-path) '(".scm")))
              (path (if has-extension-param?
@@ -116,14 +119,15 @@
                    ) ;if
              ) ;path
             ) ;
-        (filter (lambda (file)
-                  (and (path-file? file)
-                    (let loop
-                      ((exts extensions))
-                      (if (null? exts) #f (if (string-ends? file (car exts)) #t (loop (cdr exts))))
-                    ) ;let
-                  ) ;and
-                ) ;lambda
+        (filter
+          (lambda (file)
+            (and (path-file? file)
+              (let loop
+                ((exts extensions))
+                (if (null? exts) #f (if (string-ends? file (car exts)) #t (loop (cdr exts))))
+              ) ;let
+            ) ;and
+          ) ;lambda
           (if path (changed-files-since since path) (changed-files-since since))
         ) ;filter
       ) ;let*

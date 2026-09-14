@@ -187,12 +187,13 @@
                ) ;
             (let loop
               ()
-              (if (and (not (null? stack))
-                    (if line-start-close?
-                      (> (open-frame-column (car stack)) boundary-indent)
-                      (>= (open-frame-column (car stack)) boundary-indent)
-                    ) ;if
-                  ) ;and
+              (if
+                (and (not (null? stack))
+                  (if line-start-close?
+                    (> (open-frame-column (car stack)) boundary-indent)
+                    (>= (open-frame-column (car stack)) boundary-indent)
+                  ) ;if
+                ) ;and
                 (let ((frame (car stack)))
                   (set! stack (cdr stack))
                   (if last-code-end-offset
@@ -214,26 +215,28 @@
                  (add-edit! (make-delete-edit token "indent-mismatch-close" (open-frame-offset (car stack)))
                  ) ;add-edit!
                 ) ;
-                (else (let ((closed (car stack)))
-                        (set! stack (cdr stack))
-                        (if (should-pend-close? closed token line)
-                          (set! pending-closes
-                            (cons (make-pending-close-from-token closed token) pending-closes)
-                          ) ;set!
-                        ) ;if
-                        (set! last-code-end-offset (fix-token-end token))
-                      ) ;let
+                (else
+                  (let ((closed (car stack)))
+                    (set! stack (cdr stack))
+                    (if (should-pend-close? closed token line)
+                      (set! pending-closes
+                        (cons (make-pending-close-from-token closed token) pending-closes)
+                      ) ;set!
+                    ) ;if
+                    (set! last-code-end-offset (fix-token-end token))
+                  ) ;let
                 ) ;else
           ) ;cond
         ) ;define
 
         (define (process-token! token line prev-token)
-          (cond ((eq? (fix-token-type token) 'open-paren)
-                 (set! stack (push (make-open-frame-from-token token prev-token) stack))
-                 (set! last-code-end-offset (fix-token-end token))
-                ) ;
-                ((eq? (fix-token-type token) 'close-paren) (process-close-paren! token line))
-                ((code-token? token) (set! last-code-end-offset (fix-token-end token)))
+          (cond
+           ((eq? (fix-token-type token) 'open-paren)
+            (set! stack (push (make-open-frame-from-token token prev-token) stack))
+            (set! last-code-end-offset (fix-token-end token))
+           ) ;
+           ((eq? (fix-token-type token) 'close-paren) (process-close-paren! token line))
+           ((code-token? token) (set! last-code-end-offset (fix-token-end token)))
           ) ;cond
         ) ;define
 

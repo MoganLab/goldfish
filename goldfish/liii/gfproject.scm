@@ -119,13 +119,14 @@
              (lib-tools (gfproject-extract-tools lib-config))
              (local-tools (gfproject-extract-tools local-config))
              (merged-tools (gfproject-deep-merge lib-tools local-tools))
-             (merged-config (if (equal? lib-config '(()))
-                              (if (equal? merged-tools '(())) '(()) (list (cons "tools" merged-tools)))
-                              (if (json-contains-key? lib-config "tools")
-                                (json-set lib-config "tools" merged-tools)
-                                (json-push lib-config "tools" merged-tools)
-                              ) ;if
-                            ) ;if
+             (merged-config
+               (if (equal? lib-config '(()))
+                 (if (equal? merged-tools '(())) '(()) (list (cons "tools" merged-tools)))
+                 (if (json-contains-key? lib-config "tools")
+                   (json-set lib-config "tools" merged-tools)
+                   (json-push lib-config "tools" merged-tools)
+                 ) ;if
+               ) ;if
              ) ;merged-config
             ) ;
         (list (cons "lib_config" lib-config)
@@ -205,26 +206,33 @@
                 (fail "Error: tools/" command "/" org " directory not found.\n")
                 (begin
                   (set! *load-path* (cons tool-root *load-path*))
-                  (let ((import-err (catch #t
-                                      (lambda ()
-                                        (eval `(import (,(string->symbol org)
-                                                        ,(string->symbol module))) (rootlet))
-                                        #f
-                                      ) ;lambda
-                                      (lambda (tag info) (if (pair? info) (car info) "import failed"))
-                                    ) ;catch
+                  (let ((import-err
+                          (catch #t
+                            (lambda ()
+                              (eval
+                                `(import (,(string->symbol org)
+                                          ,(string->symbol module)))
+                                (rootlet)
+                              ) ;eval
+                              #f
+                            ) ;lambda
+                            (lambda (tag info) (if (pair? info) (car info) "import failed"))
+                          ) ;catch
                         ) ;import-err
                        ) ;
                     (if import-err
                       (fail "Error importing (" org " " module "):\n" import-err "\n")
-                      (let ((main-proc (catch #t (lambda () (eval 'main (rootlet))) (lambda (tag info) #f)))
+                      (let ((main-proc
+                              (catch #t (lambda () (eval 'main (rootlet))) (lambda (tag info) #f))
+                            ) ;main-proc
                            ) ;
                         (if (not (procedure? main-proc))
                           (fail "Error: Failed to find main function in (" org " " module ").\n")
-                          (let ((res (catch #t
-                                       (lambda () (main-proc))
-                                       (lambda (tag info) (display (format #f "~A\n" info) (current-error-port)) 1)
-                                     ) ;catch
+                          (let ((res
+                                  (catch #t
+                                    (lambda () (main-proc))
+                                    (lambda (tag info) (display (format #f "~A\n" info) (current-error-port)) 1)
+                                  ) ;catch
                                 ) ;res
                                ) ;
                             (if (integer? res) res 0)

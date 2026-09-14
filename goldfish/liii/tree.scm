@@ -19,15 +19,16 @@
           ((x tree))
           (cond ((not (pair? x)) 0)
                 ((quote-form? x) (loop (cadr x)))
-                (else (+ 1
-                        (let elt-loop
-                          ((rest x) (max-d 0))
-                          (if (not (pair? rest))
-                            max-d
-                            (elt-loop (cdr rest) (max max-d (loop (car rest))))
-                          ) ;if
-                        ) ;let
-                      ) ;+
+                (else
+                  (+ 1
+                    (let elt-loop
+                      ((rest x) (max-d 0))
+                      (if (not (pair? rest))
+                        max-d
+                        (elt-loop (cdr rest) (max max-d (loop (car rest))))
+                      ) ;if
+                    ) ;let
+                  ) ;+
                 ) ;else
           ) ;cond
         ) ;let

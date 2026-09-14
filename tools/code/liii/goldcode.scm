@@ -71,10 +71,11 @@
             (display " does not exist, skipping...")
             (newline)
           ) ;begin
-          (let ((sync-needed (if (not (file-exists? target-hook))
-                               #t
-                               (not (string=? (path-read-text source-hook) (path-read-text target-hook)))
-                             ) ;if
+          (let ((sync-needed
+                  (if (not (file-exists? target-hook))
+                    #t
+                    (not (string=? (path-read-text source-hook) (path-read-text target-hook)))
+                  ) ;if
                 ) ;sync-needed
                ) ;
             (when sync-needed

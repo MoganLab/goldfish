@@ -121,12 +121,13 @@
         ((remaining (unique-strings candidates)) (matches '()))
         (if (null? remaining)
           (map car
-            (list-sort (lambda (left right)
-                         (if (= (cdr left) (cdr right))
-                           (string<? (car left) (car right))
-                           (< (cdr left) (cdr right))
-                         ) ;if
-                       ) ;lambda
+            (list-sort
+              (lambda (left right)
+                (if (= (cdr left) (cdr right))
+                  (string<? (car left) (car right))
+                  (< (cdr left) (cdr right))
+                ) ;if
+              ) ;lambda
               matches
             ) ;list-sort
           ) ;map

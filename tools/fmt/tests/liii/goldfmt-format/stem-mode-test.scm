@@ -42,7 +42,7 @@
 (check (format-string-stem "(quasi (concat (add-to-counter-group (unquote (arg \"env\")) (unquote (arg \"grp\")))))"
        ) ;format-string-stem
   =>
-  "(quasi (concat (add-to-counter-group (unquote (arg \"env\")) (unquote (arg \"grp\"))))\n) ;quasi\n"
+  "(quasi\n  (concat (add-to-counter-group (unquote (arg \"env\")) (unquote (arg \"grp\"))))\n) ;quasi\n"
 ) ;check
 
 ;; 嵌套列表中的 quote/unquote 保持原样

@@ -86,14 +86,15 @@
             (display "remote: ")
             (display remote)
             (newline)
-            (when (= (run-cmd (list "show-ref"
-                                "--verify"
-                                "--quiet"
-                                (string-append "refs/heads/" local-branch)
-                              ) ;list
-                     ) ;run-cmd
-                    0
-                  ) ;=
+            (when
+              (= (run-cmd (list "show-ref"
+                            "--verify"
+                            "--quiet"
+                            (string-append "refs/heads/" local-branch)
+                          ) ;list
+                 ) ;run-cmd
+                0
+              ) ;=
               (let ((cur (current-branch)))
                 (when (and cur (string=? cur local-branch))
                   (run-cmd '("switch" "--detach"))
@@ -103,10 +104,11 @@
                 (run-cmd (list "branch" "-D" local-branch))
               ) ;let
             ) ;when
-            (if (= (run-cmd (list "fetch" "--force" remote (string-append remote-ref ":" local-branch))
-                   ) ;run-cmd
-                  0
-                ) ;=
+            (if
+              (= (run-cmd (list "fetch" "--force" remote (string-append remote-ref ":" local-branch))
+                 ) ;run-cmd
+                0
+              ) ;=
               (begin
                 (run-cmd (list "switch" local-branch))
                 (display (string-append "Now on " local-branch " (PR #" num ")"))

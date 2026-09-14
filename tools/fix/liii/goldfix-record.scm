@@ -162,7 +162,8 @@
       (when (not (string? reason))
         (value-error "make-fix-edit: reason must be a string")
       ) ;when
-      (when (not (or (eq? open-offset #f) (and (integer? open-offset) (>= open-offset 0))))
+      (when
+        (not (or (eq? open-offset #f) (and (integer? open-offset) (>= open-offset 0))))
         (value-error "make-fix-edit: open-offset must be #f or a non-negative integer")
       ) ;when
       (%make-fix-edit kind offset start end text reason open-offset)
