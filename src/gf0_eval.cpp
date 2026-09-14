@@ -6,11 +6,12 @@
 // (this TU must never include s7.h nor call s7_*; lint enforces it).
 // s7 stays as reader/object model; gf0 owns env frames + closures.
 //
-// Evaluation is a trampoline (M-VM-1): step() resolves one level to either
-// a value or Resume{env, body}; finish()/step_seq() drive Resume flat, so
-// tail calls never nest C++ frames (proper TCO). Only statically-nested
-// non-tail positions (tests, inits, operands) recurse, bounded by source
-// nesting; the C-stack guard remains for those.
+// Evaluation is CEK (M-VM-2b): stepE() resolves one level to a value or
+// pushes an explicit Kont frame; runLoop() drives Control flat, so tail
+// calls never nest C++ frames (proper TCO) and continuations are capturable
+// (capture = copy Kont; invoke = install copy). Only s7call leaves nest
+// (bounded by host); the C-stack guard remains for those paths.
+// call/cc is native multi-shot; dynamic-wind is an explicit stub.
 //
 // Scope (M1b): quote if begin lambda define set! let let* letrec letrec*
 //   let-values values call-with-values module-ref module-set + calls.
@@ -203,36 +204,6 @@ is_head (pointer x, const char* name) {
          std::strcmp (gf::symbol_name (gf::car (x)), name) == 0;
 }
 
-// One evaluation step: either a resolved value, or Resume{env, body} asking
-// the driver loop to evaluate a body sequence (last in tail position).
-// Tail calls never nest C++ frames; only statically-nested non-tail
-// positions (tests, inits, operands) recurse via eval().
-struct Step {
-  bool    resume;
-  V       v;
-  Env     renv;
-  pointer rbody;
-};
-static Step
-val (V v) {
-  Step s;
-  s.resume= false;
-  s.v     = v;
-  return s;
-}
-static Step
-go (scheme* sc, Env env, pointer body) {
-  Step s;
-  s.resume= true;
-  s.renv  = env;
-  s.rbody = pin (sc, body);
-  return s;
-}
-
-static V eval (scheme* sc, pointer x, Env env);
-static V apply_values (scheme* sc, pointer proc, const std::vector<pointer>& many,
-                       pointer ctx);
-
 // R7RS syntax owned by the frontend: valid core never calls these as
 // procedures (CORE-SEMANTICS.md). s7 binds some to procedure-like syntax
 // objects, so resolve-before-apply would misdispatch. Fail fast -- but only
@@ -370,14 +341,6 @@ s7call_vec (scheme* sc, pointer proc, const std::vector<pointer>& argv) {
   return multi_vec (std::move (out));
 }
 
-static void
-evlis_single (scheme* sc, pointer args, Env env, std::vector<pointer>& out) {
-  for (; gf::is_pair (args); args= gf::cdr (args))
-    out.push_back (pin (sc, must_single (sc, eval (sc, gf::car (args), env),
-                                         gf::car (args), "gf0: arg must be single-valued")));
-  if (!gf::is_null (sc, args)) fail (sc, "gf0: improper arg list", args);
-}
-
 static pointer
 args_to_list (scheme* sc, const std::vector<pointer>& argv) {
   if (argv.empty ()) return gf::nil (sc);
@@ -425,95 +388,171 @@ bind_call (scheme* sc, const Closure& c, pointer arglist, pointer ctx) {
   return inner;
 }
 
-// Evaluate a body sequence to its last value (empty -> unspecified).
-// Prefix forms resolve fully via nested eval; the last form steps flat.
-static Step step (scheme* sc, pointer x, Env env);
-static Step
-step_seq (scheme* sc, Env env, pointer body) {
-  if (!gf::is_pair (body)) {
-    Step s= val (single (gf::unspecified (sc)));
-    return s;
-  }
-  for (; gf::is_pair (gf::cdr (body)); body= gf::cdr (body))
-    eval (sc, gf::car (body), env);
-  return step (sc, gf::car (body), env);
+// ---- CEK core (M-VM-2b): explicit control stack, capturable continuations.
+// Control is an expr-to-run or yielded values; every nested position that
+// used C++ recursion is now a Kont frame. Capturing = copying the Kont
+// (all heap data; envs shared). s7call sites stay leaves.
+enum class KK {
+  Seq, If, CallP, CallA, Define, Set, LetB, RecB, ValsB, Vals,
+  CwvP, CwvQ, CwvC, CatchG, CatchR, Mod, CcK,
+};
+struct KF {
+  KK tag;
+  Env env;
+  Env inner;
+  pointer a;
+  pointer b;
+  pointer c;
+  std::vector<pointer> acc;
+  int stage;
+  bool flag;
+};
+using Kont = std::vector<KF>;
+struct Ctl {
+  bool isVals;
+  V v;
+  pointer x;
+  Env env;
+};
+static Ctl
+ctlVals (V v) {
+  Ctl c;
+  c.isVals= true;
+  c.v     = v;
+  return c;
+}
+static Ctl
+ctlExpr (pointer x, Env env) {
+  Ctl c;
+  c.isVals= false;
+  c.x     = x;
+  c.env   = env;
+  return c;
 }
 
-// Drive Resume continuations flat; V positions resolve inside.
-static V
-finish (scheme* sc, Step s) {
-  while (s.resume) s= step_seq (sc, s.renv, s.rbody);
-  return s.v;
+struct Saved {
+  Kont k;
+  Env env;
+};
+static std::vector<Saved>      s_conts;
+static std::unordered_set<void*> s_cont_boxes;
+static gf::int_                s_cont_type= -1;
+
+static Ctl stepE (scheme* sc, pointer x, Env env, Kont& k);
+static Ctl plugInto (scheme* sc, KF fr, V v, Kont& k);
+static V runLoop (scheme* sc, Ctl c, Kont& k);
+
+// Sequence control: empty -> unspecified value; single -> direct;
+// longer -> first now, rest in a Seq frame.
+static Ctl
+seqCtl (scheme* sc, Env env, pointer body, Kont& k) {
+  (void) sc;
+  if (!gf::is_pair (body)) return ctlVals (single (gf::unspecified (sc)));
+  if (gf::is_null (sc, gf::cdr (body))) return ctlExpr (gf::car (body), env);
+  KF fr;
+  fr.tag= KK::Seq;
+  fr.env= env;
+  fr.a  = nullptr;
+  fr.b  = gf::cdr (body);
+  fr.c  = nullptr;
+  fr.stage= 0;
+  fr.flag= false;
+  k.push_back (fr);
+  return ctlExpr (gf::car (body), env);
 }
 
-static V
-eval (scheme* sc, pointer x, Env env) {
-  return finish (sc, step (sc, x, env));
-}
-
-static V
-apply_values (scheme* sc, pointer proc, const std::vector<pointer>& many, pointer ctx) {
+// Apply a resolved proc to value vector -> Control (never nests C++ eval).
+static Ctl
+applyCtl (scheme* sc, pointer proc, const std::vector<pointer>& argvals, Kont& k) {
   if (s_boxes.find ((void*) proc) != s_boxes.end ()) {
     gf::int_ idx= gf::integer ((pointer) gf::c_object_value (proc));
     if (idx < 0 || (size_t) idx >= s_registry.size ())
-      return single (fail (sc, "gf0: stale closure", proc));
+      return ctlVals (single (fail (sc, "gf0: stale closure", proc)));
     const Closure& c= s_registry[(size_t) idx];
-    return finish (sc, step_seq (sc, bind_call (sc, c, args_to_list (sc, many), ctx),
-                                 c.body));
+    return seqCtl (sc, bind_call (sc, c, args_to_list (sc, argvals), proc), c.body, k);
   }
-  if (gf::is_procedure (proc)) return s7call_vec (sc, proc, many);
-  return single (fail (sc, "gf0: cannot apply (macros stay frontend)", proc));
+  if (s_cont_boxes.find ((void*) proc) != s_cont_boxes.end ()) {
+    gf::int_ idx= gf::integer ((pointer) gf::c_object_value (proc));
+    if (idx < 0 || (size_t) idx >= s_conts.size () || argvals.size () != 1)
+      return ctlVals (single (fail (sc, "gf0: bad continuation invoke", proc)));
+    k= s_conts[(size_t) idx].k; // copy-on-invoke: stored stays pristine (multi-shot)
+    return ctlVals (single (argvals[0]));
+  }
+  if (gf::is_procedure (proc)) return ctlVals (s7call_vec (sc, proc, argvals));
+  return ctlVals (single (fail (sc, "gf0: cannot apply (macros stay frontend)", proc)));
 }
 
-static Step
-step (scheme* sc, pointer x, Env env) {
+static pointer
+cont_box (scheme* sc, const Kont& k, Env env) {
+  Saved s;
+  s.k  = k;
+  s.env= env;
+  s_conts.push_back (s);
+  gf::int_ idx= (gf::int_) (s_conts.size () - 1);
+  pointer box= pin (sc, gf::make_c_object_with_let (
+                      sc, c_type_cached (sc, "gf0-cont", &s_cont_type),
+                      (void*) pin (sc, gf::make_integer (sc, idx)),
+                      gf::rootlet (sc)));
+  s_cont_boxes.insert ((void*) box);
+  return box;
+}
+
+static bool
+is_cc_name (pointer x) {
+  return gf::is_symbol (x) &&
+         (std::strcmp (gf::symbol_name (x), "call/cc") == 0 ||
+          std::strcmp (gf::symbol_name (x), "call-with-current-continuation") == 0);
+}
+
+static Ctl
+stepE (scheme* sc, pointer x, Env env, Kont& k) {
   if (stack_low ())
-    return val (single (fail (sc, "gf0: C stack low (no TCO yet; see M-VM)", x)));
+    return ctlVals (single (fail (sc, "gf0: C stack low (non-tail depth; see M-VM)", x)));
   // Self-evaluating.
   if (gf::is_boolean (x) || gf::is_number (x) || gf::is_string (x) ||
       gf::is_character (x) || gf::is_null (sc, x) || gf::is_vector (x))
-    return val (single (x));
+    return ctlVals (single (x));
   if (gf::is_symbol (x)) {
     pointer v= lookup_raw (sc, x, env);
     if (v == unassigned_box (sc))
-      return val (single (fail (sc, "gf0: read before assignment (R7RS letrec)", x)));
-    return val (single (v));
+      return ctlVals (single (fail (sc, "gf0: read before assignment (R7RS letrec)", x)));
+    return ctlVals (single (v));
   }
-  if (!gf::is_pair (x)) return val (single (fail (sc, "gf0: cannot evaluate", x)));
+  if (!gf::is_pair (x)) return ctlVals (single (fail (sc, "gf0: cannot evaluate", x)));
 
   if (is_head (x, "quote")) {
     if (!gf::is_pair (gf::cdr (x)) || gf::is_pair (gf::cdr (gf::cdr (x))))
-      return val (single (fail (sc, "gf0: bad quote", x)));
-    return val (single (gf::car (gf::cdr (x))));
+      return ctlVals (single (fail (sc, "gf0: bad quote", x)));
+    return ctlVals (single (gf::car (gf::cdr (x))));
   }
   if (is_head (x, "if")) {
     // NOTE: s7 nil is a live pointer, never nullptr; shape checks must use
     // is_pair/is_null, not pointer comparison.
     pointer rest1= gf::cdr (x);
-    if (!gf::is_pair (rest1)) return val (single (fail (sc, "gf0: bad if", x)));
+    if (!gf::is_pair (rest1)) return ctlVals (single (fail (sc, "gf0: bad if", x)));
     pointer rest2= gf::cdr (rest1);
-    if (!gf::is_pair (rest2)) return val (single (fail (sc, "gf0: bad if", x)));
+    if (!gf::is_pair (rest2)) return ctlVals (single (fail (sc, "gf0: bad if", x)));
     pointer rest3= gf::cdr (rest2);
     if (!(gf::is_null (sc, rest3) ||
           (gf::is_pair (rest3) && gf::is_null (sc, gf::cdr (rest3)))))
-      return val (single (fail (sc, "gf0: bad if", x)));
-    pointer t= must_single (sc, eval (sc, gf::car (rest1), env), x,
-                            "gf0: if test must be single-valued");
-    if (!gf::boolean (sc, t)) {
-      if (!gf::is_pair (rest3)) {
-        Step s= val (single (gf::unspecified (sc)));
-        return s;
-      }
-      return go (sc, env, gf::list (sc, gf::car (rest3)));
-    }
-    return go (sc, env, gf::list (sc, gf::car (rest2)));
+      return ctlVals (single (fail (sc, "gf0: bad if", x)));
+    KF fr;
+    fr.tag= KK::If;
+    fr.env= env;
+    fr.a  = gf::car (rest2);
+    fr.b  = gf::is_pair (rest3) ? gf::car (rest3) : nullptr;
+    fr.c  = nullptr;
+    fr.stage= 0;
+    fr.flag= gf::is_pair (rest3);
+    k.push_back (fr);
+    return ctlExpr (gf::car (rest1), env);
   }
   if (is_head (x, "begin")) {
-    return go (sc, env, gf::cdr (x));
+    return seqCtl (sc, env, gf::cdr (x), k);
   }
   if (is_head (x, "lambda")) {
     if (!gf::is_pair (gf::cdr (x)))
-      return val (single (fail (sc, "gf0: bad lambda", x)));
+      return ctlVals (single (fail (sc, "gf0: bad lambda", x)));
     Closure c;
     c.formals= pin (sc, gf::car (gf::cdr (x)));
     c.body   = pin (sc, gf::cdr (gf::cdr (x)));
@@ -525,7 +564,7 @@ step (scheme* sc, pointer x, Env env) {
                          (void*) pin (sc, gf::make_integer (sc, idx)),
                          gf::rootlet (sc)));
     s_boxes.insert ((void*) box);
-    return val (single (box));
+    return ctlVals (single (box));
   }
   if (is_head (x, "define")) {
     pointer rest= gf::cdr (x);
@@ -533,12 +572,17 @@ step (scheme* sc, pointer x, Env env) {
              gf::is_pair (gf::cdr (rest)) &&
              gf::is_null (sc, gf::cdr (gf::cdr (rest)));
     if (!ok)
-      return val (single (fail (sc, "gf0: only (define name exp); sugar stays frontend", x)));
-    pointer name= gf::car (rest);
-    pointer v= pin (sc, must_single (sc, eval (sc, gf::car (gf::cdr (rest)), env), x,
-                                     "gf0: define init must be single-valued"));
-    env.frames->back ()->bindings.push_back ({pin (sc, name), v});
-    return val (single (gf::unspecified (sc)));
+      return ctlVals (single (fail (sc, "gf0: only (define name exp); sugar stays frontend", x)));
+    KF fr;
+    fr.tag= KK::Define;
+    fr.env= env;
+    fr.a  = gf::car (rest);
+    fr.b  = nullptr;
+    fr.c  = nullptr;
+    fr.stage= 0;
+    fr.flag= false;
+    k.push_back (fr);
+    return ctlExpr (gf::car (gf::cdr (rest)), env);
   }
   if (is_head (x, "set!")) {
     pointer rest= gf::cdr (x);
@@ -550,95 +594,67 @@ step (scheme* sc, pointer x, Env env) {
       if (!gf::is_pair (tail) || gf::is_pair (gf::cdr (tail)) ||
           !gf::is_pair (gf::cdr (mr)) || !gf::is_pair (gf::cdr (gf::cdr (mr))) ||
           gf::is_pair (gf::cdr (gf::cdr (gf::cdr (mr)))))
-        return val (single (fail (sc, "gf0: bad module-set", x)));
-      pointer lib= must_single (sc, eval (sc, gf::car (gf::cdr (mr)), env), x,
-                                "gf0: module lib must be single-valued");
-      pointer name= must_single (sc, eval (sc, gf::car (gf::cdr (gf::cdr (mr))), env), x,
-                                 "gf0: module name must be single-valued");
-      pointer v= must_single (sc, eval (sc, gf::car (tail), env), x,
-                              "gf0: module-set value must be single-valued");
-      pointer mr_proc= lookup_raw (sc, pin (sc, gf::make_symbol (sc, "module-ref")), env);
-      pointer setter= lookup_raw (sc, pin (sc, gf::make_symbol (sc, "setter")), env);
-      if (mr_proc == unassigned_box (sc) || !gf::is_procedure (mr_proc) ||
-          setter == unassigned_box (sc) || !gf::is_procedure (setter))
-        return val (single (fail (sc, "gf0: module-ref unavailable (boot substrate?)", x)));
-      std::vector<pointer> one;
-      one.push_back (mr_proc);
-      pointer writer= must_single (sc, s7call_vec (sc, setter, one), x,
-                                   "gf0: (setter module-ref) must be single");
-      std::vector<pointer> args3;
-      args3.push_back (lib);
-      args3.push_back (name);
-      args3.push_back (v);
-      must_single (sc, s7call_vec (sc, writer, args3), x,
-                   "gf0: module write must be single-valued");
-      return val (single (gf::unspecified (sc)));
+        return ctlVals (single (fail (sc, "gf0: bad module-set", x)));
+      KF fr;
+      fr.tag= KK::Mod;
+      fr.env= env;
+      fr.a  = nullptr;
+      fr.b  = gf::car (gf::cdr (mr));
+      fr.c  = gf::car (tail);
+      fr.stage= 0;
+      fr.flag= false;
+      k.push_back (fr);
+      return ctlExpr (gf::car (gf::cdr (mr)), env);
     }
     bool ok= gf::is_pair (rest) && gf::is_symbol (gf::car (rest)) &&
              gf::is_pair (gf::cdr (rest)) &&
              gf::is_null (sc, gf::cdr (gf::cdr (rest)));
-    if (!ok) return val (single (fail (sc, "gf0: bad set!", x)));
-    pointer name= gf::car (rest);
-    pointer v= pin (sc, must_single (sc, eval (sc, gf::car (gf::cdr (rest)), env), x,
-                                     "gf0: set! value must be single-valued"));
-    const char* want= gf::symbol_name (name);
-    for (size_t i= env.frames->size (); i-- > 0;) {
-      std::vector<Binding>& bs= (*env.frames)[i]->bindings;
-      for (size_t j= bs.size (); j-- > 0;) {
-        if (std::strcmp (gf::symbol_name (bs[j].sym), want) == 0) {
-          bs[j].val= v;
-          return val (single (gf::unspecified (sc)));
-        }
-      }
-    }
-    if (gf::is_defined (sc, want)) { // s7 toplevel cell (scaffolding, M2)
-      gf::define (sc, gf::rootlet (sc), name, v);
-      return val (single (gf::unspecified (sc)));
-    }
-    return val (single (fail (sc, "gf0: set! of unbound variable", name)));
+    if (!ok) return ctlVals (single (fail (sc, "gf0: bad set!", x)));
+    KF fr;
+    fr.tag= KK::Set;
+    fr.env= env;
+    fr.a  = gf::car (rest);
+    fr.b  = nullptr;
+    fr.c  = nullptr;
+    fr.stage= 0;
+    fr.flag= false;
+    k.push_back (fr);
+    return ctlExpr (gf::car (gf::cdr (rest)), env);
   }
-  if (is_head (x, "let")) {
+  if (is_head (x, "let") || is_head (x, "let*")) {
+    bool star= (std::strcmp (gf::symbol_name (gf::car (x)), "let*") == 0);
     pointer rest= gf::cdr (x);
     pointer binds= gf::is_pair (rest) ? gf::car (rest) : nullptr;
     if (binds == nullptr ||
         (!gf::is_null (sc, binds) && !gf::is_pair (binds)))
-      return val (single (fail (sc, "gf0: bad let", x)));
+      return ctlVals (single (fail (sc, star ? "gf0: bad let*" : "gf0: bad let", x)));
     Env inner= push_frame (env);
+    if (!gf::is_pair (gf::car (rest)))
+      return seqCtl (sc, inner, gf::cdr (rest), k);
     for (pointer bs= gf::car (rest); gf::is_pair (bs); bs= gf::cdr (bs)) {
       pointer b= gf::car (bs);
       if (!gf::is_pair (b) || !gf::is_symbol (gf::car (b)) ||
           !gf::is_pair (gf::cdr (b)) || gf::is_pair (gf::cdr (gf::cdr (b))))
-        return val (single (fail (sc, "gf0: bad let binding", x)));
-      pointer v= pin (sc, must_single (sc, eval (sc, gf::car (gf::cdr (b)), env), x,
-                                       "gf0: let init must be single-valued"));
-      inner.frames->back ()->bindings.push_back ({pin (sc, gf::car (b)), v});
+        return ctlVals (single (fail (sc, star ? "gf0: bad let* binding" : "gf0: bad let binding", x)));
     }
-    return go (sc, inner, gf::cdr (rest));
-  }
-  if (is_head (x, "let*")) {
-    pointer rest= gf::cdr (x);
-    pointer binds= gf::is_pair (rest) ? gf::car (rest) : nullptr;
-    if (binds == nullptr ||
-        (!gf::is_null (sc, binds) && !gf::is_pair (binds)))
-      return val (single (fail (sc, "gf0: bad let*", x)));
-    Env inner= push_frame (env);
-    for (pointer bs= gf::car (rest); gf::is_pair (bs); bs= gf::cdr (bs)) {
-      pointer b= gf::car (bs);
-      if (!gf::is_pair (b) || !gf::is_symbol (gf::car (b)) ||
-          !gf::is_pair (gf::cdr (b)) || gf::is_pair (gf::cdr (gf::cdr (b))))
-        return val (single (fail (sc, "gf0: bad let* binding", x)));
-      pointer v= pin (sc, must_single (sc, eval (sc, gf::car (gf::cdr (b)), inner), x,
-                                       "gf0: let* init must be single-valued"));
-      inner.frames->back ()->bindings.push_back ({pin (sc, gf::car (b)), v});
-    }
-    return go (sc, inner, gf::cdr (rest));
+    KF fr;
+    fr.tag= KK::LetB;
+    fr.env= env;
+    fr.inner= inner;
+    fr.a  = nullptr;
+    fr.b  = gf::car (rest);
+    fr.c  = gf::cdr (rest);
+    fr.stage= 0;
+    fr.flag= star;
+    k.push_back (fr);
+    return ctlExpr (gf::car (gf::cdr (gf::car (gf::car (rest)))), env);
   }
   if (is_head (x, "letrec") || is_head (x, "letrec*")) {
     pointer rest= gf::cdr (x);
     pointer binds= gf::is_pair (rest) ? gf::car (rest) : nullptr;
     if (binds == nullptr ||
         (!gf::is_null (sc, binds) && !gf::is_pair (binds)))
-      return val (single (fail (sc, "gf0: bad letrec", x)));
+      return ctlVals (single (fail (sc, "gf0: bad letrec", x)));
     Env inner= push_frame (env);
     std::vector<Binding>& frame= inner.frames->back ()->bindings;
     // Validate + pre-allocate all slots unassigned (R7RS: init-period reads
@@ -647,118 +663,416 @@ step (scheme* sc, pointer x, Env env) {
       pointer b= gf::car (bs);
       if (!gf::is_pair (b) || !gf::is_symbol (gf::car (b)) ||
           !gf::is_pair (gf::cdr (b)) || gf::is_pair (gf::cdr (gf::cdr (b))))
-        return val (single (fail (sc, "gf0: bad letrec binding", x)));
+        return ctlVals (single (fail (sc, "gf0: bad letrec binding", x)));
       frame.push_back ({pin (sc, gf::car (b)), unassigned_box (sc)});
     }
-    size_t k= 0;
-    for (pointer bs= gf::car (rest); gf::is_pair (bs); bs= gf::cdr (bs), ++k) {
-      // Sequential assignment refines R7RS's unspecified init order; valid
-      // programs (no init-period refs) behave identically either way.
-      pointer v= pin (sc, must_single (sc, eval (sc, gf::car (gf::cdr (gf::car (bs))), inner),
-                                       x, "gf0: letrec init must be single-valued"));
-      frame[k].val= v;
-    }
-    return go (sc, inner, gf::cdr (rest));
+    if (!gf::is_pair (gf::car (rest)))
+      return seqCtl (sc, inner, gf::cdr (rest), k);
+    KF fr;
+    fr.tag= KK::RecB;
+    fr.env= inner;
+    fr.a  = nullptr;
+    fr.b  = gf::car (rest);
+    fr.c  = gf::cdr (rest);
+    fr.stage= 0;
+    fr.flag= false;
+    k.push_back (fr);
+    return ctlExpr (gf::car (gf::cdr (gf::car (gf::car (rest)))), inner);
   }
   if (is_head (x, "let-values")) {
-    // Lowered code already has call-with-values; accept raw let-values by
-    // evaluating each init in the OUTER env (R7RS), then binding.
+    // Lowered code already has call-with-values; accept raw let-values.
+    // Inits evaluate in the OUTER env (R7RS), then bind.
     pointer rest= gf::cdr (x);
     pointer binds= gf::is_pair (rest) ? gf::car (rest) : nullptr;
     if (binds == nullptr ||
         (!gf::is_null (sc, binds) && !gf::is_pair (binds)))
-      return val (single (fail (sc, "gf0: bad let-values", x)));
+      return ctlVals (single (fail (sc, "gf0: bad let-values", x)));
     Env inner= push_frame (env);
+    if (!gf::is_pair (gf::car (rest)))
+      return seqCtl (sc, inner, gf::cdr (rest), k);
     for (pointer cs= gf::car (rest); gf::is_pair (cs); cs= gf::cdr (cs)) {
       pointer c= gf::car (cs);
       if (!gf::is_pair (c) || !gf::is_pair (gf::cdr (c)) ||
           gf::is_pair (gf::cdr (gf::cdr (c))))
-        return val (single (fail (sc, "gf0: bad let-values clause", x)));
-      V iv= eval (sc, gf::car (gf::cdr (c)), env);
-      if (!iv.multi) {
-        std::vector<pointer> one;
-        one.push_back (iv.one);
-        iv= multi_vec (std::move (one));
-      }
-      bind_formals (sc, gf::car (c), args_to_list (sc, iv.many),
-                    inner.frames->back ()->bindings, x);
+        return ctlVals (single (fail (sc, "gf0: bad let-values clause", x)));
     }
-    return go (sc, inner, gf::cdr (rest));
+    KF fr;
+    fr.tag= KK::ValsB;
+    fr.env= env;
+    fr.inner= inner;
+    fr.a  = nullptr;
+    fr.b  = gf::car (rest);
+    fr.c  = gf::cdr (rest);
+    fr.stage= 0;
+    fr.flag= false;
+    k.push_back (fr);
+    return ctlExpr (gf::car (gf::cdr (gf::car (gf::car (rest)))), env);
   }
   if (is_head (x, "values")) {
-    std::vector<pointer> out;
     pointer tail= gf::cdr (x);
-    for (; gf::is_pair (tail); tail= gf::cdr (tail))
-      out.push_back (pin (sc, must_single (sc, eval (sc, gf::car (tail), env),
-                                           x, "gf0: values element must be single")));
-    if (!gf::is_null (sc, tail))
-      return val (single (fail (sc, "gf0: improper values", x)));
-    return val (multi_vec (std::move (out)));
+    if (!gf::is_pair (tail)) {
+      if (!gf::is_null (sc, tail))
+        return ctlVals (single (fail (sc, "gf0: improper values", x)));
+      std::vector<pointer> empty;
+      return ctlVals (multi_vec (std::move (empty)));
+    }
+    KF fr;
+    fr.tag= KK::Vals;
+    fr.env= env;
+    fr.a  = nullptr;
+    fr.b  = gf::cdr (tail);
+    fr.c  = nullptr;
+    fr.stage= 0;
+    fr.flag= false;
+    k.push_back (fr);
+    return ctlExpr (gf::car (tail), env);
   }
   if (is_head (x, "catch")) {
-    // Native s7-protocol catch (guard lowers to this): (catch TAG THUNK HANDLER).
-    // s7 errors inside surface as GfEx at the s7call boundary, so this try
-    // sees both gf0 and s7 errors uniformly. Non-matching keys rethrow.
     pointer rest= gf::cdr (x);
     if (!gf::is_pair (rest) || !gf::is_pair (gf::cdr (rest)) ||
         !gf::is_pair (gf::cdr (gf::cdr (rest))) ||
         gf::is_pair (gf::cdr (gf::cdr (gf::cdr (rest)))))
-      return val (single (fail (sc, "gf0: bad catch", x)));
-    pointer tag= must_single (sc, eval (sc, gf::car (rest), env), x,
-                              "gf0: catch tag must be single-valued");
-    pointer thunk= must_single (sc, eval (sc, gf::car (gf::cdr (rest)), env), x,
-                                "gf0: catch thunk must be single-valued");
-    pointer handler= must_single (sc, eval (sc, gf::car (gf::cdr (gf::cdr (rest))), env),
-                                  x, "gf0: catch handler must be single-valued");
-    try {
-      return val (apply_values (sc, thunk, std::vector<pointer> (), x));
-    }
-    catch (GfEx& e) {
-      bool all= gf::is_boolean (tag) && gf::boolean (sc, tag);
-      if (!all && (e.args.empty () || !gf::is_eq (tag, e.args[0])))
-        throw;
-      return val (apply_values (sc, handler, e.args, x));
-    }
+      return ctlVals (single (fail (sc, "gf0: bad catch", x)));
+    KF fr;
+    fr.tag= KK::CatchG;
+    fr.env= env;
+    fr.a  = nullptr;
+    fr.b  = gf::car (gf::cdr (rest));
+    fr.c  = gf::car (gf::cdr (gf::cdr (rest)));
+    fr.stage= 0;
+    fr.flag= false;
+    k.push_back (fr);
+    return ctlExpr (gf::car (rest), env);
   }
   if (is_head (x, "call-with-values")) {
     pointer rest= gf::cdr (x);
     if (!gf::is_pair (rest) || !gf::is_pair (gf::cdr (rest)) ||
         gf::is_pair (gf::cdr (gf::cdr (rest))))
-      return val (single (fail (sc, "gf0: bad call-with-values", x)));
-    pointer producer= must_single (sc, eval (sc, gf::car (rest), env), x,
-                                      "gf0: cwv producer must be single-valued");
-    // R7RS: the producer is CALLED with zero args; its values feed consumer.
-    V pv= apply_values (sc, producer, std::vector<pointer> (), x);
-    std::vector<pointer> got;
-    if (pv.multi) got= pv.many;
-    else got.push_back (pv.one);
-    pointer consumer= must_single (sc, eval (sc, gf::car (gf::cdr (rest)), env), x,
-                                   "gf0: cwv consumer must be single-valued");
-    if (s_boxes.find ((void*) consumer) != s_boxes.end ()) {
-      gf::int_ idx= gf::integer ((pointer) gf::c_object_value (consumer));
-      if (idx < 0 || (size_t) idx >= s_registry.size ())
-        return val (single (fail (sc, "gf0: stale closure", consumer)));
-      const Closure& c= s_registry[(size_t) idx];
-      return go (sc, bind_call (sc, c, args_to_list (sc, got), x), c.body);
-    }
-    return val (apply_values (sc, consumer, got, x));
+      return ctlVals (single (fail (sc, "gf0: bad call-with-values", x)));
+    KF fr;
+    fr.tag= KK::CwvP;
+    fr.env= env;
+    fr.a  = nullptr;
+    fr.b  = gf::car (gf::cdr (rest));
+    fr.c  = nullptr;
+    fr.stage= 0;
+    fr.flag= false;
+    k.push_back (fr);
+    return ctlExpr (gf::car (rest), env);
   }
   // Call: (proc args...).
-  if (is_frontend_syntax (gf::car (x), env))
-    return val (single (fail (sc, "gf0: not core; desugar via frontend", gf::car (x))));
-  pointer proc= must_single (sc, eval (sc, gf::car (x), env), x,
-                             "gf0: call head must be single-valued");
-  std::vector<pointer> argv;
-  evlis_single (sc, gf::cdr (x), env, argv);
-  if (s_boxes.find ((void*) proc) != s_boxes.end ()) {
-    gf::int_ idx= gf::integer ((pointer) gf::c_object_value (proc));
-    if (idx < 0 || (size_t) idx >= s_registry.size ())
-      return val (single (fail (sc, "gf0: stale closure", proc)));
-    const Closure& c= s_registry[(size_t) idx];
-    return go (sc, bind_call (sc, c, args_to_list (sc, argv), x), c.body);
+  pointer head= gf::car (x);
+  if (is_cc_name (head) && !lexically_bound (head, env)) {
+    pointer rest= gf::cdr (x);
+    if (!gf::is_pair (rest) || gf::is_pair (gf::cdr (rest)))
+      return ctlVals (single (fail (sc, "gf0: call/cc takes exactly one proc", x)));
+    KF fr;
+    fr.tag= KK::CcK;
+    fr.env= env;
+    fr.a  = nullptr;
+    fr.b  = nullptr;
+    fr.c  = nullptr;
+    fr.stage= 0;
+    fr.flag= false;
+    k.push_back (fr);
+    return ctlExpr (gf::car (rest), env);
   }
-  return val (apply_values (sc, proc, argv, x));
+  if (gf::is_symbol (head) && std::strcmp (gf::symbol_name (head), "dynamic-wind") == 0 &&
+      !lexically_bound (head, env))
+    return ctlVals (single (fail (sc, "gf0: dynamic-wind stub (M-VM-2b second half)", x)));
+  if (is_frontend_syntax (head, env))
+    return ctlVals (single (fail (sc, "gf0: not core; desugar via frontend", head)));
+  KF fr;
+  fr.tag= KK::CallP;
+  fr.env= env;
+  fr.a  = nullptr;
+  fr.b  = gf::cdr (x);
+  fr.c  = nullptr;
+  fr.stage= 0;
+  fr.flag= false;
+  k.push_back (fr);
+  return ctlExpr (head, env);
 }
+
+static pointer
+lookup_assign (scheme* sc, Env env, pointer name, pointer v, pointer ctx) {
+  const char* want= gf::symbol_name (name);
+  for (size_t i= env.frames->size (); i-- > 0;) {
+    std::vector<Binding>& bs= (*env.frames)[i]->bindings;
+    for (size_t j= bs.size (); j-- > 0;) {
+      if (std::strcmp (gf::symbol_name (bs[j].sym), want) == 0) {
+        bs[j].val= v;
+        return nullptr;
+      }
+    }
+  }
+  if (gf::is_defined (sc, want)) { // s7 toplevel cell (scaffolding, M2)
+    gf::define (sc, gf::rootlet (sc), name, v);
+    return nullptr;
+  }
+  fail (sc, "gf0: set! of unbound variable", name);
+  return nullptr; // unreachable; keeps form
+}
+
+static Ctl
+plugInto (scheme* sc, KF fr, V v, Kont& k) {
+  switch (fr.tag) {
+  case KK::Seq: {
+    return seqCtl (sc, fr.env, fr.b, k);
+  }
+  case KK::If: {
+    pointer t= must_single (sc, v, fr.a, "gf0: if test must be single-valued");
+    if (!gf::boolean (sc, t))
+      return fr.flag ? ctlExpr (fr.b, fr.env)
+                     : ctlVals (single (gf::unspecified (sc)));
+    return ctlExpr (fr.a, fr.env);
+  }
+  case KK::CallP: {
+    pointer proc= must_single (sc, v, fr.b, "gf0: call head must be single-valued");
+    if (s_boxes.find ((void*) proc) == s_boxes.end () &&
+        s_cont_boxes.find ((void*) proc) == s_cont_boxes.end () &&
+        !gf::is_procedure (proc))
+      return ctlVals (single (fail (sc, "gf0: cannot apply (macros stay frontend)", proc)));
+    if (!gf::is_pair (fr.b))
+      return applyCtl (sc, proc, std::vector<pointer> (), k);
+    KF na;
+    na.tag= KK::CallA;
+    na.env= fr.env;
+    na.a  = pin (sc, proc);
+    na.b  = gf::cdr (fr.b);
+    na.c  = nullptr;
+    na.stage= 0;
+    na.flag= false;
+    k.push_back (na);
+    return ctlExpr (gf::car (fr.b), fr.env);
+  }
+  case KK::CallA: {
+    pointer one= must_single (sc, v, fr.b, "gf0: arg must be single-valued");
+    fr.acc.push_back (pin (sc, one));
+    if (gf::is_pair (fr.b)) {
+      pointer next= gf::car (fr.b);
+      fr.b= gf::cdr (fr.b);
+      k.push_back (fr);
+      return ctlExpr (next, fr.env);
+    }
+    return applyCtl (sc, fr.a, fr.acc, k);
+  }
+  case KK::Define: {
+    pointer init= must_single (sc, v, fr.a, "gf0: define init must be single-valued");
+    fr.env.frames->back ()->bindings.push_back ({pin (sc, fr.a), pin (sc, init)});
+    return ctlVals (single (gf::unspecified (sc)));
+  }
+  case KK::Set: {
+    pointer val= must_single (sc, v, fr.a, "gf0: set! value must be single-valued");
+    lookup_assign (sc, fr.env, fr.a, pin (sc, val), fr.a);
+    return ctlVals (single (gf::unspecified (sc)));
+  }
+  case KK::LetB: {
+    pointer b= gf::car (fr.b);
+    pointer init= must_single (sc, v, b, "gf0: let init must be single-valued");
+    fr.inner.frames->back ()->bindings.push_back (
+      {pin (sc, gf::car (b)), pin (sc, init)});
+    if (gf::is_pair (gf::cdr (fr.b))) {
+      pointer nb= gf::car (gf::cdr (fr.b));
+      fr.b= gf::cdr (fr.b);
+      k.push_back (fr);
+      return ctlExpr (gf::car (gf::cdr (nb)),
+                      fr.flag ? fr.inner : fr.env);
+    }
+    return seqCtl (sc, fr.inner, fr.c, k);
+  }
+  case KK::RecB: {
+    pointer b= gf::car (fr.b);
+    pointer init= must_single (sc, v, b, "gf0: letrec init must be single-valued");
+    lookup_assign (sc, fr.env, gf::car (b), pin (sc, init), b);
+    if (gf::is_pair (gf::cdr (fr.b))) {
+      pointer nb= gf::car (gf::cdr (fr.b));
+      fr.b= gf::cdr (fr.b);
+      k.push_back (fr);
+      return ctlExpr (gf::car (gf::cdr (nb)), fr.env);
+    }
+    return seqCtl (sc, fr.env, fr.c, k);
+  }
+  case KK::ValsB: {
+    pointer c= gf::car (fr.b);
+    V iv= v;
+    std::vector<pointer> many;
+    if (iv.multi) many= iv.many;
+    else many.push_back (iv.one);
+    bind_formals (sc, gf::car (c), args_to_list (sc, many),
+                  fr.inner.frames->back ()->bindings, c);
+    if (gf::is_pair (gf::cdr (fr.b))) {
+      pointer nc= gf::car (gf::cdr (fr.b));
+      fr.b= gf::cdr (fr.b);
+      k.push_back (fr);
+      return ctlExpr (gf::car (gf::cdr (nc)), fr.env);
+    }
+    return seqCtl (sc, fr.inner, fr.c, k);
+  }
+  case KK::Vals: {
+    pointer one= must_single (sc, v, fr.b, "gf0: values element must be single");
+    fr.acc.push_back (pin (sc, one));
+    if (gf::is_pair (fr.b)) {
+      pointer next= gf::car (fr.b);
+      fr.b= gf::cdr (fr.b);
+      k.push_back (fr);
+      return ctlExpr (next, fr.env);
+    }
+    return ctlVals (multi_vec (std::move (fr.acc)));
+  }
+  case KK::CwvP: {
+    pointer producer= must_single (sc, v, fr.b, "gf0: cwv producer must be single-valued");
+    KF nq;
+    nq.tag= KK::CwvQ;
+    nq.env= fr.env;
+    nq.a  = nullptr;
+    nq.b  = fr.b;
+    nq.c  = nullptr;
+    nq.stage= 0;
+    nq.flag= false;
+    k.push_back (nq);
+    // R7RS: the producer is CALLED with zero args; its values feed consumer.
+    return applyCtl (sc, producer, std::vector<pointer> (), k);
+  }
+  case KK::CwvQ: {
+    std::vector<pointer> got;
+    if (v.multi) got= v.many;
+    else got.push_back (v.one);
+    KF nc;
+    nc.tag= KK::CwvC;
+    nc.env= fr.env;
+    nc.a  = nullptr;
+    nc.b  = nullptr;
+    nc.c  = nullptr;
+    nc.acc= std::move (got);
+    nc.stage= 0;
+    nc.flag= false;
+    k.push_back (nc);
+    return ctlExpr (fr.b, fr.env);
+  }
+  case KK::CwvC: {
+    pointer consumer= must_single (sc, v, gf::nil (sc), "gf0: cwv consumer must be single-valued");
+    return applyCtl (sc, consumer, fr.acc, k);
+  }
+  case KK::CatchG: {
+    if (fr.stage == 0) {
+      pointer tag= must_single (sc, v, fr.b, "gf0: catch tag must be single-valued");
+      fr.a= pin (sc, tag);
+      fr.stage= 1;
+      k.push_back (fr);
+      return ctlExpr (fr.b, fr.env);
+    }
+    if (fr.stage == 1) {
+      pointer thunk= must_single (sc, v, fr.b, "gf0: catch thunk must be single-valued");
+      fr.acc.push_back (pin (sc, thunk));
+      fr.stage= 2;
+      k.push_back (fr);
+      return ctlExpr (fr.c, fr.env);
+    }
+    pointer handler= must_single (sc, v, fr.b, "gf0: catch handler must be single-valued");
+    KF nr;
+    nr.tag= KK::CatchR;
+    nr.env= fr.env;
+    nr.a  = fr.a;
+    nr.b  = pin (sc, handler);
+    nr.c  = nullptr;
+    nr.stage= 0;
+    nr.flag= false;
+    k.push_back (nr);
+    return applyCtl (sc, fr.acc[0], std::vector<pointer> (), k);
+  }
+  case KK::CatchR: {
+    // Thunk completed without raising: drop the handler, pass the value on.
+    return ctlVals (v);
+  }
+  case KK::Mod: {
+    if (fr.stage == 0) {
+      pointer lib= must_single (sc, v, fr.b, "gf0: module lib must be single-valued");
+      fr.a= pin (sc, lib);
+      fr.stage= 1;
+      k.push_back (fr);
+      return ctlExpr (fr.b, fr.env);
+    }
+    if (fr.stage == 1) {
+      pointer name= must_single (sc, v, fr.b, "gf0: module name must be single-valued");
+      fr.b= pin (sc, name);
+      fr.stage= 2;
+      k.push_back (fr);
+      return ctlExpr (fr.c, fr.env);
+    }
+    pointer val= must_single (sc, v, fr.b, "gf0: module-set value must be single-valued");
+    pointer mr_proc= lookup_raw (sc, pin (sc, gf::make_symbol (sc, "module-ref")), fr.env);
+    pointer setter= lookup_raw (sc, pin (sc, gf::make_symbol (sc, "setter")), fr.env);
+    if (mr_proc == unassigned_box (sc) || !gf::is_procedure (mr_proc) ||
+        setter == unassigned_box (sc) || !gf::is_procedure (setter))
+      return ctlVals (single (fail (sc, "gf0: module-ref unavailable (boot substrate?)", fr.b)));
+    std::vector<pointer> one;
+    one.push_back (mr_proc);
+    pointer writer= must_single (sc, s7call_vec (sc, setter, one), fr.b,
+                                 "gf0: (setter module-ref) must be single");
+    // NOTE: writer applied via s7call (leaf, completes here); nested user
+    // code cannot intervene, so flatness holds.
+    std::vector<pointer> args3;
+    args3.push_back (fr.a);
+    args3.push_back (fr.b);
+    args3.push_back (pin (sc, val));
+    must_single (sc, s7call_vec (sc, writer, args3), fr.b,
+                 "gf0: module write must be single-valued");
+    return ctlVals (single (gf::unspecified (sc)));
+  }
+  case KK::CcK: {
+    pointer proc= must_single (sc, v, gf::nil (sc), "gf0: call/cc arg must be single-valued");
+    Saved s;
+    s.k  = k;
+    s.env= fr.env;
+    pointer box= cont_box (sc, s.k, s.env);
+    std::vector<pointer> one;
+    one.push_back (box);
+    return applyCtl (sc, proc, one, k);
+  }
+  }
+  return ctlVals (single (fail (sc, "gf0: bad kont", fr.a)));
+}
+
+static V
+runLoop (scheme* sc, Ctl c, Kont& k) {
+  for (;;) {
+    if (stack_low ())
+      fail (sc, "gf0: C stack low (non-tail depth; see M-VM)", gf::nil (sc));
+    try {
+      if (c.isVals) {
+        if (k.empty ()) return c.v;
+        KF fr= k.back ();
+        k.pop_back ();
+        c= plugInto (sc, fr, c.v, k);
+      }
+      else {
+        c= stepE (sc, c.x, c.env, k);
+      }
+    }
+    catch (GfEx& e) {
+      bool handled= false;
+      while (!k.empty ()) {
+        KF fr= k.back ();
+        k.pop_back ();
+        if (fr.tag != KK::CatchR) continue;
+        bool all= gf::is_boolean (fr.a) && gf::boolean (sc, fr.a);
+        if (!all && (e.args.empty () || !gf::is_eq (fr.a, e.args[0]))) continue;
+        c= applyCtl (sc, fr.b, e.args, k);
+        handled= true;
+        break;
+      }
+      if (!handled) throw;
+    }
+  }
+}
+
+static V
+run (scheme* sc, pointer x, Env env) {
+  Kont k;
+  return runLoop (sc, ctlExpr (x, env), k);
+}
+
 
 // s7->gf0 entries convert GfEx back to gf::error (a C++ exception must
 // never cross s7 C frames). Shape preserves fail() rendering exactly:
@@ -788,14 +1102,18 @@ f_gf0_apply (scheme* sc, pointer args) {
   if (!gf::is_pair (tail) || gf::is_pair (gf::cdr (tail)))
     return fail (sc, "gf0: g_gf0-apply takes (box arglist)", args);
   pointer arglist= gf::car (tail);
-  if (s_boxes.find ((void*) box) == s_boxes.end ())
-    return fail (sc, "gf0: stale closure", box);
-  gf::int_ idx= gf::integer ((pointer) gf::c_object_value (box));
-  if (idx < 0 || (size_t) idx >= s_registry.size ())
+  if (s_boxes.find ((void*) box) == s_boxes.end () &&
+      s_cont_boxes.find ((void*) box) == s_cont_boxes.end ())
     return fail (sc, "gf0: stale closure", box);
   try {
-    const Closure& c= s_registry[(size_t) idx];
-    V r= finish (sc, step_seq (sc, bind_call (sc, c, arglist, box), c.body));
+    std::vector<pointer> argvals;
+    for (pointer t= arglist; gf::is_pair (t); t= gf::cdr (t))
+      argvals.push_back (gf::car (t));
+    if (!gf::is_null (sc, arglist) && argvals.empty ())
+      return fail (sc, "gf0: improper arglist", box);
+    // NOTE: improper non-empty tails surface in bind_formals; keep flat.
+    Kont k;
+    V r= runLoop (sc, applyCtl (sc, box, argvals, k), k);
     return must_single (sc, r, box, "gf0: s7 callback must be single-valued");
   }
   catch (GfEx& e) {
@@ -807,7 +1125,7 @@ static gf::pointer
 f_gf0_eval (scheme* sc, pointer args) {
   ensure_top (sc);
   try {
-    V r= eval (sc, gf::car (args), s_top);
+    V r= run (sc, gf::car (args), s_top);
     if (!r.multi) return r.one;
     // Boundary multi TBD (M-VM): s7's spread protocol (splice_in_values
     // stack-op dance) does not trigger for C-returned s7_values objects, so
@@ -850,7 +1168,7 @@ static gf::pointer
 f_gf0_eval_values (scheme* sc, pointer args) {
   ensure_top (sc);
   try {
-    V r= eval (sc, gf::car (args), s_top);
+    V r= run (sc, gf::car (args), s_top);
     if (!r.multi) {
       std::vector<pointer> one;
       one.push_back (r.one);

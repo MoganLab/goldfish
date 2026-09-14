@@ -69,6 +69,19 @@ C++ 递归直 walk；本页是其继任者（M-VM）的开工令。
   非尾静态嵌套照常递归，C-stack guard 留任。
 - call/cc 仍占位（未实现）；差分门 13/13 零修改通过，基线不动。
 
+## M-VM-2b 落地第一斧（CEK＋call/cc，done）
+
+- 全部 15 处嵌套 `eval()` 改为显式 Kont 帧（Seq/If/CallP/CallA/
+  Define/Set/LetB/RecB/ValsB/Vals/CwvP/CwvQ/CwvC/CatchG/CatchR/
+  Mod/CcK）；`runLoop()` 单循环驱动，无 C++ 递归求值。
+- `call/cc` 原生 multi-shot（捕获＝拷贝 Kont＋env，调用＝安装拷贝；
+  单 datum 循环验证 `(done 3)`；escape 丢弃正确；catch 区 abandoned
+  时 handler 不跑——符合 call/cc 语义）。
+- `dynamic-wind` 显式 stub（干净 error，後半段接 winder）。
+- 差分门 13/13 零修改通过；TCO 保持（10 万尾调用）；C-stack guard
+  留任（s7call 叶路径）。基线不动（无新原语）。
+- 修的两个移植 bug：首 init 少一层 car；cwv 漏 producer 零参调用。
+
 ## 参考与立场
 
 - Oleg Kiselyov, "An argument against call/cc"
