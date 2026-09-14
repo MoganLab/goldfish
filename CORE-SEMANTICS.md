@@ -52,6 +52,13 @@
 - **continuation 边界**：捕获不跨 s7call 边界（跨即明确 error）。
   引擎边界即天然 delimiter（对应业界 REPL-delimit 实践）；R7RS
   单引擎语义内行为完整，跨宿主调用不在语义承诺内。
+- **s7 continuation 不跨 s7call 帧寿命**（同规则另一方向，已实证）：
+  s7 原生 call/cc 在库内部捕获、经 gf0 的 s7call 多次调用后重入，
+  会 longjmp 进已返回的 C++ 帧（use-after-return，表现为垃圾值
+  20/unspecified 而非崩溃）。因此 s7-call/cc 库（如 srfi-158
+  make-coroutine-generator）只能从 s7 求值侧调用，不进 M3 双门；
+  gf0 原生 call/cc（堆 Kont，无 C 帧）不受此限（m2a-generator 为证）。
+  这正是 Filinski 框架条件被违背的实例：两运行时控制模型不复合。
 
 ## 实测 oracle（差分门，M2 照单验收）
 

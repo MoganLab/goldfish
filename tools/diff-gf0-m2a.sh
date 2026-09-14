@@ -8,13 +8,19 @@
 # the program's own displays print). Cold-cache effects are warmed away by
 # a discard run first.
 #
-# M3 note: explicit test files may be passed after DIR. Two known files
+# M3 note: explicit test files may be passed after DIR. Three known files
 # cannot run through this whole-file path on EITHER engine (identical
 # failure, frontend -- not evaluation -- issues, out of scope):
 #   abs-test.scm  -- complex literal 1.0+2.0i misread under direct
 #                    compile-file-cached (normal `gf test` passes).
 #   case-test.scm -- constant-fold chokes whole-file ("not enough
 #                    arguments" in ((lambda vs vs) (producer))).
+#   srfi-158-test.scm -- make-coroutine-generator checks fail structurally:
+#                    s7-native call/cc captured inside the library cannot
+#                    survive gf0's s7call C++ frame lifetime (use-after-
+#                    return on later invoke; garbage values, luckily no
+#                    crash). All non-coroutine checks pass. See
+#                    CORE-SEMANTICS.md continuation boundary note.
 set -eu
 cd "$(dirname "$0")/.."
 mkdir -p /tmp/kilo
