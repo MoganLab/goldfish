@@ -49,6 +49,9 @@
   已加载库注册表；`module-set` 形式为
   `(set! (module-ref 'lib 'name) exp)`。引擎须实现 s7 兼容的
   运行时模块/inlet 注册表（属 T0，未在旧 LAYER.md 点名，现补入）。
+- **continuation 边界**：捕获不跨 s7call 边界（跨即明确 error）。
+  引擎边界即天然 delimiter（对应业界 REPL-delimit 实践）；R7RS
+  单引擎语义内行为完整，跨宿主调用不在语义承诺内。
 
 ## 实测 oracle（差分门，M2 照单验收）
 

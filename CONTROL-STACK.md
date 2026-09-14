@@ -68,3 +68,16 @@ C++ 递归直 walk；本页是其继任者（M-VM）的开工令。
   平坦驱动。尾调用零 C++ 嵌套（10 万尾调用正确返回 5000050000）；
   非尾静态嵌套照常递归，C-stack guard 留任。
 - call/cc 仍占位（未实现）；差分门 13/13 零修改通过，基线不动。
+
+## 参考与立场
+
+- Oleg Kiselyov, "An argument against call/cc"
+  （https://okmij.org/ftp/continuations/against-callcc.html）：
+  反对的是"call/cc 为王"的架构，不是 call/cc 本身。本计划与之
+  一致——escape（exceptions/guard）走独立原生路径，call/cc 只是
+  显式栈上的又一个原生操作，而非一切控制的地基。
+- 引擎边界即天然 delimiter（业界 REPL-delimit 实践的对应物）：
+  continuation 不跨 s7call 边界，捕获即明确 error。
+- call/cc 落地后的必测用例：generator→stream 尾递归枚举。
+  预期与 s7 **同泄漏**（显式栈拷贝语义 pin 住 suffix）——先对齐，
+  再谈优化（优化＝prompt，已超 R7RS，不做）。
