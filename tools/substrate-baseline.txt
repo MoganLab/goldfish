@@ -51,6 +51,7 @@ is_boolean
 is_character
 is_defined
 is_eq
+is_hash_table
 is_integer
 is_keyword
 is_let
@@ -118,7 +119,7 @@ vector_elements
 vector_length
 vector_ref
 vector_set
-count=119
+count=120
 == B GF_GLUE ==
 g_access
 g_bytevector-base64-decode

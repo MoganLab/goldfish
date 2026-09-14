@@ -631,8 +631,11 @@ static const struct HofEntry { const char* name; int p0; int p1; } kHofs[] = {
   {"vector-fold-right", 0, -1}, {"vector-filter", 0, -1}, {"vector-any", 0, -1},
   {"vector-every", 0, -1},
   {"with-exception-handler", 0, 1}, {"call-with-port", 0, -1},
+  {"member", 2, -1},
   {"with-input-from-file", 1, -1}, {"with-output-to-file", 1, -1},
   {"call-with-input-file", 1, -1}, {"call-with-output-file", 1, -1},
+  {"with-output-to-string", 0, -1}, {"call-with-output-string", 0, -1},
+  {"with-input-from-string", 1, -1}, {"call-with-input-string", 1, -1},
   // Loader infrastructure applying callbacks internally (not user HOFs,
   // same rule: wrap so s7 never sees a raw box in apply position).
   {"register-runtime-module", 1, -1},
@@ -654,6 +657,10 @@ static const struct HofLib { const char* lib; const char* name; int p0; int p1; 
   {"(srfi srfi-128)", "make-comparator", -2, -1},
   {"(srfi srfi-217)", "iset-search", 2, 3},
   {"(srfi srfi-217)", "iset-search!", 2, 3},
+  {"(srfi srfi-1)", "member", 2, -1},
+  {"(srfi srfi-1)", "assoc", 2, -1},
+  {"(srfi srfi-1)", "delete-duplicates", 1, -1},
+  {"(liii packrat)", "base-generator->results", 0, -1},
   {nullptr, nullptr, -1, -1},
 };
 static std::vector<std::pair<pointer, int>> s_hof_procs;
@@ -772,11 +779,14 @@ applyCtl (scheme* sc, pointer proc, const std::vector<pointer>& argvals, Kont& k
   if (gf::is_procedure (proc)) return ctlVals (s7call_vec (sc, proc, argvals));
   // Not applicable: delegate to s7's apply so the NATIVE error object
   // (key + info, e.g. syntax-error for (apply 1 ...)) surfaces and
-  // check-catch matches exactly.
+  // check-catch matches exactly. Applicable data (pairs/vectors/strings/
+  // bytevectors/hash-tables, admitted by CallP) applies natively there
+  // too. Shape is (apply PROC (list args...)): s7's apply takes the
+  // trailing list, not spread args.
   pointer s7apply= gf::name_to_value (sc, "apply");
   std::vector<pointer> aargs;
   aargs.push_back (proc);
-  for (pointer a : argvals) aargs.push_back (a);
+  aargs.push_back (args_to_list (sc, argvals));
   return ctlVals (s7call_vec (sc, s7apply, aargs));
 }
 
@@ -1204,9 +1214,15 @@ plugInto (scheme* sc, KF fr, V v, Kont& k) {
   }
   case KK::CallP: {
     V proc_v = must_single (sc, v, fr.b, "gf0: call head must be single-valued"); pointer proc = proc_v.one;
+    // s7 applies data natively (pairs cycle-walk, vectors/strings/
+    // bytevectors ref, hash-tables lookup); applyCtl delegates those to
+    // s7's apply so keys match by construction. Macros/syntax and other
+    // non-applicables stay an error here (macros stay frontend).
     if (s_boxes.find ((void*) proc) == s_boxes.end () &&
         s_cont_boxes.find ((void*) proc) == s_cont_boxes.end () &&
-        !gf::is_procedure (proc))
+        !gf::is_procedure (proc) &&
+        !gf::is_pair (proc) && !gf::is_vector (proc) &&
+        !gf::is_string (proc) && !gf::is_hash_table (proc))
       return ctlVals (single (sc, fail (sc, "gf0: cannot apply (macros stay frontend)", proc)));
     if (!gf::is_pair (fr.b))
       return applyCtl (sc, proc, std::vector<pointer> (), k);
@@ -1536,6 +1552,14 @@ same_winder (const Winder& a, const Winder& b) {
 
 static V
 runLoop (scheme* sc, Ctl c, Kont& k) {
+  // Winder watermark: nested drives (box callbacks via g_f0-apply, ref
+  // path) share the global wind stack but own only winders pushed during
+  // themselves. Unwinding pops down to the mark, never below: an error
+  // crossing back into an outer drive rethrows there, where the outer
+  // Kont depths judge its own winders. Without this, a nested unwind
+  // sees a shallow k and pops (running afters of) outer regions that a
+  // catch inside still inhabits (njson let-njson handles freed mid-block).
+  size_t wind_mark= s_wind.size ();
   for (;;) {
     if (stack_low ())
       fail (sc, "gf0: C stack low (non-tail depth; see M-VM)", gf::nil (sc));
@@ -1554,7 +1578,7 @@ runLoop (scheme* sc, Ctl c, Kont& k) {
       // Unwind one frame at a time, running due afters innermost-first.
       // A winder is due once unwinding reaches its push depth.
       for (;;) {
-        while (!s_wind.empty () && s_wind.back ().depth >= k.size ()) {
+        while (s_wind.size () > wind_mark && s_wind.back ().depth >= k.size ()) {
           Winder wd= s_wind.back ();
           s_wind.pop_back ();
           callSync (sc, wd.after);
@@ -1563,8 +1587,12 @@ runLoop (scheme* sc, Ctl c, Kont& k) {
         KF fr= k.back ();
         k.pop_back ();
         if (fr.tag != KK::CatchR) continue;
+        // s7 catch rule (catch_1_function): tag==#T, tag eq? key, or
+        // key==#T (single-string (error "msg") raises with type #T, so any
+        // tag catches it -- e.g. vector-sorted? range errors).
         bool all= gf::is_boolean (fr.a) && gf::boolean (sc, fr.a);
-        if (!all && (e.args.empty () || !gf::is_eq (fr.a, e.args[0]))) continue;
+        bool key_all= !e.args.empty () && gf::is_boolean (e.args[0]) && gf::boolean (sc, e.args[0]);
+        if (!all && !key_all && (e.args.empty () || !gf::is_eq (fr.a, e.args[0]))) continue;
         c= applyCtl (sc, fr.b, e.args, k);
         break;
       }
