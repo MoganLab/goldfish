@@ -1,0 +1,31 @@
+(import (scheme base) (scheme write))
+;; call/cc generator -> first-N consume (Oleg gen-leak shape, small N).
+;; Functional parity under both engines. Memory note (structural, not
+;; measured here): both s7 and gf0 capture the whole continuation, so both
+;; pin the stream head the same way -- same-leak parity by construction.
+;; (A leak-proof variant needs delimited control, out of R7RS scope.)
+(define (make-gen)
+  (define producer-k #f)
+  (define consumer-k #f)
+  (define (yield v)
+    (call/cc (lambda (k) (set! producer-k k) (consumer-k v))))
+  (define (generate i)
+    (yield i)
+    (generate (+ i 1)))
+  (lambda ()
+    (call/cc (lambda (k)
+      (set! consumer-k k)
+      (if producer-k
+        (producer-k 'go)
+        (generate 0))))))
+(define (take-sum gen n)
+  (define (loop k acc)
+    (if (= k 0) acc (loop (- k 1) (+ acc (gen)))))
+  (loop n 0))
+(define g (make-gen))
+(display "gen-sum-200: ")
+(display (take-sum g 200))
+(newline)
+(display "gen-next3: ")
+(display (list (g) (g) (g)))
+(newline)
