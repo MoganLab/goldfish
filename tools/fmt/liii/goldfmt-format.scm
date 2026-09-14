@@ -22,6 +22,7 @@
     (liii goldfmt-record)
     (liii goldfmt-rule)
     (liii goldfmt-scan)
+    (liii syntax)
     (liii tree)
     (srfi srfi-13)
   ) ;import
@@ -53,18 +54,6 @@
       (and (pair? value)
         (eq? (car value) name)
         (pair? (cdr value))
-        (null? (cddr value))
-      ) ;and
-    ) ;define
-
-    ;; ; 检查是否为 quote 形式：(quote x) 或 (#_quote x)
-    (define (quote-form? value)
-      (and (pair? value)
-        (not (null? value))
-        (or (eq? (car value) 'quote)
-          (and (syntax? (car value)) (string=? (object->string (car value) #f) "#_quote"))
-        ) ;or
-        (not (null? (cdr value)))
         (null? (cddr value))
       ) ;and
     ) ;define
