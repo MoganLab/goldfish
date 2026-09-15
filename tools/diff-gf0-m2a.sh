@@ -19,7 +19,13 @@
 # M3 note: explicit test files may be passed after DIR. Files that cannot
 # run through this whole-file path on EITHER engine for FRONTEND reasons
 # (identical failure, frontend -- not evaluation -- issues, out of scope)
-# are skipped with a reason instead of diffed:
+# are skipped with a reason instead of diffed. Verdict axis (2026-09-15):
+# [FIX] = frontend backlog, graduating a skip is the goal (abs, case and
+#         the graduated examples below show the loop: fix, gate green,
+#         unskip with a dated note);
+# [NEVER] = oracle quirk / intentional R7RS-strict divergence / loader
+#         environment -- documented, not chased. R7RS-strict NEVERs are
+#         covered by executable agree-corpus instead (tests/gf0/m2a-sem-*).
 #   abs-test.scm  -- (unskipped 2026-09-15) complex literal 1.0+2.0i
 #                    misread under direct compile-file-cached; FIXED by
 #                    tiny-reader complex support, gate green since.
@@ -31,38 +37,38 @@
 #                    consumer on `#(const #f #<unspecified>)`.  Fixed in
 #                    goldfish/match/expansion.scm (gen-proj* binds one
 #                    subpattern with let); gate green since.
-#   srfi-158-test.scm -- fail-closed by the stale fence: coroutine yields
+#   srfi-158-test.scm -- [NEVER] fail-closed by the stale fence: coroutine yields
 #                    raise gf0-stale-continuation (see
 #                    tools/check-gf0-guards.sh); pre-fence behavior was
 #                    silent garbage (use-after-return into dead C++ frames).
-#   iset-search-test.scm -- same fence class: iset-search threads an s7
+#   iset-search-test.scm -- [NEVER] same fence class: iset-search threads an s7
 #                    call/cc `return' through user callbacks (gf0 boxes nest
 #                    fresh tokens), so every missing-element path raises
 #                    gf0-stale-continuation gf0-side while s7 passes.
 #                    Present-element paths agree.
-#   letrec/letrec-star/internal-define-values -- R7RS-strict key divergence
+#   letrec/letrec-star/internal-define-values -- [NEVER] R7RS-strict key divergence
 #                    (gf0 errors read-before-assignment where s7 raises
 #                    wrong-type-arg downstream); intentional,
 #                    see CORE-SEMANTICS.md.
 #   make-parameter / with-exception-handler / raise-continuable /
-#   read-bytevector / error-object / lambda-star / bag-replace --
+#   read-bytevector / error-object / lambda-star / bag-replace -- [FIX]
 #                    whole-file reference wiring or bundle identity:
 #                    bare base imports left unbound (or bound to a wrong
 #                    native), string identity lost through the bundle;
 #                    per-form `gf test` resolves fine. Frontend backlog,
 #                    not evaluation.
-#   reader-test -- s7's zero-value collapse ((unspecified? (values)) => #t,
+#   reader-test -- [NEVER] s7's zero-value collapse ((unspecified? (values)) => #t,
 #                    (list (values)) => (#<unspecified>)): the documented
 #                    values/unspecified folding family, intentionally not
 #                    replicated (see diverge-unspecified).
-#   cut-test -- s7's set! returns the assigned value, gf0 returns
+#   cut-test -- [NEVER] s7's set! returns the assigned value, gf0 returns
 #                    unspecified (R7RS); the two failing checks depend on
 #                    the value. R7RS-strict, same class as letrec.
-#   signature-test / make-hook-test -- s7 internals introspection: signature
+#   signature-test / make-hook-test -- [NEVER] s7 internals introspection: signature
 #                    sees box identity (c-object?) where s7 sees a closure;
 #                    hook-functions lists reject boxes. s7-isms, out of scope
 #                    for a replacement.
-#   packrat-test -- gf0-side "attempt to apply a c_object": lib calls
+#   packrat-test -- [FIX] gf0-side "attempt to apply a c_object": lib calls
 #                    resolve s7-side, so closure-taking entries need
 #                    kHofLibs lines (landed: base-generator->results,
 #                    results->result, 4 combinators; srfi-1
@@ -72,13 +78,13 @@
 #                    Chase also fixed 3 real bugs (GfFinal spin, inliner
 #                    letrec* reorder, trampoline exit-wrap) and exposed
 #                    the dual-error false-pass (now ERR, see below).
-#   srfi-78-test / srfi-78-200_12_2 / srfi-78-simple-stacktrace --
+#   srfi-78-test / srfi-78-200_12_2 / srfi-78-simple-stacktrace -- [NEVER]
 #                    stacktrace introspection: same checks fail on both
 #                    sides, only the trace text differs (s7 C stack vs
 #                    gf0 flat loop). Implementation-specific, cannot agree.
-#   sicp-test -- wall-clock: displays (runtime) timestamps that differ
+#   sicp-test -- [NEVER] wall-clock: displays (runtime) timestamps that differ
 #                    between any two runs. Nothing to gate.
-#   boot-test / function-libraries-test -- import machinery, not evaluation:
+#   boot-test / function-libraries-test -- [NEVER] import machinery, not evaluation:
 #                    eval-when + *load-path* mutation + probe-lib loading
 #                    (boot), registry introspection (function-libraries).
 #                    Whole-file differential cannot reproduce the loader
