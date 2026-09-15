@@ -33,6 +33,7 @@ Just like S7 Scheme, [src/goldfish.hpp](src/goldfish.hpp) and [src/goldfish.cpp]
 | [(liii os)](goldfish/liii/os.scm)                 | Library looks like Python os module  | `getenv`, `mkdir`                                                |
 | [(liii path)](goldfish/liii/path.scm)             | Path Library                         | `path-dir?`, `path-file?`                                        |
 | [(liii range)](goldfish/liii/range.scm)           | Range Library                        | `numeric-range`, `iota`                                          |
+| [(liii generator)](goldfish/liii/generator.scm)   | Generators and Accumulators          | `generator`, `gtake`, `generator-fold`                            |
 | [(liii option)](goldfish/liii/option.scm)         | Option Type Library                  | `option?`, `option-map`, `option-flatten`                        |
 | [(liii either)](goldfish/liii/either.scm)         | Either Type Library                  | `left?`, `right?`, `either-map`                                  |
 | [(liii uuid)](goldfish/liii/uuid.scm)             | UUID generation                      | `uuid4`                                                          |
@@ -64,6 +65,7 @@ Just like S7 Scheme, [src/goldfish.hpp](src/goldfish.hpp) and [src/goldfish.cpp]
 | `(srfi srfi-125)` | Part     | Hash Table                   |
 | `(srfi srfi-133)` | Part     | Vector                       |
 | `(srfi srfi-151)` | Part     | Bitwise Operations           |
+| `(srfi srfi-158)` | Complete | Generators and Accumulators  |
 | `(srfi srfi-196)` | Complete | Range Library                |
 | `(srfi srfi-216)` | Part     | SICP                         |
 
