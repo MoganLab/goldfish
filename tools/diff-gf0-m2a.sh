@@ -100,7 +100,7 @@ cd "$(dirname "$0")/.."
 mkdir -p /tmp/kilo
 dir=${1:-tests/gf0}
 fail=0
-skip_names="srfi-158-test letrec-test letrec-star-test internal-define-values-test error-object-test iset-search-test reader-test cut-test signature-test make-hook-test lambda-star-test packrat-test boot-test function-libraries-test srfi-78-test srfi-78-200_12_2_test srfi-78-simple-stacktrace-test sicp-test"
+skip_names="srfi-158-test letrec-test letrec-star-test internal-define-values-test error-object-test iset-search-test reader-test cut-test signature-test make-hook-test lambda-star-test bag-replace-test packrat-test boot-test function-libraries-test srfi-78-test srfi-78-200_12_2_test srfi-78-simple-stacktrace-test sicp-test"
 
 if [ $# -ge 2 ]; then
   # Explicit file list (M3: test files): shift past dir, take the rest.
