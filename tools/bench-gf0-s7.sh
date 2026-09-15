@@ -11,7 +11,13 @@
 #   m2a-higher-order.scm  s7 0.106s   gf0 0.234s
 #   m2a-generator.scm     s7 0.117s   gf0 0.673s
 #   m2a-match.scm         s7 0.116s   gf0 0.223s
+# Re-run post-P0 (commit 5497ecf1, same machine): 0.242 / 0.680 / 0.232
+# (+1~4%, noise; unwind/invoke frames cost nothing when nothing raises).
+# Real load: njson-schema-report-test.scm s7 0.232s gf0 0.609s (2.6x).
 # gf0 is a tree-walking reference evaluator; ~7-40x here is expected.
+# Hypothesis for generator's internal 5x gap (11ms vs 2ms per eval):
+# Kont full-copy per capture/invoke (cont_box copies k, invoke copies
+# back). Fix = persistent/shared kont; deferred (tree-walk dominates).
 # Tripwire: >10% drift on rerun (same machine/commit-shape) gets chased.
 #
 # NOTE: N=50 in-process eval iterations amortize binary startup; the
