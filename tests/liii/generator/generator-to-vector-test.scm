@@ -23,20 +23,25 @@
 ;; vector
 ;; 包含生成器产出元素的向量。
 ;;
+;; 说明
+;; ----
+;; 若需就地填充已有向量而非分配新向量，参见：
+;;   gf doc "generator->vector!"
+;;
 ;; 错误处理
 ;; ----
 ;; 无
 
 (let ((g (generator 1 2)))
   (check (generator->vector g) => '#(1 2))
-)
+) ;let
 
 (let ((g (generator 1 2 3 4 5)))
   (check (generator->vector g 3) => '#(1 2 3))
-)
+) ;let
 
 (let ((g (generator)))
   (check (generator->vector g) => '#())
-)
+) ;let
 
 (check-report)

@@ -25,6 +25,11 @@
 ;; exact-nonnegative-integer
 ;; 实际写入向量中的元素数量。
 ;;
+;; 说明
+;; ----
+;; 若需直接收集生成器元素并创建新向量，参见：
+;;   gf doc "generator->vector"
+;;
 ;; 错误处理
 ;; ----
 ;; 无
