@@ -532,16 +532,27 @@
       (if (null? subs)
         (let ((r (car (generate-temporaries (list 'proj-res)))))
           (values `(let ((,r (,proc ,subject))) ,success) binds))
-        (let ((vals (map (lambda (_)
-                           (car (generate-temporaries (list 'proj-val))))
-                         subs)))
-          (let loop ((ss subs) (vs vals) (s success) (b binds))
-            (if (null? ss)
-              (values `(call-with-values (lambda () (,proc ,subject))
-                                         (lambda ,vals ,s))
-                      b)
-              (let*-values (((c b2) (gen* (car ss) (car vs) fail s b)))
-                (loop (cdr ss) (cdr vs) c b2)))))))
+        ;; Single subpattern: bind with let, not call-with-values.  s7
+        ;; collapses a single unspecified producer value to zero values
+        ;; (the diverge-unspecified family), which would arity-fail the
+        ;; one-param consumer; let carries the value untouched.  A proc
+        ;; genuinely yielding zero/multiple values still errors at the
+        ;; binding, same contract as before.
+        (if (null? (cdr subs))
+          (let ((tmp (car (generate-temporaries (list 'proj-val)))))
+            (let*-values (((code binds2)
+                           (gen* (car subs) tmp fail success binds)))
+              (values `(let ((,tmp (,proc ,subject))) ,code) binds2)))
+          (let ((vals (map (lambda (_)
+                             (car (generate-temporaries (list 'proj-val))))
+                           subs)))
+            (let loop ((ss subs) (vs vals) (s success) (b binds))
+              (if (null? ss)
+                (values `(call-with-values (lambda () (,proc ,subject))
+                                           (lambda ,vals ,s))
+                        b)
+                (let*-values (((c b2) (gen* (car ss) (car vs) fail s b)))
+                  (loop (cdr ss) (cdr vs) c b2))))))))
 
     ;; gen-instructions : (list test-pattern) (list action-id) -> (list form)
     ;;   Compile the sequence of test patterns into NFA instructions.

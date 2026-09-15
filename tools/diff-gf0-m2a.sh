@@ -23,8 +23,14 @@
 #   abs-test.scm  -- (unskipped 2026-09-15) complex literal 1.0+2.0i
 #                    misread under direct compile-file-cached; FIXED by
 #                    tiny-reader complex support, gate green since.
-#   case-test.scm -- constant-fold chokes whole-file ("not enough
-#                    arguments" in ((lambda vs vs) (producer))).
+#   case-test.scm -- (unskipped 2026-09-15) whole-file constant area
+#                    crashed: match's single-subpattern `=>` codegen routed
+#                    through call-with-values, and s7 collapses a single
+#                    unspecified producer value to zero (the
+#                    diverge-unspecified family), arity-failing the
+#                    consumer on `#(const #f #<unspecified>)`.  Fixed in
+#                    goldfish/match/expansion.scm (gen-proj* binds one
+#                    subpattern with let); gate green since.
 #   srfi-158-test.scm -- fail-closed by the stale fence: coroutine yields
 #                    raise gf0-stale-continuation (see
 #                    tools/check-gf0-guards.sh); pre-fence behavior was
@@ -77,7 +83,7 @@ cd "$(dirname "$0")/.."
 mkdir -p /tmp/kilo
 dir=${1:-tests/gf0}
 fail=0
-skip_names="case-test srfi-158-test letrec-test letrec-star-test internal-define-values-test make-parameter-test with-exception-handler-test raise-continuable-test read-bytevector-test error-object-test iset-search-test reader-test cut-test signature-test make-hook-test lambda-star-test bag-replace-test packrat-test boot-test function-libraries-test srfi-78-test srfi-78-200_12_2_test srfi-78-simple-stacktrace-test sicp-test"
+skip_names="srfi-158-test letrec-test letrec-star-test internal-define-values-test make-parameter-test with-exception-handler-test raise-continuable-test read-bytevector-test error-object-test iset-search-test reader-test cut-test signature-test make-hook-test lambda-star-test bag-replace-test packrat-test boot-test function-libraries-test srfi-78-test srfi-78-200_12_2_test srfi-78-simple-stacktrace-test sicp-test"
 
 if [ $# -ge 2 ]; then
   # Explicit file list (M3: test files): shift past dir, take the rest.
