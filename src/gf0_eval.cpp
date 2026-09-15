@@ -597,6 +597,17 @@ wrap_box (scheme* sc, pointer box) {
   return w;
 }
 
+// Results crossing back into s7: a trampoline returning a box would
+// hand s7 a raw box (the next application crashes). Wrap box results
+// through the same memo, so s7 only ever holds wrappers; wrapper
+// identity is stable per box (eq? across crossings holds).
+static pointer
+wrap_result (scheme* sc, pointer p) {
+  if (s_boxes.find ((void*) p) != s_boxes.end () ||
+      s_cont_boxes.find ((void*) p) != s_cont_boxes.end ())
+    return wrap_box (sc, p);
+  return p;
+}
 // s7 higher-order builtins that APPLY an argument: wrap gf0 boxes at the
 // recorded positions so s7 never sees a raw box in apply position.
 // Data positions pass RAW (no translation, no copies): identity, aliasing
@@ -644,7 +655,16 @@ static const struct HofLib { const char* lib; const char* name; int p0; int p1; 
   {"(srfi srfi-1)", "member", 2, -1},
   {"(srfi srfi-1)", "assoc", 2, -1},
   {"(srfi srfi-1)", "delete-duplicates", 1, -1},
+  {"(srfi srfi-1)", "fold", 0, -1},
+  {"(srfi srfi-1)", "reduce", 0, -1},
+  {"(srfi srfi-1)", "any", 0, -1},
+  {"(srfi srfi-1)", "every", 0, -1},
   {"(liii packrat)", "base-generator->results", 0, -1},
+  {"(liii packrat)", "results->result", 2, -1},
+  {"(liii packrat)", "packrat-check-base", 1, -1},
+  {"(liii packrat)", "packrat-check", 0, 1},
+  {"(liii packrat)", "packrat-or", 0, 1},
+  {"(liii packrat)", "packrat-unless", 1, 2},
   {nullptr, nullptr, -1, -1},
 };
 static std::vector<std::pair<pointer, int>> s_hof_procs;
@@ -1820,10 +1840,11 @@ f_gf0_apply (scheme* sc, pointer args) {
     // NOTE: improper non-empty tails surface in bind_formals; keep flat.
     Kont k;
     V r= runLoop (sc, applyCtl (sc, box, argvals, k), k);
-    // Trampoline returns feed S7 consumers: keep s7-canonical (wrapped)
-    // so host identity comparisons (equal?/assq) hold on that side.
+    // Trampoline returns feed S7 consumers: wrap box results (memoized,
+    // identity-stable) so a higher-order return applied later never
+    // lands a raw box in s7 apply position.
     V one_v= must_single (sc, r, box, "gf0: s7 callback must be single-valued");
-    return one_v.one;
+    return wrap_result (sc, one_v.one);
   }
   catch (GfFinal& z) {
     return gfex_to_error (sc, z.e);
@@ -1849,14 +1870,18 @@ f_gf0_apply_values (scheme* sc, pointer args) {
       argvals.push_back (gf::car (t));
     Kont k;
     V r= runLoop (sc, applyCtl (sc, box, argvals, k), k);
-    // Trampoline returns feed S7 consumers: raw (s7-canonical identity;
-    // wrappers only where s7 must apply, per the HOF table).
+    // Trampoline returns feed S7 consumers: wrap box results (memoized,
+    // identity-stable), same rule as inputs -- a raw box handed back
+    // would crash at its next s7-side application.
     if (!r.multi) {
       std::vector<pointer> one;
-      one.push_back (r.one);
+      one.push_back (wrap_result (sc, r.one));
       return args_to_list (sc, one);
     }
-    return args_to_list (sc, r.many);
+    std::vector<pointer> many= r.many;
+    for (size_t i= 0; i < many.size (); ++i)
+      many[i]= wrap_result (sc, many[i]);
+    return args_to_list (sc, many);
   }
   catch (GfFinal& z) {
     return gfex_to_error (sc, z.e);

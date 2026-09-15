@@ -62,11 +62,16 @@
 #                    sees box identity (c-object?) where s7 sees a closure;
 #                    hook-functions lists reject boxes. s7-isms, out of scope
 #                    for a replacement.
-#   packrat-test -- nondeterministic across identical runs (DIFF/IDENTICAL
-#                    alternating with no tree change): left-recursion error
-#                    only gf0-side. Suspect GC-timing in deeply nested box
-#                    callbacks; stale bundles were a red herring. Needs a
-#                    dedicated ASAN session; normal `gf test` passes.
+#   packrat-test -- gf0-side "attempt to apply a c_object": lib calls
+#                    resolve s7-side, so closure-taking entries need
+#                    kHofLibs lines (landed: base-generator->results,
+#                    results->result, 4 combinators; srfi-1
+#                    fold/reduce/any/every for lset-union).  Deeper layers
+#                    need entry-per-internal plus box-carrying records
+#                    (parser-proc fields) -- unbounded tail; parked.
+#                    Chase also fixed 3 real bugs (GfFinal spin, inliner
+#                    letrec* reorder, trampoline exit-wrap) and exposed
+#                    the dual-error false-pass (now ERR, see below).
 #   srfi-78-test / srfi-78-200_12_2 / srfi-78-simple-stacktrace --
 #                    stacktrace introspection: same checks fail on both
 #                    sides, only the trace text differs (s7 C stack vs
@@ -143,8 +148,16 @@ for prog in $files; do
   s7out=$(./bin/gf -I "$dir" "$run" 2>&1 || true)
   mk_gf0
   gf0out=$(./bin/gf -I "$dir" "$run" 2>&1 || true)
-  if [ "$(printf '%s\n' "$s7out" | norm)" != "$(printf '%s\n' "$gf0out" | norm)" ]; then
+  # Soundness: identical runner-level failures (loader/compile errors,
+  # same host-side text both sides) are ERR, never ok -- otherwise a
+  # broken lib reads as agreement (packrat 2026-09-15: both sides failed
+  # to load, gate said ok).
+  s7n=$(printf '%s\n' "$s7out" | norm)
+  gf0n=$(printf '%s\n' "$gf0out" | norm)
+  if [ "$s7n" != "$gf0n" ]; then
     echo "DIFF(m2a) $prog"; fail=1
+  elif printf '%s\n' "$s7n" | grep -qE "while loading|failed to load library"; then
+    echo "ERR(both-error) $prog"; fail=1
   else
     echo "ok $prog"
   fi
