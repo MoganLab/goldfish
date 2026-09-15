@@ -223,8 +223,24 @@
                           "expander/kernel-combined.scm")))
         (set! *kernel-artifact-stamp* (gfo-stamp artifact))
         *kernel-artifact-stamp*)))
+;; Engine stamp: the C++ binary is a cache input like the kernel
+;; artifact (a rebuild shifts native identities/counters embedded in
+;; bundles even though no source changed; stale reuse across rebuilds
+;; was the ghost-failure class). Memoized per session; unknown (no
+;; /proc/self/exe) degrades to a constant instead of erroring.
+(define *engine-stamp* #f)
+(define (engine-stamp)
+  (or *engine-stamp*
+      (begin
+        (set! *engine-stamp*
+              (if (file-exists? "/proc/self/exe")
+                  (gfo-stamp "/proc/self/exe")
+                  'engine-unknown))
+        *engine-stamp*)))
 (define (compile-file-stamp path)
-  (append (gfo-stamp path) (kernel-artifact-stamp)))
+  (append (gfo-stamp path) (kernel-artifact-stamp)
+          (let ((es (engine-stamp)))
+            (if (pair? es) es (list es)))))
 
 ;;; take-collected-macros : -> (list (name . sexp))
 ;;; Fetch and clear the kernel's collected macro records.  Tolerates an
