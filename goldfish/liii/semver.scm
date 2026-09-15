@@ -73,11 +73,12 @@
     ;; 预发布字段：纯数字按数值处理，其余须落在 prerelease 字符集内
     (define (prerelease-field->id p)
       (and (not (string-null? p))
-        (cond ((string-all-digits? p)
-               (and (not (leading-zero? p)) (cons 'num (string->number p)))
-              ) ;
-              ((string-every prerelease-char? p) (cons 'str p))
-              (else #f)
+        (cond
+         ((string-all-digits? p)
+          (and (not (leading-zero? p)) (cons 'num (string->number p)))
+         ) ;
+         ((string-every prerelease-char? p) (cons 'str p))
+         (else #f)
         ) ;cond
       ) ;and
     ) ;define
@@ -144,28 +145,31 @@
       (cond ((and (null? ps1) (null? ps2)) 0)
             ((null? ps1) -1)
             ((null? ps2) 1)
-            (else (let* ((id1 (car ps1))
-                         (id2 (car ps2))
-                         (t1 (car id1))
-                         (v1 (cdr id1))
-                         (t2 (car id2))
-                         (v2 (cdr id2))
-                        ) ;
-                    (cond ((and (eq? t1 'num) (eq? t2 'num))
-                           (cond ((< v1 v2) -1)
-                                 ((> v1 v2) 1)
-                                 (else (compare-prerelease (cdr ps1) (cdr ps2)))
-                           ) ;cond
-                          ) ;
-                          ((eq? t1 'num) -1)
-                          ((eq? t2 'num) 1)
-                          (else (cond ((string<? v1 v2) -1)
-                                      ((string>? v1 v2) 1)
-                                      (else (compare-prerelease (cdr ps1) (cdr ps2)))
-                                ) ;cond
-                          ) ;else
-                    ) ;cond
-                  ) ;let*
+            (else
+              (let* ((id1 (car ps1))
+                     (id2 (car ps2))
+                     (t1 (car id1))
+                     (v1 (cdr id1))
+                     (t2 (car id2))
+                     (v2 (cdr id2))
+                    ) ;
+                (cond
+                 ((and (eq? t1 'num) (eq? t2 'num))
+                  (cond ((< v1 v2) -1)
+                        ((> v1 v2) 1)
+                        (else (compare-prerelease (cdr ps1) (cdr ps2)))
+                  ) ;cond
+                 ) ;
+                 ((eq? t1 'num) -1)
+                 ((eq? t2 'num) 1)
+                 (else
+                   (cond ((string<? v1 v2) -1)
+                         ((string>? v1 v2) 1)
+                         (else (compare-prerelease (cdr ps1) (cdr ps2)))
+                   ) ;cond
+                 ) ;else
+                ) ;cond
+              ) ;let*
             ) ;else
       ) ;cond
     ) ;define
