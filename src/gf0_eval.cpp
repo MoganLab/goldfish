@@ -313,8 +313,6 @@ is_frontend_syntax (pointer sym, Env env) {
   return false;
 }
 
-static V eval (scheme* sc, pointer x, Env env);
-
 static pointer
 args_to_list (scheme* sc, const std::vector<pointer>& argv);
 
@@ -513,6 +511,17 @@ bind_call (scheme* sc, const Closure& c, pointer arglist, pointer ctx) {
   return inner;
 }
 
+// Dynamic-wind stack (M-VM-2b second half): session-global, copied on
+// capture, spliced on invoke. depth = Kont size at push; a winder is due
+// when unwinding reaches depth <= its own. Declared before KF so unwind
+// frames can carry one for dispose-restore.
+struct Winder {
+  pointer before;
+  pointer after;
+  Env env;
+  size_t depth;
+};
+
 // ---- CEK core (M-VM-2b): explicit control stack, capturable continuations.
 // Control is an expr-to-run or yielded values; every nested position that
 // used C++ recursion is now a Kont frame. Capturing = copying the Kont
@@ -520,6 +529,7 @@ bind_call (scheme* sc, const Closure& c, pointer arglist, pointer ctx) {
 enum class KK {
   Seq, If, CallP, CallA, Define, Set, LetB, RecB, ValsB, Vals,
   CwvP, CwvQ, CwvC, CatchG, CatchR, Mod, CcK, DwK, ProcP, ApplyP, ApplyA,
+  WindA, Unwind,
 };
 struct KF {
   KK tag;
@@ -533,6 +543,12 @@ struct KF {
   std::vector<Roots> roots;
   int stage;
   bool flag;
+  // Unwind-carried runLoop entry wind mark (WindA/Unwind only).
+  size_t mark = 0;
+  // Unwind-carried s_wind truncation point for dispose-restore.
+  size_t at = 0;
+  // Unwind-carried winder (WindA only, for dispose-restore).
+  Winder wd;
 };
 // Store any pointer (expr datum or value) into a Kont frame with roots.
 static void
@@ -572,15 +588,8 @@ ctlExpr (pointer x, Env env) {
   return c;
 }
 
-// Dynamic-wind stack (M-VM-2b second half): session-global, copied on
-// capture, spliced on invoke. depth = Kont size at push; a winder is due
-// when unwinding reaches depth <= its own.
-struct Winder {
-  pointer before;
-  pointer after;
-  Env env;
-  size_t depth;
-};
+// Dynamic-wind stack storage (M-VM-2b second half): session-global,
+// copied on capture, spliced on invoke. Winder declared above (before KF).
 struct Saved {
   Kont k;
   Env env;
@@ -784,6 +793,63 @@ applyCtl (scheme* sc, pointer proc, const std::vector<pointer>& argvals, Kont& k
   aargs.push_back (proc);
   aargs.push_back (args_to_list (sc, argvals));
   return ctlVals (s7call_vec (sc, s7apply, aargs));
+}
+
+// Unwind machinery (P0.1b: no nested drive for winder transfers).
+// Collect due afters innermost-first, truncating them from s_wind
+// (pop-at-collect: a raising thunk must not re-collect itself into a
+// loop). Depths ascend outward-in, so stop at the first non-due winder.
+// Returns the truncation point for dispose-restore.
+static size_t
+collect_due (std::vector<Winder>& due, size_t bound, size_t ksize) {
+  due.clear ();
+  for (size_t i= s_wind.size (); i-- > bound;) {
+    if (s_wind[i].depth < ksize) break;
+    due.push_back (s_wind[i]);
+  }
+  size_t j= s_wind.size () - due.size ();
+  s_wind.erase (s_wind.begin () + (std::vector<Winder>::difference_type) j,
+                s_wind.end ());
+  return j;
+}
+
+// Push Unwind (CatchR rescan state) + WindA frames (innermost first on
+// top) and drive the first after-thunk, or a dummy value when none.
+static Ctl
+drive_unwind (scheme* sc, const std::vector<pointer>& eargs, size_t mark,
+              size_t at, const std::vector<Winder>& due, Kont& k) {
+  KF uw;
+  uw.tag= KK::Unwind;
+  uw.env= Env ();
+  uw.inner= Env ();
+  uw.a= nullptr;
+  uw.b= nullptr;
+  uw.c= nullptr;
+  uw.stage= 0;
+  uw.flag= false;
+  uw.mark= mark;
+  uw.at= at;
+  for (size_t i= 0; i < eargs.size (); ++i) {
+    uw.acc.push_back (eargs[i]);
+    kpin (sc, uw, eargs[i]);
+  }
+  k.push_back (uw);
+  for (size_t i= due.size (); i-- > 0;) {
+    KF wa;
+    wa.tag= KK::WindA;
+    wa.env= due[i].env;
+    wa.inner= Env ();
+    kstore (sc, wa, wa.a, due[i].after);
+    wa.b= nullptr;
+    wa.c= nullptr;
+    wa.stage= 0;
+    wa.flag= false;
+    wa.wd= due[i];
+    k.push_back (wa);
+  }
+  if (!due.empty ())
+    return applyCtl (sc, due[0].after, std::vector<pointer> (), k);
+  return ctlVals (single (sc, gf::unspecified (sc)));
 }
 
 static pointer
@@ -1526,6 +1592,40 @@ plugInto (scheme* sc, KF fr, V v, Kont& k) {
     // stage 5: after ran (value ignored); thunk value is acc[1].
     return ctlVals (single (sc, fr.acc[1]));
   }
+  case KK::WindA: {
+    // After-thunk completed in-loop: value discarded (callSync-ignore
+    // parity) and its winder already popped at collection. Pass on.
+    return ctlVals (v);
+  }
+  case KK::Unwind: {
+    // CatchR rescan with carried args (fr.acc); incoming v ignored.
+    for (;;) {
+      // Winders newly due as k shrank: chain another unwind round
+      // (innermost-first overall, matching the old pop-scan loop).
+      std::vector<Winder> due2;
+      size_t at2= collect_due (due2, fr.mark, k.size ());
+      if (!due2.empty ())
+        return drive_unwind (sc, fr.acc, fr.mark, at2, due2, k);
+      if (k.empty ()) {
+        GfEx ne;
+        ne.args= fr.acc;
+        for (size_t i= 0; i < ne.args.size (); ++i)
+          keep_in (ne.roots, sc, ne.args[i]);
+        throw ne;
+      }
+      KF f2= k.back ();
+      k.pop_back ();
+      if (f2.tag != KK::CatchR) continue;
+      // s7 catch rule (catch_1_function), mirrored from runLoop:
+      // tag==#T, tag eq? key, or key==#T.
+      bool all= gf::is_boolean (f2.a) && gf::boolean (sc, f2.a);
+      bool key_all= !fr.acc.empty () && gf::is_boolean (fr.acc[0]) &&
+                    gf::boolean (sc, fr.acc[0]);
+      if (!all && !key_all &&
+          (fr.acc.empty () || !gf::is_eq (f2.a, fr.acc[0]))) continue;
+      return applyCtl (sc, f2.b, fr.acc, k);
+    }
+  }
   return ctlVals (single (sc, fail (sc, "gf0: bad kont", fr.a)));
 }
 }
@@ -1571,27 +1671,38 @@ runLoop (scheme* sc, Ctl c, Kont& k) {
       }
     }
     catch (GfEx& e) {
-      // Unwind one frame at a time, running due afters innermost-first.
-      // A winder is due once unwinding reaches its push depth.
-      for (;;) {
-        while (s_wind.size () > wind_mark && s_wind.back ().depth >= k.size ()) {
-          Winder wd= s_wind.back ();
-          s_wind.pop_back ();
-          callSync (sc, wd.after);
-        }
-        if (k.empty ()) throw;
-        KF fr= k.back ();
-        k.pop_back ();
-        if (fr.tag != KK::CatchR) continue;
-        // s7 catch rule (catch_1_function): tag==#T, tag eq? key, or
-        // key==#T (single-string (error "msg") raises with type #T, so any
-        // tag catches it -- e.g. vector-sorted? range errors).
-        bool all= gf::is_boolean (fr.a) && gf::boolean (sc, fr.a);
-        bool key_all= !e.args.empty () && gf::is_boolean (e.args[0]) && gf::boolean (sc, e.args[0]);
-        if (!all && !key_all && (e.args.empty () || !gf::is_eq (fr.a, e.args[0]))) continue;
-        c= applyCtl (sc, fr.b, e.args, k);
-        break;
+      // Unwind as Kont program (no nested drive). A nested raise inside
+      // an after-thunk first disposes superseded machinery: pop through
+      // the innermost Unwind (abandoned computation goes with it; the
+      // fresh scan re-judges CatchR). Of the popped WindA frames the
+      // topmost was running (its winder stays dropped -- re-running a
+      // raising thunk would loop); the rest are restored to s_wind at
+      // their truncation point, outer-first.
+      size_t uw_at= k.size ();
+      for (size_t i= k.size (); i-- > 0;) {
+        if (k[i].tag == KK::Unwind) { uw_at= i; break; }
       }
+      if (uw_at != k.size ()) {
+        std::vector<Winder> back;
+        bool running_seen= false;
+        for (size_t i= k.size (); i-- > uw_at;) {
+          if (k[i].tag == KK::WindA) {
+            if (!running_seen) { running_seen= true; continue; }
+            back.push_back (k[i].wd);
+          }
+        }
+        size_t restore_at= k[uw_at].at;
+        k.erase (k.begin () + (std::vector<KF>::difference_type) uw_at, k.end ());
+        // back is inner..outer top-down; insert outer..inner.
+        if (restore_at > s_wind.size ()) restore_at= s_wind.size ();
+        for (size_t i= back.size (); i-- > 0;)
+          s_wind.insert (s_wind.begin () +
+                         (std::vector<Winder>::difference_type) restore_at,
+                         back[i]);
+      }
+      std::vector<Winder> due;
+      size_t at= collect_due (due, wind_mark, k.size ());
+      c= drive_unwind (sc, e.args, wind_mark, at, due, k);
     }
   }
 }
