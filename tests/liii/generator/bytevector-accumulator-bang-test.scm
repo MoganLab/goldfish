@@ -22,6 +22,11 @@
 ;; procedure
 ;; 一个单参累加器过程。传入字节数值时依次在 bytevec 相应索引位置赋值；传入 eof-object 时返回该 bytevec。
 ;;
+;; 说明
+;; ----
+;; 若需收集字节数值并直接返回新分配的字节向量，参见：
+;;   gf doc "bytevector-accumulator"
+;;
 ;; 错误处理
 ;; ----
 ;; 若写入字节数量超出 bytevec 剩余容量，可能引发越界错误。
