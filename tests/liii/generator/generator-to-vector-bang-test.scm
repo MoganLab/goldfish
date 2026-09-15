@@ -33,14 +33,30 @@
   (let ((count (generator->vector! v 0 g)))
     (check count => 3)
     (check v => '#(1 2 3))
-  )
-)
+  ) ;let
+) ;let
 
 (let ((g (generator 1 2 3)) (v (make-vector 3 #f)))
   (let ((count (generator->vector! v 1 g)))
     (check count => 2)
     (check v => '#(#f 1 2))
-  )
-)
+  ) ;let
+) ;let
+
+;; 空生成器写入
+(let ((g (generator)) (v (make-vector 3 'empty)))
+  (let ((count (generator->vector! v 0 g)))
+    (check count => 0)
+    (check v => '#(empty empty empty))
+  ) ;let
+) ;let
+
+;; 生成器元素多于向量剩余容量时截断填充
+(let ((g (generator 10 20 30 40)) (v (make-vector 2)))
+  (let ((count (generator->vector! v 0 g)))
+    (check count => 2)
+    (check v => '#(10 20))
+  ) ;let
+) ;let
 
 (check-report)
