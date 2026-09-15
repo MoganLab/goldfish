@@ -181,7 +181,10 @@ struct GfEx {
 };
 static pointer s_raised_marker= nullptr; // pinned identity token, not a primitive
 
-static pointer
+// Engine exception (M-VM-2a): always thrown, never returns. Marked
+// [[noreturn]] so the optimizer (and -Wreturn-type) sees through the
+// `return fail (...)` idiom used across stepE/plugInto/applyCtl.
+[[noreturn]] static pointer
 fail_key (scheme* sc, const char* key, const char* msg, pointer irritant) {
   GfEx e;
   e.args.push_back (pin (sc, gf::make_symbol (sc, key)));
@@ -190,9 +193,9 @@ fail_key (scheme* sc, const char* key, const char* msg, pointer irritant) {
   throw e;
 }
 
-static pointer
+[[noreturn]] static pointer
 fail (scheme* sc, const char* msg, pointer irritant) {
-  return fail_key (sc, "gf0-error", msg, irritant);
+  fail_key (sc, "gf0-error", msg, irritant);
 }
 
 static gf::int_
@@ -529,7 +532,7 @@ struct Winder {
 enum class KK {
   Seq, If, CallP, CallA, Define, Set, LetB, RecB, ValsB, Vals,
   CwvP, CwvQ, CwvC, CatchG, CatchR, Mod, CcK, DwK, ProcP, ApplyP, ApplyA,
-  WindA, Unwind,
+  WindA, Unwind, Invoke,
 };
 struct KF {
   KK tag;
@@ -603,6 +606,8 @@ static std::vector<Winder> s_wind;
 static Ctl stepE (scheme* sc, pointer x, Env env, Kont& k);
 static Ctl plugInto (scheme* sc, KF fr, V v, Kont& k);
 static V runLoop (scheme* sc, Ctl c, Kont& k);
+static void push_winda (scheme* sc, pointer proc, Env env, const Winder& wd,
+                        Kont& k);
 
 // Bidirectional canonicalization (M3): gf0 boxes never cross into s7;
 // s7 sees the memoized wrapper, and wrappers coming back unwrap to the
@@ -722,7 +727,6 @@ hof_maybe_wrap (scheme* sc, pointer proc, std::vector<pointer>& argv) {
       argv[(size_t) h.second]= wrap_box (sc, a);
   }
 }
-static V callSync (scheme* sc, pointer proc);
 static bool same_winder (const Winder& a, const Winder& b);
 
 // Sequence control: empty -> unspecified value; single -> direct;
@@ -745,7 +749,6 @@ seqCtl (scheme* sc, Env env, pointer body, Kont& k) {
 }
 
 static V runLoop (scheme* sc, Ctl c, Kont& k);
-static V callSync (scheme* sc, pointer proc);
 static bool same_winder (const Winder& a, const Winder& b);
 
 // Apply a resolved proc to value vector -> Control (never nests C++ eval).
@@ -764,22 +767,57 @@ applyCtl (scheme* sc, pointer proc, const std::vector<pointer>& argvals, Kont& k
       return ctlVals (single (sc, fail (sc, "gf0: bad continuation invoke", proc)));
     // R7RS: continuations take any number of values (s7/guile oracle:
     // zero args -> zero values, one -> single, n -> multi-n).
-    // Splice winders: run afters of the abandoned suffix (innermost first),
-    // adopt the target stack, run befores of the entered suffix.
+    // In-loop transfer (no nested drive): abandon-suffix afters run
+    // innermost-first on the old stack, then the target stack is
+    // adopted, entered befores run outermost-first, and Invoke installs
+    // k + delivers values. A raise inside a transfer thunk aborts the
+    // whole transfer (pending frames dropped at dispose, like the old
+    // nested-drive abort).
     const std::vector<Winder>& tgt= s_conts[(size_t) idx].winders;
     size_t common= 0;
     while (common < s_wind.size () && common < tgt.size () &&
            same_winder (s_wind[common], tgt[common]))
       ++common;
-    for (size_t i= s_wind.size (); i-- > common;)
-      callSync (sc, s_wind[i].after);
-    s_wind= tgt;
+    std::vector<Winder> abandon;
     for (size_t i= common; i < s_wind.size (); ++i)
-      callSync (sc, s_wind[i].before);
-    k= s_conts[(size_t) idx].k; // copy-on-invoke: stored stays pristine (multi-shot)
-    if (argvals.size () == 1) return ctlVals (single (sc, argvals[0]));
-    std::vector<pointer> many= argvals;
-    return ctlVals (multi_vec (sc, std::move (many)));
+      abandon.push_back (s_wind[i]);
+    std::vector<Winder> entered;
+    for (size_t i= common; i < tgt.size (); ++i)
+      entered.push_back (tgt[i]);
+    s_wind= tgt;
+    if (abandon.empty () && entered.empty ()) {
+      k= s_conts[(size_t) idx].k; // copy-on-invoke: stored stays pristine
+      if (argvals.size () == 1) return ctlVals (single (sc, argvals[0]));
+      std::vector<pointer> many= argvals;
+      return ctlVals (multi_vec (sc, std::move (many)));
+    }
+    KF iv;
+    iv.tag= KK::Invoke;
+    iv.env= Env ();
+    iv.inner= Env ();
+    iv.a= nullptr;
+    iv.b= nullptr;
+    iv.c= nullptr;
+    iv.stage= (int) idx;
+    iv.flag= false;
+    for (size_t i= 0; i < argvals.size (); ++i) {
+      iv.acc.push_back (argvals[i]);
+      kpin (sc, iv, argvals[i]);
+    }
+    k.push_back (iv);
+    for (size_t i= entered.size (); i-- > 0;) {
+      Winder bw;
+      bw.before= entered[i].before;
+      bw.after= entered[i].before;
+      bw.env= entered[i].env;
+      bw.depth= 0;
+      push_winda (sc, entered[i].before, entered[i].env, bw, k);
+    }
+    for (size_t i= 0; i < abandon.size (); ++i)
+      push_winda (sc, abandon[i].after, abandon[i].env, abandon[i], k);
+    if (!abandon.empty ())
+      return applyCtl (sc, abandon.back ().after, std::vector<pointer> (), k);
+    return applyCtl (sc, entered[0].before, std::vector<pointer> (), k);
   }
   if (gf::is_procedure (proc)) return ctlVals (s7call_vec (sc, proc, argvals));
   // Not applicable: delegate to s7's apply so the NATIVE error object
@@ -813,6 +851,23 @@ collect_due (std::vector<Winder>& due, size_t bound, size_t ksize) {
   return j;
 }
 
+// Push one winder-thunk frame (after or before; value discarded at
+// completion). wd carried for Unwind-hit dispose-restore.
+static void
+push_winda (scheme* sc, pointer proc, Env env, const Winder& wd, Kont& k) {
+  KF wa;
+  wa.tag= KK::WindA;
+  wa.env= env;
+  wa.inner= Env ();
+  kstore (sc, wa, wa.a, proc);
+  wa.b= nullptr;
+  wa.c= nullptr;
+  wa.stage= 0;
+  wa.flag= false;
+  wa.wd= wd;
+  k.push_back (wa);
+}
+
 // Push Unwind (CatchR rescan state) + WindA frames (innermost first on
 // top) and drive the first after-thunk, or a dummy value when none.
 static Ctl
@@ -834,19 +889,8 @@ drive_unwind (scheme* sc, const std::vector<pointer>& eargs, size_t mark,
     kpin (sc, uw, eargs[i]);
   }
   k.push_back (uw);
-  for (size_t i= due.size (); i-- > 0;) {
-    KF wa;
-    wa.tag= KK::WindA;
-    wa.env= due[i].env;
-    wa.inner= Env ();
-    kstore (sc, wa, wa.a, due[i].after);
-    wa.b= nullptr;
-    wa.c= nullptr;
-    wa.stage= 0;
-    wa.flag= false;
-    wa.wd= due[i];
-    k.push_back (wa);
-  }
+  for (size_t i= due.size (); i-- > 0;)
+    push_winda (sc, due[i].after, due[i].env, due[i], k);
   if (!due.empty ())
     return applyCtl (sc, due[0].after, std::vector<pointer> (), k);
   return ctlVals (single (sc, gf::unspecified (sc)));
@@ -1597,6 +1641,17 @@ plugInto (scheme* sc, KF fr, V v, Kont& k) {
     // parity) and its winder already popped at collection. Pass on.
     return ctlVals (v);
   }
+  case KK::Invoke: {
+    // Transfer thunks done (values discarded): install target k and
+    // deliver carried argvals (single/multi rule mirrors applyCtl).
+    gf::int_ idx= (gf::int_) fr.stage;
+    if (idx < 0 || (size_t) idx >= s_conts.size ())
+      return ctlVals (single (sc, fail (sc, "gf0: bad continuation invoke", fr.a)));
+    k= s_conts[(size_t) idx].k; // copy-on-invoke: stored stays pristine
+    if (fr.acc.size () == 1) return ctlVals (single (sc, fr.acc[0]));
+    std::vector<pointer> many= fr.acc;
+    return ctlVals (multi_vec (sc, std::move (many)));
+  }
   case KK::Unwind: {
     // CatchR rescan with carried args (fr.acc); incoming v ignored.
     for (;;) {
@@ -1626,20 +1681,14 @@ plugInto (scheme* sc, KF fr, V v, Kont& k) {
       return applyCtl (sc, f2.b, fr.acc, k);
     }
   }
+  default: {
+    fail (sc, "gf0: bad kont tag", fr.a);
+  }
   return ctlVals (single (sc, fail (sc, "gf0: bad kont", fr.a)));
 }
 }
 
 static V runLoop (scheme* sc, Ctl c, Kont& k);
-
-// Synchronous proc call for winder bodies (before/after run to completion
-// during a transfer). Nested driveLoop depth is bounded by winder nesting,
-// not user recursion.
-static V
-callSync (scheme* sc, pointer proc) {
-  Kont k2;
-  return runLoop (sc, applyCtl (sc, proc, std::vector<pointer> (), k2), k2);
-}
 
 static bool
 same_winder (const Winder& a, const Winder& b) {
@@ -1648,13 +1697,13 @@ same_winder (const Winder& a, const Winder& b) {
 
 static V
 runLoop (scheme* sc, Ctl c, Kont& k) {
-  // Winder watermark: nested drives (box callbacks via g_f0-apply, ref
-  // path) share the global wind stack but own only winders pushed during
-  // themselves. Unwinding pops down to the mark, never below: an error
+  // Winder watermark: nested drives (box callbacks via g_f0-apply through
+  // s7) share the global wind stack but own only winders pushed during
+  // themselves. Unwinding collects down to the mark, never below: an error
   // crossing back into an outer drive rethrows there, where the outer
   // Kont depths judge its own winders. Without this, a nested unwind
-  // sees a shallow k and pops (running afters of) outer regions that a
-  // catch inside still inhabits (njson let-njson handles freed mid-block).
+  // sees a shallow k and runs (afters of) outer regions that a catch
+  // inside still inhabits (njson let-njson handles freed mid-block).
   size_t wind_mark= s_wind.size ();
   for (;;) {
     if (stack_low ())
@@ -1671,28 +1720,39 @@ runLoop (scheme* sc, Ctl c, Kont& k) {
       }
     }
     catch (GfEx& e) {
-      // Unwind as Kont program (no nested drive). A nested raise inside
-      // an after-thunk first disposes superseded machinery: pop through
-      // the innermost Unwind (abandoned computation goes with it; the
-      // fresh scan re-judges CatchR). Of the popped WindA frames the
-      // topmost was running (its winder stays dropped -- re-running a
-      // raising thunk would loop); the rest are restored to s_wind at
-      // their truncation point, outer-first.
-      size_t uw_at= k.size ();
+      // Unwind as Kont program (no nested drive). A nested raise first
+      // disposes superseded machinery: pop through the innermost
+      // boundary (abandoned computation goes with it; the fresh scan
+      // re-judges CatchR). Boundary kinds:
+      // - Unwind (clean chain, no Invoke above it): the topmost popped
+      //   WindA was running (its winder stays dropped -- re-running a
+      //   raising thunk would loop); the rest are restored to s_wind at
+      //   their truncation point, outer-first.
+      // - Invoke (transfer aborted by a raise inside a transfer thunk):
+      //   drop everything, restore nothing (matches the old
+      //   nested-drive abort). An Unwind can never sit above an Invoke
+      //   in sane flow (every catch resolves the innermost boundary
+      //   fully); a mixed chain only arises via capture-restore, where
+      //   the stale frames below stay scan-inert.
+      size_t b_at= k.size ();
+      bool b_is_unwind= false;
       for (size_t i= k.size (); i-- > 0;) {
-        if (k[i].tag == KK::Unwind) { uw_at= i; break; }
+        if (k[i].tag == KK::Unwind) { b_at= i; b_is_unwind= true; break; }
+        if (k[i].tag == KK::Invoke) { b_at= i; b_is_unwind= false; break; }
       }
-      if (uw_at != k.size ()) {
+      if (b_at != k.size ()) {
         std::vector<Winder> back;
         bool running_seen= false;
-        for (size_t i= k.size (); i-- > uw_at;) {
-          if (k[i].tag == KK::WindA) {
-            if (!running_seen) { running_seen= true; continue; }
-            back.push_back (k[i].wd);
+        if (b_is_unwind) {
+          for (size_t i= k.size (); i-- > b_at;) {
+            if (k[i].tag == KK::WindA) {
+              if (!running_seen) { running_seen= true; continue; }
+              back.push_back (k[i].wd);
+            }
           }
         }
-        size_t restore_at= k[uw_at].at;
-        k.erase (k.begin () + (std::vector<KF>::difference_type) uw_at, k.end ());
+        size_t restore_at= k[b_at].at;
+        k.erase (k.begin () + (std::vector<KF>::difference_type) b_at, k.end ());
         // back is inner..outer top-down; insert outer..inner.
         if (restore_at > s_wind.size ()) restore_at= s_wind.size ();
         for (size_t i= back.size (); i-- > 0;)
