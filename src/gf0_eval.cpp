@@ -210,43 +210,10 @@ c_type_cached (scheme* sc, const char* name, gf::int_* slot) {
   return *slot;
 }
 
-#if defined(__linux__)
-// Exact C-stack guard: tree-walking without TCO overflows ~900 nested
-// applies at 8MB (measured). Fail cleanly instead of segfaulting; proper
-// tail calls are M-VM (engine-owned control stack).
-static void*  s_stack_base= nullptr;
-static size_t s_stack_size= 0;
-static void
-stack_init_once () {
-  if (s_stack_base == nullptr) {
-    pthread_attr_t attr;
-    if (pthread_getattr_np (pthread_self (), &attr) == 0) {
-      pthread_attr_getstack (&attr, &s_stack_base, &s_stack_size);
-      pthread_attr_destroy (&attr);
-    }
-  }
-  if (s_stack_base == nullptr) {
-    // Fallback: rlimit size + a near-top anchor captured here (init runs
-    // near the top of the main stack). Conservative: fires early, never late.
-    struct rlimit rl;
-    if (getrlimit (RLIMIT_STACK, &rl) == 0 && rl.rlim_cur != RLIM_INFINITY) {
-      char anchor;
-      s_stack_base= (void*) ((uintptr_t) &anchor - (uintptr_t) rl.rlim_cur);
-      s_stack_size= (size_t) rl.rlim_cur;
-    }
-  }
-}
-static bool
-stack_low () {
-  if (s_stack_base == nullptr) return false;
-  char here;
-  uintptr_t sp= (uintptr_t) &here;
-  return sp < (uintptr_t) s_stack_base + (uintptr_t) (1 << 20);
-}
-#else
-static void stack_init_once () {}
-static bool stack_low () { return false; }
-#endif
+// C-stack guard retired (P0.2): the CEK core (M-VM-2b) drives all
+// evaluation in-loop -- 1M tail calls and 20k non-tail nesting verified
+// with zero C-stack growth. Cross-engine nesting (trampoline callbacks
+// through s7) stays bounded by s7's own stack plus the s7call fence.
 
 static pointer
 unassigned_box (scheme* sc) {
@@ -921,8 +888,6 @@ is_cc_name (pointer x) {
 
 static Ctl
 stepE (scheme* sc, pointer x, Env env, Kont& k) {
-  if (stack_low ())
-    return ctlVals (single (sc, fail (sc, "gf0: C stack low (non-tail depth; see M-VM)", x)));
   // Self-evaluating (keywords first: s7 keywords satisfy is_symbol but
   // evaluate to themselves).
   if (gf::is_boolean (x) || gf::is_number (x) || gf::is_string (x) ||
@@ -1706,8 +1671,6 @@ runLoop (scheme* sc, Ctl c, Kont& k) {
   // inside still inhabits (njson let-njson handles freed mid-block).
   size_t wind_mark= s_wind.size ();
   for (;;) {
-    if (stack_low ())
-      fail (sc, "gf0: C stack low (non-tail depth; see M-VM)", gf::nil (sc));
     try {
       if (c.isVals) {
         if (k.empty ()) return c.v;
@@ -1810,7 +1773,6 @@ seed_from_inlet (scheme* sc, pointer inlet) {
 
 static void
 ensure_top (scheme* sc) {
-  stack_init_once ();
   if (s_top.frames == nullptr) {
     s_top.frames= std::make_shared<std::vector<std::shared_ptr<Frame>>> ();
     // Frame 0 = host snapshot (M2 seed, never user code); frame 1+ = user.
