@@ -529,7 +529,13 @@
       (let* ((refs (map (lambda (n v) (cons n (collect-residual-free v)))
                         names vals))
              (body-free (collect-residual-free body-inl))
-             (surviving-names
+             ;; The surviving SET is the closure of body references under
+             ;; "referenced by a surviving value".  The surviving ORDER is
+             ;; always the source order: `let' evaluates inits
+             ;; left-to-right (effect order) and `letrec*' is sequential
+             ;; (reordering changes semantics -- the grow below appends,
+             ;; so reorder back here).
+             (alive-set
                (let grow ((alive (filter (lambda (n)
                                            (or (member n body-free)
                                                (not (pure-ir?
@@ -549,6 +555,8 @@
                    (if (null? new)
                      alive
                      (grow (append alive new))))))
+             (surviving-names
+               (filter (lambda (n) (member n alive-set)) names))
              (surviving-vals
                (map (lambda (n) (cadr (assoc n (map list names vals))))
                     surviving-names)))

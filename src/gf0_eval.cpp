@@ -179,6 +179,13 @@ struct GfEx {
   std::vector<pointer> args; // handler-visible: [key, info...]
   Roots roots;               // roots for args (shared across copies)
 };
+// Final rethrow: the Unwind scan's empty-k end must propagate OUT of
+// runLoop's try (a GfEx thrown from plugInto would be recaught by the
+// same try and spin). Handlers rethrow the inner GfEx from catch
+// context, which is safe; s7 boundaries convert like GfEx.
+struct GfFinal {
+  GfEx e;
+};
 static pointer s_raised_marker= nullptr; // pinned identity token, not a primitive
 
 // Engine exception (M-VM-2a): always thrown, never returns. Marked
@@ -1631,7 +1638,9 @@ plugInto (scheme* sc, KF fr, V v, Kont& k) {
         ne.args= fr.acc;
         for (size_t i= 0; i < ne.args.size (); ++i)
           keep_in (ne.roots, sc, ne.args[i]);
-        throw ne;
+        GfFinal fin;
+        fin.e= ne;
+        throw fin;
       }
       KF f2= k.back ();
       k.pop_back ();
@@ -1681,6 +1690,11 @@ runLoop (scheme* sc, Ctl c, Kont& k) {
       else {
         c= stepE (sc, c.x, c.env, k);
       }
+    }
+    catch (GfFinal& z) {
+      // Scan-completed unwind: rethrow the error out of the try (safe
+      // from handler context; recaught never).
+      throw z.e;
     }
     catch (GfEx& e) {
       // Unwind as Kont program (no nested drive). A nested raise first
@@ -1811,6 +1825,9 @@ f_gf0_apply (scheme* sc, pointer args) {
     V one_v= must_single (sc, r, box, "gf0: s7 callback must be single-valued");
     return one_v.one;
   }
+  catch (GfFinal& z) {
+    return gfex_to_error (sc, z.e);
+  }
   catch (GfEx& e) {
     return gfex_to_error (sc, e);
   }
@@ -1841,6 +1858,9 @@ f_gf0_apply_values (scheme* sc, pointer args) {
     }
     return args_to_list (sc, r.many);
   }
+  catch (GfFinal& z) {
+    return gfex_to_error (sc, z.e);
+  }
   catch (GfEx& e) {
     return gfex_to_error (sc, e);
   }
@@ -1858,6 +1878,9 @@ f_gf0_eval (scheme* sc, pointer args) {
     // multi in single position is an error). Collect with g_gf0-eval-values.
     return fail (sc, "gf0: multi-valued at single boundary; use g_gf0-eval-values",
                  gf::car (args));
+  }
+  catch (GfFinal& z) {
+    return gfex_to_error (sc, z.e);
   }
   catch (GfEx& e) {
     return gfex_to_error (sc, e);
@@ -1926,6 +1949,9 @@ f_gf0_eval_values (scheme* sc, pointer args) {
       return args_to_list (sc, one);
     }
     return args_to_list (sc, r.many);
+  }
+  catch (GfFinal& z) {
+    return gfex_to_error (sc, z.e);
   }
   catch (GfEx& e) {
     return gfex_to_error (sc, e);
