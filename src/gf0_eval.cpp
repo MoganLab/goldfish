@@ -187,6 +187,41 @@ struct GfFinal {
   GfEx e;
 };
 static pointer s_raised_marker= nullptr; // pinned identity token, not a primitive
+static pointer s_thrown_marker= nullptr; // pinned identity token, not a primitive
+static pointer args_to_list (scheme* sc, const std::vector<pointer>& argv);
+
+// Escape package: a GfEx leaving a trampoline back into s7 is returned
+// as (gf0-thrown . throw-args), and the trampoline rethrows it with s7
+// `throw` -- all managed inside s7 eval, so no C++ frames are crossed
+// (unlike a C++ s7_throw, which would longjmp past Roots/Kont and leak
+// pins).  Replaying the throw (instead of raising an s7 error object,
+// which reshapes catch info) preserves catch-handler shapes exactly:
+// s7-side handlers cannot tell a replayed throw from a native one.
+// throw-args rule: [key, infolist] (the s7call MARKER shape) spreads to
+// (key . infolist); anything else passes as-is.  A genuine gf0 error
+// escaping a callback thus arrives as a throw carrying its values --
+// still catchable by tag, still loud uncaught; that reshaping is
+// documented and covered by the diff gate (with-exception-handler,
+// raise-continuable).
+static pointer
+thrown_package (scheme* sc, const GfEx& e) {
+  if (s_thrown_marker == nullptr)
+    s_thrown_marker= pin (sc, gf::make_symbol (sc, "gf0-thrown"));
+  std::vector<pointer> args;
+  args.push_back (s_thrown_marker);
+  if (e.args.size () == 2 && gf::is_pair (e.args[1])) {
+    args.push_back (e.args[0]);
+    for (pointer t= e.args[1]; gf::is_pair (t); t= gf::cdr (t))
+      args.push_back (gf::car (t));
+  }
+  else {
+    for (size_t i= 0; i < e.args.size (); ++i)
+      args.push_back (e.args[i]);
+  }
+  if (args.size () == 1)
+    args.push_back (gf::make_symbol (sc, "gf0-error"));
+  return args_to_list (sc, args);
+}
 
 // Engine exception (M-VM-2a): always thrown, never returns. Marked
 // [[noreturn]] so the optimizer (and -Wreturn-type) sees through the
@@ -326,17 +361,47 @@ static pointer
 wrap_for_s7 (scheme* sc, pointer box) {
   Roots tmp;
   pointer quote_sym= keep_in (tmp, sc, gf::make_symbol (sc, "quote"));
-  // (lambda args (apply values (g_gf0-apply-values 'BOX args))): the
-  // values-variant spreads multi through s7 natively, so callbacks keep
-  // SRFI multi propagation (e.g. set-search! success/failure results).
+  // (lambda args
+  //   (let ((r (g_gf0-apply-values 'BOX args)))
+  //     (if (and (pair? r) (eq? (car r) 'gf0-thrown))
+  //         (apply throw (cdr r))      ; replay natively: catch shapes match
+  //         (apply values r)))): the values-variant spreads multi through
+  // s7 natively, so callbacks keep SRFI multi propagation (e.g.
+  // set-search! success/failure results); the thrown-package branch
+  // rethrows with s7 `throw` inside managed eval (no C++ crossed), so an
+  // s7-side catch sees exactly what a native throw would deliver.
+  pointer r_sym= keep_in (tmp, sc, gf::make_symbol (sc, "r"));
   pointer inner= keep_in (tmp, sc, gf::list (sc,
     keep_in (tmp, sc, gf::make_symbol (sc, "g_gf0-apply-values")),
     keep_in (tmp, sc, gf::list (sc, quote_sym, box)),
     keep_in (tmp, sc, gf::make_symbol (sc, "args"))));
-  pointer call= keep_in (tmp, sc, gf::list (sc,
+  pointer is_thrown= keep_in (tmp, sc, gf::list (sc,
+    keep_in (tmp, sc, gf::make_symbol (sc, "and")),
+    keep_in (tmp, sc, gf::list (sc,
+      keep_in (tmp, sc, gf::make_symbol (sc, "pair?")), r_sym)),
+    keep_in (tmp, sc, gf::list (sc,
+      keep_in (tmp, sc, gf::make_symbol (sc, "eq?")),
+      keep_in (tmp, sc, gf::list (sc,
+        keep_in (tmp, sc, gf::make_symbol (sc, "car")), r_sym)),
+      keep_in (tmp, sc, gf::list (sc, quote_sym,
+        keep_in (tmp, sc, gf::make_symbol (sc, "gf0-thrown"))))))));
+  pointer rethrow= keep_in (tmp, sc, gf::list (sc,
+    keep_in (tmp, sc, gf::make_symbol (sc, "apply")),
+    keep_in (tmp, sc, gf::make_symbol (sc, "throw")),
+    keep_in (tmp, sc, gf::list (sc,
+      keep_in (tmp, sc, gf::make_symbol (sc, "cdr")), r_sym))));
+  pointer spread= keep_in (tmp, sc, gf::list (sc,
     keep_in (tmp, sc, gf::make_symbol (sc, "apply")),
     keep_in (tmp, sc, gf::make_symbol (sc, "values")),
-    inner));
+    r_sym));
+  pointer body= keep_in (tmp, sc, gf::list (sc,
+    keep_in (tmp, sc, gf::make_symbol (sc, "if")),
+    is_thrown, rethrow, spread));
+  pointer call= keep_in (tmp, sc, gf::list (sc,
+    keep_in (tmp, sc, gf::make_symbol (sc, "let")),
+    keep_in (tmp, sc, gf::list (sc,
+      keep_in (tmp, sc, gf::list (sc, r_sym, inner)))),
+    body));
   pointer expr= keep_in (tmp, sc, gf::list (sc,
     keep_in (tmp, sc, gf::make_symbol (sc, "lambda")),
     keep_in (tmp, sc, gf::make_symbol (sc, "args")),
@@ -665,6 +730,8 @@ static const struct HofLib { const char* lib; const char* name; int p0; int p1; 
   {"(liii packrat)", "packrat-check", 0, 1},
   {"(liii packrat)", "packrat-or", 0, 1},
   {"(liii packrat)", "packrat-unless", 1, 2},
+  {"(scheme base)", "make-parameter", 1, -1},
+  {"(scheme base)", "with-exception-handler", 0, 1},
   {nullptr, nullptr, -1, -1},
 };
 static std::vector<std::pair<pointer, int>> s_hof_procs;
@@ -1884,10 +1951,10 @@ f_gf0_apply_values (scheme* sc, pointer args) {
     return args_to_list (sc, many);
   }
   catch (GfFinal& z) {
-    return gfex_to_error (sc, z.e);
+    return thrown_package (sc, z.e);
   }
   catch (GfEx& e) {
-    return gfex_to_error (sc, e);
+    return thrown_package (sc, e);
   }
 }
 

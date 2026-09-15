@@ -51,12 +51,18 @@
 #                    wrong-type-arg downstream); intentional,
 #                    see CORE-SEMANTICS.md.
 #   make-parameter / with-exception-handler / raise-continuable /
-#   read-bytevector / error-object / lambda-star / bag-replace -- [FIX]
-#                    whole-file reference wiring or bundle identity:
-#                    bare base imports left unbound (or bound to a wrong
-#                    native), string identity lost through the bundle;
-#                    per-form `gf test` resolves fine. Frontend backlog,
-#                    not evaluation.
+#   read-bytevector -- (unskipped 2026-09-15, with bag-replace alongside)
+#   false entries in the kernel primitive-variables table (s7 provides no
+#   such natives): the entries shadowed the (scheme base) defines
+#   whole-file, so references lowered bare and died in eval envs without
+#   ambient base.  Removed from the table (+ base exception dropped in
+#   needs-qualified-ref?); all gate green since.
+#   error-object-test -- [FIX] semantic, not wiring: (error-object?
+#   (guard ... (error "boom" 1 2))) evaluates but returns #f (record
+#   identity split suspected: <error-object> minted twice across
+#   expand/load evaluations, predicate checks the other type).
+#   lambda-star-test -- [FIX] "car argument, 1, is an integer": separate
+#   diagnosis needed (liii base macro area).
 #   reader-test -- [NEVER] s7's zero-value collapse ((unspecified? (values)) => #t,
 #                    (list (values)) => (#<unspecified>)): the documented
 #                    values/unspecified folding family, intentionally not
@@ -94,7 +100,7 @@ cd "$(dirname "$0")/.."
 mkdir -p /tmp/kilo
 dir=${1:-tests/gf0}
 fail=0
-skip_names="srfi-158-test letrec-test letrec-star-test internal-define-values-test make-parameter-test with-exception-handler-test raise-continuable-test read-bytevector-test error-object-test iset-search-test reader-test cut-test signature-test make-hook-test lambda-star-test bag-replace-test packrat-test boot-test function-libraries-test srfi-78-test srfi-78-200_12_2_test srfi-78-simple-stacktrace-test sicp-test"
+skip_names="srfi-158-test letrec-test letrec-star-test internal-define-values-test error-object-test iset-search-test reader-test cut-test signature-test make-hook-test lambda-star-test packrat-test boot-test function-libraries-test srfi-78-test srfi-78-200_12_2_test srfi-78-simple-stacktrace-test sicp-test"
 
 if [ $# -ge 2 ]; then
   # Explicit file list (M3: test files): shift past dir, take the rest.

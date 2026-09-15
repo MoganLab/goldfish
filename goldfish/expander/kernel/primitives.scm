@@ -67,11 +67,10 @@
      eq? eqv? equal?
      display write write-shared write-simple write-char write-string
      read read-char read-line read-string
-     read-u8 read-bytevector read-bytevector! peek-char peek-u8 char-ready?
+     read-u8 read-bytevector! peek-char peek-u8 char-ready?
      write-u8 write-bytevector
      newline eof-object eof-object?
-     make-parameter
-     catch throw with-exception-handler raise-continuable
+     catch throw
      rootlet inlet curlet dynamic-let?
      pi
      port? input-port? output-port? textual-port? binary-port?

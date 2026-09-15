@@ -221,21 +221,22 @@
 ;;; emit-toplevel-ref : toplevel-ref syntax -> syntax
 ;;; Reference to a module-defined toplevel: a bare gensym when the
 ;;; reference sits in the defining library (or the binding has no home),
-;;; a qualified (module-ref 'home 'original) otherwise.  Bindings whose
-;;; home is the BASE library are ambient: they live in the expander's own
-;;; module / the host rootlet under their ORIGINAL name (the install
-;;; loader evaluates lib-layer defines into the-expander-library under the
-;;; renamed gensym AND module-define! registers the original), so any
-;;; cross-library datum reference (e.g. define-macro transformer output
-;;; referencing install-defmacro-transformer) emits the bare original
-;;; name instead of a (module-ref ...) that would need a runtime module
-;;; the base library does not register.
+;;; a qualified (module-ref 'home 'original) otherwise -- including when
+;;; home is the BASE library.  Base-home references used to emit bare on
+;;; the theory that base bindings live ambiently in every eval env, but
+;;; whole-file evaluation (compile-file-cached + eval in the expander
+;;; library, the diff-gate path) has no such ambient base: only s7
+;;; primitives and load-lib!'d bindings are visible there, so bare base
+;;; refs to library-defined names (with-exception-handler,
+;;; make-parameter, ...) fail while primitives silently work.  module-ref
+;;; resolves through the registry in every env (verified); self-refs
+;;; (home == use-site lib) still emit bare gensyms, as do homeless core
+;;; refs, so boot and kernel code are unaffected in shape.
 
 (define (needs-qualified-ref? ref src-stx)
   (let ((home (toplevel-ref-home ref)))
     (and home
          (not (eq? home (syntax-library src-stx)))
-         (not (eq? home (base-library)))
          (not (program-library? home))
          (toplevel-ref-exported? ref))))
 
