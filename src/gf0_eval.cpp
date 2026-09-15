@@ -195,19 +195,15 @@ fail (scheme* sc, const char* msg, pointer irritant) {
   return fail_key (sc, "gf0-error", msg, irritant);
 }
 
-static gf::pointer gf0_box_ref (gf::scheme* sc, gf::pointer args);
-
 static gf::int_
 c_type_cached (scheme* sc, const char* name, gf::int_* slot) {
   // make_c_type mints a fresh tag per call; cache one tag per box kind
   // (100k lambdas must not mint 100k type tags).
-  if (*slot == -1) {
+  // Boxes are NOT s7-applicable: a raw box reaching s7 apply position is
+  // a missing HOF-table entry (loud "attempt to apply" error, add on
+  // demand) — never silently bounced back into the engine.
+  if (*slot == -1)
     *slot= gf::make_c_type (sc, name);
-    // SPIKE (M3 interop): applicable boxes. ref fires when a box occurs
-    // in function position; unassigned boxes stay inapplicable.
-    if (std::strcmp (name, "gf0-unassigned") != 0)
-      gf::c_type_set_ref (sc, *slot, gf0_box_ref);
-  }
   return *slot;
 }
 
@@ -1607,27 +1603,6 @@ run (scheme* sc, pointer x, Env env) {
 }
 
 static pointer gfex_to_error (scheme* sc, GfEx& e);
-
-// SPIKE: s7-side application of gf0 boxes (ref protocol). Convention per
-// s7.h: ref receives the full combination (obj . args); args here arrive
-// EVALUATED or not depending on path -- handled by probing both.
-static gf::pointer
-gf0_box_ref (gf::scheme* sc, gf::pointer args) {
-  if (!gf::is_pair (args)) return gf::nil (sc);
-  pointer box= gf::car (args);
-  std::vector<pointer> argvals;
-  for (pointer t= gf::cdr (args); gf::is_pair (t); t= gf::cdr (t))
-    argvals.push_back (gf::car (t));
-  try {
-    Kont k;
-    V r= runLoop (sc, applyCtl (sc, box, argvals, k), k);
-    if (!r.multi) return r.one;
-    return gf::values (sc, args_to_list (sc, r.many));
-  }
-  catch (GfEx& e) {
-    return gfex_to_error (sc, e);
-  }
-}
 
 
 // s7->gf0 entries convert GfEx back to gf::error (a C++ exception must

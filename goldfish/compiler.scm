@@ -16,7 +16,7 @@
           (goldfish compiler patterns)
           (goldfish compiler passes))
   (export ir->core
-    core-language core-form? core-node-of validate-core-sexp
+    core-language core-form? core-node-of
     make-void void? void-source
     make-const const? const-source const-exp
     make-primitive-ref primitive-ref? primitive-ref-source primitive-ref-name

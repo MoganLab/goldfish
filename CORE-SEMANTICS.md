@@ -105,8 +105,9 @@ s7 列为当前后端实测；guile 3.0.11 / racket 9.2 双方验证
 
 ## 未决
 
-- `validate-core-sexp` 现为桩（非 pair 返 `#f`），管线执法靠
-  `core-form?`/`core-node-of`；新引擎上线时二选一：补全它或删之。
+- `validate-core-sexp` 已删除（2026-09-15）：它名不副实（只查 head 是否 symbol，
+  不查 `core-language`，且拒收 `(lambda ...)` 当过程的合法 core），又零调用。
+  core 形状由 expander 保证；管线执法走 `core-form?`/`core-node-of`。
 - `call/cc`/`dynamic-wind` 不可委托：s7 continuation 只捕获 s7 栈，
   gf0 闭包传给 s7 的 `call/cc` 被拒（实测 wrong-type-arg），且即使
   递入 s7 闭包、escape 也会丢 gf0 的 C++ 求值帧。须引擎自有控制栈

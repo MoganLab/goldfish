@@ -21,7 +21,7 @@
     make-seq seq? seq-source seq-head seq-tail
     make-call call? call-source call-proc call-args
     make-primcall primcall? primcall-source primcall-name primcall-args
-    core-language core-form? core-node-of validate-core-sexp
+    core-language core-form? core-node-of
     ir->core)
   (begin
     (define (make-void source) (vector 'void source))
@@ -261,12 +261,6 @@
       (cond ((assq head core-language) => cadr)
             (else #f)))
 
-    (define (validate-core-sexp x)
-      (cond
-        ((not (pair? x)) #f)
-        ((not (symbol? (car x))) (list x))
-        (else
-         (let loop ((parts x))
-           (cond ((null? parts) #f)
-                 ((validate-core-sexp (car parts)))
-                 (else (loop (cdr parts))))))))))
+    ;; No sexp-shape validator: core shapes are guaranteed by the expander.
+    ;; Enforcement at pipeline changes goes through core-form?/core-node-of.
+    ))
