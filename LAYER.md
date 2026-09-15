@@ -118,4 +118,11 @@ L7 loader ─> L5 compiler ─> L4 expander-lib ─> L3 expander-rt ─> L2 core
 - **宏层前置工程——syntax-case 已就绪**（2026-08 排查）：
   1. pattern 层 `dotted+ellipsis` 已修。
   2. template 层 `generate-temporaries` 已修：`with-syntax` 的 `inner-patvars` 提取与 `pattern-match` 对 plain list 的 `with-syntax` 支持；`let-values/define-values` 等 `gensym` 类宏可 `syntax-case` 化。
+- **立项（未开工）——持久化 Kont**：generator 负载 11ms/eval vs match 2ms，
+  落差全在 capture/invoke 的 Kont vector 全拷贝（`cont_box` 拷 k，
+  invoke 拷回）。方向：frame 链持久化共享＋写时复制，capture 摘指针
+  O(1)，invoke 切指针。约束：Roots pin/GC 互操作不变；Saved 拷贝语义
+  与水位线逻辑不变（只换容器）；捕获格式对外不可见（s7 侧只有 box）。
+  验收：bench generator 回落一个量级，全量＋差分门绿。非目标：字节码、
+  传值语义变更。
 
