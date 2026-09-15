@@ -33,6 +33,7 @@
 | [(liii os)](goldfish/liii/os.scm)                 | 库类似于 Python 的 `os` 模块    | `getenv`, `mkdir`                                                  |
 | [(liii path)](goldfish/liii/path.scm)             | 路径函数库                      | `path-dir?`, `path-file?`                                          |
 | [(liii range)](goldfish/liii/range.scm)           | 范围库                          | `numeric-range`, `iota`                                            |
+| [(liii generator)](goldfish/liii/generator.scm)   | 生成器与累加器函数库            | `generator`, `gtake`, `generator-fold`                             |
 | [(liii option)](goldfish/liii/option.scm)         | Option 类型库                   | `option?`, `option-map`, `option-flatten`                          |
 | [(liii either)](goldfish/liii/either.scm)         | Either 类型库（左值/右值）      | `left?`, `right?`, `either-map`                                    |
 | [(liii uuid)](goldfish/liii/uuid.scm)             | UUID 生成                       | `uuid4`                                                            |
@@ -63,6 +64,7 @@
 | `(srfi srfi-125)` | 部分 | 哈希表                    |
 | `(srfi srfi-133)` | 部分 | 向量                      |
 | `(srfi srfi-151)` | 部分 | 位运算                    |
+| `(srfi srfi-158)` | 完整 | 生成器与累加器            |
 | `(srfi srfi-196)` | 完整 | Range 库                  |
 | `(srfi srfi-216)` | 部分 | SICP                      |
 
