@@ -90,6 +90,7 @@ local JSON_SCHEMA_VALIDATOR_VERSION = "2.4.0"
 
 target ("goldfish") do
     set_languages("c++17")
+    add_includedirs("src")
     set_targetdir("$(projectdir)/bin/")
     set_basename("gf")
     if is_plat("linux") then
@@ -142,6 +143,16 @@ target ("goldfish") do
     add_files ("src/liii_reader.cpp")
     -- T0-ahead: gf0 reference evaluator (gf:: only, no s7.h)
     add_files ("src/gf0_eval.cpp")
+    -- New s7-independent runtime (currently exercised by standalone tests).
+    add_files ("src/runtime/evaluator.cpp")
+    add_files ("src/runtime/core_evaluator.cpp")
+    add_files ("src/runtime/reader.cpp")
+    add_files ("src/runtime/artifact.cpp")
+    add_files ("src/runtime/bootstrap.cpp")
+    add_files ("src/runtime/s7_bridge.cpp")
+    add_files ("src/runtime/bootstrap_primitives.cpp")
+    add_files ("src/runtime/standard_primitives.cpp")
+    add_files ("src/runtime/legacy_primitives.cpp")
     -- L6 vm (gf:: only, per-program, pre-decoded, no Scheme includes)
     -- L7 loader (CLI/REPL/load-path dispatch only)
     add_files ("src/goldfish.cpp")

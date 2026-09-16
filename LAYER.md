@@ -90,6 +90,10 @@ L7 loader ─> L5 compiler ─> L4 expander-lib ─> L3 expander-rt ─> L2 core
 
 未来以自研 VM 替换 s7 时，新宿主须按以下四档提供能力。此表是「所有能 Scheme 的都在 Scheme」的审计底稿：T3 是下沉行动清单，T0/T1/T2 是引擎的最小实现面。
 
+具体的替换边界、依赖方向、迁移阶段和验收规则见
+`RUNTIME_CONTRACT.md`。本节保留宿主能力清单；gf0/s7 bridge 属于迁移期
+实现，不属于最终宿主 ABI。
+
 ### T0 引擎本体（重写项）
 
 - 数据表示 + GC、求值循环/VM、错误传播协议（jump buffer 链、catcher 扫描）。执行格式待定（旧的位置编码字节码 ABI 已随 L6 移除；未来从 `syntax->ir` 的 IR 重新设计）。
@@ -125,4 +129,3 @@ L7 loader ─> L5 compiler ─> L4 expander-lib ─> L3 expander-rt ─> L2 core
   与水位线逻辑不变（只换容器）；捕获格式对外不可见（s7 侧只有 box）。
   验收：bench generator 回落一个量级，全量＋差分门绿。非目标：字节码、
   传值语义变更。
-
