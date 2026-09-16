@@ -15,6 +15,50 @@
 ;;; nodes, no VM opcodes) -- the host's values objects and apply
 ;;; splicing ARE the representation.  Nothing is redefined here.
 
+;; These are library semantics, not evaluator primitives.  Keep only pair and
+;; vector construction/access in the native substrate.
+(define (negative? x) (< x 0))
+(define (number? x) (integer? x))
+(define (boolean=? x y) (and (boolean? x) (boolean? y) (eq? x y)))
+(define (odd? x) (not (= (modulo x 2) 0)))
+(define (even? x) (= (modulo x 2) 0))
+(define (abs x) (if (negative? x) (- 0 x) x))
+(define (make-list n . fill)
+  (if (= n 0) '()
+      (cons (if (null? fill) #f (car fill))
+            (make-list (- n 1) (if (null? fill) #f (car fill))))))
+(define (list-copy x)
+  (if (null? x) '() (cons (car x) (list-copy (cdr x)))))
+(define (list-tail x n)
+  (if (= n 0) x (list-tail (cdr x) (- n 1))))
+(define (list-ref x n) (car (list-tail x n)))
+(define (member x xs . maybe-equal?)
+  (let ((same? (if (null? maybe-equal?) equal? (car maybe-equal?))))
+    (if (null? xs) #f
+        (if (same? x (car xs)) xs
+            (member x (cdr xs) same?)))))
+(define (assoc x xs . maybe-equal?)
+  (let ((same? (if (null? maybe-equal?) equal? (car maybe-equal?))))
+    (if (null? xs) #f
+        (if (same? x (caar xs)) (car xs)
+            (assoc x (cdr xs) same?)))))
+(define (vector->list v)
+  (let loop ((i 0) (out '()))
+    (if (= i (vector-length v)) (reverse out)
+        (loop (+ i 1) (cons (vector-ref v i) out)))))
+(define (list->vector xs)
+  (let ((v (make-vector (length xs))))
+    (let loop ((i 0) (rest xs))
+      (if (null? rest) v
+          (begin (vector-set! v i (car rest))
+                 (loop (+ i 1) (cdr rest)))))))
+(define (vector-fill! v x)
+  (let loop ((i 0))
+    (if (= i (vector-length v)) (if #f #f)
+        (begin (vector-set! v i x) (loop (+ i 1))))))
+
+
+
 ;; every one of the rest lists still has an element: R7RS multi-list
 ;; map / for-each stop at the shortest list, so the loop guard must
 ;; check them all, not just l1 (zip relies on this for ragged input).
@@ -59,3 +103,7 @@
         (begin
           (apply f (car l1) (map-cars rest))
           (fen (cdr l1) (map-cdrs rest)))))))
+
+
+;; Fold follows the conventional (accumulator element) calling order used by
+;; the expander's set helpers and SRFI-1.
