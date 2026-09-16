@@ -15,6 +15,12 @@
 //
 
 #include "gf.h"
+#include "runtime/s7_bridge.hpp"
+#include "runtime/artifact.hpp"
+#include "runtime/standard_primitives.hpp"
+#include "runtime/legacy_primitives.hpp"
+#include "runtime/bootstrap_primitives.hpp"
+#include "runtime/bootstrap.hpp"
 #include <algorithm>
 #include <argh.h>
 #include <cctype>
@@ -799,6 +805,8 @@ display_help () {
   cout
       << "                     Prefer single quotes so double quotes inside Scheme strings usually do not need escaping"
       << endl;
+  cout << "  eval-native CODE   Evaluate lowered core with the native runtime (experimental)" << endl;
+  cout << "  load-native FILE   Load a lowered .gfo artifact with the native runtime (experimental)" << endl;
   cout << "  load FILE          Load Scheme code from FILE, then enter REPL" << endl;
   cout << "  fix [options] PATH Format PATH (PATH can be a .scm file or directory)" << endl;
   cout << "                     Options:" << endl;
@@ -1210,6 +1218,40 @@ goldfish_eval_gf0_code (gf::scheme* sc, string code) {
                "(lambda args (display \"gf0-error: \") (write args) (newline) #f))";
   gf::pointer x= gf::eval_c_string (sc, expr.c_str ());
   cout << gf::object_to_c_string (sc, x) << endl;
+}
+
+static void
+goldfish_eval_native_code (gf::scheme* sc, string code) {
+  runtime::Runtime runtime;
+  runtime::install_standard_primitives (runtime.evaluator ());
+  runtime::install_bootstrap_primitives (runtime.evaluator ());
+  runtime::install_legacy_primitives (runtime.evaluator ());
+  runtime::S7Bridge bridge (runtime);
+  gf::pointer port= gf::open_input_string (sc, code.c_str ());
+  gf::pointer read_proc= gf::name_to_value (sc, "read");
+  int form_count= 0;
+  while (true) {
+    gf::pointer datum= gf::call (sc, read_proc, gf::list (sc, port));
+    if (gf::is_eq (datum, gf::eof_object (sc))) break;
+    runtime::Values values= bridge.eval_s7 (sc, datum);
+    gf::pointer output= bridge.values_to_s7 (sc, values);
+    cout << gf::object_to_c_string (sc, output) << endl;
+    ++form_count;
+  }
+  gf::close_input_port (sc, port);
+  if (form_count == 0) cout << "()" << endl;
+}
+
+static void
+goldfish_eval_native_file (gf::scheme* sc, string path) {
+  runtime::Runtime runtime;
+  runtime::NativeBootstrap bootstrap (runtime);
+  bootstrap.install_primitives ();
+  bootstrap.load_kernel ("goldfish/expander/kernel-combined.scm");
+  runtime::ArtifactLoader loader (runtime.evaluator ());
+  runtime::S7Bridge bridge (runtime);
+  runtime::Value result= loader.load_gfo_file (path);
+  cout << gf::object_to_c_string (sc, bridge.to_s7 (sc, result)) << endl;
 }
 
 static string
@@ -1697,7 +1739,7 @@ repl_for_community_edition (gf::scheme* sc, int argc, char** argv) {
   }
 
   // 自动路由：如果参数是目录且第一级文件夹是 tests，自动视为 test 命令
-  if (!command.empty () && command != "help" && command != "version" && command != "eval" && command != "load" &&
+  if (!command.empty () && command != "help" && command != "version" && command != "eval" && command != "eval-native" && command != "load-native" && command != "load" &&
       command != "repl" && command != "run" && command != "test" && command != "-e") {
     std::error_code ec;
     if (fs::is_directory (command, ec)) {
@@ -1850,6 +1892,52 @@ repl_for_community_edition (gf::scheme* sc, int argc, char** argv) {
     gf::set_current_error_port (sc, old_port);
     if (gc_loc != -1) gf::gc_unprotect_at (sc, gc_loc);
     if ((errmsg) && (*errmsg)) return -1;
+    return 0;
+  }
+
+  if (command == "eval-native") {
+    if (argc < command_index + 1) {
+      std::cerr << "Error: 'eval-native' requires CODE argument.\n" << std::endl;
+      gf::close_output_port (sc, gf::current_error_port (sc));
+      gf::set_current_error_port (sc, old_port);
+      if (gc_loc != -1) gf::gc_unprotect_at (sc, gc_loc);
+      return 1;
+    }
+    try {
+      goldfish_eval_native_code (sc, argv[command_index + 1]);
+    } catch (const std::exception& error) {
+      std::cerr << "native-error: " << error.what () << std::endl;
+      gf::close_output_port (sc, gf::current_error_port (sc));
+      gf::set_current_error_port (sc, old_port);
+      if (gc_loc != -1) gf::gc_unprotect_at (sc, gc_loc);
+      return -1;
+    }
+    gf::close_output_port (sc, gf::current_error_port (sc));
+    gf::set_current_error_port (sc, old_port);
+    if (gc_loc != -1) gf::gc_unprotect_at (sc, gc_loc);
+    return 0;
+  }
+
+  if (command == "load-native") {
+    if (argc < command_index + 1) {
+      std::cerr << "Error: 'load-native' requires FILE argument.\n" << std::endl;
+      gf::close_output_port (sc, gf::current_error_port (sc));
+      gf::set_current_error_port (sc, old_port);
+      if (gc_loc != -1) gf::gc_unprotect_at (sc, gc_loc);
+      return 1;
+    }
+    try {
+      goldfish_eval_native_file (sc, argv[command_index + 1]);
+    } catch (const std::exception& error) {
+      std::cerr << "native-error: " << error.what () << std::endl;
+      gf::close_output_port (sc, gf::current_error_port (sc));
+      gf::set_current_error_port (sc, old_port);
+      if (gc_loc != -1) gf::gc_unprotect_at (sc, gc_loc);
+      return -1;
+    }
+    gf::close_output_port (sc, gf::current_error_port (sc));
+    gf::set_current_error_port (sc, old_port);
+    if (gc_loc != -1) gf::gc_unprotect_at (sc, gc_loc);
     return 0;
   }
 
