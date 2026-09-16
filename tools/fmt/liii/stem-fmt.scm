@@ -257,8 +257,8 @@
       ) ;let
     ) ;define
 
-    ;; 目录格式化（协议适配）：若传入 cfg，以 gf_fmt.json 为准收集并格式化；
-    ;; 否则递归格式化指定 dir。dry-run 不支持目录。返回 (total updated cached) 列表。
+    ;; 目录格式化（协议适配）：以指定 dir 为准递归收集并格式化。
+    ;; 若传入 cfg，合并其 stem.exclude 配置。dry-run 不支持目录。返回 (total updated cached) 列表。
     (define (stem-format-directory dir extensions excludes dry-run . maybe-cfg)
       (if dry-run
         (begin
@@ -266,14 +266,14 @@
           (newline)
           (exit 1)
         ) ;begin
-        (let ((cfg (if (null? maybe-cfg) #f (car maybe-cfg))))
-          (if cfg
-            (stem-format-files (stem-collect cfg) cfg)
-            (call-with-values (lambda () (format-directory dir extensions excludes dry-run))
-              (lambda (total updated cached) (list total updated cached))
-            ) ;call-with-values
-          ) ;if
-        ) ;let
+        (let* ((cfg (if (null? maybe-cfg) #f (car maybe-cfg)))
+               (cfg-excludes (if cfg (lang-excludes 'stem cfg) '()))
+               (all-excludes (append excludes cfg-excludes))
+              ) ;
+          (call-with-values (lambda () (format-directory dir extensions all-excludes dry-run))
+            (lambda (total updated cached) (list total updated cached))
+          ) ;call-with-values
+        ) ;let*
       ) ;if
     ) ;define
 

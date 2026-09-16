@@ -228,22 +228,23 @@
       ) ;if
     ) ;define
 
-    ;; 目录递归格式化：若传入 cfg，则以 gf_fmt.json 为准收集文件；否则收集 dir 下
-    ;; 命中 suffixes 的 C/C++ 文件（尊重 excludes）。逐文件 clang-format 比对内容。
-    ;; 返回 (total updated unchanged)。dry-run 不支持目录（由调用方拦截）。
+    ;; 目录递归格式化：在 dir 下收集命中 suffixes 的 C/C++ 文件（尊重 excludes 与 cfg 排除）。
+    ;; 逐文件 clang-format 比对内容。返回 (total updated unchanged)。dry-run 不支持目录（由调用方拦截）。
     (define (format-cpp-directory dir suffixes excludes . maybe-cfg)
-      (let ((cfg (if (null? maybe-cfg) #f (car maybe-cfg))))
-        (let ((files (if cfg (cpp-collect cfg) (collect-files dir suffixes excludes))))
-          (if (null? files)
-            (begin
-              (display "No C++ files found.")
-              (newline)
-              (list 0 0 0)
-            ) ;begin
-            (format-cpp-files files cfg)
-          ) ;if
-        ) ;let
-      ) ;let
+      (let* ((cfg (if (null? maybe-cfg) #f (car maybe-cfg)))
+             (cfg-excludes (if cfg (lang-excludes 'cpp cfg) '()))
+             (all-excludes (append excludes cfg-excludes))
+             (files (collect-files dir suffixes all-excludes))
+            ) ;
+        (if (null? files)
+          (begin
+            (display "No C++ files found.")
+            (newline)
+            (list 0 0 0)
+          ) ;begin
+          (format-cpp-files files cfg)
+        ) ;if
+      ) ;let*
     ) ;define
 
     ;; ---- 单文件检查 -----------------------------------------------------

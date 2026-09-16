@@ -171,7 +171,7 @@
       (newline)
       (display "  -h, --help       显示此帮助文档")
       (newline)
-      (display "      --check      非破坏性检查：发现未格式化文件则退出码 1（供 CI，读 gf_fmt.json）"
+      (display "      --check      非破坏性检查：发现未格式化文件则退出码 1（可针对整个仓库、单目录或单文件）"
       ) ;display
       (newline)
       (display "      --dry-run    预览模式（不写回文件；目录路径不支持）"
@@ -201,6 +201,9 @@
       ) ;display
       (newline)
       (display "  gf fmt --check               CI 非破坏性检查，未格式化退出码 1"
+      ) ;display
+      (newline)
+      (display "  gf fmt --check /path/to/dir  CI 非破坏性检查指定目录"
       ) ;display
       (newline)
       (display "  gf fmt file.scm              格式化单个文件")
@@ -411,6 +414,83 @@
       ) ;let*
     ) ;define
 
+    ;; 目录检查：选语言 handler，收集指定 dir 下文件，逐个调用 check-file。
+    ;; 若有未格式化文件，输出未格式化列表并以退出码 1 退出；全部通过则退出码 0。
+    (define (dispatch-check-directory dir extensions excludes)
+      (let* ((cfg (catch #t (lambda () (load-fmt-config)) (lambda (type info) #f)))
+             (handler (directory-handler-for extensions))
+             (label (lang-label handler))
+             (check-file (lang-ref handler 'check-file))
+             (lang-name-sym (lang-name handler))
+             (cfg-excludes (if cfg (lang-excludes lang-name-sym cfg) '()))
+             (all-excludes (append excludes cfg-excludes))
+             (files (collect-files dir extensions all-excludes))
+            ) ;
+        (display (string-append "=== Checking " label " files in " dir " ==="))
+        (newline)
+        (flush-output)
+        (let loop
+          ((fs files) (offenders '()))
+          (if (null? fs)
+            (let ((total (length offenders)))
+              (newline)
+              (print-offenders label (reverse offenders))
+              (newline)
+              (if (> total 0)
+                (begin
+                  (display (string-append "FAIL: " (number->string total) " file(s) need formatting")
+                  ) ;display
+                  (newline)
+                  (exit 1)
+                ) ;begin
+                (begin
+                  (display "OK: all files formatted.")
+                  (newline)
+                  (exit 0)
+                ) ;begin
+              ) ;if
+            ) ;let
+            (let ((f (car fs)))
+              (loop (cdr fs) (if (check-file f cfg) offenders (cons f offenders)))
+            ) ;let
+          ) ;if
+        ) ;let
+      ) ;let*
+    ) ;define
+
+    ;; 单文件检查：按文件后缀选语言 handler，调用其 check-file。
+    ;; 若未格式化，打印提示并以退出码 1 退出；通过则退出码 0。
+    (define (dispatch-check-file path-str excludes)
+      (let* ((cfg (catch #t (lambda () (load-fmt-config)) (lambda (type info) #f)))
+             (ext (path-suffix (path path-str)))
+             (handler (or (lang-for-extension ext) (scheme-handler-of)))
+             (lang-name-sym (lang-name handler))
+             (cfg-excludes (if cfg (lang-excludes lang-name-sym cfg) '()))
+             (all-excludes (append excludes cfg-excludes))
+             (check-file (lang-ref handler 'check-file))
+            ) ;
+        (if (file-excluded? path-str all-excludes)
+          (begin
+            (display (string-append "Skipped (excluded): " path-str))
+            (newline)
+            (exit 0)
+          ) ;begin
+          (if (check-file path-str cfg)
+            (begin
+              (display (string-append path-str ": OK"))
+              (newline)
+              (exit 0)
+            ) ;begin
+            (begin
+              (display (string-append path-str ": needs formatting"))
+              (newline)
+              (exit 1)
+            ) ;begin
+          ) ;if
+        ) ;if
+      ) ;let*
+    ) ;define
+
     ;; 单文件/目录模式下，从 gf_fmt.json 读 scheme.exclude 作为项目级排除
     ;; （配置不存在时降级为 '()，单文件模式不强制要求配置）。
     (define (scheme-config-excludes)
@@ -616,13 +696,19 @@
                 ;; 单文件。按后缀查注册表派发到对应语言。
                 ((path-file? (path path-str))
                  (let ((excludes (append cli-excludes (scheme-config-excludes))))
-                   (dispatch-format-file path-str dry-run excludes)
+                   (if check-flag
+                     (dispatch-check-file path-str excludes)
+                     (dispatch-format-file path-str dry-run excludes)
+                   ) ;if
                  ) ;let
                 ) ;
                 ;; 目录递归。按 -e 后缀查注册表派发到对应语言。
                 ((path-dir? (path path-str))
                  (let ((excludes (append cli-excludes (scheme-config-excludes))))
-                   (dispatch-format-directory path-str extensions excludes dry-run)
+                   (if check-flag
+                     (dispatch-check-directory path-str extensions excludes)
+                     (dispatch-format-directory path-str extensions excludes dry-run)
+                   ) ;if
                  ) ;let
                 ) ;
                 (else (display (string-append "错误: 路径不存在 - " path-str))
