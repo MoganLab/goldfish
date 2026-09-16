@@ -544,7 +544,7 @@
 (define *boot-region-libraries* '())
 
 (define-public (current-expand-env)
-  (or *unit-expand-env* the-expander-library))
+  (or *unit-expand-env* (module-eval-environment the-expander-library)))
 
 ;; The active store assoc: the unit's, else the boot one.  Both grow on
 ;; demand (current-region-library-at); a unit's assoc is discarded with
@@ -586,7 +586,7 @@
   ;; extent.  Old values are saved and restored, so units nest (a load
   ;; triggered during another unit's expansion is a unit of its own and
   ;; the outer one resumes afterwards).
-  (let ((env (sublet the-expander-library))
+  (let ((env (sublet (module-eval-environment the-expander-library)))
         (outer-env *unit-expand-env*)
         (outer-stores *unit-region-libraries*))
     (dynamic-wind

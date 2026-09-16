@@ -295,7 +295,8 @@
       (let ((sexps (map lower defs)))
         (for-each (lambda (sexp)
                     (if (and (pair? sexp) (eq? (car sexp) 'define))
-                      (eval sexp the-expander-library)
+                      (eval sexp (module-eval-environment
+                                  the-expander-library))
                       (error 'install-library-forms! "expected value definition"
                              sexp)))
                   sexps)
@@ -615,7 +616,8 @@
               bindings)
     (if (null? defs)
       #f
-      (eval (cons 'begin (map deserialize-cache-sexp defs)) the-expander-library))
+      (eval (cons 'begin (map deserialize-cache-sexp defs))
+            (module-eval-environment the-expander-library)))
     (for-each (lambda (r)
                 (let* ((name (car r))
                        (data (deserialize-cache-sexp (cdr r)))
@@ -652,7 +654,8 @@
   (let ((b (exp-library-ref-own the-base-library name)))
     (if b
       (module-define! the-expander-library name
-        (eval (toplevel-ref-gensym (binding-value b)) the-expander-library)))
+        (eval (toplevel-ref-gensym (binding-value b))
+              (module-eval-environment the-expander-library))))
     (exp-library-define! the-base-library name (make-primitive-binding name))))
 
 ;;; install-with-helpers! : lib path gate-names capture-names -> void

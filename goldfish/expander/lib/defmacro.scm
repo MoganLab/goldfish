@@ -23,7 +23,8 @@
 ;;; dotted-pattern-variable instantiation.
 
 (define (install-defmacro-transformer name params body)
-  (eval (cons 'lambda (cons params body)) the-expander-library))
+  (eval (cons 'lambda (cons params body))
+        (module-eval-environment the-expander-library)))
 
 ;; Register the helper under its bare name: lib-layer defines are
 ;; scope-renamed at install time (install-defmacro-transformer:0), so a

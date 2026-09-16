@@ -189,26 +189,41 @@
 ;;; ---------------------------------------------------------------------------
 ;;; Runtime module substrate.
 ;;;
-;;; A module is an s7 inlet holding its bindings plus '__name and
-;;; '__exports metadata.  module-define! adds a binding and records it
-;;; as exported.  the-expander-library (the expander's own API module)
-;;; is module instance zero; user R7RS runtime modules use the same
-;;; substrate.  module-ref accepts a module object or a registered module
-;;; name (the form emitted by the expander for cross-library references).
-;;; Note: s7 eval falls back to rootlet for names absent from an inlet, so
-;;; evaluating transformer code in the-expander-library documents the
-;;; expander API surface without sandboxing it.
+;;; A module is an s7 inlet holding its public bindings plus '__name and
+;;; '__exports metadata.  The eval environment is accessed through
+;;; module-eval-environment so its representation can move out of the inlet
+;;; without changing bootstrap callers.
+;;; module-define! adds a binding and records it as exported.
+;;; the-expander-library (the expander's own API module) is module instance
+;;; zero; user R7RS runtime modules use the same substrate.  module-ref
+;;; accepts a module object or a registered module name (the form emitted by
+;;; the expander for cross-library references).
 
 (define *module-registry* '())
 
+(define (native-module-environment m)
+  (let ((env (let-ref m '__eval-environment)))
+    (and env
+         (defined? 'eval-environment?)
+         (eval-environment? env)
+         env)))
+
 (define (make-module name)
-  (inlet '__name name '__exports '()))
+  (inlet '__name name '__exports '()
+         '__eval-environment
+         (if (and (defined? 'make-eval-environment)
+                  (procedure? make-eval-environment))
+           (make-eval-environment)
+           #f)))
 
 (define (module? obj)
   (and (let? obj) (assq '__name (let->list obj)) #t))
 
 (define (module-name m)
   (let-ref m '__name))
+
+(define (module-eval-environment m)
+  (or (native-module-environment m) m))
 
 (define (module-exports m)
   (let-ref m '__exports))
@@ -217,6 +232,9 @@
   (if (assq name (let->list m))
     (let-set! m name value)
     (varlet m name value))
+  (let ((env (native-module-environment m)))
+    (if env
+      (eval-environment-define! env name value)))
   (unless (memq name (let-ref m '__exports))
     (let-set! m '__exports (cons name (let-ref m '__exports))))
   m)
@@ -225,7 +243,17 @@
   (let ((m (if (module? m) m (lookup-module m))))
     (unless (memq name (let-ref m '__exports))
       (error 'module-ref "not exported" name))
-    (let-ref m name)))
+    (let ((env (native-module-environment m)))
+      (if env
+        (eval-environment-ref env name)
+        (let-ref m name)))))
+
+(define (module-set m name value)
+  (let ((m (if (module? m) m (lookup-module m))))
+    (let ((env (native-module-environment m)))
+      (if env
+        (eval-environment-set! env name value)
+        (let-set! m name value)))))
 
 ;;; A cross-library value reference is lowered to (module-ref 'home 'name);
 ;;; set! on such a reference lowers to ((setter module-ref) 'home 'name v)
@@ -234,8 +262,7 @@
 ;;; (or any registered module) work from macro-generated code.
 (set! (setter module-ref)
       (lambda (m name value)
-        (let ((m (if (module? m) m (lookup-module m))))
-          (let-set! m name value))))
+        (module-set m name value)))
 
 (define (register-module m)
   (let ((name (module-name m)))

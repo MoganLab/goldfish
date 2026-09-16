@@ -110,7 +110,8 @@
 (define (le-rootlet-copy bindings)
   (for-each (lambda (e)
               (varlet (rootlet) (car e)
-                      (eval (cdr e) the-expander-library)))
+                      (eval (cdr e)
+                            (module-eval-environment the-expander-library))))
             bindings))
 
 ;; The seed's macro records: expand-library-body registers transformers
@@ -162,9 +163,11 @@
               (for-each
                 (lambda (m)
                   (exp-library-define! lib (car m)
-                    (make-transformer-binding (eval (cdr m) the-expander-library))))
+                    (make-transformer-binding
+                      (eval (cdr m)
+                            (module-eval-environment the-expander-library)))))
                 macros)
-              (eval sexp the-expander-library)
+              (eval sexp (module-eval-environment the-expander-library))
               (le-rootlet-copy bindings))
           (let* ((forms (read-forms (open-input-file file)))
                  (stxs (map (lambda (f) (stx-set-library (wrap-expression f) lib))
@@ -173,7 +176,11 @@
               (lambda () (expand-library-body stxs lib (initial-context)))
               (lambda (defs ctx)
               (let ((macros (le-take-macro-records)))
-              (for-each (lambda (d) (eval (lower d) the-expander-library)) defs)
+              (for-each
+                (lambda (d)
+                  (eval (lower d)
+                        (module-eval-environment the-expander-library)))
+                defs)
               (let ((bindings (map (lambda (e)
                                      (let ((name (car e)) (b (cdr e)))
                                        (cons name

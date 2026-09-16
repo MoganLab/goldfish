@@ -911,7 +911,7 @@
                         ;; lowered defs reference library bindings by
                         ;; gensym (e.g. load-library!:40), which only
                         ;; resolve in the-expander-library.
-                        (eval sexp the-expander-library))
+                        (eval sexp (module-eval-environment the-expander-library)))
                       (lambda (type info)
                         (note-compile-failure path type info)
                         (note-per-form path)
@@ -1034,11 +1034,13 @@
       (let*-values (((name binding) (resolve-identifier head ctx))
                     ((defs ctx1) ((binding-value binding) stx ctx)))
         (set! *eval-ctx* ctx1)
-        (eval-defs (session-defs defs) the-expander-library))
+        (eval-defs (session-defs defs)
+                   (module-eval-environment the-expander-library)))
       (let*-values (((defs ctx1)
                      (expand-library-body (list stx) lib ctx)))
         (set! *eval-ctx* ctx1)
-        (eval-defs (session-defs defs) the-expander-library)))))
+        (eval-defs (session-defs defs)
+                   (module-eval-environment the-expander-library))))))
 
 ;;; ------------------------------------------------------------------------
 ;;; write-roundtrip : datum port -> void

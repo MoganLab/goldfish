@@ -103,6 +103,7 @@
     make-record-type
     module?
     module-define!
+    module-eval-environment
     module-exports
     module-name
     module-ref

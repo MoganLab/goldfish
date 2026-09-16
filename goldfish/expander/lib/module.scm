@@ -1492,7 +1492,9 @@
                 (let loop ((ds defs))
                   (if (null? ds)
                       #f
-                      (let ((r (eval (lower (car ds)) the-expander-library)))
+                      (let ((r (eval (lower (car ds))
+                                     (module-eval-environment
+                                      the-expander-library))))
                         (if (null? (cdr ds)) r (loop (cdr ds)))))))))))))
 
 (define %environment-api-installed!
