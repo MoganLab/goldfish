@@ -1,0 +1,1 @@
+(gfo 0 stamp (begin (define answer 40) (+ answer 2)) #f)
