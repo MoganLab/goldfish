@@ -50,6 +50,30 @@ std::string library_name(Value value) {
     return result + ")";
 }
 
+std::string raised_message(const RaisedValue& raised) {
+    Value value = raised.value();
+    if (value.is_object() &&
+        value.as_object()->type() == ObjectType::ErrorObject) {
+        const auto* error = value.as_object<ErrorObject>();
+        std::string message = error->message;
+        for (Value irritant : error->irritants) {
+            message += " ";
+            if (irritant.is_integer())
+                message += std::to_string(irritant.as_integer());
+            else if (irritant.is_object() &&
+                     irritant.as_object()->type() == ObjectType::String)
+                message += irritant.as_object<StringObject>()->value;
+            else if (irritant.is_object() &&
+                     irritant.as_object()->type() == ObjectType::Symbol)
+                message += irritant.as_object<SymbolObject>()->name;
+            else
+                message += "<value>";
+        }
+        return message;
+    }
+    return "raised Scheme value";
+}
+
 void collect_import_names(Value value,
                           const ArtifactLoader::DependencyLoader& load) {
     if (!value.is_object() || value.as_object()->type() != ObjectType::Pair)
@@ -89,6 +113,9 @@ Value ArtifactLoader::call(const char* name, const Values& arguments) {
     } catch (const std::runtime_error& error) {
         throw std::runtime_error(std::string("artifact: call ") + name +
                                  ": " + error.what());
+    } catch (const RaisedValue& raised) {
+        throw std::runtime_error(std::string("artifact: call ") + name +
+                                 ": " + raised_message(raised));
     }
     if (result.size() != 1)
         throw std::runtime_error(std::string("artifact: ") + name +
@@ -97,6 +124,12 @@ Value ArtifactLoader::call(const char* name, const Values& arguments) {
 }
 
 void ArtifactLoader::capture_kernel_api() {
+    // kernel-combined is both executable bootstrap code and the expander
+    // library named (goldfish).  Library artifacts may refer back to it in
+    // their serialized binding homes, so register that identity before the
+    // first non-kernel artifact is restored.
+    Value base_library = evaluator_.eval(evaluator_.symbol("the-base-library"));
+    exp_libraries_["(goldfish)"] = base_library;
     for (const char* name : {"make-exp-library", "exp-library-name",
                              "exp-library-define!", "make-primitive-binding",
                              "make-toplevel-binding", "make-toplevel-ref",
@@ -261,6 +294,63 @@ Value ArtifactLoader::load_gfo_file(const std::string& path) {
         fields[3].as_object()->type() == ObjectType::Pair &&
         symbol_named(fields[3].as_object<PairObject>()->car, "bundle"))
         return load_bundle_gfo_file(path);
+    // Compatibility with the pre-bundle program cache format.  Its payload
+    // is (bindings lowered-body macro-records), not an expression itself;
+    // evaluating the first field treats the binding alist as a procedure and
+    // fails on the first exported name.  The lowered body is self-contained
+    // and is the only part needed by the native bootstrap reader.
+    if (fields[3].is_object() &&
+        fields[3].as_object()->type() == ObjectType::Pair &&
+        fields[3].as_object<PairObject>()->car.is_object() &&
+        fields[3].as_object<PairObject>()->car.as_object()->type() ==
+            ObjectType::Pair) {
+        std::vector<Value> legacy_payload = proper_list(fields[3]);
+        if (legacy_payload.size() >= 2) {
+            Value result = Value::unspecified();
+            std::vector<Value> body_forms;
+            if (legacy_payload[1].is_object() &&
+                legacy_payload[1].as_object()->type() == ObjectType::Pair &&
+                symbol_named(legacy_payload[1].as_object<PairObject>()->car,
+                             "begin"))
+                body_forms = proper_list(
+                    legacy_payload[1].as_object<PairObject>()->cdr);
+            else
+                body_forms.push_back(legacy_payload[1]);
+            for (std::size_t index = 0; index < body_forms.size(); ++index) {
+                try {
+                    result = evaluator_.eval(body_forms[index]);
+                } catch (const std::runtime_error& error) {
+                    throw std::runtime_error(
+                        "artifact: legacy program form " +
+                        std::to_string(index) + ": " + error.what());
+                }
+            }
+            // Legacy program caches carry the public root bindings
+            // separately from their lowered body.  Executing the body only
+            // leaves names such as read-forms hidden behind their allocated
+            // gensyms, so the native bootstrap silently keeps using the
+            // tiny reader.  Replay the old le-rootlet-copy step here.
+            if (!legacy_payload[0].is_null()) {
+                for (Value entry : proper_list(legacy_payload[0])) {
+                    if (!entry.is_object() ||
+                        entry.as_object()->type() != ObjectType::Pair)
+                        throw std::runtime_error(
+                            "artifact: malformed legacy binding entry");
+                    auto* binding = entry.as_object<PairObject>();
+                    Value value;
+                    try {
+                        value = evaluator_.global_environment()->lookup(binding->cdr);
+                    } catch (const std::runtime_error& error) {
+                        throw std::runtime_error(
+                            std::string("artifact: legacy binding target missing: ") +
+                            error.what());
+                    }
+                    evaluator_.global_environment()->define(binding->car, value);
+                }
+            }
+            return result;
+        }
+    }
     return evaluator_.eval(fields[3]);
 }
 
@@ -298,7 +388,33 @@ Value ArtifactLoader::load_library_gfo_file(const std::string& path) {
                         "artifact: malformed library record (expected six fields)");
                 Value exp_library = call("make-exp-library", {library[0]});
                 exp_libraries_[library_name(library[0])] = exp_library;
+                Value module = call("make-module", {library[0]});
+                Value module_environment =
+                    call("module-eval-environment", {module});
+                if (!module_environment.is_object() ||
+                    module_environment.as_object()->type() !=
+                        ObjectType::EvalEnvironment)
+                    throw std::runtime_error(
+                        "artifact: library has no evaluation environment");
                 const std::string name = library_name(library[0]);
+                Value expander = evaluator_.eval(
+                    evaluator_.symbol("the-expander-library"));
+                Value module_ref = evaluator_.eval(
+                    evaluator_.symbol("module-ref"));
+                Value import_into = Value::boolean(false);
+                try {
+                    import_into = evaluator_.apply_values(
+                        module_ref,
+                        {expander,
+                         evaluator_.symbol("import-into-library!")})[0];
+                } catch (const RaisedValue&) {
+                    // Bare native module artifacts can be loaded before the
+                    // lib-layer API exists; their registry entries are
+                    // completed when library bundles are replayed.
+                }
+                if (!import_into.is_boolean())
+                    evaluator_.apply_values(import_into,
+                                            {exp_library, library[2]});
                 try {
                     restore_library_metadata(library, exp_library);
                 } catch (const std::runtime_error& error) {
@@ -308,11 +424,21 @@ Value ArtifactLoader::load_library_gfo_file(const std::string& path) {
                 std::size_t index = 0;
                 for (Value definition : proper_list(library[5])) {
                     try {
+                        // Lowered toplevel references are process-wide gensym
+                        // bindings.  Keep executing definitions in the root
+                        // environment so a closure restored from a later
+                        // library can resolve an earlier library's gensym;
+                        // the module environment below remains the public
+                        // module-facing view.
                         evaluator_.eval(definition);
                     } catch (const std::runtime_error& error) {
                         throw std::runtime_error(
                             "artifact: definition " + std::to_string(index) +
                             " for " + name + ": " + error.what());
+                    } catch (const RaisedValue& raised) {
+                        throw std::runtime_error(
+                            "artifact: definition " + std::to_string(index) +
+                            " for " + name + ": " + raised_message(raised));
                     }
                     ++index;
                 }
@@ -321,7 +447,6 @@ Value ArtifactLoader::load_library_gfo_file(const std::string& path) {
                 // on a registration expression finding the right global
                 // helper after another library has introduced a same-named
                 // binding.
-                Value module = call("make-module", {library[0]});
                 for (Value export_name : proper_list(library[1])) {
                     Value binding = call("exp-library-ref-own",
                                          {exp_library, export_name});
@@ -343,6 +468,29 @@ Value ArtifactLoader::load_library_gfo_file(const std::string& path) {
                 }
                 call("register-module", {module});
                 (void)call("lookup-module", {library[0]});
+                // The runtime module registry and the expander's library
+                // registry are distinct.  Cache restore must populate both;
+                // otherwise a later `(import ...)` tries to load a library
+                // that was already restored as a module.
+                Value registry_set = Value::boolean(false);
+                Value make_record = Value::boolean(false);
+                try {
+                    registry_set = evaluator_.apply_values(
+                        module_ref,
+                        {expander,
+                         evaluator_.symbol("library-registry-set!")})[0];
+                    make_record = evaluator_.apply_values(
+                        module_ref,
+                        {expander, evaluator_.symbol("make-lib-record")})[0];
+                } catch (const RaisedValue&) {
+                    // See the import API note above.
+                }
+                if (!registry_set.is_boolean() && !make_record.is_boolean()) {
+                    Value record = evaluator_.apply_values(
+                        make_record, {exp_library, library[1]})[0];
+                    evaluator_.apply_values(registry_set,
+                                            {library[0], record});
+                }
             }
             return Value::unspecified();
         }
@@ -394,6 +542,30 @@ Value ArtifactLoader::load_bundle_gfo_file(
         for (std::size_t i = 1; i < definition_section.size(); ++i)
             evaluator_.eval(definition_section[i]);
 
+        // Source loading exposes the values initialized in the expander
+        // module to its surrounding evaluator.  Restore that small bridge
+        // after evaluating a module bundle as well; otherwise APIs such as
+        // program-library remain trapped in the private module environment.
+        Value expander = evaluator_.eval(
+            evaluator_.symbol("the-expander-library"));
+        Value expander_env = call("module-eval-environment", {expander});
+        if (expander_env.is_object() &&
+            expander_env.as_object()->type() == ObjectType::EvalEnvironment) {
+            auto environment =
+                expander_env.as_object<EvalEnvironmentObject>()->environment;
+            for (const char* name : {"program-library", "make-program-library",
+                                     "reset-program-library!",
+                                     "register-program-library-primitive!"}) {
+                try {
+                    evaluator_.global_environment()->define(
+                        evaluator_.symbol(name),
+                        environment->lookup(evaluator_.symbol(name)));
+                } catch (const std::runtime_error&) {
+                    // Older module artifacts may not provide this API.
+                }
+            }
+        }
+
         // Module cache records are produced for an existing library (the
         // bootstrap library in the current pipeline), so their metadata is
         // installed into that library after the lowered definitions run.
@@ -409,6 +581,19 @@ Value ArtifactLoader::load_bundle_gfo_file(
             {call("exp-library-name", {base}), Value::null(), Value::null(),
              binding_entries, macro_entries, Value::null()});
         restore_library_metadata(proper_list(record), base);
+        // Module bundles produced by the bootstrap installer are extensions
+        // of the implementation library, not isolated user modules.  Their
+        // lowered bodies use allocated toplevel names, while transformer
+        // code may still evaluate generated forms through the expander's
+        // root environment.  Recreate the source-loader aliases here.
+        for (Value entry : proper_list(binding_entries)) {
+            auto fields = proper_list(entry);
+            if (fields.size() >= 2 && symbol_named(fields[1], "toplevel") &&
+                fields.size() >= 3) {
+                evaluator_.eval(evaluator_.list(
+                    {evaluator_.symbol("define"), fields[0], fields[2]}));
+            }
+        }
         return Value::unspecified();
     }
     if (symbol_named(bundle[2], "program")) {
