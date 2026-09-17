@@ -6,6 +6,8 @@
 #include "runtime/symbol.hpp"
 
 #include <functional>
+#include <memory>
+#include <ostream>
 #include <string>
 #include <vector>
 
@@ -46,6 +48,19 @@ public:
 
     std::string source;
     std::size_t position = 0;
+    bool closed = false;
+};
+
+class OutputPortObject final : public Object {
+public:
+    explicit OutputPortObject(std::shared_ptr<std::ostream> stream,
+                              std::shared_ptr<std::string> buffer = {})
+        : Object(ObjectType::OutputPort), stream(std::move(stream)),
+          buffer(std::move(buffer)) {}
+
+    std::shared_ptr<std::ostream> stream;
+    std::shared_ptr<std::string> buffer;
+    bool closed = false;
 };
 
 // Compatibility-only object for the old s7-style inlet/let API.  New runtime

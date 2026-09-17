@@ -12,7 +12,46 @@ namespace {
 
 bool delimiter(char c) {
     return c == '\0' || std::isspace(static_cast<unsigned char>(c)) ||
-           c == '(' || c == ')' || c == '\'' || c == ';' || c == '"';
+           c == '(' || c == ')' || c == '[' || c == ']' || c == '\'' ||
+           c == '`' || c == ',' ||
+           c == ';' || c == '"';
+}
+
+bool decode_single_utf8(const std::string& text, char32_t& codepoint) {
+    if (text.empty()) return false;
+    const auto byte = [&text](std::size_t index) {
+        return static_cast<unsigned char>(text[index]);
+    };
+    const unsigned char first = byte(0);
+    std::size_t length = 0;
+    char32_t value = 0;
+    if (first <= 0x7f) {
+        length = 1;
+        value = first;
+    } else if (first >= 0xc2 && first <= 0xdf) {
+        length = 2;
+        value = first & 0x1f;
+    } else if (first >= 0xe0 && first <= 0xef) {
+        length = 3;
+        value = first & 0x0f;
+    } else if (first >= 0xf0 && first <= 0xf4) {
+        length = 4;
+        value = first & 0x07;
+    } else {
+        return false;
+    }
+    if (text.size() != length) return false;
+    for (std::size_t i = 1; i < length; ++i) {
+        const unsigned char continuation = byte(i);
+        if ((continuation & 0xc0) != 0x80) return false;
+        value = (value << 6) | (continuation & 0x3f);
+    }
+    if ((length == 3 && value < 0x800) ||
+        (length == 4 && value < 0x10000) ||
+        (value >= 0xd800 && value <= 0xdfff) || value > 0x10ffff)
+        return false;
+    codepoint = value;
+    return true;
 }
 
 } // namespace
@@ -60,10 +99,20 @@ Value TinyReader::read_form() {
     skip_space();
     switch (peek()) {
     case '(':
-        return read_list();
+        return read_list(')');
+    case '[':
+        return read_list(']');
     case '\'':
         next();
         return evaluator_.list({evaluator_.symbol("quote"), read_form()});
+    case '`':
+        next();
+        return evaluator_.list({evaluator_.symbol("quasiquote"), read_form()});
+    case ',': {
+        next();
+        const char* name = consume('@') ? "unquote-splicing" : "unquote";
+        return evaluator_.list({evaluator_.symbol(name), read_form()});
+    }
     case '"':
         return read_string();
     case '#':
@@ -132,22 +181,53 @@ Value TinyReader::read_character() {
     std::string token;
     while (!delimiter(peek()))
         token.push_back(next());
+    if (token.empty()) {
+        char character = next();
+        if (character == '\0')
+            error("missing character literal");
+        return evaluator_.character(static_cast<unsigned char>(character));
+    }
     if (token == "space")
         return evaluator_.character(U' ');
     if (token == "newline")
         return evaluator_.character(U'\n');
     if (token == "tab")
         return evaluator_.character(U'\t');
+    if (token == "return")
+        return evaluator_.character(U'\r');
+    if (token == "null")
+        return evaluator_.character(U'\0');
+    if (token == "alarm")
+        return evaluator_.character(U'\a');
+    // s7's serialized character spelling for form feed is `#\\xc`.
+    if (token == "xc")
+        return evaluator_.character(U'\f');
+    if (token == "backspace")
+        return evaluator_.character(U'\b');
+    if (token == "escape")
+        return evaluator_.character(U'\x1b');
+    if (token == "delete")
+        return evaluator_.character(U'\x7f');
+    if (token.size() > 1 && token[0] == 'x') {
+        char* end = nullptr;
+        unsigned long codepoint = std::strtoul(token.c_str() + 1, &end, 16);
+        if (end == token.c_str() + 1 || *end != '\0' || codepoint > 0x10ffff)
+            error("invalid hexadecimal character literal: " + token);
+        return evaluator_.character(static_cast<char32_t>(codepoint));
+    }
+    char32_t codepoint = 0;
+    if (decode_single_utf8(token, codepoint))
+        return evaluator_.character(codepoint);
     if (token.size() != 1)
-        error("unsupported character literal");
+        error("unsupported character literal: " + token);
     return evaluator_.character(static_cast<unsigned char>(token[0]));
 }
 
-Value TinyReader::read_list() {
+Value TinyReader::read_list(char closing) {
     next();
     std::vector<Value> values;
     skip_space();
-    if (consume(')'))
+    if (consume(closing))
         return Value::null();
 
     while (true) {
@@ -169,7 +249,7 @@ Value TinyReader::read_list() {
         }
         values.push_back(read_form());
         skip_space();
-        if (consume(')'))
+        if (consume(closing))
             break;
     }
     return evaluator_.list(values);

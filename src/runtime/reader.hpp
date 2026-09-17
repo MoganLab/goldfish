@@ -17,11 +17,12 @@ public:
         : evaluator_(evaluator), source_(std::move(source)) {}
 
     std::optional<Value> read();
+    std::size_t position() const noexcept { return position_; }
 
 private:
     void skip_space();
     Value read_form();
-    Value read_list();
+    Value read_list(char closing = ')');
     Value read_vector();
     Value read_character();
     Value read_dispatch();
