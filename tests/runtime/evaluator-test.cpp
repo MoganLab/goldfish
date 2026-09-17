@@ -1,16 +1,26 @@
 #include "runtime/runtime.hpp"
-#include "runtime/legacy_primitives.hpp"
+#include "runtime/migration_primitives.hpp"
 #include "runtime/standard_primitives.hpp"
 
 #include <cassert>
+#include <stdexcept>
 
 using namespace goldfish::runtime;
 
 int main() {
     Runtime runtime;
     Evaluator& evaluator = runtime.evaluator();
-    install_standard_primitives(evaluator);
-    install_legacy_primitives(evaluator);
+    install_runtime_primitives(evaluator);
+
+    bool migration_alias_is_absent = false;
+    try {
+        (void)evaluator.eval(evaluator.symbol("rootlet"));
+    } catch (const std::runtime_error&) {
+        migration_alias_is_absent = true;
+    }
+    assert(migration_alias_is_absent);
+
+    install_migration_primitives(evaluator);
 
     Value make_environment = evaluator.eval(
         evaluator.symbol("make-eval-environment"));
@@ -88,13 +98,14 @@ int main() {
         evaluator.list({evaluator.list({
             loop, evaluator.list({evaluator.symbol("lambda"),
                                    evaluator.list({n}),
-                                   evaluator.list({evaluator.symbol("if"),
-                                                   evaluator.list({evaluator.symbol("="), n,
-                                                                   Value::integer(0)}),
-                                                   Value::integer(0),
-                                                   evaluator.list({loop,
-                                                                   evaluator.list({evaluator.symbol("-"), n,
-                                                                                   Value::integer(1)})})})})})}),
+                                   evaluator.list({evaluator.symbol("begin"),
+                                                   evaluator.list({evaluator.symbol("if"),
+                                                                   evaluator.list({evaluator.symbol("="), n,
+                                                                                   Value::integer(0)}),
+                                                                   Value::integer(0),
+                                                                   evaluator.list({loop,
+                                                                                   evaluator.list({evaluator.symbol("-"), n,
+                                                                                                   Value::integer(1)})})})})})})}),
         evaluator.list({loop, Value::integer(10000)})});
     assert(evaluator.eval(tail_recursive).as_integer() == 0);
 

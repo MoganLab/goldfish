@@ -8,6 +8,8 @@ int main() {
     Runtime runtime;
     NativeBootstrap bootstrap(runtime);
     bootstrap.install_primitives();
+    bootstrap.install_primitives();
+    bootstrap.load_kernel("goldfish/expander/kernel-combined.scm");
     bootstrap.load_kernel("goldfish/expander/kernel-combined.scm");
 
     Evaluator& evaluator = runtime.evaluator();

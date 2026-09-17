@@ -1,6 +1,7 @@
 #include "runtime/bootstrap.hpp"
 
 #include <cassert>
+#include <string>
 
 using namespace goldfish::runtime;
 
@@ -16,4 +17,21 @@ int main() {
     bootstrap.load_library("(dependent)");
     assert(runtime.evaluator().eval(runtime.evaluator().symbol("result"))
                .as_integer() == 7);
+
+    bootstrap.register_library(
+        "(missing)", "tests/runtime/fixtures/no-such.gfo");
+    for (int attempt = 0; attempt != 2; ++attempt) {
+        try {
+            bootstrap.load_library("(missing)");
+            assert(false);
+        } catch (const std::runtime_error& error) {
+            assert(std::string(error.what()).find("cycle") ==
+                   std::string::npos);
+        }
+    }
+    try {
+        bootstrap.register_library("(missing)", "other.gfo");
+        assert(false);
+    } catch (const std::runtime_error&) {
+    }
 }
