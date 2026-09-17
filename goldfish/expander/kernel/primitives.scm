@@ -29,7 +29,7 @@
      exact inexact exact->inexact inexact->exact rationalize
      number->string string->number
      gcd lcm max min numerator denominator
-     not boolean? boolean=?
+     not boolean? boolean=? defined? symbol->value
      exact-integer?
      cons car cdr set-car! set-cdr!
      caar cadr cdar cddr caaar caadr cadar caddr cdaar cdadr cddar cdddr
@@ -66,7 +66,8 @@
      dynamic-wind force make-promise promise?
      eq? eqv? equal?
      display write write-shared write-simple write-char write-string
-     read read-char read-line read-string
+     read read-char read-line read-string read-forms load-source-file
+     load-find-module-file g-tiny-read
      read-u8 read-bytevector! peek-char peek-u8 char-ready?
      write-u8 write-bytevector
      newline eof-object eof-object?
@@ -86,6 +87,7 @@
      call-with-port
      file-exists? delete-file
      error syntax-error raise read-error? file-error?
+     native-error-object? native-error-object-message
      ;; (scheme process-context)
      command-line exit emergency-exit get-environment-variable
      get-environment-variables
@@ -126,7 +128,13 @@
      random
      ;; C++ glue functions (g_*), exposed in the host rootlet
      g_access g_bytevector-base64-decode g_bytevector-base64-encode g_chdir
-     g_getcwd g_getlogin g_getpid g_goldfish-library g_isdir g_isfile
+     g_executable g_getcwd g_getlogin g_getpid g_get-environment-variable g_getenvs
+     g_char-upcase g_char-downcase g_char-foldcase g_char-alphabetic?
+     g_char-upper-case? g_char-lower-case? g_char-numeric? g_char-whitespace?
+     g_command-line g_goldfish-library g_isdir g_isfile
+     g_get-time-of-day g_datetime-now g_monotonic-nanosecond g_process-cpu-nanosecond
+     g_thread-cpu-nanosecond g_system-clock-resolution g_steady-clock-resolution
+     g_process-clock-resolution g_thread-clock-resolution
      g_listdir g_load-path g_md5 g_md5-by-file g_mkdir g_os-arch g_os-call g_os-temp-dir
      g_os-type g_path-append-text g_path-copy g_path-getmtime g_path-getsize
      g_path-read-bytes g_path-read-text g_path-touch g_path-write-bytes
@@ -168,4 +176,3 @@
 
 (define-public (initial-context)
   (context-empty))
-

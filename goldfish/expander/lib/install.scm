@@ -223,19 +223,14 @@
                           "expander/kernel-combined.scm")))
         (set! *kernel-artifact-stamp* (gfo-stamp artifact))
         *kernel-artifact-stamp*)))
-;; Engine stamp: the C++ binary is a cache input like the kernel
-;; artifact (a rebuild shifts native identities/counters embedded in
-;; bundles even though no source changed; stale reuse across rebuilds
-;; was the ghost-failure class). Memoized per session; unknown (no
-;; /proc/self/exe) degrades to a constant instead of erroring.
+;; Engine stamp: cache compatibility follows the runtime ABI, not the
+;; executable bytes.  Host gf and native runtime must share artifacts; a
+;; semantic ABI change increments this value alongside the cache format.
 (define *engine-stamp* #f)
 (define (engine-stamp)
   (or *engine-stamp*
       (begin
-        (set! *engine-stamp*
-              (if (file-exists? "/proc/self/exe")
-                  (gfo-stamp "/proc/self/exe")
-                  'engine-unknown))
+        (set! *engine-stamp* '(engine-abi 1))
         *engine-stamp*)))
 (define (compile-file-stamp path)
   (append (gfo-stamp path) (kernel-artifact-stamp)
@@ -297,8 +292,8 @@
                     (if (and (pair? sexp) (eq? (car sexp) 'define))
                       (eval sexp (module-eval-environment
                                   the-expander-library))
-                      (error 'install-library-forms! "expected value definition"
-                             sexp)))
+                      (error 'install-library-forms!
+                             "expected value definition" sexp)))
                   sexps)
         ;; Only this file's own value definitions belong in its cache, not
         ;; the whole (accumulated) library binding table.
@@ -635,7 +630,9 @@
 ;;; desugaring needs syntax-case bound at phase+1), then cond-expand (uses
 ;;; core-macros' let / and / or), then standard.
 
-(install-library-file! the-base-library "expander/lib/syntax-runtime.scm")
+(if (not (getenv "GOLDFISH_NATIVE_ARTIFACTS"))
+  (begin
+  (install-library-file! the-base-library "expander/lib/syntax-runtime.scm")
 
 ;;; Expansion-time helper surface of the boot macro layer (v5): own value
 ;;; definitions are phase-0 only, so helpers called from a transformer body
@@ -670,24 +667,24 @@
   (install-library-file! lib path)
   (for-each install-expansion-helper! capture-names))
 
-(install-with-helpers! the-base-library "expander/lib/syntax-case.scm"
+  (install-with-helpers! the-base-library "expander/lib/syntax-case.scm"
   '(parse-template syntax-case-dispatch fast-instantiate
                    sr-build-transformer subst-ellipsis)
   '(sr-build-transformer subst-ellipsis))
 
-(install-with-helpers! the-base-library "expander/lib/define-record-type.scm"
+  (install-with-helpers! the-base-library "expander/lib/define-record-type.scm"
   '(dr-field-datum dr-record-defs dr-register-def dr-interleave-register)
   '(dr-field-datum dr-record-defs dr-register-def dr-interleave-register))
 
-(install-library-file! the-base-library "expander/lib/core-macros.scm")
+  (install-library-file! the-base-library "expander/lib/core-macros.scm")
 
-(install-with-helpers! the-base-library "expander/lib/cond-expand.scm"
+  (install-with-helpers! the-base-library "expander/lib/cond-expand.scm"
   '(cond-expand-feature-satisfied? *cond-expand-features*)
   '(cond-expand-feature-satisfied? *cond-expand-features*))
 ;; s7 define-macro compatibility shim (depends on syntax-case).
-(install-library-file! the-base-library "expander/lib/defmacro.scm")
+  (install-library-file! the-base-library "expander/lib/defmacro.scm")
 ;; s7 define* / lambda* compatibility shim (depends on syntax-case).
-(install-library-file! the-base-library "expander/lib/define-star.scm")
+  (install-library-file! the-base-library "expander/lib/define-star.scm")
 ;; The R7RS library surface (define-library/import/define-module/use-modules)
 ;; is self-hosted lib-layer code, not part of the core artifact; installing
 ;; it registers the module-form bindings in the-base-library (the trailing
@@ -695,8 +692,8 @@
 ;; prefix lives in module-registry.scm (installed first: everything below
 ;; references it, and cross-file references must point backward -- the
 ;; loader/cache/import/expand core is mutually recursive and stays whole).
-(install-library-file! the-base-library "expander/lib/module-registry.scm")
-(install-library-file! the-base-library "expander/lib/module.scm")
+    (install-library-file! the-base-library "expander/lib/module-registry.scm")
+    (install-library-file! the-base-library "expander/lib/module.scm")))
 
 (module-define! the-expander-library 'install-library-forms! install-library-forms!)
 (module-define! the-expander-library 'install-library-file! install-library-file!)
@@ -916,9 +913,9 @@
       the-expander-library the-base-library *base-library*
       ;; module machinery
       expand-define-library import-into-library! import-spec-into-library!
-      library-registry-ref library-record load-library! load-library-file-cached!
+      library-registry-ref library-registry-set! library-record load-library! load-library-file-cached!
       library-file-cacheable? capture-file-cache restore-library-cache
-      capture-library-cache lib-record-library lib-record-exports
+      capture-library-cache make-lib-record lib-record-library lib-record-exports
       runtime-registered-add! runtime-registered? register-runtime-module
       make-program-library program-library reset-program-library!
       make-program-environment eval-in-program-environment))

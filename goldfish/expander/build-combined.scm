@@ -9,7 +9,8 @@
 ;; library (goldfish).
 (import (goldfish))
 
-(install-standard-library!)
+(if (not (getenv "GOLDFISH_NATIVE_ARTIFACTS"))
+    (install-standard-library!))
 
 (define output "goldfish/expander/kernel-combined.scm")
 
@@ -33,9 +34,8 @@
        (clauses (cddr (syntax-form stx))))
   ;; parse-library-clauses returns (exports renames imports body); the
   ;; kernel has no export renames, so only imports and body are used.
-  (let* ((res (call-with-values (lambda () (parse-library-clauses clauses)) list))
-         (imports (caddr res))
-         (body-stxs (cadddr res)))
+  (let-values (((exports renames imports body-stxs)
+                (parse-library-clauses clauses)))
     (let ((lib (make-exp-library '(goldfish))))
       (import-into-library! lib imports)
       ;; Self-bootstrap: the kernel body legitimately refers to the host
@@ -48,9 +48,8 @@
       (let ((b (exp-library-ref the-base-library 'define-record-type)))
         (when b (exp-library-define! lib 'define-record-type b)))
       (let ((body-stxs (map (lambda (s) (stx-set-library s lib)) body-stxs)))
-        (let* ((res2 (call-with-values (lambda () (expand-library-body body-stxs lib (initial-context))) list))
-               (defs (car res2))
-               (ctx (cadr res2)))
+        (let-values (((defs ctx)
+                      (expand-library-body body-stxs lib (initial-context))))
           (let* ((stray-prims
                    (map car
                         (filter (lambda (e) (primitive-binding? (cdr e)))
@@ -67,7 +66,12 @@
                      stray-prims))
             (let* ((artifact (append (map lower defs) re-bindings))
                    (artifact (cons 'begin artifact)))
-              (let-set! *s7* 'print-length 1000000)
-              (call-with-output-file output
-                (lambda (port) (write artifact port)))
+              ;; Native bootstrap checks the expansion in memory; only the
+              ;; host writer commits the generated artifact.
+              (if (zero? (g_getpid))
+                  #t
+                  (begin
+                    (let-set! *s7* 'print-length 1000000)
+                    (call-with-output-file
+                      output (lambda (port) (write artifact port)))))
               (format #t "wrote ~A (~A forms)\n" output (length (cdr artifact))))))))))

@@ -150,5 +150,3 @@
                           (stx-set-library (wrap-expression expr) lib)
                           lib ctx lib-defs body (cdr exprs))))
             (loop rest1 ctx1 lib-defs1 body1 (+ n 1)))))))))
-
-

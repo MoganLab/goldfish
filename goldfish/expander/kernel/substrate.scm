@@ -203,10 +203,10 @@
 
 (define (native-module-environment m)
   (let ((env (let-ref m '__eval-environment)))
-    (and env
-         (defined? 'eval-environment?)
-         (eval-environment? env)
-         env)))
+    ;; The native boundary owns the environment object.  Calling a
+    ;; dynamically resolved eval-environment? here lets an older host binding
+    ;; misclassify it and silently fall back to the legacy inlet.
+    env))
 
 (define (make-module name)
   (inlet '__name name '__exports '()

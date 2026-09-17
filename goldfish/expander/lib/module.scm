@@ -618,17 +618,11 @@
                         (let ((msg (caar info))
                               (args (cdar info)))
                           (if (string? msg)
-                            ;; Pure append: never apply format to an arbitrary
-                            ;; underlying message (a ~ without matching args
-                            ;; made the guard die with a second error).  Each
-                            ;; arg is ~s-printed with a single-placeholder
-                            ;; format, which s7 accepts for any value.
                             (if (null? args)
                               msg
                               (string-append msg (apply string-append
                                               (map (lambda (a) (format #f " ~s" a)) args))))
                             msg)))
-                       ;; other raised objects (often an opaque/cyclic marker)
                        (else "malformed definition or expansion error"))))
         (error 'import "failed to load library ~a: ~a" lib-name detail)))))
 
@@ -1276,7 +1270,14 @@
                        ;; value to store.
                        acc)
                       (else
-                       (error 'define-library "cannot export binding" export)))))
+                       (error 'define-library "cannot export binding" export
+                              (if (pair? name)
+                                  (apply string-append
+                                         (map (lambda (part)
+                                                (string-append " "
+                                                               (symbol->string part)))
+                                              name))
+                                  name))))))
                 '()
                 exports))))
     ;; Built with list/append, not backquote: s7's eval of the standard
@@ -1569,12 +1570,15 @@
   (begin
     (module-define! the-expander-library 'expand-define-library expand-define-library)
     (module-define! the-expander-library 'expand-import expand-import)
+    (module-define! the-expander-library 'import-into-library! import-into-library!)
     (module-define! the-expander-library 'compile-defs-on-load compile-defs-on-load)
     (module-define! the-expander-library 'optimize-on-load optimize-on-load)
     (module-define! the-expander-library 'expand-define-module expand-define-module)
     (module-define! the-expander-library 'expand-use-modules expand-use-modules)
     (module-define! the-expander-library 'install-module-forms! install-module-forms!)
     (module-define! the-expander-library 'library-registry-ref library-registry-ref)
+    (module-define! the-expander-library 'library-registry-set! library-registry-set!)
+    (module-define! the-expander-library 'make-lib-record make-lib-record)
     (module-define! the-expander-library 'runtime-registered-add! runtime-registered-add!)
     (module-define! the-expander-library 'register-runtime-module register-runtime-module)
     (module-define! the-expander-library 'runtime-registered? runtime-registered?)
