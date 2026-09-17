@@ -56,9 +56,6 @@ Values Evaluator::eval_tail(Value expression, EnvironmentPtr environment) {
                    ? eval_tail(arguments[2], std::move(environment))
                    : Values{Value::unspecified()};
     }
-    if (form == CoreForm::Begin)
-        return eval_tail_sequence(pair_expression->cdr,
-                                  std::move(environment));
     if (form == CoreForm::Let || form == CoreForm::Letrec ||
         form == CoreForm::LetrecStar) {
         std::vector<Value> arguments = proper_list(pair_expression->cdr);
@@ -92,6 +89,30 @@ Values Evaluator::eval_tail(Value expression, EnvironmentPtr environment) {
         }
         std::vector<Value> body(arguments.begin() + 1, arguments.end());
         return eval_tail_sequence(list_values(body), std::move(child));
+    }
+
+    // A sequence in tail position must keep its last expression in tail
+    // position.  Going through eval_pair/eval_sequence here used to make
+    // every lowered `(begin ...)' add a C++ stack frame, which eventually
+    // overflowed while the native evaluator ran the expander itself.
+    if (form == CoreForm::Begin)
+        return eval_tail_sequence(pair_expression->cdr,
+                                  std::move(environment));
+
+    if (form == CoreForm::When || form == CoreForm::Unless) {
+        std::vector<Value> arguments = proper_list(pair_expression->cdr);
+        if (arguments.size() < 2)
+            throw std::runtime_error("when/unless expects a test and body");
+        Value test = eval(arguments[0], environment);
+        bool selected = !test.is_boolean() || test.as_boolean();
+        if (form == CoreForm::Unless)
+            selected = !selected;
+        if (!selected)
+            return {Value::unspecified()};
+        return eval_tail_sequence(
+            list_values(std::vector<Value>(arguments.begin() + 1,
+                                           arguments.end())),
+            std::move(environment));
     }
 
     if (form == CoreForm::Unknown) {
@@ -130,6 +151,19 @@ Values Evaluator::eval_pair(PairObject& expression,
         return arguments.size() == 3
                    ? eval_values(arguments[2], environment)
                    : Values{Value::unspecified()};
+    }
+    if (form == CoreForm::Unless) {
+        std::vector<Value> arguments = proper_list(tail);
+        if (arguments.size() < 2)
+            throw std::runtime_error("when/unless expects a test and body");
+        Value test = eval(arguments[0], environment);
+        bool selected = !test.is_boolean() || test.as_boolean();
+        selected = !selected;
+        if (!selected) return {Value::unspecified()};
+        return eval_sequence(
+            list_values(std::vector<Value>(arguments.begin() + 1,
+                                            arguments.end())),
+            environment);
     }
 
     if (form == CoreForm::Begin)

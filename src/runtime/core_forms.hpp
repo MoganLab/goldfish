@@ -29,6 +29,8 @@ enum class CoreForm : std::uint8_t {
     ModuleRef,
     ModuleSet,
     Setter,
+    When,
+    Unless,
 };
 
 class CoreFormRegistry final {
@@ -61,6 +63,9 @@ public:
         if (!value.is_object() ||
             value.as_object()->type() != ObjectType::Symbol)
             return CoreForm::Unknown;
+        const auto& name = value.as_object<SymbolObject>()->name;
+        if (name == "when") return CoreForm::When;
+        if (name == "unless") return CoreForm::Unless;
         auto it = forms_.find(value.as_object());
         return it == forms_.end() ? CoreForm::Unknown : it->second;
     }
