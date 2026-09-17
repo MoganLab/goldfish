@@ -14,6 +14,8 @@ bin/goldfish.*
 bin/gf
 bin/gf.exe
 bin/gf.*
+bin/gf-native
+bin/native-*-test
 bin/http
 bin/http.exe
 repl/goldfish_repl_wasm.data
