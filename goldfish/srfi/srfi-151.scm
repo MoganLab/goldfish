@@ -66,21 +66,16 @@
       (lognot (bitwise-and a b))
     ) ;define
 
-    (define bit-count
-      (typed-lambda ((i integer?))
-        (define (bit-count-positive i)
-          (let loop
-            ((n i) (cnt 0))
-            (if (= n 0) cnt (loop (logand n (- n 1)) (+ cnt 1)))
-          ) ;let
-        ) ;define
-
-        (cond ((zero? i) 0)
-              ((positive? i) (bit-count-positive i))
-              (else (bit-count-positive (lognot i)))
-        ) ;cond
-      ) ;typed-lambda
-    ) ;define
+    (define (bit-count i)
+      (define (bit-count-positive value)
+        (let loop
+          ((n value) (cnt 0))
+          (if (= n 0) cnt (loop (logand n (- n 1)) (+ cnt 1)))))
+      (unless (integer? i)
+        (error 'type-error "bit-count: expected integer" i))
+      (cond ((zero? i) 0)
+            ((positive? i) (bit-count-positive i))
+            (else (bit-count-positive (lognot i)))))
 
     (define (bitwise-orc1 i j)
       (bitwise-ior (bitwise-not i) j)

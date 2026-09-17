@@ -16,7 +16,11 @@
 
 (define-library (srfi srfi-13)
   (import (goldfish))
-  (import (liii base) (liii error) (scheme base) (srfi srfi-1) (scheme char) (srfi srfi-175))
+  (import (only (scheme base)
+          error length substring string-append string-length string?
+          string-ref string=? make-string car cadr)
+          (scheme char) (srfi srfi-175)
+          (liii error))
   (export string-null?
     string-copy
     string-join
@@ -47,10 +51,16 @@
   ) ;export
   (begin
 
+    ;; Keep the exported binding local to this library.  It avoids making
+    ;; SRFI-13's module record depend on the runtime's optional string-copy
+    ;; alias during native bootstrap.
+    (define (string-copy str)
+      (substring str 0 (string-length str)))
+
     (define (%string-from-range str start_end)
-      (cond ((null-list? start_end) str)
+      (cond ((null? start_end) str)
             ((= (length start_end) 1) (substring str (car start_end)))
-            ((= (length start_end) 2) (substring str (first start_end) (second start_end)))
+            ((= (length start_end) 2) (substring str (car start_end) (cadr start_end)))
             (else (error 'wrong-number-of-args "%string-from-range"))
       ) ;cond
     ) ;define
@@ -64,13 +74,13 @@
 
     (define (string-join l . delim+grammer)
       (define (extract-params params-l)
-        (cond ((null-list? params-l) (list "" 'infix))
+        (cond ((null? params-l) (list "" 'infix))
               ((and (= (length params-l) 1) (string? (car params-l)))
                (list (car params-l) 'infix)
               ) ;
               ((and (= (length params-l) 2)
-                 (string? (first params-l))
-                 (symbol? (second params-l))
+                 (string? (car params-l))
+                 (symbol? (cadr params-l))
                ) ;and
                params-l
               ) ;
@@ -81,23 +91,23 @@
         ) ;cond
       ) ;define
       (define (string-join-sub l delim)
-        (cond ((null-list? l) "")
+        (cond ((null? l) "")
               ((= (length l) 1) (car l))
               (else (string-append (car l) delim (string-join-sub (cdr l) delim)))
         ) ;cond
       ) ;define
       (let* ((params (extract-params delim+grammer))
-             (delim (first params))
-             (grammer (second params))
+             (delim (car params))
+             (grammer (cadr params))
              (ret (string-join-sub l delim))
             ) ;
         (case grammer
          ('infix ret)
          ('strict-infix
-          (if (null-list? l) (error 'value-error "empty list not allowed") ret)
+          (if (null? l) (error 'value-error "empty list not allowed") ret)
          ) ;
-         ('suffix (if (null-list? l) "" (string-append ret delim)))
-         ('prefix (if (null-list? l) "" (string-append delim ret)))
+         ('suffix (if (null? l) "" (string-append ret delim)))
+         ('prefix (if (null? l) "" (string-append delim ret)))
          (else (error 'value-error "invalid grammer"))
         ) ;case
       ) ;let*
@@ -195,7 +205,7 @@
           ) ;if
         ) ;let
       ) ;define
-      (cond ((null-list? char+start+end) (string-pad-sub str len #\space))
+      (cond ((null? char+start+end) (string-pad-sub str len #\space))
             ((list? char+start+end)
              (string-pad-sub (%string-from-range str (cdr char+start+end))
                len
@@ -215,7 +225,7 @@
           ) ;if
         ) ;let
       ) ;define
-      (cond ((null-list? char+start+end) (string-pad-right-sub str len #\space))
+      (cond ((null? char+start+end) (string-pad-right-sub str len #\space))
             ((list? char+start+end)
              (string-pad-right-sub (%string-from-range str (cdr char+start+end))
                len
@@ -364,7 +374,7 @@
               ) ;else
         ) ;cond
         ;; slow path: predicate-based search
-        (let* ((start (if (null-list? start+end) 0 (car start+end)))
+        (let* ((start (if (null? start+end) 0 (car start+end)))
                (str-sub (%string-from-range str start+end))
                (pred? (%make-criterion char/pred?))
               ) ;
@@ -389,7 +399,7 @@
           ) ;cond
         ) ;let
       ) ;define
-      (let* ((start (if (null-list? start+end) 0 (car start+end)))
+      (let* ((start (if (null? start+end) 0 (car start+end)))
              (str-sub (%string-from-range str start+end))
              (pred? (%make-criterion char/pred?))
              (ret (string-index-right-sub str-sub pred?))
@@ -408,7 +418,7 @@
           ) ;cond
         ) ;let
       ) ;define
-      (let* ((start (if (null-list? start+end) 0 (car start+end)))
+      (let* ((start (if (null? start+end) 0 (car start+end)))
              (str-sub (%string-from-range str start+end))
              (pred? (%make-criterion char/pred?))
              (ret (string-skip-sub str-sub pred?))
@@ -427,7 +437,7 @@
           ) ;cond
         ) ;let
       ) ;define
-      (let* ((start (if (null-list? start+end) 0 (car start+end)))
+      (let* ((start (if (null? start+end) 0 (car start+end)))
              (str-sub (%string-from-range str start+end))
              (pred? (%make-criterion char/pred?))
              (ret (string-skip-right-sub str-sub pred?))
@@ -452,14 +462,14 @@
     ) ;define
 
     (define (string-reverse str . start+end)
-      (cond ((null-list? start+end) (reverse str))
+      (cond ((null? start+end) (reverse str))
             ((= (length start+end) 1)
-             (let ((start (first start+end)))
+             (let ((start (car start+end)))
                (string-append (substring str 0 start) (reverse (substring str start)))
              ) ;let
             ) ;
             ((= (length start+end) 2)
-             (let ((start (first start+end)) (end (second start+end)))
+             (let ((start (car start+end)) (end (cadr start+end)))
                (string-append (substring str 0 start)
                  (reverse (substring str start end))
                  (substring str end)
@@ -543,7 +553,7 @@
         ) ;define
         (tokenize-helper '() 0)
       ) ;define
-      (cond ((null-list? char+start+end) (string-tokenize-sub str #\space))
+      (cond ((null? char+start+end) (string-tokenize-sub str #\space))
             ((list? char+start+end)
              (string-tokenize-sub (%string-from-range str (cdr char+start+end))
                (car char+start+end)

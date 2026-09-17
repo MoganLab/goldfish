@@ -13,7 +13,7 @@
 
 (define-library (srfi srfi-1)
   (import (goldfish))
-  (import (liii error) (liii base) (scheme base))
+  (import (liii error) (scheme base))
   (export circular-list iota list-copy xcons cons*)
   (export circular-list? null-list? proper-list? dotted-list?)
   (export first second third fourth fifth sixth seventh eighth ninth tenth)
@@ -133,13 +133,25 @@
       (list-ref x 9)
     ) ;define
 
-    (define take g_take)
+    (define (take lst i)
+      (if (zero? i) '()
+        (if (pair? lst) (cons (car lst) (take (cdr lst) (- i 1)))
+          (value-error "take: list is shorter than requested"))))
 
-    (define drop list-tail)
+    (define (drop lst i)
+      (if (zero? i) lst
+        (if (pair? lst) (drop (cdr lst) (- i 1))
+          (value-error "drop: list is shorter than requested"))))
 
-    (define take-right g_take_right)
+    (define (take-right lst i)
+      (let ((n (length lst)))
+        (if (> i n) (value-error "take-right: list is shorter than requested")
+          (drop lst (- n i)))))
 
-    (define drop-right g_drop_right)
+    (define (drop-right lst i)
+      (let ((n (length lst)))
+        (if (> i n) (value-error "drop-right: list is shorter than requested")
+          (take lst (- n i)))))
 
     (define (split-at lst i)
       (when (< i 0)
@@ -254,7 +266,11 @@
       (apply append (apply map proc lists))
     ) ;define
 
-    (define filter g_filter)
+    (define (filter pred lis)
+      (let loop ((rest lis) (out '()))
+        (if (null? rest) (reverse out)
+          (loop (cdr rest)
+            (if (pred (car rest)) (cons (car rest) out) out)))))
 
     (define (partition pred l)
       (let loop
@@ -331,18 +347,12 @@
     ) ;define
 
     (define (%delete-duplicates-hash lis eq-func)
-      (let ((seen (s7-make-hash-table 8 eq-func)) (result '()))
-        (for-each (lambda (x)
-                    (unless (hash-table-ref seen x)
-                      (s7-hash-table-set! seen x #t)
-                      (set! result (cons x result))
-                    ) ;unless
-                  ) ;lambda
-          lis
-        ) ;for-each
-        (reverse result)
-      ) ;let
-    ) ;define
+      (let loop ((remaining lis) (seen '()) (result '()))
+        (if (null? remaining) (reverse result)
+          (if (any (lambda (x) (eq-func (car remaining) x)) seen)
+            (loop (cdr remaining) seen result)
+            (loop (cdr remaining) (cons (car remaining) seen)
+              (cons (car remaining) result))))))
 
     (define (%delete-duplicates-scan lis my-equal)
       (let loop
