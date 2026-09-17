@@ -18,8 +18,7 @@
 #include "runtime/s7_bridge.hpp"
 #include "runtime/artifact.hpp"
 #include "runtime/standard_primitives.hpp"
-#include "runtime/legacy_primitives.hpp"
-#include "runtime/bootstrap_primitives.hpp"
+#include "runtime/migration_primitives.hpp"
 #include "runtime/bootstrap.hpp"
 #include <algorithm>
 #include <argh.h>
@@ -1223,9 +1222,8 @@ goldfish_eval_gf0_code (gf::scheme* sc, string code) {
 static void
 goldfish_eval_native_code (gf::scheme* sc, string code) {
   runtime::Runtime runtime;
-  runtime::install_standard_primitives (runtime.evaluator ());
-  runtime::install_bootstrap_primitives (runtime.evaluator ());
-  runtime::install_legacy_primitives (runtime.evaluator ());
+  runtime::install_runtime_primitives (runtime.evaluator ());
+  runtime::install_migration_primitives (runtime.evaluator ());
   runtime::S7Bridge bridge (runtime);
   gf::pointer port= gf::open_input_string (sc, code.c_str ());
   gf::pointer read_proc= gf::name_to_value (sc, "read");

@@ -73,6 +73,18 @@ void install_bootstrap_primitives(Evaluator& evaluator) {
         }
         return Values{Value::boolean(false)};
     });
+    install(evaluator, "memv", [](const Values& args) {
+        require_arity(args, 2, "memv");
+        Value rest = args[1];
+        while (!rest.is_null()) {
+            if (!rest.is_object() || rest.as_object()->type() != ObjectType::Pair)
+                throw std::runtime_error("memv expects a proper list");
+            Value item = rest.as_object<PairObject>()->car;
+            if (item == args[0]) return Values{rest};
+            rest = rest.as_object<PairObject>()->cdr;
+        }
+        return Values{Value::boolean(false)};
+    });
     install(evaluator, "assq", [](const Values& args) {
         require_arity(args, 2, "assq");
         Value rest = args[1];
@@ -82,6 +94,20 @@ void install_bootstrap_primitives(Evaluator& evaluator) {
             Value entry = rest.as_object<PairObject>()->car;
             if (entry.is_object() && entry.as_object()->type() == ObjectType::Pair &&
                 args[0] == entry.as_object<PairObject>()->car) return Values{entry};
+            rest = rest.as_object<PairObject>()->cdr;
+        }
+        return Values{Value::boolean(false)};
+    });
+    install(evaluator, "assv", [](const Values& args) {
+        require_arity(args, 2, "assv");
+        Value rest = args[1];
+        while (!rest.is_null()) {
+            if (!rest.is_object() || rest.as_object()->type() != ObjectType::Pair)
+                throw std::runtime_error("assv expects an association list");
+            Value entry = rest.as_object<PairObject>()->car;
+            if (entry.is_object() && entry.as_object()->type() == ObjectType::Pair &&
+                entry.as_object<PairObject>()->car == args[0])
+                return Values{entry};
             rest = rest.as_object<PairObject>()->cdr;
         }
         return Values{Value::boolean(false)};
@@ -139,6 +165,28 @@ void install_bootstrap_primitives(Evaluator& evaluator) {
             if (truth(selected[0])) result.push_back(value);
         }
         return Values{evaluator.list(result)};
+    });
+    install(evaluator, "any", [&evaluator](const Values& args) {
+        require_arity(args, 2, "any");
+        for (Value value : proper_list(args[1])) {
+            Values result = evaluator.apply_values(args[0], {value});
+            if (result.size() != 1)
+                throw std::runtime_error("any predicate returned multiple values");
+            if (truth(result[0])) return Values{result[0]};
+        }
+        return Values{Value::boolean(false)};
+    });
+    install(evaluator, "every", [&evaluator](const Values& args) {
+        require_arity(args, 2, "every");
+        Value last = Value::boolean(true);
+        for (Value value : proper_list(args[1])) {
+            Values result = evaluator.apply_values(args[0], {value});
+            if (result.size() != 1)
+                throw std::runtime_error("every predicate returned multiple values");
+            last = result[0];
+            if (!truth(last)) return Values{Value::boolean(false)};
+        }
+        return Values{last};
     });
     install(evaluator, "fold", [&evaluator](const Values& args) {
         require_arity(args, 3, "fold");
