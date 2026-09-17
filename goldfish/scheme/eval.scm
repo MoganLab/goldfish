@@ -19,10 +19,14 @@
   (export environment eval)
   (begin
 
-    ;; Native s7 eval, kept for the plain-env / one-argument cases.
-    ;; Resolve the HOST eval explicitly (not the library's own eval, which
-    ;; shadows it) via the ambient primitive name in the rootlet.
-    (define %s7-eval (symbol->value 'eval))
+    ;; Native eval, resolved at call time.  Keeping the host evaluator out of
+    ;; the module's top-level values avoids placing an evaluator primitive in
+    ;; the runtime module environment during native restoration.
+    (define (%s7-eval expr . maybe-env)
+      (let ((host-eval (symbol->value 'eval)))
+        (if (pair? maybe-env)
+          (host-eval expr (car maybe-env))
+          (host-eval expr))))
 
     ;; R7RS (scheme eval): environment builds a program environment whose
     ;; bindings come from the given import-sets (only / except / prefix /
@@ -36,7 +40,9 @@
 
     (define* (eval expr (env #f))
       (if env
-        (eval-in-program-environment expr env)
+        (if (eval-environment? env)
+          (%s7-eval expr env)
+          (eval-in-program-environment expr env))
         (%s7-eval expr)))
 
   ) ;begin

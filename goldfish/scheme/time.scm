@@ -15,7 +15,7 @@
 ;;
 
 (define-library (scheme time)
-  (import (only (scheme base) let-values s7-round) (goldfish))
+  (import (goldfish))
   (export current-second
     current-jiffy
     jiffies-per-second
@@ -44,14 +44,15 @@
     (define thread-clock-resolution g_thread-clock-resolution)
 
     (define (current-second)
-      (let-values (((sec usec) (get-time-of-day)))
-        (+ sec (exact->inexact (/ usec 1000000)))
-      ) ;let-values
+      ;; The minimal native numeric tower currently exposes exact integers.
+      ;; Preserve the portable whole-second part until inexact numbers are
+      ;; moved out of the legacy host layer.
+      (call-with-values get-time-of-day
+        (lambda (sec usec) sec))
     ) ;define
 
     (define (current-jiffy)
-      ;; NOTE: use s7-round to ensure that a natural number is returned.
-      (s7-round (* (current-second) (jiffies-per-second)))
+      (* (current-second) (jiffies-per-second))
     ) ;define
 
   ) ;begin
