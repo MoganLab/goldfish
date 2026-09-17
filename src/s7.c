@@ -2784,6 +2784,7 @@ void begin_temp_1(s7_scheme *sc, s7_pointer p, s7_pointer val, const char *func,
 
 
 #if S7_DEBUGGING
+#undef display
 const char *display(s7_pointer obj);
 const char *display(s7_pointer obj)
 {
