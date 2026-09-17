@@ -1,6 +1,8 @@
 # Goldfish Runtime Contract
 
-状态：R0–R2 已实现并通过 native artifact 链验证；R3/R4 尚未开始。
+状态：R0–R3 已完成；R4 尚未开始。R3 已覆盖 kernel 自举、普通库的
+native source/cache 闭环以及最小 native CLI/REPL。默认入口切换和删除
+s7/gf0 过渡层明确属于 R4。
 本文定义替换 vendored s7 后的宿主边界；现有 `gf0`/s7 bridge 不是此合同
 的一部分，只是过渡实现。
 
@@ -32,7 +34,7 @@ native runtime
 - core evaluator 和控制状态；
 - Scheme 异常、多值、continuation、`dynamic-wind`；
 - primitive 注册和调用 ABI；
-- 最小 reader、port 和模块加载接口；
+- 最小 reader、内存/文件输入 port 和模块加载接口；
 - OS、文件、时间、网络等平台原语。
 
 ### Scheme 层负责
@@ -49,7 +51,10 @@ C++ 不为单个高层库增加业务语义。新增 C++ primitive 必须说明�
 当前迁移期的 primitive 分层：
 
 - `standard_primitives.cpp`：对象/类型、pair/vector 原子操作、整数数值、
-  reader/port、environment/eval 等 runtime substrate。
+  reader/port、environment/eval 等 runtime substrate。platform、Unicode 和
+  migration 入口分别位于 `platform_primitives.cpp`、
+  `unicode_primitives.cpp` 和 `migration_primitives.cpp`，避免把过渡层伪装
+  成核心 runtime。
 - `bootstrap_primitives.cpp`：`length`、`reverse`、`append`、`memq`、`assq`、
   `filter`、`fold`、`map`、`for-each` 的临时 kernel bootstrap fallback；库层
   加载后应由 Scheme 定义覆盖，最终从 C++ 删除。
@@ -148,6 +153,28 @@ artifact 加载。目标是执行现有 `kernel-combined.scm`，不要求马上�
 迁移 module registry、expander runtime、tree-il 和 compiler，使新 runtime
 能通过 tiny reader 加载并运行对应的 lowered `.gfo` library artifacts；源码
 reader、源码展开和 artifact 生成仍属于 R3 的 Scheme/compiler 自举入口。
+
+### R3-A：稳定 native bootstrap 基座
+
+native bootstrap 具备幂等初始化、明确的失败状态和可重试的依赖加载；tiny
+reader 可通过 `open-input-string` 和 `open-input-file` 逐个读取 lowered
+datum，并支持 EOF 和关闭端口错误。此阶段仍保留 migration-only 的
+bootstrap/legacy primitive 层，不把它们误当作最终语言库实现。
+
+### R3-B：native source bootstrap 闭环
+
+在 R3-A 之上，native loader 能恢复 bootstrap 期间生成的 module/program
+artifact（包括旧版 program cache 的兼容读取），并让 Scheme 层的
+`read-forms`、expander 和 `compile-file` 接管源码入口。验收路径是：
+
+```text
+kernel artifact -> expander artifacts -> reader artifact
+                 -> tiny reader 读源码 -> Scheme compiler -> native evaluator
+```
+
+这里的兼容 alias 只用于 bootstrap installer 生成的 implementation-module
+artifact；普通库仍通过显式 module identity 和 artifact loader 恢复。tiny
+reader 继续只负责 lowered datum/artifact，不扩展成完整的源码 reader。
 
 ### R3：自举和库迁移
 
