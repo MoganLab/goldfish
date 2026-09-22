@@ -46,6 +46,9 @@
 ;; 测试中文字符
 (check (string-pad "中文" 5) => "   中文")
 (check (string-pad "中文测试" 3) => "文测试")
+(check (string-pad "325" 5 #\0) => "00325")
+(check (string-pad "325" 5 #\x3000) => "　　325")
+(check (string-pad "测试" 4 #\中) => "中中测试")
 
 
 ;; 测试使用整数索引作为 start/end

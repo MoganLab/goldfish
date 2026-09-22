@@ -15,8 +15,8 @@
 ;; s : string
 ;; 要分割的字符串
 ;;
-;; delimiter : string
-;; 分隔符字符串
+;; delimiter : string 或 character
+;; 分隔符字符串或字符
 ;;
 ;; grammar : symbol (可选)
 ;; 分割语法，可选值：infix、strict-infix、prefix、suffix，默认为 infix
@@ -48,6 +48,13 @@
 
 ;; Unicode 测试
 (check (string-split "中:文:测试" ":") => '("中" "文" "测试"))
+(check (string-split "你好世界" "") => '("你" "好" "世" "界"))
+(check (string-split "中:文:测试" #\:) => '("中" "文" "测试"))
+(check (string-split "项羽　刘邦" #\x3000) => '("项羽" "刘邦"))
+(check (string-split "项羽　刘邦" "　") => '("项羽" "刘邦"))
+
+;; 错误处理测试
+(check-catch 'type-error (string-split "abc" 123))
 
 
 ;; 测试使用游标作为 start/end
