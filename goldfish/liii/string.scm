@@ -10,6 +10,7 @@
   ) ;export
   (import (except (srfi srfi-13) string-replace)
     (scheme base)
+    (scheme char)
     (liii base)
     (liii error)
     (liii unicode)
@@ -83,6 +84,59 @@
         (assoc key alist equal?)
       ) ;define
 
+      ;; ; 解析 ) 之后的占位符说明符 [flags][width][.precision]type
+      ;; ; 成功时返回 (placeholder-end type-char flags width precision)，失败时返回 #f
+      (define (parse-spec str start)
+        (let* ((len (string-length str))
+               (flags-end
+                 (or
+                   (string-skip str (lambda (c) (string-contains "-+ #0" (string c))) start)
+                   len
+                 ) ;or
+               ) ;flags-end
+               (width-end (or (string-skip str char-numeric? flags-end) len))
+               (precision-end
+                 (if (and (< width-end len) (char=? (string-ref str width-end) #\.))
+                   (or (string-skip str char-numeric? (+ width-end 1)) len)
+                   width-end
+                 ) ;if
+               ) ;precision-end
+              ) ;
+          (if (and (< precision-end len) (char-alphabetic? (string-ref str precision-end)))
+            (list (+ precision-end 1)
+              (string-ref str precision-end)
+              (substring str start flags-end)
+              (if (= flags-end width-end)
+                #f
+                (string->number (substring str flags-end width-end))
+              ) ;if
+              (if (= width-end precision-end)
+                #f
+                (string->number (substring str (+ width-end 1) precision-end))
+              ) ;if
+            ) ;list
+            #f
+          ) ;if
+        ) ;let*
+      ) ;define
+
+      ;; ; 按 flags 与 width 补齐整数字符串：0 前导零，- 左对齐，默认右对齐空格补齐
+      (define (pad-int val-str flags width)
+        (if (or (not width) (<= width (string-length val-str)))
+          val-str
+          (cond ((string-contains flags "-") (string-pad-right val-str width))
+                ((string-contains flags "0")
+                 ;; 负号不参与补零，保持符号在最前面
+                 (if (string-prefix? "-" val-str)
+                   (string-append "-" (string-pad (substring val-str 1) (- width 1) #\0))
+                   (string-pad val-str width #\0)
+                 ) ;if
+                ) ;
+                (else (string-pad val-str width))
+          ) ;cond
+        ) ;if
+      ) ;define
+
       (let ((salist (plist->salist plist)) (len (string-length format-string)))
         (let loop
           ((i 0) (parts '()))
@@ -93,18 +147,16 @@
                 (let ((end-pos (string-position ")" format-string (+ pos 2))))
                   (if (and end-pos (> end-pos (+ pos 2)))
                     (let* ((key (substring format-string (+ pos 2) end-pos))
-                           (type-pos (+ end-pos 1))
-                           (has-type? (< type-pos len))
-                           (type-char (if has-type? (string-ref format-string type-pos) #\s))
-                           (placeholder-end (if has-type? (+ type-pos 1) (+ end-pos 1)))
+                           (spec (parse-spec format-string (+ end-pos 1)))
+                           (placeholder-end (if spec (car spec) (+ end-pos 1)))
                            (placeholder (substring format-string pos placeholder-end))
                            (pair (lookup-pair key salist))
                            (val (and pair (cdr pair)))
                            (val-str
                              (cond ((not pair) placeholder)
-                                   ((char=? type-char #\d)
+                                   ((and spec (memv (cadr spec) '(#\d #\i)))
                                     (if (number? val)
-                                      (number->string val)
+                                      (pad-int (number->string val) (caddr spec) (cadddr spec))
                                       (type-error "pyfmt: %(key)d requires number")
                                     ) ;if
                                    ) ;

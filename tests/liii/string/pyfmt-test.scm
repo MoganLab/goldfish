@@ -30,6 +30,21 @@
 (check (pyfmt "age=%(age)d" :age 30) => "age=30")
 (check (pyfmt "age=%(age)d" 'age 30) => "age=30")
 
+;; 整数修饰符：前导零补齐与宽度
+(check (pyfmt "id=%(id)03d" :id 1) => "id=001")
+(check (pyfmt "%(n)05d" :n 42) => "00042")
+(check (pyfmt "[%(n)5d]" :n 42) => "[   42]")
+(check (pyfmt "[%(n)-5d]" :n 42) => "[42   ]")
+
+;; 负数补零时，符号位于最前面
+(check (pyfmt "%(n)04d" :n -5) => "-005")
+
+;; 宽度小于数值长度时，原样输出
+(check (pyfmt "%(n)2d" :n 1234) => "1234")
+
+;; i 与 d 同义
+(check (pyfmt "%(n)03i" :n 7) => "007")
+
 ;; 多个字段混合
 (check (pyfmt "%(greeting)s %(name)s" :greeting "Hello" :name "World")
   =>
@@ -69,10 +84,15 @@
 (check (pyfmt "%(age)d") => "%(age)d")
 (check (pyfmt "hello %(name)s!" :other "Bob") => "hello %(name)s!")
 
+;; 缺失字段时保留含修饰符的完整占位符
+(check (pyfmt "id=%(id)03d") => "id=%(id)03d")
+(check (pyfmt "[%(n)5d]") => "[%(n)5d]")
+
 ;; 参数错误
 (check-catch 'type-error (pyfmt 123))
 (check-catch 'type-error (pyfmt "%(name)s" :name))
 (check-catch 'type-error (pyfmt "%(name)s" 123 "Bob"))
 (check-catch 'type-error (pyfmt "%(age)d" :age "30"))
+(check-catch 'type-error (pyfmt "%(n)03d" :n "1"))
 
 (check-report)
