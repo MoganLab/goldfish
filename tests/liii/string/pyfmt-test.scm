@@ -45,6 +45,28 @@
 ;; i 与 d 同义
 (check (pyfmt "%(n)03i" :n 7) => "007")
 
+;; 字符串最小宽度：右对齐补空格
+(check (pyfmt "[%(name)10s]" :name "abc") => "[       abc]")
+
+;; 字符串左对齐补空格
+(check (pyfmt "[%(name)-10s]" :name "abc") => "[abc       ]")
+
+;; 中文字段值按字符数计宽，每个汉字计 1
+(check (pyfmt "[%(name)10s]" :name "中文") => "[        中文]")
+(check (pyfmt "[%(name)-10s]" :name "中文") => "[中文        ]")
+
+;; 宽度小于字符串长度时，原样输出
+(check (pyfmt "[%(name)3s]" :name "abcdef") => "[abcdef]")
+
+;; s 忽略前导零标志，仅用空格补齐
+(check (pyfmt "[%(name)010s]" :name "abc") => "[       abc]")
+
+;; 非字符串字段值先转为字符串，再按宽度补齐
+(check (pyfmt "[%(n)5s]" :n 42) => "[   42]")
+
+;; 整数与字符串修饰符混合
+(check (pyfmt "%(id)03d: %(name)-6s|" :id 7 :name "中文") => "007: 中文    |")
+
 ;; 多个字段混合
 (check (pyfmt "%(greeting)s %(name)s" :greeting "Hello" :name "World")
   =>
@@ -87,6 +109,7 @@
 ;; 缺失字段时保留含修饰符的完整占位符
 (check (pyfmt "id=%(id)03d") => "id=%(id)03d")
 (check (pyfmt "[%(n)5d]") => "[%(n)5d]")
+(check (pyfmt "[%(name)10s]") => "[%(name)10s]")
 
 ;; 参数错误
 (check-catch 'type-error (pyfmt 123))
