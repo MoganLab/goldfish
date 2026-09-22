@@ -67,6 +67,26 @@
 ;; 整数与字符串修饰符混合
 (check (pyfmt "%(id)03d: %(name)-6s|" :id 7 :name "中文") => "007: 中文    |")
 
+;; 浮点数精度修饰符
+(check (pyfmt "rate=%(rate).2f" :rate 3.14159) => "rate=3.14")
+
+;; 精度缺省时为 6，与 Python %f 一致
+(check (pyfmt "%(rate)f" :rate 3.14) => "3.140000")
+
+;; 宽度与精度组合：右对齐、左对齐、前导零
+(check (pyfmt "[%(rate)8.2f]" :rate 3.14159) => "[    3.14]")
+(check (pyfmt "[%(rate)-8.2f]|" :rate 3.14159) => "[3.14    ]|")
+(check (pyfmt "%(rate)08.2f" :rate 3.14159) => "00003.14")
+
+;; 负数补零时，符号位于最前面
+(check (pyfmt "%(rate)08.2f" :rate -3.14159) => "-0003.14")
+
+;; 整数字段值按浮点数格式化
+(check (pyfmt "%(rate).2f" :rate 2) => "2.00")
+
+;; 精度为 0 时，不输出小数点
+(check (pyfmt "%(rate).0f" :rate 3.7) => "4")
+
 ;; 多个字段混合
 (check (pyfmt "%(greeting)s %(name)s" :greeting "Hello" :name "World")
   =>
@@ -110,6 +130,7 @@
 (check (pyfmt "id=%(id)03d") => "id=%(id)03d")
 (check (pyfmt "[%(n)5d]") => "[%(n)5d]")
 (check (pyfmt "[%(name)10s]") => "[%(name)10s]")
+(check (pyfmt "rate=%(rate).2f") => "rate=%(rate).2f")
 
 ;; 参数错误
 (check-catch 'type-error (pyfmt 123))
@@ -117,5 +138,6 @@
 (check-catch 'type-error (pyfmt "%(name)s" 123 "Bob"))
 (check-catch 'type-error (pyfmt "%(age)d" :age "30"))
 (check-catch 'type-error (pyfmt "%(n)03d" :n "1"))
+(check-catch 'type-error (pyfmt "%(rate).2f" :rate "3.14"))
 
 (check-report)
