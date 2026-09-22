@@ -87,58 +87,53 @@
       ;; ; 解析 ) 之后的占位符说明符 [flags][width][.precision]type
       ;; ; 成功时返回 (placeholder-end type-char flags width precision)，失败时返回 #f
       (define (parse-spec str start)
-        (let ((len (string-length str)))
-          (let loop
-            ((i start) (flags "") (width "") (precision "") (stage 'flags))
-            (if (>= i len)
-              #f
-              (let ((c (string-ref str i)))
-                (cond
-                 ((and (eq? stage 'flags) (string-contains "-+ #0" (string c)))
-                  (loop (+ i 1) (string-append flags (string c)) width precision 'flags)
-                 ) ;
-                 ((char-numeric? c)
-                  (if (eq? stage 'precision)
-                    (loop (+ i 1) flags width (string-append precision (string c)) 'precision)
-                    (loop (+ i 1) flags (string-append width (string c)) precision 'width)
-                  ) ;if
-                 ) ;
-                 ((and (char=? c #\.) (memq stage '(flags width)))
-                  (loop (+ i 1) flags width precision 'precision)
-                 ) ;
-                 ((char-alphabetic? c)
-                  (list (+ i 1)
-                    c
-                    flags
-                    (if (string-null? width) #f (string->number width))
-                    (if (string-null? precision) #f (string->number precision))
-                  ) ;list
-                 ) ;
-                 (else #f)
-                ) ;cond
-              ) ;let
-            ) ;if
-          ) ;let
-        ) ;let
+        (let* ((len (string-length str))
+               (flags-end
+                 (or
+                   (string-skip str (lambda (c) (string-contains "-+ #0" (string c))) start)
+                   len
+                 ) ;or
+               ) ;flags-end
+               (width-end (or (string-skip str char-numeric? flags-end) len))
+               (precision-end
+                 (if (and (< width-end len) (char=? (string-ref str width-end) #\.))
+                   (or (string-skip str char-numeric? (+ width-end 1)) len)
+                   width-end
+                 ) ;if
+               ) ;precision-end
+              ) ;
+          (if (and (< precision-end len) (char-alphabetic? (string-ref str precision-end)))
+            (list (+ precision-end 1)
+              (string-ref str precision-end)
+              (substring str start flags-end)
+              (if (= flags-end width-end)
+                #f
+                (string->number (substring str flags-end width-end))
+              ) ;if
+              (if (= width-end precision-end)
+                #f
+                (string->number (substring str (+ width-end 1) precision-end))
+              ) ;if
+            ) ;list
+            #f
+          ) ;if
+        ) ;let*
       ) ;define
 
       ;; ; 按 flags 与 width 补齐整数字符串：0 前导零，- 左对齐，默认右对齐空格补齐
       (define (pad-int val-str flags width)
-        (if (not width)
+        (if (or (not width) (<= width (string-length val-str)))
           val-str
-          (let ((pad (- width (string-length val-str))))
-            (cond ((<= pad 0) val-str)
-                  ((string-contains flags "-") (string-append val-str (make-string pad #\space)))
-                  ((string-contains flags "0")
-                   ;; 负号不参与补零，保持符号在最前面
-                   (if (string-prefix? "-" val-str)
-                     (string-append "-" (make-string pad #\0) (substring val-str 1))
-                     (string-append (make-string pad #\0) val-str)
-                   ) ;if
-                  ) ;
-                  (else (string-append (make-string pad #\space) val-str))
-            ) ;cond
-          ) ;let
+          (cond ((string-contains flags "-") (string-pad-right val-str width))
+                ((string-contains flags "0")
+                 ;; 负号不参与补零，保持符号在最前面
+                 (if (string-prefix? "-" val-str)
+                   (string-append "-" (string-pad (substring val-str 1) (- width 1) #\0))
+                   (string-pad val-str width #\0)
+                 ) ;if
+                ) ;
+                (else (string-pad val-str width))
+          ) ;cond
         ) ;if
       ) ;define
 
@@ -159,7 +154,7 @@
                            (val (and pair (cdr pair)))
                            (val-str
                              (cond ((not pair) placeholder)
-                                   ((and spec (memv (cadr spec) (list #\d #\i)))
+                                   ((and spec (memv (cadr spec) '(#\d #\i)))
                                     (if (number? val)
                                       (pad-int (number->string val) (caddr spec) (cadddr spec))
                                       (type-error "pyfmt: %(key)d requires number")
