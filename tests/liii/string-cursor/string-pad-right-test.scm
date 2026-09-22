@@ -45,6 +45,9 @@
 ;; 测试中文字符
 (check (string-pad-right "中文" 5) => "中文   ")
 (check (string-pad-right "中文测试" 3) => "中文测")
+(check (string-pad-right "325" 5 #\0) => "32500")
+(check (string-pad-right "325" 5 #\x3000) => "325　　")
+(check (string-pad-right "测试" 4 #\中) => "测试中中")
 
 
 ;; 测试使用整数索引作为 start/end
