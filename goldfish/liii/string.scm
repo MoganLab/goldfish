@@ -142,6 +142,16 @@
       ) ;if
     ) ;define
 
+    ;; ; 按精度格式化浮点数：精度缺省为 6（与 Python %f 一致），精度为 0 时不输出小数点
+    (define (float->string val precision)
+      (let ((p (or precision 6)))
+        (let ((s (format #f (string-append "~," (number->string p) "f") (exact->inexact val)))
+             ) ;
+          (if (= p 0) (string-remove-suffix s ".0") s)
+        ) ;let
+      ) ;let
+    ) ;define
+
     (define (pyfmt format-string . plist)
       (unless (string? format-string)
         (type-error "pyfmt: first parameter must be string")
@@ -171,6 +181,12 @@
                                    ) ;
                                    ((and spec (char=? (cadr spec) #\s))
                                     (pad-s (if (string? val) val (format #f "~a" val)) (caddr spec) (cadddr spec))
+                                   ) ;
+                                   ((and spec (char=? (cadr spec) #\f))
+                                    (if (number? val)
+                                      (pad-int (float->string val (list-ref spec 4)) (caddr spec) (cadddr spec))
+                                      (type-error "pyfmt: %(key)f requires number")
+                                    ) ;if
                                    ) ;
                                    (else (if (string? val) val (format #f "~a" val)))
                              ) ;cond
