@@ -244,6 +244,20 @@
     (check (zero? code) => #t)
   ) ;let-values
 
+  ;; :stderr 'stdout
+  (let-values (((out err code)
+                (run-values "python3 -c \"import sys; sys.stdout.write('out\\n'); sys.stderr.write('err\\n')\""
+                  :stderr 'stdout
+                  :stdout 'capture
+                ) ;run-values
+               ) ;
+              ) ;
+    (check (string-contains? out "out\n") => #t)
+    (check (string-contains? out "err\n") => #t)
+    (check err => "")
+    (check (zero? code) => #t)
+  ) ;let-values
+
   ;; list form with symbol head
   (run-set! 'pypass "python3")
   (let-values (((out err code) (run-values '(pypass "-c" "print('hello world')"))))
