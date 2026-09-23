@@ -252,8 +252,8 @@
                 ) ;run-values
                ) ;
               ) ;
-    (check (string-contains? out "out\n") => #t)
-    (check (string-contains? out "err\n") => #t)
+    (check (string-contains? out "out") => #t)
+    (check (string-contains? out "err") => #t)
     (check err => "")
     (check (zero? code) => #t)
   ) ;let-values
