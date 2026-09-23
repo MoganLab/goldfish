@@ -887,7 +887,7 @@ bool s7i_is_columnizing(const char *str)  /* look for ~t ~,<int>T ~<int>,<int>t 
 
 s7_pointer g_format(s7_scheme *sc, s7_pointer args)
 {
-  #define H_format "(format out str . args) substitutes args into str sending the result to out. Most of \
+  #define H_format "(format [out] str . args) substitutes args into str sending the result to out. Most of \
 s7's format directives are taken from CL: ~% = newline, ~& = newline if the preceding output character was \
 no a newline, ~~ = ~, ~<newline> trims white space, ~* skips an argument, ~^ exits {} iteration if the arg list is exhausted, \
 ~nT spaces over to column n, ~A prints a representation of any object, ~S is the same, but puts strings in double quotes, \
@@ -907,9 +907,15 @@ If the 'out' argument is not an output port (i.e. #f, #t, or ()), the resultant 
 is #t, the string is also sent to the current-output-port."
 
   #define Q_format s7_make_circular_signature(sc, 2, 3, \
-                     s7i_is_string_symbol(sc), s7_make_signature(sc, 3, s7i_is_output_port_symbol(sc), s7i_s7_is_boolean_symbol(sc), s7i_is_null_symbol(sc)), s7i_T(sc))
+                     s7i_is_string_symbol(sc), s7_make_signature(sc, 4, s7i_is_output_port_symbol(sc), s7i_s7_is_boolean_symbol(sc), s7i_is_null_symbol(sc), s7i_is_string_symbol(sc)), s7i_T(sc))
 
   s7_pointer port = s7_car(args);
+  if (s7_is_string(port))
+    {
+      s7i_set_format_column(sc, 0);
+      return(format_to_port_1(sc, s7i_F(sc),
+			      s7i_string_value(port), s7_cdr(args), NULL, true, true, s7i_string_length(port), port));
+    }
   if (s7_is_null(sc, port))
     {
       port = s7i_current_output_port(sc);          /* () -> (current-output-port) */
@@ -949,8 +955,19 @@ s7_pointer g_format_f(s7_scheme *sc, s7_pointer args)  /* port == #f, there are 
 
 s7_pointer g_format_just_control_string(s7_scheme *sc, s7_pointer args)
 {
-  s7_pointer port = s7_car(args);
-  const s7_pointer str = s7_cadr(args);
+  s7_pointer port;
+  s7_pointer str;
+
+  if (s7_is_null(sc, s7_cdr(args)))
+    {
+      port = s7i_F(sc);
+      str = s7_car(args);
+    }
+  else
+    {
+      port = s7_car(args);
+      str = s7_cadr(args);
+    }
 
   if (port == s7i_F(sc))
     return(str);
@@ -979,11 +996,21 @@ s7_pointer g_format_just_control_string(s7_scheme *sc, s7_pointer args)
 
 s7_pointer g_format_as_objstr(s7_scheme *sc, s7_pointer args)
 {
-  s7_pointer func, obj = s7_caddr(args);
+  s7_pointer func, obj, str;
+  if (s7_is_null(sc, s7_cddr(args)))
+    {
+      str = s7_car(args);
+      obj = s7_cadr(args);
+    }
+  else
+    {
+      str = s7_cadr(args);
+      obj = s7_caddr(args);
+    }
   if ((!s7i_has_active_methods(sc, obj)) ||
       ((func = s7i_find_method_with_let(sc, obj, s7i_format_symbol(sc))) == s7i_undefined(sc)))
     return(s7_object_to_string(sc, obj, false));
-  return(s7_apply_function(sc, func, s7i_set_plist_3(sc, s7i_F(sc), s7_cadr(args), obj)));
+  return(s7_apply_function(sc, func, s7i_set_plist_3(sc, s7i_F(sc), str, obj)));
 }
 
 s7_pointer g_format_no_column(s7_scheme *sc, s7_pointer args)
@@ -1012,9 +1039,46 @@ s7_pointer g_format_no_column(s7_scheme *sc, s7_pointer args)
 
 s7_pointer format_chooser(s7_scheme *sc, s7_pointer func, int32_t args, s7_pointer expr)
 {
+  if (args == 1)
+    {
+      const s7_pointer str_arg = s7_cadr(expr);
+      if (s7_is_string(str_arg))
+	{
+	  s7_int len;
+	  char *orig = s7i_string_value_ptr(str_arg);
+	  const char *p = strchr((const char *)orig, (int)'~');
+	  if (!p)
+	    return(s7i_format_just_control_string(sc));
+
+	  len = s7i_string_length(str_arg);
+	  if ((len > 1) &&
+	      (orig[len - 1] == '%') &&
+	      ((p - orig) == len - 2))
+	    {
+	      orig[len - 2] = '\n';
+	      orig[len - 1] = '\0';
+	      s7i_set_string_length(str_arg, len - 1);
+	      return(s7i_format_just_control_string(sc));
+	    }
+	}
+      return(func);
+    }
   if (args > 1)
     {
-      const s7_pointer port = s7_cadr(expr);
+      const s7_pointer first_arg = s7_cadr(expr);
+      if (s7_is_string(first_arg))
+	{
+	  if (args == 2)
+	    {
+	      s7_int len = s7i_string_length(first_arg);
+	      char *orig = s7i_string_value_ptr(first_arg);
+	      if ((len == 2) &&
+		  (orig[0] == '~') && ((orig[1] == 'A') || (orig[1] == 'a')))
+		return(s7i_format_as_objstr(sc));
+	    }
+	  return(func);
+	}
+      const s7_pointer port = first_arg;
       const s7_pointer str_arg = s7_caddr(expr);
       if (s7_is_string(str_arg))
 	{

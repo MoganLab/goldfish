@@ -79988,7 +79988,7 @@ static void init_rootlet(s7_scheme *sc)
   sc->string_symbol =                defun("string",		string,			0, 0, true);
   sc->object_to_string_symbol =      defun("object->string",	object_to_string,	1, 2, false);
 
-  #define H_format "(format out str . args) substitutes args into str sending the result to out. Most of \
+  #define H_format "(format [out] str . args) substitutes args into str sending the result to out. Most of \
 s7's format directives are taken from CL: ~% = newline, ~& = newline if the preceding output character was \
 no a newline, ~~ = ~, ~<newline> trims white space, ~* skips an argument, ~^ exits {} iteration if the arg list is exhausted, \
 ~nT spaces over to column n, ~A prints a representation of any object, ~S is the same, but puts strings in double quotes, \
@@ -80008,9 +80008,9 @@ If the 'out' argument is not an output port (i.e. #f, #t, or ()), the resultant 
 is #t, the string is also sent to the current-output-port."
 
   #define Q_format s7_make_circular_signature(sc, 2, 3, \
-                     sc->is_string_symbol, s7_make_signature(sc, 3, sc->is_output_port_symbol, sc->is_boolean_symbol, sc->is_null_symbol), sc->T)
+                     sc->is_string_symbol, s7_make_signature(sc, 4, sc->is_output_port_symbol, sc->is_boolean_symbol, sc->is_null_symbol, sc->is_string_symbol), sc->T)
 
-  sc->format_symbol =                defun("format",		format,			2, 0, true);
+  sc->format_symbol =                defun("format",		format,			1, 0, true);
   sc->object_to_let_symbol =         defun("object->let",	object_to_let,	        1, 0, false);
 
   sc->cons_symbol =                  defun("cons",		cons,			2, 0, false); set_is_saver(sc->cons_symbol);
