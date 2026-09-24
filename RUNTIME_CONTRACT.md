@@ -1,6 +1,6 @@
 # Goldfish Runtime Contract
 
-状态：R0–R3 已完成；R4 进行中（准备清单第 4 条已完成）。R3 已覆盖 kernel 自举、普通库的
+状态：R0–R3 已完成；R4 进行中（准备清单第 3、4 条已完成）。R3 已覆盖 kernel 自举、普通库的
 native source/cache 闭环以及最小 native CLI/REPL。默认入口切换和删除
 s7/gf0 过渡层明确属于 R4。
 本文定义替换 vendored s7 后的宿主边界；现有 `gf0`/s7 bridge 不是此合同
@@ -21,15 +21,20 @@ s7/gf0 过渡层明确属于 R4。
   （`when and or case let let* do let-values let*-values`）——real `cond`
   在 native 的 install.scm 展开路径触发 `expected proper list`，占位
   `cond`（bootstrap-prelude）+ 无 `cond` 的 prelude 使双端同时通过。
+  （该绕行已废弃，根因见准备清单第 3 条。）
 
 ### R4 准备清单
 
 1. 默认 `gf` 入口切换到 `gf-native`（或等价 native driver），gf0/s7 降级为可选。
 2. 删除 `src/s7*`、s7 构建目标与 vendored s7；清理 `gf0` bridge 与
    `bootstrap_compatibility` 中仅过渡用的 LegacyLet 分支。
-3. 为 native 路径补齐 real `cond`（修复 install.scm 展开中的
-   proper-list 问题），或把 install/gfo 的 cond 全部改写为 if，
-   使 prelude 可恢复完整 10 宏形态。
+3. [完成 2026-09-24] 根因不在 install.scm，而在 prelude 的**定义顺序**：
+   `define-syntax` 的 transformer 在 prelude 加载时即展开，而 `let` 定义在
+   `cond`/`case` 之后，transformer 里的 named let 因此原样漏进 core
+   evaluator（core `let` 不支持 named let）→ `expected proper list`。
+   修复：`let` 提到 prelude 首位并在文件头写明顺序约束，prelude 恢复
+   10 宏；bootstrap-prelude 占位宏（会展开成 `#t` 的假 `cond`）随之
+   清空，native 冷启动与 host 均绿。
 4. [完成 2026-09-24] 预热步骤入库为 `tools/warm-bootstrap-cache.sh`，
    `tools/test-native.sh` 构建并运行 `native-library-source-test`，
    空缓存起步门禁全绿。原判断有误：缺的不是 `vbootstrap0`，而是单个
@@ -38,6 +43,17 @@ s7/gf0 过渡层明确属于 R4。
    暂由 host `gf` 预热；R4 删除 host 后须改为构建/CI 提供。
 5. 按本文验收五条逐条跑 differential gate，通过后删除
    `tools/diff-gf0-m2a.sh` skip 名单。
+
+### R4 中途修复（2026-09-24）
+
+- `cond-expand` 的 else 分支失效：clause head 是包着 symbol 的 syntax
+  对象，重写时没做归一化，`eq?` 永远不中 → 一切用到 `cond-expand` 的
+  库加载报 "no matching feature requirement"。已修（tests/expander 的
+  `lib-cache` / `lib-cache-all-libs` 随之转绿）。
+- `base-functions.scm` 把 `number?` 写成 `(integer? x)` 桩：浮点/有理/
+  复数全判否，`finite?`、`rational?` 连带失效。已删桩——host 回到 s7
+  实现，native 用自己的 `number?` 原语（`number-p` / `host-abi-load` 转绿）。
+- `tests/expander` 21/21（改前 18/21）；native 门禁空缓存全绿。
 
 ## 目标
 

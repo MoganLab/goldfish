@@ -1,1 +1,182 @@
-(define-syntax when (lambda (stx) (let ((form (syntax->datum stx))) (datum->syntax stx (quasiquote (if (unquote (cadr form)) (begin (unquote-splicing (cddr form))) (if #f #f)))))))(define-syntax and (lambda (stx) (let ((form (syntax->datum stx))) (let ((args (cdr form))) (datum->syntax stx (if (null? args) #t (if (null? (cdr args)) (car args) (let ((t (make-fresh-name (quote and-t)))) (quasiquote (let (((unquote t) (unquote (car args)))) (if (unquote t) (and (unquote-splicing (cdr args))) #f)))))))))))(define-syntax or (lambda (stx) (let ((form (syntax->datum stx))) (let ((args (cdr form))) (datum->syntax stx (if (null? args) #f (if (null? (cdr args)) (car args) (let ((t (make-fresh-name (quote or-t)))) (quasiquote (let (((unquote t) (unquote (car args)))) (if (unquote t) (unquote t) (or (unquote-splicing (cdr args))))))))))))))(define-syntax case (lambda (stx) (let ((form (syntax->datum stx))) (let ((key (cadr form)) (clauses (cddr form))) (let loop ((cls clauses)) (datum->syntax stx (if (null? cls) (quote (if #f #f)) (if (and (pair? (car cls)) (eq? (caar cls) (quote else))) (cons (quote begin) (cdar cls)) (list (quote if) (list (quote memv) key (list (quote quote) (caar cls))) (cons (quote begin) (cdar cls)) (loop (cdr cls)))))))))))(define-syntax let (lambda (stx) (let ((form (syntax->datum stx))) (let ((first (cadr form)) (rest (cddr form))) (datum->syntax stx (if (symbol? first) (let ((params (map car (car rest))) (inits (map cadr (car rest))) (body (cdr rest))) (quasiquote (letrec (((unquote first) (lambda (unquote params) (unquote-splicing body)))) ((unquote first) (unquote-splicing inits))))) (let ((bindings first) (body rest)) (quasiquote ((lambda (unquote (map car bindings)) (unquote-splicing body)) (unquote-splicing (map cadr bindings)))))))))))(define-syntax let* (lambda (stx) (let ((form (syntax->datum stx))) (let ((bindings (cadr form)) (body (cddr form))) (let loop ((bs bindings)) (datum->syntax stx (if (null? bs) (quasiquote (let () (unquote-splicing body))) (quasiquote (let ((unquote (car bs))) (unquote (loop (cdr bs))))))))))))(define-syntax do (lambda (stx) (let ((form (syntax->datum stx))) (let ((specs (cadr form)) (test (caddr form)) (body (cdddr form))) (datum->syntax stx (quasiquote (let doloop (unquote (map (lambda (s) (list (car s) (cadr s))) specs)) (if (unquote (car test)) (unquote (if (pair? (cdr test)) (quasiquote (begin (unquote-splicing (cdr test)))) (quote (if #f #f)))) (begin (unquote-splicing body) (doloop (unquote-splicing (map (lambda (s) (if (pair? (cddr s)) (caddr s) (car s))) specs))))))))))))(define-syntax let-values (lambda (stx) (let ((form (syntax->datum stx))) (let ((bindings (cadr form)) (body (cddr form))) (datum->syntax stx (if (null? bindings) (quasiquote (let () (unquote-splicing body))) (let ((b (car bindings)) (rest (cdr bindings))) (quasiquote (call-with-values (lambda () (unquote (cadr b))) (lambda (unquote (car b)) (let-values (unquote rest) (unquote-splicing body))))))))))))(define-syntax let*-values (lambda (stx) (let ((form (syntax->datum stx))) (let ((bindings (cadr form)) (body (cddr form))) (let loop ((bs bindings)) (datum->syntax stx (if (null? bs) (quasiquote (let () (unquote-splicing body))) (let ((b (car bs))) (quasiquote (let-values ((unquote (list (car b) (cadr b)))) (unquote (loop (cdr bs)))))))))))))
+;;; prelude.scm -- minimal derived forms for the reader's early expansion.
+;;;
+;;; The R7RS reader (reader.scm) loads through the expander IMMEDIATELY after
+;;; the artifact -- before install.scm installs the lib layer.  The lib-layer
+;;; files use `(X ...)' ellipsis syntax that s7's tiny reader collapses, so
+;;; the R7RS reader must be up first.  But the reader itself uses the standard
+;;; derived forms (let / let* / cond / case / when / do / and / or), which the
+;;; lib layer normally provides (core-macros.scm / standard.scm) -- a
+;;; chicken-and-egg.  This file breaks the cycle: it defines those forms as
+;;; define-syntax macros with LAMBDA transformers (only kernel features --
+;;; syntax-rules comes with the lib layer), installed into the base library
+;;; right after the artifact.  The reader then resolves them like any macro
+;;; (hygienic expansion, no host pass-through, no scope-rename gaps).
+;;;
+;;; The definitions are plain datum->syntax desugarings; identifiers
+;;; introduced by a macro (lambda, if, begin, eqv?, memv, ...) resolve in the
+;;; macro-use context via the base library / core forms, and re-expansion of
+;;; the macro output re-dispatches recursive forms (or / and / let) back to
+;;; these very macros.  Later, install.scm's core-macros.scm / standard.scm
+;;; install the full syntax-rules versions over the same base-library names,
+;;; so user code ends up with the hygienic lib-layer macros.
+;;;
+;;; ORDER MATTERS.  A define-syntax transformer is expanded while this file
+;;; is being loaded, so every macro a transformer body mentions (notably
+;;; `let', whose named form a core evaluator cannot run) must be defined
+;;; ABOVE it.  `let' therefore comes first: a later `let' would leave named
+;;; lets in cond/case/let* transformers unexpanded and the native evaluator
+;;; would crash on them ("expected proper list").
+
+(define-syntax let
+  (lambda (stx)
+    (let ((form (syntax->datum stx)))
+      (let ((first (cadr form))
+            (rest (cddr form)))
+        (datum->syntax
+          stx
+          (if (symbol? first)
+            ;; Named let: (let name ((v i) ...) body ...)
+            (let ((params (map car (car rest)))
+                  (inits (map cadr (car rest)))
+                  (body (cdr rest)))
+              `(letrec ((,first (lambda ,params ,@body)))
+                 (,first ,@inits)))
+            ;; Value let: (let ((v i) ...) body ...)
+            (let ((bindings first)
+                  (body rest))
+              `((lambda ,(map car bindings) ,@body)
+                ,@(map cadr bindings)))))))))
+
+(define-syntax when
+  (lambda (stx)
+    (let ((form (syntax->datum stx)))
+      (datum->syntax
+        stx
+        `(if ,(cadr form) (begin ,@(cddr form)) (if #f #f))))))
+
+(define-syntax and
+  (lambda (stx)
+    (let ((form (syntax->datum stx)))
+      (let ((args (cdr form)))
+        (datum->syntax
+          stx
+          (if (null? args)
+            #t
+            (if (null? (cdr args))
+              (car args)
+              (let ((t (make-fresh-name 'and-t)))
+                `(let ((,t ,(car args)))
+                   (if ,t (and ,@(cdr args)) #f))))))))))
+
+(define-syntax or
+  (lambda (stx)
+    (let ((form (syntax->datum stx)))
+      (let ((args (cdr form)))
+        (datum->syntax
+          stx
+          (if (null? args)
+            #f
+            (if (null? (cdr args))
+              (car args)
+              (let ((t (make-fresh-name 'or-t)))
+                `(let ((,t ,(car args)))
+                   (if ,t ,t (or ,@(cdr args))))))))))))
+
+(define-syntax cond
+  (lambda (stx)
+    (let ((form (syntax->datum stx)))
+      (let loop ((clauses (cdr form)))
+        (datum->syntax
+          stx
+          (if (null? clauses)
+            '(if #f #f)
+            (if (and (pair? (car clauses)) (eq? (caar clauses) 'else))
+              (cons 'begin (cdar clauses))
+              (if (null? (cdar clauses))
+                (list 'or (caar clauses) (loop (cdr clauses)))
+                (list 'if (caar clauses)
+                      (cons 'begin (cdar clauses))
+                      (loop (cdr clauses)))))))))))
+
+(define-syntax case
+  (lambda (stx)
+    (let ((form (syntax->datum stx)))
+      (let ((key (cadr form))
+            (clauses (cddr form)))
+        (let loop ((cls clauses))
+          (datum->syntax
+            stx
+            (if (null? cls)
+                '(if #f #f)
+                (if (and (pair? (car cls)) (eq? (caar cls) 'else))
+                    (cons 'begin (cdar cls))
+                    (list 'if
+                          (list 'memv key
+                                (list 'quote (caar cls)))
+                          (cons 'begin (cdar cls))
+                          (loop (cdr cls)))))))))))
+
+(define-syntax let*
+  (lambda (stx)
+    (let ((form (syntax->datum stx)))
+      (let ((bindings (cadr form))
+            (body (cddr form)))
+        (let loop ((bs bindings))
+          (datum->syntax
+            stx
+            (if (null? bs)
+              `(let () ,@body)
+              `(let (,(car bs)) ,(loop (cdr bs))))))))))
+
+(define-syntax do
+  (lambda (stx)
+    (let ((form (syntax->datum stx)))
+      (let ((specs (cadr form))
+            (test (caddr form))
+            (body (cdddr form)))
+        (datum->syntax
+          stx
+          `(let doloop
+               ,(map (lambda (s) (list (car s) (cadr s))) specs)
+             (if ,(car test)
+               ,(if (pair? (cdr test))
+                    `(begin ,@(cdr test))
+                    '(if #f #f))
+               (begin
+                 ,@body
+                 (doloop
+                   ,@(map (lambda (s)
+                            (if (pair? (cddr s)) (caddr s) (car s)))
+                          specs))))))))))
+
+;; let-values : bind to the values of a single producer expression
+
+(define-syntax let-values
+  (lambda (stx)
+    (let ((form (syntax->datum stx)))
+      (let ((bindings (cadr form))
+            (body (cddr form)))
+        (datum->syntax
+          stx
+          (if (null? bindings)
+            `(let () ,@body)
+            (let ((b (car bindings)) (rest (cdr bindings)))
+              `(call-with-values (lambda () ,(cadr b))
+                 (lambda ,(car b) (let-values ,rest ,@body))))))))))
+
+;; let*-values : like let-values but binding clauses are evaluated
+;; sequentially (each clause may refer to earlier bindings).
+
+(define-syntax let*-values
+  (lambda (stx)
+    (let ((form (syntax->datum stx)))
+      (let ((bindings (cadr form))
+            (body (cddr form)))
+        (let loop ((bs bindings))
+          (datum->syntax
+            stx
+            (if (null? bs)
+              `(let () ,@body)
+              (let ((b (car bs)))
+                `(let-values (,(list (car b) (cadr b)))
+                   ,(loop (cdr bs)))))))))))
