@@ -38,13 +38,23 @@
   ) ;if
 ) ;define
 
-(run-set! 'gf (string-append project-root "/bin/gf"))
+(define gf-bin
+  (string-append project-root
+    (if (os-windows?) "/bin/gf.exe" "/bin/gf")))
+
+(run-set! 'gf gf-bin)
 
 (define (run-gf . args)
   (let-values (((out err code) (run-values (cons 'gf args) :cwd project-root)))
     code
   ) ;let-values
 ) ;define
+
+(define (run-gf-values . args)
+  (run-values (cons 'gf args) :cwd project-root :stdout 'capture :stderr 'stdout)
+) ;define
+
+
 
 (define sandbox-dir
   (path->string (path-join (path-temp-dir)
@@ -117,6 +127,37 @@
     (let ((code (run-gf "fmt" "--check" dir-b)))
       (check (zero? code) => #t)
     ) ;let
+
+    ;; 10. 单文件包含括号错误：应报错、退出码非 0，并提示 gf fix
+    (let* ((bad-file (path->string (path-join (path sandbox-dir) "bad.scm"))))
+      (path-write-text (path bad-file) "(define x 1))\n")
+      (let-values (((out err code) (run-gf-values "fmt" bad-file)))
+        (check (not (zero? code)) => #t)
+        (check-true (string-contains? out "Failed: "))
+        (check-true (string-contains? out "unexpected close paren"))
+        (check-true (string-contains? out "Hint: try `gf fix ")))
+      (let-values (((out err code) (run-gf-values "fmt" "--dry-run" bad-file)))
+        (check (not (zero? code)) => #t)
+        (check-true (string-contains? out "Failed: "))
+        (check-true (string-contains? out "unexpected close paren"))
+        (check-true (string-contains? out "Hint: try `gf fix "))))
+
+
+    ;; 11. 目录批量格式化容错：遇到错误文件不中断，正常文件被格式化，退出码为 1
+    (let* ((dir-c (path->string (path-join (path sandbox-dir) "dir_c")))
+           (good-file (path->string (path-join (path dir-c) "good.scm")))
+           (bad-file (path->string (path-join (path dir-c) "bad.scm"))))
+      (mkdir dir-c)
+      (path-write-text (path good-file) "( define   good   1 )\n")
+      (path-write-text (path bad-file) "(define bad 2))\n")
+      (let-values (((out err code) (run-gf-values "fmt" dir-c)))
+        (check (not (zero? code)) => #t)
+        (check-true (string-contains? out "Files failed: 1"))
+        (check-true (string-contains? out "Failed: "))
+        (check-true (string-contains? out "unexpected close paren"))
+        (check-true (string-contains? out "Hint: try `gf fix "))
+        ;; 验证 good-file 依然被成功格式化
+        (check (path-read-text (path good-file)) => "(define good 1)\n")))
   ) ;lambda
   (lambda ()
     (remove-tree sandbox-dir)
