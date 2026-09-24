@@ -5,17 +5,6 @@
 
 namespace goldfish::runtime {
 
-namespace {
-
-Value single_value(const Values& values, const char* context) {
-    if (values.size() != 1)
-        throw std::runtime_error(std::string(context) +
-                                 " expects exactly one value");
-    return values[0];
-}
-
-} // namespace
-
 void Evaluator::define_primitive(const std::string& name,
                                  PrimitiveObject::Function function) {
     global_->define(symbol(name),
@@ -23,11 +12,32 @@ void Evaluator::define_primitive(const std::string& name,
                         std::move(function))));
 }
 
+// The expander's defs frame: created first by the kernel bootstrap and
+// then used as the fallback parent of every later parentless frame.
+EnvironmentPtr& defs_root_slot() {
+    static EnvironmentPtr root;
+    return root;
+}
+
 Value Evaluator::make_eval_environment(EnvironmentPtr parent) {
-    if (!parent)
-        parent = global_;
-    return Value::object(
-        heap_.make<EvalEnvironmentObject>(std::move(parent)));
+    if (!parent) {
+        // Parentless frames fall back to the defs root (first frame wins)
+        // so bare gensym references stay reachable, instead of aliasing
+        // every "new" environment onto one shared set of bindings -- which
+        // made module environments clobber each other (the last module to
+        // register `remove' decided what every module-ref saw).
+        auto frame = std::make_shared<Environment>(
+            defs_root_slot() ? defs_root_slot() : global_);
+        if (!defs_root_slot()) defs_root_slot() = frame;
+        return Value::object(heap_.make<EvalEnvironmentObject>(frame));
+    }
+    // A fresh frame that FALLS BACK to the explicit parent.
+    return Value::object(heap_.make<EvalEnvironmentObject>(
+        std::make_shared<Environment>(std::move(parent))));
+}
+
+void Evaluator::set_defs_root(EnvironmentPtr frame) {
+    defs_root_slot() = std::move(frame);
 }
 
 Value Evaluator::list(std::initializer_list<Value> values) {
@@ -100,8 +110,12 @@ Values Evaluator::eval_sequence(Value expressions,
 }
 
 Value Evaluator::eval(Value expression, EnvironmentPtr environment) {
-    return single_value(eval_values(expression, std::move(environment)),
-                        "single-value context");
+    Values result = eval_values(expression, std::move(environment));
+    // Single-value contexts collapse a multi-value result to its FIRST
+    // value (s7 parity): srfi-8's receive passes its producer unwrapped as
+    // an argument, and (define x (values ...)) keeps the first.
+    if (result.empty()) return Value::unspecified();
+    return result[0];
 }
 
 Values Evaluator::eval_values(Value expression, EnvironmentPtr environment) {
@@ -109,14 +123,50 @@ Values Evaluator::eval_values(Value expression, EnvironmentPtr environment) {
         return {expression};
 
     Object* object = expression.as_object();
-    if (object->type() == ObjectType::Symbol)
-        return {environment->lookup(expression)};
+    if (object->type() == ObjectType::Symbol) {
+        try {
+            return {environment->lookup(expression)};
+        } catch (const std::exception&) {
+            // s7 keywords: the kernel expander already treats :name / name:
+            // as self-evaluating (keyword-symbol? in expand.scm); mirror it
+            // so an unbound keyword reference yields the symbol itself
+            // instead of unbound-symbol.
+            const std::string& name =
+                expression.as_object<SymbolObject>()->name;
+            if (!name.empty() &&
+                (name.front() == ':' || name.back() == ':'))
+                return {expression};
+            throw;
+        }
+    }
     if (object->type() != ObjectType::Pair)
         return {expression};
     try {
         return eval_tail(expression, std::move(environment));
     } catch (const TailCall& tail_call) {
-        return apply(tail_call.procedure, tail_call.arguments);
+        try {
+            return apply(tail_call.procedure, tail_call.arguments);
+        } catch (const std::runtime_error& error) {
+            // Arity failures name the callee's first formal; add the call
+            // site's operator so the offending library is findable.
+            std::string message = error.what();
+            if (message.rfind("wrong number of arguments", 0) == 0 &&
+                expression.is_object() &&
+                expression.as_object()->type() == ObjectType::Pair) {
+                Value head = expression.as_object<PairObject>()->car;
+                if (head.is_object() &&
+                    head.as_object()->type() == ObjectType::Symbol) {
+                    message += " [called as: " +
+                               head.as_object<SymbolObject>()->name +
+                               ", core-form=" +
+                               std::to_string(static_cast<int>(
+                                   core_forms_.lookup(head))) + "]";
+                }
+                // Tail calls are caught here with the application's parent
+                // in hand; report the operator for context.
+            }
+            throw std::runtime_error(message);
+        }
     }
 }
 
@@ -160,8 +210,18 @@ Values Evaluator::apply(Value procedure, const Values& arguments) {
             formals = formal_pair->cdr;
         }
         if (next_arguments.size() < required.size() ||
-            (rest.is_null() && next_arguments.size() != required.size()))
-            throw std::runtime_error("wrong number of arguments");
+            (rest.is_null() && next_arguments.size() != required.size())) {
+            std::string message =
+                "wrong number of arguments: expected " +
+                std::to_string(required.size()) +
+                (rest.is_null() ? "" : " or more") + ", got " +
+                std::to_string(next_arguments.size());
+            if (!required.empty() && required[0].is_object() &&
+                required[0].as_object()->type() == ObjectType::Symbol)
+                message += "; first formal: " +
+                           required[0].as_object<SymbolObject>()->name;
+            throw std::runtime_error(message);
+        }
         for (std::size_t i = 0; i < required.size(); ++i)
             call_environment->define(required[i], next_arguments[i]);
         if (!rest.is_null())

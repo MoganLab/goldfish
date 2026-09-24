@@ -38,8 +38,20 @@ Values Evaluator::eval_tail(Value expression, EnvironmentPtr environment) {
     if (!expression.is_object())
         return {expression};
     Object* object = expression.as_object();
-    if (object->type() == ObjectType::Symbol)
-        return {environment->lookup(expression)};
+    if (object->type() == ObjectType::Symbol) {
+        try {
+            return {environment->lookup(expression)};
+        } catch (const std::exception&) {
+            // Same s7 keyword rule as eval_values (kernel keyword-symbol?):
+            // :name / name: are self-evaluating, never variable lookups.
+            const std::string& name =
+                expression.as_object<SymbolObject>()->name;
+            if (!name.empty() &&
+                (name.front() == ':' || name.back() == ':'))
+                return {expression};
+            throw;
+        }
+    }
     if (object->type() != ObjectType::Pair)
         return {expression};
 
@@ -171,8 +183,14 @@ Values Evaluator::eval_pair(PairObject& expression,
 
     if (form == CoreForm::Values) {
         Values result;
-        for (Value argument : proper_list(tail))
-            result.push_back(eval(argument, environment));
+        for (Value argument : proper_list(tail)) {
+            // Each argument contributes its values: srfi-8's receive builds
+            // its producer as (values expr) where expr may itself be a
+            // multi-value call -- those values pass through unchanged.
+            Values produced = eval_values(argument, environment);
+            for (Value value : produced)
+                result.push_back(value);
+        }
         return result;
     }
 
@@ -202,8 +220,15 @@ Values Evaluator::eval_pair(PairObject& expression,
         ValueList irritants;
         for (std::size_t i = 1; i < arguments.size(); ++i)
             irritants.push_back(eval(arguments[i], environment));
+        // (error 'key ...) keeps its key for catch handlers (host parity);
+        // (error "text" ...) is the R7RS form and carries no key.
+        const std::string key =
+            message.is_object() &&
+                    message.as_object()->type() == ObjectType::Symbol
+                ? message.as_object<SymbolObject>()->name
+                : std::string();
         throw RaisedValue(Value::object(heap_.make<ErrorObject>(
-            error_message(*this, message), std::move(irritants))));
+            error_message(*this, message), std::move(irritants), key)));
     }
 
     if (form == CoreForm::ErrorObjectPredicate) {

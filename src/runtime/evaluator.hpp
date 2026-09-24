@@ -168,6 +168,12 @@ public:
 
     EnvironmentPtr global_environment() const noexcept { return global_; }
     Value make_eval_environment(EnvironmentPtr parent = nullptr);
+    // Designates the expander's defs frame (set right after the kernel
+    // bootstrap creates it) as the ancestor of every parentless frame, so
+    // bare gensym references (register thunks, cross-library toplevel
+    // aliases) resolve through the chain while module frames stay isolated
+    // from one another.
+    void set_defs_root(EnvironmentPtr frame);
     Heap& heap() noexcept { return heap_; }
 
     Value eval(Value expression) { return eval(expression, global_); }

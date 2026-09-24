@@ -31,13 +31,18 @@ private:
 
 class ErrorObject final : public Object {
 public:
-    ErrorObject(std::string message, ValueList irritants)
+    ErrorObject(std::string message, ValueList irritants,
+                std::string key = {})
         : Object(ObjectType::ErrorObject),
           message(std::move(message)),
-          irritants(std::move(irritants)) {}
+          irritants(std::move(irritants)), key(std::move(key)) {}
 
     std::string message;
     ValueList irritants;
+    // Non-empty when raised as (error 'key ...): the host's catch hands
+    // (key irritants...) to handlers, while (error "text" ...) and C++
+    // runtime errors hand the object itself (R7RS guard semantics).
+    std::string key;
 
 protected:
     void trace(Tracer& tracer) override {

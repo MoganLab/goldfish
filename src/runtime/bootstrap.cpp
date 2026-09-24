@@ -142,6 +142,11 @@ Value NativeBootstrap::load_kernel(const std::string& path) {
     Value eval_environment = runtime_.evaluator().apply_values(
         runtime_.evaluator().eval(
             runtime_.evaluator().symbol("make-eval-environment")), {})[0];
+    // Designate this frame as the defs root: every later parentless frame
+    // (module environments, program environments) descends from it, so bare
+    // gensym refs resolve while module frames stay isolated.
+    runtime_.evaluator().set_defs_root(
+        eval_environment.as_object<EvalEnvironmentObject>()->environment);
     runtime_.evaluator().apply_values(
         runtime_.evaluator().eval(
             runtime_.evaluator().symbol("module-define!")),
