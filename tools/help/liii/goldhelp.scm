@@ -171,41 +171,22 @@
                  ) ;let
                ) ;if
              ) ;tools
-             (tool-cfg (if (and (json-object? tools) (json-contains-key? tools tool-name))
-                         (json-ref tools tool-name)
-                         '()
-                       ) ;if
-             ) ;tool-cfg
-             (actual-tool (if (and (json-object? tool-cfg) (json-contains-key? tool-cfg "tool"))
+             (tool-cfg (json-ref tools tool-name))
+             (actual-tool (if (json-object? tool-cfg)
                             (json-ref-string tool-cfg "tool" tool-name)
                             tool-name
                           ) ;if
              ) ;actual-tool
-             (tools-dir (if (and (json-object? tool-cfg) (json-contains-key? tool-cfg "tools_dir"))
-                          (json-ref-string tool-cfg "tools_dir" #f)
-                          #f
-                        ) ;if
+             (tools-dir (if (json-object? tool-cfg) (json-ref-string tool-cfg "tools_dir" #f) #f)
              ) ;tools-dir
             ) ;
-        (if (and tools-dir (not (string-null? tools-dir)))
-          (let* ((expanded (gfproject-expand-tools-dir tools-dir))
-                 (readme-path (path->string (path-join expanded actual-tool "README.md")))
-                ) ;
-            (if (file-exists? readme-path) readme-path #f)
-          ) ;let*
-          (let* ((gf-lib (gfproject-get-gf-lib))
-                 (candidates (list (path-join (getcwd) "tools" actual-tool "README.md")
-                               (path-join gf-lib "tools" actual-tool "README.md")
-                               (path-join (path-parent gf-lib) "tools" actual-tool "README.md")
-                             ) ;list
-                 ) ;candidates
-                 (found
-                   (find (lambda (p) (file-exists? (path->string p))) candidates)
-                 ) ;found
-                ) ;
-            (and found (path->string found))
-          ) ;let*
-        ) ;if
+        (let ((tool-root (gfproject-find-tool-root actual-tool tools-dir)))
+          (and tool-root
+            (let ((readme-path (path->string (path-join tool-root "README.md"))))
+              (and (file-exists? readme-path) readme-path)
+            ) ;let
+          ) ;and
+        ) ;let
       ) ;let*
     ) ;define
 

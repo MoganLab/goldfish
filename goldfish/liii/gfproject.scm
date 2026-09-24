@@ -16,7 +16,6 @@
 
 (define-library (liii gfproject)
   (import (scheme base)
-    (scheme process-context)
     (scheme write)
     (liii base)
     (liii json)
@@ -146,26 +145,7 @@
     ) ;define
 
     (define (gfproject-expand-tools-dir dir)
-      (let* ((home
-               (let ((h (get-environment-variable "HOME")))
-                 (if (or (not h) (string-null? h))
-                   (let ((user-prof (get-environment-variable "USERPROFILE")))
-                     (if (or (not user-prof) (string-null? user-prof)) "" user-prof)
-                   ) ;let
-                   h
-                 ) ;if
-               ) ;let
-             ) ;home
-             (expanded
-               (cond ((string=? dir "~") home)
-                     ((or (string-starts? dir "~/") (string-starts? dir "~\\"))
-                      (string-append home (substring dir 1 (string-length dir)))
-                     ) ;
-                     (else dir)
-               ) ;cond
-             ) ;expanded
-             (p (path expanded))
-            ) ;
+      (let ((p (path-expanduser dir)))
         (path->string
           (if (path-absolute? p)
             p
@@ -174,23 +154,19 @@
             ) ;let
           ) ;if
         ) ;path->string
-      ) ;let*
+      ) ;let
     ) ;define
 
     (define (gfproject-find-tool-root tool-name . rest)
       (let* ((tools-dir (if (pair? rest) (car rest) #f))
-             (opt-gf-lib
-               (if (and (pair? rest) (pair? (cdr rest))) (cdr rest) '())
-             ) ;opt-gf-lib
-             (gf-lib (gfproject--opt-gf-lib opt-gf-lib))
+             (opt-gf-lib (if (pair? rest) (cdr rest) '()))
             ) ;
         (if (and tools-dir (not (string-null? tools-dir)))
-          (let* ((expanded (gfproject-expand-tools-dir tools-dir))
-                 (target (path-join expanded tool-name))
-                ) ;
-            (if (path-dir? target) (path->string target) #f)
-          ) ;let*
-          (let* ((candidates (list (path-join (getcwd) "tools" tool-name)
+          (let ((target (path-join (gfproject-expand-tools-dir tools-dir) tool-name)))
+            (and (path-dir? target) (path->string target))
+          ) ;let
+          (let* ((gf-lib (gfproject--opt-gf-lib opt-gf-lib))
+                 (candidates (list (path-join (getcwd) "tools" tool-name)
                                (path-join gf-lib "tools" tool-name)
                                (path-join (path-parent gf-lib) "tools" tool-name)
                              ) ;list
@@ -238,6 +214,7 @@
              ) ;tools-dir
              (has-tools-dir? (and tools-dir (not (string-null? tools-dir))))
              (effective-fallback (if has-tools-dir? #f allow-fallback))
+             (expanded-tools-dir (and has-tools-dir? (gfproject-expand-tools-dir tools-dir)))
             ) ;
         (define (fail . parts)
           (if effective-fallback
@@ -258,13 +235,15 @@
                 command
                 "' is not fully implemented (missing organization or module).\n"
               ) ;fail
-              (let ((tool-root (gfproject-find-tool-root tool-name tools-dir gf-lib)))
+              (let ((tool-root (gfproject-find-tool-root tool-name (or expanded-tools-dir tools-dir) gf-lib)
+                    ) ;tool-root
+                   ) ;
                 (if (not tool-root)
                   (if has-tools-dir?
                     (fail "Error: Tool '"
                       command
                       "' directory not found: "
-                      (path->string (path-join (gfproject-expand-tools-dir tools-dir) tool-name))
+                      (path->string (path-join expanded-tools-dir tool-name))
                       "\n"
                     ) ;fail
                     (fail "Error: tools/" tool-name "/" org " directory not found.\n")
@@ -324,24 +303,18 @@
                  (has-lib? (bundle-ref bundle "has-lib-tool"))
                  (merged-tool (bundle-ref bundle "merged-tool"))
                  (lib-tool (bundle-ref bundle "lib-tool"))
-                 (tools-dir (and (json-object? merged-tool) (json-ref-string merged-tool "tools_dir" #f))
-                 ) ;tools-dir
-                 (has-tools-dir? (and tools-dir (not (string-null? tools-dir))))
                  (builtin-fallback? (member command '("help" "version" "eval"
                                                       "load" "repl" "run"))
                  ) ;builtin-fallback?
                 ) ;
-            (if has-tools-dir?
-              (gfproject-prepare-and-run-tool command merged-tool gf-lib #f)
-              (if (and has-local? has-lib?)
-                (let ((ret (gfproject-prepare-and-run-tool command merged-tool gf-lib #t)))
-                  (if ret
-                    ret
-                    (gfproject-prepare-and-run-tool command lib-tool gf-lib builtin-fallback?)
-                  ) ;if
-                ) ;let
-                (gfproject-prepare-and-run-tool command merged-tool gf-lib builtin-fallback?)
-              ) ;if
+            (if (and has-local? has-lib?)
+              (let ((ret (gfproject-prepare-and-run-tool command merged-tool gf-lib #t)))
+                (if ret
+                  ret
+                  (gfproject-prepare-and-run-tool command lib-tool gf-lib builtin-fallback?)
+                ) ;if
+              ) ;let
+              (gfproject-prepare-and-run-tool command merged-tool gf-lib builtin-fallback?)
             ) ;if
           ) ;let*
         ) ;if
