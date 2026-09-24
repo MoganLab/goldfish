@@ -6,6 +6,35 @@ s7/gf0 过渡层明确属于 R4。
 本文定义替换 vendored s7 后的宿主边界；现有 `gf0`/s7 bridge 不是此合同
 的一部分，只是过渡实现。
 
+### R3 收口记录（2026-09-24）
+
+- 冷启动路径：`tools/test-native-cold-bootstrap.sh` 与 default/r7rs 两模式
+  `-e '(+ 20 22)'` 均返回 42；`tools/test-native.sh` 套件通过。
+- 单元：`native-reader/evaluator/dependency/source-bootstrap-test` 通过。
+  `native-library-source-test` 需要 `vbootstrap0` 预热缓存（不在
+  test-native.sh 门禁内），缺缓存时 abort。
+- 宿主回归：`gf test tests/scheme/eval` 2/2、`import-perlevel` 1/1、
+  reader 301/1（NaN round-trip 为 HEAD 既有失败）+ write-roundtrip 9/9。
+- 关键修复：`(scheme eval)` 的 `%s7-eval` 改经私有名 `%host-eval` 解析
+  host evaluator，消除 import 后的自递归；`g-native-trace/dump` 探针已移除；
+  `liii/prelude.scm` 括号修正后以**不含 `cond` 的 9 宏形态**落地
+  （`when and or case let let* do let-values let*-values`）——real `cond`
+  在 native 的 install.scm 展开路径触发 `expected proper list`，占位
+  `cond`（bootstrap-prelude）+ 无 `cond` 的 prelude 使双端同时通过。
+
+### R4 准备清单
+
+1. 默认 `gf` 入口切换到 `gf-native`（或等价 native driver），gf0/s7 降级为可选。
+2. 删除 `src/s7*`、s7 构建目标与 vendored s7；清理 `gf0` bridge 与
+   `bootstrap_compatibility` 中仅过渡用的 LegacyLet 分支。
+3. 为 native 路径补齐 real `cond`（修复 install.scm 展开中的
+   proper-list 问题），或把 install/gfo 的 cond 全部改写为 if，
+   使 prelude 可恢复完整 10 宏形态。
+4. 生成/入库 `vbootstrap0` 预热步骤，使 `native-library-source-test`
+   纳入门禁。
+5. 按本文验收五条逐条跑 differential gate，通过后删除
+   `tools/diff-gf0-m2a.sh` skip 名单。
+
 ## 目标
 
 Goldfish 的语言语义由 Scheme 层和 core IR 定义。C++ 只提供一个独立、
