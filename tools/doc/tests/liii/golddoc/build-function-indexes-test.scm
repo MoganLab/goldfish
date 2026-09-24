@@ -33,6 +33,11 @@
         (tests-root (path-join base-root "tests"))
        ) ;
     (path-unlink (path-join tests-root "function-library-index.json") #t)
+    (path-unlink (path-join load-root "liii" "nested" "delta.scm") #t)
+    (if (path-dir? (path-join load-root "liii" "nested"))
+      (path-rmdir (path-join load-root "liii" "nested"))
+      #f
+    ) ;if
     (path-unlink (path-join load-root "liii" "alpha.scm") #t)
     (path-unlink (path-join load-root "custom" "beta.scm") #t)
     (path-unlink (path-join load-root "custom" "gamma.scm") #t)
@@ -56,9 +61,10 @@
   ) ;let
 ) ;define
 
-(let* ((base-root (path-join (path-temp-dir)
-                    (string-append "golddoc-build-index-" (number->string (getpid)))
-                  ) ;path-join
+(let* ((base-root
+         (path-join (path-temp-dir)
+           (string-append "golddoc-build-index-" (number->string (getpid)))
+         ) ;path-join
        ) ;base-root
        (load-root (path-join base-root "goldfish"))
        (tests-root (path-join base-root "tests"))
@@ -68,11 +74,15 @@
   (mkdir (path->string base-root))
   (mkdir (path->string load-root))
   (mkdir (path->string (path-join load-root "liii")))
+  (mkdir (path->string (path-join load-root "liii" "nested")))
   (mkdir (path->string (path-join load-root "custom")))
   (mkdir (path->string (path-join load-root "srfi")))
   (mkdir (path->string tests-root))
   (path-write-text (path-join load-root "liii" "alpha.scm")
     "(define-library (liii alpha)\n  (export alpha=? shared-value)\n  (import (scheme base))\n  (begin))\n"
+  ) ;path-write-text
+  (path-write-text (path-join load-root "liii" "nested" "delta.scm")
+    "(define-library (liii nested delta)\n  (export delta-run)\n  (import (scheme base))\n  (begin))\n"
   ) ;path-write-text
   (path-write-text (path-join load-root "custom" "beta.scm")
     "(define-library (custom beta)\n  (export beta-search!)\n  (export beta-extra)\n  (import (scheme base))\n  (begin))\n"
@@ -86,7 +96,8 @@
   (path-write-text (path-join load-root "srfi" "1.scm")
     "(define-library (srfi 1)\n  (export skip-me)\n  (import (scheme base))\n  (begin))\n"
   ) ;path-write-text
-  (dynamic-wind (lambda () (set! *load-path* (list (path->string load-root))))
+  (dynamic-wind
+    (lambda () (set! *load-path* (list (path->string load-root))))
     (lambda ()
       (let ((built-paths (build-function-indexes!))
             (index-path (path->string (path-join tests-root "function-library-index.json")))
@@ -94,6 +105,7 @@
         (check built-paths => (list index-path))
         (check-true (path-file? index-path))
         (check (visible-libraries-for-function "alpha=?") => '("liii/alpha"))
+        (check (visible-libraries-for-function "delta-run") => '("liii/nested/delta"))
         (check (visible-libraries-for-function "beta-search!") => '("custom/beta"))
         (check (visible-libraries-for-function "beta-extra") => '("custom/beta"))
         (check (visible-libraries-for-function "shared-value")

@@ -106,17 +106,22 @@
 
     (define (library-name->entry library-name)
       (if
-        (not (and (list? library-name) (= (length library-name) 2)))
+        (not (and (list? library-name) (>= (length library-name) 2)))
         #f
-        (let* ((group (library-name-part->string (car library-name)))
-               (library (library-name-part->string (cadr library-name)))
-              ) ;
-          (and group
-            library
-            (supported-test-group? group)
-            (string-append "(" group " " library ")")
-          ) ;and
-        ) ;let*
+        (let ((group (library-name-part->string (car library-name))))
+          (if (or (not group) (not (supported-test-group? group)))
+            #f
+            (let loop
+              ((rem (cdr library-name)) (acc (list group)))
+              (if (null? rem)
+                (string-append "(" (string-join acc " ") ")")
+                (let ((part (library-name-part->string (car rem))))
+                  (if (not part) #f (loop (cdr rem) (append acc (list part))))
+                ) ;let
+              ) ;if
+            ) ;let
+          ) ;if
+        ) ;let
       ) ;if
     ) ;define
 
@@ -194,21 +199,34 @@
       ) ;call-with-input-file
     ) ;define
 
+    (define (find-scheme-source-files dir)
+      (let collect
+        ((current-dir dir) (result '()))
+        (let loop
+          ((entries (sorted-dir-entries current-dir)) (acc result))
+          (if (null? entries)
+            acc
+            (let* ((name (car entries)) (full-path (path->string (path-join current-dir name))))
+              (cond ((path-dir? full-path) (loop (cdr entries) (collect full-path acc)))
+                    ((and (path-file? full-path) (string-ends? name ".scm"))
+                     (loop (cdr entries) (append acc (list full-path)))
+                    ) ;
+                    (else (loop (cdr entries) acc))
+              ) ;cond
+            ) ;let*
+          ) ;if
+        ) ;let
+      ) ;let
+    ) ;define
+
     (define (build-index-for-load-root load-root)
       (let ((index '()))
         (for-each
           (lambda (group-name)
             (let ((group-dir (path->string (path-join load-root group-name))))
               (if (and (path-dir? group-dir) (supported-test-group? group-name))
-                (for-each
-                  (lambda (entry-name)
-                    (let ((source-file (path->string (path-join group-dir entry-name))))
-                      (if (and (path-file? source-file) (string-ends? entry-name ".scm"))
-                        (set! index (index-add-source-file index source-file))
-                      ) ;if
-                    ) ;let
-                  ) ;lambda
-                  (sorted-dir-entries group-dir)
+                (for-each (lambda (source-file) (set! index (index-add-source-file index source-file)))
+                  (find-scheme-source-files group-dir)
                 ) ;for-each
               ) ;if
             ) ;let

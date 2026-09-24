@@ -24,6 +24,7 @@
     (liii golddoc-index-build)
     (liii golddoc-library)
     (liii path)
+    (liii string)
     (liii sys)
   ) ;import
   (export run-golddoc)
@@ -76,7 +77,7 @@
 
     (define (library-query->display-name library-query)
       (let ((parts (parse-library-query library-query)))
-        (if parts (string-append "(" (car parts) " " (cdr parts) ")") library-query)
+        (if parts (string-append "(" (string-join parts " ") ")") library-query)
       ) ;let
     ) ;define
 
@@ -435,7 +436,7 @@
     (define (library-query->import-set library-query)
       ;; 将 "liii/base" 转换为 (liii base) 形式的 import set
       (let ((parts (parse-library-query library-query)))
-        (if parts (list (string->symbol (car parts)) (string->symbol (cdr parts))) #f)
+        (if parts (map string->symbol parts) #f)
       ) ;let
     ) ;define
 

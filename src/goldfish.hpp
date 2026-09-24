@@ -97,6 +97,8 @@ static s7_pointer f_goldfish_library_dir (s7_scheme* sc, s7_pointer args);
 
 static s7_pointer f_project_root (s7_scheme* sc, s7_pointer args);
 
+static vector<string> split_library_query_parts (const string& query);
+
 static bool split_library_query (const string& query, string& group, string& library);
 
 static string find_goldfish_library ();
@@ -1088,22 +1090,26 @@ goldfish_shell_double_quote (const string& value) {
 
 static string
 goldfish_library_display_name (const string& library_query) {
-  string group;
-  string library;
-  if (!split_library_query (library_query, group, library)) {
+  vector<string> parts= split_library_query_parts (library_query);
+  if (parts.size () < 2) {
     return library_query;
   }
-  return "(" + group + " " + library + ")";
+  string result= "(";
+  for (size_t i= 0; i < parts.size (); ++i) {
+    if (i > 0) result+= " ";
+    result+= parts[i];
+  }
+  result+= ")";
+  return result;
 }
 
 static string
 goldfish_library_import_form (const string& library_query) {
-  string group;
-  string library;
-  if (!split_library_query (library_query, group, library)) {
+  vector<string> parts= split_library_query_parts (library_query);
+  if (parts.size () < 2) {
     return "";
   }
-  return "(import (" + group + " " + library + "))";
+  return "(import " + goldfish_library_display_name (library_query) + ")";
 }
 
 static string
@@ -2055,17 +2061,36 @@ make_library_name_part (s7_scheme* sc, const string& part) {
   return s7_make_symbol (sc, part.c_str ());
 }
 
+static vector<string>
+split_library_query_parts (const string& query) {
+  vector<string> parts;
+  if (query.empty ()) return parts;
+  size_t start= 0;
+  while (start < query.size ()) {
+    size_t slash_pos= query.find ('/', start);
+    if (slash_pos == string::npos) {
+      string part= query.substr (start);
+      if (part.empty ()) return {};
+      parts.push_back (part);
+      break;
+    }
+    if (slash_pos == start) return {};
+    parts.push_back (query.substr (start, slash_pos - start));
+    start= slash_pos + 1;
+    if (start == query.size ()) return {};
+  }
+  if (parts.size () < 2) return {};
+  return parts;
+}
+
 static bool
 split_library_query (const string& query, string& group, string& library) {
-  size_t slash_pos= query.find ('/');
-  if (slash_pos == string::npos || slash_pos == 0 || slash_pos == query.size () - 1) {
+  vector<string> parts= split_library_query_parts (query);
+  if (parts.size () < 2) {
     return false;
   }
-  if (query.find ('/', slash_pos + 1) != string::npos) {
-    return false;
-  }
-  group  = query.substr (0, slash_pos);
-  library= query.substr (slash_pos + 1);
+  group  = parts[0];
+  library= query.substr (parts[0].size () + 1);
   return true;
 }
 
@@ -2089,12 +2114,32 @@ library_name_part_to_string (s7_pointer value, string& out) {
 
 static bool
 extract_library_name_from_form (s7_scheme* sc, s7_pointer library_name_form, string& group, string& library) {
-  if ((!s7_is_list (sc, library_name_form)) || (s7_list_length (sc, library_name_form) != 2)) {
+  if (!s7_is_list (sc, library_name_form)) {
     return false;
   }
+  s7_int len= s7_list_length (sc, library_name_form);
+  if (len < 2) {
+    return false;
+  }
+  string first_part;
+  if (!library_name_part_to_string (s7_car (library_name_form), first_part)) {
+    return false;
+  }
+  group= first_part;
 
-  return library_name_part_to_string (s7_car (library_name_form), group) &&
-         library_name_part_to_string (s7_cadr (library_name_form), library);
+  string remaining;
+  for (s7_pointer p= s7_cdr (library_name_form); s7_is_pair (p); p= s7_cdr (p)) {
+    string part;
+    if (!library_name_part_to_string (s7_car (p), part)) {
+      return false;
+    }
+    if (!remaining.empty ()) {
+      remaining+= "/";
+    }
+    remaining+= part;
+  }
+  library= remaining;
+  return true;
 }
 
 static bool
@@ -2168,8 +2213,21 @@ source_file_exports_function (s7_scheme* sc, const fs::path& source_file, const 
 }
 
 static s7_pointer
+make_library_name_list (s7_scheme* sc, const vector<string>& parts) {
+  s7_pointer result= s7_nil (sc);
+  for (auto it= parts.rbegin (); it != parts.rend (); ++it) {
+    result= s7_cons (sc, make_library_name_part (sc, *it), result);
+  }
+  return result;
+}
+
+static s7_pointer
 make_library_name_list (s7_scheme* sc, const string& group, const string& library) {
-  return s7_list (sc, 2, make_library_name_part (sc, group), make_library_name_part (sc, library));
+  vector<string> parts= split_library_query_parts (group + "/" + library);
+  if (parts.empty ()) {
+    parts= {group, library};
+  }
+  return make_library_name_list (sc, parts);
 }
 
 static vector<fs::path>
@@ -2216,6 +2274,28 @@ sorted_scheme_source_files (const fs::path& dir) {
   return files;
 }
 
+static vector<fs::path>
+sorted_recursive_scheme_source_files (const fs::path& dir) {
+  vector<fs::path> files;
+  std::error_code  ec;
+
+  for (fs::recursive_directory_iterator it (dir, fs::directory_options::skip_permission_denied, ec), end; it != end;
+       it.increment (ec)) {
+    if (ec) {
+      ec.clear ();
+      continue;
+    }
+    if (it->is_regular_file (ec) && (it->path ().extension () == ".scm")) {
+      files.push_back (it->path ());
+    }
+    ec.clear ();
+  }
+
+  std::sort (files.begin (), files.end (),
+             [] (const fs::path& lhs, const fs::path& rhs) { return lhs.string () < rhs.string (); });
+  return files;
+}
+
 static vector<string>
 find_function_libraries_in_load_path (s7_scheme* sc, const string& function_name) {
   vector<string>  library_queries;
@@ -2230,7 +2310,7 @@ find_function_libraries_in_load_path (s7_scheme* sc, const string& function_name
     ec.clear ();
 
     for (const auto& group_dir : sorted_child_directories (load_root)) {
-      for (const auto& source_file : sorted_scheme_source_files (group_dir)) {
+      for (const auto& source_file : sorted_recursive_scheme_source_files (group_dir)) {
         string group;
         string library;
         if (source_file_exports_function (sc, source_file, function_name, group, library)) {
@@ -2248,10 +2328,9 @@ static s7_pointer
 make_library_name_list_list (s7_scheme* sc, const vector<string>& library_queries) {
   s7_pointer result= s7_nil (sc);
   for (auto it= library_queries.rbegin (); it != library_queries.rend (); ++it) {
-    string group;
-    string library;
-    if (!split_library_query (*it, group, library)) continue;
-    result= s7_cons (sc, make_library_name_list (sc, group, library), result);
+    vector<string> parts= split_library_query_parts (*it);
+    if (parts.size () < 2) continue;
+    result= s7_cons (sc, make_library_name_list (sc, parts), result);
   }
   return result;
 }

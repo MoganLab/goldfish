@@ -33,6 +33,11 @@
         (tests-root (path-join base-root "tests"))
        ) ;
     (path-unlink (path-join tests-root "function-library-index.json") #t)
+    (path-unlink (path-join load-root "liii" "nested" "baz.scm") #t)
+    (if (path-dir? (path-join load-root "liii" "nested"))
+      (path-rmdir (path-join load-root "liii" "nested"))
+      #f
+    ) ;if
     (path-unlink (path-join load-root "liii" "foo.scm") #t)
     (path-unlink (path-join load-root "liii" "bar.scm") #t)
     (path-unlink (path-join load-root "srfi" "1.scm") #t)
@@ -50,9 +55,10 @@
   ) ;let
 ) ;define
 
-(let* ((base-root (path-join (path-temp-dir)
-                    (string-append "golddoc-visible-libraries-" (number->string (getpid)))
-                  ) ;path-join
+(let* ((base-root
+         (path-join (path-temp-dir)
+           (string-append "golddoc-visible-libraries-" (number->string (getpid)))
+         ) ;path-join
        ) ;base-root
        (load-root (path-join base-root "goldfish"))
        (liii-root (path-join load-root "liii"))
@@ -65,10 +71,14 @@
   (mkdir (path->string base-root))
   (mkdir (path->string load-root))
   (mkdir (path->string liii-root))
+  (mkdir (path->string (path-join liii-root "nested")))
   (mkdir (path->string srfi-root))
   (mkdir (path->string tests-root))
   (path-write-text (path-join liii-root "foo.scm")
     "(define-library (liii foo) (export) (import (scheme base)) (begin))"
+  ) ;path-write-text
+  (path-write-text (path-join liii-root "nested" "baz.scm")
+    "(define-library (liii nested baz) (export) (import (scheme base)) (begin))"
   ) ;path-write-text
   (path-write-text (path-join liii-root "bar.scm")
     "(define-library (liii bar) (export) (import (scheme base)) (begin))"
@@ -76,14 +86,16 @@
   (path-write-text (path-join srfi-root "1.scm")
     "(define-library (srfi 1) (export) (import (scheme base)) (begin))"
   ) ;path-write-text
-  (dynamic-wind (lambda () (set! *load-path* (list (path->string load-root))))
+  (dynamic-wind
+    (lambda () (set! *load-path* (list (path->string load-root))))
     (lambda ()
       (check (visible-libraries-for-function "unique-func") => '())
       (check (visible-libraries-for-function "shared-func") => '())
       (path-write-text index-path
-        "{\"shared-func\":[\"(liii foo)\",\"(liii bar)\",\"(srfi 1)\"],\"unique-func\":[\"(liii foo)\"]}"
+        "{\"nested-func\":[\"(liii nested baz)\"],\"shared-func\":[\"(liii foo)\",\"(liii bar)\",\"(srfi 1)\"],\"unique-func\":[\"(liii foo)\"]}"
       ) ;path-write-text
       (check (visible-libraries-for-function "unique-func") => '("liii/foo"))
+      (check (visible-libraries-for-function "nested-func") => '("liii/nested/baz"))
       (check (visible-libraries-for-function "shared-func")
         =>
         '("liii/foo" "liii/bar" "srfi/1")

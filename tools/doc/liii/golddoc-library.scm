@@ -37,20 +37,41 @@
       (or (string=? group "goldfish"))
     ) ;define
 
+    (define (parts->source-file-segments parts)
+      (let loop
+        ((rem parts) (acc '()))
+        (cond ((null? rem) acc)
+              ((null? (cdr rem)) (append acc (list (string-append (car rem) ".scm"))))
+              (else
+                (loop (cdr rem) (append acc (list (car rem))))
+              ) ;else
+        ) ;cond
+      ) ;let
+    ) ;define
+
+    (define (parts->test-file-segments parts)
+      (let loop
+        ((rem parts) (acc '()))
+        (cond ((null? rem) acc)
+              ((null? (cdr rem)) (append acc (list (string-append (car rem) "-test.scm"))))
+              (else
+                (loop (cdr rem) (append acc (list (car rem))))
+              ) ;else
+        ) ;cond
+      ) ;let
+    ) ;define
+
     (define (find-visible-library-root query)
       (let ((parts (parse-library-query query)))
         (if (not parts)
           #f
-          (let ((group (car parts)) (library (cdr parts)))
+          (let ((rel-segments (parts->source-file-segments parts)))
             (let loop
               ((roots *load-path*))
               (if (null? roots)
                 #f
                 (let ((load-root (car roots)))
-                  (if
-                    (and (string? load-root)
-                      (path-file? (path-join load-root group (string-append library ".scm")))
-                    ) ;and
+                  (if (and (string? load-root) (path-file? (apply path-join load-root rel-segments)))
                     load-root
                     (loop (cdr roots))
                   ) ;if
@@ -83,7 +104,7 @@
       (let ((parts (parse-library-query query)))
         (if (not parts)
           #f
-          (let ((group (car parts)) (library (cdr parts)))
+          (let ((group (car parts)))
             (if (excluded-test-group? group)
               #f
               (let ((load-root (find-visible-library-root query)))
@@ -92,7 +113,7 @@
                   (let ((tests-root (find-tests-root-for-load-root load-root)))
                     (if (not tests-root)
                       #f
-                      (let ((candidate (path->string (path-join tests-root group (string-append library "-test.scm")))
+                      (let ((candidate (path->string (apply path-join tests-root (parts->test-file-segments parts)))
                             ) ;candidate
                            ) ;
                         (if (path-file? candidate) candidate #f)
