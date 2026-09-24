@@ -17,7 +17,9 @@ run_cold() {
 result=$(run_cold -m r7rs -e '(+ 20 22)' 2>/dev/null)
 test "$result" = 42
 
-run_cold -m r7rs test \
+# `load` (not `test`): the dispatcher now claims `test` for the project
+# tool, whose runner needs a warm cache -- this suite runs COLD on purpose.
+run_cold -m r7rs load \
     "$project_dir/tests/runtime/fixtures/native-source-bootstrap.scm" \
     "$project_dir/tests/runtime/fixtures/native-cli-regression.scm" \
     "$project_dir/tests/runtime/fixtures/native-eval-environment.scm" \
