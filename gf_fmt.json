@@ -1,5 +1,4 @@
 {
-  "goldfish_version": "18.11.35",
   "cpp": {
     "suffix": ["hpp", "cpp", "h", "c", "cc", "cxx"],
     "path": ["src"],
