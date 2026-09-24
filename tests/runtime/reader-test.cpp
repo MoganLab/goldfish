@@ -7,6 +7,7 @@
 #include <fstream>
 #include <iterator>
 #include <stdexcept>
+#include <utility>
 
 using namespace goldfish::runtime;
 
@@ -32,6 +33,16 @@ int main() {
     assert(evaluator.vector_values(vector).size() == 2);
     assert(evaluator.character_value(evaluator.vector_values(vector)[1]) == U'a');
     assert(!reader.read());
+
+    for (const auto& shorthand : {std::pair<const char*, const char*>("#'x", "syntax"),
+                                  {"#`x", "quasisyntax"},
+                                  {"#,x", "unsyntax"},
+                                  {"#,@x", "unsyntax-splicing"}}) {
+        TinyReader syntax_reader(evaluator, shorthand.first);
+        Value form = *syntax_reader.read();
+        assert(form.as_object<PairObject>()->car ==
+               evaluator.symbol(shorthand.second));
+    }
 
     TinyReader unicode_character_reader(evaluator, "#\\x3007");
     assert(evaluator.character_value(*unicode_character_reader.read()) ==

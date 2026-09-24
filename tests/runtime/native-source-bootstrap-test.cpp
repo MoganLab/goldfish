@@ -14,6 +14,15 @@ int main(int argc, char** argv) {
   try {
     setenv("GOLDFISH_NATIVE_ARTIFACTS", "1", 1);
     bootstrap.install_primitives();
+    // The native bootstrap keeps only artifact compatibility aliases.  The
+    // s7 inlet/let object family belongs to the explicit migration bridge.
+    bool legacy_surface_absent = false;
+    try {
+      (void)runtime.evaluator().eval(runtime.evaluator().symbol("inlet"));
+    } catch (const std::runtime_error&) {
+      legacy_surface_absent = true;
+    }
+    assert(legacy_surface_absent);
     bootstrap.load_kernel("goldfish/expander/kernel-combined.scm");
     if (argc == 1 || (argc == 2 && std::string(argv[1]) == "--rebuild"))
       bootstrap.load_cached_runtime();

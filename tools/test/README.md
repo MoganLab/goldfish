@@ -63,3 +63,20 @@ You can filter tests by:
 
 - Test files must end with `-test.scm`
 - The command returns exit code 0 if all tests pass, non-zero otherwise
+
+## Native runtime regressions
+
+Native bootstrap and tiny-reader regressions use the native entry point:
+
+```bash
+nix develop -c sh tools/test-native.sh
+```
+
+The same suite is also available as an explicit xmake target:
+
+```bash
+nix develop -c xmake build native-test
+```
+
+This keeps cache-free bootstrap checks independent from the host/s7 `gf test`
+runner. The regular Scheme suite remains under `gf test`.
