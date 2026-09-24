@@ -15,7 +15,7 @@
 ;;;     see liii/prelude.scm) so libraries have runtime identity; cross-
 ;;;     library references are emitted as (module-ref 'lib 'name).  References
 ;;;     within the defining library stay bare gensyms.  Exported bindings are
-;;;     immutable (set! on them is an expansion error): the module inlet holds
+;;;     immutable (set! on them is an expansion error): the module record holds
 ;;;     value snapshots, not shared cells.  Re-exports forward via module-ref;
 ;;;     references resolve straight to the defining module.
 ;;;
@@ -126,7 +126,7 @@
 ;;; non-library top-level form falls back to the previous compile-program
 ;;; path.
 
-;;; (*libraries-being-loaded*, the runtime/ inlet tables, and the guard
+;;; (*libraries-being-loaded*, the runtime/ expansion-environment tables, and the guard
 ;;; all live in the unified *library-instances* table now; see
 ;;; lib/module-registry.scm.)
 
@@ -563,7 +563,7 @@
                   ;; cells stops satisfying its own predicate).
                   ;; Level 0 evaluates in the session-global rootlet, so a
                   ;; guarded skip is exact; level >= 1 targets the current
-                  ;; unit inlet and keeps its per-load evaluation.
+                  ;; unit expansion environment and keeps its per-load evaluation.
                   (if (or (> level 0) (not (runtime-registered? name level)))
                     (begin
                       (eval-defs defs name level)
@@ -575,14 +575,23 @@
               recs)))
 
 ;;; eval-defs : (list sexp) name [level] -> void
-;;; Level 0 evaluates in the rootlet; level >= 1 in the unit inlet.
+;;; Level 0 evaluates in the root environment; level >= 1 in the unit
+;;; expansion environment.
+
+(define (library-runtime-environment)
+  (let ((env (module-eval-environment the-expander-library)))
+    (if (and (defined? 'eval-environment?)
+             (procedure? eval-environment?)
+             (eval-environment? env))
+      env
+      (rootlet))))
 
 (define (eval-defs defs lib-name . maybe-level)
   (let ((level (registry-level-arg maybe-level)))
     (if (and (integer? level) (> level 0))
       ;; A level >= 1 instance registers no runtime module: the baked
       ;; (register-runtime-module ...) is dropped, since expansion-time
-      ;; references resolve through inlet cells and the registration
+      ;; references resolve through expansion-environment cells and the registration
       ;; would only clobber the level-0 module of the same name.
       (eval (cons 'begin
                   (filter (lambda (d)
@@ -590,7 +599,8 @@
                                       (eq? (car d) 'register-runtime-module))))
                           defs))
             (current-expand-env))
-      (eval (cons 'begin defs) (rootlet)))))
+      (eval (cons 'begin defs)
+            (library-runtime-environment)))))
 
 ;;; (loading-guard-push!/pop! live in lib/module-registry.scm, operating
 ;;; on the unified instance table; the four dynamic-wind pairs in
@@ -623,7 +633,21 @@
                               (string-append msg (apply string-append
                                               (map (lambda (a) (format #f " ~s" a)) args))))
                             msg)))
-                       (else "malformed definition or expansion error"))))
+                       (else
+                        (if (pair? info)
+                            (if (pair? (car info))
+                                "malformed definition or expansion error nested-pair"
+                                (if (error-object? (car info))
+                                    (string-append "nested error: "
+                                                   (error-object-message (car info))
+                                                   (apply string-append
+                                                          (map (lambda (a)
+                                                                 (format #f " ~s" a))
+                                                               (error-object-irritants (car info)))))
+                                    (if (string? (car info))
+                                        (string-append "error string: " (car info))
+                                        "malformed definition or expansion error pair")))
+                            "malformed definition or expansion error other")))))
         (error 'import "failed to load library ~a: ~a" lib-name detail)))))
 
 ;;; lazy-module : name -> module/#f
@@ -652,12 +676,12 @@
   (let ((level (registry-level-arg maybe-level)))
     (when (instance-loading? lib-name level)
       (error 'import "circular library dependency" lib-name))
-    (let ((inlet (call-with-fresh-expand-unit
+    (let ((expand-env (call-with-fresh-expand-unit
                    (lambda ()
                      (load-library-in-unit! lib-name level)
                      (and (> level 0) (current-expand-env))))))
-      (when (and (> level 0) inlet)
-        (instance-inlet-set! lib-name level inlet)))))
+      (when (and (> level 0) expand-env)
+        (instance-expand-environment-set! lib-name level expand-env)))))
 
 (define (load-library-in-unit! lib-name . maybe-level)
   (define level (registry-level-arg maybe-level))
@@ -741,7 +765,8 @@
                                         (compile-program-syntax forms)))
                            (if (> level 0)
                              (eval (optimize-on-load prog ctx) (current-expand-env))
-                             (eval (optimize-on-load prog ctx) (rootlet))))
+                             (eval (optimize-on-load prog ctx)
+                                   (library-runtime-environment))))
                          (runtime-registered-add! lib-name level)
                          (when (> level 0)
                            (let ((bare (library-registry-ref lib-name)))
@@ -936,24 +961,26 @@
 ;;; error precedence).
 
 (define (apply-import-modifier kind args pairs)
-  (case kind
-    ((plain) pairs)
-    ((only) (filter (lambda (p) (memq (car p) args)) pairs))
-    ((except) (filter (lambda (p) (not (memq (car p) args))) pairs))
-    ((prefix)
-     (let ((pre (car args)))
-       (map (lambda (p)
-              (cons (string->symbol
-                     (string-append (symbol->string pre)
-                                    (symbol->string (car p))))
-                    (cdr p)))
-            pairs)))
-    ((rename)
-     (map (lambda (p)
-            (let ((e (assq (car p) args)))
-              (if e (cons (cadr e) (cdr p)) p)))
-          pairs))
-    (else (error 'import "bad import-set kind" kind))))
+  (if (eq? kind 'plain)
+      pairs
+      (if (eq? kind 'only)
+          (filter (lambda (p) (memq (car p) args)) pairs)
+          (if (eq? kind 'except)
+              (filter (lambda (p) (not (memq (car p) args))) pairs)
+              (if (eq? kind 'prefix)
+                  (let ((pre (car args)))
+                    (map (lambda (p)
+                           (cons (string->symbol
+                                  (string-append (symbol->string pre)
+                                                 (symbol->string (car p))))
+                                 (cdr p)))
+                         pairs))
+                  (if (eq? kind 'rename)
+                      (map (lambda (p)
+                             (let ((e (assq (car p) args)))
+                               (if e (cons (cadr e) (cdr p)) p)))
+                           pairs)
+                      (error 'import "bad import-set kind" kind)))))))
 
 ;;; import-set-pairs : spec level -> (values lib-name (list (visible . original)))
 (define (import-set-pairs spec level)
@@ -1098,35 +1125,34 @@
           (values es rs (reverse imports) (reverse body)))
         (let* ((clause (syntax-form (car clauses)))
                (head (syntax->datum (car clause))))
-          (cond
-            ((eq? head 'export)
-             (loop (cdr clauses)
-                   (append exports (map syntax->datum (cdr clause)))
-                   imports
-                   body))
-            ((eq? head 'import)
-             (loop (cdr clauses)
-                   exports
-                   (cons (map syntax->datum (cdr clause)) imports)
-                   body))
-            ((eq? head 'include)
-             ;; Splice include forms at this position and re-process them as
-             ;; body clauses.  (splice-includes works on datums; the clauses
-             ;; here are syntax trees, so convert and re-wrap.)
-             (let ((spliced (map (lambda (f) (datum->syntax (car clauses) f))
-                                 (splice-includes (syntax->datum clause)))))
-               (loop (append spliced (cdr clauses)) exports imports body)))
-            ((eq? head 'begin)
-             ;; Splice internal (include ...) forms out of the begin body,
-             ;; then keep the begin as one body clause (re-processing it
-             ;; here would loop forever).
-             (loop (cdr clauses) exports imports
-                   (cons (datum->syntax (car clauses)
-                                        (car (splice-includes
-                                               (syntax->datum clause))))
-                         body)))
-            (else
-             (loop (cdr clauses) exports imports (cons (car clauses) body))))))))
+          (if (eq? head 'export)
+              (loop (cdr clauses)
+                    (append exports (map syntax->datum (cdr clause)))
+                    imports
+                    body)
+              (if (eq? head 'import)
+                  (loop (cdr clauses)
+                        exports
+                        (cons (map syntax->datum (cdr clause)) imports)
+                        body)
+                  (if (eq? head 'include)
+                      ;; Splice include forms at this position and re-process
+                      ;; them as body clauses.
+                      (let ((spliced
+                             (map (lambda (f) (datum->syntax (car clauses) f))
+                                  (splice-includes (syntax->datum clause)))))
+                        (loop (append spliced (cdr clauses)) exports imports body))
+                      (if (eq? head 'begin)
+                          ;; Keep begin as one body clause after include
+                          ;; splicing; re-processing it here would loop.
+                          (loop (cdr clauses) exports imports
+                                (cons (datum->syntax
+                                       (car clauses)
+                                       (car (splice-includes
+                                             (syntax->datum clause))))
+                                      body))
+                          (loop (cdr clauses) exports imports
+                                (cons (car clauses) body))))))))))
 
 ;;; module-form handlers (installed into the-base-library below).
 
@@ -1454,7 +1480,7 @@
 ;;; ------------------------------------------------------------------------
 ;;; R7RS (scheme eval): environment / eval
 ;;; ------------------------------------------------------------------------
-;;; An environment is an s7 inlet carrying the marker key bound to a fresh
+;;; An environment is a Scheme-owned vector carrying a marker and a fresh
 ;;; program library; the requested import-sets are imported into it (only /
 ;;; except / prefix / rename included, and macro transformers travel with
 ;;; the bindings).  eval expands the expression in that library with the
@@ -1470,19 +1496,36 @@
 ;;; references resolve at runtime; they are also module-define!'d into
 ;;; the-expander-library for expander-internal use.
 
-(define *program-environment-key* 'goldfish-program-environment)
+(define *program-environment-tag* 'goldfish-program-environment)
+
+(define (program-environment? env)
+  (and (vector? env)
+       (= (vector-length env) 2)
+       (eq? (vector-ref env 0) *program-environment-tag*)))
+
+(define (program-environment-library env)
+  (vector-ref env 1))
 
 (define (%make-program-environment import-sets)
-  (let ((lib (make-exp-library (list 'program (gensym)))))
+  ;; The environment library is private and never enters the module
+  ;; registry, so it does not need a globally unique name.  Avoiding gensym
+  ;; here keeps the API usable from a strict native program environment.
+  (let ((lib (make-exp-library '(program eval-environment))))
     (for-each (lambda (spec)
                 (import-spec-into-library! lib spec))
               import-sets)
-    (inlet *program-environment-key* lib)))
+    (vector *program-environment-tag* lib)))
+
+;; Host eval captured at install time.  After (scheme eval) is imported the
+;; visible `eval' may be the R7RS wrapper; internal loader/evaluator paths
+;; must keep calling the runtime primitive.
+(define %lib-host-eval eval)
 
 (define (%eval-in-program-environment expr env)
-  (let ((lib (let-ref env *program-environment-key*)))
+  (let ((lib (and (program-environment? env)
+                  (program-environment-library env))))
     (if (not (and (exp-library? lib) lib))
-        (eval expr env)
+        (%lib-host-eval expr env)
         ;; One compilation unit per eval: expand-time state never leaks
         ;; between eval calls.
         (call-with-fresh-expand-unit
@@ -1493,10 +1536,11 @@
                 (let loop ((ds defs))
                   (if (null? ds)
                       #f
-                      (let ((r (eval (lower (car ds))
-                                     (module-eval-environment
-                                      the-expander-library))))
-                        (if (null? (cdr ds)) r (loop (cdr ds)))))))))))))
+                      (let ((lowered (lower (car ds))))
+                        (let ((r (%lib-host-eval lowered
+                                       (module-eval-environment
+                                        the-expander-library))))
+                          (if (null? (cdr ds)) r (loop (cdr ds))))))))))))))
 
 (define %environment-api-installed!
   (begin
@@ -1505,9 +1549,9 @@
     (module-define! the-expander-library 'eval-in-program-environment
                     %eval-in-program-environment)
     (eval (list 'define 'make-program-environment %make-program-environment)
-          (rootlet))
+          (library-runtime-environment))
     (eval (list 'define 'eval-in-program-environment %eval-in-program-environment)
-          (rootlet))))
+          (library-runtime-environment))))
 
 ;;; file-import-libs : file -> (list name)
 ;;; Bottom libs named by every (import ...) form in a file: top-level ones
@@ -1604,12 +1648,12 @@
     ;; runtime-registered? to preload libraries a cached expansion refers
     ;; to, so those are exposed in the rootlet as well.
     (eval (list 'define 'runtime-registered-add! runtime-registered-add!)
-          (rootlet))
+          (library-runtime-environment))
     (eval (list 'define 'runtime-registered? runtime-registered?)
-          (rootlet))
+          (library-runtime-environment))
     (eval (list 'define 'register-runtime-module register-runtime-module)
-          (rootlet))
+          (library-runtime-environment))
     (eval (list 'define 'load-library! load-library!)
-          (rootlet))
+          (library-runtime-environment))
     (eval (list 'define 'warm-file! warm-file!)
-          (rootlet))))
+          (library-runtime-environment))))

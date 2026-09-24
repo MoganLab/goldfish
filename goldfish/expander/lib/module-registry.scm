@@ -2,7 +2,7 @@
 ;;; Installed by lib/install.scm before module.scm.  A module is an
 ;;; exp-library plus a registry entry (exp-library . export-names);
 ;;; per-level instances, runtime registration tracking, and instance
-;;; inlets live here.  Pure defines only (no load-time calls), so file
+;;; expansion environments live here.  Pure defines only (no load-time calls), so file
 ;;; order among the module-*.scm pieces does not matter.
 
 ;;; ------------------------------------------------------------------------
@@ -10,7 +10,7 @@
 ;;; ------------------------------------------------------------------------
 
 ;;; Unified instance table: one row per (level, name) key.
-;;; Row: (key rec runtime? inlet loading?)
+;;; Row: (key rec runtime? expand-environment loading?)
 ;;;   rec      -- (exp-library . export-names), or #f (not yet expanded)
 ;;;   runtime? -- the runtime module (register expression) was evaluated.
 ;;;               Expand-time state is populated by expand-define-library
@@ -22,7 +22,7 @@
 ;;;               library that has expand-time state but no runtime module
 ;;;               must be loaded (evaluated) before its dependents can be
 ;;;               registered.
-;;;   inlet    -- the level >= 1 expand env, or #f
+;;;   expand-environment -- the level >= 1 expand env, or #f
 ;;;   loading? -- inside a load's dynamic extent (circular-load guard)
 ;;; One table is the whole truth about an instance; separate tables
 ;;; invited key skew (a record without its runtime flag and vice versa).
@@ -37,9 +37,9 @@
   (let ((row (instance-row key)))
     (if row (cdr row) (list #f #f #f #f))))
 
-(define (instance-row-set! key rec runtime? inlet loading?)
+(define (instance-row-set! key rec runtime? expand-env loading?)
   (set! *library-instances*
-        (cons (list key rec runtime? inlet loading?)
+        (cons (list key rec runtime? expand-env loading?)
               (filter (lambda (e) (not (equal? (car e) key)))
                       *library-instances*))))
 
@@ -70,14 +70,14 @@
          (f (instance-row-fields key)))
     (instance-row-set! key record (cadr f) (caddr f) (cadddr f))))
 
-(define (instance-inlet-ref name level)
+(define (instance-expand-environment-ref name level)
   (let ((row (instance-row (registry-key level name))))
     (and row (cadddr row))))
 
-(define (instance-inlet-set! name level inlet)
+(define (instance-expand-environment-set! name level expand-env)
   (let* ((key (registry-key level name))
          (f (instance-row-fields key)))
-    (instance-row-set! key (car f) (cadr f) inlet (cadddr f))))
+    (instance-row-set! key (car f) (cadr f) expand-env (cadddr f))))
 
 ;;; loading-guard-push! / loading-guard-pop! / instance-loading? : key -> void/bool
 ;;; The circular-load guard: key on *library-instances* for a load's

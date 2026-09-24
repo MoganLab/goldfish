@@ -189,10 +189,10 @@
 ;;; ---------------------------------------------------------------------------
 ;;; Runtime module substrate.
 ;;;
-;;; A module is an s7 inlet holding its public bindings plus '__name and
-;;; '__exports metadata.  The eval environment is accessed through
-;;; module-eval-environment so its representation can move out of the inlet
-;;; without changing bootstrap callers.
+;;; A module is a small Scheme-owned vector record.  Its public bindings and
+;;; metadata are kept here; native evaluation uses the separate formal eval
+;;; environment stored in the record.  The host-only eval slot exists solely
+;;; for the s7 bootstrap and is never used by the native runtime.
 ;;; module-define! adds a binding and records it as exported.
 ;;; the-expander-library (the expander's own API module) is module instance
 ;;; zero; user R7RS runtime modules use the same substrate.  module-ref
@@ -201,59 +201,93 @@
 
 (define *module-registry* '())
 
+(define *module-tag* 'goldfish-module)
+
+(define (module-slot m i)
+  (vector-ref m i))
+
+(define (module-set-slot! m i value)
+  (vector-set! m i value))
+
 (define (native-module-environment m)
-  (let ((env (let-ref m '__eval-environment)))
+  (let ((env (module-slot m 3)))
     ;; The native boundary owns the environment object.  Calling a
     ;; dynamically resolved eval-environment? here lets an older host binding
     ;; misclassify it and silently fall back to the legacy inlet.
     env))
 
 (define (make-module name)
-  (inlet '__name name '__exports '()
-         '__eval-environment
-         (if (and (defined? 'make-eval-environment)
-                  (procedure? make-eval-environment))
-           (make-eval-environment)
-           #f)))
+  (let* ((native-env (if (and (defined? 'make-eval-environment)
+                              (procedure? make-eval-environment))
+                       (make-eval-environment)
+                       #f))
+        ;; s7's evaluator needs an inlet when the kernel is hosted by s7.
+        ;; Keep that compatibility detail in a private slot, rather than
+        ;; making the module itself an inlet.
+        (host-env (if native-env #f (inlet))))
+    (vector *module-tag* name '() native-env '() host-env)))
 
 (define (module? obj)
-  (and (let? obj) (assq '__name (let->list obj)) #t))
+  (and (vector? obj)
+       (= (vector-length obj) 6)
+       (eq? (module-slot obj 0) *module-tag*)))
 
 (define (module-name m)
-  (let-ref m '__name))
+  (module-slot m 1))
 
 (define (module-eval-environment m)
-  (or (native-module-environment m) m))
+  (or (native-module-environment m) (module-slot m 5)))
 
 (define (module-exports m)
-  (let-ref m '__exports))
+  (module-slot m 2))
+
+(define (module-binding m name)
+  (assq name (module-slot m 4)))
+
+(define (module-binding-value m name)
+  (let ((binding (module-binding m name)))
+    (and binding (cdr binding))))
 
 (define (module-define! m name value)
-  (if (assq name (let->list m))
-    (let-set! m name value)
-    (varlet m name value))
+  ;; NativeBootstrap injects this slot after loading the pre-expanded kernel.
+  ;; Keep the bootstrap metadata and the vector's formal environment field in
+  ;; sync; the metadata binding remains for old artifact readers.
+  (if (eq? name '__eval-environment)
+    (module-set-slot! m 3 value))
+  (let ((binding (module-binding m name)))
+    (if binding
+      (set-cdr! binding value)
+      (module-set-slot! m 4
+                        (cons (cons name value) (module-slot m 4)))))
   (let ((env (native-module-environment m)))
     (if env
       (eval-environment-define! env name value)))
-  (unless (memq name (let-ref m '__exports))
-    (let-set! m '__exports (cons name (let-ref m '__exports))))
+  (let ((host-env (module-slot m 5)))
+    (if host-env (varlet host-env name value)))
+  (unless (memq name (module-slot m 2))
+    (module-set-slot! m 2 (cons name (module-slot m 2))))
   m)
 
 (define (module-ref m name)
   (let ((m (if (module? m) m (lookup-module m))))
-    (unless (memq name (let-ref m '__exports))
+    (unless (memq name (module-slot m 2))
       (error 'module-ref "not exported" name))
     (let ((env (native-module-environment m)))
       (if env
         (eval-environment-ref env name)
-        (let-ref m name)))))
+        (module-binding-value m name)))))
 
 (define (module-set m name value)
   (let ((m (if (module? m) m (lookup-module m))))
     (let ((env (native-module-environment m)))
       (if env
         (eval-environment-set! env name value)
-        (let-set! m name value)))))
+        (let ((binding (module-binding m name)))
+          (if binding
+            (set-cdr! binding value)
+            (error 'module-set "unbound module binding" name))))
+      (let ((host-env (module-slot m 5)))
+        (if host-env (varlet host-env name value))))))
 
 ;;; A cross-library value reference is lowered to (module-ref 'home 'name);
 ;;; set! on such a reference lowers to ((setter module-ref) 'home 'name v)

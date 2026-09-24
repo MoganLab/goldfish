@@ -108,19 +108,19 @@
 (define vb1 (exp-library-ref (car rec1) 'vbox))
 (define g0 (toplevel-ref-gensym (binding-value vb0)))
 (define g1 (toplevel-ref-gensym (binding-value vb1)))
-(define inlet1 (instance-inlet-ref '(plvl dual) 1))
+(define expand-env1 (instance-expand-environment-ref '(plvl dual) 1))
 (check (vector? (eval g0 (rootlet))) => #t)
-(check-true (if inlet1 #t #f))
+(check-true (if expand-env1 #t #f))
 ;; 两边初值均为 10。
 (check (vector-ref (eval g0 (rootlet)) 0) => 10)
-(check (vector-ref (eval g1 inlet1) 0) => 10)
+(check (vector-ref (eval g1 expand-env1) 0) => 10)
 ;; 改 level 0，不影响 level 1。
 (vector-set! (eval g0 (rootlet)) 0 99)
 (check (vector-ref (eval g0 (rootlet)) 0) => 99)
-(check (vector-ref (eval g1 inlet1) 0) => 10)
+(check (vector-ref (eval g1 expand-env1) 0) => 10)
 ;; 改 level 1，不影响 level 0。
-(vector-set! (eval g1 inlet1) 0 77)
-(check (vector-ref (eval g1 inlet1) 0) => 77)
+(vector-set! (eval g1 expand-env1) 0 77)
+(check (vector-ref (eval g1 expand-env1) 0) => 77)
 (check (vector-ref (eval g0 (rootlet)) 0) => 99)
 
 ;; ===== 3b. level-0 运行时模块不被 level-1 加载覆盖 =====
@@ -138,15 +138,15 @@
 (check-true (if (and (library-registry-ref '(plvl dual))
                      (runtime-registered? '(plvl dual))) #t #f))
 ;; 第三实例 cells 独立，初值 10；改动不影响前两层。
-(define inlet2 (instance-inlet-ref '(plvl dual) 2))
-(check-true (if inlet2 #t #f))
+(define expand-env2 (instance-expand-environment-ref '(plvl dual) 2))
+(check-true (if expand-env2 #t #f))
 (define vb2 (exp-library-ref (car rec2) 'vbox))
 (define g2 (toplevel-ref-gensym (binding-value vb2)))
-(check (vector-ref (eval g2 inlet2) 0) => 10)
-(vector-set! (eval g2 inlet2) 0 55)
-(check (vector-ref (eval g2 inlet2) 0) => 55)
+(check (vector-ref (eval g2 expand-env2) 0) => 10)
+(vector-set! (eval g2 expand-env2) 0 55)
+(check (vector-ref (eval g2 expand-env2) 0) => 55)
 (check (vector-ref (eval g0 (rootlet)) 0) => 99)
-(check (vector-ref (eval g1 inlet1) 0) => 77)
+(check (vector-ref (eval g1 expand-env1) 0) => 77)
 ;; level-0 运行时模块仍完好。
 (check ((module-ref '(plvl dual) 'get-v)) => 99)
 

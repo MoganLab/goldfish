@@ -586,17 +586,25 @@
   ;; extent.  Old values are saved and restored, so units nest (a load
   ;; triggered during another unit's expansion is a unit of its own and
   ;; the outer one resumes afterwards).
-  (let ((env (sublet (module-eval-environment the-expander-library)))
+  (let ((parent-env (module-eval-environment the-expander-library))
         (outer-env *unit-expand-env*)
         (outer-stores *unit-region-libraries*))
-    (dynamic-wind
-      (lambda ()
-        (set! *unit-expand-env* env)
-        (set! *unit-region-libraries* '()))
-      thunk
-      (lambda ()
-        (set! *unit-expand-env* outer-env)
-        (set! *unit-region-libraries* outer-stores)))))
+    (let ((env (if (and (defined? 'make-eval-environment)
+                        (procedure? make-eval-environment)
+                        (eval-environment? parent-env))
+                  (make-eval-environment parent-env)
+                  ;; s7's sublet is a special form, so the host-only
+                  ;; compatibility path must remain at this call site.
+                  (sublet (module-eval-environment
+                           the-expander-library)))))
+      (dynamic-wind
+        (lambda ()
+          (set! *unit-expand-env* env)
+          (set! *unit-region-libraries* '()))
+        thunk
+        (lambda ()
+          (set! *unit-expand-env* outer-env)
+          (set! *unit-region-libraries* outer-stores))))))
 
 (define (eval-when-expand! exprs ctx . maybe-lib)
   ;; Evaluate each expr at phase+1 in the implementation environment,
