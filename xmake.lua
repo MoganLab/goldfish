@@ -101,10 +101,19 @@ local function add_native_runtime_sources()
     add_files("src/runtime/unicode_char.cpp")
     add_files("src/runtime/unicode_primitives.cpp")
     add_files("src/runtime/legacy_primitives.cpp")
+    add_files("src/runtime/artifact.cpp")
 end
 
 local function add_native_bootstrap_sources()
-    add_native_runtime_sources()
+    add_files("src/runtime/evaluator.cpp")
+    add_files("src/runtime/core_evaluator.cpp")
+    add_files("src/runtime/reader.cpp")
+    add_files("src/runtime/bootstrap_compatibility.cpp")
+    add_files("src/runtime/bootstrap_primitives.cpp")
+    add_files("src/runtime/standard_primitives.cpp")
+    add_files("src/runtime/platform_primitives.cpp")
+    add_files("src/runtime/unicode_char.cpp")
+    add_files("src/runtime/unicode_primitives.cpp")
     add_files("src/runtime/artifact.cpp")
     add_files("src/runtime/bootstrap.cpp")
 end
@@ -166,6 +175,10 @@ target ("goldfish") do
     add_files ("src/gf0_eval.cpp")
     -- New s7-independent runtime (currently exercised by standalone tests).
     add_native_bootstrap_sources()
+    -- The legacy CLI's explicit eval-native command is migration-only; keep
+    -- its compatibility surface local to this old host target.
+    add_files ("src/runtime/migration_primitives.cpp")
+    add_files ("src/runtime/legacy_primitives.cpp")
     add_files ("src/runtime/s7_bridge.cpp")
     -- L6 vm (gf:: only, per-program, pre-decoded, no Scheme includes)
     -- L7 loader (CLI/REPL/load-path dispatch only)
@@ -207,6 +220,7 @@ target ("goldfish") do
     -- L3 expander-rt : self-contained kernel artifact only -- kernel sources
     -- and build-combined.scm are build-time material, not shipped
     add_installfiles("$(projectdir)/goldfish/(expander/kernel-combined.scm)", {prefixdir = "share/goldfish/expander"})
+    add_installfiles("$(projectdir)/goldfish/(expander/bootstrap-prelude.scm)", {prefixdir = "share/goldfish/expander"})
     -- L4 expander-lib : tree-il bridge (goldfish/expander/tree-il.scm) lives here, no compiler/vm import except core/ir
     add_installfiles("$(projectdir)/goldfish/(expander/lib/*.scm)", {prefixdir = "share/goldfish/expander/lib"})
     add_installfiles("$(projectdir)/goldfish/(expander/tree-il.scm)", {prefixdir = "share/goldfish/expander"})
@@ -321,6 +335,16 @@ target("gf-native")
     add_files("src/runtime/native_main.cpp")
     add_native_bootstrap_sources()
     add_packages("tbox")
+target_end()
+
+target("native-test")
+    set_kind("phony")
+    set_default(false)
+    add_deps("gf-native", "native-reader-test")
+    on_build(function (target)
+        os.exec("bin/native-reader-test")
+        os.exec("sh tools/test-native-cold-bootstrap.sh")
+    end)
 target_end()
 
 if is_plat("wasm") then

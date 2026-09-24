@@ -102,6 +102,14 @@ void install_platform_primitives(Evaluator& evaluator) {
         const char* value = std::getenv(evaluator.string_value(args[0]).c_str());
         return Values{value ? evaluator.string(value) : Value::boolean(false)};
     });
+    install(evaluator, "auto-compile-enabled?", [](const Values& args) {
+        require_arity(args, 0, "auto-compile-enabled?");
+        const char* value = std::getenv("GOLDFISH_AUTO_COMPILE");
+        if (!value) return Values{Value::boolean(true)};
+        const std::string setting(value);
+        return Values{Value::boolean(setting != "0" && setting != "no" &&
+                                     setting != "false" && setting != "off")};
+    });
     install(evaluator, "g_path-getsize", [&evaluator](const Values& args) {
         require_arity(args, 1, "g_path-getsize");
         std::error_code error;

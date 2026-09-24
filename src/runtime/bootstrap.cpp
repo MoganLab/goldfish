@@ -1,6 +1,6 @@
 #include "runtime/bootstrap.hpp"
 
-#include "runtime/migration_primitives.hpp"
+#include "runtime/bootstrap_compatibility.hpp"
 #include "runtime/standard_primitives.hpp"
 
 #include <cstdlib>
@@ -120,7 +120,7 @@ NativeBootstrap::NativeBootstrap(Runtime& runtime)
 void NativeBootstrap::install_primitives() {
     if (primitives_installed_) return;
     install_runtime_primitives(runtime_.evaluator());
-    install_migration_primitives(runtime_.evaluator());
+    install_native_bootstrap_compatibility(runtime_.evaluator());
     native_read_forms_ = runtime_.evaluator().global_environment()->lookup(
         runtime_.evaluator().symbol("read-forms"));
     primitives_installed_ = true;

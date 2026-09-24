@@ -132,6 +132,14 @@ Value TinyReader::read_dispatch() {
 
     std::size_t saved = position_;
     next();
+    if (consume('\''))
+        return evaluator_.list({evaluator_.symbol("syntax"), read_form()});
+    if (consume('`'))
+        return evaluator_.list({evaluator_.symbol("quasisyntax"), read_form()});
+    if (consume(',')) {
+        const char* name = consume('@') ? "unsyntax-splicing" : "unsyntax";
+        return evaluator_.list({evaluator_.symbol(name), read_form()});
+    }
     if (!std::isdigit(static_cast<unsigned char>(peek()))) {
         position_ = saved;
         return read_atom();

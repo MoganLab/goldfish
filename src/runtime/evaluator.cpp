@@ -83,7 +83,7 @@ std::vector<Value> Evaluator::proper_list(Value value) const {
     std::vector<Value> result;
     while (!value.is_null()) {
         if (!value.is_object() || value.as_object()->type() != ObjectType::Pair)
-            throw std::runtime_error("expected proper list");
+        throw std::runtime_error("evaluator: expected proper list");
         PairObject* pair_value = value.as_object<PairObject>();
         result.push_back(pair_value->car);
         value = pair_value->cdr;

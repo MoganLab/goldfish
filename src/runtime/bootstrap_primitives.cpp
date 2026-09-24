@@ -202,7 +202,8 @@ void install_bootstrap_primitives(Evaluator& evaluator) {
     install(evaluator, "map", [&evaluator](const Values& args) {
         if (args.size() < 2) throw std::runtime_error("map expects procedure and list");
         std::vector<std::vector<Value>> lists;
-        for (std::size_t i = 1; i < args.size(); ++i) lists.push_back(proper_list(args[i]));
+        for (std::size_t i = 1; i < args.size(); ++i)
+            lists.push_back(proper_list(args[i]));
         std::vector<Value> result;
         for (std::size_t i = 0; i < lists[0].size(); ++i) {
             Values call_args;
@@ -218,7 +219,8 @@ void install_bootstrap_primitives(Evaluator& evaluator) {
     });
     install(evaluator, "for-each", [&evaluator](const Values& args) {
         if (args.size() < 2) throw std::runtime_error("for-each expects procedure and list");
-        for (Value value : proper_list(args[1])) evaluator.apply_values(args[0], {value});
+        for (Value value : proper_list(args[1]))
+            evaluator.apply_values(args[0], {value});
         return Values{Value::unspecified()};
     });
 }
