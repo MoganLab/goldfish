@@ -90,4 +90,30 @@
 (check (function-doc-path "liii/not-a-real-library" "string-split") => #f)
 (check (function-doc-path "srfi/1" "fold") => #f)
 
+(let ((doc-path (function-doc-path "liii/uri/compare" "uri=?")))
+  (check-true (string? doc-path))
+  (check-true (path-file? doc-path))
+  (check (path-name doc-path) => "uri-eq-p-test.scm")
+) ;let
+
+(let ((doc-path (function-doc-path "liii/uri/compare" "uri-hash")))
+  (check-true (string? doc-path))
+  (check-true (path-file? doc-path))
+  (check (path-name doc-path) => "uri-hash-test.scm")
+) ;let
+
+(let ((doc-path (function-doc-path "liii/uri" "uri=?")))
+  (check-true (string? doc-path))
+  (check-true (path-file? doc-path))
+  (check (path-name doc-path) => "uri-eq-p-test.scm")
+) ;let
+
+(let ((doc-path (function-doc-path "liii/uri" "uri-hash")))
+  (check-true (string? doc-path))
+  (check-true (path-file? doc-path))
+  (check (path-name doc-path) => "uri-hash-test.scm")
+) ;let
+
+(check (function-doc-path "liii/uri/compare" "not-a-real-function") => #f)
+
 (check-report)

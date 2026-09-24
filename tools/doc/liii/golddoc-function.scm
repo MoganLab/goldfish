@@ -136,21 +136,36 @@
     (define (find-function-doc-by-scan library-dir exported-name)
       (if (not (path-dir? library-dir))
         #f
-        (let loop
-          ((entries (vector->list (listdir library-dir))))
-          (and (not (null? entries))
-            (let* ((entry-name (car entries))
-                   (entry-path (path->string (path-join library-dir entry-name)))
-                  ) ;
-              (if (and (path-file? entry-path)
-                    (string-ends? entry-name "-test.scm")
-                    (file-documents-function? entry-path exported-name)
-                  ) ;and
-                entry-path
-                (loop (cdr entries))
-              ) ;if
-            ) ;let*
-          ) ;and
+        (let ((candidate-stem-file (string-append (exported-name->test-stem exported-name) "-test.scm")
+              ) ;candidate-stem-file
+             ) ;
+          (let loop
+            ((entries (vector->list (listdir library-dir))) (subdirs '()))
+            (if (null? entries)
+              (let sub-loop
+                ((dirs (reverse subdirs)))
+                (if (null? dirs)
+                  #f
+                  (or (find-function-doc-by-scan (car dirs) exported-name) (sub-loop (cdr dirs)))
+                ) ;if
+              ) ;let
+              (let* ((entry-name (car entries))
+                     (entry-path (path->string (path-join library-dir entry-name)))
+                    ) ;
+                (cond ((path-dir? entry-path) (loop (cdr entries) (cons entry-path subdirs)))
+                      ((and (path-file? entry-path)
+                         (string-ends? entry-name "-test.scm")
+                         (or (string=? entry-name candidate-stem-file)
+                           (file-documents-function? entry-path exported-name)
+                         ) ;or
+                       ) ;and
+                       entry-path
+                      ) ;
+                      (else (loop (cdr entries) subdirs))
+                ) ;cond
+              ) ;let*
+            ) ;if
+          ) ;let
         ) ;let
       ) ;if
     ) ;define
@@ -164,32 +179,42 @@
                         ) ;and
              ) ;load-root
              (tests-root (and load-root (find-tests-root-for-load-root load-root)))
-             (library-dir
-               (and tests-root (path->string (path-join tests-root group (cdr parts))))
-             ) ;library-dir
+             (library-dir (and tests-root (path->string (apply path-join tests-root parts))))
             ) ;
         (if (not (and library-dir (path-dir? library-dir)))
           '()
-          (let loop
-            ((entries (vector->list (listdir library-dir))) (functions '()))
-            (if (null? entries)
-              functions
-              (let ((entry-name (car entries)))
-                (if (string-ends? entry-name "-test.scm")
-                  (let* ((test-file (path->string (path-join library-dir entry-name)))
-                         (function-name (test-file-documented-function-name test-file))
+          (let collect-functions
+            ((dir library-dir) (functions '()))
+            (let loop
+              ((entries (vector->list (listdir dir))) (subdirs '()) (funcs functions))
+              (if (null? entries)
+                (let sub-loop
+                  ((dirs (reverse subdirs)) (curr-funcs funcs))
+                  (if (null? dirs)
+                    curr-funcs
+                    (sub-loop (cdr dirs) (collect-functions (car dirs) curr-funcs))
+                  ) ;if
+                ) ;let
+                (let* ((entry-name (car entries))
+                       (entry-path (path->string (path-join dir entry-name)))
+                      ) ;
+                  (cond ((path-dir? entry-path) (loop (cdr entries) (cons entry-path subdirs) funcs))
+                        ((and (path-file? entry-path) (string-ends? entry-name "-test.scm"))
+                         (let ((function-name (test-file-documented-function-name entry-path)))
+                           (loop (cdr entries)
+                             subdirs
+                             (if (and function-name (not (member function-name funcs)))
+                               (append funcs (list function-name))
+                               funcs
+                             ) ;if
+                           ) ;loop
+                         ) ;let
                         ) ;
-                    (loop (cdr entries)
-                      (if (and function-name (not (member function-name functions)))
-                        (append functions (list function-name))
-                        functions
-                      ) ;if
-                    ) ;loop
-                  ) ;let*
-                  (loop (cdr entries) functions)
-                ) ;if
-              ) ;let
-            ) ;if
+                        (else (loop (cdr entries) subdirs funcs))
+                  ) ;cond
+                ) ;let*
+              ) ;if
+            ) ;let
           ) ;let
         ) ;if
       ) ;let*
@@ -259,22 +284,22 @@
     (define (function-doc-path library-query exported-name)
       (let* ((parts (parse-library-query library-query))
              (group (and parts (car parts)))
-             (library (and parts (cdr parts)))
              (load-root (and parts
                           (not (excluded-test-group? group))
                           (find-visible-library-root library-query)
                         ) ;and
              ) ;load-root
              (tests-root (and load-root (find-tests-root-for-load-root load-root)))
-             (library-dir (and tests-root (path->string (path-join tests-root group library)))
-             ) ;library-dir
+             (library-dir (and tests-root (path->string (apply path-join tests-root parts))))
              (candidate
                (and tests-root
-                 (path->string (path-join tests-root
-                                 group
-                                 library
-                                 (string-append (exported-name->test-stem exported-name) "-test.scm")
-                               ) ;path-join
+                 (path->string
+                   (apply path-join
+                     tests-root
+                     (append parts
+                       (list (string-append (exported-name->test-stem exported-name) "-test.scm"))
+                     ) ;append
+                   ) ;apply
                  ) ;path->string
                ) ;and
              ) ;candidate

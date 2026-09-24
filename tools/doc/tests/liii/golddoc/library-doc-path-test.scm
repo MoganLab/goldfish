@@ -51,4 +51,22 @@
 (check (library-doc-path "liii/not-a-real-library") => #f)
 (check (library-doc-path "goldfish/liii/http") => #f)
 
+(let ((load-root (find-visible-library-root "liii/uri/compare")))
+  (check-true (string? load-root))
+  (check-true (path-file? (path-join load-root "liii" "uri" "compare.scm")))
+  (let ((tests-root (find-tests-root-for-load-root load-root)))
+    (check-true (string? tests-root))
+    (check-true (path-dir? tests-root))
+    (check-true (path-file? (path-join tests-root "liii" "uri" "compare-test.scm")))
+  ) ;let
+) ;let
+
+(let ((doc-path (library-doc-path "liii/uri/compare")))
+  (check-true (string? doc-path))
+  (check-true (path-file? doc-path))
+  (check (path-name doc-path) => "compare-test.scm")
+) ;let
+
+(check (library-doc-path "liii/uri/not-a-real-sublibrary") => #f)
+
 (check-report)

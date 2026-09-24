@@ -39,12 +39,7 @@
   '(library "liii/string")
 ) ;check
 
-(check (parse-doc-args '("bin/gf"
-                         "-I"
-                         "/tmp"
-                         "-A"
-                         "/var/tmp"
-                         "doc"
+(check (parse-doc-args '("bin/gf" "-I" "/tmp" "-A" "/var/tmp" "doc"
                          "liii/string"))
   =>
   '(library "liii/string")
@@ -83,6 +78,33 @@
 (check (parse-doc-args '("bin/gf" "--mode=liii" "doc" "liii/string"))
   =>
   '(library "liii/string")
+) ;check
+
+(check (parse-doc-args '("bin/gf" "doc" "liii/uri/compare"))
+  =>
+  '(library "liii/uri/compare")
+) ;check
+
+(check (parse-doc-args '("bin/gf" "doc" "liii/uri/compare" "uri=?"))
+  =>
+  '(library-function "liii/uri/compare" "uri=?")
+) ;check
+
+(check (parse-doc-args '("bin/gf" "doc" "a/b/c/d")) => '(library "a/b/c/d"))
+
+(check (parse-doc-args '("bin/gf" "doc" "a/b/c/d" "my-func"))
+  =>
+  '(library-function "a/b/c/d" "my-func")
+) ;check
+
+(check (parse-doc-args '("bin/gf" "doc" "liii//string"))
+  =>
+  '(function "liii//string")
+) ;check
+
+(check (parse-doc-args '("bin/gf" "doc" "/liii/string"))
+  =>
+  '(function "/liii/string")
 ) ;check
 
 (check-report)

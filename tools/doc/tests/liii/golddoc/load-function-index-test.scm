@@ -31,9 +31,10 @@
   (let loop
     ((remaining paths))
     (and (not (null? remaining))
-      (or (and (path-file? (car remaining))
-            (string=? (path-name (car remaining)) "function-library-index.json")
-          ) ;and
+      (or
+        (and (path-file? (car remaining))
+          (string=? (path-name (car remaining)) "function-library-index.json")
+        ) ;and
         (loop (cdr remaining))
       ) ;or
     ) ;and
@@ -53,12 +54,15 @@
 
 (check (index-entry->library-query "(liii string)") => "liii/string")
 (check (index-entry->library-query "(scheme char)") => "scheme/char")
+(check (index-entry->library-query "(liii uri compare)") => "liii/uri/compare")
+(check (index-entry->library-query "(a b c d)") => "a/b/c/d")
 (check (index-entry->library-query "(bad)") => #f)
 (check (index-entry->library-query 1) => #f)
 
-(let* ((base-root (path-join (path-temp-dir)
-                    (string-append "golddoc-load-index-" (number->string (getpid)))
-                  ) ;path-join
+(let* ((base-root
+         (path-join (path-temp-dir)
+           (string-append "golddoc-load-index-" (number->string (getpid)))
+         ) ;path-join
        ) ;base-root
        (load-root (path-join base-root "goldfish"))
        (tests-root (path-join base-root "tests"))
@@ -69,7 +73,8 @@
   (mkdir (path->string base-root))
   (mkdir (path->string load-root))
   (mkdir (path->string tests-root))
-  (dynamic-wind (lambda () (set! *load-path* (list (path->string load-root))))
+  (dynamic-wind
+    (lambda () (set! *load-path* (list (path->string load-root))))
     (lambda ()
       (check (find-function-index-paths) => '())
       (check (load-function-index) => '())

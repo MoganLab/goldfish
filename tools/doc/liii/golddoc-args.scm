@@ -59,14 +59,7 @@
       (if (not (library-query? query))
         #f
         (let ((parts (string-split query "/")))
-          (if
-            (and (= (length parts) 2)
-              (not (string-null? (car parts)))
-              (not (string-null? (cadr parts)))
-            ) ;and
-            (cons (car parts) (cadr parts))
-            #f
-          ) ;if
+          (if (and (>= (length parts) 2) (not (member "" parts))) parts #f)
         ) ;let
       ) ;if
     ) ;define

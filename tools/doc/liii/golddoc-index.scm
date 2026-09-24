@@ -76,13 +76,8 @@
                ) ;body
                (parts (and body (string-split body " ")))
               ) ;
-          (if
-            (and parts
-              (= (length parts) 2)
-              (not (string-null? (car parts)))
-              (not (string-null? (cadr parts)))
-            ) ;and
-            (string-append (car parts) "/" (cadr parts))
+          (if (and parts (>= (length parts) 2) (not (member "" parts)))
+            (string-join parts "/")
             #f
           ) ;if
         ) ;let*
