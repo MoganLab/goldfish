@@ -28,6 +28,24 @@ std::vector<Value> proper_list(Value value) {
 
 bool truth(Value value) { return !value.is_boolean() || value.as_boolean(); }
 
+// eq?/eqv?-style comparison for the membership primitives: characters and
+// eof are immediate on the host and compare by value, everything else by
+// identity.  The Scheme reader's `case ch' dispatch runs through memv, so
+// identity comparison on characters broke every warm read.
+bool identical(Value left, Value right) {
+    if (left == right) return true;
+    if (left.is_object() && right.is_object()) {
+        if (left.as_object()->type() == ObjectType::Character &&
+            right.as_object()->type() == ObjectType::Character)
+            return left.as_object<CharacterObject>()->value ==
+                   right.as_object<CharacterObject>()->value;
+        if (left.as_object()->type() == ObjectType::Eof &&
+            right.as_object()->type() == ObjectType::Eof)
+            return true;
+    }
+    return false;
+}
+
 void install(Evaluator& evaluator, const char* name,
              PrimitiveObject::Function function) {
     evaluator.define_primitive(name, std::move(function));
@@ -68,7 +86,8 @@ void install_bootstrap_primitives(Evaluator& evaluator) {
         while (!rest.is_null()) {
             if (!rest.is_object() || rest.as_object()->type() != ObjectType::Pair)
                 throw std::runtime_error("memq expects a proper list");
-            if (args[0] == rest.as_object<PairObject>()->car) return Values{rest};
+            if (identical(args[0], rest.as_object<PairObject>()->car))
+                return Values{rest};
             rest = rest.as_object<PairObject>()->cdr;
         }
         return Values{Value::boolean(false)};
@@ -80,7 +99,7 @@ void install_bootstrap_primitives(Evaluator& evaluator) {
             if (!rest.is_object() || rest.as_object()->type() != ObjectType::Pair)
                 throw std::runtime_error("memv expects a proper list");
             Value item = rest.as_object<PairObject>()->car;
-            if (item == args[0]) return Values{rest};
+            if (identical(item, args[0])) return Values{rest};
             rest = rest.as_object<PairObject>()->cdr;
         }
         return Values{Value::boolean(false)};
@@ -93,7 +112,8 @@ void install_bootstrap_primitives(Evaluator& evaluator) {
                 throw std::runtime_error("assq expects an association list");
             Value entry = rest.as_object<PairObject>()->car;
             if (entry.is_object() && entry.as_object()->type() == ObjectType::Pair &&
-                args[0] == entry.as_object<PairObject>()->car) return Values{entry};
+                identical(args[0], entry.as_object<PairObject>()->car))
+                return Values{entry};
             rest = rest.as_object<PairObject>()->cdr;
         }
         return Values{Value::boolean(false)};
@@ -106,7 +126,7 @@ void install_bootstrap_primitives(Evaluator& evaluator) {
                 throw std::runtime_error("assv expects an association list");
             Value entry = rest.as_object<PairObject>()->car;
             if (entry.is_object() && entry.as_object()->type() == ObjectType::Pair &&
-                entry.as_object<PairObject>()->car == args[0])
+                identical(entry.as_object<PairObject>()->car, args[0]))
                 return Values{entry};
             rest = rest.as_object<PairObject>()->cdr;
         }
@@ -200,27 +220,65 @@ void install_bootstrap_primitives(Evaluator& evaluator) {
         return Values{result};
     });
     install(evaluator, "map", [&evaluator](const Values& args) {
-        if (args.size() < 2) throw std::runtime_error("map expects procedure and list");
-        std::vector<std::vector<Value>> lists;
-        for (std::size_t i = 1; i < args.size(); ++i)
-            lists.push_back(proper_list(args[i]));
+        if (args.size() < 2)
+            throw std::runtime_error("map expects procedure and list");
+        // Host semantics (the Scheme map in expander/lib/base-functions.scm,
+        // which is also R7RS): every list is walked as a chain of pairs and
+        // iteration stops at the first list that runs out -- shortest list
+        // wins, a non-list maps to the empty list, and a dotted tail simply
+        // ends the walk.  typed-lambda in (liii base) maps over its dotted
+        // argument spec, so a strict proper-list walk there raised
+        // "expected proper list" on every dotted typed-lambda.
+        std::vector<Value> iterators(args.begin() + 1, args.end());
+        auto all_pairs = [](const std::vector<Value>& items) {
+            for (Value item : items)
+                if (!item.is_object() ||
+                    item.as_object()->type() != ObjectType::Pair)
+                    return false;
+            return true;
+        };
         std::vector<Value> result;
-        for (std::size_t i = 0; i < lists[0].size(); ++i) {
+        while (all_pairs(iterators)) {
             Values call_args;
-            for (const auto& list : lists) {
-                if (i >= list.size()) throw std::runtime_error("map list lengths differ");
-                call_args.push_back(list[i]);
-            }
+            for (Value iterator : iterators)
+                call_args.push_back(iterator.as_object<PairObject>()->car);
             Values values = evaluator.apply_values(args[0], call_args);
-            if (values.size() != 1) throw std::runtime_error("map procedure returned multiple values");
+            if (values.size() != 1)
+                throw std::runtime_error(
+                    "map procedure returned multiple values");
             result.push_back(values[0]);
+            for (Value& iterator : iterators)
+                iterator = iterator.as_object<PairObject>()->cdr;
         }
         return Values{evaluator.list(result)};
     });
     install(evaluator, "for-each", [&evaluator](const Values& args) {
-        if (args.size() < 2) throw std::runtime_error("for-each expects procedure and list");
-        for (Value value : proper_list(args[1]))
-            evaluator.apply_values(args[0], {value});
+        if (args.size() < 2)
+            throw std::runtime_error("for-each expects procedure and list");
+        // Host semantics (base-functions for-each): the first list drives
+        // the loop and must be a list (a dotted tail raises where car
+        // would); the remaining lists end the loop silently at the first
+        // non-pair, i.e. the shortest list wins.
+        Value first = args[1];
+        const std::vector<Value> rest(args.begin() + 2, args.end());
+        while (!first.is_null()) {
+            for (Value item : rest)
+                if (!item.is_object() ||
+                    item.as_object()->type() != ObjectType::Pair)
+                    return Values{Value::unspecified()};
+            if (!first.is_object() ||
+                first.as_object()->type() != ObjectType::Pair)
+                throw std::runtime_error("for-each: expected a list");
+            Values call_args;
+            call_args.push_back(first.as_object<PairObject>()->car);
+            for (Value item : rest)
+                call_args.push_back(item.as_object<PairObject>()->car);
+            evaluator.apply_values(args[0], call_args);
+            first = first.as_object<PairObject>()->cdr;
+            for (std::size_t i = 0; i < rest.size(); ++i)
+                const_cast<Values&>(rest)[i] =
+                    rest[i].as_object<PairObject>()->cdr;
+        }
         return Values{Value::unspecified()};
     });
 }

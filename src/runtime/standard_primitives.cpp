@@ -8,6 +8,7 @@
 #include <cerrno>
 #include <cmath>
 #include <cstring>
+#include <functional>
 #include <cstdlib>
 #include <fstream>
 #include <filesystem>
@@ -31,7 +32,23 @@ void require_arity(const Values& args, std::size_t count,
                                  std::to_string(count) + " arguments");
 }
 
-bool same(Value left, Value right) { return left == right; }
+bool same(Value left, Value right) {
+    if (left == right) return true;
+    // Characters are immediate on the host: eq?/eqv? compare codepoints, not
+    // object identity.  The Scheme reader's `case ch' dispatch (liii reader)
+    // depends on this -- identity comparison made every character literal
+    // miss and warm reads fell through to read-symbol.
+    if (left.is_object() && right.is_object() &&
+        left.as_object()->type() == ObjectType::Character &&
+        right.as_object()->type() == ObjectType::Character)
+        return left.as_object<CharacterObject>()->value ==
+               right.as_object<CharacterObject>()->value;
+    if (left.is_object() && right.is_object() &&
+        left.as_object()->type() == ObjectType::Eof &&
+        right.as_object()->type() == ObjectType::Eof)
+        return true;
+    return false;
+}
 
 bool symbol_named(Value value, const char* name) {
     return value.is_object() &&
@@ -76,7 +93,13 @@ std::vector<Value> proper_list(Value value) {
     return result;
 }
 
-bool equal(Value left, Value right) {
+namespace {
+// Cycle guard for deep equality: comparing two cyclic aggregate graphs
+// (library records reference their own bindings' homes) would otherwise
+// recurse forever.  Revisiting a (left, right) pair on the current path
+// means the structures agree so far -- assume equal, like s7/Racket do.
+bool equal_inner(Value left, Value right,
+                 std::vector<std::pair<const Object*, const Object*>>& seen) {
     if (left == right)
         return true;
     if (!left.is_object() || !right.is_object() ||
@@ -86,20 +109,49 @@ bool equal(Value left, Value right) {
     case ObjectType::Pair: {
         PairObject* a = left.as_object<PairObject>();
         PairObject* b = right.as_object<PairObject>();
-        return equal(a->car, b->car) && equal(a->cdr, b->cdr);
+        const Object* key_left = a;
+        const Object* key_right = b;
+        for (const auto& entry : seen)
+            if (entry.first == key_left && entry.second == key_right)
+                return true;
+        seen.emplace_back(key_left, key_right);
+        bool result = equal_inner(a->car, b->car, seen) &&
+                      equal_inner(a->cdr, b->cdr, seen);
+        seen.pop_back();
+        return result;
     }
     case ObjectType::String:
         return left.as_object<StringObject>()->value ==
                right.as_object<StringObject>()->value;
+    case ObjectType::Character:
+        return left.as_object<CharacterObject>()->value ==
+               right.as_object<CharacterObject>()->value;
+    case ObjectType::Eof:
+        return true;
     case ObjectType::Vector: {
-        const auto& a = left.as_object<VectorObject>()->values;
-        const auto& b = right.as_object<VectorObject>()->values;
-        return a.size() == b.size() &&
-               std::equal(a.begin(), a.end(), b.begin(), equal);
+        VectorObject* a = left.as_object<VectorObject>();
+        VectorObject* b = right.as_object<VectorObject>();
+        if (a->values.size() != b->values.size())
+            return false;
+        for (const auto& entry : seen)
+            if (entry.first == a && entry.second == b)
+                return true;
+        seen.emplace_back(a, b);
+        bool result = true;
+        for (std::size_t i = 0; i < a->values.size() && result; ++i)
+            result = equal_inner(a->values[i], b->values[i], seen);
+        seen.pop_back();
+        return result;
     }
     default:
         return false;
     }
+}
+} // namespace
+
+bool equal(Value left, Value right) {
+    std::vector<std::pair<const Object*, const Object*>> seen;
+    return equal_inner(left, right, seen);
 }
 
 InputStringPortObject& input_port(Value value, const char* name) {
@@ -133,22 +185,143 @@ void append_utf8(std::string& output, unsigned value) {
     }
 }
 
-std::string format_value(const Evaluator& evaluator, Value value) {
+std::string utf8_encode_char(char32_t codepoint) {
+    std::string out;
+    if (codepoint < 0x80) {
+        out.push_back(static_cast<char>(codepoint));
+    } else if (codepoint < 0x800) {
+        out.push_back(static_cast<char>(0xc0 | (codepoint >> 6)));
+        out.push_back(static_cast<char>(0x80 | (codepoint & 0x3f)));
+    } else if (codepoint < 0x10000) {
+        out.push_back(static_cast<char>(0xe0 | (codepoint >> 12)));
+        out.push_back(static_cast<char>(0x80 | ((codepoint >> 6) & 0x3f)));
+        out.push_back(static_cast<char>(0x80 | (codepoint & 0x3f)));
+    } else {
+        out.push_back(static_cast<char>(0xf0 | (codepoint >> 18)));
+        out.push_back(static_cast<char>(0x80 | ((codepoint >> 12) & 0x3f)));
+        out.push_back(static_cast<char>(0x80 | ((codepoint >> 6) & 0x3f)));
+        out.push_back(static_cast<char>(0x80 | (codepoint & 0x3f)));
+    }
+    return out;
+}
+
+// write-form of a character: #\newline/#\space/#\tab/#\return by name, raw
+// for printable ASCII and non-ASCII, #\xN (unpadded, as s7 writes it) for
+// the remaining control codepoints.
+std::string character_literal(char32_t codepoint) {
+    switch (codepoint) {
+        case U'\n': return "#\\newline";
+        case U' ': return "#\\space";
+        case U'\t': return "#\\tab";
+        case U'\r': return "#\\return";
+        default: break;
+    }
+    if (codepoint >= 0x20 && codepoint < 0x7f)
+        return std::string("#\\") + static_cast<char>(codepoint);
+    if (codepoint >= 0x7f) return "#\\" + utf8_encode_char(codepoint);
+    static constexpr char digits[] = "0123456789abcdef";
+    std::string out = "#\\x";
+    if (codepoint == 0) out += '0';
+    else {
+        char buffer[8];
+        int index = 0;
+        while (codepoint) {
+            buffer[index++] = digits[codepoint & 0xf];
+            codepoint >>= 4;
+        }
+        while (index) out += buffer[--index];
+    }
+    return out;
+}
+
+// write_mode: strings quoted and characters in #\ notation (also for nested
+// elements of a displayed structure).  Top-level display prints strings and
+// characters raw, matching the host.
+std::string format_value(const Evaluator& evaluator, Value value,
+                         bool write_mode, int depth) {
+    if (depth > 200) return "#<deep>";
+    if (value.is_unspecified()) return "#<unspecified>";
     if (value.is_integer()) return std::to_string(value.as_integer());
     if (value.is_boolean()) return value.as_boolean() ? "#t" : "#f";
     if (value.is_null()) return "()";
-    if (value.is_object() &&
-        value.as_object()->type() == ObjectType::String)
-        return evaluator.string_value(value);
-    if (value.is_object() &&
-        value.as_object()->type() == ObjectType::Symbol)
-        return value.as_object<SymbolObject>()->name;
-    if (value.is_object() && value.as_object()->type() == ObjectType::Pair) {
-        const auto* pair = value.as_object<PairObject>();
-        return "(" + format_value(evaluator, pair->car) + " . " +
-               format_value(evaluator, pair->cdr) + ")";
+    if (!value.is_object()) return "#<object>";
+    switch (value.as_object()->type()) {
+        case ObjectType::String: {
+            const std::string& text = value.as_object<StringObject>()->value;
+            return write_mode ? "\"" + text + "\"" : text;
+        }
+        case ObjectType::Symbol:
+            return value.as_object<SymbolObject>()->name;
+        case ObjectType::Character: {
+            const char32_t codepoint = value.as_object<CharacterObject>()->value;
+            if (write_mode) return character_literal(codepoint);
+            if (codepoint >= 0x20 && codepoint < 0x7f)
+                return std::string(1, static_cast<char>(codepoint));
+            return character_literal(codepoint);
+        }
+        case ObjectType::Eof:
+            return "#<eof>";
+        case ObjectType::ErrorObject:
+            return "#<error " + value.as_object<ErrorObject>()->message + ">";
+        case ObjectType::Closure:
+        case ObjectType::Primitive:
+            return "#<procedure>";
+        case ObjectType::Vector: {
+            std::string out = "#(";
+            const auto& items = value.as_object<VectorObject>()->values;
+            for (std::size_t i = 0; i < items.size(); ++i) {
+                if (i) out += " ";
+                out += format_value(evaluator, items[i], true, depth + 1);
+            }
+            return out + ")";
+        }
+        case ObjectType::Pair: {
+            // Proper lists print space-separated like the host; only a
+            // dotted tail shows the cons explicitly.
+            std::string out = "(";
+            Value rest = value;
+            bool first = true;
+            bool dotted = false;
+            while (rest.is_object() &&
+                   rest.as_object()->type() == ObjectType::Pair) {
+                if (!first) out += " ";
+                first = false;
+                const auto* pair = rest.as_object<PairObject>();
+                out += format_value(evaluator, pair->car, true, depth + 1);
+                rest = pair->cdr;
+            }
+            if (!rest.is_null()) {
+                if (!first) out += " . ";
+                out += format_value(evaluator, rest, true, depth + 1);
+                dotted = true;
+            }
+            (void)dotted;
+            return out + ")";
+        }
+        default:
+            return "#<object>";
     }
-    return "#<object>";
+}
+
+std::string format_value(const Evaluator& evaluator, Value value) {
+    return format_value(evaluator, value, false, 0);
+}
+
+// The Scheme-visible current ports.  with-input-from-file /
+// with-output-to-file rebind them around a thunk, so every writer consults
+// the slot at call time instead of capturing the stdout port.
+struct CurrentPortSlot {
+    Value input;
+    Value output;
+    Value error_port;
+};
+CurrentPortSlot g_current_ports;
+
+Value current_input_port(Evaluator& evaluator) {
+    if (g_current_ports.input.is_null())
+        g_current_ports.input = Value::object(
+            evaluator.heap().make<InputStringPortObject>(std::string()));
+    return g_current_ports.input;
 }
 
 void install(Evaluator& evaluator, const char* name,
@@ -165,26 +338,187 @@ OutputPortObject& output_port(Value value, const char* name) {
     return port;
 }
 
+// (copy obj) / (copy src dest [start end]) -- s7's copy.  One argument is a
+// SHALLOW copy: a fresh container that shares its elements (the contract in
+// tests/liii/base/copy-test pins the sharing).  With a target, src[start,end)
+// fills dest from index 0 and dest comes back.
+Value copy_value(Evaluator& evaluator, const Values& args) {
+    if (args.empty() || args.size() > 4)
+        throw std::runtime_error("copy expects 1 to 4 arguments");
+    Value src = args[0];
+    if (args.size() == 1) {
+        if (!src.is_object()) return src;
+        switch (src.as_object()->type()) {
+            case ObjectType::Pair: {
+                std::vector<Value> items;
+                Value rest = src;
+                while (rest.is_object() &&
+                       rest.as_object()->type() == ObjectType::Pair) {
+                    auto* pair = rest.as_object<PairObject>();
+                    items.push_back(pair->car);
+                    rest = pair->cdr;
+                }
+                Value result = rest;
+                for (auto it = items.rbegin(); it != items.rend(); ++it)
+                    result = evaluator.pair(*it, result);
+                return result;
+            }
+            case ObjectType::Vector:
+                return evaluator.vector(src.as_object<VectorObject>()->values);
+            case ObjectType::String:
+                return evaluator.string(src.as_object<StringObject>()->value);
+            default:
+                return src;
+        }
+    }
+
+    auto length_of = [](Value sequence) -> std::int64_t {
+        if (!sequence.is_object()) return -1;
+        switch (sequence.as_object()->type()) {
+            case ObjectType::String:
+                return static_cast<std::int64_t>(
+                    sequence.as_object<StringObject>()->value.size());
+            case ObjectType::Vector:
+                return static_cast<std::int64_t>(
+                    sequence.as_object<VectorObject>()->values.size());
+            case ObjectType::Pair: {
+                std::int64_t count = 0;
+                Value rest = sequence;
+                while (rest.is_object() &&
+                       rest.as_object()->type() == ObjectType::Pair) {
+                    ++count;
+                    rest = rest.as_object<PairObject>()->cdr;
+                }
+                return rest.is_null() ? count : -1;
+            }
+            default:
+                return -1;
+        }
+    };
+    Value dest = args[1];
+    const std::int64_t source_length = length_of(src);
+    const std::int64_t dest_length = length_of(dest);
+    if (source_length < 0)
+        throw std::runtime_error("copy source must be a sequence");
+    if (dest_length < 0)
+        throw std::runtime_error("copy target must be a sequence");
+    const std::int64_t start = args.size() >= 3 ? args[2].as_integer() : 0;
+    const std::int64_t end =
+        args.size() >= 4 ? args[3].as_integer() : source_length;
+    if (start < 0 || end < start || end > source_length)
+        throw std::runtime_error("copy range out of bounds");
+    if (end - start > dest_length)
+        throw std::runtime_error("copy target too small");
+    const std::int64_t count = end - start;
+
+    const ObjectType source_type = src.as_object()->type();
+    const ObjectType dest_type = dest.as_object()->type();
+
+    if (source_type == ObjectType::String && dest_type == ObjectType::String) {
+        dest.as_object<StringObject>()->value.replace(
+            0, static_cast<std::size_t>(count),
+            src.as_object<StringObject>()->value,
+            static_cast<std::size_t>(start), static_cast<std::size_t>(count));
+        return dest;
+    }
+    if (source_type == ObjectType::Vector && dest_type == ObjectType::Vector) {
+        auto& source = src.as_object<VectorObject>()->values;
+        auto& target = dest.as_object<VectorObject>()->values;
+        for (std::int64_t i = 0; i < count; ++i)
+            target[static_cast<std::size_t>(i)] =
+                source[static_cast<std::size_t>(start + i)];
+        return dest;
+    }
+    if (source_type == ObjectType::String && dest_type == ObjectType::Vector) {
+        const std::string& text = src.as_object<StringObject>()->value;
+        auto& target = dest.as_object<VectorObject>()->values;
+        for (std::int64_t i = 0; i < count; ++i)
+            target[static_cast<std::size_t>(i)] =
+                evaluator.character(static_cast<char32_t>(
+                    static_cast<unsigned char>(text[static_cast<std::size_t>(start + i)])));
+        return dest;
+    }
+    if (source_type == ObjectType::Vector && dest_type == ObjectType::String) {
+        const auto& source = src.as_object<VectorObject>()->values;
+        std::string& text = dest.as_object<StringObject>()->value;
+        text.clear();
+        for (std::int64_t i = 0; i < count; ++i) {
+            Value element = source[static_cast<std::size_t>(start + i)];
+            if (element.is_object() &&
+                element.as_object()->type() == ObjectType::Character)
+                text.push_back(static_cast<char>(
+                    element.as_object<CharacterObject>()->value & 0xff));
+            else if (element.is_integer())
+                text.push_back(static_cast<char>(element.as_integer() & 0xff));
+            else
+                throw std::runtime_error(
+                    "copy: target string cannot hold this element");
+        }
+        return dest;
+    }
+    if (source_type == ObjectType::Pair && dest_type == ObjectType::Pair) {
+        Value source_rest = src;
+        for (std::int64_t i = 0; i < start; ++i)
+            source_rest = source_rest.as_object<PairObject>()->cdr;
+        Value target_rest = dest;
+        for (std::int64_t i = 0; i < count; ++i) {
+            if (!target_rest.is_object() ||
+                target_rest.as_object()->type() != ObjectType::Pair)
+                throw std::runtime_error("copy target too small");
+            target_rest.as_object<PairObject>()->car =
+                source_rest.as_object<PairObject>()->car;
+            source_rest = source_rest.as_object<PairObject>()->cdr;
+            target_rest = target_rest.as_object<PairObject>()->cdr;
+        }
+        return dest;
+    }
+    throw std::runtime_error("copy: unsupported source/target combination");
+}
+
 } // namespace
 
 void install_runtime_primitives(Evaluator& evaluator) {
     // Platform capability adapters are installed as a separate layer.
     install_platform_primitives(evaluator);
 
+    // *load-path* is the reader/loader's real variable (install.scm
+    // registers it as a set!-able toplevel): the test harness conses
+    // fixture directories onto it, so initialize it from the search dirs
+    // the driver configured (-I/-A land in the env var before this runs).
+    {
+        std::vector<Value> dirs;
+        dirs.push_back(evaluator.string("goldfish"));
+        if (const char* search_path =
+                std::getenv("GOLDFISH_NATIVE_LOAD_PATH")) {
+            std::stringstream paths(search_path);
+            std::string directory;
+            while (std::getline(paths, directory, ':'))
+                if (!directory.empty())
+                    dirs.push_back(evaluator.string(directory));
+        }
+        evaluator.global_environment()->define(
+            evaluator.symbol("*load-path*"), evaluator.list(dirs));
+    }
+
     // Ports and textual output are runtime objects; formatting policy stays
-    // in Scheme libraries.
+    // in Scheme libraries.  The current ports live in a slot so
+    // with-input-from-file / with-output-to-file can rebind them.
     auto stdout_stream = std::shared_ptr<std::ostream>(&std::cout,
                                                        [](std::ostream*) {});
-    Value current_output = Value::object(
+    auto stderr_stream = std::shared_ptr<std::ostream>(&std::cerr,
+                                                       [](std::ostream*) {});
+    g_current_ports.output = Value::object(
         evaluator.heap().make<OutputPortObject>(stdout_stream));
-    auto write_text = [&evaluator, current_output](const Values& args,
-                                                   const char* name) {
+    g_current_ports.error_port = Value::object(
+        evaluator.heap().make<OutputPortObject>(stderr_stream));
+    auto write_text = [&evaluator](const Values& args, const char* name) {
         if (args.size() != 1 && args.size() != 2)
             throw std::runtime_error(std::string(name) +
                                      " expects one or two arguments");
-        Value port_value = args.size() == 2 ? args[1] : current_output;
+        Value port_value = args.size() == 2 ? args[1] : g_current_ports.output;
         *output_port(port_value, name).stream
-            << format_value(evaluator, args[0]);
+            << format_value(evaluator, args[0],
+                            std::string(name) != "display", 0);
         return Values{Value::unspecified()};
     };
     install(evaluator, "display",
@@ -206,22 +540,22 @@ void install_runtime_primitives(Evaluator& evaluator) {
     install(evaluator, "newline", [](const Values& args) {
         if (args.size() > 1)
             throw std::runtime_error("newline expects zero or one arguments");
-        if (args.empty()) std::cout << '\n';
-        else *output_port(args[0], "newline").stream << '\n';
+        *output_port(args.size() == 1 ? args[0] : g_current_ports.output,
+                     "newline").stream << '\n';
         return Values{Value::unspecified()};
     });
-    install(evaluator, "write-char", [&evaluator, current_output](const Values& args) {
+    install(evaluator, "write-char", [&evaluator](const Values& args) {
         if (args.size() != 1 && args.size() != 2)
             throw std::runtime_error("write-char expects one or two arguments");
-        Value port = args.size() == 2 ? args[1] : current_output;
+        Value port = args.size() == 2 ? args[1] : g_current_ports.output;
         *output_port(port, "write-char").stream
             << static_cast<char>(evaluator.character_value(args[0]));
         return Values{Value::unspecified()};
     });
-    install(evaluator, "write-string", [&evaluator, current_output](const Values& args) {
+    install(evaluator, "write-string", [&evaluator](const Values& args) {
         if (args.size() != 1 && args.size() != 2)
             throw std::runtime_error("write-string expects one or two arguments");
-        Value port = args.size() == 2 ? args[1] : current_output;
+        Value port = args.size() == 2 ? args[1] : g_current_ports.output;
         *output_port(port, "write-string").stream
             << evaluator.string_value(args[0]);
         return Values{Value::unspecified()};
@@ -499,9 +833,9 @@ void install_runtime_primitives(Evaluator& evaluator) {
         return Values{Value::boolean(args[0].is_object() &&
             args[0].as_object()->type() == ObjectType::OutputPort)};
     });
-    install(evaluator, "current-output-port", [current_output](const Values& args) {
+    install(evaluator, "current-output-port", [](const Values& args) {
         require_arity(args, 0, "current-output-port");
-        return Values{current_output};
+        return Values{g_current_ports.output};
     });
     install(evaluator, "close-output-port", [](const Values& args) {
         require_arity(args, 1, "close-output-port");
@@ -537,7 +871,27 @@ void install_runtime_primitives(Evaluator& evaluator) {
     install(evaluator, "load-find-module-file", [&evaluator](const Values& args) {
         require_arity(args, 1, "load-find-module-file");
         const std::string requested = evaluator.string_value(args[0]);
-        std::vector<std::string> candidates = {requested, "goldfish/" + requested};
+        std::vector<std::string> candidates = {requested};
+        // Search the Scheme-visible *load-path* first: the harness conses
+        // fixture directories onto it, and library imports must find files
+        // there.  The env var stays for dirs the dispatcher appends after
+        // startup (its setenv is invisible to an already-initialized var).
+        try {
+            Value dirs = evaluator.global_environment()->lookup(
+                evaluator.symbol("*load-path*"));
+            for (Value rest = dirs;
+                 rest.is_object() &&
+                 rest.as_object()->type() == ObjectType::Pair;
+                 rest = rest.as_object<PairObject>()->cdr) {
+                Value dir = rest.as_object<PairObject>()->car;
+                if (dir.is_object() &&
+                    dir.as_object()->type() == ObjectType::String)
+                    candidates.push_back(
+                        (fs::path(evaluator.string_value(dir)) / requested)
+                            .string());
+            }
+        } catch (const std::runtime_error&) {
+        }
         if (const char* search_path = std::getenv("GOLDFISH_NATIVE_LOAD_PATH")) {
             std::stringstream paths(search_path);
             std::string directory;
@@ -903,7 +1257,8 @@ void install_runtime_primitives(Evaluator& evaluator) {
                             detail = error->message;
                             for (Value irritant : error->irritants) {
                                 detail += " ";
-                                detail += format_value(evaluator, irritant);
+                                detail += format_value(evaluator, irritant,
+                                                       true, 0);
                             }
                         }
                         throw std::runtime_error(
@@ -1145,6 +1500,68 @@ void install_runtime_primitives(Evaluator& evaluator) {
             throw std::runtime_error("get-output-string expects a string port");
         return Values{evaluator.string(stream->str())};
     });
+    // String-port conveniences: s7 ships these as builtins, so the kernel's
+    // primitive-variables list turns every reference into a bare name that
+    // must resolve in the global environment.
+    install(evaluator, "with-output-to-string", [&evaluator](const Values& args) {
+        require_arity(args, 1, "with-output-to-string");
+        Value port = evaluator
+                         .apply_values(
+                             evaluator.global_environment()->lookup(
+                                 evaluator.symbol("open-output-string")),
+                             Values{})[0];
+        Value saved = g_current_ports.output;
+        g_current_ports.output = port;
+        try {
+            evaluator.apply_values(args[0], {});
+        } catch (...) {
+            g_current_ports.output = saved;
+            throw;
+        }
+        g_current_ports.output = saved;
+        return Values{evaluator.apply_values(
+            evaluator.global_environment()->lookup(
+                evaluator.symbol("get-output-string")),
+            {port})[0]};
+    });
+    install(evaluator, "call-with-output-string", [&evaluator](const Values& args) {
+        require_arity(args, 1, "call-with-output-string");
+        Value port = evaluator
+                         .apply_values(
+                             evaluator.global_environment()->lookup(
+                                 evaluator.symbol("open-output-string")),
+                             Values{})[0];
+        evaluator.apply_values(args[0], {port});
+        return Values{evaluator.apply_values(
+            evaluator.global_environment()->lookup(
+                evaluator.symbol("get-output-string")),
+            {port})[0]};
+    });
+    install(evaluator, "with-input-from-string", [&evaluator](const Values& args) {
+        require_arity(args, 2, "with-input-from-string");
+        Value port = evaluator.apply_values(
+            evaluator.global_environment()->lookup(
+                evaluator.symbol("open-input-string")),
+            {args[0]})[0];
+        Value saved = g_current_ports.input;
+        g_current_ports.input = port;
+        try {
+            Values result = evaluator.apply_values(args[1], {});
+            g_current_ports.input = saved;
+            return result;
+        } catch (...) {
+            g_current_ports.input = saved;
+            throw;
+        }
+    });
+    install(evaluator, "call-with-input-string", [&evaluator](const Values& args) {
+        require_arity(args, 2, "call-with-input-string");
+        Value port = evaluator.apply_values(
+            evaluator.global_environment()->lookup(
+                evaluator.symbol("open-input-string")),
+            {args[0]})[0];
+        return evaluator.apply_values(args[1], {port});
+    });
     install(evaluator, "delete-file", [&evaluator](const Values& args) {
         require_arity(args, 1, "delete-file");
         std::error_code error;
@@ -1155,12 +1572,13 @@ void install_runtime_primitives(Evaluator& evaluator) {
     install(evaluator, "read", [&evaluator, eof](const Values& args) {
         if (args.size() > 1)
             throw std::runtime_error("read expects zero or one arguments");
-        if (args.empty())
-            return Values{eof};
-        if (!args[0].is_object() ||
-            args[0].as_object()->type() != ObjectType::InputPort)
+        // Zero arguments reads from the current input port (R7RS).
+        Value port_value =
+            args.empty() ? current_input_port(evaluator) : args[0];
+        if (!port_value.is_object() ||
+            port_value.as_object()->type() != ObjectType::InputPort)
             throw std::runtime_error("read expects an input port");
-        auto* port = args[0].as_object<InputStringPortObject>();
+        auto* port = port_value.as_object<InputStringPortObject>();
         if (port->closed)
             throw std::runtime_error("read from closed input port");
         if (port->position == port->source.size())
@@ -1337,26 +1755,96 @@ void install_runtime_primitives(Evaluator& evaluator) {
             return evaluator.apply_values(args[1], {});
         } catch (const ThrownValue& thrown) {
             if (!matches(args[0], thrown.tag())) throw;
-            Values handler_args{thrown.tag()};
-            handler_args.insert(handler_args.end(), thrown.arguments().begin(),
-                                thrown.arguments().end());
-            return evaluator.apply_values(args[2], handler_args);
+            // Host contract: the handler sees (tag info ...) where the
+            // payload rides in a LIST -- guard/with-exception-handler take
+            // (car info) as the raised object.
+            Value payload = Value::null();
+            for (auto it = thrown.arguments().rbegin();
+                 it != thrown.arguments().rend(); ++it)
+                payload = evaluator.pair(*it, payload);
+            return evaluator.apply_values(
+                args[2], Values{thrown.tag(), payload});
         } catch (const RaisedValue& raised) {
             if (!matches(args[0], Value::boolean(true))) throw;
+            // raise (a core form) carries a bare payload; s7's raise throws
+            // under tag #t, so mirror that and list-wrap the value.  An
+            // ErrorObject came from (error key ...): its message holds the
+            // key and the irritants are the info list, exactly what the
+            // host's catch hands to (lambda (tag info) ...).
+            if (raised.value().is_object() &&
+                raised.value().as_object()->type() == ObjectType::ErrorObject) {
+                const auto* error =
+                    raised.value().as_object<ErrorObject>();
+                if (!error->key.empty()) {
+                    // (error key ...) : the host hands (key irritants...) --
+                    // guard takes (car info) as the first irritant, which is
+                    // what the reader's read-error handlers expect.
+                    Value payload = Value::null();
+                    for (auto it = error->irritants.rbegin();
+                         it != error->irritants.rend(); ++it)
+                        payload = evaluator.pair(*it, payload);
+                    return evaluator.apply_values(
+                        args[2], Values{evaluator.symbol(error->key), payload});
+                }
+                // R7RS (error "text" ...): the raised object is the single
+                // info element, so guard binds the error object itself.
+                return evaluator.apply_values(
+                    args[2],
+                    Values{Value::boolean(true),
+                           evaluator.pair(raised.value(), Value::null())});
+            }
             return evaluator.apply_values(
-                args[2], {evaluator.symbol("raised"), raised.value()});
+                args[2],
+                Values{Value::boolean(true),
+                       evaluator.pair(raised.value(), Value::null())});
         } catch (const std::runtime_error& error) {
             if (!matches(args[0], Value::boolean(true))) throw;
-            Value error_object = Value::object(
-                evaluator.heap().make<ErrorObject>(error.what(), ValueList{}));
+            // Shape parity with the host's keyed errors: the second handler
+            // argument is a message list (the host passes (fmt . args)), so
+            // load-library-guard's formatter and guard's (car info) show the
+            // real text instead of "nested-pair".  Giving C++ errors a key
+            // is a separate migration (check-catch on native keys is TODO).
             return evaluator.apply_values(
-                args[2], {evaluator.symbol("error"), error_object});
+                args[2],
+                Values{Value::boolean(true),
+                       evaluator.pair(evaluator.string(error.what()),
+                                      Value::null())});
         }
     });
     install(evaluator, "throw", [](const Values& args) -> Values {
         if (args.empty()) throw std::runtime_error("throw expects a tag");
         ValueList arguments(args.begin() + 1, args.end());
         throw ThrownValue(args[0], std::move(arguments));
+    });
+    // The kernel lists `error' among the primitive names and (scheme base)
+    // reaches it through (rename (goldfish) (error host-error)) for
+    // non-string messages, so a bare `error' must exist globally (the host
+    // has s7's builtin there).  s7's builtin shape: the first argument is
+    // the catch tag -- any value, not just a symbol -- and the rest the
+    // irritant list, which is what `throw' does.  String messages never
+    // reach here: (scheme base)'s wrapper turns them into error objects.
+    install(evaluator, "error", [](const Values& args) -> Values {
+        if (args.empty())
+            throw std::runtime_error("error expects a message");
+        ValueList arguments(args.begin() + 1, args.end());
+        throw ThrownValue(args[0], std::move(arguments));
+    });
+    // s7 source-position accessors (used by srfi-78's report line).  Native
+    // keeps no per-form source locations, so every pair answers #f -- the
+    // documented "no such number/file available" case.
+    install(evaluator, "pair-filename", [](const Values& args) -> Values {
+        require_arity(args, 1, "pair-filename");
+        if (!args[0].is_object() ||
+            args[0].as_object()->type() != ObjectType::Pair)
+            throw std::runtime_error("pair-filename expects a pair");
+        return Values{Value::boolean(false)};
+    });
+    install(evaluator, "pair-line-number", [](const Values& args) -> Values {
+        require_arity(args, 1, "pair-line-number");
+        if (!args[0].is_object() ||
+            args[0].as_object()->type() != ObjectType::Pair)
+            throw std::runtime_error("pair-line-number expects a pair");
+        return Values{Value::boolean(false)};
     });
 
     install(evaluator, "cons", [&evaluator](const Values& args) {
@@ -1482,14 +1970,45 @@ void install_runtime_primitives(Evaluator& evaluator) {
         return Values{evaluator.string(std::to_string(args[0].as_integer()))};
     });
     install(evaluator, "string->number", [&evaluator](const Values& args) {
-        require_arity(args, 1, "string->number");
+        if (args.size() < 1 || args.size() > 2)
+            throw std::runtime_error(
+                "string->number expects one or two arguments");
         const std::string text = evaluator.string_value(args[0]);
-        char* end = nullptr;
-        errno = 0;
-        const long long result = std::strtoll(text.c_str(), &end, 10);
-        if (errno == ERANGE || end != text.c_str() + text.size())
-            return Values{Value::boolean(false)};
-        return Values{Value::integer(static_cast<std::int64_t>(result))};
+        std::int64_t radix = 10;
+        if (args.size() == 2) {
+            if (!args[1].is_integer())
+                return Values{Value::boolean(false)};
+            radix = args[1].as_integer();
+            if (radix < 2 || radix > 36) return Values{Value::boolean(false)};
+        }
+        // Integers only: rationals, decimals and complexes need the numeric
+        // types the first-version substrate does not have yet, so they read
+        // as #f here (the same as a malformed literal).
+        if (text.empty()) return Values{Value::boolean(false)};
+        std::size_t index = 0;
+        bool negative = false;
+        if (text[index] == '+' || text[index] == '-') {
+            negative = text[index] == '-';
+            ++index;
+        }
+        if (index >= text.size()) return Values{Value::boolean(false)};
+        std::int64_t accumulator = 0;
+        for (; index < text.size(); ++index) {
+            const char character = text[index];
+            int digit = -1;
+            if (character >= '0' && character <= '9')
+                digit = character - '0';
+            else if (character >= 'a' && character <= 'z')
+                digit = character - 'a' + 10;
+            else if (character >= 'A' && character <= 'Z')
+                digit = character - 'A' + 10;
+            if (digit < 0 || digit >= radix)
+                return Values{Value::boolean(false)};
+            if (accumulator > (9223372036854775807LL - digit) / radix)
+                return Values{Value::boolean(false)};
+            accumulator = accumulator * radix + digit;
+        }
+        return Values{Value::integer(negative ? -accumulator : accumulator)};
     });
     install(evaluator, "string-length", [&evaluator](const Values& args) {
         require_arity(args, 1, "string-length");
@@ -1527,6 +2046,29 @@ void install_runtime_primitives(Evaluator& evaluator) {
         for (Value character : proper_list(args[0]))
             result.push_back(static_cast<char>(evaluator.character_value(character)));
         return Values{evaluator.string(result)};
+    });
+    install(evaluator, "make-string", [&evaluator](const Values& args) {
+        if (args.size() < 1 || args.size() > 2)
+            throw std::runtime_error(
+                "make-string expects one or two arguments");
+        if (!args[0].is_integer())
+            throw std::runtime_error("make-string length must be an integer");
+        const std::int64_t length = args[0].as_integer();
+        if (length < 0)
+            throw std::runtime_error("out-of-range: make-string length is negative");
+        std::string unit(1, '\0'); // R7RS leaves the initial contents impl-defined
+        if (args.size() == 2) {
+            if (!args[1].is_object() ||
+                args[1].as_object()->type() != ObjectType::Character)
+                throw std::runtime_error(
+                    "wrong-type-arg: make-string fill must be a character");
+            unit = utf8_encode_char(args[1].as_object<CharacterObject>()->value);
+            if (unit.empty()) unit = std::string(1, '\0');
+        }
+        std::string text;
+        text.reserve(unit.size() * static_cast<std::size_t>(length));
+        for (std::int64_t i = 0; i < length; ++i) text += unit;
+        return Values{evaluator.string(text)};
     });
     install(evaluator, "string-set!", [&evaluator](const Values& args) {
         require_arity(args, 3, "string-set!");
@@ -1623,7 +2165,11 @@ void install_runtime_primitives(Evaluator& evaluator) {
                        directive == 's' || directive == 'S') {
                 if (argument >= args.size())
                     throw std::runtime_error("format missing argument");
-                result += format_value(evaluator, args[argument++]);
+                // ~A displays, ~S writes.
+                const bool write_mode =
+                    directive == 's' || directive == 'S';
+                result += format_value(evaluator, args[argument++],
+                                       write_mode, 0);
             } else {
                 result += '~';
                 result += directive;
@@ -1643,14 +2189,31 @@ void install_runtime_primitives(Evaluator& evaluator) {
             static_cast<unsigned char>(value[static_cast<std::size_t>(index)]))};
     });
     install(evaluator, "substring", [&evaluator](const Values& args) {
-        require_arity(args, 3, "substring");
+        // The host's substring is (str start [end]) -- s7 accepts the
+        // two-argument form as "start to the end of the string", which
+        // goldtest's suffix matching (and srfi-13, define-star) rely on.
+        if (args.size() < 2 || args.size() > 3)
+            throw std::runtime_error(
+                "substring expects two or three arguments");
         const std::string& value = evaluator.string_value(args[0]);
+        if (!args[1].is_integer())
+            throw std::runtime_error(
+                "wrong-type-arg: substring start must be an integer");
         auto start = args[1].as_integer();
-        auto end = args[2].as_integer();
-        if (start < 0 || end < start || static_cast<std::size_t>(end) > value.size())
-            throw std::runtime_error("substring index out of bounds");
-        return Values{evaluator.string(value.substr(static_cast<std::size_t>(start),
-                                                     static_cast<std::size_t>(end - start)))};
+        auto end = static_cast<std::int64_t>(value.size());
+        if (args.size() == 3) {
+            if (!args[2].is_integer())
+                throw std::runtime_error(
+                    "wrong-type-arg: substring end must be an integer");
+            end = args[2].as_integer();
+        }
+        if (start < 0 || end < start ||
+            static_cast<std::size_t>(end) > value.size())
+            throw std::runtime_error(
+                "out-of-range: substring index out of bounds");
+        return Values{evaluator.string(value.substr(
+            static_cast<std::size_t>(start),
+            static_cast<std::size_t>(end - start)))};
     });
     install(evaluator, "char->integer", [&evaluator](const Values& args) {
         require_arity(args, 1, "char->integer");
@@ -1766,6 +2329,444 @@ void install_runtime_primitives(Evaluator& evaluator) {
     install_comparison(">", [](auto a, auto b) { return a > b; });
     install_comparison("<=", [](auto a, auto b) { return a <= b; });
     install_comparison(">=", [](auto a, auto b) { return a >= b; });
+
+    // s7's copy: in the kernel primitive table, but not a Scheme-level
+    // definition anywhere, so the native substrate has to provide it.
+    install(evaluator, "copy", [&evaluator](const Values& args) {
+        return Values{copy_value(evaluator, args)};
+    });
+
+    // (liii string) aliases string-split straight onto this primitive; the
+    // host supplies it from liii_string.cpp (string or character separator,
+    // empty separator splits per UTF-8 character, trailing empties kept).
+    install(evaluator, "g_string-split", [&evaluator](const Values& args) {
+        require_arity(args, 2, "g_string-split");
+        const std::string text = evaluator.string_value(args[0]);
+        std::string separator;
+        if (args[1].is_object() &&
+            args[1].as_object()->type() == ObjectType::String) {
+            separator = evaluator.string_value(args[1]);
+        } else if (args[1].is_object() &&
+                   args[1].as_object()->type() == ObjectType::Character) {
+            const char32_t cp = args[1].as_object<CharacterObject>()->value;
+            if (cp < 0x80)
+                separator.push_back(static_cast<char>(cp));
+            else if (cp < 0x800) {
+                separator.push_back(static_cast<char>(0xc0 | (cp >> 6)));
+                separator.push_back(static_cast<char>(0x80 | (cp & 0x3f)));
+            } else if (cp < 0x10000) {
+                separator.push_back(static_cast<char>(0xe0 | (cp >> 12)));
+                separator.push_back(static_cast<char>(0x80 | ((cp >> 6) & 0x3f)));
+                separator.push_back(static_cast<char>(0x80 | (cp & 0x3f)));
+            } else {
+                separator.push_back(static_cast<char>(0xf0 | (cp >> 18)));
+                separator.push_back(static_cast<char>(0x80 | ((cp >> 12) & 0x3f)));
+                separator.push_back(static_cast<char>(0x80 | ((cp >> 6) & 0x3f)));
+                separator.push_back(static_cast<char>(0x80 | (cp & 0x3f)));
+            }
+        } else {
+            throw std::runtime_error("g_string-split separator must be a "
+                                     "string or character");
+        }
+        std::vector<std::string> parts;
+        if (separator.empty()) {
+            std::size_t index = 0;
+            while (index < text.size()) {
+                const unsigned char lead = text[index];
+                std::size_t width = 1;
+                if ((lead & 0xe0) == 0xc0) width = 2;
+                else if ((lead & 0xf0) == 0xe0) width = 3;
+                else if ((lead & 0xf8) == 0xf0) width = 4;
+                if (index + width > text.size()) width = 1;
+                parts.push_back(text.substr(index, width));
+                index += width;
+            }
+        } else {
+            std::size_t start = 0;
+            while (true) {
+                const std::size_t found = text.find(separator, start);
+                if (found == std::string::npos) {
+                    parts.push_back(text.substr(start));
+                    break;
+                }
+                parts.push_back(text.substr(start, found - start));
+                start = found + separator.size();
+            }
+        }
+        Value result = Value::null();
+        for (auto it = parts.rbegin(); it != parts.rend(); ++it)
+            result = evaluator.pair(evaluator.string(*it), result);
+        return Values{result};
+    });
+
+    // (liii vector) aliases vector-filter onto this primitive (the host
+    // provides it from s7_liii_vector.c): keep elements whose predicate
+    // result is not #f.
+    install(evaluator, "g_vector_filter", [&evaluator](const Values& args) {
+        require_arity(args, 2, "g_vector_filter");
+        Value source = args[1];
+        if (!source.is_object() ||
+            source.as_object()->type() != ObjectType::Vector)
+            throw std::runtime_error("g_vector_filter expects a vector");
+        std::vector<Value> kept;
+        for (Value element : source.as_object<VectorObject>()->values) {
+            Values outcome = evaluator.apply_values(args[0], {element});
+            if (outcome.empty())
+                throw std::runtime_error(
+                    "g_vector_filter predicate returned no value");
+            Value verdict = outcome[0];
+            if (!verdict.is_boolean() || verdict.as_boolean())
+                kept.push_back(element);
+        }
+        return Values{evaluator.vector(kept)};
+    });
+
+    // s7's char-position: byte index of the first byte of `needle' (a
+    // character, or any byte of a string set) at or after `start', else #f.
+    // The Scheme reader's number/polar parsing calls it; byte semantics
+    // match the host, which truncates characters to bytes the same way.
+    install(evaluator, "char-position", [&evaluator](const Values& args) {
+        if (args.size() < 2 || args.size() > 3)
+            throw std::runtime_error(
+                "char-position expects two or three arguments");
+        if (!args[1].is_object() ||
+            args[1].as_object()->type() != ObjectType::String)
+            throw std::runtime_error("char-position expects a string");
+        const std::string text = evaluator.string_value(args[1]);
+        std::int64_t start = 0;
+        if (args.size() == 3) {
+            if (!args[2].is_integer())
+                throw std::runtime_error("char-position start must be an integer");
+            start = args[2].as_integer();
+            if (start < 0)
+                throw std::runtime_error("char-position start must be non-negative");
+        }
+        if (static_cast<std::size_t>(start) >= text.size())
+            return Values{Value::boolean(false)};
+        std::string needles;
+        if (args[0].is_object() &&
+            args[0].as_object()->type() == ObjectType::Character) {
+            needles += static_cast<char>(
+                args[0].as_object<CharacterObject>()->value & 0xff);
+        } else if (args[0].is_object() &&
+                   args[0].as_object()->type() == ObjectType::String) {
+            needles = evaluator.string_value(args[0]);
+            if (needles.empty()) return Values{Value::boolean(false)};
+        } else {
+            throw std::runtime_error(
+                "char-position expects a character or a string");
+        }
+        const char* base = text.data() + start;
+        const std::size_t remaining = text.size() - static_cast<std::size_t>(start);
+        std::size_t best = std::string::npos;
+        for (char needle : needles) {
+            const void* found = std::memchr(base, needle, remaining);
+            if (!found) continue;
+            const std::size_t offset =
+                static_cast<const char*>(found) - base;
+            if (best == std::string::npos || offset < best) best = offset;
+        }
+        if (best == std::string::npos)
+            return Values{Value::boolean(false)};
+        return Values{Value::integer(start + static_cast<std::int64_t>(best))};
+    });
+
+    // s7's hash-code: the srfi-128 default comparators hang off it.  The
+    // optional second argument (an eqfunc on the host) is accepted and
+    // ignored -- the hash is equal?-consistent, which is what the
+    // comparators need for their bucket tables.
+    install(evaluator, "hash-code", [](const Values& args) {
+        if (args.empty() || args.size() > 2)
+            throw std::runtime_error("hash-code expects 1 or 2 arguments");
+        std::function<std::uint64_t(Value, int)> mix =
+            [&mix](Value value, int depth) -> std::uint64_t {
+            const std::uint64_t offset = 1469598103934665603ull;
+            const std::uint64_t prime = 1099511628211ull;
+            auto fold = [&](std::uint64_t seed, std::uint64_t piece) {
+                return (seed ^ piece) * prime;
+            };
+            if (value.is_integer())
+                return fold(offset, static_cast<std::uint64_t>(value.as_integer()));
+            if (value.is_boolean())
+                return fold(offset, value.as_boolean() ? 1 : 0);
+            if (value.is_null())
+                return offset;
+            if (!value.is_object())
+                return offset;
+            if (depth <= 0)
+                return offset;
+            switch (value.as_object()->type()) {
+                case ObjectType::Character:
+                    return fold(offset, value.as_object<CharacterObject>()->value);
+                case ObjectType::Symbol: {
+                    std::uint64_t hash = offset;
+                    for (char byte : value.as_object<SymbolObject>()->name)
+                        hash = (hash ^ static_cast<unsigned char>(byte)) * prime;
+                    return hash;
+                }
+                case ObjectType::String: {
+                    std::uint64_t hash = offset;
+                    for (char byte : value.as_object<StringObject>()->value)
+                        hash = (hash ^ static_cast<unsigned char>(byte)) * prime;
+                    return hash;
+                }
+                case ObjectType::Pair: {
+                    std::uint64_t hash = offset;
+                    Value rest = value;
+                    while (rest.is_object() &&
+                           rest.as_object()->type() == ObjectType::Pair &&
+                           depth > 0) {
+                        auto* pair = rest.as_object<PairObject>();
+                        hash = fold(hash, mix(pair->car, depth - 1));
+                        rest = pair->cdr;
+                        --depth;
+                    }
+                    if (!rest.is_null())
+                        hash = fold(hash, mix(rest, depth));
+                    return hash;
+                }
+                case ObjectType::Vector: {
+                    std::uint64_t hash = offset;
+                    for (Value element : value.as_object<VectorObject>()->values)
+                        hash = fold(hash, mix(element, depth - 1));
+                    return hash;
+                }
+                default:
+                    return offset;
+            }
+        };
+        return Values{Value::integer(
+            static_cast<std::int64_t>(mix(args[0], 8) & 0x3fffffffffffffff))};
+    });
+
+    // (string ch ...) : the R7RS character-vector constructor; (scheme base)
+    // exports it as a primitive-table name, so native must provide it.
+    install(evaluator, "string", [&evaluator](const Values& args) {
+        std::string out;
+        for (Value arg : args) {
+            if (!arg.is_object() ||
+                arg.as_object()->type() != ObjectType::Character)
+                throw std::runtime_error("string expects characters");
+            out += utf8_encode_char(arg.as_object<CharacterObject>()->value);
+        }
+        return Values{evaluator.string(out)};
+    });
+
+    // --- exact integer floor/truncate division families (R7RS): srfi-19's
+    // --- time code and later numeric code split remainders with these.
+    auto install_division_family = [&evaluator](
+                                       const char* quotient_name,
+                                       const char* remainder_name,
+                                       const char* both_name,
+                                       bool floor_semantics) {
+        auto compute = [floor_semantics](std::int64_t a, std::int64_t b)
+            -> std::pair<std::int64_t, std::int64_t> {
+            if (b == 0) throw std::runtime_error("division by zero");
+            std::int64_t q = a / b;
+            std::int64_t r = a % b;
+            if (floor_semantics && r != 0 && ((a < 0) != (b < 0))) {
+                q -= 1;
+                r += b;
+            }
+            return {q, r};
+        };
+        install(evaluator, both_name, [compute, both_name](const Values& args) {
+            require_arity(args, 2, both_name);
+            if (!args[0].is_integer() || !args[1].is_integer())
+                throw std::runtime_error(std::string(both_name) +
+                                         " expects integers");
+            auto qr = compute(args[0].as_integer(), args[1].as_integer());
+            return Values{Value::integer(qr.first), Value::integer(qr.second)};
+        });
+        install(evaluator, quotient_name,
+                [compute, quotient_name](const Values& args) {
+                    require_arity(args, 2, quotient_name);
+                    if (!args[0].is_integer() || !args[1].is_integer())
+                        throw std::runtime_error(std::string(quotient_name) +
+                                                 " expects integers");
+                    return Values{Value::integer(
+                        compute(args[0].as_integer(), args[1].as_integer())
+                            .first)};
+                });
+        install(evaluator, remainder_name,
+                [compute, remainder_name](const Values& args) {
+                    require_arity(args, 2, remainder_name);
+                    if (!args[0].is_integer() || !args[1].is_integer())
+                        throw std::runtime_error(std::string(remainder_name) +
+                                                 " expects integers");
+                    return Values{Value::integer(
+                        compute(args[0].as_integer(), args[1].as_integer())
+                            .second)};
+                });
+    };
+    install_division_family("floor-quotient", "floor-remainder", "floor/", true);
+    install_division_family("truncate-quotient", "truncate-remainder",
+                            "truncate/", false);
+
+    // --- multi-value protocol as first-class procedures.  The core forms
+    // --- handle (values ...) and (call-with-values ...) at call sites;
+    // --- value positions (procedure?, passing to a combinator, the expander's
+    // --- let-values runtime path) need these bindings, like the host has.
+    install(evaluator, "values", [](const Values& args) { return args; });
+    install(evaluator, "call-with-values", [&evaluator](const Values& args) {
+        require_arity(args, 2, "call-with-values");
+        Values produced = evaluator.apply_values(args[0], {});
+        return evaluator.apply_values(args[1], produced);
+    });
+
+    // --- current ports and dynamic rebinding (R7RS file I/O) --------------
+    install(evaluator, "current-input-port", [&evaluator](const Values& args) {
+        require_arity(args, 0, "current-input-port");
+        return Values{current_input_port(evaluator)};
+    });
+    install(evaluator, "current-error-port", [](const Values& args) {
+        require_arity(args, 0, "current-error-port");
+        return Values{g_current_ports.error_port};
+    });
+    install(evaluator, "with-input-from-file",
+            [&evaluator](const Values& args) {
+                require_arity(args, 2, "with-input-from-file");
+                Value saved = g_current_ports.input;
+                Value port = evaluator
+                                 .apply_values(
+                                     evaluator.global_environment()->lookup(
+                                         evaluator.symbol("open-input-file")),
+                                     {args[0]})[0];
+                g_current_ports.input = port;
+                Values result;
+                try {
+                    result = evaluator.apply_values(args[1], {});
+                } catch (...) {
+                    g_current_ports.input = saved;
+                    port.as_object<InputStringPortObject>()->closed = true;
+                    throw;
+                }
+                g_current_ports.input = saved;
+                port.as_object<InputStringPortObject>()->closed = true;
+                return result;
+            });
+    install(evaluator, "with-output-to-file",
+            [&evaluator](const Values& args) {
+                require_arity(args, 2, "with-output-to-file");
+                Value saved = g_current_ports.output;
+                Value port = evaluator
+                                 .apply_values(
+                                     evaluator.global_environment()->lookup(
+                                         evaluator.symbol("open-output-file")),
+                                     {args[0]})[0];
+                g_current_ports.output = port;
+                auto close_current = [&]() {
+                    g_current_ports.output = saved;
+                    if (port.is_object() &&
+                        port.as_object()->type() == ObjectType::OutputPort) {
+                        auto& out = *port.as_object<OutputPortObject>();
+                        if (!out.closed) {
+                            out.stream->flush();
+                            out.closed = true;
+                        }
+                    }
+                };
+                Values result;
+                try {
+                    result = evaluator.apply_values(args[1], {});
+                } catch (...) {
+                    close_current();
+                    throw;
+                }
+                close_current();
+                return result;
+            });
+    install(evaluator, "read-line", [&evaluator, eof](const Values& args) {
+        if (args.size() > 1)
+            throw std::runtime_error("read-line expects zero or one arguments");
+        Value port_value =
+            args.empty() ? current_input_port(evaluator) : args[0];
+        auto& port = input_port(port_value, "read-line");
+        if (port.position >= port.source.size()) return Values{eof};
+        const std::size_t newline = port.source.find('\n', port.position);
+        std::string line;
+        if (newline == std::string::npos) {
+            line = port.source.substr(port.position);
+            port.position = port.source.size();
+        } else {
+            line = port.source.substr(port.position, newline - port.position);
+            port.position = newline + 1;
+        }
+        if (!line.empty() && line.back() == '\r') line.pop_back();
+        return Values{evaluator.string(line)};
+    });
+    install(evaluator, "read-string", [&evaluator, eof](const Values& args) {
+        if (args.size() < 1 || args.size() > 2)
+            throw std::runtime_error(
+                "read-string expects one or two arguments");
+        if (!args[0].is_integer())
+            throw std::runtime_error("read-string count must be an integer");
+        const std::int64_t count = args[0].as_integer();
+        if (count < 0)
+            throw std::runtime_error("read-string count must be non-negative");
+        Value port_value = args.size() == 2 ? args[1] : current_input_port(evaluator);
+        auto& port = input_port(port_value, "read-string");
+        if (port.position >= port.source.size()) return Values{eof};
+        const std::size_t available = port.source.size() - port.position;
+        const std::size_t take =
+            static_cast<std::size_t>(count) < available
+                ? static_cast<std::size_t>(count)
+                : available;
+        const std::string text = port.source.substr(port.position, take);
+        port.position += take;
+        return Values{evaluator.string(text)};
+    });
+    install(evaluator, "char-ready?", [&evaluator](const Values& args) {
+        if (args.size() > 1)
+            throw std::runtime_error("char-ready? expects zero or one argument");
+        if (args.size() == 1)
+            (void)input_port(args[0], "char-ready?"); // validate the port
+        return Values{Value::boolean(true)}; // string-backed ports always are
+    });
+    install(evaluator, "string-position", [&evaluator](const Values& args) {
+        if (args.size() < 2 || args.size() > 3)
+            throw std::runtime_error(
+                "string-position expects two or three arguments");
+        const std::string needle = evaluator.string_value(args[0]);
+        const std::string text = evaluator.string_value(args[1]);
+        std::size_t start = 0;
+        if (args.size() == 3) {
+            if (!args[2].is_integer())
+                throw std::runtime_error(
+                    "string-position start must be an integer");
+            if (args[2].as_integer() < 0)
+                throw std::runtime_error(
+                    "string-position start must be non-negative");
+            start = static_cast<std::size_t>(args[2].as_integer());
+        }
+        if (start > text.size() || needle.empty())
+            return Values{Value::boolean(false)};
+        const std::size_t at = text.find(needle, start);
+        if (at == std::string::npos)
+            return Values{Value::boolean(false)};
+        return Values{Value::integer(static_cast<std::int64_t>(at))};
+    });
+    install(evaluator, "object->string", [&evaluator](const Values& args) {
+        if (args.empty() || args.size() > 3)
+            throw std::runtime_error(
+                "object->string expects one to three arguments");
+        // Default is write style (a 1-arg call quotes strings); a false
+        // second argument switches to display style.
+        const bool write_mode =
+            args.size() < 2 || !args[1].is_boolean() || args[1].as_boolean();
+        std::string text = format_value(evaluator, args[0], write_mode, 0);
+        if (args.size() == 3) {
+            if (!args[2].is_integer())
+                throw std::runtime_error(
+                    "object->string max-len must be an integer");
+            const std::int64_t max_len = args[2].as_integer();
+            if (max_len >= 0 &&
+                static_cast<std::int64_t>(text.size()) > max_len)
+                return Values{evaluator.string(
+                    text.substr(0, static_cast<std::size_t>(max_len)) + "...")};
+        }
+        return Values{evaluator.string(text)};
+    });
 }
 
 } // namespace goldfish::runtime
