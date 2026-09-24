@@ -29,10 +29,13 @@
       (if (defined? 'g_char-whitespace?)
           g_char-whitespace?
           (lambda (ch)
-            (memv (char->integer ch)
-                  '(9 10 11 12 13 32 133 160 5760 8192 8193 8194
-                    8195 8196 8197 8198 8199 8200 8201 8202 8232 8233
-                    8239 8287 12288)))))
+            ;; memv returns the list tail; the contract wants a boolean.
+            (if (memv (char->integer ch)
+                      '(9 10 11 12 13 32 133 160 5760 8192 8193 8194
+                        8195 8196 8197 8198 8199 8200 8201 8202 8232 8233
+                        8239 8287 12288))
+              #t
+              #f))))
     (define char-upper-case? g_char-upper-case?)
     (define char-lower-case? g_char-lower-case?)
 

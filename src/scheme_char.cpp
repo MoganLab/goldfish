@@ -19,6 +19,7 @@
 // 连续码点合并为区间，二分查找
 
 #include "gf.h"
+#include "runtime/unicode_char.hpp"
 #include <cstddef>
 #include <cstdint>
 
@@ -789,6 +790,33 @@ f_char_lower_case_p (gf::scheme* sc, gf::pointer args) {
   return set_lookup (lower_ranges, ARRAY_LEN (lower_ranges), cp) ? gf::t (sc) : gf::f (sc);
 }
 
+static gf::pointer
+f_char_foldcase (gf::scheme* sc, gf::pointer args) {
+  gf::pointer arg= gf::car (args);
+  if (!gf::is_character (arg)) {
+    return char_type_error (sc, "char-foldcase: parameter must be character");
+  }
+  return gf::make_character (sc, runtime::unicode_char_foldcase (gf::character (arg)));
+}
+
+static gf::pointer
+f_char_numeric_p (gf::scheme* sc, gf::pointer args) {
+  gf::pointer arg= gf::car (args);
+  if (!gf::is_character (arg)) {
+    return char_type_error (sc, "char-numeric?: parameter must be character");
+  }
+  return runtime::unicode_char_numeric (gf::character (arg)) ? gf::t (sc) : gf::f (sc);
+}
+
+static gf::pointer
+f_char_whitespace_p (gf::scheme* sc, gf::pointer args) {
+  gf::pointer arg= gf::car (args);
+  if (!gf::is_character (arg)) {
+    return char_type_error (sc, "char-whitespace?: parameter must be character");
+  }
+  return runtime::unicode_char_whitespace (gf::character (arg)) ? gf::t (sc) : gf::f (sc);
+}
+
 void
 glue_scheme_char (gf::scheme* sc) {
   gf::define_function (sc, "g_char-upcase", f_char_upcase, 1, 0, false,
@@ -801,6 +829,12 @@ glue_scheme_char (gf::scheme* sc) {
                       "(g_char-upper-case? char) => boolean");
   gf::define_function (sc, "g_char-lower-case?", f_char_lower_case_p, 1, 0, false,
                       "(g_char-lower-case? char) => boolean");
+  gf::define_function (sc, "g_char-foldcase", f_char_foldcase, 1, 0, false,
+                      "(g_char-foldcase char) => char, Unicode case folding");
+  gf::define_function (sc, "g_char-numeric?", f_char_numeric_p, 1, 0, false,
+                      "(g_char-numeric? char) => boolean");
+  gf::define_function (sc, "g_char-whitespace?", f_char_whitespace_p, 1, 0, false,
+                      "(g_char-whitespace? char) => boolean");
 }
 
 } // namespace goldfish
