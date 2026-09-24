@@ -33,8 +33,8 @@
 ;; --------
 ;; type-error
 ;; import-set 不是列表时抛出错误。
-(check-true (let? (environment)))
-(check-true (let? (environment '(scheme base))))
+(check-true (vector? (environment)))
+(check-true (vector? (environment '(scheme base))))
 (check (eval '(square 3) (environment '(only (scheme base) square))) => 9)
 (check (eval '(square 3) (environment '(except (scheme base) vector-copy)))
   =>

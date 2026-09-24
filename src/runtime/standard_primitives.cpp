@@ -39,6 +39,30 @@ bool symbol_named(Value value, const char* name) {
            value.as_object<SymbolObject>()->name == name;
 }
 
+std::string raised_message(const RaisedValue& raised) {
+    Value value = raised.value();
+    if (value.is_object() &&
+        value.as_object()->type() == ObjectType::ErrorObject) {
+        const auto* error = value.as_object<ErrorObject>();
+        std::string message = error->message;
+        for (Value irritant : error->irritants) {
+            message += " ";
+            if (irritant.is_integer())
+                message += std::to_string(irritant.as_integer());
+            else if (irritant.is_object() &&
+                     irritant.as_object()->type() == ObjectType::String)
+                message += irritant.as_object<StringObject>()->value;
+            else if (irritant.is_object() &&
+                     irritant.as_object()->type() == ObjectType::Symbol)
+                message += irritant.as_object<SymbolObject>()->name;
+            else
+                message += "<value>";
+        }
+        return message;
+    }
+    return "raised Scheme value";
+}
+
 std::vector<Value> proper_list(Value value) {
     std::vector<Value> result;
     while (!value.is_null()) {
@@ -119,6 +143,11 @@ std::string format_value(const Evaluator& evaluator, Value value) {
     if (value.is_object() &&
         value.as_object()->type() == ObjectType::Symbol)
         return value.as_object<SymbolObject>()->name;
+    if (value.is_object() && value.as_object()->type() == ObjectType::Pair) {
+        const auto* pair = value.as_object<PairObject>();
+        return "(" + format_value(evaluator, pair->car) + " . " +
+               format_value(evaluator, pair->cdr) + ")";
+    }
     return "#<object>";
 }
 
@@ -327,10 +356,17 @@ void install_runtime_primitives(Evaluator& evaluator) {
     });
     install(evaluator, "make-eval-environment",
             [&evaluator](const Values& args) {
-                if (!args.empty())
+                if (args.size() > 1)
                     throw std::runtime_error(
-                        "make-eval-environment expects no arguments");
-                return Values{evaluator.make_eval_environment()};
+                        "make-eval-environment expects zero or one argument");
+                if (args.empty())
+                    return Values{evaluator.make_eval_environment()};
+                if (!args[0].is_object() ||
+                    args[0].as_object()->type() != ObjectType::EvalEnvironment)
+                    throw std::runtime_error(
+                        "make-eval-environment expects an eval environment parent");
+                return Values{evaluator.make_eval_environment(
+                    args[0].as_object<EvalEnvironmentObject>()->environment)};
             });
     install(evaluator, "eval-environment?", [](const Values& args) {
         require_arity(args, 1, "eval-environment?");
@@ -368,6 +404,24 @@ void install_runtime_primitives(Evaluator& evaluator) {
                           ->environment->lookup(args[1])};
     });
     install(evaluator, "eval", [&evaluator](const Values& args) {
+        if (args.size() != 1 && args.size() != 2)
+            throw std::runtime_error("eval expects one or two arguments");
+        EnvironmentPtr environment = evaluator.global_environment();
+        if (args.size() == 2) {
+            if (args[1].is_object() &&
+                args[1].as_object()->type() == ObjectType::EvalEnvironment)
+                environment =
+                    args[1].as_object<EvalEnvironmentObject>()->environment;
+            else
+                throw std::runtime_error(
+                    "eval expects an eval environment as its second argument");
+        }
+        return evaluator.eval_values(args[0], std::move(environment));
+    });
+    // Private alias for the runtime eval primitive.  (scheme eval) resolves
+    // this name instead of `eval', so importing a user-level eval cannot
+    // rebind the host evaluator into a recursive loop.
+    evaluator.define_primitive("%host-eval", [&evaluator](const Values& args) {
         if (args.size() != 1 && args.size() != 2)
             throw std::runtime_error("eval expects one or two arguments");
         EnvironmentPtr environment = evaluator.global_environment();
@@ -483,7 +537,15 @@ void install_runtime_primitives(Evaluator& evaluator) {
     install(evaluator, "load-find-module-file", [&evaluator](const Values& args) {
         require_arity(args, 1, "load-find-module-file");
         const std::string requested = evaluator.string_value(args[0]);
-        for (const std::string& path : {requested, "goldfish/" + requested}) {
+        std::vector<std::string> candidates = {requested, "goldfish/" + requested};
+        if (const char* search_path = std::getenv("GOLDFISH_NATIVE_LOAD_PATH")) {
+            std::stringstream paths(search_path);
+            std::string directory;
+            while (std::getline(paths, directory, ':'))
+                if (!directory.empty())
+                    candidates.push_back((fs::path(directory) / requested).string());
+        }
+        for (const std::string& path : candidates) {
             std::ifstream input(path, std::ios::binary);
             if (input) return Values{evaluator.string(path)};
         }
@@ -534,12 +596,26 @@ void install_runtime_primitives(Evaluator& evaluator) {
             input.clear();
             input.open(path, std::ios::binary);
         }
+        if (!input) {
+            if (const char* search_path = std::getenv("GOLDFISH_NATIVE_LOAD_PATH")) {
+                std::stringstream paths(search_path);
+                std::string directory;
+                while (!input && std::getline(paths, directory, ':')) {
+                    if (directory.empty()) continue;
+                    path = (fs::path(directory) / requested).string();
+                    input.clear();
+                    input.open(path, std::ios::binary);
+                }
+            }
+        }
         if (!input)
             throw std::runtime_error("load-source-file: cannot open " + requested);
         std::string source((std::istreambuf_iterator<char>(input)),
                            std::istreambuf_iterator<char>());
         const bool seed_file = requested == "core/gfo.scm" ||
                                path == "goldfish/core/gfo.scm";
+        const bool prelude_file = requested == "liii/prelude.scm" ||
+                                  path == "goldfish/liii/prelude.scm";
         auto lookup_bootstrap_binding = [&evaluator](const char* name) {
             try {
                 return evaluator.global_environment()->lookup(
@@ -566,6 +642,27 @@ void install_runtime_primitives(Evaluator& evaluator) {
             TinyReader reader(evaluator, std::move(source));
             while (std::optional<Value> form = reader.read())
                 datums.push_back(*form);
+            if (prelude_file && !expand_eval.is_unspecified()) {
+                // Prelude transformers are intentionally installed into the
+                // base library.  Process them one at a time so each macro is
+                // visible to the next transformer body; the normal source
+                // unit path uses a temporary library instead.
+                Value compile_toplevel = lookup_bootstrap_binding(
+                    "compile-toplevel");
+                Value result = Value::unspecified();
+                for (std::size_t index = 0; index < datums.size(); ++index) {
+                    try {
+                        Value lowered = evaluator.apply_values(
+                            compile_toplevel, {datums[index]})[0];
+                        result = evaluator.eval(lowered);
+                    } catch (const std::exception& error) {
+                        throw std::runtime_error(
+                            "prelude form " + std::to_string(index) + ": " +
+                            error.what());
+                    }
+                }
+                return Values{result};
+            }
             if (seed_file && !expand_eval.is_unspecified()) {
                 // core/gfo.scm is the one source file that must establish the
                 // cache layer itself.  Install it as a real exp-library,
@@ -621,9 +718,18 @@ void install_runtime_primitives(Evaluator& evaluator) {
                     module_environment.as_object<EvalEnvironmentObject>()
                         ->environment;
                 Value result = Value::unspecified();
+                std::size_t seed_definition_index = 0;
                 for (Value definition : proper_list(definitions)) {
-                    result = evaluator.apply_values(lower, {definition})[0];
-                    result = evaluator.eval(result, eval_environment);
+                    try {
+                        result = evaluator.apply_values(lower, {definition})[0];
+                        result = evaluator.eval(result, eval_environment);
+                    } catch (const std::exception& error) {
+                        throw std::runtime_error(
+                            "seed definition " +
+                            std::to_string(seed_definition_index) + ": " +
+                            error.what());
+                    }
+                    ++seed_definition_index;
                 }
                 for (Value entry : proper_list(bindings)) {
                     if (!entry.is_object() ||
@@ -679,14 +785,65 @@ void install_runtime_primitives(Evaluator& evaluator) {
                 // expansion unit so forward references resolve together.
                 Value make_exp_library = lookup_bootstrap_binding(
                     "make-exp-library");
-                Value source_library = evaluator.apply_values(
-                    make_exp_library,
-                    {evaluator.list({evaluator.symbol("native-source")})})[0];
                 Value base_library = evaluator.global_environment()->lookup(
                     evaluator.symbol("the-base-library"));
-                evaluator.apply_values(
-                    lookup_bootstrap_binding("exp-library-add-use!"),
-                    {source_library, base_library});
+                const bool seed_source = requested == "liii/prelude.scm" ||
+                    path == "goldfish/liii/prelude.scm" ||
+                    requested == "expander/bootstrap-prelude.scm" ||
+                    path == "goldfish/expander/bootstrap-prelude.scm";
+                const bool internal_source = seed_source ||
+                    requested == "expander/lib/install.scm" ||
+                    path.find("goldfish/expander/lib/") == 0;
+                Value source_library = seed_source
+                    ? base_library
+                    : internal_source
+                        ? evaluator.apply_values(
+                              make_exp_library,
+                              {evaluator.list({evaluator.symbol("native-source")})})[0]
+                        : evaluator.apply_values(
+                              lookup_bootstrap_binding("make-program-library"), {})[0];
+                if (!internal_source && !seed_source) {
+                    // A loaded source file is a program body.  Its leading
+                    // import declarations belong to the program library,
+                    // not to the expression pass; remove them after
+                    // applying the same Scheme import-set machinery used by
+                    // the expander.
+                    Value import_symbol = evaluator.symbol("import");
+                    Value import_into = evaluator.apply_values(
+                        lookup_bootstrap_binding("module-ref"),
+                        {evaluator.global_environment()->lookup(
+                             evaluator.symbol("the-expander-library")),
+                         evaluator.symbol("import-into-library!")})[0];
+                    std::vector<Value> body_datums;
+                    for (Value datum : datums) {
+                        std::vector<Value> form;
+                        if (datum.is_object() &&
+                            datum.as_object()->type() == ObjectType::Pair)
+                            form = proper_list(datum);
+                        if (!form.empty() && form[0] == import_symbol) {
+                            try {
+                                evaluator.apply_values(import_into,
+                                                       {source_library,
+                                                        evaluator.list({
+                                                            evaluator.list(
+                                                                std::vector<Value>(
+                                                                    form.begin() + 1,
+                                                                    form.end()))})});
+                            } catch (const RaisedValue& raised) {
+                                throw std::runtime_error(
+                                    std::string("source import: ") +
+                                    raised_message(raised));
+                            }
+                        } else {
+                            body_datums.push_back(datum);
+                        }
+                    }
+                    datums = std::move(body_datums);
+                }
+                if (!seed_source)
+                    evaluator.apply_values(
+                        lookup_bootstrap_binding("exp-library-add-use!"),
+                        {source_library, base_library});
                 // Source bootstrap must not inherit a reader binding from an
                 // older cached reader artifact.  Pin this one dependency at
                 // the source unit boundary; ordinary programs still use the
@@ -707,11 +864,20 @@ void install_runtime_primitives(Evaluator& evaluator) {
                     syntax_forms.push_back(evaluator.apply_values(
                         set_library, {syntax, source_library})[0]);
                 }
-                Values expanded = evaluator.apply_values(
-                    lookup_bootstrap_binding("expand-library-body"),
-                    {evaluator.list(syntax_forms), source_library,
-                     evaluator.apply_values(
-                         lookup_bootstrap_binding("initial-context"), {})[0]});
+                Values expanded;
+                try {
+                    expanded = evaluator.apply_values(
+                        lookup_bootstrap_binding("expand-library-body"),
+                        {evaluator.list(syntax_forms), source_library,
+                         evaluator.apply_values(
+                             lookup_bootstrap_binding("initial-context"), {})[0]});
+                } catch (const RaisedValue& raised) {
+                    throw std::runtime_error(std::string("source expansion: ") +
+                                             raised_message(raised));
+                } catch (const std::exception& error) {
+                    throw std::runtime_error(std::string("source expansion: ") +
+                                             error.what());
+                }
                 Value definitions = expanded[0];
                 Value module_environment = evaluator.apply_values(
                     lookup_bootstrap_binding("module-eval-environment"),
@@ -725,10 +891,25 @@ void install_runtime_primitives(Evaluator& evaluator) {
                 std::size_t definition_index = 0;
                 for (Value definition : proper_list(definitions)) {
                     try {
-                        result = evaluator.eval(
-                            evaluator.apply_values(lower, {definition})[0],
-                            eval_environment);
-                    } catch (const std::runtime_error& error) {
+                        Value lowered_definition =
+                            evaluator.apply_values(lower, {definition})[0];
+                        result = evaluator.eval(lowered_definition, eval_environment);
+                    } catch (const RaisedValue& raised) {
+                        std::string detail = "raised a Scheme error";
+                        if (raised.value().is_object() &&
+                            raised.value().as_object()->type() == ObjectType::ErrorObject) {
+                            const auto* error =
+                                raised.value().as_object<ErrorObject>();
+                            detail = error->message;
+                            for (Value irritant : error->irritants) {
+                                detail += " ";
+                                detail += format_value(evaluator, irritant);
+                            }
+                        }
+                        throw std::runtime_error(
+                            "source definition " +
+                            std::to_string(definition_index) + ": " + detail);
+                    } catch (const std::exception& error) {
                         throw std::runtime_error(
                             "source definition " +
                             std::to_string(definition_index) + ": " +
@@ -799,7 +980,10 @@ void install_runtime_primitives(Evaluator& evaluator) {
                 }
             }
             return Values{result};
-        } catch (const std::runtime_error& error) {
+        } catch (const RaisedValue& raised) {
+            throw std::runtime_error("load-source-file: evaluated " + path +
+                                     ": " + raised_message(raised));
+        } catch (const std::exception& error) {
             throw std::runtime_error("load-source-file: evaluated " + path +
                                      ": " + error.what());
         }

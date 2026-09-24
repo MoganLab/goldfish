@@ -8,6 +8,9 @@
 ;;;
 ;;; This file is also the working example of LAYER.md's 宿主 ABI 规格 T3
 ;;; tier: logic written in Scheme that a future host gets for free.
+;;; Private alias for the host eval primitive.  (scheme eval) resolves this
+;;; name so importing a user-level eval cannot shadow the host evaluator.
+(define %host-eval eval)
 (define exact inexact->exact)
 (define inexact exact->inexact)
 (define (max2 x y) (when (or (not (real? x)) (not (real? y))) (error (quote type-error) "max: parameter must be real number")) (if (or (inexact? x) (inexact? y)) (inexact (s7-max x y)) (s7-max x y)))

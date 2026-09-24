@@ -19,11 +19,13 @@
   (export environment eval)
   (begin
 
-    ;; Native eval, resolved at call time.  Keeping the host evaluator out of
-    ;; the module's top-level values avoids placing an evaluator primitive in
-    ;; the runtime module environment during native restoration.
+    ;; Native eval, resolved at call time from a private global name.
+    ;; Looking up `eval' itself is unsafe: importing (scheme eval) can make
+    ;; the visible `eval' this library's own wrapper, which then recurses
+    ;; through %s7-eval until the heap is exhausted.  `%host-eval' is the
+    ;; runtime primitive alias and is never re-exported by user libraries.
     (define (%s7-eval expr . maybe-env)
-      (let ((host-eval (symbol->value 'eval)))
+      (let ((host-eval (symbol->value '%host-eval)))
         (if (pair? maybe-env)
           (host-eval expr (car maybe-env))
           (host-eval expr))))
@@ -40,7 +42,8 @@
 
     (define* (eval expr (env #f))
       (if env
-        (if (eval-environment? env)
+        (if (and (defined? 'eval-environment?)
+                 (eval-environment? env))
           (%s7-eval expr env)
           (eval-in-program-environment expr env))
         (%s7-eval expr)))

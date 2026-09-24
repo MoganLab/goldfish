@@ -51,8 +51,9 @@ void install_legacy_aliases(Evaluator& evaluator) {
 
     // Keep the old inlet argument accepted only while the migration layer is
     // installed.  The runtime's eval primitive itself has no LegacyLet
-    // dependency.
-    install(evaluator, "eval", [&evaluator](const Values& args) {
+    // dependency.  %host-eval tracks the same implementation so (scheme eval)
+    // always reaches the host evaluator under the private name.
+    auto host_eval = [&evaluator](const Values& args) -> Values {
         if (args.size() != 1 && args.size() != 2)
             throw std::runtime_error("eval expects one or two arguments");
         EnvironmentPtr environment = evaluator.global_environment();
@@ -70,7 +71,10 @@ void install_legacy_aliases(Evaluator& evaluator) {
                     "eval expects an eval environment as its second argument");
         }
         return evaluator.eval_values(args[0], std::move(environment));
-    });
+    };
+    PrimitiveObject::Function eval_function = host_eval;
+    install(evaluator, "eval", eval_function);
+    evaluator.define_primitive("%host-eval", std::move(eval_function));
 }
 
 } // namespace
