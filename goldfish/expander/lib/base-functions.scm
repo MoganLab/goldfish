@@ -102,6 +102,28 @@
       (if (null? rest) v
           (begin (vector-set! v i (car rest))
                  (loop (+ i 1) (cdr rest)))))))
+;; R7RS vector-copy: a fresh vector holding v[start, end).  Both hosts load
+;; this file, so the name no longer depends on the host seed's host-abi copy.
+(define (vector-copy v . range)
+  (if (not (vector? v))
+    (error 'wrong-type-arg "vector-copy: expected a vector" v))
+  (if (pair? range)
+    (if (pair? (cdr range))
+      (if (pair? (cddr range))
+        (error 'wrong-number-of-args "vector-copy: at most two indices"))))
+  (let* ((len (vector-length v))
+         (start (if (null? range) 0 (car range)))
+         (end (if (or (null? range) (null? (cdr range))) len (cadr range))))
+    (if (or (not (integer? start)) (not (integer? end)))
+      (error 'wrong-type-arg "vector-copy: expected integer indices" start end))
+    (if (or (< start 0) (< end start) (> end len))
+      (error 'out-of-range "vector-copy: index out of range" start end))
+    (let ((result (make-vector (- end start))))
+      (let fill ((i start))
+        (if (< i end)
+          (begin (vector-set! result (- i start) (vector-ref v i))
+                 (fill (+ i 1)))))
+      result)))
 (define (vector-fill! v x . range)
   (if (not (vector? v))
     (error 'wrong-type-arg "vector-fill!: expected a vector" v))
@@ -170,3 +192,59 @@
 
 ;; Fold follows the conventional (accumulator element) calling order used by
 ;; the expander's set helpers and SRFI-1.
+
+;; R7RS vector-append: a fresh vector concatenating every argument.
+(define (vector-append . vecs)
+  (for-each (lambda (v)
+              (if (not (vector? v))
+                (error 'wrong-type-arg "vector-append: expected vectors" v)
+                (if #f #f)))
+            vecs)
+  (let ((total (let loop ((rest vecs) (n 0))
+                 (if (null? rest)
+                   n
+                   (loop (cdr rest) (+ n (vector-length (car rest))))))))
+    (let build ((rest vecs) (index 0) (out (make-vector total)))
+      (if (null? rest)
+        out
+        (let ((v (car rest)))
+          (let copy-i ((i 0))
+            (if (< i (vector-length v))
+              (begin (vector-set! out (+ index i) (vector-ref v i))
+                     (copy-i (+ i 1)))
+              (build (cdr rest) (+ index (vector-length v)) out))))))))
+
+;; R7RS vector-copy!: copy from[start, end) into to starting at `at'.  The
+;; source range is snapshotted first, so self-copies of one vector behave
+;; like memmove.  A missing source argument reports wrong-type-arg, which
+;; is what the contract's two-argument case expects.
+(define (vector-copy! to at . rest)
+  (if (not (vector? to))
+    (error 'wrong-type-arg "vector-copy!: expected a vector" to))
+  (if (not (integer? at))
+    (error 'wrong-type-arg "vector-copy!: expected an integer index" at))
+  (let ((from (if (pair? rest) (car rest) '()))
+        (range (if (pair? rest) (cdr rest) '())))
+    (if (not (vector? from))
+      (error 'wrong-type-arg "vector-copy!: expected a vector" from))
+    (if (pair? range)
+      (if (pair? (cdr range))
+        (if (pair? (cddr range))
+          (error 'wrong-number-of-args "vector-copy!: at most two indices"))))
+    (let* ((flen (vector-length from))
+           (start (if (null? range) 0 (car range)))
+           (end (if (or (null? range) (null? (cdr range))) flen (cadr range))))
+      (if (or (not (integer? start)) (not (integer? end)))
+        (error 'wrong-type-arg "vector-copy!: expected integer indices" start end))
+      (if (or (< start 0) (< end start) (> end flen))
+        (error 'out-of-range "vector-copy!: index out of range" start end))
+      (if (or (< at 0) (> (+ at (- end start)) (vector-length to)))
+        (error 'out-of-range "vector-copy!: index out of range" at))
+      (let snapshot ((i start) (items '()))
+        (if (>= i end)
+          (let write ((index at) (pending (reverse items)))
+            (if (null? pending)
+              to
+              (begin (vector-set! to index (car pending))
+                     (write (+ index 1) (cdr pending)))))
+          (snapshot (+ i 1) (cons (vector-ref from i) items)))))))

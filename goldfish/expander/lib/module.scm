@@ -1126,10 +1126,11 @@
         (let* ((clause (syntax-form (car clauses)))
                (head (syntax->datum (car clause))))
           (if (eq? head 'export)
-              (loop (cdr clauses)
-                    (append exports (map syntax->datum (cdr clause)))
-                    imports
-                    body)
+              (let ((clause-datum (map syntax->datum (cdr clause))))
+                (loop (cdr clauses)
+                      (append exports clause-datum)
+                      imports
+                      body))
               (if (eq? head 'import)
                   (loop (cdr clauses)
                         exports
@@ -1249,7 +1250,12 @@
 (define (library-register-expression lib name exports)
   (let ((entries
          (reverse
-          (fold (lambda (acc export)
+          ((lambda (step)
+             (let walk ((rest exports) (acc '()))
+               (if (null? rest)
+                   acc
+                   (walk (cdr rest) (step acc (car rest))))))
+           (lambda (acc export)
                   (let ((binding (exp-library-ref lib export)))
                     (cond
                       ((transformer-binding? binding) acc)
@@ -1303,9 +1309,7 @@
                                                 (string-append " "
                                                                (symbol->string part)))
                                               name))
-                                  name))))))
-                '()
-                exports))))
+                                  name))))))))))
     ;; Built with list/append, not backquote: s7's eval of the standard
     ;; (quasiquote ...) form does not implement unquote-splicing (only its
     ;; native reader's #_list-values representation does), so backquote

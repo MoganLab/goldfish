@@ -201,7 +201,9 @@
     (define priv:NANO (expt 10 9))
     (define priv:SID 86400)
     (define priv:SIHD 43200)
-    (define priv:TAI-EPOCH-IN-JD 4881175/2)
+    ;; Written as (/ n 2), not the n/2 literal: the native reader has no
+    ;; exact-ratio type yet, and s7 evaluates this to the same ratio.
+    (define priv:TAI-EPOCH-IN-JD (/ 4881175 2))
 
     ;; ====================
     ;; Time object and accessors
@@ -968,7 +970,7 @@
     ) ;define
 
     (define (date->modified-julian-day date)
-      (- (date->julian-day date) 4800001/2)
+      (- (date->julian-day date) (/ 4800001 2))
     ) ;define
 
     ;; ====================
