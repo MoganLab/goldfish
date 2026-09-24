@@ -9,13 +9,13 @@
 ;;
 ;; 本库将 URI 处理功能分散在多个子模块中：
 ;;
-;; - (liii uri-record)    - 记录类型定义和基础访问器
-;; - (liii uri-parse)     - 解析和构建辅助函数
-;; - (liii uri-predicate) - 谓词函数（uri-absolute? 等）
-;; - (liii uri-compare)   - 比较函数（uri=? 等）
-;; - (liii uri-make)      - 构造器（make-uri, string->uri 等）
-;; - (liii uri-transform) - 修改函数（uri-with-*, uri-extend-query 等）
-;; - (liii uri-convert)   - 转换函数（uri->string, uri->human-string）
+;; - (liii uri record)    - 记录类型定义和基础访问器
+;; - (liii uri parse)     - 解析和构建辅助函数
+;; - (liii uri predicate) - 谓词函数（uri-absolute? 等）
+;; - (liii uri compare)   - 比较函数（uri=? 等）
+;; - (liii uri make)      - 构造器（make-uri, string->uri 等）
+;; - (liii uri transform) - 修改函数（uri-with-*, uri-extend-query 等）
+;; - (liii uri convert)   - 转换函数（uri->string, uri->human-string）
 ;;
 ;; (liii uri) 作为主模块，统一导出以上所有功能。
 
@@ -25,17 +25,17 @@
 ;;   gf doc liii/uri
 ;;
 ;; 查看子模块文档：
-;;   gf doc liii/uri-record
-;;   gf doc liii/uri-parse
-;;   gf doc liii/uri-predicate
-;;   gf doc liii/uri-compare
-;;   gf doc liii/uri-make
-;;   gf doc liii/uri-transform
-;;   gf doc liii/uri-convert
+;;   gf doc liii/uri/record
+;;   gf doc liii/uri/parse
+;;   gf doc liii/uri/predicate
+;;   gf doc liii/uri/compare
+;;   gf doc liii/uri/make
+;;   gf doc liii/uri/transform
+;;   gf doc liii/uri/convert
 ;;
 ;; 查看子模块源码：
-;;   gf source liii/uri-record
-;;   gf source liii/uri-transform
+;;   gf source liii/uri/record
+;;   gf source liii/uri/transform
 ;;
 ;; 查看具体函数文档：
 ;;   gf doc "make-uri"
