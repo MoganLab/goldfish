@@ -38,70 +38,104 @@
     ;; stem 语言接管的后缀表（带点）。gf_fmt.json 未写 stem.suffix 时也用此表。
     (define stem-extensions '(".stem"))
 
+    (define (extract-error-message tag info)
+      (let ((raw-msg (cond ((and (pair? info) (string? (car info)))
+                            (car info))
+                           ((string? tag) tag)
+                           ((symbol? tag) (symbol->string tag))
+                           (else (object->string tag #f)))))
+        (cond ((string-starts? raw-msg "unexpected close paren")
+               "unexpected close paren")
+              ((string-starts? raw-msg "missing close paren")
+               "missing close paren")
+              (else
+               (string-trim-right raw-msg (lambda (c) (or (char=? c #\:) (char=? c #\space) (char=? c #\newline))))))))
+
+    (define (paren-error? msg)
+      (or (string-contains? msg "unexpected close paren")
+          (string-contains? msg "missing close paren")))
+
     ;; ---- 单文件格式化 ---------------------------------------------------
     ;; dry-run 模式：输出到终端，不写回。
     (define (format-file-dry-run path-str)
       (let* ((p (path path-str))
              (original-content (path-read-text p))
-             (formatted (format-stem-string original-content))
-            ) ;
-        (display formatted)
-      ) ;let*
-    ) ;define
+             (err #f)
+             (formatted
+               (catch #t
+                 (lambda () (format-stem-string original-content))
+                 (lambda (tag info)
+                   (set! err (cons tag info))
+                   #f))))
+        (if err
+          (let ((msg (extract-error-message (car err) (cdr err))))
+            (display (string-append "  Failed: " path-str ": " msg))
+            (newline)
+            (when (paren-error? msg)
+              (display (string-append "Hint: try `gf fix " path-str "` to repair common parenthesis issues."))
+              (newline))
+            (exit 1))
+          (display formatted))))
 
-    ;; 覆盖原文件。返回 'cached / #t(有变更) / #f(无变更)。
+    ;; 覆盖原文件。返回 'cached / #t(有变更) / #f(无变更) / 'failed。
     (define* (format-file path-str (use-cache? #t))
       (if (and use-cache? (fmt-cache-hit? path-str))
         'cached
         (let* ((p (path path-str))
                (original-content (path-read-text p))
-               (formatted (format-stem-string original-content))
-              ) ;
-          (if (string=? original-content formatted)
-            (begin
-              (when use-cache?
-                (fmt-cache-touch path-str)
-              ) ;when
-              #f
-            ) ;begin
-            (begin
-              (path-write-text p formatted)
-              (when use-cache?
-                (fmt-cache-touch path-str)
-              ) ;when
-              #t
-            ) ;begin
-          ) ;if
-        ) ;let*
-      ) ;if
-    ) ;define*
+               (err #f)
+               (formatted
+                 (catch #t
+                   (lambda () (format-stem-string original-content))
+                   (lambda (tag info)
+                     (set! err (cons tag info))
+                     #f))))
+          (if err
+            (let ((msg (extract-error-message (car err) (cdr err))))
+              (display (string-append "  Failed: " path-str ": " msg))
+              (newline)
+              (when (paren-error? msg)
+                (display (string-append "Hint: try `gf fix " path-str "` to repair common parenthesis issues."))
+                (newline))
+              'failed)
+            (if (string=? original-content formatted)
+              (begin
+                (when use-cache?
+                  (fmt-cache-touch path-str))
+                #f)
+              (begin
+                (path-write-text p formatted)
+                (when use-cache?
+                  (fmt-cache-touch path-str))
+                #t))))))
 
     ;; ---- 文件列表批量格式化 --------------------------------------------
-    ;; 返回 (values total updated cached)。
+    ;; 返回 (values total updated cached failed)。
     (define (format-file-list files dry-run excludes)
       (let loop
-        ((remaining files) (total 0) (updated 0) (cached 0))
+        ((remaining files) (total 0) (updated 0) (cached 0) (failed 0))
         (if (null? remaining)
-          (values total updated cached)
+          (values total updated cached failed)
           (let ((file (car remaining)))
             (if (file-excluded? file excludes)
-              (loop (cdr remaining) total updated cached)
+              (loop (cdr remaining) total updated cached failed)
               (if dry-run
                 (begin
                   (display (string-append "Formatting: " file))
                   (newline)
                   (format-file-dry-run file)
-                  (loop (cdr remaining) (+ total 1) updated cached)
+                  (loop (cdr remaining) (+ total 1) updated cached failed)
                 ) ;begin
                 (let ((result (format-file file)))
-                  (cond ((eq? result 'cached) (loop (cdr remaining) (+ total 1) updated (+ cached 1)))
+                  (cond ((eq? result 'cached) (loop (cdr remaining) (+ total 1) updated (+ cached 1) failed))
+                        ((eq? result 'failed) (loop (cdr remaining) (+ total 1) updated cached (+ failed 1)))
                         (result (display (string-append "  Updated: " file))
                           (newline)
-                          (loop (cdr remaining) (+ total 1) (+ updated 1) cached)
+                          (loop (cdr remaining) (+ total 1) (+ updated 1) cached failed)
                         ) ;result
                         (else (display (string-append "Formatting: " file))
                           (newline)
-                          (loop (cdr remaining) (+ total 1) updated cached)
+                          (loop (cdr remaining) (+ total 1) updated cached failed)
                         ) ;else
                   ) ;cond
                 ) ;let
@@ -135,6 +169,8 @@
           (format-file-dry-run path-str)
           (let ((result (format-file path-str)))
             (cond ((eq? result 'cached) #f)
+                  ((eq? result 'failed)
+                   (exit 1))
                   (result (display (string-append "  Updated: " path-str)) (newline))
                   (else (display (string-append "Formatting: " path-str)) (newline))
             ) ;cond
@@ -152,7 +188,7 @@
     ) ;define
 
     ;; ---- 目录递归格式化 ------------------------------------------------
-    ;; 返回 (values total updated cached)。dry-run 不支持目录（保持原约定）。
+    ;; 返回 (values total updated cached failed)。dry-run 不支持目录（保持原约定）。
     (define (format-directory dir-path extensions excludes dry-run)
       (if dry-run
         (begin
@@ -162,9 +198,9 @@
         ) ;begin
         (let ((entries (path-list-path (path dir-path))))
           (let loop
-            ((i 0) (total 0) (updated 0) (cached 0))
+            ((i 0) (total 0) (updated 0) (cached 0) (failed 0))
             (if (>= i (vector-length entries))
-              (values total updated cached)
+              (values total updated cached failed)
               (let ((entry (vector-ref entries i)))
                 (cond
                  ((path-file? entry)
@@ -173,34 +209,35 @@
                           (not (file-excluded? entry-str excludes))
                         ) ;and
                       (let ((result (format-file entry-str)))
-                        (cond ((eq? result 'cached) (loop (+ i 1) (+ total 1) updated (+ cached 1)))
+                        (cond ((eq? result 'cached) (loop (+ i 1) (+ total 1) updated (+ cached 1) failed))
+                              ((eq? result 'failed) (loop (+ i 1) (+ total 1) updated cached (+ failed 1)))
                               (result (display (string-append "  Updated: " entry-str))
                                 (newline)
-                                (loop (+ i 1) (+ total 1) (+ updated 1) cached)
+                                (loop (+ i 1) (+ total 1) (+ updated 1) cached failed)
                               ) ;result
                               (else (display (string-append "Formatting: " entry-str))
                                 (newline)
-                                (loop (+ i 1) (+ total 1) updated cached)
+                                (loop (+ i 1) (+ total 1) updated cached failed)
                               ) ;else
                         ) ;cond
                       ) ;let
-                      (loop (+ i 1) total updated cached)
+                      (loop (+ i 1) total updated cached failed)
                     ) ;if
                   ) ;let
                  ) ;
                  ((path-dir? entry)
                   (let ((dir-str (path->string entry)))
                     (if (file-excluded? dir-str excludes)
-                      (loop (+ i 1) total updated cached)
+                      (loop (+ i 1) total updated cached failed)
                       (call-with-values (lambda () (format-directory dir-str extensions excludes dry-run))
-                        (lambda (sub-total sub-updated sub-cached)
-                          (loop (+ i 1) (+ total sub-total) (+ updated sub-updated) (+ cached sub-cached))
+                        (lambda (sub-total sub-updated sub-cached sub-failed)
+                          (loop (+ i 1) (+ total sub-total) (+ updated sub-updated) (+ cached sub-cached) (+ failed sub-failed))
                         ) ;lambda
                       ) ;call-with-values
                     ) ;if
                   ) ;let
                  ) ;
-                 (else (loop (+ i 1) total updated cached))
+                 (else (loop (+ i 1) total updated cached failed))
                 ) ;cond
               ) ;let
             ) ;if
@@ -232,10 +269,10 @@
       ) ;let
     ) ;define
 
-    ;; 仓库批量格式化：dry-run 恒为 #f（写回），返回 (total updated cached) 列表。
+    ;; 仓库批量格式化：dry-run 恒为 #f（写回），返回 (total updated cached failed) 列表。
     (define (stem-format-files files cfg)
       (call-with-values (lambda () (format-file-list files #f (lang-excludes 'stem cfg)))
-        (lambda (total updated cached) (list total updated cached))
+        (lambda (total updated cached failed) (list total updated cached failed))
       ) ;call-with-values
     ) ;define
 
@@ -244,15 +281,19 @@
       (let ((excludes (lang-excludes 'stem cfg)))
         (if (file-excluded? path-str excludes)
           #t
-          (let ((ondisk (path-read-text (path path-str))))
-            (string=? ondisk (format-stem-string ondisk))
-          ) ;let
+          (let* ((ondisk (path-read-text (path path-str)))
+                 (formatted
+                   (catch #t
+                     (lambda () (format-stem-string ondisk))
+                     (lambda (tag info) #f))))
+            (and formatted (string=? ondisk formatted))
+          ) ;let*
         ) ;if
       ) ;let
     ) ;define
 
     ;; 目录格式化（协议适配）：以指定 dir 为准递归收集并格式化。
-    ;; 若传入 cfg，合并其 stem.exclude 配置。dry-run 不支持目录。返回 (total updated cached) 列表。
+    ;; 若传入 cfg，合并其 stem.exclude 配置。dry-run 不支持目录。返回 (total updated cached failed) 列表。
     (define (stem-format-directory dir extensions excludes dry-run . maybe-cfg)
       (if dry-run
         (begin
@@ -265,7 +306,7 @@
                (all-excludes (append excludes cfg-excludes))
               ) ;
           (call-with-values (lambda () (format-directory dir extensions all-excludes dry-run))
-            (lambda (total updated cached) (list total updated cached))
+            (lambda (total updated cached failed) (list total updated cached failed))
           ) ;call-with-values
         ) ;let*
       ) ;if

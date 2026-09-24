@@ -226,15 +226,22 @@
       (flush-output-port (current-output-port))
     ) ;define
 
+    (define (stats-failed stats)
+      (if (> (length stats) 3) (list-ref stats 3) 0)
+    ) ;define
+
     ;; 仓库批量格式化：逐语言收集 + 格式化。
     (define (run-repo-format cfg)
       (let loop
-        ((handlers (lang-list)))
+        ((handlers (lang-list)) (repo-failed 0))
         (if (null? handlers)
           (begin
             (display "Done.")
             (newline)
-            #t
+            (if (> repo-failed 0)
+              (exit 1)
+              #t
+            )
           ) ;begin
           (let* ((handler (car handlers))
                  (label (lang-label handler))
@@ -242,6 +249,7 @@
                  (format-files (lang-ref handler 'format-files))
                  (files (collect cfg))
                  (stats (format-files files cfg))
+                 (failed (stats-failed stats))
                 ) ;
             (display (string-append "=== Formatting " label " files ==="))
             (newline)
@@ -254,11 +262,15 @@
                        (number->string (cadr stats))
                        ", Files unchanged: "
                        (number->string (caddr stats))
+                       (if (> failed 0)
+                         (string-append ", Files failed: " (number->string failed))
+                         ""
+                       )
                      ) ;string-append
             ) ;display
             (newline)
             (newline)
-            (loop (cdr handlers))
+            (loop (cdr handlers) (+ repo-failed failed))
           ) ;let*
         ) ;if
       ) ;let
@@ -423,7 +435,7 @@
       ) ;let
     ) ;define
 
-    ;; 目录：选语言 handler，调其 format-directory（返回 (total updated unchanged) 列表），统一打印统计行。
+    ;; 目录：选语言 handler，调其 format-directory（返回 (total updated unchanged [failed]) 列表），统一打印统计行。
     ;; 若目录所在项目存在 gf_fmt.json，则把配置一并传给 handler，使其以配置为准。
     (define (dispatch-format-directory dir extensions excludes dry-run)
       (let* ((cfg (catch #t (lambda () (load-fmt-config)) (lambda (type info) #f)))
@@ -431,6 +443,7 @@
              (handler (directory-handler-for extensions))
              (format-directory (lang-ref handler 'format-directory))
              (stats (format-directory dir extensions excludes dry-run cfg))
+             (failed (stats-failed stats))
             ) ;
         (display (string-append "Total files formatted: "
                    (number->string (car stats))
@@ -438,10 +451,18 @@
                    (number->string (cadr stats))
                    ", Files unchanged: "
                    (number->string (caddr stats))
+                   (if (> failed 0)
+                     (string-append ", Files failed: " (number->string failed))
+                     ""
+                   )
                  ) ;string-append
         ) ;display
         (newline)
-        #t
+        (flush-output)
+        (if (> failed 0)
+          (exit 1)
+          #t
+        )
       ) ;let*
     ) ;define
 
@@ -640,7 +661,7 @@
                 ) ;begin
                 (let ((groups (group-files-by-lang filtered)))
                   (let loop
-                    ((gs groups) (total 0) (updated 0) (cached 0))
+                    ((gs groups) (total 0) (updated 0) (cached 0) (failed 0))
                     (if (null? gs)
                       (begin
                         (display (string-append "Total files formatted: "
@@ -649,10 +670,17 @@
                                    (number->string updated)
                                    ", Files cached: "
                                    (number->string cached)
+                                   (if (> failed 0)
+                                     (string-append ", Files failed: " (number->string failed))
+                                     ""
+                                   )
                                  ) ;string-append
                         ) ;display
                         (newline)
-                        #t
+                        (if (> failed 0)
+                          (exit 1)
+                          #t
+                        )
                       ) ;begin
                       (let* ((g (car gs))
                              (handler (lang-for-name (car g)))
@@ -666,6 +694,7 @@
                           (+ total (car stats))
                           (+ updated (cadr stats))
                           (+ cached (caddr stats))
+                          (+ failed (stats-failed stats))
                         ) ;loop
                       ) ;let*
                     ) ;if
