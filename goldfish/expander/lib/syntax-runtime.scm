@@ -51,18 +51,16 @@
 (define (pattern-tree stx)
   (if (syntax? stx)
       (let ((form (syntax-form stx)))
-        (cond
-          ((pair? form)
-           (cons (pattern-tree (car form)) (pattern-tree (cdr form))))
-          ((stx-vector? form)
-           (vector-map pattern-tree form))
-          (else stx)))
-      (cond
-        ((pair? stx)
-         (cons (pattern-tree (car stx)) (pattern-tree (cdr stx))))
-        ((stx-vector? stx)
-         (vector-map pattern-tree stx))
-        (else stx))))
+        (if (pair? form)
+          (cons (pattern-tree (car form)) (pattern-tree (cdr form)))
+          (if (stx-vector? form)
+            (vector-map pattern-tree form)
+            stx)))
+      (if (pair? stx)
+        (cons (pattern-tree (car stx)) (pattern-tree (cdr stx)))
+        (if (stx-vector? stx)
+          (vector-map pattern-tree stx)
+          stx))))
 
 ;;; literal-identical? : id (list syntax) -> bool
 ;;; Is the pattern element identifier bound-identifier=? to one of the
@@ -77,14 +75,23 @@
             (loop (cdr ls))))))
 
 (define (pattern-variable? pat literals)
-  (if (identifier? pat)
+  (if (symbol? pat)
+      (if (eq? pat '_)
+          #f
+          (not (member pat
+                       (map (lambda (literal)
+                              (if (syntax? literal)
+                                  (syntax-form literal)
+                                  literal))
+                            literals))))
+      (if (identifier? pat)
       (let ((form (syntax-form pat)))
         (if (eq? form '_)
             #f
             (if (eq? form '...)
                 #f
                 (not (literal-identical? pat literals)))))
-      #f))
+      #f)))
 
 (define (literal-matches? pattern input literals)
   (if (syntax? input)
@@ -102,7 +109,9 @@
       (cons (cons (pattern-leaf-datum pattern)
                   (if (syntax? input)
                       input
-                      (datum->syntax pattern input)))
+                      (if (syntax? pattern)
+                        (datum->syntax pattern input)
+                        input)))
             bindings)
       (if (and (identifier? pattern) (eq? (syntax-form pattern) '_))
           ;; `_` is a wildcard, but when listed among the literals it matches
@@ -221,13 +230,15 @@
 ;; same guard as pattern-match-list -- a `...' among the literals is a
 ;; literal, not a repeat.
 (define (pattern-min-length pat-list literals)
-  (cond [(null? pat-list)       0]
-        [(not (pair? pat-list)) 0]
-        [(and (pair? (cdr pat-list))
-              (ellipsis-datum? (cadr pat-list))
-              (not (literal-identical? (cadr pat-list) literals)))
-         (pattern-min-length (cddr pat-list) literals)]
-        [else                   (+ 1 (pattern-min-length (cdr pat-list) literals))]))
+  (if (null? pat-list)
+      0
+      (if (not (pair? pat-list))
+          0
+          (if (and (pair? (cdr pat-list))
+                   (ellipsis-datum? (cadr pat-list))
+                   (not (literal-identical? (cadr pat-list) literals)))
+              (pattern-min-length (cddr pat-list) literals)
+              (+ 1 (pattern-min-length (cdr pat-list) literals))))))
 
 (define (merge-ellipsis-bindings elem-bindings accum)
   (if (null? elem-bindings)
@@ -275,17 +286,16 @@
                     (if (null? vs)
                         (reverse result)
                         (letrec* ((binding (assq (car vs) bindings)))
-                          (cond
-                            ((and binding (list? (cdr binding)))
-                             (if (< i (length (cdr binding)))
-                                 (loop (cdr vs)
-                                       (cons (cons (car vs) (list-ref (cdr binding) i))
-                                             result))
-                                 (loop (cdr vs) result)))
-                            (binding
-                             (loop (cdr vs)
-                                   (cons (cons (car vs) (cdr binding)) result)))
-                            (else (loop (cdr vs) result))))))))
+                          (if (and binding (list? (cdr binding)))
+                              (if (< i (length (cdr binding)))
+                                  (loop (cdr vs)
+                                        (cons (cons (car vs) (list-ref (cdr binding) i))
+                                              result))
+                                  (loop (cdr vs) result))
+                              (if binding
+                                  (loop (cdr vs)
+                                        (cons (cons (car vs) (cdr binding)) result))
+                                  (loop (cdr vs) result))))))))
     (loop vars '())))
 
 ;;; syntax-case-dispatch : input literals-stx (list clause-spec) -> syntax

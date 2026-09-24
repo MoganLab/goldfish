@@ -36,25 +36,53 @@
               (pattern-variables
                (lambda (pat literal-ids)
                  (letrec* ((vars '())
+                           (literal-name?
+                            (lambda (name)
+                              (let loop ((ls literal-ids))
+                                (if (null? ls)
+                                    #f
+                                    (if (eq? name
+                                            (if (syntax? (car ls))
+                                                (syntax-form (car ls))
+                                                (car ls)))
+                                        #t
+                                        (loop (cdr ls)))))))
                            (walk (lambda (p)
-                                   (if (identifier? p)
-                                       (let ((form (syntax-form p)))
-                                         (if (if (eq? form '_)
-                                                 #t
-                                                 (if (eq? form '...)
+                                   (if (symbol? p)
+                                       (if (if (eq? p '_)
+                                               #t
+                                               (if (eq? p '...)
+                                                   #t
+                                                   (if (literal-name? p)
+                                                       #t
+                                                       (memq p vars))))
+                                           (if #f #f)
+                                           (set! vars (cons p vars)))
+                                       (if (identifier? p)
+                                           (let ((form (syntax-form p)))
+                                             (if (if (eq? form '_)
                                                      #t
-                                                     (if (literal-id? p)
+                                                     (if (eq? form '...)
                                                          #t
-                                                         (memq form vars))))
-                                             (if #f #f)
-                                             (set! vars (cons form vars))))
-                                       (let ((form (if (syntax? p) (syntax-form p) p)))
-                                         (if (pair? form)
-                                             (begin (walk (car form))
-                                                    (walk (cdr form)))
-                                             (if (stx-vector? form)
-                                                 (for-each walk (vector->list form))
-                                                 (if #f #f)))))))
+                                                         (if (literal-id? p)
+                                                             #t
+                                                             (memq form vars))))
+                                                 (if #f #f)
+                                                 (set! vars (cons form vars))))
+                                           (let ((form (if (syntax? p)
+                                                           (syntax-form p)
+                                                           p)))
+                                             (if (pair? form)
+                                                 (begin (walk (car form))
+                                                        (walk (cdr form)))
+                                                 (if (stx-vector? form)
+                                                     (let loop ((xs (vector->list form)))
+                                                       (if (null? xs)
+                                                           #f
+                                                           (begin
+                                                             (walk (car xs))
+                                                             (loop (cdr xs)))))
+                                                     (if #f #f))))))))
                            (literal-id?
                             ;; Local twin of syntax-runtime's
                             ;; literal-identical?: this file is installed

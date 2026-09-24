@@ -138,16 +138,16 @@
 
 (define (collect-cache-module-refs x)
   (let loop ((v x) (acc '()))
-    (cond
-      ((and (pair? v) (eq? (car v) 'module-ref))
-       (let ((rest (cdr v)))
-         (loop (cdr v)
-               (if (and (pair? rest) (pair? (car rest)) (eq? (caar rest) 'quote))
-                 (let ((lib (cadar rest)))
-                   (if (member lib acc) acc (cons lib acc)))
-                 acc))))
-      ((pair? v) (loop (car v) (loop (cdr v) acc)))
-      (else acc))))
+    (if (and (pair? v) (eq? (car v) 'module-ref))
+      (let ((rest (cdr v)))
+        (loop (cdr v)
+              (if (and (pair? rest) (pair? (car rest)) (eq? (caar rest) 'quote))
+                (let ((lib (cadar rest)))
+                  (if (member lib acc) acc (cons lib acc)))
+                acc)))
+      (if (pair? v)
+        (loop (car v) (loop (cdr v) acc))
+        acc))))
 
 ;;; program-all-deps : forms opt -> (list name)
 ;;; Every library a compiled program can be invalidated by,
@@ -169,10 +169,10 @@
 
 (define (cache-level)
   (let ((v (getenv "GOLDFISH_OPT_LEVEL")))
-    (cond
-      ((not v) 2)
-      ((member v '("0" "no" "false" "off")) 0)
-      (else
+    (if (not v)
+      2
+      (if (member v '("0" "no" "false" "off"))
+        0
         (let ((n (string->number v)))
           (if (and n (integer? n) (>= n 0)) n 2))))))
 
@@ -255,19 +255,17 @@
 ;;; (and install-library-forms! runs while module.scm itself installs).
 (define (install-binding-desc b)
   (let ((kind (binding-kind b)))
-    (cond
-      ((eq? kind 'toplevel)
-       (let ((ref (binding-value b)))
-         (list 'toplevel
-               (toplevel-ref-gensym ref)
-               (let ((home (toplevel-ref-home ref)))
-                 (if home (list 'libref (exp-library-name home)) #f))
-               (toplevel-ref-original ref)
-               (toplevel-ref-exported? ref))))
-      ((eq? kind 'primitive)
-       (list 'primitive (binding-value b)))
-      ((eq? kind 'transformer) 'transformer)
-      (else #f))))
+    (if (eq? kind 'toplevel)
+      (let ((ref (binding-value b)))
+        (list 'toplevel
+              (toplevel-ref-gensym ref)
+              (let ((home (toplevel-ref-home ref)))
+                (if home (list 'libref (exp-library-name home)) #f))
+              (toplevel-ref-original ref)
+              (toplevel-ref-exported? ref)))
+      (if (eq? kind 'primitive)
+        (list 'primitive (binding-value b))
+        (if (eq? kind 'transformer) 'transformer #f)))))
 
 ;;; install-library-forms! : exp-library (list datum)
 ;;;                        -> (values context (list sexp) (list (name . sexp))
@@ -576,9 +574,8 @@
                               self-lib
                               (let ((rec (and (or strict? (defined? 'library-registry-ref))
                                               (library-registry-ref home-name))))
-                                (cond ((and rec (lib-record-library rec)))
-                                      (strict? #f)
-                                      (else self-lib)))))
+                                (or (and rec (lib-record-library rec))
+                                    (if strict? #f self-lib)))))
                           home-desc)))
              (make-toplevel-binding
                (make-toplevel-ref gensym home original exported?))))

@@ -840,7 +840,7 @@
               ;; expand-eval).
               (if (defined? 'expand-eval)
                 (expand-eval d)
-                (eval d (rootlet))))
+                (eval d (module-eval-environment the-expander-library))))
             (lambda args
               ;; s7 packs an error's args as (type info): the handler's
               ;; second value is the arglist of the error call.  Prefix the
