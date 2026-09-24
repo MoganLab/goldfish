@@ -1,6 +1,7 @@
 (import (liii check)
   (liii gfproject)
   (liii json)
+  (liii os)
   (liii path)
   (liii string)
   (scheme process-context)
@@ -96,7 +97,9 @@
   ) ;when
 ) ;let
 
-(check (gfproject-expand-tools-dir "/abs/path") => "/abs/path")
+(when (not (os-windows?))
+  (check (gfproject-expand-tools-dir "/abs/path") => "/abs/path")
+) ;when
 (let ((rel (gfproject-expand-tools-dir "my_tools")))
   (check (string? rel) => #t)
 ) ;let
