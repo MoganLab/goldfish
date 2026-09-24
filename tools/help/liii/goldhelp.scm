@@ -30,7 +30,7 @@
     (liii list)
     (liii gfproject)
   ) ;import
-  (export main load-gfproject get-tool-description display-help)
+  (export main load-gfproject get-tool-description display-help find-tool-readme)
   (begin
 
     (define (load-gfproject)
@@ -161,19 +161,33 @@
       ) ;let*
     ) ;define
 
-    (define (find-tool-readme tool-name)
-      "Search for README.md in tools/<tool-name>/ directory"
-      (let ((cwd (getcwd)))
-        (if cwd
-          (let ((readme-path (path->string (path-join (path cwd) (path "tools") (path tool-name) (path "README.md"))
-                             ) ;path->string
-                ) ;readme-path
-               ) ;
-            (if (file-exists? readme-path) readme-path #f)
-          ) ;let
-          #f
-        ) ;if
-      ) ;let
+    (define (find-tool-readme tool-name . opt-tools)
+      "Search for README.md for tool-name, supporting tools_dir and tool configuration"
+      (let* ((tools
+               (if (pair? opt-tools)
+                 (car opt-tools)
+                 (let ((cfg (load-gfproject)))
+                   (if (json-object? cfg) (json-ref cfg "tools") '(()))
+                 ) ;let
+               ) ;if
+             ) ;tools
+             (tool-cfg (json-ref tools tool-name))
+             (actual-tool (if (json-object? tool-cfg)
+                            (json-ref-string tool-cfg "tool" tool-name)
+                            tool-name
+                          ) ;if
+             ) ;actual-tool
+             (tools-dir (if (json-object? tool-cfg) (json-ref-string tool-cfg "tools_dir" #f) #f)
+             ) ;tools-dir
+            ) ;
+        (let ((tool-root (gfproject-find-tool-root actual-tool tools-dir)))
+          (and tool-root
+            (let ((readme-path (path->string (path-join tool-root "README.md"))))
+              (and (file-exists? readme-path) readme-path)
+            ) ;let
+          ) ;and
+        ) ;let
+      ) ;let*
     ) ;define
 
     (define (display-tool-help tool-name)
@@ -188,7 +202,7 @@
             (display tool-name)
             (newline)
           ) ;begin
-          (let ((readme-path (find-tool-readme tool-name)))
+          (let ((readme-path (find-tool-readme tool-name tools)))
             (if readme-path
               (begin
                 (display (path-read-text readme-path))
