@@ -47,7 +47,14 @@
                    (syntax->datum stx))
             (let* ((clause (car rest))
                    (form (if (syntax? clause) (syntax-form clause) clause))
-                   (head (if (pair? form) (car form) #f)))
+                   ;; Clause heads arrive wrapped (the form spine holds
+                   ;; syntax objects); compare the unwrapped symbol or the
+                   ;; else branch never matches and every cond-expand
+                   ;; degrades to "no matching feature requirement".
+                   (head-raw (if (pair? form) (car form) #f))
+                   (head (if (syntax? head-raw)
+                             (syntax-form head-raw)
+                             head-raw)))
               (if (eq? head 'else)
                   (datum->syntax stx (cons 'begin (cdr form)))
                   (if (and (pair? form)

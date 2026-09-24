@@ -18,7 +18,6 @@
 ;; These are library semantics, not evaluator primitives.  Keep only pair and
 ;; vector construction/access in the native substrate.
 (define (negative? x) (< x 0))
-(define (number? x) (integer? x))
 (define (boolean=? x y) (and (boolean? x) (boolean? y) (eq? x y)))
 (define (odd? x) (not (= (modulo x 2) 0)))
 (define (even? x) (= (modulo x 2) 0))
