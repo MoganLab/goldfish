@@ -50,6 +50,7 @@
     (liii argparse)
     (liii json)
     (liii list)
+    (liii semver)
     (liii goldfmt-scan)
     (liii goldfmt-format)
     (liii goldfmt-lang)
@@ -59,14 +60,9 @@
     (liii cpp-fmt)
     (liii stem-fmt)
   ) ;import
-  (export main
-    format-datum
-    format-datum+node
-    format-node
-    format-string
-    all-registered-extensions
-    group-files-by-lang
-    format-changed-since
+  (export main format-datum format-datum+node format-node format-string
+    all-registered-extensions group-files-by-lang format-changed-since
+    check-goldfish-version
   ) ;export
   (begin
 
@@ -129,10 +125,8 @@
 
     (define (make-fmt-arg-parser)
       (let ((parser (make-argument-parser '((command . "fmt")
-                                            (skip-value-options "-m"
-                                              "--mode"
-                                              "-I"
-                                              "-A")
+                                            (skip-value-options "-m" "--mode"
+                                              "-I" "-A")
                                             (skip-prefix-options "-m="
                                               "--mode=")
                                             (unknown-options . positional))
@@ -144,7 +138,8 @@
                                 (action . store-true)))
         (parser :add-argument '((name . "dry-run") (action . store-true)))
         (parser :add-argument '((name . "check") (action . store-true)))
-        (parser :add-argument
+        (parser
+          :add-argument
           '((name . "extension")
             (short . "e")
             (type . string)
@@ -203,8 +198,7 @@
       (display "  gf fmt --check               CI 非破坏性检查，未格式化退出码 1"
       ) ;display
       (newline)
-      (display "  gf fmt --check /path/to/dir  CI 非破坏性检查指定目录"
-      ) ;display
+      (display "  gf fmt --check /path/to/dir  CI 非破坏性检查指定目录")
       (newline)
       (display "  gf fmt file.scm              格式化单个文件")
       (newline)
@@ -325,14 +319,16 @@
         (let loop
           ((handlers (lang-list)) (results '()))
           (if (null? handlers)
-            (let ((total (let sum
-                           ((rs results) (n 0))
-                           (if (null? rs) n (sum (cdr rs) (+ n (length (cdar rs)))))
-                         ) ;let
+            (let ((total
+                    (let sum
+                      ((rs results) (n 0))
+                      (if (null? rs) n (sum (cdr rs) (+ n (length (cdar rs)))))
+                    ) ;let
                   ) ;total
                  ) ;
               (newline)
-              (for-each (lambda (r) (print-offenders (lang-label (car r)) (cdr r)))
+              (for-each
+                (lambda (r) (print-offenders (lang-label (car r)) (cdr r)))
                 (reverse results)
               ) ;for-each
               (newline)
@@ -362,6 +358,28 @@
     ) ;define
 
     ;; ---- 单文件 / 目录 / 增量（有路径参数）-----------------------------
+    ;; 版本门禁校验：若 gf_fmt.json 中配置了 goldfish_version 字段，
+    ;; 则与当前 (version) 进行比对；不匹配或非法时输出英文错误提示并退出 1。
+    (define (check-goldfish-version cfg)
+      (let ((required-version (fmt-config-goldfish-version cfg)))
+        (when required-version
+          (when
+            (or (not (semver-valid? required-version))
+              (not (semver=? (version) required-version))
+            ) ;or
+            (display (string-append "error: gf_fmt.json requires Goldfish version "
+                       required-version
+                       ", but current version is "
+                       (version)
+                     ) ;string-append
+            ) ;display
+            (newline)
+            (exit 1)
+          ) ;when
+        ) ;when
+      ) ;let
+    ) ;define
+
     ;; 按后缀查语言注册表派发（lang-for-extension / lang-for-extensions），
     ;; 主入口不硬编码任何语言；找不到匹配 handler 时默认走 scheme。
     (define (scheme-handler-of)
@@ -370,7 +388,9 @@
 
     ;; 单文件：按文件后缀查 handler，调其 format-file；无匹配则用 scheme handler。
     (define (dispatch-format-file path-str dry-run excludes)
-      (let* ((ext (path-suffix (path path-str)))
+      (let* ((cfg (catch #t (lambda () (load-fmt-config)) (lambda (type info) #f)))
+             (dummy (check-goldfish-version cfg))
+             (ext (path-suffix (path path-str)))
              (handler (or (lang-for-extension ext) (scheme-handler-of)))
              (format-file (lang-ref handler 'format-file))
             ) ;
@@ -397,6 +417,7 @@
     ;; 若目录所在项目存在 gf_fmt.json，则把配置一并传给 handler，使其以配置为准。
     (define (dispatch-format-directory dir extensions excludes dry-run)
       (let* ((cfg (catch #t (lambda () (load-fmt-config)) (lambda (type info) #f)))
+             (dummy (check-goldfish-version cfg))
              (handler (directory-handler-for extensions))
              (format-directory (lang-ref handler 'format-directory))
              (stats (format-directory dir extensions excludes dry-run cfg))
@@ -418,6 +439,7 @@
     ;; 若有未格式化文件，输出未格式化列表并以退出码 1 退出；全部通过则退出码 0。
     (define (dispatch-check-directory dir extensions excludes)
       (let* ((cfg (catch #t (lambda () (load-fmt-config)) (lambda (type info) #f)))
+             (dummy (check-goldfish-version cfg))
              (handler (directory-handler-for extensions))
              (label (lang-label handler))
              (check-file (lang-ref handler 'check-file))
@@ -462,6 +484,7 @@
     ;; 若未格式化，打印提示并以退出码 1 退出；通过则退出码 0。
     (define (dispatch-check-file path-str excludes)
       (let* ((cfg (catch #t (lambda () (load-fmt-config)) (lambda (type info) #f)))
+             (dummy (check-goldfish-version cfg))
              (ext (path-suffix (path path-str)))
              (handler (or (lang-for-extension ext) (scheme-handler-of)))
              (lang-name-sym (lang-name handler))
@@ -536,13 +559,14 @@
       (let ((name (lang-name handler)))
         (let loop
           ((gs groups) (acc '()) (found #f))
-          (cond ((null? gs)
-                 (if found (reverse acc) (reverse (cons (cons name (list file)) acc)))
-                ) ;
-                ((and (not found) (eq? (caar gs) name))
-                 (loop (cdr gs) (cons (cons name (cons file (cdar gs))) acc) #t)
-                ) ;
-                (else (loop (cdr gs) (cons (car gs) acc) found))
+          (cond
+           ((null? gs)
+            (if found (reverse acc) (reverse (cons (cons name (list file)) acc)))
+           ) ;
+           ((and (not found) (eq? (caar gs) name))
+            (loop (cdr gs) (cons (cons name (cons file (cdar gs))) acc) #t)
+           ) ;
+           (else (loop (cdr gs) (cons (car gs) acc) found))
           ) ;cond
         ) ;let
       ) ;let
@@ -574,22 +598,26 @@
           (exit 1)
         ) ;begin
         (let ((scope (if (string=? path-str "") #f path-str))
-              (cfg (or (catch #t (lambda () (load-fmt-config)) (lambda (type info) #f))
-                     (string->json "{}")
-                   ) ;or
+              (cfg
+                (or (catch #t (lambda () (load-fmt-config)) (lambda (type info) #f))
+                  (string->json "{}")
+                ) ;or
               ) ;cfg
              ) ;
+          (check-goldfish-version cfg)
           (let ((files (if scope
                          (changed-existing-files-since since scope)
                          (changed-existing-files-since since)
                        ) ;if
                 ) ;files
                ) ;
-            (let ((filtered (filter (lambda (f)
-                                      (and (file-extension-match? f extensions) (not (file-excluded? f excludes)))
-                                    ) ;lambda
-                              files
-                            ) ;filter
+            (let ((filtered
+                    (filter
+                      (lambda (f)
+                        (and (file-extension-match? f extensions) (not (file-excluded? f excludes)))
+                      ) ;lambda
+                      files
+                    ) ;filter
                   ) ;filtered
                  ) ;
               (if (null? filtered)
@@ -653,33 +681,32 @@
           (cond (help-flag (display-help) #t)
                 ;; changed-since 优先：即使无路径参数也走增量格式化，而非仓库批量。
                 ;; 未显式指定 -e 时默认包含所有已注册语言。
-                (changed-since (let ((excludes (append cli-excludes (scheme-config-excludes)))
-                                     (effective-extensions (if (extension-option-explicit? (argv)) extensions (all-registered-extensions))
-                                     ) ;effective-extensions
-                                    ) ;
-                                 (format-changed-since changed-since
-                                   path-str
-                                   effective-extensions
-                                   excludes
-                                   dry-run
-                                 ) ;format-changed-since
-                               ) ;let
+                (changed-since
+                  (let ((excludes (append cli-excludes (scheme-config-excludes)))
+                        (effective-extensions (if (extension-option-explicit? (argv)) extensions (all-registered-extensions))
+                        ) ;effective-extensions
+                       ) ;
+                    (format-changed-since changed-since path-str
+                      effective-extensions excludes dry-run
+                    ) ;format-changed-since
+                  ) ;let
                 ) ;changed-since
                 ;; 无路径参数：仓库批量 / check（需 gf_fmt.json）。
                 ((string=? path-str "")
-                 (let ((cfg (catch #t
-                              (lambda () (load-fmt-config))
-                              (lambda (type info)
-                                (let ((e (if (null? info) type (car info))))
-                                  (display (string-append "error: gf_fmt.json 解析失败 - "
-                                             (if (string? e) e (object->string e))
-                                           ) ;string-append
-                                  ) ;display
-                                  (newline)
-                                  (exit 1)
-                                ) ;let
-                              ) ;lambda
-                            ) ;catch
+                 (let ((cfg
+                         (catch #t
+                           (lambda () (load-fmt-config))
+                           (lambda (type info)
+                             (let ((e (if (null? info) type (car info))))
+                               (display (string-append "error: gf_fmt.json 解析失败 - "
+                                          (if (string? e) e (object->string e))
+                                        ) ;string-append
+                               ) ;display
+                               (newline)
+                               (exit 1)
+                             ) ;let
+                           ) ;lambda
+                         ) ;catch
                        ) ;cfg
                       ) ;
                    (if (not cfg)
@@ -689,7 +716,10 @@
                        (newline)
                        (exit 1)
                      ) ;begin
-                     (if check-flag (run-repo-check cfg) (run-repo-format cfg))
+                     (begin
+                       (check-goldfish-version cfg)
+                       (if check-flag (run-repo-check cfg) (run-repo-format cfg))
+                     ) ;begin
                    ) ;if
                  ) ;let
                 ) ;

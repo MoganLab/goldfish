@@ -32,17 +32,20 @@
 
 (define-library (liii goldfmt-config)
   (import (liii base) (liii os) (liii path) (liii string) (liii json) (liii list))
-  (export load-fmt-config
-    config-exists?
-    lang-suffixes
-    lang-paths
-    lang-excludes
-    lang-binary
-    default-suffixes
-    exclude-entry->path
-    parse-exclude-array
+  (export load-fmt-config config-exists? fmt-config-goldfish-version
+    lang-suffixes lang-paths lang-excludes lang-binary default-suffixes
+    exclude-entry->path parse-exclude-array
   ) ;export
   (begin
+
+    ;; 从配置中读取顶层 "goldfish_version" 字段。
+    ;; 未配置或非字符串时返回 #f。
+    (define (fmt-config-goldfish-version cfg)
+      (if (and cfg (not (json-null? cfg)))
+        (json-ref-string cfg "goldfish_version" #f)
+        #f
+      ) ;if
+    ) ;define
 
     ;; 各语言的后缀默认值：未在配置里写 suffix 时使用。
     (define (default-suffixes lang)
@@ -55,9 +58,10 @@
 
     ;; 后缀归一化：已带点前缀的原样返回，否则补点；空串返回 #f（丢弃）。
     (define (normalize-suffix ext)
-      (cond ((or (not (string? ext)) (string=? ext "")) #f)
-            ((char=? (string-ref ext 0) #\.) ext)
-            (else (string-append "." ext))
+      (cond
+       ((or (not (string? ext)) (string=? ext "")) #f)
+       ((char=? (string-ref ext 0) #\.) ext)
+       (else (string-append "." ext))
       ) ;cond
     ) ;define
 
@@ -69,7 +73,8 @@
 
     ;; 从配置里读某语言的后缀列表（带点）。配置未写或为空则用默认；空串项被丢弃。
     (define (lang-suffixes lang cfg)
-      (let ((arr (read-string-array (json-ref (json-ref cfg (symbol->string lang)) "suffix"))
+      (let ((arr
+              (read-string-array (json-ref (json-ref cfg (symbol->string lang)) "suffix"))
             ) ;arr
            ) ;
         (if (null? arr)

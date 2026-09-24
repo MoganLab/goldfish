@@ -265,8 +265,13 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
   }
 #ifdef _WIN32
   else if (stderr_to_stdout && h_out_write) {
-    attr.errtype = TB_PROCESS_REDIRECT_TYPE_FILE;
-    attr.err.file= (tb_file_ref_t) h_out_write;
+    HANDLE h_err_dup= NULL;
+    if (DuplicateHandle (GetCurrentProcess (), h_out_write, GetCurrentProcess (), &h_err_dup, 0, TRUE,
+                         DUPLICATE_SAME_ACCESS)) {
+      attr.errtype = TB_PROCESS_REDIRECT_TYPE_FILE;
+      attr.err.file= (tb_file_ref_t) h_err_dup;
+      h_err_write  = h_err_dup;
+    }
   }
   else if (stderr_mode == redirect_mode::tee || stderr_mode == redirect_mode::capture) {
     CreatePipe (&h_err_read, &h_err_write, &sa, 0);

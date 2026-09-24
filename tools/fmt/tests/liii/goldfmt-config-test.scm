@@ -4,11 +4,14 @@
 ;; 既接受单个字符串，也接受字符串数组（取第一个存在且可执行的）。
 
 (import (liii check)
+  (scheme file)
   (liii base)
   (liii os)
   (liii path)
   (liii string)
   (liii json)
+  (liii semver)
+  (liii subprocess)
   (liii goldfmt-config)
 ) ;import
 
@@ -17,16 +20,9 @@
 ;; 辅助：构造一个三平台 binary 字段都填相同值的配置，使测试在任意平台读到一致结果。
 
 (define (make-cfg binary-value)
-  (string->json (string-append "{\"cpp\": {"
-                  "\"binary-linux\": "
-                  binary-value
-                  ","
-                  "\"binary-windows\": "
-                  binary-value
-                  ","
-                  "\"binary-macos\": "
-                  binary-value
-                  "}}"
+  (string->json (string-append "{\"cpp\": {" "\"binary-linux\": " binary-value
+                  "," "\"binary-windows\": " binary-value ","
+                  "\"binary-macos\": " binary-value "}}"
                 ) ;string-append
   ) ;string->json
 ) ;define
@@ -113,5 +109,211 @@
 (let ((cfg (string->json "{\"cpp\": {}}")))
   (check (lang-suffixes 'cpp cfg) => '(".hpp" ".cpp" ".h" ".c" ".cc" ".cxx"))
 ) ;let
+
+;; ---- goldfish_version 字段读取 ----
+(check (fmt-config-goldfish-version (string->json "{}")) => #f)
+(check (fmt-config-goldfish-version (string->json "{\"goldfish_version\": \"18.11.35\"}")
+       ) ;fmt-config-goldfish-version
+  =>
+  "18.11.35"
+) ;check
+(check (fmt-config-goldfish-version (string->json "{\"goldfish_version\": 18}"))
+  =>
+  #f
+) ;check
+(check (fmt-config-goldfish-version (string->json "{\"goldfish_version\": true}"))
+  =>
+  #f
+) ;check
+(check (fmt-config-goldfish-version (string->json "{\"goldfish_version\": [\"18.11.35\"]}")
+       ) ;fmt-config-goldfish-version
+  =>
+  #f
+) ;check
+(check (fmt-config-goldfish-version (string->json "{\"goldfish_version\": null}"))
+  =>
+  #f
+) ;check
+(check (fmt-config-goldfish-version #f) => #f)
+
+;; ---- goldfish_version 语义化版本比对与合法性验证 ----
+(let ((ver
+        (fmt-config-goldfish-version (string->json (string-append "{\"goldfish_version\": \"" (version) "\"}"))
+        ) ;fmt-config-goldfish-version
+      ) ;ver
+     ) ;
+  (check (and (semver-valid? ver) (semver=? (version) ver)) => #t)
+) ;let
+
+(let ((ver (fmt-config-goldfish-version (string->json "{\"goldfish_version\": \"99.0.0\"}")
+           ) ;fmt-config-goldfish-version
+      ) ;ver
+     ) ;
+  (check (and (semver-valid? ver) (semver=? (version) ver)) => #f)
+) ;let
+
+(let ((ver (fmt-config-goldfish-version (string->json "{\"goldfish_version\": \"0.1.0\"}"))
+      ) ;ver
+     ) ;
+  (check (and (semver-valid? ver) (semver=? (version) ver)) => #f)
+) ;let
+
+(let ((ver (fmt-config-goldfish-version (string->json "{\"goldfish_version\": \"invalid-version\"}")
+           ) ;fmt-config-goldfish-version
+      ) ;ver
+     ) ;
+  (check (semver-valid? ver) => #f)
+) ;let
+
+(let ((ver (fmt-config-goldfish-version (string->json "{\"goldfish_version\": \"1.2.3.4\"}")
+           ) ;fmt-config-goldfish-version
+      ) ;ver
+     ) ;
+  (check (semver-valid? ver) => #f)
+) ;let
+
+(let ((ver (fmt-config-goldfish-version (string->json "{\"goldfish_version\": \"01.0.0\"}")
+           ) ;fmt-config-goldfish-version
+      ) ;ver
+     ) ;
+  (check (semver-valid? ver) => #f)
+) ;let
+
+;; ---- goldfish_version CLI 门禁端到端验证 ----
+
+(define project-root
+  (if (file-exists? "gfproject.json")
+    (getcwd)
+    (if (file-exists? "../../gfproject.json")
+      (path->string
+        (path-parent (path-parent (path (getcwd))))
+      ) ;path->string
+      (getcwd)
+    ) ;if
+  ) ;if
+) ;define
+
+(define (remove-tree target)
+  (cond ((path-file? target) (path-unlink target #t))
+        ((path-dir? target)
+         (let ((entries (path-list-path target)))
+           (let loop
+             ((i 0))
+             (if (< i (vector-length entries))
+               (begin
+                 (remove-tree (vector-ref entries i))
+                 (loop (+ i 1))
+               ) ;begin
+               #t
+             ) ;if
+           ) ;let
+         ) ;let
+         (path-rmdir target)
+        ) ;
+  ) ;cond
+) ;define
+
+(define sandbox-dir
+  (path->string
+    (path-join (path-temp-dir)
+      (string-append "goldfmt-version-test-" (number->string (getpid)))
+    ) ;path-join
+  ) ;path->string
+) ;define
+
+(run-set! 'gf (string-append project-root "/bin/gf"))
+
+(dynamic-wind
+  (lambda ()
+    (remove-tree sandbox-dir)
+    (mkdir sandbox-dir)
+    (path-write-text (path (string-append sandbox-dir "/gfproject.json"))
+      "{\"name\": \"test-project\"}\n"
+    ) ;path-write-text
+  ) ;lambda
+  (lambda ()
+    ;; 场景 1：版本相等，允许执行，退出码为 0
+    (path-write-text (path (string-append sandbox-dir "/gf_fmt.json"))
+      (string-append "{\"goldfish_version\": \""
+        (version)
+        "\", \"scheme\": {\"suffix\": [\"scm\"], \"path\": [\".\"]}}\n"
+      ) ;string-append
+    ) ;path-write-text
+    (let-values (((out err code)
+                  (run-values (list 'gf "fmt" "--check")
+                    :cwd    sandbox-dir
+                    :stdout 'capture
+                    :stderr 'stdout
+                  ) ;run-values
+                 ) ;
+                ) ;
+      (check code => 0)
+    ) ;let-values
+
+    ;; 场景 2：版本号更大（99.0.0），阻止执行，打印英文错误并退出 1
+    (path-write-text (path (string-append sandbox-dir "/gf_fmt.json"))
+      "{\"goldfish_version\": \"99.0.0\", \"scheme\": {\"suffix\": [\"scm\"], \"path\": [\".\"]}}\n"
+    ) ;path-write-text
+    (let-values (((out err code)
+                  (run-values (list 'gf "fmt" "--check")
+                    :cwd    sandbox-dir
+                    :stdout 'capture
+                    :stderr 'stdout
+                  ) ;run-values
+                 ) ;
+                ) ;
+      (check code => 1)
+      (check (string-contains? out
+               "error: gf_fmt.json requires Goldfish version 99.0.0, but current version is "
+             ) ;string-contains?
+        =>
+        #t
+      ) ;check
+    ) ;let-values
+
+    ;; 场景 3：版本号更小（0.1.0），阻止执行，打印英文错误并退出 1
+    (path-write-text (path (string-append sandbox-dir "/gf_fmt.json"))
+      "{\"goldfish_version\": \"0.1.0\", \"scheme\": {\"suffix\": [\"scm\"], \"path\": [\".\"]}}\n"
+    ) ;path-write-text
+    (let-values (((out err code)
+                  (run-values (list 'gf "fmt" "--check")
+                    :cwd    sandbox-dir
+                    :stdout 'capture
+                    :stderr 'stdout
+                  ) ;run-values
+                 ) ;
+                ) ;
+      (check code => 1)
+      (check (string-contains? out
+               "error: gf_fmt.json requires Goldfish version 0.1.0, but current version is "
+             ) ;string-contains?
+        =>
+        #t
+      ) ;check
+    ) ;let-values
+
+    ;; 场景 4：非法版本格式，阻止执行，打印英文错误并退出 1
+    (path-write-text (path (string-append sandbox-dir "/gf_fmt.json"))
+      "{\"goldfish_version\": \"not-a-semver\", \"scheme\": {\"suffix\": [\"scm\"], \"path\": [\".\"]}}\n"
+    ) ;path-write-text
+    (let-values (((out err code)
+                  (run-values (list 'gf "fmt" "--check")
+                    :cwd    sandbox-dir
+                    :stdout 'capture
+                    :stderr 'stdout
+                  ) ;run-values
+                 ) ;
+                ) ;
+      (check code => 1)
+      (check (string-contains? out
+               "error: gf_fmt.json requires Goldfish version not-a-semver, but current version is "
+             ) ;string-contains?
+        =>
+        #t
+      ) ;check
+    ) ;let-values
+  ) ;lambda
+  (lambda () (remove-tree sandbox-dir))
+) ;dynamic-wind
 
 (check-report)
