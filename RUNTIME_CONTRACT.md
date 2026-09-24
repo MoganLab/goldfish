@@ -1,6 +1,6 @@
 # Goldfish Runtime Contract
 
-状态：R0–R3 已完成；R4 尚未开始。R3 已覆盖 kernel 自举、普通库的
+状态：R0–R3 已完成；R4 进行中（准备清单第 4 条已完成）。R3 已覆盖 kernel 自举、普通库的
 native source/cache 闭环以及最小 native CLI/REPL。默认入口切换和删除
 s7/gf0 过渡层明确属于 R4。
 本文定义替换 vendored s7 后的宿主边界；现有 `gf0`/s7 bridge 不是此合同
@@ -12,7 +12,7 @@ s7/gf0 过渡层明确属于 R4。
   `-e '(+ 20 22)'` 均返回 42；`tools/test-native.sh` 套件通过。
 - 单元：`native-reader/evaluator/dependency/source-bootstrap-test` 通过。
   `native-library-source-test` 需要 `vbootstrap0` 预热缓存（不在
-  test-native.sh 门禁内），缺缓存时 abort。
+  test-native.sh 门禁内），缺缓存时 abort。（已修复：见准备清单第 4 条）
 - 宿主回归：`gf test tests/scheme/eval` 2/2、`import-perlevel` 1/1、
   reader 301/1（NaN round-trip 为 HEAD 既有失败）+ write-roundtrip 9/9。
 - 关键修复：`(scheme eval)` 的 `%s7-eval` 改经私有名 `%host-eval` 解析
@@ -30,8 +30,12 @@ s7/gf0 过渡层明确属于 R4。
 3. 为 native 路径补齐 real `cond`（修复 install.scm 展开中的
    proper-list 问题），或把 install/gfo 的 cond 全部改写为 if，
    使 prelude 可恢复完整 10 宏形态。
-4. 生成/入库 `vbootstrap0` 预热步骤，使 `native-library-source-test`
-   纳入门禁。
+4. [完成 2026-09-24] 预热步骤入库为 `tools/warm-bootstrap-cache.sh`，
+   `tools/test-native.sh` 构建并运行 `native-library-source-test`，
+   空缓存起步门禁全绿。原判断有误：缺的不是 `vbootstrap0`，而是单个
+   `scheme/case-lambda.scm-o2.gfo`——一个缺失文件即让
+   `find_cache_version` 拒绝整个版本目录。native 只读预建缓存，
+   暂由 host `gf` 预热；R4 删除 host 后须改为构建/CI 提供。
 5. 按本文验收五条逐条跑 differential gate，通过后删除
    `tools/diff-gf0-m2a.sh` skip 名单。
 
