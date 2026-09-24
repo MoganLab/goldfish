@@ -28,9 +28,10 @@
 ) ;define
 
 (when (not (os-windows?))
-  (let* ((base-root (path-join (path-temp-dir)
-                      (string-append "goldhelp-gfproject-" (number->string (getpid)))
-                    ) ;path-join
+  (let* ((base-root
+           (path-join (path-temp-dir)
+             (string-append "goldhelp-gfproject-" (number->string (getpid)))
+           ) ;path-join
          ) ;base-root
          (config-path (path-join base-root "gfproject.json"))
          (output-path (path-join base-root "version.log"))
@@ -68,6 +69,51 @@
         (run-shell-command (string-append (executable) " version > " (path->string output-path) " 2>&1")
         ) ;run-shell-command
         (check-true (string-contains? (path-read-text output-path) "Goldfish Scheme"))
+
+        ;; 指定 tools_dir 时禁用 fallback：本地配置不存在的 tools_dir，严格报错且绝不回退到内置 version
+        (let ((nofallback-fixture "{\n  \"tools\": {\n    \"version\": {\n      \"tools_dir\": \"~/non_existent_tools_dir_xyz\",\n      \"organization\": \"liii\",\n      \"module\": \"goldversion\"\n    }\n  }\n}\n"
+              ) ;nofallback-fixture
+             ) ;
+          (path-write-text config-path nofallback-fixture)
+          (path-unlink output-path #t)
+          (let ((code (run-shell-command (string-append (executable) " version > " (path->string output-path) " 2>&1")
+                      ) ;run-shell-command
+                ) ;code
+               ) ;
+            (check-true (not (= code 0)))
+            (check-false (string-contains? (path-read-text output-path) "Goldfish Scheme"))
+            (check-true (string-contains? (path-read-text output-path) "directory not found")
+            ) ;check-true
+          ) ;let
+        ) ;let
+
+        ;; 测试 find-tool-readme 支持 tools_dir 与 tool 别名
+        (let* ((custom-tools-dir (path-join base-root "custom_tools"))
+               (custom-tool-dir (path-join custom-tools-dir "mytool"))
+               (custom-readme (path-join custom-tool-dir "README.md"))
+               (mock-tools
+                 (list
+                   (cons "alias-cmd"
+                     (list (cons "tools_dir" (path->string custom-tools-dir))
+                       (cons "tool" "mytool")
+                       (cons "organization" "liii")
+                       (cons "module" "goldmytool")
+                     ) ;list
+                   ) ;cons
+                 ) ;list
+               ) ;mock-tools
+              ) ;
+          (mkdir (path->string custom-tools-dir))
+          (mkdir (path->string custom-tool-dir))
+          (path-write-text custom-readme "# MyTool Readme\n")
+          (check (find-tool-readme "alias-cmd" mock-tools)
+            =>
+            (path->string custom-readme)
+          ) ;check
+          (path-unlink custom-readme #t)
+          (path-rmdir custom-tool-dir)
+          (path-rmdir custom-tools-dir)
+        ) ;let*
       ) ;lambda
       (lambda () (chdir old-cwd) (cleanup-gfproject-fixture base-root))
     ) ;dynamic-wind

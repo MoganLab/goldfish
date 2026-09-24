@@ -30,7 +30,7 @@
     (liii list)
     (liii gfproject)
   ) ;import
-  (export main load-gfproject get-tool-description display-help)
+  (export main load-gfproject get-tool-description display-help find-tool-readme)
   (begin
 
     (define (load-gfproject)
@@ -161,19 +161,52 @@
       ) ;let*
     ) ;define
 
-    (define (find-tool-readme tool-name)
-      "Search for README.md in tools/<tool-name>/ directory"
-      (let ((cwd (getcwd)))
-        (if cwd
-          (let ((readme-path (path->string (path-join (path cwd) (path "tools") (path tool-name) (path "README.md"))
-                             ) ;path->string
-                ) ;readme-path
-               ) ;
+    (define (find-tool-readme tool-name . opt-tools)
+      "Search for README.md for tool-name, supporting tools_dir and tool configuration"
+      (let* ((tools
+               (if (pair? opt-tools)
+                 (car opt-tools)
+                 (let ((cfg (load-gfproject)))
+                   (if (json-object? cfg) (json-ref cfg "tools") '(()))
+                 ) ;let
+               ) ;if
+             ) ;tools
+             (tool-cfg (if (and (json-object? tools) (json-contains-key? tools tool-name))
+                         (json-ref tools tool-name)
+                         '()
+                       ) ;if
+             ) ;tool-cfg
+             (actual-tool (if (and (json-object? tool-cfg) (json-contains-key? tool-cfg "tool"))
+                            (json-ref-string tool-cfg "tool" tool-name)
+                            tool-name
+                          ) ;if
+             ) ;actual-tool
+             (tools-dir (if (and (json-object? tool-cfg) (json-contains-key? tool-cfg "tools_dir"))
+                          (json-ref-string tool-cfg "tools_dir" #f)
+                          #f
+                        ) ;if
+             ) ;tools-dir
+            ) ;
+        (if (and tools-dir (not (string-null? tools-dir)))
+          (let* ((expanded (gfproject-expand-tools-dir tools-dir))
+                 (readme-path (path->string (path-join expanded actual-tool "README.md")))
+                ) ;
             (if (file-exists? readme-path) readme-path #f)
-          ) ;let
-          #f
+          ) ;let*
+          (let* ((gf-lib (gfproject-get-gf-lib))
+                 (candidates (list (path-join (getcwd) "tools" actual-tool "README.md")
+                               (path-join gf-lib "tools" actual-tool "README.md")
+                               (path-join (path-parent gf-lib) "tools" actual-tool "README.md")
+                             ) ;list
+                 ) ;candidates
+                 (found
+                   (find (lambda (p) (file-exists? (path->string p))) candidates)
+                 ) ;found
+                ) ;
+            (and found (path->string found))
+          ) ;let*
         ) ;if
-      ) ;let
+      ) ;let*
     ) ;define
 
     (define (display-tool-help tool-name)
@@ -188,7 +221,7 @@
             (display tool-name)
             (newline)
           ) ;begin
-          (let ((readme-path (find-tool-readme tool-name)))
+          (let ((readme-path (find-tool-readme tool-name tools)))
             (if readme-path
               (begin
                 (display (path-read-text readme-path))
