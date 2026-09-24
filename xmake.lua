@@ -53,7 +53,7 @@ if has_config("http") and not is_plat("wasm") then
     add_requires("cpr", {system = false, configs = {ssl = true}})
 end
 
--- S7 is now included as source files in src/ directory
+-- Built-in S7 engine: compiled directly from source files in src/ (no external package dependency)
 
 local TBOX_VERSION = "1.8.0"
 if has_config("tbox") then
@@ -147,7 +147,7 @@ target ("goldfish") do
         add_packages("cpr")
     end
 
-    -- S7 configuration from original 3rdparty/s7/xmake.lua
+    -- Built-in S7 engine compiler configurations and definitions
     add_defines("WITH_SYSTEM_EXTRAS=0")
     if not is_plat("wasm") then
         add_defines("HAVE_OVERFLOW_CHECKS=0")
@@ -157,7 +157,7 @@ target ("goldfish") do
     if is_mode("debug") then
         add_defines("S7_DEBUGGING")
     end
-    -- Windows-specific configuration from original 3rdparty/s7/xmake.lua
+    -- Windows-specific compiler configurations for built-in S7 engine
     if is_plat("windows") then
         set_optimize("faster")
         add_cxxflags("/fp:precise")
@@ -189,7 +189,7 @@ target("goldfish_repl_wasm")
     add_packages("tbox", "argh")
     add_defines("GOLDFISH_ENABLE_REPL")
 
-    -- S7 configuration from original 3rdparty/s7/xmake.lua
+    -- Built-in S7 engine compiler configurations and definitions
     add_defines("WITH_SYSTEM_EXTRAS=0")
     -- WASM platform doesn't have HAVE_OVERFLOW_CHECKS=0
     add_defines("WITH_WARNINGS")

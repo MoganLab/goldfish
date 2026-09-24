@@ -51,7 +51,6 @@ stages:
           - apt-get install -y xmake git 7zip unzip curl g++ pkg-config
           - apt install -y -t bookworm-backports libtbox-dev
           - xmake repo --update
-          - sed -i '/github\.com/d' xmake/packages/s/s7/xmake.lua
           - sed -i '/github\.com/d' xmake/packages/t/tbox/xmake.lua
           - xmake config --tbox=y --yes -vD
           - xmake build --yes -vD goldfish

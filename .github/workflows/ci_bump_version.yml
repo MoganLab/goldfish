@@ -50,9 +50,6 @@ jobs:
           
           # Update README_ZH.md
           sed -i -E "s/Goldfish Scheme [0-9]+\.[0-9]+\.[0-9]+/Goldfish Scheme ${{ env.NEW_VERSION_WITHOUT_V }}/g" README_ZH.md
-          
-          # Update pkgs/goldfish.nix
-          sed -i "s/version = \"[^\"]*\"/version = \"${{ env.NEW_VERSION_WITHOUT_V }}\"/" pkgs/goldfish.nix
 
       - name: Update devel/200_1.md
         run: |
