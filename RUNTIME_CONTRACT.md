@@ -53,7 +53,19 @@ s7/gf0 过渡层明确属于 R4。
 - `base-functions.scm` 把 `number?` 写成 `(integer? x)` 桩：浮点/有理/
   复数全判否，`finite?`、`rational?` 连带失效。已删桩——host 回到 s7
   实现，native 用自己的 `number?` 原语（`number-p` / `host-abi-load` 转绿）。
-- `tests/expander` 21/21（改前 18/21）；native 门禁空缓存全绿。
+- `base-functions.scm` 的组合实现缺错误契约：`boolean=?` 非变参、
+  `odd?`/`even?` 不查整数、`make-list`/`list-tail` 遇负数无限递归
+  （单进程吃 15GB 的元凶）、`list-ref` 越界错误 key 不对、
+  `vector->list`/`vector-fill!` 缺 start/end。已按测试契约补齐。
+- char 表：`45e0336d` 删掉 Scheme 侧 Chez 契约表后 C++ 表没跟上，host
+  也从未注册 `g_char-foldcase/numeric?/whitespace?`。表已程序化移植进
+  `src/runtime/unicode_char.cpp`（host/native 同源），host
+  `scheme_char.cpp` 注册三者；`char.scm` 的 memv fallback 补布尔化。
+- `(scheme r5rs)` 导出的 `eval` 来自 `(goldfish)`（host eval 本尊），不认
+  program 环境：改为 `(except (goldfish) eval)` + re-export
+  `(scheme eval)` 的分发版。
+- 收口：`tests/scheme` 321/321（改前 304）、`tests/expander` 21/21
+  （改前 18/21）、changed-since 13/13、native 门禁空缓存全绿。
 
 ## 目标
 
