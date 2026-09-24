@@ -48,9 +48,7 @@ stages:
           - wget https://gitee.com/XmacsLabs/mogan/attach_files/1813514/download -O /tmp/xmake.deb
           - sha1sum /tmp/xmake.deb | grep ac3629bd0fa66f179aef35dc00b7a1c89735651a
           - apt install /tmp/xmake.deb
-          - sed -i '/github\.com/d' xmake/packages/s/s7/xmake.lua
           - xmake repo --update
-          - sed -i '/github\.com/d' xmake/packages/s/s7/xmake.lua
           - sed -i '/github\.com/d' xmake/packages/t/tbox/xmake.lua
           - xmake config --yes -vD
           - xmake build --yes -vD goldfish
