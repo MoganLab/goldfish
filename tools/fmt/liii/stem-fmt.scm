@@ -18,8 +18,8 @@
 ;; .stem 文件是 TeXmacs 宏包的源格式，其中的 quote/quasiquote/unquote/
 ;; unquote-splicing 是普通符号而非 Scheme reader 语法，格式化时必须保持原样，
 ;; 不能糖化为 ' ` , ,@（TeXmacs 无法识别这些写法，改写会损坏文件）。
-;; 格式化核心复用 (liii goldfmt-scan) / (liii goldfmt-format)，
-;; 通过 call-with-stem-mode 动态打开 stem 模式（结构原样约定：
+;; 格式化核心复用 (liii goldfmt stem)，
+;; 通过 format-stem-string 格式化（结构原样约定：
 ;; 源码中的 'x / ,x 统一输出为 (quote x) / (unquote x)）。
 ;; 加载时通过 register-lang! 把自己注册进 (liii goldfmt-lang)。
 
@@ -28,8 +28,7 @@
     (liii path)
     (liii string)
     (liii goldfmt-cache)
-    (liii goldfmt-scan)
-    (liii goldfmt-format)
+    (liii goldfmt stem)
     (liii goldfmt-lang)
     (liii goldfmt-config)
   ) ;import
@@ -39,21 +38,15 @@
     ;; stem 语言接管的后缀表（带点）。gf_fmt.json 未写 stem.suffix 时也用此表。
     (define stem-extensions '(".stem"))
 
-    ;; scan / format 都必须在 stem 模式下进行，两个包装函数统一入口。
-    (define (stem-scan-file path-str)
-      (call-with-stem-mode (lambda () (scan-file path-str)))
-    ) ;define
-
-    (define (stem-format-nodes nodes)
-      (call-with-stem-mode (lambda () (format-nodes nodes)))
-    ) ;define
-
     ;; ---- 单文件格式化 ---------------------------------------------------
     ;; dry-run 模式：输出到终端，不写回。
     (define (format-file-dry-run path-str)
-      (let ((formatted (stem-format-nodes (stem-scan-file path-str))))
+      (let* ((p (path path-str))
+             (original-content (path-read-text p))
+             (formatted (format-stem-string original-content))
+            ) ;
         (display formatted)
-      ) ;let
+      ) ;let*
     ) ;define
 
     ;; 覆盖原文件。返回 'cached / #t(有变更) / #f(无变更)。
@@ -62,7 +55,7 @@
         'cached
         (let* ((p (path path-str))
                (original-content (path-read-text p))
-               (formatted (stem-format-nodes (stem-scan-file path-str)))
+               (formatted (format-stem-string original-content))
               ) ;
           (if (string=? original-content formatted)
             (begin
@@ -173,40 +166,41 @@
             (if (>= i (vector-length entries))
               (values total updated cached)
               (let ((entry (vector-ref entries i)))
-                (cond ((path-file? entry)
-                       (let ((entry-str (path->string entry)))
-                         (if (and (file-extension-match? entry-str extensions)
-                               (not (file-excluded? entry-str excludes))
-                             ) ;and
-                           (let ((result (format-file entry-str)))
-                             (cond ((eq? result 'cached) (loop (+ i 1) (+ total 1) updated (+ cached 1)))
-                                   (result (display (string-append "  Updated: " entry-str))
-                                     (newline)
-                                     (loop (+ i 1) (+ total 1) (+ updated 1) cached)
-                                   ) ;result
-                                   (else (display (string-append "Formatting: " entry-str))
-                                     (newline)
-                                     (loop (+ i 1) (+ total 1) updated cached)
-                                   ) ;else
-                             ) ;cond
-                           ) ;let
-                           (loop (+ i 1) total updated cached)
-                         ) ;if
-                       ) ;let
-                      ) ;
-                      ((path-dir? entry)
-                       (let ((dir-str (path->string entry)))
-                         (if (file-excluded? dir-str excludes)
-                           (loop (+ i 1) total updated cached)
-                           (call-with-values (lambda () (format-directory dir-str extensions excludes dry-run))
-                             (lambda (sub-total sub-updated sub-cached)
-                               (loop (+ i 1) (+ total sub-total) (+ updated sub-updated) (+ cached sub-cached))
-                             ) ;lambda
-                           ) ;call-with-values
-                         ) ;if
-                       ) ;let
-                      ) ;
-                      (else (loop (+ i 1) total updated cached))
+                (cond
+                 ((path-file? entry)
+                  (let ((entry-str (path->string entry)))
+                    (if (and (file-extension-match? entry-str extensions)
+                          (not (file-excluded? entry-str excludes))
+                        ) ;and
+                      (let ((result (format-file entry-str)))
+                        (cond ((eq? result 'cached) (loop (+ i 1) (+ total 1) updated (+ cached 1)))
+                              (result (display (string-append "  Updated: " entry-str))
+                                (newline)
+                                (loop (+ i 1) (+ total 1) (+ updated 1) cached)
+                              ) ;result
+                              (else (display (string-append "Formatting: " entry-str))
+                                (newline)
+                                (loop (+ i 1) (+ total 1) updated cached)
+                              ) ;else
+                        ) ;cond
+                      ) ;let
+                      (loop (+ i 1) total updated cached)
+                    ) ;if
+                  ) ;let
+                 ) ;
+                 ((path-dir? entry)
+                  (let ((dir-str (path->string entry)))
+                    (if (file-excluded? dir-str excludes)
+                      (loop (+ i 1) total updated cached)
+                      (call-with-values (lambda () (format-directory dir-str extensions excludes dry-run))
+                        (lambda (sub-total sub-updated sub-cached)
+                          (loop (+ i 1) (+ total sub-total) (+ updated sub-updated) (+ cached sub-cached))
+                        ) ;lambda
+                      ) ;call-with-values
+                    ) ;if
+                  ) ;let
+                 ) ;
+                 (else (loop (+ i 1) total updated cached))
                 ) ;cond
               ) ;let
             ) ;if
@@ -251,7 +245,7 @@
         (if (file-excluded? path-str excludes)
           #t
           (let ((ondisk (path-read-text (path path-str))))
-            (string=? ondisk (stem-format-nodes (stem-scan-file path-str)))
+            (string=? ondisk (format-stem-string ondisk))
           ) ;let
         ) ;if
       ) ;let

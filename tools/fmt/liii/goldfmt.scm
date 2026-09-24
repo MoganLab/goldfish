@@ -51,20 +51,23 @@
     (liii json)
     (liii list)
     (liii semver)
-    (liii goldfmt-scan)
-    (liii goldfmt-format)
+    (liii goldfmt scan)
+    (liii goldfmt format)
+    (liii goldfmt stem)
     (liii goldfmt-lang)
     (liii goldfmt-config)
     (liii goldtool-changed)
-    (liii scheme-fmt)
     (liii cpp-fmt)
     (liii stem-fmt)
+    (srfi srfi-13)
   ) ;import
   (export main format-datum format-datum+node format-node format-string
-    all-registered-extensions group-files-by-lang format-changed-since
-    check-goldfish-version
+    format-scheme-string format-stem-string can-inline? scan-string
+    call-with-stem-mode string-contains all-registered-extensions
+    group-files-by-lang format-changed-since check-goldfish-version
   ) ;export
   (begin
+    (define format-scheme-string format-string)
 
     ;; ---- 参数解析 -------------------------------------------------------
     (define (normalize-extension ext)
@@ -380,9 +383,16 @@
       ) ;let
     ) ;define
 
+    (define (ensure-scheme-handler!)
+      (unless (lang-for-extension ".scm")
+        (eval '(import (liii scheme-fmt)) (rootlet))
+      ) ;unless
+    ) ;define
+
     ;; 按后缀查语言注册表派发（lang-for-extension / lang-for-extensions），
     ;; 主入口不硬编码任何语言；找不到匹配 handler 时默认走 scheme。
     (define (scheme-handler-of)
+      (ensure-scheme-handler!)
       (lang-for-extension ".scm")
     ) ;define
 
@@ -545,6 +555,7 @@
 
     ;; 收集所有已注册语言的后缀。
     (define (all-registered-extensions)
+      (ensure-scheme-handler!)
       (let loop
         ((handlers (lang-list)) (acc '()))
         (if (null? handlers)
@@ -573,6 +584,7 @@
     ) ;define
 
     (define (group-files-by-lang files)
+      (ensure-scheme-handler!)
       (let loop
         ((fs files) (groups '()))
         (if (null? fs)
@@ -668,6 +680,7 @@
 
     ;; ---- 主入口 ---------------------------------------------------------
     (define (main)
+      (ensure-scheme-handler!)
       (let ((parser (make-fmt-arg-parser)))
         (parser :parse-argv (argv))
         (let* ((help-flag (parser 'help))

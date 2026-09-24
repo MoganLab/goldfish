@@ -15,7 +15,7 @@
 ;;
 
 ;; Scheme 语言处理器：(liii scheme-fmt)。
-;; 格式化核心复用 (liii goldfmt-scan) / (liii goldfmt-format)，
+;; 格式化核心复用 (liii goldfmt)，
 ;; 缓存、单文件/目录/增量格式化逻辑迁移自原 goldfmt.scm。
 ;; 加载时通过 register-lang! 把自己注册进 (liii goldfmt-lang)。
 
@@ -24,8 +24,7 @@
     (liii path)
     (liii string)
     (liii goldfmt-cache)
-    (liii goldfmt-scan)
-    (liii goldfmt-format)
+    (liii goldfmt)
     (liii goldfmt-lang)
     (liii goldfmt-config)
   ) ;import
@@ -38,7 +37,9 @@
     ;; ---- 单文件格式化 ---------------------------------------------------
     ;; dry-run 模式：输出到终端，不写回。
     (define (format-file-dry-run path-str)
-      (let* ((nodes (scan-file path-str)) (formatted (format-nodes nodes)))
+      (let* ((original-content (path-read-text (path path-str)))
+             (formatted (format-string original-content))
+            ) ;
         (display formatted)
       ) ;let*
     ) ;define
@@ -49,8 +50,7 @@
         'cached
         (let* ((p (path path-str))
                (original-content (path-read-text p))
-               (nodes (scan-file path-str))
-               (formatted (format-nodes nodes))
+               (formatted (format-string original-content))
               ) ;
           (if (string=? original-content formatted)
             (begin
@@ -161,40 +161,41 @@
             (if (>= i (vector-length entries))
               (values total updated cached)
               (let ((entry (vector-ref entries i)))
-                (cond ((path-file? entry)
-                       (let ((entry-str (path->string entry)))
-                         (if (and (file-extension-match? entry-str extensions)
-                               (not (file-excluded? entry-str excludes))
-                             ) ;and
-                           (let ((result (format-file entry-str)))
-                             (cond ((eq? result 'cached) (loop (+ i 1) (+ total 1) updated (+ cached 1)))
-                                   (result (display (string-append "  Updated: " entry-str))
-                                     (newline)
-                                     (loop (+ i 1) (+ total 1) (+ updated 1) cached)
-                                   ) ;result
-                                   (else (display (string-append "Formatting: " entry-str))
-                                     (newline)
-                                     (loop (+ i 1) (+ total 1) updated cached)
-                                   ) ;else
-                             ) ;cond
-                           ) ;let
-                           (loop (+ i 1) total updated cached)
-                         ) ;if
-                       ) ;let
-                      ) ;
-                      ((path-dir? entry)
-                       (let ((dir-str (path->string entry)))
-                         (if (file-excluded? dir-str excludes)
-                           (loop (+ i 1) total updated cached)
-                           (call-with-values (lambda () (format-directory dir-str extensions excludes dry-run))
-                             (lambda (sub-total sub-updated sub-cached)
-                               (loop (+ i 1) (+ total sub-total) (+ updated sub-updated) (+ cached sub-cached))
-                             ) ;lambda
-                           ) ;call-with-values
-                         ) ;if
-                       ) ;let
-                      ) ;
-                      (else (loop (+ i 1) total updated cached))
+                (cond
+                 ((path-file? entry)
+                  (let ((entry-str (path->string entry)))
+                    (if (and (file-extension-match? entry-str extensions)
+                          (not (file-excluded? entry-str excludes))
+                        ) ;and
+                      (let ((result (format-file entry-str)))
+                        (cond ((eq? result 'cached) (loop (+ i 1) (+ total 1) updated (+ cached 1)))
+                              (result (display (string-append "  Updated: " entry-str))
+                                (newline)
+                                (loop (+ i 1) (+ total 1) (+ updated 1) cached)
+                              ) ;result
+                              (else (display (string-append "Formatting: " entry-str))
+                                (newline)
+                                (loop (+ i 1) (+ total 1) updated cached)
+                              ) ;else
+                        ) ;cond
+                      ) ;let
+                      (loop (+ i 1) total updated cached)
+                    ) ;if
+                  ) ;let
+                 ) ;
+                 ((path-dir? entry)
+                  (let ((dir-str (path->string entry)))
+                    (if (file-excluded? dir-str excludes)
+                      (loop (+ i 1) total updated cached)
+                      (call-with-values (lambda () (format-directory dir-str extensions excludes dry-run))
+                        (lambda (sub-total sub-updated sub-cached)
+                          (loop (+ i 1) (+ total sub-total) (+ updated sub-updated) (+ cached sub-cached))
+                        ) ;lambda
+                      ) ;call-with-values
+                    ) ;if
+                  ) ;let
+                 ) ;
+                 (else (loop (+ i 1) total updated cached))
                 ) ;cond
               ) ;let
             ) ;if
@@ -238,8 +239,8 @@
       (let ((excludes (lang-excludes 'scheme cfg)))
         (if (file-excluded? path-str excludes)
           #t
-          (let ((nodes (scan-file path-str)) (ondisk (path-read-text (path path-str))))
-            (string=? ondisk (format-nodes nodes))
+          (let ((ondisk (path-read-text (path path-str))))
+            (string=? ondisk (format-string ondisk))
           ) ;let
         ) ;if
       ) ;let
