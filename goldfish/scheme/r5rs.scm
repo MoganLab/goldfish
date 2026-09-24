@@ -19,7 +19,13 @@
 ;; exact/inexact 以 R5RS 名字 inexact->exact / exact->inexact 导出）。
 
 (define-library (scheme r5rs)
-  (import (scheme base) (scheme char) (scheme complex) (scheme cxr) (goldfish))
+  ;; R5RS eval must accept the environments this library builds
+  ;; (scheme-report-environment / null-environment are program
+  ;; environments), so re-export (scheme eval)'s dispatcher instead of the
+  ;; raw host eval that (goldfish) provides.
+  (import (scheme base) (scheme char) (scheme complex) (scheme cxr)
+          (except (goldfish) eval)
+          (scheme eval))
   (export
     * + - / < <= = > >= abs acos and angle append apply asin assoc assq assv
     atan begin boolean?
