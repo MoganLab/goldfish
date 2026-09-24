@@ -1,10 +1,12 @@
 #include "runtime/bootstrap.hpp"
+#include "runtime/platform_primitives.hpp"
 #include "runtime/reader.hpp"
 
 #include <iostream>
 #include <cstdlib>
 #include <filesystem>
 #include <exception>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 
@@ -81,16 +83,33 @@ Value lookup(Evaluator& evaluator, const char* name) {
     return evaluator.eval(evaluator.symbol(name));
 }
 
-void eval_source(Evaluator& evaluator, const std::string& source,
-                 bool print_result = true) {
+Value eval_value(Evaluator& evaluator, const std::string& source) {
     Value input = evaluator.apply_values(
         lookup(evaluator, "open-input-string"),
         {evaluator.string(source)})[0];
     Value forms = evaluator.apply_values(lookup(evaluator, "read-forms"),
                                         {input})[0];
+    // Top-level forms compile into the session PROGRAM library, the same
+    // target the host's expand-eval path uses: a program starts empty and
+    // accumulates its imports (mode seeds, `(import ...)` in -e strings and
+    // tool drivers all land here).  compile-program's implicit base-library
+    // target would hide them from (program-library), which is what the test
+    // worker reads back to replay the seed into a fresh program.
+    // Fetch through module-ref: a cold source bootstrap never re-binds the
+    // lib layer's names into the global environment (warm artifacts do),
+    // so a bare lookup only works in the warm case.
+    Value program_library = evaluator.apply_values(
+        lookup(evaluator, "module-ref"),
+        {lookup(evaluator, "the-expander-library"),
+         evaluator.symbol("program-library")})[0];
     Value lowered = evaluator.apply_values(
-        lookup(evaluator, "compile-program"), {forms})[0];
-    Value result = evaluator.eval(lowered);
+        lookup(evaluator, "compile-program-into"), {forms, program_library})[0];
+    return evaluator.eval(lowered);
+}
+
+void eval_source(Evaluator& evaluator, const std::string& source,
+                 bool print_result = true) {
+    Value result = eval_value(evaluator, source);
     if (print_result) {
         print_value(result, std::cout);
         std::cout << '\n';
@@ -98,9 +117,14 @@ void eval_source(Evaluator& evaluator, const std::string& source,
 }
 
 void eval_file(Evaluator& evaluator, const std::string& path) {
-    Value lowered = evaluator.apply_values(
-        lookup(evaluator, "compile-file"), {evaluator.string(path)})[0];
-    print_value(evaluator.eval(lowered), std::cout);
+    // Host parity: script files go through the Scheme loader.  Its compiled
+    // artifact evaluates in the expander's environment, where the lowered
+    // program's bare gensym references (library definitions, register
+    // thunks) actually live -- evaluating in the global environment loses
+    // them.  The loader also shares the library cache with `import'.
+    Value result = evaluator.apply_values(lookup(evaluator, "load"),
+                                          {evaluator.string(path)})[0];
+    print_value(result, std::cout);
     std::cout << '\n';
 }
 
@@ -139,12 +163,206 @@ void configure_load_path(int argc, char** argv) {
     std::string paths;
     for (int i = 1; i + 1 < argc; ++i) {
         if (std::string(argv[i]) != "-I" &&
+            std::string(argv[i]) != "-A" &&
             std::string(argv[i]) != "--load-path")
             continue;
         if (!paths.empty()) paths += ':';
         paths += argv[++i];
     }
     if (!paths.empty()) setenv("GOLDFISH_NATIVE_LOAD_PATH", paths.c_str(), 1);
+}
+
+// --- project tool dispatch (the `gf <tool>` path), mirroring the host's
+// --- src/gf_tool_dispatch.hpp: candidates come from (liii project)'s
+// --- gfproject-tool-imports, each is imported after its tools/<cmd> root
+// --- (plus the sibling tools/common) joins the load path, then main runs
+// --- and its integer result becomes the exit code.
+
+bool has_local_tool(const std::string& command) {
+    std::error_code error;
+    return std::filesystem::exists(std::filesystem::path("tools") / command,
+                                   error) ||
+           std::filesystem::exists(
+               std::filesystem::path("tools") / (command + ".scm"), error);
+}
+
+void append_to_load_path(const std::string& directory) {
+    const char* current = std::getenv("GOLDFISH_NATIVE_LOAD_PATH");
+    std::string updated = current && *current ? std::string(current) + ":" : "";
+    updated += directory;
+    setenv("GOLDFISH_NATIVE_LOAD_PATH", updated.c_str(), 1);
+}
+
+std::vector<std::filesystem::path> tool_root_candidates(
+    const std::string& command) {
+    namespace fs = std::filesystem;
+    std::vector<fs::path> roots;
+    std::error_code error;
+    fs::path cwd = fs::current_path(error);
+    if (!error) roots.push_back(cwd / "tools" / command);
+#if defined(__linux__)
+    fs::path self = fs::read_symlink("/proc/self/exe", error);
+    if (!error) {
+        fs::path library_root = self.parent_path().parent_path();
+        roots.push_back(library_root / "tools" / command);
+        roots.push_back(library_root.parent_path() / "tools" / command);
+    }
+#endif
+    return roots;
+}
+
+// Format a raised Scheme value the way main()'s handler does, so tool
+// dispatch failures show the real error message instead of
+// "user-raised value".
+std::string describe_raised(const RaisedValue& raised) {
+    std::ostringstream out;
+    if (raised.value().is_object() &&
+        raised.value().as_object()->type() == ObjectType::ErrorObject) {
+        const auto* error = raised.value().as_object<ErrorObject>();
+        out << error->message;
+        for (Value irritant : error->irritants) {
+            out << ' ';
+            print_value(irritant, out);
+        }
+    } else {
+        out << "native Scheme error: ";
+        print_value(raised.value(), out);
+    }
+    return out.str();
+}
+
+std::string describe_thrown(const ThrownValue& thrown) {
+    std::ostringstream out;
+    print_value(thrown.tag(), out);
+    for (Value argument : thrown.arguments()) {
+        out << ' ';
+        print_value(argument, out);
+    }
+    return out.str();
+}
+
+// Returns the tool's exit code, or -1 when `command` is not a project tool.
+int try_project_tool(Evaluator& evaluator, int argc, char** argv,
+                     int command) {
+    namespace fs = std::filesystem;
+    if (command >= argc) return -1;
+    const std::string cmd = argv[command];
+    if (cmd.empty() || cmd[0] == '-' || cmd.find('/') != std::string::npos)
+        return -1;
+    // Built-ins skip dispatch unless a local tools/<cmd> overrides them.
+    static const char* builtins[] = {"help", "version", "eval", "-e", "load",
+                                     "repl", "run",   "--help", "-h"};
+    for (const char* builtin : builtins) {
+        if (cmd == builtin) {
+            if (has_local_tool(cmd)) break;
+            return -1;
+        }
+    }
+
+    std::string quoted = "\"";
+    for (char character : cmd) {
+        if (character == '\\' || character == '"') quoted += '\\';
+        quoted += character;
+    }
+    quoted += '"';
+
+    Value candidates;
+    try {
+        eval_value(evaluator, "(import (liii project))");
+        candidates = eval_value(
+            evaluator,
+            "(catch #t (lambda () (gfproject-tool-imports " + quoted +
+                ")) (lambda args '()))");
+    } catch (const std::exception&) {
+        return -1;
+    }
+    if (!candidates.is_object() ||
+        candidates.as_object()->type() != ObjectType::Pair)
+        return -1; // not a project tool
+
+    fs::path tool_root;
+    std::error_code error;
+    for (const fs::path& candidate : tool_root_candidates(cmd)) {
+        if (fs::is_directory(candidate, error)) {
+            tool_root = candidate;
+            break;
+        }
+        error.clear();
+    }
+    if (tool_root.empty()) {
+        std::cerr << "Error: tools/" << cmd << "/ directory not found.\n";
+        return 1;
+    }
+    append_to_load_path(tool_root.string());
+    fs::path common = tool_root.parent_path() / "common";
+    if (fs::is_directory(common, error))
+        append_to_load_path(common.string());
+
+    bool saw_candidate = false;
+    std::string last_error;
+    for (Value rest = candidates;
+         rest.is_object() && rest.as_object()->type() == ObjectType::Pair;
+         rest = rest.as_object<PairObject>()->cdr) {
+        Value expression = rest.as_object<PairObject>()->car;
+        if (!expression.is_object() ||
+            expression.as_object()->type() != ObjectType::String)
+            continue;
+        saw_candidate = true;
+        const std::string import_expression =
+            evaluator.string_value(expression);
+        try {
+            eval_value(evaluator, import_expression);
+        } catch (const RaisedValue& raised) {
+            last_error = std::string("Error ") + import_expression + ": " +
+                         describe_raised(raised);
+            continue;
+        } catch (const ThrownValue& thrown) {
+            last_error = std::string("Error ") + import_expression + ": " +
+                         describe_thrown(thrown);
+            continue;
+        } catch (const std::exception& caught) {
+            last_error = std::string("Error ") + import_expression + ": " +
+                         caught.what();
+            continue;
+        }
+        Value main_proc = Value::unspecified();
+        bool is_tool_main = false;
+        try {
+            main_proc = eval_value(evaluator, "main");
+            is_tool_main =
+                main_proc.is_object() &&
+                (main_proc.as_object()->type() == ObjectType::Closure ||
+                 main_proc.as_object()->type() == ObjectType::Primitive);
+        } catch (const RaisedValue& raised) {
+            last_error = std::string("Error: Failed to find main function via ") +
+                         import_expression + ": " + describe_raised(raised);
+            continue;
+        } catch (const ThrownValue& thrown) {
+            last_error = std::string("Error: Failed to find main function via ") +
+                         import_expression + ": " + describe_thrown(thrown);
+            continue;
+        } catch (const std::exception& caught) {
+            last_error = std::string("Error: Failed to find main function via ") +
+                         import_expression + ": " + caught.what();
+            continue;
+        }
+        if (!is_tool_main) {
+            last_error = "Error: Failed to find main function via " +
+                         import_expression + ".";
+            continue;
+        }
+        // Running main: failures propagate to main()'s handler like the
+        // host, where an erroring tool exits nonzero instead of falling
+        // through to the next candidate.
+        Values result = evaluator.apply_values(main_proc, {});
+        if (!result.empty() && result[0].is_integer())
+            return static_cast<int>(result[0].as_integer());
+        return 0;
+    }
+    if (!last_error.empty()) std::cerr << last_error << '\n';
+    else if (saw_candidate)
+        std::cerr << "Error: tool \"" << cmd << "\" provided no candidates.\n";
+    return saw_candidate ? 1 : -1;
 }
 
 std::string startup_mode(int argc, char** argv) {
@@ -157,10 +375,24 @@ std::string startup_mode(int argc, char** argv) {
 
 void install_mode_imports(Evaluator& evaluator, const std::string& mode) {
     std::string imports;
-    if (mode == "r7rs" || mode == "scheme")
+    if (mode == "r7rs")
         imports = "(import (scheme base))";
-    else if (mode == "default" || mode == "liii")
+    else if (mode == "scheme")
+        // Host splits these: r7rs is (scheme base) alone, `scheme' adds the
+        // liii extension layer.
         imports = "(import (scheme base) (liii base) (liii error))";
+    else if (mode == "default" || mode == "liii")
+        // Mirrors the host's liii seed: the test worker replays
+        // (program-library) uses as the per-file seed, so a trimmed list
+        // here gives test files fewer names than they get on the host.
+        // (scheme inexact) stays out until inexact numbers land natively --
+        // it needs sqrt/exp at load time -- and comes back with the float
+        // workstream.
+        imports =
+            "(import (goldfish) (scheme base) (scheme write) (scheme read)"
+            " (scheme file) (scheme process-context) (scheme time)"
+            " (scheme char) (scheme complex) (scheme cxr)"
+            " (scheme eval) (scheme case-lambda) (liii base) (liii error))";
     else if (mode == "sicp")
         imports = "(import (scheme base) (srfi sicp))";
     else if (mode == "s7")
@@ -176,6 +408,7 @@ int main(int argc, char** argv) {
     Runtime runtime;
     try {
         configure_load_path(argc, argv);
+        set_native_command_line(argc, argv);
         setenv("GOLDFISH_NATIVE_ARTIFACTS", "1", 1);
         NativeBootstrap bootstrap(runtime);
         bootstrap.install_primitives();
@@ -198,6 +431,15 @@ int main(int argc, char** argv) {
         }
         load_source(runtime.evaluator(), "expander/lib/install.scm");
         bootstrap.install_expansion_helpers();
+        // The Scheme-side composite surface (map/list->vector/copy-ish
+        // helpers, the numeric predicates) lives in base-functions.scm; the
+        // host loads it during its seed and native never did, so names like
+        // list->vector stayed unbound for tool code.  RUNTIME_CONTRACT lists
+        // this file as the migrated substrate for the runtime layer.
+        load_source(runtime.evaluator(), "expander/lib/base-functions.scm");
+        // s7's hashtable surface comes from s7 itself on the host; native
+        // gets the Scheme adapter (vector of bucket alists, same contract).
+        load_source(runtime.evaluator(), "expander/lib/native-hash-adapter.scm");
         Value standard_library = runtime.evaluator().apply_values(
             lookup(runtime.evaluator(), "module-ref"),
             {lookup(runtime.evaluator(), "the-expander-library"),
@@ -228,10 +470,18 @@ int main(int argc, char** argv) {
             command += 2;
         }
         while (command < argc && (std::string(argv[command]) == "-I" ||
+                                  std::string(argv[command]) == "-A" ||
                                   std::string(argv[command]) == "--load-path")) {
             if (command + 1 >= argc)
                 throw std::runtime_error("-I requires a directory");
             command += 2;
+        }
+        // Project tool dispatch (`gf test ...` and friends); -1 means the
+        // word is not a tool and the built-in handlers below take over.
+        {
+            int tool_exit =
+                try_project_tool(runtime.evaluator(), argc, argv, command);
+            if (tool_exit != -1) return tool_exit;
         }
         if (command >= argc) {
             std::string line;
@@ -247,7 +497,8 @@ int main(int argc, char** argv) {
         }
         if (std::string(argv[command]) == "load") {
             if (++command >= argc) throw std::runtime_error("load requires a file");
-            load_source(runtime.evaluator(), argv[command]);
+            for (; command < argc; ++command)
+                load_source(runtime.evaluator(), argv[command]);
             return 0;
         }
         if (std::string(argv[command]) == "test") {
@@ -266,6 +517,16 @@ int main(int argc, char** argv) {
         }
         std::cerr << "usage: gf-native [-e expression] [file]\n";
         return 2;
+    } catch (const ThrownValue& thrown) {
+        // throw's payload: report (tag irritants ...) like the host.
+        std::cerr << "thrown: ";
+        print_value(thrown.tag(), std::cerr);
+        for (Value argument : thrown.arguments()) {
+            std::cerr << ' ';
+            print_value(argument, std::cerr);
+        }
+        std::cerr << '\n';
+        return 1;
     } catch (const RaisedValue& raised) {
         if (raised.value().is_object() &&
             raised.value().as_object()->type() == ObjectType::ErrorObject) {
