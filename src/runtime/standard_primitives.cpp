@@ -123,6 +123,9 @@ bool equal_inner(Value left, Value right,
     case ObjectType::String:
         return left.as_object<StringObject>()->value ==
                right.as_object<StringObject>()->value;
+    case ObjectType::Bytevector:
+        return left.as_object<BytevectorObject>()->bytes ==
+               right.as_object<BytevectorObject>()->bytes;
     case ObjectType::Character:
         return left.as_object<CharacterObject>()->value ==
                right.as_object<CharacterObject>()->value;
@@ -164,8 +167,11 @@ InputStringPortObject& input_port(Value value, const char* name) {
 }
 
 bool source_delimiter(unsigned char c) {
+    // `.' is NOT a delimiter: tokens like `...', `foo.bar' and `1.5' must
+    // read whole.  Standalone-dot (dotted pair) detection happens in the
+    // caller via delimiter?(next char), as reader.cpp does.
     return std::isspace(c) || c == '(' || c == ')' || c == '[' || c == ']' ||
-           c == '"' || c == ';' || c == '.';
+           c == '"' || c == ';';
 }
 
 void append_utf8(std::string& output, unsigned value) {
@@ -1456,8 +1462,7 @@ void install_runtime_primitives(Evaluator& evaluator) {
                                      std::isspace(static_cast<unsigned char>(character)) ||
                                      character == U'(' || character == U')' ||
                                      character == U'[' || character == U']' ||
-                                     character == U'"' || character == U';' ||
-                                     character == U'.')};
+                                     character == U'"' || character == U';')};
     });
     install(evaluator, "g-valid-identifier?", [&evaluator](const Values& args) {
         require_arity(args, 1, "g-valid-identifier?");
@@ -1614,6 +1619,151 @@ void install_runtime_primitives(Evaluator& evaluator) {
         require_arity(args, 1, "real?");
         return Values{Value::boolean(args[0].is_integer())};
     });
+    // Exact-integer-only numeric surface: native carries integers only, so
+    // the tower's integer specializations are identities/constant answers.
+    // The inexact half (exp/log/sin..., inexact->exact) belongs to the
+    // float workstream.
+    install(evaluator, "exact-integer?", [](const Values& args) {
+        require_arity(args, 1, "exact-integer?");
+        return Values{Value::boolean(args[0].is_integer())};
+    });
+    install(evaluator, "rational?", [](const Values& args) {
+        require_arity(args, 1, "rational?");
+        return Values{Value::boolean(args[0].is_integer())};
+    });
+    install(evaluator, "complex?", [](const Values& args) {
+        require_arity(args, 1, "complex?");
+        return Values{Value::boolean(args[0].is_integer())};
+    });
+    install(evaluator, "exact?", [](const Values& args) {
+        require_arity(args, 1, "exact?");
+        return Values{Value::boolean(args[0].is_integer())};
+    });
+    install(evaluator, "inexact?", [](const Values& args) {
+        require_arity(args, 1, "inexact?");
+        return Values{Value::boolean(false)};
+    });
+    install(evaluator, "finite?", [](const Values& args) {
+        require_arity(args, 1, "finite?");
+        return Values{Value::boolean(args[0].is_integer())};
+    });
+    install(evaluator, "infinite?", [](const Values& args) {
+        require_arity(args, 1, "infinite?");
+        return Values{Value::boolean(false)};
+    });
+    install(evaluator, "nan?", [](const Values& args) {
+        require_arity(args, 1, "nan?");
+        return Values{Value::boolean(false)};
+    });
+    install(evaluator, "exact", [](const Values& args) {
+        require_arity(args, 1, "exact");
+        if (!args[0].is_integer())
+            throw std::runtime_error("exact expects an integer");
+        return Values{args[0]};
+    });
+    install(evaluator, "numerator", [](const Values& args) {
+        require_arity(args, 1, "numerator");
+        if (!args[0].is_integer())
+            throw std::runtime_error("numerator expects an integer");
+        return Values{args[0]};
+    });
+    install(evaluator, "denominator", [](const Values& args) {
+        require_arity(args, 1, "denominator");
+        if (!args[0].is_integer())
+            throw std::runtime_error("denominator expects an integer");
+        return Values{Value::integer(1)};
+    });
+    install(evaluator, "square", [&evaluator](const Values& args) {
+        require_arity(args, 1, "square");
+        if (!args[0].is_integer())
+            throw std::runtime_error("square expects an integer");
+        return Values{Value::integer(args[0].as_integer() *
+                                     args[0].as_integer())};
+    });
+    // floor/ceiling/truncate/round are identities on exact integers; the
+    // optional digits argument (s7) is accepted and ignored.
+    auto install_rounding_identity = [&evaluator](const char* name) {
+        install(evaluator, name, [name](const Values& args) -> Values {
+            if (args.empty() || args.size() > 2)
+                throw std::runtime_error(std::string(name) +
+                                         " expects one or two arguments");
+            if (!args[0].is_integer())
+                throw std::runtime_error(std::string(name) +
+                                         " expects an integer (inexact "
+                                         "numbers are not supported yet)");
+            return Values{args[0]};
+        });
+    };
+    install_rounding_identity("floor");
+    install_rounding_identity("ceiling");
+    install_rounding_identity("truncate");
+    install_rounding_identity("round");
+    install(evaluator, "gcd", [](const Values& args) -> Values {
+        auto gcd2 = [](std::int64_t a, std::int64_t b) {
+            if (a < 0) a = -a;
+            if (b < 0) b = -b;
+            while (b != 0) {
+                std::int64_t t = a % b;
+                a = b;
+                b = t;
+            }
+            return a;
+        };
+        std::int64_t result = 0;
+        for (const Value& argument : args) {
+            if (!argument.is_integer())
+                throw std::runtime_error("gcd expects integers");
+            result = gcd2(result, argument.as_integer());
+        }
+        return Values{Value::integer(result)};
+    });
+    install(evaluator, "lcm", [](const Values& args) -> Values {
+        auto abs_i = [](std::int64_t v) { return v < 0 ? -v : v; };
+        auto gcd2 = [](std::int64_t a, std::int64_t b) {
+            while (b != 0) {
+                std::int64_t t = a % b;
+                a = b;
+                b = t;
+            }
+            return a;
+        };
+        std::int64_t result = 1;
+        for (const Value& argument : args) {
+            if (!argument.is_integer())
+                throw std::runtime_error("lcm expects integers");
+            std::int64_t b = abs_i(argument.as_integer());
+            if (b == 0) {
+                result = 0;
+                break;
+            }
+            // lcm(a, b) = |a * b| / gcd(a, b)
+            result = (abs_i(result) / gcd2(abs_i(result), b)) * b;
+        }
+        return Values{Value::integer(result)};
+    });
+    install(evaluator, "exact-integer-sqrt", [](const Values& args) -> Values {
+        require_arity(args, 1, "exact-integer-sqrt");
+        if (!args[0].is_integer() || args[0].as_integer() < 0)
+            throw std::runtime_error(
+                "exact-integer-sqrt expects a non-negative integer");
+        std::uint64_t x = static_cast<std::uint64_t>(args[0].as_integer());
+        std::uint64_t bit = 1ull << 62;
+        while (bit > x) bit >>= 2;
+        std::uint64_t root = 0;
+        while (bit != 0) {
+            if (x >= root + bit) {
+                x -= root + bit;
+                root = (root >> 1) + bit;
+            } else {
+                root >>= 1;
+            }
+            bit >>= 2;
+        }
+        return Values{Value::integer(static_cast<std::int64_t>(root)),
+                      Value::integer(static_cast<std::int64_t>(
+                          args[0].as_integer() -
+                          static_cast<std::int64_t>(root * root)))};
+    });
     install(evaluator, "pair?", [](const Values& args) {
         require_arity(args, 1, "pair?");
         return Values{Value::boolean(
@@ -1707,11 +1857,178 @@ void install_runtime_primitives(Evaluator& evaluator) {
         return Values{Value::boolean(args[0].is_object() &&
                                      args[0].as_object()->type() == ObjectType::Vector)};
     });
-    // The binary bytevector substrate is intentionally deferred to its own
-    // runtime layer; the expander still needs a total predicate here.
+    // --- bytevectors: raw byte strings (the substrate has no integer
+    // vector).  #u8 literals, the utf8 conversions and (scheme base)'s
+    // bytevector API all land here.
     install(evaluator, "bytevector?", [](const Values& args) {
         require_arity(args, 1, "bytevector?");
-        return Values{Value::boolean(false)};
+        return Values{Value::boolean(
+            args[0].is_object() &&
+            args[0].as_object()->type() == ObjectType::Bytevector)};
+    });
+    auto bytevector_object = [](Value value, const char* name) -> BytevectorObject* {
+        if (!value.is_object() ||
+            value.as_object()->type() != ObjectType::Bytevector)
+            throw std::runtime_error(std::string(name) +
+                                     " expects a bytevector");
+        return value.as_object<BytevectorObject>();
+    };
+    auto u8_of = [](Value value, const char* name) -> unsigned char {
+        if (!value.is_integer())
+            throw std::runtime_error(std::string(name) +
+                                     " expects exact integers");
+        std::int64_t number = value.as_integer();
+        if (number < 0 || number > 255)
+            throw std::runtime_error(std::string(name) +
+                                     " byte out of range");
+        return static_cast<unsigned char>(number);
+    };
+    install(evaluator, "bytevector", [&evaluator, u8_of](const Values& args) {
+        std::string bytes;
+        for (const Value& argument : args)
+            bytes.push_back(static_cast<char>(u8_of(argument, "bytevector")));
+        return Values{Value::object(
+            evaluator.heap().make<BytevectorObject>(std::move(bytes)))};
+    });
+    install(evaluator, "make-bytevector",
+            [&evaluator, u8_of](const Values& args) {
+                if (args.empty() || args.size() > 2)
+                    throw std::runtime_error(
+                        "make-bytevector expects a length and optional fill");
+                if (!args[0].is_integer() || args[0].as_integer() < 0)
+                    throw std::runtime_error(
+                        "make-bytevector length must be non-negative");
+                std::size_t length =
+                    static_cast<std::size_t>(args[0].as_integer());
+                unsigned char fill = args.size() == 2
+                                         ? u8_of(args[1], "make-bytevector")
+                                         : 0;
+                return Values{Value::object(evaluator.heap().make<BytevectorObject>(
+                    std::string(length, static_cast<char>(fill))))};
+            });
+    install(evaluator, "bytevector-length", [bytevector_object](const Values& args) {
+        require_arity(args, 1, "bytevector-length");
+        return Values{Value::integer(static_cast<std::int64_t>(
+            bytevector_object(args[0], "bytevector-length")->bytes.size()))};
+    });
+    install(evaluator, "bytevector-u8-ref", [bytevector_object](const Values& args) {
+        require_arity(args, 2, "bytevector-u8-ref");
+        auto* bytes = bytevector_object(args[0], "bytevector-u8-ref");
+        if (!args[1].is_integer())
+            throw std::runtime_error("bytevector-u8-ref index must be an integer");
+        std::int64_t index = args[1].as_integer();
+        if (index < 0 ||
+            static_cast<std::size_t>(index) >= bytes->bytes.size())
+            throw std::runtime_error("bytevector-u8-ref index out of bounds");
+        return Values{Value::integer(static_cast<unsigned char>(
+            bytes->bytes[static_cast<std::size_t>(index)]))};
+    });
+    install(evaluator, "bytevector-u8-set!", [bytevector_object, u8_of](const Values& args) {
+        require_arity(args, 3, "bytevector-u8-set!");
+        auto* bytes = bytevector_object(args[0], "bytevector-u8-set!");
+        if (!args[1].is_integer())
+            throw std::runtime_error("bytevector-u8-set! index must be an integer");
+        std::int64_t index = args[1].as_integer();
+        if (index < 0 ||
+            static_cast<std::size_t>(index) >= bytes->bytes.size())
+            throw std::runtime_error("bytevector-u8-set! index out of bounds");
+        bytes->bytes[static_cast<std::size_t>(index)] =
+            static_cast<char>(u8_of(args[2], "bytevector-u8-set!"));
+        return Values{Value::unspecified()};
+    });
+    install(evaluator, "bytevector-copy", [&evaluator, bytevector_object](const Values& args) {
+        if (args.empty() || args.size() > 3)
+            throw std::runtime_error("bytevector-copy expects1 to3 arguments");
+        auto* bytes = bytevector_object(args[0], "bytevector-copy");
+        std::int64_t length = static_cast<std::int64_t>(bytes->bytes.size());
+        std::int64_t start = args.size() >= 2 ? args[1].as_integer() : 0;
+        std::int64_t end = args.size() >= 3 ? args[2].as_integer() : length;
+        if (start < 0) start = 0;
+        if (end > length) end = length;
+        if (end < start) end = start;
+        return Values{Value::object(evaluator.heap().make<BytevectorObject>(
+            bytes->bytes.substr(static_cast<std::size_t>(start),
+                                static_cast<std::size_t>(end - start))))};
+    });
+    install(evaluator, "bytevector-copy!", [bytevector_object](const Values& args) {
+        if (args.size() != 3 && args.size() != 5)
+            throw std::runtime_error(
+                "bytevector-copy! expects (to at from [start [end]])");
+        auto* to = bytevector_object(args[0], "bytevector-copy!");
+        auto* from = bytevector_object(args[2], "bytevector-copy!");
+        if (!args[1].is_integer())
+            throw std::runtime_error("bytevector-copy! at must be an integer");
+        std::int64_t at = args[1].as_integer();
+        std::int64_t length = static_cast<std::int64_t>(from->bytes.size());
+        std::int64_t start = args.size() >= 4 ? args[3].as_integer() : 0;
+        std::int64_t end = args.size() >= 5 ? args[4].as_integer() : length;
+        if (start < 0) start = 0;
+        if (end > length) end = length;
+        if (end < start) end = start;
+        if (at < 0 || at + (end - start) > static_cast<std::int64_t>(to->bytes.size()))
+            throw std::runtime_error("bytevector-copy! range out of bounds");
+        for (std::int64_t i = start; i < end; ++i)
+            to->bytes[static_cast<std::size_t>(at + (i - start))] =
+                from->bytes[static_cast<std::size_t>(i)];
+        return Values{Value::unspecified()};
+    });
+    install(evaluator, "bytevector-append", [&evaluator](const Values& args) {
+        std::string bytes;
+        for (const Value& argument : args) {
+            if (!argument.is_object() ||
+                argument.as_object()->type() != ObjectType::Bytevector)
+                throw std::runtime_error("bytevector-append expects bytevectors");
+            bytes += argument.as_object<BytevectorObject>()->bytes;
+        }
+        return Values{Value::object(
+            evaluator.heap().make<BytevectorObject>(std::move(bytes)))};
+    });
+    install(evaluator, "bytevector->u8-list", [&evaluator, bytevector_object](const Values& args) {
+        require_arity(args, 1, "bytevector->u8-list");
+        const std::string& bytes =
+            bytevector_object(args[0], "bytevector->u8-list")->bytes;
+        std::vector<Value> list;
+        for (char byte : bytes)
+            list.push_back(
+                Value::integer(static_cast<unsigned char>(byte)));
+        return Values{evaluator.list(list)};
+    });
+    install(evaluator, "u8-list->bytevector", [&evaluator, u8_of](const Values& args) {
+        require_arity(args, 1, "u8-list->bytevector");
+        std::string bytes;
+        for (Value element : proper_list(args[0]))
+            bytes.push_back(static_cast<char>(u8_of(element, "u8-list->bytevector")));
+        return Values{Value::object(
+            evaluator.heap().make<BytevectorObject>(std::move(bytes)))};
+    });
+    install(evaluator, "string->utf8", [&evaluator](const Values& args) {
+        require_arity(args, 1, "string->utf8");
+        if (!args[0].is_object() ||
+            args[0].as_object()->type() != ObjectType::String)
+            throw std::runtime_error("string->utf8 expects a string");
+        // StringObject already stores utf8 bytes.
+        return Values{Value::object(evaluator.heap().make<BytevectorObject>(
+            args[0].as_object<StringObject>()->value))};
+    });
+    install(evaluator, "utf8->string", [&evaluator](const Values& args) {
+        require_arity(args, 1, "utf8->string");
+        if (!args[0].is_object() ||
+            args[0].as_object()->type() != ObjectType::Bytevector)
+            throw std::runtime_error("utf8->string expects a bytevector");
+        return Values{evaluator.string(
+            args[0].as_object<BytevectorObject>()->bytes)};
+    });
+    install(evaluator, "utf8-string-length", [](const Values& args) {
+        require_arity(args, 1, "utf8-string-length");
+        if (!args[0].is_object() ||
+            args[0].as_object()->type() != ObjectType::String)
+            throw std::runtime_error("utf8-string-length expects a string");
+        const std::string& bytes =
+            args[0].as_object<StringObject>()->value;
+        std::int64_t length = 0;
+        for (unsigned char byte : bytes)
+            if ((byte & 0xc0) != 0x80) ++length;
+        return Values{Value::integer(length)};
     });
     install(evaluator, "procedure?", [](const Values& args) {
         require_arity(args, 1, "procedure?");
@@ -1773,17 +2090,23 @@ void install_runtime_primitives(Evaluator& evaluator) {
             return evaluator.apply_values(
                 args[2], Values{thrown.tag(), payload});
         } catch (const RaisedValue& raised) {
-            if (!matches(args[0], Value::boolean(true))) throw;
             // raise (a core form) carries a bare payload; s7's raise throws
             // under tag #t, so mirror that and list-wrap the value.  An
             // ErrorObject came from (error key ...): its message holds the
             // key and the irritants are the info list, exactly what the
-            // host's catch hands to (lambda (tag info) ...).
+            // host's catch hands to (lambda (tag info) ...).  The tag to
+            // match is therefore the key itself -- checking #t first made
+            // (catch 'some-key ...) unable to see keyed raises.
             if (raised.value().is_object() &&
                 raised.value().as_object()->type() == ObjectType::ErrorObject) {
                 const auto* error =
                     raised.value().as_object<ErrorObject>();
-                if (!error->key.empty()) {
+                const bool keyed = !error->key.empty();
+                if (!matches(args[0],
+                             keyed ? evaluator.symbol(error->key)
+                                   : Value::boolean(true)))
+                    throw;
+                if (keyed) {
                     // (error key ...) : the host hands (key irritants...) --
                     // guard takes (car info) as the first irritant, which is
                     // what the reader's read-error handlers expect.

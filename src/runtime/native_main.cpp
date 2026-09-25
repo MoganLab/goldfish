@@ -33,6 +33,17 @@ void print_value(const Value& value, std::ostream& output) {
         case ObjectType::String:
             output << '"' << value.as_object<StringObject>()->value << '"';
             break;
+        case ObjectType::Bytevector: {
+            output << "#u8(";
+            const std::string& bytes = value.as_object<BytevectorObject>()->bytes;
+            for (std::size_t i = 0; i < bytes.size(); ++i) {
+                if (i) output << ' ';
+                output << static_cast<int>(
+                    static_cast<unsigned char>(bytes[i]));
+            }
+            output << ')';
+            break;
+        }
         case ObjectType::Character:
             output << "#\\";
             output << static_cast<char>(value.as_object<CharacterObject>()->value);

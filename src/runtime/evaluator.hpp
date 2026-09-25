@@ -28,6 +28,16 @@ public:
     std::string value;
 };
 
+// R7RS bytevector: a raw byte string.  The substrate has no separate
+// integer vector, so #u8 literals and the utf8 conversions own this type.
+class BytevectorObject final : public Object {
+public:
+    explicit BytevectorObject(std::string bytes)
+        : Object(ObjectType::Bytevector), bytes(std::move(bytes)) {}
+
+    std::string bytes;
+};
+
 class CharacterObject final : public Object {
 public:
     explicit CharacterObject(char32_t value)

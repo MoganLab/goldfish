@@ -26,6 +26,7 @@ enum class ObjectType : std::uint8_t {
     Primitive,
     Vector,
     Character,
+    Bytevector,
     Eof,
     InputPort,
     OutputPort,
