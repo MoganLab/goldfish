@@ -25,7 +25,7 @@ if [ -f "$skip_file" ]; then
     bucketed=$(grep -vc '^#' "$skip_file")
 fi
 if [ $# -gt 0 ]; then
-    raw="$*"
+    raw=$(printf '%s\n' "$@")
 else
     raw=$(cat "${C2_MANIFEST:-tests/float-free.manifest}")
 fi
