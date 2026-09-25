@@ -1162,6 +1162,14 @@ void install_runtime_primitives(Evaluator& evaluator) {
                     // not to the expression pass; remove them after
                     // applying the same Scheme import-set machinery used by
                     // the expander.
+                    //
+                    // The implementation library is ambient fallback only:
+                    // register its use FIRST so the file's own imports sit
+                    // in front of it and shadow it (uses resolve newest
+                    // first, and exp-library-add-use! conses to the front).
+                    evaluator.apply_values(
+                        lookup_bootstrap_binding("exp-library-add-use!"),
+                        {source_library, base_library});
                     Value import_symbol = evaluator.symbol("import");
                     Value import_into = evaluator.apply_values(
                         lookup_bootstrap_binding("module-ref"),
