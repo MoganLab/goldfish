@@ -156,6 +156,11 @@ void install_source_expander(Evaluator& evaluator) {
         "expand-eval", [&evaluator](const Values& args) {
             if (args.size() != 1)
                 throw std::runtime_error("expand-eval expects one argument");
+            // Top-level form boundary: the previous form's expansion
+            // garbage is unreachable and the stack here is shallow (the
+            // loader's own frames only), so a conservative collection is
+            // both safe and cheap.  This is what bounds per-file memory.
+            evaluator.collect();
             Value compile = evaluator.eval(evaluator.symbol("compile-toplevel"));
             Value lowered = evaluator.apply_values(compile, args)[0];
             return evaluator.eval_values(lowered);

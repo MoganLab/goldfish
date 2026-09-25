@@ -178,21 +178,31 @@ values call-with-values module-ref module-set
 
 ## Value 和内存的初版约束
 
-为了优先保证正确性和可读性，第一版允许牺牲性能。GC backend 暂不冻结；
-`src/runtime/heap.hpp` 当前只是 reference backend，不能成为继续扩展的
-自研 GC 项目：
+为了优先保证正确性和可读性，第一版允许牺牲性能。GC backend 已定：
+native 默认 BDWGC（vendored `third_party/bdwgc`，GC_BUILTIN_ATOMIC、
+ALL_INTERIOR_POINTERS、单线程 stop-the-world），host 保留 exact tracing
+backend，native 上 `GOLDFISH_GC=precise` 可切回。约束与结论：
 
 - `Value` 使用 tagged handle 或等价的稳定表示；
 - heap object 统一 header 和类型 tag；
-- GC 必须通过 `Heap`/`RootScope`/`Tracer` 接口提供；
-- 所有跨调用保存的对象必须经过显式 root scope；
+- GC 必须通过 `Heap`/`RootScope`/`Tracer` 接口提供（backend 可替换）；
+- exact backend 下所有跨调用保存的对象必须经过显式 root scope；
+  BDWGC backend 下全局 `operator new` 落在 GC 堆上，栈与容器即根，
+  但新增三条硬约束：
+  - 析构不随回收运行 —— 资源必须显式释放（端口在 close-port 关闭，
+    不依赖析构）；
+  - 只活在异常 payload 里的 Value 不被扫描 —— catch 站点先把它落到
+    自己的栈帧；
+  - 顶层形态边界（expand-eval 入口）主动 collect，脏堆约束在单形态
+    内，这是保守误保留级联保持廉价的前提；`operator delete` 的
+    GC_free 急回收同理，不可退回 no-op。
 - 允许非移动 GC、额外分配和保守的数据结构；
 - 不在第一版引入 generational GC、压缩指针、JIT 或 bytecode ABI。
 
-在 runtime 对象合同稳定后，单独评估成熟 GC backend（优先 BDWGC）和当前
-exact tracing backend。BDWGC 的 conservative 扫描、C++ destructor、foreign
-resource finalization 和可测试性必须先有明确结论，不能仅因接入简单就成为
-默认依赖。
+BDWGC 评估结论（替代原"后续单独评估"）：conservative 扫描消除了逐帧根
+保护的永久纪律成本；代价是保守误保留与分配热点开销。已知后续优化项：
+small-vector 参数表、字符串 atomic 分配、parallel mark。资源释放与
+finalization 按上述显式 close 约定，不走 C++ destructor。
 
 `Kont` 的持久化、对象布局压缩和分配优化属于后续性能工作，不能改变
 第一版的语义合同。

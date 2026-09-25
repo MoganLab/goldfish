@@ -1,0 +1,46 @@
+/*
+ * A build-time utility used by `Makefile.direct` file.  Conditionally
+ * execute a command based on machine and OS from `gcconfig.h` file.
+ */
+
+#define NOT_GCBUILD
+#include "private/gc_priv.h"
+
+#include <string.h>
+
+#if defined(MSWIN32) || defined(MSWINCE) || defined(MSWIN_XBOX1)
+#  include <process.h>
+#endif
+
+#ifdef __cplusplus
+#  define EXECV_ARGV_T char **
+#else
+/*
+ * The 2nd argument of `execvp()` prototype may be either `char **`, or
+ * `char *const *`, or `const char *const *`.
+ */
+#  define EXECV_ARGV_T void *
+#endif
+
+int
+main(int argc, char **argv)
+{
+  if (argc < 4) {
+    fprintf(stderr,
+            "Usage: %s <mach_type> <os_type> <command> [<args>]\n"
+            "Current mach_type = %s, os_type = %s\n",
+            argv[0], MACH_TYPE, OS_TYPE);
+    return 1;
+  }
+
+  if (strcmp(MACH_TYPE, argv[1]) != 0)
+    return 0;
+  if (strlen(OS_TYPE) > 0 && strlen(argv[2]) > 0
+      && strcmp(OS_TYPE, argv[2]) != 0)
+    return 0;
+  fprintf(stderr, "^^^^Starting command^^^^\n");
+  fflush(stdout);
+  execvp(TRUSTED_STRING(argv[3]), (EXECV_ARGV_T)(argv + 3));
+  perror("Could not execute");
+  return 3;
+}

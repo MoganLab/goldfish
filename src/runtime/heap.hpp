@@ -3,12 +3,18 @@
 #include "runtime/value.hpp"
 
 #include <cstddef>
+#include <cstdlib>
+#include <cstring>
 #include <functional>
 #include <iterator>
 #include <memory>
 #include <type_traits>
 #include <utility>
 #include <vector>
+
+#ifdef GOLDFISH_HAVE_BDWGC
+#include "gc/gc.h"
+#endif
 
 namespace goldfish::runtime {
 
@@ -90,10 +96,35 @@ private:
     std::vector<Value*> roots_;
 };
 
+enum class GcMode : std::uint8_t {
+    // Exact mark-sweep over the objects_ list; needs every live value
+    // routed through explicit roots.  Host default.
+    Precise,
+    // Conservative BDWGC: allocation itself roots (all new() memory lives
+    // on the GC heap), so stacks and containers need no root plumbing.
+    // Native default; GOLDFISH_GC=precise selects the exact path.
+    Conservative,
+};
+
+inline GcMode gc_mode() noexcept {
+#ifdef GOLDFISH_HAVE_BDWGC
+    static const GcMode mode = [] {
+        const char* env = std::getenv("GOLDFISH_GC");
+        if (env != nullptr && std::strcmp(env, "precise") == 0)
+            return GcMode::Precise;
+        return GcMode::Conservative;
+    }();
+    return mode;
+#else
+    return GcMode::Precise;
+#endif
+}
+
 class Heap final {
 public:
-    // Temporary exact-tracing reference backend. Keep the public surface small;
-    // the runtime must remain replaceable by a mature collector backend.
+    // Keep the public surface small: the runtime stays replaceable by a
+    // mature collector backend (now the default on native; the exact
+    // reference sweep stays selectable).
     Heap() = default;
     Heap(const Heap&) = delete;
     Heap& operator=(const Heap&) = delete;
@@ -103,11 +134,15 @@ public:
     T* make(Args&&... args) {
         static_assert(std::is_base_of<Object, T>::value,
                       "heap objects must derive from runtime::Object");
-        std::unique_ptr<T> object(new T(std::forward<Args>(args)...));
-        object->next_ = objects_;
-        objects_ = object.get();
-        ++allocated_;
-        return object.release();
+        // In conservative mode the intrusive link must stay off: a single
+        // live object would keep the whole objects_ chain alive.
+        T* object = new T(std::forward<Args>(args)...);
+        if (gc_mode() == GcMode::Precise) {
+            object->next_ = objects_;
+            objects_ = object;
+            ++allocated_;
+        }
+        return object;
     }
 
     void collect();
@@ -180,14 +215,31 @@ inline void Heap::mark(Object* object) noexcept {
 }
 
 inline void Heap::collect() {
+    if (gc_mode() == GcMode::Conservative) {
+#ifdef GOLDFISH_HAVE_BDWGC
+        GC_gcollect();
+#endif
+        return;
+    }
     Tracer tracer(*this);
     for (Value* root : roots_)
         if (root != nullptr)
             tracer.mark(*root);
     sweep();
+    // Precise mode keeps allocation on the GC arena but never runs the
+    // conservative collector there (see gc_alloc.cpp): the sweep's
+    // delete/GC_free is the reclaim path, exactly as pre-BDWGC.
 }
 
 inline void Heap::collect(const std::function<void(Tracer&)>& extra_roots) {
+    if (gc_mode() == GcMode::Conservative) {
+        // The conservative scan covers everything extra_roots would mark
+        // (globals, defs-root frames, pending calls) plus live eval frames.
+#ifdef GOLDFISH_HAVE_BDWGC
+        GC_gcollect();
+#endif
+        return;
+    }
     Tracer tracer(*this);
     for (Value* root : roots_)
         if (root != nullptr)

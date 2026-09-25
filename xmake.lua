@@ -326,14 +326,54 @@ target("native-evaluator-test")
     add_packages("tbox")
 target_end()
 
+-- Vendored BDWGC conservative collector.  Only the native runtime links
+-- it: every C++ allocation goes through GC_malloc, so ordinary stack
+-- slots and containers root their values and collection needs no
+-- per-frame root plumbing.  Host gf keeps the precise backend.
+target("bdwgc")
+    set_kind("static")
+    set_languages("gnu99")
+    add_includedirs("third_party/bdwgc/include")
+    add_defines("ALL_INTERIOR_POINTERS", "NO_EXECUTE_PERMISSION",
+                "GC_BUILTIN_ATOMIC")
+    add_files(
+        "third_party/bdwgc/allchblk.c",
+        "third_party/bdwgc/alloc.c",
+        "third_party/bdwgc/blacklst.c",
+        "third_party/bdwgc/checksums.c",
+        "third_party/bdwgc/dbg_mlc.c",
+        "third_party/bdwgc/dyn_load.c",
+        "third_party/bdwgc/finalize.c",
+        "third_party/bdwgc/fnlz_mlc.c",
+        "third_party/bdwgc/gc_dlopen.c",
+        "third_party/bdwgc/gcj_mlc.c",
+        "third_party/bdwgc/headers.c",
+        "third_party/bdwgc/mach_dep.c",
+        "third_party/bdwgc/malloc.c",
+        "third_party/bdwgc/mallocx.c",
+        "third_party/bdwgc/mark.c",
+        "third_party/bdwgc/mark_rts.c",
+        "third_party/bdwgc/misc.c",
+        "third_party/bdwgc/new_hblk.c",
+        "third_party/bdwgc/os_dep.c",
+        "third_party/bdwgc/ptr_chck.c",
+        "third_party/bdwgc/reclaim.c",
+        "third_party/bdwgc/typd_mlc.c")
+    add_syslinks("dl", "pthread")
+target_end()
+
 target("gf-native")
     set_kind("binary")
     set_targetdir("$(projectdir)/bin/")
     set_basename("gf-native")
     set_languages("c++17")
     add_includedirs("src")
+    add_includedirs("third_party/bdwgc/include")
     add_files("src/runtime/native_main.cpp")
+    add_files("src/runtime/gc_alloc.cpp")
+    add_defines("GOLDFISH_HAVE_BDWGC")
     add_native_bootstrap_sources()
+    add_deps("bdwgc")
     add_packages("tbox")
 target_end()
 
