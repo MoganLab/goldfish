@@ -95,13 +95,16 @@ Value eval_value(Evaluator& evaluator, const std::string& source) {
     // tool drivers all land here).  compile-program's implicit base-library
     // target would hide them from (program-library), which is what the test
     // worker reads back to replay the seed into a fresh program.
+    Value module_ref = lookup(evaluator, "module-ref");
+    Value expander = lookup(evaluator, "the-expander-library");
     // Fetch through module-ref: a cold source bootstrap never re-binds the
     // lib layer's names into the global environment (warm artifacts do),
-    // so a bare lookup only works in the warm case.
+    // so a bare lookup only works in the warm case.  The module slot holds
+    // the accessor *procedure*; call it for the live library object.
     Value program_library = evaluator.apply_values(
-        lookup(evaluator, "module-ref"),
-        {lookup(evaluator, "the-expander-library"),
-         evaluator.symbol("program-library")})[0];
+        evaluator.apply_values(
+            module_ref, {expander, evaluator.symbol("program-library")})[0],
+        Values{})[0];
     Value lowered = evaluator.apply_values(
         lookup(evaluator, "compile-program-into"), {forms, program_library})[0];
     return evaluator.eval(lowered);
