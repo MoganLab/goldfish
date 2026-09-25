@@ -3,6 +3,7 @@
 #include "runtime/reader.hpp"
 
 #include <iostream>
+#include <chrono>
 #include <cstdlib>
 #include <filesystem>
 #include <exception>
@@ -413,9 +414,26 @@ int main(int argc, char** argv) {
         configure_load_path(argc, argv);
         set_native_command_line(argc, argv);
         setenv("GOLDFISH_NATIVE_ARTIFACTS", "1", 1);
+        // Boot stage timing: GOLDFISH_NATIVE_TIMING=1 reports each stage to
+        // stderr (ms since the previous stage).
+        const bool timing = std::getenv("GOLDFISH_NATIVE_TIMING") != nullptr;
+        const auto stage_start = std::chrono::steady_clock::now();
+        auto last = stage_start;
+        auto stage = [&timing, &last](const char* name) {
+            auto now = std::chrono::steady_clock::now();
+            if (timing)
+                std::cerr << "[timing] " << name << " "
+                          << std::chrono::duration_cast<std::chrono::milliseconds>(
+                                 now - last)
+                                 .count()
+                          << " ms\n";
+            last = now;
+        };
         NativeBootstrap bootstrap(runtime);
         bootstrap.install_primitives();
+        stage("install-primitives");
         bootstrap.load_kernel("goldfish/expander/kernel-combined.scm");
+        stage("load-kernel");
         bool cached = true;
         try {
             bootstrap.load_cached_runtime();
@@ -423,6 +441,7 @@ int main(int argc, char** argv) {
             std::cerr << "native cache unavailable: " << error.what() << '\n';
             cached = false;
         }
+        stage("load-cached-runtime");
         if (!cached) {
             // install.scm uses this marker to avoid repeating the artifact
             // boot sequence.  A cache-free run has no artifacts, so let its
@@ -431,24 +450,36 @@ int main(int argc, char** argv) {
             install_source_expander(runtime.evaluator());
             load_source(runtime.evaluator(), "expander/bootstrap-prelude.scm");
             load_source(runtime.evaluator(), "liii/prelude.scm");
+            stage("cold-source-bootstrap");
         }
         load_source(runtime.evaluator(), "expander/lib/install.scm");
+        stage("load-install-scm");
         bootstrap.install_expansion_helpers();
+        stage("expansion-helpers");
         // The Scheme-side composite surface (map/list->vector/copy-ish
         // helpers, the numeric predicates) lives in base-functions.scm; the
         // host loads it during its seed and native never did, so names like
         // list->vector stayed unbound for tool code.  RUNTIME_CONTRACT lists
         // this file as the migrated substrate for the runtime layer.
         load_source(runtime.evaluator(), "expander/lib/base-functions.scm");
+        stage("base-functions");
         // s7's hashtable surface comes from s7 itself on the host; native
         // gets the Scheme adapter (vector of bucket alists, same contract).
         load_source(runtime.evaluator(), "expander/lib/native-hash-adapter.scm");
+        stage("hash-adapter");
         Value standard_library = runtime.evaluator().apply_values(
             lookup(runtime.evaluator(), "module-ref"),
             {lookup(runtime.evaluator(), "the-expander-library"),
              runtime.evaluator().symbol("install-standard-library!")})[0];
         runtime.evaluator().apply_values(standard_library, {});
+        stage("standard-library");
         install_mode_imports(runtime.evaluator(), startup_mode(argc, argv));
+        if (timing)
+            std::cerr << "[timing] boot total "
+                      << std::chrono::duration_cast<std::chrono::milliseconds>(
+                             std::chrono::steady_clock::now() - stage_start)
+                             .count()
+                      << " ms\n";
 
         if (argc == 1) {
             std::string line;
