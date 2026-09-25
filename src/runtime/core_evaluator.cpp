@@ -133,8 +133,14 @@ Values Evaluator::eval_tail(Value expression, EnvironmentPtr environment) {
         for (Value argument : proper_list(pair_expression->cdr))
             arguments.push_back(eval(argument, environment));
         if (procedure.is_object() &&
-            procedure.as_object()->type() == ObjectType::Closure)
-            throw TailCall{procedure, std::move(arguments)};
+            procedure.as_object()->type() == ObjectType::Closure) {
+            // Hand the call to the nearest consumer (eval_values/apply);
+            // a throw here made every closure tail call pay full C++ unwind.
+            pending_procedure_ = procedure;
+            pending_arguments_ = std::move(arguments);
+            has_pending_call_ = true;
+            return {Value::unspecified()};
+        }
         return apply(procedure, arguments);
     }
     return eval_pair(*pair_expression, std::move(environment));

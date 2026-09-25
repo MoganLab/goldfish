@@ -219,10 +219,13 @@ public:
     Values apply_values(Value procedure, const Values& arguments);
 
 private:
-    struct TailCall final {
-        Value procedure;
-        Values arguments;
-    };
+    // A tail-position closure call is handed back to the nearest consumer
+    // (eval_values / apply) through these instead of a C++ exception: the
+    // throw/catch round-trip spent ~45% of boot in unwinding (personality +
+    // FDE lookups) under perf.
+    bool has_pending_call_ = false;
+    Value pending_procedure_ = Value::unspecified();
+    Values pending_arguments_;
 
     Values eval_pair(PairObject& expression, EnvironmentPtr environment);
     Values eval_tail(Value expression, EnvironmentPtr environment);

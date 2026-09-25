@@ -3,12 +3,22 @@
 #include "runtime/heap.hpp"
 #include "runtime/symbol.hpp"
 
+#include <cstdio>
+#include <cstdlib>
 #include <memory>
 #include <stdexcept>
 #include <unordered_map>
 #include <vector>
 
 namespace goldfish::runtime {
+
+// GOLDFISH_TRACE_THROW=1 logs each thrown runtime_error: the runtime should
+// throw rarely (exceptions are not control flow here), so a non-empty
+// census means a hot path needs restructuring.
+inline void trace_throw(const char* what) {
+    if (std::getenv("GOLDFISH_TRACE_THROW"))
+        std::fprintf(stderr, "THROW: %s\n", what);
+}
 
 class Environment final {
 public:
@@ -30,6 +40,7 @@ public:
             parent_->set(name, value);
             return;
         }
+        trace_throw("set-unbound");
         throw std::runtime_error("set! of unbound symbol: " + symbol_name(name));
     }
 
@@ -44,6 +55,7 @@ public:
         }
         if (parent_)
             return parent_->lookup(name);
+        trace_throw("lookup-unbound");
         throw std::runtime_error("unbound symbol: " + symbol_name(name));
     }
 

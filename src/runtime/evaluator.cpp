@@ -1,5 +1,7 @@
 #include "runtime/evaluator.hpp"
 
+#include <cstdio>
+#include <cstdlib>
 #include <initializer_list>
 #include <stdexcept>
 
@@ -92,8 +94,10 @@ std::vector<Value> Evaluator::vector_values(Value value) const {
 std::vector<Value> Evaluator::proper_list(Value value) const {
     std::vector<Value> result;
     while (!value.is_null()) {
-        if (!value.is_object() || value.as_object()->type() != ObjectType::Pair)
-        throw std::runtime_error("evaluator: expected proper list");
+        if (!value.is_object() || value.as_object()->type() != ObjectType::Pair) {
+            trace_throw("proper-list");
+            throw std::runtime_error("evaluator: expected proper list");
+        }
         PairObject* pair_value = value.as_object<PairObject>();
         result.push_back(pair_value->car);
         value = pair_value->cdr;
@@ -141,57 +145,66 @@ Values Evaluator::eval_values(Value expression, EnvironmentPtr environment) {
     }
     if (object->type() != ObjectType::Pair)
         return {expression};
+    Values result = eval_tail(expression, std::move(environment));
+    if (!has_pending_call_)
+        return result;
+    // Pending tail call: apply it here (the callee's own tail calls are
+    // consumed by its nested eval_values / apply, so nothing propagates
+    // further).  Arity failures name the callee's first formal; add the
+    // call site's operator so the offending library is findable.
+    has_pending_call_ = false;
     try {
-        return eval_tail(expression, std::move(environment));
-    } catch (const TailCall& tail_call) {
-        try {
-            return apply(tail_call.procedure, tail_call.arguments);
-        } catch (const std::runtime_error& error) {
-            // Arity failures name the callee's first formal; add the call
-            // site's operator so the offending library is findable.
-            std::string message = error.what();
-            if (message.rfind("wrong number of arguments", 0) == 0 &&
-                expression.is_object() &&
-                expression.as_object()->type() == ObjectType::Pair) {
-                Value head = expression.as_object<PairObject>()->car;
-                if (head.is_object() &&
-                    head.as_object()->type() == ObjectType::Symbol) {
-                    message += " [called as: " +
-                               head.as_object<SymbolObject>()->name +
-                               ", core-form=" +
-                               std::to_string(static_cast<int>(
-                                   core_forms_.lookup(head))) + "]";
-                }
-                // Tail calls are caught here with the application's parent
-                // in hand; report the operator for context.
+        return apply(pending_procedure_, pending_arguments_);
+    } catch (const std::runtime_error& error) {
+        std::string message = error.what();
+        if (message.rfind("wrong number of arguments", 0) == 0 &&
+            expression.is_object() &&
+            expression.as_object()->type() == ObjectType::Pair) {
+            Value head = expression.as_object<PairObject>()->car;
+            if (head.is_object() &&
+                head.as_object()->type() == ObjectType::Symbol) {
+                message += " [called as: " +
+                           head.as_object<SymbolObject>()->name +
+                           ", core-form=" +
+                           std::to_string(static_cast<int>(
+                               core_forms_.lookup(head))) + "]";
             }
-            throw std::runtime_error(message);
+            // Tail calls report here with the application's parent in hand.
         }
+        throw std::runtime_error(message);
     }
 }
 
 Values Evaluator::apply(Value procedure, const Values& arguments) {
-    if (!procedure.is_object())
+    if (!procedure.is_object()) {
+        trace_throw("apply-non-procedure");
         throw std::runtime_error("attempt to apply non-procedure");
+    }
 
     Object* object = procedure.as_object();
     if (object->type() == ObjectType::Primitive)
         return procedure.as_object<PrimitiveObject>()->function(arguments);
 
-    if (object->type() != ObjectType::Closure)
+    if (object->type() != ObjectType::Closure) {
+        trace_throw("apply-non-procedure");
         throw std::runtime_error("attempt to apply non-procedure");
+    }
 
     Value next_procedure = procedure;
     Values next_arguments = arguments;
     for (;;) {
-        if (!next_procedure.is_object())
+        if (!next_procedure.is_object()) {
+            trace_throw("apply-non-procedure");
             throw std::runtime_error("attempt to apply non-procedure");
+        }
         Object* next_object = next_procedure.as_object();
         if (next_object->type() == ObjectType::Primitive)
             return next_procedure.as_object<PrimitiveObject>()->function(
                 next_arguments);
-        if (next_object->type() != ObjectType::Closure)
+        if (next_object->type() != ObjectType::Closure) {
+            trace_throw("apply-non-procedure");
             throw std::runtime_error("attempt to apply non-procedure");
+        }
 
         ClosureObject* closure = next_procedure.as_object<ClosureObject>();
         EnvironmentPtr call_environment =
@@ -228,12 +241,16 @@ Values Evaluator::apply(Value procedure, const Values& arguments) {
             call_environment->define(
                 rest, list_values(Values(next_arguments.begin() + required.size(),
                                          next_arguments.end())));
-        try {
-            return eval_tail_sequence(closure->body, call_environment);
-        } catch (const TailCall& tail_call) {
-            next_procedure = tail_call.procedure;
-            next_arguments = tail_call.arguments;
+        Values body_result = eval_tail_sequence(closure->body, call_environment);
+        if (has_pending_call_) {
+            // The body ended in another closure call: keep iterating instead
+            // of recursing (or unwinding) per call.
+            has_pending_call_ = false;
+            next_procedure = pending_procedure_;
+            next_arguments = std::move(pending_arguments_);
+            continue;
         }
+        return body_result;
     }
 }
 
