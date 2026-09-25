@@ -41,3 +41,6 @@ tools/doc/tests/function-library-index.json
 .codex
 .sisyphus/
 .vscode/
+
+# xmake generated symbol dumps
+bin/*.sym
