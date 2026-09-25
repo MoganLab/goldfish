@@ -531,8 +531,25 @@ int main(int argc, char** argv) {
         }
         if (std::string(argv[command]) == "load") {
             if (++command >= argc) throw std::runtime_error("load requires a file");
-            for (; command < argc; ++command)
-                load_source(runtime.evaluator(), argv[command]);
+            // Same loader as file arguments (host parity): the Scheme
+            // loader shares the library cache with `import' and falls back
+            // to per-form expansion; the C++ source loader diverges on
+            // larger programs.  A cold source bootstrap has not defined
+            // the Scheme `load' yet, so keep the C++ loader as fallback.
+            Value scheme_loader;
+            try {
+                scheme_loader = lookup(runtime.evaluator(), "load");
+            } catch (const std::runtime_error&) {
+                scheme_loader = Value::unspecified();
+            }
+            for (; command < argc; ++command) {
+                if (scheme_loader.is_object())
+                    runtime.evaluator().apply_values(
+                        scheme_loader,
+                        {runtime.evaluator().string(argv[command])});
+                else
+                    load_source(runtime.evaluator(), argv[command]);
+            }
             return 0;
         }
         if (std::string(argv[command]) == "test") {
