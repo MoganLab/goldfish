@@ -465,7 +465,15 @@ Values Evaluator::eval_pair(PairObject& expression,
             apply(procedure, setter_arguments);
             return {Value::unspecified()};
         }
-        environment->set(arguments[0], value);
+        try {
+            environment->set(arguments[0], value);
+        } catch (const UnboundSetError& error) {
+            // Host parity: an unbound set! target raises under the key
+            // 'unbound-variable -- eval-when expand effects are expected
+            // to be rejectable with (catch 'unbound-variable ...).
+            throw RaisedValue(Value::object(heap_.make<ErrorObject>(
+                error.what(), ValueList{}, "unbound-variable")));
+        }
         return {Value::unspecified()};
     }
 

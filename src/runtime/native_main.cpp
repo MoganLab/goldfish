@@ -556,10 +556,12 @@ int main(int argc, char** argv) {
             // to per-form expansion; the C++ source loader diverges on
             // larger programs.  A cold source bootstrap has not defined
             // the Scheme `load' yet, so keep the C++ loader as fallback.
+            // Misses surface as keyed raises (or plain runtime errors
+            // from older paths), so the probe catches both.
             Value scheme_loader;
             try {
                 scheme_loader = lookup(runtime.evaluator(), "load");
-            } catch (const std::runtime_error&) {
+            } catch (const std::exception&) {
                 scheme_loader = Value::unspecified();
             }
             for (; command < argc; ++command) {

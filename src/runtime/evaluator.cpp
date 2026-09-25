@@ -145,7 +145,7 @@ Values Evaluator::eval_values(Value expression, EnvironmentPtr environment) {
     if (object->type() == ObjectType::Symbol) {
         try {
             return {environment->lookup(expression)};
-        } catch (const std::exception&) {
+        } catch (const std::exception& error) {
             // s7 keywords: the kernel expander already treats :name / name:
             // as self-evaluating (keyword-symbol? in expand.scm); mirror it
             // so an unbound keyword reference yields the symbol itself
@@ -155,6 +155,14 @@ Values Evaluator::eval_values(Value expression, EnvironmentPtr environment) {
             if (!name.empty() &&
                 (name.front() == ':' || name.back() == ':'))
                 return {expression};
+            // Host parity: a bare unbound reference raises under the key
+            // 'unbound-variable -- expand-time effects are expected to be
+            // rejectable with (catch 'unbound-variable ...).
+            if (auto* unbound =
+                    dynamic_cast<const UnboundSymbolError*>(&error)) {
+                throw RaisedValue(Value::object(heap_.make<ErrorObject>(
+                    unbound->what(), ValueList{}, "unbound-variable")));
+            }
             throw;
         }
     }

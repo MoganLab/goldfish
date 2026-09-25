@@ -20,6 +20,23 @@ inline void trace_throw(const char* what) {
         std::fprintf(stderr, "THROW: %s\n", what);
 }
 
+// A set! whose target has no binding anywhere in the chain.  Derived
+// from std::runtime_error so existing catch sites keep working; the
+// set! core form converts it to a keyed 'unbound-variable raise so
+// (catch 'unbound-variable ...) sees the host's error type.
+class UnboundSetError : public std::runtime_error {
+public:
+    using std::runtime_error::runtime_error;
+};
+
+// A reference to a name with no binding in the chain.  eval converts
+// it to a keyed 'unbound-variable raise (host parity); probes that
+// catch std::runtime_error (defined?, rootlet fallback) keep working.
+class UnboundSymbolError : public std::runtime_error {
+public:
+    using std::runtime_error::runtime_error;
+};
+
 class Environment final {
 public:
     explicit Environment(std::shared_ptr<Environment> parent = nullptr)
@@ -41,7 +58,8 @@ public:
             return;
         }
         trace_throw("set-unbound");
-        throw std::runtime_error("set! of unbound symbol: " + symbol_name(name));
+        throw UnboundSetError("set! of unbound symbol: " +
+                              symbol_name(name));
     }
 
     Value lookup(Value name) const {
@@ -56,7 +74,7 @@ public:
         if (parent_)
             return parent_->lookup(name);
         trace_throw("lookup-unbound");
-        throw std::runtime_error("unbound symbol: " + symbol_name(name));
+        throw UnboundSymbolError("unbound symbol: " + symbol_name(name));
     }
 
     void trace(Tracer& tracer) const {
