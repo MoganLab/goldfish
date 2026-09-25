@@ -315,7 +315,15 @@
       ) ;if
     ) ;define
 
-    (define worker-chunk-size 32)
+    ;; Files per persistent worker chunk.  The native driver reclaims
+    ;; nothing until exit, so a worker that walks a long chunk accumulates
+    ;; every file's expansion state and gets OOM-killed; gf-native sets
+    ;; GOLDFISH_NATIVE_ARTIFACTS and runs in smaller chunks.  Override with
+    ;; GOLDFISH_TEST_CHUNK.
+    (define worker-chunk-size
+      (let ((v (get-environment-variable "GOLDFISH_TEST_CHUNK")))
+        (or (and v (not (string-null? v)) (string->number v))
+            (if (get-environment-variable "GOLDFISH_NATIVE_ARTIFACTS") 4 32))))
 
     ;; Files that must run one-process-per-file (matched by suffix):
     ;; (exit 0) network skip-guards would kill a shared worker, and a few
