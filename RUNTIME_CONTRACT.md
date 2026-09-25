@@ -43,6 +43,21 @@ s7/gf0 过渡层明确属于 R4。
    暂由 host `gf` 预热；R4 删除 host 后须改为构建/CI 提供。
 5. 按本文验收五条逐条跑 differential gate，通过后删除
    `tools/diff-gf0-m2a.sh` skip 名单。
+6. [C1 收尾 2026-09-26] tests/expander 目录级常规 18/19 绿：唯一失败
+   host-abi-load（`1.5` 字面量）归浮点桶；带浮点/复数字面量的测试共
+   220 个文件（含 liii/reader-test 的53处字面量、lib-cache-all-libs
+   的 `sqrt`/`random-state` 缺口——`random` 在 primitive-variables 中
+   但 native 未实现）。s7 rootlet 面（with-let/sublet/unlet/let-set!/
+   *s7*/load-expanded/le-rootlet-copy）在 native 以解析桩满足
+   %internal-names 审计，调用即报错，实现归 s7-compat 桶；hook、
+   stacktrace、setter 已补齐（4056aa7c）。GC：BDWGC 默认、
+   GOLDFISH_GC=precise 回退，单文件峰值由 ~8.4GB 降至几十 MB
+   （0cb38820）。待补原语余项：random 族、read-u8 族、
+   g_path-read-bytes 返回类型（Vector→Bytevector）。
+   目录级终验：export-strict-audit PASS（36m50s）；lib-cache-all-libs
+   冷加载 112/115（余3个为 srfi-27/scheme inexact/liii random，属
+   浮点/随机桶），liii logging 经 hook 修复后转绿；keyed unbound 错误
+   携带消息作首 irritant（修 loader 诊断形状回归）。
 
 ### R4 中途修复（2026-09-24）
 
@@ -108,6 +123,17 @@ native runtime
 
 C++ 不为单个高层库增加业务语义。新增 C++ primitive 必须说明为何不能
 用 Scheme 实现，并归入 platform 或 runtime 合同。
+
+### schemify 原则
+
+可行的工作一律优先落在 Scheme 层（"C++ is the executor and the pipe,
+Scheme is the language" 的升格命名）：符合 Scheme 哲学与同像性——
+语言定义本身可以是程序、可检查可组合——并把语义收敛在单一语言里，
+维护成本最低。边界即上两节清单加三条豁免：引擎自有物（GC、栈/尾
+调用、call/cc）、实测热路径（eval/apply，除非测量翻案）、启动地板
+（冷启动 reader 与原语装载）。**mode → lang protocol 抽取是本原则的
+首要范例**：mode 长成 Scheme 数据（import 集 + 可选 module-begin），
+C++ 只剩 `-m` 分发，同时为"后续方向"的语言协议预铺形状。
 
 当前迁移期的 primitive 分层：
 
@@ -257,6 +283,22 @@ reader 继续只负责 lowered datum/artifact，不扩展成完整的源码 read
 默认入口切换到新 runtime；删除 gf0/s7 bridge、s7-specific compatibility
 层、s7 构建文件和 vendored s7 源码。
 
+### 后续方向（占位）
+
+- **lang protocol 研究**（Racket #lang 式三面：reader / module-begin /
+  binding）：**E 阶段正式着手**——差分工具即 expander API 的第一个
+  外部消费者，skip 三分类提供 surface 边界输入；D 后以"mode 系统统一
+  为三个 language"作采用试点。现阶段只预留形状（mode 不长成特判、
+  保持 read/expand/eval 缝隙、不提前形式化 kernel API）；reader 面
+  除非出现非 S-表达式需求不启用。
+- **REPL / CLI 提升 Scheme**（更长远）：循环、分发、命令、history
+  政策、补全逻辑全归 Scheme（消灭 gf.cpp 与 native_main.cpp 的双份
+  分发）；**readline 提供者留 C**——isocline 收窄为最小行编辑原语
+  （读行/编辑/补全钩子），终端字节流属平台原语豁免，不做纯 Scheme
+  行编辑器。研究窗口同 E；采用在 D 后单目标重写。可提前的独立小件：
+  native 接 isocline（现 repl 分支为裸 getline，无编辑无 history，
+  与 host 有 parity 缺口）。
+
 ## 验收原则
 
 每个阶段都必须同时满足：
@@ -269,3 +311,39 @@ reader 继续只负责 lowered datum/artifact，不扩展成完整的源码 read
 
 现有 s7 differential gate 在迁移期继续使用，但只作为迁移参照，不是最终
 语义合同。新模块迁移后，应删除相应的 s7 bridge 测试和 HOF entry。
+
+### 语义 oracle 层级
+
+1. **R7RS-small 是最高规范**：spec 文本优先；实现间有分歧时以 spec
+   裁决，成熟实现（Chibi、Guile/Racket 的 r7rs 模式）仅作交叉验证。
+   例外细化：宏卫生的算法选择 spec 不作规定——本实现采用 sets of
+   scopes（Flatt）+ home-library 兜底，capture/ellipsis 逃逸等边角
+   以 sets-of-scopes 论文与 Racket 行为为参照；核心宏全卫生与方言层
+   `define-macro` 的非卫生（defmacro.scm 文档化）并存是设计而非不一致。
+2. **Goldfish 方言面**（liii、s7 兼容层）以 "goldfish-on-s7 的既有
+   行为" 为兼容基线——仅迁移期有效，随 D 删除 s7 一并退役；其语义
+   规格可直接查 s7 文档。
+3. 差分门（E 阶段）的每个差异必须三分类：
+   - 违背 R7RS → native 修正，偏离 s7 是修正而非回归；
+   - 方言所需 → 保持 s7 行为；
+   - spec 未定义 → 在本文裁决并记录，成为后续规范。
+   skip 名单理由与该分类对齐。
+4. **方言面扬弃**（2026-09-26 定）：native surface 不继承 s7 器官。
+   `with-let`/`sublet`/`unlet`/`let-set!`/`*s7*` 列为删除项——新宏系统
+   （syntax-case + 显式模块环境 + eval-when 区域）不需要环境拷贝形式；
+   hooks 不保留对象协议，logging 的 exit-flush 以退出时调用注册
+   thunk 的朴素机制替代；`stacktrace` 保留需求、实现归 native 栈迹。
+   执行时机分层：native-only 面（C++ 桩、%internal-names 条目）可即刻
+   删；共享 Scheme 源码的使用点改写须 host/native 双端可跑，随 C3/D 收口。
+   当前的解析桩是待执行的删除，不是永久状态。
+5. **数值塔处置**（2026-09-26 定）：
+   - 表示约束：Value 的 union 已可容纳 double（float 落地不改 Value
+     布局）；bignum/ratio 以堆对象加入 ObjectType，不进 immediate 层。
+   - 溢出策略：int64 精确运算溢出在 bignum 落地前**显式报错**
+     （当前 `+`/`*` 未检查、静默回绕，属待修缺陷），bignum 后改自动提升。
+   - 顺序：float + inexact 函数族（阶段3，按塔级 exact/inexact 传染
+     规则一次设计，不作临时补丁）→ bignum/ratio 合规补全。塔后半段的
+     oracle 是 spec + Guile/Chibi——s7 本身无 ratio/bignum，**不受 D
+     约束**，可后置于 D。
+   - host（s7）同样无 ratio/bignum：方言缺口记录在此，差分门测不到
+     塔的后半段，须以 R7RS spec 测试为准。
