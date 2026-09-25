@@ -678,6 +678,23 @@ void install_runtime_primitives(Evaluator& evaluator) {
     });
     // Explicit evaluation environments.  Legacy inlet support is installed
     // later by migration_primitives.cpp, not by this runtime layer.
+    // s7 surface: (gensym [prefix]) -> a fresh symbol per call.  The
+    // high per-process base keeps generated names out of the space of
+    // names user code is likely to define.
+    install(evaluator, "gensym", [&evaluator](const Values& args) {
+        if (args.size() > 1)
+            throw std::runtime_error("gensym expects zero or one argument");
+        std::string prefix = "g";
+        if (args.size() == 1) {
+            if (!args[0].is_object() ||
+                args[0].as_object()->type() != ObjectType::String)
+                throw std::runtime_error("gensym prefix must be a string");
+            prefix = args[0].as_object<StringObject>()->value;
+        }
+        static std::size_t counter = 1000000;
+        return Values{
+            evaluator.symbol(prefix + "-" + std::to_string(++counter))};
+    });
     // Per-top-level-form boundary called from the Scheme loader's
     // expand-eval (liii/reader.scm): under the conservative collector a
     // collection here keeps the dirty heap to one form's worth while the

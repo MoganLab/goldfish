@@ -275,8 +275,8 @@ int try_project_tool(Evaluator& evaluator, int argc, char** argv,
     if (cmd.empty() || cmd[0] == '-' || cmd.find('/') != std::string::npos)
         return -1;
     // Built-ins skip dispatch unless a local tools/<cmd> overrides them.
-    static const char* builtins[] = {"help", "version", "eval", "-e", "load",
-                                     "repl", "run",   "--help", "-h"};
+    static const char* builtins[] = {"help", "version", "eval", "-e",
+                                     "load", "--help", "-h"};
     for (const char* builtin : builtins) {
         if (cmd == builtin) {
             if (has_local_tool(cmd)) break;
@@ -585,6 +585,48 @@ int main(int argc, char** argv) {
             if (++command >= argc) throw std::runtime_error("test requires a path");
             for (; command < argc; ++command)
                 eval_test_path(runtime.evaluator(), argv[command]);
+            return 0;
+        }
+        if (std::string(argv[command]) == "run") {
+            // Host parity (goldfish.hpp): load the target silently, then
+            // invoke its `main' procedure; a non-procedure `main' is an
+            // error naming the target.
+            if (++command >= argc)
+                throw std::runtime_error("run requires a target");
+            for (; command < argc; ++command) {
+                const std::string target = argv[command];
+                runtime.evaluator().apply_values(
+                    lookup(runtime.evaluator(), "load"),
+                    {runtime.evaluator().string(target)});
+                Value main_proc;
+                auto is_procedure = [](const Value& value) {
+                    return value.is_object() &&
+                           (value.as_object()->type() == ObjectType::Closure ||
+                            value.as_object()->type() ==
+                                ObjectType::Primitive);
+                };
+                try {
+                    main_proc = lookup(runtime.evaluator(), "main");
+                } catch (const std::exception&) {
+                    main_proc = Value::unspecified();
+                }
+                // Loaded-file defines live in the session program library;
+                // expand-eval is the entry that resolves them there (host
+                // falls back from name_to_value to eval-through-reader).
+                if (!is_procedure(main_proc)) {
+                    try {
+                        main_proc = runtime.evaluator().apply_values(
+                            lookup(runtime.evaluator(), "expand-eval"),
+                            {runtime.evaluator().symbol("main")})[0];
+                    } catch (const std::exception&) {
+                        main_proc = Value::unspecified();
+                    }
+                }
+                if (!is_procedure(main_proc))
+                    throw std::runtime_error(
+                        "No main function found in target: " + target);
+                runtime.evaluator().apply_values(main_proc, {});
+            }
             return 0;
         }
         if (command < argc) {
