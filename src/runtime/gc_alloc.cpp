@@ -18,9 +18,11 @@
 
 #include "gc/gc.h"
 
+#include "runtime/debug_flags.hpp"
 #include "runtime/heap.hpp"
 
 #include <cstddef>
+#include <cstdlib>
 #include <new>
 
 namespace {
@@ -30,6 +32,8 @@ bool g_gc_initialized = false;
 
 void ensure_gc_init() {
     if (!g_gc_initialized) {
+        if (goldfish::runtime::debug_enabled("gc"))
+            setenv("GC_PRINT_STATS", "1", 0);
         GC_init();
         g_gc_initialized = true;
         // Precise mode runs its own exact sweep over the same arena; the

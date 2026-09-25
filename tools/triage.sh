@@ -15,18 +15,29 @@ fail=0
 grep -E '^  [^ ]+ \.\.\. (PASS|FAIL)$' "$clean" | while IFS= read -r row; do
     file=$(printf '%s\n' "$row" | sed 's/^  //; s/ \.\.\. .*//')
     status=$(printf '%s\n' "$row" | sed 's/.*\.\.\. //')
-    if [ "$status" = FAIL ]; then
-        why=$(grep -F "while loading $file" "$clean" | head -1 \
-              | sed 's/^.*form [0-9]*: //' | cut -c1-140)
-        if [ -z "$why" ]; then
-            why=$(grep -F "$file" "$clean" | grep -E 'thrown|error' \
-                  | head -1 | cut -c1-140)
-        fi
-        if [ -z "$why" ]; then
-            why=$(grep -E 'correct, [1-9][0-9]* failed' "$clean" \
-                  | tail -1 | cut -c1-140)
-        fi
-        printf 'FAIL %s\n     %s\n' "$file" "${why:-<no error line captured>}"
+        if [ "$status" = FAIL ]; then
+            why=$(grep -F "while loading $file" "$clean" | head -1 \
+                  | sed 's/^.*form [0-9]*: //' | cut -c1-140)
+            if [ -z "$why" ]; then
+                why=$(grep -F "$file" "$clean" | grep -E 'thrown|error' \
+                      | head -1 | cut -c1-140)
+            fi
+            if [ -z "$why" ]; then
+                why=$(grep -E 'correct, [1-9][0-9]* failed' "$clean" \
+                      | tail -1 | cut -c1-140)
+            fi
+            case "$why" in
+                *sqrt*|*random*|*inexact*|*1.[0-9]*|*expt*)
+                    bucket="float/numeric" ;;
+                *stacktrace*|*hook*|*with-let*|*sublet*|*unlet*|*load-expanded*)
+                    bucket="s7-compat" ;;
+                *"set! of unbound"*|*unbound-variable*)
+                    bucket="semantics" ;;
+                *) bucket="" ;;
+            esac
+            printf 'FAIL %s\n' "$file"
+            [ -n "$bucket" ] && printf '     [%s]\n' "$bucket"
+            printf '     %s\n' "${why:-<no error line captured>}"
     else
         printf 'PASS %s\n' "$file"
     fi

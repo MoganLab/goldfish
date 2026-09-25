@@ -1,5 +1,6 @@
 #pragma once
 
+#include "runtime/debug_flags.hpp"
 #include "runtime/heap.hpp"
 #include "runtime/symbol.hpp"
 
@@ -16,7 +17,7 @@ namespace goldfish::runtime {
 // throw rarely (exceptions are not control flow here), so a non-empty
 // census means a hot path needs restructuring.
 inline void trace_throw(const char* what) {
-    if (std::getenv("GOLDFISH_TRACE_THROW"))
+    if (debug_enabled("throw", "GOLDFISH_TRACE_THROW"))
         std::fprintf(stderr, "THROW: %s\n", what);
 }
 

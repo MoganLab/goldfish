@@ -1017,12 +1017,25 @@
 
 (define *eval-ctx* #f)
 
+(define (form-boundary!)
+  ;; Per-top-level-form boundary.  The native runtime installs
+  ;; %form-boundary (conservative collect + GOLDFISH_DEBUG=progress
+  ;; heartbeat); the host evaluator has no such primitive and skips it.
+  ;; The guarded reference expands to a bare name that is only evaluated
+  ;; when the primitive exists, so neither side needs a kernel entry.
+  (if (defined? '%form-boundary)
+    (%form-boundary)
+    #f))
+
 (define (expand-eval expr)
   ;; Top-level program forms expand against the session PROGRAM library
   ;; (R7RS 5.1: the program's environment starts empty and accumulates its
   ;; imports).  The base library is NOT ambient here: an identifier that
   ;; resolves nowhere is an error (expand.scm).  --mode imports and any
   ;; user (import ...) forms land in this library.
+  ;; Per-form boundary: conservative GC collects here (shallow stack,
+  ;; dirty heap = one form) and GOLDFISH_DEBUG=progress beats heart.
+  (form-boundary!)
   (let* ((lib (program-library))
          (stx (stx-set-library (wrap-expression expr) lib))
          (ctx (or *eval-ctx* (initial-context)))

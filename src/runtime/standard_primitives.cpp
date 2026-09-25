@@ -1,5 +1,6 @@
 #include "runtime/standard_primitives.hpp"
 
+#include "runtime/debug_flags.hpp"
 #include "runtime/reader.hpp"
 #include "runtime/platform_primitives.hpp"
 #include "runtime/unicode_primitives.hpp"
@@ -677,6 +678,22 @@ void install_runtime_primitives(Evaluator& evaluator) {
     });
     // Explicit evaluation environments.  Legacy inlet support is installed
     // later by migration_primitives.cpp, not by this runtime layer.
+    // Per-top-level-form boundary called from the Scheme loader's
+    // expand-eval (liii/reader.scm): under the conservative collector a
+    // collection here keeps the dirty heap to one form's worth while the
+    // stack is shallow; exact tracing (host) would only lose time, so it
+    // skips the collect.  Also hosts the GOLDFISH_DEBUG=progress
+    // heartbeat for long loads.
+    install(evaluator, "%form-boundary", [&evaluator](const Values& args) {
+        (void)args;
+        if (gc_mode() == GcMode::Conservative)
+            evaluator.collect();
+        if (debug_enabled("progress")) {
+            static std::size_t form_count = 0;
+            std::fprintf(stderr, "[progress] form %zu\n", ++form_count);
+        }
+        return Values{Value::unspecified()};
+    });
     install(evaluator, "defined?", [&evaluator](const Values& args) {
         require_arity(args, 1, "defined?");
         if (!args[0].is_object() ||

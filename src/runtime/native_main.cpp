@@ -1,4 +1,5 @@
 #include "runtime/bootstrap.hpp"
+#include "runtime/debug_flags.hpp"
 #include "runtime/platform_primitives.hpp"
 #include "runtime/reader.hpp"
 
@@ -161,6 +162,10 @@ void install_source_expander(Evaluator& evaluator) {
             // loader's own frames only), so a conservative collection is
             // both safe and cheap.  This is what bounds per-file memory.
             evaluator.collect();
+            if (debug_enabled("progress")) {
+                static std::size_t form_count = 0;
+                std::fprintf(stderr, "[progress] form %zu\n", ++form_count);
+            }
             Value compile = evaluator.eval(evaluator.symbol("compile-toplevel"));
             Value lowered = evaluator.apply_values(compile, args)[0];
             return evaluator.eval_values(lowered);
@@ -430,9 +435,11 @@ int main(int argc, char** argv) {
         configure_load_path(argc, argv);
         set_native_command_line(argc, argv);
         setenv("GOLDFISH_NATIVE_ARTIFACTS", "1", 1);
-        // Boot stage timing: GOLDFISH_NATIVE_TIMING=1 reports each stage to
-        // stderr (ms since the previous stage).
-        const bool timing = std::getenv("GOLDFISH_NATIVE_TIMING") != nullptr;
+        // Boot stage timing: GOLDFISH_DEBUG=timing (or legacy
+        // GOLDFISH_NATIVE_TIMING=1) reports each stage to stderr (ms since
+        // the previous stage).
+        const bool timing =
+            debug_enabled("timing", "GOLDFISH_NATIVE_TIMING");
         const auto stage_start = std::chrono::steady_clock::now();
         auto last = stage_start;
         auto stage = [&timing, &last](const char* name) {
