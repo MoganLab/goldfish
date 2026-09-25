@@ -12,6 +12,14 @@
 
 namespace goldfish::runtime {
 
+// Root slots outside any Environment: current ports and singletons that
+// primitives capture by value.  Registered once at install, traced by
+// Evaluator::collect.
+inline std::vector<Value*>& permanent_roots() {
+    static std::vector<Value*> roots;
+    return roots;
+}
+
 class Heap;
 class Tracer;
 

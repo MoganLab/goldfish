@@ -196,11 +196,10 @@ public:
     void define_primitive(const std::string& name,
                           PrimitiveObject::Function function);
 
-    void collect() {
-        heap_.collect([this](Tracer& tracer) {
-            global_->trace(tracer);
-        });
-    }
+    // Sweep the heap: mark from the global chain, the expander's defs
+    // frame, pending tail-call state and the permanent root slots.  Only
+    // call at safe points (no unprotected Values live on the C++ stack).
+    void collect();
 
     Value symbol(const std::string& name) {
         return symbols_.intern(name);

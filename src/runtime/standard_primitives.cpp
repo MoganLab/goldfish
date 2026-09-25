@@ -322,6 +322,20 @@ struct CurrentPortSlot {
     Value error_port;
 };
 CurrentPortSlot g_current_ports;
+// The eof singleton primitives close over; a permanent root keeps the
+// captured copies alive across collection.
+Value g_eof_singleton;
+// Registered as permanent roots: primitives close over these values and
+// set! reassigns the slots, so rooting the slots covers both.
+struct RegisterPortRoots {
+    RegisterPortRoots() {
+        permanent_roots().push_back(&g_current_ports.input);
+        permanent_roots().push_back(&g_current_ports.output);
+        permanent_roots().push_back(&g_current_ports.error_port);
+        permanent_roots().push_back(&g_eof_singleton);
+    }
+};
+RegisterPortRoots g_register_port_roots;
 
 Value current_input_port(Evaluator& evaluator) {
     if (g_current_ports.input.is_null())
@@ -789,7 +803,8 @@ void install_runtime_primitives(Evaluator& evaluator) {
         }
     });
     // Input/output ports and the tiny reader boundary.
-    Value eof = Value::object(evaluator.heap().make<EofObject>());
+    g_eof_singleton = Value::object(evaluator.heap().make<EofObject>());
+    Value eof = g_eof_singleton;
     install(evaluator, "eof-object", [eof](const Values& args) {
         require_arity(args, 0, "eof-object");
         return Values{eof};

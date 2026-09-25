@@ -42,6 +42,21 @@ void Evaluator::set_defs_root(EnvironmentPtr frame) {
     defs_root_slot() = std::move(frame);
 }
 
+void Evaluator::collect() {
+    heap_.collect([this](Tracer& tracer) {
+        global_->trace(tracer);
+        // The expander's defs frame is a CHILD of the global chain, so it
+        // needs its own root; library gensym definitions live there.
+        if (defs_root_slot())
+            defs_root_slot()->trace(tracer);
+        tracer.mark(pending_procedure_);
+        for (const Value& argument : pending_arguments_)
+            tracer.mark(argument);
+        for (Value* root : permanent_roots())
+            if (root) tracer.mark(*root);
+    });
+}
+
 Value Evaluator::list(std::initializer_list<Value> values) {
     Value result = Value::null();
     for (auto it = values.end(); it != values.begin();) {

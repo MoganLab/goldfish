@@ -445,6 +445,7 @@ int main(int argc, char** argv) {
         stage("install-primitives");
         bootstrap.load_kernel("goldfish/expander/kernel-combined.scm");
         stage("load-kernel");
+        runtime.evaluator().collect();
         bool cached = true;
         try {
             bootstrap.load_cached_runtime();
@@ -465,6 +466,7 @@ int main(int argc, char** argv) {
         }
         load_source(runtime.evaluator(), "expander/lib/install.scm");
         stage("load-install-scm");
+        runtime.evaluator().collect();
         bootstrap.install_expansion_helpers();
         stage("expansion-helpers");
         // The Scheme-side composite surface (map/list->vector/copy-ish
@@ -478,12 +480,14 @@ int main(int argc, char** argv) {
         // gets the Scheme adapter (vector of bucket alists, same contract).
         load_source(runtime.evaluator(), "expander/lib/native-hash-adapter.scm");
         stage("hash-adapter");
+        runtime.evaluator().collect();
         Value standard_library = runtime.evaluator().apply_values(
             lookup(runtime.evaluator(), "module-ref"),
             {lookup(runtime.evaluator(), "the-expander-library"),
              runtime.evaluator().symbol("install-standard-library!")})[0];
         runtime.evaluator().apply_values(standard_library, {});
         stage("standard-library");
+        runtime.evaluator().collect();
         install_mode_imports(runtime.evaluator(), startup_mode(argc, argv));
         if (timing)
             std::cerr << "[timing] boot total "
