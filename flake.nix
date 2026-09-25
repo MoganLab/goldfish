@@ -123,6 +123,7 @@
               valgrind
               guile
               racket-minimal
+              chibi
             ];
           };
 
