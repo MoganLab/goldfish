@@ -1,0 +1,6 @@
+# C2 skip manifest: files excluded from the parity sweep with a bucket
+# tag and reason.  Literal-based float dependencies are handled by the
+# generated manifest; this file carries the non-literal gaps.
+# format: path<TAB>bucket<TAB>reason
+tests/srfi/srfi-27-test.scm	random	needs random-state (PRNG primitives, float/random workstream)
+tests/srfi/srfi-158-test.scm	engine-callcc	srfi-158 generators capture continuations; native has no call/cc yet

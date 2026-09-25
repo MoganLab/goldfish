@@ -13,9 +13,12 @@ bool is_symbol(Value value, const char* name) {
 }
 
 std::string error_message(const Evaluator& evaluator, Value value) {
+    (void)evaluator;
     if (value.is_object() &&
         value.as_object()->type() == ObjectType::String)
-        return evaluator.string_value(value);
+        // Already type-checked above; the keyed wrong-type-arg path in
+        // string_value is unreachable from here.
+        return value.as_object<StringObject>()->value;
     if (value.is_object() &&
         value.as_object()->type() == ObjectType::Symbol)
         return value.as_object<SymbolObject>()->name;

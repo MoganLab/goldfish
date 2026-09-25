@@ -86,9 +86,13 @@ std::string Evaluator::symbol_name(Value value) const {
     return value.as_object<SymbolObject>()->name;
 }
 
-std::string Evaluator::string_value(Value value) const {
+std::string Evaluator::string_value(Value value) {
     if (!value.is_object() || value.as_object()->type() != ObjectType::String)
-        throw std::runtime_error("expected string");
+        // Host parity: s7 raises 'wrong-type-arg for type mismatches;
+        // the message rides as the first irritant for formatters.
+        throw RaisedValue(Value::object(heap_.make<ErrorObject>(
+            "expected string", ValueList{string("expected string")},
+            "wrong-type-arg")));
     return value.as_object<StringObject>()->value;
 }
 

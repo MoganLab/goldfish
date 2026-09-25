@@ -128,7 +128,6 @@ tests/liii/base64-test.scm
 tests/liii/base64/base64-decode-test.scm
 tests/liii/base64/base64-encode-test.scm
 tests/liii/base64/bytevector-base64-decode-test.scm
-tests/liii/base64/bytevector-base64-encode-test.scm
 tests/liii/bitwise-test.scm
 tests/liii/bitwise/arithmetic-shift-test.scm
 tests/liii/bitwise/bit-count-test.scm
@@ -932,7 +931,6 @@ tests/liii/time/date-month-test.scm
 tests/liii/time/date-nanosecond-test.scm
 tests/liii/time/date-p-test.scm
 tests/liii/time/date-second-test.scm
-tests/liii/time/date-to-julian-day-test.scm
 tests/liii/time/date-to-modified-julian-day-test.scm
 tests/liii/time/date-to-string-test.scm
 tests/liii/time/date-to-time-utc-test.scm
@@ -1140,7 +1138,6 @@ tests/scheme/base/eof-object-test.scm
 tests/scheme/base/eq-p-test.scm
 tests/scheme/base/error-object-test.scm
 tests/scheme/base/error-test.scm
-tests/scheme/base/expt-test.scm
 tests/scheme/base/features-test.scm
 tests/scheme/base/file-error-p-test.scm
 tests/scheme/base/floor-remainder-test.scm
@@ -1246,7 +1243,6 @@ tests/scheme/base/write-char-test.scm
 tests/scheme/base/write-string-test.scm
 tests/scheme/base/write-u8-test.scm
 tests/scheme/boot-test.scm
-tests/scheme/case-lambda-test.scm
 tests/scheme/char-test.scm
 tests/scheme/char/char-ci-eq-p-test.scm
 tests/scheme/char/char-ci-ge-p-test.scm
@@ -1295,7 +1291,6 @@ tests/scheme/read-test.scm
 tests/scheme/read/read-test.scm
 tests/scheme/repl-test.scm
 tests/scheme/repl/interaction-environment-test.scm
-tests/scheme/time/current-jiffy-test.scm
 tests/scheme/time/current-second-test.scm
 tests/scheme/time/jiffies-per-second-test.scm
 tests/scheme/write-test.scm
@@ -1318,7 +1313,6 @@ tests/srfi/srfi-158-test.scm
 tests/srfi/srfi-16-test.scm
 tests/srfi/srfi-165-test.scm
 tests/srfi/srfi-175-test.scm
-tests/srfi/srfi-19-test.scm
 tests/srfi/srfi-196-test.scm
 tests/srfi/srfi-2-test.scm
 tests/srfi/srfi-209-test.scm

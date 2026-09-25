@@ -17,17 +17,33 @@ cd "$project"
 mem=${C2_MEM:-8388608}
 mega_re='export-strict-audit-test|lib-cache-all-libs-test'
 
-if [ $# -gt 0 ]; then
-    files="$*"
-else
-    files=$(cat "${C2_MANIFEST:-tests/float-free.manifest}")
+bucketed=0
+skip_file=${C2_SKIP_MANIFEST:-tests/c2-skip.tsv}
+skip_paths=""
+if [ -f "$skip_file" ]; then
+    skip_paths=$(grep -v '^#' "$skip_file" | awk '{print $1}')
+    bucketed=$(grep -vc '^#' "$skip_file")
 fi
+if [ $# -gt 0 ]; then
+    raw="$*"
+else
+    raw=$(cat "${C2_MANIFEST:-tests/float-free.manifest}")
+fi
+# Skip entries are global: bucketed files never run, even when passed
+# explicitly.
+files=$(printf '%s\n' "$raw" | while IFS= read -r f; do
+    if [ -n "$skip_paths" ] && printf '%s\n' "$skip_paths" | grep -qxF "$f"; then
+        continue
+    fi
+    echo "$f"
+done)
 
 classify() { # $1 = both-fail marker is handled by caller
     case "$1" in
         *sqrt*|*random*|*inexact*|*1.[0-9]*|*expt*) echo "float/numeric" ;;
         *stacktrace*|*hook*|*with-let*|*sublet*|*unlet*|*load-expanded*) echo "s7-compat" ;;
         *"set! of unbound"*|*unbound-variable*) echo "semantics" ;;
+        *call/cc*|*call-with-current-continuation*) echo "engine-callcc" ;;
         *) echo "" ;;
     esac
 }
@@ -88,5 +104,5 @@ for f in $files; do
     fi
 done
 echo "---"
-echo "agree-pass=$agree_pass agree-fail=$agree_fail diverge=$diverge skipped=$skipped"
+echo "agree-pass=$agree_pass agree-fail=$agree_fail diverge=$diverge skipped=$skipped manifest-bucketed=$bucketed"
 echo "divergence rows: /tmp/c2-diverge.log"

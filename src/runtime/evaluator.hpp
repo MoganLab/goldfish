@@ -209,7 +209,7 @@ public:
         return Value::object(heap_.make<StringObject>(value));
     }
 
-    std::string string_value(Value value) const;
+    std::string string_value(Value value);
     Value character(char32_t value) {
         return Value::object(heap_.make<CharacterObject>(value));
     }

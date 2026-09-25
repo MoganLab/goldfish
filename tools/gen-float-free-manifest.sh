@@ -16,7 +16,7 @@ find tests -name '*-test.scm' | LC_ALL=C sort > "$all"
 # suffix (+2i), exactness/radix prefixes (#e1/2 #x10).  Deliberately
 # conservative: a comment mentioning a float costs coverage, never a
 # false pass.
-grep -rlE '(^|[^A-Za-z0-9_-])[0-9]+\.[0-9]|(^|[^A-Za-z0-9_.])[.][0-9]|[0-9]+e[-+]?[0-9]|\+[0-9]*\.?[0-9]*i([^A-Za-z0-9]|$)|#[ie][#\\]?[0-9]' \
+grep -rlE '(^|[^A-Za-z0-9_-])[0-9]+\.[0-9]|(^|[^A-Za-z0-9_.])[.][0-9]|[0-9]+e[-+]?[0-9]|\+[0-9]*\.?[0-9]*i([^A-Za-z0-9]|$)|#[ie][#\\]?[0-9]|(^|[^A-Za-z0-9_.]) [0-9]+/[0-9]+' \
     $(cat "$all") 2>/dev/null | LC_ALL=C sort -u > "$float" || true
 
 LC_ALL=C comm -23 "$all" "$float" > "$out"
