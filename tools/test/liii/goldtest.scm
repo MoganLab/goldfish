@@ -1044,7 +1044,15 @@
             (when arg-value
               (display-filter-info arg-type arg-value)
             ) ;when
-            (let* ((jobs (or (parse-test-jobs args) (detect-cpu-count)))
+            (let* ((jobs (or (parse-test-jobs args)
+                             ;; Native keeps every loaded file's expansion
+                             ;; state (a heavy file peaks near8GB): default
+                             ;; to one file per process so runs stay within
+                             ;; memory.  -j still overrides.
+                             (if (get-environment-variable
+                                    "GOLDFISH_NATIVE_ARTIFACTS")
+                               1
+                               (detect-cpu-count))))
                    (two-phases? (and need-run-all
                                       (pair? changed-test-files)
                                       (pair? remaining-test-files)))

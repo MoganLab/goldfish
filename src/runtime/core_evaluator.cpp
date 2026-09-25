@@ -128,6 +128,23 @@ Values Evaluator::eval_tail(Value expression, EnvironmentPtr environment) {
     }
 
     if (form == CoreForm::Unknown) {
+        // quasiquote only reaches raw eval through legacy paths (the
+        // defmacro transformer evaluates its body outside the expander);
+        // delegate to `expand', which owns the splicing/vector semantics,
+        // then run the lowered cons/list core.
+        if (pair_expression->car.is_object() &&
+            pair_expression->car.as_object()->type() == ObjectType::Symbol &&
+            pair_expression->car.as_object<SymbolObject>()->name ==
+                "quasiquote") {
+            try {
+                Value expand_proc = environment->lookup(symbol("expand"));
+                Value expanded =
+                    apply(expand_proc, {expression})[0];
+                return eval_values(expanded, environment);
+            } catch (const std::runtime_error&) {
+                // no expander in scope: fall through to the normal path
+            }
+        }
         Value procedure = eval(pair_expression->car, environment);
         Values arguments;
         for (Value argument : proper_list(pair_expression->cdr))
