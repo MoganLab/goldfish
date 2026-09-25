@@ -470,9 +470,11 @@ Values Evaluator::eval_pair(PairObject& expression,
         } catch (const UnboundSetError& error) {
             // Host parity: an unbound set! target raises under the key
             // 'unbound-variable -- eval-when expand effects are expected
-            // to be rejectable with (catch 'unbound-variable ...).
+            // to be rejectable with (catch 'unbound-variable ...).  The
+            // message rides as the first irritant for error formatters.
             throw RaisedValue(Value::object(heap_.make<ErrorObject>(
-                error.what(), ValueList{}, "unbound-variable")));
+                error.what(), ValueList{string(error.what())},
+                "unbound-variable")));
         }
         return {Value::unspecified()};
     }

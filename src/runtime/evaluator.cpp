@@ -160,8 +160,13 @@ Values Evaluator::eval_values(Value expression, EnvironmentPtr environment) {
             // rejectable with (catch 'unbound-variable ...).
             if (auto* unbound =
                     dynamic_cast<const UnboundSymbolError*>(&error)) {
+                // The message rides as the first irritant: load/error
+                // handlers format (key "detail" ...) exactly like the
+                // host's (error msg args ...) shape.
                 throw RaisedValue(Value::object(heap_.make<ErrorObject>(
-                    unbound->what(), ValueList{}, "unbound-variable")));
+                    unbound->what(),
+                    ValueList{string(unbound->what())},
+                    "unbound-variable")));
             }
             throw;
         }
