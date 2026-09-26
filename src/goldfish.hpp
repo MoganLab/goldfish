@@ -111,6 +111,8 @@ void glue_http_async (s7_scheme* sc);
 #endif
 void glue_liii_base64 (s7_scheme* sc);
 void glue_liii_json (s7_scheme* sc);
+void glue_liii_go (s7_scheme* sc);
+void set_goldfish_lib_dir (const std::string& dir);
 void glue_scheme_base (s7_scheme* sc);
 void glue_scheme_char (s7_scheme* sc);
 void glue_liii_hashlib (s7_scheme* sc);
@@ -775,7 +777,7 @@ glue_liii_list (s7_scheme* sc) {
   glue_iota_list (sc);
 }
 
-void
+inline void
 glue_for_community_edition (s7_scheme* sc) {
   glue_goldfish (sc);
   glue_scheme_time (sc);
@@ -794,6 +796,7 @@ glue_for_community_edition (s7_scheme* sc) {
   glue_liii_hashlib (sc);
   glue_liii_base64 (sc);
   glue_liii_json (sc);
+  glue_liii_go (sc);
   glue_scheme_base (sc);
   glue_scheme_char (sc);
   glue_r7rs_library (sc);
@@ -1334,6 +1337,7 @@ read_text_file_exact (const fs::path& path) {
 
 s7_scheme*
 init_goldfish_scheme (const char* gf_lib) {
+  set_goldfish_lib_dir (gf_lib);
   s7_scheme* sc= s7_init ();
   s7_add_to_load_path (sc, gf_lib);
 
