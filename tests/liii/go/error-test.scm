@@ -12,8 +12,8 @@
   (/ 1 0)
   (chan-send! ch-err "never-reached"))
 
-;; 验证失败任务关联的通道会被自动关闭以解开等待者
-(check (eof-object? (chan-recv! ch-err 2000)) => #t)
+;; 验证失败任务不会向通道发送垃圾数据，且不会误关通道影响其他任务（超时安全返回）
+(check (chan-recv! ch-err 200 'task-failed) => 'task-failed)
 
 ;; 确保 Worker 线程池没有崩溃，继续派发一个正常任务
 (go (ch-healthy)

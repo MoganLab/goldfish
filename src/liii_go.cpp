@@ -16,6 +16,7 @@
 
 #include "liii_go.hpp"
 #include <cstring>
+#include <iostream>
 #include <queue>
 #include <sstream>
 #include <thread>
@@ -45,6 +46,10 @@ static thread_local bool t_worker_task_failed= false;
 static s7_pointer
 f_worker_notify_error (s7_scheme* sc, s7_pointer args) {
   t_worker_task_failed= true;
+  s7_pointer tag      = s7_car (args);
+  s7_pointer err_args = s7_cadr (args);
+  std::cerr << "[Goldfish Worker Error] " << s7_object_to_c_string (sc, tag) << ": "
+            << s7_object_to_c_string (sc, err_args) << std::endl;
   return s7_unspecified (sc);
 }
 
@@ -152,15 +157,6 @@ private:
 
       t_worker_task_failed= false;
       s7_eval (worker_sc, let_expr, s7_rootlet (worker_sc));
-
-      if (t_worker_task_failed) {
-        // Automatically close all channels passed to the failed task to unblock receivers
-        for (const auto& v : task.var_vals) {
-          if (v.type == GFValueType::Channel && v.chan_val) {
-            v.chan_val->close ();
-          }
-        }
-      }
     }
   }
 
@@ -250,6 +246,8 @@ struct SerializeCtx {
 
 struct DeserializeCtx {
   std::unordered_map<size_t, s7_pointer> reconstructed;
+  s7_pointer                             gc_anchor= nullptr;
+  s7_int                                 gc_loc   = -1;
 };
 
 static bool
@@ -394,6 +392,10 @@ gfvalue_to_s7_impl (s7_scheme* sc, const GFValue& val, DeserializeCtx& ctx) {
     return make_goldfish_channel_object (sc, val.chan_val);
   case GFValueType::Pair: {
     s7_pointer cell= s7_cons (sc, s7_nil (sc), s7_nil (sc));
+    if (ctx.gc_loc >= 0) {
+      ctx.gc_anchor= s7_cons (sc, cell, ctx.gc_anchor);
+      s7_gc_protect_via_location (sc, ctx.gc_anchor, ctx.gc_loc);
+    }
     if (val.node_id != 0) {
       ctx.reconstructed[val.node_id]= cell;
     }
@@ -408,6 +410,10 @@ gfvalue_to_s7_impl (s7_scheme* sc, const GFValue& val, DeserializeCtx& ctx) {
   case GFValueType::Vector: {
     s7_int     len= val.vec_val ? static_cast<s7_int> (val.vec_val->size ()) : 0;
     s7_pointer vec= s7_make_vector (sc, len);
+    if (ctx.gc_loc >= 0) {
+      ctx.gc_anchor= s7_cons (sc, vec, ctx.gc_anchor);
+      s7_gc_protect_via_location (sc, ctx.gc_anchor, ctx.gc_loc);
+    }
     if (val.node_id != 0) {
       ctx.reconstructed[val.node_id]= vec;
     }
@@ -422,7 +428,14 @@ gfvalue_to_s7_impl (s7_scheme* sc, const GFValue& val, DeserializeCtx& ctx) {
     if (!val.bytevec_val) return s7_make_byte_vector (sc, 0, 1, nullptr);
     s7_int     len= static_cast<s7_int> (val.bytevec_val->size ());
     s7_pointer bv = s7_make_byte_vector (sc, len, 1, nullptr);
-    uint8_t*   p  = reinterpret_cast<uint8_t*> (s7_byte_vector_elements (bv));
+    if (ctx.gc_loc >= 0) {
+      ctx.gc_anchor= s7_cons (sc, bv, ctx.gc_anchor);
+      s7_gc_protect_via_location (sc, ctx.gc_anchor, ctx.gc_loc);
+    }
+    if (val.node_id != 0) {
+      ctx.reconstructed[val.node_id]= bv;
+    }
+    uint8_t* p= reinterpret_cast<uint8_t*> (s7_byte_vector_elements (bv));
     if (len > 0) {
       std::memcpy (p, val.bytevec_val->data (), len);
     }
@@ -444,7 +457,11 @@ gfvalue_to_s7_impl (s7_scheme* sc, const GFValue& val, DeserializeCtx& ctx) {
 s7_pointer
 gfvalue_to_s7 (s7_scheme* sc, const GFValue& val) {
   DeserializeCtx ctx;
-  return gfvalue_to_s7_impl (sc, val, ctx);
+  ctx.gc_anchor = s7_nil (sc);
+  ctx.gc_loc    = s7_gc_protect (sc, ctx.gc_anchor);
+  s7_pointer res= gfvalue_to_s7_impl (sc, val, ctx);
+  s7_gc_unprotect_at (sc, ctx.gc_loc);
+  return res;
 }
 
 // ---------------------------------------------------------------------------
@@ -815,6 +832,10 @@ f_go_spawn (s7_scheme* sc, s7_pointer args) {
     }
     task.var_vals.push_back (std::move (val));
     cur_val= s7_cdr (cur_val);
+  }
+
+  if (task.var_names.size () != task.var_vals.size ()) {
+    return go_error (sc, "value-error", "go: variable names and values count mismatch", names_arg);
   }
 
   std::string err;

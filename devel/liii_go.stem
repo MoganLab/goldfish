@@ -59,6 +59,11 @@
       (bash-code (document "cd ~/git/goldfish" "xmake b goldfish"
                    "bin/gf tests/liii/go/chan-test.scm"
                    "bin/gf tests/liii/go/go-test.scm"
+                   "bin/gf tests/liii/go/select-test.scm"
+                   "bin/gf tests/liii/go/error-test.scm"
+                   "bin/gf tests/liii/go/cyclic-test.scm"
+                   "bin/gf tests/liii/go/context-test.scm"
+                   "bin/gf tests/liii/go/fiber-test.scm"
                  ) ;document
       ) ;bash-code
       (subsection* "3.3 集成测试")
@@ -73,6 +78,11 @@
       (bash-code (document "cd ~/git/goldfish" "xmake b goldfish" "bin/gf fmt"
                    "bin/gf tests/liii/go/chan-test.scm"
                    "bin/gf tests/liii/go/go-test.scm"
+                   "bin/gf tests/liii/go/select-test.scm"
+                   "bin/gf tests/liii/go/error-test.scm"
+                   "bin/gf tests/liii/go/cyclic-test.scm"
+                   "bin/gf tests/liii/go/context-test.scm"
+                   "bin/gf tests/liii/go/fiber-test.scm"
                  ) ;document
       ) ;bash-code
       (section* "5 What")

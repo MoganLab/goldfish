@@ -57,4 +57,15 @@
 (check (bytevector-u8-ref recv4 500000) => 170)
 (check (bytevector-u8-ref recv4 1048575) => 255)
 
+;; 5. 回归测试：同一个 Bytevector 在复合结构中被共享引用，反序列化后不能退化为 nil
+(define ch5 (make-chan 1))
+(define shared-bv (bytevector 7 8 9))
+(chan-send! ch5 (list shared-bv shared-bv))
+(define recv5 (chan-recv! ch5 1000))
+
+(check (bytevector? (car recv5)) => #t)
+(check (bytevector? (cadr recv5)) => #t)
+(check (eq? (car recv5) (cadr recv5)) => #t)
+(check (bytevector-u8-ref (cadr recv5) 0) => 7)
+
 (check-report)

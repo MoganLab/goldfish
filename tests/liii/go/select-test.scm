@@ -74,4 +74,18 @@
 
 (check async-result => "async-ready")
 
+;; 6. 测试表达式只求值一次（符合 Go 语义，避免轮询重复求值）
+(define eval-count 0)
+(define (get-test-val)
+  (set! eval-count (+ eval-count 1))
+  "my-eval-val")
+
+(define ch-once (make-chan 1))
+(select
+  ((chan-send! ch-once (get-test-val))
+   #t))
+
+(check eval-count => 1)
+(check (chan-recv! ch-once) => "my-eval-val")
+
 (check-report)

@@ -191,11 +191,19 @@
           (lambda (clause)
             (cond
              ((and (pair? clause) (eq? (car clause) 'default))
-              (set! default-branch (cdr clause))
+              (if default-branch
+                (error 'syntax-error "select: multiple default clauses")
+                (set! default-branch (cdr clause))
+              ) ;if
              ) ;
              ((and (pair? clause) (eq? (car clause) 'timeout))
-              (set! timeout-ms (cadr clause))
-              (set! timeout-branch (cddr clause))
+              (if timeout-branch
+                (error 'syntax-error "select: multiple timeout clauses")
+                (begin
+                  (set! timeout-ms (cadr clause))
+                  (set! timeout-branch (cddr clause))
+                ) ;begin
+              ) ;if
              ) ;
              ((and (pair? clause) (pair? (car clause))) (set! cases (cons clause cases)))
              (else (error 'syntax-error "select: invalid clause" clause))
@@ -203,38 +211,75 @@
           ) ;lambda
           clauses
         ) ;for-each
+
+        (if (and default-branch timeout-branch)
+          (error 'syntax-error "select: cannot specify both default and timeout clauses")
+        ) ;if
+
         (set! cases (reverse cases))
 
-        (let ((poll-sym (gensym "poll")) (start-sym (gensym "start")))
-          `(let* ((,start-sym (g_now-ms)))
+        ;; 预绑定各个分支的通道与发送表达式，确保只求值一次（符合 Go 语义）
+        (let ((poll-sym (gensym "poll"))
+              (start-sym (gensym "start"))
+              (pre-bindings '())
+              (parsed-cases '())
+             ) ;
+          (for-each
+            (lambda (c)
+              (let* ((action (car c)) (body (cdr c)) (op (car action)))
+                (cond
+                 ((eq? op 'chan-recv!)
+                  (let ((ch-sym (gensym "ch")))
+                    (set! pre-bindings (cons `(,ch-sym ,(cadr action)) pre-bindings))
+                    (set! parsed-cases (cons (list 'recv ch-sym (caddr action) body) parsed-cases))
+                  ) ;let
+                 ) ;
+                 ((eq? op 'chan-send!)
+                  (let ((ch-sym (gensym "ch")) (val-sym (gensym "val")))
+                    (set! pre-bindings
+                      (cons
+                        `(,ch-sym ,(cadr action))
+                        (cons
+                          `(,val-sym ,(caddr action))
+                          pre-bindings
+                        ) ;cons
+                      ) ;cons
+                    ) ;set!
+                    (set! parsed-cases (cons (list 'send ch-sym val-sym body) parsed-cases))
+                  ) ;let
+                 ) ;
+                 (else (error 'syntax-error "select: unsupported channel operation" op))
+                ) ;cond
+              ) ;let*
+            ) ;lambda
+            cases
+          ) ;for-each
+
+          (set! pre-bindings (reverse pre-bindings))
+          (set! parsed-cases (reverse parsed-cases))
+
+          `(let* (,@pre-bindings (,start-sym (g_now-ms)))
              (let ,poll-sym
                ,()
                ,(let build-cases
-                  ((rem cases))
+                  ((rem parsed-cases))
                   (if (pair? rem)
                     (let* ((c (car rem))
-                           (action (car c))
-                           (body (cdr c))
-                           (op (car action))
+                           (kind (car c))
+                           (ch-sym (cadr c))
                            (next-step (build-cases (cdr rem))))
-                      (cond ((eq? op 'chan-recv!)
-                             (let ((ch-expr (cadr action))
-                                   (var (caddr action))
-                                   (tag (gensym "empty")))
-                               `(let ((,var
-                                       (chan-try-recv! ,ch-expr (quote ,tag))))
-                                  (if (not (eq? ,var (quote ,tag)))
-                                    (begin ,@body)
-                                    ,next-step))))
-                            ((eq? op 'chan-send!)
-                             (let ((ch-expr (cadr action))
-                                   (val-expr (caddr action)))
-                               `(if (chan-try-send! ,ch-expr ,val-expr)
-                                  (begin ,@body)
-                                  ,next-step)))
-                            (else (error 'syntax-error
-                                    "select: unsupported channel operation"
-                                    op))))
+                      (if (eq? kind 'recv)
+                        (let ((var (caddr c))
+                              (body (cadddr c))
+                              (tag (gensym "empty")))
+                          `(let ((,var (chan-try-recv! ,ch-sym (quote ,tag))))
+                             (if (not (eq? ,var (quote ,tag)))
+                               (begin ,@body)
+                               ,next-step)))
+                        (let ((val-sym (caddr c)) (body (cadddr c)))
+                          `(if (chan-try-send! ,ch-sym ,val-sym)
+                             (begin ,@body)
+                             ,next-step))))
                     (cond (default-branch `(begin ,@default-branch))
                           (timeout-branch `(if (>= (- (g_now-ms) ,start-sym)
                                                  ,timeout-ms)
