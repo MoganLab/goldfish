@@ -174,6 +174,67 @@ void install_source_expander(Evaluator& evaluator) {
     });
 }
 
+// Run one file in a forked child of the already-booted process; the
+// parent waits and returns the child's exit code (the child reports
+// errors like the file-argument dispatch).  Shared by the goldtest
+// primitive and the --each-file sweeper.
+static int fork_and_run_file(Evaluator& evaluator,
+                             const std::string& path) {
+    // Pending parent output must not flush twice (once in the child's
+    // copied buffer, once in the parent).
+    std::fflush(nullptr);
+    const pid_t pid = fork();
+    if (pid < 0)
+        throw std::runtime_error("fork-test-file: fork failed");
+    if (pid == 0) {
+        int code = 1;
+        try {
+            eval_file(evaluator, path);
+            code = 0;
+        } catch (const ThrownValue& thrown) {
+            std::cerr << "thrown: ";
+            print_value(thrown.tag(), std::cerr);
+            for (Value argument : thrown.arguments()) {
+                std::cerr << ' ';
+                print_value(argument, std::cerr);
+            }
+            std::cerr << '\n';
+        } catch (const RaisedValue& raised) {
+            if (raised.value().is_object() &&
+                raised.value().as_object()->type() ==
+                    ObjectType::ErrorObject) {
+                const auto* error =
+                    raised.value().as_object<ErrorObject>();
+                std::cerr << error->message;
+                for (Value irritant : error->irritants) {
+                    std::cerr << ' ';
+                    print_value(irritant, std::cerr);
+                }
+                std::cerr << '\n';
+            } else {
+                std::cerr << "native Scheme error: ";
+                print_value(raised.value(), std::cerr);
+                std::cerr << '\n';
+            }
+        } catch (const std::exception& error) {
+            std::cerr << error.what() << '\n';
+        } catch (...) {
+        }
+        // _exit: skip atexit/static destructors -- the child's address
+        // space is a copy, not the owner.
+        std::fflush(nullptr);
+        _exit(code);
+    }
+    int wstatus = 0;
+    if (waitpid(pid, &wstatus, 0) < 0)
+        throw std::runtime_error("fork-test-file: waitpid failed");
+    if (WIFEXITED(wstatus))
+        return WEXITSTATUS(wstatus);
+    if (WIFSIGNALED(wstatus))
+        return 128 + WTERMSIG(wstatus);
+    return 125;
+}
+
 void install_fork_runner(Evaluator& evaluator) {
     // C2 fork-runner: goldtest's isolated path would fork+exec a fresh
     // boot per file; this forks the already-booted process instead --
@@ -209,59 +270,8 @@ void install_fork_runner(Evaluator& evaluator) {
                     setenv("GOLDFISH_NATIVE_LOAD_PATH", updated.c_str(), 1);
                 }
             }
-            // Pending parent output must not flush twice (once in the
-            // child's copied buffer, once in the parent).
-            std::fflush(nullptr);
-            const pid_t pid = fork();
-            if (pid < 0)
-                throw std::runtime_error("fork-test-file: fork failed");
-            if (pid == 0) {
-                int code = 1;
-                try {
-                    eval_file(evaluator, path);
-                    code = 0;
-                } catch (const ThrownValue& thrown) {
-                    std::cerr << "thrown: ";
-                    print_value(thrown.tag(), std::cerr);
-                    for (Value argument : thrown.arguments()) {
-                        std::cerr << ' ';
-                        print_value(argument, std::cerr);
-                    }
-                    std::cerr << '\n';
-                } catch (const RaisedValue& raised) {
-                    if (raised.value().is_object() &&
-                        raised.value().as_object()->type() ==
-                            ObjectType::ErrorObject) {
-                        const auto* error =
-                            raised.value().as_object<ErrorObject>();
-                        std::cerr << error->message;
-                        for (Value irritant : error->irritants) {
-                            std::cerr << ' ';
-                            print_value(irritant, std::cerr);
-                        }
-                        std::cerr << '\n';
-                    } else {
-                        std::cerr << "native Scheme error: ";
-                        print_value(raised.value(), std::cerr);
-                        std::cerr << '\n';
-                    }
-                } catch (const std::exception& error) {
-                    std::cerr << error.what() << '\n';
-                } catch (...) {
-                }
-                // _exit: skip atexit/static destructors -- the child's
-                // address space is a copy, not the owner.
-                std::fflush(nullptr);
-                _exit(code);
-            }
-            int wstatus = 0;
-            if (waitpid(pid, &wstatus, 0) < 0)
-                throw std::runtime_error("fork-test-file: waitpid failed");
-            if (WIFEXITED(wstatus))
-                return Values{Value::integer(WEXITSTATUS(wstatus))};
-            if (WIFSIGNALED(wstatus))
-                return Values{Value::integer(128 + WTERMSIG(wstatus))};
-            return Values{Value::integer(125)};
+            return Values{
+                Value::integer(fork_and_run_file(evaluator, path))};
     });
 }
 
@@ -678,6 +688,27 @@ int main(int argc, char** argv) {
                     load_source(runtime.evaluator(), argv[command]);
             }
             return 0;
+        }
+        if (std::string(argv[command]) == "--each-file") {
+            // C2 sweep mode: one boot, one fork per file, goldtest-style
+            // verdict rows -- avoids reloading the goldtest tool per file.
+            if (++command >= argc)
+                throw std::runtime_error("--each-file requires paths");
+            int failures = 0;
+            std::size_t ran = 0;
+            for (; command < argc; ++command) {
+                const std::string file = argv[command];
+                const int rc = fork_and_run_file(runtime.evaluator(), file);
+                std::printf("  %s ... %s\n", file.c_str(),
+                            rc == 0 ? "PASS" : "FAIL");
+                std::fflush(stdout);
+                ++ran;
+                if (rc != 0)
+                    ++failures;
+            }
+            std::printf("\n  Total:  %zu\n  Passed: %d\n  Failed: %d\n", ran,
+                        static_cast<int>(ran) - failures, failures);
+            return failures == 0 ? 0 : 1;
         }
         if (std::string(argv[command]) == "test") {
             if (++command >= argc) throw std::runtime_error("test requires a path");
