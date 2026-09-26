@@ -42,11 +42,14 @@ enum class GFValueType {
   ByteVector,
   Channel,
   Eof,
+  Ref,
   Undefined
 };
 
 struct GFValue {
   GFValueType                                  type      = GFValueType::Undefined;
+  size_t                                       node_id   = 0;
+  size_t                                       ref_id    = 0;
   bool                                         bool_val  = false;
   s7_int                                       int_val   = 0;
   s7_double                                    double_val= 0.0;
@@ -54,12 +57,12 @@ struct GFValue {
   std::string                                  str_val;
   std::shared_ptr<std::pair<GFValue, GFValue>> pair_val;
   std::shared_ptr<std::vector<GFValue>>        vec_val;
-  std::shared_ptr<std::vector<uint8_t>>        bytevec_val;
+  std::shared_ptr<const std::vector<uint8_t>>  bytevec_val;
   std::shared_ptr<GoldfishChannel>             chan_val;
 };
 
 // S7 pointer <-> GFValue conversion
-bool       s7_to_gfvalue (s7_scheme* sc, s7_pointer obj, GFValue& out, std::string& err_msg, int depth= 0);
+bool       s7_to_gfvalue (s7_scheme* sc, s7_pointer obj, GFValue& out, std::string& err_msg);
 s7_pointer gfvalue_to_s7 (s7_scheme* sc, const GFValue& val);
 
 class GoldfishChannel {

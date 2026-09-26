@@ -243,13 +243,17 @@ make_goldfish_channel_object (s7_scheme* sc, std::shared_ptr<GoldfishChannel> ch
 // GFValue Serialization & Deserialization
 // ---------------------------------------------------------------------------
 
-bool
-s7_to_gfvalue (s7_scheme* sc, s7_pointer obj, GFValue& out, std::string& err_msg, int depth) {
-  if (depth > 2048) {
-    err_msg= "maximum recursion depth exceeded during serialization";
-    return false;
-  }
+struct SerializeCtx {
+  std::unordered_map<void*, size_t> visited;
+  size_t                            next_id= 1;
+};
 
+struct DeserializeCtx {
+  std::unordered_map<size_t, s7_pointer> reconstructed;
+};
+
+static bool
+s7_to_gfvalue_impl (s7_scheme* sc, s7_pointer obj, GFValue& out, std::string& err_msg, SerializeCtx& ctx) {
   if (s7_is_null (sc, obj)) {
     out.type= GFValueType::Nil;
     return true;
@@ -297,11 +301,29 @@ s7_to_gfvalue (s7_scheme* sc, s7_pointer obj, GFValue& out, std::string& err_msg
     out.chan_val= get_goldfish_channel (sc, obj);
     return true;
   }
+  if (obj == s7_eof_object (sc)) {
+    out.type= GFValueType::Eof;
+    return true;
+  }
+
+  // Composite structures: Check cycle/memoization
+  void* ptr= reinterpret_cast<void*> (obj);
+  auto  it = ctx.visited.find (ptr);
+  if (it != ctx.visited.end ()) {
+    out.type  = GFValueType::Ref;
+    out.ref_id= it->second;
+    return true;
+  }
+
+  size_t my_id    = ctx.next_id++;
+  ctx.visited[ptr]= my_id;
+  out.node_id     = my_id;
+
   if (s7_is_pair (obj)) {
     out.type     = GFValueType::Pair;
     auto pair_ptr= std::make_shared<std::pair<GFValue, GFValue>> ();
-    if (!s7_to_gfvalue (sc, s7_car (obj), pair_ptr->first, err_msg, depth + 1)) return false;
-    if (!s7_to_gfvalue (sc, s7_cdr (obj), pair_ptr->second, err_msg, depth + 1)) return false;
+    if (!s7_to_gfvalue_impl (sc, s7_car (obj), pair_ptr->first, err_msg, ctx)) return false;
+    if (!s7_to_gfvalue_impl (sc, s7_cdr (obj), pair_ptr->second, err_msg, ctx)) return false;
     out.pair_val= pair_ptr;
     return true;
   }
@@ -309,7 +331,7 @@ s7_to_gfvalue (s7_scheme* sc, s7_pointer obj, GFValue& out, std::string& err_msg
     out.type            = GFValueType::ByteVector;
     s7_int         len  = s7_vector_length (obj);
     const uint8_t* bytes= reinterpret_cast<const uint8_t*> (s7_byte_vector_elements (obj));
-    out.bytevec_val     = std::make_shared<std::vector<uint8_t>> (bytes, bytes + len);
+    out.bytevec_val     = std::make_shared<const std::vector<uint8_t>> (bytes, bytes + len);
     return true;
   }
   if (s7_is_vector (obj)) {
@@ -319,13 +341,9 @@ s7_to_gfvalue (s7_scheme* sc, s7_pointer obj, GFValue& out, std::string& err_msg
     vec_ptr->resize (len);
     for (s7_int i= 0; i < len; ++i) {
       s7_pointer elem= s7_vector_ref (sc, obj, i);
-      if (!s7_to_gfvalue (sc, elem, (*vec_ptr)[i], err_msg, depth + 1)) return false;
+      if (!s7_to_gfvalue_impl (sc, elem, (*vec_ptr)[i], err_msg, ctx)) return false;
     }
     out.vec_val= vec_ptr;
-    return true;
-  }
-  if (obj == s7_eof_object (sc)) {
-    out.type= GFValueType::Eof;
     return true;
   }
 
@@ -333,8 +351,22 @@ s7_to_gfvalue (s7_scheme* sc, s7_pointer obj, GFValue& out, std::string& err_msg
   return false;
 }
 
-s7_pointer
-gfvalue_to_s7 (s7_scheme* sc, const GFValue& val) {
+bool
+s7_to_gfvalue (s7_scheme* sc, s7_pointer obj, GFValue& out, std::string& err_msg) {
+  SerializeCtx ctx;
+  return s7_to_gfvalue_impl (sc, obj, out, err_msg, ctx);
+}
+
+static s7_pointer
+gfvalue_to_s7_impl (s7_scheme* sc, const GFValue& val, DeserializeCtx& ctx) {
+  if (val.type == GFValueType::Ref) {
+    auto it= ctx.reconstructed.find (val.ref_id);
+    if (it != ctx.reconstructed.end ()) {
+      return it->second;
+    }
+    return s7_nil (sc);
+  }
+
   switch (val.type) {
   case GFValueType::Nil:
     return s7_nil (sc);
@@ -353,10 +385,30 @@ gfvalue_to_s7 (s7_scheme* sc, const GFValue& val) {
   case GFValueType::Channel:
     return make_goldfish_channel_object (sc, val.chan_val);
   case GFValueType::Pair: {
-    if (!val.pair_val) return s7_nil (sc);
-    s7_pointer car_p= gfvalue_to_s7 (sc, val.pair_val->first);
-    s7_pointer cdr_p= gfvalue_to_s7 (sc, val.pair_val->second);
-    return s7_cons (sc, car_p, cdr_p);
+    s7_pointer cell= s7_cons (sc, s7_nil (sc), s7_nil (sc));
+    if (val.node_id != 0) {
+      ctx.reconstructed[val.node_id]= cell;
+    }
+    if (val.pair_val) {
+      s7_pointer car_p= gfvalue_to_s7_impl (sc, val.pair_val->first, ctx);
+      s7_pointer cdr_p= gfvalue_to_s7_impl (sc, val.pair_val->second, ctx);
+      s7_set_car (cell, car_p);
+      s7_set_cdr (cell, cdr_p);
+    }
+    return cell;
+  }
+  case GFValueType::Vector: {
+    s7_int     len= val.vec_val ? static_cast<s7_int> (val.vec_val->size ()) : 0;
+    s7_pointer vec= s7_make_vector (sc, len);
+    if (val.node_id != 0) {
+      ctx.reconstructed[val.node_id]= vec;
+    }
+    if (val.vec_val) {
+      for (s7_int i= 0; i < len; ++i) {
+        s7_vector_set (sc, vec, i, gfvalue_to_s7_impl (sc, (*val.vec_val)[i], ctx));
+      }
+    }
+    return vec;
   }
   case GFValueType::ByteVector: {
     if (!val.bytevec_val) return s7_make_byte_vector (sc, 0, 1, nullptr);
@@ -368,21 +420,18 @@ gfvalue_to_s7 (s7_scheme* sc, const GFValue& val) {
     }
     return bv;
   }
-  case GFValueType::Vector: {
-    if (!val.vec_val) return s7_make_vector (sc, 0);
-    s7_int     len= static_cast<s7_int> (val.vec_val->size ());
-    s7_pointer vec= s7_make_vector (sc, len);
-    for (s7_int i= 0; i < len; ++i) {
-      s7_vector_set (sc, vec, i, gfvalue_to_s7 (sc, (*val.vec_val)[i]));
-    }
-    return vec;
-  }
   case GFValueType::Eof:
     return s7_eof_object (sc);
   case GFValueType::Undefined:
   default:
     return s7_undefined (sc);
   }
+}
+
+s7_pointer
+gfvalue_to_s7 (s7_scheme* sc, const GFValue& val) {
+  DeserializeCtx ctx;
+  return gfvalue_to_s7_impl (sc, val, ctx);
 }
 
 // ---------------------------------------------------------------------------
