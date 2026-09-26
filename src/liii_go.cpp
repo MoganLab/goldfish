@@ -40,6 +40,14 @@ get_goldfish_lib_dir () {
   return g_goldfish_lib_directory;
 }
 
+static thread_local bool t_worker_task_failed= false;
+
+static s7_pointer
+f_worker_notify_error (s7_scheme* sc, s7_pointer args) {
+  t_worker_task_failed= true;
+  return s7_unspecified (sc);
+}
+
 // ---------------------------------------------------------------------------
 // Go Task and Thread Pool
 // ---------------------------------------------------------------------------
@@ -122,12 +130,37 @@ private:
         bindings       = s7_cons (worker_sc, pair, bindings);
       }
 
-      s7_pointer body   = gfvalue_to_s7 (worker_sc, task.code_expr);
-      s7_pointer let_sym= s7_make_symbol (worker_sc, "let");
-      s7_pointer let_expr=
-          s7_cons (worker_sc, let_sym, s7_cons (worker_sc, bindings, s7_cons (worker_sc, body, s7_nil (worker_sc))));
+      s7_pointer body      = gfvalue_to_s7 (worker_sc, task.code_expr);
+      s7_pointer lambda_sym= s7_make_symbol (worker_sc, "lambda");
+      s7_pointer catch_sym = s7_make_symbol (worker_sc, "catch");
+      s7_pointer body_thunk= s7_list (worker_sc, 3, lambda_sym, s7_nil (worker_sc), body);
 
+      // (lambda (err-tag err-args) (g_worker-notify-error err-tag err-args))
+      s7_pointer notify_call= s7_list (worker_sc, 3, s7_make_symbol (worker_sc, "g_worker-notify-error"),
+                                       s7_make_symbol (worker_sc, "err-tag"), s7_make_symbol (worker_sc, "err-args"));
+
+      s7_pointer err_handler= s7_list (
+          worker_sc, 3, lambda_sym,
+          s7_list (worker_sc, 2, s7_make_symbol (worker_sc, "err-tag"), s7_make_symbol (worker_sc, "err-args")),
+          notify_call);
+
+      s7_pointer catch_expr= s7_list (worker_sc, 4, catch_sym, s7_t (worker_sc), body_thunk, err_handler);
+
+      s7_pointer let_sym = s7_make_symbol (worker_sc, "let");
+      s7_pointer let_expr= s7_cons (worker_sc, let_sym,
+                                    s7_cons (worker_sc, bindings, s7_cons (worker_sc, catch_expr, s7_nil (worker_sc))));
+
+      t_worker_task_failed= false;
       s7_eval (worker_sc, let_expr, s7_rootlet (worker_sc));
+
+      if (t_worker_task_failed) {
+        // Automatically close all channels passed to the failed task to unblock receivers
+        for (const auto& v : task.var_vals) {
+          if (v.type == GFValueType::Channel && v.chan_val) {
+            v.chan_val->close ();
+          }
+        }
+      }
     }
   }
 
@@ -250,6 +283,14 @@ s7_to_gfvalue (s7_scheme* sc, s7_pointer obj, GFValue& out, std::string& err_msg
     out.type   = GFValueType::Symbol;
     out.str_val= s7_symbol_name (obj);
     return true;
+  }
+  if (s7_is_syntax (obj) || s7_is_procedure (obj)) {
+    const char* str= s7_object_to_c_string (sc, obj);
+    if (str != nullptr && std::strncmp (str, "#_", 2) == 0) {
+      out.type   = GFValueType::Symbol;
+      out.str_val= str + 2;
+      return true;
+    }
   }
   if (is_goldfish_channel (sc, obj)) {
     out.type    = GFValueType::Channel;
@@ -774,6 +815,8 @@ glue_liii_go (s7_scheme* sc) {
   s7_define_function (sc, "g_chan-close!", f_chan_close, 1, 0, false, "(g_chan-close! ch) => unspecified");
   s7_define_function (sc, "g_chan-closed?", f_chan_closed_p, 1, 0, false, "(g_chan-closed? ch) => boolean");
   s7_define_function (sc, "g_go-spawn", f_go_spawn, 3, 0, false, "(g_go-spawn names vals code) => unspecified");
+  s7_define_function (sc, "g_worker-notify-error", f_worker_notify_error, 2, 0, false,
+                      "(g_worker-notify-error tag args) => unspecified");
   s7_define_function (sc, "g_go-worker-count", f_go_worker_count, 0, 0, false, "(g_go-worker-count) => integer");
   s7_define_function (sc, "g_msleep", f_msleep, 1, 0, false, "(g_msleep ms) => unspecified");
   s7_define_function (sc, "g_now-ms", f_now_ms, 0, 0, false, "(g_now-ms) => integer");
