@@ -45,8 +45,12 @@
   (if (not (%s7-ht? ht))
     (error 'wrong-type-arg "expected a hash table" ht))
   (let* ((buckets (vector-ref ht 1))
+         ;; modulo (floor), not remainder (truncate): a comparator's
+         ;; hash may legally be negative (srfi-165 hashes variables by
+         ;; their negative id), and a truncated bucket index reads
+         ;; vector-ref at -1.  Matches the host's s7 table behaviour.
          (bucket (vector-ref buckets
-                   (remainder (%s7-ht-hash ht key) (vector-length buckets)))))
+                   (modulo (%s7-ht-hash ht key) (vector-length buckets)))))
     (let loop ((cells bucket))
       (if (null? cells)
         #f
@@ -59,7 +63,7 @@
     (if cell
       (begin (set-cdr! cell value) value)
       (let* ((buckets (vector-ref ht 1))
-             (index (remainder (%s7-ht-hash ht key) (vector-length buckets))))
+             (index (modulo (%s7-ht-hash ht key) (vector-length buckets))))
         (vector-set! buckets index
                      (cons (cons key value) (vector-ref buckets index)))
         value))))

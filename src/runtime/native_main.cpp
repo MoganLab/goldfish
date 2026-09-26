@@ -594,6 +594,11 @@ int main(int argc, char** argv) {
         // s7's hashtable surface comes from s7 itself on the host; native
         // gets the Scheme adapter (vector of bucket alists, same contract).
         load_source(runtime.evaluator(), "expander/lib/native-hash-adapter.scm");
+        // Portable half of liii/host-abi (ports, binary I/O, utf8
+        // substrate): names the native substrate lacks, ported from the
+        // host-abi bundle without its s7 seed.  expander/lib is scanned
+        // by the gfo fingerprint, so cache invalidation is automatic.
+        load_source(runtime.evaluator(), "expander/lib/native-abi.scm");
         stage("hash-adapter");
         runtime.evaluator().collect();
         Value standard_library = runtime.evaluator().apply_values(
