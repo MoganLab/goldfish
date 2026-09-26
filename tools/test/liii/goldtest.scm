@@ -133,6 +133,12 @@
       (string-append (executable) " -m liii ")
     ) ;define
 
+    (define (worker-extra-path-dir)
+      ;; Raw dir form of worker-extra-path-args, for the fork runner
+      ;; (which folds it into the parent load path itself).
+      (let ((common-dir (test-path-join (getcwd) ".." "common")))
+        (if (path-dir? common-dir) common-dir #f)))
+
     (define (worker-extra-path-args)
       ;; Test workers (`gf -m liii <file>`) resolve tool libraries through
       ;; the process working directory.  After switching into tools/<name>/,
@@ -140,9 +146,9 @@
       ;; (liii goldtool-changed) etc.) is invisible there, so append it by
       ;; absolute path.  Outside a tool directory the candidate does not
       ;; exist and nothing is added.
-      (let ((common-dir (test-path-join (getcwd) ".." "common")))
-        (if (path-dir? common-dir)
-          (string-append "-A " (shell-quote common-dir) " ")
+      (let ((dir (worker-extra-path-dir)))
+        (if dir
+          (string-append "-A " (shell-quote dir) " ")
           "")
       ) ;let
     ) ;define
@@ -156,7 +162,15 @@
         (display cmd)
         (newline)
         (let* ((t0 (and timing-enabled? (now-ms)))
-               (result (os-call cmd))
+               ;; Native forks the booted test process instead of exec'ing
+               ;; a cold boot per file (COW pages; pristine parent snapshot
+               ;; per child).  GOLDFISH_TEST_NO_FORK=1 forces the shell path.
+               (result (if (and (defined? 'fork-test-file)
+                                (not (get-environment-variable
+                                       "GOLDFISH_TEST_NO_FORK")))
+                         (fork-test-file test-file
+                                         (worker-extra-path-dir))
+                         (os-call cmd)))
                (t1 (and timing-enabled? (now-ms))))
           (record-timing! test-file (and t0 t1 (- t1 t0)))
           (cons test-file result)

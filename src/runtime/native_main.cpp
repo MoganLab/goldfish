@@ -6,6 +6,8 @@
 #include <iostream>
 #include <chrono>
 #include <cstdlib>
+#include <sys/wait.h>
+#include <unistd.h>
 #include <filesystem>
 #include <exception>
 #include <sstream>
@@ -169,6 +171,97 @@ void install_source_expander(Evaluator& evaluator) {
             Value compile = evaluator.eval(evaluator.symbol("compile-toplevel"));
             Value lowered = evaluator.apply_values(compile, args)[0];
             return evaluator.eval_values(lowered);
+    });
+}
+
+void install_fork_runner(Evaluator& evaluator) {
+    // C2 fork-runner: goldtest's isolated path would fork+exec a fresh
+    // boot per file; this forks the already-booted process instead --
+    // no exec, COW pages, and every child starts from the same pristine
+    // parent snapshot (boot amortized to zero, isolation perfect).
+    // Safe without exec because the runtime is single-threaded (tbox
+    // never starts threads here).
+    evaluator.define_primitive(
+        "fork-test-file", [&evaluator](const Values& args) {
+            if (args.size() < 1 || args.size() > 2)
+                throw std::runtime_error(
+                    "fork-test-file expects a file and an optional load dir");
+            const std::string path = evaluator.string_value(args[0]);
+            if (args.size() == 2 && args[1].is_object() &&
+                args[1].as_object()->type() == ObjectType::String) {
+                const std::string dir = evaluator.string_value(args[1]);
+                const char* current =
+                    std::getenv("GOLDFISH_NATIVE_LOAD_PATH");
+                const std::string paths =
+                    current && *current ? current : "";
+                bool present = false;
+                for (std::size_t start = 0; start <= paths.size();) {
+                    std::size_t end = paths.find(':', start);
+                    if (end == std::string::npos)
+                        end = paths.size();
+                    if (paths.compare(start, end - start, dir) == 0)
+                        present = true;
+                    start = end + 1;
+                }
+                if (!present) {
+                    const std::string updated =
+                        paths.empty() ? dir : paths + ":" + dir;
+                    setenv("GOLDFISH_NATIVE_LOAD_PATH", updated.c_str(), 1);
+                }
+            }
+            // Pending parent output must not flush twice (once in the
+            // child's copied buffer, once in the parent).
+            std::fflush(nullptr);
+            const pid_t pid = fork();
+            if (pid < 0)
+                throw std::runtime_error("fork-test-file: fork failed");
+            if (pid == 0) {
+                int code = 1;
+                try {
+                    eval_file(evaluator, path);
+                    code = 0;
+                } catch (const ThrownValue& thrown) {
+                    std::cerr << "thrown: ";
+                    print_value(thrown.tag(), std::cerr);
+                    for (Value argument : thrown.arguments()) {
+                        std::cerr << ' ';
+                        print_value(argument, std::cerr);
+                    }
+                    std::cerr << '\n';
+                } catch (const RaisedValue& raised) {
+                    if (raised.value().is_object() &&
+                        raised.value().as_object()->type() ==
+                            ObjectType::ErrorObject) {
+                        const auto* error =
+                            raised.value().as_object<ErrorObject>();
+                        std::cerr << error->message;
+                        for (Value irritant : error->irritants) {
+                            std::cerr << ' ';
+                            print_value(irritant, std::cerr);
+                        }
+                        std::cerr << '\n';
+                    } else {
+                        std::cerr << "native Scheme error: ";
+                        print_value(raised.value(), std::cerr);
+                        std::cerr << '\n';
+                    }
+                } catch (const std::exception& error) {
+                    std::cerr << error.what() << '\n';
+                } catch (...) {
+                }
+                // _exit: skip atexit/static destructors -- the child's
+                // address space is a copy, not the owner.
+                std::fflush(nullptr);
+                _exit(code);
+            }
+            int wstatus = 0;
+            if (waitpid(pid, &wstatus, 0) < 0)
+                throw std::runtime_error("fork-test-file: waitpid failed");
+            if (WIFEXITED(wstatus))
+                return Values{Value::integer(WEXITSTATUS(wstatus))};
+            if (WIFSIGNALED(wstatus))
+                return Values{Value::integer(128 + WTERMSIG(wstatus))};
+            return Values{Value::integer(125)};
     });
 }
 
@@ -507,6 +600,11 @@ int main(int argc, char** argv) {
                              std::chrono::steady_clock::now() - stage_start)
                              .count()
                       << " ms\n";
+
+        // Every dispatch path gets the fork runner; goldtest probes it
+        // with defined? and falls back to the shell path when absent
+        // (host).
+        install_fork_runner(runtime.evaluator());
 
         if (argc == 1) {
             std::string line;
