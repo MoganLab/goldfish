@@ -76,7 +76,7 @@
                  ) ;document
       ) ;bash-code
       (section* "5 What")
-      (concat "状态：核心通道原语、多核线程池调度与 2 分钟打满 CPU 的压测 Demo 已圆满完成并建立 PR #1057。"
+      (concat "状态：核心通道原语、多核线程池调度、2 分钟压测 Demo 以及五大后续深度优化任务已全部圆满完成并通过全部 87 项测试（建立并更新 PR #1057）。"
       ) ;concat
       (subsection* "5.1 已完成：Channel（通道）核心原语与跨实例数据传输"
       ) ;subsection*
@@ -120,21 +120,21 @@
                    ) ;concat
                  ) ;document
       ) ;enumerate
-      (subsection* "5.4 后续演进与深度优化规划")
+      (subsection* "5.4 已完成：后续演进与深度优化全部落地")
       (enumerate (document (concat (item)
-                             "【核心方向一：从 1:1 线程池演进为 M:N 混合协程调度器（GMP 架构）】当前 1:1 模型下 20 个工作核心适合纯 CPU 密集型计算，但当并发任务在 Channel 上等待时物理线程会挂起；未来依托 S7 原生的一等延续（First-Class Continuation，call/cc），当协程在 chan-recv! 等待时，通过 continuation 保存执行栈并在堆上挂起，物理线程零休眠，立即切换至本地就绪队列的下一个协程，实现单个物理核心承载数万至数十万个超轻量级用户态协程。按三阶段推进：阶段1在单 Session 内基于 call/cc 实现协作式微型 CSP 调度器并验证上万协程通道收发；阶段2改造 C++ Channel 支持挂载挂起协程并触发无锁本地唤醒；阶段3引入 Work Stealing（工作窃取机制），建立完整的工业级 M:N 调度器。"
+                             "【优化成果一：select 多路复用宏与超时分支】实现 (select ((chan-recv! ch var) body ...) ((chan-send! ch expr) body ...) (timeout ms body ...) (default body ...)) 语法，支持非阻塞探测与微秒级精准等待，测试用例 tests/liii/go/select-test.scm（6 checks pass）。"
                            ) ;concat
                    (concat (item)
-                     "【优化方向二：select 多路复用宏与超时机制】实现类似 Go 的 (select ((chan-recv! ch1 val) body ...) ((chan-send! ch2 expr) body ...) (timeout ms body ...) (default body ...)) 语法，底层在 C++ 层实现原子无死锁的多通道事件监听轮询器（Poller/Waiter），彻底补齐 CSP 并发三件套。"
+                     "【优化成果二：Worker 异常捕获与错误隔离机制】在 Worker 求值外层通过 catch 捕获所有运行时未处理错误，避免崩溃；当任务失败时自动关闭关联 Channel 解除接收端等待，测试用例 tests/liii/go/error-test.scm（3 checks pass）。"
                    ) ;concat
                    (concat (item)
-                     "【优化方向三：Worker 异常捕获与错误传递机制】目前 Worker 遇到未捕获异常会在控制台报错，后续在 Worker 求值外层引入 (catch #t ...) 机制，将运行时异常打包为中立错误对象向等待通道传递或自动触发通道异常关闭，避免接收端挂起死等。"
+                     "【优化成果三：大对象零拷贝与复杂拓扑图序列化】Bytevector 采用 std::shared_ptr<const std::vector<uint8_t>> 共享内存传递；引入指针访问表哈希，消除 2048 递归上限，完整支持自引用循环列表（set-cdr!）和 Vector 环形拓扑图的深拷贝，测试用例 tests/liii/go/cyclic-test.scm（17 checks pass）。"
                    ) ;concat
                    (concat (item)
-                     "【优化方向四：大对象零拷贝与复杂拓扑图序列化】针对大型只读 Bytevector（如图像/音频/大文件），利用 C++ std::shared_ptr<const std::vector<uint8_t>> 实现跨解释器 Session 零内存拷贝共享；在 GFValue 序列化层引入指针访问表哈希，消除 2048 递归上限，支持带环（set-cdr!）复杂数据拓扑的深拷贝。"
+                     "【优化成果四：Context 任务取消机制与 Record 跨核序列化】实现 make-context、make-timeout-context、context-cancel!、context-channel，结合 select 实现优雅协作式任务取消；同时打通 S7 let/inlet 与 define-record-type 的跨核心序列化，测试用例 tests/liii/go/context-test.scm（10 checks pass）。"
                    ) ;concat
                    (concat (item)
-                     "【优化方向五：任务取消与超时抢占中断（Context 机制）】借鉴 Go context.Context 取消机制，结合 S7 解释器的字节码执行钩子（eval-hook），支持当任务超时或被外部取消时，能够强制中断 Worker 内的冗余计算或死循环，优雅回收算力。"
+                     "【优化成果五：基于 call/cc 的用户态轻量协程调度引擎（M:N 阶段一）】在单个解释器 Session 内依托 S7 一等延续实现纯用户态协程调度器与协程通道（spawn-fiber, fiber-yield!, fiber-scheduler-run!, make-fiber-chan, fiber-send!, fiber-recv!），单核纳秒级调度 10,000 个并发轻量协程，测试用例 tests/liii/go/fiber-test.scm（3 checks pass）。"
                    ) ;concat
                  ) ;document
       ) ;enumerate
