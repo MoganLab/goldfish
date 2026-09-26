@@ -15,9 +15,14 @@
 ;;
 
 (define-library (liii go)
-  (import (scheme base) (scheme case-lambda) (liii base) (liii error))
+  (import (scheme base)
+    (scheme case-lambda)
+    (scheme time)
+    (liii base)
+    (liii error)
+  ) ;import
   (export go go-worker-count make-chan chan? chan-send! chan-recv!
-    chan-try-recv! chan-close! chan-closed?
+    chan-try-recv! chan-try-send! chan-close! chan-closed? select
   ) ;export
   (begin
     (define make-chan (case-lambda (() (g_make-chan 0)) ((cap) (g_make-chan cap))))
@@ -48,6 +53,10 @@
       ) ;case-lambda
     ) ;define
 
+    (define (chan-try-send! ch val)
+      (g_chan-send! ch val 0)
+    ) ;define
+
     (define (chan-close! ch)
       (g_chan-close! ch)
     ) ;define
@@ -65,6 +74,66 @@
         `(g_go-spawn (quote ,vars) (list ,@vars) (quote (begin ,@body)))
         `(g_go-spawn '() '() (quote (begin ,vars ,@body)))
       ) ;if
+    ) ;define-macro
+
+    (define-macro (select . clauses)
+      (let ((default-branch #f) (timeout-branch #f) (timeout-ms 0) (cases '()))
+        (for-each
+          (lambda (clause)
+            (cond
+             ((and (pair? clause) (eq? (car clause) 'default))
+              (set! default-branch (cdr clause))
+             ) ;
+             ((and (pair? clause) (eq? (car clause) 'timeout))
+              (set! timeout-ms (cadr clause))
+              (set! timeout-branch (cddr clause))
+             ) ;
+             ((and (pair? clause) (pair? (car clause))) (set! cases (cons clause cases)))
+             (else (error 'syntax-error "select: invalid clause" clause))
+            ) ;cond
+          ) ;lambda
+          clauses
+        ) ;for-each
+        (set! cases (reverse cases))
+
+        (let ((poll-sym (gensym "poll")) (start-sym (gensym "start")))
+          `(let* ((,start-sym (g_now-ms)))
+             (let ,poll-sym
+               ,()
+               ,(let build-cases
+                  ((rem cases))
+                  (if (pair? rem)
+                    (let* ((c (car rem))
+                           (action (car c))
+                           (body (cdr c))
+                           (op (car action))
+                           (next-step (build-cases (cdr rem))))
+                      (cond ((eq? op 'chan-recv!)
+                             (let ((ch-expr (cadr action))
+                                   (var (caddr action))
+                                   (tag (gensym "empty")))
+                               `(let ((,var
+                                       (chan-try-recv! ,ch-expr (quote ,tag))))
+                                  (if (not (eq? ,var (quote ,tag)))
+                                    (begin ,@body)
+                                    ,next-step))))
+                            ((eq? op 'chan-send!)
+                             (let ((ch-expr (cadr action))
+                                   (val-expr (caddr action)))
+                               `(if (chan-try-send! ,ch-expr ,val-expr)
+                                  (begin ,@body)
+                                  ,next-step)))
+                            (else (error 'syntax-error
+                                    "select: unsupported channel operation"
+                                    op))))
+                    (cond (default-branch `(begin ,@default-branch))
+                          (timeout-branch `(if (>= (- (g_now-ms) ,start-sym)
+                                                 ,timeout-ms)
+                                             (begin ,@timeout-branch)
+                                             (begin (g_msleep 1) (,poll-sym))))
+                          (else `(begin (g_msleep 1) (,poll-sym))))))))
+        ) ;let
+      ) ;let
     ) ;define-macro
   ) ;begin
 ) ;define-library

@@ -728,6 +728,29 @@ f_go_worker_count (s7_scheme* sc, s7_pointer args) {
   return s7_make_integer (sc, static_cast<s7_int> (GoThreadPool::instance ().worker_count ()));
 }
 
+static s7_pointer
+f_msleep (s7_scheme* sc, s7_pointer args) {
+  s7_pointer ms_arg= s7_car (args);
+  if (!s7_is_integer (ms_arg) || s7_integer (ms_arg) < 0) {
+    return go_error (sc, "type-error", "g_msleep: ms must be a non-negative integer", ms_arg);
+  }
+  int64_t ms= s7_integer (ms_arg);
+  if (ms > 0) {
+    std::this_thread::sleep_for (std::chrono::milliseconds (ms));
+  }
+  else {
+    std::this_thread::yield ();
+  }
+  return s7_unspecified (sc);
+}
+
+static s7_pointer
+f_now_ms (s7_scheme* sc, s7_pointer args) {
+  auto now= std::chrono::steady_clock::now ();
+  auto ms = std::chrono::duration_cast<std::chrono::milliseconds> (now.time_since_epoch ()).count ();
+  return s7_make_integer (sc, static_cast<s7_int> (ms));
+}
+
 void
 glue_liii_go (s7_scheme* sc) {
   // Register C-Type for channel
@@ -752,6 +775,8 @@ glue_liii_go (s7_scheme* sc) {
   s7_define_function (sc, "g_chan-closed?", f_chan_closed_p, 1, 0, false, "(g_chan-closed? ch) => boolean");
   s7_define_function (sc, "g_go-spawn", f_go_spawn, 3, 0, false, "(g_go-spawn names vals code) => unspecified");
   s7_define_function (sc, "g_go-worker-count", f_go_worker_count, 0, 0, false, "(g_go-worker-count) => integer");
+  s7_define_function (sc, "g_msleep", f_msleep, 1, 0, false, "(g_msleep ms) => unspecified");
+  s7_define_function (sc, "g_now-ms", f_now_ms, 0, 0, false, "(g_now-ms) => integer");
 }
 
 } // namespace goldfish
