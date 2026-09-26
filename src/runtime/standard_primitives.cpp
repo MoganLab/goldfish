@@ -30,7 +30,17 @@ void require_arity(const Values& args, std::size_t count,
                    const char* name) {
     if (args.size() != count)
         throw std::runtime_error(std::string(name) + " expects " +
-                                 std::to_string(count) + " arguments");
+                                 std::to_string(count) + " arguments, got " +
+                                 std::to_string(args.size()));
+}
+
+// Per-site key override: some host tests pin a key the message
+// classifier would not give (file path ops want 'type-error while
+// string_value elsewhere pins 'wrong-type-arg for the same shape).
+[[noreturn]] void raise_keyed(Evaluator& evaluator, const char* key,
+                              const std::string& message) {
+    throw RaisedValue(Value::object(evaluator.heap().make<ErrorObject>(
+        message, ValueList{evaluator.string(message)}, key)));
 }
 
 bool same(Value left, Value right) {
@@ -657,6 +667,15 @@ void install_runtime_primitives(Evaluator& evaluator) {
         install(evaluator, name, [name](const Values& args) {
             if (args.empty())
                 throw std::runtime_error(std::string(name) + " expects an argument");
+            // Host-abi parity: non-real arguments raise 'type-error (the
+            // classifier maps "expects real numbers"); the old
+            // as_integer() require() surfaced the ambiguous
+            // "wrong kind" message instead.
+            for (const Value& arg : args) {
+                if (!arg.is_integer())
+                    throw std::runtime_error(std::string(name) +
+                                             " expects real numbers");
+            }
             std::int64_t result = args[0].as_integer();
             for (std::size_t i = 1; i < args.size(); ++i) {
                 std::int64_t value = args[i].as_integer();
@@ -855,6 +874,10 @@ void install_runtime_primitives(Evaluator& evaluator) {
     });
     install(evaluator, "open-input-file", [&evaluator](const Values& args) {
         require_arity(args, 1, "open-input-file");
+        if (!args[0].is_object() ||
+            args[0].as_object()->type() != ObjectType::String)
+            raise_keyed(evaluator, "type-error",
+                        "open-input-file: expected string");
         const std::string path = evaluator.string_value(args[0]);
         std::ifstream input(path, std::ios::binary);
         if (!input)
@@ -899,6 +922,22 @@ void install_runtime_primitives(Evaluator& evaluator) {
         port.closed = true;
         return Values{Value::unspecified()};
     });
+    install(evaluator, "port-closed?", [](const Values& args) {
+        require_arity(args, 1, "port-closed?");
+        if (args[0].is_object()) {
+            switch (args[0].as_object()->type()) {
+            case ObjectType::InputPort:
+                return Values{Value::boolean(
+                    args[0].as_object<InputStringPortObject>()->closed)};
+            case ObjectType::OutputPort:
+                return Values{Value::boolean(
+                    args[0].as_object<OutputPortObject>()->closed)};
+            default:
+                break;
+            }
+        }
+        throw std::runtime_error("port-closed? expects a port");
+    });
     install(evaluator, "flush-output-port", [](const Values& args) {
         require_arity(args, 1, "flush-output-port");
         output_port(args[0], "flush-output-port").stream->flush();
@@ -920,6 +959,10 @@ void install_runtime_primitives(Evaluator& evaluator) {
     });
     install(evaluator, "file-exists?", [&evaluator](const Values& args) {
         require_arity(args, 1, "file-exists?");
+        if (!args[0].is_object() ||
+            args[0].as_object()->type() != ObjectType::String)
+            raise_keyed(evaluator, "type-error",
+                        "file-exists?: expected string");
         std::ifstream input(evaluator.string_value(args[0]), std::ios::binary);
         return Values{Value::boolean(static_cast<bool>(input))};
     });
@@ -1626,10 +1669,21 @@ void install_runtime_primitives(Evaluator& evaluator) {
     });
     install(evaluator, "delete-file", [&evaluator](const Values& args) {
         require_arity(args, 1, "delete-file");
+        if (!args[0].is_object() ||
+            args[0].as_object()->type() != ObjectType::String)
+            raise_keyed(evaluator, "type-error",
+                        "delete-file: expected string");
         std::error_code error;
-        fs::remove(evaluator.string_value(args[0]), error);
-        if (error) throw std::runtime_error("cannot delete file");
-        return Values{Value::unspecified()};
+        const bool removed =
+            fs::remove(evaluator.string_value(args[0]), error);
+        if (!removed || error)
+            // Dialect parity: the host raises read-error for a missing
+            // target and returns #t on success (the tests pin both).
+            // libstdc++ does not always set ec for ENOENT, so the return
+            // value decides.
+            raise_keyed(evaluator, "read-error",
+                        "delete-file: no such file");
+        return Values{Value::boolean(true)};
     });
     install(evaluator, "read", [&evaluator, eof](const Values& args) {
         if (args.size() > 1)
@@ -1792,9 +1846,14 @@ void install_runtime_primitives(Evaluator& evaluator) {
     });
     install(evaluator, "exact-integer-sqrt", [](const Values& args) -> Values {
         require_arity(args, 1, "exact-integer-sqrt");
-        if (!args[0].is_integer() || args[0].as_integer() < 0)
+        // Split the checks: non-integer -> 'type-error, negative ->
+        // 'value-error (the old combined message collapsed both into one
+        // classifier bucket).
+        if (!args[0].is_integer())
+            throw std::runtime_error("exact-integer-sqrt expects integers");
+        if (args[0].as_integer() < 0)
             throw std::runtime_error(
-                "exact-integer-sqrt expects a non-negative integer");
+                "exact-integer-sqrt n must be non-negative");
         std::uint64_t x = static_cast<std::uint64_t>(args[0].as_integer());
         std::uint64_t bit = 1ull << 62;
         while (bit > x) bit >>= 2;
@@ -2125,6 +2184,63 @@ void install_runtime_primitives(Evaluator& evaluator) {
                            evaluator.symbol("equal?")),
                        {wanted, actual})[0].as_boolean();
         };
+        // C++ error keys at the catch boundary: message shapes are the
+        // runtime's own contract, so classification is a stable table
+        // (tests/scheme pins the host's key taxonomy: wrong-type-arg,
+        // wrong-number-of-args, out-of-range, division-by-zero,
+        // type-error for the s7-builtin-compat string/utf8 ops).
+        auto handle_cxx = [&](const std::string& message) -> Values {
+            const bool arity =
+                message.rfind("wrong number of arguments", 0) == 0 ||
+                (message.find("expects") != std::string::npos &&
+                 message.find("argument") != std::string::npos);
+            const bool oor =
+                message.find("out of bounds") != std::string::npos ||
+                message.find("out of range") != std::string::npos;
+            const bool valerr =
+                message.find("non-negative") != std::string::npos;
+            const bool div0 =
+                message.find("division by zero") != std::string::npos ||
+                message.find("divisor is zero") != std::string::npos;
+            const bool ioerr =
+                message.find("cannot open") != std::string::npos ||
+                message.find("cannot delete") != std::string::npos;
+            // s7-builtin-compat numeric/string/char ops pin 'type-error, not
+            // 'wrong-type-arg (host-abi raised (error 'type-error ...)).
+            const bool s7type =
+                message.find("string->utf8 expects") != std::string::npos ||
+                message.find("utf8->string expects") != std::string::npos ||
+                message.find("expects integers") != std::string::npos ||
+                message.find("expects real numbers") != std::string::npos ||
+                message.find("expected character") != std::string::npos;
+            const bool wtype =
+                !arity && (message.find("expects") != std::string::npos ||
+                           message.find("expected ") != std::string::npos ||
+                           message.find("wrong kind") != std::string::npos);
+            const char* key = arity   ? "wrong-number-of-args"
+                             : oor    ? "out-of-range"
+                             : valerr ? "value-error"
+                             : div0   ? "division-by-zero"
+                             : ioerr  ? "io-error"
+                             : s7type ? "type-error"
+                             : wtype  ? "wrong-type-arg"
+                                      : nullptr;
+            if (key == nullptr) {
+                if (!matches(args[0], Value::boolean(true))) throw;
+                return evaluator.apply_values(
+                    args[2],
+                    Values{Value::boolean(true),
+                           evaluator.pair(evaluator.string(message),
+                                          Value::null())});
+            }
+            const Value key_value = evaluator.symbol(key);
+            if (!matches(args[0], key_value)) throw;
+            return evaluator.apply_values(
+                args[2],
+                Values{key_value,
+                       evaluator.pair(evaluator.string(message),
+                                      Value::null())});
+        };
         try {
             return evaluator.apply_values(args[1], {});
         } catch (const ThrownValue& thrown) {
@@ -2178,17 +2294,10 @@ void install_runtime_primitives(Evaluator& evaluator) {
                 Values{Value::boolean(true),
                        evaluator.pair(raised.value(), Value::null())});
         } catch (const std::runtime_error& error) {
-            if (!matches(args[0], Value::boolean(true))) throw;
-            // Shape parity with the host's keyed errors: the second handler
-            // argument is a message list (the host passes (fmt . args)), so
-            // load-library-guard's formatter and guard's (car info) show the
-            // real text instead of "nested-pair".  Giving C++ errors a key
-            // is a separate migration (check-catch on native keys is TODO).
-            return evaluator.apply_values(
-                args[2],
-                Values{Value::boolean(true),
-                       evaluator.pair(evaluator.string(error.what()),
-                                      Value::null())});
+            return handle_cxx(error.what());
+        } catch (const std::logic_error& error) {
+            // value.hpp's require() ("runtime value has the wrong kind").
+            return handle_cxx(error.what());
         }
     });
     install(evaluator, "throw", [](const Values& args) -> Values {
@@ -2402,10 +2511,12 @@ void install_runtime_primitives(Evaluator& evaluator) {
         return Values{evaluator.string(result)};
     });
     install(evaluator, "string-copy", [&evaluator](const Values& args) {
-        if (args.size() != 1 && args.size() != 3)
+        // R7RS (string-copy s [start [end]]) plus the host's two-arg
+        // (string-copy s start) form.
+        if (args.size() < 1 || args.size() > 3)
             throw std::runtime_error("string-copy expects one or three arguments");
         const std::string& value = evaluator.string_value(args[0]);
-        const std::size_t start = args.size() == 3
+        const std::size_t start = args.size() >= 2
             ? static_cast<std::size_t>(args[1].as_integer()) : 0;
         const std::size_t end = args.size() == 3
             ? static_cast<std::size_t>(args[2].as_integer()) : value.size();
@@ -2655,12 +2766,20 @@ void install_runtime_primitives(Evaluator& evaluator) {
     });
     install(evaluator, "modulo", [](const Values& args) {
         require_arity(args, 2, "modulo");
+        // Key parity: non-integers -> 'type-error, zero divisor ->
+        // 'division-by-zero (tests/scheme pins both).
+        if (!args[0].is_integer() || !args[1].is_integer())
+            throw std::runtime_error("modulo expects integers");
         std::int64_t divisor = args[1].as_integer();
         if (divisor == 0)
             throw std::runtime_error("modulo divisor is zero");
+        // R7RS floor semantics: the result takes the divisor's sign, so a
+        // truncated remainder with mismatched signs gets adjusted (the
+        // negative-dividend case below was already correct; (modulo 10
+        // -3) must be -2, not C's 1).
         std::int64_t result = args[0].as_integer() % divisor;
-        if (result < 0)
-            result += std::llabs(divisor);
+        if (result != 0 && ((result < 0) != (divisor < 0)))
+            result += divisor;
         return Values{Value::integer(result)};
     });
     install(evaluator, "positive?", [](const Values& args) {
@@ -3006,6 +3125,10 @@ void install_runtime_primitives(Evaluator& evaluator) {
     install(evaluator, "with-input-from-file",
             [&evaluator](const Values& args) {
                 require_arity(args, 2, "with-input-from-file");
+                if (!args[0].is_object() ||
+                    args[0].as_object()->type() != ObjectType::String)
+                    raise_keyed(evaluator, "type-error",
+                                "with-input-from-file: expected string");
                 Value saved = g_current_ports.input;
                 Value port = evaluator
                                  .apply_values(
