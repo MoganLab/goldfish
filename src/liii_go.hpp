@@ -43,6 +43,7 @@ enum class GFValueType {
   Channel,
   Eof,
   Ref,
+  Let,
   Undefined
 };
 

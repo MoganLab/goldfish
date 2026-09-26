@@ -22,7 +22,8 @@
     (liii error)
   ) ;import
   (export go go-worker-count make-chan chan? chan-send! chan-recv!
-    chan-try-recv! chan-try-send! chan-close! chan-closed? select
+    chan-try-recv! chan-try-send! chan-close! chan-closed? select make-context
+    make-timeout-context context? context-done? context-cancel! context-channel
   ) ;export
   (begin
     (define make-chan (case-lambda (() (g_make-chan 0)) ((cap) (g_make-chan cap))))
@@ -67,6 +68,33 @@
 
     (define (go-worker-count)
       (g_go-worker-count)
+    ) ;define
+
+    (define-record-type <go-context>
+      (%make-context done-chan)
+      context?
+      (done-chan context-channel)
+    ) ;define-record-type
+
+    (define (make-context)
+      (%make-context (make-chan 1))
+    ) ;define
+
+    (define (context-done? ctx)
+      (chan-closed? (context-channel ctx))
+    ) ;define
+
+    (define (context-cancel! ctx)
+      (when (not (context-done? ctx))
+        (chan-close! (context-channel ctx))
+      ) ;when
+    ) ;define
+
+    (define (make-timeout-context ms)
+      (let ((ctx (make-context)))
+        (go (ctx ms) (g_msleep ms) (context-cancel! ctx))
+        ctx
+      ) ;let
     ) ;define
 
     (define-macro (go vars . body)

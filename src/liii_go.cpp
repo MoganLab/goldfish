@@ -346,6 +346,14 @@ s7_to_gfvalue_impl (s7_scheme* sc, s7_pointer obj, GFValue& out, std::string& er
     out.vec_val= vec_ptr;
     return true;
   }
+  if (s7_is_let (obj)) {
+    out.type           = GFValueType::Let;
+    s7_pointer alist   = s7_let_to_list (sc, obj);
+    auto       pair_ptr= std::make_shared<std::pair<GFValue, GFValue>> ();
+    if (!s7_to_gfvalue_impl (sc, alist, pair_ptr->first, err_msg, ctx)) return false;
+    out.pair_val= pair_ptr;
+    return true;
+  }
 
   err_msg= std::string ("unsupported object type for channel serialization: ") + s7_object_to_c_string (sc, obj);
   return false;
@@ -422,6 +430,11 @@ gfvalue_to_s7_impl (s7_scheme* sc, const GFValue& val, DeserializeCtx& ctx) {
   }
   case GFValueType::Eof:
     return s7_eof_object (sc);
+  case GFValueType::Let: {
+    if (!val.pair_val) return s7_inlet (sc, s7_nil (sc));
+    s7_pointer alist= gfvalue_to_s7_impl (sc, val.pair_val->first, ctx);
+    return s7_inlet (sc, alist);
+  }
   case GFValueType::Undefined:
   default:
     return s7_undefined (sc);
