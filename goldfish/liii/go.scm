@@ -24,6 +24,8 @@
   (export go go-worker-count make-chan chan? chan-send! chan-recv!
     chan-try-recv! chan-try-send! chan-close! chan-closed? select make-context
     make-timeout-context context? context-done? context-cancel! context-channel
+    spawn-fiber fiber-yield! fiber-scheduler-run! make-fiber-chan fiber-chan?
+    fiber-send! fiber-recv!
   ) ;export
   (begin
     (define make-chan (case-lambda (() (g_make-chan 0)) ((cap) (g_make-chan cap))))
@@ -94,6 +96,85 @@
       (let ((ctx (make-context)))
         (go (ctx ms) (g_msleep ms) (context-cancel! ctx))
         ctx
+      ) ;let
+    ) ;define
+
+    ;; -----------------------------------------------------------------------
+    ;; M:N 混合协程调度器：单 Session 内基于 call/cc 的用户态轻量协程调度引擎
+    ;; -----------------------------------------------------------------------
+
+    (define *ready-queue* '())
+    (define *scheduler-return* #f)
+
+    (define (enqueue-fiber! thunk)
+      (set! *ready-queue* (append *ready-queue* (list thunk)))
+    ) ;define
+
+    (define (schedule-next!)
+      (if (null? *ready-queue*)
+        (if *scheduler-return* (*scheduler-return* #t) #f)
+        (let ((next-thunk (car *ready-queue*)))
+          (set! *ready-queue* (cdr *ready-queue*))
+          (next-thunk)
+        ) ;let
+      ) ;if
+    ) ;define
+
+    (define (spawn-fiber thunk)
+      (enqueue-fiber! (lambda () (thunk) (schedule-next!)))
+    ) ;define
+
+    (define (fiber-yield!)
+      (call/cc
+        (lambda (k) (enqueue-fiber! (lambda () (k #t))) (schedule-next!))
+      ) ;call/cc
+    ) ;define
+
+    (define (fiber-scheduler-run!)
+      (call/cc (lambda (exit-k) (set! *scheduler-return* exit-k) (schedule-next!)))
+    ) ;define
+
+    (define-record-type <fiber-chan>
+      (%make-fiber-chan buffer waiting-receivers)
+      fiber-chan?
+      (buffer %fch-buf %fch-set-buf!)
+      (waiting-receivers %fch-recv %fch-set-recv!)
+    ) ;define-record-type
+
+    (define (make-fiber-chan)
+      (%make-fiber-chan '() '())
+    ) ;define
+
+    (define (fiber-send! fch val)
+      (let ((recv-waiters (%fch-recv fch)))
+        (if (pair? recv-waiters)
+          (let ((receiver-k (car recv-waiters)))
+            (%fch-set-recv! fch (cdr recv-waiters))
+            (enqueue-fiber! (lambda () (receiver-k val)))
+            (fiber-yield!)
+          ) ;let
+          (begin
+            (%fch-set-buf! fch (append (%fch-buf fch) (list val)))
+            (fiber-yield!)
+          ) ;begin
+        ) ;if
+      ) ;let
+    ) ;define
+
+    (define (fiber-recv! fch)
+      (let ((buf (%fch-buf fch)))
+        (if (pair? buf)
+          (let ((val (car buf)))
+            (%fch-set-buf! fch (cdr buf))
+            val
+          ) ;let
+          (call/cc
+            (lambda (k)
+              (%fch-set-recv! fch (append (%fch-recv fch) (list k)))
+              (schedule-next!)
+            ) ;lambda
+          ) ;call/cc
+        ) ;if
       ) ;let
     ) ;define
 
