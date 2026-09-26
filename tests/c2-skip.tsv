@@ -4,3 +4,7 @@
 # format: path<TAB>bucket<TAB>reason
 tests/srfi/srfi-27-test.scm	random	needs random-state (PRNG primitives, float/random workstream)
 tests/srfi/srfi-158-test.scm	engine-callcc	srfi-158 generators capture continuations; native has no call/cc yet
+tests/scheme/base/call-slash-cc-test.scm	engine-callcc	call/cc not implemented in the native engine
+tests/scheme/base/call-with-current-continuation-test.scm	engine-callcc	call/cc not implemented in the native engine
+tests/scheme/complex-test.scm	float/numeric	make-rectangular needs the float workstream
+tests/scheme/base/star-test.scm	numeric-tower	-9223372036854775808 literal needs the bignum reader
