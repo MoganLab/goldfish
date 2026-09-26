@@ -122,16 +122,19 @@
       ) ;enumerate
       (subsection* "5.4 后续演进与深度优化规划")
       (enumerate (document (concat (item)
-                             "【优化方向一：select 多路复用宏与超时机制】实现类似 Go 的 (select ((chan-recv! ch1 val) body ...) ((chan-send! ch2 expr) body ...) (timeout ms body ...) (default body ...)) 语法，底层在 C++ 层实现原子无死锁的多通道事件监听轮询器（Poller/Waiter），彻底补齐 CSP 并发三件套。"
+                             "【核心方向一：从 1:1 线程池演进为 M:N 混合协程调度器（GMP 架构）】当前 1:1 模型下 20 个工作核心适合纯 CPU 密集型计算，但当并发任务在 Channel 上等待时物理线程会挂起；未来依托 S7 原生的一等延续（First-Class Continuation，call/cc），当协程在 chan-recv! 等待时，通过 continuation 保存执行栈并在堆上挂起，物理线程零休眠，立即切换至本地就绪队列的下一个协程，实现单个物理核心承载数万至数十万个超轻量级用户态协程。按三阶段推进：阶段1在单 Session 内基于 call/cc 实现协作式微型 CSP 调度器并验证上万协程通道收发；阶段2改造 C++ Channel 支持挂载挂起协程并触发无锁本地唤醒；阶段3引入 Work Stealing（工作窃取机制），建立完整的工业级 M:N 调度器。"
                            ) ;concat
                    (concat (item)
-                     "【优化方向二：Worker 异常捕获与错误传递机制】目前 Worker 遇到未捕获异常会在控制台报错，后续在 Worker 求值外层引入 (catch #t ...) 机制，将运行时异常打包为中立错误对象向等待通道传递或自动触发通道异常关闭，避免接收端挂起死等。"
+                     "【优化方向二：select 多路复用宏与超时机制】实现类似 Go 的 (select ((chan-recv! ch1 val) body ...) ((chan-send! ch2 expr) body ...) (timeout ms body ...) (default body ...)) 语法，底层在 C++ 层实现原子无死锁的多通道事件监听轮询器（Poller/Waiter），彻底补齐 CSP 并发三件套。"
                    ) ;concat
                    (concat (item)
-                     "【优化方向三：大对象零拷贝与复杂拓扑图序列化】针对大型只读 Bytevector（如图像/音频/大文件），利用 C++ std::shared_ptr<const std::vector<uint8_t>> 实现跨解释器 Session 零内存拷贝共享；在 GFValue 序列化层引入指针访问表哈希，消除 2048 递归上限，支持带环（set-cdr!）复杂数据拓扑的深拷贝。"
+                     "【优化方向三：Worker 异常捕获与错误传递机制】目前 Worker 遇到未捕获异常会在控制台报错，后续在 Worker 求值外层引入 (catch #t ...) 机制，将运行时异常打包为中立错误对象向等待通道传递或自动触发通道异常关闭，避免接收端挂起死等。"
                    ) ;concat
                    (concat (item)
-                     "【优化方向四：任务取消与超时抢占中断（Context 机制）】借鉴 Go context.Context 取消机制，结合 S7 解释器的字节码执行钩子（eval-hook），支持当任务超时或被外部取消时，能够强制中断 Worker 内的冗余计算或死循环，优雅回收算力。"
+                     "【优化方向四：大对象零拷贝与复杂拓扑图序列化】针对大型只读 Bytevector（如图像/音频/大文件），利用 C++ std::shared_ptr<const std::vector<uint8_t>> 实现跨解释器 Session 零内存拷贝共享；在 GFValue 序列化层引入指针访问表哈希，消除 2048 递归上限，支持带环（set-cdr!）复杂数据拓扑的深拷贝。"
+                   ) ;concat
+                   (concat (item)
+                     "【优化方向五：任务取消与超时抢占中断（Context 机制）】借鉴 Go context.Context 取消机制，结合 S7 解释器的字节码执行钩子（eval-hook），支持当任务超时或被外部取消时，能够强制中断 Worker 内的冗余计算或死循环，优雅回收算力。"
                    ) ;concat
                  ) ;document
       ) ;enumerate
@@ -147,6 +150,9 @@
                    ) ;concat
                    (concat (item)
                      "常驻线程池：预先创建与系统硬件核心数相匹配的解释器实例 Session，主线程通过线程安全任务队列派发 go 代码块，利用 std::condition_variable 唤醒工作核进行真多核求值，避免频繁创建销毁线程与解释器的开销。"
+                   ) ;concat
+                   (concat (item)
+                     "M:N 调度原理：每个 M（系统工作线程）独占一个解释器 Session；每个 P（本地调度器）维护就绪队列；G（协程）在遇到 Channel 阻塞时，利用 S7 的 call/cc 一等延续将现场保存在堆上，物理线程零休眠立即执行下一个 G，实现无内核上下文开销的用户态极速切换。"
                    ) ;concat
                  ) ;document
       ) ;enumerate
