@@ -131,10 +131,7 @@
                      "【优化方向三：大对象零拷贝与复杂拓扑图序列化】针对大型只读 Bytevector（如图像/音频/大文件），利用 C++ std::shared_ptr<const std::vector<uint8_t>> 实现跨解释器 Session 零内存拷贝共享；在 GFValue 序列化层引入指针访问表哈希，消除 2048 递归上限，支持带环（set-cdr!）复杂数据拓扑的深拷贝。"
                    ) ;concat
                    (concat (item)
-                     "【优化方向四：高级并发模式库扩展】在 (liii go) 基础上提供开箱即用的大数据集多核分治原语：(parallel-map proc lst)、(parallel-filter pred lst)、(parallel-for-each proc lst) 以及 (go-future expr) / (future-get f [timeout]) 异步任务模式。"
-                   ) ;concat
-                   (concat (item)
-                     "【优化方向五：任务取消与超时抢占中断（Context 机制）】借鉴 Go context.Context 取消机制，结合 S7 解释器的字节码执行钩子（eval-hook），支持当任务超时或被外部取消时，能够强制中断 Worker 内的冗余计算或死循环，优雅回收算力。"
+                     "【优化方向四：任务取消与超时抢占中断（Context 机制）】借鉴 Go context.Context 取消机制，结合 S7 解释器的字节码执行钩子（eval-hook），支持当任务超时或被外部取消时，能够强制中断 Worker 内的冗余计算或死循环，优雅回收算力。"
                    ) ;concat
                  ) ;document
       ) ;enumerate
