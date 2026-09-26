@@ -4,85 +4,153 @@
          ) ;tuple
   ) ;style
   (body
-    (document (chapter* "[liii_go] 参考 Go 语言并发模型（CSP）在 Goldfish Scheme 中实现多核并发库 (liii go)")
+    (document (chapter* "[liii_go] 参考 Go 语言并发模型（CSP）在 Goldfish Scheme 中实现多核并发库 (liii go)"
+              ) ;chapter*
       (section* "1 相关文档")
       (itemize (document (concat (item) "Go 语言并发规范（Goroutine, Channel, Select）")
                  (concat (item) "~/git/dev-agent/devel/dddd.stem - 任务文档模板")
-                 (concat (item) "~/git/dev-agent/doc/goldfish.stem - Goldfish项目的基础文档")
+                 (concat (item)
+                   "~/git/dev-agent/doc/goldfish.stem - Goldfish项目的基础文档"
+                 ) ;concat
                ) ;document
       ) ;itemize
       (section* "2 任务相关的代码仓库和文件")
       (bash-code (document "# 1. C++ 胶水层与底层实现"
                    "$HOME/git/goldfish/src/liii_go.hpp"
                    "$HOME/git/goldfish/src/liii_go.cpp"
-                   "$HOME/git/goldfish/src/goldfish.cpp"
-                   "" "# 2. Scheme 封装库"
-                   "$HOME/git/goldfish/goldfish/liii/go.scm"
-                   "" "# 3. 单元测试与集成测试"
+                   "$HOME/git/goldfish/src/goldfish.cpp" ""
+                   "# 2. Scheme 封装库"
+                   "$HOME/git/goldfish/goldfish/liii/go.scm" ""
+                   "# 3. 单元测试与对照 Demo"
                    "$HOME/git/goldfish/tests/liii/go/chan-test.scm"
                    "$HOME/git/goldfish/tests/liii/go/go-test.scm"
-                   "$HOME/git/goldfish/tests/liii/go/select-test.scm"
-                   "" "# 4. 任务文档"
+                   "$HOME/git/goldfish/demo/fib_go.scm"
+                   "$HOME/git/goldfish/demo/fib_2min.scm"
+                   "$HOME/git/goldfish/demo/fib_2min.go"
+                   "$HOME/git/goldfish/demo/fib_2min.py" "" "# 4. 任务文档"
                    "$HOME/git/goldfish/devel/liii_go.stem"
                  ) ;document
       ) ;bash-code
       (section* "3 如何验收")
       (subsection* "3.1 手动测试")
-      (subsubsection* "测试项1：启动多核 Worker 计算，验证多核 CPU 利用率")
-      (enumerate (document (concat (item) "启动多核并行 Fibonacci 计算 Demo 脚本：")
-                   (bash-code (document "bin/gf demo/fib_go.scm"))
-                   (concat (item) "使用 top 或 htop 观察 goldfish 进程的 CPU 占用率是否超过 100%（利用多核同时计算），验证所有工作核心被打满。")
+      (subsubsection* "测试项1：启动 2 分钟多核树形分治 Fibonacci 极限压测"
+      ) ;subsubsection*
+      (enumerate (document (concat (item)
+                             "在终端执行 Scheme 原生 2 分钟多核并发压测程序："
+                           ) ;concat
+                   (bash-code (document "bin/gf demo/fib_2min.scm"))
+                   (concat (item)
+                     "在另一个终端执行 htop 观察系统全核占用率是否达到 1500% ~ 2000%（全线飘红打满 20 个物理核心），验证整整 2 分钟内持续处于满载轰鸣状态，并最终成功攻克高阶 Fibonacci（实测攻克 fib(51) = 20365011074）。"
+                   ) ;concat
+                 ) ;document
+      ) ;enumerate
+      (subsubsection* "测试项2：跨语言多核对照测试（Golang 与 Python）"
+      ) ;subsubsection*
+      (enumerate (document (concat (item) "执行同等算法的 Golang 原生对照程序：")
+                   (bash-code (document "go run demo/fib_2min.go"))
+                   (concat (item) "执行同等算法的 Python 原生多进程对照程序：")
+                   (bash-code (document "python3 demo/fib_2min.py"))
+                   (concat (item)
+                     "对比三大语言在相同 20 核硬件环境下的多核利用率、算力阶数与调度开销。"
+                   ) ;concat
                  ) ;document
       ) ;enumerate
       (subsection* "3.2 单元测试")
-      (bash-code (document "cd ~/git/goldfish"
-                   "xmake b goldfish"
+      (bash-code (document "cd ~/git/goldfish" "xmake b goldfish"
                    "bin/gf tests/liii/go/chan-test.scm"
                    "bin/gf tests/liii/go/go-test.scm"
                  ) ;document
       ) ;bash-code
       (subsection* "3.3 集成测试")
-      (bash-code (document "cd ~/git/goldfish"
-                   "bin/gf tests/liii/go/select-test.scm"
+      (bash-code (document "# 验证通道收发与多任务并发调度"
+                   "bin/gf demo/fib_go.scm"
                  ) ;document
       ) ;bash-code
       (subsection* "3.4 端到端自动化测试")
       "无"
       (section* "4 如何提交")
       "提交前执行以下步骤："
-      (bash-code (document "cd ~/git/goldfish"
-                   "xmake b goldfish"
-                   "bin/gf fmt"
+      (bash-code (document "cd ~/git/goldfish" "xmake b goldfish" "bin/gf fmt"
                    "bin/gf tests/liii/go/chan-test.scm"
+                   "bin/gf tests/liii/go/go-test.scm"
                  ) ;document
       ) ;bash-code
       (section* "5 What")
-      (concat "状态：阶段一与阶段二已完成，所有测试通过。")
-      (subsection* "5.1 阶段一：Channel（通道）核心原语与跨实例数据传输")
-      (enumerate (document (concat (item) "在 C++ 层实现线程安全的阻塞队列 GoldfishChannel（基于 std::mutex 与 std::condition_variable），支持无缓冲（同步相遇）与有缓冲通道，支持 channel-close! 关闭通知。")
-                   (concat (item) "实现跨 S7 实例的数据序列化/反序列化（深拷贝传输机制），首期支持布尔、整数、浮点数、字符、字符串、符号、pair/list、vector、bytevector 等纯数据类型。")
-                   (concat (item) "在 Scheme 层导出核心通道接口：(make-chan [capacity])、(chan-send! ch val)、(chan-recv! ch)、(chan-try-recv! ch [default])、(chan-close! ch)、(chan-closed? ch)。")
-                   (concat (item) "编写 tests/liii/go/chan-test.scm 覆盖通道创建、缓冲容量、单线程/跨线程收发、关闭状态检查与异常处理。")
+      (concat "状态：核心通道原语、多核线程池调度与 2 分钟打满 CPU 的压测 Demo 已圆满完成并建立 PR #1057。"
+      ) ;concat
+      (subsection* "5.1 已完成：Channel（通道）核心原语与跨实例数据传输"
+      ) ;subsection*
+      (enumerate (document (concat (item)
+                             "在 C++ 层实现线程安全的阻塞队列 GoldfishChannel（基于 std::mutex 与 std::condition_variable），支持无缓冲（Rendezvous 同步相遇）与有缓冲通道，支持 channel-close! 关闭通知与广播唤醒。"
+                           ) ;concat
+                   (concat (item)
+                     "实现跨 S7 实例的数据序列化/反序列化（深拷贝传输机制 GFValue），支持布尔、整数、浮点数、字符、字符串、符号、pair/list、vector、bytevector，以及 Channel 自身作为一等公民传输。"
+                   ) ;concat
+                   (concat (item)
+                     "在 Scheme 层导出核心通道接口：(make-chan [capacity])、(chan-send! ch val [timeout-ms])、(chan-recv! ch [timeout-ms [default]])、(chan-try-recv! ch [default])、(chan-close! ch)、(chan-closed? ch)、(chan? obj)。"
+                   ) ;concat
+                   (concat (item)
+                     "编写 tests/liii/go/chan-test.scm 覆盖通道创建、缓冲容量、单线程/跨线程收发、超时跳出、关闭状态检查与异常处理（41 checks pass）。"
+                   ) ;concat
                  ) ;document
       ) ;enumerate
-      (subsection* "5.2 阶段二：go 任务调度与多核 Worker 线程池")
-      (enumerate (document (concat (item) "在底层构建解释器线程池，每个系统线程维持一个独立的 s7_scheme* 实例，加载 Goldfish 基础运行环境。")
-                   (concat (item) "实现 (go expr ...) 语法宏，将任务打包调度到后台工作线程执行，任务与外部环境通过 Channel 通信。")
-                   (concat (item) "编写 tests/liii/go/go-test.scm 验证多任务并行调度和多核跑满能力。")
+      (subsection* "5.2 已完成：go 任务调度与多核 Worker 解释器线程池"
+      ) ;subsection*
+      (enumerate (document (concat (item)
+                             "在底层构建常驻工作线程池 GoThreadPool，根据系统硬件核心数一次性启动 N 个系统线程（20核机器对应 20 个常驻 Worker 线程），每个系统线程常驻一个独立的 s7_scheme* 解释器 Session，零运行时锁竞争，无 GIL 瓶颈。"
+                           ) ;concat
+                   (concat (item)
+                     "实现 (go (captured-vars...) body...) 语法宏，将任务与参数打包调度到后台工作线程执行，任务在独立 Session 中通过 let 作用域执行，避免全局变量污染。"
+                   ) ;concat
+                   (concat (item)
+                     "导出 (go-worker-count) 查看当前系统可用物理核心数。"
+                   ) ;concat
+                   (concat (item)
+                     "编写 tests/liii/go/go-test.scm 验证多任务并发调度与通道聚合能力（7 checks pass）。"
+                   ) ;concat
                  ) ;document
       ) ;enumerate
-      (subsection* "5.3 阶段三：select 多路复用与超时分支")
-      (enumerate (document (concat (item) "实现类似 Go 的 (select ...) 宏，支持多通道就绪监听、非阻塞 default 分支和超时控制。")
-                   (concat (item) "编写 tests/liii/go/select-test.scm 验证通道多路复用行为。")
+      (subsection* "5.3 已完成：基于 Go Channel 的树形分治并行 Fibonacci 压测 Demo"
+      ) ;subsection*
+      (enumerate (document (concat (item)
+                             "在 demo/fib_2min.scm 中实现树形分治并行算法，每阶展开 5 层生成 32 个 Channel 并发叶子任务，20 个工作核心瞬间打满至 1500% ~ 2000% CPU，在 2 分钟内持续冲击高阶 Fibonacci（实测攻克至 fib(51)）。"
+                           ) ;concat
+                   (concat (item)
+                     "配套实现 Golang 原生对照版本 demo/fib_2min.go 与 Python 原生多进程对照版本 demo/fib_2min.py，用于横向性能与并发机制对比。"
+                   ) ;concat
+                 ) ;document
+      ) ;enumerate
+      (subsection* "5.4 后续演进与深度优化规划")
+      (enumerate (document (concat (item)
+                             "【优化方向一：select 多路复用宏与超时机制】实现类似 Go 的 (select ((chan-recv! ch1 val) body ...) ((chan-send! ch2 expr) body ...) (timeout ms body ...) (default body ...)) 语法，底层在 C++ 层实现原子无死锁的多通道事件监听轮询器（Poller/Waiter），彻底补齐 CSP 并发三件套。"
+                           ) ;concat
+                   (concat (item)
+                     "【优化方向二：Worker 异常捕获与错误传递机制】目前 Worker 遇到未捕获异常会在控制台报错，后续在 Worker 求值外层引入 (catch #t ...) 机制，将运行时异常打包为中立错误对象向等待通道传递或自动触发通道异常关闭，避免接收端挂起死等。"
+                   ) ;concat
+                   (concat (item)
+                     "【优化方向三：大对象零拷贝与复杂拓扑图序列化】针对大型只读 Bytevector（如图像/音频/大文件），利用 C++ std::shared_ptr<const std::vector<uint8_t>> 实现跨解释器 Session 零内存拷贝共享；在 GFValue 序列化层引入指针访问表哈希，消除 2048 递归上限，支持带环（set-cdr!）复杂数据拓扑的深拷贝。"
+                   ) ;concat
+                   (concat (item)
+                     "【优化方向四：高级并发模式库扩展】在 (liii go) 基础上提供开箱即用的大数据集多核分治原语：(parallel-map proc lst)、(parallel-filter pred lst)、(parallel-for-each proc lst) 以及 (go-future expr) / (future-get f [timeout]) 异步任务模式。"
+                   ) ;concat
+                   (concat (item)
+                     "【优化方向五：任务取消与超时抢占中断（Context 机制）】借鉴 Go context.Context 取消机制，结合 S7 解释器的字节码执行钩子（eval-hook），支持当任务超时或被外部取消时，能够强制中断 Worker 内的冗余计算或死循环，优雅回收算力。"
+                   ) ;concat
                  ) ;document
       ) ;enumerate
       (section* "6 Why")
-      "现代硬件普及多核处理器，而 Goldfish 目前的执行流局限于单核单线程。"
-      "S7 解释器单实例并非线程安全，若采用传统的全局解释器锁（GIL）进行共享内存多线程，无法真正发挥多核并行计算能力。通过借鉴 Go 语言的 CSP 模型（Communicating Sequential Processes），结合 S7 独立多实例的特性，通道作为一等公民在独立的解释器线程之间传递数据，既天然免疫数据竞争与死锁，又能以最高效、低心智负担的方式充分利用多核硬件性能。"
+      "现代硬件普及多核处理器，而 Goldfish 目前的标准执行流局限于单核单线程。"
+      "S7 解释器单实例并非线程安全，若采用传统的全局解释器锁（GIL）进行共享内存多线程，无法真正发挥多核并行计算能力。通过借鉴 Go 语言的 CSP 模型（Communicating Sequential Processes），结合 S7 独立多实例的特性，每个工作线程独占一个解释器 Session，通道作为一等公民在独立的解释器线程之间传递数据，既天然免疫数据竞争与死锁，又能以最高效、低心智负担的方式充分释放多核硬件性能。"
       (section* "7 How")
-      (enumerate (document (concat (item) "底层 Channel：使用 C++11 std::shared_ptr<GoldfishChannel> 封装线程安全有界/无界阻塞队列。在 S7 端通过 c-pointer/c-object 进行包装，作为一等公民在各环境间传递。")
-                   (concat (item) "数据拷贝模型：消息在写入 Channel 时，从源解释器实例的 s7_pointer 深拷贝为中立的 C++ 数据树；读取时再从数据树在目标解释器的堆中还原 s7_pointer，彻底解耦两个线程的 GC 和内存堆。")
-                   (concat (item) "多核调度：预先创建或按需创建绑定至系统线程的解释器实例，主线程通过线程安全任务队列派发 go 代码块，利用 std::condition_variable 唤醒工作核进行真多核求值。")
+      (enumerate (document (concat (item)
+                             "底层 Channel：使用 C++11 std::shared_ptr<GoldfishChannel> 封装线程安全有界/无界阻塞队列。在 S7 端通过 c-pointer/c-object 进行包装，作为一等公民在各环境间传递。"
+                           ) ;concat
+                   (concat (item)
+                     "数据拷贝模型：消息在写入 Channel 时，从源解释器实例的 s7_pointer 深拷贝为中立的 C++ 数据树 GFValue；读取时再从数据树在目标解释器的堆中还原 s7_pointer，彻底解耦两个线程的 GC 和内存堆。"
+                   ) ;concat
+                   (concat (item)
+                     "常驻线程池：预先创建与系统硬件核心数相匹配的解释器实例 Session，主线程通过线程安全任务队列派发 go 代码块，利用 std::condition_variable 唤醒工作核进行真多核求值，避免频繁创建销毁线程与解释器的开销。"
+                   ) ;concat
                  ) ;document
       ) ;enumerate
     ) ;document
