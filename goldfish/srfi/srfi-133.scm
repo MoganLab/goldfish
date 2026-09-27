@@ -126,7 +126,7 @@
                 ((ilhs 0) (irhs 0) (len len1))
                 (if (= ilhs len)
                   #t
-                  (if (not (cmp (vec1 ilhs) (vec2 irhs))) #f (loop (+ 1 ilhs) (+ 1 irhs) len))
+                  (if (not (cmp (vector-ref vec1 ilhs) (vector-ref vec2 irhs))) #f (loop (+ 1 ilhs) (+ 1 irhs) len))
                 ) ;if
               ) ;let
             ) ;if
@@ -183,7 +183,7 @@
             ((i 0) (lhs knil))
             (if (= i len)
               v-rst
-              (let ((cumu-i (fn lhs (vec i))))
+              (let ((cumu-i (fn lhs (vector-ref vec i))))
                 (begin
                   (vector-set! v-rst i cumu-i)
                   (loop (+ 1 i) cumu-i)

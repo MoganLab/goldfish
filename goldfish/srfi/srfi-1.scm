@@ -50,6 +50,27 @@
   ) ;export
   (begin
 
+    (define (iota count . start+step)
+      (unless (exact-integer? count)
+        (type-error "iota: count must be an exact integer" count))
+      (when (< count 0)
+        (value-error "iota: count must be non-negative" count))
+      (when (> (length start+step) 2)
+        (error 'wrong-number-of-args "iota expects one to three arguments"))
+      (let ((start (if (null? start+step) 0 (car start+step)))
+            (step (if (or (null? start+step) (null? (cdr start+step)))
+                    1
+                    (cadr start+step))))
+        (unless (integer? start)
+          (type-error "iota: start must be an integer" start))
+        (unless (integer? step)
+          (type-error "iota: step must be an integer" step))
+        (let loop ((remaining count) (current start) (result '()))
+          (if (= remaining 0)
+            (reverse result)
+            (loop (- remaining 1) (+ current step) (cons current result)))))
+    ) ;define
+
     (define (xcons a b)
       (cons b a)
     ) ;define
@@ -133,24 +154,42 @@
       (list-ref x 9)
     ) ;define
 
+    (define (check-list-count who lst i)
+      (if (not (or (pair? lst) (null? lst)))
+        (error 'wrong-type-arg who lst))
+      (if (not (and (integer? i) (exact? i)))
+        (error 'wrong-type-arg who i))
+      (if (< i 0)
+        (error 'out-of-range who i)))
+
+    (define (%pair-count lst)
+      (let loop ((rest lst) (n 0))
+        (if (pair? rest) (loop (cdr rest) (+ n 1)) n)))
+
     (define (take lst i)
-      (if (zero? i) '()
-        (if (pair? lst) (cons (car lst) (take (cdr lst) (- i 1)))
-          (value-error "take: list is shorter than requested"))))
+      (check-list-count "take" lst i)
+      (let loop ((rest lst) (n i))
+        (if (zero? n) '()
+          (if (pair? rest) (cons (car rest) (loop (cdr rest) (- n 1)))
+            (error 'out-of-range "take: list is shorter than requested")))))
 
     (define (drop lst i)
-      (if (zero? i) lst
-        (if (pair? lst) (drop (cdr lst) (- i 1))
-          (value-error "drop: list is shorter than requested"))))
+      (check-list-count "drop" lst i)
+      (let loop ((rest lst) (n i))
+        (if (zero? n) rest
+          (if (pair? rest) (loop (cdr rest) (- n 1))
+            (error 'out-of-range "drop: list is shorter than requested")))))
 
     (define (take-right lst i)
-      (let ((n (length lst)))
-        (if (> i n) (value-error "take-right: list is shorter than requested")
+      (check-list-count "take-right" lst i)
+      (let ((n (%pair-count lst)))
+        (if (> i n) (error 'out-of-range "take-right: list is shorter than requested")
           (drop lst (- n i)))))
 
     (define (drop-right lst i)
-      (let ((n (length lst)))
-        (if (> i n) (value-error "drop-right: list is shorter than requested")
+      (check-list-count "drop-right" lst i)
+      (let ((n (%pair-count lst)))
+        (if (> i n) (error 'out-of-range "drop-right: list is shorter than requested")
           (take lst (- n i)))))
 
     (define (split-at lst i)
@@ -267,10 +306,16 @@
     ) ;define
 
     (define (filter pred lis)
-      (let loop ((rest lis) (out '()))
-        (if (null? rest) (reverse out)
-          (loop (cdr rest)
-            (if (pred (car rest)) (cons (car rest) out) out)))))
+      (let loop ((rest lis))
+        (if (null? rest)
+          rest
+          (let ((head (car rest)) (tail (cdr rest)))
+            (if (pred head)
+              (let ((new-tail (loop tail)))
+                (if (eq? tail new-tail)
+                  rest
+                  (cons head new-tail)))
+              (loop tail))))))
 
     (define (partition pred l)
       (let loop

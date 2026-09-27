@@ -1,4 +1,4 @@
-(import (liii check) (liii iset))
+(import (liii check) (liii iset) (only (liii list) iota))
 
 
 (check-set-mode! 'report-failed)

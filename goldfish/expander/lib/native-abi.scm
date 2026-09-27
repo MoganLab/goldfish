@@ -9,6 +9,14 @@
 ;;; and everything is rewritten against native primitives with no liii
 ;;; module dependencies, so (scheme base) programs can call it.
 
+;;; ---- promises -------------------------------------------------------
+
+(define (promise? x)
+  (and (pair? x) (pair? (cdr x)) (eq? (cadr x) '+promise+)))
+
+(define (make-promise obj)
+  (if (promise? obj) obj (make-lazy-promise (lambda () obj))))
+
 ;;; ---- ports ----------------------------------------------------------
 
 (define (port? p) (or (input-port? p) (output-port? p)))
@@ -31,6 +39,24 @@
 
 (define open-binary-input-file open-input-file)
 (define open-binary-output-file open-output-file)
+
+;; s7's eval-string surface is also used by (liii base).  Keep the
+;; implementation in Scheme and evaluate each datum through the native
+;; evaluator, returning the last result.
+(define (eval-string source . maybe-environment)
+  (if (not (string? source))
+    (error 'wrong-type-arg "eval-string: expected a string" source)
+    (if (or (null? maybe-environment) (null? (cdr maybe-environment)))
+      (let ((port (open-input-string source)))
+        (let loop ((result #f))
+          (let ((form (read port)))
+            (if (eof-object? form)
+              (begin (close-input-port port) result)
+              (loop (if (null? maybe-environment)
+                      (eval form)
+                      (eval form (car maybe-environment))))))))
+      (error 'wrong-number-of-args "eval-string: expected one or two arguments")))
+)
 
 ;; Error predicates over the pair format the tests (and legacy handlers)
 ;; use; non-pairs are simply not errors.
@@ -94,9 +120,7 @@
         (- end start)))))
 
 (define (open-input-bytevector bv)
-  (open-input-string
-    (list->string (map (lambda (n) (integer->char n))
-                       (bytevector->u8-list bv)))))
+  (g-open-input-bytevector bv))
 
 (define (open-output-bytevector)
   (open-output-string))
@@ -244,17 +268,19 @@
           (loop (+ i 1) (cdr b)))))))
 
 (define (utf8-string-length str)
-  (let ((bv (string->utf8 str))
-        (n (string-length str)))
-    (if (zero? n)
-      0
-      (let loop ((pos 0) (cnt 0))
-        (let ((next-pos (bytevector-advance-utf8 bv pos n)))
-          (cond
-            ((= next-pos n) (+ cnt 1))
-            ((= next-pos pos)
-             (error 'value-error "Invalid UTF-8 sequence at index: " pos))
-            (else (loop next-pos (+ cnt 1)))))))))
+  (if (not (string? str))
+    (error 'wrong-type-arg "utf8-string-length expects a string" str)
+    (let ((bv (string->utf8 str))
+          (n (string-length str)))
+      (if (zero? n)
+        0
+        (let loop ((pos 0) (cnt 0))
+          (let ((next-pos (bytevector-advance-utf8 bv pos n)))
+            (cond
+              ((= next-pos n) (+ cnt 1))
+              ((= next-pos pos)
+               (error 'value-error "Invalid UTF-8 sequence at index: " pos))
+              (else (loop next-pos (+ cnt 1))))))))))
 
 ;;; ---- string/vector conversions and friends --------------------------
 
@@ -335,7 +361,11 @@
 (define (string-for-each p . args)
   (if (not (procedure? p))
     (error 'wrong-type-arg "string-for-each: procedure expected" p)
-    (apply for-each p (map utf8-string->chars args))))
+    (let check-strings ((rest args))
+      (cond ((null? rest) (apply for-each p (map utf8-string->chars args)))
+            ((not (string? (car rest)))
+             (error 'wrong-type-arg "string-for-each: expected string" (car rest)))
+            (else (check-strings (cdr rest)))))))
 
 ;;; ---- misc -----------------------------------------------------------
 

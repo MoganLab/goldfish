@@ -64,6 +64,18 @@
       ) ;cond
     ) ;define
 
+    (define (hash-table . key-values)
+      (when (odd? (length key-values))
+        (value-error "hash-table: expected key/value pairs"))
+      (let ((table (make-hash-table)))
+        (let loop ((rest key-values))
+          (if (null? rest)
+            table
+            (begin
+              (hash-table-set! table (car rest) (cadr rest))
+              (loop (cddr rest))))))
+    ) ;define
+
     (define alist->hash-table
       (typed-lambda ((lst list?))
         (when (odd? (length lst))

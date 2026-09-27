@@ -20,6 +20,7 @@
           error length substring string-append string-length string?
           string-ref string=? make-string car cadr)
           (scheme char) (srfi srfi-175)
+          (only (srfi srfi-1) count)
           (liii error))
   (export string-null?
     string-copy
@@ -58,11 +59,26 @@
       (substring str 0 (string-length str)))
 
     (define (%string-from-range str start_end)
-      (cond ((null? start_end) str)
-            ((= (length start_end) 1) (substring str (car start_end)))
-            ((= (length start_end) 2) (substring str (car start_end) (cadr start_end)))
-            (else (error 'wrong-number-of-args "%string-from-range"))
-      ) ;cond
+      (let ((len (string-length str)))
+        (cond ((null? start_end) str)
+              ((= (length start_end) 1)
+               (let ((start (car start_end)))
+                 (if (not (and (integer? start) (exact? start)))
+                   (error 'wrong-type-arg "%string-from-range" start))
+                 (if (or (< start 0) (> start len))
+                   (error 'out-of-range "%string-from-range" start))
+                 (substring str start)))
+              ((= (length start_end) 2)
+               (let ((start (car start_end)) (end (cadr start_end)))
+                 (if (not (and (integer? start) (exact? start)))
+                   (error 'wrong-type-arg "%string-from-range" start))
+                 (if (not (and (integer? end) (exact? end)))
+                   (error 'wrong-type-arg "%string-from-range" end))
+                 (if (or (< start 0) (> end len) (> start end))
+                   (error 'out-of-range "%string-from-range" start end))
+                 (substring str start end)))
+              (else (error 'wrong-number-of-args "%string-from-range")))
+      ) ;let
     ) ;define
 
     (define (%make-criterion char/pred?)

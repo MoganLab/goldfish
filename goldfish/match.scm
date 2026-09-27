@@ -536,9 +536,10 @@
                (list (datum->syntax (quote-syntax define-values)
                                     'define-values)
                      vars
-                     (list (cons 'case-lambda
-                                 (list (cons args (list code))))
-                           expr))))))))
+                     (list 'call-with-values
+                           (list 'lambda '() expr)
+                           (cons 'case-lambda
+                                 (list (cons args (list code))))))))))))
 
     ;; match-letrec : ((pat init) ...) body ... -> value
     ;;   Compiled to (let ((v #f) ... (t #f) ...)
@@ -602,5 +603,4 @@
                       (cons pats-datum (list conseq))
                       (cons (map (lambda (_) '_) pats-datum)
                             (list alter)))))))))))
-
 

@@ -236,7 +236,7 @@
 
     (define (assert-computation-mutable var)
       (when (environment-variable-immutable? var)
-        (error "immutable computation environment variable" var))
+        (error 'no-catch "immutable computation environment variable" var))
     ) ;define
 
     (define (computation-environment-update! env var val)

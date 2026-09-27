@@ -4,6 +4,7 @@
 #include "runtime/setter_registry.hpp"
 #include "runtime/symbol.hpp"
 
+#include <memory>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -28,9 +29,12 @@ void install(Evaluator& evaluator, const char* name,
 void install_native_bootstrap_compatibility(Evaluator& evaluator) {
     // These names are consumed by existing lowered bootstrap artifacts.  They
     // are not part of the runtime substrate and do not create LegacyLet data.
-    install(evaluator, "rootlet", [&evaluator](const Values& args) {
+    auto rootlet = std::make_shared<Value>(Value::unspecified());
+    install(evaluator, "rootlet", [&evaluator, rootlet](const Values& args) {
         require_arity(args, 0, "rootlet");
-        return Values{evaluator.make_eval_environment()};
+        if (rootlet->is_unspecified())
+            *rootlet = evaluator.make_eval_environment();
+        return Values{*rootlet};
     });
     for (const char* name : {"when", "unless"}) {
         install(evaluator, name, [name](const Values& args) {

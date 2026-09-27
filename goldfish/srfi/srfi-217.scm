@@ -1404,30 +1404,28 @@
     (assume (valid-integer? elt))
     (assume (procedure? failure))
     (assume (procedure? success))
-    (call-with-current-continuation (lambda (return)
-                                      (let-values (((trie obj)
-                                                    (trie-search (iset-trie set)
-                                                      elt
-                                                      (lambda (insert ignore) (failure insert (lambda (obj) (return set obj))))
-                                                      (lambda (key update remove)
-                                                        (success key
-                                                          (lambda (new obj)
-                                                            (assume (valid-integer? new))
-                                                            (if (= key new)
-                                                              (update new obj)
-                                                              (return (iset-adjoin (iset-delete set key) new) obj)
-                                                            ) ;if
-                                                          ) ;lambda
-                                                          remove
-                                                        ) ;success
-                                                      ) ;lambda
-                                                    ) ;trie-search
-                                                   ) ;
-                                                  ) ;
-                                        (values (raw-iset trie) obj)
-                                      ) ;let-values
-                                    ) ;lambda
-    ) ;call-with-current-continuation
+    (let ((present? (iset-contains? set elt))
+          (action #f)
+          (obj #f)
+          (replacement elt))
+      (if present?
+        (success elt
+          (lambda (new value)
+            (assume (valid-integer? new))
+            (set! action (if (= elt new) 'update 'replace))
+            (set! replacement new)
+            (set! obj value))
+          (lambda (value) (set! action 'remove) (set! obj value)))
+        (failure
+          (lambda (value) (set! action 'insert) (set! obj value))
+          (lambda (value) (set! action 'ignore) (set! obj value))))
+      (values
+        (case action
+          ((insert) (iset-adjoin set elt))
+          ((remove) (iset-delete set elt))
+          ((replace) (iset-adjoin (iset-delete set elt) replacement))
+          (else set))
+        obj))
   ) ;define
 
   (define (iset-search! set elt failure success)
@@ -1468,10 +1466,15 @@
 
   (define (iset-find pred set failure)
     (assume (procedure? failure))
-    (call-with-current-continuation (lambda (return)
-                                      (or (iset-fold (lambda (n _) (and (pred n) (return n))) #f set) (failure))
-                                    ) ;lambda
-    ) ;call-with-current-continuation
+    (let ((found? #f)
+          (found #f))
+      (iset-fold (lambda (n _)
+                   (when (and (not found?) (pred n))
+                     (set! found n)
+                     (set! found? #t))
+                   #f)
+                 #f set)
+      (if found? found (failure)))
   ) ;define
 
   (define (iset-count pred set)
@@ -1481,14 +1484,24 @@
 
   (define (iset-any? pred set)
     (assume (procedure? pred))
-    (call-with-current-continuation (lambda (return) (iset-fold (lambda (n _) (and (pred n) (return #t))) #f set))
-    ) ;call-with-current-continuation
+    (let ((found? #f))
+      (iset-fold (lambda (n _)
+                   (when (and (not found?) (pred n))
+                     (set! found? #t))
+                   #f)
+                 #f set)
+      found?)
   ) ;define
 
   (define (iset-every? pred set)
     (assume (procedure? pred))
-    (call-with-current-continuation (lambda (return) (iset-fold (lambda (n _) (if (pred n) #t (return #f))) #t set))
-    ) ;call-with-current-continuation
+    (let ((all? #t))
+      (iset-fold (lambda (n _)
+                   (when (and all? (not (pred n)))
+                     (set! all? #f))
+                   #f)
+                 #f set)
+      all?)
   ) ;define
 
   ;; ;; Mapping and folding

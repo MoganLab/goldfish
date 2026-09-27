@@ -35,6 +35,7 @@
     vector-drop
     vector-take-right
     vector-drop-right
+    fill!
     int-vector
     int-vector?
     make-int-vector
@@ -53,7 +54,71 @@
   ) ;export
   (begin
 
-    (define vector-filter g_vector_filter)
+    (define (vector-filter pred vec)
+      (unless (procedure? pred)
+        (error 'wrong-type-arg "vector-filter: expected a procedure" pred))
+      (unless (vector? vec)
+        (error 'wrong-type-arg "vector-filter: expected a vector" vec))
+      (let ((result (make-vector (vector-count pred vec))))
+        (let loop ((i 0) (j 0))
+          (if (= i (vector-length vec))
+              result
+              (let ((value (vector-ref vec i)))
+                (if (pred value)
+                    (begin
+                      (vector-set! result j value)
+                      (loop (+ i 1) (+ j 1)))
+                    (loop (+ i 1) j)))))))
+
+    (define (fill! vec value . range)
+      (apply vector-fill! vec value range))
+
+    ;; Keep the native implementation portable while preserving the
+    ;; distinction between integer and ordinary vectors.
+    (define *int-vectors* '())
+
+    (define (int-vector? obj)
+      (if (assq obj *int-vectors*) #t #f))
+
+    (define (register-int-vector! vec)
+      (set! *int-vectors* (cons (cons vec #t) *int-vectors*))
+      vec)
+
+    (define (int-vector . values)
+      (for-each
+        (lambda (value)
+          (unless (integer? value)
+            (error 'wrong-type-arg "int-vector: expected integer" value)))
+        values)
+      (register-int-vector! (list->vector values)))
+
+    (define (make-int-vector len . fill-value)
+      (unless (and (integer? len) (exact? len) (>= len 0))
+        (error 'wrong-type-arg "make-int-vector: invalid length" len))
+      (when (> (length fill-value) 1)
+        (error 'wrong-number-of-args "make-int-vector: expected one or two arguments"))
+      (let ((fill (if (null? fill-value) 0 (car fill-value))))
+        (unless (integer? fill)
+          (error 'wrong-type-arg "make-int-vector: expected integer fill" fill))
+        (register-int-vector! (make-vector len fill))))
+
+    (define (int-vector-ref vec index)
+      (unless (int-vector? vec)
+        (error 'wrong-type-arg "int-vector-ref: expected int-vector" vec))
+      (unless (and (integer? index) (exact? index)
+                   (>= index 0) (< index (vector-length vec)))
+        (error 'out-of-range "int-vector-ref: index out of range" index))
+      (vector-ref vec index))
+
+    (define (int-vector-set! vec index value)
+      (unless (int-vector? vec)
+        (error 'wrong-type-arg "int-vector-set!: expected int-vector" vec))
+      (unless (and (integer? index) (exact? index)
+                   (>= index 0) (< index (vector-length vec)))
+        (error 'out-of-range "int-vector-set!: index out of range" index))
+      (unless (integer? value)
+        (error 'wrong-type-arg "int-vector-set!: expected integer" value))
+      (vector-set! vec index value))
 
     (define (vector-contains? vec elem . args)
       (let ((cmp (if (null? args) equal? (car args))))

@@ -96,9 +96,15 @@ Values Evaluator::eval_tail(Value expression, EnvironmentPtr environment) {
                     child->set(pair_binding[0], eval(pair_binding[1], child));
             }
             if (form == CoreForm::Letrec) {
+                Values initial_values;
+                initial_values.reserve(bindings.size());
                 for (Value binding : bindings) {
                     std::vector<Value> pair_binding = proper_list(binding);
-                    child->set(pair_binding[0], eval(pair_binding[1], child));
+                    initial_values.push_back(eval(pair_binding[1], child));
+                }
+                for (std::size_t i = 0; i < bindings.size(); ++i) {
+                    std::vector<Value> pair_binding = proper_list(bindings[i]);
+                    child->set(pair_binding[0], initial_values[i]);
                 }
             }
         }
@@ -357,6 +363,12 @@ Values Evaluator::eval_pair(PairObject& expression,
         std::vector<Value> tail_arguments = proper_list(final_argument);
         applied.insert(applied.end(), tail_arguments.begin(),
                        tail_arguments.end());
+        if (!procedure.is_object() ||
+            (procedure.as_object()->type() != ObjectType::Primitive &&
+             procedure.as_object()->type() != ObjectType::Closure))
+            throw RaisedValue(Value::object(heap_.make<ErrorObject>(
+                "apply: first argument is not a procedure",
+                ValueList{procedure}, "syntax-error")));
         return apply(procedure, applied);
     }
 
@@ -406,9 +418,15 @@ Values Evaluator::eval_pair(PairObject& expression,
                     pair_binding[0],
                     Value::object(heap_.make<UninitializedObject>()));
             }
+            Values initial_values;
+            initial_values.reserve(bindings.size());
             for (Value binding : bindings) {
                 std::vector<Value> pair_binding = proper_list(binding);
-                child->set(pair_binding[0], eval(pair_binding[1], child));
+                initial_values.push_back(eval(pair_binding[1], child));
+            }
+            for (std::size_t i = 0; i < bindings.size(); ++i) {
+                std::vector<Value> pair_binding = proper_list(bindings[i]);
+                child->set(pair_binding[0], initial_values[i]);
             }
         } else {
             for (Value binding : bindings) {
@@ -445,7 +463,8 @@ Values Evaluator::eval_pair(PairObject& expression,
                 Value module_name = eval(reference[0], environment);
                 Value name = eval(reference[1], environment);
                 Value module_set = environment->lookup(symbol("module-set"));
-                return apply(module_set, {module_name, name, value});
+                apply(module_set, {module_name, name, value});
+                return {value};
             }
             if (core_forms_.lookup(target->car) == CoreForm::Setter) {
                 std::vector<Value> setter_target = proper_list(target->cdr);
@@ -455,7 +474,7 @@ Values Evaluator::eval_pair(PairObject& expression,
                 // lowered module substrate. module-ref has native write
                 // handling above; other setters are not part of R2 yet.
                 (void)setter_target;
-                return {Value::unspecified()};
+                return {value};
             }
             std::vector<Value> target_form = proper_list(arguments[0]);
             if (target_form.empty())
@@ -466,7 +485,7 @@ Values Evaluator::eval_pair(PairObject& expression,
                 setter_arguments.push_back(eval(target_form[i], environment));
             setter_arguments.push_back(value);
             apply(procedure, setter_arguments);
-            return {Value::unspecified()};
+            return {value};
         }
         try {
             environment->set(arguments[0], value);
@@ -479,7 +498,7 @@ Values Evaluator::eval_pair(PairObject& expression,
                 error.what(), ValueList{string(error.what())},
                 "unbound-variable")));
         }
-        return {Value::unspecified()};
+        return {value};
     }
 
     if (form == CoreForm::Define) {

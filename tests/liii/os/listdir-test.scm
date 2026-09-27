@@ -1,4 +1,4 @@
-(import (liii check) (liii os) (liii uuid) (liii base) (liii vector))
+(import (liii check) (liii os) (liii base) (liii vector))
 
 
 (check-set-mode! 'report-failed)
@@ -33,7 +33,8 @@
 
 
 ;; ; 测试创建目录并列出
-(let* ((test-dir (string-append (os-temp-dir) (string (os-sep)) (uuid4)))
+(let* ((test-dir (string-append (os-temp-dir) (string (os-sep))
+                   "goldfish-listdir-" (number->string (getpid))))
        (test-dir2 (string-append test-dir (string (os-sep))))
        (dir-a (string-append test-dir2 "a"))
        (dir-b (string-append test-dir2 "b"))

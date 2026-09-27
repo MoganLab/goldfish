@@ -1,4 +1,4 @@
-(import (liii check) (liii flexvector))
+(import (liii check) (liii flexvector) (only (liii list) iota))
 
 
 (check-set-mode! 'report-failed)

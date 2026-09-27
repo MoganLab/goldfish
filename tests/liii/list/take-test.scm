@@ -53,8 +53,8 @@
 (check (take '(1 2 3 . 4) 3) => '(1 2 3))
 
 
-(check-catch 'wrong-type-arg (take '(1 2 3 4) 5))
-(check-catch 'wrong-type-arg (take '(1 2 3 . 4) 4))
+(check-catch 'out-of-range (take '(1 2 3 4) 5))
+(check-catch 'out-of-range (take '(1 2 3 . 4) 4))
 
 
 (check (take '() 0) => '())
@@ -71,7 +71,7 @@
 (check (take (iota 10) 5) => '(0 1 2 3 4))
 
 
-(check-catch 'wrong-type-arg (take '(1 2 3) -1))
+(check-catch 'out-of-range (take '(1 2 3) -1))
 (check-catch 'wrong-type-arg (take "not a list" 2))
 (check-catch 'wrong-type-arg (take '(1 2 3) "not a number"))
 

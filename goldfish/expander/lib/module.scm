@@ -1471,7 +1471,18 @@
 
 (define (register-program-library-primitive! name)
   (exp-library-define! (program-library) name
-                       (make-primitive-binding name)))
+                       (make-primitive-binding name))
+  ;; The host rootlet is already the evaluator's ambient environment.  The
+  ;; native runtime models rootlet as an eval environment, so mirror the
+  ;; registered value into the expander evaluator environment as well.
+  (when (and (defined? 'eval-environment?)
+             (eval-environment? (rootlet))
+             (defined? 'eval-environment-ref)
+             (defined? 'eval-environment-define!))
+    (eval-environment-define!
+      (module-eval-environment the-expander-library)
+      name
+      (eval-environment-ref (rootlet) name))))
 
 (define %program-library-api-installed!
   (begin

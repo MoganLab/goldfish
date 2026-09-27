@@ -115,6 +115,8 @@ Value TinyReader::read_form() {
     }
     case '"':
         return read_string();
+    case '|':
+        return read_quoted_symbol();
     case '#':
         return read_dispatch();
     case ')':
@@ -285,6 +287,24 @@ Value TinyReader::read_string() {
         case '"': value.push_back('"'); break;
         default: error("unsupported string escape");
         }
+    }
+}
+
+Value TinyReader::read_quoted_symbol() {
+    next(); // opening '|'
+    std::string token;
+    while (true) {
+        if (peek() == '\0')
+            error("unterminated quoted symbol");
+        char character = next();
+        if (character == '|')
+            return evaluator_.symbol(token);
+        if (character == '\\') {
+            if (peek() == '\0')
+                error("unterminated escape in quoted symbol");
+            character = next();
+        }
+        token.push_back(character);
     }
 }
 

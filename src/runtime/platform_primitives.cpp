@@ -18,6 +18,7 @@
 
 #if !defined(_WIN32)
 #include <pwd.h>
+#include <sys/stat.h>
 #include <sys/wait.h>
 #include <unistd.h>
 extern char** environ;
@@ -162,6 +163,13 @@ void install_platform_primitives(Evaluator& evaluator) {
     });
     install(evaluator, "g_path-getsize", [&evaluator](const Values& args) {
         require_arity(args, 1, "g_path-getsize");
+#if !defined(_WIN32)
+        struct stat info {};
+        const auto path = evaluator.string_value(args[0]);
+        if (::stat(path.c_str(), &info) == 0) {
+            return Values{Value::integer(static_cast<std::int64_t>(info.st_size))};
+        }
+#endif
         std::error_code error;
         auto size = fs::file_size(evaluator.string_value(args[0]), error);
         return Values{error ? Value::integer(0)
@@ -189,6 +197,15 @@ void install_platform_primitives(Evaluator& evaluator) {
     // backend; a stable textual fallback keeps the cold bootstrap usable.
     install(evaluator, "g_load-path", [&evaluator](const Values& args) {
         require_arity(args, 0, "g_load-path");
+        // Keep this view synchronized with Scheme's mutable *load-path*.
+        // Library introspection and the loader both consult this primitive;
+        // a startup-only snapshot misses paths added by a running program.
+        try {
+            return Values{evaluator.global_environment()->lookup(
+                evaluator.symbol("*load-path*"))};
+        } catch (const std::runtime_error&) {
+            // During early bootstrap *load-path* may not exist yet.
+        }
         return Values{evaluator.list({evaluator.string("."),
                                       evaluator.string("goldfish")})};
     });
@@ -551,9 +568,7 @@ void install_platform_primitives(Evaluator& evaluator) {
         return Values{evaluator.string(root.string())};
     });
 
-    // --- file/text helpers used by (liii path) and the tool chain.  The
-    // --- host provides these through liii_path.cpp; byte sequences map to
-    // --- native vectors (the substrate has no separate bytevector type).
+    // --- file/text helpers used by (liii path) and the tool chain.
 
     install(evaluator, "g_path-read-text", [&evaluator](const Values& args) {
         require_arity(args, 1, "g_path-read-text");
@@ -561,22 +576,26 @@ void install_platform_primitives(Evaluator& evaluator) {
         if (!input) return Values{Value::boolean(false)};
         std::string content((std::istreambuf_iterator<char>(input)),
                             std::istreambuf_iterator<char>());
-        return Values{evaluator.string(content)};
+        std::string normalized;
+        normalized.reserve(content.size());
+        for (std::size_t i = 0; i < content.size(); ++i) {
+            if (content[i] == '\r') {
+                if (i + 1 < content.size() && content[i + 1] == '\n') ++i;
+                normalized.push_back('\n');
+            } else {
+                normalized.push_back(content[i]);
+            }
+        }
+        return Values{evaluator.string(normalized)};
     });
     install(evaluator, "g_path-read-bytes", [&evaluator](const Values& args) {
         require_arity(args, 1, "g_path-read-bytes");
         std::ifstream input(evaluator.string_value(args[0]), std::ios::binary);
         if (!input) return Values{Value::boolean(false)};
-        std::vector<Value> bytes;
-        char buffer[4096];
-        while (input) {
-            input.read(buffer, sizeof(buffer));
-            std::streamsize count = input.gcount();
-            for (std::streamsize i = 0; i < count; ++i)
-                bytes.push_back(Value::integer(
-                    static_cast<unsigned char>(buffer[i])));
-        }
-        return Values{evaluator.vector(bytes)};
+        std::string bytes((std::istreambuf_iterator<char>(input)),
+                          std::istreambuf_iterator<char>());
+        return Values{Value::object(
+            evaluator.heap().make<BytevectorObject>(std::move(bytes)))};
     });
     install(evaluator, "g_path-write-text", [&evaluator](const Values& args) {
         require_arity(args, 2, "g_path-write-text");
@@ -593,20 +612,15 @@ void install_platform_primitives(Evaluator& evaluator) {
         require_arity(args, 2, "g_path-write-bytes");
         Value data = args[1];
         if (!data.is_object() ||
-            data.as_object()->type() != ObjectType::Vector)
+            data.as_object()->type() != ObjectType::Bytevector)
             throw std::runtime_error("g_path-write-bytes expects a bytevector");
         std::ofstream output(evaluator.string_value(args[0]),
                              std::ios::binary | std::ios::trunc);
         if (!output) return Values{Value::integer(-1)};
-        std::int64_t written = 0;
-        for (Value byte : data.as_object<VectorObject>()->values) {
-            if (!byte.is_integer())
-                throw std::runtime_error("g_path-write-bytes expects bytes");
-            output.put(static_cast<char>(byte.as_integer() & 0xff));
-            ++written;
-        }
+        const std::string& bytes = data.as_object<BytevectorObject>()->bytes;
+        output.write(bytes.data(), static_cast<std::streamsize>(bytes.size()));
         if (!output) return Values{Value::integer(-1)};
-        return Values{Value::integer(written)};
+        return Values{Value::integer(static_cast<std::int64_t>(bytes.size()))};
     });
     install(evaluator, "g_path-append-text", [&evaluator](const Values& args) {
         require_arity(args, 2, "g_path-append-text");

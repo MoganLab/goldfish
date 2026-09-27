@@ -213,13 +213,11 @@
 
     (define (any-in-other? small big)
       (let ((ht-small (set-hash-table small)) (ht-big (set-hash-table big)))
-        (call/cc (lambda (return)
-                   (hash-table-for-each (lambda (k v) (if (hash-table-contains? ht-big k) (return #t)))
-                     ht-small
-                   ) ;hash-table-for-each
-                   #f
-                 ) ;lambda
-        ) ;call/cc
+        (let loop ((keys (hash-table-keys ht-small)))
+          (and (pair? keys)
+               (or (hash-table-contains? ht-big (car keys))
+                   (loop (cdr keys))))
+        ) ;let
       ) ;let
     ) ;define
 
@@ -230,13 +228,11 @@
       (let ((n1 (set-size s1)) (n2 (set-size s2)))
         (cond ((> n1 n2) #f)
               (else (let ((ht1 (set-hash-table s1)) (ht2 (set-hash-table s2)))
-                      (call/cc (lambda (return)
-                                 (hash-table-for-each (lambda (k v) (unless (hash-table-contains? ht2 k) (return #f)))
-                                   ht1
-                                 ) ;hash-table-for-each
-                                 #t
-                               ) ;lambda
-                      ) ;call/cc
+                      (let loop ((keys (hash-table-keys ht1)))
+                        (or (null? keys)
+                            (and (hash-table-contains? ht2 (car keys))
+                                 (loop (cdr keys))))
+                      ) ;let
                     ) ;let
               ) ;else
         ) ;cond
@@ -337,33 +333,39 @@
     (define (set-any? predicate set)
       (check-set set)
       (let ((ht (set-hash-table set)))
-        (call/cc (lambda (return)
-                   (hash-table-for-each (lambda (k v) (if (predicate k) (return #t))) ht)
-                   #f
-                 ) ;lambda
-        ) ;call/cc
+        (let loop ((keys (hash-table-keys ht)))
+          (if (null? keys)
+              #f
+              (if (predicate (car keys))
+                  #t
+                  (loop (cdr keys))))
+        ) ;let
       ) ;let
     ) ;define
 
     (define (set-every? predicate set)
       (check-set set)
       (let ((ht (set-hash-table set)))
-        (call/cc (lambda (return)
-                   (hash-table-for-each (lambda (k v) (if (not (predicate k)) (return #f))) ht)
-                   #t
-                 ) ;lambda
-        ) ;call/cc
+        (let loop ((keys (hash-table-keys ht)))
+          (if (null? keys)
+              #t
+              (if (predicate (car keys))
+                  (loop (cdr keys))
+                  #f))
+        ) ;let
       ) ;let
     ) ;define
 
     (define (set-find predicate set failure)
       (check-set set)
       (let ((ht (set-hash-table set)))
-        (call/cc (lambda (return)
-                   (hash-table-for-each (lambda (k v) (if (predicate k) (return k))) ht)
-                   (failure)
-                 ) ;lambda
-        ) ;call/cc
+        (let loop ((keys (hash-table-keys ht)))
+          (if (null? keys)
+              (failure)
+              (if (predicate (car keys))
+                  (car keys)
+                  (loop (cdr keys))))
+        ) ;let
       ) ;let
     ) ;define
 
@@ -750,13 +752,11 @@
       (check-bag a)
       (check-bag b)
       (let ((entries-a (bag-entries a)) (entries-b (bag-entries b)))
-        (call/cc (lambda (return)
-                   (hash-table-for-each (lambda (k entry) (when (hash-table-contains? entries-b k) (return #f)))
-                     entries-a
-                   ) ;hash-table-for-each
-                   #t
-                 ) ;lambda
-        ) ;call/cc
+        (let loop ((keys (hash-table-keys entries-a)))
+          (or (null? keys)
+              (and (not (hash-table-contains? entries-b (car keys)))
+                   (loop (cdr keys))))
+        ) ;let
       ) ;let
     ) ;define
 
@@ -899,15 +899,11 @@
       (check-same-bag-comparator b1 b2)
       (let ((e1 (bag-entries b1)) (e2 (bag-entries b2)))
         (and (= (hash-table-size e1) (hash-table-size e2))
-          (call/cc (lambda (return)
-                     (hash-table-for-each (lambda (k count1)
-                                            (if (not (= count1 (hash-table-ref/default e2 k 0))) (return #f))
-                                          ) ;lambda
-                       e1
-                     ) ;hash-table-for-each
-                     #t
-                   ) ;lambda
-          ) ;call/cc
+             (let loop ((keys (hash-table-keys e1)))
+               (or (null? keys)
+                   (and (= (hash-table-ref/default e1 (car keys) 0)
+                           (hash-table-ref/default e2 (car keys) 0))
+                        (loop (cdr keys)))))
         ) ;and
       ) ;let
     ) ;define
@@ -917,18 +913,13 @@
       (check-bag b2)
       (check-same-bag-comparator b1 b2)
       (let ((e1 (bag-entries b1)) (e2 (bag-entries b2)))
-        (if (> (hash-table-size e1) (hash-table-size e2))
-          #f
-          (call/cc (lambda (return)
-                     (hash-table-for-each (lambda (k count1)
-                                            (if (not (<= count1 (hash-table-ref/default e2 k 0))) (return #f))
-                                          ) ;lambda
-                       e1
-                     ) ;hash-table-for-each
-                     #t
-                   ) ;lambda
-          ) ;call/cc
-        ) ;if
+        (and (<= (hash-table-size e1) (hash-table-size e2))
+             (let loop ((keys (hash-table-keys e1)))
+               (or (null? keys)
+                   (and (<= (hash-table-ref/default e1 (car keys) 0)
+                            (hash-table-ref/default e2 (car keys) 0))
+                        (loop (cdr keys)))))
+        ) ;and
       ) ;let
     ) ;define
 
@@ -951,31 +942,18 @@
       (check-bag b1)
       (check-bag b2)
       (check-same-bag-comparator b1 b2)
-      (call/cc (lambda (return)
-                 (let ((e1 (bag-entries b1)) (e2 (bag-entries b2)))
-                   (let ((smaller-count (cond ((< (hash-table-size e1) (hash-table-size e2)) 1)
-                                              ((= (hash-table-size e1) (hash-table-size e2)) 0)
-                                              (else (return #f))
-                                        ) ;cond
-                         ) ;smaller-count
-                        ) ;
-                     (hash-table-for-each (lambda (k count1)
-                                            (let ((count2 (hash-table-ref/default e2 k 0)))
-                                              (if (not (<= count1 count2))
-                                                (return #f)
-                                                (when (< count1 count2)
-                                                  (set! smaller-count (+ smaller-count 1))
-                                                ) ;when
-                                              ) ;if
-                                            ) ;let
-                                          ) ;lambda
-                       e1
-                     ) ;hash-table-for-each
-                     (positive? smaller-count)
-                   ) ;let
-                 ) ;let
-               ) ;lambda
-      ) ;call/cc
+      (let ((e1 (bag-entries b1)) (e2 (bag-entries b2)))
+        (let loop ((keys (hash-table-keys e1))
+                   (strict? (< (hash-table-size e1) (hash-table-size e2))))
+          (if (null? keys)
+              strict?
+              (let* ((key (car keys))
+                     (count1 (hash-table-ref/default e1 key 0))
+                     (count2 (hash-table-ref/default e2 key 0)))
+                (and (<= count1 count2)
+                     (loop (cdr keys) (or strict? (< count1 count2))))))
+        ) ;let
+      ) ;let
     ) ;define
 
     (define (bag>=? . bags)
@@ -1254,13 +1232,12 @@
              (same? (comparator-equality-predicate comp))
              (entries (bag-entries bag))
              (not-found (list 'not-found))
-             (found (call/cc (lambda (return)
-                               (hash-table-for-each (lambda (k entry) (when (same? k element) (return k)))
-                                 entries
-                               ) ;hash-table-for-each
-                               not-found
-                             ) ;lambda
-                    ) ;call/cc
+             (found (let loop ((keys (hash-table-keys entries)))
+                      (if (null? keys)
+                          not-found
+                          (if (same? (car keys) element)
+                              (car keys)
+                              (loop (cdr keys)))))
              ) ;found
             ) ;
         (if (eq? found not-found)

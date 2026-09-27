@@ -27,6 +27,7 @@ private:
     Value read_character();
     Value read_dispatch();
     Value read_string();
+    Value read_quoted_symbol();
     Value read_atom();
     char peek() const;
     char next();

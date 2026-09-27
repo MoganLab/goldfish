@@ -265,6 +265,20 @@
     throw
   ) ;export
   (begin
+    (define (list-set! ls k obj)
+      (unless (pair? ls)
+        (host-error 'wrong-type-arg "list-set!: expected a non-empty list" ls))
+      (unless (and (integer? k) (exact? k) (>= k 0))
+        (host-error 'out-of-range "list-set!: invalid index" k))
+      (let loop ((tail ls) (index k))
+        (cond
+          ((null? tail)
+           (host-error 'out-of-range "list-set!: index out of range" k))
+          ((not (pair? tail))
+           (host-error 'wrong-type-arg "list-set!: expected a proper list" ls))
+          ((zero? index) (set-car! tail obj))
+          (else (loop (cdr tail) (- index 1))))))
+
     (define (list? x) (proper-list? x))
     (define (length x)
       (cond [(null? x) 0]

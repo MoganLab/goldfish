@@ -70,7 +70,7 @@
     ) ;mulexp
     (powexp ((a <- simple '^ b <- powexp) (expt a b)) ((a <- simple) a))
     (simple ((a <- 'num) a)
-     ((a <- 'id) (calc-env a))
+     ((a <- 'id) (hash-table-ref calc-env a))
      (('oparen a <- expr 'cparen) a)
     ) ;simple
     (exprs ((a <- expr rest <- exprs) rest) ((a <- expr) a))

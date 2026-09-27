@@ -56,25 +56,25 @@
 ;; - wrong-type-arg：当list不是列表或k不是整数类型时
 
 
-(check (list (split-at '(1 2 3 4 5) 3)) => '((1 2 3) (4 5)))
-(check (list (split-at '(1 2 3 4 5) 0)) => '(() (1 2 3 4 5)))
-(check (list (split-at '(1 2 3 4 5) 5)) => '((1 2 3 4 5) ()))
+(check (call-with-values (lambda () (split-at '(1 2 3 4 5) 3)) list) => '((1 2 3) (4 5)))
+(check (call-with-values (lambda () (split-at '(1 2 3 4 5) 0)) list) => '(() (1 2 3 4 5)))
+(check (call-with-values (lambda () (split-at '(1 2 3 4 5) 5)) list) => '((1 2 3 4 5) ()))
 
 
 (check-catch 'value-error (split-at '(1 2 3 4 5) 10))
 (check-catch 'value-error (split-at '(1 2 3 4 5) -1))
 
 
-(check (list (split-at '(1 2 3 4 . 5) 0)) => '(() (1 2 3 4 . 5)))
-(check (list (split-at '(1 2 3 4 . 5) 3)) => '((1 2 3) (4 . 5)))
-(check (list (split-at '(1 2 3 4 . 5) 4)) => '((1 2 3 4) 5))
+(check (call-with-values (lambda () (split-at '(1 2 3 4 . 5) 0)) list) => '(() (1 2 3 4 . 5)))
+(check (call-with-values (lambda () (split-at '(1 2 3 4 . 5) 3)) list) => '((1 2 3) (4 . 5)))
+(check (call-with-values (lambda () (split-at '(1 2 3 4 . 5) 4)) list) => '((1 2 3 4) 5))
 
 
 (check-catch 'value-error (split-at '(1 2 3 4 . 5) 10))
 (check-catch 'value-error (split-at '(1 2 3 4 . 5) -1))
 
 
-(check (list (split-at '() 0)) => '(() ()))
+(check (call-with-values (lambda () (split-at '() 0)) list) => '(() ()))
 (check-catch 'value-error (split-at '() 10))
 (check-catch 'value-error (split-at '() -1))
 

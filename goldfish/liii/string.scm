@@ -59,7 +59,13 @@
       (typed-lambda ((str string?) (sub-str string?)) (string-contains str sub-str))
     ) ;define
 
-    (define string-split g_string-split)
+    (define (string-split str separator)
+      (unless (string? str)
+        (type-error "string-split: input must be a string" str))
+      (unless (or (string? separator) (char? separator))
+        (type-error "string-split: separator must be a string or character"
+          separator))
+      (g_string-split str separator))
 
     (define (string-replace str old new . rest)
       (when (> (length rest) 1)

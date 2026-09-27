@@ -23,13 +23,13 @@
         (setup)
       ) ;unless
 
-      (let ((start-time (current-second)))
+      (let ((start-time (monotonic-nanosecond)))
         (do ((i 0 (+ i 1)))
           ((= i number))
           (stmt)
         ) ;do
 
-        (- (current-second) start-time)
+        (/ (- (monotonic-nanosecond) start-time) 1000000000)
       ) ;let
     ) ;define*
 

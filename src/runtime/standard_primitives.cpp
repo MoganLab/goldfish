@@ -6,6 +6,7 @@
 #include "runtime/unicode_primitives.hpp"
 
 #include <algorithm>
+#include <cctype>
 #include <cerrno>
 #include <cmath>
 #include <cstring>
@@ -222,6 +223,49 @@ std::string utf8_encode_char(char32_t codepoint) {
     return out;
 }
 
+bool utf8_offsets(const std::string& text, std::vector<std::size_t>& offsets) {
+    offsets.clear();
+    offsets.push_back(0);
+    std::size_t position = 0;
+    while (position < text.size()) {
+        const auto byte = [&text](std::size_t index) {
+            return static_cast<unsigned char>(text[index]);
+        };
+        const unsigned char first = byte(position);
+        std::size_t width = 0;
+        std::uint32_t codepoint = 0;
+        if (first <= 0x7f) {
+            width = 1;
+            codepoint = first;
+        } else if (first >= 0xc2 && first <= 0xdf) {
+            width = 2;
+            codepoint = first & 0x1f;
+        } else if (first >= 0xe0 && first <= 0xef) {
+            width = 3;
+            codepoint = first & 0x0f;
+        } else if (first >= 0xf0 && first <= 0xf4) {
+            width = 4;
+            codepoint = first & 0x07;
+        } else {
+            return false;
+        }
+        if (width > text.size() - position) return false;
+        for (std::size_t i = 1; i < width; ++i) {
+            const unsigned char continuation = byte(position + i);
+            if ((continuation & 0xc0) != 0x80) return false;
+            codepoint = (codepoint << 6) | (continuation & 0x3f);
+        }
+        if ((width == 3 && codepoint < 0x800) ||
+            (width == 4 && codepoint < 0x10000) ||
+            (codepoint >= 0xd800 && codepoint <= 0xdfff) ||
+            codepoint > 0x10ffff)
+            return false;
+        position += width;
+        offsets.push_back(position);
+    }
+    return true;
+}
+
 // write-form of a character: #\newline/#\space/#\tab/#\return by name, raw
 // for printable ASCII and non-ASCII, #\xN (unpadded, as s7 writes it) for
 // the remaining control codepoints.
@@ -272,8 +316,8 @@ std::string format_value(const Evaluator& evaluator, Value value,
         case ObjectType::Character: {
             const char32_t codepoint = value.as_object<CharacterObject>()->value;
             if (write_mode) return character_literal(codepoint);
-            if (codepoint >= 0x20 && codepoint < 0x7f)
-                return std::string(1, static_cast<char>(codepoint));
+            if (codepoint >= 0x20 && codepoint != 0x7f)
+                return utf8_encode_char(codepoint);
             return character_literal(codepoint);
         }
         case ObjectType::Eof:
@@ -578,17 +622,42 @@ void install_runtime_primitives(Evaluator& evaluator) {
     install(evaluator, "write-char", [&evaluator](const Values& args) {
         if (args.size() != 1 && args.size() != 2)
             throw std::runtime_error("write-char expects one or two arguments");
+        if (!args[0].is_object() ||
+            args[0].as_object()->type() != ObjectType::Character)
+            raise_keyed(evaluator, "wrong-type-arg",
+                        "write-char expects a character");
         Value port = args.size() == 2 ? args[1] : g_current_ports.output;
         *output_port(port, "write-char").stream
-            << static_cast<char>(evaluator.character_value(args[0]));
+            << utf8_encode_char(evaluator.character_value(args[0]));
         return Values{Value::unspecified()};
     });
     install(evaluator, "write-string", [&evaluator](const Values& args) {
-        if (args.size() != 1 && args.size() != 2)
-            throw std::runtime_error("write-string expects one or two arguments");
+        if (args.empty() || args.size() > 4)
+            throw std::runtime_error("write-string expects one to four arguments");
+        const std::string& value = evaluator.string_value(args[0]);
         Value port = args.size() == 2 ? args[1] : g_current_ports.output;
-        *output_port(port, "write-string").stream
-            << evaluator.string_value(args[0]);
+        if (args.size() >= 3) port = args[1];
+        std::int64_t start = 0;
+        auto end = static_cast<std::int64_t>(value.size());
+        if (args.size() >= 3) {
+            if (!args[2].is_integer())
+                raise_keyed(evaluator, "wrong-type-arg",
+                            "write-string start must be an integer");
+            start = args[2].as_integer();
+        }
+        if (args.size() == 4) {
+            if (!args[3].is_integer())
+                raise_keyed(evaluator, "wrong-type-arg",
+                            "write-string end must be an integer");
+            end = args[3].as_integer();
+        }
+        if (start < 0 || end < start ||
+            static_cast<std::size_t>(end) > value.size())
+            throw std::runtime_error(
+                "out-of-range: write-string index out of bounds");
+        *output_port(port, "write-string").stream << value.substr(
+            static_cast<std::size_t>(start),
+            static_cast<std::size_t>(end - start));
         return Values{Value::unspecified()};
     });
     install(evaluator, "native-error-object?", [](const Values& args) {
@@ -872,6 +941,16 @@ void install_runtime_primitives(Evaluator& evaluator) {
         return Values{Value::object(evaluator.heap().make<InputStringPortObject>(
             evaluator.string_value(args[0])))};
     });
+    install(evaluator, "g-open-input-bytevector",
+            [&evaluator](const Values& args) {
+        require_arity(args, 1, "open-input-bytevector");
+        if (!args[0].is_object() ||
+            args[0].as_object()->type() != ObjectType::Bytevector)
+            raise_keyed(evaluator, "type-error",
+                        "open-input-bytevector: expected bytevector");
+        return Values{Value::object(evaluator.heap().make<InputStringPortObject>(
+            args[0].as_object<BytevectorObject>()->bytes))};
+    });
     install(evaluator, "open-input-file", [&evaluator](const Values& args) {
         require_arity(args, 1, "open-input-file");
         if (!args[0].is_object() ||
@@ -963,8 +1042,17 @@ void install_runtime_primitives(Evaluator& evaluator) {
             args[0].as_object()->type() != ObjectType::String)
             raise_keyed(evaluator, "type-error",
                         "file-exists?: expected string");
-        std::ifstream input(evaluator.string_value(args[0]), std::ios::binary);
-        return Values{Value::boolean(static_cast<bool>(input))};
+        const Value access = evaluator.global_environment()->lookup(
+            evaluator.symbol("g_access"));
+        auto has_access = [&](std::int64_t mode) {
+            return evaluator.apply_values(access,
+                {args[0], Value::integer(mode)})[0].as_boolean();
+        };
+        if (!has_access(0)) return Values{Value::boolean(false)};
+        if (!has_access(1))
+            raise_keyed(evaluator, "permission-error",
+                        "file-exists?: no read permission");
+        return Values{Value::boolean(true)};
     });
     install(evaluator, "load-find-module-file", [&evaluator](const Values& args) {
         require_arity(args, 1, "load-find-module-file");
@@ -1522,11 +1610,11 @@ void install_runtime_primitives(Evaluator& evaluator) {
     install(evaluator, "peek-char", [&evaluator, eof](const Values& args) {
         if (args.size() > 1)
             throw std::runtime_error("peek-char expects zero or one arguments");
-        if (args.empty()) return Values{eof};
-        if (!args[0].is_object() ||
-            args[0].as_object()->type() != ObjectType::InputPort)
+        Value port_value = args.empty() ? current_input_port(evaluator) : args[0];
+        if (!port_value.is_object() ||
+            port_value.as_object()->type() != ObjectType::InputPort)
             throw std::runtime_error("peek-char expects an input port");
-        auto* port = args[0].as_object<InputStringPortObject>();
+        auto* port = port_value.as_object<InputStringPortObject>();
         if (port->closed)
             throw std::runtime_error("peek-char from closed input port");
         if (port->position == port->source.size()) return Values{eof};
@@ -1536,11 +1624,11 @@ void install_runtime_primitives(Evaluator& evaluator) {
     install(evaluator, "read-char", [&evaluator, eof](const Values& args) {
         if (args.size() > 1)
             throw std::runtime_error("read-char expects zero or one arguments");
-        if (args.empty()) return Values{eof};
-        if (!args[0].is_object() ||
-            args[0].as_object()->type() != ObjectType::InputPort)
+        Value port_value = args.empty() ? current_input_port(evaluator) : args[0];
+        if (!port_value.is_object() ||
+            port_value.as_object()->type() != ObjectType::InputPort)
             throw std::runtime_error("read-char expects an input port");
-        auto* port = args[0].as_object<InputStringPortObject>();
+        auto* port = port_value.as_object<InputStringPortObject>();
         if (port->closed)
             throw std::runtime_error("read-char from closed input port");
         if (port->position == port->source.size()) return Values{eof};
@@ -1558,7 +1646,28 @@ void install_runtime_primitives(Evaluator& evaluator) {
     });
     install(evaluator, "g-valid-identifier?", [&evaluator](const Values& args) {
         require_arity(args, 1, "g-valid-identifier?");
-        return Values{Value::boolean(!evaluator.string_value(args[0]).empty())};
+        const std::string& identifier = evaluator.string_value(args[0]);
+        const bool valid = !identifier.empty() &&
+            std::none_of(identifier.begin(), identifier.end(), [](unsigned char c) {
+                if (std::isspace(c)) return true;
+                switch (c) {
+                case '(':
+                case ')':
+                case '[':
+                case ']':
+                case '\'':
+                case '`':
+                case ',':
+                case ';':
+                case '"':
+                case '|':
+                case '\\':
+                    return true;
+                default:
+                    return false;
+                }
+            });
+        return Values{Value::boolean(valid)};
     });
     install(evaluator, "g-enabled?", [&evaluator](const Values& args) {
         require_arity(args, 1, "g-enabled?");
@@ -1673,6 +1782,11 @@ void install_runtime_primitives(Evaluator& evaluator) {
             args[0].as_object()->type() != ObjectType::String)
             raise_keyed(evaluator, "type-error",
                         "delete-file: expected string");
+        const Value file_exists = evaluator.global_environment()->lookup(
+            evaluator.symbol("file-exists?"));
+        if (!evaluator.apply_values(file_exists, {args[0]})[0].as_boolean())
+            raise_keyed(evaluator, "read-error",
+                        "delete-file: no such file");
         std::error_code error;
         const bool removed =
             fs::remove(evaluator.string_value(args[0]), error);
@@ -2031,7 +2145,7 @@ void install_runtime_primitives(Evaluator& evaluator) {
         return Values{Value::integer(static_cast<unsigned char>(
             bytes->bytes[static_cast<std::size_t>(index)]))};
     });
-    install(evaluator, "bytevector-u8-set!", [bytevector_object, u8_of](const Values& args) {
+    install(evaluator, "bytevector-u8-set!", [&evaluator, bytevector_object](const Values& args) {
         require_arity(args, 3, "bytevector-u8-set!");
         auto* bytes = bytevector_object(args[0], "bytevector-u8-set!");
         if (!args[1].is_integer())
@@ -2040,8 +2154,12 @@ void install_runtime_primitives(Evaluator& evaluator) {
         if (index < 0 ||
             static_cast<std::size_t>(index) >= bytes->bytes.size())
             throw std::runtime_error("bytevector-u8-set! index out of bounds");
+        if (!args[2].is_integer() || args[2].as_integer() < 0 ||
+            args[2].as_integer() > 255)
+            raise_keyed(evaluator, "wrong-type-arg",
+                        "bytevector-u8-set! value must be an unsigned byte");
         bytes->bytes[static_cast<std::size_t>(index)] =
-            static_cast<char>(u8_of(args[2], "bytevector-u8-set!"));
+            static_cast<char>(args[2].as_integer());
         return Values{Value::unspecified()};
     });
     install(evaluator, "bytevector-copy", [&evaluator, bytevector_object](const Values& args) {
@@ -2110,21 +2228,95 @@ void install_runtime_primitives(Evaluator& evaluator) {
             evaluator.heap().make<BytevectorObject>(std::move(bytes)))};
     });
     install(evaluator, "string->utf8", [&evaluator](const Values& args) {
-        require_arity(args, 1, "string->utf8");
+        if (args.empty())
+            raise_keyed(evaluator, "type-error", "string->utf8 expects a string");
+        if (args.size() > 3)
+            throw std::runtime_error(
+                "string->utf8 expects one to three arguments");
         if (!args[0].is_object() ||
             args[0].as_object()->type() != ObjectType::String)
-            throw std::runtime_error("string->utf8 expects a string");
-        // StringObject already stores utf8 bytes.
+            raise_keyed(evaluator, "type-error", "string->utf8 expects a string");
+        const std::string& value = args[0].as_object<StringObject>()->value;
+        std::vector<std::size_t> offsets;
+        if (!utf8_offsets(value, offsets))
+            raise_keyed(evaluator, "value-error",
+                        "string->utf8 received invalid UTF-8");
+        const auto char_count = static_cast<std::int64_t>(offsets.size() - 1);
+        std::int64_t start = 0;
+        std::int64_t end = char_count;
+        if (args.size() >= 2) {
+            if (!args[1].is_integer())
+                raise_keyed(evaluator, "wrong-type-arg",
+                            "string->utf8 start must be an integer");
+            start = args[1].as_integer();
+        }
+        if (args.size() == 3) {
+            if (!args[2].is_integer())
+                raise_keyed(evaluator, "wrong-type-arg",
+                            "string->utf8 end must be an integer");
+            end = args[2].as_integer();
+        }
+        if (start < 0 || end < start || end > char_count ||
+            (args.size() == 2 && char_count > 0 && start == char_count))
+            raise_keyed(evaluator, "out-of-range",
+                        "string->utf8 index out of range");
+        const std::size_t byte_start = offsets[static_cast<std::size_t>(start)];
+        const std::size_t byte_end = offsets[static_cast<std::size_t>(end)];
         return Values{Value::object(evaluator.heap().make<BytevectorObject>(
-            args[0].as_object<StringObject>()->value))};
+            value.substr(byte_start, byte_end - byte_start)))};
     });
     install(evaluator, "utf8->string", [&evaluator](const Values& args) {
-        require_arity(args, 1, "utf8->string");
-        if (!args[0].is_object() ||
-            args[0].as_object()->type() != ObjectType::Bytevector)
-            throw std::runtime_error("utf8->string expects a bytevector");
-        return Values{evaluator.string(
-            args[0].as_object<BytevectorObject>()->bytes)};
+        if (args.empty())
+            raise_keyed(evaluator, "wrong-type-arg",
+                        "utf8->string expects a bytevector");
+        if (args.size() > 3)
+            throw std::runtime_error(
+                "utf8->string expects one to three arguments");
+        std::string bytes;
+        if (args[0].is_object() &&
+            args[0].as_object()->type() == ObjectType::Bytevector) {
+            bytes = args[0].as_object<BytevectorObject>()->bytes;
+        } else if (args[0].is_null()) {
+            bytes.clear();
+        } else if (args[0].is_object() &&
+                   args[0].as_object()->type() == ObjectType::Pair) {
+            for (Value value : proper_list(args[0])) {
+                if (!value.is_integer() || value.as_integer() < 0 ||
+                    value.as_integer() > 255)
+                    raise_keyed(evaluator, "wrong-type-arg",
+                                "utf8->string list elements must be bytes");
+                bytes.push_back(static_cast<char>(value.as_integer()));
+            }
+        } else {
+            raise_keyed(evaluator, "wrong-type-arg",
+                        "utf8->string expects a bytevector");
+        }
+        std::int64_t start = 0;
+        auto end = static_cast<std::int64_t>(bytes.size());
+        if (args.size() >= 2) {
+            if (!args[1].is_integer())
+                raise_keyed(evaluator, "wrong-type-arg",
+                            "utf8->string start must be an integer");
+            start = args[1].as_integer();
+        }
+        if (args.size() == 3) {
+            if (!args[2].is_integer())
+                raise_keyed(evaluator, "wrong-type-arg",
+                            "utf8->string end must be an integer");
+            end = args[2].as_integer();
+        }
+        if (start < 0 || end < start ||
+            static_cast<std::size_t>(end) > bytes.size())
+            raise_keyed(evaluator, "out-of-range",
+                        "utf8->string index out of range");
+        std::string slice = bytes.substr(
+            static_cast<std::size_t>(start),
+            static_cast<std::size_t>(end - start));
+        std::vector<std::size_t> offsets;
+        if (!utf8_offsets(slice, offsets))
+            raise_keyed(evaluator, "value-error",
+                        "utf8->string received invalid UTF-8");
+        return Values{evaluator.string(slice)};
     });
     install(evaluator, "utf8-string-length", [](const Values& args) {
         require_arity(args, 1, "utf8-string-length");
@@ -2430,6 +2622,10 @@ void install_runtime_primitives(Evaluator& evaluator) {
 
     install(evaluator, "symbol->string", [&evaluator](const Values& args) {
         require_arity(args, 1, "symbol->string");
+        if (!args[0].is_object() ||
+            args[0].as_object()->type() != ObjectType::Symbol)
+            raise_keyed(evaluator, "wrong-type-arg",
+                        "symbol->string expects a symbol");
         return Values{evaluator.string(args[0].as_object<SymbolObject>()->name)};
     });
     install(evaluator, "string->symbol", [&evaluator](const Values& args) {
@@ -2525,17 +2721,44 @@ void install_runtime_primitives(Evaluator& evaluator) {
         return Values{evaluator.string(value.substr(start, end - start))};
     });
     install(evaluator, "string->list", [&evaluator](const Values& args) {
-        require_arity(args, 1, "string->list");
+        if (args.empty() || args.size() > 3)
+            throw std::runtime_error(
+                "string->list expects one to three arguments");
+        const std::string& value = evaluator.string_value(args[0]);
+        std::int64_t start = 0;
+        auto end = static_cast<std::int64_t>(value.size());
+        if (args.size() >= 2) {
+            if (!args[1].is_integer())
+                raise_keyed(evaluator, "wrong-type-arg",
+                            "string->list start must be an integer");
+            start = args[1].as_integer();
+        }
+        if (args.size() == 3) {
+            if (!args[2].is_integer())
+                raise_keyed(evaluator, "wrong-type-arg",
+                            "string->list end must be an integer");
+            end = args[2].as_integer();
+        }
+        if (start < 0 || end < start ||
+            static_cast<std::size_t>(end) > value.size())
+            throw std::runtime_error(
+                "out-of-range: string->list index out of bounds");
         std::vector<Value> chars;
-        for (unsigned char c : evaluator.string_value(args[0]))
-            chars.push_back(evaluator.character(c));
+        for (auto i = start; i < end; ++i)
+            chars.push_back(evaluator.character(
+                static_cast<unsigned char>(value[static_cast<std::size_t>(i)])));
         return Values{evaluator.list(chars)};
     });
     install(evaluator, "list->string", [&evaluator](const Values& args) {
         require_arity(args, 1, "list->string");
         std::string result;
-        for (Value character : proper_list(args[0]))
-            result.push_back(static_cast<char>(evaluator.character_value(character)));
+        for (Value character : proper_list(args[0])) {
+            if (!character.is_object() ||
+                character.as_object()->type() != ObjectType::Character)
+                raise_keyed(evaluator, "wrong-type-arg",
+                            "list->string elements must be characters");
+            result += utf8_encode_char(evaluator.character_value(character));
+        }
         return Values{evaluator.string(result)};
     });
     install(evaluator, "make-string", [&evaluator](const Values& args) {
@@ -2589,13 +2812,41 @@ void install_runtime_primitives(Evaluator& evaluator) {
                        static_cast<std::size_t>(source_end - source_start),
                        source, static_cast<std::size_t>(source_start),
                        static_cast<std::size_t>(source_end - source_start));
-        return Values{Value::unspecified()};
+        return Values{args[0]};
     });
     install(evaluator, "string-fill!", [&evaluator](const Values& args) {
-        require_arity(args, 2, "string-fill!");
+        if (args.size() < 2 || args.size() > 4)
+            throw std::runtime_error(
+                "string-fill! expects two to four arguments");
+        if (!args[0].is_object() ||
+            args[0].as_object()->type() != ObjectType::String)
+            raise_keyed(evaluator, "wrong-type-arg",
+                        "string-fill!: first argument must be a string");
+        if (!args[1].is_object() ||
+            args[1].as_object()->type() != ObjectType::Character)
+            raise_keyed(evaluator, "wrong-type-arg",
+                        "string-fill!: second argument must be a character");
         auto& value = args[0].as_object<StringObject>()->value;
         const char character = static_cast<char>(evaluator.character_value(args[1]));
-        std::fill(value.begin(), value.end(), character);
+        std::int64_t start = 0;
+        auto end = static_cast<std::int64_t>(value.size());
+        if (args.size() >= 3) {
+            if (!args[2].is_integer())
+                raise_keyed(evaluator, "wrong-type-arg",
+                            "string-fill! start must be an integer");
+            start = args[2].as_integer();
+        }
+        if (args.size() == 4) {
+            if (!args[3].is_integer())
+                raise_keyed(evaluator, "wrong-type-arg",
+                            "string-fill! end must be an integer");
+            end = args[3].as_integer();
+        }
+        if (start < 0 || end < start ||
+            static_cast<std::size_t>(end) > value.size())
+            throw std::runtime_error(
+                "out-of-range: string-fill! index out of bounds");
+        std::fill(value.begin() + start, value.begin() + end, character);
         return Values{Value::unspecified()};
     });
     install(evaluator, "string-for-each", [&evaluator](const Values& args) {
@@ -2661,6 +2912,43 @@ void install_runtime_primitives(Evaluator& evaluator) {
                     directive == 's' || directive == 'S';
                 result += format_value(evaluator, args[argument++],
                                        write_mode, 0);
+            } else if (directive == 'c' || directive == 'C') {
+                if (argument >= args.size())
+                    throw std::runtime_error("format missing argument");
+                const Value value = args[argument++];
+                if (!value.is_object() ||
+                    value.as_object()->type() != ObjectType::Character)
+                    throw std::runtime_error("format ~C expects a character");
+                result += utf8_encode_char(evaluator.character_value(value));
+            } else if (directive == 'd' || directive == 'D' ||
+                       directive == 'x' || directive == 'X' ||
+                       directive == 'b' || directive == 'B' ||
+                       directive == 'o' || directive == 'O') {
+                if (argument >= args.size())
+                    throw std::runtime_error("format missing argument");
+                const Value value = args[argument++];
+                if (!value.is_integer())
+                    throw std::runtime_error("format radix directive expects an integer");
+                unsigned int radix = 10;
+                if (directive == 'x' || directive == 'X') radix = 16;
+                if (directive == 'b' || directive == 'B') radix = 2;
+                if (directive == 'o' || directive == 'O') radix = 8;
+                std::int64_t integer = value.as_integer();
+                const bool negative = integer < 0;
+                std::uint64_t magnitude = negative
+                    ? static_cast<std::uint64_t>(-(integer + 1)) + 1
+                    : static_cast<std::uint64_t>(integer);
+                std::string digits;
+                do {
+                    const unsigned int digit =
+                        static_cast<unsigned int>(magnitude % radix);
+                    digits.push_back(static_cast<char>(
+                        digit < 10 ? '0' + digit : 'a' + digit - 10));
+                    magnitude /= radix;
+                } while (magnitude != 0);
+                if (negative) digits.push_back('-');
+                std::reverse(digits.begin(), digits.end());
+                result += digits;
             } else {
                 result += '~';
                 result += directive;
@@ -2708,6 +2996,10 @@ void install_runtime_primitives(Evaluator& evaluator) {
     });
     install(evaluator, "char->integer", [&evaluator](const Values& args) {
         require_arity(args, 1, "char->integer");
+        if (!args[0].is_object() ||
+            args[0].as_object()->type() != ObjectType::Character)
+            raise_keyed(evaluator, "wrong-type-arg",
+                        "char->integer expects a character");
         return Values{Value::integer(static_cast<std::int64_t>(
             evaluator.character_value(args[0])))};
     });
@@ -2732,6 +3024,11 @@ void install_runtime_primitives(Evaluator& evaluator) {
                                          &evaluator](const Values& args) {
             if (args.size() < 2)
                 throw std::runtime_error(std::string(name) + " expects two arguments");
+            for (Value arg : args)
+                if (!arg.is_object() ||
+                    arg.as_object()->type() != ObjectType::Character)
+                    raise_keyed(evaluator, "wrong-type-arg",
+                                std::string(name) + " expects characters");
             for (std::size_t i = 1; i < args.size(); ++i)
                 if (!compare(evaluator.character_value(args[i - 1]),
                              evaluator.character_value(args[i])))
@@ -3045,8 +3342,14 @@ void install_runtime_primitives(Evaluator& evaluator) {
         for (Value arg : args) {
             if (!arg.is_object() ||
                 arg.as_object()->type() != ObjectType::Character)
-                throw std::runtime_error("string expects characters");
-            out += utf8_encode_char(arg.as_object<CharacterObject>()->value);
+                raise_keyed(evaluator, "wrong-type-arg",
+                            "string expects characters");
+            const char32_t codepoint =
+                arg.as_object<CharacterObject>()->value;
+            if (codepoint > 0xff)
+                raise_keyed(evaluator, "out-of-range",
+                            "string character exceeds byte range");
+            out.push_back(static_cast<char>(codepoint));
         }
         return Values{evaluator.string(out)};
     });
@@ -3180,10 +3483,12 @@ void install_runtime_primitives(Evaluator& evaluator) {
                 return result;
             });
     install(evaluator, "read-line", [&evaluator, eof](const Values& args) {
-        if (args.size() > 1)
-            throw std::runtime_error("read-line expects zero or one arguments");
+        if (args.size() > 2)
+            throw std::runtime_error("read-line expects zero to two arguments");
         Value port_value =
             args.empty() ? current_input_port(evaluator) : args[0];
+        const bool with_eol = args.size() == 2 && args[1].is_boolean() &&
+                              args[1].as_boolean();
         auto& port = input_port(port_value, "read-line");
         if (port.position >= port.source.size()) return Values{eof};
         const std::size_t newline = port.source.find('\n', port.position);
@@ -3196,6 +3501,7 @@ void install_runtime_primitives(Evaluator& evaluator) {
             port.position = newline + 1;
         }
         if (!line.empty() && line.back() == '\r') line.pop_back();
+        if (with_eol && newline != std::string::npos) line.push_back('\n');
         return Values{evaluator.string(line)};
     });
     install(evaluator, "read-string", [&evaluator, eof](const Values& args) {

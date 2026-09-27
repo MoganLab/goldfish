@@ -260,6 +260,7 @@
         (error 'type-error "set-time-type!: time must be a time object" time)
       ) ;unless
       (%set-time-type! time type)
+      type
     ) ;define
 
     (define (set-time-nanosecond! time nanosecond)
@@ -267,6 +268,7 @@
         (error 'type-error "set-time-nanosecond!: time must be a time object" time)
       ) ;unless
       (%set-time-nanosecond! time nanosecond)
+      nanosecond
     ) ;define
 
     (define (set-time-second! time second)
@@ -274,6 +276,7 @@
         (error 'type-error "set-time-second!: time must be a time object" time)
       ) ;unless
       (%set-time-second! time second)
+      second
     ) ;define
 
     ;; ====================
@@ -566,7 +569,8 @@
     ) ;define*
 
     (define* (time-resolution (clock-type TIME-UTC))
-      (priv:query-time-dispatch clock-type cddr)
+      (let ((resolution (priv:query-time-dispatch clock-type cddr)))
+        (if (procedure? resolution) (resolution) resolution))
     ) ;define*
 
     ;; ====================

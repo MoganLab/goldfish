@@ -589,7 +589,7 @@
 
     ;; ; 覆盖写入字节。data 必须为 bytevector。
     (define (path-write-bytes p data)
-      (if (not (byte-vector? data))
+      (if (not (bytevector? data))
         (type-error "path-write-bytes: data must be bytevector")
         (g_path-write-bytes (path->string p) data)
       ) ;if
@@ -848,4 +848,3 @@
         ) ;cond
       ) ;let
     ) ;define*
-

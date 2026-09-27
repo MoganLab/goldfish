@@ -151,6 +151,32 @@ void load_source(Evaluator& evaluator, const std::string& path) {
                            {evaluator.string(path)});
 }
 
+std::string with_fix_hint(const std::string& message,
+                          const std::string& source_path = {},
+                          const std::string& context = {}) {
+    const bool candidate =
+        message.find("unexpected close paren") != std::string::npos ||
+        message.find("missing close paren") != std::string::npos ||
+        context.find("unexpected close paren") != std::string::npos ||
+        context.find("missing close paren") != std::string::npos;
+    if (!candidate ||
+        message.find("Hint: try `") != std::string::npos)
+        return message;
+    std::string path = source_path;
+    if (path.empty()) {
+        std::size_t marker = message.rfind(" in ");
+        const std::string& path_source = marker == std::string::npos
+            ? context : message;
+        if (marker == std::string::npos) marker = path_source.rfind(" in ");
+        if (marker == std::string::npos) return message;
+        path = path_source.substr(marker + 4);
+    }
+    if (!path.empty() && path.back() == '"') path.pop_back();
+    if (path.empty()) return message;
+    return message + "\nHint: try `gf fix " + path +
+           "` to repair common parenthesis issues.";
+}
+
 void install_source_expander(Evaluator& evaluator) {
     // The full expand-eval procedure is part of the library installer.  A
     // cache-free bootstrap needs the kernel's per-form entry point first so
@@ -601,11 +627,17 @@ int main(int argc, char** argv) {
         load_source(runtime.evaluator(), "expander/lib/native-abi.scm");
         stage("hash-adapter");
         runtime.evaluator().collect();
-        Value standard_library = runtime.evaluator().apply_values(
-            lookup(runtime.evaluator(), "module-ref"),
-            {lookup(runtime.evaluator(), "the-expander-library"),
-             runtime.evaluator().symbol("install-standard-library!")})[0];
-        runtime.evaluator().apply_values(standard_library, {});
+        // The cached bootstrap artifact list already evaluates standard.scm.
+        // Reinstalling it here creates fresh transformer bindings after
+        // scheme/base.scm has captured interfaces to the originals, so
+        // re-exports such as (scheme lazy)'s delay-force look like conflicts.
+        if (!cached) {
+            Value standard_library = runtime.evaluator().apply_values(
+                lookup(runtime.evaluator(), "module-ref"),
+                {lookup(runtime.evaluator(), "the-expander-library"),
+                 runtime.evaluator().symbol("install-standard-library!")})[0];
+            runtime.evaluator().apply_values(standard_library, {});
+        }
         stage("standard-library");
         runtime.evaluator().collect();
         install_mode_imports(runtime.evaluator(), startup_mode(argc, argv));
@@ -787,7 +819,22 @@ int main(int argc, char** argv) {
         if (raised.value().is_object() &&
             raised.value().as_object()->type() == ObjectType::ErrorObject) {
             const auto* error = raised.value().as_object<ErrorObject>();
-            std::cerr << error->message;
+            std::string source_path;
+            std::string context;
+            for (Value irritant : error->irritants)
+                if (irritant.is_object() &&
+                    irritant.as_object()->type() == ObjectType::String) {
+                    const std::string& candidate =
+                        irritant.as_object<StringObject>()->value;
+                    context += " " + candidate;
+                    const std::size_t marker = candidate.rfind(" in ");
+                    if (marker != std::string::npos)
+                        source_path = candidate.substr(marker + 4);
+                    else if (candidate.find('/') != std::string::npos &&
+                             candidate.find(".scm") != std::string::npos)
+                        source_path = candidate;
+                }
+            std::cerr << with_fix_hint(error->message, source_path, context);
             for (Value irritant : error->irritants) {
                 std::cerr << ' ';
                 print_value(irritant, std::cerr);
@@ -800,7 +847,7 @@ int main(int argc, char** argv) {
         }
         return 1;
     } catch (const std::exception& error) {
-        std::cerr << error.what() << '\n';
+        std::cerr << with_fix_hint(error.what()) << '\n';
         return 1;
     }
 }

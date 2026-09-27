@@ -95,7 +95,10 @@
     ) ;define
 
     (define* (utf8-substring str (start 0) (end #t))
-      (utf8->string (string->utf8 str start end))
+      (utf8->string
+        (if (eq? end #t)
+          (string->utf8 str start)
+          (string->utf8 str start end)))
     ) ;define*
 
     ;; ; 辅助函数：检查字符是否为空白字符
@@ -216,7 +219,7 @@
       (unless (char? char)
         (error 'type-error "utf8-string-set!: expected char" char)
       ) ;unless
-      (let* ((bv (string->byte-vector str))
+      (let* ((bv (string->utf8 str))
              (byte-len (bytevector-length bv))
              (char-bv (codepoint->utf8 (char->integer char)))
             ) ;
@@ -234,7 +237,7 @@
                     (let replace-char
                       ((j 0))
                       (if (= j char-bv-len)
-                        (byte-vector->string bv)
+                        (utf8->string bv)
                         (begin
                           (bytevector-u8-set! bv (+ byte-pos j) (bytevector-u8-ref char-bv j))
                           (replace-char (+ j 1))
@@ -254,7 +257,7 @@
                               (let copy-back
                                 ((src next-byte-pos) (dst (+ byte-pos char-bv-len)))
                                 (if (= src byte-len)
-                                  (byte-vector->string result)
+                                  (utf8->string result)
                                   (begin
                                     (bytevector-u8-set! result dst (bytevector-u8-ref bv src))
                                     (copy-back (+ src 1) (+ dst 1))

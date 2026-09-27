@@ -69,7 +69,8 @@ public:
         if (it != bindings_.end()) {
             if (it->second.is_object() &&
                 it->second.as_object()->type() == ObjectType::Uninitialized)
-                throw std::runtime_error("read of uninitialized symbol");
+                throw std::runtime_error(
+                    "expected initialized binding: read of uninitialized symbol");
             return it->second;
         }
         if (parent_)

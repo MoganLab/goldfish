@@ -1060,18 +1060,24 @@
 
     (define (fxmapping-any? pred fxmap)
       (assume (procedure? pred))
-      (call-with-current-continuation (lambda (return)
-                                        (fxmapping-fold (lambda (k v _) (and (pred k v) (return #t))) #f fxmap)
-                                      ) ;lambda
-      ) ;call-with-current-continuation
+      (let ((found? #f))
+        (fxmapping-fold (lambda (k v _)
+                          (when (and (not found?) (pred k v))
+                            (set! found? #t))
+                          #f)
+                        #f fxmap)
+        found?)
     ) ;define
 
     (define (fxmapping-every? pred fxmap)
       (assume (procedure? pred))
-      (call-with-current-continuation (lambda (return)
-                                        (fxmapping-fold (lambda (k v _) (or (pred k v) (return #f))) #t fxmap)
-                                      ) ;lambda
-      ) ;call-with-current-continuation
+      (let ((all? #t))
+        (fxmapping-fold (lambda (k v _)
+                          (when (and all? (not (pred k v)))
+                            (set! all? #f))
+                          #f)
+                        #f fxmap)
+        all?)
     ) ;define
 
     ;; ;; Mapping and folding

@@ -35,13 +35,13 @@
 
 
 (let ((ht (hash-table)))
-  (check (ht 'missing) => #f)
+  (check (hash-table-ref/default ht 'missing #f) => #f)
 ) ;let
 
 
 (let ((ht (hash-table 'a 1 'b 2)))
-  (check (ht 'a) => 1)
-  (check (ht 'b) => 2)
+  (check (hash-table-ref/default ht 'a #f) => 1)
+  (check (hash-table-ref/default ht 'b #f) => 2)
 ) ;let
 
 

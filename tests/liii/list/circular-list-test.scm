@@ -59,13 +59,13 @@
 
 
 (let ((cl (circular-list 1 2 3)))
-  (check (cl 0) => 1)
-  (check (cl 1) => 2)
-  (check (cl 2) => 3)
-  (check (cl 3) => 1)
-  (check (cl 4) => 2)
-  (check (cl 5) => 3)
-  (check (cl 6) => 1)
+  (check (list-ref cl 0) => 1)
+  (check (list-ref cl 1) => 2)
+  (check (list-ref cl 2) => 3)
+  (check (list-ref cl 3) => 1)
+  (check (list-ref cl 4) => 2)
+  (check (list-ref cl 5) => 3)
+  (check (list-ref cl 6) => 1)
 ) ;let
 
 
@@ -76,17 +76,17 @@
 
 
 (let ((single (circular-list 'x)))
-  (check (single 0) => 'x)
-  (check (single 1) => 'x)
-  (check (single 100) => 'x)
+  (check (list-ref single 0) => 'x)
+  (check (list-ref single 1) => 'x)
+  (check (list-ref single 100) => 'x)
 ) ;let
 
 
 (let ((nested (circular-list '(1 2) '(3) '(4 5 6))))
-  (check (nested 0) => '(1 2))
-  (check (nested 1) => '(3))
-  (check (nested 2) => '(4 5 6))
-  (check (nested 3) => '(1 2))
+  (check (list-ref nested 0) => '(1 2))
+  (check (list-ref nested 1) => '(3))
+  (check (list-ref nested 2) => '(4 5 6))
+  (check (list-ref nested 3) => '(1 2))
 ) ;let
 
 
@@ -94,10 +94,10 @@
 
 
 (let ((cl (circular-list 1 2 3)))
-  (check (cl 3) => 1)
-  (check (cl 4) => 2)
-  (check (cl 5) => 3)
-  (check (cl 6) => 1)
+  (check (list-ref cl 3) => 1)
+  (check (list-ref cl 4) => 2)
+  (check (list-ref cl 5) => 3)
+  (check (list-ref cl 6) => 1)
 ) ;let
 
 

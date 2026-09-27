@@ -9,9 +9,7 @@
 ;;;
 ;;;   - a stored #f reads back as "absent" -- srfi-125's
 ;;;     hash-table-delete! / hash-table-clear! implement deletion by
-;;;     storing #f and hash-table-contains? tests (not (not ref));
-;;;   - hash-table-size counts stored cells (the tests only pin
-;;;     fresh-empty and set-then-nonempty);
+;;;     storing #f, so iteration and size omit those cells;
 ;;;   - make-iterator yields (key . value) pairs and then eof forever;
 ;;;   - the optional (equiv . hash) pair from s7-make-hash-table drives
 ;;;     lookup and bucketing; without it, equal? and hash-code apply.
@@ -29,7 +27,8 @@
     (vector 's7-hash-table
             (make-vector size '())
             (if (pair? spec) (car spec) #f)
-            (if (pair? spec) (cdr spec) #f))))
+            (if (pair? spec) (cdr spec) #f)
+            0)))
 
 (define (hash-table? ht) (%s7-ht? ht))
 
@@ -40,6 +39,24 @@
 (define (%s7-ht-hash ht key)
   (let ((hash (vector-ref ht 3)))
     (if (procedure? hash) (hash key) (hash-code key))))
+
+(define (%s7-ht-resize! ht new-size)
+  (let* ((old-buckets (vector-ref ht 1))
+         (new-buckets (make-vector new-size '())))
+    (let bucket-loop ((i 0))
+      (if (< i (vector-length old-buckets))
+          (begin
+            (let cell-loop ((cells (vector-ref old-buckets i)))
+              (if (pair? cells)
+                  (begin
+                    (let ((cell (car cells)))
+                      (when (cdr cell)
+                        (let ((index (modulo (%s7-ht-hash ht (car cell)) new-size)))
+                          (vector-set! new-buckets index
+                                       (cons cell (vector-ref new-buckets index))))))
+                    (cell-loop (cdr cells))))
+            (bucket-loop (+ i 1)))))
+    (vector-set! ht 1 new-buckets))))
 
 (define (%s7-ht-cell ht key)
   (if (not (%s7-ht? ht))
@@ -61,12 +78,25 @@
 (define (s7-hash-table-set! ht key value)
   (let ((cell (%s7-ht-cell ht key)))
     (if cell
-      (begin (set-cdr! cell value) value)
-      (let* ((buckets (vector-ref ht 1))
-             (index (modulo (%s7-ht-hash ht key) (vector-length buckets))))
-        (vector-set! buckets index
-                     (cons (cons key value) (vector-ref buckets index)))
-        value))))
+      (begin
+        (when (and (cdr cell) (not value))
+          (vector-set! ht 4 (- (vector-ref ht 4) 1)))
+        (when (and (not (cdr cell)) value)
+          (vector-set! ht 4 (+ (vector-ref ht 4) 1))
+          (set-car! cell key))
+        (set-cdr! cell value)
+        value)
+      (if (not value)
+          #f
+          (let* ((buckets (vector-ref ht 1))
+                 (index (modulo (%s7-ht-hash ht key) (vector-length buckets)))
+                 (count (+ (vector-ref ht 4) 1)))
+            (vector-set! buckets index
+                         (cons (cons key value) (vector-ref buckets index)))
+            (vector-set! ht 4 count)
+            (when (> count (* 2 (vector-length buckets)))
+              (%s7-ht-resize! ht (* 2 (vector-length buckets))))
+            value)))))
 
 (define (s7-hash-table-ref ht key . maybe-default)
   (let ((cell (%s7-ht-cell ht key)))
@@ -82,15 +112,7 @@
 (define (hash-table-size ht)
   (if (not (%s7-ht? ht))
     (error 'wrong-type-arg "hash-table-size: expected a hash table" ht))
-  (let ((buckets (vector-ref ht 1)))
-    (let bucket-loop ((i (- (vector-length buckets) 1)) (total 0))
-      (if (< i 0)
-        total
-        (bucket-loop (- i 1)
-          (let cell-loop ((cells (vector-ref buckets i)) (count total))
-            (if (null? cells)
-              count
-              (cell-loop (cdr cells) (+ count 1)))))))))
+  (vector-ref ht 4))
 
 (define (make-iterator ht)
   (if (not (%s7-ht? ht))
@@ -109,4 +131,7 @@
           (let cell-loop ((cells (vector-ref buckets i)) (acc entries))
             (if (null? cells)
               acc
-              (cell-loop (cdr cells) (cons (car cells) acc)))))))))
+              (cell-loop (cdr cells)
+                (if (cdr (car cells))
+                  (cons (car cells) acc)
+                  acc)))))))))

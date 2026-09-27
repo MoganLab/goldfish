@@ -593,17 +593,17 @@
     ) ;define
 
     (define (enum-set-any? pred eset)
-      (call-with-current-continuation (lambda (return)
-                                        (enum-set-fold (lambda (e _) (and (pred e) (return #t))) #f eset)
-                                      ) ;lambda
-      ) ;call-with-current-continuation
+      (let loop ((rest (enum-set->enum-list eset)))
+        (and (pair? rest)
+             (or (pred (car rest))
+                 (loop (cdr rest)))))
     ) ;define
 
     (define (enum-set-every? pred eset)
-      (call-with-current-continuation (lambda (return)
-                                        (enum-set-fold (lambda (e _) (or (pred e) (return #f))) #t eset)
-                                      ) ;lambda
-      ) ;call-with-current-continuation
+      (let loop ((rest (enum-set->enum-list eset)))
+        (or (null? rest)
+            (and (pred (car rest))
+                 (loop (cdr rest)))))
     ) ;define
 
     ;; ; Enum set mutators
