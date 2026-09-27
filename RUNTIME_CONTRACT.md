@@ -312,6 +312,11 @@ reader 继续只负责 lowered datum/artifact，不扩展成完整的源码 read
 现有 s7 differential gate 在迁移期继续使用，但只作为迁移参照，不是最终
 语义合同。新模块迁移后，应删除相应的 s7 bridge 测试和 HOF entry。
 
+C2 的验收范围和明确排除项记录在
+[`tests/C2-ACCEPTANCE.md`](tests/C2-ACCEPTANCE.md)，机器可读的 skip 台账在
+[`tests/c2-skip.tsv`](tests/c2-skip.tsv)。被分桶的测试不计为通过；双端同错
+也仍然可见，必须修复或按规范明确裁决后才能通过 strict gate。
+
 ### 语义 oracle 层级
 
 1. **R7RS-small 是最高规范**：spec 文本优先；实现间有分歧时以 spec

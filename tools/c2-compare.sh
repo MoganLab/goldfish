@@ -9,6 +9,9 @@
 #   C2_SKIP_MEGA=1 ...                       # skip known-slow audits
 #   C2_MEM=10485760 ...                      # native ulimit -v (KB)
 #   C2_BATCH=40 ...                          # files per invocation
+#   C2_HOST_WORKER=1 ...                     # reuse goldtest worker for safe files
+#   C2_NATIVE_JOBS=2 ...                     # parallel native process groups
+#   C2_STRICT=1 ...                          # fail on divergence, missing verdict, or shared failure
 set -eu
 project=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 cd "$project"
@@ -65,17 +68,71 @@ run_side() { # $1=host|native  $2=log  $3...=files
     side=$1; log=$2; shift 2
     : > "$log"
     if [ "$side" = host ]; then
-        # goldtest parses one path per invocation (by design); host
-        # invocations are cheap and stay process-isolated.
-        for f in "$@"; do
-            timeout "${C2_HOST_TIMEOUT:-300}" ./bin/gf test "$f" \
+        if [ "${C2_HOST_WORKER:-0}" = 1 ]; then
+            # The persistent goldtest worker resets the program library and
+            # check state between files. Use only for slices whose files are
+            # worker-safe; default remains one isolated gf test per file.
+            worker_verdicts=$(mktemp)
+            GOLDFISH_CHECK_NO_EXIT=1 \
+                timeout "${C2_HOST_WORKER_TIMEOUT:-3600}" \
+                ./bin/gf -m liii tools/test/liii/worker.scm -- "$@" \
                 >> "$log" 2>&1 || true
-        done
+            sed 's/\x1b\[[0-9;]*m//g' "$log" \
+                | awk '/^;;;WORKER / { print "  " $2 " ... " ($3 == 0 ? "PASS" : "FAIL") }' \
+                > "$worker_verdicts"
+            cat "$worker_verdicts" >> "$log"
+            rm -f "$worker_verdicts"
+        else
+            # goldtest parses one path per invocation (by design).
+            for f in "$@"; do
+                timeout "${C2_HOST_TIMEOUT:-300}" ./bin/gf test "$f" \
+                    >> "$log" 2>&1 || true
+            done
+        fi
     else
-        # One boot, one fork per file: no goldtest tool reload.
-        ( ulimit -v "$mem"
-          timeout "${C2_TIMEOUT:-3600}" ./bin/gf-native -m liii \
-            --each-file "$@" ) >> "$log" 2>&1 || true
+        native_jobs=${C2_NATIVE_JOBS:-1}
+        case "$native_jobs" in
+            ''|*[!0-9]*|0) echo "C2_NATIVE_JOBS must be a positive integer" >&2; return 2 ;;
+        esac
+        if [ "$native_jobs" -eq 1 ]; then
+            # One boot, one fork per file: no goldtest tool reload.
+            ( ulimit -v "$mem"
+              timeout "${C2_TIMEOUT:-3600}" ./bin/gf-native -m liii \
+                --each-file "$@" ) >> "$log" 2>&1 || true
+        else
+            # Separate booted processes keep each file isolated while
+            # allowing an explicit, memory-budgeted parallel sweep.
+            worker_dir=$(mktemp -d)
+            index=0
+            for f in "$@"; do
+                job=$((index % native_jobs))
+                printf '%s\n' "$f" >> "$worker_dir/files.$job"
+                index=$((index + 1))
+            done
+            pids=""
+            job=0
+            while [ "$job" -lt "$native_jobs" ]; do
+                if [ -s "$worker_dir/files.$job" ]; then
+                    (
+                        set -- $(cat "$worker_dir/files.$job")
+                        ulimit -v "$mem"
+                        timeout "${C2_TIMEOUT:-3600}" \
+                            ./bin/gf-native -m liii --each-file "$@"
+                    ) > "$worker_dir/out.$job" 2>&1 &
+                    pids="$pids $!"
+                fi
+                job=$((job + 1))
+            done
+            for pid in $pids; do wait "$pid" || true; done
+            job=0
+            while [ "$job" -lt "$native_jobs" ]; do
+                if [ -f "$worker_dir/out.$job" ]; then
+                    cat "$worker_dir/out.$job" >> "$log"
+                fi
+                job=$((job + 1))
+            done
+            rm -rf "$worker_dir"
+        fi
     fi
     verdicts "$side" "$log"
 }
@@ -132,3 +189,8 @@ process_batch
 echo "---"
 echo "total=$total agree-pass=$agree_pass agree-fail=$agree_fail diverge=$diverge missing=$missing manifest-bucketed=$bucketed"
 echo "divergence rows: /tmp/c2-diverge.log"
+
+if [ "${C2_STRICT:-0}" = 1 ] && { [ "$agree_fail" -ne 0 ] || [ "$diverge" -ne 0 ] || [ "$missing" -ne 0 ]; }; then
+    echo "C2 strict gate failed" >&2
+    exit 1
+fi
