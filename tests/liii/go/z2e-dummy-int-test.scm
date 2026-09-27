@@ -1,0 +1,8 @@
+(import (liii check)
+        (liii go))
+(check-set-mode! 'report-failed)
+(define (mark m) (display m) (newline) (flush-output-port))
+(mark "E0")
+(check-catch 'type-error (g_debug-crash -1))
+(mark "E1")
+(check-report)

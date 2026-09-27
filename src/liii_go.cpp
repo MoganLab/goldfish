@@ -854,6 +854,18 @@ GoldfishChannel::is_closed () const {
 // ---------------------------------------------------------------------------
 
 static s7_pointer
+f_debug_crash (s7_scheme* sc, s7_pointer args) {
+  // 与 f_make_chan 相同的检查结构，但无任何 channel/RAII 逻辑
+  if (!s7_is_null (sc, args)) {
+    s7_pointer arg= s7_car (args);
+    if (!s7_is_integer (arg) || s7_integer (arg) < 0) {
+      return go_error (sc, "type-error", "debug-crash: bad arg", arg);
+    }
+  }
+  return s7_f (sc);
+}
+
+static s7_pointer
 f_make_chan (s7_scheme* sc, s7_pointer args) {
   fprintf (stderr, "[TRACE] f_make_chan enter\n");
   fflush (stderr);
@@ -1135,6 +1147,7 @@ glue_liii_go (s7_scheme* sc) {
   }
 
   s7_define_function (sc, "g_make-chan", f_make_chan, 0, 1, false, "(g_make-chan [capacity]) => channel");
+  s7_define_function (sc, "g_debug-crash", f_debug_crash, 0, 1, false, "debug");
   s7_define_function (sc, "g_chan?", f_chan_p, 1, 0, false, "(g_chan? obj) => boolean");
   s7_define_function (sc, "g_chan-send!", f_chan_send, 2, 1, false, "(g_chan-send! ch val [timeout-ms]) => boolean");
   s7_define_function (sc, "g_chan-recv!", f_chan_recv, 1, 2, false,
