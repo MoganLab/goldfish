@@ -1,5 +1,5 @@
 #!/bin/sh
-# Triage a goldtest/gf-native directory-run log: one row per test file
+# Triage a goldtest/native directory-run log: one row per test file
 # with its status, plus the first thrown/error line attached to failures.
 # Replaces the ad-hoc grep archaeology done per failed run.
 #

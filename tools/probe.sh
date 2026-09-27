@@ -15,7 +15,7 @@ if [ "${1:-}" = "-m" ]; then
 fi
 expr=${1:?usage: probe.sh [-m mode] '<scheme expr>'}
 ulimit -v "${GOLDFISH_PROBE_MEM:-6291456}"
-timeout "${GOLDFISH_PROBE_TIMEOUT:-120}" "$project_dir/bin/gf-native" \
+timeout "${GOLDFISH_PROBE_TIMEOUT:-120}" "$project_dir/bin/gf" \
     -m "$mode" -e "
 (import (goldfish))
 (write (catch #t (lambda () $expr)

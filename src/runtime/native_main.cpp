@@ -804,7 +804,7 @@ int main(int argc, char** argv) {
             eval_file(runtime.evaluator(), argv[1]);
             return 0;
         }
-        std::cerr << "usage: gf-native [-e expression] [file]\n";
+        std::cerr << "usage: gf [-e expression] [file]\n";
         return 2;
     } catch (const ThrownValue& thrown) {
         // throw's payload: report (tag irritants ...) like the host.

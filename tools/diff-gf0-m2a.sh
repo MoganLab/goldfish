@@ -156,10 +156,10 @@ for prog in $files; do
     } > "$run"
   }
   mk_s7
-  ./bin/gf -I "$dir" "$run" > /dev/null 2>&1 || true   # warm caches, discard
-  s7out=$(./bin/gf -I "$dir" "$run" 2>&1 || true)
+  ./bin/gf-host -I "$dir" "$run" > /dev/null 2>&1 || true   # warm caches, discard
+  s7out=$(./bin/gf-host -I "$dir" "$run" 2>&1 || true)
   mk_gf0
-  gf0out=$(./bin/gf -I "$dir" "$run" 2>&1 || true)
+  gf0out=$(./bin/gf-host -I "$dir" "$run" 2>&1 || true)
   # Soundness: identical runner-level failures (loader/compile errors,
   # same host-side text both sides) are ERR, never ok -- otherwise a
   # broken lib reads as agreement (packrat 2026-09-15: both sides failed

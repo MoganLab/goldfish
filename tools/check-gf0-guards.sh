@@ -35,10 +35,10 @@ mk () {
   } > "$run"
 }
 mk s7
-./bin/gf -I tests/gf0 "$run" > /dev/null 2>&1 || true
-s7out=$(./bin/gf -I tests/gf0 "$run" 2>&1 || true)
+./bin/gf-host -I tests/gf0 "$run" > /dev/null 2>&1 || true
+s7out=$(./bin/gf-host -I tests/gf0 "$run" 2>&1 || true)
 mk gf0
-gf0out=$(./bin/gf -I tests/gf0 "$run" 2>&1 || true)
+gf0out=$(./bin/gf-host -I tests/gf0 "$run" 2>&1 || true)
 fail=0
 for want in 10 20 '#<eof>'; do
   printf '%s\n' "$s7out" | grep -qx "$want" || { echo "GUARD(s7) missing: $want"; fail=1; }

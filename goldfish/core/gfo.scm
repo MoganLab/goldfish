@@ -1,7 +1,7 @@
 (define (gfo-base-dir)
   ;; GOLDFISH_CACHE_DIR relocates the whole ccache root (the directory that
-  ;; would otherwise be ~/.cache/goldfish/ccache for the host. gf-native sets
-  ;; it to its separate native-ccache root before loading this library, so the
+  ;; would otherwise be ~/.cache/goldfish/ccache for the host. The native
+  ;; runtime sets it to its separate native-ccache root before loading this library, so the
   ;; two runtimes never interpret each other's serialized artifacts. An
   ;; installer can point a read-only, prebuilt cache here (paired with
   ;; GOLDFISH_CACHE_READONLY).

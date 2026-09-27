@@ -18,8 +18,8 @@ cd "$(dirname "$0")/.."
 dir=${1:-tests/gf0}
 fail=0
 
-run_s7 () { ./bin/gf eval "$1" 2>&1; }
-run_gf0 () { ./bin/gf eval-gf0 "$1" 2>&1; }
+run_s7 () { ./bin/gf-host eval "$1" 2>&1; }
+run_gf0 () { ./bin/gf-host eval-gf0 "$1" 2>&1; }
 
 for f in "$dir"/agree-*.scm; do
   [ -e "$f" ] || continue

@@ -63,14 +63,16 @@ Out of scope for C3:
    evidence, and correctness checks. A regression over 10% on a dedicated,
    comparable machine blocks the relevant optimization; noisy shared-machine
    measurements are exploratory and must not be used as a release threshold.
-6. R4 switch prerequisites are recorded: how build/CI supplies bootstrap
-   caches without host `gf`, what compatibility surface is removed, and which
-   deferred features remain unsupported.
+6. R4 switch prerequisites are recorded: how the local build/release process
+   supplies bootstrap caches without host `gf`, what compatibility surface is
+   removed, and which deferred features remain unsupported.
 
 ## Current baseline
 
-- C2's recorded float-free sweep: 1,273 agreement passes, 58 explicitly
-  bucketed files, no recorded divergence; see `tests/C2-ACCEPTANCE.md`.
+- C2's recorded float-free sweep plus the later strict call/cc slice:
+  1,276 agreement passes and 55 explicitly bucketed files, with no recorded
+  divergence; see `tests/C2-ACCEPTANCE.md`. This is recorded evidence, not a
+  fresh full C2 run.
 - Post-change C2 regression slice: 36/36 strict agreement passes; the six
   environment/evaluator cases affected by the subsequent lookup optimization
   add 6/6 strict agreement passes (42/42 combined).
@@ -113,9 +115,10 @@ cross-library workflow):
   Unicode string operations, and path composition. File-backed port behavior
   is exercised by `call-with-input-file-test.scm`.
 
-`sh tools/test-native-c3.sh` builds `gf-native`, runs the native bootstrap
+`sh tools/test-native-c3.sh` builds the `gf-native` target (executable
+`bin/gf`), runs the native bootstrap
 gate, checks `-e`, file execution, and a stateful REPL session, runs the corpus
-through `gf-native --each-file`, and loads the cross-library workflow from an
+through `gf --each-file`, and loads the cross-library workflow from an
 isolated empty cache. On 2026-09-27 every step passed; all 9 files passed
 (118 checks in the 9-file corpus, plus 7 checks in the isolated cold-cache
 run). The same 9-file scope passed strict host/native comparison in one batch:
@@ -131,12 +134,11 @@ substitute for the full C2 manifest.
 Every row in `tests/c2-skip.tsv` now has an individual disposition in
 `tests/C3-SKIP-DISPOSITIONS.tsv`; `sh tools/check-c3-manifest.sh` verifies
 one-to-one path coverage, non-empty rationale and milestone fields, and
-valid corpus paths. Current review assigns 3 cases to migrate before R4, 2
-explicit S7-only surfaces to exclude, and 53 cases to named follow-up
-milestones.
+valid corpus paths. Current review assigns 2 explicit S7-only surfaces to
+exclude and 53 cases to named follow-up milestones. No current disposition row
+is marked `migrate-before-R4`; the former call/cc exclusions were implemented
+and added to the strict parity slice.
 
-- `R4-core-callcc`: implement core `call/cc` before the default-runtime
-  switch; it is required by R7RS and SRFI generator behavior.
 - `R4-removal`: remove S7 hook invocation and procedure-signature metadata;
   these are explicitly outside the native contract.
 - `R4-C2-longcase-audit`: obtain a paired verdict for the slow match
@@ -151,12 +153,14 @@ milestones.
   required work are listed row-by-row in the disposition ledger.
 
 The ledger is a reviewed scope decision, not evidence that deferred
-functionality already works. R4 cannot begin its final switch until the
-`migrate-before-R4` work is complete and the slow-case audit has a verdict.
+functionality already works. The slow-case paired verdict is required before
+deleting the s7 oracle; the initial reversible default switch may be prepared
+while retaining that oracle. The 53 deferred cases and 2 exclusions are the
+documented initial native cutover boundary.
 
 ## Native bootstrap cache (2026-09-27)
 
-`tools/warm-bootstrap-cache.sh` now uses `gf-native` and
+`tools/warm-bootstrap-cache.sh` now uses the default native `gf` and
 `compile-file-cached` to build the workflow's transitive library cache in an
 isolated cache directory, verifies every artifact listed by
 `src/runtime/bootstrap.cpp`, then installs it under the content-addressed
@@ -172,13 +176,11 @@ preserve its generated cache artifact when R4 changes the default runtime.
 
 ## R4 switch follow-ups (outside C3 completion)
 
-- Implement core `call/cc`, assigned to `R4-core-callcc`, before the
-  default-runtime switch.
 - Obtain a paired host/native verdict for the long match capability test
   before removing the S7 oracle; the direct host run exceeded its usual
   budget and the latest worker attempt returned no verdict.
-- Wire `sh tools/test-native-c3.sh` into the R4 build/CI path. It builds the
-  native driver, generates and verifies the bootstrap cache with
+- Keep `sh tools/test-native-c3.sh` as the local R4 gate. It builds the native
+  driver, generates and verifies the bootstrap cache with
   `tools/warm-bootstrap-cache.sh`, and checks cold bootstrap without host `gf`.
 - Repeat performance probes on a reserved, comparable machine before using
   their exploratory numbers as release thresholds.

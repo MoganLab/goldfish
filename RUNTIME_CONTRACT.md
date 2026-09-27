@@ -1,8 +1,8 @@
 # Goldfish Runtime Contract
 
-状态：R0–R3 已完成；R4 进行中（准备清单第 3、4 条已完成）。R3 已覆盖 kernel 自举、普通库的
-native source/cache 闭环以及最小 native CLI/REPL。默认入口切换和删除
-s7/gf0 过渡层明确属于 R4。
+状态：R0–R3 已完成；R4 进行中。Native 已覆盖 kernel 自举、普通库的
+source/cache 闭环、CLI/REPL，以及 C3 固定工作流。默认入口 `bin/gf` 已
+切换为 native；host/s7 保留在 `bin/gf-host`。删除 s7/gf0 过渡层是单独的后续步骤。
 本文定义替换 vendored s7 后的宿主边界；现有 `gf0`/s7 bridge 不是此合同
 的一部分，只是过渡实现。
 
@@ -25,7 +25,7 @@ s7/gf0 过渡层明确属于 R4。
 
 ### R4 准备清单
 
-1. 默认 `gf` 入口切换到 `gf-native`（或等价 native driver），gf0/s7 降级为可选。
+1. 默认 `gf` 入口切换到 native runtime（完成）；host/s7 由显式 `gf-host` 入口调用，gf0/s7 仍待移除。
 2. 删除 `src/s7*`、s7 构建目标与 vendored s7；清理 `gf0` bridge 与
    `bootstrap_compatibility` 中仅过渡用的 LegacyLet 分支。
 3. [完成 2026-09-24] 根因不在 install.scm，而在 prelude 的**定义顺序**：
@@ -35,14 +35,14 @@ s7/gf0 过渡层明确属于 R4。
    修复：`let` 提到 prelude 首位并在文件头写明顺序约束，prelude 恢复
    10 宏；bootstrap-prelude 占位宏（会展开成 `#t` 的假 `cond`）随之
    清空，native 冷启动与 host 均绿。
-4. [完成 2026-09-24] 预热步骤入库为 `tools/warm-bootstrap-cache.sh`，
-   `tools/test-native.sh` 构建并运行 `native-library-source-test`，
-   空缓存起步门禁全绿。原判断有误：缺的不是 `vbootstrap0`，而是单个
-   `scheme/case-lambda.scm-o2.gfo`——一个缺失文件即让
-   `find_cache_version` 拒绝整个版本目录。native 只读预建缓存，
-   暂由 host `gf` 预热；R4 删除 host 后须改为构建/CI 提供。
-5. 按本文验收五条逐条跑 differential gate，通过后删除
-   `tools/diff-gf0-m2a.sh` skip 名单。
+4. [完成] `tools/warm-bootstrap-cache.sh` 使用默认 native `gf` 预热 native
+   cache；`tools/test-native.sh` 覆盖 native reader、library source 和
+   cold-bootstrap 检查。R4 默认切换后，预热和冷启动仍须在不调用 host `gf`
+   的情况下成立。
+5. [待切换前复核] 汇总现有 C2 strict parity、M3 lowered-program 检查和
+   C3 native gate；明确历史结果的范围及未覆盖项。`diff-gf0-m2a.sh` 是
+   s7/gf0 迁移期工具，删除前需先确认它的剩余用途和调用者，不将其 skip
+   清单误作 native C3 验收结果。
 6. [C1 收尾 2026-09-26] tests/expander 目录级常规 18/19 绿：唯一失败
    host-abi-load（`1.5` 字面量）归浮点桶；带浮点/复数字面量的测试共
    220 个文件（含 liii/reader-test 的53处字面量、lib-cache-all-libs
@@ -282,6 +282,28 @@ reader 继续只负责 lowered datum/artifact，不扩展成完整的源码 read
 
 默认入口切换到新 runtime；删除 gf0/s7 bridge、s7-specific compatibility
 层、s7 构建文件和 vendored s7 源码。
+
+#### 切换顺序（2026-09-28）
+
+1. **默认入口已切换**：`bin/gf` 是 native runtime，`bin/gf-host` 保留原
+   s7 host。C2 和 gf0/s7 差分工具明确调用 host oracle；普通测试和 native
+   工作流使用默认 `gf`。
+2. **稳定默认路径**：验证 CLI、测试运行器、source bootstrap、warm/cold cache
+   和代表性库工作流均由 native 执行，同时保留 host 回退入口。切换与删除
+   vendored s7 不合并为一个不可回退的改动。
+3. **关闭删除 s7 前的审核项**：取得 `match-capability-test.scm` 的 host/native
+   成对结果；复核 C2 记录的时效性，并把已知 53 项 defer 和 2 项 exclude
+   明确作为首轮 native cutover 的接受范围。
+4. **删除过渡层**：在 native 默认路径稳定且 host 不再是构建/运行依赖后，
+   移除 s7/gf0 目标、vendored 源码、bridge 和只服务于旧路径的工具/测试。
+   同步更新文档与剩余测试入口。
+
+本仓库当前没有实际运行的 CI，因此 R4 不以 CI 接入为前置；切换验收由
+明确记录的本地命令完成。最近一次默认切换前的 host 全量测试为 1555/1555；
+默认切换后 native C3 固定工作流为 9/9、call/cc/dynamic-wind strict 差分为
+2/2。前者不是 native 全量通过证据。C2 记录的 1276 个
+host/native agreement 和 55 个显式 skip 是 2026-09-27 的汇总，不是本轮
+重新执行的完整差分。call/cc 已实现，不能再列为未完成前置。
 
 ### 后续方向（占位）
 

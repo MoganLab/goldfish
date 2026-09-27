@@ -16,20 +16,20 @@ sh tools/check-c3-manifest.sh
 # The base gate checks clean-cache, source-bootstrap, and warm-cache paths.
 sh tools/test-native.sh
 
-eval_result=$(./bin/gf-native -m r7rs -e '(+ 20 22)')
+eval_result=$(./bin/gf -m r7rs -e '(+ 20 22)')
 if [ "$eval_result" != "42" ]; then
     echo "test-native-c3: -e returned $eval_result, expected 42" >&2
     exit 1
 fi
 
-file_result=$(./bin/gf-native -m r7rs tests/runtime/fixtures/native-cli-regression.scm)
+file_result=$(./bin/gf -m r7rs tests/runtime/fixtures/native-cli-regression.scm)
 if [ "$file_result" != "42" ]; then
     echo "test-native-c3: file execution returned $file_result, expected 42" >&2
     exit 1
 fi
 
 repl_result=$(printf '(define c3-repl-state 40)\n(+ c3-repl-state 2)\n' \
-    | ./bin/gf-native -m r7rs)
+    | ./bin/gf -m r7rs)
 case "$repl_result" in
     *42*) ;;
     *)
@@ -41,7 +41,7 @@ echo "native CLI smoke passed: -e, file execution, stateful REPL"
 
 # Reuse one native boot while keeping each test's process state isolated.
 # shellcheck disable=SC2086
-./bin/gf-native -m liii --each-file $files
+./bin/gf -m liii --each-file $files
 
 # Exercise the integrated cross-library program from an isolated empty cache.
 # The CLI's `load` handler uses the C++ source loader when Scheme `load` has
@@ -50,4 +50,4 @@ cold_cache=$(mktemp -d "${TMPDIR:-/tmp}/goldfish-native-c3-cold.XXXXXX")
 trap 'rm -rf "$cold_cache"' EXIT HUP INT TERM
 mkdir -p "$cold_cache/ccache"
 GOLDFISH_CACHE_DIR="$cold_cache/ccache" \
-    ./bin/gf-native -m liii load tests/c3/native-workflow.scm
+    ./bin/gf -m liii load tests/c3/native-workflow.scm

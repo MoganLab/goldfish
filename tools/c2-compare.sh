@@ -76,7 +76,7 @@ run_side() { # $1=host|native  $2=log  $3...=files
             worker_verdicts=$(mktemp)
             GOLDFISH_CHECK_NO_EXIT=1 \
                 timeout "${C2_HOST_WORKER_TIMEOUT:-3600}" \
-                ./bin/gf -m liii tools/test/liii/worker.scm -- "$@" \
+                ./bin/gf-host -m liii tools/test/liii/worker.scm -- "$@" \
                 >> "$log" 2>&1 || true
             sed 's/\x1b\[[0-9;]*m//g' "$log" \
                 | awk '/^;;;WORKER / { print "  " $2 " ... " ($3 == 0 ? "PASS" : "FAIL") }' \
@@ -89,7 +89,7 @@ run_side() { # $1=host|native  $2=log  $3...=files
             # emitted by the Scheme test harness.
             for f in "$@"; do
                 host_log=$(mktemp)
-                if timeout "${C2_HOST_TIMEOUT:-300}" ./bin/gf -m liii \
+                if timeout "${C2_HOST_TIMEOUT:-300}" ./bin/gf-host -m liii \
                     -e "(load \"$f\")" > "$host_log" 2>&1; then
                     cat "$host_log" >> "$log"
                     if grep -Eq '\*\*\* checks \*\*\* : [0-9]+ correct, 0 failed\.' \
@@ -113,7 +113,7 @@ run_side() { # $1=host|native  $2=log  $3...=files
         if [ "$native_jobs" -eq 1 ]; then
             # One boot, one fork per file: no goldtest tool reload.
             ( ulimit -v "$mem"
-              timeout "${C2_TIMEOUT:-3600}" ./bin/gf-native -m liii \
+              timeout "${C2_TIMEOUT:-3600}" ./bin/gf -m liii \
                 --each-file "$@" ) >> "$log" 2>&1 || true
         else
             # Separate booted processes keep each file isolated while
@@ -133,7 +133,7 @@ run_side() { # $1=host|native  $2=log  $3...=files
                         set -- $(cat "$worker_dir/files.$job")
                         ulimit -v "$mem"
                         timeout "${C2_TIMEOUT:-3600}" \
-                            ./bin/gf-native -m liii --each-file "$@"
+                            ./bin/gf -m liii --each-file "$@"
                     ) > "$worker_dir/out.$job" 2>&1 &
                     pids="$pids $!"
                 fi

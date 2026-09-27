@@ -331,7 +331,7 @@
 
     ;; Files per persistent worker chunk.  The native driver reclaims
     ;; nothing until exit, so a worker that walks a long chunk accumulates
-    ;; every file's expansion state and gets OOM-killed; gf-native sets
+    ;; every file's expansion state and gets OOM-killed; the native runtime sets
     ;; GOLDFISH_NATIVE_ARTIFACTS and runs in smaller chunks.  Override with
     ;; GOLDFISH_TEST_CHUNK.
     (define worker-chunk-size

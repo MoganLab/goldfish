@@ -3,12 +3,12 @@
 Run each probe with the native runtime:
 
 ```sh
-./bin/gf-native -m liii bench/native/string-to-utf8.scm
-./bin/gf-native -m liii bench/native/evaluator-loops.scm
-./bin/gf-native -m liii bench/native/continuations.scm
-GOLDFISH_DEBUG=gc ./bin/gf-native -m liii bench/native/allocation-gc.scm
+./bin/gf -m liii bench/native/string-to-utf8.scm
+./bin/gf -m liii bench/native/evaluator-loops.scm
+./bin/gf -m liii bench/native/continuations.scm
+GOLDFISH_DEBUG=gc ./bin/gf -m liii bench/native/allocation-gc.scm
 GOLDFISH_PROF_OUT=/tmp/native-perf.data \
-  tools/prof.sh ./bin/gf-native -m liii bench/native/evaluator-loops.scm
+  tools/prof.sh ./bin/gf -m liii bench/native/evaluator-loops.scm
 ```
 
 The probes report raw monotonic nanoseconds. They do not use `(liii timeit)`:

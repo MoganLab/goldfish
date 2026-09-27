@@ -29,15 +29,15 @@ if [ -z "$cache_root" ]; then
     fi
 fi
 
-if [ ! -x bin/gf-native ]; then
-    echo "warm-bootstrap-cache: bin/gf-native not built" >&2
+if [ ! -x bin/gf ]; then
+    echo "warm-bootstrap-cache: bin/gf (native runtime) not built" >&2
     exit 1
 fi
 
 # Ask this binary for its content-addressed directory.  A different version
 # can contain all required filenames while still being stale for this binary.
 complete_dir=$(GOLDFISH_CACHE_DIR="$cache_root" GOLDFISH_OPT_LEVEL=2 \
-    bin/gf-native -m liii -e '(gfo-dir)' | sed 's/^"//; s/"$//')
+    bin/gf -m liii -e '(gfo-dir)' | sed 's/^"//; s/"$//')
 
 find_complete() {
     [ -n "$complete_dir" ] || return 1
@@ -64,10 +64,10 @@ if ! find_complete; then
     mkdir -p "$temp_cache"
     echo "warm-bootstrap-cache: building native cache in isolation"
     GOLDFISH_CACHE_DIR="$temp_cache" GOLDFISH_OPT_LEVEL=2 \
-        bin/gf-native -m liii -e \
+        bin/gf -m liii -e \
         '(compile-file-cached "tests/c3/native-workflow.scm")' >/dev/null
     temp_dir=$(GOLDFISH_CACHE_DIR="$temp_cache" GOLDFISH_OPT_LEVEL=2 \
-        bin/gf-native -m liii -e '(gfo-dir)' | sed 's/^"//; s/"$//')
+        bin/gf -m liii -e '(gfo-dir)' | sed 's/^"//; s/"$//')
     complete=1
     for artifact in $required; do
         if [ ! -f "$temp_dir/$artifact" ]; then

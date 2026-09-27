@@ -173,9 +173,12 @@ g_bytevector-base64-decode
 g_bytevector-base64-encode
 g_char-alphabetic?
 g_char-downcase
+g_char-foldcase
 g_char-lower-case?
+g_char-numeric?
 g_char-upcase
 g_char-upper-case?
+g_char-whitespace?
 g_chdir
 g_command-line
 g_date-now
@@ -281,7 +284,7 @@ g_which
 iota
 read
 version
-count=120
+count=123
 == D core-language ==
 begin
 call-with-values

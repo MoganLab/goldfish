@@ -2,7 +2,7 @@
 # One-shot CPU profile of a command: perf record + hottest frames.
 #
 #   tools/prof.sh <command...>
-#   tools/prof.sh -n 199 ./bin/gf-native -m liii some-file.scm
+#   tools/prof.sh -n 199 ./bin/gf -m liii some-file.scm
 set -eu
 freq=99
 if [ "${1:-}" = "-n" ]; then

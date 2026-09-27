@@ -119,10 +119,11 @@ local function add_native_bootstrap_sources()
 end
 
 target ("goldfish") do
+    set_default(false)
     set_languages("c++17")
     add_includedirs("src")
     set_targetdir("$(projectdir)/bin/")
-    set_basename("gf")
+    set_basename("gf-host")
     if is_plat("linux") then
         add_syslinks("stdc++")
     end
@@ -365,7 +366,7 @@ target_end()
 target("gf-native")
     set_kind("binary")
     set_targetdir("$(projectdir)/bin/")
-    set_basename("gf-native")
+    set_basename("gf")
     set_languages("c++17")
     add_includedirs("src")
     add_includedirs("third_party/bdwgc/include")

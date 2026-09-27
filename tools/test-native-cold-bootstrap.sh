@@ -9,7 +9,7 @@ run_cold() {
     mkdir -p "$cache_dir/goldfish/ccache"
     GOLDFISH_CACHE_DIR="$cache_dir/goldfish/ccache" \
         GOLDFISH_OPT_LEVEL=0 \
-        "$project_dir/bin/gf-native" "$@"
+        "$project_dir/bin/gf" "$@"
     trap - EXIT HUP INT TERM
     rm -rf "$cache_dir"
 }

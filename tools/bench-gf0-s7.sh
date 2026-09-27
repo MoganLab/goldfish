@@ -63,10 +63,10 @@ for prog in "$@"; do
   base=$(basename "$prog")
   for side in s7 gf0; do
     if [ "$side" = s7 ]; then mk_s7; else mk_gf0; fi
-    ./bin/gf -I "$dir" "$run" > /dev/null 2>&1 || true  # warmup, discard
-    s=$(stamp); ./bin/gf -I "$dir" "$run" > /dev/null 2>&1 || true; t1=$(elapsed "$s" "$(stamp)")
-    s=$(stamp); ./bin/gf -I "$dir" "$run" > /dev/null 2>&1 || true; t2=$(elapsed "$s" "$(stamp)")
-    s=$(stamp); ./bin/gf -I "$dir" "$run" > /dev/null 2>&1 || true; t3=$(elapsed "$s" "$(stamp)")
+    ./bin/gf-host -I "$dir" "$run" > /dev/null 2>&1 || true  # warmup, discard
+    s=$(stamp); ./bin/gf-host -I "$dir" "$run" > /dev/null 2>&1 || true; t1=$(elapsed "$s" "$(stamp)")
+    s=$(stamp); ./bin/gf-host -I "$dir" "$run" > /dev/null 2>&1 || true; t2=$(elapsed "$s" "$(stamp)")
+    s=$(stamp); ./bin/gf-host -I "$dir" "$run" > /dev/null 2>&1 || true; t3=$(elapsed "$s" "$(stamp)")
     echo "$base $side median=$(median3 "$t1" "$t2" "$t3")s ($t1 $t2 $t3)"
   done
 done

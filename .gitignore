@@ -14,6 +14,7 @@ bin/goldfish.*
 bin/gf
 bin/gf.exe
 bin/gf.*
+bin/gf-host
 bin/gf-native
 bin/native-*-test
 bin/http
