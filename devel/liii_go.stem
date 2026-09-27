@@ -132,10 +132,10 @@
       ) ;enumerate
       (subsection* "5.4 已完成：后续演进与深度优化全部落地")
       (enumerate (document (concat (item)
-                             "【优化成果一：select 多路复用宏与超时分支】实现 (select ((chan-recv! ch var) body ...) ((chan-send! ch expr) body ...) (timeout ms body ...) (default body ...)) 语法，支持非阻塞探测与微秒级精准等待，测试用例 tests/liii/go/select-test.scm（6 checks pass）。"
+                             "【优化成果一：select 多路复用宏与超时分支】实现 (select ((chan-recv! ch var) body ...) ((chan-send! ch expr) body ...) (timeout ms body ...) (default body ...)) 语法，底层已由轮询升级为 C++ wait-set 事件驱动（分支就绪立即唤醒、timeout 精确到期），测试用例 tests/liii/go/select-test.scm（15 checks pass）。"
                            ) ;concat
                    (concat (item)
-                     "【优化成果二：Worker 异常捕获与错误隔离机制】在 Worker 求值外层通过 catch 捕获所有运行时未处理错误，避免崩溃；当任务失败时自动关闭关联 Channel 解除接收端等待，测试用例 tests/liii/go/error-test.scm（3 checks pass）。"
+                     "【优化成果二：Worker 异常捕获与错误隔离机制】在 Worker 求值外层通过 catch 捕获所有运行时未处理错误并输出到 stderr，避免线程池崩溃；失败任务不级联关闭共享 Channel（接收端应使用超时兜底），测试用例 tests/liii/go/error-test.scm（3 checks pass）。"
                    ) ;concat
                    (concat (item)
                      "【优化成果三：大对象零拷贝与复杂拓扑图序列化】Bytevector 采用 std::shared_ptr<const std::vector<uint8_t>> 共享内存传递；引入指针访问表哈希，消除 2048 递归上限，完整支持自引用循环列表（set-cdr!）和 Vector 环形拓扑图的深拷贝，测试用例 tests/liii/go/cyclic-test.scm（17 checks pass）。"
@@ -145,6 +145,27 @@
                    ) ;concat
                    (concat (item)
                      "【优化成果五：基于 call/cc 的用户态轻量协程调度引擎（M:N 阶段一）】在单个解释器 Session 内依托 S7 一等延续实现纯用户态协程调度器与协程通道（spawn-fiber, fiber-yield!, fiber-scheduler-run!, make-fiber-chan, fiber-send!, fiber-recv!），单核纳秒级调度 10,000 个并发轻量协程，测试用例 tests/liii/go/fiber-test.scm（3 checks pass）。"
+                   ) ;concat
+                 ) ;document
+      ) ;enumerate
+      (subsection* "5.5 已完成：评审驱动的深度加固与 M:N 阶段二")
+      (enumerate (document (concat (item)
+                             "【Windows 平台根修】修复 s7_error 裸 longjmp 跳过 C++ RAII 析构导致 MSVC 崩溃的问题（所有 raise 点保证帧内无 RAII 对象，含 make-chan 的 EH 帧拆分），并定位修复深层结构序列化/析构递归在小栈平台的段错误（显式栈迭代 + gfvalue_destroy_deep）。"
+                           ) ;concat
+                   (concat (item)
+                     "【序列化图完备性】修复共享 Bytevector 与共享/自引用 Let 的重建遗漏；测试用例 tests/liii/go/cyclic-test.scm（31 checks pass）。"
+                   ) ;concat
+                   (concat (item)
+                     "【定时器设施】C++ 单定时线程 + 最小堆（g_chan-timeout-close!），make-timeout-context 不再占用 worker 线程，消除线程池饿死风险。"
+                   ) ;concat
+                   (concat (item)
+                     "【fiber 死锁检测与 O(1) 队列】调度器就绪队列与 fiber 通道改用 (liii queue)；全阻塞报 deadlock 错误；1 万协程压测 0.40s 降至 0.03s。"
+                   ) ;concat
+                   (concat (item)
+                     "【M:N 阶段二：fiber 挂起在真 channel 上】新增 gate 门闩机制（g_make-gate / g_gate-wait / g_chan-recv-or-watch! / g_chan-send-or-watch!）与 fiber-chan-recv! / fiber-chan-send!：fiber 在真 channel 上等待时挂起协程而非阻塞物理线程，支持跨线程唤醒（worker 线程、C++ 定时器）；调度器在仅剩真 channel 挂起时 park 等待。已知限制：fiber↔fiber 的无缓冲 rendezvous 暂不支持（会话内请用 fiber-chan 或缓冲通道）。"
+                   ) ;concat
+                   (concat (item)
+                     "【测试与文档规范化】(liii go) 全部 24 个导出函数建立 per-function 测试文件（含文档段），支持 gf doc 检索（gf doc make-chan / gf doc liii/go）。"
                    ) ;concat
                  ) ;document
       ) ;enumerate
