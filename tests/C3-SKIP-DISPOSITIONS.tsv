@@ -5,7 +5,6 @@ tests/scheme/base/star-test.scm	numeric-tower	defer	R5-numeric-tower	complete ex
 tests/liii/base/make-hook-test.scm	s7-compat	exclude	R4-removal	S7 hook object invocation is explicitly outside the native contract
 tests/liii/base/signature-test.scm	introspection	exclude	R4-removal	S7 procedure signature metadata is explicitly outside the native contract
 tests/liii/uuid-test.scm	native-ffi	defer	R5-platform-extensions	implement native UUID generation
-tests/liii/match-capability-test.scm	time	defer	R4-C2-longcase-audit	native direct run passes; paired host verdict needs a dedicated long-run budget
 tests/liii/set/set-size-test.scm	time	defer	R5-scale-and-GC	million-element set stress belongs to a dedicated scale and memory run
 tests/liii/subprocess-test.scm	native-ffi	defer	R5-platform-extensions	port liii subprocess to native runtime primitives
 tests/liii/raw-string-test.scm	reader	defer	R5-reader-extensions	implement the non-R7RS raw-string syntax in the native source reader

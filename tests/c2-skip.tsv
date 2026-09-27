@@ -14,7 +14,6 @@ tests/scheme/base/star-test.scm	numeric-tower	-9223372036854775808 literal needs
 tests/liii/base/make-hook-test.scm	s7-compat	native hook values are not callable; S7 hook invocation is not implemented
 tests/liii/base/signature-test.scm	introspection	native procedures do not expose S7 signature metadata
 tests/liii/uuid-test.scm	native-ffi	(liii uuid) uses host-only g_uuid4 glue
-tests/liii/match-capability-test.scm	time	host run exceeds 300s; a 60s CPU profile is dominated by s7_eval and association-list lookups
 tests/liii/set/set-size-test.scm	time	native stress case builds two sets of one million elements
 tests/liii/subprocess-test.scm	native-ffi	(liii subprocess) requires host-only g_subprocess-run-values glue
 tests/liii/raw-string-test.scm	reader	custom raw-string literal syntax is not implemented by TinyReader

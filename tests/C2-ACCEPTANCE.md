@@ -1,6 +1,6 @@
 # C2 parity acceptance
 
-Date: 2026-09-27
+Date: 2026-09-28
 
 ## Result
 
@@ -9,35 +9,37 @@ reported 1,273 host/native agreement passes and no remaining divergences;
 58 files were excluded by the explicit bucket list in `c2-skip.tsv`. A later
 strict parity slice covered the three former call/cc exclusions: all three
 agree, bringing the in-scope total to 1,276 passes and the remaining exclusions
-to 55. This is not a rerun of the full manifest.
+to 55. On 2026-09-28, a dedicated strict paired run of
+`tests/liii/match-capability-test.scm` also passed on both hosts. The current
+record is therefore 1,277 agreement passes and 54 remaining exclusions. This
+is not a rerun of the full manifest.
 The per-file output from that sweep was not retained, so this is an aggregate
 record, not a reproducible raw log. The final known shared failure from the
 earlier slice (`scheme/base/vector-copy-test.scm`) was rerun on both hosts on
 2026-09-27 and passes on each.
 
-The 55 remaining bucketed files are grouped as follows:
+The 54 remaining bucketed files are grouped as follows:
 
 | Bucket | Files | Scope |
 | --- | ---: | --- |
 | `native-ffi` | 38 | njson, subprocess, and UUID still rely on host-only glue |
 | `random` | 8 | native PRNG/random-state work is pending |
 | `reader` | 3 | TinyReader does not implement the custom raw-string syntax |
-| `time` | 2 | known slow/stress cases exceed the current sweep budget |
+| `time` | 1 | million-element set stress belongs to a dedicated scale run |
 | `s7-compat` | 1 | S7 hook invocation is not part of the native surface |
 | `introspection` | 1 | S7 procedure signature metadata is unavailable natively |
 | `float/numeric` | 1 | complex construction depends on the float workstream |
 | `numeric-tower` | 1 | the minimum int64 literal needs the bignum reader |
-| **Total** | **55** | |
+| **Total** | **54** | |
 
 The remaining bucketed files are exclusions, not passes. Revisit each bucket
 when its owning runtime workstream lands; do not remove an entry merely to
 increase the pass count.
-For `match-capability-test.scm`, a 60-second host profile was dominated by the
-legacy S7 evaluator and association-list lookups. The sample does not yet
-identify which individual Scheme form accounts for the cost. The full host
-suite's shared worker passed the test, and a direct native `--each-file` run
-passed. C2 still lacks a paired verdict because its host per-file run exceeds
-the 300-second timeout.
+The paired match-capability audit used
+`C2_STRICT=1 C2_SKIP_MANIFEST=/dev/null C2_HOST_TIMEOUT=900 C2_TIMEOUT=900 sh tools/c2-compare.sh tests/liii/match-capability-test.scm`.
+It reported 1 agree-pass, 0 agree-fail, 0 divergences, and 0 missing verdicts.
+The host side took about eight minutes; its earlier 60-second profile was
+dominated by the legacy S7 evaluator and association-list lookups.
 
 ## Post-acceptance regression check
 

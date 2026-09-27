@@ -69,8 +69,9 @@ Out of scope for C3:
 
 ## Current baseline
 
-- C2's recorded float-free sweep plus the later strict call/cc slice:
-  1,276 agreement passes and 55 explicitly bucketed files, with no recorded
+- C2's recorded float-free sweep plus the later strict call/cc and
+  match-capability slices:
+  1,277 agreement passes and 54 explicitly bucketed files, with no recorded
   divergence; see `tests/C2-ACCEPTANCE.md`. This is recorded evidence, not a
   fresh full C2 run.
 - Post-change C2 regression slice: 36/36 strict agreement passes; the six
@@ -135,17 +136,14 @@ Every row in `tests/c2-skip.tsv` now has an individual disposition in
 `tests/C3-SKIP-DISPOSITIONS.tsv`; `sh tools/check-c3-manifest.sh` verifies
 one-to-one path coverage, non-empty rationale and milestone fields, and
 valid corpus paths. Current review assigns 2 explicit S7-only surfaces to
-exclude and 53 cases to named follow-up milestones. No current disposition row
+exclude and 52 cases to named follow-up milestones. No current disposition row
 is marked `migrate-before-R4`; the former call/cc exclusions were implemented
 and added to the strict parity slice.
 
 - `R4-removal`: remove S7 hook invocation and procedure-signature metadata;
   these are explicitly outside the native contract.
-- `R4-C2-longcase-audit`: obtain a paired verdict for the slow match
-  capability test before deleting the S7 oracle. The native side passed; the
-  host worker path produced no verdict in the latest attempt, and the earlier
-  direct host run exceeded its 300-second budget. This remains an explicit R4
-  audit item, not a C3 workflow failure.
+- The slow match-capability test has a strict paired host/native pass, recorded
+  in `tests/C2-ACCEPTANCE.md`; it is no longer an R4 audit item.
 - `R5-numeric-tower`, `R5-random`, `R5-reader-extensions`,
   `R5-platform-extensions`, and `R5-scale-and-GC`: own the remaining numeric,
   PRNG, raw-string syntax, optional OS-backed libraries, and million-element
@@ -153,9 +151,8 @@ and added to the strict parity slice.
   required work are listed row-by-row in the disposition ledger.
 
 The ledger is a reviewed scope decision, not evidence that deferred
-functionality already works. The slow-case paired verdict is required before
-deleting the s7 oracle; the initial reversible default switch may be prepared
-while retaining that oracle. The 53 deferred cases and 2 exclusions are the
+functionality already works. The slow-case paired verdict is now complete;
+the 52 deferred cases and 2 exclusions are the
 documented initial native cutover boundary.
 
 ## Native bootstrap cache (2026-09-27)

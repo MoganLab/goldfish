@@ -291,9 +291,9 @@ reader 继续只负责 lowered datum/artifact，不扩展成完整的源码 read
 2. **稳定默认路径**：验证 CLI、测试运行器、source bootstrap、warm/cold cache
    和代表性库工作流均由 native 执行，同时保留 host 回退入口。切换与删除
    vendored s7 不合并为一个不可回退的改动。
-3. **关闭删除 s7 前的审核项**：取得 `match-capability-test.scm` 的 host/native
-   成对结果；复核 C2 记录的时效性，并把已知 53 项 defer 和 2 项 exclude
-   明确作为首轮 native cutover 的接受范围。
+3. **关闭删除 s7 前的审核项**：已取得 `match-capability-test.scm` 的
+   host/native 成对通过结果（2026-09-28）；复核 C2 记录的时效性，并把已知
+   52 项 defer 和 2 项 exclude 明确作为首轮 native cutover 的接受范围。
 4. **删除过渡层**：在 native 默认路径稳定且 host 不再是构建/运行依赖后，
    移除 s7/gf0 目标、vendored 源码、bridge 和只服务于旧路径的工具/测试。
    同步更新文档与剩余测试入口。
@@ -301,12 +301,13 @@ reader 继续只负责 lowered datum/artifact，不扩展成完整的源码 read
 本仓库当前没有实际运行的 CI，因此 R4 不以 CI 接入为前置；切换验收由
 明确记录的本地命令完成。最近一次默认切换前的 host 全量测试为 1555/1555；
 默认切换后 native C3 固定工作流为 9/9、call/cc/dynamic-wind strict 差分为
-2/2。Native changed-since 子集为 50/51；唯一失败是
+2/2、match-capability strict host/native 差分为 1/1。Native changed-since 子集为
+50/51；唯一失败是
 `tests/srfi/srfi-19-test.scm` 需要精确有理数 `4903089/2`，当前 native
 整数除法会截断、有理数读写属于 R5 数值塔工作。此项是已知延后能力，不能
-计作 native 通过。前述 host 全量结果不是 native 全量通过证据。C2 记录的 1276 个
-host/native agreement 和 55 个显式 skip 是 2026-09-27 的汇总，不是本轮
-重新执行的完整差分。call/cc 已实现，不能再列为未完成前置。
+计作 native 通过。前述 host 全量结果不是 native 全量通过证据。C2 记录的 1277 个
+host/native agreement 和 54 个显式 skip 包含 2026-09-28 单文件审核，但不是
+本轮重新执行的完整差分。call/cc 已实现，不能再列为未完成前置。
 
 ### 后续方向（占位）
 
