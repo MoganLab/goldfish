@@ -1,0 +1,5 @@
+(import (liii check)
+        (liii go))
+(check-set-mode! 'report-failed)
+(check-catch 'type-error (g_debug-crash3 -1))
+(check-report)

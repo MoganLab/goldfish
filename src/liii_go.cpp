@@ -866,6 +866,37 @@ f_debug_crash (s7_scheme* sc, s7_pointer args) {
 }
 
 static s7_pointer
+f_debug_crash2 (s7_scheme* sc, s7_pointer args) {
+  // f_make_chan 克隆：含 make_shared，但返回 #f
+  s7_int cap= 0;
+  if (!s7_is_null (sc, args)) {
+    s7_pointer cap_arg= s7_car (args);
+    if (!s7_is_integer (cap_arg) || s7_integer (cap_arg) < 0) {
+      return go_error (sc, "type-error", "debug-crash2: capacity must be a non-negative integer", cap_arg);
+    }
+    cap= s7_integer (cap_arg);
+  }
+  auto ch= std::make_shared<GoldfishChannel> (static_cast<size_t> (cap));
+  (void) ch;
+  return s7_f (sc);
+}
+
+static s7_pointer
+f_debug_crash3 (s7_scheme* sc, s7_pointer args) {
+  // f_make_chan 的完整克隆（不同注册名）
+  s7_int cap= 0;
+  if (!s7_is_null (sc, args)) {
+    s7_pointer cap_arg= s7_car (args);
+    if (!s7_is_integer (cap_arg) || s7_integer (cap_arg) < 0) {
+      return go_error (sc, "type-error", "debug-crash3: capacity must be a non-negative integer", cap_arg);
+    }
+    cap= s7_integer (cap_arg);
+  }
+  auto ch= std::make_shared<GoldfishChannel> (static_cast<size_t> (cap));
+  return make_goldfish_channel_object (sc, ch);
+}
+
+static s7_pointer
 f_make_chan (s7_scheme* sc, s7_pointer args) {
   s7_int cap= 0;
   if (!s7_is_null (sc, args)) {
@@ -1140,6 +1171,8 @@ glue_liii_go (s7_scheme* sc) {
 
   s7_define_function (sc, "g_make-chan", f_make_chan, 0, 1, false, "(g_make-chan [capacity]) => channel");
   s7_define_function (sc, "g_debug-crash", f_debug_crash, 0, 1, false, "debug");
+  s7_define_function (sc, "g_debug-crash2", f_debug_crash2, 0, 1, false, "debug");
+  s7_define_function (sc, "g_debug-crash3", f_debug_crash3, 0, 1, false, "debug");
   s7_define_function (sc, "g_chan?", f_chan_p, 1, 0, false, "(g_chan? obj) => boolean");
   s7_define_function (sc, "g_chan-send!", f_chan_send, 2, 1, false, "(g_chan-send! ch val [timeout-ms]) => boolean");
   s7_define_function (sc, "g_chan-recv!", f_chan_recv, 1, 2, false,
