@@ -301,7 +301,10 @@ reader 继续只负责 lowered datum/artifact，不扩展成完整的源码 read
 本仓库当前没有实际运行的 CI，因此 R4 不以 CI 接入为前置；切换验收由
 明确记录的本地命令完成。最近一次默认切换前的 host 全量测试为 1555/1555；
 默认切换后 native C3 固定工作流为 9/9、call/cc/dynamic-wind strict 差分为
-2/2。前者不是 native 全量通过证据。C2 记录的 1276 个
+2/2。Native changed-since 子集为 50/51；唯一失败是
+`tests/srfi/srfi-19-test.scm` 需要精确有理数 `4903089/2`，当前 native
+整数除法会截断、有理数读写属于 R5 数值塔工作。此项是已知延后能力，不能
+计作 native 通过。前述 host 全量结果不是 native 全量通过证据。C2 记录的 1276 个
 host/native agreement 和 55 个显式 skip 是 2026-09-27 的汇总，不是本轮
 重新执行的完整差分。call/cc 已实现，不能再列为未完成前置。
 
