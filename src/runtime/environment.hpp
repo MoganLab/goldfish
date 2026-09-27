@@ -65,16 +65,17 @@ public:
 
     Value lookup(Value name) const {
         const Object* key = symbol_key(name);
-        auto it = bindings_.find(key);
-        if (it != bindings_.end()) {
-            if (it->second.is_object() &&
-                it->second.as_object()->type() == ObjectType::Uninitialized)
-                throw std::runtime_error(
-                    "expected initialized binding: read of uninitialized symbol");
-            return it->second;
+        for (const Environment* environment = this; environment != nullptr;
+             environment = environment->parent_.get()) {
+            auto it = environment->bindings_.find(key);
+            if (it != environment->bindings_.end()) {
+                if (it->second.is_object() &&
+                    it->second.as_object()->type() == ObjectType::Uninitialized)
+                    throw std::runtime_error(
+                        "expected initialized binding: read of uninitialized symbol");
+                return it->second;
+            }
         }
-        if (parent_)
-            return parent_->lookup(name);
         trace_throw("lookup-unbound");
         throw UnboundSymbolError("unbound symbol: " + symbol_name(name));
     }

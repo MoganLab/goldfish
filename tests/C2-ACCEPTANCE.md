@@ -36,6 +36,21 @@ suite's shared worker passed the test, and a direct native `--each-file` run
 passed. C2 still lacks a paired verdict because its host per-file run exceeds
 the 300-second timeout.
 
+## Post-acceptance regression check
+
+After the native compatibility changes in `dacbc3d6`, UTF-8 fast path in
+`a08ec000`, and iterative environment lookup, affected in-scope C2 tests were
+rerun with `C2_STRICT=1`: 42 agree-pass, 0 agree-fail, 0 divergences, and 0
+missing verdicts across two slices. Captured summaries are
+`/tmp/c2-post-change-slice-2026-09-27.log` (36 files) and
+`/tmp/c2-environment-post-lookup-2026-09-27.log` (6 files) on the validation
+machine. These are regression checks for the subsequent changes, not a rerun
+of the full manifest.
+
+The M3 lowered-program guard also passed all 12 `tests/gf0/m2a-*.scm` cases
+on 2026-09-27 (`tools/diff-gf0-m2a.sh`; captured at
+`/tmp/m3-m2a-guard-2026-09-27.log`).
+
 ## Repeatable gate
 
 ```sh

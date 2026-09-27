@@ -316,6 +316,9 @@ C2 的验收范围和明确排除项记录在
 [`tests/C2-ACCEPTANCE.md`](tests/C2-ACCEPTANCE.md)，机器可读的 skip 台账在
 [`tests/c2-skip.tsv`](tests/c2-skip.tsv)。被分桶的测试不计为通过；双端同错
 也仍然可见，必须修复或按规范明确裁决后才能通过 strict gate。
+C3 的 native readiness 范围和验收标准记录在
+[`C3-ACCEPTANCE.md`](C3-ACCEPTANCE.md)；切换默认运行时和删除 s7/gf0
+仍属于后续 R4，不由 C3 自动触发。
 
 ### 语义 oracle 层级
 
