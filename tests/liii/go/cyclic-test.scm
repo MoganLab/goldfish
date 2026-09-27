@@ -68,4 +68,26 @@
 (check (eq? (car recv5) (cadr recv5)) => #t)
 (check (bytevector-u8-ref (cadr recv5) 0) => 7)
 
+;; 6. 回归测试：共享 let 的 DAG 传输，两个引用必须指向同一对象
+(define ch6 (make-chan 1))
+(define shared-let (inlet 'x 42))
+(chan-send! ch6 (list shared-let shared-let))
+(define recv6 (chan-recv! ch6 1000))
+
+(check (let? (car recv6)) => #t)
+(check (let? (cadr recv6)) => #t)
+(check ((car recv6) 'x) => 42)
+(check (eq? (car recv6) (cadr recv6)) => #t)
+
+;; 7. 回归测试：自引用 let（环），self 槽必须指回 let 自身
+(define ch7 (make-chan 1))
+(define cyc-let (inlet 'name "cyc" 'self #f))
+(let-set! cyc-let 'self cyc-let)
+(chan-send! ch7 cyc-let)
+(define recv7 (chan-recv! ch7 1000))
+
+(check (let? recv7) => #t)
+(check (recv7 'name) => "cyc")
+(check (eq? (recv7 'self) recv7) => #t)
+
 (check-report)

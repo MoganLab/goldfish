@@ -458,9 +458,25 @@ gfvalue_to_s7_impl (s7_scheme* sc, const GFValue& val, DeserializeCtx& ctx) {
   case GFValueType::Eof:
     return s7_eof_object (sc);
   case GFValueType::Let: {
-    if (!val.pair_val) return s7_inlet (sc, s7_nil (sc));
-    s7_pointer alist= gfvalue_to_s7_impl (sc, val.pair_val->first, ctx);
-    return s7_inlet (sc, alist);
+    // 先建空壳并注册，使环/共享引用可解析，再逐字段填充
+    s7_pointer let= s7_inlet (sc, s7_nil (sc));
+    if (ctx.gc_loc >= 0) {
+      ctx.gc_anchor= s7_cons (sc, let, ctx.gc_anchor);
+      s7_gc_protect_via_location (sc, ctx.gc_anchor, ctx.gc_loc);
+    }
+    if (val.node_id != 0) {
+      ctx.reconstructed[val.node_id]= let;
+    }
+    if (val.pair_val) {
+      s7_pointer alist= gfvalue_to_s7_impl (sc, val.pair_val->first, ctx);
+      for (s7_pointer p= alist; s7_is_pair (p); p= s7_cdr (p)) {
+        s7_pointer entry= s7_car (p);
+        if (s7_is_pair (entry) && s7_is_symbol (s7_car (entry))) {
+          s7_varlet (sc, let, s7_car (entry), s7_cdr (entry));
+        }
+      }
+    }
+    return let;
   }
   case GFValueType::Undefined:
   default:
