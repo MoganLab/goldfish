@@ -47,4 +47,14 @@
 (context-cancel! ctx-worker)
 (check (chan-recv! ch-status 2000) => "stopped-by-context")
 
+;; 4. 回归：大量长超时 context 不再占用 worker 线程池（曾导致池饿死）
+(let loop ((i 0))
+  (when (< i (go-worker-count))
+    (make-timeout-context 3000)
+    (loop (+ i 1))))
+
+(define probe-ch (make-chan 1))
+(go (probe-ch) (chan-send! probe-ch "pong"))
+(check (chan-recv! probe-ch 1000 'starved) => "pong")
+
 (check-report)

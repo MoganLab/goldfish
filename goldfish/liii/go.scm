@@ -94,8 +94,9 @@
     ) ;define
 
     (define (make-timeout-context ms)
+      ;; 使用 C++ 定时器到期关闭 done channel，不占用 worker 线程
       (let ((ctx (make-context)))
-        (go (ctx ms) (g_msleep ms) (context-cancel! ctx))
+        (g_chan-timeout-close! (context-channel ctx) ms)
         ctx
       ) ;let
     ) ;define

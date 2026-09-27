@@ -17,6 +17,7 @@
 #include "liii_go.hpp"
 #include <cstdlib>
 #include <cstring>
+#include <functional>
 #include <iostream>
 #include <queue>
 #include <sstream>
@@ -166,6 +167,71 @@ private:
   std::mutex               mtx;
   std::condition_variable  cv;
   bool                     stop= false;
+};
+
+// ---------------------------------------------------------------------------
+// Timer Facility：单一定时线程 + 最小堆，到点关闭 channel
+// 避免每个 timeout context 独占一个 worker 线程导致线程池饿死
+// ---------------------------------------------------------------------------
+
+class GoTimer {
+public:
+  static GoTimer& instance () {
+    static GoTimer timer;
+    return timer;
+  }
+
+  void schedule_close (std::shared_ptr<GoldfishChannel> ch, int64_t delay_ms) {
+    {
+      std::lock_guard<std::mutex> lock (mtx);
+      entries.push ({std::chrono::steady_clock::now () + std::chrono::milliseconds (delay_ms), std::move (ch)});
+    }
+    cv.notify_one ();
+  }
+
+private:
+  struct Entry {
+    std::chrono::steady_clock::time_point deadline;
+    std::shared_ptr<GoldfishChannel>    ch;
+    bool operator> (const Entry& o) const { return deadline > o.deadline; }
+  };
+
+  GoTimer () : worker ([this] () { loop (); }) {}
+
+  ~GoTimer () {
+    {
+      std::lock_guard<std::mutex> lock (mtx);
+      stop= true;
+    }
+    cv.notify_one ();
+    if (worker.joinable ()) worker.join ();
+  }
+
+  void loop () {
+    std::unique_lock<std::mutex> lock (mtx);
+    while (!stop) {
+      if (entries.empty ()) {
+        cv.wait (lock);
+        continue;
+      }
+      if (entries.top ().deadline <= std::chrono::steady_clock::now ()) {
+        auto ch= entries.top ().ch;
+        entries.pop ();
+        lock.unlock (); // 关闭 channel 会唤醒其等待者，不持有定时器锁执行
+        ch->close ();
+        lock.lock ();
+      }
+      else {
+        cv.wait_until (lock, entries.top ().deadline);
+      }
+    }
+  }
+
+  std::priority_queue<Entry, std::vector<Entry>, std::greater<Entry>> entries;
+  std::mutex                                                          mtx;
+  std::condition_variable                                             cv;
+  std::thread                                                         worker;
+  bool                                                                stop= false;
 };
 
 static std::mutex                             g_type_mtx;
@@ -895,6 +961,23 @@ f_go_worker_count (s7_scheme* sc, s7_pointer args) {
 }
 
 static s7_pointer
+f_chan_timeout_close (s7_scheme* sc, s7_pointer args) {
+  s7_pointer ch_arg= s7_car (args);
+  s7_pointer ms_arg= s7_cadr (args);
+
+  // raise 时只允许平凡局部变量存活（见 go_error 的 longjmp 约束注释）
+  if (!is_goldfish_channel (sc, ch_arg)) {
+    return go_error (sc, "type-error", "g_chan-timeout-close!: first argument must be a channel", ch_arg);
+  }
+  if (!s7_is_integer (ms_arg) || s7_integer (ms_arg) < 0) {
+    return go_error (sc, "type-error", "g_chan-timeout-close!: ms must be a non-negative integer", ms_arg);
+  }
+
+  GoTimer::instance ().schedule_close (get_goldfish_channel (sc, ch_arg), s7_integer (ms_arg));
+  return s7_unspecified (sc);
+}
+
+static s7_pointer
 f_msleep (s7_scheme* sc, s7_pointer args) {
   s7_pointer ms_arg= s7_car (args);
   if (!s7_is_integer (ms_arg) || s7_integer (ms_arg) < 0) {
@@ -943,6 +1026,8 @@ glue_liii_go (s7_scheme* sc) {
   s7_define_function (sc, "g_worker-notify-error", f_worker_notify_error, 2, 0, false,
                       "(g_worker-notify-error tag args) => unspecified");
   s7_define_function (sc, "g_go-worker-count", f_go_worker_count, 0, 0, false, "(g_go-worker-count) => integer");
+  s7_define_function (sc, "g_chan-timeout-close!", f_chan_timeout_close, 2, 0, false,
+                      "(g_chan-timeout-close! ch ms) => unspecified, closes ch after ms milliseconds");
   s7_define_function (sc, "g_msleep", f_msleep, 1, 0, false, "(g_msleep ms) => unspecified");
   s7_define_function (sc, "g_now-ms", f_now_ms, 0, 0, false, "(g_now-ms) => integer");
 }
