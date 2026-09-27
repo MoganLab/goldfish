@@ -30,7 +30,8 @@ fi
 if [ $# -gt 0 ]; then
     raw=$(printf '%s\n' "$@")
 else
-    raw=$(cat "${C2_MANIFEST:-tests/float-free.manifest}")
+    raw=$(awk '!/^[[:space:]]*#/ && NF { print $1 }' \
+        "${C2_MANIFEST:-tests/float-free.manifest}")
 fi
 # Skip entries are global: bucketed files never run, even explicitly.
 files=$(printf '%s\n' "$raw" | while IFS= read -r f; do
@@ -83,10 +84,25 @@ run_side() { # $1=host|native  $2=log  $3...=files
             cat "$worker_verdicts" >> "$log"
             rm -f "$worker_verdicts"
         else
-            # goldtest parses one path per invocation (by design).
+            # The current host CLI has no `test` subcommand. Load one test in
+            # an isolated host process; check-report is the per-file verdict
+            # emitted by the Scheme test harness.
             for f in "$@"; do
-                timeout "${C2_HOST_TIMEOUT:-300}" ./bin/gf test "$f" \
-                    >> "$log" 2>&1 || true
+                host_log=$(mktemp)
+                if timeout "${C2_HOST_TIMEOUT:-300}" ./bin/gf -m liii \
+                    -e "(load \"$f\")" > "$host_log" 2>&1; then
+                    cat "$host_log" >> "$log"
+                    if grep -Eq '\*\*\* checks \*\*\* : [0-9]+ correct, 0 failed\.' \
+                        "$host_log"; then
+                        printf '  %s ... PASS\n' "$f" >> "$log"
+                    else
+                        printf '  %s ... FAIL\n' "$f" >> "$log"
+                    fi
+                else
+                    cat "$host_log" >> "$log"
+                    printf '  %s ... FAIL\n' "$f" >> "$log"
+                fi
+                rm -f "$host_log"
             done
         fi
     else

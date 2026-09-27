@@ -5,6 +5,7 @@ Run each probe with the native runtime:
 ```sh
 ./bin/gf-native -m liii bench/native/string-to-utf8.scm
 ./bin/gf-native -m liii bench/native/evaluator-loops.scm
+GOLDFISH_DEBUG=gc ./bin/gf-native -m liii bench/native/allocation-gc.scm
 GOLDFISH_PROF_OUT=/tmp/native-perf.data \
   tools/prof.sh ./bin/gf-native -m liii bench/native/evaluator-loops.scm
 ```
@@ -48,3 +49,15 @@ The evaluator profiles are retained locally as
 `/tmp/gf-native-evaluator-after.data`; the UTF-8 profiles are
 `/tmp/gf-native-utf8-before.data` and `/tmp/gf-native-utf8-final.data`.
 These profiler files are machine-local and are not repository artifacts.
+
+## Allocation and GC baseline (2026-09-27)
+
+`allocation-gc.scm` allocates and converts 10,000 256-byte strings per sample;
+every run returns 2,560,000 bytes. On the shared validation machine, five raw
+samples were 110130281, 111698938, 121605984, 110020431, and 111080671 ns.
+With `GOLDFISH_DEBUG=gc`, the process reported 285 collections and a maximum
+reported heap of 70,584 KiB. Raw output and collector diagnostics are retained
+locally at `/tmp/c3-allocation-gc-2026-09-27.out` and
+`/tmp/c3-allocation-gc-2026-09-27.err`. These are reproducible workload and
+collector observations, but timing remains exploratory because the machine
+had variable background load.

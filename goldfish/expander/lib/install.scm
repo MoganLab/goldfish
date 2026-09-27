@@ -872,6 +872,7 @@
       ;; install
       install-standard-library! install-library-file! install-library-forms!
       compile-file compile-file-into compile-file-cached
+      collect-cache-module-refs
       compile-file-stamp
       ;; gfo backend canonical names (cache paths/keys for tools/tests)
       gfo-dir gfo-key

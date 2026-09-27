@@ -1,3 +1,16 @@
+;; Reader primitives are part of the kernel primitive table. Keep this file
+;; import-free at the top level: the host's source bootstrap loads it before
+;; `import' is available as a program form. Cache dependency collection is
+;; installed by the later library layer and is resolved lazily below.
+
+;; Resolve the legacy host evaluator environment only in the pre-expander
+;; fallback. Quoting its name keeps native source bootstrap independent of
+;; the host-only module-eval-environment binding.
+(define (reader-expansion-environment)
+  (eval '(module-eval-environment the-expander-library)))
+
+(define (reader-collect-cache-module-refs sexp)
+  ((eval 'collect-cache-module-refs (reader-expansion-environment)) sexp))
 
 ;;; let*-values : bind to the values of a producer, sequentially.
 ;;; Defined here (cf. Guile's ice-9/read.scm) so the reader is self-contained
@@ -303,17 +316,17 @@
       (if (eof-object? c)
         (error 'read-error "invalid UTF-8 sequence in character")
         (let ((b (char->integer c)))
-          (if (<= #x80 b #xbf)
+          (if (<= 128 b 191)
             b
             (error 'read-error "invalid UTF-8 sequence in character"))))))
   (let ((v (cond
-             ((<= b1 #xdf)
-              (+ (* (- b1 #xc0) 64) (- (byte) #x80)))
-             ((<= b1 #xef)
-              (+ (* (- b1 #xe0) 4096) (* (- (byte) #x80) 64) (- (byte) #x80)))
+             ((<= b1 223)
+              (+ (* (- b1 192) 64) (- (byte) 128)))
+             ((<= b1 239)
+              (+ (* (- b1 224) 4096) (* (- (byte) 128) 64) (- (byte) 128)))
              (else
-              (+ (* (- b1 #xf0) 262144) (* (- (byte) #x80) 4096)
-                 (* (- (byte) #x80) 64) (- (byte) #x80))))))
+              (+ (* (- b1 240) 262144) (* (- (byte) 128) 4096)
+                 (* (- (byte) 128) 64) (- (byte) 128))))))
     (integer->char v)))
 
 (define (read-character port)
@@ -333,7 +346,7 @@
            (entry (cdr entry))
            ((= (string-length token) 1) ch)
            (else (error 'read-error "invalid character" token)))))
-      ((>= (char->integer ch) #x80)
+      ((>= (char->integer ch) 128)
        (read-utf8-char port (char->integer ch)))
       (else ch))))
 
@@ -500,7 +513,7 @@
            (let ((c (next port)))
              (if (eof-object? c)
                (error 'read-error "unexpected end of input after #^")
-               (integer->char (logxor (char->integer c) #x40)))))
+               (integer->char (logxor (char->integer c) 64)))))
           ((#\<)
            (read-internal-object port))
           ((#\")
@@ -840,7 +853,7 @@
               ;; expand-eval).
               (if (defined? 'expand-eval)
                 (expand-eval d)
-                (eval d (module-eval-environment the-expander-library))))
+                (eval d (reader-expansion-environment))))
             (lambda args
               ;; s7 packs an error's args as (type info): the handler's
               ;; second value is the arglist of the error call.  Prefix the
@@ -905,13 +918,13 @@
                         (for-each (lambda (lib)
                                     (if (not (runtime-registered? lib))
                                       (load-library! lib)))
-                                  (collect-cache-module-refs sexp))
+                                  (reader-collect-cache-module-refs sexp))
                         ;; Evaluate the compiled artifact in
                         ;; the-expander-library, not the rootlet: the
                         ;; lowered defs reference library bindings by
                         ;; gensym (e.g. load-library!:40), which only
                         ;; resolve in the-expander-library.
-                        (eval sexp (module-eval-environment the-expander-library)))
+                        (eval sexp (reader-expansion-environment)))
                       (lambda (type info)
                         (note-compile-failure path type info)
                         (note-per-form path)
@@ -1048,12 +1061,12 @@
                     ((defs ctx1) ((binding-value binding) stx ctx)))
         (set! *eval-ctx* ctx1)
         (eval-defs (session-defs defs)
-                   (module-eval-environment the-expander-library)))
+                   (reader-expansion-environment)))
       (let*-values (((defs ctx1)
                      (expand-library-body (list stx) lib ctx)))
         (set! *eval-ctx* ctx1)
         (eval-defs (session-defs defs)
-                   (module-eval-environment the-expander-library))))))
+                   (reader-expansion-environment))))))
 
 ;;; ------------------------------------------------------------------------
 ;;; write-roundtrip : datum port -> void

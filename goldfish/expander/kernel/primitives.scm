@@ -77,6 +77,7 @@
      port? input-port? output-port? textual-port? binary-port?
      input-port-open? output-port-open?
      current-input-port current-output-port current-error-port
+     port-position %form-boundary
      close-port close-input-port close-output-port flush-output-port
      open-input-string open-output-string get-output-string
      open-input-bytevector open-output-bytevector get-output-bytevector
@@ -131,7 +132,8 @@
      g_executable g_getcwd g_getlogin g_getpid g_get-environment-variable g_getenvs
      g_char-upcase g_char-downcase g_char-foldcase g_char-alphabetic?
      g_char-upper-case? g_char-lower-case? g_char-numeric? g_char-whitespace?
-     g_command-line g_goldfish-library g_isdir g_isfile
+     g_command-line g-delimiter? g-read-string g-read-token g-undefined
+     g-valid-identifier? g_goldfish-library g_isdir g_isfile
      g_get-time-of-day g_datetime-now g_monotonic-nanosecond g_process-cpu-nanosecond
      g_thread-cpu-nanosecond g_system-clock-resolution g_steady-clock-resolution
      g_process-clock-resolution g_thread-clock-resolution

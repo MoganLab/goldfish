@@ -330,7 +330,35 @@ std::string format_value(const Evaluator& evaluator, Value value,
     switch (value.as_object()->type()) {
         case ObjectType::String: {
             const std::string& text = value.as_object<StringObject>()->value;
-            return write_mode ? "\"" + text + "\"" : text;
+            if (!write_mode) return text;
+            std::string quoted = "\"";
+            constexpr char hex[] = "0123456789abcdef";
+            for (unsigned char character : text) {
+                switch (character) {
+                case '"': quoted += "\\\""; break;
+                case '\\': quoted += "\\\\"; break;
+                case '\a': quoted += "\\a"; break;
+                case '\b': quoted += "\\b"; break;
+                case '\t': quoted += "\\t"; break;
+                case '\n': quoted += "\\n"; break;
+                case '\r': quoted += "\\r"; break;
+                case '\f': quoted += "\\f"; break;
+                case '\v': quoted += "\\v"; break;
+                case 0: quoted += "\\0"; break;
+                case 0x1b: quoted += "\\e"; break;
+                default:
+                    if (character < 0x20 || character == 0x7f) {
+                        quoted += "\\x";
+                        quoted.push_back(hex[character >> 4]);
+                        quoted.push_back(hex[character & 0x0f]);
+                        quoted.push_back(';');
+                    } else {
+                        quoted.push_back(static_cast<char>(character));
+                    }
+                }
+            }
+            quoted.push_back('"');
+            return quoted;
         }
         case ObjectType::Symbol:
             return value.as_object<SymbolObject>()->name;
@@ -1131,6 +1159,14 @@ void install_runtime_primitives(Evaluator& evaluator) {
         }
         return Values{evaluator.list(forms)};
     });
+    install(evaluator, "port-position", [](const Values& args) {
+        require_arity(args, 1, "port-position");
+        auto& port = input_port(args[0], "port-position");
+        if (port.closed)
+            throw std::runtime_error("port-position on closed input port");
+        return Values{Value::integer(
+            static_cast<std::int64_t>(port.position))};
+    });
     install(evaluator, "g-tiny-read", [&evaluator, eof](const Values& args) {
         require_arity(args, 1, "g-tiny-read");
         auto& port = input_port(args[0], "g-tiny-read");
@@ -1258,9 +1294,15 @@ void install_runtime_primitives(Evaluator& evaluator) {
                         set_library, {syntax, seed_library})[0]);
                 }
                 Value context = evaluator.apply_values(initial_context, {})[0];
-                Values expanded = evaluator.apply_values(
-                    expand_library_body,
-                    {evaluator.list(syntax_forms), seed_library, context});
+                Values expanded;
+                try {
+                    expanded = evaluator.apply_values(
+                        expand_library_body,
+                        {evaluator.list(syntax_forms), seed_library, context});
+                } catch (const std::exception& error) {
+                    throw std::runtime_error(
+                        std::string("gfo seed expansion: ") + error.what());
+                }
                 if (expanded.empty())
                     throw std::runtime_error("seed expansion returned no definitions");
                 Value definitions = expanded[0];

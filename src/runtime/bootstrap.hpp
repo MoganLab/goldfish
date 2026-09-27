@@ -19,9 +19,10 @@ public:
     void install_primitives();
     Value load_kernel(const std::string& path);
     // Restore the migration bootstrap artifacts from the content-addressed
-    // cache.  The cache directory is optional; when omitted it follows the
-    // same XDG/GOLDFISH_CACHE_DIR convention as the Scheme cache layer.
+    // cache. The default is the native-ccache under the usual XDG/home cache
+    // root; GOLDFISH_CACHE_DIR relocates it, matching the Scheme cache layer.
     void load_cached_runtime(const std::string& cache_root = {});
+    void install_source_expander();
     void install_expansion_helpers();
     Value load_library_artifact(const std::string& path);
     Value load_artifact(const std::string& path);

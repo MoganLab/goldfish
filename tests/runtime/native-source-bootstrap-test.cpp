@@ -31,6 +31,7 @@ int main(int argc, char** argv) {
         bootstrap.load_artifact(argv[i]);
 
     Evaluator& evaluator = runtime.evaluator();
+    bootstrap.install_source_expander();
     Value load_source = evaluator.eval(evaluator.symbol("load-source-file"));
     evaluator.apply_values(load_source,
                            {evaluator.string("expander/lib/install.scm")});

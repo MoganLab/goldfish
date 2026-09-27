@@ -1,10 +1,12 @@
 #include "runtime/bootstrap.hpp"
 
 #include "runtime/bootstrap_compatibility.hpp"
+#include "runtime/debug_flags.hpp"
 #include "runtime/standard_primitives.hpp"
 
 #include <cstdlib>
 #include <array>
+#include <cstdio>
 #include <filesystem>
 #include <stdexcept>
 #include <vector>
@@ -17,8 +19,7 @@ namespace goldfish::runtime {
 
 namespace {
 
-constexpr std::array<const char*, 14> native_bootstrap_artifacts = {
-    "expander/lib/install.scm.gfo",
+constexpr std::array<const char*, 12> native_bootstrap_artifacts = {
     "expander/lib/syntax-runtime.scm-o2.gfo",
     "expander/lib/syntax-case.scm-o2.gfo",
     "expander/lib/define-record-type.scm-o2.gfo",
@@ -30,8 +31,8 @@ constexpr std::array<const char*, 14> native_bootstrap_artifacts = {
     "expander/lib/module.scm-o2.gfo",
     "expander/lib/standard.scm-o2.gfo",
     "scheme/case-lambda.scm-o2.gfo",
-    "scheme/base.scm-o2.gfo",
-    "liii/reader.scm.gfo"};
+    "scheme/base.scm-o2.gfo"
+};
 
 namespace fs = std::filesystem;
 
@@ -54,10 +55,11 @@ fs::path cache_root_from_environment() {
     if (const char* override_root = std::getenv("GOLDFISH_CACHE_DIR"))
         if (*override_root) return fs::path(override_root);
     if (const char* xdg = std::getenv("XDG_CACHE_HOME"))
-        if (*xdg) return fs::path(xdg) / "goldfish" / "ccache";
+        if (*xdg) return fs::path(xdg) / "goldfish" / "native-ccache";
     if (const char* home = std::getenv("HOME"))
-        if (*home) return fs::path(home) / ".cache" / "goldfish" / "ccache";
-    return fs::path(".goldfish-cache");
+        if (*home)
+            return fs::path(home) / ".cache" / "goldfish" / "native-ccache";
+    return fs::path(".goldfish-native-cache");
 }
 
 bool has_native_bootstrap_artifacts(const fs::path& root) {
@@ -73,19 +75,13 @@ bool has_native_bootstrap_artifacts(const fs::path& root) {
 
 fs::path find_cache_version(fs::path root) {
     std::error_code error;
-    const fs::path marker = root / "expander/lib/install.scm.gfo";
-    if (fs::is_regular_file(marker, error) &&
-        has_native_bootstrap_artifacts(root))
-        return root;
-    error.clear();
+    if (has_native_bootstrap_artifacts(root)) return root;
     fs::path selected;
     fs::file_time_type selected_time{};
     if (!fs::is_directory(root, error)) return {};
     for (const fs::directory_entry& entry : fs::directory_iterator(root, error)) {
         if (error) break;
-        const fs::path candidate = entry.path() / "expander/lib/install.scm.gfo";
-        if (!fs::is_regular_file(candidate, error) ||
-            !has_native_bootstrap_artifacts(entry.path())) {
+        if (!has_native_bootstrap_artifacts(entry.path())) {
             error.clear();
             continue;
         }
@@ -185,7 +181,6 @@ void NativeBootstrap::load_cached_runtime(const std::string& cache_root) {
         "expander/lib/standard.scm-o2.gfo",
         "scheme/case-lambda.scm-o2.gfo",
         "scheme/base.scm-o2.gfo",
-        "liii/reader.scm.gfo",
     };
     for (const fs::path& artifact : artifacts) {
         const fs::path path = version / artifact;
@@ -200,9 +195,8 @@ void NativeBootstrap::load_cached_runtime(const std::string& cache_root) {
                                      path.string() + ": " + error.what());
         }
     }
-    // The cached reader is not part of the native source bootstrap contract.
-    // Restore the native read-forms primitive in the implementation library
-    // after artifact metadata has been replayed.
+    // The Scheme source reader is loaded by the driver after the installer;
+    // keep its bootstrap dependency on the native reader primitive intact.
     runtime_.evaluator().global_environment()->define(
         runtime_.evaluator().symbol("read-forms"), native_read_forms_);
     runtime_.evaluator().global_environment()->define(
@@ -266,6 +260,23 @@ void NativeBootstrap::install_expansion_helpers() {
             {base, symbol,
              evaluator.apply_values(make_primitive, {symbol})[0]});
     }
+}
+
+void NativeBootstrap::install_source_expander() {
+    Evaluator& evaluator = runtime_.evaluator();
+    evaluator.define_primitive(
+        "expand-eval", [&evaluator](const Values& args) {
+            if (args.size() != 1)
+                throw std::runtime_error("expand-eval expects one argument");
+            evaluator.collect();
+            if (debug_enabled("progress")) {
+                static std::size_t form_count = 0;
+                std::fprintf(stderr, "[progress] form %zu\n", ++form_count);
+            }
+            Value compile = evaluator.eval(evaluator.symbol("compile-toplevel"));
+            Value lowered = evaluator.apply_values(compile, args)[0];
+            return evaluator.eval_values(lowered);
+        });
 }
 
 Value NativeBootstrap::load_library_artifact(const std::string& path) {

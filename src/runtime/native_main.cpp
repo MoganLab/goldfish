@@ -18,6 +18,25 @@ using namespace goldfish::runtime;
 
 namespace {
 
+void configure_native_cache_dir() {
+    const char* configured = std::getenv("GOLDFISH_CACHE_DIR");
+    if (configured && *configured) return;
+
+    std::filesystem::path root;
+    if (const char* xdg = std::getenv("XDG_CACHE_HOME"); xdg && *xdg) {
+        root = xdg;
+    } else if (const char* home = std::getenv("HOME"); home && *home) {
+        root = std::filesystem::path(home) / ".cache";
+    } else {
+        root = ".";
+    }
+    root /= "goldfish";
+    root /= "native-ccache";
+    const std::string path = root.string();
+    if (setenv("GOLDFISH_CACHE_DIR", path.c_str(), 0) != 0)
+        throw std::runtime_error("could not configure native cache directory");
+}
+
 void print_value(const Value& value, std::ostream& output) {
     if (value.is_null()) {
         output << "()";
@@ -175,29 +194,6 @@ std::string with_fix_hint(const std::string& message,
     if (path.empty()) return message;
     return message + "\nHint: try `gf fix " + path +
            "` to repair common parenthesis issues.";
-}
-
-void install_source_expander(Evaluator& evaluator) {
-    // The full expand-eval procedure is part of the library installer.  A
-    // cache-free bootstrap needs the kernel's per-form entry point first so
-    // that the Scheme prelude can install its derived forms.
-    evaluator.define_primitive(
-        "expand-eval", [&evaluator](const Values& args) {
-            if (args.size() != 1)
-                throw std::runtime_error("expand-eval expects one argument");
-            // Top-level form boundary: the previous form's expansion
-            // garbage is unreachable and the stack here is shallow (the
-            // loader's own frames only), so a conservative collection is
-            // both safe and cheap.  This is what bounds per-file memory.
-            evaluator.collect();
-            if (debug_enabled("progress")) {
-                static std::size_t form_count = 0;
-                std::fprintf(stderr, "[progress] form %zu\n", ++form_count);
-            }
-            Value compile = evaluator.eval(evaluator.symbol("compile-toplevel"));
-            Value lowered = evaluator.apply_values(compile, args)[0];
-            return evaluator.eval_values(lowered);
-    });
 }
 
 // Run one file in a forked child of the already-booted process; the
@@ -559,8 +555,9 @@ void install_mode_imports(Evaluator& evaluator, const std::string& mode) {
 } // namespace
 
 int main(int argc, char** argv) {
-    Runtime runtime;
     try {
+        configure_native_cache_dir();
+        Runtime runtime;
         configure_load_path(argc, argv);
         set_native_command_line(argc, argv);
         setenv("GOLDFISH_NATIVE_ARTIFACTS", "1", 1);
@@ -595,12 +592,12 @@ int main(int argc, char** argv) {
             cached = false;
         }
         stage("load-cached-runtime");
+        bootstrap.install_source_expander();
         if (!cached) {
             // install.scm uses this marker to avoid repeating the artifact
             // boot sequence.  A cache-free run has no artifacts, so let its
             // Scheme installer build the same layer from source.
             unsetenv("GOLDFISH_NATIVE_ARTIFACTS");
-            install_source_expander(runtime.evaluator());
             load_source(runtime.evaluator(), "expander/bootstrap-prelude.scm");
             load_source(runtime.evaluator(), "liii/prelude.scm");
             stage("cold-source-bootstrap");
@@ -641,6 +638,10 @@ int main(int argc, char** argv) {
         stage("standard-library");
         runtime.evaluator().collect();
         install_mode_imports(runtime.evaluator(), startup_mode(argc, argv));
+        // The Scheme source reader is intentionally loaded from source; it
+        // must not depend on a host-generated gfo cache to start native mode.
+        load_source(runtime.evaluator(), "liii/reader.scm");
+        stage("load-source-reader");
         if (timing)
             std::cerr << "[timing] boot total "
                       << std::chrono::duration_cast<std::chrono::milliseconds>(

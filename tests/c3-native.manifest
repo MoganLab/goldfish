@@ -1,0 +1,10 @@
+# Fixed representative native workflow corpus. Keep paths one per line.
+tests/c3/native-workflow-test.scm
+tests/scheme/base/call-with-port-test.scm
+tests/scheme/base/values-test.scm
+tests/scheme/base/with-exception-handler-test.scm
+tests/scheme/eval/eval-test.scm
+tests/scheme/file/call-with-input-file-test.scm
+tests/srfi/srfi-13/string-prefix-p-test.scm
+tests/liii/path/path-join-test.scm
+tests/liii/string/string-join-test.scm

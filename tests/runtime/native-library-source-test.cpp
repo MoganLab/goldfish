@@ -18,6 +18,7 @@ int main() {
         bootstrap.load_cached_runtime();
 
         Evaluator& evaluator = runtime.evaluator();
+        bootstrap.install_source_expander();
         Value load_source = evaluator.eval(evaluator.symbol("load-source-file"));
         evaluator.apply_values(
             load_source, {evaluator.string("expander/lib/install.scm")});

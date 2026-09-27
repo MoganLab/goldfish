@@ -4,6 +4,7 @@
 #include <cerrno>
 #include <cstdlib>
 #include <limits>
+#include <sstream>
 #include <stdexcept>
 
 namespace goldfish::runtime {
@@ -54,6 +55,24 @@ bool decode_single_utf8(const std::string& text, char32_t& codepoint) {
     return true;
 }
 
+void append_utf8(std::string& text, char32_t codepoint) {
+    if (codepoint <= 0x7f) {
+        text.push_back(static_cast<char>(codepoint));
+    } else if (codepoint <= 0x7ff) {
+        text.push_back(static_cast<char>(0xc0 | (codepoint >> 6)));
+        text.push_back(static_cast<char>(0x80 | (codepoint & 0x3f)));
+    } else if (codepoint <= 0xffff) {
+        text.push_back(static_cast<char>(0xe0 | (codepoint >> 12)));
+        text.push_back(static_cast<char>(0x80 | ((codepoint >> 6) & 0x3f)));
+        text.push_back(static_cast<char>(0x80 | (codepoint & 0x3f)));
+    } else {
+        text.push_back(static_cast<char>(0xf0 | (codepoint >> 18)));
+        text.push_back(static_cast<char>(0x80 | ((codepoint >> 12) & 0x3f)));
+        text.push_back(static_cast<char>(0x80 | ((codepoint >> 6) & 0x3f)));
+        text.push_back(static_cast<char>(0x80 | (codepoint & 0x3f)));
+    }
+}
+
 } // namespace
 
 char TinyReader::peek() const {
@@ -74,7 +93,9 @@ bool TinyReader::consume(char expected) {
 }
 
 [[noreturn]] void TinyReader::error(const std::string& message) const {
-    throw std::runtime_error("tiny reader: " + message);
+    std::ostringstream detail;
+    detail << "tiny reader: " << message << " at byte " << position_;
+    throw std::runtime_error(detail.str());
 }
 
 void TinyReader::skip_space() {
@@ -246,13 +267,17 @@ Value TinyReader::read_list(char closing) {
         if (peek() == '.' &&
             delimiter(position_ + 1 < source_.size() ? source_[position_ + 1]
                                                        : '\0')) {
+            const std::size_t dot_position = position_;
             next();
             if (values.empty())
                 error(" dotted pair has no head");
             Value tail = read_form();
             skip_space();
-            if (!consume(')'))
-                error("dotted pair must end after its tail");
+            if (!consume(closing))
+                error(std::string("dotted pair expected '") + closing +
+                      "' after its tail, found byte " +
+                      std::to_string(static_cast<unsigned char>(peek())) +
+                      " (dot at byte " + std::to_string(dot_position) + ")");
             for (auto it = values.rbegin(); it != values.rend(); ++it)
                 tail = evaluator_.pair(*it, tail);
             return tail;
@@ -272,20 +297,60 @@ Value TinyReader::read_string() {
         char c = next();
         if (c == '\0')
             error("unterminated string");
-        if (c == '"')
+        if (c == '"') {
             return evaluator_.string(value);
+        }
         if (c != '\\') {
             value.push_back(c);
             continue;
         }
         char escaped = next();
         switch (escaped) {
+        case 'a': value.push_back('\a'); break;
+        case 'b': value.push_back('\b'); break;
         case 'n': value.push_back('\n'); break;
         case 'r': value.push_back('\r'); break;
         case 't': value.push_back('\t'); break;
+        case 'f': value.push_back('\f'); break;
+        case 'v': value.push_back('\v'); break;
+        case '0': value.push_back('\0'); break;
+        case 'e': value.push_back('\x1b'); break;
         case '\\': value.push_back('\\'); break;
         case '"': value.push_back('"'); break;
-        default: error("unsupported string escape");
+        case '|': value.push_back('|'); break;
+        case 'x': {
+            char32_t codepoint = 0;
+            std::size_t digits = 0;
+            while (true) {
+                const unsigned char digit_char =
+                    static_cast<unsigned char>(peek());
+                unsigned digit = digit_char >= '0' && digit_char <= '9'
+                    ? digit_char - '0'
+                    : digit_char >= 'a' && digit_char <= 'f'
+                        ? digit_char - 'a' + 10
+                        : digit_char >= 'A' && digit_char <= 'F'
+                            ? digit_char - 'A' + 10 : 16;
+                if (digit == 16) break;
+                if (codepoint > (0x10ffff - digit) / 16)
+                    error("hexadecimal string escape is out of range");
+                codepoint = codepoint * 16 + digit;
+                ++digits;
+                next();
+            }
+            if (digits == 0 || !consume(';') ||
+                (codepoint >= 0xd800 && codepoint <= 0xdfff))
+                error("invalid hexadecimal string escape");
+            append_utf8(value, codepoint);
+            break;
+        }
+        default:
+            // S7's writer escapes punctuation in serialized Scheme text.
+            // Keep that cache vocabulary readable while still rejecting
+            // unknown alphabetic escapes that could hide source mistakes.
+            if (!std::isalnum(static_cast<unsigned char>(escaped)))
+                value.push_back(escaped);
+            else
+                error(std::string("unsupported string escape \\") + escaped);
         }
     }
 }
