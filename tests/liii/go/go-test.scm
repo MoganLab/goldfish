@@ -3,6 +3,33 @@
 
 (check-set-mode! 'report-failed)
 
+;; go
+;; 将一段代码调度到后台 worker 线程并发执行（每个 worker 独占一个 s7 会话）。
+;;
+;; 语法
+;; ----
+;; (go (captured-var ...) body ...)
+;; (go body ...)
+;;
+;; 参数
+;; ----
+;; captured-var : symbol
+;; 需要从当前环境捕获传入 worker 的变量名。
+;;
+;; body : any
+;; 在 worker 会话中执行的代码。
+;;
+;; 返回值
+;; ----
+;; unspecified
+;;
+;; 说明
+;; ----
+;; 1. worker 间通过 channel 传递数据与结果（深拷贝，彻底隔离 GC 堆）。
+;; 2. 捕获变量只支持可序列化的数据类型，不支持过程/闭包（spawn 时抛 type-error）。
+;; 3. body 中可直接引用全局函数名（如 car、display），无需捕获。
+;; 4. worker 内的运行时异常不会使线程池崩溃，错误输出到 stderr。
+
 ;; 1. 基本 go 任务启动与通道通信
 (define ch1 (make-chan 1))
 (go (ch1)

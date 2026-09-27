@@ -3,6 +3,34 @@
 
 (check-set-mode! 'report-failed)
 
+;; select
+;; 多路复用：等待多个通道操作中第一个就绪者（Go select 语义）。
+;;
+;; 语法
+;; ----
+;; (select
+;;   ((chan-recv! ch var) body ...)
+;;   ((chan-send! ch expr) body ...)
+;;   (timeout ms body ...)
+;;   (default body ...))
+;;
+;; 子句
+;; ----
+;; ((chan-recv! ch var) body ...) : 通道可读时，将值绑定到 var 并执行 body
+;; ((chan-send! ch expr) body ...) : 通道可写时，发送 expr 并执行 body
+;; (timeout ms body ...) : 超过 ms 毫秒仍无就绪分支时执行 body
+;; (default body ...) : 无阻塞立即执行（与 timeout 互斥）
+;;
+;; 说明
+;; ----
+;; 1. 各分支的通道与发送表达式只在进入 select 时求值一次（Go 语义）。
+;; 2. 多个分支同时就绪时按书写顺序选择（无 Go 的随机性）。
+;; 3. 当前为 1ms 粒度轮询实现，C++ wait-set 化在演进路线中。
+;;
+;; 错误处理
+;; ----
+;; default 与 timeout 同时出现、或同一类子句重复出现时抛出 syntax-error。
+
 ;; 1. 测试 default 非阻塞分支：通道为空时立即走 default
 (define ch1 (make-chan 1))
 (define ch2 (make-chan 1))
