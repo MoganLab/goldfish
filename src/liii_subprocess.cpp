@@ -59,8 +59,9 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
     args= s7_cdr (args);
   }
 
-  vector<string>      env_storage;
-  vector<const char*> envp;
+  // 校验先行：s7_error 是裸 longjmp，raise 时帧内不得有存活的 RAII 对象。
+  // 第一趟只校验不构造，全部通过后第二趟才构建 env_storage/envp
+  s7_pointer env_alist= nullptr;
   if (s7_is_pair (args) && !s7_is_null (sc, s7_car (args)) && s7_car (args) != s7_f (sc)) {
     s7_pointer env_arg= s7_car (args);
     if (!s7_is_pair (env_arg)) {
@@ -69,9 +70,9 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
     if (!s7_is_proper_list (sc, env_arg)) {
       return subprocess_type_error (sc, "g_subprocess-run-values: env must be a proper list", env_arg);
     }
-    s7_pointer env_alist= env_arg;
-    while (s7_is_pair (env_alist)) {
-      s7_pointer item= s7_car (env_alist);
+    s7_pointer it= env_arg;
+    while (s7_is_pair (it)) {
+      s7_pointer item= s7_car (it);
       if (!s7_is_pair (item)) {
         return subprocess_type_error (sc, "g_subprocess-run-values: env element must be a pair", item);
       }
@@ -83,20 +84,31 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
       if (!s7_is_string (val_arg)) {
         return subprocess_type_error (sc, "g_subprocess-run-values: env value must be a string", val_arg);
       }
-      env_storage.push_back (string (s7_string (key_arg)) + "=" + s7_string (val_arg));
-      env_alist= s7_cdr (env_alist);
+      it= s7_cdr (it);
     }
-    if (!s7_is_null (sc, env_alist)) {
+    if (!s7_is_null (sc, it)) {
       return subprocess_type_error (sc, "g_subprocess-run-values: env must be a proper list", env_arg);
+    }
+    env_alist= env_arg;
+    args     = s7_cdr (args);
+  }
+  else if (s7_is_pair (args)) {
+    args= s7_cdr (args);
+  }
+
+  vector<string>      env_storage;
+  vector<const char*> envp;
+  if (env_alist) {
+    s7_pointer it= env_alist;
+    while (s7_is_pair (it)) {
+      s7_pointer item= s7_car (it);
+      env_storage.push_back (string (s7_string (s7_car (item))) + "=" + s7_string (s7_cdr (item)));
+      it= s7_cdr (it);
     }
     for (auto& s : env_storage) {
       envp.push_back (s.c_str ());
     }
     envp.push_back (nullptr);
-    args= s7_cdr (args);
-  }
-  else if (s7_is_pair (args)) {
-    args= s7_cdr (args);
   }
 
   const char* input    = nullptr;

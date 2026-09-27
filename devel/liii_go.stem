@@ -178,6 +178,18 @@
                    ) ;concat
                  ) ;document
       ) ;enumerate
+      (subsection* "5.7 已完成：全仓库 longjmp+RAII 排查与修复")
+      (enumerate (document (concat (item)
+                             "【排查方法】4 个并行审计 agent 对 src/ 下 13 个胶水层文件约 90 处 s7_error/string_type_error/s7_wrong_type_arg_error 调用点逐帧检查：raise 瞬间帧内是否有存活的非平凡析构对象（Linux 泄漏、MSVC 崩溃）。约 70 处确认安全（多为\"校验先行、RAII 后声明\"的良好惯用法）。"
+                           ) ;concat
+                   (concat (item)
+                     "【修复 8 处违规】goldfish.hpp 2 处（f_get_environment_variable 校验前置、f_function_libraries catch 块改内层作用域+thread_local 传出错误消息）；liii_string.cpp 8 个 raise 点（f_string_split/f_string_join 全部校验完成后再构造 std::string）；liii_subprocess.cpp 6 个 raise 点（env alist 两趟处理：先纯校验后构建 vector）；liii_json.cpp 写入器链 6 处（内部错误改抛 C++ 异常 json_write_exception，f_json_to_string 捕获后待 RAII 析构再 s7_error）+ json_parse_error 改 const char* 签名消除临时 string。"
+                   ) ;concat
+                   (concat (item)
+                     "【附带修复同类隐患】json_guenchi_drop 在持有 std::vector 时经 s7_call 回调用户谓词：谓词 raise 同样跳析构。改为 GC 管理的 s7 对象（bytevector 标记数组 + head 锚定序对链）。回归测试补入 json-drop-test.scm 与 json-to-string-test.scm（谓词/错误路径），全量 1614 个测试文件通过。"
+                   ) ;concat
+                 ) ;document
+      ) ;enumerate
       (section* "6 Why")
       "现代硬件普及多核处理器，而 Goldfish 目前的标准执行流局限于单核单线程。"
       "S7 解释器单实例并非线程安全，若采用传统的全局解释器锁（GIL）进行共享内存多线程，无法真正发挥多核并行计算能力。通过借鉴 Go 语言的 CSP 模型（Communicating Sequential Processes），结合 S7 独立多实例的特性，每个工作线程独占一个解释器 Session，通道作为一等公民在独立的解释器线程之间传递数据，既天然免疫数据竞争与死锁，又能以最高效、低心智负担的方式充分释放多核硬件性能。"
