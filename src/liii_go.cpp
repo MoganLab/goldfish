@@ -263,21 +263,7 @@ static thread_local std::string t_serialize_err;
 // 错误在 RAII 对象析构之后抛出。
 static s7_pointer
 go_error (s7_scheme* sc, const char* kind, const char* msg, s7_pointer arg) {
-  fprintf (stderr, "[TRACE] go_error enter kind=%s\n", kind);
-  fflush (stderr);
-  s7_pointer sym= s7_make_symbol (sc, kind);
-  fprintf (stderr, "[TRACE] go_error symbol ok\n");
-  fflush (stderr);
-  s7_pointer msg_s= s7_make_string (sc, msg);
-  fprintf (stderr, "[TRACE] go_error string ok\n");
-  fflush (stderr);
-  s7_pointer lst= s7_list (sc, 2, msg_s, arg);
-  fprintf (stderr, "[TRACE] go_error list ok\n");
-  fflush (stderr);
-  s7_pointer res= s7_error (sc, sym, lst);
-  fprintf (stderr, "[TRACE] go_error s7_error returned (should not reach if caught)\n");
-  fflush (stderr);
-  return res;
+  return s7_error (sc, s7_make_symbol (sc, kind), s7_list (sc, 2, s7_make_string (sc, msg), arg));
 }
 
 static void
