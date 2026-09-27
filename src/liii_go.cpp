@@ -15,6 +15,7 @@
 //
 
 #include "liii_go.hpp"
+#include <cstdlib>
 #include <cstring>
 #include <iostream>
 #include <queue>
@@ -41,15 +42,14 @@ get_goldfish_lib_dir () {
   return g_goldfish_lib_directory;
 }
 
-static thread_local bool t_worker_task_failed= false;
-
 static s7_pointer
 f_worker_notify_error (s7_scheme* sc, s7_pointer args) {
-  t_worker_task_failed= true;
-  s7_pointer tag      = s7_car (args);
-  s7_pointer err_args = s7_cadr (args);
-  std::cerr << "[Goldfish Worker Error] " << s7_object_to_c_string (sc, tag) << ": "
-            << s7_object_to_c_string (sc, err_args) << std::endl;
+  char* tag_str= s7_object_to_c_string (sc, s7_car (args));
+  char* err_str= s7_object_to_c_string (sc, s7_cadr (args));
+  std::cerr << "[Goldfish Worker Error] " << (tag_str ? tag_str : "?") << ": " << (err_str ? err_str : "?")
+            << std::endl;
+  free (tag_str);
+  free (err_str);
   return s7_unspecified (sc);
 }
 
@@ -62,6 +62,15 @@ struct GoTask {
   std::vector<GFValue>     var_vals;
   GFValue                  code_expr;
 };
+
+static size_t
+configured_worker_count () {
+  static const size_t n= [] () {
+    size_t c= std::thread::hardware_concurrency ();
+    return c == 0 ? 4 : c;
+  }();
+  return n;
+}
 
 class GoThreadPool {
 public:
@@ -93,12 +102,9 @@ public:
     workers.clear ();
   }
 
-  size_t worker_count () const { return workers.size (); }
-
 private:
   GoThreadPool () {
-    size_t n= std::thread::hardware_concurrency ();
-    if (n == 0) n= 4;
+    size_t n= configured_worker_count ();
     for (size_t i= 0; i < n; ++i) {
       workers.emplace_back ([this] () { worker_loop (); });
     }
@@ -114,6 +120,15 @@ private:
     }
     glue_for_community_edition (worker_sc);
     s7_eval_c_string (worker_sc, "(import (scheme base) (scheme time) (liii base) (liii go))");
+    // 错误处理闭包定义一次并锚定在 rootlet，避免每个任务重建及被 GC 回收
+    s7_eval_c_string (worker_sc,
+                      "(define *go-err-handler* (lambda (err-tag err-args) (g_worker-notify-error err-tag err-args)))");
+
+    // 以下符号均被 rootlet 常驻引用，跨任务复用是 GC 安全的
+    s7_pointer lambda_sym = s7_make_symbol (worker_sc, "lambda");
+    s7_pointer catch_sym  = s7_make_symbol (worker_sc, "catch");
+    s7_pointer let_sym    = s7_make_symbol (worker_sc, "let");
+    s7_pointer handler_sym= s7_make_symbol (worker_sc, "*go-err-handler*");
 
     while (true) {
       GoTask task;
@@ -135,27 +150,13 @@ private:
         bindings       = s7_cons (worker_sc, pair, bindings);
       }
 
+      // (let bindings (catch #t (lambda () body) *go-err-handler*))
       s7_pointer body      = gfvalue_to_s7 (worker_sc, task.code_expr);
-      s7_pointer lambda_sym= s7_make_symbol (worker_sc, "lambda");
-      s7_pointer catch_sym = s7_make_symbol (worker_sc, "catch");
       s7_pointer body_thunk= s7_list (worker_sc, 3, lambda_sym, s7_nil (worker_sc), body);
+      s7_pointer catch_expr= s7_list (worker_sc, 4, catch_sym, s7_t (worker_sc), body_thunk, handler_sym);
+      s7_pointer let_expr  = s7_cons (worker_sc, let_sym,
+                                      s7_cons (worker_sc, bindings, s7_cons (worker_sc, catch_expr, s7_nil (worker_sc))));
 
-      // (lambda (err-tag err-args) (g_worker-notify-error err-tag err-args))
-      s7_pointer notify_call= s7_list (worker_sc, 3, s7_make_symbol (worker_sc, "g_worker-notify-error"),
-                                       s7_make_symbol (worker_sc, "err-tag"), s7_make_symbol (worker_sc, "err-args"));
-
-      s7_pointer err_handler= s7_list (
-          worker_sc, 3, lambda_sym,
-          s7_list (worker_sc, 2, s7_make_symbol (worker_sc, "err-tag"), s7_make_symbol (worker_sc, "err-args")),
-          notify_call);
-
-      s7_pointer catch_expr= s7_list (worker_sc, 4, catch_sym, s7_t (worker_sc), body_thunk, err_handler);
-
-      s7_pointer let_sym = s7_make_symbol (worker_sc, "let");
-      s7_pointer let_expr= s7_cons (worker_sc, let_sym,
-                                    s7_cons (worker_sc, bindings, s7_cons (worker_sc, catch_expr, s7_nil (worker_sc))));
-
-      t_worker_task_failed= false;
       s7_eval (worker_sc, let_expr, s7_rootlet (worker_sc));
     }
   }
@@ -287,12 +288,14 @@ s7_to_gfvalue_impl (s7_scheme* sc, s7_pointer obj, GFValue& out, std::string& er
     return true;
   }
   if (s7_is_syntax (obj) || s7_is_procedure (obj)) {
-    const char* str= s7_object_to_c_string (sc, obj);
+    char* str= s7_object_to_c_string (sc, obj);
     if (str != nullptr && std::strncmp (str, "#_", 2) == 0) {
       out.type   = GFValueType::Symbol;
       out.str_val= str + 2;
+      free (str);
       return true;
     }
+    free (str);
   }
   if (is_goldfish_channel (sc, obj)) {
     out.type    = GFValueType::Channel;
@@ -353,7 +356,9 @@ s7_to_gfvalue_impl (s7_scheme* sc, s7_pointer obj, GFValue& out, std::string& er
     return true;
   }
 
-  err_msg= std::string ("unsupported object type for channel serialization: ") + s7_object_to_c_string (sc, obj);
+  char* obj_str= s7_object_to_c_string (sc, obj);
+  err_msg      = std::string ("unsupported object type for channel serialization: ") + (obj_str ? obj_str : "?");
+  free (obj_str);
   return false;
 }
 
@@ -457,11 +462,23 @@ gfvalue_to_s7_impl (s7_scheme* sc, const GFValue& val, DeserializeCtx& ctx) {
 s7_pointer
 gfvalue_to_s7 (s7_scheme* sc, const GFValue& val) {
   DeserializeCtx ctx;
-  ctx.gc_anchor = s7_nil (sc);
-  ctx.gc_loc    = s7_gc_protect (sc, ctx.gc_anchor);
-  s7_pointer res= gfvalue_to_s7_impl (sc, val, ctx);
-  s7_gc_unprotect_at (sc, ctx.gc_loc);
-  return res;
+  switch (val.type) {
+  // 只有复合类型需要 GC anchor 与环重建表；标量直接转换，零额外开销
+  case GFValueType::Pair:
+  case GFValueType::Vector:
+  case GFValueType::ByteVector:
+  case GFValueType::Let:
+  case GFValueType::Ref:
+    ctx.gc_anchor= s7_nil (sc);
+    ctx.gc_loc   = s7_gc_protect (sc, ctx.gc_anchor);
+    {
+      s7_pointer res= gfvalue_to_s7_impl (sc, val, ctx);
+      s7_gc_unprotect_at (sc, ctx.gc_loc);
+      return res;
+    }
+  default:
+    return gfvalue_to_s7_impl (sc, val, ctx);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -469,7 +486,7 @@ gfvalue_to_s7 (s7_scheme* sc, const GFValue& val) {
 // ---------------------------------------------------------------------------
 
 GoldfishChannel::SendStatus
-GoldfishChannel::send (const GFValue& val, int64_t timeout_ms) {
+GoldfishChannel::send (GFValue val, int64_t timeout_ms) {
   std::unique_lock<std::mutex> lock (mtx);
   if (closed) return SendStatus::Closed;
 
@@ -478,9 +495,7 @@ GoldfishChannel::send (const GFValue& val, int64_t timeout_ms) {
     if (!waiting_receivers.empty ()) {
       RendezvousReceiver* r= waiting_receivers.front ();
       waiting_receivers.pop_front ();
-      if (r->out != nullptr) {
-        *(r->out)= val;
-      }
+      *(r->out)   = std::move (val);
       r->completed= true;
       r->cv.notify_one ();
       return SendStatus::Ok;
@@ -491,7 +506,7 @@ GoldfishChannel::send (const GFValue& val, int64_t timeout_ms) {
     }
 
     RendezvousSender s;
-    s.val= val;
+    s.val= std::move (val);
     waiting_senders.push_back (&s);
 
     if (timeout_ms < 0) {
@@ -531,7 +546,7 @@ GoldfishChannel::send (const GFValue& val, int64_t timeout_ms) {
 
     if (closed) return SendStatus::Closed;
 
-    buffer.push_back (val);
+    buffer.push_back (std::move (val));
     cv_buf_recv.notify_one ();
     return SendStatus::Ok;
   }
@@ -545,7 +560,7 @@ GoldfishChannel::recv (GFValue& out, int64_t timeout_ms) {
     if (!waiting_senders.empty ()) {
       RendezvousSender* s= waiting_senders.front ();
       waiting_senders.pop_front ();
-      out         = s->val;
+      out         = std::move (s->val);
       s->completed= true;
       s->cv.notify_one ();
       return RecvStatus::Ok;
@@ -597,7 +612,7 @@ GoldfishChannel::recv (GFValue& out, int64_t timeout_ms) {
     }
 
     if (!buffer.empty ()) {
-      out= buffer.front ();
+      out= std::move (buffer.front ());
       buffer.pop_front ();
       cv_buf_send.notify_one ();
       return RecvStatus::Ok;
@@ -605,15 +620,6 @@ GoldfishChannel::recv (GFValue& out, int64_t timeout_ms) {
 
     return closed ? RecvStatus::Closed : RecvStatus::Timeout;
   }
-}
-
-GoldfishChannel::RecvStatus
-GoldfishChannel::try_recv (GFValue& out) {
-  auto status= recv (out, 0);
-  if (status == RecvStatus::Timeout) {
-    return RecvStatus::Empty;
-  }
-  return status;
 }
 
 void
@@ -644,12 +650,6 @@ GoldfishChannel::is_closed () const {
   return closed;
 }
 
-size_t
-GoldfishChannel::size () const {
-  std::lock_guard<std::mutex> lock (mtx);
-  return buffer.size ();
-}
-
 // ---------------------------------------------------------------------------
 // S7 Glue Functions
 // ---------------------------------------------------------------------------
@@ -678,13 +678,9 @@ f_chan_send (s7_scheme* sc, s7_pointer args) {
   s7_pointer ch_arg = s7_car (args);
   s7_pointer val_arg= s7_cadr (args);
 
-  if (!is_goldfish_channel (sc, ch_arg)) {
-    return go_error (sc, "type-error", "chan-send!: first argument must be a channel", ch_arg);
-  }
-
   auto ch= get_goldfish_channel (sc, ch_arg);
-  if (ch->is_closed ()) {
-    return go_error (sc, "value-error", "chan-send!: cannot send on closed channel", ch_arg);
+  if (!ch) {
+    return go_error (sc, "type-error", "chan-send!: first argument must be a channel", ch_arg);
   }
 
   int64_t    timeout_ms= -1; // Default -1: infinite wait (Go channel semantics)
@@ -703,9 +699,9 @@ f_chan_send (s7_scheme* sc, s7_pointer args) {
     return go_error (sc, "type-error", err_msg.c_str (), val_arg);
   }
 
-  auto status= ch->send (val, timeout_ms);
+  auto status= ch->send (std::move (val), timeout_ms);
   if (status == GoldfishChannel::SendStatus::Closed) {
-    return go_error (sc, "value-error", "chan-send!: channel closed during send", ch_arg);
+    return go_error (sc, "value-error", "chan-send!: cannot send on closed channel", ch_arg);
   }
   else if (status == GoldfishChannel::SendStatus::Timeout) {
     return s7_f (sc);
@@ -717,7 +713,8 @@ static s7_pointer
 f_chan_recv (s7_scheme* sc, s7_pointer args) {
   s7_pointer ch_arg= s7_car (args);
 
-  if (!is_goldfish_channel (sc, ch_arg)) {
+  auto ch= get_goldfish_channel (sc, ch_arg);
+  if (!ch) {
     return go_error (sc, "type-error", "chan-recv!: first argument must be a channel", ch_arg);
   }
 
@@ -738,7 +735,6 @@ f_chan_recv (s7_scheme* sc, s7_pointer args) {
     }
   }
 
-  auto    ch= get_goldfish_channel (sc, ch_arg);
   GFValue val;
   auto    status= ch->recv (val, timeout_ms);
 
@@ -755,7 +751,8 @@ static s7_pointer
 f_chan_try_recv (s7_scheme* sc, s7_pointer args) {
   s7_pointer ch_arg= s7_car (args);
 
-  if (!is_goldfish_channel (sc, ch_arg)) {
+  auto ch= get_goldfish_channel (sc, ch_arg);
+  if (!ch) {
     return go_error (sc, "type-error", "chan-try-recv!: first argument must be a channel", ch_arg);
   }
 
@@ -765,7 +762,6 @@ f_chan_try_recv (s7_scheme* sc, s7_pointer args) {
     default_val= s7_car (rest);
   }
 
-  auto    ch= get_goldfish_channel (sc, ch_arg);
   GFValue val;
   auto    status= ch->try_recv (val);
 
@@ -776,7 +772,7 @@ f_chan_try_recv (s7_scheme* sc, s7_pointer args) {
     return s7_eof_object (sc);
   }
   else {
-    // Empty
+    // Timeout (非阻塞语义下即为通道为空)
     return default_val;
   }
 }
@@ -785,11 +781,11 @@ static s7_pointer
 f_chan_close (s7_scheme* sc, s7_pointer args) {
   s7_pointer ch_arg= s7_car (args);
 
-  if (!is_goldfish_channel (sc, ch_arg)) {
+  auto ch= get_goldfish_channel (sc, ch_arg);
+  if (!ch) {
     return go_error (sc, "type-error", "chan-close!: argument must be a channel", ch_arg);
   }
 
-  auto ch= get_goldfish_channel (sc, ch_arg);
   ch->close ();
   return s7_unspecified (sc);
 }
@@ -798,11 +794,11 @@ static s7_pointer
 f_chan_closed_p (s7_scheme* sc, s7_pointer args) {
   s7_pointer ch_arg= s7_car (args);
 
-  if (!is_goldfish_channel (sc, ch_arg)) {
+  auto ch= get_goldfish_channel (sc, ch_arg);
+  if (!ch) {
     return go_error (sc, "type-error", "chan-closed?: argument must be a channel", ch_arg);
   }
 
-  auto ch= get_goldfish_channel (sc, ch_arg);
   return s7_make_boolean (sc, ch->is_closed ());
 }
 
@@ -849,7 +845,8 @@ f_go_spawn (s7_scheme* sc, s7_pointer args) {
 
 static s7_pointer
 f_go_worker_count (s7_scheme* sc, s7_pointer args) {
-  return s7_make_integer (sc, static_cast<s7_int> (GoThreadPool::instance ().worker_count ()));
+  // 只返回配置值，不触发线程池构造
+  return s7_make_integer (sc, static_cast<s7_int> (configured_worker_count ()));
 }
 
 static s7_pointer

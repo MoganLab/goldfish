@@ -73,22 +73,17 @@ public:
 
   enum class SendStatus { Ok, Closed, Timeout };
 
-  enum class RecvStatus {
-    Ok,
-    Closed,
-    Timeout,
-    Empty // for non-blocking try_recv
-  };
+  enum class RecvStatus { Ok, Closed, Timeout };
 
   // timeout_ms < 0 means infinite wait
-  SendStatus send (const GFValue& val, int64_t timeout_ms= -1);
+  SendStatus send (GFValue val, int64_t timeout_ms= -1);
   RecvStatus recv (GFValue& out, int64_t timeout_ms= -1);
-  RecvStatus try_recv (GFValue& out);
+  // 非阻塞接收：等价于 recv (out, 0)
+  RecvStatus try_recv (GFValue& out) { return recv (out, 0); }
 
   void   close ();
   bool   is_closed () const;
   size_t get_capacity () const { return capacity; }
-  size_t size () const;
 
 private:
   struct RendezvousSender {
