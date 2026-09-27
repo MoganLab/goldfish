@@ -706,6 +706,7 @@ GoldfishChannel::send (GFValue val, int64_t timeout_ms) {
     RendezvousSender s;
     s.val= std::move (val);
     waiting_senders.push_back (&s);
+    notify_select_recv_ready (); // 出现 rendezvous 发送者，select 接收方可就绪
 
     if (timeout_ms < 0) {
       s.cv.wait (lock, [&s, this] () { return s.completed || closed; });
@@ -747,6 +748,7 @@ GoldfishChannel::send (GFValue val, int64_t timeout_ms) {
 
     buffer.push_back (std::move (val));
     cv_buf_recv.notify_one ();
+    notify_select_recv_ready (); // 缓冲有新数据，select 接收方可就绪
     return SendStatus::Ok;
   }
 }
@@ -776,6 +778,7 @@ GoldfishChannel::recv (GFValue& out, int64_t timeout_ms) {
     RendezvousReceiver r;
     r.out= &out;
     waiting_receivers.push_back (&r);
+    notify_select_send_ready (); // 出现 rendezvous 接收者，select 发送方可就绪
 
     if (timeout_ms < 0) {
       r.cv.wait (lock, [&r, this] () { return r.completed || closed; });
@@ -814,6 +817,7 @@ GoldfishChannel::recv (GFValue& out, int64_t timeout_ms) {
       out= std::move (buffer.front ());
       buffer.pop_front ();
       cv_buf_send.notify_one ();
+      notify_select_send_ready (); // 缓冲腾出空间，select 发送方可就绪
       return RecvStatus::Ok;
     }
 
@@ -841,12 +845,127 @@ GoldfishChannel::close () {
     r->cv.notify_one ();
   }
   waiting_receivers.clear ();
+
+  // 关闭使 select 的接收方（读出 eof）与发送方（报错）都就绪
+  notify_select_recv_ready ();
+  notify_select_send_ready ();
 }
 
 bool
 GoldfishChannel::is_closed () const {
   std::lock_guard<std::mutex> lock (mtx);
   return closed;
+}
+
+// ---------------------------------------------------------------------------
+// select wait-set 支持
+// ---------------------------------------------------------------------------
+
+// 前置：调用方持有 mtx。唤醒所有登记的可读等待者（只通知，不搬运数据）。
+void
+GoldfishChannel::notify_select_recv_ready () {
+  while (!select_recv_waiters.empty ()) {
+    SelectWaiter* w= select_recv_waiters.front ();
+    select_recv_waiters.pop_front ();
+    {
+      std::lock_guard<std::mutex> lk (w->mtx);
+      w->ready= true;
+    }
+    w->cv.notify_one ();
+  }
+}
+
+// 前置：调用方持有 mtx。唤醒所有登记的可写等待者。
+void
+GoldfishChannel::notify_select_send_ready () {
+  while (!select_send_waiters.empty ()) {
+    SelectWaiter* w= select_send_waiters.front ();
+    select_send_waiters.pop_front ();
+    {
+      std::lock_guard<std::mutex> lk (w->mtx);
+      w->ready= true;
+    }
+    w->cv.notify_one ();
+  }
+}
+
+// 前置：调用方持有 mtx。与 send (val, 0) 等价；成功时才移动 val。
+GoldfishChannel::SendStatus
+GoldfishChannel::try_send_unlocked (GFValue& val) {
+  if (closed) return SendStatus::Closed;
+  if (capacity == 0) {
+    if (!waiting_receivers.empty ()) {
+      RendezvousReceiver* r= waiting_receivers.front ();
+      waiting_receivers.pop_front ();
+      *(r->out)   = std::move (val);
+      r->completed= true;
+      r->cv.notify_one ();
+      return SendStatus::Ok;
+    }
+    return SendStatus::Timeout;
+  }
+  if (buffer.size () >= capacity) return SendStatus::Timeout;
+  buffer.push_back (std::move (val));
+  cv_buf_recv.notify_one ();
+  notify_select_recv_ready ();
+  return SendStatus::Ok;
+}
+
+// 前置：调用方持有 mtx。与 recv (out, 0) 等价。
+GoldfishChannel::RecvStatus
+GoldfishChannel::try_recv_unlocked (GFValue& out) {
+  if (capacity == 0) {
+    if (!waiting_senders.empty ()) {
+      RendezvousSender* s= waiting_senders.front ();
+      waiting_senders.pop_front ();
+      out         = std::move (s->val);
+      s->completed= true;
+      s->cv.notify_one ();
+      return RecvStatus::Ok;
+    }
+    return closed ? RecvStatus::Closed : RecvStatus::Timeout;
+  }
+  if (!buffer.empty ()) {
+    out= std::move (buffer.front ());
+    buffer.pop_front ();
+    cv_buf_send.notify_one ();
+    notify_select_send_ready ();
+    return RecvStatus::Ok;
+  }
+  return closed ? RecvStatus::Closed : RecvStatus::Timeout;
+}
+
+GoldfishChannel::SendStatus
+GoldfishChannel::select_try_send_or_wait (GFValue& val, SelectWaiter* w) {
+  std::unique_lock<std::mutex> lock (mtx);
+  SendStatus                   st= try_send_unlocked (val);
+  if (st == SendStatus::Timeout) {
+    select_send_waiters.push_back (w);
+  }
+  return st;
+}
+
+GoldfishChannel::RecvStatus
+GoldfishChannel::select_try_recv_or_wait (GFValue& out, SelectWaiter* w) {
+  std::unique_lock<std::mutex> lock (mtx);
+  RecvStatus                   st= try_recv_unlocked (out);
+  if (st == RecvStatus::Timeout) {
+    select_recv_waiters.push_back (w);
+  }
+  return st;
+}
+
+void
+GoldfishChannel::select_remove_waiter (SelectWaiter* w) {
+  std::lock_guard<std::mutex> lock (mtx);
+  auto                        rm= [w] (std::deque<SelectWaiter*>& q) {
+    for (auto it= q.begin (); it != q.end ();) {
+      if (*it == w) it= q.erase (it);
+      else ++it;
+    }
+  };
+  rm (select_recv_waiters);
+  rm (select_send_waiters);
 }
 
 // ---------------------------------------------------------------------------
@@ -1081,6 +1200,178 @@ f_go_worker_count (s7_scheme* sc, s7_pointer args) {
   return s7_make_integer (sc, static_cast<s7_int> (configured_worker_count ()));
 }
 
+// ---------------------------------------------------------------------------
+// select wait-set glue
+// ---------------------------------------------------------------------------
+
+namespace {
+
+struct SelectOutcome {
+  int         kind       = -2; // 0=recv 就绪, 1=send 就绪, -2=超时
+  int         index      = -1;
+  s7_pointer  value      = nullptr;
+  bool        closed_send= false;   // send 分支遇到已关闭通道
+  const char* err_kind   = nullptr; // 解析/序列化错误（raise 由外层无 RAII 区执行）
+  s7_pointer  err_arg    = nullptr;
+};
+
+SelectOutcome
+select_impl (s7_scheme* sc, s7_pointer recv_list, s7_pointer send_list, int64_t timeout_ms) {
+  SelectOutcome out;
+
+  // 提取 channel 与序列化 send 载荷（RAII 区，全部在本函数内析构）
+  std::vector<std::shared_ptr<GoldfishChannel>> recv_chs;
+  for (s7_pointer p= recv_list; s7_is_pair (p); p= s7_cdr (p)) {
+    auto ch= get_goldfish_channel (sc, s7_car (p));
+    if (!ch) {
+      out.err_kind   = "type-error";
+      out.err_arg    = s7_car (p);
+      t_serialize_err= "select: recv clause expects a channel";
+      return out;
+    }
+    recv_chs.push_back (std::move (ch));
+  }
+
+  std::vector<std::pair<std::shared_ptr<GoldfishChannel>, GFValue>> send_cases;
+  for (s7_pointer p= send_list; s7_is_pair (p); p= s7_cdr (p)) {
+    s7_pointer pair= s7_car (p);
+    auto       ch  = get_goldfish_channel (sc, s7_car (pair));
+    if (!ch) {
+      out.err_kind   = "type-error";
+      out.err_arg    = s7_car (pair);
+      t_serialize_err= "select: send clause expects a channel";
+      return out;
+    }
+    GFValue val;
+    if (!s7_to_gfvalue (sc, s7_cdr (pair), val, t_serialize_err)) {
+      out.err_kind= "type-error";
+      out.err_arg = s7_cdr (pair);
+      gfvalue_destroy_deep (val);
+      return out;
+    }
+    send_cases.push_back ({std::move (ch), std::move (val)});
+  }
+
+  SelectWaiter                  w;
+  std::vector<GoldfishChannel*> registered;
+  const auto deadline= std::chrono::steady_clock::now () + std::chrono::milliseconds (timeout_ms < 0 ? 0 : timeout_ms);
+
+  auto deregister_all= [&] () {
+    for (auto* ch : registered) {
+      ch->select_remove_waiter (&w);
+    }
+    registered.clear ();
+  };
+
+  bool done= false;
+  while (!done) {
+    // 快速路径：每个 channel 原子地"尝试非阻塞操作；不可行则登记等待"
+    for (size_t i= 0; i < recv_chs.size (); ++i) {
+      GFValue val;
+      auto    st= recv_chs[i]->select_try_recv_or_wait (val, &w);
+      if (st == GoldfishChannel::RecvStatus::Timeout) {
+        registered.push_back (recv_chs[i].get ());
+        continue;
+      }
+      out.kind = 0;
+      out.index= static_cast<int> (i);
+      out.value= (st == GoldfishChannel::RecvStatus::Closed) ? s7_eof_object (sc) : gfvalue_to_s7 (sc, val);
+      gfvalue_destroy_deep (val);
+      done= true;
+      break;
+    }
+    if (!done) {
+      for (size_t i= 0; i < send_cases.size (); ++i) {
+        GFValue tmp= send_cases[i].second; // 浅拷贝（shared_ptr），成功时才被消耗
+        auto    st = send_cases[i].first->select_try_send_or_wait (tmp, &w);
+        if (st == GoldfishChannel::SendStatus::Timeout) {
+          registered.push_back (send_cases[i].first.get ());
+          continue;
+        }
+        gfvalue_destroy_deep (tmp);
+        if (st == GoldfishChannel::SendStatus::Closed) {
+          out.closed_send= true;
+        }
+        else {
+          out.kind= 1;
+        }
+        out.index= static_cast<int> (i);
+        done     = true;
+        break;
+      }
+    }
+    if (done) break;
+    if (timeout_ms == 0) break; // 非阻塞语义（宏的 default 分支）
+
+    // 等待唤醒或超时（按绝对截止时间，竞争失败重试时不重复计费）
+    bool expired= false;
+    {
+      std::unique_lock<std::mutex> lk (w.mtx);
+      if (timeout_ms < 0) {
+        w.cv.wait (lk, [&w] () { return w.ready; });
+      }
+      else {
+        expired= !w.cv.wait_until (lk, deadline, [&w] () { return w.ready; });
+      }
+      w.ready= false;
+    }
+    deregister_all ();
+    if (expired) break; // out.kind 保持 -2 超时
+    // 被唤醒：回到快速路径重试（就绪事件可能被竞争者抢先消费，重试会重新登记）
+  }
+
+  deregister_all ();
+  for (auto& c : send_cases) {
+    gfvalue_destroy_deep (c.second);
+  }
+  return out;
+}
+
+} // namespace
+
+static s7_pointer
+f_select (s7_scheme* sc, s7_pointer args) {
+  s7_pointer recv_list  = s7_car (args);
+  s7_pointer send_list  = s7_cadr (args);
+  s7_pointer timeout_arg= s7_caddr (args);
+
+  // raise 安全区：只允许平凡局部变量存活（见 go_error 的 longjmp 约束注释）
+  if (!s7_is_list (sc, recv_list) || !s7_is_list (sc, send_list)) {
+    return go_error (sc, "type-error", "g_select: first two arguments must be lists", args);
+  }
+  if (!s7_is_integer (timeout_arg) || s7_integer (timeout_arg) < -1) {
+    return go_error (sc, "type-error", "g_select: timeout must be -1 (infinite) or non-negative milliseconds",
+                     timeout_arg);
+  }
+
+  SelectOutcome out= select_impl (sc, recv_list, send_list, s7_integer (timeout_arg));
+
+  if (out.err_kind != nullptr) {
+    return go_error (sc, out.err_kind, t_serialize_err.c_str (), out.err_arg);
+  }
+  if (out.closed_send) {
+    return go_error (sc, "value-error", "select: cannot send on closed channel", s7_nil (sc));
+  }
+  if (out.kind == -2) {
+    return s7_f (sc); // 超时
+  }
+  if (out.kind == 0) {
+    // recv 就绪：#(0 idx val)。out.value 未扎根，构建结果前先保护
+    s7_int     loc= s7_gc_protect (sc, out.value);
+    s7_pointer res= s7_make_vector (sc, 3);
+    s7_vector_set (sc, res, 0, s7_make_integer (sc, 0));
+    s7_vector_set (sc, res, 1, s7_make_integer (sc, out.index));
+    s7_vector_set (sc, res, 2, out.value);
+    s7_gc_unprotect_at (sc, loc);
+    return res;
+  }
+  // send 就绪：#(1 idx)
+  s7_pointer res= s7_make_vector (sc, 2);
+  s7_vector_set (sc, res, 0, s7_make_integer (sc, 1));
+  s7_vector_set (sc, res, 1, s7_make_integer (sc, out.index));
+  return res;
+}
+
 static s7_pointer
 f_chan_timeout_close (s7_scheme* sc, s7_pointer args) {
   s7_pointer ch_arg= s7_car (args);
@@ -1147,6 +1438,8 @@ glue_liii_go (s7_scheme* sc) {
   s7_define_function (sc, "g_worker-notify-error", f_worker_notify_error, 2, 0, false,
                       "(g_worker-notify-error tag args) => unspecified");
   s7_define_function (sc, "g_go-worker-count", f_go_worker_count, 0, 0, false, "(g_go-worker-count) => integer");
+  s7_define_function (sc, "g_select", f_select, 3, 0, false,
+                      "(g_select recv-chs send-pairs timeout-ms) => #(0 idx val) | #(1 idx) | #f");
   s7_define_function (sc, "g_chan-timeout-close!", f_chan_timeout_close, 2, 0, false,
                       "(g_chan-timeout-close! ch ms) => unspecified, closes ch after ms milliseconds");
   s7_define_function (sc, "g_msleep", f_msleep, 1, 0, false, "(g_msleep ms) => unspecified");

@@ -232,11 +232,7 @@
         (set! cases (reverse cases))
 
         ;; 预绑定各个分支的通道与发送表达式，确保只求值一次（符合 Go 语义）
-        (let ((poll-sym (gensym "poll"))
-              (start-sym (gensym "start"))
-              (pre-bindings '())
-              (parsed-cases '())
-             ) ;
+        (let ((result-sym (gensym "result")) (pre-bindings '()) (parsed-cases '()))
           (for-each
             (lambda (c)
               (let* ((action (car c)) (body (cdr c)) (op (car action)))
@@ -271,34 +267,75 @@
           (set! pre-bindings (reverse pre-bindings))
           (set! parsed-cases (reverse parsed-cases))
 
-          `(let* (,@pre-bindings (,start-sym (g_now-ms)))
-             (let ,poll-sym
-               ,()
-               ,(let build-cases
-                  ((rem parsed-cases))
-                  (if (pair? rem)
-                    (let* ((c (car rem))
-                           (kind (car c))
-                           (ch-sym (cadr c))
-                           (next-step (build-cases (cdr rem))))
-                      (if (eq? kind 'recv)
-                        (let ((var (caddr c))
-                              (body (cadddr c))
-                              (tag (gensym "empty")))
-                          `(let ((,var (chan-try-recv! ,ch-sym (quote ,tag))))
-                             (if (not (eq? ,var (quote ,tag)))
-                               (begin ,@body)
-                               ,next-step)))
-                        (let ((val-sym (caddr c)) (body (cadddr c)))
-                          `(if (chan-try-send! ,ch-sym ,val-sym)
-                             (begin ,@body)
-                             ,next-step))))
-                    (cond (default-branch `(begin ,@default-branch))
-                          (timeout-branch `(if (>= (- (g_now-ms) ,start-sym)
-                                                 ,timeout-ms)
-                                             (begin ,@timeout-branch)
-                                             (begin (g_msleep 1) (,poll-sym))))
-                          (else `(begin (g_msleep 1) (,poll-sym))))))))
+          ;; 分为 recv / send 两组，交给 C++ wait-set（g_select）事件驱动阻塞等待
+          (let ((recv-cases '()) (send-cases '()))
+            (for-each
+              (lambda (c)
+                (if (eq? (car c) 'recv)
+                  (set! recv-cases (append recv-cases (list c)))
+                  (set! send-cases (append send-cases (list c)))
+                ) ;if
+              ) ;lambda
+              parsed-cases
+            ) ;for-each
+
+            (let ((recv-dispatch
+                    (let loop
+                      ((rcs recv-cases) (i 0) (acc '()))
+                      (if (null? rcs)
+                        (reverse acc)
+                        (loop (cdr rcs)
+                          (+ i 1)
+                          (cons
+                            `((,i)
+                              ((lambda (,(caddr (car rcs)))
+                                 ,@(cadddr (car rcs)))
+                               (vector-ref ,result-sym ,2)))
+                            acc
+                          ) ;cons
+                        ) ;loop
+                      ) ;if
+                    ) ;let
+                  ) ;recv-dispatch
+                  (send-dispatch
+                    (let loop
+                      ((scs send-cases) (i 0) (acc '()))
+                      (if (null? scs)
+                        (reverse acc)
+                        (loop (cdr scs) (+ i 1) (cons `((,i)
+                                                        (begin
+                                                          ,@(cadddr (car scs)))) acc))
+                      ) ;if
+                    ) ;let
+                  ) ;send-dispatch
+                 ) ;
+              `(let* ,pre-bindings
+                 (let ((,result-sym
+                        (g_select (list ,@(map cadr recv-cases))
+                          (list ,@(map (lambda (c) `(cons ,(cadr c) ,(caddr c)))
+                                    send-cases))
+                          ,(cond (default-branch 0)
+                                 (timeout-branch timeout-ms)
+                                 (else -1)))))
+                   (if (not ,result-sym)
+                     ,(cond (default-branch `(begin ,@default-branch))
+                            (timeout-branch `(begin ,@timeout-branch))
+                            ;; 无 default/timeout 时 g_select 无限等待，不会走到这里
+                            (else '(begin)))
+                     (case (vector-ref ,result-sym ,0)
+                           ,@(if (pair? recv-cases)
+                               `(((0)
+                                  (case (vector-ref ,result-sym ,1)
+                                        ,@recv-dispatch)))
+                               '())
+                           ,@(if (pair? send-cases)
+                               `(((1)
+                                  (case (vector-ref ,result-sym ,1)
+                                        ,@send-dispatch)))
+                               '())
+                           (else (error 'fatal-error "select: unreachable"))))))
+            ) ;let
+          ) ;let
         ) ;let
       ) ;let
     ) ;define-macro

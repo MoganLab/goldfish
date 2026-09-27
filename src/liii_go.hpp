@@ -70,6 +70,14 @@ s7_pointer gfvalue_to_s7 (s7_scheme* sc, const GFValue& val);
 // （Windows 默认线程栈 1MB，十万层深的结构递归析构会崩溃）
 void gfvalue_destroy_deep (GFValue& root);
 
+// select wait-set：可同时挂到多个 channel 的等待者（仅就绪通知，不搬运数据，
+// 唤醒后由调用方重试实际操作）
+struct SelectWaiter {
+  std::mutex              mtx;
+  std::condition_variable cv;
+  bool                    ready= false;
+};
+
 class GoldfishChannel {
 public:
   explicit GoldfishChannel (size_t cap= 0) : capacity (cap), closed (false) {}
@@ -84,6 +92,11 @@ public:
   RecvStatus recv (GFValue& out, int64_t timeout_ms= -1);
   // 非阻塞接收：等价于 recv (out, 0)
   RecvStatus try_recv (GFValue& out) { return recv (out, 0); }
+
+  // select 支持：原子地"尝试非阻塞操作；不可行则登记等待者"
+  SendStatus select_try_send_or_wait (GFValue& val, SelectWaiter* w);
+  RecvStatus select_try_recv_or_wait (GFValue& out, SelectWaiter* w);
+  void       select_remove_waiter (SelectWaiter* w);
 
   void   close ();
   bool   is_closed () const;
@@ -102,6 +115,12 @@ private:
     std::condition_variable cv;
   };
 
+  // 前置条件：调用方持有 mtx
+  SendStatus try_send_unlocked (GFValue& val);
+  RecvStatus try_recv_unlocked (GFValue& out);
+  void       notify_select_recv_ready (); // 前置：持有 mtx
+  void       notify_select_send_ready (); // 前置：持有 mtx
+
   size_t             capacity; // 0: unbuffered (rendezvous), > 0: buffered
   bool               closed;
   mutable std::mutex mtx;
@@ -114,6 +133,10 @@ private:
   // Unbuffered channel synchronization (rendezvous queues)
   std::deque<RendezvousSender*>   waiting_senders;
   std::deque<RendezvousReceiver*> waiting_receivers;
+
+  // select wait-set 队列（只存指针，唤醒即摘出；超时方负责摘除自己）
+  std::deque<SelectWaiter*> select_recv_waiters;
+  std::deque<SelectWaiter*> select_send_waiters;
 };
 
 void        set_goldfish_lib_dir (const std::string& dir);
