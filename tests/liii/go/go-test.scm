@@ -40,4 +40,8 @@
 (check (pair? (member 16 collected)) => #t)
 (check (pair? (member 25 collected)) => #t)
 
+;; 3. go-spawn 参数错误路径（覆盖携带 RAII 对象的 raise 路径，Windows 回归）
+(check-catch 'value-error (g_go-spawn '(a) '() '(begin)))
+(check-catch 'type-error (g_go-spawn '(a) '(1) (lambda (x) x)))
+
 (check-report)

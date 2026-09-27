@@ -109,4 +109,7 @@
 (check-catch 'type-error (chan-close! "not-a-chan"))
 (check-catch 'type-error (chan-closed? "not-a-chan"))
 
+;; 8. 不可序列化值的错误路径（覆盖携带 RAII 对象的 raise 路径，Windows 回归）
+(check-catch 'type-error (chan-send! ch2 (lambda (x) x)))
+
 (check-report)

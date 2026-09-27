@@ -171,6 +171,15 @@ private:
 static std::mutex                             g_type_mtx;
 static std::unordered_map<s7_scheme*, s7_int> g_channel_type_tags;
 
+// 序列化错误消息缓冲（TLS，保证 go_error 抛出时该字符串仍然存活）
+static thread_local std::string t_serialize_err;
+
+// 重要约束：go_error 底层是 s7_error 的 longjmp，会直接跳过 C++ 栈帧上
+// RAII 对象的析构。Linux 下这只是泄漏，但 MSVC 的 longjmp 跳过非平凡析构
+// 对象会导致进程崩溃（已在 Windows CI 上以 access violation 复现）。
+// 因此本文件中所有 go_error 调用点必须保证当前函数帧内没有存活的 RAII
+// 对象：先用平凡局部变量做参数检查，RAII 操作收进内层作用域或辅助函数，
+// 错误在 RAII 对象析构之后抛出。
 static s7_pointer
 go_error (s7_scheme* sc, const char* kind, const char* msg, s7_pointer arg) {
   return s7_error (sc, s7_make_symbol (sc, kind), s7_list (sc, 2, s7_make_string (sc, msg), arg));
@@ -678,8 +687,8 @@ f_chan_send (s7_scheme* sc, s7_pointer args) {
   s7_pointer ch_arg = s7_car (args);
   s7_pointer val_arg= s7_cadr (args);
 
-  auto ch= get_goldfish_channel (sc, ch_arg);
-  if (!ch) {
+  // 以下检查点只允许平凡局部变量存活（见 go_error 的 longjmp 约束注释）
+  if (!is_goldfish_channel (sc, ch_arg)) {
     return go_error (sc, "type-error", "chan-send!: first argument must be a channel", ch_arg);
   }
 
@@ -693,13 +702,20 @@ f_chan_send (s7_scheme* sc, s7_pointer args) {
     timeout_ms= s7_integer (to_arg);
   }
 
-  GFValue     val;
-  std::string err_msg;
-  if (!s7_to_gfvalue (sc, val_arg, val, err_msg)) {
-    return go_error (sc, "type-error", err_msg.c_str (), val_arg);
+  // RAII 对象（GFValue/shared_ptr/string）限制在内层作用域，出作用域后再 raise
+  GoldfishChannel::SendStatus status= GoldfishChannel::SendStatus::Timeout;
+  bool                        ser_ok= false;
+  {
+    GFValue val;
+    ser_ok= s7_to_gfvalue (sc, val_arg, val, t_serialize_err);
+    if (ser_ok) {
+      status= get_goldfish_channel (sc, ch_arg)->send (std::move (val), timeout_ms);
+    }
   }
 
-  auto status= ch->send (std::move (val), timeout_ms);
+  if (!ser_ok) {
+    return go_error (sc, "type-error", t_serialize_err.c_str (), val_arg);
+  }
   if (status == GoldfishChannel::SendStatus::Closed) {
     return go_error (sc, "value-error", "chan-send!: cannot send on closed channel", ch_arg);
   }
@@ -713,8 +729,8 @@ static s7_pointer
 f_chan_recv (s7_scheme* sc, s7_pointer args) {
   s7_pointer ch_arg= s7_car (args);
 
-  auto ch= get_goldfish_channel (sc, ch_arg);
-  if (!ch) {
+  // raise 时只允许平凡局部变量存活（见 go_error 的 longjmp 约束注释）
+  if (!is_goldfish_channel (sc, ch_arg)) {
     return go_error (sc, "type-error", "chan-recv!: first argument must be a channel", ch_arg);
   }
 
@@ -735,6 +751,7 @@ f_chan_recv (s7_scheme* sc, s7_pointer args) {
     }
   }
 
+  auto    ch= get_goldfish_channel (sc, ch_arg);
   GFValue val;
   auto    status= ch->recv (val, timeout_ms);
 
@@ -751,8 +768,7 @@ static s7_pointer
 f_chan_try_recv (s7_scheme* sc, s7_pointer args) {
   s7_pointer ch_arg= s7_car (args);
 
-  auto ch= get_goldfish_channel (sc, ch_arg);
-  if (!ch) {
+  if (!is_goldfish_channel (sc, ch_arg)) {
     return go_error (sc, "type-error", "chan-try-recv!: first argument must be a channel", ch_arg);
   }
 
@@ -762,6 +778,7 @@ f_chan_try_recv (s7_scheme* sc, s7_pointer args) {
     default_val= s7_car (rest);
   }
 
+  auto    ch= get_goldfish_channel (sc, ch_arg);
   GFValue val;
   auto    status= ch->try_recv (val);
 
@@ -781,11 +798,11 @@ static s7_pointer
 f_chan_close (s7_scheme* sc, s7_pointer args) {
   s7_pointer ch_arg= s7_car (args);
 
-  auto ch= get_goldfish_channel (sc, ch_arg);
-  if (!ch) {
+  if (!is_goldfish_channel (sc, ch_arg)) {
     return go_error (sc, "type-error", "chan-close!: argument must be a channel", ch_arg);
   }
 
+  auto ch= get_goldfish_channel (sc, ch_arg);
   ch->close ();
   return s7_unspecified (sc);
 }
@@ -794,26 +811,30 @@ static s7_pointer
 f_chan_closed_p (s7_scheme* sc, s7_pointer args) {
   s7_pointer ch_arg= s7_car (args);
 
-  auto ch= get_goldfish_channel (sc, ch_arg);
-  if (!ch) {
+  if (!is_goldfish_channel (sc, ch_arg)) {
     return go_error (sc, "type-error", "chan-closed?: argument must be a channel", ch_arg);
   }
 
+  auto ch= get_goldfish_channel (sc, ch_arg);
   return s7_make_boolean (sc, ch->is_closed ());
 }
 
-static s7_pointer
-f_go_spawn (s7_scheme* sc, s7_pointer args) {
-  s7_pointer names_arg= s7_car (args);
-  s7_pointer vals_arg = s7_cadr (args);
-  s7_pointer code_arg = s7_caddr (args);
+struct SpawnError {
+  const char* kind= nullptr;
+  const char* msg = nullptr;
+  s7_pointer  arg = nullptr;
+};
 
+// 所有 RAII 对象（GoTask/GFValue/string）都在本函数帧内析构；
+// 调用方拿到错误信息后再 raise（见 go_error 的 longjmp 约束注释）。
+static SpawnError
+try_spawn_task (s7_scheme* sc, s7_pointer names_arg, s7_pointer vals_arg, s7_pointer code_arg) {
   GoTask     task;
   s7_pointer cur_name= names_arg;
   while (s7_is_pair (cur_name)) {
     s7_pointer sym= s7_car (cur_name);
     if (!s7_is_symbol (sym)) {
-      return go_error (sc, "type-error", "go: variable name must be a symbol", sym);
+      return {"type-error", "go: variable name must be a symbol", sym};
     }
     task.var_names.push_back (s7_symbol_name (sym));
     cur_name= s7_cdr (cur_name);
@@ -821,25 +842,33 @@ f_go_spawn (s7_scheme* sc, s7_pointer args) {
 
   s7_pointer cur_val= vals_arg;
   while (s7_is_pair (cur_val)) {
-    GFValue     val;
-    std::string err;
-    if (!s7_to_gfvalue (sc, s7_car (cur_val), val, err)) {
-      return go_error (sc, "type-error", err.c_str (), s7_car (cur_val));
+    GFValue val;
+    if (!s7_to_gfvalue (sc, s7_car (cur_val), val, t_serialize_err)) {
+      // t_serialize_err 是 TLS，在调用方 raise 时仍然有效
+      return {"type-error", t_serialize_err.c_str (), s7_car (cur_val)};
     }
     task.var_vals.push_back (std::move (val));
     cur_val= s7_cdr (cur_val);
   }
 
   if (task.var_names.size () != task.var_vals.size ()) {
-    return go_error (sc, "value-error", "go: variable names and values count mismatch", names_arg);
+    return {"value-error", "go: variable names and values count mismatch", names_arg};
   }
 
-  std::string err;
-  if (!s7_to_gfvalue (sc, code_arg, task.code_expr, err)) {
-    return go_error (sc, "type-error", err.c_str (), code_arg);
+  if (!s7_to_gfvalue (sc, code_arg, task.code_expr, t_serialize_err)) {
+    return {"type-error", t_serialize_err.c_str (), code_arg};
   }
 
   GoThreadPool::instance ().enqueue (std::move (task));
+  return {};
+}
+
+static s7_pointer
+f_go_spawn (s7_scheme* sc, s7_pointer args) {
+  SpawnError err= try_spawn_task (sc, s7_car (args), s7_cadr (args), s7_caddr (args));
+  if (err.kind != nullptr) {
+    return go_error (sc, err.kind, err.msg, err.arg);
+  }
   return s7_unspecified (sc);
 }
 
