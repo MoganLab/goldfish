@@ -867,18 +867,10 @@ f_debug_crash (s7_scheme* sc, s7_pointer args) {
 
 static s7_pointer
 f_make_chan (s7_scheme* sc, s7_pointer args) {
-  fprintf (stderr, "[TRACE] f_make_chan enter\n");
-  fflush (stderr);
   s7_int cap= 0;
   if (!s7_is_null (sc, args)) {
-    fprintf (stderr, "[TRACE] f_make_chan has args\n");
-    fflush (stderr);
     s7_pointer cap_arg= s7_car (args);
-    fprintf (stderr, "[TRACE] f_make_chan car ok, is_integer=%d\n", (int) s7_is_integer (cap_arg));
-    fflush (stderr);
     if (!s7_is_integer (cap_arg) || s7_integer (cap_arg) < 0) {
-      fprintf (stderr, "[TRACE] f_make_chan before go_error\n");
-      fflush (stderr);
       return go_error (sc, "type-error", "make-chan: capacity must be a non-negative integer", cap_arg);
     }
     cap= s7_integer (cap_arg);
