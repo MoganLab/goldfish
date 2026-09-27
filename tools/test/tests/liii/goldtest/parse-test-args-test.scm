@@ -3,12 +3,12 @@
 (set! *load-path* (cons "tools/goldtest" *load-path*))
 
 (import (liii check)
-        (liii string)
-        (liii path)
-        (liii sys)
-        (liii list)
-        (liii os)
-        (liii goldtest)
+  (liii string)
+  (liii path)
+  (liii sys)
+  (liii list)
+  (liii os)
+  (liii goldtest)
 ) ;import
 
 ;; ============================================================
@@ -58,123 +58,162 @@
 ;; ===== 场景2: 存在的文件路径 =====
 ;; 路径包含 / 且 path-file? 返回 #t -> type='file
 (check (parse-test-args '("bin/gf" "tests/liii/json-test.scm"))
-  => (if (path-file? "tests/liii/json-test.scm")
-         '(file . "tests/liii/json-test.scm")
-         ;; 如果文件不存在，按 pattern 处理
-         '(pattern . "tests/liii/json-test.scm"))
+  =>
+  (if (path-file? "tests/liii/json-test.scm")
+    '(file . "tests/liii/json-test.scm")
+    ;; 如果文件不存在，按 pattern 处理
+    '(pattern . "tests/liii/json-test.scm")
+  ) ;if
 ) ;check
 
 ;; ===== 场景3: 存在的目录路径 =====
 ;; 路径包含 / 且 path-dir? 返回 #t -> type='dir
 ;; 返回原始路径（相对路径或绝对路径）
 (check (parse-test-args '("bin/gf" "tests/liii/"))
-  => (if (path-dir? "tests/liii/")
-         '(dir . "tests/liii/")
-         ;; 如果目录不存在，按 pattern 处理
-         '(pattern . "tests/liii/"))
+  =>
+  (if (path-dir? "tests/liii/")
+    '(dir . "tests/liii/")
+    ;; 如果目录不存在，按 pattern 处理
+    '(pattern . "tests/liii/")
+  ) ;if
 ) ;check
 
 (check (parse-test-args '("bin/gf" "tests/liii"))
-  => (if (path-dir? "tests/liii")
-         '(dir . "tests/liii")
-         '(pattern . "tests/liii"))
+  =>
+  (if (path-dir? "tests/liii") '(dir . "tests/liii") '(pattern . "tests/liii"))
 ) ;check
 
 ;; ===== 场景4: 不存在的路径 =====
 ;; 路径包含 / 但既不是文件也不是目录 -> type='pattern
 (check (parse-test-args '("bin/gf" "nonexistent/path/test.scm"))
-  => (if (or (path-file? "nonexistent/path/test.scm")
-             (path-dir? "nonexistent/path/test.scm"))
-         ;; 如果存在，按 file 或 dir 处理
-         (if (path-file? "nonexistent/path/test.scm")
-             '(file . "nonexistent/path/test.scm")
-             '(dir . "nonexistent/path/test.scm")
-         ) ;if
-         ;; 如果不存在，按 pattern 处理
-         '(pattern . "nonexistent/path/test.scm"))
+  =>
+  (if (or (path-file? "nonexistent/path/test.scm")
+        (path-dir? "nonexistent/path/test.scm")
+      ) ;or
+    ;; 如果存在，按 file 或 dir 处理
+    (if (path-file? "nonexistent/path/test.scm")
+      '(file . "nonexistent/path/test.scm")
+      '(dir . "nonexistent/path/test.scm")
+    ) ;if
+    ;; 如果不存在，按 pattern 处理
+    '(pattern . "nonexistent/path/test.scm")
+  ) ;if
 ) ;check
 
 ;; ===== 场景5: .scm 文件名（无路径） =====
 ;; 以 .scm 结尾但不包含 / -> type='filename
 (check (parse-test-args '("bin/gf" "json-test.scm"))
-  => '(filename . "json-test.scm")
+  =>
+  '(filename . "json-test.scm")
 ) ;check
 
 (check (parse-test-args '("bin/gf" "list-test.scm"))
-  => '(filename . "list-test.scm")
+  =>
+  '(filename . "list-test.scm")
 ) ;check
 
 ;; ===== 场景6: 普通字符串（模糊匹配） =====
 ;; 不包含 / 且不以 .scm 结尾 -> type='pattern
-(check (parse-test-args '("bin/gf" "json"))
-  => '(pattern . "json")
-) ;check
+(check (parse-test-args '("bin/gf" "json")) => '(pattern . "json"))
 
-(check (parse-test-args '("bin/gf" "liii"))
-  => '(pattern . "liii")
-) ;check
+(check (parse-test-args '("bin/gf" "liii")) => '(pattern . "liii"))
 
 ;; ===== 场景7: 跳过 test 命令本身 =====
-(check (parse-test-args '("bin/gf" "test" "json"))
-  => '(pattern . "json")
-) ;check
+(check (parse-test-args '("bin/gf" "test" "json")) => '(pattern . "json"))
 
 ;; ===== 场景8: 跳过 -m 和模式值 =====
-(check (parse-test-args '("bin/gf" "-m" "r7rs" "json"))
-  => '(pattern . "json")
-) ;check
+(check (parse-test-args '("bin/gf" "-m" "r7rs" "json")) => '(pattern . "json"))
 
 (check (parse-test-args '("bin/gf" "--mode" "liii" "json-test.scm"))
-  => '(filename . "json-test.scm")
+  =>
+  '(filename . "json-test.scm")
 ) ;check
 
 ;; ===== 场景9: 跳过 -m=... 格式 =====
-(check (parse-test-args '("bin/gf" "-m=r7rs" "json"))
-  => '(pattern . "json")
-) ;check
+(check (parse-test-args '("bin/gf" "-m=r7rs" "json")) => '(pattern . "json"))
 
 ;; ===== 场景10: 复杂命令行 =====
 (check (parse-test-args '("bin/gf" "-m" "r7rs" "test" "tests/liii/json-test.scm"))
-  => (if (path-file? "tests/liii/json-test.scm")
-         '(file . "tests/liii/json-test.scm")
-         '(pattern . "tests/liii/json-test.scm"))
+  =>
+  (if (path-file? "tests/liii/json-test.scm")
+    '(file . "tests/liii/json-test.scm")
+    '(pattern . "tests/liii/json-test.scm")
+  ) ;if
 ) ;check
 
 ;; ===== 场景11: 带 ./ 的相对路径 =====
 (check (parse-test-args '("bin/gf" "./tests/liii/json-test.scm"))
-  => (if (path-file? "./tests/liii/json-test.scm")
-         '(file . "./tests/liii/json-test.scm")
-         '(pattern . "./tests/liii/json-test.scm"))
+  =>
+  (if (path-file? "./tests/liii/json-test.scm")
+    '(file . "./tests/liii/json-test.scm")
+    '(pattern . "./tests/liii/json-test.scm")
+  ) ;if
 ) ;check
 
 ;; ===== 场景12: 绝对路径 =====
 (check (parse-test-args '("bin/gf" "/tmp/test.scm"))
-  => (if (path-file? "/tmp/test.scm")
-         '(file . "/tmp/test.scm")
-         '(pattern . "/tmp/test.scm"))
+  =>
+  (if (path-file? "/tmp/test.scm")
+    '(file . "/tmp/test.scm")
+    '(pattern . "/tmp/test.scm")
+  ) ;if
 ) ;check
 
 
 (check (parse-test-args '("bin/gf" "--mode=liii" "json"))
-  => '(pattern . "json")
+  =>
+  '(pattern . "json")
 ) ;check
 
 
 ;; ===== 场景13: --changed-since 不作为测试目标 =====
 (check (parse-test-args '("bin/gf" "test" "--changed-since=HEAD" "json"))
-  => '(pattern . "json")
+  =>
+  '(pattern . "json")
 ) ;check
 
-(check (parse-test-args '("bin/gf" "test" "--changed-since" "HEAD" "json-test.scm"))
-  => '(filename . "json-test.scm")
+(check (parse-test-args '("bin/gf" "test" "--changed-since" "HEAD"
+                          "json-test.scm"))
+  =>
+  '(filename . "json-test.scm")
 ) ;check
 
 (check (parse-test-changed-since '("bin/gf" "test" "--changed-since=HEAD" "json"))
-  => "HEAD"
+  =>
+  "HEAD"
 ) ;check
 
-(check (parse-test-changed-since '("bin/gf" "test" "--changed-since" "HEAD" "json"))
-  => "HEAD"
+(check (parse-test-changed-since '("bin/gf" "test" "--changed-since" "HEAD"
+                                   "json"))
+  =>
+  "HEAD"
+) ;check
+
+
+(check (parse-test-changed-since '("bin/gf" "test" "--changed-since" "HEAD"
+                                   "json"))
+  =>
+  "HEAD"
+) ;check
+
+;; ===== 场景14: -j / --jobs 选项解析 =====
+(check (parse-test-jobs '("bin/gf" "test")) => 1)
+(check (parse-test-jobs '("bin/gf" "test" "-j" "4" "json")) => 4)
+(check (parse-test-jobs '("bin/gf" "test" "-j" "10")) => 10)
+(check (parse-test-jobs '("bin/gf" "test" "--jobs=8")) => 8)
+(check (parse-test-jobs '("bin/gf" "test" "-j=16")) => 16)
+(check (parse-test-jobs '("bin/gf" "test" "-j" "0")) => 1)
+(check (parse-test-jobs '("bin/gf" "test" "-j" "-2")) => 1)
+
+;; -j 不影响目标位置参数识别
+(check (parse-test-args '("bin/gf" "test" "-j" "4" "json"))
+  =>
+  '(pattern . "json")
+) ;check
+
+(check (parse-test-args '("bin/gf" "test" "-j=4" "json-test.scm"))
+  =>
+  '(filename . "json-test.scm")
 ) ;check
 
 
