@@ -45,7 +45,7 @@ jobs:
       - name: config
         run: xmake config --yes -vD
       - name: build
-        run: xmake build --yes -vD goldfish
+        run: xmake build --yes -vD gf-native
       - name: test tools/fmt
         run: bin/gf test tools/fmt/tests
       - name: test tools/doc
@@ -54,4 +54,3 @@ jobs:
         run: bin/gf test tools/fix/tests
       - name: test --all
         run: bin/gf test --all
-

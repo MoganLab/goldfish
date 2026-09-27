@@ -82,7 +82,7 @@ jobs:
       - name: config
         run: xmake config -vD --policies=build.ccache -o tmp/build -m releasedbg --yes
       - name: build
-        run: xmake build --yes -vD goldfish
+        run: xmake build --yes -vD gf-native
 
       - name: Run gf fmt --check (C++ + Scheme)
         run: bin/gf fmt --check

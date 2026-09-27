@@ -62,7 +62,7 @@ jobs:
         run: xmake config -vD --policies=build.ccache -o tmp/build -m releasedbg --yes
 
       - name: build
-        run: xmake build --yes -vD goldfish
+        run: xmake build --yes -vD gf-native
 
       - name: run tools/fmt tests
         run: bin/gf test tools/fmt/tests
@@ -72,4 +72,3 @@ jobs:
         run: bin/gf test tools/fix/tests
       - name: run tests --all
         run: bin/gf test --all
-

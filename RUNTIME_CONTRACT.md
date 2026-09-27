@@ -290,7 +290,12 @@ reader 继续只负责 lowered datum/artifact，不扩展成完整的源码 read
    工作流使用默认 `gf`。
 2. **稳定默认路径**：验证 CLI、测试运行器、source bootstrap、warm/cold cache
    和代表性库工作流均由 native 执行，同时保留 host 回退入口。切换与删除
-   vendored s7 不合并为一个不可回退的改动。
+   vendored s7 不合并为一个不可回退的改动。构建和发行入口已切到 native：
+   xmake 默认目标、kernel 维护目标、xpack、Nix package 和仓库构建 workflow
+   均构建/安装 `gf-native`（`bin/gf`）；`goldfish` / `gf-host` 仍可显式构建，
+   仅供迁移期 oracle 使用。2026-09-28 在 `--repl=n` 配置下重跑 native C3
+   gate，9/9 通过；`xmake install gf-native` 的安装目录可执行 `gf -e '(+ 1 2)'`
+   并返回 `3`。本机缺少 `debuild`，因此未生成 Debian 包文件。
 3. **关闭删除 s7 前的审核项**：已取得 `match-capability-test.scm` 的
    host/native 成对通过结果（2026-09-28）；复核 C2 记录的时效性，并把已知
    52 项 defer 和 2 项 exclude 明确作为首轮 native cutover 的接受范围。

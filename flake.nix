@@ -1,5 +1,5 @@
 {
-  description = "R7RS-small scheme implementation based on s7 scheme";
+  description = "R7RS-small Scheme implementation with a native runtime";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
@@ -53,17 +53,10 @@
                   meta.platforms = prev.meta.platforms ++ pkgs.lib.platforms.windows;
                 }
               );
-              isocline = pkgs.callPackage ./pkgs/isocline.nix { };
-              s7 = (pkgs.callPackage ./pkgs/s7.nix { }).override {
-                inherit static;
-                withGMP = false;
-                withArb = false;
-                withNrepl = false;
-              };
             in
             pkgs.callPackage ./pkgs/goldfish.nix {
               inherit static;
-              inherit isocline s7 tbox;
+              inherit tbox;
             };
         in
         {
@@ -86,7 +79,7 @@
 
           apps =
             let
-              getGoldfish = lib.flip lib.getExe' "goldfish";
+              getGoldfish = lib.flip lib.getExe' "gf";
               mkGoldfishApp = pkg: {
                 type = "app";
                 program = getGoldfish pkg;

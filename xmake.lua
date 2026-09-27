@@ -20,8 +20,8 @@ option("tbox")
 option_end()
 
 option("repl")
-    set_description("Enable REPL (isocline) support")
-    set_default(true)
+    set_description("Enable the legacy host REPL (native REPL is independent)")
+    set_default(false)
     set_values(false, true)
 option_end()
 
@@ -72,10 +72,12 @@ end
 end
 
 local IC_VERSION = "v1.0.9"
-if has_config("pin-deps") then
-    add_requires("isocline " .. IC_VERSION, {system=system})
-else
-    add_requires("isocline", {system=system})
+if has_config("repl") then
+    if has_config("pin-deps") then
+        add_requires("isocline " .. IC_VERSION, {system=system})
+    else
+        add_requires("isocline", {system=system})
+    end
 end
 
 -- local header only dependency, no need to (un)pin version
@@ -116,6 +118,27 @@ local function add_native_bootstrap_sources()
     add_files("src/runtime/unicode_primitives.cpp")
     add_files("src/runtime/artifact.cpp")
     add_files("src/runtime/bootstrap.cpp")
+end
+
+local function add_goldfish_install_files()
+    -- Scheme sources and tooling shipped with the native executable.
+    add_installfiles("$(projectdir)/goldfish/(core/*.scm)", {prefixdir = "share/goldfish"})
+    add_installfiles("$(projectdir)/goldfish/(expander/kernel-combined.scm)", {prefixdir = "share/goldfish/expander"})
+    add_installfiles("$(projectdir)/goldfish/(expander/bootstrap-prelude.scm)", {prefixdir = "share/goldfish/expander"})
+    add_installfiles("$(projectdir)/goldfish/(expander/lib/*.scm)", {prefixdir = "share/goldfish/expander/lib"})
+    add_installfiles("$(projectdir)/goldfish/(expander/tree-il.scm)", {prefixdir = "share/goldfish/expander"})
+    add_installfiles("$(projectdir)/goldfish/(compiler/*.scm)", {prefixdir = "share/goldfish"})
+    add_installfiles("$(projectdir)/goldfish/(compiler.scm)", {prefixdir = "share/goldfish"})
+    add_installfiles("$(projectdir)/goldfish/(compiler/syntax-ir.scm)", {prefixdir = "share/goldfish"})
+    add_installfiles("$(projectdir)/goldfish/(scheme/*.scm)", {prefixdir = "share/goldfish"})
+    add_installfiles("$(projectdir)/goldfish/(srfi/*.scm)", {prefixdir = "share/goldfish"})
+    add_installfiles("$(projectdir)/goldfish/(liii/*.scm)", {prefixdir = "share/goldfish"})
+    add_installfiles("$(projectdir)/goldfish/(liii/path/*.scm)", {prefixdir = "share/goldfish"})
+    add_installfiles("$(projectdir)/goldfish/(guenchi/*.scm)", {prefixdir = "share/goldfish"})
+    add_installfiles("$(projectdir)/gfproject.scm", {prefixdir = "share/goldfish"})
+    add_installfiles("$(projectdir)/node-rules.json", {prefixdir = "share/goldfish"})
+    add_installfiles("$(projectdir)/(tools/**)", {prefixdir = "share/goldfish"})
+    add_installfiles("$(projectdir)/(tests/**)", {prefixdir = "share/goldfish"})
 end
 
 target ("goldfish") do
@@ -216,29 +239,6 @@ target ("goldfish") do
         add_defines("GOLDFISH_WITH_REPL")
     end
 
-    -- L2 core-format : gfo + ir (tree-il) shared IR, loaded before the kernel
-    add_installfiles("$(projectdir)/goldfish/(core/*.scm)", {prefixdir = "share/goldfish"})
-    -- L3 expander-rt : self-contained kernel artifact only -- kernel sources
-    -- and build-combined.scm are build-time material, not shipped
-    add_installfiles("$(projectdir)/goldfish/(expander/kernel-combined.scm)", {prefixdir = "share/goldfish/expander"})
-    add_installfiles("$(projectdir)/goldfish/(expander/bootstrap-prelude.scm)", {prefixdir = "share/goldfish/expander"})
-    -- L4 expander-lib : tree-il bridge (goldfish/expander/tree-il.scm) lives here, no compiler/vm import except core/ir
-    add_installfiles("$(projectdir)/goldfish/(expander/lib/*.scm)", {prefixdir = "share/goldfish/expander/lib"})
-    add_installfiles("$(projectdir)/goldfish/(expander/tree-il.scm)", {prefixdir = "share/goldfish/expander"})
-    -- L5 compiler : pure, only core/ir allowed from L2
-    add_installfiles("$(projectdir)/goldfish/(compiler/*.scm)", {prefixdir = "share/goldfish"})
-    add_installfiles("$(projectdir)/goldfish/(compiler.scm)", {prefixdir = "share/goldfish"})
-    add_installfiles("$(projectdir)/goldfish/(compiler/syntax-ir.scm)", {prefixdir = "share/goldfish"})
-    -- user Scheme libs (r7rs + liii + guenchi, all via expander)
-    add_installfiles("$(projectdir)/goldfish/(scheme/*.scm)", {prefixdir = "share/goldfish"})
-    add_installfiles("$(projectdir)/goldfish/(srfi/*.scm)", {prefixdir = "share/goldfish"})
-    add_installfiles("$(projectdir)/goldfish/(liii/*.scm)", {prefixdir = "share/goldfish"})
-    add_installfiles("$(projectdir)/goldfish/(liii/path/*.scm)", {prefixdir = "share/goldfish"})
-    add_installfiles("$(projectdir)/goldfish/(guenchi/*.scm)", {prefixdir = "share/goldfish"})
-    add_installfiles("$(projectdir)/gfproject.scm", {prefixdir = "share/goldfish"})
-    add_installfiles("$(projectdir)/node-rules.json", {prefixdir = "share/goldfish"})
-    add_installfiles("$(projectdir)/(tools/**)", {prefixdir = "share/goldfish"})
-    add_installfiles("$(projectdir)/(tests/**)", {prefixdir = "share/goldfish"})
 end
 
 target("lint-layer")
@@ -257,7 +257,7 @@ target_end()
 target("kernel")
     set_kind("phony")
     set_default(false)
-    add_deps("goldfish")
+    add_deps("gf-native")
     on_build(function (target)
         os.exec("sh tools/build-kernel.sh")
     end)
@@ -266,7 +266,7 @@ target_end()
 target("verify-kernel")
     set_kind("phony")
     set_default(false)
-    add_deps("goldfish")
+    add_deps("gf-native")
     on_build(function (target)
         os.exec("sh tools/verify-kernel.sh")
     end)
@@ -365,6 +365,7 @@ target_end()
 
 target("gf-native")
     set_kind("binary")
+    set_default(true)
     set_targetdir("$(projectdir)/bin/")
     set_basename("gf")
     set_languages("c++17")
@@ -376,6 +377,7 @@ target("gf-native")
     add_native_bootstrap_sources()
     add_deps("bdwgc")
     add_packages("tbox")
+    add_goldfish_install_files()
 target_end()
 
 target("native-test")
@@ -431,7 +433,7 @@ xpack ("goldfish")
     set_title("Goldfish Scheme")
     set_description("A Python-like Scheme Interpreter") 
     set_homepage("https://gitee.com/LiiiLabs/goldfish")
-    add_targets ("goldfish")
+    add_targets ("gf-native")
     add_sourcefiles("(xmake/**)")
     add_sourcefiles("xmake.lua")
     add_sourcefiles("(src/**)")

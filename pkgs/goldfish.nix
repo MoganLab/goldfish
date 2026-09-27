@@ -5,9 +5,7 @@
   buildPackages,
   windows,
 
-  s7,
   tbox,
-  isocline,
 
   static ? false,
 }:
@@ -24,9 +22,7 @@ stdenv.mkDerivation {
     (writers.writeBashBin "git" "exit 0")
   ];
   buildInputs = [
-    s7
     tbox
-    isocline
   ]
   ++ lib.optional stdenv.hostPlatform.isMinGW windows.pthreads;
 
@@ -43,7 +39,7 @@ stdenv.mkDerivation {
     export HOME=$(mktemp -d)
     xmake global --network=private
     xmake config -m release --yes -vD \
-      --repl=y --ccache=n             \
+      --repl=n --ccache=n             \
       --system-deps=y --pin-deps=n    \
     ${lib.optionalString stdenv.hostPlatform.isMinGW ''
       --toolchain=mingw --mingw=${stdenv.cc.outPath}
@@ -53,7 +49,7 @@ stdenv.mkDerivation {
 
   buildPhase = ''
     runHook preBuild
-    xmake build --yes -j $NIX_BUILD_CORES -vD goldfish
+    xmake build --yes -j $NIX_BUILD_CORES -vD gf-native
     runHook postBuild
   '';
 
@@ -63,21 +59,21 @@ stdenv.mkDerivation {
     # workaround for xmake cannot use system deps
     # when cross platform was set
     ${lib.optionalString stdenv.hostPlatform.isMinGW ''
-      mv bin/goldfish.exe bin/goldfish
+      mv bin/gf.exe bin/gf
     ''}
-    xmake install -vD -o $out goldfish
+    xmake install -vD -o $out gf-native
     ${lib.optionalString stdenv.hostPlatform.isMinGW ''
-      mv $out/bin/goldfish $out/bin/goldfish.exe
+      mv $out/bin/gf $out/bin/gf.exe
     ''}
 
     runHook postInstall
   '';
 
   meta = {
-    description = "R7RS-small scheme implementation based on s7 scheme";
+    description = "R7RS-small Scheme implementation with a native runtime";
     homepage = "https://gitee.com/XmacsLabs/goldfish";
     license = lib.licenses.asl20;
-    mainProgram = "goldfish";
+    mainProgram = "gf";
     platforms = lib.platforms.all;
     maintainers = with lib.maintainers; [ jinser ];
   };
