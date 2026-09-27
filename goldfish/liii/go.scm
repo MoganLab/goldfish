@@ -23,11 +23,12 @@
     (liii hash-table)
     (liii queue)
   ) ;import
-  (export go go-worker-count make-chan chan? chan-send! chan-recv!
-    chan-try-recv! chan-try-send! chan-close! chan-closed? select make-context
-    make-timeout-context context? context-done? context-cancel! context-channel
-    spawn-fiber fiber-yield! fiber-scheduler-run! make-fiber-chan fiber-chan?
-    fiber-send! fiber-recv! fiber-chan-recv! fiber-chan-send!
+  (export go go-worker-count go-result go-result-recv! make-chan chan?
+    chan-send! chan-recv! chan-try-recv! chan-try-send! chan-close! chan-closed?
+    select make-context make-timeout-context context? context-done?
+    context-cancel! context-channel spawn-fiber fiber-yield!
+    fiber-scheduler-run! make-fiber-chan fiber-chan? fiber-send! fiber-recv!
+    fiber-chan-recv! fiber-chan-send!
   ) ;export
   (begin
     (define make-chan (case-lambda (() (g_make-chan 0)) ((cap) (g_make-chan cap))))
@@ -254,6 +255,60 @@
         `(g_go-spawn (quote ,vars) (list ,@vars) (quote (begin ,@body)))
         `(g_go-spawn '() '() (quote (begin ,vars ,@body)))
       ) ;if
+    ) ;define-macro
+
+    ;; -----------------------------------------------------------------------
+    ;; go-result：带结果回传的 go。worker 执行完毕（含异常路径）后把结果送入
+    ;; 缓冲 1 的结果 channel，接收端不会因任务异常而永久死等。
+    ;; 结果对象协议：(ok value) | (error tag args)
+    ;; -----------------------------------------------------------------------
+
+    (define *go-result-timeout-sentinel* (cons #f #f))
+
+    (define (%go-result-unwrap r)
+      (cond
+       ((and (pair? r) (eq? (car r) 'ok) (pair? (cdr r))) (cadr r))
+       ((and (pair? r) (eq? (car r) 'error) (pair? (cdr r)))
+        (apply error (cadr r) (caddr r))
+       ) ;
+       (else (error 'type-error "go-result-recv!: invalid result object" r))
+      ) ;cond
+    ) ;define
+
+    (define go-result-recv!
+      (case-lambda
+       ((ch) (%go-result-unwrap (chan-recv! ch)))
+       ((ch timeout-ms)
+        (let ((r (chan-recv! ch timeout-ms *go-result-timeout-sentinel*)))
+          (if (eq? r *go-result-timeout-sentinel*)
+            (error 'timeout-error
+              "go-result-recv!: timed out waiting for result"
+              timeout-ms
+            ) ;error
+            (%go-result-unwrap r)
+          ) ;if
+        ) ;let
+       ) ;
+      ) ;case-lambda
+    ) ;define
+
+    (define-macro (go-result vars . body)
+      (let ((rc (gensym "rc"))
+            (real-vars (if (list? vars) vars '()))
+            (real-body (if (list? vars) body (cons vars body)))
+           ) ;
+        ;; 内层 catch 覆盖"返回值/异常参数不可序列化"的失败：降级为 stderr 报告
+        ;; （*go-err-handler* 只在 worker 会话中定义，此处引用不会出现在主会话）
+        `(let ((,rc (make-chan 1)))
+           (go (,@real-vars ,rc)
+             (catch ,#t
+               (lambda ,() (chan-send! ,rc (list 'ok (begin ,@real-body))))
+               (lambda (tag args)
+                 (catch ,#t
+                   (lambda ,() (chan-send! ,rc (list 'error tag args)))
+                   (lambda (t2 a2) (*go-err-handler* t2 a2))))))
+           ,rc)
+      ) ;let
     ) ;define-macro
 
     (define-macro (select . clauses)

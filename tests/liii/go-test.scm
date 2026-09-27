@@ -30,6 +30,8 @@
 ;; ==== 并发任务 ====
 ;;
 ;; - go : 将代码调度到后台 worker 线程池并发执行
+;; - go-result : 同 go，但返回结果 channel（(ok value) | (error tag args)），异常不死等
+;; - go-result-recv! : 接收并拆包结果 channel，任务出错时重抛原异常
 ;; - go-worker-count : 查询 worker 线程数（等于硬件核心数）
 ;;
 ;; ==== Context（协作式任务取消）====

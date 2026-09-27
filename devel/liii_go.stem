@@ -169,6 +169,15 @@
                    ) ;concat
                  ) ;document
       ) ;enumerate
+      (subsection* "5.6 已完成：go 任务异常传递机制（go-result）")
+      (enumerate (document (concat (item)
+                             "【结果 channel 协议】新增 go-result 宏与 go-result-recv! 函数（纯 Scheme 实现，复用现有 GFValue 序列化，channel 作为捕获变量传入 worker）：任务结束（正常或异常）都向缓冲 1 的结果 channel 送入 (ok value) | (error tag args)，消除接收端因任务异常永久死等的风险。"
+                           ) ;concat
+                   (concat (item)
+                     "【异常重抛】go-result-recv! 拆包结果：正常返回值直接取出，任务异常在接收端以原 tag 重抛（check-catch 可捕获），支持可选超时（到期抛 timeout-error）；结果/异常参数序列化失败时降级为 stderr 报告（复用 worker 的 *go-err-handler*）。测试用例 tests/liii/go/go-result-test.scm（6 checks）与 go-result-recv-bang-test.scm（6 checks）。"
+                   ) ;concat
+                 ) ;document
+      ) ;enumerate
       (section* "6 Why")
       "现代硬件普及多核处理器，而 Goldfish 目前的标准执行流局限于单核单线程。"
       "S7 解释器单实例并非线程安全，若采用传统的全局解释器锁（GIL）进行共享内存多线程，无法真正发挥多核并行计算能力。通过借鉴 Go 语言的 CSP 模型（Communicating Sequential Processes），结合 S7 独立多实例的特性，每个工作线程独占一个解释器 Session，通道作为一等公民在独立的解释器线程之间传递数据，既天然免疫数据竞争与死锁，又能以最高效、低心智负担的方式充分释放多核硬件性能。"
