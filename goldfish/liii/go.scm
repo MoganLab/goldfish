@@ -107,6 +107,7 @@
 
     (define *ready-queue* (make-list-queue (list)))
     (define *scheduler-return* #f)
+    (define *suspended-fibers* 0)
 
     (define (enqueue-fiber! thunk)
       (list-queue-add-back! *ready-queue* thunk)
@@ -114,7 +115,15 @@
 
     (define (schedule-next!)
       (if (list-queue-empty? *ready-queue*)
-        (if *scheduler-return* (*scheduler-return* #t) #f)
+        (if (> *suspended-fibers* 0)
+          ;; 就绪队列空但仍有挂起协程：全体死锁，报错而非静默退出
+          (let ((n *suspended-fibers*))
+            (set! *suspended-fibers* 0)
+            (set! *scheduler-return* #f)
+            (error 'deadlock "all fibers are blocked on channel operations" n)
+          ) ;let
+          (if *scheduler-return* (*scheduler-return* #t) #f)
+        ) ;if
         (let ((next-thunk (list-queue-front *ready-queue*)))
           (list-queue-remove-front! *ready-queue*)
           (next-thunk)
@@ -153,6 +162,7 @@
           (list-queue-add-back! (%fch-buf fch) val)
           (let ((receiver-k (list-queue-front recv-waiters)))
             (list-queue-remove-front! recv-waiters)
+            (set! *suspended-fibers* (- *suspended-fibers* 1))
             (enqueue-fiber! (lambda () (receiver-k val)))
           ) ;let
         ) ;if
@@ -163,7 +173,12 @@
     (define (fiber-recv! fch)
       (let ((buf (%fch-buf fch)))
         (if (list-queue-empty? buf)
-          (call/cc (lambda (k) (list-queue-add-back! (%fch-recv fch) k) (schedule-next!)))
+          (call/cc (lambda (k)
+                     (list-queue-add-back! (%fch-recv fch) k)
+                     (set! *suspended-fibers* (+ *suspended-fibers* 1))
+                     (schedule-next!)
+                   ) ;lambda
+          ) ;call/cc
           (let ((val (list-queue-front buf)))
             (list-queue-remove-front! buf)
             val

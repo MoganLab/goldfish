@@ -56,4 +56,20 @@
 (fiber-scheduler-run!)
 (check count-val => N)
 
+;; 4. 死锁检测：所有 fiber 都阻塞在通道上时应报 deadlock 错误（而非静默退出）
+(define fch-dead (make-fiber-chan))
+(spawn-fiber
+  (lambda () (fiber-recv! fch-dead)))  ; 永远等不到数据
+(check-catch 'deadlock (fiber-scheduler-run!))
+
+;; 5. 死锁报错后调度器状态已复位，可以继续正常使用
+(define fch-after (make-fiber-chan))
+(define after-res #f)
+(spawn-fiber
+  (lambda () (set! after-res (fiber-recv! fch-after))))
+(spawn-fiber
+  (lambda () (fiber-send! fch-after "recovered")))
+(fiber-scheduler-run!)
+(check after-res => "recovered")
+
 (check-report)
