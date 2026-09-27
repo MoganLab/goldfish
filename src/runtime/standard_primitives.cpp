@@ -223,45 +223,66 @@ std::string utf8_encode_char(char32_t codepoint) {
     return out;
 }
 
+bool utf8_width_at(const std::string& text, std::size_t position,
+                   std::size_t& decoded_width) {
+    const unsigned char first =
+        static_cast<unsigned char>(text[position]);
+    std::size_t width = 0;
+    std::uint32_t codepoint = 0;
+    if (first <= 0x7f) {
+        width = 1;
+        codepoint = first;
+    } else if (first >= 0xc2 && first <= 0xdf) {
+        width = 2;
+        codepoint = first & 0x1f;
+    } else if (first >= 0xe0 && first <= 0xef) {
+        width = 3;
+        codepoint = first & 0x0f;
+    } else if (first >= 0xf0 && first <= 0xf4) {
+        width = 4;
+        codepoint = first & 0x07;
+    } else {
+        return false;
+    }
+    if (width > text.size() - position) return false;
+    for (std::size_t i = 1; i < width; ++i) {
+        const unsigned char continuation =
+            static_cast<unsigned char>(text[position + i]);
+        if ((continuation & 0xc0) != 0x80) return false;
+        codepoint = (codepoint << 6) | (continuation & 0x3f);
+    }
+    if ((width == 3 && codepoint < 0x800) ||
+        (width == 4 && codepoint < 0x10000) ||
+        (codepoint >= 0xd800 && codepoint <= 0xdfff) ||
+        codepoint > 0x10ffff)
+        return false;
+    decoded_width = width;
+    return true;
+}
+
 bool utf8_offsets(const std::string& text, std::vector<std::size_t>& offsets) {
     offsets.clear();
     offsets.push_back(0);
     std::size_t position = 0;
     while (position < text.size()) {
-        const auto byte = [&text](std::size_t index) {
-            return static_cast<unsigned char>(text[index]);
-        };
-        const unsigned char first = byte(position);
         std::size_t width = 0;
-        std::uint32_t codepoint = 0;
-        if (first <= 0x7f) {
-            width = 1;
-            codepoint = first;
-        } else if (first >= 0xc2 && first <= 0xdf) {
-            width = 2;
-            codepoint = first & 0x1f;
-        } else if (first >= 0xe0 && first <= 0xef) {
-            width = 3;
-            codepoint = first & 0x0f;
-        } else if (first >= 0xf0 && first <= 0xf4) {
-            width = 4;
-            codepoint = first & 0x07;
-        } else {
-            return false;
-        }
-        if (width > text.size() - position) return false;
-        for (std::size_t i = 1; i < width; ++i) {
-            const unsigned char continuation = byte(position + i);
-            if ((continuation & 0xc0) != 0x80) return false;
-            codepoint = (codepoint << 6) | (continuation & 0x3f);
-        }
-        if ((width == 3 && codepoint < 0x800) ||
-            (width == 4 && codepoint < 0x10000) ||
-            (codepoint >= 0xd800 && codepoint <= 0xdfff) ||
-            codepoint > 0x10ffff)
-            return false;
+        if (!utf8_width_at(text, position, width)) return false;
         position += width;
         offsets.push_back(position);
+    }
+    return true;
+}
+
+bool utf8_valid(const std::string& text) {
+    std::size_t position = 0;
+    while (position < text.size()) {
+        if (static_cast<unsigned char>(text[position]) < 0x80) {
+            ++position;
+            continue;
+        }
+        std::size_t width = 0;
+        if (!utf8_width_at(text, position, width)) return false;
+        position += width;
     }
     return true;
 }
@@ -2237,6 +2258,14 @@ void install_runtime_primitives(Evaluator& evaluator) {
             args[0].as_object()->type() != ObjectType::String)
             raise_keyed(evaluator, "type-error", "string->utf8 expects a string");
         const std::string& value = args[0].as_object<StringObject>()->value;
+        // A full conversion needs validation but no character-index table.
+        if (args.size() == 1) {
+            if (!utf8_valid(value))
+                raise_keyed(evaluator, "value-error",
+                            "string->utf8 received invalid UTF-8");
+            return Values{Value::object(
+                evaluator.heap().make<BytevectorObject>(value))};
+        }
         std::vector<std::size_t> offsets;
         if (!utf8_offsets(value, offsets))
             raise_keyed(evaluator, "value-error",
