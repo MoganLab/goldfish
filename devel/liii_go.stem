@@ -190,6 +190,21 @@
                    ) ;concat
                  ) ;document
       ) ;enumerate
+      (subsection* "5.8 已完成：go 宏直接调用形式 (go (fn arg ...))")
+      (enumerate (document (concat (item)
+                             "【设计动机】对照 Go 的 go f(x) 语法：go 关键字显式划分协程与主线程执行界线，(f x) 普通调用=主线程，(go (f x))=派发 worker。调研确认 s7 的 procedure-source 可提取普通 define 的函数源码（含闭包，但不含其词法环境），macroexpand 不可用、展开期 curlet 看不到词法绑定，故排除展开期自由变量分析路线。"
+                           ) ;concat
+                   (concat (item)
+                     "【实现】运行时函数 %go-call：procedure-source 提取目标函数源码，生成 g_argN 形参名，ship 代码为 (begin (import <全部R7RS库>) (src g_arg0 ...))。全量 import 使库函数在 worker 中可用，免去环境白名单维护；arg 在主线程求值后序列化传入，词法变量可直接做实参；函数可作为值传递（(define (spawn f ch) (go (f ch))) 成立）。非过程或源码不可提取时在主线程 spawn 点抛 type-error。旧捕获列表语法保留，存量测试零迁移。"
+                   ) ;concat
+                   (concat (item)
+                     "【已知限制（评审探针实测确认，判定为冷门场景现阶段不处理）】(a) 只 ship 目标函数自身源码，不递归 ship 其引用的用户顶层辅助函数与自递归引用（worker unbound-variable + 主线程死等）；(b) 闭包的词法自由变量不运输；(c) 多形式 (go (fn arg) body) 按旧语法解释（head 为过程时 spawn 点响警报 type-error）。限制已写入 go-test.scm 文档段。修复方向（备查）：%go-call 增加自由变量闭包递归 ship（visited 集合保证终止，数据值 prelude define）。"
+                   ) ;concat
+                   (concat (item)
+                     "【配套 demo】go_demo01（0/1/3 缓冲通道阻塞行为对照）与 go_demo02（gen→sq→main 并发流水线），Go/Scheme 双版本。全量回归 1617 个测试文件通过。"
+                   ) ;concat
+                 ) ;document
+      ) ;enumerate
       (section* "6 Why")
       "现代硬件普及多核处理器，而 Goldfish 目前的标准执行流局限于单核单线程。"
       "S7 解释器单实例并非线程安全，若采用传统的全局解释器锁（GIL）进行共享内存多线程，无法真正发挥多核并行计算能力。通过借鉴 Go 语言的 CSP 模型（Communicating Sequential Processes），结合 S7 独立多实例的特性，每个工作线程独占一个解释器 Session，通道作为一等公民在独立的解释器线程之间传递数据，既天然免疫数据竞争与死锁，又能以最高效、低心智负担的方式充分释放多核硬件性能。"

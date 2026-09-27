@@ -7,11 +7,17 @@
 ;;
 ;; 语法
 ;; ----
+;; (go (fn arg ...))              ; 直接调用形式：ship fn 源码到 worker 执行
 ;; (go (captured-var ...) body ...)
 ;; (go body ...)
 ;;
 ;; 参数
 ;; ----
+;; fn : procedure
+;; 顶层 define 命名的函数。运行时经 procedure-source 提取源码运输到 worker，
+;; worker 侧自动 import 全部 R7RS 库，因此 fn 体内可直接调用库函数。
+;; arg 在主线程求值、序列化后作为实参传入，因此词法变量可直接作为实参。
+;;
 ;; captured-var : symbol
 ;; 需要从当前环境捕获传入 worker 的变量名。
 ;;
@@ -25,9 +31,20 @@
 ;; 说明
 ;; ----
 ;; 1. worker 间通过 channel 传递数据与结果（深拷贝，彻底隔离 GC 堆）。
-;; 2. 捕获变量只支持可序列化的数据类型，不支持过程/闭包（spawn 时抛 type-error）。
+;; 2. 捕获变量与 arg 只支持可序列化的数据类型，不支持过程/闭包（spawn 时抛 type-error）。
 ;; 3. body 中可直接引用全局函数名（如 car、display），无需捕获。
 ;; 4. worker 内的运行时异常不会使线程池崩溃，错误输出到 stderr。
+;;
+;; 已知限制（现阶段不予处理）
+;; ----
+;; 1. (go (fn arg ...)) 形式只 ship fn 自身的源码，不递归 ship fn 体内引用的
+;;    用户自定义辅助函数，也不处理 fn 对自身的递归引用——这两类引用在 worker
+;;    中未绑定，任务报 unbound-variable（stderr）且主线程接收端死等。
+;;    需要辅助函数时请改用库函数，或在 body 内联定义。
+;; 2. 闭包的词法自由变量（如 (let ((n 10)) (lambda (x) (+ x n))) 中的 n）
+;;    同样不会被运输。请把这类值改为显式形参传入。
+;; 3. (go (fn arg ...) body ...) 多形式会按旧捕获列表语法解释，head 为过程时
+;;    spawn 点报 type-error。请避免混用两种语法。
 
 ;; 1. 基本 go 任务启动与通道通信
 
