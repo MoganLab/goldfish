@@ -28,7 +28,7 @@
     select make-context make-timeout-context context? context-done?
     context-cancel! context-channel spawn-fiber fiber-yield!
     fiber-scheduler-run! make-fiber-chan fiber-chan? fiber-send! fiber-recv!
-    fiber-chan-recv! fiber-chan-send!
+    fiber-chan-recv! fiber-chan-send! %go-call
   ) ;export
   (begin
     (define make-chan (case-lambda (() (g_make-chan 0)) ((cap) (g_make-chan cap))))
@@ -250,11 +250,57 @@
       ) ;fiber-suspend-on!
     ) ;define
 
-    (define-macro (go vars . body)
-      (if (list? vars)
-        `(g_go-spawn (quote ,vars) (list ,@vars) (quote (begin ,@body)))
-        `(g_go-spawn '() '() (quote (begin ,vars ,@body)))
+    (define (%go-call fn . args)
+      (if (not (procedure? fn))
+        (error 'type-error "go: target must be a procedure" fn)
       ) ;if
+      (let ((src (procedure-source fn)))
+        (if (pair? src)
+          (let* ((libs
+                   (catch #t
+                     (lambda ()
+                       (if (and (defined? '*r7rs-libraries*) (hash-table? *r7rs-libraries*))
+                         (map car *r7rs-libraries*)
+                         '()
+                       ) ;if
+                     ) ;lambda
+                     (lambda (t a) '())
+                   ) ;catch
+                 ) ;libs
+                 (arg-names
+                   (let loop
+                     ((i 0) (rem args))
+                     (if (null? rem)
+                       '()
+                       (cons (string->symbol (string-append "g_arg" (number->string i)))
+                         (loop (+ i 1) (cdr rem))
+                       ) ;cons
+                     ) ;if
+                   ) ;let
+                 ) ;arg-names
+                 (code
+                   `(begin
+                      ,@(if (null? libs) '() `((import ,@libs)))
+                      (,src ,@arg-names))
+                 ) ;code
+                ) ;
+            (g_go-spawn arg-names args code)
+          ) ;let*
+          (error 'type-error "go: cannot extract source code from procedure" fn)
+        ) ;if
+      ) ;let
+    ) ;define
+
+    (define-macro (go vars . body)
+      (cond
+       ((and (null? body) (pair? vars)) `(%go-call ,(car vars) ,@(cdr vars)))
+       ((list? vars) `(g_go-spawn (quote ,vars)
+                        (list ,@vars)
+                        (quote (begin ,@body))))
+       (else
+         `(g_go-spawn '() '() (quote (begin ,vars ,@body)))
+       ) ;else
+      ) ;cond
     ) ;define-macro
 
     ;; -----------------------------------------------------------------------

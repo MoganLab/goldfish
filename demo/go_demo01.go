@@ -16,55 +16,66 @@
 
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"time"
+)
 
-// producer 生产者函数：向通道发送数据
+// producer 生产者：向通道发送数据
 //
-// 参数类型 chan<- int 为单向通道（只写通道），通过 Go 编译期类型检查
-// 确保生产者只能发送数据，无法接收数据，增强了代码的安全性和意图表达。
-//
-// 在 Go 并发哲学中，通常由数据的发送方（生产者）负责关闭通道，
-// 接收方则负责检测通道何时关闭，避免向已关闭的通道发送数据引发 panic。
-func producer(ch chan<- int) {
-	// defer 保证在 producer 函数退出（所有数据发送完毕）时关闭通道。
-	// 关闭通道向接收方发出信号：后续不再有新数据发送。
-	defer close(ch)
+// 参数类型 chan<- int 为单向写通道。
+// 通过在发送前后打印日志，可清晰观察何时发生阻塞：
+// - 若通道有空余缓冲空间（或有接收者在等待），发送立即完成；
+// - 若通道无缓冲且无接收者，或缓冲已满，则当前 goroutine 阻塞在 `ch <- i` 处。
+func producer(name string, ch chan<- int, count int) {
+	defer func() {
+		close(ch)
+		fmt.Printf("[%s producer] 全部数据发送完毕，通道已关闭\n", name)
+	}()
 
-	// 依次发送数字 1 到 5
-	for i := 1; i <= 5; i++ {
-		// 因为 ch 是无缓冲通道，向 ch 发送数据会阻塞，
-		// 直到接收方（consumer）准备好接收该数据（即同步交会 rendezvous）。
+	for i := 1; i <= count; i++ {
+		fmt.Printf("[%s producer] 准备发送: %d\n", name, i)
 		ch <- i
+		fmt.Printf("[%s producer] 发送成功: %d\n", name, i)
 	}
 }
 
-// consumer 消费者函数：从通道接收并处理数据
+// consumer 消费者：从通道接收并处理数据
 //
-// 参数类型 <-chan int 为单向通道（只读通道），保证消费者只能从中读取数据，
-// 无法向通道写入或关闭通道。
-func consumer(ch <-chan int) {
-	// for-range 循环是消费通道数据的标准 Go 惯用法：
-	// 1. 当通道有数据时，持续接收数据并赋值给 v，进入循环体处理；
-	// 2. 当通道为空但未关闭时，当前 goroutine 阻塞等待新数据；
-	// 3. 当通道被发送方 close 且通道内无残留数据时，循环自动安全退出。
+// 参数类型 <-chan int 为单向读通道。
+// 通过 sleep 模拟数据处理耗时，让生产者的缓冲填满与阻塞现象更清晰地呈现。
+func consumer(name string, ch <-chan int) {
 	for v := range ch {
-		fmt.Println("consume:", v)
+		// 模拟耗时处理，使缓冲被填满的情景更容易观察
+		time.Sleep(50 * time.Millisecond)
+		fmt.Printf("[%s consumer] 成功接收: %d\n", name, v)
 	}
+	fmt.Printf("[%s consumer] 检测到通道关闭，消费结束\n", name)
+}
+
+// runDemo 演示指定通道的生产与消费行为
+func runDemo(name string, ch chan int, capacity int) {
+	fmt.Printf("=== 演示 %s (缓冲容量: %d) ===\n", name, capacity)
+	// 启动后台生产者 goroutine
+	go producer(name, ch, 5)
+	// 主 goroutine 作为消费者同步消费
+	consumer(name, ch)
+	fmt.Println()
 }
 
 func main() {
-	// 1. 创建一个无缓冲的整型通道（unbuffered channel，容量为 0）。
-	//    无缓冲通道的发送与接收必须成对出现并同步完成（同步交会 rendezvous）：
-	//    发送操作会一直阻塞直到有 goroutine 接收，反之接收也会阻塞直到有数据发送。
-	ch := make(chan int)
+	// ch0: 无缓冲通道（容量为 0）
+	// 发送与接收必须同步交会（rendezvous）：发送者会阻塞直到消费者接收
+	ch0 := make(chan int)
+	runDemo("ch0", ch0, 0)
 
-	// 2. 启动一个独立的 goroutine（轻量级协程）异步执行 producer。
-	//    producer 会在后台开始生成数据并发送到通道中。
-	go producer(ch)
+	// ch1: 1 个缓冲的通道
+	// 缓冲区可容纳 1 个元素：第 1 个元素发送不会阻塞，发第 2 个元素时若未被取走则阻塞
+	ch1 := make(chan int, 1)
+	runDemo("ch1", ch1, 1)
 
-	// 3. 在当前主 goroutine 中直接同步运行 consumer。
-	//    主 goroutine 会在此持续接收并打印数据，直到 producer 发送完毕并 close(ch)。
-	//    由于 consumer 在主线程上同步执行，天然起到了等待后台 goroutine 完成的作用，
-	//    避免了 main 函数过早退出导致后台 producer 尚未执行完毕的问题。
-	consumer(ch)
+	// ch3: 3 个缓冲的通道
+	// 缓冲区可容纳 3 个元素：前 3 个元素连续发送不阻塞，发第 4 个元素时缓冲已满而阻塞
+	ch3 := make(chan int, 3)
+	runDemo("ch3", ch3, 3)
 }

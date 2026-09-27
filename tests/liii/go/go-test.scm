@@ -1,5 +1,4 @@
-(import (liii check)
-        (liii go))
+(import (liii check) (liii go))
 
 (check-set-mode! 'report-failed)
 
@@ -31,18 +30,20 @@
 ;; 4. worker 内的运行时异常不会使线程池崩溃，错误输出到 stderr。
 
 ;; 1. 基本 go 任务启动与通道通信
+
 (define ch1 (make-chan 1))
-(go (ch1)
-  (chan-send! ch1 "hello from worker" 5000))
+(go (ch1) (chan-send! ch1 "hello from worker" 5000))
 
 (define msg1 (chan-recv! ch1 5000))
 (check msg1 => "hello from worker")
 
 ;; 2. 多个 worker 并发向同一个 channel 写入计算结果
+
 (define results (make-chan 10))
+
 (define (spawn-worker i)
-  (go (results i)
-    (chan-send! results (* i i) 5000)))
+  (go (results i) (chan-send! results (* i i) 5000))
+) ;define
 
 ;; 启动 5 个并发任务
 (spawn-worker 1)
@@ -52,12 +53,17 @@
 (spawn-worker 5)
 
 ;; 收集所有结果
+
 (define collected '())
-(let loop ((count 0))
+(let loop
+  ((count 0))
   (if (< count 5)
-      (let ((val (chan-recv! results 5000)))
-        (set! collected (cons val collected))
-        (loop (+ count 1)))))
+    (let ((val (chan-recv! results 5000)))
+      (set! collected (cons val collected))
+      (loop (+ count 1))
+    ) ;let
+  ) ;if
+) ;let
 
 ;; 验证结果包含 1, 4, 9, 16, 25（顺序可能不同，因为是多核并发）
 (check (length collected) => 5)
@@ -70,5 +76,33 @@
 ;; 3. go-spawn 参数错误路径（覆盖携带 RAII 对象的 raise 路径，Windows 回归）
 (check-catch 'value-error (g_go-spawn '(a) '() '(begin)))
 (check-catch 'type-error (g_go-spawn '(a) '(1) (lambda (x) x)))
+
+;; 4. 函数直接调用形式：(go (fn arg ...))
+
+(define (my-add-worker ch a b)
+  (chan-send! ch (+ a b) 5000)
+) ;define
+
+(define test-ch1 (make-chan 1))
+(go (my-add-worker test-ch1 10 20))
+(check (chan-recv! test-ch1 5000) => 30)
+
+;; 函数体内部依赖主环境已导入的外部库（如 liii range）
+(import (liii range))
+
+(define (my-range-worker ch)
+  (range-for-each (lambda (i) (chan-send! ch i 5000)) (numeric-range 1 4))
+  (chan-close! ch)
+) ;define
+
+(define test-ch2 (make-chan 3))
+(go (my-range-worker test-ch2))
+(check (chan-recv! test-ch2 5000) => 1)
+(check (chan-recv! test-ch2 5000) => 2)
+(check (chan-recv! test-ch2 5000) => 3)
+(check (chan-recv! test-ch2 5000) => (eof-object))
+
+;; 异常路径：(go (fn arg ...)) 首项不是 procedure
+(check-catch 'type-error (go ("not-a-func" 123)))
 
 (check-report)

@@ -14,34 +14,75 @@
 ;; under the License.
 ;;
 
-(import (scheme base) (liii go) (liii range) (liii generator))
+(import (scheme base) (liii go) (liii range) (liii generator) (liii time))
 
 ;; 与 go_demo01.go 严格等价的 Goldfish Scheme (liii go) 版本：
-;; 展示基于 CSP 并发模型的生产者-消费者模式。
+;; 演示不同缓冲容量（0, 1, 3）的通道在生产与消费过程中的阻塞与交会行为。
 
-;; consume 消费处理函数：处理单个接收到的数据
+;; producer 生产者：向通道发送数据
+;;
+;; 参数说明：
+;; - name: 演示通道名称（用于日志前缀区分）
+;; - ch: 目标通道
+;; - count: 发送的数据总数（从 1 发送到 count）
+;;
+;; 通过在发送前后打印日志，可清晰观察何时发生阻塞：
+;; - 若通道有空余缓冲空间（或有接收者在等待），发送立即完成；
+;; - 若通道无缓冲且无接收者，或缓冲已满，则当前 worker 协程阻塞在 chan-send! 处。
 
-(define (consume v)
-  (display "consume: ")
-  (display v)
-  (newline)
+(define (producer name ch count)
+  (range-for-each
+    (lambda (i)
+      (display (string-append "[" name " producer] 准备发送: " (number->string i) "\n")
+      ) ;display
+      (chan-send! ch i)
+      (display (string-append "[" name " producer] 发送成功: " (number->string i) "\n")
+      ) ;display
+    ) ;lambda
+    (numeric-range 1 (+ count 1))
+  ) ;range-for-each
+  (chan-close! ch)
+  (display (string-append "["
+             name
+             " producer] 全部数据发送完毕，通道已关闭\n"
+           ) ;string-append
+  ) ;display
 ) ;define
 
-;; consumer 消费者函数：从通道接收并打印数据
+;; consumer 消费者：从通道接收并处理数据
 ;;
-;; 对应 Go 版本的 func consumer(ch <-chan int)
-;;
-;; 机制说明：
-;; 在 Go 中使用 `for v := range ch` 持续迭代消费通道，直到通道被关闭且排空。
-;; 在 Scheme (SRFI 158) 体系中，流式迭代的核心抽象是生成器（generator）：
-;; 生成器是一个无参过程，每次调用返回下一个值，耗尽时返回 eof-object。
-;; (chan-recv! ch) 在通道关闭且排空时刚好返回 eof-object，
-;; 因此 `(lambda () (chan-recv! ch))` 就是一个天然的 Generator！
-;; 将提取出的 consume 函数传入 generator-for-each，
-;; 与 Go 的 `for-range` 通道遍历语义完全等价且极其优雅。
+;; 通过 sleep 模拟数据处理耗时，让生产者的缓冲填满与阻塞现象更清晰地呈现。
+;; (lambda () (chan-recv! ch)) 是天然的 Generator，配合 generator-for-each 优雅消费。
 
-(define (consumer ch)
-  (generator-for-each consume (lambda () (chan-recv! ch)))
+(define (consumer name ch)
+  (generator-for-each
+    (lambda (v)
+      ;; 模拟耗时处理（50 毫秒），使缓冲被填满的情景更容易观察
+      (sleep 0.05)
+      (display (string-append "[" name " consumer] 成功接收: " (number->string v) "\n")
+      ) ;display
+    ) ;lambda
+    (lambda () (chan-recv! ch))
+  ) ;generator-for-each
+  (display (string-append "[" name " consumer] 检测到通道关闭，消费结束\n")
+  ) ;display
+) ;define
+
+;; run-demo 演示指定通道的生产与消费行为
+
+(define (run-demo name ch capacity)
+  (display (string-append "=== 演示 "
+             name
+             " (缓冲容量: "
+             (number->string capacity)
+             ") ===\n"
+           ) ;string-append
+  ) ;display
+  ;; 启动后台生产者 worker 协程
+  (go (producer name ch 5))
+  ;; 主线程作为消费者同步消费
+  (consumer name ch)
+  (newline)
 ) ;define
 
 ;; main 主入口函数
@@ -49,34 +90,20 @@
 ;; 对应 Go 版本的 func main()
 
 (define (main)
-  ;; 1. 创建一个无缓冲通道（capacity = 0）
-  (define ch (make-chan))
+  ;; ch0: 无缓冲通道（容量为 0）
+  ;; 发送与接收必须同步交会（rendezvous）：发送者会阻塞直到消费者接收
+  (define ch0 (make-chan))
+  (run-demo "ch0" ch0 0)
 
-  ;; 2. 启动后台 worker 执行生产者
-  ;;    对应 Go 语言中的 go producer(ch)。
-  ;;
-  ;;    producer 是在 go 协程里面执行的函数：
-  ;;    Goldfish Scheme 的 worker 运行在相互隔离的独立解释器环境中，
-  ;;    因此在 go 任务块内定义 producer 函数并在 worker 线程中调用执行。
-  (go (ch)
-    (define (producer ch)
-      (import (liii range))
-      ;; 依次发送数字 1 到 5：(numeric-range 1 6) 生成 [1, 6) 的整数序列
-      (range-for-each (lambda (i)
-                        ;; 由于 ch 是无缓冲通道（make-chan 默认容量 0），
-                        ;; chan-send! 会阻塞直到有接收方调用 chan-recv!（同步交会 rendezvous）
-                        (chan-send! ch i)
-                      ) ;lambda
-        (numeric-range 1 6)
-      ) ;range-for-each
-      ;; 发送完毕，由生产者负责关闭通道（对应 Go 中的 defer close(ch)）
-      (chan-close! ch)
-    ) ;define
-    (producer ch)
-  ) ;go
+  ;; ch1: 1 个缓冲的通道
+  ;; 缓冲区可容纳 1 个元素：第 1 个元素发送不会阻塞，发第 2 个元素时若未被取走则阻塞
+  (define ch1 (make-chan 1))
+  (run-demo "ch1" ch1 1)
 
-  ;; 3. 在当前主线程同步执行消费者，消费完毕后退出
-  (consumer ch)
+  ;; ch3: 3 个缓冲的通道
+  ;; 缓冲区可容纳 3 个元素：前 3 个元素连续发送不阻塞，发第 4 个元素时缓冲已满而阻塞
+  (define ch3 (make-chan 3))
+  (run-demo "ch3" ch3 3)
 ) ;define
 
 (main)
