@@ -100,6 +100,15 @@ public:
         w.join ();
       }
     }
+    // 丢弃队列中未执行的任务，显式迭代释放防止深层析构递归
+    while (!tasks.empty ()) {
+      auto& t= tasks.front ();
+      for (auto& v : t.var_vals) {
+        gfvalue_destroy_deep (v);
+      }
+      gfvalue_destroy_deep (t.code_expr);
+      tasks.pop ();
+    }
     workers.clear ();
   }
 
@@ -159,6 +168,12 @@ private:
                                       s7_cons (worker_sc, bindings, s7_cons (worker_sc, catch_expr, s7_nil (worker_sc))));
 
       s7_eval (worker_sc, let_expr, s7_rootlet (worker_sc));
+
+      // 任务数据已反序列化进 worker 会话，显式迭代释放 GFValue 树，防止深层析构递归
+      for (auto& v : task.var_vals) {
+        gfvalue_destroy_deep (v);
+      }
+      gfvalue_destroy_deep (task.code_expr);
     }
   }
 
@@ -633,6 +648,41 @@ gfvalue_to_s7 (s7_scheme* sc, const GFValue& val) {
 // GoldfishChannel Implementation
 // ---------------------------------------------------------------------------
 
+void
+gfvalue_destroy_deep (GFValue& root) {
+  // 把复合子节点的 shared_ptr 移入工作清单再销毁，析构永不递归
+  std::vector<std::shared_ptr<std::pair<GFValue, GFValue>>> pairs;
+  std::vector<std::shared_ptr<std::vector<GFValue>>>        vecs;
+  auto                                                      drain= [&pairs, &vecs] (GFValue& v) {
+    if (v.pair_val) pairs.push_back (std::move (v.pair_val));
+    if (v.vec_val) vecs.push_back (std::move (v.vec_val));
+  };
+  drain (root);
+  while (!pairs.empty () || !vecs.empty ()) {
+    if (!pairs.empty ()) {
+      auto p= std::move (pairs.back ());
+      pairs.pop_back ();
+      drain (p->first);
+      drain (p->second);
+      // p 离开作用域时其子节点的复合指针已掏空，析构不再递归
+    }
+    else {
+      auto v= std::move (vecs.back ());
+      vecs.pop_back ();
+      for (auto& elem : *v) {
+        drain (elem);
+      }
+    }
+  }
+}
+
+GoldfishChannel::~GoldfishChannel () {
+  close ();
+  for (auto& v : buffer) {
+    gfvalue_destroy_deep (v);
+  }
+}
+
 GoldfishChannel::SendStatus
 GoldfishChannel::send (GFValue val, int64_t timeout_ms) {
   std::unique_lock<std::mutex> lock (mtx);
@@ -671,6 +721,7 @@ GoldfishChannel::send (GFValue val, int64_t timeout_ms) {
           break;
         }
       }
+      gfvalue_destroy_deep (s.val); // 超时/关闭导致发送失败，载荷不再传递，防止深层析构递归
       return closed ? SendStatus::Closed : SendStatus::Timeout;
     }
     return SendStatus::Ok;
@@ -850,6 +901,7 @@ f_chan_send (s7_scheme* sc, s7_pointer args) {
     if (ser_ok) {
       status= get_goldfish_channel (sc, ch_arg)->send (std::move (val), timeout_ms);
     }
+    gfvalue_destroy_deep (val); // 序列化失败时 val 可能是深层部分树
   }
 
   if (!ser_ok) {
@@ -900,7 +952,9 @@ f_chan_recv (s7_scheme* sc, s7_pointer args) {
   else if (status == GoldfishChannel::RecvStatus::Timeout) {
     return default_val;
   }
-  return gfvalue_to_s7 (sc, val);
+  s7_pointer res= gfvalue_to_s7 (sc, val);
+  gfvalue_destroy_deep (val); // 转换完成后显式迭代释放，防止深层析构递归
+  return res;
 }
 
 static s7_pointer
@@ -922,7 +976,9 @@ f_chan_try_recv (s7_scheme* sc, s7_pointer args) {
   auto    status= ch->try_recv (val);
 
   if (status == GoldfishChannel::RecvStatus::Ok) {
-    return gfvalue_to_s7 (sc, val);
+    s7_pointer res= gfvalue_to_s7 (sc, val);
+    gfvalue_destroy_deep (val); // 转换完成后显式迭代释放，防止深层析构递归
+    return res;
   }
   else if (status == GoldfishChannel::RecvStatus::Closed) {
     return s7_eof_object (sc);

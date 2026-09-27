@@ -66,10 +66,14 @@ struct GFValue {
 bool       s7_to_gfvalue (s7_scheme* sc, s7_pointer obj, GFValue& out, std::string& err_msg);
 s7_pointer gfvalue_to_s7 (s7_scheme* sc, const GFValue& val);
 
+// 显式工作栈逐层释放深层 GFValue 树（pair/vector 链），避免析构递归溢出栈
+//（Windows 默认线程栈 1MB，十万层深的结构递归析构会崩溃）
+void gfvalue_destroy_deep (GFValue& root);
+
 class GoldfishChannel {
 public:
   explicit GoldfishChannel (size_t cap= 0) : capacity (cap), closed (false) {}
-  ~GoldfishChannel () { close (); }
+  ~GoldfishChannel ();
 
   enum class SendStatus { Ok, Closed, Timeout };
 
