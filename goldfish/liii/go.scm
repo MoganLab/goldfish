@@ -20,13 +20,14 @@
     (scheme time)
     (liii base)
     (liii error)
+    (liii hash-table)
     (liii queue)
   ) ;import
   (export go go-worker-count make-chan chan? chan-send! chan-recv!
     chan-try-recv! chan-try-send! chan-close! chan-closed? select make-context
     make-timeout-context context? context-done? context-cancel! context-channel
     spawn-fiber fiber-yield! fiber-scheduler-run! make-fiber-chan fiber-chan?
-    fiber-send! fiber-recv!
+    fiber-send! fiber-recv! fiber-chan-recv! fiber-chan-send!
   ) ;export
   (begin
     (define make-chan (case-lambda (() (g_make-chan 0)) ((cap) (g_make-chan cap))))
@@ -108,6 +109,11 @@
     (define *ready-queue* (make-list-queue (list)))
     (define *scheduler-return* #f)
     (define *suspended-fibers* 0)
+    ;; M:N 阶段二：真 channel 挂起的跨线程唤醒
+    (define *gate* (g_make-gate))
+    (define *watch-thunks* (make-hash-table))
+    (define *next-watch-id* 0)
+    (define *real-chan-suspended* 0)
 
     (define (enqueue-fiber! thunk)
       (list-queue-add-back! *ready-queue* thunk)
@@ -115,15 +121,26 @@
 
     (define (schedule-next!)
       (if (list-queue-empty? *ready-queue*)
-        (if (> *suspended-fibers* 0)
-          ;; 就绪队列空但仍有挂起协程：全体死锁，报错而非静默退出
+        (cond
+         ((> *real-chan-suspended* 0)
+          ;; 有 fiber 挂在真 channel 上：唤醒可能来自其他线程，物理挂起等待 gate
+          (let ((id (g_gate-wait *gate*)))
+            (let ((thunk (hash-table-ref *watch-thunks* id)))
+              (if thunk (begin (hash-table-set! *watch-thunks* id #f) (thunk)))
+            ) ;let
+          ) ;let
+          (schedule-next!)
+         ) ;
+         ((> *suspended-fibers* 0)
+          ;; 就绪队列空且仅存在 fiber-chan 挂起：全体死锁，报错而非静默退出
           (let ((n *suspended-fibers*))
             (set! *suspended-fibers* 0)
             (set! *scheduler-return* #f)
             (error 'deadlock "all fibers are blocked on channel operations" n)
           ) ;let
-          (if *scheduler-return* (*scheduler-return* #t) #f)
-        ) ;if
+         ) ;
+         (else (if *scheduler-return* (*scheduler-return* #t) #f))
+        ) ;cond
         (let ((next-thunk (list-queue-front *ready-queue*)))
           (list-queue-remove-front! *ready-queue*)
           (next-thunk)
@@ -191,6 +208,47 @@
     ;; 注意：捕获变量只支持可序列化的数据类型（数字、字符串、符号、列表、vector、
     ;; bytevector、channel、let 等），不支持过程/闭包——传入函数会在 spawn 时
     ;; 抛 type-error。在 body 中直接引用全局函数名（如 car、display）即可，无需捕获。
+    ;; -----------------------------------------------------------------------
+    ;; 真 channel 的 fiber 版操作：挂起协程而非阻塞物理线程（M:N 阶段二）
+    ;; 唤醒来源可以是同会话 fiber、其他 worker 线程或 C++ 定时器
+    ;; -----------------------------------------------------------------------
+
+    (define (fiber-suspend-on! register-watch)
+      ;; register-watch : (lambda (id tag) ...) 执行原子 try-or-watch，
+      ;; 返回非 tag 表示立即完成，返回 tag 表示已登记 watcher
+      (let* ((id *next-watch-id*) (tag (gensym "watch")) (result (register-watch id tag)))
+        (if (not (eq? result tag))
+          result
+          (begin
+            (set! *next-watch-id* (+ id 1))
+            (call/cc
+              (lambda (k)
+                (set! *real-chan-suspended* (+ *real-chan-suspended* 1))
+                (hash-table-set! *watch-thunks*
+                  id
+                  (lambda () (set! *real-chan-suspended* (- *real-chan-suspended* 1)) (k #t))
+                ) ;hash-table-set!
+                (schedule-next!)
+              ) ;lambda
+            ) ;call/cc
+            ;; 被唤醒后重试整个操作（就绪事件可能被竞争者抢先消费）
+            (fiber-suspend-on! register-watch)
+          ) ;begin
+        ) ;if
+      ) ;let*
+    ) ;define
+
+    (define (fiber-chan-recv! ch)
+      ;; 真 channel 的 fiber 版接收：挂起协程而非阻塞物理线程
+      (fiber-suspend-on! (lambda (id tag) (g_chan-recv-or-watch! ch *gate* id tag)))
+    ) ;define
+
+    (define (fiber-chan-send! ch val)
+      ;; 真 channel 的 fiber 版发送：挂起协程而非阻塞物理线程
+      (fiber-suspend-on! (lambda (id tag) (g_chan-send-or-watch! ch val *gate* id tag))
+      ) ;fiber-suspend-on!
+    ) ;define
+
     (define-macro (go vars . body)
       (if (list? vars)
         `(g_go-spawn (quote ,vars) (list ,@vars) (quote (begin ,@body)))

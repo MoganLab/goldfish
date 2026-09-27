@@ -78,6 +78,31 @@ struct SelectWaiter {
   bool                    ready= false;
 };
 
+// fiber 跨线程唤醒门闩：计数信号量语义（fire 投入 id，wait 阻塞取出）
+class GoGate {
+public:
+  void fire (int64_t id) {
+    {
+      std::lock_guard<std::mutex> lock (mtx);
+      fired.push_back (id);
+    }
+    cv.notify_one ();
+  }
+
+  int64_t wait () {
+    std::unique_lock<std::mutex> lock (mtx);
+    cv.wait (lock, [this] () { return !fired.empty (); });
+    int64_t id= fired.front ();
+    fired.pop_front ();
+    return id;
+  }
+
+private:
+  std::mutex              mtx;
+  std::condition_variable cv;
+  std::deque<int64_t>     fired;
+};
+
 class GoldfishChannel {
 public:
   explicit GoldfishChannel (size_t cap= 0) : capacity (cap), closed (false) {}
@@ -97,6 +122,11 @@ public:
   SendStatus select_try_send_or_wait (GFValue& val, SelectWaiter* w);
   RecvStatus select_try_recv_or_wait (GFValue& out, SelectWaiter* w);
   void       select_remove_waiter (SelectWaiter* w);
+
+  // fiber 支持：原子地"尝试非阻塞操作；不可行则登记一次性 watcher，
+  // 通道就绪时 watcher 触发 gate->fire(id)（一次性，触发后自动摘除）"
+  RecvStatus recv_or_watch (GFValue& out, std::shared_ptr<GoGate> gate, int64_t id);
+  SendStatus send_or_watch (GFValue& val, std::shared_ptr<GoGate> gate, int64_t id);
 
   void   close ();
   bool   is_closed () const;
@@ -137,6 +167,14 @@ private:
   // select wait-set 队列（只存指针，唤醒即摘出；超时方负责摘除自己）
   std::deque<SelectWaiter*> select_recv_waiters;
   std::deque<SelectWaiter*> select_send_waiters;
+
+  // fiber watcher 队列（一次性，触发即摘除）
+  struct WatchEntry {
+    std::shared_ptr<GoGate> gate;
+    int64_t                 id;
+  };
+  std::deque<WatchEntry> watch_recv_entries;
+  std::deque<WatchEntry> watch_send_entries;
 };
 
 void        set_goldfish_lib_dir (const std::string& dir);
