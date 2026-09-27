@@ -43,7 +43,7 @@ jobs:
         with:
           fetch-depth: 1
       - name: config
-        run: xmake config --yes -vD
+        run: xmake config --yes -vD -m debug
       - name: build
         run: xmake build --yes -vD goldfish
       - name: test tools/fmt
