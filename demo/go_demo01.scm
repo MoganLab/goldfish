@@ -49,21 +49,22 @@
   ) ;display
 ) ;define
 
-;; consumer 消费者：从通道接收并处理数据
+;; consume 消费处理过程：处理单个接收到的数据
 ;;
-;; 通过 sleep 模拟数据处理耗时，让生产者的缓冲填满与阻塞现象更清晰地呈现。
-;; (lambda () (chan-recv! ch)) 是天然的 Generator，配合 generator-for-each 优雅消费。
+;; 模拟耗时处理（50 毫秒），使缓冲被填满的情景更容易观察
+
+(define (consume name v)
+  (sleep 0.05)
+  (display (string-append "[" name " consumer] 成功接收: " (number->string v) "\n")
+  ) ;display
+) ;define
+
+;; consumer 消费者：从通道接收并处理数据（整体消费阶段）
+;;
+;; (lambda () (chan-recv! ch)) 是天然的 Generator，配合 generator-for-each 调用 consume 优雅消费。
 
 (define (consumer name ch)
-  (generator-for-each
-    (lambda (v)
-      ;; 模拟耗时处理（50 毫秒），使缓冲被填满的情景更容易观察
-      (sleep 0.05)
-      (display (string-append "[" name " consumer] 成功接收: " (number->string v) "\n")
-      ) ;display
-    ) ;lambda
-    (lambda () (chan-recv! ch))
-  ) ;generator-for-each
+  (generator-for-each (lambda (v) (consume name v)) (lambda () (chan-recv! ch)))
   (display (string-append "[" name " consumer] 检测到通道关闭，消费结束\n")
   ) ;display
 ) ;define
