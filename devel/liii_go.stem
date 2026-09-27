@@ -26,8 +26,7 @@
                    "$HOME/git/goldfish/tests/liii/go/go-test.scm"
                    "$HOME/git/goldfish/demo/fib_go.scm"
                    "$HOME/git/goldfish/demo/fib_2min.scm"
-                   "$HOME/git/goldfish/demo/fib_2min.go"
-                   "$HOME/git/goldfish/demo/fib_2min.py" "" "# 4. 任务文档"
+                   "$HOME/git/goldfish/demo/fib_2min.go" "" "# 4. 任务文档"
                    "$HOME/git/goldfish/devel/liii_go.stem"
                  ) ;document
       ) ;bash-code
@@ -44,14 +43,12 @@
                    ) ;concat
                  ) ;document
       ) ;enumerate
-      (subsubsection* "测试项2：跨语言多核对照测试（Golang 与 Python）"
+      (subsubsection* "测试项2：跨语言多核对照测试（Golang）"
       ) ;subsubsection*
       (enumerate (document (concat (item) "执行同等算法的 Golang 原生对照程序：")
                    (bash-code (document "go run demo/fib_2min.go"))
-                   (concat (item) "执行同等算法的 Python 原生多进程对照程序：")
-                   (bash-code (document "python3 demo/fib_2min.py"))
                    (concat (item)
-                     "对比三大语言在相同 20 核硬件环境下的多核利用率、算力阶数与调度开销。"
+                     "对比两种语言在相同 20 核硬件环境下的多核利用率、算力阶数与调度开销。"
                    ) ;concat
                  ) ;document
       ) ;enumerate
@@ -126,7 +123,7 @@
                              "在 demo/fib_2min.scm 中实现树形分治并行算法，每阶展开 5 层生成 32 个 Channel 并发叶子任务，20 个工作核心瞬间打满至 1500% ~ 2000% CPU，在 2 分钟内持续冲击高阶 Fibonacci（实测攻克至 fib(51)）。"
                            ) ;concat
                    (concat (item)
-                     "配套实现 Golang 原生对照版本 demo/fib_2min.go 与 Python 原生多进程对照版本 demo/fib_2min.py，用于横向性能与并发机制对比。"
+                     "配套实现 Golang 原生对照版本 demo/fib_2min.go，用于横向性能与并发机制对比（原 Python 多进程对照版已清理）。"
                    ) ;concat
                  ) ;document
       ) ;enumerate
