@@ -248,6 +248,29 @@ json_write_value (s7_scheme* sc, s7_pointer x, std::string& out) {
   json_write_value_rec (sc, x, out, ancestors);
 }
 
+// 写入器调用 + 异常捕获收进独立函数：s7_error 是裸 longjmp，MSVC 下从
+// "函数体内含 try/catch（带 SEH 展开信息）的帧" raise 会损坏 EH 状态（堆损坏），
+// 因此 f_json_to_string 本体不得直接含 try/catch，raise 也放进无 EH 的独立函数
+static s7_pointer
+json_write_to_s7_string (s7_scheme* sc, s7_pointer x, json_write_exception& err) {
+  std::string out;
+  out.reserve (256);
+  try {
+    json_write_value (sc, x, out);
+  } catch (const json_write_exception& e) {
+    err= e;
+    return NULL;
+  }
+  return s7_make_string_with_length (sc, out.data (), (s7_int) out.size ());
+}
+
+static s7_pointer
+json_raise_write_error (s7_scheme* sc, const json_write_exception& err) {
+  s7_pointer irritants= err.msg_first ? s7_list (sc, 2, s7_make_string (sc, err.msg), err.irritant)
+                                      : s7_list (sc, 2, err.irritant, s7_make_string (sc, err.msg));
+  return s7_error (sc, s7_make_symbol (sc, err.tag), irritants);
+}
+
 static s7_pointer
 f_json_to_string (s7_scheme* sc, s7_pointer args) {
   s7_pointer x= s7_car (args);
@@ -255,26 +278,12 @@ f_json_to_string (s7_scheme* sc, s7_pointer args) {
     return s7_error (sc, s7_make_symbol (sc, "type-error"),
                      s7_list (sc, 1, s7_make_string (sc, "json->string: input must not be a procedure")));
   }
-  // 写入器的错误经 C++ 异常上传；在 catch 中转为平凡局部变量，
-  // 等内层作用域的 out/ancestors 析构完毕后再 s7_error（裸 longjmp，帧内不得有 RAII）
+  // 帧内只有平凡局部变量：RAII（out/ancestors）与 EH 帧都在 json_write_to_s7_string 内，
+  // raise 经由 json_raise_write_error，两条路径均 longjmp 安全
   json_write_exception err{};
-  bool                 has_err= false;
-  {
-    std::string out;
-    out.reserve (256);
-    try {
-      json_write_value (sc, x, out);
-    } catch (const json_write_exception& e) {
-      err    = e;
-      has_err= true;
-    }
-    if (!has_err) {
-      return s7_make_string_with_length (sc, out.data (), (s7_int) out.size ());
-    }
-  }
-  s7_pointer irritants= err.msg_first ? s7_list (sc, 2, s7_make_string (sc, err.msg), err.irritant)
-                                      : s7_list (sc, 2, err.irritant, s7_make_string (sc, err.msg));
-  return s7_error (sc, s7_make_symbol (sc, err.tag), irritants);
+  s7_pointer           result= json_write_to_s7_string (sc, x, err);
+  if (result) return result;
+  return json_raise_write_error (sc, err);
 }
 
 static void
