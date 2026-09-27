@@ -263,7 +263,21 @@ static thread_local std::string t_serialize_err;
 // 错误在 RAII 对象析构之后抛出。
 static s7_pointer
 go_error (s7_scheme* sc, const char* kind, const char* msg, s7_pointer arg) {
-  return s7_error (sc, s7_make_symbol (sc, kind), s7_list (sc, 2, s7_make_string (sc, msg), arg));
+  fprintf (stderr, "[TRACE] go_error enter kind=%s\n", kind);
+  fflush (stderr);
+  s7_pointer sym= s7_make_symbol (sc, kind);
+  fprintf (stderr, "[TRACE] go_error symbol ok\n");
+  fflush (stderr);
+  s7_pointer msg_s= s7_make_string (sc, msg);
+  fprintf (stderr, "[TRACE] go_error string ok\n");
+  fflush (stderr);
+  s7_pointer lst= s7_list (sc, 2, msg_s, arg);
+  fprintf (stderr, "[TRACE] go_error list ok\n");
+  fflush (stderr);
+  s7_pointer res= s7_error (sc, sym, lst);
+  fprintf (stderr, "[TRACE] go_error s7_error returned (should not reach if caught)\n");
+  fflush (stderr);
+  return res;
 }
 
 static void
@@ -855,10 +869,18 @@ GoldfishChannel::is_closed () const {
 
 static s7_pointer
 f_make_chan (s7_scheme* sc, s7_pointer args) {
+  fprintf (stderr, "[TRACE] f_make_chan enter\n");
+  fflush (stderr);
   s7_int cap= 0;
   if (!s7_is_null (sc, args)) {
+    fprintf (stderr, "[TRACE] f_make_chan has args\n");
+    fflush (stderr);
     s7_pointer cap_arg= s7_car (args);
+    fprintf (stderr, "[TRACE] f_make_chan car ok, is_integer=%d\n", (int) s7_is_integer (cap_arg));
+    fflush (stderr);
     if (!s7_is_integer (cap_arg) || s7_integer (cap_arg) < 0) {
+      fprintf (stderr, "[TRACE] f_make_chan before go_error\n");
+      fflush (stderr);
       return go_error (sc, "type-error", "make-chan: capacity must be a non-negative integer", cap_arg);
     }
     cap= s7_integer (cap_arg);
