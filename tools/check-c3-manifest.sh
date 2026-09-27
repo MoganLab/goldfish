@@ -30,7 +30,7 @@ fi
 while IFS= read -r path; do
     [ -f "$path" ] || { echo "check-c3-manifest: missing $path" >&2; exit 1; }
 done < "$tmp_dir/corpus"
-if ! grep -qx 'tests/c3/native-workflow-test.scm' "$tmp_dir/corpus"; then
+if ! grep -qx 'tests/c3/native-workflow.scm' "$tmp_dir/corpus"; then
     echo "check-c3-manifest: cross-library workflow missing from corpus" >&2
     exit 1
 fi

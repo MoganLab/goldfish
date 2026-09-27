@@ -50,4 +50,4 @@ cold_cache=$(mktemp -d "${TMPDIR:-/tmp}/goldfish-native-c3-cold.XXXXXX")
 trap 'rm -rf "$cold_cache"' EXIT HUP INT TERM
 mkdir -p "$cold_cache/ccache"
 GOLDFISH_CACHE_DIR="$cold_cache/ccache" \
-    ./bin/gf-native -m liii load tests/c3/native-workflow-test.scm
+    ./bin/gf-native -m liii load tests/c3/native-workflow.scm

@@ -164,7 +164,7 @@ bool equal_inner(Value left, Value right,
 }
 } // namespace
 
-bool equal(Value left, Value right) {
+bool equal_values_impl(Value left, Value right) {
     std::vector<std::pair<const Object*, const Object*>> seen;
     return equal_inner(left, right, seen);
 }
@@ -375,6 +375,7 @@ std::string format_value(const Evaluator& evaluator, Value value,
             return "#<error " + value.as_object<ErrorObject>()->message + ">";
         case ObjectType::Closure:
         case ObjectType::Primitive:
+        case ObjectType::Continuation:
             return "#<procedure>";
         case ObjectType::Vector: {
             std::string out = "#(";
@@ -600,6 +601,15 @@ Value copy_value(Evaluator& evaluator, const Values& args) {
 }
 
 } // namespace
+
+bool equal(Value left, Value right) {
+    return equal_values_impl(left, right);
+}
+
+Value current_input_port_value() { return g_current_ports.input; }
+Value current_output_port_value() { return g_current_ports.output; }
+void set_current_input_port_value(Value port) { g_current_ports.input = port; }
+void set_current_output_port_value(Value port) { g_current_ports.output = port; }
 
 void install_runtime_primitives(Evaluator& evaluator) {
     // Platform capability adapters are installed as a separate layer.
@@ -902,9 +912,10 @@ void install_runtime_primitives(Evaluator& evaluator) {
     install(evaluator, "eval-environment-define!", [](const Values& args) {
         require_arity(args, 3, "eval-environment-define!");
         if (!args[0].is_object() ||
-            args[0].as_object()->type() != ObjectType::EvalEnvironment)
+            args[0].as_object()->type() != ObjectType::EvalEnvironment) {
             throw std::runtime_error(
                 "eval-environment-define! expects an eval environment");
+        }
         args[0].as_object<EvalEnvironmentObject>()->environment->define(
             args[1], args[2]);
         return Values{Value::unspecified()};
@@ -961,18 +972,9 @@ void install_runtime_primitives(Evaluator& evaluator) {
         }
         return evaluator.eval_values(args[0], std::move(environment));
     });
-    install(evaluator, "dynamic-wind", [&evaluator](const Values& args) {
-        require_arity(args, 3, "dynamic-wind");
-        evaluator.apply_values(args[0], {});
-        try {
-            Values result = evaluator.apply_values(args[1], {});
-            evaluator.apply_values(args[2], {});
-            return result;
-        } catch (...) {
-            evaluator.apply_values(args[2], {});
-            throw;
-        }
-    });
+    evaluator.define_callcc_primitive("call/cc");
+    evaluator.define_callcc_primitive("call-with-current-continuation");
+    evaluator.define_dynamic_wind_primitive("dynamic-wind");
     // Input/output ports and the tiny reader boundary.
     g_eof_singleton = Value::object(evaluator.heap().make<EofObject>());
     Value eof = g_eof_singleton;
@@ -1024,8 +1026,13 @@ void install_runtime_primitives(Evaluator& evaluator) {
             path, std::ios::binary | (append ? std::ios::app : std::ios::trunc));
         if (!*file) throw std::runtime_error("cannot open output file: " + path);
         std::shared_ptr<std::ostream> stream = file;
-        return Values{Value::object(
-            evaluator.heap().make<OutputPortObject>(std::move(stream)))};
+        Value port = Value::object(
+            evaluator.heap().make<OutputPortObject>(std::move(stream)));
+        auto& output = *port.as_object<OutputPortObject>();
+        output.file_path = path;
+        output.file_backed = true;
+        output.file_append = append;
+        return Values{port};
     });
     install(evaluator, "open-output-string", [&evaluator](const Values& args) {
         require_arity(args, 0, "open-output-string");
@@ -1736,39 +1743,10 @@ void install_runtime_primitives(Evaluator& evaluator) {
         require_arity(args, 1, "g-enabled?");
         return Values{Value::boolean(false)};
     });
-    install(evaluator, "call-with-input-file",
-            [&evaluator](const Values& args) {
-                require_arity(args, 2, "call-with-input-file");
-                Value port = evaluator.apply_values(
-                    evaluator.global_environment()->lookup(
-                        evaluator.symbol("open-input-file")),
-                    {args[0]})[0];
-                try {
-                    Values result = evaluator.apply_values(args[1], {port});
-                    port.as_object<InputStringPortObject>()->closed = true;
-                    return result;
-                } catch (...) {
-                    port.as_object<InputStringPortObject>()->closed = true;
-                    throw;
-                }
-            });
-    install(evaluator, "call-with-output-file",
-            [&evaluator](const Values& args) {
-                require_arity(args, 2, "call-with-output-file");
-                Value port = evaluator.apply_values(
-                    evaluator.global_environment()->lookup(
-                        evaluator.symbol("open-output-file")),
-                    {args[0]})[0];
-                try {
-                    Values result = evaluator.apply_values(args[1], {port});
-                    port.as_object<OutputPortObject>()->stream->flush();
-                    port.as_object<OutputPortObject>()->closed = true;
-                    return result;
-                } catch (...) {
-                    port.as_object<OutputPortObject>()->closed = true;
-                    throw;
-                }
-            });
+    evaluator.define_machine_primitive(
+        "call-with-input-file", PrimitiveObject::Kind::CallWithInputFile);
+    evaluator.define_machine_primitive(
+        "call-with-output-file", PrimitiveObject::Kind::CallWithOutputFile);
     install(evaluator, "get-output-string", [&evaluator](const Values& args) {
         require_arity(args, 1, "get-output-string");
         auto& port = output_port(args[0], "get-output-string");
@@ -1780,65 +1758,14 @@ void install_runtime_primitives(Evaluator& evaluator) {
     // String-port conveniences: s7 ships these as builtins, so the kernel's
     // primitive-variables list turns every reference into a bare name that
     // must resolve in the global environment.
-    install(evaluator, "with-output-to-string", [&evaluator](const Values& args) {
-        require_arity(args, 1, "with-output-to-string");
-        Value port = evaluator
-                         .apply_values(
-                             evaluator.global_environment()->lookup(
-                                 evaluator.symbol("open-output-string")),
-                             Values{})[0];
-        Value saved = g_current_ports.output;
-        g_current_ports.output = port;
-        try {
-            evaluator.apply_values(args[0], {});
-        } catch (...) {
-            g_current_ports.output = saved;
-            throw;
-        }
-        g_current_ports.output = saved;
-        return Values{evaluator.apply_values(
-            evaluator.global_environment()->lookup(
-                evaluator.symbol("get-output-string")),
-            {port})[0]};
-    });
-    install(evaluator, "call-with-output-string", [&evaluator](const Values& args) {
-        require_arity(args, 1, "call-with-output-string");
-        Value port = evaluator
-                         .apply_values(
-                             evaluator.global_environment()->lookup(
-                                 evaluator.symbol("open-output-string")),
-                             Values{})[0];
-        evaluator.apply_values(args[0], {port});
-        return Values{evaluator.apply_values(
-            evaluator.global_environment()->lookup(
-                evaluator.symbol("get-output-string")),
-            {port})[0]};
-    });
-    install(evaluator, "with-input-from-string", [&evaluator](const Values& args) {
-        require_arity(args, 2, "with-input-from-string");
-        Value port = evaluator.apply_values(
-            evaluator.global_environment()->lookup(
-                evaluator.symbol("open-input-string")),
-            {args[0]})[0];
-        Value saved = g_current_ports.input;
-        g_current_ports.input = port;
-        try {
-            Values result = evaluator.apply_values(args[1], {});
-            g_current_ports.input = saved;
-            return result;
-        } catch (...) {
-            g_current_ports.input = saved;
-            throw;
-        }
-    });
-    install(evaluator, "call-with-input-string", [&evaluator](const Values& args) {
-        require_arity(args, 2, "call-with-input-string");
-        Value port = evaluator.apply_values(
-            evaluator.global_environment()->lookup(
-                evaluator.symbol("open-input-string")),
-            {args[0]})[0];
-        return evaluator.apply_values(args[1], {port});
-    });
+    evaluator.define_machine_primitive(
+        "with-output-to-string", PrimitiveObject::Kind::WithOutputToString);
+    evaluator.define_machine_primitive(
+        "call-with-output-string", PrimitiveObject::Kind::CallWithOutputString);
+    evaluator.define_machine_primitive(
+        "with-input-from-string", PrimitiveObject::Kind::WithInputFromString);
+    evaluator.define_machine_primitive(
+        "call-with-input-string", PrimitiveObject::Kind::CallWithInputString);
     install(evaluator, "delete-file", [&evaluator](const Values& args) {
         require_arity(args, 1, "delete-file");
         if (!args[0].is_object() ||
@@ -2405,7 +2332,8 @@ void install_runtime_primitives(Evaluator& evaluator) {
         require_arity(args, 1, "procedure?");
         bool result = args[0].is_object() &&
                       (args[0].as_object()->type() == ObjectType::Closure ||
-                       args[0].as_object()->type() == ObjectType::Primitive);
+                       args[0].as_object()->type() == ObjectType::Primitive ||
+                       args[0].as_object()->type() == ObjectType::Continuation);
         return Values{Value::boolean(result)};
     });
     install(evaluator, "type-of", [&evaluator](const Values& args) {
@@ -2422,7 +2350,9 @@ void install_runtime_primitives(Evaluator& evaluator) {
         case ObjectType::Vector: return Values{evaluator.symbol("vector")};
         case ObjectType::Character: return Values{evaluator.symbol("character")};
         case ObjectType::Primitive:
-        case ObjectType::Closure: return Values{evaluator.symbol("procedure")};
+        case ObjectType::Closure:
+        case ObjectType::Continuation:
+            return Values{evaluator.symbol("procedure")};
         default: return Values{evaluator.symbol("object")};
         }
     });
@@ -2438,131 +2368,7 @@ void install_runtime_primitives(Evaluator& evaluator) {
         require_arity(args, 2, "equal?");
         return Values{Value::boolean(equal(args[0], args[1]))};
     });
-    install(evaluator, "catch", [&evaluator](const Values& args) {
-        require_arity(args, 3, "catch");
-        auto matches = [&evaluator](Value wanted, Value actual) {
-            return (wanted.is_boolean() && wanted.as_boolean()) ||
-                   evaluator.apply_values(
-                       evaluator.global_environment()->lookup(
-                           evaluator.symbol("equal?")),
-                       {wanted, actual})[0].as_boolean();
-        };
-        // C++ error keys at the catch boundary: message shapes are the
-        // runtime's own contract, so classification is a stable table
-        // (tests/scheme pins the host's key taxonomy: wrong-type-arg,
-        // wrong-number-of-args, out-of-range, division-by-zero,
-        // type-error for the s7-builtin-compat string/utf8 ops).
-        auto handle_cxx = [&](const std::string& message) -> Values {
-            const bool arity =
-                message.rfind("wrong number of arguments", 0) == 0 ||
-                (message.find("expects") != std::string::npos &&
-                 message.find("argument") != std::string::npos);
-            const bool oor =
-                message.find("out of bounds") != std::string::npos ||
-                message.find("out of range") != std::string::npos;
-            const bool valerr =
-                message.find("non-negative") != std::string::npos;
-            const bool div0 =
-                message.find("division by zero") != std::string::npos ||
-                message.find("divisor is zero") != std::string::npos;
-            const bool ioerr =
-                message.find("cannot open") != std::string::npos ||
-                message.find("cannot delete") != std::string::npos;
-            // s7-builtin-compat numeric/string/char ops pin 'type-error, not
-            // 'wrong-type-arg (host-abi raised (error 'type-error ...)).
-            const bool s7type =
-                message.find("string->utf8 expects") != std::string::npos ||
-                message.find("utf8->string expects") != std::string::npos ||
-                message.find("expects integers") != std::string::npos ||
-                message.find("expects real numbers") != std::string::npos ||
-                message.find("expected character") != std::string::npos;
-            const bool wtype =
-                !arity && (message.find("expects") != std::string::npos ||
-                           message.find("expected ") != std::string::npos ||
-                           message.find("wrong kind") != std::string::npos);
-            const char* key = arity   ? "wrong-number-of-args"
-                             : oor    ? "out-of-range"
-                             : valerr ? "value-error"
-                             : div0   ? "division-by-zero"
-                             : ioerr  ? "io-error"
-                             : s7type ? "type-error"
-                             : wtype  ? "wrong-type-arg"
-                                      : nullptr;
-            if (key == nullptr) {
-                if (!matches(args[0], Value::boolean(true))) throw;
-                return evaluator.apply_values(
-                    args[2],
-                    Values{Value::boolean(true),
-                           evaluator.pair(evaluator.string(message),
-                                          Value::null())});
-            }
-            const Value key_value = evaluator.symbol(key);
-            if (!matches(args[0], key_value)) throw;
-            return evaluator.apply_values(
-                args[2],
-                Values{key_value,
-                       evaluator.pair(evaluator.string(message),
-                                      Value::null())});
-        };
-        try {
-            return evaluator.apply_values(args[1], {});
-        } catch (const ThrownValue& thrown) {
-            if (!matches(args[0], thrown.tag())) throw;
-            // Host contract: the handler sees (tag info ...) where the
-            // payload rides in a LIST -- guard/with-exception-handler take
-            // (car info) as the raised object.
-            Value payload = Value::null();
-            for (auto it = thrown.arguments().rbegin();
-                 it != thrown.arguments().rend(); ++it)
-                payload = evaluator.pair(*it, payload);
-            return evaluator.apply_values(
-                args[2], Values{thrown.tag(), payload});
-        } catch (const RaisedValue& raised) {
-            // raise (a core form) carries a bare payload; s7's raise throws
-            // under tag #t, so mirror that and list-wrap the value.  An
-            // ErrorObject came from (error key ...): its message holds the
-            // key and the irritants are the info list, exactly what the
-            // host's catch hands to (lambda (tag info) ...).  The tag to
-            // match is therefore the key itself -- checking #t first made
-            // (catch 'some-key ...) unable to see keyed raises.
-            if (raised.value().is_object() &&
-                raised.value().as_object()->type() == ObjectType::ErrorObject) {
-                const auto* error =
-                    raised.value().as_object<ErrorObject>();
-                const bool keyed = !error->key.empty();
-                if (!matches(args[0],
-                             keyed ? evaluator.symbol(error->key)
-                                   : Value::boolean(true)))
-                    throw;
-                if (keyed) {
-                    // (error key ...) : the host hands (key irritants...) --
-                    // guard takes (car info) as the first irritant, which is
-                    // what the reader's read-error handlers expect.
-                    Value payload = Value::null();
-                    for (auto it = error->irritants.rbegin();
-                         it != error->irritants.rend(); ++it)
-                        payload = evaluator.pair(*it, payload);
-                    return evaluator.apply_values(
-                        args[2], Values{evaluator.symbol(error->key), payload});
-                }
-                // R7RS (error "text" ...): the raised object is the single
-                // info element, so guard binds the error object itself.
-                return evaluator.apply_values(
-                    args[2],
-                    Values{Value::boolean(true),
-                           evaluator.pair(raised.value(), Value::null())});
-            }
-            return evaluator.apply_values(
-                args[2],
-                Values{Value::boolean(true),
-                       evaluator.pair(raised.value(), Value::null())});
-        } catch (const std::runtime_error& error) {
-            return handle_cxx(error.what());
-        } catch (const std::logic_error& error) {
-            // value.hpp's require() ("runtime value has the wrong kind").
-            return handle_cxx(error.what());
-        }
-    });
+    evaluator.define_machine_primitive("catch", PrimitiveObject::Kind::Catch);
     install(evaluator, "throw", [](const Values& args) -> Values {
         if (args.empty()) throw std::runtime_error("throw expects a tag");
         ValueList arguments(args.begin() + 1, args.end());
@@ -2920,22 +2726,8 @@ void install_runtime_primitives(Evaluator& evaluator) {
         std::fill(value.begin() + start, value.begin() + end, character);
         return Values{Value::unspecified()};
     });
-    install(evaluator, "string-for-each", [&evaluator](const Values& args) {
-        if (args.size() < 2)
-            throw std::runtime_error("string-for-each expects a procedure and strings");
-        std::vector<std::string> strings;
-        for (std::size_t i = 1; i < args.size(); ++i)
-            strings.push_back(evaluator.string_value(args[i]));
-        std::size_t length = strings[0].size();
-        for (const auto& string : strings) length = std::min(length, string.size());
-        for (std::size_t i = 0; i < length; ++i) {
-            Values call;
-            for (const auto& string : strings) call.push_back(
-                evaluator.character(static_cast<unsigned char>(string[i])));
-            evaluator.apply_values(args[0], call);
-        }
-        return Values{Value::unspecified()};
-    });
+    evaluator.define_machine_primitive(
+        "string-for-each", PrimitiveObject::Kind::StringForEach);
     for (const auto& entry : {std::pair<const char*, bool(*)(const std::string&, const std::string&)>{
                                   "string=?", [](const auto& a, const auto& b) { return a == b; }},
                               {"string<?", [](const auto& a, const auto& b) { return a < b; }},
@@ -3269,24 +3061,8 @@ void install_runtime_primitives(Evaluator& evaluator) {
     // (liii vector) aliases vector-filter onto this primitive (the host
     // provides it from s7_liii_vector.c): keep elements whose predicate
     // result is not #f.
-    install(evaluator, "g_vector_filter", [&evaluator](const Values& args) {
-        require_arity(args, 2, "g_vector_filter");
-        Value source = args[1];
-        if (!source.is_object() ||
-            source.as_object()->type() != ObjectType::Vector)
-            throw std::runtime_error("g_vector_filter expects a vector");
-        std::vector<Value> kept;
-        for (Value element : source.as_object<VectorObject>()->values) {
-            Values outcome = evaluator.apply_values(args[0], {element});
-            if (outcome.empty())
-                throw std::runtime_error(
-                    "g_vector_filter predicate returned no value");
-            Value verdict = outcome[0];
-            if (!verdict.is_boolean() || verdict.as_boolean())
-                kept.push_back(element);
-        }
-        return Values{evaluator.vector(kept)};
-    });
+    evaluator.define_machine_primitive(
+        "g_vector_filter", PrimitiveObject::Kind::VectorFilter);
 
     // s7's char-position: byte index of the first byte of `needle' (a
     // character, or any byte of a string set) at or after `start', else #f.
@@ -3481,11 +3257,8 @@ void install_runtime_primitives(Evaluator& evaluator) {
     // --- value positions (procedure?, passing to a combinator, the expander's
     // --- let-values runtime path) need these bindings, like the host has.
     install(evaluator, "values", [](const Values& args) { return args; });
-    install(evaluator, "call-with-values", [&evaluator](const Values& args) {
-        require_arity(args, 2, "call-with-values");
-        Values produced = evaluator.apply_values(args[0], {});
-        return evaluator.apply_values(args[1], produced);
-    });
+    evaluator.define_machine_primitive(
+        "call-with-values", PrimitiveObject::Kind::CallWithValues);
 
     // --- current ports and dynamic rebinding (R7RS file I/O) --------------
     install(evaluator, "current-input-port", [&evaluator](const Values& args) {
@@ -3496,63 +3269,10 @@ void install_runtime_primitives(Evaluator& evaluator) {
         require_arity(args, 0, "current-error-port");
         return Values{g_current_ports.error_port};
     });
-    install(evaluator, "with-input-from-file",
-            [&evaluator](const Values& args) {
-                require_arity(args, 2, "with-input-from-file");
-                if (!args[0].is_object() ||
-                    args[0].as_object()->type() != ObjectType::String)
-                    raise_keyed(evaluator, "type-error",
-                                "with-input-from-file: expected string");
-                Value saved = g_current_ports.input;
-                Value port = evaluator
-                                 .apply_values(
-                                     evaluator.global_environment()->lookup(
-                                         evaluator.symbol("open-input-file")),
-                                     {args[0]})[0];
-                g_current_ports.input = port;
-                Values result;
-                try {
-                    result = evaluator.apply_values(args[1], {});
-                } catch (...) {
-                    g_current_ports.input = saved;
-                    port.as_object<InputStringPortObject>()->closed = true;
-                    throw;
-                }
-                g_current_ports.input = saved;
-                port.as_object<InputStringPortObject>()->closed = true;
-                return result;
-            });
-    install(evaluator, "with-output-to-file",
-            [&evaluator](const Values& args) {
-                require_arity(args, 2, "with-output-to-file");
-                Value saved = g_current_ports.output;
-                Value port = evaluator
-                                 .apply_values(
-                                     evaluator.global_environment()->lookup(
-                                         evaluator.symbol("open-output-file")),
-                                     {args[0]})[0];
-                g_current_ports.output = port;
-                auto close_current = [&]() {
-                    g_current_ports.output = saved;
-                    if (port.is_object() &&
-                        port.as_object()->type() == ObjectType::OutputPort) {
-                        auto& out = *port.as_object<OutputPortObject>();
-                        if (!out.closed) {
-                            out.stream->flush();
-                            out.closed = true;
-                        }
-                    }
-                };
-                Values result;
-                try {
-                    result = evaluator.apply_values(args[1], {});
-                } catch (...) {
-                    close_current();
-                    throw;
-                }
-                close_current();
-                return result;
-            });
+    evaluator.define_machine_primitive(
+        "with-input-from-file", PrimitiveObject::Kind::WithInputFromFile);
+    evaluator.define_machine_primitive(
+        "with-output-to-file", PrimitiveObject::Kind::WithOutputToFile);
     install(evaluator, "read-line", [&evaluator, eof](const Values& args) {
         if (args.size() > 2)
             throw std::runtime_error("read-line expects zero to two arguments");

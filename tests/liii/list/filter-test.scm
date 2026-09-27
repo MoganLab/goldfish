@@ -155,5 +155,19 @@
   (check (filter (lambda (x) #f) l) => '())
 ) ;let
 
+(let ((saved #f) (captured #f) (resumed #f) (visited '()))
+  (filter (lambda (item)
+            (set! visited (cons item visited))
+            (call/cc (lambda (k)
+                       (unless captured
+                       (set! captured #t)
+                        (set! saved k))
+                       #t))
+          )
+          '(1 2 3))
+  (unless resumed
+    (set! resumed #t)
+    (saved #t))
+  (check (reverse visited) => '(1 2 3 2 3)))
 
 (check-report)

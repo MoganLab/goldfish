@@ -58,6 +58,12 @@
   '(1 2 3)
 ) ;check
 
+;; The first-class call-with-values procedure also runs inside the machine.
+(check ((lambda (consumer)
+          (consumer (lambda () (values 'first 'second)) list))
+        call-with-values)
+  => '(first second))
+
 ;; 在嵌套表达式中使用
 (check (+ 1 (call/cc (lambda (k) (* 2 (k 3))))) => 4)
 
@@ -142,6 +148,23 @@
   (check (reverse results) => '(0 1 2 3))
 ) ;let
 
+;; A continuation restores control, while assignments after capture persist.
+(check
+ (let ((saved #f) (value 0))
+   (let ((result
+          (call/cc (lambda (exit)
+                     (call/cc (lambda (k)
+                                (set! saved k)
+                                (exit 'escaped)))
+                     (set! value (+ value 1))
+                     value))))
+     (if (eq? result 'escaped)
+         (begin
+           (set! value 40)
+           (saved 'resume))
+         (list 'resumed result value))))
+ => '(resumed 41 41))
+
 ;; 续延作为参数传递给其他函数
 
 (define (escape-if-odd n return)
@@ -173,5 +196,61 @@
     (check result => 'interrupted)
   ) ;let
 ) ;let
+
+;; A jump from a primitive callback must abandon that primitive's C++ loop.
+(let ((saved #f) (first #t) (visited '()))
+  (let ((result (call/cc (lambda (k) (set! saved k) 'initial))))
+    (when first
+      (set! first #f)
+      (for-each (lambda (item)
+                  (set! visited (cons item visited))
+                  (when (= item 2) (saved 'jumped)))
+                '(1 2 3))
+      (set! visited (cons 'continued visited)))
+    (check result => 'jumped)
+  (check (reverse visited) => '(1 2))))
+
+;; Re-entering a callback must also resume the interrupted higher-order loop.
+(let ((saved #f) (captured #f) (resumed #f) (visited '()))
+  (for-each (lambda (item)
+              (set! visited (cons item visited))
+              (call/cc (lambda (k)
+                         (unless captured
+                           (set! captured #t)
+                           (set! saved k))
+                         'initial)))
+            '(1 2 3))
+  (unless resumed
+    (set! resumed #t)
+  (saved 'again))
+  (check (reverse visited) => '(1 2 3 2 3)))
+
+(let ((saved #f) (captured #f) (resumed #f) (visited '()))
+  (map (lambda (item)
+         (set! visited (cons item visited))
+         (call/cc (lambda (k)
+                    (unless captured
+                      (set! captured #t)
+                      (set! saved k))
+                    item)))
+       '(1 2 3))
+  (unless resumed
+    (set! resumed #t)
+    (saved 1))
+  (check (reverse visited) => '(1 2 3 2 3)))
+
+(let ((saved #f) (captured #f) (resumed #f) (visited '()))
+  (fold (lambda (acc item)
+          (set! visited (cons item visited))
+          (+ acc (call/cc (lambda (k)
+                            (unless captured
+                              (set! captured #t)
+                              (set! saved k))
+                            item))))
+        0 '(1 2 3))
+  (unless resumed
+    (set! resumed #t)
+    (saved 1))
+  (check (reverse visited) => '(1 2 3 2 3)))
 
 (check-report)

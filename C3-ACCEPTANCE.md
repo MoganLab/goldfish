@@ -108,7 +108,7 @@ cross-library workflow):
 - `(scheme eval)`: eval and imported environments.
 - `(srfi srfi-13)`: Unicode-aware prefix operations.
 - `(liii path)` and `(liii string)`: path composition and string joining.
-- `tests/c3/native-workflow-test.scm` ties together explicit imports from all
+- `tests/c3/native-workflow.scm` ties together explicit imports from all
   four library families, mutation, exception handling, multiple values,
   Unicode string operations, and path composition. File-backed port behavior
   is exercised by `call-with-input-file-test.scm`.

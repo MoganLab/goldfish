@@ -6,6 +6,7 @@
 #include "runtime/symbol.hpp"
 
 #include <functional>
+#include <cstddef>
 #include <memory>
 #include <ostream>
 #include <string>
@@ -13,7 +14,14 @@
 
 namespace goldfish::runtime {
 
+bool equal(Value left, Value right);
+
 using Values = ValueList;
+
+Value current_input_port_value();
+Value current_output_port_value();
+void set_current_input_port_value(Value port);
+void set_current_output_port_value(Value port);
 
 class UninitializedObject final : public Object {
 public:
@@ -70,6 +78,9 @@ public:
 
     std::shared_ptr<std::ostream> stream;
     std::shared_ptr<std::string> buffer;
+    std::string file_path;
+    bool file_backed = false;
+    bool file_append = false;
     bool closed = false;
 };
 
@@ -162,10 +173,190 @@ class PrimitiveObject final : public Object {
 public:
     using Function = std::function<Values(const Values&)>;
 
-    explicit PrimitiveObject(Function function)
-        : Object(ObjectType::Primitive), function(std::move(function)) {}
+    enum class Kind : std::uint8_t {
+        Ordinary,
+        CaptureContinuation,
+        DynamicWind,
+        Map,
+        ForEach,
+        Fold,
+        Filter,
+        Any,
+        Every,
+        Member,
+        Assoc,
+        StringForEach,
+        VectorFilter,
+        CallWithValues,
+        WithInputFromString,
+        WithOutputToString,
+        WithInputFromFile,
+        WithOutputToFile,
+        CallWithInputString,
+        CallWithOutputString,
+        CallWithInputFile,
+        CallWithOutputFile,
+        Catch,
+    };
+
+    explicit PrimitiveObject(Function function,
+                             Kind kind = Kind::Ordinary)
+        : Object(ObjectType::Primitive), function(std::move(function)),
+          kind(kind) {}
 
     Function function;
+    Kind kind;
+};
+
+struct ContinuationJump final {
+    Value continuation;
+    Values values;
+};
+
+struct DynamicWinder final {
+    enum class PortSlot : std::uint8_t { None, Input, Output };
+
+    Value before = Value::unspecified();
+    Value after = Value::unspecified();
+    Value previous_port = Value::unspecified();
+    Value bound_port = Value::unspecified();
+    EnvironmentPtr environment;
+    std::uint64_t identity = 0;
+    PortSlot port_slot = PortSlot::None;
+    bool close_bound_port = false;
+
+    void trace(Tracer& tracer) const {
+        tracer.mark(before);
+        tracer.mark(after);
+        tracer.mark(previous_port);
+        tracer.mark(bound_port);
+        if (environment)
+            environment->trace(tracer);
+    }
+};
+
+// An explicit evaluator continuation frame.  Frames are copied into a
+// ContinuationObject when Scheme captures its current continuation; keeping
+// the payload here typed lets the precise collector trace every live Value.
+struct KontFrame final {
+    enum class Kind : std::uint8_t {
+        Sequence,
+        IfTest,
+        WhenTest,
+        CallOperator,
+        CallArgument,
+        DefineValue,
+        SetValue,
+        LetBinding,
+        LetrecBinding,
+        ValuesArgument,
+        CallWithValuesProducer,
+        CallWithValuesConsumer,
+        RaiseValue,
+        ErrorMessage,
+        ErrorIrritant,
+        ErrorObjectPredicate,
+        ErrorObjectMessage,
+        ErrorObjectIrritants,
+        ExceptionHandler,
+        Catch,
+        RethrowRaised,
+        RethrowRuntimeError,
+        RethrowThrown,
+        ApplyProcedure,
+        ApplyArgument,
+        ModuleReference,
+        ModuleAssignment,
+        SetterTarget,
+        DynamicWind,
+        PortCallback,
+        MapLoop,
+        ForEachLoop,
+        FoldLoop,
+        FilterLoop,
+        AnyLoop,
+        EveryLoop,
+        MemberLoop,
+        AssocLoop,
+        VectorFilterLoop,
+        ContinuationTransfer,
+    };
+
+    Kind kind = Kind::Sequence;
+    Value expression = Value::unspecified();
+    Value auxiliary = Value::unspecified();
+    EnvironmentPtr environment;
+    EnvironmentPtr secondary_environment;
+    Values values;
+    std::size_t index = 0;
+    std::size_t stage = 0;
+    std::vector<Value> expressions;
+    std::vector<DynamicWinder> exiting_winders;
+    std::vector<DynamicWinder> entering_winders;
+    std::vector<DynamicWinder> winders;
+
+    void trace(Tracer& tracer) const {
+        tracer.mark(expression);
+        tracer.mark(auxiliary);
+        for (Value value : values)
+            tracer.mark(value);
+        for (Value value : expressions)
+            tracer.mark(value);
+        for (const DynamicWinder& winder : exiting_winders)
+            winder.trace(tracer);
+        for (const DynamicWinder& winder : entering_winders)
+            winder.trace(tracer);
+        for (const DynamicWinder& winder : winders)
+            winder.trace(tracer);
+        if (environment)
+            environment->trace(tracer);
+        if (secondary_environment)
+            secondary_environment->trace(tracer);
+    }
+};
+
+struct EvalSnapshot final {
+    std::uint64_t machine_id = 0;
+    Value expression = Value::unspecified();
+    Value initial_procedure = Value::unspecified();
+    EnvironmentPtr environment;
+    std::vector<KontFrame> frames;
+    Values values;
+    Values initial_arguments;
+    std::vector<DynamicWinder> winders;
+    bool returning = false;
+    bool applying = false;
+
+    void trace(Tracer& tracer) const {
+        tracer.mark(expression);
+        tracer.mark(initial_procedure);
+        for (Value value : values)
+            tracer.mark(value);
+        for (Value value : initial_arguments)
+            tracer.mark(value);
+        for (const DynamicWinder& winder : winders)
+            winder.trace(tracer);
+        if (environment)
+            environment->trace(tracer);
+        for (const KontFrame& frame : frames)
+            frame.trace(tracer);
+    }
+};
+
+// Snapshot of evaluator-owned control state.  The saved frames are immutable
+// after construction so invoking a multi-shot continuation can copy them into
+// the evaluator's working stack without changing later invocations.
+class ContinuationObject final : public Object {
+public:
+    explicit ContinuationObject(EvalSnapshot snapshot)
+        : Object(ObjectType::Continuation), snapshot(std::move(snapshot)) {}
+
+    EvalSnapshot snapshot;
+
+protected:
+    void trace(Tracer& tracer) override {
+        snapshot.trace(tracer);
+    }
 };
 
 class Evaluator final {
@@ -195,6 +386,10 @@ public:
 
     void define_primitive(const std::string& name,
                           PrimitiveObject::Function function);
+    void define_callcc_primitive(const std::string& name);
+    void define_dynamic_wind_primitive(const std::string& name);
+    void define_machine_primitive(const std::string& name,
+                                  PrimitiveObject::Kind kind);
 
     // Sweep the heap: mark from the global chain, the expander's defs
     // frame, pending tail-call state and the permanent root slots.  Only
@@ -235,12 +430,16 @@ private:
     bool has_pending_call_ = false;
     Value pending_procedure_ = Value::unspecified();
     Values pending_arguments_;
+    std::vector<EvalSnapshot*> active_evaluations_;
+    std::uint64_t next_machine_id_ = 1;
+    std::uint64_t next_winder_identity_ = 1;
 
     Values eval_pair(PairObject& expression, EnvironmentPtr environment);
     Values eval_tail(Value expression, EnvironmentPtr environment);
     Values eval_sequence(Value expressions, EnvironmentPtr environment);
     Values eval_tail_sequence(Value expressions, EnvironmentPtr environment);
     Values apply(Value procedure, const Values& arguments);
+    Values run_machine(EvalSnapshot& state);
     Value list_values(const Values& values);
     std::vector<Value> proper_list(Value value) const;
     std::string symbol_name(Value value) const;

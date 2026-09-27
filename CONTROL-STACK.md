@@ -106,3 +106,104 @@ C++ 递归直 walk；本页是其继任者（M-VM）的开工令。
 - call/cc 落地后的必测用例：generator→stream 尾递归枚举。
   预期与 s7 **同泄漏**（显式栈拷贝语义 pin 住 suffix）——先对齐，
   再谈优化（优化＝prompt，已超 R7RS，不做）。
+
+## Native runtime 的 call/cc 原型（2026-09-27）
+
+上面的 M-VM 实现位于 `src/gf0_eval.cpp`，不能视为 C3 native runtime
+已经支持 continuation。C3 使用另一套对象/GC 和 evaluator：
+`src/runtime/evaluator.cpp` 与 `src/runtime/core_evaluator.cpp` 仍通过
+C++ 递归执行非尾表达式；`dynamic-wind` 在
+`src/runtime/standard_primitives.cpp` 中是普通调用包装，无法感知
+continuation 跳转。R4 的 `call/cc` 工作必须在这条 native 路径独立落地。
+
+首版采用 evaluator 自有的 CEK 控制循环和可复制 Kont 快照，不操作或
+复制 C++ 栈。捕获时复制当前控制帧；调用 continuation 时从不可变捕获
+快照构造当前工作帧栈，并以传入的完整 `Values` 恢复求值。这样先直接
+覆盖 R7RS 所需的 unlimited extent 和 multi-shot 行为，避免工作栈后续
+变更污染已捕获快照。线性拷贝是首版明确接受的成本，不预设 Chez 的
+内部实现等同于 copy-on-write。
+
+实现边界：
+
+- native continuation 必须是 native heap object；其 `trace()` 覆盖快照
+  中的所有 `Value`，捕获环境通过既有 `Environment::trace` 保持可达。
+- Kont frame 将表达式、环境、部分参数/多值结果和返回阶段显式化；
+  普通调用、`apply`、`call-with-values`、定义/赋值、异常 handler 等
+  所有会跨越求值点的路径都必须经由同一个机器，不能留下递归求值旁路。
+- continuation 捕获/恢复先覆盖多值、tail context、closure tail call、
+  重复调用与变量共享语义。变量环境仍是共享可变环境，不随 Kont 快照
+  回滚。
+- `dynamic-wind` 单列为后续实现：动态 winder 链必须随 continuation
+  捕获，并在跳转时按退出/进入顺序运行 thunk；不能复用当前普通
+  primitive 包装来宣称完成。
+- 先记录普通求值、深栈、单次捕获/恢复和 SRFI-158 generator 的成本；
+  只有测量显示快照复制是实际瓶颈，才评估不可变共享段或 COW。COW
+  会增加写屏障/分支恢复复杂度，不作为正确性实现的先决条件。
+
+本节不改变 gf0 M-VM 的现有结论。native 路径已落下第一版 CEK machine：
+Kont frame 与表达式求值共用一个中央循环；闭包调用在机器内展开；
+`call/cc`/`call-with-current-continuation` 保存可多次安装的快照；快照
+保留共享可变环境和全部多值。continuation 带求值机身份，跨嵌套 native
+primitive callback 的跳转会传播到捕获它的活动求值机，避免 C++ primitive
+在非局部跳转后继续执行。
+
+后续边界审查把会调用 Scheme 回调的常见迭代原语也迁入机器帧：`map`、
+`for-each`、`fold`、`filter`、`any`、`every`、`member`、`assoc`、
+`string-for-each`、vector filter 和第一类 `call-with-values`。因此在
+这些操作内部捕获并稍后恢复时，迭代游标、累积值和外层 Scheme 帧一同恢复。
+重入测试覆盖 `for-each`、`map`、`fold`。
+
+`dynamic-wind` 使用 winder 身份链；普通返回、`raise`、`throw` 和
+continuation 进入/退出都会按顺序调用对应 thunk。当前快照使用线性拷贝，
+不做 COW。GC 通过 continuation 对象追踪快照中的 Values、帧环境和 winder。
+定向验证覆盖 call/cc、多值、重复调用、primitive callback escape、
+异常退出和 dynamic-wind continuation 重入；全量测试尚未运行。
+
+后续核验：三个原先因 engine-callcc 跳过的 C2 文件
+（call/cc、完整名称、SRFI-158）已纳入 C2/C3 manifest。严格 host/native
+差分 3/3 一致，C3 native workflow 8 项通过。性能探针位于
+`bench/native/continuations.scm`；当前样本中 2,000 次浅捕获约为对应
+tail loop 的 1.62 倍；深度 500 和 5,000 的单次快照分别比普通返回高约
+2.8% 和 3.8%。该结果受背景负载影响，只作为 profiling 基线，不作发布
+性能门槛，也不足以支持引入 COW。
+
+### continuation 副作用探针（已核清）
+
+捕获 continuation 后，在捕获点之外将共享变量改为 40，再调用 continuation；
+host 与 native 都返回 `(resumed 41 41)`。这确认该路径恢复控制状态但保留捕获后的赋值。
+最初 `vector-filter` 探针记录到 11 次访问，也在两端一致：
+`goldfish/liii/vector.scm` 的实现先用 `vector-count` 遍历谓词，再遍历一次
+填充结果；continuation 捕获在计数遍历中，恢复时继续计数，然后执行填充遍历。
+原测试把访问次数误当成单遍原语的行为。修订后的回归用例只断言最终向量与恢复完成，
+不绑定到该库实现的遍历次数。
+
+这仍是 native 端原型，不宣称替换 vendored s7 或覆盖所有引擎交界：
+continuation 不能安全穿越任意外部/s7 调用帧；`catch` 的 C++ callback
+边界仍需单独处理。下一步做 native 与 gf0 的差分验证，并测量
+generator/continuation 的快照分配成本；只有数据表明复制是瓶颈时再评估
+共享段或 COW。
+
+### 资源型 Scheme callback 边界：端口部分已迁入机器
+
+`call-with-input-file`、`call-with-output-file`、`with-input-from-file`、
+`with-output-to-file`、`with-input-from-string`、`with-output-to-string`、
+`call-with-input-string` 和 `call-with-output-string` 现在由 evaluator
+控制帧直接调用 Scheme thunk，不再依赖已返回的 C++ 包装栈。动态端口绑定
+与端口资源状态保存在特殊 winder 中；continuation 退出时恢复外层端口并
+关闭文件输出流，重新进入时恢复绑定，文件输出流以追加模式重开。当前文件
+输入端口是内存缓冲端口，恢复时保留其读取位置并重新开放。
+
+native C3 工作流覆盖字符串和文件端口的 escape/re-entry、恢复期间的读写、
+端口异常退出，以及传端口给 callback 的 call-with-* 变体。共享 C2 测试仍
+只验证 host/native 两边都应满足的普通行为；host 的 s7 包装器不能正确续接
+已返回的 C++ 端口包装帧，因此 continuation 专项放在 native-only C3。
+
+`catch` 已迁入 evaluator machine：body 由 Catch frame 包围，异常路由在机器
+内匹配 tag 并调度 handler，因此 body/handler 中捕获的 continuation 都能保留
+本机帧。匹配异常时先通过 continuation transfer 退回 catch 入口的 winder
+链，再调用 handler；guard 与 catch 同时有效时，异常按帧栈中的最近边界
+处理。transfer 完成异步 winder thunk 后，主循环会继续消费目标快照里的
+pending apply。C3 workflow 覆盖 body capture/resume、handler capture/reentry、
+嵌套 tag mismatch、C++ 错误分类以及动态风格退出后再调用 handler。模块加载
+期间的 `apply_values` 属于引擎内部扩展流程，本轮不纳入 Scheme continuation
+保证范围。

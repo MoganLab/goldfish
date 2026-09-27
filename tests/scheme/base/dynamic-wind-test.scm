@@ -49,5 +49,23 @@
   ) ;check
   (check (reverse log) => '(before after))
 ) ;let
+(let ((log '()))
+  (check (guard (condition (else 'caught))
+           (dynamic-wind (lambda () (set! log (cons 'before log)))
+             (lambda () (raise 'test-raised))
+             (lambda () (set! log (cons 'after log)))))
+    => 'caught)
+  (check (reverse log) => '(before after)))
+
+;; Invoking a continuation re-enters and then leaves its dynamic extent.
+(let ((log '()) (saved #f) (first #t))
+  (let ((result
+         (dynamic-wind (lambda () (set! log (cons 'before log)))
+           (lambda () (call/cc (lambda (k) (set! saved k) 'initial)))
+           (lambda () (set! log (cons 'after log))))))
+    (when first
+      (set! first #f)
+      (saved 'again)))
+  (check (reverse log) => '(before after before after)))
 
 (check-report)

@@ -1,8 +1,5 @@
 # path	bucket	disposition	milestone	rationale
 tests/srfi/srfi-27-test.scm	random	defer	R5-random	implement native random-state primitives and SRFI-27 behavior
-tests/srfi/srfi-158-test.scm	engine-callcc	migrate-before-R4	R4-core-callcc	call/cc is core R7RS control flow; generator coverage depends on it
-tests/scheme/base/call-slash-cc-test.scm	engine-callcc	migrate-before-R4	R4-core-callcc	call/cc is core R7RS control flow; generator coverage depends on it
-tests/scheme/base/call-with-current-continuation-test.scm	engine-callcc	migrate-before-R4	R4-core-callcc	call/cc is core R7RS control flow; generator coverage depends on it
 tests/scheme/complex-test.scm	float/numeric	defer	R5-numeric-tower	complete exact/inexact and bignum work in the order specified by RUNTIME_CONTRACT.md
 tests/scheme/base/star-test.scm	numeric-tower	defer	R5-numeric-tower	complete exact/inexact and bignum work in the order specified by RUNTIME_CONTRACT.md
 tests/liii/base/make-hook-test.scm	s7-compat	exclude	R4-removal	S7 hook object invocation is explicitly outside the native contract

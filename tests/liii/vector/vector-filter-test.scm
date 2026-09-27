@@ -42,5 +42,21 @@
 (check-catch 'wrong-type-arg (vector-filter 1 #(1 2 3)))
 (check-catch 'wrong-type-arg (vector-filter even? '(1 2 3)))
 
+(let ((saved #f) (captured #f) (resumed #f))
+  (let ((result
+         (vector-filter
+          (lambda (item)
+            (call/cc (lambda (k)
+                       (unless captured
+                         (set! captured #t)
+                         (set! saved k))
+                       #t))
+            #t)
+          #(1 2 3))))
+    (unless resumed
+      (set! resumed #t)
+      (saved #t))
+    (check result => #(1 2 3))
+    (check resumed => #t)))
 
 (check-report)

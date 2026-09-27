@@ -5,6 +5,7 @@ Run each probe with the native runtime:
 ```sh
 ./bin/gf-native -m liii bench/native/string-to-utf8.scm
 ./bin/gf-native -m liii bench/native/evaluator-loops.scm
+./bin/gf-native -m liii bench/native/continuations.scm
 GOLDFISH_DEBUG=gc ./bin/gf-native -m liii bench/native/allocation-gc.scm
 GOLDFISH_PROF_OUT=/tmp/native-perf.data \
   tools/prof.sh ./bin/gf-native -m liii bench/native/evaluator-loops.scm
@@ -15,6 +16,32 @@ native currently has an exact-only numeric tower, so converting elapsed
 nanoseconds to fractional seconds with integer `/` truncates small timings to
 zero. Each timed case has a warmup and five samples; compare medians for the
 same binary and workload, and keep the profiler workload unchanged.
+
+`continuations.scm` compares the same tail loop with repeated `call/cc`
+capture, then measures one capture with 500 pending non-tail frames. This is a
+cost probe, not a host/native comparison; run it on an otherwise idle machine
+before making a snapshot representation decision.
+
+## Continuation snapshot probe (2026-09-27)
+
+One local run of `continuations.scm` produced these medians (five timed
+samples, raw samples below):
+
+| Workload | Median | Raw samples (ns) |
+| --- | ---: | --- |
+| Tail loop, 2,000 steps | 2,270,360 ns | 2,354,015; 2,270,360; 2,264,550; 2,255,954; 2,316,480 |
+| Same loop with 2,000 captures | 3,680,373 ns | 3,638,610; 3,656,271; 3,703,563; 3,697,082; 3,680,373 |
+| Nested return, depth 500 | 564,211 ns | 557,631; 566,966; 564,211; 561,216; 570,012 |
+| Capture at depth 500 | 579,749 ns | 587,042; 583,956; 571,424; 578,136; 579,749 |
+| Nested return, depth 5,000 | 5,193,023 ns | 5,190,078; 5,189,688; 5,249,532; 5,193,023; 5,228,546 |
+| Capture at depth 5,000 | 5,392,380 ns | 5,392,380; 5,479,722; 5,359,904; 11,589,942; 5,307,463 |
+
+Repeated shallow capture cost about 1.62x the tail-loop sample per step in
+this run. Single captures were about 2.8% above a same-depth return at depth
+500 and 3.8% at depth 5,000. One large outlier remains in the deeper capture
+samples; background load and GC can dominate these measurements. This does
+not justify adding COW complexity yet, but it sets a concrete baseline for
+future reserved-machine profiling.
 
 ## Exploratory result (2026-09-27)
 

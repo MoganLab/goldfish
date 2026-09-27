@@ -38,6 +38,7 @@ enum class ObjectType : std::uint8_t {
     ErrorObject,
     Closure,
     Primitive,
+    Continuation,
     Vector,
     Character,
     Bytevector,
