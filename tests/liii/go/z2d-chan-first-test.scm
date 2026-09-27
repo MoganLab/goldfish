@@ -1,0 +1,11 @@
+(import (liii check)
+        (liii go))
+(check-set-mode! 'report-failed)
+(define (mark m) (display m) (newline) (flush-output-port))
+;; 先成功创建一个 channel，再触发 make-chan 错误
+(define ch (make-chan 1))
+(mark "D0")
+(check-catch 'type-error (make-chan -1))
+(mark "D1")
+(check-report)
+(mark "D2-END")

@@ -1,6 +1,9 @@
 (import (liii check)
         (liii go))
 (check-set-mode! 'report-failed)
-;; 直接调 C 函数，整数 irritant，无 case-lambda
+(define (mark m) (display m) (newline) (flush-output-port))
+(mark "A0")
 (check-catch 'type-error (g_make-chan -1))
+(mark "A1")
 (check-report)
+(mark "A2-END")
