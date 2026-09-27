@@ -1,0 +1,7 @@
+(import (liii check)
+        (liii go))
+(check-set-mode! 'report-failed)
+(define ch (make-chan 5))
+(chan-close! ch)
+(check-catch 'value-error (chan-send! ch 300))
+(check-report)
