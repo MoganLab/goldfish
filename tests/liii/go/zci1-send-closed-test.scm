@@ -3,5 +3,8 @@
 (check-set-mode! 'report-failed)
 (define ch (make-chan 5))
 (chan-close! ch)
+(begin (display "P1-before-catch") (newline) (flush-output-port))
 (check-catch 'value-error (chan-send! ch 300))
+(begin (display "P2-after-catch") (newline) (flush-output-port))
 (check-report)
+(begin (display "P3-after-report") (newline) (flush-output-port))

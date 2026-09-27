@@ -1,0 +1,7 @@
+(import (liii check)
+        (liii go))
+(check-set-mode! 'report-failed)
+(check-catch 'type-error (chan-send! "not-a-chan" 1))
+(check-catch 'type-error (chan-recv! "not-a-chan"))
+(check-catch 'type-error (chan-close! "not-a-chan"))
+(check-report)
