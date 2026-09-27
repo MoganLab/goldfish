@@ -853,6 +853,15 @@ GoldfishChannel::is_closed () const {
 // S7 Glue Functions
 // ---------------------------------------------------------------------------
 
+// 通道对象的实际构造拆到独立函数：含 make_shared 的函数帧会携带 C++ EH 展开信息，
+// 与 s7_error 的裸 longjmp 在 Windows/MSVC 下交互存在风险（CI 曾出现布局敏感的崩溃），
+// raise 路径所在函数保持帧内无重内容。
+static s7_pointer
+make_chan_impl (s7_scheme* sc, s7_int cap) {
+  auto ch= std::make_shared<GoldfishChannel> (static_cast<size_t> (cap));
+  return make_goldfish_channel_object (sc, ch);
+}
+
 static s7_pointer
 f_make_chan (s7_scheme* sc, s7_pointer args) {
   s7_int cap= 0;
@@ -863,8 +872,7 @@ f_make_chan (s7_scheme* sc, s7_pointer args) {
     }
     cap= s7_integer (cap_arg);
   }
-  auto ch= std::make_shared<GoldfishChannel> (static_cast<size_t> (cap));
-  return make_goldfish_channel_object (sc, ch);
+  return make_chan_impl (sc, cap);
 }
 
 static s7_pointer
