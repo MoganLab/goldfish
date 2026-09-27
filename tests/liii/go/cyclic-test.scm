@@ -90,4 +90,32 @@
 (check (recv7 'name) => "cyc")
 (check (eq? (recv7 'self) recv7) => #t)
 
+;; 8. 回归测试：10 万层深列表传输（曾导致 C++ 递归序列化栈溢出段错误）
+(define deep-list
+  (let loop ((i 0) (acc '()))
+    (if (< i 100000)
+      (loop (+ i 1) (cons i acc))
+      acc)))
+(define ch8 (make-chan 1))
+(chan-send! ch8 deep-list)
+(define recv8 (chan-recv! ch8 30000))
+(check (length recv8) => 100000)
+(check (car recv8) => 99999)
+
+;; 9. 回归测试：深层嵌套 vector
+(define deep-vec
+  (let loop ((i 0) (v (vector 'leaf)))
+    (if (< i 50000)
+      (loop (+ i 1) (vector v))
+      v)))
+(define ch9 (make-chan 1))
+(chan-send! ch9 deep-vec)
+(define recv9 (chan-recv! ch9 30000))
+(define innermost
+  (let loop ((i 0) (v recv9))
+    (if (< i 50000)
+      (loop (+ i 1) (vector-ref v 0))
+      v)))
+(check (vector-ref innermost 0) => 'leaf)
+
 (check-report)

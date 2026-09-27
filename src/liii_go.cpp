@@ -192,8 +192,8 @@ public:
 private:
   struct Entry {
     std::chrono::steady_clock::time_point deadline;
-    std::shared_ptr<GoldfishChannel>    ch;
-    bool operator> (const Entry& o) const { return deadline > o.deadline; }
+    std::shared_ptr<GoldfishChannel>      ch;
+    bool                                  operator> (const Entry& o) const { return deadline > o.deadline; }
   };
 
   GoTimer () : worker ([this] () { loop (); }) {}
@@ -318,6 +318,10 @@ make_goldfish_channel_object (s7_scheme* sc, std::shared_ptr<GoldfishChannel> ch
 struct SerializeCtx {
   std::unordered_map<void*, size_t> visited;
   size_t                            next_id= 1;
+  // s7_let_to_list 的产物在入栈待处理期间需要 GC 保护
+  std::vector<s7_int> protected_alists;
+
+  ~SerializeCtx ()= default;
 };
 
 struct DeserializeCtx {
@@ -326,8 +330,12 @@ struct DeserializeCtx {
   s7_int                                 gc_loc   = -1;
 };
 
+// 序列化单个节点。标量直接转换；复合类型分配载荷后把子节点压入工作栈，
+// 由外层循环继续处理（显式栈迭代，避免深层结构导致 C++ 栈溢出崩溃）。
+// 返回值：false 表示遇到不支持的类型。
 static bool
-s7_to_gfvalue_impl (s7_scheme* sc, s7_pointer obj, GFValue& out, std::string& err_msg, SerializeCtx& ctx) {
+serialize_node (s7_scheme* sc, s7_pointer obj, GFValue& out, std::string& err_msg, SerializeCtx& ctx,
+                std::vector<std::pair<s7_pointer, GFValue*>>& work_stack) {
   if (s7_is_null (sc, obj)) {
     out.type= GFValueType::Nil;
     return true;
@@ -398,8 +406,9 @@ s7_to_gfvalue_impl (s7_scheme* sc, s7_pointer obj, GFValue& out, std::string& er
   if (s7_is_pair (obj)) {
     out.type     = GFValueType::Pair;
     auto pair_ptr= std::make_shared<std::pair<GFValue, GFValue>> ();
-    if (!s7_to_gfvalue_impl (sc, s7_car (obj), pair_ptr->first, err_msg, ctx)) return false;
-    if (!s7_to_gfvalue_impl (sc, s7_cdr (obj), pair_ptr->second, err_msg, ctx)) return false;
+    // 与反序列化保持一致的子节点处理顺序：car 先于 cdr（LIFO，故 cdr 先入栈）
+    work_stack.push_back ({s7_cdr (obj), &pair_ptr->second});
+    work_stack.push_back ({s7_car (obj), &pair_ptr->first});
     out.pair_val= pair_ptr;
     return true;
   }
@@ -416,17 +425,18 @@ s7_to_gfvalue_impl (s7_scheme* sc, s7_pointer obj, GFValue& out, std::string& er
     auto   vec_ptr= std::make_shared<std::vector<GFValue>> ();
     vec_ptr->resize (len);
     for (s7_int i= 0; i < len; ++i) {
-      s7_pointer elem= s7_vector_ref (sc, obj, i);
-      if (!s7_to_gfvalue_impl (sc, elem, (*vec_ptr)[i], err_msg, ctx)) return false;
+      work_stack.push_back ({s7_vector_ref (sc, obj, i), &(*vec_ptr)[i]});
     }
     out.vec_val= vec_ptr;
     return true;
   }
   if (s7_is_let (obj)) {
-    out.type           = GFValueType::Let;
-    s7_pointer alist   = s7_let_to_list (sc, obj);
-    auto       pair_ptr= std::make_shared<std::pair<GFValue, GFValue>> ();
-    if (!s7_to_gfvalue_impl (sc, alist, pair_ptr->first, err_msg, ctx)) return false;
+    out.type        = GFValueType::Let;
+    s7_pointer alist= s7_let_to_list (sc, obj);
+    // alist 是新分配对象且不被源对象引用，入栈期间必须 GC 保护
+    ctx.protected_alists.push_back (s7_gc_protect (sc, alist));
+    auto pair_ptr= std::make_shared<std::pair<GFValue, GFValue>> ();
+    work_stack.push_back ({alist, &pair_ptr->first});
     out.pair_val= pair_ptr;
     return true;
   }
@@ -439,12 +449,38 @@ s7_to_gfvalue_impl (s7_scheme* sc, s7_pointer obj, GFValue& out, std::string& er
 
 bool
 s7_to_gfvalue (s7_scheme* sc, s7_pointer obj, GFValue& out, std::string& err_msg) {
-  SerializeCtx ctx;
-  return s7_to_gfvalue_impl (sc, obj, out, err_msg, ctx);
+  SerializeCtx                                 ctx;
+  std::vector<std::pair<s7_pointer, GFValue*>> work_stack;
+  work_stack.push_back ({obj, &out});
+  bool ok= true;
+  while (!work_stack.empty ()) {
+    auto item= work_stack.back ();
+    work_stack.pop_back ();
+    if (!serialize_node (sc, item.first, *item.second, err_msg, ctx, work_stack)) {
+      ok= false;
+      break;
+    }
+  }
+  for (auto loc : ctx.protected_alists) {
+    s7_gc_unprotect_at (sc, loc);
+  }
+  return ok;
 }
 
+// 反序列化的待填充槽位：复合节点先建壳并注册（供环引用解析），子节点入栈后填充
+struct FillItem {
+  enum class Slot { PairCar, PairCdr, VectorElem, LetContent, FillLet };
+  Slot           slot;
+  s7_pointer     target;
+  s7_int         index  = 0;
+  const GFValue* src    = nullptr;
+  s7_pointer     payload= nullptr; // FillLet 专用：构建完成的 alist 根
+};
+
+// 构建单个节点的壳并注册/锚定；复合类型的子节点压入工作栈由主循环填充
+// （显式栈迭代，避免深层结构导致 C++ 栈溢出崩溃）。
 static s7_pointer
-gfvalue_to_s7_impl (s7_scheme* sc, const GFValue& val, DeserializeCtx& ctx) {
+build_node (s7_scheme* sc, const GFValue& val, DeserializeCtx& ctx, std::vector<FillItem>& work_stack) {
   if (val.type == GFValueType::Ref) {
     auto it= ctx.reconstructed.find (val.ref_id);
     if (it != ctx.reconstructed.end ()) {
@@ -452,6 +488,13 @@ gfvalue_to_s7_impl (s7_scheme* sc, const GFValue& val, DeserializeCtx& ctx) {
     }
     return s7_nil (sc);
   }
+
+  auto anchor= [&ctx, sc] (s7_pointer obj) {
+    if (ctx.gc_loc >= 0) {
+      ctx.gc_anchor= s7_cons (sc, obj, ctx.gc_anchor);
+      s7_gc_protect_via_location (sc, ctx.gc_anchor, ctx.gc_loc);
+    }
+  };
 
   switch (val.type) {
   case GFValueType::Nil:
@@ -472,34 +515,27 @@ gfvalue_to_s7_impl (s7_scheme* sc, const GFValue& val, DeserializeCtx& ctx) {
     return make_goldfish_channel_object (sc, val.chan_val);
   case GFValueType::Pair: {
     s7_pointer cell= s7_cons (sc, s7_nil (sc), s7_nil (sc));
-    if (ctx.gc_loc >= 0) {
-      ctx.gc_anchor= s7_cons (sc, cell, ctx.gc_anchor);
-      s7_gc_protect_via_location (sc, ctx.gc_anchor, ctx.gc_loc);
-    }
+    anchor (cell);
     if (val.node_id != 0) {
       ctx.reconstructed[val.node_id]= cell;
     }
     if (val.pair_val) {
-      s7_pointer car_p= gfvalue_to_s7_impl (sc, val.pair_val->first, ctx);
-      s7_pointer cdr_p= gfvalue_to_s7_impl (sc, val.pair_val->second, ctx);
-      s7_set_car (cell, car_p);
-      s7_set_cdr (cell, cdr_p);
+      // 与序列化保持一致的子节点构建顺序：car 先于 cdr（LIFO，故 cdr 先入栈）
+      work_stack.push_back ({FillItem::Slot::PairCdr, cell, 0, &val.pair_val->second});
+      work_stack.push_back ({FillItem::Slot::PairCar, cell, 0, &val.pair_val->first});
     }
     return cell;
   }
   case GFValueType::Vector: {
     s7_int     len= val.vec_val ? static_cast<s7_int> (val.vec_val->size ()) : 0;
     s7_pointer vec= s7_make_vector (sc, len);
-    if (ctx.gc_loc >= 0) {
-      ctx.gc_anchor= s7_cons (sc, vec, ctx.gc_anchor);
-      s7_gc_protect_via_location (sc, ctx.gc_anchor, ctx.gc_loc);
-    }
+    anchor (vec);
     if (val.node_id != 0) {
       ctx.reconstructed[val.node_id]= vec;
     }
     if (val.vec_val) {
       for (s7_int i= 0; i < len; ++i) {
-        s7_vector_set (sc, vec, i, gfvalue_to_s7_impl (sc, (*val.vec_val)[i], ctx));
+        work_stack.push_back ({FillItem::Slot::VectorElem, vec, i, &(*val.vec_val)[i]});
       }
     }
     return vec;
@@ -508,10 +544,7 @@ gfvalue_to_s7_impl (s7_scheme* sc, const GFValue& val, DeserializeCtx& ctx) {
     if (!val.bytevec_val) return s7_make_byte_vector (sc, 0, 1, nullptr);
     s7_int     len= static_cast<s7_int> (val.bytevec_val->size ());
     s7_pointer bv = s7_make_byte_vector (sc, len, 1, nullptr);
-    if (ctx.gc_loc >= 0) {
-      ctx.gc_anchor= s7_cons (sc, bv, ctx.gc_anchor);
-      s7_gc_protect_via_location (sc, ctx.gc_anchor, ctx.gc_loc);
-    }
+    anchor (bv);
     if (val.node_id != 0) {
       ctx.reconstructed[val.node_id]= bv;
     }
@@ -524,23 +557,14 @@ gfvalue_to_s7_impl (s7_scheme* sc, const GFValue& val, DeserializeCtx& ctx) {
   case GFValueType::Eof:
     return s7_eof_object (sc);
   case GFValueType::Let: {
-    // 先建空壳并注册，使环/共享引用可解析，再逐字段填充
+    // 先建空壳并注册，使环/共享引用可解析，alist 由主循环构建后再填充字段
     s7_pointer let= s7_inlet (sc, s7_nil (sc));
-    if (ctx.gc_loc >= 0) {
-      ctx.gc_anchor= s7_cons (sc, let, ctx.gc_anchor);
-      s7_gc_protect_via_location (sc, ctx.gc_anchor, ctx.gc_loc);
-    }
+    anchor (let);
     if (val.node_id != 0) {
       ctx.reconstructed[val.node_id]= let;
     }
     if (val.pair_val) {
-      s7_pointer alist= gfvalue_to_s7_impl (sc, val.pair_val->first, ctx);
-      for (s7_pointer p= alist; s7_is_pair (p); p= s7_cdr (p)) {
-        s7_pointer entry= s7_car (p);
-        if (s7_is_pair (entry) && s7_is_symbol (s7_car (entry))) {
-          s7_varlet (sc, let, s7_car (entry), s7_cdr (entry));
-        }
-      }
+      work_stack.push_back ({FillItem::Slot::LetContent, let, 0, &val.pair_val->first});
     }
     return let;
   }
@@ -552,7 +576,8 @@ gfvalue_to_s7_impl (s7_scheme* sc, const GFValue& val, DeserializeCtx& ctx) {
 
 s7_pointer
 gfvalue_to_s7 (s7_scheme* sc, const GFValue& val) {
-  DeserializeCtx ctx;
+  DeserializeCtx        ctx;
+  std::vector<FillItem> work_stack;
   switch (val.type) {
   // 只有复合类型需要 GC anchor 与环重建表；标量直接转换，零额外开销
   case GFValueType::Pair:
@@ -563,12 +588,44 @@ gfvalue_to_s7 (s7_scheme* sc, const GFValue& val) {
     ctx.gc_anchor= s7_nil (sc);
     ctx.gc_loc   = s7_gc_protect (sc, ctx.gc_anchor);
     {
-      s7_pointer res= gfvalue_to_s7_impl (sc, val, ctx);
+      s7_pointer res= build_node (sc, val, ctx, work_stack);
+      while (!work_stack.empty ()) {
+        auto item= work_stack.back ();
+        work_stack.pop_back ();
+        switch (item.slot) {
+        case FillItem::Slot::PairCar:
+          s7_set_car (item.target, build_node (sc, *item.src, ctx, work_stack));
+          break;
+        case FillItem::Slot::PairCdr:
+          s7_set_cdr (item.target, build_node (sc, *item.src, ctx, work_stack));
+          break;
+        case FillItem::Slot::VectorElem:
+          s7_vector_set (sc, item.target, item.index, build_node (sc, *item.src, ctx, work_stack));
+          break;
+        case FillItem::Slot::LetContent: {
+          // 先占位填充任务再构建 alist，LIFO 保证 alist 子树全部完成后才填充
+          size_t fill_idx= work_stack.size ();
+          work_stack.push_back ({FillItem::Slot::FillLet, item.target, 0, nullptr, nullptr});
+          s7_pointer alist_root       = build_node (sc, *item.src, ctx, work_stack);
+          work_stack[fill_idx].payload= alist_root;
+          break;
+        }
+        case FillItem::Slot::FillLet:
+          // payload 是构建完成的 alist，逐字段填入 let 壳
+          for (s7_pointer p= item.payload; s7_is_pair (p); p= s7_cdr (p)) {
+            s7_pointer entry= s7_car (p);
+            if (s7_is_pair (entry) && s7_is_symbol (s7_car (entry))) {
+              s7_varlet (sc, item.target, s7_car (entry), s7_cdr (entry));
+            }
+          }
+          break;
+        }
+      }
       s7_gc_unprotect_at (sc, ctx.gc_loc);
       return res;
     }
   default:
-    return gfvalue_to_s7_impl (sc, val, ctx);
+    return build_node (sc, val, ctx, work_stack);
   }
 }
 
