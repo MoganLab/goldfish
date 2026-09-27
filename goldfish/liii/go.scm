@@ -187,6 +187,10 @@
       ) ;let
     ) ;define
 
+    ;; (go (captured-vars ...) body ...) 在后台 worker 线程的独立 s7 会话中执行 body。
+    ;; 注意：捕获变量只支持可序列化的数据类型（数字、字符串、符号、列表、vector、
+    ;; bytevector、channel、let 等），不支持过程/闭包——传入函数会在 spawn 时
+    ;; 抛 type-error。在 body 中直接引用全局函数名（如 car、display）即可，无需捕获。
     (define-macro (go vars . body)
       (if (list? vars)
         `(g_go-spawn (quote ,vars) (list ,@vars) (quote (begin ,@body)))
