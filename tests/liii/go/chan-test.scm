@@ -1,3 +1,4 @@
+(begin (display "MARK0") (newline) (flush-output-port))
 (import (liii check)
         (liii go))
 
@@ -10,6 +11,7 @@
 (check (chan? "channel") => #f)
 (check (chan? '()) => #f)
 
+(begin (display "MARK1") (newline) (flush-output-port))
 ;; 2. 有缓冲 channel 测试：基本类型读写
 (define ch2 (make-chan 20))
 (check (chan? ch2) => #t)
@@ -40,6 +42,7 @@
 (check (chan-recv! ch2) => #(10 20 30))
 (check (chan-recv! ch2) => #u8(1 2 3 255))
 
+(begin (display "MARK2") (newline) (flush-output-port))
 ;; 3. 超时机制测试（每次运行提供超时时间，杜绝死等）
 (define ch-timeout (make-chan 1))
 ;; 接收超时
@@ -53,6 +56,7 @@
 (check (chan-send! ch-timeout "second" 50) => #t)
 (check (chan-recv! ch-timeout 50) => "second")
 
+(begin (display "MARK3") (newline) (flush-output-port))
 ;; 3. chan-try-recv! 非阻塞读取测试
 (define ch3 (make-chan 2))
 ;; 此时为空
@@ -64,6 +68,7 @@
 ;; 再次变为空
 (check (chan-try-recv! ch3) => #f)
 
+(begin (display "MARK4") (newline) (flush-output-port))
 ;; 4. chan-close! 与 chan-closed? 测试
 (define ch4 (make-chan 5))
 (check (chan-closed? ch4) => #f)
@@ -89,9 +94,11 @@
 (chan-close! ch4)
 (check (chan-closed? ch4) => #t)
 
+(begin (display "MARK5") (newline) (flush-output-port))
 ;; 5. 向已关闭通道发送应报错
 (check-catch 'value-error (chan-send! ch4 300))
 
+(begin (display "MARK6") (newline) (flush-output-port))
 ;; 6. 通道本身作为消息在另一个通道中传递 (First-class Channel)
 (define meta-ch (make-chan 2))
 (define sub-ch (make-chan 2))
@@ -102,6 +109,7 @@
 (check (chan? received-sub-ch) => #t)
 (check (chan-recv! received-sub-ch) => "secret")
 
+(begin (display "MARK7") (newline) (flush-output-port))
 ;; 7. 参数类型错误检查
 (check-catch 'type-error (chan-send! "not-a-chan" 1))
 (check-catch 'type-error (chan-recv! "not-a-chan"))
@@ -109,4 +117,7 @@
 (check-catch 'type-error (chan-close! "not-a-chan"))
 (check-catch 'type-error (chan-closed? "not-a-chan"))
 
+(begin (display "MARK8") (newline) (flush-output-port))
 (check-report)
+
+(begin (display "MARK9-END") (newline) (flush-output-port))
