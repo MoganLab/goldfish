@@ -188,6 +188,9 @@
                    (concat (item)
                      "【附带修复同类隐患】json_guenchi_drop 在持有 std::vector 时经 s7_call 回调用户谓词：谓词 raise 同样跳析构。改为 GC 管理的 s7 对象（bytevector 标记数组 + head 锚定序对链）。回归测试补入 json-drop-test.scm 与 json-to-string-test.scm（谓词/错误路径），全量 1614 个测试文件通过。"
                    ) ;concat
+                   (concat (item)
+                     "【第三轮 Windows 崩溃与 EH 帧规则确认】上述修复首版在 Windows CI 引发 json-to-string-test 确定性堆损坏（0xC0000374）：函数体内含 try/catch 后再从该函数 raise，即使 try 已正常结束、帧内无 RAII，longjmp 仍损坏 MSVC 的 EH 状态。修法（931bb021）：try/catch 拆入独立函数（json_write_to_s7_string / find_libraries_safe），raise 也拆入无 EH 的独立函数（json_raise_write_error / raise_function_libraries_error），胶水函数本体只含平凡局部变量。规则升级：raise 点所在函数的函数体内不得出现 try/catch/throw 或可能抛异常的构造。修复后五平台 CI 全绿。"
+                   ) ;concat
                  ) ;document
       ) ;enumerate
       (section* "6 Why")
