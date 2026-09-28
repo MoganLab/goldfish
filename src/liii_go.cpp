@@ -15,11 +15,13 @@
 //
 
 #include "liii_go.hpp"
+#include <algorithm>
 #include <cstdlib>
 #include <cstring>
 #include <functional>
 #include <iostream>
 #include <queue>
+#include <random>
 #include <sstream>
 #include <thread>
 #include <unordered_map>
@@ -168,8 +170,8 @@ private:
     s7_int     handler_loc = s7_gc_protect (worker_sc, handler_proc);
 
     // 以下符号均被 rootlet 常驻引用，跨任务复用是 GC 安全的
-    s7_pointer lambda_sym = s7_make_symbol (worker_sc, "lambda");
-    s7_pointer let_sym    = s7_make_symbol (worker_sc, "let");
+    s7_pointer lambda_sym= s7_make_symbol (worker_sc, "lambda");
+    s7_pointer let_sym   = s7_make_symbol (worker_sc, "let");
 
     uint64_t my_epoch= 0;
     while (true) {
@@ -181,7 +183,7 @@ private:
         cv.wait (lock, [this, &my_epoch] () { return stop || !tasks.empty () || wake_epoch != my_epoch; });
         if (stop && tasks.empty ()) break;
         if (!tasks.empty ()) {
-          task    = std::move (tasks.front ());
+          task= std::move (tasks.front ());
           tasks.pop ();
           has_task= true;
         }
@@ -197,30 +199,30 @@ private:
       // 构造链上的中间 s7 对象逐个挂 GC 保护位置：fiber 化后 worker 会话跨任务
       // 存活、GC 更频繁，未扎根的 bindings/let_expr 可能在构造期间被回收
       std::vector<s7_int> gc_locs;
-      auto prot= [&] (s7_pointer obj) { gc_locs.push_back (s7_gc_protect (worker_sc, obj)); };
+      auto                prot= [&] (s7_pointer obj) { gc_locs.push_back (s7_gc_protect (worker_sc, obj)); };
 
       // Build bindings: ((name1 val1) (name2 val2) ...)
       s7_pointer bindings= s7_nil (worker_sc);
       prot (bindings);
       for (size_t i= task.var_names.size (); i > 0; --i) {
-        size_t     idx = i - 1;
-        s7_pointer sym = s7_make_symbol (worker_sc, task.var_names[idx].c_str ());
-        s7_pointer val = gfvalue_to_s7 (worker_sc, task.var_vals[idx]);
+        size_t     idx= i - 1;
+        s7_pointer sym= s7_make_symbol (worker_sc, task.var_names[idx].c_str ());
+        s7_pointer val= gfvalue_to_s7 (worker_sc, task.var_vals[idx]);
         prot (val);
         s7_pointer pair= s7_list (worker_sc, 2, sym, val);
         prot (pair);
-        bindings       = s7_cons (worker_sc, pair, bindings);
+        bindings= s7_cons (worker_sc, pair, bindings);
         prot (bindings);
       }
 
       // (let bindings body)：任务体不做 C 层 catch 包裹，错误隔离由
       // %run-worker-task 的源码 catch 统一承担（C 拼装的 catch 参与调度
       // continuation 栈，逃逸恢复时会 op 错位）
-      s7_pointer body     = gfvalue_to_s7 (worker_sc, task.code_expr);
+      s7_pointer body= gfvalue_to_s7 (worker_sc, task.code_expr);
       prot (body);
-      s7_pointer tail     = s7_cons (worker_sc, body, s7_nil (worker_sc));
+      s7_pointer tail= s7_cons (worker_sc, body, s7_nil (worker_sc));
       prot (tail);
-      tail                = s7_cons (worker_sc, bindings, tail);
+      tail= s7_cons (worker_sc, bindings, tail);
       prot (tail);
       s7_pointer let_expr= s7_cons (worker_sc, let_sym, tail);
       prot (let_expr);
@@ -238,7 +240,7 @@ private:
       prot (thunk_expr);
       s7_pointer task_thunk= s7_eval (worker_sc, thunk_expr, s7_rootlet (worker_sc));
       prot (task_thunk);
-      s7_pointer call_args = s7_list (worker_sc, 2, task_thunk, handler_proc);
+      s7_pointer call_args= s7_list (worker_sc, 2, task_thunk, handler_proc);
       prot (call_args);
 
       // 包 fiber 入就绪队列并运行调度器，空闲返回（挂起 fiber 留在会话）
@@ -255,7 +257,7 @@ private:
   std::mutex               mtx;
   std::condition_variable  cv;
   uint64_t                 wake_epoch= 0; // gate fire 计数，空闲 worker 的空唤醒源
-  bool                     stop= false;
+  bool                     stop      = false;
 };
 
 // ---------------------------------------------------------------------------
@@ -1111,9 +1113,9 @@ GoldfishChannel::recv_or_watch (GFValue& out, std::shared_ptr<GoGate> gate, int6
   // 取走载荷、fire 该 send watcher（其重试经 completed_send_ids 确认完成）
   for (auto it= watch_send_entries.begin (); it != watch_send_entries.end (); ++it) {
     if (it->has_payload) {
-      out          = std::move (it->payload);
-      auto s_gate  = it->gate;
-      int64_t s_id = it->id;
+      out           = std::move (it->payload);
+      auto    s_gate= it->gate;
+      int64_t s_id  = it->id;
       completed_send_ids.insert (s_id);
       watch_send_entries.erase (it);
       s_gate->fire (s_id);
@@ -1442,29 +1444,64 @@ select_impl (s7_scheme* sc, s7_pointer recv_list, s7_pointer send_list, int64_t 
     registered.clear ();
   };
 
+  // 统一整合 recv 与 send 分支，按伪随机洗牌顺序探测（Go select 规范：多 case 就绪时均匀随机选择）
+  enum class CaseKind { Recv, Send };
+  struct CaseDesc {
+    CaseKind         kind;
+    size_t           orig_idx;
+    GoldfishChannel* ch;
+    GFValue*         send_val;
+  };
+
+  std::vector<CaseDesc> all_cases;
+  all_cases.reserve (recv_chs.size () + send_cases.size ());
+  for (size_t i= 0; i < recv_chs.size (); ++i) {
+    all_cases.push_back ({CaseKind::Recv, i, recv_chs[i].get (), nullptr});
+  }
+  for (size_t i= 0; i < send_cases.size (); ++i) {
+    all_cases.push_back ({CaseKind::Send, i, send_cases[i].first.get (), &send_cases[i].second});
+  }
+
+  std::vector<size_t> poll_order (all_cases.size ());
+  for (size_t i= 0; i < all_cases.size (); ++i) {
+    poll_order[i]= i;
+  }
+
+  static thread_local std::minstd_rand tls_rng ([] () {
+    try {
+      return std::minstd_rand (std::random_device{}());
+    } catch (...) {
+      return std::minstd_rand (
+          static_cast<unsigned int> (std::chrono::high_resolution_clock::now ().time_since_epoch ().count ()));
+    }
+  }());
+
   bool done= false;
   while (!done) {
-    // 快速路径：每个 channel 原子地"尝试非阻塞操作；不可行则登记等待"
-    for (size_t i= 0; i < recv_chs.size (); ++i) {
-      GFValue val;
-      auto    st= recv_chs[i]->select_try_recv_or_wait (val, &w);
-      if (st == GoldfishChannel::RecvStatus::Timeout) {
-        registered.push_back (recv_chs[i].get ());
-        continue;
+    std::shuffle (poll_order.begin (), poll_order.end (), tls_rng);
+
+    // 按随机洗牌顺序探测：就绪立即执行，未就绪则登记等待
+    for (size_t idx : poll_order) {
+      const auto& c= all_cases[idx];
+      if (c.kind == CaseKind::Recv) {
+        GFValue val;
+        auto    st= c.ch->select_try_recv_or_wait (val, &w);
+        if (st == GoldfishChannel::RecvStatus::Timeout) {
+          registered.push_back (c.ch);
+          continue;
+        }
+        out.kind = 0;
+        out.index= static_cast<int> (c.orig_idx);
+        out.value= (st == GoldfishChannel::RecvStatus::Closed) ? s7_eof_object (sc) : gfvalue_to_s7 (sc, val);
+        gfvalue_destroy_deep (val);
+        done= true;
+        break;
       }
-      out.kind = 0;
-      out.index= static_cast<int> (i);
-      out.value= (st == GoldfishChannel::RecvStatus::Closed) ? s7_eof_object (sc) : gfvalue_to_s7 (sc, val);
-      gfvalue_destroy_deep (val);
-      done= true;
-      break;
-    }
-    if (!done) {
-      for (size_t i= 0; i < send_cases.size (); ++i) {
-        GFValue tmp= send_cases[i].second; // 浅拷贝（shared_ptr），成功时才被消耗
-        auto    st = send_cases[i].first->select_try_send_or_wait (tmp, &w);
+      else {
+        GFValue tmp= *c.send_val; // 浅拷贝（shared_ptr），成功时才被消耗
+        auto    st = c.ch->select_try_send_or_wait (tmp, &w);
         if (st == GoldfishChannel::SendStatus::Timeout) {
-          registered.push_back (send_cases[i].first.get ());
+          registered.push_back (c.ch);
           continue;
         }
         gfvalue_destroy_deep (tmp);
@@ -1474,7 +1511,7 @@ select_impl (s7_scheme* sc, s7_pointer recv_list, s7_pointer send_list, int64_t 
         else {
           out.kind= 1;
         }
-        out.index= static_cast<int> (i);
+        out.index= static_cast<int> (c.orig_idx);
         done     = true;
         break;
       }
@@ -1599,11 +1636,11 @@ f_gate_try_wait (s7_scheme* sc, s7_pointer args) {
   if (!is_go_gate (sc, gate_arg)) {
     return go_error (sc, "type-error", "g_gate-try-wait: argument must be a gate", gate_arg);
   }
-  int64_t id= 0;
-  bool     got= false;
+  int64_t id = 0;
+  bool    got= false;
   {
     auto gate= get_go_gate (sc, gate_arg);
-    got       = gate->try_wait (id);
+    got      = gate->try_wait (id);
   }
   if (!got) return s7_f (sc);
   return s7_make_integer (sc, id);
@@ -1752,8 +1789,7 @@ glue_liii_go (s7_scheme* sc) {
                       "(g_chan-timeout-close! ch ms) => unspecified, closes ch after ms milliseconds");
   s7_define_function (sc, "g_make-gate", f_make_gate, 0, 0, false, "(g_make-gate) => go-gate");
   s7_define_function (sc, "g_gate-wait", f_gate_wait, 1, 0, false, "(g_gate-wait gate) => integer id");
-  s7_define_function (sc, "g_gate-try-wait", f_gate_try_wait, 1, 0, false,
-                      "(g_gate-try-wait gate) => integer id | #f");
+  s7_define_function (sc, "g_gate-try-wait", f_gate_try_wait, 1, 0, false, "(g_gate-try-wait gate) => integer id | #f");
   s7_define_function (sc, "g_chan-recv-or-watch!", f_chan_recv_or_watch, 4, 0, false,
                       "(g_chan-recv-or-watch! ch gate id default) => value | eof | default");
   s7_define_function (sc, "g_chan-send-or-watch!", f_chan_send_or_watch, 5, 0, false,

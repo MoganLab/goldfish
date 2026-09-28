@@ -16,7 +16,7 @@
 
 (import (scheme base) (liii go) (liii range) (liii generator) (liii time))
 
-;; 与 go_demo01.go 严格等价的 Goldfish Scheme (liii go) 版本：
+;; 与 01_channel_buffer.go 严格等价的 Goldfish Scheme (liii go) 版本：
 ;; 演示不同缓冲容量（0, 1, 3）的通道在生产与消费过程中的阻塞与交会行为。
 
 ;; producer 生产者：向通道发送数据

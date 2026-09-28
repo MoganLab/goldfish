@@ -16,7 +16,7 @@
 
 (import (scheme base) (liii go))
 
-;; 与 go_demo06.go 严格等价的 Goldfish Scheme (liii go) 版本：
+;; 与 06_channel_close.go 严格等价的 Goldfish Scheme (liii go) 版本：
 ;; 展示已关闭通道的接收行为：通道关闭后缓冲数据仍可读取，排空后返回 eof-object。
 
 (define (main)

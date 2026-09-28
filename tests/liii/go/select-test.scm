@@ -25,7 +25,7 @@
 ;; 说明
 ;; ----
 ;; 1. 各分支的通道与发送表达式只在进入 select 时求值一次（Go 语义）。
-;; 2. 多个分支同时就绪时按书写顺序选择（无 Go 的随机性）。
+;; 2. 多个分支同时就绪时伪随机选择（符合 Go 规范的公平性，避免后序分支饿死）。
 ;; 3. 底层为 C++ wait-set 事件驱动实现：分支就绪立即唤醒，timeout 精确到期。
 ;;
 ;; 错误处理
@@ -257,5 +257,70 @@
            ((timeout 100) => 1 2))
   ) ;eval
 ) ;check-catch
+
+;; 18. 测试多 recv 分支同时就绪时的伪随机公平性（避免按顺序扫描导致后序分支饿死）
+
+(define ch-fair-a (make-chan 1))
+
+(define ch-fair-b (make-chan 1))
+(chan-send! ch-fair-a "A")
+(chan-send! ch-fair-b "B")
+
+(define fair-recv-count-a 0)
+
+(define fair-recv-count-b 0)
+
+(let loop
+  ((i 0))
+  (when (< i 200)
+    (select ((chan-recv! ch-fair-a v)
+             (set! fair-recv-count-a (+ fair-recv-count-a 1))
+             (chan-send! ch-fair-a "A")
+            ) ;
+     ((chan-recv! ch-fair-b v)
+      (set! fair-recv-count-b (+ fair-recv-count-b 1))
+      (chan-send! ch-fair-b "B")
+     ) ;
+    ) ;select
+    (loop (+ i 1))
+  ) ;when
+) ;let
+
+;; 200 次采样中，两个分支均应被充分选中（各在 40~160 之间），不能出现一侧为 0 的饥饿现象
+(check (> fair-recv-count-a 40) => #t)
+(check (> fair-recv-count-b 40) => #t)
+
+;; 19. 测试 recv 与 send 混合同时就绪时的伪随机公平性（避免读永远优先于写）
+
+(define ch-fair-r (make-chan 1))
+
+(define ch-fair-w (make-chan 1))
+(chan-send! ch-fair-r "R")
+;; ch-fair-r 满，可读
+;; ch-fair-w 为空，可写
+
+(define fair-mix-recv-count 0)
+
+(define fair-mix-send-count 0)
+
+(let loop
+  ((i 0))
+  (when (< i 200)
+    (select ((chan-recv! ch-fair-r v)
+             (set! fair-mix-recv-count (+ fair-mix-recv-count 1))
+             (chan-send! ch-fair-r "R")
+            ) ;
+     ((chan-send! ch-fair-w "W")
+      (set! fair-mix-send-count (+ fair-mix-send-count 1))
+      (chan-recv! ch-fair-w)
+     ) ;
+    ) ;select
+    (loop (+ i 1))
+  ) ;when
+) ;let
+
+;; 200 次采样中，recv 与 send 均应被充分选中（避免 recv 独占）
+(check (> fair-mix-recv-count 40) => #t)
+(check (> fair-mix-send-count 40) => #t)
 
 (check-report)

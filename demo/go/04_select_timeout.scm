@@ -16,7 +16,7 @@
 
 (import (scheme base) (liii go))
 
-;; 与 go_demo04.go 严格等价的 Goldfish Scheme (liii go) 版本：
+;; 与 04_select_timeout.go 严格等价的 Goldfish Scheme (liii go) 版本：
 ;; 展示 select 多路复用配合 ((timeout ms) => proc) 语法实现超时控制模式（Timeout Pattern）。
 
 (define (main)

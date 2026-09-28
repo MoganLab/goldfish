@@ -16,7 +16,7 @@
 
 (import (scheme base) (liii go))
 
-;; 与 go_demo03.go 严格等价的 Goldfish Scheme (liii go) 版本：
+;; 与 03_select_default.go 严格等价的 Goldfish Scheme (liii go) 版本：
 ;; 展示 select 多路复用机制与非阻塞 else 分支（采用 Scheme 惯用的 => 与 else 语法）。
 
 (define (main)

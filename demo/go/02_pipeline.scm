@@ -16,7 +16,7 @@
 
 (import (scheme base) (liii go) (liii range) (liii generator))
 
-;; 与 go_demo02.go 严格等价的 Goldfish Scheme (liii go) 版本：
+;; 与 02_pipeline.go 严格等价的 Goldfish Scheme (liii go) 版本：
 ;; 展示经典的并发流水线模式（Pipeline Pattern）：
 ;; 阶段 1 (stage1) 生成数据 -> 阶段 2 (stage2) 变换数据 -> 阶段 3 (main) 最终消费。
 

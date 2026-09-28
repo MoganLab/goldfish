@@ -16,7 +16,7 @@
 
 (import (scheme base) (liii go) (liii generator) (liii time))
 
-;; 与 go_demo05.go 严格等价的 Goldfish Scheme (liii go) 版本：
+;; 与 05_context_cancel.go 严格等价的 Goldfish Scheme (liii go) 版本：
 ;; 展示在任务通道故意未关闭的情况下，如何依靠 context 上下文机制优雅取消并退出后台 worker。
 
 ;; worker 后台任务协程：

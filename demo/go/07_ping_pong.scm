@@ -16,7 +16,7 @@
 
 (import (scheme base) (liii go) (liii time))
 
-;; 与 go_demo07.go 严格等价的 Goldfish Scheme (liii go) 版本：
+;; 与 07_ping_pong.go 严格等价的 Goldfish Scheme (liii go) 版本：
 ;; 展示著名的单通道乒乓模式（Ping-Pong）：利用无缓冲通道的同步交会实现两个独立协程的轮流协作。
 
 ;; player 选手协程：从球台接球并回击

@@ -91,7 +91,7 @@ public:
       fired.push_back (id);
     }
     cv.notify_one ();
-    std::function<void()> cb;
+    std::function<void ()> cb;
     {
       std::lock_guard<std::mutex> lock (fire_mtx);
       cb= on_fire;
@@ -100,7 +100,7 @@ public:
   }
 
   // 设置 fire 通知回调（会话初始化期单线程调用，读取侧加锁保证可见）
-  void set_on_fire (std::function<void()> cb) {
+  void set_on_fire (std::function<void ()> cb) {
     std::lock_guard<std::mutex> lock (fire_mtx);
     on_fire= std::move (cb);
   }
@@ -127,7 +127,7 @@ private:
   std::condition_variable cv;
   std::deque<int64_t>     fired;
   std::mutex              fire_mtx;
-  std::function<void()>   on_fire;
+  std::function<void ()>  on_fire;
 };
 
 class GoldfishChannel {

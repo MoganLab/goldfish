@@ -16,7 +16,7 @@
 
 (import (scheme base) (liii go) (liii generator) (liii time))
 
-;; 与 go_demo08.go 严格等价的 Goldfish Scheme (liii go) 版本：
+;; 与 08_worker_pool.go 严格等价的 Goldfish Scheme (liii go) 版本：
 ;; 展示经典的工作池模式（Worker Pool）：固定数量的 worker 协程并发竞争消费任务通道。
 
 ;; worker 工作协程：
