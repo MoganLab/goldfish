@@ -19,6 +19,7 @@
 #include <chrono>
 #include <cstdlib>
 #include <cstring>
+#include <filesystem>
 #include <functional>
 #include <iostream>
 #include <queue>
@@ -150,6 +151,16 @@ private:
       s7_add_to_load_path (worker_sc, lib_dir.c_str ());
     }
     glue_for_community_edition (worker_sc);
+    if (!lib_dir.empty ()) {
+      namespace fs      = std::filesystem;
+      fs::path boot_path= fs::path (lib_dir) / "scheme" / "boot.scm";
+      if (fs::exists (boot_path)) {
+        s7_load (worker_sc, boot_path.string ().c_str ());
+      }
+    }
+    else {
+      s7_load (worker_sc, "scheme/boot.scm");
+    }
     s7_eval_c_string (worker_sc, "(import (scheme base) (scheme time) (liii base) (liii go))");
     // 错误处理闭包定义一次并锚定在 rootlet，避免每个任务重建及被 GC 回收
     s7_eval_c_string (worker_sc,
