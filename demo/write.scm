@@ -1,1 +1,1 @@
-(write `(hello "1\n2"))
+(write '(hello "1\n2"))

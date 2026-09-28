@@ -1,10 +1,10 @@
 (define-library (demo lib)
   (export main)
-  (import (scheme base)
-          (scheme write))
+  (import (scheme base) (scheme write))
   (begin
     (define (main)
       (display "Hello from (demo lib)!")
-      (newline))
-  )
-)
+      (newline)
+    ) ;define
+  ) ;begin
+) ;define-library

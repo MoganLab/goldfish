@@ -12,7 +12,7 @@
   },
   "scheme": {
     "suffix": ["scm"],
-    "path": ["goldfish", "tools"],
+    "path": ["goldfish", "tools", "demo"],
     "exclude": [
       "tests",
       "tools/fmt"

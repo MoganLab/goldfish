@@ -30,10 +30,11 @@
   ;; 演示 1：多个分支中有一个分支就绪
   ;; 使用 ((chan-recv! ch) => proc) 语法，就绪时接收值自动传递给单参过程；
   ;; select 选择就绪的 ready-ch 分支，忽略未就绪分支和 else 兜底分支。
-  (select ((chan-recv! ready-ch)
-           =>
-           (lambda (v) (display "got ready: ") (display v) (newline))
-          ) ;
+  (select
+   ((chan-recv! ready-ch)
+    =>
+    (lambda (v) (display "got ready: ") (display v) (newline))
+   ) ;
    ((chan-recv! not-ready-ch)
     =>
     (lambda (v) (display "got notReady: ") (display v) (newline))
@@ -43,11 +44,12 @@
 
   ;; 演示 2：所有通道分支均未就绪
   ;; 当所有通道均阻塞且存在 else 分支时，select 会以非阻塞方式立即执行 else 兜底分支
-  (select ((chan-recv! not-ready-ch)
-           =>
-           (lambda (v) (display "unexpected: ") (display v) (newline))
-          ) ;
-    (else (display "default: notReady not ready\n"))
+  (select
+   ((chan-recv! not-ready-ch)
+    =>
+    (lambda (v) (display "unexpected: ") (display v) (newline))
+   ) ;
+   (else (display "default: notReady not ready\n"))
   ) ;select
 ) ;define
 

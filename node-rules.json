@@ -5,6 +5,7 @@
     "neverInlineWhenFirstChildEnv": false,
     "allowFirstLineChildEnv": true,
     "firstLineLimit": 1,
+    "secondChildTreeDepthLimit": 4,
     "restIndent": "byFirstRestChild"
   },
   "": {
@@ -294,6 +295,15 @@
     "allowFirstLineChildEnv": false,
     "firstLineLimit": 1,
     "restIndent": "byFirstRestChild"
+  },
+  "select": {
+    "mustInline": false,
+    "neverInline": true,
+    "neverInlineWhenFirstChildEnv": false,
+    "allowFirstLineChildEnv": true,
+    "firstLineLimit": 1,
+    "secondChildTreeDepthLimit": 3,
+    "restIndent": "alignToFirstSelectedEnv"
   },
   "set!": {
     "mustInline": false,
