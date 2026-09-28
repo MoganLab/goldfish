@@ -210,16 +210,19 @@
                              "【动机：两个线程级硬伤】(a) worker_loop 对任务做同步 s7_eval，任务内 (chan-recv! ch) 无数据时一路卡进 C++ cv.wait，整个 OS 线程连同其队列中的后续任务一起停摆（复现测试：占满全部 worker 后，正常任务 3 秒超时失败）；(b) 调度器空闲分支的 g_gate-wait 无谓词 park，worker 会话里用了 fiber 后线程照样挂死。"
                            ) ;concat
                    (concat (item)
-                     "【核心改动】(a) GoGate 新增 try_wait + g_gate-try-wait（非阻塞取事件），调度器空闲分支改为：先 drain gate 唤醒对应 fiber，仍无可运行 fiber 时按模式分流——worker 会话（%set-scheduler-idle-return! 切换）调用 *scheduler-return* 返回 C++ 层取下一个任务，主会话默认保持 g_gate-wait park（行为不变）；(b) worker_loop 把任务包成 fiber 运行调度器（%run-worker-task：catch + spawn-fiber + fiber-scheduler-run!），调度器返回后挂起的 fiber 留在会话，由后续任务或 gate 唤醒接力调度；(c) worker 会话 rootlet 重绑定 (define chan-recv! %worker-chan-recv!) 等，无限等待形态自动走 fiber 版挂起协程、有限超时形态保留 C++ 阻塞——只包 fiber 不重定向的话任务体里的 chan-recv! 仍是线程级阻塞；(d) gate fire 时经 on_fire 回调唤醒线程池（wake_epoch 空唤醒），空闲 worker 进 %drain-suspended! 消费事件，解决“挂起 fiber 等唤醒但 worker 空闲睡着”的死等；(e) GFValue 树在反序列化完成后立即释放（任务可跨任务存活，不再等求值结束）；(f) GOLDFISH_GO_WORKERS 环境变量（1-1024）支持强制单 worker，供测试复现同会话排队。"
+                     "【核心改动】(a) GoGate 新增 try_wait + g_gate-try-wait（非阻塞取事件），调度器空闲分支改为：先 drain gate 唤醒对应 fiber，仍无可运行 fiber 时按模式分流——worker 会话（%set-scheduler-idle-return! 切换）调用 *scheduler-return* 返回 C++ 层取下一个任务，主会话默认保持 g_gate-wait park；(b) worker_loop 把任务包成 fiber 运行调度器（%run-worker-task：catch + spawn-fiber + fiber-scheduler-run!），调度器返回后挂起的 fiber 留在会话，由后续任务或 gate 唤醒接力调度；(c) 【fiber 版替代】chan-recv!/chan-send! 的库定义直接改为无 timeout 形态走 fiber-chan-recv!/fiber-chan-send!（挂起协程），有限超时形态保留 C++ 阻塞（有限期）——主会话/worker 会话/import 复制均无版本分歧。曾试过 worker 会话 rootlet 遮蔽 + 库环境 set! + 导出环境 patch 三层设防，均败于任务体内 (import (liii go))（如 %go-call 全量 import）把导出环境快照的原版复制进任务环境的覆盖，最终以库定义统一 fiber 版根治；(d) gate fire 时经 on_fire 回调唤醒线程池（wake_epoch 空唤醒），空闲 worker 进 %drain-suspended! 消费事件，解决“挂起 fiber 等唤醒但 worker 空闲睡着”的死等；(e) GFValue 树在反序列化完成后立即释放（任务可跨任务存活，不再等求值结束）；(f) worker 任务 let binding 的值以 (quote val) 包裹：值是反序列化数据，不 quote 的话 list/symbol 等非自求值对象会被当作表达式在 binding 求值时执行（如捕获 '(import ...) 数据会真的执行 import）；(g) GOLDFISH_GO_WORKERS 环境变量（1-1024）支持强制单 worker，供测试复现同会话排队。"
+                   ) ;concat
+                   (concat (item)
+                     "【fiber↔fiber 无缓冲 rendezvous】watcher 机制扩展支持：send watcher 携带载荷（WatchEntry.payload）登记并 fire 全部挂起的 recv watcher；recv_or_watch 发现带载荷 entry 时直接交接（取载荷、fire 发送方、按 id 记入 completed_send_ids），发送方以同 id 重试（fiber-suspend-on! 唤醒后复用 id）时据此确认完成不重发。此前双方均为 watcher 互等无事件，永久挂起（demo/go_bug.scm 场景）。"
                    ) ;concat
                    (concat (item)
                      "【调试中定位的三个 s7 层面问题（均已绕过并记录）】(a) C 层 s7_list 拼装的 catch/spawn-fiber 表达式走求值器通用路径，其 continuation 栈布局与源码路径不同：调度收尾 ((*scheduler-return* v)) 逃逸恢复时 op 错位，v 被误传入 list-ref（#t 报 type-error、7 报 out-of-range）。修法：调度包装全部移入 go.scm 源码定义（%run-worker-task），C 层只构造纯数据的 (let bindings body) 并求值 (lambda () let_expr) 成闭包后 s7_call 传入；(b) s7 的 dynamic-wind after 在 continuation 逃逸重入时不执行（实测），不能用于外层调度器恢复；(c) fiber-scheduler-run! 嵌套调用（外层 worker 包装 + 任务体内再调）时全局 *scheduler-return* 被内层覆盖，收尾逃逸重入已返回的内层 call/cc 导致代码重放死循环。修法：*scheduler-return-stack* 保存/恢复外层 continuation（call/cc 之后的顺序代码路径，不依赖 wind），deadlock 的 error 逃逸路径由 schedule-next! 显式清理（栈残留条目无害，push/pop 对称）。"
                    ) ;concat
                    (concat (item)
-                     "【已知限制】fiber↔fiber 无缓冲 rendezvous 双方均为 watcher 仍不支持（从挂死线程改善为 fiber 挂起，会话内请用 fiber-chan 或缓冲通道）；worker 任务内 select 仍走 C++ 阻塞占线程；阻塞的 C 调用/FFI（subprocess、http、文件 IO）依然占住线程（无 netpoller 层）。"
+                     "【已知限制】worker 任务内 select 仍走 C++ 阻塞占线程；阻塞的 C 调用/FFI（subprocess、http、文件 IO）依然占住线程（无 netpoller 层）；gf test -j 对 tools/ 下测试因子进程不继承 load-path 而失败（a26a3565 存量缺陷，与 (liii go) 机制无关）。"
                    ) ;concat
                    (concat (item)
-                     "【测试】tests/liii/go/worker-block-test.scm（硬伤复现：n-1 占位对照组通过 + n 占满组从 3 秒超时失败修复为 0.4 秒通过，含退出前唤醒清理）；tests/liii/go/worker-fiber-test.scm（跨调度周期唤醒、真死锁报 deadlock、异常隔离、有限超时语义不变，GOLDFISH_GO_WORKERS=1 运行）；(liii go) 目录 34 个测试文件全绿（主会话 park 行为、死锁检测、select 均不受影响），gf test 及 -j 并发模式正常。"
+                     "【测试】tests/liii/go/worker-block-test.scm（硬伤复现：n-1 占位对照组通过 + n 占满组从 3 秒超时失败修复为 0.4 秒通过，含退出前唤醒清理）；tests/liii/go/worker-fiber-test.scm（跨调度周期唤醒、真死锁报 deadlock、异常隔离、有限超时语义不变、无缓冲 rendezvous 交接、直接调用形式，GOLDFISH_GO_WORKERS=1 运行）；demo/go_bug.scm（W 阻塞 + 1 解救，单 worker 与默认核数均“解救成功”且正常退出）；demo/fib_2min.scm（多核压测，fiber 版收集链路正常滚动）；全量 1616 个测试文件通过。"
                    ) ;concat
                  ) ;document
       ) ;enumerate

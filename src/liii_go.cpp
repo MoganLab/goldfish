@@ -151,14 +151,10 @@ private:
     // 错误处理闭包定义一次并锚定在 rootlet，避免每个任务重建及被 GC 回收
     s7_eval_c_string (worker_sc,
                       "(define *go-err-handler* (lambda (err-tag err-args) (g_worker-notify-error err-tag err-args)))");
-    // 任务 fiber 化（方案 C）：调度器空闲时返回本循环而非 park 线程；无限等待形态的
-    // 通道操作重定向到 fiber 版，使 go 任务阻塞在通道上时挂起协程而非阻塞物理线程。
-    // 库环境内也要改（install-worker-fiber-ops!）：任务体内的 (import (liii go))
-    // 会把库导出复制进任务环境，仅 rootlet 遮蔽会被原版覆盖
-    s7_eval_c_string (worker_sc, "(%install-worker-fiber-ops!)");
+    // 任务 fiber 化（方案 C）：调度器空闲时返回本循环而非 park 线程。
+    // chan-recv!/chan-send! 的无 timeout 形态在库定义中即 fiber 实现
+    // （挂起协程而非阻塞物理线程），主/worker 会话与 import 复制均无版本分歧
     s7_eval_c_string (worker_sc, "(%set-scheduler-idle-return!)");
-    s7_eval_c_string (worker_sc, "(define chan-recv! %worker-chan-recv!)");
-    s7_eval_c_string (worker_sc, "(define chan-send! %worker-chan-send!)");
 
     // 任务执行入口与错误 handler 一次取出并锚定，跨任务复用。
     // 调度包装（catch + spawn-fiber + fiber-scheduler-run!）在 %run-worker-task

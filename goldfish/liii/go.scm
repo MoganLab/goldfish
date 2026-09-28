@@ -29,8 +29,7 @@
     context-cancel! context-channel spawn-fiber fiber-yield!
     fiber-scheduler-run! make-fiber-chan fiber-chan? fiber-send! fiber-recv!
     fiber-chan-recv! fiber-chan-send! %go-call %go-current-jiffy %go-elapsed-ms
-    %set-scheduler-idle-return! %worker-chan-recv! %worker-chan-send!
-    %run-worker-task %drain-suspended! %install-worker-fiber-ops!
+    %set-scheduler-idle-return! %run-worker-task %drain-suspended!
   ) ;export
   (begin
     (define (%go-current-jiffy)
@@ -53,14 +52,14 @@
 
     (define chan-send!
       (case-lambda
-       ((ch val) (g_chan-send! ch val))
+       ((ch val) (fiber-chan-send! ch val))
        ((ch val timeout-ms) (g_chan-send! ch val timeout-ms))
       ) ;case-lambda
     ) ;define
 
     (define chan-recv!
       (case-lambda
-       ((ch) (g_chan-recv! ch))
+       ((ch) (fiber-chan-recv! ch))
        ((ch timeout-ms) (g_chan-recv! ch timeout-ms))
        ((ch timeout-ms default-val) (g_chan-recv! ch timeout-ms default-val))
       ) ;case-lambda
@@ -281,7 +280,8 @@
       ;; 查询确认后才不重发载荷
       (let* ((id (if (null? reused-id) *next-watch-id* (car reused-id)))
              (tag (gensym "watch"))
-             (result (register-watch id tag)))
+             (result (register-watch id tag))
+            ) ;
         (if (not (eq? result tag))
           result
           (begin
@@ -312,33 +312,6 @@
       ;; 真 channel 的 fiber 版发送：挂起协程而非阻塞物理线程
       (fiber-suspend-on! (lambda (id tag) (g_chan-send-or-watch! ch val *gate* id tag))
       ) ;fiber-suspend-on!
-    ) ;define
-
-    ;; worker 会话专用的通道操作：无限等待形态挂起协程（任务级阻塞），
-    ;; 有限超时形态保留 C++ 阻塞（有限期等待）。worker 初始化时用
-    ;; (define chan-recv! %worker-chan-recv!) 遮蔽 rootlet 绑定，对任务透明。
-    (define %worker-chan-recv!
-      (case-lambda
-       ((ch) (fiber-chan-recv! ch))
-       ((ch timeout-ms) (g_chan-recv! ch timeout-ms))
-       ((ch timeout-ms default-val) (g_chan-recv! ch timeout-ms default-val))
-      ) ;case-lambda
-    ) ;define
-
-    (define %worker-chan-send!
-      (case-lambda
-       ((ch val) (fiber-chan-send! ch val))
-       ((ch val timeout-ms) (g_chan-send! ch val timeout-ms))
-      ) ;case-lambda
-    ) ;define
-
-    (define (%install-worker-fiber-ops!)
-      ;; worker 会话初始化调用：把【库环境内】的无限等待形态通道操作改为
-      ;; fiber 版。仅靠 worker 在 rootlet 遮蔽 (define chan-recv! ...) 不够：
-      ;; 任务体内的 (import (liii go))（如 %go-call 生成的全量 import）会把
-      ;; 库导出复制进任务环境，遮蔽会被原版覆盖，fiber 化失效退化为线程阻塞
-      (set! chan-recv! %worker-chan-recv!)
-      (set! chan-send! %worker-chan-send!)
     ) ;define
 
     ;; worker 会话的任务执行入口：把任务包成 fiber 推进就绪队列并运行调度器。
