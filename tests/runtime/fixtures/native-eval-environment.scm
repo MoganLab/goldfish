@@ -1,5 +1,5 @@
 ;; Native equivalent of the R7RS environment/eval contract.  Keep this
-;; fixture independent of the host test runner and s7's rootlet.
+;; fixture independent of the host test runner's evaluation environment.
 (import (scheme eval))
 
 (define base-env (environment '(scheme base)))

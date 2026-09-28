@@ -45,7 +45,6 @@ enum class ObjectType : std::uint8_t {
     Eof,
     InputPort,
     OutputPort,
-    LegacyLet,
     EvalEnvironment,
     Module,
 };

@@ -84,23 +84,6 @@ public:
     bool closed = false;
 };
 
-// Compatibility-only object for the old s7-style inlet/let API.  New runtime
-// code must use EnvironmentPtr directly and must not expose this object.
-class LegacyLetObject final : public Object {
-public:
-    explicit LegacyLetObject(EnvironmentPtr environment =
-                                 std::make_shared<Environment>())
-        : Object(ObjectType::LegacyLet), environment(std::move(environment)) {}
-
-    EnvironmentPtr environment;
-
-protected:
-    void trace(Tracer& tracer) override {
-        if (environment)
-            environment->trace(tracer);
-    }
-};
-
 // A first-class handle for the evaluator's lexical environment.  Modules may
 // own one of these without exposing Environment's C++ representation to
 // Scheme code.

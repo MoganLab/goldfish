@@ -5,7 +5,7 @@
 ;; - registry 按 level 键：level 0 裸名，level >= 1 为 (level . name)；
 ;; - 同库 plain + expand 并存时体各跑一次（共享计数器验证）；
 ;; - 两实例 exp-library 对象与绑定对象分离（同 gensym 符号，
-;;   不同 binding 对象，各自 inlet 求值即不同 cell）；
+;;   不同 binding 对象，各自求值环境中对应不同 cell）；
 ;; - add-import-view! 同库豁免，plain + expand 并存不报冲突；
 ;; - level-1 首载不污染 bare 注册（门控不被欺骗）。
 
@@ -109,19 +109,19 @@
 (define g0 (toplevel-ref-gensym (binding-value vb0)))
 (define g1 (toplevel-ref-gensym (binding-value vb1)))
 (define expand-env1 (instance-expand-environment-ref '(plvl dual) 1))
-(check (vector? (eval g0 (rootlet))) => #t)
+(check (vector? (eval g0 (interaction-environment))) => #t)
 (check-true (if expand-env1 #t #f))
 ;; 两边初值均为 10。
-(check (vector-ref (eval g0 (rootlet)) 0) => 10)
+(check (vector-ref (eval g0 (interaction-environment)) 0) => 10)
 (check (vector-ref (eval g1 expand-env1) 0) => 10)
 ;; 改 level 0，不影响 level 1。
-(vector-set! (eval g0 (rootlet)) 0 99)
-(check (vector-ref (eval g0 (rootlet)) 0) => 99)
+(vector-set! (eval g0 (interaction-environment)) 0 99)
+(check (vector-ref (eval g0 (interaction-environment)) 0) => 99)
 (check (vector-ref (eval g1 expand-env1) 0) => 10)
 ;; 改 level 1，不影响 level 0。
 (vector-set! (eval g1 expand-env1) 0 77)
 (check (vector-ref (eval g1 expand-env1) 0) => 77)
-(check (vector-ref (eval g0 (rootlet)) 0) => 99)
+(check (vector-ref (eval g0 (interaction-environment)) 0) => 99)
 
 ;; ===== 3b. level-0 运行时模块不被 level-1 加载覆盖 =====
 ;; 此时 level-0 vbox 为 99，level-1 为 77；module-ref 应命中 level-0。
@@ -145,7 +145,7 @@
 (check (vector-ref (eval g2 expand-env2) 0) => 10)
 (vector-set! (eval g2 expand-env2) 0 55)
 (check (vector-ref (eval g2 expand-env2) 0) => 55)
-(check (vector-ref (eval g0 (rootlet)) 0) => 99)
+(check (vector-ref (eval g0 (interaction-environment)) 0) => 99)
 (check (vector-ref (eval g1 expand-env1) 0) => 77)
 ;; level-0 运行时模块仍完好。
 (check ((module-ref '(plvl dual) 'get-v)) => 99)

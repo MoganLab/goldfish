@@ -10,10 +10,7 @@
 ;; GOLDFISH_CACHE_DIR points elsewhere (read-only prebuilt caches pair it
 ;; with GOLDFISH_CACHE_READONLY).
 ;;
-;; warm-file! lives in the base module; it is also mirrored into the host
-;; rootlet (module.scm) so this tool library can call it bare -- importing
-;; (goldfish) would bind the name to a module toplevel that a tool library
-;; cannot resolve.
+;; warm-file! is available in the implementation environment to tool code.
 
 (define-library (liii goldcompile)
   (import (scheme base)

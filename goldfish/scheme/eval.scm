@@ -22,13 +22,13 @@
     ;; Native eval, resolved at call time from a private global name.
     ;; Looking up `eval' itself is unsafe: importing (scheme eval) can make
     ;; the visible `eval' this library's own wrapper, which then recurses
-    ;; through %s7-eval until the heap is exhausted.  `%host-eval' is the
-    ;; runtime primitive alias and is never re-exported by user libraries.
-    (define (%s7-eval expr . maybe-env)
-      (let ((host-eval (symbol->value '%host-eval)))
+    ;; through %native-eval until the heap is exhausted. It is never
+    ;; re-exported by user libraries.
+    (define (%native-eval expr . maybe-env)
+      (let ((native-eval (symbol->value '%native-eval)))
         (if (pair? maybe-env)
-          (host-eval expr (car maybe-env))
-          (host-eval expr))))
+          (native-eval expr (car maybe-env))
+          (native-eval expr))))
 
     ;; R7RS (scheme eval): environment builds a program environment whose
     ;; bindings come from the given import-sets (only / except / prefix /
@@ -44,9 +44,9 @@
       (if env
         (if (and (defined? 'eval-environment?)
                  (eval-environment? env))
-          (%s7-eval expr env)
+          (%native-eval expr env)
           (eval-in-program-environment expr env))
-        (%s7-eval expr)))
+        (%native-eval expr)))
 
   ) ;begin
 ) ;define-library

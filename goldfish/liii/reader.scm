@@ -892,8 +892,7 @@
               ;; A library file: load it through the library machinery so
               ;; `load' and `import' share the SAME library cache (one
               ;; expansion, one cached artifact) instead of compiling the
-              ;; file twice with different engines.  The defs evaluate into
-              ;; the rootlet, mirroring the old per-file compile.
+              ;; file twice with different engines.
               (for-each load-library! (library-names-in forms))
               (if (auto-compile-enabled?)
                 ;; Compile the file once and execute the compiled artifact
@@ -920,8 +919,7 @@
                                       (load-library! lib)))
                                   (reader-collect-cache-module-refs sexp))
                         ;; Evaluate the compiled artifact in
-                        ;; the-expander-library, not the rootlet: the
-                        ;; lowered defs reference library bindings by
+                        ;; the-expander-library: lowered defs reference library bindings by
                         ;; gensym (e.g. load-library!:40), which only
                         ;; resolve in the-expander-library.
                         (eval sexp (reader-expansion-environment)))
@@ -1002,10 +1000,8 @@
 ;;; expand-eval : datum -> value
 ;;; The one-time eval entry: expand a top-level form with the Sets-of-Scopes
 ;;; expander (registering macros in the shared base library) and evaluate the
-;;; lowered core in the-expander-library.  This is the replacement for s7's
-;;; plain `eval' once the eval switch is flipped.  The free identifiers here
-;;; (wrap-expression, expand-library-body, ...) resolve dynamically from the
-;;; rootlet, so this definition predates the expander load.
+;;; lowered core in the-expander-library. The free identifiers here
+;;; (wrap-expression, expand-library-body, ...) resolve from the expander module.
 ;;;
 ;;; The library-cache counterpart of this loop lives in module.scm
 ;;; (eval-defs, level-aware).  A plain recursive helper (not a named let)

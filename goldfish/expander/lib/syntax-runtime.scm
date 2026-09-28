@@ -15,7 +15,7 @@
 ;;; only (lambda / if / begin / set! / quote / letrec*) because the derived
 ;;; forms (let / and / or / cond) live in lib/core-macros.scm, installed
 ;;; later.  Free procedures (map / assq / ...) resolve via the expander
-;;; module's fallback to the host rootlet.
+;;; module's evaluation environment.
 
 (define (pair-or-null? x) (or (pair? x) (null? x)))
 (define (dotted-length lst)

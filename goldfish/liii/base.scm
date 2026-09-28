@@ -16,8 +16,6 @@
     loose-cdr
     compose
     typed-lambda
-    make-hook
-    hook-functions
     with-output-to-string
     with-input-from-string
     call-with-input-string

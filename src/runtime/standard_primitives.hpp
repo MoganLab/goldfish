@@ -5,9 +5,8 @@
 namespace goldfish::runtime {
 
 // Runtime substrate: object operations, ports/reader, environments, numeric
-// atoms, platform handles, and the Unicode runtime boundary.  Derived
-// list/HOF behavior belongs to Scheme; migration-only procedures are exposed
-// separately by install_migration_primitives.
+// atoms, platform handles, and the Unicode runtime boundary. Derived list/HOF
+// behavior belongs to Scheme; bootstrap primitives are installed separately.
 void install_runtime_primitives(Evaluator& evaluator);
 
 } // namespace goldfish::runtime

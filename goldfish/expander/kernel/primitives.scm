@@ -72,7 +72,6 @@
      write-u8 write-bytevector
      newline eof-object eof-object?
      catch throw
-     rootlet inlet curlet dynamic-let?
      pi
      port? input-port? output-port? textual-port? binary-port?
      input-port-open? output-port-open?
@@ -98,10 +97,8 @@
      current-second current-jiffy jiffies-per-second
      ;; (scheme repl)
      interaction-environment
-     ;; s7 extension names re-exported by the liii/srfi layers (host surface)
      object->string eval-string signature copy
      keyword? string->keyword symbol->keyword keyword->symbol
-     make-hook hook-functions
      with-output-to-string with-input-from-string
      call-with-input-string call-with-output-string
      reverse! format
@@ -118,16 +115,13 @@
      make-float-vector
      complex-vector complex-vector? complex-vector-ref complex-vector-set!
      make-complex-vector
-     ;; s7 host functions used by internal tests / tools
      s7-ceiling s7-floor s7-round s7-truncate s7-lcm s7-gcd s7-remainder
      s7-modulo s7-sqrt s7-abs s7-expt
      s7-make-hash-table s7-hash-table-ref s7-hash-table-set!
-     s7-let-to-list s7-let-ref s7-let-set!
      s7-string-upcase s7-string-downcase
      unspecified unspecified? undefined undefined? record-instance fill! display*
-     let? sublet unlet with-let
      random
-     ;; C++ glue functions (g_*), exposed in the host rootlet
+     ;; Native C++ boundary functions (g_*)
      g_access g_bytevector-base64-decode g_bytevector-base64-encode g_chdir
      g_executable g_getcwd g_getlogin g_getpid g_get-environment-variable g_getenvs
      g_char-upcase g_char-downcase g_char-foldcase g_char-alphabetic?

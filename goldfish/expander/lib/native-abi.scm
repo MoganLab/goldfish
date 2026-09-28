@@ -1,13 +1,5 @@
-;;; native-abi.scm -- the portable half of liii/host-abi for the native
-;;; runtime.  Loaded by the native driver after native-hash-adapter
-;;; (src/runtime/native_main.cpp), mirroring its pattern.
-;;;
-;;; host-abi.scm cannot load on native: it seeds on s7 builtins
-;;; (s7-max/s7-floor/string->byte-vector/rootlet tricks).  This file
-;;; carries ONLY names the native substrate does not define -- the list
-;;; is evidence-driven (tests/scheme C2 sweep unbound-symbol failures) --
-;;; and everything is rewritten against native primitives with no liii
-;;; module dependencies, so (scheme base) programs can call it.
+;;; Scheme implementations for R7RS values not supplied by the native
+;;; runtime. Loaded by the native driver before user libraries.
 
 ;;; ---- promises -------------------------------------------------------
 
@@ -132,10 +124,7 @@
 ;;; R7RS write-shared/write-simple: native already provides both
 ;;; (standard_primitives), so nothing to alias here.
 
-;;; ---- bytevector dialect (host-abi semantics) ------------------------
-;;; s7's bytevector-length is the generic sequence length (the tests pin
-;;; strings =>5 and non-sequences => #f), shadowing the strict native
-;;; primitive; copy/copy! come from host-abi with its range semantics.
+;;; ---- bytevector operations ------------------------------------------
 
 (define (bytevector-length x)
   (cond
@@ -172,11 +161,11 @@
         (loop (+ i 1))))
     to))
 
-;;; ---- utf8 substrate (portable from host-abi, s7 names rewritten) ----
+;;; ---- UTF-8 operations ------------------------------------------------
 
 (define (bytevector-advance-utf8 bv index . maybe-end)
   ;; Index after the UTF-8 sequence starting at index; stays put on
-  ;; truncated/invalid sequences (host-abi semantics).  end defaults to
+  ;; truncated/invalid sequences. end defaults to
   ;; the bytevector length (define* parity).
   (let ((end (if (pair? maybe-end) (car maybe-end) (bytevector-length bv))))
     (if (>= index end)
@@ -368,8 +357,6 @@
             (else (check-strings (cdr rest)))))))
 
 ;;; ---- misc -----------------------------------------------------------
-
-(define (interaction-environment) (rootlet))
 
 ;; s7 compatibility: its lcm is R7RS lcm for the exact arguments the
 ;; s7-lcm test pins.

@@ -11,7 +11,7 @@
 (import (liii check) (goldfish))
 
 (define (run prog)
-  (eval (compile-program prog) (rootlet)))
+  (eval (compile-program prog) (interaction-environment)))
 
 (define (run-raw prog)
   (compile-program prog))

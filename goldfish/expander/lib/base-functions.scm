@@ -1,10 +1,7 @@
 ;;; base-functions.scm -- library functions implemented in Scheme.
 ;;;
-;;; Loaded into the ROOTLET (like Guile's boot-9.scm into the root module)
-;;; right after the module system comes up, overriding the s7 primitives of
-;;; the same name.  All code -- the expander kernel itself, every library,
-;;; and user programs -- resolves `map' / `for-each' by name into the
-;;; rootlet, so this single Scheme definition is what everyone calls.  The
+;;; Loaded into the implementation library after the module system starts.
+;;; All code resolves `map' and `for-each' through this Scheme implementation.
 ;;; multi-list variants use the `apply' primitive for variadic callback
 ;;; calls (Guile boot-9 style); the rest-list iteration uses explicit
 ;;; helper recursion so the definition does not depend on `map' being
@@ -102,8 +99,7 @@
       (if (null? rest) v
           (begin (vector-set! v i (car rest))
                  (loop (+ i 1) (cdr rest)))))))
-;; R7RS vector-copy: a fresh vector holding v[start, end).  Both hosts load
-;; this file, so the name no longer depends on the host seed's host-abi copy.
+;; R7RS vector-copy: a fresh vector holding v[start, end).
 (define (vector-copy . args)
   (if (null? args)
     (error 'wrong-type-arg "vector-copy: expected a vector"))

@@ -1,6 +1,6 @@
 #include "runtime/bootstrap.hpp"
 
-#include "runtime/bootstrap_compatibility.hpp"
+#include "runtime/bootstrap_primitives.hpp"
 #include "runtime/debug_flags.hpp"
 #include "runtime/standard_primitives.hpp"
 
@@ -116,7 +116,7 @@ NativeBootstrap::NativeBootstrap(Runtime& runtime)
 void NativeBootstrap::install_primitives() {
     if (primitives_installed_) return;
     install_runtime_primitives(runtime_.evaluator());
-    install_native_bootstrap_compatibility(runtime_.evaluator());
+    install_bootstrap_primitives(runtime_.evaluator());
     native_read_forms_ = runtime_.evaluator().global_environment()->lookup(
         runtime_.evaluator().symbol("read-forms"));
     primitives_installed_ = true;
@@ -133,21 +133,14 @@ Value NativeBootstrap::load_kernel(const std::string& path) {
     Value expander_library = runtime_.evaluator().eval(
         runtime_.evaluator().symbol("the-expander-library"));
     // the-expander-library is constructed while the kernel is evaluated;
-    // install the native environment explicitly so module-eval-environment
-    // never falls back to the legacy inlet representation.
+    // install its native environment explicitly before loading libraries.
     Value eval_environment = runtime_.evaluator().apply_values(
-        runtime_.evaluator().eval(
-            runtime_.evaluator().symbol("make-eval-environment")), {})[0];
+        native_module_eval_environment_, {expander_library})[0];
     // Designate this frame as the defs root: every later parentless frame
     // (module environments, program environments) descends from it, so bare
     // gensym refs resolve while module frames stay isolated.
     runtime_.evaluator().set_defs_root(
         eval_environment.as_object<EvalEnvironmentObject>()->environment);
-    runtime_.evaluator().apply_values(
-        runtime_.evaluator().eval(
-            runtime_.evaluator().symbol("module-define!")),
-        {expander_library,
-         runtime_.evaluator().symbol("__eval-environment"), eval_environment});
     runtime_.evaluator().apply_values(register_module, {expander_library});
     // kernel-combined is the implementation library itself and is already
     // installed in the evaluator; imports of (goldfish) must not ask the
@@ -180,7 +173,6 @@ void NativeBootstrap::load_cached_runtime(const std::string& cache_root) {
         "expander/lib/module.scm-o2.gfo",
         "expander/lib/standard.scm-o2.gfo",
         "scheme/case-lambda.scm-o2.gfo",
-        "scheme/base.scm-o2.gfo",
     };
     for (const fs::path& artifact : artifacts) {
         const fs::path path = version / artifact;
@@ -195,6 +187,7 @@ void NativeBootstrap::load_cached_runtime(const std::string& cache_root) {
                                      path.string() + ": " + error.what());
         }
     }
+    deferred_base_artifact_ = (version / "scheme/base.scm-o2.gfo").string();
     // The Scheme source reader is loaded by the driver after the installer;
     // keep its bootstrap dependency on the native reader primitive intact.
     runtime_.evaluator().global_environment()->define(
@@ -213,6 +206,17 @@ void NativeBootstrap::load_cached_runtime(const std::string& cache_root) {
             runtime_.evaluator().symbol("exp-library-define!")),
         {base_library, runtime_.evaluator().symbol("read-forms"),
          read_forms_binding});
+}
+
+void NativeBootstrap::load_cached_base_runtime() {
+    if (deferred_base_artifact_.empty()) return;
+    try {
+        load_artifact(deferred_base_artifact_);
+    } catch (const std::exception& error) {
+        throw std::runtime_error("native bootstrap artifact " +
+                                 deferred_base_artifact_ + ": " + error.what());
+    }
+    deferred_base_artifact_.clear();
 }
 
 void NativeBootstrap::install_expansion_helpers() {

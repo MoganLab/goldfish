@@ -40,7 +40,7 @@
 ;;; to a procedural transformer; the result is then expanded at phase+1
 ;;; (phases-model let-syntax rule), lowered to core Scheme, and evaluated
 ;;; to a procedure in the current unit's expand env (s7 eval falls back
-;;; through its outlet chain to the-expander-library and the rootlet for
+;;; through its parent chain to the-expander-library for
 ;;; names the unit does not define).  The lowered core S-expression is
 ;;; returned as a third value so library installs can cache the
 ;;; transformer (the only serializable form of a transformer; cf.

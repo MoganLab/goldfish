@@ -161,10 +161,8 @@
               (values body-sexp ctx1))))))
 
 ;;; set!
-;;; (set! var val) assigns an identifier.  (set! (proc args ...) val) is the
-;;; SRFI-17 generalized form, lowered to ((setter proc) args ... val);
-;;; goldfish's s7-derived libraries (e.g. (liii logging)'s exit-hook
-;;; registration) rely on it, as do the R7RS (set! (car x) v) positions.
+;;; (set! var val) assigns an identifier. A generated module-ref target is
+;;; preserved for the native evaluator's module assignment path.
 
 (define (core-set! stx ctx)
   (let ((form (syntax-form stx)))
@@ -173,15 +171,12 @@
     (let ((var-stx (cadr form))
           (val-stx (caddr form)))
       (if (pair? (syntax-form var-stx))
-        (let* ((target-form (syntax-form var-stx))
-               (proc-stx (car target-form))
-               (arg-stxs (cdr target-form)))
-          (let*-values (((proc-sexp ctx1) (expand-expr proc-stx ctx))
-                        ((args-sexp ctx2) (expand-list arg-stxs ctx1))
-                        ((val-sexp ctx3) (expand-expr val-stx ctx2)))
+        (if (eq? (syntax-form (car (syntax-form var-stx))) 'module-ref)
+          (let*-values (((val-sexp ctx1) (expand-expr val-stx ctx)))
             (values (datum->syntax stx
-                     `((setter ,proc-sexp) ,@args-sexp ,val-sexp))
-                    ctx3)))
+                     `(set! ,(syntax->datum var-stx) ,val-sexp))
+                    ctx1))
+          (error 'set! "expected identifier" (syntax->datum var-stx)))
         (begin
           (require-identifier var-stx "set!: expected identifier")
           (let*-values (((name binding) (resolve-identifier var-stx ctx)))
@@ -524,7 +519,7 @@
 ;;; A compilation unit (one program/library/boot file compile, one file
 ;;; load, one eval) binds a fresh expand-time environment and fresh
 ;;; region libraries via call-with-fresh-expand-unit:
-;;;   expand env     -- an s7 inlet chained to the-expander-library, so
+;;;   expand env     -- an evaluation environment parented to the implementation,
 ;;;      the expander API stays a live view; region defines and
 ;;;      transformer procedures evaluate here, hence same-named gensyms
 ;;;      from different units never share a binding.
@@ -589,14 +584,7 @@
   (let ((parent-env (module-eval-environment the-expander-library))
         (outer-env *unit-expand-env*)
         (outer-stores *unit-region-libraries*))
-    (let ((env (if (and (defined? 'make-eval-environment)
-                        (procedure? make-eval-environment)
-                        (eval-environment? parent-env))
-                  (make-eval-environment parent-env)
-                  ;; s7's sublet is a special form, so the host-only
-                  ;; compatibility path must remain at this call site.
-                  (sublet (module-eval-environment
-                           the-expander-library)))))
+    (let ((env (make-eval-environment parent-env)))
       (dynamic-wind
         (lambda ()
           (set! *unit-expand-env* env)
@@ -615,8 +603,7 @@
   ;; expanded as expressions.  maybe-lib is accepted for call-site
   ;; compatibility and ignored: value defines never land in the
   ;; enclosing library.
-  ;; Effects land in the expander library / rootlet (s7 eval falls back
-  ;; to the rootlet for names the expander library does not define).
+  ;; Effects land in the expander library's evaluation environment.
   ;;
   ;; The body is one flat expand-time region: a define-syntax inside it
   ;; binds a macro usable by the SURROUNDING phase (its uses there run
@@ -671,7 +658,7 @@
                (loop (cdr es) (context-at-phase c1 (+ ph 1)))))
             (else
               (let*-values (((sexp c1) (expand-expr (car es) c)))
-                ;; Effects on shared state (set! of a rootlet variable)
+                ;; Effects on shared implementation state
                 ;; resolve through the unit env's outlet chain; genuinely
                 ;; new expand-time bindings belong to the unit alone.
                 (eval (lower sexp) (current-expand-env))

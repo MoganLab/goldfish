@@ -294,63 +294,6 @@ Value ArtifactLoader::load_gfo_file(const std::string& path) {
         fields[3].as_object()->type() == ObjectType::Pair &&
         symbol_named(fields[3].as_object<PairObject>()->car, "bundle"))
         return load_bundle_gfo_file(path);
-    // Compatibility with the pre-bundle program cache format.  Its payload
-    // is (bindings lowered-body macro-records), not an expression itself;
-    // evaluating the first field treats the binding alist as a procedure and
-    // fails on the first exported name.  The lowered body is self-contained
-    // and is the only part needed by the native bootstrap reader.
-    if (fields[3].is_object() &&
-        fields[3].as_object()->type() == ObjectType::Pair &&
-        fields[3].as_object<PairObject>()->car.is_object() &&
-        fields[3].as_object<PairObject>()->car.as_object()->type() ==
-            ObjectType::Pair) {
-        std::vector<Value> legacy_payload = proper_list(fields[3]);
-        if (legacy_payload.size() >= 2) {
-            Value result = Value::unspecified();
-            std::vector<Value> body_forms;
-            if (legacy_payload[1].is_object() &&
-                legacy_payload[1].as_object()->type() == ObjectType::Pair &&
-                symbol_named(legacy_payload[1].as_object<PairObject>()->car,
-                             "begin"))
-                body_forms = proper_list(
-                    legacy_payload[1].as_object<PairObject>()->cdr);
-            else
-                body_forms.push_back(legacy_payload[1]);
-            for (std::size_t index = 0; index < body_forms.size(); ++index) {
-                try {
-                    result = evaluator_.eval(body_forms[index]);
-                } catch (const std::runtime_error& error) {
-                    throw std::runtime_error(
-                        "artifact: legacy program form " +
-                        std::to_string(index) + ": " + error.what());
-                }
-            }
-            // Legacy program caches carry the public root bindings
-            // separately from their lowered body.  Executing the body only
-            // leaves names such as read-forms hidden behind their allocated
-            // gensyms, so the native bootstrap silently keeps using the
-            // tiny reader.  Replay the old le-rootlet-copy step here.
-            if (!legacy_payload[0].is_null()) {
-                for (Value entry : proper_list(legacy_payload[0])) {
-                    if (!entry.is_object() ||
-                        entry.as_object()->type() != ObjectType::Pair)
-                        throw std::runtime_error(
-                            "artifact: malformed legacy binding entry");
-                    auto* binding = entry.as_object<PairObject>();
-                    Value value;
-                    try {
-                        value = evaluator_.global_environment()->lookup(binding->cdr);
-                    } catch (const std::runtime_error& error) {
-                        throw std::runtime_error(
-                            std::string("artifact: legacy binding target missing: ") +
-                            error.what());
-                    }
-                    evaluator_.global_environment()->define(binding->car, value);
-                }
-            }
-            return result;
-        }
-    }
     return evaluator_.eval(fields[3]);
 }
 

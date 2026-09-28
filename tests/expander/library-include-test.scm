@@ -9,7 +9,7 @@
        (stx (stx-set-library (wrap-expression form) the-base-library))
        (hdl (module-ref the-expander-library 'expand-define-library)))
   (let*-values (((defs ctx1) (hdl stx (initial-context))))
-    (eval (cons 'begin (map lower defs)) (rootlet))
+    (eval (cons 'begin (map lower defs)) (interaction-environment))
     (check ((module-ref '(test lib-include-top) 'f) 1) => 2)
     (check (module-ref '(test lib-include-top) 'h) => 7)))
 
@@ -21,7 +21,7 @@
        (stx (stx-set-library (wrap-expression form) the-base-library))
        (hdl (module-ref the-expander-library 'expand-define-library)))
   (let*-values (((defs ctx1) (hdl stx (initial-context))))
-    (eval (cons 'begin (map lower defs)) (rootlet))
+    (eval (cons 'begin (map lower defs)) (interaction-environment))
     (check ((module-ref '(test lib-include-begin) 'f) 1) => 2)
     (check (module-ref '(test lib-include-begin) 'g) => 42)))
 

@@ -153,7 +153,7 @@
 
 ;; exp-library-bindings : lib -> alist
 ;; Materialize the bucket vector into an (name . value) alist.  Used by the
-;; few enumeration callers (kernel capture, le-rootlet-copy, build-combined);
+;; few enumeration callers (kernel capture, build-combined);
 ;; order is deterministic but not insertion order.
 (define (exp-library-bindings lib)
   (let ((buckets (exp-library-buckets lib)))

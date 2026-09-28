@@ -93,7 +93,7 @@
 ;;; free identifiers that resolve nowhere are errors, not ambient host
 ;;; names).  A library body is resolved the same way (its own defines and
 ;;; imports only); the difference is only that a body identifier left
-;;; unresolved stays bare and binds at run time in the host rootlet --
+;;; unresolved stays bare and binds at run time in the evaluator environment --
 ;;; unless the name is bound in an import view gated out at this phase,
 ;;; which is a genuine `for' violation and errors at expansion like
 ;;; programs (see expand-atom).  Own phase-0 helpers stay bare: the
@@ -200,7 +200,7 @@
                      ;; see install-expansion-helper!).  But a name bound
                      ;; in an import view yet gated out at this phase is a
                      ;; genuine `for' violation: fail at expansion like
-                     ;; programs do instead of rootlet luck (silent success
+                     ;; programs do instead of ambient lookup (silent success
                      ;; when the eval environment happens to bind it, a
                      ;; late confusing error otherwise).
                      (let ((lib (syntax-library stx)))
@@ -431,8 +431,8 @@
 ;;;   (quote <x>)        -> (quote <datum>)    datum contents (handlers
 ;;;                        may have wrapped the datum while building
 ;;;                        output; syntax->datum normalizes it back)
-;;;   (quote-syntax <x>) -> (quote <syntax>)   syntax literal: s7's eval
-;;;                        of a quoted inlet yields the syntax object
+;;;   (quote-syntax <x>) -> (quote <syntax>)   syntax literal: evaluation
+;;;                        preserves the syntax object
 ;;;                        itself (the expansion of `syntax'; template
 ;;;                        instantiation in transformer code consumes it)
 
@@ -553,10 +553,6 @@
                ((binding-value binding) stx ctx))
               ((transformer-binding? binding)
                (expand-macro stx ctx (binding-value binding)))
-              ((memq (syntax-form head) s7-host-forms)
-               ;; s7 host statement form (with-let etc.): pass through to the
-               ;; host evaluator untouched.
-               (values stx ctx))
               (else
                (expand-application stx ctx))))
           (expand-application stx ctx)))))
@@ -569,16 +565,3 @@
       (values (make-syntax (cons fun args)
                            (syntax-context stx) (syntax-library stx))
               ctx2))))
-
-;;; s7-host-forms: TEMPORARY s7-specific adhoc passthrough (not R7RS).
-;;; These s7 inlet statements must NOT be traversed by the expander: their
-;;; bodies are s7 statements (definitions / environment forms) that the
-;;; expander would reject in expression position (e.g. (with-let (unlet)
-;;; (define ... ...)) in (liii case)).  They are passed through to the host
-;;; evaluator, which understands them.  Identifiers are matched by name
-;;; (these are ambient host forms, not user-shadowable bindings in the
-;;; goldfish libs).  A replacement host without s7 inlets deletes this list
-;;; and every reference to it; see LAYER.md host-ABI contract.
-
-(define s7-host-forms '(with-let sublet unlet))
-

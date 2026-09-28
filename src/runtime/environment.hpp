@@ -31,8 +31,8 @@ public:
 };
 
 // A reference to a name with no binding in the chain.  eval converts
-// it to a keyed 'unbound-variable raise (host parity); probes that
-// catch std::runtime_error (defined?, rootlet fallback) keep working.
+// it to a keyed 'unbound-variable raise; probes that catch
+// std::runtime_error (such as defined?) keep working.
 class UnboundSymbolError : public std::runtime_error {
 public:
     using std::runtime_error::runtime_error;

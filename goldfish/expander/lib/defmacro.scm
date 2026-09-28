@@ -11,7 +11,7 @@
 ;;; expander: s7 defmacro bodies routinely use host features the expander
 ;;; treats as keywords or rejects as values -- e.g. `(apply lambda ...)' in
 ;;; (liii base)'s typed-lambda, or backquote with unquote-splicing.  s7
-;;; eval (in the-expander-library, falling back to the rootlet) compiles
+;;; eval (in the-expander-library) compiles
 ;;; those fine.  Only the (define-syntax ...) shell around it goes through
 ;;; the expander, so the macro still installs as a normal transformer.
 ;;;

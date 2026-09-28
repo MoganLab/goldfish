@@ -17,8 +17,7 @@
 ;; (scheme repl) library for R7RS
 ;; stdmod.tex 导出清单：interaction-environment
 ;;
-;; interaction-environment 由实现库 (goldfish) 提供
-;; （见 expander/kernel/primitives.scm 与 liii/host-abi.scm）。
+;; interaction-environment 由实现库 (goldfish) 提供。
 
 (define-library (scheme repl)
   (import (goldfish))

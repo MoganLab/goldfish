@@ -17,6 +17,7 @@
 #include <iostream>
 #include <iterator>
 #include <limits>
+#include <memory>
 #include <numeric>
 #include <sstream>
 #include <stdexcept>
@@ -823,8 +824,7 @@ void install_runtime_primitives(Evaluator& evaluator) {
             throw std::runtime_error("expt result is outside integer range");
         return Values{Value::integer(static_cast<std::int64_t>(result))};
     });
-    // Explicit evaluation environments.  Legacy inlet support is installed
-    // later by migration_primitives.cpp, not by this runtime layer.
+    // Explicit evaluation environments are the native interaction contract.
     // s7 surface: (gensym [prefix]) -> a fresh symbol per call.  The
     // high per-process base keeps generated names out of the space of
     // names user code is likely to define.
@@ -930,6 +930,16 @@ void install_runtime_primitives(Evaluator& evaluator) {
                                                                        args[2]);
         return Values{Value::unspecified()};
     });
+    auto interaction_environment =
+        std::make_shared<Value>(Value::unspecified());
+    install(evaluator, "interaction-environment",
+            [&evaluator, interaction_environment](const Values& args) {
+                require_arity(args, 0, "interaction-environment");
+                if (interaction_environment->is_unspecified())
+                    *interaction_environment =
+                        evaluator.make_eval_environment();
+                return Values{*interaction_environment};
+            });
     install(evaluator, "eval-environment-ref", [](const Values& args) {
         require_arity(args, 2, "eval-environment-ref");
         if (!args[0].is_object() ||
@@ -954,10 +964,9 @@ void install_runtime_primitives(Evaluator& evaluator) {
         }
         return evaluator.eval_values(args[0], std::move(environment));
     });
-    // Private alias for the runtime eval primitive.  (scheme eval) resolves
-    // this name instead of `eval', so importing a user-level eval cannot
-    // rebind the host evaluator into a recursive loop.
-    evaluator.define_primitive("%host-eval", [&evaluator](const Values& args) {
+    // (scheme eval) uses this private binding so importing that library cannot
+    // rebind the runtime evaluator into a recursive loop.
+    PrimitiveObject::Function native_eval = [&evaluator](const Values& args) {
         if (args.size() != 1 && args.size() != 2)
             throw std::runtime_error("eval expects one or two arguments");
         EnvironmentPtr environment = evaluator.global_environment();
@@ -971,7 +980,8 @@ void install_runtime_primitives(Evaluator& evaluator) {
                     "eval expects an eval environment as its second argument");
         }
         return evaluator.eval_values(args[0], std::move(environment));
-    });
+    };
+    evaluator.define_primitive("%native-eval", native_eval);
     evaluator.define_callcc_primitive("call/cc");
     evaluator.define_callcc_primitive("call-with-current-continuation");
     evaluator.define_dynamic_wind_primitive("dynamic-wind");

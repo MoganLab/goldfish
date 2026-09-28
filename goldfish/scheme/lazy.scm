@@ -18,8 +18,7 @@
 ;; stdmod.tex 导出清单：delay delay-force force make-promise promise?
 ;;
 ;; delay / delay-force 由 (scheme base) 以扩展形式导出；
-;; force / make-promise / promise? 由实现库 (goldfish) 提供
-;; （见 expander/kernel/substrate.scm 与 liii/host-abi.scm）。
+;; force / make-promise / promise? 由实现库 (goldfish) 提供。
 
 (define-library (scheme lazy)
   (import (scheme base) (goldfish))

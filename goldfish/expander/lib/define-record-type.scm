@@ -3,7 +3,7 @@
 ;;; define-macro in seed/prelude).  It expands to vector-layout records:
 ;;; a type descriptor (make-record-type) plus constructor / predicate /
 ;;; accessors / modifiers, all backed by the independent record
-;;; implementation in liii/boot.scm (Guile-style, eq? type identity).
+;;; implementation in expander/kernel/substrate.scm (eq? type identity).
 ;;; This is the self-hosted macro layer (like syntax-case / syntax-rules),
 ;;; expanded by the expander itself.
 

@@ -61,10 +61,7 @@
      (srfi srfi-13) (liii error))
   (begin
 
-    ;; (liii list) re-exports SRFI-1's fold.  The substrate also binds fold
-    ;; (a legacy accum-first fold in boot), which would otherwise win the
-    ;; name and shadow the SRFI-1 one here; alias it explicitly so the
-    ;; exported binding is SRFI-1's.
+    ;; Re-export SRFI-1's fold under its standard name.
     (define fold srfi-1-fold)
 
     (define (length-cmp lst n)

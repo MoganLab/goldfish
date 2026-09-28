@@ -54,7 +54,7 @@
                    (map car
                         (filter (lambda (e) (primitive-binding? (cdr e)))
                                 (exp-library-bindings lib))))
-                  ;; Re-bind all toplevels to rootlet: lib refs as free ids + internal accessors.
+                  ;; Re-bind all toplevels in the implementation environment.
                  (re-bindings
                    (map (lambda (e)
                           (list 'define (car e)
@@ -66,12 +66,8 @@
                      stray-prims))
             (let* ((artifact (append (map lower defs) re-bindings))
                    (artifact (cons 'begin artifact)))
-              ;; Native bootstrap checks the expansion in memory; only the
-              ;; host writer commits the generated artifact.
-              (if (zero? (g_getpid))
-                  #t
-                  (begin
-                    (let-set! *s7* 'print-length 1000000)
-                    (call-with-output-file
-                      output (lambda (port) (write artifact port)))))
-              (format #t "wrote ~A (~A forms)\n" output (length (cdr artifact))))))))))
+              ;; Native bootstrap checks the expansion in memory; write the
+              ;; generated artifact with the native writer.
+              (call-with-output-file
+                output (lambda (port) (write artifact port)))
+              (display (string-append "wrote " output "\n")))))))))

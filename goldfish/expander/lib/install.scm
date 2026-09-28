@@ -828,19 +828,16 @@
 ;;; ------------------------------------------------------------------------
 ;;; Internal runtime surface
 ;;; ------------------------------------------------------------------------
-;;; The reader / boot / install / module runtime functions live in the host
-;;; rootlet and the-expander-library, NOT in the (goldfish) base library's
-;;; binding table -- so `(import (goldfish))' does not provide them to a
-;;; strict program.  Internal scripts (build-combined.scm, the tools/, the
+;;; Reader, install, and module functions live in the expander module, not in
+;;; the (goldfish) base library's binding table. Internal scripts and the
 ;;; goldtest runner) are programs too and import (goldfish); two
 ;;; complementary registrations make them resolve:
 ;;;
 ;;;   * the dynamic scan registers every the-expander-library export that
 ;;;     is a runtime VALUE (core forms and module forms keep their real
 ;;;     bindings; only value functions become primitives);
-;;;   * %internal-names below is the explicitly audited surface -- the
-;;;     names the scan cannot see (rootlet-bound host names, s7 host
-;;;     forms, kernel defines never module-define!'d), as data.
+;;;   * %internal-names below is the explicitly audited surface -- kernel
+;;;     definitions that were not registered with module-define!, as data.
 
 (define %internal-surface-registered!
   (for-each
@@ -866,9 +863,8 @@
     '(;; reader
       read read-forms read-line read-string read-char write-roundtrip load
       expand-eval auto-compile-enabled?
-      ;; boot / loader
-      load-source-file load-expanded load-find-module-file
-      le-rootlet-copy
+      ;; loader
+      load-source-file load-find-module-file
       ;; install
       install-standard-library! install-library-file! install-library-forms!
       compile-file compile-file-into compile-file-cached
@@ -906,8 +902,6 @@
       free-identifier=? bound-identifier=? generate-temporaries
       make-syntax-introducer syntax-local-introduce syntax-local-value
       local-expand local-binder
-      ;; s7 host forms used by the boot / install chain
-      let-set! with-let sublet unlet *s7*
       the-expander-library the-base-library *base-library*
       ;; module machinery
       expand-define-library import-into-library! import-spec-into-library!
@@ -938,18 +932,12 @@
                              (make-toplevel-ref name #f name #f))))
     '(*load-path* *eval-ctx*)))
 
-;;; Assert the audited surface resolves: every %internal-names entry must
-;;; be visible in the-expander-library buckets or rootlet-bound now that
+;;; Every %internal-names entry must be visible in the expander module now
 ;;; installation is complete (module.scm, the last lib file, is installed
 ;;; above; note this is bucket membership, not the export list -- most
 ;;; lib-layer defines are plain defines).  A stale entry would otherwise
 ;;; install a primitive emitting an unresolvable bare reference.  Names
 ;;; covered only by the dynamic scan need no listing.
-;;; NOTE (no boot-time assert here, deliberately): the homes a name
-;;; resolves through legitimately differ between a cold expansion (defs
-;;; eval into the inlet) and a warm replay (defs eval elsewhere), so a
-;;; boot-time resolvability check is flaky by construction.  The
-;;; invariant -- every entry usable from (import (goldfish)) programs --
-;;; is checked post-boot by tests/expander/internal-surface-test.scm,
-;;; which reads this list through the inlet (single source of truth).
+;;; The invariant -- every entry usable from (import (goldfish)) programs --
+;;; is checked by tests/expander/internal-surface-test.scm.
 (module-define! the-expander-library '%internal-names %internal-names)

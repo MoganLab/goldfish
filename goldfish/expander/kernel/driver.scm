@@ -18,7 +18,7 @@
 ;;; The trailing module-define! registrations expose the driver entry points
 ;;; through the-expander-library; they are part of both the library body and
 ;;; the artifact load (harmless duplication -- the artifact re-binds the same
-;;; names into the rootlet, so both resolve to the same values).
+;;; names into the implementation environment, so both resolve identically).
 
 (define (wrap-expression expr)
   (datum->syntax (make-syntax 'empty (stx-ctx-empty) the-base-library) expr))

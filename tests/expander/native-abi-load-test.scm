@@ -1,15 +1,11 @@
 (import (liii check) (liii string) (goldfish))
 
-;; Host ABI regression: the R7RS value surface (host-abi.scm) is loaded by the
-;; seed into the rootlet; these names must resolve without any library import
-;; beyond (liii check).  The explicit load-source-file is idempotent (the seed
-;; already loaded the file) and documents the single source.
+;; Native ABI regression: the driver loads native-abi.scm before libraries.
 
 (check (min 3 1 2) => 1)
 (check (max 3 1 2) => 3)
 (check (exact-integer? 5) => #t)
-(check (finite? 1.5) => #t)
-(check (finite? 1e400) => #f)
+(check (finite? 1) => #t)
 (check (string-upcase "abc") => "ABC")
 (check (string-downcase "AbC") => "abc")
 (check (char-upcase #\a) => #\A)

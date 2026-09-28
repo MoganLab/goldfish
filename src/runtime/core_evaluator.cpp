@@ -466,16 +466,6 @@ Values Evaluator::eval_pair(PairObject& expression,
                 apply(module_set, {module_name, name, value});
                 return {value};
             }
-            if (core_forms_.lookup(target->car) == CoreForm::Setter) {
-                std::vector<Value> setter_target = proper_list(target->cdr);
-                if (setter_target.size() != 1)
-                    throw std::runtime_error("setter expects one procedure");
-                // Setter registration is a compatibility hook for the
-                // lowered module substrate. module-ref has native write
-                // handling above; other setters are not part of R2 yet.
-                (void)setter_target;
-                return {value};
-            }
             std::vector<Value> target_form = proper_list(arguments[0]);
             if (target_form.empty())
                 throw std::runtime_error("set! target is empty");

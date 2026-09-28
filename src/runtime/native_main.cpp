@@ -607,23 +607,11 @@ int main(int argc, char** argv) {
         runtime.evaluator().collect();
         bootstrap.install_expansion_helpers();
         stage("expansion-helpers");
-        // The Scheme-side composite surface (map/list->vector/copy-ish
-        // helpers, the numeric predicates) lives in base-functions.scm; the
-        // host loads it during its seed and native never did, so names like
-        // list->vector stayed unbound for tool code.  RUNTIME_CONTRACT lists
-        // this file as the migrated substrate for the runtime layer.
         load_source(runtime.evaluator(), "expander/lib/base-functions.scm");
-        stage("base-functions");
-        // s7's hashtable surface comes from s7 itself on the host; native
-        // gets the Scheme adapter (vector of bucket alists, same contract).
         load_source(runtime.evaluator(), "expander/lib/native-hash-adapter.scm");
-        // Portable half of liii/host-abi (ports, binary I/O, utf8
-        // substrate): names the native substrate lacks, ported from the
-        // host-abi bundle without its s7 seed.  expander/lib is scanned
-        // by the gfo fingerprint, so cache invalidation is automatic.
         load_source(runtime.evaluator(), "expander/lib/native-abi.scm");
-        stage("hash-adapter");
-        runtime.evaluator().collect();
+        stage("native-scheme-surface");
+        if (cached) bootstrap.load_cached_base_runtime();
         // The cached bootstrap artifact list already evaluates standard.scm.
         // Reinstalling it here creates fresh transformer bindings after
         // scheme/base.scm has captured interfaces to the originals, so

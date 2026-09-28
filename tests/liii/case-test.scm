@@ -11,7 +11,8 @@
 (check-set-mode! 'report)
 
 (define (run prog)
-  (eval (compile-program (cons '(import (liii match)) prog)) (rootlet)))
+  (eval (compile-program (cons '(import (liii match)) prog))
+        (interaction-environment)))
 
 (check (run '((match 'yes ((or 'yes 'no) 'boolean) (_ 'unknown)))) => 'boolean)
 (check (run '((match 'no ((or 'yes 'no) 'boolean) (_ 'unknown)))) => 'boolean)

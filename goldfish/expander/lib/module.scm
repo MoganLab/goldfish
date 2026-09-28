@@ -561,7 +561,7 @@
                   ;; orphaning every object created by the first evaluation
                   ;; (e.g. a default comparator held in another library's
                   ;; cells stops satisfying its own predicate).
-                  ;; Level 0 evaluates in the session-global rootlet, so a
+                  ;; Level 0 evaluates in the session environment, so a
                   ;; guarded skip is exact; level >= 1 targets the current
                   ;; unit expansion environment and keeps its per-load evaluation.
                   (if (or (> level 0) (not (runtime-registered? name level)))
@@ -579,12 +579,7 @@
 ;;; expansion environment.
 
 (define (library-runtime-environment)
-  (let ((env (module-eval-environment the-expander-library)))
-    (if (and (defined? 'eval-environment?)
-             (procedure? eval-environment?)
-             (eval-environment? env))
-      env
-      (rootlet))))
+  (module-eval-environment the-expander-library))
 
 (define (eval-defs defs lib-name . maybe-level)
   (let ((level (registry-level-arg maybe-level)))
@@ -1182,11 +1177,7 @@
         (let ((body-stxs (map (lambda (s) (stx-set-library s lib)) body-stxs)))
           (let*-values (((defs ctx1) (expand-library-body body-stxs lib ctx)))
             ;; An exported identifier not defined in the library body must
-            ;; resolve from an explicitly imported library (e.g. (scheme
-            ;; base) imports (goldfish) and re-exports the host surface).
-            ;; There is no implicit fallback to the base library or to a
-            ;; bare host-rootlet name: the s7 dependency of every export is
-            ;; declared where it is imported.  No binding at all is an
+            ;; resolve from an explicitly imported library. No binding is an
             ;; error -- the library's API must state where each name comes
             ;; from.  Exports are NOT copied into the library's own table:
             ;; importers see them through this library's shared export view,
@@ -1223,18 +1214,7 @@
                       exports)
             (library-registry-set! name
               (make-lib-record lib (append exports (map car renames))))
-            ;; The defs are emitted as sequential top-level defines; a
-            ;; forward reference (a define value naming a later define in
-            ;; the same body) would unbound-error at eval time.  The host
-            ;; s7 library semantics tolerate that by pre-declaring names as
-            ;; #<undefined> -- previously done with (varlet (rootlet) ...
-            ;; (symbol->value 'predeclare-forward-ref)).  That predeclaration
-            ;; has been REMOVED (2026-08-16): it leaked two s7 host forms
-            ;; into the emitted IR, and the only real user (scheme/eval's
-            ;; %s7-eval) was actually a bug -- it meant the HOST eval but
-            ;; captured the library's own later-defined eval as #<undefined>.
-            ;; scheme/eval now resolves the host eval explicitly, and no
-            ;; library relies on forward references.
+            ;; Emit definitions and module registration in source order.
             (values (append
                      defs
                      (list (datum->syntax empty-source
@@ -1271,31 +1251,14 @@
                                                (list 'quote
                                                      (toplevel-ref-original ref)))))
                                acc)))
-                       ((primitive-binding? binding)
-                        ;; Re-exported host primitive: the register expression
-                        ;; references the primitive by its bare ambient name,
-                        ;; resolved at eval time against the host rootlet (a
-                        ;; name missing from the host -- as some exports of
-                        ;; goldfish/scheme/base.scm are -- unbounds, which the
-                        ;; catch tolerates).  Bare-name references keep the
-                        ;; emitted IR free of s7 host forms (symbol->value).
-                        ;; The module-define! is wrapped in a catch: a handful
-                        ;; of scheme/let exports are s7 constants that cannot
-                        ;; be bound (e.g. unlet -> varlet error), which s7's
-                        ;; own define-library tolerates by never materializing
-                        ;; them in a runtime module.
-                        (cons (cons export
-                                    (list 'catch
-                                          '#t
-                                          (list 'lambda
-                                                '()
-                                                (list 'module-define!
-                                                      'm
-                                                      (list 'quote export)
-                                                      (binding-value binding)))
-                                          (list 'lambda '(tag . info)
-                                                '(if #f #f))))
-                              acc))
+                      ((primitive-binding? binding)
+                        ;; Materialize only runtime values present in the
+                        ;; native evaluator. Core syntax and deferred numeric
+                        ;; operations remain compile-time names.
+                        (let ((value-name (binding-value binding)))
+                          (if (and (symbol? value-name) (defined? value-name))
+                              (cons (cons export value-name) acc)
+                              acc)))
                       ((or (core-form-binding? binding)
                            (module-form-binding? binding))
                        ;; Ambient syntax (lambda/if/define/...): no runtime
@@ -1323,17 +1286,9 @@
                 (cons 'let
                       (cons (list (list 'm (list 'make-module (list 'quote name))))
                             (append (map (lambda (entry)
-                                           (let ((v (cdr entry)))
-                                             (if (and (pair? v) (eq? (car v) 'catch))
-                                                 ;; Primitive re-export: the entry is a
-                                                 ;; full catch-wrapped module-define! (the
-                                                 ;; module-define! itself may fail on an s7
-                                                 ;; constant name such as unlet, so the
-                                                 ;; whole call must sit inside the catch).
-                                                 v
-                                                 (list 'module-define! 'm
-                                                       (list 'quote (car entry))
-                                                       v))))
+                                           (list 'module-define! 'm
+                                                 (list 'quote (car entry))
+                                                 (cdr entry)))
                                          entries)
                                     (list (list 'register-module 'm)
                                           (list 'runtime-registered-add!
@@ -1343,7 +1298,7 @@
 ;;; The entry point baked into library artifacts (see
 ;;; library-register-expression).  The loader drops this form from
 ;;; level >= 1 loads: a level >= 1 instance has no runtime module --
-;;; expansion-time references resolve through inlet cells -- so the
+;;; expansion-time references resolve through the unit environment -- so the
 ;;; registration would only clobber the level-0 module of the same
 ;;; name.  At level 0 the thunk runs unchanged.
 
@@ -1463,26 +1418,16 @@
   (set! *eval-ctx* #f))
 
 ;;; register-program-library-primitive! : symbol -> void
-;;; Add a primitive binding to the session program library.  Used by the
-;;; REPL for history variables ($1, $2, ...): the C layer binds them in the
-;;; s7 rootlet, and the strict program environment must see them too, so a
-;;; bare reference (which the host resolves in the rootlet) is registered
-;;; here as a primitive binding.
+;;; Add a primitive binding to the session program library. Used by the REPL
+;;; for history variables ($1, $2, ...).
 
 (define (register-program-library-primitive! name)
   (exp-library-define! (program-library) name
                        (make-primitive-binding name))
-  ;; The host rootlet is already the evaluator's ambient environment.  The
-  ;; native runtime models rootlet as an eval environment, so mirror the
-  ;; registered value into the expander evaluator environment as well.
-  (when (and (defined? 'eval-environment?)
-             (eval-environment? (rootlet))
-             (defined? 'eval-environment-ref)
-             (defined? 'eval-environment-define!))
-    (eval-environment-define!
-      (module-eval-environment the-expander-library)
-      name
-      (eval-environment-ref (rootlet) name))))
+  (eval-environment-define!
+    (module-eval-environment the-expander-library)
+    name
+    (eval-environment-ref (interaction-environment) name)))
 
 (define %program-library-api-installed!
   (begin
@@ -1498,18 +1443,11 @@
 ;;; An environment is a Scheme-owned vector carrying a marker and a fresh
 ;;; program library; the requested import-sets are imported into it (only /
 ;;; except / prefix / rename included, and macro transformers travel with
-;;; the bindings).  eval expands the expression in that library with the
-;;; Sets-of-Scopes expander and evaluates the lowered core, so macros from
-;;; the environment's libraries (e.g. srfi-8's receive) work -- s7's native
-;;; eval cannot.  A plain s7 environment (no marker) falls back to s7 eval.
+;;; the bindings). eval expands the expression in that library with the
+;;; Sets-of-Scopes expander and evaluates the lowered core.
 ;;;
-;;; The public names are NOT installed into the base library: a base-library
-;;; value binding is referenced from user code as an unresolvable install
-;;; gensym (the runtime value lives in the-expander-library, invisible to
-;;; rootlet-eval'd library code).  The names are instead defined in the host
-;;; rootlet (like runtime-registered-add! below), so (scheme eval)'s free
-;;; references resolve at runtime; they are also module-define!'d into
-;;; the-expander-library for expander-internal use.
+;;; The public names are defined in the expander module's runtime environment
+;;; and registered there for expander-internal use.
 
 (define *program-environment-tag* 'goldfish-program-environment)
 
@@ -1647,21 +1585,11 @@
     (module-define! the-expander-library 'restore-library-cache restore-library-cache)
     (module-define! the-expander-library 'lib-record-library lib-record-library)
     (module-define! the-expander-library 'lib-record-exports lib-record-exports)
-    ;; (No compat re-exports for the backend helpers that moved to
-    ;; install.scm: a module-define! value is evaluated EAGERLY at install
-    ;; time, when another file's source names are not rootlet-visible yet
-    ;; (lib-layer defines bind gensyms in the-expander-library; source
-    ;; names land in the rootlet only after each file finishes loading).
-    ;; Cross-file references belong in procedure bodies (deferred), never
-    ;; in top-level value position.)
+    ;; Cross-file references belong in procedure bodies, where resolution is
+    ;; deferred until the library layer has loaded.
     (module-define! the-expander-library 'warm-file! warm-file!)
-    ;; load-library! evaluates a library's registration expression in the
-    ;; host rootlet, so the runtime-registered marker and the baked
-    ;; registration entry point (both called from
-    ;; library-register-expression) must also be visible there.  The cached
-    ;; whole-file loader (reader.scm load) also calls load-library! /
-    ;; runtime-registered? to preload libraries a cached expansion refers
-    ;; to, so those are exposed in the rootlet as well.
+    ;; Cached loads run registration expressions in the module evaluation
+    ;; environment; expose the loader entry points there.
     (eval (list 'define 'runtime-registered-add! runtime-registered-add!)
           (library-runtime-environment))
     (eval (list 'define 'runtime-registered? runtime-registered?)

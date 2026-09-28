@@ -1,5 +1,5 @@
 #include "runtime/artifact.hpp"
-#include "runtime/migration_primitives.hpp"
+#include "runtime/bootstrap_primitives.hpp"
 #include "runtime/runtime.hpp"
 #include "runtime/standard_primitives.hpp"
 
@@ -11,7 +11,7 @@ int main() {
     Runtime runtime;
     Evaluator& evaluator = runtime.evaluator();
     install_runtime_primitives(evaluator);
-    install_migration_primitives(evaluator);
+    install_bootstrap_primitives(evaluator);
 
     ArtifactLoader loader(evaluator);
     loader.load_file("goldfish/expander/kernel-combined.scm");

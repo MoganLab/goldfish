@@ -71,9 +71,8 @@
   ;; binary's cache silently misbehaves. No S7 query is needed.
   (define files
     (append
-      (list "liii/boot.scm" "core/gfo.scm" "core/ir.scm"
+      (list "core/gfo.scm" "core/ir.scm"
             "liii/prelude.scm" "liii/reader.scm"
-            "liii/host-abi.scm"
             "expander/kernel-combined.scm" "compiler.scm"
             "expander/tree-il.scm")
       (map (lambda (n) (string-append "expander/lib/" n)) (gfo-scm-files "expander/lib"))
@@ -216,42 +215,24 @@
 ;; pay a failed mkdir/write per entry.
 (define *gfo-write-broken* #f)
 
-;; S7 truncates printed structures unless print-length is raised. Native has
-;; an unbounded Scheme writer and deliberately provides no callable *s7*;
-;; detect the host control by probing it, rather than making cache writes
-;; depend on the S7 object.
-(define (gfo-with-full-print-length thunk)
-  (let ((old (catch #t
-               (lambda () (cons 'available (*s7* 'print-length)))
-               (lambda args #f))))
-    (if old
-      (dynamic-wind
-        (lambda () (let-set! *s7* 'print-length 1000000))
-        thunk
-        (lambda () (let-set! *s7* 'print-length (cdr old))))
-      (thunk))))
-
 (define (gfo-write! gfo-file stamp payload . extra)
   (if (or (getenv "GOLDFISH_CACHE_READONLY") *gfo-write-broken*) #f
       (catch #t
         (lambda ()
         (gfo-ensure-parent! (gfo-dir) gfo-file)
-        (gfo-with-full-print-length
-          (lambda ()
-            ;; The tmp name carries the pid: two processes compiling the same
-            ;; cache entry concurrently would otherwise interleave writes into
-            ;; one shared tmp file and rename a torn record into place.
-            (let ((tmp (string-append gfo-file ".tmp."
-                                      (number->string (g_getpid)))))
-              (call-with-output-file tmp
-                (lambda (p)
-                  (if (defined? 'write-roundtrip)
-                      (write-roundtrip
-                        (list 'gfo gfo-format-version stamp payload
-                              (if (null? extra) #f (car extra))) p)
-                      (write (list 'gfo gfo-format-version stamp payload
-                                   (if (null? extra) #f (car extra))) p))))
-              (g_rename tmp gfo-file)))))
+        ;; The tmp name carries the pid: concurrent compiles cannot interleave
+        ;; writes into one file and rename a torn record into place.
+        (let ((tmp (string-append gfo-file ".tmp."
+                                  (number->string (g_getpid)))))
+          (call-with-output-file tmp
+            (lambda (p)
+              (if (defined? 'write-roundtrip)
+                  (write-roundtrip
+                    (list 'gfo gfo-format-version stamp payload
+                          (if (null? extra) #f (car extra))) p)
+                  (write (list 'gfo gfo-format-version stamp payload
+                               (if (null? extra) #f (car extra))) p))))
+          (g_rename tmp gfo-file)))
         (lambda args
           (set! *gfo-write-broken* #t)
           #f))))

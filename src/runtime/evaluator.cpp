@@ -1314,10 +1314,6 @@ restart_machine:
                         evaluate(reference[0], frame.environment);
                         break;
                     }
-                    if (target_form == CoreForm::Setter) {
-                        return_values({assigned});
-                        break;
-                    }
                     std::vector<Value> target_parts =
                         proper_list(frame.expression);
                     if (target_parts.empty())

@@ -1,5 +1,4 @@
 #include "runtime/runtime.hpp"
-#include "runtime/migration_primitives.hpp"
 #include "runtime/standard_primitives.hpp"
 
 #include <cassert>
@@ -11,16 +10,6 @@ int main() {
     Runtime runtime;
     Evaluator& evaluator = runtime.evaluator();
     install_runtime_primitives(evaluator);
-
-    bool migration_alias_is_absent = false;
-    try {
-        (void)evaluator.eval(evaluator.symbol("rootlet"));
-    } catch (const std::runtime_error&) {
-        migration_alias_is_absent = true;
-    }
-    assert(migration_alias_is_absent);
-
-    install_migration_primitives(evaluator);
 
     Value make_environment = evaluator.eval(
         evaluator.symbol("make-eval-environment"));
@@ -250,40 +239,6 @@ int main() {
     Value is_error = evaluator.eval(evaluator.list({
         evaluator.symbol("error-object?"), runtime_error}));
     assert(is_error.as_boolean());
-
-    evaluator.eval(evaluator.list({
-        evaluator.symbol("define"), evaluator.symbol("module-ref"),
-        evaluator.list({evaluator.symbol("lambda"),
-                        evaluator.list({evaluator.symbol("m"),
-                                        evaluator.symbol("name")}),
-                        evaluator.list({evaluator.symbol("let-ref"),
-                                        evaluator.symbol("m"),
-                                        evaluator.symbol("name")})})}));
-    evaluator.eval(evaluator.list({
-        evaluator.symbol("define"), evaluator.symbol("module-set"),
-        evaluator.list({evaluator.symbol("lambda"),
-                        evaluator.list({evaluator.symbol("m"),
-                                        evaluator.symbol("name"),
-                                        evaluator.symbol("value")}),
-                        evaluator.list({evaluator.symbol("let-set!"),
-                                        evaluator.symbol("m"),
-                                        evaluator.symbol("name"),
-                                        evaluator.symbol("value")})})}));
-    Value module_name = evaluator.symbol("m");
-    evaluator.eval(evaluator.list({
-        evaluator.symbol("define"), module_name,
-        evaluator.list({evaluator.symbol("inlet"),
-                        evaluator.list({evaluator.symbol("quote"), x}),
-                        Value::integer(21)})}));
-    Value module_reference = evaluator.list({
-        evaluator.symbol("module-ref"),
-        module_name, evaluator.list({evaluator.symbol("quote"), x})});
-    assert(evaluator.eval(module_reference).as_integer() == 21);
-
-    Value module_assignment = evaluator.list({
-        evaluator.symbol("set!"), module_reference, Value::integer(34)});
-    evaluator.eval(module_assignment);
-    assert(evaluator.eval(module_reference).as_integer() == 34);
 
     Value handler = evaluator.list({evaluator.symbol("lambda"),
                                     evaluator.list({x}), Value::integer(99)});

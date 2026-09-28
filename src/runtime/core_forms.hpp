@@ -28,7 +28,6 @@ enum class CoreForm : std::uint8_t {
     Define,
     ModuleRef,
     ModuleSet,
-    Setter,
     When,
     Unless,
 };
@@ -56,7 +55,6 @@ public:
         register_form("define", CoreForm::Define);
         register_form("module-ref", CoreForm::ModuleRef);
         register_form("module-set", CoreForm::ModuleSet);
-        register_form("setter", CoreForm::Setter);
     }
 
     CoreForm lookup(Value value) const noexcept {

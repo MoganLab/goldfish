@@ -18,7 +18,7 @@
 ;; str : string?
 ;; 包含 Scheme 代码的字符串。
 ;;
-;; env : let?，可选，默认为 (rootlet)
+;; env：可选的 eval environment
 ;; 要在其中求值代码的环境。
 ;;
 ;; 返回值

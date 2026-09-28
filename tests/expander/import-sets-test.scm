@@ -158,7 +158,7 @@
 ;; At the session top level, imports also populate the environment, so a
 ;; for-imported name stays usable here; the shape is validated too (at
 ;; least one level).  What §6 below locks: inside define-library bodies
-;; a level-gated miss is an expansion-time error, not rootlet luck.
+;; a level-gated miss is an expansion-time error, not ambient lookup.
 (import (for (liii os) run expand))
 (check (procedure? mkdir) => #t)
 (import (for (only (liii os) os-temp-dir) expand))
@@ -319,7 +319,7 @@
 (define (write-ph-fixture! leaf datum)
   (call-with-output-file (string-append fixture-ph "/" (symbol->string leaf) ".scm")
     (lambda (p) (write datum p) (newline p))))
-;; for-expand-only import used at phase 0: was silent rootlet luck for
+;; for-expand-only import used at phase 0: used to be an ambient lookup for
 ;; host-provided names (car), now a clean expansion error.
 (write-ph-fixture! 'foronly
   '(define-library (ph foronly)
