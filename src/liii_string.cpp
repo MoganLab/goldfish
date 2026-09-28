@@ -72,18 +72,19 @@ f_string_split (s7_scheme* sc, s7_pointer args) {
   if (!s7_is_string (str_arg)) {
     return liii_string_type_error (sc, "string-split: first parameter must be string", str_arg);
   }
+  // 类型检查先行：s7_error 是裸 longjmp，raise 时帧内不得有存活的 RAII 对象
+  if (!s7_is_string (sep_arg) && !s7_is_character (sep_arg)) {
+    return liii_string_type_error (sc, "string-split: second parameter must be string or char", sep_arg);
+  }
 
   std::string sep;
   if (s7_is_string (sep_arg)) {
     sep.assign (s7_string (sep_arg), (size_t) s7_string_length (sep_arg));
   }
-  else if (s7_is_character (sep_arg)) {
+  else {
     char buf[4];
     int  n= utf8_encode (s7_character (sep_arg), buf);
     sep.assign (buf, (size_t) n);
-  }
-  else {
-    return liii_string_type_error (sc, "string-split: second parameter must be string or char", sep_arg);
   }
 
   const char* s  = s7_string (str_arg);
@@ -137,14 +138,18 @@ f_string_join (s7_scheme* sc, s7_pointer args) {
   s7_pointer l   = s7_car (args);
   s7_pointer rest= s7_cdr (args);
 
-  std::string delim;
+  // 校验先行：s7_error 是裸 longjmp，raise 时帧内不得有存活的 RAII 对象。
+  // delim 先用平凡指针记录，全部校验通过后再构造 std::string
+  const char* delim_c  = "";
+  size_t      delim_len= 0;
   if (!s7_is_null (sc, rest)) {
     s7_pointer delim_arg= s7_car (rest);
     if (!s7_is_string (delim_arg)) {
       return liii_string_type_error (sc, "optional params in string-join", delim_arg);
     }
-    delim.assign (s7_string (delim_arg), (size_t) s7_string_length (delim_arg));
-    rest= s7_cdr (rest);
+    delim_c  = s7_string (delim_arg);
+    delim_len= (size_t) s7_string_length (delim_arg);
+    rest     = s7_cdr (rest);
   }
 
   if (!s7_is_proper_list (sc, l)) {
@@ -192,8 +197,9 @@ f_string_join (s7_scheme* sc, s7_pointer args) {
                      s7_list (sc, 1, s7_make_string (sc, "empty list not allowed")));
   }
 
-  const size_t delim_len  = delim.size ();
-  size_t       delim_count= 0;
+  // 校验全部通过，此后不再 raise，可以安全构造 RAII 对象
+  std::string delim (delim_c, delim_len);
+  size_t      delim_count= 0;
   switch (grammar) {
   case string_join_grammar::infix:
   case string_join_grammar::strict_infix:

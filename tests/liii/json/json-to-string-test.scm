@@ -135,4 +135,12 @@
       (check-catch 'value-error (json->string v))
       (loop (+ i 1) (vector v))))
 
+;; 不可序列化类型抛 type-error（回归：写入器错误经 C++ 异常上传，
+;; f_json_to_string 在 RAII 析构后才 s7_error，MSVC 下安全）
+(check-catch 'type-error (json->string #\a))
+(check-catch 'type-error (json->string (lambda (x) x)))
+
+;; 错误路径后正常调用不受影响
+(check (json->string '((a . 1))) => "{a:1}")
+
 (check-report)
