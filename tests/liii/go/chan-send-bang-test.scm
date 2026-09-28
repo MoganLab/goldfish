@@ -28,6 +28,13 @@
 ;; boolean
 ;; 发送成功返回 #t；超时返回 #f。
 ;;
+;; 说明
+;; ----
+;; 1. 无 timeout 形态在通道不可写时挂起协程而非阻塞物理线程：
+;;    worker 会话内让出线程取下一个任务（任务级阻塞），会话内由
+;;    消费者唤醒。
+;; 2. 带 timeout 形态为有限期阻塞等待，超时返回 #f。
+;;
 ;; 错误处理
 ;; ----
 ;; ch 不是通道时抛出 type-error；向已关闭的通道发送抛出 value-error；
@@ -57,5 +64,16 @@
 (check-catch 'type-error (chan-send! "not-a-chan" 1))
 ;; 不可序列化的值（过程）
 (check-catch 'type-error (chan-send! ch (lambda (x) x)))
+
+;; 缓冲满时无 timeout 发送挂起协程，同会话另一 fiber 消费后唤醒
+
+(define ch-block (make-chan 1))
+(chan-send! ch-block "old")
+(define order '())
+(spawn-fiber (lambda () (chan-send! ch-block "new") (set! order (cons 'send-done order))))
+(spawn-fiber (lambda () (chan-recv! ch-block) (set! order (cons 'recv-done order))))
+(fiber-scheduler-run!)
+(check (car order) => 'send-done)
+(check (chan-recv! ch-block) => "new")
 
 (check-report)

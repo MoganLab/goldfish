@@ -28,8 +28,8 @@
     select make-context make-timeout-context context? context-done?
     context-cancel! context-channel spawn-fiber fiber-yield!
     fiber-scheduler-run! make-fiber-chan fiber-chan? fiber-send! fiber-recv!
-    fiber-chan-recv! fiber-chan-send! %go-call %go-current-jiffy %go-elapsed-ms
-    %set-scheduler-idle-return! %run-worker-task %drain-suspended!
+    %go-call %go-current-jiffy %go-elapsed-ms %set-scheduler-idle-return!
+    %run-worker-task %drain-suspended!
   ) ;export
   (begin
     (define (%go-current-jiffy)
@@ -263,12 +263,9 @@
       ) ;let
     ) ;define
 
-    ;; (go (captured-vars ...) body ...) 在后台 worker 线程的独立 s7 会话中执行 body。
-    ;; 注意：捕获变量只支持可序列化的数据类型（数字、字符串、符号、列表、vector、
-    ;; bytevector、channel、let 等），不支持过程/闭包——传入函数会在 spawn 时
-    ;; 抛 type-error。在 body 中直接引用全局函数名（如 car、display）即可，无需捕获。
     ;; -----------------------------------------------------------------------
-    ;; 真 channel 的 fiber 版操作：挂起协程而非阻塞物理线程（M:N 阶段二）
+    ;; 真 channel 的 fiber 版操作（库内部，不导出）：挂起协程而非阻塞物理线程，
+    ;; 是 chan-recv!/chan-send! 无 timeout 形态的实现。
     ;; 唤醒来源可以是同会话 fiber、其他 worker 线程或 C++ 定时器
     ;; -----------------------------------------------------------------------
 
@@ -334,6 +331,10 @@
       ) ;if
     ) ;define
 
+    ;; (go (captured-vars ...) body ...) 在后台 worker 线程的独立 s7 会话中执行 body。
+    ;; 注意：捕获变量只支持可序列化的数据类型（数字、字符串、符号、列表、vector、
+    ;; bytevector、channel、let 等），不支持过程/闭包——传入函数会在 spawn 时
+    ;; 抛 type-error。在 body 中直接引用全局函数名（如 car、display）即可，无需捕获。
     (define (%go-call fn . args)
       (if (not (procedure? fn))
         (error 'type-error "go: target must be a procedure" fn)
