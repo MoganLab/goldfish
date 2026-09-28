@@ -37,18 +37,20 @@
 (define results (make-chan task-count))
 (define start-time (current-jiffy))
 
+(define (fib-task results i fib-target)
+  ;; 在独立解释器环境中纯 CPU 密集型递归计算
+  (letrec ((fib (lambda (n)
+                  (if (<= n 1)
+                      n
+                      (+ (fib (- n 1)) (fib (- n 2)))))))
+    (let ((ans (fib fib-target)))
+      (chan-send! results (list i ans)))))
+
 ;; 启动所有并发 Worker
 (let loop ((i 1))
   (if (<= i task-count)
       (begin
-        (go (results i fib-target)
-          ;; 在独立解释器环境中纯 CPU 密集型递归计算
-          (letrec ((fib (lambda (n)
-                          (if (<= n 1)
-                              n
-                              (+ (fib (- n 1)) (fib (- n 2)))))))
-            (let ((ans (fib fib-target)))
-              (chan-send! results (list i ans)))))
+        (go (fib-task results i fib-target))
         (loop (+ i 1)))))
 
 (display "所有并发任务已分发到线程池，正在全力并行计算中...\n")

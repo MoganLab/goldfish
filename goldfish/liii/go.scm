@@ -376,16 +376,16 @@
       ) ;let
     ) ;define
 
-    (define-macro (go vars . body)
-      (cond
-       ((and (null? body) (pair? vars)) `(%go-call ,(car vars) ,@(cdr vars)))
-       ((list? vars) `(g_go-spawn (quote ,vars)
-                        (list ,@vars)
-                        (quote (begin ,@body))))
-       (else
-         `(g_go-spawn '() '() (quote (begin ,vars ,@body)))
-       ) ;else
-      ) ;cond
+    (define-macro (go . args)
+      (if (and (pair? args) (null? (cdr args)) (pair? (car args)))
+        (let ((call (car args)))
+          `(%go-call ,(car call) ,@(cdr call))
+        ) ;let
+        (error 'syntax-error
+          "go: invalid syntax, expected (go (fn arg ...))"
+          (cons 'go args)
+        ) ;error
+      ) ;if
     ) ;define-macro
 
     ;; -----------------------------------------------------------------------
@@ -431,13 +431,16 @@
         ;; 内层 catch 覆盖"返回值/异常参数不可序列化"的失败：降级为 stderr 报告
         ;; （*go-err-handler* 只在 worker 会话中定义，此处引用不会出现在主会话）
         `(let ((,rc (make-chan 1)))
-           (go (,@real-vars ,rc)
-             (catch ,#t
-               (lambda ,() (chan-send! ,rc (list 'ok (begin ,@real-body))))
-               (lambda (tag args)
+           (g_go-spawn (quote (,@real-vars ,rc))
+             (list ,@real-vars ,rc)
+             (quote
+               (begin
                  (catch ,#t
-                   (lambda ,() (chan-send! ,rc (list 'error tag args)))
-                   (lambda (t2 a2) (*go-err-handler* t2 a2))))))
+                   (lambda ,() (chan-send! ,rc (list 'ok (begin ,@real-body))))
+                   (lambda (tag args)
+                     (catch ,#t
+                       (lambda ,() (chan-send! ,rc (list 'error tag args)))
+                       (lambda (t2 a2) (*go-err-handler* t2 a2))))))))
            ,rc)
       ) ;let
     ) ;define-macro

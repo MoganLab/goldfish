@@ -51,6 +51,12 @@
   ) ;if
 ) ;define
 
+(define (leaf-worker ch sub-n)
+  (letrec ((fib (lambda (x) (if (<= x 1) x (+ (fib (- x 1)) (fib (- x 2)))))))
+    (chan-send! ch (fib sub-n))
+  ) ;letrec
+) ;define
+
 ;; 适配 Go Channel 的树形分治并行算法
 
 (define (parallel-fib n depth)
@@ -61,11 +67,7 @@
     ;; 派发所有叶子节点到 Go 线程池
     (for-each
       (lambda (sub-n)
-        (go (ch sub-n)
-          (letrec ((fib (lambda (x) (if (<= x 1) x (+ (fib (- x 1)) (fib (- x 2)))))))
-            (chan-send! ch (fib sub-n))
-          ) ;letrec
-        ) ;go
+        (go (leaf-worker ch sub-n))
       ) ;lambda
       leaves
     ) ;for-each

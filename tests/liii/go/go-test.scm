@@ -3,26 +3,22 @@
 (check-set-mode! 'report-failed)
 
 ;; go
-;; 将一段代码调度到后台 worker 线程并发执行（每个 worker 独占一个 s7 会话）。
+;; 将函数调用调度到后台 worker 线程并发执行（每个 worker 独占一个独立 s7 会话）。
 ;;
 ;; 语法
 ;; ----
-;; (go (fn arg ...))              ; 直接调用形式：ship fn 源码到 worker 执行
-;; (go (captured-var ...) body ...)
-;; (go body ...)
+;; (go (fn arg ...))
 ;;
 ;; 参数
 ;; ----
 ;; fn : procedure
-;; 顶层 define 命名的函数。运行时经 procedure-source 提取源码运输到 worker，
-;; worker 侧自动 import 全部 R7RS 库，因此 fn 体内可直接调用库函数。
-;; arg 在主线程求值、序列化后作为实参传入，因此词法变量可直接作为实参。
+;; 顶层命名的函数。运行时通过 procedure-source 提取源码运输到后台 worker 线程，
+;; worker 侧自动 import 全部可用 R7RS 库，因此 fn 体内可自由调用库函数。
 ;;
-;; captured-var : symbol
-;; 需要从当前环境捕获传入 worker 的变量名。
-;;
-;; body : any
-;; 在 worker 会话中执行的代码。
+;; arg ... : any
+;; 传递给 fn 的参数。参数在主线程求值并经 GFValue 序列化深拷贝给 worker，
+;; 必须为可序列化的数据类型（数字、字符串、符号、列表、vector、bytevector、channel 等），
+;; 不支持过程或闭包（否则在 spawn 时抛 type-error）。
 ;;
 ;; 返回值
 ;; ----
@@ -30,21 +26,22 @@
 ;;
 ;; 说明
 ;; ----
-;; 1. worker 间通过 channel 传递数据与结果（深拷贝，彻底隔离 GC 堆）。
-;; 2. 捕获变量与 arg 只支持可序列化的数据类型，不支持过程/闭包（spawn 时抛 type-error）。
-;; 3. body 中可直接引用全局函数名（如 car、display），无需捕获。
-;; 4. worker 内的运行时异常不会使线程池崩溃，错误输出到 stderr。
+;; 1. worker 间完全通过 channel 传递数据与结果（深拷贝传输，彻底隔离 GC 堆，无 GIL 锁竞争）。
+;; 2. worker 内未捕获的运行时异常不会使主进程或线程池崩溃，错误将输出到 stderr。
+;; 3. 仅支持 (go (fn arg ...)) 直接调用语法，旧语法 (go (vars ...) body ...) 已取缔，
+;;    传入非直接调用语法将抛 syntax-error。
 ;;
-;; 已知限制（现阶段不予处理）
+;; 使用限制
 ;; ----
-;; 1. (go (fn arg ...)) 形式只 ship fn 自身的源码，不递归 ship fn 体内引用的
-;;    用户自定义辅助函数，也不处理 fn 对自身的递归引用——这两类引用在 worker
-;;    中未绑定，任务报 unbound-variable（stderr）且主线程接收端死等。
-;;    需要辅助函数时请改用库函数，或在 body 内联定义。
-;; 2. 闭包的词法自由变量（如 (let ((n 10)) (lambda (x) (+ x n))) 中的 n）
-;;    同样不会被运输。请把这类值改为显式形参传入。
-;; 3. (go (fn arg ...) body ...) 多形式会按旧捕获列表语法解释，head 为过程时
-;;    spawn 点报 type-error。请避免混用两种语法。
+;; 1. 不递归 ship 外部辅助函数：
+;;    (go (fn arg ...)) 仅 ship 目标函数 fn 自身的源码，不递归 ship fn 外部引用的
+;;    非库辅助函数。若 fn 依赖其他函数，请使用标准库函数，或在 fn 内部通过 letrec/define 内联定义。
+;; 2. 不支持自递归调用自身名字：
+;;    fn 源码在 worker 中以匿名 lambda 执行，内部直接调用自身的顶层名字会报 unbound-variable。
+;;    如需递归，请在 fn 内部使用 letrec 形式。
+;; 3. 不支持捕获外部环境的词法自由变量：
+;;    如 (let ((x 10)) (define (f ch) ... x ...) (go (f ch)))，闭包中的 x 无法被自动运输。
+;;    所有外部变量必须作为实参显式传入：(go (f ch x))。
 
 ;; 1. 基本 go 任务启动与通道通信
 
@@ -129,5 +126,11 @@
 
 ;; 异常路径：(go (fn arg ...)) 首项不是 procedure
 (check-catch 'type-error (go ("not-a-func" 123)))
+
+;; 异常路径：旧语法被取缔，非直接调用形式抛 syntax-error
+(check-catch 'syntax-error (eval '(go (a) (+ a 1))))
+(check-catch 'syntax-error (eval '(go (a b) (display a))))
+(check-catch 'syntax-error (eval '(go 123)))
+(check-catch 'syntax-error (eval '(go)))
 
 (check-report)
