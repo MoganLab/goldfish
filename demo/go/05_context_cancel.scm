@@ -26,11 +26,12 @@
 (define (worker ctx jobs out)
   (let loop
     ()
-    (select ((chan-recv! (context-channel ctx))
-             =>
-             (lambda (_) (display "worker exit by ctx\n") (chan-close! out))
-            ) ;
-            ((chan-recv! jobs) => (lambda (j) (chan-send! out (* j 2)) (loop)))
+    (select
+     ((chan-recv! (context-channel ctx))
+      =>
+      (lambda (_) (display "worker exit by ctx\n") (chan-close! out))
+     ) ;
+     ((chan-recv! jobs) => (lambda (j) (chan-send! out (* j 2)) (loop)))
     ) ;select
   ) ;let
 ) ;define

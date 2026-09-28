@@ -37,26 +37,27 @@
   (let loop
     ((i 1))
     (when (<= i rounds)
-      (select ((chan-recv! ch-a v)
-               (set! count-a (+ count-a 1))
-               (display "Round ")
-               (if (< i 10) (display " "))
-               (display i)
-               (display ": 选中了 ")
-               (display v)
-               (newline)
-               (chan-send! ch-a "Channel-A")
-              ) ;
-              ((chan-recv! ch-b v)
-               (set! count-b (+ count-b 1))
-               (display "Round ")
-               (if (< i 10) (display " "))
-               (display i)
-               (display ": 选中了 ")
-               (display v)
-               (newline)
-               (chan-send! ch-b "Channel-B")
-              ) ;
+      (select
+       ((chan-recv! ch-a v)
+        (set! count-a (+ count-a 1))
+        (display "Round ")
+        (if (< i 10) (display " "))
+        (display i)
+        (display ": 选中了 ")
+        (display v)
+        (newline)
+        (chan-send! ch-a "Channel-A")
+       ) ;
+       ((chan-recv! ch-b v)
+        (set! count-b (+ count-b 1))
+        (display "Round ")
+        (if (< i 10) (display " "))
+        (display i)
+        (display ": 选中了 ")
+        (display v)
+        (newline)
+        (chan-send! ch-b "Channel-B")
+       ) ;
       ) ;select
       (loop (+ i 1))
     ) ;when

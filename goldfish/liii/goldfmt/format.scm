@@ -848,11 +848,13 @@
     (define (node-datum node)
       (if (env? node) (env-value node) (atom-value node))
     ) ;define
-    (define (second-child-tree-depth-ge-4? node)
+    (define (second-child-tree-depth-exceeded? node)
       (let ((second (second-child-node node)))
         (and second
           (let ((datum (node-datum second)))
-            (and datum (>= (tree-depth datum) 4))
+            (and datum
+              (>= (tree-depth datum) (second-child-tree-depth-limit (env-tag-name node)))
+            ) ;and
           ) ;let
         ) ;and
       ) ;let
@@ -873,7 +875,7 @@
              ) ;and
              #f
             ) ;
-            ((second-child-tree-depth-ge-4? node) #f)
+            ((second-child-tree-depth-exceeded? node) #f)
             (else
               (let ((candidate (format-inline node)))
                 (if (and (not (string-contains-newline? candidate))
@@ -954,19 +956,9 @@
     ) ;define
     (define (select-first-line-children node first-column)
       (if
-        (or
-          (and (second-child-tree-depth-ge-4? node) (not (let-form? (env-tag-name node))))
-          (and (string=? (env-tag-name node) "select")
-            (let ((second (second-child-node node)))
-              (and second
-                (string=? (env-tag-name second) "")
-                (let ((datum (node-datum second)))
-                  (and datum (>= (tree-depth datum) 3))
-                ) ;let
-              ) ;and
-            ) ;let
-          ) ;and
-        ) ;or
+        (and (second-child-tree-depth-exceeded? node)
+          (not (let-form? (env-tag-name node)))
+        ) ;and
         '()
         (let ((children (env-children node)) (tag-name (env-tag-name node)))
           (let ((limit (first-line-limit tag-name))

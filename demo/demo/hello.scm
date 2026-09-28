@@ -4,6 +4,7 @@
   (begin
     (define (main)
       (display "Hello from (demo hello)!")
-      (newline))
-  )
-)
+      (newline)
+    ) ;define
+  ) ;begin
+) ;define-library

@@ -27,13 +27,14 @@
   ;; 底层基于 C++ wait-set 事件驱动等待；
   ;; 若 ch 在 100 毫秒内未就绪，则自动触发超时分支，
   ;; 并将实际等待耗时（毫秒数）直接传递给单参过程处理。
-  (select ((chan-recv! ch) => (lambda (v) (display "got: ") (display v) (newline)))
-          ((timeout 100)
-           =>
-           (lambda (ms)
-             (display (string-append "timeout after: " (number->string ms) "ms\n"))
-           ) ;lambda
-          ) ;
+  (select
+   ((chan-recv! ch) => (lambda (v) (display "got: ") (display v) (newline)))
+   ((timeout 100)
+    =>
+    (lambda (ms)
+      (display (string-append "timeout after: " (number->string ms) "ms\n"))
+    ) ;lambda
+   ) ;
   ) ;select
 ) ;define
 

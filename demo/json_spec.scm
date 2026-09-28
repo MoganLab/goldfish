@@ -79,13 +79,14 @@
 ) ;define
 
 (define (try-one fname expected)
-  (let ((text (catch #t
-                (lambda ()
-                  ;; 用字节读取再转字符串，避免文本读取在 NUL 字节处截断
-                  (utf8->string (path-read-bytes (path-join suite-dir fname)))
-                ) ;lambda
-                (lambda (type info) "")
-              ) ;catch
+  (let ((text
+          (catch #t
+            (lambda ()
+              ;; 用字节读取再转字符串，避免文本读取在 NUL 字节处截断
+              (utf8->string (path-read-bytes (path-join suite-dir fname)))
+            ) ;lambda
+            (lambda (type info) "")
+          ) ;catch
         ) ;text
        ) ;
     (try-parse text expected)
@@ -119,34 +120,36 @@
 
 (define failures '())
 
-(for-each (lambda (f)
-            (let ((kind (classify f)))
-              (cond ((eq? kind 'yes)
-                     (let ((r (try-one f 'yes)))
-                       (if (eq? r 'pass)
-                         (set! yes-pass (+ yes-pass 1))
-                         (begin
-                           (set! yes-fail (+ yes-fail 1))
-                           (set! failures (cons (string-append f " => " (symbol->string r)) failures))
-                         ) ;begin
-                       ) ;if
-                     ) ;let
-                    ) ;
-                    ((eq? kind 'no)
-                     (let ((r (try-one f 'no)))
-                       (if (eq? r 'pass)
-                         (set! no-pass (+ no-pass 1))
-                         (begin
-                           (set! no-fail (+ no-fail 1))
-                           (set! failures (cons (string-append f " => " (symbol->string r)) failures))
-                         ) ;begin
-                       ) ;if
-                     ) ;let
-                    ) ;
-                    (else (set! impl-count (+ impl-count 1)))
-              ) ;cond
-            ) ;let
-          ) ;lambda
+(for-each
+  (lambda (f)
+    (let ((kind (classify f)))
+      (cond
+       ((eq? kind 'yes)
+        (let ((r (try-one f 'yes)))
+          (if (eq? r 'pass)
+            (set! yes-pass (+ yes-pass 1))
+            (begin
+              (set! yes-fail (+ yes-fail 1))
+              (set! failures (cons (string-append f " => " (symbol->string r)) failures))
+            ) ;begin
+          ) ;if
+        ) ;let
+       ) ;
+       ((eq? kind 'no)
+        (let ((r (try-one f 'no)))
+          (if (eq? r 'pass)
+            (set! no-pass (+ no-pass 1))
+            (begin
+              (set! no-fail (+ no-fail 1))
+              (set! failures (cons (string-append f " => " (symbol->string r)) failures))
+            ) ;begin
+          ) ;if
+        ) ;let
+       ) ;
+       (else (set! impl-count (+ impl-count 1)))
+      ) ;cond
+    ) ;let
+  ) ;lambda
   json-files
 ) ;for-each
 
@@ -157,34 +160,35 @@
 (define rt-fail 0)
 
 (define rt-failures '())
-(for-each (lambda (f)
-            (catch #t
-              (lambda ()
-                (let* ((text (utf8->string (path-read-bytes (path-join suite-dir f))))
-                       (j1 (string->json text))
-                      ) ;
-                  (if (eof-object? j1)
-                    (set! rt-pass (+ rt-pass 1))
-                    (let* ((s (json->string j1)) (j2 (string->json s)))
-                      (if (equal? j1 j2)
-                        (set! rt-pass (+ rt-pass 1))
-                        (begin
-                          (set! rt-fail (+ rt-fail 1))
-                          (set! rt-failures (cons f rt-failures))
-                        ) ;begin
-                      ) ;if
-                    ) ;let*
-                  ) ;if
-                ) ;let*
-              ) ;lambda
-              (lambda (type info)
-                (set! rt-fail (+ rt-fail 1))
-                (set! rt-failures
-                  (cons (string-append f " (" (symbol->string type) ")") rt-failures)
-                ) ;set!
-              ) ;lambda
-            ) ;catch
-          ) ;lambda
+(for-each
+  (lambda (f)
+    (catch #t
+      (lambda ()
+        (let* ((text (utf8->string (path-read-bytes (path-join suite-dir f))))
+               (j1 (string->json text))
+              ) ;
+          (if (eof-object? j1)
+            (set! rt-pass (+ rt-pass 1))
+            (let* ((s (json->string j1)) (j2 (string->json s)))
+              (if (equal? j1 j2)
+                (set! rt-pass (+ rt-pass 1))
+                (begin
+                  (set! rt-fail (+ rt-fail 1))
+                  (set! rt-failures (cons f rt-failures))
+                ) ;begin
+              ) ;if
+            ) ;let*
+          ) ;if
+        ) ;let*
+      ) ;lambda
+      (lambda (type info)
+        (set! rt-fail (+ rt-fail 1))
+        (set! rt-failures
+          (cons (string-append f " (" (symbol->string type) ")") rt-failures)
+        ) ;set!
+      ) ;lambda
+    ) ;catch
+  ) ;lambda
   (filter (lambda (f) (string-prefix? "y_" f)) json-files)
 ) ;for-each
 

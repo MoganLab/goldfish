@@ -65,12 +65,7 @@
          (ch (make-chan task-count))
         ) ;
     ;; 派发所有叶子节点到 Go 线程池
-    (for-each
-      (lambda (sub-n)
-        (go (leaf-worker ch sub-n))
-      ) ;lambda
-      leaves
-    ) ;for-each
+    (for-each (lambda (sub-n) (go (leaf-worker ch sub-n))) leaves)
     ;; 收集并累加所有叶子结果
     (let collect
       ((i 0) (sum 0))

@@ -9,15 +9,18 @@
   (cons (lambda (hook)
           (display "exit-hook triggered with code: ")
           (display (hook 'code))
-          (newline))
-        (hook-functions *exit-hook*)))
+          (newline)
+        ) ;lambda
+    (hook-functions *exit-hook*)
+  ) ;cons
+) ;set!
 
 ;; 也可以注册多个处理函数，它们会按顺序执行
 (set! (hook-functions *exit-hook*)
-  (cons (lambda (hook)
-          (display "Second hook: process is exiting...")
-          (newline))
-        (hook-functions *exit-hook*)))
+  (cons (lambda (hook) (display "Second hook: process is exiting...") (newline))
+    (hook-functions *exit-hook*)
+  ) ;cons
+) ;set!
 
 (display "Exiting...")
 (newline)

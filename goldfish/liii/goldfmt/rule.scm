@@ -16,8 +16,8 @@
 (define-library (liii goldfmt rule)
   (export max-inline-length must-inline? never-inline?
     never-inline-when-first-child-env? allow-first-line-child-env?
-    first-line-limit rest-indent path-has-common-ancestor? find-node-rules-paths
-    find-node-rules-path
+    first-line-limit second-child-tree-depth-limit rest-indent
+    path-has-common-ancestor? find-node-rules-paths find-node-rules-path
   ) ;export
   (import (liii base) (liii json) (liii os) (liii path) (liii string) (liii sys))
   (begin
@@ -149,6 +149,9 @@
     ) ;define
     (define (first-line-limit tag-name)
       (rule-ref tag-name "firstLineLimit" 1)
+    ) ;define
+    (define (second-child-tree-depth-limit tag-name)
+      (rule-ref tag-name "secondChildTreeDepthLimit" 4)
     ) ;define
     (define (rest-indent tag-name)
       (let ((value (rule-ref tag-name "restIndent" "byFirstRestChild")))

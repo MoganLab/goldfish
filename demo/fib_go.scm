@@ -14,63 +14,97 @@
 ;; under the License.
 ;;
 
-(import (scheme base)
-        (scheme time)
-        (liii go))
+(import (scheme base) (scheme time) (liii go))
 
 (display "========================================================\n")
 (display "  Goldfish CSP (liii go) 多核并发 Fibonacci 压力测试\n")
 (display "========================================================\n\n")
 
 (define workers (go-worker-count))
-(display (string-append "检测到可用 CPU 工作核心数: " (number->string workers) "\n"))
+(display (string-append "检测到可用 CPU 工作核心数: "
+           (number->string workers)
+           "\n"
+         ) ;string-append
+) ;display
 
 ;; 任务数量设为工作核心数的两倍，确保每个核心持续打满
+
 (define task-count (* workers 2))
+
 (define fib-target 34)
 
-(display (string-append "准备启动 " (number->string task-count)
-                        " 个并发任务，每个任务独立递归计算 fib("
-                        (number->string fib-target) ")...\n"))
+(display (string-append "准备启动 "
+           (number->string task-count)
+           " 个并发任务，每个任务独立递归计算 fib("
+           (number->string fib-target)
+           ")...\n"
+         ) ;string-append
+) ;display
 (display "此时所有 CPU 核心将瞬间跑满 100%！\n\n")
 
 (define results (make-chan task-count))
+
 (define start-time (current-jiffy))
 
 (define (fib-task results i fib-target)
   ;; 在独立解释器环境中纯 CPU 密集型递归计算
-  (letrec ((fib (lambda (n)
-                  (if (<= n 1)
-                      n
-                      (+ (fib (- n 1)) (fib (- n 2)))))))
+  (letrec ((fib (lambda (n) (if (<= n 1) n (+ (fib (- n 1)) (fib (- n 2)))))))
     (let ((ans (fib fib-target)))
-      (chan-send! results (list i ans)))))
+      (chan-send! results (list i ans))
+    ) ;let
+  ) ;letrec
+) ;define
 
 ;; 启动所有并发 Worker
-(let loop ((i 1))
+(let loop
+  ((i 1))
   (if (<= i task-count)
-      (begin
-        (go (fib-task results i fib-target))
-        (loop (+ i 1)))))
+    (begin
+      (go (fib-task results i fib-target))
+      (loop (+ i 1))
+    ) ;begin
+  ) ;if
+) ;let
 
-(display "所有并发任务已分发到线程池，正在全力并行计算中...\n")
+(display "所有并发任务已分发到线程池，正在全力并行计算中...\n"
+) ;display
 
 ;; 收集所有任务结果
-(let collect ((i 1))
+(let collect
+  ((i 1))
   (if (<= i task-count)
-      (let ((res (chan-recv! results)))
-        (display (string-append "  [完成] 任务 #" (number->string (car res))
-                                " -> fib(" (number->string fib-target) ") = "
-                                (number->string (cadr res)) "\n"))
-        (collect (+ i 1)))))
+    (let ((res (chan-recv! results)))
+      (display (string-append "  [完成] 任务 #"
+                 (number->string (car res))
+                 " -> fib("
+                 (number->string fib-target)
+                 ") = "
+                 (number->string (cadr res))
+                 "\n"
+               ) ;string-append
+      ) ;display
+      (collect (+ i 1))
+    ) ;let
+  ) ;if
+) ;let
 
 (define end-time (current-jiffy))
-(define elapsed-sec (exact->inexact (/ (- end-time start-time) (jiffies-per-second))))
+
+(define elapsed-sec
+  (exact->inexact (/ (- end-time start-time) (jiffies-per-second)))
+) ;define
 
 (display "\n--------------------------------------------------------\n")
-(display (string-append "全部 " (number->string task-count)
-                        " 个高密集计算任务完成！总耗时: "
-                        (number->string elapsed-sec) " 秒\n"))
+(display (string-append "全部 "
+           (number->string task-count)
+           " 个高密集计算任务完成！总耗时: "
+           (number->string elapsed-sec)
+           " 秒\n"
+         ) ;string-append
+) ;display
 (display (string-append "总吞吐率: "
-                        (number->string (/ task-count elapsed-sec)) " 任务/秒\n"))
+           (number->string (/ task-count elapsed-sec))
+           " 任务/秒\n"
+         ) ;string-append
+) ;display
 (display "========================================================\n")

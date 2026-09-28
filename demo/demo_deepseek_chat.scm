@@ -212,16 +212,13 @@
     (log-info "request url: %(url)s" 'url url)
     (log-info "request body: %(body)s" 'body body)
     (http-post url
-      :data
-      body
+      :data body
       :headers
       (list (cons "Content-Type" "application/json")
         (cons "Authorization" (string-append "Bearer " (config-api-key cfg)))
       ) ;list
-      :stream
-      #t
-      :callback
-      on-chunk
+      :stream   #t
+      :callback on-chunk
     ) ;http-post
     (log-info "request done")
   ) ;let*
