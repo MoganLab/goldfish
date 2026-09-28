@@ -129,7 +129,7 @@
     (with-output-to-string (lambda () (raise 'port-unwind)))
     (check #f => #t)))
 
-(let ((workflow-file "tests/c3/native-workflow-tmp.txt"))
+(let ((workflow-file "tests/native/native-workflow-tmp.txt"))
   (dynamic-wind
     (lambda ()
       (when (file-exists? workflow-file)

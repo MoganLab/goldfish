@@ -1,6 +1,6 @@
 #!/bin/sh
-# Reproduction guard for the expander kernel artifact (LAYER.md 演进债
-# 「产物再生产校验」).  Verifies, with two cold-cache rebuilds:
+# Reproduction guard for the expander kernel artifact (LAYER.md runtime-layer description
+# kernel artifact reproducibility).  Verifies, with two cold-cache rebuilds:
 #   1. fixpoint -- the two rebuilds are structurally identical to each other;
 #   2. reproduction -- the rebuilt artifact is structurally identical to the
 #      committed goldfish/expander/kernel-combined.scm.

@@ -65,7 +65,7 @@ if ! find_complete; then
     echo "warm-bootstrap-cache: building native cache in isolation"
     GOLDFISH_CACHE_DIR="$temp_cache" GOLDFISH_OPT_LEVEL=2 \
         bin/gf -m liii -e \
-        '(compile-file-cached "tests/c3/native-workflow.scm")' >/dev/null
+        '(compile-file-cached "tests/native/native-workflow.scm")' >/dev/null
     temp_dir=$(GOLDFISH_CACHE_DIR="$temp_cache" GOLDFISH_OPT_LEVEL=2 \
         bin/gf -m liii -e '(gfo-dir)' | sed 's/^"//; s/"$//')
     complete=1

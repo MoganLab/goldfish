@@ -182,17 +182,11 @@ gf -I ~/.local/goldfish/example-lib eval '(begin (import (example hello)) (quote
 On startup, Goldfish also automatically prepends each directory under `~/.local/goldfish/` whose name matches `xxx-yyy` and which contains at least one `.scm` file.
 
 
-## Versioning
-Older releases encoded their tbox and S7 base versions in the Goldfish version
-number. Current releases identify Goldfish itself and do not encode an S7
-runtime version.
-
-## Why we created Goldfish Scheme
-Goldfish began as a set of R7RS and library extensions around S7. R4 replaced
-that host with the native evaluator. The project now focuses on:
+## Project goals
+Goldfish focuses on:
 1. Distribute the ready-to-use Goldfish Scheme interpreter and structured REPL on Linux/macOS/Windows
-2. Try to implement the [R7RS-small](https://small.r7rs.org) standard
-3. Try to provide the useful SRFI in R7RS library format
+2. Implement the [R7RS-small](https://small.r7rs.org) standard
+3. Provide the useful SRFI in R7RS library format
 
 ## License
 Goldfish Scheme is licensed under Apache 2.0, some of the code snippets which are derived from the S7 Scheme repo and SRFI have been explicitly claimed in the related source files.

@@ -113,7 +113,7 @@ target_end()
 
 -- L3 expander kernel artifact: rebuild / reproduction guard.  Both run a
 -- cold-cache from-artifact bootstrap (warm caches drift in gensym
--- numbering; see tools/build-kernel.sh and LAYER.md 演进债).
+-- numbering; see tools/build-kernel.sh and LAYER.md runtime-layer description).
 -- set_default(false): maintenance targets, explicit invocation only --
 -- otherwise a rebuilt goldfish binary drags them into plain `xmake b`,
 -- and the two would race over the shared program cache.

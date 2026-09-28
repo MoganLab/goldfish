@@ -185,16 +185,11 @@ gf -I ~/.local/goldfish/example-lib eval '(begin (import (example hello)) (quote
 
 启动时，Goldfish 还会自动把 `~/.local/goldfish/` 下所有名称匹配 `xxx-yyy` 且至少包含一个 `.scm` 文件的目录前置到库搜索路径中。
 
-## 版本命名规则
-旧版本号编码了 tbox 与 S7 基础版本。当前版本号标识金鱼 Scheme 本身，
-不再表示 S7 运行时版本。
-
-## 为什么我们创建了金鱼Scheme
-金鱼 Scheme 最初围绕 S7 扩展 R7RS 与标准库；R4 已用原生求值器替换该宿主。
-项目目前关注：
+## 项目目标
+金鱼 Scheme 的目标是：
 1. 在 Linux/macOS/Windows 上分发无须编译即可安装的金鱼Scheme解释器和结构化的REPL
-2. 尝试实现 [R7RS-small](https://small.r7rs.org) 标准
-3. 尝试以 R7RS 库格式提供有用的 SRFI
+2. 实现 [R7RS-small](https://small.r7rs.org) 标准
+3. 以 R7RS 库格式提供有用的 SRFI
 
 
 ## 许可证

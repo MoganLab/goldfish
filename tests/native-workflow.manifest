@@ -1,5 +1,5 @@
 # Fixed representative native workflow corpus. Keep paths one per line.
-tests/c3/native-workflow.scm
+tests/native/native-workflow.scm
 tests/scheme/base/call-with-port-test.scm
 tests/scheme/base/values-test.scm
 tests/scheme/base/with-exception-handler-test.scm
