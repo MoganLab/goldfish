@@ -1,5 +1,4 @@
-(import (liii check)
-        (liii go))
+(import (liii check) (liii go))
 
 (check-set-mode! 'report-failed)
 
@@ -7,6 +6,7 @@
 ;; 各函数的独立文档与基础用例见同目录 <函数名>-test.scm
 
 ;; 1. 全类型读写矩阵（深拷贝序列化往返）
+
 (define ch2 (make-chan 20))
 (chan-send! ch2 42)
 (chan-send! ch2 3.14)
@@ -33,7 +33,9 @@
 (check (chan-recv! ch2) => #u8(1 2 3 255))
 
 ;; 2. 通道本身作为消息在另一个通道中传递（first-class channel）
+
 (define meta-ch (make-chan 2))
+
 (define sub-ch (make-chan 2))
 (chan-send! sub-ch "secret")
 (chan-send! meta-ch sub-ch)

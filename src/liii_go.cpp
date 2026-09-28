@@ -67,6 +67,15 @@ struct GoTask {
 static size_t
 configured_worker_count () {
   static const size_t n= [] () {
+    // GOLDFISH_GO_WORKERS：测试用，强制指定 worker 数（如 1 复现同会话排队）
+    const char* env= std::getenv ("GOLDFISH_GO_WORKERS");
+    if (env != nullptr && *env != '\0') {
+      char* end   = nullptr;
+      long  parsed= std::strtol (env, &end, 10);
+      if (end != env && *end == '\0' && parsed >= 1 && parsed <= 1024) {
+        return static_cast<size_t> (parsed);
+      }
+    }
     size_t c= std::thread::hardware_concurrency ();
     return c == 0 ? 4 : c;
   }();
@@ -86,6 +95,15 @@ public:
       tasks.push (std::move (task));
     }
     cv.notify_one ();
+  }
+
+  // gate fire 时调用：唤醒空闲 worker 进调度器消费事件（挂起 fiber 的及时唤醒）
+  void notify_workers () {
+    {
+      std::lock_guard<std::mutex> lock (mtx);
+      ++wake_epoch;
+    }
+    cv.notify_all ();
   }
 
   void shutdown () {
@@ -133,47 +151,106 @@ private:
     // 错误处理闭包定义一次并锚定在 rootlet，避免每个任务重建及被 GC 回收
     s7_eval_c_string (worker_sc,
                       "(define *go-err-handler* (lambda (err-tag err-args) (g_worker-notify-error err-tag err-args)))");
+    // 任务 fiber 化（方案 C）：调度器空闲时返回本循环而非 park 线程；无限等待形态的
+    // 通道操作重定向到 fiber 版，使 go 任务阻塞在通道上时挂起协程而非阻塞物理线程。
+    // 库环境内也要改（install-worker-fiber-ops!）：任务体内的 (import (liii go))
+    // 会把库导出复制进任务环境，仅 rootlet 遮蔽会被原版覆盖
+    s7_eval_c_string (worker_sc, "(%install-worker-fiber-ops!)");
+    s7_eval_c_string (worker_sc, "(%set-scheduler-idle-return!)");
+    s7_eval_c_string (worker_sc, "(define chan-recv! %worker-chan-recv!)");
+    s7_eval_c_string (worker_sc, "(define chan-send! %worker-chan-send!)");
+
+    // 任务执行入口与错误 handler 一次取出并锚定，跨任务复用。
+    // 调度包装（catch + spawn-fiber + fiber-scheduler-run!）在 %run-worker-task
+    // 的源码中定义：C 层拼装的同构表达式走求值器通用路径，continuation 栈布局
+    // 与源码路径不同，调度收尾逃逸恢复时 op 错位会误报 list-ref 错误
+    s7_pointer run_task    = s7_name_to_value (worker_sc, "%run-worker-task");
+    s7_pointer drain_proc  = s7_name_to_value (worker_sc, "%drain-suspended!");
+    s7_pointer handler_proc= s7_name_to_value (worker_sc, "*go-err-handler*");
+    s7_int     run_task_loc= s7_gc_protect (worker_sc, run_task);
+    s7_int     drain_loc   = s7_gc_protect (worker_sc, drain_proc);
+    s7_int     handler_loc = s7_gc_protect (worker_sc, handler_proc);
 
     // 以下符号均被 rootlet 常驻引用，跨任务复用是 GC 安全的
     s7_pointer lambda_sym = s7_make_symbol (worker_sc, "lambda");
-    s7_pointer catch_sym  = s7_make_symbol (worker_sc, "catch");
     s7_pointer let_sym    = s7_make_symbol (worker_sc, "let");
-    s7_pointer handler_sym= s7_make_symbol (worker_sc, "*go-err-handler*");
 
+    uint64_t my_epoch= 0;
     while (true) {
       GoTask task;
+      bool   has_task= false;
       {
         std::unique_lock<std::mutex> lock (mtx);
-        cv.wait (lock, [this] () { return stop || !tasks.empty (); });
+        // 空唤醒来源：gate fire 递增 wake_epoch（挂起 fiber 有事件待消费）
+        cv.wait (lock, [this, &my_epoch] () { return stop || !tasks.empty () || wake_epoch != my_epoch; });
         if (stop && tasks.empty ()) break;
-        task= std::move (tasks.front ());
-        tasks.pop ();
+        if (!tasks.empty ()) {
+          task    = std::move (tasks.front ());
+          tasks.pop ();
+          has_task= true;
+        }
+        my_epoch= wake_epoch;
       }
+
+      if (!has_task) {
+        // 空唤醒：本会话若有挂起 fiber，进调度器消费 gate 事件
+        s7_call (worker_sc, drain_proc, s7_nil (worker_sc));
+        continue;
+      }
+
+      // 构造链上的中间 s7 对象逐个挂 GC 保护位置：fiber 化后 worker 会话跨任务
+      // 存活、GC 更频繁，未扎根的 bindings/let_expr 可能在构造期间被回收
+      std::vector<s7_int> gc_locs;
+      auto prot= [&] (s7_pointer obj) { gc_locs.push_back (s7_gc_protect (worker_sc, obj)); };
 
       // Build bindings: ((name1 val1) (name2 val2) ...)
       s7_pointer bindings= s7_nil (worker_sc);
+      prot (bindings);
       for (size_t i= task.var_names.size (); i > 0; --i) {
         size_t     idx = i - 1;
         s7_pointer sym = s7_make_symbol (worker_sc, task.var_names[idx].c_str ());
         s7_pointer val = gfvalue_to_s7 (worker_sc, task.var_vals[idx]);
+        prot (val);
         s7_pointer pair= s7_list (worker_sc, 2, sym, val);
+        prot (pair);
         bindings       = s7_cons (worker_sc, pair, bindings);
+        prot (bindings);
       }
 
-      // (let bindings (catch #t (lambda () body) *go-err-handler*))
-      s7_pointer body      = gfvalue_to_s7 (worker_sc, task.code_expr);
-      s7_pointer body_thunk= s7_list (worker_sc, 3, lambda_sym, s7_nil (worker_sc), body);
-      s7_pointer catch_expr= s7_list (worker_sc, 4, catch_sym, s7_t (worker_sc), body_thunk, handler_sym);
-      s7_pointer let_expr  = s7_cons (worker_sc, let_sym,
-                                      s7_cons (worker_sc, bindings, s7_cons (worker_sc, catch_expr, s7_nil (worker_sc))));
+      // (let bindings body)：任务体不做 C 层 catch 包裹，错误隔离由
+      // %run-worker-task 的源码 catch 统一承担（C 拼装的 catch 参与调度
+      // continuation 栈，逃逸恢复时会 op 错位）
+      s7_pointer body     = gfvalue_to_s7 (worker_sc, task.code_expr);
+      prot (body);
+      s7_pointer tail     = s7_cons (worker_sc, body, s7_nil (worker_sc));
+      prot (tail);
+      tail                = s7_cons (worker_sc, bindings, tail);
+      prot (tail);
+      s7_pointer let_expr= s7_cons (worker_sc, let_sym, tail);
+      prot (let_expr);
 
-      s7_eval (worker_sc, let_expr, s7_rootlet (worker_sc));
-
-      // 任务数据已反序列化进 worker 会话，显式迭代释放 GFValue 树，防止深层析构递归
+      // 任务数据已全部反序列化进 worker 会话（bindings/body 持有），GFValue 可立即
+      // 释放，不必等调度器返回——任务可能挂起为 fiber 跨任务存活
       for (auto& v : task.var_vals) {
         gfvalue_destroy_deep (v);
       }
       gfvalue_destroy_deep (task.code_expr);
+
+      // 任务 thunk = (lambda () let_expr)：先求值成闭包再传给 %run-worker-task。
+      // 未求值直接传的话是 pair，s7 的 apply_pair 会把它当 implicit list-ref 调用
+      s7_pointer thunk_expr= s7_list (worker_sc, 3, lambda_sym, s7_nil (worker_sc), let_expr);
+      prot (thunk_expr);
+      s7_pointer task_thunk= s7_eval (worker_sc, thunk_expr, s7_rootlet (worker_sc));
+      prot (task_thunk);
+      s7_pointer call_args = s7_list (worker_sc, 2, task_thunk, handler_proc);
+      prot (call_args);
+
+      // 包 fiber 入就绪队列并运行调度器，空闲返回（挂起 fiber 留在会话）
+      s7_call (worker_sc, run_task, call_args);
+
+      for (auto loc : gc_locs) {
+        s7_gc_unprotect_at (worker_sc, loc);
+      }
     }
   }
 
@@ -181,6 +258,7 @@ private:
   std::queue<GoTask>       tasks;
   std::mutex               mtx;
   std::condition_variable  cv;
+  uint64_t                 wake_epoch= 0; // gate fire 计数，空闲 worker 的空唤醒源
   bool                     stop= false;
 };
 
@@ -943,6 +1021,7 @@ GoldfishChannel::notify_select_send_ready () {
   while (!watch_send_entries.empty ()) {
     auto e= std::move (watch_send_entries.front ());
     watch_send_entries.pop_front ();
+    gfvalue_destroy_deep (e.payload); // 未被交接的载荷不再传递，防深层析构递归
     e.gate->fire (e.id);
   }
 }
@@ -1030,18 +1109,44 @@ GoldfishChannel::RecvStatus
 GoldfishChannel::recv_or_watch (GFValue& out, std::shared_ptr<GoGate> gate, int64_t id) {
   std::unique_lock<std::mutex> lock (mtx);
   RecvStatus                   st= try_recv_unlocked (out);
-  if (st == RecvStatus::Timeout) {
-    watch_recv_entries.push_back ({std::move (gate), id});
+  if (st != RecvStatus::Timeout) return st;
+
+  // fiber↔fiber rendezvous：send watcher 带载荷等待时直接交接——
+  // 取走载荷、fire 该 send watcher（其重试经 completed_send_ids 确认完成）
+  for (auto it= watch_send_entries.begin (); it != watch_send_entries.end (); ++it) {
+    if (it->has_payload) {
+      out          = std::move (it->payload);
+      auto s_gate  = it->gate;
+      int64_t s_id = it->id;
+      completed_send_ids.insert (s_id);
+      watch_send_entries.erase (it);
+      s_gate->fire (s_id);
+      return RecvStatus::Ok;
+    }
   }
-  return st;
+
+  watch_recv_entries.push_back ({std::move (gate), id, false, GFValue{}});
+  return RecvStatus::Timeout;
 }
 
 GoldfishChannel::SendStatus
 GoldfishChannel::send_or_watch (GFValue& val, std::shared_ptr<GoGate> gate, int64_t id) {
   std::unique_lock<std::mutex> lock (mtx);
-  SendStatus                   st= try_send_unlocked (val);
+  // 载荷已被 recv watcher 取走（fire 唤醒后的重试）：确认完成，不重发
+  if (completed_send_ids.count (id) != 0) {
+    completed_send_ids.erase (id);
+    return SendStatus::Ok;
+  }
+  SendStatus st= try_send_unlocked (val);
   if (st == SendStatus::Timeout) {
-    watch_send_entries.push_back ({std::move (gate), id});
+    // 登记带载荷的 watcher，并唤醒所有挂起的 recv watcher 来竞争交接
+    // （竞争输家重试 recv_or_watch 时载荷已被取走，会重新登记 watcher）
+    watch_send_entries.push_back ({std::move (gate), id, true, std::move (val)});
+    while (!watch_recv_entries.empty ()) {
+      auto e= std::move (watch_recv_entries.front ());
+      watch_recv_entries.pop_front ();
+      e.gate->fire (e.id);
+    }
   }
   return st;
 }
@@ -1469,8 +1574,12 @@ f_chan_timeout_close (s7_scheme* sc, s7_pointer args) {
 
 static s7_pointer
 f_make_gate (s7_scheme* sc, s7_pointer args) {
-  // 构造拆到独立函数调用（帧内无重内容原则，见 make_chan_impl 注释）
-  return make_go_gate_object (sc, std::make_shared<GoGate> ());
+  // 构造拆到独立函数调用（帧内无重内容原则，见 make_chan_impl 注释）。
+  // gate fire 时唤醒线程池：空闲 worker 能及时进调度器消费事件，
+  // 否则挂起 fiber 的唤醒要等到该会话下一个任务才发生
+  auto gate= std::make_shared<GoGate> ();
+  gate->set_on_fire ([] () { GoThreadPool::instance ().notify_workers (); });
+  return make_go_gate_object (sc, std::move (gate));
 }
 
 static s7_pointer
@@ -1484,6 +1593,23 @@ f_gate_wait (s7_scheme* sc, s7_pointer args) {
     auto gate= get_go_gate (sc, gate_arg);
     id       = gate->wait ();
   }
+  return s7_make_integer (sc, id);
+}
+
+static s7_pointer
+f_gate_try_wait (s7_scheme* sc, s7_pointer args) {
+  s7_pointer gate_arg= s7_car (args);
+  // raise 安全区：平凡局部变量（见 go_error 的 longjmp 约束注释）
+  if (!is_go_gate (sc, gate_arg)) {
+    return go_error (sc, "type-error", "g_gate-try-wait: argument must be a gate", gate_arg);
+  }
+  int64_t id= 0;
+  bool     got= false;
+  {
+    auto gate= get_go_gate (sc, gate_arg);
+    got       = gate->try_wait (id);
+  }
+  if (!got) return s7_f (sc);
   return s7_make_integer (sc, id);
 }
 
@@ -1630,6 +1756,8 @@ glue_liii_go (s7_scheme* sc) {
                       "(g_chan-timeout-close! ch ms) => unspecified, closes ch after ms milliseconds");
   s7_define_function (sc, "g_make-gate", f_make_gate, 0, 0, false, "(g_make-gate) => go-gate");
   s7_define_function (sc, "g_gate-wait", f_gate_wait, 1, 0, false, "(g_gate-wait gate) => integer id");
+  s7_define_function (sc, "g_gate-try-wait", f_gate_try_wait, 1, 0, false,
+                      "(g_gate-try-wait gate) => integer id | #f");
   s7_define_function (sc, "g_chan-recv-or-watch!", f_chan_recv_or_watch, 4, 0, false,
                       "(g_chan-recv-or-watch! ch gate id default) => value | eof | default");
   s7_define_function (sc, "g_chan-send-or-watch!", f_chan_send_or_watch, 5, 0, false,

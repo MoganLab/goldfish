@@ -1,5 +1,4 @@
-(import (liii check)
-        (liii go))
+(import (liii check) (liii go))
 
 (check-set-mode! 'report-failed)
 
@@ -34,27 +33,34 @@
 ;; 3. 可配合 go-result-recv! 直接取值，并在任务出错时于接收端重抛原异常。
 
 ;; 1. 正常返回：结果 channel 收到 (ok value)
+
 (define ch1 (go-result () (+ 1 2)))
 (check (chan-recv! ch1 2000) => '(ok 3))
 
 ;; 2. 捕获变量传入 worker
+
 (define x 10)
+
 (define ch2 (go-result (x) (* x x)))
 (check (chan-recv! ch2 2000) => '(ok 100))
 
 ;; 3. 无捕获列表的简写形式（首参数非 list 时整体视为 body，与 go 宏一致）
+
 (define ch3 (go-result 42))
 (check (chan-recv! ch3 2000) => '(ok 42))
 
 ;; 4. 异常传递：接收端收到 (error tag args) 而非死等
+
 (define ch4 (go-result () (error 'test-error "boom" 42)))
 (check (chan-recv! ch4 2000) => '(error test-error ("boom" 42)))
 
 ;; 5. 返回复杂可序列化结构
+
 (define ch5 (go-result () (list 1 "two" #(3))))
 (check (chan-recv! ch5 2000) => '(ok (1 "two" #(3))))
 
 ;; 6. 异常任务不会拖垮线程池，后续任务照常执行
+
 (define ch6 (go-result () 7))
 (check (chan-recv! ch6 2000) => '(ok 7))
 

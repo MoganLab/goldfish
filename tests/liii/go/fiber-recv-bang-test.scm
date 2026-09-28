@@ -1,5 +1,4 @@
-(import (liii check)
-        (liii go))
+(import (liii check) (liii go))
 
 (check-set-mode! 'report-failed)
 
@@ -21,7 +20,9 @@
 ;; 通道中的下一个值。
 
 ;; 消费者先挂起，生产者后唤醒
+
 (define fch (make-fiber-chan))
+
 (define res #f)
 (spawn-fiber (lambda () (set! res (fiber-recv! fch))))
 (spawn-fiber (lambda () (fiber-send! fch "hello")))

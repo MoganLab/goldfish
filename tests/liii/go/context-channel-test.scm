@@ -1,5 +1,4 @@
-(import (liii check)
-        (liii go))
+(import (liii check) (liii go))
 
 (check-set-mode! 'report-failed)
 
@@ -26,6 +25,7 @@
 ;; 可直接用于 select 的取消分支。
 
 (define ctx (make-context))
+
 (define ch (context-channel ctx))
 (check (chan? ch) => #t)
 (check (chan-closed? ch) => #f)

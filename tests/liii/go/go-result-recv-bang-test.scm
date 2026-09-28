@@ -1,5 +1,4 @@
-(import (liii check)
-        (liii go))
+(import (liii check) (liii go))
 
 (check-set-mode! 'report-failed)
 
@@ -34,19 +33,22 @@
 (check (go-result-recv! (go-result () (+ 20 22))) => 42)
 
 ;; 2. 捕获变量
+
 (define y 5)
 (check (go-result-recv! (go-result (y) (* y y))) => 25)
 
 ;; 3. 异常重抛：保留原 tag 与原参数
 (check-catch 'type-error
-  (go-result-recv! (go-result () (error 'type-error "not a number" 'sym))))
+  (go-result-recv! (go-result () (error 'type-error "not a number" 'sym)))
+) ;check-catch
 
 ;; 4. 运行时错误（除零）同样重抛
-(check-catch 'division-by-zero
-  (go-result-recv! (go-result () (/ 1 0))))
+(check-catch 'division-by-zero (go-result-recv! (go-result () (/ 1 0))))
 
 ;; 5. 超时：worker 阻塞时接收端按 timeout 抛错而非死等
+
 (define blocker (make-chan 1))
+
 (define slow-ch (go-result (blocker) (chan-recv! blocker)))
 (check-catch 'timeout-error (go-result-recv! slow-ch 100))
 

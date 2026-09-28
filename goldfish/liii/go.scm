@@ -29,6 +29,8 @@
     context-cancel! context-channel spawn-fiber fiber-yield!
     fiber-scheduler-run! make-fiber-chan fiber-chan? fiber-send! fiber-recv!
     fiber-chan-recv! fiber-chan-send! %go-call %go-current-jiffy %go-elapsed-ms
+    %set-scheduler-idle-return! %worker-chan-recv! %worker-chan-send!
+    %run-worker-task %drain-suspended! %install-worker-fiber-ops!
   ) ;export
   (begin
     (define (%go-current-jiffy)
@@ -121,28 +123,59 @@
 
     (define *ready-queue* (make-list-queue (list)))
     (define *scheduler-return* #f)
+    ;; 外层调度器返回 continuation 的保存栈：fiber-scheduler-run! 可嵌套
+    ;; （worker 任务包 fiber 后，任务体内可再调调度器），收尾逃逸必须只重入
+    ;; 最近一次、尚未返回的那层，否则会重入已结束的调度导致代码重放
+    (define *scheduler-return-stack* '())
     (define *suspended-fibers* 0)
     ;; M:N 阶段二：真 channel 挂起的跨线程唤醒
     (define *gate* (g_make-gate))
     (define *watch-thunks* (make-hash-table))
     (define *next-watch-id* 0)
     (define *real-chan-suspended* 0)
+    ;; 空闲策略：#t（默认，主会话）无可运行 fiber 且有真 channel 挂起时 park 等待；
+    ;; #f（worker 会话）改为返回调用方，不阻塞物理线程，事件延迟到下次进入调度器
+    (define *scheduler-idle-park* #t)
+
+    (define (%set-scheduler-idle-return!)
+      ;; worker 会话初始化时调用：调度器空闲时返回 C++ 层，永不 park
+      (set! *scheduler-idle-park* #f)
+    ) ;define
 
     (define (enqueue-fiber! thunk)
       (list-queue-add-back! *ready-queue* thunk)
+    ) ;define
+
+    (define (%gate-dispatch! id)
+      ;; 唤醒登记在 id 上的挂起 fiber。thunk 调用 k 后控制流切走，不再返回，
+      ;; 因此本函数返回仅发生在找不到 watcher（防御路径）的情形
+      (let ((thunk (hash-table-ref *watch-thunks* id)))
+        (if thunk (begin (hash-table-set! *watch-thunks* id #f) (thunk)))
+      ) ;let
     ) ;define
 
     (define (schedule-next!)
       (if (list-queue-empty? *ready-queue*)
         (cond
          ((> *real-chan-suspended* 0)
-          ;; 有 fiber 挂在真 channel 上：唤醒可能来自其他线程，物理挂起等待 gate
-          (let ((id (g_gate-wait *gate*)))
-            (let ((thunk (hash-table-ref *watch-thunks* id)))
-              (if thunk (begin (hash-table-set! *watch-thunks* id #f) (thunk)))
-            ) ;let
+          ;; 有 fiber 挂在真 channel 上：唤醒可能来自其他线程，先非阻塞 drain gate
+          (let ((id (g_gate-try-wait *gate*)))
+            (if (integer? id)
+              (begin
+                (%gate-dispatch! id)
+                (schedule-next!)
+              ) ;begin
+              (if *scheduler-idle-park*
+                ;; 主会话：物理挂起等待新事件（保持既有行为）
+                (begin
+                  (%gate-dispatch! (g_gate-wait *gate*))
+                  (schedule-next!)
+                ) ;begin
+                ;; worker 会话：返回 C++ 层继续取下一个任务，事件延迟消费
+                (if *scheduler-return* (*scheduler-return* #t) #f)
+              ) ;if
+            ) ;if
           ) ;let
-          (schedule-next!)
          ) ;
          ((> *suspended-fibers* 0)
           ;; 就绪队列空且仅存在 fiber-chan 挂起：全体死锁，报错而非静默退出
@@ -172,7 +205,21 @@
     ) ;define
 
     (define (fiber-scheduler-run!)
-      (call/cc (lambda (exit-k) (set! *scheduler-return* exit-k) (schedule-next!)))
+      ;; 进入时保存外层返回 continuation；call/cc 无论从正常调度结束还是收尾
+      ;; 逃逸（(*scheduler-return* #t)）返回，都顺序执行下方的恢复代码，把
+      ;; *scheduler-return* 还给外层调度。不能用 dynamic-wind：s7 的 wind after
+      ;; 在 continuation 逃逸重入时不执行。deadlock 走 error 逃逸（longjmp），
+      ;; 不经过恢复代码，由 schedule-next! 的 deadlock 分支显式清理
+      (set! *scheduler-return-stack*
+        (cons *scheduler-return* *scheduler-return-stack*)
+      ) ;set!
+      (let ((r (call/cc (lambda (exit-k) (set! *scheduler-return* exit-k) (schedule-next!)))
+            ) ;r
+           ) ;
+        (set! *scheduler-return* (car *scheduler-return-stack*))
+        (set! *scheduler-return-stack* (cdr *scheduler-return-stack*))
+        r
+      ) ;let
     ) ;define
 
     (define-record-type <fiber-chan>
@@ -226,10 +273,15 @@
     ;; 唤醒来源可以是同会话 fiber、其他 worker 线程或 C++ 定时器
     ;; -----------------------------------------------------------------------
 
-    (define (fiber-suspend-on! register-watch)
+    (define (fiber-suspend-on! register-watch . reused-id)
       ;; register-watch : (lambda (id tag) ...) 执行原子 try-or-watch，
-      ;; 返回非 tag 表示立即完成，返回 tag 表示已登记 watcher
-      (let* ((id *next-watch-id*) (tag (gensym "watch")) (result (register-watch id tag)))
+      ;; 返回非 tag 表示立即完成，返回 tag 表示已登记 watcher。
+      ;; reused-id：唤醒后重试时复用原 id——send 侧的 fiber↔fiber 交接
+      ;; （recv watcher 直接取走载荷）按 id 记账完成状态，send 重试以同 id
+      ;; 查询确认后才不重发载荷
+      (let* ((id (if (null? reused-id) *next-watch-id* (car reused-id)))
+             (tag (gensym "watch"))
+             (result (register-watch id tag)))
         (if (not (eq? result tag))
           result
           (begin
@@ -244,8 +296,8 @@
                 (schedule-next!)
               ) ;lambda
             ) ;call/cc
-            ;; 被唤醒后重试整个操作（就绪事件可能被竞争者抢先消费）
-            (fiber-suspend-on! register-watch)
+            ;; 被唤醒后重试整个操作（就绪事件可能被竞争者抢先消费），复用 id
+            (fiber-suspend-on! register-watch id)
           ) ;begin
         ) ;if
       ) ;let*
@@ -260,6 +312,53 @@
       ;; 真 channel 的 fiber 版发送：挂起协程而非阻塞物理线程
       (fiber-suspend-on! (lambda (id tag) (g_chan-send-or-watch! ch val *gate* id tag))
       ) ;fiber-suspend-on!
+    ) ;define
+
+    ;; worker 会话专用的通道操作：无限等待形态挂起协程（任务级阻塞），
+    ;; 有限超时形态保留 C++ 阻塞（有限期等待）。worker 初始化时用
+    ;; (define chan-recv! %worker-chan-recv!) 遮蔽 rootlet 绑定，对任务透明。
+    (define %worker-chan-recv!
+      (case-lambda
+       ((ch) (fiber-chan-recv! ch))
+       ((ch timeout-ms) (g_chan-recv! ch timeout-ms))
+       ((ch timeout-ms default-val) (g_chan-recv! ch timeout-ms default-val))
+      ) ;case-lambda
+    ) ;define
+
+    (define %worker-chan-send!
+      (case-lambda
+       ((ch val) (fiber-chan-send! ch val))
+       ((ch val timeout-ms) (g_chan-send! ch val timeout-ms))
+      ) ;case-lambda
+    ) ;define
+
+    (define (%install-worker-fiber-ops!)
+      ;; worker 会话初始化调用：把【库环境内】的无限等待形态通道操作改为
+      ;; fiber 版。仅靠 worker 在 rootlet 遮蔽 (define chan-recv! ...) 不够：
+      ;; 任务体内的 (import (liii go))（如 %go-call 生成的全量 import）会把
+      ;; 库导出复制进任务环境，遮蔽会被原版覆盖，fiber 化失效退化为线程阻塞
+      (set! chan-recv! %worker-chan-recv!)
+      (set! chan-send! %worker-chan-send!)
+    ) ;define
+
+    ;; worker 会话的任务执行入口：把任务包成 fiber 推进就绪队列并运行调度器。
+    ;; 调度器空闲（无可运行 fiber）时返回，挂起的 fiber 留在会话，由后续任务
+    ;; 再次进入调度器时经 gate 事件唤醒（任务级阻塞）。外层 catch 兜住
+    ;; deadlock 等调度器错误。必须是【源码定义】而非 C 层拼接的同构表达式：
+    ;; C 拼装表达式走求值器通用路径，其 continuation 栈布局与源码路径不同，
+    ;; 收尾 ((*scheduler-return* v)) 逃逸恢复时 op 错位，参数会被误传入 list-ref
+    (define (%run-worker-task thunk err-handler)
+      (catch #t (lambda () (spawn-fiber thunk) (fiber-scheduler-run!)) err-handler)
+    ) ;define
+
+    (define (%drain-suspended!)
+      ;; worker 空闲（gate fire 空唤醒）时消费 gate 事件：有真 channel 挂起或
+      ;; 就绪 fiber 才进入调度器，唤醒挂起 fiber；fiber-chan-only 挂起不进入，
+      ;; 避免误报 deadlock（那是新任务进入调度器时的检查）
+      (if (or (> *real-chan-suspended* 0) (not (list-queue-empty? *ready-queue*)))
+        (fiber-scheduler-run!)
+        #f
+      ) ;if
     ) ;define
 
     (define (%go-call fn . args)

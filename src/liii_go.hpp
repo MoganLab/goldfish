@@ -20,9 +20,11 @@
 #include "s7.h"
 #include <condition_variable>
 #include <deque>
+#include <functional>
 #include <memory>
 #include <mutex>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 namespace goldfish {
@@ -78,7 +80,9 @@ struct SelectWaiter {
   bool                    ready= false;
 };
 
-// fiber 跨线程唤醒门闩：计数信号量语义（fire 投入 id，wait 阻塞取出）
+// fiber 跨线程唤醒门闩：计数信号量语义（fire 投入 id，wait 阻塞取出）。
+// 事件不丢：fire 出的 id 攒在队列里，直到被 wait/try_wait 消费。
+// on_fire 回调用于事件驱动联动：gate fire 时唤醒空闲 worker 进调度器消费事件
 class GoGate {
 public:
   void fire (int64_t id) {
@@ -87,6 +91,18 @@ public:
       fired.push_back (id);
     }
     cv.notify_one ();
+    std::function<void()> cb;
+    {
+      std::lock_guard<std::mutex> lock (fire_mtx);
+      cb= on_fire;
+    }
+    if (cb) cb (); // 锁外调用，避免回调重入 fire 死锁
+  }
+
+  // 设置 fire 通知回调（会话初始化期单线程调用，读取侧加锁保证可见）
+  void set_on_fire (std::function<void()> cb) {
+    std::lock_guard<std::mutex> lock (fire_mtx);
+    on_fire= std::move (cb);
   }
 
   int64_t wait () {
@@ -97,10 +113,21 @@ public:
     return id;
   }
 
+  // 非阻塞取出：队列空立即返回 false（调度器 drain 用，永不 park 线程）
+  bool try_wait (int64_t& out) {
+    std::lock_guard<std::mutex> lock (mtx);
+    if (fired.empty ()) return false;
+    out= fired.front ();
+    fired.pop_front ();
+    return true;
+  }
+
 private:
   std::mutex              mtx;
   std::condition_variable cv;
   std::deque<int64_t>     fired;
+  std::mutex              fire_mtx;
+  std::function<void()>   on_fire;
 };
 
 class GoldfishChannel {
@@ -168,13 +195,20 @@ private:
   std::deque<SelectWaiter*> select_recv_waiters;
   std::deque<SelectWaiter*> select_send_waiters;
 
-  // fiber watcher 队列（一次性，触发即摘除）
+  // fiber watcher 队列（一次性，触发即摘除）。send watcher 携带待发载荷，
+  // 支持 fiber↔fiber 的无缓冲 rendezvous：recv watcher 直接取走载荷完成交接
   struct WatchEntry {
     std::shared_ptr<GoGate> gate;
     int64_t                 id;
+    bool                    has_payload= false;
+    GFValue                 payload;
   };
   std::deque<WatchEntry> watch_recv_entries;
   std::deque<WatchEntry> watch_send_entries;
+
+  // fiber↔fiber 交接的完成记账：载荷被 recv watcher 取走时记录 send 的 id，
+  // send fiber 唤醒后以同 id 重试时据此确认完成，不再重发载荷
+  std::unordered_set<int64_t> completed_send_ids;
 };
 
 void        set_goldfish_lib_dir (const std::string& dir);

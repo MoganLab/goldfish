@@ -1,5 +1,4 @@
-(import (liii check)
-        (liii go))
+(import (liii check) (liii go))
 
 (check-set-mode! 'report-failed)
 
@@ -20,17 +19,24 @@
 ;; 报错后调度器状态复位，可再次运行。
 
 ;; 大规模协程压测：1 万个协程
+
 (define N 10000)
+
 (define count-val 0)
-(let loop ((i 0))
+(let loop
+  ((i 0))
   (if (< i N)
-      (begin
-        (spawn-fiber (lambda () (set! count-val (+ count-val 1))))
-        (loop (+ i 1)))))
+    (begin
+      (spawn-fiber (lambda () (set! count-val (+ count-val 1))))
+      (loop (+ i 1))
+    ) ;begin
+  ) ;if
+) ;let
 (fiber-scheduler-run!)
 (check count-val => N)
 
 ;; 死锁检测
+
 (define fch (make-fiber-chan))
 (spawn-fiber (lambda () (fiber-recv! fch)))
 (check-catch 'deadlock (fiber-scheduler-run!))

@@ -1,5 +1,4 @@
-(import (liii check)
-        (liii go))
+(import (liii check) (liii go))
 
 (check-set-mode! 'report-failed)
 
@@ -43,6 +42,7 @@
 (check (chan-recv! ch 50) => 'timeout)
 
 ;; 关闭后读空返回 eof-object
+
 (define ch2 (make-chan 1))
 (chan-send! ch2 'x)
 (chan-close! ch2)

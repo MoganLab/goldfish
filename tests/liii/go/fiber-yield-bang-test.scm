@@ -1,5 +1,4 @@
-(import (liii check)
-        (liii go))
+(import (liii check) (liii go))
 
 (check-set-mode! 'report-failed)
 
@@ -19,16 +18,10 @@
 ;; 协程在让出点保存现场（call/cc），再次被调度时从让出点继续。
 
 (define log '())
-(spawn-fiber
-  (lambda ()
-    (set! log (cons 'a1 log))
-    (fiber-yield!)
-    (set! log (cons 'a2 log))))
-(spawn-fiber
-  (lambda ()
-    (set! log (cons 'b1 log))
-    (fiber-yield!)
-    (set! log (cons 'b2 log))))
+(spawn-fiber (lambda () (set! log (cons 'a1 log)) (fiber-yield!) (set! log (cons 'a2 log)))
+) ;spawn-fiber
+(spawn-fiber (lambda () (set! log (cons 'b1 log)) (fiber-yield!) (set! log (cons 'b2 log)))
+) ;spawn-fiber
 (fiber-scheduler-run!)
 ;; 验证交错执行
 (check (reverse log) => '(a1 b1 a2 b2))

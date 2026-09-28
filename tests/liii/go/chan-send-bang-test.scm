@@ -1,5 +1,4 @@
-(import (liii check)
-        (liii go))
+(import (liii check) (liii go))
 
 (check-set-mode! 'report-failed)
 
@@ -41,6 +40,7 @@
 (check (chan-recv! ch) => "hello")
 
 ;; 缓冲满时带超时发送，超时返回 #f
+
 (define ch-full (make-chan 1))
 (chan-send! ch-full 'a)
 (check (chan-send! ch-full 'b 50) => #f)
@@ -48,6 +48,7 @@
 (check (chan-send! ch-full 'b 50) => #t)
 
 ;; 向已关闭通道发送抛出 value-error
+
 (define ch-closed (make-chan 1))
 (chan-close! ch-closed)
 (check-catch 'value-error (chan-send! ch-closed 1))

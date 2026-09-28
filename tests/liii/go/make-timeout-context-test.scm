@@ -1,5 +1,4 @@
-(import (liii check)
-        (liii go))
+(import (liii check) (liii go))
 
 (check-set-mode! 'report-failed)
 
@@ -31,10 +30,14 @@
 (check (context-done? ctx) => #t)
 
 ;; 回归：大量长超时 context 不占用 worker 线程池（曾导致池饿死）
-(let loop ((i 0))
+(let loop
+  ((i 0))
   (when (< i (go-worker-count))
     (make-timeout-context 3000)
-    (loop (+ i 1))))
+    (loop (+ i 1))
+  ) ;when
+) ;let
+
 (define probe-ch (make-chan 1))
 (go (probe-ch) (chan-send! probe-ch "pong"))
 (check (chan-recv! probe-ch 1000 'starved) => "pong")

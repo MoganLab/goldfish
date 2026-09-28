@@ -199,28 +199,30 @@
 (check arrow-else-res => 'hit-arrow-else)
 
 ;; 14. 测试 ((timeout ms) => proc) 形式：就绪且传递实际毫秒数
+
 (define timeout-arrow-ms #f)
+
 (define ch-empty-arrow (make-chan))
-(select
-  ((chan-recv! ch-empty-arrow) => (lambda (v) (set! timeout-arrow-ms 'recv)))
-  ((timeout 50) => (lambda (ms) (set! timeout-arrow-ms ms))))
+(select ((chan-recv! ch-empty-arrow) => (lambda (v) (set! timeout-arrow-ms 'recv)))
+ ((timeout 50) => (lambda (ms) (set! timeout-arrow-ms ms)))
+) ;select
 (check (integer? timeout-arrow-ms) => #t)
 (check (>= timeout-arrow-ms 45) => #t)
 
 ;; 15. 测试 ((timeout ms) body ...) 块形式
+
 (define timeout-block-hit #f)
-(select
-  ((chan-recv! ch-empty-arrow) => (lambda (v) #f))
-  ((timeout 50)
-   (set! timeout-block-hit #t)
-   'block-ret))
+(select ((chan-recv! ch-empty-arrow) => (lambda (v) #f))
+ ((timeout 50) (set! timeout-block-hit #t) 'block-ret)
+) ;select
 (check timeout-block-hit => #t)
 
 ;; 16. 测试 (timeout ms => proc) 形式
+
 (define timeout-flat-arrow-ms #f)
-(select
-  ((chan-recv! ch-empty-arrow) => (lambda (v) #f))
-  (timeout 50 => (lambda (ms) (set! timeout-flat-arrow-ms ms))))
+(select ((chan-recv! ch-empty-arrow) => (lambda (v) #f))
+  (timeout 50 => (lambda (ms) (set! timeout-flat-arrow-ms ms)))
+) ;select
 (check (integer? timeout-flat-arrow-ms) => #t)
 (check (>= timeout-flat-arrow-ms 45) => #t)
 

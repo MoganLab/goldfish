@@ -1,5 +1,4 @@
-(import (liii check)
-        (liii go))
+(import (liii check) (liii go))
 
 (check-set-mode! 'report-failed)
 
@@ -31,15 +30,18 @@
 (check (context-done? ctx) => #t)
 
 ;; 与 go + select 配合的协作式取消
+
 (define ctx-worker (make-context))
+
 (define ch-status (make-chan 1))
 (go (ctx-worker ch-status)
-  (let loop ()
-    (select
-      ((chan-recv! (context-channel ctx-worker) _)
-       (chan-send! ch-status "stopped"))
-      (timeout 10
-       (loop)))))
+  (let loop
+    ()
+    (select ((chan-recv! (context-channel ctx-worker) _) (chan-send! ch-status "stopped"))
+      (timeout 10 (loop))
+    ) ;select
+  ) ;let
+) ;go
 (context-cancel! ctx-worker)
 (check (chan-recv! ch-status 2000) => "stopped")
 
