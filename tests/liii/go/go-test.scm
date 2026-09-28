@@ -127,6 +127,17 @@
 ;; 异常路径：(go (fn arg ...)) 首项不是 procedure
 (check-catch 'type-error (go ("not-a-func" 123)))
 
+;; 5. Worker 内导入 (scheme file) 与 (liii path)（验证 boot.scm 已在 worker 初始化时载入）
+
+(define (my-file-worker ch)
+  (import (scheme file) (liii path))
+  (chan-send! ch (file-exists? ".") 5000)
+) ;define
+
+(define test-ch3 (make-chan 1))
+(go (my-file-worker test-ch3))
+(check (chan-recv! test-ch3 5000) => #t)
+
 ;; 异常路径：旧语法被取缔，非直接调用形式抛 syntax-error
 (check-catch 'syntax-error (eval '(go (a) (+ a 1))))
 (check-catch 'syntax-error (eval '(go (a b) (display a))))
