@@ -28,9 +28,21 @@
     select make-context make-timeout-context context? context-done?
     context-cancel! context-channel spawn-fiber fiber-yield!
     fiber-scheduler-run! make-fiber-chan fiber-chan? fiber-send! fiber-recv!
-    fiber-chan-recv! fiber-chan-send! %go-call
+    fiber-chan-recv! fiber-chan-send! %go-call %go-current-jiffy %go-elapsed-ms
   ) ;export
   (begin
+    (define (%go-current-jiffy)
+      (current-jiffy)
+    ) ;define
+
+    (define (%go-elapsed-ms t0)
+      (inexact->exact
+        (round
+          (* 1000.0 (/ (- (current-jiffy) t0) (jiffies-per-second)))
+        ) ;round
+      ) ;inexact->exact
+    ) ;define
+
     (define make-chan (case-lambda (() (g_make-chan 0)) ((cap) (g_make-chan cap))))
 
     (define (chan? obj)
@@ -358,7 +370,12 @@
     ) ;define-macro
 
     (define-macro (select . clauses)
-      (let ((else-branch #f) (timeout-branch #f) (timeout-ms 0) (cases '()))
+      (let ((else-branch #f)
+            (timeout-branch #f)
+            (timeout-arrow #f)
+            (timeout-ms 0)
+            (cases '())
+           ) ;
         (for-each
           (lambda (clause)
             (cond
@@ -368,12 +385,52 @@
                 (set! else-branch (cdr clause))
               ) ;if
              ) ;
-             ((and (pair? clause) (eq? (car clause) 'timeout))
-              (if timeout-branch
+             ;; 形式 1: ((timeout ms) => proc) 或 ((timeout ms) body ...)
+             ((and (pair? clause) (pair? (car clause)) (eq? (caar clause) 'timeout))
+              (if (or timeout-branch timeout-arrow)
                 (error 'syntax-error "select: multiple timeout clauses")
                 (begin
+                  (if
+                    (or (null? (cdar clause)) (not (null? (cddar clause))))
+                    (error 'syntax-error "select: invalid timeout clause format" clause)
+                  ) ;if
+                  (set! timeout-ms (cadar clause))
+                  (let ((rest (cdr clause)))
+                    (if (and (pair? rest) (eq? (car rest) '=>))
+                      (begin
+                        (if
+                          (or (null? (cdr rest)) (not (null? (cddr rest))))
+                          (error 'syntax-error "select: malformed => in timeout clause" clause)
+                        ) ;if
+                        (set! timeout-arrow (cadr rest))
+                      ) ;begin
+                      (set! timeout-branch rest)
+                    ) ;if
+                  ) ;let
+                ) ;begin
+              ) ;if
+             ) ;
+             ;; 形式 2: (timeout ms => proc) 或 (timeout ms body ...)
+             ((and (pair? clause) (eq? (car clause) 'timeout))
+              (if (or timeout-branch timeout-arrow)
+                (error 'syntax-error "select: multiple timeout clauses")
+                (begin
+                  (if (null? (cdr clause))
+                    (error 'syntax-error "select: invalid timeout clause format" clause)
+                  ) ;if
                   (set! timeout-ms (cadr clause))
-                  (set! timeout-branch (cddr clause))
+                  (let ((rest (cddr clause)))
+                    (if (and (pair? rest) (eq? (car rest) '=>))
+                      (begin
+                        (if
+                          (or (null? (cdr rest)) (not (null? (cddr rest))))
+                          (error 'syntax-error "select: malformed => in timeout clause" clause)
+                        ) ;if
+                        (set! timeout-arrow (cadr rest))
+                      ) ;begin
+                      (set! timeout-branch rest)
+                    ) ;if
+                  ) ;let
                 ) ;begin
               ) ;if
              ) ;
@@ -384,14 +441,18 @@
           clauses
         ) ;for-each
 
-        (if (and else-branch timeout-branch)
+        (if (and else-branch (or timeout-branch timeout-arrow))
           (error 'syntax-error "select: cannot specify both else and timeout clauses")
         ) ;if
 
         (set! cases (reverse cases))
 
         ;; 预绑定各个分支的通道与发送表达式，确保只求值一次（符合 Go 语义）
-        (let ((result-sym (gensym "result")) (pre-bindings '()) (parsed-cases '()))
+        (let ((result-sym (gensym "result"))
+              (t0-sym (gensym "t0"))
+              (pre-bindings '())
+              (parsed-cases '())
+             ) ;
           (for-each
             (lambda (c)
               (let* ((action (car c)) (body (cdr c)) (op (car action)))
@@ -473,16 +534,19 @@
                     ) ;let
                   ) ;send-dispatch
                  ) ;
-              `(let* ,pre-bindings
+              `(let* (,@pre-bindings
+                      ,@(if timeout-arrow `((,t0-sym (%go-current-jiffy))) '()))
                  (let ((,result-sym
                         (g_select (list ,@(map cadr recv-cases))
                           (list ,@(map (lambda (c) `(cons ,(cadr c) ,(caddr c)))
                                     send-cases))
                           ,(cond (else-branch 0)
-                                 (timeout-branch timeout-ms)
+                                 ((or timeout-branch timeout-arrow) timeout-ms)
                                  (else -1)))))
                    (if (not ,result-sym)
                      ,(cond (else-branch `(begin ,@else-branch))
+                            (timeout-arrow `(let ((elapsed-ms (%go-elapsed-ms ,t0-sym)))
+                                              (,timeout-arrow elapsed-ms)))
                             (timeout-branch `(begin ,@timeout-branch))
                             ;; 无 else/timeout 时 g_select 无限等待，不会走到这里
                             (else '(begin)))
