@@ -954,7 +954,19 @@
     ) ;define
     (define (select-first-line-children node first-column)
       (if
-        (and (second-child-tree-depth-ge-4? node) (not (let-form? (env-tag-name node))))
+        (or
+          (and (second-child-tree-depth-ge-4? node) (not (let-form? (env-tag-name node))))
+          (and (string=? (env-tag-name node) "select")
+            (let ((second (second-child-node node)))
+              (and second
+                (string=? (env-tag-name second) "")
+                (let ((datum (node-datum second)))
+                  (and datum (>= (tree-depth datum) 3))
+                ) ;let
+              ) ;and
+            ) ;let
+          ) ;and
+        ) ;or
         '()
         (let ((children (env-children node)) (tag-name (env-tag-name node)))
           (let ((limit (first-line-limit tag-name))

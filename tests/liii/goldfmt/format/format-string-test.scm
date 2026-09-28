@@ -458,4 +458,10 @@
   "(select ((chan-recv! ch) => proc)\n        (timeout 100 'timeout)\n) ;select\n"
 ) ;check
 
+;; select 首个子句为复杂多行/深层嵌套结构（计入无标签外层括号后深度 >= 4）时整体换行
+(check (format-string "(select ((chan-recv! ready-ch) => (lambda (v) (display \"got ready: \") (display v) (newline))) ((chan-recv! not-ready-ch) => (lambda (v) (display \"got notReady: \") (display v) (newline))) (else (display \"default: no case ready\\n\")))")
+  =>
+  "(select\n ((chan-recv! ready-ch)\n  =>\n  (lambda (v) (display \"got ready: \") (display v) (newline))\n ) ;\n ((chan-recv! not-ready-ch)\n  =>\n  (lambda (v) (display \"got notReady: \") (display v) (newline))\n ) ;\n (else (display \"default: no case ready\\n\"))\n) ;select\n"
+) ;check
+
 (check-report)
