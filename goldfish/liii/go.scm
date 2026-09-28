@@ -365,6 +365,7 @@
                  ) ;arg-names
                  (code
                    `(begin
+                      (set! *load-path* (quote ,*load-path*))
                       ,@(if (null? libs) '() `((import ,@libs)))
                       (,src ,@arg-names))
                  ) ;code
