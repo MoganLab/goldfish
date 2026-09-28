@@ -253,17 +253,18 @@ glue_scheme_time (s7_scheme* sc) {
 
 static s7_pointer
 f_get_environment_variable (s7_scheme* sc, s7_pointer args) {
+  // 类型检查先行：s7_error 是裸 longjmp，raise 时帧内不得有存活的 RAII 对象
+  s7_pointer key_arg= s7_car (args);
+  if (!s7_is_string (key_arg)) {
+    return string_type_error (sc, "get-environment-variable: key must be a string", key_arg);
+  }
 #ifdef _MSC_VER
   std::string path_sep= ";";
 #else
   std::string path_sep= ":";
 #endif
-  std::string ret;
-  tb_size_t   size   = 0;
-  s7_pointer  key_arg= s7_car (args);
-  if (!s7_is_string (key_arg)) {
-    return string_type_error (sc, "get-environment-variable: key must be a string", key_arg);
-  }
+  std::string          ret;
+  tb_size_t            size       = 0;
   const char*          key        = s7_string (key_arg);
   tb_environment_ref_t environment= tb_environment_init ();
   if (environment) {
@@ -2335,6 +2336,25 @@ make_library_name_list_list (s7_scheme* sc, const vector<string>& library_querie
   return result;
 }
 
+// try/catch 收进独立函数：s7_error 是裸 longjmp，MSVC 下从"函数体内含 try/catch
+// （带 SEH 展开信息）的帧" raise 会损坏 EH 状态；f_function_libraries 本体不得含 EH 内容
+static bool
+find_libraries_safe (s7_scheme* sc, const string& function_name, vector<string>& out, std::string& err_msg) {
+  try {
+    out= find_function_libraries_in_load_path (sc, function_name);
+    return true;
+  } catch (const std::exception& ex) {
+    err_msg= string ("g_function-libraries: failed to inspect libraries: ") + ex.what ();
+    return false;
+  }
+}
+
+// raise 同样放进无 EH、无 RAII 的独立函数
+static s7_pointer
+raise_function_libraries_error (s7_scheme* sc, const char* msg, s7_pointer arg) {
+  return s7_error (sc, s7_make_symbol (sc, "read-error"), s7_list (sc, 2, s7_make_string (sc, msg), arg));
+}
+
 static s7_pointer
 f_function_libraries (s7_scheme* sc, s7_pointer args) {
   s7_pointer function_name_arg= s7_car (args);
@@ -2344,21 +2364,22 @@ f_function_libraries (s7_scheme* sc, s7_pointer args) {
         s7_list (sc, 2, s7_make_string (sc, "g_function-libraries: function-name must be string?"), function_name_arg));
   }
 
-  string         function_name= s7_string (function_name_arg);
-  vector<string> visible_library_queries;
-
-  try {
-    visible_library_queries= find_function_libraries_in_load_path (sc, function_name);
-  } catch (const std::exception& ex) {
-    return s7_error (
-        sc, s7_make_symbol (sc, "read-error"),
-        s7_list (
-            sc, 2,
-            s7_make_string (sc, (string ("g_function-libraries: failed to inspect libraries: ") + ex.what ()).c_str ()),
-            function_name_arg));
+  // 帧内只有平凡局部变量：RAII 与 EH 帧都在内层作用域/辅助函数内
+  static thread_local std::string err_msg;
+  bool                            has_err= false;
+  s7_pointer                      result = s7_nil (sc);
+  {
+    string         function_name= s7_string (function_name_arg);
+    vector<string> visible_library_queries;
+    has_err= !find_libraries_safe (sc, function_name, visible_library_queries, err_msg);
+    if (!has_err) {
+      result= make_library_name_list_list (sc, visible_library_queries);
+    }
   }
-
-  return make_library_name_list_list (sc, visible_library_queries);
+  if (has_err) {
+    return raise_function_libraries_error (sc, err_msg.c_str (), function_name_arg);
+  }
+  return result;
 }
 
 static StartupCliOptions

@@ -98,6 +98,17 @@ static void json_write_value (s7_scheme* sc, s7_pointer x, std::string& out);
 // [0125] 空对象 '(()) 在顶层与嵌套位置都应输出 {}（此前顶层输出 {{}}）
 static bool json_is_null_object (s7_scheme* sc, s7_pointer x);
 
+// JSON 写入器内部错误经 C++ 异常上传（正常栈展开，析构不被跳过）；
+// f_json_to_string 捕获后、等 out/ancestors 等 RAII 对象析构完毕再 s7_error
+// （s7_error 是裸 longjmp，在持有 RAII 的帧上 raise 会在 MSVC 下崩溃）。
+// 全部为平凡成员，帧内持有它是 longjmp 安全的
+struct json_write_exception {
+  const char* tag;       // "type-error" / "value-error"
+  const char* msg;       // 消息文本
+  s7_pointer  irritant;  // 出错的数据对象
+  bool        msg_first; // irritants 顺序：true=(msg irritant)，false=(irritant msg)
+};
+
 static void
 json_write_scalar (s7_scheme* sc, s7_pointer x, std::string& out) {
   if (s7_is_string (x)) {
@@ -118,7 +129,7 @@ json_write_scalar (s7_scheme* sc, s7_pointer x, std::string& out) {
     out+= "{}";
   }
   else {
-    json_type_error (sc, "Unexpected x: ", x);
+    throw json_write_exception{"type-error", "Unexpected x: ", x, true};
   }
 }
 
@@ -152,15 +163,11 @@ json_write_object_entry (s7_scheme* sc, s7_pointer d, std::string& out, std::vec
     return;
   }
   if (!s7_is_pair (d)) {
-    s7_error (sc, s7_make_symbol (sc, "value-error"),
-              s7_list (sc, 2, d, s7_make_string (sc, " must be null, pair, or list with at least 2 elements")));
-    return;
+    throw json_write_exception{"value-error", " must be null, pair, or list with at least 2 elements", d, false};
   }
   s7_int len= json_pair_chain_length (sc, d);
   if (!(len == -1 || len >= 2)) {
-    s7_error (sc, s7_make_symbol (sc, "value-error"),
-              s7_list (sc, 2, d, s7_make_string (sc, " must be null, pair, or list with at least 2 elements")));
-    return;
+    throw json_write_exception{"value-error", " must be null, pair, or list with at least 2 elements", d, false};
   }
   s7_pointer k= s7_car (d);
   s7_pointer v= s7_cdr (d);
@@ -184,16 +191,12 @@ json_write_value_rec (s7_scheme* sc, s7_pointer x, std::string& out, std::vector
     return;
   }
   if (ancestors.size () >= JSON_MAX_DEPTH) {
-    s7_error (sc, s7_make_symbol (sc, "value-error"),
-              s7_list (sc, 2, x, s7_make_string (sc, "JSON nesting depth exceeds maximum limit")));
-    return;
+    throw json_write_exception{"value-error", "JSON nesting depth exceeds maximum limit", x, false};
   }
   if (s7_is_vector (x) || s7_is_pair (x)) {
     for (s7_pointer anc : ancestors) {
       if (anc == x) {
-        s7_error (sc, s7_make_symbol (sc, "value-error"),
-                  s7_list (sc, 2, x, s7_make_string (sc, "Circular reference detected in JSON data")));
-        return;
+        throw json_write_exception{"value-error", "Circular reference detected in JSON data", x, false};
       }
     }
   }
@@ -218,9 +221,7 @@ json_write_value_rec (s7_scheme* sc, s7_pointer x, std::string& out, std::vector
   }
   else if (s7_is_pair (x)) {
     if (json_proper_list_length (sc, x) < 0) {
-      s7_error (sc, s7_make_symbol (sc, "value-error"),
-                s7_list (sc, 2, x, s7_make_string (sc, " must be a proper list of object entries")));
-      return;
+      throw json_write_exception{"value-error", " must be a proper list of object entries", x, false};
     }
     ancestors.push_back (x);
     out.push_back ('{');
@@ -247,6 +248,29 @@ json_write_value (s7_scheme* sc, s7_pointer x, std::string& out) {
   json_write_value_rec (sc, x, out, ancestors);
 }
 
+// 写入器调用 + 异常捕获收进独立函数：s7_error 是裸 longjmp，MSVC 下从
+// "函数体内含 try/catch（带 SEH 展开信息）的帧" raise 会损坏 EH 状态（堆损坏），
+// 因此 f_json_to_string 本体不得直接含 try/catch，raise 也放进无 EH 的独立函数
+static s7_pointer
+json_write_to_s7_string (s7_scheme* sc, s7_pointer x, json_write_exception& err) {
+  std::string out;
+  out.reserve (256);
+  try {
+    json_write_value (sc, x, out);
+  } catch (const json_write_exception& e) {
+    err= e;
+    return NULL;
+  }
+  return s7_make_string_with_length (sc, out.data (), (s7_int) out.size ());
+}
+
+static s7_pointer
+json_raise_write_error (s7_scheme* sc, const json_write_exception& err) {
+  s7_pointer irritants= err.msg_first ? s7_list (sc, 2, s7_make_string (sc, err.msg), err.irritant)
+                                      : s7_list (sc, 2, err.irritant, s7_make_string (sc, err.msg));
+  return s7_error (sc, s7_make_symbol (sc, err.tag), irritants);
+}
+
 static s7_pointer
 f_json_to_string (s7_scheme* sc, s7_pointer args) {
   s7_pointer x= s7_car (args);
@@ -254,10 +278,12 @@ f_json_to_string (s7_scheme* sc, s7_pointer args) {
     return s7_error (sc, s7_make_symbol (sc, "type-error"),
                      s7_list (sc, 1, s7_make_string (sc, "json->string: input must not be a procedure")));
   }
-  std::string out;
-  out.reserve (256);
-  json_write_value (sc, x, out);
-  return s7_make_string_with_length (sc, out.data (), (s7_int) out.size ());
+  // 帧内只有平凡局部变量：RAII（out/ancestors）与 EH 帧都在 json_write_to_s7_string 内，
+  // raise 经由 json_raise_write_error，两条路径均 longjmp 安全
+  json_write_exception err{};
+  s7_pointer           result= json_write_to_s7_string (sc, x, err);
+  if (result) return result;
+  return json_raise_write_error (sc, err);
 }
 
 static void
@@ -303,10 +329,11 @@ glue_json_string_escape (s7_scheme* sc) {
 //   - 非法转义字符抛 parse-error "Invalid escape char: X"
 //   - 码点超出 [0, 1114111] 抛 value-error（与 (liii unicode) codepoint->utf8 一致）
 
+// 参数用 const char* 而非 const std::string&：避免调用点隐式构造临时 string
+// （s7_error 是裸 longjmp，临时对象的析构会被跳过）
 static s7_pointer
-json_parse_error (s7_scheme* sc, const std::string& msg) {
-  return s7_error (sc, s7_make_symbol (sc, "parse-error"),
-                   s7_list (sc, 1, s7_make_string_with_length (sc, msg.data (), (s7_int) msg.size ())));
+json_parse_error (s7_scheme* sc, const char* msg) {
+  return s7_error (sc, s7_make_symbol (sc, "parse-error"), s7_list (sc, 1, s7_make_string (sc, msg)));
 }
 
 // glue 时缓存 string->number 并永久 GC 保护：仅用于超出 int64 范围的大整数回退
@@ -1163,15 +1190,19 @@ json_guenchi_drop (s7_scheme* sc, s7_pointer x, s7_pointer v, s7_int len) {
     s7_int      n    = s7_vector_length (x);
     s7_pointer* elems= s7_vector_elements (x);
     if (n == 0) return x;
-    // 谓词可能触发 GC 或回调 Scheme，先只判定再分配结果（ elems 经 x 有根）
-    std::vector<bool> drop (n, false);
-    s7_int            count= 0;
+    // 谓词 s7_call 可能 raise（裸 longjmp），跨回调存活的标记必须用 GC 管理的
+    // s7 对象（bytevector），不能用 std::vector（MSVC 下析构跳过即崩溃）
+    s7_pointer drop_bv= s7_make_byte_vector (sc, n, 1, NULL);
+    s7_gc_protect_via_stack (sc, drop_bv);
+    uint8_t* drop = s7_byte_vector_elements (drop_bv);
+    s7_int   count= 0;
     for (s7_int i= 0; i < n; i++) {
       bool hit= use_pred ? (s7_call (sc, v, s7_list (sc, 1, s7_make_integer (sc, i))) != s7_f (sc))
                          : s7_is_equal (sc, s7_make_integer (sc, i), v);
-      drop[i] = hit;
+      drop[i] = hit ? 1 : 0;
       if (hit) count++;
     }
+    s7_gc_unprotect_via_stack (sc, drop_bv);
     if (count == 0) return x;
     s7_pointer  result= s7_make_vector (sc, n - count);
     s7_int      at    = 0;
@@ -1181,25 +1212,27 @@ json_guenchi_drop (s7_scheme* sc, s7_pointer x, s7_pointer v, s7_int len) {
     }
     return result;
   }
-  // 对象（alist）：删除键命中的条目，未命中的条目复用原序对；命中后从尾向头 cons
-  std::vector<s7_pointer> kept;
-  kept.reserve (len > 0 ? len : 16);
+  // 对象（alist）：删除键命中的条目，未命中的条目复用原序对。
+  // 同样地，跨 s7_call 存活的收集链用 head 锚定的 s7 序对链而非 std::vector
+  s7_pointer head= s7_cons (sc, s7_nil (sc), s7_nil (sc));
+  s7_gc_protect_via_stack (sc, head);
+  s7_pointer tail= head;
   s7_pointer p   = x;
   s7_int     step= 0;
   while (s7_is_pair (p) && step < len) {
     s7_pointer entry= s7_car (p);
     bool       hit  = use_pred ? (s7_call (sc, v, s7_list (sc, 1, s7_car (entry))) != s7_f (sc))
                                : s7_is_equal (sc, s7_car (entry), v);
-    if (!hit) kept.push_back (entry);
+    if (!hit) {
+      s7_pointer cell= s7_cons (sc, entry, s7_nil (sc));
+      s7_set_cdr (tail, cell);
+      tail= cell;
+    }
     p= s7_cdr (p);
     step++;
   }
-  s7_pointer lst= s7_nil (sc);
-  s7_gc_on (sc, false);
-  for (size_t i= kept.size (); i > 0; i--)
-    lst= s7_cons (sc, kept[i - 1], lst);
-  s7_gc_on (sc, true);
-  return lst;
+  s7_gc_unprotect_via_stack (sc, head);
+  return s7_cdr (head);
 }
 
 // 对应 (liii json) 的 json-drop 包装：结构校验 + 空对象特判 + 单键/多键分派

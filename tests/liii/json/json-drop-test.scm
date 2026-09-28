@@ -179,4 +179,14 @@
   (check-true (list? res))
 ) ;let*
 
+;; 谓词抛异常：错误原样上传（回归：drop 内部跨 s7_call 不再持有 C++ RAII 容器，
+;; 谓词 raise 的 longjmp 不会跳过 std::vector 析构，MSVC 下安全）
+(check-catch 'test-error (json-drop #(1 2 3) (lambda (i) (error 'test-error "boom"))))
+(check-catch 'test-error (json-drop '((a . 1) (b . 2)) (lambda (k) (error 'test-error "boom"))))
+
+;; 谓词抛异常后再次正常调用，确认 GC 锚定链/bytevector 未残留坏状态
+(let ((res (json-drop '((a . 1) (b . 2) (c . 3)) (lambda (k) (eq? k 'b)))))
+  (check (length res) => 2)
+) ;let
+
 (check-report)
