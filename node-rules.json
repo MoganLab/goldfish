@@ -295,6 +295,14 @@
     "firstLineLimit": 1,
     "restIndent": "byFirstRestChild"
   },
+  "select": {
+    "mustInline": false,
+    "neverInline": true,
+    "neverInlineWhenFirstChildEnv": false,
+    "allowFirstLineChildEnv": true,
+    "firstLineLimit": 1,
+    "restIndent": "alignToFirstSelectedEnv"
+  },
   "set!": {
     "mustInline": false,
     "neverInline": false,

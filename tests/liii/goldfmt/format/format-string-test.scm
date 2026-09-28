@@ -446,4 +446,16 @@
   "(define-record-type :trie\n  (make-trie* children value)\n  trie?\n) ;define-record-type\n"
 ) ;check
 
+;; select 语法参考 cond：首个子句在首行，后续子句向首个子句左括号对齐
+(check (format-string "(select ((chan-recv! ch1 v) (display v)) ((chan-send! ch2 42) (display \"sent\")) (else (display \"none\")))")
+  =>
+  "(select ((chan-recv! ch1 v) (display v))\n        ((chan-send! ch2 42) (display \"sent\"))\n        (else (display \"none\"))\n) ;select\n"
+) ;check
+
+;; select 包含 timeout 分支和箭头 => 分支
+(check (format-string "(select ((chan-recv! ch) => proc) (timeout 100 'timeout))")
+  =>
+  "(select ((chan-recv! ch) => proc)\n        (timeout 100 'timeout)\n) ;select\n"
+) ;check
+
 (check-report)

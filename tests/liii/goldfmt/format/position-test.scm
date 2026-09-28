@@ -224,4 +224,36 @@
   ) ;call-with-values
 ) ;let
 
+;; select：第一个 clause 在第一行，后续 clause 与它对齐（类似 cond）。
+(let ((node (scan '(select ((chan-recv! ch1 v) (display v)) (else (display "none"))))
+      ) ;node
+     ) ;
+  (call-with-values (lambda () (format-node node 0))
+    (lambda (text positioned)
+      (check text
+        =>
+        (&- #""
+                     (select ((chan-recv! ch1 v) (display v))
+                             (else (display "none"))
+                     ) ;select
+                     ""
+        ) ;&-
+      ) ;check
+      (check (env-indent positioned) => 0)
+      (check (env-left-line positioned) => 1)
+      (check (env-right-line positioned) => 3)
+      (let* ((clause1 (child positioned 0))
+             (clause2 (child positioned 1))
+            ) ;
+        (check (env-indent clause1) => 8)
+        (check (env-left-line clause1) => 1)
+        (check (env-right-line clause1) => 1)
+        (check (env-indent clause2) => 8)
+        (check (env-left-line clause2) => 2)
+        (check (env-right-line clause2) => 2)
+      ) ;let*
+    ) ;lambda
+  ) ;call-with-values
+) ;let
+
 (check-report)

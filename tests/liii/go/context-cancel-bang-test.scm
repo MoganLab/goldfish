@@ -35,7 +35,7 @@
   (let loop
     ()
     (select ((chan-recv! (context-channel ctx) _) (chan-send! status-ch "stopped"))
-      (timeout 10 (loop))
+            (timeout 10 (loop))
     ) ;select
   ) ;let
 ) ;define

@@ -40,8 +40,8 @@
 
 (define hit-else #f)
 (select ((chan-recv! ch1 v) (set! hit-else 'ch1))
- ((chan-recv! ch2 v) (set! hit-else 'ch2))
- (else (set! hit-else #t))
+        ((chan-recv! ch2 v) (set! hit-else 'ch2))
+        (else (set! hit-else #t))
 ) ;select
 
 (check hit-else => #t)
@@ -51,8 +51,8 @@
 
 (define recv-val #f)
 (select ((chan-recv! ch1 v) (set! recv-val v))
- ((chan-recv! ch2 v) (set! recv-val "wrong"))
- (else (set! recv-val "else"))
+        ((chan-recv! ch2 v) (set! recv-val "wrong"))
+        (else (set! recv-val "else"))
 ) ;select
 
 (check recv-val => "hello-select")
@@ -63,7 +63,9 @@
 
 (define sent-ok #f)
 
-(select ((chan-send! ch-send 999) (set! sent-ok #t)) (else (set! sent-ok #f)))
+(select ((chan-send! ch-send 999) (set! sent-ok #t))
+        (else (set! sent-ok #f))
+) ;select
 
 (check sent-ok => #t)
 (check (chan-recv! ch-send) => 999)
@@ -75,7 +77,7 @@
 (define ch-empty (make-chan 1))
 
 (select ((chan-recv! ch-empty v) (set! timeout-hit 'recv))
-  (timeout 50 (set! timeout-hit 'timeout))
+        (timeout 50 (set! timeout-hit 'timeout))
 ) ;select
 
 (check timeout-hit => 'timeout)
@@ -94,7 +96,7 @@
 
 (define async-result #f)
 (select ((chan-recv! ch-async msg) (set! async-result msg))
-  (timeout 2000 (set! async-result 'timed-out))
+        (timeout 2000 (set! async-result 'timed-out))
 ) ;select
 
 (check async-result => "async-ready")
@@ -109,7 +111,8 @@
 ) ;define
 
 (define ch-once (make-chan 1))
-(select ((chan-send! ch-once (get-test-val)) #t))
+(select ((chan-send! ch-once (get-test-val)) #t)
+) ;select
 
 (check eval-count => 1)
 (check (chan-recv! ch-once) => "my-eval-val")
@@ -117,7 +120,9 @@
 ;; 7. timeout 精度：100ms 超时的实际等待应在合理窗口内（轮询实现会有 1ms 粒度误差）
 
 (define t0 (current-jiffy))
-(select ((chan-recv! ch-empty v) v) (timeout 100 'timeout-ok))
+(select ((chan-recv! ch-empty v) v)
+        (timeout 100 'timeout-ok)
+) ;select
 
 (define elapsed-ms (* 1000.0 (/ (- (current-jiffy) t0) (jiffies-per-second))))
 (check (< 99 elapsed-ms) => #t)
@@ -130,7 +135,7 @@
 
 (define closed-hit #f)
 (select ((chan-recv! ch-closed-sel v) (set! closed-hit v))
-  (timeout 2000 'timeout)
+        (timeout 2000 'timeout)
 ) ;select
 (check (eof-object? closed-hit) => #t)
 
@@ -139,7 +144,9 @@
 (define ch-closed-send (make-chan 1))
 (chan-close! ch-closed-send)
 (check-catch 'value-error
-  (select ((chan-send! ch-closed-send 1) #t) (timeout 2000 'timeout))
+  (select ((chan-send! ch-closed-send 1) #t)
+          (timeout 2000 'timeout)
+  ) ;select
 ) ;check-catch
 
 ;; 10. 无缓冲通道的 select rendezvous：worker 真实阻塞 recv 时 select send 就绪
@@ -156,7 +163,7 @@
 
 (define rv-selected #f)
 (select ((chan-send! ch-rv "rv-val") (set! rv-selected #t))
-  (timeout 2000 (set! rv-selected 'timeout))
+        (timeout 2000 (set! rv-selected 'timeout))
 ) ;select
 (check rv-selected => #t)
 (check (chan-recv! ch-rv-done 2000) => "rv-val")
@@ -171,7 +178,7 @@
 
 (define multi-hit #f)
 (select ((chan-recv! ch-a v) (set! multi-hit v))
- ((chan-recv! ch-b v) (set! multi-hit v))
+        ((chan-recv! ch-b v) (set! multi-hit v))
 ) ;select
 (check (if (member multi-hit (list "A" "B")) #t #f) => #t)
 
@@ -188,8 +195,8 @@
 
 (define arrow-res
   (select ((chan-recv! ch-arrow1) => arrow-handler)
-   ((chan-recv! ch-arrow2) => (lambda (v) (* v 2)))
-   (else 'arrow-else)
+          ((chan-recv! ch-arrow2) => (lambda (v) (* v 2)))
+          (else 'arrow-else)
   ) ;select
 ) ;define
 
@@ -198,7 +205,9 @@
 ;; 13. 测试 ((chan-recv! ch) => proc) 未就绪时命中 else
 
 (define arrow-else-res
-  (select ((chan-recv! ch-arrow2) => arrow-handler) (else 'hit-arrow-else))
+  (select ((chan-recv! ch-arrow2) => arrow-handler)
+          (else 'hit-arrow-else)
+  ) ;select
 ) ;define
 
 (check arrow-else-res => 'hit-arrow-else)
@@ -209,7 +218,7 @@
 
 (define ch-empty-arrow (make-chan))
 (select ((chan-recv! ch-empty-arrow) => (lambda (v) (set! timeout-arrow-ms 'recv)))
- ((timeout 50) => (lambda (ms) (set! timeout-arrow-ms ms)))
+        ((timeout 50) => (lambda (ms) (set! timeout-arrow-ms ms)))
 ) ;select
 (check (integer? timeout-arrow-ms) => #t)
 (check (>= timeout-arrow-ms 45) => #t)
@@ -218,7 +227,7 @@
 
 (define timeout-block-hit #f)
 (select ((chan-recv! ch-empty-arrow) => (lambda (v) #f))
- ((timeout 50) (set! timeout-block-hit #t) 'block-ret)
+        ((timeout 50) (set! timeout-block-hit #t) 'block-ret)
 ) ;select
 (check timeout-block-hit => #t)
 
@@ -226,7 +235,7 @@
 
 (define timeout-flat-arrow-ms #f)
 (select ((chan-recv! ch-empty-arrow) => (lambda (v) #f))
-  (timeout 50 => (lambda (ms) (set! timeout-flat-arrow-ms ms)))
+        (timeout 50 => (lambda (ms) (set! timeout-flat-arrow-ms ms)))
 ) ;select
 (check (integer? timeout-flat-arrow-ms) => #t)
 (check (>= timeout-flat-arrow-ms 45) => #t)
@@ -238,28 +247,28 @@
 
 (check-catch 'syntax-error
   (eval '(select ((chan-recv! ch-arrow1) => arrow-handler)
-           (timeout 100 1)
-           (else 2))
+                 (timeout 100 1)
+                 (else 2))
   ) ;eval
 ) ;check-catch
 
 (check-catch 'syntax-error
   (eval '(select ((chan-recv! ch-arrow1) => arrow-handler)
-           ((timeout 100) 1)
-           (else 2))
+                 ((timeout 100) 1)
+                 (else 2))
   ) ;eval
 ) ;check-catch
 
 (check-catch 'syntax-error
   (eval '(select ((chan-recv! ch-arrow1) => arrow-handler)
-           ((timeout 100) 1)
-           ((timeout 200) 2))
+                 ((timeout 100) 1)
+                 ((timeout 200) 2))
   ) ;eval
 ) ;check-catch
 
 (check-catch 'syntax-error
   (eval '(select ((chan-recv! ch-arrow1) => arrow-handler)
-           ((timeout 100) => 1 2))
+                 ((timeout 100) => 1 2))
   ) ;eval
 ) ;check-catch
 
@@ -282,10 +291,10 @@
              (set! fair-recv-count-a (+ fair-recv-count-a 1))
              (chan-send! ch-fair-a "A")
             ) ;
-     ((chan-recv! ch-fair-b v)
-      (set! fair-recv-count-b (+ fair-recv-count-b 1))
-      (chan-send! ch-fair-b "B")
-     ) ;
+            ((chan-recv! ch-fair-b v)
+             (set! fair-recv-count-b (+ fair-recv-count-b 1))
+             (chan-send! ch-fair-b "B")
+            ) ;
     ) ;select
     (loop (+ i 1))
   ) ;when
@@ -315,10 +324,10 @@
              (set! fair-mix-recv-count (+ fair-mix-recv-count 1))
              (chan-send! ch-fair-r "R")
             ) ;
-     ((chan-send! ch-fair-w "W")
-      (set! fair-mix-send-count (+ fair-mix-send-count 1))
-      (chan-recv! ch-fair-w)
-     ) ;
+            ((chan-send! ch-fair-w "W")
+             (set! fair-mix-send-count (+ fair-mix-send-count 1))
+             (chan-recv! ch-fair-w)
+            ) ;
     ) ;select
     (loop (+ i 1))
   ) ;when

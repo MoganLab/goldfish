@@ -33,6 +33,10 @@
   =>
   'align-to-first-selected-env
 ) ;check
+(check (rest-indent "select")
+  =>
+  'align-to-first-selected-env
+) ;check
 (check (rest-indent "let")
   =>
   'parent-plus2

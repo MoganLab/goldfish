@@ -30,7 +30,7 @@
              =>
              (lambda (_) (display "worker exit by ctx\n") (chan-close! out))
             ) ;
-     ((chan-recv! jobs) => (lambda (j) (chan-send! out (* j 2)) (loop)))
+            ((chan-recv! jobs) => (lambda (j) (chan-send! out (* j 2)) (loop)))
     ) ;select
   ) ;let
 ) ;define

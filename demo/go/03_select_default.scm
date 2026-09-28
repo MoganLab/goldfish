@@ -34,11 +34,11 @@
            =>
            (lambda (v) (display "got ready: ") (display v) (newline))
           ) ;
-   ((chan-recv! not-ready-ch)
-    =>
-    (lambda (v) (display "got notReady: ") (display v) (newline))
-   ) ;
-   (else (display "default: no case ready\n"))
+          ((chan-recv! not-ready-ch)
+           =>
+           (lambda (v) (display "got notReady: ") (display v) (newline))
+          ) ;
+          (else (display "default: no case ready\n"))
   ) ;select
 
   ;; 演示 2：所有通道分支均未就绪
@@ -47,7 +47,7 @@
            =>
            (lambda (v) (display "unexpected: ") (display v) (newline))
           ) ;
-    (else (display "default: notReady not ready\n"))
+          (else (display "default: notReady not ready\n"))
   ) ;select
 ) ;define
 
