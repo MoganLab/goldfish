@@ -10,9 +10,13 @@ Goldfish Scheme is a Scheme interpreter with the following features:
 <img src="GoldfishScheme-logo.png" alt="示例图片" style="width: 360pt;">
 
 ## Simplicity is Beauty
-Goldfish Scheme still follows the same principle of simplicity as S7 Scheme. Currently, Goldfish Scheme only depends on [S7 Scheme](https://ccrma.stanford.edu/software/s7/), [tbox](https://gitee.com/tboox/tbox) and C++ standard library defined in C++ 98.
+Goldfish Scheme follows a small-runtime design and runs on its native C++17
+evaluator. It no longer depends on or embeds S7. The native executable uses
+[tbox](https://gitee.com/tboox/tbox), the C++ standard library, and the
+repository's BDWGC runtime dependency.
 
-Just like S7 Scheme, [src/goldfish.hpp](src/goldfish.hpp) and [src/goldfish.cpp](src/goldfish.cpp) are the only key source code needed to build the goldfish interpreter binary.
+The executable entry point is [src/runtime/native_main.cpp](src/runtime/native_main.cpp);
+the evaluator and bootstrap implementation live under `src/runtime/`.
 
 
 ## Standard Library
@@ -122,11 +126,10 @@ Commands:
 ```
 
 ### Display Version
-`version` subcommand will print the Goldfish Scheme version and the underlying S7 Scheme version:
+`version` prints the Goldfish Scheme version:
 ```
 > gf version
 Goldfish Scheme 18.11.20 by LiiiLabs
-based on S7 Scheme 11.5 (22-Sep-2025)
 ```
 
 ### Evaluate Code
@@ -162,9 +165,8 @@ You can also load and evaluate a Scheme file directly:
 + `default`: `-m default` is the equiv of `-m r7rs`
 + `liii`: Goldfish Scheme with `(liii base)`, `(liii error)` and `(liii string)`
 + `scheme`: Goldfish Scheme with `(liii base)` and `(liii error)`
-+ `sicp`: S7 Scheme with `(scheme base)` and `(srfi sicp)`
-+ `r7rs`: S7 Scheme with `(scheme base)`
-+ `s7`: S7 Scheme without any extra library
++ `sicp`: Goldfish with `(scheme base)` and `(srfi sicp)`
++ `r7rs`: Goldfish with `(scheme base)`
 
 ### Library Search Path
 Goldfish also supports extra library search directories during startup:
@@ -181,10 +183,13 @@ On startup, Goldfish also automatically prepends each directory under `~/.local/
 
 
 ## Versioning
-Goldfish Scheme x.y.z means that it is using the tbox x, based on S7 Scheme y, and z is the patch version. To clarify, the second version of Goldfish Scheme is `17.10.1`, it means that it is using `tbox 1.7.x`, based on `S7 Scheme 10.x`, the patch version is `1`.
+Older releases encoded their tbox and S7 base versions in the Goldfish version
+number. Current releases identify Goldfish itself and do not encode an S7
+runtime version.
 
 ## Why we created Goldfish Scheme
-Goldfish Scheme is implemented to overcome the defects of [S7 Scheme](https://ccrma.stanford.edu/software/s7/):
+Goldfish began as a set of R7RS and library extensions around S7. R4 replaced
+that host with the native evaluator. The project now focuses on:
 1. Distribute the ready-to-use Goldfish Scheme interpreter and structured REPL on Linux/macOS/Windows
 2. Try to implement the [R7RS-small](https://small.r7rs.org) standard
 3. Try to provide the useful SRFI in R7RS library format

@@ -6,7 +6,7 @@ cd "$project_dir"
 
 # Native regression entry point.  Scheme test files that exercise the native
 # bootstrap belong here. The default `gf test` path now uses the native
-# runtime; the explicit `gf-host` binary remains available for host oracles.
+# runtime; no host/S7 fallback is built.
 xmake build native-reader-test
 "$project_dir/bin/native-reader-test"
 

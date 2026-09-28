@@ -42,10 +42,8 @@
 ;;; The single-level inline lookup avoids an expander problem: core-if
 ;;; rejects a nested if produced by a macro expansion inside a library body
 ;;; ("if: expected (if cond then [else])").  Emitting one flat lookup per
-;;; optional parameter sidesteps that.  (s7's separate stale opt1_lambda
-;;; cache bug -- a lambda returned by a helper and called in a later
-;;; invocation binding its captures wrongly -- is fixed in src/s7.c, the
-;;; OP_F_NP symbol_ctr special case.)
+;;; optional parameter sidesteps that. The retired S7 host had a separate
+;;; stale opt1_lambda cache bug; it is unrelated to the native expander.
 ;;;
 ;;; Required parameters stay as ordinary formals (so they bind normally in
 ;;; the body); only the optional parameters are resolved by the inline

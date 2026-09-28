@@ -102,7 +102,7 @@
         (display "Options:")
         (newline)
         (display-command-line "--mode, -m MODE"
-          "Set mode: default, liii, sicp, r7rs, s7"
+          "Set mode: default, liii, sicp, r7rs"
         ) ;display-command-line
         (display-command-line "-I DIR" "Prepend DIR to library search path")
         (display-command-line "-A DIR" "Append DIR to library search path")

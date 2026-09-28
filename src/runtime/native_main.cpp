@@ -755,7 +755,7 @@ int main(int argc, char** argv) {
             return 0;
         }
         if (std::string(argv[command]) == "run") {
-            // Host parity (goldfish.hpp): load the target silently, then
+            // Former host parity path: load the target silently, then
             // invoke its `main' procedure; a non-procedure `main' is an
             // error naming the target.
             if (++command >= argc)

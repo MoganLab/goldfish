@@ -19,12 +19,6 @@ option("tbox")
     set_values(false, true)
 option_end()
 
-option("repl")
-    set_description("Enable the legacy host REPL (native REPL is independent)")
-    set_default(false)
-    set_values(false, true)
-option_end()
-
 option("system-deps")
     set_description("Use system dependences")
     set_default(false)
@@ -37,18 +31,6 @@ option("pin-deps")
     set_default(true)
     set_values(false, true)
 option_end()
-
-option("http")
-    set_description("Enable http")
-    set_default(true)
-    set_values(false, true)
-option_end()
-
-if has_config("http") and not is_plat("wasm") then
-    add_requires("cpr")
-end
-
--- S7 is now included as source files in src/ directory
 
 local TBOX_VERSION = "1.8.0"
 if has_config("tbox") then
@@ -70,25 +52,6 @@ else
 end
     set_toolchains("emcc@emscripten")
 end
-
-local IC_VERSION = "v1.0.9"
-if has_config("repl") then
-    if has_config("pin-deps") then
-        add_requires("isocline " .. IC_VERSION, {system=system})
-    else
-        add_requires("isocline", {system=system})
-    end
-end
-
--- local header only dependency, no need to (un)pin version
-add_requires("argh v1.3.2")
-
-local NLOHMANN_JSON_VERSION = "v3.11.3"
-    add_requires("nlohmann_json")
-
-
-local JSON_SCHEMA_VALIDATOR_VERSION = "2.4.0"
-    add_requires("json_schema_validator")
 
 -- Keep the native runtime layer in one place.  Standalone tests use the core
 -- set; bootstrap-capable targets add artifact/bootstrap on top of it.
@@ -139,106 +102,6 @@ local function add_goldfish_install_files()
     add_installfiles("$(projectdir)/node-rules.json", {prefixdir = "share/goldfish"})
     add_installfiles("$(projectdir)/(tools/**)", {prefixdir = "share/goldfish"})
     add_installfiles("$(projectdir)/(tests/**)", {prefixdir = "share/goldfish"})
-end
-
-target ("goldfish") do
-    set_default(false)
-    set_languages("c++17")
-    add_includedirs("src")
-    set_targetdir("$(projectdir)/bin/")
-    set_basename("gf-host")
-    if is_plat("linux") then
-        add_syslinks("stdc++")
-    end
-    if is_plat("macosx") then
-        add_frameworks("CoreFoundation")
-    end
-    if is_plat("wasm") then
-        -- preload goldfish stdlib in `bin/goldfish.data`
-        add_ldflags("--preload-file goldfish@/goldfish")
-    end
-    -- L0 host (sole s7.h): C++ wrappers + s7 core (no Scheme includes)
-    add_files ("src/gf.cpp")
-    add_files ("src/s7.c", {languages = "c11"})
-    add_files ("src/s7_op_names.c", {languages = "c11"})
-    add_files ("src/s7_scheme_complex.c", {languages = "c11"})
-    add_files ("src/s7_scheme_char.c", {languages = "c11"})
-    add_files ("src/s7_scheme_write.c", {languages = "c11"})
-    add_files ("src/s7_liii_bitwise.c", {languages = "c11"})
-    add_files ("src/s7_liii_string.c", {languages = "c11"})
-    add_files ("src/s7_liii_hash_table.c", {languages = "c11"})
-    add_files ("src/s7_liii_list.c", {languages = "c11"})
-    add_files ("src/s7_liii_vector.c", {languages = "c11"})
-    add_files ("src/s7_module.c", {languages = "c11"})
-    add_files ("src/s7_scheme_inexact.c", {languages = "c11"})
-    add_files ("src/s7_scheme_base.c", {languages = "c11"})
-    add_files ("src/s7_scheme_symbol.c", {languages = "c11"})
-    add_files ("src/s7_scheme_predicate.c", {languages = "c11"})
-    add_files ("src/s7_scheme_format.c", {languages = "c11"})
-    add_files ("src/s7_ctables.c", {languages = "c11"})
-    add_files ("src/s7_dtoa.c", {languages = "c11"})
-    add_files ("src/s7_continuation.c", {languages = "c11"})
-    add_files ("src/s7_scheme_let.c", {languages = "c11"})
-    -- L0 host extensions (g_* primitives, stateless, no business orchestration)
-    add_files ("src/liii_base64.cpp")
-    add_files ("src/liii_hashlib.cpp")
-    if has_config("http") and not is_plat("wasm") then
-        add_files ("src/liii_http.cpp")
-        add_defines("GOLDFISH_ENABLE_HTTP")
-    end
-    add_files ("src/liii_njson.cpp")
-    add_files ("src/liii_os.cpp")
-    add_files ("src/liii_path.cpp")
-    add_files ("src/liii_string.cpp")
-    add_files ("src/liii_subprocess.cpp")
-    add_files ("src/scheme_base.cpp")
-    add_files ("src/scheme_char.cpp")
-    -- L1 tiny (bootstrap reader subset, no expander)
-    add_files ("src/liii_reader.cpp")
-    -- T0-ahead: gf0 reference evaluator (gf:: only, no s7.h)
-    add_files ("src/gf0_eval.cpp")
-    -- New s7-independent runtime (currently exercised by standalone tests).
-    add_native_bootstrap_sources()
-    -- The legacy CLI's explicit eval-native command is migration-only; keep
-    -- its compatibility surface local to this old host target.
-    add_files ("src/runtime/migration_primitives.cpp")
-    add_files ("src/runtime/legacy_primitives.cpp")
-    add_files ("src/runtime/s7_bridge.cpp")
-    -- L6 vm (gf:: only, per-program, pre-decoded, no Scheme includes)
-    -- L7 loader (CLI/REPL/load-path dispatch only)
-    add_files ("src/goldfish.cpp")
-    add_packages("tbox")
-    add_packages("argh")
-    add_packages("nlohmann_json")
-    add_packages("json_schema_validator")
-    if has_config("http") and not is_plat("wasm") then
-        add_packages("cpr")
-    end
-
-    -- S7 configuration from original 3rdparty/s7/xmake.lua
-    add_defines("WITH_SYSTEM_EXTRAS=0")
-    if not is_plat("wasm") then
-        add_defines("HAVE_OVERFLOW_CHECKS=0")
-    end
-    add_defines("WITH_WARNINGS")
-    add_defines("WITH_R7RS=1")
-    if is_mode("debug") then
-        add_defines("S7_DEBUGGING")
-    end
-    -- Windows-specific configuration from original 3rdparty/s7/xmake.lua
-    if is_plat("windows") then
-        set_optimize("faster")
-        add_cxxflags("/fp:precise")
-        add_cxxflags("/utf-8")
-        add_cflags("/utf-8")
-    end
-
-    -- only enable REPL if repl option is enabled
-    if has_config("repl") then
-        add_packages("isocline")
-        add_defines("GOLDFISH_WITH_REPL")
-    end
-
 end
 
 target("lint-layer")
@@ -389,34 +252,6 @@ target("native-test")
         os.exec("sh tools/test-native-cold-bootstrap.sh")
     end)
 target_end()
-
-if is_plat("wasm") then
-target("goldfish_repl_wasm")
-    set_kind("binary")
-    set_languages("c++17")
-    set_targetdir("$(projectdir)/repl/")
-    add_files("src/goldfish_repl.cpp")
-    add_packages("tbox", "argh", "nlohmann_json", "json_schema_validator")
-    add_defines("GOLDFISH_ENABLE_REPL")
-
-    -- S7 configuration from original 3rdparty/s7/xmake.lua
-    add_defines("WITH_SYSTEM_EXTRAS=0")
-    -- WASM platform doesn't have HAVE_OVERFLOW_CHECKS=0
-    add_defines("WITH_WARNINGS")
-    add_defines("WITH_R7RS=1")
-    if is_mode("debug") then
-        add_defines("S7_DEBUGGING")
-    end
-    add_ldflags("--preload-file goldfish@/goldfish")
-    -- 导出 REPL 相关函数
-    add_ldflags("-sEXPORTED_FUNCTIONS=['_eval_string','_get_out','_get_err','_malloc','_free']", {force = true})
-    add_ldflags("-sEXPORTED_RUNTIME_METHODS=['UTF8ToString','allocateUTF8']", {force = true})
-    add_ldflags("-sINITIAL_MEMORY=134217728", {force = true})
-    add_ldflags("-sALLOW_MEMORY_GROWTH=1", {force = true})
-    add_ldflags("-sASSERTIONS=1", {force = true})
-    -- 生成 js glue code
-    set_extension(".js")
-end
 
 includes("@builtin/xpack")
 

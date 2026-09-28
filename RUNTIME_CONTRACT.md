@@ -1,10 +1,10 @@
 # Goldfish Runtime Contract
 
-状态：R0–R3 已完成；R4 进行中。Native 已覆盖 kernel 自举、普通库的
+状态：R0–R3 已完成；R4 删除过渡层进行中。Native 已覆盖 kernel 自举、普通库的
 source/cache 闭环、CLI/REPL，以及 C3 固定工作流。默认入口 `bin/gf` 已
-切换为 native；host/s7 保留在 `bin/gf-host`。删除 s7/gf0 过渡层是单独的后续步骤。
-本文定义替换 vendored s7 后的宿主边界；现有 `gf0`/s7 bridge 不是此合同
-的一部分，只是过渡实现。
+切换为 native。gf0 evaluator、S7 host oracle、C2 双端运行器、旧 S7 WASM REPL、
+vendored S7 源码和 S7 bridge 均已移除（2026-09-28）。少量 native bootstrap
+兼容绑定仍在，作为独立迁移债跟踪；本文定义的目标宿主边界不包含这些过渡绑定。
 
 ### R3 收口记录（2026-09-24）
 
@@ -25,9 +25,10 @@ source/cache 闭环、CLI/REPL，以及 C3 固定工作流。默认入口 `bin/g
 
 ### R4 准备清单
 
-1. 默认 `gf` 入口切换到 native runtime（完成）；host/s7 由显式 `gf-host` 入口调用，gf0/s7 仍待移除。
-2. 删除 `src/s7*`、s7 构建目标与 vendored s7；清理 `gf0` bridge 与
-   `bootstrap_compatibility` 中仅过渡用的 LegacyLet 分支。
+1. 默认 `gf` 入口切换到 native runtime（完成）；gf0 已移除。
+2. [完成 2026-09-28] 删除 `src/s7*`、S7 host/bridge 构建路径、旧 WASM REPL、
+   S7 bridge 与 vendored S7 源码。native bootstrap 的兼容绑定及测试专用
+   LegacyLet 迁移对象仍在；之后单独评估是否退役，不阻塞删除 S7 实现。
 3. [完成 2026-09-24] 根因不在 install.scm，而在 prelude 的**定义顺序**：
    `define-syntax` 的 transformer 在 prelude 加载时即展开，而 `let` 定义在
    `cond`/`case` 之后，transformer 里的 named let 因此原样漏进 core
@@ -39,10 +40,9 @@ source/cache 闭环、CLI/REPL，以及 C3 固定工作流。默认入口 `bin/g
    cache；`tools/test-native.sh` 覆盖 native reader、library source 和
    cold-bootstrap 检查。R4 默认切换后，预热和冷启动仍须在不调用 host `gf`
    的情况下成立。
-5. [待切换前复核] 汇总现有 C2 strict parity、M3 lowered-program 检查和
-   C3 native gate；明确历史结果的范围及未覆盖项。`diff-gf0-m2a.sh` 是
-   s7/gf0 迁移期工具，删除前需先确认它的剩余用途和调用者，不将其 skip
-   清单误作 native C3 验收结果。
+5. [完成 2026-09-28] 复核 C2 strict parity、历史 M3 lowered-program 检查和
+   C3 native gate，区分仍可运行的审核与迁移期历史证据。M3 gf0/S7 harness
+   已完成归档并删除，不作为 native C3 验收门禁。
 6. [C1 收尾 2026-09-26] tests/expander 目录级常规 18/19 绿：唯一失败
    host-abi-load（`1.5` 字面量）归浮点桶；带浮点/复数字面量的测试共
    220 个文件（含 liii/reader-test 的53处字面量、lib-cache-all-libs
@@ -280,28 +280,31 @@ reader 继续只负责 lowered datum/artifact，不扩展成完整的源码 read
 
 ### R4：删除过渡层
 
-默认入口切换到新 runtime；删除 gf0/s7 bridge、s7-specific compatibility
-层、s7 构建文件和 vendored s7 源码。
+默认入口切换到 native runtime，退役 gf0 和 S7 oracle，删除 host 构建路径与
+vendored S7。少量只为旧 bootstrap 工件保留的名称兼容单独登记为迁移债。
 
 #### 切换顺序（2026-09-28）
 
-1. **默认入口已切换**：`bin/gf` 是 native runtime，`bin/gf-host` 保留原
-   s7 host。C2 和 gf0/s7 差分工具明确调用 host oracle；普通测试和 native
-   工作流使用默认 `gf`。
+1. **默认入口已切换**：`bin/gf` 是 native runtime。C2 迁移审核明确调用
+   host oracle；普通测试和 native 工作流使用默认 `gf`。
 2. **稳定默认路径**：验证 CLI、测试运行器、source bootstrap、warm/cold cache
    和代表性库工作流均由 native 执行，同时保留 host 回退入口。切换与删除
    vendored s7 不合并为一个不可回退的改动。构建和发行入口已切到 native：
    xmake 默认目标、kernel 维护目标、xpack、Nix package 和仓库构建 workflow
-   均构建/安装 `gf-native`（`bin/gf`）；`goldfish` / `gf-host` 仍可显式构建，
-   仅供迁移期 oracle 使用。2026-09-28 在 `--repl=n` 配置下重跑 native C3
+   均构建/安装 `gf-native`（`bin/gf`）；`goldfish` / `gf-host` 当时仅供迁移期
+   oracle 使用。2026-09-28 在 `--repl=n` 配置下重跑 native C3
    gate，9/9 通过；`xmake install gf-native` 的安装目录可执行 `gf -e '(+ 1 2)'`
    并返回 `3`。本机缺少 `debuild`，因此未生成 Debian 包文件。
 3. **关闭删除 s7 前的审核项**：已取得 `match-capability-test.scm` 的
    host/native 成对通过结果（2026-09-28）；复核 C2 记录的时效性，并把已知
    52 项 defer 和 2 项 exclude 明确作为首轮 native cutover 的接受范围。
-4. **删除过渡层**：在 native 默认路径稳定且 host 不再是构建/运行依赖后，
-   移除 s7/gf0 目标、vendored 源码、bridge 和只服务于旧路径的工具/测试。
-   同步更新文档与剩余测试入口。
+4. **过渡层退出**：gf0 evaluator、CLI、测试和专用差分/性能工具已移除。
+5. **Oracle 退出（完成 2026-09-28）**：移除 `gf-host` 与旧 S7 WASM REPL
+   构建目标和 C2 双端运行器；保留 C2 聚合与 skip 台账作为历史证据。
+   `tools/test/liii/worker.scm` 是 native `gf test -j` 的并行测试 worker，继续保留。
+6. **S7 实现删除（完成 2026-09-28）**：移除 vendored 源码、bridge、
+   host-only wrapper、独立 S7 包描述和旧入口；同步更新运行文档。
+   剩余 bootstrap 名称兼容绑定不依赖 S7 实现，之后可单独做语义收缩。
 
 本仓库当前没有实际运行的 CI，因此 R4 不以 CI 接入为前置；切换验收由
 明确记录的本地命令完成。最近一次默认切换前的 host 全量测试为 1555/1555；
@@ -340,13 +343,13 @@ host/native agreement 和 54 个显式 skip 包含 2026-09-28 单文件审核，
 4. 失败能定位到 runtime、Scheme library 或 loader，而不是依赖“另一边也失败”；
 5. 对象、异常、多值和 module identity 的行为有明确测试。
 
-现有 s7 differential gate 在迁移期继续使用，但只作为迁移参照，不是最终
-语义合同。新模块迁移后，应删除相应的 s7 bridge 测试和 HOF entry。
+迁移期间的 s7 differential 结果只作为历史参照，不是最终语义合同；oracle
+已退出，后续语义以 R7RS、Goldfish 合同和 native 回归测试为准。
 
-C2 的验收范围和明确排除项记录在
+C2 迁移期验收范围和明确排除项记录在
 [`tests/C2-ACCEPTANCE.md`](tests/C2-ACCEPTANCE.md)，机器可读的 skip 台账在
-[`tests/c2-skip.tsv`](tests/c2-skip.tsv)。被分桶的测试不计为通过；双端同错
-也仍然可见，必须修复或按规范明确裁决后才能通过 strict gate。
+[`tests/c2-skip.tsv`](tests/c2-skip.tsv)。这些记录是历史结果；S7 oracle 和
+strict 双端 gate 已退出，后续验证使用 native 测试与规范裁决。
 C3 的 native readiness 范围和验收标准记录在
 [`C3-ACCEPTANCE.md`](C3-ACCEPTANCE.md)；切换默认运行时和删除 s7/gf0
 仍属于后续 R4，不由 C3 自动触发。
@@ -373,7 +376,8 @@ C3 的 native readiness 范围和验收标准记录在
    hooks 不保留对象协议，logging 的 exit-flush 以退出时调用注册
    thunk 的朴素机制替代；`stacktrace` 保留需求、实现归 native 栈迹。
    执行时机分层：native-only 面（C++ 桩、%internal-names 条目）可即刻
-   删；共享 Scheme 源码的使用点改写须 host/native 双端可跑，随 C3/D 收口。
+   删；共享 Scheme 源码的使用点改写应有针对性 native 回归。原 host/native
+   双端验证结果只保留作迁移历史，不再是后续改动门槛。
    当前的解析桩是待执行的删除，不是永久状态。
 5. **数值塔处置**（2026-09-26 定）：
    - 表示约束：Value 的 union 已可容纳 double（float 落地不改 Value

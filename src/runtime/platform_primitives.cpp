@@ -267,8 +267,7 @@ void install_platform_primitives(Evaluator& evaluator) {
     });
     install(evaluator, "version", [&evaluator](const Values& args) {
         require_arity(args, 0, "version");
-        // Keep in sync with GOLDFISH_VERSION in src/goldfish.hpp (the
-        // host's registration of the same name).
+        // Keep in sync with the version reported by the native executable.
         return Values{evaluator.string("18.11.20")};
     });
     for (const char* name : {"exit", "emergency-exit"}) {

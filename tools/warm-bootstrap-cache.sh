@@ -4,7 +4,7 @@
 # Warm the native bootstrap cache with the native compiler. The seed workflow
 # imports the standard bootstrap libraries plus case-lambda, so one native
 # compile produces every artifact NativeBootstrap needs. This must stay
-# independent of host gf/s7 so it remains usable after the R4 removal.
+# independent of any S7 host so it remains usable after the R4 removal.
 
 set -eu
 

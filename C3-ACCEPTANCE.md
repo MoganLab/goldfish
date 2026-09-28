@@ -7,9 +7,9 @@ default-runtime switch, not the switch itself.
 ## Goal and scope
 
 C3 verifies that the native runtime can carry a representative, documented
-Goldfish workflow from a clean build through library loading and evaluation,
-with the host/s7 implementation serving only as a differential oracle where
-the language contract calls for one.
+Goldfish workflow from a clean build through library loading and evaluation.
+Host/s7 served as a differential oracle during migration; it was retired on
+2026-09-28 after the paired checks documented below.
 
 In scope:
 
@@ -17,8 +17,8 @@ In scope:
 - A fixed C3 workflow corpus spanning `(scheme base)`, selected SRFIs, and
   selected `(liii ...)` libraries, including module imports, mutation,
   exceptions, multiple values, and file/port use.
-- C2 strict parity for the supported float-free corpus and the M3 lowered
-  program guard. Every excluded file must have an explicit disposition.
+- Historical C2 strict parity for the supported float-free corpus and M3
+  lowered program guard. Every excluded file has an explicit disposition.
 - Native CLI entry modes used by scripts (`-e`, file execution, imports) and
   the current REPL smoke path.
 - Repeatable native performance baselines for evaluator calls, allocation/GC,
@@ -27,8 +27,9 @@ In scope:
 
 Out of scope for C3:
 
-- Switching `gf`'s default implementation or deleting s7/gf0. Those remain R4
-  changes and require their own rollback-ready review.
+- The default switch and gf0 evaluator retirement were completed during R4.
+  The S7 host/oracle target has since exited; deleting the remaining bridge
+  and vendored source is a separate R4 step with its own review.
 - Reproducing s7-only hooks, signature introspection, rootlet mutation, or
   other APIs explicitly rejected by `RUNTIME_CONTRACT.md`.
 - Requiring every deferred numeric-tower feature before C3. Float/inexact,
@@ -41,8 +42,8 @@ Out of scope for C3:
    `sh tools/check-c2-manifest.sh`.
 2. The latest full C2 aggregate and every post-change strict slice are recorded
    with their exact scope; no claim treats a bucketed test as a pass.
-3. The M3 `tests/gf0/m2a-*.scm` guard passes, or each failure is classified as
-   a documented R7RS/s7-oracle difference or an actionable regression.
+3. The M3 gf0/S7 comparison passed before the gf0 evaluator was retired in R4;
+   its result is retained as historical migration evidence, not a current gate.
 4. The native performance probes emit nonzero raw monotonic samples and
    deterministic workload results. Timing variance is characterized on the
    same machine; a measurement that truncates to zero is invalid evidence.
@@ -88,7 +89,8 @@ Out of scope for C3:
 
 - `sh tools/check-c2-manifest.sh`: passed; 1,331 in-scope files and 58
   bucketed files validated.
-- `sh tools/diff-gf0-m2a.sh`: passed all 12 lowered-program cases.
+- `sh tools/diff-gf0-m2a.sh`: passed all 12 lowered-program cases before its
+  R4 retirement; see `tests/C2-ACCEPTANCE.md`.
 - `sh tools/test-native.sh`: passed the native reader, library-source, and
   cold-bootstrap checks. The warm-cache phase used
   `/home/jinser/.cache/goldfish/ccache/v240655d0cf85/`. The cold check used an
@@ -122,10 +124,10 @@ gate, checks `-e`, file execution, and a stateful REPL session, runs the corpus
 through `gf --each-file`, and loads the cross-library workflow from an
 isolated empty cache. On 2026-09-27 every step passed; all 9 files passed
 (118 checks in the 9-file corpus, plus 7 checks in the isolated cold-cache
-run). The same 9-file scope passed strict host/native comparison in one batch:
-9 agree-pass, 0 agree-fail, 0 divergences, and 0 missing verdicts. The host
-side loads each test in a fresh `gf -m liii -e` process because the current
-host CLI has no `test` subcommand. Raw summaries are retained at
+run). Before oracle retirement, the same 9-file scope passed strict host/native
+comparison in one batch: 9 agree-pass, 0 agree-fail, 0 divergences, and 0
+missing verdicts. The host side loaded each test in a fresh `gf -m liii -e`
+process because its CLI had no `test` subcommand. Raw summaries are retained at
 `/tmp/c3-native-final.log` and `/tmp/c3-strict-final.log` on the validation
 machine. This is a reproducible baseline for the selected workflow, not a
 substitute for the full C2 manifest.
@@ -142,8 +144,8 @@ and added to the strict parity slice.
 
 - `R4-removal`: remove S7 hook invocation and procedure-signature metadata;
   these are explicitly outside the native contract.
-- The slow match-capability test has a strict paired host/native pass, recorded
-  in `tests/C2-ACCEPTANCE.md`; it is no longer an R4 audit item.
+- The slow match-capability test's strict paired host/native pass is recorded
+  in `tests/C2-ACCEPTANCE.md`; it is historical and no longer an R4 audit item.
 - `R5-numeric-tower`, `R5-random`, `R5-reader-extensions`,
   `R5-platform-extensions`, and `R5-scale-and-GC`: own the remaining numeric,
   PRNG, raw-string syntax, optional OS-backed libraries, and million-element
@@ -171,12 +173,11 @@ The cache-generation prerequisite is therefore implemented and validated
 without host `gf`; CI/release integration still needs to call this script or
 preserve its generated cache artifact when R4 changes the default runtime.
 
-## R4 switch follow-ups (outside C3 completion)
+## R4 closeout record
 
-- Obtain a paired host/native verdict for the long match capability test
-  before removing the S7 oracle; the direct host run exceeded its usual
-  budget and the latest worker attempt returned no verdict.
-- Keep `sh tools/test-native-c3.sh` as the local R4 gate. It builds the native
+- The long match-capability paired verdict was obtained on 2026-09-28 and is
+  archived in `tests/C2-ACCEPTANCE.md`; it is no longer pending.
+- `sh tools/test-native-c3.sh` remains the local native workflow gate. It builds the native
   driver, generates and verifies the bootstrap cache with
   `tools/warm-bootstrap-cache.sh`, and checks cold bootstrap without host `gf`.
 - Repeat performance probes on a reserved, comparable machine before using
@@ -184,5 +185,5 @@ preserve its generated cache artifact when R4 changes the default runtime.
 
 Do not mark C3 complete by inheriting the C2 aggregate. C3 requires the entry
 and exit evidence above against the then-current native driver and corpus.
-The R4 follow-ups above remain switch prerequisites; they do not negate the
-completed C3 evidence for the documented native workflow.
+The paired results in this file and `tests/C2-ACCEPTANCE.md` are historical
+migration evidence. Oracle retirement means they can no longer be rerun.

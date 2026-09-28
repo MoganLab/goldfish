@@ -18,7 +18,7 @@
 ;; 该文件三合一承载了原 gfformat.json（扫描范围）与 gfexclude.json（排除）：
 ;;   {
 ;;     "cpp":    { "suffix": ["hpp","cpp","h","c","cc","cxx"], "path": ["src"],
-;;                 "exclude": [{"path":"src/s7*","reason":"..."}, "tests"] },
+;;                 "exclude": [{"path":"src/vendor*","reason":"..."}, "tests"] },
 ;;     "scheme": { "suffix": ["scm"], "path": ["goldfish","tools"],
 ;;                 "exclude": ["tests"] }
 ;;   }
@@ -26,7 +26,7 @@
 ;;   suffix  —— 后缀字符串数组（不带点），如 ["hpp","cpp"]。
 ;;   path    —— 根目录/文件字符串数组，仓库批量模式时递归收集。
 ;;   exclude —— 该语言专属排除，支持两种格式：
-;;                纯字符串 "src/s7*" 或对象 {"path":"...","reason":"..."}。
+;;                纯字符串 "src/vendor*" 或对象 {"path":"...","reason":"..."}。
 ;;              支持通配符 *（匹配逻辑在各语言模块/通用层）。
 ;; 配置文件放在项目根（g_project-root，即 gfproject.scm 所在目录）。
 

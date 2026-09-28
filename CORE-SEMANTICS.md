@@ -1,9 +1,9 @@
-# Core 语义（新引擎的求值合同）
+# Lowered core 语义（native evaluator 合同）
 
 求值对象：`ir->core`（`goldfish/core/ir.scm`）输出的 lowered sexp，
 即冻结基线表 D 的 14 个 form。前端负责把其他一切 desugar 掉；
-引擎只实现本页规则。所有 oracle 输出均以当前 s7 后端实测为准
-（`bin/gf /tmp/kilo/probe-*.scm`，2026-09）。
+native evaluator 实现本页规则。下表中的 S7 对照是迁移期记录；语义以
+R7RS 与 native 回归测试为准，不以 S7 行为作为规范。
 
 ## 失真 lowering（引擎必须知道的三件事）
 
@@ -49,33 +49,19 @@
   已加载库注册表；`module-set` 形式为
   `(set! (module-ref 'lib 'name) exp)`。引擎须实现 s7 兼容的
   运行时模块/inlet 注册表（属 T0，未在旧 LAYER.md 点名，现补入）。
-- **continuation 边界**：捕获不跨 s7call 边界（跨即明确 error）。
-  引擎边界即天然 delimiter（对应业界 REPL-delimit 实践）；R7RS
-  单引擎语义内行为完整，跨宿主调用不在语义承诺内。
-- **s7 continuation 不跨 s7call 帧寿命**（同规则另一方向，已实证）：
-  s7 原生 call/cc 在库内部捕获、经 gf0 的 s7call 多次调用后重入，
-  会 longjmp 进已返回的 C++ 帧（use-after-return，表现为垃圾值
-  20/unspecified 而非崩溃）。因此 s7-call/cc 库（如 srfi-158
-  make-coroutine-generator）只能从 s7 求值侧调用，不进 M3 双门；
-  gf0 原生 call/cc（堆 Kont，无 C 帧）不受此限（m2a-generator 为证）。
-  这正是 Filinski 框架条件被违背的实例：两运行时控制模型不复合。
-- **stale fence（已实现，fail-closed）**：`g_gf0-import-inlet` 在 rootlet
-  装 serial-guard wrapper 覆盖 `call/cc` 双名；每次 s7call 压新 token，
-  invoke 时与当前最内 token 比对，不等即 `gf0-stale-continuation` 错误。
-  用户回调是 gf0 box（进 s7 必嵌新 s7call），故协程首 yield 即错——
-  这是对的：membership 谓词会放行 longjmp 穿活 C++ 帧（pin 泄漏，
-  1M yield 即 OOM）。定序铁律：fence 先行（`(gf0-import inlet #f)`，
-  不碰快照）→load（call/cc 装线期）→全量 import（frame-0 快照须覆盖
-  已载库；level-0 load 的 view 直接落在 rootlet）。见
-  `tools/check-gf0-guards.sh`（s7 侧 10/20/eof，gf0 侧 stale×3）。
+- **continuations**：native evaluator 保存并恢复完整的求值控制状态；
+  `call/cc` 与 `dynamic-wind` 由 native runtime 执行，不穿越 S7 C++ 调用帧。
+  控制栈设计与落地记录见 `CONTROL-STACK.md`，回归覆盖见
+  `tests/scheme/base/call-with-current-continuation-test.scm`、
+  `tests/scheme/base/dynamic-wind-test.scm` 和 C2 call/cc 差分记录。
 
-## 实测 oracle（差分门，M2 照单验收）
+## 迁移期对照记录（历史）
 
 s7 列为当前后端实测；guile 3.0.11 / racket 9.2 双方验证
 （`/tmp/kilo/probe-guile.scm`、`/tmp/kilo/probe-racket.rkt`），
 两处分歧双参考实现均站 R7RS：
 
-| 程序 | s7 | guile / racket | 新引擎 |
+| 程序 | s7 | guile / racket | native runtime |
 |---|---|---|---|
 | `(cwv (λ () (values 1 2)) list)` | `(1 2)` | `(1 2)` | 同 |
 | `(cwv (λ () (values)) list)` | `()` | `()` | 同 |
@@ -94,22 +80,19 @@ s7 列为当前后端实测；guile 3.0.11 / racket 9.2 双方验证
 
 - 未绑定（查/改）：`unbound-variable`（与 s7 同键；guile/s7 双 oracle 实测）。
 - 闭包元数、`values` 错位：`wrong-number-of-args`。
-- 非过程调用：**委托 s7 的 apply**，原生错误对象原样穿过
-  （如 `(apply 1 …)` 的 `syntax-error`），check-catch 逐字匹配。
-- `letrec` 未初始化读：`gf0-error`（s7 无此错，保持 R7RS-strict 分歧）。
+- 非过程调用与 `letrec` 未初始化读的错误类型由 native runtime 测试定义；
+  旧 gf0 错误标签和 S7 的错误对象不再是当前接口。
 - 多值调用位统一 splice（实测 oracle）：实参值表 concat 后做元数检查。
   `list`/`+`/`vector` 等原语接受展开（`(+ (values 1 2) 3)` → 6）；
   闭包得展开后的实参（元数不符即 `wrong-number-of-args`）；
   `(values <multi>)` 展开；`apply` 非尾实参加入展开；
   `if` 取首值（零值判真）。`define`/`set!` 位仍须单值。
 
-## 未决
+## 历史与移除记录
 
 - `validate-core-sexp` 已删除（2026-09-15）：它名不副实（只查 head 是否 symbol，
   不查 `core-language`，且拒收 `(lambda ...)` 当过程的合法 core），又零调用。
   core 形状由 expander 保证；管线执法走 `core-form?`/`core-node-of`。
-- `call/cc`/`dynamic-wind` 不可委托：s7 continuation 只捕获 s7 栈，
-  gf0 闭包传给 s7 的 `call/cc` 被拒（实测 wrong-type-arg），且即使
-  递入 s7 闭包、escape 也会丢 gf0 的 C++ 求值帧。须引擎自有控制栈
-  （M-VM），在此之前 gf0 高阶互操作止于 trampoline 回调
-  （`g_gf0-apply`，限单值）。
+- 本文记录了旧 gf0 与 S7 双执行器阶段的部分实验结果；gf0 evaluator、
+  差分门及 stale-continuation fence 已在 R4 清理。当前控制流契约以
+  `RUNTIME_CONTRACT.md`、`CONTROL-STACK.md` 和 native 回归测试为准。

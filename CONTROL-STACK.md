@@ -1,7 +1,10 @@
-# T0 控制栈设计（call/cc＋dynamic-wind＋TCO 的前提）
+# T0 控制栈：设计记录与 native runtime 落地
 
-状态：设计决定，不写代码。reference 求值器（`src/gf0_eval.cpp`）保持
-C++ 递归直 walk；本页是其继任者（M-VM）的开工令。
+本页前半记录已退役 gf0 evaluator 的实验设计；gf0 evaluator 与差分工具已于
+2026-09-28 移除。后半记录 native runtime 的控制栈实现，是当前实现依据。
+历史实验结论不再代表当前 host/native 结构。
+
+## 旧 gf0 evaluator 的设计记录（已退役）
 
 ## 为什么必须自有控制栈（三条证据，都已实测）
 
@@ -107,14 +110,12 @@ C++ 递归直 walk；本页是其继任者（M-VM）的开工令。
   预期与 s7 **同泄漏**（显式栈拷贝语义 pin 住 suffix）——先对齐，
   再谈优化（优化＝prompt，已超 R7RS，不做）。
 
-## Native runtime 的 call/cc 原型（2026-09-27）
+## Native runtime 的 call/cc 实现（2026-09-27）
 
-上面的 M-VM 实现位于 `src/gf0_eval.cpp`，不能视为 C3 native runtime
-已经支持 continuation。C3 使用另一套对象/GC 和 evaluator：
-`src/runtime/evaluator.cpp` 与 `src/runtime/core_evaluator.cpp` 仍通过
-C++ 递归执行非尾表达式；`dynamic-wind` 在
-`src/runtime/standard_primitives.cpp` 中是普通调用包装，无法感知
-continuation 跳转。R4 的 `call/cc` 工作必须在这条 native 路径独立落地。
+上面的 M-VM 实现属于已退役的 gf0 evaluator，不能作为 native runtime
+的实现依据。native continuation 已在 `src/runtime/evaluator.cpp` 与
+`src/runtime/core_evaluator.cpp` 的 CEK 控制机中落地；以下记录描述的是
+当前 native 实现及其边界。
 
 首版采用 evaluator 自有的 CEK 控制循环和可复制 Kont 快照，不操作或
 复制 C++ 栈。捕获时复制当前控制帧；调用 continuation 时从不可变捕获
@@ -140,7 +141,7 @@ continuation 跳转。R4 的 `call/cc` 工作必须在这条 native 路径独立
   只有测量显示快照复制是实际瓶颈，才评估不可变共享段或 COW。COW
   会增加写屏障/分支恢复复杂度，不作为正确性实现的先决条件。
 
-本节不改变 gf0 M-VM 的现有结论。native 路径已落下第一版 CEK machine：
+native 路径已落下 CEK machine：
 Kont frame 与表达式求值共用一个中央循环；闭包调用在机器内展开；
 `call/cc`/`call-with-current-continuation` 保存可多次安装的快照；快照
 保留共享可变环境和全部多值。continuation 带求值机身份，跨嵌套 native
@@ -159,9 +160,10 @@ continuation 进入/退出都会按顺序调用对应 thunk。当前快照使用
 定向验证覆盖 call/cc、多值、重复调用、primitive callback escape、
 异常退出和 dynamic-wind continuation 重入；全量测试尚未运行。
 
-后续核验：三个原先因 engine-callcc 跳过的 C2 文件
+迁移期核验：三个原先因 engine-callcc 跳过的 C2 文件
 （call/cc、完整名称、SRFI-158）已纳入 C2/C3 manifest。严格 host/native
-差分 3/3 一致，C3 native workflow 8 项通过。性能探针位于
+差分 3/3 一致，C3 native workflow 8 项通过；S7 oracle 于 2026-09-28
+退出，这些双端结果为历史记录。性能探针位于
 `bench/native/continuations.scm`；当前样本中 2,000 次浅捕获约为对应
 tail loop 的 1.62 倍；深度 500 和 5,000 的单次快照分别比普通返回高约
 2.8% 和 3.8%。该结果受背景负载影响，只作为 profiling 基线，不作发布
@@ -177,11 +179,12 @@ host 与 native 都返回 `(resumed 41 41)`。这确认该路径恢复控制状�
 原测试把访问次数误当成单遍原语的行为。修订后的回归用例只断言最终向量与恢复完成，
 不绑定到该库实现的遍历次数。
 
-这仍是 native 端原型，不宣称替换 vendored s7 或覆盖所有引擎交界：
-continuation 不能安全穿越任意外部/s7 调用帧；`catch` 的 C++ callback
-边界仍需单独处理。下一步做 native 与 gf0 的差分验证，并测量
-generator/continuation 的快照分配成本；只有数据表明复制是瓶颈时再评估
-共享段或 COW。
+native evaluator 与控制栈现为唯一执行路径。continuation 不能安全穿越
+任意外部 C++ callback 帧；这类引擎扩展须在 evaluator machine 内注册回调。
+gf0 差分实验已随 evaluator 一并退役；迁移审核使用
+已记录的 host/native C2 对照、native-only C3 工作流和定向 continuation
+回归。性能探针保留为 profiling 基线；只有新数据表明复制是实际瓶颈时，
+才评估共享段或 COW。
 
 ### 资源型 Scheme callback 边界：端口部分已迁入机器
 
@@ -194,9 +197,9 @@ generator/continuation 的快照分配成本；只有数据表明复制是瓶颈
 输入端口是内存缓冲端口，恢复时保留其读取位置并重新开放。
 
 native C3 工作流覆盖字符串和文件端口的 escape/re-entry、恢复期间的读写、
-端口异常退出，以及传端口给 callback 的 call-with-* 变体。共享 C2 测试仍
-只验证 host/native 两边都应满足的普通行为；host 的 s7 包装器不能正确续接
-已返回的 C++ 端口包装帧，因此 continuation 专项放在 native-only C3。
+端口异常退出，以及传端口给 callback 的 call-with-* 变体。由于 host 的
+s7 包装器不能正确续接已返回的 C++ 端口包装帧，continuation 专项当时放在
+native-only C3；S7 oracle 已于 2026-09-28 退出。
 
 `catch` 已迁入 evaluator machine：body 由 Catch frame 包围，异常路由在机器
 内匹配 tag 并调度 handler，因此 body/handler 中捕获的 continuation 都能保留

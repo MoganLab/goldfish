@@ -1,4 +1,4 @@
-# C2 parity acceptance
+# C2 parity archive
 
 Date: 2026-09-28
 
@@ -52,27 +52,17 @@ missing verdicts across two slices. Captured summaries are
 machine. These are regression checks for the subsequent changes, not a rerun
 of the full manifest.
 
-The M3 lowered-program guard also passed all 12 `tests/gf0/m2a-*.scm` cases
-on 2026-09-27 (`tools/diff-gf0-m2a.sh`; captured at
-`/tmp/m3-m2a-guard-2026-09-27.log`).
+Before the gf0 evaluator was retired in R4, the M3 lowered-program guard passed
+all 12 `tests/gf0/m2a-*.scm` cases on 2026-09-27. The harness and corpus have
+since been removed; this remains historical migration evidence, not a runnable
+current gate.
 
-## Repeatable gate
+## Oracle retirement
 
-```sh
-sh tools/check-c2-manifest.sh
-C2_STRICT=1 sh tools/c2-compare.sh
-```
-
-The manifest checker verifies unique/in-scope paths and non-empty skip
-reasons. Strict compare mode returns failure for any divergence, missing
-verdict, or same-failure result. For routine changes, run a narrow slice with
-`C2_STRICT=1` rather than repeating the full sweep.
-
-The call/cc slice can be repeated independently:
-
-```sh
-C2_STRICT=1 sh tools/c2-compare.sh \
-  tests/scheme/base/call-slash-cc-test.scm \
-  tests/scheme/base/call-with-current-continuation-test.scm \
-  tests/srfi/srfi-158-test.scm
-```
+The S7 host oracle and `tools/c2-compare.sh` were retired on 2026-09-28 after
+the recorded C2 sweep, strict continuation slices, and match-capability paired
+run were reviewed. The aggregate counts and explicit skip/disposition ledgers
+above remain historical migration evidence; there is no longer a runnable
+host/native parity gate. `tests/float-free.manifest`, `tests/c2-skip.tsv`, and
+the C3 disposition ledger are retained to document the reviewed scope and
+follow-up ownership.

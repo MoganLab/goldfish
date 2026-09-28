@@ -78,5 +78,5 @@ The same suite is also available as an explicit xmake target:
 nix develop -c xmake build native-test
 ```
 
-This keeps cache-free bootstrap checks independent from the host/s7 `gf test`
-runner. The regular Scheme suite remains under `gf test`.
+This keeps cache-free bootstrap checks independent from the former host/s7
+runner. The regular Scheme suite runs through the native `gf test` command.

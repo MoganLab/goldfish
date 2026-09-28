@@ -10,9 +10,12 @@
 <img src="GoldfishScheme-logo.png" alt="示例图片" style="width: 360pt;">
 
 ## 以简为美
-金鱼Scheme仍旧遵循和 S7 Scheme 一样的简约的原则。目前，它仅依赖于 [S7 Scheme](https://ccrma.stanford.edu/software/s7/) 、[tbox](https://gitee.com/tboox/tbox) 和 C++98 范围内的标准库。
+金鱼 Scheme 采用小型运行时设计，使用原生 C++17 求值器，不再依赖或内嵌
+S7。原生程序使用 [tbox](https://gitee.com/tboox/tbox)、C++ 标准库和仓库中的
+BDWGC 垃圾回收器。
 
-与 S7 Scheme 类似，[src/goldfish.hpp](src/goldfish.hpp) 和 [src/goldfish.cpp](src/goldfish.cpp) 是构建金鱼Scheme解释器二进制文件所需的唯一关键源代码。
+程序入口是 [src/runtime/native_main.cpp](src/runtime/native_main.cpp)，求值器与
+自举实现位于 `src/runtime/`。
 
 ## 标准库
 ### 类似Python的标准库
@@ -127,11 +130,10 @@ Commands:
 ```
 
 ### 显示版本
-`version` 子命令将打印 金鱼Scheme 版本和底层 S7 Scheme 版本：
+`version` 子命令打印金鱼 Scheme 版本：
 ```
 > gf version
 Goldfish Scheme 18.11.20 by LiiiLabs
-based on S7 Scheme 11.5 (22-Sep-2025)
 ```
 
 ### 求值代码
@@ -167,9 +169,8 @@ based on S7 Scheme 11.5 (22-Sep-2025)
 + `default`: `-m default` 等价于 `-m r7rs`
 + `liii`: 预加载 `(liii base)`、`(liii error)` 和 `(liii string)` 的 Goldfish Scheme
 + `scheme`: 预加载 `(liii base)` 和 `(liii error)` 的 Goldfish Scheme
-+ `sicp`: 预加载 `(scheme base)` 和 `(srfi sicp)` 的 S7 Scheme
-+ `r7rs`: 预加载 `(scheme base)` 的 S7 Scheme
-+ `s7`: 无额外库加载的 S7 Scheme
++ `sicp`: 预加载 `(scheme base)` 和 `(srfi sicp)` 的金鱼 Scheme
++ `r7rs`: 预加载 `(scheme base)` 的金鱼 Scheme
 
 ### 库搜索路径
 Goldfish 启动时也支持额外的库搜索目录：
@@ -185,10 +186,12 @@ gf -I ~/.local/goldfish/example-lib eval '(begin (import (example hello)) (quote
 启动时，Goldfish 还会自动把 `~/.local/goldfish/` 下所有名称匹配 `xxx-yyy` 且至少包含一个 `.scm` 文件的目录前置到库搜索路径中。
 
 ## 版本命名规则
-金鱼Scheme `x.y.z` 表示它使用的是 tbox 版本 `x`，基于 S7 Scheme `y`，而 `z` 是补丁版本。例如，金鱼Scheme 的第二个版本是 `17.10.1`，表示它使用`tbox 1.7.x`，基于 `S7 Scheme 10.x`，补丁版本是 `1`。
+旧版本号编码了 tbox 与 S7 基础版本。当前版本号标识金鱼 Scheme 本身，
+不再表示 S7 运行时版本。
 
 ## 为什么我们创建了金鱼Scheme
-金鱼Scheme 是为了克服 S7 Scheme 的缺陷而实现的：
+金鱼 Scheme 最初围绕 S7 扩展 R7RS 与标准库；R4 已用原生求值器替换该宿主。
+项目目前关注：
 1. 在 Linux/macOS/Windows 上分发无须编译即可安装的金鱼Scheme解释器和结构化的REPL
 2. 尝试实现 [R7RS-small](https://small.r7rs.org) 标准
 3. 尝试以 R7RS 库格式提供有用的 SRFI

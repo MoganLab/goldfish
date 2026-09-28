@@ -305,7 +305,7 @@
 
     ;; ; 显式 quasiquote 模板的正规化
     ;; ; (quasiquote (a . ,b)) 经 reader 后点已丢失，读出为 (quasiquote (a unquote b))；
-    ;; ; g_quasiquote_1（src/s7.c）求值时对"倒数第二个元素为 unquote 符号"的列表
+    ;; ; 旧 S7 reader/evaluator 对"倒数第二个元素为 unquote 符号"的列表
     ;; ; 按点对 unquote 处理（任意前缀长度），这里做对应的结构恢复，
     ;; ; 使输出为规范的 `(a . ,b) 形式，同时保证幂等。
     (define (normalize-explicit-qq-template datum)
