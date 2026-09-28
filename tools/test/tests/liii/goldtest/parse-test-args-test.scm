@@ -177,5 +177,22 @@
   => "HEAD"
 ) ;check
 
+;; ===== 场景14: -j / --jobs 选项解析 =====
+(check (parse-test-jobs '("bin/gf" "test")) => 1)
+(check (parse-test-jobs '("bin/gf" "test" "-j" "4" "json")) => 4)
+(check (parse-test-jobs '("bin/gf" "test" "-j" "10")) => 10)
+(check (parse-test-jobs '("bin/gf" "test" "--jobs=8")) => 8)
+(check (parse-test-jobs '("bin/gf" "test" "-j=16")) => 16)
+(check (parse-test-jobs '("bin/gf" "test" "-j" "0")) => 1)
+(check (parse-test-jobs '("bin/gf" "test" "-j" "-2")) => 1)
+
+;; -j 不影响目标位置参数识别
+(check (parse-test-args '("bin/gf" "test" "-j" "4" "json"))
+  => '(pattern . "json")
+) ;check
+
+(check (parse-test-args '("bin/gf" "test" "-j=4" "json-test.scm"))
+  => '(filename . "json-test.scm")
+) ;check
 
 (check-report)

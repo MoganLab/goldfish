@@ -46,10 +46,11 @@
     (liii os)
     (liii path)
     (liii sys)
+    (liii go)
   ) ;import
-  (export parse-test-args parse-test-changed-since filter-test-files
-    filter-changed-test-files find-test-files failed-test-files
-    split-tests-target run-goldtest main
+  (export parse-test-args parse-test-changed-since parse-test-jobs
+    filter-test-files filter-changed-test-files find-test-files
+    failed-test-files split-tests-target run-goldtest main
   ) ;export
   (begin
 
@@ -119,6 +120,112 @@
           (cons test-file result)
         ) ;let
       ) ;let
+    ) ;define
+
+    (define (display-fail-log tmp-log)
+      (when (file-exists? tmp-log)
+        (let ((port (open-input-file tmp-log)))
+          (let loop
+            ()
+            (let ((line (read-line port)))
+              (unless (eof-object? line)
+                (display "    ")
+                (display line)
+                (newline)
+                (loop)
+              ) ;unless
+            ) ;let
+          ) ;let
+          (close-input-port port)
+          (remove tmp-log)
+        ) ;let
+      ) ;when
+    ) ;define
+
+    (define (cleanup-log tmp-log)
+      (when (file-exists? tmp-log)
+        (remove tmp-log)
+      ) ;when
+    ) ;define
+
+    (define (test-worker task-ch result-ch exe)
+      (let loop
+        ()
+        (let ((test-file (chan-recv! task-ch)))
+          (unless (eof-object? test-file)
+            (let* ((cmd (string-append exe " -m r7rs " test-file)) (exit-code (os-call cmd)))
+              (chan-send! result-ch (list test-file exit-code ""))
+              (loop)
+            ) ;let*
+          ) ;unless
+        ) ;let
+      ) ;let
+    ) ;define
+
+    (define (run-tests-parallel test-files jobs)
+      (let* ((total (length test-files))
+             (task-ch (make-chan total))
+             (result-ch (make-chan total))
+             (exe (executable))
+            ) ;
+        (display (string-append "Running "
+                   (number->string total)
+                   " tests in parallel with "
+                   (number->string jobs)
+                   " workers..."
+                 ) ;string-append
+        ) ;display
+        (newline)
+        (newline)
+        ;; 1. 将所有任务推入 task-ch
+        (for-each (lambda (f) (chan-send! task-ch f)) test-files)
+        (chan-close! task-ch)
+
+        ;; 2. 启动 jobs 个并发 worker（直接函数调用语法）
+        (let loop
+          ((i 0))
+          (when (< i jobs)
+            (go (test-worker task-ch result-ch exe))
+            (loop (+ i 1))
+          ) ;when
+        ) ;let
+
+        ;; 3. 主线程收集并实时显示结果
+        (let loop
+          ((count 0) (results '()))
+          (if (< count total)
+            (let* ((res (chan-recv! result-ch))
+                   (test-file (car res))
+                   (exit-code (cadr res))
+                   (log-path (caddr res))
+                   (idx (+ count 1))
+                  ) ;
+              (display (string-append "  ["
+                         (number->string idx)
+                         "/"
+                         (number->string total)
+                         "] "
+                         test-file
+                         " ... "
+                       ) ;string-append
+              ) ;display
+              (if (zero? exit-code)
+                (begin
+                  (display (string-append GREEN "PASS" RESET "\n"))
+                  (cleanup-log log-path)
+                ) ;begin
+                (begin
+                  (display (string-append RED "FAIL" RESET " exit-code=" (number->string exit-code) "\n")
+                  ) ;display
+                  (display-fail-log log-path)
+                ) ;begin
+              ) ;if
+              (loop (+ count 1) (cons (cons test-file exit-code) results))
+            ) ;let*
+            (reverse results)
+          ) ;if
+        ) ;let
+      ) ;let*
     ) ;define
 
     (define (failed-test-files test-results)
@@ -193,6 +300,10 @@
            ) ;
         (parser :add-argument '((name . "changed-since") (type . string)))
         (parser :add-argument '((name . "all") (action . store-true)))
+        (parser
+          :add-argument
+          '((name . "jobs") (short . "j") (type . number) (default . 1))
+        ) ;parser
         (parser :add-argument '((name . "help")
                                 (short . "h")
                                 (action . store-true)))
@@ -241,6 +352,15 @@
       (let ((parser (make-test-arg-parser)))
         (parser :parse-argv args)
         (parser 'changed-since)
+      ) ;let
+    ) ;define
+
+    (define (parse-test-jobs args)
+      (let ((parser (make-test-arg-parser)))
+        (parser :parse-argv args)
+        (let ((j (parser 'jobs)))
+          (if (and (number? j) (> j 0)) (exact j) 1)
+        ) ;let
       ) ;let
     ) ;define
 
@@ -529,6 +649,7 @@
              (args (check-and-switch-to-target raw-args))
              (all-mode (parse-test-all args))
              (changed-since (parse-test-changed-since args))
+             (jobs (parse-test-jobs args))
              (parsed (parse-test-args args))
              (arg-type (car parsed))
              (arg-value (cdr parsed))
@@ -591,10 +712,13 @@
               (newline)
             ) ;when
             (let ((test-results
-                    (fold (lambda (test-file acc) (newline) (cons (run-test-file test-file) acc))
-                      (list)
-                      test-files
-                    ) ;fold
+                    (if (> jobs 1)
+                      (run-tests-parallel test-files jobs)
+                      (fold (lambda (test-file acc) (newline) (cons (run-test-file test-file) acc))
+                        (list)
+                        test-files
+                      ) ;fold
+                    ) ;if
                   ) ;test-results
                  ) ;
               (let ((failed (display-summary test-results)))
@@ -617,6 +741,9 @@
       (newline)
       (newline)
       (display "Options:")
+      (newline)
+      (display "  -j, --jobs NUM                   Number of parallel worker jobs (default: 1)"
+      ) ;display
       (newline)
       (display "  --all                            Run all tests (greedy: changed first, then all)"
       ) ;display
