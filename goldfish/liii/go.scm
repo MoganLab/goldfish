@@ -358,14 +358,14 @@
     ) ;define-macro
 
     (define-macro (select . clauses)
-      (let ((default-branch #f) (timeout-branch #f) (timeout-ms 0) (cases '()))
+      (let ((else-branch #f) (timeout-branch #f) (timeout-ms 0) (cases '()))
         (for-each
           (lambda (clause)
             (cond
-             ((and (pair? clause) (eq? (car clause) 'default))
-              (if default-branch
-                (error 'syntax-error "select: multiple default clauses")
-                (set! default-branch (cdr clause))
+             ((and (pair? clause) (eq? (car clause) 'else))
+              (if else-branch
+                (error 'syntax-error "select: multiple else clauses")
+                (set! else-branch (cdr clause))
               ) ;if
              ) ;
              ((and (pair? clause) (eq? (car clause) 'timeout))
@@ -384,8 +384,8 @@
           clauses
         ) ;for-each
 
-        (if (and default-branch timeout-branch)
-          (error 'syntax-error "select: cannot specify both default and timeout clauses")
+        (if (and else-branch timeout-branch)
+          (error 'syntax-error "select: cannot specify both else and timeout clauses")
         ) ;if
 
         (set! cases (reverse cases))
@@ -399,7 +399,10 @@
                  ((eq? op 'chan-recv!)
                   (let ((ch-sym (gensym "ch")))
                     (set! pre-bindings (cons `(,ch-sym ,(cadr action)) pre-bindings))
-                    (set! parsed-cases (cons (list 'recv ch-sym (caddr action) body) parsed-cases))
+                    (if (and (pair? body) (eq? (car body) '=>))
+                      (set! parsed-cases (cons (list 'recv-arrow ch-sym (cadr body)) parsed-cases))
+                      (set! parsed-cases (cons (list 'recv ch-sym (caddr action) body) parsed-cases))
+                    ) ;if
                   ) ;let
                  ) ;
                  ((eq? op 'chan-send!)
@@ -430,7 +433,7 @@
           (let ((recv-cases '()) (send-cases '()))
             (for-each
               (lambda (c)
-                (if (eq? (car c) 'recv)
+                (if (or (eq? (car c) 'recv) (eq? (car c) 'recv-arrow))
                   (set! recv-cases (append recv-cases (list c)))
                   (set! send-cases (append send-cases (list c)))
                 ) ;if
@@ -443,16 +446,18 @@
                       ((rcs recv-cases) (i 0) (acc '()))
                       (if (null? rcs)
                         (reverse acc)
-                        (loop (cdr rcs)
-                          (+ i 1)
-                          (cons
-                            `((,i)
-                              ((lambda (,(caddr (car rcs)))
-                                 ,@(cadddr (car rcs)))
-                               (vector-ref ,result-sym ,2)))
-                            acc
-                          ) ;cons
-                        ) ;loop
+                        (let* ((rc (car rcs))
+                               (kind (car rc))
+                               (dispatch-expr
+                                 (if (eq? kind 'recv-arrow)
+                                   `(,(caddr rc) (vector-ref ,result-sym ,2))
+                                   `((lambda (,(caddr rc)) ,@(cadddr rc))
+                                     (vector-ref ,result-sym ,2))
+                                 ) ;if
+                               ) ;dispatch-expr
+                              ) ;
+                          (loop (cdr rcs) (+ i 1) (cons `((,i) ,dispatch-expr) acc))
+                        ) ;let*
                       ) ;if
                     ) ;let
                   ) ;recv-dispatch
@@ -473,13 +478,13 @@
                         (g_select (list ,@(map cadr recv-cases))
                           (list ,@(map (lambda (c) `(cons ,(cadr c) ,(caddr c)))
                                     send-cases))
-                          ,(cond (default-branch 0)
+                          ,(cond (else-branch 0)
                                  (timeout-branch timeout-ms)
                                  (else -1)))))
                    (if (not ,result-sym)
-                     ,(cond (default-branch `(begin ,@default-branch))
+                     ,(cond (else-branch `(begin ,@else-branch))
                             (timeout-branch `(begin ,@timeout-branch))
-                            ;; 无 default/timeout 时 g_select 无限等待，不会走到这里
+                            ;; 无 else/timeout 时 g_select 无限等待，不会走到这里
                             (else '(begin)))
                      (case (vector-ref ,result-sym ,0)
                            ,@(if (pair? recv-cases)
