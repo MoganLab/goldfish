@@ -747,6 +747,7 @@ void set_current_input_port_value(Value port) { g_current_ports.input = port; }
 void set_current_output_port_value(Value port) { g_current_ports.output = port; }
 
 void install_runtime_primitives(Evaluator& evaluator) {
+    install_random_primitives(evaluator);
     // Platform capability adapters are installed as a separate layer.
     install_platform_primitives(evaluator);
 

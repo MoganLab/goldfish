@@ -48,6 +48,7 @@ enum class ObjectType : std::uint8_t {
     EvalEnvironment,
     Module,
     Number,
+    RandomSource,
 };
 
 class Object {

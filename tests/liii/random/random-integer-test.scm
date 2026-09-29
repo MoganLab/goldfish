@@ -42,6 +42,11 @@
 (check (>= (random-integer 1) 0) => #t)
 (check (< (random-integer 1) 1) => #t)
 
+(let* ((n (expt 2 200)) (r (random-integer n)))
+  (check (exact? r) => #t)
+  (check (>= r 0) => #t)
+  (check (< r n) => #t))
+
 
 (let ((r (random-integer 100)))
   (check (>= r 0) => #t)

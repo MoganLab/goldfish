@@ -122,6 +122,10 @@
      unspecified unspecified? undefined undefined? record-instance fill! display*
      random
      ;; Native C++ boundary functions (g_*)
+     g_random-source-create g_random-source? g_random-source-state-ref
+     g_random-source-state-set! g_random-source-randomize!
+     g_random-source-pseudo-randomize! g_random-source-integer
+     g_random-source-real
      g_access g_bytevector-base64-decode g_bytevector-base64-encode g_chdir
      g_executable g_getcwd g_getlogin g_getpid g_get-environment-variable g_getenvs
      g_char-upcase g_char-downcase g_char-foldcase g_char-alphabetic?

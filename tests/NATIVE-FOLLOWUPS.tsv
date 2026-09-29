@@ -1,5 +1,4 @@
 # path	area	status	next step
-tests/srfi/srfi-27-test.scm	random	defer	Implement native random state and SRFI-27 behavior
 tests/liii/base/make-hook-test.scm	api	exclude	Hook invocation is outside the native API
 tests/liii/base/signature-test.scm	api	exclude	Procedure signature reflection is outside the native API
 tests/liii/uuid-test.scm	platform	defer	Decide and implement UUID support
@@ -31,13 +30,6 @@ tests/liii/njson/njson-schema-report-test.scm	platform	defer	Decide and implemen
 tests/liii/njson/njson-to-file-test.scm	platform	defer	Decide and implement njson support
 tests/liii/njson/njson-to-json-test.scm	platform	defer	Decide and implement njson support
 tests/liii/njson/string-to-njson-test.scm	platform	defer	Decide and implement njson support
-tests/liii/random-test.scm	random	defer	Implement native random state and liii random behavior
-tests/liii/random/make-random-source-test.scm	random	defer	Implement native random state and liii random behavior
-tests/liii/random/random-source-make-integers-test.scm	random	defer	Implement native random state and liii random behavior
-tests/liii/random/random-source-randomize-test.scm	random	defer	Implement native random state and liii random behavior
-tests/liii/random/random-source-state-ref-test.scm	random	defer	Implement native random state and liii random behavior
-tests/liii/random/random-source-state-set-test.scm	random	defer	Implement native random state and liii random behavior
-tests/liii/random/reproducibility-test.scm	random	defer	Implement native random state and liii random behavior
 tests/liii/subprocess/run-allow-bang-test.scm	platform	defer	Decide and implement subprocess support
 tests/liii/subprocess/run-and-test.scm	platform	defer	Decide and implement subprocess support
 tests/liii/subprocess/run-ban-bang-test.scm	platform	defer	Decide and implement subprocess support

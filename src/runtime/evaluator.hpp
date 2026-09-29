@@ -63,6 +63,13 @@ public:
     Number value;
 };
 
+class RandomSourceObject final : public Object {
+public:
+    RandomSourceObject() : Object(ObjectType::RandomSource),
+        state{0x243f6a8885a308d3ULL, 0x13198a2e03707344ULL} {}
+    std::uint64_t state[2];
+};
+
 bool is_number(Value value) noexcept;
 Number number_value(Value value);
 std::string number_to_string(Value value, unsigned radix = 10);
