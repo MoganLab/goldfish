@@ -122,6 +122,7 @@
      unspecified unspecified? undefined undefined? record-instance fill! display*
      random
      ;; Native C++ boundary functions (g_*)
+     g_uuid4
      g_random-source-create g_random-source? g_random-source-state-ref
      g_random-source-state-set! g_random-source-randomize!
      g_random-source-pseudo-randomize! g_random-source-integer

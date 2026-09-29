@@ -8,6 +8,7 @@
 #include <fstream>
 #include <iterator>
 #include <optional>
+#include <random>
 #include <stdexcept>
 #include <string>
 #include <thread>
@@ -148,6 +149,27 @@ void set_native_command_line(int argc, char** argv) {
 }
 
 void install_platform_primitives(Evaluator& evaluator) {
+    install(evaluator, "g_uuid4", [&evaluator](const Values& args) {
+        require_arity(args, 0, "g_uuid4");
+        std::array<unsigned char, 16> bytes{};
+        std::random_device entropy;
+        std::uniform_int_distribution<unsigned> byte(0, 255);
+        for (auto& value : bytes)
+            value = static_cast<unsigned char>(byte(entropy));
+        bytes[6] = static_cast<unsigned char>((bytes[6] & 0x0f) | 0x40);
+        bytes[8] = static_cast<unsigned char>((bytes[8] & 0x3f) | 0x80);
+
+        static constexpr char digits[] = "0123456789abcdef";
+        std::string uuid;
+        uuid.reserve(36);
+        for (std::size_t i = 0; i < bytes.size(); ++i) {
+            if (i == 4 || i == 6 || i == 8 || i == 10)
+                uuid.push_back('-');
+            uuid.push_back(digits[bytes[i] >> 4]);
+            uuid.push_back(digits[bytes[i] & 0x0f]);
+        }
+        return Values{evaluator.string(uuid)};
+    });
     install(evaluator, "getenv", [&evaluator](const Values& args) {
         require_arity(args, 1, "getenv");
         const char* value = std::getenv(evaluator.string_value(args[0]).c_str());
