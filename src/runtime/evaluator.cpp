@@ -9,6 +9,22 @@
 
 namespace goldfish::runtime {
 
+bool is_number(Value value) noexcept {
+    return value.is_integer() || (value.is_object() &&
+        value.as_object()->type() == ObjectType::Number);
+}
+
+Number number_value(Value value) {
+    if (value.is_integer()) return number_from_int64(value.as_integer());
+    if (value.is_object() && value.as_object()->type() == ObjectType::Number)
+        return value.as_object<NumberObject>()->value;
+    throw std::runtime_error("expected number");
+}
+
+std::string number_to_string(Value value, unsigned radix) {
+    return number_value(value).to_string(radix);
+}
+
 void Evaluator::define_primitive(const std::string& name,
                                  PrimitiveObject::Function function) {
     global_->define(symbol(name),

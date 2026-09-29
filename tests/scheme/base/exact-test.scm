@@ -22,7 +22,7 @@
 ;; ----
 ;; 1. 对于整数，返回其自身
 ;; 2. 对于不精确实数，返回最接近的精确有理数
-;; 3. 不支持复数转换
+;; 3. 复数的实部和虚部分别转换
 ;;
 ;; 错误处理
 ;; --------
@@ -43,5 +43,5 @@
 (check-catch 'wrong-number-of-args (exact 1 2))
 (check-catch 'wrong-type-arg (exact 'a))
 (check-catch 'wrong-type-arg (exact "hello"))
-(check-catch 'wrong-type-arg (exact 1.0+2.0i))
+(check (exact 1.0+2.0i) => 1+2i)
 (check-report)

@@ -14,7 +14,7 @@
 ;; str : string?
 ;; 要解析为数值的字符串。支持整数、实数、有理数、复数、浮点数科学计数法等格式。
 ;; radix : exact-integer?
-;; 可选参数，指定解析的进制。必须是精确的整数，范围在2到16之间（包含2和16）。
+;; 可选参数，指定解析的进制。必须是精确整数2、8、10或16。
 ;; 当不指定时，默认为10进制。
 ;;
 ;; 返回值
@@ -34,7 +34,7 @@
 ;;
 ;; 错误情况
 ;; -------
-;; 当radix参数超出有效范围（2-16）时，行为未定义（S7中返回#f）。
+;; 当radix参数不是2、8、10或16时抛出out-of-range错误。
 ;; 基本整数解析测试
 (check (string->number "123") => 123)
 (check (string->number "0") => 0)
@@ -63,8 +63,8 @@
   =>
   #t
 ) ;check
-(check (string->number "12345678901234567890") => -6101065172474983726)
-(check (string->number "-9223372036854775809") => 9223372036854775807)
+(check (string->number "12345678901234567890") => 12345678901234567890)
+(check (string->number "-9223372036854775809") => -9223372036854775809)
 (check-true (< (abs (- (string->number "1.23e-3") 0.00123)) 1e-10))
 (check (string->number "1e5") => 100000.0)
 (check (string->number "1e-5") => 0.00001)
@@ -94,6 +94,13 @@
 (check (string->number "1.2.3") => #f)
 (check (string->number "1/2/3") => #f)
 (check (string->number "1+i+i") => #f)
+(check (string->number "#e#i1.0") => #f)
+(check (string->number "#i#e1.0") => #f)
+(check (string->number "#e#e1") => #f)
+(check (string->number "#x#d10") => #f)
+(check (string->number "#d#x10") => #f)
+(check (string->number "#e#x10") => 16)
+(check (string->number "#x#e10") => 16)
 (check (string->number "") => #f)
 (check (string->number "   ") => #f)
 (check (string->number "1 2") => #f)
@@ -102,8 +109,8 @@
 (check (string->number "0" 16) => 0)
 (check (string->number "-80" 16) => -128)
 (check (string->number "1111111111" 2) => 1023)
-(check (string->number "8000000000000000" 16) => -9223372036854775808)
-(check (string->number "ffffffffffffffff" 16) => -1)
+(check (string->number "8000000000000000" 16) => 9223372036854775808)
+(check (string->number "ffffffffffffffff" 16) => 18446744073709551615)
 ;; 十六进制测试
 (check (string->number "FF" 16) => 255)
 (check (string->number "-FF" 16) => -255)
@@ -111,6 +118,7 @@
 (check (string->number "a" 16) => 10)
 ;; 错误处理测试（无效进制）
 (check-catch 'out-of-range (string->number "123" 1))
+(check-catch 'out-of-range (string->number "123" 3))
 (check-catch 'out-of-range (string->number "123" 17))
 (check-catch 'out-of-range (string->number "123" 0))
 (check-catch 'out-of-range (string->number "123" -1))

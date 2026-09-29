@@ -53,6 +53,8 @@
 (check (gcd 15 0) => 15)
 (check (gcd -6 8) => 2)
 (check (gcd 12 -9) => 3)
+(check (gcd 12345678901234567890 24691357802469135780)
+       => 12345678901234567890)
 (check-catch 'wrong-type-arg (gcd 1.5))
 (check-catch 'wrong-type-arg (gcd 2.3))
 (check-catch 'wrong-type-arg (gcd 1.0+1.0i))

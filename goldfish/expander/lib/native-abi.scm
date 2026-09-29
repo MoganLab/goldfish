@@ -361,6 +361,10 @@
 ;; s7 compatibility: its lcm is R7RS lcm for the exact arguments the
 ;; s7-lcm test pins.
 (define (s7-lcm . args) (apply lcm args))
+(define (s7-floor x) (exact (floor x)))
+(define (s7-ceiling x) (exact (ceiling x)))
+(define (s7-round x) (exact (round x)))
+(define (s7-truncate x) (exact (truncate x)))
 
 ;; Host s7 seeds this from its own feature list; only claim what the
 ;; native runtime actually is (ieee-float/ratios/complex join the float

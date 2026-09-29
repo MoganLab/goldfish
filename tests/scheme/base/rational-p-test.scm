@@ -16,14 +16,16 @@
 ;; 返回值
 ;; -----
 ;; boolean?
-;; 如果 obj 是数值类型（整数、有理数）返回 #t，否则返回 #f。
+;; 如果 obj 是有限实数返回 #t，否则返回 #f。
 ;;
 ;; 错误
 ;; ----
 ;; 无错误情况。
 (check-true (rational? 123))
 (check-true (rational? 1/2))
-(check-false (rational? 123.456))
+(check-true (rational? 123.456))
+(check-false (rational? +inf.0))
+(check-false (rational? +nan.0))
 (check-false (rational? 1.0+2.0i))
 (check-false (rational? "123"))
 (check-false (rational? #t))

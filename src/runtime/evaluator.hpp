@@ -4,6 +4,7 @@
 #include "runtime/error.hpp"
 #include "runtime/core_forms.hpp"
 #include "runtime/symbol.hpp"
+#include "runtime/numeric.hpp"
 
 #include <functional>
 #include <cstddef>
@@ -53,6 +54,18 @@ public:
 
     char32_t value;
 };
+
+class NumberObject final : public Object {
+public:
+    explicit NumberObject(Number value)
+        : Object(ObjectType::Number), value(std::move(value)) {}
+
+    Number value;
+};
+
+bool is_number(Value value) noexcept;
+Number number_value(Value value);
+std::string number_to_string(Value value, unsigned radix = 10);
 
 class EofObject final : public Object {
 public:
@@ -385,6 +398,17 @@ public:
 
     Value string(const std::string& value) {
         return Value::object(heap_.make<StringObject>(value));
+    }
+
+    Value number(Number value) {
+        if (value.has_imaginary_part && value.imag.is_zero() &&
+            !value.imag.inexact && !value.real.inexact)
+            value.has_imaginary_part = false;
+        if (!value.has_imaginary_part && !value.real.inexact &&
+            value.real.denominator == BigInteger(1) &&
+            value.real.numerator.fits_int64())
+            return Value::integer(value.real.numerator.to_int64());
+        return Value::object(heap_.make<NumberObject>(std::move(value)));
     }
 
     std::string string_value(Value value);

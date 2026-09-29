@@ -46,7 +46,7 @@
 (check (nan? (+ +inf.0 -inf.0)) => #t)
 (check (+ 1e+308 1e+308) => +inf.0)
 (check (+ -1e+308 -1e+308) => -inf.0)
-(check (+ 9223372036854775807 1) => -9223372036854775808)
+(check (+ 9223372036854775807 1) => 9223372036854775808)
 (check-catch 'wrong-type-arg (+ 'hello 7))
 (check-catch 'wrong-type-arg (+ "world" 7))
 (check-catch 'wrong-type-arg (+ #t 7))

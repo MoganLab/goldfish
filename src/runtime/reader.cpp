@@ -384,13 +384,9 @@ Value TinyReader::read_atom() {
     if (token == "#f")
         return Value::boolean(false);
 
-    char* end = nullptr;
-    errno = 0;
-    long long integer = std::strtoll(token.c_str(), &end, 10);
-    if (end == token.c_str() + token.size() && errno != ERANGE &&
-        integer >= std::numeric_limits<std::int64_t>::min() &&
-        integer <= std::numeric_limits<std::int64_t>::max())
-        return Value::integer(static_cast<std::int64_t>(integer));
+    Number number;
+    if (parse_number(token, number))
+        return evaluator_.number(std::move(number));
     return evaluator_.symbol(token);
 }
 

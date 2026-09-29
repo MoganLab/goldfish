@@ -39,6 +39,7 @@
 (check (remainder 0 5) => 0)
 (check (remainder 15 5) => 0)
 (check (remainder 16 5) => 1)
+(check (remainder 123456789012345678901 10) => 1)
 (check (remainder 11/2 3) => 5/2)
 (check-catch 'division-by-zero (remainder 5 0))
 (check-catch 'wrong-type-arg (remainder 5 "hello"))

@@ -2,6 +2,8 @@
 (import (liii error))
 (import (scheme base))
 (check-set-mode! 'report-failed)
+(define (exact-integer-sqrt->list n)
+  (call-with-values (lambda () (exact-integer-sqrt n)) list))
 ;; exact-integer-sqrt
 ;; 计算给定非负精确整数的精确平方根。
 ;;
@@ -32,19 +34,21 @@
 ;; 当参数不是准确的整数时抛出错误。
 ;; value-error
 ;; 当参数是负数时抛出错误。
-(check (list (exact-integer-sqrt 9)) => (list 3 0))
-(check (list (exact-integer-sqrt 5)) => (list 2 1))
-(check (list (exact-integer-sqrt 0)) => (list 0 0))
-(check (list (exact-integer-sqrt 1)) => (list 1 0))
-(check (list (exact-integer-sqrt 4)) => (list 2 0))
-(check (list (exact-integer-sqrt 16)) => (list 4 0))
-(check (list (exact-integer-sqrt 2)) => (list 1 1))
-(check (list (exact-integer-sqrt 3)) => (list 1 2))
-(check (list (exact-integer-sqrt 8)) => (list 2 4))
-(check (list (exact-integer-sqrt 25)) => (list 5 0))
-(check (list (exact-integer-sqrt 100)) => (list 10 0))
-(check (list (exact-integer-sqrt 1000)) => (list 31 39))
-(check (list (exact-integer-sqrt 1000000)) => (list 1000 0))
+(check (exact-integer-sqrt->list 9) => (list 3 0))
+(check (exact-integer-sqrt->list 5) => (list 2 1))
+(check (exact-integer-sqrt->list 0) => (list 0 0))
+(check (exact-integer-sqrt->list 1) => (list 1 0))
+(check (exact-integer-sqrt->list 4) => (list 2 0))
+(check (exact-integer-sqrt->list 16) => (list 4 0))
+(check (exact-integer-sqrt->list 2) => (list 1 1))
+(check (exact-integer-sqrt->list 3) => (list 1 2))
+(check (exact-integer-sqrt->list 8) => (list 2 4))
+(check (exact-integer-sqrt->list 25) => (list 5 0))
+(check (exact-integer-sqrt->list 100) => (list 10 0))
+(check (exact-integer-sqrt->list 1000) => (list 31 39))
+(check (exact-integer-sqrt->list 1000000) => (list 1000 0))
+(check (exact-integer-sqrt->list 10000000000000000000000000000000000000000)
+       => (list 100000000000000000000 0))
 (check-catch 'type-error (exact-integer-sqrt "a"))
 (check-catch 'value-error (exact-integer-sqrt -1))
 (check-catch 'type-error (exact-integer-sqrt 1.1))

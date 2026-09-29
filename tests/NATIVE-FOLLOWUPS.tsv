@@ -1,7 +1,5 @@
 # path	area	status	next step
 tests/srfi/srfi-27-test.scm	random	defer	Implement native random state and SRFI-27 behavior
-tests/scheme/complex-test.scm	numeric	defer	Complete complex and inexact number support
-tests/scheme/base/star-test.scm	numeric	defer	Complete exact arithmetic and bignum support
 tests/liii/base/make-hook-test.scm	api	exclude	Hook invocation is outside the native API
 tests/liii/base/signature-test.scm	api	exclude	Procedure signature reflection is outside the native API
 tests/liii/uuid-test.scm	platform	defer	Decide and implement UUID support

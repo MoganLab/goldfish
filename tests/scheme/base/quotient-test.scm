@@ -50,6 +50,7 @@
 (check (quotient -17 5) => -3)
 (check (quotient 17 -5) => -3)
 (check (quotient -17 -5) => 3)
+(check (quotient 123456789012345678901 10) => 12345678901234567890)
 (check-catch 'division-by-zero (quotient 11 0))
 (check-catch 'division-by-zero (quotient 0 0))
 (check (quotient 10.5 3.0) => 3)

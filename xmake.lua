@@ -33,6 +33,7 @@ option("pin-deps")
 option_end()
 
 local TBOX_VERSION = "1.8.0"
+local BOOST_VERSION = "1.92.0"
 if has_config("tbox") then
     add_requires("apt::libtbox-dev", {alias="tbox"})
 else
@@ -43,6 +44,9 @@ else
         add_requires("tbox", {system=system, configs=tbox_configs})
     end
 end
+
+-- Numeric values use Boost.Multiprecision's header-only cpp_int backend.
+add_requires("boost " .. BOOST_VERSION, {configs = {header_only = true}})
 
 if is_plat("wasm") then
 if has_config("pin-deps") then
@@ -56,6 +60,8 @@ end
 -- Keep the native runtime layer in one place.  Standalone tests use the core
 -- set; bootstrap-capable targets add artifact/bootstrap on top of it.
 local function add_native_runtime_sources()
+    add_packages("boost")
+    add_files("src/runtime/numeric.cpp")
     add_files("src/runtime/evaluator.cpp")
     add_files("src/runtime/core_evaluator.cpp")
     add_files("src/runtime/reader.cpp")
@@ -68,6 +74,8 @@ local function add_native_runtime_sources()
 end
 
 local function add_native_bootstrap_sources()
+    add_packages("boost")
+    add_files("src/runtime/numeric.cpp")
     add_files("src/runtime/evaluator.cpp")
     add_files("src/runtime/core_evaluator.cpp")
     add_files("src/runtime/reader.cpp")

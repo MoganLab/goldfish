@@ -9,6 +9,7 @@
 #include <cctype>
 #include <cerrno>
 #include <cmath>
+#include <complex>
 #include <cstring>
 #include <functional>
 #include <cstdlib>
@@ -19,6 +20,7 @@
 #include <limits>
 #include <memory>
 #include <numeric>
+#include <optional>
 #include <sstream>
 #include <stdexcept>
 
@@ -69,6 +71,133 @@ bool symbol_named(Value value, const char* name) {
            value.as_object<SymbolObject>()->name == name;
 }
 
+bool integer_value(Value value, BigInteger& result) {
+    if (!is_number(value)) return false;
+    Number number = number_value(value);
+    if (!number.is_real() || !number.real.is_integer()) return false;
+    if (number.real.inexact) {
+        if (!std::isfinite(number.real.inexact_value)) return false;
+        number.real = exact_from_double(number.real.inexact_value);
+    }
+    result = number.real.numerator;
+    return true;
+}
+
+BigInteger truncate_real_quotient(const Number& dividend,
+                                 const Number& divisor) {
+    Number ratio = number_divide(dividend, divisor);
+    RealNumber real = ratio.real;
+    if (real.inexact) {
+        if (!std::isfinite(real.inexact_value))
+            throw std::runtime_error("quotient result is not finite");
+        real = exact_from_double(real.inexact_value);
+    }
+    return real.numerator / real.denominator;
+}
+
+Value make_integer(Evaluator& evaluator, BigInteger value,
+                   bool inexact = false) {
+    if (inexact)
+        return evaluator.number(Number::inexact(value.to_double()));
+    return evaluator.number(Number::exact(std::move(value)));
+}
+
+BigInteger exact_floor(const RealNumber& value) {
+    BigInteger quotient = value.numerator / value.denominator;
+    if (value.numerator.negative() &&
+        !(value.numerator % value.denominator).is_zero())
+        quotient -= BigInteger(1);
+    return quotient;
+}
+
+RealNumber rational_add(const RealNumber& a, const RealNumber& b) {
+    return RealNumber::exact(a.numerator * b.denominator +
+                             b.numerator * a.denominator,
+                             a.denominator * b.denominator);
+}
+
+RealNumber rational_subtract(const RealNumber& a, const RealNumber& b) {
+    return RealNumber::exact(a.numerator * b.denominator -
+                             b.numerator * a.denominator,
+                             a.denominator * b.denominator);
+}
+
+RealNumber rational_negate(const RealNumber& value) {
+    return RealNumber::exact(-value.numerator, value.denominator);
+}
+
+RealNumber simplest_rational(RealNumber lower, RealNumber upper) {
+    const RealNumber zero = RealNumber::exact(BigInteger(0));
+    if (compare(lower, zero) <= 0 && compare(upper, zero) >= 0)
+        return zero;
+    if (compare(upper, zero) < 0) {
+        RealNumber result = simplest_rational(rational_negate(upper),
+                                              rational_negate(lower));
+        return rational_negate(result);
+    }
+
+    BigInteger low_floor = exact_floor(lower);
+    BigInteger high_floor = exact_floor(upper);
+    if (low_floor != high_floor)
+        return RealNumber::exact(low_floor + BigInteger(1));
+    if (lower.denominator == BigInteger(1)) return lower;
+
+    RealNumber whole = RealNumber::exact(low_floor);
+    RealNumber low_fraction = rational_subtract(lower, whole);
+    RealNumber high_fraction = rational_subtract(upper, whole);
+    RealNumber reciprocal_low = RealNumber::exact(
+        high_fraction.denominator, high_fraction.numerator);
+    RealNumber reciprocal_high = RealNumber::exact(
+        low_fraction.denominator, low_fraction.numerator);
+    RealNumber tail = simplest_rational(std::move(reciprocal_low),
+                                        std::move(reciprocal_high));
+    RealNumber reciprocal_tail = RealNumber::exact(tail.denominator,
+                                                   tail.numerator);
+    return rational_add(whole, reciprocal_tail);
+}
+
+std::string value_hint(Value value, int depth = 0) {
+    if (depth >= 4) return "...";
+    if (value.is_integer()) return std::to_string(value.as_integer());
+    if (value.is_boolean()) return value.as_boolean() ? "#t" : "#f";
+    if (value.is_null()) return "()";
+    if (is_number(value)) return number_to_string(value);
+    if (!value.is_object()) return "#<value>";
+    switch (value.as_object()->type()) {
+    case ObjectType::Symbol:
+        return value.as_object<SymbolObject>()->name;
+    case ObjectType::String:
+        return "\"" + value.as_object<StringObject>()->value + "\"";
+    case ObjectType::Pair: {
+        std::string result = "(";
+        Value rest = value;
+        for (int i = 0; i < 4 && rest.is_object() &&
+             rest.as_object()->type() == ObjectType::Pair; ++i) {
+            if (i) result += " ";
+            auto* pair = rest.as_object<PairObject>();
+            result += value_hint(pair->car, depth + 1);
+            rest = pair->cdr;
+        }
+        if (!rest.is_null()) result += " ...";
+        return result + ")";
+    }
+    case ObjectType::Vector: {
+        std::string result = "#(";
+        const auto& values = value.as_object<VectorObject>()->values;
+        std::size_t limit = std::min<std::size_t>(values.size(), 5);
+        for (std::size_t i = 0; i < limit; ++i) {
+            if (i) result += " ";
+            result += value_hint(values[i], depth + 1);
+        }
+        if (values.size() > limit) result += " ...";
+        return result + ")";
+    }
+    default:
+        return "#<object:" + std::to_string(
+            static_cast<unsigned>(value.as_object()->type())) + ">";
+    }
+}
+
 std::string raised_message(const RaisedValue& raised) {
     Value value = raised.value();
     if (value.is_object() &&
@@ -86,7 +215,7 @@ std::string raised_message(const RaisedValue& raised) {
                      irritant.as_object()->type() == ObjectType::Symbol)
                 message += irritant.as_object<SymbolObject>()->name;
             else
-                message += "<value>";
+                message += value_hint(irritant);
         }
         return message;
     }
@@ -113,6 +242,8 @@ namespace {
 // means the structures agree so far -- assume equal, like s7/Racket do.
 bool equal_inner(Value left, Value right,
                  std::vector<std::pair<const Object*, const Object*>>& seen) {
+    if (is_number(left) && is_number(right))
+        return number_equal(number_value(left), number_value(right));
     if (left == right)
         return true;
     if (!left.is_object() || !right.is_object() ||
@@ -325,6 +456,7 @@ std::string format_value(const Evaluator& evaluator, Value value,
     if (depth > 200) return "#<deep>";
     if (value.is_unspecified()) return "#<unspecified>";
     if (value.is_integer()) return std::to_string(value.as_integer());
+    if (is_number(value)) return number_to_string(value);
     if (value.is_boolean()) return value.as_boolean() ? "#t" : "#f";
     if (value.is_null()) return "()";
     if (!value.is_object()) return "#<object>";
@@ -361,6 +493,8 @@ std::string format_value(const Evaluator& evaluator, Value value,
             quoted.push_back('"');
             return quoted;
         }
+        case ObjectType::Number:
+            return number_to_string(value);
         case ObjectType::Symbol:
             return value.as_object<SymbolObject>()->name;
         case ObjectType::Character: {
@@ -785,44 +919,54 @@ void install_runtime_primitives(Evaluator& evaluator) {
             ((magnitude & ((std::uint64_t{1} << amount) - 1)) != 0);
         return Values{Value::integer(-static_cast<std::int64_t>(rounded))};
     });
-    install(evaluator, "abs", [](const Values& args) {
+    install(evaluator, "abs", [&evaluator](const Values& args) {
         require_arity(args, 1, "abs");
-        if (!args[0].is_integer()) throw std::runtime_error("abs expects an integer");
-        if (args[0].as_integer() == std::numeric_limits<std::int64_t>::min())
-            throw std::runtime_error("abs integer overflow");
-        return Values{Value::integer(std::llabs(args[0].as_integer()))};
+        if (!is_number(args[0])) throw std::runtime_error("abs expects a number");
+        return Values{evaluator.number(number_abs(number_value(args[0])))};
     });
     for (const char* name : {"min", "max"}) {
-        install(evaluator, name, [name](const Values& args) {
+        install(evaluator, name, [name, &evaluator](const Values& args) {
             if (args.empty())
                 throw std::runtime_error(std::string(name) + " expects an argument");
-            // Host-abi parity: non-real arguments raise 'type-error (the
-            // classifier maps "expects real numbers"); the old
-            // as_integer() require() surfaced the ambiguous
-            // "wrong kind" message instead.
+            bool has_nan = false;
             for (const Value& arg : args) {
-                if (!arg.is_integer())
+                if (!is_number(arg) || !number_value(arg).is_real())
                     throw std::runtime_error(std::string(name) +
                                              " expects real numbers");
+                const RealNumber& real = number_value(arg).real;
+                has_nan = has_nan ||
+                    (real.inexact && std::isnan(real.inexact_value));
             }
-            std::int64_t result = args[0].as_integer();
+            if (has_nan)
+                return Values{evaluator.number(Number::inexact(
+                    std::numeric_limits<double>::quiet_NaN()))};
+            Value result = args[0];
+            bool any_inexact = false;
+            for (Value arg : args)
+                any_inexact = any_inexact || !number_value(arg).is_exact();
             for (std::size_t i = 1; i < args.size(); ++i) {
-                std::int64_t value = args[i].as_integer();
-                result = std::string(name) == "min" ? std::min(result, value)
-                                                     : std::max(result, value);
+                int order = number_compare(number_value(args[i]), number_value(result));
+                if ((std::string(name) == "min" && order < 0) ||
+                    (std::string(name) == "max" && order > 0))
+                    result = args[i];
             }
-            return Values{Value::integer(result)};
+            if (any_inexact) {
+                Number selected = number_value(result);
+                auto inexact = [](const RealNumber& part) {
+                    return RealNumber::inexact_real(part.to_double());
+                };
+                result = evaluator.number(Number::complex(
+                    inexact(selected.real), inexact(selected.imag)));
+            }
+            return Values{result};
         });
     }
-    install(evaluator, "expt", [](const Values& args) {
+    install(evaluator, "expt", [&evaluator](const Values& args) {
         require_arity(args, 2, "expt");
-        const double result = std::pow(static_cast<double>(args[0].as_integer()),
-                                       static_cast<double>(args[1].as_integer()));
-        if (!std::isfinite(result) ||
-            result < static_cast<double>(std::numeric_limits<std::int64_t>::min()) ||
-            result > static_cast<double>(std::numeric_limits<std::int64_t>::max()))
-            throw std::runtime_error("expt result is outside integer range");
-        return Values{Value::integer(static_cast<std::int64_t>(result))};
+        if (!is_number(args[0]) || !is_number(args[1]))
+            throw std::runtime_error("expt expects numbers");
+        return Values{evaluator.number(number_expt(number_value(args[0]),
+                                                  number_value(args[1])))};
     });
     // Explicit evaluation environments are the native interaction contract.
     // s7 surface: (gensym [prefix]) -> a fresh symbol per call.  The
@@ -1826,165 +1970,295 @@ void install_runtime_primitives(Evaluator& evaluator) {
     });
     install(evaluator, "integer?", [](const Values& args) {
         require_arity(args, 1, "integer?");
-        return Values{Value::boolean(args[0].is_integer())};
+        return Values{Value::boolean(is_number(args[0]) && number_value(args[0]).is_integer())};
     });
     install(evaluator, "number?", [](const Values& args) {
         require_arity(args, 1, "number?");
-        return Values{Value::boolean(args[0].is_integer())};
+        return Values{Value::boolean(is_number(args[0]))};
     });
     install(evaluator, "real?", [](const Values& args) {
         require_arity(args, 1, "real?");
-        return Values{Value::boolean(args[0].is_integer())};
+        return Values{Value::boolean(is_number(args[0]) && number_value(args[0]).is_real())};
     });
-    // Exact-integer-only numeric surface: native carries integers only, so
-    // the tower's integer specializations are identities/constant answers.
-    // The inexact half (exp/log/sin..., inexact->exact) belongs to the
-    // float workstream.
     install(evaluator, "exact-integer?", [](const Values& args) {
         require_arity(args, 1, "exact-integer?");
-        return Values{Value::boolean(args[0].is_integer())};
+        return Values{Value::boolean(is_number(args[0]) && number_value(args[0]).is_integer() && number_value(args[0]).is_exact())};
     });
+    for (const char* name : {"odd?", "even?"}) {
+        install(evaluator, name, [name](const Values& args) {
+            require_arity(args, 1, name);
+            BigInteger integer;
+            if (!is_number(args[0]) || !number_value(args[0]).is_integer() ||
+                !number_value(args[0]).is_exact())
+                throw std::runtime_error(std::string(name) +
+                                         " expects an integer");
+            integer = number_value(args[0]).real.numerator;
+            bool odd = (integer.native() % 2) != 0;
+            return Values{Value::boolean(name[0] == 'o' ? odd : !odd)};
+        });
+    }
     install(evaluator, "rational?", [](const Values& args) {
         require_arity(args, 1, "rational?");
-        return Values{Value::boolean(args[0].is_integer())};
+        if (!is_number(args[0])) return Values{Value::boolean(false)};
+        Number n = number_value(args[0]);
+        const bool finite = !n.real.inexact || std::isfinite(n.real.inexact_value);
+        return Values{Value::boolean(n.is_real() && finite)};
     });
     install(evaluator, "complex?", [](const Values& args) {
         require_arity(args, 1, "complex?");
-        return Values{Value::boolean(args[0].is_integer())};
+        return Values{Value::boolean(is_number(args[0]))};
     });
     install(evaluator, "exact?", [](const Values& args) {
         require_arity(args, 1, "exact?");
-        return Values{Value::boolean(args[0].is_integer())};
+        if (!is_number(args[0]))
+            throw std::runtime_error("exact? expects a number");
+        return Values{Value::boolean(number_value(args[0]).is_exact())};
     });
     install(evaluator, "inexact?", [](const Values& args) {
         require_arity(args, 1, "inexact?");
-        return Values{Value::boolean(false)};
+        if (!is_number(args[0]))
+            throw std::runtime_error("inexact? expects a number");
+        return Values{Value::boolean(!number_value(args[0]).is_exact())};
     });
     install(evaluator, "finite?", [](const Values& args) {
         require_arity(args, 1, "finite?");
-        return Values{Value::boolean(args[0].is_integer())};
+        if (!is_number(args[0])) return Values{Value::boolean(false)};
+        Number n = number_value(args[0]);
+        return Values{Value::boolean((!n.real.inexact || std::isfinite(n.real.inexact_value)) &&
+            (!n.has_imaginary_part || !n.imag.inexact || std::isfinite(n.imag.inexact_value)))};
     });
     install(evaluator, "infinite?", [](const Values& args) {
         require_arity(args, 1, "infinite?");
-        return Values{Value::boolean(false)};
+        if (!is_number(args[0])) return Values{Value::boolean(false)};
+        { Number n = number_value(args[0]); return Values{Value::boolean(
+            (n.real.inexact && std::isinf(n.real.inexact_value)) ||
+            (n.has_imaginary_part && n.imag.inexact && std::isinf(n.imag.inexact_value)))}; }
     });
     install(evaluator, "nan?", [](const Values& args) {
         require_arity(args, 1, "nan?");
-        return Values{Value::boolean(false)};
+        if (!is_number(args[0])) return Values{Value::boolean(false)};
+        { Number n = number_value(args[0]); return Values{Value::boolean(
+            (n.real.inexact && std::isnan(n.real.inexact_value)) ||
+            (n.has_imaginary_part && n.imag.inexact && std::isnan(n.imag.inexact_value)))}; }
     });
-    install(evaluator, "exact", [](const Values& args) {
-        require_arity(args, 1, "exact");
-        if (!args[0].is_integer())
-            throw std::runtime_error("exact expects an integer");
-        return Values{args[0]};
-    });
-    install(evaluator, "numerator", [](const Values& args) {
+    auto exact_conversion = [&evaluator](const Values& args) -> Values {
+        if (!is_number(args[0])) throw std::runtime_error("exact expects a number");
+        Number n = number_value(args[0]);
+        if (n.is_exact()) return Values{args[0]};
+        auto convert = [](const RealNumber& r) {
+            if (!r.inexact) return r;
+            return exact_from_double(r.inexact_value);
+        };
+        return Values{evaluator.number(Number::complex(convert(n.real), convert(n.imag)))};
+    };
+    for (const char* name : {"exact", "inexact->exact"})
+        install(evaluator, name, [name, exact_conversion](const Values& args) {
+            require_arity(args, 1, name);
+            return exact_conversion(args);
+        });
+    auto inexact_conversion = [&evaluator](const Values& args) -> Values {
+        if (!is_number(args[0])) throw std::runtime_error("inexact expects a number");
+        Number n = number_value(args[0]);
+        auto convert = [](const RealNumber& r) {
+            return RealNumber::inexact_real(r.to_double());
+        };
+        return Values{evaluator.number(Number::complex(convert(n.real), convert(n.imag)))};
+    };
+    for (const char* name : {"inexact", "exact->inexact"})
+        install(evaluator, name, [name, inexact_conversion](const Values& args) {
+            require_arity(args, 1, name);
+            return inexact_conversion(args);
+        });
+    install(evaluator, "numerator", [&evaluator](const Values& args) {
         require_arity(args, 1, "numerator");
-        if (!args[0].is_integer())
-            throw std::runtime_error("numerator expects an integer");
-        return Values{args[0]};
+        if (!is_number(args[0]) || !number_value(args[0]).is_real())
+            throw std::runtime_error("numerator expects a real number");
+        RealNumber n = number_value(args[0]).real;
+        if (n.inexact) n = exact_from_double(n.inexact_value);
+        return Values{evaluator.number(Number::exact(n.numerator))};
     });
-    install(evaluator, "denominator", [](const Values& args) {
+    install(evaluator, "denominator", [&evaluator](const Values& args) {
         require_arity(args, 1, "denominator");
-        if (!args[0].is_integer())
-            throw std::runtime_error("denominator expects an integer");
-        return Values{Value::integer(1)};
+        if (!is_number(args[0]) || !number_value(args[0]).is_real())
+            throw std::runtime_error("denominator expects a real number");
+        RealNumber n = number_value(args[0]).real;
+        if (n.inexact) n = exact_from_double(n.inexact_value);
+        return Values{evaluator.number(Number::exact(n.denominator))};
+    });
+    install(evaluator, "rationalize", [&evaluator](const Values& args) {
+        if (args.empty() || args.size() > 2)
+            throw std::runtime_error("rationalize expects one or two arguments");
+        if (!is_number(args[0]) || !number_value(args[0]).is_real() ||
+            (args.size() == 2 && (!is_number(args[1]) ||
+                                  !number_value(args[1]).is_real())))
+            throw std::runtime_error("rationalize expects a real number");
+        auto exact_real = [](RealNumber value) {
+            return value.inexact ? exact_from_double(value.inexact_value)
+                                 : value;
+        };
+        RealNumber x = exact_real(number_value(args[0]).real);
+        RealNumber tolerance = args.size() == 2
+            ? exact_real(number_value(args[1]).real)
+            : RealNumber::exact(BigInteger(1), BigInteger(1000000000000LL));
+        if (tolerance.numerator.negative())
+            tolerance.numerator = -tolerance.numerator;
+        const bool inexact_input = !number_value(args[0]).is_exact() ||
+            (args.size() == 2 && !number_value(args[1]).is_exact());
+        RealNumber lower, upper;
+        if (inexact_input) {
+            const double center = x.to_double();
+            const double width = tolerance.to_double();
+            lower = exact_from_double(center - width);
+            upper = exact_from_double(center + width);
+        } else {
+            lower = rational_subtract(x, tolerance);
+            upper = rational_add(x, tolerance);
+        }
+        RealNumber result = simplest_rational(std::move(lower),
+                                              std::move(upper));
+        return Values{evaluator.number(Number::complex(
+            std::move(result), RealNumber::exact(BigInteger(0))))};
     });
     install(evaluator, "square", [&evaluator](const Values& args) {
         require_arity(args, 1, "square");
-        if (!args[0].is_integer())
-            throw std::runtime_error("square expects an integer");
-        return Values{Value::integer(args[0].as_integer() *
-                                     args[0].as_integer())};
+        if (!is_number(args[0])) throw std::runtime_error("square expects a number");
+        Number n = number_value(args[0]);
+        return Values{evaluator.number(number_multiply(n, n))};
     });
-    // floor/ceiling/truncate/round are identities on exact integers; the
-    // optional digits argument (s7) is accepted and ignored.
-    auto install_rounding_identity = [&evaluator](const char* name) {
-        install(evaluator, name, [name](const Values& args) -> Values {
-            if (args.empty() || args.size() > 2)
-                throw std::runtime_error(std::string(name) +
-                                         " expects one or two arguments");
-            if (!args[0].is_integer())
-                throw std::runtime_error(std::string(name) +
-                                         " expects an integer (inexact "
-                                         "numbers are not supported yet)");
-            return Values{args[0]};
+    auto install_rounding = [&evaluator](const char* name, int mode) {
+        install(evaluator, name, [&evaluator, name, mode](const Values& args) -> Values {
+            if (args.size() != 1)
+                raise_keyed(evaluator, "wrong-number-of-args",
+                            std::string(name) + " expects one argument");
+            if (!is_number(args[0]) || !number_value(args[0]).is_real())
+                raise_keyed(evaluator, "wrong-type-arg",
+                            std::string(name) + " expects a real number");
+            RealNumber value = number_value(args[0]).real;
+            if (value.inexact) {
+                double rounded = mode == 0 ? std::floor(value.inexact_value)
+                    : mode == 1 ? std::ceil(value.inexact_value)
+                    : mode == 2 ? std::trunc(value.inexact_value)
+                    : std::nearbyint(value.inexact_value);
+                return Values{evaluator.number(Number::inexact(rounded))};
+            }
+            BigInteger quotient = value.numerator / value.denominator;
+            BigInteger remainder = value.numerator % value.denominator;
+            if (mode == 0 && value.numerator.negative() &&
+                !remainder.is_zero())
+                quotient -= BigInteger(1);
+            else if (mode == 1 && !value.numerator.negative() &&
+                     !remainder.is_zero())
+                quotient += BigInteger(1);
+            else if (mode == 3 && !remainder.is_zero()) {
+                BigInteger magnitude = remainder.negative()
+                    ? -remainder : remainder;
+                int half = compare(magnitude * BigInteger(2),
+                                   value.denominator);
+                const bool odd = (quotient.native() & 1) != 0;
+                if (half > 0 || (half == 0 && odd))
+                    quotient += value.numerator.negative()
+                        ? BigInteger(-1) : BigInteger(1);
+            }
+            return Values{evaluator.number(Number::exact(std::move(quotient)))};
         });
     };
-    install_rounding_identity("floor");
-    install_rounding_identity("ceiling");
-    install_rounding_identity("truncate");
-    install_rounding_identity("round");
-    install(evaluator, "gcd", [](const Values& args) -> Values {
-        auto gcd2 = [](std::int64_t a, std::int64_t b) {
-            if (a < 0) a = -a;
-            if (b < 0) b = -b;
-            while (b != 0) {
-                std::int64_t t = a % b;
-                a = b;
-                b = t;
+    install_rounding("floor", 0);
+    install_rounding("ceiling", 1);
+    install_rounding("truncate", 2);
+    install_rounding("round", 3);
+    install(evaluator, "gcd", [&evaluator](const Values& args) -> Values {
+        auto gcd2 = [](BigInteger a, BigInteger b) {
+            if (a.negative()) a = -a;
+            if (b.negative()) b = -b;
+            while (!b.is_zero()) {
+                BigInteger t = a % b;
+                a = std::move(b);
+                b = std::move(t);
             }
             return a;
         };
-        std::int64_t result = 0;
+        BigInteger result(0);
+        bool any_inexact = false;
         for (const Value& argument : args) {
-            if (!argument.is_integer())
-                throw std::runtime_error("gcd expects integers");
-            result = gcd2(result, argument.as_integer());
+            BigInteger value;
+            if (!integer_value(argument, value))
+                raise_keyed(evaluator, "wrong-type-arg",
+                            "gcd expects integers");
+            any_inexact = any_inexact || !number_value(argument).is_exact();
+            result = gcd2(std::move(result), std::move(value));
         }
-        return Values{Value::integer(result)};
+        return Values{make_integer(evaluator, std::move(result), any_inexact)};
     });
-    install(evaluator, "lcm", [](const Values& args) -> Values {
-        auto abs_i = [](std::int64_t v) { return v < 0 ? -v : v; };
-        auto gcd2 = [](std::int64_t a, std::int64_t b) {
-            while (b != 0) {
-                std::int64_t t = a % b;
-                a = b;
-                b = t;
+    install(evaluator, "lcm", [&evaluator](const Values& args) -> Values {
+        auto abs_i = [](BigInteger v) { return v.negative() ? -v : v; };
+        auto gcd2 = [](BigInteger a, BigInteger b) {
+            while (!b.is_zero()) {
+                BigInteger t = a % b;
+                a = std::move(b);
+                b = std::move(t);
             }
             return a;
         };
-        std::int64_t result = 1;
+        BigInteger result_numerator(1), result_denominator(1);
+        bool have_value = false;
+        bool any_inexact = false;
         for (const Value& argument : args) {
-            if (!argument.is_integer())
-                throw std::runtime_error("lcm expects integers");
-            std::int64_t b = abs_i(argument.as_integer());
-            if (b == 0) {
-                result = 0;
-                break;
+            if (!is_number(argument) || !number_value(argument).is_real())
+                raise_keyed(evaluator, "type-error",
+                            "lcm expects real numbers");
+            RealNumber value = number_value(argument).real;
+            any_inexact = any_inexact || value.inexact;
+            if (value.inexact) {
+                if (!std::isfinite(value.inexact_value))
+                    raise_keyed(evaluator, "type-error",
+                                "lcm expects finite real numbers");
+                value = exact_from_double(value.inexact_value);
             }
-            // lcm(a, b) = |a * b| / gcd(a, b)
-            result = (abs_i(result) / gcd2(abs_i(result), b)) * b;
+            BigInteger numerator = abs_i(std::move(value.numerator));
+            if (!have_value) {
+                result_numerator = std::move(numerator);
+                result_denominator = std::move(value.denominator);
+                have_value = true;
+            } else {
+                result_numerator = (result_numerator /
+                    gcd2(result_numerator, numerator)) * numerator;
+                result_denominator = gcd2(result_denominator,
+                                          value.denominator);
+            }
         }
-        return Values{Value::integer(result)};
+        Number result = Number::rational(std::move(result_numerator),
+                                         std::move(result_denominator));
+        if (any_inexact)
+            result = Number::inexact(result.real.to_double());
+        return Values{evaluator.number(std::move(result))};
     });
-    install(evaluator, "exact-integer-sqrt", [](const Values& args) -> Values {
+    install(evaluator, "exact-integer-sqrt", [&evaluator](const Values& args) -> Values {
         require_arity(args, 1, "exact-integer-sqrt");
         // Split the checks: non-integer -> 'type-error, negative ->
         // 'value-error (the old combined message collapsed both into one
         // classifier bucket).
-        if (!args[0].is_integer())
+        BigInteger input;
+        if (!integer_value(args[0], input) ||
+            !number_value(args[0]).is_exact())
             throw std::runtime_error("exact-integer-sqrt expects integers");
-        if (args[0].as_integer() < 0)
+        if (input.negative())
             throw std::runtime_error(
                 "exact-integer-sqrt n must be non-negative");
-        std::uint64_t x = static_cast<std::uint64_t>(args[0].as_integer());
-        std::uint64_t bit = 1ull << 62;
-        while (bit > x) bit >>= 2;
-        std::uint64_t root = 0;
-        while (bit != 0) {
-            if (x >= root + bit) {
-                x -= root + bit;
-                root = (root >> 1) + bit;
-            } else {
-                root >>= 1;
-            }
-            bit >>= 2;
-        }
-        return Values{Value::integer(static_cast<std::int64_t>(root)),
-                      Value::integer(static_cast<std::int64_t>(
-                          args[0].as_integer() -
-                          static_cast<std::int64_t>(root * root)))};
+        const auto& n = input.native();
+        if (n == 0)
+            return Values{Value::integer(0), Value::integer(0)};
+        boost::multiprecision::cpp_int root = 1;
+        while (root * root <= n) root <<= 1;
+        boost::multiprecision::cpp_int next;
+        do {
+            next = (root + n / root) >> 1;
+            if (next >= root) break;
+            root = std::move(next);
+        } while (true);
+        BigInteger root_value(std::move(root));
+        BigInteger remainder = input - root_value * root_value;
+        return Values{evaluator.number(Number::exact(root_value)),
+                      evaluator.number(Number::exact(std::move(remainder)))};
     });
     install(evaluator, "pair?", [](const Values& args) {
         require_arity(args, 1, "pair?");
@@ -2354,6 +2628,7 @@ void install_runtime_primitives(Evaluator& evaluator) {
         if (args[0].is_boolean()) return Values{evaluator.symbol("boolean")};
         if (args[0].is_integer()) return Values{evaluator.symbol("integer")};
         switch (args[0].as_object()->type()) {
+        case ObjectType::Number: return Values{evaluator.symbol("number")};
         case ObjectType::Pair: return Values{evaluator.symbol("pair")};
         case ObjectType::Symbol: return Values{evaluator.symbol("symbol")};
         case ObjectType::String: return Values{evaluator.symbol("string")};
@@ -2372,6 +2647,12 @@ void install_runtime_primitives(Evaluator& evaluator) {
     });
     install(evaluator, "eqv?", [](const Values& args) {
         require_arity(args, 2, "eqv?");
+        if (is_number(args[0]) && is_number(args[1])) {
+            Number left = number_value(args[0]);
+            Number right = number_value(args[1]);
+            return Values{Value::boolean(left.is_exact() == right.is_exact() &&
+                                          number_equal(left, right))};
+        }
         return Values{Value::boolean(same(args[0], args[1]))};
     });
     install(evaluator, "equal?", [](const Values& args) {
@@ -2538,49 +2819,50 @@ void install_runtime_primitives(Evaluator& evaluator) {
         return Values{evaluator.symbol(name)};
     });
     install(evaluator, "number->string", [&evaluator](const Values& args) {
-        require_arity(args, 1, "number->string");
-        return Values{evaluator.string(std::to_string(args[0].as_integer()))};
+        if (args.empty() || args.size() > 2)
+            throw std::runtime_error("number->string expects one or two arguments");
+        if (!is_number(args[0])) throw std::runtime_error("number->string expects a number");
+        unsigned radix = 10;
+        if (args.size() == 2) {
+            BigInteger integer_radix;
+            if (!integer_value(args[1], integer_radix) ||
+                !number_value(args[1]).is_exact())
+                throw std::runtime_error("number->string expects an exact integer radix");
+            if (integer_radix != BigInteger(2) &&
+                integer_radix != BigInteger(8) &&
+                integer_radix != BigInteger(10) &&
+                integer_radix != BigInteger(16))
+                throw std::runtime_error("number->string radix out of range");
+            radix = static_cast<unsigned>(integer_radix.to_int64());
+        }
+        Number n = number_value(args[0]);
+        if (radix != 10 && !n.is_exact())
+            throw std::runtime_error("non-decimal number->string requires an exact number");
+        return Values{evaluator.string(number_to_string(args[0], radix))};
     });
     install(evaluator, "string->number", [&evaluator](const Values& args) {
         if (args.size() < 1 || args.size() > 2)
             throw std::runtime_error(
                 "string->number expects one or two arguments");
         const std::string text = evaluator.string_value(args[0]);
-        std::int64_t radix = 10;
+        unsigned radix = 10;
         if (args.size() == 2) {
-            if (!args[1].is_integer())
-                return Values{Value::boolean(false)};
-            radix = args[1].as_integer();
-            if (radix < 2 || radix > 36) return Values{Value::boolean(false)};
+            BigInteger integer_radix;
+            if (!integer_value(args[1], integer_radix) ||
+                !number_value(args[1]).is_exact())
+                throw std::runtime_error(
+                    "string->number expects an exact integer radix");
+            if (integer_radix != BigInteger(2) &&
+                integer_radix != BigInteger(8) &&
+                integer_radix != BigInteger(10) &&
+                integer_radix != BigInteger(16))
+                raise_keyed(evaluator, "out-of-range",
+                            "string->number radix out of range");
+            radix = static_cast<unsigned>(integer_radix.to_int64());
         }
-        // Integers only: rationals, decimals and complexes need the numeric
-        // types the first-version substrate does not have yet, so they read
-        // as #f here (the same as a malformed literal).
-        if (text.empty()) return Values{Value::boolean(false)};
-        std::size_t index = 0;
-        bool negative = false;
-        if (text[index] == '+' || text[index] == '-') {
-            negative = text[index] == '-';
-            ++index;
-        }
-        if (index >= text.size()) return Values{Value::boolean(false)};
-        std::int64_t accumulator = 0;
-        for (; index < text.size(); ++index) {
-            const char character = text[index];
-            int digit = -1;
-            if (character >= '0' && character <= '9')
-                digit = character - '0';
-            else if (character >= 'a' && character <= 'z')
-                digit = character - 'a' + 10;
-            else if (character >= 'A' && character <= 'Z')
-                digit = character - 'A' + 10;
-            if (digit < 0 || digit >= radix)
-                return Values{Value::boolean(false)};
-            if (accumulator > (9223372036854775807LL - digit) / radix)
-                return Values{Value::boolean(false)};
-            accumulator = accumulator * radix + digit;
-        }
-        return Values{Value::integer(negative ? -accumulator : accumulator)};
+        Number result;
+        if (!parse_number(text, result, radix)) return Values{Value::boolean(false)};
+        return Values{evaluator.number(std::move(result))};
     });
     install(evaluator, "string-length", [&evaluator](const Values& args) {
         require_arity(args, 1, "string-length");
@@ -2911,93 +3193,331 @@ void install_runtime_primitives(Evaluator& evaluator) {
     }
 
     // Arithmetic atoms.
-    install(evaluator, "+", [](const Values& args) {
-        std::int64_t result = 0;
-        for (Value arg : args) result += arg.as_integer();
-        return Values{Value::integer(result)};
+    install(evaluator, "+", [&evaluator](const Values& args) {
+        Number result = Number::exact(BigInteger(0));
+        for (Value arg : args) {
+            if (!is_number(arg)) throw std::runtime_error("+ expects numbers");
+            result = number_add(result, number_value(arg));
+        }
+        return Values{evaluator.number(std::move(result))};
     });
-    install(evaluator, "-", [](const Values& args) {
+    install(evaluator, "-", [&evaluator](const Values& args) {
         if (args.empty()) throw std::runtime_error("- expects arguments");
-        std::int64_t result = args[0].as_integer();
-        if (args.size() == 1) result = -result;
-        for (std::size_t i = 1; i < args.size(); ++i) result -= args[i].as_integer();
-        return Values{Value::integer(result)};
+        if (!is_number(args[0])) throw std::runtime_error("- expects numbers");
+        Number result = number_value(args[0]);
+        if (args.size() == 1) result = number_negate(result);
+        for (std::size_t i = 1; i < args.size(); ++i) {
+            if (!is_number(args[i])) throw std::runtime_error("- expects numbers");
+            result = number_subtract(result, number_value(args[i]));
+        }
+        return Values{evaluator.number(std::move(result))};
     });
-    install(evaluator, "*", [](const Values& args) {
-        std::int64_t result = 1;
-        for (Value arg : args) result *= arg.as_integer();
-        return Values{Value::integer(result)};
+    install(evaluator, "*", [&evaluator](const Values& args) {
+        Number result = Number::exact(BigInteger(1));
+        for (Value arg : args) {
+            if (!is_number(arg)) throw std::runtime_error("* expects numbers");
+            result = number_multiply(result, number_value(arg));
+        }
+        return Values{evaluator.number(std::move(result))};
     });
     install(evaluator, "=", [](const Values& args) {
         if (args.size() < 2) throw std::runtime_error("= expects two arguments");
+        for (Value value : args) if (!is_number(value)) throw std::runtime_error("= expects numbers");
         for (std::size_t i = 1; i < args.size(); ++i)
-            if (args[i].as_integer() != args[0].as_integer()) return Values{Value::boolean(false)};
+            if (!number_equal(number_value(args[i]), number_value(args[0]))) return Values{Value::boolean(false)};
         return Values{Value::boolean(true)};
     });
-    install(evaluator, "modulo", [](const Values& args) {
+    install(evaluator, "modulo", [&evaluator](const Values& args) {
         require_arity(args, 2, "modulo");
         // Key parity: non-integers -> 'type-error, zero divisor ->
         // 'division-by-zero (tests/scheme pins both).
-        if (!args[0].is_integer() || !args[1].is_integer())
+        BigInteger dividend, divisor;
+        if (!integer_value(args[0], dividend) ||
+            !integer_value(args[1], divisor))
             throw std::runtime_error("modulo expects integers");
-        std::int64_t divisor = args[1].as_integer();
-        if (divisor == 0)
+        if (divisor.is_zero())
             throw std::runtime_error("modulo divisor is zero");
         // R7RS floor semantics: the result takes the divisor's sign, so a
         // truncated remainder with mismatched signs gets adjusted (the
         // negative-dividend case below was already correct; (modulo 10
         // -3) must be -2, not C's 1).
-        std::int64_t result = args[0].as_integer() % divisor;
-        if (result != 0 && ((result < 0) != (divisor < 0)))
+        BigInteger result = dividend % divisor;
+        if (!result.is_zero() && (result.negative() != divisor.negative()))
             result += divisor;
-        return Values{Value::integer(result)};
+        return Values{make_integer(evaluator, std::move(result),
+                                   number_value(args[0]).real.inexact ||
+                                   number_value(args[1]).real.inexact)};
     });
     install(evaluator, "positive?", [](const Values& args) {
         require_arity(args, 1, "positive?");
-        return Values{Value::boolean(args[0].as_integer() > 0)};
+        if (!is_number(args[0]) || !number_value(args[0]).is_real()) throw std::runtime_error("positive? expects a real number");
+        return Values{Value::boolean(number_compare(number_value(args[0]), Number::exact(BigInteger(0))) > 0)};
+    });
+    install(evaluator, "negative?", [](const Values& args) {
+        require_arity(args, 1, "negative?");
+        if (!is_number(args[0]) || !number_value(args[0]).is_real())
+            throw std::runtime_error("negative? expects a real number");
+        Number value = number_value(args[0]);
+        if (value.real.inexact && std::isnan(value.real.inexact_value))
+            return Values{Value::boolean(false)};
+        return Values{Value::boolean(number_compare(
+            value, Number::exact(BigInteger(0))) < 0)};
     });
     install(evaluator, "zero?", [](const Values& args) {
         require_arity(args, 1, "zero?");
-        return Values{Value::boolean(args[0].as_integer() == 0)};
+        if (!is_number(args[0]))
+            throw std::runtime_error("zero? expects a number");
+        return Values{Value::boolean(number_value(args[0]).is_zero())};
     });
-    install(evaluator, "quotient", [](const Values& args) {
+    install(evaluator, "quotient", [&evaluator](const Values& args) {
         require_arity(args, 2, "quotient");
-        if (args[1].as_integer() == 0) throw std::runtime_error("quotient divisor is zero");
-        return Values{Value::integer(args[0].as_integer() / args[1].as_integer())};
+        if (!is_number(args[0]) || !number_value(args[0]).is_real() ||
+            !is_number(args[1]) || !number_value(args[1]).is_real())
+            raise_keyed(evaluator, "wrong-type-arg",
+                        "quotient expects real numbers");
+        Number dividend = number_value(args[0]);
+        Number divisor = number_value(args[1]);
+        if (divisor.is_zero()) throw std::runtime_error("quotient divisor is zero");
+        return Values{make_integer(evaluator,
+            truncate_real_quotient(dividend, divisor))};
     });
-    install(evaluator, "remainder", [](const Values& args) {
+    install(evaluator, "remainder", [&evaluator](const Values& args) {
         require_arity(args, 2, "remainder");
-        if (args[1].as_integer() == 0) throw std::runtime_error("remainder divisor is zero");
-        return Values{Value::integer(args[0].as_integer() % args[1].as_integer())};
+        if (!is_number(args[0]) || !number_value(args[0]).is_real() ||
+            !is_number(args[1]) || !number_value(args[1]).is_real())
+            raise_keyed(evaluator, "wrong-type-arg",
+                        "remainder expects real numbers");
+        Number dividend = number_value(args[0]);
+        Number divisor = number_value(args[1]);
+        if (divisor.is_zero()) throw std::runtime_error("remainder divisor is zero");
+        BigInteger quotient = truncate_real_quotient(dividend, divisor);
+        return Values{evaluator.number(number_subtract(dividend,
+            number_multiply(Number::exact(std::move(quotient)), divisor)))};
     });
-    install(evaluator, "/", [](const Values& args) {
+    install(evaluator, "sqrt", [&evaluator](const Values& args) {
+        require_arity(args, 1, "sqrt");
+        if (!is_number(args[0])) throw std::runtime_error("sqrt expects a number");
+        return Values{evaluator.number(number_sqrt(number_value(args[0])))};
+    });
+    install(evaluator, "real-part", [&evaluator](const Values& args) {
+        require_arity(args, 1, "real-part");
+        if (!is_number(args[0])) throw std::runtime_error("real-part expects a number");
+        return Values{evaluator.number(Number::complex(
+            number_value(args[0]).real, RealNumber::exact(BigInteger(0))))};
+    });
+    install(evaluator, "imag-part", [&evaluator](const Values& args) {
+        require_arity(args, 1, "imag-part");
+        if (!is_number(args[0])) throw std::runtime_error("imag-part expects a number");
+        Number value = number_value(args[0]);
+        RealNumber imag = value.has_imaginary_part ? value.imag
+            : RealNumber::exact(BigInteger(0));
+        return Values{evaluator.number(Number::complex(
+            std::move(imag), RealNumber::exact(BigInteger(0))))};
+    });
+    install(evaluator, "make-rectangular", [&evaluator](const Values& args) {
+        require_arity(args, 2, "make-rectangular");
+        if (!is_number(args[0]) || !is_number(args[1]) ||
+            !number_value(args[0]).is_real() || !number_value(args[1]).is_real())
+            raise_keyed(evaluator, "wrong-type-arg",
+                        "make-rectangular expects real numbers");
+        return Values{evaluator.number(Number::complex(
+            number_value(args[0]).real, number_value(args[1]).real))};
+    });
+    install(evaluator, "make-polar", [&evaluator](const Values& args) {
+        require_arity(args, 2, "make-polar");
+        if (!is_number(args[0]) || !is_number(args[1]) ||
+            !number_value(args[0]).is_real() || !number_value(args[1]).is_real())
+            raise_keyed(evaluator, "wrong-type-arg",
+                        "make-polar expects real numbers");
+        double magnitude = number_value(args[0]).real.to_double();
+        double angle = number_value(args[1]).real.to_double();
+        return Values{evaluator.number(Number::complex(
+            RealNumber::inexact_real(magnitude * std::cos(angle)),
+            RealNumber::inexact_real(magnitude * std::sin(angle))))};
+    });
+    install(evaluator, "magnitude", [&evaluator](const Values& args) {
+        require_arity(args, 1, "magnitude");
+        if (!is_number(args[0])) throw std::runtime_error("magnitude expects a number");
+        return Values{evaluator.number(number_abs(number_value(args[0])))};
+    });
+    install(evaluator, "angle", [&evaluator](const Values& args) {
+        require_arity(args, 1, "angle");
+        if (!is_number(args[0])) throw std::runtime_error("angle expects a number");
+        Number value = number_value(args[0]);
+        return Values{evaluator.number(Number::inexact(std::atan2(
+            value.imag.to_double(), value.real.to_double())))};
+    });
+    auto install_complex_unary = [&evaluator](const char* name,
+            std::complex<double> (*operation)(const std::complex<double>&)) {
+        install(evaluator, name, [name, operation, &evaluator](const Values& args) {
+            require_arity(args, 1, name);
+            if (!is_number(args[0]))
+                throw std::runtime_error(std::string(name) + " expects a number");
+            Number value = number_value(args[0]);
+            if (value.is_real()) {
+                const double x = value.real.to_double();
+                const bool real_domain =
+                    (std::string(name) != "asin" &&
+                     std::string(name) != "acos") ||
+                    (x >= -1.0 && x <= 1.0);
+                if (real_domain) {
+                    double result = std::string(name) == "exp" ? std::exp(x)
+                        : std::string(name) == "sin" ? std::sin(x)
+                        : std::string(name) == "cos" ? std::cos(x)
+                        : std::string(name) == "tan" ? std::tan(x)
+                        : std::string(name) == "asin" ? std::asin(x)
+                        : std::acos(x);
+                    return Values{evaluator.number(Number::inexact(result))};
+                }
+            }
+            std::complex<double> result = operation(std::complex<double>(
+                value.real.to_double(), value.imag.to_double()));
+            return Values{evaluator.number(Number::complex(
+                RealNumber::inexact_real(result.real()),
+                RealNumber::inexact_real(result.imag())))};
+        });
+    };
+    install_complex_unary("exp", static_cast<std::complex<double>(*) (
+        const std::complex<double>&)>(std::exp<double>));
+    install(evaluator, "log", [&evaluator](const Values& args) {
+        if (args.empty() || args.size() > 2)
+            throw std::runtime_error("log expects one or two arguments");
+        for (Value arg : args)
+            if (!is_number(arg))
+                throw std::runtime_error("log expects numbers");
+        Number value = number_value(args[0]);
+        if (args.size() == 1 && value.is_zero())
+            return Values{evaluator.number(Number::complex(
+                RealNumber::inexact_real(-std::numeric_limits<double>::infinity()),
+                RealNumber::inexact_real(std::acos(-1.0))))};
+        if (args.size() == 1 && value.is_exact() && value.is_real() &&
+            number_compare(value, Number::exact(BigInteger(1))) == 0)
+            return Values{evaluator.number(Number::exact(BigInteger(0)))};
+        if (args.size() == 2) {
+            Number base = number_value(args[1]);
+            if (base.is_real() && number_compare(base,
+                    Number::exact(BigInteger(0))) <= 0)
+                raise_keyed(evaluator, "out-of-range",
+                            "log base must be positive");
+            if (value.is_real() && number_compare(value,
+                    Number::exact(BigInteger(0))) <= 0)
+                raise_keyed(evaluator, "out-of-range",
+                            "log argument must be positive");
+            if (base.is_real() && base.is_exact() &&
+                number_equal(base, Number::exact(BigInteger(1)))) {
+                if (value.is_real() && number_equal(
+                        value, Number::exact(BigInteger(1))))
+                    return Values{evaluator.number(Number::inexact(
+                        std::numeric_limits<double>::quiet_NaN()))};
+                return Values{evaluator.number(Number::inexact(
+                    number_compare(value, Number::exact(BigInteger(1))) > 0
+                        ? std::numeric_limits<double>::infinity()
+                        : -std::numeric_limits<double>::infinity()))};
+            }
+            if (value.is_exact() && base.is_exact() && value.is_real() &&
+                base.is_real() && value.real.numerator > BigInteger(0) &&
+                base.real.numerator > BigInteger(0)) {
+                Number inverse = number_divide(Number::exact(BigInteger(1)), base);
+                for (int denominator = 1; denominator <= 8; ++denominator) {
+                    Number target = Number::exact(BigInteger(1));
+                    for (int i = 0; i < denominator; ++i)
+                        target = number_multiply(target, value);
+                    Number power = Number::exact(BigInteger(1));
+                    for (int exponent = 0; exponent <= 64; ++exponent) {
+                        if (number_equal(power, target))
+                            return Values{evaluator.number(Number::rational(
+                                BigInteger(exponent), BigInteger(denominator)))};
+                        power = number_multiply(power, base);
+                    }
+                    power = Number::exact(BigInteger(1));
+                    for (int exponent = 1; exponent <= 64; ++exponent) {
+                        power = number_multiply(power, inverse);
+                        if (number_equal(power, target))
+                            return Values{evaluator.number(Number::rational(
+                                BigInteger(-exponent), BigInteger(denominator)))};
+                    }
+                }
+            }
+            std::complex<double> numerator = std::log(std::complex<double>(
+                value.real.to_double(), value.imag.to_double()));
+            std::complex<double> denominator = std::log(std::complex<double>(
+                base.real.to_double(), base.imag.to_double()));
+            std::complex<double> result = numerator / denominator;
+            return Values{evaluator.number(Number::complex(
+                RealNumber::inexact_real(result.real()),
+                RealNumber::inexact_real(result.imag())))};
+        }
+        std::complex<double> result = std::log(std::complex<double>(
+            value.real.to_double(), value.imag.to_double()));
+        return Values{evaluator.number(Number::complex(
+            RealNumber::inexact_real(result.real()),
+            RealNumber::inexact_real(result.imag())))};
+    });
+    install_complex_unary("sin", static_cast<std::complex<double>(*) (
+        const std::complex<double>&)>(std::sin<double>));
+    install_complex_unary("cos", static_cast<std::complex<double>(*) (
+        const std::complex<double>&)>(std::cos<double>));
+    install_complex_unary("tan", static_cast<std::complex<double>(*) (
+        const std::complex<double>&)>(std::tan<double>));
+    install_complex_unary("asin", static_cast<std::complex<double>(*) (
+        const std::complex<double>&)>(std::asin<double>));
+    install_complex_unary("acos", static_cast<std::complex<double>(*) (
+        const std::complex<double>&)>(std::acos<double>));
+    install(evaluator, "atan", [&evaluator](const Values& args) {
+        if (args.empty() || args.size() > 2)
+            throw std::runtime_error("atan expects one or two arguments");
+        for (Value arg : args)
+            if (!is_number(arg)) throw std::runtime_error("atan expects numbers");
+        if (args.size() == 2) {
+            Number y = number_value(args[0]), x = number_value(args[1]);
+            if (!y.is_real() || !x.is_real())
+                throw std::runtime_error("atan expects real numbers with two arguments");
+            return Values{evaluator.number(Number::inexact(std::atan2(
+                y.real.to_double(), x.real.to_double())))};
+        }
+        Number value = number_value(args[0]);
+        std::complex<double> result = std::atan(std::complex<double>(
+            value.real.to_double(), value.imag.to_double()));
+        return Values{evaluator.number(Number::complex(
+            RealNumber::inexact_real(result.real()),
+            RealNumber::inexact_real(result.imag())))};
+    });
+    install(evaluator, "/", [&evaluator](const Values& args) {
         if (args.empty()) throw std::runtime_error("/ expects arguments");
-        std::int64_t result = args[0].as_integer();
-        if (args.size() == 1) {
-            if (result == 0) throw std::runtime_error("division by zero");
-            return Values{Value::integer(1 / result)};
-        }
+        for (Value value : args) if (!is_number(value)) throw std::runtime_error("/ expects numbers");
+        Number result = args.size() == 1 ? Number::exact(BigInteger(1)) : number_value(args[0]);
+        if (args.size() == 1) result = number_divide(result, number_value(args[0]));
         for (std::size_t i = 1; i < args.size(); ++i) {
-            auto divisor = args[i].as_integer();
-            if (divisor == 0) throw std::runtime_error("division by zero");
-            result /= divisor;
+            result = number_divide(result, number_value(args[i]));
         }
-        return Values{Value::integer(result)};
+        return Values{evaluator.number(std::move(result))};
     });
-    auto install_comparison = [&evaluator](const char* name,
-                                           bool (*compare)(std::int64_t, std::int64_t)) {
-        install(evaluator, name, [name, compare](const Values& args) {
+    auto install_comparison = [&evaluator](const char* name, int direction) {
+        install(evaluator, name, [name, direction, &evaluator](const Values& args) {
             if (args.size() < 2) throw std::runtime_error(std::string(name) + " expects two arguments");
-            for (std::size_t i = 1; i < args.size(); ++i)
-                if (!compare(args[i - 1].as_integer(), args[i].as_integer()))
+            for (std::size_t i = 0; i < args.size(); ++i)
+                if (!is_number(args[i]) || !number_value(args[i]).is_real())
+                    raise_keyed(evaluator, "wrong-type-arg",
+                                std::string(name) + " expects real numbers");
+            for (std::size_t i = 1; i < args.size(); ++i) {
+                Number left = number_value(args[i - 1]);
+                Number right = number_value(args[i]);
+                if ((left.real.inexact && std::isnan(left.real.inexact_value)) ||
+                    (right.real.inexact && std::isnan(right.real.inexact_value)))
                     return Values{Value::boolean(false)};
+                int order = number_compare(left, right);
+                bool ok = direction == -2 ? order < 0 : direction == -1 ? order <= 0
+                    : direction == 1 ? order > 0 : order >= 0;
+                if (!ok)
+                    return Values{Value::boolean(false)};
+            }
             return Values{Value::boolean(true)};
         });
     };
-    install_comparison("<", [](auto a, auto b) { return a < b; });
-    install_comparison(">", [](auto a, auto b) { return a > b; });
-    install_comparison("<=", [](auto a, auto b) { return a <= b; });
-    install_comparison(">=", [](auto a, auto b) { return a >= b; });
+    install_comparison("<", -2);
+    install_comparison("<=", -1);
+    install_comparison(">", 1);
+    install_comparison(">=", 2);
 
     // s7's copy: in the kernel primitive table, but not a Scheme-level
     // definition anywhere, so the native substrate has to provide it.
@@ -3211,51 +3731,59 @@ void install_runtime_primitives(Evaluator& evaluator) {
         return Values{evaluator.string(out)};
     });
 
-    // --- exact integer floor/truncate division families (R7RS): srfi-19's
-    // --- time code and later numeric code split remainders with these.
+    // Exact integer floor/truncate division families used by R7RS and SRFI-19.
     auto install_division_family = [&evaluator](
                                        const char* quotient_name,
                                        const char* remainder_name,
                                        const char* both_name,
                                        bool floor_semantics) {
-        auto compute = [floor_semantics](std::int64_t a, std::int64_t b)
-            -> std::pair<std::int64_t, std::int64_t> {
-            if (b == 0) throw std::runtime_error("division by zero");
-            std::int64_t q = a / b;
-            std::int64_t r = a % b;
-            if (floor_semantics && r != 0 && ((a < 0) != (b < 0))) {
-                q -= 1;
+        auto compute = [floor_semantics](BigInteger a, BigInteger b)
+            -> std::pair<BigInteger, BigInteger> {
+            if (b.is_zero()) throw std::runtime_error("division by zero");
+            BigInteger q = a / b;
+            BigInteger r = a % b;
+            if (floor_semantics && !r.is_zero() &&
+                (a.negative() != b.negative())) {
+                q -= BigInteger(1);
                 r += b;
             }
             return {q, r};
         };
-        install(evaluator, both_name, [compute, both_name](const Values& args) {
+        install(evaluator, both_name, [&evaluator, compute, both_name](const Values& args) {
             require_arity(args, 2, both_name);
-            if (!args[0].is_integer() || !args[1].is_integer())
-                throw std::runtime_error(std::string(both_name) +
-                                         " expects integers");
-            auto qr = compute(args[0].as_integer(), args[1].as_integer());
-            return Values{Value::integer(qr.first), Value::integer(qr.second)};
+            BigInteger a, b;
+            if (!integer_value(args[0], a) || !integer_value(args[1], b))
+                raise_keyed(evaluator, "wrong-type-arg",
+                            std::string(both_name) + " expects integers");
+            const bool inexact = number_value(args[0]).real.inexact ||
+                                 number_value(args[1]).real.inexact;
+            auto qr = compute(std::move(a), std::move(b));
+            return Values{make_integer(evaluator, std::move(qr.first), inexact),
+                          make_integer(evaluator, std::move(qr.second), inexact)};
         });
         install(evaluator, quotient_name,
-                [compute, quotient_name](const Values& args) {
+                [&evaluator, compute, quotient_name](const Values& args) {
                     require_arity(args, 2, quotient_name);
-                    if (!args[0].is_integer() || !args[1].is_integer())
-                        throw std::runtime_error(std::string(quotient_name) +
-                                                 " expects integers");
-                    return Values{Value::integer(
-                        compute(args[0].as_integer(), args[1].as_integer())
-                            .first)};
+                    BigInteger a, b;
+                    if (!integer_value(args[0], a) || !integer_value(args[1], b))
+                        raise_keyed(evaluator, "wrong-type-arg",
+                                    std::string(quotient_name) + " expects integers");
+                    const bool inexact = number_value(args[0]).real.inexact ||
+                                         number_value(args[1]).real.inexact;
+                    return Values{make_integer(evaluator,
+                        compute(std::move(a), std::move(b)).first, inexact)};
                 });
-        install(evaluator, remainder_name,
-                [compute, remainder_name](const Values& args) {
+                install(evaluator, remainder_name,
+                [&evaluator, compute, remainder_name](const Values& args) {
                     require_arity(args, 2, remainder_name);
-                    if (!args[0].is_integer() || !args[1].is_integer())
-                        throw std::runtime_error(std::string(remainder_name) +
-                                                 " expects integers");
-                    return Values{Value::integer(
-                        compute(args[0].as_integer(), args[1].as_integer())
-                            .second)};
+                    BigInteger a, b;
+                    if (!integer_value(args[0], a) || !integer_value(args[1], b))
+                        raise_keyed(evaluator, "type-error",
+                                    std::string(remainder_name) + " expects integers");
+                    const bool inexact = number_value(args[0]).real.inexact ||
+                                         number_value(args[1]).real.inexact;
+                    return Values{make_integer(evaluator,
+                        compute(std::move(a), std::move(b)).second, inexact)};
                 });
     };
     install_division_family("floor-quotient", "floor-remainder", "floor/", true);
@@ -3377,6 +3905,9 @@ void install_runtime_primitives(Evaluator& evaluator) {
         }
         return Values{evaluator.string(text)};
     });
+    evaluator.global_environment()->define(
+        evaluator.symbol("pi"),
+        evaluator.number(Number::inexact(std::acos(-1.0))));
 }
 
 } // namespace goldfish::runtime

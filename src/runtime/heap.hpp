@@ -47,6 +47,7 @@ enum class ObjectType : std::uint8_t {
     OutputPort,
     EvalEnvironment,
     Module,
+    Number,
 };
 
 class Object {

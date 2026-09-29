@@ -46,11 +46,16 @@ void print_value(const Value& value, std::ostream& output) {
         output << (value.as_boolean() ? "#t" : "#f");
     } else if (value.is_integer()) {
         output << value.as_integer();
+    } else if (is_number(value)) {
+        output << number_to_string(value);
     } else {
         Object* object = value.as_object();
         switch (object->type()) {
         case ObjectType::Symbol:
             output << value.as_object<SymbolObject>()->name;
+            break;
+        case ObjectType::Number:
+            output << number_to_string(value);
             break;
         case ObjectType::String:
             output << '"' << value.as_object<StringObject>()->value << '"';

@@ -19,7 +19,10 @@
 ;; arity, wrong type and out-of-range must raise instead of silently
 ;; looping (make-list/list-tail with a negative count used to recurse
 ;; forever) or quietly truncating.
-(define (negative? x) (< x 0))
+(define (negative? x)
+  (if (not (and (number? x) (real? x)))
+    (error 'wrong-type-arg "negative? expects a real number" x))
+  (< x 0))
 (define (boolean=? x y . rest)
   (let same? ((objs (cons y rest)) (first x))
     (if (null? objs)
@@ -27,11 +30,11 @@
       (and (boolean? first) (boolean? (car objs)) (eq? first (car objs))
            (same? (cdr objs) first)))))
 (define (odd? x)
-  (if (not (integer? x))
+  (if (not (exact-integer? x))
     (error 'wrong-type-arg "odd?: expected an integer" x))
   (not (= (modulo x 2) 0)))
 (define (even? x)
-  (if (not (integer? x))
+  (if (not (exact-integer? x))
     (error 'wrong-type-arg "even?: expected an integer" x))
   (= (modulo x 2) 0))
 (define (abs x) (if (negative? x) (- 0 x) x))

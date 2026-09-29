@@ -15,7 +15,7 @@
 ;; 要转换为字符串的数值，支持整数、实数、有理数、复数等各种数值类型。
 ;;
 ;; radix : exact?
-;; 可选参数，指定转换的进制。必须是精确的整数，范围在2到16之间（包含2和16）。
+;; 可选参数，指定转换的进制。必须是精确整数2、8、10或16。
 ;; 当不指定时，默认为10进制。
 ;;
 ;; 返回值
@@ -29,14 +29,14 @@
 ;; 2. 对于实数，返回小数格式的字符串
 ;; 3. 对于有理数，返回"分子/分母"格式的字符串
 ;; 4. 对于复数，返回"实部+虚部i"格式的字符串
-;; 5. 指定进制时，返回指定进制的字符串表示（仅适用于有理的实数部分）
+;; 5. 指定进制时，返回指定进制的精确数值字符串表示
 ;;
 ;; 错误处理
 ;; --------
 ;; wrong-type-arg
 ;; 当参数不是数值或进制不是精确的整数时抛出错误。
 ;; out-of-range
-;; 当进制不在2到16范围内时抛出错误。
+;; 当进制不是2、8、10或16时抛出错误。
 ;; wrong-number-of-args
 ;; 当参数数量不为1或2时抛出错误。
 ;; 基本整数转换测试
@@ -50,6 +50,7 @@
 (check (number->string 123 8) => "173")
 (check (number->string 255 16) => "ff")
 (check (number->string 255 10) => "255")
+(check (number->string 10+11i 16) => "a+bi")
 ;; 有理数转换测试
 (check (number->string 1/2) => "1/2")
 (check (number->string -1/3) => "-1/3")
@@ -92,8 +93,10 @@
 (check-catch 'wrong-type-arg (number->string 'not-a-number))
 (check-catch 'wrong-type-arg (number->string 123 'not-a-number))
 (check-catch 'out-of-range (number->string 123 1))
+(check-catch 'out-of-range (number->string 123 3))
 (check-catch 'out-of-range (number->string 123 37))
 (check-catch 'wrong-type-arg (number->string 123 3.5))
+(check-catch 'wrong-type-arg (number->string 123 2.0))
 (check-catch 'wrong-number-of-args (number->string))
 (check-catch 'wrong-number-of-args (number->string 123 2 3))
 (check-report)
