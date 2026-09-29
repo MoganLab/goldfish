@@ -128,13 +128,12 @@
     ) ;define-record-type
 
     (define (check-set obj)
-      (if (not (set? obj)) (type-error "not a set" obj))
+      (unless (set? obj) (type-error "not a set" obj))
     ) ;define
 
     (define (check-same-comparator a b)
-      (if (not (eq? (set-element-comparator a) (set-element-comparator b)))
-        (value-error "different comparators" a b)
-      ) ;if
+      (unless (eq? (set-element-comparator a) (set-element-comparator b))
+        (value-error "different comparators" a b))
     ) ;define
 
     (define (make-set/comparator comparator)
@@ -372,7 +371,7 @@
     (define (set-count predicate set)
       (check-set set)
       (let ((ht (set-hash-table set)) (count 0))
-        (hash-table-for-each (lambda (k v) (if (predicate k) (set! count (+ count 1))))
+        (hash-table-for-each (lambda (k v) (when (predicate k) (set! count (+ count 1))))
           ht
         ) ;hash-table-for-each
         count
@@ -695,9 +694,8 @@
     ) ;define
 
     (define (check-same-bag-comparator a b)
-      (if (not (eq? (bag-comparator a) (bag-comparator b)))
-        (value-error "different comparators" a b)
-      ) ;if
+      (unless (eq? (bag-comparator a) (bag-comparator b))
+        (value-error "different comparators" a b))
     ) ;define
 
     (define (make-bag/comparator comparator)
@@ -723,9 +721,8 @@
 
     (define (bag-decrement! bag element count)
       (check-bag bag)
-      (if (not (and (exact-integer? count) (>= count 0)))
-        (type-error "bag-decrement!" count)
-      ) ;if
+      (unless (and (exact-integer? count) (>= count 0))
+        (type-error "bag-decrement!" count))
       (if (= count 0)
         bag
         (let* ((entries (bag-entries bag)) (entry (hash-table-ref/default entries element 0)))

@@ -44,22 +44,20 @@
   (let* ((old-buckets (vector-ref ht 1))
          (new-buckets (make-vector new-size '())))
     (let bucket-loop ((i 0))
-      (if (< i (vector-length old-buckets))
-          (begin
-            (let cell-loop ((cells (vector-ref old-buckets i)))
-              (if (pair? cells)
-                  (begin
-                    (let ((cell (car cells)))
-                      (when (cdr cell)
-                        (let ((index (modulo (%s7-ht-hash ht (car cell)) new-size)))
-                          (vector-set! new-buckets index
-                                       (cons cell (vector-ref new-buckets index))))))
-                    (cell-loop (cdr cells))))
-            (bucket-loop (+ i 1)))))
+      (when (< i (vector-length old-buckets))
+        (let cell-loop ((cells (vector-ref old-buckets i)))
+          (when (pair? cells)
+            (let ((cell (car cells)))
+              (when (cdr cell)
+                (let ((index (modulo (%s7-ht-hash ht (car cell)) new-size)))
+                  (vector-set! new-buckets index
+                               (cons cell (vector-ref new-buckets index)))))
+            (cell-loop (cdr cells))))
+        (bucket-loop (+ i 1))))
     (vector-set! ht 1 new-buckets))))
 
 (define (%s7-ht-cell ht key)
-  (if (not (%s7-ht? ht))
+  (unless (%s7-ht? ht)
     (error 'wrong-type-arg "expected a hash table" ht))
   (let* ((buckets (vector-ref ht 1))
          ;; modulo (floor), not remainder (truncate): a comparator's
@@ -110,12 +108,12 @@
 (define (hash-table-ref ht key) (s7-hash-table-ref ht key))
 
 (define (hash-table-size ht)
-  (if (not (%s7-ht? ht))
+  (unless (%s7-ht? ht)
     (error 'wrong-type-arg "hash-table-size: expected a hash table" ht))
   (vector-ref ht 4))
 
 (define (make-iterator ht)
-  (if (not (%s7-ht? ht))
+  (unless (%s7-ht? ht)
     (error 'wrong-type-arg "make-iterator: expected a hash table" ht))
   (let ((buckets (vector-ref ht 1)))
     (let collect ((i (- (vector-length buckets) 1)) (entries '()))

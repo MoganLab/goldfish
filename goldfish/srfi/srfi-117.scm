@@ -69,7 +69,9 @@
     (define (map! f lis)
       (let lp
         ((lis lis))
-        (if (pair? lis) (begin (set-car! lis (f (car lis))) (lp (cdr lis))))
+        (when (pair? lis)
+          (set-car! lis (f (car lis)))
+          (lp (cdr lis)))
       ) ;let
     ) ;define
 
@@ -127,7 +129,7 @@
 
     (define (list-queue-add-front! list-queue elem)
       (let ((new-first (cons elem (get-first list-queue))))
-        (if (list-queue-empty? list-queue) (set-last! list-queue new-first))
+        (when (list-queue-empty? list-queue) (set-last! list-queue new-first))
         (set-first! list-queue new-first)
       ) ;let
     ) ;define
@@ -149,7 +151,7 @@
                (elem (car old-first))
                (new-first (cdr old-first))
               ) ;
-          (if (null? new-first) (set-last! list-queue '()))
+          (when (null? new-first) (set-last! list-queue '()))
           (set-first! list-queue new-first)
           elem
         ) ;let*
@@ -250,9 +252,8 @@
     (define (list-queue-unfold* stop? mapper successor seed queue)
       (let loop
         ((seed seed))
-        (if (not (stop? seed))
-          (list-queue-add-front! (loop (successor seed)) (mapper seed))
-        ) ;if
+        (unless (stop? seed)
+          (list-queue-add-front! (loop (successor seed)) (mapper seed)))
         queue
       ) ;let
     ) ;define
@@ -266,9 +267,8 @@
     (define (list-queue-unfold-right* stop? mapper successor seed queue)
       (let loop
         ((seed seed))
-        (if (not (stop? seed))
-          (list-queue-add-back! (loop (successor seed)) (mapper seed))
-        ) ;if
+        (unless (stop? seed)
+          (list-queue-add-back! (loop (successor seed)) (mapper seed)))
         queue
       ) ;let
     ) ;define

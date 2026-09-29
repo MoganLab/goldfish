@@ -18,7 +18,7 @@
 
 (define (call-with-port port proc)
   (let ((res (proc port)))
-    (if res (close-port port))
+  (when res (close-port port))
     res))
 
 ;; goldfish does not distinguish textual/binary ports; binary I/O rides
@@ -139,7 +139,7 @@
          (end (if (and (pair? maybe-range) (pair? (cdr maybe-range)))
                 (cadr maybe-range)
                 (bytevector-length v))))
-    (if (or (< start 0) (> start end) (> end (bytevector-length v)))
+    (when (or (< start 0) (> start end) (> end (bytevector-length v)))
       (error 'out-of-range "bytevector-copy"))
     (let ((new-v (make-bytevector (- end start))))
       (let loop ((i start) (j 0))

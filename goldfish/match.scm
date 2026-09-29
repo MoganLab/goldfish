@@ -191,31 +191,30 @@
 
     (define (%vm-add-thread! vm thread)
       (let ((pc (%thread-pc thread)))
-        (if (not (%bitwise-bit-set? (%vm-record-next-pcs vm) pc))
-          (begin
-            (%vm-record-next-pcs-set! vm
-                                      (%bitwise-bit-set (%vm-record-next-pcs vm) pc))
-            (let ((instruction
-                   (vector-ref (%vm-record-instructions vm) pc)))
-              (case (%instruction-type instruction)
-                ((fork)
-                 (%thread-pc-set! thread (%instruction-arg0 instruction))
-                 (%registers-cow! (%thread-registers thread))
-                 (%vm-add-thread! vm thread)
-                 (%vm-add-thread! vm
-                                  (%vm-make-thread
-                                   vm
-                                   (%instruction-arg1 instruction)
-                                   (%thread-registers thread))))
-                ((branch)
-                 (%thread-pc-set! thread (%instruction-arg0 instruction))
-                 (%vm-add-thread! vm thread))
-                (else
-                 (let ((threads (%vm-record-next-threads vm)))
-                   (let loop ((idx 0))
-                     (if (not (vector-ref threads idx))
-                       (vector-set! threads idx thread)
-                       (loop (+ idx 1))))))))))))
+        (unless (%bitwise-bit-set? (%vm-record-next-pcs vm) pc)
+          (%vm-record-next-pcs-set! vm
+                                    (%bitwise-bit-set (%vm-record-next-pcs vm) pc))
+          (let ((instruction
+                 (vector-ref (%vm-record-instructions vm) pc)))
+            (case (%instruction-type instruction)
+              ((fork)
+               (%thread-pc-set! thread (%instruction-arg0 instruction))
+               (%registers-cow! (%thread-registers thread))
+               (%vm-add-thread! vm thread)
+               (%vm-add-thread! vm
+                                (%vm-make-thread
+                                 vm
+                                 (%instruction-arg1 instruction)
+                                 (%thread-registers thread))))
+              ((branch)
+               (%thread-pc-set! thread (%instruction-arg0 instruction))
+               (%vm-add-thread! vm thread))
+              (else
+               (let ((threads (%vm-record-next-threads vm)))
+                 (let loop ((idx 0))
+                   (if (not (vector-ref threads idx))
+                     (vector-set! threads idx thread)
+                     (loop (+ idx 1))))))))))
 
     (define (%vm-swap-threads! vm)
       (let ((current (%vm-record-current-threads vm)))
@@ -292,7 +291,7 @@
       (let ((final-pc (- (vector-length (%vm-record-instructions vm)) 2)))
         (%vm-each-current-thread vm
           (lambda (thread)
-            (if (eqv? (%thread-pc thread) final-pc)
+            (when (eqv? (%thread-pc thread) final-pc)
               (%vm-add-thread! vm thread))))
         (%vm-swap-threads! vm)))
 
@@ -603,4 +602,4 @@
                       (cons pats-datum (list conseq))
                       (cons (map (lambda (_) '_) pats-datum)
                             (list alter)))))))))))
-
+)

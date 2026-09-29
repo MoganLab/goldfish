@@ -202,7 +202,8 @@
                =>
                (lambda (entry)
                  ;; (write `(cache-hit ,key ,(parse-position->string (parse-results-position results))))(newline)
-                 (if (not (cdr entry)) (error "Recursive parse rule" key) (cdr entry))
+                 (unless (cdr entry) (error "Recursive parse rule" key))
+                 (cdr entry)
                ) ;lambda
               ) ;
               (else (let ((cell (cons key #f)))
@@ -882,7 +883,7 @@
 
       (define parse-goal
         (let ((compiled-table (delay (map (lambda (entry)
-                                            (if (not (= (length entry) 2)) (error "Ill-formed rule entry" entry))
+                                            (unless (= (length entry) 2) (error "Ill-formed rule entry" entry))
                                             (cons (car entry) (parse-simple (cadr entry)))
                                           ) ;lambda
                                        table
@@ -891,7 +892,7 @@
               ) ;compiled-table
              ) ;
           (lambda (goal)
-            (if (not (assq goal table)) (error "Unknown rule name" goal))
+            (unless (assq goal table) (error "Unknown rule name" goal))
             (make-packrat-parse-pattern '()
               (lambda (bindings results ks kf)
                 (let ((rule (cond ((assq goal (force compiled-table)) => cdr)

@@ -161,17 +161,12 @@
           ;; make-reals: return a procedure that generates random reals
           (lambda args
             (let ((unit #f))
-              (if (pair? args)
-                (begin
-                  (set! unit (car args))
-                  (unless (and (real? unit) (< 0 unit 1))
-                    (error 'wrong-type-arg
-                      "random-source-make-reals: unit must be a real in (0,1)"
-                      unit
-                    ) ;error
-                  ) ;unless
-                ) ;begin
-              ) ;if
+              (when (pair? args)
+                (set! unit (car args))
+                (unless (and (real? unit) (< 0 unit 1))
+                  (error 'wrong-type-arg
+                    "random-source-make-reals: unit must be a real in (0,1)"
+                    unit)))
               (lambda ()
                 (let ((r (random 1.0 state)))
                   ;; random returns [0.0, 1.0), but SRFI-27 requires (0, 1)

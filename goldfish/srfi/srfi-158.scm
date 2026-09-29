@@ -352,7 +352,7 @@
     (define (gflatten gen)
       (let ((state '()))
         (lambda ()
-          (if (null? state) (set! state (gen)))
+          (when (null? state) (set! state (gen)))
           (if (eof-object? state)
             state
             (let ((obj (car state)))

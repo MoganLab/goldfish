@@ -155,11 +155,11 @@
     ) ;define
 
     (define (check-list-count who lst i)
-      (if (not (or (pair? lst) (null? lst)))
+      (unless (or (pair? lst) (null? lst))
         (error 'wrong-type-arg who lst))
-      (if (not (and (integer? i) (exact? i)))
+      (unless (and (integer? i) (exact? i))
         (error 'wrong-type-arg who i))
-      (if (< i 0)
+      (when (< i 0)
         (error 'out-of-range who i)))
 
     (define (%pair-count lst)

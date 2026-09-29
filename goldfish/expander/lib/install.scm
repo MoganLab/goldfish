@@ -430,8 +430,9 @@
          (let* ((result (make-vector (vector-length y) #f)))
            (set! memo (cons (cons y result) memo))
            (let fill ((i 0))
-             (if (< i (vector-length y))
-               (begin (vector-set! result i (loop (vector-ref y i))) (fill (+ i 1)))))
+             (when (< i (vector-length y))
+               (vector-set! result i (loop (vector-ref y i)))
+               (fill (+ i 1))))
            result))
         (else y)))))
 
@@ -646,7 +647,7 @@
 
 (define (install-expansion-helper! name)
   (let ((b (exp-library-ref-own the-base-library name)))
-    (if b
+    (when b
       (module-define! the-expander-library name
         (eval (toplevel-ref-gensym (binding-value b))
               (module-eval-environment the-expander-library))))

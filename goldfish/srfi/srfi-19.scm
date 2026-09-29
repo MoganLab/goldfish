@@ -1361,7 +1361,7 @@
                    (receive (hh pos1)
                      (priv:read-fixed-digits input pos 2)
                      (let ((pos2 pos1))
-                       (if (and (< pos2 len) (char=? (string-ref input pos2) #\:))
+                       (when (and (< pos2 len) (char=? (string-ref input pos2) #\:))
                          (set! pos2 (+ pos2 1))
                        ) ;if
                        (receive (mm pos3)

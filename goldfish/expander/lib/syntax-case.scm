@@ -242,10 +242,10 @@
                             (fender-stx (if (= 2 (length rest)) (car rest) #f))
                             (body-stx (if (= 2 (length rest)) (cadr rest) (car rest)))
                             (patvars (pattern-variables pattern-stx literal-ids)))
-                    (if (not (or (= 1 (length rest)) (= 2 (length rest))))
-                        (error 'syntax-case "expected a pattern, an optional guard expression, and an expression"
-                               clause-stx)
-                        (list 'list
+                    (unless (or (= 1 (length rest)) (= 2 (length rest)))
+                      (error 'syntax-case "expected a pattern, an optional guard expression, and an expression"
+                             clause-stx))
+                    (list 'list
                               (list 'syntax pattern-stx)
                               (list 'quote patvars)
                               (list 'lambda patvars
@@ -253,7 +253,7 @@
                                         (transform-syntax-body fender-stx patvars '() sctx lib)
                                         #t))
                               (list 'lambda patvars
-                                    (transform-syntax-body body-stx patvars '() sctx lib))))))))
+                                    (transform-syntax-body body-stx patvars '() sctx lib)))))))
 
       (letrec* ((form (syntax-form macro-stx))
                 (input-expr (cadr form))

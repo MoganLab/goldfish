@@ -103,10 +103,10 @@
                       (begin
                         (bytevector-u8-set! output output-index
                           (+ (* v1 4) (quotient v2 16)))
-                        (if (not pad3)
+                        (unless pad3
                           (bytevector-u8-set! output (+ output-index 1)
                             (+ (* (remainder v2 16) 16) (quotient v3 4))))
-                        (if (not pad4)
+                        (unless pad4
                           (bytevector-u8-set! output (+ output-index 2)
                             (+ (* (remainder v3 4) 64) v4)))
                         (loop (+ group 1)

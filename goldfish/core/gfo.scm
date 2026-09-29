@@ -132,7 +132,7 @@
   (string-append (gfo-dir) "/" (gfo-key path) ".gfo"))
 
 (define (gfo-ensure-parent! dir file)
-  (if (not (file-exists? dir)) (g_mkdir dir))
+  (unless (file-exists? dir) (g_mkdir dir))
   (let ((rel (substring file (string-length dir))))
     (let ((n (string-length rel)))
       (let loop ((i 1))
@@ -142,7 +142,7 @@
                      (lp (+ k 1))))))
           (when (< j n)
             (let ((d (string-append dir (substring rel 0 j))))
-              (if (not (file-exists? d)) (g_mkdir d))
+              (unless (file-exists? d) (g_mkdir d))
               (loop (+ j 1)))))))))
 
 (define (gfo-stamp path)

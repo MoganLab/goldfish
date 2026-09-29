@@ -5,19 +5,19 @@
   (begin
 
     (define* (timeit stmt (setup '()) (number 1000000))
-      (if (not (procedure? stmt))
+      (unless (procedure? stmt)
         (error 'type-error "(timeit stmt setup number): stmt must be a procedure")
-      ) ;if
-      (if (not (or (procedure? setup) (null? setup)))
+      ) ;unless
+      (unless (or (procedure? setup) (null? setup))
         (error 'type-error
           "(timeit stmt setup number): setup must be a procedure or '()"
         ) ;error
-      ) ;if
-      (if (not (and (integer? number) (positive? number)))
+      ) ;unless
+      (unless (and (integer? number) (positive? number))
         (error 'type-error
           "(timeit stmt setup number): number must be a positive integer"
         ) ;error
-      ) ;if
+      ) ;unless
 
       (unless (null? setup)
         (setup)

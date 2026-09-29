@@ -123,13 +123,10 @@
 
     (define (check:report-correct cases)
       (display "correct")
-      (if (not (= cases 1))
-        (begin
-          (display " (")
-          (display cases)
-          (display " cases checked)")
-        ) ;begin
-      ) ;if
+      (unless (= cases 1)
+        (display " (")
+        (display cases)
+        (display " cases checked)"))
       (newline)
     ) ;define
 
@@ -241,17 +238,14 @@
          (check:proc (quote expr) (lambda () expr) expected))))
 
     (define (check-report)
-      (if (>= check:mode 1)
-        (begin
-          (newline)
-          (display "; *** checks *** : ")
-          (display check:correct)
-          (display " correct, ")
-          (display (length check:failed))
-          (display " failed.")
-          (newline)
-        ) ;begin
-      ) ;if
+      (when (>= check:mode 1)
+        (newline)
+        (display "; *** checks *** : ")
+        (display check:correct)
+        (display " correct, ")
+        (display (length check:failed))
+        (display " failed.")
+        (newline))
     ) ;define
 
   ) ;begin

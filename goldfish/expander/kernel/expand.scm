@@ -274,11 +274,10 @@
           (set-current-intro-scope! scp-i)
           (let ((output (proc input)))
             (set-current-intro-scope! old-intro)
-            (if (not (syntax? output))
-                (error 'syntax-case "macro output is not a syntax object"
-                       output)
-                (values output
-                        (current-expand-context)))))))))
+            (unless (syntax? output)
+              (error 'syntax-case "macro output is not a syntax object"
+                     output))
+            (values output (current-expand-context))))))))
 
 (define (expand-macro stx ctx proc)
   (let*-values (((output ctx4) (expand-macro-once stx ctx proc)))

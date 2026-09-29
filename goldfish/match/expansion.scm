@@ -905,7 +905,7 @@
            '()
            (let ((first (collect-vars (cadr pat))))
              (for-each (lambda (b)
-                         (if (not (equal? (collect-vars b) first))
+                         (unless (equal? (collect-vars b) first)
                            (error 'match "or branches bind different variables")))
                        (cddr pat))
              first)))

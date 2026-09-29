@@ -121,7 +121,7 @@
     ;; ;; Utility
 
     (define (assume condition . args)
-      (if (not condition) (apply error args))
+      (unless condition (apply error args))
     ) ;define
 
     (define (plist-fold proc nil ps)

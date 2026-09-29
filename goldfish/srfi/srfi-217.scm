@@ -125,7 +125,7 @@
     ;; ;; Utility
 
     (define (assume condition . args)
-      (if (not condition) (apply error args))
+      (unless condition (apply error args))
     ) ;define
 
     ;; ;; Trie implementation

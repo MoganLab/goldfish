@@ -387,12 +387,10 @@
         (let ((x x) (v v) (p (if (procedure? p) p (lambda (x) p))))
           (if (vector? x)
             (list->vector (cond ((boolean? v)
-                                 (if v
+                                 (when v
                                    (let l
                                      ((x (vector->alist x)) (p p))
-                                     (if (null? x) '() (cons (p (cdar x)) (l (cdr x) p)))
-                                   ) ;let
-                                 ) ;if
+                                     (if (null? x) '() (cons (p (cdar x)) (l (cdr x) p))))
                                 ) ;
                                 ((procedure? v)
                                  (let l
@@ -420,12 +418,10 @@
                           ) ;cond
             ) ;list->vector
             (cond ((boolean? v)
-                   (if v
+                   (when v
                      (let l
                        ((x x) (p p))
-                       (if (null? x) '() (cons (cons (caar x) (p (cdar x))) (l (cdr x) p)))
-                     ) ;let
-                   ) ;if
+                       (if (null? x) '() (cons (cons (caar x) (p (cdar x))) (l (cdr x) p))))
                   ) ;
                   ((procedure? v)
                    (let l
@@ -541,11 +537,10 @@
       (lambda (x v p)
         (if (vector? x)
           (list->vector (cond ((boolean? v)
-                               (if v
+                               (when v
                                  (let l
                                    ((x (vector->alist x)) (p p))
-                                   (if (null? x) '() (cons (p (caar x) (cdar x)) (l (cdr x) p)))
-                                 ) ;let
+                                   (if (null? x) '() (cons (p (caar x) (cdar x)) (l (cdr x) p))))
                                  x
                                ) ;if
                               ) ;
@@ -575,11 +570,10 @@
                         ) ;cond
           ) ;list->vector
           (cond ((boolean? v)
-                 (if v
+                 (when v
                    (let l
                      ((x x) (p p))
-                     (if (null? x) '() (cons (cons (caar x) (p (caar x) (cdar x))) (l (cdr x) p)))
-                   ) ;let
+                     (if (null? x) '() (cons (cons (caar x) (p (caar x) (cdar x))) (l (cdr x) p))))
                    x
                  ) ;if
                 ) ;
@@ -639,3 +633,5 @@
     ) ;define
   ) ;begin
 ) ;define-library
+)
+)

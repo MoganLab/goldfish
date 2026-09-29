@@ -552,8 +552,8 @@
                 (let ((defs (lib-cache-defs rec))
                       (name (lib-cache-name rec)))
                   (for-each (lambda (lib)
-                              (if (and (not (runtime-registered? lib))
-                                       (not (equal? lib name)))
+                              (when (and (not (runtime-registered? lib))
+                                         (not (equal? lib name)))
                                 (load-library! lib)))
                             (apply append (map collect-cache-module-refs defs)))
                   ;; Defs evaluate at most once per level per session:
@@ -564,14 +564,13 @@
                   ;; Level 0 evaluates in the session environment, so a
                   ;; guarded skip is exact; level >= 1 targets the current
                   ;; unit expansion environment and keeps its per-load evaluation.
-                  (if (or (> level 0) (not (runtime-registered? name level)))
-                    (begin
-                      (eval-defs defs name level)
-                      (if (> level 0)
+                  (when (or (> level 0) (not (runtime-registered? name level)))
+                    (eval-defs defs name level)
+                    (when (> level 0)
                         ;; No runtime module was registered (eval-defs drops
                         ;; the baked registration at level >= 1); mark the
                         ;; level-keyed instance loaded.
-                        (runtime-registered-add! name level))))))
+                        (runtime-registered-add! name level)))))
               recs)))
 
 ;;; eval-defs : (list sexp) name [level] -> void
@@ -655,7 +654,7 @@
   (catch
     #t
     (lambda ()
-      (if (not (runtime-registered? name))
+      (unless (runtime-registered? name)
         (load-library! name))
       (lookup-module name))
     (lambda args #f)))

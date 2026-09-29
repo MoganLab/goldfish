@@ -58,9 +58,9 @@
     ;; ; 差异:绝对路径首元素是 anchor — posix "/", Windows "C:\"/"\\srv\sh\\"/"\\";
     ;; ; drive-relative(C:foo)首元素 "C:";相对路径无 anchor。
     (define (path-parts p)
-      (if (not (path? p))
-        (type-error "path-parts: argument must be path")
-        (let ((parts (path-record-parts p))
+      (unless (path? p)
+        (type-error "path-parts: argument must be path"))
+      (let ((parts (path-record-parts p))
               (root (path-record-root p))
               (drive (path-record-drive p))
               (type (path-record-type p))
@@ -72,7 +72,6 @@
             ) ;cond
           ) ;let
         ) ;let
-      ) ;if
     ) ;define
 
     ;; ; 对齐 pathlib.PurePath.parser 风格 — 返回 'posix 或 'windows。
@@ -263,33 +262,29 @@
     ;; ; 对齐 pathlib.PurePath.with_name(name)
     ;; ; 差异:保留原路径的 drive/root/类型;Windows 上 C:\a\b → C:\a\new。
     (define (path-with-name p new-name)
-      (if (not (string? new-name))
-        (type-error "path-with-name: new-name must be string")
-        (replace-last-segment p new-name)
-      ) ;if
+      (unless (string? new-name)
+        (type-error "path-with-name: new-name must be string"))
+      (replace-last-segment p new-name)
     ) ;define
 
     ;; ; 对齐 pathlib.PurePath.with_stem(stem)
     ;; ; 差异:保留最后一个后缀(a.tar.gz → new.gz);Windows 上保留 drive/root。
     (define (path-with-stem p new-stem)
-      (if (not (string? new-stem))
-        (type-error "path-with-stem: new-stem must be string")
-        (let ((suffix (path-suffix p)))
-          ;; 无后缀(含隐藏文件):替换整段,等价于 with-name
-          (if (string-null? suffix)
-            (replace-last-segment p new-stem)
-            (replace-last-segment p (string-append new-stem suffix))
-          ) ;if
-        ) ;let
-      ) ;if
+      (unless (string? new-stem)
+        (type-error "path-with-stem: new-stem must be string"))
+      (let ((suffix (path-suffix p)))
+        ;; 无后缀(含隐藏文件):替换整段,等价于 with-name
+        (if (string-null? suffix)
+          (replace-last-segment p new-stem)
+          (replace-last-segment p (string-append new-stem suffix))))
     ) ;define
 
     ;; ; 对齐 pathlib.PurePath.with_suffix(suffix)
     ;; ; 差异:ext="" 去后缀;ext 必须以 "." 开头;Windows 上保留 drive/root。
     (define (path-with-suffix p ext)
-      (if (not (string? ext))
-        (type-error "path-with-suffix: ext must be string")
-        (let* ((name (path-name p)) (stem (path-stem p)))
+      (unless (string? ext)
+        (type-error "path-with-suffix: ext must be string"))
+      (let* ((name (path-name p)) (stem (path-stem p)))
           (cond ((string-null? ext)
                  (if (string-null? (path-suffix (path p)))
                    (path p)
@@ -302,7 +297,6 @@
                 (else (replace-last-segment p (string-append stem ext)))
           ) ;cond
         ) ;let*
-      ) ;if
     ) ;define
 
     ;; ; 对齐 pathlib.PurePath.relative_to(*other)

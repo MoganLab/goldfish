@@ -9,8 +9,8 @@
 ;; library (goldfish).
 (import (goldfish))
 
-(if (not (getenv "GOLDFISH_NATIVE_ARTIFACTS"))
-    (install-standard-library!))
+(unless (getenv "GOLDFISH_NATIVE_ARTIFACTS")
+  (install-standard-library!))
 
 (define output "goldfish/expander/kernel-combined.scm")
 
