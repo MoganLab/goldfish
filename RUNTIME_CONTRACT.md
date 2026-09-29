@@ -39,34 +39,22 @@ measurement identifies a material bottleneck.
 - `sh tools/test-native-workflow.sh` is the representative native workflow gate.
   `sh tools/check-native-manifest.sh` validates its corpus and the follow-up ledger.
 
-The native surface does not provide S7 inlet mutation forms, `*s7*`, hook
-invocation, or procedure signature reflection. The two excluded test cases are
-listed in `tests/NATIVE-FOLLOWUPS.tsv`.
+Hook invocation and procedure signature reflection are outside the current
+runtime API; their tests are listed in `tests/NATIVE-FOLLOWUPS.tsv`.
 
 ## Active work
 
 The test paths and decisions are tracked in `tests/NATIVE-FOLLOWUPS.tsv`.
-This ordered plan defines the work:
+Remaining work is tracked in `tests/NATIVE-FOLLOWUPS.tsv`:
 
-1. **Bootstrap cleanup:** remove migration-only aliases, rejecting stubs and
-   `LegacyLet` support after confirming generated artifacts and cold bootstrap
-   no longer depend on them. Preserve only interfaces with an explicit runtime
-   contract.
-2. **Numeric tower:** first make integer overflow explicit; then complete
-   inexact and complex behavior; then add bignum and ratio support with defined
-   exactness, comparison and reader/writer rules. Use R7RS and independent
-   implementations as references.
-3. **Randomness:** implement native random state and seeding; keep SRFI-27 and
-   `(liii random)` composition in Scheme; specify reproducibility and ranges.
-4. **Reader extensions:** decide whether raw-string syntax is part of the
-   supported `(liii ...)` surface. Implement and test it, or remove its exports
-   and examples.
-5. **Platform libraries:** decide support individually for subprocess, njson
-   and UUID. Keep policy in Scheme and add only the necessary native platform
-   operations.
-6. **Scale and performance:** establish repeatable workload and memory
-   baselines; optimize only measured bottlenecks. Run scale tests in a dedicated
-   time slot.
+1. **Randomness:** implement native random state and seeding, then complete
+   SRFI-27 and `(liii random)` with defined reproducibility and ranges.
+2. **Reader extensions:** decide whether raw strings belong in the supported
+   `(liii ...)` surface; implement and test them, or remove their exports.
+3. **Platform libraries:** decide support for subprocess, njson and UUID.
+   Keep policy in Scheme and add only necessary native operations.
+4. **Scale:** run the million-element set stress test and record workload and
+   memory baselines before optimizing measured bottlenecks.
 
 A phase is complete when its follow-up rows are resolved, affected tests pass,
 and the native workflow gate passes for changes to core evaluator, bootstrap,

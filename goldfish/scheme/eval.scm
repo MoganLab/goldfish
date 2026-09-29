@@ -33,9 +33,8 @@
     ;; R7RS (scheme eval): environment builds a program environment whose
     ;; bindings come from the given import-sets (only / except / prefix /
     ;; rename included), implemented by the expander's
-    ;; make-program-environment; eval then expands the expression with the
-    ;; Sets-of-Scopes expander so macros from the environment's libraries
-    ;; (e.g. srfi-8's receive) work, instead of s7's macro-less native eval.
+    ;; make-program-environment; eval then expands with the Sets-of-Scopes
+    ;; expander so macros from the imported libraries work.
 
     (define (environment . import-sets)
       (make-program-environment import-sets))

@@ -9,8 +9,8 @@ gf test [options] [PATH|PATTERN]
 ## Examples
 
 ```bash
-# Run all tests
-gf test
+# Run the full suite
+gf test --all
 
 # Run tests in a directory (auto-detects tests/ in path)
 gf test tools/doc/tests/
@@ -33,7 +33,9 @@ gf test --changed-since=main
 
 ## Description
 
-The `test` command runs all `*-test.scm` files under the `tests/` directory.
+With a path or pattern, `test` runs matching `*-test.scm` files. With no
+arguments, it runs tests changed since `main` on non-main branches; use
+`--all` for the full suite.
 
 ### Auto-Detection of tests/ Directory
 
@@ -78,5 +80,4 @@ The same suite is also available as an explicit xmake target:
 nix develop -c xmake build native-test
 ```
 
-This keeps cache-free bootstrap checks independent from the former host/s7
-runner. The regular Scheme suite runs through the native `gf test` command.
+The regular Scheme suite runs through the native `gf test` command.

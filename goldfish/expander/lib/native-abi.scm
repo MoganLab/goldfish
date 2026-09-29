@@ -32,9 +32,7 @@
 (define open-binary-input-file open-input-file)
 (define open-binary-output-file open-output-file)
 
-;; s7's eval-string surface is also used by (liii base).  Keep the
-;; implementation in Scheme and evaluate each datum through the native
-;; evaluator, returning the last result.
+;; Evaluate each datum through the native evaluator and return the last result.
 (define (eval-string source . maybe-environment)
   (if (not (string? source))
     (error 'wrong-type-arg "eval-string: expected a string" source)
@@ -274,9 +272,7 @@
 ;;; ---- string/vector conversions and friends --------------------------
 
 (define (string->vector . args)
-  ;; Zero-arg must raise 'wrong-type-arg (host define* parity).  Any
-  ;; sequence source works (host uses s7's generic copy: the tests pass
-  ;; strings, lists and vectors); non-sequences fail in string-ref.
+  ;; Accept strings, lists and vectors as sequence sources.
   (when (null? args)
     (error 'wrong-type-arg "string->vector: string required"))
   (let* ((s (car args))
@@ -358,15 +354,12 @@
 
 ;;; ---- misc -----------------------------------------------------------
 
-;; s7 compatibility: its lcm is R7RS lcm for the exact arguments the
-;; s7-lcm test pins.
+;; Compatibility aliases retained for existing liii callers.
 (define (s7-lcm . args) (apply lcm args))
 (define (s7-floor x) (exact (floor x)))
 (define (s7-ceiling x) (exact (ceiling x)))
 (define (s7-round x) (exact (round x)))
 (define (s7-truncate x) (exact (truncate x)))
 
-;; Host s7 seeds this from its own feature list; only claim what the
-;; native runtime actually is (ieee-float/ratios/complex join the float
-;; workstream).
+;; Features supported by this runtime.
 (define *features* '(goldfish linux r7rs))

@@ -10,10 +10,8 @@ Goldfish Scheme is a Scheme interpreter with the following features:
 <img src="GoldfishScheme-logo.png" alt="示例图片" style="width: 360pt;">
 
 ## Simplicity is Beauty
-Goldfish Scheme follows a small-runtime design and runs on its native C++17
-evaluator. It no longer depends on or embeds S7. The native executable uses
-[tbox](https://gitee.com/tboox/tbox), the C++ standard library, and the
-repository's BDWGC runtime dependency.
+Goldfish Scheme runs on a compact C++17 evaluator with tbox, the C++ standard
+library and BDWGC.
 
 The executable entry point is [src/runtime/native_main.cpp](src/runtime/native_main.cpp);
 the evaluator and bootstrap implementation live under `src/runtime/`.
@@ -77,10 +75,8 @@ Goldfish Scheme is bundled in Mogan Research (since v1.2.8), just [install Mogan
 
 Besides the Goldfish Scheme interpreter, a nice structured [Goldfish Scheme REPL](https://mogan.app/guide/plugin_goldfish.html) is availabe in Mogan Research.
 
-The following guide will help you build and install Goldfish step by step.
-
 ### macOS
-Here are commandlines to build it on macOS:
+Install with Homebrew:
 ```
 brew tap MoganLab/goldfish
 brew install goldfish
@@ -109,28 +105,7 @@ Goldfish Scheme uses subcommands for different operations:
 | `fix PATH` | Format Scheme code |
 | `FILE` | Load and evaluate Scheme file directly |
 
-### Display Help
-Without any command, it will print the help message:
-```
-> gf
-Goldfish Scheme 18.11.20 by LiiiLabs
-
-Commands:
-  help               Display this help message
-  version            Display version
-  eval CODE          Evaluate Scheme code
-                     Example: gf eval '(+ 1 2)'
-                     Prefer single quotes so double quotes inside Scheme strings usually do not need escaping
-  load FILE          Load Scheme code from FILE, then enter REPL
-  ...
-```
-
-### Display Version
-`version` prints the Goldfish Scheme version:
-```
-> gf version
-Goldfish Scheme 18.11.20 by LiiiLabs
-```
+Run all tests with `gf test --all`; use `gf test PATH` for a subset.
 
 ### Evaluate Code
 `eval` subcommand, or the `-e` alias, helps you evaluate Scheme code on the fly. Use single quotes around `CODE` in the shell so double quotes inside Scheme strings usually do not need escaping:
@@ -148,15 +123,14 @@ Goldfish Scheme 18.11.20 by LiiiLabs
 ### Load File
 `load` subcommand helps you load a Scheme file and enter REPL:
 ```
-> gf load tests/goldfish/liii/base-test.scm
+> gf load tests/liii/base/copy-test.scm
 ; load the file and enter REPL
 ```
 
 ### Run File Directly
 You can also load and evaluate a Scheme file directly:
 ```
-> gf tests/goldfish/liii/base-test.scm
-; *** checks *** : 1973 correct, 0 failed.
+> gf tests/liii/base/copy-test.scm
 ```
 
 ### Mode Option
@@ -183,10 +157,10 @@ On startup, Goldfish also automatically prepends each directory under `~/.local/
 
 
 ## Project goals
-Goldfish focuses on:
-1. Distribute the ready-to-use Goldfish Scheme interpreter and structured REPL on Linux/macOS/Windows
-2. Implement the [R7RS-small](https://small.r7rs.org) standard
-3. Provide the useful SRFI in R7RS library format
+
+- Distribute the interpreter and structured REPL on Linux, macOS and Windows.
+- Implement [R7RS-small](https://small.r7rs.org).
+- Provide useful SRFIs as R7RS libraries.
 
 ## License
 Goldfish Scheme is licensed under Apache 2.0, some of the code snippets which are derived from the S7 Scheme repo and SRFI have been explicitly claimed in the related source files.

@@ -532,12 +532,8 @@
       (if (null? subs)
         (let ((r (car (generate-temporaries (list 'proj-res)))))
           (values `(let ((,r (,proc ,subject))) ,success) binds))
-        ;; Single subpattern: bind with let, not call-with-values.  s7
-        ;; collapses a single unspecified producer value to zero values
-        ;; (the diverge-unspecified family), which would arity-fail the
-        ;; one-param consumer; let carries the value untouched.  A proc
-        ;; genuinely yielding zero/multiple values still errors at the
-        ;; binding, same contract as before.
+        ;; A single subpattern consumes exactly one value. Let also keeps
+        ;; zero- and multiple-value results as binding arity errors.
         (if (null? (cdr subs))
           (let ((tmp (car (generate-temporaries (list 'proj-val)))))
             (let*-values (((code binds2)

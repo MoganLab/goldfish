@@ -1,55 +1,6 @@
-;;; define-star.scm -- LEGACY s7-compat, not R7RS.
-;;; s7 define* / lambda* compatibility layer.
-;;;
-;;;   (define* (f a (b 2) (c 3)) body ...)
-;;;
-;;; rewrites optional positional parameters to a standard procedure with a
-;;; threaded rest list, via lambda*:
-;;;
-;;;   (lambda* (a (b 2) (c 3)) body ...)
-;;;     => (lambda (a . args)
-;;;          (let* ((b   (if (pair? args) (car args) 2))
-;;;                 (args (if (pair? args) (cdr args) '()))
-;;;                 (c   (if (pair? args) (car args) 3)))
-;;;            body ...))
-;;;
-;;; Optional parameters may also be supplied by keyword (:name value or
-;;; name: value), in any order, mixed with positional args:
-;;;
-;;;   (f :c 5)         ; b gets its default, c gets 5
-;;;   (f 1 :c 5)       ; a=1, b=2, c=5
-;;;   (f c: 5)         ; s7-style suffix keyword, same as :c 5
-;;;   (f 1 c: 5)       ; a=1, b=2, c=5
-;;;
-;;; The keyword path expands to a self-contained form:
-;;;
-;;;   (lambda (req ... . args)
-;;;     (define (kw-name sym) ...)
-;;;     (define (keyword-like? x) ...)
-;;;     (define (make-keyed-alist args) ...)
-;;;     (let ((__keyed (make-keyed-alist args)))
-;;;       (let* ((b (if (assq 'b __keyed) (cdr (assq 'b __keyed)) 2))
-;;;              (c (if (assq 'c __keyed) (cdr (assq 'c __keyed)) 3)))
-;;;         body ...)))
-;;;
-;;; make-keyed-alist walks args left to right.  A ':name symbol consumes the
-;;; following item as its value (stored under (name . value)).  Any other
-;;; item is a positional arg; it is stored under the name of the next
-;;; optional parameter in declaration order (a fixed list spliced into the
-;;; helper), so each optional parameter's binding needs only a single
-;;; inline lookup -- no nested if, and no helper function returns the value.
-;;;
-;;; The single-level inline lookup avoids an expander problem: core-if
-;;; rejects a nested if produced by a macro expansion inside a library body
-;;; ("if: expected (if cond then [else])").  Emitting one flat lookup per
-;;; optional parameter sidesteps that. The retired S7 host had a separate
-;;; stale opt1_lambda cache bug; it is unrelated to the native expander.
-;;;
-;;; Required parameters stay as ordinary formals (so they bind normally in
-;;; the body); only the optional parameters are resolved by the inline
-;;; lookup.  The helpers (kw-name / keyword-like? / make-keyed-alist) are
-;;; emitted inline so the expansion does not depend on any expander-only
-;;; helper (which user libraries cannot see).
+;;; define* and lambda* support optional parameters and keyword arguments.
+;;; Optional parameters use (name default); a bare optional name defaults to
+;;; #f. Keyword arguments accept both :name and name: forms.
 ;;;
 ;;; define* is a thin syntax-case macro over lambda*.  lambda* must NOT
 ;;; flatten its body through syntax->datum: in a nested macro expansion
@@ -102,11 +53,8 @@
                    ;;            ...)
                    ;;       body ...)))
                    ;;
-                   ;; s7's define* never enforces a minimum argument count:
-                   ;; every parameter is optional, and a missing "required"
-                   ;; parameter binds to #f (so the error surfaces from the
-                   ;; body or a default expression, e.g. (vector-length #f)
-                   ;; raising wrong-type-arg).
+                   ;; Missing required and optional arguments bind to #f;
+                   ;; any resulting error comes from the body or default.
                    (let* ((opt-names
                            (map (lambda (o) (car (syntax-form o))) opts))
                           (opt-defaults
@@ -176,10 +124,8 @@
                (let ((p (list-ref params-list i)))
                  (if (pair? (syntax->datum p))
                      (loop (+ i 1) (append opts (list p)))
-                     ;; A bare symbol is an optional parameter without a
-                     ;; default (s7 define* semantics): missing arguments
-                     ;; bind to #f; it can be supplied positionally or by
-                     ;; keyword.
+                     ;; A bare symbol is optional without a default; missing
+                     ;; arguments bind to #f.
                      (loop (+ i 1)
                            (append opts
                                    (list (datum->syntax stx

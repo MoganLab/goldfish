@@ -1,6 +1,6 @@
 # Goldfish Scheme Style
 
-以 `goldfish/liii/project.scm:1-72` 为基准，后续所有 Scheme 以此为准。
+以 `goldfish/liii/project.scm` 为格式参考。
 
 ## 1. 方括号
 
@@ -45,10 +45,11 @@
       [else          #f])
 ```
 
-## 3. `and` / `or` 替代 `if`
+## 3. 条件表达式
 
-- ` (if test x #f)` / `(if test #f y)` / 单分支条件执行 优先用 `and` / `or`。
-- 仅当需要显式 `else` 分支时用 `if`。
+- 用 `when` / `unless` 表达只在条件满足时执行的副作用。
+- 用 `and` / `or` 表达带短路求值的布尔组合或可选值。
+- 需要根据条件产生两个值时用 `if`。
 
 ```scheme
 ;; correct
@@ -56,11 +57,14 @@
 (and (njson-object? local-tools)
      (not (njson-empty? local-tools))
      (let ([keys (vector->list (njson-keys local-tools))]) ...))
+(when (file-exists? path)
+  (delete-file path))
+(unless (valid? value)
+  (error 'invalid-value value))
 
 ;; wrong
-(if (g_isfile p) p #f)
-(if (and (njson-object? x) (not (njson-empty? x))) (let (...) #f) #f)
-(when (and ...) (let ...)) ; 用 and 替代 when
+(if ready? (set! count (+ count 1)))
+(if (not ready?) (error 'not-ready))
 ```
 
 ## 4. 闭括号

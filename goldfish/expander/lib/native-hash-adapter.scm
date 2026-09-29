@@ -1,18 +1,5 @@
-;;; native-hash-adapter.scm -- the s7 hashtable surface for the native host.
-;;;
-;;; Loaded ONLY by the native driver (src/runtime/native_main.cpp), right
-;;; after base-functions.scm.  The host gets hash-table?, hash-table-ref,
-;;; hash-table-size, s7-make-hash-table, s7-hash-table-set! and
-;;; make-iterator from s7 itself; the native substrate has no table object,
-;;; so this file provides the same observable contract on top of a vector
-;;; of bucket alists:
-;;;
-;;;   - a stored #f reads back as "absent" -- srfi-125's
-;;;     hash-table-delete! / hash-table-clear! implement deletion by
-;;;     storing #f, so iteration and size omit those cells;
-;;;   - make-iterator yields (key . value) pairs and then eof forever;
-;;;   - the optional (equiv . hash) pair from s7-make-hash-table drives
-;;;     lookup and bucketing; without it, equal? and hash-code apply.
+;;; Hash-table compatibility layer used by SRFI-125. Tables use vectors of
+;;; bucket alists; optional equivalence and hash procedures control lookup.
 
 (define (%s7-ht? ht)
   (and (vector? ht)
@@ -63,7 +50,7 @@
          ;; modulo (floor), not remainder (truncate): a comparator's
          ;; hash may legally be negative (srfi-165 hashes variables by
          ;; their negative id), and a truncated bucket index reads
-         ;; vector-ref at -1.  Matches the host's s7 table behaviour.
+         ;; vector-ref at -1. Preserve the established table contract.
          (bucket (vector-ref buckets
                    (modulo (%s7-ht-hash ht key) (vector-length buckets)))))
     (let loop ((cells bucket))

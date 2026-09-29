@@ -1,26 +1,10 @@
-;;; defmacro.scm -- LEGACY s7-compat, not R7RS.
-;;; s7 define-macro compatibility layer (cf. Guile's ice-9/boot-9.scm
-;;; defmacros).  A defmacro is a NON-HYGIENIC macro: its transformer is an
-;;; ordinary procedure applied to the DATUM argument list of the macro
-;;; call, and the datum it returns is re-injected at the use site.
+;;; Legacy procedural macro forms. A transformer receives the call's datum
+;;; arguments and its result is inserted at the use site.
 ;;;
 ;;;   (define-macro (macro-name . params) body ...)
 ;;;
-;;; The transformer is built from its datum (params/body) and EVALUATED
-;;; directly with s7 (install-defmacro-transformer), NOT expanded by the
-;;; expander: s7 defmacro bodies routinely use host features the expander
-;;; treats as keywords or rejects as values -- e.g. `(apply lambda ...)' in
-;;; (liii base)'s typed-lambda, or backquote with unquote-splicing.  s7
-;;; eval (in the-expander-library) compiles
-;;; those fine.  Only the (define-syntax ...) shell around it goes through
-;;; the expander, so the macro still installs as a normal transformer.
-;;;
-;;; Installed by install.scm after syntax-case (which its expansion
-;;; depends on).
-;;;
-;;; The definition is built with datum->syntax from the macro's own datum
-;;; (no dotted template patterns), so it does not depend on
-;;; dotted-pattern-variable instantiation.
+;;; Installed after syntax-case. The transformer is compiled in the
+;;; expander library; generated forms re-enter normal expansion.
 
 (define (install-defmacro-transformer name params body)
   (eval (cons 'lambda (cons params body))
@@ -79,7 +63,7 @@
        #'(define-macro macro
            (lambda (arg ...) body ...))))))
 
-;;; macro : s7's shorthand for define-macro:
+;;; macro is a shorthand for define-macro:
 ;;;   (macro (name . params) body ...)  ==  (define-macro (name . params) body ...)
 ;;; Used in the wild by (liii case)'s case*, which builds its macro as the
 ;;; value of a let.  define-macro itself expands to a define-syntax, which

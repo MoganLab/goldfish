@@ -14,14 +14,8 @@
   (library syntax-library))
 
 ;;; stx-vector? : any -> bool
-;;; Container vectors only: in s7, `vector?' also holds for bytevectors,
-;;; whose elements are plain bytes the expander must never recurse into
-;;; (recursing would rebuild a #u8(...) literal as a plain vector).
-;;; Vector-layout records (boot.scm make-record-type, Guile-style) are also
-;;; vectors and must not be recursed into: a record is a container vector
-;;; whose first element is its type descriptor, so it is excluded here.
-;;; (Inlet-based s7 records never reached this predicate; the vector record
-;;; work makes the distinction necessary.)
+;;; Recurse into container vectors, but preserve bytevectors and records as
+;;; atomic values.
 
 (define (stx-vector? x)
   (and (vector? x)
@@ -315,13 +309,7 @@
        (make-syntax (vector-map (lambda (x) (datum->stx-ctx clean-ctx lib phase x)) datum)
                     clean-ctx lib))
       (else
-       ;; Tolerate s7-read quoted datums: inside `'(... 'x ...)'` the nested
-       ;; quote survives as s7's internal #_quote object (type `syntax?'),
-       ;; which our R7RS reader never produces.  Map it to the plain quote
-       ;; symbol so the expander sees a uniform `(quote ...)'.  Anything with
-       ;; a non-symbol/number/... s7 type in this position can only be such
-       ;; an internal syntax object, so the type test needs no captured
-       ;; constant and no host seam in the seed.
+       ;; Keep nested quote data in ordinary datum form.
        (make-syntax (if (eq? (type-of datum) 'syntax?) 'quote datum) clean-ctx lib)))))
 
 
@@ -344,4 +332,3 @@
         (error 'generate-temporaries "not a proper list" lst))))
 
 ;;; Library exports
-

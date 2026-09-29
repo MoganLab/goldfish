@@ -6,9 +6,9 @@
 ;;;   (goldfish compiler passes)   -- nanopass-style IR passes
 ;;;
 ;;; The pipeline: the expander emits tree-il directly (syntax->ir); passes
-;;; rewrite the tree; ir->core hands the result back to the s7 evaluator
-;;; (the single execution host).  This aggregate keeps the (goldfish
-;;; compiler) interface for the load-path integration and the test suite.
+;;; rewrite the tree; ir->core lowers it for the native evaluator. This
+;;; aggregate keeps the (goldfish compiler) interface used by the loader and
+;;; tests.
 
 (define-library (goldfish compiler)
   (import (goldfish))

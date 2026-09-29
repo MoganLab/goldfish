@@ -460,8 +460,8 @@
 ;;; compile-defs-cached : (list ir|sexp) -> (list sexp)
 ;;; Apply the compiler pipeline to a cache record's defs (the cached-file
 ;;; path: capture-library-cache stores record tree-il via syntax->ir/sexp).
-;;; IR defs run through the passes and lower to sexp (what the s7 evaluator
-;;; eats); a lowered fallback def (bootstrap capture, when the compiler was
+;;; IR defs run through the passes and lower to core forms; a lowered fallback
+;;; def (bootstrap capture, when the compiler was
 ;;; unavailable) is returned as-is -- the pipeline only ever sees the IR
 ;;; records, core->ir is gone.
 
@@ -604,18 +604,14 @@
 ;;; Wrap a library's load/compile phase so a failure inside it (a
 ;;; malformed definition, an expansion error, ...) is reported with the
 ;;; library name and the underlying message instead of escaping as a
-;;; bare `no-catch (#t)` with no location.  s7's (error msg args ...)
-;;; surfaces to the handler as info = ((msg args ...) ...).  The raise
-;;; below keeps template+args shape on purpose: a single-string (error s)
-;;; escalates to a no-catch throw that the per-form loader re-wraps,
-;;; hiding library and cause from in-process catchers.
+;;; bare `no-catch (#t)` with no location. Preserve the original error
+;;; arguments so callers can inspect the library and cause.
 (define (load-library-guard lib-name thunk)
   (catch
     #t
     thunk
     (lambda (tag . info)
       (let* ((detail (cond
-                       ;; s7 (error msg args ...) -> info = ((msg args ...) ...)
                        ((and (pair? info)
                              (pair? (car info))
                              (or (string? (caar info)) (symbol? (caar info))))
@@ -823,10 +819,8 @@
 ;;; and library): the iface is built solely from them, so two spellings
 ;;; of one set (nested vs depth-1) share the entry when they reduce
 ;;; identically.  A canonical (kind . args) tag could not key this: it
-;;; would falsely merge sets whose innards differ.  Key on structure,
-;;; not on a formatted string: s7's ~s obeys print-length and truncates
-;;; long pair lists into colliding prefixes.  The cache is session-local,
-;;; so the wider key costs no migration.
+;;; would falsely merge sets whose innards differ. Key on structure rather
+;;; than a formatted string so distinct import sets cannot collide.
 (define (import-view lib-name pairs strict? . maybe-level)
   (define level (registry-level-arg maybe-level))
   (let* ((rec (source-record lib-name level))
@@ -949,10 +943,8 @@
 
 ;;; apply-import-modifier : kind args (list (visible . original))
 ;;;                         -> (list (visible . original))
-;;; The pair mapping shared by depth-1 and nested import sets.  Order
-;;; preserving on every kind (the retired depth-1 except/only loops built
-;;; their lists reversed; order is observable only in multi-collision
-;;; error precedence).
+;;; Pair mappings preserve source order because it determines collision
+;;; error precedence.
 
 (define (apply-import-modifier kind args pairs)
   (if (eq? kind 'plain)
@@ -1272,13 +1264,7 @@
                                                                (symbol->string part)))
                                               name))
                                   name))))))))))
-    ;; Built with list/append, not backquote: s7's eval of the standard
-    ;; (quasiquote ...) form does not implement unquote-splicing (only its
-    ;; native reader's #_list-values representation does), so backquote
-    ;; templates with ,@ fail when the kernel is host-loaded through our
-    ;; reader.  The datum is identical either way.  The registration is
-    ;; wrapped in a self-describing form so the loader can drop it from
-    ;; level >= 1 loads (see register-runtime-module).
+    ;; The wrapper lets the loader omit registration at level >= 1.
     (list 'register-runtime-module
           (list 'quote name)
           (list 'lambda '()
@@ -1328,8 +1314,7 @@
 ;;;   (define-module (name ...) #:export (x y) body ...)
 ;;;     == (define-library (name ...) (export x y) body ...)
 ;;;   (use-modules spec ...) == (import spec ...)
-;;; #:export is read by s7 as the keyword symbol :export.  These are
-;;; module-form handlers (not plain macros): the driver dispatches
+;;; These are module-form handlers (not plain macros): the driver dispatches
 ;;; module forms only on raw top-level heads, so a macro expanding to
 ;;; define-library/import would never be re-dispatched.
 

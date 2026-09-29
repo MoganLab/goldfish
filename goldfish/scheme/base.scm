@@ -331,14 +331,12 @@
       *features*
     ) ;define
 
-    ;; R7RS with-exception-handler：以 s7 的 catch 实现。
-    ;; s7 的 catch handler 收到 (tag values-list)，抛出的对象为 (car values-list)。
+    ;; Adapt catch's (tag info) callback to the R7RS handler argument.
     (define (with-exception-handler handler thunk)
       (catch #t thunk (lambda (tag info) (handler (car info))))
     ) ;define
 
-    ;; R7RS raise-continuable：s7 的 throw 不可续延，
-    ;; R7RS 允许实现采用中止语义，这里与 raise 相同。
+    ;; This implementation treats raise-continuable as an abortive raise.
     (define (raise-continuable obj)
       (raise obj)
     ) ;define
@@ -440,10 +438,8 @@
                          (cond clause ... . extra))
                         (apply values (cdr caught))))))))))
 
-    ;; R7RS error-object：库内 (error 'type ...) 是 s7 惯用法（首参为
-    ;; 类型符号），保持走宿主原语 host-error（rename 导入，无歧义）；
-    ;; 首参为 string 时走 R7RS 语义——构造 error object 并 raise，
-    ;; guard/with-exception-handler 收到对象本身。
+    ;; Symbol-tagged errors use the native error primitive. A string first
+    ;; argument creates an R7RS error object for handlers to inspect.
 
     (define-record-type <error-object>
       (make-error-object message irritants)

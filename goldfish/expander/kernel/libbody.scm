@@ -116,7 +116,7 @@
 (define-public (expand-lib-define-bind stx lib ctx)
   (let*-values (((id val-stx) (parse-internal-define stx)))
     ;; Macro alias: (define name macro) where macro resolves to a
-    ;; transformer binding -- an s7 idiom (e.g. (liii raw-string)'s
+    ;; transformer binding (used by (liii raw-string)'s
     ;; (define deindent stx-deindent), (define &- stx-deindent)).  Register
     ;; name as an alias of the same transformer; the value expression is a
     ;; no-op (macro aliases have no runtime value).

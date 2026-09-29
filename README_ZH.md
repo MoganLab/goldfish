@@ -10,9 +10,7 @@
 <img src="GoldfishScheme-logo.png" alt="示例图片" style="width: 360pt;">
 
 ## 以简为美
-金鱼 Scheme 采用小型运行时设计，使用原生 C++17 求值器，不再依赖或内嵌
-S7。原生程序使用 [tbox](https://gitee.com/tboox/tbox)、C++ 标准库和仓库中的
-BDWGC 垃圾回收器。
+金鱼 Scheme 使用 C++17 原生求值器，以及 tbox、C++ 标准库和 BDWGC。
 
 程序入口是 [src/runtime/native_main.cpp](src/runtime/native_main.cpp)，求值器与
 自举实现位于 `src/runtime/`。
@@ -76,10 +74,8 @@ BDWGC 垃圾回收器。
 
 除了金鱼Scheme解释器外，墨干还提供了一个结构化的[金鱼Scheme REPL](https://mogan.app/guide/plugin_goldfish.html)。
 
-以下是分步构建和安装指南。
-
 ### macOS 安装
-在 macOS 上，推荐使用 Homebrew 进行安装：
+使用 Homebrew 安装：
 ```
 # 添加 Goldfish 的 Tap 仓库
 brew tap MoganLab/goldfish
@@ -113,28 +109,7 @@ brew uninstall goldfish
 | `fix PATH` | 格式化 Scheme 代码 |
 | `FILE` | 直接加载并求值 Scheme 文件 |
 
-### 显示帮助
-不带任何命令时，将打印帮助信息：
-```
-> gf
-Goldfish Scheme 18.11.20 by LiiiLabs
-
-Commands:
-  help               Display this help message
-  version            Display version
-  eval CODE          Evaluate Scheme code
-                     Example: gf eval '(+ 1 2)'
-                     Prefer single quotes so double quotes inside Scheme strings usually do not need escaping
-  load FILE          Load Scheme code from FILE, then enter REPL
-  ...
-```
-
-### 显示版本
-`version` 子命令打印金鱼 Scheme 版本：
-```
-> gf version
-Goldfish Scheme 18.11.20 by LiiiLabs
-```
+使用 `gf test --all` 运行全部测试，使用 `gf test PATH` 运行指定范围。
 
 ### 求值代码
 `eval` 子命令或 `-e` 别名帮助您即时求值 Scheme 代码。Shell 中建议用单引号包住 `CODE`，这样 Scheme 字符串里的双引号通常不用转义：
@@ -152,15 +127,14 @@ Goldfish Scheme 18.11.20 by LiiiLabs
 ### 加载文件
 `load` 子命令帮助您加载 Scheme 文件并进入 REPL：
 ```
-> gf load tests/goldfish/liii/base-test.scm
+> gf load tests/liii/base/copy-test.scm
 ; 加载文件并进入 REPL
 ```
 
 ### 直接运行文件
 您也可以直接加载并求值 Scheme 文件：
 ```
-> gf tests/goldfish/liii/base-test.scm
-; *** checks *** : 1973 correct, 0 failed.
+> gf tests/liii/base/copy-test.scm
 ```
 
 ### 模式选项
@@ -186,10 +160,10 @@ gf -I ~/.local/goldfish/example-lib eval '(begin (import (example hello)) (quote
 启动时，Goldfish 还会自动把 `~/.local/goldfish/` 下所有名称匹配 `xxx-yyy` 且至少包含一个 `.scm` 文件的目录前置到库搜索路径中。
 
 ## 项目目标
-金鱼 Scheme 的目标是：
-1. 在 Linux/macOS/Windows 上分发无须编译即可安装的金鱼Scheme解释器和结构化的REPL
-2. 实现 [R7RS-small](https://small.r7rs.org) 标准
-3. 以 R7RS 库格式提供有用的 SRFI
+
+- 在 Linux、macOS 和 Windows 上分发金鱼 Scheme 解释器和结构化 REPL。
+- 实现 [R7RS-small](https://small.r7rs.org)。
+- 以 R7RS 库格式提供有用的 SRFI。
 
 
 ## 许可证

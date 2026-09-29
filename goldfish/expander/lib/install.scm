@@ -556,8 +556,8 @@
 ;;; library.  Strict #t selects the library-cache restore contract --
 ;;; an unregistered home is #f.  Default
 ;;; (boot installs, incl. installing module.scm itself, before the
-;;; registry exists): fall back to self-lib, whose gensym the s7
-;;; environment binds during defs evaluation.
+;;; registry exists): fall back to self-lib, whose binding is installed
+;;; while evaluating definitions.
 (define (install-depurify-binding desc self-lib . maybe-strict)
   (let ((strict? (and (pair? maybe-strict) (car maybe-strict))))
     (if (eq? desc 'transformer)
@@ -679,9 +679,9 @@
   (install-with-helpers! the-base-library "expander/lib/cond-expand.scm"
   '(cond-expand-feature-satisfied? *cond-expand-features*)
   '(cond-expand-feature-satisfied? *cond-expand-features*))
-;; s7 define-macro compatibility shim (depends on syntax-case).
+;; Legacy procedural macro forms (depend on syntax-case).
   (install-library-file! the-base-library "expander/lib/defmacro.scm")
-;; s7 define* / lambda* compatibility shim (depends on syntax-case).
+;; Optional-argument procedure forms (depend on syntax-case).
   (install-library-file! the-base-library "expander/lib/define-star.scm")
 ;; The R7RS library surface (define-library/import/define-module/use-modules)
 ;; is self-hosted lib-layer code, not part of the core artifact; installing
@@ -922,8 +922,7 @@
 ;;; Reader variables (*load-path*, *eval-ctx*) are REAL variables, not
 ;;; functions: a primitive binding would make (set! *load-path* ...) fail
 ;;; with "cannot assign primitive".  Register them as toplevel bindings
-;;; with no home, so a reference emits the bare original name, which the
-;;; host evaluator resolves to the actual variable.
+;;; with no home, so a reference emits the name of the runtime variable.
 
 (define %internal-vars-registered!
   (for-each

@@ -15,11 +15,7 @@
       (bytevector? x)))
 
 ;;; keyword-symbol? : any -> boolean
-;;; s7 keywords read as `:name' symbols (the R7RS reader has no keyword
-;;; type), and define* also accepts the s7-style SUFFIX keyword `name:';
-;;; the host evaluator treats a bare `:name' / `name:' reference as a
-;;; self-evaluating keyword, so the expander must not resolve it as an
-;;; identifier.
+;;; Keep keyword-shaped symbols from being resolved as identifiers.
 
 (define (keyword-symbol? x)
   (and (symbol? x)
@@ -173,8 +169,8 @@
                     ;; downstream walks (lower, syntax->ir) recover the
                     ;; binding KIND without re-resolving the identifier
                     ;; (a bare symbol would lose the primitive/lexical/
-                    ;; toplevel distinction).  lower strips the marker
-                    ;; back to the bare name for the s7 evaluator.
+                    ;; toplevel distinction). lower strips the marker back
+                    ;; to the bare name for the native evaluator.
                     (values (make-syntax (list 'primitive-ref (binding-value binding))
                                          (syntax-context stx)
                                          (syntax-library stx))
@@ -185,24 +181,13 @@
                     (error 'expand-atom "cannot inline live binding value"
                            form binding))))
                    (else (if (program-library? (syntax-library stx))
-                     ;; Same error tag as the host evaluator's unbound
-                     ;; reference (s7 signals 'unbound-variable at eval
-                     ;; time), so (catch 'unbound-variable ...) / check-catch
-                     ;; keep working -- the strict program environment just
-                     ;; catches the reference earlier, at expansion time.
+                     ;; Keep the runtime error tag while reporting unresolved
+                     ;; program references during expansion.
                      (error 'unbound-variable
                             "unbound identifier in program" form)
-                     ;; Library bodies keep the legacy bare emission
-                     ;; (host fallback) for never-imported names -- and for
-                     ;; own phase-0 helpers called from transformers, which
-                     ;; the self-hosting macro layer relies on (bare refs
-                     ;; rebind to the expansion-machinery copies at eval;
-                     ;; see install-expansion-helper!).  But a name bound
-                     ;; in an import view yet gated out at this phase is a
-                     ;; genuine `for' violation: fail at expansion like
-                     ;; programs do instead of ambient lookup (silent success
-                     ;; when the eval environment happens to bind it, a
-                     ;; late confusing error otherwise).
+                     ;; Keep unresolved library names bare for runtime
+                     ;; resolution and self-hosted expansion helpers. An
+                     ;; imported name hidden at this phase is an error.
                      (let ((lib (syntax-library stx)))
                        (if (and lib (exp-library-use-ref lib form))
                          (error 'unbound-variable
@@ -219,19 +204,8 @@
                 ctx))))
 
 ;;; emit-toplevel-ref : toplevel-ref syntax -> syntax
-;;; Reference to a module-defined toplevel: a bare gensym when the
-;;; reference sits in the defining library (or the binding has no home),
-;;; a qualified (module-ref 'home 'original) otherwise -- including when
-;;; home is the BASE library.  Base-home references used to emit bare on
-;;; the theory that base bindings live ambiently in every eval env, but
-;;; whole-file evaluation (compile-file-cached + eval in the expander
-;;; library, the diff-gate path) has no such ambient base: only s7
-;;; primitives and load-lib!'d bindings are visible there, so bare base
-;;; refs to library-defined names (with-exception-handler,
-;;; make-parameter, ...) fail while primitives silently work.  module-ref
-;;; resolves through the registry in every env (verified); self-refs
-;;; (home == use-site lib) still emit bare gensyms, as do homeless core
-;;; refs, so boot and kernel code are unaffected in shape.
+;;; Emit a local reference as its gensym; qualify references to bindings
+;;; owned by another library through module-ref.
 
 (define (needs-qualified-ref? ref src-stx)
   (let ((home (toplevel-ref-home ref)))
@@ -456,8 +430,7 @@
              ((and (pair? (cdr form)) (eq? (lower-head form) 'quote-syntax))
               (list 'quote (quote-syntax-value (cadr form))))
              ((and (pair? (cdr form)) (eq? (lower-head form) 'primitive-ref))
-              ;; (primitive-ref name) -> name: the s7 evaluator sees the
-              ;; bare primitive name, so lowering is the identity.
+              ;; Primitive refs resolve by name in the native runtime.
               (syntax->datum (cadr form)))
              (else
               (map-spine lower form))))

@@ -20,7 +20,7 @@ sh tools/check-native-manifest.sh
 
 ## Acceptance
 
-- The native build and bootstrap workflow completes without a host evaluator.
+- The native build and bootstrap workflow completes.
 - Every file in `tests/native-workflow.manifest` passes.
 - Each deferred or excluded test has one current decision in
   `tests/NATIVE-FOLLOWUPS.tsv`.

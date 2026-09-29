@@ -39,9 +39,8 @@
 ;;; (syntax-rules, and syntax-case in transformer position) are first desugared
 ;;; to a procedural transformer; the result is then expanded at phase+1
 ;;; (phases-model let-syntax rule), lowered to core Scheme, and evaluated
-;;; to a procedure in the current unit's expand env (s7 eval falls back
-;;; through its parent chain to the-expander-library for
-;;; names the unit does not define).  The lowered core S-expression is
+;;; to a procedure in the current unit's expand environment. The lowered
+;;; core expression is
 ;;; returned as a third value so library installs can cache the
 ;;; transformer (the only serializable form of a transformer; cf.
 ;;; Racket's direct-eval, which likewise evaluates simple transformer

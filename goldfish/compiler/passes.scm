@@ -2,8 +2,8 @@
 ;;;
 ;;; The compiler passes rewritten against the record IR (goldfish/core/ir.scm,
 ;;; Guile-aligned tree-il).  A pass is a function ir -> ir that rewrites the
-;;; tree; run-passes applies a list of passes in order.  The output is
-;;; converted back to core sexp for the s7-eval path (ir->core).
+;;; tree; run-passes applies a list of passes in order. ir->core lowers the
+;;; result for the native evaluator.
 ;;;
 ;;; IR shape notes (Guile-aligned):
 ;;;   - <begin> is a binary right-nested <seq> (head . tail); a single
@@ -51,11 +51,6 @@
                             (fold-lambda-body (lambda-case-alternate lc) f)
                             #f))
         (f lc)))
-
-    ;; (compile-defs removed with core->ir: the pipeline's sexp interface
-    ;; rebuilt IR from lowered core sexp, which is gone.  The load path
-    ;; runs syntax->ir directly (compile-defs-on-load / compile-defs-cached);
-    ;; the legacy tests that fed core sexp were retired with it.)
 
     ;; ------------------------------------------------------------------
     ;; seq helpers: seq trees are binary right-nested <seq> nodes.
@@ -249,11 +244,6 @@
          (make-lexical-ref #f name depth index))
         ((? symbol? s) s)
         (_ ir)))
-
-    ;; (lower-let removed with core->ir: it existed to lower <let> into
-    ;; lambda/call for a minimal executor core, but was written against
-    ;; core->ir's placeholder addressing (it restarts slot numbering at 0 and
-    ;; would misaddress syntax->ir's real lexical refs).)
 
     ;; ------------------------------------------------------------------
     ;; inline (L2-2): the peval core -- copy propagation + beta reduction

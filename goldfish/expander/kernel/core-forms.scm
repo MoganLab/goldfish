@@ -18,8 +18,7 @@
 
 ;;; lambda
 ;;; Parameter lists follow R7RS 7.3: proper (x y), rest-only x, or
-;;; dotted (x y . z).  Output mirrors the input shape with allocated
-;;; gensyms (s7 evaluates dotted lambdas natively).
+;;; dotted (x y . z). Output mirrors the input shape with allocated gensyms.
 
 (define (core-lambda stx ctx)
   (let* ((form (syntax-form stx))
@@ -151,10 +150,7 @@
          (body (cdr form)))
     (if (any (lambda (s) (stopped-form? s ctx)) body)
         (values stx ctx)
-        ;; Expand the body through intdef so internal definitions in an
-        ;; expression begin work ((begin (define x 1) x) -- s7 allows
-        ;; statements in begin bodies; cf. the (expected (begin (define
-        ;; ans 42) (expt ...))) idiom in liii/packrat's tests).
+        ;; Expand through intdef so begin bodies can contain definitions.
         (if (null? body)
             (values (datum->syntax stx void-expr) ctx)
             (let*-values (((body-sexp ctx1) (expand-body body ctx)))
@@ -197,12 +193,9 @@
 
 ;;; letrec* / letrec -- the recursive-binding core forms.
 ;;; `letrec' is a core form (not a macro): R7RS gives implementations a
-;;; choice for letrec's init evaluation order, and s7's native letrec
-;;; enforces the strict semantics (referencing an as-yet-uninitialized
-;;; binding in an init is an error), which the letrec* expansion would
-;;; silently permit.  The expander therefore emits `letrec' as-is and
-;;; lets the host evaluate it with its R7RS semantics; letrec* remains
-;;; the expander's own emission target for internal defines.
+;;; choice for initialization order. This evaluator rejects references to
+;;; uninitialized bindings. Emit `letrec' as-is; lower internal definitions
+;;; through `letrec*'.
 
 (define (expand-letrec-form stx ctx form-name)
   (let* ((form (syntax-form stx))
@@ -638,9 +631,8 @@
                                                    (context-phase c))
                                                   c)))
                 ;; Each def is a syntax object: lower individually (a raw
-                ;; (cons 'begin defs) spine mixes datums and syntax objects,
-                ;; which lower passes through unstripped -- s7 would then
-                ;; eval syntax objects as no-ops and nothing gets bound).
+                ;; (cons 'begin defs) spine mixes datums and syntax objects;
+                ;; lower would pass the syntax objects through unchanged.
                 (for-each
                   (lambda (d)
                     (eval (lower d) (current-expand-env)))
@@ -723,9 +715,7 @@
 
 (define core-form-handlers
   ;; Written as explicit list/cons -- NOT a quasiquote template: a
-  ;; `(quasiquote . ,X)' template would be a nested-quasiquote form per
-  ;; R7RS/Racket (s7's native quasiquote substitutes it, a host-ism that
-  ;; breaks the self-hosted re-expansion and the artifact).
+  ;; `(quasiquote . ,X)' is a nested-quasiquote form per R7RS.
   (list (cons 'lambda core-lambda)
         (cons 'quote core-quote)
         (cons 'quasiquote core-quasiquote)

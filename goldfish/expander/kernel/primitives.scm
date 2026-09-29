@@ -16,8 +16,8 @@
   ;; (scheme complex) / (scheme cxr) / (scheme eval) / (scheme file) /
   ;; (scheme inexact) / (scheme lazy) / (scheme load) / (scheme process-
   ;; context) / (scheme r5rs) / (scheme repl) / (scheme time)) and the
-  ;; expand-time syntax API.  All resolve against the host (s7) or the
-  ;; runtime substrate (common/prelude.scm) at evaluation time.
+  ;; expand-time syntax API. Names here resolve to native runtime bindings
+  ;; or to Scheme definitions installed during bootstrap.
   '(+ - * / quotient remainder modulo
      floor/ floor-quotient floor-remainder truncate/ truncate-quotient
      truncate-remainder
