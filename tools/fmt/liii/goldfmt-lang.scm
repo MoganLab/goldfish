@@ -33,19 +33,11 @@
 
 (define-library (liii goldfmt-lang)
   (import (liii base) (liii path) (liii string))
-  (export register-lang!
-    lang-list
-    lang-ref
-    lang-name
-    lang-label
-    lang-extensions
-    extensions-for-lang-name
-    lang-for-extension
-    lang-for-extensions
-    lang-for-name
-    path-matches-exclude?
-    file-excluded?
-    collect-files
+  (export register-lang! lang-list lang-ref lang-name lang-label lang-extensions
+    extensions-for-lang-name lang-for-extension lang-for-extensions
+    lang-for-name path-matches-exclude? file-excluded? collect-files
+    collect-files-dfs fmt-extract-error-message print-fmt-failure
+    print-fmt-result-line
   ) ;export
   (begin
 
@@ -147,10 +139,11 @@
           (reverse acc)
           (let ((h (car handlers)))
             (loop (cdr handlers)
-              (if (let any
-                    ((es exts))
-                    (if (null? es) #f (if (handler-matches-ext? h (car es)) #t (any (cdr es))))
-                  ) ;let
+              (if
+                (let any
+                  ((es exts))
+                  (if (null? es) #f (if (handler-matches-ext? h (car es)) #t (any (cdr es))))
+                ) ;let
                 (cons h acc)
                 acc
               ) ;if
@@ -169,6 +162,65 @@
           (if (eq? (lang-name (car handlers)) name) (car handlers) (loop (cdr handlers)))
         ) ;if
       ) ;let
+    ) ;define
+
+    ;; ---- 共享的错误消息与打印辅助 ----------------------------------------
+    ;; 供 scheme-fmt / stem-fmt / cpp-fmt 及其 (liii go) worker 会话共用
+    ;; （worker 只能调用导出符号）。原先 scheme 与 stem 各持一份同文实现，
+    ;; 并发改造时收敛于此，避免双份维护漂移。
+
+    ;; 从 catch 的 (tag . info) 提取简短错误消息。
+    (define (fmt-extract-error-message tag info)
+      (let ((raw-msg
+              (cond
+               ((and (pair? info) (string? (car info))) (car info))
+               ((string? tag) tag)
+               ((symbol? tag) (symbol->string tag))
+               (else (object->string tag #f))
+              ) ;cond
+            ) ;raw-msg
+           ) ;
+        (cond ((string-starts? raw-msg "unexpected close paren") "unexpected close paren")
+              ((string-starts? raw-msg "missing close paren") "missing close paren")
+              (else
+                (string-trim-right raw-msg
+                  (lambda (c) (or (char=? c #\:) (char=? c #\space) (char=? c #\newline)))
+                ) ;string-trim-right
+              ) ;else
+        ) ;cond
+      ) ;let
+    ) ;define
+
+    (define (paren-error? msg)
+      (or (string-contains? msg "unexpected close paren")
+        (string-contains? msg "missing close paren")
+      ) ;or
+    ) ;define
+
+    ;; 打印失败行（Failed + 可选 gf fix 提示）并 flush。原各语言 format-file
+    ;; 失败路径的输出；统一 flush（不改变输出字节，仅时序）。
+    (define (print-fmt-failure file msg)
+      (display (string-append "  Failed: " file ": " msg))
+      (newline)
+      (when (paren-error? msg)
+        (display (string-append "Hint: try `gf fix "
+                   file
+                   "` to repair common parenthesis issues."
+                 ) ;string-append
+        ) ;display
+        (newline)
+      ) ;when
+      (flush-output-port (current-output-port))
+    ) ;define
+
+    ;; 主线程按结果打印一个文件的处理行（原串行循环的打印规则：
+    ;; updated→Updated 行、failed→Failed+Hint、cached→无输出、unchanged→Formatting 行）。
+    (define (print-fmt-result-line file status msg)
+      (cond ((eq? status 'updated) (display (string-append "  Updated: " file)) (newline))
+            ((eq? status 'failed) (print-fmt-failure file msg))
+            ((eq? status 'cached) #f)
+            (else (display (string-append "Formatting: " file)) (newline))
+      ) ;cond
     ) ;define
 
     ;; ---- exclude 匹配（迁移自 goldformat-path.scm）---------------------
@@ -209,18 +261,21 @@
         (let ((parts (string-split pattern "*")) (ends-with-star (string-ends? pattern "*")))
           (let loop
             ((ps parts) (pos 0) (first? #t))
-            (cond ((null? ps) (or ends-with-star (= pos (string-length str))))
-                  (else (let ((seg (car ps)))
-                          (cond ((string=? seg "") (loop (cdr ps) pos #f))
-                                (first? (if (string-starts-with? str seg) (loop (cdr ps) (string-length seg) #f) #f)
-                                ) ;first?
-                                (else (let ((found (string-index-of str seg pos)))
-                                        (if found (loop (cdr ps) (+ found (string-length seg)) #f) #f)
-                                      ) ;let
-                                ) ;else
-                          ) ;cond
-                        ) ;let
-                  ) ;else
+            (cond
+             ((null? ps) (or ends-with-star (= pos (string-length str))))
+             (else
+               (let ((seg (car ps)))
+                 (cond ((string=? seg "") (loop (cdr ps) pos #f))
+                       (first? (if (string-starts-with? str seg) (loop (cdr ps) (string-length seg) #f) #f)
+                       ) ;first?
+                       (else
+                         (let ((found (string-index-of str seg pos)))
+                           (if found (loop (cdr ps) (+ found (string-length seg)) #f) #f)
+                         ) ;let
+                       ) ;else
+                 ) ;cond
+               ) ;let
+             ) ;else
             ) ;cond
           ) ;let
         ) ;let
@@ -276,28 +331,38 @@
           (if (>= i (vector-length entries))
             acc
             (let ((entry (vector-ref entries i)))
-              (cond ((path-file? entry)
-                     (let ((s (path->string entry)))
-                       (if (and (suffix-match? s suffixes) (not (file-excluded? s excludes)))
-                         (loop (+ i 1) (cons s acc))
-                         (loop (+ i 1) acc)
-                       ) ;if
-                     ) ;let
-                    ) ;
-                    ((path-dir? entry)
-                     (let ((d (path->string entry)))
-                       (if (file-excluded? d excludes)
-                         (loop (+ i 1) acc)
-                         (loop (+ i 1) (append (collect-files d suffixes excludes) acc))
-                       ) ;if
-                     ) ;let
-                    ) ;
-                    (else (loop (+ i 1) acc))
+              (cond
+               ((path-file? entry)
+                (let ((s (path->string entry)))
+                  (if (and (suffix-match? s suffixes) (not (file-excluded? s excludes)))
+                    (loop (+ i 1) (cons s acc))
+                    (loop (+ i 1) acc)
+                  ) ;if
+                ) ;let
+               ) ;
+               ((path-dir? entry)
+                (let ((d (path->string entry)))
+                  (if (file-excluded? d excludes)
+                    (loop (+ i 1) acc)
+                    (loop (+ i 1) (append (collect-files d suffixes excludes) acc))
+                  ) ;if
+                ) ;let
+               ) ;
+               (else (loop (+ i 1) acc))
               ) ;cond
             ) ;let
           ) ;if
         ) ;let
       ) ;let
+    ) ;define
+
+    ;; DFS 先序版本：collect-files 的累积是后进先出（文件 cons 到 acc、子目录
+    ;; 结果 append 在 acc 之前），其返回恰为目录树 DFS 先序的倒序；这里补一层
+    ;; reverse 得到 DFS 先序——scheme/stem 目录递归格式化的输出顺序契约
+    ;; （旧版就地递归实现的顺序）。cpp 与仓库批量路径继续用 collect-files
+    ;; 本体（倒序），行为不变。
+    (define (collect-files-dfs dir-path suffixes excludes)
+      (reverse (collect-files dir-path suffixes excludes))
     ) ;define
 
   ) ;begin
