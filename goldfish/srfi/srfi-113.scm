@@ -152,7 +152,10 @@
     ) ;define
 
     (define (list->set comparator elements)
-      (apply set comparator elements)
+      (let ((result (make-set/comparator comparator)))
+        (for-each (lambda (x) (set-add! result x)) elements)
+        result
+      ) ;let
     ) ;define
 
     (define (list->set! s elements)
