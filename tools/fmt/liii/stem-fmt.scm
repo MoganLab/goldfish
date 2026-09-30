@@ -117,8 +117,10 @@
 
     ;; ---- 文件列表批量格式化 --------------------------------------------
     ;; 返回 (values total updated cached failed)。
-    ;; 主线程先过滤 exclude；并发度大于 1 且文件数大于 1 时走 (liii go)
-    ;; 并行驱动，否则走其串行孪生——两条路径共用同一安静单位函数、打印回调
+    ;; 主线程先过滤 exclude；并发度大于 1 且待实际格式化（缓存未命中）的文件
+    ;; 多于 2 个时走 (liii go) 并行驱动，否则走串行孪生——并发有数十毫秒的
+    ;; 固定启动开销（线程池 + 每 worker 会话 import 库栈），工作量太小不划算；
+    ;; 两条路径共用同一安静单位函数、打印回调
     ;; 与统计归约，输出与统计语义一致（并行结果按文件序回调打印）。
     (define (format-file-list files dry-run excludes)
       (let ((targets (filter (lambda (f) (not (file-excluded? f excludes))) files)))
@@ -136,7 +138,10 @@
             ) ;if
           ) ;let
           (let ((results
-                  (if (and (> (fmt-jobs) 1) (> (length targets) 1))
+                  (if (and (> (fmt-jobs) 1)
+                        (> (length targets) 2)
+                        (> (fmt-cache-miss-count targets) 2)
+                      ) ;and
                     (parallel-for-each-ordered stem-fmt-worker targets print-result)
                     (serial-for-each-ordered stem-format-file-quiet targets print-result)
                   ) ;if
@@ -253,11 +258,12 @@
       ) ;run-worker-loop
     ) ;define
 
-    ;; 批量 check：并发度大于 1 且文件数大于 1 时并行，否则串行；
+    ;; 批量 check：并发度大于 1 且文件数多于 2 时并行（check 无缓存可跳过，
+    ;; 每个文件都是完整工作量），否则串行；
     ;; 返回未格式化文件列表（保持文件顺序，与串行一致）。
     (define (stem-check-files files cfg)
       (offenders-from
-        (if (and (> (fmt-jobs) 1) (> (length files) 1))
+        (if (and (> (fmt-jobs) 1) (> (length files) 2))
           (parallel-for-each-ordered stem-check-worker files (lambda (file result) #f))
           (serial-for-each-ordered (lambda (path) (list (stem-check-file-quiet path) #f))
             files

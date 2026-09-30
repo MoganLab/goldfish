@@ -19,7 +19,9 @@
 
 (define-library (liii goldfmt-cache)
   (import (liii base) (liii path) (liii hashlib))
-  (export fmt-cache-base-dir fmt-cache-path fmt-cache-hit? fmt-cache-touch)
+  (export fmt-cache-base-dir fmt-cache-path fmt-cache-hit? fmt-cache-touch
+    fmt-cache-miss-count
+  ) ;export
   (begin
 
     ;; 缓存根目录：~/.cache/goldfish/fmt/<version>/
@@ -43,6 +45,17 @@
     (define (fmt-cache-hit? file-path)
       (let ((cache (fmt-cache-path file-path)))
         (file-exists? cache)
+      ) ;let
+    ) ;define
+
+    ;; 统计文件列表中缓存未命中（需要实际格式化）的数量。
+    ;; 供批量层评估并行收益：(liii go) 并发有约数十毫秒的固定启动开销
+    ;; （线程池 + 每 worker 会话完整 import 库栈，每次进程运行都要付一次），
+    ;; 未命中文件很少时不值得启动并发，直接走串行（见任务 1609）。
+    (define (fmt-cache-miss-count files)
+      (let loop
+        ((fs files) (n 0))
+        (if (null? fs) n (loop (cdr fs) (if (fmt-cache-hit? (car fs)) n (+ n 1))))
       ) ;let
     ) ;define
 

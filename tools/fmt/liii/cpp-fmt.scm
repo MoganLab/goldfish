@@ -232,7 +232,7 @@
             (newline)
             (flush-output-port (current-output-port))
             (let ((results
-                    (if (and (> (fmt-jobs) 1) (> (length files) 1))
+                    (if (and (> (fmt-jobs) 1) (> (length files) 2) (> (fmt-cache-miss-count files) 2))
                       (parallel-for-each-ordered cpp-fmt-worker files print-result cf)
                       (serial-for-each-ordered (lambda (file) (cpp-format-one-quiet cf file))
                         files
@@ -327,7 +327,7 @@
           ) ;begin
           (let ((cf (clang-format-binary cfg)))
             (offenders-from
-              (if (and (> (fmt-jobs) 1) (> (length files) 1))
+              (if (and (> (fmt-jobs) 1) (> (length files) 2) (> (fmt-cache-miss-count files) 2))
                 (parallel-for-each-ordered cpp-check-worker files (lambda (file result) #f) cf)
                 (serial-for-each-ordered (lambda (path) (list (cpp-check-file-quiet cf path) #f))
                   files
