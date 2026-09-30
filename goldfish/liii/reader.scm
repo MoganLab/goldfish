@@ -329,6 +329,12 @@
                  (* (- (byte) 128) 64) (- (byte) 128))))))
     (integer->char v)))
 
+(define (read-utf8-port-char port)
+  (let ((ch (next port)))
+    (if (or (eof-object? ch) (< (char->integer ch) 128))
+      ch
+      (read-utf8-char port (char->integer ch)))))
+
 (define (read-character port)
   (let ((ch (next port)))
     (cond
@@ -463,7 +469,7 @@
 (define (read-raw-delimiter port)
   ;; the opening " has been consumed; the delimiter runs to the next "
   (let loop ((acc '()))
-    (let ((ch (next port)))
+    (let ((ch (read-utf8-port-char port)))
       (cond
         ((eof-object? ch) (error 'read-error "unterminated raw string delimiter"))
         ((eqv? ch #\") (list->string (reverse acc)))
@@ -484,12 +490,10 @@
     (letrec ((fill (lambda (la n)
                      (if (= n need)
                        la
-                       (let ((ch (peek port)))
+                       (let ((ch (read-utf8-port-char port)))
                          (if (eof-object? ch)
                            la
-                           (begin
-                             (next port)
-                             (fill (append la (list ch)) (+ n 1))))))))
+                           (fill (append la (list ch)) (+ n 1)))))))
              (scan (lambda (la buf)
                      (if (raw-closing? la close)
                        (list->string (reverse buf))

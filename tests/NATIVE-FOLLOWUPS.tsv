@@ -3,9 +3,6 @@ tests/liii/base/make-hook-test.scm	api	exclude	Hook invocation is outside the na
 tests/liii/base/signature-test.scm	api	exclude	Procedure signature reflection is outside the native API
 tests/liii/set/set-size-test.scm	scale	defer	Run million-element stress in a dedicated scale slot
 tests/liii/subprocess-test.scm	platform	defer	Decide and implement subprocess support
-tests/liii/raw-string-test.scm	reader	defer	Decide whether raw-string syntax is supported
-tests/liii/raw-string/ampersand-minus-test.scm	reader	defer	Decide whether raw-string syntax is supported
-tests/liii/raw-string/raw-string-literal-test.scm	reader	defer	Decide whether raw-string syntax is supported
 tests/liii/njson-test.scm	platform	defer	Decide and implement njson support
 tests/liii/njson/file-to-njson-test.scm	platform	defer	Decide and implement njson support
 tests/liii/njson/json-to-njson-test.scm	platform	defer	Decide and implement njson support
