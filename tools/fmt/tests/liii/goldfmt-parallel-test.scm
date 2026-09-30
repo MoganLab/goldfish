@@ -426,11 +426,11 @@
           (let-values (((out-q err-q code-q) (run-gf-values "fmt" "-e" "cpp" "-j" "1" dir-q)))
             (check code-p => 0)
             (check code-q => 0)
-            ;; 归一化路径与盐后，并行与串行输出一致
+            ;; 无序契约：归一化路径与盐后，按行排序比较（逐行集合一致）
             (let ((norm-p (string-replace (string-replace out-p dir-p "DIR") salt-p "SALT"))
                   (norm-q (string-replace (string-replace out-q dir-q "DIR") salt-q "SALT"))
                  ) ;
-              (check (string=? norm-p norm-q) => #t)
+              (check (equal? (sorted-lines norm-p) (sorted-lines norm-q)) => #t)
               (check-true (string-contains? norm-p "Total files formatted: 4"))
               (check-true (string-contains? norm-p "  Updated: "))
             ) ;let
