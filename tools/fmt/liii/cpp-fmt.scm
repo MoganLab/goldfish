@@ -199,9 +199,10 @@
       ) ;run-worker-loop
     ) ;define
 
-    ;; 主线程按结果打印一个文件的处理行（cpp 只打印 Updated 行，保持原语义）。
+    ;; 主线程按结果打印一个文件的处理行（cpp 只打印 Updated 行，失败静默，
+    ;; 保持原语义）。
     (define (print-result file result)
-      (when (eq? (car result) 'updated)
+      (when (eq? (cadr result) 'updated)
         (display (string-append "  Updated: " file))
         (newline)
       ) ;when
@@ -232,12 +233,12 @@
             (newline)
             (flush-output-port (current-output-port))
             (let ((results
-                    (if (and (> (fmt-jobs) 1) (> (length files) 2) (> (fmt-cache-miss-count files) 2))
-                      (parallel-for-each-ordered cpp-fmt-worker files print-result cf)
-                      (serial-for-each-ordered (lambda (file) (cpp-format-one-quiet cf file))
+                    (if (and (> (fmt-jobs) 1) (> (length files) 1))
+                      (pool-for-each cpp-fmt-worker files print-result cf)
+                      (serial-for-each (lambda (file) (cpp-format-one-quiet cf file))
                         files
                         print-result
-                      ) ;serial-for-each-ordered
+                      ) ;serial-for-each
                     ) ;if
                   ) ;results
                  ) ;
@@ -327,14 +328,13 @@
           ) ;begin
           (let ((cf (clang-format-binary cfg)))
             (offenders-from
-              (if (and (> (fmt-jobs) 1) (> (length files) 2) (> (fmt-cache-miss-count files) 2))
-                (parallel-for-each-ordered cpp-check-worker files (lambda (file result) #f) cf)
-                (serial-for-each-ordered (lambda (path) (list (cpp-check-file-quiet cf path) #f))
+              (if (and (> (fmt-jobs) 1) (> (length files) 1))
+                (pool-for-each cpp-check-worker files (lambda (file result) #f) cf)
+                (serial-for-each (lambda (path) (list (cpp-check-file-quiet cf path) #f))
                   files
                   (lambda (file result) #f)
-                ) ;serial-for-each-ordered
+                ) ;serial-for-each
               ) ;if
-              files
             ) ;offenders-from
           ) ;let
         ) ;if

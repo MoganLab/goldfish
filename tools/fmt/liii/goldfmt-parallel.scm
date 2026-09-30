@@ -16,19 +16,21 @@
 
 ;; gf fmt 的共享并发设施：(liii goldfmt-parallel)。
 ;; 基于 (liii go)（CSP：每 worker 线程独占独立 s7 解释器会话，channel 传深拷贝
-;; 消息），照搬 gf test -j 已验证的 worker pool + 双 channel 模式：
-;;   1. 任务/结果通道容量均为文件数（发送不阻塞）；
-;;   2. 全部任务入队后关闭任务通道（close 广播，eof 为无任务哨兵）；
-;;   3. 启动 min(jobs, 文件数) 个 worker；
-;;   4. 主线程收满结果，按文件序回调打印（乱序到达、按序输出）。
+;; 消息）的极简 Worker Pool（同 gf test -j 的双通道模式）：
+;;   1. pool-ch / result-ch 容量均为文件数（发送永不阻塞）；
+;;   2. 主线程串行投递任务（消息体就是文件路径字符串），投递完毕 chan-close!
+;;      广播 EOF 哨兵；
+;;   3. 启动 n = min(jobs, 文件数) 个 worker 循环消费；
+;;   4. worker 把 (list 路径 状态 失败信息) 回发 result-ch，主线程按到达顺序
+;;      即时回收并回调——不保证完成顺序，无需保序缓冲。
 ;; 语言之间保持串行（由主入口的逐语言循环保证），本模块只做语言内并行。
 ;; 并发度参数（-j/--jobs 的解析结果）也寄居于此：所有消费方（主入口与三个
 ;; 语言的批量层）都已 import 本模块。
 
 (define-library (liii goldfmt-parallel)
   (import (liii base) (liii go) (liii list))
-  (export parallel-for-each-ordered serial-for-each-ordered run-worker-loop
-    offenders-from count-status set-fmt-jobs! fmt-jobs
+  (export pool-for-each serial-for-each run-worker-loop offenders-from
+    count-status set-fmt-jobs! fmt-jobs
   ) ;export
   (begin
 
@@ -49,8 +51,9 @@
     ) ;define
 
     ;; ---- worker 骨架 ----------------------------------------------------
-    ;; 在 worker 会话内循环取任务、调单位函数、回发结果，读到 eof 后退出。
-    ;; unit-fn: (lambda (file) ...) 返回 (status msg) 二元表；
+    ;; 在 worker 会话内循环取任务、调单位函数、回发结果，读到 EOF 后退出。
+    ;; 任务消息体就是文件路径字符串；结果回发 (list 路径 状态 失败信息)。
+    ;; unit-fn: (lambda (path) ...) 返回 (status msg) 二元表；
     ;; err-fn: (lambda (tag info) ...) 在单位函数抛异常时构造 (status msg)，
     ;; 必须兜住一切异常并返回结果（否则主线程会因收不齐结果而永久等待）。
     ;; 供各语言的 worker 包装调用：worker 函数经 (go ...) ship 的只有自身
@@ -61,14 +64,9 @@
         ()
         (let ((task (chan-recv! task-ch)))
           (unless (eof-object? task)
-            (let ((r
-                    (catch #t
-                      (lambda () (unit-fn (cadr task)))
-                      (lambda (tag info) (err-fn tag info))
-                    ) ;catch
-                  ) ;r
+            (let ((r (catch #t (lambda () (unit-fn task)) (lambda (tag info) (err-fn tag info))))
                  ) ;
-              (chan-send! result-ch (list (car task) (car r) (cadr r)))
+              (chan-send! result-ch (list task (car r) (cadr r)))
               (loop)
             ) ;let
           ) ;unless
@@ -77,77 +75,63 @@
     ) ;define
 
     ;; ---- 串行孪生 -------------------------------------------------------
-    ;; 与并行驱动同形的串行实现：同一单位函数、同一回调、同一返回值形状，
-    ;; 供 -j 1 / 单文件等场景复用批量层其余部分（打印与统计语义一致）。
-    (define (serial-for-each-ordered unit-fn files on-result)
+    ;; 与 Worker Pool 同形的串行实现：同一单位函数、同一回调、同一返回值
+    ;; 形状（结果同样为 (list 路径 状态 失败信息)，串行天然按文件序到达），
+    ;; 供 -j 1 / 工作量太小时复用批量层其余部分。
+    (define (serial-for-each unit-fn files on-result)
       (let loop
         ((fs files) (acc '()))
         (if (null? fs)
           (reverse acc)
-          (let ((r (unit-fn (car fs))))
-            (on-result (car fs) r)
-            (loop (cdr fs) (cons r acc))
-          ) ;let
+          (let* ((r (unit-fn (car fs))) (msg (list (car fs) (car r) (cadr r))))
+            (on-result (car fs) msg)
+            (loop (cdr fs) (cons msg acc))
+          ) ;let*
         ) ;if
       ) ;let
     ) ;define
 
-    ;; ---- 并行驱动 -------------------------------------------------------
-    ;; worker-fn: 各语言导出的 (lambda (worker-args ... task-ch result-ch))，
+    ;; ---- Worker Pool ----------------------------------------------------
+    ;; worker-fn: 各语言导出的 (lambda (worker-args ... pool-ch result-ch))，
     ;;   经 (liii go) 派发到独立 worker 会话（内部用 %go-call 按可选前置参数
     ;;   动态构造调用——go 宏要求直接调用语法，无法在驱动内按语言拼装）。
-    ;;   worker 从 task-ch 取 (list idx file)，处理完向 result-ch 发
-    ;;   (list idx status msg)，读到 eof 后退出。
     ;; worker-args: 该语言 worker 的前置初始化实参（如 cpp 的 clang-format
     ;;   二进制路径字符串），spawn 时一次性序列化传入。
-    ;; on-result: (lambda (file result))，result 为 (status msg)，由主线程严格
-    ;;   按 files 顺序调用，保证输出与串行一致。
-    ;; 返回按 files 顺序的 ((status msg) ...) 列表。
-    (define (parallel-for-each-ordered worker-fn files on-result . worker-args)
+    ;; on-result: (lambda (file result))，result 为 (list 路径 状态 失败信息)，
+    ;;   按到达顺序即时回调（流式输出，不保证完成顺序）。
+    ;; 返回按到达顺序的结果列表（(list 路径 状态 失败信息) ...），统计与
+    ;;   offenders 提取均与其顺序无关。
+    (define (pool-for-each worker-fn files on-result . worker-args)
       (let* ((total (length files))
-             (file-vec (list->vector files))
-             (task-ch (make-chan total))
+             (pool-ch (make-chan total))
              (result-ch (make-chan total))
              (jobs (min (fmt-jobs) total))
-             (buf (make-vector total #f))
             ) ;
-        ;; 1. 全部任务入队（带序号），然后关闭任务通道。
+        ;; 1. 串行投递全部任务（文件路径），然后关闭任务通道。
         (let enq
-          ((i 0))
-          (when (< i total)
-            (chan-send! task-ch (list i (vector-ref file-vec i)))
-            (enq (+ i 1))
-          ) ;when
+          ((fs files))
+          (unless (null? fs)
+            (chan-send! pool-ch (car fs))
+            (enq (cdr fs))
+          ) ;unless
         ) ;let
-        (chan-close! task-ch)
+        (chan-close! pool-ch)
         ;; 2. 启动 jobs 个 worker（实际并发度 = min(jobs, 文件数)）。
         (let spawn
           ((i 0))
           (when (< i jobs)
-            (apply %go-call worker-fn (append worker-args (list task-ch result-ch)))
+            (apply %go-call worker-fn (append worker-args (list pool-ch result-ch)))
             (spawn (+ i 1))
           ) ;when
         ) ;let
-        ;; 3. 收满 total 个结果：vector 缓冲 + 前向指针按文件序回调 on-result
-        ;;    （头部结果就绪即回调，保持日志流式性）。
+        ;; 3. 按到达顺序收满 total 个结果，即时回调。
         (let recv
-          ((got 0) (next 0))
+          ((got 0) (acc '()))
           (if (= got total)
-            (vector->list buf)
+            (reverse acc)
             (let ((r (chan-recv! result-ch)))
-              (vector-set! buf (car r) (cdr r))
-              (let drain
-                ((n next))
-                (let ((hit (and (< n total) (vector-ref buf n))))
-                  (if (not hit)
-                    (recv (+ got 1) n)
-                    (begin
-                      (on-result (vector-ref file-vec n) hit)
-                      (drain (+ n 1))
-                    ) ;begin
-                  ) ;if
-                ) ;let
-              ) ;let
+              (on-result (car r) r)
+              (recv (+ got 1) (cons r acc))
             ) ;let
           ) ;if
         ) ;let
@@ -155,20 +139,20 @@
     ) ;define
 
     ;; ---- 结果归约辅助 ---------------------------------------------------
-    ;; 统计结果列表中某状态的数量（results 为驱动返回的 (status msg) 列表）。
+    ;; 统计结果列表中某状态的数量（结果为 (list 路径 状态 失败信息)，
+    ;; 顺序无关）。
     (define (count-status sym results)
-      (count (lambda (r) (eq? (car r) sym)) results)
+      (count (lambda (r) (eq? (cadr r) sym)) results)
     ) ;define
 
-    ;; 由 check 的按序结果列表导出未格式化文件列表（保持文件顺序）。
-    ;; results 为驱动返回的 ((ok msg) ...) 列表，fs 为对应的文件列表（等长）。
-    ;; ok（每个结果对的首元素）为 #f 的文件进入 offenders。
-    (define (offenders-from results fs)
+    ;; 由 check 的结果列表提取未格式化文件（顺序无关）：
+    ;; 每个结果为 (路径 ok 失败信息)，ok 为 #f 的路径进入 offenders。
+    (define (offenders-from results)
       (let loop
-        ((fsl fs) (rs results) (bad '()))
-        (if (null? fsl)
+        ((rs results) (bad '()))
+        (if (null? rs)
           (reverse bad)
-          (loop (cdr fsl) (cdr rs) (if (caar rs) bad (cons (car fsl) bad)))
+          (loop (cdr rs) (if (cadr (car rs)) bad (cons (car (car rs)) bad)))
         ) ;if
       ) ;let
     ) ;define

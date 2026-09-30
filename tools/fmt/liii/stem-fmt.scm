@@ -101,7 +101,7 @@
 
     ;; 主线程按结果打印一个文件的处理行。
     (define (print-result file result)
-      (print-fmt-result-line file (car result) (cadr result))
+      (print-fmt-result-line file (cadr result) (caddr result))
     ) ;define
 
     ;; (liii go) worker：在独立会话中循环取任务、调安静单位函数、回发结果
@@ -117,10 +117,9 @@
 
     ;; ---- 文件列表批量格式化 --------------------------------------------
     ;; 返回 (values total updated cached failed)。
-    ;; 主线程先过滤 exclude；并发度大于 1 且待实际格式化（缓存未命中）的文件
-    ;; 多于 2 个时走 (liii go) 并行驱动，否则走串行孪生——并发有数十毫秒的
-    ;; 固定启动开销（线程池 + 每 worker 会话 import 库栈），工作量太小不划算；
-    ;; 两条路径共用同一安静单位函数、打印回调
+    ;; 主线程先过滤 exclude；并发度大于 1 且文件数大于 1 时统一走 (liii go)
+    ;; 的 Worker Pool（不做缓存命中率自适应；-j 1 才是串行）；两条路径共用
+    ;; 同一安静单位函数、打印回调
     ;; 与统计归约，输出与统计语义一致（并行结果按文件序回调打印）。
     (define (format-file-list files dry-run excludes)
       (let ((targets (filter (lambda (f) (not (file-excluded? f excludes))) files)))
@@ -138,12 +137,9 @@
             ) ;if
           ) ;let
           (let ((results
-                  (if (and (> (fmt-jobs) 1)
-                        (> (length targets) 2)
-                        (> (fmt-cache-miss-count targets) 2)
-                      ) ;and
-                    (parallel-for-each-ordered stem-fmt-worker targets print-result)
-                    (serial-for-each-ordered stem-format-file-quiet targets print-result)
+                  (if (and (> (fmt-jobs) 1) (> (length targets) 1))
+                    (pool-for-each stem-fmt-worker targets print-result)
+                    (serial-for-each stem-format-file-quiet targets print-result)
                   ) ;if
                 ) ;results
                ) ;
@@ -258,19 +254,17 @@
       ) ;run-worker-loop
     ) ;define
 
-    ;; 批量 check：并发度大于 1 且文件数多于 2 时并行（check 无缓存可跳过，
-    ;; 每个文件都是完整工作量），否则串行；
+    ;; 批量 check：并发度大于 1 且文件数大于 1 时统一并行，否则串行；
     ;; 返回未格式化文件列表（保持文件顺序，与串行一致）。
     (define (stem-check-files files cfg)
       (offenders-from
-        (if (and (> (fmt-jobs) 1) (> (length files) 2))
-          (parallel-for-each-ordered stem-check-worker files (lambda (file result) #f))
-          (serial-for-each-ordered (lambda (path) (list (stem-check-file-quiet path) #f))
+        (if (and (> (fmt-jobs) 1) (> (length files) 1))
+          (pool-for-each stem-check-worker files (lambda (file result) #f))
+          (serial-for-each (lambda (path) (list (stem-check-file-quiet path) #f))
             files
             (lambda (file result) #f)
-          ) ;serial-for-each-ordered
+          ) ;serial-for-each
         ) ;if
-        files
       ) ;offenders-from
     ) ;define
 

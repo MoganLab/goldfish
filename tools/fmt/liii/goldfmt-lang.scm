@@ -213,13 +213,13 @@
       (flush-output-port (current-output-port))
     ) ;define
 
-    ;; 主线程按结果打印一个文件的处理行（原串行循环的打印规则：
-    ;; updated→Updated 行、failed→Failed+Hint、cached→无输出、unchanged→Formatting 行）。
+    ;; 主线程按结果打印一个文件的处理行（任务 1609 无序 Worker Pool 的输出
+    ;; 契约：只有 Updated 与 Failed 打印明细，Unchanged 与 Cached 静默不打印，
+    ;; 统计见各语言汇总行）。
     (define (print-fmt-result-line file status msg)
       (cond ((eq? status 'updated) (display (string-append "  Updated: " file)) (newline))
             ((eq? status 'failed) (print-fmt-failure file msg))
-            ((eq? status 'cached) #f)
-            (else (display (string-append "Formatting: " file)) (newline))
+            (else #f)
       ) ;cond
     ) ;define
 

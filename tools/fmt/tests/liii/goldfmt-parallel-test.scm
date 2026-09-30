@@ -2,6 +2,7 @@
 (set! *load-path* (cons "tools/common" *load-path*))
 
 (import (liii check)
+  (liii sort)
   (liii goldfmt)
   (liii goldfmt-lang)
   (liii goldfmt-parallel)
@@ -134,34 +135,12 @@
 ;; 断言 out 中各文件行严格按 targets 列表（即目录列举顺序）出现：
 ;; 并行路径的输出顺序必须与串行路径一致（目录列举顺序由文件系统决定，
 ;; 不做字典序假设）。
-(define (check-line-order out dir names)
-  (let loop
-    ((ns names) (prev 0))
-    (if (null? ns)
-      #t
-      (let ((pos (string-position (path->string (path-join (path dir) (car ns))) out)))
-        (check-true (and pos (> pos prev)))
-        (loop (cdr ns) (if pos pos (+ prev 1)))
-      ) ;let
-    ) ;if
-  ) ;let
-) ;define
 
 ;; 目录下 .scm 文件名的列举顺序（path-list-path 原序，仅用于顺序断言）。
-(define (list-scm-names dir)
-  (let ((entries (path-list-path (path dir))))
-    (let loop
-      ((i 0) (acc '()))
-      (if (>= i (vector-length entries))
-        (reverse acc)
-        (let ((s (path->string (vector-ref entries i))))
-          (loop (+ i 1)
-            (if (string-ends? s ".scm") (cons (path-name (path s)) acc) acc)
-          ) ;if
-        ) ;let
-      ) ;if
-    ) ;let
-  ) ;let
+
+;; 无序输出契约的对比辅助：按行拆分、排序后比较（顺序无关的逐行一致）。
+(define (sorted-lines out)
+  (list-sort string<? (string-split out "\n"))
 ) ;define
 
 ;; 独立实现的 DFS 先序遍历（直接走 path-list-path，不依赖 collect-files 的
@@ -245,13 +224,13 @@
           (check code-a => 0)
           (check code-b => 0)
           ;; 归一化目录路径后，并行输出与串行输出逐字节一致
+          ;; 无序契约：不保证完成顺序，按行排序后比较（逐行集合一致）
           (let ((norm-a (string-replace out-a dir-a "DIR"))
                 (norm-b (string-replace out-b dir-b "DIR"))
                ) ;
-            (check (string=? norm-a norm-b) => #t)
+            (check (equal? (sorted-lines norm-a) (sorted-lines norm-b)) => #t)
             (check-true (string-contains? norm-a "Total files formatted: 30"))
             (check-true (string-contains? norm-a "Files updated: 15"))
-            (check-line-order out-a dir-a (list-scm-names dir-a))
           ) ;let
           ;; 落盘内容：两边一致且等于期望格式化结果
           (let loop
@@ -340,9 +319,9 @@
           (check-true (string-contains? out-c "Hint: try `gf fix "))
           ;; 归一化后并行与串行逐字节一致（含失败行位置）
           (check
-            (string=? (string-replace out-c dir-c "DIR")
-              (string-replace out-e dir-e "DIR")
-            ) ;string=?
+            (equal? (sorted-lines (string-replace out-c dir-c "DIR"))
+              (sorted-lines (string-replace out-e dir-e "DIR"))
+            ) ;equal?
             => #t
           ) ;check
           ;; 好文件照常被格式化
@@ -497,9 +476,9 @@
           (check (zero? code-i) => #f)
           (check (zero? code-j) => #f)
           (check
-            (string=? (string-replace out-i dir-i "DIR")
-              (string-replace out-j dir-j "DIR")
-            ) ;string=?
+            (equal? (sorted-lines (string-replace out-i dir-i "DIR"))
+              (sorted-lines (string-replace out-j dir-j "DIR"))
+            ) ;equal?
             => #t
           ) ;check
           (check-true (string-contains? out-i "FAIL: 6 file(s) need formatting"))
