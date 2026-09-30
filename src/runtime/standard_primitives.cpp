@@ -3652,6 +3652,14 @@ void install_runtime_primitives(Evaluator& evaluator) {
     install(evaluator, "hash-code", [](const Values& args) {
         if (args.empty() || args.size() > 2)
             throw std::runtime_error("hash-code expects 1 or 2 arguments");
+        if (args[0].is_integer()) {
+            constexpr std::uint64_t offset = 1469598103934665603ull;
+            constexpr std::uint64_t prime = 1099511628211ull;
+            const auto hash =
+                (offset ^ static_cast<std::uint64_t>(args[0].as_integer())) * prime;
+            return Values{Value::integer(
+                static_cast<std::int64_t>(hash & 0x3fffffffffffffff))};
+        }
         std::function<std::uint64_t(Value, int)> mix =
             [&mix](Value value, int depth) -> std::uint64_t {
             const std::uint64_t offset = 1469598103934665603ull;
