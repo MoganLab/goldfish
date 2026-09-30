@@ -232,16 +232,7 @@
             ) ;display
             (newline)
             (flush-output-port (current-output-port))
-            (let ((results
-                    (if (and (> (fmt-jobs) 1) (> (length files) 1))
-                      (pool-for-each cpp-fmt-worker files print-result cf)
-                      (serial-for-each (lambda (file) (cpp-format-one-quiet cf file))
-                        files
-                        print-result
-                      ) ;serial-for-each
-                    ) ;if
-                  ) ;results
-                 ) ;
+            (let ((results (pool-for-each cpp-fmt-worker files print-result cf)))
               (list (length results)
                 (count-status 'updated results)
                 (count-status 'cached results)
@@ -317,7 +308,7 @@
 
     ;; 批量 check：可用性探测上提到批量层（不可用时提示只打印一次、全部文件
     ;; 视为未格式化——与原逐文件探测的 offenders 结果一致，仅提示次数减少）；
-    ;; 并发度大于 1 且文件数大于 1 时并行，否则串行。返回未格式化文件列表。
+    ;; 统一走 Worker Pool（worker 数 = min(jobs, 文件数)）。返回未格式化文件列表（按到达顺序）。
     (define (cpp-check-files files cfg)
       (if (null? files)
         '()
@@ -327,14 +318,7 @@
             files
           ) ;begin
           (let ((cf (clang-format-binary cfg)))
-            (offenders-from
-              (if (and (> (fmt-jobs) 1) (> (length files) 1))
-                (pool-for-each cpp-check-worker files (lambda (file result) #f) cf)
-                (serial-for-each (lambda (path) (list (cpp-check-file-quiet cf path) #f))
-                  files
-                  (lambda (file result) #f)
-                ) ;serial-for-each
-              ) ;if
+            (offenders-from (pool-for-each cpp-check-worker files (lambda (file result) #f) cf)
             ) ;offenders-from
           ) ;let
         ) ;if

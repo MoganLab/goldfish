@@ -121,10 +121,9 @@
 
     ;; ---- 文件列表批量格式化 --------------------------------------------
     ;; 返回 (values total updated cached failed)。
-    ;; 主线程先过滤 exclude；并发度大于 1 且文件数大于 1 时统一走 (liii go)
-    ;; 的 Worker Pool（不做缓存命中率自适应；-j 1 才是串行）；两条路径共用
-    ;; 同一安静单位函数、打印回调
-    ;; 与统计归约，输出与统计语义一致（并行结果按文件序回调打印）。
+    ;; 主线程先过滤 exclude 后统一走 (liii go) 的 Worker Pool
+    ;; （worker 数 = min(jobs, 文件数)，-j 1 即单 worker）；共用同一安静
+    ;; 单位函数、打印回调与统计归约，结果按到达顺序回调打印。
     (define (format-file-list files dry-run excludes)
       (let ((targets (filter (lambda (f) (not (file-excluded? f excludes))) files)))
         (if dry-run
@@ -140,13 +139,7 @@
               ) ;begin
             ) ;if
           ) ;let
-          (let ((results
-                  (if (and (> (fmt-jobs) 1) (> (length targets) 1))
-                    (pool-for-each scheme-fmt-worker targets print-result)
-                    (serial-for-each scheme-format-file-quiet targets print-result)
-                  ) ;if
-                ) ;results
-               ) ;
+          (let ((results (pool-for-each scheme-fmt-worker targets print-result)))
             (values (length results)
               (count-status 'updated results)
               (count-status 'cached results)
@@ -262,14 +255,7 @@
     ;; 批量 check：并发度大于 1 且文件数大于 1 时统一并行，否则串行；
     ;; 返回未格式化文件列表（保持文件顺序，与串行一致）。
     (define (scheme-check-files files cfg)
-      (offenders-from
-        (if (and (> (fmt-jobs) 1) (> (length files) 1))
-          (pool-for-each scheme-check-worker files (lambda (file result) #f))
-          (serial-for-each (lambda (path) (list (scheme-check-file-quiet path) #f))
-            files
-            (lambda (file result) #f)
-          ) ;serial-for-each
-        ) ;if
+      (offenders-from (pool-for-each scheme-check-worker files (lambda (file result) #f))
       ) ;offenders-from
     ) ;define
 

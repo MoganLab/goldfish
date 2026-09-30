@@ -29,8 +29,8 @@
 
 (define-library (liii goldfmt-parallel)
   (import (liii base) (liii go) (liii list))
-  (export pool-for-each serial-for-each run-worker-loop offenders-from
-    count-status set-fmt-jobs! fmt-jobs
+  (export pool-for-each run-worker-loop offenders-from count-status
+    set-fmt-jobs! fmt-jobs
   ) ;export
   (begin
 
@@ -71,23 +71,6 @@
             ) ;let
           ) ;unless
         ) ;let
-      ) ;let
-    ) ;define
-
-    ;; ---- 串行孪生 -------------------------------------------------------
-    ;; 与 Worker Pool 同形的串行实现：同一单位函数、同一回调、同一返回值
-    ;; 形状（结果同样为 (list 路径 状态 失败信息)，串行天然按文件序到达），
-    ;; 供 -j 1 / 工作量太小时复用批量层其余部分。
-    (define (serial-for-each unit-fn files on-result)
-      (let loop
-        ((fs files) (acc '()))
-        (if (null? fs)
-          (reverse acc)
-          (let* ((r (unit-fn (car fs))) (msg (list (car fs) (car r) (cadr r))))
-            (on-result (car fs) msg)
-            (loop (cdr fs) (cons msg acc))
-          ) ;let*
-        ) ;if
       ) ;let
     ) ;define
 

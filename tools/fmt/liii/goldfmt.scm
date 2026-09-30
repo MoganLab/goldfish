@@ -213,7 +213,7 @@
       (display "      --exclude PATTERN    跳过匹配的文件（路径后缀匹配，逗号分隔多个）"
       ) ;display
       (newline)
-      (display "  -j, --jobs NUM   并发格式化的协程数（默认 0 = 自动，取 CPU 核数；1 = 串行；受 GOLDFISH_GO_WORKERS 环境变量约束）"
+      (display "  -j, --jobs NUM   并发格式化的协程数（默认 0 = 自动，取 CPU 核数；1 = 单协程；受 GOLDFISH_GO_WORKERS 环境变量约束）"
       ) ;display
       (newline)
       (newline)
