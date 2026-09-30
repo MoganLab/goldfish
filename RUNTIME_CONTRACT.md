@@ -1,8 +1,8 @@
-# Runtime contract and roadmap
+# Runtime contract
 
 Goldfish uses the native evaluator as its only runtime. Scheme defines language
 libraries and policy; C++ provides values, memory management, control flow,
-evaluation, reading, primitive calls, and platform interfaces.
+evaluation, ports, primitive calls, and platform interfaces.
 
 ## Runtime boundary
 
@@ -11,13 +11,14 @@ C++ owns:
 - `Value`, object representation, heap/GC, symbol interning and environments;
 - the lowered core evaluator, multiple values, exceptions, continuations and
   `dynamic-wind`;
-- the source reader, ports, artifact loading and primitive ABI;
+- port and reader primitives, artifact loading and the primitive ABI;
 - OS and platform operations that cannot be implemented portably in Scheme.
 
 Scheme owns:
 
 - derived syntax, macros, records, guards and error-object behavior;
-- library imports, module policy, compiler passes and cache orchestration;
+- source syntax reading, library imports, module policy, compiler passes and
+  cache orchestration;
 - R7RS, SRFI and `(liii ...)` libraries.
 
 New C++ primitives require a runtime or platform need that cannot reasonably
@@ -39,24 +40,5 @@ measurement identifies a material bottleneck.
 - `sh tools/test-native-workflow.sh` is the representative native workflow gate.
   `sh tools/check-native-manifest.sh` validates its corpus and the follow-up ledger.
 
-Hook invocation and procedure signature reflection are outside the current
-runtime API; their tests are listed in `tests/NATIVE-FOLLOWUPS.tsv`.
-
-## Active work
-
-The test paths and decisions are tracked in `tests/NATIVE-FOLLOWUPS.tsv`.
-Remaining work is tracked in `tests/NATIVE-FOLLOWUPS.tsv`:
-
-1. **Randomness:** implement native random state and seeding, then complete
-   SRFI-27 and `(liii random)` with defined reproducibility and ranges.
-2. **Reader extensions:** decide whether raw strings belong in the supported
-   `(liii ...)` surface; implement and test them, or remove their exports.
-3. **Platform libraries:** decide support for subprocess, njson and UUID.
-   Keep policy in Scheme and add only necessary native operations.
-4. **Scale:** run the million-element set stress test and record workload and
-   memory baselines before optimizing measured bottlenecks.
-
-A phase is complete when its follow-up rows are resolved, affected tests pass,
-and the native workflow gate passes for changes to core evaluator, bootstrap,
-reader or library loading. The full suite is reserved for explicit requests or
-core semantic milestones.
+Deferred and excluded native tests are tracked in
+`tests/NATIVE-FOLLOWUPS.tsv`.

@@ -1082,8 +1082,7 @@
 
 ;;; export-rename-spec? : datum -> boolean
 ;;; R7RS export spec (rename <from> <to>): re-export `from' under the
-;;; visible name `to'.  Anything else (plain symbols, legacy malformed
-;;; specs) passes through to the historical downstream errors.
+;;; visible name `to'.  Other forms pass through to downstream validation.
 
 (define (export-rename-spec? d)
   (and (pair? d) (eq? (car d) 'rename)

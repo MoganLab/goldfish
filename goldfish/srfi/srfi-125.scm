@@ -149,11 +149,7 @@
       (for-each (lambda (key) (hash-table-set! ht key #f)) (hash-table-keys ht))
     ) ;define
 
-    ;; Enumeration primitive: the base layer's map/for-each are plain-list
-    ;; implementations, so the historical idiom `(map car ht)' (which relied
-    ;; on the host's generic traversal yielding one (key . value) pair per
-    ;; step) does not work.  Drive the host iterator protocol explicitly
-    ;; instead: each call yields an entry pair, #<eof> when exhausted.
+    ;; Enumerate entries through the host iterator; hash tables are not lists.
     (define (ht-entry-list ht)
       (let ((it (make-iterator ht)))
         (let loop ()

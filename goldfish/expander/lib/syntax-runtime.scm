@@ -353,11 +353,8 @@
   (if (syntax? x) (syntax-form x) x))
 
 ;;; Library references in template nodes.
-;;; A template node's library slot used to carry the LIVE exp-library
-;;; record (whose bindings hold transformers), which made the compiled
-;;; transformer datum unserializable.  parse-template now emits a
-;;; serializable (libref name) descriptor; fast-instantiate resolves it
-;;; back to the live library at run time via the library registry.
+;;; Store a serializable library name instead of an exp-library record;
+;;; fast-instantiate resolves it through the registry.
 
 (define (template-lib stx)
   (let ((lib (syntax-library stx)))

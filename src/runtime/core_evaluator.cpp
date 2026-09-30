@@ -112,10 +112,8 @@ Values Evaluator::eval_tail(Value expression, EnvironmentPtr environment) {
         return eval_tail_sequence(list_values(body), std::move(child));
     }
 
-    // A sequence in tail position must keep its last expression in tail
-    // position.  Going through eval_pair/eval_sequence here used to make
-    // every lowered `(begin ...)' add a C++ stack frame, which eventually
-    // overflowed while the native evaluator ran the expander itself.
+    // Keep the last expression in tail position to avoid accumulating C++
+    // frames while evaluating a sequence.
     if (form == CoreForm::Begin)
         return eval_tail_sequence(pair_expression->cdr,
                                   std::move(environment));

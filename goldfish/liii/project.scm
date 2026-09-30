@@ -115,9 +115,8 @@
     ;; Tool dispatch interface for the host: given a command name, return
     ;; the import expressions of the tool defined by gfproject.scm files,
     ;; best candidate first (a local override is tried before the library
-    ;; definition).  '() when CMD is not a project tool.  This replaces the
-    ;; historical JSON views: the host only ever needed the organization /
-    ;; module pair to build the import expression.
+    ;; definition).  '() when CMD is not a project tool.  The host needs only
+    ;; the organization/module pair to build the import expression.
     (define (gfproject-tool-imports cmd)
       (define cmd-sym (string->symbol cmd))
       (define (entry where)

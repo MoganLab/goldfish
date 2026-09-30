@@ -15,10 +15,7 @@
 ;; These are library semantics, not evaluator primitives.  Keep only pair and
 ;; vector construction/access in the native substrate.
 ;;
-;; The checks here are the error contract the test suite pins down: wrong
-;; arity, wrong type and out-of-range must raise instead of silently
-;; looping (make-list/list-tail with a negative count used to recurse
-;; forever) or quietly truncating.
+;; Reject invalid arity, types and ranges instead of silently truncating.
 (define (negative? x)
   (unless (and (number? x) (real? x))
     (error 'wrong-type-arg "negative? expects a real number" x))

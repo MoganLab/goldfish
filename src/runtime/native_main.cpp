@@ -263,12 +263,9 @@ static int fork_and_run_file(Evaluator& evaluator,
 }
 
 void install_fork_runner(Evaluator& evaluator) {
-    // C2 fork-runner: goldtest's isolated path would fork+exec a fresh
-    // boot per file; this forks the already-booted process instead --
-    // no exec, COW pages, and every child starts from the same pristine
-    // parent snapshot (boot amortized to zero, isolation perfect).
-    // Safe without exec because the runtime is single-threaded (tbox
-    // never starts threads here).
+    // Fork the already-booted process for each isolated test. Copy-on-write
+    // preserves a pristine evaluator state without repeating bootstrap.
+    // This is safe because the runtime is single-threaded.
     evaluator.define_primitive(
         "fork-test-file", [&evaluator](const Values& args) {
             if (args.size() < 1 || args.size() > 2)
@@ -721,8 +718,8 @@ int main(int argc, char** argv) {
             return 0;
         }
         if (std::string(argv[command]) == "--each-file") {
-            // C2 sweep mode: one boot, one fork per file, goldtest-style
-            // verdict rows -- avoids reloading the goldtest tool per file.
+            // Run each file in a child and print goldtest-style results
+            // without reloading the Scheme test tool.
             if (++command >= argc)
                 throw std::runtime_error("--each-file requires paths");
             int failures = 0;

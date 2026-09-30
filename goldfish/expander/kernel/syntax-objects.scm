@@ -317,7 +317,7 @@
 ;;; subnodes carry no scope info, and a well-formed (empty) scope-set context
 ;;; keeps the tree traversable by scope operations (a context record in the
 ;;; context slot would crash stx-ctx-at on any later flip/resolve).  Shared
-;;; by intdef/libbody finalizers (formerly two identical copies).
+;;; Shared by the internal-definition and library-body finalizers.
 
 (define empty-source (make-syntax 'empty (stx-ctx-empty) #f))
 
