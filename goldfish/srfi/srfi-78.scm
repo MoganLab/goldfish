@@ -102,12 +102,15 @@
     ) ;define
 
     (define (check:get-stacktrace-safely)
-      (let ((stack (stacktrace)))
-        (if (and (string? stack) (> (string-length stack) 0))
-          stack
-          "[no stacktrace available]"
-        ) ;if
-      ) ;let
+      (if (defined? 'stacktrace)
+        (let ((stack (stacktrace)))
+          (if (and (string? stack) (> (string-length stack) 0))
+            stack
+            "[no stacktrace available]"
+          ) ;if
+        ) ;let
+        "[no stacktrace available]"
+      ) ;if
     ) ;define
 
     (define (check:report-expression expression)
