@@ -39,6 +39,7 @@
     ) ;define
 
     ;; 缓存命中：文件存在即认为已格式化。
+    ;; file-exists? 由 (liii base) 提供并导出（worker 会话可用，见 base.scm 注释）。
     (define (fmt-cache-hit? file-path)
       (let ((cache (fmt-cache-path file-path)))
         (file-exists? cache)

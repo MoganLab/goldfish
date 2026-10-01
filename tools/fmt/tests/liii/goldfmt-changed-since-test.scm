@@ -1,13 +1,28 @@
-(set! *load-path* (cons "tools/fmt" *load-path*))
-(set! *load-path* (cons "tools/common" *load-path*))
+;; (liii path)/(liii list)/(liii sys) 属核心库，无需额外 load-path 条目即可导入。
+(import (liii path)
+  (liii list)
+  (liii sys)
+)
+
+;; load-path 条目以本测试文件自身位置为锚点绝对化：
+;;  1. gf test 会 chdir 到 tools/fmt 再以相对路径启动本测试（初始 CWD 不是仓库根），
+;;     按 CWD 绝对化会算错；按文件位置锚定对直接运行与 gf test 两种方式都成立。
+;;  2. 本测试随后会 chdir 进 git 沙箱（changed-files-since 依赖进程 CWD 定位仓库），
+;;     而 (liii go) worker 会话的库加载按进程 CWD 解析相对条目——不绝对化的话
+;;     worker 会 import 失败，主线程因收不齐结果而永久等待。
+(let* ((script-path (path-absolute (last (argv))))
+       (fmt-root (path->string (path-parent (path-parent (path-parent script-path)))))
+       (tools-root (path->string (path-parent (path fmt-root))))
+      ) ;
+  (set! *load-path* (cons fmt-root *load-path*))
+  (set! *load-path* (cons (string-append tools-root "/common") *load-path*))
+) ;let*
 
 (import (liii check)
   (liii goldfmt)
   (liii cpp-fmt)
   (liii goldtool-changed)
-  (liii list)
   (liii os)
-  (liii path)
   (liii string)
 ) ;import
 

@@ -59,12 +59,15 @@
     (liii goldtool-changed)
     (liii cpp-fmt)
     (liii stem-fmt)
+    (liii goldfmt-parallel)
+    (liii go)
     (srfi srfi-13)
   ) ;import
   (export main format-datum format-datum+node format-node format-string
     format-scheme-string format-stem-string can-inline? scan-string
     call-with-stem-mode string-contains all-registered-extensions
     group-files-by-lang format-changed-since check-goldfish-version
+    parse-fmt-jobs
   ) ;export
   (begin
     (define format-scheme-string format-string)
@@ -150,8 +153,34 @@
         ) ;parser
         (parser :add-argument '((name . "changed-since") (type . string)))
         (parser :add-argument '((name . "exclude") (type . string)))
+        (parser
+          :add-argument
+          '((name . "jobs") (short . "j") (type . number) (default . 0))
+        ) ;parser
         parser
       ) ;let
+    ) ;define
+
+    ;; jobs 原始值归一化：不小于 1 的整数；0 表示自动（由主入口解析为
+    ;; (go-worker-count)，即 CPU 硬件核数）。非数字（含解析失败）也归 0。
+    (define (normalize-jobs j)
+      (if (and (number? j) (> j 0)) (max 1 (exact (floor j))) 0)
+    ) ;define
+
+    ;; 解析 -j/--jobs：返回不小于 1 的整数；0 表示自动。非法输入（如 -j abc）
+    ;; 在此处不报错、回退自动模式（供建模为独立函数供单元测试）。
+    (define (parse-fmt-jobs args)
+      (normalize-jobs
+        (catch #t
+          (lambda ()
+            (let ((parser (make-fmt-arg-parser)))
+              (parser :parse-argv args)
+              (parser 'jobs)
+            ) ;let
+          ) ;lambda
+          (lambda (type info) #f)
+        ) ;catch
+      ) ;normalize-jobs
     ) ;define
 
     (define (first-positional parser)
@@ -182,6 +211,9 @@
       ) ;display
       (newline)
       (display "      --exclude PATTERN    跳过匹配的文件（路径后缀匹配，逗号分隔多个）"
+      ) ;display
+      (newline)
+      (display "  -j, --jobs NUM   并发格式化的协程数（默认 0 = 自动，取 CPU 核数；1 = 单协程；受 GOLDFISH_GO_WORKERS 环境变量约束）"
       ) ;display
       (newline)
       (newline)
@@ -238,10 +270,7 @@
           (begin
             (display "Done.")
             (newline)
-            (if (> repo-failed 0)
-              (exit 1)
-              #t
-            )
+            (if (> repo-failed 0) (exit 1) #t)
           ) ;begin
           (let* ((handler (car handlers))
                  (label (lang-label handler))
@@ -254,19 +283,17 @@
             (display (string-append "=== Formatting " label " files ==="))
             (newline)
             (flush-output)
-            (display (string-append "Total "
-                       label
-                       " files formatted: "
-                       (number->string (car stats))
-                       ", Files updated: "
-                       (number->string (cadr stats))
-                       ", Files unchanged: "
-                       (number->string (caddr stats))
-                       (if (> failed 0)
-                         (string-append ", Files failed: " (number->string failed))
-                         ""
-                       )
-                     ) ;string-append
+            (display
+              (string-append "Total "
+                label
+                " files formatted: "
+                (number->string (car stats))
+                ", Files updated: "
+                (number->string (cadr stats))
+                ", Files unchanged: "
+                (number->string (caddr stats))
+                (if (> failed 0) (string-append ", Files failed: " (number->string failed)) "")
+              ) ;string-append
             ) ;display
             (newline)
             (newline)
@@ -303,22 +330,32 @@
       ) ;let
     ) ;define
 
+    ;; 批量检查：优先使用 handler 的 check-files 批量方法（语言内可并行，
+    ;; 见任务 1609）；未提供时回退逐文件串行调用 check-file（协议对第三方
+    ;; handler 保持兼容）。返回 offenders 列表（保持文件顺序）。
+    (define (check-files-or-serial handler files cfg)
+      (let ((check-files-pair (assq 'check-files handler)))
+        (if check-files-pair
+         ((cdr check-files-pair) files cfg)
+         (let ((check-file (lang-ref handler 'check-file)))
+           (let loop
+             ((fs files) (bad '()))
+             (if (null? fs)
+               (reverse bad)
+               (let ((f (car fs)))
+                 (loop (cdr fs) (if (check-file f cfg) bad (cons f bad)))
+               ) ;let
+             ) ;if
+           ) ;let
+         ) ;let
+        ) ;if
+      ) ;let
+    ) ;define
+
     ;; 逐文件检查某语言，返回 offenders 列表。
     (define (check-lang handler cfg)
-      (let* ((label (lang-label handler))
-             (collect (lang-ref handler 'collect))
-             (check-file (lang-ref handler 'check-file))
-             (files (collect cfg))
-            ) ;
-        (let loop
-          ((fs files) (bad '()))
-          (if (null? fs)
-            (reverse bad)
-            (let ((f (car fs)))
-              (loop (cdr fs) (if (check-file f cfg) bad (cons f bad)))
-            ) ;let
-          ) ;if
-        ) ;let
+      (let* ((collect (lang-ref handler 'collect)) (files (collect cfg)))
+        (check-files-or-serial handler files cfg)
       ) ;let*
     ) ;define
 
@@ -445,35 +482,30 @@
              (stats (format-directory dir extensions excludes dry-run cfg))
              (failed (stats-failed stats))
             ) ;
-        (display (string-append "Total files formatted: "
-                   (number->string (car stats))
-                   ", Files updated: "
-                   (number->string (cadr stats))
-                   ", Files unchanged: "
-                   (number->string (caddr stats))
-                   (if (> failed 0)
-                     (string-append ", Files failed: " (number->string failed))
-                     ""
-                   )
-                 ) ;string-append
+        (display
+          (string-append "Total files formatted: "
+            (number->string (car stats))
+            ", Files updated: "
+            (number->string (cadr stats))
+            ", Files unchanged: "
+            (number->string (caddr stats))
+            (if (> failed 0) (string-append ", Files failed: " (number->string failed)) "")
+          ) ;string-append
         ) ;display
         (newline)
         (flush-output)
-        (if (> failed 0)
-          (exit 1)
-          #t
-        )
+        (if (> failed 0) (exit 1) #t)
       ) ;let*
     ) ;define
 
-    ;; 目录检查：选语言 handler，收集指定 dir 下文件，逐个调用 check-file。
-    ;; 若有未格式化文件，输出未格式化列表并以退出码 1 退出；全部通过则退出码 0。
+    ;; 目录检查：选语言 handler，收集指定 dir 下文件，走 check-files-or-serial
+    ;; 批量检查。若有未格式化文件，输出未格式化列表并以退出码 1 退出；全部
+    ;; 通过则退出码 0。
     (define (dispatch-check-directory dir extensions excludes)
       (let* ((cfg (catch #t (lambda () (load-fmt-config)) (lambda (type info) #f)))
              (dummy (check-goldfish-version cfg))
              (handler (directory-handler-for extensions))
              (label (lang-label handler))
-             (check-file (lang-ref handler 'check-file))
              (lang-name-sym (lang-name handler))
              (cfg-excludes (if cfg (lang-excludes lang-name-sym cfg) '()))
              (all-excludes (append excludes cfg-excludes))
@@ -482,32 +514,26 @@
         (display (string-append "=== Checking " label " files in " dir " ==="))
         (newline)
         (flush-output)
-        (let loop
-          ((fs files) (offenders '()))
-          (if (null? fs)
-            (let ((total (length offenders)))
+        (let* ((offenders (check-files-or-serial handler files cfg))
+               (total (length offenders))
+              ) ;
+          (newline)
+          (print-offenders label offenders)
+          (newline)
+          (if (> total 0)
+            (begin
+              (display (string-append "FAIL: " (number->string total) " file(s) need formatting")
+              ) ;display
               (newline)
-              (print-offenders label (reverse offenders))
+              (exit 1)
+            ) ;begin
+            (begin
+              (display "OK: all files formatted.")
               (newline)
-              (if (> total 0)
-                (begin
-                  (display (string-append "FAIL: " (number->string total) " file(s) need formatting")
-                  ) ;display
-                  (newline)
-                  (exit 1)
-                ) ;begin
-                (begin
-                  (display "OK: all files formatted.")
-                  (newline)
-                  (exit 0)
-                ) ;begin
-              ) ;if
-            ) ;let
-            (let ((f (car fs)))
-              (loop (cdr fs) (if (check-file f cfg) offenders (cons f offenders)))
-            ) ;let
+              (exit 0)
+            ) ;begin
           ) ;if
-        ) ;let
+        ) ;let*
       ) ;let*
     ) ;define
 
@@ -664,23 +690,18 @@
                     ((gs groups) (total 0) (updated 0) (cached 0) (failed 0))
                     (if (null? gs)
                       (begin
-                        (display (string-append "Total files formatted: "
-                                   (number->string total)
-                                   ", Files updated: "
-                                   (number->string updated)
-                                   ", Files cached: "
-                                   (number->string cached)
-                                   (if (> failed 0)
-                                     (string-append ", Files failed: " (number->string failed))
-                                     ""
-                                   )
-                                 ) ;string-append
+                        (display
+                          (string-append "Total files formatted: "
+                            (number->string total)
+                            ", Files updated: "
+                            (number->string updated)
+                            ", Files cached: "
+                            (number->string cached)
+                            (if (> failed 0) (string-append ", Files failed: " (number->string failed)) "")
+                          ) ;string-append
                         ) ;display
                         (newline)
-                        (if (> failed 0)
-                          (exit 1)
-                          #t
-                        )
+                        (if (> failed 0) (exit 1) #t)
                       ) ;begin
                       (let* ((g (car gs))
                              (handler (lang-for-name (car g)))
@@ -719,6 +740,17 @@
                (changed-since (parser 'changed-since))
                (cli-excludes (parse-excludes (parser 'exclude)))
                (path-str (first-positional parser))
+               ;; 并发度：-j 正整数覆盖；缺省/0 回退自动（CPU 核数）。
+               ;; 实际 worker 数还会按待格式化文件数收敛（见各语言批量层）。
+               ;; 直接复用上方已完成的解析结果，不重复解析 argv
+               ;; （parse-fmt-jobs 仅供单元测试独立调用）。
+               (dummy-jobs
+                 (set-fmt-jobs!
+                   (let ((j (normalize-jobs (parser 'jobs))))
+                     (if (> j 0) j (go-worker-count))
+                   ) ;let
+                 ) ;set-fmt-jobs!
+               ) ;dummy-jobs
               ) ;
           (cond (help-flag (display-help) #t)
                 ;; changed-since 优先：即使无路径参数也走增量格式化，而非仓库批量。

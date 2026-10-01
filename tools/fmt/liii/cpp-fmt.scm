@@ -29,13 +29,11 @@
     (liii goldfmt-cache)
     (liii goldfmt-lang)
     (liii goldfmt-config)
+    (liii goldfmt-parallel)
   ) ;import
-  (export clang-format-binary
-    cpp-extensions
-    format-cpp-file
-    format-cpp-files
-    format-cpp-directory
-    check-cpp-file
+  (export clang-format-binary cpp-extensions format-cpp-file format-cpp-files
+    format-cpp-directory check-cpp-file cpp-format-one-quiet cpp-fmt-worker
+    cpp-check-file-quiet cpp-check-worker cpp-check-files
   ) ;export
   (begin
 
@@ -70,7 +68,13 @@
     ;; 调用 clang-format。cfg 为已加载的 gf_fmt.json 配置（可为 #f），args 为字符串参数
     ;; 列表，opts 传给 run。通过 run-set! 将配置得到的路径注册到符号命令。
     (define (clang-format-run cfg args . opts)
-      (let ((sym (string->symbol "clang-format")) (cf (clang-format-binary cfg)))
+      (apply clang-format-run-with (clang-format-binary cfg) args opts)
+    ) ;define
+
+    ;; 以指定的 clang-format 二进制路径调用（不依赖 cfg 对象：cfg 是 (liii json) 的
+    ;; C 层对象，不可跨 (liii go) 会话序列化，并发改造时由主线程先解析出路径字符串）。
+    (define (clang-format-run-with cf args . opts)
+      (let ((sym (string->symbol "clang-format")))
         (run-set! sym cf)
         (apply run (cons (cons sym args) opts))
       ) ;let
@@ -153,40 +157,60 @@
     ) ;define
 
     ;; ---- 批量格式化 -----------------------------------------------------
-    ;; 逐文件 clang-format：先查缓存，命中则跳过；未命中则用 clang-format -i
-    ;; 原地格式化，通过比较格式化前后内容判断是否有变更。
-    ;; 返回 (total updated cached)。
-    (define (format-one-cpp cfg path-str use-cache?)
-      (if (and use-cache? (fmt-cache-hit? path-str))
-        'cached
+    ;; 安静的单位格式化函数：不打印、不 exit（供串行/并行的批量层与 (liii go)
+    ;; worker 会话共用；cf 为 clang-format 二进制路径字符串，主线程从 cfg 解析）。
+    ;; 返回 (list status msg)：status ∈ 'cached / 'updated / 'unchanged / 'failed，
+    ;; msg 恒为 #f（保持既有静默失败语义：失败不打印、不单独计数）。
+    (define (cpp-format-one-quiet cf path-str)
+      (if (fmt-cache-hit? path-str)
+        (list 'cached #f)
         (let ((ondisk (path-read-text (path path-str)))
-              (rc (clang-format-run cfg (list "-i" path-str)))
+              (rc (clang-format-run-with cf (list "-i" path-str)))
              ) ;
           (if (= rc 0)
             (let ((formatted (path-read-text (path path-str))))
               (if (not (string=? formatted ondisk))
                 (begin
-                  (when use-cache?
-                    (fmt-cache-touch path-str)
-                  ) ;when
-                  (display (string-append "  Updated: " path-str))
-                  (newline)
-                  #t
+                  (fmt-cache-touch path-str)
+                  (list 'updated #f)
                 ) ;begin
                 (begin
-                  (when use-cache?
-                    (fmt-cache-touch path-str)
-                  ) ;when
-                  #f
+                  (fmt-cache-touch path-str)
+                  (list 'unchanged #f)
                 ) ;begin
               ) ;if
             ) ;let
-            #f
+            (list 'failed #f)
           ) ;if
         ) ;let
       ) ;if
     ) ;define
 
+    ;; (liii go) worker：在独立会话中循环取任务、调安静单位函数、回发结果
+    ;; （骨架见 run-worker-loop；异常兜底转 failed 结果）。cf（clang-format
+    ;; 二进制路径字符串）由主线程从 cfg 解析后经 spawn 参数一次性传入——
+    ;; 直接传解析好的字符串比把 cfg 交给 worker 重解析更省（每次批量
+    ;; 只解析一次配置）。
+    (define (cpp-fmt-worker cf task-ch result-ch)
+      (run-worker-loop task-ch
+        result-ch
+        (lambda (path) (cpp-format-one-quiet cf path))
+        (lambda (tag info) (list 'failed #f))
+      ) ;run-worker-loop
+    ) ;define
+
+    ;; 主线程按结果打印一个文件的处理行（cpp 只打印 Updated 行，失败静默，
+    ;; 保持原语义）。
+    (define (print-result file result)
+      (when (eq? (cadr result) 'updated)
+        (display (string-append "  Updated: " file))
+        (newline)
+      ) ;when
+    ) ;define
+
+    ;; 逐文件 clang-format：先查缓存，命中则跳过；未命中则用 clang-format -i
+    ;; 原地格式化，通过比较格式化前后内容判断是否有变更。
+    ;; 返回 (total updated cached)。failed 与 unchanged 均不计数（保持原语义）。
     (define (format-cpp-files files cfg)
       (if (null? files)
         (begin
@@ -208,20 +232,11 @@
             ) ;display
             (newline)
             (flush-output-port (current-output-port))
-            (let loop
-              ((fs files) (total 0) (updated 0) (cached 0))
-              (if (null? fs)
-                (list total updated cached)
-                (let ((result (format-one-cpp cfg (car fs) #t)))
-                  (cond ((eq? result 'cached) (loop (cdr fs) (+ total 1) updated (+ cached 1)))
-                        (result (display (string-append "  Updated: " (car fs)))
-                          (newline)
-                          (loop (cdr fs) (+ total 1) (+ updated 1) cached)
-                        ) ;result
-                        (else (loop (cdr fs) (+ total 1) updated cached))
-                  ) ;cond
-                ) ;let
-              ) ;if
+            (let ((results (pool-for-each cpp-fmt-worker files print-result cf)))
+              (list (length results)
+                (count-status 'updated results)
+                (count-status 'cached results)
+              ) ;list
             ) ;let
           ) ;let
         ) ;if
@@ -257,21 +272,54 @@
           (clang-format-hint)
           #f
         ) ;begin
-        (if (fmt-cache-hit? path)
-          #t
-          (let ((rc (clang-format-run cfg
-                      (list "--dry-run" "--Werror" path)
-                      :stdout
-                      'discard
-                      :stderr
-                      'discard
-                    ) ;clang-format-run
-                ) ;rc
-               ) ;
-            (when (= rc 0)
-              (fmt-cache-touch path)
-            ) ;when
-            (= rc 0)
+        (cpp-check-file-quiet (clang-format-binary cfg) path)
+      ) ;if
+    ) ;define
+
+    ;; 安静的单文件 check（不探测可用性、不打印提示；cf 为二进制路径字符串，
+    ;; 供串行/并行的批量层与 (liii go) worker 会话共用）。
+    (define (cpp-check-file-quiet cf path)
+      (if (fmt-cache-hit? path)
+        #t
+        (let ((rc (clang-format-run-with cf
+                    (list "--dry-run" "--Werror" path)
+                    :stdout 'discard
+                    :stderr 'discard
+                  ) ;clang-format-run-with
+              ) ;rc
+             ) ;
+          (when (= rc 0)
+            (fmt-cache-touch path)
+          ) ;when
+          (= rc 0)
+        ) ;let
+      ) ;if
+    ) ;define
+
+    ;; check 的 (liii go) worker：cf 经 spawn 参数传入（主线程已预检可用性）；
+    ;; 结果包装为 (list ok #f)，异常兜底视为未格式化。
+    (define (cpp-check-worker cf task-ch result-ch)
+      (run-worker-loop task-ch
+        result-ch
+        (lambda (path) (list (cpp-check-file-quiet cf path) #f))
+        (lambda (tag info) (list #f #f))
+      ) ;run-worker-loop
+    ) ;define
+
+    ;; 批量 check：可用性探测上提到批量层（不可用时提示只打印一次、全部文件
+    ;; 视为未格式化——与原逐文件探测的 offenders 结果一致，仅提示次数减少）；
+    ;; 统一走 Worker Pool（worker 数 = min(jobs, 文件数)）。返回未格式化文件列表（按到达顺序）。
+    (define (cpp-check-files files cfg)
+      (if (null? files)
+        '()
+        (if (not (clang-format-ok? cfg))
+          (begin
+            (clang-format-hint)
+            files
+          ) ;begin
+          (let ((cf (clang-format-binary cfg)))
+            (offenders-from (pool-for-each cpp-check-worker files (lambda (file result) #f) cf)
+            ) ;offenders-from
           ) ;let
         ) ;if
       ) ;if
@@ -304,6 +352,7 @@
         (cons 'format-file cpp-format-file)
         (cons 'format-directory cpp-format-directory)
         (cons 'check-file check-cpp-file)
+        (cons 'check-files cpp-check-files)
       ) ;list
     ) ;define
 
