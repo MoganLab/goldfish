@@ -18,6 +18,15 @@
   (import (scheme base) (liii error) (liii go))
   (export par-for-each par-map)
   (begin
+    ;; (liii go) worker 结果信封协议：(ok value) 或 (error sym irritants)
+    (define (%par-result-error? res)
+      (and (pair? res) (eq? (car res) 'error))
+    ) ;define
+
+    (define (%par-rethrow! err)
+      (apply error (cadr err) (caddr err))
+    ) ;define
+
     (define (par-for-each f l)
       (unless (procedure? f)
         (type-error "par-for-each: first argument must be a procedure" f)
@@ -33,10 +42,10 @@
             ((i 0) (first-error #f))
             (if (= i n)
               (when first-error
-                (apply error (cadr first-error) (caddr first-error))
+                (%par-rethrow! first-error)
               ) ;when
               (let ((res (chan-recv! done-ch)))
-                (if (and (pair? res) (eq? (car res) 'error))
+                (if (%par-result-error? res)
                   (loop (+ i 1) (or first-error res))
                   (loop (+ i 1) first-error)
                 ) ;if
@@ -54,28 +63,22 @@
       (unless (list? l)
         (type-error "par-map: second argument must be a list" l)
       ) ;unless
-      (if (null? l)
-        '()
-        (let* ((chans (map (lambda (_) (make-chan 1)) l)))
-          (for-each (lambda (elem ch) (go-apply f (list elem) ch)) l chans)
-          ;; Join Barrier：按序读取每个专属通道，收满所有结果
-          (let loop
-            ((chs chans) (results '()) (first-error #f))
-            (if (null? chs)
-              (if first-error
-                (apply error (cadr first-error) (caddr first-error))
-                (reverse results)
+      (let ((chans (map (lambda (_) (make-chan 1)) l)))
+        (for-each (lambda (elem ch) (go-apply f (list elem) ch)) l chans)
+        ;; Join Barrier：按序读取每个专属通道，收满所有结果
+        (let loop
+          ((chs chans) (results '()) (first-error #f))
+          (if (null? chs)
+            (if first-error (%par-rethrow! first-error) (reverse results))
+            (let ((res (chan-recv! (car chs))))
+              (if (%par-result-error? res)
+                (loop (cdr chs) results (or first-error res))
+                (loop (cdr chs) (cons (cadr res) results) first-error)
               ) ;if
-              (let ((res (chan-recv! (car chs))))
-                (if (and (pair? res) (eq? (car res) 'error))
-                  (loop (cdr chs) results (or first-error res))
-                  (loop (cdr chs) (cons (cadr res) results) first-error)
-                ) ;if
-              ) ;let
-            ) ;if
-          ) ;let
-        ) ;let*
-      ) ;if
+            ) ;let
+          ) ;if
+        ) ;let
+      ) ;let
     ) ;define
   ) ;begin
 ) ;define-library

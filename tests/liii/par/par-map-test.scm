@@ -25,7 +25,7 @@
 ;; 说明
 ;; ----
 ;; 1. 基于 (liii go) 线程池并发执行，严格保证返回结果列表的顺序与原列表一致。
-;; 2. 若 l 为空列表，直接短路返回 '()，不启动后台任务。
+;; 2. 若 l 为空列表，直接返回 '()，不启动后台任务。
 ;; 3. 主线程会等待所有 worker 执行完毕后才返回。
 ;; 4. 若后台 worker 发生未捕获异常，主线程在收敛全部任务后重新抛出最早捕获的异常。
 ;; 5. 若参数类型不匹配，抛出 type-error。
@@ -70,6 +70,7 @@
 (check-catch 'type-error (par-map (lambda (x) x) 123))
 (check-catch 'type-error (par-map (lambda (x) x) "not-a-list"))
 (check-catch 'type-error (par-map (lambda (x) x) #(1 2 3)))
+;; display 是合法过程，但其返回的未定义值无法序列化，worker 端抛出 type-error
 (check-catch 'type-error (par-map display '(1 2 3)))
 
 ;; 7. 异常传播与孤儿任务防护测试
