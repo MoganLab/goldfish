@@ -15,77 +15,9 @@
 ;;
 
 (define-library (liii par)
-  (import (scheme base) (liii base) (liii error) (liii go))
+  (import (scheme base) (liii error) (liii go))
   (export par-for-each)
   (begin
-    (define (%get-active-libs)
-      (catch #t
-        (lambda ()
-          (if (and (defined? '*r7rs-libraries*) (hash-table? *r7rs-libraries*))
-            (map car *r7rs-libraries*)
-            '()
-          ) ;if
-        ) ;lambda
-        (lambda (t a) '())
-      ) ;catch
-    ) ;define
-
-    (define (%param-names args)
-      (cond ((null? args) '())
-            ((symbol? args) (list args))
-            ((pair? args)
-             (let ((first (car args)))
-               (cons (if (pair? first) (car first) first) (%param-names (cdr args)))
-             ) ;let
-            ) ;
-            (else '())
-      ) ;cond
-    ) ;define
-
-    (define (%serializable-data? val)
-      (and (not (undefined? val))
-        (not (procedure? val))
-        (not (syntax? val))
-        (not (macro? val))
-      ) ;and
-    ) ;define
-
-    (define (%free-vars fn)
-      (let ((src (procedure-source fn)))
-        (if (not (pair? src))
-          '()
-          (let* ((params (if (pair? (cdr src)) (%param-names (cadr src)) '()))
-                 (env (funclet fn))
-                 (bindings '())
-                ) ;
-            (let walk
-              ((x (cddr src)))
-              (cond
-               ((and (pair? x) (eq? (car x) 'quote)) #f)
-               ((symbol? x)
-                (when (and (not (memq x params)) (not (assq x bindings)) (defined? x env))
-                  (catch #t
-                    (lambda ()
-                      (let ((val (let-ref env x)))
-                        (when (%serializable-data? val)
-                          (set! bindings (cons (cons x val) bindings))
-                        ) ;when
-                      ) ;let
-                    ) ;lambda
-                    (lambda (t a) #f)
-                  ) ;catch
-                ) ;when
-               ) ;
-               ((pair? x) (walk (car x)) (walk (cdr x)))
-               ((vector? x) (for-each walk (vector->list x)))
-              ) ;cond
-            ) ;let
-            bindings
-          ) ;let*
-        ) ;if
-      ) ;let
-    ) ;define
-
     (define (par-for-each f l)
       (unless (procedure? f)
         (type-error "par-for-each: first argument must be a procedure" f)
@@ -94,56 +26,26 @@
         (type-error "par-for-each: second argument must be a list" l)
       ) ;unless
       (unless (null? l)
-        (let ((src (procedure-source f)))
-          (unless (pair? src)
-            (type-error "par-for-each: cannot extract source code from procedure" f)
-          ) ;unless
-          (let* ((n (length l))
-                 (done-ch (make-chan n))
-                 (done-ch-sym (gensym "done-ch"))
-                 (elem-sym (gensym "elem"))
-                 (captured (catch #t (lambda () (%free-vars f)) (lambda (t a) '())))
-                 (captured-names (map car captured))
-                 (captured-vals (map cdr captured))
-                 (names (cons done-ch-sym (cons elem-sym captured-names)))
-                 (libs (%get-active-libs))
-                 (code
-                   `(begin
-                      (set! *load-path* (quote ,*load-path*))
-                      ,@(if (null? libs) '() `((import ,@libs)))
-                      (catch ,#t
-                        (lambda ,()
-                          (,src ,elem-sym)
-                          (chan-send! ,done-ch-sym '(ok)))
-                        (lambda (tag args)
-                          (catch ,#t
-                            (lambda ,()
-                              (chan-send! ,done-ch-sym (list 'error tag args)))
-                            (lambda (t2 a2)
-                              (chan-send! ,done-ch-sym
-                                (list 'error tag (list (object->string args)))))))))
-                 ) ;code
-                ) ;
-            (for-each
-              (lambda (elem) (g_go-spawn names (cons done-ch (cons elem captured-vals)) code))
-              l
-            ) ;for-each
-            (let loop
-              ((i 0) (first-error #f))
-              (if (= i n)
-                (when first-error
-                  (apply error (cadr first-error) (caddr first-error))
-                ) ;when
-                (let ((res (chan-recv! done-ch)))
-                  (if (and (pair? res) (eq? (car res) 'error))
-                    (loop (+ i 1) (or first-error res))
-                    (loop (+ i 1) first-error)
-                  ) ;if
-                ) ;let
-              ) ;if
-            ) ;let
-          ) ;let*
-        ) ;let
+        (let* ((n (length l))
+               (done-ch (make-chan n))
+              ) ;
+          (for-each (lambda (elem) (go-apply f (list elem) done-ch)) l)
+          ;; Join Barrier：收满 n 个结果，全部完成后重抛首个异常
+          (let loop
+            ((i 0) (first-error #f))
+            (if (= i n)
+              (when first-error
+                (apply error (cadr first-error) (caddr first-error))
+              ) ;when
+              (let ((res (chan-recv! done-ch)))
+                (if (and (pair? res) (eq? (car res) 'error))
+                  (loop (+ i 1) (or first-error res))
+                  (loop (+ i 1) first-error)
+                ) ;if
+              ) ;let
+            ) ;if
+          ) ;let
+        ) ;let*
       ) ;unless
     ) ;define
   ) ;begin

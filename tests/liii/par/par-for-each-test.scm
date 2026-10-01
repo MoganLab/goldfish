@@ -1,4 +1,4 @@
-(import (liii check) (liii par) (liii go) (liii list) (scheme time))
+(import (liii check) (liii par) (liii go) (liii list) (liii time) (scheme time))
 
 (check-set-mode! 'report-failed)
 
@@ -82,7 +82,7 @@
   ;; 先热身，触发线程池与 worker 初始化，避免一次性启动开销计入计时窗口
   (par-for-each (lambda (x) x) '(1))
   (let ((t0 (current-jiffy)))
-    (par-for-each (lambda (x) (g_msleep 100)) '(1 2 3 4))
+    (par-for-each (lambda (x) (sleep 0.1)) '(1 2 3 4))
     (let* ((dt (/ (- (current-jiffy) t0) (jiffies-per-second))) (ms (* dt 1000.0)))
       (check (< ms 350) => #t)
     ) ;let*

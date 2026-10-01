@@ -1,4 +1,4 @@
-(import (liii check) (liii go))
+(import (liii check) (liii go) (liii base64))
 
 (check-set-mode! 'report-failed)
 
@@ -63,5 +63,11 @@
 
 (define ch6 (go-result () 7))
 (check (chan-recv! ch6 2000) => '(ok 7))
+
+;; 7. worker 自动 import 主会话已加载的库（worker 前导代码）
+;; (liii base64) 不在 worker 的 boot.scm 中，只能由前导 import 引入
+
+(define ch7 (go-result () (string-base64-encode "hi")))
+(check (chan-recv! ch7 2000) => '(ok "aGk="))
 
 (check-report)
