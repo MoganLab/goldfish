@@ -23,13 +23,13 @@
     (liii hash-table)
     (liii queue)
   ) ;import
-  (export go go-worker-count go-result go-result-recv! make-chan chan?
+  (export go go-apply go-worker-count go-result go-result-recv! make-chan chan?
     chan-send! chan-recv! chan-try-recv! chan-try-send! chan-close! chan-closed?
     select make-context make-timeout-context context? context-done?
     context-cancel! context-channel spawn-fiber fiber-yield!
     fiber-scheduler-run! make-fiber-chan fiber-chan? fiber-send! fiber-recv!
     %go-call %go-current-jiffy %go-elapsed-ms %set-scheduler-idle-return!
-    %run-worker-task %drain-suspended!
+    %run-worker-task %drain-suspended! %go-result-spawn
   ) ;export
   (begin
     (define (%go-current-jiffy)
@@ -331,6 +331,37 @@
       ) ;if
     ) ;define
 
+    ;; 主会话当前已加载的 R7RS 库列表（用于构造 worker 代码的前导 import）
+    (define (%go-active-libs)
+      (catch #t
+        (lambda ()
+          (if (and (defined? '*r7rs-libraries*) (hash-table? *r7rs-libraries*))
+            (map car *r7rs-libraries*)
+            '()
+          ) ;if
+        ) ;lambda
+        (lambda (t a) '())
+      ) ;catch
+    ) ;define
+
+    ;; worker 代码前导：恢复 *load-path* 并 import 主会话的全部活动库
+    (define (%go-worker-prelude libs)
+      `((set! *load-path* (quote ,*load-path*))
+        ,@(if (null? libs) '() `((import ,@libs))))
+    ) ;define
+
+    (define (%go-arg-names n)
+      (let loop
+        ((i 0))
+        (if (= i n)
+          '()
+          (cons (string->symbol (string-append "g_arg" (number->string i)))
+            (loop (+ i 1))
+          ) ;cons
+        ) ;if
+      ) ;let
+    ) ;define
+
     ;; (go (captured-vars ...) body ...) 在后台 worker 线程的独立 s7 会话中执行 body。
     ;; 注意：捕获变量只支持可序列化的数据类型（数字、字符串、符号、列表、vector、
     ;; bytevector、channel、let 等），不支持过程/闭包——传入函数会在 spawn 时
@@ -341,33 +372,10 @@
       ) ;if
       (let ((src (procedure-source fn)))
         (if (pair? src)
-          (let* ((libs
-                   (catch #t
-                     (lambda ()
-                       (if (and (defined? '*r7rs-libraries*) (hash-table? *r7rs-libraries*))
-                         (map car *r7rs-libraries*)
-                         '()
-                       ) ;if
-                     ) ;lambda
-                     (lambda (t a) '())
-                   ) ;catch
-                 ) ;libs
-                 (arg-names
-                   (let loop
-                     ((i 0) (rem args))
-                     (if (null? rem)
-                       '()
-                       (cons (string->symbol (string-append "g_arg" (number->string i)))
-                         (loop (+ i 1) (cdr rem))
-                       ) ;cons
-                     ) ;if
-                   ) ;let
-                 ) ;arg-names
+          (let* ((libs (%go-active-libs))
+                 (arg-names (%go-arg-names (length args)))
                  (code
-                   `(begin
-                      (set! *load-path* (quote ,*load-path*))
-                      ,@(if (null? libs) '() `((import ,@libs)))
-                      (,src ,@arg-names))
+                   `(begin ,@(%go-worker-prelude libs) (,src ,@arg-names))
                  ) ;code
                 ) ;
             (g_go-spawn arg-names args code)
@@ -424,27 +432,144 @@
       ) ;case-lambda
     ) ;define
 
+    ;; 内层 catch 覆盖"返回值/异常参数不可序列化"的失败：降级为 stderr 报告
+    ;; （*go-err-handler* 只在 worker 会话中定义，此处引用不会出现在主会话）
+    (define (%go-result-spawn vars vals body rc-sym rc)
+      (let ((libs (%go-active-libs)))
+        (g_go-spawn (append vars (list rc-sym))
+          (append vals (list rc))
+          `(begin
+             ,@(%go-worker-prelude libs)
+             (catch ,#t
+               (lambda ,() (chan-send! ,rc-sym (list 'ok (begin ,@body))))
+               (lambda (tag args)
+                 (catch ,#t
+                   (lambda ,() (chan-send! ,rc-sym (list 'error tag args)))
+                   (lambda (t2 a2) (*go-err-handler* t2 a2))))))
+        ) ;g_go-spawn
+      ) ;let
+    ) ;define
+
     (define-macro (go-result vars . body)
       (let ((rc (gensym "rc"))
             (real-vars (if (list? vars) vars '()))
             (real-body (if (list? vars) body (cons vars body)))
            ) ;
-        ;; 内层 catch 覆盖"返回值/异常参数不可序列化"的失败：降级为 stderr 报告
-        ;; （*go-err-handler* 只在 worker 会话中定义，此处引用不会出现在主会话）
         `(let ((,rc (make-chan 1)))
-           (g_go-spawn (quote (,@real-vars ,rc))
-             (list ,@real-vars ,rc)
-             (quote
-               (begin
-                 (catch ,#t
-                   (lambda ,() (chan-send! ,rc (list 'ok (begin ,@real-body))))
-                   (lambda (tag args)
-                     (catch ,#t
-                       (lambda ,() (chan-send! ,rc (list 'error tag args)))
-                       (lambda (t2 a2) (*go-err-handler* t2 a2))))))))
+           (%go-result-spawn (quote ,real-vars)
+             (list ,@real-vars)
+             (quote ,real-body)
+             (quote ,rc)
+             ,rc)
            ,rc)
       ) ;let
     ) ;define-macro
+
+    ;; -----------------------------------------------------------------------
+    ;; go-apply：把 (apply f args) 投递到后台 worker，结果按 go-result 协议
+    ;; 送入调用方指定的 channel。与 go/go-result 不同，f 的词法自由变量中
+    ;; 的可序列化数据会自动捕获运输，无需显式列出。
+    ;; -----------------------------------------------------------------------
+
+    ;; 提取 lambda 源码参数列表中的参数名（默认参数 (name default) 取 name）
+    (define (%go-param-names args)
+      (cond ((null? args) '())
+            ((symbol? args) (list args))
+            ((pair? args)
+             (let ((first (car args)))
+               (cons (if (pair? first) (car first) first) (%go-param-names (cdr args)))
+             ) ;let
+            ) ;
+            (else '())
+      ) ;cond
+    ) ;define
+
+    (define (%go-serializable-data? val)
+      (and (not (undefined? val))
+        (not (procedure? val))
+        (not (syntax? val))
+        (not (macro? val))
+      ) ;and
+    ) ;define
+
+    ;; 提取 f 的词法自由变量绑定：遍历 procedure-source 中的符号，凡不是参数、
+    ;; 尚未捕获且在闭包环境中已定义、值为可序列化数据的符号，都捕获运输。
+    (define (%go-free-vars fn)
+      (let ((src (procedure-source fn)))
+        (if (not (pair? src))
+          '()
+          (let* ((params (if (pair? (cdr src)) (%go-param-names (cadr src)) '()))
+                 (env (funclet fn))
+                 (bindings '())
+                ) ;
+            (let walk
+              ((x (cddr src)))
+              (cond
+               ((and (pair? x) (eq? (car x) 'quote)) #f)
+               ((symbol? x)
+                (when (and (not (memq x params)) (not (assq x bindings)) (defined? x env))
+                  (catch #t
+                    (lambda ()
+                      (let ((val (let-ref env x)))
+                        (when (%go-serializable-data? val)
+                          (set! bindings (cons (cons x val) bindings))
+                        ) ;when
+                      ) ;let
+                    ) ;lambda
+                    (lambda (t a) #f)
+                  ) ;catch
+                ) ;when
+               ) ;
+               ((pair? x) (walk (car x)) (walk (cdr x)))
+               ((vector? x) (for-each walk (vector->list x)))
+              ) ;cond
+            ) ;let
+            bindings
+          ) ;let*
+        ) ;if
+      ) ;let
+    ) ;define
+
+    (define (go-apply f args ch)
+      (unless (procedure? f)
+        (type-error "go-apply: first argument must be a procedure" f)
+      ) ;unless
+      (unless (list? args)
+        (type-error "go-apply: second argument must be a list" args)
+      ) ;unless
+      (unless (chan? ch)
+        (type-error "go-apply: third argument must be a channel" ch)
+      ) ;unless
+      (let ((src (procedure-source f)))
+        (unless (pair? src)
+          (type-error "go-apply: cannot extract source code from procedure" f)
+        ) ;unless
+        (let* ((libs (%go-active-libs))
+               (captured (%go-free-vars f))
+               ;; 参数名用 gensym，避免与用户捕获的自由变量重名
+               (arg-names (map (lambda (a) (gensym "go-arg")) args))
+               (ch-sym (gensym "go-apply-ch"))
+               (names (append arg-names (map car captured) (list ch-sym)))
+               (vals (append args (map cdr captured) (list ch)))
+               (code
+                 `(begin
+                    ,@(%go-worker-prelude libs)
+                    (catch ,#t
+                      (lambda ,()
+                        (chan-send! ,ch-sym (list 'ok (,src ,@arg-names))))
+                      (lambda (tag args)
+                        (catch ,#t
+                          (lambda ,()
+                            (chan-send! ,ch-sym (list 'error tag args)))
+                          (lambda (t2 a2)
+                            (chan-send! ,ch-sym
+                              (list 'error tag (list (object->string args)))))))))
+               ) ;code
+              ) ;
+          (g_go-spawn names vals code)
+        ) ;let*
+      ) ;let
+    ) ;define
 
     (define-macro (select . clauses)
       (let ((else-branch #f)
