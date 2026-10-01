@@ -10,4 +10,6 @@
 (define total (+ (chan-recv! ch) (chan-recv! ch) (chan-recv! ch)))
 (check total => 12)
 
+(check (par-map (lambda (x) (* x 2)) '(1 2 3)) => '(2 4 6))
+
 (check-report)
