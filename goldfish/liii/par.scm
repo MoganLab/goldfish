@@ -16,7 +16,7 @@
 
 (define-library (liii par)
   (import (scheme base) (liii error) (liii go))
-  (export par-for-each)
+  (export par-for-each par-map)
   (begin
     (define (par-for-each f l)
       (unless (procedure? f)
@@ -45,6 +45,37 @@
           ) ;let
         ) ;let*
       ) ;unless
+    ) ;define
+
+    (define (par-map f l)
+      (unless (procedure? f)
+        (type-error "par-map: first argument must be a procedure" f)
+      ) ;unless
+      (unless (list? l)
+        (type-error "par-map: second argument must be a list" l)
+      ) ;unless
+      (if (null? l)
+        '()
+        (let* ((chans (map (lambda (_) (make-chan 1)) l)))
+          (for-each (lambda (elem ch) (go-apply f (list elem) ch)) l chans)
+          ;; Join Barrier：按序读取每个专属通道，收满所有结果
+          (let loop
+            ((chs chans) (results '()) (first-error #f))
+            (if (null? chs)
+              (if first-error
+                (apply error (cadr first-error) (caddr first-error))
+                (reverse results)
+              ) ;if
+              (let ((res (chan-recv! (car chs))))
+                (if (and (pair? res) (eq? (car res) 'error))
+                  (loop (cdr chs) results (or first-error res))
+                  (loop (cdr chs) (cons (cadr res) results) first-error)
+                ) ;if
+              ) ;let
+            ) ;if
+          ) ;let
+        ) ;let*
+      ) ;if
     ) ;define
   ) ;begin
 ) ;define-library
