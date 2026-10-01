@@ -26,9 +26,7 @@
         (type-error "par-for-each: second argument must be a list" l)
       ) ;unless
       (unless (null? l)
-        (let* ((n (length l))
-               (done-ch (make-chan n))
-              ) ;
+        (let* ((n (length l)) (done-ch (make-chan n)))
           (for-each (lambda (elem) (go-apply f (list elem) done-ch)) l)
           ;; Join Barrier：收满 n 个结果，全部完成后重抛首个异常
           (let loop
