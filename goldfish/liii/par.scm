@@ -63,11 +63,18 @@
               (cond
                ((and (pair? x) (eq? (car x) 'quote)) #f)
                ((symbol? x)
-                (if (and (not (memq x params)) (not (assq x bindings)) (defined? x env))
-                  (let ((val (catch #t (lambda () (let-ref env x)) (lambda (t a) (if #f #f)))))
-                    (if (%serializable-data? val) (set! bindings (cons (cons x val) bindings)))
-                  ) ;let
-                ) ;if
+                (when (and (not (memq x params)) (not (assq x bindings)) (defined? x env))
+                  (catch #t
+                    (lambda ()
+                      (let ((val (let-ref env x)))
+                        (when (%serializable-data? val)
+                          (set! bindings (cons (cons x val) bindings))
+                        ) ;when
+                      ) ;let
+                    ) ;lambda
+                    (lambda (t a) #f)
+                  ) ;catch
+                ) ;when
                ) ;
                ((pair? x) (walk (car x)) (walk (cdr x)))
                ((vector? x) (for-each walk (vector->list x)))
@@ -80,18 +87,17 @@
     ) ;define
 
     (define (par-for-each f l)
-      (if (not (procedure? f))
-        (error 'type-error "par-for-each: first argument must be a procedure" f)
-      ) ;if
-      (if (not (list? l))
-        (error 'type-error "par-for-each: second argument must be a list" l)
-      ) ;if
-      (if (null? l)
-        (if #f #f)
+      (unless (procedure? f)
+        (type-error "par-for-each: first argument must be a procedure" f)
+      ) ;unless
+      (unless (list? l)
+        (type-error "par-for-each: second argument must be a list" l)
+      ) ;unless
+      (unless (null? l)
         (let ((src (procedure-source f)))
-          (if (not (pair? src))
-            (error 'type-error "par-for-each: cannot extract source code from procedure" f)
-          ) ;if
+          (unless (pair? src)
+            (type-error "par-for-each: cannot extract source code from procedure" f)
+          ) ;unless
           (let* ((n (length l))
                  (done-ch (make-chan n))
                  (done-ch-sym (gensym "done-ch"))
@@ -125,10 +131,12 @@
             (let loop
               ((i 0) (first-error #f))
               (if (= i n)
-                (if first-error (apply error (cadr first-error) (caddr first-error)) (if #f #f))
+                (when first-error
+                  (apply error (cadr first-error) (caddr first-error))
+                ) ;when
                 (let ((res (chan-recv! done-ch)))
                   (if (and (pair? res) (eq? (car res) 'error))
-                    (loop (+ i 1) (if first-error first-error res))
+                    (loop (+ i 1) (or first-error res))
                     (loop (+ i 1) first-error)
                   ) ;if
                 ) ;let
@@ -136,7 +144,7 @@
             ) ;let
           ) ;let*
         ) ;let
-      ) ;if
+      ) ;unless
     ) ;define
   ) ;begin
 ) ;define-library
