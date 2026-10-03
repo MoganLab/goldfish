@@ -16,7 +16,7 @@
 
 (define-library (liii par)
   (import (scheme base) (liii error) (liii go))
-  (export par-for-each par-map)
+  (export par-for-each par-map par-filter)
   (begin
     ;; (liii go) worker 结果信封协议：(ok value) 或 (error sym irritants)
     (define (%par-result-error? res)
@@ -79,6 +79,27 @@
           ) ;if
         ) ;let
       ) ;let
+    ) ;define
+
+    (define (par-filter pred l)
+      (unless (procedure? pred)
+        (type-error "par-filter: first argument must be a procedure" pred)
+      ) ;unless
+      (unless (list? l)
+        (type-error "par-filter: second argument must be a list" l)
+      ) ;unless
+      (if (null? l)
+        '()
+        (let ((flags (par-map pred l)))
+          (let loop
+            ((elems l) (fs flags) (acc '()))
+            (if (null? elems)
+              (reverse acc)
+              (loop (cdr elems) (cdr fs) (if (car fs) (cons (car elems) acc) acc))
+            ) ;if
+          ) ;let
+        ) ;let
+      ) ;if
     ) ;define
   ) ;begin
 ) ;define-library
