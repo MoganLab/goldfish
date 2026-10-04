@@ -191,6 +191,7 @@ public:
         StringForEach,
         VectorFilter,
         CallWithValues,
+        Evaluate,
         WithInputFromString,
         WithOutputToString,
         WithInputFromFile,

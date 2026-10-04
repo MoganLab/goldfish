@@ -38,7 +38,7 @@
 (define-syntax delay-force
   (syntax-rules ()
     ((delay-force expr)
-     (make-lazy-promise (lambda () (force expr))))))
+     (make-lazy-promise (lambda () expr) #t))))
 
 (define-syntax let-values
   (syntax-rules ()
@@ -76,11 +76,18 @@
          (lambda () (param old)))))))
 
 (define-syntax case
-  (syntax-rules (else)
+  (syntax-rules (else =>)
     ((case key)
      (begin key (if #f #f)))
+    ((case key (else => proc))
+     (let ((k key)) (proc k)))
     ((case key (else result ...))
      (begin key (begin result ...)))
+    ((case key ((datum ...) => proc) clause ...)
+     (let ((k key))
+       (if (memv k (quote (datum ...)))
+           (proc k)
+           (case k clause ...))))
     ((case key ((datum ...) result ...) clause ...)
      (let ((k key))
        (if (memv k (quote (datum ...)))

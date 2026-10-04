@@ -1,5 +1,8 @@
 #include "runtime/runtime.hpp"
 #include "runtime/standard_primitives.hpp"
+#include "runtime/reader.hpp"
+#include "runtime/artifact.hpp"
+#include "runtime/bootstrap_primitives.hpp"
 
 #include <cassert>
 #include <stdexcept>
@@ -97,6 +100,45 @@ int main() {
                                                                                                    Value::integer(1)})})})})})})}),
         evaluator.list({loop, Value::integer(10000)})});
     assert(evaluator.eval(tail_recursive).as_integer() == 0);
+
+    // 3.5: bounded continuation frames, including primitive-mandated tail calls.
+    for (const std::string& step : {
+             std::string("(loop (- n 1))"),
+             std::string("(apply loop (list (- n 1)))"),
+             std::string("(call-with-values (lambda () (- n 1)) loop)"),
+             std::string("(call/cc (lambda (ignored) (loop (- n 1))))")}) {
+        auto frame_count = [&](int iterations) {
+            TinyReader tail_reader(evaluator,
+                "(letrec ((loop (lambda (n) (if (= n 0) "
+                "(call/cc (lambda (k) k)) " + step + ")))) (loop " +
+                std::to_string(iterations) + "))");
+            Value result = evaluator.eval(*tail_reader.read());
+            if (!result.is_object() ||
+                result.as_object()->type() != ObjectType::Continuation)
+                throw std::runtime_error("tail audit did not return a continuation");
+            return result.as_object<ContinuationObject>()->snapshot.frames.size();
+        };
+        if (frame_count(10) != frame_count(4000))
+            throw std::runtime_error("tail calls retained continuation frames: " + step);
+    }
+
+    // Eval's evaluated expression must share its caller's evaluator machine.
+    std::uint64_t tail_eval_machine = 0;
+    evaluator.define_primitive("r7rs-audit-machine", [&](const Values& args) {
+        const auto machine = args.at(0).as_object<ContinuationObject>()->snapshot.machine_id;
+        if (tail_eval_machine && machine != tail_eval_machine)
+            throw std::runtime_error("tail eval entered a nested evaluator machine");
+        tail_eval_machine = machine;
+        return Values{Value::unspecified()};
+    });
+    TinyReader eval_tail_reader(evaluator,
+        "(begin (define r7rs-audit-env (interaction-environment)) "
+        "(define r7rs-audit-loop (lambda (n) "
+        "(begin (call/cc r7rs-audit-machine) "
+        "(if (= n 0) 42 (eval (list 'r7rs-audit-loop (- n 1)) r7rs-audit-env))))) "
+        "(r7rs-audit-loop 4000))");
+    if (evaluator.eval(*eval_tail_reader.read()).as_integer() != 42)
+        throw std::runtime_error("tail eval returned an incorrect result");
 
     Value sequential = evaluator.list({
         evaluator.symbol("letrec*"),
@@ -266,4 +308,24 @@ int main() {
 
     evaluator.collect();
     assert(evaluator.eval(module_reference).as_integer() == 34);
+
+    install_runtime_primitives(evaluator);
+    install_bootstrap_primitives(evaluator);
+    ArtifactLoader loader(evaluator);
+    loader.load_file("goldfish/expander/kernel-combined.scm");
+    auto promise_frame_count = [&](int iterations) {
+        TinyReader promise_reader(evaluator,
+            "(letrec ((chain (lambda (n) "
+            "(make-lazy-promise (lambda () (if (= n 0) "
+            "(make-lazy-promise (lambda () (call/cc (lambda (k) k)))) "
+            "(chain (- n 1)))) #t)))) (force (chain " +
+            std::to_string(iterations) + ")))" );
+        Value result = evaluator.eval(*promise_reader.read());
+        if (!result.is_object() ||
+            result.as_object()->type() != ObjectType::Continuation)
+            throw std::runtime_error("promise tail audit did not return a continuation");
+        return result.as_object<ContinuationObject>()->snapshot.frames.size();
+    };
+    if (promise_frame_count(10) != promise_frame_count(4000))
+        throw std::runtime_error("tail promises retained pending memoization frames");
 }

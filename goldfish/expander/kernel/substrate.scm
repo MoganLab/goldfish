@@ -95,38 +95,27 @@
 (define (vector-map f v . more)
   (unless (procedure? f)
     (error 'wrong-type-arg "vector-map: first argument must be a procedure" f))
-  (let* ((vs (cons v more))
-         (n (vector-length v))
-         (result (make-vector n)))
-    (let loop ((i 0))
-      (unless (= i n)
-        (vector-set! result i
-                     (apply f (map (lambda (v) (vector-ref v i)) vs)))
-        (loop (+ i 1))))
-    result))
+  ;; Allocate the result after callbacks so re-entry cannot mutate a prior return.
+  (list->vector (apply map f (map vector->list (cons v more)))))
 
 (define (vector-for-each f v . more)
   (unless (procedure? f)
     (error 'wrong-type-arg "vector-for-each: first argument must be a procedure" f))
-  (let* ((vs (cons v more))
-         (n (vector-length v)))
-    (let loop ((i 0))
-      (unless (= i n)
-        (apply f (map (lambda (v) (vector-ref v i)) vs))
-        (loop (+ i 1))))))
+  (apply for-each f (map vector->list (cons v more))))
 
 (define (make-fresh-name stem)
   (next-fresh (symbol->string stem)))
 
 ;;; ---------------------------------------------------------------------------
-;;; Promises (r7rs-small).  The host provides none of make-promise /
-;;; force / promise?, so the surface lives here: delay / delay-force
-;;; desugar to make-lazy-promise (lazy from construction), and force
-;;; evaluates once, caches, and recursively forces a promise-valued
-;;; result.
+;;; Ordinary delay preserves its value, including a promise. Tail promises
+;;; forward their shared state before the next force, without pending memos.
 
-(define (make-lazy-promise thunk)
-  (list (cons #f thunk) '+promise+))
+(define (make-lazy-promise thunk . tail?)
+  (list (cons #f
+              (if (and (pair? tail?) (car tail?))
+                thunk
+                (lambda () (list (cons #t (thunk)) '+promise+))))
+        '+promise+))
 
 (define (force promise)
   (if (and (pair? promise)
@@ -135,17 +124,18 @@
     (let ((box (car promise)))
       (if (car box)
         (cdr box)
-        (let ((value ((cdr box))))
-          (set-car! box #t)
-          (if (and (pair? value)
-                   (pair? (cdr value))
-                   (eq? (cadr value) '+promise+))
-            (let ((result (force value)))
-              (set-cdr! box result)
-              result)
-            (begin
-              (set-cdr! box value)
-              value)))))
+        (let* ((next ((cdr box)))
+               ;; A nested force or continuation may have completed this promise.
+               (current (car promise)))
+          (unless (car current)
+            (if (and (pair? next) (pair? (cdr next))
+                     (eq? (cadr next) '+promise+))
+              (let ((next-state (car next)))
+                (set-car! current (car next-state))
+                (set-cdr! current (cdr next-state))
+                (set-car! next current))
+              (begin (set-car! current #t) (set-cdr! current next))))
+          (force promise))))
     promise))
 
 ;;; ---------------------------------------------------------------------------

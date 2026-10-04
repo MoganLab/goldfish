@@ -1,0 +1,5 @@
+(define-library (r7rs-audit facade)
+  (import (r7rs-audit provider))
+  (export (rename read-counter facade-read)
+          (rename bump! facade-bump)
+          hygienic-plus))

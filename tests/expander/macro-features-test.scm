@@ -87,7 +87,7 @@
 
 ;; ===== 6. define-macro（非卫生）=====
 (define-macro (non-hygienic)
-  `(list original-value))
+  '(list original-value))
 (let ((original-value 42))
   (check (non-hygienic) => '(42)))
 

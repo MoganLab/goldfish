@@ -1,0 +1,102 @@
+# R7RS-small compatibility inventory. Reference: https://standards.scheme.org/corrected-r7rs/r7rs-Z-H-1.html
+# audited = listed focused regressions pass, not complete clause conformance; partial = concrete known gap; inventory = coverage found but not recertified; unverified = no systematic audit.
+clause	area	status	evidence	boundary
+1.1	Semantics overview	inventory	src/runtime/evaluator.cpp	Implementation overview; no full conformance claim.
+1.2	Syntax overview	inventory	src/runtime/reader.cpp	Reader inventory; normative details tracked below.
+1.3.1	Base and optional features	inventory	goldfish/scheme	Optional facilities require individual verification.
+1.3.2	Errors and unspecified behavior	inventory	tests/r7rs/gaps.manifest	Known standard-required failures are kept separate from unspecified cases.
+1.3.3	Entry format	unverified	R7RS-COMPATIBILITY.tsv	Report notation; no implementation-specific proof obligation.
+1.3.4	Evaluation examples	unverified	R7RS-COMPATIBILITY.tsv	Report examples not systematically replayed.
+1.3.5	Naming conventions	inventory	goldfish/scheme	API inventory; no exhaustive naming audit.
+2.1	Identifiers	inventory	tests/runtime/reader-test.cpp	Lexical inventory; symbol round trips covered by writer tests.
+2.2	Whitespace and comments	inventory	tests/runtime/reader-test.cpp	Reader coverage identified; no exhaustive lexical audit.
+2.3	Other notations	inventory	tests/runtime/reader-test.cpp	Datum labels and lexical forms require further clause-level coverage.
+2.4	Datum labels	inventory	tests/runtime/reader-test.cpp,tests/scheme/write/graph-roundtrip-test.scm	Existing graph reader/writer regressions; no full lexical clause audit.
+3.1	Variables and regions	inventory	tests/expander/macro-features-test.scm	Existing coverage inventory; not a conformance verdict.
+3.2	Disjointness of types	inventory	tests/scheme/base	Existing coverage inventory; not a conformance verdict.
+3.3	External representations	inventory	tests/runtime/reader-test.cpp,tests/scheme/write/graph-roundtrip-test.scm	Existing coverage inventory; not a conformance verdict.
+3.4	Storage model	inventory	tests/runtime/value-test.cpp	Existing coverage inventory; not a conformance verdict.
+3.5	Proper tail recursion	audited	tests/r7rs/tail-context-test.scm,tests/runtime/evaluator-test.cpp	Source contexts plus bounded continuation frames and same-machine eval; not a formal space proof.
+4.1.1	Variable references	inventory	tests/scheme/base	Base-language tests identified; further clause audit required.
+4.1.2	Literal expressions	inventory	tests/scheme/base	Base-language tests identified; further clause audit required.
+4.1.3	Procedure calls	inventory	tests/scheme/base	Base-language tests identified; further clause audit required.
+4.1.4	Procedures	inventory	tests/scheme/base	Base-language tests identified; further clause audit required.
+4.1.5	Conditionals	inventory	tests/scheme/base	Base-language tests identified; further clause audit required.
+4.1.6	Assignments	inventory	tests/scheme/base	Base-language tests identified; further clause audit required.
+4.1.7	Inclusion	partial	tests/r7rs/gaps/include-case.scm	include-ci does not fold case.
+4.2.1	Conditionals	partial	tests/r7rs/tail-context-test.scm,tests/r7rs/gaps/library-feature.scm	case => tail calls covered; cond-expand library requirements fail.
+4.2.2	Binding constructs	audited	tests/r7rs/tail-context-test.scm	Tail-position lowering exercised; other semantics remain inventory.
+4.2.3	Sequencing	audited	tests/r7rs/tail-context-test.scm	Tail-position lowering exercised; other semantics remain inventory.
+4.2.4	Iteration	audited	tests/r7rs/tail-context-test.scm	Tail-position lowering exercised; other semantics remain inventory.
+4.2.5	Delayed evaluation	audited	tests/r7rs/promise-test.scm,tests/runtime/evaluator-test.cpp	Nested values, reentrancy, multi-shot memoization, forwarding and bounded tail-force frames; handler environments limited by 6.11 gap.
+4.2.6	Dynamic bindings	partial	tests/r7rs/gaps/parameter-converter.scm,tests/r7rs/promise-test.scm	Restoring a parameter reconverts its saved value; forcing environment covered.
+4.2.7	Exception handling	partial	tests/r7rs/gaps/continuable-exception.scm	Continuable handler return aborts protected computation.
+4.2.8	Quasiquotation	inventory	tests/expander/quasisyntax-test.scm	Quasisyntax coverage is related evidence; datum quasiquote needs dedicated audit.
+4.2.9	Case-lambda	audited	tests/r7rs/tail-context-test.scm	Mutually recursive case-lambda tail path exercised; not all arity cases.
+4.3	Macro hygiene	audited	tests/r7rs/macro-hygiene-test.scm	Definition-site references, introduced binders and literal binding identity.
+4.3.1	Binding syntactic keywords	audited	tests/r7rs/macro-hygiene-test.scm	let-syntax outer transformer scope and letrec-syntax mutual scope.
+4.3.2	Pattern language	partial	tests/r7rs/macro-hygiene-test.scm,tests/r7rs/gaps/custom-ellipsis-variable.scm	Empty nested ellipsis fixed; custom marker still mishandles ordinary ... pattern variable.
+4.3.3	Signaling macro errors	inventory	tests/expander/macro-error-test.scm	Existing error suite identified; no complete clause audit.
+5.1	Programs	inventory	tests/native/native-workflow.scm	Native program execution covered by separate workflow.
+5.2	Import declarations	partial	tests/r7rs/library-loading-test.scm,tests/r7rs/gaps/export-location.scm	Nested import sets work; exported variable imports snapshot values rather than shared locations.
+5.3.1	Top-level definitions	inventory	tests/scheme/base	Existing base tests; macro-generated internal definition covered by hygiene audit.
+5.3.2	Internal definitions	inventory	tests/scheme/base	Existing base tests; macro-generated internal definition covered by hygiene audit.
+5.3.3	Multiple-value definitions	inventory	tests/scheme/base	Existing base tests; macro-generated internal definition covered by hygiene audit.
+5.4	Syntax definitions	inventory	tests/scheme/base	Existing base tests; macro-generated internal definition covered by hygiene audit.
+5.5	Record-type definitions	inventory	tests/scheme/base	Existing base tests; macro-generated internal definition covered by hygiene audit.
+5.6.1	Library syntax	partial	tests/r7rs/gaps/numbered-library.scm,tests/r7rs/gaps/include-case.scm,tests/r7rs/gaps/include-declarations.scm,tests/r7rs/gaps/conditional-library.scm,tests/r7rs/gaps/export-location.scm	Numeric name components, include-ci, include-library-declarations, declaration cond-expand and exported locations fail.
+5.6.2	Library example	audited	tests/r7rs/library-loading-test.scm	Provider precedes consumer; re-export procedure identity and private macro reference.
+5.7	REPL	inventory	tools/test-native-workflow.sh	Stateful native REPL smoke; no exhaustive interactive semantics audit.
+6.1	Equivalence predicates	inventory	tests/scheme/base	Existing eq?/eqv?/equal? coverage; numeric and graph boundaries need clause audit.
+6.2.1	Numerical types	inventory	tests/scheme/base,tests/runtime/reader-test.cpp	Prior numeric work is inventory evidence; not re-certified by this audit.
+6.2.2	Exactness	inventory	tests/scheme/base,tests/runtime/reader-test.cpp	Prior numeric work is inventory evidence; not re-certified by this audit.
+6.2.3	Implementation restrictions	inventory	tests/scheme/base,tests/runtime/reader-test.cpp	Prior numeric work is inventory evidence; not re-certified by this audit.
+6.2.4	Implementation extensions	inventory	tests/scheme/base,tests/runtime/reader-test.cpp	Prior numeric work is inventory evidence; not re-certified by this audit.
+6.2.5	Syntax of numerical constants	inventory	tests/scheme/base,tests/runtime/reader-test.cpp	Prior numeric work is inventory evidence; not re-certified by this audit.
+6.2.6	Numerical operations	inventory	tests/scheme/base,tests/runtime/reader-test.cpp	Prior numeric and rationalize work is inventory evidence; not re-certified by this audit.
+6.2.7	Numerical input and output	inventory	tests/scheme/base,tests/runtime/reader-test.cpp	Prior numeric work is inventory evidence; not re-certified by this audit.
+6.3	Booleans	inventory	tests/scheme/base	Existing data tests; continuation-safe vector mapping audited separately.
+6.4	Pairs and lists	inventory	tests/scheme/base	Existing data tests; continuation-safe vector mapping audited separately.
+6.5	Symbols	inventory	tests/scheme/base	Existing data tests; continuation-safe vector mapping audited separately.
+6.6	Characters	inventory	tests/scheme/base	Existing data tests; continuation-safe vector mapping audited separately.
+6.7	Strings	inventory	tests/scheme/base	Existing data tests; continuation-safe vector mapping audited separately.
+6.8	Vectors	inventory	tests/scheme/base	Existing data tests; continuation-safe vector mapping audited separately.
+6.9	Bytevectors	inventory	tests/scheme/base	Existing data tests; continuation-safe vector mapping audited separately.
+6.10	Control features	audited	tests/r7rs/continuation-test.scm,tests/runtime/evaluator-test.cpp	Multi-shot and zero/multiple values; dynamic-wind transitions; map result independence and shortest vector inputs.
+6.11	Exceptions	partial	tests/r7rs/gaps/continuable-exception.scm	raise-continuable behaves like aborting raise.
+6.12	Environments and evaluation	audited	tests/runtime/evaluator-test.cpp,tests/scheme/eval/eval-test.scm,tests/scheme/eval/environment-test.scm	Native eval tail execution stays on the current machine.
+6.13.1	Ports	inventory	tests/scheme/base	Existing native tests identified; not part of this focused audit.
+6.13.2	Input	inventory	tests/scheme/read	Existing native tests identified; not part of this focused audit.
+6.13.3	Output	inventory	tests/scheme/write	Existing native tests identified; not part of this focused audit.
+6.14	System interface	inventory	tests/scheme/process-context-test.scm	Existing native tests identified; not part of this focused audit.
+7.1.1	Lexical structure	unverified	goldfish/expander/lib,src/runtime/reader.cpp	No systematic comparison against the formal grammar yet.
+7.1.2	External representations	unverified	goldfish/expander/lib,src/runtime/reader.cpp	No systematic comparison against the formal grammar yet.
+7.1.3	Expressions	unverified	goldfish/expander/lib,src/runtime/reader.cpp	No systematic comparison against the formal grammar yet.
+7.1.4	Quasiquotations	unverified	goldfish/expander/lib,src/runtime/reader.cpp	No systematic comparison against the formal grammar yet.
+7.1.5	Transformers	unverified	goldfish/expander/lib,src/runtime/reader.cpp	No systematic comparison against the formal grammar yet.
+7.1.6	Programs and definitions	unverified	goldfish/expander/lib,src/runtime/reader.cpp	No systematic comparison against the formal grammar yet.
+7.1.7	Libraries	unverified	goldfish/expander/lib,src/runtime/reader.cpp	No systematic comparison against the formal grammar yet.
+7.2.1	Abstract syntax	unverified	src/runtime/evaluator.cpp	No systematic formal syntax audit.
+7.2.2	Domain equations	unverified	src/runtime/evaluator.cpp	No mechanized refinement or formal equivalence proof.
+7.2.3	Semantic functions	unverified	src/runtime/evaluator.cpp	No mechanized refinement or formal equivalence proof.
+7.2.4	Auxiliary functions	unverified	src/runtime/evaluator.cpp	No mechanized refinement or formal equivalence proof.
+7.3	Derived expression definitions	partial	goldfish/expander/lib/standard.scm,tests/r7rs/gaps/parameter-converter.scm	Tail contexts tested; parameterize restoration remains incompatible.
+A	Standard libraries	inventory	goldfish/scheme	Library inventory exists; export-set conformance has not been exhaustively checked.
+A.base	(scheme base)	inventory	goldfish/scheme/base.scm	Library source present; complete standard export set and per-procedure conformance not audited.
+A.case-lambda	(scheme case-lambda)	inventory	goldfish/scheme/case-lambda.scm	Library source present; complete standard export set and per-procedure conformance not audited.
+A.char	(scheme char)	inventory	goldfish/scheme/char.scm	Library source present; complete standard export set and per-procedure conformance not audited.
+A.complex	(scheme complex)	inventory	goldfish/scheme/complex.scm	Library source present; complete standard export set and per-procedure conformance not audited.
+A.cxr	(scheme cxr)	inventory	goldfish/scheme/cxr.scm	Library source present; complete standard export set and per-procedure conformance not audited.
+A.eval	(scheme eval)	inventory	goldfish/scheme/eval.scm	Library source present; complete standard export set and per-procedure conformance not audited.
+A.file	(scheme file)	inventory	goldfish/scheme/file.scm	Library source present; complete standard export set and per-procedure conformance not audited.
+A.inexact	(scheme inexact)	inventory	goldfish/scheme/inexact.scm	Library source present; complete standard export set and per-procedure conformance not audited.
+A.lazy	(scheme lazy)	inventory	goldfish/scheme/lazy.scm	Library source present; complete standard export set and per-procedure conformance not audited.
+A.load	(scheme load)	inventory	goldfish/scheme/load.scm	Library source present; complete standard export set and per-procedure conformance not audited.
+A.process-context	(scheme process-context)	inventory	goldfish/scheme/process-context.scm	Library source present; complete standard export set and per-procedure conformance not audited.
+A.read	(scheme read)	inventory	goldfish/scheme/read.scm	Library source present; complete standard export set and per-procedure conformance not audited.
+A.repl	(scheme repl)	inventory	goldfish/scheme/repl.scm	Library source present; complete standard export set and per-procedure conformance not audited.
+A.time	(scheme time)	inventory	goldfish/scheme/time.scm	Library source present; complete standard export set and per-procedure conformance not audited.
+A.write	(scheme write)	inventory	goldfish/scheme/write.scm	Library source present; complete standard export set and per-procedure conformance not audited.
+A.r5rs	(scheme r5rs)	inventory	goldfish/scheme/r5rs.scm	Library source present; complete standard export set and per-procedure conformance not audited.
+B	Standard feature identifiers	partial	goldfish/expander/lib/cond-expand.scm,tests/r7rs/gaps/library-feature.scm	r7rs feature present; library availability requirements are unsupported.
+implementation.cache	Bootstrap cache freshness	partial	src/runtime/bootstrap.cpp,tools/test-r7rs-audit.sh	Newest complete cache may mask edited sources; audit isolates fresh cache and then replays it warm.

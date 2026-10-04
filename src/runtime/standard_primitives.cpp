@@ -1123,39 +1123,10 @@ void install_runtime_primitives(Evaluator& evaluator) {
         return Values{args[0].as_object<EvalEnvironmentObject>()
                           ->environment->lookup(args[1])};
     });
-    install(evaluator, "eval", [&evaluator](const Values& args) {
-        if (args.size() != 1 && args.size() != 2)
-            throw std::runtime_error("eval expects one or two arguments");
-        EnvironmentPtr environment = evaluator.global_environment();
-        if (args.size() == 2) {
-            if (args[1].is_object() &&
-                args[1].as_object()->type() == ObjectType::EvalEnvironment)
-                environment =
-                    args[1].as_object<EvalEnvironmentObject>()->environment;
-            else
-                throw std::runtime_error(
-                    "eval expects an eval environment as its second argument");
-        }
-        return evaluator.eval_values(args[0], std::move(environment));
-    });
+    evaluator.define_machine_primitive("eval", PrimitiveObject::Kind::Evaluate);
     // (scheme eval) uses this private binding so importing that library cannot
     // rebind the runtime evaluator into a recursive loop.
-    PrimitiveObject::Function native_eval = [&evaluator](const Values& args) {
-        if (args.size() != 1 && args.size() != 2)
-            throw std::runtime_error("eval expects one or two arguments");
-        EnvironmentPtr environment = evaluator.global_environment();
-        if (args.size() == 2) {
-            if (args[1].is_object() &&
-                args[1].as_object()->type() == ObjectType::EvalEnvironment)
-                environment =
-                    args[1].as_object<EvalEnvironmentObject>()->environment;
-            else
-                throw std::runtime_error(
-                    "eval expects an eval environment as its second argument");
-        }
-        return evaluator.eval_values(args[0], std::move(environment));
-    };
-    evaluator.define_primitive("%native-eval", native_eval);
+    evaluator.define_machine_primitive("%native-eval", PrimitiveObject::Kind::Evaluate);
     evaluator.define_callcc_primitive("call/cc");
     evaluator.define_callcc_primitive("call-with-current-continuation");
     evaluator.define_dynamic_wind_primitive("dynamic-wind");

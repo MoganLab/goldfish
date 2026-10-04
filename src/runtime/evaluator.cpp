@@ -384,6 +384,20 @@ Values Evaluator::run_machine(EvalSnapshot& state) {
             PrimitiveObject* primitive =
                 procedure.as_object<PrimitiveObject>();
             switch (primitive->kind) {
+            case PrimitiveObject::Kind::Evaluate: {
+                if (arguments.size() != 1 && arguments.size() != 2)
+                    throw std::runtime_error("eval expects one or two arguments");
+                EnvironmentPtr target = global_;
+                if (arguments.size() == 2) {
+                    if (!arguments[1].is_object() ||
+                        arguments[1].as_object()->type() != ObjectType::EvalEnvironment)
+                        throw std::runtime_error("eval expects an eval environment as its second argument");
+                    target = arguments[1].as_object<EvalEnvironmentObject>()->environment;
+                }
+                // Eval's expression uses the caller's continuation and machine.
+                evaluate(arguments[0], std::move(target));
+                return;
+            }
             case PrimitiveObject::Kind::WithInputFromString:
             case PrimitiveObject::Kind::WithOutputToString:
             case PrimitiveObject::Kind::WithInputFromFile:

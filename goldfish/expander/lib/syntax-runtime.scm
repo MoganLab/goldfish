@@ -200,7 +200,8 @@
 ;;; at every point so the input is split greedily towards the tail.
 
 (define (pattern-match-ellipsis elem-pat rest-pat input-form input-stx literals bindings)
-  (letrec* ((rest-min (pattern-min-length rest-pat literals))
+  (letrec* ((zero-bindings (empty-ellipsis-bindings elem-pat literals bindings))
+            (rest-min (pattern-min-length rest-pat literals))
             (try-rest
              (lambda (inputs accum)
                (if (< (dotted-length inputs) rest-min)
@@ -221,8 +222,25 @@
                                  (or (try-rest rest acc2)
                                      (try-elem rest acc2)))
                                (loop (+ k 1))))))))))
-    (or (try-rest input-form bindings)
-        (try-elem input-form bindings))))
+    (or (try-rest input-form zero-bindings)
+        (try-elem input-form zero-bindings))))
+
+;; Zero repetitions still bind variables, preserving empty nested groups.
+(define (empty-ellipsis-bindings pattern literals bindings)
+  (let walk ((pattern pattern) (result bindings))
+    (let ((form (pattern-leaf-datum pattern)))
+      (cond
+        ((symbol? form)
+         (if (or (eq? form '_) (ellipsis-datum? pattern)
+                 (literal-identical? pattern literals) (assq form result))
+           result
+           (cons (cons form '()) result)))
+        ((pair? form) (walk (cdr form) (walk (car form) result)))
+        ((vector? form)
+         (let loop ((i 0) (result result))
+           (if (= i (vector-length form)) result
+             (loop (+ i 1) (walk (vector-ref form i) result)))))
+        (else result)))))
 
 ;; pattern-min-length : pat-list literals -> integer
 ;; Minimum input length rest-pat can still match: used to bound the
@@ -247,9 +265,11 @@
                 (val (cdar elem-bindings))
                 (existing (assq var accum)))
         (if existing
-            (begin
-              (set-cdr! existing (append (cdr existing) (list val)))
-              (merge-ellipsis-bindings (cdr elem-bindings) accum))
+            ;; Failed backtracking branches must not mutate an earlier binding set.
+            (merge-ellipsis-bindings
+              (cdr elem-bindings)
+              (cons (cons var (append (cdr existing) (list val)))
+                    (filter (lambda (entry) (not (eq? (car entry) var))) accum)))
             (merge-ellipsis-bindings (cdr elem-bindings)
                                      (cons (list var val) accum))))))
 
