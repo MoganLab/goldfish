@@ -165,6 +165,10 @@ int main() {
              R"((char=? (string-ref "Aé中🐟" 2) #\中))",
              R"((equal? (string->list "é中🐟") (list #\é #\中 #\🐟)))",
              R"((equal? (string #\é #\中 #\🐟) "é中🐟"))",
+             R"((let ((node (cons 1 2)))
+                    (let ((hash (g-identity-hash node)))
+                        (set-car! node 3)
+                        (= hash (g-identity-hash node)))))",
              R"((let ((p (open-input-string "é中🐟")))
                     (equal? (list (peek-char p) (read-char p) (read-string 1 p)
                                   (read-char p) (eof-object? (read-char p)))

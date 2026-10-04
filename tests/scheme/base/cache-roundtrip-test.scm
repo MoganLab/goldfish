@@ -74,4 +74,7 @@
                      (loop x)))))))
   (check (cacheable-expansion? sexp) => #t))
 
+(check (cacheable-expansion? '(begin (define f (lambda (x) missing)))) => #f)
+(check (cacheable-expansion? '(let ((loop (lambda () (loop)))) (loop))) => #f)
+
 (check-report)

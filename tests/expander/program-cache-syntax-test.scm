@@ -132,7 +132,12 @@
        (rec (list 'gfo gfo-version (compile-file-stamp src-plain)
                   (list 'bundle 1 'program (list 'exprs exprs))
                   '(((goldfish) . external)))))
-  (check-true (and (pair? exprs) (eq? (car exprs) 'define)))
+  ;; Lowering may retain the program's begin wrapper around one definition.
+  (let ((body (if (and (pair? exprs) (eq? (car exprs) 'begin))
+                (cdr exprs)
+                (list exprs))))
+    (check (map car body) => '(define))
+    (check (caddar body) => '(a b)))
   (check (contains-record? exprs) => #f)
   (check (has-stx-shape? exprs) => #f)
   ;; 热路径：读回重建与序列化前 equal?

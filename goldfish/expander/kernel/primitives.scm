@@ -132,7 +132,7 @@
      g_char-upcase g_char-downcase g_char-foldcase g_char-alphabetic?
      g_char-upper-case? g_char-lower-case? g_char-numeric? g_char-whitespace?
      g_command-line g-delimiter? g-read-string g-read-token g-undefined
-     g-valid-identifier? g_goldfish-library g_isdir g_isfile
+     g-valid-identifier? g-identity-hash g_goldfish-library g_isdir g_isfile
      g_get-time-of-day g_datetime-now g_monotonic-nanosecond g_process-cpu-nanosecond
      g_thread-cpu-nanosecond g_system-clock-resolution g_steady-clock-resolution
      g_process-clock-resolution g_thread-clock-resolution

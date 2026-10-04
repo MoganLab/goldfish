@@ -92,30 +92,62 @@
 (define (digit-value ch)
   (- (char->integer ch) (char->integer #\0)))
 
+;; Identity tables keep graph bookkeeping independent of mutable contents.
+(define (reader-graph-table)
+  (vector (make-vector 64 '()) 0))
+
+(define (reader-graph-cell table key)
+  (let* ((buckets (vector-ref table 0))
+         (index (modulo (g-identity-hash key) (vector-length buckets))))
+    (assq key (vector-ref buckets index))))
+
+(define (reader-graph-intern! table key value)
+  (or (reader-graph-cell table key)
+      (let* ((buckets (vector-ref table 0))
+             (size (vector-length buckets))
+             (index (modulo (g-identity-hash key) size))
+             (cell (cons key value))
+             (count (+ 1 (vector-ref table 1))))
+        (vector-set! buckets index (cons cell (vector-ref buckets index)))
+        (vector-set! table 1 count)
+        (when (> count (* 2 size))
+          (let ((grown (make-vector (* 2 size) '())))
+            (let bucket-loop ((i 0))
+              (when (< i size)
+                (for-each
+                  (lambda (entry)
+                    (let ((slot (modulo (g-identity-hash (car entry)) (* 2 size))))
+                      (vector-set! grown slot (cons entry (vector-ref grown slot)))))
+                  (vector-ref buckets i))
+                (bucket-loop (+ i 1))))
+            (vector-set! table 0 grown)))
+        cell)))
+
 (define (substitute! obj target repl)
-  ;; replace every occurrence of the placeholder target inside obj with repl
-  (let walk ((o obj) (visited '()))
-    (cond
-      ((eq? o target) repl)
-      ((memq o visited) o)
-      ((pair? o)
-       (set! visited (cons o visited))
-       (when (eq? (car o) target) (set-car! o repl))
-       (when (eq? (cdr o) target) (set-cdr! o repl))
-       (walk (car o) visited)
-       (walk (cdr o) visited)
-       o)
-      ((vector? o)
-       (set! visited (cons o visited))
-       (let ((len (vector-length o)))
-         (do ((i 0 (+ i 1)))
-             ((= i len))
-           (let ((e (vector-ref o i)))
-             (if (eq? e target)
-               (vector-set! o i repl)
-               (walk e visited)))))
-       o)
-      (else o))))
+  ;; Replace placeholders once per shared node, including cyclic graphs.
+  (let ((visited (reader-graph-table)))
+    (let walk ((o obj))
+      (cond
+        ((eq? o target) repl)
+        ((and (or (pair? o) (vector? o)) (reader-graph-cell visited o)) o)
+        ((pair? o)
+         (reader-graph-intern! visited o #t)
+         (when (eq? (car o) target) (set-car! o repl))
+         (when (eq? (cdr o) target) (set-cdr! o repl))
+         (walk (car o))
+         (walk (cdr o))
+         o)
+        ((vector? o)
+         (reader-graph-intern! visited o #t)
+         (let ((len (vector-length o)))
+           (do ((i 0 (+ i 1)))
+               ((= i len))
+             (let ((e (vector-ref o i)))
+               (if (eq? e target)
+                 (vector-set! o i repl)
+                 (walk e)))))
+         o)
+        (else o)))))
 
 (define (char-digit? ch)
   (and (char? ch) (char<=? #\0 ch #\9)))
@@ -752,6 +784,8 @@
          (let ((h (car x)))
            (cond
              ((eq? h 'quote) #t)
+             ;; Core syntax heads are not runtime variable bindings.
+             ((memq h '(begin define if set!)) (check (cdr x) params))
              ((eq? h 'lambda)
               (let* ((f (cadr x))
                      (body (caddr x))
@@ -1080,32 +1114,22 @@
 ;;; graph-aware two-pass writer.
 
 (define (has-record? x)
-  (let walk ((v x) (seen '()))
-    (cond
-      ((record-instance? v)
-       (if (not (assq v seen))
-         (let ((seen* (cons (cons v #t) seen)))
-           ;; A record is itself a record; also check its fields for
-           ;; nested records.
-           (let loop ((i 1))
-             (if (< i (vector-length v))
-               (or (walk (vector-ref v i) seen*)
-                   (loop (+ i 1)))
-               #t)))
-         #t))
-      ((pair? v)
-       (and (not (assq v seen))
-            (let ((seen* (cons (cons v #t) seen)))
-              (or (walk (car v) seen*) (walk (cdr v) seen*)))))
-      ((and (vector? v) (not (bytevector? v)))
-       (if (not (assq v seen))
-         (let ((seen* (cons (cons v #t) seen)))
-           (let loop ((i 0))
-             (if (< i (vector-length v))
-               (or (walk (vector-ref v i) seen*) (loop (+ i 1)))
-               #f)))
-         #f))
-      (else #f))))
+  ;; Memoize across sibling paths as well as ancestors in shared graphs.
+  (let ((seen (reader-graph-table)))
+    (let walk ((v x))
+      (cond
+        ((record-instance? v) #t)
+        ((or (pair? v) (and (vector? v) (not (bytevector? v))))
+         (if (reader-graph-cell seen v)
+           #f
+           (begin
+             (reader-graph-intern! seen v #t)
+             (if (pair? v)
+               (or (walk (car v)) (walk (cdr v)))
+               (let loop ((i 0))
+                 (and (< i (vector-length v))
+                      (or (walk (vector-ref v i)) (loop (+ i 1)))))))))
+        (else #f)))))
 
 ;;; has-cycle? : datum -> bool
 ;;; Whether a record-free datum contains a cycle among pairs/vectors.  The
@@ -1115,33 +1139,21 @@
 ;;; re-walked per path.  Only called after has-record? is false.
 
 (define (has-cycle? x)
-  (let ((expanded '()))
-    (define (expand! v)
-      (if (assq v expanded)
-        #f
-        (begin (set! expanded (cons (cons v #t) expanded)) #t)))
-    (let descend ((v x) (stack '()))
-      (cond
-        ((pair? v)
-         (cond
-           ((memq v stack) #t)
-           ((not (expand! v)) #f)
-           (else
-            (let ((st (cons v stack)))
-              (or (descend (car v) st)
-                  (descend (cdr v) st))))))
-        ((and (vector? v) (not (bytevector? v)))
-         (cond
-           ((memq v stack) #t)
-           ((not (expand! v)) #f)
-            (else
-             (let ((st (cons v stack)))
-              (let loop ((i 0))
-                (if (< i (vector-length v))
-                  (or (descend (vector-ref v i) st)
-                      (loop (+ i 1)))
-                  #f))))))
-        (else #f)))))
+  (let ((states (reader-graph-table)))
+    (let descend ((v x))
+      (and (or (pair? v) (and (vector? v) (not (bytevector? v))))
+           (let ((entry (reader-graph-cell states v)))
+             (if entry
+               (eq? (cdr entry) 'visiting)
+               (let* ((state (reader-graph-intern! states v 'visiting))
+                      (cyclic?
+                        (if (pair? v)
+                          (or (descend (car v)) (descend (cdr v)))
+                          (let loop ((i 0))
+                            (and (< i (vector-length v))
+                                 (or (descend (vector-ref v i)) (loop (+ i 1))))))))
+                 (set-cdr! state 'done)
+                 cyclic?)))))))
 
 ;;; has-sharing? : datum -> bool
 ;;; Whether a record-free datum holds a pair/vector/bytevector reachable
@@ -1152,22 +1164,22 @@
 ;;; write-roundtrip, so they never hang.
 
 (define (has-sharing? x)
-  (let ((seen '()))
+  (let ((seen (reader-graph-table)))
     (let walk ((v x))
       (cond
         ((pair? v)
-         (if (assq v seen)
+         (if (reader-graph-cell seen v)
            #t
-           (begin (set! seen (cons (cons v #t) seen))
+           (begin (reader-graph-intern! seen v #t)
                   (or (walk (car v)) (walk (cdr v))))))
         ((bytevector? v)
-         (if (assq v seen)
+         (if (reader-graph-cell seen v)
            #t
-           (begin (set! seen (cons (cons v #t) seen)) #f)))
+           (begin (reader-graph-intern! seen v #t) #f)))
         ((vector? v)
-         (if (assq v seen)
+         (if (reader-graph-cell seen v)
            #t
-           (begin (set! seen (cons (cons v #t) seen))
+           (begin (reader-graph-intern! seen v #t)
                   (let loop ((i 0))
                     (if (< i (vector-length v))
                       (or (walk (vector-ref v i)) (loop (+ i 1)))
@@ -1185,13 +1197,14 @@
 ;;; itself, so a naive recursive writer loops forever.
 
 (define (write-roundtrip x p)
+  (define records? (has-record? x))
   ;; Record-free cycles still error (single-pass cannot label, and the
   ;; tiny-reader cache path would only miss on cyclic labels anyway).
-  (when (and (not (has-record? x)) (has-cycle? x))
+  (when (and (not records?) (has-cycle? x))
     (error 'write-roundtrip "cannot serialize a cyclic datum without records" x))
   ;; Shared record-free data takes the graph pass so labels preserve the
   ;; aliasing; unshared record-free data keeps the fast single pass.
-  (if (and (not (has-record? x)) (not (has-sharing? x)))
+  (if (and (not records?) (not (has-sharing? x)))
       (let rec ((v x))
         (cond
           ((symbol? v) (write-roundtrip-symbol v p))
@@ -1238,14 +1251,12 @@
           (else (write v p))))
     ;; Graph-aware pass (records, or shared record-free data): count references, then
     ;; output with #n=/#n# labels for shared/cyclic containers.
-    (let ((counts '()))
+    (let ((counts (reader-graph-table)))
       (define (count-ref v)
-        (let ((e (assq v counts)))
-          (if e
-            (set-cdr! e (+ (cdr e) 1))
-            (set! counts (cons (cons v 1) counts)))))
+        (let ((e (reader-graph-intern! counts v 0)))
+          (set-cdr! e (+ (cdr e) 1))))
       (define (count-of v)
-        (let ((e (assq v counts)))
+        (let ((e (reader-graph-cell counts v)))
           (if e (cdr e) 0)))
       ;; Reference counting walks the shared exp-library graph (binding
       ;; values' toplevel-ref homes point back at their library).  A
@@ -1253,11 +1264,11 @@
       ;; reaches it, which explodes on such graphs; count from a single
       ;; memoized expansion instead (count-ref still fires on every
       ;; incoming edge, so counts stay the true reference counts).
-      (let ((expanded '()))
+      (let ((expanded (reader-graph-table)))
         (define (expand! v)
-          (if (assq v expanded)
+          (if (reader-graph-cell expanded v)
             #f
-            (begin (set! expanded (cons (cons v #t) expanded)) #t)))
+            (begin (reader-graph-intern! expanded v #t) #t)))
         (let walk ((v x))
           (cond
             ((pair? v)
@@ -1284,18 +1295,18 @@
             ((bytevector? v)
              (count-ref v))
             (else #f))))
-      (let ((labels '())
+      (let ((labels (reader-graph-table))
             (next-label 0))
         (define (shared? v) (> (count-of v) 1))
         (define (label-of v)
-          (let ((e (assq v labels)))
+          (let ((e (reader-graph-cell labels v)))
             (if e
               (cdr e)
               (let ((n next-label))
                 (set! next-label (+ n 1))
-                (set! labels (cons (cons v n) labels))
+                (reader-graph-intern! labels v n)
                 n))))
-        (define (has-label? v) (not (not (assq v labels))))
+        (define (has-label? v) (not (not (reader-graph-cell labels v))))
         (define (write-mark v)
           (when (shared? v)
             (display #\# p)

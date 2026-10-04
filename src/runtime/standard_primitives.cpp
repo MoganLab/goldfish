@@ -3659,6 +3659,15 @@ void install_runtime_primitives(Evaluator& evaluator) {
         return Values{Value::boolean(false)};
     });
 
+    // Identity hashes remain stable across mutations in graph memo tables.
+    install(evaluator, "g-identity-hash", [](const Values& args) {
+        require_arity(args, 1, "g-identity-hash");
+        if (!args[0].is_object())
+            throw std::runtime_error("wrong-type-arg: g-identity-hash expects an object");
+        const auto address = reinterpret_cast<std::uintptr_t>(args[0].as_object());
+        return Values{Value::integer(static_cast<std::int64_t>((address >> 3) & 0x3fffffffffffffff))};
+    });
+
     // s7's hash-code: the srfi-128 default comparators hang off it.  The
     // optional second argument (an eqfunc on the host) is accepted and
     // ignored -- the hash is equal?-consistent, which is what the
