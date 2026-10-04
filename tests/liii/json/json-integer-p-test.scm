@@ -37,5 +37,7 @@
 (check-true (json-integer? -5))
 (check-false (json-integer? 3.14))
 (check-false (json-integer? 1.0))
+(check-false (json-integer? 1/2))
+(check-false (json-integer? #f))
 
 (check-report)

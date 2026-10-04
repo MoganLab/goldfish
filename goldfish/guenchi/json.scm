@@ -75,7 +75,7 @@
                       ) ;
                       (else
                         ;; 多字节 UTF-8 字符，直接输出原始字节
-                        (display (copy bv (make-string (- next i)) i next) out)
+                        (display (utf8->string bv i next) out)
                         (loop next)
                       ) ;else
                 ) ;cond
@@ -387,10 +387,12 @@
         (let ((x x) (v v) (p (if (procedure? p) p (lambda (x) p))))
           (if (vector? x)
             (list->vector (cond ((boolean? v)
-                                 (when v
+                                 (if v
                                    (let l
                                      ((x (vector->alist x)) (p p))
-                                     (if (null? x) '() (cons (p (cdar x)) (l (cdr x) p))))
+                                     (if (null? x) '() (cons (p (cdar x)) (l (cdr x) p)))
+                                   ) ;let
+                                 ) ;if
                                 ) ;
                                 ((procedure? v)
                                  (let l
@@ -418,10 +420,12 @@
                           ) ;cond
             ) ;list->vector
             (cond ((boolean? v)
-                   (when v
+                   (if v
                      (let l
                        ((x x) (p p))
-                       (if (null? x) '() (cons (cons (caar x) (p (cdar x))) (l (cdr x) p))))
+                       (if (null? x) '() (cons (cons (caar x) (p (cdar x))) (l (cdr x) p)))
+                     ) ;let
+                   ) ;if
                   ) ;
                   ((procedure? v)
                    (let l
@@ -537,10 +541,11 @@
       (lambda (x v p)
         (if (vector? x)
           (list->vector (cond ((boolean? v)
-                               (when v
+                               (if v
                                  (let l
                                    ((x (vector->alist x)) (p p))
-                                   (if (null? x) '() (cons (p (caar x) (cdar x)) (l (cdr x) p))))
+                                   (if (null? x) '() (cons (p (caar x) (cdar x)) (l (cdr x) p)))
+                                 ) ;let
                                  x
                                ) ;if
                               ) ;
@@ -570,10 +575,11 @@
                         ) ;cond
           ) ;list->vector
           (cond ((boolean? v)
-                 (when v
+                 (if v
                    (let l
                      ((x x) (p p))
-                     (if (null? x) '() (cons (cons (caar x) (p (caar x) (cdar x))) (l (cdr x) p))))
+                     (if (null? x) '() (cons (cons (caar x) (p (caar x) (cdar x))) (l (cdr x) p)))
+                   ) ;let
                    x
                  ) ;if
                 ) ;
@@ -633,5 +639,3 @@
     ) ;define
   ) ;begin
 ) ;define-library
-)
-)

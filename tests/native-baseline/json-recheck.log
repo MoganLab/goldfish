@@ -1,0 +1,29 @@
+Running tests in directory: tests/liii/json/
+
+=== Test Summary ===
+
+  tests/liii/json/json-array-p-test.scm ... PASS
+  tests/liii/json/json-boolean-p-test.scm ... PASS
+  tests/liii/json/json-contains-key-p-test.scm ... PASS
+  tests/liii/json/json-drop-test.scm ... PASS
+  tests/liii/json/json-float-p-test.scm ... PASS
+  tests/liii/json/json-get-or-else-test.scm ... PASS
+  tests/liii/json/json-integer-p-test.scm ... PASS
+  tests/liii/json/json-keys-test.scm ... PASS
+  tests/liii/json/json-null-p-test.scm ... PASS
+  tests/liii/json/json-number-p-test.scm ... PASS
+  tests/liii/json/json-object-p-test.scm ... PASS
+  tests/liii/json/json-push-test.scm ... PASS
+  tests/liii/json/json-reduce-test.scm ... PASS
+  tests/liii/json/json-ref-boolean-test.scm ... PASS
+  tests/liii/json/json-ref-test.scm ... PASS
+  tests/liii/json/json-set-test.scm ... PASS
+  tests/liii/json/json-string-escape-test.scm ... PASS
+  tests/liii/json/json-string-p-test.scm ... PASS
+  tests/liii/json/json-to-string-test.scm ... PASS
+  tests/liii/json/string-to-json-test.scm ... PASS
+
+=== Summary ===
+  Total:  20
+  Passed: 20
+

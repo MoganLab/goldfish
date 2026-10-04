@@ -40,6 +40,7 @@
 (check-catch 'value-error (json->string '((a))))
 (check (json->string #()) => "[]")
 (check (json->string #("a" "b")) => "[\"a\",\"b\"]")
+(check (json->string #("a🐟中")) => "[\"a🐟中\"]")
 (check (json->string #(1 "a" true null)) => "[1,\"a\",true,null]")
 (check (json->string '(("name" . "Alice"))) => "{\"name\":\"Alice\"}")
 (check (json->string '(("id" . 1) ("active" . true)))

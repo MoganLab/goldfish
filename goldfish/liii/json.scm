@@ -159,11 +159,11 @@
     ) ;define
 
     (define (json-integer? x)
-      (integer? x)
+      (and (integer? x) (exact? x))
     ) ;define
 
     (define (json-float? x)
-      (float? x)
+      (and (real? x) (inexact? x))
     ) ;define
 
     (define (json-boolean? x)

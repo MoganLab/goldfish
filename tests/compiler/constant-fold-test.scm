@@ -8,7 +8,7 @@
 
 ;; 辅助：datum -> expander 直出 IR -> pass -> ir->core
 ;; （core->ir 已退役；syntax->ir 的名字是 gensym（x:0），normalize-names
-;; 去掉 :数字 后缀，断言用源名，避免依赖展开顺序）
+;; 去掉库限定名和 :数字 后缀，断言用源名，避免依赖展开顺序）
 (define (sexp->ir core)
   (let*-values (((defs ctx) (expand-library-body
                              (list (wrap-expression core))
@@ -25,8 +25,16 @@
            (loop (- i 1))
            (if (and (>= i 0) (char=? (string-ref s i) #\:)
                     (< i (- n 1)))
-             (string->symbol (substring s 0 i))
+             (string->symbol
+               (let find-home ((j 0))
+                 (if (and (< (+ j 1) i)
+                          (char=? (string-ref s j) #\@)
+                          (char=? (string-ref s (+ j 1)) #\()
+                          (char=? (string-ref s (- i 1)) #\)))
+                     (substring s 0 j)
+                     (if (< j i) (find-home (+ j 1)) (substring s 0 i)))))
              x)))))
+    ((and (pair? x) (eq? (car x) 'quote)) x)
     ((pair? x) (cons (normalize-names (car x)) (normalize-names (cdr x))))
     ((vector? x) (vector-map normalize-names x))
     (else x)))
@@ -47,6 +55,8 @@
 
 ;; quote 内容不被折叠（数据）
 (check (fold-sexp '(quote (+ 1 2)) constant-fold) => '(quote (+ 1 2)))
+(check (fold-sexp (list 'quote (string->symbol "x@(goldfish):123")) constant-fold)
+       => (list 'quote (string->symbol "x@(goldfish):123")))
 
 ;; 参数非常量则不折叠
 (check (fold-sexp '(+ 1 x) constant-fold) => '(+ 1 x))

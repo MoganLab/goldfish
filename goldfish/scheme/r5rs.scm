@@ -23,10 +23,11 @@
   ;; (scheme-report-environment / null-environment are program
   ;; environments), so re-export (scheme eval)'s dispatcher instead of the
   ;; raw host eval that (goldfish) provides.
-  (import (scheme base) (scheme char) (scheme complex) (scheme cxr)
-          (except (goldfish) eval)
+  (import (except (goldfish) eval)
+          (scheme base) (scheme char) (scheme complex) (scheme cxr)
           (scheme eval))
   (export
+    ... => _ else syntax-rules
     * + - / < <= = > >= abs acos and angle append apply asin assoc assq assv
     atan begin boolean?
     caaaar caaadr caaar caadar caaddr caadr caar cadaar cadadr cadar caddar

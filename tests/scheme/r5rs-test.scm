@@ -31,6 +31,12 @@
 (check (procedure? string-ci=?) => #t)
 (check (procedure? make-polar) => #t)
 (check (procedure? cadddr) => #t)
+(check (char-ci=? #\A #\a) => #t)
+(check (string-ci=? "AbC" "aBc") => #t)
+(check (make-polar 2 0) => 2.0)
+(define-syntax r5rs-list
+  (syntax-rules () ((_ x ...) (list x ...))))
+(check (r5rs-list 1 2 3) => '(1 2 3))
 
 ;; ==== 测试：R5RS 数值语义 ====
 (check (inexact->exact 3.5) => 7/2)

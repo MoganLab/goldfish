@@ -1,0 +1,358 @@
+;;; note: tests/expander/lib-cache-all-libs-test.scm could not be compiled; loading per form
+发现库文件: 115
+冷加载成功: 115/115
+
+(length failed) => 0 ; correct
+热加载缺失: 0
+
+(length hot-miss) => 0 ; correct
+完成: 115 个库
+
+; *** checks *** : 2 correct, 0 failed.
+#f
+  tests/expander/lib-cache-all-libs-test.scm ... PASS
+;;; note: tests/expander/eval-when-expand-test.scm could not be compiled; loading per form
+
+(pair? datum) => #t ; correct
+
+(datum-contains? datum 42) => #t ; correct
+
+(datum-contains? datum 120) => #t ; correct
+
+(datum-contains? datum 42) => #t ; correct
+
+(catch (quote unbound-variable) (lambda () (compile-file-cached src4)) (lambda args (quote unbound-variable))) => unbound-variable ; correct
+
+(catch (quote unbound-variable) (lambda () (compile-file-cached src5)) (lambda args (quote unbound-variable))) => unbound-variable ; correct
+
+(datum-contains? datum 40) => #t ; correct
+
+(datum-contains? (syntax->datum (compile-file-cached src7)) 1) => #t ; correct
+
+(datum-contains? datum 2) => #t ; correct
+
+(datum-contains? datum 1) => #f ; correct
+
+(datum-contains? (syntax->datum (compile-file-cached src8a)) 42) => #t ; correct
+
+(datum-contains? (syntax->datum (compile-file-cached src8b)) 120) => #t ; correct
+
+(datum-contains? (syntax->datum (compile-file-cached src8a)) 42) => #t ; correct
+
+(datum-contains? (syntax->datum (compile-file-cached src8a)) 120) => #f ; correct
+
+(catch (quote unbound-variable) (lambda () (compile-file-cached src9b)) (lambda args (quote unbound-variable))) => unbound-variable ; correct
+
+(datum-contains? datum 21) => #t ; correct
+
+(datum-contains? datum 200) => #t ; correct
+
+(datum-contains? (syntax->datum (compile-fresh tests/expander/resources/ewx-cross.scm)) 70) => #t ; correct
+
+(catch (quote unbound-variable) (lambda () (compile-file-cached src12)) (lambda args (quote unbound-variable))) => unbound-variable ; correct
+
+(catch (quote unbound-variable) (lambda () (compile-file-cached src12-lib)) (lambda args (quote unbound-variable))) => unbound-variable ; correct
+
+(datum-contains? (syntax->datum (compile-file-cached src13)) 8) => #t ; correct
+
+; *** checks *** : 21 correct, 0 failed.
+#f
+  tests/expander/eval-when-expand-test.scm ... PASS
+;;; note: tests/liii/match-srfi-262-test.scm could not be compiled; loading per form
+
+(match 5 (1 (quote one)) (5 (quote five)) (_ (quote other))) => five ; correct
+
+(match 9 (1 (quote one)) (5 (quote five)) (_ (quote other))) => other ; correct
+
+(match hi (hi (quote string-match)) (_ (quote no))) => string-match ; correct
+
+(match a (a (quote char-match)) (_ (quote no))) => char-match ; correct
+
+(match #t (#t (quote bool-match)) (_ (quote no))) => bool-match ; correct
+
+(match (quote (1 2)) ((quote (1 2)) (quote quoted)) (_ (quote no))) => quoted ; correct
+
+(match (quote (1 2 3)) ((a b c) (list c b a)) (_ (quote no))) => (3 2 1) ; correct
+
+(match (quote ()) (() (quote empty)) (_ (quote no))) => empty ; correct
+
+(match (quote (1 2)) ((a b c) (quote three)) (_ (quote no))) => no ; correct
+
+(match (quote (1 2 3)) ((list a b c) (list c b a)) (_ (quote no))) => (3 2 1) ; correct
+
+(match (quote (1 . 2)) ((a . b) (list a b)) (_ (quote no))) => (1 2) ; correct
+
+(match (quote (1 2)) ((a . b) (list a b)) (_ (quote no))) => (1 (2)) ; correct
+
+(match (quote (1 . 2)) ((cons a b) (list a b)) (_ (quote no))) => (1 2) ; correct
+
+(match #(1 2 3) ((vector a b c) (list c b a)) (_ (quote no))) => (3 2 1) ; correct
+
+(match #(1 2) ((vector a b c) (quote three)) (_ (quote no))) => no ; correct
+
+(match 4 ((? even? x) (list (quote even) x)) (_ (quote odd))) => (even 4) ; correct
+
+(match 5 ((? even? x) (quote even)) (_ (quote odd))) => odd ; correct
+
+(match 6 ((? even? x) (list (quote even) x)) (_ (quote odd))) => (even 6) ; correct
+
+(match 5 ((? number? n) (list (quote num) n)) (_ (quote no))) => (num 5) ; correct
+
+(match (quote a) ((or (quote a) (quote b)) (quote ab)) (_ (quote other))) => ab ; correct
+
+(match (quote c) ((or (quote a) (quote b)) (quote ab)) (_ (quote other))) => other ; correct
+
+(match (quote (1 2)) ((and (? list?) (a b)) (list a b)) (_ (quote no))) => (1 2) ; correct
+
+(match 4 ((not (? even?)) (quote odd)) (_ (quote even))) => even ; correct
+
+(match 5 ((not (? even?)) (quote odd)) (_ (quote even))) => odd ; correct
+
+(catch #t (lambda () (match 1 ((2) (quote two)) ((3) (quote three)))) (lambda (tag . info) (quote no-match))) => no-match ; correct
+
+(f1 1 2) => (2 1) ; correct
+
+(f1 5) => (single 5) ; correct
+
+(f2) => zero ; correct
+
+(f2 1) => (one 1) ; correct
+
+(f2 1 2) => (two 1 2) ; correct
+
+(match-values (values 1 2) ((a b) (list b a))) => (2 1) ; correct
+
+(match-let (((a b) (list 1 2))) (list b a)) => (2 1) ; correct
+
+(match-let* (((a b) (list 1 2)) ((c d) (list 3 4))) (list d c b a)) => (4 3 2 1) ; correct
+
+(if-match (((a b) (list 1 2))) (list (quote m) a b) (quote nomatch)) => (m 1 2) ; correct
+
+(if-match (((a b) (list 1))) (quote m) (quote nomatch)) => nomatch ; correct
+
+(list mx my) => (10 20) ; correct
+
+(list ma mb mc) => (1 2 3) ; correct
+
+(match (cons 1 2) ((pair2 a b) (list (quote p) a b)) (_ (quote no))) => (p 1 2) ; correct
+
+(match (cons (quote x) (quote y)) ((pair2 a b) (list a b)) (_ (quote no))) => (x y) ; correct
+
+; *** checks *** : 39 correct, 0 failed.
+#f
+  tests/liii/match-srfi-262-test.scm ... PASS
+;;; note: tests/liii/match-srfi-262-full-test.scm could not be compiled; loading per form
+
+(match (quote (x 1)) ((quasiquote (x (unquote n))) n) (_ (quote fail))) => 1 ; correct
+
+(match (quote (y 1)) ((quasiquote (x (unquote n))) n) (_ #f)) => #f ; correct
+
+(match (quote x) ((quasiquote (unquote v)) v) (_ #f)) => x ; correct
+
+(match (quote (1 2 3)) ((quasiquote ((unquote x) 2 3)) x) (_ #f)) => 1 ; correct
+
+(match (quote (1 2 3)) ((quasiquote (1 (unquote) 2 3)) #t) (_ #f)) => #t ; correct
+
+(match (quote (1 2 3)) ((quasiquote ((unquote x y z))) (list z y x)) (_ #f)) => (3 2 1) ; correct
+
+(match (quote (1 2 3)) ((quasiquote (1 (unquote-splicing) 2 3)) #t) (_ #f)) => #t ; correct
+
+(match (quote (1 2 3)) ((quasiquote (1 (unquote-splicing x))) x) (_ #f)) => (2 3) ; correct
+
+(match (quote (a a b)) ((quasiquote (a ... b)) #t) (_ #f)) => #t ; correct
+
+(match (quote (a b c)) ((quasiquote (a unquote x)) x) (_ #f)) => (b c) ; correct
+
+(match (quote (a b c)) ((quasiquote (a unquote-splicing x)) x) (_ #f)) => (b c) ; correct
+
+(match (quote #(a b c)) ((quasiquote #(a (unquote-splicing x))) x) (_ (quote fail))) => (b c) ; correct
+
+(let ((c (quote not-bound))) (match (quasiquote (a (quasiquote (b (unquote c))))) ((quasiquote (a (quasiquote (b (unquote c))))) c) (_ #f))) => not-bound ; correct
+
+(match-let-values (((a b) (values 1 2))) (list b a)) => (2 1) ; correct
+
+(match-let*-values (((a b) (values 1 2)) ((c d) (values 3 4))) (list d c b a)) => (4 3 2 1) ; correct
+
+(match-values (values 1 2 3) ((a b c) (list c b a))) => (3 2 1) ; correct
+
+(list p q) => (10 20) ; correct
+
+(match (list 1 (list 2 3)) ((a (b c)) (list a b c)) (_ (quote no))) => (1 2 3) ; correct
+
+(match-let (((a b) (list 1 2))) (list b a)) => (2 1) ; correct
+
+(match-let* (((a b) (list 1 2)) ((c d) (list 3 4))) (list d c b a)) => (4 3 2 1) ; correct
+
+(match-letrec (((a) (list 1)) ((b) (list 2))) (list a b)) => (1 2) ; correct
+
+(match-letrec* (((a) (list 1)) ((b) (list 2))) (list a b)) => (1 2) ; correct
+
+(match (vector 1 2 3) ((seq v ((i 0 (+ i 1))) (= i (len v)) (ref v i) a ...) a) (_ (quote no))) => (1 2 3) ; correct
+
+(match (vector (quote a) (quote b) (quote c)) ((seq v ((i 0 (+ i 1))) (= i (len v)) (ref v i) x ... y) (cons y (length x))) (_ (quote fail))) => (c . 2) ; correct
+
+(match (vector (quote a) (quote b) (quote c)) ((seq v ((i 0 (+ i 1))) (= i (len v)) (ref v i) x y ...) (cons x (length y))) (_ (quote fail))) => (a . 2) ; correct
+
+(match (vector (quote a) (quote a) (quote b)) ((seq v ((i 0 (+ i 1))) (= i (len v)) (ref v i) (quote a) (... 2) (quote b)) #t) (_ #f)) => #t ; correct
+
+(match (vector (quote a) (quote a) (quote a) (quote b)) ((seq v ((i 0 (+ i 1))) (= i (len v)) (ref v i) (quote a) (... 2) (quote b)) #t) (_ #f)) => #f ; correct
+
+(match (list 1 2 3 4) ((seq xs ((i 0 (+ i 1))) (= i (length xs)) (list-ref xs i) a b ...) (list a b)) (_ (quote no))) => (1 (2 3 4)) ; correct
+
+(match (quote (1 2 3 4)) ((list a b c ...) (list a b c)) (_ (quote no))) => (1 2 (3 4)) ; correct
+
+(match (quote (1 2)) ((list a ...) a) (_ (quote no))) => (1 2) ; correct
+
+(match (quote (1 2 3)) ((cons a b) (list a b)) (_ (quote no))) => (1 (2 3)) ; correct
+
+(match (quote (1 2 3 4)) ((cons* a b c) (list a b c)) (_ (quote no))) => (1 2 (3 4)) ; correct
+
+(match (quote (1 2 3 4)) ((cons* a b ...) (list a b)) (_ (quote no))) => (1 (2 3 4)) ; correct
+
+(match (quote (1 2 3 4)) ((cons* a b c ...) (list a b c)) (_ (quote no))) => (1 2 (3 4)) ; correct
+
+(match #(1 2 3) ((vector a b c ...) (list a b c)) (_ (quote no))) => (1 2 (3)) ; correct
+
+(match #(1 2 3) ((vector a b c) (list a b c)) (_ (quote no))) => (1 2 3) ; correct
+
+(match (quote (1 2 3)) ((lset a b c) (list a b c)) (_ (quote no))) => (1 2 3) ; correct
+
+(match (quote (1 2 3)) ((lset a b c d) (quote four)) (_ (quote no))) => no ; correct
+
+(match (quote (2 4 1 3)) ((lset a b c ...) (list a b c)) (_ (quote no))) => (2 4 (1 3)) ; correct
+
+(match (quote (2 1 3)) ((lset 1 2 3) #t) (_ #f)) => #t ; correct
+
+(match (quote (2 1 3)) ((lset 1 a b) (list a b)) (_ #f)) => (2 3) ; correct
+
+(match (mkseq 2 1 3) ((seq/unordered xs ((i 0 (+ i 1))) (= i (vector-length xs)) (vector-ref xs i) 1 2 3) #t) (_ #f)) => #t ; correct
+
+(match (mkseq 1 2 3) ((seq/unordered xs ((i 0 (+ i 1))) (= i (vector-length xs)) (vector-ref xs i) 1 2 3) #t) (_ #f)) => #t ; correct
+
+(match (mkseq 2 1 3) ((seq/unordered xs ((i 0 (+ i 1))) (= i (vector-length xs)) (vector-ref xs i) 1 x ...) x) (_ #f)) => (2 3) ; correct
+
+(match (mkseq 2 1) ((seq/unordered xs ((i 0 (+ i 1))) (= i (vector-length xs)) (vector-ref xs i) 1 2 a) a) (_ #f)) => #f ; correct
+
+(match (eof-object) ((eof-object) (quote eof)) (_ (quote no))) => eof ; correct
+
+(match 5 ((eof-object) (quote eof)) (_ (quote no))) => no ; correct
+
+(match (quote (1 2)) ((and (? list?) (a b)) (list a b)) (_ (quote no))) => (1 2) ; correct
+
+(match (quote a) ((or (quote a) (quote b)) (quote ab)) (_ (quote other))) => ab ; correct
+
+(match 4 ((not (? even?)) (quote odd)) (_ (quote even))) => even ; correct
+
+(match 5 ((? number? n) n) (_ (quote no))) => 5 ; correct
+
+(match 1 ((2) (quote two)) ((3) (quote three)) (_ (quote other))) => other ; correct
+
+(catch #t (lambda () (match 1 ((2) (quote two)) ((3) (quote three)))) (lambda (tag . info) (if (match-violation? (car info)) (quote violation) (quote other)))) => other ; correct
+
+(match-violation? (make-match-violation)) => #t ; correct
+
+(if-match (((a b) (list 1 2))) (list (quote m) a b) (quote nomatch)) => (m 1 2) ; correct
+
+(if-match (((a b) (list 1))) (quote m) (quote nomatch)) => nomatch ; correct
+
+(match-ellipsis? (quote ...)) => #t ; correct
+
+(match-ellipsis? (quote (... 3))) => #t ; correct
+
+(match-ellipsis? (quote (... 1 #t))) => #t ; correct
+
+(match-ellipsis? (quote x)) => #f ; correct
+
+(match (cons 1 2) ((pair2 a b) (list (quote p) a b)) (_ (quote no))) => (p 1 2) ; correct
+
+(ml2 1 2) => (1 2) ; correct
+
+(ml2 1) => no ; correct
+
+(ml1 9) => (one 9) ; correct
+
+(mlw (quote x) 9) => (got 9) ; correct
+
+(mlw 9) => (single 9) ; correct
+
+(match (quote ((1 2) (3 4))) (((a b) (c d)) (list a b c d)) (_ (quote no))) => (1 2 3 4) ; correct
+
+(match (quote #(1 #(2 3) 4)) ((vector a (vector b c) d) (list a b c d)) (_ (quote no))) => (1 2 3 4) ; correct
+
+(match 42 ((? even?) #t) (_ #f)) => #t ; correct
+
+(match 21 ((? even?) #t) (_ #f)) => #f ; correct
+
+(match (quote x) ((=> symbol->string x) #t) (_ #f)) => #t ; correct
+
+(match (quote y) ((=> symbol->string x) #t) (_ #f)) => #f ; correct
+
+(match (quote (x)) ((=> car v) v) (_ (quote fail))) => x ; correct
+
+(match 5 ((=> (lambda (x) (values (quotient x 3) (remainder x 3))) 1 2) #t) (_ #f)) => #t ; correct
+
+(match 5 ((=> (lambda (x) (values (quotient x 3) (remainder x 3))) _ 0) #t) (_ #f)) => #f ; correct
+
+(match 5 ((=> (lambda (x) (values (quotient x 3) (remainder x 3))) x y) (cons x y)) (_ (quote fail))) => (1 . 2) ; correct
+
+(match 42 ((and (? exact?) (? even?)) #t) (_ #f)) => #t ; correct
+
+(match 42 ((and (? exact?) (? odd?)) #t) (_ #f)) => #f ; correct
+
+(match (quote a) ((and) #t) (_ #f)) => #t ; correct
+
+(match (quote b) ((and (quote b)) #t) (_ #f)) => #t ; correct
+
+(match 1 ((and (? number?) x y) (cons x y)) (_ (quote fail))) => (1 . 1) ; correct
+
+(match 42 ((or 23 42) #t) (_ #f)) => #t ; correct
+
+(match 42 ((or 23 144) #t) (_ #f)) => #f ; correct
+
+(match (quote a) ((or) #t) (_ #f)) => #f ; correct
+
+(match (quote b) ((or (quote b)) #t) (_ #f)) => #t ; correct
+
+(match (quote (1 2)) ((or (list a b) (cons a b)) b) (_ (quote fail))) => 2 ; correct
+
+(match (quote a) ((not (list)) #t) (_ #f)) => #t ; correct
+
+(match (quote ()) ((not (list)) #t) (_ #f)) => #f ; correct
+
+(match (list->vector (quote (1 2 3))) ((seq xs ((idx 0 (+ idx 1))) (= idx (vector-length xs)) (vector-ref xs idx) 1 2 3) #t) (_ #f)) => #t ; correct
+
+(match (list->vector (quote (1 2 3 4))) ((seq xs ((idx 0 (+ idx 1))) (= idx (vector-length xs)) (vector-ref xs idx) 1 2 3) #t) (_ #f)) => #f ; correct
+
+(match (list->vector (quote (a b c))) ((seq xs ((idx 0 (+ idx 1))) (= idx (vector-length xs)) (vector-ref xs idx) x ...) (length x)) (_ (quote fail))) => 3 ; correct
+
+(match (quote ((1 2) (3 4) (5 6))) (((a b) ...) (list (quote pairs) a b)) (_ (quote no))) => (pairs (1 3 5) (2 4 6)) ; correct
+
+(match (quote ((1 2) (3 4))) (((a b) ...) (list (quote pairs) a b)) (_ (quote no))) => (pairs (1 3) (2 4)) ; correct
+
+(match (vector 2 1 3) ((seq/unordered xs ((idx 0 (+ idx 1))) (= idx (vector-length xs)) (vector-ref xs idx) 1 2 3) #t) (_ #f)) => #t ; correct
+
+(match (vector 1 2 3) ((seq/unordered xs ((idx 0 (+ idx 1))) (= idx (vector-length xs)) (vector-ref xs idx) 1 2 3) #t) (_ #f)) => #t ; correct
+
+(match (eof-object) ((eof-object) (quote eof)) (_ (quote no))) => eof ; correct
+
+(match #f ((eof-object) (quote eof)) (_ (quote no))) => no ; correct
+
+(match (quote (1 2 3 4)) ((seq* xs ((curr xs (cdr curr))) (not (pair? curr)) curr (=> car 1) (=> car 2) (=> car 3)) #t) (_ #f)) => #t ; correct
+
+(match (quote (1 2 3 4)) ((seq xs ((curr xs (cdr curr))) (not (pair? curr)) curr (=> car 1) (=> car 2) (=> car 3)) #t) (_ #f)) => #f ; correct
+
+(match (quote (1 2 3)) ((seq* xs ((curr xs (cdr curr))) (not (pair? curr)) curr (=> car 1) (=> car 2) (=> car 3)) #t) (_ #f)) => #t ; correct
+
+(match (quote (1 2 4)) ((seq* xs ((curr xs (cdr curr))) (not (pair? curr)) curr (=> car 1) (=> car 2) (=> car 3)) #t) (_ #f)) => #f ; correct
+
+(match (quote (1 2 3 4 5)) ((seq* xs ((curr xs (cdr curr))) (not (pair? curr)) curr (=> car a) (=> car b) ... (cons x y)) (list (quote got) a b x y)) (_ (quote no))) => (got 1 (2 3 4) 5 ()) ; correct
+
+; *** checks *** : 102 correct, 0 failed.
+#f
+  tests/liii/match-srfi-262-full-test.scm ... PASS
+;;; note: tests/liii/http/http-post-test.scm could not be compiled; loading per form
+  tests/liii/http/http-post-test.scm ... PASS
+
+  Total:  5
+  Passed: 5
+  Failed: 0

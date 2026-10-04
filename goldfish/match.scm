@@ -214,7 +214,7 @@
                  (let loop ((idx 0))
                    (if (not (vector-ref threads idx))
                      (vector-set! threads idx thread)
-                     (loop (+ idx 1))))))))))
+                     (loop (+ idx 1)))))))))))
 
     (define (%vm-swap-threads! vm)
       (let ((current (%vm-record-current-threads vm)))
@@ -602,4 +602,3 @@
                       (cons pats-datum (list conseq))
                       (cons (map (lambda (_) '_) pats-datum)
                             (list alter)))))))))))
-)

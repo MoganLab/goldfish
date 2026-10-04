@@ -1,4 +1,4 @@
-(import (liii check)
+(import (liii check) (goldfish)
         (goldfish core ir)
         (goldfish compiler passes)
         (goldfish compiler syntax-ir))
@@ -32,11 +32,12 @@
 (check (let ((ir (expand->ir '(lambda (x) x))))
          (let ((b (lambda-case-body (lambda-body ir))))
            (list (lambda? ir)
-                 (lambda-case-req (lambda-body ir))
+               (length (lambda-case-req (lambda-body ir)))
+               (eq? (lexical-ref-name b) (car (lambda-case-req (lambda-body ir))))
                  (lexical-ref? b)
                  (lexical-ref-depth b)
                  (lexical-ref-index b))))
-       => '(#t (x:1) #t 0 0))
+       => '(#t 1 #t #t 0 0))
 
 ;; lambda 体内的 primitive 引用 + 词法参数
 (check (let ((ir (expand->ir '(lambda (x) (car x)))))
@@ -102,7 +103,7 @@
                                   the-base-library
                                   (initial-context))))
          (equal? (compile-syntax-defs defs ctx (list constant-fold simplify-if))
-                 '((define f:0 (lambda () 3)))))
+                 (list (list 'define (cadr (syntax->datum (car defs))) '(lambda () 3)))))
        => #t)
 
 ;; primitive-ref 参与常量折叠：(+ 1 2) -> 3
@@ -111,7 +112,7 @@
                                   the-base-library
                                   (initial-context))))
          (let ((out (compile-syntax-defs defs ctx (list constant-fold simplify-if))))
-           (equal? out '((define f:0 (lambda () 3))))))
+           (equal? out (list (list 'define (cadr (syntax->datum (car defs))) '(lambda () 3))))))
        => #t)
 
 ;; ===== 7. 词法寻址前置 =====
@@ -148,9 +149,14 @@
                                   (list (wrap-expression '(define (sq x) (* x x))))
                                   the-base-library
                                   (initial-context))))
-         (let ((out (compile-syntax-defs defs ctx '())))
-           (equal? out '((define sq:0 (lambda (x:2) (* x:2 x:2)))))))
+         (let* ((out (compile-syntax-defs defs ctx '()))
+                (source (syntax->datum (car defs)))
+                (name (cadr source))
+                (formals (cadr (caddr source)))
+                (arg (car formals)))
+           (equal? out (list (list 'define name (list 'lambda formals (list '* arg arg)))))))
        => #t)
+
 
 ;; ===== 8. lexical-ref（地址信息已在前置）=====
 
@@ -169,3 +175,5 @@
            ;; flattened (l r) regression would fail the symbol? tail check.
            (and (pair? formals) (symbol? (cdr formals)))))
        => #t)
+
+(check-report)

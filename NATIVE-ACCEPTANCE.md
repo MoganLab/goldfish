@@ -59,11 +59,20 @@ and inspection of the string raised by `vector-sorted?`. The two proposed
 `string-take` edits expose native `substring` error-tag failures after fixing
 their Unicode offsets. They remain deferred, with the complete tested source
 [patch](tests/native-baseline/migration-tested.patch) retained for reproduction.
-Current decisions are eight locally verified fixes, 70 deferrals and 53
-exclusions. The runtime is unchanged, and no second full run is claimed.
+Current decisions are 36 locally verified fixes, 42 deferrals and 53
+exclusions. Subsequent repairs restore match and JSON definitions, JSON numeric
+classification and UTF-8 output, R5RS re-export order, and compiler assertions.
+The default changed-since-main gate passes 143 files; the JSON directory passes
+20 files. Direct IR checks now end with check-report so assertion failures
+propagate to the runner. Evidence is retained in json-recheck.log and
+library-default-recheck.log. The cached library recheck loads all 115 libraries,
+passes both match suites and eval-when, and reaches the ninth HTTP opt-out
+guard. A separate empty-cache aggregate attempt hit its 600-second budget
+after passing six consumers; it is not counted as a complete passing gate.
+No second full run is claimed.
 
-The next repairs are usable `match`, JSON and R5RS re-export bindings;
-numeric association/membership equivalence; circular list traversal; missing
+The next repairs are numeric association/membership equivalence; circular
+list traversal; missing
 Scheme operations and typed-vector families; fractional sleep and consistent
 error contracts. Legacy byte-index, callable-container and multiple-value
 splicing expectations have separate test-migration decisions. The existing

@@ -38,6 +38,10 @@
 (check-true (json-float? 3.14))
 (check-true (json-float? -0.01))
 (check-false (json-float? 100))
+(check-true (json-float? 1.0))
+(check-false (json-float? 1/2))
+(check-false (json-float? 1+2i))
+(check-false (json-float? "1.0"))
 
 
 (check-report)
