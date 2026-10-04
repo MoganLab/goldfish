@@ -1,0 +1,57 @@
+# Archived from 5d073a8e8f5bdff970141ef05b34b5a3e300fb3c:tests/C3-SKIP-DISPOSITIONS.tsv.
+# Historical migration decisions only; current results and decisions are recorded separately.
+# path	bucket	disposition	milestone	rationale
+tests/srfi/srfi-27-test.scm	random	defer	R5-random	implement native random-state primitives and SRFI-27 behavior
+tests/scheme/complex-test.scm	float/numeric	defer	R5-numeric-tower	complete exact/inexact and bignum work in the order specified by RUNTIME_CONTRACT.md
+tests/scheme/base/star-test.scm	numeric-tower	defer	R5-numeric-tower	complete exact/inexact and bignum work in the order specified by RUNTIME_CONTRACT.md
+tests/liii/base/make-hook-test.scm	s7-compat	exclude	R4-removal	S7 hook object invocation is explicitly outside the native contract
+tests/liii/base/signature-test.scm	introspection	exclude	R4-removal	S7 procedure signature metadata is explicitly outside the native contract
+tests/liii/uuid-test.scm	native-ffi	defer	R5-platform-extensions	implement native UUID generation
+tests/liii/set/set-size-test.scm	time	defer	R5-scale-and-GC	million-element set stress belongs to a dedicated scale and memory run
+tests/liii/subprocess-test.scm	native-ffi	defer	R5-platform-extensions	port liii subprocess to native runtime primitives
+tests/liii/raw-string-test.scm	reader	defer	R5-reader-extensions	implement the non-R7RS raw-string syntax in the native source reader
+tests/liii/raw-string/ampersand-minus-test.scm	reader	defer	R5-reader-extensions	implement the non-R7RS raw-string syntax in the native source reader
+tests/liii/raw-string/raw-string-literal-test.scm	reader	defer	R5-reader-extensions	implement the non-R7RS raw-string syntax in the native source reader
+tests/liii/njson-test.scm	native-ffi	defer	R5-platform-extensions	port liii njson to native runtime primitives
+tests/liii/njson/file-to-njson-test.scm	native-ffi	defer	R5-platform-extensions	port liii njson to native runtime primitives
+tests/liii/njson/json-to-njson-test.scm	native-ffi	defer	R5-platform-extensions	port liii njson to native runtime primitives
+tests/liii/njson/let-njson-test.scm	native-ffi	defer	R5-platform-extensions	port liii njson to native runtime primitives
+tests/liii/njson/njson-array-p-test.scm	native-ffi	defer	R5-platform-extensions	port liii njson to native runtime primitives
+tests/liii/njson/njson-array-to-list-test.scm	native-ffi	defer	R5-platform-extensions	port liii njson to native runtime primitives
+tests/liii/njson/njson-array-to-vector-test.scm	native-ffi	defer	R5-platform-extensions	port liii njson to native runtime primitives
+tests/liii/njson/njson-boolean-p-test.scm	native-ffi	defer	R5-platform-extensions	port liii njson to native runtime primitives
+tests/liii/njson/njson-deep-merge-bang-test.scm	native-ffi	defer	R5-platform-extensions	port liii njson to native runtime primitives
+tests/liii/njson/njson-deep-merge-test.scm	native-ffi	defer	R5-platform-extensions	port liii njson to native runtime primitives
+tests/liii/njson/njson-format-string-test.scm	native-ffi	defer	R5-platform-extensions	port liii njson to native runtime primitives
+tests/liii/njson/njson-free-test.scm	native-ffi	defer	R5-platform-extensions	port liii njson to native runtime primitives
+tests/liii/njson/njson-merge-bang-test.scm	native-ffi	defer	R5-platform-extensions	port liii njson to native runtime primitives
+tests/liii/njson/njson-merge-test.scm	native-ffi	defer	R5-platform-extensions	port liii njson to native runtime primitives
+tests/liii/njson/njson-null-p-test.scm	native-ffi	defer	R5-platform-extensions	port liii njson to native runtime primitives
+tests/liii/njson/njson-object-p-test.scm	native-ffi	defer	R5-platform-extensions	port liii njson to native runtime primitives
+tests/liii/njson/njson-object-to-alist-test.scm	native-ffi	defer	R5-platform-extensions	port liii njson to native runtime primitives
+tests/liii/njson/njson-object-to-hash-table-test.scm	native-ffi	defer	R5-platform-extensions	port liii njson to native runtime primitives
+tests/liii/njson/njson-p-test.scm	native-ffi	defer	R5-platform-extensions	port liii njson to native runtime primitives
+tests/liii/njson/njson-schema-report-test.scm	native-ffi	defer	R5-platform-extensions	port liii njson to native runtime primitives
+tests/liii/njson/njson-to-file-test.scm	native-ffi	defer	R5-platform-extensions	port liii njson to native runtime primitives
+tests/liii/njson/njson-to-json-test.scm	native-ffi	defer	R5-platform-extensions	port liii njson to native runtime primitives
+tests/liii/njson/string-to-njson-test.scm	native-ffi	defer	R5-platform-extensions	port liii njson to native runtime primitives
+tests/liii/random-test.scm	random	defer	R5-random	implement native random-state primitives and SRFI-27 behavior
+tests/liii/random/make-random-source-test.scm	random	defer	R5-random	implement native random-state primitives and SRFI-27 behavior
+tests/liii/random/random-source-make-integers-test.scm	random	defer	R5-random	implement native random-state primitives and SRFI-27 behavior
+tests/liii/random/random-source-randomize-test.scm	random	defer	R5-random	implement native random-state primitives and SRFI-27 behavior
+tests/liii/random/random-source-state-ref-test.scm	random	defer	R5-random	implement native random-state primitives and SRFI-27 behavior
+tests/liii/random/random-source-state-set-test.scm	random	defer	R5-random	implement native random-state primitives and SRFI-27 behavior
+tests/liii/random/reproducibility-test.scm	random	defer	R5-random	implement native random-state primitives and SRFI-27 behavior
+tests/liii/subprocess/run-allow-bang-test.scm	native-ffi	defer	R5-platform-extensions	port liii subprocess to native runtime primitives
+tests/liii/subprocess/run-and-test.scm	native-ffi	defer	R5-platform-extensions	port liii subprocess to native runtime primitives
+tests/liii/subprocess/run-ban-bang-test.scm	native-ffi	defer	R5-platform-extensions	port liii subprocess to native runtime primitives
+tests/liii/subprocess/run-either-test.scm	native-ffi	defer	R5-platform-extensions	port liii subprocess to native runtime primitives
+tests/liii/subprocess/run-get-test.scm	native-ffi	defer	R5-platform-extensions	port liii subprocess to native runtime primitives
+tests/liii/subprocess/run-if-test.scm	native-ffi	defer	R5-platform-extensions	port liii subprocess to native runtime primitives
+tests/liii/subprocess/run-or-test.scm	native-ffi	defer	R5-platform-extensions	port liii subprocess to native runtime primitives
+tests/liii/subprocess/run-pipe-test.scm	native-ffi	defer	R5-platform-extensions	port liii subprocess to native runtime primitives
+tests/liii/subprocess/run-sequence-test.scm	native-ffi	defer	R5-platform-extensions	port liii subprocess to native runtime primitives
+tests/liii/subprocess/run-set-bang-test.scm	native-ffi	defer	R5-platform-extensions	port liii subprocess to native runtime primitives
+tests/liii/subprocess/run-test.scm	native-ffi	defer	R5-platform-extensions	port liii subprocess to native runtime primitives
+tests/liii/subprocess/run-values-test.scm	native-ffi	defer	R5-platform-extensions	port liii subprocess to native runtime primitives
+tests/liii/subprocess/run-when-test.scm	native-ffi	defer	R5-platform-extensions	port liii subprocess to native runtime primitives

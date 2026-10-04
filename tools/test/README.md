@@ -65,6 +65,12 @@ You can filter tests by:
 
 - Test files must end with `-test.scm`
 - The command returns exit code 0 if all tests pass, non-zero otherwise
+- Set `GOLDFISH_TEST_TIMEOUT=300` to bound each isolated file to 300 seconds
+  (including process startup). GNU `timeout` is required. Persistent worker
+  chunks receive the file limit multiplied by their size; incomplete chunks
+  fall back to individually bounded runs. A timeout remains a failed test,
+  never a skip. With this option, serial runs use subprocesses rather than
+  unbounded native forks. Unset preserves the existing behavior.
 
 ## Native runtime regressions
 

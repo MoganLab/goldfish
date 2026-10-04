@@ -1,0 +1,28 @@
+key	value
+source_commit	08354213587fd02eb068d5772b1d87a1c6145d92
+native_executable_sha256	5609d514a17d697e9ccab25a14b6fb02f7cb4aed542003a2aeb915eb10514e97
+driver_sha256	7e834d35f92a30339e5903b70760e405f8c37c4f6440f4bcdf06fa4e2fd05dde
+pipeline	v2b6793f0e7ce
+command	GOLDFISH_TEST_TIMEOUT=300 GOLDFISH_CACHE_DIR=<isolated cache> ./bin/gf test --all --jobs=8
+jobs	8
+native_worker_chunk	4
+isolated_timeout_seconds	300
+http_opt_in	unset
+historical_dispositions_commit	5d073a8e8f5bdff970141ef05b34b5a3e300fb3c
+historical_host_s7_baseline	1555 files passed before executable rename; not rerun
+driver_local_change	Bounded runner was a local modification during the run; driver_sha256 identifies the executed source
+started_utc	2026-10-04 15:12:31 UTC
+ended_utc	2026-10-04 18:04:40 UTC
+elapsed_seconds	10329
+exit_code	255
+total_files	1576
+passed_files	1445
+failed_files	131
+http_opt_in_files	9
+http_guarded_pass_files	8
+http_import_failure_files	1
+goldfish_tree	8d4c01b6fb06da2f950382850a88235719156a11
+runtime_tree	1cb56a61c3cd36b38e9fdd2fde92fddbcc0fe906
+transcript_sha256	ac995f4ee4bcf514574407e644e0d0fc69241afa1879a73a200046bcc2a612a1
+results_sha256	83f829fcd107240bac14778e1b8ee39f917071d99b6ce5fb1f9bb724f621517f
+discovery_sha256	f16781dfd5c91946e40b7daccb8c344366c5f7879c069081d43ac9deec162e98

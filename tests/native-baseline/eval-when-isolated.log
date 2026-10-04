@@ -1,0 +1,63 @@
+;;; note: tests/expander/eval-when-expand-test.scm could not be compiled; loading per form
+
+(pair? datum) => #t ; correct
+
+(datum-contains? datum 42) => #f ; *** failed ***
+; expected result: #t
+; stacktrace:
+[no stacktrace available]
+
+(datum-contains? datum 120) => #f ; *** failed ***
+; expected result: #t
+; stacktrace:
+[no stacktrace available]
+
+(datum-contains? datum 42) => #f ; *** failed ***
+; expected result: #t
+; stacktrace:
+[no stacktrace available]
+
+(catch (quote unbound-variable) (lambda () (compile-file-cached src4)) (lambda args (quote unbound-variable))) => unbound-variable ; correct
+
+(catch (quote unbound-variable) (lambda () (compile-file-cached src5)) (lambda args (quote unbound-variable))) => unbound-variable ; correct
+
+(datum-contains? datum 40) => #f ; *** failed ***
+; expected result: #t
+; stacktrace:
+[no stacktrace available]
+
+(datum-contains? (syntax->datum (compile-file-cached src7)) 1) => #t ; correct
+
+(datum-contains? datum 2) => #t ; correct
+
+(datum-contains? datum 1) => #f ; correct
+
+(datum-contains? (syntax->datum (compile-file-cached src8a)) 42) => #f ; *** failed ***
+; expected result: #t
+; stacktrace:
+[no stacktrace available]
+
+(datum-contains? (syntax->datum (compile-file-cached src8b)) 120) => #t ; correct
+
+(datum-contains? (syntax->datum (compile-file-cached src8a)) 42) => #f ; *** failed ***
+; expected result: #t
+; stacktrace:
+[no stacktrace available]
+
+(datum-contains? (syntax->datum (compile-file-cached src8a)) 120) => #f ; correct
+
+(catch (quote unbound-variable) (lambda () (compile-file-cached src9b)) (lambda args (quote unbound-variable))) => unbound-variable ; correct
+
+(datum-contains? datum 21) => #t ; correct
+
+(datum-contains? datum 200) => #t ; correct
+
+(datum-contains? (syntax->datum (compile-fresh tests/expander/resources/ewx-cross.scm)) 70) => #t ; correct
+
+(catch (quote unbound-variable) (lambda () (compile-file-cached src12)) (lambda args (quote unbound-variable))) => unbound-variable ; correct
+
+(catch (quote unbound-variable) (lambda () (compile-file-cached src12-lib)) (lambda args (quote unbound-variable))) => unbound-variable ; correct
+
+(datum-contains? (syntax->datum (compile-file-cached src13)) 8) => #t ; correct
+
+; *** checks *** : 15 correct, 6 failed.

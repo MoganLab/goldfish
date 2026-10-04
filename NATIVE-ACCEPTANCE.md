@@ -28,6 +28,65 @@ sh tools/check-native-manifest.sh
   affected test subset and this native workflow gate.
 - Full-suite runs are scheduled separately because of their cost.
 
+## Native full-suite baseline
+
+The completed native run on 2026-10-05 (Asia/Shanghai), at source revision
+`08354213`, discovered 1576 files: 1445 passed and 131 failed (exit 255).
+It ran from 15:12:31 to 18:04:40 UTC on October 4, taking 2h 52m 9s.
+The runtime binary stayed fixed; the locally modified bounded test driver is
+identified separately by its SHA-256 in
+[metadata.tsv](tests/native-baseline/metadata.tsv).
+
+The native full-suite record lives in `tests/native-baseline/`: the discovery
+manifest freezes the corpus, `results.tsv` links every verdict to the complete
+run transcript, and `dispositions.tsv` accounts for failures, environment
+guards and earlier migration decisions. The archived C3 table preserves the
+old decisions rather than treating them as current exclusions.
+
+[Results](tests/native-baseline/results.tsv) preserve the original verdicts.
+[Dispositions](tests/native-baseline/dispositions.tsv) account for all 131
+failures: 78 deferred repairs or test migrations and 53 exclusions for native
+njson handles, advanced subprocess capture, hooks and signature reflection.
+Fifteen earlier file-level exclusions/deferrals are retired after passing.
+Eight HTTP files passed their opt-out guards; a ninth failed on JSON import
+before reaching its guard. None establishes live HTTP coverage.
+
+The next repairs are usable `match`, JSON and R5RS re-export bindings;
+numeric association/membership equivalence; circular list traversal; missing
+Scheme operations and typed-vector families; fractional sleep and consistent
+error contracts. Legacy byte-index, callable-container and multiple-value
+splicing expectations have separate test-migration decisions. The existing
+19 R7RS semantic gaps remain tracked in their independent audit.
+
+Incomplete workers recovered through isolated runs. Million-element set
+construction and circular list conversion remained bounded failures. A large
+Unicode worker exhausted its chunk budget, but all four isolated files passed
+(7921 assertions); `char-alphabetic?` separately passed 2800 assertions while
+taking about 11 minutes in its worker. Profile loading and worker costs before
+treating a budget failure as evidence of an incorrect character predicate.
+The original transcript retains buffered/interleaved output as emitted;
+its final per-file summary supplies the authoritative verdicts.
+
+```sh
+GOLDFISH_CACHE_DIR=/tmp/goldfish-full-cache sh tools/warm-bootstrap-cache.sh
+GOLDFISH_CACHE_DIR=/tmp/goldfish-full-cache GOLDFISH_TEST_TIMEOUT=300 ./bin/gf test --all --jobs=8
+sh tools/check-native-baseline.sh
+```
+
+The timeout includes isolated process startup. Worker chunks receive the
+per-file limit multiplied by chunk size and fall back to individually bounded
+runs if incomplete. Timeouts are failures. `NATIVE-FOLLOWUPS.tsv` records
+ownership decisions; the full runner does not use it to suppress files.
+HTTP tests require `GOLDFISH_TEST_HTTP` and cannot count as live HTTP coverage
+when the variable is unset. The SimpleTex API assertions have a separate
+credential guard. This baseline covers discovered `tests/**/*-test.scm` files,
+not C++ targets, tests under `tools/`, or the separately named R7RS semantic
+audit corpus. Those gates retain their own evidence and known gaps.
+
+The historical host/S7 result of 1555 passing files belongs to the executable
+before native migration. It is not a result from this native run, and its
+corpus differs from the current discovery manifest.
+
 ## R7RS compatibility audit
 
 [R7RS-COMPATIBILITY.tsv](R7RS-COMPATIBILITY.tsv) follows the clause numbering

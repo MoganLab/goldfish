@@ -1,0 +1,2 @@
+;;; note: tests/scheme/r5rs-test.scm could not be compiled; loading per form
+thrown: unbound-variable "while loading tests/scheme/r5rs-test.scm form 14: unbound symbol: char-ci=?"

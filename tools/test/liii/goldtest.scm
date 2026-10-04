@@ -133,6 +133,21 @@
       (string-append (executable) " -m liii ")
     ) ;define
 
+    (define test-timeout-seconds
+      (let* ((v (get-environment-variable "GOLDFISH_TEST_TIMEOUT"))
+             (n (and v (string->number v))))
+        (if v
+          (if (and n (integer? n) (exact? n) (> n 0)) n
+            (error "GOLDFISH_TEST_TIMEOUT must be a positive integer"))
+          #f)))
+
+    (define (bounded-command command file-count)
+      (if test-timeout-seconds
+        (string-append "timeout --kill-after=5s "
+                       (number->string (* test-timeout-seconds file-count))
+                       "s " command)
+        command))
+
     (define (worker-extra-path-dir)
       ;; Raw dir form of worker-extra-path-args, for the fork runner
       ;; (which folds it into the parent load path itself).
@@ -154,9 +169,9 @@
     ) ;define
 
     (define (run-test-file test-file)
-      (let ((cmd (string-append (goldfish-cmd)
+      (let ((cmd (bounded-command (string-append (goldfish-cmd)
                                 (worker-extra-path-args)
-                                test-file)))
+                                test-file) 1)))
         (display "----------->")
         (newline)
         (display cmd)
@@ -166,6 +181,7 @@
                ;; a cold boot per file (COW pages; pristine parent snapshot
                ;; per child).  GOLDFISH_TEST_NO_FORK=1 forces the shell path.
                (result (if (and (defined? 'fork-test-file)
+                                (not test-timeout-seconds)
                                 (not (get-environment-variable
                                        "GOLDFISH_TEST_NO_FORK")))
                          (fork-test-file test-file
@@ -253,9 +269,9 @@
               (script (string-append
                         (string-join
                            (map (lambda (s)
-                                 (let ((core (string-append (shell-quote (executable))
+                                 (let ((core (string-append (bounded-command (string-append (shell-quote (executable))
                                                            " -m liii " (worker-extra-path-args)
-                                                           (shell-quote (car s))
+                                                           (shell-quote (car s))) 1)
                                                            " > " (shell-quote (cadr s))
                                                            " 2>&1")))
                                    (if timing-enabled?
@@ -442,11 +458,11 @@
 
     (define (worker-chunk-command files worker out)
       (string-append "GOLDFISH_CHECK_NO_EXIT=1 "
-                     (shell-quote (executable))
+                     (bounded-command (string-append (shell-quote (executable))
                      " -m liii " (worker-extra-path-args)
                      (shell-quote worker)
                      " -- "
-                     (string-join (map shell-quote files) " ")
+                     (string-join (map shell-quote files) " ")) (length files))
                      " > " (shell-quote out) " 2>&1"))
 
     (define (parse-worker-out out)

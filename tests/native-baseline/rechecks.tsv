@@ -1,0 +1,3 @@
+path	exit_code	evidence
+tests/expander/eval-when-expand-test.scm	255	tests/native-baseline/eval-when-isolated.log
+tests/scheme/r5rs-test.scm	1	tests/native-baseline/r5rs-isolated.log
