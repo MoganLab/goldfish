@@ -6,6 +6,8 @@
         (r7rs-audit state) (r7rs-audit provider) (r7rs-audit consumer)
         (prefix (r7rs-audit location-a) a-)
         (prefix (r7rs-audit location-b) b-)
+        (prefix (r7rs-audit macro-location-a) m-a-)
+        (prefix (r7rs-audit macro-location-b) m-b-)
         (rename (prefix (only (r7rs-audit facade)
                              facade-read facade-bump facade-counter hygienic-plus) audit-)
                 (audit-facade-read read-alias)
@@ -43,6 +45,13 @@
 (check (list a-counter b-counter) => '(11 101))
 (check (string-ends? "x-test.scm" "-test.scm") => #t)
 (check (string-ends? "x.scm" "-test.scm") => #f)
+
+;; Macro-introduced private helpers also belong to their consuming library.
+(check (list m-a-counter (m-a-read-counter) m-b-counter (m-b-read-counter))
+       => '(10 10 100 100))
+(m-a-bump!)
+(check (list m-a-counter (m-a-read-counter) m-b-counter (m-b-read-counter))
+       => '(11 11 100 100))
 
 (set! *load-path* audit-original-load-path)
 (check-report)

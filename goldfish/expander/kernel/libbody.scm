@@ -122,7 +122,7 @@
     ;; no-op (macro aliases have no runtime value).
     (let*-values (((vname vbinding) (resolve-identifier val-stx ctx)))
       (if (transformer-binding? vbinding)
-          (let*-values (((name ctx2) (context-alloc-name ctx id)))
+          (let*-values (((name ctx2) (context-alloc-name ctx (stx-set-library id lib))))
             (exp-library-define! lib (syntax-form id) vbinding)
             (values (cons name (datum->syntax val-stx void-expr))
                     (context-extend-env ctx2 name vbinding)))
@@ -134,7 +134,8 @@
                  (val-stx (if (and scp-i (memq scp-i (syntax-scopes val-stx ph)))
                               (stx-flip-scope val-stx scp-i ph)
                               val-stx)))
-            (let*-values (((name ctx) (context-alloc-name ctx id))
+            ;; Macro-introduced storage belongs to the consuming library.
+            (let*-values (((name ctx) (context-alloc-name ctx (stx-set-library id lib)))
                           ((ctx) (context-bind ctx id name))
                           ((ref) (make-toplevel-ref name lib (syntax-form id) #f))
                           ((ctx) (context-extend-env ctx name (make-toplevel-binding ref))))
@@ -147,7 +148,7 @@
          (transformer-stx (caddr form)))
     (let*-values (((proc ctx macro-sexp) (eval-transformer transformer-stx ctx)))
       (collect-macro-record! (syntax-form id) macro-sexp)
-      (let*-values (((name ctx) (context-alloc-name ctx id)))
+      (let*-values (((name ctx) (context-alloc-name ctx (stx-set-library id lib))))
         (exp-library-define! lib (syntax-form id) (make-transformer-binding proc))
         (values (context-extend-env (context-bind ctx id name)
                                     name

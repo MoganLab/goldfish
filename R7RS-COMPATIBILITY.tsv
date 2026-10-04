@@ -33,7 +33,7 @@ clause	area	status	evidence	boundary
 4.2.7	Exception handling	partial	tests/r7rs/gaps/continuable-exception.scm	Continuable handler return aborts protected computation.
 4.2.8	Quasiquotation	inventory	tests/expander/quasisyntax-test.scm	Quasisyntax coverage is related evidence; datum quasiquote needs dedicated audit.
 4.2.9	Case-lambda	audited	tests/r7rs/tail-context-test.scm	Mutually recursive case-lambda tail path exercised; not all arity cases.
-4.3	Macro hygiene	partial	tests/r7rs/macro-hygiene-test.scm,tests/r7rs/gaps/macro-private-location.scm	Local hygiene passes; macro-introduced private top-level names can collide between consuming libraries.
+4.3	Macro hygiene	audited	tests/r7rs/macro-hygiene-test.scm,tests/r7rs/library-loading-test.scm	Local binders, definition-site references and macro-introduced private top-level locations remain isolated between libraries.
 4.3.1	Binding syntactic keywords	audited	tests/r7rs/macro-hygiene-test.scm	let-syntax outer transformer scope and letrec-syntax mutual scope.
 4.3.2	Pattern language	partial	tests/r7rs/macro-hygiene-test.scm,tests/r7rs/gaps/custom-ellipsis-variable.scm	Empty nested ellipsis fixed; custom marker still mishandles ordinary ... pattern variable.
 4.3.3	Signaling macro errors	inventory	tests/expander/macro-error-test.scm	Existing error suite identified; no complete clause audit.

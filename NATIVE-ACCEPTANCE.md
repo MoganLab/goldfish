@@ -58,9 +58,9 @@ Known failures remain separate, standard-expected probes:
 sh tools/test-r7rs-audit.sh --gaps
 ```
 
-This command currently returns nonzero. Its nine probes cover continuable
+This command currently returns nonzero. Its eight probes cover continuable
 exceptions, parameter restoration, ordinary `...` under a custom ellipsis
-marker, macro-introduced private library locations, numeric library names, `include-ci`,
+marker, numeric library names, `include-ci`,
 `include-library-declarations`, declaration-level `cond-expand`, and
 `cond-expand` library availability requirements. They are neither passing
 coverage nor CI skips. Library order checks require dependencies to precede
@@ -74,6 +74,5 @@ Follow-up priorities from the audit:
 2. Normalize library declarations before body expansion, including declaration
    splicing, case-folded includes and numeric name components; support library
    requirements in `cond-expand`.
-3. Assign macro-introduced private definitions to their consuming library,
-   preserve ordinary `...` identifiers when another ellipsis marker is selected,
+3. Preserve ordinary `...` identifiers when another ellipsis marker is selected,
    and validate bootstrap cache freshness before loading a complete cache.
