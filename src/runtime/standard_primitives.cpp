@@ -2105,18 +2105,12 @@ void install_runtime_primitives(Evaluator& evaluator) {
             tolerance.numerator = -tolerance.numerator;
         const bool inexact_input = !number_value(args[0]).is_exact() ||
             (args.size() == 2 && !number_value(args[1]).is_exact());
-        RealNumber lower, upper;
-        if (inexact_input) {
-            const double center = x.to_double();
-            const double width = tolerance.to_double();
-            lower = exact_from_double(center - width);
-            upper = exact_from_double(center + width);
-        } else {
-            lower = rational_subtract(x, tolerance);
-            upper = rational_add(x, tolerance);
-        }
+        RealNumber lower = rational_subtract(x, tolerance);
+        RealNumber upper = rational_add(x, tolerance);
         RealNumber result = simplest_rational(std::move(lower),
                                               std::move(upper));
+        if (inexact_input)
+            return Values{evaluator.number(Number::inexact(result.to_double()))};
         return Values{evaluator.number(Number::complex(
             std::move(result), RealNumber::exact(BigInteger(0))))};
     });

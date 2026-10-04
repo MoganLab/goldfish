@@ -387,10 +387,15 @@ std::string RealNumber::to_string(unsigned radix) const {
 }
 int compare(const RealNumber& a, const RealNumber& b) {
     if (a.inexact || b.inexact) {
-        double x = a.to_double(), y = b.to_double();
-        if (std::isnan(x) || std::isnan(y)) return 0;
-        if (std::isinf(x) || std::isinf(y))
+        double x = a.inexact_value, y = b.inexact_value;
+        if ((a.inexact && std::isnan(x)) ||
+            (b.inexact && std::isnan(y))) return 0;
+        const bool infinite_x = a.inexact && std::isinf(x);
+        const bool infinite_y = b.inexact && std::isinf(y);
+        if (infinite_x && infinite_y)
             return x < y ? -1 : x > y ? 1 : 0;
+        if (infinite_x) return x < 0 ? -1 : 1;
+        if (infinite_y) return y < 0 ? 1 : -1;
         RealNumber exact_x = a.inexact ? exact_from_double(x) : a;
         RealNumber exact_y = b.inexact ? exact_from_double(y) : b;
         return compare(exact_x, exact_y);
