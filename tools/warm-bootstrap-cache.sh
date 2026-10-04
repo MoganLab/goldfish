@@ -37,14 +37,10 @@ fi
 # Ask this binary for its content-addressed directory.  A different version
 # can contain all required filenames while still being stale for this binary.
 complete_dir=$(GOLDFISH_CACHE_DIR="$cache_root" GOLDFISH_OPT_LEVEL=2 \
-    bin/gf -m liii -e '(gfo-dir)' | sed 's/^"//; s/"$//')
+    bin/gf --bootstrap-cache-directory)
 
 find_complete() {
-    [ -n "$complete_dir" ] || return 1
-    for artifact in $required; do
-        [ -f "$complete_dir/$artifact" ] || return 1
-    done
-    return 0
+    GOLDFISH_CACHE_DIR="$cache_root" bin/gf --check-bootstrap-cache >/dev/null 2>&1
 }
 
 report_missing() {
@@ -67,7 +63,7 @@ if ! find_complete; then
         bin/gf -m liii -e \
         '(compile-file-cached "tests/native/native-workflow.scm")' >/dev/null
     temp_dir=$(GOLDFISH_CACHE_DIR="$temp_cache" GOLDFISH_OPT_LEVEL=2 \
-        bin/gf -m liii -e '(gfo-dir)' | sed 's/^"//; s/"$//')
+        bin/gf --bootstrap-cache-directory)
     complete=1
     for artifact in $required; do
         if [ ! -f "$temp_dir/$artifact" ]; then

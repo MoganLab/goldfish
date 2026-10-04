@@ -39,3 +39,4 @@ tests/liii/subprocess/run-set-bang-test.scm	platform	exclude	Test runner has pro
 tests/liii/subprocess/run-test.scm	platform	exclude	Test runner has process workers; generic Scheme API is out of scope
 tests/liii/subprocess/run-values-test.scm	platform	exclude	Test runner has process workers; generic Scheme API is out of scope
 tests/liii/subprocess/run-when-test.scm	platform	exclude	Test runner has process workers; generic Scheme API is out of scope
+tests/expander/lib-cache-all-libs-test.scm	compat	defer	Audit missing match/json-set* export bindings and consumers; identical eight library failures reproduced at 1070cfa2

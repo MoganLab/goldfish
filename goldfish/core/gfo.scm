@@ -38,8 +38,8 @@
 
 (define (gfo-scm-files rel)
   ;; .scm names directly under REL, sorted (directory order is unstable).
-  (let* ((base (car (g_load-path)))
-         (v (catch #t (lambda () (g_listdir (string-append base "/" rel))) (lambda args #f))))
+  (let* ((directory (gfo-locate rel))
+         (v (catch #t (lambda () (g_listdir directory)) (lambda args #f))))
     (if (vector? v)
       (gfo-sort-strings
         (let loop ((i (- (vector-length v) 1)) (acc '()))
@@ -73,6 +73,8 @@
     (append
       (list "core/gfo.scm" "core/ir.scm"
             "liii/prelude.scm" "liii/reader.scm"
+            "expander/bootstrap-prelude.scm"
+            "scheme/base.scm" "scheme/case-lambda.scm"
             "expander/kernel-combined.scm" "compiler.scm"
             "expander/tree-il.scm")
       (map (lambda (n) (string-append "expander/lib/" n)) (gfo-scm-files "expander/lib"))
@@ -171,17 +173,22 @@
 ;;; #(...) vectors) and GC-protects its accumulating lists; objects it
 ;;; builds evaluate identically to the pure-Scheme reader's.
 (define (gfo-read-datum file)
-  (let ((p (open-input-file file)))
+  (call-with-input-file file (lambda (p)
     (if (and (defined? 'g-tiny-read) (procedure? g-tiny-read))
-      (g-tiny-read p)
-      (car (read-forms p)))))
+      (let ((record (g-tiny-read p)))
+        (if (and (not (eof-object? record)) (eof-object? (g-tiny-read p)))
+          record
+          (error "cache must contain one record" file)))
+      (let ((forms (read-forms p)))
+        (if (and (pair? forms) (null? (cdr forms))) (car forms)
+          (error "cache must contain one record" file)))))))
 
 ;; gfo-envelope-ok? : record stamp -> bool
 ;; The envelope half of cache validation -- shape, format version, source
 ;; stamp -- shared by every validity gate (gfo-valid?, gfo-load, and the
 ;; dep-fingerprint gate in lib/install.scm).
 (define (gfo-envelope-ok? rec stamp)
-  (and (pair? rec) (eq? (car rec) 'gfo)
+  (and (list? rec) (<= 4 (length rec) 5) (eq? (car rec) 'gfo)
        (equal? (cadr rec) gfo-format-version)
        (equal? (caddr rec) stamp)))
 
@@ -205,7 +212,8 @@
 ;; returns the whole (gfo version stamp payload extra) form, unchecked.
 (define (gfo-load-record gfo-file)
   (and (file-exists? gfo-file)
-       (gfo-read-datum gfo-file)))
+       (catch #t (lambda () (gfo-read-datum gfo-file))
+         (lambda args #f))))
 
 ;; gfo-write! : gfo-file stamp payload [extra] -> bool
 ;; `extra' (when given) is stored as the record's fifth field; readers that

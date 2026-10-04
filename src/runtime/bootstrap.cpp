@@ -3,6 +3,7 @@
 #include "runtime/bootstrap_primitives.hpp"
 #include "runtime/debug_flags.hpp"
 #include "runtime/standard_primitives.hpp"
+#include "runtime/reader.hpp"
 
 #include <cstdlib>
 #include <array>
@@ -10,6 +11,9 @@
 #include <filesystem>
 #include <stdexcept>
 #include <vector>
+#include <algorithm>
+#include <fstream>
+#include <iterator>
 
 #if defined(__unix__) || defined(__APPLE__)
 #include <sys/resource.h>
@@ -62,48 +66,137 @@ fs::path cache_root_from_environment() {
     return fs::path(".goldfish-native-cache");
 }
 
-bool has_native_bootstrap_artifacts(const fs::path& root) {
-    std::error_code error;
-    for (const char* relative : native_bootstrap_artifacts) {
-        if (!fs::is_regular_file(root / relative, error)) {
-            error.clear();
-            return false;
-        }
-    }
-    return true;
+Value call(Evaluator& evaluator, const char* name, const Values& args = {}) {
+    return evaluator.apply_values(evaluator.eval(evaluator.symbol(name)), args)[0];
 }
 
-fs::path find_cache_version(fs::path root) {
-    std::error_code error;
-    if (has_native_bootstrap_artifacts(root)) return root;
-    fs::path selected;
-    fs::file_time_type selected_time{};
-    if (!fs::is_directory(root, error)) return {};
-    for (const fs::directory_entry& entry : fs::directory_iterator(root, error)) {
-        if (error) break;
-        if (!has_native_bootstrap_artifacts(entry.path())) {
-            error.clear();
-            continue;
+std::vector<Value> list_values(Value value) {
+    std::vector<Value> result;
+    while (!value.is_null()) {
+        if (!value.is_object() || value.as_object()->type() != ObjectType::Pair)
+            throw std::runtime_error("native bootstrap cache: expected proper list");
+        auto* pair = value.as_object<PairObject>();
+        result.push_back(pair->car);
+        value = pair->cdr;
+    }
+    return result;
+}
+
+bool named(Value value, const char* name) {
+    return value.is_object() && value.as_object()->type() == ObjectType::Symbol &&
+           value.as_object<SymbolObject>()->name == name;
+}
+
+fs::path locate(Evaluator& evaluator, const std::string& relative) {
+    for (Value directory : list_values(call(evaluator, "g_load-path"))) {
+        fs::path path = fs::path(evaluator.string_value(directory)) / relative;
+        if (fs::exists(path)) return path;
+    }
+    return relative;
+}
+
+std::string file_hash(Evaluator& evaluator, const char* primitive, const fs::path& path) {
+    Value hash = call(evaluator, primitive, {evaluator.string(path.string())});
+    return hash.is_boolean() ? "-" : evaluator.string_value(hash);
+}
+
+std::string cache_version(Evaluator& evaluator) {
+    // Keep the pipeline inputs identical to core/gfo.scm.
+    std::vector<std::string> files = {
+        "core/gfo.scm", "core/ir.scm", "liii/prelude.scm", "liii/reader.scm",
+        "expander/bootstrap-prelude.scm", "scheme/base.scm", "scheme/case-lambda.scm",
+        "expander/kernel-combined.scm", "compiler.scm", "expander/tree-il.scm"
+    };
+    for (const char* directory : {"expander/lib", "compiler"}) {
+        std::vector<std::string> entries;
+        std::error_code error;
+        fs::path path = locate(evaluator, directory);
+        for (const auto& entry : fs::directory_iterator(path, error)) {
+            if (entry.path().extension() == ".scm")
+                entries.push_back(std::string(directory) + "/" + entry.path().filename().string());
         }
-        fs::file_time_type time{};
-        bool readable = true;
-        for (const char* relative : native_bootstrap_artifacts) {
-            const auto artifact_time =
-                fs::last_write_time(entry.path() / relative, error);
-            if (error) {
-                error.clear();
-                readable = false;
-                break;
+        if (error) throw std::runtime_error("native bootstrap cache: unreadable pipeline directory");
+        std::sort(entries.begin(), entries.end());
+        files.insert(files.end(), entries.begin(), entries.end());
+    }
+    std::string input = "runtime:" + file_hash(evaluator, "g_sha256-by-file",
+        evaluator.string_value(call(evaluator, "g_executable"))) + ";";
+    for (const auto& file : files)
+        input += file + ":" + file_hash(evaluator, "g_sha256-by-file", locate(evaluator, file)) + ";";
+    return "v" + evaluator.string_value(call(evaluator, "g_sha256", {evaluator.string(input)})).substr(0, 12);
+}
+
+std::vector<Value> source_stamp(Evaluator& evaluator, const fs::path& source) {
+    if (!fs::is_regular_file(source))
+        throw std::runtime_error("native bootstrap cache: missing source " + source.string());
+    Value path = evaluator.string(source.string());
+    return {call(evaluator, "g_path-getmtime", {path}),
+            call(evaluator, "g_path-getsize", {path}),
+            call(evaluator, "g_md5-by-file", {path})};
+}
+
+void validate_artifact(Evaluator& evaluator, const fs::path& artifact,
+                       const std::string& relative) {
+    std::ifstream stream(artifact);
+    if (!stream) throw std::runtime_error("missing artifact " + artifact.string());
+    std::string contents((std::istreambuf_iterator<char>(stream)), {});
+    TinyReader reader(evaluator, std::move(contents));
+    auto record = reader.read();
+    if (!record || reader.read()) throw std::runtime_error("expected one gfo record");
+    auto fields = list_values(*record);
+    if (fields.size() < 4 || fields.size() > 5 || !named(fields[0], "gfo") ||
+        !equal(fields[1], Value::integer(0)))
+        throw std::runtime_error("unsupported gfo envelope");
+    auto stamp = source_stamp(evaluator, locate(evaluator, relative));
+    auto kernel = source_stamp(evaluator, locate(evaluator, "expander/kernel-combined.scm"));
+    stamp.insert(stamp.end(), kernel.begin(), kernel.end());
+    stamp.push_back(evaluator.symbol("engine-abi"));
+    stamp.push_back(Value::integer(1));
+    if (!equal(fields[2], evaluator.list(stamp))) throw std::runtime_error("stale source stamp");
+    auto bundle = list_values(fields[3]);
+    if (bundle.size() < 4 || !named(bundle[0], "bundle") ||
+        !equal(bundle[1], Value::integer(1)) ||
+        !(named(bundle[2], "module") || named(bundle[2], "libraries")))
+        throw std::runtime_error("malformed bootstrap bundle");
+    bool defs = false, macros = false, bindings = false, libraries = false;
+    for (std::size_t i = 3; i < bundle.size(); ++i) {
+        auto section = list_values(bundle[i]);
+        if (section.empty()) throw std::runtime_error("empty bundle section");
+        defs |= named(section[0], "defs");
+        macros |= named(section[0], "macros");
+        bindings |= named(section[0], "bindings");
+        libraries |= named(section[0], "libs");
+    }
+    if ((named(bundle[2], "module") && !(defs && macros && bindings)) ||
+        (named(bundle[2], "libraries") && !libraries))
+        throw std::runtime_error("incomplete bootstrap bundle");
+    if (fields.size() == 5 && !(fields[4].is_boolean() && !fields[4].as_boolean())) {
+        for (Value dependency : list_values(fields[4])) {
+            if (!dependency.is_object() || dependency.as_object()->type() != ObjectType::Pair)
+                throw std::runtime_error("invalid dependency stamp");
+            auto* pair = dependency.as_object<PairObject>();
+            const bool external = named(pair->cdr, "external");
+            auto stored = external ? std::vector<Value>{pair->car, pair->cdr} : list_values(dependency);
+            if (stored.size() < 2) throw std::runtime_error("invalid dependency stamp");
+            std::string source;
+            for (Value part : list_values(stored[0])) {
+                if (!part.is_object() || part.as_object()->type() != ObjectType::Symbol)
+                    throw std::runtime_error("invalid dependency name");
+                if (!source.empty()) source += '/';
+                source += part.as_object<SymbolObject>()->name;
             }
-            if (artifact_time > time) time = artifact_time;
-        }
-        if (!readable) continue;
-        if (selected.empty() || time > selected_time) {
-            selected = entry.path();
-            selected_time = time;
+            source += ".scm";
+            auto path = locate(evaluator, source);
+            if (external) {
+                if (fs::exists(path)) throw std::runtime_error("external dependency gained a source");
+            } else {
+                auto current = source_stamp(evaluator, path);
+                current.insert(current.begin(), stored[0]);
+                if (!equal(dependency, evaluator.list(current)))
+                    throw std::runtime_error("stale dependency " + source);
+            }
         }
     }
-    return selected;
 }
 
 } // namespace
@@ -150,13 +243,33 @@ Value NativeBootstrap::load_kernel(const std::string& path) {
     return result;
 }
 
-void NativeBootstrap::load_cached_runtime(const std::string& cache_root) {
+std::string NativeBootstrap::cache_directory(const std::string& cache_root) {
     const fs::path root = cache_root.empty() ? cache_root_from_environment()
                                              : fs::path(cache_root);
-    const fs::path version = find_cache_version(root);
-    if (version.empty())
+    const std::string tag = cache_version(runtime_.evaluator());
+    return (root.filename() == tag ? root : root / tag).string();
+}
+
+std::string NativeBootstrap::validate_cached_runtime(const std::string& cache_root) {
+    const fs::path version = cache_directory(cache_root);
+    if (!fs::is_directory(version))
         throw std::runtime_error("native bootstrap cache not found under " +
-                                 root.string());
+                                 version.string());
+    for (const char* artifact : native_bootstrap_artifacts) {
+        std::string source = artifact;
+        source.resize(source.size() - std::string("-o2.gfo").size());
+        try {
+            validate_artifact(runtime_.evaluator(), version / artifact, source);
+        } catch (const std::exception& error) {
+            throw std::runtime_error("native bootstrap cache " + (version / artifact).string() +
+                                     ": " + error.what());
+        }
+    }
+    return version.string();
+}
+
+void NativeBootstrap::load_cached_runtime(const std::string& cache_root) {
+    const fs::path version = validate_cached_runtime(cache_root);
 
     // This order is the dependency order of the current bootstrap chain.
     // It is deliberately kept here, next to the native bootstrap boundary;

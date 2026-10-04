@@ -14,6 +14,10 @@ int main(int argc, char** argv) {
   try {
     setenv("GOLDFISH_NATIVE_ARTIFACTS", "1", 1);
     bootstrap.install_primitives();
+    // This harness deliberately replays the CLI's prebuilt artifacts.
+    runtime.evaluator().define_primitive("g_executable", [&runtime](const Values&) {
+      return Values{runtime.evaluator().string("bin/gf")};
+    });
     for (const char* name : {"rootlet", "inlet", "with-let", "*s7*"}) {
       bool absent = false;
       try {

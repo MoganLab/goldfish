@@ -582,6 +582,14 @@ int main(int argc, char** argv) {
         };
         NativeBootstrap bootstrap(runtime);
         bootstrap.install_primitives();
+        if (argc == 2 && std::string(argv[1]) == "--bootstrap-cache-directory") {
+            std::cout << bootstrap.cache_directory() << '\n';
+            return 0;
+        }
+        if (argc == 2 && std::string(argv[1]) == "--check-bootstrap-cache") {
+            std::cout << bootstrap.validate_cached_runtime() << '\n';
+            return 0;
+        }
         stage("install-primitives");
         bootstrap.load_kernel("goldfish/expander/kernel-combined.scm");
         stage("load-kernel");

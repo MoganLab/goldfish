@@ -19,6 +19,9 @@ public:
     // cache. The default is the native-ccache under the usual XDG/home cache
     // root; GOLDFISH_CACHE_DIR relocates it, matching the Scheme cache layer.
     void load_cached_runtime(const std::string& cache_root = {});
+    // Preflight the entire cache before any artifact mutates the runtime.
+    std::string validate_cached_runtime(const std::string& cache_root = {});
+    std::string cache_directory(const std::string& cache_root = {});
     void load_cached_base_runtime();
     void install_source_expander();
     void install_expansion_helpers();

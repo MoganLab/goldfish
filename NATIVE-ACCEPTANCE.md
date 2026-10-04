@@ -47,8 +47,8 @@ sh tools/test-r7rs-audit.sh
 
 The gate checks matrix paths, executes native continuation-frame and eval-machine
 checks, and runs the seven-file corpus with both cold and warm bootstrap.
-It always uses a fresh isolated cache: the current native bootstrap can select
-an older complete version after source edits. A successful loop alone does not
+It uses a fresh isolated cache to exercise source bootstrap, then replays that
+cache warm. A successful loop alone does not
 establish proper tail recursion; native tests also compare continuation frame
 counts at different recursion depths, including promise forwarding.
 
@@ -71,8 +71,29 @@ Follow-up priorities from the audit:
 1. Normalize library declarations before body expansion, including declaration
    splicing, case-folded includes and numeric name components; support library
    requirements in `cond-expand`.
-2. Preserve ordinary `...` identifiers when another ellipsis marker is selected,
-   and validate bootstrap cache freshness before loading a complete cache.
+2. Preserve ordinary `...` identifiers when another ellipsis marker is selected.
+
+Native bootstrap selects the current content-addressed pipeline directory,
+including runtime executable bytes and bootstrap sources. It validates every
+required artifact's envelope, source/kernel stamp and recorded dependency
+stamps before loading any cached library, including the deferred base library.
+An invalid cache falls back to source bootstrap. Truncated or multi-record
+cache files are cache misses and can be rebuilt automatically.
+
+`./bin/gf --bootstrap-cache-directory` prints the current cache directory without
+bootstrapping Scheme libraries. `./bin/gf --check-bootstrap-cache` validates it
+and returns nonzero for a stale, incomplete or malformed cache. The warming
+tool uses these checks and rebuilds invalid caches in isolation. The native
+gate includes `tests/runtime/native-cache-test.cpp` and
+`tools/test-bootstrap-cache.sh`, covering content changes with preserved file
+size/time, missing dependencies, runtime changes, fingerprint parity and
+automatic recovery from a damaged deferred base artifact.
+
+The broader `tests/expander/lib-cache-all-libs-test.scm` probe currently loads
+107 of 115 libraries. Eight failures involving `match`, JSON exports and
+their consumers were reproduced on the pre-fix `1070cfa2` baseline as well.
+This probe remains failing; the bootstrap freshness gate does not certify
+all extension-library loading.
 
 The numeric extension gate uses `./bin/gf test tests/liii/bitwise/` and
 `./bin/gf test tests/srfi/srfi-151-test.scm`. It checks all 39 SRFI 151

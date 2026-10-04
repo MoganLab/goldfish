@@ -99,4 +99,4 @@ A.time	(scheme time)	inventory	goldfish/scheme/time.scm	Library source present; 
 A.write	(scheme write)	inventory	goldfish/scheme/write.scm	Library source present; complete standard export set and per-procedure conformance not audited.
 A.r5rs	(scheme r5rs)	inventory	goldfish/scheme/r5rs.scm	Library source present; complete standard export set and per-procedure conformance not audited.
 B	Standard feature identifiers	partial	goldfish/expander/lib/cond-expand.scm,tests/r7rs/gaps/library-feature.scm	r7rs feature present; library availability requirements are unsupported.
-implementation.cache	Bootstrap cache freshness	partial	src/runtime/bootstrap.cpp,tools/test-r7rs-audit.sh	Newest complete cache may mask edited sources; audit isolates fresh cache and then replays it warm.
+implementation.cache	Bootstrap cache freshness	audited	tests/runtime/native-cache-test.cpp,tools/test-bootstrap-cache.sh	Current pipeline identity plus all source, kernel and dependency stamps checked before artifact replay; malformed cache records recover through source bootstrap.

@@ -15,6 +15,10 @@ int main() {
         NativeBootstrap bootstrap(runtime);
         setenv("GOLDFISH_NATIVE_ARTIFACTS", "1", 1);
         bootstrap.install_primitives();
+        // This fixture deliberately replays artifacts compiled by bin/gf.
+        runtime.evaluator().define_primitive("g_executable", [&runtime](const Values&) {
+            return Values{runtime.evaluator().string("bin/gf")};
+        });
         bootstrap.load_kernel("goldfish/expander/kernel-combined.scm");
         bootstrap.load_cached_runtime();
 
@@ -24,6 +28,11 @@ int main() {
         evaluator.apply_values(
             load_source, {evaluator.string("expander/lib/install.scm")});
         bootstrap.install_expansion_helpers();
+        for (const char* source : {"expander/lib/base-functions.scm",
+                                   "expander/lib/native-hash-adapter.scm",
+                                   "expander/lib/native-abi.scm"})
+            evaluator.apply_values(load_source, {evaluator.string(source)});
+        bootstrap.load_cached_base_runtime();
 
         Value compile_file = evaluator.eval(evaluator.symbol("compile-file"));
         Value lowered =

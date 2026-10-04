@@ -12,8 +12,7 @@ xmake build gf-native
 xmake build native-evaluator-test
 ./bin/native-evaluator-test
 
-# A previously complete cache can hide source changes during bootstrap.
-# Always start this audit in isolation, then replay the same corpus warm.
+# Exercise source bootstrap in isolation, then replay the same corpus warm.
 audit_root=$(mktemp -d "${TMPDIR:-/tmp}/goldfish-r7rs-audit.XXXXXX")
 trap 'rm -rf "$audit_root"' EXIT HUP INT TERM
 export GOLDFISH_CACHE_DIR="$audit_root/ccache"
