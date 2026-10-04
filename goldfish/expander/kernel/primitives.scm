@@ -103,7 +103,7 @@
      call-with-input-string call-with-output-string
      reverse! format
      any every fold filter proper-list? iota
-     ash logand logior lognot logxor integer-length
+     ash logand logior lognot logxor integer-length bit-count
      getenv
      set set=? set<=? set-fold set-remove set-union
      char-position string-position

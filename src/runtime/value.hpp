@@ -104,7 +104,7 @@ private:
     ValueKind kind_ = ValueKind::Null;
     union {
         bool boolean_;
-        std::int64_t integer_;
+        std::int64_t integer_ = 0;
         Object* object_;
     };
 };

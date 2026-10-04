@@ -1,10 +1,11 @@
 #include "runtime/bootstrap.hpp"
+#include "runtime/reader.hpp"
 
-#include <cassert>
 #include <cstdlib>
 #include <exception>
 #include <iostream>
 #include <string>
+#include <stdexcept>
 
 using namespace goldfish::runtime;
 
@@ -31,7 +32,25 @@ int main() {
                     compile_file,
                     {evaluator.string(
                         "tests/runtime/fixtures/native-srfi13-program.scm")})[0];
-        assert(evaluator.string_value(evaluator.eval(lowered)) == "a,b");
+        if (evaluator.string_value(evaluator.eval(lowered)) != "a,b")
+            throw std::runtime_error("compiled SRFI 13 program returned an incorrect result");
+        evaluator.collect();
+        const std::size_t before = evaluator.heap().allocated();
+        Value payload = Value::null();
+        for (std::size_t i = 0; i < 4096; ++i)
+            payload = evaluator.pair(Value::integer(0), payload);
+        evaluator.global_environment()->define(evaluator.symbol("scale-payload"), payload);
+        TinyReader retention_reader(evaluator,
+            "(begin (define scale-module (make-module '(scale-module))) "
+            "(module-define! scale-module 'payload scale-payload) "
+            "(%eval-environment-link! (module-eval-environment scale-module) 'payload "
+            "(%current-eval-environment) 'scale-payload) "
+            "(set! scale-payload #f))");
+        evaluator.eval(*retention_reader.read());
+        evaluator.collect();
+        if (evaluator.heap().allocated() > before + 128)
+            throw std::runtime_error("module metadata retains replaced export values: " +
+                                     std::to_string(evaluator.heap().allocated() - before));
     } catch (const std::exception& error) {
         // Fail with a message instead of an uncaught exception aborting the
         // gate with a core dump.

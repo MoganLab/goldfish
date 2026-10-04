@@ -16,6 +16,8 @@
 
 (define-library (srfi srfi-151)
   (import (only (goldfish) lognot logand logior logxor ash) (scheme base))
+  (import (rename (only (goldfish) bit-count integer-length)
+                  (bit-count native-bit-count) (integer-length native-integer-length)))
   (export bitwise-not bitwise-and bitwise-ior bitwise-xor bitwise-eqv
           bitwise-nor bitwise-nand bitwise-orc1 bitwise-orc2
           bitwise-andc1 bitwise-andc2 arithmetic-shift bit-count
@@ -61,14 +63,9 @@
     (define (bitwise-andc2 i j) (logand i (lognot j)))
 
     (define (bit-count i)
-      (check-integer i)
-      (let loop ((value (if (negative? i) (lognot i) i)) (count 0))
-        (if (zero? value) count
-          (loop (logand value (- value 1)) (+ count 1)))))
+      (native-bit-count i))
     (define (integer-length i)
-      (check-integer i)
-      (let loop ((value (if (negative? i) (lognot i) i)) (count 0))
-        (if (zero? value) count (loop (ash value -1) (+ count 1)))))
+      (native-integer-length i))
     (define (bitwise-if mask i j)
       (logior (logand mask i) (logand (lognot mask) j)))
     (define (bit-set? index i)
@@ -100,8 +97,11 @@
     (define (bit-field-set i start end)
       (logior i (ash (field-mask start end) start)))
     (define (bit-field-replace dest source start end)
-      (let ((mask (ash (field-mask start end) start)))
-        (bitwise-if mask (ash source start) dest)))
+      (let ((mask (field-mask start end)))
+        (check-integer dest)
+        (check-integer source)
+        (if (zero? mask) dest
+          (bitwise-if (ash mask start) (ash source start) dest))))
     (define (bit-field-replace-same dest source start end)
       (bitwise-if (ash (field-mask start end) start) source dest))
     (define (bit-field-rotate i count start end)

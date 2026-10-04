@@ -194,14 +194,11 @@
   (module-slot m 2))
 
 (define (module-binding m name)
-  (assq name (module-slot m 4)))
+  (and (memq name (module-exports m))
+       (cons name (eval-environment-ref (module-eval-environment m) name))))
 
 (define (module-define! m name value)
-  (let ((binding (module-binding m name)))
-    (if binding
-      (set-cdr! binding value)
-      (module-set-slot! m 4
-                        (cons (cons name value) (module-slot m 4)))))
+  ;; The environment owns each location; metadata must not retain old values.
   (eval-environment-define! (module-eval-environment m) name value)
   (unless (memq name (module-slot m 2))
     (module-set-slot! m 2 (cons name (module-slot m 2))))

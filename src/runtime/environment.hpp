@@ -53,10 +53,14 @@ public:
             auto found = env->bindings_.find(symbol_key(source_name));
             if (found == env->bindings_.end()) continue;
             Binding& binding = found->second;
-            if (!binding.location)
+            if (!binding.location) {
                 binding.location = std::make_shared<Value>(binding.value);
+                binding.value = Value::unspecified();
+            }
             auto location = binding.location;
-            bindings_[symbol_key(name)].location = std::move(location);
+            Binding& target = bindings_[symbol_key(name)];
+            target.location = std::move(location);
+            target.value = Value::unspecified();
             return;
         }
         throw UnboundSymbolError("cannot link unbound symbol: " + symbol_name(source_name));

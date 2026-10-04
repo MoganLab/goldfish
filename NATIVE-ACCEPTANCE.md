@@ -83,3 +83,23 @@ is an extension rather than a requirement of R7RS-small.
 Run `./bin/gf benchmarks/bitwise-scale.scm 4096` for repeated monotonic
 timings with checked results. Timing begins after bootstrap and compilation;
 the benchmark also exercises a 200000-iteration tail loop.
+
+`tests/liii/bitwise/scale-test.scm` checks 100000-bit integers, 4096-bit
+list/vector round trips and 200000 tail iterations. SRFI 217 integer sets
+retain their exact signed 64-bit fixnum domain; out-of-domain integers are
+rejected rather than passed into the fixed-width trie.
+
+[Recorded samples](benchmarks/bitwise-scale-results.tsv) compare the Scheme
+scans at `48721b75` with native scans on an AMD Ryzen 7 7840HS, x86_64,
+release build. Each sample measures 16 calls after bootstrap. At 4096 bits,
+median dense population count fell from 483.19 ms to 0.575 ms; positive and
+negative integer length fell from 242.03/252.19 ms to 0.534/0.570 ms.
+These measurements describe this machine and workload. The 100000-bit
+samples also validate their checksums; timings can vary under concurrent tests.
+The compiled SRFI 151 wrappers call the registered native `bit-count` and
+`integer-length` primitives directly.
+
+The native library-source gate replaces a shared exported 4096-pair list,
+then collects garbage. Module metadata and promoted environment bindings
+must release the old value. The baseline retained 4104 objects; the regression
+allows at most 128 incidental objects above the pre-allocation count.

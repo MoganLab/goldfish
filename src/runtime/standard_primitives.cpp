@@ -111,6 +111,14 @@ BigInteger exact_integer(Value value, const char* name) {
     throw std::runtime_error(std::string(name) + " expects exact integers");
 }
 
+unsigned population_count(std::uint64_t value) {
+    value -= (value >> 1) & 0x5555555555555555ULL;
+    value = (value & 0x3333333333333333ULL) +
+            ((value >> 2) & 0x3333333333333333ULL);
+    value = (value + (value >> 4)) & 0x0f0f0f0f0f0f0f0fULL;
+    return static_cast<unsigned>((value * 0x0101010101010101ULL) >> 56);
+}
+
 BigInteger truncate_real_quotient(const Number& dividend,
                                  const Number& divisor) {
     Number ratio = number_divide(dividend, divisor);
@@ -985,6 +993,26 @@ void install_runtime_primitives(Evaluator& evaluator) {
             if (negative) result = -result;
         }
         return Values{evaluator.number(Number::exact(BigInteger(std::move(result))))};
+    });
+    install(evaluator, "bit-count", [](const Values& args) {
+        require_arity(args, 1, "bit-count");
+        const BigInteger value = exact_integer(args[0], "bit-count");
+        boost::multiprecision::cpp_int magnitude = value.native();
+        if (value.negative()) magnitude = -magnitude - 1;
+        std::vector<std::uint64_t> chunks;
+        boost::multiprecision::export_bits(magnitude, std::back_inserter(chunks), 64, false);
+        std::uint64_t count = 0;
+        for (std::uint64_t chunk : chunks) count += population_count(chunk);
+        return Values{Value::integer(static_cast<std::int64_t>(count))};
+    });
+    install(evaluator, "integer-length", [](const Values& args) {
+        require_arity(args, 1, "integer-length");
+        const BigInteger value = exact_integer(args[0], "integer-length");
+        boost::multiprecision::cpp_int magnitude = value.native();
+        if (value.negative()) magnitude = -magnitude - 1;
+        const std::int64_t length = magnitude == 0 ? 0 :
+            static_cast<std::int64_t>(boost::multiprecision::msb(magnitude)) + 1;
+        return Values{Value::integer(length)};
     });
     install(evaluator, "abs", [&evaluator](const Values& args) {
         require_arity(args, 1, "abs");

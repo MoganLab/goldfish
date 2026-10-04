@@ -1,0 +1,28 @@
+(import (scheme base) (liii bitwise) (liii check))
+(check-set-mode! 'report-failed)
+
+;; Large inputs must scale by limbs, including negative sign extension.
+(let* ((width 100000) (high (arithmetic-shift 1 width)) (dense (- high 1)))
+  (check (integer-length high) => (+ width 1))
+  (check (integer-length (- high)) => width)
+  (check (bit-count dense) => width)
+  (check (bit-count (- high)) => width)
+  (check (bit-count high) => 1)
+  (check (first-set-bit high) => width)
+  (check (bit-set? width high) => #t)
+  (check (bit-field high width (+ width 10)) => 1)
+  (check (bit-field -1 width (+ width 10)) => 1023)
+  (check (bit-field-rotate high 1 0 (+ width 1)) => 1)
+  (check (bit-field-clear -1 0 width) => (- high))
+  (check (copy-bit width -1 #f) => (- (+ high 1)))
+  (check (arithmetic-shift high (- width)) => 1))
+
+(let ((value (+ (arithmetic-shift 1 4096) 37)))
+  (check (list->bits (bits->list value)) => value)
+  (check (vector->bits (bits->vector value)) => value))
+
+(check (let loop ((remaining 200000) (result 0))
+         (if (zero? remaining) result (loop (- remaining 1) (+ result 1)))) => 200000)
+(let ((index (expt 2 100)))
+  (check (bit-field-replace 7 9 index index) => 7))
+(check-report)
