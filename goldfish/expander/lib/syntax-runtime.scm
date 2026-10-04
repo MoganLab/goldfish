@@ -37,7 +37,10 @@
 ;;; (R7RS: literals match input identifiers by free-identifier=?.)
 
 (define (ellipsis-datum? x)
-  (if (syntax? x) (eq? (syntax-form x) '...) (eq? x '...)))
+  (if (syntax? x)
+      (and (eq? (syntax-form x) '...)
+           (not (set-member? (stx-ctx-at (syntax-context x) 0) 'ordinary-ellipsis)))
+      (eq? x '...)))
 
 (define (pattern-leaf-datum p)
   (if (syntax? p) (syntax-form p) p))
@@ -398,6 +401,15 @@
 
 (define (parse-template stx patvars)
   (letrec* ((form (if (syntax? stx) (syntax-form stx) stx)))
+    ;; Suppression belongs to this template, not to a generated macro.
+    (if (and (syntax? stx) (symbol? form)
+             (set-member? (stx-ctx-at (syntax-context stx) 0) 'ordinary-ellipsis))
+        (set! stx (make-syntax form
+                    (stx-ctx-set (syntax-context stx) 0
+                      (set-subtract (stx-ctx-at (syntax-context stx) 0)
+                                    (set 'ordinary-ellipsis)))
+                    (syntax-library stx)))
+        #f)
     (if (symbol? form)
         (if (memq form patvars)
             (list 'v form (syntax-context stx) (template-lib stx) stx)

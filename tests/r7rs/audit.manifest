@@ -11,3 +11,5 @@ tests/r7rs/include-case-test.scm
 tests/r7rs/include-declarations-test.scm
 tests/r7rs/conditional-library-test.scm
 tests/r7rs/library-feature-test.scm
+tests/r7rs/custom-ellipsis-variable-test.scm
+tests/r7rs/custom-ellipsis-test.scm

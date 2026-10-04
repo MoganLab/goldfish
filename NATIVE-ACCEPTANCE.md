@@ -46,27 +46,31 @@ sh tools/test-r7rs-audit.sh
 ```
 
 The gate checks matrix paths, executes native continuation-frame and eval-machine
-checks, and runs the thirteen-file corpus with both cold and warm bootstrap.
+checks, and runs the fifteen-file corpus with both cold and warm bootstrap.
 It uses a fresh isolated cache to exercise source bootstrap, then replays that
 cache warm. A successful loop alone does not
 establish proper tail recursion; native tests also compare continuation frame
 counts at different recursion depths, including promise forwarding.
 
-Known failures remain separate, standard-expected probes:
+Known failures, when present, remain separate, standard-expected probes:
 
 ```sh
 sh tools/test-r7rs-audit.sh --gaps
 ```
 
-This command currently returns nonzero. Its remaining probe covers ordinary
-`...` under a custom ellipsis marker. It is neither passing coverage nor a CI
-skip. Library order checks require dependencies to precede
+The six original compatibility probes now pass in the regular audit corpus;
+the gap manifest is empty and this command returns success without running tests.
+This does not establish complete R7RS conformance. Library order checks require dependencies to precede
 consumers; they do not impose an implementation-independent load-once rule.
 
 Follow-up priorities from the audit:
 
-1. Preserve ordinary `...` identifiers when another ellipsis marker is selected.
-2. Expand the clause audit beyond the focused corpus and inventory standard exports.
+1. Expand the clause audit beyond the focused corpus and inventory standard exports.
+
+Custom ellipsis regressions cover ordinary `...` pattern variables, literal
+identifiers and free template references, empty and nested repetitions, vectors,
+dotted tails, multiple rules and generated macros. Variables are renamed per
+rule; inactive marker suppression is removed when producing generated syntax.
 
 Library declarations support nonnegative exact integer name components, nested
 `include-library-declarations`, declaration `cond-expand` and library availability

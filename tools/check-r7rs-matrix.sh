@@ -25,7 +25,10 @@ for path in $paths; do
 done
 for manifest in tests/r7rs/audit.manifest tests/r7rs/gaps.manifest; do
     files=$(sed '/^[[:space:]]*#/d; /^[[:space:]]*$/d' "$manifest")
-    [ -n "$files" ] || { echo "empty manifest: $manifest" >&2; exit 1; }
+    if [ -z "$files" ]; then
+        [ "$manifest" = tests/r7rs/gaps.manifest ] && continue
+        echo "empty manifest: $manifest" >&2; exit 1
+    fi
     for path in $files; do
         [ -f "$path" ] || { echo "missing audit probe: $path" >&2; exit 1; }
         awk -F '\t' -v path="$path" '

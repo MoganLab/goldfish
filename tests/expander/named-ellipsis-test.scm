@@ -56,10 +56,8 @@
     ((_ x) (list x (... ...)))))
 (check (syntax->datum (m-esc-p 1)) => '(1 ...))
 
-;; ===== 7. 字面 `...' 转义 =====
-;; 自定义 ellipsis 规则里字面写 `...' 会被转义（R6RS (... ...) 形式），
-;; 匹配时按字面处理、不当作 ellipsis（Guile 同样如此）—— 所以
-;; `(m 1 2 3)` 匹配不上 `(_ x ...)`（展开时报 no matching clause）。
+;; ===== 7. 普通 `...' 模式变量的固定参数个数 =====
+;; 自定义标记下 `(_ x ...)` 恰好匹配两个参数；三个参数仍然报错。
 (check (catch #t
          (lambda ()
            (expand-eval (quote (let-syntax ((m (syntax-rules :: ()

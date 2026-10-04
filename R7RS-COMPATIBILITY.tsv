@@ -35,7 +35,7 @@ clause	area	status	evidence	boundary
 4.2.9	Case-lambda	audited	tests/r7rs/tail-context-test.scm	Mutually recursive case-lambda tail path exercised; not all arity cases.
 4.3	Macro hygiene	audited	tests/r7rs/macro-hygiene-test.scm,tests/r7rs/library-loading-test.scm	Local binders, definition-site references and macro-introduced private top-level locations remain isolated between libraries.
 4.3.1	Binding syntactic keywords	audited	tests/r7rs/macro-hygiene-test.scm	let-syntax outer transformer scope and letrec-syntax mutual scope.
-4.3.2	Pattern language	partial	tests/r7rs/macro-hygiene-test.scm,tests/r7rs/gaps/custom-ellipsis-variable.scm	Empty nested ellipsis fixed; custom marker still mishandles ordinary ... pattern variable.
+4.3.2	Pattern language	audited	tests/r7rs/macro-hygiene-test.scm,tests/r7rs/custom-ellipsis-variable-test.scm,tests/r7rs/custom-ellipsis-test.scm	Custom markers preserve ordinary ... variables and literals; zero/nested repeats, vectors, dotted tails and generated macros covered, not a complete pattern audit.
 4.3.3	Signaling macro errors	inventory	tests/expander/macro-error-test.scm	Existing error suite identified; no complete clause audit.
 5.1	Programs	inventory	tests/native/native-workflow.scm	Native program execution covered by separate workflow.
 5.2	Import declarations	audited	tests/r7rs/library-loading-test.scm,tests/runtime/evaluator-test.cpp	Nested import sets and renamed re-exports retain shared variable locations, including across GC.

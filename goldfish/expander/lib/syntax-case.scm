@@ -282,21 +282,10 @@
 ;;; Previously this desugaring lived in the kernel seam (transformer.scm);
 ;;; moving it here leaves eval-transformer as the only eval seam.
 ;;;
-;;; Named ellipsis is implemented by substitution: the custom marker is
-;;; replaced by `...' throughout every rule's pattern and template before
-;;; the transformer is built, so the pattern-matching runtime keeps
-;;; comparing against `...' (as R7RS requires, the custom marker then IS
-;;; the ellipsis).  Known limitation (documented in the tests): a literal
-;;; `...' that the user also writes inside a named-ellipsis rule is not
-;;; escaped, so it too would be read as the ellipsis -- Guile escapes it.
+;;; Custom markers lower to the runtime marker. Ordinary ... pattern
+;;; variables receive a fresh name shared by the pattern and template.
 
-(define (subst-ellipsis x e)
-  ;; Replace every identifier whose form is e with `...', recursing through
-  ;; syntax objects, datums, and embedded syntax values (syntax template
-  ;; instantiation nests syntax objects inside datums).  A literal `...'
-  ;; the user writes alongside the custom marker is escaped to the R6RS
-  ;; `(... ...)' form (matching Guile, which escapes it too) so the
-  ;; pattern-matching runtime does not read it as the ellipsis.
+(define (subst-ellipsis x e ordinary)
   (cond
     ((syntax? x)
      (let ((form (syntax-form x)))
@@ -305,24 +294,28 @@
           (if (eq? form e)
             (make-syntax '... (syntax-context x) (syntax-library x))
             (if (eq? form '...)
-              (make-syntax (list '... '...) (syntax-context x) (syntax-library x))
+              (if ordinary
+                (make-syntax ordinary (syntax-context x) (syntax-library x))
+                (make-syntax '...
+                  (stx-ctx-add (syntax-context x) 0 'ordinary-ellipsis)
+                  (syntax-library x)))
               x)))
          ((pair? form)
-          (make-syntax (cons (subst-ellipsis (car form) e)
-                             (subst-ellipsis (cdr form) e))
+          (make-syntax (cons (subst-ellipsis (car form) e ordinary)
+                             (subst-ellipsis (cdr form) e ordinary))
                        (syntax-context x) (syntax-library x)))
          ((stx-vector? form)
           (make-syntax (list->vector
-                        (map (lambda (d) (subst-ellipsis (datum->syntax x d) e))
+                        (map (lambda (d) (subst-ellipsis (datum->syntax x d) e ordinary))
                              (vector->list form)))
                        (syntax-context x) (syntax-library x)))
          (else x))))
     ((pair? x)
-     (cons (subst-ellipsis (car x) e) (subst-ellipsis (cdr x) e)))
+     (cons (subst-ellipsis (car x) e ordinary) (subst-ellipsis (cdr x) e ordinary)))
     ((vector? x)
-     (vector-map (lambda (d) (subst-ellipsis d e)) x))
+     (vector-map (lambda (d) (subst-ellipsis d e ordinary)) x))
     ((eq? x e) '...)
-    ((eq? x '...) (list '... '...))
+    ((eq? x '...) (if ordinary ordinary (make-syntax '... (stx-ctx-add '() 0 'ordinary-ellipsis) #f)))
     (else x)))
 
 (define (sr-build-transformer def-stx tmp head lit rules)
@@ -392,6 +385,25 @@
                  (head (make-syntax (make-fresh-name 'kw) def-ctx def-lib)))
          (sr-build-transformer
            def-stx tmp head
-           (syntax (lit ...))
-           (map (lambda (r) (subst-ellipsis r e))
-                (syntax-form (syntax (((keyword . pattern) template) ...))))))))))
+           (if (eq? e '...) (syntax (lit ...))
+             (subst-ellipsis (syntax (lit ...)) #f #f))
+           (map
+             (lambda (r)
+               (if (eq? e '...) r
+                 (let* ((rf (syntax-form r))
+                        (pat (car rf))
+                        (tmpl (cadr rf))
+                        (ordinary
+                          (and (not (memq '... (syntax->datum (syntax (lit ...)))))
+                               (let contains? ((d (syntax->datum (cdr (syntax-form pat)))))
+                                 (cond ((pair? d) (or (contains? (car d)) (contains? (cdr d))))
+                                       ((vector? d) (contains? (vector->list d)))
+                                       (else (eq? d '...))))
+                               (make-fresh-name 'ellipsis-variable))))
+                   (make-syntax
+                     (list (subst-ellipsis pat
+                             (if (memq e (syntax->datum (syntax (lit ...)))) #f e)
+                             ordinary)
+                           (subst-ellipsis tmpl e ordinary))
+                     (syntax-context r) (syntax-library r)))))
+             (syntax-form (syntax (((keyword . pattern) template) ...))))))))))

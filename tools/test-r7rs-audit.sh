@@ -8,6 +8,11 @@ case "${1:-}" in
     *) echo "usage: sh tools/test-r7rs-audit.sh [--gaps]" >&2; exit 2 ;;
 esac
 sh tools/check-r7rs-matrix.sh
+if [ "${1:-}" = --gaps ] &&
+   [ -z "$(sed '/^[[:space:]]*#/d; /^[[:space:]]*$/d' "$manifest")" ]; then
+    echo "R7RS audit: no known compatibility probes remain failing"
+    exit 0
+fi
 xmake build gf-native
 xmake build native-evaluator-test
 ./bin/native-evaluator-test

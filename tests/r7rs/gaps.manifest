@@ -1,2 +1,1 @@
-# Standard-expected probes; failures are known gaps, not passing compatibility evidence.
-tests/r7rs/gaps/custom-ellipsis-variable.scm
+# Standard-expected probes for known gaps; currently none.
