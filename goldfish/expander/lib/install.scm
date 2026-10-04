@@ -43,7 +43,15 @@
 ;;; A library name (foo bar) maps to the file "foo/bar.scm".
 
 (define (library-file-name lib-name)
-  (let loop ((parts (map symbol->string lib-name)) (acc ""))
+  (unless (and (list? lib-name) (pair? lib-name)
+               (let loop ((parts lib-name))
+                 (or (null? parts)
+                     (and (or (symbol? (car parts))
+                              (and (exact-integer? (car parts)) (>= (car parts) 0)))
+                          (loop (cdr parts))))))
+    (error 'library "invalid library name" lib-name))
+  (let loop ((parts (map (lambda (part) (if (symbol? part) (symbol->string part)
+                                          (number->string part))) lib-name)) (acc ""))
     (if (null? parts)
         (string-append acc ".scm")
         (loop (cdr parts)
@@ -62,8 +70,9 @@
 (define (library-dep-fingerprint name)
   (let ((src (load-find-module-file (library-file-name name))))
     (if src
-      (cons name (list (g_path-getmtime src) (g_path-getsize src)
-                       (g_md5-by-file src)))
+      (cons name (append (list (g_path-getmtime src) (g_path-getsize src)
+                              (g_md5-by-file src))
+                         ((module-ref the-expander-library 'library-declaration-inputs) src)))
       ;; No on-disk home: runtime-registered or host-provided library,
       ;; nothing to fingerprint.
       (cons name 'external))))
@@ -105,7 +114,10 @@
           acc
           (let* ((f (car fs))
                  (added (if (and (pair? f) (eq? (car f) 'define-library))
-                          (let collect ((cs (cddr f)) (a '()))
+                          (let collect ((cs (call-with-source-file file
+                                             (lambda ()
+                                               ((module-ref the-expander-library 'normalize-library-declarations)
+                                                (cddr f))))) (a '()))
                             (if (null? cs)
                               a
                               (let ((c (car cs)))
@@ -207,8 +219,8 @@
            (and (or (not stored-deps) (null? stored-deps)
                     (and (pair? stored-deps)
                          (equal? stored-deps
-                                 (map library-dep-fingerprint
-                                      (map car stored-deps)))))
+                                 (map (module-ref the-expander-library 'declaration-input-current)
+                                      stored-deps))))
                 (cadddr rec))))))
 
 ;; Cache stamps must cover the kernel artifact as well as the source:
@@ -327,9 +339,10 @@
 (define (install-library-file! lib path)
   ;; One compilation unit per file: the cold expansion and the warm
   ;; replay each evaluate the file's expand-time code in a fresh env.
-  (call-with-fresh-expand-unit
+  (call-with-source-file (or (load-find-module-file path) path)
     (lambda ()
-      (install-library-file-in-unit! lib path))))
+      (call-with-fresh-expand-unit
+        (lambda () (install-library-file-in-unit! lib path))))))
 
 (define (install-library-file-in-unit! lib path)
   (let ((file (load-find-module-file path)))
@@ -677,8 +690,8 @@
   (install-library-file! the-base-library "expander/lib/core-macros.scm")
 
   (install-with-helpers! the-base-library "expander/lib/cond-expand.scm"
-  '(cond-expand-feature-satisfied? *cond-expand-features*)
-  '(cond-expand-feature-satisfied? *cond-expand-features*))
+  '(cond-expand-feature-satisfied? cond-expand-requirement-valid? cond-expand-select *cond-expand-features*)
+  '(cond-expand-feature-satisfied? cond-expand-requirement-valid? cond-expand-select *cond-expand-features*))
 ;; Legacy procedural macro forms (depend on syntax-case).
   (install-library-file! the-base-library "expander/lib/defmacro.scm")
 ;; Optional-argument procedure forms (depend on syntax-case).
@@ -746,9 +759,11 @@
   ;; One compilation unit per call: expand-time state (region bindings,
   ;; transformer closures) is isolated from every other compile in the
   ;; session; the hot path needs no unit (it only reads data).
-  (call-with-fresh-expand-unit
-    (lambda ()
-      (compile-file-cached-in-unit path))))
+  ((module-ref the-expander-library 'call-with-library-source)
+   (or (load-find-module-file path) path)
+   (lambda ()
+     (call-with-fresh-expand-unit
+       (lambda () (compile-file-cached-in-unit path))))))
 
 (define (compile-file-cached-in-unit path)
   (let* ((level (cache-level))
@@ -797,8 +812,9 @@
                                           (list 'exprs (serialize-cache-sexp opt))))
                            (lambda args #f))))
             (when bundle
-              (let ((deps (map library-dep-fingerprint
-                               (program-all-deps forms opt))))
+              (let ((deps (append (map library-dep-fingerprint
+                                      (program-all-deps forms opt))
+                                  ((module-ref the-expander-library 'declaration-inputs)))))
                 (gfo-write! gfo-file stamp bundle deps)))
             opt))))))
 

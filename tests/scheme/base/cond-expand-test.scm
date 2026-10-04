@@ -21,7 +21,7 @@
 (check (cond-expand ((not bogus-feature) 3) (else 0)) => 3)
 
 ;; else 兜底
-(check (cond-expand ((bogus-feature) 0) (else 99)) => 99)
+(check (cond-expand (bogus-feature 0) (else 99)) => 99)
 
 ;; 用于定义
 (cond-expand (r7rs (define ce-defined 5)))

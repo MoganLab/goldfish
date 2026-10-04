@@ -81,11 +81,24 @@
 ;;; compile-file : string -> lowered core Scheme S-expression
 ;;; Read a source file with the R7RS reader and expand it as a program.
 
+(define *source-file* #f)
+
+(define-public (current-source-file) *source-file*)
+
+(define-public (call-with-source-file path thunk)
+  (let ((previous *source-file*))
+    (dynamic-wind
+      (lambda () (set! *source-file* path))
+      thunk
+      (lambda () (set! *source-file* previous)))))
+
 (define-public (compile-file path)
-  (compile-program (call-with-input-file path read-forms)))
+  (call-with-source-file path
+    (lambda () (compile-program (call-with-input-file path read-forms)))))
 
 (define-public (compile-file-into path lib)
-  (compile-program-into (call-with-input-file path read-forms) lib))
+  (call-with-source-file path
+    (lambda () (compile-program-into (call-with-input-file path read-forms) lib))))
 
 ;;; compile-program-step : stx lib ctx lib-defs body rest
 ;;;                            -> (values ctx lib-defs body rest')

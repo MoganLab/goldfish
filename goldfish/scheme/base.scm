@@ -488,32 +488,14 @@
 
     (define-syntax include
       (lambda (stx)
-        (syntax-case stx ()
-          ((include filename ...)
-           (let ((forms (apply append
-                          (map (lambda (fn)
-                                 (let ((port (open-input-file fn)))
-                                   (let loop ((acc '()))
-                                     (let ((form (read port)))
-                                       (if (eof-object? form)
-                                         (begin (close-port port) (reverse acc))
-                                         (loop (cons form acc)))))))
-                               (syntax->datum #'(filename ...))))))
-             (datum->syntax stx `(begin ,@forms)))))))
+        (datum->syntax stx
+          (cons 'begin ((module-ref the-expander-library 'splice-includes)
+                        (syntax->datum stx))))))
 
     (define-syntax include-ci
       (lambda (stx)
-        (syntax-case stx ()
-          ((include-ci filename ...)
-           (let ((forms (apply append
-                          (map (lambda (fn)
-                                 (let ((port (open-input-file fn)))
-                                   (let loop ((acc '()))
-                                     (let ((form (read port)))
-                                       (if (eof-object? form)
-                                         (begin (close-port port) (reverse acc))
-                                         (loop (cons form acc)))))))
-                               (syntax->datum #'(filename ...))))))
-             (datum->syntax stx `(begin ,@forms)))))))
+        (datum->syntax stx
+          (cons 'begin ((module-ref the-expander-library 'splice-includes)
+                        (syntax->datum stx))))))
   ) ;begin
 ) ;define-library

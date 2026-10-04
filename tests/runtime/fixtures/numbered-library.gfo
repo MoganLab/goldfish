@@ -1,0 +1,6 @@
+(gfo 0 () (bundle 1 libraries
+  (libs ((native-numbered 18446744073709551616)
+         (numbered-library-probe) () () ()
+         ((define numbered-library-probe 42)
+          (if (= numbered-library-probe 42) #t
+              (error "numbered library artifact returned an incorrect value")))))))

@@ -29,7 +29,14 @@ else
     # shellcheck disable=SC2086
     ./bin/gf -m liii -I tests/r7rs/fixtures --each-file $files
     sh tools/warm-bootstrap-cache.sh
+    sh tools/test-library-declaration-cache.sh
     echo "R7RS audit: warm bootstrap"
     # shellcheck disable=SC2086
     ./bin/gf -m liii -I tests/r7rs/fixtures --each-file $files
+fi
+
+if [ "${1:-}" != --gaps ]; then
+    echo "R7RS audit: native warm worker"
+    GOLDFISH_CHECK_NO_EXIT=1 ./bin/gf -m liii tools/test/liii/worker.scm -- \
+        tests/r7rs/library-declarations-test.scm tests/r7rs/conditional-library-test.scm
 fi

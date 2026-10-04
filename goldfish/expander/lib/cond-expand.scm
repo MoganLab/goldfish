@@ -1,63 +1,58 @@
-;;; lib/cond-expand.scm
-;;; cond-expand (R7RS conditional expansion), objectified: an ordinary
-;;; self-hosted macro expanded by the expander itself, instead of a kernel
-;;; procedural form.  It only needs the expand-time syntax API
-;;; (syntax-form / datum->syntax / syntax->datum), which any user-space
-;;; transformer has.  Feature requirements are evaluated at expand time;
-;;; the body of the first satisfied clause is spliced in as a begin.
-;;; Feature set: r7rs + the implementation name.  (library ...)
-;;; requirements are not yet checked and report unsatisfied.
-;;;
-;;; Installed after lib/core-macros.scm (so let / and / or / cond are
-;;; available), matching the previous kernel boot order.
-
+;;; Conditional expansion shares one requirement evaluator and clause selector.
 (define *cond-expand-features* '(r7rs goldfish))
 
+(define (cond-expand-requirement-valid? req)
+  (let ((d (syntax->datum req)))
+    (cond
+      ((symbol? d) #t)
+      ((and (list? d) (pair? d))
+       (case (car d)
+         ((and or) (let loop ((rs (cdr d)))
+                     (or (null? rs)
+                         (and (cond-expand-requirement-valid? (car rs)) (loop (cdr rs))))))
+         ((not) (and (= (length d) 2) (cond-expand-requirement-valid? (cadr d))))
+         ((library)
+          (and (= (length d) 2)
+               ((module-ref the-expander-library 'library-name-valid?) (cadr d))))
+         (else #f)))
+      (else #f))))
+
 (define (cond-expand-feature-satisfied? req)
-  (let ((form (syntax-form req)))
-    (if (symbol? form)
-        (if (memq form *cond-expand-features*) #t #f)
-        (if (not (pair? form))
-            #f
-            (let ((head (syntax-form (car form))))
-              (if (eq? head 'and)
-                  (let loop ((rs (cdr form)))
-                    (if (null? rs)
-                        #t
-                        (if (cond-expand-feature-satisfied? (car rs))
-                            (loop (cdr rs))
-                            #f)))
-                  (if (eq? head 'or)
-                      (let loop ((rs (cdr form)))
-                        (if (null? rs)
-                            #f
-                            (if (cond-expand-feature-satisfied? (car rs))
-                                #t
-                                (loop (cdr rs)))))
-                      (if (eq? head 'not)
-                          (not (cond-expand-feature-satisfied? (cadr form)))
-                          #f))))))))
+  (let ((d (syntax->datum req)))
+    (unless (cond-expand-requirement-valid? d)
+      (error 'cond-expand "invalid feature requirement" d))
+    (cond
+      ((symbol? d) (if (memq d *cond-expand-features*) #t #f))
+      ((eq? (car d) 'and)
+       (let loop ((rs (cdr d)))
+         (or (null? rs) (and (cond-expand-feature-satisfied? (car rs)) (loop (cdr rs))))))
+      ((eq? (car d) 'or)
+       (let loop ((rs (cdr d)))
+         (and (pair? rs) (or (cond-expand-feature-satisfied? (car rs)) (loop (cdr rs))))))
+      ((eq? (car d) 'not) (not (cond-expand-feature-satisfied? (cadr d))))
+      (else ((module-ref the-expander-library 'library-available?) (cadr d))))))
+
+(define (cond-expand-select clauses)
+  (let validate ((rest clauses))
+    (unless (null? rest)
+      (let ((clause (syntax->datum (car rest))))
+        (unless (and (list? clause) (pair? clause))
+          (error 'cond-expand "invalid clause" clause))
+        (if (eq? (car clause) 'else)
+          (unless (null? (cdr rest)) (error 'cond-expand "else must be last" clause))
+          (unless (cond-expand-requirement-valid? (car clause))
+            (error 'cond-expand "invalid feature requirement" (car clause))))
+      (validate (cdr rest)))))
+  (let select ((rest clauses))
+    (if (null? rest)
+      '()
+      (let* ((clause (car rest))
+             (form (if (syntax? clause) (syntax-form clause) clause)))
+        (if (or (eq? (syntax->datum (car form)) 'else)
+                (cond-expand-feature-satisfied? (car form)))
+          (cdr form)
+          (select (cdr rest)))))))
 
 (define-syntax cond-expand
   (lambda (stx)
-    (let ((clauses (cdr (syntax-form stx))))
-      (let loop ((rest clauses))
-        (if (null? rest)
-            (error 'cond-expand "no matching feature requirement"
-                   (syntax->datum stx))
-            (let* ((clause (car rest))
-                   (form (if (syntax? clause) (syntax-form clause) clause))
-                   ;; Clause heads arrive wrapped (the form spine holds
-                   ;; syntax objects); compare the unwrapped symbol or the
-                   ;; else branch never matches and every cond-expand
-                   ;; degrades to "no matching feature requirement".
-                   (head-raw (if (pair? form) (car form) #f))
-                   (head (if (syntax? head-raw)
-                             (syntax-form head-raw)
-                             head-raw)))
-              (if (eq? head 'else)
-                  (datum->syntax stx (cons 'begin (cdr form)))
-                  (if (and (pair? form)
-                           (cond-expand-feature-satisfied? (car form)))
-                      (datum->syntax stx (cons 'begin (cdr form)))
-                      (loop (cdr rest))))))))))
+    (datum->syntax stx (cons 'begin (cond-expand-select (cdr (syntax-form stx)))))))

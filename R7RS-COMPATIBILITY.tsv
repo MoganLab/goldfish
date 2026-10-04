@@ -23,8 +23,8 @@ clause	area	status	evidence	boundary
 4.1.4	Procedures	inventory	tests/scheme/base	Base-language tests identified; further clause audit required.
 4.1.5	Conditionals	inventory	tests/scheme/base	Base-language tests identified; further clause audit required.
 4.1.6	Assignments	inventory	tests/scheme/base	Base-language tests identified; further clause audit required.
-4.1.7	Inclusion	partial	tests/r7rs/gaps/include-case.scm	include-ci does not fold case.
-4.2.1	Conditionals	partial	tests/r7rs/tail-context-test.scm,tests/r7rs/gaps/library-feature.scm	case => tail calls covered; cond-expand library requirements fail.
+4.1.7	Inclusion	audited	tests/r7rs/include-case-test.scm	Library and expression include-ci follow reader directives; relative and nested includes, escaped symbols and strings tested.
+4.2.1	Conditionals	audited	tests/r7rs/tail-context-test.scm,tests/r7rs/library-feature-test.scm	case => tail calls and cond-expand feature/library requirements covered; no complete conditional clause audit.
 4.2.2	Binding constructs	audited	tests/r7rs/tail-context-test.scm	Tail-position lowering exercised; other semantics remain inventory.
 4.2.3	Sequencing	audited	tests/r7rs/tail-context-test.scm	Tail-position lowering exercised; other semantics remain inventory.
 4.2.4	Iteration	audited	tests/r7rs/tail-context-test.scm	Tail-position lowering exercised; other semantics remain inventory.
@@ -44,7 +44,7 @@ clause	area	status	evidence	boundary
 5.3.3	Multiple-value definitions	inventory	tests/scheme/base	Existing base tests; macro-generated internal definition covered by hygiene audit.
 5.4	Syntax definitions	inventory	tests/scheme/base	Existing base tests; macro-generated internal definition covered by hygiene audit.
 5.5	Record-type definitions	inventory	tests/scheme/base	Existing base tests; macro-generated internal definition covered by hygiene audit.
-5.6.1	Library syntax	partial	tests/r7rs/gaps/numbered-library.scm,tests/r7rs/gaps/include-case.scm,tests/r7rs/gaps/include-declarations.scm,tests/r7rs/gaps/conditional-library.scm	Numeric name components, include-ci, include-library-declarations and declaration cond-expand fail; exported locations covered by 5.2.
+5.6.1	Library syntax	audited	tests/r7rs/library-declarations-test.scm,tests/r7rs/numbered-library-test.scm,tests/r7rs/include-case-test.scm,tests/r7rs/include-declarations-test.scm,tests/r7rs/conditional-library-test.scm	Numeric names, nested declarations, relative includes, clause order, errors and cold/warm replay covered; exported locations covered by 5.2.
 5.6.2	Library example	audited	tests/r7rs/library-loading-test.scm	Provider precedes consumer; re-export procedure identity and private macro reference.
 5.7	REPL	inventory	tools/test-native-workflow.sh	Stateful native REPL smoke; no exhaustive interactive semantics audit.
 6.1	Equivalence predicates	inventory	tests/scheme/base	Existing eq?/eqv?/equal? coverage; numeric and graph boundaries need clause audit.
@@ -98,5 +98,5 @@ A.repl	(scheme repl)	inventory	goldfish/scheme/repl.scm	Library source present; 
 A.time	(scheme time)	inventory	goldfish/scheme/time.scm	Library source present; complete standard export set and per-procedure conformance not audited.
 A.write	(scheme write)	inventory	goldfish/scheme/write.scm	Library source present; complete standard export set and per-procedure conformance not audited.
 A.r5rs	(scheme r5rs)	inventory	goldfish/scheme/r5rs.scm	Library source present; complete standard export set and per-procedure conformance not audited.
-B	Standard feature identifiers	partial	goldfish/expander/lib/cond-expand.scm,tests/r7rs/gaps/library-feature.scm	r7rs feature present; library availability requirements are unsupported.
+B	Standard feature identifiers	audited	goldfish/expander/lib/cond-expand.scm,tests/r7rs/library-feature-test.scm	r7rs and goldfish features; library queries recognize registered libraries and matching source declarations without executing bodies; full optional feature inventory remains unaudited.
 implementation.cache	Bootstrap cache freshness	audited	tests/runtime/native-cache-test.cpp,tools/test-bootstrap-cache.sh	Current pipeline identity plus all source, kernel and dependency stamps checked before artifact replay; malformed cache records recover through source bootstrap.

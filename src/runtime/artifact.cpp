@@ -40,10 +40,13 @@ std::string library_name(Value value) {
     std::string result = "(";
     for (std::size_t i = 0; i < parts.size(); ++i) {
         if (i != 0) result += ' ';
-        if (!symbol_named(parts[i], "rename") &&
-            parts[i].is_object() &&
+        if (parts[i].is_object() &&
             parts[i].as_object()->type() == ObjectType::Symbol)
             result += parts[i].as_object<SymbolObject>()->name;
+        else if (is_number(parts[i]) && number_value(parts[i]).is_exact() &&
+                 number_value(parts[i]).is_integer() &&
+                 !number_value(parts[i]).real.numerator.negative())
+            result += number_to_string(parts[i]);
         else
             throw std::runtime_error("artifact: invalid library name");
     }

@@ -838,14 +838,15 @@
 
 (define (load file)
   (define dirs (if (list? *load-path*) *load-path* (list *load-path*)))
-  (define (load-forms-sequentially forms)
+  (define (load-forms-sequentially forms path)
     ;; One compilation unit for the file's per-form fallback: a multi-form
     ;; expand-time region still resolves here, isolated from every other
     ;; file's compile.  (The whole-compile attempt binds its own unit
     ;; inside compile-file-cached.)
-    (call-with-fresh-expand-unit
+    ((module-ref the-expander-library 'call-with-source-file) path
       (lambda ()
-        (load-forms-sequentially-in-unit forms))))
+        (call-with-fresh-expand-unit
+          (lambda () (load-forms-sequentially-in-unit forms))))))
   (define (load-forms-sequentially-in-unit forms)
     ;; Expansion errors carry no source positions (syntax objects do not
     ;; track them), so the loader at least tags the file and form ordinal:
@@ -934,11 +935,11 @@
                       (lambda (type info)
                         (note-compile-failure path type info)
                         (note-per-form path)
-                        (load-forms-sequentially forms)))
+                        (load-forms-sequentially forms path)))
                     (begin
                       (note-per-form path)
-                      (load-forms-sequentially forms))))
-                (load-forms-sequentially forms))))))
+                      (load-forms-sequentially forms path))))
+                (load-forms-sequentially forms path))))))
       (else (loop (cdr cands))))))
 ;; Rebind read-forms to the R7RS reader now that `read' is ours: the seed
 ;; (boot.scm) definition captured the bootstrap reader, which is minimal and

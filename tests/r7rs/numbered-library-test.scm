@@ -1,0 +1,8 @@
+(import (goldfish))
+(define declaration-original-load-path *load-path*)
+(set! *load-path* (cons "tests/r7rs/fixtures" *load-path*))
+(import (scheme base) (liii check) (r7rs-audit 7))
+(check-set-mode! 'report-failed)
+(check answer => 42)
+(set! *load-path* declaration-original-load-path)
+(check-report)

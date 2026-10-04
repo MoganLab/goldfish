@@ -43,6 +43,9 @@ int main() {
                         "tests/runtime/fixtures/native-srfi13-program.scm")})[0];
         if (evaluator.string_value(evaluator.eval(lowered)) != "a,b")
             throw std::runtime_error("compiled SRFI 13 program returned an incorrect result");
+        bootstrap.load_artifact("tests/runtime/fixtures/numbered-library.gfo");
+        if (evaluator.eval(evaluator.symbol("numbered-library-probe")).as_integer() != 42)
+            throw std::runtime_error("numbered library artifact returned an incorrect result");
         evaluator.collect();
         const std::size_t before = evaluator.heap().allocated();
         Value payload = Value::null();

@@ -1,0 +1,11 @@
+(define-library (r7rs-audit declarations-nested)
+  (include-library-declarations "declaration-parts/outer.scm")
+  (cond-expand
+    ((and r7rs (library (r7rs-audit 7)) (not (library (r7rs-audit absent))))
+     (cond-expand ((or) (include "absent.scm"))
+       (else (export total mixed |Escaped| text sequence)
+             (begin (define total (+ left right))
+                    (define sequence '(first))
+                    (set! sequence (append sequence '(second))))) ))
+    (else (include "absent.scm")))
+  (begin (set! sequence (append sequence '(third)))))

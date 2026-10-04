@@ -210,7 +210,7 @@
     (let*-values (((defs ctx1) (expand-define-library stx ctx)))
       (let* ((rec (library-registry-ref name))
              (lib1 (and rec (lib-record-library rec)))
-             (exports (extract-exports stx))
+             (exports (lib-record-exports rec))
              ;; Export renames ride the record so warm restore re-installs
              ;; the aliases (including aliases of imported macros, whose
              ;; closures only exist via the restored re-imports).
@@ -662,6 +662,10 @@
            (lambda args #f)))))
 
 (define (load-library! lib-name . maybe-level)
+  (call-with-library-source (load-find-module-file (library-file-name lib-name))
+    (lambda () (apply load-library-in-source! lib-name maybe-level))))
+
+(define (load-library-in-source! lib-name . maybe-level)
   (let ((level (registry-level-arg maybe-level)))
     (when (instance-loading? lib-name level)
       (error 'import "circular library dependency" lib-name))
@@ -741,8 +745,9 @@
                        (let ((stamp (compile-file-stamp file)))
                          (let*-values (((recs ctx) (capture-file-cache forms)))
                            (let ((recs (optimize-lib-cache-recs recs))
-                                 (deps (map library-dep-fingerprint
-                                            (library-all-deps recs lib-name))))
+                                 (deps (append (map library-dep-fingerprint
+                                                   (library-all-deps recs lib-name))
+                                               (declaration-inputs))))
                              (gfo-write! gfo-file stamp
                                          (make-bundle 'libraries (cons 'libs recs))
                                          deps)
@@ -1053,31 +1058,170 @@
 ;;; R7RS define-library `include': read the named file (resolved over
 ;;; *load-path*) and return its forms, to be spliced into the library body
 ;;; at the include clause's position.
-(define (include-file-forms path)
-  (let ((file (load-find-module-file path)))
-    (unless file
-      (error 'read-error "define-library include: file not found" path))
-    (read-forms (open-input-file file))))
+(define (append-map-local f ls) (apply append (map f ls)))
 
-;;; append-map-local : (a -> (list b)) (list a) -> (list b)
-;;; (SRFI-1's append-map is not in the runtime's base environment.)
-(define (append-map-local f ls)
-  (apply append (map f ls)))
+(define (declaration-wrap template datum)
+  (if (syntax? template) (datum->syntax template datum) datum))
 
-;;; splice-includes : datum -> (list datum)
-;;; R7RS `include' is a library BODY form: it may appear directly in the
-;;; define-library body or inside a (begin ...) clause.  Replace every
-;;; (include "file" ...) at body-element position with the file's own forms
-;;; (recursively spliced; included files may themselves use include).
+(define (library-name-valid? name)
+  (and (list? name) (pair? name)
+       (let loop ((parts name))
+         (or (null? parts)
+             (and (or (symbol? (car parts))
+                      (and (exact-integer? (car parts)) (>= (car parts) 0)))
+                  (loop (cdr parts)))))))
+
+(define *declaration-inputs* #f)
+
+(define (record-declaration-input! input)
+  (when (and *declaration-inputs* (not (member input *declaration-inputs*)))
+    (set! *declaration-inputs* (cons input *declaration-inputs*))))
+
+(define (declaration-inputs) (or *declaration-inputs* '()))
+
+(define (call-with-library-source file thunk)
+  (let ((saved *declaration-inputs*))
+    (dynamic-wind
+      (lambda () (set! *declaration-inputs* '()))
+      (lambda () (call-with-source-file file thunk))
+      (lambda () (set! *declaration-inputs* saved)))))
+
+(define (library-availability-fingerprint name)
+  (unless (library-name-valid? name) (error 'library "invalid library name" name))
+  (let ((file (load-find-module-file (library-file-name name))))
+    (if file
+      (list 'source file (g_md5-by-file file)
+            (catch #t
+              (lambda ()
+                (let loop ((forms (call-with-input-file file read-forms)))
+                  (and (pair? forms)
+                       (or (and (pair? (car forms))
+                                (eq? (caar forms) 'define-library)
+                                (pair? (cdar forms)) (equal? (cadar forms) name))
+                           (loop (cdr forms))))))
+              (lambda args #f)))
+      (if (or (library-registry-ref name) (runtime-registered? name))
+        '(registered) '(missing)))))
+
+(define (library-available? name)
+  (let ((fingerprint (library-availability-fingerprint name)))
+    (record-declaration-input! (list 'availability name fingerprint))
+    (if (eq? (car fingerprint) 'source) (list-ref fingerprint 3)
+      (eq? (car fingerprint) 'registered))))
+
+(define (include-parent path)
+  (let loop ((i (- (string-length path) 1)))
+    (cond ((< i 0) "")
+          ((char=? (string-ref path i) #\/) (substring path 0 (+ i 1)))
+          (else (loop (- i 1))))))
+
+(define *include-stack* '())
+
+(define (include-normalize-path path)
+  (let ((absolute? (and (> (string-length path) 0) (char=? (string-ref path 0) #\/))))
+    (let split ((i 0) (start 0) (parts '()))
+      (if (or (= i (string-length path)) (char=? (string-ref path i) #\/))
+        (let* ((part (substring path start i))
+               (next (cond ((or (string=? part "") (string=? part ".")) parts)
+                           ((string=? part "..")
+                            (if (and (pair? parts) (not (string=? (car parts) "..")))
+                              (cdr parts) (if absolute? parts (cons part parts))))
+                           (else (cons part parts)))))
+          (if (= i (string-length path))
+            (let join ((ps (reverse next)) (result (if absolute? "/" "")))
+              (if (null? ps) result
+                (join (cdr ps) (string-append result
+                                  (if (or (string=? result "") (string=? result "/")) "" "/")
+                                  (car ps)))))
+            (split (+ i 1) (+ i 1) next)))
+        (split (+ i 1) start parts)))))
+
+(define (call-with-included-forms path fold? thunk)
+  (unless (string? path) (error 'include "filename must be a string" path))
+  (let* ((source (current-source-file))
+         (relative (and source (string-append (include-parent source) path)))
+         (found (or (and (> (string-length path) 0) (char=? (string-ref path 0) #\/)
+                         (file-exists? path) path)
+                    (and relative (file-exists? relative) relative)
+                    (load-find-module-file path)))
+         (file (and found (include-normalize-path found))))
+    (unless file (error 'read-error "include file not found" path source))
+    (when (member file *include-stack*) (error 'include "recursive include" file))
+    (record-declaration-input! (cons 'include-source (cons file (gfo-stamp file))))
+    (let ((saved *include-stack*))
+      (dynamic-wind
+        (lambda () (set! *include-stack* (cons file saved)))
+        (lambda ()
+          (call-with-source-file file
+            (lambda ()
+              (if fold?
+                (let ((port (open-input-string
+                              (string-append "#!fold-case\n" (g_path-read-text file)))))
+                  (dynamic-wind (lambda () #f)
+                    (lambda () (thunk (read-forms port)))
+                    (lambda () (close-input-port port))))
+                (call-with-input-file file (lambda (port) (thunk (read-forms port))))))))
+        (lambda () (set! *include-stack* saved))))))
+
 (define (splice-includes d)
-  (cond
-    ((and (pair? d) (eq? (car d) 'include))
-     (append-map-local (lambda (p)
-                         (append-map-local splice-includes (include-file-forms p)))
-                       (cdr d)))
-    ((and (pair? d) (eq? (car d) 'begin))
-     (list (cons 'begin (append-map-local splice-includes (cdr d)))))
-    (else (list d))))
+  (let ((datum (syntax->datum d)))
+    (cond
+      ((and (pair? datum) (memq (car datum) '(include include-ci)))
+       (unless (and (list? datum) (pair? (cdr datum)))
+         (error 'include "expected filenames" datum))
+       (append-map-local
+         (lambda (path)
+           (call-with-included-forms path (eq? (car datum) 'include-ci)
+             (lambda (forms) (append-map-local splice-includes forms))))
+         (cdr datum)))
+      ((and (pair? datum) (eq? (car datum) 'begin))
+       (list (cons 'begin (append-map-local splice-includes (cdr datum)))))
+      (else (list d)))))
+
+(define (normalize-library-declarations clauses)
+  (append-map-local
+    (lambda (clause)
+      (let ((d (syntax->datum clause)))
+        (unless (and (list? d) (pair? d)) (error 'define-library "invalid declaration" d))
+        (case (car d)
+          ((include include-ci)
+           (list (declaration-wrap clause (cons 'begin (splice-includes d)))))
+          ((include-library-declarations)
+           (unless (pair? (cdr d)) (error 'include "expected filenames" d))
+           (append-map-local
+             (lambda (path)
+               (call-with-included-forms path #f
+                 (lambda (forms)
+                   (normalize-library-declarations
+                     (map (lambda (form) (declaration-wrap clause form)) forms)))))
+             (cdr d)))
+          ((cond-expand)
+           (normalize-library-declarations
+             ((module-ref the-expander-library 'cond-expand-select)
+              (cdr (if (syntax? clause) (syntax-form clause) clause)))))
+          ((begin)
+           (list (declaration-wrap clause (car (splice-includes d)))))
+          (else (list clause)))))
+    clauses))
+
+(define (library-declaration-inputs file)
+  (call-with-library-source file
+    (lambda ()
+      (for-each
+        (lambda (form)
+          (when (and (pair? form) (eq? (car form) 'define-library))
+            (normalize-library-declarations (cddr form))))
+        (call-with-input-file file read-forms))
+      (declaration-inputs))))
+
+(define (declaration-input-current input)
+  (case (car input)
+    ((include-source)
+     (and (file-exists? (cadr input))
+          (cons 'include-source (cons (cadr input) (gfo-stamp (cadr input))))))
+    ((availability)
+     (list 'availability (cadr input) (library-availability-fingerprint (cadr input))))
+    (else (library-dep-fingerprint (car input)))))
 
 ;;; export-rename-spec? : datum -> boolean
 ;;; R7RS export spec (rename <from> <to>): re-export `from' under the
@@ -1103,6 +1247,7 @@
           (loop (cdr ss) (cons s ids) rs))))))
 
 (define (parse-library-clauses clauses)
+  (set! clauses (normalize-library-declarations clauses))
   (let loop ((clauses clauses) (exports '()) (imports '()) (body '()))
     (if (null? clauses)
         (let-values (((es rs) (split-export-specs exports)))
@@ -1152,6 +1297,7 @@
   (let* ((form (syntax-form stx))
          (name (syntax->datum (cadr form)))
          (clauses (cddr form)))
+    (unless (library-name-valid? name) (error 'define-library "invalid library name" name))
     (let*-values (((exports renames imports body-stxs) (parse-library-clauses clauses)))
       (let ((lib (make-exp-library name)))
         (import-into-library! lib imports)
@@ -1580,6 +1726,15 @@
     (module-define! the-expander-library 'register-runtime-module register-runtime-module)
     (module-define! the-expander-library 'runtime-registered? runtime-registered?)
     (module-define! the-expander-library 'load-library! load-library!)
+    (module-define! the-expander-library 'library-name-valid? library-name-valid?)
+    (module-define! the-expander-library 'library-available? library-available?)
+    (module-define! the-expander-library 'library-availability-fingerprint library-availability-fingerprint)
+    (module-define! the-expander-library 'declaration-input-current declaration-input-current)
+    (module-define! the-expander-library 'declaration-inputs declaration-inputs)
+    (module-define! the-expander-library 'library-declaration-inputs library-declaration-inputs)
+    (module-define! the-expander-library 'normalize-library-declarations normalize-library-declarations)
+    (module-define! the-expander-library 'call-with-library-source call-with-library-source)
+    (module-define! the-expander-library 'splice-includes splice-includes)
     (module-define! the-expander-library 'library-file-cacheable? library-file-cacheable?)
     (module-define! the-expander-library 'capture-library-cache capture-library-cache)
     (module-define! the-expander-library 'restore-library-cache restore-library-cache)

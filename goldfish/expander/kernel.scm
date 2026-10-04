@@ -12,6 +12,8 @@
     binding-unstop
     bound-identifier=?
     compile-file
+    current-source-file
+    call-with-source-file
     compile-program
     compile-program-syntax
     compile-program-into-syntax

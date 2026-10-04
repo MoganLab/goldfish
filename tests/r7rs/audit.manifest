@@ -5,3 +5,9 @@ tests/r7rs/promise-test.scm
 tests/r7rs/parameter-test.scm
 tests/r7rs/exception-test.scm
 tests/r7rs/library-loading-test.scm
+tests/r7rs/library-declarations-test.scm
+tests/r7rs/numbered-library-test.scm
+tests/r7rs/include-case-test.scm
+tests/r7rs/include-declarations-test.scm
+tests/r7rs/conditional-library-test.scm
+tests/r7rs/library-feature-test.scm

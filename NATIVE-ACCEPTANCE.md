@@ -46,7 +46,7 @@ sh tools/test-r7rs-audit.sh
 ```
 
 The gate checks matrix paths, executes native continuation-frame and eval-machine
-checks, and runs the seven-file corpus with both cold and warm bootstrap.
+checks, and runs the thirteen-file corpus with both cold and warm bootstrap.
 It uses a fresh isolated cache to exercise source bootstrap, then replays that
 cache warm. A successful loop alone does not
 establish proper tail recursion; native tests also compare continuation frame
@@ -58,20 +58,23 @@ Known failures remain separate, standard-expected probes:
 sh tools/test-r7rs-audit.sh --gaps
 ```
 
-This command currently returns nonzero. Its six probes cover
-ordinary `...` under a custom ellipsis
-marker, numeric library names, `include-ci`,
-`include-library-declarations`, declaration-level `cond-expand`, and
-`cond-expand` library availability requirements. They are neither passing
-coverage nor CI skips. Library order checks require dependencies to precede
+This command currently returns nonzero. Its remaining probe covers ordinary
+`...` under a custom ellipsis marker. It is neither passing coverage nor a CI
+skip. Library order checks require dependencies to precede
 consumers; they do not impose an implementation-independent load-once rule.
 
 Follow-up priorities from the audit:
 
-1. Normalize library declarations before body expansion, including declaration
-   splicing, case-folded includes and numeric name components; support library
-   requirements in `cond-expand`.
-2. Preserve ordinary `...` identifiers when another ellipsis marker is selected.
+1. Preserve ordinary `...` identifiers when another ellipsis marker is selected.
+2. Expand the clause audit beyond the focused corpus and inventory standard exports.
+
+Library declarations support nonnegative exact integer name components, nested
+`include-library-declarations`, declaration `cond-expand` and library availability
+requirements. Includes search the containing file's directory before the load
+path, and `include-ci` uses the reader's `#!fold-case` behavior. Cache records
+track included sources and availability queries, including transitive macro
+providers. `tools/test-library-declaration-cache.sh` checks warm replay, include
+edits/deletion and changes in optional library availability across processes.
 
 Native bootstrap selects the current content-addressed pipeline directory,
 including runtime executable bytes and bootstrap sources. It validates every
@@ -89,7 +92,7 @@ gate includes `tests/runtime/native-cache-test.cpp` and
 size/time, missing dependencies, runtime changes, fingerprint parity and
 automatic recovery from a damaged deferred base artifact.
 
-The broader `tests/expander/lib-cache-all-libs-test.scm` probe currently loads
+The last recorded run of `tests/expander/lib-cache-all-libs-test.scm` loaded
 107 of 115 libraries. Eight failures involving `match`, JSON exports and
 their consumers were reproduced on the pre-fix `1070cfa2` baseline as well.
 This probe remains failing; the bootstrap freshness gate does not certify

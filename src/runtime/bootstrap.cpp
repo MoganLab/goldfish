@@ -180,10 +180,13 @@ void validate_artifact(Evaluator& evaluator, const fs::path& artifact,
             if (stored.size() < 2) throw std::runtime_error("invalid dependency stamp");
             std::string source;
             for (Value part : list_values(stored[0])) {
-                if (!part.is_object() || part.as_object()->type() != ObjectType::Symbol)
-                    throw std::runtime_error("invalid dependency name");
                 if (!source.empty()) source += '/';
-                source += part.as_object<SymbolObject>()->name;
+                if (part.is_object() && part.as_object()->type() == ObjectType::Symbol)
+                    source += part.as_object<SymbolObject>()->name;
+                else if (is_number(part) && number_value(part).is_exact() &&
+                         number_value(part).is_integer() && !number_value(part).real.numerator.negative())
+                    source += number_to_string(part);
+                else throw std::runtime_error("invalid dependency name");
             }
             source += ".scm";
             auto path = locate(evaluator, source);
@@ -354,6 +357,8 @@ void NativeBootstrap::install_expansion_helpers() {
                              "dr-record-defs", "dr-register-def",
                              "dr-interleave-register",
                              "cond-expand-feature-satisfied?",
+                             "cond-expand-requirement-valid?",
+                             "cond-expand-select",
                              "*cond-expand-features*"}) {
         Value symbol = evaluator.symbol(name);
         Value binding = evaluator.apply_values(ref_own, {base, symbol})[0];
