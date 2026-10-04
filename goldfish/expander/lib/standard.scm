@@ -68,12 +68,18 @@
   (syntax-rules ()
     ((parameterize () body1 body2 ...)
      (let () body1 body2 ...))
-    ((parameterize ((param value) binding ...) body1 body2 ...)
-     (let ((old (param)))
-       (dynamic-wind
-         (lambda () (param value))
-         (lambda () (parameterize (binding ...) body1 body2 ...))
-         (lambda () (param old)))))))
+    ((parameterize ((param value) ...) body1 body2 ...)
+     (let ((parameters (list param ...)) (inputs (list value ...)))
+       (let ((bindings (map (lambda (p v) (p v '%parameter-convert))
+                            parameters inputs)))
+         (let ((exchange
+                 (lambda ()
+                   (set! bindings
+                     (map (lambda (p v) (p v '%parameter-exchange))
+                          parameters bindings)))))
+           (dynamic-wind exchange
+                         (lambda () body1 body2 ...)
+                         exchange)))))))
 
 (define-syntax case
   (syntax-rules (else =>)

@@ -29,7 +29,7 @@ clause	area	status	evidence	boundary
 4.2.3	Sequencing	audited	tests/r7rs/tail-context-test.scm	Tail-position lowering exercised; other semantics remain inventory.
 4.2.4	Iteration	audited	tests/r7rs/tail-context-test.scm	Tail-position lowering exercised; other semantics remain inventory.
 4.2.5	Delayed evaluation	audited	tests/r7rs/promise-test.scm,tests/runtime/evaluator-test.cpp	Nested values, reentrancy, multi-shot memoization, forwarding and bounded tail-force frames; handler environments limited by 6.11 gap.
-4.2.6	Dynamic bindings	partial	tests/r7rs/gaps/parameter-converter.scm,tests/r7rs/promise-test.scm	Restoring a parameter reconverts its saved value; forcing environment covered.
+4.2.6	Dynamic bindings	audited	tests/r7rs/parameter-test.scm,tests/r7rs/promise-test.scm	Converters run once on entry; restoration and continuation reentry preserve converted values; port parameters share the protocol.
 4.2.7	Exception handling	partial	tests/r7rs/gaps/continuable-exception.scm	Continuable handler return aborts protected computation.
 4.2.8	Quasiquotation	inventory	tests/expander/quasisyntax-test.scm	Quasisyntax coverage is related evidence; datum quasiquote needs dedicated audit.
 4.2.9	Case-lambda	audited	tests/r7rs/tail-context-test.scm	Mutually recursive case-lambda tail path exercised; not all arity cases.
@@ -80,7 +80,7 @@ clause	area	status	evidence	boundary
 7.2.2	Domain equations	unverified	src/runtime/evaluator.cpp	No mechanized refinement or formal equivalence proof.
 7.2.3	Semantic functions	unverified	src/runtime/evaluator.cpp	No mechanized refinement or formal equivalence proof.
 7.2.4	Auxiliary functions	unverified	src/runtime/evaluator.cpp	No mechanized refinement or formal equivalence proof.
-7.3	Derived expression definitions	partial	goldfish/expander/lib/standard.scm,tests/r7rs/gaps/parameter-converter.scm	Tail contexts tested; parameterize restoration remains incompatible.
+7.3	Derived expression definitions	audited	goldfish/expander/lib/standard.scm,tests/r7rs/parameter-test.scm	Tail contexts and parameterize restoration tested.
 A	Standard libraries	inventory	goldfish/scheme	Library inventory exists; export-set conformance has not been exhaustively checked.
 A.base	(scheme base)	inventory	goldfish/scheme/base.scm	Library source present; complete standard export set and per-procedure conformance not audited.
 A.case-lambda	(scheme case-lambda)	inventory	goldfish/scheme/case-lambda.scm	Library source present; complete standard export set and per-procedure conformance not audited.

@@ -322,7 +322,15 @@
     ;; R7RS make-parameter
     (define* (make-parameter init (converter #f))
       (let* ((convert (or converter (lambda (x) x))) (value (convert init)))
-        (lambda args (if (null? args) value (set! value (convert (car args)))))
+        (lambda args
+          (cond
+            ((null? args) value)
+            ((null? (cdr args)) (set! value (convert (car args))))
+            ((and (null? (cddr args)) (eq? (cadr args) '%parameter-convert))
+             (convert (car args)))
+            ((and (null? (cddr args)) (eq? (cadr args) '%parameter-exchange))
+             (let ((old value)) (set! value (car args)) old))
+            (else (error "invalid parameter arguments"))))
       ) ;let*
     ) ;define*
 

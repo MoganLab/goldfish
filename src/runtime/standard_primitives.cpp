@@ -72,6 +72,23 @@ bool symbol_named(Value value, const char* name) {
            value.as_object<SymbolObject>()->name == name;
 }
 
+Values port_parameter(Value& slot, const Values& args, ObjectType type,
+                      const char* name) {
+    if (args.empty()) return Values{slot};
+    const bool convert = args.size() == 2 &&
+                         symbol_named(args[1], "%parameter-convert");
+    const bool exchange = args.size() == 2 &&
+                          symbol_named(args[1], "%parameter-exchange");
+    if (args.size() > 2 || (args.size() == 2 && !convert && !exchange))
+        throw std::runtime_error(std::string(name) + ": invalid parameter arguments");
+    if (!args[0].is_object() || args[0].as_object()->type() != type)
+        throw std::runtime_error(std::string(name) + ": expected a matching port");
+    if (convert) return Values{args[0]};
+    Value old = slot;
+    slot = args[0];
+    return Values{exchange ? old : Value::unspecified()};
+}
+
 bool integer_value(Value value, BigInteger& result) {
     if (!is_number(value)) return false;
     Number number = number_value(value);
@@ -1214,8 +1231,8 @@ void install_runtime_primitives(Evaluator& evaluator) {
             args[0].as_object()->type() == ObjectType::OutputPort)};
     });
     install(evaluator, "current-output-port", [](const Values& args) {
-        require_arity(args, 0, "current-output-port");
-        return Values{g_current_ports.output};
+        return port_parameter(g_current_ports.output, args,
+                              ObjectType::OutputPort, "current-output-port");
     });
     install(evaluator, "close-output-port", [](const Values& args) {
         require_arity(args, 1, "close-output-port");
@@ -3864,12 +3881,13 @@ void install_runtime_primitives(Evaluator& evaluator) {
 
     // --- current ports and dynamic rebinding (R7RS file I/O) --------------
     install(evaluator, "current-input-port", [&evaluator](const Values& args) {
-        require_arity(args, 0, "current-input-port");
-        return Values{current_input_port(evaluator)};
+        current_input_port(evaluator);
+        return port_parameter(g_current_ports.input, args,
+                              ObjectType::InputPort, "current-input-port");
     });
     install(evaluator, "current-error-port", [](const Values& args) {
-        require_arity(args, 0, "current-error-port");
-        return Values{g_current_ports.error_port};
+        return port_parameter(g_current_ports.error_port, args,
+                              ObjectType::OutputPort, "current-error-port");
     });
     evaluator.define_machine_primitive(
         "with-input-from-file", PrimitiveObject::Kind::WithInputFromFile);

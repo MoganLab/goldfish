@@ -2,4 +2,5 @@ tests/r7rs/macro-hygiene-test.scm
 tests/r7rs/tail-context-test.scm
 tests/r7rs/continuation-test.scm
 tests/r7rs/promise-test.scm
+tests/r7rs/parameter-test.scm
 tests/r7rs/library-loading-test.scm

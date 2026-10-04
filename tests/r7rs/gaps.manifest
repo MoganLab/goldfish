@@ -1,6 +1,5 @@
 # Standard-expected probes; failures are known gaps, not passing compatibility evidence.
 tests/r7rs/gaps/continuable-exception.scm
-tests/r7rs/gaps/parameter-converter.scm
 tests/r7rs/gaps/numbered-library.scm
 tests/r7rs/gaps/include-case.scm
 tests/r7rs/gaps/include-declarations.scm
