@@ -202,6 +202,8 @@ public:
         CallWithInputFile,
         CallWithOutputFile,
         Catch,
+        WithExceptionHandler,
+        RaiseContinuable,
     };
 
     explicit PrimitiveObject(Function function,
@@ -264,6 +266,9 @@ struct KontFrame final {
         ErrorObjectMessage,
         ErrorObjectIrritants,
         ExceptionHandler,
+        SchemeExceptionHandler,
+        ResumeExceptionHandler,
+        ForwardException,
         Catch,
         RethrowRaised,
         RethrowRuntimeError,

@@ -53,13 +53,16 @@ protected:
 
 class RaisedValue final : public SchemeException {
 public:
-    explicit RaisedValue(Value value)
-        : SchemeException("raised", "user-raised value"), value_(value) {}
+    explicit RaisedValue(Value value, bool continuable = false)
+        : SchemeException("raised", "user-raised value"), value_(value),
+          continuable_(continuable) {}
 
     Value value() const noexcept { return value_; }
+    bool continuable() const noexcept { return continuable_; }
 
 private:
     Value value_;
+    bool continuable_;
 };
 
 class ThrownValue final : public SchemeException {

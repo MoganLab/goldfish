@@ -42,6 +42,6 @@
   =>
   'b-caught
 ) ;check
-(check (guard (ex (else ex)) (error 'test-error "message")) => "message")
+(check (guard (ex (else (error-object-irritants ex))) (error 'test-error "message")) => '("message"))
 
 (check-report)

@@ -140,6 +140,22 @@ int main() {
     if (evaluator.eval(*eval_tail_reader.read()).as_integer() != 42)
         throw std::runtime_error("tail eval returned an incorrect result");
 
+    evaluator.define_primitive("exception-gc", [&](const Values& args) {
+        evaluator.collect();
+        return args;
+    });
+    TinyReader exception_reader(evaluator,
+        "(%native-with-exception-handler (lambda (obj) (exception-gc obj)) "
+        "(lambda () (+ 1 (car (%native-raise-continuable (cons 41 '()))))))");
+    if (evaluator.eval(*exception_reader.read()).as_integer() != 42)
+        throw std::runtime_error("continuable handler lost its value or continuation");
+    TinyReader guard_forward_reader(evaluator,
+        "(%native-with-exception-handler (lambda (obj) obj) "
+        "(lambda () (guard (obj (#f 'unreachable)) "
+        "(+ 1 (%native-raise-continuable 3)))))");
+    if (evaluator.eval(*guard_forward_reader.read()).as_integer() != 4)
+        throw std::runtime_error("unmatched core guard lost the raising continuation");
+
     Value sequential = evaluator.list({
         evaluator.symbol("letrec*"),
         evaluator.list({

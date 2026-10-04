@@ -425,6 +425,27 @@ Values Evaluator::run_machine(EvalSnapshot& state) {
                 invoke(arguments[1], {});
                 return;
             }
+            case PrimitiveObject::Kind::WithExceptionHandler: {
+                if (arguments.size() != 2)
+                    throw std::runtime_error("with-exception-handler expects 2 arguments");
+                for (Value argument : arguments) {
+                    if (!argument.is_object() ||
+                        (argument.as_object()->type() != ObjectType::Primitive &&
+                         argument.as_object()->type() != ObjectType::Closure &&
+                         argument.as_object()->type() != ObjectType::Continuation))
+                        throw std::runtime_error("with-exception-handler expects procedures");
+                }
+                KontFrame frame;
+                frame.kind = KontFrame::Kind::SchemeExceptionHandler;
+                frame.expression = arguments[0];
+                state.frames.push_back(std::move(frame));
+                invoke(arguments[1], {});
+                return;
+            }
+            case PrimitiveObject::Kind::RaiseContinuable:
+                if (arguments.size() != 1)
+                    throw std::runtime_error("raise-continuable expects 1 argument");
+                throw RaisedValue(arguments[0], true);
             default:
                 break;
             }
@@ -750,7 +771,7 @@ Values Evaluator::run_machine(EvalSnapshot& state) {
             evaluate(clause[0], std::move(handler));
             return;
         }
-        throw RaisedValue(frame.values.front());
+        throw ContinuationJump{frame.values[1], {Value::unspecified()}};
     };
     std::function<void(KontFrame)> continue_transfer;
     auto leave_winder = [&](const DynamicWinder& winder) {
@@ -869,12 +890,30 @@ Values Evaluator::run_machine(EvalSnapshot& state) {
         state.values = std::move(frame.values);
         state.returning = true;
     };
-    auto route_to_guard = [&](std::size_t handler_index, Value caught) {
+    auto route_to_guard = [&](std::size_t handler_index, Value caught,
+                              bool continuable = false) {
         KontFrame guard = state.frames[handler_index - 1];
         guard.secondary_environment =
             std::make_shared<Environment>(guard.environment);
         guard.secondary_environment->define(guard.auxiliary, caught);
-        guard.values = {caught};
+        // An unmatched guard forwards in the original raising environment.
+        EvalSnapshot resume = state;
+        resume.frames[handler_index - 1].stage = 4;
+        KontFrame restore;
+        restore.kind = KontFrame::Kind::ResumeExceptionHandler;
+        restore.index = handler_index - 1;
+        restore.stage = continuable ? 0 : 1;
+        restore.values = {caught};
+        resume.frames.push_back(std::move(restore));
+        KontFrame forward;
+        forward.kind = KontFrame::Kind::ForwardException;
+        forward.values = {caught};
+        resume.frames.push_back(std::move(forward));
+        resume.returning = true;
+        resume.values = {Value::unspecified()};
+        Value continuation = Value::object(
+            heap_.make<ContinuationObject>(std::move(resume)));
+        guard.values = {caught, continuation};
         guard.stage = 3;
 
         EvalSnapshot target;
@@ -943,7 +982,8 @@ Values Evaluator::run_machine(EvalSnapshot& state) {
         for (std::size_t i = state.frames.size(); i > 0; --i) {
             const KontFrame& candidate = state.frames[i - 1];
             if (respect_guard_boundary &&
-                candidate.kind == KontFrame::Kind::ExceptionHandler &&
+                (candidate.kind == KontFrame::Kind::ExceptionHandler ||
+                 candidate.kind == KontFrame::Kind::SchemeExceptionHandler) &&
                 candidate.stage == 0)
                 return false;
             if (candidate.kind != KontFrame::Kind::Catch) continue;
@@ -988,6 +1028,24 @@ Values Evaluator::run_machine(EvalSnapshot& state) {
         }
         return false;
     };
+    auto route_to_handler = [&](std::size_t index, Value caught,
+                                bool continuable = false) {
+        if (state.frames[index - 1].kind == KontFrame::Kind::ExceptionHandler) {
+            route_to_guard(index, caught, continuable);
+            return;
+        }
+        Value handler = state.frames[index - 1].expression;
+        state.frames[index - 1].stage = 1;
+        KontFrame restore;
+        restore.kind = KontFrame::Kind::ResumeExceptionHandler;
+        restore.index = index - 1;
+        restore.stage = continuable ? 0 : 1;
+        restore.values = {caught};
+        state.frames.push_back(std::move(restore));
+        state.applying = true;
+        state.initial_procedure = handler;
+        state.initial_arguments = {caught};
+    };
     auto runtime_error_tag = [&](const std::string& message) {
         const bool arity =
             message.rfind("wrong number of arguments", 0) == 0 ||
@@ -1018,6 +1076,17 @@ Values Evaluator::run_machine(EvalSnapshot& state) {
                          : s7type ? "type-error"
                          : wtype ? "wrong-type-arg" : nullptr;
         return key ? symbol(key) : Value::boolean(true);
+    };
+
+    auto active_handler_index = [&]() {
+        for (std::size_t i = state.frames.size(); i > 0; --i) {
+            const KontFrame& frame = state.frames[i - 1];
+            if ((frame.kind == KontFrame::Kind::ExceptionHandler ||
+                 frame.kind == KontFrame::Kind::SchemeExceptionHandler) &&
+                frame.stage == 0)
+                return i;
+        }
+        return std::size_t{0};
     };
 
 restart_machine:
@@ -1379,6 +1448,16 @@ restart_machine:
             }
             case KontFrame::Kind::RaiseValue:
                 throw RaisedValue(first_or_unspecified(produced));
+            case KontFrame::Kind::ForwardException:
+                throw RaisedValue(frame.values.front(), true);
+            case KontFrame::Kind::ResumeExceptionHandler:
+                if (frame.stage != 0)
+                    throw RaisedValue(Value::object(heap_.make<ErrorObject>(
+                        "exception handler returned from non-continuable raise",
+                        ValueList{frame.values.front()})));
+                state.frames[frame.index].stage = 0;
+                return_values(std::move(produced));
+                break;
             case KontFrame::Kind::RethrowRaised:
                 throw RaisedValue(frame.values.front());
             case KontFrame::Kind::RethrowRuntimeError:
@@ -1680,6 +1759,7 @@ restart_machine:
                 }
                 break;
             case KontFrame::Kind::Catch:
+            case KontFrame::Kind::SchemeExceptionHandler:
                 return_values(std::move(produced));
                 break;
             case KontFrame::Kind::PortCallback: {
@@ -1869,7 +1949,23 @@ restart_machine:
         for (auto it = thrown.arguments().rbegin();
              it != thrown.arguments().rend(); ++it)
             info = pair(*it, info);
-        if (route_to_catch(thrown.tag(), info)) goto restart_machine;
+        if (route_to_catch(thrown.tag(), info, true)) goto restart_machine;
+        const std::size_t handler_index = active_handler_index();
+        if (handler_index != 0) {
+            std::string message = "native exception";
+            std::string key;
+            if (thrown.tag().is_object() &&
+                thrown.tag().as_object()->type() == ObjectType::Symbol)
+                key = thrown.tag().as_object<SymbolObject>()->name;
+            if (!thrown.arguments().empty() &&
+                thrown.arguments().front().is_object() &&
+                thrown.arguments().front().as_object()->type() == ObjectType::String)
+                message = thrown.arguments().front().as_object<StringObject>()->value;
+            Value caught = Value::object(heap_.make<ErrorObject>(
+                message, thrown.arguments(), key));
+            route_to_handler(handler_index, caught);
+            goto restart_machine;
+        }
         if (state.winders.empty()) throw;
         EvalSnapshot target;
         target.machine_id = state.machine_id;
@@ -1907,33 +2003,19 @@ restart_machine:
             }
         }
         if (route_to_catch(tag, info, true)) goto restart_machine;
-        std::size_t handler_index = state.frames.size();
-        while (handler_index > 0) {
-            const KontFrame& candidate = state.frames[handler_index - 1];
-            if (candidate.kind == KontFrame::Kind::ExceptionHandler &&
-                candidate.stage == 0)
-                break;
-            --handler_index;
-        }
+        const std::size_t handler_index = active_handler_index();
         if (handler_index == 0) {
             if (state.winders.empty()) throw;
             unwind_before_rethrow(true, raised.value(), {});
             goto restart_machine;
         }
-        route_to_guard(handler_index, raised.value());
+        route_to_handler(handler_index, raised.value(), raised.continuable());
         goto restart_machine;
     } catch (const std::runtime_error& error) {
         Value tag = runtime_error_tag(error.what());
         Value info = pair(string(error.what()), Value::null());
         if (route_to_catch(tag, info, true)) goto restart_machine;
-        std::size_t handler_index = state.frames.size();
-        while (handler_index > 0) {
-            const KontFrame& candidate = state.frames[handler_index - 1];
-            if (candidate.kind == KontFrame::Kind::ExceptionHandler &&
-                candidate.stage == 0)
-                break;
-            --handler_index;
-        }
+        const std::size_t handler_index = active_handler_index();
         if (handler_index == 0) {
             if (state.winders.empty()) throw;
             unwind_before_rethrow(false, Value::unspecified(), error.what());
@@ -1941,20 +2023,13 @@ restart_machine:
         }
         Value caught = Value::object(
             heap_.make<ErrorObject>(error.what(), ValueList{}));
-        route_to_guard(handler_index, caught);
+        route_to_handler(handler_index, caught);
         goto restart_machine;
     } catch (const std::logic_error& error) {
         Value tag = runtime_error_tag(error.what());
         Value info = pair(string(error.what()), Value::null());
         if (route_to_catch(tag, info, true)) goto restart_machine;
-        std::size_t handler_index = state.frames.size();
-        while (handler_index > 0) {
-            const KontFrame& candidate = state.frames[handler_index - 1];
-            if (candidate.kind == KontFrame::Kind::ExceptionHandler &&
-                candidate.stage == 0)
-                break;
-            --handler_index;
-        }
+        const std::size_t handler_index = active_handler_index();
         if (handler_index == 0) {
             if (state.winders.empty()) throw;
             unwind_before_rethrow(false, Value::unspecified(), error.what());
@@ -1962,7 +2037,7 @@ restart_machine:
         }
         Value caught = Value::object(
             heap_.make<ErrorObject>(error.what(), ValueList{}));
-        route_to_guard(handler_index, caught);
+        route_to_handler(handler_index, caught);
         goto restart_machine;
     }
 }

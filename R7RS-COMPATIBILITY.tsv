@@ -28,9 +28,9 @@ clause	area	status	evidence	boundary
 4.2.2	Binding constructs	audited	tests/r7rs/tail-context-test.scm	Tail-position lowering exercised; other semantics remain inventory.
 4.2.3	Sequencing	audited	tests/r7rs/tail-context-test.scm	Tail-position lowering exercised; other semantics remain inventory.
 4.2.4	Iteration	audited	tests/r7rs/tail-context-test.scm	Tail-position lowering exercised; other semantics remain inventory.
-4.2.5	Delayed evaluation	audited	tests/r7rs/promise-test.scm,tests/runtime/evaluator-test.cpp	Nested values, reentrancy, multi-shot memoization, forwarding and bounded tail-force frames; handler environments limited by 6.11 gap.
+4.2.5	Delayed evaluation	audited	tests/r7rs/promise-test.scm,tests/runtime/evaluator-test.cpp	Nested values, reentrancy, multi-shot memoization, forwarding and bounded tail-force frames; forcing-time handler environments covered.
 4.2.6	Dynamic bindings	audited	tests/r7rs/parameter-test.scm,tests/r7rs/promise-test.scm	Converters run once on entry; restoration and continuation reentry preserve converted values; port parameters share the protocol.
-4.2.7	Exception handling	partial	tests/r7rs/gaps/continuable-exception.scm	Continuable handler return aborts protected computation.
+4.2.7	Exception handling	audited	tests/r7rs/exception-test.scm,tests/scheme/base/guard-test.scm	Matched clauses execute outside the protected extent; unmatched clauses forward at the original raising site and can resume.
 4.2.8	Quasiquotation	inventory	tests/expander/quasisyntax-test.scm	Quasisyntax coverage is related evidence; datum quasiquote needs dedicated audit.
 4.2.9	Case-lambda	audited	tests/r7rs/tail-context-test.scm	Mutually recursive case-lambda tail path exercised; not all arity cases.
 4.3	Macro hygiene	audited	tests/r7rs/macro-hygiene-test.scm,tests/r7rs/library-loading-test.scm	Local binders, definition-site references and macro-introduced private top-level locations remain isolated between libraries.
@@ -63,7 +63,7 @@ clause	area	status	evidence	boundary
 6.8	Vectors	inventory	tests/scheme/base	Existing data tests; continuation-safe vector mapping audited separately.
 6.9	Bytevectors	inventory	tests/scheme/base	Existing data tests; continuation-safe vector mapping audited separately.
 6.10	Control features	audited	tests/r7rs/continuation-test.scm,tests/runtime/evaluator-test.cpp	Multi-shot and zero/multiple values; dynamic-wind transitions; map result independence and shortest vector inputs.
-6.11	Exceptions	partial	tests/r7rs/gaps/continuable-exception.scm	raise-continuable behaves like aborting raise.
+6.11	Exceptions	audited	tests/r7rs/exception-test.scm,tests/scheme/base/error-object-test.scm,tests/runtime/evaluator-test.cpp	Resumable multiple values, handler masking and reentry, raising dynamic environments, non-continuable secondary errors and native error objects.
 6.12	Environments and evaluation	audited	tests/runtime/evaluator-test.cpp,tests/scheme/eval/eval-test.scm,tests/scheme/eval/environment-test.scm	Native eval tail execution stays on the current machine.
 6.13.1	Ports	inventory	tests/scheme/base	Existing native tests identified; not part of this focused audit.
 6.13.2	Input	inventory	tests/scheme/read	Existing native tests identified; not part of this focused audit.

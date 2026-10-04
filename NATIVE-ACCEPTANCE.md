@@ -46,7 +46,7 @@ sh tools/test-r7rs-audit.sh
 ```
 
 The gate checks matrix paths, executes native continuation-frame and eval-machine
-checks, and runs the six-file corpus with both cold and warm bootstrap.
+checks, and runs the seven-file corpus with both cold and warm bootstrap.
 It always uses a fresh isolated cache: the current native bootstrap can select
 an older complete version after source edits. A successful loop alone does not
 establish proper tail recursion; native tests also compare continuation frame
@@ -58,8 +58,8 @@ Known failures remain separate, standard-expected probes:
 sh tools/test-r7rs-audit.sh --gaps
 ```
 
-This command currently returns nonzero. Its seven probes cover continuable
-exceptions, ordinary `...` under a custom ellipsis
+This command currently returns nonzero. Its six probes cover
+ordinary `...` under a custom ellipsis
 marker, numeric library names, `include-ci`,
 `include-library-declarations`, declaration-level `cond-expand`, and
 `cond-expand` library availability requirements. They are neither passing
@@ -68,11 +68,8 @@ consumers; they do not impose an implementation-independent load-once rule.
 
 Follow-up priorities from the audit:
 
-1. Implement resumable exception handlers.
-   This gap also limits the delayed-evaluation audit of
-   handler environments.
-2. Normalize library declarations before body expansion, including declaration
+1. Normalize library declarations before body expansion, including declaration
    splicing, case-folded includes and numeric name components; support library
    requirements in `cond-expand`.
-3. Preserve ordinary `...` identifiers when another ellipsis marker is selected,
+2. Preserve ordinary `...` identifiers when another ellipsis marker is selected,
    and validate bootstrap cache freshness before loading a complete cache.

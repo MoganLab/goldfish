@@ -339,14 +339,12 @@
       *features*
     ) ;define
 
-    ;; Adapt catch's (tag info) callback to the R7RS handler argument.
     (define (with-exception-handler handler thunk)
-      (catch #t thunk (lambda (tag info) (handler (car info))))
+      (%native-with-exception-handler handler thunk)
     ) ;define
 
-    ;; This implementation treats raise-continuable as an abortive raise.
     (define (raise-continuable obj)
-      (raise obj)
+      (%native-raise-continuable obj)
     ) ;define
 
     ;; R7RS u8-ready?：goldfish 不区分文本/二进制端口，
@@ -429,29 +427,44 @@
                  (and (vector? obj) (positive? (vector-length obj)) (eq? (vector-ref obj 0) ,rtd)))
                ,@acc-defs
                ',type)))))
+    (define-syntax guard-clauses
+      (syntax-rules (else =>)
+        ((_ fallback) fallback)
+        ((_ fallback (else body ...)) (begin body ...))
+        ((_ fallback (test => receiver) more ...)
+         (let ((value test))
+           (if value (receiver value) (guard-clauses fallback more ...))))
+        ((_ fallback (test) more ...)
+         (let ((value test))
+           (if value value (guard-clauses fallback more ...))))
+        ((_ fallback (test body ...) more ...)
+         (if test (begin body ...) (guard-clauses fallback more ...)))))
+
     (define-syntax guard
-      (lambda (stx)
-        (syntax-case stx ()
-          ((guard (var clause ...) body ...)
-           (let ((has-else (let loop ((cs (syntax->datum #'(clause ...))))
-                             (cond ((null? cs) #f)
-                                   ((eq? (car (car cs)) 'else) #t)
-                                   (else (loop (cdr cs)))))))
-             (with-syntax ((extra (if has-else #'() #'((else (raise var))))))
-               #'(let ((caught (catch #t
-                                 (lambda () (cons 'normal (call-with-values (lambda () body ...) list)))
-                                 (lambda (type info) (cons 'raised (car info))))))
-                   (if (eq? (car caught) 'raised)
-                       (let ((var (cdr caught)))
-                         (cond clause ... . extra))
-                        (apply values (cdr caught))))))))))
+      (syntax-rules ()
+        ((_ (var clause ...) body ...)
+         ((call/cc
+            (lambda (exit)
+              (with-exception-handler
+                (lambda (condition)
+                  ((call/cc
+                     (lambda (resume)
+                       (exit
+                         (lambda ()
+                           (let ((var condition))
+                             (guard-clauses
+                               (resume (lambda () (raise-continuable condition)))
+                               clause ...))))))))
+                (lambda ()
+                  (call-with-values (lambda () body ...)
+                    (lambda results (exit (lambda () (apply values results)))))))))))))
 
     ;; Symbol-tagged errors use the native error primitive. A string first
     ;; argument creates an R7RS error object for handlers to inspect.
 
     (define-record-type <error-object>
       (make-error-object message irritants)
-      error-object?
+      %scheme-error-object?
       (message %error-object-message)
       (irritants %error-object-irritants))
 
@@ -461,14 +474,17 @@
         (apply host-error message irritants)))
 
     (define (error-object-message obj)
-      (if (error-object? obj)
-        (%error-object-message obj)
-        (host-error 'type-error "error-object-message: not an error object" obj)))
+      (cond ((%scheme-error-object? obj) (%error-object-message obj))
+            ((native-error-object? obj) (native-error-object-message obj))
+            (else (host-error 'type-error "error-object-message: not an error object" obj))))
 
     (define (error-object-irritants obj)
-      (if (error-object? obj)
-        (%error-object-irritants obj)
-        (host-error 'type-error "error-object-irritants: not an error object" obj)))
+      (cond ((%scheme-error-object? obj) (%error-object-irritants obj))
+            ((native-error-object? obj) (%native-error-object-irritants obj))
+            (else (host-error 'type-error "error-object-irritants: not an error object" obj))))
+
+    (define (error-object? obj)
+      (or (%scheme-error-object? obj) (native-error-object? obj)))
 
     (define-syntax include
       (lambda (stx)

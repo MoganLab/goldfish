@@ -17,15 +17,16 @@
 (check (with-exception-handler (lambda (e) e) (lambda () 42)) => 42)
 
 ;; thunk 抛出时调用 handler
-(check (with-exception-handler
-         (lambda (e) (list 'handled e))
-         (lambda () (raise 'oops)))
+(check (call/cc (lambda (escape)
+         (with-exception-handler
+           (lambda (e) (escape (list 'handled e)))
+           (lambda () (raise 'oops)))))
        => '(handled oops))
 
 ;; 与 guard 的抛出对象语义一致
-(check (with-exception-handler
-         (lambda (e) e)
-         (lambda () (raise 'test-error)))
+(check (call/cc (lambda (escape)
+         (with-exception-handler escape
+           (lambda () (raise 'test-error)))))
        => 'test-error)
 
 (check-report)

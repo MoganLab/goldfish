@@ -21,16 +21,17 @@
 (check (error-object? 'boom) => #f)
 (check (error-object? 42) => #f)
 (check (error-object? '(boom)) => #f)
-;; s7 惯用法保持：guard 收到 message 本身
-(check (guard (ex (else ex)) (error 'test-error "message")) => "message")
-(check (error-object? (guard (ex (else ex)) (error 'test-error "m"))) => #f)
+;; Native keyed errors expose their full exception object to R7RS handlers.
+(check (guard (ex (else (error-object-message ex))) (error 'test-error "message")) => "message")
+(check (guard (ex (else (error-object-irritants ex))) (error 'test-error "message")) => '("message"))
+(check (error-object? (guard (ex (else ex)) (error 'test-error "m"))) => #t)
 ;; raise 原样透传任意对象
 (check (guard (ex (else (error-object? ex))) (raise 42)) => #f)
 (check (guard (ex (else ex)) (raise "s")) => "s")
 ;; with-exception-handler 收到对象本身
-(check (with-exception-handler (lambda (e) (error-object-message e))
-         (lambda () (error "wired" 'x))
-       ) ;with-exception-handler
+(check (call/cc (lambda (escape)
+         (with-exception-handler (lambda (e) (escape (error-object-message e)))
+           (lambda () (error "wired" 'x)))))
   =>
   "wired"
 ) ;check

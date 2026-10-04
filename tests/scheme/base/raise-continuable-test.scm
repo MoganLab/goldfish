@@ -10,7 +10,7 @@
 ;;
 ;; 说明
 ;; ----
-;; Goldfish 采用 R7RS 允许的中止语义（与 raise 相同）。
+;; 处理器返回的值成为 raise-continuable 的返回值。
 
 ;; 可由 with-exception-handler 捕获
 (check (with-exception-handler

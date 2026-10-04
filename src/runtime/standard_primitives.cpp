@@ -916,6 +916,13 @@ void install_runtime_primitives(Evaluator& evaluator) {
         return Values{evaluator.string(
             args[0].as_object<ErrorObject>()->message)};
     });
+    install(evaluator, "%native-error-object-irritants", [&evaluator](const Values& args) {
+        require_arity(args, 1, "error-object-irritants");
+        if (!args[0].is_object() ||
+            args[0].as_object()->type() != ObjectType::ErrorObject)
+            throw std::runtime_error("error-object-irritants expects an error object");
+        return Values{evaluator.list(args[0].as_object<ErrorObject>()->irritants)};
+    });
     // Integer atoms used by the kernel and by the bootstrap libraries.
     install(evaluator, "lognot", [](const Values& args) {
         require_arity(args, 1, "lognot");
@@ -2714,6 +2721,10 @@ void install_runtime_primitives(Evaluator& evaluator) {
         return Values{Value::boolean(equal(args[0], args[1]))};
     });
     evaluator.define_machine_primitive("catch", PrimitiveObject::Kind::Catch);
+    evaluator.define_machine_primitive("%native-with-exception-handler",
+                                      PrimitiveObject::Kind::WithExceptionHandler);
+    evaluator.define_machine_primitive("%native-raise-continuable",
+                                      PrimitiveObject::Kind::RaiseContinuable);
     install(evaluator, "throw", [](const Values& args) -> Values {
         if (args.empty()) throw std::runtime_error("throw expects a tag");
         ValueList arguments(args.begin() + 1, args.end());
