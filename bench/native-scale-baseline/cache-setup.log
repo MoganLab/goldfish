@@ -1,0 +1,3 @@
+warm-bootstrap-cache: building native cache in isolation
+native cache unavailable: native bootstrap cache not found under /tmp/goldfish-native-cache.ICIiln/ccache/v78b5b35cb1bc
+warm-bootstrap-cache: cache complete at /tmp/goldfish-preperf-fixes/scale-final/cache/v78b5b35cb1bc

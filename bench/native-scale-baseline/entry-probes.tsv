@@ -1,0 +1,3 @@
+case	size	timeout_seconds	exit_code	observation
+set-entry	100	180	124	No result before timeout; includes library import
+set-entry	10	90	0	SET-ENTRY then BENCH-OK; includes library import

@@ -1,0 +1,53 @@
+diff --git a/NATIVE-ACCEPTANCE.md b/NATIVE-ACCEPTANCE.md
+index 1ffc688c..20d1b146 100644
+--- a/NATIVE-ACCEPTANCE.md
++++ b/NATIVE-ACCEPTANCE.md
+@@ -265,3 +265,48 @@ The native library-source gate replaces a shared exported 4096-pair list,
+ then collects garbage. Module metadata and promoted environment bindings
+ must release the old value. The baseline retained 4104 objects; the regression
+ allows at most 128 incidental objects above the pre-allocation count.
++
++## Performance and scale preparation
++
++Build `gf-native`, finish the affected semantic regressions, and run:
++
++```sh
++sh tools/bench-native-scale.sh --smoke --output=/tmp/goldfish-scale-smoke
++sh tools/bench-native-scale.sh --samples=3 --output=/tmp/goldfish-scale-quick
++sh tools/bench-native-scale.sh --full --samples=3 --timeout=300 --output=/tmp/goldfish-scale-full
++```
++
++The output directory must be empty. The runner uses GNU time and GNU timeout
++on Linux. Each sample starts a new native process and records elapsed/user/
++system seconds, peak RSS in KiB, exit code and semantic check result, with
++separate stdout/stderr. Metadata identifies the executable and input hashes,
++source revision and local patch, machine, optimization level and GC setting.
++Bootstrap-cache preparation is outside the measurements; timed workloads
++include process startup and their checks. Run benchmarks alone on an idle
++machine and compare individual samples as well as their medians.
++
++| Case | Quick size | Full size | Checked behavior |
++| --- | ---: | ---: | --- |
++| Cold/warm startup | 1 | 1 | Evaluate `(+ 1 1)` |
++| Cold/warm compilation | 32 definitions | 512 definitions | Compile the same generated source into a lowered program artifact |
++| Allocation / GC | 50 × 1,000 vector slots | 50 × 100,000 vector slots | Retained allocation contents |
++| Long list | 1,000 elements | 1,000,000 elements | Proper-list detection, length and reverse |
++| Wide vector | 4,096 slots | 1,000,000 slots | Fill, copy and final element |
++| Deep structure | 64 levels | 2,048 levels | Independent nested vectors compare equal and preserve depth |
++| Set construction | 10 elements | 1,000,000 elements | Cardinality, present and absent membership |
++
++Cold startup uses an empty Goldfish cache; warm startup uses a complete cache.
++This does not flush the operating system's page cache. Cold compilation copies
++the prepared bootstrap and workload cache for each sample; warm compilation reuses
++that sample's generated artifact. A failed cold compilation blocks its paired
++warm sample. Compilation checks artifact shape and executes the generated source outside
++the measured interval; broader compiler semantics remain
++covered by their separate regression tests. Allocation runs use the selected
++GC mode without forcing a collection, so these measurements characterize
++allocation with that collector rather than isolated GC pause times.
++
++Timeouts and semantic failures remain failed rows and make the runner return
++nonzero. The smoke profile checks the harness and small workloads; it is not
++million-element evidence or an optimization result. The full profile is the
++next dedicated performance run. Choose optimizations from measured hotspots
++and keep the affected semantic regressions green for every change.

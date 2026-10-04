@@ -1,0 +1,10 @@
+case	quick_size	full_size
+startup-cold	1	1
+startup-warm	1	1
+compile-cold	32	512
+compile-warm	32	512
+allocation	1000	100000
+long-list	1000	1000000
+wide-vector	4096	1000000
+deep-structure	64	2048
+million-set	10	1000000

@@ -1,0 +1,1 @@
+GOLDFISH_CACHE_DIR=/tmp/goldfish-preperf-fixes/conversion GOLDFISH_BENCH_CASE=million-set GOLDFISH_BENCH_SIZE=100 timeout 180s ./bin/gf -m r7rs -I bench -e '(import (native-scale set)) (run-set-workload)'
