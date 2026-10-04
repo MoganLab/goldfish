@@ -93,7 +93,7 @@
     "(import (goldfish))\n"
     "(begin\n"
     "  (define-syntax m1 (syntax-rules () ((_) '10)))\n"
-    "  (define-macro (m2) `(quote 20)))\n"
+    "  (define-macro (m2) '(quote 20)))\n"
     "(call-with-output-file \""
     (string-append tmp "/gf-macro-prog-begin-mix.out")
     "\" (lambda (p) (write (+ (m1) (m2)) p)))\n")

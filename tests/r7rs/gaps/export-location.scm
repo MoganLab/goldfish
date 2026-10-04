@@ -1,7 +1,0 @@
-(import (scheme base) (liii check) (r7rs-audit provider))
-(check-set-mode! 'report-failed)
-(check counter => 10)
-(bump!)
-(check (read-counter) => 11)
-(check counter => 11)
-(check-report)

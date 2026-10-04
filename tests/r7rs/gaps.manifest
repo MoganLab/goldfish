@@ -6,5 +6,5 @@ tests/r7rs/gaps/include-case.scm
 tests/r7rs/gaps/include-declarations.scm
 tests/r7rs/gaps/conditional-library.scm
 tests/r7rs/gaps/library-feature.scm
-tests/r7rs/gaps/export-location.scm
 tests/r7rs/gaps/custom-ellipsis-variable.scm
+tests/r7rs/gaps/macro-private-location.scm

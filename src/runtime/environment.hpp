@@ -44,14 +44,29 @@ public:
         : parent_(std::move(parent)) {}
 
     void define(Value name, Value value) {
-        bindings_[symbol_key(name)] = value;
+        bindings_[symbol_key(name)].get() = value;
+    }
+
+    // Promote only shared bindings to cells; ordinary lexical bindings stay local.
+    void link(Value name, Environment& source, Value source_name) {
+        for (Environment* env = &source; env; env = env->parent_.get()) {
+            auto found = env->bindings_.find(symbol_key(source_name));
+            if (found == env->bindings_.end()) continue;
+            Binding& binding = found->second;
+            if (!binding.location)
+                binding.location = std::make_shared<Value>(binding.value);
+            auto location = binding.location;
+            bindings_[symbol_key(name)].location = std::move(location);
+            return;
+        }
+        throw UnboundSymbolError("cannot link unbound symbol: " + symbol_name(source_name));
     }
 
     void set(Value name, Value value) {
         const Object* key = symbol_key(name);
         auto it = bindings_.find(key);
         if (it != bindings_.end()) {
-            it->second = value;
+            it->second.get() = value;
             return;
         }
         if (parent_) {
@@ -69,11 +84,12 @@ public:
              environment = environment->parent_.get()) {
             auto it = environment->bindings_.find(key);
             if (it != environment->bindings_.end()) {
-                if (it->second.is_object() &&
-                    it->second.as_object()->type() == ObjectType::Uninitialized)
+                Value value = it->second.get();
+                if (value.is_object() &&
+                    value.as_object()->type() == ObjectType::Uninitialized)
                     throw std::runtime_error(
                         "expected initialized binding: read of uninitialized symbol");
-                return it->second;
+                return value;
             }
         }
         trace_throw("lookup-unbound");
@@ -82,7 +98,7 @@ public:
 
     void trace(Tracer& tracer) const {
         for (const auto& binding : bindings_)
-            tracer.mark(binding.second);
+            tracer.mark(binding.second.get());
         if (parent_)
             parent_->trace(tracer);
     }
@@ -91,11 +107,17 @@ public:
         std::vector<std::pair<Value, Value>> result;
         for (const auto& binding : bindings_)
             result.emplace_back(Value::object(const_cast<Object*>(binding.first)),
-                                binding.second);
+                                binding.second.get());
         return result;
     }
 
 private:
+    struct Binding {
+        Value value = Value::unspecified();
+        std::shared_ptr<Value> location;
+        Value& get() { return location ? *location : value; }
+        const Value& get() const { return location ? *location : value; }
+    };
     static const Object* symbol_key(Value name) {
         if (!name.is_object() ||
             name.as_object()->type() != ObjectType::Symbol)
@@ -108,7 +130,7 @@ private:
     }
 
     std::shared_ptr<Environment> parent_;
-    std::unordered_map<const Object*, Value> bindings_;
+    std::unordered_map<const Object*, Binding> bindings_;
 };
 
 using EnvironmentPtr = std::shared_ptr<Environment>;

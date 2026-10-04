@@ -60,7 +60,7 @@ sh tools/test-r7rs-audit.sh --gaps
 
 This command currently returns nonzero. Its nine probes cover continuable
 exceptions, parameter restoration, ordinary `...` under a custom ellipsis
-marker, exported variable locations, numeric library names, `include-ci`,
+marker, macro-introduced private library locations, numeric library names, `include-ci`,
 `include-library-declarations`, declaration-level `cond-expand`, and
 `cond-expand` library availability requirements. They are neither passing
 coverage nor CI skips. Library order checks require dependencies to precede
@@ -68,13 +68,12 @@ consumers; they do not impose an implementation-independent load-once rule.
 
 Follow-up priorities from the audit:
 
-1. Represent exported variables as shared locations. Getter closures currently
-   observe mutations that direct imported variable references miss.
-2. Implement resumable exception handlers and parameter restoration without
+1. Implement resumable exception handlers and parameter restoration without
    reapplying converters. These gaps also limit the delayed-evaluation audit of
    handler environments.
-3. Normalize library declarations before body expansion, including declaration
+2. Normalize library declarations before body expansion, including declaration
    splicing, case-folded includes and numeric name components; support library
    requirements in `cond-expand`.
-4. Preserve ordinary `...` identifiers when another ellipsis marker is selected,
+3. Assign macro-introduced private definitions to their consuming library,
+   preserve ordinary `...` identifiers when another ellipsis marker is selected,
    and validate bootstrap cache freshness before loading a complete cache.

@@ -2,11 +2,15 @@
 (define audit-original-load-path *load-path*)
 (set! *load-path* (cons "tests/r7rs/fixtures" *load-path*))
 (import (scheme base) (liii check)
+        (liii project) (only (liii string) string-ends?)
         (r7rs-audit state) (r7rs-audit provider) (r7rs-audit consumer)
+        (prefix (r7rs-audit location-a) a-)
+        (prefix (r7rs-audit location-b) b-)
         (rename (prefix (only (r7rs-audit facade)
-                             facade-read facade-bump hygienic-plus) audit-)
+                             facade-read facade-bump facade-counter hygienic-plus) audit-)
                 (audit-facade-read read-alias)
                 (audit-facade-bump bump-alias)
+                (audit-facade-counter counter-alias)
                 (audit-hygienic-plus add-alias)))
 (check-set-mode! 'report-failed)
 
@@ -18,10 +22,27 @@
 (check (read-alias) => 10)
 (bump-alias)
 (check (read-counter) => 11)
+(check counter => 11)
+(check counter-alias => 11)
+(check (module-ref '(r7rs-audit facade) 'facade-counter) => 11)
 
 ;; Macro templates retain private definition-site bindings through re-exports.
 (let ((private-plus (lambda (x) 'captured)) (counter 999))
   (check (add-alias 2) => 13))
+
+(bump!)
+(check counter-alias => 12)
+(check (module-ref '(r7rs-audit provider) 'counter) => 12)
+
+;; Identical definition positions in different libraries must not share names.
+(check (list a-counter b-counter) => '(10 100))
+(a-bump!)
+(check (list a-counter (a-read-counter) b-counter (b-read-counter))
+       => '(11 11 100 100))
+(b-bump!)
+(check (list a-counter b-counter) => '(11 101))
+(check (string-ends? "x-test.scm" "-test.scm") => #t)
+(check (string-ends? "x.scm" "-test.scm") => #f)
 
 (set! *load-path* audit-original-load-path)
 (check-report)

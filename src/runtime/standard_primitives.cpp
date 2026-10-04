@@ -1094,6 +1094,18 @@ void install_runtime_primitives(Evaluator& evaluator) {
             args[1], args[2]);
         return Values{Value::unspecified()};
     });
+    install(evaluator, "%eval-environment-link!", [](const Values& args) {
+        require_arity(args, 4, "%eval-environment-link!");
+        for (std::size_t index : {std::size_t(0), std::size_t(2)}) {
+            if (!args[index].is_object() ||
+                args[index].as_object()->type() != ObjectType::EvalEnvironment)
+                throw std::runtime_error("environment link expects eval environments");
+        }
+        args[0].as_object<EvalEnvironmentObject>()->environment->link(
+            args[1], *args[2].as_object<EvalEnvironmentObject>()->environment, args[3]);
+        return Values{Value::unspecified()};
+    });
+    evaluator.define_machine_primitive("%current-eval-environment", PrimitiveObject::Kind::CurrentEnvironment);
     install(evaluator, "eval-environment-set!", [](const Values& args) {
         require_arity(args, 3, "eval-environment-set!");
         if (!args[0].is_object() ||

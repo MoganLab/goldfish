@@ -384,6 +384,11 @@ Values Evaluator::run_machine(EvalSnapshot& state) {
             PrimitiveObject* primitive =
                 procedure.as_object<PrimitiveObject>();
             switch (primitive->kind) {
+            case PrimitiveObject::Kind::CurrentEnvironment:
+                if (!arguments.empty())
+                    throw std::runtime_error("current eval environment expects no arguments");
+                return_values({Value::object(heap_.make<EvalEnvironmentObject>(state.environment))});
+                return;
             case PrimitiveObject::Kind::Evaluate: {
                 if (arguments.size() != 1 && arguments.size() != 2)
                     throw std::runtime_error("eval expects one or two arguments");

@@ -309,6 +309,27 @@ int main() {
     evaluator.collect();
     assert(evaluator.eval(module_reference).as_integer() == 34);
 
+    // Export aliases retain one location even after their source frame is gone.
+    auto source_frame = std::make_shared<Environment>();
+    auto alias_frame = std::make_shared<Environment>();
+    Value source_name = evaluator.symbol("shared-source");
+    Value alias_name = evaluator.symbol("shared-alias");
+    source_frame->define(source_name, Value::integer(1));
+    alias_frame->link(alias_name, *source_frame, source_name);
+    source_frame->set(source_name, Value::integer(2));
+    if (alias_frame->lookup(alias_name).as_integer() != 2)
+        throw std::runtime_error("alias did not observe a source assignment");
+    alias_frame->set(alias_name, Value::integer(3));
+    if (source_frame->lookup(source_name).as_integer() != 3)
+        throw std::runtime_error("source did not observe an alias assignment");
+    source_frame->define(source_name, evaluator.list({Value::integer(4)}));
+    source_frame.reset();
+    evaluator.global_environment()->define(evaluator.symbol("shared-root"),
+        Value::object(evaluator.heap().make<EvalEnvironmentObject>(alias_frame)));
+    evaluator.collect();
+    if (alias_frame->lookup(alias_name).as_object<PairObject>()->car.as_integer() != 4)
+        throw std::runtime_error("shared export location lost its GC root");
+
     install_runtime_primitives(evaluator);
     install_bootstrap_primitives(evaluator);
     ArtifactLoader loader(evaluator);

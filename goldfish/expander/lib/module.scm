@@ -14,10 +14,9 @@
 ;;;     registration expression (make-module/module-define!/register-module,
 ;;;     see liii/prelude.scm) so libraries have runtime identity; cross-
 ;;;     library references are emitted as (module-ref 'lib 'name).  References
-;;;     within the defining library stay bare gensyms.  Exported bindings are
-;;;     immutable (set! on them is an expansion error): the module record holds
-;;;     value snapshots, not shared cells.  Re-exports forward via module-ref;
-;;;     references resolve straight to the defining module.
+;;;     within the defining library stay bare gensyms. Runtime exports share
+;;;     their defining location, including through re-exports. Imported bindings
+;;;     remain immutable at expansion time.
 ;;;
 ;;;   * On-demand file loading: importing an unknown library loads
 ;;;     (foo bar) -> foo/bar.scm from *load-path* at expand time.
@@ -1147,7 +1146,7 @@
 ;;; emission.  The defs end with a runtime module registration expression
 ;;; (make-module/module-define!/register-module) so the library has
 ;;; runtime identity; exported macros have no runtime representation.
-;;; Re-exports forward through module-ref (snapshot semantics).
+;;; Re-exports retain the defining location.
 
 (define (expand-define-library stx ctx)
   (let* ((form (syntax-form stx))
@@ -1231,7 +1230,7 @@
                       ((transformer-binding? binding) acc)
                       ((toplevel-binding? binding)
                        (let ((ref (binding-value binding)))
-                         (cons (cons export
+                         (cons (list export
                                      (if (eq? (toplevel-ref-home ref) lib)
                                          (toplevel-ref-gensym ref)
                                          (list 'module-ref
@@ -1239,7 +1238,16 @@
                                                      (exp-library-name
                                                       (toplevel-ref-home ref)))
                                                (list 'quote
-                                                     (toplevel-ref-original ref)))))
+                                                     (toplevel-ref-original ref))))
+                                     (if (eq? (toplevel-ref-home ref) lib)
+                                         (list '%current-eval-environment)
+                                         (list 'module-eval-environment
+                                               (list 'lookup-module
+                                                     (list 'quote (exp-library-name
+                                                       (toplevel-ref-home ref))))))
+                                     (if (eq? (toplevel-ref-home ref) lib)
+                                         (toplevel-ref-gensym ref)
+                                         (toplevel-ref-original ref)))
                                acc)))
                       ((primitive-binding? binding)
                         ;; Materialize only runtime values present in the
@@ -1247,7 +1255,7 @@
                         ;; operations remain compile-time names.
                         (let ((value-name (binding-value binding)))
                           (if (and (symbol? value-name) (defined? value-name))
-                              (cons (cons export value-name) acc)
+                              (cons (list export value-name) acc)
                               acc)))
                       ((or (core-form-binding? binding)
                            (module-form-binding? binding))
@@ -1269,11 +1277,20 @@
           (list 'lambda '()
                 (cons 'let
                       (cons (list (list 'm (list 'make-module (list 'quote name))))
-                            (append (map (lambda (entry)
-                                           (list 'module-define! 'm
-                                                 (list 'quote (car entry))
-                                                 (cdr entry)))
-                                         entries)
+                            (append (apply append
+                                      (map (lambda (entry)
+                                             (cons
+                                               (list 'module-define! 'm
+                                                     (list 'quote (car entry))
+                                                     (cadr entry))
+                                               (if (null? (cddr entry)) '()
+                                                 (list
+                                                   (list '%eval-environment-link!
+                                                         (list 'module-eval-environment 'm)
+                                                         (list 'quote (car entry))
+                                                         (caddr entry)
+                                                         (list 'quote (cadddr entry)))))))
+                                           entries))
                                     (list (list 'register-module 'm)
                                           (list 'runtime-registered-add!
                                                 (list 'quote name))))))))))

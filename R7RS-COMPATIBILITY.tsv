@@ -33,18 +33,18 @@ clause	area	status	evidence	boundary
 4.2.7	Exception handling	partial	tests/r7rs/gaps/continuable-exception.scm	Continuable handler return aborts protected computation.
 4.2.8	Quasiquotation	inventory	tests/expander/quasisyntax-test.scm	Quasisyntax coverage is related evidence; datum quasiquote needs dedicated audit.
 4.2.9	Case-lambda	audited	tests/r7rs/tail-context-test.scm	Mutually recursive case-lambda tail path exercised; not all arity cases.
-4.3	Macro hygiene	audited	tests/r7rs/macro-hygiene-test.scm	Definition-site references, introduced binders and literal binding identity.
+4.3	Macro hygiene	partial	tests/r7rs/macro-hygiene-test.scm,tests/r7rs/gaps/macro-private-location.scm	Local hygiene passes; macro-introduced private top-level names can collide between consuming libraries.
 4.3.1	Binding syntactic keywords	audited	tests/r7rs/macro-hygiene-test.scm	let-syntax outer transformer scope and letrec-syntax mutual scope.
 4.3.2	Pattern language	partial	tests/r7rs/macro-hygiene-test.scm,tests/r7rs/gaps/custom-ellipsis-variable.scm	Empty nested ellipsis fixed; custom marker still mishandles ordinary ... pattern variable.
 4.3.3	Signaling macro errors	inventory	tests/expander/macro-error-test.scm	Existing error suite identified; no complete clause audit.
 5.1	Programs	inventory	tests/native/native-workflow.scm	Native program execution covered by separate workflow.
-5.2	Import declarations	partial	tests/r7rs/library-loading-test.scm,tests/r7rs/gaps/export-location.scm	Nested import sets work; exported variable imports snapshot values rather than shared locations.
+5.2	Import declarations	audited	tests/r7rs/library-loading-test.scm,tests/runtime/evaluator-test.cpp	Nested import sets and renamed re-exports retain shared variable locations, including across GC.
 5.3.1	Top-level definitions	inventory	tests/scheme/base	Existing base tests; macro-generated internal definition covered by hygiene audit.
 5.3.2	Internal definitions	inventory	tests/scheme/base	Existing base tests; macro-generated internal definition covered by hygiene audit.
 5.3.3	Multiple-value definitions	inventory	tests/scheme/base	Existing base tests; macro-generated internal definition covered by hygiene audit.
 5.4	Syntax definitions	inventory	tests/scheme/base	Existing base tests; macro-generated internal definition covered by hygiene audit.
 5.5	Record-type definitions	inventory	tests/scheme/base	Existing base tests; macro-generated internal definition covered by hygiene audit.
-5.6.1	Library syntax	partial	tests/r7rs/gaps/numbered-library.scm,tests/r7rs/gaps/include-case.scm,tests/r7rs/gaps/include-declarations.scm,tests/r7rs/gaps/conditional-library.scm,tests/r7rs/gaps/export-location.scm	Numeric name components, include-ci, include-library-declarations, declaration cond-expand and exported locations fail.
+5.6.1	Library syntax	partial	tests/r7rs/gaps/numbered-library.scm,tests/r7rs/gaps/include-case.scm,tests/r7rs/gaps/include-declarations.scm,tests/r7rs/gaps/conditional-library.scm	Numeric name components, include-ci, include-library-declarations and declaration cond-expand fail; exported locations covered by 5.2.
 5.6.2	Library example	audited	tests/r7rs/library-loading-test.scm	Provider precedes consumer; re-export procedure identity and private macro reference.
 5.7	REPL	inventory	tools/test-native-workflow.sh	Stateful native REPL smoke; no exhaustive interactive semantics audit.
 6.1	Equivalence predicates	inventory	tests/scheme/base	Existing eq?/eqv?/equal? coverage; numeric and graph boundaries need clause audit.

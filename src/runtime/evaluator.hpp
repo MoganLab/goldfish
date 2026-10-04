@@ -192,6 +192,7 @@ public:
         VectorFilter,
         CallWithValues,
         Evaluate,
+        CurrentEnvironment,
         WithInputFromString,
         WithOutputToString,
         WithInputFromFile,

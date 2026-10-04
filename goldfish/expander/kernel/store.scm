@@ -33,7 +33,11 @@
                         (store-def-envs store)))))
 
 (define-public (store-alloc-name store id)
-  (store-alloc store (syntax-form id)))
+  (let ((lib (syntax-library id)))
+    (store-alloc store
+      (if lib
+        (format #f "~A@~S" (syntax-form id) (exp-library-name lib))
+        (syntax-form id)))))
 
 (define-public (store-alloc-scope store)
   (store-alloc store 'scp))
