@@ -23,7 +23,7 @@
 ;; 注意
 ;; ----
 ;; string-take-right等价于(substring str (- (string-length str) k) (string-length str))，但提供了更语义化的名称。
-;; 对于多字节Unicode字符，操作基于字节位置而非字符位置。例如，每个中文字符占用3个字节，emoji字符通常占用4个字节。
+;; 对于多字节Unicode字符，操作基于字符位置；每个中文字符和emoji均计为一个字符。
 ;;
 ;; 示例
 ;; ----
@@ -54,8 +54,8 @@
 (check (string-take-right "Hello" 1) => "o")
 (check (string-take-right "abc" 2) => "bc")
 (check (string-take-right "test123" 3) => "123")
-(check (string-take-right "中文测试" 6) => "测试")
-(check (string-take-right "🌟🎉" 4) => "🎉")
+(check (string-take-right "中文测试" 2) => "测试")
+(check (string-take-right "🌟🎉" 1) => "🎉")
 
 (check-catch 'out-of-range (string-take-right "MathAgape" 20))
 (check-catch 'out-of-range (string-take-right "" 1))

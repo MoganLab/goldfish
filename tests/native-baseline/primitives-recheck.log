@@ -1,0 +1,303 @@
+;;; note: tests/scheme/base/eqv-p-test.scm could not be compiled; loading per form
+
+; *** checks *** : 35 correct, 0 failed.
+#f
+  tests/scheme/base/eqv-p-test.scm ... PASS
+;;; note: tests/scheme/base/equal-p-test.scm could not be compiled; loading per form
+
+; *** checks *** : 19 correct, 0 failed.
+#f
+  tests/scheme/base/equal-p-test.scm ... PASS
+;;; note: tests/scheme/base/assoc-test.scm could not be compiled; loading per form
+
+; *** checks *** : 43 correct, 0 failed.
+#f
+  tests/scheme/base/assoc-test.scm ... PASS
+;;; note: tests/scheme/base/assv-test.scm could not be compiled; loading per form
+
+; *** checks *** : 39 correct, 0 failed.
+#f
+  tests/scheme/base/assv-test.scm ... PASS
+;;; note: tests/scheme/base/memv-test.scm could not be compiled; loading per form
+
+; *** checks *** : 52 correct, 0 failed.
+#f
+  tests/scheme/base/memv-test.scm ... PASS
+;;; note: tests/scheme/base/list-p-test.scm could not be compiled; loading per form
+
+; *** checks *** : 32 correct, 0 failed.
+#f
+  tests/scheme/base/list-p-test.scm ... PASS
+;;; note: tests/liii/vector/reverse-list-to-vector-test.scm could not be compiled; loading per form
+
+; *** checks *** : 9 correct, 0 failed.
+#f
+  tests/liii/vector/reverse-list-to-vector-test.scm ... PASS
+;;; note: tests/scheme/base/substring-test.scm could not be compiled; loading per form
+
+; *** checks *** : 16 correct, 0 failed.
+#f
+  tests/scheme/base/substring-test.scm ... PASS
+;;; note: tests/liii/string/string-take-test.scm could not be compiled; loading per form
+
+(string-take MathAgape 4) => Math ; correct
+
+(string-take MathAgape 0) =>  ; correct
+
+(string-take MathAgape 9) => MathAgape ; correct
+
+(string-take  0) =>  ; correct
+
+(string-take a 1) => a ; correct
+
+(string-take Hello 1) => H ; correct
+
+(string-take abc 2) => ab ; correct
+
+(string-take test123 4) => test ; correct
+
+(string-take 中文测试 2) => 中文 ; correct
+
+(string-take 🌟🎉 1) => 🌟 ; correct
+
+(catch (quote out-of-range) (lambda () (string-take MathAgape 20)) (lambda args (quote out-of-range))) => out-of-range ; correct
+
+(catch (quote out-of-range) (lambda () (string-take  1)) (lambda args (quote out-of-range))) => out-of-range ; correct
+
+(catch (quote out-of-range) (lambda () (string-take Hello -1)) (lambda args (quote out-of-range))) => out-of-range ; correct
+
+(catch (quote wrong-type-arg) (lambda () (string-take 123 4)) (lambda args (quote wrong-type-arg))) => wrong-type-arg ; correct
+
+(catch (quote wrong-type-arg) (lambda () (string-take MathAgape 4)) (lambda args (quote wrong-type-arg))) => wrong-type-arg ; correct
+
+(catch (quote wrong-type-arg) (lambda () (string-take MathAgape 4.5)) (lambda args (quote wrong-type-arg))) => wrong-type-arg ; correct
+
+(catch (quote wrong-type-arg) (lambda () (string-take MathAgape (quote a))) (lambda args (quote wrong-type-arg))) => wrong-type-arg ; correct
+
+; *** checks *** : 17 correct, 0 failed.
+#f
+  tests/liii/string/string-take-test.scm ... PASS
+;;; note: tests/liii/string/string-take-right-test.scm could not be compiled; loading per form
+
+(string-take-right MathAgape 0) =>  ; correct
+
+(string-take-right MathAgape 1) => e ; correct
+
+(string-take-right MathAgape 9) => MathAgape ; correct
+
+(string-take-right MathAgape 4) => gape ; correct
+
+(string-take-right MathAgape 0) =>  ; correct
+
+(string-take-right MathAgape 9) => MathAgape ; correct
+
+(string-take-right  0) =>  ; correct
+
+(string-take-right a 1) => a ; correct
+
+(string-take-right Hello 1) => o ; correct
+
+(string-take-right abc 2) => bc ; correct
+
+(string-take-right test123 3) => 123 ; correct
+
+(string-take-right 中文测试 2) => 测试 ; correct
+
+(string-take-right 🌟🎉 1) => 🎉 ; correct
+
+(catch (quote out-of-range) (lambda () (string-take-right MathAgape 20)) (lambda args (quote out-of-range))) => out-of-range ; correct
+
+(catch (quote out-of-range) (lambda () (string-take-right  1)) (lambda args (quote out-of-range))) => out-of-range ; correct
+
+(catch (quote out-of-range) (lambda () (string-take-right Hello -1)) (lambda args (quote out-of-range))) => out-of-range ; correct
+
+(catch (quote wrong-type-arg) (lambda () (string-take-right 123 4)) (lambda args (quote wrong-type-arg))) => wrong-type-arg ; correct
+
+(catch (quote wrong-type-arg) (lambda () (string-take-right MathAgape 4)) (lambda args (quote wrong-type-arg))) => wrong-type-arg ; correct
+
+(catch (quote wrong-type-arg) (lambda () (string-take-right MathAgape 4.5)) (lambda args (quote wrong-type-arg))) => wrong-type-arg ; correct
+
+(catch (quote wrong-type-arg) (lambda () (string-take-right MathAgape (quote a))) (lambda args (quote wrong-type-arg))) => wrong-type-arg ; correct
+
+; *** checks *** : 20 correct, 0 failed.
+#f
+  tests/liii/string/string-take-right-test.scm ... PASS
+"{\"name\":\"Goldfish\",\"age\":18}"
+  tests/liii/json-test.scm ... PASS
+#<unspecified>
+  tests/liii/http-test.scm ... PASS
+;;; note: tests/scheme/r5rs-test.scm could not be compiled; loading per form
+
+; *** checks *** : 24 correct, 0 failed.
+#f
+  tests/scheme/r5rs-test.scm ... PASS
+;;; note: tests/scheme/base/cache-roundtrip-test.scm could not be compiled; loading per form
+
+(read p) => 0+2i ; correct
+
+(read p) => 0-2.5i ; correct
+
+(read p) => 1.0+1.0i ; correct
+
+(let ((out (open-output-string))) (write-roundtrip z out) (eqv? z (read (open-input-string (get-output-string out))))) => #t ; correct
+
+(let ((out (open-output-string))) (write-roundtrip z out) (eqv? z (read (open-input-string (get-output-string out))))) => #t ; correct
+
+(let ((out (open-output-string))) (write-roundtrip z out) (eqv? z (read (open-input-string (get-output-string out))))) => #t ; correct
+
+(cadr v) => hello' ; correct
+
+(symbol? v) => #t ; correct
+
+(symbol->string v) => a b ; correct
+
+(record-instance? v) => #t ; correct
+
+(binding-kind v) => primitive ; correct
+
+(binding-value v) => foo ; correct
+
+(record-instance? v) => #t ; correct
+
+(toplevel-ref-gensym v) => my-var:1 ; correct
+
+(toplevel-ref-original v) => my-var ; correct
+
+(toplevel-ref-exported? v) => #t ; correct
+
+(record-instance? v) => #t ; correct
+
+(exp-library-name v) => (liii test) ; correct
+
+(binding? b) => #t ; correct
+
+(eq? (toplevel-ref-home (binding-value b)) v) => #t ; correct
+
+(cacheable-expansion? sexp) => #t ; correct
+
+(cacheable-expansion? (quote (begin (define f (lambda (x) missing))))) => #f ; correct
+
+(cacheable-expansion? (quote (let ((loop (lambda () (loop)))) (loop)))) => #f ; correct
+
+; *** checks *** : 23 correct, 0 failed.
+#f
+  tests/scheme/base/cache-roundtrip-test.scm ... PASS
+;;; note: tests/scheme/base/string-to-number-test.scm could not be compiled; loading per form
+
+; *** checks *** : 79 correct, 0 failed.
+#f
+  tests/scheme/base/string-to-number-test.scm ... PASS
+;;; note: tests/scheme/base/inexact-test.scm could not be compiled; loading per form
+
+; *** checks *** : 23 correct, 0 failed.
+#f
+  tests/scheme/base/inexact-test.scm ... PASS
+;;; note: tests/scheme/base/rationalize-test.scm could not be compiled; loading per form
+
+; *** checks *** : 32 correct, 0 failed.
+#f
+  tests/scheme/base/rationalize-test.scm ... PASS
+;;; note: tests/scheme/complex/angle-test.scm could not be compiled; loading per form
+
+; *** checks *** : 5 correct, 0 failed.
+#f
+  tests/scheme/complex/angle-test.scm ... PASS
+;;; note: tests/scheme/complex/imag-part-test.scm could not be compiled; loading per form
+
+; *** checks *** : 15 correct, 0 failed.
+#f
+  tests/scheme/complex/imag-part-test.scm ... PASS
+;;; note: tests/scheme/complex/magnitude-test.scm could not be compiled; loading per form
+
+; *** checks *** : 5 correct, 0 failed.
+#f
+  tests/scheme/complex/magnitude-test.scm ... PASS
+;;; note: tests/scheme/complex/make-polar-test.scm could not be compiled; loading per form
+
+; *** checks *** : 8 correct, 0 failed.
+#f
+  tests/scheme/complex/make-polar-test.scm ... PASS
+;;; note: tests/scheme/complex/make-rectangular-test.scm could not be compiled; loading per form
+
+; *** checks *** : 7 correct, 0 failed.
+#f
+  tests/scheme/complex/make-rectangular-test.scm ... PASS
+;;; note: tests/scheme/complex/real-part-test.scm could not be compiled; loading per form
+
+; *** checks *** : 15 correct, 0 failed.
+#f
+  tests/scheme/complex/real-part-test.scm ... PASS
+;;; note: tests/scheme/inexact/acos-test.scm could not be compiled; loading per form
+
+; *** checks *** : 14 correct, 0 failed.
+#f
+  tests/scheme/inexact/acos-test.scm ... PASS
+;;; note: tests/scheme/inexact/asin-test.scm could not be compiled; loading per form
+
+; *** checks *** : 10 correct, 0 failed.
+#f
+  tests/scheme/inexact/asin-test.scm ... PASS
+;;; note: tests/scheme/inexact/atan-test.scm could not be compiled; loading per form
+
+; *** checks *** : 24 correct, 0 failed.
+#f
+  tests/scheme/inexact/atan-test.scm ... PASS
+;;; note: tests/scheme/inexact/cos-test.scm could not be compiled; loading per form
+
+; *** checks *** : 14 correct, 0 failed.
+#f
+  tests/scheme/inexact/cos-test.scm ... PASS
+;;; note: tests/scheme/inexact/exp-test.scm could not be compiled; loading per form
+
+; *** checks *** : 11 correct, 0 failed.
+#f
+  tests/scheme/inexact/exp-test.scm ... PASS
+;;; note: tests/scheme/inexact/finite-p-test.scm could not be compiled; loading per form
+
+; *** checks *** : 32 correct, 0 failed.
+#f
+  tests/scheme/inexact/finite-p-test.scm ... PASS
+;;; note: tests/scheme/inexact/infinite-p-test.scm could not be compiled; loading per form
+
+; *** checks *** : 32 correct, 0 failed.
+#f
+  tests/scheme/inexact/infinite-p-test.scm ... PASS
+;;; note: tests/scheme/inexact/log-test.scm could not be compiled; loading per form
+
+; *** checks *** : 23 correct, 0 failed.
+#f
+  tests/scheme/inexact/log-test.scm ... PASS
+;;; note: tests/scheme/inexact/nan-p-test.scm could not be compiled; loading per form
+
+; *** checks *** : 33 correct, 0 failed.
+#f
+  tests/scheme/inexact/nan-p-test.scm ... PASS
+;;; note: tests/scheme/inexact/s7-sqrt-test.scm could not be compiled; loading per form
+
+; *** checks *** : 12 correct, 0 failed.
+#f
+  tests/scheme/inexact/s7-sqrt-test.scm ... PASS
+;;; note: tests/scheme/inexact/sin-test.scm could not be compiled; loading per form
+
+; *** checks *** : 15 correct, 0 failed.
+#f
+  tests/scheme/inexact/sin-test.scm ... PASS
+;;; note: tests/scheme/inexact/sqrt-test.scm could not be compiled; loading per form
+
+; *** checks *** : 23 correct, 0 failed.
+#f
+  tests/scheme/inexact/sqrt-test.scm ... PASS
+;;; note: tests/scheme/inexact/tan-test.scm could not be compiled; loading per form
+
+; *** checks *** : 6 correct, 0 failed.
+#f
+  tests/scheme/inexact/tan-test.scm ... PASS
+;;; note: tests/liii/json/json-to-string-test.scm could not be compiled; loading per form
+
+; *** checks *** : 21 correct, 0 failed.
+#f
+  tests/liii/json/json-to-string-test.scm ... PASS
+
+  Total:  37
+  Passed: 37
+  Failed: 0

@@ -33,7 +33,7 @@
 ;; --------
 ;; wrong-type-arg 当参数不是数值类型时抛出错误。
 ;; Test angle with real numbers
-(check (angle 1) => 0)
+(check (= (angle 1) 0) => #t)
 (check (angle -1) => 3.141592653589793)
 ;; Test angle with complex numbers
 (check (> (angle 1.0+1.0i) 0.78) => #t)

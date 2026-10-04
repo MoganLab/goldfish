@@ -60,4 +60,9 @@
 (check-catch 'out-of-range (substring "Hello" 6 6))
 (check-catch 'out-of-range (substring "Hello" 3 2))
 
+
+(check-catch 'wrong-type-arg (substring "中🐟a" "0" 2))
+(check-catch 'wrong-type-arg (substring "中🐟a" 0 1.5))
+(check-catch 'out-of-range (substring "中🐟a" 0 4))
+
 (check-report)

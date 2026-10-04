@@ -1,5 +1,5 @@
 (import (liii check))
-(import (scheme base))
+(import (scheme base) (scheme complex))
 (check-set-mode! 'report-failed)
 ;; eqv?
 ;; 判断两个对象是否值相等，根据R7RS规范，eqv?在不同类型的数据上表现不同。
@@ -44,4 +44,24 @@
 (check-true (eqv? car car))
 (check-false (eqv? car cdr))
 ;; ; eq?
+
+(check-false (eqv? 42 42.0))
+(check-false (eqv? 0.0 -0.0))
+(check-true (eqv? -0.0 -0.0))
+(check-true (eqv? 1/3 (/ 1 3)))
+(check-true (eqv? 123456789012345678901234567890 (+ 123456789012345678901234567889 1)))
+(check-true (eqv? 1+2i (+ 1 0+2i)))
+(check-false (equal? '(42) '(42.0)))
+(check-false (equal? '#(0.0) '#(-0.0)))
+(check (memv (/ 1 3) '(0 1/3 2)) => '(1/3 2))
+(check (assv (+ 1 0+2i) '((1+2i . yes))) => '(1+2i . yes))
+(check-false (assoc 42.0 '((42 . exact))))
+(check-false (memv 42.0 '(42)))
+(check (memv -0.0 '(0.0 -0.0)) => '(-0.0))
+(check (assv -0.0 '((0.0 . positive) (-0.0 . negative))) => '(-0.0 . negative))
+(check-false (eqv? (make-rectangular 1.0 0.0) 1.0))
+(check-false (eqv? (make-rectangular 1.0 -0.0) (make-rectangular 1.0 0.0)))
+(check-false (eqv? (make-rectangular 1 2.0) (make-rectangular 1.0 2.0)))
+(check-true (eqv? (make-rectangular 1 0) 1))
+
 (check-report)

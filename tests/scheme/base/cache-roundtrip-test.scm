@@ -1,8 +1,8 @@
-(import (liii check)
+(import (goldfish) (liii check)
         (liii string))
 
 ;; read/write duality 与缓存 round-trip 的回归测试：
-;; 1. reader 对复数/虚数字面量 round-trip（s7 write 无符号虚数为 "2i"）
+;; 1. reader 对复数/虚数字面量 round-trip
 ;; 2. write-roundtrip 对特殊符号的 |...| 竖线转义
 ;; 3. write-roundtrip 对 record 的 #g 序列化（binding / toplevel-ref）
 ;; 4. write-roundtrip 对自引用 exp-library 的图标记（#n=/#n#）
@@ -10,11 +10,22 @@
 
 ;; reader 复数/虚数 round-trip
 (let ((p (open-input-string "2i")))
-  (check (read p) => 0.0+2.0i))
+  (check (read p) => 0+2i))
 (let ((p (open-input-string "-2.5i")))
-  (check (read p) => 0.0-2.5i))
+  (check (read p) => 0-2.5i))
 (let ((p (open-input-string "1.0+1.0i")))
   (check (read p) => 1.0+1.0i))
+
+;; Preserve observable component exactness and signed imaginary zeros.
+(for-each
+  (lambda (z)
+    (check (let ((out (open-output-string)))
+             (write-roundtrip z out)
+             (eqv? z (read (open-input-string (get-output-string out)))))
+           => #t))
+  (list (make-rectangular 1 0.0)
+        (make-rectangular 1.0 -0.0)
+        (make-rectangular 1 2.0)))
 
 ;; write-roundtrip 特殊符号 round-trip（竖线转义）
 (let* ((s (string->symbol "hello'"))

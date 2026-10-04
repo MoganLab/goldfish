@@ -1,0 +1,2381 @@
+[gf test] Not on main branch (currently on 'jinser/sos-expander'), running changed tests since main. Use `gf test --help` for details.
+Running: /home/jinser/vie/projet/lang/goldfish/bin/gf test --changed-since=main
+
+Running changed tests since: main
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/compiler/constant-fold-test.scm
+;;; note: tests/compiler/constant-fold-test.scm could not be compiled; loading per form
+
+(fold-sexp (quote (define x (+ 1 2))) constant-fold) => (define x 3) ; correct
+
+(fold-sexp (quote (+ 1 (* 2 3))) constant-fold) => 7 ; correct
+
+(fold-sexp (quote (string-append a b)) constant-fold) => ab ; correct
+
+(fold-sexp (quote (not #f)) constant-fold) => #t ; correct
+
+(fold-sexp (quote (char->integer A)) constant-fold) => 65 ; correct
+
+(fold-sexp (quote (integer->char 65)) constant-fold) => A ; correct
+
+(fold-sexp (quote (lambda (y) (+ y 2))) constant-fold) => (lambda (y) (+ y 2)) ; correct
+
+(fold-sexp (quote (lambda (y) (+ 2 3))) constant-fold) => (lambda (y) 5) ; correct
+
+(fold-sexp (quote (quote (+ 1 2))) constant-fold) => (quote (+ 1 2)) ; correct
+
+(fold-sexp (list (quote quote) (string->symbol x@(goldfish):123)) constant-fold) => (quote x@(goldfish):123) ; correct
+
+(fold-sexp (quote (+ 1 x)) constant-fold) => (+ 1 x) ; correct
+
+(fold-sexp (quote (+ x y)) constant-fold) => (+ x y) ; correct
+
+(fold-sexp (quote (car (quote (1 2)))) constant-fold) => (car (quote (1 2))) ; correct
+
+(fold-sexp (quote (quotient 1 0)) constant-fold) => (quotient 1 0) ; correct
+
+(fold-sexp (quote (define (f) (+ 1 2))) constant-fold) => (define f (lambda () 3)) ; correct
+
+(fold-sexp (quote (if #t 1 2)) simplify-if) => 1 ; correct
+
+(fold-sexp (quote (if #f 1 2)) simplify-if) => 2 ; correct
+
+(fold-sexp (quote (if x 1 2)) simplify-if) => (if x 1 2) ; correct
+
+(fold-sexp (quote (if #t 1)) simplify-if) => 1 ; correct
+
+(fold-sexp (quote (if #f 1)) simplify-if) => (if #f #f) ; correct
+
+(normalize-names (ir->core (run-passes (sexp->ir (quote (define y (if (> 3 2) (+ 1 1) 0)))) (list constant-fold simplify-if)))) => (define y 2) ; correct
+
+(normalize-names (ir->core (run-passes (sexp->ir (quote (define z (if (>= 7 3) (string-length hello) -1)))) (list constant-fold simplify-if)))) => (define z 5) ; correct
+
+(fold-sexp (quote (quote foo)) constant-fold) => (quote foo) ; correct
+
+(fold-sexp (quote 42) constant-fold) => 42 ; correct
+
+(pipe (quote (define x (let ((a 13)) (* a a)))) (list constant-fold inline simplify-if)) => (define x 169) ; correct
+
+(pipe (quote (define x (* 13 13))) (list constant-fold inline simplify-if)) => (define x 169) ; correct
+
+(pipe (quote (define r (let ((x 13)) (* x foo)))) (list constant-fold inline simplify-if)) => (define r (* 13 foo)) ; correct
+
+(pipe (quote (define r ((lambda (x) (+ x 2)) 3))) (list constant-fold inline simplify-if)) => (define r 5) ; correct
+
+(pipe (quote (define r (let ((inc (lambda (n) (+ n 1)))) (inc (inc (inc 0)))))) (list constant-fold inline simplify-if)) => (define r 3) ; correct
+
+(pipe (quote (define r (if (= 3 0) 1 2))) (list constant-fold inline simplify-if)) => (define r 2) ; correct
+
+(pipe (quote (define r (let ((c 3)) (if (= c 0) 1 c)))) (list constant-fold inline simplify-if)) => (define r 3) ; correct
+
+(pipe (quote (define r (letrec ((loop (lambda (n) (if (= n 0) 1 (* n (loop (- n 1))))))) (loop 3)))) (list constant-fold inline simplify-if)) => (define r 6) ; correct
+
+(pipe (quote (define r (let lp ((n 3) (acc 1)) (if (= n 0) acc (lp (- n 1) (* acc n)))))) (list constant-fold inline simplify-if)) => (define r 6) ; correct
+
+(pipe (quote (define r (letrec ((even (lambda (n) (if (= n 0) #t (odd (- n 1))))) (odd (lambda (n) (if (= n 0) #f (even (- n 1)))))) (even 10)))) (list constant-fold inline simplify-if)) => (define r #t) ; correct
+
+(pipe (quote (define (f n) (letrec ((loop (lambda (n) (if (= n 0) 1 (* n (loop (- n 1))))))) (loop n)))) (list constant-fold inline simplify-if)) => (define f (lambda (n) (letrec ((loop (lambda (n) (if (= n 0) 1 (* n (loop (- n 1))))))) (loop n)))) ; correct
+
+; *** checks *** : 35 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/compiler/syntax-ir-test.scm
+;;; note: tests/compiler/syntax-ir-test.scm could not be compiled; loading per form
+
+(expand->ir (quote 42)) => 42 ; correct
+
+(expand->ir (quote str)) => str ; correct
+
+(let ((ir (expand->ir (quote (car x))))) (list (call? ir) (primitive-ref? (call-proc ir)) (primitive-ref-name (call-proc ir)) (toplevel-ref-name (car (call-args ir))))) => (#t #t car x) ; correct
+
+(let ((ir (expand->ir (quote (map (lambda (y) (car y)) xs))))) (list (primitive-ref? (call-proc ir)) (primitive-ref-name (call-proc ir)))) => (#t map) ; correct
+
+(let ((ir (expand->ir (quote (lambda (x) x))))) (let ((b (lambda-case-body (lambda-body ir)))) (list (lambda? ir) (length (lambda-case-req (lambda-body ir))) (eq? (lexical-ref-name b) (car (lambda-case-req (lambda-body ir)))) (lexical-ref? b) (lexical-ref-depth b) (lexical-ref-index b)))) => (#t 1 #t #t 0 0) ; correct
+
+(let ((ir (expand->ir (quote (lambda (x) (car x)))))) (let ((b (lambda-case-body (lambda-body ir)))) (list (call? b) (primitive-ref? (call-proc b)) (primitive-ref-name (call-proc b)) (let ((a (car (call-args b)))) (list (lexical-ref? a) (lexical-ref-depth a) (lexical-ref-index a)))))) => (#t #t car (#t 0 0)) ; correct
+
+(let ((ir (expand->ir (quote (lambda (x) (lambda (y) x)))))) (let ((inner (lambda-case-body (lambda-body ir)))) (let ((b (lambda-case-body (lambda-body inner)))) (list (lexical-ref? b) (lexical-ref-depth b) (lexical-ref-index b))))) => (#t 1 0) ; correct
+
+(let ((ir (expand->ir (quote (if (> x 0) 1 2))))) (list (conditional? ir) (primitive-ref? (conditional-test ir)) (conditional-consequent ir) (conditional-alternate ir))) => (#t #f 1 2) ; correct
+
+(conditional? (conditional-alternate (expand->ir (quote (if x (f)))))) => #t ; correct
+
+(eq? (conditional-test (conditional-alternate (expand->ir (quote (if x (f)))))) #f) => #t ; correct
+
+(let ((ir (expand->ir (quote (quote foo))))) (list (const? ir) (const-exp ir))) => (#t foo) ; correct
+
+(let ((ir (expand->ir (quote ((f x) y))))) (list (call? ir) (call? (call-proc ir)) (toplevel-ref-name (car (call-args ir))))) => (#t #t y) ; correct
+
+(let ((ir (expand->ir (quote (apply1 f xs))))) (list (call? ir) (toplevel-ref? (call-proc ir)) (toplevel-ref-name (call-proc ir)))) => (#t #t apply1) ; correct
+
+(let*-values (((defs ctx) (expand-library-body (list (wrap-expression (quote (define (f) (+ 1 2))))) the-base-library (initial-context)))) (equal? (compile-syntax-defs defs ctx (list constant-fold simplify-if)) (list (list (quote define) (cadr (syntax->datum (car defs))) (quote (lambda () 3)))))) => #t ; correct
+
+(let*-values (((defs ctx) (expand-library-body (list (wrap-expression (quote (define (f) (+ 1 2))))) the-base-library (initial-context)))) (let ((out (compile-syntax-defs defs ctx (list constant-fold simplify-if)))) (equal? out (list (list (quote define) (cadr (syntax->datum (car defs))) (quote (lambda () 3))))))) => #t ; correct
+
+(let ((ir (expand->ir (quote (lambda (x) x))))) (let ((b (lambda-case-body (lambda-body ir)))) (list (lexical-ref? b) (lexical-ref-depth b) (lexical-ref-index b)))) => (#t 0 0) ; correct
+
+(let ((ir (expand->ir (quote (lambda (x y) (list x y)))))) (let ((call (lambda-case-body (lambda-body ir)))) (list (primitive-ref? (call-proc call)) (primitive-ref-name (call-proc call)) (map (lambda (a) (list (lexical-ref-depth a) (lexical-ref-index a))) (call-args call))))) => (#t list ((0 0) (0 1))) ; correct
+
+(let ((ir (expand->ir (quote (lambda (x) (lambda (y) x)))))) (let ((inner (lambda-case-body (lambda-body ir)))) (let ((b (lambda-case-body (lambda-body inner)))) (list (lexical-ref? b) (lexical-ref-depth b) (lexical-ref-index b))))) => (#t 1 0) ; correct
+
+(let*-values (((defs ctx) (expand-library-body (list (wrap-expression (quote (define (sq x) (* x x))))) the-base-library (initial-context)))) (let* ((out (compile-syntax-defs defs ctx (quote ()))) (source (syntax->datum (car defs))) (name (cadr source)) (formals (cadr (caddr source))) (arg (car formals))) (equal? out (list (list (quote define) name (list (quote lambda) formals (list (quote *) arg arg))))))) => #t ; correct
+
+(let*-values (((defs ctx) (expand-library-body (list (wrap-expression (quote (define (f l . r) (car r))))) the-base-library (initial-context)))) (let* ((ir (syntax->ir/sexp (car defs) ctx)) (core (ir->core ir)) (formals (cadr (caddr core)))) (and (pair? formals) (symbol? (cdr formals))))) => #t ; correct
+
+; *** checks *** : 20 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/expander/import-perlevel-test.scm
+;;; note: tests/expander/import-perlevel-test.scm could not be compiled; loading per form
+
+(plvl-counter-get) => 1 ; correct
+
+(library-registry-ref (quote (plvl solo))) => #f ; correct
+
+(if (runtime-registered? (quote (plvl solo))) #t #f) => #f ; correct
+
+(if (library-registry-ref (quote (plvl solo)) 1) #t #f) => #t ; correct
+
+(if (runtime-registered? (quote (plvl solo)) 1) #t #f) => #t ; correct
+
+(plvl-counter-get) => 2 ; correct
+
+(if (and (library-registry-ref (quote (plvl solo))) (library-registry-ref (quote (plvl solo)) 1)) #t #f) => #t ; correct
+
+(plvl-counter-get) => 2 ; correct
+
+(if (and rec0 rec1) #t #f) => #t ; correct
+
+(if (not (eq? (car rec0) (car rec1))) #t #f) => #t ; correct
+
+(if (and b0 b1) #t #f) => #t ; correct
+
+(if (not (eq? b0 b1)) #t #f) => #t ; correct
+
+(plvl-counter-get) => 2 ; correct
+
+(vector? (eval g0 (interaction-environment))) => #t ; correct
+
+(if expand-env1 #t #f) => #t ; correct
+
+(vector-ref (eval g0 (interaction-environment)) 0) => 10 ; correct
+
+(vector-ref (eval g1 expand-env1) 0) => 10 ; correct
+
+(vector-ref (eval g0 (interaction-environment)) 0) => 99 ; correct
+
+(vector-ref (eval g1 expand-env1) 0) => 10 ; correct
+
+(vector-ref (eval g1 expand-env1) 0) => 77 ; correct
+
+(vector-ref (eval g0 (interaction-environment)) 0) => 99 ; correct
+
+((module-ref (quote (plvl dual)) (quote get-v))) => 99 ; correct
+
+(if rec2 #t #f) => #t ; correct
+
+(if (and (not (eq? (car rec2) (car rec0))) (not (eq? (car rec2) (car rec1)))) #t #f) => #t ; correct
+
+(if (runtime-registered? (quote (plvl dual)) 2) #t #f) => #t ; correct
+
+(if (and (library-registry-ref (quote (plvl dual))) (runtime-registered? (quote (plvl dual)))) #t #f) => #t ; correct
+
+(if expand-env2 #t #f) => #t ; correct
+
+(vector-ref (eval g2 expand-env2) 0) => 10 ; correct
+
+(vector-ref (eval g2 expand-env2) 0) => 55 ; correct
+
+(vector-ref (eval g0 (interaction-environment)) 0) => 99 ; correct
+
+(vector-ref (eval g1 expand-env1) 0) => 77 ; correct
+
+((module-ref (quote (plvl dual)) (quote get-v))) => 99 ; correct
+
+(if (eq? (exp-library-ref-at-phase probe (quote get-v) 0) b0) #t #f) => #t ; correct
+
+(if (eq? (exp-library-ref-at-phase probe (quote get-v) 1) b1) #t #f) => #t ; correct
+
+(if (eq? (exp-library-ref-at-phase probe (quote get-v) 2) b2) #t #f) => #t ; correct
+
+(exp-library-ref-at-phase probe2 (quote get-v) 0) => #f ; correct
+
+(if (eq? (exp-library-ref-at-phase probe2 (quote get-v) 1) b1) #t #f) => #t ; correct
+
+(if (eq? (exp-library-ref-at-phase probe2 (quote get-v) 2) b2) #t #f) => #t ; correct
+
+(exp-library-ref-at-phase probe2 (quote get-v) 3) => #f ; correct
+
+(length ls) => 2 ; correct
+
+(if (and (memv 1 ls) (memv 2 ls)) #t #f) => #t ; correct
+
+(pair? (syntax->datum (compile-file-into src-mix (make-program-library)))) => #t ; correct
+
+; *** checks *** : 42 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/expander/import-sets-test.scm
+;;; note: tests/expander/import-sets-test.scm could not be compiled; loading per form
+
+(procedure? mkdir) => #t ; correct
+
+(procedure? rmdir) => #t ; correct
+
+(char? (os-sep)) => #t ; correct
+
+(procedure? zz-os-temp-dir) => #t ; correct
+
+(procedure? ytd) => #t ; correct
+
+(+ 1 2) => 3 ; correct
+
+(list 1 2) => (1 2) ; correct
+
+(catch #t (lambda () (load-library! (quote (ct one))) (quote ok)) (lambda args (quote error))) => ok ; correct
+
+(detail-mentions? (import-error-message (lambda () (load-library! (quote (ct both))))) already imported with a different binding ct-name) => #t ; correct
+
+(catch #t (lambda () (load-library! (quote (ct one-reexport))) (quote ok)) (lambda args (quote error))) => ok ; correct
+
+(procedure? tmp-dir-fn) => #t ; correct
+
+(char? (slash)) => #t ; correct
+
+(procedure? mkdir) => #t ; correct
+
+(char? (pre-sep2)) => #t ; correct
+
+(procedure? oo-mkdir) => #t ; correct
+
+(procedure? rmdir) => #t ; correct
+
+(detail-mentions? (import-error-message (lambda () (load-library! (quote (ct dup-rename))))) bound more than once with different bindings dx) => #t ; correct
+
+(procedure? mkdir) => #t ; correct
+
+(procedure? os-temp-dir) => #t ; correct
+
+(procedure? ff-mkdir) => #t ; correct
+
+(detail-mentions? (import-error-message (lambda () (load-library! (quote (ct for-nolevel))))) for spec needs an import set and at least one level) => #t ; correct
+
+(catch #t (lambda () (load-library! (quote (xr vals))) (quote ok)) (lambda args (quote error))) => ok ; correct
+
+(if (memq (quote answer2) (lib-record-exports (library-registry-ref (quote (xr vals))))) #t #f) => #t ; correct
+
+(xr-runtime (quote (xr vals)) (quote answer2)) => 41 ; correct
+
+(xr-runtime (quote (xr vals)) (quote the-answer)) => 41 ; correct
+
+(toplevel-binding? (xr-restore-ref (quote vals) (quote answer2))) => #t ; correct
+
+(catch #t (lambda () (load-library! (quote (xr vals))) (quote ok)) (lambda args (quote error))) => ok ; correct
+
+(xr-runtime (quote (xr vals)) (quote answer2)) => 41 ; correct
+
+(catch #t (lambda () (load-library! (quote (xr muse))) (quote ok)) (lambda args (quote error))) => ok ; correct
+
+(xr-runtime (quote (xr muse)) (quote got2)) => 7 ; correct
+
+(transformer-binding? (xr-restore-ref (quote macros) (quote my-or2))) => #t ; correct
+
+(catch #t (lambda () (load-library! (quote (xr muse))) (quote ok)) (lambda args (quote error))) => ok ; correct
+
+(xr-runtime (quote (xr muse)) (quote got2)) => 7 ; correct
+
+(catch #t (lambda () (load-library! (quote (xr reuse))) (quote ok)) (lambda args (quote error))) => ok ; correct
+
+(xr-runtime (quote (xr reuse)) (quote got3)) => 8 ; correct
+
+(transformer-binding? (xr-restore-ref (quote reexp) (quote my-or3))) => #t ; correct
+
+(catch #t (lambda () (load-library! (quote (xr reuse))) (quote ok)) (lambda args (quote error))) => ok ; correct
+
+(xr-runtime (quote (xr reuse)) (quote got3)) => 8 ; correct
+
+(catch #t (lambda () (load-library! (quote (xr comp))) (quote ok)) (lambda args (quote error))) => ok ; correct
+
+(xr-runtime (quote (xr comp)) (quote gotc)) => (41 41 41) ; correct
+
+(catch #t (lambda () (load-library! (quote (xr nestok))) (quote ok)) (lambda args (quote error))) => ok ; correct
+
+(xr-runtime (quote (xr nestok)) (quote gotx)) => 42 ; correct
+
+(detail-mentions? (import-error-message (lambda () (load-library! (quote (xr nestdup))))) bound more than once with different bindings x) => #t ; correct
+
+(detail-mentions? (import-error-message (lambda () (load-library! (quote (ph foronly))))) unbound identifier at phase car) => #t ; correct
+
+(detail-mentions? (import-error-message (lambda () (load-library! (quote (ph foronly2))))) unbound identifier at phase check-true) => #t ; correct
+
+(catch #t (lambda () (load-library! (quote (ph foruse))) (quote ok)) (lambda args (quote error))) => ok ; correct
+
+(module-ref (lookup-module (quote (ph foruse))) (quote gotf)) => 7 ; correct
+
+(detail-mentions? (import-error-message (lambda () (load-library! (quote (xr badfrom))))) export has no binding nosuch) => #t ; correct
+
+(detail-mentions? (import-error-message (lambda () (load-library! (quote (xr badtarget))))) already bound a) => #t ; correct
+
+; *** checks *** : 49 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/expander/internal-surface-test.scm
+;;; note: tests/expander/internal-surface-test.scm could not be compiled; loading per form
+
+(pair? surface-names) => #t ; correct
+
+failures => () ; correct
+
+; *** checks *** : 2 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/expander/lib-cache-import-order-test.scm
+;;; note: tests/expander/lib-cache-import-order-test.scm could not be compiled; loading per form
+
+(stored-import-groups gfo) => (((goldfish)) ((rename (srfi srfi-113) (set make-set-with-comparator) (list->set list->set-with-comparator)) (srfi srfi-128))) ; correct
+
+(set-size (set-union (set 1 2) (set 2 3))) => 3 ; correct
+
+; *** checks *** : 2 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/expander/lib-cache-test.scm
+;;; note: tests/expander/lib-cache-test.scm could not be compiled; loading per form
+
+(and-let* ((x 5) (y (+ x 1))) (* x y)) => 30 ; correct
+
+(string-null? ) => #t ; correct
+
+(string-contains hello world world) => #t ; correct
+
+(string-pad abc 5 *) => **abc ; correct
+
+(match (quote yes) ((or (quote yes) (quote no)) (quote boolean)) (_ (quote unknown))) => boolean ; correct
+
+(match (quote (1 2 3)) ((a b c) (list a b c)) (_ #f)) => (1 2 3) ; correct
+
+(string? abc) => #t ; correct
+
+(procedure? send-log) => #t ; correct
+
+(procedure? make-stdout-handler) => #t ; correct
+
+(string? (current-log-format)) => #t ; correct
+
+; *** checks *** : 10 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/expander/library-include-test.scm
+;;; note: tests/expander/library-include-test.scm could not be compiled; loading per form
+
+((module-ref (quote (test lib-include-top)) (quote f)) 1) => 2 ; correct
+
+(module-ref (quote (test lib-include-top)) (quote h)) => 7 ; correct
+
+((module-ref (quote (test lib-include-begin)) (quote f)) 1) => 2 ; correct
+
+(module-ref (quote (test lib-include-begin)) (quote g)) => 42 ; correct
+
+(procedure? expand) => #t ; correct
+
+(procedure? expand-library-body) => #t ; correct
+
+(procedure? syntax->datum) => #t ; correct
+
+(procedure? wrap-expression) => #t ; correct
+
+(not (not (runtime-registered? (quote (goldfish))))) => #t ; correct
+
+; *** checks *** : 9 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/expander/macro-error-test.scm
+;;; note: tests/expander/macro-error-test.scm could not be compiled; loading per form
+
+(catch (quote eval-transformer) (lambda () (expand-eval (quote (let-syntax ((x 1)) x)))) (lambda args (quote eval-transformer))) => eval-transformer ; correct
+
+(expand-error-message (lambda () (expand-eval (quote (let-syntax ((x 1)) x))))) => transformer must evaluate to a procedure ; correct
+
+(catch (quote eval-when) (lambda () (expand-eval (quote (eval-when (bogus-situation) 1)))) (lambda args (quote eval-when))) => eval-when ; correct
+
+(expand-error-message (lambda () (expand-eval (quote (eval-when (bogus-situation) 1))))) => invalid situation ; correct
+
+(catch (quote syntax-case) (lambda () (expand-eval (quote (let-syntax ((m (syntax-rules () ((_ x) x)))) (m))))) (lambda args (quote syntax-case))) => syntax-case ; correct
+
+(catch (quote if) (lambda () (expand-eval (quote (let-syntax ((m (syntax-rules () ((_) (if))))) (m))))) (lambda args (quote if))) => if ; correct
+
+(catch (quote eval-when) (lambda () (load /tmp/gf-macro-error-bad.scm)) (lambda args (quote eval-when))) => ;;; note: /tmp/gf-macro-error-bad.scm could not be compiled; loading per form
+eval-when ; correct
+
+(catch (quote import) (lambda () (load-library! (quote (no-such-library-here)))) (lambda args (quote import))) => import ; correct
+
+(catch #t (lambda () (load-library! (quote (no-such-library-here)))) (lambda (tag . info) (if (and (pair? info) (pair? (car info)) (string? (caar info))) (caar info) #f))) => unknown library ; correct
+
+(pair? r) => #t ; correct
+
+(string? (caar r)) => #t ; correct
+
+(string-contains (caar r) failed to load library) => #t ; correct
+
+(if (member (quote (gf bad-body-lib)) (cdar r)) #t #f) => #t ; correct
+
+(pair? (cdr (cdar r))) => #t ; correct
+
+(string-contains (car (cdr (cdar r))) transformer must evaluate to a procedure) => #t ; correct
+
+; *** checks *** : 15 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/expander/macro-features-test.scm
+;;; note: tests/expander/macro-features-test.scm could not be compiled; loading per form
+
+(pair-sum (1 2) (3 4)) => (3 7) ; correct
+
+(guarded foo) => identifier ; correct
+
+(guarded (1 2)) => other ; correct
+
+(must-be-id foo) => good ; correct
+
+(must-be-id 42) => bad ; correct
+
+(with-ws 10) => (10 1) ; correct
+
+x => 2 ; correct
+
+y => 1 ; correct
+
+(let ((tmp 5)) (temp-shadow tmp)) => (99 6) ; correct
+
+(literal-check else) => matched ; correct
+
+(literal-check other) => unmatched ; correct
+
+(non-hygienic) => (42) ; correct
+
+(double 21) => 42 ; correct
+
+(my-or #f #f 3) => 3 ; correct
+
+(my-or #f #f #f) => #f ; correct
+
+(syntax? (qs whatever)) => #t ; correct
+
+(syntax->datum (qs whatever)) => foo ; correct
+
+(let-syntax ((m (lambda (stx) (syntax-case stx () ((_ x) (quasisyntax (list (unsyntax x)))))))) (m 7)) => (7) ; correct
+
+; *** checks *** : 18 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/expander/named-ellipsis-test.scm
+;;; note: tests/expander/named-ellipsis-test.scm could not be compiled; loading per form
+
+(my-and) => #t ; correct
+
+(my-and #t #t) => #t ; correct
+
+(my-and #t #t #t) => #t ; correct
+
+(my-let* ((a 1) (b 2) (c 3)) (+ a b c)) => 6 ; correct
+
+(my-let* () 42) => 42 ; correct
+
+(collect 1 2 3) => (1 2 3) ; correct
+
+(let-syntax ((m (syntax-rules () ((_ x ...) (list x ...))))) (m 1 2 3)) => (1 2 3) ; correct
+
+(match-check-ellipsis ... (quote success) (quote failure)) => success ; correct
+
+(match-check-ellipsis (a . b) (quote success) (quote failure)) => failure ; correct
+
+(match-check-ellipsis #(a b) (quote success) (quote failure)) => failure ; correct
+
+(syntax->datum (m-esc 1)) => ... ; correct
+
+(syntax->datum (m-esc-p 1)) => (1 ...) ; correct
+
+(catch #t (lambda () (expand-eval (quote (let-syntax ((m (syntax-rules :: () ((_ x ...) (list x ...))))) (m 1 2 3))))) (lambda args (quote no-match))) => no-match ; correct
+
+; *** checks *** : 13 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/expander/native-abi-load-test.scm
+;;; note: tests/expander/native-abi-load-test.scm could not be compiled; loading per form
+
+(min 3 1 2) => 1 ; correct
+
+(max 3 1 2) => 3 ; correct
+
+(exact-integer? 5) => #t ; correct
+
+(finite? 1) => #t ; correct
+
+(string-upcase abc) => ABC ; correct
+
+(string-downcase AbC) => abc ; correct
+
+(char-upcase a) => A ; correct
+
+(char-ci=? a A) => #t ; correct
+
+(string-ci=? abc ABC) => #t ; correct
+
+(bytevector-copy! (make-bytevector 3) 0 (bytevector 1 2 3)) => #u8(1 2 3) ; correct
+
+(promise? (make-promise 5)) => #t ; correct
+
+(force (make-promise 5)) => 5 ; correct
+
+(truncate-quotient 7 2) => 3 ; correct
+
+(truncate-remainder 7 2) => 1 ; correct
+
+(eof-object? (read-u8 (open-input-bytevector (bytevector 1 2)))) => #f ; correct
+
+(get-output-bytevector (begin (write-u8 65 (open-output-bytevector)) (open-output-bytevector))) => #u8() ; correct
+
+; *** checks *** : 16 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/expander/program-cache-macro-test.scm
+;;; note: tests/expander/program-cache-macro-test.scm could not be compiled; loading per form
+
+(contains-record? exprs) => #f ; correct
+
+(has-stx-shape? exprs) => #f ; correct
+
+(file-exists? out) => #t ; correct
+
+(call-with-input-file out read) => (1 (lit 2)) ; correct
+
+(contains-record? exprs) => #f ; correct
+
+(has-stx-shape? exprs) => #f ; correct
+
+(file-exists? out) => #t ; correct
+
+(call-with-input-file out read) => 30 ; correct
+
+(file-exists? marker) => #t ; correct
+
+(call-with-input-file out read) => 42 ; correct
+
+(file-exists? marker) => #f ; correct
+
+(pair? prog) => #t ; correct
+
+(tree-contains? (lambda (x) (equal? x 42)) prog) => #t ; correct
+
+; *** checks *** : 13 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/expander/program-cache-syntax-test.scm
+;;; note: tests/expander/program-cache-syntax-test.scm could not be compiled; loading per form
+
+(catch (quote serialize-cache-sexp) (lambda () (serialize (list 1 (lambda (x) x)))) (lambda args (quote serialize-cache-sexp))) => serialize-cache-sexp ; correct
+
+(serialize (list 1 (quote (a b)))) => (1 (a b)) ; correct
+
+(syntax->datum (car (find-syntax cold))) => (lit 2) ; correct
+
+(contains-record? exprs) => #f ; correct
+
+(has-stx-shape? exprs) => #t ; correct
+
+(length warm-stxs) => 1 ; correct
+
+(syntax->datum (car warm-stxs)) => (lit 2) ; correct
+
+(syntax->datum (car (find-syntax cold))) => (lit 2) ; correct
+
+(syntax? (car (find-syntax (deserialize exprs)))) => #t ; correct
+
+(map car body) => (define) ; correct
+
+(caddar body) => (a b) ; correct
+
+(contains-record? exprs) => #f ; correct
+
+(has-stx-shape? exprs) => #f ; correct
+
+(let ((warm (compile-file-cached src-plain))) (equal? warm exprs)) => #t ; correct
+
+(find-syntax (compile-file-cached src-plain)) => () ; correct
+
+; *** checks *** : 15 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/expander/syntax-template-ellipsis-test.scm
+;;; note: tests/expander/syntax-template-ellipsis-test.scm could not be compiled; loading per form
+
+(scalar-in-ellipsis (10 20) 99) => ((10 99) (20 99)) ; correct
+
+(pattern-scalar-in-ellipsis (10 20) (quote zz)) => ((10 zz) (20 zz)) ; correct
+
+(let ((cf-var (make-computation-environment-variable (quote cfv) 100 #f))) (computation-run (computation-with ((cf-var 999)) (make-computation (lambda (compute) (compute (computation-fn ((v cf-var)) (computation-pure v)))))))) => 999 ; correct
+
+(double-ellipsis 1 2 3) => (() (1 2 3)) ; correct
+
+(double-ellipsis-tail 1 2 3 4) => (() (1 2 3) 4) ; correct
+
+; *** checks *** : 5 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/liii/base/copy-test.scm
+;;; note: tests/liii/base/copy-test.scm could not be compiled; loading per form
+
+; *** checks *** : 18 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/liii/base/eval-string-test.scm
+;;; note: tests/liii/base/eval-string-test.scm could not be compiled; loading per form
+
+; *** checks *** : 11 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/liii/bitwise/bignum-test.scm
+;;; note: tests/liii/bitwise/bignum-test.scm could not be compiled; loading per form
+
+; *** checks *** : 366 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/liii/bitwise/bit-field-any-p-test.scm
+;;; note: tests/liii/bitwise/bit-field-any-p-test.scm could not be compiled; loading per form
+
+; *** checks *** : 42 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/liii/bitwise/bit-field-clear-test.scm
+;;; note: tests/liii/bitwise/bit-field-clear-test.scm could not be compiled; loading per form
+
+; *** checks *** : 40 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/liii/bitwise/bit-field-every-p-test.scm
+;;; note: tests/liii/bitwise/bit-field-every-p-test.scm could not be compiled; loading per form
+
+; *** checks *** : 45 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/liii/bitwise/bit-field-set-test.scm
+;;; note: tests/liii/bitwise/bit-field-set-test.scm could not be compiled; loading per form
+
+; *** checks *** : 38 correct, 0 failed.
+
+; *** checks *** : 38 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/liii/bitwise/bit-field-test.scm
+;;; note: tests/liii/bitwise/bit-field-test.scm could not be compiled; loading per form
+
+; *** checks *** : 24 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/liii/bitwise/bit-set-p-test.scm
+;;; note: tests/liii/bitwise/bit-set-p-test.scm could not be compiled; loading per form
+
+; *** checks *** : 53 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/liii/bitwise/bit-swap-test.scm
+;;; note: tests/liii/bitwise/bit-swap-test.scm could not be compiled; loading per form
+
+; *** checks *** : 30 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/liii/bitwise/copy-bit-test.scm
+;;; note: tests/liii/bitwise/copy-bit-test.scm could not be compiled; loading per form
+
+; *** checks *** : 43 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/liii/bitwise/scale-test.scm
+;;; note: tests/liii/bitwise/scale-test.scm could not be compiled; loading per form
+
+; *** checks *** : 17 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/liii/case-test.scm
+;;; note: tests/liii/case-test.scm could not be compiled; loading per form
+
+(run (quote ((match (quote yes) ((or (quote yes) (quote no)) (quote boolean)) (_ (quote unknown)))))) => boolean ; correct
+
+(run (quote ((match (quote no) ((or (quote yes) (quote no)) (quote boolean)) (_ (quote unknown)))))) => boolean ; correct
+
+(run (quote ((match (quote maybe) ((or (quote yes) (quote no)) (quote boolean)) (_ (quote unknown)))))) => unknown ; correct
+
+(run (quote ((match 42 ((or 1 2 3) (quote small)) ((or 42 100) (quote big)) (_ (quote other)))))) => big ; correct
+
+(run (quote ((match hello ((or hi hello) (quote greeting)) (_ (quote other)))))) => greeting ; correct
+
+(run (quote ((match 3.14 ((or 1 2 3) (quote integer)) ((or 3.14 2.71) (quote float)) (_ (quote other)))))) => float ; correct
+
+(run (quote ((match (quote (1 2 3)) ((1 2 3) (quote matched)) (_ (quote not-matched)))))) => matched ; correct
+
+(run (quote ((match (quote (1 2 3)) ((1 2) (quote two)) ((1 2 3) (quote three)) (_ (quote other)))))) => three ; correct
+
+(run (quote ((match (quote (1 2)) ((x y) (+ x y)) (_ 0))))) => 3 ; correct
+
+(run (quote ((match (quote (hello world)) ((first second) (list second first)) (_ (quote ())))))) => (world hello) ; correct
+
+(run (quote ((match (quote (5 5)) ((x y) (if (= x y) (quote same) (quote different))) (_ (quote unknown)))))) => same ; correct
+
+(run (quote ((match 42 ((? integer?) (quote integer)) ((? string?) (quote string)) (_ (quote other)))))) => integer ; correct
+
+(run (quote ((match hello ((? integer?) (quote integer)) ((? string?) (quote string)) (_ (quote other)))))) => string ; correct
+
+(run (quote ((match 42 ((? integer? x) (* x 2)) (_ 0))))) => 84 ; correct
+
+(run (quote ((match (quote (+ 3 4)) (((quote +) a b) (+ a b)) (((quote -) a b) (- a b)) ((op args ...) (list (quote unhandled-op) op args)) ((? integer? x) x) (_ (quote invalid)))))) => 7 ; correct
+
+(run (quote ((match (quote (- 10 3)) (((quote +) a b) (+ a b)) (((quote -) a b) (- a b)) ((op args ...) (list (quote unhandled-op) op args)) ((? integer? x) x) (_ (quote invalid)))))) => 7 ; correct
+
+(run (quote ((match (quote (* 2 3)) (((quote +) a b) (+ a b)) (((quote -) a b) (- a b)) ((op args ...) (list (quote unhandled-op) op args)) ((? integer? x) x) (_ (quote invalid)))))) => (unhandled-op * (2 3)) ; correct
+
+(run (quote ((match 42 (((quote +) a b) (+ a b)) (((quote -) a b) (- a b)) ((op args ...) (list (quote unhandled-op) op args)) ((? integer? x) x) (_ (quote invalid)))))) => 42 ; correct
+
+(run (quote ((match (quote (user (name Alice) (age 30))) (((quote user) (name (? string? n)) (age (? integer? a))) (and (> a 0) (< a 150))) (_ #f))))) => #t ; correct
+
+(run (quote ((match (quote (user (name Bob) (age 200))) (((quote user) (name (? string? n)) (age (? integer? a))) (and (> a 0) (< a 150))) (_ #f))))) => #f ; correct
+
+(run (quote ((match (quote (user (name 123) (age 30))) (((quote user) (name (? string? n)) (age (? integer? a))) (and (> a 0) (< a 150))) (_ #f))))) => #f ; correct
+
+(run (quote ((match (quote (other (name X) (age 20))) (((quote user) (name (? string? n)) (age (? integer? a))) (and (> a 0) (< a 150))) (_ #f))))) => #f ; correct
+
+(run (quote ((match (quote (+ 1 2)) ((op left right) (list (quote binop) op left right)) (_ #f))))) => (binop + 1 2) ; correct
+
+(run (quote ((match (quote (* x y)) ((op left right) (list (quote binop) op left right)) (_ #f))))) => (binop * x y) ; correct
+
+(run (quote ((match (quote (+ 1 2 3)) ((op left right) (list (quote binop) op left right)) (_ #f))))) => #f ; correct
+
+(run (quote ((match 42 ((op left right) (list (quote binop) op left right)) (_ #f))))) => #f ; correct
+
+(run (quote ((match (quote (if (> x 0) x (- x))) (((quote if) c t e) (list (quote if-expr) c t e)) (_ #f))))) => (if-expr (> x 0) x (- x)) ; correct
+
+(run (quote ((match (quote (if flag then)) (((quote if) c t e) (list (quote if-expr) c t e)) (_ #f))))) => #f ; correct
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/liii/comparator-test.scm
+;;; note: tests/liii/comparator-test.scm could not be compiled; loading per form
+
+; *** checks *** : 14 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/liii/expand-eval-test.scm
+;;; note: tests/liii/expand-eval-test.scm could not be compiled; loading per form
+
+(expand-eval (quote (+ $1 1))) => 43 ; correct
+
+(expand-eval (quote (+ y 1))) => 8 ; correct
+
+(expand-eval (quote y)) => 10 ; correct
+
+(catch #t (lambda () (expand-eval (quote undefined-var))) (lambda args #f)) => #f ; correct
+
+; *** checks *** : 4 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/liii/expander/expander-test.scm
+;;; note: tests/liii/expander/expander-test.scm could not be compiled; loading per form
+
+; *** checks *** : 34 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/liii/flexvector/list-to-flexvector-test.scm
+;;; note: tests/liii/flexvector/list-to-flexvector-test.scm could not be compiled; loading per form
+
+; *** checks *** : 7 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/liii/hash-table/hash-table-test.scm
+;;; note: tests/liii/hash-table/hash-table-test.scm could not be compiled; loading per form
+
+; *** checks *** : 3 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/liii/iset/integer-domain-test.scm
+;;; note: tests/liii/iset/integer-domain-test.scm could not be compiled; loading per form
+
+; *** checks *** : 26 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/liii/iset/iset-adjoin-test.scm
+;;; note: tests/liii/iset/iset-adjoin-test.scm could not be compiled; loading per form
+
+; *** checks *** : 2 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/liii/iset/iset-constructor-test.scm
+;;; note: tests/liii/iset/iset-constructor-test.scm could not be compiled; loading per form
+
+; *** checks *** : 3 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/liii/iset/iset-contains-p-test.scm
+;;; note: tests/liii/iset/iset-contains-p-test.scm could not be compiled; loading per form
+
+; *** checks *** : 4 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/liii/iset/iset-copy-test.scm
+;;; note: tests/liii/iset/iset-copy-test.scm could not be compiled; loading per form
+
+; *** checks *** : 2 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/liii/iset/iset-count-test.scm
+;;; note: tests/liii/iset/iset-count-test.scm could not be compiled; loading per form
+
+; *** checks *** : 3 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/liii/iset/iset-difference-test.scm
+;;; note: tests/liii/iset/iset-difference-test.scm could not be compiled; loading per form
+
+; *** checks *** : 2 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/liii/iset/iset-disjoint-p-test.scm
+;;; note: tests/liii/iset/iset-disjoint-p-test.scm could not be compiled; loading per form
+
+; *** checks *** : 4 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/liii/iset/iset-ge-p-test.scm
+;;; note: tests/liii/iset/iset-ge-p-test.scm could not be compiled; loading per form
+
+; *** checks *** : 3 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/liii/iset/iset-gt-p-test.scm
+;;; note: tests/liii/iset/iset-gt-p-test.scm could not be compiled; loading per form
+
+; *** checks *** : 2 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/liii/iset/iset-intersection-test.scm
+;;; note: tests/liii/iset/iset-intersection-test.scm could not be compiled; loading per form
+
+; *** checks *** : 2 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/liii/iset/iset-le-p-test.scm
+;;; note: tests/liii/iset/iset-le-p-test.scm could not be compiled; loading per form
+
+; *** checks *** : 3 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/liii/iset/iset-lt-p-test.scm
+;;; note: tests/liii/iset/iset-lt-p-test.scm could not be compiled; loading per form
+
+; *** checks *** : 3 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/liii/iset/iset-max-test.scm
+;;; note: tests/liii/iset/iset-max-test.scm could not be compiled; loading per form
+
+; *** checks *** : 3 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/liii/iset/iset-min-test.scm
+;;; note: tests/liii/iset/iset-min-test.scm could not be compiled; loading per form
+
+; *** checks *** : 3 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/liii/iset/iset-open-interval-test.scm
+;;; note: tests/liii/iset/iset-open-interval-test.scm could not be compiled; loading per form
+
+; *** checks *** : 2 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/liii/iset/iset-search-bang-test.scm
+;;; note: tests/liii/iset/iset-search-bang-test.scm could not be compiled; loading per form
+
+; *** checks *** : 1 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/liii/iset/iset-search-test.scm
+;;; note: tests/liii/iset/iset-search-test.scm could not be compiled; loading per form
+
+; *** checks *** : 3 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/liii/iset/iset-size-test.scm
+;;; note: tests/liii/iset/iset-size-test.scm could not be compiled; loading per form
+
+; *** checks *** : 3 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/liii/iset/iset-test.scm
+
+; *** checks *** : 0 correct, 0 failed.
+#<unspecified>
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/liii/iset/iset-to-list-test.scm
+;;; note: tests/liii/iset/iset-to-list-test.scm could not be compiled; loading per form
+
+; *** checks *** : 3 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/liii/iset/iset-union-test.scm
+;;; note: tests/liii/iset/iset-union-test.scm could not be compiled; loading per form
+
+; *** checks *** : 2 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/liii/iset/iset-xor-test.scm
+;;; note: tests/liii/iset/iset-xor-test.scm could not be compiled; loading per form
+
+; *** checks *** : 2 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/liii/iset/isubset-eq-test.scm
+;;; note: tests/liii/iset/isubset-eq-test.scm could not be compiled; loading per form
+
+; *** checks *** : 2 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/liii/iset/isubset-ge-test.scm
+;;; note: tests/liii/iset/isubset-ge-test.scm could not be compiled; loading per form
+
+; *** checks *** : 2 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/liii/iset/isubset-gt-test.scm
+;;; note: tests/liii/iset/isubset-gt-test.scm could not be compiled; loading per form
+
+; *** checks *** : 2 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/liii/iset/isubset-le-test.scm
+;;; note: tests/liii/iset/isubset-le-test.scm could not be compiled; loading per form
+
+; *** checks *** : 2 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/liii/iset/isubset-lt-test.scm
+;;; note: tests/liii/iset/isubset-lt-test.scm could not be compiled; loading per form
+
+; *** checks *** : 2 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/liii/json/json-float-p-test.scm
+;;; note: tests/liii/json/json-float-p-test.scm could not be compiled; loading per form
+
+; *** checks *** : 7 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/liii/json/json-integer-p-test.scm
+;;; note: tests/liii/json/json-integer-p-test.scm could not be compiled; loading per form
+
+; *** checks *** : 7 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/liii/json/json-to-string-test.scm
+;;; note: tests/liii/json/json-to-string-test.scm could not be compiled; loading per form
+
+; *** checks *** : 21 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/liii/list/circular-list-test.scm
+;;; note: tests/liii/list/circular-list-test.scm could not be compiled; loading per form
+
+; *** checks *** : 30 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/liii/list/filter-test.scm
+;;; note: tests/liii/list/filter-test.scm could not be compiled; loading per form
+
+; *** checks *** : 31 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/liii/list/split-at-test.scm
+;;; note: tests/liii/list/split-at-test.scm could not be compiled; loading per form
+
+; *** checks *** : 13 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/liii/list/take-test.scm
+;;; note: tests/liii/list/take-test.scm could not be compiled; loading per form
+
+; *** checks *** : 22 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/liii/match-capability-test.scm
+;;; note: tests/liii/match-capability-test.scm could not be compiled; loading per form
+
+(match (quote (foo x 1)) ((head var val) (list (quote form) head var val)) (_ #f)) => (form foo x 1) ; correct
+
+(match (quote (if a b c)) ((? pair? (= node-kind (quote if))) (quote if-node)) (_ (quote other))) => if-node ; correct
+
+(match (quote (+ 1 2)) ((and (? pair?) (op a b)) (list op a b)) (_ #f)) => (+ 1 2) ; correct
+
+(match (quote a) ((or (quote a) (quote b)) (quote ab)) (_ (quote other))) => ab ; correct
+
+(match (quote (a b c)) ((and whole (a b c)) (list whole b)) (_ #f)) => ((a b c) b) ; correct
+
+(match (quote (1 2 3)) ((quasiquote (1 (unquote-splicing x))) x) (_ #f)) => (2 3) ; correct
+
+(match (quote (1 2 3)) ((x ...) x) (_ #f)) => (1 2 3) ; correct
+
+(match (quote notalist) ((x ...) (quote yes)) (_ (quote no))) => no ; correct
+
+(guard (ex (else (quote trapped))) (eval (quote (match (quote (1 2 3)) ((quasiquote ((unquote-splicing a) (unquote-splicing b))) (quote bad)) (_ (quote ok)))) match-qq-env)) => trapped ; correct
+
+; *** checks *** : 9 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/liii/os/listdir-test.scm
+;;; note: tests/liii/os/listdir-test.scm could not be compiled; loading per form
+
+; *** checks *** : 7 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/liii/packrat-test.scm
+;;; note: tests/liii/packrat-test.scm could not be compiled; loading per form
+
+; *** checks *** : 57 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/liii/random/random-integer-test.scm
+;;; note: tests/liii/random/random-integer-test.scm could not be compiled; loading per form
+
+; *** checks *** : 15 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/liii/reader/write-roundtrip-test.scm
+;;; note: tests/liii/reader/write-roundtrip-test.scm could not be compiled; loading per form
+
+(roundtrip (quote (a b (c) #(1 2) s))) => (a b (c) #(1 2) s) ; correct
+
+(roundtrip (quote lambda with dots)) => lambda with dots ; correct
+
+(roundtrip (quote ((a b) . c))) => ((a b) . c) ; correct
+
+(roundtrip #(1 (2 3) #(4))) => #(1 (2 3) #(4)) ; correct
+
+(roundtrip x) => (1 (2 3)) ; correct
+
+(let loop ((n depth) (node restored)) (if (zero? n) (eq? node (quote leaf)) (let ((left (if (pair? node) (car node) (vector-ref node 0))) (right (if (pair? node) (cdr node) (vector-ref node 1)))) (and (eq? left right) (loop (- n 1) left))))) => #t ; correct
+
+(eq? (car restored) (cadr restored)) => #t ; correct
+
+(vector-ref (car restored) 599) => #(299 299) ; correct
+
+(vector-ref (vector-ref (cadr restored) 599) 0) => changed ; correct
+
+(eq? cycle (cdr cycle)) => #t ; correct
+
+(eq? cycle (vector-ref cycle 1)) => #t ; correct
+
+(serialize-error? (lambda () (serialize c))) => #t ; correct
+
+(serialize-error? (lambda () (serialize a))) => #t ; correct
+
+(serialize-error? (lambda () (serialize v))) => #t ; correct
+
+(serialize-error? (lambda () (serialize (list 1 (lambda (x) x))))) => #t ; correct
+
+; *** checks *** : 15 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/liii/sort/vector-sorted-p-test.scm
+;;; note: tests/liii/sort/vector-sorted-p-test.scm could not be compiled; loading per form
+
+; *** checks *** : 10 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/liii/string/char-position-test.scm
+;;; note: tests/liii/string/char-position-test.scm could not be compiled; loading per form
+
+(char-position o hello world) => 4 ; correct
+
+(char-position z hello world) => #f ; correct
+
+(char-position h hello) => 0 ; correct
+
+(char-position o hello world 5) => 7 ; correct
+
+(integer? (char-position a abc)) => #t ; correct
+
+(char-position 你 你好世界) => 0 ; correct
+
+(char-position 🐟 é中🐟Z) => 2 ; correct
+
+(char-position é é中é🐟 1) => 2 ; correct
+
+(char-position 🐟中 Aé中🐟) => 2 ; correct
+
+(char-position é é中🐟Z 4) => #f ; correct
+
+(char-position aeiou hello world) => 1 ; correct
+
+(char-position xyz hello world) => #f ; correct
+
+; *** checks *** : 12 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/liii/string/string-any-test.scm
+;;; note: tests/liii/string/string-any-test.scm could not be compiled; loading per form
+
+(string-any a abcde) => #t ; correct
+
+(string-any z abcde) => #f ; correct
+
+(string-any char-numeric? abc123) => #t ; correct
+
+(string-any char-numeric? hello) => #f ; correct
+
+(string-any char-alphabetic? 12345a) => #t ; correct
+
+(string-any char-alphabetic? 12345) => #f ; correct
+
+(string-any (lambda (c) (char=? c h)) hello) => #t ; correct
+
+(string-any char-numeric? ) => #f ; correct
+
+(string-any char-alphabetic? 01c345 2) => #t ; correct
+
+(string-any char-alphabetic? 01c345 2 4) => #t ; correct
+
+(string-any char-alphabetic? 01c345 3 4) => #f ; correct
+
+(string-any char-alphabetic?  0 0) => #f ; correct
+
+(catch (quote wrong-type-arg) (lambda () (string-any 123 hello)) (lambda args (quote wrong-type-arg))) => wrong-type-arg ; correct
+
+(catch (quote wrong-type-arg) (lambda () (string-any char-alphabetic? 123)) (lambda args (quote wrong-type-arg))) => wrong-type-arg ; correct
+
+(catch (quote out-of-range) (lambda () (string-any char-alphabetic? hello -1)) (lambda args (quote out-of-range))) => out-of-range ; correct
+
+(catch (quote out-of-range) (lambda () (string-any char-alphabetic? hello 0 6)) (lambda args (quote out-of-range))) => out-of-range ; correct
+
+(string-any char-alphabetic? a中文b) => #t ; correct
+
+(string-any char-numeric? 中文123文字) => #t ; correct
+
+(string-any char-numeric? 中文测试) => #f ; correct
+
+(string-any char-numeric? 123😀456) => #t ; correct
+
+(string-any char-alphabetic? a中文b 0 4) => #t ; correct
+
+(string-any char-numeric? 中文测试 0 4) => #f ; correct
+
+; *** checks *** : 22 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/liii/string/string-copy-test.scm
+;;; note: tests/liii/string/string-copy-test.scm could not be compiled; loading per form
+
+(equal? (string-copy hello) hello) => #t ; correct
+
+(equal? (string-copy hello 1) ello) => #t ; correct
+
+(equal? (string-copy hello 1 4) ell) => #t ; correct
+
+(equal? (string-copy ) ) => #t ; correct
+
+(equal? (string-copy 中文测试) 中文测试) => #t ; correct
+
+(equal? (string-copy 中文测试 2) 测试) => #t ; correct
+
+(equal? (string-copy 中文测试 0 2) 中文) => #t ; correct
+
+(equal? (string-copy hello 0) hello) => #t ; correct
+
+(equal? (string-copy hello 5) ) => #t ; correct
+
+(equal? (string-copy abc 0 0) ) => #t ; correct
+
+(equal? (string-copy abc 0 1) a) => #t ; correct
+
+(equal? (string-copy abc 0 2) ab) => #t ; correct
+
+(equal? (string-copy abc 0 3) abc) => #t ; correct
+
+(eq? (string-copy hello) hello) => #f ; correct
+
+(string=? (string-copy original) original) => #t ; correct
+
+(eq? (string-copy original) original) => #f ; correct
+
+(equal? (string-copy test123 0 4) test) => #t ; correct
+
+(equal? (string-copy test123 4 7) 123) => #t ; correct
+
+(equal? (string-copy 🌟🎉 0 1) 🌟) => #t ; correct
+
+(equal? (string-copy 🌟🎉 1 2) 🎉) => #t ; correct
+
+(catch (quote wrong-type-arg) (lambda () (string-copy 123)) (lambda args (quote wrong-type-arg))) => wrong-type-arg ; correct
+
+(catch (quote wrong-type-arg) (lambda () (string-copy (quote hello))) (lambda args (quote wrong-type-arg))) => wrong-type-arg ; correct
+
+(catch (quote out-of-range) (lambda () (string-copy hello -1)) (lambda args (quote out-of-range))) => out-of-range ; correct
+
+(catch (quote out-of-range) (lambda () (string-copy hello 10)) (lambda args (quote out-of-range))) => out-of-range ; correct
+
+(catch (quote out-of-range) (lambda () (string-copy hello 0 10)) (lambda args (quote out-of-range))) => out-of-range ; correct
+
+(catch (quote out-of-range) (lambda () (string-copy  1)) (lambda args (quote out-of-range))) => out-of-range ; correct
+
+(catch (quote out-of-range) (lambda () (string-copy hello 3 2)) (lambda args (quote out-of-range))) => out-of-range ; correct
+
+(catch (quote out-of-range) (lambda () (string-copy hello 4 3)) (lambda args (quote out-of-range))) => out-of-range ; correct
+
+(catch (quote wrong-type-arg) (lambda () (string-copy hello a)) (lambda args (quote wrong-type-arg))) => wrong-type-arg ; correct
+
+(catch (quote wrong-type-arg) (lambda () (string-copy hello 1.5)) (lambda args (quote wrong-type-arg))) => wrong-type-arg ; correct
+
+(catch (quote wrong-type-arg) (lambda () (string-copy hello 1 4.5)) (lambda args (quote wrong-type-arg))) => wrong-type-arg ; correct
+
+; *** checks *** : 31 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/liii/string/string-drop-test.scm
+;;; note: tests/liii/string/string-drop-test.scm could not be compiled; loading per form
+
+(string-drop MathAgape 4) => Agape ; correct
+
+(string-drop MathAgape 0) => MathAgape ; correct
+
+(string-drop MathAgape 9) =>  ; correct
+
+(string-drop MathAgape 8) => e ; correct
+
+(string-drop MathAgape 1) => athAgape ; correct
+
+(string-drop MathAgape 2) => thAgape ; correct
+
+(string-drop MathAgape 3) => hAgape ; correct
+
+(string-drop MathAgape 5) => gape ; correct
+
+(string-drop MathAgape 6) => ape ; correct
+
+(string-drop MathAgape 7) => pe ; correct
+
+(string-drop  0) =>  ; correct
+
+(string-drop a 1) =>  ; correct
+
+(string-drop Hello 1) => ello ; correct
+
+(string-drop Hello 5) =>  ; correct
+
+(string-drop Hello 0) => Hello ; correct
+
+(string-drop abc 2) => c ; correct
+
+(string-drop abc 1) => bc ; correct
+
+(string-drop test123 4) => 123 ; correct
+
+(string-drop test123 3) => t123 ; correct
+
+(string-drop test123 6) => 3 ; correct
+
+(string-drop test123 7) =>  ; correct
+
+(string-drop 中文测试 2) => 测试 ; correct
+
+(string-drop 中文测试 1) => 文测试 ; correct
+
+(string-drop 中文测试 4) =>  ; correct
+
+(string-drop 🌟🎉 1) => 🎉 ; correct
+
+(string-drop 🌟🎉 2) =>  ; correct
+
+(catch (quote out-of-range) (lambda () (string-drop MathAgape 20)) (lambda args (quote out-of-range))) => out-of-range ; correct
+
+(catch (quote out-of-range) (lambda () (string-drop  1)) (lambda args (quote out-of-range))) => out-of-range ; correct
+
+(catch (quote out-of-range) (lambda () (string-drop Hello -1)) (lambda args (quote out-of-range))) => out-of-range ; correct
+
+(catch (quote wrong-type-arg) (lambda () (string-drop 123 4)) (lambda args (quote wrong-type-arg))) => wrong-type-arg ; correct
+
+(catch (quote wrong-type-arg) (lambda () (string-drop MathAgape 4)) (lambda args (quote wrong-type-arg))) => wrong-type-arg ; correct
+
+(catch (quote wrong-type-arg) (lambda () (string-drop MathAgape 4.5)) (lambda args (quote wrong-type-arg))) => wrong-type-arg ; correct
+
+(catch (quote wrong-type-arg) (lambda () (string-drop MathAgape (quote a))) (lambda args (quote wrong-type-arg))) => wrong-type-arg ; correct
+
+(string-drop MathAgape 8) => e ; correct
+
+(string-drop MathAgape 9) =>  ; correct
+
+(string-drop MathAgape 0) => MathAgape ; correct
+
+(catch (quote out-of-range) (lambda () (string-drop MahtAgape -1)) (lambda args (quote out-of-range))) => out-of-range ; correct
+
+(catch (quote out-of-range) (lambda () (string-drop MathAgape 20)) (lambda args (quote out-of-range))) => out-of-range ; correct
+
+(string-drop-right MathAgape 4) => MathA ; correct
+
+(string-drop-right MathAgape 0) => MathAgape ; correct
+
+(string-drop-right MathAgape 9) =>  ; correct
+
+(string-drop-right MathAgape 8) => M ; correct
+
+(string-drop-right MathAgape 1) => MathAgap ; correct
+
+(string-drop-right MathAgape 2) => MathAga ; correct
+
+(string-drop-right MathAgape 3) => MathAg ; correct
+
+(string-drop-right MathAgape 5) => Math ; correct
+
+(string-drop-right MathAgape 6) => Mat ; correct
+
+(string-drop-right MathAgape 7) => Ma ; correct
+
+(string-drop-right  0) =>  ; correct
+
+(string-drop-right a 1) =>  ; correct
+
+(string-drop-right Hello 1) => Hell ; correct
+
+(string-drop-right Hello 5) =>  ; correct
+
+(string-drop-right Hello 0) => Hello ; correct
+
+(string-drop-right abc 2) => a ; correct
+
+(string-drop-right abc 1) => ab ; correct
+
+(string-drop-right test123 3) => test ; correct
+
+(string-drop-right test123 4) => tes ; correct
+
+(string-drop-right test123 6) => t ; correct
+
+(string-drop-right test123 7) =>  ; correct
+
+(string-drop-right 中文测试 2) => 中文 ; correct
+
+(string-drop-right 中文测试 1) => 中文测 ; correct
+
+(string-drop-right 中文测试 4) =>  ; correct
+
+(string-drop-right 🌟🎉 1) => 🌟 ; correct
+
+(string-drop-right 🌟🎉 2) =>  ; correct
+
+(catch (quote out-of-range) (lambda () (string-drop-right MathAgape 20)) (lambda args (quote out-of-range))) => out-of-range ; correct
+
+(catch (quote out-of-range) (lambda () (string-drop-right  1)) (lambda args (quote out-of-range))) => out-of-range ; correct
+
+(catch (quote out-of-range) (lambda () (string-drop-right Hello -1)) (lambda args (quote out-of-range))) => out-of-range ; correct
+
+(catch (quote wrong-type-arg) (lambda () (string-drop-right 123 4)) (lambda args (quote wrong-type-arg))) => wrong-type-arg ; correct
+
+(catch (quote wrong-type-arg) (lambda () (string-drop-right MathAgape 4)) (lambda args (quote wrong-type-arg))) => wrong-type-arg ; correct
+
+(catch (quote wrong-type-arg) (lambda () (string-drop-right MathAgape 4.5)) (lambda args (quote wrong-type-arg))) => wrong-type-arg ; correct
+
+(catch (quote wrong-type-arg) (lambda () (string-drop-right MathAgape (quote a))) (lambda args (quote wrong-type-arg))) => wrong-type-arg ; correct
+
+(string-drop-right MathAgape 5) => Math ; correct
+
+(string-drop-right MathAgape 9) =>  ; correct
+
+(string-drop-right MathAgape 0) => MathAgape ; correct
+
+(catch (quote out-of-range) (lambda () (string-drop-right MathAgape -1)) (lambda args (quote out-of-range))) => out-of-range ; correct
+
+(catch (quote out-of-range) (lambda () (string-drop-right MathAgape 20)) (lambda args (quote out-of-range))) => out-of-range ; correct
+
+; *** checks *** : 76 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/liii/string/string-every-test.scm
+;;; note: tests/liii/string/string-every-test.scm could not be compiled; loading per form
+
+(string-every x xxxxxx) => #t ; correct
+
+(string-every x xxx0xx) => #f ; correct
+
+(string-every char-numeric? 012345) => #t ; correct
+
+(string-every char-numeric? 012d45) => #f ; correct
+
+(string-every char-alphabetic? abc) => #t ; correct
+
+(string-every char-alphabetic? abc123) => #f ; correct
+
+(string-every (lambda (c) (char<=? A c Z)) ABCDEF) => #t ; correct
+
+(string-every char-numeric? ) => #t ; correct
+
+(string-every char-numeric? ab2345 2) => #t ; correct
+
+(string-every char-numeric? ab234f 2 4) => #t ; correct
+
+(string-every char-numeric? ab234f 1 4) => #f ; correct
+
+(string-every char-alphabetic? abc 0 0) => #t ; correct
+
+(catch (quote wrong-type-arg) (lambda () (string-every 1 012345)) (lambda args (quote wrong-type-arg))) => wrong-type-arg ; correct
+
+(catch (quote wrong-type-arg) (lambda () (string-every 012345 012345)) (lambda args (quote wrong-type-arg))) => wrong-type-arg ; correct
+
+(catch (quote out-of-range) (lambda () (string-every char-numeric? ab234f 2 7)) (lambda args (quote out-of-range))) => out-of-range ; correct
+
+(catch (quote out-of-range) (lambda () (string-every char-numeric? ab234f 2 1)) (lambda args (quote out-of-range))) => out-of-range ; correct
+
+(string-every (lambda (c) #t) 一二三) => #t ; correct
+
+(string-every (lambda (c) #t) 😀😃😄) => #t ; correct
+
+(string-every char-alphabetic? ab中文) => #t ; correct
+
+(string-every char-alphabetic? abc 0 3) => #t ; correct
+
+(string-every char-numeric? 123😀456 0 3) => #t ; correct
+
+(string-every char-numeric? 中文测试) => #f ; correct
+
+; *** checks *** : 22 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/liii/string/string-pad-right-test.scm
+;;; note: tests/liii/string/string-pad-right-test.scm could not be compiled; loading per form
+
+(string-pad-right abc 6) => abc    ; correct
+
+(string-pad-right abc 6 0) => abc000 ; correct
+
+(string-pad-right abcdef 3) => abc ; correct
+
+(string-pad-right abcdef 3 0) => abc ; correct
+
+(string-pad-right  5) =>       ; correct
+
+(string-pad-right  5 0) => 00000 ; correct
+
+(string-pad-right a 1) => a ; correct
+
+(string-pad-right abc 3) => abc ; correct
+
+(string-pad-right abc 0) =>  ; correct
+
+(string-pad-right abc 2) => ab ; correct
+
+(string-pad-right abc 1) => a ; correct
+
+(string-pad-right 中文 6) => 中文     ; correct
+
+(string-pad-right HelloWorld 12 !) => HelloWorld!! ; correct
+
+(string-pad-right HelloWorld 7 ! 0 5) => Hello!! ; correct
+
+(string-pad-right HelloWorld 8 ! 1 6) => elloW!!! ; correct
+
+(string-pad-right HelloWorld 5 x 3 5) => loxxx ; correct
+
+(string-pad-right HelloWorld 0 ! 3 3) =>  ; correct
+
+(string-pad-right abc 10 *) => abc******* ; correct
+
+(string-pad-right test 8 -) => test---- ; correct
+
+(string-pad-right 123 7 0) => 1230000 ; correct
+
+(catch (quote out-of-range) (lambda () (string-pad-right abc -1)) (lambda args (quote out-of-range))) => out-of-range ; correct
+
+; *** checks *** : 21 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/liii/string/string-pad-test.scm
+;;; note: tests/liii/string/string-pad-test.scm could not be compiled; loading per form
+
+(string-pad MathAgape 15) =>       MathAgape ; correct
+
+(string-pad MathAgape 12 1) => 111MathAgape ; correct
+
+(string-pad MathAgape 6 1 0 4) => 11Math ; correct
+
+(string-pad MathAgape 9) => MathAgape ; correct
+
+(string-pad MathAgape 5) => Agape ; correct
+
+(string-pad MathAgape 2 1 0 4) => th ; correct
+
+(catch (quote out-of-range) (lambda () (string-pad MathAgape -1)) (lambda args (quote out-of-range))) => out-of-range ; correct
+
+(string-pad abc 6) =>    abc ; correct
+
+(string-pad abc 6 0) => 000abc ; correct
+
+(string-pad abcdef 3) => def ; correct
+
+(string-pad abcdef 3 0) => def ; correct
+
+(string-pad  5) =>       ; correct
+
+(string-pad  5 0) => 00000 ; correct
+
+(string-pad a 1) => a ; correct
+
+(string-pad abc 3) => abc ; correct
+
+(string-pad abc 0) =>  ; correct
+
+(string-pad abc 2) => bc ; correct
+
+(string-pad abc 1) => c ; correct
+
+(string-pad 中文 6) =>     中文 ; correct
+
+(string-pad HelloWorld 12 !) => !!HelloWorld ; correct
+
+(string-pad HelloWorld 7 ! 0 5) => !!Hello ; correct
+
+(string-pad HelloWorld 8 ! 1 6) => !!!elloW ; correct
+
+(string-pad HelloWorld 5 x 3 5) => xxxlo ; correct
+
+(string-pad HelloWorld 0 ! 3 3) =>  ; correct
+
+(string-pad abc 10 *) => *******abc ; correct
+
+(string-pad test 8 -) => ----test ; correct
+
+(string-pad 123 7 0) => 0000123 ; correct
+
+(string-pad-right MathAgape 15) => MathAgape       ; correct
+
+(string-pad-right MathAgape 12 1) => MathAgape111 ; correct
+
+(string-pad-right MathAgape 6 1 0 4) => Math11 ; correct
+
+(string-pad-right MathAgape 9) => MathAgape ; correct
+
+(string-pad-right MathAgape 9 1) => MathAgape ; correct
+
+(string-pad-right MathAgape 4) => Math ; correct
+
+(catch (quote out-of-range) (lambda () (string-pad-right MathAgape -1)) (lambda args (quote out-of-range))) => out-of-range ; correct
+
+(string-pad-right abc 6) => abc    ; correct
+
+(string-pad-right abc 6 0) => abc000 ; correct
+
+(string-pad-right abcdef 3) => abc ; correct
+
+(string-pad-right abcdef 3 0) => abc ; correct
+
+(string-pad-right  5) =>       ; correct
+
+(string-pad-right  5 0) => 00000 ; correct
+
+(string-pad-right a 1) => a ; correct
+
+(string-pad-right abc 3) => abc ; correct
+
+(string-pad-right abc 0) =>  ; correct
+
+(string-pad-right abc 2) => ab ; correct
+
+(string-pad-right abc 1) => a ; correct
+
+(string-pad-right 中文 6) => 中文     ; correct
+
+(string-pad-right HelloWorld 12 !) => HelloWorld!! ; correct
+
+(string-pad-right HelloWorld 7 ! 0 5) => Hello!! ; correct
+
+(string-pad-right HelloWorld 8 ! 1 6) => elloW!!! ; correct
+
+(string-pad-right HelloWorld 5 x 3 5) => loxxx ; correct
+
+(string-pad-right HelloWorld 0 ! 3 3) =>  ; correct
+
+(string-pad-right abc 10 *) => abc******* ; correct
+
+(string-pad-right test 8 -) => test---- ; correct
+
+(string-pad-right 123 7 0) => 1230000 ; correct
+
+(catch (quote out-of-range) (lambda () (string-pad abc -1)) (lambda args (quote out-of-range))) => out-of-range ; correct
+
+(catch (quote out-of-range) (lambda () (string-pad-right abc -1)) (lambda args (quote out-of-range))) => out-of-range ; correct
+
+; *** checks *** : 56 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/liii/string/string-position-test.scm
+;;; note: tests/liii/string/string-position-test.scm could not be compiled; loading per form
+
+(string-position 34 0123456789) => 3 ; correct
+
+(string-position 012 0123456789) => 0 ; correct
+
+(string-position  hello) => #f ; correct
+
+(string-position abc 0123456789) => #f ; correct
+
+(string-position 34 0123434567 4) => 5 ; correct
+
+(string-position 中🐟 Aé中🐟Z) => 2 ; correct
+
+(string-position é é中é🐟 1) => 2 ; correct
+
+(string-position 🐟 Aé中🐟Z 4) => #f ; correct
+
+; *** checks *** : 8 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/liii/string/string-take-right-test.scm
+;;; note: tests/liii/string/string-take-right-test.scm could not be compiled; loading per form
+
+(string-take-right MathAgape 0) =>  ; correct
+
+(string-take-right MathAgape 1) => e ; correct
+
+(string-take-right MathAgape 9) => MathAgape ; correct
+
+(string-take-right MathAgape 4) => gape ; correct
+
+(string-take-right MathAgape 0) =>  ; correct
+
+(string-take-right MathAgape 9) => MathAgape ; correct
+
+(string-take-right  0) =>  ; correct
+
+(string-take-right a 1) => a ; correct
+
+(string-take-right Hello 1) => o ; correct
+
+(string-take-right abc 2) => bc ; correct
+
+(string-take-right test123 3) => 123 ; correct
+
+(string-take-right 中文测试 2) => 测试 ; correct
+
+(string-take-right 🌟🎉 1) => 🎉 ; correct
+
+(catch (quote out-of-range) (lambda () (string-take-right MathAgape 20)) (lambda args (quote out-of-range))) => out-of-range ; correct
+
+(catch (quote out-of-range) (lambda () (string-take-right  1)) (lambda args (quote out-of-range))) => out-of-range ; correct
+
+(catch (quote out-of-range) (lambda () (string-take-right Hello -1)) (lambda args (quote out-of-range))) => out-of-range ; correct
+
+(catch (quote wrong-type-arg) (lambda () (string-take-right 123 4)) (lambda args (quote wrong-type-arg))) => wrong-type-arg ; correct
+
+(catch (quote wrong-type-arg) (lambda () (string-take-right MathAgape 4)) (lambda args (quote wrong-type-arg))) => wrong-type-arg ; correct
+
+(catch (quote wrong-type-arg) (lambda () (string-take-right MathAgape 4.5)) (lambda args (quote wrong-type-arg))) => wrong-type-arg ; correct
+
+(catch (quote wrong-type-arg) (lambda () (string-take-right MathAgape (quote a))) (lambda args (quote wrong-type-arg))) => wrong-type-arg ; correct
+
+; *** checks *** : 20 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/liii/string/string-take-test.scm
+;;; note: tests/liii/string/string-take-test.scm could not be compiled; loading per form
+
+(string-take MathAgape 4) => Math ; correct
+
+(string-take MathAgape 0) =>  ; correct
+
+(string-take MathAgape 9) => MathAgape ; correct
+
+(string-take  0) =>  ; correct
+
+(string-take a 1) => a ; correct
+
+(string-take Hello 1) => H ; correct
+
+(string-take abc 2) => ab ; correct
+
+(string-take test123 4) => test ; correct
+
+(string-take 中文测试 2) => 中文 ; correct
+
+(string-take 🌟🎉 1) => 🌟 ; correct
+
+(catch (quote out-of-range) (lambda () (string-take MathAgape 20)) (lambda args (quote out-of-range))) => out-of-range ; correct
+
+(catch (quote out-of-range) (lambda () (string-take  1)) (lambda args (quote out-of-range))) => out-of-range ; correct
+
+(catch (quote out-of-range) (lambda () (string-take Hello -1)) (lambda args (quote out-of-range))) => out-of-range ; correct
+
+(catch (quote wrong-type-arg) (lambda () (string-take 123 4)) (lambda args (quote wrong-type-arg))) => wrong-type-arg ; correct
+
+(catch (quote wrong-type-arg) (lambda () (string-take MathAgape 4)) (lambda args (quote wrong-type-arg))) => wrong-type-arg ; correct
+
+(catch (quote wrong-type-arg) (lambda () (string-take MathAgape 4.5)) (lambda args (quote wrong-type-arg))) => wrong-type-arg ; correct
+
+(catch (quote wrong-type-arg) (lambda () (string-take MathAgape (quote a))) (lambda args (quote wrong-type-arg))) => wrong-type-arg ; correct
+
+; *** checks *** : 17 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/liii/time/current-time-test.scm
+;;; note: tests/liii/time/current-time-test.scm could not be compiled; loading per form
+
+; *** checks *** : 17 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/liii/time/time-resolution-test.scm
+;;; note: tests/liii/time/time-resolution-test.scm could not be compiled; loading per form
+
+; *** checks *** : 8 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/liii/unicode/utf8-string-test.scm
+;;; note: tests/liii/unicode/utf8-string-test.scm could not be compiled; loading per form
+
+; *** checks *** : 13 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/liii/uuid-test.scm
+;;; note: tests/liii/uuid-test.scm could not be compiled; loading per form
+
+; *** checks *** : 3 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/liii/vector/int-vector-set-bang-test.scm
+;;; note: tests/liii/vector/int-vector-set-bang-test.scm could not be compiled; loading per form
+
+; *** checks *** : 11 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/liii/vector/vector-filter-test.scm
+;;; note: tests/liii/vector/vector-filter-test.scm could not be compiled; loading per form
+
+; *** checks *** : 9 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/r7rs/conditional-library-test.scm
+;;; note: tests/r7rs/conditional-library-test.scm could not be compiled; loading per form
+
+; *** checks *** : 1 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/r7rs/continuation-test.scm
+;;; note: tests/r7rs/continuation-test.scm could not be compiled; loading per form
+
+; *** checks *** : 16 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/r7rs/custom-ellipsis-test.scm
+;;; note: tests/r7rs/custom-ellipsis-test.scm could not be compiled; loading per form
+
+; *** checks *** : 31 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/r7rs/custom-ellipsis-variable-test.scm
+;;; note: tests/r7rs/custom-ellipsis-variable-test.scm could not be compiled; loading per form
+
+; *** checks *** : 1 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/r7rs/exception-test.scm
+;;; note: tests/r7rs/exception-test.scm could not be compiled; loading per form
+
+; *** checks *** : 19 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/r7rs/include-case-test.scm
+;;; note: tests/r7rs/include-case-test.scm could not be compiled; loading per form
+
+; *** checks *** : 1 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/r7rs/include-declarations-test.scm
+;;; note: tests/r7rs/include-declarations-test.scm could not be compiled; loading per form
+
+; *** checks *** : 1 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/r7rs/library-declarations-test.scm
+;;; note: tests/r7rs/library-declarations-test.scm could not be compiled; loading per form
+
+; *** checks *** : 29 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/r7rs/library-feature-test.scm
+;;; note: tests/r7rs/library-feature-test.scm could not be compiled; loading per form
+
+; *** checks *** : 1 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/r7rs/library-loading-test.scm
+;;; note: tests/r7rs/library-loading-test.scm could not be compiled; loading per form
+
+; *** checks *** : 19 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/r7rs/macro-hygiene-test.scm
+;;; note: tests/r7rs/macro-hygiene-test.scm could not be compiled; loading per form
+
+; *** checks *** : 10 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/r7rs/numbered-library-test.scm
+;;; note: tests/r7rs/numbered-library-test.scm could not be compiled; loading per form
+
+; *** checks *** : 1 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/r7rs/parameter-test.scm
+;;; note: tests/r7rs/parameter-test.scm could not be compiled; loading per form
+
+; *** checks *** : 19 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/r7rs/promise-test.scm
+;;; note: tests/r7rs/promise-test.scm could not be compiled; loading per form
+
+; *** checks *** : 20 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/r7rs/tail-context-test.scm
+;;; note: tests/r7rs/tail-context-test.scm could not be compiled; loading per form
+
+; *** checks *** : 8 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/scheme/base/cache-roundtrip-test.scm
+;;; note: tests/scheme/base/cache-roundtrip-test.scm could not be compiled; loading per form
+
+(read p) => 0+2i ; correct
+
+(read p) => 0-2.5i ; correct
+
+(read p) => 1.0+1.0i ; correct
+
+(let ((out (open-output-string))) (write-roundtrip z out) (eqv? z (read (open-input-string (get-output-string out))))) => #t ; correct
+
+(let ((out (open-output-string))) (write-roundtrip z out) (eqv? z (read (open-input-string (get-output-string out))))) => #t ; correct
+
+(let ((out (open-output-string))) (write-roundtrip z out) (eqv? z (read (open-input-string (get-output-string out))))) => #t ; correct
+
+(cadr v) => hello' ; correct
+
+(symbol? v) => #t ; correct
+
+(symbol->string v) => a b ; correct
+
+(record-instance? v) => #t ; correct
+
+(binding-kind v) => primitive ; correct
+
+(binding-value v) => foo ; correct
+
+(record-instance? v) => #t ; correct
+
+(toplevel-ref-gensym v) => my-var:1 ; correct
+
+(toplevel-ref-original v) => my-var ; correct
+
+(toplevel-ref-exported? v) => #t ; correct
+
+(record-instance? v) => #t ; correct
+
+(exp-library-name v) => (liii test) ; correct
+
+(binding? b) => #t ; correct
+
+(eq? (toplevel-ref-home (binding-value b)) v) => #t ; correct
+
+(cacheable-expansion? sexp) => #t ; correct
+
+(cacheable-expansion? (quote (begin (define f (lambda (x) missing))))) => #f ; correct
+
+(cacheable-expansion? (quote (let ((loop (lambda () (loop)))) (loop)))) => #f ; correct
+
+; *** checks *** : 23 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/scheme/base/call-slash-cc-test.scm
+;;; note: tests/scheme/base/call-slash-cc-test.scm could not be compiled; loading per form
+
+; *** checks *** : 27 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/scheme/base/cond-expand-test.scm
+;;; note: tests/scheme/base/cond-expand-test.scm could not be compiled; loading per form
+
+; *** checks *** : 6 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/scheme/base/dynamic-wind-test.scm
+;;; note: tests/scheme/base/dynamic-wind-test.scm could not be compiled; loading per form
+
+; *** checks *** : 6 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/scheme/base/eqv-p-test.scm
+;;; note: tests/scheme/base/eqv-p-test.scm could not be compiled; loading per form
+
+; *** checks *** : 35 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/scheme/base/error-object-test.scm
+;;; note: tests/scheme/base/error-object-test.scm could not be compiled; loading per form
+
+; *** checks *** : 16 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/scheme/base/exact-integer-sqrt-test.scm
+;;; note: tests/scheme/base/exact-integer-sqrt-test.scm could not be compiled; loading per form
+
+; *** checks *** : 18 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/scheme/base/exact-test.scm
+;;; note: tests/scheme/base/exact-test.scm could not be compiled; loading per form
+
+; *** checks *** : 14 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/scheme/base/expt-test.scm
+;;; note: tests/scheme/base/expt-test.scm could not be compiled; loading per form
+
+; *** checks *** : 20 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/scheme/base/floor-slash-test.scm
+;;; note: tests/scheme/base/floor-slash-test.scm could not be compiled; loading per form
+
+; *** checks *** : 14 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/scheme/base/floor-test.scm
+;;; note: tests/scheme/base/floor-test.scm could not be compiled; loading per form
+
+; *** checks *** : 9 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/scheme/base/gcd-test.scm
+;;; note: tests/scheme/base/gcd-test.scm could not be compiled; loading per form
+
+; *** checks *** : 32 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/scheme/base/guard-test.scm
+;;; note: tests/scheme/base/guard-test.scm could not be compiled; loading per form
+
+; *** checks *** : 5 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/scheme/base/inexact-test.scm
+;;; note: tests/scheme/base/inexact-test.scm could not be compiled; loading per form
+
+; *** checks *** : 23 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/scheme/base/lcm-test.scm
+;;; note: tests/scheme/base/lcm-test.scm could not be compiled; loading per form
+
+; *** checks *** : 19 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/scheme/base/list-p-test.scm
+;;; note: tests/scheme/base/list-p-test.scm could not be compiled; loading per form
+
+; *** checks *** : 32 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/scheme/base/number-to-string-test.scm
+;;; note: tests/scheme/base/number-to-string-test.scm could not be compiled; loading per form
+
+; *** checks *** : 52 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/scheme/base/numeric-comparison-test.scm
+;;; note: tests/scheme/base/numeric-comparison-test.scm could not be compiled; loading per form
+
+; *** checks *** : 30 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/scheme/base/plus-test.scm
+;;; note: tests/scheme/base/plus-test.scm could not be compiled; loading per form
+
+; *** checks *** : 28 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/scheme/base/quotient-test.scm
+;;; note: tests/scheme/base/quotient-test.scm could not be compiled; loading per form
+
+; *** checks *** : 31 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/scheme/base/raise-continuable-test.scm
+;;; note: tests/scheme/base/raise-continuable-test.scm could not be compiled; loading per form
+
+; *** checks *** : 3 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/scheme/base/rational-p-test.scm
+;;; note: tests/scheme/base/rational-p-test.scm could not be compiled; loading per form
+
+; *** checks *** : 10 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/scheme/base/rationalize-test.scm
+;;; note: tests/scheme/base/rationalize-test.scm could not be compiled; loading per form
+
+; *** checks *** : 32 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/scheme/base/remainder-test.scm
+;;; note: tests/scheme/base/remainder-test.scm could not be compiled; loading per form
+
+; *** checks *** : 16 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/scheme/base/star-test.scm
+;;; note: tests/scheme/base/star-test.scm could not be compiled; loading per form
+
+; *** checks *** : 84 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/scheme/base/string-copy-test.scm
+;;; note: tests/scheme/base/string-copy-test.scm could not be compiled; loading per form
+
+; *** checks *** : 19 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/scheme/base/string-length-test.scm
+;;; note: tests/scheme/base/string-length-test.scm could not be compiled; loading per form
+
+; *** checks *** : 45 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/scheme/base/string-test.scm
+;;; note: tests/scheme/base/string-test.scm could not be compiled; loading per form
+
+; *** checks *** : 12 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/scheme/base/string-to-number-test.scm
+;;; note: tests/scheme/base/string-to-number-test.scm could not be compiled; loading per form
+
+; *** checks *** : 79 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/scheme/base/string-to-utf8-test.scm
+;;; note: tests/scheme/base/string-to-utf8-test.scm could not be compiled; loading per form
+
+; *** checks *** : 47 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/scheme/base/substring-test.scm
+;;; note: tests/scheme/base/substring-test.scm could not be compiled; loading per form
+
+; *** checks *** : 16 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/scheme/base/truncate-test.scm
+;;; note: tests/scheme/base/truncate-test.scm could not be compiled; loading per form
+
+; *** checks *** : 11 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/scheme/base/unicode-string-port-test.scm
+;;; note: tests/scheme/base/unicode-string-port-test.scm could not be compiled; loading per form
+
+; *** checks *** : 65 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/scheme/base/with-exception-handler-test.scm
+;;; note: tests/scheme/base/with-exception-handler-test.scm could not be compiled; loading per form
+
+; *** checks *** : 3 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/scheme/complex/angle-test.scm
+;;; note: tests/scheme/complex/angle-test.scm could not be compiled; loading per form
+
+; *** checks *** : 5 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/scheme/complex/imag-part-test.scm
+;;; note: tests/scheme/complex/imag-part-test.scm could not be compiled; loading per form
+
+; *** checks *** : 15 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/scheme/complex/make-rectangular-test.scm
+;;; note: tests/scheme/complex/make-rectangular-test.scm could not be compiled; loading per form
+
+; *** checks *** : 7 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/scheme/complex/real-part-test.scm
+;;; note: tests/scheme/complex/real-part-test.scm could not be compiled; loading per form
+
+; *** checks *** : 15 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/scheme/eval/environment-test.scm
+;;; note: tests/scheme/eval/environment-test.scm could not be compiled; loading per form
+
+; *** checks *** : 7 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/scheme/inexact/acos-test.scm
+;;; note: tests/scheme/inexact/acos-test.scm could not be compiled; loading per form
+
+; *** checks *** : 14 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/scheme/inexact/asin-test.scm
+;;; note: tests/scheme/inexact/asin-test.scm could not be compiled; loading per form
+
+; *** checks *** : 10 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/scheme/inexact/atan-test.scm
+;;; note: tests/scheme/inexact/atan-test.scm could not be compiled; loading per form
+
+; *** checks *** : 24 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/scheme/inexact/cos-test.scm
+;;; note: tests/scheme/inexact/cos-test.scm could not be compiled; loading per form
+
+; *** checks *** : 14 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/scheme/inexact/exp-test.scm
+;;; note: tests/scheme/inexact/exp-test.scm could not be compiled; loading per form
+
+; *** checks *** : 11 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/scheme/inexact/log-test.scm
+;;; note: tests/scheme/inexact/log-test.scm could not be compiled; loading per form
+
+; *** checks *** : 23 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/scheme/inexact/sin-test.scm
+;;; note: tests/scheme/inexact/sin-test.scm could not be compiled; loading per form
+
+; *** checks *** : 15 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/scheme/inexact/tan-test.scm
+;;; note: tests/scheme/inexact/tan-test.scm could not be compiled; loading per form
+
+; *** checks *** : 6 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/scheme/r5rs-test.scm
+;;; note: tests/scheme/r5rs-test.scm could not be compiled; loading per form
+
+; *** checks *** : 24 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/scheme/write/graph-roundtrip-test.scm
+;;; note: tests/scheme/write/graph-roundtrip-test.scm could not be compiled; loading per form
+
+; *** checks *** : 138 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/scheme/write/write-shared-test.scm
+;;; note: tests/scheme/write/write-shared-test.scm could not be compiled; loading per form
+
+; *** checks *** : 4 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/scheme/write/write-simple-test.scm
+;;; note: tests/scheme/write/write-simple-test.scm could not be compiled; loading per form
+
+; *** checks *** : 4 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/srfi/srfi-151-test.scm
+;;; note: tests/srfi/srfi-151-test.scm could not be compiled; loading per form
+
+; *** checks *** : 13 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/srfi/srfi-165-test.scm
+;;; note: tests/srfi/srfi-165-test.scm could not be compiled; loading per form
+
+; *** checks *** : 61 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/srfi/srfi-19-test.scm
+;;; note: tests/srfi/srfi-19-test.scm could not be compiled; loading per form
+
+; *** checks *** : 24 correct, 0 failed.
+#f
+
+=== Test Summary ===
+
+  tests/compiler/constant-fold-test.scm ... PASS
+  tests/compiler/syntax-ir-test.scm ... PASS
+  tests/expander/import-perlevel-test.scm ... PASS
+  tests/expander/import-sets-test.scm ... PASS
+  tests/expander/internal-surface-test.scm ... PASS
+  tests/expander/lib-cache-import-order-test.scm ... PASS
+  tests/expander/lib-cache-test.scm ... PASS
+  tests/expander/library-include-test.scm ... PASS
+  tests/expander/macro-error-test.scm ... PASS
+  tests/expander/macro-features-test.scm ... PASS
+  tests/expander/named-ellipsis-test.scm ... PASS
+  tests/expander/native-abi-load-test.scm ... PASS
+  tests/expander/program-cache-macro-test.scm ... PASS
+  tests/expander/program-cache-syntax-test.scm ... PASS
+  tests/expander/syntax-template-ellipsis-test.scm ... PASS
+  tests/liii/base/copy-test.scm ... PASS
+  tests/liii/base/eval-string-test.scm ... PASS
+  tests/liii/bitwise/bignum-test.scm ... PASS
+  tests/liii/bitwise/bit-field-any-p-test.scm ... PASS
+  tests/liii/bitwise/bit-field-clear-test.scm ... PASS
+  tests/liii/bitwise/bit-field-every-p-test.scm ... PASS
+  tests/liii/bitwise/bit-field-set-test.scm ... PASS
+  tests/liii/bitwise/bit-field-test.scm ... PASS
+  tests/liii/bitwise/bit-set-p-test.scm ... PASS
+  tests/liii/bitwise/bit-swap-test.scm ... PASS
+  tests/liii/bitwise/copy-bit-test.scm ... PASS
+  tests/liii/bitwise/scale-test.scm ... PASS
+  tests/liii/case-test.scm ... PASS
+  tests/liii/comparator-test.scm ... PASS
+  tests/liii/expand-eval-test.scm ... PASS
+  tests/liii/expander/expander-test.scm ... PASS
+  tests/liii/flexvector/list-to-flexvector-test.scm ... PASS
+  tests/liii/hash-table/hash-table-test.scm ... PASS
+  tests/liii/iset/integer-domain-test.scm ... PASS
+  tests/liii/iset/iset-adjoin-test.scm ... PASS
+  tests/liii/iset/iset-constructor-test.scm ... PASS
+  tests/liii/iset/iset-contains-p-test.scm ... PASS
+  tests/liii/iset/iset-copy-test.scm ... PASS
+  tests/liii/iset/iset-count-test.scm ... PASS
+  tests/liii/iset/iset-difference-test.scm ... PASS
+  tests/liii/iset/iset-disjoint-p-test.scm ... PASS
+  tests/liii/iset/iset-ge-p-test.scm ... PASS
+  tests/liii/iset/iset-gt-p-test.scm ... PASS
+  tests/liii/iset/iset-intersection-test.scm ... PASS
+  tests/liii/iset/iset-le-p-test.scm ... PASS
+  tests/liii/iset/iset-lt-p-test.scm ... PASS
+  tests/liii/iset/iset-max-test.scm ... PASS
+  tests/liii/iset/iset-min-test.scm ... PASS
+  tests/liii/iset/iset-open-interval-test.scm ... PASS
+  tests/liii/iset/iset-search-bang-test.scm ... PASS
+  tests/liii/iset/iset-search-test.scm ... PASS
+  tests/liii/iset/iset-size-test.scm ... PASS
+  tests/liii/iset/iset-test.scm ... PASS
+  tests/liii/iset/iset-to-list-test.scm ... PASS
+  tests/liii/iset/iset-union-test.scm ... PASS
+  tests/liii/iset/iset-xor-test.scm ... PASS
+  tests/liii/iset/isubset-eq-test.scm ... PASS
+  tests/liii/iset/isubset-ge-test.scm ... PASS
+  tests/liii/iset/isubset-gt-test.scm ... PASS
+  tests/liii/iset/isubset-le-test.scm ... PASS
+  tests/liii/iset/isubset-lt-test.scm ... PASS
+  tests/liii/json/json-float-p-test.scm ... PASS
+  tests/liii/json/json-integer-p-test.scm ... PASS
+  tests/liii/json/json-to-string-test.scm ... PASS
+  tests/liii/list/circular-list-test.scm ... PASS
+  tests/liii/list/filter-test.scm ... PASS
+  tests/liii/list/split-at-test.scm ... PASS
+  tests/liii/list/take-test.scm ... PASS
+  tests/liii/match-capability-test.scm ... PASS
+  tests/liii/os/listdir-test.scm ... PASS
+  tests/liii/packrat-test.scm ... PASS
+  tests/liii/random/random-integer-test.scm ... PASS
+  tests/liii/reader/write-roundtrip-test.scm ... PASS
+  tests/liii/sort/vector-sorted-p-test.scm ... PASS
+  tests/liii/string/char-position-test.scm ... PASS
+  tests/liii/string/string-any-test.scm ... PASS
+  tests/liii/string/string-copy-test.scm ... PASS
+  tests/liii/string/string-drop-test.scm ... PASS
+  tests/liii/string/string-every-test.scm ... PASS
+  tests/liii/string/string-pad-right-test.scm ... PASS
+  tests/liii/string/string-pad-test.scm ... PASS
+  tests/liii/string/string-position-test.scm ... PASS
+  tests/liii/string/string-take-right-test.scm ... PASS
+  tests/liii/string/string-take-test.scm ... PASS
+  tests/liii/time/current-time-test.scm ... PASS
+  tests/liii/time/time-resolution-test.scm ... PASS
+  tests/liii/unicode/utf8-string-test.scm ... PASS
+  tests/liii/uuid-test.scm ... PASS
+  tests/liii/vector/int-vector-set-bang-test.scm ... PASS
+  tests/liii/vector/vector-filter-test.scm ... PASS
+  tests/r7rs/conditional-library-test.scm ... PASS
+  tests/r7rs/continuation-test.scm ... PASS
+  tests/r7rs/custom-ellipsis-test.scm ... PASS
+  tests/r7rs/custom-ellipsis-variable-test.scm ... PASS
+  tests/r7rs/exception-test.scm ... PASS
+  tests/r7rs/include-case-test.scm ... PASS
+  tests/r7rs/include-declarations-test.scm ... PASS
+  tests/r7rs/library-declarations-test.scm ... PASS
+  tests/r7rs/library-feature-test.scm ... PASS
+  tests/r7rs/library-loading-test.scm ... PASS
+  tests/r7rs/macro-hygiene-test.scm ... PASS
+  tests/r7rs/numbered-library-test.scm ... PASS
+  tests/r7rs/parameter-test.scm ... PASS
+  tests/r7rs/promise-test.scm ... PASS
+  tests/r7rs/tail-context-test.scm ... PASS
+  tests/scheme/base/cache-roundtrip-test.scm ... PASS
+  tests/scheme/base/call-slash-cc-test.scm ... PASS
+  tests/scheme/base/cond-expand-test.scm ... PASS
+  tests/scheme/base/dynamic-wind-test.scm ... PASS
+  tests/scheme/base/eqv-p-test.scm ... PASS
+  tests/scheme/base/error-object-test.scm ... PASS
+  tests/scheme/base/exact-integer-sqrt-test.scm ... PASS
+  tests/scheme/base/exact-test.scm ... PASS
+  tests/scheme/base/expt-test.scm ... PASS
+  tests/scheme/base/floor-slash-test.scm ... PASS
+  tests/scheme/base/floor-test.scm ... PASS
+  tests/scheme/base/gcd-test.scm ... PASS
+  tests/scheme/base/guard-test.scm ... PASS
+  tests/scheme/base/inexact-test.scm ... PASS
+  tests/scheme/base/lcm-test.scm ... PASS
+  tests/scheme/base/list-p-test.scm ... PASS
+  tests/scheme/base/number-to-string-test.scm ... PASS
+  tests/scheme/base/numeric-comparison-test.scm ... PASS
+  tests/scheme/base/plus-test.scm ... PASS
+  tests/scheme/base/quotient-test.scm ... PASS
+  tests/scheme/base/raise-continuable-test.scm ... PASS
+  tests/scheme/base/rational-p-test.scm ... PASS
+  tests/scheme/base/rationalize-test.scm ... PASS
+  tests/scheme/base/remainder-test.scm ... PASS
+  tests/scheme/base/star-test.scm ... PASS
+  tests/scheme/base/string-copy-test.scm ... PASS
+  tests/scheme/base/string-length-test.scm ... PASS
+  tests/scheme/base/string-test.scm ... PASS
+  tests/scheme/base/string-to-number-test.scm ... PASS
+  tests/scheme/base/string-to-utf8-test.scm ... PASS
+  tests/scheme/base/substring-test.scm ... PASS
+  tests/scheme/base/truncate-test.scm ... PASS
+  tests/scheme/base/unicode-string-port-test.scm ... PASS
+  tests/scheme/base/with-exception-handler-test.scm ... PASS
+  tests/scheme/complex/angle-test.scm ... PASS
+  tests/scheme/complex/imag-part-test.scm ... PASS
+  tests/scheme/complex/make-rectangular-test.scm ... PASS
+  tests/scheme/complex/real-part-test.scm ... PASS
+  tests/scheme/eval/environment-test.scm ... PASS
+  tests/scheme/inexact/acos-test.scm ... PASS
+  tests/scheme/inexact/asin-test.scm ... PASS
+  tests/scheme/inexact/atan-test.scm ... PASS
+  tests/scheme/inexact/cos-test.scm ... PASS
+  tests/scheme/inexact/exp-test.scm ... PASS
+  tests/scheme/inexact/log-test.scm ... PASS
+  tests/scheme/inexact/sin-test.scm ... PASS
+  tests/scheme/inexact/tan-test.scm ... PASS
+  tests/scheme/r5rs-test.scm ... PASS
+  tests/scheme/write/graph-roundtrip-test.scm ... PASS
+  tests/scheme/write/write-shared-test.scm ... PASS
+  tests/scheme/write/write-simple-test.scm ... PASS
+  tests/srfi/srfi-151-test.scm ... PASS
+  tests/srfi/srfi-165-test.scm ... PASS
+  tests/srfi/srfi-19-test.scm ... PASS
+
+=== Summary ===
+  Total:  159
+  Passed: 159
+

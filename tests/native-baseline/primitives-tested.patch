@@ -1,0 +1,732 @@
+diff --git a/goldfish/guenchi/json.scm b/goldfish/guenchi/json.scm
+index 65995940..d2736dd3 100644
+--- a/goldfish/guenchi/json.scm
++++ b/goldfish/guenchi/json.scm
+@@ -286,7 +286,9 @@
+       (let ((out (open-output-string)))
+         (define (write-scalar x)
+           (cond ((string? x) (display (json-string-escape x) out))
+-                ((number? x) (display (number->string x) out))
++                ((number? x)
++                 (unless (real? x) (error "JSON number must be real" x))
++                 (display (number->string (real-part x)) out))
+                 ((boolean? x) (display (if x "true" "false") out))
+                 ((symbol? x) (display (symbol->string x) out))
+                 ((null? x) (display "{}" out))
+diff --git a/src/runtime/bootstrap_primitives.cpp b/src/runtime/bootstrap_primitives.cpp
+index 405ad198..88aa2aab 100644
+--- a/src/runtime/bootstrap_primitives.cpp
++++ b/src/runtime/bootstrap_primitives.cpp
+@@ -14,6 +14,8 @@ void require_arity(const Values& args, std::size_t count, const char* name) {
+ }
+ 
+ std::vector<Value> proper_list(Value value) {
++    if (!is_proper_list(value))
++        throw std::runtime_error("expected proper list");
+     std::vector<Value> result;
+     while (!value.is_null()) {
+         if (!value.is_object() ||
+@@ -97,7 +99,7 @@ void install_bootstrap_primitives(Evaluator& evaluator) {
+             if (!rest.is_object() || rest.as_object()->type() != ObjectType::Pair)
+                 throw std::runtime_error("memv expects a proper list");
+             Value item = rest.as_object<PairObject>()->car;
+-            if (identical(item, args[0])) return Values{rest};
++            if (equivalent(item, args[0])) return Values{rest};
+             rest = rest.as_object<PairObject>()->cdr;
+         }
+         return Values{Value::boolean(false)};
+@@ -124,7 +126,7 @@ void install_bootstrap_primitives(Evaluator& evaluator) {
+                 throw std::runtime_error("assv expects an association list");
+             Value entry = rest.as_object<PairObject>()->car;
+             if (entry.is_object() && entry.as_object()->type() == ObjectType::Pair &&
+-                identical(entry.as_object<PairObject>()->car, args[0]))
++                equivalent(entry.as_object<PairObject>()->car, args[0]))
+                 return Values{entry};
+             rest = rest.as_object<PairObject>()->cdr;
+         }
+diff --git a/src/runtime/evaluator.hpp b/src/runtime/evaluator.hpp
+index 2070d047..aa140914 100644
+--- a/src/runtime/evaluator.hpp
++++ b/src/runtime/evaluator.hpp
+@@ -16,6 +16,8 @@
+ namespace goldfish::runtime {
+ 
+ bool equal(Value left, Value right);
++bool equivalent(Value left, Value right);
++bool is_proper_list(Value value);
+ 
+ using Values = ValueList;
+ 
+@@ -416,7 +418,7 @@ public:
+ 
+     Value number(Number value) {
+         if (value.has_imaginary_part && value.imag.is_zero() &&
+-            !value.imag.inexact && !value.real.inexact)
++            !value.imag.inexact)
+             value.has_imaginary_part = false;
+         if (!value.has_imaginary_part && !value.real.inexact &&
+             value.real.denominator == BigInteger(1) &&
+diff --git a/src/runtime/numeric.cpp b/src/runtime/numeric.cpp
+index eecc06a6..1be70526 100644
+--- a/src/runtime/numeric.cpp
++++ b/src/runtime/numeric.cpp
+@@ -412,9 +412,7 @@ bool Number::is_exact() const { return real.inexact == false && (!has_imaginary_
+ bool Number::is_zero() const { return real.is_zero() && (!has_imaginary_part || imag.is_zero()); }
+ std::string Number::to_string(unsigned radix) const {
+     if (!has_imaginary_part) return real.to_string(radix);
+-    if (imag.is_zero()) {
+-        if (imag.inexact && !real.inexact)
+-            return RealNumber::inexact_real(real.to_double()).to_string(radix);
++    if (imag.is_zero() && !imag.inexact) {
+         return real.to_string(radix);
+     }
+     std::string r = real.to_string(radix), i = imag.to_string(radix);
+diff --git a/src/runtime/standard_primitives.cpp b/src/runtime/standard_primitives.cpp
+index feca18bd..bcd63359 100644
+--- a/src/runtime/standard_primitives.cpp
++++ b/src/runtime/standard_primitives.cpp
+@@ -259,6 +259,8 @@ std::string raised_message(const RaisedValue& raised) {
+ }
+ 
+ std::vector<Value> proper_list(Value value) {
++    if (!is_proper_list(value))
++        throw std::runtime_error("expected proper list");
+     std::vector<Value> result;
+     while (!value.is_null()) {
+         if (!value.is_object() ||
+@@ -279,7 +281,7 @@ namespace {
+ bool equal_inner(Value left, Value right,
+                  std::vector<std::pair<const Object*, const Object*>>& seen) {
+     if (is_number(left) && is_number(right))
+-        return number_equal(number_value(left), number_value(right));
++        return equivalent(left, right);
+     if (left == right)
+         return true;
+     if (!left.is_object() || !right.is_object() ||
+@@ -794,6 +796,34 @@ bool equal(Value left, Value right) {
+     return equal_values_impl(left, right);
+ }
+ 
++bool equivalent(Value left, Value right) {
++    if (!is_number(left) || !is_number(right)) return same(left, right);
++    const Number a = number_value(left), b = number_value(right);
++    if (a.is_exact() != b.is_exact() || !number_equal(a, b)) return false;
++    // Component exactness is observable through real-part and imag-part.
++    auto same_component = [](const RealNumber& x, const RealNumber& y) {
++        return x.inexact == y.inexact &&
++               (!x.inexact || !x.is_zero() || !y.is_zero() ||
++                std::signbit(x.inexact_value) == std::signbit(y.inexact_value));
++    };
++    return same_component(a.real, b.real) && same_component(a.imag, b.imag);
++}
++
++bool is_proper_list(Value value) {
++    auto pair = [](Value v) {
++        return v.is_object() && v.as_object()->type() == ObjectType::Pair;
++    };
++    Value slow = value, fast = value;
++    while (pair(fast)) {
++        fast = fast.as_object<PairObject>()->cdr;
++        if (!pair(fast)) return fast.is_null();
++        fast = fast.as_object<PairObject>()->cdr;
++        slow = slow.as_object<PairObject>()->cdr;
++        if (fast == slow) return false;
++    }
++    return fast.is_null();
++}
++
+ Value current_input_port_value() { return g_current_ports.input; }
+ Value current_output_port_value() { return g_current_ports.output; }
+ void set_current_input_port_value(Value port) { g_current_ports.input = port; }
+@@ -2171,6 +2201,9 @@ void install_runtime_primitives(Evaluator& evaluator) {
+     auto inexact_conversion = [&evaluator](const Values& args) -> Values {
+         if (!is_number(args[0])) throw std::runtime_error("inexact expects a number");
+         Number n = number_value(args[0]);
++        if (!n.is_exact()) return Values{args[0]};
++        if (!n.has_imaginary_part)
++            return Values{evaluator.number(Number::inexact(n.real.to_double()))};
+         auto convert = [](const RealNumber& r) {
+             return RealNumber::inexact_real(r.to_double());
+         };
+@@ -2377,25 +2410,11 @@ void install_runtime_primitives(Evaluator& evaluator) {
+     });
+     install(evaluator, "list?", [](const Values& args) {
+         require_arity(args, 1, "list?");
+-        Value rest = args[0];
+-        while (!rest.is_null()) {
+-            if (!rest.is_object() ||
+-                rest.as_object()->type() != ObjectType::Pair)
+-                return Values{Value::boolean(false)};
+-            rest = rest.as_object<PairObject>()->cdr;
+-        }
+-        return Values{Value::boolean(true)};
++        return Values{Value::boolean(is_proper_list(args[0]))};
+     });
+     install(evaluator, "proper-list?", [](const Values& args) {
+         require_arity(args, 1, "proper-list?");
+-        Value rest = args[0];
+-        while (!rest.is_null()) {
+-            if (!rest.is_object() ||
+-                rest.as_object()->type() != ObjectType::Pair)
+-                return Values{Value::boolean(false)};
+-            rest = rest.as_object<PairObject>()->cdr;
+-        }
+-        return Values{Value::boolean(true)};
++        return Values{Value::boolean(is_proper_list(args[0]))};
+     });
+     install(evaluator, "list-ref", [](const Values& args) {
+         require_arity(args, 2, "list-ref");
+@@ -2749,13 +2768,7 @@ void install_runtime_primitives(Evaluator& evaluator) {
+     });
+     install(evaluator, "eqv?", [](const Values& args) {
+         require_arity(args, 2, "eqv?");
+-        if (is_number(args[0]) && is_number(args[1])) {
+-            Number left = number_value(args[0]);
+-            Number right = number_value(args[1]);
+-            return Values{Value::boolean(left.is_exact() == right.is_exact() &&
+-                                          number_equal(left, right))};
+-        }
+-        return Values{Value::boolean(same(args[0], args[1]))};
++        return Values{Value::boolean(equivalent(args[0], args[1]))};
+     });
+     install(evaluator, "equal?", [](const Values& args) {
+         require_arity(args, 2, "equal?");
+@@ -3252,23 +3265,23 @@ void install_runtime_primitives(Evaluator& evaluator) {
+         // two-argument form as "start to the end of the string", which
+         // goldtest's suffix matching (and srfi-13, define-star) rely on.
+         if (args.size() < 2 || args.size() > 3)
+-            throw std::runtime_error(
++            raise_keyed(evaluator, "wrong-number-of-args",
+                 "substring expects two or three arguments");
+         const std::string& value = evaluator.string_value(args[0]);
+         if (!args[1].is_integer())
+-            throw std::runtime_error(
++            raise_keyed(evaluator, "wrong-type-arg",
+                 "wrong-type-arg: substring start must be an integer");
+         auto start = args[1].as_integer();
+         auto end = static_cast<std::int64_t>(utf8_length(value));
+         if (args.size() == 3) {
+             if (!args[2].is_integer())
+-                throw std::runtime_error(
++                raise_keyed(evaluator, "wrong-type-arg",
+                     "wrong-type-arg: substring end must be an integer");
+             end = args[2].as_integer();
+         }
+         if (start < 0 || end < start ||
+             static_cast<std::size_t>(end) > utf8_length(value))
+-            throw std::runtime_error(
++            raise_keyed(evaluator, "out-of-range",
+                 "out-of-range: substring index out of bounds");
+         const auto byte_start = utf8_byte_offset(value, start);
+         const auto byte_end = utf8_byte_offset(value, end);
+@@ -3568,12 +3581,16 @@ void install_runtime_primitives(Evaluator& evaluator) {
+             std::complex<double> denominator = std::log(std::complex<double>(
+                 base.real.to_double(), base.imag.to_double()));
+             std::complex<double> result = numerator / denominator;
++            if (value.is_real() && base.is_real() && result.imag() == 0.0)
++                return Values{evaluator.number(Number::inexact(result.real()))};
+             return Values{evaluator.number(Number::complex(
+                 RealNumber::inexact_real(result.real()),
+                 RealNumber::inexact_real(result.imag())))};
+         }
+         std::complex<double> result = std::log(std::complex<double>(
+             value.real.to_double(), value.imag.to_double()));
++        if (value.is_real() && result.imag() == 0.0)
++            return Values{evaluator.number(Number::inexact(result.real()))};
+         return Values{evaluator.number(Number::complex(
+             RealNumber::inexact_real(result.real()),
+             RealNumber::inexact_real(result.imag())))};
+@@ -3603,6 +3620,8 @@ void install_runtime_primitives(Evaluator& evaluator) {
+         Number value = number_value(args[0]);
+         std::complex<double> result = std::atan(std::complex<double>(
+             value.real.to_double(), value.imag.to_double()));
++        if (value.is_real() && result.imag() == 0.0)
++            return Values{evaluator.number(Number::inexact(result.real()))};
+         return Values{evaluator.number(Number::complex(
+             RealNumber::inexact_real(result.real()),
+             RealNumber::inexact_real(result.imag())))};
+diff --git a/tests/liii/json/json-to-string-test.scm b/tests/liii/json/json-to-string-test.scm
+index 74185da4..6612f8e4 100644
+--- a/tests/liii/json/json-to-string-test.scm
++++ b/tests/liii/json/json-to-string-test.scm
+@@ -1,4 +1,4 @@
+-(import (liii check) (liii json) (liii base) (liii error))
++(import (liii check) (liii json) (liii base) (liii error) (scheme complex))
+ 
+ 
+ (check-set-mode! 'report-failed)
+@@ -106,4 +106,6 @@
+ ) ;check
+ 
+ 
++(check (json->string (make-rectangular 2.0 0.0)) => "2.0")
++(check (json->string (make-rectangular 2.0 -0.0)) => "2.0")
+ (check-report)
+diff --git a/tests/liii/string/string-take-right-test.scm b/tests/liii/string/string-take-right-test.scm
+index 834e4099..9ff14841 100644
+--- a/tests/liii/string/string-take-right-test.scm
++++ b/tests/liii/string/string-take-right-test.scm
+@@ -23,7 +23,7 @@
+ ;; 注意
+ ;; ----
+ ;; string-take-right等价于(substring str (- (string-length str) k) (string-length str))，但提供了更语义化的名称。
+-;; 对于多字节Unicode字符，操作基于字节位置而非字符位置。例如，每个中文字符占用3个字节，emoji字符通常占用4个字节。
++;; 对于多字节Unicode字符，操作基于字符位置；每个中文字符和emoji均计为一个字符。
+ ;;
+ ;; 示例
+ ;; ----
+@@ -54,8 +54,8 @@
+ (check (string-take-right "Hello" 1) => "o")
+ (check (string-take-right "abc" 2) => "bc")
+ (check (string-take-right "test123" 3) => "123")
+-(check (string-take-right "中文测试" 6) => "测试")
+-(check (string-take-right "🌟🎉" 4) => "🎉")
++(check (string-take-right "中文测试" 2) => "测试")
++(check (string-take-right "🌟🎉" 1) => "🎉")
+ 
+ (check-catch 'out-of-range (string-take-right "MathAgape" 20))
+ (check-catch 'out-of-range (string-take-right "" 1))
+diff --git a/tests/liii/string/string-take-test.scm b/tests/liii/string/string-take-test.scm
+index c215793d..d1cf637f 100644
+--- a/tests/liii/string/string-take-test.scm
++++ b/tests/liii/string/string-take-test.scm
+@@ -23,7 +23,7 @@
+ ;; 注意
+ ;; ----
+ ;; string-take等价于(substring str 0 k)，但提供了更语义化的名称。
+-;; 对于多字节Unicode字符，操作基于字节位置而非字符位置。例如，每个中文字符占用3个字节，emoji字符通常占用4个字节。
++;; 对于多字节Unicode字符，操作基于字符位置；每个中文字符和emoji均计为一个字符。
+ ;;
+ ;; 示例
+ ;; ----
+@@ -51,8 +51,8 @@
+ (check (string-take "Hello" 1) => "H")
+ (check (string-take "abc" 2) => "ab")
+ (check (string-take "test123" 4) => "test")
+-(check (string-take "中文测试" 6) => "中文")
+-(check (string-take "🌟🎉" 4) => "🌟")
++(check (string-take "中文测试" 2) => "中文")
++(check (string-take "🌟🎉" 1) => "🌟")
+ (check-catch 'out-of-range (string-take "MathAgape" 20))
+ (check-catch 'out-of-range (string-take "" 1))
+ (check-catch 'out-of-range (string-take "Hello" -1))
+diff --git a/tests/r7rs/audit/list-cycle.scm b/tests/r7rs/audit/list-cycle.scm
+index 84901feb..99149f07 100644
+--- a/tests/r7rs/audit/list-cycle.scm
++++ b/tests/r7rs/audit/list-cycle.scm
+@@ -1,7 +1,7 @@
+ (import (scheme base) (scheme eval) (scheme write) (liii check))
+ (check-set-mode! 'report-failed)
+ (include "../fixtures/semantic-audit.scm")
+-;; Isolated because the current native list? traversal does not detect cycles.
++;; Kept isolated so a cycle-detection regression has a bounded failure.
+ (audit-check 'data.list-cycle
+   (lambda () (let ((x (list 1))) (set-cdr! x x) (list? x))) #f)
+ (check-report)
+diff --git a/tests/r7rs/audit/numeric.scm b/tests/r7rs/audit/numeric.scm
+index e3ed8cbf..5c9a34eb 100644
+--- a/tests/r7rs/audit/numeric.scm
++++ b/tests/r7rs/audit/numeric.scm
+@@ -32,6 +32,11 @@
+                (map (lambda (radix) (= n (string->number (number->string n radix) radix))) '(2 8 10 16)))) '(#t #t #t #t))
+ (audit-check 'numeric.exact-roundtrip (lambda () (map (lambda (n) (eqv? n (string->number (number->string n))))
+                                                     '(1/3 -7/8 1+2i))) '(#t #t #t))
+-(audit-check 'numeric.inexact-roundtrip (lambda () (map (lambda (n) (= n (string->number (number->string n))))
+-                                                      '(0.1 -1.25 1.0e100))) '(#t #t #t))
++(audit-check 'numeric.inexact-roundtrip
++  (lambda () (map (lambda (n) (eqv? n (string->number (number->string n))))
++                 (append '(0.1 -1.25 1.0e100)
++                         (list (make-rectangular 1 0.0)
++                               (make-rectangular 1.0 -0.0)
++                               (make-rectangular 1 2.0)))))
++  '(#t #t #t #t #t #t))
+ (check-report)
+diff --git a/tests/runtime/reader-test.cpp b/tests/runtime/reader-test.cpp
+index f8fc47f7..e0e71f0c 100644
+--- a/tests/runtime/reader-test.cpp
++++ b/tests/runtime/reader-test.cpp
+@@ -102,6 +102,11 @@ int main() {
+     assert(number_to_string(evaluator.eval(*exact_sum_reader.read())) == "1/2");
+     TinyReader inexact_sum_reader(evaluator, "(+ 1.25 2.5)");
+     assert(number_to_string(evaluator.eval(*inexact_sum_reader.read())) == "3.75");
++    TinyReader real_division_equivalence_reader(
++        evaluator, "(eqv? (/ 1.0 3.0) (rationalize 0.3 0.1))");
++    assert(evaluator.eval(*real_division_equivalence_reader.read()).as_boolean());
++    TinyReader inexact_real_reader(evaluator, "(eqv? (inexact 1/3) (/ 1.0 3.0))");
++    assert(evaluator.eval(*inexact_real_reader.read()).as_boolean());
+     TinyReader big_sum_reader(evaluator, "(+ 9223372036854775807 1)");
+     assert(number_to_string(evaluator.eval(*big_sum_reader.read())) == "9223372036854775808");
+     TinyReader big_modulo_reader(
+@@ -166,7 +171,9 @@ int main() {
+     TinyReader inexact_zero_imag_reader(
+         evaluator, "(make-rectangular 1 0.0)");
+     Value inexact_zero_imag = evaluator.eval(*inexact_zero_imag_reader.read());
+-    assert(number_to_string(inexact_zero_imag) == "1.0");
++    assert(number_to_string(inexact_zero_imag) == "1+0.0i");
++    TinyReader zero_imag_roundtrip(evaluator, number_to_string(inexact_zero_imag));
++    assert(equivalent(inexact_zero_imag, *zero_imag_roundtrip.read()));
+     TinyReader inexact_zero_exactness_reader(
+         evaluator, "(exact? (make-rectangular 1 0.0))");
+     assert(!evaluator.eval(*inexact_zero_exactness_reader.read()).as_boolean());
+diff --git a/tests/scheme/base/cache-roundtrip-test.scm b/tests/scheme/base/cache-roundtrip-test.scm
+index 49d15afc..c5efd18b 100644
+--- a/tests/scheme/base/cache-roundtrip-test.scm
++++ b/tests/scheme/base/cache-roundtrip-test.scm
+@@ -1,8 +1,8 @@
+-(import (liii check)
++(import (goldfish) (liii check)
+         (liii string))
+ 
+ ;; read/write duality 与缓存 round-trip 的回归测试：
+-;; 1. reader 对复数/虚数字面量 round-trip（s7 write 无符号虚数为 "2i"）
++;; 1. reader 对复数/虚数字面量 round-trip
+ ;; 2. write-roundtrip 对特殊符号的 |...| 竖线转义
+ ;; 3. write-roundtrip 对 record 的 #g 序列化（binding / toplevel-ref）
+ ;; 4. write-roundtrip 对自引用 exp-library 的图标记（#n=/#n#）
+@@ -10,12 +10,23 @@
+ 
+ ;; reader 复数/虚数 round-trip
+ (let ((p (open-input-string "2i")))
+-  (check (read p) => 0.0+2.0i))
++  (check (read p) => 0+2i))
+ (let ((p (open-input-string "-2.5i")))
+-  (check (read p) => 0.0-2.5i))
++  (check (read p) => 0-2.5i))
+ (let ((p (open-input-string "1.0+1.0i")))
+   (check (read p) => 1.0+1.0i))
+ 
++;; Preserve observable component exactness and signed imaginary zeros.
++(for-each
++  (lambda (z)
++    (check (let ((out (open-output-string)))
++             (write-roundtrip z out)
++             (eqv? z (read (open-input-string (get-output-string out)))))
++           => #t))
++  (list (make-rectangular 1 0.0)
++        (make-rectangular 1.0 -0.0)
++        (make-rectangular 1 2.0)))
++
+ ;; write-roundtrip 特殊符号 round-trip（竖线转义）
+ (let* ((s (string->symbol "hello'"))
+        (p (open-output-string)))
+diff --git a/tests/scheme/base/eqv-p-test.scm b/tests/scheme/base/eqv-p-test.scm
+index d5ac8169..980498bf 100644
+--- a/tests/scheme/base/eqv-p-test.scm
++++ b/tests/scheme/base/eqv-p-test.scm
+@@ -1,5 +1,5 @@
+ (import (liii check))
+-(import (scheme base))
++(import (scheme base) (scheme complex))
+ (check-set-mode! 'report-failed)
+ ;; eqv?
+ ;; 判断两个对象是否值相等，根据R7RS规范，eqv?在不同类型的数据上表现不同。
+@@ -44,4 +44,24 @@
+ (check-true (eqv? car car))
+ (check-false (eqv? car cdr))
+ ;; ; eq?
++
++(check-false (eqv? 42 42.0))
++(check-false (eqv? 0.0 -0.0))
++(check-true (eqv? -0.0 -0.0))
++(check-true (eqv? 1/3 (/ 1 3)))
++(check-true (eqv? 123456789012345678901234567890 (+ 123456789012345678901234567889 1)))
++(check-true (eqv? 1+2i (+ 1 0+2i)))
++(check-false (equal? '(42) '(42.0)))
++(check-false (equal? '#(0.0) '#(-0.0)))
++(check (memv (/ 1 3) '(0 1/3 2)) => '(1/3 2))
++(check (assv (+ 1 0+2i) '((1+2i . yes))) => '(1+2i . yes))
++(check-false (assoc 42.0 '((42 . exact))))
++(check-false (memv 42.0 '(42)))
++(check (memv -0.0 '(0.0 -0.0)) => '(-0.0))
++(check (assv -0.0 '((0.0 . positive) (-0.0 . negative))) => '(-0.0 . negative))
++(check-false (eqv? (make-rectangular 1.0 0.0) 1.0))
++(check-false (eqv? (make-rectangular 1.0 -0.0) (make-rectangular 1.0 0.0)))
++(check-false (eqv? (make-rectangular 1 2.0) (make-rectangular 1.0 2.0)))
++(check-true (eqv? (make-rectangular 1 0) 1))
++
+ (check-report)
+diff --git a/tests/scheme/base/inexact-test.scm b/tests/scheme/base/inexact-test.scm
+index e6c1c647..34503184 100644
+--- a/tests/scheme/base/inexact-test.scm
++++ b/tests/scheme/base/inexact-test.scm
+@@ -1,5 +1,6 @@
+ (import (liii check))
+ (import (scheme base))
++(import (scheme complex))
+ (check-set-mode! 'report-failed)
+ ;; inexact
+ ;; 将数字转换为不精确表示形式。
+@@ -51,6 +52,11 @@
+ (check (inexact 1.0) => 1.0)
+ (check (inexact 1.5) => 1.5)
+ (check (inexact 0.0) => 0.0)
++(check (eqv? (inexact -0.0) -0.0) => #t)
++(let ((value (make-rectangular 1 0.0)))
++  (check (eqv? (inexact value) value) => #t))
++(let ((value (make-rectangular 1.0 -0.0)))
++  (check (eqv? (inexact value) value) => #t))
+ (check-catch 'wrong-number-of-args (inexact))
+ (check-catch 'wrong-number-of-args (inexact 1 2))
+ (check-catch 'wrong-type-arg (inexact 'a))
+diff --git a/tests/scheme/base/list-p-test.scm b/tests/scheme/base/list-p-test.scm
+index 1c2c4f35..5fa63b2c 100644
+--- a/tests/scheme/base/list-p-test.scm
++++ b/tests/scheme/base/list-p-test.scm
+@@ -141,4 +141,10 @@
+ ;; list? 错误处理测试
+ (check-catch 'wrong-number-of-args (list?))
+ (check-catch 'wrong-number-of-args (list? #t #f))
++
++(check-false (let ((x (list 1))) (set-cdr! x x) (list? x)))
++(check-false (let ((x (list 1 2))) (set-cdr! (cdr x) x) (list? x)))
++(check-false (let ((x (list 1 2 3 4))) (set-cdr! (cdddr x) (cdr x)) (list? x)))
++(check-true (let ((x (list 1 2))) (set-cdr! (cdr x) x) (set-cdr! (cdr x) '()) (list? x)))
++
+ (check-report)
+diff --git a/tests/scheme/base/string-to-number-test.scm b/tests/scheme/base/string-to-number-test.scm
+index 27fe5af1..e9b2584e 100644
+--- a/tests/scheme/base/string-to-number-test.scm
++++ b/tests/scheme/base/string-to-number-test.scm
+@@ -79,13 +79,13 @@
+ (check (string->number "1/10" 2) => 1/2)
+ (check (string->number "11/100" 2) => 3/4)
+ ;; 复数解析测试
+-(check (string->number "1+2i") => 1.0+2.0i)
+-(check (string->number "0+2i") => 0.0+2.0i)
+-(check (string->number "-3+4i") => -3.0+4.0i)
++(check (string->number "1+2i") => 1+2i)
++(check (string->number "0+2i") => 0+2i)
++(check (string->number "-3+4i") => -3+4i)
+ (check (string->number "3.14-2.71i") => 3.14-2.71i)
+-(check (string->number "0+1i") => 0.0+1.0i)
+-(check (string->number "0+0i") => 0.0)
+-(check (string->number "1.0+0.0i") => 1.0)
++(check (string->number "0+1i") => 0+1i)
++(check (string->number "0+0i") => 0)
++(check (string->number "1.0+0.0i") => 1.0+0.0i)
+ (check (string->number "-2.5-1.5i") => -2.5-1.5i)
+ ;; 无效字符串解析测试（应返回#f）
+ (check (string->number "abc") => #f)
+diff --git a/tests/scheme/base/substring-test.scm b/tests/scheme/base/substring-test.scm
+index 3dc684ba..449c5045 100644
+--- a/tests/scheme/base/substring-test.scm
++++ b/tests/scheme/base/substring-test.scm
+@@ -60,4 +60,9 @@
+ (check-catch 'out-of-range (substring "Hello" 6 6))
+ (check-catch 'out-of-range (substring "Hello" 3 2))
+ 
++
++(check-catch 'wrong-type-arg (substring "中🐟a" "0" 2))
++(check-catch 'wrong-type-arg (substring "中🐟a" 0 1.5))
++(check-catch 'out-of-range (substring "中🐟a" 0 4))
++
+ (check-report)
+diff --git a/tests/scheme/complex/angle-test.scm b/tests/scheme/complex/angle-test.scm
+index 94ee8b7f..4108b650 100644
+--- a/tests/scheme/complex/angle-test.scm
++++ b/tests/scheme/complex/angle-test.scm
+@@ -33,7 +33,7 @@
+ ;; --------
+ ;; wrong-type-arg 当参数不是数值类型时抛出错误。
+ ;; Test angle with real numbers
+-(check (angle 1) => 0)
++(check (= (angle 1) 0) => #t)
+ (check (angle -1) => 3.141592653589793)
+ ;; Test angle with complex numbers
+ (check (> (angle 1.0+1.0i) 0.78) => #t)
+diff --git a/tests/scheme/complex/imag-part-test.scm b/tests/scheme/complex/imag-part-test.scm
+index 7f521fbd..6318dd7c 100644
+--- a/tests/scheme/complex/imag-part-test.scm
++++ b/tests/scheme/complex/imag-part-test.scm
+@@ -35,22 +35,22 @@
+ ;; --------
+ ;; wrong-type-arg 当参数不是数值类型时抛出错误。
+ ;; Test imag-part with complex numbers
+-(check (imag-part (make-rectangular 3 4)) => 4.0)
+-(check (imag-part (make-rectangular -3 4)) => 4.0)
+-(check (imag-part (make-rectangular 3 -4)) => -4.0)
+-(check (imag-part (make-rectangular -3 -4)) => -4.0)
++(check (imag-part (make-rectangular 3 4)) => 4)
++(check (imag-part (make-rectangular -3 4)) => 4)
++(check (imag-part (make-rectangular 3 -4)) => -4)
++(check (imag-part (make-rectangular -3 -4)) => -4)
+ ;; Test imag-part with real numbers
+ (check (imag-part 5) => 0)
+ (check (imag-part -5) => 0)
+ (check (imag-part 0) => 0)
+ ;; Test imag-part with floating point numbers
+-(check (imag-part 3.14) => 0.0)
+-(check (imag-part -2.71) => 0.0)
++(check (zero? (imag-part 3.14)) => #t)
++(check (zero? (imag-part -2.71)) => #t)
+ ;; Test imag-part with complex number literals
+ (check (imag-part 1.0+2.0i) => 2.0)
+ (check (imag-part 3.0-4.0i) => -4.0)
+ (check (imag-part -5.0+6.0i) => 6.0)
+ (check (imag-part -7.0-8.0i) => -8.0)
+ (check (imag-part 0.0+9.0i) => 9.0)
+-(check (imag-part 10.0) => 0.0)
++(check (zero? (imag-part 10.0)) => #t)
+ (check-report)
+diff --git a/tests/scheme/complex/make-rectangular-test.scm b/tests/scheme/complex/make-rectangular-test.scm
+index 06aaadb5..920b9536 100644
+--- a/tests/scheme/complex/make-rectangular-test.scm
++++ b/tests/scheme/complex/make-rectangular-test.scm
+@@ -32,9 +32,9 @@
+ ;; wrong-number-of-args 当参数个数错误时抛出错误。
+ ;; Test make-rectangular
+ (check (make-rectangular 3 0) => 3)
+-(check (make-rectangular 2.5 0.0) => 2.5)
+-(check (real-part (make-rectangular 3 4)) => 3.0)
+-(check (imag-part (make-rectangular 3 4)) => 4.0)
++(check (= (make-rectangular 2.5 0.0) 2.5) => #t)
++(check (real-part (make-rectangular 3 4)) => 3)
++(check (imag-part (make-rectangular 3 4)) => 4)
+ ;; Error handling
+ (check-catch 'wrong-type-arg (make-rectangular "x" 1))
+ (check-catch 'wrong-type-arg (make-rectangular 1 "x"))
+diff --git a/tests/scheme/complex/real-part-test.scm b/tests/scheme/complex/real-part-test.scm
+index b262c207..a960f9a1 100644
+--- a/tests/scheme/complex/real-part-test.scm
++++ b/tests/scheme/complex/real-part-test.scm
+@@ -35,10 +35,10 @@
+ ;; --------
+ ;; wrong-type-arg 当参数不是数值类型时抛出错误。
+ ;; Test real-part with complex numbers
+-(check (real-part (make-rectangular 3 4)) => 3.0)
+-(check (real-part (make-rectangular -3 4)) => -3.0)
+-(check (real-part (make-rectangular 3 -4)) => 3.0)
+-(check (real-part (make-rectangular -3 -4)) => -3.0)
++(check (real-part (make-rectangular 3 4)) => 3)
++(check (real-part (make-rectangular -3 4)) => -3)
++(check (real-part (make-rectangular 3 -4)) => 3)
++(check (real-part (make-rectangular -3 -4)) => -3)
+ ;; Test real-part with real numbers
+ (check (real-part 5) => 5)
+ (check (real-part -5) => -5)
+diff --git a/tests/scheme/inexact/acos-test.scm b/tests/scheme/inexact/acos-test.scm
+index ca0bd188..9c0aef2e 100644
+--- a/tests/scheme/inexact/acos-test.scm
++++ b/tests/scheme/inexact/acos-test.scm
+@@ -38,7 +38,7 @@
+ ;; 当参数数量不为1时抛出错误。
+ ;; acos 基本测试
+ (check (acos 0) => 1.5707963267948966)
+-(check (acos 1) => 0)
++(check (= (acos 1) 0) => #t)
+ (check (acos -1) => 3.141592653589793)
+ (check (acos -0.5) => 2.0943951023931957)
+ ;; 特殊值测试
+diff --git a/tests/scheme/inexact/asin-test.scm b/tests/scheme/inexact/asin-test.scm
+index 2107a7c8..a215829d 100644
+--- a/tests/scheme/inexact/asin-test.scm
++++ b/tests/scheme/inexact/asin-test.scm
+@@ -37,7 +37,7 @@
+ ;; wrong-number-of-args
+ ;; 当参数数量不为1时抛出错误。
+ ;; asin 基本测试
+-(check (asin 0) => 0)
++(check (= (asin 0) 0) => #t)
+ (check (asin 1) => 1.5707963267948966)
+ (check (asin -1) => -1.5707963267948966)
+ ;; 特殊值测试
+diff --git a/tests/scheme/inexact/atan-test.scm b/tests/scheme/inexact/atan-test.scm
+index 616fe47c..fa7db53d 100644
+--- a/tests/scheme/inexact/atan-test.scm
++++ b/tests/scheme/inexact/atan-test.scm
+@@ -36,7 +36,7 @@
+ ;; wrong-number-of-args
+ ;; 当参数数量不为1或2个时抛出错误。
+ ;; atan 基本单参数测试
+-(check (atan 0) => 0)
++(check (= (atan 0) 0) => #t)
+ (check (atan 1) => 0.7853981633974483)
+ (check (atan -1) => -0.7853981633974483)
+ ;; atan 双参数测试
+diff --git a/tests/scheme/inexact/cos-test.scm b/tests/scheme/inexact/cos-test.scm
+index 55f35ea7..4cad3e07 100644
+--- a/tests/scheme/inexact/cos-test.scm
++++ b/tests/scheme/inexact/cos-test.scm
+@@ -31,7 +31,7 @@
+ ;; wrong-number-of-args
+ ;; 当参数数量不为1时抛出错误。
+ ;; cos 基本测试
+-(check (cos 0) => 1)
++(check (= (cos 0) 1) => #t)
+ (check (cos (/ pi 2)) => 6.123233995736766e-17)
+ (check (cos pi) => -1.0)
+ (check (cos (* 2 pi)) => 1.0)
+diff --git a/tests/scheme/inexact/exp-test.scm b/tests/scheme/inexact/exp-test.scm
+index 7158d020..440ae445 100644
+--- a/tests/scheme/inexact/exp-test.scm
++++ b/tests/scheme/inexact/exp-test.scm
+@@ -30,7 +30,7 @@
+ ;; wrong-number-of-args
+ ;; 当参数数量不为1时抛出错误。
+ ;; exp 基本测试
+-(check (exp 0) => 1)
++(check (= (exp 0) 1) => #t)
+ (check (exp 1) => 2.718281828459045)
+ (check (exp -1) => 0.36787944117144233)
+ (check (exp 2) => 7.38905609893065)
+diff --git a/tests/scheme/inexact/log-test.scm b/tests/scheme/inexact/log-test.scm
+index a0262c02..3fb319e4 100644
+--- a/tests/scheme/inexact/log-test.scm
++++ b/tests/scheme/inexact/log-test.scm
+@@ -36,7 +36,7 @@
+ ;; wrong-number-of-args
+ ;; 当参数数量不为1或2个时抛出错误。
+ ;; log 基本自然对数测试
+-(check (log 1) => 0.0)
++(check (= (log 1) 0) => #t)
+ (check (log (exp 1)) => 1.0)
+ (check (log 2) => 0.6931471805599453)
+ ;; log 双参数对数测试
+@@ -49,7 +49,7 @@
+ (check (log 1 10) => 0)
+ ;; log 有理数测试
+ (check (log 2 4) => 1/2)
+-(check (log 1/2 2) => -1.0)
++(check (= (log 1/2 2) -1) => #t)
+ (check (log 9 3) => 2)
+ ;; log 浮点数对数测试
+ (check (log 2.718281828459045) => 1.0)
+diff --git a/tests/scheme/inexact/sin-test.scm b/tests/scheme/inexact/sin-test.scm
+index 267d3d28..b57630ef 100644
+--- a/tests/scheme/inexact/sin-test.scm
++++ b/tests/scheme/inexact/sin-test.scm
+@@ -31,7 +31,7 @@
+ ;; wrong-number-of-args
+ ;; 当参数数量不为1时抛出错误。
+ ;; sin 基本测试
+-(check (sin 0) => 0)
++(check (= (sin 0) 0) => #t)
+ (check (sin (/ pi 2)) => 1.0)
+ (check (sin pi) => 1.2246467991473532e-16)
+ (check (sin (* 2 pi)) => -2.4492935982947064e-16)
+diff --git a/tests/scheme/inexact/tan-test.scm b/tests/scheme/inexact/tan-test.scm
+index 4adff403..2da05e5f 100644
+--- a/tests/scheme/inexact/tan-test.scm
++++ b/tests/scheme/inexact/tan-test.scm
+@@ -31,7 +31,7 @@
+ ;; wrong-number-of-args
+ ;; 当参数数量不为1时抛出错误。
+ ;; tan 基本测试
+-(check (tan 0) => 0)
++(check (= (tan 0) 0) => #t)
+ ;; 特殊角度测试
+ (check (tan (/ pi 3)) => 1.7320508075688767)
+ ;; 有理数测试
+diff --git a/tests/scheme/r5rs-test.scm b/tests/scheme/r5rs-test.scm
+index a4163225..14fb7ae3 100644
+--- a/tests/scheme/r5rs-test.scm
++++ b/tests/scheme/r5rs-test.scm
+@@ -33,7 +33,7 @@
+ (check (procedure? cadddr) => #t)
+ (check (char-ci=? #\A #\a) => #t)
+ (check (string-ci=? "AbC" "aBc") => #t)
+-(check (make-polar 2 0) => 2.0)
++(check (= (make-polar 2 0) 2.0) => #t)
+ (define-syntax r5rs-list
+   (syntax-rules () ((_ x ...) (list x ...))))
+ (check (r5rs-list 1 2 3) => '(1 2 3))

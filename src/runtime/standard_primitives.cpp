@@ -259,6 +259,8 @@ std::string raised_message(const RaisedValue& raised) {
 }
 
 std::vector<Value> proper_list(Value value) {
+    if (!is_proper_list(value))
+        throw std::runtime_error("expected proper list");
     std::vector<Value> result;
     while (!value.is_null()) {
         if (!value.is_object() ||
@@ -279,7 +281,7 @@ namespace {
 bool equal_inner(Value left, Value right,
                  std::vector<std::pair<const Object*, const Object*>>& seen) {
     if (is_number(left) && is_number(right))
-        return number_equal(number_value(left), number_value(right));
+        return equivalent(left, right);
     if (left == right)
         return true;
     if (!left.is_object() || !right.is_object() ||
@@ -792,6 +794,34 @@ Value copy_value(Evaluator& evaluator, const Values& args) {
 
 bool equal(Value left, Value right) {
     return equal_values_impl(left, right);
+}
+
+bool equivalent(Value left, Value right) {
+    if (!is_number(left) || !is_number(right)) return same(left, right);
+    const Number a = number_value(left), b = number_value(right);
+    if (a.is_exact() != b.is_exact() || !number_equal(a, b)) return false;
+    // Component exactness is observable through real-part and imag-part.
+    auto same_component = [](const RealNumber& x, const RealNumber& y) {
+        return x.inexact == y.inexact &&
+               (!x.inexact || !x.is_zero() || !y.is_zero() ||
+                std::signbit(x.inexact_value) == std::signbit(y.inexact_value));
+    };
+    return same_component(a.real, b.real) && same_component(a.imag, b.imag);
+}
+
+bool is_proper_list(Value value) {
+    auto pair = [](Value v) {
+        return v.is_object() && v.as_object()->type() == ObjectType::Pair;
+    };
+    Value slow = value, fast = value;
+    while (pair(fast)) {
+        fast = fast.as_object<PairObject>()->cdr;
+        if (!pair(fast)) return fast.is_null();
+        fast = fast.as_object<PairObject>()->cdr;
+        slow = slow.as_object<PairObject>()->cdr;
+        if (fast == slow) return false;
+    }
+    return fast.is_null();
 }
 
 Value current_input_port_value() { return g_current_ports.input; }
@@ -2171,6 +2201,9 @@ void install_runtime_primitives(Evaluator& evaluator) {
     auto inexact_conversion = [&evaluator](const Values& args) -> Values {
         if (!is_number(args[0])) throw std::runtime_error("inexact expects a number");
         Number n = number_value(args[0]);
+        if (!n.is_exact()) return Values{args[0]};
+        if (!n.has_imaginary_part)
+            return Values{evaluator.number(Number::inexact(n.real.to_double()))};
         auto convert = [](const RealNumber& r) {
             return RealNumber::inexact_real(r.to_double());
         };
@@ -2377,25 +2410,11 @@ void install_runtime_primitives(Evaluator& evaluator) {
     });
     install(evaluator, "list?", [](const Values& args) {
         require_arity(args, 1, "list?");
-        Value rest = args[0];
-        while (!rest.is_null()) {
-            if (!rest.is_object() ||
-                rest.as_object()->type() != ObjectType::Pair)
-                return Values{Value::boolean(false)};
-            rest = rest.as_object<PairObject>()->cdr;
-        }
-        return Values{Value::boolean(true)};
+        return Values{Value::boolean(is_proper_list(args[0]))};
     });
     install(evaluator, "proper-list?", [](const Values& args) {
         require_arity(args, 1, "proper-list?");
-        Value rest = args[0];
-        while (!rest.is_null()) {
-            if (!rest.is_object() ||
-                rest.as_object()->type() != ObjectType::Pair)
-                return Values{Value::boolean(false)};
-            rest = rest.as_object<PairObject>()->cdr;
-        }
-        return Values{Value::boolean(true)};
+        return Values{Value::boolean(is_proper_list(args[0]))};
     });
     install(evaluator, "list-ref", [](const Values& args) {
         require_arity(args, 2, "list-ref");
@@ -2749,13 +2768,7 @@ void install_runtime_primitives(Evaluator& evaluator) {
     });
     install(evaluator, "eqv?", [](const Values& args) {
         require_arity(args, 2, "eqv?");
-        if (is_number(args[0]) && is_number(args[1])) {
-            Number left = number_value(args[0]);
-            Number right = number_value(args[1]);
-            return Values{Value::boolean(left.is_exact() == right.is_exact() &&
-                                          number_equal(left, right))};
-        }
-        return Values{Value::boolean(same(args[0], args[1]))};
+        return Values{Value::boolean(equivalent(args[0], args[1]))};
     });
     install(evaluator, "equal?", [](const Values& args) {
         require_arity(args, 2, "equal?");
@@ -3252,23 +3265,23 @@ void install_runtime_primitives(Evaluator& evaluator) {
         // two-argument form as "start to the end of the string", which
         // goldtest's suffix matching (and srfi-13, define-star) rely on.
         if (args.size() < 2 || args.size() > 3)
-            throw std::runtime_error(
+            raise_keyed(evaluator, "wrong-number-of-args",
                 "substring expects two or three arguments");
         const std::string& value = evaluator.string_value(args[0]);
         if (!args[1].is_integer())
-            throw std::runtime_error(
+            raise_keyed(evaluator, "wrong-type-arg",
                 "wrong-type-arg: substring start must be an integer");
         auto start = args[1].as_integer();
         auto end = static_cast<std::int64_t>(utf8_length(value));
         if (args.size() == 3) {
             if (!args[2].is_integer())
-                throw std::runtime_error(
+                raise_keyed(evaluator, "wrong-type-arg",
                     "wrong-type-arg: substring end must be an integer");
             end = args[2].as_integer();
         }
         if (start < 0 || end < start ||
             static_cast<std::size_t>(end) > utf8_length(value))
-            throw std::runtime_error(
+            raise_keyed(evaluator, "out-of-range",
                 "out-of-range: substring index out of bounds");
         const auto byte_start = utf8_byte_offset(value, start);
         const auto byte_end = utf8_byte_offset(value, end);
@@ -3568,12 +3581,16 @@ void install_runtime_primitives(Evaluator& evaluator) {
             std::complex<double> denominator = std::log(std::complex<double>(
                 base.real.to_double(), base.imag.to_double()));
             std::complex<double> result = numerator / denominator;
+            if (value.is_real() && base.is_real() && result.imag() == 0.0)
+                return Values{evaluator.number(Number::inexact(result.real()))};
             return Values{evaluator.number(Number::complex(
                 RealNumber::inexact_real(result.real()),
                 RealNumber::inexact_real(result.imag())))};
         }
         std::complex<double> result = std::log(std::complex<double>(
             value.real.to_double(), value.imag.to_double()));
+        if (value.is_real() && result.imag() == 0.0)
+            return Values{evaluator.number(Number::inexact(result.real()))};
         return Values{evaluator.number(Number::complex(
             RealNumber::inexact_real(result.real()),
             RealNumber::inexact_real(result.imag())))};
@@ -3603,6 +3620,8 @@ void install_runtime_primitives(Evaluator& evaluator) {
         Number value = number_value(args[0]);
         std::complex<double> result = std::atan(std::complex<double>(
             value.real.to_double(), value.imag.to_double()));
+        if (value.is_real() && result.imag() == 0.0)
+            return Values{evaluator.number(Number::inexact(result.real()))};
         return Values{evaluator.number(Number::complex(
             RealNumber::inexact_real(result.real()),
             RealNumber::inexact_real(result.imag())))};

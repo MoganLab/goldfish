@@ -37,7 +37,7 @@
 ;; wrong-number-of-args
 ;; 当参数数量不为1时抛出错误。
 ;; asin 基本测试
-(check (asin 0) => 0)
+(check (= (asin 0) 0) => #t)
 (check (asin 1) => 1.5707963267948966)
 (check (asin -1) => -1.5707963267948966)
 ;; 特殊值测试

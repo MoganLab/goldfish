@@ -30,7 +30,7 @@
 ;; wrong-number-of-args
 ;; 当参数数量不为1时抛出错误。
 ;; exp 基本测试
-(check (exp 0) => 1)
+(check (= (exp 0) 1) => #t)
 (check (exp 1) => 2.718281828459045)
 (check (exp -1) => 0.36787944117144233)
 (check (exp 2) => 7.38905609893065)

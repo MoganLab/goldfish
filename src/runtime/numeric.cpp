@@ -412,9 +412,7 @@ bool Number::is_exact() const { return real.inexact == false && (!has_imaginary_
 bool Number::is_zero() const { return real.is_zero() && (!has_imaginary_part || imag.is_zero()); }
 std::string Number::to_string(unsigned radix) const {
     if (!has_imaginary_part) return real.to_string(radix);
-    if (imag.is_zero()) {
-        if (imag.inexact && !real.inexact)
-            return RealNumber::inexact_real(real.to_double()).to_string(radix);
+    if (imag.is_zero() && !imag.inexact) {
         return real.to_string(radix);
     }
     std::string r = real.to_string(radix), i = imag.to_string(radix);

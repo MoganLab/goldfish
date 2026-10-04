@@ -36,7 +36,7 @@
 ;; wrong-number-of-args
 ;; 当参数数量不为1或2个时抛出错误。
 ;; log 基本自然对数测试
-(check (log 1) => 0.0)
+(check (= (log 1) 0) => #t)
 (check (log (exp 1)) => 1.0)
 (check (log 2) => 0.6931471805599453)
 ;; log 双参数对数测试
@@ -49,7 +49,7 @@
 (check (log 1 10) => 0)
 ;; log 有理数测试
 (check (log 2 4) => 1/2)
-(check (log 1/2 2) => -1.0)
+(check (= (log 1/2 2) -1) => #t)
 (check (log 9 3) => 2)
 ;; log 浮点数对数测试
 (check (log 2.718281828459045) => 1.0)

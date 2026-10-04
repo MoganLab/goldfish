@@ -141,4 +141,10 @@
 ;; list? 错误处理测试
 (check-catch 'wrong-number-of-args (list?))
 (check-catch 'wrong-number-of-args (list? #t #f))
+
+(check-false (let ((x (list 1))) (set-cdr! x x) (list? x)))
+(check-false (let ((x (list 1 2))) (set-cdr! (cdr x) x) (list? x)))
+(check-false (let ((x (list 1 2 3 4))) (set-cdr! (cdddr x) (cdr x)) (list? x)))
+(check-true (let ((x (list 1 2))) (set-cdr! (cdr x) x) (set-cdr! (cdr x) '()) (list? x)))
+
 (check-report)

@@ -16,6 +16,8 @@
 namespace goldfish::runtime {
 
 bool equal(Value left, Value right);
+bool equivalent(Value left, Value right);
+bool is_proper_list(Value value);
 
 using Values = ValueList;
 
@@ -416,7 +418,7 @@ public:
 
     Value number(Number value) {
         if (value.has_imaginary_part && value.imag.is_zero() &&
-            !value.imag.inexact && !value.real.inexact)
+            !value.imag.inexact)
             value.has_imaginary_part = false;
         if (!value.has_imaginary_part && !value.real.inexact &&
             value.real.denominator == BigInteger(1) &&

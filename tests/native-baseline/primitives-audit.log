@@ -1,0 +1,7 @@
+R7RS semantic ledger and probe IDs are valid
+[100%]: build ok, spent 0.069s
+R7RS semantics: cold; logs at /tmp/goldfish-r7rs-semantics.mscxep
+  113 pass, 15 gap
+R7RS semantics: warm; logs at /tmp/goldfish-r7rs-semantics.mscxep
+  113 pass, 15 gap
+R7RS semantic ledger, probe IDs and recorded cold/warm observations are valid

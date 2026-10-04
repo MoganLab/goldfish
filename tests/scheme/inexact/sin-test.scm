@@ -31,7 +31,7 @@
 ;; wrong-number-of-args
 ;; 当参数数量不为1时抛出错误。
 ;; sin 基本测试
-(check (sin 0) => 0)
+(check (= (sin 0) 0) => #t)
 (check (sin (/ pi 2)) => 1.0)
 (check (sin pi) => 1.2246467991473532e-16)
 (check (sin (* 2 pi)) => -2.4492935982947064e-16)

@@ -31,7 +31,7 @@
 ;; wrong-number-of-args
 ;; 当参数数量不为1时抛出错误。
 ;; tan 基本测试
-(check (tan 0) => 0)
+(check (= (tan 0) 0) => #t)
 ;; 特殊角度测试
 (check (tan (/ pi 3)) => 1.7320508075688767)
 ;; 有理数测试

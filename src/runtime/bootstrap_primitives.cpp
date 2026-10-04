@@ -14,6 +14,8 @@ void require_arity(const Values& args, std::size_t count, const char* name) {
 }
 
 std::vector<Value> proper_list(Value value) {
+    if (!is_proper_list(value))
+        throw std::runtime_error("expected proper list");
     std::vector<Value> result;
     while (!value.is_null()) {
         if (!value.is_object() ||
@@ -97,7 +99,7 @@ void install_bootstrap_primitives(Evaluator& evaluator) {
             if (!rest.is_object() || rest.as_object()->type() != ObjectType::Pair)
                 throw std::runtime_error("memv expects a proper list");
             Value item = rest.as_object<PairObject>()->car;
-            if (identical(item, args[0])) return Values{rest};
+            if (equivalent(item, args[0])) return Values{rest};
             rest = rest.as_object<PairObject>()->cdr;
         }
         return Values{Value::boolean(false)};
@@ -124,7 +126,7 @@ void install_bootstrap_primitives(Evaluator& evaluator) {
                 throw std::runtime_error("assv expects an association list");
             Value entry = rest.as_object<PairObject>()->car;
             if (entry.is_object() && entry.as_object()->type() == ObjectType::Pair &&
-                identical(entry.as_object<PairObject>()->car, args[0]))
+                equivalent(entry.as_object<PairObject>()->car, args[0]))
                 return Values{entry};
             rest = rest.as_object<PairObject>()->cdr;
         }

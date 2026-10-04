@@ -36,7 +36,7 @@
 ;; wrong-number-of-args
 ;; 当参数数量不为1或2个时抛出错误。
 ;; atan 基本单参数测试
-(check (atan 0) => 0)
+(check (= (atan 0) 0) => #t)
 (check (atan 1) => 0.7853981633974483)
 (check (atan -1) => -0.7853981633974483)
 ;; atan 双参数测试

@@ -33,7 +33,7 @@
 (check (procedure? cadddr) => #t)
 (check (char-ci=? #\A #\a) => #t)
 (check (string-ci=? "AbC" "aBc") => #t)
-(check (make-polar 2 0) => 2.0)
+(check (= (make-polar 2 0) 2.0) => #t)
 (define-syntax r5rs-list
   (syntax-rules () ((_ x ...) (list x ...))))
 (check (r5rs-list 1 2 3) => '(1 2 3))

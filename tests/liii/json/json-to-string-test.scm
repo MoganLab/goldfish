@@ -1,4 +1,4 @@
-(import (liii check) (liii json) (liii base) (liii error))
+(import (liii check) (liii json) (liii base) (liii error) (scheme complex))
 
 
 (check-set-mode! 'report-failed)
@@ -106,4 +106,6 @@
 ) ;check
 
 
+(check (json->string (make-rectangular 2.0 0.0)) => "2.0")
+(check (json->string (make-rectangular 2.0 -0.0)) => "2.0")
 (check-report)

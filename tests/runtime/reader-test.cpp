@@ -102,6 +102,11 @@ int main() {
     assert(number_to_string(evaluator.eval(*exact_sum_reader.read())) == "1/2");
     TinyReader inexact_sum_reader(evaluator, "(+ 1.25 2.5)");
     assert(number_to_string(evaluator.eval(*inexact_sum_reader.read())) == "3.75");
+    TinyReader real_division_equivalence_reader(
+        evaluator, "(eqv? (/ 1.0 3.0) (rationalize 0.3 0.1))");
+    assert(evaluator.eval(*real_division_equivalence_reader.read()).as_boolean());
+    TinyReader inexact_real_reader(evaluator, "(eqv? (inexact 1/3) (/ 1.0 3.0))");
+    assert(evaluator.eval(*inexact_real_reader.read()).as_boolean());
     TinyReader big_sum_reader(evaluator, "(+ 9223372036854775807 1)");
     assert(number_to_string(evaluator.eval(*big_sum_reader.read())) == "9223372036854775808");
     TinyReader big_modulo_reader(
@@ -166,7 +171,9 @@ int main() {
     TinyReader inexact_zero_imag_reader(
         evaluator, "(make-rectangular 1 0.0)");
     Value inexact_zero_imag = evaluator.eval(*inexact_zero_imag_reader.read());
-    assert(number_to_string(inexact_zero_imag) == "1.0");
+    assert(number_to_string(inexact_zero_imag) == "1+0.0i");
+    TinyReader zero_imag_roundtrip(evaluator, number_to_string(inexact_zero_imag));
+    assert(equivalent(inexact_zero_imag, *zero_imag_roundtrip.read()));
     TinyReader inexact_zero_exactness_reader(
         evaluator, "(exact? (make-rectangular 1 0.0))");
     assert(!evaluator.eval(*inexact_zero_exactness_reader.read()).as_boolean());

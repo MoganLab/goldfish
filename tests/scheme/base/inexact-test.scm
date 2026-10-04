@@ -1,5 +1,6 @@
 (import (liii check))
 (import (scheme base))
+(import (scheme complex))
 (check-set-mode! 'report-failed)
 ;; inexact
 ;; 将数字转换为不精确表示形式。
@@ -51,6 +52,11 @@
 (check (inexact 1.0) => 1.0)
 (check (inexact 1.5) => 1.5)
 (check (inexact 0.0) => 0.0)
+(check (eqv? (inexact -0.0) -0.0) => #t)
+(let ((value (make-rectangular 1 0.0)))
+  (check (eqv? (inexact value) value) => #t))
+(let ((value (make-rectangular 1.0 -0.0)))
+  (check (eqv? (inexact value) value) => #t))
 (check-catch 'wrong-number-of-args (inexact))
 (check-catch 'wrong-number-of-args (inexact 1 2))
 (check-catch 'wrong-type-arg (inexact 'a))

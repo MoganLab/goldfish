@@ -56,10 +56,11 @@ ran ten proposed test migrations: eight passed and two failed (driver exit 255).
 The eight passing changes are committed: character-based string slices,
 padding and Han alphabetic expectations; default-hash contract assertions;
 and inspection of the string raised by `vector-sorted?`. The two proposed
-`string-take` edits expose native `substring` error-tag failures after fixing
-their Unicode offsets. They remain deferred, with the complete tested source
-[patch](tests/native-baseline/migration-tested.patch) retained for reproduction.
-Current decisions are 36 locally verified fixes, 42 deferrals and 53
+`string-take` edits initially exposed native `substring` error-tag failures
+after fixing their Unicode offsets. The later primitive repair now passes
+both files; the original tested [patch](tests/native-baseline/migration-tested.patch)
+and failed recheck remain archived.
+Current decisions are 45 locally verified fixes, 33 deferrals and 53
 exclusions. Subsequent repairs restore match and JSON definitions, JSON numeric
 classification and UTF-8 output, R5RS re-export order, and compiler assertions.
 The default changed-since-main gate passes 143 files; the JSON directory passes
@@ -71,15 +72,34 @@ guard. A separate empty-cache aggregate attempt hit its 600-second budget
 after passing six consumers; it is not counted as a complete passing gate.
 No second full run is claimed.
 
-The next repairs are numeric association/membership equivalence; circular
-list traversal; missing
-Scheme operations and typed-vector families; fractional sleep and consistent
-error contracts. Legacy byte-index, callable-container and multiple-value
-splicing expectations have separate test-migration decisions. The existing
-19 R7RS semantic gaps remain tracked in their independent audit.
+The prerequisite primitive repairs are recorded in
+[primitives-recheck.log](tests/native-baseline/primitives-recheck.log): 37 files
+and 788 assertions pass. They share exactness- and signed-zero-sensitive
+numeric equality across predicates and lookups, reject circular cdr chains
+with constant auxiliary space, and preserve character-index substring error
+tags. Numeric output preserves inexact zero imaginary parts so component
+exactness and signed zeros survive reader and cache round trips. Real-domain
+atan/log and inexact conversion use the real representation; inexact inputs
+retain their observable components; JSON encodes real numeric
+values without complex notation. Adjacent numeric test migrations preserve
+required exactness and use numerical comparison only where exactness is
+implementation-dependent. The [tested source patch](tests/native-baseline/primitives-tested.patch)
+and executable hash identify the local runtime used for these checks.
+The final [default gate](tests/native-baseline/primitives-default.log) passes
+159 files; the [native workflow](tests/native-baseline/primitives-workflow.log)
+passes reader, cache recovery, CLI, ten corpus files and cold cross-library
+execution. The [audit recheck](tests/native-baseline/primitives-audit.log)
+reproduces 113 passes and 15 known gaps in cold and warm caches.
 
-Incomplete workers recovered through isolated runs. Million-element set
-construction and circular list conversion remained bounded failures. A large
+Remaining repairs include missing Scheme operations and typed-vector families;
+fractional sleep and consistent
+error contracts. Legacy byte-index, callable-container and multiple-value
+splicing expectations have separate test-migration decisions. The remaining
+15 R7RS semantic gaps remain tracked in their independent audit.
+
+In the original run, incomplete workers recovered through isolated runs.
+Million-element set construction and circular list conversion were bounded
+failures; the circular-list cases now pass their targeted recheck. A large
 Unicode worker exhausted its chunk budget, but all four isolated files passed
 (7921 assertions); `char-alphabetic?` separately passed 2800 assertions while
 taking about 11 minutes in its worker. Profile loading and worker costs before
@@ -146,10 +166,9 @@ The standard-library and basic-semantics audit is recorded separately in
 [R7RS-SEMANTIC-AUDIT.tsv](R7RS-SEMANTIC-AUDIT.tsv), with individual obligations,
 standard references, direct probe files and explicit boundaries. Its
 [cold/warm snapshot](tests/r7rs/semantic-results.tsv) contains 128 observations:
-109 pass and 19 gaps. The export fixture comes from the report's Appendix A,
+113 pass and 15 gaps. The export fixture comes from the report's Appendix A,
 independently of implementation exports. All required exports are present in
-15 of 16 libraries; `(scheme r5rs)` lacks `...`, `=>`, `_`, `else` and
-`syntax-rules`. Extra base/time exports are reported separately. Available
+all 16 libraries, including the restored R5RS syntax exports. Extra base/time exports are reported separately. Available
 bindings alone do not certify procedure semantics.
 
 ```sh
@@ -168,13 +187,12 @@ probe evidence for every linked clause.
 
 The next fixes are grounded in these probes:
 
-1. Terminating circular `list?`, overlapping bytevector copying, and internal
+1. Overlapping bytevector copying and internal
    multiple-value/record definitions through standard `eval`.
-2. Reader numeric prefixes, string continuations and read-error classification;
-   numeric exactness in `equal?` and signed-zero behavior in `eqv?`.
+2. Reader numeric prefixes, string continuations and read-error classification.
 3. Unicode full case folding and digit values; port close idempotence,
    multiple-value forwarding, CR line endings, EOF, optional flush arguments
-   and file-error classification; the missing R5RS syntax exports.
+   and file-error classification.
 
 This corpus samples numeric boundaries, expressions, quasiquote, data and
 ports. It does not certify every procedure, record-definition context,
@@ -212,11 +230,11 @@ gate includes `tests/runtime/native-cache-test.cpp` and
 size/time, missing dependencies, runtime changes, fingerprint parity and
 automatic recovery from a damaged deferred base artifact.
 
-The last recorded run of `tests/expander/lib-cache-all-libs-test.scm` loaded
-107 of 115 libraries. Eight failures involving `match`, JSON exports and
-their consumers were reproduced on the pre-fix `1070cfa2` baseline as well.
-This probe remains failing; the bootstrap freshness gate does not certify
-all extension-library loading.
+The original `tests/expander/lib-cache-all-libs-test.scm` probe loaded
+107 of 115 libraries. After repairing match and JSON definitions, the
+[cached recheck](tests/native-baseline/library-cached-recheck.log) loads
+all 115 libraries. This is focused library-loading evidence; it does not
+certify every extension-library procedure.
 
 The numeric extension gate uses `./bin/gf test tests/liii/bitwise/` and
 `./bin/gf test tests/srfi/srfi-151-test.scm`. It checks all 39 SRFI 151

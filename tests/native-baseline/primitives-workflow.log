@@ -1,0 +1,257 @@
+Native manifests valid: 10 corpus files, 86 follow-ups
+[  6%]: <native-reader-test> cache compiling.release tests/runtime/reader-test.cpp
+[ 37%]: <native-reader-test> cache compiling.release src/runtime/standard_primitives.cpp
+[ 82%]: <native-reader-test> linking.release native-reader-test
+[100%]: build ok, spent 15.169s
+[  5%]: <native-cache-test> cache compiling.release tests/runtime/native-cache-test.cpp
+[ 11%]: <native-cache-test> cache compiling.release src/runtime/evaluator.cpp
+[ 11%]: <native-cache-test> cache compiling.release src/runtime/core_evaluator.cpp
+[ 11%]: <native-cache-test> cache compiling.release src/runtime/reader.cpp
+[ 11%]: <native-cache-test> cache compiling.release src/runtime/bootstrap_primitives.cpp
+[ 11%]: <native-cache-test> cache compiling.release src/runtime/standard_primitives.cpp
+[ 11%]: <native-cache-test> cache compiling.release src/runtime/platform_primitives.cpp
+[ 11%]: <native-cache-test> cache compiling.release src/runtime/random_primitives.cpp
+[ 17%]: <native-cache-test> cache compiling.release src/runtime/unicode_primitives.cpp
+[ 17%]: <native-cache-test> cache compiling.release src/runtime/artifact.cpp
+[ 17%]: <native-cache-test> cache compiling.release src/runtime/bootstrap.cpp
+[ 83%]: <native-cache-test> linking.release native-cache-test
+[100%]: build ok, spent 6.436s
+native cache freshness checks passed
+[  5%]: <native-library-source-test> cache compiling.release tests/runtime/native-library-source-test.cpp
+[ 11%]: <native-library-source-test> cache compiling.release src/runtime/evaluator.cpp
+[ 11%]: <native-library-source-test> cache compiling.release src/runtime/core_evaluator.cpp
+[ 11%]: <native-library-source-test> cache compiling.release src/runtime/reader.cpp
+[ 11%]: <native-library-source-test> cache compiling.release src/runtime/bootstrap_primitives.cpp
+[ 11%]: <native-library-source-test> cache compiling.release src/runtime/standard_primitives.cpp
+[ 11%]: <native-library-source-test> cache compiling.release src/runtime/platform_primitives.cpp
+[ 11%]: <native-library-source-test> cache compiling.release src/runtime/random_primitives.cpp
+[ 17%]: <native-library-source-test> cache compiling.release src/runtime/unicode_primitives.cpp
+[ 17%]: <native-library-source-test> cache compiling.release src/runtime/artifact.cpp
+[ 17%]: <native-library-source-test> cache compiling.release src/runtime/bootstrap.cpp
+[ 83%]: <native-library-source-test> linking.release native-library-source-test
+[100%]: build ok, spent 4.504s
+[100%]: build ok, spent 0.056s
+warm-bootstrap-cache: cache complete at /tmp/goldfish-preperf-fixes/conversion/v78b5b35cb1bc
+native cache unavailable: native bootstrap cache /tmp/goldfish-cache-recovery.GPhGzC/v78b5b35cb1bc/scheme/base.scm-o2.gfo: tiny reader: unterminated list at byte 8
+bootstrap cache: fingerprint parity and automatic corruption recovery passed
+native cache unavailable: native bootstrap cache not found under /tmp/goldfish-native-cold.PfzJVc/goldfish/ccache/v78b5b35cb1bc
+native CLI smoke passed: -e, file execution, stateful REPL
+native CLI graph output passed
+;;; note: tests/native/native-workflow.scm could not be compiled; loading per form
+
+; *** checks *** : 29 correct, 0 failed.
+#f
+  tests/native/native-workflow.scm ... PASS
+;;; note: tests/scheme/base/call-with-port-test.scm could not be compiled; loading per form
+
+; *** checks *** : 2 correct, 0 failed.
+#f
+  tests/scheme/base/call-with-port-test.scm ... PASS
+;;; note: tests/scheme/base/values-test.scm could not be compiled; loading per form
+
+; *** checks *** : 5 correct, 0 failed.
+#f
+  tests/scheme/base/values-test.scm ... PASS
+;;; note: tests/scheme/base/with-exception-handler-test.scm could not be compiled; loading per form
+
+; *** checks *** : 3 correct, 0 failed.
+#f
+  tests/scheme/base/with-exception-handler-test.scm ... PASS
+;;; note: tests/scheme/eval/eval-test.scm could not be compiled; loading per form
+
+; *** checks *** : 6 correct, 0 failed.
+#f
+  tests/scheme/eval/eval-test.scm ... PASS
+;;; note: tests/scheme/write/graph-roundtrip-test.scm could not be compiled; loading per form
+
+; *** checks *** : 138 correct, 0 failed.
+#f
+  tests/scheme/write/graph-roundtrip-test.scm ... PASS
+;;; note: tests/scheme/file/call-with-input-file-test.scm could not be compiled; loading per form
+
+; *** checks *** : 3 correct, 0 failed.
+#f
+  tests/scheme/file/call-with-input-file-test.scm ... PASS
+;;; note: tests/srfi/srfi-13/string-prefix-p-test.scm could not be compiled; loading per form
+
+(string-prefix?  hello) => #t ; correct
+
+(string-prefix? h hello) => #t ; correct
+
+(string-prefix? he hello) => #t ; correct
+
+(string-prefix? hel hello) => #t ; correct
+
+(string-prefix? hell hello) => #t ; correct
+
+(string-prefix? hello hello) => #t ; correct
+
+(string-prefix? test test123) => #t ; correct
+
+(string-prefix?  ) => #t ; correct
+
+(string-prefix? a a) => #t ; correct
+
+(string-prefix? abc abc) => #t ; correct
+
+(string-prefix? a ab) => #t ; correct
+
+(string-prefix?  a) => #t ; correct
+
+(string-prefix?  ) => #t ; correct
+
+(string-prefix? a a) => #t ; correct
+
+(string-prefix? abc ab) => #f ; correct
+
+(string-prefix? long-prefix-long short) => #f ; correct
+
+(string-prefix? 中 中文) => #t ; correct
+
+(string-prefix? 中文 中文测试) => #t ; correct
+
+(string-prefix? uni unicode) => #t ; correct
+
+(string-prefix? 🌟 🌟🎉) => #t ; correct
+
+(string-prefix? 中文123 中文123abc) => #t ; correct
+
+(string-prefix? 测试多功能 测试多功能边界处理) => #t ; correct
+
+(string-prefix? hello hello) => #t ; correct
+
+(string-prefix? world world) => #t ; correct
+
+(string-prefix? 完整测试 完整测试) => #t ; correct
+
+(string-prefix?  ) => #t ; correct
+
+(string-prefix? a ) => #f ; correct
+
+(string-prefix? hello ) => #f ; correct
+
+(string-prefix? prefix-is-longer-than-string short) => #f ; correct
+
+(string-prefix? university uni) => #f ; correct
+
+(string-prefix? test testing) => #t ; correct
+
+(string-prefix? Hello hello) => #f ; correct
+
+(string-prefix? hello Hello) => #f ; correct
+
+(string-prefix? TEST test) => #f ; correct
+
+(string-prefix? 大写 大写) => #t ; correct
+
+(string-prefix? 大 大写) => #t ; correct
+
+(string-prefix? _hidden _hidden_file) => #t ; correct
+
+(string-prefix? ./path ./path/to/file) => #t ; correct
+
+(string-prefix?  multiple spaces  multiple spaces ahead) => #t ; correct
+
+(string-prefix?  single-char) => #t ; correct
+
+(string-prefix? 🙂 🙂) => #t ; correct
+
+(string-prefix? a⚡b a⚡btest) => #t ; correct
+
+(catch (quote wrong-type-arg) (lambda () (string-prefix? 123 hello)) (lambda args (quote wrong-type-arg))) => wrong-type-arg ; correct
+
+(catch (quote wrong-type-arg) (lambda () (string-prefix? hello 123)) (lambda args (quote wrong-type-arg))) => wrong-type-arg ; correct
+
+(catch (quote wrong-type-arg) (lambda () (string-prefix? (quote (a b c)) hello)) (lambda args (quote wrong-type-arg))) => wrong-type-arg ; correct
+
+(catch (quote wrong-type-arg) (lambda () (string-prefix? hello c)) (lambda args (quote wrong-type-arg))) => wrong-type-arg ; correct
+
+(catch (quote wrong-type-arg) (lambda () (string-prefix? hello (quote symbol))) (lambda args (quote wrong-type-arg))) => wrong-type-arg ; correct
+
+(catch (quote wrong-type-arg) (lambda () (string-prefix? (quote ()) hello)) (lambda args (quote wrong-type-arg))) => wrong-type-arg ; correct
+
+; *** checks *** : 48 correct, 0 failed.
+#f
+  tests/srfi/srfi-13/string-prefix-p-test.scm ... PASS
+;;; note: tests/liii/path/path-join-test.scm could not be compiled; loading per form
+
+; *** checks *** : 12 correct, 0 failed.
+#f
+  tests/liii/path/path-join-test.scm ... PASS
+;;; note: tests/liii/string/string-join-test.scm could not be compiled; loading per form
+
+(string-join (quote (a b c))) => abc ; correct
+
+(string-join (quote (a b c)) :) => a:b:c ; correct
+
+(string-join (quote (a b c)) : (quote infix)) => a:b:c ; correct
+
+(string-join (quote (a b c)) : (quote suffix)) => a:b:c: ; correct
+
+(string-join (quote (a b c)) : (quote prefix)) => :a:b:c ; correct
+
+(string-join (quote ()) :) =>  ; correct
+
+(string-join (quote ()) : (quote infix)) =>  ; correct
+
+(string-join (quote ()) : (quote prefix)) =>  ; correct
+
+(string-join (quote ()) : (quote suffix)) =>  ; correct
+
+(catch (quote value-error) (lambda () (string-join (quote ()) : (quote strict-infix))) (lambda args (quote value-error))) => value-error ; correct
+
+(catch (quote value-error) (lambda () (string-join (quote ())  (quote strict-infix))) (lambda args (quote value-error))) => value-error ; correct
+
+(catch (quote value-error) (lambda () (string-join (quote ()) 分隔 (quote strict-infix))) (lambda args (quote value-error))) => value-error ; correct
+
+(catch (quote type-error) (lambda () (string-join (quote ()) : 2)) (lambda args (quote type-error))) => type-error ; correct
+
+(catch (quote value-error) (lambda () (string-join (quote ()) : (quote no-such-grammer))) (lambda args (quote value-error))) => value-error ; correct
+
+(catch (quote wrong-number-of-args) (lambda () (string-join (quote ()) : 1 2 3)) (lambda args (quote wrong-number-of-args))) => wrong-number-of-args ; correct
+
+(string-join (quote ( )) :) => : ; correct
+
+(string-join (quote (  )) :) => :: ; correct
+
+(string-join (quote ( )) ) =>  ; correct
+
+(string-join (quote (  )) ) =>  ; correct
+
+(string-join (quote ( )) 分隔符) => 分隔符 ; correct
+
+(string-join (quote (  )) 分隔符) => 分隔符分隔符 ; correct
+
+(string-join (quote ( ))  (quote suffix)) =>  ; correct
+
+(string-join (quote ( ))  (quote prefix)) =>  ; correct
+
+(string-join (quote (  )) 分隔 (quote suffix)) => 分隔分隔分隔 ; correct
+
+(string-join (quote (元素1 元素2 元素3))  (quote prefix)) => 元素1元素2元素3 ; correct
+
+(string-join (quote (中文 测试 字符串))) => 中文测试字符串 ; correct
+
+(string-join (quote (中文 测试 字符串)) 间) => 中文间测试间字符串 ; correct
+
+(string-join (quote (中文1 中文2 中文3)) 分隔) => 中文1分隔中文2分隔中文3 ; correct
+
+(string-join (quote (🌟 🎉 😀)) -) => 🌟-🎉-😀 ; correct
+
+(string-join (quote (🌟 🎉 😀)) 🎯) => 🌟🎯🎉🎯😀 ; correct
+
+(string-join (quote (hello test)) :) => hello:test ; correct
+
+(string-join (quote (单元素测试)) ,) => 单元素测试 ; correct
+
+; *** checks *** : 32 correct, 0 failed.
+#f
+  tests/liii/string/string-join-test.scm ... PASS
+
+  Total:  10
+  Passed: 10
+  Failed: 0
+native cache unavailable: native bootstrap cache not found under /tmp/goldfish-native-workflow-cold.GHAi4m/ccache/v78b5b35cb1bc
+;;; note: tests/native/native-workflow.scm could not be compiled; loading per form
+
+; *** checks *** : 29 correct, 0 failed.

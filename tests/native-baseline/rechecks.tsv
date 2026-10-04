@@ -1,6 +1,6 @@
 path	exit_code	evidence
 tests/expander/eval-when-expand-test.scm	0	tests/native-baseline/library-cached-recheck.log:60
-tests/scheme/r5rs-test.scm	0	tests/native-baseline/library-default-recheck.log:141
+tests/scheme/r5rs-test.scm	0	tests/native-baseline/primitives-recheck.log:133
 tests/liii/comparator-test.scm	0	tests/native-baseline/migration-recheck.log:83
 tests/liii/sort/vector-sorted-p-test.scm	0	tests/native-baseline/migration-recheck.log:84
 tests/liii/string/string-any-test.scm	0	tests/native-baseline/migration-recheck.log:85
@@ -27,7 +27,7 @@ tests/liii/json/json-ref-test.scm	0	tests/native-baseline/json-recheck.log:19
 tests/liii/json/json-set-test.scm	0	tests/native-baseline/json-recheck.log:20
 tests/liii/json/json-string-escape-test.scm	0	tests/native-baseline/json-recheck.log:21
 tests/liii/json/json-string-p-test.scm	0	tests/native-baseline/json-recheck.log:22
-tests/liii/json/json-to-string-test.scm	0	tests/native-baseline/json-recheck.log:23
+tests/liii/json/json-to-string-test.scm	0	tests/native-baseline/primitives-recheck.log:299
 tests/liii/json/string-to-json-test.scm	0	tests/native-baseline/json-recheck.log:24
 tests/compiler/constant-fold-test.scm	0	tests/native-baseline/library-default-recheck.log:9
 tests/compiler/syntax-ir-test.scm	0	tests/native-baseline/library-default-recheck.log:5
@@ -35,3 +35,12 @@ tests/expander/lib-cache-all-libs-test.scm	0	tests/native-baseline/library-cache
 tests/liii/http/http-post-test.scm	0	tests/native-baseline/library-cached-recheck.log:354
 tests/liii/match-srfi-262-full-test.scm	0	tests/native-baseline/library-cached-recheck.log:352
 tests/liii/match-srfi-262-test.scm	0	tests/native-baseline/library-cached-recheck.log:143
+tests/liii/http-test.scm	0	tests/native-baseline/primitives-recheck.log:128
+tests/liii/json-test.scm	0	tests/native-baseline/primitives-recheck.log:126
+tests/liii/string/string-take-right-test.scm	0	tests/native-baseline/primitives-recheck.log:124
+tests/liii/string/string-take-test.scm	0	tests/native-baseline/primitives-recheck.log:79
+tests/liii/vector/reverse-list-to-vector-test.scm	0	tests/native-baseline/primitives-recheck.log:35
+tests/scheme/base/assoc-test.scm	0	tests/native-baseline/primitives-recheck.log:15
+tests/scheme/base/assv-test.scm	0	tests/native-baseline/primitives-recheck.log:20
+tests/scheme/base/list-p-test.scm	0	tests/native-baseline/primitives-recheck.log:30
+tests/scheme/base/memv-test.scm	0	tests/native-baseline/primitives-recheck.log:25

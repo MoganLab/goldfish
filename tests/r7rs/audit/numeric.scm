@@ -32,6 +32,11 @@
                (map (lambda (radix) (= n (string->number (number->string n radix) radix))) '(2 8 10 16)))) '(#t #t #t #t))
 (audit-check 'numeric.exact-roundtrip (lambda () (map (lambda (n) (eqv? n (string->number (number->string n))))
                                                     '(1/3 -7/8 1+2i))) '(#t #t #t))
-(audit-check 'numeric.inexact-roundtrip (lambda () (map (lambda (n) (= n (string->number (number->string n))))
-                                                      '(0.1 -1.25 1.0e100))) '(#t #t #t))
+(audit-check 'numeric.inexact-roundtrip
+  (lambda () (map (lambda (n) (eqv? n (string->number (number->string n))))
+                 (append '(0.1 -1.25 1.0e100)
+                         (list (make-rectangular 1 0.0)
+                               (make-rectangular 1.0 -0.0)
+                               (make-rectangular 1 2.0)))))
+  '(#t #t #t #t #t #t))
 (check-report)

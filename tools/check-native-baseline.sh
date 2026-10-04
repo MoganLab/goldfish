@@ -91,8 +91,8 @@ awk -F '\t' '
   END {exit bad}
 ' "$root/rechecks.tsv" "$root/dispositions.tsv"
 while IFS="$(printf '\t')" read -r key expected; do
-    case "$key" in recheck_sha256:*)
-        log=${key#recheck_sha256:}
+    case "$key" in recheck_sha256:*|primitives_sha256:tests/native-baseline/*)
+        log=${key#*:}
         actual=$(sha256sum "$log" | cut -d ' ' -f1)
         [ "$actual" = "$expected" ] || { echo "recheck checksum mismatch: $log" >&2; exit 1; } ;;
     esac

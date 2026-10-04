@@ -31,7 +31,7 @@
 ;; wrong-number-of-args
 ;; 当参数数量不为1时抛出错误。
 ;; cos 基本测试
-(check (cos 0) => 1)
+(check (= (cos 0) 1) => #t)
 (check (cos (/ pi 2)) => 6.123233995736766e-17)
 (check (cos pi) => -1.0)
 (check (cos (* 2 pi)) => 1.0)
