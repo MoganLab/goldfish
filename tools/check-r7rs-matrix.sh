@@ -23,7 +23,7 @@ paths=$(awk -F '\t' '!/^#/ && $1 != "clause" { print $4 }' R7RS-COMPATIBILITY.ts
 for path in $paths; do
     [ -e "$path" ] || { echo "missing matrix evidence: $path" >&2; exit 1; }
 done
-for manifest in tests/r7rs/audit.manifest tests/r7rs/gaps.manifest; do
+for manifest in tests/r7rs/audit.manifest tests/r7rs/gaps.manifest tests/r7rs/semantic-audit.manifest; do
     files=$(sed '/^[[:space:]]*#/d; /^[[:space:]]*$/d' "$manifest")
     if [ -z "$files" ]; then
         [ "$manifest" = tests/r7rs/gaps.manifest ] && continue
@@ -38,3 +38,4 @@ for manifest in tests/r7rs/audit.manifest tests/r7rs/gaps.manifest; do
     done
 done
 echo "R7RS matrix evidence and manifests are valid"
+sh tools/check-r7rs-semantics.sh

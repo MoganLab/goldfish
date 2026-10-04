@@ -59,13 +59,50 @@ sh tools/test-r7rs-audit.sh --gaps
 ```
 
 The six original compatibility probes now pass in the regular audit corpus;
-the gap manifest is empty and this command returns success without running tests.
+their original gap manifest is empty and this command returns success without running tests.
 This does not establish complete R7RS conformance. Library order checks require dependencies to precede
 consumers; they do not impose an implementation-independent load-once rule.
 
-Follow-up priorities from the audit:
+The standard-library and basic-semantics audit is recorded separately in
+[R7RS-SEMANTIC-AUDIT.tsv](R7RS-SEMANTIC-AUDIT.tsv), with individual obligations,
+standard references, direct probe files and explicit boundaries. Its
+[cold/warm snapshot](tests/r7rs/semantic-results.tsv) contains 128 observations:
+109 pass and 19 gaps. The export fixture comes from the report's Appendix A,
+independently of implementation exports. All required exports are present in
+15 of 16 libraries; `(scheme r5rs)` lacks `...`, `=>`, `_`, `else` and
+`syntax-rules`. Extra base/time exports are reported separately. Available
+bindings alone do not certify procedure semantics.
 
-1. Expand the clause audit beyond the focused corpus and inventory standard exports.
+```sh
+sh tools/test-r7rs-semantics.sh
+sh tools/test-r7rs-semantics.sh --verify-recorded
+```
+
+The first command keeps standard expectations and returns failure for known
+gaps. The second verifies that both statuses and actual results reproduce in
+cold and warm runs; its success is a reproducibility check, not a conformance
+pass. `--record` updates the snapshot only after the two runs agree and still
+returns failure when gaps remain. Circular `list?` is isolated with a 60-second
+timeout; a timeout counts only after the probe reaches its target operation.
+The matrix checker rejects known gaps marked `audited` and requires direct
+probe evidence for every linked clause.
+
+The next fixes are grounded in these probes:
+
+1. Terminating circular `list?`, overlapping bytevector copying, and internal
+   multiple-value/record definitions through standard `eval`.
+2. Reader numeric prefixes, string continuations and read-error classification;
+   numeric exactness in `equal?` and signed-zero behavior in `eqv?`.
+3. Unicode full case folding and digit values; port close idempotence,
+   multiple-value forwarding, CR line endings, EOF, optional flush arguments
+   and file-error classification; the missing R5RS syntax exports.
+
+This corpus samples numeric boundaries, expressions, quasiquote, data and
+ports. It does not certify every procedure, record-definition context,
+invalid UTF-8 input, complex branch cut, clock or process-context operation.
+Unspecified outcomes are not forced to a particular result, and textual and
+binary port categories are allowed to overlap. No native full-suite run is
+claimed for this audit.
 
 Custom ellipsis regressions cover ordinary `...` pattern variables, literal
 identifiers and free template references, empty and nested repetitions, vectors,

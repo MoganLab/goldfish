@@ -10,7 +10,7 @@ esac
 sh tools/check-r7rs-matrix.sh
 if [ "${1:-}" = --gaps ] &&
    [ -z "$(sed '/^[[:space:]]*#/d; /^[[:space:]]*$/d' "$manifest")" ]; then
-    echo "R7RS audit: no known compatibility probes remain failing"
+    echo "R7RS audit: the original compatibility gap manifest is empty; see the separate semantic audit"
     exit 0
 fi
 xmake build gf-native

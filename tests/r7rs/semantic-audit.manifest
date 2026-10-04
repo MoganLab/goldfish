@@ -1,0 +1,12 @@
+# Clause probes keep standard expectations even when an observation is a gap.
+tests/r7rs/audit/exports.scm
+tests/r7rs/audit/reader.scm
+tests/r7rs/audit/expressions.scm
+tests/r7rs/audit/quasiquote.scm
+tests/r7rs/audit/definitions.scm
+tests/r7rs/audit/numeric.scm
+tests/r7rs/audit/equivalence.scm
+tests/r7rs/audit/data.scm
+tests/r7rs/audit/ports.scm
+# Run this single nontermination probe in a separate bounded process.
+tests/r7rs/audit/list-cycle.scm

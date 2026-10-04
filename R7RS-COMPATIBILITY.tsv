@@ -4,34 +4,34 @@ clause	area	status	evidence	boundary
 1.1	Semantics overview	inventory	src/runtime/evaluator.cpp	Implementation overview; no full conformance claim.
 1.2	Syntax overview	inventory	src/runtime/reader.cpp	Reader inventory; normative details tracked below.
 1.3.1	Base and optional features	inventory	goldfish/scheme	Optional facilities require individual verification.
-1.3.2	Errors and unspecified behavior	inventory	tests/r7rs/gaps.manifest	Known standard-required failures are kept separate from unspecified cases.
+1.3.2	Errors and unspecified behavior	partial	tests/r7rs/audit/equivalence.scm,tests/r7rs/audit/ports.scm,tests/r7rs/audit/reader.scm	Permitted unspecified identity outcomes are not fixed by tests; required read/file error classifications fail.
 1.3.3	Entry format	unverified	R7RS-COMPATIBILITY.tsv	Report notation; no implementation-specific proof obligation.
 1.3.4	Evaluation examples	unverified	R7RS-COMPATIBILITY.tsv	Report examples not systematically replayed.
 1.3.5	Naming conventions	inventory	goldfish/scheme	API inventory; no exhaustive naming audit.
-2.1	Identifiers	inventory	tests/runtime/reader-test.cpp	Lexical inventory; symbol round trips covered by writer tests.
-2.2	Whitespace and comments	inventory	tests/runtime/reader-test.cpp	Reader coverage identified; no exhaustive lexical audit.
-2.3	Other notations	inventory	tests/runtime/reader-test.cpp	Datum labels and lexical forms require further clause-level coverage.
-2.4	Datum labels	inventory	tests/runtime/reader-test.cpp,tests/scheme/write/graph-roundtrip-test.scm	Existing graph reader/writer regressions; no full lexical clause audit.
-3.1	Variables and regions	inventory	tests/expander/macro-features-test.scm	Existing coverage inventory; not a conformance verdict.
-3.2	Disjointness of types	inventory	tests/scheme/base	Existing coverage inventory; not a conformance verdict.
-3.3	External representations	inventory	tests/runtime/reader-test.cpp,tests/scheme/write/graph-roundtrip-test.scm	Existing coverage inventory; not a conformance verdict.
-3.4	Storage model	inventory	tests/runtime/value-test.cpp	Existing coverage inventory; not a conformance verdict.
+2.1	Identifiers	audited	tests/r7rs/audit/reader.scm,tests/runtime/reader-test.cpp	Unicode, escaped/peculiar identifiers and fold directives measured; no exhaustive lexical grammar.
+2.2	Whitespace and comments	audited	tests/r7rs/audit/reader.scm,tests/runtime/reader-test.cpp	Line, nested block and nested datum comments measured; malformed comment diagnostics not covered.
+2.3	Other notations	partial	tests/r7rs/audit/reader.scm,tests/runtime/reader-test.cpp	Selected notation samples pass, but spaced string continuation fails; prefix parsing tracked in 6.2.5.
+2.4	Datum labels	audited	tests/r7rs/audit/reader.scm,tests/runtime/reader-test.cpp,tests/scheme/write/graph-roundtrip-test.scm	Pair sharing, self-cycles and per-datum label scope measured; forward references and all graph forms not covered.
+3.1	Variables and regions	audited	tests/expander/macro-features-test.scm,tests/r7rs/audit/expressions.scm	Closure binding under shadowing measured through a standard eval environment; not a full region audit.
+3.2	Disjointness of types	audited	tests/r7rs/audit/data.scm	Nine negative type-predicate pairs measured; internal record construction is separately failing.
+3.3	External representations	audited	tests/r7rs/audit/reader.scm,tests/runtime/reader-test.cpp,tests/scheme/write/graph-roundtrip-test.scm	Selected literal/abbreviation representations measured; not every external representation grammar production.
+3.4	Storage model	audited	tests/r7rs/audit/data.scm,tests/runtime/value-test.cpp	Fresh nonempty strings and vectors preserve independent mutable locations; immutable pooling not constrained.
 3.5	Proper tail recursion	audited	tests/r7rs/tail-context-test.scm,tests/runtime/evaluator-test.cpp	Source contexts plus bounded continuation frames and same-machine eval; not a formal space proof.
-4.1.1	Variable references	inventory	tests/scheme/base	Base-language tests identified; further clause audit required.
-4.1.2	Literal expressions	inventory	tests/scheme/base	Base-language tests identified; further clause audit required.
-4.1.3	Procedure calls	inventory	tests/scheme/base	Base-language tests identified; further clause audit required.
-4.1.4	Procedures	inventory	tests/scheme/base	Base-language tests identified; further clause audit required.
-4.1.5	Conditionals	inventory	tests/scheme/base	Base-language tests identified; further clause audit required.
-4.1.6	Assignments	inventory	tests/scheme/base	Base-language tests identified; further clause audit required.
+4.1.1	Variable references	audited	tests/r7rs/audit/expressions.scm	One lexical closure example measured through standard eval; all variable-reference errors not audited.
+4.1.2	Literal expressions	audited	tests/r7rs/audit/expressions.scm	Quoted pairs and self-evaluating vectors, strings, booleans measured; literal mutation/sharing not constrained.
+4.1.3	Procedure calls	audited	tests/r7rs/audit/expressions.scm	Operator/operands evaluated once; permitted evaluation order remains unconstrained.
+4.1.4	Procedures	audited	tests/r7rs/audit/expressions.scm	Proper/dotted/identifier formals and captured locations sampled; invalid arities not exhaustively audited.
+4.1.5	Conditionals	audited	tests/r7rs/audit/expressions.scm	False versus zero/empty-list truth measured; unspecified one-branch result not constrained.
+4.1.6	Assignments	audited	tests/r7rs/audit/expressions.scm	Lexical assignment observed by a closure; imported/global assignment not certified.
 4.1.7	Inclusion	audited	tests/r7rs/include-case-test.scm	Library and expression include-ci follow reader directives; relative and nested includes, escaped symbols and strings tested.
-4.2.1	Conditionals	audited	tests/r7rs/tail-context-test.scm,tests/r7rs/library-feature-test.scm	case => tail calls and cond-expand feature/library requirements covered; no complete conditional clause audit.
-4.2.2	Binding constructs	audited	tests/r7rs/tail-context-test.scm	Tail-position lowering exercised; other semantics remain inventory.
-4.2.3	Sequencing	audited	tests/r7rs/tail-context-test.scm	Tail-position lowering exercised; other semantics remain inventory.
-4.2.4	Iteration	audited	tests/r7rs/tail-context-test.scm	Tail-position lowering exercised; other semantics remain inventory.
+4.2.1	Conditionals	audited	tests/r7rs/audit/expressions.scm,tests/r7rs/library-feature-test.scm,tests/r7rs/tail-context-test.scm	cond arrow plus prior case-tail and cond-expand probes; not every conditional syntax form.
+4.2.2	Binding constructs	audited	tests/r7rs/audit/expressions.scm,tests/r7rs/tail-context-test.scm	Parallel/sequential let, letrec and multiple-value binding sampled; earlier tail-path evidence retained.
+4.2.3	Sequencing	audited	tests/r7rs/audit/expressions.scm,tests/r7rs/tail-context-test.scm	begin ordering plus existing tail paths; not every zero/multiple-value sequence.
+4.2.4	Iteration	audited	tests/r7rs/audit/expressions.scm,tests/r7rs/tail-context-test.scm	Simultaneous do steps plus existing tail paths; not all iteration boundary cases.
 4.2.5	Delayed evaluation	audited	tests/r7rs/promise-test.scm,tests/runtime/evaluator-test.cpp	Nested values, reentrancy, multi-shot memoization, forwarding and bounded tail-force frames; forcing-time handler environments covered.
 4.2.6	Dynamic bindings	audited	tests/r7rs/parameter-test.scm,tests/r7rs/promise-test.scm	Converters run once on entry; restoration and continuation reentry preserve converted values; port parameters share the protocol.
 4.2.7	Exception handling	audited	tests/r7rs/exception-test.scm,tests/scheme/base/guard-test.scm	Matched clauses execute outside the protected extent; unmatched clauses forward at the original raising site and can resume.
-4.2.8	Quasiquotation	inventory	tests/expander/quasisyntax-test.scm	Quasisyntax coverage is related evidence; datum quasiquote needs dedicated audit.
+4.2.8	Quasiquotation	audited	tests/expander/quasisyntax-test.scm,tests/r7rs/audit/quasiquote.scm	Nine datum quasiquote probes: constants, splices, dotted/vector forms, depth, evaluation count and hygiene; allocation identity remains unspecified.
 4.2.9	Case-lambda	audited	tests/r7rs/tail-context-test.scm	Mutually recursive case-lambda tail path exercised; not all arity cases.
 4.3	Macro hygiene	audited	tests/r7rs/macro-hygiene-test.scm,tests/r7rs/library-loading-test.scm	Local binders, definition-site references and macro-introduced private top-level locations remain isolated between libraries.
 4.3.1	Binding syntactic keywords	audited	tests/r7rs/macro-hygiene-test.scm	let-syntax outer transformer scope and letrec-syntax mutual scope.
@@ -40,39 +40,39 @@ clause	area	status	evidence	boundary
 5.1	Programs	inventory	tests/native/native-workflow.scm	Native program execution covered by separate workflow.
 5.2	Import declarations	audited	tests/r7rs/library-loading-test.scm,tests/runtime/evaluator-test.cpp	Nested import sets and renamed re-exports retain shared variable locations, including across GC.
 5.3.1	Top-level definitions	inventory	tests/scheme/base	Existing base tests; macro-generated internal definition covered by hygiene audit.
-5.3.2	Internal definitions	inventory	tests/scheme/base	Existing base tests; macro-generated internal definition covered by hygiene audit.
-5.3.3	Multiple-value definitions	inventory	tests/scheme/base	Existing base tests; macro-generated internal definition covered by hygiene audit.
-5.4	Syntax definitions	inventory	tests/scheme/base	Existing base tests; macro-generated internal definition covered by hygiene audit.
-5.5	Record-type definitions	inventory	tests/scheme/base	Existing base tests; macro-generated internal definition covered by hygiene audit.
+5.3.2	Internal definitions	partial	tests/r7rs/audit/definitions.scm	Sequential, mutually recursive and macro-spliced ordinary definitions pass through eval; internal multiple-value/record defects tracked in 5.3.3 and 5.5.
+5.3.3	Multiple-value definitions	partial	tests/r7rs/audit/definitions.scm	Proper/empty define-values pass; dotted and identifier-only internal bindings are unbound in standard eval.
+5.4	Syntax definitions	audited	tests/r7rs/audit/definitions.scm	Internal definition-producing syntax measured; earlier macro hygiene evidence retained, not full definition-context grammar.
+5.5	Record-type definitions	partial	tests/r7rs/audit/definitions.scm	Valid internal record constructor/predicate/accessor/mutator body fails through standard eval; other record contexts not certified.
 5.6.1	Library syntax	audited	tests/r7rs/library-declarations-test.scm,tests/r7rs/numbered-library-test.scm,tests/r7rs/include-case-test.scm,tests/r7rs/include-declarations-test.scm,tests/r7rs/conditional-library-test.scm	Numeric names, nested declarations, relative includes, clause order, errors and cold/warm replay covered; exported locations covered by 5.2.
 5.6.2	Library example	audited	tests/r7rs/library-loading-test.scm	Provider precedes consumer; re-export procedure identity and private macro reference.
 5.7	REPL	inventory	tools/test-native-workflow.sh	Stateful native REPL smoke; no exhaustive interactive semantics audit.
-6.1	Equivalence predicates	inventory	tests/scheme/base	Existing eq?/eqv?/equal? coverage; numeric and graph boundaries need clause audit.
-6.2.1	Numerical types	inventory	tests/scheme/base,tests/runtime/reader-test.cpp	Prior numeric work is inventory evidence; not re-certified by this audit.
-6.2.2	Exactness	inventory	tests/scheme/base,tests/runtime/reader-test.cpp	Prior numeric work is inventory evidence; not re-certified by this audit.
-6.2.3	Implementation restrictions	inventory	tests/scheme/base,tests/runtime/reader-test.cpp	Prior numeric work is inventory evidence; not re-certified by this audit.
+6.1	Equivalence predicates	partial	tests/r7rs/audit/equivalence.scm	Twelve probes include cyclic unfolding and permitted unspecified choices; equal? exactness and eqv? signed-zero distinctions fail.
+6.2.1	Numerical types	audited	tests/r7rs/audit/numeric.scm,tests/runtime/reader-test.cpp	Hierarchy, rectangular complex arithmetic and optional IEEE non-finite predicates sampled; not all numeric representations.
+6.2.2	Exactness	audited	tests/r7rs/audit/numeric.scm,tests/runtime/reader-test.cpp	Representative exact rational operations and inexact propagation measured; not every operation/precision boundary.
+6.2.3	Implementation restrictions	audited	tests/r7rs/audit/numeric.scm,tests/runtime/reader-test.cpp	200-bit exact arithmetic measured; no unbounded-resource guarantee or complete implementation-restriction audit.
 6.2.4	Implementation extensions	partial	tests/liii/bitwise/bignum-test.scm,tests/srfi/srfi-151-test.scm,tests/scheme/base	SRFI 151 exact-integer bitwise extensions audited; other optional numeric behavior retains prior inventory status.
-6.2.5	Syntax of numerical constants	inventory	tests/scheme/base,tests/runtime/reader-test.cpp	Prior numeric work is inventory evidence; not re-certified by this audit.
-6.2.6	Numerical operations	inventory	tests/scheme/base,tests/runtime/reader-test.cpp	Prior numeric and rationalize work is inventory evidence; not re-certified by this audit.
-6.2.7	Numerical input and output	inventory	tests/scheme/base,tests/runtime/reader-test.cpp	Prior numeric work is inventory evidence; not re-certified by this audit.
-6.3	Booleans	inventory	tests/scheme/base	Existing data tests; continuation-safe vector mapping audited separately.
-6.4	Pairs and lists	inventory	tests/scheme/base	Existing data tests; continuation-safe vector mapping audited separately.
-6.5	Symbols	inventory	tests/scheme/base	Existing data tests; continuation-safe vector mapping audited separately.
-6.6	Characters	inventory	tests/scheme/base	Existing data tests; continuation-safe vector mapping audited separately.
-6.7	Strings	inventory	tests/scheme/base	Existing data tests; continuation-safe vector mapping audited separately.
-6.8	Vectors	inventory	tests/scheme/base	Existing data tests; continuation-safe vector mapping audited separately.
-6.9	Bytevectors	inventory	tests/scheme/base	Existing data tests; continuation-safe vector mapping audited separately.
-6.10	Control features	audited	tests/r7rs/continuation-test.scm,tests/runtime/evaluator-test.cpp	Multi-shot and zero/multiple values; dynamic-wind transitions; map result independence and shortest vector inputs.
-6.11	Exceptions	audited	tests/r7rs/exception-test.scm,tests/scheme/base/error-object-test.scm,tests/runtime/evaluator-test.cpp	Resumable multiple values, handler masking and reentry, raising dynamic environments, non-continuable secondary errors and native error objects.
-6.12	Environments and evaluation	audited	tests/runtime/evaluator-test.cpp,tests/scheme/eval/eval-test.scm,tests/scheme/eval/environment-test.scm	Native eval tail execution stays on the current machine.
-6.13.1	Ports	inventory	tests/scheme/base	Existing native tests identified; not part of this focused audit.
-6.13.2	Input	inventory	tests/scheme/read	Existing native tests identified; not part of this focused audit.
-6.13.3	Output	inventory	tests/scheme/write	Existing native tests identified; not part of this focused audit.
+6.2.5	Syntax of numerical constants	partial	tests/r7rs/audit/numeric.scm,tests/r7rs/audit/reader.scm,tests/runtime/reader-test.cpp	string->number prefix/radix/complex samples pass, but read returns unspecified values for prefixed numbers.
+6.2.6	Numerical operations	audited	tests/r7rs/audit/numeric.scm,tests/runtime/reader-test.cpp	Signed division, rational arithmetic, rounding, rationalize, integer sqrt and 2^53 mixed comparisons sampled; transcendental branch cuts not covered.
+6.2.7	Numerical input and output	audited	tests/r7rs/audit/numeric.scm,tests/runtime/reader-test.cpp	Large exact values in four radices and selected rational/complex/inexact text round trips measured; NaN payloads not constrained.
+6.3	Booleans	audited	tests/r7rs/audit/data.scm	Only-false truth and boolean comparison sampled; other predicates not exhaustively enumerated.
+6.4	Pairs and lists	partial	tests/r7rs/audit/data.scm,tests/r7rs/audit/list-cycle.scm	Mutation, copy, append sharing, legal list tails and comparators pass; circular list? does not terminate in isolated probe.
+6.5	Symbols	audited	tests/r7rs/audit/data.scm	Unicode/escaped symbol conversion and case-sensitive comparison sampled; symbol/string mutation aliasing not covered.
+6.6	Characters	partial	tests/r7rs/audit/data.scm,tests/r7rs/audit/reader.scm	Unicode scalar comparison/conversion samples pass; digit-value fails for a supported Arabic-Indic decimal digit.
+6.7	Strings	partial	tests/r7rs/audit/data.scm,tests/r7rs/audit/reader.scm	Unicode character indices, mutation, ranges and overlap pass; full sharp-s folding/case-insensitive comparison fails.
+6.8	Vectors	audited	tests/r7rs/audit/data.scm	Overlap, range and string/vector conversion measured; earlier shortest-input/continuation mapping evidence retained.
+6.9	Bytevectors	partial	tests/r7rs/audit/data.scm	Valid UTF-8/range/append samples pass; rightward overlapping bytevector-copy! corrupts source bytes.
+6.10	Control features	audited	tests/r7rs/audit/data.scm,tests/r7rs/continuation-test.scm,tests/runtime/evaluator-test.cpp	String traversal/shortest-input mapping plus earlier continuation probes; not all callback continuation combinations.
+6.11	Exceptions	partial	tests/r7rs/audit/ports.scm,tests/r7rs/audit/reader.scm,tests/r7rs/exception-test.scm,tests/runtime/evaluator-test.cpp,tests/scheme/base/error-object-test.scm	Prior handler/continuation semantics remain measured; read-error? and file-error? classification fail on required errors.
+6.12	Environments and evaluation	partial	tests/r7rs/audit/definitions.scm,tests/runtime/evaluator-test.cpp,tests/scheme/eval/environment-test.scm,tests/scheme/eval/eval-test.scm	Prior same-machine tail eval plus new valid body tests; dotted/all define-values and internal record bindings fail in standard eval.
+6.13.1	Ports	partial	tests/r7rs/audit/ports.scm	Memory/file port predicates permit textual/binary overlap; repeated close, call-with-port multiple values and file-error classification fail.
+6.13.2	Input	partial	tests/r7rs/audit/ports.scm,tests/r7rs/audit/reader.scm	Unicode peek/read, readiness and short reads sampled; lone-CR read-line, read-error classification and read-bytevector! EOF fail.
+6.13.3	Output	partial	tests/r7rs/audit/ports.scm	Unicode/byte output ranges and finite round trips pass; no-argument flush-output-port fails; devices/encodings not fully audited.
 6.14	System interface	inventory	tests/scheme/process-context-test.scm	Existing native tests identified; not part of this focused audit.
-7.1.1	Lexical structure	unverified	goldfish/expander/lib,src/runtime/reader.cpp	No systematic comparison against the formal grammar yet.
+7.1.1	Lexical structure	partial	src/runtime/reader.cpp,tests/r7rs/audit/reader.scm	Selected lexical samples measured; spaced string continuations and numeric-prefix public reads fail, no exhaustive grammar cross-product.
 7.1.2	External representations	unverified	goldfish/expander/lib,src/runtime/reader.cpp	No systematic comparison against the formal grammar yet.
 7.1.3	Expressions	unverified	goldfish/expander/lib,src/runtime/reader.cpp	No systematic comparison against the formal grammar yet.
-7.1.4	Quasiquotations	unverified	goldfish/expander/lib,src/runtime/reader.cpp	No systematic comparison against the formal grammar yet.
+7.1.4	Quasiquotations	audited	src/runtime/reader.cpp,tests/r7rs/audit/quasiquote.scm	Nested/dotted/vector quasiquote examples measured; not a complete recursive grammar proof.
 7.1.5	Transformers	unverified	goldfish/expander/lib,src/runtime/reader.cpp	No systematic comparison against the formal grammar yet.
 7.1.6	Programs and definitions	unverified	goldfish/expander/lib,src/runtime/reader.cpp	No systematic comparison against the formal grammar yet.
 7.1.7	Libraries	unverified	goldfish/expander/lib,src/runtime/reader.cpp	No systematic comparison against the formal grammar yet.
@@ -81,22 +81,22 @@ clause	area	status	evidence	boundary
 7.2.3	Semantic functions	unverified	src/runtime/evaluator.cpp	No mechanized refinement or formal equivalence proof.
 7.2.4	Auxiliary functions	unverified	src/runtime/evaluator.cpp	No mechanized refinement or formal equivalence proof.
 7.3	Derived expression definitions	audited	goldfish/expander/lib/standard.scm,tests/r7rs/parameter-test.scm	Tail contexts and parameterize restoration tested.
-A	Standard libraries	inventory	goldfish/scheme	Library inventory exists; export-set conformance has not been exhaustively checked.
-A.base	(scheme base)	inventory	goldfish/scheme/base.scm	Library source present; complete standard export set and per-procedure conformance not audited.
-A.case-lambda	(scheme case-lambda)	inventory	goldfish/scheme/case-lambda.scm	Library source present; complete standard export set and per-procedure conformance not audited.
-A.char	(scheme char)	inventory	goldfish/scheme/char.scm	Library source present; complete standard export set and per-procedure conformance not audited.
-A.complex	(scheme complex)	inventory	goldfish/scheme/complex.scm	Library source present; complete standard export set and per-procedure conformance not audited.
-A.cxr	(scheme cxr)	inventory	goldfish/scheme/cxr.scm	Library source present; complete standard export set and per-procedure conformance not audited.
-A.eval	(scheme eval)	inventory	goldfish/scheme/eval.scm	Library source present; complete standard export set and per-procedure conformance not audited.
-A.file	(scheme file)	inventory	goldfish/scheme/file.scm	Library source present; complete standard export set and per-procedure conformance not audited.
-A.inexact	(scheme inexact)	inventory	goldfish/scheme/inexact.scm	Library source present; complete standard export set and per-procedure conformance not audited.
-A.lazy	(scheme lazy)	inventory	goldfish/scheme/lazy.scm	Library source present; complete standard export set and per-procedure conformance not audited.
-A.load	(scheme load)	inventory	goldfish/scheme/load.scm	Library source present; complete standard export set and per-procedure conformance not audited.
-A.process-context	(scheme process-context)	inventory	goldfish/scheme/process-context.scm	Library source present; complete standard export set and per-procedure conformance not audited.
-A.read	(scheme read)	inventory	goldfish/scheme/read.scm	Library source present; complete standard export set and per-procedure conformance not audited.
-A.repl	(scheme repl)	inventory	goldfish/scheme/repl.scm	Library source present; complete standard export set and per-procedure conformance not audited.
-A.time	(scheme time)	inventory	goldfish/scheme/time.scm	Library source present; complete standard export set and per-procedure conformance not audited.
-A.write	(scheme write)	inventory	goldfish/scheme/write.scm	Library source present; complete standard export set and per-procedure conformance not audited.
-A.r5rs	(scheme r5rs)	inventory	goldfish/scheme/r5rs.scm	Library source present; complete standard export set and per-procedure conformance not audited.
+A	Standard libraries	partial	tests/r7rs/audit/exports.scm,tests/r7rs/fixtures/standard-exports.scm	Sixteen provided standard libraries loaded and required exports compared to independent Appendix A data; r5rs lacks five names; availability is not semantic conformance.
+A.base	(scheme base)	partial	tests/r7rs/audit/data.scm,tests/r7rs/audit/definitions.scm,tests/r7rs/audit/equivalence.scm,tests/r7rs/audit/exports.scm,tests/r7rs/audit/list-cycle.scm,tests/r7rs/audit/ports.scm	238 required exports plus 17 extensions; internal bindings, numeric equivalence, cyclic list?, bytevector overlap and port gaps remain.
+A.case-lambda	(scheme case-lambda)	audited	goldfish/scheme/case-lambda.scm,tests/r7rs/audit/exports.scm	All required Appendix A exports are present; per-procedure semantics are not certified by availability.
+A.char	(scheme char)	partial	tests/r7rs/audit/data.scm,tests/r7rs/audit/exports.scm	All required exports present; semantic gaps are recorded by exact probe ID in R7RS-SEMANTIC-AUDIT.tsv; remaining procedures not exhaustively audited.
+A.complex	(scheme complex)	audited	goldfish/scheme/complex.scm,tests/r7rs/audit/exports.scm	All required Appendix A exports are present; per-procedure semantics are not certified by availability.
+A.cxr	(scheme cxr)	audited	goldfish/scheme/cxr.scm,tests/r7rs/audit/exports.scm	All required Appendix A exports are present; per-procedure semantics are not certified by availability.
+A.eval	(scheme eval)	partial	tests/r7rs/audit/definitions.scm,tests/r7rs/audit/exports.scm	All required exports present; semantic gaps are recorded by exact probe ID in R7RS-SEMANTIC-AUDIT.tsv; remaining procedures not exhaustively audited.
+A.file	(scheme file)	partial	tests/r7rs/audit/exports.scm,tests/r7rs/audit/ports.scm	All required exports present; semantic gaps are recorded by exact probe ID in R7RS-SEMANTIC-AUDIT.tsv; remaining procedures not exhaustively audited.
+A.inexact	(scheme inexact)	audited	goldfish/scheme/inexact.scm,tests/r7rs/audit/exports.scm	All required Appendix A exports are present; per-procedure semantics are not certified by availability.
+A.lazy	(scheme lazy)	audited	goldfish/scheme/lazy.scm,tests/r7rs/audit/exports.scm	All required Appendix A exports are present; per-procedure semantics are not certified by availability.
+A.load	(scheme load)	audited	goldfish/scheme/load.scm,tests/r7rs/audit/exports.scm	All required Appendix A exports are present; per-procedure semantics are not certified by availability.
+A.process-context	(scheme process-context)	audited	goldfish/scheme/process-context.scm,tests/r7rs/audit/exports.scm	All required Appendix A exports are present; per-procedure semantics are not certified by availability.
+A.read	(scheme read)	partial	tests/r7rs/audit/exports.scm,tests/r7rs/audit/reader.scm	All required exports present; semantic gaps are recorded by exact probe ID in R7RS-SEMANTIC-AUDIT.tsv; remaining procedures not exhaustively audited.
+A.repl	(scheme repl)	audited	goldfish/scheme/repl.scm,tests/r7rs/audit/exports.scm	All required Appendix A exports are present; per-procedure semantics are not certified by availability.
+A.time	(scheme time)	audited	goldfish/scheme/time.scm,tests/r7rs/audit/exports.scm	Three standard exports plus eight clock extensions; epoch, frequency and resolution semantics remain unaudited.
+A.write	(scheme write)	audited	goldfish/scheme/write.scm,tests/r7rs/audit/exports.scm	All required Appendix A exports are present; per-procedure semantics are not certified by availability.
+A.r5rs	(scheme r5rs)	partial	goldfish/scheme/r5rs.scm,tests/r7rs/audit/exports.scm	Five required exports missing: ... => _ else syntax-rules; provided optional libraries do not excuse these omissions.
 B	Standard feature identifiers	audited	goldfish/expander/lib/cond-expand.scm,tests/r7rs/library-feature-test.scm	r7rs and goldfish features; library queries recognize registered libraries and matching source declarations without executing bodies; full optional feature inventory remains unaudited.
 implementation.cache	Bootstrap cache freshness	audited	tests/runtime/native-cache-test.cpp,tools/test-bootstrap-cache.sh	Current pipeline identity plus all source, kernel and dependency stamps checked before artifact replay; malformed cache records recover through source bootstrap.
