@@ -80,5 +80,15 @@
 (check (copy '()) => '())
 (check (copy "") => "")
 
+(let ((target (make-string 3)))
+  (copy "Aé中🐟Z" target 1 4)
+  (check target => "é中🐟"))
+(let ((target (make-vector 3)))
+  (copy "Aé中🐟Z" target 1 4)
+  (check target => (vector #\é #\中 #\🐟)))
+(let ((target (make-string 3)))
+  (copy (vector #\é #\中 #\🐟) target)
+  (check target => "é中🐟"))
+
 
 (check-report)

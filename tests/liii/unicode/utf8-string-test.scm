@@ -38,10 +38,10 @@
 (check (utf8-string #\🐟 #\中 #\文) => "🐟中文")
 
 
-;; 字节长度测试
-(check (string-length (utf8-string #\中)) => 3)
-(check (string-length (utf8-string #\中 #\文)) => 6)
-(check (string-length (utf8-string #\a #\中 #\文)) => 7)
+;; 字符长度测试
+(check (string-length (utf8-string #\中)) => 1)
+(check (string-length (utf8-string #\中 #\文)) => 2)
+(check (string-length (utf8-string #\a #\中 #\文)) => 3)
 
 
 ;; 兼容性测试

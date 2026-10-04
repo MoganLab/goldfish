@@ -159,6 +159,43 @@ int main() {
     TinyReader nan_order_reader(evaluator, "(<= +nan.0 1.0)");
     assert(!evaluator.eval(*nan_order_reader.read()).as_boolean());
 
+    // Exercise native primitives independently of the Scheme ABI adapters.
+    for (const char* expression : {
+             R"((= (string-length "Aé中🐟") 4))",
+             R"((char=? (string-ref "Aé中🐟" 2) #\中))",
+             R"((equal? (string->list "é中🐟") (list #\é #\中 #\🐟)))",
+             R"((equal? (string #\é #\中 #\🐟) "é中🐟"))",
+             R"((let ((p (open-input-string "é中🐟")))
+                    (equal? (list (peek-char p) (read-char p) (read-string 1 p)
+                                  (read-char p) (eof-object? (read-char p)))
+                            (list #\é #\é "中" #\🐟 #t))))",
+             R"((begin (define unicode-seen '())
+                    (string-for-each
+                        (lambda (c) (set! unicode-seen (cons c unicode-seen)))
+                        "é中🐟")
+                    (equal? unicode-seen (list #\🐟 #\中 #\é))))",
+             R"((begin (define unicode-k #f) (define unicode-resumed #f)
+                    (define unicode-seen '())
+                    (string-for-each
+                        (lambda (c)
+                            (set! unicode-seen (cons c unicode-seen))
+                            (if (char=? c #\中)
+                                (call/cc (lambda (k) (set! unicode-k k))) #f))
+                        "é中🐟")
+                    (if unicode-resumed
+                        (equal? unicode-seen (list #\🐟 #\🐟 #\中 #\é))
+                        (begin (set! unicode-resumed #t) (unicode-k #f)))))"}) {
+        TinyReader unicode_reader(evaluator, expression);
+        Value result;
+        try {
+            result = evaluator.eval(*unicode_reader.read());
+        } catch (const RaisedValue&) {
+            throw std::runtime_error(std::string("Unicode primitive raised: ") + expression);
+        }
+        if (!result.is_boolean() || !result.as_boolean())
+            throw std::runtime_error(std::string("Unicode primitive regression: ") + expression);
+    }
+
     Value file_port = evaluator.apply_values(
         evaluator.eval(evaluator.symbol("open-input-file")),
         {evaluator.string("tests/runtime/fixtures/lowered-artifact.scm")})[0];

@@ -111,10 +111,10 @@
 ;; start / end 越界 -> out-of-range
 (check-catch 'out-of-range (string->utf8 "abc" -1))
 (check-catch 'out-of-range (string->utf8 "Hello" 2 6))
-(check-catch 'out-of-range (string->utf8 "汉字书写" 4))
+(check-catch 'out-of-range (string->utf8 "汉字书写" 5))
 
-;; start == N（等于串长，非合法切片位置）-> out-of-range
-(check-catch 'out-of-range (string->utf8 "Hello" 5))
+;; start == N produces an empty slice.
+(check (string->utf8 "Hello" 5) => #u8())
 
 ;; start > end -> out-of-range
 (check-catch 'out-of-range (string->utf8 "Hello" 3 2))

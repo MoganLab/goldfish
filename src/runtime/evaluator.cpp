@@ -1,4 +1,5 @@
 #include "runtime/evaluator.hpp"
+#include "runtime/utf8.hpp"
 
 #include <cstdlib>
 #include <fstream>
@@ -437,9 +438,12 @@ Values Evaluator::run_machine(EvalSnapshot& state) {
                     std::string text = string_value(arguments[i]);
                     std::vector<Value> characters;
                     characters.reserve(text.size());
-                    for (unsigned char byte : text)
-                        characters.push_back(
-                            character(static_cast<char32_t>(byte)));
+                    for (std::size_t position = 0; position < text.size();) {
+                        std::size_t width = 0;
+                        characters.push_back(character(
+                            utf8_character_at(text, position, width)));
+                        position += width;
+                    }
                     frame.expressions.push_back(list(characters));
                 }
                 advance_hof(std::move(frame));

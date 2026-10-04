@@ -42,12 +42,11 @@
 (check (string-copy "hello" 1 4) => "ell")
 (check (string-copy "hello" 2 3) => "l")
 (check (string-copy "hello" 3 3) => "")
-;; 中文字符串（UTF-8，每个字符3字节）
+;; 中文字符串按字符索引
 (check (string-copy "你好世界") => "你好世界")
-;; "你好世界" - "你"=3字节, "好"=3字节, "世"=3字节, "界"=3字节
-(check (string-copy "你好世界" 3) => "好世界")
-(check (string-copy "你好世界" 6) => "世界")
-(check (string-copy "你好世界" 0 3) => "你")
-(check (string-copy "你好世界" 3 6) => "好")
-(check (string-copy "你好世界" 0 6) => "你好")
+(check (string-copy "你好世界" 1) => "好世界")
+(check (string-copy "你好世界" 2) => "世界")
+(check (string-copy "你好世界" 0 1) => "你")
+(check (string-copy "你好世界" 1 2) => "好")
+(check (string-copy "你好世界" 0 2) => "你好")
 (check-report)

@@ -28,13 +28,11 @@
 ;; 说明
 ;; ----
 ;; 1. substring 基于字符位置（而非 Unicode 码点位置）进行提取。
-;; 2. 对于包含多字节字符（如中文）的字符串，建议使用 utf8-substring。
-;;    使用 `gf doc utf8-substring` 可查看 utf8-substring 的文档和用法。
+;; 2. 包含多字节字符（如中文）的字符串也按字符索引切片。
 ;;
 ;; 注意
 ;; ----
-;; substring 是 R7RS (scheme base) 标准函数，不支持 UTF-8 多字节字符的正确拆分。
-;; 如果需要处理 Unicode 字符串，请使用 utf8-substring。
+;; substring 是 R7RS (scheme base) 标准函数，返回完整的 Unicode 字符。
 ;;
 ;; 错误处理
 ;; ----

@@ -35,5 +35,8 @@
 (check-false (string-position "" "hello"))
 (check-false (string-position "abc" "0123456789"))
 (check (string-position "34" "0123434567" 4) => 5)
+(check (string-position "中🐟" "Aé中🐟Z") => 2)
+(check (string-position "é" "é中é🐟" 1) => 2)
+(check (string-position "🐟" "Aé中🐟Z" 4) => #f)
 
 (check-report)

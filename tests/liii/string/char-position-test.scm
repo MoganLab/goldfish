@@ -29,16 +29,18 @@
 ;; 这是 s7 内置函数，(liii string) 重新导出以便统一使用。
 ;; 与 string-position 不同，char-position 支持按字符查找。
 ;;
-;; 局限性
-;; ----
-;; char-position 按字节匹配，不支持 Unicode 字符。查找多字节 UTF-8 字符时会返回 #f。
+;; 返回值和 start 均使用 Unicode 字符索引。
 
 (check (char-position #\o "hello world") => 4)
 (check (char-position #\z "hello world") => #f)
 (check (char-position #\h "hello") => 0)
 (check (char-position #\o "hello world" 5) => 7)
 (check-true (integer? (char-position #\a "abc")))
-(check (char-position #\你 "你好世界") => #f)
+(check (char-position #\你 "你好世界") => 0)
+(check (char-position #\🐟 "é中🐟Z") => 2)
+(check (char-position #\é "é中é🐟" 1) => 2)
+(check (char-position "🐟中" "Aé中🐟") => 2)
+(check (char-position #\é "é中🐟Z" 4) => #f)
 
 ;; 第一个参数为 string? 时，查找字符集中任意字符首次出现的位置
 (check (char-position "aeiou" "hello world") => 1)

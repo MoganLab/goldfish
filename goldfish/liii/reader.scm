@@ -307,34 +307,6 @@
   (let ((rdelim (if (null? args) #\" (car args))))
     (g-read-string port rdelim)))
 
-;; decode a UTF-8 codepoint from the port; the leading byte b1 has already
-;; been read.  S7 ports are byte-oriented (read-char returns one byte), so a
-;; non-ASCII character literal must be decoded explicitly.
-(define (read-utf8-char port b1)
-  (define (byte)
-    (let ((c (next port)))
-      (if (eof-object? c)
-        (error 'read-error "invalid UTF-8 sequence in character")
-        (let ((b (char->integer c)))
-          (if (<= 128 b 191)
-            b
-            (error 'read-error "invalid UTF-8 sequence in character"))))))
-  (let ((v (cond
-             ((<= b1 223)
-              (+ (* (- b1 192) 64) (- (byte) 128)))
-             ((<= b1 239)
-              (+ (* (- b1 224) 4096) (* (- (byte) 128) 64) (- (byte) 128)))
-             (else
-              (+ (* (- b1 240) 262144) (* (- (byte) 128) 4096)
-                 (* (- (byte) 128) 64) (- (byte) 128))))))
-    (integer->char v)))
-
-(define (read-utf8-port-char port)
-  (let ((ch (next port)))
-    (if (or (eof-object? ch) (< (char->integer ch) 128))
-      ch
-      (read-utf8-char port (char->integer ch)))))
-
 (define (read-character port)
   (let ((ch (next port)))
     (cond
@@ -352,8 +324,6 @@
            (entry (cdr entry))
            ((= (string-length token) 1) ch)
            (else (error 'read-error "invalid character" token)))))
-      ((>= (char->integer ch) 128)
-       (read-utf8-char port (char->integer ch)))
       (else ch))))
 
 (define (read-label port n)
@@ -469,7 +439,7 @@
 (define (read-raw-delimiter port)
   ;; the opening " has been consumed; the delimiter runs to the next "
   (let loop ((acc '()))
-    (let ((ch (read-utf8-port-char port)))
+    (let ((ch (next port)))
       (cond
         ((eof-object? ch) (error 'read-error "unterminated raw string delimiter"))
         ((eqv? ch #\") (list->string (reverse acc)))
@@ -490,7 +460,7 @@
     (letrec ((fill (lambda (la n)
                      (if (= n need)
                        la
-                       (let ((ch (read-utf8-port-char port)))
+                       (let ((ch (next port)))
                          (if (eof-object? ch)
                            la
                            (fill (append la (list ch)) (+ n 1)))))))

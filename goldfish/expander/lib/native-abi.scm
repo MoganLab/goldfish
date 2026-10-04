@@ -55,19 +55,7 @@
 
 ;;; ---- binary I/O -----------------------------------------------------
 
-(define (read-u8 . maybe-port)
-  (let ((p (if (pair? maybe-port) (car maybe-port) (current-input-port))))
-    (let ((c (read-char p)))
-      (if (eof-object? c) c (char->integer c)))))
-
-(define (peek-u8 . maybe-port)
-  (let ((p (if (pair? maybe-port) (car maybe-port) (current-input-port))))
-    (let ((c (peek-char p)))
-      (if (eof-object? c) c (char->integer c)))))
-
-(define (write-u8 byte . maybe-port)
-  (let ((p (if (pair? maybe-port) (car maybe-port) (current-output-port))))
-    (write-char (integer->char byte) p)))
+;; Byte primitives access the port buffer directly, independently of UTF-8.
 
 (define (write-bytevector bv . rest)
   ;; R7RS: (write-bytevector bv [port [start [end]]])
@@ -115,10 +103,6 @@
 (define (open-output-bytevector)
   (open-output-string))
 
-(define (get-output-bytevector p)
-  (u8-list->bytevector
-    (map char->integer (string->list (get-output-string p)))))
-
 ;;; R7RS write-shared/write-simple: native already provides both
 ;;; (standard_primitives), so nothing to alias here.
 
@@ -127,7 +111,7 @@
 (define (bytevector-length x)
   (cond
     ((bytevector? x) (length (bytevector->u8-list x)))
-    ((string? x) (string-length x))
+    ((string? x) (bytevector-length (string->utf8 x)))
     ((vector? x) (vector-length x))
     ((list? x) (length x))
     (else #f)))
@@ -233,8 +217,8 @@
            (logior 128 (logand cp 63))))))
 
 (define (utf8-string->chars str)
-  (let ((bv (string->utf8 str))
-        (len (string-length str)))
+  (let* ((bv (string->utf8 str))
+         (len (bytevector-length bv)))
     (let loop ((pos 0) (acc '()))
       (if (>= pos len)
         (reverse acc)
@@ -257,8 +241,8 @@
 (define (utf8-string-length str)
   (if (not (string? str))
     (error 'wrong-type-arg "utf8-string-length expects a string" str)
-    (let ((bv (string->utf8 str))
-          (n (string-length str)))
+    (let* ((bv (string->utf8 str))
+           (n (bytevector-length bv)))
       (if (zero? n)
         0
         (let loop ((pos 0) (cnt 0))
