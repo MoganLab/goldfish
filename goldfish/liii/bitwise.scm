@@ -29,6 +29,19 @@
     bit-field-every?
     bit-field-clear
     bit-field-set
+    bit-field-replace
+    bit-field-replace-same
+    bit-field-rotate
+    bit-field-reverse
+    bits->list
+    list->bits
+    bits->vector
+    vector->bits
+    bits
+    bitwise-fold
+    bitwise-for-each
+    bitwise-unfold
+    make-bitwise-generator
   ) ;export
   (begin
     (define bitwise-or bitwise-ior)

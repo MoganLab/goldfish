@@ -34,15 +34,15 @@
 ;; 实现说明
 ;; --------
 ;; - bit-set? 是 SRFI 151 标准定义的函数，提供标准化的位运算接口
-;; - 使用 S7 Scheme 内置的位运算函数实现
-;; - 支持64位整数范围，位索引范围为0到63
+;; - 使用原生精确整数位运算实现
+;; - 支持任意精确整数，位索引为非负精确整数
 ;;
 ;; 错误
 ;; ----
 ;; wrong-type-arg
 ;; 当参数不是整数时抛出错误。
 ;; out-of-range
-;; 当位索引超出有效范围（0-63）时抛出错误。
+;; 当位索引为负数或位字段的起始位置大于结束位置时抛出错误。
 
 
 
@@ -118,8 +118,8 @@
 
 ;; ; 错误处理测试 - out-of-range
 (check-catch 'out-of-range (bit-set? -1 1))
-(check-catch 'out-of-range (bit-set? 64 1))
-(check-catch 'out-of-range (bit-set? 100 1))
+(check (bit-set? 64 1) => #f)
+(check (bit-set? 100 1) => #f)
 (check-catch 'out-of-range (bit-set? -100 1))
 
 

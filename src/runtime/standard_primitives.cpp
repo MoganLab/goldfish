@@ -101,6 +101,16 @@ bool integer_value(Value value, BigInteger& result) {
     return true;
 }
 
+BigInteger exact_integer(Value value, const char* name) {
+    if (value.is_integer()) return BigInteger(value.as_integer());
+    if (is_number(value)) {
+        const Number number = number_value(value);
+        if (number.is_exact() && number.is_integer())
+            return number.real.numerator;
+    }
+    throw std::runtime_error(std::string(name) + " expects exact integers");
+}
+
 BigInteger truncate_real_quotient(const Number& dividend,
                                  const Number& divisor) {
     Number ratio = number_divide(dividend, divisor);
@@ -924,54 +934,57 @@ void install_runtime_primitives(Evaluator& evaluator) {
         return Values{evaluator.list(args[0].as_object<ErrorObject>()->irritants)};
     });
     // Integer atoms used by the kernel and by the bootstrap libraries.
-    install(evaluator, "lognot", [](const Values& args) {
+    install(evaluator, "lognot", [&evaluator](const Values& args) {
         require_arity(args, 1, "lognot");
-        if (!args[0].is_integer())
-            throw std::runtime_error("lognot expects an integer");
-        return Values{Value::integer(~args[0].as_integer())};
+        const BigInteger value = exact_integer(args[0], "lognot");
+        return Values{evaluator.number(Number::exact(-value - BigInteger(1)))};
     });
     for (const char* name : {"logand", "logior", "logxor"}) {
-        install(evaluator, name, [name](const Values& args) {
-            if (args.empty())
-                throw std::runtime_error(std::string(name) +
-                                         " expects at least one argument");
-            for (Value value : args)
-                if (!value.is_integer())
-                    throw std::runtime_error(std::string(name) +
-                                             " expects integers");
-            std::int64_t result = args[0].as_integer();
-            for (std::size_t i = 1; i < args.size(); ++i) {
-                const std::int64_t value = args[i].as_integer();
-                if (std::string(name) == "logand") result &= value;
-                else if (std::string(name) == "logior") result |= value;
-                else result ^= value;
+        install(evaluator, name, [name, &evaluator](const Values& args) {
+            const bool is_and = std::strcmp(name, "logand") == 0;
+            const bool is_or = std::strcmp(name, "logior") == 0;
+            boost::multiprecision::cpp_int result = is_and ? -1 : 0;
+            // Unchecked cpp_int bitwise operations use infinite two's complement.
+            for (Value argument : args) {
+                const BigInteger value = exact_integer(argument, name);
+                if (is_and) result &= value.native();
+                else if (is_or) result |= value.native();
+                else result ^= value.native();
             }
-            return Values{Value::integer(result)};
+            return Values{evaluator.number(Number::exact(BigInteger(std::move(result))))};
         });
     }
-    install(evaluator, "ash", [](const Values& args) {
+    install(evaluator, "ash", [&evaluator](const Values& args) {
         require_arity(args, 2, "ash");
-        if (!args[0].is_integer() || !args[1].is_integer())
-            throw std::runtime_error("ash expects integers");
-        const std::int64_t value = args[0].as_integer();
-        const std::int64_t shift = args[1].as_integer();
-        if (shift >= 0) {
-            if (shift >= 63) return Values{Value::integer(0)};
-            return Values{Value::integer(static_cast<std::int64_t>(
-                static_cast<std::uint64_t>(value) << shift))};
+        const BigInteger value = exact_integer(args[0], "ash");
+        const BigInteger shift = exact_integer(args[1], "ash");
+        if (shift.is_zero() || value.is_zero()) return Values{args[0]};
+        const bool negative = value.negative();
+        boost::multiprecision::cpp_int result;
+        if (shift.negative()) {
+            // Shift the complement so negative division rounds towards minus infinity.
+            result = value.native();
+            if (negative) result = -result - 1;
+            const std::uint64_t width = result == 0 ? 0 :
+                static_cast<std::uint64_t>(boost::multiprecision::msb(result)) + 1;
+            const BigInteger amount = -shift;
+            if (amount >= BigInteger(static_cast<std::int64_t>(width)))
+                return Values{Value::integer(negative ? -1 : 0)};
+            result >>= static_cast<unsigned>(amount.to_int64());
+            if (negative) result = -result - 1;
+        } else {
+            result = value.native();
+            if (negative) result = -result;
+            const std::uint64_t width =
+                static_cast<std::uint64_t>(boost::multiprecision::msb(result)) + 1;
+            const std::uint64_t limit = std::numeric_limits<unsigned>::max();
+            if (width > limit || !shift.fits_int64() ||
+                shift > BigInteger(static_cast<std::int64_t>(limit - width)))
+                throw std::runtime_error("ash: result exceeds the native bit-index range");
+            result <<= static_cast<unsigned>(shift.to_int64());
+            if (negative) result = -result;
         }
-        const std::int64_t amount = shift == std::numeric_limits<std::int64_t>::min()
-                                        ? 63 : -shift;
-        if (amount >= 63)
-            return Values{Value::integer(value < 0 ? -1 : 0)};
-        if (value >= 0)
-            return Values{Value::integer(value >> amount)};
-        const std::uint64_t magnitude =
-            static_cast<std::uint64_t>(-(value + 1)) + 1;
-        const std::uint64_t rounded =
-            (magnitude >> amount) +
-            ((magnitude & ((std::uint64_t{1} << amount) - 1)) != 0);
-        return Values{Value::integer(-static_cast<std::int64_t>(rounded))};
+        return Values{evaluator.number(Number::exact(BigInteger(std::move(result))))};
     });
     install(evaluator, "abs", [&evaluator](const Values& args) {
         require_arity(args, 1, "abs");

@@ -73,3 +73,13 @@ Follow-up priorities from the audit:
    requirements in `cond-expand`.
 2. Preserve ordinary `...` identifiers when another ellipsis marker is selected,
    and validate bootstrap cache freshness before loading a complete cache.
+
+The numeric extension gate uses `./bin/gf test tests/liii/bitwise/` and
+`./bin/gf test tests/srfi/srfi-151-test.scm`. It checks all 39 SRFI 151
+procedures, arbitrary exact integers, infinite two's-complement behavior,
+negative shifts and lengths, empty fields, and boolean conversions. SRFI 151
+is an extension rather than a requirement of R7RS-small.
+
+Run `./bin/gf benchmarks/bitwise-scale.scm 4096` for repeated monotonic
+timings with checked results. Timing begins after bootstrap and compilation;
+the benchmark also exercises a 200000-iteration tail loop.

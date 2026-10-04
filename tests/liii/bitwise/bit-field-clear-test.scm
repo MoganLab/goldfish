@@ -38,9 +38,8 @@
 ;; 实现说明
 ;; --------
 ;; - bit-field-clear 是 SRFI 151 标准定义的函数，提供标准化的位运算接口
-;; - 使用 S7 Scheme 内置的位运算函数实现
-;; - 支持64位整数范围，位索引范围为0到63
-;; - 注意：S7 Scheme 的 bit-field-clear 实现与 SRFI 151 标准有所不同：
+;; - 使用原生精确整数位运算实现
+;; - 支持任意精确整数，位索引为非负精确整数
 ;;   - 当 start >= integer-length(n) 时会抛出 out-of-range 错误
 ;;   - 对于负整数，行为可能与标准不同
 ;;   - 对于高位清除，行为可能与标准不同
@@ -50,7 +49,7 @@
 ;; wrong-type-arg
 ;; 当参数不是整数时抛出错误。
 ;; out-of-range
-;; 当位索引超出有效范围（0-63）时抛出错误。
+;; 当位索引为负数或位字段的起始位置大于结束位置时抛出错误。
 
 
 
@@ -97,8 +96,6 @@
 ;; ; 特殊值测试
 (check (bit-field-clear 2147483647 0 31) => 0)
 (check (bit-field-clear 2147483647 31 32) => 2147483647)
-;; ; 注意：S7 Scheme 的 bit-field-clear 对 -2147483648 的处理与标准不同
-;; ; (check (bit-field-clear -2147483648 31 32) => 0)    ; 这个测试会失败，S7 返回 -4294967296
 
 
 ;; ; 负整数测试
@@ -120,17 +117,10 @@
 
 
 ;; ; 错误处理测试 - out-of-range
-;; ; 注意：S7 Scheme 的 bit-field-clear 实现与 SRFI 151 标准有所不同
-;; ; 只有结束索引超过63时会抛出 out-of-range 错误
-(check-catch 'out-of-range (bit-field-clear 1 0 64))
+(check (bit-field-clear 1 0 64) => 0)
 
 
 ;; ; 其他边界情况不会抛出错误，而是返回正常值
-;; ; 注意：S7 Scheme 的 bit-field-clear 对边界情况的处理与标准不同
-;; ; (check (bit-field-clear 1 -1 4) => 1)              ; 负起始索引，S7 返回 0
-;; ; (check (bit-field-clear 1 0 -1) => 1)              ; 负结束索引，S7 返回 0
-;; ; (check (bit-field-clear 1 64 65) => 1)             ; 大起始索引，S7 抛出 out-of-range 错误
-;; ; (check (bit-field-clear 1 5 4) => 1)               ; start > end，S7 返回 0
 
 
 

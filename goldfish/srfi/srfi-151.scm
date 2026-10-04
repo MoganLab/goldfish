@@ -15,198 +15,154 @@
 ;;
 
 (define-library (srfi srfi-151)
-  (import (goldfish))
-  (import (liii base) (scheme base) (liii error))
-  (export bitwise-not
-    bitwise-and
-    bitwise-ior
-    bitwise-xor
-    bitwise-eqv
-    bitwise-nor
-    bitwise-nand
-    bit-count
-    bitwise-orc1
-    bitwise-orc2
-    bitwise-andc1
-    bitwise-andc2
-    arithmetic-shift
-    integer-length
-    bitwise-if
-    bit-set?
-    copy-bit
-    bit-swap
-    any-bit-set?
-    every-bit-set?
-    first-set-bit
-    bit-field
-    bit-field-any?
-    bit-field-every?
-    bit-field-clear
-    bit-field-set
-  ) ;export
+  (import (only (goldfish) lognot logand logior logxor ash) (scheme base))
+  (export bitwise-not bitwise-and bitwise-ior bitwise-xor bitwise-eqv
+          bitwise-nor bitwise-nand bitwise-orc1 bitwise-orc2
+          bitwise-andc1 bitwise-andc2 arithmetic-shift bit-count
+          integer-length bitwise-if bit-set? copy-bit bit-swap
+          any-bit-set? every-bit-set? first-set-bit
+          bit-field bit-field-any? bit-field-every? bit-field-clear bit-field-set
+          bit-field-replace bit-field-replace-same bit-field-rotate bit-field-reverse
+          bits->list list->bits bits->vector vector->bits bits
+          bitwise-fold bitwise-for-each bitwise-unfold make-bitwise-generator)
   (begin
-
     (define bitwise-not lognot)
-
     (define bitwise-and logand)
-
     (define bitwise-ior logior)
-
     (define bitwise-xor logxor)
-
-    (define (bitwise-eqv a b)
-      (bitwise-not (bitwise-xor a b))
-    ) ;define
-
-    (define (bitwise-nor a b)
-      (lognot (bitwise-ior a b))
-    ) ;define
-
-    (define (bitwise-nand a b)
-      (lognot (bitwise-and a b))
-    ) ;define
-
-    (define (bit-count i)
-      (define (bit-count-positive value)
-        (let loop
-          ((n value) (cnt 0))
-          (if (= n 0) cnt (loop (logand n (- n 1)) (+ cnt 1)))))
-      (unless (integer? i)
-        (error 'type-error "bit-count: expected integer" i))
-      (cond ((zero? i) 0)
-            ((positive? i) (bit-count-positive i))
-            (else (bit-count-positive (lognot i)))))
-
-    (define (bitwise-orc1 i j)
-      (bitwise-ior (bitwise-not i) j)
-    ) ;define
-
-    (define (bitwise-orc2 i j)
-      (bitwise-ior i (bitwise-not j))
-    ) ;define
-
-    (define (bitwise-andc1 i j)
-      (bitwise-and (bitwise-not i) j)
-    ) ;define
-
-    (define (bitwise-andc2 i j)
-      (bitwise-and i (bitwise-not j))
-    ) ;define
-
     (define arithmetic-shift ash)
 
-    (define (integer-length n)
-      (if (zero? n)
-        0
-        (let loop
-          ((value (abs n)) (count 1))
-          (if (<= value 1) count (loop (ash value -1) (+ count 1)))
-        ) ;let
-      ) ;if
-    ) ;define
+    (define (check-integer value)
+      (unless (and (integer? value) (exact? value))
+        (error 'wrong-type-arg "bitwise operation expects an exact integer" value)))
+    (define (check-index index)
+      (check-integer index)
+      (when (negative? index)
+        (error 'out-of-range "bit index must be non-negative" index)))
+    (define (check-procedure proc)
+      (unless (procedure? proc)
+        (error 'wrong-type-arg "bitwise operation expects a procedure" proc)))
+    (define (field-mask start end)
+      (check-index start)
+      (check-index end)
+      (when (> start end)
+        (error 'out-of-range "bit field starts after its end" start end))
+      (- (ash 1 (- end start)) 1))
 
-    (define (bitwise-if mask a b)
-      (bitwise-ior (bitwise-and mask a) (bitwise-and (bitwise-not mask) b))
-    ) ;define
+    (define (bitwise-eqv . integers)
+      (let loop ((rest integers) (result -1))
+        (if (null? rest) result
+          (loop (cdr rest) (lognot (logxor result (car rest)))))))
+    (define (bitwise-nor i j) (lognot (logior i j)))
+    (define (bitwise-nand i j) (lognot (logand i j)))
+    (define (bitwise-orc1 i j) (logior (lognot i) j))
+    (define (bitwise-orc2 i j) (logior i (lognot j)))
+    (define (bitwise-andc1 i j) (logand (lognot i) j))
+    (define (bitwise-andc2 i j) (logand i (lognot j)))
 
-    (define (bit-set? index n)
-      (cond ((negative? index)
-             (error 'out-of-range "bit-set?: Index cannot be negative" index)
-            ) ;
-            ((> index 63) (error 'out-of-range "bit-set?: Index cannot exceed 63" index))
-            ((= index 63) (negative? n))
-            (else (not (zero? (bitwise-and n (arithmetic-shift 1 index)))))
-      ) ;cond
-    ) ;define
-
-    (define (copy-bit index n boolean)
-      (cond ((negative? index)
-             (error 'out-of-range "copy-bit: Index cannot be negative" index)
-            ) ;
-            ((> index 63) (error 'out-of-range "copy-bit: Index cannot exceed 63" index))
-            ((= index 63)
-             (if boolean
-               (bitwise-ior n -9223372036854775808)
-               (bitwise-and n 9223372036854775807)
-             ) ;if
-            ) ;
-            (else (if boolean
-                    (bitwise-ior n (arithmetic-shift 1 index))
-                    (bitwise-and n (bitwise-not (arithmetic-shift 1 index)))
-                  ) ;if
-            ) ;else
-      ) ;cond
-    ) ;define
-
-    (define (bit-swap index1 index2 n)
-      (cond ((or (negative? index1) (negative? index2))
-             (error 'out-of-range "bit-swap: Index cannot be negative" index1 index2)
-            ) ;
-            ((or (> index1 63) (> index2 63))
-             (error 'out-of-range "bit-swap: Index cannot exceed 63" index1 index2)
-            ) ;
-            (else (copy-bit index2 (copy-bit index1 n (bit-set? index2 n)) (bit-set? index1 n))
-            ) ;else
-      ) ;cond
-    ) ;define
-
-    (define (any-bit-set? test-bits n)
-      (not (zero? (bitwise-and test-bits n)))
-    ) ;define
-
-    (define (every-bit-set? test-bits n)
-      (= (bitwise-and test-bits n) test-bits)
-    ) ;define
-
-    (define (first-set-bit n)
-      (if (zero? n) -1 (let ((lsb (bitwise-and n (- n)))) (- (integer-length lsb) 1)))
-    ) ;define
+    (define (bit-count i)
+      (check-integer i)
+      (let loop ((value (if (negative? i) (lognot i) i)) (count 0))
+        (if (zero? value) count
+          (loop (logand value (- value 1)) (+ count 1)))))
+    (define (integer-length i)
+      (check-integer i)
+      (let loop ((value (if (negative? i) (lognot i) i)) (count 0))
+        (if (zero? value) count (loop (ash value -1) (+ count 1)))))
+    (define (bitwise-if mask i j)
+      (logior (logand mask i) (logand (lognot mask) j)))
+    (define (bit-set? index i)
+      (check-index index)
+      (not (zero? (logand (ash i (- index)) 1))))
+    (define (copy-bit index i bit)
+      (check-index index)
+      (unless (boolean? bit)
+        (error 'wrong-type-arg "copy-bit expects a boolean" bit))
+      (if (eq? bit (bit-set? index i)) i
+        (let ((mask (ash 1 index)))
+          (if bit (logior i mask) (logand i (lognot mask))))))
+    (define (bit-swap index1 index2 i)
+      (copy-bit index2 (copy-bit index1 i (bit-set? index2 i))
+                      (bit-set? index1 i)))
+    (define (any-bit-set? test-bits i) (not (zero? (logand test-bits i))))
+    (define (every-bit-set? test-bits i) (= (logand test-bits i) test-bits))
+    (define (first-set-bit i)
+      (check-integer i)
+      (if (zero? i) -1 (- (integer-length (logand i (- i))) 1)))
 
     (define (bit-field i start end)
-      (let* ((bits (integer-length i)))
-        (if (>= start bits)
-          (error 'out-of-range
-            "bit-field: Start cannot be greater than or equal to the integer length"
-            start
-          ) ;error
-          (let* ((end (min end bits)) (width (- end start)))
-            (if (<= width 0)
-              0
-              (let ((mask (arithmetic-shift (- (expt 2 width) 1) start)))
-                (arithmetic-shift (bitwise-and i mask) (- start))
-              ) ;let
-            ) ;if
-          ) ;let*
-        ) ;if
-      ) ;let*
-    ) ;define
-
-    (define (bit-field-any? i start end)
-      (not (zero? (bitwise-and (arithmetic-shift i (- start))
-                    (- (arithmetic-shift 1 (- end start)) 1)
-                  ) ;bitwise-and
-           ) ;zero?
-      ) ;not
-    ) ;define
-
+      (let ((mask (field-mask start end))) (logand (ash i (- start)) mask)))
+    (define (bit-field-any? i start end) (not (zero? (bit-field i start end))))
     (define (bit-field-every? i start end)
-      (= (bitwise-and (arithmetic-shift i (- start))
-           (- (arithmetic-shift 1 (- end start)) 1)
-         ) ;bitwise-and
-        (- (arithmetic-shift 1 (- end start)) 1)
-      ) ;=
-    ) ;define
-
+      (= (bit-field i start end) (field-mask start end)))
     (define (bit-field-clear i start end)
-      (bitwise-and i
-        (bitwise-not (arithmetic-shift (- (arithmetic-shift 1 (- end start)) 1) start))
-      ) ;bitwise-and
-    ) ;define
-
+      (logand i (lognot (ash (field-mask start end) start))))
     (define (bit-field-set i start end)
-      (bitwise-ior i
-        (arithmetic-shift (- (arithmetic-shift 1 (- end start)) 1) start)
-      ) ;bitwise-ior
-    ) ;define
-  ) ;begin
-) ;define-library
+      (logior i (ash (field-mask start end) start)))
+    (define (bit-field-replace dest source start end)
+      (let ((mask (ash (field-mask start end) start)))
+        (bitwise-if mask (ash source start) dest)))
+    (define (bit-field-replace-same dest source start end)
+      (bitwise-if (ash (field-mask start end) start) source dest))
+    (define (bit-field-rotate i count start end)
+      (check-integer count)
+      (let ((field (bit-field i start end)) (width (- end start)))
+        (if (zero? width) i
+          (let ((count (modulo count width)))
+            (bit-field-replace i
+              (logior (ash field count) (ash field (- count width))) start end)))))
+    (define (bit-field-reverse i start end)
+      (let loop ((field (bit-field i start end)) (remaining (- end start)) (result 0))
+        (if (zero? remaining) (bit-field-replace i result start end)
+          (loop (ash field -1) (- remaining 1)
+                (logior (ash result 1) (logand field 1))))))
+
+    (define (bits->list i . lengths)
+      (check-index i)
+      (when (> (length lengths) 1)
+        (error 'wrong-number-of-args "bits->list expects at most two arguments"))
+      (let ((len (if (null? lengths) (integer-length i) (car lengths))))
+        (check-index len)
+        (let loop ((value i) (remaining len) (result '()))
+          (if (zero? remaining) (reverse result)
+            (loop (ash value -1) (- remaining 1)
+                  (cons (not (zero? (logand value 1))) result))))))
+    (define (list->bits bools)
+      (unless (list? bools)
+        (error 'wrong-type-arg "list->bits expects a list" bools))
+      (let loop ((rest bools) (mask 1) (result 0))
+        (if (null? rest) result
+          (begin
+            (unless (boolean? (car rest))
+              (error 'wrong-type-arg "list->bits expects booleans" (car rest)))
+            (loop (cdr rest) (ash mask 1)
+                  (if (car rest) (logior result mask) result))))))
+    (define (bits->vector i . lengths) (list->vector (apply bits->list i lengths)))
+    (define (vector->bits bools) (list->bits (vector->list bools)))
+    (define (bits . bools) (list->bits bools))
+
+    (define (bitwise-fold proc seed i)
+      (check-procedure proc)
+      (let loop ((value i) (remaining (integer-length i)) (result seed))
+        (if (zero? remaining) result
+          (loop (ash value -1) (- remaining 1)
+                (proc (not (zero? (logand value 1))) result)))))
+    (define (bitwise-for-each proc i)
+      (check-procedure proc)
+      (bitwise-fold (lambda (bit ignored) (proc bit)) #f i)
+      (if #f #f))
+    (define (bitwise-unfold stop? mapper successor seed)
+      (check-procedure stop?)
+      (check-procedure mapper)
+      (check-procedure successor)
+      (let loop ((state seed) (mask 1) (result 0))
+        (if (stop? state) result
+          (let ((bit (mapper state)))
+            (loop (successor state) (ash mask 1)
+                  (if bit (logior result mask) result))))))
+    (define (make-bitwise-generator i)
+      (check-integer i)
+      (lambda ()
+        (let ((bit (not (zero? (logand i 1)))))
+          (set! i (ash i -1))
+          bit)))))

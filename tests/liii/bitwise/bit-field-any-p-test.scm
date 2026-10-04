@@ -41,14 +41,13 @@
 ;; - bit-field-any? 是 SRFI 151 标准定义的函数，提供标准化的位运算接口
 ;; - 使用 bit-field 操作提取位域，然后检查结果是否非零
 ;; - 支持所有整数类型，包括负整数
-;; - 注意：S7 Scheme 的 bit-field 实现与 SRFI 151 标准有所不同，可能会影响 bit-field-any? 的行为
 ;;
 ;; 错误
 ;; ----
 ;; wrong-type-arg
 ;; 当参数不是整数时抛出错误。
 ;; out-of-range
-;; 当位索引超出有效范围（0-63）时抛出错误。
+;; 当位索引为负数或位字段的起始位置大于结束位置时抛出错误。
 
 
 ;; ; 基本功能测试：检查位域中是否有任何位设置
@@ -113,16 +112,14 @@
 
 
 ;; ; 错误处理测试 - out-of-range
-;; ; 注意：S7 Scheme 的 bit-field-any? 实现与 SRFI 151 标准有所不同
-;; ; 只有结束索引超过63时会抛出 out-of-range 错误
-(check-catch 'out-of-range (bit-field-any? 1 0 64))
+(check (bit-field-any? 1 0 64) => #t)
 
 
 ;; ; 其他边界情况不会抛出错误，而是返回正常值
-(check (bit-field-any? 1 -1 4) => #t)
-(check (bit-field-any? 1 0 -1) => #t)
+(check-catch 'out-of-range (bit-field-any? 1 -1 4))
+(check-catch 'out-of-range (bit-field-any? 1 0 -1))
 (check (bit-field-any? 1 64 65) => #f)
-(check (bit-field-any? 1 5 4) => #f)
+(check-catch 'out-of-range (bit-field-any? 1 5 4))
 
 
 

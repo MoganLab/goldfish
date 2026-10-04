@@ -51,7 +51,7 @@ clause	area	status	evidence	boundary
 6.2.1	Numerical types	inventory	tests/scheme/base,tests/runtime/reader-test.cpp	Prior numeric work is inventory evidence; not re-certified by this audit.
 6.2.2	Exactness	inventory	tests/scheme/base,tests/runtime/reader-test.cpp	Prior numeric work is inventory evidence; not re-certified by this audit.
 6.2.3	Implementation restrictions	inventory	tests/scheme/base,tests/runtime/reader-test.cpp	Prior numeric work is inventory evidence; not re-certified by this audit.
-6.2.4	Implementation extensions	inventory	tests/scheme/base,tests/runtime/reader-test.cpp	Prior numeric work is inventory evidence; not re-certified by this audit.
+6.2.4	Implementation extensions	partial	tests/liii/bitwise/bignum-test.scm,tests/srfi/srfi-151-test.scm,tests/scheme/base	SRFI 151 exact-integer bitwise extensions audited; other optional numeric behavior retains prior inventory status.
 6.2.5	Syntax of numerical constants	inventory	tests/scheme/base,tests/runtime/reader-test.cpp	Prior numeric work is inventory evidence; not re-certified by this audit.
 6.2.6	Numerical operations	inventory	tests/scheme/base,tests/runtime/reader-test.cpp	Prior numeric and rationalize work is inventory evidence; not re-certified by this audit.
 6.2.7	Numerical input and output	inventory	tests/scheme/base,tests/runtime/reader-test.cpp	Prior numeric work is inventory evidence; not re-certified by this audit.
