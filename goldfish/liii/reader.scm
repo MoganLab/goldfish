@@ -1074,36 +1074,13 @@
 
 ;;; ------------------------------------------------------------------------
 ;;; write-roundtrip : datum port -> void
-;;; A writer whose output the R7RS reader here can read back to an equal
-;;; value (read/write duality).  s7's write targets s7's own reader, so
-;;; several types do not round-trip through read-forms:
-;;;   - a symbol with a quote (hello') is written bare and unreadable;
-;;;   - a symbol with whitespace/delimiters is written as (symbol "a b"),
-;;;     which reads back as a list, not a symbol;
-;;;   - records print as #(#(record-type <name> (fields...)) ...) whose
-;;;     record type identity is lost on read.
-;;; Symbols that are not valid R7RS identifiers are written in |...|
-;;; vertical-bar notation; records are written as #g(tag fields...) and
-;;; rebuilt by read-sharp's #g dispatch.  Vectors, bytevectors, strings,
-;;; characters, numbers (including complex/imaginary/inf/nan) and booleans
-;;; delegate to write (the reader accepts their output).
+;;; Public graph output and cache serialization share one traversal.
+;;; Symbols use readable atomic syntax; cache records use #g tags.
 
 ;;; write-roundtrip-symbol : symbol port -> void
 
 (define (write-roundtrip-symbol x p)
-  (let ((s (symbol->string x)))
-    (if (valid-identifier? s)
-      (write x p)
-      (begin
-        (display #\| p)
-        (string-for-each (lambda (ch)
-                           (cond
-                             ((or (eqv? ch #\|) (eqv? ch #\\))
-                              (display #\\ p))
-                             (else #f))
-                           (write-char ch p))
-                         s)
-        (display #\| p)))))
+  (g-write-atom x p #f))
 
 ;;; has-record? : datum -> bool
 ;;; Quick scan whether a datum contains any vector-layout record.  Cached
@@ -1156,7 +1133,7 @@
                  cyclic?)))))))
 
 ;;; has-sharing? : datum -> bool
-;;; Whether a record-free datum holds a pair/vector/bytevector reachable
+;;; Whether a record-free datum holds a mutable container reachable
 ;;; by two paths: a cache round trip must preserve the alias (mutation
 ;;; through one alias stays visible through the other), which needs the
 ;;; graph pass labels (#n=/#n#). Linear: each node walked once.
@@ -1172,7 +1149,7 @@
            #t
            (begin (reader-graph-intern! seen v #t)
                   (or (walk (car v)) (walk (cdr v))))))
-        ((bytevector? v)
+        ((or (bytevector? v) (string? v))
          (if (reader-graph-cell seen v)
            #t
            (begin (reader-graph-intern! seen v #t) #f)))
@@ -1187,27 +1164,27 @@
         (else #f)))))
 
 ;;; write-roundtrip : datum port -> void
-;;; A writer whose output the R7RS reader (this file) reads back to an equal
-;;; value, including records and shared/cyclic structure.  Plain data (no
-;;; records) is written single-pass; data containing records -- syntax
-;;; objects, exp-libraries, bindings, toplevel-refs -- uses the two-pass
-;;; graph writer below, which emits #n=/#n# labels (read-label/read-sharp
-;;; parse them back to shared objects).  The graph pass is required for
-;;; exp-library: its bindings' toplevel-ref homes refer back to the library
-;;; itself, so a naive recursive writer loops forever.
+;;; Cache mode preserves aliases and record layouts. Public write modes
+;;; select label policy and atomic display syntax independently.
 
-(define (write-roundtrip x p)
+(define (write-roundtrip x p . modes)
+  (define mode (if (null? modes) 'cache (car modes)))
+  (define cache? (eq? mode 'cache))
+  (define display? (eq? mode 'display))
   (define records? (has-record? x))
-  ;; Record-free cycles still error (single-pass cannot label, and the
-  ;; tiny-reader cache path would only miss on cyclic labels anyway).
-  (when (and (not records?) (has-cycle? x))
+  (define cyclic? (has-cycle? x))
+  (define labels? (or cache? (eq? mode 'shared)
+                      (and cyclic? (not (eq? mode 'simple)))))
+  (define (display value port) (g-write-atom value port #t))
+  (define (atom value) (g-write-atom value p display?))
+  (when (and cache? (not records?) cyclic?)
     (error 'write-roundtrip "cannot serialize a cyclic datum without records" x))
-  ;; Shared record-free data takes the graph pass so labels preserve the
-  ;; aliasing; unshared record-free data keeps the fast single pass.
-  (if (and (not records?) (not (has-sharing? x)))
+  (when (and (eq? mode 'simple) cyclic?)
+    (error 'write-simple "cannot write a cyclic datum without labels"))
+  (if (and (not records?) (or (not labels?) (not (has-sharing? x))))
       (let rec ((v x))
         (cond
-          ((symbol? v) (write-roundtrip-symbol v p))
+          ((symbol? v) (atom v))
           ((pair? v)
            (display #\( p)
            (let loop ((y v))
@@ -1246,9 +1223,9 @@
              (rec (vector-ref v i))
              (loop (+ i 1))))
            (display ")" p))
-          ((procedure? v)
+          ((and cache? (procedure? v))
            (error 'write-roundtrip "cannot serialize a procedure" v))
-          (else (write v p))))
+          (else (atom v))))
     ;; Graph-aware pass (records, or shared record-free data): count references, then
     ;; output with #n=/#n# labels for shared/cyclic containers.
     (let ((counts (reader-graph-table)))
@@ -1292,12 +1269,12 @@
                    (loop (+ i 1))))))
             ;; Bytevector leaves: no descend, but count so shared ones
             ;; still get labels.
-            ((bytevector? v)
+            ((or (bytevector? v) (string? v))
              (count-ref v))
             (else #f))))
       (let ((labels (reader-graph-table))
             (next-label 0))
-        (define (shared? v) (> (count-of v) 1))
+        (define (shared? v) (and labels? (> (count-of v) 1)))
         (define (label-of v)
           (let ((e (reader-graph-cell labels v)))
             (if e
@@ -1320,7 +1297,11 @@
         (define (wrt v)
           (cond
             ((symbol? v)
-             (write-roundtrip-symbol v p))
+             (atom v))
+            ((string? v)
+             (if (and (shared? v) (has-label? v))
+               (write-ref v)
+               (begin (write-mark v) (atom v))))
             ((pair? v)
              (if (shared? v)
                (if (has-label? v)
@@ -1347,9 +1328,9 @@
                  (write-ref v)
                  (begin (write-mark v) (wrt-vector v)))
                (wrt-vector v)))
-            ((procedure? v)
+            ((and cache? (procedure? v))
              (error 'write-roundtrip "cannot serialize a procedure" v))
-            (else (write v p))))
+            (else (atom v))))
         (define (wrt-pair v)
           (display #\( p)
           (let loop ((y v))

@@ -153,7 +153,7 @@ void eval_source(Evaluator& evaluator, const std::string& source,
                  bool print_result = true) {
     Value result = eval_value(evaluator, source);
     if (print_result) {
-        print_value(result, std::cout);
+        evaluator.apply_values(lookup(evaluator, "write"), {result});
         std::cout << '\n';
     }
 }
@@ -166,7 +166,7 @@ void eval_file(Evaluator& evaluator, const std::string& path) {
     // them.  The loader also shares the library cache with `import'.
     Value result = evaluator.apply_values(lookup(evaluator, "load"),
                                           {evaluator.string(path)})[0];
-    print_value(result, std::cout);
+    evaluator.apply_values(lookup(evaluator, "write"), {result});
     std::cout << '\n';
 }
 
@@ -631,6 +631,7 @@ int main(int argc, char** argv) {
         // The Scheme source reader is intentionally loaded from source; it
         // must not depend on a host-generated gfo cache to start native mode.
         load_source(runtime.evaluator(), "liii/reader.scm");
+        load_source(runtime.evaluator(), "expander/lib/native-write.scm");
         stage("load-source-reader");
         if (timing)
             std::cerr << "[timing] boot total "

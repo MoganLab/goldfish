@@ -1,7 +1,7 @@
 (import (liii check) (scheme write))
 (check-set-mode! 'report-failed)
 ;; write-shared
-;; 在当前实现中，提供与 `write` 一致的兼容输出行为。
+;; 使用 datum label 保留共享及循环结构。
 ;;
 ;; 语法
 ;; ----
@@ -23,8 +23,7 @@
 ;;
 ;; 描述
 ;; ----
-;; 当前底层没有独立的 `write-shared` 原生过程，因此这里验证它与 `write`
-;; 保持一致的现有兼容行为。
+;; 非共享结构的输出与 write 一致。
 
 (define (capture-output thunk)
   (let ((port (open-output-string)))

@@ -290,15 +290,15 @@ Value TinyReader::read_list(char closing) {
     return evaluator_.list(values);
 }
 
-Value TinyReader::read_string() {
+std::string TinyReader::read_escaped_text(char closing) {
     next();
     std::string value;
     while (true) {
         char c = next();
         if (c == '\0')
             error("unterminated string");
-        if (c == '"') {
-            return evaluator_.string(value);
+        if (c == closing) {
+            return value;
         }
         if (c != '\\') {
             value.push_back(c);
@@ -355,22 +355,12 @@ Value TinyReader::read_string() {
     }
 }
 
+Value TinyReader::read_string() {
+    return evaluator_.string(read_escaped_text('"'));
+}
+
 Value TinyReader::read_quoted_symbol() {
-    next(); // opening '|'
-    std::string token;
-    while (true) {
-        if (peek() == '\0')
-            error("unterminated quoted symbol");
-        char character = next();
-        if (character == '|')
-            return evaluator_.symbol(token);
-        if (character == '\\') {
-            if (peek() == '\0')
-                error("unterminated escape in quoted symbol");
-            character = next();
-        }
-        token.push_back(character);
-    }
+    return evaluator_.symbol(read_escaped_text('|'));
 }
 
 Value TinyReader::read_atom() {

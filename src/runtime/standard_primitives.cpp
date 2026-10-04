@@ -420,9 +420,47 @@ std::string character_literal(char32_t codepoint) {
     return out;
 }
 
-// write_mode: strings quoted and characters in #\ notation (also for nested
-// elements of a displayed structure).  Top-level display prints strings and
-// characters raw, matching the host.
+std::string symbol_literal(const std::string& name) {
+    Number numeric;
+    const auto initial = [](unsigned char c) {
+        return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
+               (c != 0 && std::strchr("!$%&*/:<=>?^_~", c));
+    };
+    const auto sign_subsequent = [&](unsigned char c) {
+        return initial(c) || c == '+' || c == '-' || c == '@';
+    };
+    const auto dot_subsequent = [&](unsigned char c) {
+        return sign_subsequent(c) || c == '.';
+    };
+    bool valid_start = !name.empty() && initial(name[0]);
+    if (!name.empty() && (name[0] == '+' || name[0] == '-'))
+        valid_start = name.size() == 1 || sign_subsequent(name[1]) ||
+            (name.size() > 2 && name[1] == '.' && dot_subsequent(name[2]));
+    if (!name.empty() && name[0] == '.')
+        valid_start = name.size() > 1 && dot_subsequent(name[1]);
+    const bool quoted = !valid_start ||
+        parse_number(name, numeric) ||
+        std::any_of(name.begin(), name.end(), [](unsigned char c) {
+            return !((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
+                     (c >= '0' && c <= '9') ||
+                     (c != 0 && std::strchr("!$%&*/:<=>?^_~+-.@", c)));
+        });
+    if (!quoted) return name;
+    std::string out = "|";
+    constexpr char hex[] = "0123456789abcdef";
+    for (unsigned char c : name) {
+        if (c == '|' || c == '\\') out += '\\';
+        if (c < 0x20 || c == 0x7f) {
+            out += "\\x";
+            out += hex[c >> 4];
+            out += hex[c & 15];
+            out += ';';
+        } else out += static_cast<char>(c);
+    }
+    return out + "|";
+}
+
+// Atomic representations for the Scheme graph writer and engine diagnostics.
 std::string format_value(const Evaluator& evaluator, Value value,
                          bool write_mode, int depth) {
     if (depth > 200) return "#<deep>";
@@ -447,10 +485,6 @@ std::string format_value(const Evaluator& evaluator, Value value,
                 case '\t': quoted += "\\t"; break;
                 case '\n': quoted += "\\n"; break;
                 case '\r': quoted += "\\r"; break;
-                case '\f': quoted += "\\f"; break;
-                case '\v': quoted += "\\v"; break;
-                case 0: quoted += "\\0"; break;
-                case 0x1b: quoted += "\\e"; break;
                 default:
                     if (character < 0x20 || character == 0x7f) {
                         quoted += "\\x";
@@ -468,16 +502,24 @@ std::string format_value(const Evaluator& evaluator, Value value,
         case ObjectType::Number:
             return number_to_string(value);
         case ObjectType::Symbol:
-            return value.as_object<SymbolObject>()->name;
+            return write_mode ? symbol_literal(value.as_object<SymbolObject>()->name)
+                              : value.as_object<SymbolObject>()->name;
         case ObjectType::Character: {
             const char32_t codepoint = value.as_object<CharacterObject>()->value;
             if (write_mode) return character_literal(codepoint);
-            if (codepoint >= 0x20 && codepoint != 0x7f)
-                return utf8_encode_char(codepoint);
-            return character_literal(codepoint);
+            return utf8_encode_char(codepoint);
         }
         case ObjectType::Eof:
             return "#<eof>";
+        case ObjectType::Bytevector: {
+            std::string out = "#u8(";
+            const auto& bytes = value.as_object<BytevectorObject>()->bytes;
+            for (std::size_t i = 0; i < bytes.size(); ++i) {
+                if (i) out += ' ';
+                out += std::to_string(static_cast<unsigned char>(bytes[i]));
+            }
+            return out + ')';
+        }
         case ObjectType::ErrorObject:
             return "#<error " + value.as_object<ErrorObject>()->message + ">";
         case ObjectType::Closure:
@@ -783,6 +825,16 @@ void install_runtime_primitives(Evaluator& evaluator) {
             [write_text](const Values& args) {
                 return write_text(args, "write-simple");
             });
+    install(evaluator, "g-write-atom", [&evaluator](const Values& args) {
+        require_arity(args, 3, "g-write-atom");
+        if (args[0].is_object() &&
+            (args[0].as_object()->type() == ObjectType::Pair ||
+             args[0].as_object()->type() == ObjectType::Vector))
+            throw std::runtime_error("g-write-atom expects an atomic value");
+        *output_port(args[1], "g-write-atom").stream
+            << format_value(evaluator, args[0], !args[2].as_boolean(), 0);
+        return Values{Value::unspecified()};
+    });
     install(evaluator, "newline", [](const Values& args) {
         if (args.size() > 1)
             throw std::runtime_error("newline expects zero or one arguments");

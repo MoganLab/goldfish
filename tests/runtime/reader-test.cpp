@@ -34,6 +34,25 @@ int main() {
     assert(evaluator.character_value(evaluator.vector_values(vector)[1]) == U'a');
     assert(!reader.read());
 
+    // Atomic output must remain readable by the lowered-artifact parser.
+    Value atom_writer = evaluator.eval(evaluator.symbol("g-write-atom"));
+    Value string_port = evaluator.eval(evaluator.symbol("open-output-string"));
+    Value port_string = evaluator.eval(evaluator.symbol("get-output-string"));
+    for (const std::string& name : {std::string(""), std::string("123"),
+             std::string("#t"), std::string("+1abc"), std::string(".1abc"),
+             std::string("a|b\\c"), std::string("中文🙂"),
+             std::string("a\n\t\0b", 5)}) {
+        Value output = evaluator.apply_values(string_port, {})[0];
+        evaluator.apply_values(atom_writer,
+            {evaluator.symbol(name), output, Value::boolean(false)});
+        const std::string text = evaluator.string_value(
+            evaluator.apply_values(port_string, {output})[0]);
+        TinyReader roundtrip_reader(evaluator, text);
+        if (*roundtrip_reader.read() != evaluator.symbol(name) ||
+            roundtrip_reader.read())
+            throw std::runtime_error("symbol output did not round-trip");
+    }
+
     for (const auto& shorthand : {std::pair<const char*, const char*>("#'x", "syntax"),
                                   {"#`x", "quasisyntax"},
                                   {"#,x", "unsyntax"},

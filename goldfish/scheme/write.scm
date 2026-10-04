@@ -17,11 +17,4 @@
 (define-library (scheme write)
   (import (goldfish))
   (export display write write-shared write-simple)
-  (begin
-
-    (define write-simple write)
-
-    (define write-shared write)
-
-  ) ;begin
 ) ;define-library

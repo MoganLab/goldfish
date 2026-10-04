@@ -26,6 +26,7 @@ private:
     Value read_vector();
     Value read_character();
     Value read_dispatch();
+    std::string read_escaped_text(char closing);
     Value read_string();
     Value read_quoted_symbol();
     Value read_atom();

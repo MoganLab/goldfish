@@ -1,7 +1,7 @@
 (import (liii check) (scheme write))
 (check-set-mode! 'report-failed)
 ;; write-simple
-;; 在当前实现中，提供与 `write` 一致的兼容输出行为。
+;; 输出不带共享标签的可读表示；循环结构明确报错。
 ;;
 ;; 语法
 ;; ----
@@ -23,8 +23,7 @@
 ;;
 ;; 描述
 ;; ----
-;; 当前底层没有独立的 `write-simple` 原生过程，因此这里验证它与 `write`
-;; 保持一致的现有兼容行为。
+;; 共享的非循环结构按树展开，不生成 datum label。
 
 (define (capture-output thunk)
   (let ((port (open-output-string)))

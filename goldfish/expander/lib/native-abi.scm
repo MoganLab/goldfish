@@ -103,9 +103,6 @@
 (define (open-output-bytevector)
   (open-output-string))
 
-;;; R7RS write-shared/write-simple: native already provides both
-;;; (standard_primitives), so nothing to alias here.
-
 ;;; ---- bytevector operations ------------------------------------------
 
 (define (bytevector-length x)

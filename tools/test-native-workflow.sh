@@ -39,6 +39,14 @@ case "$repl_result" in
 esac
 echo "native CLI smoke passed: -e, file execution, stateful REPL"
 
+graph_result=$(./bin/gf -m r7rs -e \
+    '(let ((x (cons (string->symbol "123") (quote ())))) (set-cdr! x x) x)')
+if [ "$graph_result" != '#0=(|123| . #0#)' ]; then
+    echo "test-native-workflow: cyclic CLI result was $graph_result" >&2
+    exit 1
+fi
+echo "native CLI graph output passed"
+
 # Reuse one native boot while keeping each test's process state isolated.
 # shellcheck disable=SC2086
 ./bin/gf -m liii --each-file $files
