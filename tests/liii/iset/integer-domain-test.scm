@@ -1,0 +1,25 @@
+(import (scheme base) (liii iset) (liii check))
+(check-set-mode! 'report-failed)
+
+(let* ((low -9223372036854775808) (high 9223372036854775807)
+       (set (iset low (+ low 1) -1 0 (- high 1) high)))
+  (check (iset->list set) => (list low (+ low 1) -1 0 (- high 1) high))
+  (check (iset-size set) => 6)
+  (check (iset-min set) => low)
+  (check (iset-max set) => high)
+  (check (iset-contains? set low) => #t)
+  (check (iset-contains? set high) => #t)
+  (check (iset->list (iset-delete set low high)) => (list (+ low 1) -1 0 (- high 1)))
+  (check (iset->list (iset-intersection set (iset low high))) => (list low high))
+  (check (iset->list (iset-union (iset low -1) (iset 0 high))) => (list low -1 0 high))
+  (check (iset->list (iset-closed-interval set -1 0)) => '(-1 0)))
+
+(for-each
+  (lambda (value)
+    (check (guard (obj (else #t)) (iset value) #f) => #t)
+    (check (guard (obj (else #t)) (iset-adjoin (iset 1) value) #f) => #t)
+    (check (guard (obj (else #t)) (iset-contains? (iset 1) value) #f) => #t))
+  (list 1.0 9223372036854775808 -9223372036854775809
+        (expt 2 130) (- (expt 2 130))))
+(check (guard (obj (else #t)) (make-range-iset 0 3 1.0) #f) => #t)
+(check-report)

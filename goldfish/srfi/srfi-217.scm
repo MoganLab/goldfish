@@ -167,18 +167,18 @@
 
     ;; ;; Bitwise constants and procedures
 
-    ;; S7 Scheme: use 5-bit suffix (32 values per leaf) to avoid ash overflow
+    ;; A leaf groups 32 adjacent keys in one bitmap.
     (define leaf-bitmap-size 32)
 
     (define suffix-mask (- leaf-bitmap-size 1))
     (define prefix-mask (lognot suffix-mask))
 
-    ;; In S7 Scheme, all integers are fixnums
+    ;; The Patricia trie uses the native signed 64-bit fixnum domain.
     (define (valid-integer? x)
-      (integer? x)
+      (and (exact-integer? x) (<= -9223372036854775808 x 9223372036854775807))
     ) ;define
 
-    ;; least-fixnum in S7 64-bit is -9223372036854775808
+    ;; A negative branch mask separates the two signs.
     (define least-fixnum-val -9223372036854775808)
 
     (define (mask k m)

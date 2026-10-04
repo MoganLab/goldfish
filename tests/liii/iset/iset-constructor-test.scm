@@ -14,7 +14,7 @@
 ;;
 ;; 参数
 ;; ----
-;; element ... : exact-integer
+;; element ... : exact-integer in [-2^63, 2^63-1]
 ;; 初始元素（可选）。
 ;;
 ;; 返回值
