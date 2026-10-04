@@ -48,8 +48,8 @@
 (check-true (equal? (string-copy "hello" 1 4) "ell"))
 (check-true (equal? (string-copy "") ""))
 (check-true (equal? (string-copy "中文测试") "中文测试"))
-(check-true (equal? (string-copy "中文测试" 6) "测试"))
-(check-true (equal? (string-copy "中文测试" 0 6) "中文"))
+(check-true (equal? (string-copy "中文测试" 2) "测试"))
+(check-true (equal? (string-copy "中文测试" 0 2) "中文"))
 
 (check-true (equal? (string-copy "hello" 0) "hello"))
 (check-true (equal? (string-copy "hello" 5) ""))
@@ -68,8 +68,8 @@
 (check-true (equal? (string-copy "test123" 0 4) "test"))
 (check-true (equal? (string-copy "test123" 4 7) "123"))
 
-(check-true (equal? (string-copy "🌟🎉" 0 4) "🌟"))
-(check-true (equal? (string-copy "🌟🎉" 4 8) "🎉"))
+(check-true (equal? (string-copy "🌟🎉" 0 1) "🌟"))
+(check-true (equal? (string-copy "🌟🎉" 1 2) "🎉"))
 
 (check-catch 'wrong-type-arg (string-copy 123))
 (check-catch 'wrong-type-arg (string-copy 'hello))

@@ -38,7 +38,7 @@
 ;; 注意
 ;; ----
 ;; string-pad-right是右填充(right padding)函数，填充字符添加在字符串后面。
-;; 对于多字节Unicode字符，操作基于字节位置而非字符位置。
+;; 对于多字节Unicode字符，操作基于 Unicode 字符位置。
 ;;
 ;; 示例
 ;; ----
@@ -57,7 +57,7 @@
 ;; 相关实现
 ;; --------
 ;; (liii string-cursor) 库中也提供了 string-pad-right 函数，
-;; 该版本支持 Unicode 字符级别的操作，并提供 cursor-based API。
+;; 该版本也按 Unicode 字符操作，并提供 cursor-based API。
 ;; 参见: gf doc liii/string-cursor "string-pad-right"
 
 (check (string-pad-right "abc" 6) => "abc   ")
@@ -73,7 +73,7 @@
 (check (string-pad-right "abc" 2) => "ab")
 (check (string-pad-right "abc" 1) => "a")
 
-(check (string-pad-right "中文" 6) => "中文")
+(check (string-pad-right "中文" 6) => "中文    ")
 
 (check (string-pad-right "HelloWorld" 12 #\!) => "HelloWorld!!")
 (check (string-pad-right "HelloWorld" 7 #\! 0 5) => "Hello!!")

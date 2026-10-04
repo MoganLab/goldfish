@@ -26,6 +26,12 @@ for pair in 'full-run.log transcript_sha256' 'results.tsv results_sha256' 'disco
     expected=$(awk -F '\t' -v key="$2" '$1 == key {print $2}' "$root/metadata.tsv")
     [ "$actual" = "$expected" ] || { echo "baseline checksum mismatch: $1" >&2; exit 1; }
 done
+for pair in 'migration-recheck.log migration_transcript_sha256' 'migration-tested.patch migration_patch_sha256'; do
+    set -- $pair
+    actual=$(sha256sum "$root/$1" | cut -d ' ' -f1)
+    expected=$(awk -F '\t' -v key="$2" '$1 == key {print $2}' "$root/metadata.tsv")
+    [ "$actual" = "$expected" ] || { echo "baseline recheck checksum mismatch: $1" >&2; exit 1; }
+done
 awk -F '\t' '
   NR==FNR {
     if (FNR > 1) {
@@ -49,10 +55,11 @@ awk -F '\t' '
     next
   }
   /^#/ || $1 == "path" {next}
-  NF != 5 || seen[$1]++ || !($1 in result) || $3 !~ /^(resolved|defer|exclude|guarded)$/ || $4 == "" || $5 == "" {
+  NF != 5 || seen[$1]++ || !($1 in result) || $3 !~ /^(resolved|fixed|defer|exclude|guarded)$/ || $4 == "" || $5 == "" {
     print "invalid baseline disposition: " FNR > "/dev/stderr"; bad=1
   }
   $3 == "resolved" && result[$1] != "pass" {bad=1}
+  $3 == "fixed" && result[$1] != "fail" {bad=1}
   $3 == "guarded" && (coverage[$1] != "http-opt-in" || result[$1] != "pass") {bad=1}
   $4 != evidence[$1] {bad=1}
   END {
@@ -68,4 +75,29 @@ awk -F '\t' '
   !seen[$1] {print "unreviewed earlier disposition: " $1 > "/dev/stderr"; bad=1}
   END {exit bad}
 ' "$root/dispositions.tsv" "$root/historical-dispositions.tsv" tests/NATIVE-FOLLOWUPS.tsv
+awk -F '\t' '
+  NR==FNR {
+    if (FNR > 1) {
+      if (NF != 3 || seen[$1]++ || $2 !~ /^[0-9]+$/) bad=1
+      code[$1]=$2; evidence[$1]=$3
+    }
+    next
+  }
+  $3 == "fixed" {
+    if (!($1 in code) || code[$1] != 0 || evidence[$1] !~ /^tests\/native-baseline\/[^:]+:[0-9]+$/) {
+      print "missing passing recheck for fixed baseline failure: " $1 > "/dev/stderr"; bad=1
+    }
+  }
+  END {exit bad}
+' "$root/rechecks.tsv" "$root/dispositions.tsv"
+tab=$(printf '\t')
+while IFS="$tab" read -r path code evidence; do
+    [ "$code" = 0 ] || continue
+    log=${evidence%:*}
+    line=${evidence##*:}
+    awk -v line="$line" -v expected="  $path ... PASS" '
+      NR == line {found=1; if ($0 != expected) bad=1}
+      END {exit bad || !found}
+    ' "$log"
+done < "$root/rechecks.tsv"
 echo "Native baseline discovery, failures, guards and historical dispositions are accounted for"

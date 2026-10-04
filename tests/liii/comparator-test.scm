@@ -1,4 +1,5 @@
-(import (liii comparator) (liii check) (liii base))
+(import (liii comparator) (liii check) (liii base)
+        (only (scheme base) exact? integer? >=))
 
 (check-set-mode! 'report-failed)
 
@@ -16,7 +17,11 @@
   (check-true (<? default-comp 0.0+1.0i 0.0+2.0i))
   (check-true (<? default-comp 1.0+2.0i 2.0+2.0i))
 
-  (check (comparator-hash default-comp (list 1 2)) => 42)
+  (let* ((key (list 1 2))
+         (hash (comparator-hash default-comp key)))
+    (check-true (and (integer? hash) (exact? hash) (>= hash 0)))
+    (check (comparator-hash default-comp key) => hash)
+    (check (comparator-hash default-comp (list 1 2)) => hash))
 ) ;let
 
 (check-report)

@@ -1,3 +1,11 @@
 path	exit_code	evidence
 tests/expander/eval-when-expand-test.scm	255	tests/native-baseline/eval-when-isolated.log
 tests/scheme/r5rs-test.scm	1	tests/native-baseline/r5rs-isolated.log
+tests/liii/comparator-test.scm	0	tests/native-baseline/migration-recheck.log:83
+tests/liii/sort/vector-sorted-p-test.scm	0	tests/native-baseline/migration-recheck.log:84
+tests/liii/string/string-any-test.scm	0	tests/native-baseline/migration-recheck.log:85
+tests/liii/string/string-copy-test.scm	0	tests/native-baseline/migration-recheck.log:86
+tests/liii/string/string-drop-test.scm	0	tests/native-baseline/migration-recheck.log:87
+tests/liii/string/string-every-test.scm	0	tests/native-baseline/migration-recheck.log:88
+tests/liii/string/string-pad-right-test.scm	0	tests/native-baseline/migration-recheck.log:89
+tests/liii/string/string-pad-test.scm	0	tests/native-baseline/migration-recheck.log:90

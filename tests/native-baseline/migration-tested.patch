@@ -1,0 +1,332 @@
+diff --git a/tests/liii/comparator-test.scm b/tests/liii/comparator-test.scm
+index 10f16426..12eeb8cd 100644
+--- a/tests/liii/comparator-test.scm
++++ b/tests/liii/comparator-test.scm
+@@ -1,4 +1,5 @@
+-(import (liii comparator) (liii check) (liii base))
++(import (liii comparator) (liii check) (liii base)
++        (only (scheme base) exact? integer? >=))
+ 
+ (check-set-mode! 'report-failed)
+ 
+@@ -16,7 +17,11 @@
+   (check-true (<? default-comp 0.0+1.0i 0.0+2.0i))
+   (check-true (<? default-comp 1.0+2.0i 2.0+2.0i))
+ 
+-  (check (comparator-hash default-comp (list 1 2)) => 42)
++  (let* ((key (list 1 2))
++         (hash (comparator-hash default-comp key)))
++    (check-true (and (integer? hash) (exact? hash) (>= hash 0)))
++    (check (comparator-hash default-comp key) => hash)
++    (check (comparator-hash default-comp (list 1 2)) => hash))
+ ) ;let
+ 
+ (check-report)
+diff --git a/tests/liii/sort/vector-sorted-p-test.scm b/tests/liii/sort/vector-sorted-p-test.scm
+index 2b86a3d3..6f9c3544 100644
+--- a/tests/liii/sort/vector-sorted-p-test.scm
++++ b/tests/liii/sort/vector-sorted-p-test.scm
+@@ -1,4 +1,4 @@
+-(import (liii check) (liii sort))
++(import (liii check) (liii sort) (only (scheme base) guard))
+ 
+ 
+ (check-set-mode! 'report-failed)
+@@ -55,9 +55,10 @@
+ 
+ 
+ ;; 错误处理测试
+-(check-catch "Invalid start or end parameters"
+-  (vector-sorted? < #(1 2 3 4 5) 3 2)
+-) ;check-catch
++(check
++  (guard (condition (else condition))
++    (vector-sorted? < #(1 2 3 4 5) 3 2))
++  => "Invalid start or end parameters")
+ 
+ 
+ ;; 配合排序函数使用
+diff --git a/tests/liii/string/string-any-test.scm b/tests/liii/string/string-any-test.scm
+index 033870b0..06323762 100644
+--- a/tests/liii/string/string-any-test.scm
++++ b/tests/liii/string/string-any-test.scm
+@@ -57,8 +57,7 @@
+ ;; --------
+ ;; (liii string-cursor) 库中也提供了 string-any 函数。
+ ;; 差异：
+-;; - (liii string) 版本基于字节索引遍历，start/end 参数指向字节位置，
+-;;   对包含多字节 Unicode 字符（如中文、emoji）的字符串，无法按字符级别精确定位。
++;; - (liii string) 版本的 start/end 是 Unicode 字符索引。
+ ;; - (liii string-cursor) 版本基于 cursor 遍历，支持 Unicode 字符级别的精确操作。
+ ;; 另外，cursor 版本只接受谓词(procedure)作为第一个参数，
+ ;; start/end 可以是整数索引或 string-cursor。
+@@ -95,7 +94,7 @@
+ (check-true (string-any char-numeric? "中文123文字"))
+ (check-false (string-any char-numeric? "中文测试"))
+ (check-true (string-any char-numeric? "123😀456"))
+-(check-true (string-any char-alphabetic? "a中文b" 0 6))
+-(check-false (string-any char-numeric? "中文测试" 0 8))
++(check-true (string-any char-alphabetic? "a中文b" 0 4))
++(check-false (string-any char-numeric? "中文测试" 0 4))
+ 
+ (check-report)
+diff --git a/tests/liii/string/string-copy-test.scm b/tests/liii/string/string-copy-test.scm
+index 84bf5e96..72a15505 100644
+--- a/tests/liii/string/string-copy-test.scm
++++ b/tests/liii/string/string-copy-test.scm
+@@ -48,8 +48,8 @@
+ (check-true (equal? (string-copy "hello" 1 4) "ell"))
+ (check-true (equal? (string-copy "") ""))
+ (check-true (equal? (string-copy "中文测试") "中文测试"))
+-(check-true (equal? (string-copy "中文测试" 6) "测试"))
+-(check-true (equal? (string-copy "中文测试" 0 6) "中文"))
++(check-true (equal? (string-copy "中文测试" 2) "测试"))
++(check-true (equal? (string-copy "中文测试" 0 2) "中文"))
+ 
+ (check-true (equal? (string-copy "hello" 0) "hello"))
+ (check-true (equal? (string-copy "hello" 5) ""))
+@@ -68,8 +68,8 @@
+ (check-true (equal? (string-copy "test123" 0 4) "test"))
+ (check-true (equal? (string-copy "test123" 4 7) "123"))
+ 
+-(check-true (equal? (string-copy "🌟🎉" 0 4) "🌟"))
+-(check-true (equal? (string-copy "🌟🎉" 4 8) "🎉"))
++(check-true (equal? (string-copy "🌟🎉" 0 1) "🌟"))
++(check-true (equal? (string-copy "🌟🎉" 1 2) "🎉"))
+ 
+ (check-catch 'wrong-type-arg (string-copy 123))
+ (check-catch 'wrong-type-arg (string-copy 'hello))
+diff --git a/tests/liii/string/string-drop-test.scm b/tests/liii/string/string-drop-test.scm
+index e40d567b..3a14b811 100644
+--- a/tests/liii/string/string-drop-test.scm
++++ b/tests/liii/string/string-drop-test.scm
+@@ -23,7 +23,7 @@
+ ;; 注意
+ ;; ----
+ ;; string-drop等价于(substring str k (string-length str))，但提供了更语义化的名称。
+-;; 对于多字节Unicode字符，操作基于字节位置而非字符位置。例如，每个中文字符占用3个字节，emoji字符通常占用4个字节。
++;; 对于多字节Unicode字符，操作基于 Unicode 字符位置。中文字符和 emoji 各占一个字符索引。
+ ;;
+ ;; 示例
+ ;; ----
+@@ -41,7 +41,7 @@
+ ;; 相关实现
+ ;; --------
+ ;; (liii string-cursor) 库中也提供了 string-drop 函数，
+-;; 该版本支持 Unicode 字符级别的操作，并提供 cursor-based API。
++;; 该版本也按 Unicode 字符操作，并提供 cursor-based API。
+ ;; 参见: gf doc liii/string-cursor "string-drop"
+ 
+ (check (string-drop "MathAgape" 4) => "Agape")
+@@ -65,11 +65,11 @@
+ (check (string-drop "test123" 3) => "t123")
+ (check (string-drop "test123" 6) => "3")
+ (check (string-drop "test123" 7) => "")
+-(check (string-drop "中文测试" 6) => "测试")
+-(check (string-drop "中文测试" 3) => "文测试")
+-(check (string-drop "中文测试" 12) => "")
+-(check (string-drop "🌟🎉" 4) => "🎉")
+-(check (string-drop "🌟🎉" 8) => "")
++(check (string-drop "中文测试" 2) => "测试")
++(check (string-drop "中文测试" 1) => "文测试")
++(check (string-drop "中文测试" 4) => "")
++(check (string-drop "🌟🎉" 1) => "🎉")
++(check (string-drop "🌟🎉" 2) => "")
+ 
+ (check-catch 'out-of-range (string-drop "MathAgape" 20))
+ (check-catch 'out-of-range (string-drop "" 1))
+@@ -109,7 +109,7 @@
+ ;; 注意
+ ;; ----
+ ;; string-drop-right等价于(substring str 0 (- len k))，但提供了更语义化的名称。
+-;; 对于多字节Unicode字符，操作基于字节位置而非字符位置。例如，每个中文字符占用3个字节，emoji字符通常占用4个字节。
++;; 对于多字节Unicode字符，操作基于 Unicode 字符位置。中文字符和 emoji 各占一个字符索引。
+ ;;
+ ;; 示例
+ ;; ----
+@@ -144,11 +144,11 @@
+ (check (string-drop-right "test123" 4) => "tes")
+ (check (string-drop-right "test123" 6) => "t")
+ (check (string-drop-right "test123" 7) => "")
+-(check (string-drop-right "中文测试" 6) => "中文")
+-(check (string-drop-right "中文测试" 3) => "中文测")
+-(check (string-drop-right "中文测试" 12) => "")
+-(check (string-drop-right "🌟🎉" 4) => "🌟")
+-(check (string-drop-right "🌟🎉" 8) => "")
++(check (string-drop-right "中文测试" 2) => "中文")
++(check (string-drop-right "中文测试" 1) => "中文测")
++(check (string-drop-right "中文测试" 4) => "")
++(check (string-drop-right "🌟🎉" 1) => "🌟")
++(check (string-drop-right "🌟🎉" 2) => "")
+ 
+ (check-catch 'out-of-range (string-drop-right "MathAgape" 20))
+ (check-catch 'out-of-range (string-drop-right "" 1))
+diff --git a/tests/liii/string/string-every-test.scm b/tests/liii/string/string-every-test.scm
+index 97f7838e..fdc5ba44 100644
+--- a/tests/liii/string/string-every-test.scm
++++ b/tests/liii/string/string-every-test.scm
+@@ -55,8 +55,7 @@
+ ;; --------
+ ;; (liii string-cursor) 库中也提供了 string-every 函数。
+ ;; 差异：
+-;; - (liii string) 版本基于字节索引遍历，start/end 参数指向字节位置，
+-;;   对包含多字节 Unicode 字符（如中文、emoji）的字符串，无法按字符级别精确定位。
++;; - (liii string) 版本的 start/end 是 Unicode 字符索引。
+ ;; - (liii string-cursor) 版本基于 cursor 遍历，支持 Unicode 字符级别的精确操作。
+ ;; 另外，cursor 版本只接受谓词(procedure)作为第一个参数，
+ ;; start/end 可以是整数索引或 string-cursor。
+@@ -91,7 +90,7 @@
+ ;; Unicode 字符
+ (check-true (string-every (lambda (c) #t) "一二三"))
+ (check-true (string-every (lambda (c) #t) "😀😃😄"))
+-(check-false (string-every char-alphabetic? "ab中文"))
++(check-true (string-every char-alphabetic? "ab中文"))
+ (check-true (string-every char-alphabetic? "abc" 0 3))
+ (check-true (string-every char-numeric? "123😀456" 0 3))
+ (check-false (string-every char-numeric? "中文测试"))
+diff --git a/tests/liii/string/string-pad-right-test.scm b/tests/liii/string/string-pad-right-test.scm
+index 91ba5340..c89e02be 100644
+--- a/tests/liii/string/string-pad-right-test.scm
++++ b/tests/liii/string/string-pad-right-test.scm
+@@ -38,7 +38,7 @@
+ ;; 注意
+ ;; ----
+ ;; string-pad-right是右填充(right padding)函数，填充字符添加在字符串后面。
+-;; 对于多字节Unicode字符，操作基于字节位置而非字符位置。
++;; 对于多字节Unicode字符，操作基于 Unicode 字符位置。
+ ;;
+ ;; 示例
+ ;; ----
+@@ -57,7 +57,7 @@
+ ;; 相关实现
+ ;; --------
+ ;; (liii string-cursor) 库中也提供了 string-pad-right 函数，
+-;; 该版本支持 Unicode 字符级别的操作，并提供 cursor-based API。
++;; 该版本也按 Unicode 字符操作，并提供 cursor-based API。
+ ;; 参见: gf doc liii/string-cursor "string-pad-right"
+ 
+ (check (string-pad-right "abc" 6) => "abc   ")
+@@ -73,7 +73,7 @@
+ (check (string-pad-right "abc" 2) => "ab")
+ (check (string-pad-right "abc" 1) => "a")
+ 
+-(check (string-pad-right "中文" 6) => "中文")
++(check (string-pad-right "中文" 6) => "中文    ")
+ 
+ (check (string-pad-right "HelloWorld" 12 #\!) => "HelloWorld!!")
+ (check (string-pad-right "HelloWorld" 7 #\! 0 5) => "Hello!!")
+diff --git a/tests/liii/string/string-pad-test.scm b/tests/liii/string/string-pad-test.scm
+index dfb15481..442a08a0 100644
+--- a/tests/liii/string/string-pad-test.scm
++++ b/tests/liii/string/string-pad-test.scm
+@@ -38,7 +38,7 @@
+ ;; 注意
+ ;; ----
+ ;; string-pad是左填充(left padding)函数，填充字符添加在字符串前面。
+-;; 对于多字节Unicode字符，操作基于字节位置而非字符位置。
++;; 对于多字节Unicode字符，操作基于 Unicode 字符位置。
+ ;;
+ ;; 示例
+ ;; ----
+@@ -57,7 +57,7 @@
+ ;; 相关实现
+ ;; --------
+ ;; (liii string-cursor) 库中也提供了 string-pad 函数，
+-;; 该版本支持 Unicode 字符级别的操作，并提供 cursor-based API。
++;; 该版本也按 Unicode 字符操作，并提供 cursor-based API。
+ ;; 参见: gf doc liii/string-cursor "string-pad"
+ 
+ (check (string-pad "MathAgape" 15) => "      MathAgape")
+@@ -82,7 +82,7 @@
+ (check (string-pad "abc" 2) => "bc")
+ (check (string-pad "abc" 1) => "c")
+ 
+-(check (string-pad "中文" 6) => "中文")
++(check (string-pad "中文" 6) => "    中文")
+ 
+ (check (string-pad "HelloWorld" 12 #\!) => "!!HelloWorld")
+ (check (string-pad "HelloWorld" 7 #\! 0 5) => "!!Hello")
+@@ -132,7 +132,7 @@
+ ;; 注意
+ ;; ----
+ ;; string-pad-right是右填充(right padding)函数，填充字符添加在字符串后面。
+-;; 对于多字节Unicode字符，操作基于字节位置而非字符位置。
++;; 对于多字节Unicode字符，操作基于 Unicode 字符位置。
+ ;;
+ ;; 示例
+ ;; ----
+@@ -169,7 +169,7 @@
+ (check (string-pad-right "abc" 2) => "ab")
+ (check (string-pad-right "abc" 1) => "a")
+ 
+-(check (string-pad-right "中文" 6) => "中文")
++(check (string-pad-right "中文" 6) => "中文    ")
+ 
+ (check (string-pad-right "HelloWorld" 12 #\!) => "HelloWorld!!")
+ (check (string-pad-right "HelloWorld" 7 #\! 0 5) => "Hello!!")
+diff --git a/tests/liii/string/string-take-right-test.scm b/tests/liii/string/string-take-right-test.scm
+index 834e4099..b1689d71 100644
+--- a/tests/liii/string/string-take-right-test.scm
++++ b/tests/liii/string/string-take-right-test.scm
+@@ -23,7 +23,7 @@
+ ;; 注意
+ ;; ----
+ ;; string-take-right等价于(substring str (- (string-length str) k) (string-length str))，但提供了更语义化的名称。
+-;; 对于多字节Unicode字符，操作基于字节位置而非字符位置。例如，每个中文字符占用3个字节，emoji字符通常占用4个字节。
++;; 对于多字节Unicode字符，操作基于 Unicode 字符位置。中文字符和 emoji 各占一个字符索引。
+ ;;
+ ;; 示例
+ ;; ----
+@@ -40,7 +40,7 @@
+ ;; 相关实现
+ ;; --------
+ ;; (liii string-cursor) 库中也提供了 string-take-right 函数，
+-;; 该版本支持 Unicode 字符级别的操作，并提供 cursor-based API。
++;; 该版本也按 Unicode 字符操作，并提供 cursor-based API。
+ ;; 参见: gf doc liii/string-cursor "string-take-right"
+ 
+ (check (string-take-right "MathAgape" 0) => "")
+@@ -54,8 +54,8 @@
+ (check (string-take-right "Hello" 1) => "o")
+ (check (string-take-right "abc" 2) => "bc")
+ (check (string-take-right "test123" 3) => "123")
+-(check (string-take-right "中文测试" 6) => "测试")
+-(check (string-take-right "🌟🎉" 4) => "🎉")
++(check (string-take-right "中文测试" 2) => "测试")
++(check (string-take-right "🌟🎉" 1) => "🎉")
+ 
+ (check-catch 'out-of-range (string-take-right "MathAgape" 20))
+ (check-catch 'out-of-range (string-take-right "" 1))
+diff --git a/tests/liii/string/string-take-test.scm b/tests/liii/string/string-take-test.scm
+index c215793d..b39a53ad 100644
+--- a/tests/liii/string/string-take-test.scm
++++ b/tests/liii/string/string-take-test.scm
+@@ -23,7 +23,7 @@
+ ;; 注意
+ ;; ----
+ ;; string-take等价于(substring str 0 k)，但提供了更语义化的名称。
+-;; 对于多字节Unicode字符，操作基于字节位置而非字符位置。例如，每个中文字符占用3个字节，emoji字符通常占用4个字节。
++;; 对于多字节Unicode字符，操作基于 Unicode 字符位置。中文字符和 emoji 各占一个字符索引。
+ ;;
+ ;; 示例
+ ;; ----
+@@ -40,7 +40,7 @@
+ ;; 相关实现
+ ;; --------
+ ;; (liii string-cursor) 库中也提供了 string-take 函数，
+-;; 该版本支持 Unicode 字符级别的操作，并提供 cursor-based API。
++;; 该版本也按 Unicode 字符操作，并提供 cursor-based API。
+ ;; 参见: gf doc liii/string-cursor "string-take"
+ 
+ (check (string-take "MathAgape" 4) => "Math")
+@@ -51,8 +51,8 @@
+ (check (string-take "Hello" 1) => "H")
+ (check (string-take "abc" 2) => "ab")
+ (check (string-take "test123" 4) => "test")
+-(check (string-take "中文测试" 6) => "中文")
+-(check (string-take "🌟🎉" 4) => "🌟")
++(check (string-take "中文测试" 2) => "中文")
++(check (string-take "🌟🎉" 1) => "🌟")
+ (check-catch 'out-of-range (string-take "MathAgape" 20))
+ (check-catch 'out-of-range (string-take "" 1))
+ (check-catch 'out-of-range (string-take "Hello" -1))

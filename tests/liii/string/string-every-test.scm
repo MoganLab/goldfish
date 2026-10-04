@@ -55,8 +55,7 @@
 ;; --------
 ;; (liii string-cursor) 库中也提供了 string-every 函数。
 ;; 差异：
-;; - (liii string) 版本基于字节索引遍历，start/end 参数指向字节位置，
-;;   对包含多字节 Unicode 字符（如中文、emoji）的字符串，无法按字符级别精确定位。
+;; - (liii string) 版本的 start/end 是 Unicode 字符索引。
 ;; - (liii string-cursor) 版本基于 cursor 遍历，支持 Unicode 字符级别的精确操作。
 ;; 另外，cursor 版本只接受谓词(procedure)作为第一个参数，
 ;; start/end 可以是整数索引或 string-cursor。
@@ -91,7 +90,7 @@
 ;; Unicode 字符
 (check-true (string-every (lambda (c) #t) "一二三"))
 (check-true (string-every (lambda (c) #t) "😀😃😄"))
-(check-false (string-every char-alphabetic? "ab中文"))
+(check-true (string-every char-alphabetic? "ab中文"))
 (check-true (string-every char-alphabetic? "abc" 0 3))
 (check-true (string-every char-numeric? "123😀456" 0 3))
 (check-false (string-every char-numeric? "中文测试"))

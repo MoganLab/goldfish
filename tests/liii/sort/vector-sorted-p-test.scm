@@ -1,4 +1,4 @@
-(import (liii check) (liii sort))
+(import (liii check) (liii sort) (only (scheme base) guard))
 
 
 (check-set-mode! 'report-failed)
@@ -55,9 +55,10 @@
 
 
 ;; 错误处理测试
-(check-catch "Invalid start or end parameters"
-  (vector-sorted? < #(1 2 3 4 5) 3 2)
-) ;check-catch
+(check
+  (guard (condition (else condition))
+    (vector-sorted? < #(1 2 3 4 5) 3 2))
+  => "Invalid start or end parameters")
 
 
 ;; 配合排序函数使用

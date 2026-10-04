@@ -23,7 +23,7 @@
 ;; 注意
 ;; ----
 ;; string-drop等价于(substring str k (string-length str))，但提供了更语义化的名称。
-;; 对于多字节Unicode字符，操作基于字节位置而非字符位置。例如，每个中文字符占用3个字节，emoji字符通常占用4个字节。
+;; 对于多字节Unicode字符，操作基于 Unicode 字符位置。中文字符和 emoji 各占一个字符索引。
 ;;
 ;; 示例
 ;; ----
@@ -41,7 +41,7 @@
 ;; 相关实现
 ;; --------
 ;; (liii string-cursor) 库中也提供了 string-drop 函数，
-;; 该版本支持 Unicode 字符级别的操作，并提供 cursor-based API。
+;; 该版本也按 Unicode 字符操作，并提供 cursor-based API。
 ;; 参见: gf doc liii/string-cursor "string-drop"
 
 (check (string-drop "MathAgape" 4) => "Agape")
@@ -65,11 +65,11 @@
 (check (string-drop "test123" 3) => "t123")
 (check (string-drop "test123" 6) => "3")
 (check (string-drop "test123" 7) => "")
-(check (string-drop "中文测试" 6) => "测试")
-(check (string-drop "中文测试" 3) => "文测试")
-(check (string-drop "中文测试" 12) => "")
-(check (string-drop "🌟🎉" 4) => "🎉")
-(check (string-drop "🌟🎉" 8) => "")
+(check (string-drop "中文测试" 2) => "测试")
+(check (string-drop "中文测试" 1) => "文测试")
+(check (string-drop "中文测试" 4) => "")
+(check (string-drop "🌟🎉" 1) => "🎉")
+(check (string-drop "🌟🎉" 2) => "")
 
 (check-catch 'out-of-range (string-drop "MathAgape" 20))
 (check-catch 'out-of-range (string-drop "" 1))
@@ -109,7 +109,7 @@
 ;; 注意
 ;; ----
 ;; string-drop-right等价于(substring str 0 (- len k))，但提供了更语义化的名称。
-;; 对于多字节Unicode字符，操作基于字节位置而非字符位置。例如，每个中文字符占用3个字节，emoji字符通常占用4个字节。
+;; 对于多字节Unicode字符，操作基于 Unicode 字符位置。中文字符和 emoji 各占一个字符索引。
 ;;
 ;; 示例
 ;; ----
@@ -144,11 +144,11 @@
 (check (string-drop-right "test123" 4) => "tes")
 (check (string-drop-right "test123" 6) => "t")
 (check (string-drop-right "test123" 7) => "")
-(check (string-drop-right "中文测试" 6) => "中文")
-(check (string-drop-right "中文测试" 3) => "中文测")
-(check (string-drop-right "中文测试" 12) => "")
-(check (string-drop-right "🌟🎉" 4) => "🌟")
-(check (string-drop-right "🌟🎉" 8) => "")
+(check (string-drop-right "中文测试" 2) => "中文")
+(check (string-drop-right "中文测试" 1) => "中文测")
+(check (string-drop-right "中文测试" 4) => "")
+(check (string-drop-right "🌟🎉" 1) => "🌟")
+(check (string-drop-right "🌟🎉" 2) => "")
 
 (check-catch 'out-of-range (string-drop-right "MathAgape" 20))
 (check-catch 'out-of-range (string-drop-right "" 1))

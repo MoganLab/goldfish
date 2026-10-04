@@ -45,11 +45,22 @@ old decisions rather than treating them as current exclusions.
 
 [Results](tests/native-baseline/results.tsv) preserve the original verdicts.
 [Dispositions](tests/native-baseline/dispositions.tsv) account for all 131
-failures: 78 deferred repairs or test migrations and 53 exclusions for native
+failures. Initially these were 78 deferred repairs or test migrations and 53 exclusions for native
 njson handles, advanced subprocess capture, hooks and signature reflection.
 Fifteen earlier file-level exclusions/deferrals are retired after passing.
 Eight HTTP files passed their opt-out guards; a ninth failed on JSON import
 before reaching its guard. None establishes live HTTP coverage.
+
+The subsequent [targeted recheck](tests/native-baseline/migration-recheck.log)
+ran ten proposed test migrations: eight passed and two failed (driver exit 255).
+The eight passing changes are committed: character-based string slices,
+padding and Han alphabetic expectations; default-hash contract assertions;
+and inspection of the string raised by `vector-sorted?`. The two proposed
+`string-take` edits expose native `substring` error-tag failures after fixing
+their Unicode offsets. They remain deferred, with the complete tested source
+[patch](tests/native-baseline/migration-tested.patch) retained for reproduction.
+Current decisions are eight locally verified fixes, 70 deferrals and 53
+exclusions. The runtime is unchanged, and no second full run is claimed.
 
 The next repairs are usable `match`, JSON and R5RS re-export bindings;
 numeric association/membership equivalence; circular list traversal; missing

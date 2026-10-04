@@ -1,0 +1,101 @@
+Running changed tests since: 43065842
+
+----------->
+worker chunk: tests/liii/string/string-take-right-test.scm tests/liii/string/string-take-test.scm
+;;; note: tests/liii/string/string-take-right-test.scm could not be compiled; loading per form
+
+(string-take-right MathAgape 0) =>  ; correct
+
+(string-take-right MathAgape 1) => e ; correct
+
+(string-take-right MathAgape 9) => MathAgape ; correct
+
+(string-take-right MathAgape 4) => gape ; correct
+
+(string-take-right MathAgape 0) =>  ; correct
+
+(string-take-right MathAgape 9) => MathAgape ; correct
+
+(string-take-right  0) =>  ; correct
+
+(string-take-right a 1) => a ; correct
+
+(string-take-right Hello 1) => o ; correct
+
+(string-take-right abc 2) => bc ; correct
+
+(string-take-right test123 3) => 123 ; correct
+
+(string-take-right 中文测试 2) => 测试 ; correct
+
+(string-take-right 🌟🎉 1) => 🎉 ; correct
+
+(catch (quote out-of-range) (lambda () (string-take-right MathAgape 20)) (lambda args (quote out-of-range))) => out-of-range ; correct
+
+(catch (quote out-of-range) (lambda () (string-take-right  1)) (lambda args (quote out-of-range))) => out-of-range ; correct
+
+(catch (quote out-of-range) (lambda () (string-take-right Hello -1)) (lambda args (quote out-of-range))) => out-of-range ; correct
+
+(catch (quote wrong-type-arg) (lambda () (string-take-right 123 4)) (lambda args (quote wrong-type-arg))) => wrong-type-arg ; correct
+
+(catch (quote wrong-type-arg) (lambda () (string-take-right MathAgape 4)) (lambda args (quote wrong-type-arg))) => wrong-type-arg ; correct
+
+(catch (quote wrong-type-arg) (lambda () (string-take-right MathAgape 4.5)) (lambda args (quote wrong-type-arg))) => ;;;WORKER-ERROR tests/liii/string/string-take-right-test.scm (#t ("while loading tests/liii/string/string-take-right-test.scm form 20: wrong-type-arg: substring start must be an integer"))
+;;;WORKER tests/liii/string/string-take-right-test.scm 2 12417
+;;; note: tests/liii/string/string-take-test.scm could not be compiled; loading per form
+
+(string-take MathAgape 4) => Math ; correct
+
+(string-take MathAgape 0) =>  ; correct
+
+(string-take MathAgape 9) => MathAgape ; correct
+
+(string-take  0) =>  ; correct
+
+(string-take a 1) => a ; correct
+
+(string-take Hello 1) => H ; correct
+
+(string-take abc 2) => ab ; correct
+
+(string-take test123 4) => test ; correct
+
+(string-take 中文测试 2) => 中文 ; correct
+
+(string-take 🌟🎉 1) => 🌟 ; correct
+
+(catch (quote out-of-range) (lambda () (string-take MathAgape 20)) (lambda args (quote out-of-range))) => out-of-range ; correct
+
+(catch (quote out-of-range) (lambda () (string-take  1)) (lambda args (quote out-of-range))) => out-of-range ; correct
+
+(catch (quote out-of-range) (lambda () (string-take Hello -1)) (lambda args (quote out-of-range))) => out-of-range ; correct
+
+(catch (quote wrong-type-arg) (lambda () (string-take 123 4)) (lambda args (quote wrong-type-arg))) => wrong-type-arg ; correct
+
+(catch (quote wrong-type-arg) (lambda () (string-take MathAgape 4)) (lambda args (quote wrong-type-arg))) => ;;;WORKER-ERROR tests/liii/string/string-take-test.scm (#t ("while loading tests/liii/string/string-take-test.scm form 16: wrong-type-arg: substring end must be an integer"))
+;;;WORKER tests/liii/string/string-take-test.scm 2 11928
+;;;WORKER-DONE 2 2
+#<unspecified>
+
+
+=== Test Summary ===
+
+  tests/liii/comparator-test.scm ... PASS
+  tests/liii/sort/vector-sorted-p-test.scm ... PASS
+  tests/liii/string/string-any-test.scm ... PASS
+  tests/liii/string/string-copy-test.scm ... PASS
+  tests/liii/string/string-drop-test.scm ... PASS
+  tests/liii/string/string-every-test.scm ... PASS
+  tests/liii/string/string-pad-right-test.scm ... PASS
+  tests/liii/string/string-pad-test.scm ... PASS
+  tests/liii/string/string-take-right-test.scm ... FAIL
+  tests/liii/string/string-take-test.scm ... FAIL
+
+=== Summary ===
+  Total:  10
+  Passed: 8
+  Failed: 2
+  Failed Test Files:
+    tests/liii/string/string-take-right-test.scm
+    tests/liii/string/string-take-test.scm
+
