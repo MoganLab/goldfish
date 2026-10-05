@@ -401,6 +401,34 @@ void NativeBootstrap::install_source_expander() {
         });
 }
 
+void NativeBootstrap::load_cached_source(const std::string& path) {
+    Evaluator& evaluator = runtime_.evaluator();
+    // Reuse the Scheme install cache: it restores both lowered definitions
+    // and their bindings, including the source unit's local transformers.
+    Value library = call(evaluator, "make-exp-library",
+        {evaluator.list({evaluator.symbol("native-source"),
+                         evaluator.string(path)})});
+    call(evaluator, "exp-library-add-use!",
+         {library, evaluator.eval(evaluator.symbol("the-base-library"))});
+    call(evaluator, "exp-library-define!",
+         {library, evaluator.symbol("read-forms"),
+          call(evaluator, "make-primitive-binding",
+               {evaluator.symbol("read-forms")})});
+    call(evaluator, "install-library-file!", {library, evaluator.string(path)});
+    Value environment = call(evaluator, "module-eval-environment",
+        {evaluator.eval(evaluator.symbol("the-expander-library"))});
+    for (Value entry : list_values(call(evaluator, "exp-library-bindings", {library}))) {
+        auto* pair = entry.as_object<PairObject>();
+        if (!named(call(evaluator, "binding-kind", {pair->cdr}), "toplevel"))
+            continue;
+        Value reference = call(evaluator, "binding-value", {pair->cdr});
+        Value gensym = call(evaluator, "toplevel-ref-gensym", {reference});
+        evaluator.global_environment()->define(pair->car,
+            evaluator.eval(gensym,
+                environment.as_object<EvalEnvironmentObject>()->environment));
+    }
+}
+
 Value NativeBootstrap::load_library_artifact(const std::string& path) {
     return loader_.load_library_gfo_file(path);
 }

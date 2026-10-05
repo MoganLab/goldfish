@@ -1,0 +1,126 @@
+;;; note: tests/scheme/read/read-test.scm could not be compiled; loading per form
+
+; *** checks *** : 10 correct, 0 failed.
+#f
+  tests/scheme/read/read-test.scm ... PASS
+;;; note: tests/expander/program-cache-syntax-test.scm could not be compiled; loading per form
+
+(catch (quote serialize-cache-sexp) (lambda () (serialize (list 1 (lambda (x) x)))) (lambda args (quote serialize-cache-sexp))) => serialize-cache-sexp ; correct
+
+(serialize (list 1 (quote (a b)))) => (1 (a b)) ; correct
+
+(syntax->datum (car (find-syntax cold))) => (lit 2) ; correct
+
+(contains-record? exprs) => #f ; correct
+
+(has-stx-shape? exprs) => #t ; correct
+
+(length warm-stxs) => 1 ; correct
+
+(syntax->datum (car warm-stxs)) => (lit 2) ; correct
+
+(syntax->datum (car (find-syntax cold))) => (lit 2) ; correct
+
+(syntax? (car (find-syntax (deserialize exprs)))) => #t ; correct
+
+(map car body) => (define) ; correct
+
+(caddar body) => (a b) ; correct
+
+(contains-record? exprs) => #f ; correct
+
+(has-stx-shape? exprs) => #f ; correct
+
+(let ((warm (compile-file-cached src-plain))) (equal? warm exprs)) => #t ; correct
+
+(find-syntax (compile-file-cached src-plain)) => () ; correct
+
+; *** checks *** : 15 correct, 0 failed.
+#f
+  tests/expander/program-cache-syntax-test.scm ... PASS
+;;; note: tests/expander/program-cache-macro-test.scm could not be compiled; loading per form
+
+(contains-record? exprs) => #f ; correct
+
+(has-stx-shape? exprs) => #f ; correct
+
+(file-exists? out) => #t ; correct
+
+(call-with-input-file out read) => (1 (lit 2)) ; correct
+
+(contains-record? exprs) => #f ; correct
+
+(has-stx-shape? exprs) => #f ; correct
+
+(file-exists? out) => #t ; correct
+
+(call-with-input-file out read) => 30 ; correct
+
+(file-exists? marker) => #t ; correct
+
+(call-with-input-file out read) => 42 ; correct
+
+(file-exists? marker) => #f ; correct
+
+(pair? prog) => #t ; correct
+
+(tree-contains? (lambda (x) (equal? x 42)) prog) => #t ; correct
+
+; *** checks *** : 13 correct, 0 failed.
+#f
+  tests/expander/program-cache-macro-test.scm ... PASS
+;;; note: tests/scheme/base/cache-roundtrip-test.scm could not be compiled; loading per form
+
+(read p) => 0+2i ; correct
+
+(read p) => 0-2.5i ; correct
+
+(read p) => 1.0+1.0i ; correct
+
+(let ((out (open-output-string))) (write-roundtrip z out) (eqv? z (read (open-input-string (get-output-string out))))) => #t ; correct
+
+(let ((out (open-output-string))) (write-roundtrip z out) (eqv? z (read (open-input-string (get-output-string out))))) => #t ; correct
+
+(let ((out (open-output-string))) (write-roundtrip z out) (eqv? z (read (open-input-string (get-output-string out))))) => #t ; correct
+
+(cadr v) => hello' ; correct
+
+(symbol? v) => #t ; correct
+
+(symbol->string v) => a b ; correct
+
+(record-instance? v) => #t ; correct
+
+(binding-kind v) => primitive ; correct
+
+(binding-value v) => foo ; correct
+
+(record-instance? v) => #t ; correct
+
+(toplevel-ref-gensym v) => my-var:1 ; correct
+
+(toplevel-ref-original v) => my-var ; correct
+
+(toplevel-ref-exported? v) => #t ; correct
+
+(record-instance? v) => #t ; correct
+
+(exp-library-name v) => (liii test) ; correct
+
+(binding? b) => #t ; correct
+
+(eq? (toplevel-ref-home (binding-value b)) v) => #t ; correct
+
+(cacheable-expansion? sexp) => #t ; correct
+
+(cacheable-expansion? (quote (begin (define f (lambda (x) missing))))) => #f ; correct
+
+(cacheable-expansion? (quote (let ((loop (lambda () (loop)))) (loop)))) => #f ; correct
+
+; *** checks *** : 23 correct, 0 failed.
+#f
+  tests/scheme/base/cache-roundtrip-test.scm ... PASS
+
+  Total:  4
+  Passed: 4
+  Failed: 0

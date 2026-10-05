@@ -635,12 +635,15 @@ int main(int argc, char** argv) {
         }
         stage("standard-library");
         runtime.evaluator().collect();
+        stage("post-standard-collection");
         install_mode_imports(runtime.evaluator(), startup_mode(argc, argv));
-        // The Scheme source reader is intentionally loaded from source; it
-        // must not depend on a host-generated gfo cache to start native mode.
-        load_source(runtime.evaluator(), "liii/reader.scm");
-        load_source(runtime.evaluator(), "expander/lib/native-write.scm");
+        stage("mode-imports");
+        // A miss expands the source with the native compiler; no external
+        // bootstrap artifacts are required for the reader or writers.
+        bootstrap.load_cached_source("liii/reader.scm");
         stage("load-source-reader");
+        bootstrap.load_cached_source("expander/lib/native-write.scm");
+        stage("load-native-writer");
         if (timing)
             std::cerr << "[timing] boot total "
                       << std::chrono::duration_cast<std::chrono::milliseconds>(

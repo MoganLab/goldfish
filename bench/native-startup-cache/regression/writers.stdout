@@ -1,0 +1,14 @@
+Running tests in directory: tests/scheme/write/
+
+=== Test Summary ===
+
+  tests/scheme/write/display-test.scm ... [32mPASS[0m
+  tests/scheme/write/graph-roundtrip-test.scm ... [32mPASS[0m
+  tests/scheme/write/write-shared-test.scm ... [32mPASS[0m
+  tests/scheme/write/write-simple-test.scm ... [32mPASS[0m
+  tests/scheme/write/write-test.scm ... [32mPASS[0m
+
+=== Summary ===
+  Total:  5
+  [32mPassed: 5[0m
+

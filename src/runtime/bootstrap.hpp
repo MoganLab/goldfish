@@ -25,6 +25,9 @@ public:
     void load_cached_base_runtime();
     void install_source_expander();
     void install_expansion_helpers();
+    // Install a definition-only bootstrap unit and publish its value aliases.
+    // Cache misses retain the native Scheme source expansion path.
+    void load_cached_source(const std::string& path);
     Value load_library_artifact(const std::string& path);
     Value load_artifact(const std::string& path);
     void register_library(const std::string& name, const std::string& path);

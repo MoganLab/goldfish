@@ -440,8 +440,8 @@ those copies before changing hash algorithms or enlarging workloads. A minimal
 warm-cache startup spends 0.348 seconds loading cached runtime and 17.825
 seconds booting overall; most cost lies in later source installation/expansion.
 The recorded `load-source-reader` interval includes mode imports, writer and
-collection, so further stage separation is necessary. No optimization is yet
-implemented; raw captures, verified matching symbols and reproduction commands
+collection, so further stage separation is necessary. At that point no optimization
+had been implemented; raw captures, verified matching symbols and reproduction commands
 are archived with the analysis.
 
 The [vector-access repair](bench/native-vector-access/README.md) removes the
@@ -454,7 +454,7 @@ existing deferred constructor error-tag failure; its failed aggregate is
 retained explicitly. Vector access errors, identity and mutation checks pass.
 The auxiliary C++ evaluator release target suppresses assert expressions;
 forcing them exposed old test defects, recorded separately and not counted as
-passing coverage. No startup-source optimization has yet been implemented.
+passing coverage. Startup-source optimization remained pending at that point.
 
 At repair commit `e71831ad`, the bounded
 [100,000-element recheck](bench/native-vector-access/scale100000/results.tsv)
@@ -472,3 +472,19 @@ interruption. A [heartbeat control](bench/native-scale-phases/descendants/heartb
 uses a TERM-ignoring preparation child and verifies that it cannot continue
 writing after the runner returns. All investigation runs stay below a total
 budget; no million-element test was repeated.
+
+The [startup source-install cache](bench/native-startup-cache/README.md) reuses
+the existing Scheme installer for the native reader and writers, retaining
+source expansion on cache misses and read-only fallback. The first warm R7RS
+sample drops from 16.62 to 6.21 seconds, with peak RSS from 48,560 to 31,396 KiB.
+Separated diagnostics attribute 92 ms to cached reader installation rather
+than the roughly ten-second source expansion. Cold native bootstrap, cache
+replay in five modes, corruption and source-digest recovery, five writer files,
+four reader/program-cache files, and the 161-file changed-since gate pass.
+The explicit reader-directory run retains its failed aggregate: public numeric
+prefix parsing is the existing deferred defect, also reproduced after source
+reload. No full-suite or million-element result is inferred from these checks.
+Three further warm R7RS samples have a 6.46-second median. The bounded
+100,000-element recheck passes in 22.30 seconds with peak RSS 65,760 KiB;
+construction stays at 12.675 seconds. The next-level estimate remains 138.68
+seconds, so the million-element workload is not run and remains deferred.

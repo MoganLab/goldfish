@@ -1,0 +1,37 @@
+[timing] install-primitives 0 ms
+[timing] load-kernel 54 ms
+native cache unavailable: native bootstrap cache not found under /tmp/goldfish-native-cache.hfF0QN/ccache/v5123ede839a7
+[timing] load-cached-runtime 9 ms
+[timing] cold-source-bootstrap 310 ms
+[timing] load-install-scm 10593 ms
+[timing] expansion-helpers 7 ms
+[timing] native-scheme-surface 2930 ms
+[timing] standard-library 870 ms
+[timing] post-standard-collection 5 ms
+[timing] mode-imports 12700 ms
+[timing] load-source-reader 10275 ms
+[timing] load-native-writer 54 ms
+[timing] boot total 37812 ms
+	Command being timed: "sh tools/warm-bootstrap-cache.sh"
+	User time (seconds): 111.08
+	System time (seconds): 0.12
+	Percent of CPU this job got: 99%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 1:51.86
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 116180
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 2
+	Minor (reclaiming a frame) page faults: 15395
+	Voluntary context switches: 139
+	Involuntary context switches: 15983
+	Swaps: 0
+	File system inputs: 4000
+	File system outputs: 3784
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

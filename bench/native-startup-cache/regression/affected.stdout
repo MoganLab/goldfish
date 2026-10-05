@@ -1,0 +1,122 @@
+Running tests in directory: tests/liii/reader/
+
+----------->
+worker chunk: tests/liii/reader/reader-test.scm tests/liii/reader/write-roundtrip-test.scm
+;;; note: tests/liii/reader/reader-test.scm could not be compiled; loading per form
+
+(read-str #b101010) => #<unspecified> ; *** failed ***
+; expected result: 42
+; stacktrace:
+[no stacktrace available]
+
+(read-str #B101010) => #<unspecified> ; *** failed ***
+; expected result: 42
+; stacktrace:
+[no stacktrace available]
+
+(read-str #o52) => #<unspecified> ; *** failed ***
+; expected result: 42
+; stacktrace:
+[no stacktrace available]
+
+(read-str #O52) => #<unspecified> ; *** failed ***
+; expected result: 42
+; stacktrace:
+[no stacktrace available]
+
+(read-str #d42) => #<unspecified> ; *** failed ***
+; expected result: 42
+; stacktrace:
+[no stacktrace available]
+
+(read-str #D42) => #<unspecified> ; *** failed ***
+; expected result: 42
+; stacktrace:
+[no stacktrace available]
+
+(read-str #x2A) => #<unspecified> ; *** failed ***
+; expected result: 42
+; stacktrace:
+[no stacktrace available]
+
+(read-str #X2A) => #<unspecified> ; *** failed ***
+; expected result: 42
+; stacktrace:
+[no stacktrace available]
+
+(read-str #x2a) => #<unspecified> ; *** failed ***
+; expected result: 42
+; stacktrace:
+[no stacktrace available]
+
+(read-str #x-2A) => #<unspecified> ; *** failed ***
+; expected result: -42
+; stacktrace:
+[no stacktrace available]
+
+(read-str #o-52) => #<unspecified> ; *** failed ***
+; expected result: -42
+; stacktrace:
+[no stacktrace available]
+
+(read-str #b-101) => #<unspecified> ; *** failed ***
+; expected result: -5
+; stacktrace:
+[no stacktrace available]
+
+(read-str #xbf) => #<unspecified> ; *** failed ***
+; expected result: 191
+; stacktrace:
+[no stacktrace available]
+
+(read-str #xd8) => #<unspecified> ; *** failed ***
+; expected result: 216
+; stacktrace:
+[no stacktrace available]
+
+(read-str #xef) => #<unspecified> ; *** failed ***
+; expected result: 239
+; stacktrace:
+[no stacktrace available]
+
+(read-str #x1e2) => #<unspecified> ; *** failed ***
+; expected result: 482
+; stacktrace:
+[no stacktrace available]
+
+(read-str #x7f) => #<unspecified> ; *** failed ***
+; expected result: 127
+; stacktrace:
+[no stacktrace available]
+
+(read-str #x80) => #<unspecified> ; *** failed ***
+; expected result: 128
+; stacktrace:
+[no stacktrace available]
+
+(read-str #e42) => #<unspecified> ; *** failed ***
+; expected result: 42
+; stacktrace:
+[no stacktrace available]
+;;;WORKER-ERROR tests/liii/reader/reader-test.scm (wrong-type-arg ("while loading tests/liii/reader/reader-test.scm form 35: exact? expects a number"))
+;;;WORKER tests/liii/reader/reader-test.scm 2 12518
+;;; note: tests/liii/reader/write-roundtrip-test.scm could not be compiled; loading per form
+
+; *** checks *** : 15 correct, 0 failed.
+;;;WORKER tests/liii/reader/write-roundtrip-test.scm 0 4995
+;;;WORKER-DONE 2 1
+#<unspecified>
+
+
+=== Test Summary ===
+
+  tests/liii/reader/reader-test.scm ... [31mFAIL[0m
+  tests/liii/reader/write-roundtrip-test.scm ... [32mPASS[0m
+
+=== Summary ===
+  Total:  2
+  [32mPassed: 1[0m
+  [31mFailed: 1[0m
+  Failed Test Files:
+    tests/liii/reader/reader-test.scm
+
