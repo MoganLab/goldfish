@@ -1,0 +1,15 @@
+=== (liii json) 性能基准测试 ===
+
+[解析对象(string->json)] iterations=50 time=1580735773/500000000s
+[解析数组(string->json)] iterations=50 time=1455905823/1000000000s
+[序列化对象(json->string)] iterations=50 time=1695322913/1000000000s
+[序列化数组(json->string)] iterations=50 time=138019413/250000000s
+[对象读取(json-ref)] iterations=2000 time=1808041423/1000000000s
+[数组读取(json-ref)] iterations=2000 time=94079803/250000000s
+[键存在(json-contains-key?)] iterations=2000 time=317709941/250000000s
+[获取键(json-keys)] iterations=500 time=322774619/1000000000s
+[类型检查(json-object?)] iterations=5000 time=119790261/62500000s
+[类型检查(json-array?)] iterations=5000 time=47927113/1000000000s
+
+=== 测试完成 ===
+#<unspecified>

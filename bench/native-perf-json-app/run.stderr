@@ -1,0 +1,2 @@
+[ perf record: Woken up 88 times to write data ]
+[ perf record: Captured and wrote 22.275 MB /tmp/gf-json-app.data (2770 samples) ]
