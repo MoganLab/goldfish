@@ -430,6 +430,20 @@ The original test constructing two near-million-element sets remains deferred.
 Profile startup/cache
 restoration and collection insertion at bounded sizes before resuming scale.
 
+The subsequent [native perf analysis](bench/native-perf-rehash/ANALYSIS.md)
+at `5e57ad12` isolates startup and collection sampling. `vector-ref` and
+`vector-length` copy the entire vector through `Evaluator::vector_values`;
+a fixed-access wide-vector probe confirms width-dependent cost. The copy
+path accounts for 13.27% of user CPU in five 10,000-element constructions and
+27.73% in one 50,000-element construction (inclusive percentages). Eliminate
+those copies before changing hash algorithms or enlarging workloads. A minimal
+warm-cache startup spends 0.348 seconds loading cached runtime and 17.825
+seconds booting overall; most cost lies in later source installation/expansion.
+The recorded `load-source-reader` interval includes mode imports, writer and
+collection, so further stage separation is necessary. No optimization is yet
+implemented; raw captures, verified matching symbols and reproduction commands
+are archived with the analysis.
+
 The deadline supervisor cleans the entire worker process group after it exits,
 including preparation descendants whose shell ended first, and handles explicit
 interruption. A [heartbeat control](bench/native-scale-phases/descendants/heartbeat-control.tsv)

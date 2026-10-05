@@ -1,0 +1,9 @@
+[timing] install-primitives 0 ms
+[timing] load-kernel 58 ms
+[timing] load-cached-runtime 335 ms
+[timing] load-install-scm 3301 ms
+[timing] expansion-helpers 9 ms
+[timing] native-scheme-surface 4055 ms
+[timing] standard-library 596 ms
+[timing] load-source-reader 13058 ms
+[timing] boot total 21416 ms

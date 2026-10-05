@@ -1,0 +1,14 @@
+Events disabled
+[timing] install-primitives 0 ms
+[timing] load-kernel 58 ms
+[timing] load-cached-runtime 320 ms
+[timing] load-install-scm 2424 ms
+[timing] expansion-helpers 6 ms
+[timing] native-scheme-surface 3383 ms
+[timing] standard-library 595 ms
+[timing] load-source-reader 10854 ms
+[timing] boot total 17643 ms
+Events enabled
+Events disabled
+[ perf record: Woken up 27 times to write data ]
+[ perf record: Captured and wrote 6.452 MB /tmp/gf-perf-rehash/set.data (799 samples) ]

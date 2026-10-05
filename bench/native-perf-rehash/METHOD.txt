@@ -1,0 +1,65 @@
+Native perf investigation at 5e57ad12
+
+Use the recorded binary SHA, source revision and cache version in metadata.tsv.
+The runtime binary was not rebuilt. Native bootstrap cache was already warm:
+/tmp/gf-rehash-scale10000/cache. Configuration used GOLDFISH_DEBUG=timing;
+GC and optimization settings stayed at their recorded defaults. No concurrent
+test driver or million-element workload ran during these captures.
+
+Startup capture, from the repository root:
+GOLDFISH_CACHE_DIR=CACHE GOLDFISH_DEBUG=timing perf record -e cpu-clock:u -F 99 --call-graph dwarf,8192 --clockid mono -o STARTUP_DATA -- timeout --kill-after=5s 60 ./bin/gf -m r7rs -e '(+ 1 1)'
+Redirect stdout/stderr separately. The result must be 2 and exit code 0.
+
+Collection capture (all three arguments are absolute paths):
+timeout --kill-after=5s 120 bash bench/native-perf-rehash/profile-set.sh EMPTY_OUTPUT CACHE INPUT
+INPUT is set-small/input.scm or set-wide/input.scm from this archive.
+This reproducer uses the same recording settings and FIFO handshake as the
+executed temporary driver, with parameterized paths and completion checks.
+It starts disabled, enables after the flushed PHASE-BEGIN/profile-set marker,
+and disables after the corresponding PHASE row. Require enable/disable ack
+and PROFILE-OK. Target deadline is 90 seconds; outer deadline is 120 seconds;
+both have 5-second kill grace. Control latency may omit a few initial samples
+or include a few final samples. Startup, import and list generation are outside
+the enabled interval. Each interval includes cardinality and membership checks.
+
+Wide-vector confirmation, after dependencies are warm:
+GOLDFISH_CACHE_DIR=CACHE GOLDFISH_DEBUG=timing timeout --kill-after=5s 90 ./bin/gf -m r7rs -I bench < bench/native-perf-rehash/vector/input.scm
+Require six VECTOR-OK results and six complete PHASE rows, exit code 0.
+Each phase performs 20000 accesses, a sum and a final sum check. Both read and
+length use the same widths within one process. No perf overhead in this probe.
+
+For a fresh cache, prepare the native bootstrap using tools/warm-bootstrap-cache.sh
+under a separate setup deadline, then import (native-scale timing) and (liii set)
+with -m r7rs -I bench before recording. Use one cache version, no concurrent
+writers. Preparation is outside the measurements. CLI mode (-m) precedes -I;
+an initial failed collection attempt used the reverse order, never reached the
+sample interval and is not included among the successful captures.
+
+Symbols:
+bin/gf is stripped, and the pre-existing bin/gf.sym is stale. The current release
+objects were relinked, without -s, into a temporary executable in the original
+xmake link order, not alphabetical dependency order:
+native_main gc_alloc numeric evaluator core_evaluator reader bootstrap_primitives
+standard_primitives platform_primitives random_primitives unicode_char
+unicode_primitives artifact bootstrap
+Each name refers to build/.objs/gf-native/linux/x86_64/release/src/runtime/NAME.cpp.o.
+Link command:
+g++ -o SYMBOL_BINARY OBJECTS -m64 -L/home/jinser/.xmake/packages/t/tbox/v1.8.0/71e0d4ff993c4e07aac08f6b3b6c9bbe/lib -Lbuild/linux/x86_64/release -ltbox -lbdwgc -lm -ldl -lpthread
+objcopy --dump-section and cmp confirmed .text and .rodata bytes identical to
+bin/gf; section addresses match. The archive includes this symbol binary as
+gf-symbols.gz. Recorded processes still executed the original bin/gf.
+
+Replay from archived samples:
+Decompress perf.data.gz into a temporary file. Decompress gf-symbols.gz to
+SYMFSDIR/home/jinser/vie/projet/lang/goldfish/bin/gf. Link SYMFSDIR/nix to /nix
+on this machine so system libraries can be resolved. Then:
+perf report --stdio --symfs SYMFSDIR -i DATA --no-children --call-graph none --sort dso,symbol --percent-limit 0.8
+perf report --stdio --symfs SYMFSDIR -i DATA --children --call-graph none --sort symbol --percent-limit 3
+The former reports self percentages; the latter includes descendants and must
+not be added across nested functions. Library resolution on another machine
+may differ. cpu-clock:u samples user CPU, not kernel time or waiting.
+
+These are exploratory profiles, not controlled multi-sample A/B comparisons.
+All successful captures exit 0 and retain raw outputs, controls, data and
+reports. Runtime source was only read. No semantic tests were rerun because no
+runtime semantics changed; profile workloads validate their own results.

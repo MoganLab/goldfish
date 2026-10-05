@@ -1,0 +1,27 @@
+key	value
+source_commit	5e57ad12c4eb6432099bcb5f0cfbc2b75fbd4300
+binary_sha256	15d563ef10f94b5db163f4cbdf13d710cba99a34ba51b3681af1b626100738b9
+symbol_binary_sha256	28312753dbe814b1adc0dd9315dd70967cf4f6776ffc2fbfbce385cd359ffac4
+text_sha256	421c15434894f92da266f0764c29ffd860dae7765d9a05016fba19a79aad0783
+text_comparison	identical
+rodata_comparison	identical
+perf_version	perf version 7.1.6
+event	cpu-clock:u
+frequency_hz	99
+call_graph	dwarf,8192
+clock	monotonic
+startup_samples	1754
+set_small_samples	799
+set_wide_samples	1172
+lost_samples	0
+startup_exit_code	0
+set_small_exit_code	0
+set_wide_exit_code	0
+vector_exit_code	0
+cache_seed	/tmp/gf-rehash-scale10000/cache
+configuration	GOLDFISH_DEBUG=timing; other settings inherited
+system	Linux 7.2.8-cachyos x86_64 GNU/Linux
+binary_path	/home/jinser/vie/projet/lang/goldfish/bin/gf
+gc_setting	default
+optimization_level	2
+cache_version	/tmp/gf-rehash-scale10000/cache/veb780c1236ec

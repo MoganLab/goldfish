@@ -1,0 +1,11 @@
+[timing] install-primitives 0 ms
+[timing] load-kernel 60 ms
+[timing] load-cached-runtime 348 ms
+[timing] load-install-scm 2442 ms
+[timing] expansion-helpers 6 ms
+[timing] native-scheme-surface 3380 ms
+[timing] standard-library 647 ms
+[timing] load-source-reader 10937 ms
+[timing] boot total 17825 ms
+[ perf record: Woken up 53 times to write data ]
+[ perf record: Captured and wrote 14.113 MB /tmp/gf-perf-rehash/startup.data (1754 samples) ]
