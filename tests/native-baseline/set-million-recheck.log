@@ -1,0 +1,16 @@
+Running test file: tests/liii/set/set-size-test.scm
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/liii/set/set-size-test.scm
+;;; note: tests/liii/set/set-size-test.scm could not be compiled; loading per form
+
+; *** checks *** : 9 correct, 0 failed.
+#f
+
+=== Test Summary ===
+
+  tests/liii/set/set-size-test.scm ... [32mPASS[0m
+
+=== Summary ===
+  Total:  1
+  [32mPassed: 1[0m
+

@@ -1,0 +1,20 @@
+> #<unspecified>
+> PHASE	startup-and-timer-import	6.291223842
+#<unspecified>
+> PHASE-BEGIN	import
+#<unspecified>
+> #<unspecified>
+> PHASE	import	2.683940468
+#<unspecified>
+> PHASE-BEGIN	list-build-big
+PHASE	list-build-big	0.249773374
+PHASE-BEGIN	set-build-big
+PHASE	set-build-big	12.551057488
+PHASE-BEGIN	list-build-small
+PHASE	list-build-small	0.236583829
+PHASE-BEGIN	set-build-small
+PHASE	set-build-small	13.245268269
+PHASE-BEGIN	check
+PHASE	check	0.000356937
+BENCH-OK
+> 

@@ -141,7 +141,7 @@
     ) ;define
 
     (define (set-add! s element)
-      (hash-table-set! (set-hash-table s) element element)
+      (s7-hash-table-set! (set-hash-table s) element element)
     ) ;define
 
     (define (set comparator . elements)
