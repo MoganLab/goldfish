@@ -7,3 +7,9 @@ perf_version	7.1.6
 event	cpu-clock:u
 frequency_hz	99
 callgraph	dwarf,8192
+json_parser_before_sha256	4a84eeabc99941d0537556b9a02a0ca4619c7257fea9190efba17a3f84533c64
+json_parser_after_sha256	fa33a5dcf199c20656b93fc0306b553fa14d85a8191b034d66bd890f3c8167e2
+parse_baseline_median_ns	5335490839
+parse_candidate_median_ns	3978038017
+parse_reduction_percent	25.44
+string_to_json_test	36 passed

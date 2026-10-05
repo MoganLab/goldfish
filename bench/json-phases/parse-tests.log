@@ -1,0 +1,16 @@
+Running test file: tests/liii/json/string-to-json-test.scm
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/liii/json/string-to-json-test.scm
+;;; note: tests/liii/json/string-to-json-test.scm could not be compiled; loading per form
+
+; *** checks *** : 36 correct, 0 failed.
+#f
+
+=== Test Summary ===
+
+  tests/liii/json/string-to-json-test.scm ... [32mPASS[0m
+
+=== Summary ===
+  Total:  1
+  [32mPassed: 1[0m
+

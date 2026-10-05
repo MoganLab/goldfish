@@ -1,0 +1,17 @@
+Events disabled
+[timing] install-primitives 0 ms
+[timing] load-kernel 58 ms
+[timing] load-cached-runtime 308 ms
+[timing] load-install-scm 2202 ms
+[timing] expansion-helpers 5 ms
+[timing] native-scheme-surface 3073 ms
+[timing] standard-library 562 ms
+[timing] post-standard-collection 8 ms
+[timing] mode-imports 980 ms
+[timing] load-source-reader 87 ms
+[timing] load-native-writer 2 ms
+[timing] boot total 7291 ms
+Events enabled
+Events disabled
+[ perf record: Woken up 14 times to write data ]
+[ perf record: Captured and wrote 3.281 MB /tmp/gf-json-parse-ab/after/parse-profile/perf.data (405 samples) ]

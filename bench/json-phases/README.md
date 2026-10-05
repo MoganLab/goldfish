@@ -26,7 +26,8 @@ bash bench/json-phases/profile.sh /tmp/gf-json-profile/parse \
 
 | 场景 | 操作次数 | 阶段时间 | CPU 样本 | 观察 |
 |---|---:|---:|---:|---|
-| parse | 80 | 5.216 秒 | 511 | `utf8_length` 6.26%、`utf8_byte_offset` 3.72%；可能受逐字符 UTF-8 索引影响 |
+| parse（旧实现） | 80 | 5.216 秒 | 511 | `utf8_length` 6.26%、`utf8_byte_offset` 3.72%；逐字符索引和逐字符拼接 |
+| parse（新实现） | 80 | 4.130 秒 | 405 | 输出片段改由原生 `string-append` 拼接 |
 | serialize | 200 | 6.509 秒 | 637 | evaluator/GC 为主，没有单个 JSON 专属热点 |
 | lookup | 20,000 | 21.916 秒 | 2,161 | evaluator 17.21%、GC_free 15.96%、continuation frame 压入 7.13%、环境查找 6.20% |
 | enumerate（旧实现） | 8,000 | 5.701 秒 | 561 | `json-keys` 先验证对象，再遍历取键；存在可消除的一次完整遍历 |
@@ -42,9 +43,15 @@ reverse。它替代 `json-object?` 的全量 pair 验证加 `map` 两次遍历�
 A/B 的逐轮结果保存在 `enumerate-ab.before.stdout`；profile `run.stdout` 含阶段
 标记与结果检查，`control.log` 记录 perf 启停确认。
 
-键枚举现已完成一次有稳定收益的优化。下一项应转向 parse：先评估逐字符 `string-ref`
-触发的 UTF-8 扫描成本，再设计保留 Unicode 与转义行为的候选并独立做 A/B。当前
-profile 不足以证明应该先重写解析器或改 evaluator / GC。
+解析路径也完成了一个局部 A/B。把 `fast-string-list-append` 从 Scheme 层逐字符
+`string-ref`/`string-set!` 改成 `(apply string-append strings)` 后，独立解析负载
+三次中位数从 5.335 秒降至 3.978 秒，约快 25%；候选 profile 为 4.130 秒。原有
+`string-to-json` 测试 36 项全过，覆盖 Unicode 文本、Unicode 转义、代理对、错误转义和
+空输入。完整 A/B stdout/stderr 位于 `parse-ab/`。
+
+新 profile 中 `utf8_length` 不再出现在前列，但 `utf8_byte_offset` 仍约占自身样本
+4.20%，说明 parser 的其它 `substring`/索引调用还有可测成本。下一项可分析并单独
+A/B 这些切片路径；当前证据不支持直接重写 JSON parser，也不支持改 evaluator / GC。
 
 `gf-symbols.gz` 与本目录所有 profile 使用的 runtime 二进制匹配。解压到
 `SYMFSDIR/home/jinser/vie/projet/lang/goldfish/bin/gf`，并把 `/nix` 链接到

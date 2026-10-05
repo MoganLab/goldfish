@@ -86,39 +86,8 @@
       ) ;let
     ) ;define
 
-    (define (string-length-sum strings)
-      (let loop
-        ((o 0) (rest strings))
-        (cond ((eq? '() rest) o)
-              (else (loop (+ o (string-length (car rest))) (cdr rest)))
-        ) ;cond
-      ) ;let
-    ) ;define
-
     (define (fast-string-list-append strings)
-      (let* ((output-length (string-length-sum strings))
-             (output (make-string output-length #\_))
-             (fill 0)
-            ) ;
-        (let outer
-          ((rest strings))
-          (cond ((eq? '() rest) output)
-                (else (let* ((s (car rest)) (n (string-length s)))
-                        (let inner
-                          ((i 0))
-                          (cond ((= i n) 'done)
-                                (else (string-set! output fill (string-ref s i))
-                                  (set! fill (+ fill 1))
-                                  (inner (+ i 1))
-                                ) ;else
-                          ) ;cond
-                        ) ;let
-                      ) ;let*
-                  (outer (cdr rest))
-                ) ;else
-          ) ;cond
-        ) ;let
-      ) ;let*
+      (apply string-append strings)
     ) ;define
 
     (define (handle-escape-char s end len)
