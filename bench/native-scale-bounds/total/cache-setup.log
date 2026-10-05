@@ -1,0 +1,3 @@
+warm-bootstrap-cache: building native cache in isolation
+native cache unavailable: native bootstrap cache not found under /tmp/goldfish-native-cache.LGudAW/ccache/v78b5b35cb1bc
+Terminated                 GOLDFISH_CACHE_DIR="$temp_cache" GOLDFISH_OPT_LEVEL=2 bin/gf -m liii -e '(compile-file-cached "tests/native/native-workflow.scm")' > /dev/null

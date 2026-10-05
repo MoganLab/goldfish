@@ -324,3 +324,16 @@ nonzero. The smoke profile checks the harness and small workloads; it is not
 million-element evidence or an optimization result. The full profile is the
 next dedicated performance run. Choose optimizations from measured hotspots
 and keep the affected semantic regressions green for every change.
+
+The runner also accepts `--case=NAME`, `--size=N`, `--setup-timeout=N`
+(default 300 seconds), `--run-timeout=N` (default 1800 seconds), and
+`--cache=DIR` to copy a seed cache into the isolated run. Every preparation
+command is bounded, including copying compile caches. An outer deadline covers
+preparation, generation, samples and validation; termination gets a five-second
+kill grace. Selecting warm compilation also runs its required cold sample.
+Only the selected workload libraries are prepared. `stages.tsv`,
+`current-stage.txt` and `run-status.tsv` distinguish preparation, sample and
+overall termination. A timeout may exit 124, or 137 after forced termination.
+[Bound controls](bench/native-scale-bounds/controls.tsv) exercise all three
+limits and a passing selected 32-element list. Partial logs remain available
+when the outer deadline interrupts a stage.

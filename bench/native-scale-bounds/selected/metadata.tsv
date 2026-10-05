@@ -1,0 +1,24 @@
+key	value
+started_utc	2026-10-05 04:53:14 UTC
+source_commit	d0f547f7d3cfe45703faa74b0e17686763f60ee3
+binary_sha256	15d563ef10f94b5db163f4cbdf13d710cba99a34ba51b3681af1b626100738b9
+working_diff_sha256	0c2adf541985b0432849b5c7f3d4bf77501015edc864620e5d147977b161b1a3
+profile	quick
+samples	1
+timeout_seconds	300
+setup_timeout_seconds	90
+run_timeout_seconds	150
+selected_case	long-list
+size_override	32
+cache_seed	/tmp/goldfish-preperf-fixes/conversion
+optimization_level	2
+gc_setting	default
+system	Linux 7.2.8-cachyos x86_64 GNU/Linux
+cpu	AMD Ryzen 7 7840HS with Radeon 780M Graphics
+memory_kib	28401976
+input_sha256:bench/native-scale/cases.tsv	ef6a0720dfadd7216b6dca6322c12c9b2fb7875070df8c71cdeb675fbe1b949b
+input_sha256:bench/native-scale/compile.scm	08e77a491c38cf9d958979c29d0b18fd5ee5807d226485b95654efd4703566e1
+input_sha256:bench/native-scale/set.scm	a30b4235b99a83ff35f93da320662a41def51de2a9eb4a379ea1cd5e13679ab8
+input_sha256:bench/native-scale/workloads.scm	f6faccda1d3a4f8a65b086602c082fc4055954610da981ff3472006867d422cd
+input_sha256:tools/bench-native-scale.sh	1b9718df07776480cc9024bae3111af6e174a35216ecbaec5a4e640a6fc094d1
+ended_utc	2026-10-05 04:53:53 UTC
