@@ -444,6 +444,18 @@ collection, so further stage separation is necessary. No optimization is yet
 implemented; raw captures, verified matching symbols and reproduction commands
 are archived with the analysis.
 
+The [vector-access repair](bench/native-vector-access/README.md) removes the
+measured copies from vector-ref and vector-length while retaining the snapshot
+API used by serialization. Fixed-count probes now take about 0.078 seconds
+across widths 8 through 65,536. The same 50,000-element collection profile
+completes in 6.308 seconds, with no vector_values samples and memmove self share
+2.56%. These are exploratory samples. The affected-file run is 21 pass and one
+existing deferred constructor error-tag failure; its failed aggregate is
+retained explicitly. Vector access errors, identity and mutation checks pass.
+The auxiliary C++ evaluator release target suppresses assert expressions;
+forcing them exposed old test defects, recorded separately and not counted as
+passing coverage. No startup-source optimization has yet been implemented.
+
 The deadline supervisor cleans the entire worker process group after it exits,
 including preparation descendants whose shell ended first, and handles explicit
 interruption. A [heartbeat control](bench/native-scale-phases/descendants/heartbeat-control.tsv)

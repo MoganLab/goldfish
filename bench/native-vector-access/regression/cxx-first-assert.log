@@ -1,0 +1,2 @@
+native-evaluator-test: tests/runtime/evaluator-test.cpp:218: int main(): Assertion `rejected_multi_value_argument' failed.
+timeout: the monitored command dumped core

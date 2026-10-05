@@ -1,0 +1,9 @@
+The existing native-evaluator-test release target defines NDEBUG, so its
+assert expressions are not executed. Its exit 0 is not used as assertion
+coverage for this change. An auxiliary attempt to enable assertions exposed
+a pre-existing undefined module_reference in tests/runtime/evaluator-test.cpp.
+Temporary corrections then exposed stale multiple-value expectations and
+another runtime-value kind error. Those edits were discarded; no C++ evaluator
+suite repair is included here. A separate test-maintenance task should enable
+assertions and reconcile these expectations with the current native contract.
+The recorded Scheme regression and self-checking probes are the change's gates.

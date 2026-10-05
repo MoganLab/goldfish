@@ -39,6 +39,13 @@ void require_arity(const Values& args, std::size_t count,
                                  std::to_string(args.size()));
 }
 
+const std::vector<Value>& vector_storage(Value value) {
+    if (!value.is_object() ||
+        value.as_object()->type() != ObjectType::Vector)
+        throw std::runtime_error("expected vector");
+    return value.as_object<VectorObject>()->values;
+}
+
 // Per-site key override: some host tests pin a key the message
 // classifier would not give (file path ops want 'type-error while
 // string_value elsewhere pins 'wrong-type-arg for the same shape).
@@ -2882,14 +2889,14 @@ void install_runtime_primitives(Evaluator& evaluator) {
     install(evaluator, "vector", [&evaluator](const Values& args) {
         return Values{evaluator.vector(args)};
     });
-    install(evaluator, "vector-length", [&evaluator](const Values& args) {
+    install(evaluator, "vector-length", [](const Values& args) {
         require_arity(args, 1, "vector-length");
         return Values{Value::integer(static_cast<std::int64_t>(
-            evaluator.vector_values(args[0]).size()))};
+            vector_storage(args[0]).size()))};
     });
-    install(evaluator, "vector-ref", [&evaluator](const Values& args) {
+    install(evaluator, "vector-ref", [](const Values& args) {
         require_arity(args, 2, "vector-ref");
-        auto values = evaluator.vector_values(args[0]);
+        const auto& values = vector_storage(args[0]);
         std::int64_t index = args[1].as_integer();
         if (index < 0 || static_cast<std::size_t>(index) >= values.size())
             throw std::runtime_error("vector-ref index out of bounds: " +

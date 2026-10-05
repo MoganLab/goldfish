@@ -1,0 +1,3 @@
+terminate called after throwing an instance of 'std::logic_error'
+  what():  runtime value has the wrong kind
+timeout: the monitored command dumped core

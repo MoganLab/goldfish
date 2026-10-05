@@ -1,0 +1,8 @@
+(import (scheme base) (native-scale timing))
+(define (access-probe width operation) (let ((v (make-vector width 1))) (let loop ((i 0) (sum 0)) (if (= i 20000) (begin (unless (= sum (* 20000 (if (eq? operation 'ref) 1 width))) (error "vector profile check failed")) 'VECTOR-OK) (loop (+ i 1) (+ sum (if (eq? operation 'ref) (vector-ref v 0) (vector-length v))))))))
+(phase-measure 'ref-8 (lambda () (access-probe 8 'ref)))
+(phase-measure 'ref-8192 (lambda () (access-probe 8192 'ref)))
+(phase-measure 'ref-65536 (lambda () (access-probe 65536 'ref)))
+(phase-measure 'length-8 (lambda () (access-probe 8 'length)))
+(phase-measure 'length-8192 (lambda () (access-probe 8192 'length)))
+(phase-measure 'length-65536 (lambda () (access-probe 65536 'length)))

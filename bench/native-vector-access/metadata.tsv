@@ -1,0 +1,16 @@
+key	value
+source_parent	e4209a384e8c3dc38ccc2b23ffd2eb995667cf7d
+binary_sha256	cbad8c519a5cb8b5b1ad4761128846548d4b708559ab4c80683f136fc8073526
+tested_patch_sha256	f20b37907168606c8d839f19a5c4882ebe5d4ea3427a6479e693d77fd7a6ceff
+text_sha256	7d221f886384a45f4c9e6e2fe7f4ac904d9a161e702a9e95abf78fb80525e709
+symbol_text_comparison	identical
+cache_version	/tmp/gf-vector-access-fix/cache/v9b0f2e3176ff
+affected_exit_code	1
+affected_passed	21
+affected_failed	1
+known_failure	tests/scheme/base/make-vector-test.scm; existing deferred negative-size error tag
+vector_probe_exit_code	0
+vector_probe_checks	6
+set_profile_exit_code	0
+set_profile_samples	624
+set_profile_lost_samples	0

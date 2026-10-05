@@ -36,4 +36,14 @@
 (check-catch 'out-of-range (vector-ref #(a) 1))
 (check-catch 'out-of-range (vector-ref #(a b) -1))
 
+;; Reads retain element identity and observe writes through an alias.
+(let* ((element (list 'original))
+       (v (vector element #f))
+       (alias v))
+  (check (eq? (vector-ref v 0) element) => #t)
+  (vector-set! alias 0 'changed)
+  (check (vector-ref v 0) => 'changed)
+  (check (vector-ref v 1) => #f)
+  (check (vector-length v) => 2))
+
 (check-report)

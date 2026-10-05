@@ -1,0 +1,112 @@
+;;; note: tests/scheme/base/vector-to-string-test.scm could not be compiled; loading per form
+
+; *** checks *** : 8 correct, 0 failed.
+#f
+  tests/scheme/base/vector-to-string-test.scm ... PASS
+;;; note: tests/scheme/base/vector-to-list-test.scm could not be compiled; loading per form
+
+; *** checks *** : 9 correct, 0 failed.
+#f
+  tests/scheme/base/vector-to-list-test.scm ... PASS
+;;; note: tests/scheme/base/vector-test.scm could not be compiled; loading per form
+
+; *** checks *** : 7 correct, 0 failed.
+#f
+  tests/scheme/base/vector-test.scm ... PASS
+;;; note: tests/scheme/base/vector-set-bang-test.scm could not be compiled; loading per form
+
+; *** checks *** : 11 correct, 0 failed.
+#f
+  tests/scheme/base/vector-set-bang-test.scm ... PASS
+;;; note: tests/scheme/base/vector-ref-test.scm could not be compiled; loading per form
+
+; *** checks *** : 15 correct, 0 failed.
+#f
+  tests/scheme/base/vector-ref-test.scm ... PASS
+;;; note: tests/scheme/base/vector-p-test.scm could not be compiled; loading per form
+
+; *** checks *** : 8 correct, 0 failed.
+#f
+  tests/scheme/base/vector-p-test.scm ... PASS
+;;; note: tests/scheme/base/vector-map-test.scm could not be compiled; loading per form
+
+; *** checks *** : 7 correct, 0 failed.
+#f
+  tests/scheme/base/vector-map-test.scm ... PASS
+;;; note: tests/scheme/base/vector-length-test.scm could not be compiled; loading per form
+
+; *** checks *** : 9 correct, 0 failed.
+#f
+  tests/scheme/base/vector-length-test.scm ... PASS
+;;; note: tests/scheme/base/vector-for-each-test.scm could not be compiled; loading per form
+
+; *** checks *** : 5 correct, 0 failed.
+#f
+  tests/scheme/base/vector-for-each-test.scm ... PASS
+;;; note: tests/scheme/base/vector-fill-bang-test.scm could not be compiled; loading per form
+
+; *** checks *** : 8 correct, 0 failed.
+#f
+  tests/scheme/base/vector-fill-bang-test.scm ... PASS
+;;; note: tests/scheme/base/vector-copy-test.scm could not be compiled; loading per form
+
+; *** checks *** : 12 correct, 0 failed.
+#f
+  tests/scheme/base/vector-copy-test.scm ... PASS
+;;; note: tests/scheme/base/vector-copy-bang-test.scm could not be compiled; loading per form
+
+; *** checks *** : 9 correct, 0 failed.
+#f
+  tests/scheme/base/vector-copy-bang-test.scm ... PASS
+;;; note: tests/scheme/base/vector-append-test.scm could not be compiled; loading per form
+
+; *** checks *** : 11 correct, 0 failed.
+#f
+  tests/scheme/base/vector-append-test.scm ... PASS
+;;; note: tests/scheme/base/make-vector-test.scm could not be compiled; loading per form
+thrown: #t "while loading tests/scheme/base/make-vector-test.scm form 10: make-vector size is negative"
+  tests/scheme/base/make-vector-test.scm ... FAIL
+;;; note: tests/scheme/base/list-to-vector-test.scm could not be compiled; loading per form
+
+; *** checks *** : 9 correct, 0 failed.
+#f
+  tests/scheme/base/list-to-vector-test.scm ... PASS
+;;; note: tests/liii/set/set-union-test.scm could not be compiled; loading per form
+
+; *** checks *** : 13 correct, 0 failed.
+#f
+  tests/liii/set/set-union-test.scm ... PASS
+;;; note: tests/liii/set/set-to-list-test.scm could not be compiled; loading per form
+
+; *** checks *** : 3 correct, 0 failed.
+#f
+  tests/liii/set/set-to-list-test.scm ... PASS
+;;; note: tests/liii/set/set-delete-bang-test.scm could not be compiled; loading per form
+
+; *** checks *** : 4 correct, 0 failed.
+#f
+  tests/liii/set/set-delete-bang-test.scm ... PASS
+;;; note: tests/liii/set/set-contains-p-test.scm could not be compiled; loading per form
+
+; *** checks *** : 4 correct, 0 failed.
+#f
+  tests/liii/set/set-contains-p-test.scm ... PASS
+;;; note: tests/liii/set/list-to-set-test.scm could not be compiled; loading per form
+
+; *** checks *** : 8 correct, 0 failed.
+#f
+  tests/liii/set/list-to-set-test.scm ... PASS
+;;; note: tests/liii/hash-table/resize-test.scm could not be compiled; loading per form
+
+; *** checks *** : 31 correct, 0 failed.
+#f
+  tests/liii/hash-table/resize-test.scm ... PASS
+;;; note: tests/srfi/srfi-125-test.scm could not be compiled; loading per form
+
+; *** checks *** : 4 correct, 0 failed.
+#f
+  tests/srfi/srfi-125-test.scm ... PASS
+
+  Total:  22
+  Passed: 21
+  Failed: 1
