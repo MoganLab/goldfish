@@ -410,6 +410,26 @@ set run required two batches after its first 600-second deadline; all remaining
 files passed. Initial serial and two-worker changed-since attempts hit their
 whole-run deadlines and are retained separately, not counted as passing runs.
 
+The [post-repair growth ladder](bench/native-scale-rehash/summary.tsv), at
+repair commit `27f46391`, completes 10, 100, 1,000 and 10,000 elements.
+Construction takes 0.00391, 0.02465, 0.31353 and 2.22541 seconds respectively;
+whole-process peak RSS is 55,220, 50,020, 52,936 and 57,780 KiB. These are single
+exploratory samples, not statistical throughput or asymptotic-complexity proof.
+Startup/timer import varies from 27.38 to 41.38 seconds, so whole-process time
+must not be mistaken for construction time.
+
+The 100,000-element sample reaches its 60-second deadline during construction
+(exit 124, 60.02 seconds, peak RSS 66,264 KiB). Startup/timer import and benchmark
+import consume 40.41 and 7.57 seconds; list generation completes in 0.54030
+seconds. Construction and validation do not complete, so neither its final
+cardinality nor full-construction memory use is established. The
+[declared stop policy](bench/native-scale-rehash/README.txt) stops the ladder
+there, and the million-element level is not run. The preceding sample predicted
+54.88 seconds for this level, illustrating why estimates need a real deadline.
+The original test constructing two near-million-element sets remains deferred.
+Profile startup/cache
+restoration and collection insertion at bounded sizes before resuming scale.
+
 The deadline supervisor cleans the entire worker process group after it exits,
 including preparation descendants whose shell ended first, and handles explicit
 interruption. A [heartbeat control](bench/native-scale-phases/descendants/heartbeat-control.tsv)

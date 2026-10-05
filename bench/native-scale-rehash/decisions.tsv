@@ -1,0 +1,6 @@
+current_size	next_size	predicted_next_wall_seconds	decision
+10	100	46.483342290	continue; estimate within 60s
+100	1000	46.031371730	continue; estimate within 60s
+1000	10000	51.171872064	continue; estimate within 60s
+10000	100000	54.879488424	continue; estimate within 60s
+100000	1000000	NA	stop; sample timed out at 60s

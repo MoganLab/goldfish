@@ -1,0 +1,4 @@
+stage	wall_seconds	user_seconds	system_seconds	peak_rss_kib	exit_code
+cache-copy	0.05	0.00	0.03	4976	0
+cache-setup	0.25	0.10	0.03	8176	0
+workload-setup	47.62	40.46	0.12	57180	0

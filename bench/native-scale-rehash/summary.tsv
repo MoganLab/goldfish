@@ -1,0 +1,7 @@
+size	list_build_seconds	set_build_seconds	check_seconds	wall_seconds	peak_rss_kib	exit_code	result
+10	0.000175911	0.003909595	0.000730304	46.44	55220	0	pass
+100	0.000698374	0.024649739	0.000359857	45.80	50020	0	pass
+1000	0.005122679	0.313529109	0.000445108	48.30	52936	0	pass
+10000	0.05189961	2.225405233	0.000416093	34.38	57780	0	pass
+100000	0.540301756	NA	NA	60.02	66264	124	timeout; construction incomplete
+1000000	NA	NA	NA	NA	NA	NA	not run; stopped after 100000 timeout

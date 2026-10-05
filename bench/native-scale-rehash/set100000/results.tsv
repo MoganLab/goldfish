@@ -1,0 +1,2 @@
+case	size	sample	wall_seconds	user_seconds	system_seconds	peak_rss_kib	exit_code	check
+million-set	100000	1	60.02	49.68	0.07	66264	124	fail
