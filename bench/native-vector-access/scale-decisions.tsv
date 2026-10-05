@@ -1,0 +1,2 @@
+current_size	next_size	predicted_next_wall_seconds	decision
+100000	1000000	146.066614751	stop; estimate exceeds 60s

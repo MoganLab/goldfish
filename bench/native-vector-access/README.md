@@ -56,3 +56,28 @@ time. The symbol executable is relinked from the current objects; its .text is
 verified byte-identical to bin/gf. The set target deadline remains 90 seconds
 and the recorder's outer deadline 120 seconds, each with 5-second kill grace.
 No semantic full suite or million-element run is included in this repair gate.
+
+## Bounded scale recheck
+
+After committing the repair as `e71831ad`, the original benchmark's
+100,000-element sample completes: construction 12.49798 seconds, list generation
+0.24921 seconds, startup/timer import 15.88730 seconds and benchmark import
+2.68156 seconds. All checks pass. Whole-process wall time is 31.34 seconds,
+peak RSS 82,672 KiB, exit code 0; the preceding attempt timed out at 60 seconds
+without completing construction. The two runs' different fixed costs prevent
+assigning the entire improvement to the vector change.
+
+Command: `sh tools/bench-native-scale.sh --smoke --case=million-set --size=100000
+--phases --timeout=60 --setup-timeout=90 --run-timeout=240
+--cache=/tmp/gf-vector-access-fix/cache
+--output=/tmp/gf-vector-access-fix/scale100000` (join into one shell line).
+Raw phase, whole-process and setup records are in [scale100000](scale100000/).
+Peak RSS describes this completed process, not just the construction phase;
+the earlier timeout's RSS is not comparable as a full-workload memory result.
+
+Applying the existing scheduling guard (fixed time plus variable phases scaled
+by ten) projects 146.07 seconds for one million elements. This exceeds the
+60-second sample budget, so the ladder stops without running that level. It is
+a scheduling estimate, not a measured million-element result. The original
+test creating two near-million-element sets remains deferred. Startup/source
+installation and remaining interpreter overhead are the next measured targets.

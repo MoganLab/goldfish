@@ -1,0 +1,6 @@
+case	size	sample	phase	seconds	status
+million-set	100000	1	startup-and-timer-import	15.887304896	complete
+million-set	100000	1	import	2.681556255	complete
+million-set	100000	1	list-build	0.249213016	complete
+million-set	100000	1	set-build	12.497979052	complete
+million-set	100000	1	check	0.000209571	complete

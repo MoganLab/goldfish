@@ -456,6 +456,16 @@ The auxiliary C++ evaluator release target suppresses assert expressions;
 forcing them exposed old test defects, recorded separately and not counted as
 passing coverage. No startup-source optimization has yet been implemented.
 
+At repair commit `e71831ad`, the bounded
+[100,000-element recheck](bench/native-vector-access/scale100000/results.tsv)
+passes in 31.34 seconds with peak RSS 82,672 KiB. Construction takes 12.498
+seconds, startup/timer import 15.887 seconds, and benchmark import 2.682 seconds;
+all semantic checks complete. The existing scheduling guard projects 146.07
+seconds for the next million-element level, so it is not run. The original
+near-million-element two-set test remains deferred; its historical failure is
+unchanged. Further work should target source installation and remaining
+interpreter overhead before resuming larger scales.
+
 The deadline supervisor cleans the entire worker process group after it exits,
 including preparation descendants whose shell ended first, and handles explicit
 interruption. A [heartbeat control](bench/native-scale-phases/descendants/heartbeat-control.tsv)
