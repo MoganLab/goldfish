@@ -1,0 +1,35 @@
+# To display the perf.data header info, please use --header/--header-only options.
+#
+#
+# Total Lost Samples: 0
+#
+# Samples: 511  of event 'cpu-clock:u'
+# Event count (approx.): 5161616110
+#
+# Overhead  Command  Shared Object        Symbol                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         
+# ........  .......  ...................  .........................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................
+#
+    13.70%  gf       gf                   [.] goldfish::runtime::Evaluator::run_machine(goldfish::runtime::EvalSnapshot&)
+    11.55%  gf       gf                   [.] GC_free
+     6.65%  gf       gf                   [.] GC_malloc
+     6.26%  gf       gf                   [.] goldfish::runtime::utf8_length(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)
+     4.89%  gf       gf                   [.] GC_mark_from
+     4.70%  gf       gf                   [.] goldfish::runtime::Environment::lookup(goldfish::runtime::Value) const
+     3.91%  gf       gf                   [.] std::_Function_handler<std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > (std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&), goldfish::runtime::install_runtime_primitives(goldfish::runtime::Evaluator&)::{lambda(std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)#152}>::_M_invoke(std::_Any_data const&, std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)
+     3.72%  gf       gf                   [.] goldfish::runtime::utf8_byte_offset(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, unsigned long)
+     3.33%  gf       gf                   [.] std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> >::_M_move_assign(std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> >&&, std::integral_constant<bool, true>) [clone .isra.0]
+     3.13%  gf       gf                   [.] goldfish::runtime::Evaluator::run_machine(goldfish::runtime::EvalSnapshot&)::{lambda(goldfish::runtime::Value, std::shared_ptr<goldfish::runtime::Environment>)#1}::operator()(goldfish::runtime::Value, std::shared_ptr<goldfish::runtime::Environment>) const
+     2.74%  gf       gf                   [.] goldfish::runtime::KontFrame& std::vector<goldfish::runtime::KontFrame, std::allocator<goldfish::runtime::KontFrame> >::emplace_back<goldfish::runtime::KontFrame>(goldfish::runtime::KontFrame&&) [clone .isra.0]
+     2.35%  gf       gf                   [.] goldfish::runtime::Evaluator::run_machine(goldfish::runtime::EvalSnapshot&)::{lambda(goldfish::runtime::Value, std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)#1}::operator()(goldfish::runtime::Value, std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&) const
+     2.35%  gf       libc.so.6            [.] __memmove_avx512_unaligned_erms
+     2.15%  gf       gf                   [.] goldfish::runtime::KontFrame::~KontFrame()
+     2.15%  gf       gf                   [.] goldfish::runtime::RealNumber::exact(goldfish::runtime::BigInteger, goldfish::runtime::BigInteger)
+     2.15%  gf       gf                   [.] void std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> >::_M_realloc_append<goldfish::runtime::Value const&>(goldfish::runtime::Value const&)
+     1.76%  gf       gf                   [.] operator new(unsigned long)
+     1.37%  gf       gf                   [.] GC_find_header
+     1.17%  gf       gf                   [.] GC_build_fl
+
+
+#
+# (Tip: Order by the overhead of source file name and line number: perf report -s srcline)
+#

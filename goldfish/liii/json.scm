@@ -218,7 +218,18 @@
     ;; ; ---------------------------------------------------------
 
     (define (json-keys json)
-      (if (json-object? json) (if (equal? json '(())) '() (map car json)) '())
+      ;; Validate entries while collecting; list? preserves rejection of
+      ;; circular and improper outer lists before we traverse the alist.
+      (if (not (list? json))
+        '()
+        (let loop
+          ((rest json) (keys '()))
+          (cond ((null? rest) (reverse keys))
+                ((not (pair? (car rest))) '())
+                (else (loop (cdr rest) (cons (caar rest) keys)))
+          ) ;cond
+        ) ;let
+      ) ;if
     ) ;define
 
   ) ;begin

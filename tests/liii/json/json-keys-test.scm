@@ -45,6 +45,13 @@
 (check (json-keys 'false) => '())
 (check (json-keys (string->json "[1,2,3]")) => '())
 (check (json-keys (string->json "{}")) => '())
+(check (json-keys '()) => '())
+(check (json-keys '(not-an-object)) => '())
+(check (json-keys '((a . 1) . improper-tail)) => '())
+(check (let ((x (list (cons 'a 1))))
+         (set-cdr! x x)
+         (json-keys x))
+       => '())
 
 
 (check-report)

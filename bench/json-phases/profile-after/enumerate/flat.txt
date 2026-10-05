@@ -1,0 +1,33 @@
+# To display the perf.data header info, please use --header/--header-only options.
+#
+#
+# Total Lost Samples: 0
+#
+# Samples: 395  of event 'cpu-clock:u'
+# Event count (approx.): 3989898950
+#
+# Overhead  Command  Shared Object        Symbol                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        
+# ........  .......  ...................  ..............................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................
+#
+    16.20%  gf       gf                   [.] goldfish::runtime::Evaluator::run_machine(goldfish::runtime::EvalSnapshot&)
+    15.70%  gf       gf                   [.] GC_free
+     8.86%  gf       gf                   [.] goldfish::runtime::KontFrame& std::vector<goldfish::runtime::KontFrame, std::allocator<goldfish::runtime::KontFrame> >::emplace_back<goldfish::runtime::KontFrame>(goldfish::runtime::KontFrame&&) [clone .isra.0]
+     8.35%  gf       gf                   [.] goldfish::runtime::Environment::lookup(goldfish::runtime::Value) const
+     6.33%  gf       gf                   [.] goldfish::runtime::KontFrame::~KontFrame()
+     5.57%  gf       gf                   [.] goldfish::runtime::Evaluator::run_machine(goldfish::runtime::EvalSnapshot&)::{lambda(goldfish::runtime::Value, std::shared_ptr<goldfish::runtime::Environment>)#1}::operator()(goldfish::runtime::Value, std::shared_ptr<goldfish::runtime::Environment>) const
+     5.06%  gf       gf                   [.] GC_malloc
+     4.05%  gf       gf                   [.] std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> >::_M_move_assign(std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> >&&, std::integral_constant<bool, true>) [clone .isra.0]
+     3.54%  gf       gf                   [.] void std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> >::_M_realloc_append<goldfish::runtime::Value const&>(goldfish::runtime::Value const&)
+     3.29%  gf       gf                   [.] goldfish::runtime::Evaluator::run_machine(goldfish::runtime::EvalSnapshot&)::{lambda(goldfish::runtime::Value, std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)#1}::operator()(goldfish::runtime::Value, std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&) const
+     2.78%  gf       libc.so.6            [.] __memmove_avx512_unaligned_erms
+     2.53%  gf       gf                   [.] operator new(unsigned long)
+     2.28%  gf       gf                   [.] GC_mark_from
+     2.28%  gf       gf                   [.] goldfish::runtime::Value& std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> >::emplace_back<goldfish::runtime::Value>(goldfish::runtime::Value&&) [clone .isra.0]
+     2.03%  gf       gf                   [.] goldfish::runtime::KontFrame::KontFrame()
+     1.52%  gf       gf                   [.] std::__shared_count<(__gnu_cxx::_Lock_policy)2>::__shared_count(std::__shared_count<(__gnu_cxx::_Lock_policy)2> const&)
+     1.01%  gf       gf                   [.] GC_find_header
+
+
+#
+# (Tip: Add -I to perf record to sample register values, which will be visible in perf report sample context.)
+#

@@ -1,0 +1,17 @@
+Events disabled
+[timing] install-primitives 0 ms
+[timing] load-kernel 53 ms
+[timing] load-cached-runtime 303 ms
+[timing] load-install-scm 2190 ms
+[timing] expansion-helpers 6 ms
+[timing] native-scheme-surface 3051 ms
+[timing] standard-library 552 ms
+[timing] post-standard-collection 4 ms
+[timing] mode-imports 935 ms
+[timing] load-source-reader 86 ms
+[timing] load-native-writer 2 ms
+[timing] boot total 7187 ms
+Events enabled
+Events disabled
+[ perf record: Woken up 14 times to write data ]
+[ perf record: Captured and wrote 3.200 MB /tmp/gf-json-phases/profile-after/enumerate/perf.data (395 samples) ]

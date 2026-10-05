@@ -1,0 +1,692 @@
+# To display the perf.data header info, please use --header/--header-only options.
+#
+#
+# Total Lost Samples: 0
+#
+# Samples: 637  of event 'cpu-clock:u'
+# Event count (approx.): 6434343370
+#
+# Children      Self  Command  Shared Object        Symbol                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         
+# ........  ........  .......  ...................  ..............................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................
+#
+    99.22%    15.23%  gf       gf                   [.] goldfish::runtime::Evaluator::run_machine(goldfish::runtime::EvalSnapshot&)
+            |          
+            |--83.99%--goldfish::runtime::Evaluator::run_machine(goldfish::runtime::EvalSnapshot&)
+            |          |          
+            |          |--27.63%--goldfish::runtime::Evaluator::run_machine(goldfish::runtime::EvalSnapshot&)::{lambda(goldfish::runtime::Value, std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)#1}::operator()(goldfish::runtime::Value, std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&) const
+            |          |          |          
+            |          |          |--5.49%--std::_Function_handler<std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > (std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&), goldfish::runtime::install_runtime_primitives(goldfish::runtime::Evaluator&)::{lambda(std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)#158}>::_M_invoke(std::_Any_data const&, std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)
+            |          |          |          goldfish::runtime::install_runtime_primitives(goldfish::runtime::Evaluator&)::{lambda(std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)#158}::operator()(std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&) const
+            |          |          |          |          
+            |          |          |           --3.30%--goldfish::runtime::number_add(goldfish::runtime::Number const&, goldfish::runtime::Number const&)
+            |          |          |          
+            |          |          |--4.55%--std::_Function_handler<std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > (std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&), goldfish::runtime::install_runtime_primitives(goldfish::runtime::Evaluator&)::{lambda(char const*, int)#2}::operator()(char const*, int) const::{lambda(std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)#1}>::_M_invoke(std::_Any_data const&, std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)
+            |          |          |          goldfish::runtime::install_runtime_primitives(goldfish::runtime::Evaluator&)::{lambda(char const*, int)#2}::operator()(char const*, int) const::{lambda(std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)#1}::operator()(std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&) const
+            |          |          |          |          
+            |          |          |           --3.92%--goldfish::runtime::number_value(goldfish::runtime::Value)
+            |          |          |                     goldfish::runtime::number_from_int64(long)
+            |          |          |                     |          
+            |          |          |                      --3.77%--goldfish::runtime::Number::exact(goldfish::runtime::BigInteger)
+            |          |          |                                |          
+            |          |          |                                 --3.61%--goldfish::runtime::RealNumber::exact(goldfish::runtime::BigInteger, goldfish::runtime::BigInteger)
+            |          |          |          
+            |          |           --4.55%--std::_Function_handler<std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > (std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&), goldfish::runtime::install_runtime_primitives(goldfish::runtime::Evaluator&)::{lambda(std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)#129}>::_M_invoke(std::_Any_data const&, std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)
+            |          |                     |          
+            |          |                      --4.24%--operator new(unsigned long)
+            |          |                                |          
+            |          |                                 --4.08%--GC_malloc
+            |          |                                           GC_generic_malloc_aligned
+            |          |                                           GC_allocobj
+            |          |          
+            |          |--10.52%--operator delete(void*, unsigned long)
+            |          |          GC_free
+            |          |          
+            |          |--8.95%--goldfish::runtime::Evaluator::proper_list(goldfish::runtime::Value) const
+            |          |          |          
+            |          |           --7.85%--void std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> >::_M_realloc_append<goldfish::runtime::Value const&>(goldfish::runtime::Value const&)
+            |          |                     |          
+            |          |                      --3.77%--operator new(unsigned long)
+            |          |                                |          
+            |          |                                 --3.14%--GC_malloc
+            |          |          
+            |          |--5.34%--goldfish::runtime::Environment::lookup(goldfish::runtime::Value) const
+            |          |          
+            |          |--4.87%--goldfish::runtime::Evaluator::run_machine(goldfish::runtime::EvalSnapshot&)::{lambda(goldfish::runtime::Value, std::shared_ptr<goldfish::runtime::Environment>)#1}::operator()(goldfish::runtime::Value, std::shared_ptr<goldfish::runtime::Environment>) const
+            |          |          
+            |          |--4.08%--goldfish::runtime::KontFrame::~KontFrame()
+            |          |          
+            |           --3.45%--goldfish::runtime::KontFrame& std::vector<goldfish::runtime::KontFrame, std::allocator<goldfish::runtime::KontFrame> >::emplace_back<goldfish::runtime::KontFrame>(goldfish::runtime::KontFrame&&) [clone .isra.0]
+            |          
+             --15.23%--_start
+                       __libc_start_main@@GLIBC_2.34
+                       __libc_start_call_main
+                       main
+                       (anonymous namespace)::eval_file(goldfish::runtime::Evaluator&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) [clone .isra.0]
+                       goldfish::runtime::Evaluator::apply_values(goldfish::runtime::Value, std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)
+                       goldfish::runtime::Evaluator::run_machine(goldfish::runtime::EvalSnapshot&)
+
+    98.74%     0.00%  gf       gf                   [.] main
+            |
+            ---main
+               (anonymous namespace)::eval_file(goldfish::runtime::Evaluator&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) [clone .isra.0]
+               goldfish::runtime::Evaluator::apply_values(goldfish::runtime::Value, std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)
+               goldfish::runtime::Evaluator::run_machine(goldfish::runtime::EvalSnapshot&)
+               |          
+               |--27.47%--goldfish::runtime::Evaluator::run_machine(goldfish::runtime::EvalSnapshot&)::{lambda(goldfish::runtime::Value, std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)#1}::operator()(goldfish::runtime::Value, std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&) const
+               |          |          
+               |          |--5.49%--std::_Function_handler<std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > (std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&), goldfish::runtime::install_runtime_primitives(goldfish::runtime::Evaluator&)::{lambda(std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)#158}>::_M_invoke(std::_Any_data const&, std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)
+               |          |          goldfish::runtime::install_runtime_primitives(goldfish::runtime::Evaluator&)::{lambda(std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)#158}::operator()(std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&) const
+               |          |          |          
+               |          |           --3.30%--goldfish::runtime::number_add(goldfish::runtime::Number const&, goldfish::runtime::Number const&)
+               |          |          
+               |          |--4.55%--std::_Function_handler<std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > (std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&), goldfish::runtime::install_runtime_primitives(goldfish::runtime::Evaluator&)::{lambda(char const*, int)#2}::operator()(char const*, int) const::{lambda(std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)#1}>::_M_invoke(std::_Any_data const&, std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)
+               |          |          goldfish::runtime::install_runtime_primitives(goldfish::runtime::Evaluator&)::{lambda(char const*, int)#2}::operator()(char const*, int) const::{lambda(std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)#1}::operator()(std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&) const
+               |          |          |          
+               |          |           --3.92%--goldfish::runtime::number_value(goldfish::runtime::Value)
+               |          |                     goldfish::runtime::number_from_int64(long)
+               |          |                     |          
+               |          |                      --3.77%--goldfish::runtime::Number::exact(goldfish::runtime::BigInteger)
+               |          |                                |          
+               |          |                                 --3.61%--goldfish::runtime::RealNumber::exact(goldfish::runtime::BigInteger, goldfish::runtime::BigInteger)
+               |          |          
+               |           --4.40%--std::_Function_handler<std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > (std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&), goldfish::runtime::install_runtime_primitives(goldfish::runtime::Evaluator&)::{lambda(std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)#129}>::_M_invoke(std::_Any_data const&, std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)
+               |                     |          
+               |                      --4.08%--operator new(unsigned long)
+               |                                GC_malloc
+               |                                GC_generic_malloc_aligned
+               |                                GC_allocobj
+               |          
+               |--10.52%--operator delete(void*, unsigned long)
+               |          GC_free
+               |          
+               |--8.95%--goldfish::runtime::Evaluator::proper_list(goldfish::runtime::Value) const
+               |          |          
+               |           --7.85%--void std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> >::_M_realloc_append<goldfish::runtime::Value const&>(goldfish::runtime::Value const&)
+               |                     |          
+               |                      --3.77%--operator new(unsigned long)
+               |                                |          
+               |                                 --3.14%--GC_malloc
+               |          
+               |--5.18%--goldfish::runtime::Environment::lookup(goldfish::runtime::Value) const
+               |          
+               |--4.87%--goldfish::runtime::Evaluator::run_machine(goldfish::runtime::EvalSnapshot&)::{lambda(goldfish::runtime::Value, std::shared_ptr<goldfish::runtime::Environment>)#1}::operator()(goldfish::runtime::Value, std::shared_ptr<goldfish::runtime::Environment>) const
+               |          
+               |--4.08%--goldfish::runtime::KontFrame::~KontFrame()
+               |          
+                --3.45%--goldfish::runtime::KontFrame& std::vector<goldfish::runtime::KontFrame, std::allocator<goldfish::runtime::KontFrame> >::emplace_back<goldfish::runtime::KontFrame>(goldfish::runtime::KontFrame&&) [clone .isra.0]
+
+    98.74%     0.00%  gf       gf                   [.] (anonymous namespace)::eval_file(goldfish::runtime::Evaluator&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) [clone .isra.0]
+            |
+            ---(anonymous namespace)::eval_file(goldfish::runtime::Evaluator&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) [clone .isra.0]
+               goldfish::runtime::Evaluator::apply_values(goldfish::runtime::Value, std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)
+               goldfish::runtime::Evaluator::run_machine(goldfish::runtime::EvalSnapshot&)
+               |          
+               |--27.47%--goldfish::runtime::Evaluator::run_machine(goldfish::runtime::EvalSnapshot&)::{lambda(goldfish::runtime::Value, std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)#1}::operator()(goldfish::runtime::Value, std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&) const
+               |          |          
+               |          |--5.49%--std::_Function_handler<std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > (std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&), goldfish::runtime::install_runtime_primitives(goldfish::runtime::Evaluator&)::{lambda(std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)#158}>::_M_invoke(std::_Any_data const&, std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)
+               |          |          goldfish::runtime::install_runtime_primitives(goldfish::runtime::Evaluator&)::{lambda(std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)#158}::operator()(std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&) const
+               |          |          |          
+               |          |           --3.30%--goldfish::runtime::number_add(goldfish::runtime::Number const&, goldfish::runtime::Number const&)
+               |          |          
+               |          |--4.55%--std::_Function_handler<std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > (std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&), goldfish::runtime::install_runtime_primitives(goldfish::runtime::Evaluator&)::{lambda(char const*, int)#2}::operator()(char const*, int) const::{lambda(std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)#1}>::_M_invoke(std::_Any_data const&, std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)
+               |          |          goldfish::runtime::install_runtime_primitives(goldfish::runtime::Evaluator&)::{lambda(char const*, int)#2}::operator()(char const*, int) const::{lambda(std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)#1}::operator()(std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&) const
+               |          |          |          
+               |          |           --3.92%--goldfish::runtime::number_value(goldfish::runtime::Value)
+               |          |                     goldfish::runtime::number_from_int64(long)
+               |          |                     |          
+               |          |                      --3.77%--goldfish::runtime::Number::exact(goldfish::runtime::BigInteger)
+               |          |                                |          
+               |          |                                 --3.61%--goldfish::runtime::RealNumber::exact(goldfish::runtime::BigInteger, goldfish::runtime::BigInteger)
+               |          |          
+               |           --4.40%--std::_Function_handler<std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > (std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&), goldfish::runtime::install_runtime_primitives(goldfish::runtime::Evaluator&)::{lambda(std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)#129}>::_M_invoke(std::_Any_data const&, std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)
+               |                     |          
+               |                      --4.08%--operator new(unsigned long)
+               |                                GC_malloc
+               |                                GC_generic_malloc_aligned
+               |                                GC_allocobj
+               |          
+               |--10.52%--operator delete(void*, unsigned long)
+               |          GC_free
+               |          
+               |--8.95%--goldfish::runtime::Evaluator::proper_list(goldfish::runtime::Value) const
+               |          |          
+               |           --7.85%--void std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> >::_M_realloc_append<goldfish::runtime::Value const&>(goldfish::runtime::Value const&)
+               |                     |          
+               |                      --3.77%--operator new(unsigned long)
+               |                                |          
+               |                                 --3.14%--GC_malloc
+               |          
+               |--5.18%--goldfish::runtime::Environment::lookup(goldfish::runtime::Value) const
+               |          
+               |--4.87%--goldfish::runtime::Evaluator::run_machine(goldfish::runtime::EvalSnapshot&)::{lambda(goldfish::runtime::Value, std::shared_ptr<goldfish::runtime::Environment>)#1}::operator()(goldfish::runtime::Value, std::shared_ptr<goldfish::runtime::Environment>) const
+               |          
+               |--4.08%--goldfish::runtime::KontFrame::~KontFrame()
+               |          
+                --3.45%--goldfish::runtime::KontFrame& std::vector<goldfish::runtime::KontFrame, std::allocator<goldfish::runtime::KontFrame> >::emplace_back<goldfish::runtime::KontFrame>(goldfish::runtime::KontFrame&&) [clone .isra.0]
+
+    98.74%     0.00%  gf       gf                   [.] goldfish::runtime::Evaluator::apply_values(goldfish::runtime::Value, std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)
+            |
+            ---goldfish::runtime::Evaluator::apply_values(goldfish::runtime::Value, std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)
+               goldfish::runtime::Evaluator::run_machine(goldfish::runtime::EvalSnapshot&)
+               |          
+               |--27.47%--goldfish::runtime::Evaluator::run_machine(goldfish::runtime::EvalSnapshot&)::{lambda(goldfish::runtime::Value, std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)#1}::operator()(goldfish::runtime::Value, std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&) const
+               |          |          
+               |          |--5.49%--std::_Function_handler<std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > (std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&), goldfish::runtime::install_runtime_primitives(goldfish::runtime::Evaluator&)::{lambda(std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)#158}>::_M_invoke(std::_Any_data const&, std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)
+               |          |          goldfish::runtime::install_runtime_primitives(goldfish::runtime::Evaluator&)::{lambda(std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)#158}::operator()(std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&) const
+               |          |          |          
+               |          |           --3.30%--goldfish::runtime::number_add(goldfish::runtime::Number const&, goldfish::runtime::Number const&)
+               |          |          
+               |          |--4.55%--std::_Function_handler<std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > (std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&), goldfish::runtime::install_runtime_primitives(goldfish::runtime::Evaluator&)::{lambda(char const*, int)#2}::operator()(char const*, int) const::{lambda(std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)#1}>::_M_invoke(std::_Any_data const&, std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)
+               |          |          goldfish::runtime::install_runtime_primitives(goldfish::runtime::Evaluator&)::{lambda(char const*, int)#2}::operator()(char const*, int) const::{lambda(std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)#1}::operator()(std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&) const
+               |          |          |          
+               |          |           --3.92%--goldfish::runtime::number_value(goldfish::runtime::Value)
+               |          |                     goldfish::runtime::number_from_int64(long)
+               |          |                     |          
+               |          |                      --3.77%--goldfish::runtime::Number::exact(goldfish::runtime::BigInteger)
+               |          |                                |          
+               |          |                                 --3.61%--goldfish::runtime::RealNumber::exact(goldfish::runtime::BigInteger, goldfish::runtime::BigInteger)
+               |          |          
+               |           --4.40%--std::_Function_handler<std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > (std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&), goldfish::runtime::install_runtime_primitives(goldfish::runtime::Evaluator&)::{lambda(std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)#129}>::_M_invoke(std::_Any_data const&, std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)
+               |                     |          
+               |                      --4.08%--operator new(unsigned long)
+               |                                GC_malloc
+               |                                GC_generic_malloc_aligned
+               |                                GC_allocobj
+               |          
+               |--10.52%--operator delete(void*, unsigned long)
+               |          GC_free
+               |          
+               |--8.95%--goldfish::runtime::Evaluator::proper_list(goldfish::runtime::Value) const
+               |          |          
+               |           --7.85%--void std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> >::_M_realloc_append<goldfish::runtime::Value const&>(goldfish::runtime::Value const&)
+               |                     |          
+               |                      --3.77%--operator new(unsigned long)
+               |                                |          
+               |                                 --3.14%--GC_malloc
+               |          
+               |--5.18%--goldfish::runtime::Environment::lookup(goldfish::runtime::Value) const
+               |          
+               |--4.87%--goldfish::runtime::Evaluator::run_machine(goldfish::runtime::EvalSnapshot&)::{lambda(goldfish::runtime::Value, std::shared_ptr<goldfish::runtime::Environment>)#1}::operator()(goldfish::runtime::Value, std::shared_ptr<goldfish::runtime::Environment>) const
+               |          
+               |--4.08%--goldfish::runtime::KontFrame::~KontFrame()
+               |          
+                --3.45%--goldfish::runtime::KontFrame& std::vector<goldfish::runtime::KontFrame, std::allocator<goldfish::runtime::KontFrame> >::emplace_back<goldfish::runtime::KontFrame>(goldfish::runtime::KontFrame&&) [clone .isra.0]
+
+    98.59%     0.00%  gf       gf                   [.] _start
+            |
+            ---_start
+               __libc_start_main@@GLIBC_2.34
+               __libc_start_call_main
+               main
+               (anonymous namespace)::eval_file(goldfish::runtime::Evaluator&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) [clone .isra.0]
+               goldfish::runtime::Evaluator::apply_values(goldfish::runtime::Value, std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)
+               goldfish::runtime::Evaluator::run_machine(goldfish::runtime::EvalSnapshot&)
+               |          
+               |--27.47%--goldfish::runtime::Evaluator::run_machine(goldfish::runtime::EvalSnapshot&)::{lambda(goldfish::runtime::Value, std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)#1}::operator()(goldfish::runtime::Value, std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&) const
+               |          |          
+               |          |--5.49%--std::_Function_handler<std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > (std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&), goldfish::runtime::install_runtime_primitives(goldfish::runtime::Evaluator&)::{lambda(std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)#158}>::_M_invoke(std::_Any_data const&, std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)
+               |          |          goldfish::runtime::install_runtime_primitives(goldfish::runtime::Evaluator&)::{lambda(std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)#158}::operator()(std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&) const
+               |          |          |          
+               |          |           --3.30%--goldfish::runtime::number_add(goldfish::runtime::Number const&, goldfish::runtime::Number const&)
+               |          |          
+               |          |--4.55%--std::_Function_handler<std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > (std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&), goldfish::runtime::install_runtime_primitives(goldfish::runtime::Evaluator&)::{lambda(char const*, int)#2}::operator()(char const*, int) const::{lambda(std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)#1}>::_M_invoke(std::_Any_data const&, std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)
+               |          |          goldfish::runtime::install_runtime_primitives(goldfish::runtime::Evaluator&)::{lambda(char const*, int)#2}::operator()(char const*, int) const::{lambda(std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)#1}::operator()(std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&) const
+               |          |          |          
+               |          |           --3.92%--goldfish::runtime::number_value(goldfish::runtime::Value)
+               |          |                     goldfish::runtime::number_from_int64(long)
+               |          |                     |          
+               |          |                      --3.77%--goldfish::runtime::Number::exact(goldfish::runtime::BigInteger)
+               |          |                                |          
+               |          |                                 --3.61%--goldfish::runtime::RealNumber::exact(goldfish::runtime::BigInteger, goldfish::runtime::BigInteger)
+               |          |          
+               |           --4.40%--std::_Function_handler<std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > (std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&), goldfish::runtime::install_runtime_primitives(goldfish::runtime::Evaluator&)::{lambda(std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)#129}>::_M_invoke(std::_Any_data const&, std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)
+               |                     |          
+               |                      --4.08%--operator new(unsigned long)
+               |                                GC_malloc
+               |                                GC_generic_malloc_aligned
+               |                                GC_allocobj
+               |          
+               |--10.52%--operator delete(void*, unsigned long)
+               |          GC_free
+               |          
+               |--8.95%--goldfish::runtime::Evaluator::proper_list(goldfish::runtime::Value) const
+               |          |          
+               |           --7.85%--void std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> >::_M_realloc_append<goldfish::runtime::Value const&>(goldfish::runtime::Value const&)
+               |                     |          
+               |                      --3.77%--operator new(unsigned long)
+               |                                |          
+               |                                 --3.14%--GC_malloc
+               |          
+               |--5.18%--goldfish::runtime::Environment::lookup(goldfish::runtime::Value) const
+               |          
+               |--4.87%--goldfish::runtime::Evaluator::run_machine(goldfish::runtime::EvalSnapshot&)::{lambda(goldfish::runtime::Value, std::shared_ptr<goldfish::runtime::Environment>)#1}::operator()(goldfish::runtime::Value, std::shared_ptr<goldfish::runtime::Environment>) const
+               |          
+               |--4.08%--goldfish::runtime::KontFrame::~KontFrame()
+               |          
+                --3.45%--goldfish::runtime::KontFrame& std::vector<goldfish::runtime::KontFrame, std::allocator<goldfish::runtime::KontFrame> >::emplace_back<goldfish::runtime::KontFrame>(goldfish::runtime::KontFrame&&) [clone .isra.0]
+
+    98.59%     0.00%  gf       libc.so.6            [.] __libc_start_main@@GLIBC_2.34
+            |
+            ---__libc_start_main@@GLIBC_2.34
+               __libc_start_call_main
+               main
+               (anonymous namespace)::eval_file(goldfish::runtime::Evaluator&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) [clone .isra.0]
+               goldfish::runtime::Evaluator::apply_values(goldfish::runtime::Value, std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)
+               goldfish::runtime::Evaluator::run_machine(goldfish::runtime::EvalSnapshot&)
+               |          
+               |--27.47%--goldfish::runtime::Evaluator::run_machine(goldfish::runtime::EvalSnapshot&)::{lambda(goldfish::runtime::Value, std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)#1}::operator()(goldfish::runtime::Value, std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&) const
+               |          |          
+               |          |--5.49%--std::_Function_handler<std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > (std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&), goldfish::runtime::install_runtime_primitives(goldfish::runtime::Evaluator&)::{lambda(std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)#158}>::_M_invoke(std::_Any_data const&, std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)
+               |          |          goldfish::runtime::install_runtime_primitives(goldfish::runtime::Evaluator&)::{lambda(std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)#158}::operator()(std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&) const
+               |          |          |          
+               |          |           --3.30%--goldfish::runtime::number_add(goldfish::runtime::Number const&, goldfish::runtime::Number const&)
+               |          |          
+               |          |--4.55%--std::_Function_handler<std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > (std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&), goldfish::runtime::install_runtime_primitives(goldfish::runtime::Evaluator&)::{lambda(char const*, int)#2}::operator()(char const*, int) const::{lambda(std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)#1}>::_M_invoke(std::_Any_data const&, std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)
+               |          |          goldfish::runtime::install_runtime_primitives(goldfish::runtime::Evaluator&)::{lambda(char const*, int)#2}::operator()(char const*, int) const::{lambda(std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)#1}::operator()(std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&) const
+               |          |          |          
+               |          |           --3.92%--goldfish::runtime::number_value(goldfish::runtime::Value)
+               |          |                     goldfish::runtime::number_from_int64(long)
+               |          |                     |          
+               |          |                      --3.77%--goldfish::runtime::Number::exact(goldfish::runtime::BigInteger)
+               |          |                                |          
+               |          |                                 --3.61%--goldfish::runtime::RealNumber::exact(goldfish::runtime::BigInteger, goldfish::runtime::BigInteger)
+               |          |          
+               |           --4.40%--std::_Function_handler<std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > (std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&), goldfish::runtime::install_runtime_primitives(goldfish::runtime::Evaluator&)::{lambda(std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)#129}>::_M_invoke(std::_Any_data const&, std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)
+               |                     |          
+               |                      --4.08%--operator new(unsigned long)
+               |                                GC_malloc
+               |                                GC_generic_malloc_aligned
+               |                                GC_allocobj
+               |          
+               |--10.52%--operator delete(void*, unsigned long)
+               |          GC_free
+               |          
+               |--8.95%--goldfish::runtime::Evaluator::proper_list(goldfish::runtime::Value) const
+               |          |          
+               |           --7.85%--void std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> >::_M_realloc_append<goldfish::runtime::Value const&>(goldfish::runtime::Value const&)
+               |                     |          
+               |                      --3.77%--operator new(unsigned long)
+               |                                |          
+               |                                 --3.14%--GC_malloc
+               |          
+               |--5.18%--goldfish::runtime::Environment::lookup(goldfish::runtime::Value) const
+               |          
+               |--4.87%--goldfish::runtime::Evaluator::run_machine(goldfish::runtime::EvalSnapshot&)::{lambda(goldfish::runtime::Value, std::shared_ptr<goldfish::runtime::Environment>)#1}::operator()(goldfish::runtime::Value, std::shared_ptr<goldfish::runtime::Environment>) const
+               |          
+               |--4.08%--goldfish::runtime::KontFrame::~KontFrame()
+               |          
+                --3.45%--goldfish::runtime::KontFrame& std::vector<goldfish::runtime::KontFrame, std::allocator<goldfish::runtime::KontFrame> >::emplace_back<goldfish::runtime::KontFrame>(goldfish::runtime::KontFrame&&) [clone .isra.0]
+
+    98.59%     0.00%  gf       libc.so.6            [.] __libc_start_call_main
+            |
+            ---__libc_start_call_main
+               main
+               (anonymous namespace)::eval_file(goldfish::runtime::Evaluator&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) [clone .isra.0]
+               goldfish::runtime::Evaluator::apply_values(goldfish::runtime::Value, std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)
+               goldfish::runtime::Evaluator::run_machine(goldfish::runtime::EvalSnapshot&)
+               |          
+               |--27.47%--goldfish::runtime::Evaluator::run_machine(goldfish::runtime::EvalSnapshot&)::{lambda(goldfish::runtime::Value, std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)#1}::operator()(goldfish::runtime::Value, std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&) const
+               |          |          
+               |          |--5.49%--std::_Function_handler<std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > (std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&), goldfish::runtime::install_runtime_primitives(goldfish::runtime::Evaluator&)::{lambda(std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)#158}>::_M_invoke(std::_Any_data const&, std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)
+               |          |          goldfish::runtime::install_runtime_primitives(goldfish::runtime::Evaluator&)::{lambda(std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)#158}::operator()(std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&) const
+               |          |          |          
+               |          |           --3.30%--goldfish::runtime::number_add(goldfish::runtime::Number const&, goldfish::runtime::Number const&)
+               |          |          
+               |          |--4.55%--std::_Function_handler<std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > (std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&), goldfish::runtime::install_runtime_primitives(goldfish::runtime::Evaluator&)::{lambda(char const*, int)#2}::operator()(char const*, int) const::{lambda(std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)#1}>::_M_invoke(std::_Any_data const&, std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)
+               |          |          goldfish::runtime::install_runtime_primitives(goldfish::runtime::Evaluator&)::{lambda(char const*, int)#2}::operator()(char const*, int) const::{lambda(std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)#1}::operator()(std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&) const
+               |          |          |          
+               |          |           --3.92%--goldfish::runtime::number_value(goldfish::runtime::Value)
+               |          |                     goldfish::runtime::number_from_int64(long)
+               |          |                     |          
+               |          |                      --3.77%--goldfish::runtime::Number::exact(goldfish::runtime::BigInteger)
+               |          |                                |          
+               |          |                                 --3.61%--goldfish::runtime::RealNumber::exact(goldfish::runtime::BigInteger, goldfish::runtime::BigInteger)
+               |          |          
+               |           --4.40%--std::_Function_handler<std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > (std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&), goldfish::runtime::install_runtime_primitives(goldfish::runtime::Evaluator&)::{lambda(std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)#129}>::_M_invoke(std::_Any_data const&, std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)
+               |                     |          
+               |                      --4.08%--operator new(unsigned long)
+               |                                GC_malloc
+               |                                GC_generic_malloc_aligned
+               |                                GC_allocobj
+               |          
+               |--10.52%--operator delete(void*, unsigned long)
+               |          GC_free
+               |          
+               |--8.95%--goldfish::runtime::Evaluator::proper_list(goldfish::runtime::Value) const
+               |          |          
+               |           --7.85%--void std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> >::_M_realloc_append<goldfish::runtime::Value const&>(goldfish::runtime::Value const&)
+               |                     |          
+               |                      --3.77%--operator new(unsigned long)
+               |                                |          
+               |                                 --3.14%--GC_malloc
+               |          
+               |--5.18%--goldfish::runtime::Environment::lookup(goldfish::runtime::Value) const
+               |          
+               |--4.87%--goldfish::runtime::Evaluator::run_machine(goldfish::runtime::EvalSnapshot&)::{lambda(goldfish::runtime::Value, std::shared_ptr<goldfish::runtime::Environment>)#1}::operator()(goldfish::runtime::Value, std::shared_ptr<goldfish::runtime::Environment>) const
+               |          
+               |--4.08%--goldfish::runtime::KontFrame::~KontFrame()
+               |          
+                --3.45%--goldfish::runtime::KontFrame& std::vector<goldfish::runtime::KontFrame, std::allocator<goldfish::runtime::KontFrame> >::emplace_back<goldfish::runtime::KontFrame>(goldfish::runtime::KontFrame&&) [clone .isra.0]
+
+    27.63%     3.45%  gf       gf                   [.] goldfish::runtime::Evaluator::run_machine(goldfish::runtime::EvalSnapshot&)::{lambda(goldfish::runtime::Value, std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)#1}::operator()(goldfish::runtime::Value, std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&) const
+            |          
+            |--24.18%--goldfish::runtime::Evaluator::run_machine(goldfish::runtime::EvalSnapshot&)::{lambda(goldfish::runtime::Value, std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)#1}::operator()(goldfish::runtime::Value, std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&) const
+            |          |          
+            |          |--5.49%--std::_Function_handler<std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > (std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&), goldfish::runtime::install_runtime_primitives(goldfish::runtime::Evaluator&)::{lambda(std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)#158}>::_M_invoke(std::_Any_data const&, std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)
+            |          |          goldfish::runtime::install_runtime_primitives(goldfish::runtime::Evaluator&)::{lambda(std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)#158}::operator()(std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&) const
+            |          |          |          
+            |          |           --3.30%--goldfish::runtime::number_add(goldfish::runtime::Number const&, goldfish::runtime::Number const&)
+            |          |          
+            |          |--4.55%--std::_Function_handler<std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > (std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&), goldfish::runtime::install_runtime_primitives(goldfish::runtime::Evaluator&)::{lambda(char const*, int)#2}::operator()(char const*, int) const::{lambda(std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)#1}>::_M_invoke(std::_Any_data const&, std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)
+            |          |          goldfish::runtime::install_runtime_primitives(goldfish::runtime::Evaluator&)::{lambda(char const*, int)#2}::operator()(char const*, int) const::{lambda(std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)#1}::operator()(std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&) const
+            |          |          |          
+            |          |           --3.92%--goldfish::runtime::number_value(goldfish::runtime::Value)
+            |          |                     goldfish::runtime::number_from_int64(long)
+            |          |                     |          
+            |          |                      --3.77%--goldfish::runtime::Number::exact(goldfish::runtime::BigInteger)
+            |          |                                |          
+            |          |                                 --3.61%--goldfish::runtime::RealNumber::exact(goldfish::runtime::BigInteger, goldfish::runtime::BigInteger)
+            |          |          
+            |           --4.55%--std::_Function_handler<std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > (std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&), goldfish::runtime::install_runtime_primitives(goldfish::runtime::Evaluator&)::{lambda(std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)#129}>::_M_invoke(std::_Any_data const&, std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)
+            |                     |          
+            |                      --4.24%--operator new(unsigned long)
+            |                                |          
+            |                                 --4.08%--GC_malloc
+            |                                           GC_generic_malloc_aligned
+            |                                           GC_allocobj
+            |          
+             --3.45%--_start
+                       __libc_start_main@@GLIBC_2.34
+                       __libc_start_call_main
+                       main
+                       (anonymous namespace)::eval_file(goldfish::runtime::Evaluator&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) [clone .isra.0]
+                       goldfish::runtime::Evaluator::apply_values(goldfish::runtime::Value, std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)
+                       goldfish::runtime::Evaluator::run_machine(goldfish::runtime::EvalSnapshot&)
+                       goldfish::runtime::Evaluator::run_machine(goldfish::runtime::EvalSnapshot&)::{lambda(goldfish::runtime::Value, std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)#1}::operator()(goldfish::runtime::Value, std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&) const
+
+    20.41%     1.73%  gf       gf                   [.] operator new(unsigned long)
+            |          
+             --18.68%--operator new(unsigned long)
+                       |          
+                        --18.37%--GC_malloc
+                                  |          
+                                   --13.50%--GC_generic_malloc_aligned
+                                             |          
+                                              --13.34%--GC_allocobj
+                                                        |          
+                                                         --8.95%--GC_collect_or_expand
+                                                                   GC_try_to_collect_inner
+                                                                   |          
+                                                                    --8.48%--GC_stopped_mark
+                                                                              GC_mark_some
+                                                                              |          
+                                                                               --8.32%--GC_mark_from
+
+    18.37%     4.87%  gf       gf                   [.] GC_malloc
+            |          
+            |--13.50%--GC_malloc
+            |          GC_generic_malloc_aligned
+            |          |          
+            |           --13.34%--GC_allocobj
+            |                     |          
+            |                      --8.95%--GC_collect_or_expand
+            |                                GC_try_to_collect_inner
+            |                                |          
+            |                                 --8.48%--GC_stopped_mark
+            |                                           GC_mark_some
+            |                                           |          
+            |                                            --8.32%--GC_mark_from
+            |          
+             --4.40%--_start
+                       __libc_start_main@@GLIBC_2.34
+                       __libc_start_call_main
+                       main
+                       (anonymous namespace)::eval_file(goldfish::runtime::Evaluator&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) [clone .isra.0]
+                       goldfish::runtime::Evaluator::apply_values(goldfish::runtime::Value, std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)
+                       goldfish::runtime::Evaluator::run_machine(goldfish::runtime::EvalSnapshot&)
+
+    16.80%     0.47%  gf       gf                   [.] operator delete(void*, unsigned long)
+            |          
+             --16.33%--operator delete(void*, unsigned long)
+                       GC_free
+
+    16.33%    14.13%  gf       gf                   [.] GC_free
+            |          
+             --14.13%--_start
+                       __libc_start_main@@GLIBC_2.34
+                       __libc_start_call_main
+                       main
+                       (anonymous namespace)::eval_file(goldfish::runtime::Evaluator&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) [clone .isra.0]
+                       goldfish::runtime::Evaluator::apply_values(goldfish::runtime::Value, std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)
+                       goldfish::runtime::Evaluator::run_machine(goldfish::runtime::EvalSnapshot&)
+                       |          
+                        --9.26%--operator delete(void*, unsigned long)
+                                  GC_free
+
+    13.50%     0.16%  gf       gf                   [.] GC_generic_malloc_aligned
+            |          
+             --13.34%--GC_generic_malloc_aligned
+                       GC_allocobj
+                       |          
+                        --8.95%--GC_collect_or_expand
+                                  GC_try_to_collect_inner
+                                  |          
+                                   --8.48%--GC_stopped_mark
+                                             GC_mark_some
+                                             |          
+                                              --8.32%--GC_mark_from
+
+    13.34%     0.16%  gf       gf                   [.] GC_allocobj
+            |          
+             --13.19%--GC_allocobj
+                       |          
+                        --8.95%--GC_collect_or_expand
+                                  GC_try_to_collect_inner
+                                  |          
+                                   --8.48%--GC_stopped_mark
+                                             GC_mark_some
+                                             |          
+                                              --8.32%--GC_mark_from
+
+     8.95%     3.45%  gf       gf                   [.] goldfish::runtime::RealNumber::exact(goldfish::runtime::BigInteger, goldfish::runtime::BigInteger)
+            |          
+            |--5.49%--goldfish::runtime::RealNumber::exact(goldfish::runtime::BigInteger, goldfish::runtime::BigInteger)
+            |          
+             --3.45%--_start
+                       __libc_start_main@@GLIBC_2.34
+                       __libc_start_call_main
+                       main
+                       (anonymous namespace)::eval_file(goldfish::runtime::Evaluator&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) [clone .isra.0]
+                       goldfish::runtime::Evaluator::apply_values(goldfish::runtime::Value, std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)
+                       goldfish::runtime::Evaluator::run_machine(goldfish::runtime::EvalSnapshot&)
+                       goldfish::runtime::Evaluator::run_machine(goldfish::runtime::EvalSnapshot&)::{lambda(goldfish::runtime::Value, std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)#1}::operator()(goldfish::runtime::Value, std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&) const
+
+     8.95%     1.10%  gf       gf                   [.] goldfish::runtime::Evaluator::proper_list(goldfish::runtime::Value) const
+            |          
+             --7.85%--goldfish::runtime::Evaluator::proper_list(goldfish::runtime::Value) const
+                       void std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> >::_M_realloc_append<goldfish::runtime::Value const&>(goldfish::runtime::Value const&)
+                       |          
+                        --3.77%--operator new(unsigned long)
+                                  |          
+                                   --3.14%--GC_malloc
+
+     8.95%     0.00%  gf       gf                   [.] GC_collect_or_expand
+            |
+            ---GC_collect_or_expand
+               GC_try_to_collect_inner
+               |          
+                --8.48%--GC_stopped_mark
+                          GC_mark_some
+                          |          
+                           --8.32%--GC_mark_from
+
+     8.95%     0.00%  gf       gf                   [.] GC_try_to_collect_inner
+            |
+            ---GC_try_to_collect_inner
+               |          
+                --8.48%--GC_stopped_mark
+                          GC_mark_some
+                          |          
+                           --8.32%--GC_mark_from
+
+     8.48%     0.16%  gf       gf                   [.] GC_mark_some
+            |          
+             --8.32%--GC_mark_some
+                       GC_mark_from
+
+     8.48%     0.00%  gf       gf                   [.] GC_stopped_mark
+            |
+            ---GC_stopped_mark
+               GC_mark_some
+               |          
+                --8.32%--GC_mark_from
+
+     8.32%     7.85%  gf       gf                   [.] GC_mark_from
+            |          
+             --7.85%--_start
+                       __libc_start_main@@GLIBC_2.34
+                       __libc_start_call_main
+                       main
+                       (anonymous namespace)::eval_file(goldfish::runtime::Evaluator&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) [clone .isra.0]
+                       goldfish::runtime::Evaluator::apply_values(goldfish::runtime::Value, std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)
+                       goldfish::runtime::Evaluator::run_machine(goldfish::runtime::EvalSnapshot&)
+                       |          
+                        --5.34%--goldfish::runtime::Evaluator::run_machine(goldfish::runtime::EvalSnapshot&)::{lambda(goldfish::runtime::Value, std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)#1}::operator()(goldfish::runtime::Value, std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&) const
+
+     8.32%     2.20%  gf       gf                   [.] void std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> >::_M_realloc_append<goldfish::runtime::Value const&>(goldfish::runtime::Value const&)
+            |          
+             --6.12%--void std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> >::_M_realloc_append<goldfish::runtime::Value const&>(goldfish::runtime::Value const&)
+                       |          
+                        --4.24%--operator new(unsigned long)
+                                  |          
+                                   --3.61%--GC_malloc
+
+     7.06%     0.47%  gf       gf                   [.] goldfish::runtime::Number::exact(goldfish::runtime::BigInteger)
+            |          
+             --6.59%--goldfish::runtime::Number::exact(goldfish::runtime::BigInteger)
+                       goldfish::runtime::RealNumber::exact(goldfish::runtime::BigInteger, goldfish::runtime::BigInteger)
+
+     7.06%     0.16%  gf       gf                   [.] goldfish::runtime::number_from_int64(long)
+            |          
+             --6.91%--goldfish::runtime::number_from_int64(long)
+                       goldfish::runtime::Number::exact(goldfish::runtime::BigInteger)
+                       |          
+                        --6.44%--goldfish::runtime::RealNumber::exact(goldfish::runtime::BigInteger, goldfish::runtime::BigInteger)
+
+     7.06%     0.00%  gf       gf                   [.] goldfish::runtime::number_value(goldfish::runtime::Value)
+            |
+            ---goldfish::runtime::number_value(goldfish::runtime::Value)
+               goldfish::runtime::number_from_int64(long)
+               |          
+                --6.91%--goldfish::runtime::Number::exact(goldfish::runtime::BigInteger)
+                          |          
+                           --6.44%--goldfish::runtime::RealNumber::exact(goldfish::runtime::BigInteger, goldfish::runtime::BigInteger)
+
+     5.81%     0.63%  gf       gf                   [.] std::__detail::_Map_base<goldfish::runtime::Object const*, std::pair<goldfish::runtime::Object const* const, goldfish::runtime::Environment::Binding>, std::allocator<std::pair<goldfish::runtime::Object const* const, goldfish::runtime::Environment::Binding> >, std::__detail::_Select1st, std::equal_to<goldfish::runtime::Object const*>, std::hash<goldfish::runtime::Object const*>, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, std::__detail::_Prime_rehash_policy, std::__detail::_Hashtable_traits<false, false, true>, true>::operator[](goldfish::runtime::Object const*&&)
+            |          
+             --5.18%--std::__detail::_Map_base<goldfish::runtime::Object const*, std::pair<goldfish::runtime::Object const* const, goldfish::runtime::Environment::Binding>, std::allocator<std::pair<goldfish::runtime::Object const* const, goldfish::runtime::Environment::Binding> >, std::__detail::_Select1st, std::equal_to<goldfish::runtime::Object const*>, std::hash<goldfish::runtime::Object const*>, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, std::__detail::_Prime_rehash_policy, std::__detail::_Hashtable_traits<false, false, true>, true>::operator[](goldfish::runtime::Object const*&&)
+                       |          
+                        --3.14%--operator new(unsigned long)
+
+     5.49%     0.16%  gf       gf                   [.] goldfish::runtime::install_runtime_primitives(goldfish::runtime::Evaluator&)::{lambda(std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)#158}::operator()(std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&) const
+            |          
+             --5.34%--goldfish::runtime::install_runtime_primitives(goldfish::runtime::Evaluator&)::{lambda(std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)#158}::operator()(std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&) const
+                       |          
+                        --3.30%--goldfish::runtime::number_add(goldfish::runtime::Number const&, goldfish::runtime::Number const&)
+
+     5.49%     0.00%  gf       gf                   [.] std::_Function_handler<std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > (std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&), goldfish::runtime::install_runtime_primitives(goldfish::runtime::Evaluator&)::{lambda(std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)#158}>::_M_invoke(std::_Any_data const&, std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)
+            |
+            ---std::_Function_handler<std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > (std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&), goldfish::runtime::install_runtime_primitives(goldfish::runtime::Evaluator&)::{lambda(std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)#158}>::_M_invoke(std::_Any_data const&, std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)
+               goldfish::runtime::install_runtime_primitives(goldfish::runtime::Evaluator&)::{lambda(std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)#158}::operator()(std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&) const
+               |          
+                --3.30%--goldfish::runtime::number_add(goldfish::runtime::Number const&, goldfish::runtime::Number const&)
+
+     5.34%     5.34%  gf       gf                   [.] goldfish::runtime::Environment::lookup(goldfish::runtime::Value) const
+            |          
+             --5.18%--_start
+                       __libc_start_main@@GLIBC_2.34
+                       __libc_start_call_main
+                       main
+                       (anonymous namespace)::eval_file(goldfish::runtime::Evaluator&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) [clone .isra.0]
+                       goldfish::runtime::Evaluator::apply_values(goldfish::runtime::Value, std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)
+                       goldfish::runtime::Evaluator::run_machine(goldfish::runtime::EvalSnapshot&)
+                       goldfish::runtime::Environment::lookup(goldfish::runtime::Value) const
+
+     4.87%     4.24%  gf       gf                   [.] goldfish::runtime::Evaluator::run_machine(goldfish::runtime::EvalSnapshot&)::{lambda(goldfish::runtime::Value, std::shared_ptr<goldfish::runtime::Environment>)#1}::operator()(goldfish::runtime::Value, std::shared_ptr<goldfish::runtime::Environment>) const
+            |          
+             --4.24%--_start
+                       __libc_start_main@@GLIBC_2.34
+                       __libc_start_call_main
+                       main
+                       (anonymous namespace)::eval_file(goldfish::runtime::Evaluator&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) [clone .isra.0]
+                       goldfish::runtime::Evaluator::apply_values(goldfish::runtime::Value, std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)
+                       goldfish::runtime::Evaluator::run_machine(goldfish::runtime::EvalSnapshot&)
+                       goldfish::runtime::Evaluator::run_machine(goldfish::runtime::EvalSnapshot&)::{lambda(goldfish::runtime::Value, std::shared_ptr<goldfish::runtime::Environment>)#1}::operator()(goldfish::runtime::Value, std::shared_ptr<goldfish::runtime::Environment>) const
+
+     4.55%     0.00%  gf       gf                   [.] std::_Function_handler<std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > (std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&), goldfish::runtime::install_runtime_primitives(goldfish::runtime::Evaluator&)::{lambda(std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)#129}>::_M_invoke(std::_Any_data const&, std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)
+            |
+            ---std::_Function_handler<std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > (std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&), goldfish::runtime::install_runtime_primitives(goldfish::runtime::Evaluator&)::{lambda(std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)#129}>::_M_invoke(std::_Any_data const&, std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)
+               |          
+                --4.24%--operator new(unsigned long)
+                          |          
+                           --4.08%--GC_malloc
+                                     GC_generic_malloc_aligned
+                                     GC_allocobj
+
+     4.55%     0.00%  gf       gf                   [.] std::_Function_handler<std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > (std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&), goldfish::runtime::install_runtime_primitives(goldfish::runtime::Evaluator&)::{lambda(char const*, int)#2}::operator()(char const*, int) const::{lambda(std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)#1}>::_M_invoke(std::_Any_data const&, std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)
+            |
+            ---std::_Function_handler<std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > (std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&), goldfish::runtime::install_runtime_primitives(goldfish::runtime::Evaluator&)::{lambda(char const*, int)#2}::operator()(char const*, int) const::{lambda(std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)#1}>::_M_invoke(std::_Any_data const&, std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)
+               goldfish::runtime::install_runtime_primitives(goldfish::runtime::Evaluator&)::{lambda(char const*, int)#2}::operator()(char const*, int) const::{lambda(std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)#1}::operator()(std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&) const
+               |          
+                --3.92%--goldfish::runtime::number_value(goldfish::runtime::Value)
+                          goldfish::runtime::number_from_int64(long)
+                          |          
+                           --3.77%--goldfish::runtime::Number::exact(goldfish::runtime::BigInteger)
+                                     |          
+                                      --3.61%--goldfish::runtime::RealNumber::exact(goldfish::runtime::BigInteger, goldfish::runtime::BigInteger)
+
+     4.55%     0.00%  gf       gf                   [.] goldfish::runtime::install_runtime_primitives(goldfish::runtime::Evaluator&)::{lambda(char const*, int)#2}::operator()(char const*, int) const::{lambda(std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)#1}::operator()(std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&) const
+            |
+            ---goldfish::runtime::install_runtime_primitives(goldfish::runtime::Evaluator&)::{lambda(char const*, int)#2}::operator()(char const*, int) const::{lambda(std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)#1}::operator()(std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&) const
+               |          
+                --3.92%--goldfish::runtime::number_value(goldfish::runtime::Value)
+                          goldfish::runtime::number_from_int64(long)
+                          |          
+                           --3.77%--goldfish::runtime::Number::exact(goldfish::runtime::BigInteger)
+                                     |          
+                                      --3.61%--goldfish::runtime::RealNumber::exact(goldfish::runtime::BigInteger, goldfish::runtime::BigInteger)
+
+     4.24%     2.67%  gf       gf                   [.] goldfish::runtime::KontFrame::~KontFrame()
+     3.77%     3.77%  gf       gf                   [.] goldfish::runtime::KontFrame& std::vector<goldfish::runtime::KontFrame, std::allocator<goldfish::runtime::KontFrame> >::emplace_back<goldfish::runtime::KontFrame>(goldfish::runtime::KontFrame&&) [clone .isra.0]
+            |
+            ---_start
+               __libc_start_main@@GLIBC_2.34
+               __libc_start_call_main
+               main
+               (anonymous namespace)::eval_file(goldfish::runtime::Evaluator&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) [clone .isra.0]
+               goldfish::runtime::Evaluator::apply_values(goldfish::runtime::Value, std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)
+               goldfish::runtime::Evaluator::run_machine(goldfish::runtime::EvalSnapshot&)
+               |          
+                --3.45%--goldfish::runtime::KontFrame& std::vector<goldfish::runtime::KontFrame, std::allocator<goldfish::runtime::KontFrame> >::emplace_back<goldfish::runtime::KontFrame>(goldfish::runtime::KontFrame&&) [clone .isra.0]
+
+     3.30%     0.31%  gf       gf                   [.] goldfish::runtime::number_add(goldfish::runtime::Number const&, goldfish::runtime::Number const&)
+     3.30%     0.16%  gf       gf                   [.] goldfish::runtime::Environment::define(goldfish::runtime::Value, goldfish::runtime::Value)
+            |          
+             --3.14%--goldfish::runtime::Environment::define(goldfish::runtime::Value, goldfish::runtime::Value)
+                       std::__detail::_Map_base<goldfish::runtime::Object const*, std::pair<goldfish::runtime::Object const* const, goldfish::runtime::Environment::Binding>, std::allocator<std::pair<goldfish::runtime::Object const* const, goldfish::runtime::Environment::Binding> >, std::__detail::_Select1st, std::equal_to<goldfish::runtime::Object const*>, std::hash<goldfish::runtime::Object const*>, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, std::__detail::_Prime_rehash_policy, std::__detail::_Hashtable_traits<false, false, true>, true>::operator[](goldfish::runtime::Object const*&&)
+
+     3.30%     3.30%  gf       gf                   [.] std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> >::_M_move_assign(std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> >&&, std::integral_constant<bool, true>) [clone .isra.0]
+            |
+            ---_start
+               __libc_start_main@@GLIBC_2.34
+               __libc_start_call_main
+               main
+               (anonymous namespace)::eval_file(goldfish::runtime::Evaluator&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) [clone .isra.0]
+               goldfish::runtime::Evaluator::apply_values(goldfish::runtime::Value, std::vector<goldfish::runtime::Value, std::allocator<goldfish::runtime::Value> > const&)
+               goldfish::runtime::Evaluator::run_machine(goldfish::runtime::EvalSnapshot&)
+
+
+
+#
+# (Tip: Order by the overhead of source file name and line number: perf report -s srcline)
+#
