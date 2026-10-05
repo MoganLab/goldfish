@@ -1,0 +1,7 @@
+tests/liii/set/set-copy-test.scm
+tests/liii/set/set-contains-p-test.scm
+tests/liii/set/set-any-p-test.scm
+tests/liii/set/set-adjoin-test.scm
+tests/liii/set/set-adjoin-bang-test.scm
+tests/liii/set/list-to-set-test.scm
+tests/liii/set/list-to-set-bang-test.scm

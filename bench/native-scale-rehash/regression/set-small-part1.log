@@ -1,0 +1,200 @@
+;;; note: tests/srfi/srfi-125-test.scm could not be compiled; loading per form
+
+; *** checks *** : 4 correct, 0 failed.
+#f
+  tests/srfi/srfi-125-test.scm ... PASS
+;;; note: tests/liii/set/set-xor-test.scm could not be compiled; loading per form
+
+; *** checks *** : 9 correct, 0 failed.
+#f
+  tests/liii/set/set-xor-test.scm ... PASS
+;;; note: tests/liii/set/set-xor-bang-test.scm could not be compiled; loading per form
+
+; *** checks *** : 9 correct, 0 failed.
+#f
+  tests/liii/set/set-xor-bang-test.scm ... PASS
+;;; note: tests/liii/set/set-union-test.scm could not be compiled; loading per form
+
+; *** checks *** : 13 correct, 0 failed.
+#f
+  tests/liii/set/set-union-test.scm ... PASS
+;;; note: tests/liii/set/set-union-bang-test.scm could not be compiled; loading per form
+
+; *** checks *** : 9 correct, 0 failed.
+#f
+  tests/liii/set/set-union-bang-test.scm ... PASS
+;;; note: tests/liii/set/set-unfold-test.scm could not be compiled; loading per form
+
+; *** checks *** : 3 correct, 0 failed.
+#f
+  tests/liii/set/set-unfold-test.scm ... PASS
+;;; note: tests/liii/set/set-to-list-test.scm could not be compiled; loading per form
+
+; *** checks *** : 3 correct, 0 failed.
+#f
+  tests/liii/set/set-to-list-test.scm ... PASS
+;;; note: tests/liii/set/set-test.scm could not be compiled; loading per form
+
+; *** checks *** : 2 correct, 0 failed.
+#f
+  tests/liii/set/set-test.scm ... PASS
+;;; note: tests/liii/set/set-search-bang-test.scm could not be compiled; loading per form
+
+; *** checks *** : 19 correct, 0 failed.
+#f
+  tests/liii/set/set-search-bang-test.scm ... PASS
+;;; note: tests/liii/set/set-replace-test.scm could not be compiled; loading per form
+
+; *** checks *** : 9 correct, 0 failed.
+#f
+  tests/liii/set/set-replace-test.scm ... PASS
+;;; note: tests/liii/set/set-replace-bang-test.scm could not be compiled; loading per form
+
+; *** checks *** : 6 correct, 0 failed.
+#f
+  tests/liii/set/set-replace-bang-test.scm ... PASS
+;;; note: tests/liii/set/set-remove-test.scm could not be compiled; loading per form
+
+; *** checks *** : 11 correct, 0 failed.
+#f
+  tests/liii/set/set-remove-test.scm ... PASS
+;;; note: tests/liii/set/set-remove-bang-test.scm could not be compiled; loading per form
+
+; *** checks *** : 8 correct, 0 failed.
+#f
+  tests/liii/set/set-remove-bang-test.scm ... PASS
+;;; note: tests/liii/set/set-partition-test.scm could not be compiled; loading per form
+
+; *** checks *** : 15 correct, 0 failed.
+#f
+  tests/liii/set/set-partition-test.scm ... PASS
+;;; note: tests/liii/set/set-partition-bang-test.scm could not be compiled; loading per form
+
+; *** checks *** : 10 correct, 0 failed.
+#f
+  tests/liii/set/set-partition-bang-test.scm ... PASS
+;;; note: tests/liii/set/set-p-test.scm could not be compiled; loading per form
+
+; *** checks *** : 5 correct, 0 failed.
+#f
+  tests/liii/set/set-p-test.scm ... PASS
+;;; note: tests/liii/set/set-member-test.scm could not be compiled; loading per form
+
+; *** checks *** : 8 correct, 0 failed.
+#f
+  tests/liii/set/set-member-test.scm ... PASS
+;;; note: tests/liii/set/set-map-test.scm could not be compiled; loading per form
+
+; *** checks *** : 15 correct, 0 failed.
+#f
+  tests/liii/set/set-map-test.scm ... PASS
+;;; note: tests/liii/set/set-lt-p-test.scm could not be compiled; loading per form
+
+; *** checks *** : 7 correct, 0 failed.
+#f
+  tests/liii/set/set-lt-p-test.scm ... PASS
+;;; note: tests/liii/set/set-le-p-test.scm could not be compiled; loading per form
+
+; *** checks *** : 9 correct, 0 failed.
+#f
+  tests/liii/set/set-le-p-test.scm ... PASS
+;;; note: tests/liii/set/set-intersection-test.scm could not be compiled; loading per form
+
+; *** checks *** : 10 correct, 0 failed.
+#f
+  tests/liii/set/set-intersection-test.scm ... PASS
+;;; note: tests/liii/set/set-intersection-bang-test.scm could not be compiled; loading per form
+
+; *** checks *** : 12 correct, 0 failed.
+#f
+  tests/liii/set/set-intersection-bang-test.scm ... PASS
+;;; note: tests/liii/set/set-gt-p-test.scm could not be compiled; loading per form
+
+; *** checks *** : 7 correct, 0 failed.
+#f
+  tests/liii/set/set-gt-p-test.scm ... PASS
+;;; note: tests/liii/set/set-ge-p-test.scm could not be compiled; loading per form
+
+; *** checks *** : 7 correct, 0 failed.
+#f
+  tests/liii/set/set-ge-p-test.scm ... PASS
+;;; note: tests/liii/set/set-for-each-test.scm could not be compiled; loading per form
+
+; *** checks *** : 4 correct, 0 failed.
+#f
+  tests/liii/set/set-for-each-test.scm ... PASS
+;;; note: tests/liii/set/set-fold-test.scm could not be compiled; loading per form
+
+; *** checks *** : 4 correct, 0 failed.
+#f
+  tests/liii/set/set-fold-test.scm ... PASS
+;;; note: tests/liii/set/set-find-test.scm could not be compiled; loading per form
+
+; *** checks *** : 7 correct, 0 failed.
+#f
+  tests/liii/set/set-find-test.scm ... PASS
+;;; note: tests/liii/set/set-filter-test.scm could not be compiled; loading per form
+
+; *** checks *** : 9 correct, 0 failed.
+#f
+  tests/liii/set/set-filter-test.scm ... PASS
+;;; note: tests/liii/set/set-filter-bang-test.scm could not be compiled; loading per form
+
+; *** checks *** : 8 correct, 0 failed.
+#f
+  tests/liii/set/set-filter-bang-test.scm ... PASS
+;;; note: tests/liii/set/set-every-p-test.scm could not be compiled; loading per form
+
+; *** checks *** : 12 correct, 0 failed.
+#f
+  tests/liii/set/set-every-p-test.scm ... PASS
+;;; note: tests/liii/set/set-eq-p-test.scm could not be compiled; loading per form
+
+; *** checks *** : 9 correct, 0 failed.
+#f
+  tests/liii/set/set-eq-p-test.scm ... PASS
+;;; note: tests/liii/set/set-empty-p-test.scm could not be compiled; loading per form
+
+; *** checks *** : 3 correct, 0 failed.
+#f
+  tests/liii/set/set-empty-p-test.scm ... PASS
+;;; note: tests/liii/set/set-disjoint-p-test.scm could not be compiled; loading per form
+
+; *** checks *** : 8 correct, 0 failed.
+#f
+  tests/liii/set/set-disjoint-p-test.scm ... PASS
+;;; note: tests/liii/set/set-difference-test.scm could not be compiled; loading per form
+
+; *** checks *** : 10 correct, 0 failed.
+#f
+  tests/liii/set/set-difference-test.scm ... PASS
+;;; note: tests/liii/set/set-difference-bang-test.scm could not be compiled; loading per form
+
+; *** checks *** : 10 correct, 0 failed.
+#f
+  tests/liii/set/set-difference-bang-test.scm ... PASS
+;;; note: tests/liii/set/set-delete-test.scm could not be compiled; loading per form
+
+; *** checks *** : 10 correct, 0 failed.
+#f
+  tests/liii/set/set-delete-test.scm ... PASS
+;;; note: tests/liii/set/set-delete-bang-test.scm could not be compiled; loading per form
+
+; *** checks *** : 4 correct, 0 failed.
+#f
+  tests/liii/set/set-delete-bang-test.scm ... PASS
+;;; note: tests/liii/set/set-delete-all-test.scm could not be compiled; loading per form
+
+; *** checks *** : 4 correct, 0 failed.
+#f
+  tests/liii/set/set-delete-all-test.scm ... PASS
+;;; note: tests/liii/set/set-delete-all-bang-test.scm could not be compiled; loading per form
+
+; *** checks *** : 4 correct, 0 failed.
+#f
+  tests/liii/set/set-delete-all-bang-test.scm ... PASS
+;;; note: tests/liii/set/set-count-test.scm could not be compiled; loading per form
+
+; *** checks *** : 10 correct, 0 failed.
+#f
+  tests/liii/set/set-count-test.scm ... PASS

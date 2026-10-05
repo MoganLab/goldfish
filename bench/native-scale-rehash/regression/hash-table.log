@@ -1,0 +1,35 @@
+native cache unavailable: native bootstrap cache not found under /tmp/gf-resize-fix/cache/veb780c1236ec
+Running tests in directory: tests/liii/hash-table/
+
+=== Test Summary ===
+
+  tests/liii/hash-table/alist-to-hash-table-test.scm ... [32mPASS[0m
+  tests/liii/hash-table/hash-table-clear-bang-test.scm ... [32mPASS[0m
+  tests/liii/hash-table/hash-table-contains-p-test.scm ... [32mPASS[0m
+  tests/liii/hash-table/hash-table-copy-test.scm ... [32mPASS[0m
+  tests/liii/hash-table/hash-table-count-test.scm ... [32mPASS[0m
+  tests/liii/hash-table/hash-table-delete-bang-test.scm ... [32mPASS[0m
+  tests/liii/hash-table/hash-table-empty-p-test.scm ... [32mPASS[0m
+  tests/liii/hash-table/hash-table-entries-test.scm ... [32mPASS[0m
+  tests/liii/hash-table/hash-table-eq-p-test.scm ... [32mPASS[0m
+  tests/liii/hash-table/hash-table-find-test.scm ... [32mPASS[0m
+  tests/liii/hash-table/hash-table-fold-test.scm ... [32mPASS[0m
+  tests/liii/hash-table/hash-table-for-each-test.scm ... [32mPASS[0m
+  tests/liii/hash-table/hash-table-keys-test.scm ... [32mPASS[0m
+  tests/liii/hash-table/hash-table-map-to-list-test.scm ... [32mPASS[0m
+  tests/liii/hash-table/hash-table-ref-slash-default-test.scm ... [32mPASS[0m
+  tests/liii/hash-table/hash-table-ref-test.scm ... [32mPASS[0m
+  tests/liii/hash-table/hash-table-set-bang-test.scm ... [32mPASS[0m
+  tests/liii/hash-table/hash-table-size-test.scm ... [32mPASS[0m
+  tests/liii/hash-table/hash-table-test.scm ... [32mPASS[0m
+  tests/liii/hash-table/hash-table-to-alist-test.scm ... [32mPASS[0m
+  tests/liii/hash-table/hash-table-update-bang-slash-default-test.scm ... [32mPASS[0m
+  tests/liii/hash-table/hash-table-update-bang-test.scm ... [32mPASS[0m
+  tests/liii/hash-table/hash-table-values-test.scm ... [32mPASS[0m
+  tests/liii/hash-table/make-hash-table-test.scm ... [32mPASS[0m
+  tests/liii/hash-table/resize-test.scm ... [32mPASS[0m
+
+=== Summary ===
+  Total:  25
+  [32mPassed: 25[0m
+

@@ -382,7 +382,7 @@ reset the selected artifact and complete import in 4.29 and 4.50 seconds.
 
 The [native resize probe](bench/native-scale-phases/resize/native-output.log)
 reports five keys but eleven stored bucket entries after growing a two-bucket
-table. Reading the current `%s7-ht-resize!` definition shows `bucket-loop`
+table. The pre-repair `%s7-ht-resize!` definition placed `bucket-loop`
 inside `cell-loop`, and publishing the new vector inside `bucket-loop`.
 Repeated suffix traversal duplicates entries. A separate read-only Guile
 algorithm probe transfers eight original entries into 255 bucket entries.
@@ -393,6 +393,22 @@ failure remains deferred, with this concrete diagnosis. Repair rehash traversal
 and uniqueness before increasing collection sizes; then measure growth and
 profile any remaining cost. Startup/cache replay is also a measured fixed cost,
 but is not the cause of this construction timeout.
+
+The rehash repair moves bucket advancement outside the cell loop and publishes
+the new buckets after traversal. The native
+[resize regression](tests/liii/hash-table/resize-test.scm) checks one hash call
+per transferred entry, unique enumeration across repeated growths, colliding
+and negative hashes, updates, deletion and reinsertion. Historical failing
+probes above remain unchanged. The million-element set-size test stays deferred
+until its original workload has actually passed; small regressions do not
+resolve a scale failure.
+
+The [repair evidence](bench/native-scale-rehash/regression/metadata.tsv) records
+25/25 hash-table files, 47/47 SRFI-125 and small-set files, and a completed
+160/160 changed-since-main gate (four workers, four files per chunk). The small
+set run required two batches after its first 600-second deadline; all remaining
+files passed. Initial serial and two-worker changed-since attempts hit their
+whole-run deadlines and are retained separately, not counted as passing runs.
 
 The deadline supervisor cleans the entire worker process group after it exits,
 including preparation descendants whose shell ended first, and handles explicit

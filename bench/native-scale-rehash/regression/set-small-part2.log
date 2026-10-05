@@ -1,0 +1,39 @@
+;;; note: tests/liii/set/set-copy-test.scm could not be compiled; loading per form
+
+; *** checks *** : 4 correct, 0 failed.
+#f
+  tests/liii/set/set-copy-test.scm ... PASS
+;;; note: tests/liii/set/set-contains-p-test.scm could not be compiled; loading per form
+
+; *** checks *** : 4 correct, 0 failed.
+#f
+  tests/liii/set/set-contains-p-test.scm ... PASS
+;;; note: tests/liii/set/set-any-p-test.scm could not be compiled; loading per form
+
+; *** checks *** : 16 correct, 0 failed.
+#f
+  tests/liii/set/set-any-p-test.scm ... PASS
+;;; note: tests/liii/set/set-adjoin-test.scm could not be compiled; loading per form
+
+; *** checks *** : 10 correct, 0 failed.
+#f
+  tests/liii/set/set-adjoin-test.scm ... PASS
+;;; note: tests/liii/set/set-adjoin-bang-test.scm could not be compiled; loading per form
+
+; *** checks *** : 8 correct, 0 failed.
+#f
+  tests/liii/set/set-adjoin-bang-test.scm ... PASS
+;;; note: tests/liii/set/list-to-set-test.scm could not be compiled; loading per form
+
+; *** checks *** : 8 correct, 0 failed.
+#f
+  tests/liii/set/list-to-set-test.scm ... PASS
+;;; note: tests/liii/set/list-to-set-bang-test.scm could not be compiled; loading per form
+
+; *** checks *** : 8 correct, 0 failed.
+#f
+  tests/liii/set/list-to-set-bang-test.scm ... PASS
+
+  Total:  7
+  Passed: 7
+  Failed: 0

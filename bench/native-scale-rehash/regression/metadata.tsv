@@ -1,0 +1,18 @@
+source_parent	beee13ccd5bbcbdf317b8302d59dc4fc48dbcdf9
+binary_sha256	15d563ef10f94b5db163f4cbdf13d710cba99a34ba51b3681af1b626100738b9
+cache_version	/tmp/gf-resize-fix/cache/veb780c1236ec
+hash_table_exit_code	0
+hash_table_command	GOLDFISH_CACHE_DIR=/tmp/gf-resize-fix/cache timeout --kill-after=5s 600 ./bin/gf test tests/liii/hash-table/
+set_part1_exit_code	124
+set_part1_passed_files	40
+set_part1_command	GOLDFISH_CACHE_DIR=/tmp/gf-resize-fix/cache timeout --kill-after=5s 600 ./bin/gf --each-file tests/srfi/srfi-125-test.scm $(cat set-files.txt)
+set_part2_exit_code	0
+set_part2_command	GOLDFISH_CACHE_DIR=/tmp/gf-resize-fix/cache timeout --kill-after=5s 240 ./bin/gf --each-file $(cat set-remaining.txt)
+changed_since_cold_exit_code	124
+changed_since_cold_command	GOLDFISH_CACHE_DIR=/tmp/gf-resize-fix/cache timeout --kill-after=5s 1800 ./bin/gf test
+changed_since_warm_exit_code	124
+changed_since_warm_command	GOLDFISH_CACHE_DIR=/tmp/gf-resize-fix/cache GOLDFISH_TEST_CHUNK=4 timeout --kill-after=5s 1200 ./bin/gf test --changed-since=main --jobs=2
+changed_since_complete_exit_code	0
+changed_since_complete_files	160
+changed_since_complete_command	GOLDFISH_CACHE_DIR=/tmp/gf-resize-fix/cache GOLDFISH_TEST_CHUNK=4 timeout --kill-after=5s 2400 ./bin/gf test --changed-since=main --jobs=4
+tested_patch_sha256	c94aa13dda5f0527bf1d9d1c7866cbc6b3890914e6169938153416f68cf9603f

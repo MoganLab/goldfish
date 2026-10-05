@@ -39,9 +39,9 @@
                 (let ((index (modulo (%s7-ht-hash ht (car cell)) new-size)))
                   (vector-set! new-buckets index
                                (cons cell (vector-ref new-buckets index)))))
-            (cell-loop (cdr cells))))
+            (cell-loop (cdr cells)))))
         (bucket-loop (+ i 1))))
-    (vector-set! ht 1 new-buckets))))
+    (vector-set! ht 1 new-buckets)))
 
 (define (%s7-ht-cell ht key)
   (unless (%s7-ht? ht)
