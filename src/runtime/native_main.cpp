@@ -655,6 +655,7 @@ int main(int argc, char** argv) {
         // with defined? and falls back to the shell path when absent
         // (host).
         install_fork_runner(runtime.evaluator());
+        stage("install-fork-runner");
 
         if (argc == 1) {
             std::string line;
@@ -664,6 +665,7 @@ int main(int argc, char** argv) {
         }
         if (argc == 3 && std::string(argv[1]) == "-e") {
             eval_source(runtime.evaluator(), argv[2]);
+            stage("user-expression");
             return 0;
         }
         int command = 1;
@@ -727,6 +729,7 @@ int main(int argc, char** argv) {
                 else
                     load_source(runtime.evaluator(), argv[command]);
             }
+            stage("load-command");
             return 0;
         }
         if (std::string(argv[command]) == "--each-file") {
@@ -800,10 +803,12 @@ int main(int argc, char** argv) {
         }
         if (command < argc) {
             eval_file(runtime.evaluator(), argv[command]);
+            stage("user-file");
             return 0;
         }
         if (argc == 2) {
             eval_file(runtime.evaluator(), argv[1]);
+            stage("user-file");
             return 0;
         }
         std::cerr << "usage: gf [-e expression] [file]\n";

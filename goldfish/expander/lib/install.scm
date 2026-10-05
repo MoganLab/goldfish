@@ -755,6 +755,26 @@
       (reverse acc)
       (loop (cdr ls) (adjoin-lib (car ls) acc)))))
 
+;;; native-debug-enabled? : string -> boolean
+;;; Read the shared GOLDFISH_DEBUG knob from Scheme with the same
+;;; comma-list semantics as src/runtime/debug_flags.hpp (key present,
+;;; or "all").  Used by the cold-start compile diagnostics; no separate
+;;; environment variable is introduced.
+(define (native-debug-enabled? key)
+  (let ((group (getenv "GOLDFISH_DEBUG")))
+    (and group
+         (not (string=? group ""))
+         (or (string=? group "all")
+             (let ((padded (string-append "," group ","))
+                   (needle (string-append "," key ",")))
+               (let loop ((i 0))
+                 (cond ((> (+ i (string-length needle))
+                           (string-length padded)) #f)
+                       ((string=? (substring padded i
+                                             (+ i (string-length needle)))
+                                  needle) #t)
+                       (else (loop (+ i 1))))))))))
+
 (define (compile-file-cached path)
   ;; One compilation unit per call: expand-time state (region bindings,
   ;; transformer closures) is isolated from every other compile in the
@@ -766,6 +786,22 @@
        (lambda () (compile-file-cached-in-unit path))))))
 
 (define (compile-file-cached-in-unit path)
+  ;; Cold-start phase ledger: same GOLDFISH_DEBUG=timing knob as the C++
+  ;; boot stages.  Splits read / cache lookup / expand / optimize /
+  ;; cache write so the post-boot blind spot has a runtime attribution.
+  (define timing? (native-debug-enabled? "timing"))
+  (define last-ms (if timing?
+                      (quotient (g_monotonic-nanosecond) 1000000)
+                      0))
+  (define (mark label)
+    (when timing?
+      (let ((now (quotient (g_monotonic-nanosecond) 1000000)))
+        (display "[timing] compile-" (current-error-port))
+        (display label (current-error-port))
+        (display " " (current-error-port))
+        (display (- now last-ms) (current-error-port))
+        (display " ms\n" (current-error-port))
+        (set! last-ms now))))
   (let* ((level (cache-level))
          (gfo-file (cache-file-for path))
          ;; Resolve once for stamping/reading: the unresolved spelling
