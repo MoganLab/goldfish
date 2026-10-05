@@ -617,9 +617,11 @@ int main(int argc, char** argv) {
         runtime.evaluator().collect();
         bootstrap.install_expansion_helpers();
         stage("expansion-helpers");
-        load_source(runtime.evaluator(), "expander/lib/base-functions.scm");
-        load_source(runtime.evaluator(), "expander/lib/native-hash-adapter.scm");
-        load_source(runtime.evaluator(), "expander/lib/native-abi.scm");
+        // Cache these Scheme-surface files through the same install cache as
+        // the reader/writer: they are re-expanded on every start otherwise.
+        bootstrap.load_cached_source("expander/lib/base-functions.scm");
+        bootstrap.load_cached_source("expander/lib/native-hash-adapter.scm");
+        bootstrap.load_cached_source("expander/lib/native-abi.scm");
         stage("native-scheme-surface");
         if (cached) bootstrap.load_cached_base_runtime();
         // The cached bootstrap artifact list already evaluates standard.scm.

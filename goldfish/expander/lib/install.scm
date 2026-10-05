@@ -810,8 +810,7 @@
          ;; spellings share entries); a missing file falls back to `path'
          ;; so the read below errors exactly as before.
          (file (or (load-find-module-file path) path))
-         (stamp (compile-file-stamp file))
-         (forms (call-with-input-file file read-forms)))
+         (stamp (compile-file-stamp file)))
     ;; A program bundle holds one exprs section with the serialized
     ;; lowered program; deserialize rebuilds its embedded syntax
     ;; constants as live records.
@@ -821,38 +820,46 @@
                         (let ((exprs (bundle-section payload 'exprs)))
                           (and (pair? exprs)
                                (deserialize-cache-sexp (cadr exprs)))))))
+      (mark "cache-lookup")
       (if cached
-        cached
-        (let*-values (((prog ctx)
-                       (compile-program-into-syntax forms
-                         (program-library))))
-          ;; optimize-on-load itself degrades to `lower' when the compiler
-          ;; or tree-il bridge is unavailable (level 0 included), so the
-          ;; call is direct like every other cross-module body reference.
-          (let* ((opt (if (zero? level)
-                          (lower prog)
-                          (optimize-on-load prog ctx)))
-                 ;; serialize-cache-sexp is the single arbiter of what
-                 ;; persists: datum-embedded syntax values degrade to stx*
-                 ;; text (their live back-reference to the session
-                 ;; (program) library is replaced by its name), and
-                 ;; anything unserializable raises -- such an artifact
-                 ;; gets no cache entry and is re-expanded every run.
-                 ;; The in-memory opt stays live either way.
-                 ;; (Region bindings cannot leak here: they resolve only
-                 ;; at phase >= 1, so a phase-0 artifact cannot name
-                 ;; them -- a stray reference fails at expansion time.)
-                 (bundle (catch #t
-                           (lambda ()
-                             (make-bundle 'program
-                                          (list 'exprs (serialize-cache-sexp opt))))
-                           (lambda args #f))))
-            (when bundle
-              (let ((deps (append (map library-dep-fingerprint
-                                      (program-all-deps forms opt))
-                                  ((module-ref the-expander-library 'declaration-inputs)))))
-                (gfo-write! gfo-file stamp bundle deps)))
-            opt))))))
+        (begin (mark "cache-hit") cached)
+        ;; Only a miss reads and parses the source; a hit must not pay for
+        ;; it (previously every load read the file before the lookup).
+        (let* ((forms (call-with-input-file file read-forms)))
+          (mark "read-source")
+          (let*-values (((prog ctx)
+                         (compile-program-into-syntax forms
+                           (program-library))))
+            (mark "expand")
+            ;; optimize-on-load itself degrades to `lower' when the compiler
+            ;; or tree-il bridge is unavailable (level 0 included), so the
+            ;; call is direct like every other cross-module body reference.
+            (let* ((opt (if (zero? level)
+                            (lower prog)
+                            (optimize-on-load prog ctx))))
+              (mark "optimize")
+              ;; serialize-cache-sexp is the single arbiter of what
+              ;; persists: datum-embedded syntax values degrade to stx*
+              ;; text (their live back-reference to the session
+              ;; (program) library is replaced by its name), and
+              ;; anything unserializable raises -- such an artifact
+              ;; gets no cache entry and is re-expanded every run.
+              ;; The in-memory opt stays live either way.
+              ;; (Region bindings cannot leak here: they resolve only
+              ;; at phase >= 1, so a phase-0 artifact cannot name
+              ;; them -- a stray reference fails at expansion time.)
+              (let ((bundle (catch #t
+                              (lambda ()
+                                (make-bundle 'program
+                                             (list 'exprs (serialize-cache-sexp opt))))
+                              (lambda args #f))))
+                (when bundle
+                  (let ((deps (append (map library-dep-fingerprint
+                                          (program-all-deps forms opt))
+                                      ((module-ref the-expander-library 'declaration-inputs)))))
+                    (gfo-write! gfo-file stamp bundle deps)))
+                (mark "cache-write")
+                opt))))))))
 
 (module-define! the-expander-library 'compile-file-cached compile-file-cached)
 ;; reader.scm's `load' preloads the deps of a compiled program artifact
