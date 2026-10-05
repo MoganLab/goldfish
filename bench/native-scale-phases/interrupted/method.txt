@@ -1,1 +1,0 @@
-TERM is sent to the benchmark supervisor after the injected preparation child begins. The run records interrupted termination; the heartbeat does not advance after return. Uses the same preparation-stub.sh as the descendant control.

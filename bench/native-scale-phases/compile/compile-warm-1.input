@@ -1,6 +1,0 @@
-(import (native-scale timing))
-(phase-startup)
-(define import-start (phase-begin 'import))
-(import (native-scale compile))
-(phase-finish 'import import-start)
-(run-compile-phases)

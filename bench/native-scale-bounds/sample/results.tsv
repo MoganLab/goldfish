@@ -1,2 +1,0 @@
-case	size	sample	wall_seconds	user_seconds	system_seconds	peak_rss_kib	exit_code	check
-startup-warm	1	1	1.00	0.98	0.01	16680	124	fail

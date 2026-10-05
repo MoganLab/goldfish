@@ -77,25 +77,9 @@ for this change. Remaining startup cost is mostly installation of `install.scm`
 and the native Scheme surface; larger collection budgets still depend on
 construction time, not just startup time.
 
-## Bounded collection recheck
+## Current scale evidence
 
-The same 100,000-element phase probe passes in 22.30 seconds, peak RSS
-65,760 KiB. Startup/timer import takes 6.654 seconds, benchmark import 2.694,
-list generation 0.255, construction 12.675, and checks 0.000205. Compared with
-the preceding 31.34-second sample, the improvement is in startup; construction
-remains about 12.5–12.7 seconds. These are single exploratory samples.
-
-Reproduce with:
-
-```sh
-sh tools/bench-native-scale.sh --smoke --case=million-set --size=100000 --phases \
-  --timeout=60 --setup-timeout=90 --run-timeout=240 \
-  --cache=/tmp/gf-startup-sample --output=/tmp/gf-startup-scale100000
-```
-
-The decade scheduling estimate is `wall + 9 * (list-build + set-build + check)`:
-138.676 seconds for one million elements, above the 60-second budget. Stop here;
-the million-element workload is not executed and its original two-set test
-remains deferred. Raw input, phases, timings, cache preparation, binary/source
-metadata and the tested source patch are archived under `scale100000/`, excluding
-the copied cache directory.
+The earlier 100,000-element probe and its million-element projection have been
+superseded. The exact two-set workload now passes at one million elements per
+set; see [`../native-million-set/README.md`](../native-million-set/README.md)
+for current time, memory, A/B results and reproduction instructions.

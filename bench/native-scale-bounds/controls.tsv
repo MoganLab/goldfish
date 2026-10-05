@@ -1,5 +1,0 @@
-control	expected	observed
-preparation	deadline within limit plus 5s; preparation termination	137; 6.00s
-overall	overall-deadline termination	124
-sample	failed row with timeout; samples termination	124 sample; 1 run
-selection	only long-list at size 32	1 passing row

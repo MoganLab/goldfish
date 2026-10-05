@@ -1,7 +1,7 @@
 Post-repair bounded set growth
 
 Repair commit: 27f46391. Native runtime only; no S7 oracle.
-Levels: 10, 100, 1000, 10000, 100000, 1000000, in order.
+Historical levels: 10, 100, 1000, 10000, 100000, 1000000, in order.
 One exploratory sample per level; these are growth probes, not throughput estimates.
 Sample deadline: 60 seconds. Setup stage deadline: 90 seconds.
 Whole runner deadline per level: 240 seconds, with its documented kill grace.
@@ -25,9 +25,11 @@ Keep historical pre-repair probes and the original full-suite failure intact.
 
 Outcome: sizes 10 through 10000 pass. Size 100000 times out during construction
 at 60.02 seconds; its check phase never begins. The ladder stops there and
-1000000 is not run. See summary.tsv and decisions.tsv. Fixed-cost fluctuations
+At that stage, 1000000 was not run. See summary.tsv and decisions.tsv. Fixed-cost fluctuations
 made the preceding 54.88-second prediction optimistic; the real deadline
 bounded the run. Preserve this timeout as a measured limitation, not a skip.
-The original set-size test constructs two near-million-element sets and has
-not been rerun or marked fixed. Profile startup/cache restoration and insertion
-before resuming larger levels. Single samples cannot establish scaling order.
+This is a historical record of the repair investigation. Its bounded samples
+were superseded by the later insertion optimization and exact one-million-element
+validation documented in `../native-million-set/README.md`. Keep the compact
+summary and decision tables as evidence of the earlier timeout; single samples
+are not scaling estimates.
