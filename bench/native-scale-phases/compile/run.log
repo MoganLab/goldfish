@@ -1,0 +1,3 @@
+compile-cold sample 1: pass (exit 0)
+compile-warm sample 1: pass (exit 0)
+Benchmark evidence: /tmp/gf-phase-compile-proof

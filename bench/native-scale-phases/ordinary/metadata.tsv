@@ -1,0 +1,27 @@
+key	value
+started_utc	2026-10-05 05:18:55 UTC
+source_commit	761431993d4e10847b04511ba2e80aa81fd6cae8
+binary_sha256	15d563ef10f94b5db163f4cbdf13d710cba99a34ba51b3681af1b626100738b9
+working_diff_sha256	e313811ad111d16585d42399b62ffcdb832f1e368700b5657589c943bab1d512
+profile	quick
+samples	1
+timeout_seconds	35
+setup_timeout_seconds	60
+run_timeout_seconds	130
+selected_case	million-set
+size_override	10
+cache_seed	/tmp/gf-phase-set10-proof/cache
+phase_measurement	no
+import_state	cached
+optimization_level	2
+gc_setting	default
+system	Linux 7.2.8-cachyos x86_64 GNU/Linux
+cpu	AMD Ryzen 7 7840HS with Radeon 780M Graphics
+memory_kib	28401976
+input_sha256:bench/native-scale/cases.tsv	ef6a0720dfadd7216b6dca6322c12c9b2fb7875070df8c71cdeb675fbe1b949b
+input_sha256:bench/native-scale/compile.scm	97dd4b0b3eb13dd99c02d0b88f1e11515a1a923a47dde21aa0cdb46b4e4944f9
+input_sha256:bench/native-scale/set.scm	c97acc512ca2630f703c9cd2935385666a061b7bfc86eb9cc7913feec519de71
+input_sha256:bench/native-scale/timing.scm	c2afa402c0d47ff45fa56b3841344299bafa2ba4247896e0f2cc304a2de700c4
+input_sha256:bench/native-scale/workloads.scm	f6faccda1d3a4f8a65b086602c082fc4055954610da981ff3472006867d422cd
+input_sha256:tools/bench-native-scale.sh	0202757a0996070a3ac9351ec7df8fb9acad54da19eec17dc28bb32a675decd1
+ended_utc	2026-10-05 05:19:46 UTC

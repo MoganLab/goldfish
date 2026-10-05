@@ -1,0 +1,3 @@
+Native command: GOLDFISH_CACHE_DIR=/tmp/gf-phase-set100-proof/cache timeout --kill-after=5s 40s ./bin/gf -m r7rs -e "$(cat bench/native-scale-phases/resize/native-probe.scm)"
+Native exit: 0
+The separate Guile probe reads only the current resize definition and provides an identity hash; it is algorithm evidence, not a native conformance gate.

@@ -1,0 +1,1 @@
+The preparation shell is replaced via PATH by preparation-stub.sh; it spawns a TERM-ignoring heartbeat child. PROBE_REAL_SH points at the real sh and PROBE_HEARTBEAT names a temporary log. The unchanged count after return verifies process-group cleanup.

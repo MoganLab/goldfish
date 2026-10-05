@@ -1,0 +1,12 @@
+> #<unspecified>
+> PHASE	startup-and-timer-import	22.223010488
+#<unspecified>
+> PHASE-BEGIN	import
+#<unspecified>
+> #<unspecified>
+> PHASE	import	0.212940218
+#<unspecified>
+> PHASE-BEGIN	compile
+PHASE	compile	0.07576194
+BENCH-OK
+> 

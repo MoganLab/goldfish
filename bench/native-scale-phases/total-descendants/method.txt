@@ -1,0 +1,1 @@
+Uses the injected TERM-ignoring preparation child with a 1-second overall deadline and 90-second preparation deadline. The unchanged heartbeat after return verifies total-deadline process-group cleanup.

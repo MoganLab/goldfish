@@ -11,6 +11,8 @@ selected=
 size_override=
 cache_seed=
 worker=no
+phases=no
+import_state=cached
 for arg do
     case "$arg" in
       --smoke) profile=quick; samples=1 ;;
@@ -22,15 +24,19 @@ for arg do
       --case=*) selected=${arg#*=} ;;
       --size=*) size_override=${arg#*=} ;;
       --cache=*) cache_seed=${arg#*=} ;;
+      --phases) phases=yes ;;
+      --import-state=*) import_state=${arg#*=} ;;
       --bounded-worker) worker=yes ;;
       --output=*) output=${arg#*=} ;;
-      *) echo "usage: $0 [--smoke|--full] [--samples=N] [--timeout=N] [--setup-timeout=N] [--run-timeout=N] [--case=NAME] [--size=N] [--cache=DIR] [--output=DIR]" >&2; exit 2 ;;
+      *) echo "usage: $0 [--smoke|--full] [--samples=N] [--timeout=N] [--setup-timeout=N] [--run-timeout=N] [--case=NAME] [--size=N] [--cache=DIR] [--phases] [--import-state=cached|source] [--output=DIR]" >&2; exit 2 ;;
     esac
 done
 for number in "$samples" "$limit" "$setup_limit" "$run_limit" ${size_override:+"$size_override"}; do
     case "$number" in ''|*[!0-9]*) echo "positive integer required" >&2; exit 2 ;; esac
     [ "$number" -gt 0 ] || { echo "positive integer required" >&2; exit 2; }
 done
+case "$import_state" in cached|source) ;; *) echo "invalid import state" >&2; exit 2 ;; esac
+[ "$import_state" = cached ] || [ "$phases" = yes ] || { echo "source import requires --phases" >&2; exit 2; }
 [ -x bin/gf ]
 time_bin=$(which time)
 "$time_bin" --version > /dev/null
@@ -49,8 +55,21 @@ if [ -n "$cache_seed" ]; then
     case "$output/" in "$cache_seed/"*) echo "output must be outside the seed cache" >&2; exit 2 ;; esac
 fi
 if [ "$worker" = no ]; then
+    stop_run() {
+        kill -KILL -- "-$guard_pid" 2>/dev/null || true
+        printf 'exit_code\t%s\ntermination\tinterrupted\n' "$1" > "$output/run-status.tsv"
+        exit "$1"
+    }
+    guard_pid=
+    trap 'stop_run 130' INT
+    trap 'stop_run 143' TERM
     code=0
-    timeout --kill-after=5s "${run_limit}s" sh "$0" --bounded-worker "$@" --output="$output" || code=$?
+    timeout --kill-after=5s "${run_limit}s" sh "$0" --bounded-worker "$@" --output="$output" &
+    guard_pid=$!
+    wait "$guard_pid" || code=$?
+    # A failed preparation shell can leave its children running after it exits.
+    kill -KILL -- "-$guard_pid" 2>/dev/null || true
+    trap - INT TERM
     cause=completed
     if [ -f "$output/worker-status.tsv" ]; then
         cause=$(cut -f1 "$output/worker-status.tsv")
@@ -78,6 +97,7 @@ export GOLDFISH_OPT_LEVEL=2
     printf 'working_diff_sha256\t%s\n' "$(sha256sum "$output/source.patch" | cut -d ' ' -f1)"
     printf 'profile\t%s\nsamples\t%s\ntimeout_seconds\t%s\n' "$profile" "$samples" "$limit"
     printf 'setup_timeout_seconds\t%s\nrun_timeout_seconds\t%s\nselected_case\t%s\nsize_override\t%s\ncache_seed\t%s\n' "$setup_limit" "$run_limit" "${selected:-all}" "${size_override:-profile}" "${cache_seed:-none}"
+    printf 'phase_measurement\t%s\nimport_state\t%s\n' "$phases" "$import_state"
     printf 'optimization_level\t2\ngc_setting\t%s\n' "${GOLDFISH_GC:-default}"
     printf 'system\t%s\n' "$(uname -srmo)"
     awk -F ': ' '/model name/ {print "cpu\t" $2; exit}' /proc/cpuinfo
@@ -85,6 +105,7 @@ export GOLDFISH_OPT_LEVEL=2
     sha256sum bench/native-scale/* tools/bench-native-scale.sh | awk '{print "input_sha256:" $2 "\t" $1}'
 } > "$output/metadata.tsv"
 printf 'case\tsize\tsample\twall_seconds\tuser_seconds\tsystem_seconds\tpeak_rss_kib\texit_code\tcheck\n' > "$output/results.tsv"
+printf 'case\tsize\tsample\tphase\tseconds\tstatus\n' > "$output/phases.tsv"
 printf 'stage\twall_seconds\tuser_seconds\tsystem_seconds\tpeak_rss_kib\texit_code\n' > "$output/stages.tsv"
 run_stage() {
     stage=$1; shift
@@ -106,6 +127,7 @@ if [ -n "$cache_seed" ]; then
 fi
 run_stage cache-setup sh tools/warm-bootstrap-cache.sh
 sources=
+[ "$phases" != yes ] || sources=timing
 want_case million-set && sources="$sources set"
 if want_case compile-cold || want_case compile-warm; then sources="$sources compile"; fi
 for workload in allocation long-list wide-vector deep-structure; do
@@ -172,15 +194,58 @@ PERL
         esac
         export GOLDFISH_CACHE_DIR
         printf '%s\n' "sample:$name:$i" > "$output/current-stage.txt"
+        : > "$prefix.input"
+        phase_sample=no
+        if [ "$phases" = yes ]; then
+            case "$name" in
+              million-set) library=set; entry=run-set-phases; phase_sample=yes ;;
+              compile-*) library=compile; entry=run-compile-phases; phase_sample=yes ;;
+            esac
+        fi
+        if [ "$phase_sample" = yes ]; then
+            if [ "$import_state" = source ]; then
+                # Keep dependencies and the timer warm for every source-import sample.
+                sample_cache=$(./bin/gf --bootstrap-cache-directory)
+                run_stage "source-import-reset-$name-$i" sh -c '
+                    rm -f "$1/native-scale/$2.scm-o2.gfo"
+                ' sh "$sample_cache" "$library"
+            fi
+            cat > "$prefix.input" <<EOF
+(import (native-scale timing))
+(phase-startup)
+(define import-start (phase-begin 'import))
+(import (native-scale $library))
+(phase-finish 'import import-start)
+($entry)
+EOF
+            set -- ./bin/gf -m r7rs -I bench
+            GOLDFISH_BENCH_START_NS=$(perl -MTime::HiRes=clock_gettime,CLOCK_MONOTONIC -e 'printf "%.0f\n", clock_gettime(CLOCK_MONOTONIC)*1000000000')
+            export GOLDFISH_BENCH_START_NS
+        fi
+
         code=0
+        printf '%s\n' "sample:$name:$i" > "$output/current-stage.txt"
         "$time_bin" -f '%e\t%U\t%S\t%M\t%x' -o "$prefix.metrics" \
-            timeout --foreground --kill-after=5s "${limit}s" "$@" > "$prefix.stdout" 2> "$prefix.stderr" || code=$?
+            timeout --foreground --kill-after=5s "${limit}s" "$@" < "$prefix.input" > "$prefix.stdout" 2> "$prefix.stderr" || code=$?
         check=fail
         expected=BENCH-OK
         case "$name" in startup-*) expected=2 ;; esac
-        if [ "$code" = 0 ] && [ "$(tail -n 1 "$prefix.stdout")" = "$expected" ]; then
+        matched=no
+        if [ "$phase_sample" = yes ]; then
+            if rg -q '(^|> )BENCH-OK$' "$prefix.stdout"; then matched=yes; fi
+        elif [ "$(tail -n 1 "$prefix.stdout")" = "$expected" ]; then matched=yes; fi
+        if [ "$code" = 0 ] && [ "$matched" = yes ]; then
             check=pass
         else failed=1; fi
+        if [ "$phase_sample" = yes ]; then
+            awk -F '\t' -v case_name="$name" -v size="$size" -v sample="$i" '
+                {sub(/^> /, "", $1)}
+                $1 == "PHASE-BEGIN" {begun[$2]=1}
+                $1 == "PHASE" {print case_name "\t" size "\t" sample "\t" $2 "\t" $3 "\tcomplete"; done[$2]=1}
+                END {for (phase in begun) if (!done[phase]) print case_name "\t" size "\t" sample "\t" phase "\tNA\tincomplete"}
+            ' "$prefix.stdout" >> "$output/phases.tsv"
+        fi
+
         case "$name" in compile-*)
             if [ "$check" = pass ]; then
                 printf '%s\n' "validation:$name:$i" > "$output/current-stage.txt"

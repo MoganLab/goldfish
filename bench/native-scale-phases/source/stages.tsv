@@ -1,0 +1,6 @@
+stage	wall_seconds	user_seconds	system_seconds	peak_rss_kib	exit_code
+cache-copy	0.03	0.00	0.02	4972	0
+cache-setup	0.12	0.08	0.02	8068	0
+workload-setup	25.82	25.56	0.03	57736	0
+source-import-reset-million-set-1	0.01	0.00	0.00	4956	0
+source-import-reset-million-set-2	0.00	0.00	0.00	4908	0

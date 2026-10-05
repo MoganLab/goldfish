@@ -1,0 +1,7 @@
+case	size	startup_timer_seconds	import_seconds	operation	operation_seconds	result
+set-cached	10	20.303789320	3.453097400	set-build	0.001283379	pass
+set-cached	100	21.657905107	3.545917482	set-build	NA	process timeout 40s; construction incomplete
+compile-cold	4	23.100633845	0.270026973	compile	4.400674129	pass and executed
+compile-warm	4	22.223010488	0.212940218	compile	0.075761940	pass and executed
+set-source-first	10	22.434986340	4.286242893	set-build	0.001322308	pass
+set-source-second	10	22.114595290	4.503425660	set-build	0.001683723	pass

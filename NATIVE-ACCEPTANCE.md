@@ -337,3 +337,66 @@ overall termination. A timeout may exit 124, or 137 after forced termination.
 [Bound controls](bench/native-scale-bounds/controls.tsv) exercise all three
 limits and a passing selected 32-element list. Partial logs remain available
 when the outer deadline interrupts a stage.
+
+For startup/import/execution attribution, use:
+
+```sh
+sh tools/bench-native-scale.sh --smoke --case=million-set --size=10 --phases --timeout=40 --setup-timeout=60 --run-timeout=150 --output=/tmp/goldfish-set-phases
+sh tools/bench-native-scale.sh --smoke --case=compile-warm --size=4 --phases --timeout=50 --setup-timeout=60 --run-timeout=180 --output=/tmp/goldfish-compile-phases
+```
+
+`--cache=DIR` can copy an existing bootstrap cache, but stamps are still
+validated. `--phases` instruments set and compilation samples. It feeds one
+form at a time to the stateful native REPL so import expansion happens between
+timer markers, rather than before a whole program's first expression.
+Phase samples use the `r7rs` REPL with explicit timer imports; ordinary
+compilation samples use `liii`. Compare their inner compiler intervals rather
+than treating the two process totals as measurements of identical startup.
+`phases.tsv` uses the existing monotonic nanosecond clock. The startup row
+includes process launch and importing the timer; other rows measure import,
+list generation, set construction/checks, or compilation. Peak RSS remains a
+whole-process measurement. Failed phases retain a flushed begin marker and
+an `incomplete` row when the sample timeout returns. An overall interruption
+can leave only raw phase markers in the stdout log.
+
+`--import-state=source` removes just the selected benchmark library artifact
+before each phase sample, including repeated samples and paired compilation.
+Its dependency and timer artifacts stay warm. This is a source-versus-cache
+comparison for the benchmark library, not a completely cold dependency graph.
+Preparation, timer/control overhead and semantic validation are distinguished
+from the inner compile/construct intervals. The ordinary uninstrumented path
+remains available for later performance comparisons.
+
+The [phase evidence](bench/native-scale-phases/set10/phases.tsv) shows a
+10-element sample spending 20.30 seconds on startup/timer import, 3.45 seconds
+on importing the set benchmark, and 0.00128 seconds on construction. The
+[100-element sample](bench/native-scale-phases/set100/phases.tsv) completes
+startup (21.66 seconds), import (3.55 seconds), and list generation (0.00041
+seconds), then times out in construction at the 40-second process limit.
+These single samples locate the failure; they are not throughput estimates.
+The [compile pair](bench/native-scale-phases/compile/phases.tsv) separates
+4.40 seconds of cold compilation from 0.0758 seconds of cached reading;
+both compiled programs execute successfully. Two
+[source-import samples](bench/native-scale-phases/source/phases.tsv) separately
+reset the selected artifact and complete import in 4.29 and 4.50 seconds.
+
+The [native resize probe](bench/native-scale-phases/resize/native-output.log)
+reports five keys but eleven stored bucket entries after growing a two-bucket
+table. Reading the current `%s7-ht-resize!` definition shows `bucket-loop`
+inside `cell-loop`, and publishing the new vector inside `bucket-loop`.
+Repeated suffix traversal duplicates entries. A separate read-only Guile
+algorithm probe transfers eight original entries into 255 bucket entries.
+It is supporting algorithm evidence; the native probe and bounded construction
+are the runtime evidence. This is a repair prerequisite, not merely a request
+for a faster million-element implementation. The original set-size full-run
+failure remains deferred, with this concrete diagnosis. Repair rehash traversal
+and uniqueness before increasing collection sizes; then measure growth and
+profile any remaining cost. Startup/cache replay is also a measured fixed cost,
+but is not the cause of this construction timeout.
+
+The deadline supervisor cleans the entire worker process group after it exits,
+including preparation descendants whose shell ended first, and handles explicit
+interruption. A [heartbeat control](bench/native-scale-phases/descendants/heartbeat-control.tsv)
+uses a TERM-ignoring preparation child and verifies that it cannot continue
+writing after the runner returns. All investigation runs stay below a total
+budget; no million-element test was repeated.

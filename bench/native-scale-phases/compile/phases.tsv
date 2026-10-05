@@ -1,0 +1,7 @@
+case	size	sample	phase	seconds	status
+compile-cold	4	1	startup-and-timer-import	23.100633845	complete
+compile-cold	4	1	import	0.270026973	complete
+compile-cold	4	1	compile	4.400674129	complete
+compile-warm	4	1	startup-and-timer-import	22.223010488	complete
+compile-warm	4	1	import	0.212940218	complete
+compile-warm	4	1	compile	0.07576194	complete
