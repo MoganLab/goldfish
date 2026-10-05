@@ -1,0 +1,24 @@
+[timing] install-primitives 0 ms
+[timing] load-kernel 53 ms
+native cache unavailable: native bootstrap cache not found under /tmp/gf-p3-cold/vf07c8c8d9dfc
+[timing] load-cached-runtime 7 ms
+[timing] cold-source-bootstrap 296 ms
+[timing] load-install-scm 10602 ms
+[timing] expansion-helpers 7 ms
+[timing] native-scheme-surface 2836 ms
+[timing] standard-library 856 ms
+[timing] post-standard-collection 4 ms
+[timing] mode-imports 11779 ms
+[timing] load-source-reader 9526 ms
+[timing] load-native-writer 50 ms
+[timing] boot total 36022 ms
+[timing] install-fork-runner 0 ms
+[timing] compile-read-source 0 ms
+[timing] compile-cache-lookup 0 ms
+[timing] compile-expand 4 ms
+[timing] optimize-load-compiler 30230 ms
+[timing] optimize-load-tree-il 3518 ms
+[timing] optimize-run-passes 2 ms
+[timing] compile-optimize 33752 ms
+[timing] compile-cache-write 2 ms
+[timing] user-file 33759 ms

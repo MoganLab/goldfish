@@ -1,0 +1,24 @@
+[timing] install-primitives 0 ms
+[timing] load-kernel 50 ms
+native cache unavailable: native bootstrap cache not found under bench/cold-start/results-optimized-46a5f649/caches/cold-small-real-1/vc88589252cdb
+[timing] load-cached-runtime 8 ms
+[timing] cold-source-bootstrap 285 ms
+[timing] load-install-scm 10561 ms
+[timing] expansion-helpers 8 ms
+[timing] native-scheme-surface 2933 ms
+[timing] standard-library 841 ms
+[timing] post-standard-collection 6 ms
+[timing] mode-imports 11743 ms
+[timing] load-source-reader 9581 ms
+[timing] load-native-writer 50 ms
+[timing] boot total 36071 ms
+[timing] install-fork-runner 0 ms
+[timing] compile-cache-lookup 0 ms
+[timing] compile-read-source 3 ms
+[timing] compile-expand 341 ms
+[timing] optimize-load-compiler 31392 ms
+[timing] optimize-load-tree-il 3603 ms
+[timing] optimize-run-passes 681 ms
+[timing] compile-optimize 35678 ms
+[timing] compile-cache-write 888 ms
+[timing] user-file 36941 ms

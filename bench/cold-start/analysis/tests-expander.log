@@ -1,0 +1,686 @@
+Running tests in directory: tests/expander/
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/expander/derived-syntax-test.scm
+;;; note: tests/expander/derived-syntax-test.scm could not be compiled; loading per form
+
+(let* ((x 1)) (cond ((= x 1) (case 1 ((1) (and #t #t)))) (else #f))) => #t ; correct
+
+(when #t (do ((i 0 (+ i 1))) ((= i 2) (force (delay 42))))) => 42 ; correct
+
+(+ 1 2) => 3 ; correct
+
+(let ((a 1) (b 2)) (if (and (> a 0) (or #t (> b 3))) (parameterize () 9) 0)) => 9 ; correct
+
+(let-values (((x y) (values 1 2))) (+ x y)) => 3 ; correct
+
+(guard (e (#t 42)) (raise 1)) => 42 ; correct
+
+(pt-x (make-pt 5)) => 5 ; correct
+
+(pt? (make-pt 5)) => #t ; correct
+
+(catch #t (lambda () (syntax-error boom)) (lambda args (quote syntax-error-raised))) => syntax-error-raised ; correct
+
+; *** checks *** : 9 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/expander/eval-when-expand-test.scm
+;;; note: tests/expander/eval-when-expand-test.scm could not be compiled; loading per form
+
+(pair? datum) => #t ; correct
+
+(datum-contains? datum 42) => #t ; correct
+
+(datum-contains? datum 120) => #t ; correct
+
+(datum-contains? datum 42) => #t ; correct
+
+(catch (quote unbound-variable) (lambda () (compile-file-cached src4)) (lambda args (quote unbound-variable))) => unbound-variable ; correct
+
+(catch (quote unbound-variable) (lambda () (compile-file-cached src5)) (lambda args (quote unbound-variable))) => unbound-variable ; correct
+
+(datum-contains? datum 40) => #t ; correct
+
+(datum-contains? (syntax->datum (compile-file-cached src7)) 1) => #t ; correct
+
+(datum-contains? datum 2) => #t ; correct
+
+(datum-contains? datum 1) => #f ; correct
+
+(datum-contains? (syntax->datum (compile-file-cached src8a)) 42) => #t ; correct
+
+(datum-contains? (syntax->datum (compile-file-cached src8b)) 120) => #t ; correct
+
+(datum-contains? (syntax->datum (compile-file-cached src8a)) 42) => #t ; correct
+
+(datum-contains? (syntax->datum (compile-file-cached src8a)) 120) => #f ; correct
+
+(catch (quote unbound-variable) (lambda () (compile-file-cached src9b)) (lambda args (quote unbound-variable))) => unbound-variable ; correct
+
+(datum-contains? datum 21) => #t ; correct
+
+(datum-contains? datum 200) => #t ; correct
+
+(datum-contains? (syntax->datum (compile-fresh tests/expander/resources/ewx-cross.scm)) 70) => #t ; correct
+
+(catch (quote unbound-variable) (lambda () (compile-file-cached src12)) (lambda args (quote unbound-variable))) => unbound-variable ; correct
+
+(catch (quote unbound-variable) (lambda () (compile-file-cached src12-lib)) (lambda args (quote unbound-variable))) => unbound-variable ; correct
+
+(datum-contains? (syntax->datum (compile-file-cached src13)) 8) => #t ; correct
+
+; *** checks *** : 21 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/expander/export-strict-audit-test.scm
+== export-has-no-binding 根因 ==
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/expander/import-perlevel-test.scm
+;;; note: tests/expander/import-perlevel-test.scm could not be compiled; loading per form
+
+(plvl-counter-get) => 1 ; correct
+
+(library-registry-ref (quote (plvl solo))) => #f ; correct
+
+(if (runtime-registered? (quote (plvl solo))) #t #f) => #f ; correct
+
+(if (library-registry-ref (quote (plvl solo)) 1) #t #f) => #t ; correct
+
+(if (runtime-registered? (quote (plvl solo)) 1) #t #f) => #t ; correct
+
+(plvl-counter-get) => 2 ; correct
+
+(if (and (library-registry-ref (quote (plvl solo))) (library-registry-ref (quote (plvl solo)) 1)) #t #f) => #t ; correct
+
+(plvl-counter-get) => 2 ; correct
+
+(if (and rec0 rec1) #t #f) => #t ; correct
+
+(if (not (eq? (car rec0) (car rec1))) #t #f) => #t ; correct
+
+(if (and b0 b1) #t #f) => #t ; correct
+
+(if (not (eq? b0 b1)) #t #f) => #t ; correct
+
+(plvl-counter-get) => 2 ; correct
+
+(vector? (eval g0 (interaction-environment))) => #t ; correct
+
+(if expand-env1 #t #f) => #t ; correct
+
+(vector-ref (eval g0 (interaction-environment)) 0) => 10 ; correct
+
+(vector-ref (eval g1 expand-env1) 0) => 10 ; correct
+
+(vector-ref (eval g0 (interaction-environment)) 0) => 99 ; correct
+
+(vector-ref (eval g1 expand-env1) 0) => 10 ; correct
+
+(vector-ref (eval g1 expand-env1) 0) => 77 ; correct
+
+(vector-ref (eval g0 (interaction-environment)) 0) => 99 ; correct
+
+((module-ref (quote (plvl dual)) (quote get-v))) => 99 ; correct
+
+(if rec2 #t #f) => #t ; correct
+
+(if (and (not (eq? (car rec2) (car rec0))) (not (eq? (car rec2) (car rec1)))) #t #f) => #t ; correct
+
+(if (runtime-registered? (quote (plvl dual)) 2) #t #f) => #t ; correct
+
+(if (and (library-registry-ref (quote (plvl dual))) (runtime-registered? (quote (plvl dual)))) #t #f) => #t ; correct
+
+(if expand-env2 #t #f) => #t ; correct
+
+(vector-ref (eval g2 expand-env2) 0) => 10 ; correct
+
+(vector-ref (eval g2 expand-env2) 0) => 55 ; correct
+
+(vector-ref (eval g0 (interaction-environment)) 0) => 99 ; correct
+
+(vector-ref (eval g1 expand-env1) 0) => 77 ; correct
+
+((module-ref (quote (plvl dual)) (quote get-v))) => 99 ; correct
+
+(if (eq? (exp-library-ref-at-phase probe (quote get-v) 0) b0) #t #f) => #t ; correct
+
+(if (eq? (exp-library-ref-at-phase probe (quote get-v) 1) b1) #t #f) => #t ; correct
+
+(if (eq? (exp-library-ref-at-phase probe (quote get-v) 2) b2) #t #f) => #t ; correct
+
+(exp-library-ref-at-phase probe2 (quote get-v) 0) => #f ; correct
+
+(if (eq? (exp-library-ref-at-phase probe2 (quote get-v) 1) b1) #t #f) => #t ; correct
+
+(if (eq? (exp-library-ref-at-phase probe2 (quote get-v) 2) b2) #t #f) => #t ; correct
+
+(exp-library-ref-at-phase probe2 (quote get-v) 3) => #f ; correct
+
+(length ls) => 2 ; correct
+
+(if (and (memv 1 ls) (memv 2 ls)) #t #f) => #t ; correct
+
+(pair? (syntax->datum (compile-file-into src-mix (make-program-library)))) => #t ; correct
+
+; *** checks *** : 42 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/expander/import-phase-test.scm
+;;; note: tests/expander/import-phase-test.scm could not be compiled; loading per form
+
+(datum-contains? datum 3) => #t ; correct
+
+(not (datum-contains? datum (quote length))) => #t ; correct
+
+(catch (quote unbound-variable) (lambda () (compile-fresh src2)) (lambda args (quote unbound-variable))) => unbound-variable ; correct
+
+(pair? (syntax->datum (compile-fresh src3))) => #t ; correct
+
+(catch (quote unbound-variable) (lambda () (compile-fresh src4)) (lambda args (quote unbound-variable))) => unbound-variable ; correct
+
+(catch (quote unbound-variable) (lambda () (compile-fresh src5)) (lambda args (quote unbound-variable))) => unbound-variable ; correct
+
+(pair? (syntax->datum (compile-fresh src6))) => #t ; correct
+
+(pair? (syntax->datum (compile-fresh src7))) => #t ; correct
+
+(cdar uses) => 1 ; correct
+
+(exp-library-ref-at-phase vlib (quote check-true) 0) => #f ; correct
+
+(if (exp-library-ref-at-phase vlib (quote check-true) 1) #t #f) => #t ; correct
+
+; *** checks *** : 11 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/expander/import-sets-test.scm
+;;; note: tests/expander/import-sets-test.scm could not be compiled; loading per form
+
+(procedure? mkdir) => #t ; correct
+
+(procedure? rmdir) => #t ; correct
+
+(char? (os-sep)) => #t ; correct
+
+(procedure? zz-os-temp-dir) => #t ; correct
+
+(procedure? ytd) => #t ; correct
+
+(+ 1 2) => 3 ; correct
+
+(list 1 2) => (1 2) ; correct
+
+(catch #t (lambda () (load-library! (quote (ct one))) (quote ok)) (lambda args (quote error))) => ok ; correct
+
+(detail-mentions? (import-error-message (lambda () (load-library! (quote (ct both))))) already imported with a different binding ct-name) => #t ; correct
+
+(catch #t (lambda () (load-library! (quote (ct one-reexport))) (quote ok)) (lambda args (quote error))) => ok ; correct
+
+(procedure? tmp-dir-fn) => #t ; correct
+
+(char? (slash)) => #t ; correct
+
+(procedure? mkdir) => #t ; correct
+
+(char? (pre-sep2)) => #t ; correct
+
+(procedure? oo-mkdir) => #t ; correct
+
+(procedure? rmdir) => #t ; correct
+
+(detail-mentions? (import-error-message (lambda () (load-library! (quote (ct dup-rename))))) bound more than once with different bindings dx) => #t ; correct
+
+(procedure? mkdir) => #t ; correct
+
+(procedure? os-temp-dir) => #t ; correct
+
+(procedure? ff-mkdir) => #t ; correct
+
+(detail-mentions? (import-error-message (lambda () (load-library! (quote (ct for-nolevel))))) for spec needs an import set and at least one level) => #t ; correct
+
+(catch #t (lambda () (load-library! (quote (xr vals))) (quote ok)) (lambda args (quote error))) => ok ; correct
+
+(if (memq (quote answer2) (lib-record-exports (library-registry-ref (quote (xr vals))))) #t #f) => #t ; correct
+
+(xr-runtime (quote (xr vals)) (quote answer2)) => 41 ; correct
+
+(xr-runtime (quote (xr vals)) (quote the-answer)) => 41 ; correct
+
+(toplevel-binding? (xr-restore-ref (quote vals) (quote answer2))) => #t ; correct
+
+(catch #t (lambda () (load-library! (quote (xr vals))) (quote ok)) (lambda args (quote error))) => ok ; correct
+
+(xr-runtime (quote (xr vals)) (quote answer2)) => 41 ; correct
+
+(catch #t (lambda () (load-library! (quote (xr muse))) (quote ok)) (lambda args (quote error))) => ok ; correct
+
+(xr-runtime (quote (xr muse)) (quote got2)) => 7 ; correct
+
+(transformer-binding? (xr-restore-ref (quote macros) (quote my-or2))) => #t ; correct
+
+(catch #t (lambda () (load-library! (quote (xr muse))) (quote ok)) (lambda args (quote error))) => ok ; correct
+
+(xr-runtime (quote (xr muse)) (quote got2)) => 7 ; correct
+
+(catch #t (lambda () (load-library! (quote (xr reuse))) (quote ok)) (lambda args (quote error))) => ok ; correct
+
+(xr-runtime (quote (xr reuse)) (quote got3)) => 8 ; correct
+
+(transformer-binding? (xr-restore-ref (quote reexp) (quote my-or3))) => #t ; correct
+
+(catch #t (lambda () (load-library! (quote (xr reuse))) (quote ok)) (lambda args (quote error))) => ok ; correct
+
+(xr-runtime (quote (xr reuse)) (quote got3)) => 8 ; correct
+
+(catch #t (lambda () (load-library! (quote (xr comp))) (quote ok)) (lambda args (quote error))) => ok ; correct
+
+(xr-runtime (quote (xr comp)) (quote gotc)) => (41 41 41) ; correct
+
+(catch #t (lambda () (load-library! (quote (xr nestok))) (quote ok)) (lambda args (quote error))) => ok ; correct
+
+(xr-runtime (quote (xr nestok)) (quote gotx)) => 42 ; correct
+
+(detail-mentions? (import-error-message (lambda () (load-library! (quote (xr nestdup))))) bound more than once with different bindings x) => #t ; correct
+
+(detail-mentions? (import-error-message (lambda () (load-library! (quote (ph foronly))))) unbound identifier at phase car) => #t ; correct
+
+(detail-mentions? (import-error-message (lambda () (load-library! (quote (ph foronly2))))) unbound identifier at phase check-true) => #t ; correct
+
+(catch #t (lambda () (load-library! (quote (ph foruse))) (quote ok)) (lambda args (quote error))) => ok ; correct
+
+(module-ref (lookup-module (quote (ph foruse))) (quote gotf)) => 7 ; correct
+
+(detail-mentions? (import-error-message (lambda () (load-library! (quote (xr badfrom))))) export has no binding nosuch) => #t ; correct
+
+(detail-mentions? (import-error-message (lambda () (load-library! (quote (xr badtarget))))) already bound a) => #t ; correct
+
+; *** checks *** : 49 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/expander/internal-surface-test.scm
+;;; note: tests/expander/internal-surface-test.scm could not be compiled; loading per form
+
+(pair? surface-names) => #t ; correct
+
+failures => () ; correct
+
+; *** checks *** : 2 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/expander/lib-cache-all-libs-test.scm
+发现库文件: 115
+冷加载成功: 115/115
+
+(length failed) => 0 ; correct
+热加载缺失: 0
+
+(length hot-miss) => 0 ; correct
+完成: 115 个库
+
+; *** checks *** : 2 correct, 0 failed.
+#<unspecified>
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/expander/lib-cache-import-order-test.scm
+;;; note: tests/expander/lib-cache-import-order-test.scm could not be compiled; loading per form
+
+(stored-import-groups gfo) => (((goldfish)) ((rename (srfi srfi-113) (set make-set-with-comparator) (list->set list->set-with-comparator)) (srfi srfi-128))) ; correct
+
+(set-size (set-union (set 1 2) (set 2 3))) => 3 ; correct
+
+; *** checks *** : 2 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/expander/lib-cache-test.scm
+;;; note: tests/expander/lib-cache-test.scm could not be compiled; loading per form
+
+(and-let* ((x 5) (y (+ x 1))) (* x y)) => 30 ; correct
+
+(string-null? ) => #t ; correct
+
+(string-contains hello world world) => #t ; correct
+
+(string-pad abc 5 *) => **abc ; correct
+
+(match (quote yes) ((or (quote yes) (quote no)) (quote boolean)) (_ (quote unknown))) => boolean ; correct
+
+(match (quote (1 2 3)) ((a b c) (list a b c)) (_ #f)) => (1 2 3) ; correct
+
+(string? abc) => #t ; correct
+
+(procedure? send-log) => #t ; correct
+
+(procedure? make-stdout-handler) => #t ; correct
+
+(string? (current-log-format)) => #t ; correct
+
+; *** checks *** : 10 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/expander/library-include-test.scm
+;;; note: tests/expander/library-include-test.scm could not be compiled; loading per form
+
+((module-ref (quote (test lib-include-top)) (quote f)) 1) => 2 ; correct
+
+(module-ref (quote (test lib-include-top)) (quote h)) => 7 ; correct
+
+((module-ref (quote (test lib-include-begin)) (quote f)) 1) => 2 ; correct
+
+(module-ref (quote (test lib-include-begin)) (quote g)) => 42 ; correct
+
+(procedure? expand) => #t ; correct
+
+(procedure? expand-library-body) => #t ; correct
+
+(procedure? syntax->datum) => #t ; correct
+
+(procedure? wrap-expression) => #t ; correct
+
+(not (not (runtime-registered? (quote (goldfish))))) => #t ; correct
+
+; *** checks *** : 9 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/expander/macro-error-test.scm
+;;; note: tests/expander/macro-error-test.scm could not be compiled; loading per form
+
+(catch (quote eval-transformer) (lambda () (expand-eval (quote (let-syntax ((x 1)) x)))) (lambda args (quote eval-transformer))) => eval-transformer ; correct
+
+(expand-error-message (lambda () (expand-eval (quote (let-syntax ((x 1)) x))))) => transformer must evaluate to a procedure ; correct
+
+(catch (quote eval-when) (lambda () (expand-eval (quote (eval-when (bogus-situation) 1)))) (lambda args (quote eval-when))) => eval-when ; correct
+
+(expand-error-message (lambda () (expand-eval (quote (eval-when (bogus-situation) 1))))) => invalid situation ; correct
+
+(catch (quote syntax-case) (lambda () (expand-eval (quote (let-syntax ((m (syntax-rules () ((_ x) x)))) (m))))) (lambda args (quote syntax-case))) => syntax-case ; correct
+
+(catch (quote if) (lambda () (expand-eval (quote (let-syntax ((m (syntax-rules () ((_) (if))))) (m))))) (lambda args (quote if))) => if ; correct
+
+(catch (quote eval-when) (lambda () (load /tmp/gf-macro-error-bad.scm)) (lambda args (quote eval-when))) => ;;; note: /tmp/gf-macro-error-bad.scm could not be compiled; loading per form
+eval-when ; correct
+
+(catch (quote import) (lambda () (load-library! (quote (no-such-library-here)))) (lambda args (quote import))) => import ; correct
+
+(catch #t (lambda () (load-library! (quote (no-such-library-here)))) (lambda (tag . info) (if (and (pair? info) (pair? (car info)) (string? (caar info))) (caar info) #f))) => unknown library ; correct
+
+(pair? r) => #t ; correct
+
+(string? (caar r)) => #t ; correct
+
+(string-contains (caar r) failed to load library) => #t ; correct
+
+(if (member (quote (gf bad-body-lib)) (cdar r)) #t #f) => #t ; correct
+
+(pair? (cdr (cdar r))) => #t ; correct
+
+(string-contains (car (cdr (cdar r))) transformer must evaluate to a procedure) => #t ; correct
+
+; *** checks *** : 15 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/expander/macro-features-test.scm
+;;; note: tests/expander/macro-features-test.scm could not be compiled; loading per form
+
+(pair-sum (1 2) (3 4)) => (3 7) ; correct
+
+(guarded foo) => identifier ; correct
+
+(guarded (1 2)) => other ; correct
+
+(must-be-id foo) => good ; correct
+
+(must-be-id 42) => bad ; correct
+
+(with-ws 10) => (10 1) ; correct
+
+x => 2 ; correct
+
+y => 1 ; correct
+
+(let ((tmp 5)) (temp-shadow tmp)) => (99 6) ; correct
+
+(literal-check else) => matched ; correct
+
+(literal-check other) => unmatched ; correct
+
+(non-hygienic) => (42) ; correct
+
+(double 21) => 42 ; correct
+
+(my-or #f #f 3) => 3 ; correct
+
+(my-or #f #f #f) => #f ; correct
+
+(syntax? (qs whatever)) => #t ; correct
+
+(syntax->datum (qs whatever)) => foo ; correct
+
+(let-syntax ((m (lambda (stx) (syntax-case stx () ((_ x) (quasisyntax (list (unsyntax x)))))))) (m 7)) => (7) ; correct
+
+; *** checks *** : 18 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/expander/named-ellipsis-test.scm
+;;; note: tests/expander/named-ellipsis-test.scm could not be compiled; loading per form
+
+(my-and) => #t ; correct
+
+(my-and #t #t) => #t ; correct
+
+(my-and #t #t #t) => #t ; correct
+
+(my-let* ((a 1) (b 2) (c 3)) (+ a b c)) => 6 ; correct
+
+(my-let* () 42) => 42 ; correct
+
+(collect 1 2 3) => (1 2 3) ; correct
+
+(let-syntax ((m (syntax-rules () ((_ x ...) (list x ...))))) (m 1 2 3)) => (1 2 3) ; correct
+
+(match-check-ellipsis ... (quote success) (quote failure)) => success ; correct
+
+(match-check-ellipsis (a . b) (quote success) (quote failure)) => failure ; correct
+
+(match-check-ellipsis #(a b) (quote success) (quote failure)) => failure ; correct
+
+(syntax->datum (m-esc 1)) => ... ; correct
+
+(syntax->datum (m-esc-p 1)) => (1 ...) ; correct
+
+(catch #t (lambda () (expand-eval (quote (let-syntax ((m (syntax-rules :: () ((_ x ...) (list x ...))))) (m 1 2 3))))) (lambda args (quote no-match))) => no-match ; correct
+
+; *** checks *** : 13 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/expander/native-abi-load-test.scm
+;;; note: tests/expander/native-abi-load-test.scm could not be compiled; loading per form
+
+(min 3 1 2) => 1 ; correct
+
+(max 3 1 2) => 3 ; correct
+
+(exact-integer? 5) => #t ; correct
+
+(finite? 1) => #t ; correct
+
+(string-upcase abc) => ABC ; correct
+
+(string-downcase AbC) => abc ; correct
+
+(char-upcase a) => A ; correct
+
+(char-ci=? a A) => #t ; correct
+
+(string-ci=? abc ABC) => #t ; correct
+
+(bytevector-copy! (make-bytevector 3) 0 (bytevector 1 2 3)) => #u8(1 2 3) ; correct
+
+(promise? (make-promise 5)) => #t ; correct
+
+(force (make-promise 5)) => 5 ; correct
+
+(truncate-quotient 7 2) => 3 ; correct
+
+(truncate-remainder 7 2) => 1 ; correct
+
+(eof-object? (read-u8 (open-input-bytevector (bytevector 1 2)))) => #f ; correct
+
+(get-output-bytevector (begin (write-u8 65 (open-output-bytevector)) (open-output-bytevector))) => #u8() ; correct
+
+; *** checks *** : 16 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/expander/program-cache-macro-test.scm
+;;; note: tests/expander/program-cache-macro-test.scm could not be compiled; loading per form
+
+(contains-record? exprs) => #f ; correct
+
+(has-stx-shape? exprs) => #f ; correct
+
+(file-exists? out) => #t ; correct
+
+(call-with-input-file out read) => (1 (lit 2)) ; correct
+
+(contains-record? exprs) => #f ; correct
+
+(has-stx-shape? exprs) => #f ; correct
+
+(file-exists? out) => #t ; correct
+
+(call-with-input-file out read) => 30 ; correct
+
+(file-exists? marker) => #t ; correct
+
+(call-with-input-file out read) => 42 ; correct
+
+(file-exists? marker) => #f ; correct
+
+(pair? prog) => #t ; correct
+
+(tree-contains? (lambda (x) (equal? x 42)) prog) => #t ; correct
+
+; *** checks *** : 13 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/expander/program-cache-syntax-test.scm
+;;; note: tests/expander/program-cache-syntax-test.scm could not be compiled; loading per form
+
+(catch (quote serialize-cache-sexp) (lambda () (serialize (list 1 (lambda (x) x)))) (lambda args (quote serialize-cache-sexp))) => serialize-cache-sexp ; correct
+
+(serialize (list 1 (quote (a b)))) => (1 (a b)) ; correct
+
+(syntax->datum (car (find-syntax cold))) => (lit 2) ; correct
+
+(contains-record? exprs) => #f ; correct
+
+(has-stx-shape? exprs) => #t ; correct
+
+(length warm-stxs) => 1 ; correct
+
+(syntax->datum (car warm-stxs)) => (lit 2) ; correct
+
+(syntax->datum (car (find-syntax cold))) => (lit 2) ; correct
+
+(syntax? (car (find-syntax (deserialize exprs)))) => #t ; correct
+
+(map car body) => (define) ; correct
+
+(caddar body) => (a b) ; correct
+
+(contains-record? exprs) => #f ; correct
+
+(has-stx-shape? exprs) => #f ; correct
+
+(let ((warm (compile-file-cached src-plain))) (equal? warm exprs)) => #t ; correct
+
+(find-syntax (compile-file-cached src-plain)) => () ; correct
+
+; *** checks *** : 15 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/expander/quasisyntax-test.scm
+;;; note: tests/expander/quasisyntax-test.scm could not be compiled; loading per form
+
+(let-syntax ((m (lambda (stx) (syntax-case stx () ((_) (quasisyntax (list 1 2))))))) (m)) => (1 2) ; correct
+
+(let-syntax ((m (lambda (stx) (syntax-case stx () ((_ x) (quasisyntax (list (unsyntax x)))))))) (m 7)) => (7) ; correct
+
+(let-syntax ((m (lambda (stx) (syntax-case stx () ((_ x) (with-syntax ((y (syntax x))) (quasisyntax (list (unsyntax y))))))))) (m 7)) => (7) ; correct
+
+(let-syntax ((m (lambda (stx) (syntax-case stx () ((_ a b) (with-syntax ((va (syntax a)) (vb (syntax b))) (quasisyntax (list (unsyntax va) (unsyntax vb))))))))) (m 1 2)) => (1 2) ; correct
+
+(let-syntax ((m (lambda (stx) (syntax-case stx () ((_) (quasisyntax (list + 1 2))))))) (let ((+ -)) (car (m)))) => #<procedure> ; correct
+
+(syntax->datum (let-syntax ((m (lambda (stx) (syntax-case stx () ((_) (quasisyntax (list 1 (syntax (lit 2))))))))) (m))) => (1 (lit 2)) ; correct
+
+(let-syntax ((m (lambda (stx) (syntax-case stx () ((_ x) (quasisyntax (list x))))))) (m 7)) => (7) ; correct
+
+(let-syntax ((m (lambda (stx) (syntax-case stx () ((_ x) (with-syntax ((y (syntax x))) (quasisyntax (list y x)))))))) (m 7)) => (7 7) ; correct
+
+; *** checks *** : 8 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/expander/scope-return-test.scm
+;;; note: tests/expander/scope-return-test.scm could not be compiled; loading per form
+
+(m) => outer ; correct
+
+(outer-user 41) => 42 ; correct
+
+(outer2 41) => 42 ; correct
+
+(list p q) => (10 11) ; correct
+
+; *** checks *** : 4 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/expander/syntax-template-ellipsis-test.scm
+;;; note: tests/expander/syntax-template-ellipsis-test.scm could not be compiled; loading per form
+
+(scalar-in-ellipsis (10 20) 99) => ((10 99) (20 99)) ; correct
+
+(pattern-scalar-in-ellipsis (10 20) (quote zz)) => ((10 zz) (20 zz)) ; correct
+
+(let ((cf-var (make-computation-environment-variable (quote cfv) 100 #f))) (computation-run (computation-with ((cf-var 999)) (make-computation (lambda (compute) (compute (computation-fn ((v cf-var)) (computation-pure v)))))))) => 999 ; correct
+
+(double-ellipsis 1 2 3) => (() (1 2 3)) ; correct
+
+(double-ellipsis-tail 1 2 3 4) => (() (1 2 3) 4) ; correct
+
+; *** checks *** : 5 correct, 0 failed.
+#f
+----------->
+/home/jinser/vie/projet/lang/goldfish/bin/gf -m liii tests/expander/toplevel-redefine-test.scm
+;;; note: tests/expander/toplevel-redefine-test.scm could not be compiled; loading per form
+
+; *** checks *** : 2 correct, 0 failed.
+#f
+
+=== Test Summary ===
+
+  tests/expander/derived-syntax-test.scm ... [32mPASS[0m
+  tests/expander/eval-when-expand-test.scm ... [32mPASS[0m
+  tests/expander/export-strict-audit-test.scm ... [32mPASS[0m
+  tests/expander/import-perlevel-test.scm ... [32mPASS[0m
+  tests/expander/import-phase-test.scm ... [32mPASS[0m
+  tests/expander/import-sets-test.scm ... [32mPASS[0m
+  tests/expander/internal-surface-test.scm ... [32mPASS[0m
+  tests/expander/lib-cache-all-libs-test.scm ... [32mPASS[0m
+  tests/expander/lib-cache-import-order-test.scm ... [32mPASS[0m
+  tests/expander/lib-cache-test.scm ... [32mPASS[0m
+  tests/expander/library-include-test.scm ... [32mPASS[0m
+  tests/expander/macro-error-test.scm ... [32mPASS[0m
+  tests/expander/macro-features-test.scm ... [32mPASS[0m
+  tests/expander/named-ellipsis-test.scm ... [32mPASS[0m
+  tests/expander/native-abi-load-test.scm ... [32mPASS[0m
+  tests/expander/program-cache-macro-test.scm ... [32mPASS[0m
+  tests/expander/program-cache-syntax-test.scm ... [32mPASS[0m
+  tests/expander/quasisyntax-test.scm ... [32mPASS[0m
+  tests/expander/scope-return-test.scm ... [32mPASS[0m
+  tests/expander/syntax-template-ellipsis-test.scm ... [32mPASS[0m
+  tests/expander/toplevel-redefine-test.scm ... [32mPASS[0m
+
+=== Summary ===
+  Total:  21
+  [32mPassed: 21[0m
+

@@ -1,0 +1,17 @@
+field	value
+plan	/tmp/goldfish-cold-start-perf-plan.md
+date	2026-10-06
+machine	AMD Ryzen 7 7840HS (16 threads), 27 GiB RAM, Linux (nix)
+baseline_revision	ffeb52e5
+baseline_binary_sha256	ed1629d1bb28d1cb9e147de79e09c69b1f61bfe6fa00c0b1f2424349f75c5ad9
+instrumented_binary_sha256	4799e2efda7b59b5aae0d718d00e51ceb705444696de7a68d1c175ae6a4d76b5
+optimized_binary_sha256	46a5f64966df9fd1888cb5bdeee2e46af84a1cbf4ea18f1c59cfb07f084f4d09
+opt_level	2
+samples_per_state	3
+cold_minimal_median_wall_s	71.05
+cold_minimal_peak_rss_mib	91
+warm_minimal_median_wall_s	4.28
+warm_minimal_peak_rss_mib	32
+optimizer_lazy_compile_cold_s	33.75
+native_scheme_surface_warm_before_s	3.00
+native_scheme_surface_warm_after_s	0.064

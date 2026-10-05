@@ -1,0 +1,24 @@
+[timing] install-primitives 0 ms
+[timing] load-kernel 54 ms
+native cache unavailable: native bootstrap cache not found under /tmp/gf-p4-cold/vc88589252cdb
+[timing] load-cached-runtime 7 ms
+[timing] cold-source-bootstrap 287 ms
+[timing] load-install-scm 10553 ms
+[timing] expansion-helpers 9 ms
+[timing] native-scheme-surface 2917 ms
+[timing] standard-library 875 ms
+[timing] post-standard-collection 3 ms
+[timing] mode-imports 11864 ms
+[timing] load-source-reader 9750 ms
+[timing] load-native-writer 51 ms
+[timing] boot total 36376 ms
+[timing] install-fork-runner 0 ms
+[timing] compile-cache-lookup 0 ms
+[timing] compile-read-source 0 ms
+[timing] compile-expand 4 ms
+[timing] optimize-load-compiler 30792 ms
+[timing] optimize-load-tree-il 3611 ms
+[timing] optimize-run-passes 3 ms
+[timing] compile-optimize 34407 ms
+[timing] compile-cache-write 2 ms
+[timing] user-file 34413 ms

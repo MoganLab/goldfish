@@ -1,0 +1,14 @@
+[timing] install-primitives 0 ms
+[timing] load-kernel 55 ms
+native cache unavailable: native bootstrap cache not found under bench/cold-start/results-baseline-ffeb52e5/caches/cold-minimal-1/v5123ede839a7
+[timing] load-cached-runtime 8 ms
+[timing] cold-source-bootstrap 314 ms
+[timing] load-install-scm 10736 ms
+[timing] expansion-helpers 8 ms
+[timing] native-scheme-surface 2988 ms
+[timing] standard-library 868 ms
+[timing] post-standard-collection 5 ms
+[timing] mode-imports 12293 ms
+[timing] load-source-reader 10111 ms
+[timing] load-native-writer 52 ms
+[timing] boot total 37443 ms

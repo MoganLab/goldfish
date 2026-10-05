@@ -1,0 +1,16 @@
+[timing] install-primitives 0 ms
+[timing] load-kernel 53 ms
+[timing] load-cached-runtime 302 ms
+[timing] load-install-scm 2267 ms
+[timing] expansion-helpers 8 ms
+[timing] native-scheme-surface 65 ms
+[timing] standard-library 546 ms
+[timing] post-standard-collection 4 ms
+[timing] mode-imports 933 ms
+[timing] load-source-reader 83 ms
+[timing] load-native-writer 2 ms
+[timing] boot total 4266 ms
+[timing] install-fork-runner 0 ms
+[timing] compile-cache-lookup 0 ms
+[timing] compile-cache-hit 0 ms
+[timing] user-file 1 ms

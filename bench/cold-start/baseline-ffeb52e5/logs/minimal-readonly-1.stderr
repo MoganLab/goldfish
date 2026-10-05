@@ -1,0 +1,1 @@
+bench/cold-start/run-suite.sh: line 59: GOLDFISH_CACHE_READONLY=1: command not found
