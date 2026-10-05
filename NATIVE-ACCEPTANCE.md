@@ -488,3 +488,8 @@ Three further warm R7RS samples have a 6.46-second median. The bounded
 100,000-element recheck passes in 22.30 seconds with peak RSS 65,760 KiB;
 construction stays at 12.675 seconds. The next-level estimate remains 138.68
 seconds, so the million-element workload is not run and remains deferred.
+The [post-optimization perf capture](bench/native-perf-post-startup/README.md)
+shows `vector_values` below the report threshold. Current collection samples
+attribute visible time to proper-list vector growth, continuation-frame work,
+GC allocation/reclamation, and environment lookup. These are exploratory
+profiles; same-input A/B measurements are needed before changing those paths.

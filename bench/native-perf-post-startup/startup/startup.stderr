@@ -1,0 +1,14 @@
+[timing] install-primitives 0 ms
+[timing] load-kernel 55 ms
+[timing] load-cached-runtime 303 ms
+[timing] load-install-scm 2240 ms
+[timing] expansion-helpers 6 ms
+[timing] native-scheme-surface 3018 ms
+[timing] standard-library 546 ms
+[timing] post-standard-collection 4 ms
+[timing] mode-imports 70 ms
+[timing] load-source-reader 89 ms
+[timing] load-native-writer 2 ms
+[timing] boot total 6338 ms
+[ perf record: Woken up 19 times to write data ]
+[ perf record: Captured and wrote 5.019 MB bench/native-perf-post-startup/startup/perf.data (621 samples) ]

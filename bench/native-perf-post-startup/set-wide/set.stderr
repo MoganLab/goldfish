@@ -1,0 +1,17 @@
+Events disabled
+[timing] install-primitives 0 ms
+[timing] load-kernel 53 ms
+[timing] load-cached-runtime 300 ms
+[timing] load-install-scm 2180 ms
+[timing] expansion-helpers 5 ms
+[timing] native-scheme-surface 3048 ms
+[timing] standard-library 549 ms
+[timing] post-standard-collection 3 ms
+[timing] mode-imports 69 ms
+[timing] load-source-reader 91 ms
+[timing] load-native-writer 2 ms
+[timing] boot total 6306 ms
+Events enabled
+Events disabled
+[ perf record: Woken up 22 times to write data ]
+[ perf record: Captured and wrote 5.115 MB /home/jinser/vie/projet/lang/goldfish/bench/native-perf-post-startup/set-wide/set.data (633 samples) ]

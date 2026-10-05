@@ -1,0 +1,27 @@
+key	value
+source_commit	ccc60e66128c0502c3b8dd018771afbf0c324426
+binary_sha256	ed1629d1bb28d1cb9e147de79e09c69b1f61bfe6fa00c0b1f2424349f75c5ad9
+symbol_binary_sha256	f4412cd3feaba1b18cb1c2dbdba540c2dd43c4dbd6c39091856c672b28ec59b6
+text_and_rodata_comparison	identical
+perf_version	perf version 7.1.6
+event	cpu-clock:u
+frequency_hz	99
+call_graph	dwarf,8192
+clock	monotonic
+startup_samples	621
+set_wide_samples	633
+lost_samples	0
+startup_exit_code	0
+set_wide_exit_code	0
+startup_expression_result	2
+set_wide_workload_result	PROFILE-OK
+set_wide_profile_phase_seconds	6.489098119
+startup_data_gzip_sha256	7997ff8a8e19da88cd8dd3ffdd412d48a004af21dcd84244bef37460cda0a9f
+set_wide_data_gzip_sha256	c6556e7940e81c3ba7350fd00dd8779ea86891ce3c75cc41deff313e12c1897b
+profile_input_sha256	260ae91a0b92c0e35bfff639ffb44194064c4b3f60720675bcbc38eee448cbea
+cache_version	/tmp/gf-startup-cache/cache/v5123ede839a7
+gc_setting	default
+optimization_level	2
+system	Linux x86_64
+vector_values_overhead_reported	no, below-report-threshold
+profile_setup	warm source/install cache before recording
