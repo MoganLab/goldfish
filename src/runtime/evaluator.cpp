@@ -220,6 +220,44 @@ Value first_or_unspecified(const Values& values) {
     return values.empty() ? Value::unspecified() : values.front();
 }
 
+// A core form's arguments: eight inline slots cover every hot form, and a
+// form with more spills to the heap exactly as the old per-evaluation
+// proper_list did.
+struct FormArguments final {
+    Value inline_args[8];
+    std::vector<Value> spilled;
+    std::size_t count = 0;
+
+    const Value* begin() const {
+        return spilled.empty() ? inline_args : spilled.data();
+    }
+    const Value* end() const { return begin() + count; }
+    const Value& operator[](std::size_t index) const {
+        return begin()[index];
+    }
+};
+
+void read_form_args(Value list, FormArguments& out) {
+    while (!list.is_null()) {
+        if (!list.is_object() ||
+            list.as_object()->type() != ObjectType::Pair)
+            throw std::runtime_error("evaluator: expected proper list");
+        Value argument = list.as_object<PairObject>()->car;
+        if (out.count < 8)
+            out.inline_args[out.count++] = argument;
+        else
+            out.spilled.push_back(argument);
+        list = list.as_object<PairObject>()->cdr;
+    }
+    if (!out.spilled.empty()) {
+        // The spill vector holds only the arguments past the eighth; make
+        // one contiguous range for the begin()/end() users.
+        out.spilled.insert(out.spilled.begin(), out.inline_args,
+                           out.inline_args + 8);
+        out.count = out.spilled.size();
+    }
+}
+
 } // namespace
 
 Values Evaluator::run_machine(EvalSnapshot& state) {
@@ -604,27 +642,33 @@ Values Evaluator::run_machine(EvalSnapshot& state) {
         ClosureObject* closure = procedure.as_object<ClosureObject>();
         EnvironmentPtr call_environment =
             std::make_shared<Environment>(closure->environment);
-        std::vector<Value> required;
+        // Two walks over the formals list instead of materializing the
+        // required parameters into a per-call vector: the first counts for
+        // the arity check, the second binds.
         Value formals = closure->formals;
         Value rest = Value::null();
+        std::size_t required_count = 0;
         while (!formals.is_null()) {
             if (!formals.is_object() ||
                 formals.as_object()->type() != ObjectType::Pair) {
                 rest = formals;
                 break;
             }
-            PairObject* formal = formals.as_object<PairObject>();
-            required.push_back(formal->car);
-            formals = formal->cdr;
+            ++required_count;
+            formals = formals.as_object<PairObject>()->cdr;
         }
-        if (arguments.size() < required.size() ||
-            (rest.is_null() && arguments.size() != required.size()))
+        if (arguments.size() < required_count ||
+            (rest.is_null() && arguments.size() != required_count))
             throw std::runtime_error("wrong number of arguments");
-        for (std::size_t i = 0; i < required.size(); ++i)
-            call_environment->define(required[i], arguments[i]);
+        formals = closure->formals;
+        for (std::size_t i = 0; i < required_count; ++i) {
+            call_environment->define(
+                formals.as_object<PairObject>()->car, arguments[i]);
+            formals = formals.as_object<PairObject>()->cdr;
+        }
         if (!rest.is_null())
             call_environment->define(
-                rest, list_values(Values(arguments.begin() + required.size(),
+                rest, list_values(Values(arguments.begin() + required_count,
                                           arguments.end())));
         sequence(closure->body, std::move(call_environment));
     };
@@ -1142,33 +1186,38 @@ restart_machine:
                 PairObject* pair_expression =
                     expression.as_object<PairObject>();
                 CoreForm form = core_forms_.lookup(pair_expression->car);
-                std::vector<Value> args = proper_list(pair_expression->cdr);
+                FormArguments form_args;
                 switch (form) {
                 case CoreForm::Quote:
-                    if (args.size() != 1)
+                    read_form_args(pair_expression->cdr, form_args);
+                    if (form_args.count != 1)
                         throw std::runtime_error("quote expects one argument");
-                    return_values({args[0]});
+                    return_values({form_args[0]});
                     break;
                 case CoreForm::Lambda: {
-                    if (args.size() < 2)
+                    read_form_args(pair_expression->cdr, form_args);
+                        std::size_t lambda_argc = form_args.count;
+                    if (lambda_argc < 2)
                         throw std::runtime_error("lambda expects formals and body");
-                    Value body = list(std::vector<Value>(args.begin() + 1,
-                                                         args.end()));
+                    Value body = list(std::vector<Value>(
+                        form_args.begin() + 1, form_args.end()));
                     return_values({Value::object(heap_.make<ClosureObject>(
-                        args[0], body, environment))});
+                        form_args[0], body, environment))});
                     break;
                 }
                 case CoreForm::If: {
-                    if (args.size() != 2 && args.size() != 3)
+                    read_form_args(pair_expression->cdr, form_args);
+                        std::size_t if_argc = form_args.count;
+                    if (if_argc != 2 && if_argc != 3)
                         throw std::runtime_error("if expects two or three arguments");
                     KontFrame frame;
                     frame.kind = KontFrame::Kind::IfTest;
-                    frame.expression = args[1];
-                    frame.auxiliary = args.size() == 3 ? args[2]
-                                                       : Value::unspecified();
+                    frame.expression = form_args[1];
+                    frame.auxiliary = if_argc == 3 ? form_args[2]
+                                                   : Value::unspecified();
                     frame.environment = environment;
                     state.frames.push_back(std::move(frame));
-                    evaluate(args[0], std::move(environment));
+                    evaluate(form_args[0], std::move(environment));
                     break;
                 }
                 case CoreForm::Begin:
@@ -1176,26 +1225,30 @@ restart_machine:
                     break;
                 case CoreForm::When:
                 case CoreForm::Unless: {
-                    if (args.size() < 2)
+                    read_form_args(pair_expression->cdr, form_args);
+                        std::size_t when_argc = form_args.count;
+                    if (when_argc < 2)
                         throw std::runtime_error("when/unless expects a test and body");
                     KontFrame frame;
                     frame.kind = KontFrame::Kind::WhenTest;
-                    frame.expression = list(std::vector<Value>(args.begin() + 1,
-                                                                args.end()));
+                    frame.expression = list(std::vector<Value>(
+                        form_args.begin() + 1, form_args.end()));
                     frame.auxiliary = form == CoreForm::When
                                           ? Value::boolean(true)
                                           : Value::boolean(false);
                     frame.environment = environment;
                     state.frames.push_back(std::move(frame));
-                    evaluate(args[0], std::move(environment));
+                    evaluate(form_args[0], std::move(environment));
                     break;
                 }
                 case CoreForm::Let:
                 case CoreForm::Letrec:
                 case CoreForm::LetrecStar: {
-                    if (args.size() < 2)
+                    read_form_args(pair_expression->cdr, form_args);
+                        std::size_t binding_argc = form_args.count;
+                    if (binding_argc < 2)
                         throw std::runtime_error("binding form expects bindings and body");
-                    std::vector<Value> bindings = proper_list(args[0]);
+                    std::vector<Value> bindings = proper_list(form_args[0]);
                     std::vector<Value> init_pairs;
                     init_pairs.reserve(bindings.size() * 2);
                     for (Value binding : bindings) {
@@ -1215,16 +1268,16 @@ restart_machine:
                                 heap_.make<UninitializedObject>()));
                     }
                     if (init_pairs.empty()) {
-                        sequence(list(std::vector<Value>(args.begin() + 1,
-                                                         args.end())),
+                        sequence(list(std::vector<Value>(
+                                    form_args.begin() + 1, form_args.end())),
                                   std::move(child));
                         break;
                     }
                     KontFrame frame;
                     frame.kind = stage == 0 ? KontFrame::Kind::LetBinding
                                             : KontFrame::Kind::LetrecBinding;
-                    frame.expression = list(std::vector<Value>(args.begin() + 1,
-                                                                args.end()));
+                    frame.expression = list(std::vector<Value>(
+                        form_args.begin() + 1, form_args.end()));
                     frame.environment = child;
                     frame.secondary_environment = environment;
                     frame.expressions = std::move(init_pairs);
@@ -1238,7 +1291,9 @@ restart_machine:
                 }
                 case CoreForm::Define:
                 case CoreForm::Set: {
-                    if (args.size() != 2)
+                    read_form_args(pair_expression->cdr, form_args);
+                        std::size_t define_argc = form_args.count;
+                    if (define_argc != 2)
                         throw std::runtime_error(form == CoreForm::Define
                                                      ? "define expects name and value"
                                                      : "set! expects name and value");
@@ -1246,53 +1301,60 @@ restart_machine:
                     frame.kind = form == CoreForm::Define
                                      ? KontFrame::Kind::DefineValue
                                      : KontFrame::Kind::SetValue;
-                    frame.expression = args[0];
+                    frame.expression = form_args[0];
                     frame.environment = environment;
                     state.frames.push_back(std::move(frame));
-                    evaluate(args[1], std::move(environment));
+                    evaluate(form_args[1], std::move(environment));
                     break;
                 }
                 case CoreForm::Apply: {
-                    if (args.size() < 2)
+                    read_form_args(pair_expression->cdr, form_args);
+                        std::size_t apply_argc = form_args.count;
+                    if (apply_argc < 2)
                         throw std::runtime_error("apply expects procedure and arguments");
                     KontFrame frame;
                     frame.kind = KontFrame::Kind::ApplyProcedure;
-                    frame.expression = list(std::vector<Value>(args.begin() + 1,
-                                                                args.end()));
+                    frame.expression = list(std::vector<Value>(
+                        form_args.begin() + 1, form_args.end()));
                     frame.environment = environment;
                     state.frames.push_back(std::move(frame));
-                    evaluate(args[0], std::move(environment));
+                    evaluate(form_args[0], std::move(environment));
                     break;
                 }
                 case CoreForm::Values: {
-                    if (args.empty()) {
+                    read_form_args(pair_expression->cdr, form_args);
+                        std::size_t values_argc = form_args.count;
+                    if (values_argc == 0) {
                         return_values({});
                         break;
                     }
                     KontFrame frame;
                     frame.kind = KontFrame::Kind::ValuesArgument;
-                    frame.expression = list(std::vector<Value>(args.begin() + 1,
-                                                                args.end()));
+                    frame.expression = list(std::vector<Value>(
+                        form_args.begin() + 1, form_args.end()));
                     frame.environment = environment;
                     state.frames.push_back(std::move(frame));
-                    evaluate(args[0], std::move(environment));
+                    evaluate(form_args[0], std::move(environment));
                     break;
                 }
                 case CoreForm::CallWithValues: {
-                    if (args.size() != 2)
+                    read_form_args(pair_expression->cdr, form_args);
+                    if (form_args.count != 2)
                         throw std::runtime_error("call-with-values expects producer and consumer");
                     KontFrame frame;
                     frame.kind = KontFrame::Kind::CallWithValuesProducer;
-                    frame.expression = args[1];
+                    frame.expression = form_args[1];
                     frame.environment = environment;
                     state.frames.push_back(std::move(frame));
-                    evaluate(args[0], std::move(environment));
+                    evaluate(form_args[0], std::move(environment));
                     break;
                 }
                 case CoreForm::Guard: {
-                    if (args.size() < 2)
+                    read_form_args(pair_expression->cdr, form_args);
+                        std::size_t guard_argc = form_args.count;
+                    if (guard_argc < 2)
                         throw std::runtime_error("guard expects clauses and body");
-                    std::vector<Value> specification = proper_list(args[0]);
+                    std::vector<Value> specification = proper_list(form_args[0]);
                     if (specification.empty())
                         throw std::runtime_error("guard expects a binding");
                     KontFrame frame;
@@ -1303,38 +1365,41 @@ restart_machine:
                     frame.environment = environment;
                     frame.wind_slots().saved_winders = state.winders;
                     state.frames.push_back(std::move(frame));
-                    sequence(list(std::vector<Value>(args.begin() + 1,
-                                                     args.end())),
+                    sequence(list(std::vector<Value>(
+                                 form_args.begin() + 1, form_args.end())),
                              std::move(environment));
                     break;
                 }
                 case CoreForm::Raise:
-                    if (args.size() != 1)
+                    read_form_args(pair_expression->cdr, form_args);
+                    if (form_args.count != 1)
                         throw std::runtime_error("raise expects one argument");
                     {
                         KontFrame frame;
                         frame.kind = KontFrame::Kind::RaiseValue;
                         state.frames.push_back(std::move(frame));
-                        evaluate(args[0], std::move(environment));
+                        evaluate(form_args[0], std::move(environment));
                     }
                     break;
-                case CoreForm::Error:
-                    if (args.empty())
+                case CoreForm::Error: {
+                    read_form_args(pair_expression->cdr, form_args);
+                        std::size_t error_argc = form_args.count;
+                    if (error_argc == 0)
                         throw std::runtime_error("error expects a message");
-                    {
-                        KontFrame frame;
-                        frame.kind = KontFrame::Kind::ErrorMessage;
-                        frame.expression = list(std::vector<Value>(args.begin() + 1,
-                                                                    args.end()));
-                        frame.environment = environment;
-                        state.frames.push_back(std::move(frame));
-                        evaluate(args[0], std::move(environment));
-                    }
+                    KontFrame frame;
+                    frame.kind = KontFrame::Kind::ErrorMessage;
+                    frame.expression = list(std::vector<Value>(
+                        form_args.begin() + 1, form_args.end()));
+                    frame.environment = environment;
+                    state.frames.push_back(std::move(frame));
+                    evaluate(form_args[0], std::move(environment));
                     break;
+                }
                 case CoreForm::ErrorObjectPredicate:
                 case CoreForm::ErrorObjectMessage:
                 case CoreForm::ErrorObjectIrritants:
-                    if (args.size() != 1)
+                    read_form_args(pair_expression->cdr, form_args);
+                    if (form_args.count != 1)
                         throw std::runtime_error("error-object accessor expects one argument");
                     {
                         KontFrame frame;
@@ -1344,7 +1409,7 @@ restart_machine:
                                                ? KontFrame::Kind::ErrorObjectMessage
                                                : KontFrame::Kind::ErrorObjectIrritants;
                         state.frames.push_back(std::move(frame));
-                        evaluate(args[0], std::move(environment));
+                        evaluate(form_args[0], std::move(environment));
                     }
                     break;
                 default: {
@@ -2080,37 +2145,45 @@ Values Evaluator::apply(Value procedure, const Values& arguments) {
         ClosureObject* closure = next_procedure.as_object<ClosureObject>();
         EnvironmentPtr call_environment =
             std::make_shared<Environment>(closure->environment);
-        std::vector<Value> required;
+        // Two walks over the formals list instead of a per-call vector
+        // (same shape as the machine's invoke path).
         Value formals = closure->formals;
         Value rest = Value::null();
+        std::size_t required_count = 0;
+        Value first_formal = Value::unspecified();
         while (!formals.is_null()) {
             if (!formals.is_object() ||
                 formals.as_object()->type() != ObjectType::Pair) {
                 rest = formals;
                 break;
             }
-            PairObject* formal_pair = formals.as_object<PairObject>();
-            required.push_back(formal_pair->car);
-            formals = formal_pair->cdr;
+            if (required_count == 0)
+                first_formal = formals.as_object<PairObject>()->car;
+            ++required_count;
+            formals = formals.as_object<PairObject>()->cdr;
         }
-        if (next_arguments.size() < required.size() ||
-            (rest.is_null() && next_arguments.size() != required.size())) {
+        if (next_arguments.size() < required_count ||
+            (rest.is_null() && next_arguments.size() != required_count)) {
             std::string message =
                 "wrong number of arguments: expected " +
-                std::to_string(required.size()) +
+                std::to_string(required_count) +
                 (rest.is_null() ? "" : " or more") + ", got " +
                 std::to_string(next_arguments.size());
-            if (!required.empty() && required[0].is_object() &&
-                required[0].as_object()->type() == ObjectType::Symbol)
+            if (first_formal.is_object() &&
+                first_formal.as_object()->type() == ObjectType::Symbol)
                 message += "; first formal: " +
-                           required[0].as_object<SymbolObject>()->name;
+                           first_formal.as_object<SymbolObject>()->name;
             throw std::runtime_error(message);
         }
-        for (std::size_t i = 0; i < required.size(); ++i)
-            call_environment->define(required[i], next_arguments[i]);
+        formals = closure->formals;
+        for (std::size_t i = 0; i < required_count; ++i) {
+            call_environment->define(
+                formals.as_object<PairObject>()->car, next_arguments[i]);
+            formals = formals.as_object<PairObject>()->cdr;
+        }
         if (!rest.is_null())
             call_environment->define(
-                rest, list_values(Values(next_arguments.begin() + required.size(),
+                rest, list_values(Values(next_arguments.begin() + required_count,
                                          next_arguments.end())));
         Values body_result = eval_tail_sequence(closure->body, call_environment);
         if (has_pending_call_) {
