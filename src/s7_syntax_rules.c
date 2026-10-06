@@ -233,6 +233,8 @@ static s7_pointer g_identifier_eq_p(s7_scheme* sc, s7_pointer args) {
 
 typedef struct synclo_rename_entry {
   s7_pointer key;
+  s7_pointer env;
+  s7_pointer expr;
   s7_pointer gensym;
   struct synclo_rename_entry* next;
 } synclo_rename_entry;
@@ -273,14 +275,20 @@ static s7_pointer resolve_ast(s7_scheme* sc, s7_pointer x, s7_pointer def_env, s
         return expr;
       }
       for (synclo_rename_entry* e = *memo_head; e; e = e->next) {
-        if (e->key == x || e->key == expr) {
+        if (e->key == x || (e->env == env && e->expr == expr)) {
           return e->gensym;
         }
       }
-      s7_pointer g = s7_gensym(sc, s7_symbol_name(expr));
+      /* call Scheme-level gensym so the result is a real gensym (gensym? => #t);
+         s7_gensym deliberately does not set the T_GENSYM flag (see s7.c) */
+      s7_pointer g =
+        s7_call(sc, s7_name_to_value(sc, "gensym"),
+                s7_list(sc, 1, s7_make_string(sc, s7_symbol_name(expr))));
       synclo_rename_entry* e = (synclo_rename_entry*) malloc(sizeof(synclo_rename_entry));
       if (e) {
         e->key = x;
+        e->env = env;
+        e->expr = expr;
         e->gensym = g;
         e->next = *memo_head;
         *memo_head = e;
