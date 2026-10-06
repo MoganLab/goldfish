@@ -1,0 +1,51 @@
+[timing] install-primitives 0 ms
+[timing] load-kernel 35 ms
+native cache unavailable: native bootstrap cache not found under /tmp/bench-2c-base/caches/cold-large-scheme-3/v0e17aa3f9a8c
+[timing] load-cached-runtime 7 ms
+[timing] cold-source-bootstrap 274 ms
+[timing] load-install-scm 10123 ms
+[timing] expansion-helpers 5 ms
+[timing] native-scheme-surface 3149 ms
+[timing] standard-library 872 ms
+[timing] post-standard-collection 3 ms
+[timing] (lib-load (scheme base)) 1947 ms
+[timing] (lib-load (scheme write)) 9 ms
+[timing] (lib-load (scheme read)) 8 ms
+[timing] (lib-load (scheme file)) 15 ms
+[timing] (lib-load (scheme process-context)) 17 ms
+[timing] (lib-load (scheme time)) 33 ms
+[timing] (lib-load (srfi srfi-2)) 197 ms
+[timing] (lib-load (srfi srfi-8)) 58 ms
+[timing] (lib-load (liii base)) 451 ms
+[timing] (lib-load (srfi srfi-175)) 969 ms
+[timing] (lib-load (liii ascii)) 1060 ms
+[timing] (lib-load (srfi srfi-151)) 707 ms
+[timing] (lib-load (liii error)) 66 ms
+[timing] (lib-load (liii bitwise)) 876 ms
+[timing] (lib-load (liii unicode)) 7563 ms
+[timing] (lib-load (scheme char)) 8332 ms
+[timing] (lib-load (scheme complex)) 31 ms
+[timing] (lib-load (scheme cxr)) 16 ms
+[timing] (lib-load (scheme eval)) 216 ms
+[timing] (lib-load (scheme case-lambda)) 53 ms
+[timing] mode-imports 10927 ms
+[timing] load-source-reader 9858 ms
+[timing] load-native-writer 46 ms
+[timing] boot total 35306 ms
+[timing] install-fork-runner 0 ms
+[timing] compile-cache-lookup 1 ms
+[timing] compile-read-source 166 ms
+[timing] compile-expand 8250 ms
+[timing] (lib-load (goldfish core ir)) 3457 ms
+[timing] (lib-load (goldfish match expansion)) 8495 ms
+[timing] (lib-load (goldfish match)) 12846 ms
+[timing] (lib-load (goldfish compiler patterns)) 13914 ms
+[timing] (lib-load (goldfish compiler passes)) 8828 ms
+[timing] (lib-load (goldfish compiler)) 28187 ms
+[timing] optimize-load-compiler 28188 ms
+[timing] (lib-load (goldfish expander tree-il)) 3342 ms
+[timing] optimize-load-tree-il 3342 ms
+[timing] optimize-run-passes 9216 ms
+[timing] compile-optimize 40747 ms
+[timing] compile-cache-write 1273 ms
+[timing] user-file 52062 ms

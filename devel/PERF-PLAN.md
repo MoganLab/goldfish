@@ -39,15 +39,16 @@ These constrain every optimization (not negotiable per workstream):
 Pre-native: ~200 ms cold / ~60 ms warm. Native, measured 2026-10-06 after
 Phase 1: cold ~62 s (empty cache), warm ~3.5 s, warm RSS ~32 MiB, cold peak
 RSS ~91-103 MiB (Phase 0 measurement; cold peak rose ~5-9% on two workloads
-with Phase 1, warm RSS unchanged).
+with Phase 1, warm RSS unchanged). After Phase 2 (2026-10-07): warm boot
+total ~1.8 s, warm wall 1.8-1.9 s.
 
 ## Targets
 
 | metric | now | near (exit Ph 3) | mid (exit Ph 5) | stretch (Ph 6) |
 |---|---:|---:|---:|---:|
-| warm startup | 3.5 s | < 1 s | < 300 ms | < 60 ms |
+| warm startup | 1.8 s | < 1 s | < 300 ms | < 60 ms |
 | cold, shipped cache | n/a | ≈ warm | ≈ warm | ≈ warm |
-| cold, no cache | ~62 s | < 10 s | < 3 s | — |
+| cold, no cache | ~64 s | < 10 s | < 3 s | — |
 | warm RSS | 32 MiB | ≤ 32 MiB | ≤ 32 MiB | — |
 | runtime throughput | unmeasured | baseline + gate | −10% time | — |
 
@@ -57,8 +58,8 @@ with Phase 1, warm RSS unchanged).
 |---|---|---|
 | 0. Measurement & gates | instruments before optimization | **DONE** 2026-10-06 |
 | 1. Compile pipeline | reader / expander / optimizer / serializer | **DONE** 2026-10-06 |
-| 2. Startup structure | installer cacheable; shipped-cache cold ≈ warm | **ACTIVE** (2a done; 2c step 2 next; 2b folded into 3) |
-| 3. Evaluator & runtime | runtime throughput; warm < 1 s | SCOPED (profile + levers ready; Appendix B) |
+| 2. Startup structure | installer cacheable; shipped-cache cold ≈ warm | **DONE** 2026-10-07 (2a + 2c; 2b folded into 3) |
+| 3. Evaluator & runtime | runtime throughput; warm < 1 s | **NEXT** (profile + levers ready; Appendix B) |
 | 4. Memory | peak/steady RSS | later |
 | 5. Cache unification & IO | one cache front door, one bundle kind | later |
 | 6. Runtime image | design doc + feasibility prototype | research, later |
@@ -94,12 +95,16 @@ cost is evaluator/GC cost — Phase 1 and Phase 3 converge on the evaluator.
 The landed int fast paths serve both; the remaining levers are structural and
 wait for Phase 3.
 
-## Phase 2 — Startup structure [ACTIVE — current major phase]
+## Phase 2 — Startup structure [DONE — 2026-10-07]
 
 Goal: make the bootstrap installer cacheable so warm boot drops to the
-cached-replay floor (~1.5-1.7 s), and a distribution-precompiled cache makes a
-fresh install's cold ≈ warm. The remaining distance to warm < 1 s is evaluator
+cached-replay floor (~1.5-1.7 s), and a distribution-precompiled cache makes
+a fresh install's cold ≈ warm. The remaining distance to warm < 1 s is evaluator
 work (2b below), so that number closes in Phase 3 — by design, not by gap.
+
+Exit met 2026-10-07: installer replayed from cache (load-install-scm ~2.3 s →
+~20 ms), warm boot total 1.79 s, changed-since 162/162, recovery paths green,
+no warm-RSS regression. Records: Appendix C/E.
 
 ### 2a — Distribution precompile [DONE]
 
@@ -116,9 +121,9 @@ as evaluator work: deserialize/eval/macro-rebuild and binding re-import. No
 standalone change exists; it lands with the Phase 3 levers and is measured
 there as the warm-boot line.
 
-### 2c — Cacheable bootstrap installer [ACTIVE]
+### 2c — Cacheable bootstrap installer [DONE]
 
-Warm boot is ~3.5 s; `load-install-scm` is ~2.3 s (65%), all re-expanding
+Warm boot was ~3.5 s; `load-install-scm` was ~2.3 s (65%), all re-expanding
 `expander/lib/install.scm`, because that file defines the cache backend
 (`install-library-file!`, `cache-file-for`, the gfo helpers) every other cache
 path depends on — it cannot use the cache it defines. Design (option B from
@@ -129,29 +134,22 @@ of re-expanding. Normal cache, no pre-expansion, no layering change.
 - **Step 1 [DONE, `6b18c922`]** — module-bundle replay also defines toplevel
   bindings in the expander module environment (`load_bundle_gfo_file` module
   branch).
-- **Step 2 [NEXT]** — give the replay the native-source-unit semantics that
-  `load-source-file`'s `internal_source` branch has: (1) create/restore the
-  `(native-source)` exp-library and link it to the base library
-  (`exp-library-add-use!`); (2) evaluate the bundle's lowered definitions in
-  `(module-eval-environment (the-expander-library))`; (3) publish its toplevel
-  bindings to global. Standalone change over the existing bootstrap artifacts
-  with zero behavior change, gate-backed — step 1 alone left
-  `install-library-forms!` unbound during the next expand (root cause and
-  history in Appendix C).
-- **Step 3** — re-apply the split + capture + warm replay (spec in
-  Appendix C): definitions-only `install.scm` (899 lines) + new
-  `expander/lib/install-boot.scm` (macro-layer boot block, boot-only helpers,
-  and the 18 top-level `module-define!` publish calls); the
-  `(load-source-file "core/gfo.scm")` seed load moves into `native_main`;
-  cold capture via `install-library-file!`, warm replay via
-  `bootstrap.load_artifact` with a `load_source` fallback, then
-  `install-boot.scm`.
-- **Step 4** — acceptance: `load-install-scm` ~2.3 s → ≈0.5 s and warm boot
-  ≈1.5-1.7 s; changed-since gate green; cold/warm/bootstrap/readonly states
-  via run-suite + compare; cache-miss and corruption recovery; no warm-RSS
-  regression.
-
-Exit: steps 2-4 green. Phase 3 then starts.
+- **Step 2 [DONE, `fabaa0dc`]** — `load_source_unit_gfo_file`: replay with
+  native-source-unit semantics — a dedicated `(native-source "<key>")`
+  library linked to the base library, lowered definitions evaluated in the
+  expander module environment, binding table restored into that unit,
+  toplevel values aliased to the root evaluator. NOT into the base library:
+  that bakes qualified toplevel names into other files' cached artifacts,
+  which replay in the root environment where those names are absent (the
+  divergence found mid-implementation, see Appendix C).
+- **Step 3 [DONE, `6e420d2e`]** — split `install.scm` into a definitions-only
+  file (796 lines) and `expander/lib/install-boot.scm` (boot block, publishes,
+  internal-surface registrations — these must run after module.scm installs,
+  so they belong to the driver half); the `core/gfo.scm` seed load moves to
+  `native_main` ahead of the installer; cold boots load the source and
+  capture through the cached-source path, warm boots replay, missing/stale/
+  corrupt bundles fall back to the source load and re-capture.
+- **Step 4 [DONE]** — acceptance, Appendix E.
 
 ## Phase 3 — Evaluator and runtime throughput [NEXT]
 
@@ -258,29 +256,40 @@ Prototype (2026-10-06, reverted; split files preserved under `/tmp`):
 cold boot fine, capture produced a 48 KB bundle, warm `load-install-scm`
 2.3 s → 540 ms, but the driver then failed with
 `unbound symbol: install-library-forms!`. Root cause, refined: the
-module-bundle replay targets the BASE library, while `load-source-file` treats
+module-bundle replay targeted the BASE library, while `load-source-file` treats
 the file as an `internal_source` unit — fresh `(native-source)` exp-library
 linked to base, defs evaluated in the expander's module environment, toplevel
 aliases published to global. Even with the step-1 alias publication and the
 lowered defs evaluated in the expander environment, the expander could not
 resolve `install-library-forms!` while expanding the next source file; the
-macro-layer artifact replay is not sufficient for a native-source unit. Hence
-Phase 2c step 2 (native-source-unit replay semantics) precedes the re-apply.
+macro-layer artifact replay is not sufficient for a native-source unit.
 
-Split spec (line numbers into the original 1007-line `install.scm`; re-derive
-with sed if the `/tmp` files are gone):
+Resolution (2026-10-07, landed): the replay is a dedicated C++ entry with the
+full cached-source-unit semantics (`load_source_unit_gfo_file`), and the
+capture goes through the cached-source path into a dedicated
+`(native-source "expander/lib/install.scm")` unit. A first implementation
+restored the bindings into the BASE library and failed warmly with
+`unbound symbol: native-debug-enabled?@(goldfish):0`: toplevel names embed
+their allocating library (`store-alloc-name` builds `name@(lib):N`), so with
+the installer's bindings in base, later boot files' cached artifacts resolved
+their references to qualified names that only exist in the expander
+environment — unreachable from the root environment those artifacts replay
+in. Keeping the installer out of base (bare references + root aliases,
+exactly the unsplit cold path) removed the divergence. Two more resolution
+facts: unresolved free identifiers in library context stay bare for runtime
+resolution (expand.scm, "no ambient base"), which is how the installer
+references the gfo seed's names; and the internal-surface registration scans
+must run after module.scm installs, hence they live in the driver half.
 
-- line 22 `(load-source-file "core/gfo.scm")` → moves into `native_main`
-- boot block lines 669-732 → `install-boot.scm`
-- top-level `module-define!` publish calls at 734-736, 869-891, 1007 →
-  `install-boot.scm`
-- remainder = definitions-only `install.scm` (899 lines)
-- `/tmp` artifacts (volatile): `install.orig.scm` (1007 lines),
-  `install-boot-body.scm` (boot block + publish calls), `install-md.scm`
+Split (landed): `install.scm` = lines 1-661 + 737-867 of the original
+(definitions only, 796 lines, 40 top-level defines); `install-boot.scm` =
+lines 662-736 + 869-1007 (boot block, publishes, registrations), 228 lines.
+Re-derive with sed on those ranges if ever needed.
 
 ## Appendix D — Key code locations
 
-- Boot sequence: `src/runtime/native_main.cpp` ~604-660
+- Boot sequence: `src/runtime/native_main.cpp` (~604-680; gfo-seed load,
+  installer replay/capture, install-boot load)
 - Source loader: `src/runtime/standard_primitives.cpp` — `load-source-file`
   installed at :1461; seed (`core/gfo.scm`) branch :1517-1629;
   `internal_source` branch :1660-1836 (`source_library` =
@@ -288,9 +297,41 @@ with sed if the `/tmp` files are gone):
   `module-eval-environment (the-expander-library)`; defs evaluated at
   :1778-1806; toplevel aliases published to global at :1807-1835)
 - Artifact loader: `src/runtime/artifact.cpp` — `load_bundle_gfo_file`,
-  module branch :471-~560 (step 1: also defines toplevel bindings in the
-  expander module environment); `load_library_gfo_file` :303-445
+  module branch (step 1: also defines toplevel bindings in the expander
+  module environment); `load_source_unit_gfo_file` (2c step 2 replay);
+  `load_library_gfo_file`
 - Bootstrap: `src/runtime/bootstrap.cpp` — `native_bootstrap_artifacts` (boot
   set, 12), `native_precompile_artifacts` (optimizer, 7), `load_cached_runtime`
-  / `load_artifact` / `load_cached_source`
-- Bootstrap installer: `goldfish/expander/lib/install.scm` (1007 lines)
+  / `load_artifact` / `load_cached_source` / `load_cached_installer` /
+  `capture_installer`
+- Bootstrap installer: `goldfish/expander/lib/install.scm` (definitions
+  only, 796 lines) + `goldfish/expander/lib/install-boot.scm` (driver half)
+- Toplevel naming: `expander/kernel/store.scm` `store-alloc-name` builds
+  `name@(lib):N`; unresolved library-context identifiers stay bare
+  (`expander/kernel/expand.scm`, resolve-identifier / expand-atom)
+
+## Appendix E — Phase 2c records (2026-10-07)
+
+Suite medians, 3 samples, `compare.sh` over
+`bench/cold-start/phase2c-base-c385cb89` (HEAD `6b18c922`, bin `c385cb897a43`)
+vs `bench/cold-start/phase2c-cand-b915422a` (bin `b915422a49bb`):
+
+- warm: minimal 3.16→1.92 s (−39.4%), small-real 3.21→1.82 s (−43.2%),
+  large 3.78→3.57 s (−5.6%)
+- bootstrap: minimal −27.3%, small-real −25.5%, large −8.4%
+- readonly: minimal −27.0%, small-real −27.4%, large −7.4%
+- cold: large +4.0%, small-real +5.9% (the installer's second expansion
+  during capture, ~2-3 s once per cache generation)
+- warm RSS: −1.4% (minimal) to −20% (small-real); bootstrap/readonly RSS
+  mixed (+0.7..+22%)
+- `load-install-scm`: 2.3 s → ~20 ms warm; boot total 1.79 s
+  (gfo-seed 0.5 s is the visible new stage)
+- caveat: the full suite's minimal-cold cell read +10.6% (over the 10%
+  gate); a targeted cold-only rerun (`phase2c-coldonly-*`) measured +3.1%
+  (62.26→64.15 s) — the first run's optimizer-compile stage carried
+  single-sample noise (+2.7 s on a ~28 s stage). Cold cost is the capture's
+  second expansion, verified by `GOLDFISH_DEBUG=timing` stage attribution.
+- gates: changed-since 162/162; corruption/stale/missing bundle recovery
+  (fallback + re-capture) verified by hand; `tools/build-kernel.sh` flow
+  green; `tools/warm-bootstrap-cache.sh` ships the installer bundle (the
+  isolated run captures it and the script copies the whole directory).

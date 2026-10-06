@@ -1,0 +1,4 @@
+workload	state	sample	wall	user	sys	maxrss_kib	exit
+minimal.scm	cold	1	62.618856	62.354637	0.032871	90784	0
+minimal.scm	cold	2	61.972251	61.666224	0.042817	99356	0
+minimal.scm	cold	3	62.255645	61.952626	0.059780	91032	0

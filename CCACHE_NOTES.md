@@ -31,7 +31,9 @@
    大体积编译器产物），但发行缓存必须包含，否则首次编译程序会从源码
    重编优化器。
 2. 随发行分发该缓存的内容寻址目录 `v<fingerprint>/`（指纹 = 可执行文件哈希
-   + 源哈希）。
+   + 源哈希）。隔离预热是完整冷启动，会同时捕获 bootstrap installer 的
+   bundle（`expander/lib/install.scm-o2.gfo`），随目录整体拷贝分发；新装
+   环境的首次启动因此直接走 installer 回放（热路径）。
 3. 安装步骤把该目录放到目标用户的 `$XDG_CACHE_HOME/goldfish/native-ccache/`
    （或 `GOLDFISH_CACHE_DIR` 指向处）。目录按指纹命名，不匹配的缓存会被
    忽略并重建，因此分发旧缓存是安全的。

@@ -1,0 +1,53 @@
+[timing] install-primitives 0 ms
+[timing] load-kernel 34 ms
+native cache unavailable: native bootstrap cache not found under /tmp/bench-2c-cand/caches/cold-small-real-3/va2e552b8c326
+[timing] load-cached-runtime 7 ms
+[timing] cold-source-bootstrap 273 ms
+[timing] gfo-seed 498 ms
+[timing] load-install-scm 3671 ms
+[timing] load-install-boot 7849 ms
+[timing] expansion-helpers 6 ms
+[timing] native-scheme-surface 2902 ms
+[timing] standard-library 822 ms
+[timing] post-standard-collection 5 ms
+[timing] (lib-load (scheme base)) 1982 ms
+[timing] (lib-load (scheme write)) 10 ms
+[timing] (lib-load (scheme read)) 7 ms
+[timing] (lib-load (scheme file)) 14 ms
+[timing] (lib-load (scheme process-context)) 17 ms
+[timing] (lib-load (scheme time)) 35 ms
+[timing] (lib-load (srfi srfi-2)) 189 ms
+[timing] (lib-load (srfi srfi-8)) 55 ms
+[timing] (lib-load (liii base)) 425 ms
+[timing] (lib-load (srfi srfi-175)) 923 ms
+[timing] (lib-load (liii ascii)) 1011 ms
+[timing] (lib-load (srfi srfi-151)) 664 ms
+[timing] (lib-load (liii error)) 65 ms
+[timing] (lib-load (liii bitwise)) 833 ms
+[timing] (lib-load (liii unicode)) 7264 ms
+[timing] (lib-load (scheme char)) 7997 ms
+[timing] (lib-load (scheme complex)) 27 ms
+[timing] (lib-load (scheme cxr)) 15 ms
+[timing] (lib-load (scheme eval)) 199 ms
+[timing] (lib-load (scheme case-lambda)) 54 ms
+[timing] mode-imports 10603 ms
+[timing] load-source-reader 9780 ms
+[timing] load-native-writer 45 ms
+[timing] boot total 36501 ms
+[timing] install-fork-runner 0 ms
+[timing] compile-cache-lookup 0 ms
+[timing] compile-read-source 3 ms
+[timing] compile-expand 178 ms
+[timing] (lib-load (goldfish core ir)) 3320 ms
+[timing] (lib-load (goldfish match expansion)) 7831 ms
+[timing] (lib-load (goldfish match)) 12051 ms
+[timing] (lib-load (goldfish compiler patterns)) 13084 ms
+[timing] (lib-load (goldfish compiler passes)) 8751 ms
+[timing] (lib-load (goldfish compiler)) 27028 ms
+[timing] optimize-load-compiler 27029 ms
+[timing] (lib-load (goldfish expander tree-il)) 3130 ms
+[timing] optimize-load-tree-il 3130 ms
+[timing] optimize-run-passes 665 ms
+[timing] compile-optimize 30826 ms
+[timing] compile-cache-write 484 ms
+[timing] user-file 31507 ms
