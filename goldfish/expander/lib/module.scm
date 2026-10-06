@@ -683,8 +683,13 @@
            (lambda args #f)))))
 
 (define (load-library! lib-name . maybe-level)
-  (call-with-library-source (load-find-module-file (library-file-name lib-name))
-    (lambda () (apply load-library-in-source! lib-name maybe-level))))
+  (let* ((on (native-timing-enabled?))
+         (t (native-timing-now on))
+         (result (call-with-library-source
+                   (load-find-module-file (library-file-name lib-name))
+                   (lambda () (apply load-library-in-source! lib-name maybe-level)))))
+    (native-timing-print (list 'lib-load lib-name) t on)
+    result))
 
 (define (load-library-in-source! lib-name . maybe-level)
   (let ((level (registry-level-arg maybe-level)))
