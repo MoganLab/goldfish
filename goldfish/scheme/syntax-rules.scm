@@ -421,24 +421,25 @@
   ) ;let*
 ) ;define-macro
 
-(define-macro (define-syntax name
+(define-bacro (define-syntax name
                 transformer-spec
               ) ;define-syntax
   (let ((t (gensym "trans_"))
         (c (gensym "call_"))
         (u (gensym "use_"))
         (m (gensym "mac_"))
+        (def-env (curlet))
        ) ;
     `(begin
        (define ,t ,transformer-spec)
        (define-macro (,name . args)
          (let* ((,c (cons (quote ,name) args))
                 (,u (curlet))
-                (,m (rootlet))
+                (,m ,def-env)
                 (expanded (,t ,c ,u ,m)))
            (resolve-syntactic-closures expanded ,m))))
   ) ;let
-) ;define-macro
+) ;define-bacro
 
 (define-macro (syntax-error message . args) (apply error message args))
 

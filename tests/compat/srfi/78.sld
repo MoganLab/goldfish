@@ -26,9 +26,9 @@
     (define (check-passed? n)
       (and (= check:failed 0) (= check:correct n)))
 
-    (define (check:proc expr thunk expected)
+    (define (check:proc expr thunk equal expected)
       (let ((res (thunk)))
-        (if (equal? res expected)
+        (if (equal res expected)
             (set! check:correct (+ check:correct 1))
             (begin
               (set! check:failed (+ check:failed 1))
@@ -41,4 +41,6 @@
     (define-syntax check
       (syntax-rules (=>)
         ((check expr => expected)
-         (check:proc (quote expr) (lambda () expr) expected))))))
+         (check expr (=> equal?) expected))
+        ((check expr (=> equal) expected)
+         (check:proc (quote expr) (lambda () expr) equal expected))))))

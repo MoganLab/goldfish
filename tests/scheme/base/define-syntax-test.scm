@@ -68,4 +68,18 @@
 (check (my-sum 5) => 5)
 (check (my-sum 1 2 3 4) => 10)
 
+;; 测试6：导出宏引用库内未导出的私有过程（验证卫生隔离）
+(define-library (test private-macro-helper)
+  (export exported-macro)
+  (import (scheme base))
+  (begin
+    (define (private-add10 x) (+ x 10))
+    (define-syntax exported-macro
+      (syntax-rules ()
+        ((exported-macro x) (private-add10 x))))))
+
+(import (test private-macro-helper))
+(check (exported-macro 5) => 15)
+(check (catch 'unbound-variable (lambda () (private-add10 5)) (lambda args 'unbound)) => 'unbound)
+
 (check-report)

@@ -17,6 +17,6 @@
 (define-library (srfi 78)
   (import (srfi srfi-78))
   (export check check-set-mode! check-report check-reset! check-passed?
-    check-failed? check:proc
+    check-failed?
   ) ;export
 ) ;define-library

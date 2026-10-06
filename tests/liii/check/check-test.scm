@@ -34,5 +34,11 @@
 (check '(a b c) => '(a b c))
 (check (list 1 2 3) => '(1 2 3))
 
+;; 自定义比较器
+(check 42 (=> =) 42)
+(check '(1 2) (=> equal?) '(1 2))
+
+;; check:proc 不应该被导出
+(check-catch 'unbound-variable check:proc)
 
 (check-report)
