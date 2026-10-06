@@ -38,6 +38,48 @@
   (if (pair? ls) (+ 1 (length* (cdr ls))) 0)
 ) ;define
 
+(define (%syntax-case-length ls)
+  (if (pair? ls) (+ 1 (%syntax-case-length (cdr ls))) 0)
+) ;define
+
+(define (%syntax-case-split-at ls n)
+  (let loop
+    ((ls ls) (n n) (acc '()))
+    (if (or (<= n 0) (not (pair? ls)))
+      (cons (reverse acc) ls)
+      (loop (cdr ls) (- n 1) (cons (car ls) acc))
+    ) ;if
+  ) ;let
+) ;define
+
+(define (%syntax-case-fold-right f init . lists)
+  (if (null? lists)
+    init
+    (if (null? (cdr lists))
+      (let loop
+        ((ls (car lists)))
+        (if (null? ls) init (f (car ls) (loop (cdr ls))))
+      ) ;let
+      (let loop
+        ((lsts lists))
+        (if
+          (let any-null
+            ((l lsts))
+            (cond ((null? l) #f)
+                  ((null? (car l)) #t)
+                  (else (any-null (cdr l)))
+            ) ;cond
+          ) ;let
+          init
+          (let ((cars (map car lsts)) (cdrs (map cdr lsts)))
+            (apply f (append cars (list (loop cdrs))))
+          ) ;let
+        ) ;if
+      ) ;let
+    ) ;if
+  ) ;if
+) ;define
+
 (define (cons-source kar kdr source)
   (cons kar kdr)
 ) ;define
@@ -436,7 +478,10 @@
          (let* ((,c (cons (quote ,name) args))
                 (,u (curlet))
                 (,m ,def-env)
-                (expanded (,t ,c ,u ,m)))
+                (expanded (let ((ar (arity ,t)))
+                            (if (and (pair? ar) (= (car ar) 1) (= (cdr ar) 1))
+                              (,t ,c)
+                              (,t ,c ,u ,m)))))
            (resolve-syntactic-closures expanded ,m))))
   ) ;let
 ) ;define-bacro
