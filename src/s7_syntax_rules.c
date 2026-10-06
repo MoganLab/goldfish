@@ -192,11 +192,17 @@ static s7_pointer g_strip_syntactic_closures(s7_scheme* sc, s7_pointer args) {
   return strip_synclos(sc, s7_car(args));
 }
 
+static bool is_quote_form(s7_scheme* sc, s7_pointer p);
+
 static s7_pointer g_identifier_eq_p(s7_scheme* sc, s7_pointer args) {
   s7_pointer e1 = s7_car(args);
   s7_pointer id1 = s7_cadr(args);
   s7_pointer e2 = s7_caddr(args);
   s7_pointer id2 = s7_cadddr(args);
+
+  if (is_quote_form(sc, id1) && is_quote_form(sc, id2)) {
+    return s7_t(sc);
+  }
 
   s7_pointer eff_e1 = e1;
   s7_pointer sym1 = id1;
