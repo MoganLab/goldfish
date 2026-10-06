@@ -3703,6 +3703,23 @@ void install_runtime_primitives(Evaluator& evaluator) {
     auto install_comparison = [&evaluator](const char* name, int direction) {
         install(evaluator, name, [name, direction, &evaluator](const Values& args) {
             if (args.size() < 2) throw std::runtime_error(std::string(name) + " expects two arguments");
+            // Fast path: small exact integers compare in int64, avoiding a
+            // RealNumber round trip per operand (hot in loop conditions).
+            bool all_small = true;
+            for (Value value : args)
+                if (!value.is_integer()) { all_small = false; break; }
+            if (all_small) {
+                bool ok = true;
+                for (std::size_t i = 1; i < args.size(); ++i) {
+                    const std::int64_t left = args[i - 1].as_integer();
+                    const std::int64_t right = args[i].as_integer();
+                    const bool holds = direction == -2 ? left < right
+                        : direction == -1 ? left <= right
+                        : direction == 1 ? left > right : left >= right;
+                    if (!holds) { ok = false; break; }
+                }
+                return Values{Value::boolean(ok)};
+            }
             for (std::size_t i = 0; i < args.size(); ++i)
                 if (!is_number(args[i]) || !number_value(args[i]).is_real())
                     raise_keyed(evaluator, "wrong-type-arg",
