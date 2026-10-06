@@ -4,17 +4,25 @@
 
 #include <optional>
 #include <map>
+#include <optional>
 #include <string>
+#include <string_view>
 
 namespace goldfish::runtime {
 
-// Reader for lowered/core artifacts only. This is intentionally not the
-// user-facing Scheme reader: it has only the data syntax needed by lowered
-// artifacts (including vectors and datum labels).
+class Evaluator;
+
 class TinyReader final {
 public:
     TinyReader(Evaluator& evaluator, std::string source)
-        : evaluator_(evaluator), source_(std::move(source)) {}
+        : evaluator_(evaluator), owned_(std::move(source)), source_(owned_) {}
+
+    // Read from an existing buffer without copying it; the caller must keep
+    // `source` alive for the reader's lifetime.  Used by read-forms to walk a
+    // whole port instead of re-copying the remaining source per form.
+    TinyReader(Evaluator& evaluator, const std::string& source,
+               std::size_t start)
+        : evaluator_(evaluator), source_(source), position_(start) {}
 
     std::optional<Value> read();
     std::size_t position() const noexcept { return position_; }
@@ -36,7 +44,8 @@ private:
     [[noreturn]] void error(const std::string& message) const;
 
     Evaluator& evaluator_;
-    std::string source_;
+    std::string owned_;      // non-empty only for the by-value constructor
+    std::string_view source_;
     std::size_t position_ = 0;
     std::map<std::size_t, Value> labels_;
 };

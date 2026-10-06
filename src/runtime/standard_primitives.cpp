@@ -1425,14 +1425,13 @@ void install_runtime_primitives(Evaluator& evaluator) {
         if (port->closed)
             throw std::runtime_error("read-forms from closed input port");
         std::vector<Value> forms;
-        while (port->position < port->source.size()) {
-            TinyReader reader(evaluator,
-                              port->source.substr(port->position));
+        TinyReader reader(evaluator, port->source, port->position);
+        while (true) {
             std::optional<Value> form = reader.read();
-            port->position += reader.position();
             if (!form) break;
             forms.push_back(*form);
         }
+        port->position = reader.position();
         return Values{evaluator.list(forms)};
     });
     install(evaluator, "port-position", [](const Values& args) {
