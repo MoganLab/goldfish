@@ -28,6 +28,14 @@ public:
     // Install a definition-only bootstrap unit and publish its value aliases.
     // Cache misses retain the native Scheme source expansion path.
     void load_cached_source(const std::string& path);
+    // Warm-start the bootstrap installer from its captured module bundle
+    // through the native-source-unit replay.  False when the bundle is
+    // missing or stale; the caller falls back to a source load.
+    bool load_cached_installer(const std::string& cache_root = {});
+    // Capture expander/lib/install.scm into the install cache after a
+    // source load (install-library-file! replays a valid bundle or
+    // re-expands and saves one).
+    void capture_installer();
     Value load_library_artifact(const std::string& path);
     Value load_artifact(const std::string& path);
     void register_library(const std::string& name, const std::string& path);

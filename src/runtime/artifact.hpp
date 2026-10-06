@@ -16,6 +16,15 @@ public:
     Value load_gfo_file(const std::string& path);
     Value load_library_gfo_file(const std::string& path);
     Value load_bundle_gfo_file(const std::string& path);
+    // Replay a module bundle with the semantics load_cached_source gives a
+    // cached source unit: a dedicated (native-source "<key>") library
+    // linked to the base library, the binding table restored into that
+    // library, lowered definitions evaluated in the expander module
+    // environment, and toplevel values aliased to the root evaluator.  The
+    // bootstrap installer replays through this because it defines the
+    // Scheme cache layer a normal replay depends on.
+    Value load_source_unit_gfo_file(const std::string& path,
+                                    const std::string& unit_key);
     void capture_kernel_api();
     using DependencyLoader = std::function<void(const std::string&)>;
     Value load_bundle_gfo_file(const std::string& path,

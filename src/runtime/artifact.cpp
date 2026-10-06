@@ -43,6 +43,9 @@ std::string library_name(Value value) {
         if (parts[i].is_object() &&
             parts[i].as_object()->type() == ObjectType::Symbol)
             result += parts[i].as_object<SymbolObject>()->name;
+        else if (parts[i].is_object() &&
+                 parts[i].as_object()->type() == ObjectType::String)
+            result += parts[i].as_object<StringObject>()->value;
         else if (is_number(parts[i]) && number_value(parts[i]).is_exact() &&
                  number_value(parts[i]).is_integer() &&
                  !number_value(parts[i]).real.numerator.negative())
@@ -588,6 +591,113 @@ Value ArtifactLoader::load_bundle_gfo_file(
         return load_library_gfo_file(path);
     }
     throw std::runtime_error("artifact: unsupported bundle kind");
+}
+
+Value ArtifactLoader::load_source_unit_gfo_file(
+    const std::string& path, const std::string& unit_key) {
+    std::ifstream input(path);
+    if (!input)
+        throw std::runtime_error("cannot open artifact: " + path);
+    std::string source((std::istreambuf_iterator<char>(input)),
+                       std::istreambuf_iterator<char>());
+    TinyReader reader(evaluator_, std::move(source));
+    std::optional<Value> record = reader.read();
+    if (!record || reader.read())
+        throw std::runtime_error("artifact: gfo must contain one record");
+    std::vector<Value> fields = proper_list(*record);
+    if (fields.size() < 4 || !symbol_named(fields[0], "gfo") ||
+        !fields[1].is_integer() || fields[1].as_integer() != 0)
+        throw std::runtime_error("artifact: unsupported gfo envelope");
+    std::vector<Value> bundle = proper_list(fields[3]);
+    if (bundle.size() < 4 || !symbol_named(bundle[0], "bundle") ||
+        !bundle[1].is_integer() || bundle[1].as_integer() != 1 ||
+        !symbol_named(bundle[2], "module"))
+        throw std::runtime_error("artifact: malformed module bundle");
+
+    Value defs = Value::null();
+    Value macros = Value::null();
+    Value bindings = Value::null();
+    for (std::size_t i = 3; i < bundle.size(); ++i) {
+        std::vector<Value> section = proper_list(bundle[i]);
+        if (section.empty()) continue;
+        if (symbol_named(section[0], "defs"))
+            defs = bundle[i];
+        else if (symbol_named(section[0], "macros"))
+            macros = bundle[i];
+        else if (symbol_named(section[0], "bindings"))
+            bindings = bundle[i];
+    }
+    if (defs.is_null())
+        throw std::runtime_error("artifact: module bundle has no defs section");
+
+    // The same unit shape load_cached_source installs for its files: a
+    // dedicated (native-source "<key>") library linked to the base library,
+    // with the native reader pinned at the unit boundary.  The definitions
+    // must NOT land in the base library itself -- other files' references
+    // to them then resolve to qualified toplevel names baked into their own
+    // cached artifacts, while the warm replay evaluates those artifacts in
+    // the root environment where the qualified names are absent.
+    Value base = evaluator_.eval(evaluator_.symbol("the-base-library"));
+    Value unit = call("make-exp-library",
+                      {evaluator_.list({evaluator_.symbol("native-source"),
+                                        evaluator_.string(unit_key)})});
+    call("exp-library-add-use!", {unit, base});
+    call("exp-library-define!",
+         {unit, evaluator_.symbol("read-forms"),
+          call("make-primitive-binding", {evaluator_.symbol("read-forms")})});
+
+    Value binding_entries = bindings.is_null()
+                                ? Value::null()
+                                : bindings.as_object<PairObject>()->cdr;
+    Value macro_entries = macros.is_null()
+                              ? Value::null()
+                              : macros.as_object<PairObject>()->cdr;
+    Value metadata = evaluator_.list(
+        {call("exp-library-name", {unit}), Value::null(), Value::null(),
+         binding_entries, macro_entries, Value::null()});
+    restore_library_metadata(proper_list(metadata), unit);
+
+    // Definitions evaluate in the expander library's module environment --
+    // where install-library-forms! evaluates a cold capture -- so closures
+    // capture it and the bare references the expansion left unresolved
+    // (names from earlier source units, e.g. the gfo seed) resolve at call
+    // time.
+    Value expander = evaluator_.eval(evaluator_.symbol("the-expander-library"));
+    Value expander_env = call("module-eval-environment", {expander});
+    if (!expander_env.is_object() ||
+        expander_env.as_object()->type() != ObjectType::EvalEnvironment)
+        throw std::runtime_error("artifact: invalid expander environment");
+    EnvironmentPtr eval_environment =
+        expander_env.as_object<EvalEnvironmentObject>()->environment;
+    std::vector<Value> definition_section = proper_list(defs);
+    for (std::size_t i = 1; i < definition_section.size(); ++i) {
+        try {
+            evaluator_.eval(definition_section[i], eval_environment);
+        } catch (const std::runtime_error& error) {
+            throw std::runtime_error("artifact: source-unit definition " +
+                                     std::to_string(i - 1) + ": " +
+                                     error.what());
+        } catch (const RaisedValue& raised) {
+            throw std::runtime_error("artifact: source-unit definition " +
+                                     std::to_string(i - 1) + ": " +
+                                     raised_message(raised));
+        }
+    }
+
+    // Toplevel values are aliased into the root evaluator by their original
+    // names, exactly like load_cached_source publishes a cached unit: the
+    // base library never holds them, so other files' references stay bare
+    // and resolve here.
+    for (Value entry : proper_list(binding_entries)) {
+        std::vector<Value> entry_fields = proper_list(entry);
+        if (entry_fields.size() >= 3 &&
+            symbol_named(entry_fields[1], "toplevel")) {
+            evaluator_.global_environment()->define(
+                entry_fields[0],
+                evaluator_.eval(entry_fields[2], eval_environment));
+        }
+    }
+    return Value::unspecified();
 }
 
 } // namespace goldfish::runtime

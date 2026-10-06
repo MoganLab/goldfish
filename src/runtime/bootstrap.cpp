@@ -446,6 +446,36 @@ void NativeBootstrap::load_cached_source(const std::string& path) {
     }
 }
 
+bool NativeBootstrap::load_cached_installer(const std::string& cache_root) {
+    const fs::path bundle = fs::path(cache_directory(cache_root)) /
+                            "expander/lib/install.scm-o2.gfo";
+    try {
+        validate_artifact(runtime_.evaluator(), bundle,
+                          "expander/lib/install.scm");
+        loader_.load_source_unit_gfo_file(bundle.string(),
+                                          "expander/lib/install.scm");
+    } catch (const std::exception& error) {
+        std::fprintf(stderr, "installer cache unavailable: %s\n", error.what());
+        return false;
+    }
+    return true;
+}
+
+void NativeBootstrap::capture_installer() {
+    // Capture through the cached-source path itself: a dedicated
+    // (native-source) unit, a cold expansion into it, and a save.  After a
+    // plain source load this runs the installer's definitions a second
+    // time, which is acceptable once per cold boot.
+    try {
+        load_cached_source("expander/lib/install.scm");
+    } catch (const std::exception& error) {
+        // The definitions are already loaded from source; a failed capture
+        // only costs the next boot its warm start.
+        std::fprintf(stderr, "installer cache capture failed: %s\n",
+                     error.what());
+    }
+}
+
 Value NativeBootstrap::load_library_artifact(const std::string& path) {
     return loader_.load_library_gfo_file(path);
 }
