@@ -21,6 +21,26 @@
 ;; gfo helpers live in goldfish/core/gfo.scm (single source, L2 core-format)
 (load-source-file "core/gfo.scm")
 
+;;; native-debug-enabled? : string -> boolean
+;;; Read the shared GOLDFISH_DEBUG knob from Scheme with the same
+;;; comma-list semantics as src/runtime/debug_flags.hpp (key present, or
+;;; "all").  Defined before the boot install block so cache-path
+;;; diagnostics can use it.
+(define (native-debug-enabled? key)
+  (let ((group (getenv "GOLDFISH_DEBUG")))
+    (and group
+         (not (string=? group ""))
+         (or (string=? group "all")
+             (let ((padded (string-append "," group ","))
+                   (needle (string-append "," key ",")))
+               (let loop ((i 0))
+                 (cond ((> (+ i (string-length needle))
+                           (string-length padded)) #f)
+                       ((string=? (substring padded i
+                                             (+ i (string-length needle)))
+                                  needle) #t)
+                       (else (loop (+ i 1))))))))))
+
 ;;; ---------------------------------------------------------------------------
 ;;; Unified cache backend.
 ;;;
@@ -754,26 +774,6 @@
     (if (null? ls)
       (reverse acc)
       (loop (cdr ls) (adjoin-lib (car ls) acc)))))
-
-;;; native-debug-enabled? : string -> boolean
-;;; Read the shared GOLDFISH_DEBUG knob from Scheme with the same
-;;; comma-list semantics as src/runtime/debug_flags.hpp (key present,
-;;; or "all").  Used by the cold-start compile diagnostics; no separate
-;;; environment variable is introduced.
-(define (native-debug-enabled? key)
-  (let ((group (getenv "GOLDFISH_DEBUG")))
-    (and group
-         (not (string=? group ""))
-         (or (string=? group "all")
-             (let ((padded (string-append "," group ","))
-                   (needle (string-append "," key ",")))
-               (let loop ((i 0))
-                 (cond ((> (+ i (string-length needle))
-                           (string-length padded)) #f)
-                       ((string=? (substring padded i
-                                             (+ i (string-length needle)))
-                                  needle) #t)
-                       (else (loop (+ i 1))))))))))
 
 (define (compile-file-cached path)
   ;; One compilation unit per call: expand-time state (region bindings,

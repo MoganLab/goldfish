@@ -67,6 +67,28 @@ validate before dependencies reload).
 `expand` and `optimize` scale with source size (~10 ms/line on `scheme/char`);
 `save` (serialize + write) is also large.
 
+## Fix 1: cheap dependency declaration-input scan
+
+`library-declaration-inputs` (used only for fingerprinting) called
+`normalize-library-declarations`, which deep-converts every body form of a
+`define-library` just to discover declarations.  Two changes:
+
+- `scan-declaration-inputs`: walk clause heads for `include`/`cond-expand`
+  without converting bodies.
+- memoize `library-declaration-inputs` per session by source stat, so a
+  dependency fingerprinted by several consumers is read once.
+
+Measured: the `decl` component of a single `srfi/srfi-175` fingerprint drops
+from 56 ms to ~0 on repeat; across a warm boot 29 fingerprints cost ~5 ms
+total.  Warm `boot total` 4273 ms → 4129 ms, `mode-imports` 941 ms → 721 ms.
+The remaining fingerprint cost is the first `read-forms` of each dependency
+source (the reader itself is ~0.1 ms/line: `read-forms` of `srfi-175.scm` is
+47 ms), which needs a faster reader or artifact-side declaration inputs.
+
+Correctness: `lib-cache-test`, `lib-cache-all-libs-test`,
+`lib-cache-import-order-test`, `program-cache-macro-test`,
+`program-cache-syntax-test` all pass.
+
 ## Attempted fixes (reverted)
 
 Per the plan's rule not to merge unmeasured complexity, four speculative fixes

@@ -1225,15 +1225,63 @@
           (else (list clause)))))
     clauses))
 
+(define (scan-declaration-inputs clauses)
+  ;; Record include / availability inputs without normalizing or splicing
+  ;; the body.  normalize-library-declarations deep-converts every body
+  ;; form just to discover declarations, which dominates dependency
+  ;; fingerprinting; this walk only looks at clause heads.
+  (for-each
+    (lambda (clause)
+      (let* ((form (if (syntax? clause) (syntax-form clause) clause))
+             (head (and (pair? form) (car form))))
+        (case head
+          ((include include-ci)
+           (let ((d (syntax->datum clause)))
+             (for-each (lambda (path)
+                         (call-with-included-forms path (eq? head 'include-ci)
+                           (lambda (forms) (scan-declaration-inputs forms))))
+                       (cdr d))))
+          ((include-library-declarations)
+           (let ((d (syntax->datum clause)))
+             (for-each (lambda (path)
+                         (call-with-included-forms path #f
+                           (lambda (forms) (scan-declaration-inputs forms))))
+                       (cdr d))))
+          ((cond-expand)
+           (scan-declaration-inputs
+             ((module-ref the-expander-library 'cond-expand-select)
+              (cdr (syntax->datum clause)))))
+          ((begin)
+           ;; include/cond-expand may nest inside a declaration body; walk
+           ;; it shallowly (no deep conversion).
+           (scan-declaration-inputs (cdr form)))
+          (else #f))))
+    clauses))
+
+(define *declaration-inputs-memo* '())
+
 (define (library-declaration-inputs file)
-  (call-with-library-source file
-    (lambda ()
-      (for-each
-        (lambda (form)
-          (when (and (pair? form) (eq? (car form) 'define-library))
-            (normalize-library-declarations (cddr form))))
-        (call-with-input-file file read-forms))
-      (declaration-inputs))))
+  ;; Memoized per session by source stat: fingerprinting reads/parses the
+  ;; dependency source, and the same dependency is fingerprinted by every
+  ;; consumer, so repeat reads dominate warm validation.
+  (let* ((mtime (g_path-getmtime file))
+         (size (g_path-getsize file))
+         (key (list file mtime size))
+         (hit (assoc key *declaration-inputs-memo*)))
+    (if hit
+      (cdr hit)
+      (let ((inputs
+             (call-with-library-source file
+               (lambda ()
+                 (for-each
+                   (lambda (form)
+                     (when (and (pair? form) (eq? (car form) 'define-library))
+                       (scan-declaration-inputs (cddr form))))
+                   (call-with-input-file file read-forms))
+                 (declaration-inputs)))))
+        (set! *declaration-inputs-memo*
+              (cons (cons key inputs) *declaration-inputs-memo*))
+        inputs))))
 
 (define (declaration-input-current input)
   (case (car input)
