@@ -59,7 +59,7 @@ total ~1.8 s, warm wall 1.8-1.9 s.
 | 0. Measurement & gates | instruments before optimization | **DONE** 2026-10-06 |
 | 1. Compile pipeline | reader / expander / optimizer / serializer | **DONE** 2026-10-06 |
 | 2. Startup structure | installer cacheable; shipped-cache cold ≈ warm | **DONE** 2026-10-07 (2a + 2c; 2b folded into 3) |
-| 3. Evaluator & runtime | runtime throughput; warm < 1 s | **NEXT** (profile + levers ready; Appendix B) |
+| 3. Evaluator & runtime | runtime throughput; warm < 1 s | **ACTIVE** — gate + 5 levers landed; warm 1.13 s (plateau; Appendix F) |
 | 4. Memory | peak/steady RSS | later |
 | 5. Cache unification & IO | one cache front door, one bundle kind | later |
 | 6. Runtime image | design doc + feasibility prototype | research, later |
@@ -151,28 +151,46 @@ of re-expanding. Normal cache, no pre-expansion, no layering change.
   corrupt bundles fall back to the source load and re-capture.
 - **Step 4 [DONE]** — acceptance, Appendix E.
 
-## Phase 3 — Evaluator and runtime throughput [NEXT]
+## Phase 3 — Evaluator and runtime throughput [ACTIVE]
 
 The ultimate metric — how fast programs run after startup — plus the folded
-2b warm-boot work. The profile is known (Appendix B); bounded variants were
-measured neutral and must not be retried; the profitable changes are
-structural.
+2b warm-boot work.
 
-1. **Runtime benchmark set + gate first.** Establish baseline programs, wire
-   `compare.sh` for them the same way as startup. Nothing lands before this.
-2. **Structural evaluator levers**, one gate-backed commit each (each is
-   call/cc + dynamic-wind critical, so the dedicated gate cycle includes
-   those tests):
-   - KontFrame slimming: merge the three winder vectors, shrink the frame
-     (today 2 Values, 2 shared_ptrs, a Values vector, 4 winder vectors,
-     moved on every push; ~17% of samples).
-   - Avoid per-call `vector<Value>` construction/move (~9%).
-   - Non-atomic `EnvironmentPtr` (ownership/threading audit first).
-   - GC allocation-rate reduction (~18%; pairs with Phase 4).
-3. **Cached-replay credit (2b).** Re-measure deserialize/eval/re-import after
-   the levers; target warm startup < 1 s.
+1. **Runtime benchmark set + gate [DONE, `7fa11efd`].** `bench/runtime/`:
+   five fixed workloads (fib, sum, nqueens, nested dynamic-wind+call/cc
+   escapes, list pipeline) over a warm cache with output verification;
+   summary.tsv matches the startup suite's format so `compare.sh` gates it
+   unchanged. Baseline: `bench/runtime/phase3-base-378e8608`.
+2. **Structural levers, one gate-backed commit each [4 landed]:**
+   - KontFrame slimming [DONE, `d2c5d626`]: the three winder vectors moved
+     into a lazily allocated KontWind payload (common frames carry one null
+     word). Runtime suite: winders -9.3%, sum -3.6%.
+   - Per-call argument vectors [DONE, `1cd10241`]: core forms read arguments
+     into eight inline slots (heap spill only past eight, preserving
+     semantics for oversized forms); closure formals walked twice instead of
+     collected. fib -9.4%, nqueens -8.0%, sum -7.9%.
+   - HOF shadowing pathology [DONE, `481000ec`, `e0f5444a`]:
+     base-functions.scm's Scheme member/assoc/map/for-each shadowed the
+     machine loops, paying a closure invocation per element (assoc measured
+     ~3 us/step). Dropped the shadows; equal? marked Kind::Equal so
+     member/assoc inline their default comparator; equal() gained a
+     non-aggregate fast path. assoc probe 50.1 s → 7.3 s; lists -18.4%,
+     fib -9.7%, sum -10.3%; peak RSS ~-20%.
+   - Non-atomic EnvironmentPtr [AUDITED, NOT ATTEMPTED]: ~30 sites across
+     five files; single-threaded runtime makes it safe; bounded estimate
+     ~4-5% on call-heavy code. Deferred to its own cycle — the shadowing
+     pathologies above delivered more per unit of risk.
+3. **2b credit [PARTIAL].** The gfo cache seed now replays from its captured
+   bundle like the installer [DONE, `ce7c0c9e`]: gfo-seed stage 466 → ~13 ms.
+   Warm startup plateau: **1.13 s** (minimal) / 1.18 s (small-real) / 1.66 s
+   (large) — the < 1 s target needs the remaining replay stages
+   (standard-library 330 ms, load-cached-runtime 220 ms, mode-imports
+   ~250 ms) to get faster via the deferred levers (EnvironmentPtr, a
+   small-size Values type) or Phase 5's unified replay; attribution and the
+   full ledger are in Appendix F.
 
-Exit: runtime gate with baseline and measured gains; warm startup < 1 s.
+Exit: runtime gate with baseline and measured gains [met]; warm startup
+< 1 s [plateau at 1.13 s — remaining path scoped above].
 
 ## Phase 4 — Memory [LATER]
 
@@ -335,3 +353,47 @@ vs `bench/cold-start/phase2c-cand-b915422a` (bin `b915422a49bb`):
   (fallback + re-capture) verified by hand; `tools/build-kernel.sh` flow
   green; `tools/warm-bootstrap-cache.sh` ships the installer bundle (the
   isolated run captures it and the script copies the whole directory).
+
+## Appendix F — Phase 3 records (2026-10-07)
+
+Runtime suite (n=3, min-held medians via compare.sh), each lever vs its
+predecessor's record:
+
+| lever | commit | fib | sum | nqueens | winders | lists |
+|---|---|---:|---:|---:|---:|---:|
+| KontWind payload | `d2c5d626` | −1.5% | −3.6% | −1.6% | −9.3% | −1.1% |
+| FormArguments | `1cd10241` | −9.4% | −7.9% | −8.0% | −1.3% | −6.5% |
+| member/assoc unshadow + inline comparator | `481000ec` | −6.0% | +1.2% | −2.4% | +0.2% | −0.6% |
+| map/for-each unshadow | `e0f5444a` | −9.7% | −10.3% | −7.9% | −7.6% | −18.4% |
+
+Cumulative vs `phase3-base-378e8608`: fib −24%, sum −19%, nqueens −18%,
+winders −17%, lists −25%. assoc micro (20k lookups × 2000-entry alist):
+50.1 s → 7.3 s. Changed-since 162/162 after every lever; every suite run
+verifies program output.
+
+Startup suite, cumulative Phase 3 vs the Phase 2 exit record
+(`bench/cold-start/phase3-final-3a138fac` vs `phase2c-cand-b915422a`,
+3 samples, compare.sh OK):
+
+- warm: minimal 1.92→1.13 s, small-real 1.82→1.18 s, large 3.57→1.66 s
+- bootstrap: −32.9/−31.7/−64.6% (large 22.4→7.9 s)
+- readonly: −31.9/−31.1/−65.3%
+- cold: −37.9/−33.5/−41.7% (large 85.0→49.6 s) — the evaluator levers
+  accelerate cold compilation itself
+- peak RSS: down on 11 of 12 cells (−4.6..−34.2%); small-real warm +0.0%
+
+Warm-boot stage attribution at the plateau (minimal, `GOLDFISH_DEBUG=timing`):
+standard-library ~330 ms, load-cached-runtime ~220 ms, mode-imports ~250 ms,
+install-boot ~130 ms, native-scheme-surface ~65 ms, kernel ~35 ms, seed+installer
+replay ~25 ms — all artifact-deserialize + evaluator work.
+
+Do-not-retry list (measured harmful, reverted): the thread_local reuse of
+equal()'s cycle-guard vector segfaults cold boot under the conservative
+collector; per Appendix B, `frames.reserve(1024)` and return-value
+assign-instead-of-move.
+
+Environment notes: `xmake` builds must run inside `nix develop -c` when the
+toolchain detection cache under `build/` is cold (no gcc on the bare PATH);
+`tools/build-prof.sh` currently fails — xmake 3.0.9's releasedbg config
+errors with "target(lint-layer): toolchain not found", so perf profiling is
+unavailable in this environment (code-level attribution was used instead).
