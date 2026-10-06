@@ -78,6 +78,19 @@ helps all of them at once.
 Exit: each stage has a micro-benchmark and a measured improvement, with the
 cold compile and first-compile numbers improved accordingly, gates green.
 
+**Finding (2026-10-06, symbol-resolved profile).** The reader is not a
+bottleneck: `TinyReader` frames are ~0.01% even in a reader-heavy run.  A
+`releasedbg` profile (symbols via `bin/gf.sym` debuglink) of an evaluator-heavy
+run is dominated by `Evaluator::run_machine`, `KontFrame` stack churn
+(emplace/dtor/ctor ~14%), GC (`GC_mark_from`/`GC_free`/`GC_malloc` ~19%),
+`vector<Value>` move/realloc (~9%), `Environment::lookup` (~5%) and
+`RealNumber::exact` (~3%).  Since the expander and optimizer are Scheme, the
+Phase 1 pipeline cost is evaluator/GC cost — Phase 1 and Phase 3 converge on
+the evaluator, and that is where the compile-throughput work must land.
+`KontFrame` is heavy (2 Values, 2 shared_ptr, a Values vector and four winder
+vectors) and constructed/moved on every push; slimming it is the first
+evaluator target.
+
 ## Phase 2 — Startup structure
 
 1. **`load-install-scm` (2.33 s, largest warm cost).** The bootstrap installer
