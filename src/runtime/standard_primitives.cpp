@@ -3338,6 +3338,26 @@ void install_runtime_primitives(Evaluator& evaluator) {
 
     // Arithmetic atoms.
     install(evaluator, "+", [&evaluator](const Values& args) {
+        // Fast path: all small exact integers stay in int64, avoiding a
+        // BigInteger/RealNumber round trip per operand.  On overflow fall
+        // through to the general (bignum) path.
+        bool all_small = true;
+        for (Value arg : args)
+            if (!arg.is_integer()) { all_small = false; break; }
+        if (all_small) {
+            std::int64_t sum = 0;
+            bool ok = true;
+            for (Value arg : args) {
+                std::int64_t next = 0;
+                if (__builtin_add_overflow(sum, arg.as_integer(), &next)) {
+                    ok = false;
+                    break;
+                }
+                sum = next;
+            }
+            if (ok)
+                return Values{Value::integer(sum)};
+        }
         Number result = Number::exact(BigInteger(0));
         for (Value arg : args) {
             if (!is_number(arg)) throw std::runtime_error("+ expects numbers");
@@ -3347,6 +3367,27 @@ void install_runtime_primitives(Evaluator& evaluator) {
     });
     install(evaluator, "-", [&evaluator](const Values& args) {
         if (args.empty()) throw std::runtime_error("- expects arguments");
+        bool all_small = true;
+        for (Value arg : args)
+            if (!arg.is_integer()) { all_small = false; break; }
+        if (all_small) {
+            std::int64_t acc = args[0].as_integer();
+            bool ok = true;
+            if (args.size() == 1) {
+                ok = !__builtin_sub_overflow(std::int64_t{0}, acc, &acc);
+            } else {
+                for (std::size_t i = 1; i < args.size(); ++i) {
+                    std::int64_t next = 0;
+                    if (__builtin_sub_overflow(acc, args[i].as_integer(), &next)) {
+                        ok = false;
+                        break;
+                    }
+                    acc = next;
+                }
+            }
+            if (ok)
+                return Values{Value::integer(acc)};
+        }
         if (!is_number(args[0])) throw std::runtime_error("- expects numbers");
         Number result = number_value(args[0]);
         if (args.size() == 1) result = number_negate(result);
@@ -3357,6 +3398,23 @@ void install_runtime_primitives(Evaluator& evaluator) {
         return Values{evaluator.number(std::move(result))};
     });
     install(evaluator, "*", [&evaluator](const Values& args) {
+        bool all_small = true;
+        for (Value arg : args)
+            if (!arg.is_integer()) { all_small = false; break; }
+        if (all_small) {
+            std::int64_t product = 1;
+            bool ok = true;
+            for (Value arg : args) {
+                std::int64_t next = 0;
+                if (__builtin_mul_overflow(product, arg.as_integer(), &next)) {
+                    ok = false;
+                    break;
+                }
+                product = next;
+            }
+            if (ok)
+                return Values{Value::integer(product)};
+        }
         Number result = Number::exact(BigInteger(1));
         for (Value arg : args) {
             if (!is_number(arg)) throw std::runtime_error("* expects numbers");
