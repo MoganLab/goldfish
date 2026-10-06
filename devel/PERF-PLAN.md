@@ -134,6 +134,48 @@ primitive-call `vector<Value>` churn, GC) remain for Phase 3.
 Exit: warm < 1 s; cold with shipped cache ≈ warm; cold-no-cache materially
 lower from Phase 1.
 
+### 2a status (done)
+
+`tools/warm-bootstrap-cache.sh` now also requires the optimizer pipeline
+(`native_precompile_artifacts`: `core/ir`, `match*`, `compiler*`, `tree-il`)
+alongside the boot set, so a distribution-precompiled cache gives a fresh
+install a warm first program compile.  The optimizer artifacts are not in the
+boot-required set (validating them every start would re-parse the large
+compiler artifacts).  See `CCACHE_NOTES.md` for the ship/install procedure.
+
+### 2c design — making the bootstrap installer cacheable
+
+Problem: warm boot expands `expander/lib/install.scm` from source every start
+(~2.3 s, the largest warm cost).  It is loaded through the raw seed loader
+because it *defines* the cache backend (`install-library-file!`,
+`cache-file-for`, the gfo helpers) that every other cache path depends on, so
+it cannot use the cache it defines.  In warm mode the file is pure function
+definitions: the macro-layer install block is skipped when
+`GOLDFISH_NATIVE_ARTIFACTS` is set, so no side effects are needed to replay it.
+
+Options considered:
+
+- **A. Fold `install.scm` into the kernel pre-expansion.** Rejected: it is
+  lib-layer; `build-kernel` expands kernel sources only; folding mixes layers
+  and violates the layering the kernel boundary protects.
+- **B. Cache `install.scm` as a normal module bundle loaded by a bootstrap-only
+  C++ path.** Preferred. On cold boot, capture its top-level definitions as a
+  module bundle (a dedicated capture, since `install-library-file!` does not
+  exist yet). On warm boot, if that bundle validates, eval its defs into the
+  base library exactly as `load_source` does, instead of re-expanding. This
+  uses the normal cache and adds no performance pre-expansion; it only needs a
+  bootstrap-only capture/load pair.
+- **C. Pre-expand the seed into a loadable file.** Rejected for the same
+  layering reason as A (bootstrap-justified, but still a special
+  pre-expansion).
+
+Risks / gate for B: the replay must reproduce binding kinds (toplevel vs macro)
+and library home exactly, or every later cache path breaks; the cache version
+must invalidate when `install.scm` or the pipeline changes (it does, by content
+hash). Validate with the full changed-since gate and `bench/cold-start`
+bootstrap/readonly states (cold→warm and cache-miss recovery).  Effort:
+medium-large, bootstrap-critical.
+
 ## Phase 3 — Runtime execution throughput
 
 The ultimate metric: how fast programs run after startup. Currently
