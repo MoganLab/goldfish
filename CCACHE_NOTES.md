@@ -17,3 +17,22 @@
 ## 已知限制
 
 - Macro transformer closure 不可序列化；相关定义通过 syntax spec 重建。
+
+## 发行期预编译
+
+冷启动的首次运行在空缓存下会编译整个 runtime 与惰性优化器管线
+（数十秒）。发行时可用同一条缓存机制预编译，使新环境的首次运行 ≈ 热启动：
+
+1. 构建 release 二进制后运行 `tools/warm-bootstrap-cache.sh`。它在隔离目录里
+   用该二进制编译种子工作流，产出完整缓存，并同时校验自举所需产物
+   （`native_bootstrap_artifacts`）与优化器管线产物
+   （`native_precompile_artifacts`：`core/ir`、`match*`、`compiler*`、
+   `tree-il`）。优化器产物不在启动必需集内（否则每次启动都要重新解析
+   大体积编译器产物），但发行缓存必须包含，否则首次编译程序会从源码
+   重编优化器。
+2. 随发行分发该缓存的内容寻址目录 `v<fingerprint>/`（指纹 = 可执行文件哈希
+   + 源哈希）。
+3. 安装步骤把该目录放到目标用户的 `$XDG_CACHE_HOME/goldfish/native-ccache/`
+   （或 `GOLDFISH_CACHE_DIR` 指向处）。目录按指纹命名，不匹配的缓存会被
+   忽略并重建，因此分发旧缓存是安全的。
+

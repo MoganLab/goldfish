@@ -38,6 +38,23 @@ constexpr std::array<const char*, 12> native_bootstrap_artifacts = {
     "scheme/base.scm-o2.gfo"
 };
 
+// The optimizer pipeline is produced lazily the first time a program is
+// compiled, so a cache can satisfy native_bootstrap_artifacts yet still
+// recompile the optimizer from source on the first program.  Distribution
+// warming must also capture these, or the first run after install pays the
+// optimizer compile.  They are deliberately NOT part of the boot-time
+// required set: validating them on every start would re-parse the large
+// compiler artifacts for no benefit once they are present.
+constexpr std::array<const char*, 7> native_precompile_artifacts = {
+    "goldfish/core/ir.scm-o2.gfo",
+    "goldfish/match.scm-o2.gfo",
+    "goldfish/match/expansion.scm-o2.gfo",
+    "goldfish/compiler/patterns.scm-o2.gfo",
+    "goldfish/compiler/passes.scm-o2.gfo",
+    "goldfish/compiler.scm-o2.gfo",
+    "goldfish/expander/tree-il.scm-o2.gfo"
+};
+
 namespace fs = std::filesystem;
 
 void prepare_native_stack() {

@@ -20,6 +20,17 @@ if [ -z "$required" ]; then
     exit 1
 fi
 
+# Distribution warming also needs the optimizer pipeline, or the first
+# program after install recompiles it (the boot-required set does not
+# include it, to keep every start from re-parsing the compiler artifacts).
+precompiled=$(awk '/native_precompile_artifacts = \{/ {f=1; next} f && /};/ {exit} f {print}' \
+    src/runtime/bootstrap.cpp | sed -n 's/.*"\([^"]*\)".*/\1/p')
+
+if [ -z "$precompiled" ]; then
+    echo "warm-bootstrap-cache: cannot read native_precompile_artifacts" >&2
+    exit 1
+fi
+
 cache_root=${GOLDFISH_CACHE_DIR:-}
 if [ -z "$cache_root" ]; then
     if [ -n "${XDG_CACHE_HOME:-}" ]; then
@@ -40,11 +51,14 @@ complete_dir=$(GOLDFISH_CACHE_DIR="$cache_root" GOLDFISH_OPT_LEVEL=2 \
     bin/gf --bootstrap-cache-directory)
 
 find_complete() {
-    GOLDFISH_CACHE_DIR="$cache_root" bin/gf --check-bootstrap-cache >/dev/null 2>&1
+    GOLDFISH_CACHE_DIR="$cache_root" bin/gf --check-bootstrap-cache >/dev/null 2>&1 || return 1
+    for artifact in $precompiled; do
+        [ -f "$complete_dir/$artifact" ] || return 1
+    done
 }
 
 report_missing() {
-    for artifact in $required; do
+    for artifact in $required $precompiled; do
         found=0
         if [ -f "$complete_dir/$artifact" ]; then found=1; fi
         if [ "$found" = 0 ]; then
@@ -65,7 +79,7 @@ if ! find_complete; then
     temp_dir=$(GOLDFISH_CACHE_DIR="$temp_cache" GOLDFISH_OPT_LEVEL=2 \
         bin/gf --bootstrap-cache-directory)
     complete=1
-    for artifact in $required; do
+    for artifact in $required $precompiled; do
         if [ ! -f "$temp_dir/$artifact" ]; then
             echo "warm-bootstrap-cache: isolated cache missing $artifact" >&2
             complete=0
