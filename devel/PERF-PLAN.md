@@ -91,6 +91,31 @@ the evaluator, and that is where the compile-throughput work must land.
 vectors) and constructed/moved on every push; slimming it is the first
 evaluator target.
 
+**Results (2026-10-06).** Landed four measured changes, each A/B-verified and
+gated:
+
+| change | commit | micro-benchmark |
+|---|---|---|
+| small-integer `+ - *` in int64 | `52d96dda` | eval/sum −53%, fib −46% |
+| small-integer `< <= > >=` in int64 | `64841f54` | eval/sum −28%, fib −33% |
+| serialize: pair/vector tested first | `f32ceaed` | serialize −12.7% |
+| deserialize: dispatch on pair head | `7a66dec2` | deserialize −12.1% |
+
+Compile pipeline (warm/cold) and suite medians (`bench/cold-start/phase1-6dd0760c`,
+3 samples; `compare.sh` OK):
+
+- cold compile: minimal −12.0%, small-real −11.4%, large-scheme −10.9%
+- warm startup: minimal 4.28→3.24 s (−24%), small-real −32%, large −20%
+- bootstrap: minimal 7.46→4.18 s (−44%), small-real −41%, large −17%
+- readonly: −43% (minimal/small-real), −17% (large)
+- reader benchmark (high-iteration): −11%
+- gates: changed-since 162/162 after each change; `compare.sh` OK
+- caveat: cold peak RSS rose ~5-9% on some workloads (warm RSS unchanged)
+
+The per-stage criterion is met for reader, expander/lower, optimizer and
+serializer/deserializer.  The next evaluator levers (KontFrame slimming,
+primitive-call `vector<Value>` churn, GC) remain for Phase 3.
+
 ## Phase 2 — Startup structure
 
 1. **`load-install-scm` (2.33 s, largest warm cost).** The bootstrap installer
