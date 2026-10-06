@@ -1,13 +1,13 @@
 # Goldfish performance program
 
 Performance is treated as one engineering discipline, not a set of one-off
-patches: every workstream shares the same instruments, the same regression
-gate, and the same design principles, and each phase has an explicit exit
-criterion before the next begins.
+patches: shared instruments, one regression gate per area, explicit phase
+exits. Work proceeds one major phase at a time; a phase is finished only when
+its exit gate is met, then the next phase starts.
 
 ## 0. Principles
 
-These constrain every optimization (they are not negotiable per workstream):
+These constrain every optimization (not negotiable per workstream):
 
 1. **One cache, one compile.** Standard libraries and user libraries go
    through the same cache and the same compiler. No special-casing.
@@ -20,79 +20,191 @@ These constrain every optimization (they are not negotiable per workstream):
    be A/B measured, is reverted. Cache-validity and recovery behavior are part
    of the contract.
 
+## Working agreement
+
+- One major phase active at a time. Within it, items land as separate commits,
+  each A/B measured, gated, and reverted if flat.
+- Gates before every landing: affected native tests; the changed-since gate
+  (`GOLDFISH_CACHE_DIR=<isolated> ./bin/gf test`) whenever core
+  expander/library code changed; `bench/cold-start/run-suite.sh` +
+  `compare.sh` for anything touching boot or compile; `--all` only when
+  landing core semantics.
+- Every binary rebuild changes the content-addressed cache version: re-warm
+  before measuring (cold run ~40 s, then warm ~3.5 s), or use an isolated
+  `GOLDFISH_CACHE_DIR` so a stale cache cannot mask a change.
+- `bench/` records keep raw logs, metadata and checksums.
+
 ## Reference point
 
-The pre-native implementation started in ~200 ms cold / ~60 ms warm. Current
-native numbers: cold ~70 s (empty cache), warm ~4.1 s, state-3 ~9.6 s, warm
-RSS ~32 MiB, cold RSS ~91-103 MiB.
+Pre-native: ~200 ms cold / ~60 ms warm. Native, measured 2026-10-06 after
+Phase 1: cold ~62 s (empty cache), warm ~3.5 s, warm RSS ~32 MiB, cold peak
+RSS ~91-103 MiB (Phase 0 measurement; cold peak rose ~5-9% on two workloads
+with Phase 1, warm RSS unchanged).
 
-## Targets (staged)
+## Targets
 
-| Metric | now | near | mid | stretch |
+| metric | now | near (exit Ph 3) | mid (exit Ph 5) | stretch (Ph 6) |
 |---|---:|---:|---:|---:|
-| warm startup | 4.1 s | < 1 s | < 300 ms | < 60 ms |
+| warm startup | 3.5 s | < 1 s | < 300 ms | < 60 ms |
 | cold, shipped cache | n/a | ≈ warm | ≈ warm | ≈ warm |
-| cold, no cache | ~70 s | < 10 s | < 3 s | — |
+| cold, no cache | ~62 s | < 10 s | < 3 s | — |
 | warm RSS | 32 MiB | ≤ 32 MiB | ≤ 32 MiB | — |
 | runtime throughput | unmeasured | baseline + gate | −10% time | — |
 
-## Phase 0 — Measurement and regression infrastructure
+## Program map
 
-Foundation for everything else; nothing is optimized before it can be
-measured and guarded.
+| phase | goal | status |
+|---|---|---|
+| 0. Measurement & gates | instruments before optimization | **DONE** 2026-10-06 |
+| 1. Compile pipeline | reader / expander / optimizer / serializer | **DONE** 2026-10-06 |
+| 2. Startup structure | installer cacheable; shipped-cache cold ≈ warm | **ACTIVE** (2a done; 2c step 2 next; 2b folded into 3) |
+| 3. Evaluator & runtime | runtime throughput; warm < 1 s | SCOPED (profile + levers ready; Appendix B) |
+| 4. Memory | peak/steady RSS | later |
+| 5. Cache unification & IO | one cache front door, one bundle kind | later |
+| 6. Runtime image | design doc + feasibility prototype | research, later |
 
-- **Startup runner** (exists): `bench/cold-start/run-suite.sh`, fixed
-  workloads, four cache states, `rusage` helper.
-- **Per-library ledger** (exists): `bench/cold-start/lib-timing.sh`; the
-  marks must be re-added so they do not perturb boot (install.scm-only first,
-  verified by cold→warm before merge).
-- **Symbol-resolved profiling**: make `tools/prof.sh` resolve symbols (build
-  with debug info or consume `bin/gf.sym`) so hotspots are function-level, not
-  addresses.
-- **Micro-benchmarks** (new, one per pipeline stage): reader, expander/lower,
-  optimizer passes, serializer/deserializer, evaluator call/loop/alloc, GC,
-  cache replay.
-- **Regression gate** (new): `bench/cold-start/compare.sh` — compare a run's
-  `summary.tsv` against a recorded baseline by binary/source hash with a
-  tolerance, failing on regressions. Wire the same for runtime benchmarks.
+## Phase 0 — Measurement and regression infrastructure [DONE]
 
-Exit: a single command produces startup + micro-benchmark numbers and flags
-regressions against a stored baseline.
+Exit met 2026-10-06: one command produces startup + micro-benchmark numbers
+and flags regressions against a stored baseline. Instruments, all committed:
 
-## Phase 1 — Shared compile pipeline throughput
+- Startup suite: `sh bench/cold-start/run-suite.sh OUTDIR N` (fixed workloads
+  × cache states, medians).
+- Regression gate: `sh bench/cold-start/compare.sh BASE CAND [tol%]` — per-
+  (workload,state) wall/RSS medians; non-zero exit on regression or failed run.
+- Micro-benchmarks: `sh bench/micro/run.sh OUT` (reader, serialize/
+  deserialize, eval, alloc; interleaved min-of-N). Expander/optimizer splits
+  come from `GOLDFISH_DEBUG=timing` on a program compile.
+- Symbol-resolved profiler: `sh tools/build-prof.sh` → `bin/gf-prof`;
+  `sh tools/prof.sh bin/gf-prof <args>`.
+- Per-library load ledger: `bench/cold-start/lib-timing.sh` (+ LIB-LEDGER.md);
+  the timing marks perturb boot, so re-add them only for a measurement run.
+- Distribution warm-up: `sh tools/warm-bootstrap-cache.sh` (boot set +
+  optimizer artifacts; see CCACHE_NOTES.md).
 
-The same pipeline serves cold startup, first compile of any standard or user
-library, dependency fingerprinting, and program compilation. Improving it
-helps all of them at once.
+## Phase 1 — Shared compile pipeline [DONE]
 
-1. **Reader** — measured ~0.1 ms/line (`read-forms` of `srfi-175.scm` = 47 ms).
-   Profile `read-forms`/TinyReader; target 5-10x.
-2. **Expander / lower** — measured ~10 ms/line cold (`scheme/char` expand
-   1.56 s / 134 lines). Profile `expand-library-body`, macro dispatch,
-   `wrap-expression`; look for repeated traversal and allocation.
-3. **Optimizer** — `optimize-run-passes` scales with program size (9.9 s for a
-   604-line program); profile individual passes.
-4. **Serializer / deserializer** — `save` 0.4-0.5 s, `lookup` deserialize;
-   profile `serialize-cache-sexp`/`deserialize-cache-sexp` and `gfo` IO.
+Exit met 2026-10-06: every stage has a micro-benchmark; four landed changes
+moved cold compile −11..−12%, warm −20..−32%, bootstrap −17..−44%, readonly
+−17..−43% (records in Appendix A). The same pipeline serves cold startup,
+first compile of any library, fingerprinting and program compilation.
 
-Exit: each stage has a micro-benchmark and a measured improvement, with the
-cold compile and first-compile numbers improved accordingly, gates green.
+Key finding (Appendix B): the expander and optimizer are Scheme, so pipeline
+cost is evaluator/GC cost — Phase 1 and Phase 3 converge on the evaluator.
+The landed int fast paths serve both; the remaining levers are structural and
+wait for Phase 3.
 
-**Finding (2026-10-06, symbol-resolved profile).** The reader is not a
-bottleneck: `TinyReader` frames are ~0.01% even in a reader-heavy run.  A
-`releasedbg` profile (symbols via `bin/gf.sym` debuglink) of an evaluator-heavy
-run is dominated by `Evaluator::run_machine`, `KontFrame` stack churn
-(emplace/dtor/ctor ~14%), GC (`GC_mark_from`/`GC_free`/`GC_malloc` ~19%),
-`vector<Value>` move/realloc (~9%), `Environment::lookup` (~5%) and
-`RealNumber::exact` (~3%).  Since the expander and optimizer are Scheme, the
-Phase 1 pipeline cost is evaluator/GC cost — Phase 1 and Phase 3 converge on
-the evaluator, and that is where the compile-throughput work must land.
-`KontFrame` is heavy (2 Values, 2 shared_ptr, a Values vector and four winder
-vectors) and constructed/moved on every push; slimming it is the first
-evaluator target.
+## Phase 2 — Startup structure [ACTIVE — current major phase]
 
-**Results (2026-10-06).** Landed four measured changes, each A/B-verified and
-gated:
+Goal: make the bootstrap installer cacheable so warm boot drops to the
+cached-replay floor (~1.5-1.7 s), and a distribution-precompiled cache makes a
+fresh install's cold ≈ warm. The remaining distance to warm < 1 s is evaluator
+work (2b below), so that number closes in Phase 3 — by design, not by gap.
+
+### 2a — Distribution precompile [DONE]
+
+`tools/warm-bootstrap-cache.sh` also requires the optimizer pipeline
+(`native_precompile_artifacts`, 7 files) alongside the boot set (12), so a
+shipped cache gives a warm first program compile. The optimizer artifacts are
+not in the boot-required set (validating them every start would re-parse the
+large compiler artifacts). Ship/install procedure: `CCACHE_NOTES.md`.
+
+### 2b — Cached-replay throughput [FOLDED into Phase 3]
+
+`load-cached-runtime` + `standard-library` + `mode-imports` (~1.6 s) profile
+as evaluator work: deserialize/eval/macro-rebuild and binding re-import. No
+standalone change exists; it lands with the Phase 3 levers and is measured
+there as the warm-boot line.
+
+### 2c — Cacheable bootstrap installer [ACTIVE]
+
+Warm boot is ~3.5 s; `load-install-scm` is ~2.3 s (65%), all re-expanding
+`expander/lib/install.scm`, because that file defines the cache backend
+(`install-library-file!`, `cache-file-for`, the gfo helpers) every other cache
+path depends on — it cannot use the cache it defines. Design (option B from
+Appendix C): a bootstrap-only capture/load pair. Cold boot captures the file's
+top-level definitions as a module bundle; warm boot replays the bundle instead
+of re-expanding. Normal cache, no pre-expansion, no layering change.
+
+- **Step 1 [DONE, `6b18c922`]** — module-bundle replay also defines toplevel
+  bindings in the expander module environment (`load_bundle_gfo_file` module
+  branch).
+- **Step 2 [NEXT]** — give the replay the native-source-unit semantics that
+  `load-source-file`'s `internal_source` branch has: (1) create/restore the
+  `(native-source)` exp-library and link it to the base library
+  (`exp-library-add-use!`); (2) evaluate the bundle's lowered definitions in
+  `(module-eval-environment (the-expander-library))`; (3) publish its toplevel
+  bindings to global. Standalone change over the existing bootstrap artifacts
+  with zero behavior change, gate-backed — step 1 alone left
+  `install-library-forms!` unbound during the next expand (root cause and
+  history in Appendix C).
+- **Step 3** — re-apply the split + capture + warm replay (spec in
+  Appendix C): definitions-only `install.scm` (899 lines) + new
+  `expander/lib/install-boot.scm` (macro-layer boot block, boot-only helpers,
+  and the 18 top-level `module-define!` publish calls); the
+  `(load-source-file "core/gfo.scm")` seed load moves into `native_main`;
+  cold capture via `install-library-file!`, warm replay via
+  `bootstrap.load_artifact` with a `load_source` fallback, then
+  `install-boot.scm`.
+- **Step 4** — acceptance: `load-install-scm` ~2.3 s → ≈0.5 s and warm boot
+  ≈1.5-1.7 s; changed-since gate green; cold/warm/bootstrap/readonly states
+  via run-suite + compare; cache-miss and corruption recovery; no warm-RSS
+  regression.
+
+Exit: steps 2-4 green. Phase 3 then starts.
+
+## Phase 3 — Evaluator and runtime throughput [NEXT]
+
+The ultimate metric — how fast programs run after startup — plus the folded
+2b warm-boot work. The profile is known (Appendix B); bounded variants were
+measured neutral and must not be retried; the profitable changes are
+structural.
+
+1. **Runtime benchmark set + gate first.** Establish baseline programs, wire
+   `compare.sh` for them the same way as startup. Nothing lands before this.
+2. **Structural evaluator levers**, one gate-backed commit each (each is
+   call/cc + dynamic-wind critical, so the dedicated gate cycle includes
+   those tests):
+   - KontFrame slimming: merge the three winder vectors, shrink the frame
+     (today 2 Values, 2 shared_ptrs, a Values vector, 4 winder vectors,
+     moved on every push; ~17% of samples).
+   - Avoid per-call `vector<Value>` construction/move (~9%).
+   - Non-atomic `EnvironmentPtr` (ownership/threading audit first).
+   - GC allocation-rate reduction (~18%; pairs with Phase 4).
+3. **Cached-replay credit (2b).** Re-measure deserialize/eval/re-import after
+   the levers; target warm startup < 1 s.
+
+Exit: runtime gate with baseline and measured gains; warm startup < 1 s.
+
+## Phase 4 — Memory [LATER]
+
+- Peak RSS (cold ~91-103 MiB) and steady state; GC tuning.
+- Allocation reduction in the compile pipeline and evaluator.
+- Track per-stage RSS alongside time.
+
+Exit: cold RSS below target with no throughput regression.
+
+## Phase 5 — Cache unification and IO [LATER]
+
+- One front door: the bootstrap plain-file path and the `define-library` path
+  have separate orchestration and bundle kinds over one shared backend.
+  Unify orchestration and bundle kind so the whole runtime is cached
+  libraries through one path (also removes the `case-lambda`
+  libraries-vs-module path ambiguity).
+- `gfo` format, atomic write, concurrency, cross-machine portability.
+
+Exit: one cache path, one bundle kind; recovery/concurrency gates green.
+
+## Phase 6 — Runtime image [RESEARCH, LATER]
+
+A `.fasl`-style image (serialized booted state) is the path to < 200 ms and
+needs a design before implementation: serialization boundary, transformer
+closures, gensym stability, invalidation, relationship to the `gfo` cache,
+trust/portability. Deliver a design doc and a feasibility prototype only.
+
+## Appendix A — Phase 1 records (2026-10-06)
+
+Landed changes (interleaved min-of-5 micro-benchmarks):
 
 | change | commit | micro-benchmark |
 |---|---|---|
@@ -101,142 +213,84 @@ gated:
 | serialize: pair/vector tested first | `f32ceaed` | serialize −12.7% |
 | deserialize: dispatch on pair head | `7a66dec2` | deserialize −12.1% |
 
-Compile pipeline (warm/cold) and suite medians (`bench/cold-start/phase1-6dd0760c`,
-3 samples; `compare.sh` OK):
+Suite medians (`bench/cold-start/phase1-6dd0760c`, 3 samples, compare.sh OK):
 
 - cold compile: minimal −12.0%, small-real −11.4%, large-scheme −10.9%
 - warm startup: minimal 4.28→3.24 s (−24%), small-real −32%, large −20%
 - bootstrap: minimal 7.46→4.18 s (−44%), small-real −41%, large −17%
 - readonly: −43% (minimal/small-real), −17% (large)
 - reader benchmark (high-iteration): −11%
-- gates: changed-since 162/162 after each change; `compare.sh` OK
-- caveat: cold peak RSS rose ~5-9% on some workloads (warm RSS unchanged)
+- gates: changed-since 162/162 after each change; compare.sh OK
+- caveat: cold peak RSS rose ~5-9% on two workloads; warm RSS unchanged
 
-The per-stage criterion is met for reader, expander/lower, optimizer and
-serializer/deserializer.  The next evaluator levers (KontFrame slimming,
-primitive-call `vector<Value>` churn, GC) remain for Phase 3.
+## Appendix B — Evaluator profile and neutral list (2026-10-06)
 
-## Phase 2 — Startup structure
+Symbol-resolved profile of arithmetic and warm-boot runs is dominated by:
 
-1. **`load-install-scm` (2.33 s, largest warm cost).** The bootstrap installer
-   is expanded from source every boot and cannot use the cache before it
-   defines it. Design the bootstrap seed: move the cache backend into the boot
-   seed (kernel/C++) so `install.scm` becomes cacheable like any other file.
-   This is the only change that crosses the pre-expansion boundary; it must be
-   justified as bootstrap, not performance special-casing, and designed first.
-2. **Cached replay throughput** — `load-cached-runtime` + `standard-library` +
-   `mode-imports` (~1.6 s). Deserialize/eval/macro-rebuild and binding
-   re-import. Reduce re-import copying; speed transformer rebuild.
-3. **Distribution precompile** — build the full cache (including the
-   optimizer) at packaging via the normal mechanism, ship it, validate by the
-   content-addressed version. Makes cold ≈ warm for shipped installs.
+- `Evaluator::run_machine` ~11.6%
+- `KontFrame` construct/move/destroy ~17% (heavy frame: 2 `Value`, 2
+  `shared_ptr`, a `Values` vector, 4 winder vectors; moved on every push)
+- GC (mark/free/malloc) ~18%
+- `std::vector<Value>` move/realloc ~9% (per-call argument vectors)
+- `Environment::lookup` ~5%
+- `RealNumber::exact` ~5% in pre-fast-path runs (fixed by the int
+  comparisons landed in Phase 1)
 
-Exit: warm < 1 s; cold with shipped cache ≈ warm; cold-no-cache materially
-lower from Phase 1.
+Measured neutral, reverted (do not retry as-is): `state.frames.reserve(1024)`;
+`return_values` assign-instead-of-move.
 
-### 2a status (done)
+## Appendix C — 2c design record and split spec (2026-10-06)
 
-`tools/warm-bootstrap-cache.sh` now also requires the optimizer pipeline
-(`native_precompile_artifacts`: `core/ir`, `match*`, `compiler*`, `tree-il`)
-alongside the boot set, so a distribution-precompiled cache gives a fresh
-install a warm first program compile.  The optimizer artifacts are not in the
-boot-required set (validating them every start would re-parse the large
-compiler artifacts).  See `CCACHE_NOTES.md` for the ship/install procedure.
-
-### 2c design — making the bootstrap installer cacheable
-
-Problem: warm boot expands `expander/lib/install.scm` from source every start
-(~2.3 s, the largest warm cost).  It is loaded through the raw seed loader
-because it *defines* the cache backend (`install-library-file!`,
-`cache-file-for`, the gfo helpers) that every other cache path depends on, so
-it cannot use the cache it defines.  In warm mode the file is pure function
-definitions: the macro-layer install block is skipped when
-`GOLDFISH_NATIVE_ARTIFACTS` is set, so no side effects are needed to replay it.
-
-Options considered:
+Options considered for caching the installer:
 
 - **A. Fold `install.scm` into the kernel pre-expansion.** Rejected: it is
-  lib-layer; `build-kernel` expands kernel sources only; folding mixes layers
-  and violates the layering the kernel boundary protects.
-- **B. Cache `install.scm` as a normal module bundle loaded by a bootstrap-only
-  C++ path.** Preferred. On cold boot, capture its top-level definitions as a
-  module bundle (a dedicated capture, since `install-library-file!` does not
-  exist yet). On warm boot, if that bundle validates, eval its defs into the
-  base library exactly as `load_source` does, instead of re-expanding. This
-  uses the normal cache and adds no performance pre-expansion; it only needs a
-  bootstrap-only capture/load pair.
-- **C. Pre-expand the seed into a loadable file.** Rejected for the same
-  layering reason as A (bootstrap-justified, but still a special
-  pre-expansion).
+  lib-layer; `build-kernel` expands kernel sources only; folding mixes layers.
+- **B. Cache it as a module bundle loaded by a bootstrap-only C++ path.**
+  Chosen. Uses the normal cache, adds only a bootstrap capture/load pair.
+- **C. Pre-expand the seed into a loadable file.** Rejected: a special
+  pre-expansion, same layering objection as A.
 
-Risks / gate for B: the replay must reproduce binding kinds (toplevel vs macro)
+Risk/gate for B: the replay must reproduce binding kinds (toplevel vs macro)
 and library home exactly, or every later cache path breaks; the cache version
-must invalidate when `install.scm` or the pipeline changes (it does, by content
-hash). Validate with the full changed-since gate and `bench/cold-start`
-bootstrap/readonly states (cold→warm and cache-miss recovery).  Effort:
-medium-large, bootstrap-critical.
+invalidates by content hash when `install.scm` or the pipeline changes.
 
-Implementation finding (2026-10-06): B works up to the replay but needs one
-loader prerequisite.  Splitting `install.scm` into a definitions-only file
-plus a driver (boot block + boot-only helpers) and moving the `core/gfo.scm`
-seed load into `native_main` preserved cold boot, and capturing
-`install.scm` through `install-library-file!` succeeded (48 KB bundle).  Warm
-replay via `ArtifactLoader`'s module branch dropped `load-install-scm` from
-~2.3 s to ~520 ms, but it is not yet equivalent: the driver then fails with
-`unbound symbol: install-library-forms!`.  The replay registers the binding in
-the base library but does not populate the evaluation environment that
-`expand-eval`/`load_source` fills, so the expander cannot resolve it while
-expanding the next source file.
+Prototype (2026-10-06, reverted; split files preserved under `/tmp`):
+cold boot fine, capture produced a 48 KB bundle, warm `load-install-scm`
+2.3 s → 540 ms, but the driver then failed with
+`unbound symbol: install-library-forms!`. Root cause, refined: the
+module-bundle replay targets the BASE library, while `load-source-file` treats
+the file as an `internal_source` unit — fresh `(native-source)` exp-library
+linked to base, defs evaluated in the expander's module environment, toplevel
+aliases published to global. Even with the step-1 alias publication and the
+lowered defs evaluated in the expander environment, the expander could not
+resolve `install-library-forms!` while expanding the next source file; the
+macro-layer artifact replay is not sufficient for a native-source unit. Hence
+Phase 2c step 2 (native-source-unit replay semantics) precedes the re-apply.
 
-Prerequisite before B can land: make the module-bundle replay publish toplevel
-bindings into the expander/base-library evaluation environment (a change to
-`load_bundle_gfo_file` affecting every module-bundle load, hence its own
-gate-backed cycle).  Order: (1) loader pubishment fix, standalone; (2) re-apply
-the split + capture + warm replay; (3) measure `load-install-scm` ~2.3 s → ms
-and warm < 1 s.
+Split spec (line numbers into the original 1007-line `install.scm`; re-derive
+with sed if the `/tmp` files are gone):
 
-## Phase 3 — Runtime execution throughput
+- line 22 `(load-source-file "core/gfo.scm")` → moves into `native_main`
+- boot block lines 669-732 → `install-boot.scm`
+- top-level `module-define!` publish calls at 734-736, 869-891, 1007 →
+  `install-boot.scm`
+- remainder = definitions-only `install.scm` (899 lines)
+- `/tmp` artifacts (volatile): `install.orig.scm` (1007 lines),
+  `install-boot-body.scm` (boot block + publish calls), `install-md.scm`
 
-The ultimate metric: how fast programs run after startup. Currently
-unmeasured.
+## Appendix D — Key code locations
 
-- Evaluator: call/apply dispatch, closures, environments, tail calls.
-- Primitives: hot paths (lists, vectors, strings, numbers, char).
-- GC: allocation rate, collection pauses, promotion.
-- Build the runtime benchmark set first, then optimize the measured hotspots.
-
-Exit: runtime benchmarks established with a regression gate; measured gains.
-
-## Phase 4 — Memory
-
-- Peak RSS (cold ~91-103 MiB) and steady-state; GC tuning.
-- Allocation reduction in the compile pipeline and evaluator.
-- Track per-stage RSS alongside time.
-
-Exit: cold RSS below target with no throughput regression.
-
-## Phase 5 — Cache unification and IO
-
-- **One front door**: the bootstrap plain-file path and the `define-library`
-  path currently have separate orchestration and bundle kinds over one shared
-  backend. Unify the orchestration and bundle kind so the whole runtime is
-  cached libraries through one path (also removes the `case-lambda`
-  libraries-vs-module path ambiguity).
-- `gfo` format, atomic write, concurrency, cross-machine portability.
-
-Exit: one cache path, one bundle kind; recovery/concurrency gates green.
-
-## Phase 6 — Runtime image (research track)
-
-A `.fasl`-style image (serialized booted state) is the path to < 200 ms and
-needs a design before implementation: serialization boundary, transformer
-closures, gensym stability, invalidation, relationship to the `gfo` cache,
-trust/portability. Deliver a design doc and a feasibility prototype only.
-
-## Continuous
-
-- Every phase lands as separate, measured, reverted-if-flat commits.
-- Startup + runtime regression gates run before each landing.
-- Core-semantics changes additionally run the changed-since gate; `--all` only
-  when landing core semantics.
-- `bench/` records keep raw logs, metadata and checksums.
+- Boot sequence: `src/runtime/native_main.cpp` ~604-660
+- Source loader: `src/runtime/standard_primitives.cpp` — `load-source-file`
+  installed at :1461; seed (`core/gfo.scm`) branch :1517-1629;
+  `internal_source` branch :1660-1836 (`source_library` =
+  `make-exp-library '(native-source)`; `eval_environment` =
+  `module-eval-environment (the-expander-library)`; defs evaluated at
+  :1778-1806; toplevel aliases published to global at :1807-1835)
+- Artifact loader: `src/runtime/artifact.cpp` — `load_bundle_gfo_file`,
+  module branch :471-~560 (step 1: also defines toplevel bindings in the
+  expander module environment); `load_library_gfo_file` :303-445
+- Bootstrap: `src/runtime/bootstrap.cpp` — `native_bootstrap_artifacts` (boot
+  set, 12), `native_precompile_artifacts` (optimizer, 7), `load_cached_runtime`
+  / `load_artifact` / `load_cached_source`
+- Bootstrap installer: `goldfish/expander/lib/install.scm` (1007 lines)
