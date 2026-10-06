@@ -244,6 +244,18 @@ struct DynamicWinder final {
     }
 };
 
+// Winder payloads carried by the rare frames that need them: continuation
+// transfers stage the exit/enter legs here, guard/catch frames keep a copy
+// of the live winder stack.  Held behind a pointer so the common frames
+// (call/argument/if/sequence, constructed on every call) carry one null
+// word instead of three vector headers that would be constructed, moved
+// and destroyed on every push and pop.
+struct KontWind final {
+    std::vector<DynamicWinder> exiting_winders;
+    std::vector<DynamicWinder> entering_winders;
+    std::vector<DynamicWinder> saved_winders;
+};
+
 // An explicit evaluator continuation frame.  Frames are copied into a
 // ContinuationObject when Scheme captures its current continuation; keeping
 // the payload here typed lets the precise collector trace every live Value.
@@ -294,18 +306,52 @@ struct KontFrame final {
         ContinuationTransfer,
     };
 
+    // Hot fields first: kind and the loop indices share the first cache
+    // line with the environment the pop handlers need.
     Kind kind = Kind::Sequence;
-    Value expression = Value::unspecified();
-    Value auxiliary = Value::unspecified();
-    EnvironmentPtr environment;
-    EnvironmentPtr secondary_environment;
-    Values values;
     std::size_t index = 0;
     std::size_t stage = 0;
+    EnvironmentPtr environment;
+    Value expression = Value::unspecified();
+    Value auxiliary = Value::unspecified();
+    EnvironmentPtr secondary_environment;
+    Values values;
     std::vector<Value> expressions;
-    std::vector<DynamicWinder> exiting_winders;
-    std::vector<DynamicWinder> entering_winders;
-    std::vector<DynamicWinder> winders;
+    std::unique_ptr<KontWind> wind;
+
+    KontFrame() = default;
+    KontFrame(const KontFrame& other)
+        : kind(other.kind), index(other.index), stage(other.stage),
+          environment(other.environment), expression(other.expression),
+          auxiliary(other.auxiliary),
+          secondary_environment(other.secondary_environment),
+          values(other.values), expressions(other.expressions),
+          wind(other.wind ? std::make_unique<KontWind>(*other.wind) : nullptr) {}
+    KontFrame(KontFrame&&) = default;
+    KontFrame& operator=(const KontFrame& other) {
+        if (this != &other) {
+            kind = other.kind;
+            index = other.index;
+            stage = other.stage;
+            environment = other.environment;
+            expression = other.expression;
+            auxiliary = other.auxiliary;
+            secondary_environment = other.secondary_environment;
+            values = other.values;
+            expressions = other.expressions;
+            wind = other.wind ? std::make_unique<KontWind>(*other.wind)
+                              : nullptr;
+        }
+        return *this;
+    }
+    KontFrame& operator=(KontFrame&&) = default;
+
+    // The frame's winder payload, allocated on first use.
+    KontWind& wind_slots() {
+        if (!wind) wind = std::make_unique<KontWind>();
+        return *wind;
+    }
+    const KontWind& wind_slots() const { return *wind; }
 
     void trace(Tracer& tracer) const {
         tracer.mark(expression);
@@ -314,12 +360,14 @@ struct KontFrame final {
             tracer.mark(value);
         for (Value value : expressions)
             tracer.mark(value);
-        for (const DynamicWinder& winder : exiting_winders)
-            winder.trace(tracer);
-        for (const DynamicWinder& winder : entering_winders)
-            winder.trace(tracer);
-        for (const DynamicWinder& winder : winders)
-            winder.trace(tracer);
+        if (wind) {
+            for (const DynamicWinder& winder : wind->exiting_winders)
+                winder.trace(tracer);
+            for (const DynamicWinder& winder : wind->entering_winders)
+                winder.trace(tracer);
+            for (const DynamicWinder& winder : wind->saved_winders)
+                winder.trace(tracer);
+        }
         if (environment)
             environment->trace(tracer);
         if (secondary_environment)

@@ -420,7 +420,7 @@ Values Evaluator::run_machine(EvalSnapshot& state) {
                 frame.kind = KontFrame::Kind::Catch;
                 frame.auxiliary = arguments[0];
                 frame.expression = arguments[2];
-                frame.winders = state.winders;
+                frame.wind_slots().saved_winders = state.winders;
                 state.frames.push_back(std::move(frame));
                 invoke(arguments[1], {});
                 return;
@@ -822,9 +822,10 @@ Values Evaluator::run_machine(EvalSnapshot& state) {
     };
     continue_transfer = [&](KontFrame frame) {
         auto run_exiting = [&]() -> bool {
-            while (frame.index < frame.exiting_winders.size()) {
-                const DynamicWinder& winder =
-                    frame.exiting_winders[frame.index];
+            const std::vector<DynamicWinder>& exiting =
+                frame.wind_slots().exiting_winders;
+            while (frame.index < exiting.size()) {
+                const DynamicWinder& winder = exiting[frame.index];
                 if (state.winders.empty())
                     throw std::runtime_error("dynamic-wind stack mismatch");
                 state.winders.pop_back();
@@ -841,9 +842,10 @@ Values Evaluator::run_machine(EvalSnapshot& state) {
             return true;
         };
         auto run_entering = [&]() -> bool {
-            while (frame.index < frame.entering_winders.size()) {
-                const DynamicWinder& winder =
-                    frame.entering_winders[frame.index];
+            const std::vector<DynamicWinder>& entering =
+                frame.wind_slots().entering_winders;
+            while (frame.index < entering.size()) {
+                const DynamicWinder& winder = entering[frame.index];
                 if (winder.port_slot != DynamicWinder::PortSlot::None ||
                     winder.close_bound_port) {
                     enter_winder(winder);
@@ -873,7 +875,7 @@ Values Evaluator::run_machine(EvalSnapshot& state) {
             if (!run_entering()) return;
             frame.stage = 4;
         } else if (frame.stage == 3) {
-            state.winders.push_back(frame.entering_winders[frame.index]);
+            state.winders.push_back(frame.wind_slots().entering_winders[frame.index]);
             ++frame.index;
             if (!run_entering()) return;
             frame.stage = 4;
@@ -922,7 +924,8 @@ Values Evaluator::run_machine(EvalSnapshot& state) {
                              state.frames.begin() + handler_index - 1);
         target.frames.push_back(guard);
         target.environment = guard.environment;
-        target.winders = guard.winders;
+        target.winders = guard.wind ? guard.wind->saved_winders
+                                    : std::vector<DynamicWinder>{};
         target.values = {Value::unspecified()};
         target.returning = true;
         Value target_continuation = Value::object(
@@ -941,9 +944,9 @@ Values Evaluator::run_machine(EvalSnapshot& state) {
         transfer.auxiliary = target_continuation;
         transfer.values = {Value::unspecified()};
         for (std::size_t i = state.winders.size(); i > common; --i)
-            transfer.exiting_winders.push_back(state.winders[i - 1]);
+            transfer.wind_slots().exiting_winders.push_back(state.winders[i - 1]);
         for (std::size_t i = common; i < target_state.winders.size(); ++i)
-            transfer.entering_winders.push_back(target_state.winders[i]);
+            transfer.wind_slots().entering_winders.push_back(target_state.winders[i]);
 
         // Keep the active guard below exit thunks so an exception raised by
         // an after thunk can still be delivered to this guard. The synthetic
@@ -973,7 +976,7 @@ Values Evaluator::run_machine(EvalSnapshot& state) {
         transfer.auxiliary = continuation;
         transfer.values = {Value::unspecified()};
         for (auto it = state.winders.rbegin(); it != state.winders.rend(); ++it)
-            transfer.exiting_winders.push_back(*it);
+            transfer.wind_slots().exiting_winders.push_back(*it);
         state.frames.clear();
         continue_transfer(std::move(transfer));
     };
@@ -996,7 +999,8 @@ Values Evaluator::run_machine(EvalSnapshot& state) {
             target.frames.assign(state.frames.begin(),
                                  state.frames.begin() + i - 1);
             target.environment = state.environment;
-            target.winders = candidate.winders;
+            target.winders = candidate.wind ? candidate.wind->saved_winders
+                                            : std::vector<DynamicWinder>{};
             target.applying = true;
             target.initial_procedure = candidate.expression;
             target.initial_arguments = {tag, info};
@@ -1017,10 +1021,10 @@ Values Evaluator::run_machine(EvalSnapshot& state) {
             transfer.auxiliary = continuation;
             transfer.values = {Value::unspecified()};
             for (std::size_t j = state.winders.size(); j > common; --j)
-                transfer.exiting_winders.push_back(state.winders[j - 1]);
+                transfer.wind_slots().exiting_winders.push_back(state.winders[j - 1]);
             for (std::size_t j = common;
                  j < target_state.winders.size(); ++j)
-                transfer.entering_winders.push_back(target_state.winders[j]);
+                transfer.wind_slots().entering_winders.push_back(target_state.winders[j]);
             state.frames.resize(i - 1);
             state.frames.push_back(transfer);
             continue_transfer(std::move(transfer));
@@ -1297,7 +1301,7 @@ restart_machine:
                         specification.begin() + 1, specification.end()));
                     frame.auxiliary = specification[0];
                     frame.environment = environment;
-                    frame.winders = state.winders;
+                    frame.wind_slots().saved_winders = state.winders;
                     state.frames.push_back(std::move(frame));
                     sequence(list(std::vector<Value>(args.begin() + 1,
                                                      args.end())),
@@ -1938,9 +1942,9 @@ restart_machine:
         transfer.auxiliary = jump.continuation;
         transfer.values = jump.values;
         for (std::size_t i = state.winders.size(); i > common; --i)
-            transfer.exiting_winders.push_back(state.winders[i - 1]);
+            transfer.wind_slots().exiting_winders.push_back(state.winders[i - 1]);
         for (std::size_t i = common; i < target.winders.size(); ++i)
-            transfer.entering_winders.push_back(target.winders[i]);
+            transfer.wind_slots().entering_winders.push_back(target.winders[i]);
         state.frames.clear();
         continue_transfer(std::move(transfer));
         goto restart_machine;
@@ -1984,7 +1988,7 @@ restart_machine:
         transfer.auxiliary = continuation;
         transfer.values = {Value::unspecified()};
         for (auto it = state.winders.rbegin(); it != state.winders.rend(); ++it)
-            transfer.exiting_winders.push_back(*it);
+            transfer.wind_slots().exiting_winders.push_back(*it);
         state.frames.clear();
         continue_transfer(std::move(transfer));
         goto restart_machine;
