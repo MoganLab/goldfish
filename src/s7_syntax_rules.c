@@ -174,6 +174,9 @@ static s7_pointer strip_synclos(s7_scheme* sc, s7_pointer x) {
     s7_pointer kdr = strip_synclos(sc, s7_cdr(x));
     return s7_cons(sc, kar, kdr);
   }
+  if (s7_is_byte_vector(x) || s7_is_int_vector(x) || s7_is_float_vector(x) || s7_is_complex_vector(x)) {
+    return x;
+  }
   if (s7_is_vector(x)) {
     s7_int len = s7_vector_length(x);
     s7_pointer v = s7_make_vector(sc, len);
@@ -251,6 +254,13 @@ static bool is_quote_form(s7_scheme* sc, s7_pointer p) {
   return is_q;
 }
 
+static bool is_auxiliary_syntax(const char* name) {
+  return (strcmp(name, "=>") == 0 ||
+          strcmp(name, "else") == 0 ||
+          strcmp(name, "_") == 0 ||
+          strcmp(name, "...") == 0);
+}
+
 static s7_pointer resolve_ast(s7_scheme* sc, s7_pointer x, s7_pointer def_env, synclo_rename_entry** memo_head) {
   if (is_synclo(sc, x)) {
     syntactic_closure_t* s = (syntactic_closure_t*) s7_c_object_value(x);
@@ -263,15 +273,22 @@ static s7_pointer resolve_ast(s7_scheme* sc, s7_pointer x, s7_pointer def_env, s
       return resolve_ast(sc, expr, env, memo_head);
     }
     if (s7_is_symbol(expr)) {
-      bool is_bound = false;
-      if (s7_is_let(env) && s7_let_ref(sc, env, expr) != s7_undefined(sc)) {
-        is_bound = true;
-      } else if (s7_let_ref(sc, s7_rootlet(sc), expr) != s7_undefined(sc)) {
-        is_bound = true;
-      } else if (s7_is_defined(sc, s7_symbol_name(expr))) {
-        is_bound = true;
+      if (is_auxiliary_syntax(s7_symbol_name(expr))) {
+        return expr;
       }
-      if (is_bound) {
+      s7_pointer root_val = s7_let_ref(sc, s7_rootlet(sc), expr);
+      if (s7_is_let(env)) {
+        s7_pointer val = s7_let_ref(sc, env, expr);
+        if (val != s7_undefined(sc)) {
+          if (root_val == s7_undefined(sc) || val != root_val) {
+            if (s7_is_procedure(val) || s7_is_macro(sc, val)) {
+              return val;
+            }
+          }
+          return expr;
+        }
+      }
+      if (root_val != s7_undefined(sc)) {
         return expr;
       }
       for (synclo_rename_entry* e = *memo_head; e; e = e->next) {
@@ -307,6 +324,9 @@ static s7_pointer resolve_ast(s7_scheme* sc, s7_pointer x, s7_pointer def_env, s
     s7_pointer res_kar = resolve_ast(sc, kar, def_env, memo_head);
     s7_pointer res_kdr = resolve_ast(sc, s7_cdr(x), def_env, memo_head);
     return s7_cons(sc, res_kar, res_kdr);
+  }
+  if (s7_is_byte_vector(x) || s7_is_int_vector(x) || s7_is_float_vector(x) || s7_is_complex_vector(x)) {
+    return x;
   }
   if (s7_is_vector(x)) {
     s7_int len = s7_vector_length(x);
