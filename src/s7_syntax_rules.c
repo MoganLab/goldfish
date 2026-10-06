@@ -282,6 +282,7 @@ static s7_pointer resolve_ast(s7_scheme* sc, s7_pointer x, s7_pointer def_env, s
               return val;
             }
           }
+          return expr;
         }
       }
       if (root_val != s7_undefined(sc)) {
