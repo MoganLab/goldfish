@@ -1,18 +1,15 @@
+;; syntax-case.scm -- R6RS syntax-case procedural macro system
 ;;
-;; Copyright (C) 2026 The Goldfish Scheme Authors
+;; The syntax-case system, pattern matcher, and template expander in this file
+;; are derived from Chibi Scheme lib/chibi/syntax-case.scm (tag 0.12)
+;; Written by Marc Nieper-Wißkirchen
 ;;
-;; Licensed under the Apache License, Version 2.0 (the "License");
-;; you may not use this file except in compliance with the License.
-;; You may obtain a copy of the License at
+;; SPDX-FileCopyrightText: 2018-2021 Marc Nieper-Wißkirchen, Alex Shinn
 ;;
-;; http://www.apache.org/licenses/LICENSE-2.0
+;; SPDX-License-Identifier: BSD-3-Clause
 ;;
-;; Unless required by applicable law or agreed to in writing, software
-;; distributed under the License is distributed on an "AS IS" BASIS,
-;; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-;; See the License for the specific language governing permissions and
-;; limitations under the License.
-;;
+;; Copyright (c) 2026 The Goldfish Scheme Authors
+;; Follow the same License as the original one
 
 (define-library (liii syntax-case)
   (export syntax-case syntax quasisyntax unsyntax unsyntax-splicing with-syntax

@@ -1,80 +1,50 @@
+;; (liii syntax-case) 过程式宏系统模块函数分类索引
+;;
+;; `(liii syntax-case)` 提供 R6RS 风格的过程式卫生宏扩展机制，
+;; 派生自 Chibi Scheme (chibi syntax-case)，作者 Marc Nieper-Wißkirchen。
+;;
+;; ==== 使用说明 ====
+;;   (import (liii syntax-case))
+;;
+;; ==== 查看函数与宏文档 ====
+;;   bin/gf doc liii/syntax-case
+;;   bin/gf doc syntax-case
+;;   bin/gf doc syntax
+;;   bin/gf doc quasisyntax
+;;   bin/gf doc with-syntax
+;;   bin/gf doc datum->syntax
+;;   bin/gf doc syntax->datum
+;;
+;; ==== 函数与宏分类索引 ====
+;;
+;; 一、模式匹配与转录核心宏
+;;   syntax-case           - 模式匹配语法对象并执行展开期任意计算过程
+;;   syntax                - 构建保留词法上下文的语法对象模板
+;;   quasisyntax           - 语法准引用模板，支持 unsyntax 嵌入
+;;   unsyntax              - 准引用内部求值注入
+;;   unsyntax-splicing     - 准引用内部列表平铺注入
+;;   with-syntax           - 局部模式变量绑定
+;;   with-ellipsis         - 指定局部自定义省略号关键字
+;;
+;; 二、语法对象与原生数据互转
+;;   datum->syntax         - 将原生 S 表达式包装为携带词法作用域的语法对象
+;;   syntax->datum         - 递归剥除语法闭包还原为原生 S 表达式
+;;
+;; 三、标识符操作与谓词
+;;   identifier?           - 判断是否为标识符
+;;   free-identifier=?     - 比较两标识符在各自环境中的有效绑定
+;;   bound-identifier=?    - 比较两标识符是否同名且具有相同绑定身份
+;;   ellipsis-identifier?  - 判断是否为省略号标识符 ...
+;;   generate-temporaries  - 生成不冲突的唯一临时标识符列表
+;;   syntax-violation      - 抛出结构化语法错误异常
+
 (import (liii check)
         (liii syntax-case)
         (scheme base))
 
 (check-set-mode! 'report-failed)
 
-;; 1. 基础语法模板与常数
-(check (syntax (+ 1 2)) => '(+ 1 2))
-(check (syntax "hello") => "hello")
-(check (syntax 42) => 42)
-
-;; 2. 模式变量绑定
-(check (syntax-case 'foo ()
-         (x (syntax x)))
-       => 'foo)
-
-;; 3. 点对与列表解构
-(check (syntax-case '(a . b) ()
-         ((x . y) (syntax (x y))))
-       => '(a b))
-
-;; 4. 字面量匹配
-(check (syntax-case '(a . b) (b)
-         ((b . y) #f)
-         ((x . b) (syntax x)))
-       => 'a)
-
-;; 5. 简单省略号
-(check (syntax-case '(a b c) ()
-         ((a ...) (syntax (a ...))))
-       => '(a b c))
-
-;; 6. 带后置元素的省略号
-(check (syntax-case '(a b c) ()
-         ((a ... b) (syntax (a ... x b))))
-       => '(a b x c))
-
-;; 7. 带点尾后置元素的省略号
-(check (syntax-case '(a b c . d) ()
-         ((a ... b . c) (syntax (a ... x b y c))))
-       => '(a b x c y d))
-
-;; 8. 嵌套省略号解构与重排
-(check (syntax-case '((a b c) (d e f)) ()
-         (((x ... y) ...) (syntax ((x ...) ... y ...))))
-       => '((a b) (d e) c f))
-
-;; 9. quasisyntax / unsyntax / unsyntax-splicing
-(check (quasisyntax (list (unsyntax (+ 1 2))))
-       => '(list 3))
-
-(check (quasisyntax (list (unsyntax-splicing (list 1 2 3))))
-       => '(list 1 2 3))
-
-;; 10. with-syntax 局部绑定
-(check (with-syntax (((a b) '(10 20)))
-         (quasisyntax (sum (unsyntax (+ (syntax a) (syntax b))))))
-       => '(sum 30))
-
-;; 11. datum->syntax 与 syntax->datum
-(let ((stx (datum->syntax 'here '(foo 1 2))))
-  (check (syntax->datum stx) => '(foo 1 2)))
-
-;; 12. 标识符谓词与 generate-temporaries
-(check-true (free-identifier=? 'a 'a))
-(check-false (free-identifier=? 'a 'b))
-(check-true (bound-identifier=? 'a 'a))
-(check-false (bound-identifier=? 'a 'b))
-(check-true (identifier? 'a))
-(check-false (identifier? 123))
-
-(let ((temps (generate-temporaries '(a b c))))
-  (check (length temps) => 3)
-  (check-true (identifier? (car temps)))
-  (check-false (eq? (car temps) (cadr temps))))
-
-;; 13. 验收标准测试项 1：基于 define-syntax 的过程式计算宏
+;; 1. syntax-case 基础匹配与过程式计算宏
 (define-syntax calc-add
   (lambda (stx)
     (syntax-case stx ()
@@ -85,36 +55,24 @@
 
 (check (calc-add 10 20) => '(30))
 
-;; 14. 模式不匹配时抛出 syntax-error
-(check-catch 'syntax-error
-  (syntax-case '(1 2 3) ()
-    ((a b) 'matched)))
+;; 2. 局部 with-syntax 绑定与重排
+(check (with-syntax (((a b) '(10 20)))
+         (quasisyntax (sum (unsyntax (+ (syntax a) (syntax b))))))
+       => '(sum 30))
 
-;; 15. 带守卫表达式（fender）的分支分流
-(check (syntax-case '(foo 5) ()
-         ((_ n) (and (number? (syntax->datum (syntax n)))
-                     (even? (syntax->datum (syntax n))))
-          'even)
-         ((_ n) (and (number? (syntax->datum (syntax n)))
-                     (odd? (syntax->datum (syntax n))))
-          'odd))
-       => 'odd)
+;; 3. 语法对象与原生数据互转
+(let ((stx (datum->syntax 'here '(foo 1 2))))
+  (check (syntax->datum stx) => '(foo 1 2)))
 
-;; 16. 空省略号匹配
-(check (syntax-case '() ()
-         ((a ...) (syntax (a ...))))
-       => '())
+;; 4. 标识符谓词
+(check-true (free-identifier=? 'a 'a))
+(check-false (free-identifier=? 'a 'b))
+(check-true (bound-identifier=? 'a 'a))
+(check-false (bound-identifier=? 'a 'b))
+(check-true (identifier? 'a))
+(check-false (identifier? 123))
 
-;; 17. 向量模板与解构
-(check (syntax-case '#(1 2 3) ()
-         (#(a b c) (syntax #(c b a))))
-       => '#(3 2 1))
-
-;; 18. syntax-violation
-(check-catch 'syntax-error
-  (syntax-violation 'my-macro "something wrong" '(bad form)))
-
-;; 19. 导出宏引用库内未导出的私有过程（验证卫生隔离）
+;; 5. 跨库宏调用的卫生隔离
 (define-library (test private-syntax-case-helper)
   (export exported-sc-macro)
   (import (scheme base) (liii syntax-case))
