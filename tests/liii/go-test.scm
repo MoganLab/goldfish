@@ -30,6 +30,7 @@
 ;; ==== 并发任务 ====
 ;;
 ;; - go : 将代码调度到后台 worker 线程池并发执行
+;; - go-call : 过程版本的 go，将函数与参数调度到后台 worker 执行
 ;; - go-result : 同 go，但返回结果 channel（(ok value) | (error tag args)），异常不死等
 ;; - go-result-recv! : 接收并拆包结果 channel，任务出错时重抛原异常
 ;; - go-worker-count : 查询 worker 线程数（等于硬件核心数）
@@ -55,5 +56,11 @@
 (define ch (make-chan 1))
 (chan-send! ch 42)
 (check (chan-recv! ch) => 42)
+
+;; 验证未导出的内部符号不向外部泄漏
+(check-catch 'unbound-variable %go-call)
+(check-catch 'unbound-variable %go-result-spawn)
+(check-catch 'unbound-variable %go-current-jiffy)
+(check-catch 'unbound-variable %go-elapsed-ms)
 
 (check-report)

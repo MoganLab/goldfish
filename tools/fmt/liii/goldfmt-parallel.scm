@@ -76,7 +76,7 @@
 
     ;; ---- Worker Pool ----------------------------------------------------
     ;; worker-fn: 各语言导出的 (lambda (worker-args ... pool-ch result-ch))，
-    ;;   经 (liii go) 派发到独立 worker 会话（内部用 %go-call 按可选前置参数
+    ;;   经 (liii go) 派发到独立 worker 会话（内部用 go-call 按可选前置参数
     ;;   动态构造调用——go 宏要求直接调用语法，无法在驱动内按语言拼装）。
     ;; worker-args: 该语言 worker 的前置初始化实参（如 cpp 的 clang-format
     ;;   二进制路径字符串），spawn 时一次性序列化传入。
@@ -103,7 +103,7 @@
         (let spawn
           ((i 0))
           (when (< i jobs)
-            (apply %go-call worker-fn (append worker-args (list pool-ch result-ch)))
+            (apply go-call worker-fn (append worker-args (list pool-ch result-ch)))
             (spawn (+ i 1))
           ) ;when
         ) ;let
