@@ -532,12 +532,28 @@ Value ArtifactLoader::load_bundle_gfo_file(
         // lowered bodies use allocated toplevel names, while transformer
         // code may still evaluate generated forms through the expander's
         // root environment.  Recreate the source-loader aliases here.
+        // Source loading evaluates a file's definitions in the expander
+        // library's module environment and then aliases them into the root
+        // evaluator.  A replayed module must do both: the root aliases let
+        // earlier/later libraries resolve each other's gensyms, and the
+        // expander environment is where a subsequent load_source file
+        // resolves the module's free identifiers during expansion.
+        Value expander_module = evaluator_.eval(
+            evaluator_.symbol("the-expander-library"));
+        Value expander_env_value = call("module-eval-environment", {expander_module});
+        EnvironmentPtr expander_environment;
+        if (expander_env_value.is_object() &&
+            expander_env_value.as_object()->type() == ObjectType::EvalEnvironment)
+            expander_environment =
+                expander_env_value.as_object<EvalEnvironmentObject>()->environment;
         for (Value entry : proper_list(binding_entries)) {
             auto fields = proper_list(entry);
             if (fields.size() >= 2 && symbol_named(fields[1], "toplevel") &&
                 fields.size() >= 3) {
-                evaluator_.eval(evaluator_.list(
-                    {evaluator_.symbol("define"), fields[0], fields[2]}));
+                Value value = evaluator_.eval(fields[2]);
+                evaluator_.global_environment()->define(fields[0], value);
+                if (expander_environment)
+                    expander_environment->define(fields[0], value);
             }
         }
         return Value::unspecified();
