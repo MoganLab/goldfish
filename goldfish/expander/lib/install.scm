@@ -501,38 +501,40 @@
 (define (deserialize-cache-sexp x)
   (let ((memo '()))
     (let loop ((y x))
-      (cond
-        ((and (pair? y) (eq? (car y) 'stx*)
-              (pair? (cdr y)) (pair? (cddr y)) (pair? (cdddr y)))
-         (let ((cell (assq y memo)))
-           (if cell
-             (cdr cell)
-             (let ((s (make-syntax (loop (cadr y)) (caddr y)
-                                   (deserialize-lib (cadddr y)))))
-               (set! memo (cons (cons y s) memo))
-               s))))
-        ((and (pair? y) (eq? (car y) 'lib*))
-         (deserialize-lib y))
-        ;; Shared structure (#n= labels restored by the reader as one
-        ;; object) must rebuild to one object: mutation through one alias
-        ;; stays visible through the other. The writer only emits labels
-        ;; for completed (acyclic) objects, so store-after-build cannot
-        ;; loop; a second visit to the same serialized node reuses it.
-        ((pair? y)
-         (let ((cell (assq y memo)))
-           (if cell
-             (cdr cell)
-             (let ((p (cons (loop (car y)) (loop (cdr y)))))
-               (set! memo (cons (cons y p) memo))
-               p))))
-        ((and (vector? y) (not (bytevector? y)))
-         (let ((cell (assq y memo)))
-           (if cell
-             (cdr cell)
-             (let ((v (vector-map loop y)))
-               (set! memo (cons (cons y v) memo))
-               v))))
-        (else y)))))
+      ;; One pair? test and one car, then dispatch on the head, instead of
+      ;; re-testing pair?/car for the stx*/lib* prefixes and the generic pair.
+      (if (pair? y)
+        (let ((cell (assq y memo)))
+          (if cell
+            (cdr cell)
+            (let ((head (car y)))
+              (cond
+                ((and (eq? head 'stx*)
+                      (pair? (cdr y)) (pair? (cddr y)) (pair? (cdddr y)))
+                 (let ((s (make-syntax (loop (cadr y)) (caddr y)
+                                       (deserialize-lib (cadddr y)))))
+                   (set! memo (cons (cons y s) memo))
+                   s))
+                ((eq? head 'lib*)
+                 (deserialize-lib y))
+                ;; Shared structure (#n= labels restored by the reader as
+                ;; one object) must rebuild to one object: mutation through
+                ;; one alias stays visible through the other. The writer
+                ;; only emits labels for completed (acyclic) objects, so
+                ;; store-after-build cannot loop; a second visit to the
+                ;; same serialized node reuses it.
+                (else
+                 (let ((p (cons (loop (car y)) (loop (cdr y)))))
+                   (set! memo (cons (cons y p) memo))
+                   p))))))
+        (if (and (vector? y) (not (bytevector? y)))
+          (let ((cell (assq y memo)))
+            (if cell
+              (cdr cell)
+              (let ((v (vector-map loop y)))
+                (set! memo (cons (cons y v) memo))
+                v)))
+          y)))))
 
 ;;; Bundle schema: (bundle <version> <kind> <section>*).  Kinds and their
 ;;; sections:
