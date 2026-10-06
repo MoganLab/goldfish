@@ -182,6 +182,7 @@ public:
         Ordinary,
         CaptureContinuation,
         DynamicWind,
+        Equal,
         Map,
         ForEach,
         Fold,
@@ -446,6 +447,9 @@ public:
 
     void define_primitive(const std::string& name,
                           PrimitiveObject::Function function);
+    void define_primitive(const std::string& name,
+                          PrimitiveObject::Function function,
+                          PrimitiveObject::Kind kind);
     void define_callcc_primitive(const std::string& name);
     void define_dynamic_wind_primitive(const std::string& name);
     void define_machine_primitive(const std::string& name,

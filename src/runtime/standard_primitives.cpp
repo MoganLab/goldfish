@@ -800,6 +800,12 @@ Value copy_value(Evaluator& evaluator, const Values& args) {
 } // namespace
 
 bool equal(Value left, Value right) {
+    // Atoms (and structurally identical values) need no cycle guard: the
+    // guard vector's per-call allocation dominated association-list walks.
+    if (left == right) return true;
+    if (!left.is_object() || !right.is_object())
+        return is_number(left) && is_number(right) && equivalent(left, right);
+    if (left.as_object()->type() != right.as_object()->type()) return false;
     return equal_values_impl(left, right);
 }
 

@@ -65,16 +65,11 @@
     (if (and (null? tail) (pair? x))
       (error 'out-of-range "list-ref: index out of range" n)
       (car tail))))
-(define (member x xs . maybe-equal?)
-  (let ((same? (if (null? maybe-equal?) equal? (car maybe-equal?))))
-    (if (null? xs) #f
-        (if (same? x (car xs)) xs
-            (member x (cdr xs) same?)))))
-(define (assoc x xs . maybe-equal?)
-  (let ((same? (if (null? maybe-equal?) equal? (car maybe-equal?))))
-    (if (null? xs) #f
-        (if (same? x (caar xs)) (car xs)
-            (assoc x (cdr xs) same?)))))
+;; member / assoc are the native machine loops (bootstrap_primitives'
+;; Kind::Member / Kind::Assoc): these definitions used to shadow them with a
+;; Scheme walk whose per-entry closure call measured ~3 us/step.  The machine
+;; loops inline the default equal? comparator and keep the machine path for
+;; custom predicates.
 (define (vector->list v . range)
   (unless (vector? v)
     (error 'wrong-type-arg "vector->list: expected a vector" v))
