@@ -176,6 +176,25 @@ hash). Validate with the full changed-since gate and `bench/cold-start`
 bootstrap/readonly states (cold→warm and cache-miss recovery).  Effort:
 medium-large, bootstrap-critical.
 
+Implementation finding (2026-10-06): B works up to the replay but needs one
+loader prerequisite.  Splitting `install.scm` into a definitions-only file
+plus a driver (boot block + boot-only helpers) and moving the `core/gfo.scm`
+seed load into `native_main` preserved cold boot, and capturing
+`install.scm` through `install-library-file!` succeeded (48 KB bundle).  Warm
+replay via `ArtifactLoader`'s module branch dropped `load-install-scm` from
+~2.3 s to ~520 ms, but it is not yet equivalent: the driver then fails with
+`unbound symbol: install-library-forms!`.  The replay registers the binding in
+the base library but does not populate the evaluation environment that
+`expand-eval`/`load_source` fills, so the expander cannot resolve it while
+expanding the next source file.
+
+Prerequisite before B can land: make the module-bundle replay publish toplevel
+bindings into the expander/base-library evaluation environment (a change to
+`load_bundle_gfo_file` affecting every module-bundle load, hence its own
+gate-backed cycle).  Order: (1) loader pubishment fix, standalone; (2) re-apply
+the split + capture + warm replay; (3) measure `load-install-scm` ~2.3 s → ms
+and warm < 1 s.
+
 ## Phase 3 — Runtime execution throughput
 
 The ultimate metric: how fast programs run after startup. Currently
