@@ -3,6 +3,12 @@
 #
 #   tools/prof.sh <command...>
 #   tools/prof.sh -n 199 ./bin/gf -m liii some-file.scm
+#
+# For function-level frames, profile the unstripped binary built by
+# tools/build-prof.sh:
+#
+#   tools/build-prof.sh
+#   tools/prof.sh bin/gf-prof -e '(...)'
 set -eu
 freq=99
 if [ "${1:-}" = "-n" ]; then
