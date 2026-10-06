@@ -16,6 +16,12 @@
 
 (define-library (scheme base)
   (export let-values
+    let*-values
+    define-syntax
+    syntax-rules
+    syntax-error
+    let-syntax
+    letrec-syntax
     ;; R7RS 5: Program Structure
     define-values
     define-record-type
@@ -220,6 +226,7 @@
     read-error?
     file-error?
   ) ;export
+  (include "syntax-rules.scm")
   (begin
 
     ;; 0-clause BSD
