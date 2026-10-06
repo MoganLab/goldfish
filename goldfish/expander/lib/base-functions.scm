@@ -146,40 +146,10 @@
     #t
     (and (pair? (car rest)) (lists-live? (cdr rest)))))
 
-(define (map f l1 . rest)
-  (if (null? rest)
-    (let map1 ((l l1))
-      (if (pair? l)
-        (cons (f (car l)) (map1 (cdr l)))
-        '()))
-    (let mapn ((l1 l1) (rest rest))
-      (if (and (pair? l1) (lists-live? rest))
-        (cons (apply f (car l1) (map-cars rest))
-              (mapn (cdr l1) (map-cdrs rest)))
-        '()))))
-
-;; car of every rest list.
-(define (map-cars rest)
-  (if (null? rest)
-    '()
-    (cons (caar rest) (map-cars (cdr rest)))))
-
-;; cdr of every rest list.
-(define (map-cdrs rest)
-  (if (null? rest)
-    '()
-    (cons (cdar rest) (map-cdrs (cdr rest)))))
-
-(define (for-each f l1 . rest)
-  (if (null? rest)
-    (let fe1 ((l l1))
-      (unless (null? l)
-        (f (car l))
-        (fe1 (cdr l))))
-    (let fen ((l1 l1) (rest rest))
-      (when (and (not (null? l1)) (lists-live? rest))
-        (apply f (car l1) (map-cars rest))
-        (fen (cdr l1) (map-cdrs rest))))))
+;; map / for-each are the native machine loops (Kind::Map / Kind::ForEach):
+;; these Scheme definitions shadowed them with per-element closure calls.
+;; The machine loops cover one-list and multi-list zipping with the same
+;; shortest-list termination.
 
 
 ;; Fold follows the conventional (accumulator element) calling order used by
