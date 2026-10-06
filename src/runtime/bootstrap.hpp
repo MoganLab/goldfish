@@ -36,6 +36,11 @@ public:
     // source load (install-library-file! replays a valid bundle or
     // re-expands and saves one).
     void capture_installer();
+    // Same capture/replay pair for the gfo cache seed: a warm boot replays
+    // core/gfo.scm's bundle ahead of the installer; a cold boot loads the
+    // seed from source and captures it once the installer's machinery is up.
+    bool load_cached_seed(const std::string& cache_root = {});
+    void capture_seed();
     Value load_library_artifact(const std::string& path);
     Value load_artifact(const std::string& path);
     void register_library(const std::string& name, const std::string& path);

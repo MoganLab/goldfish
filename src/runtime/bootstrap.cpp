@@ -446,6 +446,30 @@ void NativeBootstrap::load_cached_source(const std::string& path) {
     }
 }
 
+bool NativeBootstrap::load_cached_seed(const std::string& cache_root) {
+    const fs::path bundle = fs::path(cache_directory(cache_root)) /
+                            "core/gfo.scm-o2.gfo";
+    try {
+        validate_artifact(runtime_.evaluator(), bundle, "core/gfo.scm");
+        loader_.load_source_unit_gfo_file(bundle.string(), "core/gfo.scm");
+    } catch (const std::exception& error) {
+        std::fprintf(stderr, "seed cache unavailable: %s\n", error.what());
+        return false;
+    }
+    return true;
+}
+
+void NativeBootstrap::capture_seed() {
+    // The cached-source path expands the seed through install-library-file!
+    // a second time and saves its bundle; the definitions are already live
+    // from the source load, so this only costs a cold boot.
+    try {
+        load_cached_source("core/gfo.scm");
+    } catch (const std::exception& error) {
+        std::fprintf(stderr, "seed cache capture failed: %s\n", error.what());
+    }
+}
+
 bool NativeBootstrap::load_cached_installer(const std::string& cache_root) {
     const fs::path bundle = fs::path(cache_directory(cache_root)) /
                             "expander/lib/install.scm-o2.gfo";

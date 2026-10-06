@@ -612,20 +612,21 @@ int main(int argc, char** argv) {
             load_source(runtime.evaluator(), "liii/prelude.scm");
             stage("cold-source-bootstrap");
         }
-        // The cache seed must exist before the installer loads: install.scm's
-        // definitions call into it (was line 22 of the unsplit install.scm).
-        load_source(runtime.evaluator(), "core/gfo.scm");
+        // The cache seed and the installer are a capture/replay pair: warm
+        // boots replay both bundles (the seed's definitions must exist
+        // before anything calls into them); a miss loads the source and
+        // captures it once the installer's machinery is up.  Either way the
+        // boot block and the post-install publishes run from install-boot.scm.
+        bool seed_replayed = cached && bootstrap.load_cached_seed();
+        if (!seed_replayed)
+            load_source(runtime.evaluator(), "core/gfo.scm");
         stage("gfo-seed");
-        // Warm boots replay the definitions-only installer from its captured
-        // bundle (native-source-unit semantics); a miss loads the source and
-        // captures it for the next boot.  Either way the boot block and the
-        // post-install publishes then run from install-boot.scm.
         bool installer_replayed = cached && bootstrap.load_cached_installer();
-        if (!installer_replayed) {
+        if (!installer_replayed)
             load_source(runtime.evaluator(), "expander/lib/install.scm");
-            bootstrap.capture_installer();
-        }
         stage("load-install-scm");
+        if (!seed_replayed) bootstrap.capture_seed();
+        if (!installer_replayed) bootstrap.capture_installer();
         load_source(runtime.evaluator(), "expander/lib/install-boot.scm");
         stage("load-install-boot");
         runtime.evaluator().collect();
