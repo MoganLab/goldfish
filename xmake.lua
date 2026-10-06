@@ -142,6 +142,7 @@ target ("goldfish") do
     add_files ("src/s7_dtoa.c", {languages = "c11"})
     add_files ("src/s7_continuation.c", {languages = "c11"})
     add_files ("src/s7_scheme_let.c", {languages = "c11"})
+    add_files ("src/s7_syntax_rules.c", {languages = "c11"})
     add_packages("tbox")
     add_packages("argh")
     if has_config("http") and not is_plat("wasm") then
