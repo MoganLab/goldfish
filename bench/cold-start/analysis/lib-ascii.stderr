@@ -1,0 +1,135 @@
+[timing] install-primitives 0 ms
+[timing] load-kernel 52 ms
+native cache unavailable: native bootstrap cache /tmp/gf-lib6/v285a60cb2635/scheme/case-lambda.scm-o2.gfo: missing artifact /tmp/gf-lib6/v285a60cb2635/scheme/case-lambda.scm-o2.gfo
+[timing] load-cached-runtime 32 ms
+[timing] cold-source-bootstrap 277 ms
+[timing] lib-cache-lookup expander/lib/syntax-runtime.scm 11 ms
+[timing] lib-restore-bindings (goldfish) 6 ms
+[timing] lib-eval-defs (goldfish) 45 ms
+[timing] lib-rebuild-macros (goldfish) 13 ms
+[timing] lib-restore expander/lib/syntax-runtime.scm 66 ms
+[timing] lib-cache-lookup expander/lib/syntax-case.scm 2 ms
+[timing] lib-restore-bindings (goldfish) 0 ms
+[timing] lib-eval-defs (goldfish) 3 ms
+[timing] lib-rebuild-macros (goldfish) 50 ms
+[timing] lib-restore expander/lib/syntax-case.scm 54 ms
+[timing] lib-cache-lookup expander/lib/define-record-type.scm 0 ms
+[timing] lib-restore-bindings (goldfish) 0 ms
+[timing] lib-eval-defs (goldfish) 4 ms
+[timing] lib-rebuild-macros (goldfish) 2 ms
+[timing] lib-restore expander/lib/define-record-type.scm 7 ms
+[timing] lib-cache-lookup expander/lib/core-macros.scm 3 ms
+[timing] lib-restore-bindings (goldfish) 0 ms
+[timing] lib-eval-defs (goldfish) 0 ms
+[timing] lib-rebuild-macros (goldfish) 53 ms
+[timing] lib-restore expander/lib/core-macros.scm 53 ms
+[timing] lib-cache-lookup expander/lib/cond-expand.scm 0 ms
+[timing] lib-restore-bindings (goldfish) 1 ms
+[timing] lib-eval-defs (goldfish) 6 ms
+[timing] lib-rebuild-macros (goldfish) 0 ms
+[timing] lib-restore expander/lib/cond-expand.scm 8 ms
+[timing] lib-cache-lookup expander/lib/defmacro.scm 1 ms
+[timing] lib-restore-bindings (goldfish) 0 ms
+[timing] lib-eval-defs (goldfish) 0 ms
+[timing] lib-rebuild-macros (goldfish) 14 ms
+[timing] lib-restore expander/lib/defmacro.scm 15 ms
+[timing] lib-cache-lookup expander/lib/define-star.scm 1 ms
+[timing] lib-restore-bindings (goldfish) 0 ms
+[timing] lib-eval-defs (goldfish) 0 ms
+[timing] lib-rebuild-macros (goldfish) 21 ms
+[timing] lib-restore expander/lib/define-star.scm 21 ms
+[timing] lib-cache-lookup expander/lib/module-registry.scm 0 ms
+[timing] lib-restore-bindings (goldfish) 9 ms
+[timing] lib-eval-defs (goldfish) 6 ms
+[timing] lib-rebuild-macros (goldfish) 0 ms
+[timing] lib-restore expander/lib/module-registry.scm 15 ms
+[timing] lib-cache-lookup expander/lib/module.scm 5 ms
+[timing] lib-restore-bindings (goldfish) 25 ms
+[timing] lib-eval-defs (goldfish) 118 ms
+[timing] lib-rebuild-macros (goldfish) 0 ms
+[timing] lib-restore expander/lib/module.scm 144 ms
+[timing] load-install-scm 3096 ms
+[timing] expansion-helpers 6 ms
+[timing] lib-cache-lookup expander/lib/base-functions.scm 1 ms
+[timing] lib-restore-bindings (native-source "expander/lib/base-functions.scm") 4 ms
+[timing] lib-eval-defs (native-source "expander/lib/base-functions.scm") 29 ms
+[timing] lib-rebuild-macros (native-source "expander/lib/base-functions.scm") 0 ms
+[timing] lib-restore expander/lib/base-functions.scm 33 ms
+[timing] lib-cache-lookup expander/lib/native-hash-adapter.scm 1 ms
+[timing] lib-restore-bindings (native-source "expander/lib/native-hash-adapter.scm") 2 ms
+[timing] lib-eval-defs (native-source "expander/lib/native-hash-adapter.scm") 11 ms
+[timing] lib-rebuild-macros (native-source "expander/lib/native-hash-adapter.scm") 0 ms
+[timing] lib-restore expander/lib/native-hash-adapter.scm 14 ms
+[timing] lib-cache-lookup expander/lib/native-abi.scm 2 ms
+[timing] lib-restore-bindings (native-source "expander/lib/native-abi.scm") 8 ms
+[timing] lib-eval-defs (native-source "expander/lib/native-abi.scm") 34 ms
+[timing] lib-rebuild-macros (native-source "expander/lib/native-abi.scm") 0 ms
+[timing] lib-restore expander/lib/native-abi.scm 43 ms
+[timing] native-scheme-surface 98 ms
+[timing] lib-cache-lookup expander/lib/standard.scm 9 ms
+[timing] lib-restore-bindings (goldfish) 0 ms
+[timing] lib-eval-defs (goldfish) 0 ms
+[timing] lib-rebuild-macros (goldfish) 76 ms
+[timing] lib-restore expander/lib/standard.scm 76 ms
+[timing] standard-library 86 ms
+[timing] post-standard-collection 5 ms
+[timing] lib-cache-lookup scheme/base.scm 5 ms
+[timing] (imp-pairs (goldfish)) 3 ms
+[timing] (imp-view (goldfish)) 237 ms
+[timing] (imp-add (goldfish)) 0 ms
+[timing] (imp-pairs (goldfish)) 5 ms
+[timing] (imp-view (goldfish)) 243 ms
+[timing] (imp-add (goldfish)) 0 ms
+[timing] (restore-import (scheme base)) 489 ms
+[timing] (restore-bindings (scheme base)) 2 ms
+[timing] (restore-macros (scheme base)) 62 ms
+[timing] (restore-renames (scheme base)) 0 ms
+[timing] (restore-exports (scheme base)) 30 ms
+[timing] lib-restore scheme/base.scm 585 ms
+[timing] lib-eval scheme/base.scm 9 ms
+[timing] (imp-pairs (scheme base)) 602 ms
+[timing] (imp-view (scheme base)) 68 ms
+[timing] (imp-add (scheme base)) 1 ms
+[timing] mode-imports 674 ms
+[timing] lib-cache-lookup liii/reader.scm 4 ms
+[timing] lib-restore-bindings (native-source "liii/reader.scm") 17 ms
+[timing] lib-eval-defs (native-source "liii/reader.scm") 129 ms
+[timing] lib-rebuild-macros (native-source "liii/reader.scm") 1 ms
+[timing] lib-restore liii/reader.scm 148 ms
+[timing] load-source-reader 154 ms
+[timing] lib-cache-lookup expander/lib/native-write.scm 0 ms
+[timing] lib-restore-bindings (native-source "expander/lib/native-write.scm") 1 ms
+[timing] lib-eval-defs (native-source "expander/lib/native-write.scm") 1 ms
+[timing] lib-rebuild-macros (native-source "expander/lib/native-write.scm") 0 ms
+[timing] lib-restore expander/lib/native-write.scm 2 ms
+[timing] load-native-writer 3 ms
+[timing] boot total 4488 ms
+[timing] install-fork-runner 0 ms
+[timing] lib-cache-lookup liii/ascii.scm 54 ms
+[timing] (imp-pairs (goldfish)) 3 ms
+[timing] (imp-view (goldfish)) 2 ms
+[timing] (imp-add (goldfish)) 0 ms
+[timing] lib-cache-lookup srfi/srfi-175.scm 1 ms
+[timing] (imp-pairs (goldfish)) 3 ms
+[timing] (imp-view (goldfish)) 2 ms
+[timing] (imp-add (goldfish)) 0 ms
+[timing] (restore-import (srfi srfi-175)) 6 ms
+[timing] (restore-bindings (srfi srfi-175)) 4 ms
+[timing] (restore-macros (srfi srfi-175)) 0 ms
+[timing] (restore-renames (srfi srfi-175)) 0 ms
+[timing] (restore-exports (srfi srfi-175)) 3 ms
+[timing] lib-restore srfi/srfi-175.scm 15 ms
+[timing] lib-eval srfi/srfi-175.scm 7 ms
+[timing] (imp-pairs (srfi srfi-175)) 25 ms
+[timing] (imp-view (srfi srfi-175)) 10 ms
+[timing] (imp-add (srfi srfi-175)) 4 ms
+[timing] (restore-import (liii ascii)) 48 ms
+[timing] (restore-bindings (liii ascii)) 0 ms
+[timing] (restore-macros (liii ascii)) 0 ms
+[timing] (restore-renames (liii ascii)) 0 ms
+[timing] (restore-exports (liii ascii)) 7 ms
+[timing] lib-restore liii/ascii.scm 57 ms
+[timing] lib-eval liii/ascii.scm 5 ms
+[timing] (imp-pairs (liii ascii)) 117 ms
+[timing] (imp-view (liii ascii)) 15 ms
+[timing] (imp-add (liii ascii)) 4 ms

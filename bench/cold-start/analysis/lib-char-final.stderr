@@ -1,0 +1,359 @@
+[timing] install-primitives 0 ms
+[timing] load-kernel 54 ms
+native cache unavailable: native bootstrap cache /tmp/gf-final/v946608453e50/scheme/case-lambda.scm-o2.gfo: missing artifact /tmp/gf-final/v946608453e50/scheme/case-lambda.scm-o2.gfo
+[timing] load-cached-runtime 35 ms
+[timing] cold-source-bootstrap 320 ms
+[timing] cache-read /tmp/gf-final/v946608453e50/expander/lib/syntax-runtime.scm-o2.gfo 2 ms
+[timing] cache-envelope /tmp/gf-final/v946608453e50/expander/lib/syntax-runtime.scm-o2.gfo 0 ms
+[timing] cache-deps /tmp/gf-final/v946608453e50/expander/lib/syntax-runtime.scm-o2.gfo 0 ms
+[timing] lib-cache-lookup expander/lib/syntax-runtime.scm 12 ms
+[timing] lib-restore-bindings (goldfish) 5 ms
+[timing] lib-eval-defs (goldfish) 27 ms
+[timing] lib-rebuild-macros (goldfish) 13 ms
+[timing] lib-restore expander/lib/syntax-runtime.scm 47 ms
+[timing] cache-read /tmp/gf-final/v946608453e50/expander/lib/syntax-case.scm-o2.gfo 1 ms
+[timing] cache-envelope /tmp/gf-final/v946608453e50/expander/lib/syntax-case.scm-o2.gfo 0 ms
+[timing] cache-deps /tmp/gf-final/v946608453e50/expander/lib/syntax-case.scm-o2.gfo 0 ms
+[timing] lib-cache-lookup expander/lib/syntax-case.scm 2 ms
+[timing] lib-restore-bindings (goldfish) 0 ms
+[timing] lib-eval-defs (goldfish) 2 ms
+[timing] lib-rebuild-macros (goldfish) 27 ms
+[timing] lib-restore expander/lib/syntax-case.scm 31 ms
+[timing] cache-read /tmp/gf-final/v946608453e50/expander/lib/define-record-type.scm-o2.gfo 0 ms
+[timing] cache-envelope /tmp/gf-final/v946608453e50/expander/lib/define-record-type.scm-o2.gfo 0 ms
+[timing] cache-deps /tmp/gf-final/v946608453e50/expander/lib/define-record-type.scm-o2.gfo 0 ms
+[timing] lib-cache-lookup expander/lib/define-record-type.scm 0 ms
+[timing] lib-restore-bindings (goldfish) 0 ms
+[timing] lib-eval-defs (goldfish) 2 ms
+[timing] lib-rebuild-macros (goldfish) 1 ms
+[timing] lib-restore expander/lib/define-record-type.scm 5 ms
+[timing] cache-read /tmp/gf-final/v946608453e50/expander/lib/core-macros.scm-o2.gfo 3 ms
+[timing] cache-envelope /tmp/gf-final/v946608453e50/expander/lib/core-macros.scm-o2.gfo 0 ms
+[timing] cache-deps /tmp/gf-final/v946608453e50/expander/lib/core-macros.scm-o2.gfo 0 ms
+[timing] lib-cache-lookup expander/lib/core-macros.scm 3 ms
+[timing] lib-restore-bindings (goldfish) 0 ms
+[timing] lib-eval-defs (goldfish) 0 ms
+[timing] lib-rebuild-macros (goldfish) 37 ms
+[timing] lib-restore expander/lib/core-macros.scm 37 ms
+[timing] cache-read /tmp/gf-final/v946608453e50/expander/lib/cond-expand.scm-o2.gfo 0 ms
+[timing] cache-envelope /tmp/gf-final/v946608453e50/expander/lib/cond-expand.scm-o2.gfo 0 ms
+[timing] cache-deps /tmp/gf-final/v946608453e50/expander/lib/cond-expand.scm-o2.gfo 0 ms
+[timing] lib-cache-lookup expander/lib/cond-expand.scm 1 ms
+[timing] lib-restore-bindings (goldfish) 1 ms
+[timing] lib-eval-defs (goldfish) 4 ms
+[timing] lib-rebuild-macros (goldfish) 0 ms
+[timing] lib-restore expander/lib/cond-expand.scm 5 ms
+[timing] cache-read /tmp/gf-final/v946608453e50/expander/lib/defmacro.scm-o2.gfo 1 ms
+[timing] cache-envelope /tmp/gf-final/v946608453e50/expander/lib/defmacro.scm-o2.gfo 0 ms
+[timing] cache-deps /tmp/gf-final/v946608453e50/expander/lib/defmacro.scm-o2.gfo 0 ms
+[timing] lib-cache-lookup expander/lib/defmacro.scm 1 ms
+[timing] lib-restore-bindings (goldfish) 0 ms
+[timing] lib-eval-defs (goldfish) 0 ms
+[timing] lib-rebuild-macros (goldfish) 9 ms
+[timing] lib-restore expander/lib/defmacro.scm 10 ms
+[timing] cache-read /tmp/gf-final/v946608453e50/expander/lib/define-star.scm-o2.gfo 1 ms
+[timing] cache-envelope /tmp/gf-final/v946608453e50/expander/lib/define-star.scm-o2.gfo 0 ms
+[timing] cache-deps /tmp/gf-final/v946608453e50/expander/lib/define-star.scm-o2.gfo 0 ms
+[timing] lib-cache-lookup expander/lib/define-star.scm 1 ms
+[timing] lib-restore-bindings (goldfish) 0 ms
+[timing] lib-eval-defs (goldfish) 0 ms
+[timing] lib-rebuild-macros (goldfish) 15 ms
+[timing] lib-restore expander/lib/define-star.scm 15 ms
+[timing] cache-read /tmp/gf-final/v946608453e50/expander/lib/module-registry.scm-o2.gfo 0 ms
+[timing] cache-envelope /tmp/gf-final/v946608453e50/expander/lib/module-registry.scm-o2.gfo 0 ms
+[timing] cache-deps /tmp/gf-final/v946608453e50/expander/lib/module-registry.scm-o2.gfo 0 ms
+[timing] lib-cache-lookup expander/lib/module-registry.scm 0 ms
+[timing] lib-restore-bindings (goldfish) 3 ms
+[timing] lib-eval-defs (goldfish) 4 ms
+[timing] lib-rebuild-macros (goldfish) 0 ms
+[timing] lib-restore expander/lib/module-registry.scm 8 ms
+[timing] cache-read /tmp/gf-final/v946608453e50/expander/lib/module.scm-o2.gfo 4 ms
+[timing] cache-envelope /tmp/gf-final/v946608453e50/expander/lib/module.scm-o2.gfo 0 ms
+[timing] cache-deps /tmp/gf-final/v946608453e50/expander/lib/module.scm-o2.gfo 0 ms
+[timing] lib-cache-lookup expander/lib/module.scm 5 ms
+[timing] lib-restore-bindings (goldfish) 22 ms
+[timing] lib-eval-defs (goldfish) 76 ms
+[timing] lib-rebuild-macros (goldfish) 0 ms
+[timing] lib-restore expander/lib/module.scm 98 ms
+[timing] load-install-scm 3273 ms
+[timing] expansion-helpers 6 ms
+[timing] cache-read /tmp/gf-final/v946608453e50/expander/lib/base-functions.scm-o2.gfo 1 ms
+[timing] cache-envelope /tmp/gf-final/v946608453e50/expander/lib/base-functions.scm-o2.gfo 0 ms
+[timing] cache-deps /tmp/gf-final/v946608453e50/expander/lib/base-functions.scm-o2.gfo 0 ms
+[timing] lib-cache-lookup expander/lib/base-functions.scm 1 ms
+[timing] lib-restore-bindings (native-source "expander/lib/base-functions.scm") 3 ms
+[timing] lib-eval-defs (native-source "expander/lib/base-functions.scm") 19 ms
+[timing] lib-rebuild-macros (native-source "expander/lib/base-functions.scm") 0 ms
+[timing] lib-restore expander/lib/base-functions.scm 23 ms
+[timing] cache-read /tmp/gf-final/v946608453e50/expander/lib/native-hash-adapter.scm-o2.gfo 0 ms
+[timing] cache-envelope /tmp/gf-final/v946608453e50/expander/lib/native-hash-adapter.scm-o2.gfo 0 ms
+[timing] cache-deps /tmp/gf-final/v946608453e50/expander/lib/native-hash-adapter.scm-o2.gfo 0 ms
+[timing] lib-cache-lookup expander/lib/native-hash-adapter.scm 1 ms
+[timing] lib-restore-bindings (native-source "expander/lib/native-hash-adapter.scm") 2 ms
+[timing] lib-eval-defs (native-source "expander/lib/native-hash-adapter.scm") 11 ms
+[timing] lib-rebuild-macros (native-source "expander/lib/native-hash-adapter.scm") 0 ms
+[timing] lib-restore expander/lib/native-hash-adapter.scm 13 ms
+[timing] cache-read /tmp/gf-final/v946608453e50/expander/lib/native-abi.scm-o2.gfo 2 ms
+[timing] cache-envelope /tmp/gf-final/v946608453e50/expander/lib/native-abi.scm-o2.gfo 0 ms
+[timing] cache-deps /tmp/gf-final/v946608453e50/expander/lib/native-abi.scm-o2.gfo 0 ms
+[timing] lib-cache-lookup expander/lib/native-abi.scm 2 ms
+[timing] lib-restore-bindings (native-source "expander/lib/native-abi.scm") 6 ms
+[timing] lib-eval-defs (native-source "expander/lib/native-abi.scm") 23 ms
+[timing] lib-rebuild-macros (native-source "expander/lib/native-abi.scm") 0 ms
+[timing] lib-restore expander/lib/native-abi.scm 30 ms
+[timing] native-scheme-surface 76 ms
+[timing] cache-read /tmp/gf-final/v946608453e50/expander/lib/standard.scm-o2.gfo 5 ms
+[timing] cache-envelope /tmp/gf-final/v946608453e50/expander/lib/standard.scm-o2.gfo 0 ms
+[timing] cache-deps /tmp/gf-final/v946608453e50/expander/lib/standard.scm-o2.gfo 0 ms
+[timing] lib-cache-lookup expander/lib/standard.scm 5 ms
+[timing] lib-restore-bindings (goldfish) 0 ms
+[timing] lib-eval-defs (goldfish) 0 ms
+[timing] lib-rebuild-macros (goldfish) 53 ms
+[timing] lib-restore expander/lib/standard.scm 53 ms
+[timing] standard-library 59 ms
+[timing] post-standard-collection 3 ms
+[timing] cache-read /tmp/gf-final/v946608453e50/scheme/base.scm-o2.gfo 5 ms
+[timing] cache-envelope /tmp/gf-final/v946608453e50/scheme/base.scm-o2.gfo 0 ms
+[timing] cache-deps-map /tmp/gf-final/v946608453e50/scheme/base.scm-o2.gfo 0 ms
+[timing] cache-deps-equal /tmp/gf-final/v946608453e50/scheme/base.scm-o2.gfo 0 ms
+[timing] cache-deps /tmp/gf-final/v946608453e50/scheme/base.scm-o2.gfo 0 ms
+[timing] lib-cache-lookup scheme/base.scm 6 ms
+[timing] (imp-pairs (goldfish)) 3 ms
+[timing] (imp-view (goldfish)) 244 ms
+[timing] (imp-add (goldfish)) 0 ms
+[timing] (imp-pairs (goldfish)) 5 ms
+[timing] (imp-view (goldfish)) 256 ms
+[timing] (imp-add (goldfish)) 0 ms
+[timing] (restore-import (scheme base)) 509 ms
+[timing] (restore-bindings (scheme base)) 2 ms
+[timing] (restore-macros (scheme base)) 37 ms
+[timing] (restore-renames (scheme base)) 0 ms
+[timing] (restore-exports (scheme base)) 32 ms
+[timing] lib-restore scheme/base.scm 581 ms
+[timing] lib-eval scheme/base.scm 10 ms
+[timing] (imp-pairs (scheme base)) 599 ms
+[timing] (imp-view (scheme base)) 65 ms
+[timing] (imp-add (scheme base)) 1 ms
+[timing] mode-imports 668 ms
+[timing] cache-read /tmp/gf-final/v946608453e50/liii/reader.scm-o2.gfo 4 ms
+[timing] cache-envelope /tmp/gf-final/v946608453e50/liii/reader.scm-o2.gfo 0 ms
+[timing] cache-deps /tmp/gf-final/v946608453e50/liii/reader.scm-o2.gfo 0 ms
+[timing] lib-cache-lookup liii/reader.scm 5 ms
+[timing] lib-restore-bindings (native-source "liii/reader.scm") 14 ms
+[timing] lib-eval-defs (native-source "liii/reader.scm") 83 ms
+[timing] lib-rebuild-macros (native-source "liii/reader.scm") 1 ms
+[timing] lib-restore liii/reader.scm 98 ms
+[timing] load-source-reader 105 ms
+[timing] cache-read /tmp/gf-final/v946608453e50/expander/lib/native-write.scm-o2.gfo 0 ms
+[timing] cache-envelope /tmp/gf-final/v946608453e50/expander/lib/native-write.scm-o2.gfo 0 ms
+[timing] cache-deps /tmp/gf-final/v946608453e50/expander/lib/native-write.scm-o2.gfo 0 ms
+[timing] lib-cache-lookup expander/lib/native-write.scm 0 ms
+[timing] lib-restore-bindings (native-source "expander/lib/native-write.scm") 0 ms
+[timing] lib-eval-defs (native-source "expander/lib/native-write.scm") 0 ms
+[timing] lib-rebuild-macros (native-source "expander/lib/native-write.scm") 0 ms
+[timing] lib-restore expander/lib/native-write.scm 1 ms
+[timing] load-native-writer 3 ms
+[timing] boot total 4607 ms
+[timing] install-fork-runner 0 ms
+[timing] cache-read /tmp/gf-final/v946608453e50/scheme/char.scm-o2.gfo 0 ms
+[timing] lib-cache-lookup scheme/char.scm 0 ms
+[timing] lib-read scheme/char.scm 34 ms
+[timing] (imp-pairs (scheme base)) 0 ms
+[timing] (imp-view (scheme base)) 0 ms
+[timing] (imp-add (scheme base)) 1 ms
+[timing] cache-read /tmp/gf-final/v946608453e50/liii/unicode.scm-o2.gfo 4 ms
+[timing] cache-envelope /tmp/gf-final/v946608453e50/liii/unicode.scm-o2.gfo 0 ms
+[timing] cache-deps-map /tmp/gf-final/v946608453e50/liii/unicode.scm-o2.gfo 200 ms
+[timing] cache-deps-equal /tmp/gf-final/v946608453e50/liii/unicode.scm-o2.gfo 0 ms
+[timing] cache-deps /tmp/gf-final/v946608453e50/liii/unicode.scm-o2.gfo 0 ms
+[timing] lib-cache-lookup liii/unicode.scm 206 ms
+[timing] (imp-pairs (goldfish)) 10 ms
+[timing] (imp-view (goldfish)) 2 ms
+[timing] (imp-add (goldfish)) 0 ms
+[timing] (imp-pairs (scheme base)) 0 ms
+[timing] (imp-view (scheme base)) 0 ms
+[timing] (imp-add (scheme base)) 34 ms
+[timing] cache-read /tmp/gf-final/v946608453e50/liii/base.scm-o2.gfo 1 ms
+[timing] cache-envelope /tmp/gf-final/v946608453e50/liii/base.scm-o2.gfo 0 ms
+[timing] cache-deps-map /tmp/gf-final/v946608453e50/liii/base.scm-o2.gfo 68 ms
+[timing] cache-deps-equal /tmp/gf-final/v946608453e50/liii/base.scm-o2.gfo 0 ms
+[timing] cache-deps /tmp/gf-final/v946608453e50/liii/base.scm-o2.gfo 0 ms
+[timing] lib-cache-lookup liii/base.scm 70 ms
+[timing] (imp-pairs (scheme base)) 12 ms
+[timing] (imp-view (scheme base)) 0 ms
+[timing] (imp-add (scheme base)) 1 ms
+[timing] cache-read /tmp/gf-final/v946608453e50/srfi/srfi-2.scm-o2.gfo 1 ms
+[timing] cache-envelope /tmp/gf-final/v946608453e50/srfi/srfi-2.scm-o2.gfo 0 ms
+[timing] cache-deps-map /tmp/gf-final/v946608453e50/srfi/srfi-2.scm-o2.gfo 0 ms
+[timing] cache-deps-equal /tmp/gf-final/v946608453e50/srfi/srfi-2.scm-o2.gfo 0 ms
+[timing] cache-deps /tmp/gf-final/v946608453e50/srfi/srfi-2.scm-o2.gfo 0 ms
+[timing] lib-cache-lookup srfi/srfi-2.scm 2 ms
+[timing] (imp-pairs (goldfish)) 3 ms
+[timing] (imp-view (goldfish)) 2 ms
+[timing] (imp-add (goldfish)) 0 ms
+[timing] (restore-import (srfi srfi-2)) 6 ms
+[timing] (restore-bindings (srfi srfi-2)) 0 ms
+[timing] (restore-macros (srfi srfi-2)) 10 ms
+[timing] (restore-renames (srfi srfi-2)) 0 ms
+[timing] (restore-exports (srfi srfi-2)) 0 ms
+[timing] lib-restore srfi/srfi-2.scm 18 ms
+[timing] lib-eval srfi/srfi-2.scm 0 ms
+[timing] (imp-pairs (srfi srfi-2)) 22 ms
+[timing] (imp-view (srfi srfi-2)) 0 ms
+[timing] (imp-add (srfi srfi-2)) 1 ms
+[timing] cache-read /tmp/gf-final/v946608453e50/srfi/srfi-8.scm-o2.gfo 0 ms
+[timing] cache-envelope /tmp/gf-final/v946608453e50/srfi/srfi-8.scm-o2.gfo 0 ms
+[timing] cache-deps-map /tmp/gf-final/v946608453e50/srfi/srfi-8.scm-o2.gfo 0 ms
+[timing] cache-deps-equal /tmp/gf-final/v946608453e50/srfi/srfi-8.scm-o2.gfo 0 ms
+[timing] cache-deps /tmp/gf-final/v946608453e50/srfi/srfi-8.scm-o2.gfo 0 ms
+[timing] lib-cache-lookup srfi/srfi-8.scm 1 ms
+[timing] (imp-pairs (goldfish)) 3 ms
+[timing] (imp-view (goldfish)) 2 ms
+[timing] (imp-add (goldfish)) 0 ms
+[timing] (restore-import (srfi srfi-8)) 7 ms
+[timing] (restore-bindings (srfi srfi-8)) 0 ms
+[timing] (restore-macros (srfi srfi-8)) 2 ms
+[timing] (restore-renames (srfi srfi-8)) 0 ms
+[timing] (restore-exports (srfi srfi-8)) 0 ms
+[timing] lib-restore srfi/srfi-8.scm 11 ms
+[timing] lib-eval srfi/srfi-8.scm 0 ms
+[timing] (imp-pairs (srfi srfi-8)) 13 ms
+[timing] (imp-view (srfi srfi-8)) 0 ms
+[timing] (imp-add (srfi srfi-8)) 1 ms
+[timing] (imp-pairs (goldfish)) 3 ms
+[timing] (imp-view (goldfish)) 2 ms
+[timing] (imp-add (goldfish)) 0 ms
+[timing] (restore-import (liii base)) 60 ms
+[timing] (restore-bindings (liii base)) 0 ms
+[timing] (restore-macros (liii base)) 3 ms
+[timing] (restore-renames (liii base)) 0 ms
+[timing] (restore-exports (liii base)) 3 ms
+[timing] lib-restore liii/base.scm 68 ms
+[timing] lib-eval liii/base.scm 1 ms
+[timing] (imp-pairs (liii base)) 141 ms
+[timing] (imp-view (liii base)) 7 ms
+[timing] (imp-add (liii base)) 5 ms
+[timing] cache-read /tmp/gf-final/v946608453e50/liii/ascii.scm-o2.gfo 1 ms
+[timing] cache-envelope /tmp/gf-final/v946608453e50/liii/ascii.scm-o2.gfo 0 ms
+[timing] cache-deps-map /tmp/gf-final/v946608453e50/liii/ascii.scm-o2.gfo 56 ms
+[timing] cache-deps-equal /tmp/gf-final/v946608453e50/liii/ascii.scm-o2.gfo 0 ms
+[timing] cache-deps /tmp/gf-final/v946608453e50/liii/ascii.scm-o2.gfo 0 ms
+[timing] lib-cache-lookup liii/ascii.scm 58 ms
+[timing] (imp-pairs (goldfish)) 3 ms
+[timing] (imp-view (goldfish)) 2 ms
+[timing] (imp-add (goldfish)) 0 ms
+[timing] cache-read /tmp/gf-final/v946608453e50/srfi/srfi-175.scm-o2.gfo 1 ms
+[timing] cache-envelope /tmp/gf-final/v946608453e50/srfi/srfi-175.scm-o2.gfo 0 ms
+[timing] cache-deps-map /tmp/gf-final/v946608453e50/srfi/srfi-175.scm-o2.gfo 0 ms
+[timing] cache-deps-equal /tmp/gf-final/v946608453e50/srfi/srfi-175.scm-o2.gfo 0 ms
+[timing] cache-deps /tmp/gf-final/v946608453e50/srfi/srfi-175.scm-o2.gfo 0 ms
+[timing] lib-cache-lookup srfi/srfi-175.scm 2 ms
+[timing] (imp-pairs (goldfish)) 3 ms
+[timing] (imp-view (goldfish)) 2 ms
+[timing] (imp-add (goldfish)) 0 ms
+[timing] (restore-import (srfi srfi-175)) 7 ms
+[timing] (restore-bindings (srfi srfi-175)) 5 ms
+[timing] (restore-macros (srfi srfi-175)) 0 ms
+[timing] (restore-renames (srfi srfi-175)) 0 ms
+[timing] (restore-exports (srfi srfi-175)) 3 ms
+[timing] lib-restore srfi/srfi-175.scm 17 ms
+[timing] lib-eval srfi/srfi-175.scm 8 ms
+[timing] (imp-pairs (srfi srfi-175)) 29 ms
+[timing] (imp-view (srfi srfi-175)) 11 ms
+[timing] (imp-add (srfi srfi-175)) 4 ms
+[timing] (restore-import (liii ascii)) 52 ms
+[timing] (restore-bindings (liii ascii)) 0 ms
+[timing] (restore-macros (liii ascii)) 0 ms
+[timing] (restore-renames (liii ascii)) 0 ms
+[timing] (restore-exports (liii ascii)) 8 ms
+[timing] lib-restore liii/ascii.scm 62 ms
+[timing] lib-eval liii/ascii.scm 5 ms
+[timing] (imp-pairs (liii ascii)) 127 ms
+[timing] (imp-view (liii ascii)) 15 ms
+[timing] (imp-add (liii ascii)) 12 ms
+[timing] cache-read /tmp/gf-final/v946608453e50/liii/bitwise.scm-o2.gfo 1 ms
+[timing] cache-envelope /tmp/gf-final/v946608453e50/liii/bitwise.scm-o2.gfo 0 ms
+[timing] cache-deps-map /tmp/gf-final/v946608453e50/liii/bitwise.scm-o2.gfo 117 ms
+[timing] cache-deps-equal /tmp/gf-final/v946608453e50/liii/bitwise.scm-o2.gfo 0 ms
+[timing] cache-deps /tmp/gf-final/v946608453e50/liii/bitwise.scm-o2.gfo 0 ms
+[timing] lib-cache-lookup liii/bitwise.scm 119 ms
+[timing] (imp-pairs (goldfish)) 3 ms
+[timing] (imp-view (goldfish)) 2 ms
+[timing] (imp-add (goldfish)) 0 ms
+[timing] cache-read /tmp/gf-final/v946608453e50/srfi/srfi-151.scm-o2.gfo 1 ms
+[timing] cache-envelope /tmp/gf-final/v946608453e50/srfi/srfi-151.scm-o2.gfo 0 ms
+[timing] cache-deps-map /tmp/gf-final/v946608453e50/srfi/srfi-151.scm-o2.gfo 66 ms
+[timing] cache-deps-equal /tmp/gf-final/v946608453e50/srfi/srfi-151.scm-o2.gfo 0 ms
+[timing] cache-deps /tmp/gf-final/v946608453e50/srfi/srfi-151.scm-o2.gfo 0 ms
+[timing] lib-cache-lookup srfi/srfi-151.scm 69 ms
+[timing] (imp-pairs (goldfish)) 4 ms
+[timing] (imp-view (goldfish)) 2 ms
+[timing] (imp-add (goldfish)) 0 ms
+[timing] (imp-pairs (scheme base)) 0 ms
+[timing] (imp-view (scheme base)) 0 ms
+[timing] (imp-add (scheme base)) 18 ms
+[timing] (imp-pairs (goldfish)) 4 ms
+[timing] (imp-view (goldfish)) 2 ms
+[timing] (imp-add (goldfish)) 0 ms
+[timing] (restore-import (srfi srfi-151)) 35 ms
+[timing] (restore-bindings (srfi srfi-151)) 4 ms
+[timing] (restore-macros (srfi srfi-151)) 0 ms
+[timing] (restore-renames (srfi srfi-151)) 0 ms
+[timing] (restore-exports (srfi srfi-151)) 5 ms
+[timing] lib-restore srfi/srfi-151.scm 45 ms
+[timing] lib-eval srfi/srfi-151.scm 16 ms
+[timing] (imp-pairs (srfi srfi-151)) 132 ms
+[timing] (imp-view (srfi srfi-151)) 10 ms
+[timing] (imp-add (srfi srfi-151)) 4 ms
+[timing] cache-read /tmp/gf-final/v946608453e50/liii/error.scm-o2.gfo 0 ms
+[timing] cache-envelope /tmp/gf-final/v946608453e50/liii/error.scm-o2.gfo 0 ms
+[timing] cache-deps-map /tmp/gf-final/v946608453e50/liii/error.scm-o2.gfo 0 ms
+[timing] cache-deps-equal /tmp/gf-final/v946608453e50/liii/error.scm-o2.gfo 0 ms
+[timing] cache-deps /tmp/gf-final/v946608453e50/liii/error.scm-o2.gfo 0 ms
+[timing] lib-cache-lookup liii/error.scm 1 ms
+[timing] (imp-pairs (goldfish)) 3 ms
+[timing] (imp-view (goldfish)) 2 ms
+[timing] (imp-add (goldfish)) 0 ms
+[timing] (restore-import (liii error)) 7 ms
+[timing] (restore-bindings (liii error)) 1 ms
+[timing] (restore-macros (liii error)) 0 ms
+[timing] (restore-renames (liii error)) 0 ms
+[timing] (restore-exports (liii error)) 1 ms
+[timing] lib-restore liii/error.scm 10 ms
+[timing] lib-eval liii/error.scm 1 ms
+[timing] (imp-pairs (liii error)) 15 ms
+[timing] (imp-view (liii error)) 3 ms
+[timing] (imp-add (liii error)) 2 ms
+[timing] (restore-import (liii bitwise)) 175 ms
+[timing] (restore-bindings (liii bitwise)) 0 ms
+[timing] (restore-macros (liii bitwise)) 0 ms
+[timing] (restore-renames (liii bitwise)) 0 ms
+[timing] (restore-exports (liii bitwise)) 10 ms
+[timing] lib-restore liii/bitwise.scm 188 ms
+[timing] lib-eval liii/bitwise.scm 6 ms
+[timing] (imp-pairs (liii bitwise)) 315 ms
+[timing] (imp-view (liii bitwise)) 18 ms
+[timing] (imp-add (liii bitwise)) 15 ms
+[timing] (imp-pairs (liii error)) 0 ms
+[timing] (imp-view (liii error)) 0 ms
+[timing] (imp-add (liii error)) 5 ms
+[timing] (restore-import (liii unicode)) 714 ms
+[timing] (restore-bindings (liii unicode)) 3 ms
+[timing] (restore-macros (liii unicode)) 0 ms
+[timing] (restore-renames (liii unicode)) 0 ms
+[timing] (restore-exports (liii unicode)) 5 ms
+[timing] lib-restore liii/unicode.scm 725 ms
+[timing] lib-eval liii/unicode.scm 33 ms
+[timing] (imp-pairs (liii unicode)) 966 ms
+[timing] (imp-view (liii unicode)) 12 ms
+[timing] (imp-add (liii unicode)) 4 ms
+[timing] (imp-pairs (goldfish)) 4 ms
+[timing] (imp-view (goldfish)) 2 ms
+[timing] (imp-add (goldfish)) 0 ms
+[timing] lib-expand scheme/char.scm 1666 ms
+[timing] lib-optimize scheme/char.scm 788 ms
+[timing] lib-save scheme/char.scm 446 ms
+[timing] lib-eval scheme/char.scm 6 ms
+[timing] (imp-pairs (scheme char)) 2943 ms
+[timing] (imp-view (scheme char)) 5 ms
+[timing] (imp-add (scheme char)) 2 ms
