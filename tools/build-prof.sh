@@ -11,8 +11,10 @@ set -eu
 cd "$(dirname "$0")/.."
 
 [ -x bin/gf ] || { echo "build-prof: bin/gf missing -- run 'xmake b' first" >&2; exit 1; }
-[ -x bin/gf-prof ] && [ bin/gf-prof -nt bin/gf ] && {
-    echo "build-prof: bin/gf-prof is up to date"; exit 0; }
+if [ -x bin/gf-prof ] && [ bin/gf-prof -nt bin/gf ] \
+   && nm bin/gf-prof 2>/dev/null | grep -q .; then
+    echo "build-prof: bin/gf-prof is up to date"; exit 0
+fi
 
 saved=bin/gf.release
 cp -f bin/gf "$saved"
@@ -24,7 +26,7 @@ restore() {
 }
 trap restore EXIT
 
-xmake f -m debug --cxflags="-O2" --cxxflags="-O2" >/dev/null
+xmake f -m debug >/dev/null
 xmake b gf-native >/dev/null
 cp -f bin/gf bin/gf-prof
-echo "build-prof: wrote bin/gf-prof (optimized, unstripped)"
+echo "build-prof: wrote bin/gf-prof (unstripped, -O0; relative hotspots)"
