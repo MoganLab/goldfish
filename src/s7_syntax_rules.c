@@ -174,6 +174,9 @@ static s7_pointer strip_synclos(s7_scheme* sc, s7_pointer x) {
     s7_pointer kdr = strip_synclos(sc, s7_cdr(x));
     return s7_cons(sc, kar, kdr);
   }
+  if (s7_is_byte_vector(x) || s7_is_int_vector(x) || s7_is_float_vector(x) || s7_is_complex_vector(x)) {
+    return x;
+  }
   if (s7_is_vector(x)) {
     s7_int len = s7_vector_length(x);
     s7_pointer v = s7_make_vector(sc, len);
@@ -321,6 +324,9 @@ static s7_pointer resolve_ast(s7_scheme* sc, s7_pointer x, s7_pointer def_env, s
     s7_pointer res_kar = resolve_ast(sc, kar, def_env, memo_head);
     s7_pointer res_kdr = resolve_ast(sc, s7_cdr(x), def_env, memo_head);
     return s7_cons(sc, res_kar, res_kdr);
+  }
+  if (s7_is_byte_vector(x) || s7_is_int_vector(x) || s7_is_float_vector(x) || s7_is_complex_vector(x)) {
+    return x;
   }
   if (s7_is_vector(x)) {
     s7_int len = s7_vector_length(x);
