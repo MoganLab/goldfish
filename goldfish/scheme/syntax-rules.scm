@@ -1,18 +1,17 @@
+;; syntax-rules.scm -- R7RS hygienic macro system (syntax-rules et al.)
 ;;
-;; Copyright (C) 2026 The Goldfish Scheme Authors
+;; The pattern matcher and template expander in this file
+;; (syntax-rules-transformer, expand-pattern, expand-template,
+;;  make-renamer, er-macro-transformer, any, every, find, length*,
+;;  cons-source, close-syntax)
+;; are derived from Chibi Scheme lib/init-7.scm (tag 0.12)
 ;;
-;; Licensed under the Apache License, Version 2.0 (the "License");
-;; you may not use this file except in compliance with the License.
-;; You may obtain a copy of the License at
+;; SPDX-FileCopyrightText: 2009-2021 Alex Shinn
 ;;
-;; http://www.apache.org/licenses/LICENSE-2.0
+;; SPDX-License-Identifier: BSD-3-Clause
 ;;
-;; Unless required by applicable law or agreed to in writing, software
-;; distributed under the License is distributed on an "AS IS" BASIS,
-;; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-;; See the License for the specific language governing permissions and
-;; limitations under the License.
-;;
+;; Copyright (c) 2026 The Goldfish Scheme Authors
+;; Follow the same License as the original one
 
 (define (any pred ls)
   (cond ((null? ls) #f)
