@@ -111,4 +111,7 @@ the warm bootstrap loader reject the `scheme/case-lambda` artifact (written as
 kind `libraries` by the mode import but read as kind `module` by
 `load_cached_runtime`), i.e. the instrumentation itself perturbed boot.  That
 collision between the two cache front doors is a latent design smell worth
-fixing in the unification work.
+fixing in the unification work.  A coarse, non-perturbing replacement now
+wraps `load-library!` (`[timing] (lib-load <name>)`), giving each library's
+total import cost; the finer cache/restore split still needs a design that
+does not change the loader's return values or lowered shape.
