@@ -16,7 +16,7 @@
     datum->syntax syntax->datum free-identifier=? bound-identifier=? identifier?
     generate-temporaries syntax-violation with-ellipsis ellipsis-identifier?
     %syntax-case-split-at %syntax-case-fold-right %syntax-case-length
-    %syntax-case-close-identifier _ ...
+    %syntax-case-close-identifier %syntax-case-counter _ ...
   ) ;export
   (import (scheme base) (liii syntax) (srfi srfi-1))
   (begin
@@ -57,8 +57,19 @@
       ) ;let
     ) ;define
 
+    (define *syntax-case-counter* 0)
+    (define (%syntax-case-counter)
+      *syntax-case-counter*
+    ) ;define
+
+    (define (%syntax-case-gen-sym prefix)
+      (set! *syntax-case-counter* (+ *syntax-case-counter* 1))
+      (string->symbol (string-append "%%sc-" prefix "-" (number->string *syntax-case-counter*))
+      ) ;string->symbol
+    ) ;define
+
     (define (generate-temporaries l)
-      (map (lambda (x) (gensym "t")) l)
+      (map (lambda (x) (%syntax-case-gen-sym "t")) l)
     ) ;define
 
     (define (syntax-violation who message . form*)
@@ -191,9 +202,9 @@
             (ellipsis-identifier? (cadr pattern))
           ) ;and
           (let* ((l (%syntax-case-length (cddr pattern)))
-                 (h (gensym "h"))
-                 (t (gensym "t"))
-                 (s-pair (gensym "split"))
+                 (h (%syntax-case-gen-sym "h"))
+                 (t (%syntax-case-gen-sym "t"))
+                 (s-pair (%syntax-case-gen-sym "split"))
                 ) ;
             (let*-values (((head-matcher vars) (gen-map h lit* (car pattern) vars))
                           ((tail-matcher vars) (gen-matcher* t lit* (cddr pattern) vars))
@@ -214,7 +225,7 @@
           ) ;let*
          ) ;
          (else
-           (let ((e1 (gensym "e1")) (e2 (gensym "e2")))
+           (let ((e1 (%syntax-case-gen-sym "e1")) (e2 (%syntax-case-gen-sym "e2")))
              (let*-values (((car-matcher vars) (gen-matcher e1 lit* (car pattern) vars))
                            ((cdr-matcher vars) (gen-matcher e2 lit* (cdr pattern) vars))
                           ) ;
@@ -250,7 +261,7 @@
         ) ;cond
        ) ;
        ((vector? pattern)
-        (let ((e1 (gensym "e1")))
+        (let ((e1 (%syntax-case-gen-sym "e1")))
           (let*-values (((matcher vars) (gen-matcher e1 lit* (vector->list pattern) vars)))
             (values
               (lambda (k)
@@ -276,11 +287,11 @@
     ) ;define
 
     (define (gen-map h lit* pattern vars)
-      (let ((g (gensym "g")))
+      (let ((g (%syntax-case-gen-sym "g")))
         (let*-values (((matcher inner-vars) (gen-matcher g lit* pattern '())))
-          (let ((loop (gensym "loop"))
-                (h-var (gensym "h"))
-                (g* (map (lambda (v) (gensym "gacc")) inner-vars))
+          (let ((loop (%syntax-case-gen-sym "loop"))
+                (h-var (%syntax-case-gen-sym "h"))
+                (g* (map (lambda (v) (%syntax-case-gen-sym "gacc")) inner-vars))
                ) ;
             (values
               (lambda (k)
@@ -322,7 +333,7 @@
         (cond
          ((null? pattern*) (values (lambda (k) `(if (null? ,e) ,(k) (fail))) vars))
          ((pair? pattern*)
-          (let ((e1 (gensym "e1")) (e2 (gensym "e2")))
+          (let ((e1 (%syntax-case-gen-sym "e1")) (e2 (%syntax-case-gen-sym "e2")))
             (let*-values (((car-matcher vars) (gen-matcher e1 lit* (car pattern*) vars))
                           ((cdr-matcher vars) (loop e2 (cdr pattern*) vars))
                          ) ;
@@ -418,7 +429,7 @@
             (if (null? (car envs))
               (error 'syntax-error "too many ellipses following syntax template" (car tmpl))
             ) ;if
-            (let ((stx-sym (gensym "stx")))
+            (let ((stx-sym (%syntax-case-gen-sym "stx")))
               (values
                 `(%syntax-case-fold-right (lambda (,@(car envs) ,stx-sym)
                                             (cons ,out ,stx-sym))
@@ -511,7 +522,7 @@
                                    (if has-fender (caddr c) (if (= 2 (length c)) (cadr c) (cons 'begin (cdr c))))
                                  ) ;b
                                 ) ;
-                            (let*-values (((matcher inner-vars) (gen-matcher (gensym "e") lits p '())))
+                            (let*-values (((matcher inner-vars) (gen-matcher (%syntax-case-gen-sym "e") lits p '())))
                               ;; 内层 pattern vars 优先于外层
                               (let ((merged-vars (append inner-vars vars)))
                                 (if has-fender
@@ -564,7 +575,9 @@
     ) ;define
 
     (define-macro (syntax-case expr lit* . clauses)
-      (let ((e-var (gensym "stx")) (ell? (lambda (id) (ellipsis-identifier? id))))
+      (let ((e-var (%syntax-case-gen-sym "stx"))
+            (ell? (lambda (id) (ellipsis-identifier? id)))
+           ) ;
         (let loop
           ((cls (reverse clauses))
            (chain
