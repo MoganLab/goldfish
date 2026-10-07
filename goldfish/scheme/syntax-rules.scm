@@ -88,6 +88,8 @@
   (make-syntactic-closure env '() form)
 ) ;define
 
+(define %synclo-id (lambda (i) i))
+
 (define (make-renamer mac-env)
   (let ((renames '()))
     (lambda (identifier)
@@ -95,7 +97,7 @@
         (if cell
           (cdr cell)
           (let ((id (close-syntax identifier mac-env)))
-            (syntactic-closure-set-rename! id (lambda (i) i))
+            (syntactic-closure-set-rename! id %synclo-id)
             (set! renames (cons (cons identifier id) renames))
             id
           ) ;let
