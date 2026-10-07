@@ -23,7 +23,7 @@ Just like S7 Scheme, [src/goldfish.hpp](src/goldfish.hpp) and [src/goldfish.cpp]
 | [(liii base)](goldfish/liii/base.scm)             | Basic routines                       | `and-let*`, `receive`, `eval-string`                              |
 | [(liii error)](goldfish/liii/error.scm)           | Python like Errors                   | `os-error` to raise `'os-error` just like OSError in Python      |
 | [(liii check)](goldfish/liii/check.scm)           | Test framework based on SRFI-78      | `check`, `check-catch`                                           |
-| [(liii case)](goldfish/liii/case.scm)             | Pattern matching                     | `case*`                                                          |
+| [(liii match)](goldfish/liii/match.scm)           | Pattern matching                     | `match`, `match-lambda`                                           |
 | [(liii list)](goldfish/liii/list.scm)             | List Library                         | `first`, `filter`, `fold`                                         |
 | [(liii bitwise)](goldfish/liii/bitwise.scm)       | Bitwise Library                      | `bitwise-and`, `bitwise-or`                                      |
 | [(liii string)](goldfish/liii/string.scm)         | String Library                       | `string-starts?`, `string-ends?`                                  |
@@ -49,6 +49,8 @@ Just like S7 Scheme, [src/goldfish.hpp](src/goldfish.hpp) and [src/goldfish.cpp]
 | [(liii time)](goldfish/liii/time.scm)             | Library looks like Python time module | `sleep`                                                          |
 | [(liii argparse)](goldfish/liii/argparse.scm)     | Command line argument parsing        | `make-argument-parser`                                            |
 | [(liii config-parser)](goldfish/liii/config-parser.scm) | INI configuration parser      | `config-read-string`, `config-get`, `config-write`               |
+| [(liii go)](goldfish/liii/go.scm)                 | Go-style concurrency library         | `go`, `make-chan`, `chan-send!`, `chan-recv!`                     |
+| [(liii par)](goldfish/liii/par.scm)               | Parallel data processing library     | `par-map`, `par-for-each`, `vector-par-map`                      |
 
 
 ### SRFI
@@ -95,6 +97,17 @@ brew install goldfish
 For uninstallation, just:
 ```
 brew uninstall goldfish
+```
+
+### Windows
+On Windows, install it with [Scoop](https://scoop.sh):
+```
+scoop bucket add goldfish https://github.com/MoganLab/scoop-goldfish
+scoop install goldfish
+```
+For uninstallation, just:
+```
+scoop uninstall goldfish
 ```
 
 ## Commandlinefu

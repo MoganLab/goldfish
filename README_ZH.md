@@ -23,7 +23,7 @@
 | [(liii base)](goldfish/liii/base.scm)             | 基础库                          | `and-let*`, `receive`, `eval-string`                               |
 | [(liii error)](goldfish/liii/error.scm)           | 提供类似Python的错误函数        | `os-error`函数抛出`'os-error`，类似Python的OSError                 |
 | [(liii check)](goldfish/liii/check.scm)           | 基于SRFI 78的轻量级测试库加强版 | `check`, `check-catch`                                             |
-| [(liii case)](goldfish/liii/case.scm)             | 模式匹配                        | `case*`                                                            |
+| [(liii match)](goldfish/liii/match.scm)           | 模式匹配                        | `match`, `match-lambda`                                           |
 | [(liii list)](goldfish/liii/list.scm)             | 列表函数库                      | `first`, `filter`, `fold`                                          |
 | [(liii bitwise)](goldfish/liii/bitwise.scm)       | 位运算函数库                    | `bitwise-and`, `bitwise-or`                                        |
 | [(liii string)](goldfish/liii/string.scm)         | 字符串函数库                    | `string-starts?`, `string-ends?`                                   |
@@ -49,6 +49,8 @@
 | [(liii time)](goldfish/liii/time.scm)             | 库类似于 Python 的 `time` 模块  | `sleep`                                                             |
 | [(liii argparse)](goldfish/liii/argparse.scm)     | 命令行参数解析                  | `make-argument-parser`                                              |
 | [(liii config-parser)](goldfish/liii/config-parser.scm) | INI 配置文件解析器      | `config-read-string`, `config-get`, `config-write`                 |
+| [(liii go)](goldfish/liii/go.scm)                 | Go 风格并发库                   | `go`, `make-chan`, `chan-send!`, `chan-recv!`                     |
+| [(liii par)](goldfish/liii/par.scm)               | 并行数据处理库                  | `par-map`, `par-for-each`, `vector-par-map`                      |
 
 ### SRFI
 
@@ -100,6 +102,22 @@ brew install goldfish
 如果需要卸载，请执行：
 ```
 brew uninstall goldfish
+```
+
+### Windows 安装
+在 Windows 上，推荐使用 [Scoop](https://scoop.sh) 进行安装：
+```
+# 添加 Goldfish 的 Bucket 仓库
+scoop bucket add goldfish https://github.com/MoganLab/scoop-goldfish
+
+# 安装 Goldfish
+scoop install goldfish
+```
+
+卸载
+如果需要卸载，请执行：
+```
+scoop uninstall goldfish
 ```
 
 ## 命令行技巧
