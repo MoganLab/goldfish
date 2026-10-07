@@ -302,7 +302,7 @@
         (parser :add-argument '((name . "all") (action . store-true)))
         (parser
           :add-argument
-          '((name . "jobs") (short . "j") (type . number) (default . 1))
+          '((name . "jobs") (short . "j") (type . number) (default . 8))
         ) ;parser
         (parser :add-argument '((name . "help")
                                 (short . "h")
@@ -742,7 +742,7 @@
       (newline)
       (display "Options:")
       (newline)
-      (display "  -j, --jobs NUM                   Number of parallel worker jobs (default: 1)"
+      (display "  -j, --jobs NUM                   Number of parallel worker jobs (default: 8)"
       ) ;display
       (newline)
       (display "  --all                            Run all tests (greedy: changed first, then all)"
