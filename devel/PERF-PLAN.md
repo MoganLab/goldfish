@@ -525,3 +525,19 @@ improved); changed-since 162/162.
 
 Records: `bench/cold-start/phase5-bootcache-e9febd7f`,
 `bench/runtime/phase5-bootcache-e9febd7f`.
+
+Root cause of the pairs-memo failures (corrects the note above): the
+identity-mapping rebuild per importer is SEMANTICALLY REQUIRED, not
+waste — the implementation library's export surface grows across boot
+stages (reader/writer/native-scheme-surface registrations land in the
+base library after the first importers), so every importer must snapshot
+the exports at its own import time.  Memoizing the pairs freezes the
+first importer's snapshot: later programs fail with unbound identifiers
+for names registered after the freeze (observed: write-roundtrip in the
+cache-roundtrip test).  Both memo variants failed for this reason; a
+working memo would require freezing the implementation library's export
+surface by design — a Phase 5 unification decision, not a local cache.
+The scan shortcut/iface-bindings memo broke the cold libraries-bundle
+replay independently (case-lambda raised user-raised value through
+load_cached_runtime) and was reverted without root-causing; do not
+reintroduce without a cold-cache gate in the loop.
