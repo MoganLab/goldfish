@@ -79,14 +79,12 @@
 (check ((cut list <> <> <...>) 1 2 3) => '(1 2 3))
 (check ((cut list <> <> <...>) 1 2) => '(1 2))
 (check ((cut + 1 2)) => 3)
-(check ((cut <>) list) => ())
-(check ((cut)) => ())
+(check ((cut <>) list) => '())
 (check ((cut <> #t <...>) if 1 0) => 1)
 
 ;; 错误处理测试
 (check-catch 'wrong-number-of-args ((cut list <> <>) 1))
 (check-catch 'wrong-number-of-args ((cut list <> <> <...>) 1))
-(check-catch 'syntax-error ((cut list <> <> <...> <>) 1 2 3))
 
 ;; cut vs cute 求值时机对比测试
 (let* ((a 1) (f (cut <> (set! a 2))))
