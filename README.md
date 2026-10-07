@@ -99,6 +99,17 @@ For uninstallation, just:
 brew uninstall goldfish
 ```
 
+### Windows
+On Windows, install it with [Scoop](https://scoop.sh):
+```
+scoop bucket add goldfish https://github.com/MoganLab/scoop-goldfish
+scoop install goldfish
+```
+For uninstallation, just:
+```
+scoop uninstall goldfish
+```
+
 ## Commandlinefu
 If you build from source manually, you can find the executable at `bin/gf`.
 

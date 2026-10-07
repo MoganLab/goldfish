@@ -104,6 +104,22 @@ brew install goldfish
 brew uninstall goldfish
 ```
 
+### Windows 安装
+在 Windows 上，推荐使用 [Scoop](https://scoop.sh) 进行安装：
+```
+# 添加 Goldfish 的 Bucket 仓库
+scoop bucket add goldfish https://github.com/MoganLab/scoop-goldfish
+
+# 安装 Goldfish
+scoop install goldfish
+```
+
+卸载
+如果需要卸载，请执行：
+```
+scoop uninstall goldfish
+```
+
 ## 命令行技巧
 如果您手动从源码编译，可以在 `bin/gf` 找到可执行文件。
 
