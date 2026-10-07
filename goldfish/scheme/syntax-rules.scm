@@ -139,7 +139,7 @@
         (_append (rename 'append))
         (_map (rename 'map))
         (_vector? (rename 'vector?))
-        (_list? (rename 'list?))
+        (_list? (rename 'proper-list?))
         (_len (rename 'len))
         (_length (rename 'length*))
         (_- (rename '-))
