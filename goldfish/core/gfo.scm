@@ -229,7 +229,9 @@
         (lambda ()
         (gfo-ensure-parent! (gfo-dir) gfo-file)
         ;; The tmp name carries the pid: concurrent compiles cannot interleave
-        ;; writes into one file and rename a torn record into place.
+        ;; writes into one file and rename a torn record into place.  A
+        ;; failed rename (cross-device target, vanished directory) leaves no
+        ;; cache entry, so the tmp file is cleaned up instead of leaking.
         (let ((tmp (string-append gfo-file ".tmp."
                                   (number->string (g_getpid)))))
           (call-with-output-file tmp
@@ -240,7 +242,9 @@
                           (if (null? extra) #f (car extra))) p)
                   (write (list 'gfo gfo-format-version stamp payload
                                (if (null? extra) #f (car extra))) p))))
-          (g_rename tmp gfo-file)))
+          (if (g_rename tmp gfo-file)
+            #f
+            (g_delete-file tmp))))
         (lambda args
           (set! *gfo-write-broken* #t)
           #f))))

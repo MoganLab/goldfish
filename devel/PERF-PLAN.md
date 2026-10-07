@@ -541,3 +541,14 @@ The scan shortcut/iface-bindings memo broke the cold libraries-bundle
 replay independently (case-lambda raised user-raised value through
 load_cached_runtime) and was reverted without root-causing; do not
 reintroduce without a cold-cache gate in the loop.
+
+Robustness contract (same day): audit found the gfo cache's guarantees
+already implemented — pid-qualified tmp files + atomic `g_rename`
+(concurrent writers cannot interleave; readers see old-or-new complete
+records), `create_directories` tolerates the concurrent-mkdir race, and
+validity stamps are content-based so copied caches on other machines
+just recompile.  One gap fixed: a failed rename leaked the tmp file and
+silently dropped the entry — gfo-write! now deletes it.  The guarantees
+are enforced by `tools/test-cache-concurrency.sh`: four parallel cold
+boots sharing one directory, a kill-mid-boot recovery, truncated-
+artifact recovery, and a readonly boot from a copied cache.
