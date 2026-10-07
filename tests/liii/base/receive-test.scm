@@ -1,4 +1,4 @@
-(import (liii check) (srfi srfi-8))
+(import (liii check) (liii base))
 
 (check-set-mode! 'report-failed)
 
