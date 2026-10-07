@@ -466,23 +466,17 @@
 (define-bacro (define-syntax name
                 transformer-spec
               ) ;define-syntax
-  (let ((t (gensym "trans_"))
-        (c (gensym "call_"))
-        (u (gensym "use_"))
-        (m (gensym "mac_"))
-        (def-env (curlet))
-       ) ;
+  (let ((t (gensym "trans_")) (def-env (curlet)))
     `(begin
        (define ,t ,transformer-spec)
        (define-macro (,name . args)
-         (let* ((,c (cons (quote ,name) args))
-                (,u (curlet))
-                (,m ,def-env)
-                (expanded (let ((ar (arity ,t)))
-                            (if (and (pair? ar) (= (car ar) 1) (= (cdr ar) 1))
-                              (,t ,c)
-                              (,t ,c ,u ,m)))))
-           (resolve-syntactic-closures expanded ,m))))
+         (resolve-syntactic-closures (if (= (car (arity ,t)) ,1)
+                                       (,t (cons (quote ,name) args))
+                                       (,t
+                                        (cons (quote ,name) args)
+                                        (curlet)
+                                        ,def-env))
+           ,def-env)))
   ) ;let
 ) ;define-bacro
 

@@ -46,7 +46,7 @@
     (define-syntax srfi-26-internal-cut
       (syntax-rules (<> <...>)
         ((srfi-26-internal-cut (slot-name ...) (proc arg ...))
-         (lambda (slot-name ...) ((begin proc) arg ...))
+         (lambda (slot-name ...) (proc arg ...))
         ) ;
         ((srfi-26-internal-cut (slot-name ...) (proc arg ...) <...>)
          (lambda (slot-name ... . rest-slot) (apply proc arg ... rest-slot))
