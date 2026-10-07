@@ -498,3 +498,15 @@ Measured (records under `bench/cold-start/phase5-itab-9c9f5841` and
 Environment note: a load-average-4+ box inflates cold-run wall ~24% and
 runtime medians up to ~17%; when in doubt, measure BOTH sides in the same
 window (`phase5-itab-coldbase/coldcand` demonstrate the pattern).
+
+Follow-up (same day, reverted): memoizing import-set-pairs (identity
+mappings) and shortcutting add-import-view!'s conflict scan for
+use-less libraries measured only ~35 ms of warm boot and broke the cold
+libraries-bundle replay (case-lambda raised user-raised value through
+load_cached_runtime; root cause not pinned before revert).  Two memo
+variants were tried and both missed: pair-shaped keys are never eq? to
+their lookups, and registry records are re-created per query (no object
+identity survives between imports) — a working memo must key on the
+library name with value equality.  The remaining ~540 ms of Scheme-side
+lib-import needs the per-spec breakdown (ispec instrumentation sketch
+existed during the attempt; not kept) before the next cut.
