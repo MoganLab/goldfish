@@ -49,6 +49,8 @@ Just like S7 Scheme, [src/goldfish.hpp](src/goldfish.hpp) and [src/goldfish.cpp]
 | [(liii time)](goldfish/liii/time.scm)             | Library looks like Python time module | `sleep`                                                          |
 | [(liii argparse)](goldfish/liii/argparse.scm)     | Command line argument parsing        | `make-argument-parser`                                            |
 | [(liii config-parser)](goldfish/liii/config-parser.scm) | INI configuration parser      | `config-read-string`, `config-get`, `config-write`               |
+| [(liii go)](goldfish/liii/go.scm)                 | Go-style concurrency library         | `go`, `make-chan`, `chan-send!`, `chan-recv!`                     |
+| [(liii par)](goldfish/liii/par.scm)               | Parallel data processing library     | `par-map`, `par-for-each`, `vector-par-map`                      |
 
 
 ### SRFI

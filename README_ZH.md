@@ -49,6 +49,8 @@
 | [(liii time)](goldfish/liii/time.scm)             | 库类似于 Python 的 `time` 模块  | `sleep`                                                             |
 | [(liii argparse)](goldfish/liii/argparse.scm)     | 命令行参数解析                  | `make-argument-parser`                                              |
 | [(liii config-parser)](goldfish/liii/config-parser.scm) | INI 配置文件解析器      | `config-read-string`, `config-get`, `config-write`                 |
+| [(liii go)](goldfish/liii/go.scm)                 | Go 风格并发库                   | `go`, `make-chan`, `chan-send!`, `chan-recv!`                     |
+| [(liii par)](goldfish/liii/par.scm)               | 并行数据处理库                  | `par-map`, `par-for-each`, `vector-par-map`                      |
 
 ### SRFI
 
