@@ -11,23 +11,25 @@ set -eu
 project_dir=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 cd "$project_dir"
 
-# The required set has one source of truth: the C++ array.
-required=$(awk '/native_bootstrap_artifacts = \{/ {f=1; next} f && /};/ {exit} f {print}' \
-    src/runtime/bootstrap.cpp | sed -n 's/.*"\([^"]*\)".*/\1/p')
+# The required set has one source of truth: the boot chain manifest
+# (goldfish/expander/boot-manifest.scm), shared with
+# src/runtime/bootstrap.cpp.
+manifest="$project_dir/goldfish/expander/boot-manifest.scm"
+required=$(sed -n 's/^[[:space:]]*("\([^"]*\)" \(boot\|deferred\) .*/\1/p' "$manifest")
 
 if [ -z "$required" ]; then
-    echo "warm-bootstrap-cache: cannot read native_bootstrap_artifacts" >&2
+    echo "warm-bootstrap-cache: cannot read the boot manifest boot/deferred tiers" >&2
     exit 1
 fi
 
 # Distribution warming also needs the optimizer pipeline, or the first
 # program after install recompiles it (the boot-required set does not
 # include it, to keep every start from re-parsing the compiler artifacts).
-precompiled=$(awk '/native_precompile_artifacts = \{/ {f=1; next} f && /};/ {exit} f {print}' \
-    src/runtime/bootstrap.cpp | sed -n 's/.*"\([^"]*\)".*/\1/p')
+# Its tier in the manifest is precompile.
+precompiled=$(sed -n 's/^[[:space:]]*("\([^"]*\)" precompile .*/\1/p' "$manifest")
 
 if [ -z "$precompiled" ]; then
-    echo "warm-bootstrap-cache: cannot read native_precompile_artifacts" >&2
+    echo "warm-bootstrap-cache: cannot read the boot manifest precompile tier" >&2
     exit 1
 fi
 
@@ -53,14 +55,14 @@ complete_dir=$(GOLDFISH_CACHE_DIR="$cache_root" GOLDFISH_OPT_LEVEL=2 \
 find_complete() {
     GOLDFISH_CACHE_DIR="$cache_root" bin/gf --check-bootstrap-cache >/dev/null 2>&1 || return 1
     for artifact in $precompiled; do
-        [ -f "$complete_dir/$artifact" ] || return 1
+         [ -f "$complete_dir/$artifact-o2.gfo" ] || return 1
     done
 }
 
 report_missing() {
     for artifact in $required $precompiled; do
         found=0
-        if [ -f "$complete_dir/$artifact" ]; then found=1; fi
+        if [ -f "$complete_dir/$artifact-o2.gfo" ]; then found=1; fi
         if [ "$found" = 0 ]; then
             echo "warm-bootstrap-cache: missing $artifact" >&2
         fi
@@ -80,7 +82,7 @@ if ! find_complete; then
         bin/gf --bootstrap-cache-directory)
     complete=1
     for artifact in $required $precompiled; do
-        if [ ! -f "$temp_dir/$artifact" ]; then
+        if [ ! -f "$temp_dir/$artifact-o2.gfo" ]; then
             echo "warm-bootstrap-cache: isolated cache missing $artifact" >&2
             complete=0
         fi

@@ -24,39 +24,72 @@ namespace goldfish::runtime {
 
 namespace {
 
-constexpr std::array<const char*, 12> native_bootstrap_artifacts = {
-    "expander/lib/syntax-runtime.scm-o2.gfo",
-    "expander/lib/syntax-case.scm-o2.gfo",
-    "expander/lib/define-record-type.scm-o2.gfo",
-    "expander/lib/core-macros.scm-o2.gfo",
-    "expander/lib/cond-expand.scm-o2.gfo",
-    "expander/lib/defmacro.scm-o2.gfo",
-    "expander/lib/define-star.scm-o2.gfo",
-    "expander/lib/module-registry.scm-o2.gfo",
-    "expander/lib/module.scm-o2.gfo",
-    "expander/lib/standard.scm-o2.gfo",
-    "scheme/case-lambda.scm-o2.gfo",
-    "scheme/base.scm-o2.gfo"
-};
-
-// The optimizer pipeline is produced lazily the first time a program is
-// compiled, so a cache can satisfy native_bootstrap_artifacts yet still
-// recompile the optimizer from source on the first program.  Distribution
-// warming must also capture these, or the first run after install pays the
-// optimizer compile.  They are deliberately NOT part of the boot-time
-// required set: validating them on every start would re-parse the large
-// compiler artifacts for no benefit once they are present.
-constexpr std::array<const char*, 7> native_precompile_artifacts = {
-    "goldfish/core/ir.scm-o2.gfo",
-    "goldfish/match.scm-o2.gfo",
-    "goldfish/match/expansion.scm-o2.gfo",
-    "goldfish/compiler/patterns.scm-o2.gfo",
-    "goldfish/compiler/passes.scm-o2.gfo",
-    "goldfish/compiler.scm-o2.gfo",
-    "goldfish/expander/tree-il.scm-o2.gfo"
+// The boot chain manifest (goldfish/expander/boot-manifest.scm) is the
+// single source of truth for which cached units the native bootstrap
+// replays, in dependency order.  Adding a boot file is a manifest edit.
+struct ManifestEntry final {
+    std::string path;
+    std::string tier;
 };
 
 namespace fs = std::filesystem;
+
+fs::path locate(Evaluator& evaluator, const std::string& relative);
+
+// The boot-tier slice of the manifest, in dependency order.
+std::vector<ManifestEntry> manifest_tier(Evaluator& evaluator,
+                                         const std::string& tier);
+
+std::vector<ManifestEntry> read_boot_manifest(Evaluator& evaluator) {
+    fs::path path = locate(evaluator, "expander/boot-manifest.scm");
+    std::ifstream input(path);
+    if (!input)
+        throw std::runtime_error("native bootstrap cache: cannot open the boot manifest: " +
+                                 path.string());
+    std::string source((std::istreambuf_iterator<char>(input)),
+                       std::istreambuf_iterator<char>());
+    TinyReader reader(evaluator, std::move(source));
+    std::optional<Value> manifest = reader.read();
+    if (!manifest)
+        throw std::runtime_error("native bootstrap cache: empty boot manifest");
+    std::vector<ManifestEntry> entries;
+    Value rest = *manifest;
+    while (rest.is_object() &&
+           rest.as_object()->type() == ObjectType::Pair) {
+        Value entry = rest.as_object<PairObject>()->car;
+        if (!entry.is_object() ||
+            entry.as_object()->type() != ObjectType::Pair)
+            throw std::runtime_error("native bootstrap cache: malformed boot manifest entry");
+        auto* fields = entry.as_object<PairObject>();
+        if (!fields->car.is_object() ||
+            fields->car.as_object()->type() != ObjectType::String ||
+            !fields->cdr.is_object() ||
+            fields->cdr.as_object()->type() != ObjectType::Pair)
+            throw std::runtime_error("native bootstrap cache: malformed boot manifest entry");
+        auto* tier_cell = fields->cdr.as_object<PairObject>();
+        if (!tier_cell->car.is_object() ||
+            tier_cell->car.as_object()->type() != ObjectType::Symbol)
+            throw std::runtime_error("native bootstrap cache: malformed boot manifest entry");
+        entries.push_back({evaluator.string_value(fields->car),
+                           tier_cell->car.as_object<SymbolObject>()->name});
+        rest = rest.as_object<PairObject>()->cdr;
+    }
+    if (entries.empty())
+        throw std::runtime_error("native bootstrap cache: empty boot manifest");
+    return entries;
+}
+
+std::vector<ManifestEntry> manifest_tier(Evaluator& evaluator,
+                                         const std::string& tier) {
+    std::vector<ManifestEntry> selected;
+    for (const ManifestEntry& entry : read_boot_manifest(evaluator))
+        if (entry.tier == tier)
+            selected.push_back(entry);
+    if (selected.empty())
+        throw std::runtime_error("native bootstrap cache: boot manifest tier '" +
+                                 tier + "' is empty");
+    return selected;
+}
 
 void prepare_native_stack() {
 #if defined(__unix__) || defined(__APPLE__)
@@ -119,11 +152,13 @@ std::string file_hash(Evaluator& evaluator, const char* primitive, const fs::pat
 }
 
 std::string cache_version(Evaluator& evaluator) {
-    // Keep the pipeline inputs identical to core/gfo.scm.
+    // Keep the pipeline inputs identical to core/gfo.scm.  The boot
+    // manifest is included: an edit to the boot chain moves the version.
     std::vector<std::string> files = {
         "core/gfo.scm", "core/ir.scm", "liii/prelude.scm", "liii/reader.scm",
         "expander/bootstrap-prelude.scm", "scheme/base.scm", "scheme/case-lambda.scm",
-        "expander/kernel-combined.scm", "compiler.scm", "expander/tree-il.scm"
+        "expander/kernel-combined.scm", "compiler.scm", "expander/tree-il.scm",
+        "expander/boot-manifest.scm"
     };
     for (const char* directory : {"expander/lib", "compiler"}) {
         std::vector<std::string> entries;
@@ -276,14 +311,22 @@ std::string NativeBootstrap::validate_cached_runtime(const std::string& cache_ro
     if (!fs::is_directory(version))
         throw std::runtime_error("native bootstrap cache not found under " +
                                  version.string());
-    for (const char* artifact : native_bootstrap_artifacts) {
-        std::string source = artifact;
-        source.resize(source.size() - std::string("-o2.gfo").size());
-        try {
-            validate_artifact(runtime_.evaluator(), version / artifact, source);
-        } catch (const std::exception& error) {
-            throw std::runtime_error("native bootstrap cache " + (version / artifact).string() +
-                                     ": " + error.what());
+    // Preflight covers the boot tier AND the deferred tier: the entire
+    // cache is validated before any artifact mutates the runtime.
+    for (const std::string tier : {"boot", "deferred"}) {
+        for (const ManifestEntry& entry : manifest_tier(runtime_.evaluator(), tier)) {
+            std::string artifact = entry.path + "-o2.gfo";
+            std::error_code error;
+            if (!fs::is_regular_file(version / artifact, error))
+                throw std::runtime_error("native bootstrap cache " +
+                                         (version / artifact).string() +
+                                         ": missing artifact");
+            try {
+                validate_artifact(runtime_.evaluator(), version / artifact, entry.path);
+            } catch (const std::exception& error) {
+                throw std::runtime_error("native bootstrap cache " + (version / artifact).string() +
+                                         ": " + error.what());
+            }
         }
     }
     return version.string();
@@ -292,23 +335,12 @@ std::string NativeBootstrap::validate_cached_runtime(const std::string& cache_ro
 void NativeBootstrap::load_cached_runtime(const std::string& cache_root) {
     const fs::path version = validate_cached_runtime(cache_root);
 
-    // This order is the dependency order of the current bootstrap chain.
-    // It is deliberately kept here, next to the native bootstrap boundary;
-    // ordinary libraries use the Scheme module loader after this point.
-    const std::vector<fs::path> artifacts = {
-        "expander/lib/syntax-runtime.scm-o2.gfo",
-        "expander/lib/syntax-case.scm-o2.gfo",
-        "expander/lib/define-record-type.scm-o2.gfo",
-        "expander/lib/core-macros.scm-o2.gfo",
-        "expander/lib/cond-expand.scm-o2.gfo",
-        "expander/lib/defmacro.scm-o2.gfo",
-        "expander/lib/define-star.scm-o2.gfo",
-        "expander/lib/module-registry.scm-o2.gfo",
-        "expander/lib/module.scm-o2.gfo",
-        "expander/lib/standard.scm-o2.gfo",
-        "scheme/case-lambda.scm-o2.gfo",
-    };
-    for (const fs::path& artifact : artifacts) {
+    // This order is the dependency order of the current bootstrap chain,
+    // from the boot manifest; ordinary libraries use the Scheme module
+    // loader after this point.
+    std::vector<ManifestEntry> artifacts = manifest_tier(runtime_.evaluator(), "boot");
+    for (const ManifestEntry& entry : artifacts) {
+        std::string artifact = entry.path + "-o2.gfo";
         const fs::path path = version / artifact;
         std::error_code error;
         if (!fs::is_regular_file(path, error))
@@ -324,14 +356,19 @@ void NativeBootstrap::load_cached_runtime(const std::string& cache_root) {
         }
         if (timing) {
             std::fprintf(stderr, "[timing] artifact %s %lld ms\n",
-                         artifact.string().c_str(),
+                         artifact.c_str(),
                          static_cast<long long>(
                              std::chrono::duration_cast<std::chrono::milliseconds>(
                                  std::chrono::steady_clock::now() -
                                  artifact_start).count()));
         }
     }
-    deferred_base_artifact_ = (version / "scheme/base.scm-o2.gfo").string();
+    // The manifest's deferred tier (scheme/base) replays later, after the
+    // native-scheme-surface stage.
+    for (const ManifestEntry& entry :
+         manifest_tier(runtime_.evaluator(), "deferred"))
+        deferred_base_artifact_ =
+            (version / (entry.path + "-o2.gfo")).string();
     // The Scheme source reader is loaded by the driver after the installer;
     // keep its bootstrap dependency on the native reader primitive intact.
     runtime_.evaluator().global_environment()->define(

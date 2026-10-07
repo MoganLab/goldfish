@@ -113,3 +113,33 @@ and caching it would help no warm boot.
 - **Phase 4 (memory):** the interface builder's materialized tables and
   the shared views are the measured allocation centers; the unification
   keeps them single-instance.
+
+## 6. Step 2 landed — the boot manifest (D3)
+
+`goldfish/expander/boot-manifest.scm` is the boot chain's single source of
+truth: ("relative-path" tier kind) entries over three tiers — boot (11
+artifacts replayed in order), deferred (scheme/base, replayed after the
+native-scheme-surface stage), precompile (the 7 optimizer units the
+distribution warm-up requires).  `bootstrap.cpp` parses it with the
+TinyReader and derives validation, replay order and the deferred artifact
+from it; the two constexpr arrays are gone.  Consumers:
+`tools/warm-bootstrap-cache.sh` reads the tiers with sed; the preflight
+covers boot ∪ deferred (a truncated deferred artifact must be caught
+eagerly — the first cut validated boot only and the parity test caught
+it).
+
+Two implementation invariants, both load-bearing:
+- **Fingerprint parity, same position.**  The manifest belongs in BOTH
+  fingerprint lists (bootstrap.cpp `cache_version` and gfo.scm
+  `gfo-pipeline-fingerprint`) at the SAME position — the fingerprint is
+  an order-sensitive concatenation, and a position mismatch splits the
+  native and Scheme version directories (observed: writes landed in
+  v66f…, `--bootstrap-cache-directory` reported ve28…).
+- **Parser walk.**  Advance the manifest list (`rest = cdr`), never the
+  entry's tail — the first version walked into `(kind)` and rejected
+  every entry after the first, silently pushing every boot down the cold
+  source path.
+
+Cold-only files and the boot-adjacent cached-source chain stay
+orchestrated in native_main by design (per-file expansion-helper gating;
+interleaves with semantic anchors).

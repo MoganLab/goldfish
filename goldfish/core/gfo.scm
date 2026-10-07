@@ -76,7 +76,11 @@
             "expander/bootstrap-prelude.scm"
             "scheme/base.scm" "scheme/case-lambda.scm"
             "expander/kernel-combined.scm" "compiler.scm"
-            "expander/tree-il.scm")
+            "expander/tree-il.scm"
+            ;; Keep in the same position as src/runtime/bootstrap.cpp's
+            ;; cache_version: the fingerprint is order-sensitive, and the
+            ;; native and Scheme version directories must agree.
+            "expander/boot-manifest.scm")
       (map (lambda (n) (string-append "expander/lib/" n)) (gfo-scm-files "expander/lib"))
       (map (lambda (n) (string-append "compiler/" n)) (gfo-scm-files "compiler"))))
   (define (feed acc f)
