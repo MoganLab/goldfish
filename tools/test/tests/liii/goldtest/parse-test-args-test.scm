@@ -178,7 +178,7 @@
 ) ;check
 
 ;; ===== 场景14: -j / --jobs 选项解析 =====
-(check (parse-test-jobs '("bin/gf" "test")) => 1)
+(check (parse-test-jobs '("bin/gf" "test")) => 8)
 (check (parse-test-jobs '("bin/gf" "test" "-j" "4" "json")) => 4)
 (check (parse-test-jobs '("bin/gf" "test" "-j" "10")) => 10)
 (check (parse-test-jobs '("bin/gf" "test" "--jobs=8")) => 8)
