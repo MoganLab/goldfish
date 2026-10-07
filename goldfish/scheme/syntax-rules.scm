@@ -475,20 +475,28 @@
   ) ;let*
 ) ;define-macro
 
+(define-bacro (%define-syntax-macro name t def-env)
+  (let ((ar (car (arity (eval t def-env)))))
+    (if (= ar 1)
+      `(define-macro (,name . args)
+         (resolve-syntactic-closures (,t (cons (quote ,name) args)) ,def-env))
+      `(define-macro (,name . args)
+         (resolve-syntactic-closures (,t
+                                      (cons (quote ,name) args)
+                                      (curlet)
+                                      ,def-env)
+           ,def-env))
+    ) ;if
+  ) ;let
+) ;define-bacro
+
 (define-bacro (define-syntax name
                 transformer-spec
               ) ;define-syntax
   (let ((t (gensym "trans_")) (def-env (curlet)))
     `(begin
        (define ,t ,transformer-spec)
-       (define-macro (,name . args)
-         (resolve-syntactic-closures (if (= (car (arity ,t)) ,1)
-                                       (,t (cons (quote ,name) args))
-                                       (,t
-                                        (cons (quote ,name) args)
-                                        (curlet)
-                                        ,def-env))
-           ,def-env)))
+       (%define-syntax-macro ,name ,t ,def-env))
   ) ;let
 ) ;define-bacro
 
