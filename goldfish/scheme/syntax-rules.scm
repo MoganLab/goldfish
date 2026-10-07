@@ -502,20 +502,3 @@
      ,@(map (lambda (b) `(define-syntax ,(car b) ,(cadr b))) bindings)
      (let ,() ,@body))
 ) ;define-macro
-
-(define-syntax let*-values
-  (syntax-rules ()
-    ((let*-values () b1 b2 ...) (let () b1 b2 ...))
-    ((let*-values (binding b1 ...)
-       b2
-       ...
-     ) ;let*-values
-     (let-values (binding)
-       (let*-values (b1 ...)
-         b2
-         ...
-       ) ;let*-values
-     ) ;let-values
-    ) ;
-  ) ;syntax-rules
-) ;define-syntax
