@@ -224,18 +224,33 @@ Conclusions for the unified design:
 1. **No format change needed** — text gfo + TinyReader parse is ~3% of
    boot; binary/mmap would buy nothing.  The unification is about
    orchestration and bundle kind, not serialization.
-2. **The structural lever is import-view sharing**: replace per-library
-   physical copies with shared use-views (`exp-library-add-use!`, the
-   mechanism native-source units already use) or a shared snapshot of
-   heavily-imported tables like (goldfish).  This is where the < 1 s
-   target actually lives.
+2. **The structural lever is the import-view construction, not copying.**
+   The views already exist (`add-import-view!` / `import-view`); the cost
+   is building the mapped interface table — a Scheme per-entry loop over
+   the source's full export list (thousands of `exp-library-ref` +
+   `exp-library-define!` calls, ~35 us/entry interpreted) for every
+   distinct import set, paying again whenever the source's export list
+   changed between importers (cache key includes the pairs).
 3. install-boot.scm's publishes/registrations fold into the unified
    replay naturally once one front door exists.
 
+Measured, reverted (do not retry as-is): registering the base library
+directly as the view for bare `(goldfish)` imports — warm −11% (minimal
+0.99 s) but cold +6..17%: with base's full own table visible, cold
+capture from source resolves previously-bare identifiers to base
+bindings, changing the expanded output and every downstream artifact.
+
+Viable direction: build the same interface natively — a bulk
+interface-table primitive (HOF-table style per AGENTS.md) with identical
+visibility semantics, cutting the ~35 us/entry interpreted construction
+to native speed; cache-stability improvements (rebuild the iface when
+the source table changes, instead of keying on the pairs snapshot) come
+free in the same primitive.
+
 Steps: (a) unify orchestration and bundle kind over one backend, with
-import-view sharing as the replay semantics — boot-file order and
-native-source unit semantics must stay byte-equivalent, gated like 2c;
-(b) gfo format hardening: atomic write, concurrency, cross-machine
+the native interface builder as the replay semantics — boot-file order
+and native-source unit semantics must stay byte-equivalent, gated like
+2c; (b) gfo format hardening: atomic write, concurrency, cross-machine
 portability, each its own gate-backed commit.
 
 Exit: one cache path, one bundle kind; recovery/concurrency gates green.
