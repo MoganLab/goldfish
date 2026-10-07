@@ -404,7 +404,7 @@
                     (else
                       (let* ((once (lp (car t) ell-dim ell-esc))
                              (nest
-                               (if (and (null? (cdr ell-vars)) (identifier? once) (eq? once (car vars)))
+                               (if (and (null? (cdr ell-vars)) (identifier? once) (eq? once (car ell-vars)))
                                  once
                                  (cons _map (cons (list _lambda ell-vars once) ell-vars))
                                ) ;if
