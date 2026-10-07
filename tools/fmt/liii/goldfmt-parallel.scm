@@ -28,7 +28,7 @@
 ;; 语言的批量层）都已 import 本模块。
 
 (define-library (liii goldfmt-parallel)
-  (import (liii base) (liii go) (liii list))
+  (import (liii base) (liii go) (liii list) (liii par))
   (export pool-for-each run-worker-loop offenders-from count-status
     set-fmt-jobs! fmt-jobs
   ) ;export
@@ -75,50 +75,31 @@
     ) ;define
 
     ;; ---- Worker Pool ----------------------------------------------------
-    ;; worker-fn: 各语言导出的 (lambda (worker-args ... pool-ch result-ch))，
-    ;;   经 (liii go) 派发到独立 worker 会话（内部用 go-call 按可选前置参数
-    ;;   动态构造调用——go 宏要求直接调用语法，无法在驱动内按语言拼装）。
-    ;; worker-args: 该语言 worker 的前置初始化实参（如 cpp 的 clang-format
-    ;;   二进制路径字符串），spawn 时一次性序列化传入。
-    ;; on-result: (lambda (file result))，result 为 (list 路径 状态 失败信息)，
-    ;;   按到达顺序即时回调（流式输出，不保证完成顺序）。
-    ;; 返回按到达顺序的结果列表（(list 路径 状态 失败信息) ...），统计与
-    ;;   offenders 提取均与其顺序无关。
+    ;; 基于 (liii par) 的 vector-par-map 重构，消除裸写 channel 与 EOF 哨兵。
     (define (pool-for-each worker-fn files on-result . worker-args)
-      (let* ((total (length files))
-             (pool-ch (make-chan total))
-             (result-ch (make-chan total))
-             (jobs (min (fmt-jobs) total))
-            ) ;
-        ;; 1. 串行投递全部任务（文件路径），然后关闭任务通道。
-        (let enq
-          ((fs files))
-          (unless (null? fs)
-            (chan-send! pool-ch (car fs))
-            (enq (cdr fs))
-          ) ;unless
-        ) ;let
-        (chan-close! pool-ch)
-        ;; 2. 启动 jobs 个 worker（实际并发度 = min(jobs, 文件数)）。
-        (let spawn
-          ((i 0))
-          (when (< i jobs)
-            (apply go-call worker-fn (append worker-args (list pool-ch result-ch)))
-            (spawn (+ i 1))
-          ) ;when
-        ) ;let
-        ;; 3. 按到达顺序收满 total 个结果，即时回调。
-        (let recv
-          ((got 0) (acc '()))
-          (if (= got total)
-            (reverse acc)
-            (let ((r (chan-recv! result-ch)))
-              (on-result (car r) r)
-              (recv (+ got 1) (cons r acc))
-            ) ;let
-          ) ;if
-        ) ;let
-      ) ;let*
+      (if (null? files)
+        '()
+        (let* ((vec (list->vector files))
+               (worker-src (procedure-source worker-fn))
+               (task-proc
+                 (eval
+                   `(lambda (file)
+                      (let ((task-ch (make-chan 1)) (result-ch (make-chan 1)))
+                        (chan-send! task-ch file)
+                        (chan-close! task-ch)
+                        (apply ,worker-src
+                          (append (quote ,worker-args) (list task-ch result-ch)))
+                        (chan-recv! result-ch)))
+                   (rootlet)
+                 ) ;eval
+               ) ;task-proc
+               (res-vec (vector-par-map task-proc vec))
+               (results (vector->list res-vec))
+              ) ;
+          (for-each (lambda (r) (on-result (car r) r)) results)
+          results
+        ) ;let*
+      ) ;if
     ) ;define
 
     ;; ---- 结果归约辅助 ---------------------------------------------------
