@@ -87,4 +87,24 @@
 (check (exported-sc-macro 5) => 15)
 (check-catch 'unbound-variable (private-sc-add10 5))
 
+;; 6. 验证 syntax-case 定义的宏在多次 GC 之后展开仍然正常
+(define-syntax my-pair-macro
+  (lambda (stx)
+    (syntax-case stx ()
+      ((_ (fn arg ...)) (syntax (fn arg ...))))))
+
+(let loop ((i 0))
+  (when (< i 10)
+    (gc)
+    (loop (+ i 1))))
+
+(check (my-pair-macro (+ 1 2 3)) => 6)
+
+;; 7. 统计生成 symbol 数量
+(let* ((c0 (%syntax-case-counter))
+       (_ (eval '(syntax-case '(+ 1 2) () ((_ a b) (syntax (+ a b)))) (curlet)))
+       (c1 (%syntax-case-counter)))
+  ;; 展开单次简单的二元运算匹配，仅生成 7 个内部局部临时符号
+  (check (- c1 c0) => 7))
+
 (check-report)
