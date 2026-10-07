@@ -44,13 +44,24 @@
 
     (define-syntax let-values
       (syntax-rules ()
-        ((let-values (?binding ...)
+        ((let-values () ?body0 ?body1 ...) (begin ?body0 ?body1 ...))
+
+        ((let-values ((?formals ?expr))
            ?body0
            ?body1
            ...
          ) ;let-values
-         (let-values "bind"
-           (?binding ...)
+         (call-with-values (lambda () ?expr) (lambda ?formals ?body0 ?body1 ...))
+        ) ;
+
+        ((let-values (?binding0 ?binding1 ?binding2 ...)
+           ?body0
+           ?body1
+           ...
+         ) ;let-values
+         (let-values "eval"
+           (?binding0 ?binding1 ?binding2 ...)
+           ()
            ()
            (begin
              ?body0
@@ -60,59 +71,38 @@
          ) ;let-values
         ) ;
 
-        ((let-values "bind" () ?tmps ?body) (let ?tmps ?body))
-
-        ((let-values "bind"
-           ((?b0 ?e0) ?binding ...)
-           ?tmps
-           ?body
-         ) ;let-values
-         (let-values "mktmp"
-           ?b0
-           ?e0
+        ((let-values "eval"
            ()
-           (?binding ...)
-           ?tmps
+           (?formal ...)
+           (?t ...)
+           ?body
+         ) ;let-values
+         (let-values "apply"
+           (?formal ...)
+           (?t ...)
            ?body
          ) ;let-values
         ) ;
 
-        ((let-values "mktmp" () ?e0 ?args ?bindings ?tmps ?body
+        ((let-values "eval"
+           ((?f ?e) . ?more)
+           (?formal ...)
+           (?t ...)
+           ?body
          ) ;let-values
-         (call-with-values (lambda () ?e0)
-           (lambda ?args (let-values "bind" ?bindings ?tmps ?body))
+         (call-with-values (lambda () ?e)
+           (lambda t (let-values "eval" ?more (?formal ... ?f) (?t ... t) ?body))
          ) ;call-with-values
         ) ;
 
-        ((let-values "mktmp"
-           (?a . ?b)
-           ?e0
-           (?arg ...)
-           ?bindings
-           (?tmp ...)
-           ?body
-         ) ;let-values
-         (let-values "mktmp"
-           ?b
-           ?e0
-           (?arg ... x)
-           ?bindings
-           (?tmp ... (?a x))
-           ?body
-         ) ;let-values
-        ) ;
+        ((let-values "apply" () () ?body) ?body)
 
-        ((let-values "mktmp"
-           ?a
-           ?e0
-           (?arg ...)
-           ?bindings
-           (?tmp ...)
+        ((let-values "apply"
+           (?f . ?f-more)
+           (?t . ?t-more)
            ?body
          ) ;let-values
-         (call-with-values (lambda () ?e0)
-           (lambda (?arg ... . x) (let-values "bind" ?bindings (?tmp ... (?a x)) ?body))
-         ) ;call-with-values
+         (apply (lambda ?f (let-values "apply" ?f-more ?t-more ?body)) ?t)
         ) ;
       ) ;syntax-rules
     ) ;define-syntax

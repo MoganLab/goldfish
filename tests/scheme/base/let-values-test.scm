@@ -78,4 +78,8 @@
            (+ c d)))
   => 5)
 
+;; 防变量捕获测试：环境中定义同名变量 x 时，多值绑定依然正常
+(define x 10)
+(check (let-values (((a b) (values 1 2))) (+ a b)) => 3)
+
 (check-report)
