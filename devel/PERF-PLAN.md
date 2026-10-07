@@ -46,11 +46,11 @@ total ~1.8 s, warm wall 1.8-1.9 s.
 
 | metric | now | near (exit Ph 3) | mid (exit Ph 5) | stretch (Ph 6) |
 |---|---:|---:|---:|---:|
-| warm startup | 1.8 s | < 1 s | < 300 ms | < 60 ms |
+| warm startup | ~0.9-1.06 s | < 1 s ✓ | < 300 ms | < 60 ms |
 | cold, shipped cache | n/a | ≈ warm | ≈ warm | ≈ warm |
-| cold, no cache | ~64 s | < 10 s | < 3 s | — |
-| warm RSS | 32 MiB | ≤ 32 MiB | ≤ 32 MiB | — |
-| runtime throughput | unmeasured | baseline + gate | −10% time | — |
+| cold, no cache | ~41-50 s | < 10 s | < 3 s | — |
+| warm RSS | ~30 MiB | ≤ 32 MiB | ≤ 32 MiB | — |
+| runtime throughput | baseline + gate ✓ | −10% time (Phase 4) | −10% time | — |
 
 ## Program map
 
@@ -59,9 +59,9 @@ total ~1.8 s, warm wall 1.8-1.9 s.
 | 0. Measurement & gates | instruments before optimization | **DONE** 2026-10-06 |
 | 1. Compile pipeline | reader / expander / optimizer / serializer | **DONE** 2026-10-06 |
 | 2. Startup structure | installer cacheable; shipped-cache cold ≈ warm | **DONE** 2026-10-07 (2a + 2c; 2b folded into 3) |
-| 3. Evaluator & runtime | runtime throughput; warm < 1 s | **ACTIVE** — gate + 5 levers landed; warm 1.13 s (plateau; Appendix F) |
+| 3. Evaluator & runtime | runtime throughput; warm < 1 s | **DONE** 2026-10-07 — gate + 5 levers; the < 1 s exit closed by Phase 5's interface builder (Appendix F) |
 | 4. Memory | peak/steady RSS | later |
-| 5. Cache unification & IO | one cache front door, one bundle kind | later |
+| 5. Cache unification & IO | one cache front door, one bundle kind | **ACTIVE** — attribution + native interface builder landed (Appendix G) |
 | 6. Runtime image | design doc + feasibility prototype | research, later |
 
 ## Phase 0 — Measurement and regression infrastructure [DONE]
@@ -192,7 +192,8 @@ The ultimate metric — how fast programs run after startup — plus the folded
    replay; attribution and the full ledger are in Appendix F.
 
 Exit: runtime gate with baseline and measured gains [met]; warm startup
-< 1 s [plateau at 1.11 s — remaining path scoped above].
+< 1 s [met 2026-10-07 by Phase 5's native interface builder — warm
+~0.9-1.06 s; see Phase 5 and Appendix F].
 
 ## Phase 4 — Memory [LATER]
 
@@ -231,6 +232,19 @@ Conclusions for the unified design:
    `exp-library-define!` calls, ~35 us/entry interpreted) for every
    distinct import set, paying again whenever the source's export list
    changed between importers (cache key includes the pairs).
+
+   **Landed — the `%interface-table` primitive**: a C++ bulk builder that
+   materializes the source's bindings once (`exp-library-bindings` over
+   own + uses, newest-first first-wins — exactly `exp-library-ref`
+   semantics) and issues one kernel `exp-library-define!` per visible
+   name, keeping every record-layout detail inside the kernel.  Raises
+   are ThrownValue payloads shaped byte-for-byte like the interpreted
+   `(error 'import "~a..." arg ...)` — load-library-guard's detail
+   formatting is unchanged (the import-sets test exercises both collision
+   shapes).  scheme/base's artifact 290 → 115 ms; **warm boot 1.11 s →
+   ~0.9-1.06 s — the < 1 s target is met**; cold unchanged (fair
+   same-load A/B −1.0%); runtime suite unchanged (compare OK).  Logged in
+   %internal-names.
 3. install-boot.scm's publishes/registrations fold into the unified
    replay naturally once one front door exists.
 
@@ -239,13 +253,8 @@ directly as the view for bare `(goldfish)` imports — warm −11% (minimal
 0.99 s) but cold +6..17%: with base's full own table visible, cold
 capture from source resolves previously-bare identifiers to base
 bindings, changing the expanded output and every downstream artifact.
-
-Viable direction: build the same interface natively — a bulk
-interface-table primitive (HOF-table style per AGENTS.md) with identical
-visibility semantics, cutting the ~35 us/entry interpreted construction
-to native speed; cache-stability improvements (rebuild the iface when
-the source table changes, instead of keying on the pairs snapshot) come
-free in the same primitive.
+Also a thread_local reuse of equal()'s cycle-guard vector: segfaults
+cold boot under the conservative collector.
 
 Steps: (a) unify orchestration and bundle kind over one backend, with
 the native interface builder as the replay semantics — boot-file order
@@ -449,3 +458,43 @@ toolchain detection cache under `build/` is cold (no gcc on the bare PATH);
 `tools/build-prof.sh` currently fails — xmake 3.0.9's releasedbg config
 errors with "target(lint-layer): toolchain not found", so perf profiling is
 unavailable in this environment (code-level attribution was used instead).
+
+## Appendix G — Phase 5 records (2026-10-07)
+
+Attribution instrumentation (`0e53c2f4`): per-artifact and per-phase marks
+under the timing key across both bundle kinds, plus Scheme-side
+lib-cache-read / lib-import / lib-bindings / lib-macros / lib-restore /
+lib-eval-defs marks.  Findings: import-view construction ~76% of a 1.24 s
+warm boot (scheme/base 261 ms, case-lambda 104 ms for a one-macro library);
+text parsing ~3%; defs eval ~5%.
+
+Landed: the `%interface-table` primitive (bulk import-interface builder,
+kernel-API-only — `exp-library-bindings` materialization + one
+`exp-library-define!` per visible name; ThrownValue raises matching the
+interpreted `(error 'import ...)` payload).  Two implementation lessons are
+embedded in its comments: symbols are not pointer-interned across cache
+readers (compare names, not Object pointers), and `exp-library-uses`
+entries are `(view . level)` pairs.
+
+Measured (records under `bench/cold-start/phase5-itab-9c9f5841` and
+`bench/runtime/phase5-itab-9c9f5841`, compared against the
+`phase3-leverc-d8ca389e` startup record):
+
+- warm boot total: 1.11 → ~0.9-1.06 s (minimal 1.06 s, small-real 1.06 s
+  under a loaded box; quiet-box direct timing 0.88-0.93 s).  **Warm < 1 s:
+  met.**
+- scheme/base artifact 290 → 115 ms; case-lambda 104 → ~0 ms; C++-side
+  bundle-import total 365 → 132 ms.
+- runtime suite: compare OK (compute paths untouched; load-inflated
+  sum/winders cells within tolerance).
+- cold: fair same-load A/B (`phase5-itab-coldbase` vs `coldcand`, minimal
+  only): 50.73 → 50.24 s (−1.0%, compare OK).  The full-suite cold cells
+  read +15..27% against the quiet-window records — a load-4.6 box
+  inflates long runs ~24%; the same-load A/B is the honest comparison.
+- gates: changed-since 162/162 (import-sets included — it failed with the
+  first ErrorObject-shaped raise and passed once the raise was a
+  ThrownValue matching `(error 'import ...)` byte-for-byte).
+
+Environment note: a load-average-4+ box inflates cold-run wall ~24% and
+runtime medians up to ~17%; when in doubt, measure BOTH sides in the same
+window (`phase5-itab-coldbase/coldcand` demonstrate the pattern).

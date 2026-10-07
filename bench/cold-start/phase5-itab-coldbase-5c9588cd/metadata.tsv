@@ -1,0 +1,8 @@
+field	value
+revision	6097a1ad82d7c16a667a5bf52195143ed0e359fe
+binary_sha256	5c9588cdf708f2595185d7f2f32c3b2f4cdb7b746b145e415a008281f3f18ff2
+opt_level	2
+samples	3
+states	cold
+cpu	AMD Ryzen 7 7840HS with Radeon 780M Graphics
+date	2026-10-07T09:59:32Z

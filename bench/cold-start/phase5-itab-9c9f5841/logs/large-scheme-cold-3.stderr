@@ -1,0 +1,80 @@
+[timing] install-primitives 0 ms
+[timing] load-kernel 36 ms
+native cache unavailable: native bootstrap cache not found under /tmp/bench-itab2/caches/cold-large-scheme-3/v2937778fb9e9
+[timing] load-cached-runtime 8 ms
+[timing] cold-source-bootstrap 285 ms
+[timing] gfo-seed 511 ms
+[timing] load-install-scm 1850 ms
+[timing] load-install-boot 10830 ms
+[timing] expansion-helpers 8 ms
+[timing] native-scheme-surface 2162 ms
+[timing] standard-library 603 ms
+[timing] post-standard-collection 10 ms
+[timing] (lib-cache-read (scheme base)) 0 ms
+[timing] (lib-load (scheme base)) 1451 ms
+[timing] (lib-cache-read (scheme write)) 0 ms
+[timing] (lib-load (scheme write)) 7 ms
+[timing] (lib-cache-read (scheme read)) 0 ms
+[timing] (lib-load (scheme read)) 5 ms
+[timing] (lib-cache-read (scheme file)) 0 ms
+[timing] (lib-load (scheme file)) 12 ms
+[timing] (lib-cache-read (scheme process-context)) 0 ms
+[timing] (lib-load (scheme process-context)) 14 ms
+[timing] (lib-cache-read (scheme time)) 0 ms
+[timing] (lib-load (scheme time)) 28 ms
+[timing] (lib-cache-read (scheme char)) 0 ms
+[timing] (lib-cache-read (liii unicode)) 0 ms
+[timing] (lib-cache-read (liii base)) 0 ms
+[timing] (lib-cache-read (srfi srfi-2)) 0 ms
+[timing] (lib-load (srfi srfi-2)) 128 ms
+[timing] (lib-cache-read (srfi srfi-8)) 1 ms
+[timing] (lib-load (srfi srfi-8)) 54 ms
+[timing] (lib-load (liii base)) 343 ms
+[timing] (lib-cache-read (liii ascii)) 0 ms
+[timing] (lib-cache-read (srfi srfi-175)) 0 ms
+[timing] (lib-load (srfi srfi-175)) 661 ms
+[timing] (lib-load (liii ascii)) 741 ms
+[timing] (lib-cache-read (liii bitwise)) 0 ms
+[timing] (lib-cache-read (srfi srfi-151)) 0 ms
+[timing] (lib-load (srfi srfi-151)) 463 ms
+[timing] (lib-cache-read (liii error)) 0 ms
+[timing] (lib-load (liii error)) 49 ms
+[timing] (lib-load (liii bitwise)) 603 ms
+[timing] (lib-load (liii unicode)) 5305 ms
+[timing] (lib-load (scheme char)) 5926 ms
+[timing] (lib-cache-read (scheme complex)) 0 ms
+[timing] (lib-load (scheme complex)) 23 ms
+[timing] (lib-cache-read (scheme cxr)) 0 ms
+[timing] (lib-load (scheme cxr)) 12 ms
+[timing] (lib-cache-read (scheme eval)) 0 ms
+[timing] (lib-load (scheme eval)) 165 ms
+[timing] (lib-cache-read (scheme case-lambda)) 0 ms
+[timing] (lib-load (scheme case-lambda)) 48 ms
+[timing] mode-imports 7837 ms
+[timing] load-source-reader 5162 ms
+[timing] load-native-writer 37 ms
+[timing] boot total 29346 ms
+[timing] install-fork-runner 0 ms
+[timing] compile-cache-lookup 1 ms
+[timing] compile-read-source 152 ms
+[timing] compile-expand 2115 ms
+[timing] (lib-cache-read (goldfish compiler)) 0 ms
+[timing] (lib-cache-read (goldfish core ir)) 0 ms
+[timing] (lib-load (goldfish core ir)) 2053 ms
+[timing] (lib-cache-read (goldfish compiler patterns)) 1 ms
+[timing] (lib-cache-read (goldfish match)) 0 ms
+[timing] (lib-cache-read (goldfish match expansion)) 0 ms
+[timing] (lib-load (goldfish match expansion)) 6040 ms
+[timing] (lib-load (goldfish match)) 8990 ms
+[timing] (lib-load (goldfish compiler patterns)) 9959 ms
+[timing] (lib-cache-read (goldfish compiler passes)) 0 ms
+[timing] (lib-load (goldfish compiler passes)) 5589 ms
+[timing] (lib-load (goldfish compiler)) 19376 ms
+[timing] optimize-load-compiler 19377 ms
+[timing] (lib-cache-read (goldfish expander tree-il)) 0 ms
+[timing] (lib-load (goldfish expander tree-il)) 2756 ms
+[timing] optimize-load-tree-il 2757 ms
+[timing] optimize-run-passes 2945 ms
+[timing] compile-optimize 25079 ms
+[timing] compile-cache-write 1215 ms
+[timing] user-file 28833 ms

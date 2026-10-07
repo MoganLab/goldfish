@@ -878,25 +878,12 @@
     (let ((e (assoc key *interface-cache*)))
       (if e
         (cdr e)
-        (let ((iface (make-exp-library (exp-library-name src))))
-          (for-each (lambda (p)
-                      (let* ((visible (car p))
-                             (binding (exp-library-ref src (cdr p))))
-                        (if binding
-                          (let ((prior (exp-library-ref-own iface visible)))
-                            (if prior
-                              ;; A modifier stack that lands two DIFFERENT
-                              ;; bindings on one visible name (a rename that
-                              ;; collapses two exports, say) is ambiguous.
-                              (if (eq? prior binding)
-                                #f
-                                (error 'import "~a bound more than once with different bindings (~a)"
-                                       visible lib-name))
-                              (exp-library-define! iface visible binding)))
-                          (when strict?
-                            (error 'import "~a has no binding in ~a"
-                                   (cdr p) lib-name)))))
-                    pairs)
+        ;; The table build is the native %interface-table primitive: the
+        ;; interpreted per-entry loop cost ~35 us per name (scheme/base's
+        ;; (goldfish) import: ~260 ms); the primitive builds the identical
+        ;; buckets (same hash, same lookup order, same collision checks)
+        ;; natively.
+        (let ((iface (%interface-table src pairs strict? lib-name)))
           (set! *interface-cache*
                 (cons (cons key iface) *interface-cache*))
           iface)))))

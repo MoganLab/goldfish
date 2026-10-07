@@ -1,0 +1,261 @@
+[timing] install-primitives 0 ms
+[timing] load-kernel 36 ms
+[timing] bundle-parse /tmp/bench-itab2/caches/bootstrap/v2937778fb9e9/expander/lib/syntax-runtime.scm-o2.gfo 1 ms
+[timing] bundle-defs /tmp/bench-itab2/caches/bootstrap/v2937778fb9e9/expander/lib/syntax-runtime.scm-o2.gfo 0 ms
+[timing] bundle-meta /tmp/bench-itab2/caches/bootstrap/v2937778fb9e9/expander/lib/syntax-runtime.scm-o2.gfo 3 ms
+[timing] bundle-alias /tmp/bench-itab2/caches/bootstrap/v2937778fb9e9/expander/lib/syntax-runtime.scm-o2.gfo 0 ms
+[timing] artifact expander/lib/syntax-runtime.scm-o2.gfo 7 ms
+[timing] bundle-parse /tmp/bench-itab2/caches/bootstrap/v2937778fb9e9/expander/lib/syntax-case.scm-o2.gfo 1 ms
+[timing] bundle-defs /tmp/bench-itab2/caches/bootstrap/v2937778fb9e9/expander/lib/syntax-case.scm-o2.gfo 0 ms
+[timing] bundle-meta /tmp/bench-itab2/caches/bootstrap/v2937778fb9e9/expander/lib/syntax-case.scm-o2.gfo 0 ms
+[timing] bundle-alias /tmp/bench-itab2/caches/bootstrap/v2937778fb9e9/expander/lib/syntax-case.scm-o2.gfo 0 ms
+[timing] artifact expander/lib/syntax-case.scm-o2.gfo 4 ms
+[timing] bundle-parse /tmp/bench-itab2/caches/bootstrap/v2937778fb9e9/expander/lib/define-record-type.scm-o2.gfo 0 ms
+[timing] bundle-defs /tmp/bench-itab2/caches/bootstrap/v2937778fb9e9/expander/lib/define-record-type.scm-o2.gfo 0 ms
+[timing] bundle-meta /tmp/bench-itab2/caches/bootstrap/v2937778fb9e9/expander/lib/define-record-type.scm-o2.gfo 0 ms
+[timing] bundle-alias /tmp/bench-itab2/caches/bootstrap/v2937778fb9e9/expander/lib/define-record-type.scm-o2.gfo 0 ms
+[timing] artifact expander/lib/define-record-type.scm-o2.gfo 1 ms
+[timing] bundle-parse /tmp/bench-itab2/caches/bootstrap/v2937778fb9e9/expander/lib/core-macros.scm-o2.gfo 3 ms
+[timing] bundle-defs /tmp/bench-itab2/caches/bootstrap/v2937778fb9e9/expander/lib/core-macros.scm-o2.gfo 0 ms
+[timing] bundle-meta /tmp/bench-itab2/caches/bootstrap/v2937778fb9e9/expander/lib/core-macros.scm-o2.gfo 0 ms
+[timing] bundle-alias /tmp/bench-itab2/caches/bootstrap/v2937778fb9e9/expander/lib/core-macros.scm-o2.gfo 0 ms
+[timing] artifact expander/lib/core-macros.scm-o2.gfo 8 ms
+[timing] bundle-parse /tmp/bench-itab2/caches/bootstrap/v2937778fb9e9/expander/lib/cond-expand.scm-o2.gfo 0 ms
+[timing] bundle-defs /tmp/bench-itab2/caches/bootstrap/v2937778fb9e9/expander/lib/cond-expand.scm-o2.gfo 0 ms
+[timing] bundle-meta /tmp/bench-itab2/caches/bootstrap/v2937778fb9e9/expander/lib/cond-expand.scm-o2.gfo 0 ms
+[timing] bundle-alias /tmp/bench-itab2/caches/bootstrap/v2937778fb9e9/expander/lib/cond-expand.scm-o2.gfo 0 ms
+[timing] artifact expander/lib/cond-expand.scm-o2.gfo 1 ms
+[timing] bundle-parse /tmp/bench-itab2/caches/bootstrap/v2937778fb9e9/expander/lib/defmacro.scm-o2.gfo 1 ms
+[timing] bundle-defs /tmp/bench-itab2/caches/bootstrap/v2937778fb9e9/expander/lib/defmacro.scm-o2.gfo 0 ms
+[timing] bundle-meta /tmp/bench-itab2/caches/bootstrap/v2937778fb9e9/expander/lib/defmacro.scm-o2.gfo 0 ms
+[timing] bundle-alias /tmp/bench-itab2/caches/bootstrap/v2937778fb9e9/expander/lib/defmacro.scm-o2.gfo 0 ms
+[timing] artifact expander/lib/defmacro.scm-o2.gfo 2 ms
+[timing] bundle-parse /tmp/bench-itab2/caches/bootstrap/v2937778fb9e9/expander/lib/define-star.scm-o2.gfo 1 ms
+[timing] bundle-defs /tmp/bench-itab2/caches/bootstrap/v2937778fb9e9/expander/lib/define-star.scm-o2.gfo 0 ms
+[timing] bundle-meta /tmp/bench-itab2/caches/bootstrap/v2937778fb9e9/expander/lib/define-star.scm-o2.gfo 0 ms
+[timing] bundle-alias /tmp/bench-itab2/caches/bootstrap/v2937778fb9e9/expander/lib/define-star.scm-o2.gfo 0 ms
+[timing] artifact expander/lib/define-star.scm-o2.gfo 2 ms
+[timing] bundle-parse /tmp/bench-itab2/caches/bootstrap/v2937778fb9e9/expander/lib/module-registry.scm-o2.gfo 0 ms
+[timing] bundle-defs /tmp/bench-itab2/caches/bootstrap/v2937778fb9e9/expander/lib/module-registry.scm-o2.gfo 0 ms
+[timing] bundle-meta /tmp/bench-itab2/caches/bootstrap/v2937778fb9e9/expander/lib/module-registry.scm-o2.gfo 1 ms
+[timing] bundle-alias /tmp/bench-itab2/caches/bootstrap/v2937778fb9e9/expander/lib/module-registry.scm-o2.gfo 0 ms
+[timing] artifact expander/lib/module-registry.scm-o2.gfo 2 ms
+[timing] bundle-parse /tmp/bench-itab2/caches/bootstrap/v2937778fb9e9/expander/lib/module.scm-o2.gfo 5 ms
+[timing] bundle-defs /tmp/bench-itab2/caches/bootstrap/v2937778fb9e9/expander/lib/module.scm-o2.gfo 0 ms
+[timing] bundle-meta /tmp/bench-itab2/caches/bootstrap/v2937778fb9e9/expander/lib/module.scm-o2.gfo 7 ms
+[timing] bundle-alias /tmp/bench-itab2/caches/bootstrap/v2937778fb9e9/expander/lib/module.scm-o2.gfo 0 ms
+[timing] artifact expander/lib/module.scm-o2.gfo 21 ms
+[timing] bundle-parse /tmp/bench-itab2/caches/bootstrap/v2937778fb9e9/expander/lib/standard.scm-o2.gfo 5 ms
+[timing] bundle-defs /tmp/bench-itab2/caches/bootstrap/v2937778fb9e9/expander/lib/standard.scm-o2.gfo 0 ms
+[timing] bundle-meta /tmp/bench-itab2/caches/bootstrap/v2937778fb9e9/expander/lib/standard.scm-o2.gfo 1 ms
+[timing] bundle-alias /tmp/bench-itab2/caches/bootstrap/v2937778fb9e9/expander/lib/standard.scm-o2.gfo 0 ms
+[timing] artifact expander/lib/standard.scm-o2.gfo 12 ms
+[timing] bundle-parse /tmp/bench-itab2/caches/bootstrap/v2937778fb9e9/scheme/case-lambda.scm-o2.gfo 0 ms
+[timing] bundle-import /tmp/bench-itab2/caches/bootstrap/v2937778fb9e9/scheme/case-lambda.scm-o2.gfo ((scheme case-lambda)) 36 ms
+[timing] bundle-meta /tmp/bench-itab2/caches/bootstrap/v2937778fb9e9/scheme/case-lambda.scm-o2.gfo ((scheme case-lambda)) 0 ms
+[timing] bundle-defs /tmp/bench-itab2/caches/bootstrap/v2937778fb9e9/scheme/case-lambda.scm-o2.gfo ((scheme case-lambda)) 0 ms
+[timing] bundle-module /tmp/bench-itab2/caches/bootstrap/v2937778fb9e9/scheme/case-lambda.scm-o2.gfo ((scheme case-lambda)) 0 ms
+[timing] artifact scheme/case-lambda.scm-o2.gfo 37 ms
+[timing] load-cached-runtime 148 ms
+[timing] gfo-seed 15 ms
+[timing] load-install-scm 16 ms
+[timing] load-install-boot 115 ms
+[timing] expansion-helpers 4 ms
+[timing] native-scheme-surface 57 ms
+[timing] bundle-parse /tmp/bench-itab2/caches/bootstrap/v2937778fb9e9/scheme/base.scm-o2.gfo 8 ms
+[timing] bundle-import /tmp/bench-itab2/caches/bootstrap/v2937778fb9e9/scheme/base.scm-o2.gfo ((scheme base)) 100 ms
+[timing] bundle-meta /tmp/bench-itab2/caches/bootstrap/v2937778fb9e9/scheme/base.scm-o2.gfo ((scheme base)) 3 ms
+[timing] bundle-defs /tmp/bench-itab2/caches/bootstrap/v2937778fb9e9/scheme/base.scm-o2.gfo ((scheme base)) 1 ms
+[timing] bundle-module /tmp/bench-itab2/caches/bootstrap/v2937778fb9e9/scheme/base.scm-o2.gfo ((scheme base)) 7 ms
+[timing] artifact scheme/base.scm-o2.gfo 143 ms
+[timing] standard-library 143 ms
+[timing] post-standard-collection 3 ms
+[timing] (lib-cache-read (scheme write)) 0 ms
+[timing] (lib-import (scheme write)) 3 ms
+[timing] (lib-bindings (scheme write)) 0 ms
+[timing] (lib-macros (scheme write)) 0 ms
+[timing] (lib-restore (scheme write)) 4 ms
+[timing] (lib-eval-defs (scheme write)) 0 ms
+[timing] (lib-load (scheme write)) 5 ms
+[timing] (lib-cache-read (scheme read)) 0 ms
+[timing] (lib-import (scheme read)) 1 ms
+[timing] (lib-bindings (scheme read)) 0 ms
+[timing] (lib-macros (scheme read)) 0 ms
+[timing] (lib-restore (scheme read)) 2 ms
+[timing] (lib-eval-defs (scheme read)) 0 ms
+[timing] (lib-load (scheme read)) 2 ms
+[timing] (lib-cache-read (scheme file)) 0 ms
+[timing] (lib-import (scheme file)) 2 ms
+[timing] (lib-bindings (scheme file)) 0 ms
+[timing] (lib-macros (scheme file)) 1 ms
+[timing] (lib-restore (scheme file)) 3 ms
+[timing] (lib-eval-defs (scheme file)) 0 ms
+[timing] (lib-load (scheme file)) 4 ms
+[timing] (lib-cache-read (scheme process-context)) 0 ms
+[timing] (lib-import (scheme process-context)) 2 ms
+[timing] (lib-bindings (scheme process-context)) 0 ms
+[timing] (lib-macros (scheme process-context)) 0 ms
+[timing] (lib-restore (scheme process-context)) 2 ms
+[timing] (lib-eval-defs (scheme process-context)) 0 ms
+[timing] (lib-load (scheme process-context)) 4 ms
+[timing] (lib-cache-read (scheme time)) 0 ms
+[timing] (lib-import (scheme time)) 2 ms
+[timing] (lib-bindings (scheme time)) 0 ms
+[timing] (lib-macros (scheme time)) 7 ms
+[timing] (lib-restore (scheme time)) 10 ms
+[timing] (lib-eval-defs (scheme time)) 1 ms
+[timing] (lib-load (scheme time)) 12 ms
+[timing] (lib-cache-read (scheme char)) 10 ms
+[timing] (lib-cache-read (liii unicode)) 5 ms
+[timing] (lib-cache-read (liii base)) 1 ms
+[timing] (lib-cache-read (srfi srfi-2)) 1 ms
+[timing] (lib-import (srfi srfi-2)) 2 ms
+[timing] (lib-bindings (srfi srfi-2)) 0 ms
+[timing] (lib-macros (srfi srfi-2)) 7 ms
+[timing] (lib-restore (srfi srfi-2)) 10 ms
+[timing] (lib-eval-defs (srfi srfi-2)) 0 ms
+[timing] (lib-load (srfi srfi-2)) 12 ms
+[timing] (lib-cache-read (srfi srfi-8)) 0 ms
+[timing] (lib-import (srfi srfi-8)) 2 ms
+[timing] (lib-bindings (srfi srfi-8)) 0 ms
+[timing] (lib-macros (srfi srfi-8)) 2 ms
+[timing] (lib-restore (srfi srfi-8)) 4 ms
+[timing] (lib-eval-defs (srfi srfi-8)) 0 ms
+[timing] (lib-load (srfi srfi-8)) 6 ms
+[timing] (lib-import (liii base)) 25 ms
+[timing] (lib-bindings (liii base)) 0 ms
+[timing] (lib-macros (liii base)) 4 ms
+[timing] (lib-restore (liii base)) 29 ms
+[timing] (lib-eval-defs (liii base)) 1 ms
+[timing] (lib-load (liii base)) 32 ms
+[timing] (lib-cache-read (liii ascii)) 1 ms
+[timing] (lib-cache-read (srfi srfi-175)) 2 ms
+[timing] (lib-import (srfi srfi-175)) 7 ms
+[timing] (lib-bindings (srfi srfi-175)) 2 ms
+[timing] (lib-macros (srfi srfi-175)) 2 ms
+[timing] (lib-restore (srfi srfi-175)) 12 ms
+[timing] (lib-eval-defs (srfi srfi-175)) 7 ms
+[timing] (lib-load (srfi srfi-175)) 22 ms
+[timing] (lib-import (liii ascii)) 30 ms
+[timing] (lib-bindings (liii ascii)) 0 ms
+[timing] (lib-macros (liii ascii)) 4 ms
+[timing] (lib-restore (liii ascii)) 35 ms
+[timing] (lib-eval-defs (liii ascii)) 5 ms
+[timing] (lib-load (liii ascii)) 42 ms
+[timing] (lib-cache-read (liii bitwise)) 2 ms
+[timing] (lib-cache-read (srfi srfi-151)) 2 ms
+[timing] (lib-import (srfi srfi-151)) 15 ms
+[timing] (lib-bindings (srfi srfi-151)) 2 ms
+[timing] (lib-macros (srfi srfi-151)) 1 ms
+[timing] (lib-restore (srfi srfi-151)) 19 ms
+[timing] (lib-eval-defs (srfi srfi-151)) 11 ms
+[timing] (lib-load (srfi srfi-151)) 33 ms
+[timing] (lib-cache-read (liii error)) 0 ms
+[timing] (lib-import (liii error)) 2 ms
+[timing] (lib-bindings (liii error)) 0 ms
+[timing] (lib-macros (liii error)) 0 ms
+[timing] (lib-restore (liii error)) 3 ms
+[timing] (lib-eval-defs (liii error)) 2 ms
+[timing] (lib-load (liii error)) 7 ms
+[timing] (lib-import (liii bitwise)) 52 ms
+[timing] (lib-bindings (liii bitwise)) 0 ms
+[timing] (lib-macros (liii bitwise)) 5 ms
+[timing] (lib-restore (liii bitwise)) 58 ms
+[timing] (lib-eval-defs (liii bitwise)) 5 ms
+[timing] (lib-load (liii bitwise)) 66 ms
+[timing] (lib-import (liii unicode)) 191 ms
+[timing] (lib-bindings (liii unicode)) 2 ms
+[timing] (lib-macros (liii unicode)) 2 ms
+[timing] (lib-restore (liii unicode)) 196 ms
+[timing] (lib-eval-defs (liii unicode)) 27 ms
+[timing] (lib-load (liii unicode)) 230 ms
+[timing] (lib-import (scheme char)) 241 ms
+[timing] (lib-bindings (scheme char)) 1 ms
+[timing] (lib-macros (scheme char)) 0 ms
+[timing] (lib-restore (scheme char)) 244 ms
+[timing] (lib-eval-defs (scheme char)) 5 ms
+[timing] (lib-load (scheme char)) 260 ms
+[timing] (lib-cache-read (scheme complex)) 0 ms
+[timing] (lib-import (scheme complex)) 3 ms
+[timing] (lib-bindings (scheme complex)) 0 ms
+[timing] (lib-macros (scheme complex)) 0 ms
+[timing] (lib-restore (scheme complex)) 4 ms
+[timing] (lib-eval-defs (scheme complex)) 0 ms
+[timing] (lib-load (scheme complex)) 5 ms
+[timing] (lib-cache-read (scheme cxr)) 0 ms
+[timing] (lib-import (scheme cxr)) 2 ms
+[timing] (lib-bindings (scheme cxr)) 0 ms
+[timing] (lib-macros (scheme cxr)) 0 ms
+[timing] (lib-restore (scheme cxr)) 3 ms
+[timing] (lib-eval-defs (scheme cxr)) 0 ms
+[timing] (lib-load (scheme cxr)) 5 ms
+[timing] (lib-cache-read (scheme eval)) 0 ms
+[timing] (lib-import (scheme eval)) 3 ms
+[timing] (lib-bindings (scheme eval)) 0 ms
+[timing] (lib-macros (scheme eval)) 0 ms
+[timing] (lib-restore (scheme eval)) 4 ms
+[timing] (lib-eval-defs (scheme eval)) 1 ms
+[timing] (lib-load (scheme eval)) 6 ms
+[timing] mode-imports 408 ms
+[timing] load-source-reader 83 ms
+[timing] load-native-writer 2 ms
+[timing] boot total 1037 ms
+[timing] install-fork-runner 0 ms
+[timing] compile-cache-lookup 1 ms
+[timing] compile-read-source 0 ms
+[timing] compile-expand 2 ms
+[timing] (lib-cache-read (goldfish compiler)) 594 ms
+[timing] (lib-cache-read (goldfish core ir)) 5 ms
+[timing] (lib-import (goldfish core ir)) 19 ms
+[timing] (lib-bindings (goldfish core ir)) 7 ms
+[timing] (lib-macros (goldfish core ir)) 6 ms
+[timing] (lib-restore (goldfish core ir)) 33 ms
+[timing] (lib-eval-defs (goldfish core ir)) 25 ms
+[timing] (lib-load (goldfish core ir)) 64 ms
+[timing] (lib-cache-read (goldfish compiler patterns)) 2 ms
+[timing] (lib-cache-read (goldfish match)) 10 ms
+[timing] (lib-cache-read (goldfish match expansion)) 7 ms
+[timing] (lib-import (goldfish match expansion)) 19 ms
+[timing] (lib-bindings (goldfish match expansion)) 2 ms
+[timing] (lib-macros (goldfish match expansion)) 2 ms
+[timing] (lib-restore (goldfish match expansion)) 25 ms
+[timing] (lib-eval-defs (goldfish match expansion)) 29 ms
+[timing] (lib-load (goldfish match expansion)) 63 ms
+[timing] (lib-import (goldfish match)) 101 ms
+[timing] (lib-bindings (goldfish match)) 10 ms
+[timing] (lib-macros (goldfish match)) 12 ms
+[timing] (lib-restore (goldfish match)) 125 ms
+[timing] (lib-eval-defs (goldfish match)) 6 ms
+[timing] (lib-load (goldfish match)) 143 ms
+[timing] (lib-import (goldfish compiler patterns)) 173 ms
+[timing] (lib-bindings (goldfish compiler patterns)) 0 ms
+[timing] (lib-macros (goldfish compiler patterns)) 5 ms
+[timing] (lib-restore (goldfish compiler patterns)) 179 ms
+[timing] (lib-eval-defs (goldfish compiler patterns)) 0 ms
+[timing] (lib-load (goldfish compiler patterns)) 182 ms
+[timing] (lib-cache-read (goldfish compiler passes)) 8 ms
+[timing] (lib-import (goldfish compiler passes)) 48 ms
+[timing] (lib-bindings (goldfish compiler passes)) 10 ms
+[timing] (lib-macros (goldfish compiler passes)) 0 ms
+[timing] (lib-restore (goldfish compiler passes)) 60 ms
+[timing] (lib-eval-defs (goldfish compiler passes)) 29 ms
+[timing] (lib-load (goldfish compiler passes)) 99 ms
+[timing] (lib-import (goldfish compiler)) 374 ms
+[timing] (lib-bindings (goldfish compiler)) 0 ms
+[timing] (lib-macros (goldfish compiler)) 25 ms
+[timing] (lib-restore (goldfish compiler)) 400 ms
+[timing] (lib-eval-defs (goldfish compiler)) 24 ms
+[timing] (lib-load (goldfish compiler)) 1020 ms
+[timing] optimize-load-compiler 1020 ms
+[timing] (lib-cache-read (goldfish expander tree-il)) 2 ms
+[timing] (lib-import (goldfish expander tree-il)) 15 ms
+[timing] (lib-bindings (goldfish expander tree-il)) 1 ms
+[timing] (lib-macros (goldfish expander tree-il)) 0 ms
+[timing] (lib-restore (goldfish expander tree-il)) 18 ms
+[timing] (lib-eval-defs (goldfish expander tree-il)) 8 ms
+[timing] (lib-load (goldfish expander tree-il)) 30 ms
+[timing] optimize-load-tree-il 31 ms
+[timing] optimize-run-passes 1 ms
+[timing] compile-optimize 1054 ms
+[timing] compile-cache-write 2 ms
+[timing] user-file 1059 ms

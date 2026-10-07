@@ -160,6 +160,8 @@
       gfo-dir gfo-key
       cacheable-expansion?
       install-cache-save! install-cache-load!
+      ;; native bulk import-interface builder (bootstrap_primitives)
+      %interface-table
       ;; kernel entry points (expand-time API not already exported)
       expand expand-stx expand-library-body expand-library-finalize
       initial-context make-exp-library wrap-expression
