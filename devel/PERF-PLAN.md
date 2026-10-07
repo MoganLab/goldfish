@@ -260,9 +260,14 @@ Steps: (a) unify orchestration and bundle kind over one backend, with
 the native interface builder as the replay semantics — boot-file order
 and native-source unit semantics must stay byte-equivalent, gated like
 2c; (b) gfo format hardening: atomic write, concurrency, cross-machine
-portability, each its own gate-backed commit.
+portability, each its own gate-backed commit.  (b) is done — the
+contract lives in `tools/test-cache-concurrency.sh`; (a)'s design —
+surface-growth semantics, the boot manifest, kind taxonomy and the D1-D6
+decisions — is recorded in `devel/PHASE5-UNIFICATION.md`; its step 1
+(in-place interface extension, D2) is next.
 
-Exit: one cache path, one bundle kind; recovery/concurrency gates green.
+Exit: one manifest-driven boot chain + one loader path (the D3/D4
+contract), recovery/concurrency gates green.
 
 ## Phase 6 — Runtime image [RESEARCH, LATER]
 
