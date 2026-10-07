@@ -7,6 +7,7 @@
 
 #include <cstdlib>
 #include <array>
+#include <chrono>
 #include <cstdio>
 #include <filesystem>
 #include <stdexcept>
@@ -313,11 +314,21 @@ void NativeBootstrap::load_cached_runtime(const std::string& cache_root) {
         if (!fs::is_regular_file(path, error))
             throw std::runtime_error("native bootstrap artifact missing: " +
                                      path.string());
+        const bool timing = debug_enabled("timing", "GOLDFISH_NATIVE_TIMING");
+        const auto artifact_start = std::chrono::steady_clock::now();
         try {
             load_artifact(path.string());
         } catch (const std::exception& error) {
             throw std::runtime_error("native bootstrap artifact " +
                                      path.string() + ": " + error.what());
+        }
+        if (timing) {
+            std::fprintf(stderr, "[timing] artifact %s %lld ms\n",
+                         artifact.string().c_str(),
+                         static_cast<long long>(
+                             std::chrono::duration_cast<std::chrono::milliseconds>(
+                                 std::chrono::steady_clock::now() -
+                                 artifact_start).count()));
         }
     }
     deferred_base_artifact_ = (version / "scheme/base.scm-o2.gfo").string();
@@ -343,11 +354,20 @@ void NativeBootstrap::load_cached_runtime(const std::string& cache_root) {
 
 void NativeBootstrap::load_cached_base_runtime() {
     if (deferred_base_artifact_.empty()) return;
+    const bool timing = debug_enabled("timing", "GOLDFISH_NATIVE_TIMING");
+    const auto artifact_start = std::chrono::steady_clock::now();
     try {
         load_artifact(deferred_base_artifact_);
     } catch (const std::exception& error) {
         throw std::runtime_error("native bootstrap artifact " +
                                  deferred_base_artifact_ + ": " + error.what());
+    }
+    if (timing) {
+        std::fprintf(stderr, "[timing] artifact scheme/base.scm-o2.gfo %lld ms\n",
+                     static_cast<long long>(
+                         std::chrono::duration_cast<std::chrono::milliseconds>(
+                             std::chrono::steady_clock::now() -
+                             artifact_start).count()));
     }
     deferred_base_artifact_.clear();
 }

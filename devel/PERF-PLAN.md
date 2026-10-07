@@ -202,14 +202,41 @@ Exit: runtime gate with baseline and measured gains [met]; warm startup
 
 Exit: cold RSS below target with no throughput regression.
 
-## Phase 5 — Cache unification and IO [LATER]
+## Phase 5 — Cache unification and IO [ACTIVE — attribution done 2026-10-07]
 
-- One front door: the bootstrap plain-file path and the `define-library` path
-  have separate orchestration and bundle kinds over one shared backend.
-  Unify orchestration and bundle kind so the whole runtime is cached
-  libraries through one path (also removes the `case-lambda`
-  libraries-vs-module path ambiguity).
-- `gfo` format, atomic write, concurrency, cross-machine portability.
+Warm-boot attribution (GOLDFISH_DEBUG=timing, boot total 1.24 s, warm cache):
+
+- **Import binding-copying ≈ 944 ms (76%)**: `import-into-library!`
+  physically copies every imported library's binding table into the
+  importing library.  C++ side 365 ms (scheme/base 261, case-lambda 104 —
+  a one-macro library whose only import is (goldfish), the whole
+  implementation library); Scheme side 579 ms across the mode-import
+  library chain.  Every `(import (goldfish))` re-copies thousands of
+  bindings.
+- install-boot.scm ~113 ms: still source-expanded (publishes +
+  internal-surface registration scans).
+- Everything else is small: text parse ~30 ms total (TinyReader +
+  lib-cache-read), defs eval ~65 ms, transformer rebuild ~24 ms, kernel
+  ~39 ms, seed+installer replay ~30 ms.
+
+Conclusions for the unified design:
+
+1. **No format change needed** — text gfo + TinyReader parse is ~3% of
+   boot; binary/mmap would buy nothing.  The unification is about
+   orchestration and bundle kind, not serialization.
+2. **The structural lever is import-view sharing**: replace per-library
+   physical copies with shared use-views (`exp-library-add-use!`, the
+   mechanism native-source units already use) or a shared snapshot of
+   heavily-imported tables like (goldfish).  This is where the < 1 s
+   target actually lives.
+3. install-boot.scm's publishes/registrations fold into the unified
+   replay naturally once one front door exists.
+
+Steps: (a) unify orchestration and bundle kind over one backend, with
+import-view sharing as the replay semantics — boot-file order and
+native-source unit semantics must stay byte-equivalent, gated like 2c;
+(b) gfo format hardening: atomic write, concurrency, cross-machine
+portability, each its own gate-backed commit.
 
 Exit: one cache path, one bundle kind; recovery/concurrency gates green.
 

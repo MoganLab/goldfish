@@ -1,7 +1,10 @@
 #include "runtime/artifact.hpp"
 
+#include "runtime/debug_flags.hpp"
 #include "runtime/reader.hpp"
 
+#include <chrono>
+#include <cstdio>
 #include <fstream>
 #include <iterator>
 #include <stdexcept>
@@ -9,6 +12,28 @@
 namespace goldfish::runtime {
 
 namespace {
+
+// Boot-stage attribution for the timing key: parse / defs / metadata /
+// alias marks per module bundle, mirroring native_main's [timing] stages.
+class StageTimer final {
+public:
+    explicit StageTimer(bool enabled) : enabled_(enabled),
+        start_(std::chrono::steady_clock::now()) {}
+
+    void mark(const char* what, const std::string& path) {
+        if (!enabled_) return;
+        auto now = std::chrono::steady_clock::now();
+        std::fprintf(stderr, "[timing] %s %s %lld ms\n", what, path.c_str(),
+                     static_cast<long long>(
+                         std::chrono::duration_cast<std::chrono::milliseconds>(
+                             now - start_).count()));
+        start_ = now;
+    }
+
+private:
+    bool enabled_;
+    std::chrono::steady_clock::time_point start_;
+};
 
 bool symbol_named(Value value, const char* name) {
     return value.is_object() &&
@@ -304,6 +329,7 @@ Value ArtifactLoader::load_gfo_file(const std::string& path) {
 }
 
 Value ArtifactLoader::load_library_gfo_file(const std::string& path) {
+    StageTimer timer(debug_enabled("timing", "GOLDFISH_NATIVE_TIMING"));
     std::ifstream input(path);
     if (!input)
         throw std::runtime_error("cannot open artifact: " + path);
@@ -326,6 +352,7 @@ Value ArtifactLoader::load_library_gfo_file(const std::string& path) {
         throw std::runtime_error("artifact: malformed library payload");
     if (!symbol_named(payload[2], "libraries"))
         throw std::runtime_error("artifact: expected libraries bundle");
+    timer.mark("bundle-parse", path);
 
     for (std::size_t i = 3; i < payload.size(); ++i) {
         std::vector<Value> section = proper_list(payload[i]);
@@ -364,12 +391,14 @@ Value ArtifactLoader::load_library_gfo_file(const std::string& path) {
                 if (!import_into.is_boolean())
                     evaluator_.apply_values(import_into,
                                             {exp_library, library[2]});
+                timer.mark("bundle-import", path + " (" + name + ")");
                 try {
                     restore_library_metadata(library, exp_library);
                 } catch (const std::runtime_error& error) {
                     throw std::runtime_error("artifact: metadata for " + name +
                                              ": " + error.what());
                 }
+                timer.mark("bundle-meta", path + " (" + name + ")");
                 std::size_t index = 0;
                 for (Value definition : proper_list(library[5])) {
                     try {
@@ -391,6 +420,7 @@ Value ArtifactLoader::load_library_gfo_file(const std::string& path) {
                     }
                     ++index;
                 }
+                timer.mark("bundle-defs", path + " (" + name + ")");
                 // A cache is also a runtime module artifact.  Rebuild its
                 // value module explicitly so native loading does not depend
                 // on a registration expression finding the right global
@@ -440,6 +470,7 @@ Value ArtifactLoader::load_library_gfo_file(const std::string& path) {
                     evaluator_.apply_values(registry_set,
                                             {library[0], record});
                 }
+                timer.mark("bundle-module", path + " (" + name + ")");
             }
             return Value::unspecified();
         }
@@ -453,6 +484,7 @@ Value ArtifactLoader::load_bundle_gfo_file(const std::string& path) {
 
 Value ArtifactLoader::load_bundle_gfo_file(
     const std::string& path, const DependencyLoader& load_dependency) {
+    StageTimer timer(debug_enabled("timing", "GOLDFISH_NATIVE_TIMING"));
     std::ifstream input(path);
     if (!input)
         throw std::runtime_error("cannot open artifact: " + path);
@@ -487,9 +519,11 @@ Value ArtifactLoader::load_bundle_gfo_file(
         }
         if (defs.is_null())
             throw std::runtime_error("artifact: module bundle has no defs section");
+        timer.mark("bundle-parse", path);
         std::vector<Value> definition_section = proper_list(defs);
         for (std::size_t i = 1; i < definition_section.size(); ++i)
             evaluator_.eval(definition_section[i]);
+        timer.mark("bundle-defs", path);
 
         // Source loading exposes the values initialized in the expander
         // module to its surrounding evaluator.  Restore that small bridge
@@ -530,6 +564,7 @@ Value ArtifactLoader::load_bundle_gfo_file(
             {call("exp-library-name", {base}), Value::null(), Value::null(),
              binding_entries, macro_entries, Value::null()});
         restore_library_metadata(proper_list(record), base);
+        timer.mark("bundle-meta", path);
         // Module bundles produced by the bootstrap installer are extensions
         // of the implementation library, not isolated user modules.  Their
         // lowered bodies use allocated toplevel names, while transformer
@@ -559,6 +594,7 @@ Value ArtifactLoader::load_bundle_gfo_file(
                     expander_environment->define(fields[0], value);
             }
         }
+        timer.mark("bundle-alias", path);
         return Value::unspecified();
     }
     if (symbol_named(bundle[2], "program")) {

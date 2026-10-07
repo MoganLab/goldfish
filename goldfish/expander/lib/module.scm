@@ -313,6 +313,21 @@
 ;;; re-register it.  Returns the rebuilt library (defs are evaluated by the
 ;;; caller).
 
+;;; Timing helpers for the GOLDFISH_DEBUG=timing key (native-debug-enabled?
+;;; lives in the install backend, loaded before this file).  Defined here so
+;;; the restore path below can mark its phases; the optimize path reuses them.
+(define (native-timing-enabled?) (native-debug-enabled? "timing"))
+(define (native-timing-now on)
+  (if on (g_monotonic-nanosecond) 0))
+(define (native-timing-print label since on)
+  (when on
+    (display "[timing] " (current-error-port))
+    (display label (current-error-port))
+    (display " " (current-error-port))
+    (display (quotient (- (g_monotonic-nanosecond) since) 1000000)
+             (current-error-port))
+    (display " ms\n" (current-error-port))))
+
 (define (restore-library-cache rec . maybe-level)
   (let* ((level (registry-level-arg maybe-level))
          (name (lib-cache-name rec))
@@ -320,17 +335,22 @@
          (imports (lib-cache-imports rec))
          (bindings (lib-cache-bindings rec))
          (macros (lib-cache-macros rec))
-         (lib (make-exp-library name)))
+         (lib (make-exp-library name))
+         (on (native-timing-enabled?))
+         (t-import (native-timing-now on)))
     ;; 1. Re-import dependencies: copies bindings (including transformer
     ;;    bindings re-exported from other libraries) into this library.
     (import-into-library! lib imports)
+    (native-timing-print (list 'lib-import name) t-import on)
     ;; 2. Restore this library's own value bindings (toplevel-ref homes that
     ;;    point at the library itself resolve to the rebuilt library).
-    (for-each (lambda (e)
-                (let ((d (install-depurify-binding (cdr e) lib #t)))
-                  (when d (exp-library-define! lib (car e) d))))
-              bindings)
-    (library-registry-set! name (make-lib-record lib exports) level)
+    (let ((t-bindings (native-timing-now on)))
+      (for-each (lambda (e)
+                  (let ((d (install-depurify-binding (cdr e) lib #t)))
+                    (when d (exp-library-define! lib (car e) d))))
+                bindings)
+      (library-registry-set! name (make-lib-record lib exports) level)
+      (native-timing-print (list 'lib-bindings name) t-bindings on))
     ;; 3. Rebuild this library's own macro transformers from their cached
     ;;    lowered forms: re-evaluating each form in the current unit's
     ;;    expand env yields the transformer (exactly where a cold
@@ -339,30 +359,32 @@
     ;;    This replaced the source-spec replay + expand-library-body, and is
     ;;    the same mechanism the boot library installs use -- one cache path
     ;;    for standard and user libraries.
-    (for-each (lambda (m)
-                (let* ((mname (car m))
-                       (data (deserialize-cache-sexp (cdr m)))
-                       (proc (eval data (current-expand-env))))
-                  (exp-library-define! lib mname (make-transformer-binding proc))))
-              macros)
-     ;; 4. Re-install export renames: `from' resolves from the re-imports
-     ;;    (imported macros included) and the restored/ replayed own
-     ;;    definitions, exactly as the cold path aliases them.
-     (for-each (lambda (r)
-                 (let ((binding (exp-library-ref lib (cdr r))))
-                   (unless binding
-                     (error 'define-library "export has no binding"
-                            (cdr r) name))
-                   (exp-library-define! lib (car r) binding)))
-               (lib-cache-renames rec))
-     ;; 5. Exports with no restored body/import binding are an error (they
-     ;;    would have failed at capture time too: expand-define-library
-     ;;    requires every export to resolve from the body or an import).
-     (for-each (lambda (export)
-                 (unless (exp-library-ref lib export)
-                   (error 'define-library "export has no binding" export name)))
-               exports)
-     lib))
+    ;; 4. Re-install export renames: `from' resolves from the re-imports
+    ;;    (imported macros included) and the restored/ replayed own
+    ;;    definitions, exactly as the cold path aliases them.
+    ;; 5. Exports with no restored body/import binding are an error (they
+    ;;    would have failed at capture time too: expand-define-library
+    ;;    requires every export to resolve from the body or an import).
+    (let ((t-macros (native-timing-now on)))
+      (for-each (lambda (m)
+                  (let* ((mname (car m))
+                         (data (deserialize-cache-sexp (cdr m)))
+                         (proc (eval data (current-expand-env))))
+                    (exp-library-define! lib mname (make-transformer-binding proc))))
+                macros)
+      (for-each (lambda (r)
+                  (let ((binding (exp-library-ref lib (cdr r))))
+                    (unless binding
+                      (error 'define-library "export has no binding"
+                             (cdr r) name))
+                    (exp-library-define! lib (car r) binding)))
+                (lib-cache-renames rec))
+      (for-each (lambda (export)
+                  (unless (exp-library-ref lib export)
+                    (error 'define-library "export has no binding" export name)))
+                exports)
+      (native-timing-print (list 'lib-macros name) t-macros on))
+    lib))
 
 ;;; Per-level instances (moved after the cache section: rebuild calls
 ;;; lib-cache-name and restore-library-cache above).  A cold capture
@@ -501,17 +523,7 @@
 ;;; unavailable compiler / tree-il library leaves the program lowered
 ;;; unoptimized.
 
-(define (native-timing-enabled?) (native-debug-enabled? "timing"))
-(define (native-timing-now on)
-  (if on (g_monotonic-nanosecond) 0))
-(define (native-timing-print label since on)
-  (when on
-    (display "[timing] " (current-error-port))
-    (display label (current-error-port))
-    (display " " (current-error-port))
-    (display (quotient (- (g_monotonic-nanosecond) since) 1000000)
-             (current-error-port))
-    (display " ms\n" (current-error-port))))
+;;; (native-timing helpers live above restore-library-cache.)
 
 (define (optimize-on-load program ctx)
   (let ((level (cache-level)))
@@ -728,7 +740,9 @@
       (if (and (library-registry-ref lib-name level)
                (runtime-registered? lib-name level))
         #t
-      (let* ((lib-file (library-file-name lib-name))
+      (let* ((on (native-timing-enabled?))
+             (t-read (native-timing-now on))
+             (lib-file (library-file-name lib-name))
              ;; Resolve once for the stamp and the read: the unresolved
              ;; spelling degrades to a (-1 -1) stamp (mirrors
              ;; compile-file-cached-in-unit).
@@ -742,6 +756,7 @@
                         (eq? (bundle-kind payload) 'libraries)
                         (let ((libs (bundle-section payload 'libs)))
                           (and (pair? libs) (cdr libs))))))
+        (native-timing-print (list 'lib-cache-read lib-name) t-read on)
         (if recs
           (dynamic-wind
             (lambda () (loading-guard-push! load-key))
@@ -749,8 +764,12 @@
               (load-library-guard
                lib-name
                (lambda ()
-                 (for-each (lambda (r) (restore-library-cache r level)) recs)
-                 (load-library-file-cached! recs level))))
+                 (let ((t-restore (native-timing-now on)))
+                   (for-each (lambda (r) (restore-library-cache r level)) recs)
+                   (native-timing-print (list 'lib-restore lib-name) t-restore on))
+                 (let ((t-eval (native-timing-now on)))
+                   (load-library-file-cached! recs level)
+                   (native-timing-print (list 'lib-eval-defs lib-name) t-eval on)))))
             (lambda () (loading-guard-pop! load-key)))
           ;; No cache (or stale): load and compile the source file.
           (begin
