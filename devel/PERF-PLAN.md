@@ -510,3 +510,18 @@ identity survives between imports) — a working memo must key on the
 library name with value equality.  The remaining ~540 ms of Scheme-side
 lib-import needs the per-spec breakdown (ispec instrumentation sketch
 existed during the attempt; not kept) before the next cut.
+
+install-boot cacheable (same day): the cold-start macro-layer install
+moved to `expander/lib/install-macrolayer.scm` (loaded by the native
+driver only when the bootstrap cache is unavailable), and
+install-boot.scm became definitions-only — the expander-module
+publishes wrapped in one define-with-side-effects plus the (unchanged)
+registration scans — replayed from its captured bundle on warm boots
+and expanded + captured on cold ones through the ordinary
+load_cached_source path.  install-boot stage 116-130 ms → 35-41 ms;
+startup suite all green (warm minimal 0.89 s, small-real 0.98 s; cold
+-5.7..-16.6%; bootstrap/readonly improved; runtime suite all cells
+improved); changed-since 162/162.
+
+Records: `bench/cold-start/phase5-bootcache-e9febd7f`,
+`bench/runtime/phase5-bootcache-e9febd7f`.

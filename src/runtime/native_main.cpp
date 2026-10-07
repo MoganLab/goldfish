@@ -627,7 +627,16 @@ int main(int argc, char** argv) {
         stage("load-install-scm");
         if (!seed_replayed) bootstrap.capture_seed();
         if (!installer_replayed) bootstrap.capture_installer();
-        load_source(runtime.evaluator(), "expander/lib/install-boot.scm");
+        // Cold boots only: install the user-space macro layer from source
+        // (warm boots replay it from the boot artifacts, so the macrolayer
+        // file is never read).
+        if (!cached)
+            load_source(runtime.evaluator(),
+                        "expander/lib/install-macrolayer.scm");
+        // The publishes/registrations are defines-with-side-effects, cached
+        // like any other install unit (replayed warm, expanded + captured
+        // cold).
+        bootstrap.load_cached_source("expander/lib/install-boot.scm");
         stage("load-install-boot");
         runtime.evaluator().collect();
         bootstrap.install_expansion_helpers();

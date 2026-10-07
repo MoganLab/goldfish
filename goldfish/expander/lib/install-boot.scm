@@ -1,115 +1,51 @@
 ;;; lib/install-boot.scm
-;;; The driver half of the bootstrap installer, loaded after the
-;;; definitions-only expander/lib/install.scm (from source, or replayed
-;;; from its install-cache bundle).  Holds everything with boot-order
-;;; side effects, in the order the unsplit install.scm ran them:
+;;; The driver half of the bootstrap installer, as DEFINITIONS ONLY so the
+;;; file caches like any other install unit: the native driver replays it
+;;; from its captured bundle on warm boots and expands + captures it on
+;;; cold ones.  Every define here performs boot side effects at evaluation
+;;; time, in the order the unsplit install.scm ran them:
 ;;;
-;;;   - the macro-layer boot install (cold start only: skipped when
-;;;     GOLDFISH_NATIVE_ARTIFACTS marks the cached artifact set as loaded),
-;;;   - the expander-module publishes for the install/ccache surface,
+;;;   - %expander-surface-published!: the expander-module publishes for the
+;;;     install/ccache surface,
 ;;;   - the internal-runtime-surface registration scans, which must run
-;;;     after module.scm is installed (cold: by the boot block above;
-;;;     warm: by the cached artifacts).
+;;;     after module.scm is installed (cold: by install-macrolayer.scm,
+;;;     which the driver loads before this file; warm: by the replayed boot
+;;;     artifacts).
+;;;
+;;; The cold-start macro-layer install itself lives in
+;;; install-macrolayer.scm, loaded by the native driver only when the
+;;; bootstrap cache is unavailable.
 
-;;; Boot: install the user-space macro layer into the base library.  Order:
-;;; syntax-runtime (value definitions: pattern matching / instantiation /
-;;; dispatch) and syntax-case / syntax-rules first, then the object-level
-;;; define-record-type macro, then core-macros (whose syntax-rules
-;;; desugaring needs syntax-case bound at phase+1), then cond-expand (uses
-;;; core-macros' let / and / or), then standard.
+;;; The expander-module publishes for the install/ccache surface: the
+;;; installer API, the Guile-style ccache backend, and the serializer
+;;; shared with the user-library cache (lib/module.scm: a macro definition
+;;; caches its lowered transformer form, exactly as the boot library
+;;; installs do).
 
-(if (not (getenv "GOLDFISH_NATIVE_ARTIFACTS"))
+(define %expander-surface-published!
   (begin
-  (install-library-file! the-base-library "expander/lib/syntax-runtime.scm")
-
-;;; Expansion-time helper surface of the boot macro layer (v5): own value
-;;; definitions are phase-0 only, so helpers called from a transformer body
-;;; (parse-template inside the syntax-case transformer, the cond-expand
-;;; feature checker, the record-macro expanders) need phase-free
-;;; resolution: a primitive binding (emitting the bare name) passes the
-;;; phase gate at expansion time, and the host binding under the source
-;;; name gives the emitted reference its run-time meaning -- exactly like
-;;; the kernel syntax API (datum->syntax ...).  These names are part of
-;;; the implementation's expansion machinery, not a user-facing phase
-;;; exception: a user library's own value definitions stay phase-0.
-;;; Call before the defining file installs (gate) and again after (host
-;;; binding); the first call no-ops when the definition is not there yet.
-
-(define (install-expansion-helper! name)
-  (let ((b (exp-library-ref-own the-base-library name)))
-    (when b
-      (module-define! the-expander-library name
-        (eval (toplevel-ref-gensym (binding-value b))
-              (module-eval-environment the-expander-library))))
-    (exp-library-define! the-base-library name (make-primitive-binding name))))
-
-;;; install-with-helpers! : lib path gate-names capture-names -> void
-;;; Install a boot file whose transformer bodies call own helpers: gate
-;;; every name as a primitive first (phase-free resolution while the file
-;;; itself expands; the capture no-ops for names not defined yet), install
-;;; the file, then capture the values of the names it defines.  The two
-;;; lists differ when earlier files already defined some helpers.
-
-(define (install-with-helpers! lib path gate-names capture-names)
-  (for-each install-expansion-helper! gate-names)
-  (install-library-file! lib path)
-  (for-each install-expansion-helper! capture-names))
-
-  (install-with-helpers! the-base-library "expander/lib/syntax-case.scm"
-  '(parse-template syntax-case-dispatch fast-instantiate
-                   sr-build-transformer subst-ellipsis)
-  '(sr-build-transformer subst-ellipsis))
-
-  (install-with-helpers! the-base-library "expander/lib/define-record-type.scm"
-  '(dr-field-datum dr-record-defs dr-register-def dr-interleave-register)
-  '(dr-field-datum dr-record-defs dr-register-def dr-interleave-register))
-
-  (install-library-file! the-base-library "expander/lib/core-macros.scm")
-
-  (install-with-helpers! the-base-library "expander/lib/cond-expand.scm"
-  '(cond-expand-feature-satisfied? cond-expand-requirement-valid? cond-expand-select *cond-expand-features*)
-  '(cond-expand-feature-satisfied? cond-expand-requirement-valid? cond-expand-select *cond-expand-features*))
-;; Legacy procedural macro forms (depend on syntax-case).
-  (install-library-file! the-base-library "expander/lib/defmacro.scm")
-;; Optional-argument procedure forms (depend on syntax-case).
-  (install-library-file! the-base-library "expander/lib/define-star.scm")
-;; The R7RS library surface (define-library/import/define-module/use-modules)
-;; is self-hosted lib-layer code, not part of the core artifact; installing
-;; it registers the module-form bindings in the-base-library (the trailing
-;; define in lib/module.scm runs install-module-forms!).  The registry
-;; prefix lives in module-registry.scm (installed first: everything below
-;; references it, and cross-file references must point backward -- the
-;; loader/cache/import/expand core is mutually recursive and stays whole).
-    (install-library-file! the-base-library "expander/lib/module-registry.scm")
-    (install-library-file! the-base-library "expander/lib/module.scm")))
-
-(module-define! the-expander-library 'install-library-forms! install-library-forms!)
-(module-define! the-expander-library 'install-library-file! install-library-file!)
-(module-define! the-expander-library 'install-standard-library! install-standard-library!)
-
-(module-define! the-expander-library 'compile-file-cached compile-file-cached)
-;; reader.scm's `load' preloads the deps of a compiled program artifact
-;; through this (the same collector the cache writer uses).
-(module-define! the-expander-library 'collect-cache-module-refs collect-cache-module-refs)
-(module-define! the-expander-library 'gfo-dir gfo-dir)
-(module-define! the-expander-library 'gfo-key gfo-key)
-(module-define! the-expander-library 'gfo-path gfo-path)
-(module-define! the-expander-library 'gfo-stamp gfo-stamp)
-(module-define! the-expander-library 'gfo-valid? gfo-valid?)
-(module-define! the-expander-library 'gfo-format-version gfo-format-version)
-(module-define! the-expander-library 'gfo-load gfo-load)
-(module-define! the-expander-library 'gfo-write! gfo-write!)
-(module-define! the-expander-library 'compile-file-stamp compile-file-stamp)
-;; Serializer shared with the user-library cache (lib/module.scm): a macro
-;; definition caches its lowered transformer form, exactly as the boot
-;; library installs do, so user libraries and the boot library build their
-;; caches through one mechanism.
-(module-define! the-expander-library 'serialize-cache-sexp serialize-cache-sexp)
-(module-define! the-expander-library 'deserialize-cache-sexp deserialize-cache-sexp)
-(module-define! the-expander-library 'make-bundle make-bundle)
-(module-define! the-expander-library 'bundle? bundle?)
-(module-define! the-expander-library 'bundle-kind bundle-kind)
-(module-define! the-expander-library 'bundle-section bundle-section)
+    (module-define! the-expander-library 'install-library-forms! install-library-forms!)
+    (module-define! the-expander-library 'install-library-file! install-library-file!)
+    (module-define! the-expander-library 'install-standard-library! install-standard-library!)
+    (module-define! the-expander-library 'compile-file-cached compile-file-cached)
+    ;; reader.scm's `load' preloads the deps of a compiled program artifact
+    ;; through this (the same collector the cache writer uses).
+    (module-define! the-expander-library 'collect-cache-module-refs collect-cache-module-refs)
+    (module-define! the-expander-library 'gfo-dir gfo-dir)
+    (module-define! the-expander-library 'gfo-key gfo-key)
+    (module-define! the-expander-library 'gfo-path gfo-path)
+    (module-define! the-expander-library 'gfo-stamp gfo-stamp)
+    (module-define! the-expander-library 'gfo-valid? gfo-valid?)
+    (module-define! the-expander-library 'gfo-format-version gfo-format-version)
+    (module-define! the-expander-library 'gfo-load gfo-load)
+    (module-define! the-expander-library 'gfo-write! gfo-write!)
+    (module-define! the-expander-library 'compile-file-stamp compile-file-stamp)
+    (module-define! the-expander-library 'serialize-cache-sexp serialize-cache-sexp)
+    (module-define! the-expander-library 'deserialize-cache-sexp deserialize-cache-sexp)
+    (module-define! the-expander-library 'make-bundle make-bundle)
+    (module-define! the-expander-library 'bundle? bundle?)
+    (module-define! the-expander-library 'bundle-kind bundle-kind)
+    (module-define! the-expander-library 'bundle-section bundle-section)))
 
 ;;; ------------------------------------------------------------------------
 ;;; Internal runtime surface
@@ -227,4 +163,5 @@
 ;;; covered only by the dynamic scan need no listing.
 ;;; The invariant -- every entry usable from (import (goldfish)) programs --
 ;;; is checked by tests/expander/internal-surface-test.scm.
-(module-define! the-expander-library '%internal-names %internal-names)
+(define %internal-names-published!
+  (module-define! the-expander-library '%internal-names %internal-names))
