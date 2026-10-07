@@ -2,11 +2,11 @@
 
 #include "runtime/debug_flags.hpp"
 #include "runtime/heap.hpp"
+#include "runtime/ref_ptr.hpp"
 #include "runtime/symbol.hpp"
 
 #include <cstdio>
 #include <cstdlib>
-#include <memory>
 #include <stdexcept>
 #include <unordered_map>
 #include <vector>
@@ -38,9 +38,9 @@ public:
     using std::runtime_error::runtime_error;
 };
 
-class Environment final {
+class Environment final : public RefCounted<Environment> {
 public:
-    explicit Environment(std::shared_ptr<Environment> parent = nullptr)
+    explicit Environment(RefPtr<Environment> parent = nullptr)
         : parent_(std::move(parent)) {}
 
     void define(Value name, Value value) {
@@ -133,10 +133,9 @@ private:
         return name.as_object<SymbolObject>()->name;
     }
 
-    std::shared_ptr<Environment> parent_;
-    std::unordered_map<const Object*, Binding> bindings_;
+    RefPtr<Environment> parent_;    std::unordered_map<const Object*, Binding> bindings_;
 };
 
-using EnvironmentPtr = std::shared_ptr<Environment>;
+using EnvironmentPtr = RefPtr<Environment>;
 
 } // namespace goldfish::runtime

@@ -176,21 +176,23 @@ The ultimate metric — how fast programs run after startup — plus the folded
      member/assoc inline their default comparator; equal() gained a
      non-aggregate fast path. assoc probe 50.1 s → 7.3 s; lists -18.4%,
      fib -9.7%, sum -10.3%; peak RSS ~-20%.
-   - Non-atomic EnvironmentPtr [AUDITED, NOT ATTEMPTED]: ~30 sites across
-     five files; single-threaded runtime makes it safe; bounded estimate
-     ~4-5% on call-heavy code. Deferred to its own cycle — the shadowing
-     pathologies above delivered more per unit of risk.
+   - Non-atomic EnvironmentPtr [DONE, ref_ptr.hpp]: `EnvironmentPtr` is now
+     an intrusive `RefPtr<Environment>` with a plain (non-atomic) refcount —
+     the runtime is single-threaded, so every frame push/pop and environment
+     copy was paying an atomic RMW for no synchronization.  Audited first:
+     no site rebuilds ownership from a raw pointer, no use_count/weak_ptr.
+     Runtime suite: all five workloads −11.0..−12.5% (double the 4-5%
+     estimate); warm boot 1.13 → ~1.08 s.
 3. **2b credit [PARTIAL].** The gfo cache seed now replays from its captured
    bundle like the installer [DONE, `ce7c0c9e`]: gfo-seed stage 466 → ~13 ms.
-   Warm startup plateau: **1.13 s** (minimal) / 1.18 s (small-real) / 1.66 s
+   Warm startup: **1.11 s** (minimal) / 1.20 s (small-real) / 1.62 s
    (large) — the < 1 s target needs the remaining replay stages
    (standard-library 330 ms, load-cached-runtime 220 ms, mode-imports
-   ~250 ms) to get faster via the deferred levers (EnvironmentPtr, a
-   small-size Values type) or Phase 5's unified replay; attribution and the
-   full ledger are in Appendix F.
+   ~250 ms) to get faster via a small-size Values type or Phase 5's unified
+   replay; attribution and the full ledger are in Appendix F.
 
 Exit: runtime gate with baseline and measured gains [met]; warm startup
-< 1 s [plateau at 1.13 s — remaining path scoped above].
+< 1 s [plateau at 1.11 s — remaining path scoped above].
 
 ## Phase 4 — Memory [LATER]
 
@@ -365,6 +367,7 @@ predecessor's record:
 | FormArguments | `1cd10241` | −9.4% | −7.9% | −8.0% | −1.3% | −6.5% |
 | member/assoc unshadow + inline comparator | `481000ec` | −6.0% | +1.2% | −2.4% | +0.2% | −0.6% |
 | map/for-each unshadow | `e0f5444a` | −9.7% | −10.3% | −7.9% | −7.6% | −18.4% |
+| non-atomic EnvironmentPtr (RefPtr) | ref_ptr.hpp | −11.3% | −12.4% | −11.2% | −12.5% | −10.9% |
 
 Cumulative vs `phase3-base-378e8608`: fib −24%, sum −19%, nqueens −18%,
 winders −17%, lists −25%. assoc micro (20k lookups × 2000-entry alist):
@@ -375,12 +378,19 @@ Startup suite, cumulative Phase 3 vs the Phase 2 exit record
 (`bench/cold-start/phase3-final-3a138fac` vs `phase2c-cand-b915422a`,
 3 samples, compare.sh OK):
 
-- warm: minimal 1.92→1.13 s, small-real 1.82→1.18 s, large 3.57→1.66 s
+- warm: minimal 1.92→1.11 s, small-real 1.82→1.20 s, large 3.57→1.62 s
 - bootstrap: −32.9/−31.7/−64.6% (large 22.4→7.9 s)
 - readonly: −31.9/−31.1/−65.3%
 - cold: −37.9/−33.5/−41.7% (large 85.0→49.6 s) — the evaluator levers
   accelerate cold compilation itself
 - peak RSS: down on 11 of 12 cells (−4.6..−34.2%); small-real warm +0.0%
+
+Lever C's own A/B (`bench/cold-start/phase3-leverc-d8ca389e` vs
+`phase3-final-3a138fac`): warm −1.8/+1.8/−2.3% (boot is artifact-replay
+dominated, not environment-copy dominated); cold minimal −4.9%; the
+runtime suite is where the refcount removal shows (−11% across the board).
+small-real cold +9.3% in that A/B is shared-box noise (minimal −4.9%,
+large +0.5% in the same run).
 
 Warm-boot stage attribution at the plateau (minimal, `GOLDFISH_DEBUG=timing`):
 standard-library ~330 ms, load-cached-runtime ~220 ms, mode-imports ~250 ms,

@@ -1,0 +1,36 @@
+[timing] install-primitives 0 ms
+[timing] load-kernel 30 ms
+[timing] load-cached-runtime 183 ms
+[timing] gfo-seed 14 ms
+[timing] load-install-scm 13 ms
+[timing] load-install-boot 98 ms
+[timing] expansion-helpers 3 ms
+[timing] native-scheme-surface 49 ms
+[timing] standard-library 259 ms
+[timing] post-standard-collection 2 ms
+[timing] (lib-load (scheme write)) 2 ms
+[timing] (lib-load (scheme read)) 2 ms
+[timing] (lib-load (scheme file)) 7 ms
+[timing] (lib-load (scheme process-context)) 3 ms
+[timing] (lib-load (scheme time)) 4 ms
+[timing] (lib-load (srfi srfi-2)) 9 ms
+[timing] (lib-load (srfi srfi-8)) 4 ms
+[timing] (lib-load (liii base)) 23 ms
+[timing] (lib-load (srfi srfi-175)) 17 ms
+[timing] (lib-load (liii ascii)) 35 ms
+[timing] (lib-load (srfi srfi-151)) 23 ms
+[timing] (lib-load (liii error)) 8 ms
+[timing] (lib-load (liii bitwise)) 53 ms
+[timing] (lib-load (liii unicode)) 194 ms
+[timing] (lib-load (scheme char)) 224 ms
+[timing] (lib-load (scheme complex)) 4 ms
+[timing] (lib-load (scheme cxr)) 3 ms
+[timing] (lib-load (scheme eval)) 4 ms
+[timing] mode-imports 354 ms
+[timing] load-source-reader 72 ms
+[timing] load-native-writer 1 ms
+[timing] boot total 1084 ms
+[timing] install-fork-runner 0 ms
+[timing] compile-cache-lookup 1 ms
+[timing] compile-cache-hit 0 ms
+[timing] user-file 1 ms

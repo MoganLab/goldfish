@@ -76,7 +76,7 @@ Values Evaluator::eval_tail(Value expression, EnvironmentPtr environment) {
         std::vector<Value> arguments = proper_list(pair_expression->cdr);
         if (arguments.size() < 2)
             throw std::runtime_error("binding form expects bindings and body");
-        EnvironmentPtr child = std::make_shared<Environment>(environment);
+        EnvironmentPtr child = make_ref<Environment>(environment);
         std::vector<Value> bindings = proper_list(arguments[0]);
         if (form == CoreForm::Let) {
             for (Value binding : bindings) {
@@ -309,7 +309,7 @@ Values Evaluator::eval_pair(PairObject& expression,
         Value body = list_values(body_forms);
 
         auto handle = [&](Value caught) -> Values {
-            EnvironmentPtr handler = std::make_shared<Environment>(environment);
+            EnvironmentPtr handler = make_ref<Environment>(environment);
             handler->define(variable, caught);
             for (Value clause : clauses) {
                 std::vector<Value> clause_forms = proper_list(clause);
@@ -387,7 +387,7 @@ Values Evaluator::eval_pair(PairObject& expression,
         std::vector<Value> arguments = proper_list(tail);
         if (arguments.size() < 2)
             throw std::runtime_error("let expects bindings and body");
-        EnvironmentPtr child = std::make_shared<Environment>(environment);
+        EnvironmentPtr child = make_ref<Environment>(environment);
         for (Value binding : proper_list(arguments[0])) {
             std::vector<Value> pair_binding = proper_list(binding);
             if (pair_binding.size() != 2)
@@ -404,7 +404,7 @@ Values Evaluator::eval_pair(PairObject& expression,
         std::vector<Value> arguments = proper_list(tail);
         if (arguments.size() < 2)
             throw std::runtime_error("letrec expects bindings and body");
-        EnvironmentPtr child = std::make_shared<Environment>(environment);
+        EnvironmentPtr child = make_ref<Environment>(environment);
         std::vector<Value> bindings = proper_list(arguments[0]);
         if (form == CoreForm::Letrec) {
             for (Value binding : bindings) {

@@ -326,8 +326,8 @@ int main() {
     assert(evaluator.eval(module_reference).as_integer() == 34);
 
     // Export aliases retain one location even after their source frame is gone.
-    auto source_frame = std::make_shared<Environment>();
-    auto alias_frame = std::make_shared<Environment>();
+    auto source_frame = make_ref<Environment>();
+    auto alias_frame = make_ref<Environment>();
     Value source_name = evaluator.symbol("shared-source");
     Value alias_name = evaluator.symbol("shared-alias");
     source_frame->define(source_name, Value::integer(1));

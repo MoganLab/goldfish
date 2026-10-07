@@ -94,14 +94,14 @@ Value Evaluator::make_eval_environment(EnvironmentPtr parent) {
         // every "new" environment onto one shared set of bindings -- which
         // made module environments clobber each other (the last module to
         // register `remove' decided what every module-ref saw).
-        auto frame = std::make_shared<Environment>(
+        auto frame = make_ref<Environment>(
             defs_root_slot() ? defs_root_slot() : global_);
         if (!defs_root_slot()) defs_root_slot() = frame;
         return Value::object(heap_.make<EvalEnvironmentObject>(frame));
     }
     // A fresh frame that FALLS BACK to the explicit parent.
     return Value::object(heap_.make<EvalEnvironmentObject>(
-        std::make_shared<Environment>(std::move(parent))));
+        make_ref<Environment>(std::move(parent))));
 }
 
 void Evaluator::set_defs_root(EnvironmentPtr frame) {
@@ -649,7 +649,7 @@ Values Evaluator::run_machine(EvalSnapshot& state) {
 
         ClosureObject* closure = procedure.as_object<ClosureObject>();
         EnvironmentPtr call_environment =
-            std::make_shared<Environment>(closure->environment);
+            make_ref<Environment>(closure->environment);
         // Two walks over the formals list instead of materializing the
         // required parameters into a per-call vector: the first counts for
         // the arity check, the second binds.
@@ -984,7 +984,7 @@ Values Evaluator::run_machine(EvalSnapshot& state) {
                               bool continuable = false) {
         KontFrame guard = state.frames[handler_index - 1];
         guard.secondary_environment =
-            std::make_shared<Environment>(guard.environment);
+            make_ref<Environment>(guard.environment);
         guard.secondary_environment->define(guard.auxiliary, caught);
         // An unmatched guard forwards in the original raising environment.
         EvalSnapshot resume = state;
@@ -1302,7 +1302,7 @@ restart_machine:
                         init_pairs.push_back(pair_binding[0]);
                         init_pairs.push_back(pair_binding[1]);
                     }
-                    EnvironmentPtr child = std::make_shared<Environment>(environment);
+                    EnvironmentPtr child = make_ref<Environment>(environment);
                     std::size_t stage = form == CoreForm::Let
                                             ? 0
                                             : form == CoreForm::Letrec ? 1 : 2;
@@ -2188,7 +2188,7 @@ Values Evaluator::apply(Value procedure, const Values& arguments) {
 
         ClosureObject* closure = next_procedure.as_object<ClosureObject>();
         EnvironmentPtr call_environment =
-            std::make_shared<Environment>(closure->environment);
+            make_ref<Environment>(closure->environment);
         // Two walks over the formals list instead of a per-call vector
         // (same shape as the machine's invoke path).
         Value formals = closure->formals;

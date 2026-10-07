@@ -1,0 +1,49 @@
+[timing] install-primitives 0 ms
+[timing] load-kernel 34 ms
+[timing] load-cached-runtime 193 ms
+[timing] gfo-seed 16 ms
+[timing] load-install-scm 15 ms
+[timing] load-install-boot 112 ms
+[timing] expansion-helpers 4 ms
+[timing] native-scheme-surface 53 ms
+[timing] standard-library 274 ms
+[timing] post-standard-collection 3 ms
+[timing] (lib-load (scheme write)) 3 ms
+[timing] (lib-load (scheme read)) 2 ms
+[timing] (lib-load (scheme file)) 4 ms
+[timing] (lib-load (scheme process-context)) 3 ms
+[timing] (lib-load (scheme time)) 5 ms
+[timing] (lib-load (srfi srfi-2)) 9 ms
+[timing] (lib-load (srfi srfi-8)) 3 ms
+[timing] (lib-load (liii base)) 23 ms
+[timing] (lib-load (srfi srfi-175)) 17 ms
+[timing] (lib-load (liii ascii)) 37 ms
+[timing] (lib-load (srfi srfi-151)) 23 ms
+[timing] (lib-load (liii error)) 10 ms
+[timing] (lib-load (liii bitwise)) 55 ms
+[timing] (lib-load (liii unicode)) 203 ms
+[timing] (lib-load (scheme char)) 229 ms
+[timing] (lib-load (scheme complex)) 4 ms
+[timing] (lib-load (scheme cxr)) 5 ms
+[timing] (lib-load (scheme eval)) 6 ms
+[timing] mode-imports 369 ms
+[timing] load-source-reader 68 ms
+[timing] load-native-writer 1 ms
+[timing] boot total 1146 ms
+[timing] install-fork-runner 0 ms
+[timing] compile-cache-lookup 0 ms
+[timing] compile-read-source 144 ms
+[timing] compile-expand 1852 ms
+[timing] (lib-load (goldfish core ir)) 47 ms
+[timing] (lib-load (goldfish match expansion)) 65 ms
+[timing] (lib-load (goldfish match)) 122 ms
+[timing] (lib-load (goldfish compiler patterns)) 156 ms
+[timing] (lib-load (goldfish compiler passes)) 84 ms
+[timing] (lib-load (goldfish compiler)) 841 ms
+[timing] optimize-load-compiler 841 ms
+[timing] (lib-load (goldfish expander tree-il)) 23 ms
+[timing] optimize-load-tree-il 23 ms
+[timing] optimize-run-passes 2528 ms
+[timing] compile-optimize 3394 ms
+[timing] compile-cache-write 975 ms
+[timing] user-file 6614 ms

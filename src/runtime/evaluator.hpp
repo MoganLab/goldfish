@@ -426,7 +426,7 @@ public:
         : heap_(heap),
           symbols_(heap),
           core_forms_(symbols_),
-          global_(std::make_shared<Environment>()) {}
+          global_(make_ref<Environment>()) {}
 
     EnvironmentPtr global_environment() const noexcept { return global_; }
     Value make_eval_environment(EnvironmentPtr parent = nullptr);
