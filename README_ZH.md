@@ -23,7 +23,7 @@
 | [(liii base)](goldfish/liii/base.scm)             | 基础库                          | `and-let*`, `receive`, `eval-string`                               |
 | [(liii error)](goldfish/liii/error.scm)           | 提供类似Python的错误函数        | `os-error`函数抛出`'os-error`，类似Python的OSError                 |
 | [(liii check)](goldfish/liii/check.scm)           | 基于SRFI 78的轻量级测试库加强版 | `check`, `check-catch`                                             |
-| [(liii case)](goldfish/liii/case.scm)             | 模式匹配                        | `case*`                                                            |
+| [(liii match)](goldfish/liii/match.scm)           | 模式匹配                        | `match`, `match-lambda`                                           |
 | [(liii list)](goldfish/liii/list.scm)             | 列表函数库                      | `first`, `filter`, `fold`                                          |
 | [(liii bitwise)](goldfish/liii/bitwise.scm)       | 位运算函数库                    | `bitwise-and`, `bitwise-or`                                        |
 | [(liii string)](goldfish/liii/string.scm)         | 字符串函数库                    | `string-starts?`, `string-ends?`                                   |
