@@ -28365,7 +28365,7 @@ s7_pointer s7_signature(s7_scheme *sc, s7_pointer func) {return(g_signature(sc, 
 
 static inline bool is_lambda(s7_scheme *sc, s7_pointer sym)
 {
-  return((sym == sc->lambda_symbol) && (is_global(sym)));
+  return((sym == sc->lambda_symbol) && (is_global(sym))); /* do we need (!sc->in_with_let) ? */
 }
 
 static void op_unwind_output(s7_scheme *sc)
@@ -28394,8 +28394,6 @@ static void op_unwind_input(s7_scheme *sc)
   if (is_multiple_value(sc->value))
     sc->value = splice_in_values(sc, multiple_value(sc->value));
 }
-
-
 
 
 /* -------------------------------- c-object? -------------------------------- */

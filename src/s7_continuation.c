@@ -960,5 +960,3 @@ bool op_dynamic_wind(s7_scheme *sc)
   else sc->value = sc->args;             /* value saved above */
   return(false);
 }
-
-

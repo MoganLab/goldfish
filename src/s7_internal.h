@@ -2349,60 +2349,46 @@ enum {OP_UNOPT, OP_GC_PROTECT, /* must be an even number of ops here, op_gc_prot
 #define is_defined_global(p)           ((is_slot(global_slot(p))) && (symbol_id(p) == 0))
 #define is_global(p)                   (symbol_id(p) == 0)
 #define is_lambda(Sc, Sym)             (((Sym) == (Sc)->lambda_symbol) && (is_global(Sym)))
-#define is_c_macro(p)                  (type(p) == T_C_MACRO)
-#define is_macro(p)                    (type(p) == T_MACRO)
-#define is_macro_star(p)               (type(p) == T_MACRO_STAR)
 #define is_thunk(Sc, Fnc)              ((type(Fnc) >= T_GOTO) && (s7_is_aritable(Sc, Fnc, 0)))
 
 #define c_function_min_args(f)         (T_Fnc(f))->object.fnc.required_args
-#define c_function_optional_args(f)    (T_Fnc(f))->object.fnc.optional_args
 #define c_function_max_args(f)         (T_Fnc(f))->object.fnc.all_args
 #define c_function_is_aritable(f, N)   ((c_function_min_args(f) <= N) && (c_function_max_args(f) >= N))
 #define c_macro_min_args(f)            (T_CMac(f))->object.fnc.required_args
 
-#ifndef declare_jump_info
-  #define declare_jump_info() bool old_longjmp; setjmp_loc_t old_jump_loc; jump_loc_t jump_loc; Jmp_Buf *old_goto_start; Jmp_Buf new_goto_start
-#endif
+#define declare_jump_info() bool old_longjmp; setjmp_loc_t old_jump_loc; jump_loc_t jump_loc; Jmp_Buf *old_goto_start; Jmp_Buf new_goto_start
 
-#ifndef store_jump_info
-  #define store_jump_info(Sc)			\
-    do {						\
-        old_longjmp = Sc->longjmp_ok;		\
-        old_jump_loc = Sc->setjmp_loc;		\
-        old_goto_start = Sc->goto_start;		\
-    } while (0)
-#endif
+#define store_jump_info(Sc)			\
+  do {						\
+      old_longjmp = Sc->longjmp_ok;		\
+      old_jump_loc = Sc->setjmp_loc;		\
+      old_goto_start = Sc->goto_start;		\
+  } while (0)
 
-#ifndef restore_jump_info
-  #define restore_jump_info(Sc)			\
-    do {						\
-      Sc->longjmp_ok = old_longjmp;		\
-      Sc->setjmp_loc = old_jump_loc;		\
-      Sc->goto_start = old_goto_start;		\
-      if ((jump_loc == error_jump) &&		\
-          (Sc->longjmp_ok))			\
-        LongJmp(*(Sc->goto_start), error_jump);	\
-    } while (0)
-#endif
+#define restore_jump_info(Sc)			\
+  do {						\
+    Sc->longjmp_ok = old_longjmp;		\
+    Sc->setjmp_loc = old_jump_loc;		\
+    Sc->goto_start = old_goto_start;		\
+    if ((jump_loc == error_jump) &&		\
+	(Sc->longjmp_ok))			\
+      LongJmp(*(Sc->goto_start), error_jump);	\
+  } while (0)
 
-#ifndef set_jump_info
-  #define set_jump_info(Sc, Tag)			\
-    do {						\
-      Sc->longjmp_ok = true;			\
-      Sc->setjmp_loc = Tag;			\
-      jump_loc = (jump_loc_t)SetJmp(new_goto_start, 1);	\
-      Sc->goto_start = &new_goto_start;		\
-    } while (0)
-#endif
+#define set_jump_info(Sc, Tag)			\
+  do {						\
+    Sc->longjmp_ok = true;			\
+    Sc->setjmp_loc = Tag;			\
+    jump_loc = (jump_loc_t)SetJmp(new_goto_start, 1);	\
+    Sc->goto_start = &new_goto_start;		\
+  } while (0)
 
-#ifndef push_stack_direct
-  #define push_stack_direct(Sc, Op) \
-    do { \
-        Sc->cur_op = Op; \
-        memcpy((void *)(Sc->stack_end), (void *)Sc, 4 * sizeof(s7_pointer)); \
-        Sc->stack_end += 4; \
-    } while (0)
-#endif
+#define push_stack_direct(Sc, Op) \
+  do { \
+      Sc->cur_op = Op; \
+      memcpy((void *)(Sc->stack_end), (void *)Sc, 4 * sizeof(s7_pointer)); \
+      Sc->stack_end += 4; \
+  } while (0)
 #define is_immutable_let(p)            has_mid_type_bit(T_Let(p), T_MID_IMMUTABLE)
 #define is_immutable_slot(p)           has_mid_type_bit(T_Slt(p), T_MID_IMMUTABLE)
 #define is_keyword(p)                  has_high_type_bit(T_Sym(p), T_SHORT_KEYWORD)
