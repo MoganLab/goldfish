@@ -108,12 +108,23 @@
 ) ;define
 
 (define (er-macro-transformer f)
-  (lambda (expr use-env mac-env)
-    (f expr
-      (make-renamer mac-env)
-      (lambda (x y) (identifier=? use-env x use-env y))
-    ) ;f
-  ) ;lambda
+  (let ((cached-use-env #f) (cached-cmp #f))
+    (lambda (expr use-env mac-env)
+      (let ((cmp
+              (if (eq? use-env cached-use-env)
+                cached-cmp
+                (let ((c (lambda (x y) (identifier=? use-env x use-env y))))
+                  (set! cached-use-env use-env)
+                  (set! cached-cmp c)
+                  c
+                ) ;let
+              ) ;if
+            ) ;cmp
+           ) ;
+        (f expr (make-renamer mac-env) cmp)
+      ) ;let
+    ) ;lambda
+  ) ;let
 ) ;define
 
 (define (syntax-rules-transformer expr rename compare)
