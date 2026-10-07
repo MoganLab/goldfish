@@ -14,4 +14,12 @@
 
 (check (par-filter (lambda (x) (even? x)) '(1 2 3 4 5 6)) => '(2 4 6))
 
+;; vector 并行过程冒烟测试（详细用例见 tests/liii/par/ 下的专属测试文件）
+
+(vector-par-for-each (lambda (x) x) #(1 2 3))
+
+(check (vector-par-map (lambda (x) (* x 2)) #(1 2 3)) => #(2 4 6))
+
+(check (vector-par-filter even? #(1 2 3 4 5 6)) => #(2 4 6))
+
 (check-report)

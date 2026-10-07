@@ -24,12 +24,13 @@
     (liii queue)
     (liii syntax-case)
   ) ;import
-  (export go go-call go-apply go-worker-count go-result go-result-recv!
-    make-chan chan? chan-send! chan-recv! chan-try-recv! chan-try-send!
-    chan-close! chan-closed? select make-context make-timeout-context context?
-    context-done? context-cancel! context-channel spawn-fiber fiber-yield!
-    fiber-scheduler-run! make-fiber-chan fiber-chan? fiber-send! fiber-recv!
-    %set-scheduler-idle-return! %run-worker-task %drain-suspended!
+  (export go go-call go-apply go-apply/source go-worker-count go-result
+    go-result-recv! make-chan chan? chan-send! chan-recv! chan-try-recv!
+    chan-try-send! chan-close! chan-closed? select make-context
+    make-timeout-context context? context-done? context-cancel! context-channel
+    spawn-fiber fiber-yield! fiber-scheduler-run! make-fiber-chan fiber-chan?
+    fiber-send! fiber-recv! %set-scheduler-idle-return! %run-worker-task
+    %drain-suspended!
   ) ;export
   (begin
     (define make-chan (case-lambda (() (g_make-chan 0)) ((cap) (g_make-chan cap))))
@@ -500,42 +501,67 @@
       ) ;and
     ) ;define
 
-    ;; 提取 f 的词法自由变量绑定：遍历 procedure-source 中的符号，凡不是参数、
-    ;; 尚未捕获且在闭包环境中已定义、值为可序列化数据的符号，都捕获运输。
-    (define (%go-free-vars fn)
-      (let ((src (procedure-source fn)))
-        (if (not (pair? src))
-          '()
-          (let* ((params (if (pair? (cdr src)) (%go-param-names (cadr src)) '()))
-                 (env (funclet fn))
-                 (bindings '())
-                ) ;
-            (let walk
-              ((x (cddr src)))
-              (cond
-               ((and (pair? x) (eq? (car x) 'quote)) #f)
-               ((symbol? x)
-                (when (and (not (memq x params)) (not (assq x bindings)) (defined? x env))
-                  (catch #t
-                    (lambda ()
-                      (let ((val (let-ref env x)))
-                        (when (%go-serializable-data? val)
-                          (set! bindings (cons (cons x val) bindings))
-                        ) ;when
-                      ) ;let
-                    ) ;lambda
-                    (lambda (t a) #f)
-                  ) ;catch
-                ) ;when
-               ) ;
-               ((pair? x) (walk (car x)) (walk (cdr x)))
-               ((vector? x) (for-each walk (vector->list x)))
-              ) ;cond
-            ) ;let
-            bindings
-          ) ;let*
-        ) ;if
-      ) ;let
+    ;; 提取 src 的词法自由变量绑定：遍历源码中的符号，凡不是参数、
+    ;; 尚未捕获且在 env 中已定义、值为可序列化数据的符号，都捕获运输。
+    (define (%go-free-vars src env)
+      (if (not (pair? src))
+        '()
+        (let* ((params (if (pair? (cdr src)) (%go-param-names (cadr src)) '()))
+               (bindings '())
+              ) ;
+          (let walk
+            ((x (cddr src)))
+            (cond
+             ((and (pair? x) (eq? (car x) 'quote)) #f)
+             ((symbol? x)
+              (when (and (not (memq x params)) (not (assq x bindings)) (defined? x env))
+                (catch #t
+                  (lambda ()
+                    (let ((val (let-ref env x)))
+                      (when (%go-serializable-data? val)
+                        (set! bindings (cons (cons x val) bindings))
+                      ) ;when
+                    ) ;let
+                  ) ;lambda
+                  (lambda (t a) #f)
+                ) ;catch
+              ) ;when
+             ) ;
+             ((pair? x) (walk (car x)) (walk (cdr x)))
+             ((vector? x) (for-each walk (vector->list x)))
+            ) ;cond
+          ) ;let
+          bindings
+        ) ;let*
+      ) ;if
+    ) ;define
+
+    ;; go-apply 与 go-apply/source 的共享投递逻辑：把 (src arg ...) 包装为
+    ;; 带异常兜底的 worker 代码，连同捕获的自由变量一起 spawn。
+    (define (%go-ship-apply src env args ch)
+      (let* ((libs (%go-active-libs))
+             (captured (%go-free-vars src env))
+             ;; 参数名用 gensym，避免与用户捕获的自由变量重名
+             (arg-names (map (lambda (a) (gensym "go-arg")) args))
+             (ch-sym (gensym "go-apply-ch"))
+             (names (append arg-names (map car captured) (list ch-sym)))
+             (vals (append args (map cdr captured) (list ch)))
+             (code
+               `(begin
+                  ,@(%go-worker-prelude libs)
+                  (catch ,#t
+                    (lambda ,()
+                      (chan-send! ,ch-sym (list 'ok (,src ,@arg-names))))
+                    (lambda (tag args)
+                      (catch ,#t
+                        (lambda ,() (chan-send! ,ch-sym (list 'error tag args)))
+                        (lambda (t2 a2)
+                          (chan-send! ,ch-sym
+                            (list 'error tag (list (object->string args)))))))))
+             ) ;code
+            ) ;
+        (g_go-spawn names vals code)
+      ) ;let*
     ) ;define
 
     (define (go-apply f args ch)
@@ -552,31 +578,29 @@
         (unless (pair? src)
           (type-error "go-apply: cannot extract source code from procedure" f)
         ) ;unless
-        (let* ((libs (%go-active-libs))
-               (captured (%go-free-vars f))
-               ;; 参数名用 gensym，避免与用户捕获的自由变量重名
-               (arg-names (map (lambda (a) (gensym "go-arg")) args))
-               (ch-sym (gensym "go-apply-ch"))
-               (names (append arg-names (map car captured) (list ch-sym)))
-               (vals (append args (map cdr captured) (list ch)))
-               (code
-                 `(begin
-                    ,@(%go-worker-prelude libs)
-                    (catch ,#t
-                      (lambda ,()
-                        (chan-send! ,ch-sym (list 'ok (,src ,@arg-names))))
-                      (lambda (tag args)
-                        (catch ,#t
-                          (lambda ,()
-                            (chan-send! ,ch-sym (list 'error tag args)))
-                          (lambda (t2 a2)
-                            (chan-send! ,ch-sym
-                              (list 'error tag (list (object->string args)))))))))
-               ) ;code
-              ) ;
-          (g_go-spawn names vals code)
-        ) ;let*
+        (%go-ship-apply src (funclet f) args ch)
       ) ;let
+    ) ;define
+
+    ;; go-apply/source：go-apply 的源码级变体。src 是过程源码表达式（lambda
+    ;; 列表，或解析为过程的全局符号），env 是自由变量的捕获环境（通常是
+    ;; 定义点的 funclet 或其派生 inlet）。供需要把多个过程的来源组合成一个
+    ;; worker 的调用方（如 (liii par) 的分块 worker）使用，避免在主会话
+    ;; eval 构造包装过程。
+    (define (go-apply/source src env args ch)
+      (unless (or (pair? src) (symbol? src))
+        (type-error "go-apply/source: first argument must be a procedure source" src)
+      ) ;unless
+      (unless (let? env)
+        (type-error "go-apply/source: second argument must be an environment (let)" env)
+      ) ;unless
+      (unless (list? args)
+        (type-error "go-apply/source: third argument must be a list" args)
+      ) ;unless
+      (unless (chan? ch)
+        (type-error "go-apply/source: fourth argument must be a channel" ch)
+      ) ;unless
+      (%go-ship-apply src env args ch)
     ) ;define
 
     (define-syntax select
