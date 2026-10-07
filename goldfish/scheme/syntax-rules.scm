@@ -228,7 +228,7 @@
                           (,_lp
                            (,_cdr ,_ls)
                            (,_- ,_i ,1)
-                           (,_cons3 (,_car ,_ls) ,_res ,_ls))))))
+                           (,_cons (,_car ,_ls) ,_res))))))
                    ) ;let
                  ) ;else
                 ) ;cond
@@ -424,8 +424,7 @@
               ) ;cond
             ) ;let*
            ) ;
-           (else (list _cons3 (lp (car t) dim ell-esc) (lp (cdr t) dim ell-esc) (list _quote t))
-           ) ;else
+           (else (list _cons (lp (car t) dim ell-esc) (lp (cdr t) dim ell-esc)))
           ) ;cond
          ) ;
          ((vector? t) (list _list->vector (lp (vector->list t) dim ell-esc)))
