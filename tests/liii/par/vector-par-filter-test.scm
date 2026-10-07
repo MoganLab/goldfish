@@ -6,7 +6,7 @@
 ;;
 ;; 语法
 ;; ----
-;; (vector-par-filter pred vec)
+;; (vector-par-filter pred vec [workers])
 ;;
 ;; 参数
 ;; ----
@@ -17,6 +17,9 @@
 ;;
 ;; vec : vector
 ;; 待过滤的向量，元素须为可序列化的数据。
+;;
+;; workers : integer，可选
+;; 分块并行度（块数上限），默认为 (go-worker-count)；1 表示退化为单块执行。
 ;;
 ;; 返回值
 ;; ----
@@ -125,7 +128,11 @@
   #("apple" "avocado")
 ) ;check
 
-;; 11. 并发加速效果验证
+;; 11. 可选并行度参数 workers
+(check (vector-par-filter even? #(1 2 3 4 5 6 7 8) 3) => #(2 4 6 8))
+(check (vector-par-filter even? #(1 2 3 4 5 6) 1) => #(2 4 6))
+
+;; 12. 并发加速效果验证
 (when (>= (go-worker-count) 4)
   ;; 先热身，触发线程池与 worker 初始化，避免一次性启动开销计入计时窗口
   (vector-par-filter (lambda (x) #t) #(1))

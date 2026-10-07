@@ -46,7 +46,6 @@
     (liii os)
     (liii path)
     (liii sys)
-    (liii go)
     (liii par)
   ) ;import
   (export parse-test-args parse-test-changed-since parse-test-jobs
@@ -168,42 +167,42 @@
                    ) ;let*
                  ) ;lambda
                ) ;run-one-test
-               (raw-results (vector-par-map run-one-test vec))
+               (raw-results (vector-par-map run-one-test vec jobs))
               ) ;
-          (let loop
-            ((count 0) (acc '()))
-            (if (< count total)
-              (let* ((res (vector-ref raw-results count))
-                     (test-file (car res))
-                     (exit-code (cadr res))
-                     (log-path (caddr res))
-                     (idx (+ count 1))
-                    ) ;
-                (display (string-append "  ["
-                           (number->string idx)
-                           "/"
-                           (number->string total)
-                           "] "
-                           test-file
-                           " ... "
-                         ) ;string-append
-                ) ;display
-                (if (zero? exit-code)
-                  (begin
-                    (display (string-append GREEN "PASS" RESET "\n"))
-                    (cleanup-log log-path)
-                  ) ;begin
-                  (begin
-                    (display (string-append RED "FAIL" RESET " exit-code=" (number->string exit-code) "\n")
-                    ) ;display
-                    (display-fail-log log-path)
-                  ) ;begin
-                ) ;if
-                (loop (+ count 1) (cons (cons test-file exit-code) acc))
-              ) ;let*
-              (reverse acc)
-            ) ;if
+          ;; 按文件顺序显示结果（vector-par-map 保序）
+          (let ((idx 0))
+            (vector-for-each
+              (lambda (res)
+                (set! idx (+ idx 1))
+                (let ((test-file (car res)) (exit-code (cadr res)) (log-path (caddr res)))
+                  (display (string-append "  ["
+                             (number->string idx)
+                             "/"
+                             (number->string total)
+                             "] "
+                             test-file
+                             " ... "
+                           ) ;string-append
+                  ) ;display
+                  (if (zero? exit-code)
+                    (begin
+                      (display (string-append GREEN "PASS" RESET "\n"))
+                      (cleanup-log log-path)
+                    ) ;begin
+                    (begin
+                      (display (string-append RED "FAIL" RESET " exit-code=" (number->string exit-code) "\n")
+                      ) ;display
+                      (display-fail-log log-path)
+                    ) ;begin
+                  ) ;if
+                ) ;let
+              ) ;lambda
+              raw-results
+            ) ;vector-for-each
           ) ;let
+          (vector->list
+            (vector-map (lambda (r) (cons (car r) (cadr r))) raw-results)
+          ) ;vector->list
         ) ;let*
       ) ;let*
     ) ;define

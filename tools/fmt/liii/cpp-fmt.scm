@@ -32,8 +32,8 @@
     (liii goldfmt-parallel)
   ) ;import
   (export clang-format-binary cpp-extensions format-cpp-file format-cpp-files
-    format-cpp-directory check-cpp-file cpp-format-one-quiet cpp-fmt-worker
-    cpp-check-file-quiet cpp-check-worker cpp-check-files
+    format-cpp-directory check-cpp-file cpp-format-one-quiet cpp-fmt-one
+    cpp-check-file-quiet cpp-check-one cpp-check-files
   ) ;export
   (begin
 
@@ -186,17 +186,16 @@
       ) ;if
     ) ;define
 
-    ;; (liii go) worker：在独立会话中循环取任务、调安静单位函数、回发结果
-    ;; （骨架见 run-worker-loop；异常兜底转 failed 结果）。cf（clang-format
-    ;; 二进制路径字符串）由主线程从 cfg 解析后经 spawn 参数一次性传入——
-    ;; 直接传解析好的字符串比把 cfg 交给 worker 重解析更省（每次批量
-    ;; 只解析一次配置）。
-    (define (cpp-fmt-worker cf task-ch result-ch)
-      (run-worker-loop task-ch
-        result-ch
-        (lambda (path) (cpp-format-one-quiet cf path))
+    ;; 单文件格式化任务（file->result）：供 pool-for-each 经 vector-par-map
+    ;; ship 到 worker 会话执行，返回 (list 路径 状态 失败信息)；异常兜底转
+    ;; failed 结果。cf（clang-format 二进制路径字符串）由主线程从 cfg 解析
+    ;; 后经闭包自由变量捕获传入——直接传解析好的字符串比把 cfg 交给 worker
+    ;; 重解析更省（每次批量只解析一次配置）。
+    (define (cpp-fmt-one cf path)
+      (run-one-task path
+        (lambda (p) (cpp-format-one-quiet cf p))
         (lambda (tag info) (list 'failed #f))
-      ) ;run-worker-loop
+      ) ;run-one-task
     ) ;define
 
     ;; 主线程按结果打印一个文件的处理行（cpp 只打印 Updated 行，失败静默，
@@ -232,7 +231,10 @@
             ) ;display
             (newline)
             (flush-output-port (current-output-port))
-            (let ((results (pool-for-each cpp-fmt-worker files print-result cf)))
+            (let ((results
+                    (pool-for-each (lambda (path) (cpp-fmt-one cf path)) files print-result)
+                  ) ;
+            ) ;
               (list (length results)
                 (count-status 'updated results)
                 (count-status 'cached results)
@@ -296,14 +298,13 @@
       ) ;if
     ) ;define
 
-    ;; check 的 (liii go) worker：cf 经 spawn 参数传入（主线程已预检可用性）；
+    ;; 单文件 check 任务：cf 经闭包自由变量捕获传入（主线程已预检可用性）；
     ;; 结果包装为 (list ok #f)，异常兜底视为未格式化。
-    (define (cpp-check-worker cf task-ch result-ch)
-      (run-worker-loop task-ch
-        result-ch
-        (lambda (path) (list (cpp-check-file-quiet cf path) #f))
+    (define (cpp-check-one cf path)
+      (run-one-task path
+        (lambda (p) (list (cpp-check-file-quiet cf p) #f))
         (lambda (tag info) (list #f #f))
-      ) ;run-worker-loop
+      ) ;run-one-task
     ) ;define
 
     ;; 批量 check：可用性探测上提到批量层（不可用时提示只打印一次、全部文件
@@ -318,7 +319,10 @@
             files
           ) ;begin
           (let ((cf (clang-format-binary cfg)))
-            (offenders-from (pool-for-each cpp-check-worker files (lambda (file result) #f) cf)
+            (offenders-from
+              (pool-for-each (lambda (path) (cpp-check-one cf path)) files
+                (lambda (file result) #f)
+              ) ;pool-for-each
             ) ;offenders-from
           ) ;let
         ) ;if

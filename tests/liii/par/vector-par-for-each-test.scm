@@ -1,4 +1,4 @@
-(import (liii check) (liii par) (liii go) (liii list) (liii time) (scheme time))
+(import (liii check) (liii par) (liii go) (liii time) (scheme time))
 
 (check-set-mode! 'report-failed)
 
@@ -6,7 +6,7 @@
 ;;
 ;; 语法
 ;; ----
-;; (vector-par-for-each f vec)
+;; (vector-par-for-each f vec [workers])
 ;;
 ;; 参数
 ;; ----
@@ -16,6 +16,9 @@
 ;;
 ;; vec : vector
 ;; 待遍历的向量，元素须为可序列化的数据。
+;;
+;; workers : integer，可选
+;; 分块并行度（块数上限），默认为 (go-worker-count)；1 表示退化为单块执行。
 ;;
 ;; 返回值
 ;; ----
@@ -90,7 +93,17 @@
   ) ;vector-par-for-each
 ) ;check-catch
 
-;; 7. 并发执行加速验证
+;; 7. 可选并行度参数 workers
+
+(define ch4 (make-chan 3))
+
+(vector-par-for-each (lambda (x) (chan-send! ch4 (+ x 1))) #(1 2 3) 2)
+
+(define results4 (list (chan-recv! ch4) (chan-recv! ch4) (chan-recv! ch4)))
+
+(check (sort! results4 <) => '(2 3 4))
+
+;; 8. 并发执行加速验证
 (when (>= (go-worker-count) 4)
   ;; 先热身，触发线程池与 worker 初始化，避免一次性启动开销计入计时窗口
   (vector-par-for-each (lambda (x) x) #(1))

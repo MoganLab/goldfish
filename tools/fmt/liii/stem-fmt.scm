@@ -34,8 +34,8 @@
     (liii goldfmt-config)
     (liii goldfmt-parallel)
   ) ;import
-  (export stem-extensions stem-format-file-quiet stem-fmt-worker
-    stem-check-file-quiet stem-check-worker stem-check-files
+  (export stem-extensions stem-format-file-quiet stem-fmt-one
+    stem-check-file-quiet stem-check-one stem-check-files
   ) ;export
   (begin
 
@@ -104,15 +104,14 @@
       (print-fmt-result-line file (cadr result) (caddr result))
     ) ;define
 
-    ;; (liii go) worker：在独立会话中循环取任务、调安静单位函数、回发结果
-    ;; （骨架见 run-worker-loop；异常兜底转 failed 结果，避免主线程收不齐
-    ;; 结果而永久等待）。(go ...) 只 ship 本函数自身源码，其引用的
-    ;; run-worker-loop / stem-format-file-quiet / fmt-extract-error-message
-    ;; 均为导出符号（worker 会话经 import 可见）。
-    (define (stem-fmt-worker task-ch result-ch)
-      (run-worker-loop task-ch result-ch stem-format-file-quiet
-        fmt-extract-error-message
-      ) ;run-worker-loop
+    ;; 单文件格式化任务（file->result）：供 pool-for-each 经 vector-par-map
+    ;; ship 到 worker 会话执行，返回 (list 路径 状态 失败信息)。ship 的只有
+    ;; 本函数自身源码，其引用的 run-one-task / stem-format-file-quiet /
+    ;; fmt-extract-error-message 均为导出符号（worker 会话经 import 可见）。
+    (define (stem-fmt-one path)
+      (run-one-task path stem-format-file-quiet
+        (lambda (tag info) (list 'failed (fmt-extract-error-message tag info)))
+      ) ;run-one-task
     ) ;define
 
     ;; ---- 文件列表批量格式化 --------------------------------------------
@@ -135,7 +134,7 @@
               ) ;begin
             ) ;if
           ) ;let
-          (let ((results (pool-for-each stem-fmt-worker targets print-result)))
+          (let ((results (pool-for-each stem-fmt-one targets print-result)))
             (values (length results)
               (count-status 'updated results)
               (count-status 'cached results)
@@ -238,19 +237,18 @@
       ) ;let*
     ) ;define
 
-    ;; check 的 (liii go) worker：结果包装为 (list ok #f)，异常兜底视为未格式化。
-    (define (stem-check-worker task-ch result-ch)
-      (run-worker-loop task-ch
-        result-ch
-        (lambda (path) (list (stem-check-file-quiet path) #f))
+    ;; 单文件 check 任务：结果包装为 (list ok #f)，异常兜底视为未格式化。
+    (define (stem-check-one path)
+      (run-one-task path
+        (lambda (p) (list (stem-check-file-quiet p) #f))
         (lambda (tag info) (list #f #f))
-      ) ;run-worker-loop
+      ) ;run-one-task
     ) ;define
 
-    ;; 批量 check：并发度大于 1 且文件数大于 1 时统一并行，否则串行；
-    ;; 返回未格式化文件列表（保持文件顺序，与串行一致）。
+    ;; 批量 check：统一走 Worker Pool；返回未格式化文件列表（保持文件顺序，
+    ;; 与串行一致）。
     (define (stem-check-files files cfg)
-      (offenders-from (pool-for-each stem-check-worker files (lambda (file result) #f))
+      (offenders-from (pool-for-each stem-check-one files (lambda (file result) #f))
       ) ;offenders-from
     ) ;define
 

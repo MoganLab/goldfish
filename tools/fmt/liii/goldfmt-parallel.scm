@@ -15,21 +15,18 @@
 ;;
 
 ;; gf fmt 的共享并发设施：(liii goldfmt-parallel)。
-;; 基于 (liii go)（CSP：每 worker 线程独占独立 s7 解释器会话，channel 传深拷贝
-;; 消息）的极简 Worker Pool（同 gf test -j 的双通道模式）：
-;;   1. pool-ch / result-ch 容量均为文件数（发送永不阻塞）；
-;;   2. 主线程串行投递任务（消息体就是文件路径字符串），投递完毕 chan-close!
-;;      广播 EOF 哨兵；
-;;   3. 启动 n = min(jobs, 文件数) 个 worker 循环消费；
-;;   4. worker 把 (list 路径 状态 失败信息) 回发 result-ch，主线程按到达顺序
-;;      即时回收并回调——不保证完成顺序，无需保序缓冲。
+;; 基于 (liii par) 的 vector-par-map（底层为 (liii go) 线程池：每 worker
+;; 线程独占独立 s7 解释器会话，channel 传深拷贝消息）做语言内文件级并行：
+;; 各语言把"单文件单位函数 + 异常兜底"封装成 file->result 的导出函数交给
+;; pool-for-each，无需关心 channel 协议。结果按文件顺序返回（vector-par-map
+;; 保序），统计与 offenders 提取均与顺序无关。
 ;; 语言之间保持串行（由主入口的逐语言循环保证），本模块只做语言内并行。
 ;; 并发度参数（-j/--jobs 的解析结果）也寄居于此：所有消费方（主入口与三个
 ;; 语言的批量层）都已 import 本模块。
 
 (define-library (liii goldfmt-parallel)
   (import (liii base) (liii go) (liii list) (liii par))
-  (export pool-for-each run-worker-loop offenders-from count-status
+  (export pool-for-each run-one-task offenders-from count-status
     set-fmt-jobs! fmt-jobs
   ) ;export
   (begin
@@ -50,55 +47,36 @@
       %fmt-jobs
     ) ;define
 
-    ;; ---- worker 骨架 ----------------------------------------------------
-    ;; 在 worker 会话内循环取任务、调单位函数、回发结果，读到 EOF 后退出。
-    ;; 任务消息体就是文件路径字符串；结果回发 (list 路径 状态 失败信息)。
-    ;; unit-fn: (lambda (path) ...) 返回 (status msg) 二元表；
-    ;; err-fn: (lambda (tag info) ...) 在单位函数抛异常时构造 (status msg)，
-    ;; 必须兜住一切异常并返回结果（否则主线程会因收不齐结果而永久等待）。
-    ;; 供各语言的 worker 包装调用：worker 函数经 (go ...) ship 的只有自身
-    ;; 源码，其引用的本骨架与单位函数等符号必须是导出符号（或以内联
-    ;; lambda 的形式写在其函数体内）。
-    (define (run-worker-loop task-ch result-ch unit-fn err-fn)
-      (let loop
-        ()
-        (let ((task (chan-recv! task-ch)))
-          (unless (eof-object? task)
-            (let ((r (catch #t (lambda () (unit-fn task)) (lambda (tag info) (err-fn tag info))))
-                 ) ;
-              (chan-send! result-ch (list task (car r) (cadr r)))
-              (loop)
-            ) ;let
-          ) ;unless
-        ) ;let
+    ;; ---- 单文件任务骨架 ---------------------------------------------------
+    ;; 调用单位函数 unit-fn（返回 (status msg) 二元表），异常时由 err-fn
+    ;; 兜底构造 (status msg)，统一包装为 (list 路径 状态 失败信息)。
+    ;; 供各语言的 file->result 函数引用：这些函数经 vector-par-map ship 到
+    ;; worker 会话的只有自身源码，其引用的本骨架与单位函数等符号必须是
+    ;; 导出符号（或以内联 lambda 的形式写在其函数体内）。
+    (define (run-one-task path unit-fn err-fn)
+      (let ((r (catch #t (lambda () (unit-fn path)) (lambda (tag info) (err-fn tag info))))
+           ) ;
+        (list path (car r) (cadr r))
       ) ;let
     ) ;define
 
     ;; ---- Worker Pool ----------------------------------------------------
-    ;; 基于 (liii par) 的 vector-par-map 重构，消除裸写 channel 与 EOF 哨兵。
-    (define (pool-for-each worker-fn files on-result . worker-args)
+    ;; 基于 (liii par) 的 vector-par-map：file-fn 为各语言导出的
+    ;; file->result 函数（返回 (list 路径 状态 失败信息)），分块并发执行，
+    ;; 结果按文件顺序返回；on-result 为 (lambda (file result)) 回调，
+    ;; 在全部完成后按顺序逐条调用。
+    (define (pool-for-each file-fn files on-result)
       (if (null? files)
         '()
-        (let* ((vec (list->vector files))
-               (worker-src (procedure-source worker-fn))
-               (task-proc
-                 (eval
-                   `(lambda (file)
-                      (let ((task-ch (make-chan 1)) (result-ch (make-chan 1)))
-                        (chan-send! task-ch file)
-                        (chan-close! task-ch)
-                        (apply ,worker-src
-                          (append (quote ,worker-args) (list task-ch result-ch)))
-                        (chan-recv! result-ch)))
-                   (rootlet)
-                 ) ;eval
-               ) ;task-proc
-               (res-vec (vector-par-map task-proc vec))
-               (results (vector->list res-vec))
+        (let ((results
+                (vector->list
+                  (vector-par-map file-fn (list->vector files) (fmt-jobs))
+                ) ;vector->list
               ) ;
+             ) ;
           (for-each (lambda (r) (on-result (car r) r)) results)
           results
-        ) ;let*
+        ) ;let
       ) ;if
     ) ;define
 

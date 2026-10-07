@@ -6,7 +6,7 @@
 ;;
 ;; 语法
 ;; ----
-;; (vector-par-map f vec)
+;; (vector-par-map f vec [workers])
 ;;
 ;; 参数
 ;; ----
@@ -16,6 +16,9 @@
 ;;
 ;; vec : vector
 ;; 待映射的向量，元素须为可序列化的数据。
+;;
+;; workers : integer，可选
+;; 分块并行度（块数上限），默认为 (go-worker-count)；1 表示退化为单块执行。
 ;;
 ;; 返回值
 ;; ----
@@ -99,7 +102,11 @@
 
 (check (vector-par-map (lambda (x) (* x 2)) big-vec) => expected-big)
 
-;; 9. 并发加速效果验证
+;; 9. 可选并行度参数 workers
+(check (vector-par-map (lambda (x) (* x 2)) #(1 2 3 4 5) 2) => #(2 4 6 8 10))
+(check (vector-par-map (lambda (x) (* x 2)) #(1 2 3 4 5) 1) => #(2 4 6 8 10))
+
+;; 10. 并发加速效果验证
 (when (>= (go-worker-count) 4)
   ;; 先热身，触发线程池与 worker 初始化，避免一次性启动开销计入计时窗口
   (vector-par-map (lambda (x) x) #(1))
