@@ -88,6 +88,8 @@
   (make-syntactic-closure env '() form)
 ) ;define
 
+(define %synclo-id (lambda (i) i))
+
 (define (make-renamer mac-env)
   (let ((renames '()))
     (lambda (identifier)
@@ -95,7 +97,7 @@
         (if cell
           (cdr cell)
           (let ((id (close-syntax identifier mac-env)))
-            (syntactic-closure-set-rename! id (lambda (i) i))
+            (syntactic-closure-set-rename! id %synclo-id)
             (set! renames (cons (cons identifier id) renames))
             id
           ) ;let
@@ -106,12 +108,23 @@
 ) ;define
 
 (define (er-macro-transformer f)
-  (lambda (expr use-env mac-env)
-    (f expr
-      (make-renamer mac-env)
-      (lambda (x y) (identifier=? use-env x use-env y))
-    ) ;f
-  ) ;lambda
+  (let ((cached-use-env #f) (cached-cmp #f))
+    (lambda (expr use-env mac-env)
+      (let ((cmp
+              (if (eq? use-env cached-use-env)
+                cached-cmp
+                (let ((c (lambda (x y) (identifier=? use-env x use-env y))))
+                  (set! cached-use-env use-env)
+                  (set! cached-cmp c)
+                  c
+                ) ;let
+              ) ;if
+            ) ;cmp
+           ) ;
+        (f expr (make-renamer mac-env) cmp)
+      ) ;let
+    ) ;lambda
+  ) ;let
 ) ;define
 
 (define (syntax-rules-transformer expr rename compare)
@@ -215,7 +228,7 @@
                           (,_lp
                            (,_cdr ,_ls)
                            (,_- ,_i ,1)
-                           (,_cons3 (,_car ,_ls) ,_res ,_ls))))))
+                           (,_cons (,_car ,_ls) ,_res))))))
                    ) ;let
                  ) ;else
                 ) ;cond
@@ -391,7 +404,7 @@
                     (else
                       (let* ((once (lp (car t) ell-dim ell-esc))
                              (nest
-                               (if (and (null? (cdr ell-vars)) (identifier? once) (eq? once (car vars)))
+                               (if (and (null? (cdr ell-vars)) (identifier? once) (eq? once (car ell-vars)))
                                  once
                                  (cons _map (cons (list _lambda ell-vars once) ell-vars))
                                ) ;if
@@ -411,8 +424,7 @@
               ) ;cond
             ) ;let*
            ) ;
-           (else (list _cons3 (lp (car t) dim ell-esc) (lp (cdr t) dim ell-esc) (list _quote t))
-           ) ;else
+           (else (list _cons (lp (car t) dim ell-esc) (lp (cdr t) dim ell-esc)))
           ) ;cond
          ) ;
          ((vector? t) (list _list->vector (lp (vector->list t) dim ell-esc)))
@@ -463,26 +475,28 @@
   ) ;let*
 ) ;define-macro
 
+(define-bacro (%define-syntax-macro name t def-env)
+  (let ((ar (car (arity (eval t def-env)))))
+    (if (= ar 1)
+      `(define-macro (,name . args)
+         (resolve-syntactic-closures (,t (cons (quote ,name) args)) ,def-env))
+      `(define-macro (,name . args)
+         (resolve-syntactic-closures (,t
+                                      (cons (quote ,name) args)
+                                      (curlet)
+                                      ,def-env)
+           ,def-env))
+    ) ;if
+  ) ;let
+) ;define-bacro
+
 (define-bacro (define-syntax name
                 transformer-spec
               ) ;define-syntax
-  (let ((t (gensym "trans_"))
-        (c (gensym "call_"))
-        (u (gensym "use_"))
-        (m (gensym "mac_"))
-        (def-env (curlet))
-       ) ;
+  (let ((t (gensym "trans_")) (def-env (curlet)))
     `(begin
        (define ,t ,transformer-spec)
-       (define-macro (,name . args)
-         (let* ((,c (cons (quote ,name) args))
-                (,u (curlet))
-                (,m ,def-env)
-                (expanded (let ((ar (arity ,t)))
-                            (if (and (pair? ar) (= (car ar) 1) (= (cdr ar) 1))
-                              (,t ,c)
-                              (,t ,c ,u ,m)))))
-           (resolve-syntactic-closures expanded ,m))))
+       (%define-syntax-macro ,name ,t ,def-env))
   ) ;let
 ) ;define-bacro
 

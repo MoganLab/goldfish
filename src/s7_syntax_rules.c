@@ -172,6 +172,9 @@ static s7_pointer strip_synclos(s7_scheme* sc, s7_pointer x) {
   if (s7_is_pair(x)) {
     s7_pointer kar = strip_synclos(sc, s7_car(x));
     s7_pointer kdr = strip_synclos(sc, s7_cdr(x));
+    if (kar == s7_car(x) && kdr == s7_cdr(x)) {
+      return x;
+    }
     return s7_cons(sc, kar, kdr);
   }
   if (s7_is_byte_vector(x) || s7_is_int_vector(x) || s7_is_float_vector(x) || s7_is_complex_vector(x)) {
@@ -253,11 +256,16 @@ static bool is_quote_form(s7_scheme* sc, s7_pointer p) {
     syntactic_closure_t* s = (syntactic_closure_t*) s7_c_object_value(p);
     p = s->expr;
   }
-  if (s7_is_symbol(p) && strcmp(s7_symbol_name(p), "quote") == 0) return true;
-  char* str = s7_object_to_c_string(sc, p);
-  bool is_q = (str && (strcmp(str, "#_quote") == 0 || strcmp(str, "quote") == 0));
-  if (str) free(str);
-  return is_q;
+  if (s7_is_symbol(p)) {
+    return strcmp(s7_symbol_name(p), "quote") == 0;
+  }
+  if (s7_is_syntax(p)) {
+    char* str = s7_object_to_c_string(sc, p);
+    bool is_q = (str && (strcmp(str, "#_quote") == 0 || strcmp(str, "quote") == 0));
+    if (str) free(str);
+    return is_q;
+  }
+  return false;
 }
 
 static bool is_auxiliary_syntax(const char* name) {
@@ -325,10 +333,16 @@ static s7_pointer resolve_ast(s7_scheme* sc, s7_pointer x, s7_pointer def_env, s
     if (is_quote_form(sc, kar)) {
       s7_pointer resolved_kar = resolve_ast(sc, kar, def_env, memo_head);
       s7_pointer stripped_kdr = strip_synclos(sc, s7_cdr(x));
+      if (resolved_kar == kar && stripped_kdr == s7_cdr(x)) {
+        return x;
+      }
       return s7_cons(sc, resolved_kar, stripped_kdr);
     }
     s7_pointer res_kar = resolve_ast(sc, kar, def_env, memo_head);
     s7_pointer res_kdr = resolve_ast(sc, s7_cdr(x), def_env, memo_head);
+    if (res_kar == kar && res_kdr == s7_cdr(x)) {
+      return x;
+    }
     return s7_cons(sc, res_kar, res_kdr);
   }
   if (s7_is_byte_vector(x) || s7_is_int_vector(x) || s7_is_float_vector(x) || s7_is_complex_vector(x)) {
