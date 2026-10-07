@@ -15,6 +15,7 @@
 ;;
 
 (define-library (scheme base)
+  (import (srfi srfi-11))
   (export let-values
     let*-values
     define-syntax
@@ -226,40 +227,10 @@
     read-error?
     file-error?
   ) ;export
-  (include "syntax-rules.scm")
   (begin
 
-    ;; 0-clause BSD
-    ;; Bill Schottstaedt
-    ;; from S7 source repo: r7rs.scm
-    (define-macro (let-values vars . body)
-      (if (and (pair? vars) (pair? (car vars)) (null? (cdar vars)))
-        `((lambda ,(caar vars) ,@body) ,(cadar vars))
-        `(with-let (apply sublet
-                     (curlet)
-                     (list ,@(map (lambda (v)
-                                    `((lambda ,(car v)
-                                        (values ,@(map (lambda (name)
-                                                         (values (symbol->keyword name)
-                                                           name))
-                                                    (let args->proper-list
-                                                      ((args (car v)))
-                                                      (cond ((symbol? args)
-                                                             (list args))
-                                                            ((not (pair? args))
-                                                             args)
-                                                            ((pair? (car args))
-                                                             (cons (caar args)
-                                                               (args->proper-list (cdr args))))
-                                                            (else (cons (car args)
-                                                                    (args->proper-list (cdr args)))))))))
-                                      ,(cadr v)))
-                               vars)))
-           ,@body)
-      ) ;if
-    ) ;define-macro
-
     (define-macro (define-values vars expression)
+
       `(if (not (null? (quote ,vars)))
          (varlet (curlet) ((lambda ,vars (curlet)) ,expression)))
     ) ;define-macro

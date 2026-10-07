@@ -45,4 +45,18 @@
          (+ x y z w))
   => 120)
 
+;; SRFI-11 官方用例：顺序求值与顺序绑定语义验证
+(check (let ((a 'a) (b 'b) (x 'x) (y 'y))
+         (let*-values (((a b) (values x y))
+                       ((x y) (values a b)))
+           (list a b x y)))
+  => '(x y x y))
+
+;; 点对可变参数多值顺序绑定
+(check (let*-values (((a b . c) (values 1 2 3 4))
+                     ((d) (+ a b)))
+         (list d c))
+  => '(3 (3 4)))
+
 (check-report)
+
