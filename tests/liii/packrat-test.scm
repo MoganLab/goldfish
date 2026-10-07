@@ -503,17 +503,14 @@
 
 (let ()
   (define (pos-generator tokens)
-    (let ((stream tokens) (col 1))
+    (let ((g (generator tokens)) (col 1))
       (lambda ()
-        (if (null? stream)
-          (values (make-parse-position "test" 1 col) #f)
-          (let ((tok (car stream))
-                (pos (make-parse-position "test" 1 col)))
-            (set! stream (cdr stream))
-            (set! col (+ col 1))
+        (let-values (((_ tok) (g)))
+          (let ((pos (make-parse-position "test" 1 col)))
+            (if tok (set! col (+ col 1)))
             (values pos tok)
           ) ;let
-        ) ;if
+        ) ;let-values
       ) ;lambda
     ) ;let
   ) ;define
