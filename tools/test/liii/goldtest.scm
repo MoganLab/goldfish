@@ -47,6 +47,7 @@
     (liii path)
     (liii sys)
     (liii go)
+    (liii par)
   ) ;import
   (export parse-test-args parse-test-changed-since parse-test-jobs
     filter-test-files filter-changed-test-files find-test-files
@@ -148,26 +149,8 @@
       ) ;when
     ) ;define
 
-    (define (test-worker task-ch result-ch exe)
-      (let loop
-        ()
-        (let ((test-file (chan-recv! task-ch)))
-          (unless (eof-object? test-file)
-            (let* ((cmd (string-append exe " -m r7rs " test-file)) (exit-code (os-call cmd)))
-              (chan-send! result-ch (list test-file exit-code ""))
-              (loop)
-            ) ;let*
-          ) ;unless
-        ) ;let
-      ) ;let
-    ) ;define
-
     (define (run-tests-parallel test-files jobs)
-      (let* ((total (length test-files))
-             (task-ch (make-chan total))
-             (result-ch (make-chan total))
-             (exe (executable))
-            ) ;
+      (let* ((total (length test-files)) (exe (executable)))
         (display (string-append "Running "
                    (number->string total)
                    " tests in parallel with "
@@ -177,54 +160,51 @@
         ) ;display
         (newline)
         (newline)
-        ;; 1. 将所有任务推入 task-ch
-        (for-each (lambda (f) (chan-send! task-ch f)) test-files)
-        (chan-close! task-ch)
-
-        ;; 2. 启动 jobs 个并发 worker（直接函数调用语法）
-        (let loop
-          ((i 0))
-          (when (< i jobs)
-            (go (test-worker task-ch result-ch exe))
-            (loop (+ i 1))
-          ) ;when
-        ) ;let
-
-        ;; 3. 主线程收集并实时显示结果
-        (let loop
-          ((count 0) (results '()))
-          (if (< count total)
-            (let* ((res (chan-recv! result-ch))
-                   (test-file (car res))
-                   (exit-code (cadr res))
-                   (log-path (caddr res))
-                   (idx (+ count 1))
-                  ) ;
-              (display (string-append "  ["
-                         (number->string idx)
-                         "/"
-                         (number->string total)
-                         "] "
-                         test-file
-                         " ... "
-                       ) ;string-append
-              ) ;display
-              (if (zero? exit-code)
-                (begin
-                  (display (string-append GREEN "PASS" RESET "\n"))
-                  (cleanup-log log-path)
-                ) ;begin
-                (begin
-                  (display (string-append RED "FAIL" RESET " exit-code=" (number->string exit-code) "\n")
-                  ) ;display
-                  (display-fail-log log-path)
-                ) ;begin
-              ) ;if
-              (loop (+ count 1) (cons (cons test-file exit-code) results))
-            ) ;let*
-            (reverse results)
-          ) ;if
-        ) ;let
+        (let* ((vec (list->vector test-files))
+               (run-one-test
+                 (lambda (test-file)
+                   (let* ((cmd (string-append exe " -m r7rs " test-file)) (exit-code (os-call cmd)))
+                     (list test-file exit-code "")
+                   ) ;let*
+                 ) ;lambda
+               ) ;run-one-test
+               (raw-results (vector-par-map run-one-test vec))
+              ) ;
+          (let loop
+            ((count 0) (acc '()))
+            (if (< count total)
+              (let* ((res (vector-ref raw-results count))
+                     (test-file (car res))
+                     (exit-code (cadr res))
+                     (log-path (caddr res))
+                     (idx (+ count 1))
+                    ) ;
+                (display (string-append "  ["
+                           (number->string idx)
+                           "/"
+                           (number->string total)
+                           "] "
+                           test-file
+                           " ... "
+                         ) ;string-append
+                ) ;display
+                (if (zero? exit-code)
+                  (begin
+                    (display (string-append GREEN "PASS" RESET "\n"))
+                    (cleanup-log log-path)
+                  ) ;begin
+                  (begin
+                    (display (string-append RED "FAIL" RESET " exit-code=" (number->string exit-code) "\n")
+                    ) ;display
+                    (display-fail-log log-path)
+                  ) ;begin
+                ) ;if
+                (loop (+ count 1) (cons (cons test-file exit-code) acc))
+              ) ;let*
+              (reverse acc)
+            ) ;if
+          ) ;let
+        ) ;let*
       ) ;let*
     ) ;define
 
