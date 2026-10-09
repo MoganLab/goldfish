@@ -57,8 +57,7 @@ synclo_mark (s7_scheme* sc, s7_pointer obj) {
 
 static s7_pointer
 synclo_to_string (s7_scheme* sc, s7_pointer args) {
-  s7_pointer           obj   = s7_car (args);
-  syntactic_closure_t* sc_val= (syntactic_closure_t*) s7_c_object_value (obj);
+  syntactic_closure_t* sc_val= (syntactic_closure_t*) s7_c_object_value (s7_car (args));
   char                 buf[256];
   if (sc_val && sc_val->expr && s7_is_symbol (sc_val->expr)) {
     snprintf (buf, sizeof (buf), "#<syntactic-closure %s>", s7_symbol_name (sc_val->expr));
@@ -104,85 +103,81 @@ g_syntactic_closure_p (s7_scheme* sc, s7_pointer args) {
 }
 
 static s7_pointer
+synclo_expr (s7_scheme* sc, s7_pointer x) {
+  while (is_synclo (sc, x)) {
+    syntactic_closure_t* s= (syntactic_closure_t*) s7_c_object_value (x);
+    x                     = s->expr;
+  }
+  return x;
+}
+
+static s7_pointer
+synclo_expr_env (s7_scheme* sc, s7_pointer x, s7_pointer* eff_env) {
+  while (is_synclo (sc, x)) {
+    syntactic_closure_t* s= (syntactic_closure_t*) s7_c_object_value (x);
+    if (s->env && s->env != s7_nil (sc) && s->env != s7_f (sc)) {
+      *eff_env= s->env;
+    }
+    x= s->expr;
+  }
+  return x;
+}
+
+static syntactic_closure_t*
+require_synclo (s7_scheme* sc, s7_pointer x) {
+  if (!is_synclo (sc, x)) {
+    s7_error (sc, s7_make_symbol (sc, "type-error"),
+              s7_list (sc, 2, s7_make_string (sc, "expected syntactic-closure"), x));
+    return NULL;
+  }
+  return (syntactic_closure_t*) s7_c_object_value (x);
+}
+
+static s7_pointer
 g_syntactic_closure_env (s7_scheme* sc, s7_pointer args) {
-  s7_pointer x= s7_car (args);
-  if (!is_synclo (sc, x))
-    return s7_error (sc, s7_make_symbol (sc, "type-error"),
-                     s7_list (sc, 2, s7_make_string (sc, "expected syntactic-closure"), x));
-  syntactic_closure_t* s= (syntactic_closure_t*) s7_c_object_value (x);
-  return s->env;
+  return require_synclo (sc, s7_car (args))->env;
 }
 
 static s7_pointer
 g_syntactic_closure_expr (s7_scheme* sc, s7_pointer args) {
-  s7_pointer x= s7_car (args);
-  if (!is_synclo (sc, x))
-    return s7_error (sc, s7_make_symbol (sc, "type-error"),
-                     s7_list (sc, 2, s7_make_string (sc, "expected syntactic-closure"), x));
-  syntactic_closure_t* s= (syntactic_closure_t*) s7_c_object_value (x);
-  return s->expr;
+  return require_synclo (sc, s7_car (args))->expr;
 }
 
 static s7_pointer
 g_syntactic_closure_free_vars (s7_scheme* sc, s7_pointer args) {
-  s7_pointer x= s7_car (args);
-  if (!is_synclo (sc, x))
-    return s7_error (sc, s7_make_symbol (sc, "type-error"),
-                     s7_list (sc, 2, s7_make_string (sc, "expected syntactic-closure"), x));
-  syntactic_closure_t* s= (syntactic_closure_t*) s7_c_object_value (x);
-  return s->free_vars;
+  return require_synclo (sc, s7_car (args))->free_vars;
 }
 
 static s7_pointer
 g_syntactic_closure_rename (s7_scheme* sc, s7_pointer args) {
-  s7_pointer x= s7_car (args);
-  if (!is_synclo (sc, x))
-    return s7_error (sc, s7_make_symbol (sc, "type-error"),
-                     s7_list (sc, 2, s7_make_string (sc, "expected syntactic-closure"), x));
-  syntactic_closure_t* s= (syntactic_closure_t*) s7_c_object_value (x);
-  return s->rename;
+  return require_synclo (sc, s7_car (args))->rename;
 }
 
 static s7_pointer
 g_syntactic_closure_set_rename_b (s7_scheme* sc, s7_pointer args) {
   s7_pointer x   = s7_car (args);
   s7_pointer proc= s7_cadr (args);
-  if (!is_synclo (sc, x))
-    return s7_error (sc, s7_make_symbol (sc, "type-error"),
-                     s7_list (sc, 2, s7_make_string (sc, "expected syntactic-closure"), x));
-  syntactic_closure_t* s= (syntactic_closure_t*) s7_c_object_value (x);
-  s->rename             = proc;
+  require_synclo (sc, x)->rename= proc;
   return x;
 }
 
 static s7_pointer
 g_identifier_p (s7_scheme* sc, s7_pointer args) {
-  s7_pointer x= s7_car (args);
-  while (is_synclo (sc, x)) {
-    syntactic_closure_t* s= (syntactic_closure_t*) s7_c_object_value (x);
-    x                     = s->expr;
-  }
-  return s7_make_boolean (sc, s7_is_symbol (x));
+  return s7_make_boolean (sc, s7_is_symbol (synclo_expr (sc, s7_car (args))));
 }
 
 static s7_pointer
 g_identifier_to_symbol (s7_scheme* sc, s7_pointer args) {
   s7_pointer x= s7_car (args);
-  while (is_synclo (sc, x)) {
-    syntactic_closure_t* s= (syntactic_closure_t*) s7_c_object_value (x);
-    x                     = s->expr;
-  }
-  if (s7_is_symbol (x)) return x;
+  s7_pointer y= synclo_expr (sc, x);
+  if (s7_is_symbol (y)) return y;
   return s7_error (sc, s7_make_symbol (sc, "type-error"),
-                   s7_list (sc, 2, s7_make_string (sc, "expected identifier"), s7_car (args)));
+                   s7_list (sc, 2, s7_make_string (sc, "expected identifier"), x));
 }
 
 static s7_pointer
 strip_synclos (s7_scheme* sc, s7_pointer x) {
-  while (is_synclo (sc, x)) {
-    syntactic_closure_t* s= (syntactic_closure_t*) s7_c_object_value (x);
-    x                     = s->expr;
-  }
+  x= synclo_expr (sc, x);
   if (s7_is_pair (x)) {
     s7_pointer kar= strip_synclos (sc, s7_car (x));
     s7_pointer kdr= strip_synclos (sc, s7_cdr (x));
@@ -224,24 +219,10 @@ g_identifier_eq_p (s7_scheme* sc, s7_pointer args) {
   }
 
   s7_pointer eff_e1= e1;
-  s7_pointer sym1  = id1;
-  while (is_synclo (sc, sym1)) {
-    syntactic_closure_t* s= (syntactic_closure_t*) s7_c_object_value (sym1);
-    if (s->env && s->env != s7_nil (sc) && s->env != s7_f (sc)) {
-      eff_e1= s->env;
-    }
-    sym1= s->expr;
-  }
+  s7_pointer sym1  = synclo_expr_env (sc, id1, &eff_e1);
 
   s7_pointer eff_e2= e2;
-  s7_pointer sym2  = id2;
-  while (is_synclo (sc, sym2)) {
-    syntactic_closure_t* s= (syntactic_closure_t*) s7_c_object_value (sym2);
-    if (s->env && s->env != s7_nil (sc) && s->env != s7_f (sc)) {
-      eff_e2= s->env;
-    }
-    sym2= s->expr;
-  }
+  s7_pointer sym2  = synclo_expr_env (sc, id2, &eff_e2);
 
   if (!s7_is_symbol (sym1) || !s7_is_symbol (sym2)) {
     return s7_make_boolean (sc, s7_is_equal (sc, sym1, sym2));
@@ -269,10 +250,7 @@ typedef struct synclo_rename_entry {
 
 static bool
 is_quote_form (s7_scheme* sc, s7_pointer p) {
-  while (is_synclo (sc, p)) {
-    syntactic_closure_t* s= (syntactic_closure_t*) s7_c_object_value (p);
-    p                     = s->expr;
-  }
+  p= synclo_expr (sc, p);
   if (s7_is_symbol (p)) {
     return strcmp (s7_symbol_name (p), "quote") == 0;
   }
@@ -342,18 +320,19 @@ resolve_ast (s7_scheme* sc, s7_pointer x, s7_pointer def_env, synclo_rename_entr
     return expr;
   }
   if (s7_is_pair (x)) {
-    s7_pointer kar= s7_car (x);
-    if (is_quote_form (sc, kar) && s7_is_pair (s7_cdr (x)) && s7_is_null (sc, s7_cddr (x))) {
+    s7_pointer kar = s7_car (x);
+    s7_pointer cdr_x= s7_cdr (x);
+    if (is_quote_form (sc, kar) && s7_is_pair (cdr_x) && s7_is_null (sc, s7_cdr (cdr_x))) {
       s7_pointer resolved_kar= resolve_ast (sc, kar, def_env, memo_head);
-      s7_pointer stripped_kdr= strip_synclos (sc, s7_cdr (x));
-      if (resolved_kar == kar && stripped_kdr == s7_cdr (x)) {
+      s7_pointer stripped_kdr= strip_synclos (sc, cdr_x);
+      if (resolved_kar == kar && stripped_kdr == cdr_x) {
         return x;
       }
       return s7_cons (sc, resolved_kar, stripped_kdr);
     }
     s7_pointer res_kar= resolve_ast (sc, kar, def_env, memo_head);
-    s7_pointer res_kdr= resolve_ast (sc, s7_cdr (x), def_env, memo_head);
-    if (res_kar == kar && res_kdr == s7_cdr (x)) {
+    s7_pointer res_kdr= resolve_ast (sc, cdr_x, def_env, memo_head);
+    if (res_kar == kar && res_kdr == cdr_x) {
       return x;
     }
     return s7_cons (sc, res_kar, res_kdr);

@@ -1079,15 +1079,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Otherwise COND-EXPANDed bits.
 
-;; This *should* work, but doesn't :(
-;;   (define-syntax match-check-ellipsis
-;;     (syntax-rules (...)
-;;       ((_ ... sk fk) sk)
-;;       ((_ x sk fk) fk)))
-
-;; This is a little more complicated, and introduces a new let-syntax,
-;; but should work portably in any R[56]RS Scheme.  Taylor Campbell
-;; originally came up with the idea.
+;; Match `...` as a literal (s7 supports `...` in the literals list);
+;; all other inputs fail.
 (define-syntax match-check-ellipsis
   (syntax-rules (...)
     ((match-check-ellipsis ... success-k failure-k) success-k)
