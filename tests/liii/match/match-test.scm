@@ -180,4 +180,157 @@
 (check (match '(other 1) (('let x) 'let) (('other x) 'other)) => 'other)
 (check (match '(other 1) (('and x) 'and) (('other x) 'other)) => 'other)
 
+;; 14. 反引号模式匹配 (Quasiquote & Splicing)
+;; 基础反引号与解引用
+(check
+  (match (list 1 2) (`(,1 ,x) x) (_ 'no))
+  =>
+  2
+) ;check
+(check
+  (match '(1 "hello") (`(,1 ,s) s))
+  =>
+  "hello"
+) ;check
+(check
+  (match '(a 2) (`(a ,x) x))
+  =>
+  2
+) ;check
+(check
+  (match '(a 2) (`(b ,x) x) (_ 'no))
+  =>
+  'no
+) ;check
+
+;; 多重解引用与非线性匹配
+(check
+  (match (list 1 2 3) (`(,a ,b ,c) (+ a b c)))
+  =>
+  6
+) ;check
+(check
+  (match (list 1 2 1) (`(,a ,b ,a) (+ a b)))
+  =>
+  3
+) ;check
+(check
+  (match (list 1 2 3) (`(,a ,b ,a) (+ a b)) (_ 'no))
+  =>
+  'no
+) ;check
+
+;; 拼接解引用 (尾部拼接与全列表拼接)
+(check
+  (match (list 1 2 3) (`(,1 ,@x) x) (_ 'no))
+  =>
+  '(2 3)
+) ;check
+(check
+  (match '(1) (`(,1 ,@x) x))
+  =>
+  '()
+) ;check
+(check
+  (match '(1 2) (`(,1 ,@x) x))
+  =>
+  '(2)
+) ;check
+(check
+  (match '(1 2 3) (`(,@x) x))
+  =>
+  '(1 2 3)
+) ;check
+(check
+  (match '() (`(,@x) x))
+  =>
+  '()
+) ;check
+
+;; 非尾部拼接解引用
+(check
+  (match '(1 2 3 4) (`(,1 ,@x ,4) x))
+  =>
+  '(2 3)
+) ;check
+(check
+  (match '(1 4) (`(,1 ,@x ,4) x))
+  =>
+  '()
+) ;check
+(check
+  (match '(1 2 3) (`(,@x ,3) x))
+  =>
+  '(1 2)
+) ;check
+
+;; 点对反引号 (Dotted Quasiquote)
+(check
+  (match '(1 . 2) (`(,1 . ,x) x))
+  =>
+  2
+) ;check
+(check
+  (match '(1 2 . 3) (`(,1 ,2 . ,x) x))
+  =>
+  3
+) ;check
+(check
+  (match '(1 2 3) (`(,1 ,2 . ,@x) x))
+  =>
+  '(3)
+) ;check
+
+;; 嵌套反引号列表
+(check
+  (match '(1 (2 3)) (`(,1 (,2 ,x)) x))
+  =>
+  3
+) ;check
+(check
+  (match '(1 (2 3 4)) (`(,1 (,2 ,@x)) x))
+  =>
+  '(3 4)
+) ;check
+(check
+  (match '(1 (2 3)) (`(,1 ,x) x))
+  =>
+  '(2 3)
+) ;check
+
+;; 显式 quasiquote / unquote / unquote-splicing
+(check
+  (match '(1 2) (`(,1 ,x) x))
+  =>
+  2
+) ;check
+(check
+  (match '(1 2 3) (`(,1 ,@x) x))
+  =>
+  '(2 3)
+) ;check
+
+;; 逻辑组合 (or / and) 中的反引号模式
+(check
+  (match '(1 2) ((or `(,1 ,x) `(,2 ,x)) x))
+  =>
+  2
+) ;check
+(check
+  (match '(2 3) ((or `(,1 ,x) `(,2 ,x)) x))
+  =>
+  3
+) ;check
+(check
+  (match '(1 2) ((and `(,1 ,x) (? pair?)) x))
+  =>
+  2
+) ;check
+
+;; 向量反引号字面量
+(check (match #(1 2 3) (#(1 2 3) 'ok)) => 'ok)
+
+;; 匹配失败抛出 match-error
+(check-catch 'match-error (match '(1 2) ('(1 3) 'ok)))
+
 (check-report)
