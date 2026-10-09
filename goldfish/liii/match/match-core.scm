@@ -349,7 +349,7 @@
     ;; to MATCH-TWO.
     ((match-one v (p q . r) g+s sk fk i)
      (match-check-ellipsis q
-       (match-extract-vars p (match-gen-ellipsis v p r g+s sk fk i) i ())
+       (match-extract-vars p (match-gen-ellipsis 0 v p r g+s sk fk i) i ())
        (match-two v (p q . r) g+s sk fk i)
      ) ;match-check-ellipsis
     ) ;
@@ -413,7 +413,10 @@
     ) ;
     ((match-two v (= proc p) . x) (let ((w (proc v))) (match-one w p . x)))
     ((match-two v (p ___ . r) g+s sk fk i)
-     (match-extract-vars p (match-gen-ellipsis v p r g+s sk fk i) i ())
+     (match-extract-vars p (match-gen-ellipsis 0 v p r g+s sk fk i) i ())
+    ) ;
+    ((match-two v (p ..1 . r) g+s sk fk i)
+     (match-extract-vars p (match-gen-ellipsis 1 v p r g+s sk fk i) i ())
     ) ;
     ((match-two v (p) g+s sk fk i)
      (if (and (pair? v) (null? (cdr v)))
@@ -428,9 +431,6 @@
     ) ;
     ((match-two v (p *** . q) g+s sk fk i)
      (match-syntax-error "invalid use of ***" (p *** . q))
-    ) ;
-    ((match-two v (p ..1) g+s sk fk i)
-     (if (pair? v) (match-one v (p ___) g+s sk fk i) fk)
     ) ;
     ((match-two v ($ rec p ...) g+s sk fk i)
      (if (is-a? v rec) (match-record-refs v rec 0 (p ...) g+s sk fk i) fk)
@@ -669,11 +669,14 @@
 
 (define-syntax match-gen-ellipsis
   (syntax-rules ()
-    ((_ v p () g+s (sk ...) fk i ((id id-ls) ...))
+    ((_ v p r g+s sk fk i ids)
+     (match-gen-ellipsis 0 v p r g+s sk fk i ids)
+    ) ;
+    ((_ 0 v p () g+s (sk ...) fk i ((id id-ls) ...))
      (match-check-identifier p
        ;; simplest case equivalent to (p ...), just bind the list
        (let ((w v))
-         (if (list? w) (match-one w p g+s (sk ...) fk i) fk)
+         (if (proper-list? w) (match-one w p g+s (sk ...) fk i) fk)
        ) ;let
        ;; simple case, match all elements of the list
        (let loop
@@ -696,7 +699,40 @@
        ) ;let
      ) ;match-check-identifier
     ) ;
-    ((_ v p r g+s sk fk (i ...) ((id id-ls) ...))
+    ((_ 1 v p () g+s (sk ...) fk i ((id id-ls) ...))
+     (match-check-identifier p
+       ;; simplest case equivalent to (p ..1), bind the non-empty list
+       (let ((w v))
+         (if (and (pair? w) (proper-list? w))
+           (match-one w p g+s (sk ...) fk i)
+           fk
+         ) ;if
+       ) ;let
+       ;; simple case, match all elements of the non-empty list
+       (if (and (pair? v) (proper-list? v))
+         (let loop
+           ((ls v) (id-ls '()) ...)
+           (cond
+            ((null? ls) (let ((id (reverse id-ls)) ...) (sk ... i)))
+            ((pair? ls)
+             (let ((w (car ls)))
+               (match-one w
+                 p
+                 ((car ls) (set-car! ls))
+                 (match-drop-ids (loop (cdr ls) (cons id id-ls) ...))
+                 fk
+                 i
+               ) ;match-one
+             ) ;let
+            ) ;
+            (else fk)
+           ) ;cond
+         ) ;let
+         fk
+       ) ;if
+     ) ;match-check-identifier
+    ) ;
+    ((_ min-len v p r g+s sk fk (i ...) ((id id-ls) ...))
      (match-verify-no-ellipsis r
        (match-bound-identifier-memv p
          (i ...)
@@ -704,7 +740,12 @@
          ;; match the trailing patterns
          (let loop
            ((ls v) (expect p))
-           (cond ((null? expect) (match-one ls r (#f #f) sk fk (i ...)))
+           (cond ((null? expect)
+                  (if (= min-len 0)
+                    (match-one ls r (#f #f) sk fk (i ...))
+                    (if (null? p) fk (match-one ls r (#f #f) sk fk (i ...)))
+                  ) ;if
+                 ) ;
                  ((pair? ls)
                   (let ((w (car ls)) (e (car expect)))
                     (if (equal? (car ls) (car expect))
@@ -718,8 +759,8 @@
          ) ;let
          ;; general case, trailing patterns to match, keep track of the
          ;; remaining list length so we don't need any backtracking
-         (let* ((tail-len (length 'r)) (ls v) (len (and (list? ls) (length ls))))
-           (if (or (not len) (< len tail-len))
+         (let* ((tail-len (length 'r)) (ls v) (len (and (proper-list? ls) (length ls))))
+           (if (or (not len) (< len (+ tail-len min-len)))
              fk
              (let loop
                ((ls ls) (n len) (id-ls '()) ...)
@@ -761,7 +802,13 @@
 ;; element for every possible break for the leading "a ...".
 
 (define-syntax match-verify-no-ellipsis
-  (syntax-rules ()
+  (syntax-rules (___ ..1)
+    ((_ (___ . y) sk)
+     (match-syntax-error "multiple ellipsis patterns not allowed at same level")
+    ) ;
+    ((_ (..1 . y) sk)
+     (match-syntax-error "multiple ellipsis patterns not allowed at same level")
+    ) ;
     ((_ (x . y) sk)
      (match-check-ellipsis x
        (match-syntax-error "multiple ellipsis patterns not allowed at same level")
@@ -844,14 +891,15 @@
 ;; matched.
 
 (define-syntax match-vector
-  (syntax-rules (___)
+  (syntax-rules (___ ..1)
+    ((_ v n pats (p ___) sk fk i) (match-gen-vector-ellipsis 0 v n pats p sk fk i))
+    ((_ v n pats (p ..1) sk fk i) (match-gen-vector-ellipsis 1 v n pats p sk fk i))
     ((_ v n pats (p q) . x)
      (match-check-ellipsis q
-      (match-gen-vector-ellipsis v n pats p . x)
+      (match-gen-vector-ellipsis 0 v n pats p . x)
       (match-vector-two v n pats (p q) . x)
      ) ;match-check-ellipsis
     ) ;
-    ((_ v n pats (p ___) sk fk i) (match-gen-vector-ellipsis v n pats p sk fk i))
     ((_ . x) (match-vector-two . x))
   ) ;syntax-rules
 ) ;define-syntax
@@ -894,16 +942,19 @@
 
 (define-syntax match-gen-vector-ellipsis
   (syntax-rules ()
-    ((_ v n ((pat index) ...) p sk fk i)
+    ((_ min-len v n ((pat index) ...) p sk fk i)
      (if (vector? v)
        (let ((len (vector-length v)))
-         (if (>= len n)
+         (if (>= len (+ n min-len))
            (match-vector-step v ((pat index) ...) (match-vector-tail v p n len sk fk) fk i)
            fk
          ) ;if
        ) ;let
        fk
      ) ;if
+    ) ;
+    ((_ v n ((pat index) ...) p sk fk i)
+     (match-gen-vector-ellipsis 0 v n ((pat index) ...) p sk fk i)
     ) ;
   ) ;syntax-rules
 ) ;define-syntax
@@ -982,6 +1033,12 @@
     ((match-extract-vars (and . p) . x) (match-extract-vars p . x))
     ((match-extract-vars (or . p) . x) (match-extract-vars p . x))
     ((match-extract-vars (not . p) . x) (match-extract-vars p . x))
+    ((match-extract-vars (p ___ . r) k i v)
+     (match-extract-vars (p . r) k i v)
+    ) ;
+    ((match-extract-vars (p ..1 . r) k i v)
+     (match-extract-vars (p . r) k i v)
+    ) ;
     ;; A non-keyword pair, expand the CAR with a continuation to
     ;; expand the CDR.
     ((match-extract-vars (p q . r) k i v)
