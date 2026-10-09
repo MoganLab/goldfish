@@ -8753,7 +8753,8 @@ s7_pointer s7_gensym(s7_scheme *sc, const char *prefix)
     s7_int slen = catstrs(name, len, "{", (prefix) ? prefix : "", "}-", pos_int_to_str_direct(sc, sc->gensym_counter++), (char *)NULL);
     s7_uint hash = raw_string_hash((const uint8_t *)name, slen);
     int32_t location = hash % SYMBOL_TABLE_SIZE;
-    s7_pointer x = new_symbol(sc, name, slen, hash, location);  /* not T_GENSYM -- might be called from outside so should not be GC'd(?) */
+    s7_pointer x = new_symbol(sc, name, slen, hash, location);  /* unheaped, safe against GC */
+    set_type_bit(x, T_GENSYM);
     liberate(sc, b);
     return(x);
   }
