@@ -669,9 +669,6 @@
 
 (define-syntax match-gen-ellipsis
   (syntax-rules ()
-    ((_ v p r g+s sk fk i ids)
-     (match-gen-ellipsis 0 v p r g+s sk fk i ids)
-    ) ;
     ((_ 0 v p () g+s (sk ...) fk i ((id id-ls) ...))
      (match-check-identifier p
        ;; simplest case equivalent to (p ...), just bind the list
@@ -699,38 +696,12 @@
        ) ;let
      ) ;match-check-identifier
     ) ;
-    ((_ 1 v p () g+s (sk ...) fk i ((id id-ls) ...))
-     (match-check-identifier p
-       ;; simplest case equivalent to (p ..1), bind the non-empty list
-       (let ((w v))
-         (if (and (pair? w) (proper-list? w))
-           (match-one w p g+s (sk ...) fk i)
-           fk
-         ) ;if
-       ) ;let
-       ;; simple case, match all elements of the non-empty list
-       (if (and (pair? v) (proper-list? v))
-         (let loop
-           ((ls v) (id-ls '()) ...)
-           (cond
-            ((null? ls) (let ((id (reverse id-ls)) ...) (sk ... i)))
-            ((pair? ls)
-             (let ((w (car ls)))
-               (match-one w
-                 p
-                 ((car ls) (set-car! ls))
-                 (match-drop-ids (loop (cdr ls) (cons id id-ls) ...))
-                 fk
-                 i
-               ) ;match-one
-             ) ;let
-            ) ;
-            (else fk)
-           ) ;cond
-         ) ;let
-         fk
-       ) ;if
-     ) ;match-check-identifier
+    ;; same as min-len 0, but requires a non-empty list
+    ((_ 1 v p () g+s sk fk i ids)
+     (if (pair? v)
+       (match-gen-ellipsis 0 v p () g+s sk fk i ids)
+       fk
+     ) ;if
     ) ;
     ((_ min-len v p r g+s sk fk (i ...) ((id id-ls) ...))
      (match-verify-no-ellipsis r
@@ -741,9 +712,9 @@
          (let loop
            ((ls v) (expect p))
            (cond ((null? expect)
-                  (if (= min-len 0)
+                  (if (and (= min-len 1) (null? p))
+                    fk
                     (match-one ls r (#f #f) sk fk (i ...))
-                    (if (null? p) fk (match-one ls r (#f #f) sk fk (i ...)))
                   ) ;if
                  ) ;
                  ((pair? ls)
@@ -952,9 +923,6 @@
        ) ;let
        fk
      ) ;if
-    ) ;
-    ((_ v n ((pat index) ...) p sk fk i)
-     (match-gen-vector-ellipsis 0 v n ((pat index) ...) p sk fk i)
     ) ;
   ) ;syntax-rules
 ) ;define-syntax
