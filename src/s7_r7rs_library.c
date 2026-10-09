@@ -329,8 +329,11 @@ r7rs_include_files (s7_scheme* sc, s7_pointer files, s7_pointer lib_env) {
     s7_gc_protect_via_stack (sc, port);
     s7_pointer eof= s7_eof_object (sc);
     s7_pointer form;
-    while ((form= s7_read (sc, port)) != eof)
+    while ((form= s7_read (sc, port)) != eof) {
+      int form_loc= s7_gc_protect (sc, form);
       s7_eval (sc, form, lib_env);
+      s7_gc_unprotect_at (sc, form_loc);
+    }
     s7_gc_unprotect_via_stack (sc, port);
     free (text);
   }

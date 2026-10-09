@@ -7954,6 +7954,7 @@ static void remove_gensym_from_heap_1(s7_scheme *sc, s7_pointer x, const char *f
 static void remove_gensym_from_heap(s7_scheme *sc, s7_pointer x) /* x known to be a symbol and in the heap */
 #endif
 {
+  if (!in_heap(x)) return;
   const s7_int loc = heap_location(sc, x);
   sc->heap[loc] = (s7_pointer)alloc_big_pointer(sc, loc);
   (*(sc->free_heap_top++)) = sc->heap[loc];
@@ -9649,7 +9650,7 @@ s7_pointer s7_make_slot(s7_scheme *sc, s7_pointer let, s7_pointer symbol, s7_poi
 	  set_local_slot(symbol, slot);
 	}
       symbol_increment_ctr(symbol);
-      if (is_gensym(symbol))
+      if (is_gensym(symbol) && in_heap(symbol))
 	remove_gensym_from_heap(sc, symbol);
       return(slot);
     }

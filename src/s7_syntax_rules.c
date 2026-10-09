@@ -180,11 +180,13 @@ strip_synclos (s7_scheme* sc, s7_pointer x) {
   x= synclo_expr (sc, x);
   if (s7_is_pair (x)) {
     s7_pointer kar= strip_synclos (sc, s7_car (x));
+    s7_gc_protect_via_stack (sc, kar);
     s7_pointer kdr= strip_synclos (sc, s7_cdr (x));
-    if (kar == s7_car (x) && kdr == s7_cdr (x)) {
-      return x;
-    }
-    return s7_cons (sc, kar, kdr);
+    s7_gc_protect_via_stack (sc, kdr);
+    s7_pointer res= (kar == s7_car (x) && kdr == s7_cdr (x)) ? x : s7_cons (sc, kar, kdr);
+    s7_gc_unprotect_via_stack (sc, kdr);
+    s7_gc_unprotect_via_stack (sc, kar);
+    return res;
   }
   if (s7_is_byte_vector (x) || s7_is_int_vector (x) || s7_is_float_vector (x) || s7_is_complex_vector (x)) {
     return x;
@@ -192,9 +194,11 @@ strip_synclos (s7_scheme* sc, s7_pointer x) {
   if (s7_is_vector (x)) {
     s7_int     len= s7_vector_length (x);
     s7_pointer v  = s7_make_vector (sc, len);
+    s7_gc_protect_via_stack (sc, v);
     for (s7_int i= 0; i < len; i++) {
       s7_vector_set (sc, v, i, strip_synclos (sc, s7_vector_ref (sc, x, i)));
     }
+    s7_gc_unprotect_via_stack (sc, v);
     return v;
   }
   return x;
@@ -324,18 +328,22 @@ resolve_ast (s7_scheme* sc, s7_pointer x, s7_pointer def_env, synclo_rename_entr
     s7_pointer cdr_x= s7_cdr (x);
     if (is_quote_form (sc, kar) && s7_is_pair (cdr_x) && s7_is_null (sc, s7_cdr (cdr_x))) {
       s7_pointer resolved_kar= resolve_ast (sc, kar, def_env, memo_head);
+      s7_gc_protect_via_stack (sc, resolved_kar);
       s7_pointer stripped_kdr= strip_synclos (sc, cdr_x);
-      if (resolved_kar == kar && stripped_kdr == cdr_x) {
-        return x;
-      }
-      return s7_cons (sc, resolved_kar, stripped_kdr);
+      s7_gc_protect_via_stack (sc, stripped_kdr);
+      s7_pointer res= (resolved_kar == kar && stripped_kdr == cdr_x) ? x : s7_cons (sc, resolved_kar, stripped_kdr);
+      s7_gc_unprotect_via_stack (sc, stripped_kdr);
+      s7_gc_unprotect_via_stack (sc, resolved_kar);
+      return res;
     }
     s7_pointer res_kar= resolve_ast (sc, kar, def_env, memo_head);
+    s7_gc_protect_via_stack (sc, res_kar);
     s7_pointer res_kdr= resolve_ast (sc, cdr_x, def_env, memo_head);
-    if (res_kar == kar && res_kdr == cdr_x) {
-      return x;
-    }
-    return s7_cons (sc, res_kar, res_kdr);
+    s7_gc_protect_via_stack (sc, res_kdr);
+    s7_pointer res= (res_kar == kar && res_kdr == cdr_x) ? x : s7_cons (sc, res_kar, res_kdr);
+    s7_gc_unprotect_via_stack (sc, res_kdr);
+    s7_gc_unprotect_via_stack (sc, res_kar);
+    return res;
   }
   if (s7_is_byte_vector (x) || s7_is_int_vector (x) || s7_is_float_vector (x) || s7_is_complex_vector (x)) {
     return x;
@@ -343,9 +351,11 @@ resolve_ast (s7_scheme* sc, s7_pointer x, s7_pointer def_env, synclo_rename_entr
   if (s7_is_vector (x)) {
     s7_int     len= s7_vector_length (x);
     s7_pointer v  = s7_make_vector (sc, len);
+    s7_gc_protect_via_stack (sc, v);
     for (s7_int i= 0; i < len; i++) {
       s7_vector_set (sc, v, i, resolve_ast (sc, s7_vector_ref (sc, x, i), def_env, memo_head));
     }
+    s7_gc_unprotect_via_stack (sc, v);
     return v;
   }
   return x;
