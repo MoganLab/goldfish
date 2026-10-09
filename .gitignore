@@ -16,6 +16,7 @@ bin/gf.exe
 bin/gf.*
 bin/http
 bin/http.exe
+bin/*.pdb
 repl/goldfish_repl_wasm.data
 repl/goldfish_repl_wasm.js
 repl/goldfish_repl_wasm.wasm
