@@ -381,7 +381,7 @@
     ((match-two v 'p g+s (sk ...) fk i) (if (equal? v 'p) (sk ... i) fk))
     ((match-two v (quasiquote p) . x) (match-quasiquote v p . x))
     ((match-two v (#_apply-values p) g+s sk fk i)
-     (if (list? v) (match-one v p g+s sk fk i) fk))
+     (match-apply-values v p g+s sk fk i))
     ((match-two v (#_list-values . p) g+s sk fk i)
      (match-list-values v p g+s sk fk i))
     ((match-two v (#_<list*> head tail) g+s sk fk i)
@@ -476,41 +476,44 @@
 
 ;; S7 list-values and list* patterns for quasiquote
 
+(define-syntax match-apply-values
+  (syntax-rules ()
+    ((_ v p g+s sk fk i)
+     (if (list? v)
+       (match-one v p g+s sk fk i)
+       fk
+     ) ;if
+    ) ;
+  ))
+
 (define-syntax match-list-values
   (syntax-rules ()
     ((_ v () g+s (sk ...) fk i)
      (if (null? v) (sk ... i) fk))
     ((_ v ((#_apply-values p)) g+s sk fk i)
-     (if (list? v)
-       (match-one v p g+s sk fk i)
-       fk))
+     (match-apply-values v p g+s sk fk i))
     ((_ v ((#_apply-values p) . rest) g+s sk fk i)
-     (if (list? v)
-       (let ((rlen (length 'rest)))
-         (if (>= (length v) rlen)
-           (let loop ((cur v) (n (- (length v) rlen)) (acc '()))
-             (if (<= n 0)
-               (match-one (reverse acc) p g+s
-                 (match-list-values-step cur rest g+s sk fk)
-                 fk
-                 i)
-               (loop (cdr cur) (- n 1) (cons (car cur) acc))))
-           fk))
-       fk))
+     (let ((rlen (length 'rest)))
+       (if (list? v)
+         (let ((vlen (length v)))
+           (if (>= vlen rlen)
+             (let loop ((cur v) (n (- vlen rlen)) (acc '()))
+               (if (<= n 0)
+                 (match-one (reverse acc) p g+s
+                   (match-list-values cur rest g+s sk fk)
+                   fk
+                   i)
+                 (loop (cdr cur) (- n 1) (cons (car cur) acc))))
+             fk))
+         fk)))
     ((_ v (p . rest) g+s sk fk i)
      (if (pair? v)
        (let ((w (car v)) (x (cdr v)))
          (match-one w p ((car v) (set-car! v))
-           (match-list-values-step x rest g+s sk fk)
+           (match-list-values x rest g+s sk fk)
            fk
            i))
        fk))
-  ))
-
-(define-syntax match-list-values-step
-  (syntax-rules ()
-    ((match-list-values-step x rest g+s sk fk i)
-     (match-list-values x rest g+s sk fk i))
   ))
 
 (define-syntax match-list-star
@@ -527,24 +530,16 @@
      (if (pair? v)
        (let ((w (car v)) (x (cdr v)))
          (match-one w p1 ((car v) (set-car! v))
-           (match-list-star-step x (#_list-values p2 . prest) tail g+s sk fk)
+           (match-list-star x (#_list-values p2 . prest) tail g+s sk fk)
            fk
            i))
        fk))
   ))
 
-(define-syntax match-list-star-step
-  (syntax-rules ()
-    ((_ x head tail g+s sk fk i)
-     (match-list-star x head tail g+s sk fk i))
-  ))
-
 (define-syntax match-list-star-tail-step
   (syntax-rules ()
     ((_ v x (#_apply-values t) g+s sk fk i)
-     (if (list? x)
-       (match-one x t g+s sk fk i)
-       fk))
+     (match-apply-values x t g+s sk fk i))
     ((_ v x tail g+s sk fk i)
      (match-one x tail ((cdr v) (set-cdr! v)) sk fk i))
   ))
@@ -555,10 +550,7 @@
   (syntax-rules (unquote unquote-splicing quasiquote)
     ((_ v (unquote p) g+s sk fk i) (match-one v p g+s sk fk i))
     ((_ v ((unquote-splicing p)) g+s sk fk i)
-     (if (list? v)
-       (match-one v p g+s sk fk i)
-       fk
-     ) ;if
+     (match-apply-values v p g+s sk fk i)
     ) ;
     ((_ v ((unquote-splicing p) . rest) g+s sk fk i)
      (if (pair? v)
