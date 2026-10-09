@@ -333,4 +333,77 @@
 ;; 匹配失败抛出 match-error
 (check-catch 'match-error (match '(1 2) ('(1 3) 'ok)))
 
+;; 15. ..1 模式匹配 (至少匹配一次省略号)
+;; 15.1 单一元素与多元素匹配
+(check (match '(1) ((a ..1) a)) => '(1))
+(check (match (list 1 2 3) ((a ..1) a) (_ 'no)) => '(1 2 3))
+
+;; 15.2 空列表与非列表匹配失败
+(check (match '() ((a ..1) a) (_ 'ok)) => 'ok)
+(check (match 42 ((a ..1) a) (_ 'ok)) => 'ok)
+(check (match '(1 . 2) ((a ..1) a) (_ 'improper)) => 'improper)
+(check (match '(1 2 . 3) ((a ..1) a) (_ 'improper)) => 'improper)
+(check-catch 'match-error (match '() ((a ..1) a)))
+
+;; 15.3 带后续尾部模式 (trailing patterns)
+(check (match '(1 2 3 4) ((a ..1 b) (list a b))) => '((1 2 3) 4))
+(check (match '(1 2) ((a ..1 b) (list a b))) => '((1) 2))
+(check (match '(1) ((a ..1 b) (list a b)) (_ 'fail)) => 'fail)
+(check (match '(1 2 3 4) ((a ..1 b c) (list a b c))) => '((1 2) 3 4))
+(check (match '(1 2) ((a ..1 b c) (list a b c)) (_ 'fail)) => 'fail)
+(check (match '(1 2 . 3) ((a ..1 b) (list a b)) (_ 'improper)) => 'improper)
+(check (match '(1 2 3 4 5) ((a b ..1 c d) (list a b c d))) => '(1 (2 3) 4 5))
+(check (match '(1) ((a b ..1) (list a b)) (_ 'fail)) => 'fail)
+(check (match '(1 2) ((a b ..1) (list a b))) => '(1 (2)))
+(check (match '(1 2 3) ((a b ..1) (list a b))) => '(1 (2 3)))
+
+;; 15.4 嵌套模式与谓词解构
+(check
+  (match '((1 2) (3 4)) (((x y) ..1) (list x y)))
+  =>
+  '((1 3) (2 4))
+) ;check
+(check
+  (match '((1 2)) (((x y) ..1) (list x y)))
+  =>
+  '((1) (2))
+) ;check
+(check
+  (match '() (((x y) ..1) (list x y)) (_ 'empty))
+  =>
+  'empty
+) ;check
+(check
+  (match '(1 2 3) (((? number? n) ..1) n))
+  =>
+  '(1 2 3)
+) ;check
+(check
+  (match '(1 "two" 3) (((? number? n) ..1) n) (_ 'fail))
+  =>
+  'fail
+) ;check
+
+;; 15.5 向量模式中的 ..1
+(check (match '#(1 2 3) (#(a ..1) a)) => '(1 2 3))
+(check (match '#(1) (#(a ..1) a)) => '(1))
+(check (match '#() (#(a ..1) a) (_ 'empty)) => 'empty)
+
+;; 15.6 字面量常量与 ..1 重复匹配
+(check (match '(1 1 1) ((1 ..1) 'ok)) => 'ok)
+(check (match '(1 2 1) ((1 ..1) 'ok) (_ 'no)) => 'no)
+(check (match '() ((1 ..1) 'ok) (_ 'no)) => 'no)
+
+;; 15.7 衍生宏 match-let / match-lambda
+(check
+ ((match-lambda ((a ..1) a)) '(1 2 3))
+ =>
+ '(1 2 3)
+) ;check
+(check
+  (match-let (((a ..1) '(1 2))) a)
+  =>
+  '(1 2)
+) ;check
+
 (check-report)
