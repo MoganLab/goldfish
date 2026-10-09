@@ -130,4 +130,41 @@
 ;; 11. 匹配失败抛出 match-error
 (check-catch 'match-error (match 1 (2 'ok)))
 
+;; 12. 关键字字面量模式匹配 ('let, 'and, 'or, 'not, 'begin, 'lambda, 'if 等)
+(check (match '(let 1) (('let x) x)) => 1)
+(check (match (list 'let 1) (('let x) x)) => 1)
+(check (match '(and 1) (('and x) x)) => 1)
+(check (match (list 'and 1) (('and x) x)) => 1)
+(check (match '(or 1 2) (('or x y) (+ x y))) => 3)
+(check (match '(not #t) (('not x) x)) => #t)
+(check (match '(begin 42) (('begin x) x)) => 42)
+(check
+  (match '(lambda (x) x) (('lambda (x) body) (list x body)))
+  =>
+  '(x x)
+) ;check
+(check (match '(if #t 1 2) (('if c t e) (list c t e))) => '(#t 1 2))
+(check
+  (match '(let ((x 1)) x) (('let bindings body) (list bindings body)))
+  =>
+  '(((x 1)) x)
+) ;check
+
+;; 关键字字面量配合省略号模式
+(check
+  (match '((let 1) (let 2)) ((('let x) ...) x))
+  =>
+  '(1 2)
+) ;check
+(check
+  (match '((and 1) (and 2)) ((('and x) ...) x))
+  =>
+  '(1 2)
+) ;check
+(check (match '(let 1 2 3) (('let x ...) x)) => '(1 2 3))
+
+;; 关键字字面量不匹配时能正确 fallback
+(check (match '(other 1) (('let x) 'let) (('other x) 'other)) => 'other)
+(check (match '(other 1) (('and x) 'and) (('other x) 'other)) => 'other)
+
 (check-report)

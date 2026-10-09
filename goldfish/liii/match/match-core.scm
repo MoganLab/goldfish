@@ -378,6 +378,7 @@
 (define-syntax match-two
   (syntax-rules (_ ___ ..1 *** quote quasiquote ? $ = and or not set! get!)
     ((match-two v () g+s (sk ...) fk i) (if (null? v) (sk ... i) fk))
+    ((match-two v (quote p) g+s (sk ...) fk i) (if (equal? v 'p) (sk ... i) fk))
     ((match-two v 'p g+s (sk ...) fk i) (if (equal? v 'p) (sk ... i) fk))
     ((match-two v `p . x) (match-quasiquote v p . x))
     ((match-two v (and) g+s (sk ...) fk i) (sk ... i))
@@ -895,6 +896,7 @@
     ((match-extract-vars (? pred . p) . x) (match-extract-vars p . x))
     ((match-extract-vars ($ rec . p) . x) (match-extract-vars p . x))
     ((match-extract-vars (= proc p) . x) (match-extract-vars p . x))
+    ((match-extract-vars (quote x) (k ...) i v) (k ... v))
     ((match-extract-vars 'x (k ...) i v) (k ... v))
     ((match-extract-vars `x k i v) (match-extract-quasiquote-vars x k i v (#t)))
     ((match-extract-vars (and . p) . x) (match-extract-vars p . x))
@@ -1089,27 +1091,9 @@
 ;; but should work portably in any R[56]RS Scheme.  Taylor Campbell
 ;; originally came up with the idea.
 (define-syntax match-check-ellipsis
-  (syntax-rules ()
-    ;; these two aren't necessary but provide fast-case failures
-    ((match-check-ellipsis (a . b) success-k failure-k) failure-k)
-    ((match-check-ellipsis #(a ...) success-k failure-k) failure-k)
-    ;; matching an atom
-    ((match-check-ellipsis id success-k failure-k)
-     (let-syntax
-       ((ellipsis?
-          (syntax-rules ()
-            ;; iff `id' is `...' here then this will
-            ;; match a list of any length
-            ((ellipsis? (foo id) sk fk) sk)
-            ((ellipsis? other sk fk) fk)
-          ) ;syntax-rules
-        ) ;ellipsis?
-       ) ;
-       ;; this list of three elements will only match the (foo id) list
-       ;; above if `id' is `...'
-       (ellipsis? (a b c) success-k failure-k)
-     ) ;let-syntax
-    ) ;
+  (syntax-rules ::: (...)
+    ((match-check-ellipsis ... success-k failure-k) success-k)
+    ((match-check-ellipsis x success-k failure-k) failure-k)
   ) ;syntax-rules
 ) ;define-syntax
 
