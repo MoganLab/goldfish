@@ -130,4 +130,17 @@
 ;; 11. 匹配失败抛出 match-error
 (check-catch 'match-error (match 1 (2 'ok)))
 
+;; 12. 模式包含 quote / 'quote 字面量匹配 (Issue #1085)
+(check (match '(+ 1 2) (('quote x) x) (_ 'ok)) => 'ok)
+
+(check (match '(quote 1) (('quote x) x)) => 1)
+
+(check
+  (match '(quote (1 2)) (('quote (a b)) (+ a b)))
+  =>
+  3
+) ;check
+
+(check (match "(+ 1 2)" (("quote" x) x) (_ "ok")) => "ok")
+
 (check-report)

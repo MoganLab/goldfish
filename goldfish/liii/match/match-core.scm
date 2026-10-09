@@ -1079,37 +1079,14 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Otherwise COND-EXPANDed bits.
 
-;; This *should* work, but doesn't :(
-;;   (define-syntax match-check-ellipsis
-;;     (syntax-rules (...)
-;;       ((_ ... sk fk) sk)
-;;       ((_ x sk fk) fk)))
-
-;; This is a little more complicated, and introduces a new let-syntax,
-;; but should work portably in any R[56]RS Scheme.  Taylor Campbell
-;; originally came up with the idea.
+;; Match `...` as a literal (s7 supports `...` in the literals list);
+;; all other inputs fail.
 (define-syntax match-check-ellipsis
-  (syntax-rules ()
-    ;; these two aren't necessary but provide fast-case failures
+  (syntax-rules (...)
+    ((match-check-ellipsis ... success-k failure-k) success-k)
     ((match-check-ellipsis (a . b) success-k failure-k) failure-k)
     ((match-check-ellipsis #(a ...) success-k failure-k) failure-k)
-    ;; matching an atom
-    ((match-check-ellipsis id success-k failure-k)
-     (let-syntax
-       ((ellipsis?
-          (syntax-rules ()
-            ;; iff `id' is `...' here then this will
-            ;; match a list of any length
-            ((ellipsis? (foo id) sk fk) sk)
-            ((ellipsis? other sk fk) fk)
-          ) ;syntax-rules
-        ) ;ellipsis?
-       ) ;
-       ;; this list of three elements will only match the (foo id) list
-       ;; above if `id' is `...'
-       (ellipsis? (a b c) success-k failure-k)
-     ) ;let-syntax
-    ) ;
+    ((match-check-ellipsis other success-k failure-k) failure-k)
   ) ;syntax-rules
 ) ;define-syntax
 
