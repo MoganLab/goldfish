@@ -29,6 +29,12 @@
 ;; 2. 传递给 proc 的是 cursor 而非字符本身
 ;; 3. 需要使用 string-ref/cursor 等函数从 cursor 获取字符
 ;; 4. 性能：O(n)，n 为字符串字符数
+;; 5. 支持 Unicode 字符（包括多字节字符如中文、Emoji）的正确遍历
+;;
+;; 相关实现
+;; --------
+;; (liii string-cursor) 独有函数，无 (liii string) 直接对应版本
+;; 参见: gf doc liii/string-cursor "string-for-each-cursor"
 
 ;; 基本测试 - 收集所有 cursor 并通过 string-ref/cursor 读取字符
 (let ((result '()))

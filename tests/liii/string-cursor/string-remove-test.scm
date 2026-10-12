@@ -34,6 +34,12 @@
 ;; 1. string-remove 是 string-filter 的补集
 ;; 2. 与 (liii string) 的区别：(liii string-cursor) 按字符移除，支持 Unicode
 ;; 3. 性能：O(n)，只需遍历一次字符串
+;; 4. 支持 Unicode 字符（包括多字节字符如中文、Emoji）的正确移除
+;;
+;; 相关实现
+;; --------
+;; (liii string) 库中也提供了 string-remove 函数
+;; 参见: gf doc liii/string "string-remove"
 
 (check (string-remove char-alphabetic? "abc123") => "123")
 (check (string-remove char-numeric? "abc123") => "abc")
