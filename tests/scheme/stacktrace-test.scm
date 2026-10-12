@@ -195,6 +195,33 @@
       (lambda () (path-unlink output-path #t))
     ) ;dynamic-wind
   ) ;let*
+
+  ;; 6. 验证超长表达式截断 (object_to_string_truncated) 产物不包含 NUL 字节截断
+  (let ((captured-info #f))
+    (catch 'syntax-error
+      (lambda ()
+        (eval '(let* ((a 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20)) 1))
+        #f
+      ) ;lambda
+      (lambda (tag info) (set! captured-info info))
+    ) ;catch
+    (check-true (pair? captured-info))
+    (let* ((err-msg (apply format #f (car captured-info) (cdr captured-info)))
+           (chars (string->list err-msg))
+           (has-null?
+             (let loop
+               ((lst chars))
+               (cond ((null? lst) #f)
+                     ((= (char->integer (car lst)) 0) #t)
+                     (else (loop (cdr lst)))
+               ) ;cond
+             ) ;let
+           ) ;has-null?
+          ) ;
+      (check-false has-null?)
+      (check-true (string-contains? err-msg "..."))
+    ) ;let*
+  ) ;let
 ) ;when
 
 (check-report)
