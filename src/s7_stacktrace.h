@@ -31,8 +31,8 @@ line to be preceded by a semicolon."
 
 s7_pointer g_stacktrace(s7_scheme *sc, s7_pointer args);
 s7_pointer sl_set_stacktrace_defaults(s7_scheme *sc, s7_pointer sym, s7_pointer val);
-s7_pointer s7_stacktrace(s7_scheme *sc);
-bool find_location_in_tree(s7_scheme *sc, s7_pointer tree, s7_int *ret_line, s7_int *ret_file, s7_int *ret_pos);
+/* s7_stacktrace is declared in s7.h */
+bool s7i_find_error_location(s7_scheme *sc, s7_pointer cur_code, s7_int *ret_line, s7_int *ret_file, s7_int *ret_pos);
 
 #ifdef __cplusplus
 }

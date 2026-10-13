@@ -21,20 +21,16 @@
 #define block_to_string(sc, b, len)             s7i_inline_block_to_string(sc, b, len)
 #define nil_string                              s7i_nil_string()
 #define local_strcmp(S1, S2)                    (strcmp(S1, S2) == 0)
-#define s7_integer_clamped_if_gmp(Sc, P)        integer(P)
+#define s7_integer_clamped_if_gmp(Sc, P)        s7i_integer_clamped_if_gmp(Sc, P)
 #define mallocate(sc, size)                     s7i_mallocate(sc, size)
 #define liberate(sc, b)                         s7i_liberate(sc, b)
 #define wrap_integer(sc, n)                     s7i_wrap_integer(sc, n)
 #define copy_proper_list(sc, lst)               s7i_copy_proper_list(sc, lst)
 #define is_procedure(p)                         s7_is_procedure(p)
 
-static bool direct_memq(const s7_pointer symbol, s7_pointer symbols)
-{
-  for (s7_pointer syms = symbols; is_pair(syms); syms = cdr(syms))
-    if (car(syms) == symbol)
-      return true;
-  return false;
-}
+/* shared range limits for g_stacktrace and sl_set_stacktrace_defaults */
+#define ST_CODE_COLS_MIN 8
+#define ST_CODE_COLS_MAX 1024
 
 /* ---------------- stacktrace ---------------- */
 static s7_pointer stacktrace_find_caller(s7_scheme *sc, s7_pointer let)
@@ -176,7 +172,7 @@ static char *stacktrace_walker(s7_scheme *sc, s7_pointer code, s7_pointer let, c
   return(notes);
 }
 
-bool find_location_in_tree(s7_scheme *sc, s7_pointer tree, s7_int *ret_line, s7_int *ret_file, s7_int *ret_pos)
+static bool find_location_in_tree(s7_pointer tree, s7_int *ret_line, s7_int *ret_file, s7_int *ret_pos)
 {
   if (!is_pair(tree)) return false;
   if (has_location(tree))
@@ -188,10 +184,39 @@ bool find_location_in_tree(s7_scheme *sc, s7_pointer tree, s7_int *ret_line, s7_
     }
   for (s7_pointer p = tree; is_pair(p); p = cdr(p))
     {
-      if (find_location_in_tree(sc, car(p), ret_line, ret_file, ret_pos))
+      if (find_location_in_tree(car(p), ret_line, ret_file, ret_pos))
 	return true;
     }
   return false;
+}
+
+bool s7i_find_error_location(s7_scheme *sc, s7_pointer cur_code, s7_int *ret_line, s7_int *ret_file, s7_int *ret_pos)
+{
+  *ret_line = -1;
+  *ret_file = -1;
+  *ret_pos = 0;
+  if ((!is_pair(cur_code)) ||
+      (!find_location_in_tree(cur_code, ret_line, ret_file, ret_pos)))
+    {
+      const s7_int top = (sc->stack_end - sc->stack_start) / 4;
+      for (s7_int loc = top - 1; loc > 0; loc--)
+	{
+	  const s7_int true_loc = (loc + 1) * 4 - 1;
+	  if (find_location_in_tree(stack_code(sc->stack, true_loc), ret_line, ret_file, ret_pos))
+	    break;
+	}
+    }
+  return((*ret_line > 0) && (*ret_file >= 0) && (*ret_file <= (s7_int)sc->file_names_top) && (is_string(sc->file_names[*ret_file])));
+}
+
+static void location_from_let(s7_scheme *sc, s7_pointer let, const char **ret_file, s7_int *ret_line)
+{
+  if ((has_let_file(let)) && (let_file(let) <= (s7_int)sc->file_names_top) && (let_line(let) > 0))
+    {
+      *ret_line = let_line(let);
+      if (is_string(sc->file_names[let_file(let)]))
+	*ret_file = string_value(sc->file_names[let_file(let)]);
+    }
 }
 
 static void get_code_or_let_location(s7_scheme *sc, s7_pointer code, s7_pointer let, const char **ret_file, s7_int *ret_line)
@@ -199,20 +224,13 @@ static void get_code_or_let_location(s7_scheme *sc, s7_pointer code, s7_pointer 
   *ret_file = NULL;
   *ret_line = -1;
 
-  if (is_let(let) && ((is_funclet(let)) || (is_maclet(let))))
-    {
-      if ((has_let_file(let)) && (let_file(let) <= (s7_int)sc->file_names_top) && (let_line(let) > 0))
-	{
-	  *ret_line = let_line(let);
-	  if (is_string(sc->file_names[let_file(let)]))
-	    *ret_file = string_value(sc->file_names[let_file(let)]);
-	}
-    }
+  if ((is_let(let)) && ((is_funclet(let)) || (is_maclet(let))))
+    location_from_let(sc, let, ret_file, ret_line);
 
   if (*ret_line <= 0)
     {
       s7_int line = -1, file = -1, pos = 0;
-      if (find_location_in_tree(sc, code, &line, &file, &pos))
+      if (find_location_in_tree(code, &line, &file, &pos))
 	{
 	  *ret_line = line;
 	  if ((file >= 0) && (file <= (s7_int)sc->file_names_top) && (is_string(sc->file_names[file])))
@@ -221,14 +239,7 @@ static void get_code_or_let_location(s7_scheme *sc, s7_pointer code, s7_pointer 
     }
 
   if ((*ret_line <= 0) && (is_let(let)))
-    {
-      if ((has_let_file(let)) && (let_file(let) <= (s7_int)sc->file_names_top) && (let_line(let) > 0))
-	{
-	  *ret_line = let_line(let);
-	  if (is_string(sc->file_names[let_file(let)]))
-	    *ret_file = string_value(sc->file_names[let_file(let)]);
-	}
-    }
+    location_from_let(sc, let, ret_file, ret_line);
 
   if ((*ret_line <= 0) && (is_string(slot_value(sc->error_file))) && (s7_is_integer(slot_value(sc->error_line))))
     {
@@ -237,16 +248,12 @@ static void get_code_or_let_location(s7_scheme *sc, s7_pointer code, s7_pointer 
     }
 }
 
-static block_t *stacktrace_add_func(s7_scheme *sc, s7_pointer caller, s7_pointer code, s7_pointer let, const char *errstr, char *notes, s7_int code_max, bool as_comment)
+static block_t *stacktrace_add_func(s7_scheme *sc, s7_pointer caller, s7_pointer code, const char *loc_file, s7_int loc_line, const char *errstr, char *notes, s7_int code_max, bool as_comment)
 {
   s7_int newlen, errlen = strlen(errstr);
   char *newstr;
   block_t *newp;
-  const char *loc_file = NULL;
-  s7_int loc_line = -1;
   char loc_buf[256];
-  loc_buf[0] = '\0';
-  get_code_or_let_location(sc, code, let, &loc_file, &loc_line);
   if ((loc_file) && (loc_line > 0))
     snprintf(loc_buf, sizeof(loc_buf), "  %s:%lld: ", loc_file, (long long)loc_line);
   else
@@ -320,10 +327,13 @@ static s7_pointer stacktrace_1(s7_scheme *sc, s7_int frames_max, s7_int code_col
 	  const s7_pointer current_let = let_outlet(sc->owlet);
 	  const s7_pointer errstr = s7_object_to_string(sc, err_code, false);
 	  const s7_pointer caller = stacktrace_find_caller(sc, current_let); /* this is a symbol */
+	  const char *loc_file = NULL;
+	  s7_int loc_line = -1;
 	  if ((is_let(current_let)) &&
 	      (current_let != sc->rootlet))
 	    notes = stacktrace_walker(sc, err_code, current_let, NULL, code_cols, total_cols, notes_start_col, as_comment, 0);
-	  strp = stacktrace_add_func(sc, caller, err_code, current_let, string_value(errstr), notes, code_cols, as_comment);
+	  get_code_or_let_location(sc, err_code, current_let, &loc_file, &loc_line);
+	  strp = stacktrace_add_func(sc, caller, err_code, loc_file, loc_line, string_value(errstr), notes, code_cols, as_comment);
 	  str = (char *)block_data(strp);
 	  if ((S7_DEBUGGING) && (notes == str)) fprintf(stderr, "%s[%d]: notes==str\n", __func__, __LINE__);
 	  if (notes) free(notes); /* copied into strp, 29-Sep-23 -- see below: maybe check that notes!=str? */
@@ -335,54 +345,52 @@ static s7_pointer stacktrace_1(s7_scheme *sc, s7_int frames_max, s7_int code_col
     {
       const s7_int true_loc = (loc + 1) * 4 - 1;
       const s7_pointer code = stack_code(sc->stack, true_loc);
-      if ((is_pair(code)) &&
-	  (!tree_is_cyclic(sc, code)))
+      const s7_pointer let = stack_let(sc->stack, true_loc); /* might not be let (gc stack protection etc) */
+      const s7_pointer func = stacktrace_find_caller(sc, let);
+      const char *loc_file = NULL;
+      s7_int loc_line = -1;
+      s7_pointer codep;
+      const char *codestr;
+      char *notes = NULL, *newstr, *catstr;
+      block_t *newp, *catp;
+      s7_int newlen;
+
+      if ((!is_pair(code)) || (tree_is_cyclic(sc, code))) continue;
+      if (stacktrace_error_hook_function(sc, func)) continue;
+      get_code_or_let_location(sc, code, let, &loc_file, &loc_line);
+      if ((loc_file) && (strstr(loc_file, "gfproject.scm") != NULL)) continue;
+
+      codep = s7_object_to_string(sc, code, false);
+      if (string_length(codep) == 0) continue;
+      codestr = string_value(codep);
+      if ((local_strcmp(codestr, "(result)")) ||
+	  (local_strcmp(codestr, "(#f)")) ||
+	  (strstr(codestr, "(stacktrace)")) ||
+	  (strstr(codestr, "(stacktrace ")))
+	continue;
+
+      frames++;
+      if (frames > frames_max)
 	{
-	  const s7_pointer codep = s7_object_to_string(sc, code, false);
-	  if (string_length(codep) > 0)
-	    {
-	      const char *codestr = string_value(codep);
-	      if ((!local_strcmp(codestr, "(result)")) &&
-		  (!local_strcmp(codestr, "(#f)")) &&
-		  (!strstr(codestr, "(stacktrace)")) &&
-		  (!strstr(codestr, "(stacktrace ")))
-		{
-		  const s7_pointer let = stack_let(sc->stack, true_loc); /* might not be let (gc stack protection etc) */
-		  const s7_pointer func = stacktrace_find_caller(sc, let);
-		  if (!stacktrace_error_hook_function(sc, func))
-		    {
-		      const char *loc_file = NULL;
-		      s7_int loc_line = -1;
-		      get_code_or_let_location(sc, code, let, &loc_file, &loc_line);
-		      if (loc_file && (strstr(loc_file, "gfproject.scm") != NULL))
-			continue;
-
-		      char *notes = NULL, *newstr, *catstr;
-		      block_t *newp, *catp;
-		      s7_int newlen;
-
-		      frames++;
-		      if (frames > frames_max)
-			{
-			  end_small_symbol_set(sc);
-			  return(block_to_string(sc, strp, safe_strlen((char *)block_data(strp))));
-			}
-		      if ((is_let(let)) && (let != sc->rootlet))
-			notes = stacktrace_walker(sc, code, let, NULL, code_cols, total_cols, notes_start_col, as_comment, 0);
-		      newp = stacktrace_add_func(sc, func, code, let, codestr, notes, code_cols, as_comment);
-		      newstr = (char *)block_data(newp);
-		      if ((S7_DEBUGGING) && (notes == newstr)) fprintf(stderr, "%s[%d]: notes=newstr\n", __func__, __LINE__);
-		      if ((notes) && (notes != newstr) && (is_let(let)) && (let != sc->rootlet))
-			free(notes);
-		      newlen = strlen(newstr) + 1 + ((str) ? strlen(str) : 0);
-		      catp = mallocate(sc, newlen);
-		      catstr = (char *)block_data(catp);
-		      catstrs_direct(catstr, (str) ? str : "", newstr, (const char *)NULL);
-		      liberate(sc, newp);
-		      if (strp) liberate(sc, strp);
-		      strp = catp;
-		      str = (char *)block_data(strp);
-		    }}}}}
+	  end_small_symbol_set(sc);
+	  return(block_to_string(sc, strp, safe_strlen((char *)block_data(strp))));
+	}
+      if ((is_let(let)) && (let != sc->rootlet))
+	notes = stacktrace_walker(sc, code, let, NULL, code_cols, total_cols, notes_start_col, as_comment, 0);
+      newp = stacktrace_add_func(sc, func, code, loc_file, loc_line, codestr, notes, code_cols, as_comment);
+      newstr = (char *)block_data(newp);
+      if ((S7_DEBUGGING) && (notes == newstr)) fprintf(stderr, "%s[%d]: notes==newstr\n", __func__, __LINE__);
+      if ((notes) && (notes != newstr) && (is_let(let)) && (let != sc->rootlet))
+	free(notes);
+      newlen = strlen(newstr) + 1 + ((str) ? strlen(str) : 0);
+      catp = mallocate(sc, newlen);
+      catstr = (char *)block_data(catp);
+      catstrs_direct(catstr, (str) ? str : "", newstr, (const char *)NULL);
+      liberate(sc, newp);
+      if (strp) liberate(sc, strp);
+      strp = catp;
+      str = (char *)block_data(strp);
+    }
   end_small_symbol_set(sc);
   return((strp) ? block_to_string(sc, strp, safe_strlen((char *)block_data(strp))) : nil_string);
 }
@@ -418,7 +426,7 @@ s7_pointer g_stacktrace(s7_scheme *sc, s7_pointer args)
 	  if (!s7_is_integer(car(args)))
 	    wrong_type_error_nr(sc, sc->stacktrace_symbol, 2, car(args), sc->type_names[T_INTEGER]);
 	  code_cols = s7_integer_clamped_if_gmp(sc, car(args));
-	  if ((code_cols <= 8) || (code_cols > 1024))
+	  if ((code_cols <= ST_CODE_COLS_MIN) || (code_cols > ST_CODE_COLS_MAX))
 	    code_cols = ST_CODE_COLS;
 	  args = cdr(args);
 	  if (!is_null(args))
@@ -471,13 +479,13 @@ s7_pointer sl_set_stacktrace_defaults(s7_scheme *sc, s7_pointer sym, s7_pointer 
     sl_stacktrace_wrong_type_error_nr(sc, 1, car(val), wrap_string(sc, "an integer (max stack frames)", 29), val);
   {
     s7_int i = s7_integer_clamped_if_gmp(sc, car(val));
-    if ((i <= 0) || (i > S7_INT32_MAX)) /* keep these in sync with g_stacktrace */
+    if ((i <= 0) || (i > S7_INT32_MAX))
       sl_stacktrace_out_of_range_error_nr(sc, sc->car_symbol, val, car(val), wrap_string(sc, "should be 0 < max-frames <= 2^32", 32));
   }
   if (!s7_is_integer(cadr(val)))         /* code_cols, default 45 */
     sl_stacktrace_wrong_type_error_nr(sc, 2, cadr(val), wrap_string(sc, "an integer (code columns)", 25), val);
   code_cols = s7_integer_clamped_if_gmp(sc, cadr(val));
-  if ((code_cols <= 8) || (code_cols > 1024))
+  if ((code_cols <= ST_CODE_COLS_MIN) || (code_cols > ST_CODE_COLS_MAX))
     sl_stacktrace_out_of_range_error_nr(sc, sc->cadr_symbol, val, cadr(val), wrap_string(sc, "should be 8 < code-columns <= 1024", 34));
 
   if (!s7_is_integer(caddr(val)))        /* total_cols, default 80 */

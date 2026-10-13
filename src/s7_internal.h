@@ -2564,8 +2564,6 @@ enum {OP_UNOPT, OP_GC_PROTECT, /* must be an even number of ops here, op_gc_prot
 #define L_FUNC                         (1LL << 41)
 #define T_HAS_FN                       (1 << 13)
 
-#define T_LOCATION                     (1 << (16 + 2))
-#define T_MID_LOCATION                 (1 << 2)
 #define has_location(p)                has_mid_type_bit(T_Pair(p), T_MID_LOCATION)
 #define set_has_location(p)            set_mid_type_bit(T_Pair(p), T_MID_LOCATION)
 
@@ -2614,6 +2612,7 @@ s7_pointer add_slot_checked_with_id(s7_scheme *sc, s7_pointer let, s7_pointer sy
 void add_slot_unchecked(s7_scheme *sc, s7_pointer let, s7_pointer symbol, s7_pointer value, s7_uint id);
 s7_pointer call_setter(s7_scheme *sc, s7_pointer slot, s7_pointer old_value);
 s7_pointer checked_slot_set_value(s7_scheme *sc, s7_pointer slot, s7_pointer value);
+bool direct_memq(const s7_pointer symbol, s7_pointer symbols);
 s7_pointer find_let(s7_scheme *sc, s7_pointer obj);
 no_return void find_let_error_nr(s7_scheme *sc, s7_pointer caller, s7_pointer let, s7_pointer new_let, int32_t arg_num, s7_pointer args);
 no_return void starlet_wrong_type_error_nr(s7_scheme *sc, s7_pointer caller, s7_pointer arg, s7_pointer typ);

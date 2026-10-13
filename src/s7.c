@@ -10052,7 +10052,7 @@ s7_pointer s7_symbol_set_value(s7_scheme *sc, s7_pointer sym, s7_pointer val)
   #define H_symbol_to_dynamic_value "(symbol->dynamic-value sym) returns the dynamic binding of the symbol sym"
   #define Q_symbol_to_dynamic_value s7_make_signature(sc, 2, sc->T, sc->is_symbol_symbol)
 
-static bool direct_memq(const s7_pointer symbol, s7_pointer symbols)
+bool direct_memq(const s7_pointer symbol, s7_pointer symbols) /* also used in s7_stacktrace.c */
 {
   for (s7_pointer syms = symbols; is_pair(syms); syms = cdr(syms))
     if (car(syms) == symbol)
@@ -32819,9 +32819,6 @@ void s7i_capture_let_counter_inc(s7_scheme *sc) {sc->capture_let_counter++;}
 bool s7i_is_defined_in_rootlet(s7_scheme *sc, s7_pointer sym) {return((is_slot(global_slot(sym))) && (global_value(sym) != sc->undefined));}
 
 
-/* stacktrace functions migrated to s7_stacktrace.c */
-
-
 /* -------- s7_history, s7_add_to_history, s7_history_enabled -------- */
 
 s7_pointer s7_add_to_history(s7_scheme *sc, s7_pointer entry)
@@ -33810,51 +33807,16 @@ no_return void error_nr(s7_scheme *sc, s7_pointer type, s7_pointer info)
       for (s7_pointer p = sc->cur_code; i < sc->history_size; i++, p = cdr(p)) car(p) = sc->nil;
     }
 #endif
-  if (is_pair(cur_code)) /* not redundant -- maybe use type_unchecked here */
-    {
-      s7_int line = -1, file = -1, position = 0;
-      if (find_location_in_tree(sc, cur_code, &line, &file, &position))
-	{
-	  /* found in cur_code */
-	}
-      else
-	{
-	  s7_int top = (sc->stack_end - sc->stack_start) / 4;
-	  for (s7_int loc = top - 1; loc > 0; loc--)
-	    {
-	      s7_int true_loc = (loc + 1) * 4 - 1;
-	      s7_pointer stk_code = stack_code(sc->stack, true_loc);
-	      if (find_location_in_tree(sc, stk_code, &line, &file, &position))
-		break;
-	    }
-	}
-      if ((line <= 0) || (file < 0) || (file > (s7_int)sc->file_names_top) || (!is_string(sc->file_names[file])))
-	fill_error_location(sc);
-      else
-	{
-	  set_integer(slot_value(sc->error_line), line);
-	  set_integer(slot_value(sc->error_position), position);
-	  slot_set_value(sc->error_file, sc->file_names[file]);
-	}}
-  else
-    {
-      s7_int line = -1, file = -1, position = 0;
-      s7_int top = (sc->stack_end - sc->stack_start) / 4;
-      for (s7_int loc = top - 1; loc > 0; loc--)
-	{
-	  s7_int true_loc = (loc + 1) * 4 - 1;
-	  s7_pointer stk_code = stack_code(sc->stack, true_loc);
-	  if (find_location_in_tree(sc, stk_code, &line, &file, &position))
-	    break;
-	}
-      if ((line > 0) && (file >= 0) && (file <= (s7_int)sc->file_names_top) && (is_string(sc->file_names[file])))
-	{
-	  set_integer(slot_value(sc->error_line), line);
-	  set_integer(slot_value(sc->error_position), position);
-	  slot_set_value(sc->error_file, sc->file_names[file]);
-	}
-      else fill_error_location(sc);
-    }
+  {
+    s7_int line, file, position;
+    if (s7i_find_error_location(sc, cur_code, &line, &file, &position))
+      {
+	set_integer(slot_value(sc->error_line), line);
+	set_integer(slot_value(sc->error_position), position);
+	slot_set_value(sc->error_file, sc->file_names[file]);
+      }
+    else fill_error_location(sc);
+  }
 
   /* look for a catcher, call catch*function in the error context (before unwinding the stack), outlet(owlet) is curlet */
   /* top is 1 past actual top, top - 1 is op, if op = OP_CATCH, top - 4 is the cell containing the catch struct */
@@ -77139,9 +77101,6 @@ static s7_pointer sl_set_history_size(s7_scheme *sc, s7_pointer sym, s7_pointer 
   return(val);
 }
 
-
-/* sl_stacktrace_wrong_type_error_nr, sl_stacktrace_out_of_range_error_nr,
- * sl_set_stacktrace_defaults migrated to s7_stacktrace.c */
 
 static s7_pointer sl_set_gc_stats(s7_scheme *sc, s7_pointer sym, s7_pointer val)
 {
