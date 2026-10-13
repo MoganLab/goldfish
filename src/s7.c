@@ -32958,51 +32958,122 @@ static char *stacktrace_walker(s7_scheme *sc, s7_pointer code, s7_pointer let, c
   return(notes);
 }
 
-static block_t *stacktrace_add_func(s7_scheme *sc, s7_pointer caller, s7_pointer code, const char *errstr, char *notes, s7_int code_max, bool as_comment)
+static bool find_location_in_tree(s7_scheme *sc, s7_pointer tree, s7_int *ret_line, s7_int *ret_file, s7_int *ret_pos)
+{
+  if (!is_pair(tree)) return false;
+  if (has_location(tree))
+    {
+      *ret_line = (s7_int)pair_line_number(tree);
+      *ret_file = (s7_int)pair_file_number(tree);
+      *ret_pos = (s7_int)pair_position(tree);
+      return true;
+    }
+  for (s7_pointer p = tree; is_pair(p); p = cdr(p))
+    {
+      if (find_location_in_tree(sc, car(p), ret_line, ret_file, ret_pos))
+	return true;
+    }
+  return false;
+}
+
+static void get_code_or_let_location(s7_scheme *sc, s7_pointer code, s7_pointer let, const char **ret_file, s7_int *ret_line)
+{
+  *ret_file = NULL;
+  *ret_line = -1;
+
+  if (is_let(let) && ((is_funclet(let)) || (is_maclet(let))))
+    {
+      if ((has_let_file(let)) && (let_file(let) <= (s7_int)sc->file_names_top) && (let_line(let) > 0))
+	{
+	  *ret_line = let_line(let);
+	  if (is_string(sc->file_names[let_file(let)]))
+	    *ret_file = string_value(sc->file_names[let_file(let)]);
+	}
+    }
+
+  if (*ret_line <= 0)
+    {
+      s7_int line = -1, file = -1, pos = 0;
+      if (find_location_in_tree(sc, code, &line, &file, &pos))
+	{
+	  *ret_line = line;
+	  if ((file >= 0) && (file <= (s7_int)sc->file_names_top) && (is_string(sc->file_names[file])))
+	    *ret_file = string_value(sc->file_names[file]);
+	}
+    }
+
+  if ((*ret_line <= 0) && (is_let(let)))
+    {
+      if ((has_let_file(let)) && (let_file(let) <= (s7_int)sc->file_names_top) && (let_line(let) > 0))
+	{
+	  *ret_line = let_line(let);
+	  if (is_string(sc->file_names[let_file(let)]))
+	    *ret_file = string_value(sc->file_names[let_file(let)]);
+	}
+    }
+
+  if ((*ret_line <= 0) && (is_string(slot_value(sc->error_file))) && (s7_is_integer(slot_value(sc->error_line))))
+    {
+      *ret_file = string_value(slot_value(sc->error_file));
+      *ret_line = integer(slot_value(sc->error_line));
+    }
+}
+
+static block_t *stacktrace_add_func(s7_scheme *sc, s7_pointer caller, s7_pointer code, s7_pointer let, const char *errstr, char *notes, s7_int code_max, bool as_comment)
 {
   s7_int newlen, errlen = strlen(errstr);
   char *newstr;
   block_t *newp;
+  const char *loc_file = NULL;
+  s7_int loc_line = -1;
+  char loc_buf[256];
+  loc_buf[0] = '\0';
+  get_code_or_let_location(sc, code, let, &loc_file, &loc_line);
+  if ((loc_file) && (loc_line > 0))
+    snprintf(loc_buf, sizeof(loc_buf), "  %s:%lld: ", loc_file, (long long)loc_line);
+  else
+    snprintf(loc_buf, sizeof(loc_buf), "  ");
+  s7_int loc_len = strlen(loc_buf);
+
   if ((is_symbol(caller)) &&
       (caller != car(code)))
     {
-      newlen = symbol_name_length(caller) + errlen + 10;
+      newlen = loc_len + symbol_name_length(caller) + errlen + 10;
       newp = mallocate(sc, newlen);
       newstr = (char *)block_data(newp);      /* newstr[0] = '\0'; */
-      errlen = catstrs_direct(newstr, symbol_name(caller), ": ", errstr, (const char *)NULL);
+      errlen = catstrs_direct(newstr, loc_buf, symbol_name(caller), ": ", errstr, (const char *)NULL);
     }
   else
     {
-      newlen = errlen + 8;
+      newlen = loc_len + errlen + 8;
       newp = mallocate(sc, newlen);
       newstr = (char *)block_data(newp);      /* newstr[0] = '\0'; */
       if ((errlen > 2) && (errstr[2] == '('))
-        errlen = catstrs_direct(newstr, "  ", errstr, (const char *)NULL);
+        errlen = catstrs_direct(newstr, loc_buf, "  ", errstr, (const char *)NULL);
       else
-	{
-	  memcpy((void *)newstr, (const void *)errstr, errlen);
-	  newstr[errlen] = '\0';
-	}}
-  newlen = code_max + 8 + ((notes) ? strlen(notes) : 0);
+	errlen = catstrs_direct(newstr, loc_buf, errstr, (const char *)NULL);
+    }
+  s7_int eff_code_max = code_max + loc_len;
+  newlen = eff_code_max + 8 + ((notes) ? strlen(notes) : 0);
   {
     block_t *b = mallocate(sc, newlen);
     char *str = (char *)block_data(b);        /* str[0] = '\0'; */
-    if (errlen >= code_max)
+    if (errlen >= eff_code_max)
       {
-	newstr[code_max - 4] = '.';
-	newstr[code_max - 3] = '.';
-	newstr[code_max - 2] = '.';
-	newstr[code_max - 1] = '\0';
+	newstr[eff_code_max - 4] = '.';
+	newstr[eff_code_max - 3] = '.';
+	newstr[eff_code_max - 2] = '.';
+	newstr[eff_code_max - 1] = '\0';
 	catstrs_direct(str, (as_comment) ? "; " : "", newstr, (notes) ? notes : "", "\n", (const char *)NULL);
       }
     else
       {
-	/* send out newstr, pad with spaces to code_max, then notes */
+	/* send out newstr, pad with spaces to eff_code_max, then notes */
 	const s7_int len = catstrs_direct(str, (as_comment) ? "; " : "", newstr, (const char *)NULL);
 	if (notes)
 	  {
 	    s7_int i;
-	    for (i = len; i < code_max - 1; i++) str[i] = ' ';
+	    for (i = len; i < eff_code_max - 1; i++) str[i] = ' ';
 	    str[i] = '\0';
 	    catstrs(str, newlen, notes, "\n", (char *)NULL);
 	  }
@@ -33034,7 +33105,7 @@ static s7_pointer stacktrace_1(s7_scheme *sc, s7_int frames_max, s7_int code_col
 	  if ((is_let(current_let)) &&
 	      (current_let != sc->rootlet))
 	    notes = stacktrace_walker(sc, err_code, current_let, NULL, code_cols, total_cols, notes_start_col, as_comment, 0);
-	  strp = stacktrace_add_func(sc, caller, err_code, string_value(errstr), notes, code_cols, as_comment);
+	  strp = stacktrace_add_func(sc, caller, err_code, current_let, string_value(errstr), notes, code_cols, as_comment);
 	  str = (char *)block_data(strp);
 	  if ((S7_DEBUGGING) && (notes == str)) fprintf(stderr, "%s[%d]: notes==str\n", __func__, __LINE__);
 	  if (notes) free(notes); /* copied into strp, 29-Sep-23 -- see below: maybe check that notes!=str? */
@@ -33062,6 +33133,12 @@ static s7_pointer stacktrace_1(s7_scheme *sc, s7_int frames_max, s7_int code_col
 		  const s7_pointer func = stacktrace_find_caller(sc, let);
 		  if (!stacktrace_error_hook_function(sc, func))
 		    {
+		      const char *loc_file = NULL;
+		      s7_int loc_line = -1;
+		      get_code_or_let_location(sc, code, let, &loc_file, &loc_line);
+		      if (loc_file && (strstr(loc_file, "gfproject.scm") != NULL))
+			continue;
+
 		      char *notes = NULL, *newstr, *catstr;
 		      block_t *newp, *catp;
 		      s7_int newlen;
@@ -33074,7 +33151,7 @@ static s7_pointer stacktrace_1(s7_scheme *sc, s7_int frames_max, s7_int code_col
 			}
 		      if ((is_let(let)) && (let != sc->rootlet))
 			notes = stacktrace_walker(sc, code, let, NULL, code_cols, total_cols, notes_start_col, as_comment, 0);
-		      newp = stacktrace_add_func(sc, func, code, codestr, notes, code_cols, as_comment);
+		      newp = stacktrace_add_func(sc, func, code, let, codestr, notes, code_cols, as_comment);
 		      newstr = (char *)block_data(newp);
 		      if ((S7_DEBUGGING) && (notes == newstr)) fprintf(stderr, "%s[%d]: notes=newstr\n", __func__, __LINE__);
 		      if ((notes) && (notes != newstr) && (is_let(let)) && (let != sc->rootlet))
@@ -34159,34 +34236,23 @@ no_return void error_nr(s7_scheme *sc, s7_pointer type, s7_pointer info)
 #endif
   if (is_pair(cur_code)) /* not redundant -- maybe use type_unchecked here */
     {
-      s7_int line = -1, file, position;
-      if (has_location(cur_code)) /* ignore callgrind!  this is the normal case */
+      s7_int line = -1, file = -1, position = 0;
+      if (find_location_in_tree(sc, cur_code, &line, &file, &position))
 	{
-	  line = pair_line_number(cur_code);
-	  file = pair_file_number(cur_code);
-	  position = pair_position(cur_code);
+	  /* found in cur_code */
 	}
-      else /* try to find a plausible line number! */
-	for (s7_pointer p = cur_code, sp = cur_code; is_pair(p); p = cdr(p), sp = cdr(sp))
-	  {
-	    if ((is_pair(car(p))) && (has_location(car(p))))
-	      {
-		line = pair_line_number(car(p));
-		file = pair_file_number(car(p));
-		position = pair_position(car(p));
+      else
+	{
+	  s7_int top = (sc->stack_end - sc->stack_start) / 4;
+	  for (s7_int loc = top - 1; loc > 0; loc--)
+	    {
+	      s7_int true_loc = (loc + 1) * 4 - 1;
+	      s7_pointer stk_code = stack_code(sc->stack, true_loc);
+	      if (find_location_in_tree(sc, stk_code, &line, &file, &position))
 		break;
-	      }
-	    p = cdr(p);
-	    if ((!is_pair(p)) || (p == sp)) break;
-	    /* p itself never has the line/file info */
-	    if ((is_pair(car(p))) && (has_location(car(p))))
-	      {
-		line = pair_line_number(car(p));
-		file = pair_file_number(car(p));
-		position = pair_position(car(p));
-		break;
-	      }}
-      if ((line <= 0) || (file < 0))
+	    }
+	}
+      if ((line <= 0) || (file < 0) || (file > (s7_int)sc->file_names_top) || (!is_string(sc->file_names[file])))
 	fill_error_location(sc);
       else
 	{
@@ -34194,7 +34260,25 @@ no_return void error_nr(s7_scheme *sc, s7_pointer type, s7_pointer info)
 	  set_integer(slot_value(sc->error_position), position);
 	  slot_set_value(sc->error_file, sc->file_names[file]);
 	}}
-  else fill_error_location(sc);
+  else
+    {
+      s7_int line = -1, file = -1, position = 0;
+      s7_int top = (sc->stack_end - sc->stack_start) / 4;
+      for (s7_int loc = top - 1; loc > 0; loc--)
+	{
+	  s7_int true_loc = (loc + 1) * 4 - 1;
+	  s7_pointer stk_code = stack_code(sc->stack, true_loc);
+	  if (find_location_in_tree(sc, stk_code, &line, &file, &position))
+	    break;
+	}
+      if ((line > 0) && (file >= 0) && (file <= (s7_int)sc->file_names_top) && (is_string(sc->file_names[file])))
+	{
+	  set_integer(slot_value(sc->error_line), line);
+	  set_integer(slot_value(sc->error_position), position);
+	  slot_set_value(sc->error_file, sc->file_names[file]);
+	}
+      else fill_error_location(sc);
+    }
 
   /* look for a catcher, call catch*function in the error context (before unwinding the stack), outlet(owlet) is curlet */
   /* top is 1 past actual top, top - 1 is op, if op = OP_CATCH, top - 4 is the cell containing the catch struct */
@@ -34326,8 +34410,7 @@ no_return void error_nr(s7_scheme *sc, s7_pointer type, s7_pointer info)
 	  s7_pointer errp = s7_stacktrace(sc);
 	  if (string_length(errp) > 0)
 	    {
-	      port_write_string(current_error_port(sc))(sc, string_value(errp), string_length(errp), current_error_port(sc));
-	      port_write_character(current_error_port(sc))(sc, '\n', current_error_port(sc));
+	      format_to_error_port(sc, "\nStack trace:\n~A\n", set_plist_1(sc, errp), 16);
 	    }}
       else
 	if (is_pair(slot_value(sc->error_code)))
@@ -34495,7 +34578,10 @@ static s7_pointer object_to_string_truncated(s7_scheme *sc, s7_pointer obj)
     s7_pointer result = s7_object_to_string(sc, obj, false);
     sc->objstr_max_len = old_max_len;
     if (string_length(result) > len)
-      truncate_string(string_value(result), len, p_display); /* only use of truncate_string */
+      {
+	truncate_string(string_value(result), len, p_display); /* only use of truncate_string */
+	string_length(result) = strlen(string_value(result));
+      }
     return(result);
   }
 }
