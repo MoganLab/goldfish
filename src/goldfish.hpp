@@ -38,6 +38,8 @@
 #include <unordered_map>
 #include <vector>
 
+#include "liii_subprocess.hpp"
+
 #include <tbox/platform/file.h>
 #include <tbox/platform/path.h>
 #include <tbox/tbox.h>
@@ -121,7 +123,7 @@ void            glue_liii_path (s7_scheme* sc);
 void            glue_liii_sort (s7_scheme* sc);
 void            glue_liii_string (s7_scheme* sc);
 void            glue_liii_string_cursor (s7_scheme* sc);
-void            glue_subprocess_run_values (s7_scheme* sc);
+
 extern "C" void glue_syntax_rules (s7_scheme* sc);
 
 inline s7_pointer
@@ -786,7 +788,7 @@ glue_for_community_edition (s7_scheme* sc) {
   glue_scheme_process_context (sc);
   glue_liii_sys (sc);
   glue_liii_os (sc);
-  glue_subprocess_run_values (sc);
+  glue_subprocess (sc);
   glue_liii_path (sc);
   glue_liii_sort (sc);
   glue_liii_list (sc);

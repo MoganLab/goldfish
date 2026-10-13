@@ -16,7 +16,10 @@
 
 (define-library (liii subprocess)
   (export run run-values run-either run-set! run-get run-allow! run-ban!
-    run-unban! run-and run-or run-sequence run-pipe run-if run-when
+    run-unban! run-and run-or run-sequence run-pipe run-if run-when process?
+    process-pid process-spawn process-alive? process-poll process-wait
+    process-terminate process-kill process-close process-close-stdin
+    process-write process-read process-read-line run-streaming
   ) ;export
   (import (scheme base)
     (liii base)
@@ -129,6 +132,9 @@
             ) ;
             ((and (pair? command) (symbol? (car command)))
              (%resolve-symbol-command (car command) (cdr command))
+            ) ;
+            ((and (pair? command) (string? (car command)))
+             (%resolve-symbol-command (string->symbol (car command)) (cdr command))
             ) ;
             (else
               (value-error
@@ -534,6 +540,300 @@
           ) ;let-values
         ) ;if
       ) ;let-values
+    ) ;define
+
+    (define (process? obj)
+      (g_process? obj)
+    ) ;define
+
+    (define (process-pid proc)
+      (unless (process? proc)
+        (type-error "process-pid: argument must be a process")
+      ) ;unless
+      (g_subprocess-pid proc)
+    ) ;define
+
+    (define (process-alive? proc)
+      (unless (process? proc)
+        (type-error "process-alive?: argument must be a process")
+      ) ;unless
+      (g_subprocess-alive? proc)
+    ) ;define
+
+    (define (process-poll proc)
+      (unless (process? proc)
+        (type-error "process-poll: argument must be a process")
+      ) ;unless
+      (g_subprocess-poll proc)
+    ) ;define
+
+    (define (process-wait proc . args)
+      (unless (process? proc)
+        (type-error "process-wait: first argument must be a process")
+      ) ;unless
+      (let ((timeout-ms (if (pair? args) (car args) -1)))
+        (unless (integer? timeout-ms)
+          (type-error "process-wait: timeout must be an integer")
+        ) ;unless
+        (g_subprocess-wait proc timeout-ms)
+      ) ;let
+    ) ;define
+
+    (define (process-terminate proc)
+      (unless (process? proc)
+        (type-error "process-terminate: argument must be a process")
+      ) ;unless
+      (g_subprocess-terminate proc)
+    ) ;define
+
+    (define (process-kill proc)
+      (unless (process? proc)
+        (type-error "process-kill: argument must be a process")
+      ) ;unless
+      (g_subprocess-kill proc)
+    ) ;define
+
+    (define (process-close proc)
+      (unless (process? proc)
+        (type-error "process-close: argument must be a process")
+      ) ;unless
+      (g_subprocess-close proc)
+    ) ;define
+
+    (define (process-close-stdin proc)
+      (unless (process? proc)
+        (type-error "process-close-stdin: argument must be a process")
+      ) ;unless
+      (g_subprocess-close-stdin proc)
+    ) ;define
+
+    (define (process-write proc str)
+      (unless (process? proc)
+        (type-error "process-write: first argument must be a process")
+      ) ;unless
+      (unless (string? str)
+        (type-error "process-write: second argument must be a string")
+      ) ;unless
+      (g_subprocess-write proc str)
+    ) ;define
+
+    (define (process-read proc . opts)
+      (unless (process? proc)
+        (type-error "process-read: first argument must be a process")
+      ) ;unless
+      (let ((max-bytes (%keyword-value :max-bytes opts 65536))
+            (stream (%keyword-value :stream opts 'stdout))
+           ) ;
+        (unless (and (integer? max-bytes) (> max-bytes 0))
+          (type-error "process-read: :max-bytes must be a positive integer")
+        ) ;unless
+        (unless (or (eq? stream 'stdout) (eq? stream 'stderr))
+          (value-error "process-read: :stream must be 'stdout or 'stderr")
+        ) ;unless
+        (g_subprocess-read proc max-bytes stream)
+      ) ;let
+    ) ;define
+
+    (define (process-read-line proc . opts)
+      (unless (process? proc)
+        (type-error "process-read-line: first argument must be a process")
+      ) ;unless
+      (let ((stream (%keyword-value :stream opts 'stdout)))
+        (unless (or (eq? stream 'stdout) (eq? stream 'stderr))
+          (value-error "process-read-line: :stream must be 'stdout or 'stderr")
+        ) ;unless
+        (g_subprocess-read-line proc stream)
+      ) ;let
+    ) ;define
+
+    (define (%valid-process-stdin? val)
+      (or (not val) (eq? val 'pipe) (eq? val 'null) (eq? val 'inherit) (string? val))
+    ) ;define
+
+    (define (%valid-process-stdout? val)
+      (or (not val)
+        (eq? val 'pipe)
+        (eq? val 'capture)
+        (eq? val 'discard)
+        (eq? val 'inherit)
+        (string? val)
+      ) ;or
+    ) ;define
+
+    (define (%valid-process-stderr? val)
+      (or (not val)
+        (eq? val 'pipe)
+        (eq? val 'capture)
+        (eq? val 'discard)
+        (eq? val 'inherit)
+        (eq? val 'stdout)
+        (string? val)
+      ) ;or
+    ) ;define
+
+    (define (%process-command->exec-spec command)
+      (cond ((string? command) command)
+            ((not (proper-list? command))
+             (type-error (format #f
+                           "Command must be a proper list or a string, got: ~a"
+                           (object->string command)
+                         ) ;format
+             ) ;type-error
+            ) ;
+            ((and (pair? command) (symbol? (car command)))
+             (%resolve-symbol-command (car command) (cdr command))
+            ) ;
+            ((and (pair? command) (string? (car command))) command)
+            (else (value-error (format #f "Invalid command: ~a" (object->string command))))
+      ) ;cond
+    ) ;define
+
+    (define (%normalize-cmd-list lst)
+      (map
+        (lambda (x)
+          (cond ((string? x) x)
+                ((symbol? x) (symbol->string x))
+                ((path? x) (path->string x))
+                (else (object->string x))
+          ) ;cond
+        ) ;lambda
+        lst
+      ) ;map
+    ) ;define
+
+    (define (process-spawn command . opts)
+      (let ((cwd (%keyword-value :cwd opts #f))
+            (env (%keyword-value :env opts #f))
+            (stdin (%keyword-value :stdin opts #f))
+            (stdout (%keyword-value :stdout opts #f))
+            (stderr (%keyword-value :stderr opts #f))
+            (cmd-spec (%process-command->exec-spec command))
+           ) ;
+        (%check-cwd-conflict command cwd)
+        (when (string? cmd-spec)
+          (%check-string-command cmd-spec)
+        ) ;when
+        (unless (%valid-process-stdin? stdin)
+          (value-error (format #f "Invalid :stdin value: ~a" stdin))
+        ) ;unless
+        (unless (%valid-process-stdout? stdout)
+          (value-error (format #f "Invalid :stdout value: ~a" stdout))
+        ) ;unless
+        (unless (%valid-process-stderr? stderr)
+          (value-error (format #f "Invalid :stderr value: ~a" stderr))
+        ) ;unless
+        (unless (%valid-env? env)
+          (type-error "process-spawn: :env must be a list of (key . value) string pairs")
+        ) ;unless
+        (let ((final-cmd (if (pair? cmd-spec) (%normalize-cmd-list cmd-spec) cmd-spec)))
+          (g_subprocess-spawn final-cmd cwd env stdin stdout stderr)
+        ) ;let
+      ) ;let
+    ) ;define
+
+    (define (run-streaming command . opts)
+      (let ((cwd (%keyword-value :cwd opts #f))
+            (env (%keyword-value :env opts #f))
+            (on-stdout (%keyword-value :on-stdout opts #f))
+            (on-stderr (%keyword-value :on-stderr opts #f))
+            (timeout (%keyword-value :timeout opts #f))
+           ) ;
+        (when (and on-stdout (not (procedure? on-stdout)))
+          (type-error "run-streaming: :on-stdout must be a procedure")
+        ) ;when
+        (when (and on-stderr (not (procedure? on-stderr)))
+          (type-error "run-streaming: :on-stderr must be a procedure")
+        ) ;when
+        (when (and timeout (not (number? timeout)))
+          (type-error "run-streaming: :timeout must be a number")
+        ) ;when
+        (let ((proc (process-spawn command
+                      :cwd    cwd
+                      :env    env
+                      :stdout (if on-stdout 'pipe 'inherit)
+                      :stderr (if on-stderr 'pipe 'inherit)
+                    ) ;process-spawn
+              ) ;proc
+             ) ;
+          (let ((timeout-ms (if timeout (inexact->exact (round (* timeout 1000))) -1)))
+            (cond
+             ((and on-stdout (not on-stderr))
+              (let loop
+                ()
+                (let ((line (process-read-line proc :stream 'stdout)))
+                  (if (not (eof-object? line))
+                    (begin
+                      (on-stdout line)
+                      (loop)
+                    ) ;begin
+                    (begin
+                      (process-close proc)
+                      (process-wait proc timeout-ms)
+                    ) ;begin
+                  ) ;if
+                ) ;let
+              ) ;let
+             ) ;
+             ((and on-stderr (not on-stdout))
+              (let loop
+                ()
+                (let ((line (process-read-line proc :stream 'stderr)))
+                  (if (not (eof-object? line))
+                    (begin
+                      (on-stderr line)
+                      (loop)
+                    ) ;begin
+                    (begin
+                      (process-close proc)
+                      (process-wait proc timeout-ms)
+                    ) ;begin
+                  ) ;if
+                ) ;let
+              ) ;let
+             ) ;
+             ((and on-stdout on-stderr)
+              (let loop
+                ()
+                (let ((ev (g_subprocess-poll-io proc 50)))
+                  (cond
+                   ((or (eq? ev 'stdout) (eq? ev 'both))
+                    (let ((line (process-read-line proc :stream 'stdout)))
+                      (when (not (eof-object? line))
+                        (on-stdout line)
+                      ) ;when
+                    ) ;let
+                    (loop)
+                   ) ;
+                   ((eq? ev 'stderr)
+                    (let ((line (process-read-line proc :stream 'stderr)))
+                      (when (not (eof-object? line))
+                        (on-stderr line)
+                      ) ;when
+                    ) ;let
+                    (loop)
+                   ) ;
+                   ((eq? ev 'eof) (process-close proc) (process-wait proc timeout-ms))
+                   (else
+                     (if (and (not (process-alive? proc))
+                           (g_subprocess-eof? proc 'stdout)
+                           (g_subprocess-eof? proc 'stderr)
+                         ) ;and
+                       (begin
+                         (process-close proc)
+                         (process-wait proc timeout-ms)
+                       ) ;begin
+                       (loop)
+                     ) ;if
+                   ) ;else
+                  ) ;cond
+                ) ;let
+              ) ;let
+             ) ;
+             (else (process-wait proc timeout-ms))
+            ) ;cond
+          ) ;let
+        ) ;let
+      ) ;let
     ) ;define
 
   ) ;begin
