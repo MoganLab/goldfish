@@ -111,18 +111,18 @@ static vector<string> find_function_libraries_in_load_path (s7_scheme* sc, const
 void glue_http (s7_scheme* sc);
 void glue_http_async (s7_scheme* sc);
 #endif
-void            glue_liii_base64 (s7_scheme* sc);
-void            glue_liii_json (s7_scheme* sc);
-void            glue_liii_go (s7_scheme* sc);
-void            set_goldfish_lib_dir (const std::string& dir);
-void            glue_scheme_base (s7_scheme* sc);
-void            glue_scheme_char (s7_scheme* sc);
-void            glue_liii_hashlib (s7_scheme* sc);
-void            glue_liii_os (s7_scheme* sc);
-void            glue_liii_path (s7_scheme* sc);
-void            glue_liii_sort (s7_scheme* sc);
-void            glue_liii_string (s7_scheme* sc);
-void            glue_liii_string_cursor (s7_scheme* sc);
+void glue_liii_base64 (s7_scheme* sc);
+void glue_liii_json (s7_scheme* sc);
+void glue_liii_go (s7_scheme* sc);
+void set_goldfish_lib_dir (const std::string& dir);
+void glue_scheme_base (s7_scheme* sc);
+void glue_scheme_char (s7_scheme* sc);
+void glue_liii_hashlib (s7_scheme* sc);
+void glue_liii_os (s7_scheme* sc);
+void glue_liii_path (s7_scheme* sc);
+void glue_liii_sort (s7_scheme* sc);
+void glue_liii_string (s7_scheme* sc);
+void glue_liii_string_cursor (s7_scheme* sc);
 
 extern "C" void glue_syntax_rules (s7_scheme* sc);
 

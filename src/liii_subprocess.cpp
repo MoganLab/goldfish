@@ -14,8 +14,8 @@
 // under the License.
 //
 
-#include "s7.h"
 #include "liii_subprocess.hpp"
+#include "s7.h"
 #include <algorithm>
 #include <cstdio>
 #include <cstring>
@@ -26,6 +26,9 @@
 #include <vector>
 
 #ifdef _WIN32
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
 #include <windows.h>
 #else
 #include <fcntl.h>
@@ -99,16 +102,22 @@ struct Subprocess {
   bool   stdout_eof= false;
   bool   stderr_eof= false;
 
-  ~Subprocess () {
-    close_all ();
-  }
+  ~Subprocess () { close_all (); }
 
-  void
-  close_all () {
+  void close_all () {
     close_pipes ();
     if (process) {
       if (!exited) {
+#ifdef _WIN32
         tb_process_kill (process);
+#else
+        if (pid > 0) {
+          kill (pid, SIGKILL);
+        }
+        else {
+          tb_process_kill (process);
+        }
+#endif
         tb_process_wait (process, &exit_code, -1);
         exited= true;
       }
@@ -117,16 +126,14 @@ struct Subprocess {
     }
   }
 
-  void
-  close_pipes () {
+  void close_pipes () {
     close_stdin ();
     close_stdout ();
     close_stderr ();
     closed= true;
   }
 
-  void
-  close_stdin () {
+  void close_stdin () {
 #ifdef _WIN32
     if (h_in_write) {
       CloseHandle (h_in_write);
@@ -140,8 +147,7 @@ struct Subprocess {
 #endif
   }
 
-  void
-  close_stdout () {
+  void close_stdout () {
 #ifdef _WIN32
     if (h_out_read) {
       CloseHandle (h_out_read);
@@ -155,8 +161,7 @@ struct Subprocess {
 #endif
   }
 
-  void
-  close_stderr () {
+  void close_stderr () {
 #ifdef _WIN32
     if (h_err_read) {
       CloseHandle (h_err_read);
@@ -170,8 +175,7 @@ struct Subprocess {
 #endif
   }
 
-  bool
-  update_status () {
+  bool update_status () {
     if (exited) return true;
     if (!process) return false;
     tb_long_t status= -1;
@@ -184,22 +188,19 @@ struct Subprocess {
     return false;
   }
 
-  bool
-  alive () {
+  bool alive () {
     if (exited) return false;
     update_status ();
     return !exited;
   }
 
-  int
-  poll () {
+  int poll () {
     if (exited) return 1;
     if (update_status ()) return 1;
     return 0;
   }
 
-  int
-  wait (tb_long_t timeout_ms) {
+  int wait (tb_long_t timeout_ms) {
     if (exited) return 1;
     if (!process) return -1;
     tb_long_t status= -1;
@@ -217,8 +218,7 @@ struct Subprocess {
     }
   }
 
-  void
-  terminate () {
+  void terminate () {
     if (exited || !process) return;
 #ifdef _WIN32
     tb_process_kill (process);
@@ -229,14 +229,21 @@ struct Subprocess {
 #endif
   }
 
-  void
-  kill_proc () {
+  void kill_proc () {
     if (exited || !process) return;
+#ifdef _WIN32
     tb_process_kill (process);
+#else
+    if (pid > 0) {
+      kill (pid, SIGKILL);
+    }
+    else {
+      tb_process_kill (process);
+    }
+#endif
   }
 
-  bool
-  write_stdin (const char* data, size_t len) {
+  bool write_stdin (const char* data, size_t len) {
 #ifdef _WIN32
     if (!h_in_write) return false;
     DWORD written= 0;
@@ -262,8 +269,7 @@ struct Subprocess {
 #endif
   }
 
-  int
-  fill_buffer (bool is_err, int timeout_ms= 100) {
+  int fill_buffer (bool is_err, int timeout_ms= 100) {
     string& buf= is_err ? stderr_buffer : stdout_buffer;
     bool&   eof= is_err ? stderr_eof : stdout_eof;
     if (eof) return 0;
@@ -305,7 +311,7 @@ struct Subprocess {
       eof= true;
       return 0;
     }
-    int          fd= tb_pipefile2fd (p);
+    int           fd= tb_pipefile2fd (p);
     struct pollfd pfd;
     pfd.fd     = fd;
     pfd.events = POLLIN;
@@ -332,7 +338,7 @@ struct Subprocess {
     }
     else if (pret == 0) {
       if (update_status ()) {
-        char    tmp[65536];
+        char tmp[65536];
         fcntl (fd, F_SETFL, fcntl (fd, F_GETFL) | O_NONBLOCK);
         ssize_t n= read (fd, tmp, sizeof (tmp));
         if (n > 0) {
@@ -352,8 +358,7 @@ struct Subprocess {
 #endif
   }
 
-  std::pair<string, bool>
-  read_chunk (bool is_err, size_t max_bytes) {
+  std::pair<string, bool> read_chunk (bool is_err, size_t max_bytes) {
     string& buf= is_err ? stderr_buffer : stdout_buffer;
     bool&   eof= is_err ? stderr_eof : stdout_eof;
 
@@ -372,7 +377,7 @@ struct Subprocess {
     }
 
     if (!buf.empty ()) {
-      size_t take= std::min (max_bytes, buf.size ());
+      size_t take= (std::min) (max_bytes, buf.size ());
       string res = buf.substr (0, take);
       buf.erase (0, take);
       return {res, false};
@@ -380,8 +385,7 @@ struct Subprocess {
     return {"", true};
   }
 
-  std::pair<string, bool>
-  read_line (bool is_err) {
+  std::pair<string, bool> read_line (bool is_err) {
     string& buf= is_err ? stderr_buffer : stdout_buffer;
     bool&   eof= is_err ? stderr_eof : stdout_eof;
 
@@ -417,15 +421,13 @@ struct Subprocess {
     }
   }
 
-  bool
-  is_eof (bool is_err) {
+  bool is_eof (bool is_err) {
     string& buf= is_err ? stderr_buffer : stdout_buffer;
     bool&   eof= is_err ? stderr_eof : stdout_eof;
     return eof && buf.empty ();
   }
 
-  int
-  poll_io (int timeout_ms) {
+  int poll_io (int timeout_ms) {
     if (is_eof (false) && is_eof (true)) return -1;
     if (!stdout_buffer.empty () && !stderr_buffer.empty ()) return 3;
     if (!stdout_buffer.empty ()) return 1;
@@ -458,16 +460,16 @@ struct Subprocess {
     return 0;
 #else
     struct pollfd pfds[2];
-    int          nfds   = 0;
-    int          out_idx= -1, err_idx= -1;
+    int           nfds   = 0;
+    int           out_idx= -1, err_idx= -1;
     if (!stdout_eof && out_pipe) {
-      out_idx            = nfds++;
+      out_idx              = nfds++;
       pfds[out_idx].fd     = tb_pipefile2fd (out_pipe);
       pfds[out_idx].events = POLLIN;
       pfds[out_idx].revents= 0;
     }
     if (!stderr_eof && err_pipe) {
-      err_idx            = nfds++;
+      err_idx              = nfds++;
       pfds[err_idx].fd     = tb_pipefile2fd (err_pipe);
       pfds[err_idx].events = POLLIN;
       pfds[err_idx].revents= 0;
@@ -510,8 +512,8 @@ process_free_c_value (void* val) {
 
 static s7_pointer
 process_to_string_glue (s7_scheme* sc, s7_pointer args) {
-  s7_pointer self= s7_car (args);
-  auto*      proc= static_cast<Subprocess*> (s7_c_object_value (self));
+  s7_pointer         self= s7_car (args);
+  auto*              proc= static_cast<Subprocess*> (s7_c_object_value (self));
   std::ostringstream oss;
   if (!proc) {
     oss << "#<process: invalid>";
@@ -901,6 +903,7 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
 
   if (process) {
     tb_hong_t start_time= tb_mclock ();
+    bool      timed_out = false;
     bool      out_open  = need_stdout_pipe;
     bool      err_open  = (stderr_mode == redirect_mode::tee || stderr_mode == redirect_mode::capture);
 #ifndef _WIN32
@@ -959,9 +962,9 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
       }
 #else
       struct pollfd pfds[2];
-      int          nfds   = 0;
-      int          out_idx= -1;
-      int          err_idx= -1;
+      int           nfds   = 0;
+      int           out_idx= -1;
+      int           err_idx= -1;
       if (out_open) {
         out_idx              = nfds++;
         pfds[out_idx].fd     = tb_pipefile2fd (out_pipe[0]);
@@ -1010,9 +1013,20 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
 #endif
 
       if (timeout_ms >= 0 && (tb_mclock () - start_time >= timeout_ms)) {
+#ifdef _WIN32
         tb_process_kill (process);
+#else
+        tb_int_t p_pid= get_process_pid (process);
+        if (p_pid > 0) {
+          kill (p_pid, SIGKILL);
+        }
+        else {
+          tb_process_kill (process);
+        }
+#endif
         tb_process_wait (process, &status, -1);
-        status= -1;
+        status   = -1;
+        timed_out= true;
         break;
       }
 
@@ -1056,8 +1070,8 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
     }
 #else
     if (out_pipe[0]) {
-      char    buf[65536];
-      int     fd= tb_pipefile2fd (out_pipe[0]);
+      char buf[65536];
+      int  fd= tb_pipefile2fd (out_pipe[0]);
       fcntl (fd, F_SETFL, fcntl (fd, F_GETFL) | O_NONBLOCK);
       ssize_t n;
       while ((n= read (fd, buf, sizeof (buf))) > 0) {
@@ -1072,8 +1086,8 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
     }
 
     if (err_pipe[0]) {
-      char    buf[65536];
-      int     fd= tb_pipefile2fd (err_pipe[0]);
+      char buf[65536];
+      int  fd= tb_pipefile2fd (err_pipe[0]);
       fcntl (fd, F_SETFL, fcntl (fd, F_GETFL) | O_NONBLOCK);
       ssize_t n;
       while ((n= read (fd, buf, sizeof (buf))) > 0) {
@@ -1088,8 +1102,28 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
     }
 #endif
 
-    if (status == -1) {
-      tb_process_wait (process, &status, -1);
+    if (!timed_out && status == -1) {
+      tb_long_t remaining_ms= -1;
+      if (timeout_ms >= 0) {
+        tb_hong_t elapsed= tb_mclock () - start_time;
+        remaining_ms     = (elapsed >= timeout_ms) ? 0 : (tb_long_t) (timeout_ms - elapsed);
+      }
+      tb_long_t wait_ret= tb_process_wait (process, &status, remaining_ms);
+      if (wait_ret == 0) {
+#ifdef _WIN32
+        tb_process_kill (process);
+#else
+        tb_int_t p_pid= get_process_pid (process);
+        if (p_pid > 0) {
+          kill (p_pid, SIGKILL);
+        }
+        else {
+          tb_process_kill (process);
+        }
+#endif
+        tb_process_wait (process, &status, -1);
+        status= -1;
+      }
     }
     tb_process_exit (process);
   }
@@ -1183,9 +1217,9 @@ f_subprocess_spawn (s7_scheme* sc, s7_pointer args) {
     stdin_path= s7_string (stdin_arg);
   }
 
-  bool          stdout_pipe  = false;
-  bool          stdout_discard= false;
-  const char*   stdout_path  = nullptr;
+  bool        stdout_pipe   = false;
+  bool        stdout_discard= false;
+  const char* stdout_path   = nullptr;
   if (s7_is_symbol (stdout_arg)) {
     const char* sym= s7_symbol_name (stdout_arg);
     if (strcmp (sym, "pipe") == 0 || strcmp (sym, "capture") == 0) stdout_pipe= true;
@@ -1195,10 +1229,10 @@ f_subprocess_spawn (s7_scheme* sc, s7_pointer args) {
     stdout_path= s7_string (stdout_arg);
   }
 
-  bool          stderr_pipe     = false;
-  bool          stderr_discard  = false;
-  bool          stderr_to_stdout= false;
-  const char*   stderr_path     = nullptr;
+  bool        stderr_pipe     = false;
+  bool        stderr_discard  = false;
+  bool        stderr_to_stdout= false;
+  const char* stderr_path     = nullptr;
   if (s7_is_symbol (stderr_arg)) {
     const char* sym= s7_symbol_name (stderr_arg);
     if (strcmp (sym, "pipe") == 0 || strcmp (sym, "capture") == 0) stderr_pipe= true;
@@ -1539,8 +1573,8 @@ f_subprocess_read (s7_scheme* sc, s7_pointer args) {
     if (strcmp (sym, "stderr") == 0) is_err= true;
   }
 
-  auto* proc             = get_goldfish_process (sc, proc_arg);
-  auto [chunk, is_eof]   = proc->read_chunk (is_err, max_bytes);
+  auto* proc          = get_goldfish_process (sc, proc_arg);
+  auto [chunk, is_eof]= proc->read_chunk (is_err, max_bytes);
   if (is_eof) {
     return s7_eof_object (sc);
   }
@@ -1560,8 +1594,8 @@ f_subprocess_read_line (s7_scheme* sc, s7_pointer args) {
     if (strcmp (sym, "stderr") == 0) is_err= true;
   }
 
-  auto* proc           = get_goldfish_process (sc, proc_arg);
-  auto [line, is_eof]  = proc->read_line (is_err);
+  auto* proc         = get_goldfish_process (sc, proc_arg);
+  auto [line, is_eof]= proc->read_line (is_err);
   if (is_eof) {
     return s7_eof_object (sc);
   }
@@ -1639,8 +1673,8 @@ glue_subprocess (s7_scheme* sc) {
   glue_define (sc, "g_subprocess-poll", "(g_subprocess-poll proc) => integer | #f", f_subprocess_poll, 1, 0);
   glue_define (sc, "g_subprocess-wait", "(g_subprocess-wait proc [timeout-ms]) => integer | #f", f_subprocess_wait, 1,
                1);
-  glue_define (sc, "g_subprocess-terminate", "(g_subprocess-terminate proc) => unspecified", f_subprocess_terminate,
-               1, 0);
+  glue_define (sc, "g_subprocess-terminate", "(g_subprocess-terminate proc) => unspecified", f_subprocess_terminate, 1,
+               0);
   glue_define (sc, "g_subprocess-kill", "(g_subprocess-kill proc) => unspecified", f_subprocess_kill, 1, 0);
   glue_define (sc, "g_subprocess-close", "(g_subprocess-close proc) => unspecified", f_subprocess_close, 1, 0);
   glue_define (sc, "g_subprocess-close-stdin", "(g_subprocess-close-stdin proc) => unspecified",
