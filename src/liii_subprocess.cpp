@@ -25,7 +25,7 @@
 #include <utility>
 #include <vector>
 
-#ifdef _WIN32
+#ifdef TB_CONFIG_OS_WINDOWS
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
@@ -42,7 +42,7 @@
 #endif
 #endif
 
-#if !defined(_MSC_VER) && !defined(__MINGW32__) && !defined(__EMSCRIPTEN__)
+#if !defined(TB_CONFIG_OS_WINDOWS) && !defined(__EMSCRIPTEN__)
 #include <wordexp.h>
 #endif
 
@@ -60,7 +60,7 @@ subprocess_type_error (s7_scheme* sc, const char* msg, s7_pointer arg) {
   return s7_error (sc, s7_make_symbol (sc, "type-error"), s7_list (sc, 2, s7_make_string (sc, msg), arg));
 }
 
-#ifdef _WIN32
+#ifdef TB_CONFIG_OS_WINDOWS
 static tb_int_t
 get_process_pid (tb_process_ref_t process) {
   if (!process) return -1;
@@ -87,7 +87,7 @@ struct Subprocess {
   tb_long_t        exit_code= -1;
   bool             closed   = false;
 
-#ifdef _WIN32
+#ifdef TB_CONFIG_OS_WINDOWS
   HANDLE h_in_write= NULL;
   HANDLE h_out_read= NULL;
   HANDLE h_err_read= NULL;
@@ -108,7 +108,7 @@ struct Subprocess {
     close_pipes ();
     if (process) {
       if (!exited) {
-#ifdef _WIN32
+#ifdef TB_CONFIG_OS_WINDOWS
         tb_process_kill (process);
 #else
         if (pid > 0) {
@@ -134,7 +134,7 @@ struct Subprocess {
   }
 
   void close_stdin () {
-#ifdef _WIN32
+#ifdef TB_CONFIG_OS_WINDOWS
     if (h_in_write) {
       CloseHandle (h_in_write);
       h_in_write= NULL;
@@ -148,7 +148,7 @@ struct Subprocess {
   }
 
   void close_stdout () {
-#ifdef _WIN32
+#ifdef TB_CONFIG_OS_WINDOWS
     if (h_out_read) {
       CloseHandle (h_out_read);
       h_out_read= NULL;
@@ -162,7 +162,7 @@ struct Subprocess {
   }
 
   void close_stderr () {
-#ifdef _WIN32
+#ifdef TB_CONFIG_OS_WINDOWS
     if (h_err_read) {
       CloseHandle (h_err_read);
       h_err_read= NULL;
@@ -220,7 +220,7 @@ struct Subprocess {
 
   void terminate () {
     if (exited || !process) return;
-#ifdef _WIN32
+#ifdef TB_CONFIG_OS_WINDOWS
     tb_process_kill (process);
 #else
     if (pid > 0) {
@@ -231,7 +231,7 @@ struct Subprocess {
 
   void kill_proc () {
     if (exited || !process) return;
-#ifdef _WIN32
+#ifdef TB_CONFIG_OS_WINDOWS
     tb_process_kill (process);
 #else
     if (pid > 0) {
@@ -244,7 +244,7 @@ struct Subprocess {
   }
 
   bool write_stdin (const char* data, size_t len) {
-#ifdef _WIN32
+#ifdef TB_CONFIG_OS_WINDOWS
     if (!h_in_write) return false;
     DWORD written= 0;
     while (len > 0) {
@@ -274,7 +274,7 @@ struct Subprocess {
     bool&   eof= is_err ? stderr_eof : stdout_eof;
     if (eof) return 0;
 
-#ifdef _WIN32
+#ifdef TB_CONFIG_OS_WINDOWS
     HANDLE h= is_err ? h_err_read : h_out_read;
     if (!h) {
       eof= true;
@@ -433,7 +433,7 @@ struct Subprocess {
     if (!stdout_buffer.empty ()) return 1;
     if (!stderr_buffer.empty ()) return 2;
 
-#ifdef _WIN32
+#ifdef TB_CONFIG_OS_WINDOWS
     bool out_avail= false, err_avail= false;
     if (!stdout_eof && h_out_read) {
       DWORD avail= 0;
@@ -710,7 +710,7 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
       (stdout_mode == redirect_mode::tee || stdout_mode == redirect_mode::capture) ||
       (stderr_to_stdout && stdout_mode != redirect_mode::file && stdout_mode != redirect_mode::discard);
 
-#ifdef _WIN32
+#ifdef TB_CONFIG_OS_WINDOWS
   HANDLE              h_out_read= NULL, h_out_write= NULL;
   HANDLE              h_err_read= NULL, h_err_write= NULL;
   HANDLE              h_in_read= NULL, h_in_write= NULL;
@@ -734,7 +734,7 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
     attr.outmode= TB_FILE_MODE_RW | TB_FILE_MODE_CREAT | TB_FILE_MODE_TRUNC;
   }
   else if (need_stdout_pipe) {
-#ifdef _WIN32
+#ifdef TB_CONFIG_OS_WINDOWS
     CreatePipe (&h_out_read, &h_out_write, &sa, 0);
     SetHandleInformation (h_out_read, HANDLE_FLAG_INHERIT, 0);
     attr.outtype = TB_PROCESS_REDIRECT_TYPE_FILE;
@@ -747,7 +747,7 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
 #endif
   }
 
-#ifndef _WIN32
+#ifndef TB_CONFIG_OS_WINDOWS
   tb_pipe_file_ref_t err_pipe[2]= {tb_null};
 #endif
   if (stderr_mode == redirect_mode::file) {
@@ -764,7 +764,7 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
 #endif
     attr.errmode= TB_FILE_MODE_RW | TB_FILE_MODE_CREAT | TB_FILE_MODE_TRUNC;
   }
-#ifdef _WIN32
+#ifdef TB_CONFIG_OS_WINDOWS
   else if (stderr_to_stdout && h_out_write) {
     HANDLE h_err_dup= NULL;
     if (DuplicateHandle (GetCurrentProcess (), h_out_write, GetCurrentProcess (), &h_err_dup, 0, TRUE,
@@ -793,7 +793,7 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
   }
 #endif
 
-#ifndef _WIN32
+#ifndef TB_CONFIG_OS_WINDOWS
   tb_pipe_file_ref_t in_pipe[2]= {tb_null};
 #endif
   if (stdin_path) {
@@ -801,7 +801,7 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
     attr.in.path= stdin_path;
     attr.inmode = TB_FILE_MODE_RO;
   }
-#ifdef _WIN32
+#ifdef TB_CONFIG_OS_WINDOWS
   else if (stdin_null) {
     CreatePipe (&h_in_read, &h_in_write, &sa, 0);
     SetHandleInformation (h_in_write, HANDLE_FLAG_INHERIT, 0);
@@ -843,7 +843,7 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
     const char* cmd_c= s7_string (cmd_arg);
 #ifdef TB_CONFIG_OS_WINDOWS
     process= tb_process_init_cmd (cmd_c, &attr);
-#elif !defined(_MSC_VER) && !defined(__MINGW32__) && !defined(__EMSCRIPTEN__)
+#elif !defined(__EMSCRIPTEN__)
     wordexp_t p;
     int       ret= wordexp (cmd_c, &p, 0);
     if (ret == 0 && p.we_wordc > 0) {
@@ -873,7 +873,7 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
     }
   }
 
-#ifdef _WIN32
+#ifdef TB_CONFIG_OS_WINDOWS
   if (h_out_write) {
     CloseHandle (h_out_write);
     h_out_write= NULL;
@@ -906,7 +906,7 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
     bool      timed_out = false;
     bool      out_open  = need_stdout_pipe;
     bool      err_open  = (stderr_mode == redirect_mode::tee || stderr_mode == redirect_mode::capture);
-#ifndef _WIN32
+#ifndef TB_CONFIG_OS_WINDOWS
     if (!out_pipe[0]) out_open= false;
     if (!err_pipe[0]) err_open= false;
 #else
@@ -917,7 +917,7 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
     // 流式读取排空循环，防止大输出（如 10MB）管道缓冲区满导致子进程与父进程死锁
     while (out_open || err_open) {
       bool read_any= false;
-#ifdef _WIN32
+#ifdef TB_CONFIG_OS_WINDOWS
       if (out_open) {
         DWORD avail= 0;
         if (PeekNamedPipe (h_out_read, NULL, 0, NULL, &avail, NULL)) {
@@ -1013,7 +1013,7 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
 #endif
 
       if (timeout_ms >= 0 && (tb_mclock () - start_time >= timeout_ms)) {
-#ifdef _WIN32
+#ifdef TB_CONFIG_OS_WINDOWS
         tb_process_kill (process);
 #else
         tb_int_t p_pid= get_process_pid (process);
@@ -1035,12 +1035,12 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
         break;
       }
 
-#ifdef _WIN32
+#ifdef TB_CONFIG_OS_WINDOWS
       if (!read_any) Sleep (5);
 #endif
     }
 
-#ifdef _WIN32
+#ifdef TB_CONFIG_OS_WINDOWS
     if (h_out_read) {
       char  buf[65536];
       DWORD n= 0;
@@ -1110,7 +1110,7 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
       }
       tb_long_t wait_ret= tb_process_wait (process, &status, remaining_ms);
       if (wait_ret == 0) {
-#ifdef _WIN32
+#ifdef TB_CONFIG_OS_WINDOWS
         tb_process_kill (process);
 #else
         tb_int_t p_pid= get_process_pid (process);
@@ -1127,7 +1127,7 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
     }
     tb_process_exit (process);
   }
-#ifdef _WIN32
+#ifdef TB_CONFIG_OS_WINDOWS
   if (h_out_read) CloseHandle (h_out_read);
   if (h_err_read) CloseHandle (h_err_read);
 #endif
@@ -1243,7 +1243,7 @@ f_subprocess_spawn (s7_scheme* sc, s7_pointer args) {
     stderr_path= s7_string (stderr_arg);
   }
 
-#ifdef _WIN32
+#ifdef TB_CONFIG_OS_WINDOWS
   HANDLE              h_out_read= NULL, h_out_write= NULL;
   HANDLE              h_err_read= NULL, h_err_write= NULL;
   HANDLE              h_in_read= NULL, h_in_write= NULL;
@@ -1270,7 +1270,7 @@ f_subprocess_spawn (s7_scheme* sc, s7_pointer args) {
     attr.outmode= TB_FILE_MODE_RW | TB_FILE_MODE_CREAT | TB_FILE_MODE_TRUNC;
   }
   else if (stdout_pipe) {
-#ifdef _WIN32
+#ifdef TB_CONFIG_OS_WINDOWS
     CreatePipe (&h_out_read, &h_out_write, &sa, 0);
     SetHandleInformation (h_out_read, HANDLE_FLAG_INHERIT, 0);
     attr.outtype = TB_PROCESS_REDIRECT_TYPE_FILE;
@@ -1298,7 +1298,7 @@ f_subprocess_spawn (s7_scheme* sc, s7_pointer args) {
 #endif
     attr.errmode= TB_FILE_MODE_RW | TB_FILE_MODE_CREAT | TB_FILE_MODE_TRUNC;
   }
-#ifdef _WIN32
+#ifdef TB_CONFIG_OS_WINDOWS
   else if (stderr_to_stdout && h_out_write) {
     HANDLE h_err_dup= NULL;
     if (DuplicateHandle (GetCurrentProcess (), h_out_write, GetCurrentProcess (), &h_err_dup, 0, TRUE,
@@ -1333,7 +1333,7 @@ f_subprocess_spawn (s7_scheme* sc, s7_pointer args) {
     attr.in.path= stdin_path;
     attr.inmode = TB_FILE_MODE_RO;
   }
-#ifdef _WIN32
+#ifdef TB_CONFIG_OS_WINDOWS
   else if (stdin_null) {
     CreatePipe (&h_in_read, &h_in_write, &sa, 0);
     SetHandleInformation (h_in_write, HANDLE_FLAG_INHERIT, 0);
@@ -1369,7 +1369,7 @@ f_subprocess_spawn (s7_scheme* sc, s7_pointer args) {
     const char* cmd_c= s7_string (cmd_arg);
 #ifdef TB_CONFIG_OS_WINDOWS
     process= tb_process_init_cmd (cmd_c, &attr);
-#elif !defined(_MSC_VER) && !defined(__MINGW32__) && !defined(__EMSCRIPTEN__)
+#elif !defined(__EMSCRIPTEN__)
     wordexp_t p;
     int       ret= wordexp (cmd_c, &p, 0);
     if (ret == 0 && p.we_wordc > 0) {
@@ -1399,7 +1399,7 @@ f_subprocess_spawn (s7_scheme* sc, s7_pointer args) {
     }
   }
 
-#ifdef _WIN32
+#ifdef TB_CONFIG_OS_WINDOWS
   if (h_out_write) CloseHandle (h_out_write);
   if (h_err_write) CloseHandle (h_err_write);
   if (h_in_read) CloseHandle (h_in_read);
@@ -1410,7 +1410,7 @@ f_subprocess_spawn (s7_scheme* sc, s7_pointer args) {
 #endif
 
   if (!process) {
-#ifdef _WIN32
+#ifdef TB_CONFIG_OS_WINDOWS
     if (h_out_read) CloseHandle (h_out_read);
     if (h_err_read) CloseHandle (h_err_read);
     if (h_in_write) CloseHandle (h_in_write);
@@ -1426,7 +1426,7 @@ f_subprocess_spawn (s7_scheme* sc, s7_pointer args) {
   sub->process= process;
   sub->pid    = get_process_pid (process);
 
-#ifdef _WIN32
+#ifdef TB_CONFIG_OS_WINDOWS
   sub->h_out_read= h_out_read;
   sub->h_err_read= h_err_read;
   sub->h_in_write= h_in_write;
