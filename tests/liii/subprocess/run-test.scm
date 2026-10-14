@@ -75,7 +75,12 @@
 
   ;; :env (need to preserve PATH on Windows)
   (let ((path-env (getenv "PATH")))
-    (check (run "python3 -c pass" :env `(("FOO" . "bar") ("PATH" . ,path-env))) => 0))
+    (check
+      (run "python3 -c pass" :env `((,"FOO" . ,"bar") (,"PATH" . ,path-env)))
+      =>
+      0
+    ) ;check
+  ) ;let
 
   ;; list form with symbol head
   (run-set! 'pyprint "python3")

@@ -38,11 +38,16 @@
   (check (to-left (run-and "true" "false")) => '(1 "false"))
   (check (either-right? (run-and "true" "true" :cwd "/tmp")) => #t)
   (check (to-right (run-and "true" "true" :cwd "/tmp")) => 0)
-  (check (either-right? (run-and '(sh "-c" "test $FOO = bar") :env '(("FOO" . "bar"))))
+  (check
+    (either-right? (run-and '(sh "-c" "test $FOO = bar") :env '(("FOO" . "bar"))))
     =>
     #t
   ) ;check
-  (check (to-right (run-and '(sh "-c" "test $FOO = bar") :env '(("FOO" . "bar")))) => 0)
+  (check
+    (to-right (run-and '(sh "-c" "test $FOO = bar") :env '(("FOO" . "bar"))))
+    =>
+    0
+  ) ;check
 
   ;; :stdout only on last
   (let ((tmpfile "/tmp/gf-run-and-stdout.txt"))
@@ -72,28 +77,77 @@
   (check (either-right? (run-and "python3 -c pass" "python3 -c pass")) => #t)
   (check (to-right (run-and "python3 -c pass" "python3 -c pass")) => 0)
   (check (either-left? (run-and "python3 -c 1/0" "python3 -c pass")) => #t)
-  (check (to-left (run-and "python3 -c 1/0" "python3 -c pass")) => '(1 "python3 -c 1/0"))
+  (check (to-left (run-and "python3 -c 1/0" "python3 -c pass"))
+    =>
+    '(1 "python3 -c 1/0")
+  ) ;check
   (check (either-left? (run-and "python3 -c pass" "python3 -c 1/0")) => #t)
-  (check (to-left (run-and "python3 -c pass" "python3 -c 1/0")) => '(1 "python3 -c 1/0"))
-  (check (either-right? (run-and "python3 -c pass" "python3 -c pass" :cwd (os-temp-dir))) => #t)
-  (check (to-right (run-and "python3 -c pass" "python3 -c pass" :cwd (os-temp-dir))) => 0)
+  (check (to-left (run-and "python3 -c pass" "python3 -c 1/0"))
+    =>
+    '(1 "python3 -c 1/0")
+  ) ;check
+  (check (either-right? (run-and "python3 -c pass" "python3 -c pass" :cwd (os-temp-dir)))
+    =>
+    #t
+  ) ;check
+  (check (to-right (run-and "python3 -c pass" "python3 -c pass" :cwd (os-temp-dir)))
+    =>
+    0
+  ) ;check
   (let ((path-env (getenv "PATH")))
-    (check (either-right? (run-and "python3 -c pass" :env `(("FOO" . "bar") ("PATH" . ,path-env)))) => #t)
-    (check (to-right (run-and "python3 -c pass" :env `(("FOO" . "bar") ("PATH" . ,path-env)))) => 0))
+    (check
+      (either-right?
+        (run-and "python3 -c pass" :env `((,"FOO" . ,"bar")
+                                          (,"PATH" . ,path-env)))
+      ) ;either-right?
+      =>
+      #t
+    ) ;check
+    (check
+      (to-right
+        (run-and "python3 -c pass" :env `((,"FOO" . ,"bar")
+                                          (,"PATH" . ,path-env)))
+      ) ;to-right
+      =>
+      0
+    ) ;check
+  ) ;let
 
   ;; :stdout only on last
   (let ((tmpfile (string-append (os-temp-dir) "/gf-run-and-stdout-win.txt")))
-    (when (file-exists? tmpfile) (delete-file tmpfile))
-    (check (either-right? (run-and "python3 -c pass" "python3 -c pass" :stdout tmpfile)) => #t)
-    (check (to-right (run-and "python3 -c pass" "python3 -c pass" :stdout tmpfile)) => 0)
-    (when (file-exists? tmpfile) (delete-file tmpfile))
+    (when (file-exists? tmpfile)
+      (delete-file tmpfile)
+    ) ;when
+    (check (either-right? (run-and "python3 -c pass" "python3 -c pass" :stdout tmpfile))
+      =>
+      #t
+    ) ;check
+    (check (to-right (run-and "python3 -c pass" "python3 -c pass" :stdout tmpfile))
+      =>
+      0
+    ) ;check
+    (when (file-exists? tmpfile)
+      (delete-file tmpfile)
+    ) ;when
   ) ;let
 
   ;; Multiple commands
-  (check (either-right? (run-and "python3 -c pass" "python3 -c pass" "python3 -c pass")) => #t)
-  (check (to-right (run-and "python3 -c pass" "python3 -c pass" "python3 -c pass")) => 0)
-  (check (either-left? (run-and "python3 -c pass" "python3 -c 1/0" "python3 -c pass")) => #t)
-  (check (to-left (run-and "python3 -c pass" "python3 -c 1/0" "python3 -c pass")) => '(1 "python3 -c 1/0"))
+  (check (either-right? (run-and "python3 -c pass" "python3 -c pass" "python3 -c pass"))
+    =>
+    #t
+  ) ;check
+  (check (to-right (run-and "python3 -c pass" "python3 -c pass" "python3 -c pass"))
+    =>
+    0
+  ) ;check
+  (check (either-left? (run-and "python3 -c pass" "python3 -c 1/0" "python3 -c pass"))
+    =>
+    #t
+  ) ;check
+  (check (to-left (run-and "python3 -c pass" "python3 -c 1/0" "python3 -c pass"))
+    =>
+    '(1 "python3 -c 1/0")
+  ) ;check
 ) ;when
 
 (check-report)
