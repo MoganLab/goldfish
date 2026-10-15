@@ -40,6 +40,22 @@
 #ifndef tb_pipefile2fd
 #define tb_pipefile2fd(file) (tb_int_t) ((file) ? (((tb_long_t) (file)) - 1) : -1)
 #endif
+
+static void
+set_pipe_cloexec (tb_pipe_file_ref_t p) {
+  if (p) {
+    int fd= tb_pipefile2fd (p);
+    if (fd >= 0) {
+      fcntl (fd, F_SETFD, FD_CLOEXEC);
+    }
+  }
+}
+
+static void
+set_pipe_pair_cloexec (tb_pipe_file_ref_t pipe[2]) {
+  set_pipe_cloexec (pipe[0]);
+  set_pipe_cloexec (pipe[1]);
+}
 #endif
 
 #if !defined(TB_CONFIG_OS_WINDOWS) && !defined(__EMSCRIPTEN__)
@@ -742,6 +758,7 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
 #else
     tb_size_t mode[2]= {TB_PIPE_MODE_RO, TB_PIPE_MODE_WO | TB_PIPE_MODE_BLOCK};
     tb_pipe_file_init_pair (out_pipe, mode, 0);
+    set_pipe_pair_cloexec (out_pipe);
     attr.outtype = TB_PROCESS_REDIRECT_TYPE_PIPE;
     attr.out.pipe= out_pipe[1];
 #endif
@@ -788,6 +805,7 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
   else if (stderr_mode == redirect_mode::tee || stderr_mode == redirect_mode::capture) {
     tb_size_t mode[2]= {TB_PIPE_MODE_RO, TB_PIPE_MODE_WO | TB_PIPE_MODE_BLOCK};
     tb_pipe_file_init_pair (err_pipe, mode, 0);
+    set_pipe_pair_cloexec (err_pipe);
     attr.errtype = TB_PROCESS_REDIRECT_TYPE_PIPE;
     attr.err.pipe= err_pipe[1];
   }
@@ -824,6 +842,7 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
   else if (stdin_null) {
     tb_size_t mode[2]= {TB_PIPE_MODE_RO | TB_PIPE_MODE_BLOCK, TB_PIPE_MODE_WO | TB_PIPE_MODE_BLOCK};
     tb_pipe_file_init_pair (in_pipe, mode, 0);
+    set_pipe_pair_cloexec (in_pipe);
     attr.intype = TB_PROCESS_REDIRECT_TYPE_PIPE;
     attr.in.pipe= in_pipe[0];
     tb_pipe_file_exit (in_pipe[1]);
@@ -831,6 +850,7 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
   else if (input) {
     tb_size_t mode[2]= {TB_PIPE_MODE_RO | TB_PIPE_MODE_BLOCK, TB_PIPE_MODE_WO | TB_PIPE_MODE_BLOCK};
     tb_pipe_file_init_pair (in_pipe, mode, 0);
+    set_pipe_pair_cloexec (in_pipe);
     attr.intype = TB_PROCESS_REDIRECT_TYPE_PIPE;
     attr.in.pipe= in_pipe[0];
     tb_pipe_file_write (in_pipe[1], (tb_byte_t*) input, input_len);
@@ -1278,6 +1298,7 @@ f_subprocess_spawn (s7_scheme* sc, s7_pointer args) {
 #else
     tb_size_t mode[2]= {TB_PIPE_MODE_RO, TB_PIPE_MODE_WO | TB_PIPE_MODE_BLOCK};
     tb_pipe_file_init_pair (out_pipe, mode, 0);
+    set_pipe_pair_cloexec (out_pipe);
     attr.outtype = TB_PROCESS_REDIRECT_TYPE_PIPE;
     attr.out.pipe= out_pipe[1];
 #endif
@@ -1322,6 +1343,7 @@ f_subprocess_spawn (s7_scheme* sc, s7_pointer args) {
   else if (stderr_pipe) {
     tb_size_t mode[2]= {TB_PIPE_MODE_RO, TB_PIPE_MODE_WO | TB_PIPE_MODE_BLOCK};
     tb_pipe_file_init_pair (err_pipe, mode, 0);
+    set_pipe_pair_cloexec (err_pipe);
     attr.errtype = TB_PROCESS_REDIRECT_TYPE_PIPE;
     attr.err.pipe= err_pipe[1];
   }
@@ -1352,6 +1374,7 @@ f_subprocess_spawn (s7_scheme* sc, s7_pointer args) {
   else if (stdin_null) {
     tb_size_t mode[2]= {TB_PIPE_MODE_RO | TB_PIPE_MODE_BLOCK, TB_PIPE_MODE_WO | TB_PIPE_MODE_BLOCK};
     tb_pipe_file_init_pair (in_pipe, mode, 0);
+    set_pipe_pair_cloexec (in_pipe);
     attr.intype = TB_PROCESS_REDIRECT_TYPE_PIPE;
     attr.in.pipe= in_pipe[0];
     tb_pipe_file_exit (in_pipe[1]);
@@ -1359,6 +1382,7 @@ f_subprocess_spawn (s7_scheme* sc, s7_pointer args) {
   else if (stdin_pipe) {
     tb_size_t mode[2]= {TB_PIPE_MODE_RO | TB_PIPE_MODE_BLOCK, TB_PIPE_MODE_WO | TB_PIPE_MODE_BLOCK};
     tb_pipe_file_init_pair (in_pipe, mode, 0);
+    set_pipe_pair_cloexec (in_pipe);
     attr.intype = TB_PROCESS_REDIRECT_TYPE_PIPE;
     attr.in.pipe= in_pipe[0];
   }
