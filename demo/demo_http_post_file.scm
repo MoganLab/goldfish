@@ -9,7 +9,7 @@
   ) ;display
   (let* ((r
            (http-post "https://server.simpletex.cn/api/latex_ocr_turbo"
-             :headers `((,"token" . ,simpletex-api-key))
+             :headers `(("token" . ,simpletex-api-key))
              :files
              '(("file"
                 (file . "tests/resources/simpletex-formula-a2-b2.png")
