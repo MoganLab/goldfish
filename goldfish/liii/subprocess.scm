@@ -413,7 +413,7 @@
                               ) ;run-either
                          ) ;res
                         ) ;
-                     (if (either-right? res) (from-right 0) res)
+                     (either-map (lambda (_) 0) res)
                    ) ;let
                   ) ;
                   (else
@@ -487,7 +487,7 @@
                          ) ;run-either
                     ) ;res
                    ) ;
-                (loop (cdr cmds) (if (either-right? res) (from-right 0) res))
+                (loop (cdr cmds) (either-map (lambda (_) 0) res))
               ) ;let
             ) ;if
           ) ;let
@@ -540,7 +540,7 @@
             ) ;chosen-cmd
            ) ;
         (let ((res (run-either chosen-cmd :stdout 'inherit :stderr 'inherit)))
-          (if (either-right? res) (from-right 0) res)
+          (either-map (lambda (_) 0) res)
         ) ;let
       ) ;let
     ) ;define
@@ -549,7 +549,7 @@
       (if (zero? (run condition :stdout 'inherit :stderr 'inherit))
         (from-right 0)
         (let ((res (run-either command :stdout 'inherit :stderr 'inherit)))
-          (if (either-right? res) (from-right 0) res)
+          (either-map (lambda (_) 0) res)
         ) ;let
       ) ;if
     ) ;define
