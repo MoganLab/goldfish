@@ -311,7 +311,13 @@
        (cmd `(,"python3" ,"-c" ,order-code))
       ) ;
   (let-values (((out err code) (run-values cmd :stderr 'stdout)))
-    (check out => "out-1\nerr-1\nout-2\nerr-2\n")
+    (check out
+      =>
+      (if (os-windows?)
+        "out-1\r\nerr-1\r\nout-2\r\nerr-2\r\n"
+        "out-1\nerr-1\nout-2\nerr-2\n"
+      ) ;if
+    ) ;check
     (check err => "")
     (check (zero? code) => #t)
   ) ;let-values
@@ -322,7 +328,7 @@
               (run-values '("python3" "-c" "print('line1'); print('line2')") :stdout 'tee)
              ) ;
             ) ;
-  (check out => "line1\nline2\n")
+  (check out => (if (os-windows?) "line1\r\nline2\r\n" "line1\nline2\n"))
   (check err => "")
   (check (zero? code) => #t)
 ) ;let-values
@@ -336,7 +342,7 @@
              ) ;
             ) ;
   (check out => "")
-  (check err => "err1\nerr2\n")
+  (check err => (if (os-windows?) "err1\r\nerr2\r\n" "err1\nerr2\n"))
   (check (zero? code) => #t)
 ) ;let-values
 
