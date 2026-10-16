@@ -1174,14 +1174,13 @@
                (file-exists-error (string-append "File exists: '" s "'"))
               ) ;
               ((not parents)
-               (let ((parent (path-parent (path s))))
-                 (if
-                   (and (not (path=? parent (path s))) (not (path-dir? (path->string parent))))
+               (let* ((path-s (path s)) (parent (path-parent path-s)))
+                 (if (and (not (path=? parent path-s)) (not (path-dir? parent)))
                    (file-not-found-error (string-append "Parent directory not found: '" (path->string parent) "'")
                    ) ;file-not-found-error
                    (ensure-one s)
                  ) ;if
-               ) ;let
+               ) ;let*
               ) ;
               (else
                 ;; parents:从根向下逐级创建(跳过已存在的)

@@ -91,14 +91,14 @@
 ) ;check
 (check (guard (ex (else ex)) (error 'test-error "message")) => "message")
 
-;; 5. cond 支持 => 语法
+;; 5. cond 支持 => 语法，接收者拿到的是测试表达式的值
 (check
   (guard
-    (ex ((integer? ex) => (lambda (r) (+ ex 10))))
+    (ex ((and (integer? ex) (* ex 100)) => (lambda (r) (+ ex r))))
     (raise 5)
   ) ;guard
   =>
-  15
+  505
 ) ;check
 
 ;; 6. 无匹配 cond 子句且无 else 时重新抛出异常（re-raise）

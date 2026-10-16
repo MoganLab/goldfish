@@ -560,6 +560,7 @@
              ) ;has-else?
              (tag (gensym "guard-tag-"))
              (val (gensym "guard-val-"))
+             (vals (gensym "guard-vals-"))
              (type (gensym "guard-type-"))
              (info (gensym "guard-info-"))
             ) ;
@@ -568,13 +569,13 @@
                   (catch ,#t
                     (lambda ,()
                       (call-with-values (lambda ,() ,@body)
-                        (lambda vals (cons ,tag vals))))
+                        (lambda ,vals (cons ,tag ,vals))))
                     (lambda (,type ,info) (vector ,tag ,type ,info)))))
              (if (and (pair? ,val) (eq? (car ,val) ,tag))
-               (let ((vals (cdr ,val)))
-                 (if (and (pair? vals) (null? (cdr vals)))
-                   (car vals)
-                   (apply values vals)))
+               (let ((,vals (cdr ,val)))
+                 (if (and (pair? ,vals) (null? (cdr ,vals)))
+                   (car ,vals)
+                   (apply values ,vals)))
                (let ((,type (vector-ref ,val ,1)) (,info (vector-ref ,val ,2)))
                  (let ((,var (if (pair? ,info) (car ,info) ,info)))
                    (cond ,@clauses
