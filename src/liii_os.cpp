@@ -25,8 +25,8 @@
 #include <tbox/tbox.h>
 
 #ifdef TB_CONFIG_OS_WINDOWS
-#include <windows.h>
 #include <io.h>
+#include <windows.h>
 #ifdef _MSC_VER
 #include <crtdbg.h>
 #endif
@@ -454,8 +454,8 @@ f_os_tty_p (s7_scheme* sc, s7_pointer args) {
   }
   s7_int fd= s7_integer (fd_arg);
 #if defined(TB_CONFIG_OS_WINDOWS) && defined(_MSC_VER)
-  _invalid_parameter_handler old_handler=
-    _set_thread_local_invalid_parameter_handler ([] (const wchar_t*, const wchar_t*, const wchar_t*, unsigned int, uintptr_t) {});
+  _invalid_parameter_handler old_handler= _set_thread_local_invalid_parameter_handler (
+      [] (const wchar_t*, const wchar_t*, const wchar_t*, unsigned int, uintptr_t) {});
   _CrtSetReportMode (_CRT_ASSERT, 0);
   int ret= (fd >= 0) ? _isatty ((int) fd) : 0;
   _set_thread_local_invalid_parameter_handler (old_handler);
