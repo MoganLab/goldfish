@@ -38,8 +38,8 @@
 #include <unordered_map>
 #include <vector>
 
-#include "liii_subprocess.hpp"
 #include "liii_signal.hpp"
+#include "liii_subprocess.hpp"
 
 #include <tbox/platform/file.h>
 #include <tbox/platform/path.h>
@@ -540,12 +540,12 @@ static s7_pointer
 f_sleep (s7_scheme* sc, s7_pointer args) {
   s7_double seconds= s7_real (s7_car (args));
 
-  tb_long_t total_ms = (tb_long_t) (seconds * 1000);
+  tb_long_t total_ms= (tb_long_t) (seconds * 1000);
   tb_long_t elapsed = 0;
   while (elapsed < total_ms) {
-    tb_long_t chunk = (total_ms - elapsed > 50) ? 50 : (total_ms - elapsed);
+    tb_long_t chunk= (total_ms - elapsed > 50) ? 50 : (total_ms - elapsed);
     tb_msleep (chunk);
-    elapsed += chunk;
+    elapsed+= chunk;
     if (dispatch_pending_signals (sc)) {
       break;
     }

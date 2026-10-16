@@ -35,10 +35,10 @@
 (check (signal-get 'sigint) => 'default)
 (check (signal-get 'sigterm) => 'default)
 
-(let ((prev (signal-trap 'sigpipe 'ignore)))
-  (check (signal-get 'sigpipe) => 'ignore)
-  (signal-trap 'sigpipe prev)
-  (check (signal-get 'sigpipe) => prev)
+(let ((prev (signal-trap 'sigterm 'ignore)))
+  (check (signal-get 'sigterm) => 'ignore)
+  (signal-trap 'sigterm prev)
+  (check (signal-get 'sigterm) => prev)
 ) ;let
 
 ;; 2. 错误测试：类型错误与非法信号名

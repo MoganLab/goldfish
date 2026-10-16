@@ -12,7 +12,7 @@
 ;; 参数
 ;; ----
 ;; sig : symbol?
-;; 信号符号，例如 'sigusr1, 'sigusr2, 'sigint 等。
+;; 信号符号，例如 'sigint, 'sigterm, 'sigusr1 等。
 ;;
 ;; 返回值
 ;; -----
@@ -32,24 +32,24 @@
 
 ;; 1. 基本功能测试：自身触发信号并被自定义过程捕获
 (let ((handled #f))
-  (signal-trap 'sigusr1 (lambda (sig) (set! handled sig)))
-  (signal-raise 'sigusr1)
-  (check handled => 'sigusr1)
-  (signal-trap 'sigusr1 'default)
+  (signal-trap 'sigint (lambda (sig) (set! handled sig)))
+  (signal-raise 'sigint)
+  (check handled => 'sigint)
+  (signal-trap 'sigint 'default)
 ) ;let
 
 ;; 2. 忽略信号的主动发送测试（不应产生中断或异常）
-(let ((prev (signal-trap 'sigpipe 'ignore)))
-  (signal-raise 'sigpipe)
-  (check (signal-get 'sigpipe) => 'ignore)
-  (signal-trap 'sigpipe prev)
+(let ((prev (signal-trap 'sigterm 'ignore)))
+  (signal-raise 'sigterm)
+  (check (signal-get 'sigterm) => 'ignore)
+  (signal-trap 'sigterm prev)
 ) ;let
 
 ;; 3. 错误测试：类型错误与非法信号名
 (check-catch 'type-error (signal-raise 123))
-(check-catch 'type-error (signal-raise "sigusr1"))
+(check-catch 'type-error (signal-raise "sigint"))
 (check-catch 'type-error (signal-raise #t))
-(check-catch 'type-error (signal-raise '(sigusr1)))
+(check-catch 'type-error (signal-raise '(sigint)))
 
 (check-catch 'value-error (signal-raise 'unknown-sig))
 (check-catch 'value-error (signal-raise 'nosuchsig))

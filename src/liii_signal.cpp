@@ -19,9 +19,14 @@
 #include <cstring>
 #include <vector>
 
-#ifdef TB_CONFIG_OS_WINDOWS
-#include <windows.h>
+#include <tbox/tbox.h>
+
+#if defined(TB_CONFIG_OS_WINDOWS) || defined(_WIN32)
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
 #include <csignal>
+#include <windows.h>
 #else
 #include <csignal>
 #include <signal.h>
@@ -32,9 +37,9 @@
 namespace goldfish {
 
 static std::atomic<uint64_t> g_pending_signals{0};
-static s7_pointer            g_signal_dispatcher = NULL;
-static int                   g_dispatcher_gc_loc = -1;
-static bool                  g_in_dispatch       = false;
+static s7_pointer            g_signal_dispatcher= NULL;
+static int                   g_dispatcher_gc_loc= -1;
+static bool                  g_in_dispatch      = false;
 
 struct SignalDef {
   const char* name;
@@ -43,22 +48,16 @@ struct SignalDef {
 
 static const std::vector<SignalDef>&
 get_supported_signals () {
-  static const std::vector<SignalDef> sigs = {
-    {"sigint", SIGINT},
-    {"sigterm", SIGTERM},
-    {"sigabrt", SIGABRT},
-#if !defined(TB_CONFIG_OS_WINDOWS)
-    {"sighup", SIGHUP},
-    {"sigpipe", SIGPIPE},
-    {"sigusr1", SIGUSR1},
-    {"sigusr2", SIGUSR2},
-    {"sigchld", SIGCHLD},
+  static const std::vector<SignalDef> sigs= {
+      {"sigint", SIGINT}, {"sigterm", SIGTERM}, {"sigabrt", SIGABRT},
+#if !defined(TB_CONFIG_OS_WINDOWS) && !defined(_WIN32)
+      {"sighup", SIGHUP}, {"sigpipe", SIGPIPE}, {"sigusr1", SIGUSR1}, {"sigusr2", SIGUSR2}, {"sigchld", SIGCHLD},
 #endif
   };
   return sigs;
 }
 
-#if !defined(TB_CONFIG_OS_WINDOWS)
+#if !defined(TB_CONFIG_OS_WINDOWS) && !defined(_WIN32)
 static void
 posix_signal_handler (int signum) {
   if (signum > 0 && signum < 64) {
@@ -71,6 +70,7 @@ windows_signal_handler (int signum) {
   if (signum > 0 && signum < 64) {
     g_pending_signals.fetch_or (1ULL << signum, std::memory_order_relaxed);
   }
+  signal (signum, windows_signal_handler);
 }
 
 static BOOL WINAPI
@@ -85,19 +85,22 @@ windows_console_ctrl_handler (DWORD ctrl_type) {
 
 static bool
 set_os_signal_action (int signum, const char* action) {
-#if !defined(TB_CONFIG_OS_WINDOWS)
+#if !defined(TB_CONFIG_OS_WINDOWS) && !defined(_WIN32)
   struct sigaction sa;
   std::memset (&sa, 0, sizeof (sa));
   sigemptyset (&sa.sa_mask);
 
   if (std::strcmp (action, "default") == 0) {
-    sa.sa_handler = SIG_DFL;
-  } else if (std::strcmp (action, "ignore") == 0) {
-    sa.sa_handler = SIG_IGN;
-  } else if (std::strcmp (action, "catch") == 0) {
-    sa.sa_handler = posix_signal_handler;
-    sa.sa_flags   = SA_RESTART;
-  } else {
+    sa.sa_handler= SIG_DFL;
+  }
+  else if (std::strcmp (action, "ignore") == 0) {
+    sa.sa_handler= SIG_IGN;
+  }
+  else if (std::strcmp (action, "catch") == 0) {
+    sa.sa_handler= posix_signal_handler;
+    sa.sa_flags  = SA_RESTART;
+  }
+  else {
     return false;
   }
   return sigaction (signum, &sa, NULL) == 0;
@@ -107,17 +110,20 @@ set_os_signal_action (int signum, const char* action) {
     if (signum == SIGINT) {
       SetConsoleCtrlHandler (windows_console_ctrl_handler, FALSE);
     }
-  } else if (std::strcmp (action, "ignore") == 0) {
+  }
+  else if (std::strcmp (action, "ignore") == 0) {
     signal (signum, SIG_IGN);
     if (signum == SIGINT) {
       SetConsoleCtrlHandler (windows_console_ctrl_handler, FALSE);
     }
-  } else if (std::strcmp (action, "catch") == 0) {
+  }
+  else if (std::strcmp (action, "catch") == 0) {
     signal (signum, windows_signal_handler);
     if (signum == SIGINT) {
       SetConsoleCtrlHandler (windows_console_ctrl_handler, TRUE);
     }
-  } else {
+  }
+  else {
     return false;
   }
   return true;
@@ -126,7 +132,7 @@ set_os_signal_action (int signum, const char* action) {
 
 static s7_pointer
 get_signal_symbol (s7_scheme* sc, int signum) {
-  const auto& sigs = get_supported_signals ();
+  const auto& sigs= get_supported_signals ();
   for (const auto& s : sigs) {
     if (s.signum == signum) {
       return s7_make_symbol (sc, s.name);
@@ -143,27 +149,27 @@ dispatch_pending_signals (s7_scheme* sc) {
   if (g_in_dispatch || g_signal_dispatcher == NULL) {
     return false;
   }
-  g_in_dispatch = true;
+  g_in_dispatch= true;
 
-  bool dispatched = false;
+  bool dispatched= false;
   while (true) {
-    uint64_t current = g_pending_signals.load (std::memory_order_relaxed);
+    uint64_t current= g_pending_signals.load (std::memory_order_relaxed);
     if (current == 0) break;
 
-    for (int sig = 1; sig < 64; ++sig) {
-      uint64_t mask = (1ULL << sig);
+    for (int sig= 1; sig < 64; ++sig) {
+      uint64_t mask= (1ULL << sig);
       if (g_pending_signals.load (std::memory_order_relaxed) & mask) {
         g_pending_signals.fetch_and (~mask, std::memory_order_relaxed);
-        s7_pointer sig_sym = get_signal_symbol (sc, sig);
+        s7_pointer sig_sym= get_signal_symbol (sc, sig);
         if (sig_sym != s7_nil (sc)) {
-          dispatched = true;
+          dispatched= true;
           s7_call (sc, g_signal_dispatcher, s7_cons (sc, sig_sym, s7_nil (sc)));
         }
       }
     }
   }
 
-  g_in_dispatch = false;
+  g_in_dispatch= false;
   return dispatched;
 }
 
@@ -177,11 +183,11 @@ signal_safe_point_hook (s7_scheme* sc, bool* val) {
 // (g_signal-supported-signals) => ((sigint . 2) (sigterm . 15) ...)
 static s7_pointer
 f_signal_supported_signals (s7_scheme* sc, s7_pointer args) {
-  const auto& sigs = get_supported_signals ();
-  s7_pointer  result = s7_nil (sc);
-  for (auto it = sigs.rbegin (); it != sigs.rend (); ++it) {
-    s7_pointer entry = s7_cons (sc, s7_make_symbol (sc, it->name), s7_make_integer (sc, it->signum));
-    result = s7_cons (sc, entry, result);
+  const auto& sigs  = get_supported_signals ();
+  s7_pointer  result= s7_nil (sc);
+  for (auto it= sigs.rbegin (); it != sigs.rend (); ++it) {
+    s7_pointer entry= s7_cons (sc, s7_make_symbol (sc, it->name), s7_make_integer (sc, it->signum));
+    result          = s7_cons (sc, entry, result);
   }
   return result;
 }
@@ -189,16 +195,16 @@ f_signal_supported_signals (s7_scheme* sc, s7_pointer args) {
 // (g_signal-os-trap signum mode) => boolean
 static s7_pointer
 f_signal_os_trap (s7_scheme* sc, s7_pointer args) {
-  int         signum = (int) s7_integer (s7_car (args));
-  const char* mode   = s7_symbol_name (s7_cadr (args));
-  bool        ok     = set_os_signal_action (signum, mode);
+  int         signum= (int) s7_integer (s7_car (args));
+  const char* mode  = s7_symbol_name (s7_cadr (args));
+  bool        ok    = set_os_signal_action (signum, mode);
   return s7_make_boolean (sc, ok);
 }
 
 // (g_signal-raise signum) => unspecified
 static s7_pointer
 f_signal_raise (s7_scheme* sc, s7_pointer args) {
-  int signum = (int) s7_integer (s7_car (args));
+  int signum= (int) s7_integer (s7_car (args));
   raise (signum);
   dispatch_pending_signals (sc);
   return s7_unspecified (sc);
@@ -207,14 +213,14 @@ f_signal_raise (s7_scheme* sc, s7_pointer args) {
 // (g_signal-set-dispatcher proc) => unspecified
 static s7_pointer
 f_signal_set_dispatcher (s7_scheme* sc, s7_pointer args) {
-  s7_pointer proc = s7_car (args);
+  s7_pointer proc= s7_car (args);
   if (g_dispatcher_gc_loc != -1) {
     s7_gc_unprotect_at (sc, g_dispatcher_gc_loc);
-    g_dispatcher_gc_loc = -1;
+    g_dispatcher_gc_loc= -1;
   }
-  g_signal_dispatcher = proc;
+  g_signal_dispatcher= proc;
   if (proc != s7_nil (sc)) {
-    g_dispatcher_gc_loc = s7_gc_protect (sc, proc);
+    g_dispatcher_gc_loc= s7_gc_protect (sc, proc);
   }
   return s7_unspecified (sc);
 }
@@ -222,14 +228,14 @@ f_signal_set_dispatcher (s7_scheme* sc, s7_pointer args) {
 // (g_signal-poll) => boolean
 static s7_pointer
 f_signal_poll (s7_scheme* sc, s7_pointer args) {
-  bool ret = dispatch_pending_signals (sc);
+  bool ret= dispatch_pending_signals (sc);
   return s7_make_boolean (sc, ret);
 }
 
 static void
 glue_define (s7_scheme* sc, const char* name, const char* desc, s7_function f, s7_int required, s7_int optional) {
-  s7_pointer cur_env = s7_curlet (sc);
-  s7_pointer func    = s7_make_typed_function (sc, name, f, required, optional, false, desc, NULL);
+  s7_pointer cur_env= s7_curlet (sc);
+  s7_pointer func   = s7_make_typed_function (sc, name, f, required, optional, false, desc, NULL);
   s7_define (sc, cur_env, s7_make_symbol (sc, name), func);
 }
 
@@ -237,16 +243,13 @@ void
 glue_liii_signal (s7_scheme* sc) {
   s7_set_begin_hook (sc, signal_safe_point_hook);
 
-  glue_define (sc, "g_signal-supported-signals", "(g_signal-supported-signals) => alist",
-               f_signal_supported_signals, 0, 0);
-  glue_define (sc, "g_signal-os-trap", "(g_signal-os-trap signum mode) => boolean",
-               f_signal_os_trap, 2, 0);
-  glue_define (sc, "g_signal-raise", "(g_signal-raise signum) => unspecified",
-               f_signal_raise, 1, 0);
-  glue_define (sc, "g_signal-set-dispatcher", "(g_signal-set-dispatcher proc) => unspecified",
-               f_signal_set_dispatcher, 1, 0);
-  glue_define (sc, "g_signal-poll", "(g_signal-poll) => boolean",
-               f_signal_poll, 0, 0);
+  glue_define (sc, "g_signal-supported-signals", "(g_signal-supported-signals) => alist", f_signal_supported_signals, 0,
+               0);
+  glue_define (sc, "g_signal-os-trap", "(g_signal-os-trap signum mode) => boolean", f_signal_os_trap, 2, 0);
+  glue_define (sc, "g_signal-raise", "(g_signal-raise signum) => unspecified", f_signal_raise, 1, 0);
+  glue_define (sc, "g_signal-set-dispatcher", "(g_signal-set-dispatcher proc) => unspecified", f_signal_set_dispatcher,
+               1, 0);
+  glue_define (sc, "g_signal-poll", "(g_signal-poll) => boolean", f_signal_poll, 0, 0);
 }
 
 } // namespace goldfish

@@ -10,17 +10,17 @@
 
 ;; 示例1：注册自定义信号回调并主动触发
 (let ((handled #f))
-  (signal-trap 'sigusr1 (lambda (sig) (set! handled sig)))
-  (signal-raise 'sigusr1)
-  (check handled => 'sigusr1)
-  (signal-trap 'sigusr1 'default)
+  (signal-trap 'sigint (lambda (sig) (set! handled sig)))
+  (signal-raise 'sigint)
+  (check handled => 'sigint)
+  (signal-trap 'sigint 'default)
 ) ;let
 
 ;; 示例2：忽略指定信号并在稍后恢复默认行为
-(let ((old (signal-trap 'sigpipe 'ignore)))
-  (check (signal-get 'sigpipe) => 'ignore)
-  (check (signal-trap 'sigpipe 'default) => 'ignore)
-  (check (signal-get 'sigpipe) => 'default)
+(let ((old (signal-trap 'sigterm 'ignore)))
+  (check (signal-get 'sigterm) => 'ignore)
+  (check (signal-trap 'sigterm 'default) => 'ignore)
+  (check (signal-get 'sigterm) => 'default)
 ) ;let
 
 ;; 示例3：错误防御校验
