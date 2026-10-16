@@ -18,6 +18,7 @@
 #include "s7.h"
 #include <cstring>
 #include <string>
+#include <vector>
 
 #include <tbox/platform/file.h>
 #include <tbox/tbox.h>
@@ -169,6 +170,90 @@ glue_path_read_text (s7_scheme* sc) {
   const char* name= "g_path-read-text";
   const char* desc= "(g_path-read-text path) => string, read the content of the file at the given path";
   s7_define_function (sc, name, f_path_read_text, 1, 0, false, desc);
+}
+
+static s7_pointer
+f_path_read_lines (s7_scheme* sc, s7_pointer args) {
+  s7_pointer path_arg= s7_car (args);
+  if (!s7_is_string (path_arg)) {
+    return string_type_error (sc, "path-read-lines: path must be a string", path_arg);
+  }
+  const char* path= s7_string (path_arg);
+  if (!path) {
+    return s7_make_boolean (sc, false);
+  }
+
+  bool       keepends = (s7_cadr (args) == s7_t (sc));
+  s7_int     offset   = s7_integer (s7_caddr (args));
+  s7_pointer limit_arg= s7_cadddr (args);
+  s7_int     limit    = s7_is_integer (limit_arg) ? s7_integer (limit_arg) : -1;
+
+  tb_file_ref_t file= tb_file_init (path, TB_FILE_MODE_RO);
+  if (file == tb_null) {
+    return s7_make_boolean (sc, false);
+  }
+
+  tb_file_sync (file);
+  tb_size_t size= tb_file_size (file);
+  if (size == 0) {
+    tb_file_exit (file);
+    return s7_nil (sc);
+  }
+
+  std::string content;
+  content.resize (size);
+  tb_size_t real_size= tb_file_read (file, reinterpret_cast<tb_byte_t*> (&content[0]), size);
+  tb_file_exit (file);
+  content.resize (real_size);
+
+  // 按行切分，\r\n 与孤立 \r 均归一化为 \n
+  std::vector<std::string> lines;
+  s7_int                   skipped  = 0;
+  s7_int                   collected= 0;
+  size_t                   n        = content.size ();
+  size_t                   i        = 0;
+  while (i < n && (limit < 0 || collected < limit)) {
+    size_t j= i;
+    while (j < n && content[j] != '\n' && content[j] != '\r') {
+      j++;
+    }
+    bool   has_end= j < n;
+    size_t next   = n;
+    if (has_end) {
+      if (content[j] == '\r' && j + 1 < n && content[j + 1] == '\n') {
+        next= j + 2;
+      }
+      else {
+        next= j + 1;
+      }
+    }
+    if (skipped < offset) {
+      skipped++;
+    }
+    else {
+      std::string line= content.substr (i, j - i);
+      if (keepends && has_end) {
+        line.push_back ('\n');
+      }
+      lines.push_back (std::move (line));
+      collected++;
+    }
+    i= next;
+  }
+
+  s7_pointer result= s7_nil (sc);
+  for (auto it= lines.rbegin (); it != lines.rend (); ++it) {
+    result= s7_cons (sc, s7_make_string_with_length (sc, it->data (), it->size ()), result);
+  }
+  return result;
+}
+
+static void
+glue_path_read_lines (s7_scheme* sc) {
+  const char* name= "g_path-read-lines";
+  const char* desc= "(g_path-read-lines path keepends offset limit) => list of strings, \
+read the file at the given path line by line; limit -1 means read to end";
+  glue_define (sc, name, desc, f_path_read_lines, 4, 0);
 }
 
 static s7_pointer
@@ -477,6 +562,7 @@ glue_liii_path (s7_scheme* sc) {
   glue_isdir (sc);
   glue_path_getsize (sc);
   glue_path_read_text (sc);
+  glue_path_read_lines (sc);
   glue_path_read_bytes (sc);
   glue_path_write_text (sc);
   glue_path_write_bytes (sc);
