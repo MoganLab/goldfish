@@ -15,21 +15,11 @@
 ;;
 
 (define-library (liii subprocess process-error)
-  (export
-    <process-error>
-    make-process-error
-    process-error?
-    process-error-code
-    process-error-stderr
-    process-error-stdout
-    process-error-command
+  (export <process-error> make-process-error process-error? process-error-code
+    process-error-stderr process-error-stdout process-error-command
     process-error-message
   ) ;export
-  (import
-    (scheme base)
-    (liii base)
-    (liii error)
-  ) ;import
+  (import (scheme base) (liii base) (liii error))
   (begin
 
     (define <process-error> '<process-error>)
@@ -45,9 +35,10 @@
     ) ;define-record-type
 
     (define (%default-error-message command code stdout stderr)
-      (cond ((and (string? stderr) (not (string=? stderr ""))) stderr)
-            ((and (string? stdout) (not (string=? stdout ""))) stdout)
-            (else (format #f "Command '~a' exited with status ~a" command code))
+      (cond
+       ((and (string? stderr) (not (string=? stderr ""))) stderr)
+       ((and (string? stdout) (not (string=? stdout ""))) stdout)
+       (else (format #f "Command '~a' exited with status ~a" command code))
       ) ;cond
     ) ;define
 
@@ -57,10 +48,7 @@
              (command (if by-code? arg4 arg1))
              (stdout (if by-code? arg3 arg3))
              (stderr (if by-code? arg2 arg4))
-             (msg (if (pair? rest)
-                    (car rest)
-                    (%default-error-message command code stdout stderr)
-                  ) ;if
+             (msg (if (pair? rest) (car rest) (%default-error-message command code stdout stderr))
              ) ;msg
             ) ;
         (%make-process-error command code stdout stderr msg)
