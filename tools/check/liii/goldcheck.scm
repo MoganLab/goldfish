@@ -47,6 +47,8 @@
     (liii list)
     (liii argparse)
     (liii json)
+    (liii par)
+    (srfi srfi-133)
     (liii goldtool-changed)
     (liii goldcheck-path)
     (liii goldcheck-config)
@@ -112,16 +114,21 @@
       ) ;let
     ) ;define
 
-    (define (check-files file-list cfg)
-      "检查文件列表，收集所有违规项。"
-      (let loop
-        ((files file-list) (acc '()))
-        (if (null? files)
-          acc
-          (let* ((f (car files)) (vs (check-file f cfg)))
-            (loop (cdr files) (append acc vs))
-          ) ;let*
-        ) ;if
+    (define (check-files file-vector cfg)
+      "检查文件向量，vector-par-map 并行检查且保序，返回违规项向量。\ncfg 是 JSON alist（含点对），无法作为捕获变量运输到 worker 会话，\n故序列化为 JSON 字符串捕获，worker 内用 string->json 重建。"
+      (let ((cfg-text (if cfg (json->string cfg) "")))
+        (vector-concatenate
+          (vector->list
+            (vector-map list->vector
+              (vector-par-map
+                (lambda (f)
+                  (check-file f (if (string=? cfg-text "") #f (string->json cfg-text)))
+                ) ;lambda
+                file-vector
+              ) ;vector-par-map
+            ) ;vector-map
+          ) ;vector->list
+        ) ;vector-concatenate
       ) ;let
     ) ;define
 
@@ -221,7 +228,7 @@
     ) ;define
 
     (define (report-and-exit violations)
-      (if (null? violations)
+      (if (zero? (vector-length violations))
         (begin
           (display "Check: OK")
           (newline)
@@ -229,12 +236,14 @@
         ) ;begin
         (begin
           (display (string-append "Check failed: "
-                     (number->string (length violations))
+                     (number->string (vector-length violations))
                      " violation(s) found"
                    ) ;string-append
           ) ;display
           (newline)
-          (for-each (lambda (v) (display (format-violation v)) (newline)) violations)
+          (vector-for-each (lambda (v) (display (format-violation v)) (newline))
+            violations
+          ) ;vector-for-each
           (exit 1)
         ) ;begin
       ) ;if
@@ -250,7 +259,7 @@
           ) ;begin
           (let* ((cfg (load-check-config))
                  (files (resolve-target-files parser cfg))
-                 (violations (check-files files cfg))
+                 (violations (check-files (list->vector files) cfg))
                 ) ;
             (report-and-exit violations)
           ) ;let*
