@@ -18,7 +18,8 @@
   (export run run-values run-either run-set! run-get run-allow! run-ban!
     run-unban! run-and run-or run-sequence run-pipe run-if run-when process?
     process-pid process-spawn process-alive? process-poll process-wait
-    process-terminate process-kill process-close
+    process-terminate process-kill process-close process-close-stdin
+    process-write process-read process-read-line
   ) ;export
   (import (scheme base)
     (scheme time)

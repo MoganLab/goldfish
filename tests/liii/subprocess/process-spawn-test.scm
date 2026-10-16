@@ -52,8 +52,9 @@
       ) ;proc
      ) ;
   (check (process? proc) => #t)
-  (check (process-wait proc 2000) => 0)
+  (check (process-read-line proc :stream 'stdout) => "hello")
   (process-close proc)
+  (process-wait proc 2000)
 ) ;let
 
 ;; 非法参数错误检查
