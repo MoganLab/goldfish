@@ -15,19 +15,11 @@
 ;;
 
 (define-library (liii subprocess process-error)
-  (export
-    make-process-error
-    process-error?
-    process-error-code
-    process-error-stderr
-    process-error-stdout
-    process-error-command
+  (export make-process-error process-error? process-error-code
+    process-error-stderr process-error-stdout process-error-command
     process-error-message
   ) ;export
-  (import
-    (scheme base)
-    (liii error)
-  ) ;import
+  (import (scheme base) (liii error))
   (begin
 
     (define-record-type <process-error>
