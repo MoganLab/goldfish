@@ -6,6 +6,7 @@
 (import (liii check)
   (scheme file)
   (liii base)
+  (liii either)
   (liii os)
   (liii path)
   (liii string)
@@ -239,79 +240,83 @@
         "\", \"scheme\": {\"suffix\": [\"scm\"], \"path\": [\".\"]}}\n"
       ) ;string-append
     ) ;path-write-text
-    (let-values (((out err code)
-                  (run-values (list 'gf "fmt" "--check")
-                    :cwd    sandbox-dir
-                    :stdout 'capture
-                    :stderr 'stdout
-                  ) ;run-values
-                 ) ;
-                ) ;
-      (check code => 0)
-    ) ;let-values
+    (check (run (list 'gf "fmt" "--check")
+             :cwd    sandbox-dir
+             :stdout 'capture
+             :stderr 'stdout
+           ) ;run
+      =>
+      0
+    ) ;check
 
     ;; 场景 2：版本号更大（99.0.0），阻止执行，打印英文错误并退出 1
     (path-write-text (path (string-append sandbox-dir "/gf_fmt.json"))
       "{\"goldfish_version\": \"99.0.0\", \"scheme\": {\"suffix\": [\"scm\"], \"path\": [\".\"]}}\n"
     ) ;path-write-text
-    (let-values (((out err code)
-                  (run-values (list 'gf "fmt" "--check")
-                    :cwd    sandbox-dir
-                    :stdout 'capture
-                    :stderr 'stdout
-                  ) ;run-values
-                 ) ;
-                ) ;
-      (check code => 1)
-      (check (string-contains? out
-               "error: gf_fmt.json requires Goldfish version 99.0.0, but current version is "
-             ) ;string-contains?
-        =>
-        #t
-      ) ;check
-    ) ;let-values
+    (let ((res (run-either (list 'gf "fmt" "--check")
+                 :cwd    sandbox-dir
+                 :stdout 'capture
+                 :stderr 'stdout
+               ) ;run-either
+          ) ;res
+         ) ;
+      (check (either-left? res) => #t)
+      (let ((err (to-left res)))
+        (check (process-error-code err) => 1)
+        (check (string-contains? (process-error-stdout err)
+                 "error: gf_fmt.json requires Goldfish version 99.0.0, but current version is "
+               ) ;string-contains?
+          =>
+          #t
+        ) ;check
+      ) ;let
+    ) ;let
 
     ;; 场景 3：版本号更小（0.1.0），阻止执行，打印英文错误并退出 1
     (path-write-text (path (string-append sandbox-dir "/gf_fmt.json"))
       "{\"goldfish_version\": \"0.1.0\", \"scheme\": {\"suffix\": [\"scm\"], \"path\": [\".\"]}}\n"
     ) ;path-write-text
-    (let-values (((out err code)
-                  (run-values (list 'gf "fmt" "--check")
-                    :cwd    sandbox-dir
-                    :stdout 'capture
-                    :stderr 'stdout
-                  ) ;run-values
-                 ) ;
-                ) ;
-      (check code => 1)
-      (check (string-contains? out
-               "error: gf_fmt.json requires Goldfish version 0.1.0, but current version is "
-             ) ;string-contains?
-        =>
-        #t
-      ) ;check
-    ) ;let-values
+    (let ((res (run-either (list 'gf "fmt" "--check")
+                 :cwd    sandbox-dir
+                 :stdout 'capture
+                 :stderr 'stdout
+               ) ;run-either
+          ) ;res
+         ) ;
+      (check (either-left? res) => #t)
+      (let ((err (to-left res)))
+        (check (process-error-code err) => 1)
+        (check (string-contains? (process-error-stdout err)
+                 "error: gf_fmt.json requires Goldfish version 0.1.0, but current version is "
+               ) ;string-contains?
+          =>
+          #t
+        ) ;check
+      ) ;let
+    ) ;let
 
     ;; 场景 4：非法版本格式，阻止执行，打印英文错误并退出 1
     (path-write-text (path (string-append sandbox-dir "/gf_fmt.json"))
       "{\"goldfish_version\": \"not-a-semver\", \"scheme\": {\"suffix\": [\"scm\"], \"path\": [\".\"]}}\n"
     ) ;path-write-text
-    (let-values (((out err code)
-                  (run-values (list 'gf "fmt" "--check")
-                    :cwd    sandbox-dir
-                    :stdout 'capture
-                    :stderr 'stdout
-                  ) ;run-values
-                 ) ;
-                ) ;
-      (check code => 1)
-      (check (string-contains? out
-               "error: gf_fmt.json requires Goldfish version not-a-semver, but current version is "
-             ) ;string-contains?
-        =>
-        #t
-      ) ;check
-    ) ;let-values
+    (let ((res (run-either (list 'gf "fmt" "--check")
+                 :cwd    sandbox-dir
+                 :stdout 'capture
+                 :stderr 'stdout
+               ) ;run-either
+          ) ;res
+         ) ;
+      (check (either-left? res) => #t)
+      (let ((err (to-left res)))
+        (check (process-error-code err) => 1)
+        (check (string-contains? (process-error-stdout err)
+                 "error: gf_fmt.json requires Goldfish version not-a-semver, but current version is "
+               ) ;string-contains?
+          =>
+          #t
+        ) ;check
+      ) ;let
+    ) ;let
   ) ;lambda
   (lambda () (remove-tree sandbox-dir))
 ) ;dynamic-wind

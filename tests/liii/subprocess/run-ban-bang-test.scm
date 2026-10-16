@@ -14,12 +14,12 @@
 ;; 说明
 ;; ----
 ;; - 'rm 默认已被禁止。
-;; - 禁止符号命令后，该符号无法通过 run/run-values 等函数执行。
+;; - 禁止符号命令后，该符号无法通过 run/run-either 等函数执行。
 ;; - 对于字符串命令，如果命令以被禁止的符号名称开头（后跟空格或结束），
 ;;   同样会报 value-error。
 ;; - 使用 (run-unban! symbol) 可以取消禁止。
 
-(when (os-linux?)
+(when (or (os-linux?) (os-macos?))
   ;; 符号命令禁止与取消
   (run-set! 'echo-cmd "/bin/echo")
   (run-ban! 'echo-cmd)
