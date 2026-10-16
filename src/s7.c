@@ -17595,17 +17595,56 @@ static bool is_output_port_b(s7_pointer p)          {return(is_output_port(p));}
 /* -------------------------------- current-input-port -------------------------------- */
 #define H_current_input_port "(current-input-port) returns the current input port"
 #define Q_current_input_port s7_make_signature(sc, 1, sc->is_input_port_symbol)
-s7_pointer s7_current_input_port(s7_scheme *sc) {return(current_input_port(sc));}
+s7_pointer s7_current_input_port(s7_scheme *sc)
+{
+  s7_pointer p = current_input_port(sc);
+  if (!is_loader_port(p))
+    return(p);
+  for (int32_t i = (int32_t)sc->input_port_stack_loc - 1; i >= 0; --i)
+    {
+      if (!is_loader_port(sc->input_port_stack[i]))
+        return(sc->input_port_stack[i]);
+    }
+  return(sc->standard_input);
+}
+
+s7_pointer s7_loader_port(s7_scheme *sc)
+{
+  s7_pointer p = current_input_port(sc);
+  if (is_loader_port(p))
+    return(p);
+  for (int32_t i = (int32_t)sc->input_port_stack_loc - 1; i >= 0; --i)
+    {
+      if (is_loader_port(sc->input_port_stack[i]))
+        return(sc->input_port_stack[i]);
+    }
+  return(sc->nil);
+}
 
 static s7_pointer g_set_current_input_port(s7_scheme *sc, s7_pointer args)
 {
   #define H_set_current_input_port "(set-current-input-port port) sets the current-input port to port and returns the previous value of the input port"
   #define Q_set_current_input_port s7_make_signature(sc, 2, sc->is_input_port_symbol, sc->is_input_port_symbol)
 
-  const s7_pointer port = car(args), old_port = current_input_port(sc);
+  const s7_pointer port = car(args), old_port = s7_current_input_port(sc);
   if ((is_input_port(port)) &&
       (!port_is_closed(port)))
-    set_current_input_port(sc, port);
+    {
+      if (is_loader_port(current_input_port(sc)))
+        {
+          for (int32_t i = (int32_t)sc->input_port_stack_loc - 1; i >= 0; --i)
+            {
+              if (!is_loader_port(sc->input_port_stack[i]))
+                {
+                  sc->input_port_stack[i] = port;
+                  return(old_port);
+                }
+            }
+          sc->standard_input = port;
+          return(old_port);
+        }
+      set_current_input_port(sc, port);
+    }
   else
     {
       if_method_exists_return_value(sc, port, sc->set_current_input_port_symbol, args);
@@ -17616,7 +17655,20 @@ static s7_pointer g_set_current_input_port(s7_scheme *sc, s7_pointer args)
 
 s7_pointer s7_set_current_input_port(s7_scheme *sc, s7_pointer port)
 {
-  s7_pointer old_port = current_input_port(sc);
+  s7_pointer old_port = s7_current_input_port(sc);
+  if (is_loader_port(current_input_port(sc)))
+    {
+      for (int32_t i = (int32_t)sc->input_port_stack_loc - 1; i >= 0; --i)
+        {
+          if (!is_loader_port(sc->input_port_stack[i]))
+            {
+              sc->input_port_stack[i] = port;
+              return(old_port);
+            }
+        }
+      sc->standard_input = port;
+      return(old_port);
+    }
   set_current_input_port(sc, port);
   return(old_port);
 }
@@ -35738,7 +35790,8 @@ static s7_pointer fx_read_char_0(s7_scheme *sc, s7_pointer arg)
   if (!port) return(eof_object);
   if (!is_input_port(port))
     return(method_or_bust_p(sc, port, sc->read_char_symbol, an_input_port_string));
-  return(chars[port_read_character(port)(sc, port)]);
+  int32_t c = port_read_character(port)(sc, port);
+  return((c == EOF) ? eof_object : chars[c]);
 }
 
 static s7_pointer fx_length_s(s7_scheme *sc, s7_pointer arg) {return(s7_length(sc, lookup(sc, cadr(arg))));}

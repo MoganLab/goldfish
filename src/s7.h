@@ -386,6 +386,7 @@ const char *s7_port_filename(s7_scheme *sc, s7_pointer port);               /* (
 s7_int s7_port_line_number(s7_scheme *sc, s7_pointer port);                 /* (port-line-number port) */
 
 s7_pointer s7_current_input_port(s7_scheme *sc);                            /* (current-input-port) */
+s7_pointer s7_loader_port(s7_scheme *sc);
 s7_pointer s7_set_current_input_port(s7_scheme *sc, s7_pointer port);       /* (set-current-input-port port) */
 s7_pointer s7_current_output_port(s7_scheme *sc);                           /* (current-output-port) */
 s7_pointer s7_set_current_output_port(s7_scheme *sc, s7_pointer port);      /* (set-current-output-port port) */

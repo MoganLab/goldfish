@@ -18,5 +18,30 @@
 ;; 1. 通常是标准输入
 ;; 2. 可被 with-input-from-file 临时改变
 (check (input-port? (current-input-port)) => #t)
+(check (object->string (current-input-port)) => "*stdin*")
+(check (eq? (current-input-port) *stdin*) => #t)
+
+(check
+  (with-input-from-file "tests/scheme/base/current-input-port-test.scm"
+    (lambda ()
+      (list (input-port? (current-input-port))
+        (not (eq? (current-input-port) *stdin*))
+        (read-char)
+      ) ;list
+    ) ;lambda
+  ) ;with-input-from-file
+  =>
+  '(#t #t #\()
+) ;check
+
+(check (eq? (current-input-port) *stdin*) => #t)
+
+(let ((orig (current-input-port)) (p (open-input-string "test")))
+  (set-current-input-port p)
+  (check (eq? (current-input-port) p) => #t)
+  (check (read-char) => #\t)
+  (set-current-input-port orig)
+  (check (eq? (current-input-port) orig) => #t)
+) ;let
 
 (check-report)

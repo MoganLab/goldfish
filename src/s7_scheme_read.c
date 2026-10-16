@@ -558,17 +558,7 @@ s7_pointer read_file(s7_scheme *sc, FILE *fp, const char *name, s7_int max_size,
 
 s7_pointer input_port_if_not_loading(s7_scheme *sc)
 {
-  const s7_pointer port = current_input_port(sc);
-  int32_t c;
-  if (!s7i_is_loader_port(port)) /* this flag is turned off by the reader macros, so we aren't in that context */
-    return(port);
-  c = port_read_white_space(port)(sc, port);
-  if (c > 0)            /* we can get either EOF or NULL at the end */
-    {
-      s7i_backchar(c, port);
-      return(NULL);
-    }
-  return(sc->standard_input);
+  return(s7_current_input_port(sc));
 }
 
 s7_pointer s7i_input_port_if_not_loading(s7_scheme *sc)
