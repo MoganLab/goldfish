@@ -73,14 +73,19 @@
       (string->json (sse-event-data event))
     ) ;define
 
-    (define (strip-cr line)
-      (let ((n (string-length line)))
-        (if
-          (and (> n 0) (char=? (string-ref line (- n 1)) #\return))
-          (substring line 0 (- n 1))
-          line
-        ) ;if
-      ) ;let
+    (define (strip-eol line)
+      (let* ((n (string-length line))
+             (has-nl
+               (and (> n 0) (char=? (string-ref line (- n 1)) #\newline))
+             ) ;has-nl
+             (n1 (if has-nl (- n 1) n))
+             (has-cr
+               (and (> n1 0) (char=? (string-ref line (- n1 1)) #\return))
+             ) ;has-cr
+             (end (if has-cr (- n1 1) n1))
+            ) ;
+        (if (= end n) line (substring line 0 end))
+      ) ;let*
     ) ;define
 
     (define (parse-sse-line line)
@@ -184,7 +189,7 @@
               (when nl
                 (let ((raw (substring buffer 0 nl)))
                   (set! buffer (substring buffer (+ nl 1) (string-length buffer)))
-                  (feed-line! (strip-cr raw))
+                  (feed-line! (strip-eol raw))
                   (loop)
                 ) ;let
               ) ;when
@@ -196,7 +201,7 @@
           (cond
            ((eof-object? chunk)
             (when (> (string-length buffer) 0)
-              (let ((line (strip-cr buffer)))
+              (let ((line (strip-eol buffer)))
                 (set! buffer "")
                 (feed-line! line)
               ) ;let
@@ -230,7 +235,7 @@
           ()
           (let ((line (read-line port)))
             (cond ((eof-object? line) (decoder line) (or result line))
-                  (else (decoder (string-append line "\n")) (or result (loop)))
+                  (else (decoder (string-append (strip-eol line) "\n")) (or result (loop)))
             ) ;cond
           ) ;let
         ) ;let
