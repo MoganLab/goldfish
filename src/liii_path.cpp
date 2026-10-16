@@ -671,9 +671,8 @@ split_segments (const std::string& s) {
 }
 
 static bool
-path_match_segments (const std::vector<std::string>& pat_segs,
-                     const std::vector<std::string>& path_segs,
-                     bool                            is_absolute_pattern) {
+path_match_segments (const std::vector<std::string>& pat_segs, const std::vector<std::string>& path_segs,
+                     bool is_absolute_pattern) {
   if (pat_segs.empty ()) {
     return path_segs.empty ();
   }
@@ -715,8 +714,7 @@ path_glob_walk_cb (tb_char_t const* item_path, tb_file_info_t const* info, tb_cp
 
   std::string item_s (item_path);
   std::string rel_path;
-  if (item_s.size () >= ctx->orig_slash_N &&
-      item_s.compare (0, ctx->orig_dir.size (), ctx->orig_dir) == 0) {
+  if (item_s.size () >= ctx->orig_slash_N && item_s.compare (0, ctx->orig_dir.size (), ctx->orig_dir) == 0) {
     rel_path= item_s.substr (ctx->orig_slash_N);
   }
   else if (!ctx->abs_dir.empty () && item_s.size () >= ctx->abs_slash_N &&
@@ -780,8 +778,7 @@ f_path_glob (s7_scheme* sc, s7_pointer args) {
 
   path_glob_context ctx;
   ctx.orig_dir= std::string (path_c);
-  while (ctx.orig_dir.size () > 1 &&
-         (ctx.orig_dir.back () == '/' || ctx.orig_dir.back () == '\\')) {
+  while (ctx.orig_dir.size () > 1 && (ctx.orig_dir.back () == '/' || ctx.orig_dir.back () == '\\')) {
     ctx.orig_dir.pop_back ();
   }
   ctx.orig_slash_N= ctx.orig_dir.size ();
@@ -793,8 +790,7 @@ f_path_glob (s7_scheme* sc, s7_pointer args) {
   const char* abs_c= tb_path_absolute (ctx.orig_dir.c_str (), full, TB_PATH_MAXN);
   if (abs_c) {
     ctx.abs_dir= std::string (abs_c);
-    while (ctx.abs_dir.size () > 1 &&
-           (ctx.abs_dir.back () == '/' || ctx.abs_dir.back () == '\\')) {
+    while (ctx.abs_dir.size () > 1 && (ctx.abs_dir.back () == '/' || ctx.abs_dir.back () == '\\')) {
       ctx.abs_dir.pop_back ();
     }
     ctx.abs_slash_N= ctx.abs_dir.size ();
