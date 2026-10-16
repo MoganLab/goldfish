@@ -123,6 +123,7 @@ void glue_liii_path (s7_scheme* sc);
 void glue_liii_sort (s7_scheme* sc);
 void glue_liii_string (s7_scheme* sc);
 void glue_liii_string_cursor (s7_scheme* sc);
+void glue_liii_tempfile (s7_scheme* sc);
 
 extern "C" void glue_syntax_rules (s7_scheme* sc);
 
@@ -801,6 +802,7 @@ glue_for_community_edition (s7_scheme* sc) {
   glue_liii_base64 (sc);
   glue_liii_json (sc);
   glue_liii_go (sc);
+  glue_liii_tempfile (sc);
   glue_scheme_base (sc);
   glue_scheme_char (sc);
   glue_r7rs_library (sc);
