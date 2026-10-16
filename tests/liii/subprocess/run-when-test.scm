@@ -37,7 +37,10 @@
   (check (to-right (run-when "python3 -c pass" "python3 -c pass")) => 0)
 
   (check (either-left? (run-when "python3 -c 1/0" "python3 -c 1/0")) => #t)
-  (check (to-left (run-when "python3 -c 1/0" "python3 -c 1/0")) => '(1 "python3 -c 1/0"))
+  (check (to-left (run-when "python3 -c 1/0" "python3 -c 1/0"))
+    =>
+    '(1 "python3 -c 1/0")
+  ) ;check
 ) ;when
 
 (check-report)

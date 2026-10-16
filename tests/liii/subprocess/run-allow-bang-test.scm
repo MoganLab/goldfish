@@ -30,7 +30,7 @@
   (check-catch 'value-error (run '(unknown-cmd)))
 
   (run-allow! '())
-)
+) ;when
 
 (when (os-windows?)
   (run-set! 'pytrue "python3")
@@ -49,6 +49,6 @@
   (check-catch 'value-error (run '(unknown-cmd)))
 
   (run-allow! '())
-)
+) ;when
 
 (check-report)

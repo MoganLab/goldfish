@@ -23,7 +23,7 @@
 
   (run-set! 'custom-lambda (lambda () (display "ok\n")))
   (check (procedure? (run-get 'custom-lambda)) => #t)
-)
+) ;when
 
 (when (os-windows?)
   (run-set! 'pytrue "python3")
@@ -32,6 +32,6 @@
 
   (run-set! 'custom-lambda (lambda () (display "ok\n")))
   (check (procedure? (run-get 'custom-lambda)) => #t)
-)
+) ;when
 
 (check-report)
