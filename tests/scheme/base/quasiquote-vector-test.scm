@@ -28,9 +28,9 @@
 ) ;let
 
 ;; 显式宏调用 (quasiquote #( ... ))
-(check `#(10 5 ,(sqrt 4)) => #(10 5 2))
-(check #() => #())
-(check #(1 2 3) => #(1 2 3))
+(check (quasiquote #(10 5 (unquote (sqrt 4)))) => #(10 5 2))
+(check (quasiquote #()) => #())
+(check (quasiquote #(1 2 3)) => #(1 2 3))
 
 ;; 向量嵌套向量
 (let ((x 99))

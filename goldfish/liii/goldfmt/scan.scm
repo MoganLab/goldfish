@@ -197,9 +197,7 @@
             ((internal-quote-builder-form? datum)
              (list 'quote (normalize-quasiquote-item (caddr datum)))
             ) ;
-            ((internal-list-to-vector-form? datum)
-             (list->vector (normalize-quasiquote-list (cadr datum)))
-            ) ;
+            ((internal-list-to-vector-form? datum) (normalize-quasiquote-vector datum))
             ((internal-list-values-form? datum) (normalize-quasiquote-list datum))
             ((internal-list-star-form? datum) (normalize-quasiquote-dotted-list datum))
             ((internal-apply-values-form? datum)
@@ -218,6 +216,9 @@
     ) ;define
     (define (normalize-quasiquote-list datum)
       (map normalize-quasiquote-item (cdr datum))
+    ) ;define
+    (define (normalize-quasiquote-vector datum)
+      (list->vector (normalize-quasiquote-list (cadr datum)))
     ) ;define
     (define (normalize-quasiquote-dotted-list datum)
       (let* ((args (cdr datum))
@@ -304,7 +305,7 @@
              (list 'quasiquote (normalize-quasiquote-list datum))
             ) ;
             ((internal-list-to-vector-form? datum)
-             (list 'quasiquote (list->vector (normalize-quasiquote-list (cadr datum))))
+             (list 'quasiquote (normalize-quasiquote-vector datum))
             ) ;
             ((internal-list-star-form? datum)
              (list 'quasiquote (normalize-quasiquote-dotted-list datum))
