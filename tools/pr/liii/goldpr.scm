@@ -20,6 +20,7 @@
     (scheme write)
     (scheme process-context)
     (liii argparse)
+    (liii either)
     (liii string)
     (liii subprocess)
   ) ;import
@@ -27,9 +28,14 @@
   (begin
 
     (define (git-out . args)
-      (let-values (((out err code) (run-values (cons 'git args) :stdout 'capture)))
-        (if (and (= code 0) (> (string-length out) 0)) (string-trim-both out) #f)
-      ) ;let-values
+      (let ((res (run-either (cons 'git args) :stdout 'capture)))
+        (if (either-right? res)
+          (let ((out (to-right res)))
+            (if (> (string-length out) 0) (string-trim-both out) #f)
+          ) ;let
+          #f
+        ) ;if
+      ) ;let
     ) ;define
 
     (define (pr-remote-url . opts)

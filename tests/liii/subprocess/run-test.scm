@@ -33,7 +33,7 @@
 ;; 2. 列表形式以 symbol 开头，最终转换为字符串执行。
 ;; 3. 命令中显式包含 cd 时不可同时设置 :cwd，否则抛 value-error。
 
-(when (os-linux?)
+(when (or (os-linux?) (os-macos?))
   (check (zero? (run "true")) => #t)
   (check (zero? (run "false")) => #f)
   (check (run "echo hello") => 0)
@@ -50,8 +50,8 @@
     (check (getcwd) => orig-dir)
   ) ;let
 
-  (check-catch 'value-error (run "cd /tmp" :cwd "/home"))
-  (check-catch 'value-error (run '(cd "/tmp") :cwd "/home"))
+  (check-catch 'value-error (run "cd /tmp" :cwd "/tmp"))
+  (check-catch 'value-error (run '(cd "/tmp") :cwd "/tmp"))
 
   ;; :env
   (check (run '(sh "-c" "test $FOO = bar") :env '(("FOO" . "bar"))) => 0)
@@ -76,7 +76,7 @@
   ;; :env (need to preserve PATH on Windows)
   (let ((path-env (getenv "PATH")))
     (check
-      (run "python3 -c pass" :env `((,"FOO" . ,"bar") (,"PATH" . ,path-env)))
+      (run "python3 -c pass" :env `(("FOO" . "bar") ("PATH" . ,path-env)))
       =>
       0
     ) ;check

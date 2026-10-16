@@ -1,5 +1,6 @@
 (import (liii check)
   (scheme file)
+  (liii either)
   (liii os)
   (liii path)
   (liii string)
@@ -32,40 +33,44 @@
   (if (file-exists? "gfproject.json")
     (getcwd)
     (if (file-exists? "../../gfproject.json")
-      (path->string (path-parent (path-parent (path (getcwd)))))
+      (path->string
+        (path-parent (path-parent (path (getcwd))))
+      ) ;path->string
       (getcwd)
     ) ;if
   ) ;if
 ) ;define
 
 (define gf-bin
-  (string-append project-root
-    (if (os-windows?) "/bin/gf.exe" "/bin/gf")))
+  (string-append project-root (if (os-windows?) "/bin/gf.exe" "/bin/gf"))
+) ;define
 
 (run-set! 'gf gf-bin)
 
 (define (run-gf . args)
-  (let-values (((out err code) (run-values (cons 'gf args) :cwd project-root)))
-    code
-  ) ;let-values
+  (run (cons 'gf args) :cwd project-root :stdout 'discard :stderr 'discard)
 ) ;define
 
-(define (run-gf-values . args)
-  (run-values (cons 'gf args) :cwd project-root :stdout 'capture :stderr 'stdout)
+(define (run-gf-either . args)
+  (run-either (cons 'gf args) :cwd project-root :stdout 'capture :stderr 'stdout)
 ) ;define
 
 
 
 (define sandbox-dir
-  (path->string (path-join (path-temp-dir)
-                  (string-append "goldfmt-dir-test-" (number->string (getpid)))
-                ) ;path-join
+  (path->string
+    (path-join (path-temp-dir)
+      (string-append "goldfmt-dir-test-" (number->string (getpid)))
+    ) ;path-join
   ) ;path->string
 ) ;define
 
 (define dir-a (path->string (path-join (path sandbox-dir) "dir_a")))
+
 (define dir-b (path->string (path-join (path sandbox-dir) "dir_b")))
+
 (define file-a (path->string (path-join (path dir-a) "a.scm")))
+
 (define file-b (path->string (path-join (path dir-b) "b.scm")))
 
 (dynamic-wind (lambda ()
@@ -131,37 +136,55 @@
     ;; 10. 单文件包含括号错误：应报错、退出码非 0，并提示 gf fix
     (let* ((bad-file (path->string (path-join (path sandbox-dir) "bad.scm"))))
       (path-write-text (path bad-file) "(define x 1))\n")
-      (let-values (((out err code) (run-gf-values "fmt" bad-file)))
-        (check (not (zero? code)) => #t)
-        (check-true (string-contains? out "Failed: "))
-        (check-true (string-contains? out "unexpected close paren"))
-        (check-true (string-contains? out "Hint: try `gf fix ")))
-      (let-values (((out err code) (run-gf-values "fmt" "--dry-run" bad-file)))
-        (check (not (zero? code)) => #t)
-        (check-true (string-contains? out "Failed: "))
-        (check-true (string-contains? out "unexpected close paren"))
-        (check-true (string-contains? out "Hint: try `gf fix "))))
-
+      (let ((res (run-gf-either "fmt" bad-file)))
+        (check (either-left? res) => #t)
+        (let ((err (to-left res)))
+          (check (not (zero? (process-error-code err))) => #t)
+          (let ((out (process-error-stdout err)))
+            (check-true (string-contains? out "Failed: "))
+            (check-true (string-contains? out "unexpected close paren"))
+            (check-true (string-contains? out "Hint: try `gf fix "))
+          ) ;let
+        ) ;let
+      ) ;let
+      (let ((res (run-gf-either "fmt" "--dry-run" bad-file)))
+        (check (either-left? res) => #t)
+        (let ((err (to-left res)))
+          (check (not (zero? (process-error-code err))) => #t)
+          (let ((out (process-error-stdout err)))
+            (check-true (string-contains? out "Failed: "))
+            (check-true (string-contains? out "unexpected close paren"))
+            (check-true (string-contains? out "Hint: try `gf fix "))
+          ) ;let
+        ) ;let
+      ) ;let
+    ) ;let*
 
     ;; 11. 目录批量格式化容错：遇到错误文件不中断，正常文件被格式化，退出码为 1
     (let* ((dir-c (path->string (path-join (path sandbox-dir) "dir_c")))
            (good-file (path->string (path-join (path dir-c) "good.scm")))
-           (bad-file (path->string (path-join (path dir-c) "bad.scm"))))
+           (bad-file (path->string (path-join (path dir-c) "bad.scm")))
+          ) ;
       (mkdir dir-c)
       (path-write-text (path good-file) "( define   good   1 )\n")
       (path-write-text (path bad-file) "(define bad 2))\n")
-      (let-values (((out err code) (run-gf-values "fmt" dir-c)))
-        (check (not (zero? code)) => #t)
-        (check-true (string-contains? out "Files failed: 1"))
-        (check-true (string-contains? out "Failed: "))
-        (check-true (string-contains? out "unexpected close paren"))
-        (check-true (string-contains? out "Hint: try `gf fix "))
-        ;; 验证 good-file 依然被成功格式化
-        (check (path-read-text (path good-file)) => "(define good 1)\n")))
+      (let ((res (run-gf-either "fmt" dir-c)))
+        (check (either-left? res) => #t)
+        (let ((err (to-left res)))
+          (check (not (zero? (process-error-code err))) => #t)
+          (let ((out (process-error-stdout err)))
+            (check-true (string-contains? out "Files failed: 1"))
+            (check-true (string-contains? out "Failed: "))
+            (check-true (string-contains? out "unexpected close paren"))
+            (check-true (string-contains? out "Hint: try `gf fix "))
+          ) ;let
+        ) ;let
+      ) ;let
+      ;; 验证 good-file 依然被成功格式化
+      (check (path-read-text (path good-file)) => "(define good 1)\n")
+    ) ;let*
   ) ;lambda
-  (lambda ()
-    (remove-tree sandbox-dir)
-  ) ;lambda
+  (lambda () (remove-tree sandbox-dir))
 ) ;dynamic-wind
 
 (check-report)
