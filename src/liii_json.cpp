@@ -288,7 +288,7 @@ f_json_to_string (s7_scheme* sc, s7_pointer args) {
 
 static s7_pointer
 f_write_json (s7_scheme* sc, s7_pointer args) {
-  s7_pointer x= s7_car (args);
+  s7_pointer x   = s7_car (args);
   s7_pointer port= s7_is_pair (s7_cdr (args)) ? s7_cadr (args) : s7_current_output_port (sc);
   if (!s7_is_output_port (sc, port)) {
     return s7_error (sc, s7_make_symbol (sc, "type-error"),
@@ -906,14 +906,30 @@ json_port_parse_string_body (json_port_parser* p) {
     int next= p->get ();
     if (next == -1) return NULL;
     switch (next) {
-    case '"':  out.push_back ('"'); break;
-    case '\\': out.push_back ('\\'); break;
-    case '/':  out.push_back ('/'); break;
-    case 'b':  out.push_back ('\b'); break;
-    case 'f':  out.push_back ('\f'); break;
-    case 'n':  out.push_back ('\n'); break;
-    case 'r':  out.push_back ('\r'); break;
-    case 't':  out.push_back ('\t'); break;
+    case '"':
+      out.push_back ('"');
+      break;
+    case '\\':
+      out.push_back ('\\');
+      break;
+    case '/':
+      out.push_back ('/');
+      break;
+    case 'b':
+      out.push_back ('\b');
+      break;
+    case 'f':
+      out.push_back ('\f');
+      break;
+    case 'n':
+      out.push_back ('\n');
+      break;
+    case 'r':
+      out.push_back ('\r');
+      break;
+    case 't':
+      out.push_back ('\t');
+      break;
     case 'u': {
       s7_int cp;
       if (!json_port_parse_hex4 (p, cp)) return NULL;
@@ -921,12 +937,15 @@ json_port_parse_string_body (json_port_parser* p) {
         if (p->peek () == '\\') {
           int b1= p->get ();
           if (p->peek () == 'u') {
-            int b2= p->get ();
+            int  b2= p->get ();
             char hex2[4];
             bool ok_hex= true;
             for (int i= 0; i < 4; i++) {
               int ch= p->get ();
-              if (ch == -1) { ok_hex= false; break; }
+              if (ch == -1) {
+                ok_hex= false;
+                break;
+              }
               hex2[i]= (char) ch;
             }
             s7_int next_cp= 0;
@@ -1025,8 +1044,8 @@ json_port_parse_symbol_key (json_port_parser* p) {
   std::string name;
   while (true) {
     int c= p->peek ();
-    if (c == -1 || c == ':' || c == ',' || c == '}' || c == ']' || c == '[' ||
-        c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\'' || c == '"') {
+    if (c == -1 || c == ':' || c == ',' || c == '}' || c == ']' || c == '[' || c == ' ' || c == '\t' || c == '\n' ||
+        c == '\r' || c == '\'' || c == '"') {
       break;
     }
     name.push_back ((char) p->get ());
