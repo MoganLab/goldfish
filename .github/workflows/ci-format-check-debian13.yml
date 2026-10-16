@@ -16,6 +16,7 @@ on:
       - "tools/**"
       - ".clang-format"
       - "gf_fmt.json"
+      - "gf_check.json"
       - "gfproject.json"
       - "xmake/**"
       - "xmake.lua"
@@ -29,6 +30,7 @@ on:
       - "tools/**"
       - ".clang-format"
       - "gf_fmt.json"
+      - "gf_check.json"
       - "gfproject.json"
       - "xmake/**"
       - "xmake.lua"
@@ -83,3 +85,6 @@ jobs:
 
       - name: Run gf fmt --check (C++ + Scheme)
         run: bin/gf fmt --check
+
+      - name: Run gf check (code metrics check)
+        run: bin/gf check
