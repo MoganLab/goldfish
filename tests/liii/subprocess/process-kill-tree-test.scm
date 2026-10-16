@@ -1,6 +1,11 @@
-(import (liii check) (liii either) (liii os) (liii subprocess))
+(import (liii check) (liii either) (liii os) (liii string) (liii subprocess))
 
 (check-set-mode! 'report-failed)
+
+;; 提取 run-either 结果的 stdout（无论 Left/Right）
+(define (run-either-stdout res)
+  (if (either-right? res) (to-right res) (process-error-stdout (to-left res)))
+) ;define
 
 ;; process-kill-tree
 ;; 级联终止指定进程及其所有派生子孙进程。
@@ -76,14 +81,7 @@
     ) ;let
     ;; 验证子孙进程已完全清理
     (let ((res (run-either (string-append "pgrep -P " (number->string pid)))))
-      (check
-        (if (either-right? res)
-          (zero? (string-length (to-right res)))
-          (zero? (string-length (process-error-stdout (to-left res))))
-        ) ;if
-        =>
-        #t
-      ) ;check
+      (check (string-null? (run-either-stdout res)) => #t)
     ) ;let
     (process-close proc)
   ) ;let*
@@ -99,14 +97,7 @@
       (check (process-alive? proc) => #f)
     ) ;let
     (let ((res (run-either (string-append "pgrep -P " (number->string pid)))))
-      (check
-        (if (either-right? res)
-          (zero? (string-length (to-right res)))
-          (zero? (string-length (process-error-stdout (to-left res))))
-        ) ;if
-        =>
-        #t
-      ) ;check
+      (check (string-null? (run-either-stdout res)) => #t)
     ) ;let
     (process-close proc)
   ) ;let*

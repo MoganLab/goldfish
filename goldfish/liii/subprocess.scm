@@ -307,27 +307,23 @@
         (when (string? cmd-spec)
           (%check-string-command cmd-spec)
         ) ;when
-        (set! cwd (%normalize-cwd "run-values" cwd))
+        (set! cwd (%normalize-cwd "run" cwd))
         (set! stdout
-          (%normalize-stream-spec "run-values"
+          (%normalize-stream-spec "run"
             :stdout stdout
             '(capture discard inherit tee)
             'capture
           ) ;%normalize-stream-spec
         ) ;set!
         (set! stderr
-          (%normalize-stream-spec "run-values"
+          (%normalize-stream-spec "run"
             :stderr stderr
             '(capture discard inherit tee stdout)
             'capture
           ) ;%normalize-stream-spec
         ) ;set!
         (set! stdin
-          (%normalize-stream-spec "run-values"
-            :stdin stdin
-            '(inherit discard pipe null)
-            #f
-          ) ;%normalize-stream-spec
+          (%normalize-stream-spec "run" :stdin stdin '(inherit discard pipe null) #f)
         ) ;set!
         (unless (%valid-env? env)
           (type-error "run-values: :env must be a list of (key . value) string pairs")

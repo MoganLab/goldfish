@@ -19,7 +19,11 @@
     process-error-stderr process-error-stdout process-error-command
     process-error-message
   ) ;export
-  (import (scheme base) (liii error))
+  (import
+    (scheme base)
+    (liii error)
+    (liii string)
+  ) ;import
   (begin
 
     (define-record-type <process-error>
@@ -36,10 +40,10 @@
         (type-error "process-error-message: expected a <process-error> record")
       ) ;unless
       (let ((stderr (process-error-stderr err)))
-        (if (and (string? stderr) (not (string=? stderr "")))
+        (if (and (string? stderr) (not (string-null? stderr)))
           stderr
           (let ((stdout (process-error-stdout err)))
-            (if (and (string? stdout) (not (string=? stdout "")))
+            (if (and (string? stdout) (not (string-null? stdout)))
               stdout
               (string-append "Command failed with exit code "
                 (number->string (process-error-code err))

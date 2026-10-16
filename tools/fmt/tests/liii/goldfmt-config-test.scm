@@ -224,6 +224,38 @@
 
 (run-set! 'gf (string-append project-root "/bin/gf"))
 
+;; 版本不匹配（更大、更小或非法格式）：阻止执行，打印英文错误并退出 1
+(define (check-version-blocked version-str)
+  (path-write-text (path (string-append sandbox-dir "/gf_fmt.json"))
+    (string-append "{\"goldfish_version\": \""
+      version-str
+      "\", \"scheme\": {\"suffix\": [\"scm\"], \"path\": [\".\"]}}\n"
+    ) ;string-append
+  ) ;path-write-text
+  (let ((res (run-either (list 'gf "fmt" "--check")
+               :cwd    sandbox-dir
+               :stdout 'capture
+               :stderr 'stdout
+             ) ;run-either
+        ) ;res
+       ) ;
+    (check (either-left? res) => #t)
+    (let ((err (to-left res)))
+      (check (process-error-code err) => 1)
+      (check (string-contains? (process-error-stdout err)
+               (string-append
+                 "error: gf_fmt.json requires Goldfish version "
+                 version-str
+                 ", but current version is "
+               ) ;string-append
+             ) ;string-contains?
+        =>
+        #t
+      ) ;check
+    ) ;let
+  ) ;let
+) ;define
+
 (dynamic-wind
   (lambda ()
     (remove-tree sandbox-dir)
@@ -249,74 +281,14 @@
       0
     ) ;check
 
-    ;; 场景 2：版本号更大（99.0.0），阻止执行，打印英文错误并退出 1
-    (path-write-text (path (string-append sandbox-dir "/gf_fmt.json"))
-      "{\"goldfish_version\": \"99.0.0\", \"scheme\": {\"suffix\": [\"scm\"], \"path\": [\".\"]}}\n"
-    ) ;path-write-text
-    (let ((res (run-either (list 'gf "fmt" "--check")
-                 :cwd    sandbox-dir
-                 :stdout 'capture
-                 :stderr 'stdout
-               ) ;run-either
-          ) ;res
-         ) ;
-      (check (either-left? res) => #t)
-      (let ((err (to-left res)))
-        (check (process-error-code err) => 1)
-        (check (string-contains? (process-error-stdout err)
-                 "error: gf_fmt.json requires Goldfish version 99.0.0, but current version is "
-               ) ;string-contains?
-          =>
-          #t
-        ) ;check
-      ) ;let
-    ) ;let
+    ;; 场景 2：版本号更大，阻止执行并退出 1
+    (check-version-blocked "99.0.0")
 
-    ;; 场景 3：版本号更小（0.1.0），阻止执行，打印英文错误并退出 1
-    (path-write-text (path (string-append sandbox-dir "/gf_fmt.json"))
-      "{\"goldfish_version\": \"0.1.0\", \"scheme\": {\"suffix\": [\"scm\"], \"path\": [\".\"]}}\n"
-    ) ;path-write-text
-    (let ((res (run-either (list 'gf "fmt" "--check")
-                 :cwd    sandbox-dir
-                 :stdout 'capture
-                 :stderr 'stdout
-               ) ;run-either
-          ) ;res
-         ) ;
-      (check (either-left? res) => #t)
-      (let ((err (to-left res)))
-        (check (process-error-code err) => 1)
-        (check (string-contains? (process-error-stdout err)
-                 "error: gf_fmt.json requires Goldfish version 0.1.0, but current version is "
-               ) ;string-contains?
-          =>
-          #t
-        ) ;check
-      ) ;let
-    ) ;let
+    ;; 场景 3：版本号更小，阻止执行并退出 1
+    (check-version-blocked "0.1.0")
 
-    ;; 场景 4：非法版本格式，阻止执行，打印英文错误并退出 1
-    (path-write-text (path (string-append sandbox-dir "/gf_fmt.json"))
-      "{\"goldfish_version\": \"not-a-semver\", \"scheme\": {\"suffix\": [\"scm\"], \"path\": [\".\"]}}\n"
-    ) ;path-write-text
-    (let ((res (run-either (list 'gf "fmt" "--check")
-                 :cwd    sandbox-dir
-                 :stdout 'capture
-                 :stderr 'stdout
-               ) ;run-either
-          ) ;res
-         ) ;
-      (check (either-left? res) => #t)
-      (let ((err (to-left res)))
-        (check (process-error-code err) => 1)
-        (check (string-contains? (process-error-stdout err)
-                 "error: gf_fmt.json requires Goldfish version not-a-semver, but current version is "
-               ) ;string-contains?
-          =>
-          #t
-        ) ;check
-      ) ;let
-    ) ;let
+    ;; 场景 4：非法版本格式，阻止执行并退出 1
+    (check-version-blocked "not-a-semver")
   ) ;lambda
   (lambda () (remove-tree sandbox-dir))
 ) ;dynamic-wind

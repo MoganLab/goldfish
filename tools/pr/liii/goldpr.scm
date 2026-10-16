@@ -28,14 +28,15 @@
   (begin
 
     (define (git-out . args)
-      (let ((res (run-either (cons 'git args) :stdout 'capture)))
-        (if (either-right? res)
-          (let ((out (to-right res)))
-            (if (> (string-length out) 0) (string-trim-both out) #f)
-          ) ;let
-          #f
-        ) ;if
-      ) ;let
+      (either-get-or-else
+        (either-map
+          (lambda (out)
+            (if (string-null? out) #f (string-trim-both out))
+          ) ;lambda
+          (run-either (cons 'git args) :stdout 'capture)
+        ) ;either-map
+        #f
+      ) ;either-get-or-else
     ) ;define
 
     (define (pr-remote-url . opts)
