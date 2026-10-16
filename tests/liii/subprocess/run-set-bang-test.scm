@@ -18,13 +18,13 @@
 ;;
 ;; 说明
 ;; ----
-;; 注册表是全局的，作用域覆盖所有后续的 run / run-either / run-values 调用。
+;; 注册表是全局的，作用域覆盖所有后续的 run / run-either 调用。
 
-(when (os-linux?)
+(when (or (os-linux?) (os-macos?))
   (run-set! 'echo-cmd "/bin/echo")
   (check (zero? (run '(echo-cmd "hello"))) => #t)
 
-  (run-set! 'true-cmd "/bin/true")
+  (run-set! 'true-cmd (if (os-macos?) "/usr/bin/true" "/bin/true"))
   (check (zero? (run '(true-cmd))) => #t)
 
   (run-set! 'my-lambda (lambda () (display "ok\n")))
