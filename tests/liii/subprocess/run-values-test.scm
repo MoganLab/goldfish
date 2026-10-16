@@ -362,7 +362,7 @@
   ) ;when
 
   ;; 写输入文件供 stdin 重定向
-  (path-write-text (path->string in-file) "redirected input content\n")
+  (path-write-text in-file "redirected input content\n")
 
   (let-values (((out err code)
                 (run-values '("python3"
@@ -377,11 +377,11 @@
     (check out => "")
     (check err => "")
     (check (zero? code) => #t)
-    (check (path-read-text (path->string out-file))
+    (check (path-read-text out-file)
       =>
       "out:redirected input content\n"
     ) ;check
-    (check (path-read-text (path->string err-file)) => "err-msg\n")
+    (check (path-read-text err-file) => "err-msg\n")
   ) ;let-values
 
   (when (file-exists? (path->string out-file))

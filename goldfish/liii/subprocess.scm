@@ -19,8 +19,8 @@
     run-unban! run-and run-or run-sequence run-pipe run-if run-when process?
     process-pid process-spawn process-alive? process-poll process-wait
     process-terminate process-kill process-kill-tree process-close
-    process-close-stdin process-write process-write-stdin process-read process-read-line
-    run-streaming
+    process-close-stdin process-write process-write-stdin process-read
+    process-read-line run-streaming
   ) ;export
   (import (scheme base)
     (scheme time)
@@ -183,7 +183,7 @@
                   (apply (cadr cmd-spec) (cddr cmd-spec))
                   0
                  ) ;
-                 ((or env input timeout stdout stderr stdin)
+                 ((or (pair? cmd-spec) env input timeout stdout stderr stdin)
                   (let-values (((out err code)
                                 (run-values command
                                   :cwd     cwd
@@ -196,11 +196,6 @@
                                 ) ;run-values
                                ) ;
                               ) ;
-                    code
-                  ) ;let-values
-                 ) ;
-                 ((pair? cmd-spec)
-                  (let-values (((out err code) (run-values command :stdout 'inherit :stderr 'inherit)))
                     code
                   ) ;let-values
                  ) ;
@@ -259,14 +254,47 @@
       ) ;or
     ) ;define
 
+    (define (%normalize-stream-spec caller kw val allowed-symbols default)
+      (cond ((not val) default)
+            ((path? val) (path->string val))
+            ((string? val) val)
+            ((symbol? val)
+             (unless (memq val allowed-symbols)
+               (value-error (format #f
+                              "Invalid ~a value: ~a, expected one of ~a or a string/path"
+                              kw val allowed-symbols
+                            ) ;format
+               ) ;value-error
+             ) ;unless
+             val
+            ) ;
+            (else (type-error (format #f
+                                "~a: ~a must be a symbol, string, or path, got: ~a"
+                                caller
+                                kw
+                                (object->string val)
+                              ) ;format
+                  ) ;type-error
+            ) ;else
+      ) ;cond
+    ) ;define
+
+    (define (%normalize-cwd caller cwd)
+      (cond ((not cwd) #f)
+            ((path? cwd) (path->string cwd))
+            ((string? cwd) cwd)
+            (else (type-error (format #f "~a: :cwd must be a string or path" caller)))
+      ) ;cond
+    ) ;define
+
     (define (run-values command . opts)
       (let ((cwd (%keyword-value :cwd opts #f))
             (env (%keyword-value :env opts #f))
             (input (%keyword-value :input opts #f))
             (timeout (%keyword-value :timeout opts #f))
-            (stdout (%keyword-value :stdout opts 'capture))
+            (stdout (%keyword-value :stdout opts #f))
             (stdout-mode (%keyword-value :stdout-mode opts #f))
-            (stderr (%keyword-value :stderr opts 'capture))
+            (stderr (%keyword-value :stderr opts #f))
             (stderr-mode (%keyword-value :stderr-mode opts #f))
             (stdin (%keyword-value :stdin opts #f))
             (cmd-spec (%command->exec-spec command))
@@ -276,64 +304,28 @@
         (when (string? cmd-spec)
           (%check-string-command cmd-spec)
         ) ;when
-        (when cwd
-          (cond ((path? cwd) (set! cwd (path->string cwd)))
-                ((not (string? cwd)) (type-error "run-values: :cwd must be a string or path"))
-          ) ;cond
-        ) ;when
-        (cond ((not stdout) (set! stdout 'capture))
-              ((path? stdout) (set! stdout (path->string stdout)))
-              ((string? stdout) #t)
-              ((symbol? stdout)
-               (unless (memq stdout '(capture discard inherit tee))
-                 (value-error (format #f
-                                "Invalid :stdout value: ~a, expected 'capture, 'discard, 'inherit, 'tee, or string/path"
-                                stdout
-                              ) ;format
-                 ) ;value-error
-               ) ;unless
-              ) ;
-              (else (type-error (format #f
-                                  "run-values: :stdout must be a symbol, string, or path, got: ~a"
-                                  (object->string stdout)
-                                ) ;format
-                    ) ;type-error
-              ) ;else
-        ) ;cond
-        (cond ((not stderr) (set! stderr 'capture))
-              ((path? stderr) (set! stderr (path->string stderr)))
-              ((string? stderr) #t)
-              ((symbol? stderr)
-               (unless (memq stderr '(capture discard inherit tee stdout))
-                 (value-error (format #f
-                                "Invalid :stderr value: ~a, expected 'capture, 'discard, 'inherit, 'tee, 'stdout, or string/path"
-                                stderr
-                              ) ;format
-                 ) ;value-error
-               ) ;unless
-              ) ;
-              (else (type-error (format #f
-                                  "run-values: :stderr must be a symbol, string, or path, got: ~a"
-                                  (object->string stderr)
-                                ) ;format
-                    ) ;type-error
-              ) ;else
-        ) ;cond
-        (cond ((not stdin) #t)
-              ((path? stdin) (set! stdin (path->string stdin)))
-              ((string? stdin) #t)
-              ((symbol? stdin)
-               (unless (memq stdin '(inherit discard pipe null))
-                 (value-error (format #f "Invalid :stdin value: ~a" stdin))
-               ) ;unless
-              ) ;
-              (else (type-error (format #f
-                                  "run-values: :stdin must be a symbol, string, or path, got: ~a"
-                                  (object->string stdin)
-                                ) ;format
-                    ) ;type-error
-              ) ;else
-        ) ;cond
+        (set! cwd (%normalize-cwd "run-values" cwd))
+        (set! stdout
+          (%normalize-stream-spec "run-values"
+            :stdout stdout
+            '(capture discard inherit tee)
+            'capture
+          ) ;%normalize-stream-spec
+        ) ;set!
+        (set! stderr
+          (%normalize-stream-spec "run-values"
+            :stderr stderr
+            '(capture discard inherit tee stdout)
+            'capture
+          ) ;%normalize-stream-spec
+        ) ;set!
+        (set! stdin
+          (%normalize-stream-spec "run-values"
+            :stdin stdin
+            '(inherit discard pipe null)
+            #f
+          ) ;%normalize-stream-spec
+        ) ;set!
         (unless (%valid-env? env)
           (type-error "run-values: :env must be a list of (key . value) string pairs")
         ) ;unless
@@ -369,22 +361,9 @@
     ) ;define
 
     (define (run-either command . opts)
-      (let ((has-stdout? (%keyword-value :stdout opts #f))
-            (has-stderr? (%keyword-value :stderr opts #f))
-           ) ;
-        (let-values (((out err code)
-                      (apply run-values
-                        command
-                        (append (if has-stdout? '() (list :stdout 'capture))
-                          (if has-stderr? '() (list :stderr 'capture))
-                          opts
-                        ) ;append
-                      ) ;apply
-                     ) ;
-                    ) ;
-          (if (zero? code) (from-right out) (from-left (cons code err)))
-        ) ;let-values
-      ) ;let
+      (let-values (((out err code) (apply run-values command opts)))
+        (if (zero? code) (from-right out) (from-left (cons code err)))
+      ) ;let-values
     ) ;define
 
     (define (%symbol-keyword? sym)
@@ -428,8 +407,8 @@
                                    :timeout timeout
                                    :input   (if first? input #f)
                                    :stdin   (if first? stdin #f)
-                                   :stdout  stdout
-                                   :stderr  stderr
+                                   :stdout  (or stdout 'inherit)
+                                   :stderr  (or stderr 'inherit)
                                  ) ;run-values
                                 ) ;
                                ) ;
@@ -444,6 +423,8 @@
                                     :timeout timeout
                                     :input   (if first? input #f)
                                     :stdin   (if first? stdin #f)
+                                    :stdout  'inherit
+                                    :stderr  'inherit
                                   ) ;run-values
                                  ) ;
                                 ) ;
@@ -466,12 +447,30 @@
             ((cmds commands))
             (cond ((null? cmds) (from-right 0))
                   ((null? (cdr cmds))
-                   (let-values (((out err code) (run-values (car cmds) :cwd cwd :env env :timeout timeout)))
+                   (let-values (((out err code)
+                                 (run-values (car cmds)
+                                   :cwd     cwd
+                                   :env     env
+                                   :timeout timeout
+                                   :stdout  'inherit
+                                   :stderr  'inherit
+                                 ) ;run-values
+                                ) ;
+                               ) ;
                      (if (zero? code) (from-right code) (from-left (list code (car cmds))))
                    ) ;let-values
                   ) ;
                   (else
-                    (let-values (((out err code) (run-values (car cmds) :cwd cwd :env env :timeout timeout)))
+                    (let-values (((out err code)
+                                  (run-values (car cmds)
+                                    :cwd     cwd
+                                    :env     env
+                                    :timeout timeout
+                                    :stdout  'inherit
+                                    :stderr  'inherit
+                                  ) ;run-values
+                                 ) ;
+                                ) ;
                       (if (zero? code) (from-right 0) (loop (cdr cmds)))
                     ) ;let-values
                   ) ;else
@@ -493,7 +492,16 @@
                    (if (zero? last-code) (from-right last-code) (from-left last-code))
                   ) ;
                   (else
-                    (let-values (((out err code) (run-values (car cmds) :cwd cwd :env env :timeout timeout)))
+                    (let-values (((out err code)
+                                  (run-values (car cmds)
+                                    :cwd     cwd
+                                    :env     env
+                                    :timeout timeout
+                                    :stdout  'inherit
+                                    :stderr  'inherit
+                                  ) ;run-values
+                                 ) ;
+                                ) ;
                       (loop (cdr cmds) code)
                     ) ;let-values
                   ) ;else
@@ -550,12 +558,12 @@
     ) ;define
 
     (define (run-if condition then-cmd else-cmd)
-      (let-values (((out err code) (run-values condition)))
+      (let-values (((out err code) (run-values condition :stdout 'inherit :stderr 'inherit)))
         (if (zero? code)
-          (let-values (((out err code) (run-values then-cmd)))
+          (let-values (((out err code) (run-values then-cmd :stdout 'inherit :stderr 'inherit)))
             (if (zero? code) (from-right code) (from-left (list code then-cmd)))
           ) ;let-values
-          (let-values (((out err code) (run-values else-cmd)))
+          (let-values (((out err code) (run-values else-cmd :stdout 'inherit :stderr 'inherit)))
             (if (zero? code) (from-right code) (from-left (list code else-cmd)))
           ) ;let-values
         ) ;if
@@ -563,10 +571,10 @@
     ) ;define
 
     (define (run-when condition command)
-      (let-values (((out err code) (run-values condition)))
+      (let-values (((out err code) (run-values condition :stdout 'inherit :stderr 'inherit)))
         (if (zero? code)
           (from-right 0)
-          (let-values (((out err code) (run-values command)))
+          (let-values (((out err code) (run-values command :stdout 'inherit :stderr 'inherit)))
             (if (zero? code) (from-right code) (from-left (list code command)))
           ) ;let-values
         ) ;if
@@ -752,63 +760,6 @@
       ) ;cond
     ) ;define
 
-    (define (%normalize-process-stdin stdin)
-      (cond ((not stdin) #f)
-            ((path? stdin) (path->string stdin))
-            ((string? stdin) stdin)
-            ((symbol? stdin)
-             (if (memq stdin '(pipe null inherit))
-               stdin
-               (value-error (format #f "Invalid :stdin value: ~a" stdin))
-             ) ;if
-            ) ;
-            (else (type-error (format #f
-                                "process-spawn: :stdin must be a symbol, string, or path, got: ~a"
-                                (object->string stdin)
-                              ) ;format
-                  ) ;type-error
-            ) ;else
-      ) ;cond
-    ) ;define
-
-    (define (%normalize-process-stdout stdout)
-      (cond ((not stdout) #f)
-            ((path? stdout) (path->string stdout))
-            ((string? stdout) stdout)
-            ((symbol? stdout)
-             (if (memq stdout '(pipe capture discard inherit))
-               stdout
-               (value-error (format #f "Invalid :stdout value: ~a" stdout))
-             ) ;if
-            ) ;
-            (else (type-error (format #f
-                                "process-spawn: :stdout must be a symbol, string, or path, got: ~a"
-                                (object->string stdout)
-                              ) ;format
-                  ) ;type-error
-            ) ;else
-      ) ;cond
-    ) ;define
-
-    (define (%normalize-process-stderr stderr)
-      (cond ((not stderr) #f)
-            ((path? stderr) (path->string stderr))
-            ((string? stderr) stderr)
-            ((symbol? stderr)
-             (if (memq stderr '(pipe capture discard inherit stdout))
-               stderr
-               (value-error (format #f "Invalid :stderr value: ~a" stderr))
-             ) ;if
-            ) ;
-            (else (type-error (format #f
-                                "process-spawn: :stderr must be a symbol, string, or path, got: ~a"
-                                (object->string stderr)
-                              ) ;format
-                  ) ;type-error
-            ) ;else
-      ) ;cond
-    ) ;define
-
     (define (process-spawn command . opts)
       (let ((cwd (%keyword-value :cwd opts #f))
             (env (%keyword-value :env opts #f))
@@ -817,21 +768,27 @@
             (stderr (%keyword-value :stderr opts #f))
             (norm-cmd (%normalize-process-command command))
            ) ;
-        (when cwd
-          (cond ((path? cwd) (set! cwd (path->string cwd)))
-                ((not (string? cwd))
-                 (type-error "process-spawn: :cwd must be a string or path")
-                ) ;
-          ) ;cond
-        ) ;when
+        (set! cwd (%normalize-cwd "process-spawn" cwd))
         (when env
           (unless (%valid-env? env)
             (type-error "process-spawn: :env must be a list of (key . value) string pairs")
           ) ;unless
         ) ;when
-        (let ((norm-stdin (%normalize-process-stdin stdin))
-              (norm-stdout (%normalize-process-stdout stdout))
-              (norm-stderr (%normalize-process-stderr stderr))
+        (let ((norm-stdin (%normalize-stream-spec "process-spawn" :stdin stdin '(pipe null
+                                                                                  inherit) #f)
+              ) ;norm-stdin
+              (norm-stdout (%normalize-stream-spec "process-spawn"
+                             :stdout stdout
+                             '(pipe capture discard inherit)
+                             #f
+                           ) ;%normalize-stream-spec
+              ) ;norm-stdout
+              (norm-stderr (%normalize-stream-spec "process-spawn"
+                             :stderr stderr
+                             '(pipe capture discard inherit stdout)
+                             #f
+                           ) ;%normalize-stream-spec
+              ) ;norm-stderr
              ) ;
           (g_subprocess-spawn norm-cmd cwd env norm-stdin norm-stdout norm-stderr)
         ) ;let

@@ -855,12 +855,12 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
 #endif
     attr.errmode= TB_FILE_MODE_RW | TB_FILE_MODE_CREAT | TB_FILE_MODE_TRUNC;
   }
-#ifdef TB_CONFIG_OS_WINDOWS
   else if (stderr_to_stdout && stdout_mode == redirect_mode::file) {
     attr.errtype = TB_PROCESS_REDIRECT_TYPE_FILEPATH;
     attr.err.path= stdout_path;
     attr.errmode = TB_FILE_MODE_RW | TB_FILE_MODE_CREAT | TB_FILE_MODE_APPEND;
   }
+#ifdef TB_CONFIG_OS_WINDOWS
   else if (stderr_to_stdout && h_out_write) {
     HANDLE h_err_dup= NULL;
     if (DuplicateHandle (GetCurrentProcess (), h_out_write, GetCurrentProcess (), &h_err_dup, 0, TRUE,
@@ -877,11 +877,6 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
     attr.err.file= (tb_file_ref_t) h_err_write;
   }
 #else
-  else if (stderr_to_stdout && stdout_mode == redirect_mode::file) {
-    attr.errtype = TB_PROCESS_REDIRECT_TYPE_FILEPATH;
-    attr.err.path= stdout_path;
-    attr.errmode = TB_FILE_MODE_RW | TB_FILE_MODE_CREAT | TB_FILE_MODE_APPEND;
-  }
   else if (stderr_to_stdout && out_pipe[1]) {
     attr.errtype = TB_PROCESS_REDIRECT_TYPE_PIPE;
     attr.err.pipe= out_pipe[1];
@@ -1444,12 +1439,12 @@ f_subprocess_spawn (s7_scheme* sc, s7_pointer args) {
 #endif
     attr.errmode= TB_FILE_MODE_RW | TB_FILE_MODE_CREAT | TB_FILE_MODE_TRUNC;
   }
-#ifdef TB_CONFIG_OS_WINDOWS
   else if (stderr_to_stdout && stdout_path) {
     attr.errtype = TB_PROCESS_REDIRECT_TYPE_FILEPATH;
     attr.err.path= stdout_path;
     attr.errmode = TB_FILE_MODE_RW | TB_FILE_MODE_CREAT | TB_FILE_MODE_APPEND;
   }
+#ifdef TB_CONFIG_OS_WINDOWS
   else if (stderr_to_stdout && h_out_write) {
     HANDLE h_err_dup= NULL;
     if (DuplicateHandle (GetCurrentProcess (), h_out_write, GetCurrentProcess (), &h_err_dup, 0, TRUE,
@@ -1466,11 +1461,6 @@ f_subprocess_spawn (s7_scheme* sc, s7_pointer args) {
     attr.err.file= (tb_file_ref_t) h_err_write;
   }
 #else
-  else if (stderr_to_stdout && stdout_path) {
-    attr.errtype = TB_PROCESS_REDIRECT_TYPE_FILEPATH;
-    attr.err.path= stdout_path;
-    attr.errmode = TB_FILE_MODE_RW | TB_FILE_MODE_CREAT | TB_FILE_MODE_APPEND;
-  }
   else if (stderr_to_stdout && out_pipe[1]) {
     attr.errtype = TB_PROCESS_REDIRECT_TYPE_PIPE;
     attr.err.pipe= out_pipe[1];
@@ -2009,8 +1999,6 @@ glue_subprocess (s7_scheme* sc) {
   glue_define (sc, "g_subprocess-close-stdin", "(g_subprocess-close-stdin proc) => unspecified",
                f_subprocess_close_stdin, 1, 0);
   glue_define (sc, "g_subprocess-write", "(g_subprocess-write proc data) => integer", f_subprocess_write, 2, 0);
-  glue_define (sc, "g_subprocess-write-stdin", "(g_subprocess-write-stdin proc data) => integer", f_subprocess_write, 2,
-               0);
   glue_define (sc, "g_subprocess-read", "(g_subprocess-read proc [max-bytes] [stream]) => string | eof",
                f_subprocess_read, 1, 2);
   glue_define (sc, "g_subprocess-read-line", "(g_subprocess-read-line proc [stream]) => string | eof",
