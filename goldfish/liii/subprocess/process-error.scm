@@ -19,11 +19,7 @@
     process-error-stderr process-error-stdout process-error-command
     process-error-message
   ) ;export
-  (import
-    (scheme base)
-    (liii error)
-    (liii string)
-  ) ;import
+  (import (scheme base) (liii error) (liii string))
   (begin
 
     (define-record-type <process-error>
