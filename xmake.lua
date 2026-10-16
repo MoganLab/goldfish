@@ -102,6 +102,7 @@ target ("goldfish") do
     end
     add_files ("src/goldfish.cpp")
     add_files ("src/liii_subprocess.cpp")
+    add_files ("src/liii_signal.cpp")
     if has_config("http") and not is_plat("wasm") then
         add_files ("src/liii_http.cpp")
         add_defines("GOLDFISH_ENABLE_HTTP")
