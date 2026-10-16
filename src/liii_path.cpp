@@ -16,9 +16,22 @@
 //
 
 #include "s7.h"
+#include <cerrno>
 #include <cstring>
 #include <string>
 #include <vector>
+#include <sys/types.h>
+#include <sys/stat.h>
+
+#if defined(_WIN32)
+#define WIN32_LEAN_AND_MEAN
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#else
+#include <unistd.h>
+#endif
 
 #include <tbox/platform/file.h>
 #include <tbox/tbox.h>
@@ -556,6 +569,144 @@ glue_path_copy (s7_scheme* sc) {
   s7_define_function (sc, name, f_path_copy, 2, 0, false, desc);
 }
 
+static s7_pointer
+f_path_stat (s7_scheme* sc, s7_pointer args) {
+  s7_pointer path_arg= s7_car (args);
+  if (!s7_is_string (path_arg)) {
+    return string_type_error (sc, "path-stat: path must be a string", path_arg);
+  }
+  const char* path_c= s7_string (path_arg);
+  if (!path_c) {
+    return s7_error (sc, s7_make_symbol (sc, "file-not-found-error"),
+                     s7_list (sc, 1, s7_make_string (sc, "path-stat: invalid path")));
+  }
+
+#if defined(_WIN32)
+  int count= MultiByteToWideChar (CP_UTF8, 0, path_c, -1, NULL, 0);
+  if (count <= 0) {
+    return s7_error (sc, s7_make_symbol (sc, "file-not-found-error"),
+                     s7_list (sc, 1, s7_make_string (sc, (string ("No such file or directory: '") + path_c + "'").c_str ())));
+  }
+  std::wstring wpath (count - 1, L'\0');
+  MultiByteToWideChar (CP_UTF8, 0, path_c, -1, &wpath[0], count);
+
+  DWORD attrs= GetFileAttributesW (wpath.c_str ());
+  if (attrs == INVALID_FILE_ATTRIBUTES) {
+    DWORD err= GetLastError ();
+    if (err == ERROR_FILE_NOT_FOUND || err == ERROR_PATH_NOT_FOUND) {
+      return s7_error (sc, s7_make_symbol (sc, "file-not-found-error"),
+                       s7_list (sc, 1, s7_make_string (sc, (string ("No such file or directory: '") + path_c + "'").c_str ())));
+    }
+    else if (err == ERROR_ACCESS_DENIED) {
+      return s7_error (sc, s7_make_symbol (sc, "permission-denied-error"),
+                       s7_list (sc, 1, s7_make_string (sc, (string ("Permission denied: '") + path_c + "'").c_str ())));
+    }
+    else {
+      return s7_error (sc, s7_make_symbol (sc, "os-error"),
+                       s7_list (sc, 1, s7_make_string (sc, (string ("stat failed for: '") + path_c + "'").c_str ())));
+    }
+  }
+
+  s7_int size = 0;
+  double atime= 0.0;
+  double mtime= 0.0;
+  double ctime= 0.0;
+  s7_int mode = 0;
+
+  struct __stat64 st;
+  int ret= _wstat64 (wpath.c_str (), &st);
+  if (ret == 0) {
+    size = (s7_int) st.st_size;
+    atime= (double) st.st_atime;
+    mtime= (double) st.st_mtime;
+    ctime= (double) st.st_ctime;
+    mode = (s7_int) st.st_mode;
+  }
+  else {
+    WIN32_FILE_ATTRIBUTE_DATA fad;
+    if (GetFileAttributesExW (wpath.c_str (), GetFileExInfoStandard, &fad)) {
+      LARGE_INTEGER liSize;
+      liSize.LowPart = fad.nFileSizeLow;
+      liSize.HighPart= fad.nFileSizeHigh;
+      size           = (s7_int) liSize.QuadPart;
+
+      auto filetime_to_unix= [] (const FILETIME& ft) -> double {
+        ULARGE_INTEGER ull;
+        ull.LowPart = ft.dwLowDateTime;
+        ull.HighPart= ft.dwHighDateTime;
+        if (ull.QuadPart < 116444736000000000ULL) return 0.0;
+        return (double) (ull.QuadPart - 116444736000000000ULL) / 10000000.0;
+      };
+      ctime= filetime_to_unix (fad.ftCreationTime);
+      atime= filetime_to_unix (fad.ftLastAccessTime);
+      mtime= filetime_to_unix (fad.ftLastWriteTime);
+      if (fad.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+        mode |= 0040000;
+      }
+      else {
+        mode |= 0100000;
+      }
+    }
+  }
+
+  if (attrs & FILE_ATTRIBUTE_REPARSE_POINT) {
+    mode= (mode & ~0170000) | 0120000;
+  }
+#else
+  struct stat st;
+  int ret= lstat (path_c, &st);
+  if (ret != 0) {
+    if (errno == ENOENT || errno == ENOTDIR) {
+      return s7_error (sc, s7_make_symbol (sc, "file-not-found-error"),
+                       s7_list (sc, 1, s7_make_string (sc, (string ("No such file or directory: '") + path_c + "'").c_str ())));
+    }
+    else if (errno == EACCES || errno == EPERM) {
+      return s7_error (sc, s7_make_symbol (sc, "permission-denied-error"),
+                       s7_list (sc, 1, s7_make_string (sc, (string ("Permission denied: '") + path_c + "'").c_str ())));
+    }
+    else {
+      return s7_error (sc, s7_make_symbol (sc, "os-error"),
+                       s7_list (sc, 1, s7_make_string (sc, (string ("stat failed for: '") + path_c + "'").c_str ())));
+    }
+  }
+
+  s7_int size= (s7_int) st.st_size;
+#if defined(__APPLE__)
+  double atime= (double) st.st_atime + (double) st.st_atimespec.tv_nsec / 1e9;
+  double mtime= (double) st.st_mtime + (double) st.st_mtimespec.tv_nsec / 1e9;
+  double ctime= (double) st.st_ctime + (double) st.st_ctimespec.tv_nsec / 1e9;
+#elif defined(_WIN32)
+  double atime= (double) st.st_atime;
+  double mtime= (double) st.st_mtime;
+  double ctime= (double) st.st_ctime;
+#elif defined(__EMSCRIPTEN__)
+  double atime= (double) st.st_atime;
+  double mtime= (double) st.st_mtime;
+  double ctime= (double) st.st_ctime;
+#else
+  double atime= (double) st.st_atim.tv_sec + (double) st.st_atim.tv_nsec / 1e9;
+  double mtime= (double) st.st_mtim.tv_sec + (double) st.st_mtim.tv_nsec / 1e9;
+  double ctime= (double) st.st_ctim.tv_sec + (double) st.st_ctim.tv_nsec / 1e9;
+#endif
+  s7_int mode= (s7_int) st.st_mode;
+#endif
+
+  s7_pointer result= s7_make_vector (sc, 5);
+  s7_vector_set (sc, result, 0, s7_make_integer (sc, size));
+  s7_vector_set (sc, result, 1, s7_make_real (sc, mtime));
+  s7_vector_set (sc, result, 2, s7_make_real (sc, atime));
+  s7_vector_set (sc, result, 3, s7_make_real (sc, ctime));
+  s7_vector_set (sc, result, 4, s7_make_integer (sc, mode));
+  return result;
+}
+
+static void
+glue_path_stat (s7_scheme* sc) {
+  const char* name= "g_path-stat";
+  const char* desc= "(g_path-stat path) => vector #(size mtime atime ctime mode), stat a file path";
+  glue_define (sc, name, desc, f_path_stat, 1, 0);
+}
+
 void
 glue_liii_path (s7_scheme* sc) {
   glue_isfile (sc);
@@ -569,6 +720,7 @@ glue_liii_path (s7_scheme* sc) {
   glue_path_append_text (sc);
   glue_path_touch (sc);
   glue_path_copy (sc);
+  glue_path_stat (sc);
 }
 
 } // namespace goldfish

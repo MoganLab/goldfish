@@ -98,3 +98,18 @@
 ;;   path-getsize      - 获取文件大小
 ;;   path-rmdir        - 删除空目录
 ;;   path-unlink       - 删除文件
+
+
+;; 七、文件元数据与状态
+;; 用于获取和判定文件元数据的函数
+;;   path-stat         - 获取文件或目录的元数据记录对象
+;;   path-stat?        - 判断是否为 <path-stat> 记录对象
+;;   make-path-stat    - 构造 <path-stat> 记录对象
+;;   path-stat-size    - 获取文件字节大小
+;;   path-stat-mtime   - 获取最后修改时间（秒）
+;;   path-stat-atime   - 获取最后访问时间（秒）
+;;   path-stat-ctime   - 获取状态变更/创建时间（秒）
+;;   path-stat-mode    - 获取模式与权限位
+;;   path-stat-file?   - 基于元数据判断是否为普通文件
+;;   path-stat-dir?    - 基于元数据判断是否为目录
+;;   path-stat-symlink? - 基于元数据判断是否为符号链接

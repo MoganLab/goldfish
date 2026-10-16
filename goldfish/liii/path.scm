@@ -8,9 +8,12 @@
     path-relative-to path-starts-with? path-equals? path=? path-absolute?
     path-relative? path-join path-parent path-parents path-list path-list-path
     path-rmdir path-unlink path-rename path-mkdir path-absolute path-expanduser
-    path-match path-as-posix path-resolve
+    path-match path-as-posix path-resolve make-path-stat path-stat path-stat?
+    path-stat-size path-stat-mtime path-stat-atime path-stat-ctime
+    path-stat-mode path-stat-file? path-stat-dir? path-stat-symlink?
   ) ;export
   (import (liii base)
+    (liii bitwise)
     (liii error)
     (liii os)
     (liii string)
@@ -1227,6 +1230,94 @@
         ) ;cond
       ) ;let
     ) ;define*
+
+    ;; ;============================================================
+    ;; ; path-stat record 类型与文件元数据
+    ;; ;============================================================
+
+    (define-record-type <path-stat>
+      (%make-path-stat size mtime atime ctime mode)
+      path-stat?
+      (size %path-stat-size)
+      (mtime %path-stat-mtime)
+      (atime %path-stat-atime)
+      (ctime %path-stat-ctime)
+      (mode %path-stat-mode)
+    ) ;define-record-type
+
+    (define (make-path-stat size mtime atime ctime mode)
+      (%make-path-stat size mtime atime ctime mode)
+    ) ;define
+
+    (define (path-stat-size st)
+      (if (not (path-stat? st))
+        (type-error "path-stat-size: expected <path-stat> record")
+        (%path-stat-size st)
+      ) ;if
+    ) ;define
+
+    (define (path-stat-mtime st)
+      (if (not (path-stat? st))
+        (type-error "path-stat-mtime: expected <path-stat> record")
+        (%path-stat-mtime st)
+      ) ;if
+    ) ;define
+
+    (define (path-stat-atime st)
+      (if (not (path-stat? st))
+        (type-error "path-stat-atime: expected <path-stat> record")
+        (%path-stat-atime st)
+      ) ;if
+    ) ;define
+
+    (define (path-stat-ctime st)
+      (if (not (path-stat? st))
+        (type-error "path-stat-ctime: expected <path-stat> record")
+        (%path-stat-ctime st)
+      ) ;if
+    ) ;define
+
+    (define (path-stat-mode st)
+      (if (not (path-stat? st))
+        (type-error "path-stat-mode: expected <path-stat> record")
+        (%path-stat-mode st)
+      ) ;if
+    ) ;define
+
+    (define (path-stat p)
+      (if (not (or (string? p) (path? p)))
+        (type-error "path-stat: path must be a string or path record")
+        (let* ((s (path->string p)) (v (g_path-stat s)))
+          (make-path-stat (vector-ref v 0)
+            (vector-ref v 1)
+            (vector-ref v 2)
+            (vector-ref v 3)
+            (vector-ref v 4)
+          ) ;make-path-stat
+        ) ;let*
+      ) ;if
+    ) ;define
+
+    (define (path-stat-file? st)
+      (if (not (path-stat? st))
+        (type-error "path-stat-file?: expected <path-stat> record")
+        (= (logand (path-stat-mode st) 61440) 32768)
+      ) ;if
+    ) ;define
+
+    (define (path-stat-dir? st)
+      (if (not (path-stat? st))
+        (type-error "path-stat-dir?: expected <path-stat> record")
+        (= (logand (path-stat-mode st) 61440) 16384)
+      ) ;if
+    ) ;define
+
+    (define (path-stat-symlink? st)
+      (if (not (path-stat? st))
+        (type-error "path-stat-symlink?: expected <path-stat> record")
+        (= (logand (path-stat-mode st) 61440) 40960)
+      ) ;if
+    ) ;define
 
   ) ;begin
 ) ;define-library
