@@ -18,6 +18,7 @@
   (import (scheme base)
     (liii golddoc-args)
     (liii golddoc-library)
+    (liii golddoc-naming)
     (liii os)
     (liii path)
     (liii string)
@@ -170,6 +171,42 @@
       ) ;if
     ) ;define
 
+    (define (scan-documented-functions-in-dir dir)
+      (let collect-functions
+        ((d dir) (functions '()))
+        (let loop
+          ((entries (vector->list (listdir d))) (subdirs '()) (funcs functions))
+          (if (null? entries)
+            (let sub-loop
+              ((dirs (reverse subdirs)) (curr-funcs funcs))
+              (if (null? dirs)
+                curr-funcs
+                (sub-loop (cdr dirs) (collect-functions (car dirs) curr-funcs))
+              ) ;if
+            ) ;let
+            (let* ((entry-name (car entries))
+                   (entry-path (path->string (path-join d entry-name)))
+                  ) ;
+              (cond ((path-dir? entry-path) (loop (cdr entries) (cons entry-path subdirs) funcs))
+                    ((and (path-file? entry-path) (string-ends? entry-name "-test.scm"))
+                     (let ((function-name (test-file-documented-function-name entry-path)))
+                       (loop (cdr entries)
+                         subdirs
+                         (if (and function-name (not (member function-name funcs)))
+                           (append funcs (list function-name))
+                           funcs
+                         ) ;if
+                       ) ;loop
+                     ) ;let
+                    ) ;
+                    (else (loop (cdr entries) subdirs funcs))
+              ) ;cond
+            ) ;let*
+          ) ;if
+        ) ;let
+      ) ;let
+    ) ;define
+
     (define (library-documented-functions library-query)
       (let* ((parts (parse-library-query library-query))
              (group (and parts (car parts)))
@@ -181,104 +218,11 @@
              (tests-root (and load-root (find-tests-root-for-load-root load-root)))
              (library-dir (and tests-root (path->string (apply path-join tests-root parts))))
             ) ;
-        (if (not (and library-dir (path-dir? library-dir)))
+        (if (and library-dir (path-dir? library-dir))
+          (scan-documented-functions-in-dir library-dir)
           '()
-          (let collect-functions
-            ((dir library-dir) (functions '()))
-            (let loop
-              ((entries (vector->list (listdir dir))) (subdirs '()) (funcs functions))
-              (if (null? entries)
-                (let sub-loop
-                  ((dirs (reverse subdirs)) (curr-funcs funcs))
-                  (if (null? dirs)
-                    curr-funcs
-                    (sub-loop (cdr dirs) (collect-functions (car dirs) curr-funcs))
-                  ) ;if
-                ) ;let
-                (let* ((entry-name (car entries))
-                       (entry-path (path->string (path-join dir entry-name)))
-                      ) ;
-                  (cond ((path-dir? entry-path) (loop (cdr entries) (cons entry-path subdirs) funcs))
-                        ((and (path-file? entry-path) (string-ends? entry-name "-test.scm"))
-                         (let ((function-name (test-file-documented-function-name entry-path)))
-                           (loop (cdr entries)
-                             subdirs
-                             (if (and function-name (not (member function-name funcs)))
-                               (append funcs (list function-name))
-                               funcs
-                             ) ;if
-                           ) ;loop
-                         ) ;let
-                        ) ;
-                        (else (loop (cdr entries) subdirs funcs))
-                  ) ;cond
-                ) ;let*
-              ) ;if
-            ) ;let
-          ) ;let
         ) ;if
       ) ;let*
-    ) ;define
-
-    (define (pure-operator->stem name)
-      (cond ((string=? name "+") "plus")
-            ((string=? name "-") "minus")
-            ((string=? name "*") "star")
-            ((string=? name "/") "slash")
-            ((string=? name "=") "eq")
-            ((string=? name "<") "lt")
-            ((string=? name "<=") "le")
-            ((string=? name ">") "gt")
-            ((string=? name ">=") "ge")
-            (else #f)
-      ) ;cond
-    ) ;define
-
-    (define (string-starts-at? str index fragment)
-      (let ((fragment-length (string-length fragment))
-            (string-length* (string-length str))
-           ) ;
-        (and (<= (+ index fragment-length) string-length*)
-          (string=? (substring str index (+ index fragment-length)) fragment)
-        ) ;and
-      ) ;let
-    ) ;define
-
-    (define (exported-name->test-stem name)
-      (let ((pure-operator (pure-operator->stem name)))
-        (if pure-operator
-          pure-operator
-          (let ((name-length (string-length name)))
-            (let loop
-              ((index 0) (parts '()))
-              (if (>= index name-length)
-                (apply string-append (reverse parts))
-                (cond
-                 ((string-starts-at? name index "->")
-                  (loop (+ index 2) (cons (if (= (+ index 2) name-length) "-to" "-to-") parts))
-                 ) ;
-                 ((string-starts-at? name index ">=") (loop (+ index 2) (cons "-ge" parts)))
-                 ((string-starts-at? name index "<=") (loop (+ index 2) (cons "-le" parts)))
-                 ((char=? (string-ref name index) #\?) (loop (+ index 1) (cons "-p" parts)))
-                 ((char=? (string-ref name index) #\!) (loop (+ index 1) (cons "-bang" parts)))
-                 ((char=? (string-ref name index) #\/)
-                  (loop (+ index 1)
-                    (cons (if (= (+ index 1) name-length) "-slash" "-slash-") parts)
-                  ) ;loop
-                 ) ;
-                 ((char=? (string-ref name index) #\*) (loop (+ index 1) (cons "-star" parts)))
-                 ((char=? (string-ref name index) #\=) (loop (+ index 1) (cons "-eq" parts)))
-                 ((char=? (string-ref name index) #\<) (loop (+ index 1) (cons "-lt" parts)))
-                 ((char=? (string-ref name index) #\>) (loop (+ index 1) (cons "-gt" parts)))
-                 (else
-                   (loop (+ index 1) (cons (string (string-ref name index)) parts))
-                 ) ;else
-                ) ;cond
-              ) ;if
-            ) ;let
-          ) ;let
-        ) ;if
-      ) ;let
     ) ;define
 
     (define (function-doc-path library-query exported-name)

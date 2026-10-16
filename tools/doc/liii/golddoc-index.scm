@@ -163,6 +163,20 @@
       ) ;let*
     ) ;define
 
+    (define (entry-has-visible-library? library-entries)
+      (let loop
+        ((remaining library-entries))
+        (and (not (null? remaining))
+          (or
+            (let ((library-query (index-entry->library-query (car remaining))))
+              (and library-query (visible-library-query? library-query))
+            ) ;let
+            (loop (cdr remaining))
+          ) ;or
+        ) ;and
+      ) ;let
+    ) ;define
+
     (define (visible-function-names)
       (let ((visible (set)))
         (let loop
@@ -172,21 +186,10 @@
             (let* ((entry (car entries))
                    (function-name (car entry))
                    (library-entries (cdr entry))
-                   (has-visible-library?
-                     (let visible-loop
-                       ((remaining library-entries))
-                       (and (not (null? remaining))
-                         (or
-                           (let ((library-query (index-entry->library-query (car remaining))))
-                             (and library-query (visible-library-query? library-query))
-                           ) ;let
-                           (visible-loop (cdr remaining))
-                         ) ;or
-                       ) ;and
-                     ) ;let
-                   ) ;has-visible-library?
                   ) ;
-              (when (and has-visible-library? (not (set-contains? visible function-name)))
+              (when (and (entry-has-visible-library? library-entries)
+                      (not (set-contains? visible function-name))
+                    ) ;and
                 (set-adjoin! visible function-name)
               ) ;when
               (loop (cdr entries))
