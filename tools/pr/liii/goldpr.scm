@@ -29,10 +29,7 @@
 
     (define (git-out . args)
       (either-get-or-else
-        (either-map
-          (lambda (out)
-            (if (string-null? out) #f (string-trim-both out))
-          ) ;lambda
+        (either-map (lambda (out) (if (string-null? out) #f (string-trim-both out)))
           (run-either (cons 'git args) :stdout 'capture)
         ) ;either-map
         #f
