@@ -18,8 +18,9 @@
   (export run run-values run-either run-set! run-get run-allow! run-ban!
     run-unban! run-and run-or run-sequence run-pipe run-if run-when process?
     process-pid process-spawn process-alive? process-poll process-wait
-    process-terminate process-kill process-close process-close-stdin
-    process-write process-read process-read-line run-streaming
+    process-terminate process-kill process-kill-tree process-close
+    process-close-stdin process-write process-read process-read-line
+    run-streaming
   ) ;export
   (import (scheme base)
     (scheme time)
@@ -594,6 +595,39 @@
       (g_subprocess-kill proc)
     ) ;define
 
+    (define (process-kill-tree proc-or-pid . opts)
+      (unless (or (process? proc-or-pid) (and (integer? proc-or-pid) (exact? proc-or-pid)))
+        (type-error "process-kill-tree: argument must be a process or exact integer")
+      ) ;unless
+      (when (and (integer? proc-or-pid) (not (process? proc-or-pid)))
+        (unless (> proc-or-pid 0)
+          (value-error "process-kill-tree: pid must be a positive integer")
+        ) ;unless
+      ) ;when
+      (let ((signal (%keyword-value :signal opts 'sigkill))
+            (timeout (%keyword-value :timeout opts 3))
+           ) ;
+        (unless (symbol? signal)
+          (type-error "process-kill-tree: :signal must be a symbol")
+        ) ;unless
+        (unless (or (eq? signal 'sigkill) (eq? signal 'sigterm))
+          (value-error "process-kill-tree: :signal must be 'sigkill or 'sigterm")
+        ) ;unless
+        (unless (real? timeout)
+          (type-error "process-kill-tree: :timeout must be a real number")
+        ) ;unless
+        (when (< timeout 0)
+          (value-error "process-kill-tree: :timeout must be non-negative")
+        ) ;when
+        (if (and (process? proc-or-pid) (not (process-alive? proc-or-pid)))
+          #t
+          (let ((timeout-ms (exact (round (* timeout 1000)))))
+            (g_subprocess-kill-tree proc-or-pid signal timeout-ms)
+          ) ;let
+        ) ;if
+      ) ;let
+    ) ;define
+
     (define (process-close proc)
       (unless (process? proc)
         (type-error "process-close: argument must be a process")
@@ -830,7 +864,7 @@
                  (let ((rem-ms (%rem-ms)))
                    (if (and deadline-ms (<= rem-ms 0))
                      (begin
-                       (process-kill proc)
+                       (process-kill-tree proc)
                        (process-close proc)
                        (process-wait proc 500)
                        #f

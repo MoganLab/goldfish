@@ -159,4 +159,16 @@
   (process-close proc)
 ) ;let
 
+;; process-kill-tree regression tests
+(let ((proc (process-spawn '("python3" "-c" "import time; time.sleep(10)"))))
+  (check (process-alive? proc) => #t)
+  (check (process-kill-tree proc) => #t)
+  (check (integer? (process-wait proc 2000)) => #t)
+  (check (process-alive? proc) => #f)
+  (process-close proc)
+) ;let
+(check (process-kill-tree 999999) => #t)
+(check-catch 'value-error (process-kill-tree 0))
+(check-catch 'type-error (process-kill-tree "not-a-process"))
+
 (check-report)
