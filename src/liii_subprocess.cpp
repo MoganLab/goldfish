@@ -65,6 +65,7 @@ set_pipe_pair_cloexec (tb_pipe_file_ref_t pipe[2]) {
 namespace goldfish {
 
 using std::string;
+using std::to_string;
 using std::vector;
 
 enum class redirect_mode { tee, capture, inherit, discard, file };
@@ -158,7 +159,7 @@ struct Subprocess {
         }
         tb_process_kill (process);
         if (pid > 0) {
-          string cmd= "taskkill /F /T /PID " + to_string (pid) + " >NUL 2>&1";
+          string cmd= "taskkill /F /T /PID " + std::to_string (pid) + " >NUL 2>&1";
           system (cmd.c_str ());
         }
 #else
@@ -304,7 +305,7 @@ struct Subprocess {
     }
     tb_process_kill (process);
     if (pid > 0) {
-      string cmd= "taskkill /F /T /PID " + to_string (pid) + " >NUL 2>&1";
+      string cmd= "taskkill /F /T /PID " + std::to_string (pid) + " >NUL 2>&1";
       system (cmd.c_str ());
     }
 #else
@@ -1112,7 +1113,7 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
         tb_process_kill (process);
         tb_int_t p_pid= get_process_pid (process);
         if (p_pid > 0) {
-          string cmd= "taskkill /F /T /PID " + to_string (p_pid) + " >NUL 2>&1";
+          string cmd= "taskkill /F /T /PID " + std::to_string (p_pid) + " >NUL 2>&1";
           system (cmd.c_str ());
         }
 #else
@@ -1221,7 +1222,7 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
         tb_process_kill (process);
         tb_int_t p_pid= get_process_pid (process);
         if (p_pid > 0) {
-          string cmd= "taskkill /F /T /PID " + to_string (p_pid) + " >NUL 2>&1";
+          string cmd= "taskkill /F /T /PID " + std::to_string (p_pid) + " >NUL 2>&1";
           system (cmd.c_str ());
         }
 #else
@@ -1791,7 +1792,7 @@ windows_kill_tree (int pid, bool is_sigkill, int timeout_ms, Subprocess* proc) {
     tb_process_kill (proc->process);
   }
   if (pid > 0) {
-    string cmd= "taskkill /F /T /PID " + to_string (pid) + " >NUL 2>&1";
+    string cmd= "taskkill /F /T /PID " + std::to_string (pid) + " >NUL 2>&1";
     system (cmd.c_str ());
   }
   if (proc) {
@@ -1961,8 +1962,8 @@ glue_subprocess (s7_scheme* sc) {
   glue_define (sc, "g_subprocess-terminate", "(g_subprocess-terminate proc) => unspecified", f_subprocess_terminate, 1,
                0);
   glue_define (sc, "g_subprocess-kill", "(g_subprocess-kill proc) => unspecified", f_subprocess_kill, 1, 0);
-  glue_define (sc, "g_subprocess-kill-tree",
-               "(g_subprocess-kill-tree proc-or-pid [signal] [timeout-ms]) => boolean", f_subprocess_kill_tree, 1, 2);
+  glue_define (sc, "g_subprocess-kill-tree", "(g_subprocess-kill-tree proc-or-pid [signal] [timeout-ms]) => boolean",
+               f_subprocess_kill_tree, 1, 2);
   glue_define (sc, "g_subprocess-close", "(g_subprocess-close proc) => unspecified", f_subprocess_close, 1, 0);
   glue_define (sc, "g_subprocess-close-stdin", "(g_subprocess-close-stdin proc) => unspecified",
                f_subprocess_close_stdin, 1, 0);
