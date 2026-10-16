@@ -104,4 +104,59 @@
   (check-catch 'value-error (run '(pytrue "-c" "pass")))
 ) ;when
 
+(when (os-macos?)
+  ;; run basic tests
+  (check (zero? (run "true")) => #t)
+  (check (zero? (run "false")) => #f)
+  (check (run "echo hello") => 0)
+  (check (zero? (run '(true))) => #t)
+  (check (zero? (run '(false))) => #f)
+
+  (let ((orig-dir (getcwd)))
+    (run "pwd" :cwd "/tmp")
+    (check (getcwd) => orig-dir)
+  ) ;let
+
+  (let ((orig-dir (getcwd)))
+    (run '(pwd) :cwd "/tmp")
+    (check (getcwd) => orig-dir)
+  ) ;let
+
+  (check-catch 'value-error (run "cd /tmp" :cwd "/tmp"))
+  (check-catch 'value-error (run '(cd "/tmp") :cwd "/tmp"))
+
+  ;; run-set! / run-get tests
+  (run-set! 'echo-cmd "/bin/echo")
+  (check (zero? (run '(echo-cmd "hello"))) => #t)
+
+  (run-set! 'my-lambda (lambda () (display "ok\n")))
+  (check (zero? (run '(my-lambda))) => #t)
+
+  (check (path? (run-get 'echo-cmd)) => #t)
+  (check (run-get 'not-exist) => #f)
+
+  (run-set! 'custom-lambda (lambda () (display "ok\n")))
+  (check (procedure? (run-get 'custom-lambda)) => #t)
+
+  ;; run-allow! tests
+  (run-allow! 'echo-cmd)
+  (check (zero? (run '(echo-cmd "hello"))) => #t)
+  (check-catch 'value-error (run '(my-lambda)))
+
+  (run-allow! '())
+  (check (zero? (run '(my-lambda))) => #t)
+
+  ;; run-ban! tests
+  (run-ban! 'echo-cmd)
+  (check-catch 'value-error (run '(echo-cmd "hello")))
+  (run-unban! 'echo-cmd)
+) ;when
+
+;; cross-platform process tests
+(let ((proc (process-spawn '("python3" "-c" "import sys; sys.exit(0)"))))
+  (check (process? proc) => #t)
+  (check (process-wait proc 2000) => 0)
+  (process-close proc)
+) ;let
+
 (check-report)
