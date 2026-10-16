@@ -70,4 +70,16 @@
   (check (read-line port) => "end")
   (check (eof-object? (read-line port)) => #t)
 ) ;let
+
+;; 测试11: read-line 默认从当前输入端口读取
+(let ((orig (current-input-port))
+      (p (open-input-string "hello default\nworld default\n"))
+     ) ;
+  (set-current-input-port p)
+  (check (read-line) => "hello default")
+  (check (read-line) => "world default")
+  (check (eof-object? (read-line)) => #t)
+  (set-current-input-port orig)
+) ;let
+
 (check-report)

@@ -1,0 +1,5 @@
+(import (scheme base))
+(define (main)
+  (display (read-line))
+  (newline))
+(main)

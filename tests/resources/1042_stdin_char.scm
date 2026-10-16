@@ -1,0 +1,5 @@
+(import (scheme base))
+(write (read-char))
+(newline)
+(write (read-char))
+(newline)
