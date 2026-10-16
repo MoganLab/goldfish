@@ -1,6 +1,11 @@
-(import (liii check) (liii os) (liii subprocess))
+(import (liii check) (liii either) (liii os) (liii string) (liii subprocess))
 
 (check-set-mode! 'report-failed)
+
+;; 提取 run-either 结果的 stdout（无论 Left/Right）
+(define (run-either-stdout res)
+  (if (either-right? res) (to-right res) (process-error-stdout (to-left res)))
+) ;define
 
 ;; process-kill-tree
 ;; 级联终止指定进程及其所有派生子孙进程。
@@ -75,9 +80,9 @@
       (check (process-alive? proc) => #f)
     ) ;let
     ;; 验证子孙进程已完全清理
-    (let-values (((out err code) (run-values (string-append "pgrep -P " (number->string pid)))))
-      (check (zero? (string-length out)) => #t)
-    ) ;let-values
+    (let ((res (run-either (string-append "pgrep -P " (number->string pid)))))
+      (check (string-null? (run-either-stdout res)) => #t)
+    ) ;let
     (process-close proc)
   ) ;let*
 
@@ -91,9 +96,9 @@
       (check (integer? ret) => #t)
       (check (process-alive? proc) => #f)
     ) ;let
-    (let-values (((out err code) (run-values (string-append "pgrep -P " (number->string pid)))))
-      (check (zero? (string-length out)) => #t)
-    ) ;let-values
+    (let ((res (run-either (string-append "pgrep -P " (number->string pid)))))
+      (check (string-null? (run-either-stdout res)) => #t)
+    ) ;let
     (process-close proc)
   ) ;let*
 
@@ -119,10 +124,8 @@
     (process-close proc)
   ) ;let
 
-  ;; 测试项3：run 与 run-values 超时默认级联清理测试
-  (let-values (((out err code) (run-values "sh -c 'sh -c \"sleep 10\"'" :timeout 1)))
-    (check code => -1)
-  ) ;let-values
+  ;; 测试项3：run 超时默认级联清理测试
+  (check (run "sh -c 'sh -c \"sleep 10\"'" :timeout 1) => -1)
 ) ;when
 
 ;; 跨平台通用测试：基于 Python 多级子进程

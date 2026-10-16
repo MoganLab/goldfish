@@ -32,9 +32,9 @@
 ;; ----
 ;; Either
 ;; 成功时返回 Right（内含标准输出字符串），
-;; 失败时返回 Left（内含 (cons exit-code stderr-string)）。
+;; 失败时返回 Left（内含 <process-error> 记录）。
 
-(when (os-linux?)
+(when (or (os-linux?) (os-macos?))
   ;; basic success
   (check (either-right? (run-either "echo hello" :stdout 'capture)) => #t)
   (check (to-right (run-either "echo hello" :stdout 'capture)) => "hello\n")
@@ -43,22 +43,35 @@
 
   ;; basic failure
   (check (either-left? (run-either "false")) => #t)
-  (let ((result (to-left (run-either "false"))))
-    (check (car result) => 1)
-    (check (string? (cdr result)) => #t)
+  (let ((err (to-left (run-either "false"))))
+    (check (process-error? err) => #t)
+    (check (process-error-code err) => 1)
+    (check (string? (process-error-stderr err)) => #t)
+    (check (string? (process-error-stdout err)) => #t)
+    (check (process-error-command err) => "false")
+    (check (string? (process-error-message err)) => #t)
   ) ;let
 
   ;; failure with stderr
   (check (either-left? (run-either "ls /nonexistent" :stderr 'capture)) => #t)
-  (let ((result (to-left (run-either "ls /nonexistent" :stderr 'capture))))
-    (check (number? (car result)) => #t)
-    (check (string? (cdr result)) => #t)
-    (check (> (string-length (cdr result)) 0) => #t)
+  (let ((err (to-left (run-either "ls /nonexistent" :stderr 'capture))))
+    (check (process-error? err) => #t)
+    (check (number? (process-error-code err)) => #t)
+    (check (string? (process-error-stderr err)) => #t)
+    (check (> (string-length (process-error-stderr err)) 0) => #t)
+    (check (process-error-command err) => "ls /nonexistent")
+    (check (string-contains? (process-error-message err) "nonexistent") => #t)
   ) ;let
 
   ;; :cwd
   (check (either-right? (run-either "pwd" :cwd "/tmp" :stdout 'capture)) => #t)
-  (check (to-right (run-either "pwd" :cwd "/tmp" :stdout 'capture)) => "/tmp\n")
+  (check
+    (let ((out (to-right (run-either "pwd" :cwd "/tmp" :stdout 'capture))))
+      (or (string=? out "/tmp\n") (string=? out "/private/tmp\n"))
+    ) ;let
+    =>
+    #t
+  ) ;check
 
   ;; :env
   (let ((result (run-either '(env) :env '(("FOO" . "bar")) :stdout 'capture)))
@@ -146,11 +159,11 @@
       =>
       #t
     ) ;check
-    (let ((result (to-left (run-either "python3 -c 1/0" :stdout tmpfile :stderr 'discard))
-          ) ;result
-         ) ;
-      (check (number? (car result)) => #t)
-      (check (string? (cdr result)) => #t)
+    (let ((err (to-left (run-either "python3 -c 1/0" :stdout tmpfile :stderr 'discard))))
+      (check (process-error? err) => #t)
+      (check (number? (process-error-code err)) => #t)
+      (check (string? (process-error-stderr err)) => #t)
+      (check (process-error-command err) => "python3 -c 1/0")
     ) ;let
     (when (file-exists? tmpfile)
       (delete-file tmpfile)
@@ -186,7 +199,7 @@
     (check
       (either-right?
         (run-either "python3 -c pass"
-          :env    `((,"FOO" . ,"bar") (,"PATH" . ,path-env))
+          :env    `(("FOO" . "bar") ("PATH" . ,path-env))
           :stdout tmpfile
           :stderr 'discard
         ) ;run-either
@@ -257,5 +270,19 @@
     ) ;when
   ) ;let
 ) ;when
+
+;; 参数校验异常测试
+(check-catch 'type-error (run-either "true" :env '((#\a . "1"))))
+(check-catch 'type-error (run-either "true" :env '((42 . "1"))))
+(check-catch 'type-error (run-either "true" :env '(("FOO" . 42))))
+(check-catch 'type-error (run-either "true" :env '(42)))
+(check-catch 'type-error (run-either "true" :env 42))
+(check-catch 'value-error (run-either "true" :stdout 'invalid-mode))
+(check-catch 'type-error (run-either "true" :stdout 123))
+(check-catch 'value-error (run-either "true" :stderr 'invalid-mode))
+(check-catch 'type-error (run-either "true" :stderr 123))
+(check-catch 'value-error (run-either "true" :stdin 'invalid-mode))
+(check-catch 'type-error (run-either "true" :stdin 123))
+(check-catch 'type-error (run-either "true" :cwd 123))
 
 (check-report)

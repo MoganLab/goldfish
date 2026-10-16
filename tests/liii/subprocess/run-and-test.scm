@@ -26,16 +26,28 @@
 ;; 返回值
 ;; ----
 ;; Either
-;; 全部成功时返回 Right（内含最后一个命令的退出码），
-;; 失败时返回 Left（内含 (list code command)）。
+;; 全部成功时返回 Right（内含最后一个命令的退出码 0），
+;; 失败时返回 Left（内含 <process-error> 记录）。
 
-(when (os-linux?)
+(when (or (os-linux?) (os-macos?))
   (check (either-right? (run-and "true" "true")) => #t)
   (check (to-right (run-and "true" "true")) => 0)
-  (check (either-left? (run-and "false" "true")) => #t)
-  (check (to-left (run-and "false" "true")) => '(1 "false"))
-  (check (either-left? (run-and "true" "false")) => #t)
-  (check (to-left (run-and "true" "false")) => '(1 "false"))
+  (let ((res (run-and "false" "true")))
+    (check (either-left? res) => #t)
+    (let ((err (to-left res)))
+      (check (process-error? err) => #t)
+      (check (process-error-code err) => 1)
+      (check (process-error-command err) => "false")
+    ) ;let
+  ) ;let
+  (let ((res (run-and "true" "false")))
+    (check (either-left? res) => #t)
+    (let ((err (to-left res)))
+      (check (process-error? err) => #t)
+      (check (process-error-code err) => 1)
+      (check (process-error-command err) => "false")
+    ) ;let
+  ) ;let
   (check (either-right? (run-and "true" "true" :cwd "/tmp")) => #t)
   (check (to-right (run-and "true" "true" :cwd "/tmp")) => 0)
   (check
@@ -69,23 +81,35 @@
   ;; Multiple commands
   (check (either-right? (run-and "true" "true" "true")) => #t)
   (check (to-right (run-and "true" "true" "true")) => 0)
-  (check (either-left? (run-and "true" "false" "true")) => #t)
-  (check (to-left (run-and "true" "false" "true")) => '(1 "false"))
+  (let ((res (run-and "true" "false" "true")))
+    (check (either-left? res) => #t)
+    (let ((err (to-left res)))
+      (check (process-error? err) => #t)
+      (check (process-error-code err) => 1)
+      (check (process-error-command err) => "false")
+    ) ;let
+  ) ;let
 ) ;when
 
 (when (os-windows?)
   (check (either-right? (run-and "python3 -c pass" "python3 -c pass")) => #t)
   (check (to-right (run-and "python3 -c pass" "python3 -c pass")) => 0)
-  (check (either-left? (run-and "python3 -c 1/0" "python3 -c pass")) => #t)
-  (check (to-left (run-and "python3 -c 1/0" "python3 -c pass"))
-    =>
-    '(1 "python3 -c 1/0")
-  ) ;check
-  (check (either-left? (run-and "python3 -c pass" "python3 -c 1/0")) => #t)
-  (check (to-left (run-and "python3 -c pass" "python3 -c 1/0"))
-    =>
-    '(1 "python3 -c 1/0")
-  ) ;check
+  (let ((res (run-and "python3 -c 1/0" "python3 -c pass")))
+    (check (either-left? res) => #t)
+    (let ((err (to-left res)))
+      (check (process-error? err) => #t)
+      (check (process-error-code err) => 1)
+      (check (process-error-command err) => "python3 -c 1/0")
+    ) ;let
+  ) ;let
+  (let ((res (run-and "python3 -c pass" "python3 -c 1/0")))
+    (check (either-left? res) => #t)
+    (let ((err (to-left res)))
+      (check (process-error? err) => #t)
+      (check (process-error-code err) => 1)
+      (check (process-error-command err) => "python3 -c 1/0")
+    ) ;let
+  ) ;let
   (check (either-right? (run-and "python3 -c pass" "python3 -c pass" :cwd (os-temp-dir)))
     =>
     #t
@@ -97,16 +121,14 @@
   (let ((path-env (getenv "PATH")))
     (check
       (either-right?
-        (run-and "python3 -c pass" :env `((,"FOO" . ,"bar")
-                                          (,"PATH" . ,path-env)))
+        (run-and "python3 -c pass" :env `(("FOO" . "bar") ("PATH" . ,path-env)))
       ) ;either-right?
       =>
       #t
     ) ;check
     (check
       (to-right
-        (run-and "python3 -c pass" :env `((,"FOO" . ,"bar")
-                                          (,"PATH" . ,path-env)))
+        (run-and "python3 -c pass" :env `(("FOO" . "bar") ("PATH" . ,path-env)))
       ) ;to-right
       =>
       0
@@ -140,14 +162,14 @@
     =>
     0
   ) ;check
-  (check (either-left? (run-and "python3 -c pass" "python3 -c 1/0" "python3 -c pass"))
-    =>
-    #t
-  ) ;check
-  (check (to-left (run-and "python3 -c pass" "python3 -c 1/0" "python3 -c pass"))
-    =>
-    '(1 "python3 -c 1/0")
-  ) ;check
+  (let ((res (run-and "python3 -c pass" "python3 -c 1/0" "python3 -c pass")))
+    (check (either-left? res) => #t)
+    (let ((err (to-left res)))
+      (check (process-error? err) => #t)
+      (check (process-error-code err) => 1)
+      (check (process-error-command err) => "python3 -c 1/0")
+    ) ;let
+  ) ;let
 ) ;when
 
 (check-report)
