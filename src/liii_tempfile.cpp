@@ -129,8 +129,8 @@ f_mkstemp (s7_scheme* sc, s7_pointer args) {
   }
   if (!created) {
     return s7_error (
-      sc, s7_make_symbol (sc, "os-error"),
-      s7_list (sc, 1, s7_make_string (sc, "mkstemp: failed to create unique temporary file after 100 attempts")));
+        sc, s7_make_symbol (sc, "os-error"),
+        s7_list (sc, 1, s7_make_string (sc, "mkstemp: failed to create unique temporary file after 100 attempts")));
   }
   s7_pointer port= s7_open_output_file (sc, chosen_path.c_str (), "w");
   return s7_values (sc, s7_list (sc, 2, port, s7_make_string (sc, chosen_path.c_str ())));
@@ -193,8 +193,9 @@ f_mkdtemp (s7_scheme* sc, s7_pointer args) {
     }
     if (!created) {
       return s7_error (
-        sc, s7_make_symbol (sc, "os-error"),
-        s7_list (sc, 1, s7_make_string (sc, "mkdtemp: failed to create unique temporary directory after 100 attempts")));
+          sc, s7_make_symbol (sc, "os-error"),
+          s7_list (sc, 1,
+                   s7_make_string (sc, "mkdtemp: failed to create unique temporary directory after 100 attempts")));
     }
   }
   return s7_make_string (sc, chosen_path.c_str ());
@@ -210,14 +211,16 @@ f_mkdtemp (s7_scheme* sc, s7_pointer args) {
     }
     DWORD err= GetLastError ();
     if (err != ERROR_ALREADY_EXISTS) {
-      return s7_error (sc, s7_make_symbol (sc, "os-error"),
-                       s7_list (sc, 2, s7_make_string (sc, "CreateDirectoryA failed"), s7_make_string (sc, cand.c_str ())));
+      return s7_error (
+          sc, s7_make_symbol (sc, "os-error"),
+          s7_list (sc, 2, s7_make_string (sc, "CreateDirectoryA failed"), s7_make_string (sc, cand.c_str ())));
     }
   }
   if (!created) {
     return s7_error (
-      sc, s7_make_symbol (sc, "os-error"),
-      s7_list (sc, 1, s7_make_string (sc, "mkdtemp: failed to create unique temporary directory after 100 attempts")));
+        sc, s7_make_symbol (sc, "os-error"),
+        s7_list (sc, 1,
+                 s7_make_string (sc, "mkdtemp: failed to create unique temporary directory after 100 attempts")));
   }
   return s7_make_string (sc, chosen_path.c_str ());
 #endif

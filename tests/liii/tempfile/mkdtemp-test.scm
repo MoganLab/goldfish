@@ -77,7 +77,7 @@
 ;; 测试项5：父目录不存在与无写权限校验
 (check-catch 'file-not-found-error (mkdtemp "tmp" "" "/nonexistent/dir/1052"))
 
-(unless (os-windows?)
+(unless (or (os-windows?) (equal? (getlogin) "root"))
   (let ((ro-dir (mkdtemp "ro-dir-")))
     (g_chmod ro-dir #o400)
     (check-catch 'permission-denied-error (mkdtemp "tmp" "" ro-dir))
