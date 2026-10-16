@@ -19,9 +19,9 @@
 #include <cerrno>
 #include <cstring>
 #include <string>
-#include <vector>
-#include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/types.h>
+#include <vector>
 
 #if defined(_WIN32)
 #define WIN32_LEAN_AND_MEAN
@@ -584,8 +584,9 @@ f_path_stat (s7_scheme* sc, s7_pointer args) {
 #if defined(_WIN32)
   int count= MultiByteToWideChar (CP_UTF8, 0, path_c, -1, NULL, 0);
   if (count <= 0) {
-    return s7_error (sc, s7_make_symbol (sc, "file-not-found-error"),
-                     s7_list (sc, 1, s7_make_string (sc, (string ("No such file or directory: '") + path_c + "'").c_str ())));
+    return s7_error (
+        sc, s7_make_symbol (sc, "file-not-found-error"),
+        s7_list (sc, 1, s7_make_string (sc, (string ("No such file or directory: '") + path_c + "'").c_str ())));
   }
   std::wstring wpath (count - 1, L'\0');
   MultiByteToWideChar (CP_UTF8, 0, path_c, -1, &wpath[0], count);
@@ -594,8 +595,9 @@ f_path_stat (s7_scheme* sc, s7_pointer args) {
   if (attrs == INVALID_FILE_ATTRIBUTES) {
     DWORD err= GetLastError ();
     if (err == ERROR_FILE_NOT_FOUND || err == ERROR_PATH_NOT_FOUND) {
-      return s7_error (sc, s7_make_symbol (sc, "file-not-found-error"),
-                       s7_list (sc, 1, s7_make_string (sc, (string ("No such file or directory: '") + path_c + "'").c_str ())));
+      return s7_error (
+          sc, s7_make_symbol (sc, "file-not-found-error"),
+          s7_list (sc, 1, s7_make_string (sc, (string ("No such file or directory: '") + path_c + "'").c_str ())));
     }
     else if (err == ERROR_ACCESS_DENIED) {
       return s7_error (sc, s7_make_symbol (sc, "permission-denied-error"),
@@ -614,7 +616,7 @@ f_path_stat (s7_scheme* sc, s7_pointer args) {
   s7_int mode = 0;
 
   struct __stat64 st;
-  int ret= _wstat64 (wpath.c_str (), &st);
+  int             ret= _wstat64 (wpath.c_str (), &st);
   if (ret == 0) {
     size = (s7_int) st.st_size;
     atime= (double) st.st_atime;
@@ -622,29 +624,30 @@ f_path_stat (s7_scheme* sc, s7_pointer args) {
     ctime= (double) st.st_ctime;
     mode = (s7_int) st.st_mode;
   }
-  else {
-    WIN32_FILE_ATTRIBUTE_DATA fad;
-    if (GetFileAttributesExW (wpath.c_str (), GetFileExInfoStandard, &fad)) {
-      LARGE_INTEGER liSize;
-      liSize.LowPart = fad.nFileSizeLow;
-      liSize.HighPart= fad.nFileSizeHigh;
-      size           = (s7_int) liSize.QuadPart;
 
-      auto filetime_to_unix= [] (const FILETIME& ft) -> double {
-        ULARGE_INTEGER ull;
-        ull.LowPart = ft.dwLowDateTime;
-        ull.HighPart= ft.dwHighDateTime;
-        if (ull.QuadPart < 116444736000000000ULL) return 0.0;
-        return (double) (ull.QuadPart - 116444736000000000ULL) / 10000000.0;
-      };
-      ctime= filetime_to_unix (fad.ftCreationTime);
-      atime= filetime_to_unix (fad.ftLastAccessTime);
-      mtime= filetime_to_unix (fad.ftLastWriteTime);
+  WIN32_FILE_ATTRIBUTE_DATA fad;
+  if (GetFileAttributesExW (wpath.c_str (), GetFileExInfoStandard, &fad)) {
+    LARGE_INTEGER liSize;
+    liSize.LowPart = fad.nFileSizeLow;
+    liSize.HighPart= fad.nFileSizeHigh;
+    size           = (s7_int) liSize.QuadPart;
+
+    auto filetime_to_unix= [] (const FILETIME& ft) -> double {
+      ULARGE_INTEGER ull;
+      ull.LowPart = ft.dwLowDateTime;
+      ull.HighPart= ft.dwHighDateTime;
+      if (ull.QuadPart < 116444736000000000ULL) return 0.0;
+      return (double) (ull.QuadPart - 116444736000000000ULL) / 10000000.0;
+    };
+    ctime= filetime_to_unix (fad.ftCreationTime);
+    atime= filetime_to_unix (fad.ftLastAccessTime);
+    mtime= filetime_to_unix (fad.ftLastWriteTime);
+    if (ret != 0) {
       if (fad.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
-        mode |= 0040000;
+        mode|= 0040000;
       }
       else {
-        mode |= 0100000;
+        mode|= 0100000;
       }
     }
   }
@@ -654,11 +657,12 @@ f_path_stat (s7_scheme* sc, s7_pointer args) {
   }
 #else
   struct stat st;
-  int ret= lstat (path_c, &st);
+  int         ret= lstat (path_c, &st);
   if (ret != 0) {
     if (errno == ENOENT || errno == ENOTDIR) {
-      return s7_error (sc, s7_make_symbol (sc, "file-not-found-error"),
-                       s7_list (sc, 1, s7_make_string (sc, (string ("No such file or directory: '") + path_c + "'").c_str ())));
+      return s7_error (
+          sc, s7_make_symbol (sc, "file-not-found-error"),
+          s7_list (sc, 1, s7_make_string (sc, (string ("No such file or directory: '") + path_c + "'").c_str ())));
     }
     else if (errno == EACCES || errno == EPERM) {
       return s7_error (sc, s7_make_symbol (sc, "permission-denied-error"),

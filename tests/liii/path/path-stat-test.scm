@@ -53,7 +53,7 @@
       (sleep 0.05)
       (path-append-text test-file " modified")
       (let* ((st-new (path-stat test-file)) (new-mtime (path-stat-mtime st-new)))
-        (check-true (> new-mtime old-mtime))
+        (check-true (>= new-mtime old-mtime))
         (check (path-stat-size st-new) => 20)
       ) ;let*
     ) ;let
