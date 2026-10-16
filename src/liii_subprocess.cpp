@@ -322,29 +322,33 @@ struct Subprocess {
 #endif
   }
 
-  bool write_stdin (const char* data, size_t len) {
+  size_t write_stdin (const char* data, size_t len) {
 #ifdef TB_CONFIG_OS_WINDOWS
-    if (!h_in_write) return false;
-    DWORD written= 0;
+    if (!h_in_write) return 0;
+    size_t total  = 0;
+    DWORD  written= 0;
     while (len > 0) {
-      if (!WriteFile (h_in_write, data, (DWORD) len, &written, NULL) || written == 0) return false;
+      if (!WriteFile (h_in_write, data, (DWORD) len, &written, NULL) || written == 0) break;
       data+= written;
       len-= written;
+      total+= written;
     }
-    return true;
+    return total;
 #else
-    if (!in_pipe) return false;
-    int fd= tb_pipefile2fd (in_pipe);
+    if (!in_pipe) return 0;
+    int    fd   = tb_pipefile2fd (in_pipe);
+    size_t total= 0;
     while (len > 0) {
       ssize_t n= write (fd, data, len);
       if (n <= 0) {
         if (errno == EINTR) continue;
-        return false;
+        break;
       }
       data+= n;
       len-= n;
+      total+= n;
     }
-    return true;
+    return total;
 #endif
   }
 
@@ -708,6 +712,9 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
       if (strcmp (sym, "capture") == 0) {
         stdout_mode= redirect_mode::capture;
       }
+      else if (strcmp (sym, "tee") == 0) {
+        stdout_mode= redirect_mode::tee;
+      }
       else if (strcmp (sym, "discard") == 0) {
         stdout_mode= redirect_mode::discard;
       }
@@ -744,6 +751,9 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
       else if (strcmp (sym, "capture") == 0) {
         stderr_mode= redirect_mode::capture;
       }
+      else if (strcmp (sym, "tee") == 0) {
+        stderr_mode= redirect_mode::tee;
+      }
       else if (strcmp (sym, "discard") == 0) {
         stderr_mode= redirect_mode::discard;
       }
@@ -771,7 +781,8 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
   bool        stdin_null= false;
   if (s7_is_pair (args)) {
     s7_pointer stdin_val= s7_car (args);
-    if (s7_is_symbol (stdin_val) && strcmp (s7_symbol_name (stdin_val), "null") == 0) {
+    if (s7_is_symbol (stdin_val) &&
+        (strcmp (s7_symbol_name (stdin_val), "null") == 0 || strcmp (s7_symbol_name (stdin_val), "discard") == 0)) {
       stdin_null= true;
     }
     else if (s7_is_string (stdin_val)) {
@@ -843,6 +854,11 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
     attr.err.path= "/dev/null";
 #endif
     attr.errmode= TB_FILE_MODE_RW | TB_FILE_MODE_CREAT | TB_FILE_MODE_TRUNC;
+  }
+  else if (stderr_to_stdout && stdout_mode == redirect_mode::file) {
+    attr.errtype = TB_PROCESS_REDIRECT_TYPE_FILEPATH;
+    attr.err.path= stdout_path;
+    attr.errmode = TB_FILE_MODE_RW | TB_FILE_MODE_CREAT | TB_FILE_MODE_APPEND;
   }
 #ifdef TB_CONFIG_OS_WINDOWS
   else if (stderr_to_stdout && h_out_write) {
@@ -1423,6 +1439,11 @@ f_subprocess_spawn (s7_scheme* sc, s7_pointer args) {
 #endif
     attr.errmode= TB_FILE_MODE_RW | TB_FILE_MODE_CREAT | TB_FILE_MODE_TRUNC;
   }
+  else if (stderr_to_stdout && stdout_path) {
+    attr.errtype = TB_PROCESS_REDIRECT_TYPE_FILEPATH;
+    attr.err.path= stdout_path;
+    attr.errmode = TB_FILE_MODE_RW | TB_FILE_MODE_CREAT | TB_FILE_MODE_APPEND;
+  }
 #ifdef TB_CONFIG_OS_WINDOWS
   else if (stderr_to_stdout && h_out_write) {
     HANDLE h_err_dup= NULL;
@@ -1677,16 +1698,26 @@ f_subprocess_close_stdin (s7_scheme* sc, s7_pointer args) {
 s7_pointer
 f_subprocess_write (s7_scheme* sc, s7_pointer args) {
   s7_pointer proc_arg= s7_car (args);
-  s7_pointer str_arg = s7_cadr (args);
+  s7_pointer data_arg= s7_cadr (args);
   if (!is_goldfish_process (sc, proc_arg)) {
-    return subprocess_type_error (sc, "g_subprocess-write: first argument must be a process", proc_arg);
+    return subprocess_type_error (sc, "process-write-stdin: first argument must be a process", proc_arg);
   }
-  if (!s7_is_string (str_arg)) {
-    return subprocess_type_error (sc, "g_subprocess-write: second argument must be a string", str_arg);
+  const char* data_ptr= nullptr;
+  size_t      data_len= 0;
+  if (s7_is_string (data_arg)) {
+    data_ptr= s7_string (data_arg);
+    data_len= s7_string_length (data_arg);
   }
-  auto* proc= get_goldfish_process (sc, proc_arg);
-  proc->write_stdin (s7_string (str_arg), s7_string_length (str_arg));
-  return s7_unspecified (sc);
+  else if (s7_is_byte_vector (data_arg)) {
+    data_ptr= (const char*) s7_byte_vector_elements (data_arg);
+    data_len= (size_t) s7_vector_length (data_arg);
+  }
+  else {
+    return subprocess_type_error (sc, "process-write-stdin: second argument must be a string or bytevector", data_arg);
+  }
+  auto*  proc   = get_goldfish_process (sc, proc_arg);
+  size_t written= proc->write_stdin (data_ptr, data_len);
+  return s7_make_integer (sc, (s7_int) written);
 }
 
 s7_pointer
@@ -1967,7 +1998,7 @@ glue_subprocess (s7_scheme* sc) {
   glue_define (sc, "g_subprocess-close", "(g_subprocess-close proc) => unspecified", f_subprocess_close, 1, 0);
   glue_define (sc, "g_subprocess-close-stdin", "(g_subprocess-close-stdin proc) => unspecified",
                f_subprocess_close_stdin, 1, 0);
-  glue_define (sc, "g_subprocess-write", "(g_subprocess-write proc str) => unspecified", f_subprocess_write, 2, 0);
+  glue_define (sc, "g_subprocess-write", "(g_subprocess-write proc data) => integer", f_subprocess_write, 2, 0);
   glue_define (sc, "g_subprocess-read", "(g_subprocess-read proc [max-bytes] [stream]) => string | eof",
                f_subprocess_read, 1, 2);
   glue_define (sc, "g_subprocess-read-line", "(g_subprocess-read-line proc [stream]) => string | eof",
