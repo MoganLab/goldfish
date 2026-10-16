@@ -147,6 +147,20 @@ struct Subprocess {
   bool   stdout_eof= false;
   bool   stderr_eof= false;
 
+  tb_hong_t last_activity_time= 0;
+
+  void update_activity () { last_activity_time= tb_mclock (); }
+
+  double get_last_activity_time_sec () const { return (double) last_activity_time / 1000.0; }
+
+  double get_idle_seconds () const {
+    tb_hong_t now= tb_mclock ();
+    if (now > last_activity_time) {
+      return (double) (now - last_activity_time) / 1000.0;
+    }
+    return 0.0;
+  }
+
   ~Subprocess () { close_all (); }
 
   void close_all () {
@@ -374,6 +388,7 @@ struct Subprocess {
       DWORD n      = 0;
       if (ReadFile (h, tmp, to_read, &n, NULL) && n > 0) {
         buf.append (tmp, n);
+        update_activity ();
         return (int) n;
       }
       else {
@@ -405,6 +420,7 @@ struct Subprocess {
       ssize_t n= read (fd, tmp, sizeof (tmp));
       if (n > 0) {
         buf.append (tmp, n);
+        update_activity ();
         return (int) n;
       }
       else if (n == 0) {
@@ -426,6 +442,7 @@ struct Subprocess {
         ssize_t n= read (fd, tmp, sizeof (tmp));
         if (n > 0) {
           buf.append (tmp, n);
+          update_activity ();
           return (int) n;
         }
         eof= true;
@@ -463,6 +480,7 @@ struct Subprocess {
       size_t take= (std::min) (max_bytes, buf.size ());
       string res = buf.substr (0, take);
       buf.erase (0, take);
+      update_activity ();
       return {res, false};
     }
     return {"", true};
@@ -480,6 +498,7 @@ struct Subprocess {
           line.pop_back ();
         }
         buf.erase (0, pos + 1);
+        update_activity ();
         return {line, false};
       }
       if (eof) {
@@ -487,6 +506,7 @@ struct Subprocess {
           string line= buf;
           if (!line.empty () && line.back () == '\r') line.pop_back ();
           buf.clear ();
+          update_activity ();
           return {line, false};
         }
         return {"", true};
@@ -497,6 +517,7 @@ struct Subprocess {
           string line= buf;
           if (!line.empty () && line.back () == '\r') line.pop_back ();
           buf.clear ();
+          update_activity ();
           return {line, false};
         }
         return {"", true};
@@ -536,6 +557,7 @@ struct Subprocess {
         stderr_eof= true;
       }
     }
+    if (out_avail || err_avail) update_activity ();
     if (out_avail && err_avail) return 3;
     if (out_avail) return 1;
     if (err_avail) return 2;
@@ -563,6 +585,11 @@ struct Subprocess {
     if (pret > 0) {
       bool out_ready= (out_idx >= 0 && (pfds[out_idx].revents & (POLLIN | POLLHUP | POLLERR)));
       bool err_ready= (err_idx >= 0 && (pfds[err_idx].revents & (POLLIN | POLLHUP | POLLERR)));
+      bool out_in   = (out_idx >= 0 && (pfds[out_idx].revents & POLLIN));
+      bool err_in   = (err_idx >= 0 && (pfds[err_idx].revents & POLLIN));
+      if (out_in || err_in) {
+        update_activity ();
+      }
       if (out_ready && err_ready) return 3;
       if (out_ready) return 1;
       if (err_ready) return 2;
@@ -1575,6 +1602,7 @@ f_subprocess_spawn (s7_scheme* sc, s7_pointer args) {
   auto* sub   = new Subprocess ();
   sub->process= process;
   sub->pid    = get_process_pid (process);
+  sub->update_activity ();
 
 #ifdef TB_CONFIG_OS_WINDOWS
   assign_process_to_job (h_job, process);
@@ -1957,6 +1985,26 @@ f_subprocess_kill_tree (s7_scheme* sc, s7_pointer args) {
   return s7_t (sc);
 }
 
+s7_pointer
+f_subprocess_last_activity_time (s7_scheme* sc, s7_pointer args) {
+  s7_pointer proc_arg= s7_car (args);
+  if (!is_goldfish_process (sc, proc_arg)) {
+    return subprocess_type_error (sc, "g_subprocess-last-activity-time: argument must be a process", proc_arg);
+  }
+  auto* proc= get_goldfish_process (sc, proc_arg);
+  return s7_make_real (sc, proc->get_last_activity_time_sec ());
+}
+
+s7_pointer
+f_subprocess_idle_seconds (s7_scheme* sc, s7_pointer args) {
+  s7_pointer proc_arg= s7_car (args);
+  if (!is_goldfish_process (sc, proc_arg)) {
+    return subprocess_type_error (sc, "g_subprocess-idle-seconds: argument must be a process", proc_arg);
+  }
+  auto* proc= get_goldfish_process (sc, proc_arg);
+  return s7_make_real (sc, proc->get_idle_seconds ());
+}
+
 inline void
 glue_define (s7_scheme* sc, const char* name, const char* desc, s7_function f, s7_int required, s7_int optional) {
   s7_pointer cur_env= s7_curlet (sc);
@@ -2006,6 +2054,10 @@ glue_subprocess (s7_scheme* sc) {
   glue_define (sc, "g_subprocess-poll-io", "(g_subprocess-poll-io proc [timeout-ms]) => symbol | #f",
                f_subprocess_poll_io, 1, 1);
   glue_define (sc, "g_subprocess-eof?", "(g_subprocess-eof? proc [stream]) => boolean", f_subprocess_eof_p, 1, 1);
+  glue_define (sc, "g_subprocess-last-activity-time", "(g_subprocess-last-activity-time proc) => real",
+               f_subprocess_last_activity_time, 1, 0);
+  glue_define (sc, "g_subprocess-idle-seconds", "(g_subprocess-idle-seconds proc) => real", f_subprocess_idle_seconds,
+               1, 0);
 }
 
 } // namespace goldfish
