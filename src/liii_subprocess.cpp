@@ -149,13 +149,9 @@ struct Subprocess {
 
   tb_hong_t last_activity_time= 0;
 
-  void update_activity () {
-    last_activity_time= tb_mclock ();
-  }
+  void update_activity () { last_activity_time= tb_mclock (); }
 
-  double get_last_activity_time_sec () const {
-    return (double) last_activity_time / 1000.0;
-  }
+  double get_last_activity_time_sec () const { return (double) last_activity_time / 1000.0; }
 
   double get_idle_seconds () const {
     tb_hong_t now= tb_mclock ();
@@ -2068,8 +2064,8 @@ glue_subprocess (s7_scheme* sc) {
   glue_define (sc, "g_subprocess-eof?", "(g_subprocess-eof? proc [stream]) => boolean", f_subprocess_eof_p, 1, 1);
   glue_define (sc, "g_subprocess-last-activity-time", "(g_subprocess-last-activity-time proc) => real",
                f_subprocess_last_activity_time, 1, 0);
-  glue_define (sc, "g_subprocess-idle-seconds", "(g_subprocess-idle-seconds proc) => real",
-               f_subprocess_idle_seconds, 1, 0);
+  glue_define (sc, "g_subprocess-idle-seconds", "(g_subprocess-idle-seconds proc) => real", f_subprocess_idle_seconds,
+               1, 0);
 }
 
 } // namespace goldfish
