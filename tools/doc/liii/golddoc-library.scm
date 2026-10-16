@@ -101,31 +101,19 @@
     ) ;define
 
     (define (library-doc-path query)
-      (let ((parts (parse-library-query query)))
-        (if (not parts)
-          #f
-          (let ((group (car parts)))
-            (if (excluded-test-group? group)
-              #f
-              (let ((load-root (find-visible-library-root query)))
-                (if (not load-root)
-                  #f
-                  (let ((tests-root (find-tests-root-for-load-root load-root)))
-                    (if (not tests-root)
-                      #f
-                      (let ((candidate (path->string (apply path-join tests-root (parts->test-file-segments parts)))
-                            ) ;candidate
-                           ) ;
-                        (if (path-file? candidate) candidate #f)
-                      ) ;let
-                    ) ;if
-                  ) ;let
-                ) ;if
-              ) ;let
-            ) ;if
-          ) ;let
-        ) ;if
-      ) ;let
+      (let* ((parts (parse-library-query query))
+             (group (and parts (car parts)))
+             (load-root (and parts (not (excluded-test-group? group)) (find-visible-library-root query))
+             ) ;load-root
+             (tests-root (and load-root (find-tests-root-for-load-root load-root)))
+             (candidate
+               (and tests-root
+                 (path->string (apply path-join tests-root (parts->test-file-segments parts)))
+               ) ;and
+             ) ;candidate
+            ) ;
+        (if (and candidate (path-file? candidate)) candidate #f)
+      ) ;let*
     ) ;define
 
   ) ;begin

@@ -6,8 +6,8 @@
   (liii sort)
   (liii goldfmt)
   (liii goldfmt-lang)
+  (liii goldfmt-path)
   (liii goldfmt-parallel)
-  (liii cpp-fmt)
   (liii os)
   (liii path)
   (liii string)
@@ -17,16 +17,6 @@
 ) ;import
 
 (check-set-mode! 'report-failed)
-
-;; ============================================================
-;; gf fmt 多协程并发格式化测试（任务 1609）
-;;
-;; 核心约定：并行路径（-j > 1）与串行路径（-j 1）共用同一安静单位函数与
-;; 打印规则，输出必须与串行逐字节一致（按文件序回收结果）。
-;;
-;; 缓存确定性：fmt 缓存键为文件当前内容的 SHA-256（跨沙箱持久），测试内容
-;; 一律以 pid 加盐，保证每次运行都是冷缓存、行为可预期。
-;; ============================================================
 
 ;; ---- T1: -j/--jobs 解析 ------------------------------------------------
 
@@ -40,15 +30,13 @@
 (check (parse-fmt-jobs '("gf" "fmt" "-j" "-2")) => 0)
 (check (parse-fmt-jobs '("gf" "fmt" "-j" "abc" "dir")) => 0)
 
-;; fmt-jobs / set-fmt-jobs!：模块级并发度参数（默认 1 = 串行；主入口设置一次）
-
 (check (fmt-jobs) => 1)
 (set-fmt-jobs! 4)
 (check (fmt-jobs) => 4)
 (set-fmt-jobs! 1)
 (check (fmt-jobs) => 1)
 
-;; ---- 端到端基础设施（照搬 goldfmt-dir-test.scm）------------------------
+;; ---- 端到端基础设施 ---------------------------------------------------
 
 (define (remove-tree target)
   (cond ((path-file? target) (path-unlink target #t))
@@ -74,9 +62,7 @@
   (if (file-exists? "gfproject.json")
     (getcwd)
     (if (file-exists? "../../gfproject.json")
-      (path->string
-        (path-parent (path-parent (path (getcwd))))
-      ) ;path->string
+      (path->string (path-parent (path-parent (path (getcwd)))))
       (getcwd)
     ) ;if
   ) ;if
@@ -88,20 +74,8 @@
 
 (run-set! 'gf gf-bin)
 
-;; 在指定目录作为项目根运行 gf（供 mini 项目仓库批量场景使用）。
-
-(define (run-gf-in cwd . args)
-  (run-either (cons 'gf args) :cwd cwd :stdout 'capture :stderr 'stdout)
-) ;define
-
 (define (run-gf . args)
-  (apply run-gf-in project-root args)
-) ;define
-
-;; 检测 clang-format 是否可用；不可用时跳过 C++ 相关断言。
-
-(define (clang-format-available?)
-  (zero? (os-call (string-append (clang-format-binary) " --version")))
+  (run-either (cons 'gf args) :cwd project-root :stdout 'capture :stderr 'stdout)
 ) ;define
 
 (define sandbox-dir
@@ -118,9 +92,6 @@
   (if (< n 10) (string-append "0" (number->string n)) (number->string n))
 ) ;define
 
-;; 生成第 i 个测试文件：formatted? 为 #t 时内容已是格式化形态（期望 Formatting 行），
-;; 否则为未格式化形态（期望 Updated 行）。salt 保证内容全局唯一（缓存冷启动）。
-
 (define (write-test-file dir i file-salt formatted?)
   (let* ((nm (string-append "f" (pad2 i) ".scm"))
          (var (string-append "x" (pad2 i)))
@@ -130,10 +101,7 @@
                   ) ;if
          ) ;content
         ) ;
-    (path-write-text
-      (path (path->string (path-join (path dir) nm)))
-      content
-    ) ;path-write-text
+    (path-write-text (path (path->string (path-join (path dir) nm))) content)
     (path->string (path-join (path dir) nm))
   ) ;let*
 ) ;define
@@ -142,21 +110,9 @@
   (string-append "(define x" (pad2 i) " " file-salt ")\n")
 ) ;define
 
-;; 断言 out 中各文件行严格按 targets 列表（即目录列举顺序）出现：
-;; 并行路径的输出顺序必须与串行路径一致（目录列举顺序由文件系统决定，
-;; 不做字典序假设）。
-
-;; 目录下 .scm 文件名的列举顺序（path-list-path 原序，仅用于顺序断言）。
-
-;; 无序输出契约的对比辅助：按行拆分、排序后比较（顺序无关的逐行一致）。
-
 (define (sorted-lines out)
   (list-sort string<? (string-split out "\n"))
 ) ;define
-
-;; 独立实现的 DFS 先序遍历（直接走 path-list-path，不依赖 collect-files 的
-;; 累积实现），守护 collect-files-dfs 的顺序契约——目录格式化的输出行序
-;; （并行与串行一致性的基准顺序）依赖它。
 
 (define (test-dfs-files dir)
   (let ((entries (path-list-path (path dir))))
@@ -180,429 +136,110 @@
   ) ;let
 ) ;define
 
-(define n-t2 30)
+(define (test-t0)
+  (let* ((d0 (path->string (path-join (path sandbox-dir) "t0_dfs")))
+         (sub (path->string (path-join (path d0) "sub")))
+         (deep (path->string (path-join (path sub) "deep")))
+        ) ;
+    (mkdir d0)
+    (mkdir sub)
+    (mkdir deep)
+    (write-test-file d0 1 salt #f)
+    (path-write-text (path (string-append d0 "/z.txt")) "not scm\n")
+    (write-test-file d0 2 salt #f)
+    (write-test-file sub 3 salt #f)
+    (write-test-file deep 4 salt #f)
+    (path-write-text (path (string-append deep "/n.scm")) "(define n 1)\n")
+    (write-test-file sub 5 salt #f)
+    (check (collect-files-dfs d0 '(".scm") '()) => (test-dfs-files d0))
+    (check (length (collect-files-dfs d0 '(".scm") '("deep"))) => 4)
+    (check (length (collect-files-dfs d0 '(".scm") '("sub"))) => 2)
+  ) ;let*
+) ;define
 
-(dynamic-wind (lambda () (remove-tree sandbox-dir) (mkdir sandbox-dir))
-  (lambda ()
+(define (test-t2-files dir-a dir-b salt-a salt-b n)
+  (let loop ((i 1))
+    (when (<= i n)
+      (write-test-file dir-a i salt-a (= 0 (modulo i 2)))
+      (write-test-file dir-b i salt-b (= 0 (modulo i 2)))
+      (loop (+ i 1)))))
 
-    ;; ---- T0: collect-files-dfs 的 DFS 先序顺序契约 ---------------------
+(define (check-t2-contents dir-a dir-b salt-a salt-b n)
+  (let loop ((i 1))
+    (if (> i n)
+      #t
+      (let ((fa (path->string (path-join (path dir-a) (string-append "f" (pad2 i) ".scm"))))
+            (fb (path->string (path-join (path dir-b) (string-append "f" (pad2 i) ".scm")))))
+        (check (path-read-text (path fa)) => (expected-content i salt-a))
+        (check (path-read-text (path fb)) => (expected-content i salt-b))
+        (loop (+ i 1))))))
 
-    (let* ((d0 (path->string (path-join (path sandbox-dir) "t0_dfs")))
-           (sub (path->string (path-join (path d0) "sub")))
-           (deep (path->string (path-join (path sub) "deep")))
-          ) ;
-      (mkdir d0)
-      (mkdir sub)
-      (mkdir deep)
-      (write-test-file d0 1 salt #f)
-      (path-write-text (path (string-append d0 "/z.txt")) "not scm\n")
-      (write-test-file d0 2 salt #f)
-      (write-test-file sub 3 salt #f)
-      (write-test-file deep 4 salt #f)
-      (path-write-text (path (string-append deep "/n.scm")) "(define n 1)\n")
-      (write-test-file sub 5 salt #f)
-      (check (collect-files-dfs d0 '(".scm") '()) => (test-dfs-files d0))
-      ;; exclude 对文件与子目录同样生效
-      (check (length (collect-files-dfs d0 '(".scm") '("deep"))) => 4)
-      (check (length (collect-files-dfs d0 '(".scm") '("sub"))) => 2)
-    ) ;let*
-
-    ;; ---- T2: 并行与串行输出逐字节一致（核心）--------------------------
-
-    (let* ((dir-a (path->string (path-join (path sandbox-dir) "t2_a")))
-           (dir-b (path->string (path-join (path sandbox-dir) "t2_b")))
-           (salt-a salt)
-           (salt-b (string-append salt "z"))
-          ) ;
-      (mkdir dir-a)
-      (mkdir dir-b)
-      (let loop
-        ((i 1))
-        (when (<= i n-t2)
-          (write-test-file dir-a i salt-a (= 0 (modulo i 2)))
-          (write-test-file dir-b i salt-b (= 0 (modulo i 2)))
-          (loop (+ i 1))
-        ) ;when
-      ) ;let
-      (let ((res-a (run-gf "fmt" "-j" "8" dir-a)) (res-b (run-gf "fmt" "-j" "1" dir-b)))
-        (check (either-right? res-a) => #t)
-        (check (either-right? res-b) => #t)
-        (let ((out-a (to-right res-a)) (out-b (to-right res-b)))
-          ;; 归一化目录路径后，并行输出与串行输出逐字节一致
-          ;; 无序契约：不保证完成顺序，按行排序后比较（逐行集合一致）
-          (let ((norm-a (string-replace out-a dir-a "DIR"))
-                (norm-b (string-replace out-b dir-b "DIR"))
-               ) ;
-            (check (equal? (sorted-lines norm-a) (sorted-lines norm-b)) => #t)
-            (check-true (string-contains? norm-a "Total files formatted: 30"))
-            (check-true (string-contains? norm-a "Files updated: 15"))
-          ) ;let
-          ;; 落盘内容：两边一致且等于期望格式化结果
-          (let loop
-            ((i 1))
-            (if (> i n-t2)
-              #t
-              (let* ((fa
-                       (path->string (path-join (path dir-a) (string-append "f" (pad2 i) ".scm")))
-                     ) ;fa
-                     (fb
-                       (path->string (path-join (path dir-b) (string-append "f" (pad2 i) ".scm")))
-                     ) ;fb
-                    ) ;
-                (check (path-read-text (path fa)) => (expected-content i salt-a))
-                (check (path-read-text (path fb)) => (expected-content i salt-b))
-                (loop (+ i 1))
-              ) ;let*
-            ) ;if
-          ) ;let
-        ) ;let
-      ) ;let
-
-      ;; ---- T4: 缓存语义：二次运行全部命中缓存 --------------------------
-
-      (let ((res2 (run-gf "fmt" "-j" "8" dir-a)))
-        (check (either-right? res2) => #t)
-        (let ((out2 (to-right res2)))
-          (check (string-position "  Updated: " out2) => #f)
-          (check (string-position "Formatting: " out2) => #f)
-          (check-true (string-contains? out2 "Total files formatted: 30"))
-          (check-true (string-contains? out2 "Files updated: 0"))
-          (check-true (string-contains? out2 "Files unchanged: 30"))
-        ) ;let
-      ) ;let
-    ) ;let*
-
-    ;; ---- T2b: 缺省参数（自动并发）同样正确 ----------------------------
-
-    (let* ((dir-d (path->string (path-join (path sandbox-dir) "t2b")))
-           (salt-d (string-append salt "d"))
-          ) ;
-      (mkdir dir-d)
-      (let loop
-        ((i 1))
-        (when (<= i 5)
-          (write-test-file dir-d i salt-d (= 0 (modulo i 2)))
-          (loop (+ i 1))
-        ) ;when
-      ) ;let
-      (let ((res-d (run-gf "fmt" dir-d)))
-        (check (either-right? res-d) => #t)
-        (let ((out-d (to-right res-d)))
-          (check-true (string-contains? out-d "Total files formatted: 5"))
-          (check-true (string-contains? out-d "Files updated: 3"))
-          (check
-            (path-read-text
-              (path (path->string (path-join (path dir-d) "f03.scm")))
-            ) ;path-read-text
-            =>
-            (expected-content 3 salt-d)
-          ) ;check
-        ) ;let
-      ) ;let
-    ) ;let*
-
-    ;; ---- T3: 失败传播（混入括号错误文件）------------------------------
-
-    (let* ((dir-c (path->string (path-join (path sandbox-dir) "t3_a")))
-           (dir-e (path->string (path-join (path sandbox-dir) "t3_b")))
-           (salt-c (string-append salt "c"))
-           (salt-e (string-append salt "e"))
-          ) ;
-      (mkdir dir-c)
-      (mkdir dir-e)
-      (let loop
-        ((i 1))
-        (when (<= i 4)
-          (write-test-file dir-c i salt-c #f)
-          (write-test-file dir-e i salt-e #f)
-          (loop (+ i 1))
-        ) ;when
-      ) ;let
-      (path-write-text
-        (path (path->string (path-join (path dir-c) "bad.scm")))
-        (string-append "(define bad " salt-c "))\n")
-      ) ;path-write-text
-      (path-write-text
-        (path (path->string (path-join (path dir-e) "bad.scm")))
-        (string-append "(define bad " salt-e "))\n")
-      ) ;path-write-text
-      (let ((res-c (run-gf "fmt" "-j" "4" dir-c)) (res-e (run-gf "fmt" "-j" "1" dir-e)))
-        (check (either-left? res-c) => #t)
-        (check (either-left? res-e) => #t)
-        (let ((err-c (to-left res-c)) (err-e (to-left res-e)))
-          (check (zero? (process-error-code err-c)) => #f)
-          (check (zero? (process-error-code err-e)) => #f)
-          (let ((out-c (process-error-stdout err-c)) (out-e (process-error-stdout err-e)))
-            (check-true (string-contains? out-c "Files failed: 1"))
-            (check-true (string-contains? out-c "Failed: "))
-            (check-true (string-contains? out-c "unexpected close paren"))
-            (check-true (string-contains? out-c "Hint: try `gf fix "))
-            ;; 归一化后并行与串行逐字节一致（含失败行位置）
-            (check (equal? (sorted-lines (string-replace out-c dir-c "DIR"))
-                     (sorted-lines (string-replace out-e dir-e "DIR"))
-                   ) ;equal?
-              =>
-              #t
-            ) ;check
-            ;; 好文件照常被格式化
-            (check
-              (path-read-text
-                (path (path->string (path-join (path dir-c) "f01.scm")))
-              ) ;path-read-text
-              =>
-              (expected-content 1 salt-c)
-            ) ;check
-          ) ;let
-        ) ;let
-      ) ;let
-    ) ;let*
-
-    ;; ---- T5: scheme + stem 混合语言仓库批量 --------------------------
-    ;; 语言间串行（C++ → TeXmacs Stem → Scheme，按注册顺序）、语言内并行；
-    ;; 重点守护 stem 会话隔离：并行下 (quote x) 不被糖化为 'x。
-
-    (let* ((root5 (path->string (path-join (path sandbox-dir) "t5_proj")))
-           (scheme-dir (path->string (path-join (path root5) "scm")))
-           (stem-dir (path->string (path-join (path root5) "stm")))
-           (salt-5 salt)
-          ) ;
-      (mkdir root5)
-      (mkdir scheme-dir)
-      (mkdir stem-dir)
-      (path-write-text (path (string-append root5 "/gfproject.json"))
-        "{\"name\": \"test-project\"}\n"
-      ) ;path-write-text
-      (path-write-text (path (string-append root5 "/gf_fmt.json"))
-        "{\"scheme\": {\"suffix\": [\"scm\"], \"path\": [\"scm\"]}, \"stem\": {\"suffix\": [\"stem\"], \"path\": [\"stm\"]}}\n"
-      ) ;path-write-text
-      (let loop
-        ((i 1))
-        (when (<= i 6)
-          (write-test-file scheme-dir i salt-5 #f)
-          (path-write-text (path (string-append stem-dir "/g" (pad2 i) ".stem"))
-            (string-append "( define   gy" (pad2 i) "   " salt-5 " )\n")
-          ) ;path-write-text
-          (loop (+ i 1))
-        ) ;when
-      ) ;let
-      ;; 已规范的 quote 形态（stem 关键约束：不得糖化为 'x）
-      (path-write-text (path (string-append stem-dir "/q01.stem"))
-        (string-append "(quote sz" salt-5 ")\n")
-      ) ;path-write-text
-      (let ((res5 (run-gf-in root5 "fmt" "-j" "8")))
-        (check (either-right? res5) => #t)
-        (let ((out5 (to-right res5)))
-          ;; 语言块顺序 = 注册顺序（C++ → TeXmacs Stem → Scheme），语言间串行
-          (let ((p-cpp (string-position "=== Formatting C++ files ===" out5))
-                (p-stem (string-position "=== Formatting TeXmacs Stem files ===" out5))
-                (p-scheme (string-position "=== Formatting Scheme files ===" out5))
-               ) ;
-            (check-true (and p-cpp p-stem p-scheme (< p-cpp p-stem) (< p-stem p-scheme)))
-          ) ;let
-          (check-true (string-contains? out5 "Total Scheme files formatted: 6"))
-          (check-true (string-contains? out5 "Total TeXmacs Stem files formatted: 7"))
-          ;; .scm 正常格式化
-          (check (path-read-text (path (string-append scheme-dir "/f01.scm")))
-            =>
-            (expected-content 1 salt-5)
-          ) ;check
-          ;; .stem 格式化且 quote 不糖化
-          (check (path-read-text (path (string-append stem-dir "/g01.stem")))
-            =>
-            (string-append "(define gy01 " salt-5 ")\n")
-          ) ;check
-          (let ((q01 (path-read-text (path (string-append stem-dir "/q01.stem")))))
-            (check-true (string-contains? q01 "(quote "))
-            (check (string-position "'" q01) => #f)
-          ) ;let
-        ) ;let
-      ) ;let
-    ) ;let*
-
-    ;; ---- T6: cpp 并行（clang-format 可用时）--------------------------
-
-    (when (clang-format-available?)
-      (let* ((dir-p (path->string (path-join (path sandbox-dir) "t6_a")))
-             (dir-q (path->string (path-join (path sandbox-dir) "t6_b")))
-             (salt-p salt)
-             (salt-q (string-append salt "q"))
+(define (test-t2-and-t4)
+  (let* ((n 30)
+         (dir-a (path->string (path-join (path sandbox-dir) "t2_a")))
+         (dir-b (path->string (path-join (path sandbox-dir) "t2_b")))
+         (salt-a salt)
+         (salt-b (string-append salt "z"))
+        ) ;
+    (mkdir dir-a)
+    (mkdir dir-b)
+    (test-t2-files dir-a dir-b salt-a salt-b n)
+    (let ((res-a (run-gf "fmt" "-j" "8" dir-a)) (res-b (run-gf "fmt" "-j" "1" dir-b)))
+      (check (either-right? res-a) => #t)
+      (check (either-right? res-b) => #t)
+      (let* ((out-a (to-right res-a))
+             (out-b (to-right res-b))
+             (norm-a (string-replace out-a dir-a "DIR"))
+             (norm-b (string-replace out-b dir-b "DIR"))
             ) ;
-        (mkdir dir-p)
-        (mkdir dir-q)
-        (let loop
-          ((i 1))
-          (when (<= i 4)
-            (let* ((nm (string-append "c" (pad2 i) ".cpp"))
-                   (mk
-                     (lambda (dir file-salt)
-                       (path-write-text
-                         (path (path->string (path-join (path dir) nm)))
-                         (string-append "int   a" file-salt " ;\nint   b ;\n")
-                       ) ;path-write-text
-                     ) ;lambda
-                   ) ;mk
-                  ) ;
-              (mk dir-p salt-p)
-              (mk dir-q salt-q)
-              (loop (+ i 1))
-            ) ;let*
-          ) ;when
-        ) ;let
-        (let ((res-p (run-gf "fmt" "-e" "cpp" "-j" "4" dir-p))
-              (res-q (run-gf "fmt" "-e" "cpp" "-j" "1" dir-q))
-             ) ;
-          (check (either-right? res-p) => #t)
-          (check (either-right? res-q) => #t)
-          (let ((out-p (to-right res-p)) (out-q (to-right res-q)))
-            ;; 无序契约：归一化路径与盐后，按行排序比较（逐行集合一致）
-            (let ((norm-p (string-replace (string-replace out-p dir-p "DIR") salt-p "SALT"))
-                  (norm-q (string-replace (string-replace out-q dir-q "DIR") salt-q "SALT"))
-                 ) ;
-              (check (equal? (sorted-lines norm-p) (sorted-lines norm-q)) => #t)
-              (check-true (string-contains? norm-p "Total files formatted: 4"))
-              (check-true (string-contains? norm-p "  Updated: "))
-            ) ;let
-            ;; 两目录落盘内容一致（盐归一后）
-            (let loop
-              ((i 1))
-              (if (> i 4)
-                #t
-                (let* ((nm (string-append "c" (pad2 i) ".cpp"))
-                       (cp
-                         (path-read-text
-                           (path (path->string (path-join (path dir-p) nm)))
-                         ) ;path-read-text
-                       ) ;cp
-                       (cq
-                         (path-read-text
-                           (path (path->string (path-join (path dir-q) nm)))
-                         ) ;path-read-text
-                       ) ;cq
-                      ) ;
-                  (check (string-replace cq salt-q salt-p) => cp)
-                  (loop (+ i 1))
-                ) ;let*
-              ) ;if
-            ) ;let
-          ) ;let
-        ) ;let
+        (check (equal? (sorted-lines norm-a) (sorted-lines norm-b)) => #t)
+        (check-true (string-contains? norm-a "Total files formatted: 30"))
+        (check-true (string-contains? norm-a "Files updated: 15"))
+        (check-t2-contents dir-a dir-b salt-a salt-b n)
       ) ;let*
-    ) ;when
-
-    ;; ---- T8: --check 并行一致性 --------------------------------------
-
-    (let* ((dir-i (path->string (path-join (path sandbox-dir) "t8_a")))
-           (dir-j (path->string (path-join (path sandbox-dir) "t8_b")))
-           (salt-i (string-append salt "i"))
-           (salt-j (string-append salt "j"))
-          ) ;
-      (mkdir dir-i)
-      (mkdir dir-j)
-      (let loop
-        ((i 1))
-        (when (<= i 6)
-          (write-test-file dir-i i salt-i #f)
-          (write-test-file dir-j i salt-j #f)
-          (loop (+ i 1))
-        ) ;when
-      ) ;let
-      ;; 未格式化：并行与串行的 --check 输出一致、退出码均为 1
-      (let ((res-i (run-gf "fmt" "--check" "-j" "4" dir-i))
-            (res-j (run-gf "fmt" "--check" "-j" "1" dir-j))
-           ) ;
-        (check (either-left? res-i) => #t)
-        (check (either-left? res-j) => #t)
-        (let ((err-i (to-left res-i)) (err-j (to-left res-j)))
-          (check (zero? (process-error-code err-i)) => #f)
-          (check (zero? (process-error-code err-j)) => #f)
-          (let ((out-i (process-error-stdout err-i)) (out-j (process-error-stdout err-j)))
-            (check (equal? (sorted-lines (string-replace out-i dir-i "DIR"))
-                     (sorted-lines (string-replace out-j dir-j "DIR"))
-                   ) ;equal?
-              =>
-              #t
-            ) ;check
-            (check-true (string-contains? out-i "FAIL: 6 file(s) need formatting"))
-          ) ;let
-        ) ;let
-      ) ;let
-      ;; 格式化后：并行 --check 通过、退出码 0
-      (let ((res-fmt (run-gf "fmt" "-j" "4" dir-i)))
-        (check (either-right? res-fmt) => #t)
-        (let ((res-i2 (run-gf "fmt" "--check" "-j" "4" dir-i)))
-          (check (either-right? res-i2) => #t)
-          (check-true (string-contains? (to-right res-i2) "OK: all files formatted."))
-        ) ;let
-      ) ;let
-    ) ;let*
-
-    ;; ---- T7: 退化路径 -----------------------------------------------
-
-    ;; 单文件 + -j 8：走串行分支，正常格式化
-    (let* ((dir-f (path->string (path-join (path sandbox-dir) "t7_single")))
-           (salt-f (string-append salt "f"))
-          ) ;
-      (mkdir dir-f)
-      (write-test-file dir-f 1 salt-f #f)
-      (let ((res-f (run-gf "fmt" "-j" "8" dir-f)))
-        (check (either-right? res-f) => #t)
-        (check
-          (path-read-text
-            (path (path->string (path-join (path dir-f) "f01.scm")))
-          ) ;path-read-text
-          =>
-          (expected-content 1 salt-f)
-        ) ;check
-      ) ;let
-    ) ;let*
-
-    ;; 空目录 + -j 8：无文件，正常退出
-    (let ((dir-g (path->string (path-join (path sandbox-dir) "t7_empty"))))
-      (mkdir dir-g)
-      (let ((res-g (run-gf "fmt" "-j" "8" dir-g)))
-        (check (either-right? res-g) => #t)
-        (check-true (string-contains? (to-right res-g) "Total files formatted: 0"))
+    ) ;let
+    ;; T4: 缓存测试
+    (let ((res2 (run-gf "fmt" "-j" "8" dir-a)))
+      (check (either-right? res2) => #t)
+      (let ((out2 (to-right res2)))
+        (check (string-position "  Updated: " out2) => #f)
+        (check (string-position "Formatting: " out2) => #f)
+        (check-true (string-contains? out2 "Total files formatted: 30"))
+        (check-true (string-contains? out2 "Files updated: 0"))
+        (check-true (string-contains? out2 "Files unchanged: 30"))
       ) ;let
     ) ;let
+  ) ;let*
+) ;define
 
-    ;; GOLDFISH_GO_WORKERS=1 约束线程池（POSIX）：-j 8 仍正确（任务在单线程池排队执行）。
-    ;; 注意 run-either 的 :env 是整体替换（不继承父环境），需带上 HOME/PATH。
-    (unless (os-windows?)
-      (let* ((dir-h (path->string (path-join (path sandbox-dir) "t7_pool1")))
-             (salt-h (string-append salt "h"))
-            ) ;
-        (mkdir dir-h)
-        (let loop
-          ((i 1))
-          (when (<= i 6)
-            (write-test-file dir-h i salt-h #f)
-            (loop (+ i 1))
-          ) ;when
-        ) ;let
-        (let ((res-h
-                (run-either (cons 'gf (list "fmt" "-j" "8" dir-h))
-                  :cwd project-root
-                  :env
-                  (list (cons "GOLDFISH_GO_WORKERS" "1")
-                    (cons "HOME" (getenv "HOME"))
-                    (cons "PATH" (getenv "PATH"))
-                  ) ;list
-                  :stdout 'capture
-                  :stderr 'stdout
-                ) ;run-either
-              ) ;res-h
-             ) ;
-          (check (either-right? res-h) => #t)
-          (check
-            (path-read-text
-              (path (path->string (path-join (path dir-h) "f01.scm")))
-            ) ;path-read-text
-            =>
-            (expected-content 1 salt-h)
-          ) ;check
-        ) ;let
-      ) ;let*
-    ) ;unless
+(define (test-t2b)
+  (let* ((dir-d (path->string (path-join (path sandbox-dir) "t2b")))
+         (salt-d (string-append salt "d"))
+        ) ;
+    (mkdir dir-d)
+    (let loop ((i 1))
+      (when (<= i 5)
+        (write-test-file dir-d i salt-d (= 0 (modulo i 2)))
+        (loop (+ i 1))))
+    (let ((res-d (run-gf "fmt" dir-d)))
+      (check (either-right? res-d) => #t)
+      (let ((out-d (to-right res-d)))
+        (check-true (string-contains? out-d "Total files formatted: 5"))
+        (check-true (string-contains? out-d "Files updated: 3"))
+        (check (path-read-text (path (path->string (path-join (path dir-d) "f03.scm"))))
+          => (expected-content 3 salt-d)
+        ) ;check
+      ) ;let
+    ) ;let
+  ) ;let*
+) ;define
+
+(dynamic-wind
+  (lambda () (remove-tree sandbox-dir) (mkdir sandbox-dir))
+  (lambda ()
+    (test-t0)
+    (test-t2-and-t4)
+    (test-t2b)
   ) ;lambda
   (lambda () (remove-tree sandbox-dir))
 ) ;dynamic-wind
