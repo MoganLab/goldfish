@@ -1,0 +1,81 @@
+(import (scheme base)
+  (scheme file)
+  (liii check)
+  (liii path)
+  (liii os)
+  (liii json)
+  (liii goldcheck)
+) ;import
+
+;; check-files
+;; 对文件向量并行执行所有启用的规则检查，按输入文件顺序收集违规项，返回违规项向量。
+;;
+;; 语法
+;; ----
+;; (check-files file-vector cfg)
+;;
+;; 参数
+;; ----
+;; file-vector : vector of string
+;; 待检查的文件路径向量。
+;; cfg : json-object 或 #f
+;; 检查配置。
+;;
+;; 返回值
+;; ------
+;; vector of violations
+;; 违规项向量。无违规时返回 #()。
+
+(check-set-mode! 'report-failed)
+
+(define (make-tmp-file name lines)
+  (let ((tmp (path->string (path-join (path-temp-dir) name))))
+    (call-with-port (open-output-file tmp)
+      (lambda (p)
+        (let loop
+          ((i 0))
+          (when (< i lines)
+            (display "(define x 1)\n" p)
+            (loop (+ i 1))
+          ) ;when
+        ) ;let
+      ) ;lambda
+    ) ;call-with-port
+    tmp
+  ) ;let
+) ;define
+
+;; 1. 空向量返回 #()
+(check (check-files #() #f) => #())
+
+;; 2. 多文件并行检查结果保序：违规按输入文件顺序排列
+(let* ((f1 (make-tmp-file "gf-test-files-a.scm" 305))
+       (f2 (make-tmp-file "gf-test-files-b.scm" 3))
+       (f3 (make-tmp-file "gf-test-files-c.scm" 305))
+       (viols (check-files (vector f1 f2 f3) #f))
+      ) ;
+  (check (vector-length viols) => 2)
+  (check (car (vector-ref viols 0)) => 'max-file-lines)
+  (check (car (vector-ref viols 1)) => 'max-file-lines)
+  (check (cadr (vector-ref viols 0)) => f1)
+  (check (cadr (vector-ref viols 1)) => f3)
+  (path-unlink f1 #t)
+  (path-unlink f2 #t)
+  (path-unlink f3 #t)
+) ;let*
+
+;; 3. cfg 经 JSON 字符串运输到 worker 后 exclude 与 limit 仍生效
+(let* ((f1 (make-tmp-file "gf-test-files-excl.scm" 20))
+       (f2 (make-tmp-file "gf-test-files-kept.scm" 20))
+       (cfg (string->json "{\"exclude\": [\"gf-test-files-excl.scm\"], \"rules\": {\"max-file-lines\": {\"limit\": 10}}}"
+            ) ;string->json
+       ) ;cfg
+       (viols (check-files (vector f1 f2) cfg))
+      ) ;
+  (check (vector-length viols) => 1)
+  (check (cadr (vector-ref viols 0)) => f2)
+  (path-unlink f1 #t)
+  (path-unlink f2 #t)
+) ;let*
+
+(check-report)

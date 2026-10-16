@@ -48,6 +48,14 @@
         "zh_CN": "根据缩进修正 Scheme 括号"
       }
     },
+    "check": {
+      "organization": "liii",
+      "module": "goldcheck",
+      "description": {
+        "en_US": "Static code metrics check (line count and tree depth limits)",
+        "zh_CN": "静态度量检查（行数限制与树深度限制）"
+      }
+    },
     "test": {
       "organization": "liii",
       "module": "goldtest",

@@ -828,6 +828,7 @@ display_help () {
   cout << "  fix [options] PATH Format PATH (PATH can be a .scm file or directory)" << endl;
   cout << "                     Options:" << endl;
   cout << "                       --dry-run  Print formatted result to stdout" << endl;
+  cout << "  check [options] [PATH...] Static code metrics check (line count and tree depth limits)" << endl;
   cout << "  source ORG/LIB     Print the exact source of ORG/LIB from current *load-path*" << endl;
   cout << "                     Reads the real library file, not tests/ or generated docs" << endl;
   cout << "                     Example: gf source liii/path" << endl;
