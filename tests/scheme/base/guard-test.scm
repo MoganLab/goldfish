@@ -66,6 +66,19 @@
   30
 ) ;check
 
+;; 3.1 body 正常返回 pair 等单值时原样返回（不与异常标记混淆）
+(check (guard (ex (else 'err)) (cons 1 2)) => '(1 . 2))
+
+;; 3.2 body 返回 (values) 时透传（S7 中 (values) 产生单个未指定值）
+(check
+  (call-with-values
+    (lambda () (guard (ex (else "err")) (values)))
+    (lambda xs (length xs))
+  ) ;call-with-values
+  =>
+  1
+) ;check
+
 ;; 4. 捕获 raise 抛出的异常并触发 else 或 cond 子句
 (check (guard (ex (else 'caught)) (raise 'error)) => 'caught)
 (check

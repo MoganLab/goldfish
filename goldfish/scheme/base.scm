@@ -559,29 +559,32 @@
                ) ;let
              ) ;has-else?
              (tag (gensym "guard-tag-"))
-             (val (gensym "guard-val-"))
              (vals (gensym "guard-vals-"))
              (type (gensym "guard-type-"))
              (info (gensym "guard-info-"))
             ) ;
-        `(let ((,tag (list #f)))
-           (let ((,val
-                  (catch ,#t
-                    (lambda ,()
-                      (call-with-values (lambda ,() ,@body)
-                        (lambda ,vals (cons ,tag ,vals))))
-                    (lambda (,type ,info) (vector ,tag ,type ,info)))))
-             (if (and (pair? ,val) (eq? (car ,val) ,tag))
-               (let ((,vals (cdr ,val)))
-                 (if (and (pair? ,vals) (null? (cdr ,vals)))
-                   (car ,vals)
-                   (apply values ,vals)))
-               (let ((,type (vector-ref ,val ,1)) (,info (vector-ref ,val ,2)))
+        ;; 正常路径的值原样透传；异常被打包为 (tag type . info) 的单元素列表以区分。
+        ;; handler 内必须 list-copy info：S7 会复用 handler 的参数列表，跨求值步骤持有引用会被改写
+        `(call-with-values (lambda ,()
+                             (catch ,#t
+                               (lambda ,() ,@body)
+                               (lambda (,type ,info)
+                                 (cons (quote ,tag)
+                                   (cons ,type (list-copy ,info))))))
+           (lambda ,vals
+             (if (and (pair? ,vals)
+                   (null? (cdr ,vals))
+                   (pair? (car ,vals))
+                   (eq? (caar ,vals) (quote ,tag)))
+               (let ((,type (cadr (car ,vals))) (,info (cddr (car ,vals))))
                  (let ((,var (if (pair? ,info) (car ,info) ,info)))
                    (cond ,@clauses
                          ,@(if has-else?
                              '()
-                             `((else (apply throw ,type ,info))))))))))
+                             `((else (apply throw ,type ,info)))))))
+               (if (and (pair? ,vals) (null? (cdr ,vals)))
+                 (car ,vals)
+                 (apply values ,vals)))))
       ) ;let*
     ) ;define-macro
 
