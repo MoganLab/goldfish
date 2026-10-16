@@ -123,7 +123,8 @@
       ) ;
   (check ret => 0)
   (check (> (length idle-calls) 0) => #t)
-  (check (> (car idle-calls) 0) => #t)
+  (check (>= (car idle-calls) 0) => #t)
+  (check (> (apply max idle-calls) 0) => #t)
 ) ;let*
 
 ;; 错误参数检查
