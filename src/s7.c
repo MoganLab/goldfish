@@ -51781,6 +51781,30 @@ static s7_pointer g_apply_values(s7_scheme *sc, s7_pointer args)
 
 
 /* -------------------------------- quasiquote -------------------------------- */
+static bool is_simple_code(s7_scheme *sc, s7_pointer form);
+
+static bool vector_is_simple_code(s7_scheme *sc, s7_pointer vec)
+{
+  s7_int len = vector_length(vec);
+  for (s7_int i = 0; i < len; i++)
+    {
+      s7_pointer elt = vector_element(vec, i);
+      if (is_pair(elt))
+	{
+	  if (!is_simple_code(sc, elt))
+	    return(false);
+	}
+      else if (is_t_vector(elt))
+	{
+	  if (!vector_is_simple_code(sc, elt))
+	    return(false);
+	}
+      else if (elt == sc->unquote_symbol)
+	return(false);
+    }
+  return(true);
+}
+
 static bool is_simple_code(s7_scheme *sc, s7_pointer form)
 {
   /* if nested with quasiquotes say 20 levels, this is really slow, but to tag intermediate results burns up 2 type bits */
@@ -51792,22 +51816,39 @@ static bool is_simple_code(s7_scheme *sc, s7_pointer form)
 	  if (!is_simple_code(sc, car(lst)))
 	    return(false);
 	}
+      else if (is_t_vector(car(lst)))
+	{
+	  if (!vector_is_simple_code(sc, car(lst)))
+	    return(false);
+	}
       else
 	if (car(lst) == sc->unquote_symbol)
 	  return(false);
       lst = cdr(lst);
-      if (!is_pair(lst)) return(is_null(lst));
+      if (!is_pair(lst))
+	{
+	  if (is_null(lst)) return(true);
+	  if (is_t_vector(lst)) return(vector_is_simple_code(sc, lst));
+	  return(false);
+	}
       if (lst == slow) return(false);
       if (is_pair(car(lst)))
 	{
 	  if (!is_simple_code(sc, car(lst)))
 	    return(false);
 	}
+      else if (is_t_vector(car(lst)))
+	{
+	  if (!vector_is_simple_code(sc, car(lst)))
+	    return(false);
+	}
       else
 	if (car(lst) == sc->unquote_symbol)
 	  return(false);
     }
-  return(is_null(lst));
+  if (is_null(lst)) return(true);
+  if (is_t_vector(lst)) return(vector_is_simple_code(sc, lst));
+  return(false);
 }
 
 static s7_pointer g_quasiquote_1(s7_scheme *sc, s7_pointer form, bool check_cycles)
@@ -51816,6 +51857,28 @@ static s7_pointer g_quasiquote_1(s7_scheme *sc, s7_pointer form, bool check_cycl
 comma (\"unquote\") and comma-atsign (\"apply values\") to pre-evaluate portions of the list. \
 unquoted expressions are evaluated and plugged into the list, apply-values evaluates the expression \
 and splices the resultant list into the outer list. `(1 ,(+ 1 1) ,@(list 3 4)) -> (1 2 3 4)."
+
+  if ((check_cycles) && (tree_is_cyclic(sc, form)))
+    return(list_2(sc, sc->quote_function, form));
+
+  if (is_t_vector(form))
+    {
+      if (vector_is_simple_code(sc, form))
+	return(form);
+      {
+	s7_pointer lst, qq_lst, result;
+	gc_protect_via_stack(sc, form);
+	lst = s7_vector_to_list(sc, form);
+	gc_protect_via_stack(sc, lst);
+	qq_lst = g_quasiquote_1(sc, lst, false);
+	gc_protect_via_stack(sc, qq_lst);
+	result = list_2(sc, initial_value(sc->list_to_vector_symbol), qq_lst);
+	unstack_gc_protect(sc); /* qq_lst */
+	unstack_gc_protect(sc); /* lst */
+	unstack_gc_protect(sc); /* form */
+	return(result);
+      }
+    }
 
   if (!is_pair(form))
     {
@@ -51841,8 +51904,7 @@ and splices the resultant list into the outer list. `(1 ,(+ 1 1) ,@(list 3 4)) -
    *    we try to support dotted lists which makes the code much messier.
    * if no element of the list is a list or unquote, just return the original quoted
    */
-  if (((check_cycles) && (tree_is_cyclic(sc, form))) ||
-      (is_simple_code(sc, form)))
+  if (is_simple_code(sc, form))
     return(list_2(sc, sc->quote_function, form));
 
   {
@@ -79595,6 +79657,7 @@ in the file, or by the function."
   sc->list_values_symbol =           defun("list-values",       list_values,            0, 0, true);  set_is_saver(sc->list_values_symbol);
   copy_initial_value(sc, sc->apply_values_symbol);
   copy_initial_value(sc, sc->list_values_symbol);
+  copy_initial_value(sc, sc->list_to_vector_symbol);
   /* are these three names necessary? */
 
   sc->documentation_symbol =         defun("documentation",     documentation,          1, 0, false);

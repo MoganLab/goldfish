@@ -31,6 +31,7 @@
 (let ((lst '(b c)))
   (check `(a ,@lst d) => '(a b c d))
 ) ;let
+(check `#(10 5 ,(sqrt 4) ,@(map sqrt '(16 9)) 8) => #(10 5 2 4 3 8))
 (check '(1 2 3) => '(1 2 3))
 (check 'hello => 'hello)
 
