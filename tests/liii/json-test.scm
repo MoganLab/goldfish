@@ -5,7 +5,7 @@
 
 
 ;; ==== 常见用法示例 ====
-(import (liii json))
+(import (liii json) (liii check))
 
 
 ;; 示例1：把字符串解析为 JSON 数据
@@ -22,8 +22,19 @@
 (json->string j)
 
 
+;; 示例4：向端口写入与从端口读取 JSON 数据
+(let ((p (open-output-string)))
+  (write-json j p)
+  (let ((in (open-input-string (get-output-string p))))
+    (check (read-json in) => j)
+  ) ;let
+) ;let
+
+
 ;; ==== 如何查看函数的文档和用例 ====
 ;;   bin/gf doc liii/json "string->json"
+;;   bin/gf doc liii/json "read-json"
+;;   bin/gf doc liii/json "write-json"
 ;;   bin/gf doc liii/json "json-ref"
 
 
@@ -31,10 +42,12 @@
 
 
 ;; 一、解析与序列化
-;; 用于在字符串和 JSON 数据之间转换的函数
+;; 用于在字符串、端口和 JSON 数据之间转换的函数
 ;;   json-string-escape  - 转义 JSON 字符串内容
 ;;   string->json        - 把 JSON 字符串解析成 Scheme 数据
 ;;   json->string        - 把 JSON 数据序列化为字符串
+;;   read-json           - 从输入端口读取并解析 JSON 实体
+;;   write-json          - 将 JSON 数据序列化写入输出端口
 
 
 ;; 二、类型判定
