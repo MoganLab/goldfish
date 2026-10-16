@@ -155,6 +155,8 @@
 ;; cross-platform process tests
 (let ((proc (process-spawn '("python3" "-c" "import sys; sys.exit(0)"))))
   (check (process? proc) => #t)
+  (check (real? (process-last-activity-time proc)) => #t)
+  (check (>= (process-idle-seconds proc) 0) => #t)
   (check (process-wait proc 2000) => 0)
   (process-close proc)
 ) ;let
@@ -170,5 +172,15 @@
 (check (process-kill-tree 999999) => #t)
 (check-catch 'value-error (process-kill-tree 0))
 (check-catch 'type-error (process-kill-tree "not-a-process"))
+
+;; cross-platform idle-timeout tests
+(let ((ret (run-streaming '("python3" "-c" "import time; time.sleep(5)")
+             :timeout      10
+             :idle-timeout 0.3
+           ) ;run-streaming
+      ) ;ret
+     ) ;
+  (check ret => #f)
+) ;let
 
 (check-report)
