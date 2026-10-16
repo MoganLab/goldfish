@@ -30,4 +30,12 @@
   (check (eof-object? (read-char p)) => #t)
 ) ;let
 
+(let ((orig (current-input-port)) (p (open-input-string "XY")))
+  (set-current-input-port p)
+  (check (read-char) => #\X)
+  (check (read-char) => #\Y)
+  (check (eof-object? (read-char)) => #t)
+  (set-current-input-port orig)
+) ;let
+
 (check-report)
