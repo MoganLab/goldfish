@@ -42,19 +42,15 @@
 ;; 从配置文件读取配置记录，文件不存在或缺少 api_key 时返回 #f
 
 (define (load-config)
-  ;; 注意：goldfish 的 guard 在 body 正常返回时也会落入 else 子句，这里用 catch
-  (catch #t
-    (lambda ()
-      (let* ((j (string->json (path-read-text config-file)))
-             (api-key (json-ref j "api_key"))
-             (base-url (json-ref-string j "base_url" default-base-url))
-             (model (json-ref-string j "model" default-model))
-            ) ;
-        (if (string? api-key) (make-config api-key base-url model) #f)
-      ) ;let*
-    ) ;lambda
-    (lambda (type info) #f)
-  ) ;catch
+  (guard (ex (else #f))
+    (let* ((j (string->json (path-read-text config-file)))
+           (api-key (json-ref j "api_key"))
+           (base-url (json-ref-string j "base_url" default-base-url))
+           (model (json-ref-string j "model" default-model))
+          ) ;
+      (if (string? api-key) (make-config api-key base-url model) #f)
+    ) ;let*
+  ) ;guard
 ) ;define
 
 ;; 流式解析状态记录

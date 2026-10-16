@@ -544,17 +544,44 @@
     ) ;define
 
     (define-macro (guard results . body)
-      `(let ((,(car results)
-              (catch #t
-                (lambda ,() ,@body)
-                (lambda (type info)
-                  (if (pair? (*s7* 'catches))
-                    (lambda () (apply throw type info))
-                    (car info))))))
-         (cond ,@(cdr results)
-               (else (if (procedure? ,(car results))
-                       (,(car results))
-                       ,(car results)))))
+      (unless (and (pair? results) (symbol? (car results)))
+        (error 'syntax-error "guard: malformed results specification" results)
+      ) ;unless
+      (let* ((var (car results))
+             (clauses (cdr results))
+             (has-else?
+               (let loop
+                 ((cls clauses))
+                 (cond ((null? cls) #f)
+                       ((and (pair? (car cls)) (eq? (caar cls) 'else)) #t)
+                       (else (loop (cdr cls)))
+                 ) ;cond
+               ) ;let
+             ) ;has-else?
+             (tag (gensym "guard-tag-"))
+             (val (gensym "guard-val-"))
+             (type (gensym "guard-type-"))
+             (info (gensym "guard-info-"))
+            ) ;
+        `(let ((,tag (list #f)))
+           (let ((,val
+                  (catch ,#t
+                    (lambda ,()
+                      (call-with-values (lambda ,() ,@body)
+                        (lambda vals (cons ,tag vals))))
+                    (lambda (,type ,info) (vector ,tag ,type ,info)))))
+             (if (and (pair? ,val) (eq? (car ,val) ,tag))
+               (let ((vals (cdr ,val)))
+                 (if (and (pair? vals) (null? (cdr vals)))
+                   (car vals)
+                   (apply values vals)))
+               (let ((,type (vector-ref ,val ,1)) (,info (vector-ref ,val ,2)))
+                 (let ((,var (if (pair? ,info) (car ,info) ,info)))
+                   (cond ,@clauses
+                         ,@(if has-else?
+                             '()
+                             `((else (apply throw ,type ,info))))))))))
+      ) ;let*
     ) ;define-macro
 
     (define (read-error? obj)
