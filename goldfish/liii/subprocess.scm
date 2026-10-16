@@ -130,6 +130,9 @@
             ((and (pair? command) (symbol? (car command)))
              (%resolve-symbol-command (car command) (cdr command))
             ) ;
+            ((and (pair? command) (string? (car command)))
+             (%resolve-symbol-command (string->symbol (car command)) (cdr command))
+            ) ;
             (else
               (value-error
                 (let ((suggestion
