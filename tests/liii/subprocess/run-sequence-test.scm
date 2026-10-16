@@ -33,14 +33,28 @@
 ) ;when
 
 (when (os-windows?)
-  (check (either-right? (run-sequence "python3 -c pass" "python3 -c 1/0" "python3 -c pass")) => #t)
-  (check (to-right (run-sequence "python3 -c pass" "python3 -c 1/0" "python3 -c pass")) => 0)
+  (check (either-right? (run-sequence "python3 -c pass" "python3 -c 1/0" "python3 -c pass")
+         ) ;either-right?
+    =>
+    #t
+  ) ;check
+  (check (to-right (run-sequence "python3 -c pass" "python3 -c 1/0" "python3 -c pass"))
+    =>
+    0
+  ) ;check
   (check (either-right? (run-sequence "python3 -c 1/0" "python3 -c pass")) => #t)
   (check (to-right (run-sequence "python3 -c 1/0" "python3 -c pass")) => 0)
   (check (either-left? (run-sequence "python3 -c pass" "python3 -c 1/0")) => #t)
   (check (to-left (run-sequence "python3 -c pass" "python3 -c 1/0")) => 1)
-  (check (either-right? (run-sequence "python3 -c pass" "python3 -c pass" :cwd (os-temp-dir))) => #t)
-  (check (to-right (run-sequence "python3 -c pass" "python3 -c pass" :cwd (os-temp-dir))) => 0)
+  (check (either-right? (run-sequence "python3 -c pass" "python3 -c pass" :cwd (os-temp-dir))
+         ) ;either-right?
+    =>
+    #t
+  ) ;check
+  (check (to-right (run-sequence "python3 -c pass" "python3 -c pass" :cwd (os-temp-dir)))
+    =>
+    0
+  ) ;check
 ) ;when
 
 (check-report)

@@ -32,7 +32,7 @@
 ;; values : stdout-string stderr-string exit-code
 ;; exit-code 为 0 表示成功，-1 表示超时。
 
-(when (os-linux?)
+(when (or (os-linux?) (os-macos?))
   (let-values (((out err code) (run-values "echo hello" :stdout 'capture)))
     (check out => "hello\n")
     (check err => "")
@@ -133,10 +133,8 @@
   ;; :input
   (let-values (((out err code)
                 (run-values "python3 -c \"import sys; print(sys.stdin.read().strip())\""
-                  :input
-                  "hello world"
-                  :stdout
-                  'capture
+                  :input  "hello world"
+                  :stdout 'capture
                 ) ;run-values
                ) ;
               ) ;
@@ -163,10 +161,8 @@
     ) ;when
     (let-values (((out err code)
                   (run-values "python3 -c pass"
-                    :env
-                    `((,"FOO" . ,"bar") (,"PATH" . ,path-env))
-                    :stdout
-                    tmpfile
+                    :env    `((,"FOO" . ,"bar") (,"PATH" . ,path-env))
+                    :stdout tmpfile
                   ) ;run-values
                  ) ;
                 ) ;

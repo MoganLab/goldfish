@@ -29,7 +29,7 @@
 
   (run-set! 'my-lambda (lambda () (display "ok\n")))
   (check (zero? (run '(my-lambda))) => #t)
-)
+) ;when
 
 (when (os-windows?)
   (run-set! 'pytrue "python3")
@@ -40,6 +40,6 @@
 
   (run-set! 'my-lambda (lambda () (display "ok\n")))
   (check (zero? (run '(my-lambda))) => #t)
-)
+) ;when
 
 (check-report)
