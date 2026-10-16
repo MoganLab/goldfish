@@ -557,18 +557,10 @@ struct Subprocess {
         stderr_eof= true;
       }
     }
-    if (out_avail && err_avail) {
-      update_activity ();
-      return 3;
-    }
-    if (out_avail) {
-      update_activity ();
-      return 1;
-    }
-    if (err_avail) {
-      update_activity ();
-      return 2;
-    }
+    if (out_avail || err_avail) update_activity ();
+    if (out_avail && err_avail) return 3;
+    if (out_avail) return 1;
+    if (err_avail) return 2;
     if (stdout_eof && stderr_eof) return -1;
     return 0;
 #else

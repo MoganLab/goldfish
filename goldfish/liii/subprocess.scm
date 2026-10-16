@@ -838,15 +838,13 @@
         (when (and on-idle (not (procedure? on-idle)))
           (type-error "run-streaming: :on-idle must be a procedure")
         ) ;when
-        (when
-          (and timeout (or (not (number? timeout)) (not (real? timeout))))
+        (when (and timeout (not (real? timeout)))
           (type-error "run-streaming: :timeout must be a real number")
         ) ;when
         (when (and timeout (<= timeout 0))
           (value-error "run-streaming: :timeout must be a positive number")
         ) ;when
-        (when
-          (and idle-timeout (or (not (number? idle-timeout)) (not (real? idle-timeout))))
+        (when (and idle-timeout (not (real? idle-timeout)))
           (type-error "run-streaming: :idle-timeout must be a real number")
         ) ;when
         (when (and idle-timeout (<= idle-timeout 0))
@@ -879,20 +877,13 @@
               ) ;if
             ) ;define
 
-            (define (%idle-rem-ms)
+            (define (%idle-rem-ms idle-secs)
               (if (not idle-timeout)
                 -1
-                (let* ((idle-secs (process-idle-seconds proc))
-                       (rem-sec (- idle-timeout idle-secs))
-                       (rem-ms (inexact->exact (round (* rem-sec 1000))))
-                      ) ;
+                (let ((rem-ms (inexact->exact (round (* (- idle-timeout idle-secs) 1000)))))
                   (if (<= rem-ms 0) 0 rem-ms)
-                ) ;let*
+                ) ;let
               ) ;if
-            ) ;define
-
-            (define (%kill-proc p)
-              (if (defined? 'process-kill-tree) (process-kill-tree p) (process-kill p))
             ) ;define
 
             (cond
@@ -905,64 +896,87 @@
              (else
                (let loop
                  ()
-                 (let ((rem-ms (%rem-ms)) (idle-rem-ms (%idle-rem-ms)))
-                   (cond ((and deadline-ms (<= rem-ms 0))
-                          (%kill-proc proc)
-                          (process-close proc)
-                          (process-wait proc 500)
-                          #f
+                 (let* ((rem-ms (%rem-ms))
+                        (idle-secs (and (or idle-timeout on-idle) (g_subprocess-idle-seconds proc)))
+                        (idle-rem-ms (%idle-rem-ms idle-secs))
+                       ) ;
+                   (cond
+                    ((or (and deadline-ms (<= rem-ms 0)) (and idle-timeout (<= idle-rem-ms 0)))
+                     (process-kill-tree proc)
+                     (process-close proc)
+                     (process-wait proc 500)
+                     #f
+                    ) ;
+                    (else
+                      (let* ((poll-timeout
+                               (max 1
+                                 (min 50 (if (>= rem-ms 0) rem-ms 50) (if (>= idle-rem-ms 0) idle-rem-ms 50))
+                               ) ;max
+                             ) ;poll-timeout
+                             (ev (g_subprocess-poll-io proc poll-timeout))
+                            ) ;
+                        (cond
+                         ((eq? ev 'stdout)
+                          (let ((line (process-read-line proc :stream 'stdout)))
+                            (when (and on-stdout (not (eof-object? line)))
+                              (on-stdout line)
+                            ) ;when
+                          ) ;let
+                          (loop)
                          ) ;
-                         ((and idle-timeout (<= idle-rem-ms 0))
-                          (%kill-proc proc)
+                         ((eq? ev 'stderr)
+                          (let ((line (process-read-line proc :stream 'stderr)))
+                            (when (and on-stderr (not (eof-object? line)))
+                              (on-stderr line)
+                            ) ;when
+                          ) ;let
+                          (loop)
+                         ) ;
+                         ((eq? ev 'both)
+                          (let ((line-out (process-read-line proc :stream 'stdout)))
+                            (when (and on-stdout (not (eof-object? line-out)))
+                              (on-stdout line-out)
+                            ) ;when
+                          ) ;let
+                          (let ((line-err (process-read-line proc :stream 'stderr)))
+                            (when (and on-stderr (not (eof-object? line-err)))
+                              (on-stderr line-err)
+                            ) ;when
+                          ) ;let
+                          (loop)
+                         ) ;
+                         ((eq? ev 'eof)
+                          (when on-stdout
+                            (let drain
+                              ()
+                              (let ((line (process-read-line proc :stream 'stdout)))
+                                (when (not (eof-object? line))
+                                  (on-stdout line)
+                                  (drain)
+                                ) ;when
+                              ) ;let
+                            ) ;let
+                          ) ;when
+                          (when on-stderr
+                            (let drain
+                              ()
+                              (let ((line (process-read-line proc :stream 'stderr)))
+                                (when (not (eof-object? line))
+                                  (on-stderr line)
+                                  (drain)
+                                ) ;when
+                              ) ;let
+                            ) ;let
+                          ) ;when
                           (process-close proc)
-                          (process-wait proc 500)
-                          #f
+                          (process-wait proc (%rem-ms))
                          ) ;
                          (else
-                           (let* ((poll-timeout
-                                    (let ((w 50))
-                                      (when (>= rem-ms 0)
-                                        (set! w (min w rem-ms))
-                                      ) ;when
-                                      (when (>= idle-rem-ms 0)
-                                        (set! w (min w idle-rem-ms))
-                                      ) ;when
-                                      (max 1 w)
-                                    ) ;let
-                                  ) ;poll-timeout
-                                  (ev (g_subprocess-poll-io proc poll-timeout))
-                                 ) ;
-                             (cond
-                              ((eq? ev 'stdout)
-                               (let ((line (process-read-line proc :stream 'stdout)))
-                                 (when (and on-stdout (not (eof-object? line)))
-                                   (on-stdout line)
-                                 ) ;when
-                               ) ;let
-                               (loop)
-                              ) ;
-                              ((eq? ev 'stderr)
-                               (let ((line (process-read-line proc :stream 'stderr)))
-                                 (when (and on-stderr (not (eof-object? line)))
-                                   (on-stderr line)
-                                 ) ;when
-                               ) ;let
-                               (loop)
-                              ) ;
-                              ((eq? ev 'both)
-                               (let ((line-out (process-read-line proc :stream 'stdout)))
-                                 (when (and on-stdout (not (eof-object? line-out)))
-                                   (on-stdout line-out)
-                                 ) ;when
-                               ) ;let
-                               (let ((line-err (process-read-line proc :stream 'stderr)))
-                                 (when (and on-stderr (not (eof-object? line-err)))
-                                   (on-stderr line-err)
-                                 ) ;when
-                               ) ;let
-                               (loop)
-                              ) ;
-                              ((eq? ev 'eof)
+                           (if (and (not (process-alive? proc))
+                                 (g_subprocess-eof? proc 'stdout)
+                                 (g_subprocess-eof? proc 'stderr)
+                               ) ;and
+                             (begin
                                (when on-stdout
                                  (let drain
                                    ()
@@ -987,51 +1001,20 @@
                                ) ;when
                                (process-close proc)
                                (process-wait proc (%rem-ms))
-                              ) ;
-                              (else
-                                (if (and (not (process-alive? proc))
-                                      (g_subprocess-eof? proc 'stdout)
-                                      (g_subprocess-eof? proc 'stderr)
-                                    ) ;and
-                                  (begin
-                                    (when on-stdout
-                                      (let drain
-                                        ()
-                                        (let ((line (process-read-line proc :stream 'stdout)))
-                                          (when (not (eof-object? line))
-                                            (on-stdout line)
-                                            (drain)
-                                          ) ;when
-                                        ) ;let
-                                      ) ;let
-                                    ) ;when
-                                    (when on-stderr
-                                      (let drain
-                                        ()
-                                        (let ((line (process-read-line proc :stream 'stderr)))
-                                          (when (not (eof-object? line))
-                                            (on-stderr line)
-                                            (drain)
-                                          ) ;when
-                                        ) ;let
-                                      ) ;let
-                                    ) ;when
-                                    (process-close proc)
-                                    (process-wait proc (%rem-ms))
-                                  ) ;begin
-                                  (begin
-                                    (when on-idle
-                                      (%invoke-on-idle on-idle proc (process-idle-seconds proc))
-                                    ) ;when
-                                    (loop)
-                                  ) ;begin
-                                ) ;if
-                              ) ;else
-                             ) ;cond
-                           ) ;let*
+                             ) ;begin
+                             (begin
+                               (when on-idle
+                                 (%invoke-on-idle on-idle proc idle-secs)
+                               ) ;when
+                               (loop)
+                             ) ;begin
+                           ) ;if
                          ) ;else
+                        ) ;cond
+                      ) ;let*
+                    ) ;else
                    ) ;cond
-                 ) ;let
+                 ) ;let*
                ) ;let
              ) ;else
             ) ;cond
