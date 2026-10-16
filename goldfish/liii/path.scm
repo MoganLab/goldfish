@@ -1,10 +1,10 @@
 (define-library (liii path)
   (export path path? path-copy path-copy-into path-dir? path-file? path-exists?
-    path-getsize path-read-text path-read-bytes path-write-text path-write-bytes
-    path-append-text path-touch path-root path-of-drive path-from-parts
-    path-from-env path-cwd path-home path-temp-dir path-parts path-type
-    path-drive path->string path-from-string path-name path-stem path-suffix
-    path-suffixes path-with-name path-with-stem path-with-suffix
+    path-getsize path-read-text path-read-lines path-read-bytes path-write-text
+    path-write-bytes path-append-text path-touch path-root path-of-drive
+    path-from-parts path-from-env path-cwd path-home path-temp-dir path-parts
+    path-type path-drive path->string path-from-string path-name path-stem
+    path-suffix path-suffixes path-with-name path-with-stem path-with-suffix
     path-relative-to path-starts-with? path-equals? path=? path-absolute?
     path-relative? path-join path-parent path-parents path-list path-list-path
     path-rmdir path-unlink path-rename path-mkdir path-absolute path-expanduser
@@ -913,6 +913,119 @@
         ) ;if
       ) ;let
     ) ;define
+
+    (define (raw-line->lines raw keepends)
+      (let ((len (string-length raw)))
+        (cond ((= len 0) '())
+              ((not (string-index raw #\return))
+               (if (char=? (string-ref raw (- len 1)) #\newline)
+                 (if keepends (list raw) (list (substring raw 0 (- len 1))))
+                 (list raw)
+               ) ;if
+              ) ;
+              ((and (>= len 2)
+                 (char=? (string-ref raw (- len 1)) #\newline)
+                 (char=? (string-ref raw (- len 2)) #\return)
+                 (= (string-index raw #\return) (- len 2))
+               ) ;and
+               (let ((body (substring raw 0 (- len 2))))
+                 (if keepends (list (string-append body "\n")) (list body))
+               ) ;let
+              ) ;
+              (else
+                (let loop
+                  ((i 0) (start 0) (acc '()))
+                  (cond
+                   ((>= i len)
+                    (if (< start len) (reverse (cons (substring raw start len) acc)) (reverse acc))
+                   ) ;
+                   ((char=? (string-ref raw i) #\return)
+                    (if
+                      (and (= (+ i 1) (- len 1)) (char=? (string-ref raw (+ i 1)) #\newline))
+                      (let* ((body (substring raw start i))
+                             (line (if keepends (string-append body "\n") body))
+                            ) ;
+                        (reverse (cons line acc))
+                      ) ;let*
+                      (let* ((body (substring raw start i))
+                             (line (if keepends (string-append body "\n") body))
+                            ) ;
+                        (loop (+ i 1) (+ i 1) (cons line acc))
+                      ) ;let*
+                    ) ;if
+                   ) ;
+                   ((char=? (string-ref raw i) #\newline)
+                    (let* ((body (substring raw start i))
+                           (line (if keepends (string-append body "\n") body))
+                          ) ;
+                      (loop (+ i 1) (+ i 1) (cons line acc))
+                    ) ;let*
+                   ) ;
+                   (else (loop (+ i 1) start acc))
+                  ) ;cond
+                ) ;let
+              ) ;else
+        ) ;cond
+      ) ;let
+    ) ;define
+
+    ;; ; 按行读取文本文件，返回行字符串列表
+    ;; ; keepends 为 #t 时保留每行末尾的换行符
+    ;; ; offset 指定从第几行（0-based）开始读取
+    ;; ; limit 指定最多读取的行数，#f 表示读到文件末尾
+    (define* (path-read-lines p (keepends #f) (offset 0) (limit #f))
+      (if (not (or (string? p) (path? p)))
+        (type-error "path-read-lines: path must be string or path")
+      ) ;if
+      (if (not (boolean? keepends))
+        (type-error "path-read-lines: keepends must be boolean")
+      ) ;if
+      (if (not (exact-integer? offset))
+        (type-error "path-read-lines: offset must be exact integer")
+      ) ;if
+      (if (not (or (not limit) (exact-integer? limit)))
+        (type-error "path-read-lines: limit must be exact integer or #f")
+      ) ;if
+      (if (< offset 0) (value-error "path-read-lines: offset must be non-negative"))
+      (if (and limit (<= limit 0))
+        (value-error "path-read-lines: limit must be a positive integer")
+      ) ;if
+      (let ((s (path->string p)))
+        (if (not (file-exists? s))
+          (file-not-found-error (string-append "No such file or directory: '" s "'"))
+          (let ((port (open-input-file s)))
+            (dynamic-wind (lambda () #f)
+              (lambda ()
+                (let loop
+                  ((pending '()) (skipped 0) (collected '()) (count 0))
+                  (cond ((and limit (>= count limit)) (reverse collected))
+                        ((pair? pending)
+                         (let ((line (car pending)) (rest (cdr pending)))
+                           (if (< skipped offset)
+                             (loop rest (+ skipped 1) collected count)
+                             (loop rest skipped (cons line collected) (+ count 1))
+                           ) ;if
+                         ) ;let
+                        ) ;
+                        (else
+                          (let ((raw (read-line port #t)))
+                            (if (eof-object? raw)
+                              (reverse collected)
+                              (let ((lines (raw-line->lines raw keepends)))
+                                (loop lines skipped collected count)
+                              ) ;let
+                            ) ;if
+                          ) ;let
+                        ) ;else
+                  ) ;cond
+                ) ;let
+              ) ;lambda
+              (lambda () (close-input-port port))
+            ) ;dynamic-wind
+          ) ;let
+        ) ;if
+      ) ;let
+    ) ;define*
 
     ;; ; 读取文件为字节向量。不存在时抛 file-not-found-error。
     (define (path-read-bytes p)

@@ -90,6 +90,7 @@
 ;; 六、文件系统操作
 ;; 用于操作文件系统的函数
 ;;   path-read-text    - 读取文件内容为文本
+;;   path-read-lines   - 按行读取文本文件为列表
 ;;   path-read-bytes   - 读取文件内容为字节向量
 ;;   path-write-text   - 将文本写入文件
 ;;   path-append-text  - 追加文本到文件
