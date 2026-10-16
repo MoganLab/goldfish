@@ -200,14 +200,7 @@ s7_pointer function_read_line(s7_scheme *sc, s7_pointer port, bool with_eol)
 
 s7_pointer stdin_read_line(s7_scheme *sc, s7_pointer port, bool with_eol)
 {
-  if (!sc->read_line_buf)
-    {
-      sc->read_line_buf_size = 1024;
-      sc->read_line_buf = (char *)malloc(sc->read_line_buf_size);
-    }
-  if (fgets(sc->read_line_buf, sc->read_line_buf_size, stdin))
-    return(s7_make_string(sc, sc->read_line_buf)); /* fgets adds the trailing '\0' */
-  return(eof_object);
+  return(file_read_line(sc, port, with_eol));
 }
 
 s7_pointer file_read_line(s7_scheme *sc, s7_pointer port, bool with_eol)

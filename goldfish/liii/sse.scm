@@ -33,6 +33,14 @@
 
     (define <sse-event> '<sse-event>)
 
+    (define (%normalize-event ev)
+      (cond
+       ((or (not ev) (and (string? ev) (string=? ev ""))) "message")
+       ((string? ev) ev)
+       (else (type-error "make-sse-event: event must be a string or #f"))
+      ) ;cond
+    ) ;define
+
     (define (make-sse-event . args)
       (let* ((n (length args))
              (ev-arg (if (> n 1) (car args) "message"))
@@ -43,26 +51,22 @@
              ) ;data
              (id (and (> n 2) (caddr args)))
              (retry (and (= n 4) (cadddr args)))
-             (ev
-               (cond
-                ((or (not ev-arg) (and (string? ev-arg) (string=? ev-arg ""))) "message")
-                ((string? ev-arg) ev-arg)
-                (else (type-error "make-sse-event: event must be a string or #f"))
-               ) ;cond
-             ) ;ev
+             (ev (%normalize-event ev-arg))
             ) ;
-        (cond ((not (string? data)) (type-error "make-sse-event: data must be a string"))
-              ((and id (not (string? id)))
-               (type-error "make-sse-event: id must be a string or #f")
-              ) ;
-              ((and retry (not (and (integer? retry) (exact? retry))))
-               (type-error "make-sse-event: retry must be an integer or #f")
-              ) ;
-              ((and retry (< retry 0))
-               (value-error "make-sse-event: retry must be non-negative")
-              ) ;
-              (else (%make-sse-event ev data id retry))
-        ) ;cond
+        (unless (string? data)
+          (type-error "make-sse-event: data must be a string")
+        ) ;unless
+        (when (and id (not (string? id)))
+          (type-error "make-sse-event: id must be a string or #f")
+        ) ;when
+        (when
+          (and retry (not (and (integer? retry) (exact? retry))))
+          (type-error "make-sse-event: retry must be an integer or #f")
+        ) ;when
+        (when (and retry (< retry 0))
+          (value-error "make-sse-event: retry must be non-negative")
+        ) ;when
+        (%make-sse-event ev data id retry)
       ) ;let*
     ) ;define
 
@@ -217,16 +221,11 @@
 
     (define (read-sse-event . args)
       (let* ((port
-               (case (length args)
-                     ((0) (current-input-port))
-                     ((1)
-                      (if (input-port? (car args))
-                        (car args)
-                        (type-error "read-sse-event: expected input-port")
-                      ) ;if
-                     ) ;
+               (cond ((null? args) (current-input-port))
+                     ((and (null? (cdr args)) (input-port? (car args))) (car args))
+                     ((null? (cdr args)) (type-error "read-sse-event: expected input-port"))
                      (else (type-error "read-sse-event: expected at most 1 argument"))
-               ) ;case
+               ) ;cond
              ) ;port
              (result #f)
              (decoder (make-sse-decoder (lambda (ev) (set! result ev))))
@@ -273,16 +272,11 @@
         (type-error "write-sse-event: expected <sse-event>")
       ) ;unless
       (let ((p
-              (case (length args)
-                    ((0) (current-output-port))
-                    ((1)
-                     (if (output-port? (car args))
-                       (car args)
-                       (type-error "write-sse-event: expected output-port")
-                     ) ;if
-                    ) ;
+              (cond ((null? args) (current-output-port))
+                    ((and (null? (cdr args)) (output-port? (car args))) (car args))
+                    ((null? (cdr args)) (type-error "write-sse-event: expected output-port"))
                     (else (type-error "write-sse-event: expected at most 2 arguments"))
-              ) ;case
+              ) ;cond
             ) ;p
            ) ;
         (display (sse-event->string event) p)

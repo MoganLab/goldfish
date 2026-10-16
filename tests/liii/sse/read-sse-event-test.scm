@@ -142,4 +142,73 @@
 (check-catch 'type-error (read-sse-event "not-a-port"))
 (check-catch 'type-error (read-sse-event 'port))
 
+;; 13. 多事件与连续注释排查
+(let* ((text (string-append ": init connection\n\n" "data: event one\n\n"
+               ": heartbeat\n\n"
+               "event: custom\ndata: event two line a\ndata: event two line b\n\n"
+               "data: event three\n\n"
+             ) ;string-append
+       ) ;text
+       (p (open-input-string text))
+      ) ;
+  (let loop
+    ((count 0) (evs '()))
+    (let ((ev (read-sse-event p)))
+      (if (eof-object? ev)
+        (check (list count (reverse evs))
+          =>
+          '(3 ("event one" "event two line a\nevent two line b" "event three"))
+        ) ;check
+        (loop (+ count 1) (cons (sse-event-data ev) evs))
+      ) ;if
+    ) ;let
+  ) ;let
+) ;let*
+
+(let* ((orig (current-input-port))
+       (text (string-append ": init connection\n\n" "data: event one\n\n"
+               ": heartbeat\n\n"
+               "event: custom\ndata: event two line a\ndata: event two line b\n\n"
+               "data: event three\n\n"
+             ) ;string-append
+       ) ;text
+       (p (open-input-string text))
+      ) ;
+  (set-current-input-port p)
+  (let loop
+    ((count 0) (evs '()))
+    (let ((ev (read-sse-event)))
+      (if (eof-object? ev)
+        (check (list count (reverse evs))
+          =>
+          '(3 ("event one" "event two line a\nevent two line b" "event three"))
+        ) ;check
+        (loop (+ count 1) (cons (sse-event-data ev) evs))
+      ) ;if
+    ) ;let
+  ) ;let
+  (set-current-input-port orig)
+) ;let*
+
+(import (liii subprocess) (liii either))
+(let* ((res (run-either (list "bin/gf"
+                          "-e"
+                          "(import (liii sse))\n(let loop () (let ((ev (read-sse-event))) (unless (eof-object? ev) (write (sse-event-data ev)) (newline) (loop))))"
+                        ) ;list
+              :input
+              (string-append ": init connection\n\n" "data: event one\n\n"
+                ": heartbeat\n\n"
+                "event: custom\ndata: event two line a\ndata: event two line b\n\n"
+                "data: event three\n\n"
+              ) ;string-append
+              :stdout 'capture
+            ) ;run-either
+       ) ;res
+      ) ;
+  (check (to-right res)
+    =>
+    "\"event one\"\n\"event two line a\\nevent two line b\"\n\"event three\"\n#<unspecified>\n"
+  ) ;check
+) ;let*
+
 (check-report)
