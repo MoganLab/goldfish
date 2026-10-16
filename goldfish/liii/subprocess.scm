@@ -402,36 +402,34 @@
             ((cmds commands) (first? #t))
             (cond ((null? cmds) (from-right 0))
                   ((null? (cdr cmds))
-                   (let-values (((out err code)
-                                 (%run-values (car cmds)
-                                   :cwd     cwd
-                                   :env     env
-                                   :timeout timeout
-                                   :input   (if first? input #f)
-                                   :stdin   (if first? stdin #f)
-                                   :stdout  (or stdout 'inherit)
-                                   :stderr  (or stderr 'inherit)
-                                 ) ;%run-values
-                                ) ;
-                               ) ;
-                     (if (zero? code) (from-right code) (from-left (list code (car cmds))))
-                   ) ;let-values
+                   (let ((res (run-either (car cmds)
+                                :cwd     cwd
+                                :env     env
+                                :timeout timeout
+                                :input   (if first? input #f)
+                                :stdin   (if first? stdin #f)
+                                :stdout  (or stdout 'inherit)
+                                :stderr  (or stderr 'inherit)
+                              ) ;run-either
+                         ) ;res
+                        ) ;
+                     (if (either-right? res) (from-right 0) res)
+                   ) ;let
                   ) ;
                   (else
-                    (let-values (((out err code)
-                                  (%run-values (car cmds)
-                                    :cwd     cwd
-                                    :env     env
-                                    :timeout timeout
-                                    :input   (if first? input #f)
-                                    :stdin   (if first? stdin #f)
-                                    :stdout  'inherit
-                                    :stderr  'inherit
-                                  ) ;%run-values
-                                 ) ;
-                                ) ;
-                      (if (zero? code) (loop (cdr cmds) #f) (from-left (list code (car cmds))))
-                    ) ;let-values
+                    (let ((res (run-either (car cmds)
+                                 :cwd     cwd
+                                 :env     env
+                                 :timeout timeout
+                                 :input   (if first? input #f)
+                                 :stdin   (if first? stdin #f)
+                                 :stdout  'inherit
+                                 :stderr  'inherit
+                               ) ;run-either
+                          ) ;res
+                         ) ;
+                      (if (either-right? res) (loop (cdr cmds) #f) res)
+                    ) ;let
                   ) ;else
             ) ;cond
           ) ;let
@@ -448,33 +446,21 @@
           (let loop
             ((cmds commands))
             (cond ((null? cmds) (from-right 0))
-                  ((null? (cdr cmds))
-                   (let-values (((out err code)
-                                 (%run-values (car cmds)
-                                   :cwd     cwd
-                                   :env     env
-                                   :timeout timeout
-                                   :stdout  'inherit
-                                   :stderr  'inherit
-                                 ) ;%run-values
-                                ) ;
-                               ) ;
-                     (if (zero? code) (from-right code) (from-left (list code (car cmds))))
-                   ) ;let-values
-                  ) ;
                   (else
-                    (let-values (((out err code)
-                                  (%run-values (car cmds)
-                                    :cwd     cwd
-                                    :env     env
-                                    :timeout timeout
-                                    :stdout  'inherit
-                                    :stderr  'inherit
-                                  ) ;%run-values
-                                 ) ;
-                                ) ;
-                      (if (zero? code) (from-right 0) (loop (cdr cmds)))
-                    ) ;let-values
+                    (let ((res (run-either (car cmds)
+                                 :cwd     cwd
+                                 :env     env
+                                 :timeout timeout
+                                 :stdout  'inherit
+                                 :stderr  'inherit
+                               ) ;run-either
+                          ) ;res
+                         ) ;
+                      (cond ((either-right? res) (from-right 0))
+                            ((null? (cdr cmds)) res)
+                            (else (loop (cdr cmds)))
+                      ) ;cond
+                    ) ;let
                   ) ;else
             ) ;cond
           ) ;let
@@ -489,25 +475,21 @@
               (timeout (%keyword-value :timeout opts #f))
              ) ;
           (let loop
-            ((cmds commands) (last-code 0))
-            (cond ((null? cmds)
-                   (if (zero? last-code) (from-right last-code) (from-left last-code))
-                  ) ;
-                  (else
-                    (let-values (((out err code)
-                                  (%run-values (car cmds)
-                                    :cwd     cwd
-                                    :env     env
-                                    :timeout timeout
-                                    :stdout  'inherit
-                                    :stderr  'inherit
-                                  ) ;%run-values
-                                 ) ;
-                                ) ;
-                      (loop (cdr cmds) code)
-                    ) ;let-values
-                  ) ;else
-            ) ;cond
+            ((cmds commands) (last-res (from-right 0)))
+            (if (null? cmds)
+              last-res
+              (let ((res (run-either (car cmds)
+                           :cwd     cwd
+                           :env     env
+                           :timeout timeout
+                           :stdout  'inherit
+                           :stderr  'inherit
+                         ) ;run-either
+                    ) ;res
+                   ) ;
+                (loop (cdr cmds) (if (either-right? res) (from-right 0) res))
+              ) ;let
+            ) ;if
           ) ;let
         ) ;let
       ) ;let-values
@@ -524,34 +506,28 @@
             ((cmds commands) (input #f))
             (cond ((null? cmds) (from-right ""))
                   ((null? (cdr cmds))
-                   (let-values (((out err code)
-                                 (%run-values (car cmds)
-                                   :cwd     cwd
-                                   :env     env
-                                   :timeout timeout
-                                   :input   input
-                                   :stdin   stdin
-                                   :stdout  'capture
-                                 ) ;%run-values
-                                ) ;
-                               ) ;
-                     (if (zero? code) (from-right out) (from-left (list code (car cmds))))
-                   ) ;let-values
+                   (run-either (car cmds)
+                     :cwd     cwd
+                     :env     env
+                     :timeout timeout
+                     :input   input
+                     :stdin   stdin
+                     :stdout  'capture
+                   ) ;run-either
                   ) ;
                   (else
-                    (let-values (((out err code)
-                                  (%run-values (car cmds)
-                                    :cwd     cwd
-                                    :env     env
-                                    :timeout timeout
-                                    :input   input
-                                    :stdin   stdin
-                                    :stdout  'capture
-                                  ) ;%run-values
-                                 ) ;
-                                ) ;
-                      (if (zero? code) (loop (cdr cmds) out) (from-left (list code (car cmds))))
-                    ) ;let-values
+                    (let ((res (run-either (car cmds)
+                                 :cwd     cwd
+                                 :env     env
+                                 :timeout timeout
+                                 :input   input
+                                 :stdin   stdin
+                                 :stdout  'capture
+                               ) ;run-either
+                          ) ;res
+                         ) ;
+                      (if (either-right? res) (loop (cdr cmds) (to-right res)) res)
+                    ) ;let
                   ) ;else
             ) ;cond
           ) ;let
@@ -560,27 +536,22 @@
     ) ;define
 
     (define (run-if condition then-cmd else-cmd)
-      (let-values (((out err code) (%run-values condition :stdout 'inherit :stderr 'inherit)))
-        (if (zero? code)
-          (let-values (((out err code) (%run-values then-cmd :stdout 'inherit :stderr 'inherit)))
-            (if (zero? code) (from-right code) (from-left (list code then-cmd)))
-          ) ;let-values
-          (let-values (((out err code) (%run-values else-cmd :stdout 'inherit :stderr 'inherit)))
-            (if (zero? code) (from-right code) (from-left (list code else-cmd)))
-          ) ;let-values
-        ) ;if
-      ) ;let-values
+      (let ((chosen-cmd (if (zero? (run condition :stdout 'inherit :stderr 'inherit)) then-cmd else-cmd)
+            ) ;chosen-cmd
+           ) ;
+        (let ((res (run-either chosen-cmd :stdout 'inherit :stderr 'inherit)))
+          (if (either-right? res) (from-right 0) res)
+        ) ;let
+      ) ;let
     ) ;define
 
     (define (run-when condition command)
-      (let-values (((out err code) (%run-values condition :stdout 'inherit :stderr 'inherit)))
-        (if (zero? code)
-          (from-right 0)
-          (let-values (((out err code) (%run-values command :stdout 'inherit :stderr 'inherit)))
-            (if (zero? code) (from-right code) (from-left (list code command)))
-          ) ;let-values
-        ) ;if
-      ) ;let-values
+      (if (zero? (run condition :stdout 'inherit :stderr 'inherit))
+        (from-right 0)
+        (let ((res (run-either command :stdout 'inherit :stderr 'inherit)))
+          (if (either-right? res) (from-right 0) res)
+        ) ;let
+      ) ;if
     ) ;define
 
     (define (process? obj)

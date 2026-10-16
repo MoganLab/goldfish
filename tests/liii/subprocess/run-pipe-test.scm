@@ -19,9 +19,9 @@
 ;; ----
 ;; Either
 ;; 成功时返回 Right（内含管道最后一级的 stdout 字符串），
-;; 失败时返回 Left（内含 (list code command)）。
+;; 失败时返回 Left（内含 <process-error> 记录）。
 
-(when (os-linux?)
+(when (or (os-linux?) (os-macos?))
   (check (either-right? (run-pipe "echo hello world" '(grep "hello"))) => #t)
   (check (to-right (run-pipe "echo hello world" '(grep "hello")))
     =>
@@ -31,15 +31,24 @@
     =>
     #t
   ) ;check
-  (check (to-right (run-pipe '(printf "a\nb\nc") '(grep "a") '(wc "-l")))
+  (check
+    (string-trim-both
+      (to-right (run-pipe '(printf "a\nb\nc") '(grep "a") '(wc "-l")))
+    ) ;string-trim-both
     =>
-    "1\n"
+    "1"
   ) ;check
   (check (either-right? (run-pipe "echo hello")) => #t)
   (check (to-right (run-pipe "echo hello")) => "hello\n")
 
-  (check (either-left? (run-pipe "echo hello" '(false))) => #t)
-  (check (to-left (run-pipe "echo hello" '(false))) => '(1 (false)))
+  (let ((res (run-pipe "echo hello" '(false))))
+    (check (either-left? res) => #t)
+    (let ((err (to-left res)))
+      (check (process-error? err) => #t)
+      (check (process-error-code err) => 1)
+      (check (process-error-command err) => '(false))
+    ) ;let
+  ) ;let
 ) ;when
 
 (when (os-windows?)
@@ -59,10 +68,14 @@
     "hello world"
   ) ;check
   (check (either-right? (run-pipe "python3 -c pass")) => #t)
-  (check (either-left? (run-pipe "python3 -c \"print('hello')\"" "python3 -c 1/0"))
-    =>
-    #t
-  ) ;check
+  (let ((res (run-pipe "python3 -c \"print('hello')\"" "python3 -c 1/0")))
+    (check (either-left? res) => #t)
+    (let ((err (to-left res)))
+      (check (process-error? err) => #t)
+      (check (process-error-code err) => 1)
+      (check (process-error-command err) => "python3 -c 1/0")
+    ) ;let
+  ) ;let
 ) ;when
 
 (check-report)

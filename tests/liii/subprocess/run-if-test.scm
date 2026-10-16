@@ -17,16 +17,28 @@
 ;; 返回值
 ;; ----
 ;; Either
-;; 被执行命令成功时返回 Right（内含退出码），失败时返回 Left（内含 (list code command)）。
+;; 被执行命令成功时返回 Right（内含退出码 0），失败时返回 Left（内含 <process-error> 记录）。
 
-(when (os-linux?)
+(when (or (os-linux?) (os-macos?))
   (check (either-right? (run-if "false" "echo yes" "echo no")) => #t)
   (check (to-right (run-if "false" "echo yes" "echo no")) => 0)
 
-  (check (either-left? (run-if "true" "false" "echo no")) => #t)
-  (check (to-left (run-if "true" "false" "echo no")) => '(1 "false"))
-  (check (either-left? (run-if "false" "echo yes" "false")) => #t)
-  (check (to-left (run-if "false" "echo yes" "false")) => '(1 "false"))
+  (let ((res (run-if "true" "false" "echo no")))
+    (check (either-left? res) => #t)
+    (let ((err (to-left res)))
+      (check (process-error? err) => #t)
+      (check (process-error-code err) => 1)
+      (check (process-error-command err) => "false")
+    ) ;let
+  ) ;let
+  (let ((res (run-if "false" "echo yes" "false")))
+    (check (either-left? res) => #t)
+    (let ((err (to-left res)))
+      (check (process-error? err) => #t)
+      (check (process-error-code err) => 1)
+      (check (process-error-command err) => "false")
+    ) ;let
+  ) ;let
 ) ;when
 
 (when (os-windows?)
@@ -39,22 +51,22 @@
     0
   ) ;check
 
-  (check (either-left? (run-if "python3 -c pass" "python3 -c 1/0" "python3 -c pass"))
-    =>
-    #t
-  ) ;check
-  (check (to-left (run-if "python3 -c pass" "python3 -c 1/0" "python3 -c pass"))
-    =>
-    '(1 "python3 -c 1/0")
-  ) ;check
-  (check (either-left? (run-if "python3 -c 1/0" "python3 -c pass" "python3 -c 1/0"))
-    =>
-    #t
-  ) ;check
-  (check (to-left (run-if "python3 -c 1/0" "python3 -c pass" "python3 -c 1/0"))
-    =>
-    '(1 "python3 -c 1/0")
-  ) ;check
+  (let ((res (run-if "python3 -c pass" "python3 -c 1/0" "python3 -c pass")))
+    (check (either-left? res) => #t)
+    (let ((err (to-left res)))
+      (check (process-error? err) => #t)
+      (check (process-error-code err) => 1)
+      (check (process-error-command err) => "python3 -c 1/0")
+    ) ;let
+  ) ;let
+  (let ((res (run-if "python3 -c 1/0" "python3 -c pass" "python3 -c 1/0")))
+    (check (either-left? res) => #t)
+    (let ((err (to-left res)))
+      (check (process-error? err) => #t)
+      (check (process-error-code err) => 1)
+      (check (process-error-command err) => "python3 -c 1/0")
+    ) ;let
+  ) ;let
 ) ;when
 
 (check-report)

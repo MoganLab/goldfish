@@ -18,13 +18,19 @@
 ;; 返回值
 ;; ----
 ;; Either
-;; 任一命令成功时返回 Right 0，全部失败时返回 Left（内含 (list code command)）。
+;; 任一命令成功时返回 Right 0，全部失败时返回 Left（内含 <process-error> 记录）。
 
-(when (os-linux?)
+(when (or (os-linux?) (os-macos?))
   (check (either-right? (run-or "true" "false")) => #t)
   (check (to-right (run-or "true" "false")) => 0)
-  (check (either-left? (run-or "false" "false")) => #t)
-  (check (to-left (run-or "false" "false")) => '(1 "false"))
+  (let ((res (run-or "false" "false")))
+    (check (either-left? res) => #t)
+    (let ((err (to-left res)))
+      (check (process-error? err) => #t)
+      (check (process-error-code err) => 1)
+      (check (process-error-command err) => "false")
+    ) ;let
+  ) ;let
   (check (either-right? (run-or "false" "true")) => #t)
   (check (to-right (run-or "false" "true")) => 0)
   (check (either-right? (run-or "true" "false" :cwd "/tmp")) => #t)
@@ -34,11 +40,14 @@
 (when (os-windows?)
   (check (either-right? (run-or "python3 -c pass" "python3 -c 1/0")) => #t)
   (check (to-right (run-or "python3 -c pass" "python3 -c 1/0")) => 0)
-  (check (either-left? (run-or "python3 -c 1/0" "python3 -c 1/0")) => #t)
-  (check (to-left (run-or "python3 -c 1/0" "python3 -c 1/0"))
-    =>
-    '(1 "python3 -c 1/0")
-  ) ;check
+  (let ((res (run-or "python3 -c 1/0" "python3 -c 1/0")))
+    (check (either-left? res) => #t)
+    (let ((err (to-left res)))
+      (check (process-error? err) => #t)
+      (check (process-error-code err) => 1)
+      (check (process-error-command err) => "python3 -c 1/0")
+    ) ;let
+  ) ;let
   (check (either-right? (run-or "python3 -c 1/0" "python3 -c pass")) => #t)
   (check (to-right (run-or "python3 -c 1/0" "python3 -c pass")) => 0)
   (check (either-right? (run-or "python3 -c pass" "python3 -c 1/0" :cwd (os-temp-dir)))

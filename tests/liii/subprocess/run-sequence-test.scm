@@ -18,16 +18,22 @@
 ;; 返回值
 ;; ----
 ;; Either
-;; 最后一条命令成功时返回 Right（内含退出码），
-;; 失败时返回 Left（内含退出码）。
+;; 最后一条命令成功时返回 Right（内含退出码 0），
+;; 失败时返回 Left（内含 <process-error> 记录）。
 
-(when (os-linux?)
+(when (or (os-linux?) (os-macos?))
   (check (either-right? (run-sequence "true" "false" "true")) => #t)
   (check (to-right (run-sequence "true" "false" "true")) => 0)
   (check (either-right? (run-sequence "false" "true")) => #t)
   (check (to-right (run-sequence "false" "true")) => 0)
-  (check (either-left? (run-sequence "true" "false")) => #t)
-  (check (to-left (run-sequence "true" "false")) => 1)
+  (let ((res (run-sequence "true" "false")))
+    (check (either-left? res) => #t)
+    (let ((err (to-left res)))
+      (check (process-error? err) => #t)
+      (check (process-error-code err) => 1)
+      (check (process-error-command err) => "false")
+    ) ;let
+  ) ;let
   (check (either-right? (run-sequence "true" "true" :cwd "/tmp")) => #t)
   (check (to-right (run-sequence "true" "true" :cwd "/tmp")) => 0)
 ) ;when
@@ -44,8 +50,14 @@
   ) ;check
   (check (either-right? (run-sequence "python3 -c 1/0" "python3 -c pass")) => #t)
   (check (to-right (run-sequence "python3 -c 1/0" "python3 -c pass")) => 0)
-  (check (either-left? (run-sequence "python3 -c pass" "python3 -c 1/0")) => #t)
-  (check (to-left (run-sequence "python3 -c pass" "python3 -c 1/0")) => 1)
+  (let ((res (run-sequence "python3 -c pass" "python3 -c 1/0")))
+    (check (either-left? res) => #t)
+    (let ((err (to-left res)))
+      (check (process-error? err) => #t)
+      (check (process-error-code err) => 1)
+      (check (process-error-command err) => "python3 -c 1/0")
+    ) ;let
+  ) ;let
   (check (either-right? (run-sequence "python3 -c pass" "python3 -c pass" :cwd (os-temp-dir))
          ) ;either-right?
     =>
