@@ -282,4 +282,19 @@
   (check-catch 'type-error (g_subprocess-run-values cyclic-cmd))
 ) ;let
 
+;; 验证现有 run-values 在大输出（1MB）下消除管道缓冲区满死锁
+(let* ((child-code "import sys; sys.stdout.buffer.write(b'B' * (1024 * 1024)); sys.stdout.buffer.flush()"
+       ) ;child-code
+       (values-ret
+         (let-values (((out err code) (run-values `(,"python3"
+                                                    ,"-c"
+                                                    ,child-code) :stdout 'capture)))
+           (list (string-length out) code)
+         ) ;let-values
+       ) ;values-ret
+      ) ;
+  (check (car values-ret) => (* 1024 1024))
+  (check (cadr values-ret) => 0)
+) ;let*
+
 (check-report)

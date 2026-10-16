@@ -15,17 +15,49 @@
 //
 
 #include "s7.h"
+#include <algorithm>
 #include <cstdio>
 #include <cstring>
+#include <sstream>
 #include <string>
 #include <tbox/tbox.h>
+#include <utility>
 #include <vector>
 
-#ifdef _WIN32
+#ifdef TB_CONFIG_OS_WINDOWS
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
 #include <windows.h>
+#else
+#include <fcntl.h>
+#include <poll.h>
+#include <signal.h>
+#include <sys/wait.h>
+#include <unistd.h>
+
+#ifndef tb_pipefile2fd
+#define tb_pipefile2fd(file) (tb_int_t) ((file) ? (((tb_long_t) (file)) - 1) : -1)
 #endif
 
-#if !defined(_MSC_VER) && !defined(__MINGW32__) && !defined(__EMSCRIPTEN__)
+static void
+set_pipe_cloexec (tb_pipe_file_ref_t p) {
+  if (p) {
+    int fd= tb_pipefile2fd (p);
+    if (fd >= 0) {
+      fcntl (fd, F_SETFD, FD_CLOEXEC);
+    }
+  }
+}
+
+static void
+set_pipe_pair_cloexec (tb_pipe_file_ref_t pipe[2]) {
+  set_pipe_cloexec (pipe[0]);
+  set_pipe_cloexec (pipe[1]);
+}
+#endif
+
+#if !defined(TB_CONFIG_OS_WINDOWS) && !defined(__EMSCRIPTEN__)
 #include <wordexp.h>
 #endif
 
@@ -40,6 +72,26 @@ inline s7_pointer
 subprocess_type_error (s7_scheme* sc, const char* msg, s7_pointer arg) {
   return s7_error (sc, s7_make_symbol (sc, "type-error"), s7_list (sc, 2, s7_make_string (sc, msg), arg));
 }
+
+#ifdef TB_CONFIG_OS_WINDOWS
+static tb_int_t
+get_process_pid (tb_process_ref_t process) {
+  if (!process) return -1;
+  struct win_proc {
+    STARTUPINFOEX       si;
+    STARTUPINFO*        psi;
+    PROCESS_INFORMATION pi;
+  };
+  return (tb_int_t) (((win_proc*) process)->pi.dwProcessId);
+}
+#else
+extern "C" tb_int_t tb_process_pid (tb_process_ref_t self);
+static tb_int_t
+get_process_pid (tb_process_ref_t process) {
+  if (!process) return -1;
+  return tb_process_pid (process);
+}
+#endif
 
 s7_pointer
 f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
@@ -59,8 +111,6 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
     args= s7_cdr (args);
   }
 
-  // 校验先行：s7_error 是裸 longjmp，raise 时帧内不得有存活的 RAII 对象。
-  // 第一趟只校验不构造，全部通过后第二趟才构建 env_storage/envp
   s7_pointer env_alist= nullptr;
   if (s7_is_pair (args) && !s7_is_null (sc, s7_car (args)) && s7_car (args) != s7_f (sc)) {
     s7_pointer env_arg= s7_car (args);
@@ -221,7 +271,7 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
       (stdout_mode == redirect_mode::tee || stdout_mode == redirect_mode::capture) ||
       (stderr_to_stdout && stdout_mode != redirect_mode::file && stdout_mode != redirect_mode::discard);
 
-#ifdef _WIN32
+#ifdef TB_CONFIG_OS_WINDOWS
   HANDLE              h_out_read= NULL, h_out_write= NULL;
   HANDLE              h_err_read= NULL, h_err_write= NULL;
   HANDLE              h_in_read= NULL, h_in_write= NULL;
@@ -245,20 +295,21 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
     attr.outmode= TB_FILE_MODE_RW | TB_FILE_MODE_CREAT | TB_FILE_MODE_TRUNC;
   }
   else if (need_stdout_pipe) {
-#ifdef _WIN32
+#ifdef TB_CONFIG_OS_WINDOWS
     CreatePipe (&h_out_read, &h_out_write, &sa, 0);
     SetHandleInformation (h_out_read, HANDLE_FLAG_INHERIT, 0);
     attr.outtype = TB_PROCESS_REDIRECT_TYPE_FILE;
     attr.out.file= (tb_file_ref_t) h_out_write;
 #else
-    tb_size_t mode[2]= {TB_PIPE_MODE_RO, TB_PIPE_MODE_WO};
+    tb_size_t mode[2]= {TB_PIPE_MODE_RO, TB_PIPE_MODE_WO | TB_PIPE_MODE_BLOCK};
     tb_pipe_file_init_pair (out_pipe, mode, 0);
+    set_pipe_pair_cloexec (out_pipe);
     attr.outtype = TB_PROCESS_REDIRECT_TYPE_PIPE;
     attr.out.pipe= out_pipe[1];
 #endif
   }
 
-#ifndef _WIN32
+#ifndef TB_CONFIG_OS_WINDOWS
   tb_pipe_file_ref_t err_pipe[2]= {tb_null};
 #endif
   if (stderr_mode == redirect_mode::file) {
@@ -275,7 +326,7 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
 #endif
     attr.errmode= TB_FILE_MODE_RW | TB_FILE_MODE_CREAT | TB_FILE_MODE_TRUNC;
   }
-#ifdef _WIN32
+#ifdef TB_CONFIG_OS_WINDOWS
   else if (stderr_to_stdout && h_out_write) {
     HANDLE h_err_dup= NULL;
     if (DuplicateHandle (GetCurrentProcess (), h_out_write, GetCurrentProcess (), &h_err_dup, 0, TRUE,
@@ -297,14 +348,15 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
     attr.err.pipe= out_pipe[1];
   }
   else if (stderr_mode == redirect_mode::tee || stderr_mode == redirect_mode::capture) {
-    tb_size_t mode[2]= {TB_PIPE_MODE_RO, TB_PIPE_MODE_WO};
+    tb_size_t mode[2]= {TB_PIPE_MODE_RO, TB_PIPE_MODE_WO | TB_PIPE_MODE_BLOCK};
     tb_pipe_file_init_pair (err_pipe, mode, 0);
+    set_pipe_pair_cloexec (err_pipe);
     attr.errtype = TB_PROCESS_REDIRECT_TYPE_PIPE;
     attr.err.pipe= err_pipe[1];
   }
 #endif
 
-#ifndef _WIN32
+#ifndef TB_CONFIG_OS_WINDOWS
   tb_pipe_file_ref_t in_pipe[2]= {tb_null};
 #endif
   if (stdin_path) {
@@ -312,7 +364,7 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
     attr.in.path= stdin_path;
     attr.inmode = TB_FILE_MODE_RO;
   }
-#ifdef _WIN32
+#ifdef TB_CONFIG_OS_WINDOWS
   else if (stdin_null) {
     CreatePipe (&h_in_read, &h_in_write, &sa, 0);
     SetHandleInformation (h_in_write, HANDLE_FLAG_INHERIT, 0);
@@ -333,15 +385,17 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
   }
 #else
   else if (stdin_null) {
-    tb_size_t mode[2]= {TB_PIPE_MODE_RO, TB_PIPE_MODE_WO};
+    tb_size_t mode[2]= {TB_PIPE_MODE_RO | TB_PIPE_MODE_BLOCK, TB_PIPE_MODE_WO | TB_PIPE_MODE_BLOCK};
     tb_pipe_file_init_pair (in_pipe, mode, 0);
+    set_pipe_pair_cloexec (in_pipe);
     attr.intype = TB_PROCESS_REDIRECT_TYPE_PIPE;
     attr.in.pipe= in_pipe[0];
     tb_pipe_file_exit (in_pipe[1]);
   }
   else if (input) {
-    tb_size_t mode[2]= {TB_PIPE_MODE_RO, TB_PIPE_MODE_WO};
+    tb_size_t mode[2]= {TB_PIPE_MODE_RO | TB_PIPE_MODE_BLOCK, TB_PIPE_MODE_WO | TB_PIPE_MODE_BLOCK};
     tb_pipe_file_init_pair (in_pipe, mode, 0);
+    set_pipe_pair_cloexec (in_pipe);
     attr.intype = TB_PROCESS_REDIRECT_TYPE_PIPE;
     attr.in.pipe= in_pipe[0];
     tb_pipe_file_write (in_pipe[1], (tb_byte_t*) input, input_len);
@@ -354,12 +408,15 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
     const char* cmd_c= s7_string (cmd_arg);
 #ifdef TB_CONFIG_OS_WINDOWS
     process= tb_process_init_cmd (cmd_c, &attr);
-#elif !defined(_MSC_VER) && !defined(__MINGW32__) && !defined(__EMSCRIPTEN__)
+#elif !defined(__EMSCRIPTEN__)
     wordexp_t p;
     int       ret= wordexp (cmd_c, &p, 0);
     if (ret == 0 && p.we_wordc > 0) {
       process= tb_process_init (p.we_wordv[0], (tb_char_t const**) p.we_wordv, &attr);
       wordfree (&p);
+    }
+    else {
+      process= tb_process_init_cmd (cmd_c, &attr);
     }
 #else
     process= tb_process_init_cmd (cmd_c, &attr);
@@ -381,7 +438,7 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
     }
   }
 
-#ifdef _WIN32
+#ifdef TB_CONFIG_OS_WINDOWS
   if (h_out_write) {
     CloseHandle (h_out_write);
     h_out_write= NULL;
@@ -395,8 +452,14 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
     h_in_read= NULL;
   }
 #else
-  if (out_pipe[1]) tb_pipe_file_exit (out_pipe[1]);
-  if (err_pipe[1]) tb_pipe_file_exit (err_pipe[1]);
+  if (out_pipe[1]) {
+    tb_pipe_file_exit (out_pipe[1]);
+    out_pipe[1]= tb_null;
+  }
+  if (err_pipe[1]) {
+    tb_pipe_file_exit (err_pipe[1]);
+    err_pipe[1]= tb_null;
+  }
 #endif
 
   string    stdout_str;
@@ -404,20 +467,149 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
   tb_long_t status= -1;
 
   if (process) {
-    tb_long_t wait_result= tb_process_wait (process, &status, timeout_ms);
+    tb_hong_t start_time= tb_mclock ();
+    bool      timed_out = false;
+    bool      out_open  = need_stdout_pipe;
+    bool      err_open  = (stderr_mode == redirect_mode::tee || stderr_mode == redirect_mode::capture);
+#ifndef TB_CONFIG_OS_WINDOWS
+    if (!out_pipe[0]) out_open= false;
+    if (!err_pipe[0]) err_open= false;
+#else
+    if (!h_out_read) out_open= false;
+    if (!h_err_read) err_open= false;
+#endif
 
-    if (wait_result == 0) {
-      tb_process_kill (process);
-      tb_process_wait (process, &status, -1);
-      status= -1;
+    // 流式读取排空循环，防止大输出（如 10MB）管道缓冲区满导致子进程与父进程死锁
+    while (out_open || err_open) {
+      bool read_any= false;
+#ifdef TB_CONFIG_OS_WINDOWS
+      if (out_open) {
+        DWORD avail= 0;
+        if (PeekNamedPipe (h_out_read, NULL, 0, NULL, &avail, NULL)) {
+          if (avail > 0) {
+            char  buf[65536];
+            DWORD to_read= (std::min) ((DWORD) sizeof (buf), avail);
+            DWORD n      = 0;
+            if (ReadFile (h_out_read, buf, to_read, &n, NULL) && n > 0) {
+              stdout_str.append (buf, n);
+              if (stdout_mode == redirect_mode::tee) {
+                fwrite (buf, 1, n, stdout);
+                fflush (stdout);
+              }
+              read_any= true;
+            }
+          }
+        }
+        else {
+          out_open= false;
+        }
+      }
+      if (err_open) {
+        DWORD avail= 0;
+        if (PeekNamedPipe (h_err_read, NULL, 0, NULL, &avail, NULL)) {
+          if (avail > 0) {
+            char  buf[65536];
+            DWORD to_read= (std::min) ((DWORD) sizeof (buf), avail);
+            DWORD n      = 0;
+            if (ReadFile (h_err_read, buf, to_read, &n, NULL) && n > 0) {
+              stderr_str.append (buf, n);
+              if (stderr_mode == redirect_mode::tee) {
+                fwrite (buf, 1, n, stderr);
+                fflush (stderr);
+              }
+              read_any= true;
+            }
+          }
+        }
+        else {
+          err_open= false;
+        }
+      }
+#else
+      struct pollfd pfds[2];
+      int           nfds   = 0;
+      int           out_idx= -1;
+      int           err_idx= -1;
+      if (out_open) {
+        out_idx              = nfds++;
+        pfds[out_idx].fd     = tb_pipefile2fd (out_pipe[0]);
+        pfds[out_idx].events = POLLIN;
+        pfds[out_idx].revents= 0;
+      }
+      if (err_open) {
+        err_idx              = nfds++;
+        pfds[err_idx].fd     = tb_pipefile2fd (err_pipe[0]);
+        pfds[err_idx].events = POLLIN;
+        pfds[err_idx].revents= 0;
+      }
+      int pret= ::poll (pfds, nfds, 50);
+      if (pret > 0) {
+        if (out_idx >= 0 && (pfds[out_idx].revents & (POLLIN | POLLHUP | POLLERR))) {
+          char    buf[65536];
+          ssize_t n= read (pfds[out_idx].fd, buf, sizeof (buf));
+          if (n > 0) {
+            stdout_str.append (buf, n);
+            if (stdout_mode == redirect_mode::tee) {
+              fwrite (buf, 1, n, stdout);
+              fflush (stdout);
+            }
+            read_any= true;
+          }
+          else if (n == 0 || (n < 0 && errno != EAGAIN && errno != EINTR)) {
+            out_open= false;
+          }
+        }
+        if (err_idx >= 0 && (pfds[err_idx].revents & (POLLIN | POLLHUP | POLLERR))) {
+          char    buf[65536];
+          ssize_t n= read (pfds[err_idx].fd, buf, sizeof (buf));
+          if (n > 0) {
+            stderr_str.append (buf, n);
+            if (stderr_mode == redirect_mode::tee) {
+              fwrite (buf, 1, n, stderr);
+              fflush (stderr);
+            }
+            read_any= true;
+          }
+          else if (n == 0 || (n < 0 && errno != EAGAIN && errno != EINTR)) {
+            err_open= false;
+          }
+        }
+      }
+#endif
+
+      if (timeout_ms >= 0 && (tb_mclock () - start_time >= timeout_ms)) {
+#ifdef TB_CONFIG_OS_WINDOWS
+        tb_process_kill (process);
+#else
+        tb_int_t p_pid= get_process_pid (process);
+        if (p_pid > 0) {
+          kill (p_pid, SIGKILL);
+        }
+        else {
+          tb_process_kill (process);
+        }
+#endif
+        tb_process_wait (process, &status, -1);
+        status   = -1;
+        timed_out= true;
+        break;
+      }
+
+      tb_long_t wait_ret= tb_process_wait (process, &status, 0);
+      if (wait_ret > 0) {
+        break;
+      }
+
+#ifdef TB_CONFIG_OS_WINDOWS
+      if (!read_any) Sleep (5);
+#endif
     }
 
-#ifdef _WIN32
+#ifdef TB_CONFIG_OS_WINDOWS
     if (h_out_read) {
-      char  buf[4096];
+      char  buf[65536];
       DWORD n= 0;
-      while (ReadFile (h_out_read, buf, sizeof (buf) - 1, &n, NULL) && n > 0) {
-        buf[n]= '\0';
+      while (ReadFile (h_out_read, buf, sizeof (buf), &n, NULL) && n > 0) {
         stdout_str.append (buf, n);
         if (stdout_mode == redirect_mode::tee) {
           fwrite (buf, 1, n, stdout);
@@ -429,10 +621,9 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
     }
 
     if (h_err_read) {
-      char  buf[4096];
+      char  buf[65536];
       DWORD n= 0;
-      while (ReadFile (h_err_read, buf, sizeof (buf) - 1, &n, NULL) && n > 0) {
-        buf[n]= '\0';
+      while (ReadFile (h_err_read, buf, sizeof (buf), &n, NULL) && n > 0) {
         stderr_str.append (buf, n);
         if (stderr_mode == redirect_mode::tee) {
           fwrite (buf, 1, n, stderr);
@@ -444,37 +635,64 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
     }
 #else
     if (out_pipe[0]) {
-      char      buf[4096];
-      tb_long_t n;
-      while ((n= tb_pipe_file_read (out_pipe[0], (tb_byte_t*) buf, sizeof (buf) - 1)) > 0) {
-        buf[n]= '\0';
-        stdout_str.append (buf);
+      char buf[65536];
+      int  fd= tb_pipefile2fd (out_pipe[0]);
+      fcntl (fd, F_SETFL, fcntl (fd, F_GETFL) | O_NONBLOCK);
+      ssize_t n;
+      while ((n= read (fd, buf, sizeof (buf))) > 0) {
+        stdout_str.append (buf, n);
         if (stdout_mode == redirect_mode::tee) {
           fwrite (buf, 1, n, stdout);
           fflush (stdout);
         }
       }
       tb_pipe_file_exit (out_pipe[0]);
+      out_pipe[0]= tb_null;
     }
 
     if (err_pipe[0]) {
-      char      buf[4096];
-      tb_long_t n;
-      while ((n= tb_pipe_file_read (err_pipe[0], (tb_byte_t*) buf, sizeof (buf) - 1)) > 0) {
-        buf[n]= '\0';
-        stderr_str.append (buf);
+      char buf[65536];
+      int  fd= tb_pipefile2fd (err_pipe[0]);
+      fcntl (fd, F_SETFL, fcntl (fd, F_GETFL) | O_NONBLOCK);
+      ssize_t n;
+      while ((n= read (fd, buf, sizeof (buf))) > 0) {
+        stderr_str.append (buf, n);
         if (stderr_mode == redirect_mode::tee) {
           fwrite (buf, 1, n, stderr);
           fflush (stderr);
         }
       }
       tb_pipe_file_exit (err_pipe[0]);
+      err_pipe[0]= tb_null;
     }
 #endif
 
+    if (!timed_out && status == -1) {
+      tb_long_t remaining_ms= -1;
+      if (timeout_ms >= 0) {
+        tb_hong_t elapsed= tb_mclock () - start_time;
+        remaining_ms     = (elapsed >= timeout_ms) ? 0 : (tb_long_t) (timeout_ms - elapsed);
+      }
+      tb_long_t wait_ret= tb_process_wait (process, &status, remaining_ms);
+      if (wait_ret == 0) {
+#ifdef TB_CONFIG_OS_WINDOWS
+        tb_process_kill (process);
+#else
+        tb_int_t p_pid= get_process_pid (process);
+        if (p_pid > 0) {
+          kill (p_pid, SIGKILL);
+        }
+        else {
+          tb_process_kill (process);
+        }
+#endif
+        tb_process_wait (process, &status, -1);
+        status= -1;
+      }
+    }
     tb_process_exit (process);
   }
-#ifdef _WIN32
+#ifdef TB_CONFIG_OS_WINDOWS
   if (h_out_read) CloseHandle (h_out_read);
   if (h_err_read) CloseHandle (h_err_read);
 #endif
