@@ -8,7 +8,7 @@
     path-relative-to path-starts-with? path-equals? path=? path-absolute?
     path-relative? path-join path-parent path-parents path-list path-list-path
     path-rmdir path-unlink path-rename path-mkdir path-absolute path-expanduser
-    path-match path-as-posix path-resolve
+    path-match path-as-posix path-resolve path-glob path-rglob
   ) ;export
   (import (liii base)
     (liii error)
@@ -1182,6 +1182,43 @@
           ) ;cond
         ) ;let
       ) ;let*
+    ) ;define
+
+    (define (%check-glob-args who p pattern)
+      (cond
+       ((not (or (string? p) (path? p)))
+        (type-error (string-append who ": path must be string or path"))
+       ) ;
+       ((not (string? pattern))
+        (type-error (string-append who ": pattern must be string"))
+       ) ;
+       ((not (path-exists? p))
+        (file-not-found-error (string-append "No such file or directory: '" (path->string p) "'")
+        ) ;file-not-found-error
+       ) ;
+       ((not (path-dir? p))
+        (not-a-directory-error (string-append "Not a directory: '" (path->string p) "'")
+        ) ;not-a-directory-error
+       ) ;
+      ) ;cond
+    ) ;define
+
+    ;; ; 对齐 pathlib.Path.glob(pattern)
+    ;; ; 单层目录通配检索，返回包含匹配项的 <path> 记录列表。
+    (define (path-glob p pattern)
+      (%check-glob-args "path-glob" p pattern)
+      (let ((entries (g_path-glob (path->string p) pattern 0)))
+        (map (lambda (entry) (path-join p entry)) entries)
+      ) ;let
+    ) ;define
+
+    ;; ; 对齐 pathlib.Path.rglob(pattern)
+    ;; ; 递归全目录树通配检索，返回包含匹配项的 <path> 记录列表。
+    (define (path-rglob p pattern)
+      (%check-glob-args "path-rglob" p pattern)
+      (let ((entries (g_path-glob (path->string p) pattern -1)))
+        (map (lambda (entry) (path-join p entry)) entries)
+      ) ;let
     ) ;define
 
     ;; ; 对齐 pathlib.Path.resolve(strict=False) 简化版
