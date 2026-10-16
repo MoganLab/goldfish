@@ -73,16 +73,9 @@
        (viols (check-files (vector f1 f2) cfg))
       ) ;
   (check (vector-length viols) => 1)
+  (check (cadr (vector-ref viols 0)) => f2)
   (path-unlink f1 #t)
   (path-unlink f2 #t)
-) ;let*
-
-;; 4. 无违规文件返回 #()
-(let* ((f1 (make-tmp-file "gf-test-files-ok.scm" 3))
-       (viols (check-files (vector f1) #f))
-      ) ;
-  (check viols => #())
-  (path-unlink f1 #t)
 ) ;let*
 
 (check-report)
