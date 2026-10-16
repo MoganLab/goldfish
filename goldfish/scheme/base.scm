@@ -566,7 +566,7 @@
         ;; 正常路径的值原样透传；异常被打包为 (tag type . info) 的单元素列表以区分。
         ;; handler 内必须 list-copy info：S7 会复用 handler 的参数列表，跨求值步骤持有引用会被改写
         `(call-with-values (lambda ,()
-                             (catch ,#t
+                             (catch #t
                                (lambda ,() ,@body)
                                (lambda (,type ,info)
                                  (cons (quote ,tag)
