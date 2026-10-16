@@ -556,16 +556,6 @@ s7_pointer read_file(s7_scheme *sc, FILE *fp, const char *name, s7_int max_size,
 
 /* -------- current-input-port handling -------- */
 
-s7_pointer input_port_if_not_loading(s7_scheme *sc)
-{
-  return(s7_current_input_port(sc));
-}
-
-s7_pointer s7i_input_port_if_not_loading(s7_scheme *sc)
-{
-  return(input_port_if_not_loading(sc));
-}
-
 s7_pointer s7i_port_read_line(s7_scheme *sc, s7_pointer port, bool with_eol)
 {
   return(port_read_line(port)(sc, port, with_eol));
@@ -589,7 +579,7 @@ s7_pointer g_read_char(s7_scheme *sc, s7_pointer args)
     port = car(args);
   else
     {
-      port = input_port_if_not_loading(sc);
+      port = s7_current_input_port(sc);
       if (!port) return(eof_object);
     }
   if (!is_input_port(port))
@@ -670,7 +660,7 @@ s7_pointer g_read_byte(s7_scheme *sc, s7_pointer args)
     port = car(args);
   else
     {
-      port = input_port_if_not_loading(sc);
+      port = s7_current_input_port(sc);
       if (!port) return(eof_object);
     }
   if (!is_input_port(port))
@@ -735,7 +725,7 @@ s7_pointer g_read_string(s7_scheme *sc, s7_pointer args)
     port = cadr(args);
   else
     {
-      port = input_port_if_not_loading(sc);
+      port = s7_current_input_port(sc);
       if (!port) return(eof_object);
     }
   if (!is_input_port(port))
@@ -836,7 +826,7 @@ s7_pointer g_read(s7_scheme *sc, s7_pointer args)
     port = car(args);
   else
     {
-      port = input_port_if_not_loading(sc);
+      port = s7_current_input_port(sc);
       if (!port) return(eof_object);
     }
   if (!is_input_port(port))

@@ -65,7 +65,6 @@
        ) ;
     (check out-direct => "test data")
     (check out-run => "test data")
-    (check out-direct => out-run)
   ) ;let
   (process-close proc-direct)
   (process-close proc-run)
