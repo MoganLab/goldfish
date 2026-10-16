@@ -28,6 +28,7 @@
 ;;   http-require-boolean         - 校验必填布尔参数
 ;;   http-optional-string         - 校验可选字符串参数
 ;;   http-optional-procedure      - 校验可选过程参数
+;;   http-optional-timeout        - 校验可选超时参数
 ;;   http-scalar->string          - 标量值转字符串
 ;;   http-normalize-string-alist  - 规范化字符串关联列表
 ;;   http-normalize-files         - 规范化文件上传参数
