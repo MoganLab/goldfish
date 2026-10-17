@@ -120,6 +120,7 @@ void glue_scheme_char (s7_scheme* sc);
 void glue_liii_hashlib (s7_scheme* sc);
 void glue_liii_os (s7_scheme* sc);
 void glue_liii_path (s7_scheme* sc);
+void glue_liii_path_stat (s7_scheme* sc);
 void glue_liii_sort (s7_scheme* sc);
 void glue_liii_string (s7_scheme* sc);
 void glue_liii_string_cursor (s7_scheme* sc);
@@ -790,6 +791,7 @@ glue_for_community_edition (s7_scheme* sc) {
   glue_liii_os (sc);
   glue_subprocess (sc);
   glue_liii_path (sc);
+  glue_liii_path_stat (sc);
   glue_liii_sort (sc);
   glue_liii_list (sc);
   glue_liii_string (sc);
