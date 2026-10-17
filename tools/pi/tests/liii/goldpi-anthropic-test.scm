@@ -1,0 +1,128 @@
+(set! *load-path*
+  (append (list "tools/pi" ".") *load-path*))
+
+(import (liii check)
+  (liii string)
+  (liii path)
+  (liii json)
+  (liii subprocess)
+  (liii pi)
+  (liii goldpi-config)
+  (liii goldpi-anthropic)
+) ;import
+
+(check-set-mode! 'report-failed)
+
+;; 1. anthropic-build-tool-declarations-from-names
+(let ((decls (anthropic-build-tool-declarations-from-names '("bash" "read"))))
+  (check (length decls) => 2)
+  (check (cdr (assoc "name" (car decls))) => "bash")
+  (check (cdr (assoc "name" (cadr decls))) => "read"))
+
+;; 2. Stub server integration tests
+(define (parse-port-line line)
+  (if (and (string? line) (string-starts? line "PORT:"))
+      (string->number (string-trim-both (substring line 5 (string-length line))))
+      #f))
+
+(define stub-server-file
+  (if (file-exists? "tools/pi/tests/stub_gemini_server.py")
+      "tools/pi/tests/stub_gemini_server.py"
+      "tests/stub_gemini_server.py"))
+
+(let* ((proc (process-spawn (list "python3" stub-server-file) :stdout 'pipe))
+       (port-line (process-read-line proc))
+       (port (parse-port-line port-line))
+       (base-url (string-append "http://127.0.0.1:" (number->string port))))
+  (check-true (number? port))
+
+  (let ((config `((provider . "anthropic")
+                  (model-id . "claude-3-7-sonnet-20250219")
+                  (api-key . "sk-ant-test-key")
+                  (model-meta . ((base-url . ,base-url)
+                                 (max-tokens . 4096)))
+                  (proxy-url . #f)
+                  (tools . ("bash"))
+                  (settings . ((retry . ((enabled . #t)
+                                         (max-retries . 3)
+                                         (base-delay-ms . 10)
+                                         (max-agent-delay-ms . 50))))))))
+
+    ;; 2.1 基础普通消息请求与回显验证
+    (let* ((msgs '(((role . "user") (content . "hello claude"))))
+           (resp (anthropic-request config msgs "You are pi" '("bash") 10)))
+      (check (cdr (assoc 'role resp)) => "assistant")
+      (check (cdr (assoc 'stopReason resp)) => "stop")
+      (let* ((content (cdr (assoc 'content resp)))
+             (first-blk (car content)))
+        (check (cdr (assoc 'type first-blk)) => "text")
+        (check (cdr (assoc 'text first-blk)) => "Hello from Claude stub!")))
+
+    ;; 2.2 工具调用响应测试
+    (let* ((call-cfg (list (cons 'provider "anthropic")
+                           (cons 'model-id "claude-3-7-sonnet-20250219")
+                           (cons 'api-key "sk-ant-test-key")
+                           (cons 'model-meta (list (cons 'base-url (string-append base-url "/tool-call"))
+                                                   (cons 'max-tokens 4096)))
+                           (cons 'proxy-url #f)
+                           (cons 'tools '("bash"))
+                           (cons 'settings '())))
+           (msgs '(((role . "user") (content . "run echo"))))
+           (resp (anthropic-request call-cfg msgs #f '("bash") 10)))
+      (check (cdr (assoc 'role resp)) => "assistant")
+      (check (cdr (assoc 'stopReason resp)) => "toolUse")
+      (let* ((content (cdr (assoc 'content resp)))
+             (first-blk (car content)))
+        (check (cdr (assoc 'type first-blk)) => "toolCall")
+        (check (cdr (assoc 'id first-blk)) => "ant_call_1")
+        (check (cdr (assoc 'name first-blk)) => "bash")))
+
+    ;; 2.3 MAX_TOKENS 截断响应
+    (let* ((trunc-cfg (list (cons 'provider "anthropic")
+                            (cons 'model-id "claude-3-7-sonnet-20250219")
+                            (cons 'api-key "sk-ant-test-key")
+                            (cons 'model-meta (list (cons 'base-url (string-append base-url "/max-tokens"))
+                                                    (cons 'max-tokens 4096)))
+                            (cons 'proxy-url #f)
+                            (cons 'tools '("bash"))
+                            (cons 'settings '())))
+           (resp (anthropic-request trunc-cfg '(((role . "user") (content . "long text"))) #f '() 10)))
+      (check (cdr (assoc 'role resp)) => "assistant")
+      (check (cdr (assoc 'stopReason resp)) => "length"))
+
+    ;; 2.4 HTTP 429 退避重试成功
+    (let* ((retry-cfg (list (cons 'provider "anthropic")
+                            (cons 'model-id "claude-3-7-sonnet-20250219")
+                            (cons 'api-key "sk-ant-test-key")
+                            (cons 'model-meta (list (cons 'base-url (string-append base-url "/429-then-ok"))
+                                                    (cons 'max-tokens 4096)))
+                            (cons 'proxy-url #f)
+                            (cons 'tools '("bash"))
+                            (cons 'settings '((retry . ((enabled . #t)
+                                                        (max-retries . 3)
+                                                        (base-delay-ms . 10)
+                                                        (max-agent-delay-ms . 50)))))))
+           (resp (anthropic-request retry-cfg '(((role . "user") (content . "retry test"))) #f '() 10)))
+      (check (cdr (assoc 'role resp)) => "assistant")
+      (check (cdr (assoc 'stopReason resp)) => "stop"))
+
+    ;; 2.5 HTTP 500 超过重试次数返回 error
+    (let* ((err-cfg (list (cons 'provider "anthropic")
+                          (cons 'model-id "claude-3-7-sonnet-20250219")
+                          (cons 'api-key "sk-ant-test-key")
+                          (cons 'model-meta (list (cons 'base-url (string-append base-url "/error-500"))
+                                                  (cons 'max-tokens 4096)))
+                          (cons 'proxy-url #f)
+                          (cons 'tools '("bash"))
+                          (cons 'settings '((retry . ((enabled . #t)
+                                                      (max-retries . 2)
+                                                      (base-delay-ms . 10)
+                                                      (max-agent-delay-ms . 30)))))))
+           (resp (anthropic-request err-cfg '(((role . "user") (content . "500 test"))) #f '() 10)))
+      (check (cdr (assoc 'role resp)) => "assistant")
+      (check (cdr (assoc 'stopReason resp)) => "error"))
+  )
+
+  (process-kill proc))
+
+(check-report)

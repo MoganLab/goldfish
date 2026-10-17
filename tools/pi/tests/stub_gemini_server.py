@@ -16,6 +16,89 @@ class StubHandler(http.server.BaseHTTPRequestHandler):
                 pass
         
         path = self.path
+        if "/v1/messages" in path:
+            if "/429-then-ok" in path:
+                server = self.server
+                server.request_count = getattr(server, "request_count", 0) + 1
+                if server.request_count < 3:
+                    self.send_response(429)
+                    self.send_header("Content-Type", "application/json")
+                    self.end_headers()
+                    self.wfile.write(b'{"type":"error","error":{"type":"rate_limit_error","message":"Rate limit exceeded"}}')
+                    return
+
+            if "/error-500" in path:
+                self.send_response(500)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(b'{"type":"error","error":{"type":"api_error","message":"Internal Server Error"}}')
+                return
+
+            if "/max-tokens" in path:
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps({
+                    "id": "msg_max_tokens",
+                    "type": "message",
+                    "role": "assistant",
+                    "content": [{"type": "text", "text": "Truncated"}],
+                    "stop_reason": "max_tokens",
+                    "usage": {"input_tokens": 10, "output_tokens": 5}
+                }).encode("utf-8"))
+                return
+
+            is_stream = req_json.get("stream", False) or "/stream" in path
+            if is_stream:
+                self.send_response(200)
+                self.send_header("Content-Type", "text/event-stream")
+                self.send_header("Cache-Control", "no-cache")
+                self.end_headers()
+                evs = [
+                    ("message_start", {"type": "message_start", "message": {"id": "msg_s1", "type": "message", "role": "assistant", "usage": {"input_tokens": 12, "output_tokens": 0}}}),
+                    ("content_block_start", {"type": "content_block_start", "index": 0, "content_block": {"type": "text", "text": ""}}),
+                    ("content_block_delta", {"type": "content_block_delta", "index": 0, "delta": {"type": "text_delta", "text": "Hello "}}),
+                    ("content_block_delta", {"type": "content_block_delta", "index": 0, "delta": {"type": "text_delta", "text": "from Claude stream!"}}),
+                    ("content_block_stop", {"type": "content_block_stop", "index": 0}),
+                    ("message_delta", {"type": "message_delta", "delta": {"stop_reason": "end_turn"}, "usage": {"output_tokens": 7}}),
+                    ("message_stop", {"type": "message_stop"})
+                ]
+                for ev_name, ev_data in evs:
+                    self.wfile.write(f"event: {ev_name}\ndata: {json.dumps(ev_data)}\n\n".encode("utf-8"))
+                    self.wfile.flush()
+                return
+
+            if "/tool-call" in path:
+                resp = {
+                    "id": "msg_tool_1",
+                    "type": "message",
+                    "role": "assistant",
+                    "content": [
+                        {"type": "tool_use", "id": "ant_call_1", "name": "bash", "input": {"command": "echo test"}}
+                    ],
+                    "stop_reason": "tool_use",
+                    "usage": {"input_tokens": 20, "output_tokens": 10}
+                }
+            else:
+                resp = {
+                    "id": "msg_ant_1",
+                    "type": "message",
+                    "role": "assistant",
+                    "content": [{"type": "text", "text": "Hello from Claude stub!"}],
+                    "stop_reason": "end_turn",
+                    "usage": {"input_tokens": 15, "output_tokens": 5},
+                    "echo": {
+                        "apiKey": self.headers.get("x-api-key"),
+                        "anthropicVersion": self.headers.get("anthropic-version"),
+                        "body": req_json
+                    }
+                }
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps(resp).encode("utf-8"))
+            return
+
         if "/429-then-ok" in path:
             server = self.server
             server.request_count = getattr(server, "request_count", 0) + 1
