@@ -16,7 +16,9 @@
 
 (define-library (liii pi read)
   (import (scheme base) (liii string) (liii path) (liii os) (liii pi truncate))
-  (export pi-read-schema pi-execute-read pi-arg-ref pi-resolve-path)
+  (export pi-read-schema pi-execute-read pi-arg-ref pi-resolve-path
+    pi-keyword-value
+  ) ;export
   (begin
 
     (define (pi-arg-ref args key . default-opt)
@@ -64,7 +66,7 @@
       ) ;list
     ) ;define
 
-    (define (%keyword-value key opts default)
+    (define (pi-keyword-value key opts default)
       (let loop
         ((rest opts))
         (cond ((null? rest) default)
@@ -138,8 +140,8 @@
     ) ;define
 
     (define (pi-execute-read args . opts)
-      (let* ((timed-out? (%keyword-value :timed-out? opts #f))
-             (cwd (%keyword-value :cwd opts (getcwd)))
+      (let* ((timed-out? (pi-keyword-value :timed-out? opts #f))
+             (cwd (pi-keyword-value :cwd opts (getcwd)))
              (raw-path (pi-arg-ref args "path"))
              (offset (pi-arg-ref args "offset" #f))
              (limit (pi-arg-ref args "limit" #f))

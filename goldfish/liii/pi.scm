@@ -24,6 +24,7 @@
     (liii pi bash)
     (liii pi ls)
     (liii pi find)
+    (liii pi grep)
   ) ;import
   (export resolve-app-mode format-file-block build-initial-prompt
     PI_DEFAULT_MAX_LINES PI_DEFAULT_MAX_BYTES PI_GREP_MAX_LINE_LENGTH
@@ -31,6 +32,7 @@
     pi-resolve-path pi-read-schema pi-execute-read pi-write-schema
     pi-execute-write pi-edit-schema pi-execute-edit pi-bash-schema
     pi-execute-bash pi-ls-schema pi-execute-ls pi-find-schema pi-execute-find
+    pi-grep-schema pi-execute-grep
   ) ;export
   (begin
 
