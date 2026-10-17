@@ -222,21 +222,12 @@ f_mkdtemp (s7_scheme* sc, s7_pointer args) {
 
 #if !defined(TB_CONFIG_OS_WINDOWS)
   std::string chosen_path;
-  if (std::strlen (suffix_c) == 0) {
-    std::string tpl= base + prefix_c + "XXXXXX";
-    if (!mkdtemp (&tpl[0])) {
-      return temp_file_error (sc, errno, tpl.c_str ());
-    }
-    chosen_path= tpl;
-  }
-  else {
-    int r= create_temp_unique (base, prefix_c, suffix_c, chosen_path, [] (const std::string& cand) {
-      if (mkdir (cand.c_str (), 0700) == 0) return 0;
-      return errno == EEXIST ? 1 : -1;
-    });
-    if (r == 1) return temp_exhausted_error (sc, "make-temp-dir");
-    if (r < 0) return temp_file_error (sc, errno, chosen_path.c_str ());
-  }
+  int         r= create_temp_unique (base, prefix_c, suffix_c, chosen_path, [] (const std::string& cand) {
+    if (mkdir (cand.c_str (), 0700) == 0) return 0;
+    return errno == EEXIST ? 1 : -1;
+  });
+  if (r == 1) return temp_exhausted_error (sc, "make-temp-dir");
+  if (r < 0) return temp_file_error (sc, errno, chosen_path.c_str ());
   return s7_make_string (sc, chosen_path.c_str ());
 #else
   DWORD       last_err= 0;

@@ -51,7 +51,8 @@
         (close-output-port port)
         (dynamic-wind (lambda () #f)
           (lambda () (proc path))
-          (lambda () (when (file-exists? path) (delete-file path)))
+          ;; proc 可能已删除该文件，清理失败不应掩盖 body 的异常
+          (lambda () (catch #t (lambda () (delete-file path)) (lambda args #f)))
         ) ;dynamic-wind
       ) ;let*-values
     ) ;define*
@@ -63,7 +64,7 @@
       (let ((path (make-temp-dir prefix suffix dir)))
         (dynamic-wind (lambda () #f)
           (lambda () (proc path))
-          (lambda () (when (file-exists? path) (g_rmtree path)))
+          (lambda () (g_rmtree path))
         ) ;dynamic-wind
       ) ;let
     ) ;define*
