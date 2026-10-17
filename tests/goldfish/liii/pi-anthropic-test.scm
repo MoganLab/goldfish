@@ -145,4 +145,30 @@
 (check (anthropic-is-retriable-error? 529 "{}") => #t)
 (check (anthropic-is-retriable-error? 0 "") => #t)
 
+;; Anthropic model metadata resolution
+(let ((models-store '(("anthropic" . (("models" . #((("id" . "claude-3-7-sonnet-20250219")
+                                                     ("name" . "Claude 3.7 Sonnet")
+                                                     ("baseUrl" . "https://api.anthropic.com")
+                                                     ("contextWindow" . 200000)
+                                                     ("maxTokens" . 8192)))))))))
+  ;; Matched Anthropic model
+  (let ((meta (pi-resolve-model-metadata "anthropic" "claude-3-7-sonnet-20250219" models-store '())))
+    (check (cdr (assoc 'matched? meta)) => #t)
+    (check (cdr (assoc 'id meta)) => "claude-3-7-sonnet-20250219")
+    (check (cdr (assoc 'base-url meta)) => "https://api.anthropic.com")
+    (check (cdr (assoc 'context-window meta)) => 200000)
+    (check (cdr (assoc 'max-tokens meta)) => 8192))
+  ;; Fallback Anthropic model
+  (let ((meta (pi-resolve-model-metadata "anthropic" "claude-custom" models-store '())))
+    (check (cdr (assoc 'matched? meta)) => #f)
+    (check (cdr (assoc 'id meta)) => "claude-custom")
+    (check (cdr (assoc 'base-url meta)) => "https://api.anthropic.com")
+    (check (cdr (assoc 'context-window meta)) => 200000)
+    (check (cdr (assoc 'max-tokens meta)) => 8192)))
+
+;; Anthropic provider key resolution with ANTHROPIC_API_KEY
+(let ((auth '())
+      (env '(("ANTHROPIC_API_KEY" . "sk-ant-test-12345"))))
+  (check (pi-resolve-provider-key "anthropic" auth env) => "sk-ant-test-12345"))
+
 (check-report)

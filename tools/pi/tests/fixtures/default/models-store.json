@@ -16,5 +16,17 @@
         "maxTokens": 65536
       }
     ]
+  },
+  "anthropic": {
+    "models": [
+      {
+        "id": "claude-3-7-sonnet-20250219",
+        "name": "Claude 3.7 Sonnet",
+        "baseUrl": "https://api.anthropic.com",
+        "contextWindow": 200000,
+        "maxTokens": 8192
+      }
+    ]
   }
 }
+

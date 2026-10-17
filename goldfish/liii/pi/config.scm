@@ -260,17 +260,21 @@
 
     (define (pi-resolve-model-metadata provider model-id models-store . opt-env)
       (let* ((p-str (if (symbol? provider) (symbol->string provider) provider))
+             (is-ant? (string=? p-str "anthropic"))
+             (def-url (if is-ant?
+                        "https://api.anthropic.com"
+                        "https://generativelanguage.googleapis.com/v1beta"
+                      ) ;if
+             ) ;def-url
+             (def-cw (if is-ant? 200000 128000))
+             (def-mt (if is-ant? 8192 16384))
              (models (%get-provider-models models-store p-str))
              (m (%find-model-in-list models model-id))
              (matched? (if m #t #f))
              (name (if m (json-dict-ref m "name" model-id) model-id))
-             (base-url (if m
-                         (json-dict-ref m "baseUrl" "https://generativelanguage.googleapis.com/v1beta")
-                         "https://generativelanguage.googleapis.com/v1beta"
-                       ) ;if
-             ) ;base-url
-             (cw (if m (json-dict-ref m "contextWindow" 128000) 128000))
-             (mt (if m (json-dict-ref m "maxTokens" 16384) 16384))
+             (base-url (if m (json-dict-ref m "baseUrl" def-url) def-url))
+             (cw (if m (json-dict-ref m "contextWindow" def-cw) def-cw))
+             (mt (if m (json-dict-ref m "maxTokens" def-mt) def-mt))
             ) ;
         (let-values (((f-url f-cw f-mt) (%apply-meta-env-overrides base-url cw mt opt-env)))
           (list (cons 'id model-id)

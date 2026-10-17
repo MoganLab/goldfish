@@ -27,10 +27,16 @@
   (export resolve-goldpi-config resolve-active-tools goldpi-warn-fallback-model)
   (begin
 
-    (define (%resolve-model-id parsed-args settings opt-env)
+    (define (%resolve-model-id parsed-args settings opt-env provider)
       (let* ((cli-model (pi-args-ref parsed-args 'model))
              (env-model (lookup-env-var "GF_PI_MODEL" opt-env))
              (settings-model (cdr (assoc 'default-model settings)))
+             (settings-provider (cdr (assoc 'default-provider settings)))
+             (def-model (if (equal? provider "anthropic")
+                          "claude-3-7-sonnet-20250219"
+                          "gemini-3.8-flash"
+                        ) ;if
+             ) ;def-model
             ) ;
         (cond
          ((and (string? cli-model) (not (string-null? (string-trim-both cli-model))))
@@ -39,12 +45,13 @@
          ((and (string? env-model) (not (string-null? (string-trim-both env-model))))
           env-model
          ) ;
-         ((and (string? settings-model)
+         ((and (equal? provider settings-provider)
+            (string? settings-model)
             (not (string-null? (string-trim-both settings-model)))
           ) ;and
           settings-model
          ) ;
-         (else "gemini-3.8-flash")
+         (else def-model)
         ) ;cond
       ) ;let*
     ) ;define
@@ -116,7 +123,7 @@
                         (pi-resolve-provider-key provider auth)
                       ) ;if
              ) ;api-key
-             (model-id (%resolve-model-id parsed-args settings opt-env))
+             (model-id (%resolve-model-id parsed-args settings opt-env provider))
              (models-store (pi-load-models-store agent-dir))
              (meta (if (pair? opt-env)
                      (pi-resolve-model-metadata provider model-id models-store (car opt-env))

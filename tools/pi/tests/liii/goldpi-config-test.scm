@@ -61,7 +61,13 @@
               ("TEST_ANTHROPIC_KEY" . "sk-ant-api-987654321")))
        (cfg (resolve-goldpi-config args env)))
   (check (cdr (assoc 'provider cfg)) => "anthropic")
-  (check (cdr (assoc 'api-key cfg)) => "sk-ant-api-987654321"))
+  (check (cdr (assoc 'model-id cfg)) => "claude-3-7-sonnet-20250219")
+  (check (cdr (assoc 'api-key cfg)) => "sk-ant-api-987654321")
+  (let ((meta (cdr (assoc 'model-meta cfg))))
+    (check (cdr (assoc 'matched? meta)) => #t)
+    (check (cdr (assoc 'base-url meta)) => "https://api.anthropic.com")
+    (check (cdr (assoc 'context-window meta)) => 200000)
+    (check (cdr (assoc 'max-tokens meta)) => 8192)))
 
 ;; 6. 未知自定义模型：使用兜底元数据，matched? 为 #f
 (let* ((args (parse-pi-args '("--model" "custom-experimental-model")))
