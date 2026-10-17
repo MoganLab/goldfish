@@ -33,9 +33,11 @@
 
     (define <sse-event> '<sse-event>)
 
+    (define %default-event "message")
+
     (define (%normalize-event ev)
       (cond
-       ((or (not ev) (and (string? ev) (string=? ev ""))) "message")
+       ((or (not ev) (and (string? ev) (string=? ev ""))) %default-event)
        ((string? ev) ev)
        (else (type-error "make-sse-event: event must be a string or #f"))
       ) ;cond
@@ -43,7 +45,7 @@
 
     (define (make-sse-event . args)
       (let* ((n (length args))
-             (ev-arg (if (> n 1) (car args) "message"))
+             (ev-arg (if (> n 1) (car args) %default-event))
              (data (cond ((= n 1) (car args))
                          ((<= 2 n 4) (cadr args))
                          (else (type-error "make-sse-event: expected 1 to 4 arguments"))
@@ -118,12 +120,10 @@
       ) ;let
     ) ;define
 
-    (define (make-sse-decoder on-event)
-      (unless (procedure? on-event)
-        (type-error "make-sse-decoder: on-event must be a procedure")
-      ) ;unless
-      (let ((buffer "")
-            (cur-event "message")
+    ;; ; 事件累积状态机：feed-line! 逐行喂入，空行或 dispatch! 触发事件派发。
+    ;; ; 拆出供 make-sse-decoder（chunk 流）与 read-sse-event（逐行）共用。
+    (define (%make-sse-line-decoder on-event)
+      (let ((cur-event %default-event)
             (cur-lines '())
             (cur-id #f)
             (cur-retry #f)
@@ -139,7 +139,7 @@
                       ) ;make-sse-event
                   ) ;ev
                  ) ;
-              (set! cur-event "message")
+              (set! cur-event %default-event)
               (set! cur-lines '())
               (set! cur-id #f)
               (set! cur-retry #f)
@@ -185,60 +185,90 @@
           ) ;let
         ) ;define
 
-        (define (feed-chunk! chunk)
-          (set! buffer (string-append buffer chunk))
-          (let loop
-            ()
-            (let ((nl (string-index buffer #\newline)))
-              (when nl
-                (let ((raw (substring buffer 0 nl)))
-                  (set! buffer (substring buffer (+ nl 1) (string-length buffer)))
-                  (feed-line! (strip-eol raw))
-                  (loop)
-                ) ;let
-              ) ;when
-            ) ;let
-          ) ;let
-        ) ;define
-
-        (lambda (chunk)
-          (cond
-           ((eof-object? chunk)
-            (when (> (string-length buffer) 0)
-              (let ((line (strip-eol buffer)))
-                (set! buffer "")
-                (feed-line! line)
-              ) ;let
-            ) ;when
-            (dispatch!)
-           ) ;
-           ((string? chunk) (feed-chunk! chunk))
-           (else (type-error "sse-decoder: chunk must be a string or eof-object"))
-          ) ;cond
-        ) ;lambda
+        (values feed-line! dispatch!)
       ) ;let
     ) ;define
 
-    (define (read-sse-event . args)
-      (let* ((port
-               (cond ((null? args) (current-input-port))
-                     ((and (null? (cdr args)) (input-port? (car args))) (car args))
-                     ((null? (cdr args)) (type-error "read-sse-event: expected input-port"))
-                     (else (type-error "read-sse-event: expected at most 1 argument"))
-               ) ;cond
-             ) ;port
-             (result #f)
-             (decoder (make-sse-decoder (lambda (ev) (set! result ev))))
-            ) ;
-        (let loop
-          ()
-          (let ((line (read-line port)))
-            (cond ((eof-object? line) (decoder line) (or result line))
-                  (else (decoder (string-append (strip-eol line) "\n")) (or result (loop)))
+    (define (make-sse-decoder on-event)
+      (unless (procedure? on-event)
+        (type-error "make-sse-decoder: on-event must be a procedure")
+      ) ;unless
+      (let-values (((feed-line! dispatch!) (%make-sse-line-decoder on-event)))
+        ;; buffer 只保留未处理的尾部残行：每轮 feed-chunk! 提取完所有完整行后
+        ;; 立即 compact，避免 string-append 在长流上退化为 O(n^2)
+        (let ((buffer "") (offset 0))
+
+          (define (feed-chunk! chunk)
+            (set! buffer (string-append buffer chunk))
+            (let loop
+              ()
+              (let ((nl (string-index buffer #\newline offset)))
+                (when nl
+                  (feed-line! (strip-eol (substring buffer offset nl)))
+                  (set! offset (+ nl 1))
+                  (loop)
+                ) ;when
+              ) ;let
+            ) ;let
+            (when (> offset 0)
+              (set! buffer (substring buffer offset (string-length buffer)))
+              (set! offset 0)
+            ) ;when
+          ) ;define
+
+          (lambda (chunk)
+            (cond
+             ((eof-object? chunk)
+              (when (> (string-length buffer) 0)
+                (let ((line (strip-eol buffer)))
+                  (set! buffer "")
+                  (feed-line! line)
+                ) ;let
+              ) ;when
+              (dispatch!)
+             ) ;
+             ((string? chunk) (feed-chunk! chunk))
+             (else (type-error "sse-decoder: chunk must be a string or eof-object"))
             ) ;cond
-          ) ;let
+          ) ;lambda
         ) ;let
-      ) ;let*
+      ) ;let-values
+    ) ;define
+
+    (define (%resolve-port who max-args args default-port port? port-kind)
+      (cond ((null? args) default-port)
+            ((and (null? (cdr args)) (port? (car args))) (car args))
+            ((null? (cdr args)) (type-error (string-append who ": expected " port-kind)))
+            (else (type-error (string-append who ": expected at most " (number->string max-args) " arguments")
+                  ) ;type-error
+            ) ;else
+      ) ;cond
+    ) ;define
+
+    (define (read-sse-event . args)
+      (let ((port (%resolve-port "read-sse-event"
+                    1
+                    args
+                    (current-input-port)
+                    input-port?
+                    "input-port"
+                  ) ;%resolve-port
+            ) ;port
+            (result #f)
+           ) ;
+        (let-values (((feed-line! dispatch!) (%make-sse-line-decoder (lambda (ev) (set! result ev))))
+                    ) ;
+          ;; read-line 已去除 \n，逐行直接喂入状态机，无需拼接回 chunk 再重拆
+          (let loop
+            ()
+            (let ((line (read-line port)))
+              (cond ((eof-object? line) (dispatch!) (or result line))
+                    (else (feed-line! (strip-eol line)) (or result (loop)))
+              ) ;cond
+            ) ;let
+          ) ;let
+        ) ;let-values
+      ) ;let
     ) ;define
 
     (define (sse-event->string event)
@@ -250,7 +280,7 @@
             (retry (sse-event-retry event))
             (p (open-output-string))
            ) ;
-        (when (and (string? ev) (not (string=? ev "message")) (not (string=? ev "")))
+        (when (not (string=? ev %default-event))
           (display (string-append "event: " ev "\n") p)
         ) ;when
         (for-each (lambda (line) (display (string-append "data: " line "\n") p))
@@ -271,12 +301,13 @@
       (unless (sse-event? event)
         (type-error "write-sse-event: expected <sse-event>")
       ) ;unless
-      (let ((p
-              (cond ((null? args) (current-output-port))
-                    ((and (null? (cdr args)) (output-port? (car args))) (car args))
-                    ((null? (cdr args)) (type-error "write-sse-event: expected output-port"))
-                    (else (type-error "write-sse-event: expected at most 2 arguments"))
-              ) ;cond
+      (let ((p (%resolve-port "write-sse-event"
+                 2
+                 args
+                 (current-output-port)
+                 output-port?
+                 "output-port"
+               ) ;%resolve-port
             ) ;p
            ) ;
         (display (sse-event->string event) p)
