@@ -20,11 +20,8 @@
   (begin
     (define *signal-table* (g_signal-supported-signals))
 
+    ;; 缺省即 'default，所有读取点均用 hash-table-ref/default，无需预填
     (define *handlers* (make-hash-table))
-
-    (for-each (lambda (entry) (hash-table-set! *handlers* (car entry) 'default))
-      *signal-table*
-    ) ;for-each
 
     (define (dispatch-signal sig)
       (let ((h (hash-table-ref/default *handlers* sig 'default)))

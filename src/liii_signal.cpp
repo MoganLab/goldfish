@@ -83,48 +83,48 @@ windows_console_ctrl_handler (DWORD ctrl_type) {
 }
 #endif
 
+enum class signal_action { dfl, ign, trap };
+
 static bool
-set_os_signal_action (int signum, const char* action) {
+set_os_signal_action (int signum, signal_action action) {
 #if !defined(TB_CONFIG_OS_WINDOWS) && !defined(_WIN32)
   struct sigaction sa;
   std::memset (&sa, 0, sizeof (sa));
   sigemptyset (&sa.sa_mask);
 
-  if (std::strcmp (action, "default") == 0) {
+  switch (action) {
+  case signal_action::dfl:
     sa.sa_handler= SIG_DFL;
-  }
-  else if (std::strcmp (action, "ignore") == 0) {
+    break;
+  case signal_action::ign:
     sa.sa_handler= SIG_IGN;
-  }
-  else if (std::strcmp (action, "catch") == 0) {
+    break;
+  case signal_action::trap:
     sa.sa_handler= posix_signal_handler;
     sa.sa_flags  = SA_RESTART;
-  }
-  else {
-    return false;
+    break;
   }
   return sigaction (signum, &sa, NULL) == 0;
 #else
-  if (std::strcmp (action, "default") == 0) {
+  switch (action) {
+  case signal_action::dfl:
     signal (signum, SIG_DFL);
     if (signum == SIGINT) {
       SetConsoleCtrlHandler (windows_console_ctrl_handler, FALSE);
     }
-  }
-  else if (std::strcmp (action, "ignore") == 0) {
+    break;
+  case signal_action::ign:
     signal (signum, SIG_IGN);
     if (signum == SIGINT) {
       SetConsoleCtrlHandler (windows_console_ctrl_handler, FALSE);
     }
-  }
-  else if (std::strcmp (action, "catch") == 0) {
+    break;
+  case signal_action::trap:
     signal (signum, windows_signal_handler);
     if (signum == SIGINT) {
       SetConsoleCtrlHandler (windows_console_ctrl_handler, TRUE);
     }
-  }
-  else {
-    return false;
+    break;
   }
   return true;
 #endif
@@ -158,7 +158,7 @@ dispatch_pending_signals (s7_scheme* sc) {
 
     for (int sig= 1; sig < 64; ++sig) {
       uint64_t mask= (1ULL << sig);
-      if (g_pending_signals.load (std::memory_order_relaxed) & mask) {
+      if (current & mask) {
         g_pending_signals.fetch_and (~mask, std::memory_order_relaxed);
         s7_pointer sig_sym= get_signal_symbol (sc, sig);
         if (sig_sym != s7_nil (sc)) {
@@ -192,13 +192,25 @@ f_signal_supported_signals (s7_scheme* sc, s7_pointer args) {
   return result;
 }
 
-// (g_signal-os-trap signum mode) => boolean
+// (g_signal-os-trap signum mode) => boolean, mode 为 'default / 'ignore / 'catch
 static s7_pointer
 f_signal_os_trap (s7_scheme* sc, s7_pointer args) {
-  int         signum= (int) s7_integer (s7_car (args));
-  const char* mode  = s7_symbol_name (s7_cadr (args));
-  bool        ok    = set_os_signal_action (signum, mode);
-  return s7_make_boolean (sc, ok);
+  int           signum= (int) s7_integer (s7_car (args));
+  const char*   mode  = s7_symbol_name (s7_cadr (args));
+  signal_action action;
+  if (std::strcmp (mode, "default") == 0) {
+    action= signal_action::dfl;
+  }
+  else if (std::strcmp (mode, "ignore") == 0) {
+    action= signal_action::ign;
+  }
+  else if (std::strcmp (mode, "catch") == 0) {
+    action= signal_action::trap;
+  }
+  else {
+    return s7_make_boolean (sc, false);
+  }
+  return s7_make_boolean (sc, set_os_signal_action (signum, action));
 }
 
 // (g_signal-raise signum) => unspecified
