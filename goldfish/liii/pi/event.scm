@@ -64,8 +64,33 @@
       ) ;let
     ) ;define
 
+    (define (%json-object-entry? x)
+      (and (pair? x) (not (pair? (car x))) (or (symbol? (car x)) (string? (car x))))
+    ) ;define
+
+    (define (%normalize-json-value x)
+      (cond ((null? x) #())
+            ((vector? x) (list->vector (map %normalize-json-value (vector->list x))))
+            ((and (pair? x) (every %json-object-entry? x))
+             (map
+               (lambda (entry)
+                 (let ((k (if (symbol? (car entry)) (symbol->string (car entry)) (car entry)))
+                       (v (%normalize-json-value (cdr entry)))
+                      ) ;
+                   (cons k v)
+                 ) ;let
+               ) ;lambda
+               x
+             ) ;map
+            ) ;
+            ((pair? x) (list->vector (map %normalize-json-value x)))
+            ((symbol? x) (symbol->string x))
+            (else x)
+      ) ;cond
+    ) ;define
+
     (define (pi-serialize-event alist)
-      (json->string alist)
+      (json->string (%normalize-json-value alist))
     ) ;define
 
     (define* (pi-event-session cwd (id #f) (timestamp #f))

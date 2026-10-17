@@ -148,9 +148,6 @@
     ) ;define
 
     (define (%step-agent-turn config msgs system-prompt emit timeout)
-      (when (procedure? emit)
-        (emit 'turn_start)
-      ) ;when
       (let* ((active-tools (cdr (assoc 'tools config)))
              (resp (gemini-request config msgs system-prompt active-tools timeout))
             ) ;
@@ -218,6 +215,7 @@
              ) ;run-agent-loop
       (when (procedure? emit)
         (emit 'agent_start)
+        (emit 'turn_start)
         (for-each (lambda (m) (emit 'message_start m) (emit 'message_end m))
           initial-messages
         ) ;for-each
@@ -246,6 +244,9 @@
                      (res-vec (%extract-tool-result-blocks all-msgs (length tools-res)))
                     ) ;
                 (%notify-turn-end emit resp res-vec)
+                (when (procedure? emit)
+                  (emit 'turn_start)
+                ) ;when
                 (loop all-msgs (+ turn 1))
               ) ;let*
               (let ((final-msgs (%finish-agent-turn new-msgs stop-reason tool-calls emit)))
