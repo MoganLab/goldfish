@@ -1,4 +1,10 @@
-(import (liii check) (liii http) (liii string) (liii os) (scheme file))
+(import (liii check)
+  (liii http)
+  (liii string)
+  (liii os)
+  (scheme file)
+  (scheme time)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -12,6 +18,14 @@
 (check-catch 'type-error (http-get "http://x/" :headers '(42)))
 (check-catch 'type-error (http-get "http://x/" :proxy 42))
 (check-catch 'type-error (http-get "http://x/" :proxy '(42)))
+(check-catch 'type-error (http-get "http://x/" :timeout "5"))
+(check-catch 'type-error (http-get "http://x/" :timeout 'fast))
+(check-catch 'type-error (http-get "http://x/" :timeout #t))
+(check-catch 'type-error (http-get "http://x/" :timeout '()))
+(check-catch 'value-error (http-get "http://x/" :timeout 0))
+(check-catch 'value-error (http-get "http://x/" :timeout 0.0))
+(check-catch 'value-error (http-get "http://x/" :timeout -1))
+(check-catch 'value-error (http-get "http://x/" :timeout -0.5))
 
 ;; 环境检查
 (let ((env (getenv "GOLDFISH_TEST_HTTP")))
@@ -20,6 +34,17 @@
     (exit 0)
   ) ;when
 ) ;let
+
+;; 不可达网络地址短超时熔断
+(let* ((t0 (current-second))
+       (r (http-get "http://10.255.255.1" :timeout 0.5))
+       (dt (- (current-second) t0))
+      ) ;
+  (check (r 'status-code) => 0)
+  (check-true (< dt 2.5))
+  (check-true (string? (r 'reason)))
+  (check-true (> (string-length (r 'reason)) 0))
+) ;let*
 
 (define (binary-file-size path)
   (let ((port (open-binary-input-file path)))
@@ -46,7 +71,8 @@
 ;; 语法
 ;; ----
 ;; (http-get url :params params :headers headers :proxy proxy
-;;           :output-file output-file :stream stream :callback callback)
+;;           :output-file output-file :stream stream :callback callback
+;;           :timeout timeout)
 ;;
 ;; 参数
 ;; ----
@@ -57,6 +83,7 @@
 ;; output-file: string (可选)   - stream 模式下将响应体按 chunk 写入本地文件
 ;; stream     : boolean (可选)  - 启用简单流式模式
 ;; callback   : procedure (可选)- 按 chunk 处理响应体 (lambda (chunk) ...)
+;; timeout    : real? | integer? | #f (可选) - 超时时间（单位：秒）
 ;;
 ;; 返回值
 ;; ----
@@ -78,8 +105,7 @@
 
 ;; 带查询参数的 GET 请求
 (let ((r (http-get "https://httpbin.org/get"
-           :params
-           '(("key1" . "value1") ("key2" . "value2"))
+           :params '(("key1" . "value1") ("key2" . "value2"))
          ) ;http-get
       ) ;r
      ) ;
@@ -90,19 +116,18 @@
 
 ;; 通过 :stream #t + :callback 流式处理响应体
 (let ((collected '()))
-  (let ((r (http-get "https://httpbin.org/get"
-             :stream
-             #t
-             :params
-             '(("download" . "stream"))
-             :callback
-             (lambda (chunk)
-               (when (> (string-length chunk) 0)
-                 (set! collected (cons chunk collected))
-               ) ;when
-               #t
-             ) ;lambda
-           ) ;http-get
+  (let ((r
+          (http-get "https://httpbin.org/get"
+            :stream #t
+            :params '(("download" . "stream"))
+            :callback
+            (lambda (chunk)
+              (when (> (string-length chunk) 0)
+                (set! collected (cons chunk collected))
+              ) ;when
+              #t
+            ) ;lambda
+          ) ;http-get
         ) ;r
        ) ;
     (check-true (undefined? r))
@@ -115,19 +140,18 @@
 
 ;; 通过 :stream #t + :headers 流式处理响应体
 (let ((collected '()))
-  (let ((r (http-get "https://httpbin.org/headers"
-             :stream
-             #t
-             :headers
-             '(("X-Goldfish-Test" . "stream-get"))
-             :callback
-             (lambda (chunk)
-               (when (> (string-length chunk) 0)
-                 (set! collected (cons chunk collected))
-               ) ;when
-               #t
-             ) ;lambda
-           ) ;http-get
+  (let ((r
+          (http-get "https://httpbin.org/headers"
+            :stream  #t
+            :headers '(("X-Goldfish-Test" . "stream-get"))
+            :callback
+            (lambda (chunk)
+              (when (> (string-length chunk) 0)
+                (set! collected (cons chunk collected))
+              ) ;when
+              #t
+            ) ;lambda
+          ) ;http-get
         ) ;r
        ) ;
     (check-true (undefined? r))
@@ -145,7 +169,8 @@
             (when (file-exists? output-file)
               (delete-file output-file)
             ) ;when
-            (http-get "https://jsonplaceholder.typicode.com/posts/1" :stream #t
+            (http-get "https://jsonplaceholder.typicode.com/posts/1"
+              :stream      #t
               :output-file output-file
             ) ;http-get
           ) ;begin
@@ -163,18 +188,17 @@
 
 ;; 通过 :stream #t + :callback 下载较大的流式响应（100KB），验证 chunk 累计长度
 (let ((total-bytes 0) (chunks 0))
-  (let ((r (http-get "https://httpbin.org/stream-bytes/102400"
-             :stream
-             #t
-             :params
-             '(("chunk_size" . "8192") ("seed" . "3"))
-             :callback
-             (lambda (chunk)
-               (set! chunks (+ chunks 1))
-               (set! total-bytes (+ total-bytes (string-length chunk)))
-               #t
-             ) ;lambda
-           ) ;http-get
+  (let ((r
+          (http-get "https://httpbin.org/stream-bytes/102400"
+            :stream #t
+            :params '(("chunk_size" . "8192") ("seed" . "3"))
+            :callback
+            (lambda (chunk)
+              (set! chunks (+ chunks 1))
+              (set! total-bytes (+ total-bytes (string-length chunk)))
+              #t
+            ) ;lambda
+          ) ;http-get
         ) ;r
        ) ;
     (check-true (undefined? r))
@@ -189,7 +213,8 @@
             (when (file-exists? output-file)
               (delete-file output-file)
             ) ;when
-            (http-get "https://proof.ovh.net/files/1Mb.dat" :stream #t
+            (http-get "https://proof.ovh.net/files/1Mb.dat"
+              :stream      #t
               :output-file output-file
             ) ;http-get
           ) ;begin
@@ -205,23 +230,22 @@
 (let* ((output-file "/tmp/goldfish-http-get-large-1m-stream.dat")
        (callback-bytes 0)
        (chunks 0)
-       (r (begin
-            (when (file-exists? output-file)
-              (delete-file output-file)
-            ) ;when
-            (http-get "https://proof.ovh.net/files/1Mb.dat"
-              :stream
-              #t
-              :output-file
-              output-file
-              :callback
-              (lambda (chunk)
-                (set! chunks (+ chunks 1))
-                (set! callback-bytes (+ callback-bytes (string-length chunk)))
-                #t
-              ) ;lambda
-            ) ;http-get
-          ) ;begin
+       (r
+         (begin
+           (when (file-exists? output-file)
+             (delete-file output-file)
+           ) ;when
+           (http-get "https://proof.ovh.net/files/1Mb.dat"
+             :stream      #t
+             :output-file output-file
+             :callback
+             (lambda (chunk)
+               (set! chunks (+ chunks 1))
+               (set! callback-bytes (+ callback-bytes (string-length chunk)))
+               #t
+             ) ;lambda
+           ) ;http-get
+         ) ;begin
        ) ;r
       ) ;
   (check-true (undefined? r))

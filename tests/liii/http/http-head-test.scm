@@ -6,6 +6,11 @@
 (check-catch 'type-error (http-head 42))
 (check-catch 'type-error (http-head #\a))
 (check-catch 'type-error (http-head 'invalid))
+(check-catch 'type-error (http-head "http://x/" :timeout "5"))
+(check-catch 'type-error (http-head "http://x/" :timeout 'fast))
+(check-catch 'type-error (http-head "http://x/" :timeout #t))
+(check-catch 'value-error (http-head "http://x/" :timeout 0))
+(check-catch 'value-error (http-head "http://x/" :timeout -1))
 
 ;; 环境检查：需要设置 GOLDFISH_TEST_HTTP 环境变量才执行测试
 (let ((env (getenv "GOLDFISH_TEST_HTTP")))
@@ -20,12 +25,14 @@
 ;;
 ;; 语法
 ;; ----
-;; (http-head url)
+;; (http-head url :timeout timeout)
 ;;
 ;; 参数
 ;; ----
 ;; url : string
 ;;   请求的目标 URL。
+;; timeout : real? | integer? | #f (可选)
+;;   超时时间（单位：秒）。
 ;;
 ;; 返回值
 ;; ----

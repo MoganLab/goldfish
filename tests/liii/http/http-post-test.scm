@@ -1,4 +1,10 @@
-(import (liii check) (liii http) (liii string) (liii json) (liii os))
+(import (liii check)
+  (liii http)
+  (liii string)
+  (liii json)
+  (liii os)
+  (scheme time)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -14,15 +20,31 @@
 (check-catch 'type-error (http-post "http://x/" :proxy '(42)))
 (check-catch 'type-error (http-post "http://x/" :files 42))
 (check-catch 'type-error (http-post "http://x/" :files '(42)))
+(check-catch 'type-error (http-post "http://x/" :timeout "5"))
+(check-catch 'type-error (http-post "http://x/" :timeout 'fast))
+(check-catch 'type-error (http-post "http://x/" :timeout #t))
+(check-catch 'type-error (http-post "http://x/" :timeout '()))
+(check-catch 'value-error (http-post "http://x/" :timeout 0))
+(check-catch 'value-error (http-post "http://x/" :timeout 0.0))
+(check-catch 'value-error (http-post "http://x/" :timeout -1))
+(check-catch 'value-error (http-post "http://x/" :timeout -0.5))
 
 ;; C 层入口 g_http-post 的 files 参数类型测试 (devel/0149.md)
 ;; files 必须是 part-spec 列表；每个 part-spec 是 (key . value) 组成的 proper list，
 ;; key 为 string/symbol，value 为 string，否则 C++ 层 s7_car/s7_string 直接解引用导致段错误
 (check-catch 'type-error (g_http-post "http://x/" '() "" '() '() 42 #f))
 (check-catch 'type-error (g_http-post "http://x/" '() '() '() '() '(#\a) #f))
-(check-catch 'type-error (g_http-post "http://x/" '() '() '() '() '((#\a . "v")) #f))
-(check-catch 'type-error (g_http-post "http://x/" '() '() '() '() '(("name" . 42)) #f))
-(check-catch 'type-error (g_http-post "http://x/" '() '() '() '() '(("name" "v")) #f))
+(check-catch 'type-error
+  (g_http-post "http://x/" '() '() '() '() '((#\a . "v")) #f)
+) ;check-catch
+(check-catch 'type-error
+  (g_http-post "http://x/" '() '() '() '() '(("name" . 42)) #f)
+) ;check-catch
+(check-catch 'type-error
+  (g_http-post "http://x/" '() '() '() '() '(("name" "v")) #f)
+) ;check-catch
+(check-catch 'type-error (g_http-post "http://x/" '() "" '() '() '() #f "5"))
+(check-catch 'value-error (g_http-post "http://x/" '() "" '() '() '() #f 0))
 
 ;; 环境检查
 (let ((env (getenv "GOLDFISH_TEST_HTTP")))
@@ -32,6 +54,17 @@
   ) ;when
 ) ;let
 
+;; 不可达网络地址短超时熔断
+(let* ((t0 (current-second))
+       (r (http-post "http://10.255.255.1" :data "payload" :timeout 0.5))
+       (dt (- (current-second) t0))
+      ) ;
+  (check (r 'status-code) => 0)
+  (check-true (< dt 2.5))
+  (check-true (string? (r 'reason)))
+  (check-true (> (string-length (r 'reason)) 0))
+) ;let*
+
 
 
 ;; http-post
@@ -40,7 +73,8 @@
 ;; 语法
 ;; ----
 ;; (http-post url :params params :data data :headers headers :proxy proxy
-;;            :files files :output-file output-file :stream stream :callback callback)
+;;            :files files :output-file output-file :stream stream
+;;            :callback callback :timeout timeout)
 ;;
 ;; 参数
 ;; ----
@@ -53,6 +87,7 @@
 ;; output-file: string (可选)   - stream 模式下将响应体按 chunk 写入本地文件
 ;; stream     : boolean (可选)  - 启用简单流式模式
 ;; callback   : procedure (可选)- 按 chunk 处理响应体 (lambda (chunk) ...)
+;; timeout    : real? | integer? | #f (可选) - 超时时间（单位：秒）
 ;;
 ;; 返回值
 ;; ----
@@ -86,8 +121,7 @@
 
 ;; 带查询参数的 POST 请求
 (let ((r (http-post "https://httpbin.org/post"
-           :params
-           '(("key1" . "value1") ("key2" . "value2"))
+           :params '(("key1" . "value1") ("key2" . "value2"))
          ) ;http-post
       ) ;r
      ) ;
@@ -107,23 +141,20 @@
 
 ;; 通过 :stream #t + :callback 流式处理 POST 响应
 (let ((collected '()))
-  (let ((r (http-post "https://httpbin.org/post"
-             :stream
-             #t
-             :params
-             '(("param1" . "value1"))
-             :data
-             "{\"test\": \"streaming-json\"}"
-             :headers
-             '(("Content-Type" . "application/json"))
-             :callback
-             (lambda (chunk)
-               (when (> (string-length chunk) 0)
-                 (set! collected (cons chunk collected))
-               ) ;when
-               #t
-             ) ;lambda
-           ) ;http-post
+  (let ((r
+          (http-post "https://httpbin.org/post"
+            :stream  #t
+            :params  '(("param1" . "value1"))
+            :data    "{\"test\": \"streaming-json\"}"
+            :headers '(("Content-Type" . "application/json"))
+            :callback
+            (lambda (chunk)
+              (when (> (string-length chunk) 0)
+                (set! collected (cons chunk collected))
+              ) ;when
+              #t
+            ) ;lambda
+          ) ;http-post
         ) ;r
        ) ;
     (check-true (hash-table? r))
@@ -142,8 +173,10 @@
             (when (file-exists? output-file)
               (delete-file output-file)
             ) ;when
-            (http-post "https://httpbin.org/post" :stream #t :data
-              "Simple streaming POST test" :output-file output-file
+            (http-post "https://httpbin.org/post"
+              :stream      #t
+              :data        "Simple streaming POST test"
+              :output-file output-file
             ) ;http-post
           ) ;begin
        ) ;r
@@ -160,17 +193,16 @@
 ) ;let*
 
 ;; 带文件上传的 POST 请求
-(let* ((r (http-post "https://httpbin.org/post"
-            :data
-            '(("meta" . "multipart-value"))
-            :files
-            '(("upload"
-               (file . "tests/resources/http-upload.txt")
-               (filename . "fixture.txt")
-               (content-type . "text/plain")))
-            :params
-            '(("kind" . "multipart"))
-          ) ;http-post
+(let* ((r
+         (http-post "https://httpbin.org/post"
+           :data '(("meta" . "multipart-value"))
+           :files
+           '(("upload"
+              (file . "tests/resources/http-upload.txt")
+              (filename . "fixture.txt")
+              (content-type . "text/plain")))
+           :params '(("kind" . "multipart"))
+         ) ;http-post
        ) ;r
        (json (string->json (r 'text)))
       ) ;
@@ -187,26 +219,24 @@
 
 ;; 通过 :stream #t 流式处理 multipart POST 响应
 (let ((collected '()))
-  (let ((r (http-post "https://httpbin.org/post"
-             :stream
-             #t
-             :data
-             '(("meta" . "multipart-value"))
-             :files
-             '(("upload"
-                (file . "tests/resources/http-upload.txt")
-                (filename . "fixture.txt")
-                (content-type . "text/plain")))
-             :params
-             '(("kind" . "multipart-stream"))
-             :callback
-             (lambda (chunk)
-               (when (> (string-length chunk) 0)
-                 (set! collected (cons chunk collected))
-               ) ;when
-               #t
-             ) ;lambda
-           ) ;http-post
+  (let ((r
+          (http-post "https://httpbin.org/post"
+            :stream #t
+            :data   '(("meta" . "multipart-value"))
+            :files
+            '(("upload"
+               (file . "tests/resources/http-upload.txt")
+               (filename . "fixture.txt")
+               (content-type . "text/plain")))
+            :params '(("kind" . "multipart-stream"))
+            :callback
+            (lambda (chunk)
+              (when (> (string-length chunk) 0)
+                (set! collected (cons chunk collected))
+              ) ;when
+              #t
+            ) ;lambda
+          ) ;http-post
         ) ;r
        ) ;
     (check-true (hash-table? r))
@@ -222,28 +252,22 @@
 
 (check-catch 'type-error
   (http-post "https://httpbin.org/post"
-    :data
-    '(("meta" . "invalid-header-test"))
-    :files
-    '(("upload" . "tests/resources/http-upload.txt"))
-    :headers
-    '(("token" . #f))
+    :data    '(("meta" . "invalid-header-test"))
+    :files   '(("upload" . "tests/resources/http-upload.txt"))
+    :headers '(("token" . #f))
   ) ;http-post
 ) ;check-catch
 
 (check-catch 'type-error
   (http-post "https://httpbin.org/post"
-    :data
-    "raw body is not allowed with files"
-    :files
-    '(("upload" . "tests/resources/http-upload.txt"))
+    :data  "raw body is not allowed with files"
+    :files '(("upload" . "tests/resources/http-upload.txt"))
   ) ;http-post
 ) ;check-catch
 
 (check-catch 'value-error
   (http-post "https://httpbin.org/post"
-    :files
-    '(("upload" (filename . "fixture.txt")))
+    :files '(("upload" (filename . "fixture.txt")))
   ) ;http-post
 ) ;check-catch
 
@@ -253,15 +277,15 @@
     ) ;or
   (display "SKIP SimpleTex OCR integration: fill simpletex-api-key in this test file to enable live API assertions.\n"
   ) ;display
-  (let* ((r (http-post "https://server.simpletex.cn/api/latex_ocr_turbo"
-              :headers
-              '(("token" . simpletex-api-key))
-              :files
-              '(("file"
-                 (file . "tests/resources/simpletex-formula-a2-b2.png")
-                 (filename . "simpletex-formula-a2-b2.png")
-                 (content-type . "image/png")))
-            ) ;http-post
+  (let* ((r
+           (http-post "https://server.simpletex.cn/api/latex_ocr_turbo"
+             :headers '(("token" . simpletex-api-key))
+             :files
+             '(("file"
+                (file . "tests/resources/simpletex-formula-a2-b2.png")
+                (filename . "simpletex-formula-a2-b2.png")
+                (content-type . "image/png")))
+           ) ;http-post
          ) ;r
          (json (string->json (r 'text)))
         ) ;
@@ -274,10 +298,8 @@
 
 ;; 流式模式下，非 200 状态码应返回 response hashtable
 (let ((r (http-post "https://httpbin.org/status/401"
-           :stream
-           #t
-           :callback
-           (lambda (chunk) #t)
+           :stream   #t
+           :callback (lambda (chunk) #t)
          ) ;http-post
       ) ;r
      ) ;
@@ -286,10 +308,8 @@
 ) ;let
 
 (let ((r (http-post "https://httpbin.org/status/403"
-           :stream
-           #t
-           :callback
-           (lambda (chunk) #t)
+           :stream   #t
+           :callback (lambda (chunk) #t)
          ) ;http-post
       ) ;r
      ) ;
@@ -299,10 +319,8 @@
 
 ;; 流式模式下，200 状态码也返回 hashtable
 (let ((r (http-post "https://httpbin.org/status/200"
-           :stream
-           #t
-           :callback
-           (lambda (chunk) #t)
+           :stream   #t
+           :callback (lambda (chunk) #t)
          ) ;http-post
       ) ;r
      ) ;
