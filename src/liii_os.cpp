@@ -472,7 +472,6 @@ glue_os_tty_p (s7_scheme* sc) {
   const char* name= "g_os_tty_p";
   const char* desc= "(g_os_tty_p fd) => boolean, check if fd is a tty";
   glue_define (sc, name, desc, f_os_tty_p, 1, 0);
-  glue_define (sc, "g_os-tty?", desc, f_os_tty_p, 1, 0);
 }
 
 void
