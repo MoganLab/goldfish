@@ -238,34 +238,58 @@ to_cpr_post_multipart (s7_scheme* sc, s7_pointer data, s7_pointer files) {
 }
 
 static s7_pointer
+optional_arg (s7_scheme* sc, s7_pointer args, int i) {
+  if (s7_list_length (sc, args) > i) {
+    return s7_list_ref (sc, args, i);
+  }
+  return s7_f (sc);
+}
+
+// timeout_arg 为 #f 或正数（秒）。校验成功返回 nullptr 并设置 *timeout_ms
+// （0 表示未设置；下限 1ms，因为 libcurl 中 0 超时表示无限等待）。
+static s7_pointer
+parse_timeout_ms (s7_scheme* sc, const char* who, s7_pointer timeout_arg, long* timeout_ms) {
+  *timeout_ms= 0;
+  if (timeout_arg == s7_f (sc)) {
+    return nullptr;
+  }
+  if (!s7_is_number (timeout_arg)) {
+    return string_type_error (sc, (string (who) + ": timeout must be a number or #f").c_str (), timeout_arg);
+  }
+  s7_double sec= s7_number_to_real (sc, timeout_arg);
+  if (sec <= 0) {
+    return s7_error (
+        sc, s7_make_symbol (sc, "value-error"),
+        s7_list (sc, 2, s7_make_string (sc, (string (who) + ": timeout must be positive").c_str ()), timeout_arg));
+  }
+  *timeout_ms= std::max (1L, static_cast<long> (sec * 1000.0));
+  return nullptr;
+}
+
+static void
+apply_session_timeout (cpr::Session& session, long timeout_ms) {
+  if (timeout_ms > 0) {
+    session.SetTimeout (cpr::Timeout{std::chrono::milliseconds (timeout_ms)});
+    session.SetConnectTimeout (cpr::ConnectTimeout{std::chrono::milliseconds (timeout_ms)});
+  }
+}
+
+static s7_pointer
 f_http_head (s7_scheme* sc, s7_pointer args) {
   s7_pointer url_arg= s7_car (args);
   if (!s7_is_string (url_arg)) {
     return string_type_error (sc, "http-head: url must be a string", url_arg);
   }
-  s7_pointer timeout_arg= s7_f (sc);
-  if (s7_list_length (sc, args) > 1) {
-    timeout_arg= s7_cadr (args);
-  }
-  if (timeout_arg != s7_f (sc) && !s7_is_number (timeout_arg)) {
-    return string_type_error (sc, "http-head: timeout must be a number or #f", timeout_arg);
-  }
-  if (s7_is_number (timeout_arg)) {
-    s7_double sec= s7_number_to_real (sc, timeout_arg);
-    if (sec <= 0) {
-      return s7_error (sc, s7_make_symbol (sc, "value-error"),
-                       s7_list (sc, 2, s7_make_string (sc, "http-head: timeout must be positive"), timeout_arg));
-    }
+  long       timeout_ms= 0;
+  s7_pointer err       = parse_timeout_ms (sc, "http-head", optional_arg (sc, args, 1), &timeout_ms);
+  if (err) {
+    return err;
   }
 
   const char*  url= s7_string (url_arg);
   cpr::Session session;
   session.SetUrl (cpr::Url (url));
-  if (s7_is_number (timeout_arg)) {
-    long timeout_ms= static_cast<long> (s7_number_to_real (sc, timeout_arg) * 1000.0);
-    session.SetTimeout (cpr::Timeout{std::chrono::milliseconds (timeout_ms)});
-    session.SetConnectTimeout (cpr::ConnectTimeout{std::chrono::milliseconds (timeout_ms)});
-  }
+  apply_session_timeout (session, timeout_ms);
   cpr::Response r= session.Head ();
   return response2hashtable (sc, r);
 }
@@ -301,19 +325,10 @@ f_http_get (s7_scheme* sc, s7_pointer args) {
   if (!s7_is_boolean (callback) && !s7_is_procedure (callback)) {
     return string_type_error (sc, "http-get: callback must be a procedure or boolean", callback);
   }
-  s7_pointer timeout_arg= s7_f (sc);
-  if (s7_list_length (sc, args) > 5) {
-    timeout_arg= s7_list_ref (sc, args, 5);
-  }
-  if (timeout_arg != s7_f (sc) && !s7_is_number (timeout_arg)) {
-    return string_type_error (sc, "http-get: timeout must be a number or #f", timeout_arg);
-  }
-  if (s7_is_number (timeout_arg)) {
-    s7_double sec= s7_number_to_real (sc, timeout_arg);
-    if (sec <= 0) {
-      return s7_error (sc, s7_make_symbol (sc, "value-error"),
-                       s7_list (sc, 2, s7_make_string (sc, "http-get: timeout must be positive"), timeout_arg));
-    }
+  long       timeout_ms= 0;
+  s7_pointer err       = parse_timeout_ms (sc, "http-get", optional_arg (sc, args, 5), &timeout_ms);
+  if (err) {
+    return err;
   }
 
   const char*     url        = s7_string (url_arg);
@@ -328,11 +343,7 @@ f_http_get (s7_scheme* sc, s7_pointer args) {
   if (!s7_is_null (sc, proxy)) {
     session.SetProxies (cpr_proxies);
   }
-  if (s7_is_number (timeout_arg)) {
-    long timeout_ms= static_cast<long> (s7_number_to_real (sc, timeout_arg) * 1000.0);
-    session.SetTimeout (cpr::Timeout{std::chrono::milliseconds (timeout_ms)});
-    session.SetConnectTimeout (cpr::ConnectTimeout{std::chrono::milliseconds (timeout_ms)});
-  }
+  apply_session_timeout (session, timeout_ms);
 
   if (s7_is_procedure (callback)) {
     session.SetWriteCallback (cpr::WriteCallback{[sc, callback] (const std::string_view& data, intptr_t) -> bool {
@@ -395,19 +406,10 @@ f_http_post (s7_scheme* sc, s7_pointer args) {
   if (!s7_is_boolean (callback) && !s7_is_procedure (callback)) {
     return string_type_error (sc, "http-post: callback must be a procedure or boolean", callback);
   }
-  s7_pointer timeout_arg= s7_f (sc);
-  if (s7_list_length (sc, args) > 7) {
-    timeout_arg= s7_list_ref (sc, args, 7);
-  }
-  if (timeout_arg != s7_f (sc) && !s7_is_number (timeout_arg)) {
-    return string_type_error (sc, "http-post: timeout must be a number or #f", timeout_arg);
-  }
-  if (s7_is_number (timeout_arg)) {
-    s7_double sec= s7_number_to_real (sc, timeout_arg);
-    if (sec <= 0) {
-      return s7_error (sc, s7_make_symbol (sc, "value-error"),
-                       s7_list (sc, 2, s7_make_string (sc, "http-post: timeout must be positive"), timeout_arg));
-    }
+  long       timeout_ms= 0;
+  s7_pointer err       = parse_timeout_ms (sc, "http-post", optional_arg (sc, args, 7), &timeout_ms);
+  if (err) {
+    return err;
   }
 
   if (!s7_is_null (sc, files)) {
@@ -438,11 +440,7 @@ f_http_post (s7_scheme* sc, s7_pointer args) {
   if (!s7_is_null (sc, proxy)) {
     session.SetProxies (cpr_proxies);
   }
-  if (s7_is_number (timeout_arg)) {
-    long timeout_ms= static_cast<long> (s7_number_to_real (sc, timeout_arg) * 1000.0);
-    session.SetTimeout (cpr::Timeout{std::chrono::milliseconds (timeout_ms)});
-    session.SetConnectTimeout (cpr::ConnectTimeout{std::chrono::milliseconds (timeout_ms)});
-  }
+  apply_session_timeout (session, timeout_ms);
 
   if (!s7_is_null (sc, files)) {
     session.SetMultipart (to_cpr_post_multipart (sc, body_or_data, files));
@@ -482,8 +480,9 @@ inline void
 glue_http_post (s7_scheme* sc) {
   s7_pointer  cur_env= s7_curlet (sc);
   const char* name   = "g_http-post";
-  const char* doc    = "(g_http-post url params body-or-data headers proxy files callback [timeout]) => hash-table? | undefined";
-  auto        func_http_post= s7_make_typed_function (sc, name, f_http_post, 7, 1, false, doc, NULL);
+  const char* doc=
+      "(g_http-post url params body-or-data headers proxy files callback [timeout]) => hash-table? | undefined";
+  auto func_http_post= s7_make_typed_function (sc, name, f_http_post, 7, 1, false, doc, NULL);
   s7_define (sc, cur_env, s7_make_symbol (sc, name), func_http_post);
 }
 

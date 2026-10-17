@@ -46,6 +46,14 @@
 (check-catch 'type-error (g_http-post "http://x/" '() "" '() '() '() #f "5"))
 (check-catch 'value-error (g_http-post "http://x/" '() "" '() '() '() #f 0))
 
+;; 环境检查
+(let ((env (getenv "GOLDFISH_TEST_HTTP")))
+  (when (not env)
+    (check-report)
+    (exit 0)
+  ) ;when
+) ;let
+
 ;; 不可达网络地址短超时熔断
 (let* ((t0 (current-second))
        (r (http-post "http://10.255.255.1" :data "payload" :timeout 0.5))
@@ -56,14 +64,6 @@
   (check-true (string? (r 'reason)))
   (check-true (> (string-length (r 'reason)) 0))
 ) ;let*
-
-;; 环境检查
-(let ((env (getenv "GOLDFISH_TEST_HTTP")))
-  (when (not env)
-    (check-report)
-    (exit 0)
-  ) ;when
-) ;let
 
 
 

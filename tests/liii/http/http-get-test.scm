@@ -27,6 +27,14 @@
 (check-catch 'value-error (http-get "http://x/" :timeout -1))
 (check-catch 'value-error (http-get "http://x/" :timeout -0.5))
 
+;; 环境检查
+(let ((env (getenv "GOLDFISH_TEST_HTTP")))
+  (when (not env)
+    (check-report)
+    (exit 0)
+  ) ;when
+) ;let
+
 ;; 不可达网络地址短超时熔断
 (let* ((t0 (current-second))
        (r (http-get "http://10.255.255.1" :timeout 0.5))
@@ -37,14 +45,6 @@
   (check-true (string? (r 'reason)))
   (check-true (> (string-length (r 'reason)) 0))
 ) ;let*
-
-;; 环境检查
-(let ((env (getenv "GOLDFISH_TEST_HTTP")))
-  (when (not env)
-    (check-report)
-    (exit 0)
-  ) ;when
-) ;let
 
 (define (binary-file-size path)
   (let ((port (open-binary-input-file path)))
