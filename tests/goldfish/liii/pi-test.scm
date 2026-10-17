@@ -153,4 +153,39 @@
 (check-catch 'error
   (pi-execute-read '(("path" . "tests/goldfish/liii/pi-test.scm")) :timed-out? #t))
 
+;; ============================================================
+;; Tool: write
+;; ============================================================
+
+(let ((test-write-file "tests/goldfish/liii/pi-write-fixture/sub/test.txt"))
+  ;; 1. 成功写入并自动创建父目录
+  (let ((msg (pi-execute-write (list (cons "path" test-write-file)
+                                     (cons "content" "hello write tool\nline 2")))))
+    (check msg => (string-append "Successfully wrote to " test-write-file))
+    ;; 读取验证内容
+    (let ((content (pi-execute-read (list (cons "path" test-write-file)))))
+      (check content => "hello write tool\nline 2")))
+
+  ;; 2. 覆盖写入
+  (let ((msg (pi-execute-write (list (cons "path" test-write-file)
+                                     (cons "content" "overwritten content")))))
+    (check msg => (string-append "Successfully wrote to " test-write-file))
+    (let ((content (pi-execute-read (list (cons "path" test-write-file)))))
+      (check content => "overwritten content")))
+
+  ;; 3. 清理测试产生的文件和目录
+  (delete-file test-write-file)
+  (delete-file "tests/goldfish/liii/pi-write-fixture/sub")
+  (delete-file "tests/goldfish/liii/pi-write-fixture"))
+
+;; 4. 缺少参数报错
+(check-catch 'error
+  (pi-execute-write '(("path" . "foo.txt"))))
+(check-catch 'error
+  (pi-execute-write '(("content" . "hello"))))
+
+;; 5. 超时路径测试
+(check-catch 'error
+  (pi-execute-write '(("path" . "foo.txt") ("content" . "bar")) :timed-out? #t))
+
 (check-report)
