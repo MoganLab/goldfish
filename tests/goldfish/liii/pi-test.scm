@@ -188,4 +188,83 @@
 (check-catch 'error
   (pi-execute-write '(("path" . "foo.txt") ("content" . "bar")) :timed-out? #t))
 
+;; ============================================================
+;; Tool: edit
+;; ============================================================
+
+(let ((test-edit-file "tests/goldfish/liii/pi-edit-fixture.txt"))
+  ;; 准备初始文件
+  (pi-execute-write (list (cons "path" test-edit-file)
+                          (cons "content" "line 1\nline 2: AAA\nline 3\nline 4: BBB\nline 5")))
+
+  ;; 1. 单个替换成功
+  (let ((msg (pi-execute-edit (list (cons "path" test-edit-file)
+                                    (cons "edits" (list (list (cons "oldText" "line 2: AAA")
+                                                              (cons "newText" "line 2: MODIFIED_A"))))))))
+    (check msg => (string-append "Successfully replaced 1 block(s) in " test-edit-file "."))
+    (let ((c (pi-execute-read (list (cons "path" test-edit-file)))))
+      (check-true (string-contains? c "line 2: MODIFIED_A"))))
+
+  ;; 2. 多个不重叠替换同时生效（倒序应用）
+  (let ((msg (pi-execute-edit (list (cons "path" test-edit-file)
+                                    (cons "edits" (list (list (cons "oldText" "line 1")
+                                                              (cons "newText" "line 1: FIRST"))
+                                                        (list (cons "oldText" "line 4: BBB")
+                                                              (cons "newText" "line 4: SECOND"))))))))
+    (check msg => (string-append "Successfully replaced 2 block(s) in " test-edit-file "."))
+    (let ((c (pi-execute-read (list (cons "path" test-edit-file)))))
+      (check-true (string-contains? c "line 1: FIRST"))
+      (check-true (string-contains? c "line 4: SECOND"))))
+
+  ;; 3. oldText 找不到报错
+  (check-catch 'error
+    (pi-execute-edit (list (cons "path" test-edit-file)
+                           (cons "edits" (list (list (cons "oldText" "NON_EXISTENT")
+                                                     (cons "newText" "NEW")))))))
+
+  ;; 4. oldText 不唯一报错
+  (pi-execute-write (list (cons "path" test-edit-file)
+                          (cons "content" "dup\ndup\n")))
+  (check-catch 'error
+    (pi-execute-edit (list (cons "path" test-edit-file)
+                           (cons "edits" (list (list (cons "oldText" "dup")
+                                                     (cons "newText" "new")))))))
+
+  ;; 5. 重叠 edits 报错
+  (pi-execute-write (list (cons "path" test-edit-file)
+                          (cons "content" "ABCDEFGH")))
+  (check-catch 'error
+    (pi-execute-edit (list (cons "path" test-edit-file)
+                           (cons "edits" (list (list (cons "oldText" "ABCD")
+                                                     (cons "newText" "1234"))
+                                               (list (cons "oldText" "CDEF")
+                                                     (cons "newText" "5678")))))))
+
+  ;; 6. 无变化（产生相同内容）报错
+  (check-catch 'error
+    (pi-execute-edit (list (cons "path" test-edit-file)
+                           (cons "edits" (list (list (cons "oldText" "ABCDEFGH")
+                                                     (cons "newText" "ABCDEFGH")))))))
+
+  ;; 7. 空 edits 报错
+  (check-catch 'error
+    (pi-execute-edit (list (cons "path" test-edit-file)
+                           (cons "edits" '()))))
+
+  ;; 8. 空 oldText 报错
+  (check-catch 'error
+    (pi-execute-edit (list (cons "path" test-edit-file)
+                           (cons "edits" (list (list (cons "oldText" "")
+                                                     (cons "newText" "foo")))))))
+
+  ;; 9. 超时路径测试
+  (check-catch 'error
+    (pi-execute-edit (list (cons "path" test-edit-file)
+                           (cons "edits" (list (list (cons "oldText" "ABC")
+                                                     (cons "newText" "XYZ")))))
+                     :timed-out? #t))
+
+  ;; 清理
+  (delete-file test-edit-file))
+
 (check-report)
