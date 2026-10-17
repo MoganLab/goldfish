@@ -530,7 +530,7 @@ timeout 300 bin/gf test tools/pi/tests/liii/<本提交相关的测试>.scm
 | 四 | 已完成 | Gemini provider（§5，非流式）：请求构造、代理（§5.6）、finishReason/usage 映射、重试 | stub server 下请求体断言通过；socks5 代理参数透传断言；429 触发 3 次退避重试 |
 | 五 | 已完成 | Agent 循环 + 系统提示词 + print 模式（§7、§8） | 多轮 functionCall 端到端；退出码规则逐条验证；AGENTS.md/CLAUDE.md 注入 |
 | 六 | 已完成 | JSON 模式事件流（§3，非流式子集：无 message_update） | 事件序列与 §3.2 一致，jq 逐行可解析 |
-| 七 | 待执行 | 流式（SSE）：`:streamGenerateContent?alt=sse` + `(liii sse)` 解码 + `message_update`/`tool_execution_update` | 能输出 text_delta；空闲超时生效 |
+| 七 | 已完成 | 流式（SSE）：`:streamGenerateContent?alt=sse` + `(liii sse)` 解码 + `message_update`/`tool_execution_update` | 能输出 text_delta；空闲超时生效 |
 | 八 | 待执行 | Anthropic provider（§5.7，独立任务）；会话持久化与 `--continue`（独立任务） | 各自的验收标准届时补充 |
 
 ## 12. 文件布局（约定，必须遵守）
@@ -570,7 +570,8 @@ tests/goldfish/liii/pi-test.scm       # 核心库测试
 |---|---|---|
 | 1 | bash 工具 timeout 必传，默认 120s | pi 无默认超时；本项目强制防卡死（§9） |
 | 2 | 默认 `--max-turns 200` | pi 无上限；防失控循环（§7.3） |
-| 3 | 首期非流式 `:generateContent`，事件流无 delta | pi 恒流式 `:streamGenerateContent`；goldfish 先跑通再上流式（§11 阶段四/七） |
+| 3 | 初期非流式 `:generateContent`，阶段七已支持 SSE 流式 | pi 恒流式 `:streamGenerateContent`；goldfish 先跑通再上流式（§11 阶段四/七） |
+| 12 | (liii http) 新增 :idle-timeout 支持流式空闲超时检测 | Scheme 层回调在服务端静默挂起时不触发，需 libcurl 原生 low-speed 支持（§12 实现边界） |
 | 4 | grep/find 自实现，不下载 rg/fd | 免外部二进制依赖（§6.1） |
 | 5 | 只读全局 settings.json，不读项目级 `.pi/settings.json` | 项目级受 pi trust 门控，首期不引入 trust 概念（§4.1） |
 | 6 | auth.json 只消费 `type:"api_key"`，`$VAR` 支持而 `` !command `` 不支持 | 不执行任意命令、不刷新 OAuth（§4.2） |
