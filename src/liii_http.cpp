@@ -262,7 +262,9 @@ parse_timeout_ms (s7_scheme* sc, const char* who, s7_pointer timeout_arg, long* 
         sc, s7_make_symbol (sc, "value-error"),
         s7_list (sc, 2, s7_make_string (sc, (string (who) + ": timeout must be positive").c_str ()), timeout_arg));
   }
-  *timeout_ms= std::max (1L, static_cast<long> (sec * 1000.0));
+  long ms= static_cast<long> (sec * 1000.0);
+  // 不用 std::max：MSVC 下 windows.h 的 max 宏（经 cpr 引入）会与其冲突
+  *timeout_ms= ms > 0 ? ms : 1;
   return nullptr;
 }
 
