@@ -974,6 +974,20 @@ json_port_parse_string_body (json_port_parser* p) {
   }
 }
 
+static bool
+json_port_peek_is_digit (json_port_parser* p) {
+  int c= p->peek ();
+  return c >= '0' && c <= '9';
+}
+
+static void
+json_port_take_digits (json_port_parser* p, std::string& out) {
+  int c;
+  while ((c= p->peek ()) >= '0' && c <= '9') {
+    out.push_back ((char) p->get ());
+  }
+}
+
 static s7_pointer
 json_port_parse_number (json_port_parser* p) {
   s7_scheme*  sc= p->sc;
@@ -987,9 +1001,7 @@ json_port_parse_number (json_port_parser* p) {
     num_str.push_back ((char) p->get ());
   }
   else if (c >= '1' && c <= '9') {
-    while (p->peek () >= '0' && p->peek () <= '9') {
-      num_str.push_back ((char) p->get ());
-    }
+    json_port_take_digits (p, num_str);
   }
   else {
     return NULL;
@@ -997,10 +1009,8 @@ json_port_parse_number (json_port_parser* p) {
   if (p->peek () == '.') {
     is_real= true;
     num_str.push_back ((char) p->get ());
-    if (!(p->peek () >= '0' && p->peek () <= '9')) return NULL;
-    while (p->peek () >= '0' && p->peek () <= '9') {
-      num_str.push_back ((char) p->get ());
-    }
+    if (!json_port_peek_is_digit (p)) return NULL;
+    json_port_take_digits (p, num_str);
   }
   c= p->peek ();
   if (c == 'e' || c == 'E') {
@@ -1010,10 +1020,8 @@ json_port_parse_number (json_port_parser* p) {
     if (c == '+' || c == '-') {
       num_str.push_back ((char) p->get ());
     }
-    if (!(p->peek () >= '0' && p->peek () <= '9')) return NULL;
-    while (p->peek () >= '0' && p->peek () <= '9') {
-      num_str.push_back ((char) p->get ());
-    }
+    if (!json_port_peek_is_digit (p)) return NULL;
+    json_port_take_digits (p, num_str);
   }
 
   char* endp= NULL;

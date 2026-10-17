@@ -48,20 +48,10 @@
     (define string->json g_string->json)
 
     ;; read-json 由 C++ 实现（src/liii_json.cpp 中的 g_read_json）
-    (define* (read-json (port (current-input-port)))
-      (unless (input-port? port)
-        (type-error "read-json: port must be an input port" port)
-      ) ;unless
-      (g_read_json port)
-    ) ;define*
+    (define read-json g_read_json)
 
     ;; write-json 由 C++ 实现（src/liii_json.cpp 中的 g_write_json）
-    (define* (write-json json-value (port (current-output-port)))
-      (unless (output-port? port)
-        (type-error "write-json: port must be an output port" port)
-      ) ;unless
-      (g_write_json json-value port)
-    ) ;define*
+    (define write-json g_write_json)
 
     ;; json-ref 由 C++ 实现（src/liii_json.cpp 中的 g_json_ref）
     (define json-ref g_json_ref)
