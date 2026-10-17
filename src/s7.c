@@ -34362,6 +34362,7 @@ static bool call_begin_hook(s7_scheme *sc)
    *     set begin_hook, eval-string(...), unset begin_hook
    */
   const opcode_t op = sc->cur_op;
+  const s7_pointer saved_value = sc->value;
   push_stack_direct(sc, OP_BARRIER);
   sc->begin_hook(sc, &result);
   if (result)
@@ -34396,6 +34397,7 @@ static bool call_begin_hook(s7_scheme *sc)
     }
   pop_stack_no_op(sc);
   sc->cur_op = op;     /* for better error handling.  otherwise we get "barrier" as the offending function name in syntax_error */
+  sc->value = saved_value;
   return(false);
 }
 
