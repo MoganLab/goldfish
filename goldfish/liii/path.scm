@@ -8,15 +8,11 @@
     path-relative-to path-starts-with? path-equals? path=? path-absolute?
     path-relative? path-join path-parent path-parents path-list path-list-path
     path-rmdir path-unlink path-rename path-mkdir path-absolute path-expanduser
-    path-match path-as-posix path-resolve make-path-stat path-stat path-stat?
-    path-stat-size path-stat-mtime path-stat-atime path-stat-ctime
-    path-stat-mode path-stat-file? path-stat-dir? path-stat-symlink?
+    path-match path-as-posix path-resolve
   ) ;export
   (import (liii base)
-    (liii bitwise)
     (liii error)
     (liii os)
-    (liii path stat)
     (liii string)
     (liii vector)
     (scheme base)
@@ -1231,18 +1227,6 @@
         ) ;cond
       ) ;let
     ) ;define*
-
-    ;; ;============================================================
-    ;; ; path-stat 函数与文件元数据
-    ;; ;============================================================
-
-    (define %raw-path-stat path-stat)
-    (define (path-stat p)
-      (cond ((string? p) (%raw-path-stat p))
-            ((path? p) (%raw-path-stat (path->string p)))
-            (else (type-error "path-stat: path must be a string or path record"))
-      ) ;cond
-    ) ;define
 
   ) ;begin
 ) ;define-library

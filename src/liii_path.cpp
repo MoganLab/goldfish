@@ -16,22 +16,9 @@
 //
 
 #include "s7.h"
-#include <cerrno>
 #include <cstring>
 #include <string>
-#include <sys/stat.h>
-#include <sys/types.h>
 #include <vector>
-
-#if defined(_WIN32)
-#define WIN32_LEAN_AND_MEAN
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
-#include <windows.h>
-#else
-#include <unistd.h>
-#endif
 
 #include <tbox/platform/file.h>
 #include <tbox/tbox.h>
