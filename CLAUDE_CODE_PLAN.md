@@ -12,8 +12,8 @@
 
 | 两方 | 职责 | 不做什么 |
 |---|---|---|
-| **Claude Code** | **只编辑并 commit `CLAUDE_CODE_PLAN.md`（本文件）**；用 `pi -p` 拉起 pi | 不编辑、不提交 `PI_PLAN.md`（其维护权在 pi），不改实现代码，不审查产出，不代替提交 |
-| **pi（脚本模式）** | 被拉起后**全自主**：编辑并 commit `PI_PLAN.md`（任务规格，由 pi 自己负责），完成实现、测试、格式化、提交与推送 | 不修改 `CLAUDE_CODE_PLAN.md`（协作规范的修订写进输出，交回 Claude 编辑并提交本文件） |
+| **Claude Code** | **只编辑并 commit `CLAUDE_CODE_PLAN.md`（本文件）**；用 `pi -p` 拉起 pi | 不编辑、不提交 `PI_PLAN.md`（其维护权在 pi），不改实现代码，不审查产出，不代替提交，**不负责 git push（推送由 pi 负责）** |
+| **pi（脚本模式）** | 被拉起后**全自主**：编辑并 commit `PI_PLAN.md`（任务规格，由 pi 自己负责），完成实现、测试、格式化、提交；并**负责定期推送到 GitHub**——每完成一个阶段或一批小提交就 `git push`，不积压在本地 | 不修改 `CLAUDE_CODE_PLAN.md`（协作规范的修订写进输出，交回 Claude 编辑并提交本文件） |
 
 用户（Da）同样**不做任何干预**：编码、测试、提交、推送全部在两方之间闭环完成。
 
@@ -111,16 +111,18 @@ timeout 900 bin/gf pi --print "@PI_PLAN.md 实现阶段八：会话持久化"
    测试代码必须保存在 `tests/` 下的版本控制文件中（禁止 /tmp 临时文件、
    禁止 `bin/gf -e` 做 adhoc 测试）。执行中发现规格要改，pi 直接修订并 commit
    `PI_PLAN.md`，同时在 §13 偏差清单登记理由。
-4. **提交与推送**：分支名 `$USER/dddd/descr`（当前：`da/pi`），提交遵循
+4. **提交与推送**：分支固定使用 `da/pi`（不走 `$USER/dddd/descr` 命名规则），提交遵循
    `PI_PLAN.md` §11.1（小提交；每个 commit 必须通过 `bin/gf fmt` 与 `bin/gf check`），
-   提交信息 `[x_y] 简短描述`；pi 执行 `git push -u origin <分支>`，
-   按输出中的链接创建合并请求。
+   提交信息 `[x_y] 简短描述`；推送由 pi 负责——每完成一个阶段或一批小提交就
+   `git push`（首次 `-u origin da/pi`），不积压在本地，并按输出中的链接创建合并请求。
 5. **归档**：只有涉及协作规范/分工的问题才交回 Claude，由 Claude 编辑并 commit
    本文件；其余全部在 pi 侧闭环。
 
 ## 6. 给 pi 脚本模式的硬性要求
 
 - 执行的每一条命令都要设置超时；被超时杀掉的命令按失败处理，不要重试超过两次。
+- **禁止 force push**：不使用 `git push -f` / `--force-with-lease`，不 amend 或 rebase
+  已推送过的提交；错误修正一律追加新提交，完整保留 commits 历史。
 - 测试一律写入 `tests/` 或 `tools/<命令名>/tests/` 下的版本控制文件。
 - 决策分两类处理：**技术规格问题**（实现细节、验收标准调整）由 pi 自行决策、修订
   `PI_PLAN.md` 并 commit 记录理由；**协作流程/分工问题**（本文件的约定）才停止执行，
