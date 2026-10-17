@@ -27,6 +27,7 @@
     (liii pi grep)
     (liii pi config)
     (liii pi provider)
+    (liii pi prompt)
   ) ;import
   (export resolve-app-mode format-file-block build-initial-prompt
     PI_DEFAULT_MAX_LINES PI_DEFAULT_MAX_BYTES PI_GREP_MAX_LINE_LENGTH
@@ -39,7 +40,9 @@
     pi-load-auth pi-resolve-provider-key pi-load-models-store
     pi-resolve-model-metadata gemini-map-finish-reason gemini-map-usage
     gemini-normalize-tool-call-id gemini-generate-tool-call-id
-    gemini-build-contents gemini-build-request-body
+    gemini-build-contents gemini-build-request-body pi-resolve-prompt-input
+    pi-load-project-context pi-build-system-prompt PI_BUILTIN_TOOL_SNIPPETS
+    PI_BUILTIN_TOOL_GUIDELINES
   ) ;export
   (begin
 

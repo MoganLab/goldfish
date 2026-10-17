@@ -260,6 +260,12 @@
   (check (pi-resolve-provider-key "unknown-provider" auth-empty '())
     => #f))
 
+;; pi-resolve-prompt-input & pi-build-system-prompt
+(check (pi-resolve-prompt-input "Hello prompt") => "Hello prompt")
+(let ((sp (pi-build-system-prompt '("read" "bash") "/test/cwd" #f #f '())))
+  (check-true (string-contains? sp "You are an expert coding assistant operating inside pi"))
+  (check-true (string-contains? sp "<cwd>\n/test/cwd\n</cwd>")))
+
 ;; pi-load-models-store & pi-resolve-model-metadata
 (let ((models-store (pi-load-models-store "tools/pi/tests/fixtures/default")))
   (check-true (pair? models-store))
