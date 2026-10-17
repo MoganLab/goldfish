@@ -1,4 +1,5 @@
 (import (liii check)
+        (liii string)
         (liii pi))
 
 (check-set-mode! 'report-failed)
@@ -118,5 +119,38 @@
   (check (cdr (assoc 'truncated res)) => #t)
   (check (cdr (assoc 'truncated-by res)) => 'bytes)
   (check (cdr (assoc 'content res)) => "67890\nabcde"))
+
+;; ============================================================
+;; Tool: read
+;; ============================================================
+
+;; 1. 读取存在的文件
+(let ((res (pi-execute-read '(("path" . "tests/goldfish/liii/pi-test.scm")))))
+  (check-true (string? res))
+  (check-true (string-contains? res "(check-set-mode! 'report-failed)")))
+
+;; 2. 带 limit 读取（包含剩余行提示）
+(let ((res (pi-execute-read '(("path" . "tests/goldfish/liii/pi-test.scm") ("limit" . 2)))))
+  (check-true (string-contains? res "more lines in file. Use offset=3 to continue.")))
+
+;; 3. 带 offset 读取
+(let ((res (pi-execute-read '(("path" . "tests/goldfish/liii/pi-test.scm") ("offset" . 3) ("limit" . 2)))))
+  (check-true (string-contains? res "more lines in file. Use offset=5 to continue.")))
+
+;; 4. offset 超出文件总行数
+(check-catch 'error
+  (pi-execute-read '(("path" . "tests/goldfish/liii/pi-test.scm") ("offset" . 999999))))
+
+;; 5. 文件不存在报错
+(check-catch 'error
+  (pi-execute-read '(("path" . "non_existent_file_12345.txt"))))
+
+;; 6. 路径为目录报错
+(check-catch 'error
+  (pi-execute-read '(("path" . "tests"))))
+
+;; 7. 超时路径测试
+(check-catch 'error
+  (pi-execute-read '(("path" . "tests/goldfish/liii/pi-test.scm")) :timed-out? #t))
 
 (check-report)

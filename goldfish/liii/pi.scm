@@ -15,10 +15,11 @@
 ;;
 
 (define-library (liii pi)
-  (import (scheme base) (liii string) (liii pi truncate))
+  (import (scheme base) (liii string) (liii pi truncate) (liii pi read))
   (export resolve-app-mode format-file-block build-initial-prompt
     PI_DEFAULT_MAX_LINES PI_DEFAULT_MAX_BYTES PI_GREP_MAX_LINE_LENGTH
-    pi-format-size pi-truncate-line pi-truncate-head pi-truncate-tail
+    pi-format-size pi-truncate-line pi-truncate-head pi-truncate-tail pi-arg-ref
+    pi-resolve-path pi-read-schema pi-execute-read
   ) ;export
   (begin
 
