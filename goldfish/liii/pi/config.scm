@@ -27,7 +27,7 @@
   ) ;import
   (export pi-resolve-config-value json-dict-ref pi-get-agent-dir
     pi-read-json-file pi-load-settings pi-resolve-proxy-url pi-load-auth
-    pi-resolve-provider-key
+    pi-resolve-provider-key pi-load-models-store pi-resolve-model-metadata
   ) ;export
   (begin
 
@@ -72,7 +72,6 @@
     (define (%normalize-bool val)
       (cond ((eq? val 'true) #t)
             ((eq? val 'false) #f)
-            ((boolean? val) val)
             (else val)
       ) ;cond
     ) ;define
@@ -118,24 +117,14 @@
     ) ;define
 
     (define (pi-resolve-proxy-url cli-proxy settings . opt-env)
-      (let* ((get-env
-               (lambda (name)
-                 (if (pair? opt-env)
-                   (let ((pair (assoc name (car opt-env))))
-                     (if pair (cdr pair) #f)
-                   ) ;let
-                   (get-environment-variable name)
-                 ) ;if
-               ) ;lambda
-             ) ;get-env
-             (env-https (get-env "HTTPS_PROXY"))
-             (env-all (get-env "ALL_PROXY"))
-             (settings-proxy
-               (let ((p (assoc 'http-proxy settings)))
-                 (if p (cdr p) #f)
-               ) ;let
-             ) ;settings-proxy
-            ) ;
+      (let ((env-https (lookup-env-var "HTTPS_PROXY" opt-env))
+            (env-all (lookup-env-var "ALL_PROXY" opt-env))
+            (settings-proxy
+              (let ((p (assoc 'http-proxy settings)))
+                (if p (cdr p) #f)
+              ) ;let
+            ) ;settings-proxy
+           ) ;
         (cond
          ((and (string? cli-proxy) (not (string-null? (string-trim-both cli-proxy))))
           cli-proxy
@@ -153,30 +142,25 @@
          ) ;
          (else #f)
         ) ;cond
-      ) ;let*
+      ) ;let
     ) ;define
 
     (define (%parse-credential-item key val opt-env)
-      (if (not (pair? val))
-        #f
-        (let ((type-val (json-dict-ref val "type" #f)))
-          (if (not (equal? type-val "api_key"))
+      (if (and (pair? val) (equal? (json-dict-ref val "type" #f) "api_key"))
+        (let ((raw-key (json-dict-ref val "key" #f)))
+          (if (not (string? raw-key))
             #f
-            (let ((raw-key (json-dict-ref val "key" #f)))
-              (if (not (string? raw-key))
-                #f
-                (let ((resolved (if (pair? opt-env)
-                                  (pi-resolve-config-value raw-key (car opt-env))
-                                  (pi-resolve-config-value raw-key)
-                                ) ;if
-                      ) ;resolved
-                     ) ;
-                  (if resolved (cons (if (symbol? key) (symbol->string key) key) resolved) #f)
-                ) ;let
-              ) ;if
+            (let ((resolved (if (pair? opt-env)
+                              (pi-resolve-config-value raw-key (car opt-env))
+                              (pi-resolve-config-value raw-key)
+                            ) ;if
+                  ) ;resolved
+                 ) ;
+              (if resolved (cons (if (symbol? key) (symbol->string key) key) resolved) #f)
             ) ;let
           ) ;if
         ) ;let
+        #f
       ) ;if
     ) ;define
 
@@ -219,6 +203,85 @@
          ) ;
          (else #f)
         ) ;cond
+      ) ;let*
+    ) ;define
+
+    (define (pi-load-models-store agent-dir)
+      (let* ((filepath (path->string (path-join (path agent-dir) (path "models-store.json")))
+             ) ;filepath
+             (data (pi-read-json-file filepath))
+            ) ;
+        (if (pair? data) data '())
+      ) ;let*
+    ) ;define
+
+    (define (%find-model-in-list models model-id)
+      (let loop
+        ((lst models))
+        (cond ((null? lst) #f)
+              ((string=? (json-dict-ref (car lst) "id" "") model-id) (car lst))
+              (else (loop (cdr lst)))
+        ) ;cond
+      ) ;let
+    ) ;define
+
+    (define (%get-provider-models models-store provider)
+      (let* ((p-obj (json-dict-ref models-store provider '()))
+             (raw-models (json-dict-ref p-obj "models" '()))
+            ) ;
+        (cond ((vector? raw-models) (vector->list raw-models))
+              ((list? raw-models) raw-models)
+              (else '())
+        ) ;cond
+      ) ;let*
+    ) ;define
+
+    (define (%apply-meta-env-overrides base-url context-window max-tokens opt-env)
+      (let* ((env-url (lookup-env-var "GF_PI_BASE_URL" opt-env))
+             (env-cw (lookup-env-var "GF_PI_CONTEXT_WINDOW" opt-env))
+             (env-mt (lookup-env-var "GF_PI_MAX_TOKENS" opt-env))
+             (final-url
+               (if (and (string? env-url) (not (string-null? env-url))) env-url base-url)
+             ) ;final-url
+             (final-cw (if (and (string? env-cw) (string->number env-cw))
+                         (string->number env-cw)
+                         context-window
+                       ) ;if
+             ) ;final-cw
+             (final-mt (if (and (string? env-mt) (string->number env-mt))
+                         (string->number env-mt)
+                         max-tokens
+                       ) ;if
+             ) ;final-mt
+            ) ;
+        (values final-url final-cw final-mt)
+      ) ;let*
+    ) ;define
+
+    (define (pi-resolve-model-metadata provider model-id models-store . opt-env)
+      (let* ((p-str (if (symbol? provider) (symbol->string provider) provider))
+             (models (%get-provider-models models-store p-str))
+             (m (%find-model-in-list models model-id))
+             (matched? (if m #t #f))
+             (name (if m (json-dict-ref m "name" model-id) model-id))
+             (base-url (if m
+                         (json-dict-ref m "baseUrl" "https://generativelanguage.googleapis.com/v1beta")
+                         "https://generativelanguage.googleapis.com/v1beta"
+                       ) ;if
+             ) ;base-url
+             (cw (if m (json-dict-ref m "contextWindow" 128000) 128000))
+             (mt (if m (json-dict-ref m "maxTokens" 16384) 16384))
+            ) ;
+        (let-values (((f-url f-cw f-mt) (%apply-meta-env-overrides base-url cw mt opt-env)))
+          (list (cons 'id model-id)
+            (cons 'name name)
+            (cons 'provider p-str)
+            (cons 'base-url f-url)
+            (cons 'context-window f-cw)
+            (cons 'max-tokens f-mt)
+            (cons 'matched? matched?)
+          ) ;list
+        ) ;let-values
       ) ;let*
     ) ;define
 

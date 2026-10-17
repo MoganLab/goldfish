@@ -46,12 +46,12 @@
     ) ;define
 
     (define (lookup-env-var name custom-env)
-      (cond
-       ((and (pair? custom-env) (assoc name (car custom-env)))
-        (cdr (assoc name (car custom-env)))
-       ) ;
-       (else (get-environment-variable name))
-      ) ;cond
+      (if (pair? custom-env)
+        (let ((pair (assoc name (car custom-env))))
+          (if pair (cdr pair) #f)
+        ) ;let
+        (get-environment-variable name)
+      ) ;if
     ) ;define
 
     (define (extract-env-var-name str start len)
