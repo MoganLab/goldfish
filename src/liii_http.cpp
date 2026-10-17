@@ -72,10 +72,11 @@ response2hashtable (s7_scheme* sc, cpr::Response r) {
   s7_hash_table_set (sc, ht, s7_make_symbol (sc, "elapsed"), s7_make_real (sc, r.elapsed));
   s7_hash_table_set (sc, ht, s7_make_symbol (sc, "text"), s7_make_string (sc, r.text.c_str ()));
   std::string reason= r.reason;
-  if (reason.empty () && r.error.code != cpr::ErrorCode::OK) {
+  if (r.error.code != cpr::ErrorCode::OK) {
     reason= r.error.message;
   }
   s7_hash_table_set (sc, ht, s7_make_symbol (sc, "reason"), s7_make_string (sc, reason.c_str ()));
+  s7_hash_table_set (sc, ht, s7_make_symbol (sc, "error-code"), s7_make_integer (sc, static_cast<int> (r.error.code)));
   s7_pointer headers= s7_make_hash_table (sc, r.header.size ());
   for (const auto& header : r.header) {
     const auto  key      = header.first.c_str ();
@@ -276,6 +277,13 @@ apply_session_timeout (cpr::Session& session, long timeout_ms) {
   }
 }
 
+static void
+apply_session_idle_timeout (cpr::Session& session, long idle_timeout_sec) {
+  if (idle_timeout_sec > 0) {
+    session.SetLowSpeed (cpr::LowSpeed{1, static_cast<std::int32_t> (idle_timeout_sec)});
+  }
+}
+
 static s7_pointer
 f_http_head (s7_scheme* sc, s7_pointer args) {
   s7_pointer url_arg= s7_car (args);
@@ -413,6 +421,11 @@ f_http_post (s7_scheme* sc, s7_pointer args) {
   if (err) {
     return err;
   }
+  long       idle_timeout_ms= 0;
+  s7_pointer idle_err       = parse_timeout_ms (sc, "http-post", optional_arg (sc, args, 8), &idle_timeout_ms);
+  if (idle_err) {
+    return idle_err;
+  }
 
   if (!s7_is_null (sc, files)) {
     if (!check_multipart_files (sc, files)) {
@@ -443,6 +456,7 @@ f_http_post (s7_scheme* sc, s7_pointer args) {
     session.SetProxies (cpr_proxies);
   }
   apply_session_timeout (session, timeout_ms);
+  apply_session_idle_timeout (session, idle_timeout_ms > 0 ? (idle_timeout_ms + 999) / 1000 : 0);
 
   if (!s7_is_null (sc, files)) {
     session.SetMultipart (to_cpr_post_multipart (sc, body_or_data, files));
@@ -482,9 +496,9 @@ inline void
 glue_http_post (s7_scheme* sc) {
   s7_pointer  cur_env= s7_curlet (sc);
   const char* name   = "g_http-post";
-  const char* doc=
-      "(g_http-post url params body-or-data headers proxy files callback [timeout]) => hash-table? | undefined";
-  auto func_http_post= s7_make_typed_function (sc, name, f_http_post, 7, 1, false, doc, NULL);
+  const char* doc    = "(g_http-post url params body-or-data headers proxy files callback [timeout] [idle-timeout]) => "
+                       "hash-table? | undefined";
+  auto        func_http_post= s7_make_typed_function (sc, name, f_http_post, 7, 2, false, doc, NULL);
   s7_define (sc, cur_env, s7_make_symbol (sc, name), func_http_post);
 }
 

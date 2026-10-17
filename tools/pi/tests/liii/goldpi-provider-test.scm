@@ -9,6 +9,7 @@
   (liii pi)
   (liii goldpi-config)
   (liii goldpi-provider)
+  (liii goldpi-stream)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -154,6 +155,47 @@
            (resp-retry (gemini-request cfg-retry (list '((role . "user") (content . "retry me"))) #f '() 10 retry-opt)))
       (check (cdr (assoc 'stopReason resp-retry)) => "stop")
       (check (cdr (assoc 'text (car (cdr (assoc 'content resp-retry))))) => "Hello from stub!"))
+
+    ;; 3.6 SSE 流式调用 (gemini-request-stream)
+    (let* ((cfg-stream (list (cons 'provider "google")
+                             (cons 'api-key "test-key-stub-123")
+                             (cons 'model-id "gemini-3.8-flash")
+                             (cons 'model-meta (list (cons 'base-url base-url)))
+                             (cons 'proxy-url #f)
+                             (cons 'tools '("read" "bash"))
+                             (cons 'settings '())))
+           (deltas '())
+           (stream-events '())
+           (on-event (lambda (ev)
+                       (set! stream-events (cons ev stream-events))
+                       (when (equal? (cdr (assoc 'type ev)) "text_delta")
+                         (set! deltas (cons (cdr (assoc 'delta ev)) deltas)))))
+           (resp-stream (gemini-request-stream cfg-stream
+                                               (list '((role . "user") (content . "Hello stream")))
+                                               #f '("bash") on-event 10)))
+      (check (cdr (assoc 'role resp-stream)) => "assistant")
+      (check (cdr (assoc 'stopReason resp-stream)) => "stop")
+      (check (reverse deltas) => '("Hello " "stream!"))
+      (check (cdr (assoc 'text (car (cdr (assoc 'content resp-stream))))) => "Hello stream!")
+      (let ((u (cdr (assoc 'usage resp-stream))))
+        (check (cdr (assoc 'input u)) => 10)
+        (check (cdr (assoc 'output u)) => 6)
+        (check (cdr (assoc 'totalTokens u)) => 16)))
+
+    ;; 3.7 SSE 流式空闲超时 (idle-timeout)
+    (let* ((cfg-idle (list (cons 'provider "google")
+                           (cons 'api-key "test-key-stub-123")
+                           (cons 'model-id "stream-idle-hang")
+                           (cons 'model-meta (list (cons 'base-url base-url)))
+                           (cons 'proxy-url #f)
+                           (cons 'tools '())
+                           (cons 'settings '())))
+           (on-event (lambda (ev) #f))
+           (resp-idle (gemini-request-stream cfg-idle
+                                             (list '((role . "user") (content . "hang")))
+                                             #f '() on-event 10 #f 1)))
+      (check (cdr (assoc 'stopReason resp-idle)) => "error")
+      (check-true (string-contains? (cdr (assoc 'errorMessage resp-idle)) "idle timed out")))
   ) ;let*
 
   ;; 清理子进程

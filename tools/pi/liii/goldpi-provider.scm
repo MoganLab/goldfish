@@ -25,7 +25,9 @@
     (liii pi)
     (liii goldpi-tools)
   ) ;import
-  (export gemini-parse-response gemini-is-retriable-error? gemini-request)
+  (export gemini-parse-response gemini-is-retriable-error? gemini-request
+    gemini-build-tool-declarations
+  ) ;export
   (begin
 
     (define (%extract-parts-content parts)
@@ -138,7 +140,7 @@
       ) ;cond
     ) ;define
 
-    (define (%build-tools-declarations active-tool-names)
+    (define (gemini-build-tool-declarations active-tool-names)
       (let loop
         ((names active-tool-names) (acc '()))
         (if (null? names)
@@ -211,7 +213,7 @@
              ) ;base-url
              (url (string-append base-url "/models/" model-id ":generateContent"))
              (eff-tool-names (or tool-names (cdr (assoc 'tools config))))
-             (tool-decls (%build-tools-declarations eff-tool-names))
+             (tool-decls (gemini-build-tool-declarations eff-tool-names))
              (contents (gemini-build-contents messages))
              (req-body (gemini-build-request-body contents system-instruction tool-decls))
              (req-json-str (json->string req-body))
