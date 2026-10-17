@@ -80,35 +80,17 @@
     ) ;define
 
     (define (strip-eol line)
-      (let* ((n (string-length line))
-             (has-nl
-               (and (> n 0) (char=? (string-ref line (- n 1)) #\newline))
-             ) ;has-nl
-             (n1 (if has-nl (- n 1) n))
-             (has-cr
-               (and (> n1 0) (char=? (string-ref line (- n1 1)) #\return))
-             ) ;has-cr
-             (end (if has-cr (- n1 1) n1))
-            ) ;
-        (if (= end n) line (substring line 0 end))
-      ) ;let*
+      (string-remove-suffix (string-remove-suffix line "\n") "\r")
     ) ;define
 
     (define (parse-sse-line line)
       (let ((i (string-index line #\:)) (len (string-length line)))
-        (if (not i)
-          (values line "")
-          (let ((s
-                  (if
-                    (and (< (+ i 1) len) (char=? (string-ref line (+ i 1)) #\space))
-                    (+ i 2)
-                    (+ i 1)
-                  ) ;if
-                ) ;s
-               ) ;
-            (values (substring line 0 i) (substring line s len))
-          ) ;let
-        ) ;if
+        (cond ((not i) (values line ""))
+              ((and (< (+ i 1) len) (char=? (string-ref line (+ i 1)) #\space))
+               (values (substring line 0 i) (substring line (+ i 2) len))
+              ) ;
+              (else (values (substring line 0 i) (substring line (+ i 1) len)))
+        ) ;cond
       ) ;let
     ) ;define
 
@@ -171,16 +153,14 @@
         ) ;define
 
         (define (feed-line! line)
-          (let ((len (string-length line)))
-            (cond ((= len 0) (dispatch!))
-                  ((char=? (string-ref line 0) #\:) #f)
-                  (else
-                    (let-values (((name val) (parse-sse-line line)))
-                      (feed-field! name val)
-                    ) ;let-values
-                  ) ;else
-            ) ;cond
-          ) ;let
+          (cond ((string=? line "") (dispatch!))
+                ((char=? (string-ref line 0) #\:) #f)
+                (else
+                  (let-values (((name val) (parse-sse-line line)))
+                    (feed-field! name val)
+                  ) ;let-values
+                ) ;else
+          ) ;cond
         ) ;define
 
         (values feed-line! dispatch!)
@@ -217,12 +197,10 @@
           (lambda (chunk)
             (cond
              ((eof-object? chunk)
-              (when (> (string-length buffer) 0)
-                (let ((line (strip-eol buffer)))
-                  (set! buffer "")
-                  (feed-line! line)
-                ) ;let
-              ) ;when
+              (unless (string=? buffer "")
+                (feed-line! (strip-eol buffer))
+                (set! buffer "")
+              ) ;unless
               (dispatch!)
              ) ;
              ((string? chunk) (feed-chunk! chunk))
@@ -233,25 +211,15 @@
       ) ;let-values
     ) ;define
 
-    (define (%resolve-port who max-args args default-port port? port-kind)
+    (define (%resolve-port who args default-port port?)
       (cond ((null? args) default-port)
             ((and (null? (cdr args)) (port? (car args))) (car args))
-            ((null? (cdr args)) (type-error (string-append who ": expected " port-kind)))
-            (else (type-error (string-append who ": expected at most " (number->string max-args) " arguments")
-                  ) ;type-error
-            ) ;else
+            (else (type-error (string-append who ": invalid port argument")))
       ) ;cond
     ) ;define
 
     (define (read-sse-event . args)
-      (let ((port (%resolve-port "read-sse-event"
-                    1
-                    args
-                    (current-input-port)
-                    input-port?
-                    "input-port"
-                  ) ;%resolve-port
-            ) ;port
+      (let ((port (%resolve-port "read-sse-event" args (current-input-port) input-port?))
             (result #f)
            ) ;
         (let-values (((feed-line! dispatch!) (%make-sse-line-decoder (lambda (ev) (set! result ev))))
@@ -274,23 +242,23 @@
             (id (sse-event-id event))
             (retry (sse-event-retry event))
            ) ;
-        (when (not (string=? ev %default-event))
-          (display "event: " p)
-          (display ev p)
+        (define (emit name val)
+          (display name p)
+          (display ": " p)
+          (display val p)
           (newline p)
+        ) ;define
+        (when (not (string=? ev %default-event))
+          (emit "event" ev)
         ) ;when
-        (for-each (lambda (line) (display "data: " p) (display line p) (newline p))
+        (for-each (lambda (line) (emit "data" line))
           (string-split (sse-event-data event) "\n")
         ) ;for-each
         (when (string? id)
-          (display "id: " p)
-          (display id p)
-          (newline p)
+          (emit "id" id)
         ) ;when
         (when (and (integer? retry) (>= retry 0))
-          (display "retry: " p)
-          (display (number->string retry) p)
-          (newline p)
+          (emit "retry" (number->string retry))
         ) ;when
         (newline p)
       ) ;let
@@ -311,13 +279,7 @@
         (type-error "write-sse-event: expected <sse-event>")
       ) ;unless
       (%write-sse-event-port event
-        (%resolve-port "write-sse-event"
-          2
-          args
-          (current-output-port)
-          output-port?
-          "output-port"
-        ) ;%resolve-port
+        (%resolve-port "write-sse-event" args (current-output-port) output-port?)
       ) ;%write-sse-event-port
     ) ;define
 
