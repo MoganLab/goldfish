@@ -43,10 +43,10 @@
     (liii date-time clock-time)
     (liii date-time moment)
     (liii date-time time-delta)
-    (liii date-time timezone)
+    (liii date-time internal timestamp-types)
   ) ;import
-  (export time-delta->seconds moment+seconds timestamp+/no-rules calc-timestamp+
-    calc-timestamp-
+  (export time-delta->seconds moment+seconds timestamp+/no-rules
+    adjust-date-and-time
   ) ;export
   (begin
 
@@ -72,10 +72,10 @@
       ) ;let*
     ) ;define
 
-    (define (timestamp+/no-rules ts dt make-raw-ts ts-d ts-clk ts-tz)
-      (let* ((clk (ts-clk ts))
+    (define (timestamp+/no-rules ts dt)
+      (let* ((clk (%timestamp-clock-time ts))
              (leap? (>= (clock-time-second clk) 60))
-             (d (ts-d ts))
+             (d (%timestamp-date ts))
              (secs
                (+ (* 3600 (+ (clock-time-hour clk) (time-delta-hours dt)))
                  (* 60 (+ (clock-time-minute clk) (time-delta-minutes dt)))
@@ -97,13 +97,13 @@
              (s (if leap? (+ s 1) s))
              (clk2 (make-clock-time h m s))
             ) ;
-        (make-raw-ts d2 clk2 (ts-tz ts) 0)
+        (%make-timestamp d2 clk2 (%timestamp-timezone ts) 0)
       ) ;let*
     ) ;define
 
-    (define (adjust-date-and-time ts-utc dt ts-d ts-clk)
-      (let* ((d (ts-d ts-utc))
-             (clk (ts-clk ts-utc))
+    (define (adjust-date-and-time ts-utc dt)
+      (let* ((d (%timestamp-date ts-utc))
+             (clk (%timestamp-clock-time ts-utc))
              (date-dt (time-delta+ (years-delta (time-delta-years dt))
                         (months-delta (time-delta-months dt))
                         (weeks-delta (time-delta-weeks dt))
@@ -123,49 +123,6 @@
             ) ;
         (values d3 clk2 clk)
       ) ;let*
-    ) ;define
-
-    (define (calc-timestamp+ ts dt timestamp? ts-tz ts-d ts-clk ts-in-utc
-              ts-in-tz validate-leap make-raw-ts m->ts ts->m
-            ) ;calc-timestamp+
-      (unless (and (timestamp? ts) (time-delta? dt))
-        (error 'type-error "timestamp+: expected timestamp and time-delta" ts dt)
-      ) ;unless
-      (let* ((tz (ts-tz ts)) (ts-utc (ts-in-utc ts)))
-        (let-values (((d3 clk2 clk) (adjust-date-and-time ts-utc dt ts-d ts-clk)))
-          (let* ((t (make-raw-ts d3 clk2 (utc-timezone) 0))
-                 (ts2
-                   (validate-leap t
-                     (lambda () t)
-                     (lambda ()
-                       (make-raw-ts d3
-                         (make-clock-time (clock-time-hour clk2)
-                           (clock-time-minute clk2)
-                           (- (clock-time-second clk) 1)
-                         ) ;make-clock-time
-                         (utc-timezone)
-                         0
-                       ) ;make-raw-ts
-                     ) ;lambda
-                   ) ;validate-leap
-                 ) ;ts2
-                ) ;
-            (let ((ts3
-                    (if (zero? (time-delta-seconds dt))
-                      ts2
-                      (m->ts (moment+seconds (ts->m ts2) (time-delta-seconds dt)) (utc-timezone))
-                    ) ;if
-                  ) ;ts3
-                 ) ;
-              (ts-in-tz ts3 tz)
-            ) ;let
-          ) ;let*
-        ) ;let-values
-      ) ;let*
-    ) ;define
-
-    (define (calc-timestamp- ts dt ts+)
-      (ts+ ts (time-delta-negate dt))
     ) ;define
 
   ) ;begin

@@ -41,48 +41,48 @@
   (export discover-zoneinfo-names)
   (begin
 
-    (define (collect-dir-names base curr subdirs-box)
+    (define (collect-dir-names base curr subdirs names)
       (let* ((dir-path (if (string=? curr "") base (string-append base "/" curr)))
-             (entries (path-list (path dir-path)))
-             (names '())
+             (entries (vector->list (path-list (path dir-path))))
             ) ;
-        (for-each
-          (lambda (ent)
-            (let* ((name (path->string ent))
+        (let loop
+          ((entries entries) (names names) (subdirs subdirs))
+          (if (null? entries)
+            (values names subdirs)
+            (let* ((ent (car entries))
+                   (name (path->string ent))
                    (rel (if (string=? curr "") name (string-append curr "/" name)))
                    (full (string-append base "/" rel))
                   ) ;
-              (cond ((member name '("." ".." "posix" "right" "Etc")) #f)
-                    ((path-dir? (path full)) (set-car! subdirs-box (cons rel (car subdirs-box))))
+              (cond ((member name '("." ".." "posix" "right" "Etc"))
+                     (loop (cdr entries) names subdirs)
+                    ) ;
+                    ((path-dir? (path full)) (loop (cdr entries) names (cons rel subdirs)))
                     ((and (not (string=? (path-suffix ent) ".tab"))
                        (not (string=? (path-suffix ent) ".zi"))
                        (not (string=? (path-suffix ent) ".list"))
                      ) ;and
-                     (set! names (cons rel names))
+                     (loop (cdr entries) (cons rel names) subdirs)
                     ) ;
+                    (else (loop (cdr entries) names subdirs))
               ) ;cond
             ) ;let*
-          ) ;lambda
-          entries
-        ) ;for-each
-        names
+          ) ;if
+        ) ;let
       ) ;let*
     ) ;define
 
     (define (discover-zoneinfo-names)
       (if (not (g_zoneinfo_available?))
-        '("UTC" "Europe/Vilnius" "America/New_York")
+        (g_embedded_zoneinfo_names)
         (let ((base "/usr/share/zoneinfo"))
           (let loop
             ((subdirs '("")) (acc '()))
             (if (null? subdirs)
               acc
-              (let* ((curr (car subdirs))
-                     (sub-box (list (cdr subdirs)))
-                     (dir-names (collect-dir-names base curr sub-box))
-                    ) ;
-                (loop (car sub-box) (append dir-names acc))
-              ) ;let*
+              (let-values (((names subdirs) (collect-dir-names base (car subdirs) (cdr subdirs) acc)))
+                (loop subdirs names)
+              ) ;let-values
             ) ;if
           ) ;let
         ) ;let

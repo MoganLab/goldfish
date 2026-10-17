@@ -42,6 +42,7 @@
     (liii date-time date)
     (liii date-time clock-time)
     (liii date-time internal database)
+    (liii date-time internal date-rd)
   ) ;import
   (export %make-timestamp timestamp? %timestamp-date %timestamp-clock-time
     %timestamp-timezone %timestamp-fold timestamp-date timestamp-clock-time
@@ -60,8 +61,6 @@
       (timezone %timestamp-timezone)
       (fold %timestamp-fold)
     ) ;define-record-type
-
-    (define unix-epoch-rd (date->rata-die (make-date 1970 1 1)))
 
     (define (timestamp-date ts)
       (unless (timestamp? ts)
@@ -159,49 +158,35 @@
       ) ;let*
     ) ;define
 
-    (define (timestamp-timezone-offset ts)
-      (unless (timestamp? ts)
-        (error 'type-error "timestamp-timezone-offset: expected a timestamp" ts)
-      ) ;unless
+    (define (%timestamp-time-range ts)
       (let* ((local-tp (timestamp->local-timepoint ts))
              (tz (%timestamp-timezone ts))
              (fold (%timestamp-fold ts))
              (offsets-vec (find-offset/wall tz local-tp))
             ) ;
-        (time-range-offset
-          (vector-ref offsets-vec (min fold (- (vector-length offsets-vec) 1)))
-        ) ;time-range-offset
+        (vector-ref offsets-vec (min fold (- (vector-length offsets-vec) 1)))
       ) ;let*
+    ) ;define
+
+    (define (timestamp-timezone-offset ts)
+      (unless (timestamp? ts)
+        (error 'type-error "timestamp-timezone-offset: expected a timestamp" ts)
+      ) ;unless
+      (time-range-offset (%timestamp-time-range ts))
     ) ;define
 
     (define (timestamp-timezone-abbreviation ts)
       (unless (timestamp? ts)
         (error 'type-error "timestamp-timezone-abbreviation: expected a timestamp" ts)
       ) ;unless
-      (let* ((local-tp (timestamp->local-timepoint ts))
-             (tz (%timestamp-timezone ts))
-             (fold (%timestamp-fold ts))
-             (offsets-vec (find-offset/wall tz local-tp))
-            ) ;
-        (time-range-designation
-          (vector-ref offsets-vec (min fold (- (vector-length offsets-vec) 1)))
-        ) ;time-range-designation
-      ) ;let*
+      (time-range-designation (%timestamp-time-range ts))
     ) ;define
 
     (define (timestamp-timezone-dst? ts)
       (unless (timestamp? ts)
         (error 'type-error "timestamp-timezone-dst?: expected a timestamp" ts)
       ) ;unless
-      (let* ((local-tp (timestamp->local-timepoint ts))
-             (tz (%timestamp-timezone ts))
-             (fold (%timestamp-fold ts))
-             (offsets-vec (find-offset/wall tz local-tp))
-            ) ;
-        (time-range-dst?
-          (vector-ref offsets-vec (min fold (- (vector-length offsets-vec) 1)))
-        ) ;time-range-dst?
-      ) ;let*
+      (time-range-dst? (%timestamp-time-range ts))
     ) ;define
 
   ) ;begin

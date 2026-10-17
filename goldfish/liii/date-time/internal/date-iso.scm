@@ -38,11 +38,14 @@
 ;;
 
 (define-library (liii date-time internal date-iso)
-  (import (scheme base) (liii date-time internal util))
+  (import (scheme base)
+    (liii date-time internal util)
+    (liii date-time internal date-types)
+  ) ;import
   (export format-date-iso-8601 parse-date-iso-8601)
   (begin
 
-    (define (format-date-iso-8601 d date? date-ymd)
+    (define (format-date-iso-8601 d)
       (unless (date? d)
         (error 'type-error "date->iso-8601: expected a date" d)
       ) ;unless
@@ -70,7 +73,7 @@
       ) ;let
     ) ;define
 
-    (define (parse-date-iso-8601 str make-date)
+    (define (parse-date-iso-8601 str)
       (unless (string? str)
         (error 'type-error "iso-8601->date: expected a string" str)
       ) ;unless

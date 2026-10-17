@@ -38,7 +38,10 @@
 ;;
 
 (define-library (liii date-time internal date-week)
-  (import (scheme base))
+  (import (scheme base)
+    (liii date-time internal date-types)
+    (liii date-time internal date-rd)
+  ) ;import
   (export calc-date-iso-weekday calc-date-iso-week calc-date-iso-week-year)
   (begin
 
@@ -62,7 +65,7 @@
       ) ;let*
     ) ;define
 
-    (define (calc-date-iso-weekday d date? date-ymd)
+    (define (calc-date-iso-weekday d)
       (unless (date? d)
         (error 'type-error "date-iso-weekday: expected a date" d)
       ) ;unless
@@ -73,17 +76,15 @@
       ) ;let-values
     ) ;define
 
-    (define (iso-week-offset-for-jan1 year raw-make-date calc-iso-wd)
-      (let ((wd (calc-iso-wd (raw-make-date year 1 1))))
+    (define (iso-week-offset-for-jan1 year)
+      (let ((wd (calc-date-iso-weekday (make-date year 1 1))))
         (if (>= 5 wd) (- wd 1) (- 1 wd))
       ) ;let
     ) ;define
 
-    (define (calc-date-iso-week-info d date-ymd calc-iso-wd leap-year?
-              days-since-start raw-make-date
-            ) ;calc-date-iso-week-info
+    (define (calc-date-iso-week-info d)
       (let-values (((year month day) (date-ymd d)))
-        (let* ((weekday (calc-iso-wd d))
+        (let* ((weekday (calc-date-iso-weekday d))
                (year-offset
                  (cond
                   ((and (= month 1) (<= day 3) (>= (- weekday day) 4)) -1)
@@ -96,15 +97,15 @@
            ((1) (values (+ 1 year) 1))
            ((-1)
             (let* ((prev-y (- year 1))
-                   (offset (iso-week-offset-for-jan1 prev-y raw-make-date calc-iso-wd))
+                   (offset (iso-week-offset-for-jan1 prev-y))
                    (day-cnt (+ offset (if (leap-year? prev-y) 366 365) day))
                   ) ;
               (values prev-y (+ 1 (floor-quotient day-cnt 7)))
             ) ;let*
            ) ;
            (else
-             (let* ((offset (iso-week-offset-for-jan1 year raw-make-date calc-iso-wd))
-                    (day-cnt (+ (days-since-start d) offset))
+             (let* ((offset (iso-week-offset-for-jan1 year))
+                    (day-cnt (+ (days-since-year-start d) offset))
                    ) ;
                (values year (+ 1 (floor-quotient day-cnt 7)))
              ) ;let*
@@ -114,34 +115,20 @@
       ) ;let-values
     ) ;define
 
-    (define (calc-date-iso-week d date? date-ymd calc-iso-wd leap-year?
-              days-since-start raw-make-date
-            ) ;calc-date-iso-week
+    (define (calc-date-iso-week d)
       (unless (date? d)
         (error 'type-error "date-iso-week: expected a date" d)
       ) ;unless
-      (let-values (((y w)
-                    (calc-date-iso-week-info d date-ymd calc-iso-wd leap-year?
-                      days-since-start raw-make-date
-                    ) ;calc-date-iso-week-info
-                   ) ;
-                  ) ;
+      (let-values (((y w) (calc-date-iso-week-info d)))
         w
       ) ;let-values
     ) ;define
 
-    (define (calc-date-iso-week-year d date? date-ymd calc-iso-wd leap-year?
-              days-since-start raw-make-date
-            ) ;calc-date-iso-week-year
+    (define (calc-date-iso-week-year d)
       (unless (date? d)
         (error 'type-error "date-iso-week-year: expected a date" d)
       ) ;unless
-      (let-values (((y w)
-                    (calc-date-iso-week-info d date-ymd calc-iso-wd leap-year?
-                      days-since-start raw-make-date
-                    ) ;calc-date-iso-week-info
-                   ) ;
-                  ) ;
+      (let-values (((y w) (calc-date-iso-week-info d)))
         y
       ) ;let-values
     ) ;define

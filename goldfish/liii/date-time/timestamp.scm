@@ -39,19 +39,10 @@
 
 (define-library (liii date-time timestamp)
   (import (scheme base)
-    (scheme case-lambda)
-    (liii date-time date)
-    (liii date-time clock-time)
-    (liii date-time moment)
-    (liii date-time time-delta)
-    (liii date-time timezone)
-    (liii date-time internal util)
-    (liii date-time internal database)
-    (liii date-time internal leap-seconds)
     (liii date-time internal timestamp-types)
-    (liii date-time internal timestamp-math)
-    (liii date-time internal timestamp-iso)
+    (liii date-time internal timestamp-construct)
     (liii date-time internal timestamp-conv)
+    (liii date-time internal timestamp-iso)
     (liii date-time internal timestamp-cmp)
   ) ;import
   (export make-timestamp date+clock-time->timestamp timestamp? timestamp-date
@@ -66,196 +57,11 @@
   ) ;export
   (begin
 
-    (define (validate-time-in-tz ts)
-      (let* ((local-tp (timestamp->local-timepoint ts))
-             (tz (%timestamp-timezone ts))
-             (offset (find-offset/wall tz local-tp))
-             (fold (%timestamp-fold ts))
-            ) ;
-        (cond ((= 0 (vector-length offset))
-               (error 'type-error
-                 "date+clock-time->timestamp: invalid local time for timezone"
-               ) ;error
-              ) ;
-              ((and (= 1 fold) (< (vector-length offset) 2))
-               (error 'type-error "date+clock-time->timestamp: invalid fold for timestamp")
-              ) ;
-              (else #t)
-        ) ;cond
-      ) ;let*
-    ) ;define
-
-    (define (validate-leapsecond ts ok err)
-      (if (< (timestamp-second ts) 60)
-        (ok)
-        (let* ((ts-utc (timestamp-in-utc ts))
-               (tp (floor (timestamp->local-timepoint ts-utc)))
-              ) ;
-          (let-values (((leap? off) (leapsecond-info/utc tp)))
-            (if leap? (ok) (err))
-          ) ;let-values
-        ) ;let*
-      ) ;if
-    ) ;define
-
-    (define date+clock-time->timestamp
-      (case-lambda
-       ((date time timezone) (date+clock-time->timestamp date time timezone 0))
-       ((date time timezone fold)
-        (unless (and (date? date)
-                  (clock-time? time)
-                  (timezone? timezone)
-                  (integer? fold)
-                  (or (= fold 0) (= fold 1))
-                ) ;and
-          (error 'type-error
-            "date+clock-time->timestamp: invalid parameters"
-            date
-            time
-            timezone
-            fold
-          ) ;error
-        ) ;unless
-        (let ((ts (%make-timestamp date time timezone fold)))
-          (validate-time-in-tz ts)
-          (validate-leapsecond ts
-            (lambda () #t)
-            (lambda ()
-              (error 'type-error
-                "date+clock-time->timestamp: invalid leap second"
-                date
-                time
-                timezone
-                fold
-              ) ;error
-            ) ;lambda
-          ) ;validate-leapsecond
-          ts
-        ) ;let
-       ) ;
-      ) ;case-lambda
-    ) ;define
-
-    (define make-timestamp
-      (case-lambda
-       ((year month day hour minute second timezone)
-        (date+clock-time->timestamp (make-date year month day)
-          (make-clock-time hour minute second)
-          timezone
-          0
-        ) ;date+clock-time->timestamp
-       ) ;
-       ((year month day hour minute second timezone fold)
-        (date+clock-time->timestamp (make-date year month day)
-          (make-clock-time hour minute second)
-          timezone
-          fold
-        ) ;date+clock-time->timestamp
-       ) ;
-      ) ;case-lambda
-    ) ;define
-
-    (define (ts-no-rules ts dt)
-      (timestamp+/no-rules ts dt %make-timestamp %timestamp-date
-        %timestamp-clock-time %timestamp-timezone
-      ) ;timestamp+/no-rules
-    ) ;define
-
-    (define (timestamp-in-utc ts)
-      (calc-timestamp-in-utc ts timestamp-timezone-offset ts-no-rules
-        %make-timestamp %timestamp-date %timestamp-clock-time
-      ) ;calc-timestamp-in-utc
-    ) ;define
-
-    (define (timestamp-in-timezone ts tz)
-      (calc-timestamp-in-tz ts tz timestamp? %timestamp-timezone
-        timestamp-in-utc ts-no-rules timestamp->local-timepoint
-        date+clock-time->timestamp %timestamp-date %timestamp-clock-time
-      ) ;calc-timestamp-in-tz
-    ) ;define
-
-    (define (moment->timestamp m tz)
-      (calc-moment->timestamp m tz moment? timezone? date+clock-time->timestamp
-        timestamp-in-timezone
-      ) ;calc-moment->timestamp
-    ) ;define
-
-    (define (timestamp->moment ts)
-      (calc-timestamp->moment ts timestamp? timestamp-in-utc
-        timestamp->local-timepoint %timestamp-clock-time %timestamp-date
-      ) ;calc-timestamp->moment
-    ) ;define
-
-    (define (timestamp->utc-posix-time ts)
-      (calc-timestamp->posix ts timestamp? timestamp-in-timezone
-        %timestamp-clock-time timestamp->local-timepoint
-      ) ;calc-timestamp->posix
-    ) ;define
-
-    (define posix-time->utc-timestamp
-      (case-lambda
-       ((seconds)
-        (unless (and (exact? seconds) (rational? seconds))
-          (error 'type-error
-            "posix-time->utc-timestamp: expected an exact rational"
-            seconds
-          ) ;error
-        ) ;unless
-        (calc-posix->timestamp seconds date+clock-time->timestamp)
-       ) ;
-       ((seconds nano-seconds)
-        (unless (and (integer? seconds)
-                  (exact? seconds)
-                  (integer? nano-seconds)
-                  (exact? nano-seconds)
-                ) ;and
-          (error 'type-error
-            "posix-time->utc-timestamp: expected exact integers"
-            seconds
-            nano-seconds
-          ) ;error
-        ) ;unless
-        (posix-time->utc-timestamp (+ seconds (/ nano-seconds 1000000000)))
-       ) ;
-      ) ;case-lambda
-    ) ;define
-
-    (define (timestamp->iso-8601 ts)
-      (format-timestamp-iso-8601 ts timestamp? timestamp-date timestamp-hour
-        timestamp-minute timestamp-second timestamp-timezone-offset
-      ) ;format-timestamp-iso-8601
-    ) ;define
-
-    (define (iso-8601->timestamp str)
-      (parse-timestamp-iso-8601 str date+clock-time->timestamp)
-    ) ;define
-
-    (define (timestamp+ ts dt)
-      (calc-timestamp+ ts dt timestamp? %timestamp-timezone %timestamp-date
-        %timestamp-clock-time timestamp-in-utc timestamp-in-timezone
-        validate-leapsecond %make-timestamp moment->timestamp timestamp->moment
-      ) ;calc-timestamp+
-    ) ;define
-
-    (define (timestamp- ts dt)
-      (calc-timestamp- ts dt timestamp+)
-    ) ;define
-
-    (define timestamp=?
-      (make-timestamp-comparator zero? timestamp? timestamp->moment)
-    ) ;define
-    (define timestamp<?
-      (make-timestamp-comparator negative? timestamp? timestamp->moment)
-    ) ;define
-    (define timestamp<=?
-      (make-timestamp-comparator (lambda (c) (<= c 0)) timestamp? timestamp->moment)
-    ) ;define
-    (define timestamp>?
-      (make-timestamp-comparator positive? timestamp? timestamp->moment)
-    ) ;define
-    (define timestamp>=?
-      (make-timestamp-comparator (lambda (c) (>= c 0)) timestamp? timestamp->moment)
-    ) ;define
+    (define timestamp=? (make-timestamp-comparator zero?))
+    (define timestamp<? (make-timestamp-comparator negative?))
+    (define timestamp<=? (make-timestamp-comparator (lambda (c) (<= c 0))))
+    (define timestamp>? (make-timestamp-comparator positive?))
+    (define timestamp>=? (make-timestamp-comparator (lambda (c) (>= c 0))))
 
   ) ;begin
 ) ;define-library

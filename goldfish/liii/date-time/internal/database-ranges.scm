@@ -45,9 +45,7 @@
     (liii date-time internal dst)
     (liii date-time internal database-types)
   ) ;import
-  (export seconds->time-delta build-ranges search-ranges find-offset/utc
-    find-offset/wall
-  ) ;export
+  (export build-ranges find-offset/utc find-offset/wall)
   (begin
 
     (define (seconds->time-delta s)

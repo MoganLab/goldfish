@@ -335,4 +335,19 @@ static const unsigned char tz_utc[]               = {
     0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x55, 0x54, 0x43, 0x00, 0x0a, 0x55, 0x54, 0x43, 0x30, 0x0a,
 };
 static const size_t tz_utc_len= 114;
+
+// Registry of embedded timezones: single source of truth for name lookup
+// (g_get_zoneinfo) and enumeration (g_embedded_zoneinfo_names).
+struct goldfish_embedded_tz {
+  const char*          name;
+  const unsigned char* data;
+  size_t               len;
+};
+
+static const goldfish_embedded_tz goldfish_embedded_tzs[]= {
+    {"Europe/Vilnius", tz_europe_vilnius, tz_europe_vilnius_len},
+    {"America/New_York", tz_america_new_york, tz_america_new_york_len},
+    {"UTC", tz_utc, tz_utc_len},
+    {"Etc/UTC", tz_utc, tz_utc_len},
+};
 #endif // LIII_DATE_TIME_EMBEDDED_TZ_H

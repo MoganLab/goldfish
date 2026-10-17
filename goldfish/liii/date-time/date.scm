@@ -42,6 +42,7 @@
     (liii date-time internal date-cmp)
     (liii date-time internal date-iso)
     (liii date-time internal date-rd)
+    (liii date-time internal date-types)
     (liii date-time internal date-week)
   ) ;import
   (export make-date date? date-year date-month date-day date-ymd date->iso-8601
@@ -51,134 +52,47 @@
   ) ;export
   (begin
 
-    (define-record-type <date>
-      (%make-date year month day)
-      date?
-      (year %date-year)
-      (month %date-month)
-      (day %date-day)
-    ) ;define-record-type
-
-    (define (leap-year? year)
-      (unless (and (integer? year) (exact? year))
-        (error 'type-error "leap-year?: year must be an exact integer" year)
-      ) ;unless
-      (cond
-       ((not (zero? (floor-remainder year 4))) #f)
-       ((not (zero? (floor-remainder year 100))) #t)
-       (else (zero? (floor-remainder year 400)))
-      ) ;cond
-    ) ;define
-
-    (define (days-in-month-raw is-leap-year month)
-      (case month
-       ((1 3 5 7 8 10 12) 31)
-       ((4 6 9 11) 30)
-       ((2) (if is-leap-year 29 28))
-       (else #f)
-      ) ;case
-    ) ;define
-
-    (define (valid-ymd? y m d)
-      (and (integer? y)
-        (exact? y)
-        (integer? m)
-        (exact? m)
-        (integer? d)
-        (exact? d)
-        (<= 1 m 12)
-        (let ((max-d (days-in-month-raw (leap-year? y) m)))
-          (and max-d (<= 1 d max-d))
-        ) ;let
-      ) ;and
-    ) ;define
-
-    (define (make-date year month day)
-      (unless (valid-ymd? year month day)
-        (error 'type-error "make-date: invalid year, month or day" year month day)
-      ) ;unless
-      (%make-date year month day)
-    ) ;define
-
-    (define (date-year d)
-      (unless (date? d)
-        (error 'type-error "date-year: expected a date" d)
-      ) ;unless
-      (%date-year d)
-    ) ;define
-
-    (define (date-month d)
-      (unless (date? d)
-        (error 'type-error "date-month: expected a date" d)
-      ) ;unless
-      (%date-month d)
-    ) ;define
-
-    (define (date-day d)
-      (unless (date? d)
-        (error 'type-error "date-day: expected a date" d)
-      ) ;unless
-      (%date-day d)
-    ) ;define
-
-    (define (date-ymd d)
-      (unless (date? d)
-        (error 'type-error "date-ymd: expected a date" d)
-      ) ;unless
-      (values (%date-year d) (%date-month d) (%date-day d))
-    ) ;define
-
     (define (date->iso-8601 d)
-      (format-date-iso-8601 d date? date-ymd)
+      (format-date-iso-8601 d)
     ) ;define
 
     (define (iso-8601->date str)
-      (parse-date-iso-8601 str make-date)
+      (parse-date-iso-8601 str)
     ) ;define
 
     (define (date-iso-weekday d)
-      (calc-date-iso-weekday d date? date-ymd)
-    ) ;define
-
-    (define (days-since-start d)
-      (days-since-year-start d date-ymd leap-year? days-in-month-raw)
+      (calc-date-iso-weekday d)
     ) ;define
 
     (define (date-iso-week d)
-      (calc-date-iso-week d date? date-ymd date-iso-weekday leap-year?
-        days-since-start %make-date
-      ) ;calc-date-iso-week
+      (calc-date-iso-week d)
     ) ;define
 
     (define (date-iso-week-year d)
-      (calc-date-iso-week-year d date? date-ymd date-iso-weekday leap-year?
-        days-since-start %make-date
-      ) ;calc-date-iso-week-year
+      (calc-date-iso-week-year d)
     ) ;define
 
     (define (date->rata-die d)
-      (calc-date->rata-die d date? date-ymd leap-year? days-in-month-raw make-date)
+      (calc-date->rata-die d)
     ) ;define
 
     (define (rata-die->date rd)
-      (calc-rata-die->date rd leap-year? days-in-month-raw make-date %make-date
-        date-ymd
-      ) ;calc-rata-die->date
+      (calc-rata-die->date rd)
     ) ;define
 
     (define (date->mjd d)
-      (calc-date->mjd d date->rata-die date?)
+      (calc-date->mjd d)
     ) ;define
 
     (define (mjd->date mjd)
-      (calc-mjd->date mjd rata-die->date)
+      (calc-mjd->date mjd)
     ) ;define
 
-    (define date=? (make-date-comparator zero? date? date-ymd))
-    (define date<? (make-date-comparator negative? date? date-ymd))
-    (define date<=? (make-date-comparator (lambda (c) (<= c 0)) date? date-ymd))
-    (define date>? (make-date-comparator positive? date? date-ymd))
-    (define date>=? (make-date-comparator (lambda (c) (>= c 0)) date? date-ymd))
+    (define date=? (make-date-comparator zero?))
+    (define date<? (make-date-comparator negative?))
+    (define date<=? (make-date-comparator (lambda (c) (<= c 0))))
+    (define date>? (make-date-comparator positive?))
+    (define date>=? (make-date-comparator (lambda (c) (>= c 0))))
 
   ) ;begin
 ) ;define-library

@@ -21,16 +21,14 @@
 #include <cstring>
 #include <ctime>
 #include <string>
+#include <vector>
 
-#include <tbox/platform/file.h>
-#include <tbox/platform/path.h>
 #include <tbox/tbox.h>
 
 #ifdef TB_CONFIG_OS_WINDOWS
 #include <windows.h>
 #else
 #include <sys/stat.h>
-#include <unistd.h>
 #endif
 
 namespace goldfish {
@@ -86,12 +84,11 @@ f_get_zoneinfo (s7_scheme* sc, s7_pointer args) {
     long sz= ftell (fp);
     fseek (fp, 0, SEEK_SET);
     if (sz >= 4) {
-      s7_pointer bv        = s7_make_byte_vector (sc, (s7_int) sz, 1, NULL);
-      uint8_t*   buf       = s7_byte_vector_elements (bv);
-      size_t     read_bytes= fread (buf, 1, sz, fp);
+      std::vector<unsigned char> buf (sz);
+      size_t                     read_bytes= fread (buf.data (), 1, sz, fp);
       fclose (fp);
       if (read_bytes == (size_t) sz) {
-        return bv;
+        return make_bytevector_from_data (sc, buf.data (), buf.size ());
       }
     }
     else {
@@ -100,14 +97,10 @@ f_get_zoneinfo (s7_scheme* sc, s7_pointer args) {
   }
 
   // 2. Fallback to embedded timezone data (e.g. for Windows or minimal containers)
-  if (strcmp (name, "Europe/Vilnius") == 0) {
-    return make_bytevector_from_data (sc, tz_europe_vilnius, tz_europe_vilnius_len);
-  }
-  if (strcmp (name, "America/New_York") == 0) {
-    return make_bytevector_from_data (sc, tz_america_new_york, tz_america_new_york_len);
-  }
-  if (strcmp (name, "UTC") == 0 || strcmp (name, "Etc/UTC") == 0) {
-    return make_bytevector_from_data (sc, tz_utc, tz_utc_len);
+  for (size_t i= 0; i < sizeof (goldfish_embedded_tzs) / sizeof (goldfish_embedded_tzs[0]); ++i) {
+    if (strcmp (name, goldfish_embedded_tzs[i].name) == 0) {
+      return make_bytevector_from_data (sc, goldfish_embedded_tzs[i].data, goldfish_embedded_tzs[i].len);
+    }
   }
 
   return s7_f (sc);
@@ -126,6 +119,15 @@ f_zoneinfo_available_p (s7_scheme* sc, s7_pointer args) {
 #endif
 }
 
+static s7_pointer
+f_embedded_zoneinfo_names (s7_scheme* sc, s7_pointer args) {
+  s7_pointer names= s7_nil (sc);
+  for (int i= (int) (sizeof (goldfish_embedded_tzs) / sizeof (goldfish_embedded_tzs[0])) - 1; i >= 0; --i) {
+    names= s7_cons (sc, s7_make_string (sc, goldfish_embedded_tzs[i].name), names);
+  }
+  return names;
+}
+
 void
 glue_liii_date_time (s7_scheme* sc) {
   s7_define_function (sc, "g_system_timezone_offset_minutes", goldfish::f_system_timezone_offset_minutes, 0, 0, false,
@@ -134,6 +136,8 @@ glue_liii_date_time (s7_scheme* sc) {
                       "(g_get_zoneinfo name) => bytevector or #f");
   s7_define_function (sc, "g_zoneinfo_available?", goldfish::f_zoneinfo_available_p, 0, 0, false,
                       "(g_zoneinfo_available?) => boolean");
+  s7_define_function (sc, "g_embedded_zoneinfo_names", goldfish::f_embedded_zoneinfo_names, 0, 0, false,
+                      "(g_embedded_zoneinfo_names) => list of embedded timezone names");
 }
 
 } // namespace goldfish

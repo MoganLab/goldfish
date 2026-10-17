@@ -22,4 +22,12 @@
   (check-true (list? zones))
   (check-true (> (length zones) 0)))
 
+;; 内嵌时区注册表：C++ 与 Scheme 回退名单的单一来源
+(let ((embedded (g_embedded_zoneinfo_names)))
+  (check-true (list? embedded))
+  (check-true (and (member "UTC" embedded) #t))
+  (check-true (and (member "Etc/UTC" embedded) #t))
+  (check-true (and (member "Europe/Vilnius" embedded) #t))
+  (check-true (and (member "America/New_York" embedded) #t)))
+
 (check-report)

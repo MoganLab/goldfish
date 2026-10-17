@@ -47,6 +47,7 @@
     (liii date-time internal tzif)
     (liii date-time internal dst)
     (liii date-time internal leap-seconds)
+    (liii date-time internal date-rd)
     (liii date-time internal database-types)
     (liii date-time internal database-ranges)
     (liii date-time internal database-discover)
@@ -63,8 +64,6 @@
     (define *cached-timezones* (make-vector 101 '()))
     (define *timezone-names* #f)
     (define *system-timezone-cached* #f)
-
-    (define unix-epoch-rd (date->rata-die (make-date 1970 1 1)))
 
     (define (convert-tz-offset offset)
       (and offset

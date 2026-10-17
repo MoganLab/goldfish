@@ -38,11 +38,14 @@
 ;;
 
 (define-library (liii date-time internal date-cmp)
-  (import (scheme base))
+  (import (scheme base)
+    (liii date-time internal util)
+    (liii date-time internal date-types)
+  ) ;import
   (export make-date-comparator)
   (begin
 
-    (define (%date-compare-impl d1 d2 date-ymd)
+    (define (%date-compare-impl d1 d2)
       (let-values (((y1 m1 day1) (date-ymd d1)) ((y2 m2 day2) (date-ymd d2)))
         (cond ((< y1 y2) -1)
               ((> y1 y2) 1)
@@ -55,29 +58,10 @@
       ) ;let-values
     ) ;define
 
-    (define (make-date-comparator pred date? date-ymd)
-      (lambda (d1 d2 . rest)
-        (unless (date? d1)
-          (error 'type-error "date comparison: expected a date" d1)
-        ) ;unless
-        (unless (date? d2)
-          (error 'type-error "date comparison: expected a date" d2)
-        ) ;unless
-        (let loop
-          ((prev d1) (curr d2) (rem rest))
-          (and (pred (%date-compare-impl prev curr date-ymd))
-            (if (null? rem)
-              #t
-              (let ((nxt (car rem)))
-                (unless (date? nxt)
-                  (error 'type-error "date comparison: expected a date" nxt)
-                ) ;unless
-                (loop curr nxt (cdr rem))
-              ) ;let
-            ) ;if
-          ) ;and
-        ) ;let
-      ) ;lambda
+    (define (make-date-comparator pred)
+      (make-chain-comparator pred date? "date comparison: expected a date"
+        %date-compare-impl
+      ) ;make-chain-comparator
     ) ;define
 
   ) ;begin

@@ -38,8 +38,8 @@
 ;;
 
 (define-library (liii date-time internal date-rd)
-  (import (scheme base))
-  (export days-since-year-start apply-days-after-year-start calc-date->rata-die
+  (import (scheme base) (liii date-time internal date-types))
+  (export unix-epoch-rd days-since-year-start calc-date->rata-die
     calc-rata-die->date calc-date->mjd calc-mjd->date
   ) ;export
   (begin
@@ -49,21 +49,23 @@
     (define days/400y (+ (* 4 days/100y) 1))
     (define mjd-rd-offset (- 2400000 1721424))
 
-    (define (days-since-year-start d date-ymd leap-year? days-in-month-raw)
+    (define (days-since-year-start* year month day is-leap)
+      (let loop
+        ((days 0) (i 1))
+        (if (= i month)
+          (+ days day)
+          (loop (+ days (days-in-month-raw is-leap i)) (+ 1 i))
+        ) ;if
+      ) ;let
+    ) ;define
+
+    (define (days-since-year-start d)
       (let-values (((year month day) (date-ymd d)))
-        (let ((is-leap (leap-year? year)))
-          (let loop
-            ((days 0) (i 1))
-            (if (= i month)
-              (+ days day)
-              (loop (+ days (days-in-month-raw is-leap i)) (+ 1 i))
-            ) ;if
-          ) ;let
-        ) ;let
+        (days-since-year-start* year month day (leap-year? year))
       ) ;let-values
     ) ;define
 
-    (define (apply-days-after-year-start year days leap-year? days-in-month-raw make-date)
+    (define (apply-days-after-year-start year days)
       (let ((is-leap (leap-year? year)))
         (let loop
           ((days days) (m 1))
@@ -74,7 +76,7 @@
       ) ;let
     ) ;define
 
-    (define (rd-for-year year leap-year?)
+    (define (rd-for-year year)
       (let* ((curr-year-adjust (if (leap-year? year) -366 -365))
              (part400s (* days/400y (floor-quotient year 400)))
              (y (floor-remainder year 400))
@@ -88,36 +90,20 @@
       ) ;let*
     ) ;define
 
-    (define (date->rata-die* d date-ymd leap-year? days-in-month-raw)
-      (let-values (((year m day) (date-ymd d)))
-        (+ (rd-for-year year leap-year?)
-          (days-since-year-start d date-ymd leap-year? days-in-month-raw)
-        ) ;+
-      ) ;let-values
+    (define (date->rata-die* year month day)
+      (+ (rd-for-year year) (days-since-year-start* year month day (leap-year? year)))
     ) ;define
 
-    (define (calc-date->rata-die d date? date-ymd leap-year? days-in-month-raw make-date)
+    (define (calc-date->rata-die d)
       (unless (date? d)
         (error 'type-error "date->rata-die: expected a date" d)
       ) ;unless
       (let-values (((year m day) (date-ymd d)))
         (if (>= year 0)
-          (date->rata-die* d date-ymd leap-year? days-in-month-raw)
+          (date->rata-die* year m day)
           (let* ((n (+ 1 (floor-quotient (abs year) 400)))
-                 (rd1
-                   (date->rata-die* (make-date (+ year (* n 400)) m day)
-                     date-ymd
-                     leap-year?
-                     days-in-month-raw
-                   ) ;date->rata-die*
-                 ) ;rd1
-                 (rd2
-                   (date->rata-die* (make-date (+ 1 (* n 400)) 1 1)
-                     date-ymd
-                     leap-year?
-                     days-in-month-raw
-                   ) ;date->rata-die*
-                 ) ;rd2
+                 (rd1 (date->rata-die* (+ year (* n 400)) m day))
+                 (rd2 (date->rata-die* (+ 1 (* n 400)) 1 1))
                 ) ;
             (+ 1 (- rd1 rd2))
           ) ;let*
@@ -125,7 +111,9 @@
       ) ;let-values
     ) ;define
 
-    (define (rata-die->date* rd leap-year? days-in-month-raw make-date)
+    (define unix-epoch-rd (calc-date->rata-die (make-date 1970 1 1)))
+
+    (define (rata-die->date* rd)
       (let* ((rd (- rd 1))
              (part400s (* 400 (floor-quotient rd days/400y)))
              (rd (floor-remainder rd days/400y))
@@ -141,46 +129,38 @@
              (rd (- rd (* rest 365)))
              (year (+ part400s part100s part4s rest))
             ) ;
-        (apply-days-after-year-start (+ 1 year)
-          (+ 1 rd)
-          leap-year?
-          days-in-month-raw
-          make-date
-        ) ;apply-days-after-year-start
+        (apply-days-after-year-start (+ 1 year) (+ 1 rd))
       ) ;let*
     ) ;define
 
-    (define (calc-rata-die->date rd leap-year? days-in-month-raw make-date
-              raw-make-date date-ymd
-            ) ;calc-rata-die->date
+    (define (calc-rata-die->date rd)
       (unless (and (integer? rd) (exact? rd))
         (error 'type-error "rata-die->date: expected an exact integer" rd)
       ) ;unless
       (if (>= rd 1)
-        (rata-die->date* rd leap-year? days-in-month-raw make-date)
+        (rata-die->date* rd)
         (let* ((n (+ 1 (floor-quotient (abs rd) days/400y)))
-               (d* (rata-die->date* (+ (* n days/400y) rd) leap-year? days-in-month-raw make-date)
-               ) ;d*
+               (d* (rata-die->date* (+ (* n days/400y) rd)))
               ) ;
           (let-values (((y m day) (date-ymd d*)))
-            (raw-make-date (- y (* n 400)) m day)
+            (%make-date (- y (* n 400)) m day)
           ) ;let-values
         ) ;let*
       ) ;if
     ) ;define
 
-    (define (calc-date->mjd d date->rata-die date?)
+    (define (calc-date->mjd d)
       (unless (date? d)
         (error 'type-error "date->mjd: expected a date" d)
       ) ;unless
-      (- (date->rata-die d) mjd-rd-offset)
+      (- (calc-date->rata-die d) mjd-rd-offset)
     ) ;define
 
-    (define (calc-mjd->date mjd rata-die->date)
+    (define (calc-mjd->date mjd)
       (unless (and (integer? mjd) (exact? mjd))
         (error 'type-error "mjd->date: expected an exact integer" mjd)
       ) ;unless
-      (rata-die->date (+ mjd-rd-offset mjd))
+      (calc-rata-die->date (+ mjd-rd-offset mjd))
     ) ;define
 
   ) ;begin

@@ -44,8 +44,10 @@
     (liii date-time time-delta)
     (liii date-time timezone)
     (liii date-time internal util)
+    (liii date-time internal timestamp-types)
+    (liii date-time internal timestamp-conv)
   ) ;import
-  (export format-timestamp-iso-8601 parse-timestamp-iso-8601)
+  (export timestamp->iso-8601 iso-8601->timestamp)
   (begin
 
     (define (format-second-iso s)
@@ -62,13 +64,11 @@
       ) ;let*
     ) ;define
 
-    (define (format-timestamp-iso-8601 ts timestamp? ts-date ts-hour ts-minute
-              ts-second ts-offset
-            ) ;format-timestamp-iso-8601
+    (define (timestamp->iso-8601 ts)
       (unless (timestamp? ts)
         (error 'type-error "timestamp->iso-8601: expected a timestamp" ts)
       ) ;unless
-      (let* ((off (ts-offset ts))
+      (let* ((off (timestamp-timezone-offset ts))
              (h (time-delta-hours off))
              (m (time-delta-minutes off))
              (tz-str
@@ -84,26 +84,30 @@
                ) ;if
              ) ;tz-str
             ) ;
-        (string-append (date->iso-8601 (ts-date ts))
+        (string-append (date->iso-8601 (%timestamp-date ts))
           "T"
-          (left-pad (number->string (ts-hour ts)) #\0 2)
+          (left-pad (number->string (timestamp-hour ts)) #\0 2)
           ":"
-          (left-pad (number->string (ts-minute ts)) #\0 2)
+          (left-pad (number->string (timestamp-minute ts)) #\0 2)
           ":"
-          (format-second-iso (ts-second ts))
+          (format-second-iso (timestamp-second ts))
           tz-str
         ) ;string-append
       ) ;let*
     ) ;define
 
-    (define (find-t-index str)
+    (define (string-index str pred)
       (let loop
         ((i 0))
         (cond ((= i (string-length str)) #f)
-              ((or (char=? (string-ref str i) #\T) (char=? (string-ref str i) #\t)) i)
+              ((pred (string-ref str i)) i)
               (else (loop (+ i 1)))
         ) ;cond
       ) ;let
+    ) ;define
+
+    (define (string-index-char str ch)
+      (string-index str (lambda (c) (char=? c ch)))
     ) ;define
 
     (define (find-tz-sign str)
@@ -112,16 +116,6 @@
         (cond ((< i 0) 0)
               ((or (char=? (string-ref str i) #\+) (char=? (string-ref str i) #\-)) i)
               (else (loop (- i 1)))
-        ) ;cond
-      ) ;let
-    ) ;define
-
-    (define (string-index-char str ch)
-      (let loop
-        ((i 0))
-        (cond ((= i (string-length str)) #f)
-              ((char=? (string-ref str i) ch) i)
-              (else (loop (+ i 1)))
         ) ;cond
       ) ;let
     ) ;define
@@ -156,11 +150,11 @@
       ) ;cond
     ) ;define
 
-    (define (parse-timestamp-iso-8601 str make-ts)
+    (define (iso-8601->timestamp str)
       (unless (string? str)
         (error 'type-error "iso-8601->timestamp: expected a string" str)
       ) ;unless
-      (let ((t-pos (find-t-index str)))
+      (let ((t-pos (string-index str (lambda (c) (or (char=? c #\T) (char=? c #\t))))))
         (unless t-pos
           (error 'type-error "iso-8601->timestamp: invalid format (missing T)" str)
         ) ;unless
@@ -170,7 +164,7 @@
               ) ;
           (let-values (((time-str tz) (parse-time-and-tz time-rest)))
             (let ((clk (iso-8601->clock-time time-str)))
-              (make-ts d clk tz)
+              (date+clock-time->timestamp d clk tz)
             ) ;let
           ) ;let-values
         ) ;let*

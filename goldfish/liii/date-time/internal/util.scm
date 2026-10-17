@@ -40,9 +40,30 @@
 (define-library (liii date-time internal util)
   (import (scheme base))
   (export left-pad floor/ truncate/ unix-timestamp->ntp-timestamp
-    ntp-timestamp->unix-timestamp
+    ntp-timestamp->unix-timestamp make-chain-comparator
   ) ;export
   (begin
+
+    (define (make-chain-comparator pred type-check msg compare-impl)
+      (lambda (t1 t2 . rest)
+        (let ((check (lambda (t) (unless (type-check t) (error 'type-error msg t)))))
+          (check t1)
+          (check t2)
+          (let loop
+            ((prev t1) (curr t2) (rem rest))
+            (and (pred (compare-impl prev curr))
+              (if (null? rem)
+                #t
+                (let ((nxt (car rem)))
+                  (check nxt)
+                  (loop curr nxt (cdr rem))
+                ) ;let
+              ) ;if
+            ) ;and
+          ) ;let
+        ) ;let
+      ) ;lambda
+    ) ;define
 
     (define (left-pad str c min-length)
       (let ((pad-size (max 0 (- min-length (string-length str)))))

@@ -38,12 +38,17 @@
 ;;
 
 (define-library (liii date-time internal timestamp-cmp)
-  (import (scheme base) (liii date-time moment))
+  (import (scheme base)
+    (liii date-time moment)
+    (liii date-time internal util)
+    (liii date-time internal timestamp-types)
+    (liii date-time internal timestamp-conv)
+  ) ;import
   (export make-timestamp-comparator)
   (begin
 
-    (define (%timestamp-compare-impl ts1 ts2 ts->m)
-      (let ((m1 (ts->m ts1)) (m2 (ts->m ts2)))
+    (define (%timestamp-compare-impl ts1 ts2)
+      (let ((m1 (timestamp->moment ts1)) (m2 (timestamp->moment ts2)))
         (cond ((moment<? m1 m2) -1)
               ((moment>? m1 m2) 1)
               (else 0)
@@ -51,29 +56,10 @@
       ) ;let
     ) ;define
 
-    (define (make-timestamp-comparator pred timestamp? ts->m)
-      (lambda (t1 t2 . rest)
-        (unless (timestamp? t1)
-          (error 'type-error "timestamp comparison: expected a timestamp" t1)
-        ) ;unless
-        (unless (timestamp? t2)
-          (error 'type-error "timestamp comparison: expected a timestamp" t2)
-        ) ;unless
-        (let loop
-          ((prev t1) (curr t2) (rem rest))
-          (and (pred (%timestamp-compare-impl prev curr ts->m))
-            (if (null? rem)
-              #t
-              (let ((nxt (car rem)))
-                (unless (timestamp? nxt)
-                  (error 'type-error "timestamp comparison: expected a timestamp" nxt)
-                ) ;unless
-                (loop curr nxt (cdr rem))
-              ) ;let
-            ) ;if
-          ) ;and
-        ) ;let
-      ) ;lambda
+    (define (make-timestamp-comparator pred)
+      (make-chain-comparator pred timestamp?
+        "timestamp comparison: expected a timestamp" %timestamp-compare-impl
+      ) ;make-chain-comparator
     ) ;define
 
   ) ;begin
