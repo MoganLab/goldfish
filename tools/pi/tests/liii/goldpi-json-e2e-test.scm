@@ -144,6 +144,22 @@
     (check-true (pair? (member "agent_settled" event-types)))
     (process-close p))
 
+  ;; 4. Anthropic provider JSON 模式事件流验证
+  (let* ((ant-env (append (list (cons "ANTHROPIC_API_KEY" "sk-ant-test-json")) test-env))
+         (cmd (list GF_BIN "pi" "--provider" "anthropic" "--mode" "json" "Hello anthropic json"))
+         (p (process-spawn cmd :env ant-env :stdout 'pipe :stderr 'pipe))
+         (code (process-wait p 10000))
+         (raw-out (process-read p :stream 'stdout))
+         (lines (filter (lambda (s) (not (string-null? s))) (string-split raw-out "\n")))
+         (events (map string->json lines))
+         (event-types (map (lambda (ev) (cdr (assoc "type" ev))) events))
+        ) ;
+    (check code => 0)
+    (check (car event-types) => "session")
+    (check (car (reverse event-types)) => "agent_settled")
+    (check-true (pair? (member "message_update" event-types)))
+    (process-close p))
+
   (process-kill proc)
 ) ;let*
 

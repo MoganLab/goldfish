@@ -125,6 +125,18 @@
     (check-true (string-contains? out "Project context verified: CLAUDE.md is present"))
     (process-close p))
 
+  ;; 7. CLI --provider anthropic print 模式端到端测试
+  (let* ((ant-env (append (list (cons "ANTHROPIC_API_KEY" "sk-ant-test-e2e")) test-env))
+         (cmd (list GF_BIN "pi" "--provider" "anthropic" "--print" "Hello Anthropic CLI"))
+         (p (process-spawn cmd :env ant-env :stdout 'pipe :stderr 'pipe))
+         (code (process-wait p 10000))
+         (out (process-read p :stream 'stdout))
+        ) ;
+    (check code => 0)
+    (check-true (or (string-contains? out "Hello from Claude stub!")
+                    (string-contains? out "from Claude stream!")))
+    (process-close p))
+
   (process-kill proc)
 ) ;let*
 

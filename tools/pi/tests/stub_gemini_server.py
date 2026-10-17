@@ -49,6 +49,66 @@ class StubHandler(http.server.BaseHTTPRequestHandler):
                 return
 
             is_stream = req_json.get("stream", False) or "/stream" in path
+            if "/tool-call" in path:
+                has_tool_result = any(
+                    any(b.get("type") == "tool_result" for b in m.get("content", []))
+                    if isinstance(m.get("content"), list) else False
+                    for m in req_json.get("messages", [])
+                )
+                if is_stream:
+                    self.send_response(200)
+                    self.send_header("Content-Type", "text/event-stream")
+                    self.send_header("Cache-Control", "no-cache")
+                    self.end_headers()
+                    if has_tool_result:
+                        evs = [
+                            ("message_start", {"type": "message_start", "message": {"id": "msg_done", "type": "message", "role": "assistant", "usage": {"input_tokens": 25, "output_tokens": 0}}}),
+                            ("content_block_start", {"type": "content_block_start", "index": 0, "content_block": {"type": "text", "text": ""}}),
+                            ("content_block_delta", {"type": "content_block_delta", "index": 0, "delta": {"type": "text_delta", "text": "Tool executed successfully!"}}),
+                            ("content_block_stop", {"type": "content_block_stop", "index": 0}),
+                            ("message_delta", {"type": "message_delta", "delta": {"stop_reason": "end_turn"}, "usage": {"output_tokens": 5}}),
+                            ("message_stop", {"type": "message_stop"})
+                        ]
+                    else:
+                        evs = [
+                            ("message_start", {"type": "message_start", "message": {"id": "msg_tc", "type": "message", "role": "assistant", "usage": {"input_tokens": 20, "output_tokens": 0}}}),
+                            ("content_block_start", {"type": "content_block_start", "index": 0, "content_block": {"type": "tool_use", "id": "ant_call_1", "name": "bash", "input": {}}}),
+                            ("content_block_delta", {"type": "content_block_delta", "index": 0, "delta": {"type": "input_json_delta", "partial_json": '{"command":"echo test"}'}}),
+                            ("content_block_stop", {"type": "content_block_stop", "index": 0}),
+                            ("message_delta", {"type": "message_delta", "delta": {"stop_reason": "tool_use"}, "usage": {"output_tokens": 10}}),
+                            ("message_stop", {"type": "message_stop"})
+                        ]
+                    for ev_name, ev_data in evs:
+                        self.wfile.write(f"event: {ev_name}\ndata: {json.dumps(ev_data)}\n\n".encode("utf-8"))
+                        self.wfile.flush()
+                    return
+
+                if has_tool_result:
+                    resp = {
+                        "id": "msg_tool_done",
+                        "type": "message",
+                        "role": "assistant",
+                        "content": [{"type": "text", "text": "Tool executed successfully!"}],
+                        "stop_reason": "end_turn",
+                        "usage": {"input_tokens": 25, "output_tokens": 5}
+                    }
+                else:
+                    resp = {
+                        "id": "msg_tool_1",
+                        "type": "message",
+                        "role": "assistant",
+                        "content": [
+                            {"type": "tool_use", "id": "ant_call_1", "name": "bash", "input": {"command": "echo test"}}
+                        ],
+                        "stop_reason": "tool_use",
+                        "usage": {"input_tokens": 20, "output_tokens": 10}
+                    }
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps(resp).encode("utf-8"))
+                return
+
             if is_stream:
                 self.send_response(200)
                 self.send_header("Content-Type", "text/event-stream")
@@ -68,31 +128,19 @@ class StubHandler(http.server.BaseHTTPRequestHandler):
                     self.wfile.flush()
                 return
 
-            if "/tool-call" in path:
-                resp = {
-                    "id": "msg_tool_1",
-                    "type": "message",
-                    "role": "assistant",
-                    "content": [
-                        {"type": "tool_use", "id": "ant_call_1", "name": "bash", "input": {"command": "echo test"}}
-                    ],
-                    "stop_reason": "tool_use",
-                    "usage": {"input_tokens": 20, "output_tokens": 10}
+            resp = {
+                "id": "msg_ant_1",
+                "type": "message",
+                "role": "assistant",
+                "content": [{"type": "text", "text": "Hello from Claude stub!"}],
+                "stop_reason": "end_turn",
+                "usage": {"input_tokens": 15, "output_tokens": 5},
+                "echo": {
+                    "apiKey": self.headers.get("x-api-key"),
+                    "anthropicVersion": self.headers.get("anthropic-version"),
+                    "body": req_json
                 }
-            else:
-                resp = {
-                    "id": "msg_ant_1",
-                    "type": "message",
-                    "role": "assistant",
-                    "content": [{"type": "text", "text": "Hello from Claude stub!"}],
-                    "stop_reason": "end_turn",
-                    "usage": {"input_tokens": 15, "output_tokens": 5},
-                    "echo": {
-                        "apiKey": self.headers.get("x-api-key"),
-                        "anthropicVersion": self.headers.get("anthropic-version"),
-                        "body": req_json
-                    }
-                }
+            }
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
             self.end_headers()

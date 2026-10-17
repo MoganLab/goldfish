@@ -21,6 +21,7 @@
     (liii time)
     (liii goldpi-provider)
     (liii goldpi-stream)
+    (liii goldpi-anthropic-stream)
     (liii goldpi-tools)
   ) ;import
   (export run-agent-loop extract-assistant-text)
@@ -148,8 +149,16 @@
       (filter (lambda (c) (equal? (%assoc-val 'type "type" c "") "toolCall")) content)
     ) ;define
 
+    (define (%request-provider-stream provider config msgs sys-prompt tools on-ev timeout)
+      (if (equal? provider "anthropic")
+        (anthropic-request-stream config msgs sys-prompt tools on-ev timeout)
+        (gemini-request-stream config msgs sys-prompt tools on-ev timeout)
+      ) ;if
+    ) ;define
+
     (define (%step-agent-turn config msgs system-prompt emit timeout)
       (let* ((active-tools (cdr (assoc 'tools config)))
+             (provider (cdr (or (assoc 'provider config) '(#f . "google"))))
              (on-stream-ev
                (if (procedure? emit)
                  (lambda (ev)
@@ -160,9 +169,9 @@
                  #f
                ) ;if
              ) ;on-stream-ev
-             (resp (gemini-request-stream config msgs system-prompt active-tools
-                     on-stream-ev timeout
-                   ) ;gemini-request-stream
+             (resp (%request-provider-stream provider config msgs system-prompt
+                     active-tools on-stream-ev timeout
+                   ) ;%request-provider-stream
              ) ;resp
             ) ;
         (when (procedure? emit)
