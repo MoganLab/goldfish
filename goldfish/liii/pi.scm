@@ -22,6 +22,7 @@
     (liii pi write)
     (liii pi edit)
     (liii pi bash)
+    (liii uuid)
     (liii pi ls)
     (liii pi find)
     (liii pi grep)
@@ -52,7 +53,7 @@
     pi-event-agent-start pi-event-turn-start pi-event-message-start
     pi-event-message-update pi-event-message-end pi-event-tool-execution-start
     pi-event-tool-execution-update pi-event-tool-execution-end pi-event-turn-end
-    pi-event-agent-end pi-event-agent-settled
+    pi-event-agent-end pi-event-agent-settled uuid4
   ) ;export
   (begin
 

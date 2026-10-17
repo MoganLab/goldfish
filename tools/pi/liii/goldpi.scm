@@ -43,6 +43,7 @@
                  "      --tools <list>             Comma-separated list of tools\n"
                  "      --max-turns <n>            Maximum turns limit (default: 200, 0 for unlimited)\n"
                  "      --timeout <seconds>        Timeout in seconds for bash and HTTP (default: 120)\n"
+                 "  -c, --continue                 Continue previous session\n"
                  "      --no-session               Do not persist session\n"
                  "      --system-prompt <text>     Override system prompt\n"
                  "      --append-system-prompt <text>\n"
