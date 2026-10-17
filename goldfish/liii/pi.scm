@@ -28,6 +28,7 @@
     (liii pi config)
     (liii pi provider)
     (liii pi prompt)
+    (liii pi event)
   ) ;import
   (export resolve-app-mode format-file-block build-initial-prompt
     PI_DEFAULT_MAX_LINES PI_DEFAULT_MAX_BYTES PI_GREP_MAX_LINE_LENGTH
@@ -42,7 +43,11 @@
     gemini-normalize-tool-call-id gemini-generate-tool-call-id
     gemini-build-contents gemini-build-request-body pi-resolve-prompt-input
     pi-load-project-context pi-build-system-prompt PI_BUILTIN_TOOL_SNIPPETS
-    PI_BUILTIN_TOOL_GUIDELINES
+    PI_BUILTIN_TOOL_GUIDELINES pi-iso-8601-utc-now pi-current-time-millis
+    pi-serialize-event pi-event-session pi-event-agent-start pi-event-turn-start
+    pi-event-message-start pi-event-message-end pi-event-tool-execution-start
+    pi-event-tool-execution-end pi-event-turn-end pi-event-agent-end
+    pi-event-agent-settled
   ) ;export
   (begin
 
