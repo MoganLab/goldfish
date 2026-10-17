@@ -16,7 +16,7 @@
 
 (define-library (liii diff hunk)
   (export format-range-unified format-group format-all-groups make-diff-header)
-  (import (scheme base) (liii base) (liii string))
+  (import (scheme base) (liii base) (liii list) (liii string))
   (begin
 
     (define (format-range-unified start stop)
@@ -28,36 +28,15 @@
       ) ;let*
     ) ;define
 
-    (define (append-del-lines idx end vec acc)
+    (define (append-prefix-lines prefix idx end vec acc)
       (if (>= idx end)
         acc
-        (append-del-lines (+ idx 1)
+        (append-prefix-lines prefix
+          (+ idx 1)
           end
           vec
-          (cons (string-append "-" (vector-ref vec idx)) acc)
-        ) ;append-del-lines
-      ) ;if
-    ) ;define
-
-    (define (append-add-lines idx end vec acc)
-      (if (>= idx end)
-        acc
-        (append-add-lines (+ idx 1)
-          end
-          vec
-          (cons (string-append "+" (vector-ref vec idx)) acc)
-        ) ;append-add-lines
-      ) ;if
-    ) ;define
-
-    (define (append-eq-lines idx end vec acc)
-      (if (>= idx end)
-        acc
-        (append-eq-lines (+ idx 1)
-          end
-          vec
-          (cons (string-append " " (vector-ref vec idx)) acc)
-        ) ;append-eq-lines
+          (cons (string-append prefix (vector-ref vec idx)) acc)
+        ) ;append-prefix-lines
       ) ;if
     ) ;define
 
@@ -69,14 +48,14 @@
             (j2 (list-ref code 4))
            ) ;
         (if (eq? tag 'equal)
-          (append-eq-lines i1 i2 a lines)
+          (append-prefix-lines " " i1 i2 a lines)
           (let* ((acc1 (if (or (eq? tag 'replace) (eq? tag 'delete))
-                         (append-del-lines i1 i2 a lines)
+                         (append-prefix-lines "-" i1 i2 a lines)
                          lines
                        ) ;if
                  ) ;acc1
                  (acc2 (if (or (eq? tag 'replace) (eq? tag 'insert))
-                         (append-add-lines j1 j2 b acc1)
+                         (append-prefix-lines "+" j1 j2 b acc1)
                          acc1
                        ) ;if
                  ) ;acc2
@@ -89,7 +68,7 @@
 
     (define (format-group group a b)
       (let* ((first-c (car group))
-             (last-c (car (reverse group)))
+             (last-c (car (last-pair group)))
              (first-i1 (list-ref first-c 1))
              (last-i2 (list-ref last-c 2))
              (first-j1 (list-ref first-c 3))
@@ -131,10 +110,9 @@
       (let loop
         ((rem groups) (acc '()))
         (if (null? rem)
-          acc
-          (let ((hunk (format-group (car rem) vec-a vec-b)))
-            (loop (cdr rem) (append acc hunk))
-          ) ;let
+          (reverse acc)
+          ;; 逆序累积 hunk 行，避免循环内 append 的 O(n^2) 复制
+          (loop (cdr rem) (append (reverse (format-group (car rem) vec-a vec-b)) acc))
         ) ;if
       ) ;let
     ) ;define

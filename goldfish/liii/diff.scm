@@ -27,24 +27,7 @@
   (begin
 
     (define (strip-line-ending s)
-      (let ((len (string-length s)))
-        (cond
-         ((and (>= len 2)
-            (char=? (string-ref s (- len 1)) #\newline)
-            (char=? (string-ref s (- len 2)) #\return)
-          ) ;and
-          (substring s 0 (- len 2))
-         ) ;
-         ((and (>= len 1)
-            (or (char=? (string-ref s (- len 1)) #\newline)
-              (char=? (string-ref s (- len 1)) #\return)
-            ) ;or
-          ) ;and
-          (substring s 0 (- len 1))
-         ) ;
-         (else s)
-        ) ;cond
-      ) ;let
+      (string-remove-suffix (string-remove-suffix s "\n") "\r")
     ) ;define
 
     (define (line-end-pos s i start)
@@ -169,24 +152,13 @@
     ) ;define*
 
     (define* (unified-diff-string from-text to-text (fromfile "a") (tofile "b") (n 3))
+      ;; fromfile/tofile/n 的校验交给 unified-diff 内的 validate-diff-args，避免重复
       (unless (string? from-text)
         (type-error "unified-diff-string: from-text must be string")
       ) ;unless
       (unless (string? to-text)
         (type-error "unified-diff-string: to-text must be string")
       ) ;unless
-      (unless (string? fromfile)
-        (type-error "unified-diff-string: fromfile must be string")
-      ) ;unless
-      (unless (string? tofile)
-        (type-error "unified-diff-string: tofile must be string")
-      ) ;unless
-      (unless (and (integer? n) (exact? n))
-        (type-error "unified-diff-string: n must be an exact integer")
-      ) ;unless
-      (when (< n 0)
-        (value-error "unified-diff-string: n must be non-negative")
-      ) ;when
 
       (let ((diff-lines (unified-diff (split-lines from-text)
                           (split-lines to-text)

@@ -42,27 +42,35 @@
       ) ;when
     ) ;define
 
-    (define (scan-indices inds blo bhi i j2len best-box acc)
-      (cond
-       ((or (null? inds) (>= (car inds) bhi)) acc)
-       ((< (car inds) blo) (scan-indices (cdr inds) blo bhi i j2len best-box acc))
-       (else
-         (let* ((j (car inds)) (prev (assoc (- j 1) j2len)) (k (+ (if prev (cdr prev) 0) 1)))
-           (update-best k i j best-box)
-           (scan-indices (cdr inds) blo bhi i j2len best-box (cons (cons j k) acc))
-         ) ;let*
-       ) ;else
-      ) ;cond
+    ;; 每轮 i 重建 j2len 哈希表（对齐 difflib 的 newj2len 语义），
+    ;; 用 O(1) 查表替代 alist 线性 assoc
+    (define (scan-indices inds blo bhi i j2len best-box)
+      (let ((new-j2len (make-hash-table)))
+        (let loop
+          ((rem inds))
+          (cond
+           ((or (null? rem) (>= (car rem) bhi)) new-j2len)
+           ((< (car rem) blo) (loop (cdr rem)))
+           (else
+             (let* ((j (car rem)) (k (+ (hash-table-ref/default j2len (- j 1) 0) 1)))
+               (update-best k i j best-box)
+               (hash-table-set! new-j2len j k)
+               (loop (cdr rem))
+             ) ;let*
+           ) ;else
+          ) ;cond
+        ) ;let
+      ) ;let
     ) ;define
 
     (define (find-longest-match a b b2j alo ahi blo bhi)
       (let ((best-box (vector alo blo 0)))
         (let loop
-          ((i alo) (j2len '()))
+          ((i alo) (j2len (make-hash-table)))
           (if (< i ahi)
             (let* ((elem (vector-ref a i))
                    (inds (hash-table-ref/default b2j elem '()))
-                   (new-j2len (scan-indices inds blo bhi i j2len best-box '()))
+                   (new-j2len (scan-indices inds blo bhi i j2len best-box))
                   ) ;
               (loop (+ i 1) new-j2len)
             ) ;let*
