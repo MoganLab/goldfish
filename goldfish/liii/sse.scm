@@ -19,7 +19,7 @@
     sse-event-id sse-event-retry sse-event-json read-sse-event make-sse-decoder
     sse-event->string write-sse-event
   ) ;export
-  (import (scheme base) (liii base) (liii error) (liii json) (liii string))
+  (import (scheme base) (liii error) (liii json) (liii string))
   (begin
 
     (define-record-type <sse-event>
@@ -95,20 +95,18 @@
     ) ;define
 
     (define (parse-sse-line line)
-      (let ((i (string-index line #\:)))
+      (let ((i (string-index line #\:)) (len (string-length line)))
         (if (not i)
           (values line "")
           (let ((s
                   (if
-                    (and (< (+ i 1) (string-length line))
-                      (char=? (string-ref line (+ i 1)) #\space)
-                    ) ;and
+                    (and (< (+ i 1) len) (char=? (string-ref line (+ i 1)) #\space))
                     (+ i 2)
                     (+ i 1)
                   ) ;if
                 ) ;s
                ) ;
-            (values (substring line 0 i) (substring line s (string-length line)))
+            (values (substring line 0 i) (substring line s len))
           ) ;let
         ) ;if
       ) ;let
@@ -196,24 +194,24 @@
       (let-values (((feed-line! dispatch!) (%make-sse-line-decoder on-event)))
         ;; buffer 只保留未处理的尾部残行：每轮 feed-chunk! 提取完所有完整行后
         ;; 立即 compact，避免 string-append 在长流上退化为 O(n^2)
-        (let ((buffer "") (offset 0))
+        (let ((buffer ""))
 
           (define (feed-chunk! chunk)
             (set! buffer (string-append buffer chunk))
             (let loop
-              ()
+              ((offset 0))
               (let ((nl (string-index buffer #\newline offset)))
-                (when nl
-                  (feed-line! (strip-eol (substring buffer offset nl)))
-                  (set! offset (+ nl 1))
-                  (loop)
-                ) ;when
+                (if nl
+                  (begin
+                    (feed-line! (strip-eol (substring buffer offset nl)))
+                    (loop (+ nl 1))
+                  ) ;begin
+                  (when (> offset 0)
+                    (set! buffer (substring buffer offset (string-length buffer)))
+                  ) ;when
+                ) ;if
               ) ;let
             ) ;let
-            (when (> offset 0)
-              (set! buffer (substring buffer offset (string-length buffer)))
-              (set! offset 0)
-            ) ;when
           ) ;define
 
           (lambda (chunk)
@@ -271,28 +269,39 @@
       ) ;let
     ) ;define
 
+    (define (%write-sse-event-port event p)
+      (let ((ev (sse-event-event event))
+            (id (sse-event-id event))
+            (retry (sse-event-retry event))
+           ) ;
+        (when (not (string=? ev %default-event))
+          (display "event: " p)
+          (display ev p)
+          (newline p)
+        ) ;when
+        (for-each (lambda (line) (display "data: " p) (display line p) (newline p))
+          (string-split (sse-event-data event) "\n")
+        ) ;for-each
+        (when (string? id)
+          (display "id: " p)
+          (display id p)
+          (newline p)
+        ) ;when
+        (when (and (integer? retry) (>= retry 0))
+          (display "retry: " p)
+          (display (number->string retry) p)
+          (newline p)
+        ) ;when
+        (newline p)
+      ) ;let
+    ) ;define
+
     (define (sse-event->string event)
       (unless (sse-event? event)
         (type-error "sse-event->string: expected <sse-event>")
       ) ;unless
-      (let ((ev (sse-event-event event))
-            (id (sse-event-id event))
-            (retry (sse-event-retry event))
-            (p (open-output-string))
-           ) ;
-        (when (not (string=? ev %default-event))
-          (display (string-append "event: " ev "\n") p)
-        ) ;when
-        (for-each (lambda (line) (display (string-append "data: " line "\n") p))
-          (string-split (sse-event-data event) "\n")
-        ) ;for-each
-        (when (string? id)
-          (display (string-append "id: " id "\n") p)
-        ) ;when
-        (when (and (integer? retry) (>= retry 0))
-          (display (string-append "retry: " (number->string retry) "\n") p)
-        ) ;when
-        (newline p)
+      (let ((p (open-output-string)))
+        (%write-sse-event-port event p)
         (get-output-string p)
       ) ;let
     ) ;define
@@ -301,17 +310,15 @@
       (unless (sse-event? event)
         (type-error "write-sse-event: expected <sse-event>")
       ) ;unless
-      (let ((p (%resolve-port "write-sse-event"
-                 2
-                 args
-                 (current-output-port)
-                 output-port?
-                 "output-port"
-               ) ;%resolve-port
-            ) ;p
-           ) ;
-        (display (sse-event->string event) p)
-      ) ;let
+      (%write-sse-event-port event
+        (%resolve-port "write-sse-event"
+          2
+          args
+          (current-output-port)
+          output-port?
+          "output-port"
+        ) ;%resolve-port
+      ) ;%write-sse-event-port
     ) ;define
 
   ) ;begin

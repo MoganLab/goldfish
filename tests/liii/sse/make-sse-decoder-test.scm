@@ -24,102 +24,89 @@
 ;; type-error 当 on-event 不是 procedure? 时。
 ;; type-error 当 chunk 既不是 string? 也不是 eof-object? 时。
 
+(define (make-collecting-decoder)
+  (let ((events '()))
+    (values (make-sse-decoder (lambda (ev) (set! events (cons ev events))))
+      (lambda () events)
+    ) ;values
+  ) ;let
+) ;define
+
 ;; 1. 基础单 Chunk 完整事件触发
-(let* ((received '())
-       (decoder
-         (make-sse-decoder (lambda (ev) (set! received (cons ev received))))
-       ) ;decoder
-      ) ;
+(let-values
+  (((decoder get-events) (make-collecting-decoder)))
   (decoder "data: hello world\n\n")
-  (check (length received) => 1)
-  (let ((ev (car received)))
+  (check (length (get-events)) => 1)
+  (let ((ev (car (get-events))))
     (check (sse-event-event ev) => "message")
     (check (sse-event-data ev) => "hello world")
     (check (sse-event-id ev) => #f)
     (check (sse-event-retry ev) => #f)
   ) ;let
-) ;let*
+) ;let-values
 
 ;; 2. 人为拆分数据包模拟 TCP 分片（断包与拼包测试）
-(let* ((received '())
-       (decoder
-         (make-sse-decoder (lambda (ev) (set! received (cons ev received))))
-       ) ;decoder
-      ) ;
+(let-values
+  (((decoder get-events) (make-collecting-decoder)))
   ;; 第一次传入半包：不应触发回调
   (decoder "data: he")
-  (check (length received) => 0)
+  (check (length (get-events)) => 0)
   ;; 第二次传入后半部分并闭合
   (decoder "llo\n\n")
-  (check (length received) => 1)
-  (check (sse-event-data (car received)) => "hello")
-) ;let*
+  (check (length (get-events)) => 1)
+  (check (sse-event-data (car (get-events))) => "hello")
+) ;let-values
 
 ;; 3. 跨 \r\n 换行符的分片测试
-(let* ((received '())
-       (decoder
-         (make-sse-decoder (lambda (ev) (set! received (cons ev received))))
-       ) ;decoder
-      ) ;
+(let-values
+  (((decoder get-events) (make-collecting-decoder)))
   (decoder "event: update\r")
-  (check (length received) => 0)
+  (check (length (get-events)) => 0)
   (decoder "\ndata: payload\r\n\r")
-  (check (length received) => 0)
+  (check (length (get-events)) => 0)
   (decoder "\n")
-  (check (length received) => 1)
-  (let ((ev (car received)))
+  (check (length (get-events)) => 1)
+  (let ((ev (car (get-events))))
     (check (sse-event-event ev) => "update")
     (check (sse-event-data ev) => "payload")
   ) ;let
-) ;let*
+) ;let-values
 
 ;; 4. 单 Chunk 内包含多条 SSE 消息
-(let* ((received '())
-       (decoder
-         (make-sse-decoder (lambda (ev) (set! received (cons ev received))))
-       ) ;decoder
-      ) ;
+(let-values
+  (((decoder get-events) (make-collecting-decoder)))
   (decoder "data: first\n\ndata: second\n\ndata: third\n\n")
-  (check (length received) => 3)
-  (check (map sse-event-data (reverse received)) => '("first" "second" "third"))
-) ;let*
+  (check (length (get-events)) => 3)
+  (check (map sse-event-data (reverse (get-events))) => '("first" "second" "third"))
+) ;let-values
 
 ;; 5. 多行连续 data 字段跨 Chunk 累积
-(let* ((received '())
-       (decoder
-         (make-sse-decoder (lambda (ev) (set! received (cons ev received))))
-       ) ;decoder
-      ) ;
+(let-values
+  (((decoder get-events) (make-collecting-decoder)))
   (decoder "data: line 1\n")
   (decoder "data: line 2\n")
   (decoder "data: line 3\n\n")
-  (check (length received) => 1)
-  (check (sse-event-data (car received)) => "line 1\nline 2\nline 3")
-) ;let*
+  (check (length (get-events)) => 1)
+  (check (sse-event-data (car (get-events))) => "line 1\nline 2\nline 3")
+) ;let-values
 
 ;; 6. 注释与心跳行忽略，不触发回调
-(let* ((received '())
-       (decoder
-         (make-sse-decoder (lambda (ev) (set! received (cons ev received))))
-       ) ;decoder
-      ) ;
+(let-values
+  (((decoder get-events) (make-collecting-decoder)))
   (decoder ": heartbeat ping\n\n")
-  (check (length received) => 0)
+  (check (length (get-events)) => 0)
   (decoder ": comment 1\n: comment 2\ndata: actual data\n\n")
-  (check (length received) => 1)
-  (check (sse-event-data (car received)) => "actual data")
-) ;let*
+  (check (length (get-events)) => 1)
+  (check (sse-event-data (car (get-events))) => "actual data")
+) ;let-values
 
 ;; 7. 事件状态重置（前一个事件的字段不污染后续事件）
-(let* ((received '())
-       (decoder
-         (make-sse-decoder (lambda (ev) (set! received (cons ev received))))
-       ) ;decoder
-      ) ;
+(let-values
+  (((decoder get-events) (make-collecting-decoder)))
   (decoder "event: custom\nid: 99\nretry: 4000\ndata: with-fields\n\n")
   (decoder "data: next-plain-event\n\n")
-  (check (length received) => 2)
-  (let ((ev1 (cadr received)) (ev2 (car received)))
+  (check (length (get-events)) => 2)
+  (let ((ev1 (cadr (get-events))) (ev2 (car (get-events))))
     (check (sse-event-event ev1) => "custom")
     (check (sse-event-id ev1) => "99")
     (check (sse-event-retry ev1) => 4000)
@@ -127,21 +114,19 @@
     (check (sse-event-id ev2) => #f)
     (check (sse-event-retry ev2) => #f)
   ) ;let
-) ;let*
+) ;let-values
 
 ;; 8. EOF 闭合信号冲刷残余未闭合事件
-(let* ((received '())
-       (decoder
-         (make-sse-decoder (lambda (ev) (set! received (cons ev received))))
-       ) ;decoder
-       (eof (read-char (open-input-string "")))
-      ) ;
-  (decoder "data: unclosed-line")
-  (check (length received) => 0)
-  (decoder eof)
-  (check (length received) => 1)
-  (check (sse-event-data (car received)) => "unclosed-line")
-) ;let*
+(let-values
+  (((decoder get-events) (make-collecting-decoder)))
+  (let ((eof (read-char (open-input-string ""))))
+    (decoder "data: unclosed-line")
+    (check (length (get-events)) => 0)
+    (decoder eof)
+    (check (length (get-events)) => 1)
+    (check (sse-event-data (car (get-events))) => "unclosed-line")
+  ) ;let
+) ;let-values
 
 ;; 9. 错误处理
 (check-catch 'type-error (make-sse-decoder "not-a-proc"))
