@@ -151,11 +151,10 @@
     (define (%run-agent-print-session cfg parsed initial-msg)
       (let* ((system-prompt (%prepare-system-prompt cfg parsed))
              (init-msgs
-               (list
-                 (list (cons 'role "user")
-                   (cons 'content initial-msg)
-                   (cons 'timestamp (time-second (current-time)))
-                 ) ;list
+               (list (list (cons 'role "user")
+                       (cons 'content initial-msg)
+                       (cons 'timestamp (pi-current-time-millis))
+                     ) ;list
                ) ;list
              ) ;init-msgs
              (timeout
@@ -174,9 +173,66 @@
       ) ;let*
     ) ;define
 
+    (define (%emit-json-event ev-type . args)
+      (let ((ev
+              (case ev-type
+               ((session) (apply pi-event-session args))
+               ((agent_start) (pi-event-agent-start))
+               ((turn_start) (pi-event-turn-start))
+               ((message_start) (pi-event-message-start (car args)))
+               ((message_end) (pi-event-message-end (car args)))
+               ((tool_execution_start)
+                (pi-event-tool-execution-start (car args) (cadr args) (caddr args))
+               ) ;
+               ((tool_execution_end)
+                (pi-event-tool-execution-end (car args) (cadr args) (caddr args) (cadddr args))
+               ) ;
+               ((turn_end) (pi-event-turn-end (car args) (cadr args)))
+               ((agent_end) (pi-event-agent-end (car args) (cadr args)))
+               ((agent_settled) (pi-event-agent-settled (car args)))
+               (else #f)
+              ) ;case
+            ) ;ev
+           ) ;
+        (when ev
+          (display (pi-serialize-event ev))
+          (newline)
+        ) ;when
+      ) ;let
+    ) ;define
+
+    (define (%run-agent-json-session cfg parsed initial-msg)
+      (let* ((cwd (path->string (path-cwd)))
+             (system-prompt (%prepare-system-prompt cfg parsed))
+             (init-msgs
+               (list (list (cons 'role "user")
+                       (cons 'content initial-msg)
+                       (cons 'timestamp (pi-current-time-millis))
+                     ) ;list
+               ) ;list
+             ) ;init-msgs
+             (timeout
+               (or (pi-args-ref parsed 'timeout) (cdr (or (assoc 'timeout cfg) '(#f
+                                                                                 . 120))))
+             ) ;timeout
+             (max-turns
+               (or (pi-args-ref parsed 'max-turns)
+                 (cdr (or (assoc 'max-turns cfg) '(#f . 200)))
+               ) ;or
+             ) ;max-turns
+            ) ;
+        (%emit-json-event 'session cwd)
+        (run-agent-loop cfg init-msgs system-prompt %emit-json-event timeout max-turns)
+        0
+      ) ;let*
+    ) ;define
+
     (define (%dispatch-goldpi parsed mode initial-msg rest-msgs)
       (let* ((env (get-environment-variables)) (cfg (resolve-goldpi-config parsed env)))
-        (if (eq? mode 'print) (%run-agent-print-session cfg parsed initial-msg) 0)
+        (cond ((eq? mode 'print) (%run-agent-print-session cfg parsed initial-msg))
+              ((eq? mode 'json) (%run-agent-json-session cfg parsed initial-msg))
+              (else 0)
+        ) ;cond
       ) ;let*
     ) ;define
 
