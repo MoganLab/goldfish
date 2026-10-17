@@ -528,7 +528,7 @@ timeout 300 bin/gf test tools/pi/tests/liii/<本提交相关的测试>.scm
 | 二 | 已完成 | 工具层：read/bash/edit/write 默认集 + grep/find/ls（§6.2 全部行为与错误文案、截断常量） | 无网络情况下全部可用；每个工具含超时路径测试 |
 | 三 | 已完成 | 配置层（§4）：settings/auth/models-store 只读解析，`PI_CODING_AGENT_DIR` 重定向 | fixture 目录下 provider/model/key 解析正确；`$VAR` 插值与 `!command` 报错路径有测试 |
 | 四 | 已完成 | Gemini provider（§5，非流式）：请求构造、代理（§5.6）、finishReason/usage 映射、重试 | stub server 下请求体断言通过；socks5 代理参数透传断言；429 触发 3 次退避重试 |
-| 五 | 待执行 | Agent 循环 + 系统提示词 + print 模式（§7、§8） | 多轮 functionCall 端到端；退出码规则逐条验证；AGENTS.md/CLAUDE.md 注入 |
+| 五 | 已完成 | Agent 循环 + 系统提示词 + print 模式（§7、§8） | 多轮 functionCall 端到端；退出码规则逐条验证；AGENTS.md/CLAUDE.md 注入 |
 | 六 | 待执行 | JSON 模式事件流（§3，非流式子集：无 message_update） | 事件序列与 §3.2 一致，jq 逐行可解析 |
 | 七 | 待执行 | 流式（SSE）：`:streamGenerateContent?alt=sse` + `(liii sse)` 解码 + `message_update`/`tool_execution_update` | 能输出 text_delta；空闲超时生效 |
 | 八 | 待执行 | Anthropic provider（§5.7，独立任务）；会话持久化与 `--continue`（独立任务） | 各自的验收标准届时补充 |
