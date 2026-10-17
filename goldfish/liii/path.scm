@@ -1235,6 +1235,12 @@
     ;; ; path-stat record 类型与文件元数据
     ;; ;============================================================
 
+    ;; POSIX st_mode 文件类型位（S_IFMT/S_IFREG/S_IFDIR/S_IFLNK）
+    (define %s-ifmt 61440)
+    (define %s-ifreg 32768)
+    (define %s-ifdir 16384)
+    (define %s-iflnk 40960)
+
     (define-record-type <path-stat>
       (%make-path-stat size mtime atime ctime mode)
       path-stat?
@@ -1249,39 +1255,35 @@
       (%make-path-stat size mtime atime ctime mode)
     ) ;define
 
+    (define (%check-path-stat who st)
+      (unless (path-stat? st)
+        (type-error (string-append who ": expected <path-stat> record"))
+      ) ;unless
+    ) ;define
+
     (define (path-stat-size st)
-      (if (not (path-stat? st))
-        (type-error "path-stat-size: expected <path-stat> record")
-        (%path-stat-size st)
-      ) ;if
+      (%check-path-stat "path-stat-size" st)
+      (%path-stat-size st)
     ) ;define
 
     (define (path-stat-mtime st)
-      (if (not (path-stat? st))
-        (type-error "path-stat-mtime: expected <path-stat> record")
-        (%path-stat-mtime st)
-      ) ;if
+      (%check-path-stat "path-stat-mtime" st)
+      (%path-stat-mtime st)
     ) ;define
 
     (define (path-stat-atime st)
-      (if (not (path-stat? st))
-        (type-error "path-stat-atime: expected <path-stat> record")
-        (%path-stat-atime st)
-      ) ;if
+      (%check-path-stat "path-stat-atime" st)
+      (%path-stat-atime st)
     ) ;define
 
     (define (path-stat-ctime st)
-      (if (not (path-stat? st))
-        (type-error "path-stat-ctime: expected <path-stat> record")
-        (%path-stat-ctime st)
-      ) ;if
+      (%check-path-stat "path-stat-ctime" st)
+      (%path-stat-ctime st)
     ) ;define
 
     (define (path-stat-mode st)
-      (if (not (path-stat? st))
-        (type-error "path-stat-mode: expected <path-stat> record")
-        (%path-stat-mode st)
-      ) ;if
+      (%check-path-stat "path-stat-mode" st)
+      (%path-stat-mode st)
     ) ;define
 
     (define (path-stat p)
@@ -1298,25 +1300,21 @@
       ) ;if
     ) ;define
 
+    (define (%path-stat-type? who st type-bits)
+      (%check-path-stat who st)
+      (= (logand (%path-stat-mode st) %s-ifmt) type-bits)
+    ) ;define
+
     (define (path-stat-file? st)
-      (if (not (path-stat? st))
-        (type-error "path-stat-file?: expected <path-stat> record")
-        (= (logand (path-stat-mode st) 61440) 32768)
-      ) ;if
+      (%path-stat-type? "path-stat-file?" st %s-ifreg)
     ) ;define
 
     (define (path-stat-dir? st)
-      (if (not (path-stat? st))
-        (type-error "path-stat-dir?: expected <path-stat> record")
-        (= (logand (path-stat-mode st) 61440) 16384)
-      ) ;if
+      (%path-stat-type? "path-stat-dir?" st %s-ifdir)
     ) ;define
 
     (define (path-stat-symlink? st)
-      (if (not (path-stat? st))
-        (type-error "path-stat-symlink?: expected <path-stat> record")
-        (= (logand (path-stat-mode st) 61440) 40960)
-      ) ;if
+      (%path-stat-type? "path-stat-symlink?" st %s-iflnk)
     ) ;define
 
   ) ;begin
