@@ -89,6 +89,14 @@
   (check (pi-args-ref res 'file-args) => '("doc.txt"))
   (check (pi-args-ref res 'messages) => '("-p" "--mode" "normal message")))
 
+;; 5.1 --continue / -c 解析测试
+(let ((res1 (parse-pi-args '("-c" "hello")))
+      (res2 (parse-pi-args '("--continue" "world"))))
+  (check (pi-args-ref res1 'continue) => #t)
+  (check (pi-args-ref res1 'messages) => '("hello"))
+  (check (pi-args-ref res2 'continue) => #t)
+  (check (pi-args-ref res2 'messages) => '("world")))
+
 ;; 6. process-file-arguments 测试
 (let* ((test-file (if (file-exists? "liii/goldpi-args.scm")
                       "liii/goldpi-args.scm"
