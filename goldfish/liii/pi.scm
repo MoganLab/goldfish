@@ -15,8 +15,11 @@
 ;;
 
 (define-library (liii pi)
-  (import (scheme base) (liii string))
-  (export resolve-app-mode format-file-block build-initial-prompt)
+  (import (scheme base) (liii string) (liii pi truncate))
+  (export resolve-app-mode format-file-block build-initial-prompt
+    PI_DEFAULT_MAX_LINES PI_DEFAULT_MAX_BYTES PI_GREP_MAX_LINE_LENGTH
+    pi-format-size pi-truncate-line pi-truncate-head pi-truncate-tail
+  ) ;export
   (begin
 
     (define (resolve-app-mode mode-option print-flag stdin-tty stdout-tty)

@@ -49,4 +49,74 @@
   (check prompt => "")
   (check rest => '()))
 
+;; 截断常量
+(check PI_DEFAULT_MAX_LINES => 2000)
+(check PI_DEFAULT_MAX_BYTES => 51200)
+(check PI_GREP_MAX_LINE_LENGTH => 500)
+
+;; pi-format-size
+(check (pi-format-size 500) => "500B")
+(check (pi-format-size 1024) => "1.0KB")
+(check (pi-format-size 1536) => "1.5KB")
+(check (pi-format-size 51200) => "50.0KB")
+(check (pi-format-size (* 1024 1024)) => "1.0MB")
+
+;; pi-truncate-line
+(let-values (((line truncated?) (pi-truncate-line "hello world")))
+  (check line => "hello world")
+  (check truncated? => #f))
+
+(let* ((long-line (make-string 600 #\a)))
+  (let-values (((line truncated?) (pi-truncate-line long-line)))
+    (check (string-length line) => 500)
+    (check truncated? => #t)))
+
+;; pi-truncate-head: 未超出限制
+(let ((res (pi-truncate-head "line1\nline2\nline3" 10 1000)))
+  (check (cdr (assoc 'truncated res)) => #f)
+  (check (cdr (assoc 'content res)) => "line1\nline2\nline3")
+  (check (cdr (assoc 'output-lines res)) => 3)
+  (check (cdr (assoc 'total-lines res)) => 3))
+
+;; pi-truncate-head: 按行截断
+(let ((res (pi-truncate-head "line1\nline2\nline3\nline4" 2 1000)))
+  (check (cdr (assoc 'truncated res)) => #t)
+  (check (cdr (assoc 'truncated-by res)) => 'lines)
+  (check (cdr (assoc 'content res)) => "line1\nline2")
+  (check (cdr (assoc 'output-lines res)) => 2)
+  (check (cdr (assoc 'total-lines res)) => 4))
+
+;; pi-truncate-head: 按字节截断
+(let ((res (pi-truncate-head "12345\n67890\nabcde" 10 12)))
+  (check (cdr (assoc 'truncated res)) => #t)
+  (check (cdr (assoc 'truncated-by res)) => 'bytes)
+  ;; "12345" (5) + \n (1) + "67890" (5) = 11 <= 12; 第三行 +1+5=17 > 12
+  (check (cdr (assoc 'content res)) => "12345\n67890")
+  (check (cdr (assoc 'output-lines res)) => 2))
+
+;; pi-truncate-head: 第一行单行超字节限
+(let ((res (pi-truncate-head "1234567890\nline2" 10 5)))
+  (check (cdr (assoc 'truncated res)) => #t)
+  (check (cdr (assoc 'truncated-by res)) => 'bytes)
+  (check (cdr (assoc 'first-line-exceeds-limit? res)) => #t)
+  (check (cdr (assoc 'content res)) => ""))
+
+;; pi-truncate-tail: 未超限
+(let ((res (pi-truncate-tail "line1\nline2\nline3" 10 1000)))
+  (check (cdr (assoc 'truncated res)) => #f)
+  (check (cdr (assoc 'content res)) => "line1\nline2\nline3"))
+
+;; pi-truncate-tail: 按行截断（保留尾部行）
+(let ((res (pi-truncate-tail "line1\nline2\nline3\nline4" 2 1000)))
+  (check (cdr (assoc 'truncated res)) => #t)
+  (check (cdr (assoc 'truncated-by res)) => 'lines)
+  (check (cdr (assoc 'content res)) => "line3\nline4")
+  (check (cdr (assoc 'output-lines res)) => 2))
+
+;; pi-truncate-tail: 按字节截断（保留尾部）
+(let ((res (pi-truncate-tail "12345\n67890\nabcde" 10 12)))
+  (check (cdr (assoc 'truncated res)) => #t)
+  (check (cdr (assoc 'truncated-by res)) => 'bytes)
+  (check (cdr (assoc 'content res)) => "67890\nabcde"))
+
 (check-report)
