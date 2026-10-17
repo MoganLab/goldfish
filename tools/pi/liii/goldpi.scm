@@ -32,27 +32,24 @@
   (begin
 
     (define (display-pi-help)
-      (display "gf pi - AI coding assistant script mode\n\n")
-      (display "Usage:\n")
-      (display "  gf pi [options] [--] [@files...] [messages...]\n\n")
-      (display "Options:\n")
-      (display "  -p, --print                    Print response to stdout and exit\n")
-      (display "      --mode <mode>              Output mode: text, json (default: text)\n"
+      (display (string-append "gf pi - AI coding assistant script mode\n\n"
+                 "Usage:\n  gf pi [options] [--] [@files...] [messages...]\n\n"
+                 "Options:\n"
+                 "  -p, --print                    Print response to stdout and exit\n"
+                 "      --mode <mode>              Output mode: text, json (default: text)\n"
+                 "      --model <id>               Model ID to use\n"
+                 "      --provider <name>          Provider name (e.g. google)\n"
+                 "      --proxy <url>              Proxy URL (e.g. socks5h://127.0.0.1:1080)\n"
+                 "      --tools <list>             Comma-separated list of tools\n"
+                 "      --max-turns <n>            Maximum turns limit (default: 200, 0 for unlimited)\n"
+                 "      --timeout <seconds>        Timeout in seconds for bash and HTTP (default: 120)\n"
+                 "      --no-session               Do not persist session\n"
+                 "      --system-prompt <text>     Override system prompt\n"
+                 "      --append-system-prompt <text>\n"
+                 "                                 Append system prompt section\n"
+                 "  -h, --help                     Show this help message\n"
+               ) ;string-append
       ) ;display
-      (display "      --model <id>               Model ID to use\n")
-      (display "      --provider <name>          Provider name (e.g. google)\n")
-      (display "      --proxy <url>              Proxy URL (e.g. socks5h://127.0.0.1:1080)\n"
-      ) ;display
-      (display "      --tools <list>             Comma-separated list of tools\n")
-      (display "      --max-turns <n>            Maximum turns limit (default: 200, 0 for unlimited)\n"
-      ) ;display
-      (display "      --timeout <seconds>        Timeout in seconds for bash and HTTP (default: 120)\n"
-      ) ;display
-      (display "      --no-session               Do not persist session\n")
-      (display "      --system-prompt <text>     Override system prompt\n")
-      (display "      --append-system-prompt <text>\n")
-      (display "                                 Append system prompt section\n")
-      (display "  -h, --help                     Show this help message\n")
     ) ;define
 
     (define (read-all-stdin)
@@ -173,27 +170,26 @@
       ) ;let*
     ) ;define
 
+    (define (%build-json-event ev-type args)
+      (case ev-type
+       ((session) (apply pi-event-session args))
+       ((agent_start) (pi-event-agent-start))
+       ((turn_start) (pi-event-turn-start))
+       ((message_start) (pi-event-message-start (car args)))
+       ((message_update) (pi-event-message-update (car args) (cadr args)))
+       ((message_end) (pi-event-message-end (car args)))
+       ((tool_execution_start) (apply pi-event-tool-execution-start args))
+       ((tool_execution_update) (apply pi-event-tool-execution-update args))
+       ((tool_execution_end) (apply pi-event-tool-execution-end args))
+       ((turn_end) (pi-event-turn-end (car args) (cadr args)))
+       ((agent_end) (pi-event-agent-end (car args) (cadr args)))
+       ((agent_settled) (pi-event-agent-settled (car args)))
+       (else #f)
+      ) ;case
+    ) ;define
+
     (define (%emit-json-event ev-type . args)
-      (let ((ev
-              (case ev-type
-               ((session) (apply pi-event-session args))
-               ((agent_start) (pi-event-agent-start))
-               ((turn_start) (pi-event-turn-start))
-               ((message_start) (pi-event-message-start (car args)))
-               ((message_end) (pi-event-message-end (car args)))
-               ((tool_execution_start)
-                (pi-event-tool-execution-start (car args) (cadr args) (caddr args))
-               ) ;
-               ((tool_execution_end)
-                (pi-event-tool-execution-end (car args) (cadr args) (caddr args) (cadddr args))
-               ) ;
-               ((turn_end) (pi-event-turn-end (car args) (cadr args)))
-               ((agent_end) (pi-event-agent-end (car args) (cadr args)))
-               ((agent_settled) (pi-event-agent-settled (car args)))
-               (else #f)
-              ) ;case
-            ) ;ev
-           ) ;
+      (let ((ev (%build-json-event ev-type args)))
         (when ev
           (display (pi-serialize-event ev))
           (newline)

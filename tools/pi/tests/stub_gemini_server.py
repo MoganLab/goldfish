@@ -16,72 +16,6 @@ class StubHandler(http.server.BaseHTTPRequestHandler):
                 pass
         
         path = self.path
-        if "alt=sse" in path or ":streamGenerateContent" in path:
-            # 模拟 SSE 流式响应
-            self.send_response(200)
-            self.send_header("Content-Type", "text/event-stream")
-            self.send_header("Cache-Control", "no-cache")
-            self.end_headers()
-            
-            if "/stream-idle-hang" in path:
-                # 模拟输出部分 chunk 后静默挂起超时
-                chunk1 = {"candidates": [{"content": {"role": "model", "parts": [{"text": "Start..."}]}}]}
-                self.wfile.write(f"data: {json.dumps(chunk1)}\n\n".encode("utf-8"))
-                self.wfile.flush()
-                import time
-                time.sleep(30)
-                return
-
-            if "/stream-function-call" in path:
-                chunk1 = {
-                    "candidates": [{
-                        "content": {
-                            "role": "model",
-                            "parts": [{
-                                "functionCall": {
-                                    "name": "bash",
-                                    "args": {"command": "ls -la"},
-                                    "id": "stream_call_1"
-                                }
-                            }]
-                        },
-                        "finishReason": "STOP"
-                    }],
-                    "usageMetadata": {"promptTokenCount": 10, "candidatesTokenCount": 5, "totalTokenCount": 15}
-                }
-                self.wfile.write(f"data: {json.dumps(chunk1)}\n\n".encode("utf-8"))
-                self.wfile.flush()
-                return
-
-            # 默认 SSE 流式：分2个 chunk 发送
-            chunk1 = {
-                "candidates": [{
-                    "content": {
-                        "role": "model",
-                        "parts": [{"text": "Hello "}]
-                    }
-                }]
-            }
-            chunk2 = {
-                "candidates": [{
-                    "content": {
-                        "role": "model",
-                        "parts": [{"text": "stream!"}]
-                    },
-                    "finishReason": "STOP"
-                }],
-                "usageMetadata": {
-                    "promptTokenCount": 10,
-                    "candidatesTokenCount": 6,
-                    "totalTokenCount": 16
-                }
-            }
-            self.wfile.write(f"data: {json.dumps(chunk1)}\n\n".encode("utf-8"))
-            self.wfile.flush()
-            self.wfile.write(f"data: {json.dumps(chunk2)}\n\n".encode("utf-8"))
-            self.wfile.flush()
-            return
-
         if "/429-then-ok" in path:
             server = self.server
             server.request_count = getattr(server, "request_count", 0) + 1
@@ -113,6 +47,14 @@ class StubHandler(http.server.BaseHTTPRequestHandler):
                     "totalTokenCount": 15
                 }
             }
+            if "alt=sse" in path or ":streamGenerateContent" in path:
+                self.send_response(200)
+                self.send_header("Content-Type", "text/event-stream")
+                self.send_header("Cache-Control", "no-cache")
+                self.end_headers()
+                self.wfile.write(f"data: {json.dumps(resp)}\n\n".encode("utf-8"))
+                self.wfile.flush()
+                return
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
             self.end_headers()
@@ -133,6 +75,14 @@ class StubHandler(http.server.BaseHTTPRequestHandler):
                     "totalTokenCount": 5
                 }
             }
+            if "alt=sse" in path or ":streamGenerateContent" in path:
+                self.send_response(200)
+                self.send_header("Content-Type", "text/event-stream")
+                self.send_header("Cache-Control", "no-cache")
+                self.end_headers()
+                self.wfile.write(f"data: {json.dumps(resp)}\n\n".encode("utf-8"))
+                self.wfile.flush()
+                return
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
             self.end_headers()
@@ -164,6 +114,14 @@ class StubHandler(http.server.BaseHTTPRequestHandler):
                     "totalTokenCount": 30
                 }
             }
+            if "alt=sse" in path or ":streamGenerateContent" in path:
+                self.send_response(200)
+                self.send_header("Content-Type", "text/event-stream")
+                self.send_header("Cache-Control", "no-cache")
+                self.end_headers()
+                self.wfile.write(f"data: {json.dumps(resp)}\n\n".encode("utf-8"))
+                self.wfile.flush()
+                return
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
             self.end_headers()
@@ -232,6 +190,14 @@ class StubHandler(http.server.BaseHTTPRequestHandler):
                     ],
                     "usageMetadata": {"promptTokenCount": 60, "candidatesTokenCount": 10, "totalTokenCount": 70}
                 }
+            if "alt=sse" in path or ":streamGenerateContent" in path:
+                self.send_response(200)
+                self.send_header("Content-Type", "text/event-stream")
+                self.send_header("Cache-Control", "no-cache")
+                self.end_headers()
+                self.wfile.write(f"data: {json.dumps(resp)}\n\n".encode("utf-8"))
+                self.wfile.flush()
+                return
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
             self.end_headers()
@@ -253,10 +219,84 @@ class StubHandler(http.server.BaseHTTPRequestHandler):
                 ],
                 "usageMetadata": {"promptTokenCount": 20, "candidatesTokenCount": 10, "totalTokenCount": 30}
             }
+            if "alt=sse" in path or ":streamGenerateContent" in path:
+                self.send_response(200)
+                self.send_header("Content-Type", "text/event-stream")
+                self.send_header("Cache-Control", "no-cache")
+                self.end_headers()
+                self.wfile.write(f"data: {json.dumps(resp)}\n\n".encode("utf-8"))
+                self.wfile.flush()
+                return
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
             self.end_headers()
             self.wfile.write(json.dumps(resp).encode("utf-8"))
+            return
+
+        if "alt=sse" in path or ":streamGenerateContent" in path:
+            # 模拟 SSE 流式响应
+            self.send_response(200)
+            self.send_header("Content-Type", "text/event-stream")
+            self.send_header("Cache-Control", "no-cache")
+            self.end_headers()
+            
+            if "/stream-idle-hang" in path:
+                # 模拟输出部分 chunk 后静默挂起超时
+                chunk1 = {"candidates": [{"content": {"role": "model", "parts": [{"text": "Start..."}]}}]}
+                self.wfile.write(f"data: {json.dumps(chunk1)}\n\n".encode("utf-8"))
+                self.wfile.flush()
+                import time
+                time.sleep(30)
+                return
+
+            if "/stream-function-call" in path:
+                chunk1 = {
+                    "candidates": [{
+                        "content": {
+                            "role": "model",
+                            "parts": [{
+                                "functionCall": {
+                                    "name": "bash",
+                                    "args": {"command": "ls -la"},
+                                    "id": "stream_call_1"
+                                }
+                            }]
+                        },
+                        "finishReason": "STOP"
+                    }],
+                    "usageMetadata": {"promptTokenCount": 10, "candidatesTokenCount": 5, "totalTokenCount": 15}
+                }
+                self.wfile.write(f"data: {json.dumps(chunk1)}\n\n".encode("utf-8"))
+                self.wfile.flush()
+                return
+
+            # 默认 SSE 流式：分2个 chunk 发送
+            chunk1 = {
+                "candidates": [{
+                    "content": {
+                        "role": "model",
+                        "parts": [{"text": "Hello "}]
+                    }
+                }]
+            }
+            chunk2 = {
+                "candidates": [{
+                    "content": {
+                        "role": "model",
+                        "parts": [{"text": "stream!"}]
+                    },
+                    "finishReason": "STOP"
+                }],
+                "usageMetadata": {
+                    "promptTokenCount": 10,
+                    "candidatesTokenCount": 6,
+                    "totalTokenCount": 16
+                }
+            }
+            self.wfile.write(f"data: {json.dumps(chunk1)}\n\n".encode("utf-8"))
+            self.wfile.flush()
+            self.wfile.write(f"data: {json.dumps(chunk2)}\n\n".encode("utf-8"))
+            self.wfile.flush()
             return
 
         # default echo ok

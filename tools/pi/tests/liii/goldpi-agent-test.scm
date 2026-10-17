@@ -3,6 +3,7 @@
 
 (import (liii check)
   (liii string)
+  (liii list)
   (liii subprocess)
   (liii pi)
   (liii goldpi-agent)
@@ -49,7 +50,7 @@
          (last-msg (car (reverse res-msgs))))
     (check (cdr (assoc 'role last-msg)) => "assistant")
     (check (cdr (assoc 'stopReason last-msg)) => "stop")
-    (check (extract-assistant-text last-msg) => "Hello from stub!"))
+    (check (extract-assistant-text last-msg) => "Hello stream!"))
 
   ;; 2. 多轮 functionCall 端到端（3 轮闭环）
   (let* ((cfg (list (cons 'provider "google")
@@ -117,6 +118,32 @@
          (last-msg (car (reverse res-msgs))))
     (check (cdr (assoc 'stopReason last-msg)) => "error")
     (check-true (string-contains? (cdr (assoc 'errorMessage last-msg)) "Maximum turns")))
+
+  ;; 6. 流式事件发射验证（message_update 与 text_delta）
+  (let* ((cfg (list (cons 'provider "google")
+                    (cons 'api-key "test-stub-key")
+                    (cons 'model-id "gemini-3.8-flash")
+                    (cons 'model-meta (list (cons 'base-url base-url)))
+                    (cons 'proxy-url #f)
+                    (cons 'tools '("read" "bash"))
+                    (cons 'settings '())
+                    (cons 'timeout 10)
+                    (cons 'max-turns 10)))
+         (init-msgs (list '((role . "user") (content . "Hello stream"))))
+         (emitted '())
+         (emit (lambda (ev-type . args)
+                 (set! emitted (cons (cons ev-type args) emitted))))
+         (res-msgs (run-agent-loop cfg init-msgs "SysPrompt" emit 10 10)))
+    (check-true (pair? res-msgs))
+    ;; 验证包含 message_update 事件
+    (let ((updates (filter (lambda (ev) (eq? (car ev) 'message_update)) emitted)))
+      (check-true (> (length updates) 0))
+      ;; 检查 assistantMessageEvent 中包含 text_delta
+      (let* ((upd (car (reverse updates)))
+             (usage (cadr upd))
+             (a-ev (caddr upd)))
+        (check-true (pair? usage))
+        (check-true (if (member (cdr (assoc 'type a-ev)) '("text_start" "text_delta")) #t #f)))))
 
   (process-kill proc)
 ) ;let*

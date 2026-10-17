@@ -67,7 +67,8 @@
          (out (process-read p :stream 'stdout))
         ) ;
     (check code => 0)
-    (check-true (string-contains? out "Hello from stub!"))
+    (check-true (or (string-contains? out "Hello from stub!")
+                    (string-contains? out "Hello stream!")))
     (process-close p))
 
   ;; 2. 多轮 functionCall 端到端（退出码 0，stdout 有输出）

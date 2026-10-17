@@ -96,18 +96,12 @@
       (check-true (string? (cdr (assoc "id" header))))
       (check-true (string? (cdr (assoc "cwd" header))))
     ) ;let
-    ;; 验证基础运行的事件类型序列 (§3.2)
-    (check event-types =>
-           '("session"
-             "agent_start"
-             "turn_start"
-             "message_start"
-             "message_end"
-             "message_start"
-             "message_end"
-             "turn_end"
-             "agent_end"
-             "agent_settled"))
+    ;; 验证基础运行的事件类型序列（流式模式下包含 message_update）
+    (check-true (pair? (member "message_update" event-types)))
+    (check (car event-types) => "session")
+    (check (cadr event-types) => "agent_start")
+    (check (caddr event-types) => "turn_start")
+    (check (car (reverse event-types)) => "agent_settled")
     (process-close p))
 
   ;; 2. 多轮带工具调用（functionCall）的 JSONL 事件序列

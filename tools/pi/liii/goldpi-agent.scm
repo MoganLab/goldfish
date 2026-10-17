@@ -20,6 +20,7 @@
     (liii list)
     (liii time)
     (liii goldpi-provider)
+    (liii goldpi-stream)
     (liii goldpi-tools)
   ) ;import
   (export run-agent-loop extract-assistant-text)
@@ -149,7 +150,20 @@
 
     (define (%step-agent-turn config msgs system-prompt emit timeout)
       (let* ((active-tools (cdr (assoc 'tools config)))
-             (resp (gemini-request config msgs system-prompt active-tools timeout))
+             (on-stream-ev
+               (if (procedure? emit)
+                 (lambda (ev)
+                   (let ((usage (%assoc-val 'usage "usage" ev '())))
+                     (emit 'message_update usage ev)
+                   ) ;let
+                 ) ;lambda
+                 #f
+               ) ;if
+             ) ;on-stream-ev
+             (resp (gemini-request-stream config msgs system-prompt active-tools
+                     on-stream-ev timeout
+                   ) ;gemini-request-stream
+             ) ;resp
             ) ;
         (when (procedure? emit)
           (emit 'message_start resp)
