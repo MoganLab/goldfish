@@ -54,9 +54,9 @@ glue_define (s7_scheme* sc, const char* name, const char* desc, s7_function f, s
 
 static std::string
 generate_random_alphanumeric (std::size_t len) {
-  static const char                  charset[]= "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-  std::random_device                 rd;
-  std::mt19937                       gen (rd ());
+  static const char charset[]= "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  // 生成器用函数内 static 单例：避免重试循环里反复构造 random_device/mt19937
+  static std::mt19937                gen (std::random_device{}());
   std::uniform_int_distribution<int> dis (0, sizeof (charset) - 2);
 
   std::string s;
@@ -65,6 +65,84 @@ generate_random_alphanumeric (std::size_t len) {
     s+= charset[dis (gen)];
   }
   return s;
+}
+
+static std::string
+temp_base_dir (const char* dir_c) {
+  std::string base= dir_c;
+  if (!base.empty () && base.back () != '/' && base.back () != '\\') {
+#if defined(TB_CONFIG_OS_WINDOWS)
+    base+= '\\';
+#else
+    base+= '/';
+#endif
+  }
+  return base;
+}
+
+// 按 errno / GetLastError 映射为 (liii error) 约定的错误类别
+#if !defined(TB_CONFIG_OS_WINDOWS)
+static s7_pointer
+temp_file_error (s7_scheme* sc, int err, const char* path) {
+  const char* tag= "os-error";
+  std::string msg;
+  if (err == ENOENT || err == ENOTDIR) {
+    tag= "file-not-found-error";
+    msg= std::string ("No such file or directory: '") + path + "'";
+  }
+  else if (err == EACCES || err == EPERM) {
+    tag= "permission-denied-error";
+    msg= std::string ("Permission denied: '") + path + "'";
+  }
+  else {
+    msg= strerror (err);
+  }
+  return s7_error (sc, s7_make_symbol (sc, tag),
+                   s7_list (sc, 2, s7_make_string (sc, msg.c_str ()), s7_make_string (sc, path)));
+}
+#else
+static s7_pointer
+temp_file_error (s7_scheme* sc, DWORD err, const char* path) {
+  const char* tag= "os-error";
+  std::string msg;
+  if (err == ERROR_FILE_NOT_FOUND || err == ERROR_PATH_NOT_FOUND) {
+    tag= "file-not-found-error";
+    msg= std::string ("No such file or directory: '") + path + "'";
+  }
+  else if (err == ERROR_ACCESS_DENIED) {
+    tag= "permission-denied-error";
+    msg= std::string ("Permission denied: '") + path + "'";
+  }
+  else {
+    msg= std::string ("system error ") + std::to_string ((unsigned long) err);
+  }
+  return s7_error (sc, s7_make_symbol (sc, tag),
+                   s7_list (sc, 2, s7_make_string (sc, msg.c_str ()), s7_make_string (sc, path)));
+}
+#endif
+
+// 以 prefix+6 位随机字符+suffix 生成候选名并调用 try_create 尝试创建，最多 100 次。
+// try_create 返回 0=创建成功，1=名字冲突重试，-1=致命错误（错误码经 errno/GetLastError 取）。
+// 返回 0=成功(chosen 已填)，1=冲突耗尽，-1=致命错误；chosen 始终记录最后一次候选名。
+template <typename F>
+static int
+create_temp_unique (const std::string& base, const char* prefix_c, const char* suffix_c, std::string& chosen,
+                    F&& try_create) {
+  for (int i= 0; i < 100; ++i) {
+    chosen= base + prefix_c + generate_random_alphanumeric (6) + suffix_c;
+    int r = try_create (chosen);
+    if (r != 1) return r;
+  }
+  return 1;
+}
+
+static s7_pointer
+temp_exhausted_error (s7_scheme* sc, const char* what) {
+  return s7_error (
+      sc, s7_make_symbol (sc, "os-error"),
+      s7_list (sc, 1,
+               s7_make_string (
+                   sc, (std::string (what) + ": failed to create unique temporary name after 100 attempts").c_str ())));
 }
 
 static s7_pointer
@@ -87,51 +165,34 @@ f_mkstemp (s7_scheme* sc, s7_pointer args) {
   const char* suffix_c= s7_string (suffix_arg);
   const char* dir_c   = s7_string (dir_arg);
 
-  std::string base= dir_c;
-  if (!base.empty () && base.back () != '/' && base.back () != '\\') {
-#if defined(TB_CONFIG_OS_WINDOWS)
-    base+= '\\';
-#else
-    base+= '/';
-#endif
-  }
+  std::string base= temp_base_dir (dir_c);
 
 #if !defined(TB_CONFIG_OS_WINDOWS)
   std::string tpl       = base + prefix_c + "XXXXXX" + suffix_c;
   int         suffix_len= static_cast<int> (std::strlen (suffix_c));
   int         fd        = mkstemps (&tpl[0], suffix_len);
   if (fd < 0) {
-    return s7_error (sc, s7_make_symbol (sc, "os-error"),
-                     s7_list (sc, 2, s7_make_string (sc, strerror (errno)), s7_make_string (sc, tpl.c_str ())));
+    return temp_file_error (sc, errno, tpl.c_str ());
   }
   close (fd);
   s7_pointer port= s7_open_output_file (sc, tpl.c_str (), "w");
   return s7_values (sc, s7_list (sc, 2, port, s7_make_string (sc, tpl.c_str ())));
 #else
+  DWORD       last_err= 0;
   std::string chosen_path;
-  bool        created= false;
-  for (int i= 0; i < 100; ++i) {
-    std::string cand = base + prefix_c + generate_random_alphanumeric (6) + suffix_c;
-    HANDLE      hFile= CreateFileA (cand.c_str (), GENERIC_READ | GENERIC_WRITE,
-                                    FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL, CREATE_NEW,
-                                    FILE_ATTRIBUTE_NORMAL, NULL);
+  int         r= create_temp_unique (base, prefix_c, suffix_c, chosen_path, [&last_err] (const std::string& cand) {
+    HANDLE hFile= CreateFileA (cand.c_str (), GENERIC_READ | GENERIC_WRITE,
+                                       FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL, CREATE_NEW,
+                                       FILE_ATTRIBUTE_NORMAL, NULL);
     if (hFile != INVALID_HANDLE_VALUE) {
       CloseHandle (hFile);
-      chosen_path= cand;
-      created    = true;
-      break;
+      return 0;
     }
-    DWORD err= GetLastError ();
-    if (err != ERROR_FILE_EXISTS && err != ERROR_ALREADY_EXISTS) {
-      return s7_error (sc, s7_make_symbol (sc, "os-error"),
-                       s7_list (sc, 2, s7_make_string (sc, "CreateFileA failed"), s7_make_string (sc, cand.c_str ())));
-    }
-  }
-  if (!created) {
-    return s7_error (
-        sc, s7_make_symbol (sc, "os-error"),
-        s7_list (sc, 1, s7_make_string (sc, "mkstemp: failed to create unique temporary file after 100 attempts")));
-  }
+    last_err= GetLastError ();
+    return (last_err == ERROR_FILE_EXISTS || last_err == ERROR_ALREADY_EXISTS) ? 1 : -1;
+  });
+  if (r == 1) return temp_exhausted_error (sc, "mkstemp");
+  if (r < 0) return temp_file_error (sc, last_err, chosen_path.c_str ());
   s7_pointer port= s7_open_output_file (sc, chosen_path.c_str (), "w");
   return s7_values (sc, s7_list (sc, 2, port, s7_make_string (sc, chosen_path.c_str ())));
 #endif
@@ -157,71 +218,36 @@ f_mkdtemp (s7_scheme* sc, s7_pointer args) {
   const char* suffix_c= s7_string (suffix_arg);
   const char* dir_c   = s7_string (dir_arg);
 
-  std::string base= dir_c;
-  if (!base.empty () && base.back () != '/' && base.back () != '\\') {
-#if defined(TB_CONFIG_OS_WINDOWS)
-    base+= '\\';
-#else
-    base+= '/';
-#endif
-  }
+  std::string base= temp_base_dir (dir_c);
 
 #if !defined(TB_CONFIG_OS_WINDOWS)
   std::string chosen_path;
   if (std::strlen (suffix_c) == 0) {
     std::string tpl= base + prefix_c + "XXXXXX";
-    char*       res= mkdtemp (&tpl[0]);
-    if (!res) {
-      return s7_error (sc, s7_make_symbol (sc, "os-error"),
-                       s7_list (sc, 2, s7_make_string (sc, strerror (errno)), s7_make_string (sc, tpl.c_str ())));
+    if (!mkdtemp (&tpl[0])) {
+      return temp_file_error (sc, errno, tpl.c_str ());
     }
     chosen_path= tpl;
   }
   else {
-    bool created= false;
-    for (int i= 0; i < 100; ++i) {
-      std::string cand= base + prefix_c + generate_random_alphanumeric (6) + suffix_c;
-      if (mkdir (cand.c_str (), 0700) == 0) {
-        chosen_path= cand;
-        created    = true;
-        break;
-      }
-      if (errno != EEXIST) {
-        return s7_error (sc, s7_make_symbol (sc, "os-error"),
-                         s7_list (sc, 2, s7_make_string (sc, strerror (errno)), s7_make_string (sc, cand.c_str ())));
-      }
-    }
-    if (!created) {
-      return s7_error (
-          sc, s7_make_symbol (sc, "os-error"),
-          s7_list (sc, 1,
-                   s7_make_string (sc, "mkdtemp: failed to create unique temporary directory after 100 attempts")));
-    }
+    int r= create_temp_unique (base, prefix_c, suffix_c, chosen_path, [] (const std::string& cand) {
+      if (mkdir (cand.c_str (), 0700) == 0) return 0;
+      return errno == EEXIST ? 1 : -1;
+    });
+    if (r == 1) return temp_exhausted_error (sc, "mkdtemp");
+    if (r < 0) return temp_file_error (sc, errno, chosen_path.c_str ());
   }
   return s7_make_string (sc, chosen_path.c_str ());
 #else
-  bool        created= false;
+  DWORD       last_err= 0;
   std::string chosen_path;
-  for (int i= 0; i < 100; ++i) {
-    std::string cand= base + prefix_c + generate_random_alphanumeric (6) + suffix_c;
-    if (CreateDirectoryA (cand.c_str (), NULL)) {
-      chosen_path= cand;
-      created    = true;
-      break;
-    }
-    DWORD err= GetLastError ();
-    if (err != ERROR_ALREADY_EXISTS) {
-      return s7_error (
-          sc, s7_make_symbol (sc, "os-error"),
-          s7_list (sc, 2, s7_make_string (sc, "CreateDirectoryA failed"), s7_make_string (sc, cand.c_str ())));
-    }
-  }
-  if (!created) {
-    return s7_error (
-        sc, s7_make_symbol (sc, "os-error"),
-        s7_list (sc, 1,
-                 s7_make_string (sc, "mkdtemp: failed to create unique temporary directory after 100 attempts")));
-  }
+  int         r= create_temp_unique (base, prefix_c, suffix_c, chosen_path, [&last_err] (const std::string& cand) {
+    if (CreateDirectoryA (cand.c_str (), NULL)) return 0;
+    last_err= GetLastError ();
+    return last_err == ERROR_ALREADY_EXISTS ? 1 : -1;
+  });
+  if (r == 1) return temp_exhausted_error (sc, "mkdtemp");
+  if (r < 0) return temp_file_error (sc, last_err, chosen_path.c_str ());
   return s7_make_string (sc, chosen_path.c_str ());
 #endif
 }

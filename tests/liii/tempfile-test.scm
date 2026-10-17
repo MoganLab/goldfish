@@ -99,7 +99,7 @@
       ;; 离开 with-temp-file 后，文件已被删除
       (check-false (file-exists? saved-file))
       ;; 在目录中写入其他文件
-      (path-write-text (string-append d (string (os-sep)) "other.txt") "other")))
+      (path-write-text (path-join d "other.txt") "other")))
   ;; 离开 with-temp-dir 后，整个目录包括 other.txt 全被清除
   (check-false (file-exists? saved-dir)))
 

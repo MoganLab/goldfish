@@ -2,6 +2,7 @@
         (scheme file)
         (liii check)
         (liii os)
+        (liii path)
         (liii string)
         (liii string-cursor)
         (liii tempfile))
@@ -43,7 +44,7 @@
   (unless (os-windows?)
     (check (= (g_file-mode dir) #o700) => #t))
   ;; 在其中创建子文件
-  (let ((subfile (string-append dir (string (os-sep)) "child.txt")))
+  (let ((subfile (path->string (path-join dir "child.txt"))))
     (let ((p (open-output-file subfile)))
       (display "dir test data" p)
       (close-output-port p))

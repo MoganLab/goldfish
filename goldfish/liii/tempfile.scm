@@ -19,62 +19,33 @@
   (import (scheme base) (scheme file) (liii base) (liii error) (liii os))
   (begin
 
-    (define (%validate-dir caller dir)
-      (when dir
-        (cond ((not (file-exists? dir))
-               (file-not-found-error (string-append caller ": directory not found: " dir))
-              ) ;
-              ((not (access dir 'W_OK))
-               (permission-denied-error (string-append caller ": permission denied: " dir))
-              ) ;
-        ) ;cond
-      ) ;when
+    ;; 目录不存在/无权限等错误由 C 层按 errno 映射抛出，
+    ;; 此处不做 file-exists?/access 预检查（TOCTOU 反模式）
+    (define (%check-temp-args caller prefix suffix dir)
+      (unless (string? prefix)
+        (type-error (string-append caller ": prefix must be a string"))
+      ) ;unless
+      (unless (string? suffix)
+        (type-error (string-append caller ": suffix must be a string"))
+      ) ;unless
+      (unless (or (not dir) (string? dir))
+        (type-error (string-append caller ": dir must be a string or #f"))
+      ) ;unless
     ) ;define
 
     (define* (mkstemp (prefix "tmp") (suffix "") (dir #f))
-      (unless (string? prefix)
-        (type-error "mkstemp: prefix must be a string")
-      ) ;unless
-      (unless (string? suffix)
-        (type-error "mkstemp: suffix must be a string")
-      ) ;unless
-      (unless (or (not dir) (string? dir))
-        (type-error "mkstemp: dir must be a string or #f")
-      ) ;unless
-      (%validate-dir "mkstemp" dir)
-      (let ((target-dir (if dir dir (os-temp-dir))))
-        (g_mkstemp prefix suffix target-dir)
-      ) ;let
+      (%check-temp-args "mkstemp" prefix suffix dir)
+      (g_mkstemp prefix suffix (if dir dir (os-temp-dir)))
     ) ;define*
 
     (define* (mkdtemp (prefix "tmp") (suffix "") (dir #f))
-      (unless (string? prefix)
-        (type-error "mkdtemp: prefix must be a string")
-      ) ;unless
-      (unless (string? suffix)
-        (type-error "mkdtemp: suffix must be a string")
-      ) ;unless
-      (unless (or (not dir) (string? dir))
-        (type-error "mkdtemp: dir must be a string or #f")
-      ) ;unless
-      (%validate-dir "mkdtemp" dir)
-      (let ((target-dir (if dir dir (os-temp-dir))))
-        (g_mkdtemp prefix suffix target-dir)
-      ) ;let
+      (%check-temp-args "mkdtemp" prefix suffix dir)
+      (g_mkdtemp prefix suffix (if dir dir (os-temp-dir)))
     ) ;define*
 
     (define* (with-temp-file proc (prefix "tmp") (suffix "") (dir #f))
       (unless (procedure? proc)
         (type-error "with-temp-file: proc must be a procedure")
-      ) ;unless
-      (unless (string? prefix)
-        (type-error "with-temp-file: prefix must be a string")
-      ) ;unless
-      (unless (string? suffix)
-        (type-error "with-temp-file: suffix must be a string")
-      ) ;unless
-      (unless (or (not dir) (string? dir))
-        (type-error "with-temp-file: dir must be a string or #f")
       ) ;unless
       (let*-values (((port path) (mkstemp prefix suffix dir)))
         (close-output-port port)
@@ -88,15 +59,6 @@
     (define* (with-temp-dir proc (prefix "tmp") (suffix "") (dir #f))
       (unless (procedure? proc)
         (type-error "with-temp-dir: proc must be a procedure")
-      ) ;unless
-      (unless (string? prefix)
-        (type-error "with-temp-dir: prefix must be a string")
-      ) ;unless
-      (unless (string? suffix)
-        (type-error "with-temp-dir: suffix must be a string")
-      ) ;unless
-      (unless (or (not dir) (string? dir))
-        (type-error "with-temp-dir: dir must be a string or #f")
       ) ;unless
       (let ((path (mkdtemp prefix suffix dir)))
         (dynamic-wind (lambda () #f)
