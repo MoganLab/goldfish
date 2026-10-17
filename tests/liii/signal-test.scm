@@ -10,26 +10,26 @@
 
 ;; 示例1：注册自定义信号回调并主动触发
 (let ((handled #f))
-  (signal-trap 'sigint (lambda (sig) (set! handled sig)))
-  (signal-raise 'sigint)
-  (check handled => 'sigint)
-  (signal-trap 'sigint 'default)
+  (signal-trap 'SIGINT (lambda (sig) (set! handled sig)))
+  (signal-raise 'SIGINT)
+  (check handled => 'SIGINT)
+  (signal-trap 'SIGINT 'default)
 ) ;let
 
 ;; 示例2：忽略指定信号并在稍后恢复默认行为
-(let ((old (signal-trap 'sigterm 'ignore)))
-  (check (signal-get 'sigterm) => 'ignore)
-  (check (signal-trap 'sigterm 'default) => 'ignore)
-  (check (signal-get 'sigterm) => 'default)
+(let ((old (signal-trap 'SIGTERM 'ignore)))
+  (check (signal-get 'SIGTERM) => 'ignore)
+  (check (signal-trap 'SIGTERM 'default) => 'ignore)
+  (check (signal-get 'SIGTERM) => 'default)
 ) ;let
 
 ;; 示例3：错误防御校验
-(check-catch 'type-error (signal-trap "sigint" 'default))
-(check-catch 'type-error (signal-trap 'sigint "invalid-handler"))
+(check-catch 'type-error (signal-trap "SIGINT" 'default))
+(check-catch 'type-error (signal-trap 'SIGINT "invalid-handler"))
 (check-catch 'value-error (signal-trap 'invalid-sig 'default))
 (check-catch 'type-error (signal-get 123))
 (check-catch 'value-error (signal-get 'invalid-sig))
-(check-catch 'type-error (signal-raise "sigint"))
+(check-catch 'type-error (signal-raise "SIGINT"))
 (check-catch 'value-error (signal-raise 'invalid-sig))
 
 ;; ==== 如何查看函数的文档和用例 ====

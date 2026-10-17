@@ -26,36 +26,46 @@
       *signal-table*
     ) ;for-each
 
+    (define (check-signal sig who)
+      (if (not (symbol? sig))
+        (type-error (string-append who ": sig must be a symbol") sig)
+      ) ;if
+      (let ((entry (assq sig *signal-table*)))
+        (if (not entry) (value-error (string-append who ": unsupported signal") sig))
+        entry
+      ) ;let
+    ) ;define
+
+    ;; 返回值协议：#f 表示正常结束；(type . info) 表示 handler 抛出了错误，
+    ;; 由 C++ 层在复位派发状态后重抛，避免错误跳过复位逻辑
     (define (dispatch-signal sig)
       (let ((h (hash-table-ref/default *handlers* sig 'default)))
-        (if (procedure? h) (h sig))
+        (if (procedure? h)
+          (catch #t (lambda () (h sig) #f) (lambda (type info) (cons type info)))
+          #f
+        ) ;if
       ) ;let
     ) ;define
 
     (g_signal-set-dispatcher dispatch-signal)
 
     (define (signal-trap sig handler)
-      (if (not (symbol? sig))
-        (type-error "(signal-trap sig handler): sig must be a symbol" sig)
-      ) ;if
-      (let ((entry (assq sig *signal-table*)))
-        (if (not entry)
-          (value-error "(signal-trap sig handler): unsupported signal" sig)
-        ) ;if
+      (let ((entry (check-signal sig "(signal-trap sig handler)")))
         (if (not (or (procedure? handler) (eq? handler 'default) (eq? handler 'ignore)))
           (type-error "(signal-trap sig handler): handler must be a procedure, 'default, or 'ignore"
             handler
           ) ;type-error
         ) ;if
         (let ((old-handler (hash-table-ref/default *handlers* sig 'default))
-              (signum (cdr entry))
               (mode (cond ((eq? handler 'default) 'default)
                           ((eq? handler 'ignore) 'ignore)
                           (else 'catch)
                     ) ;cond
               ) ;mode
              ) ;
-          (g_signal-os-trap signum mode)
+          (if (not (g_signal-os-trap (cdr entry) mode))
+            (os-error "(signal-trap sig handler): failed to set OS signal action" sig)
+          ) ;if
           (hash-table-set! *handlers* sig handler)
           old-handler
         ) ;let
@@ -63,21 +73,13 @@
     ) ;define
 
     (define (signal-get sig)
-      (if (not (symbol? sig))
-        (type-error "(signal-get sig): sig must be a symbol" sig)
-      ) ;if
-      (let ((entry (assq sig *signal-table*)))
-        (if (not entry) (value-error "(signal-get sig): unsupported signal" sig))
+      (let ((entry (check-signal sig "(signal-get sig)")))
         (hash-table-ref/default *handlers* sig 'default)
       ) ;let
     ) ;define
 
     (define (signal-raise sig)
-      (if (not (symbol? sig))
-        (type-error "(signal-raise sig): sig must be a symbol" sig)
-      ) ;if
-      (let ((entry (assq sig *signal-table*)))
-        (if (not entry) (value-error "(signal-raise sig): unsupported signal" sig))
+      (let ((entry (check-signal sig "(signal-raise sig)")))
         (g_signal-raise (cdr entry))
         (values)
       ) ;let

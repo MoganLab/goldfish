@@ -10,8 +10,8 @@
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-// License for the specific language governing permissions and limitations
-// under the License.
+// License for the specific language governing permissions and
+// limitations under the License.
 //
 
 #include "liii_signal.hpp"
@@ -37,9 +37,15 @@
 namespace goldfish {
 
 static std::atomic<uint64_t> g_pending_signals{0};
-static s7_pointer            g_signal_dispatcher= NULL;
-static int                   g_dispatcher_gc_loc= -1;
-static bool                  g_in_dispatch      = false;
+static s7_pointer            g_signal_dispatcher    = NULL;
+static int                   g_dispatcher_gc_loc    = -1;
+static bool                  g_in_dispatch          = false;
+static s7_pointer            g_dispatch_error       = NULL;
+static int                   g_dispatch_error_gc_loc= -1;
+static int                   g_catch_count          = 0;
+static bool                  g_signum_caught[64]    = {};
+
+enum class SignalMode { Default, Ignore, Catch };
 
 struct SignalDef {
   const char* name;
@@ -49,85 +55,105 @@ struct SignalDef {
 static const std::vector<SignalDef>&
 get_supported_signals () {
   static const std::vector<SignalDef> sigs= {
-      {"sigint", SIGINT}, {"sigterm", SIGTERM}, {"sigabrt", SIGABRT},
+      {"SIGINT", SIGINT}, {"SIGTERM", SIGTERM}, {"SIGABRT", SIGABRT},
 #if !defined(TB_CONFIG_OS_WINDOWS) && !defined(_WIN32)
-      {"sighup", SIGHUP}, {"sigpipe", SIGPIPE}, {"sigusr1", SIGUSR1}, {"sigusr2", SIGUSR2}, {"sigchld", SIGCHLD},
+      {"SIGHUP", SIGHUP}, {"SIGPIPE", SIGPIPE}, {"SIGUSR1", SIGUSR1}, {"SIGUSR2", SIGUSR2}, {"SIGCHLD", SIGCHLD},
 #endif
   };
   return sigs;
 }
 
-#if !defined(TB_CONFIG_OS_WINDOWS) && !defined(_WIN32)
 static void
-posix_signal_handler (int signum) {
+mark_pending_signal (int signum) {
   if (signum > 0 && signum < 64) {
     g_pending_signals.fetch_or (1ULL << signum, std::memory_order_relaxed);
   }
 }
+
+#if !defined(TB_CONFIG_OS_WINDOWS) && !defined(_WIN32)
+static void
+posix_signal_handler (int signum) {
+  mark_pending_signal (signum);
+}
 #else
 static void
 windows_signal_handler (int signum) {
-  if (signum > 0 && signum < 64) {
-    g_pending_signals.fetch_or (1ULL << signum, std::memory_order_relaxed);
-  }
+  mark_pending_signal (signum);
+  // Windows 的 signal() 处理器不会自动重装，需手动恢复
   signal (signum, windows_signal_handler);
 }
 
 static BOOL WINAPI
 windows_console_ctrl_handler (DWORD ctrl_type) {
   if (ctrl_type == CTRL_C_EVENT || ctrl_type == CTRL_BREAK_EVENT) {
-    g_pending_signals.fetch_or (1ULL << SIGINT, std::memory_order_relaxed);
+    mark_pending_signal (SIGINT);
     return TRUE;
   }
   return FALSE;
 }
 #endif
 
+static void
+signal_safe_point_hook (s7_scheme* sc, bool* val) {
+  if (g_pending_signals.load (std::memory_order_relaxed) != 0) {
+    dispatch_pending_signals (sc);
+  }
+}
+
+// begin hook 会拖慢整个解释器的 begin 求值路径，因此仅在存在 catch 模式的
+// 信号时才安装，全部恢复后卸载
+static void
+update_catch_tracking (s7_scheme* sc, int signum, SignalMode mode) {
+  const bool was= g_signum_caught[signum];
+  const bool now= (mode == SignalMode::Catch);
+  if (now == was) return;
+  g_signum_caught[signum]= now;
+  g_catch_count+= now ? 1 : -1;
+  if (g_catch_count == 1) s7_set_begin_hook (sc, signal_safe_point_hook);
+  else if (g_catch_count == 0) s7_set_begin_hook (sc, NULL);
+}
+
 static bool
-set_os_signal_action (int signum, const char* action) {
+set_os_signal_action (s7_scheme* sc, int signum, SignalMode mode) {
 #if !defined(TB_CONFIG_OS_WINDOWS) && !defined(_WIN32)
   struct sigaction sa;
   std::memset (&sa, 0, sizeof (sa));
   sigemptyset (&sa.sa_mask);
 
-  if (std::strcmp (action, "default") == 0) {
+  switch (mode) {
+  case SignalMode::Default:
     sa.sa_handler= SIG_DFL;
-  }
-  else if (std::strcmp (action, "ignore") == 0) {
+    break;
+  case SignalMode::Ignore:
     sa.sa_handler= SIG_IGN;
-  }
-  else if (std::strcmp (action, "catch") == 0) {
+    break;
+  case SignalMode::Catch:
     sa.sa_handler= posix_signal_handler;
     sa.sa_flags  = SA_RESTART;
+    break;
   }
-  else {
-    return false;
-  }
-  return sigaction (signum, &sa, NULL) == 0;
+  const bool ok= sigaction (signum, &sa, NULL) == 0;
 #else
-  if (std::strcmp (action, "default") == 0) {
+  switch (mode) {
+  case SignalMode::Default:
     signal (signum, SIG_DFL);
-    if (signum == SIGINT) {
-      SetConsoleCtrlHandler (windows_console_ctrl_handler, FALSE);
-    }
-  }
-  else if (std::strcmp (action, "ignore") == 0) {
+    break;
+  case SignalMode::Ignore:
     signal (signum, SIG_IGN);
-    if (signum == SIGINT) {
-      SetConsoleCtrlHandler (windows_console_ctrl_handler, FALSE);
-    }
-  }
-  else if (std::strcmp (action, "catch") == 0) {
+    break;
+  case SignalMode::Catch:
     signal (signum, windows_signal_handler);
-    if (signum == SIGINT) {
-      SetConsoleCtrlHandler (windows_console_ctrl_handler, TRUE);
-    }
+    break;
   }
-  else {
-    return false;
+  if (signum == SIGINT) {
+    SetConsoleCtrlHandler (windows_console_ctrl_handler, (mode == SignalMode::Catch));
   }
-  return true;
+  const bool ok= true;
 #endif
+  if (ok) {
+    update_catch_tracking (sc, signum, mode);
+  }
+  return ok;
 }
 
 static s7_pointer
@@ -142,6 +168,13 @@ get_signal_symbol (s7_scheme* sc, int signum) {
 }
 
 bool
+signal_catch_active () {
+  return g_catch_count > 0;
+}
+
+// 派发器 (dispatch-signal sig) 的返回值协议：#f 表示正常，
+// (type . info) 表示 handler 抛出了错误，需在复位 g_in_dispatch 后重抛
+bool
 dispatch_pending_signals (s7_scheme* sc) {
   if (g_pending_signals.load (std::memory_order_relaxed) == 0) {
     return false;
@@ -151,36 +184,46 @@ dispatch_pending_signals (s7_scheme* sc) {
   }
   g_in_dispatch= true;
 
-  bool dispatched= false;
-  while (true) {
-    uint64_t current= g_pending_signals.load (std::memory_order_relaxed);
-    if (current == 0) break;
-
+  bool     dispatched= false;
+  bool     has_error = false;
+  uint64_t current   = g_pending_signals.exchange (0, std::memory_order_relaxed);
+  while (current != 0) {
     for (int sig= 1; sig < 64; ++sig) {
-      uint64_t mask= (1ULL << sig);
-      if (g_pending_signals.load (std::memory_order_relaxed) & mask) {
-        g_pending_signals.fetch_and (~mask, std::memory_order_relaxed);
+      if (current & (1ULL << sig)) {
         s7_pointer sig_sym= get_signal_symbol (sc, sig);
         if (sig_sym != s7_nil (sc)) {
-          dispatched= true;
-          s7_call (sc, g_signal_dispatcher, s7_cons (sc, sig_sym, s7_nil (sc)));
+          dispatched  = true;
+          s7_pointer r= s7_call (sc, g_signal_dispatcher, s7_cons (sc, sig_sym, s7_nil (sc)));
+          if (s7_is_pair (r)) {
+            if (g_dispatch_error_gc_loc != -1) {
+              s7_gc_unprotect_at (sc, g_dispatch_error_gc_loc);
+            }
+            g_dispatch_error       = r;
+            g_dispatch_error_gc_loc= s7_gc_protect (sc, r);
+            has_error              = true;
+            break;
+          }
         }
       }
     }
+    if (has_error) break;
+    current= g_pending_signals.exchange (0, std::memory_order_relaxed);
   }
 
   g_in_dispatch= false;
+
+  if (has_error) {
+    s7_pointer err         = g_dispatch_error;
+    int        err_loc     = g_dispatch_error_gc_loc;
+    g_dispatch_error       = NULL;
+    g_dispatch_error_gc_loc= -1;
+    s7_gc_unprotect_at (sc, err_loc);
+    s7_error (sc, s7_car (err), s7_cdr (err));
+  }
   return dispatched;
 }
 
-static void
-signal_safe_point_hook (s7_scheme* sc, bool* val) {
-  if (g_pending_signals.load (std::memory_order_relaxed) != 0) {
-    dispatch_pending_signals (sc);
-  }
-}
-
-// (g_signal-supported-signals) => ((sigint . 2) (sigterm . 15) ...)
+// (g_signal-supported-signals) => ((SIGINT . 2) (SIGTERM . 15) ...)
 static s7_pointer
 f_signal_supported_signals (s7_scheme* sc, s7_pointer args) {
   const auto& sigs  = get_supported_signals ();
@@ -197,7 +240,14 @@ static s7_pointer
 f_signal_os_trap (s7_scheme* sc, s7_pointer args) {
   int         signum= (int) s7_integer (s7_car (args));
   const char* mode  = s7_symbol_name (s7_cadr (args));
-  bool        ok    = set_os_signal_action (signum, mode);
+
+  SignalMode m;
+  if (std::strcmp (mode, "default") == 0) m= SignalMode::Default;
+  else if (std::strcmp (mode, "ignore") == 0) m= SignalMode::Ignore;
+  else if (std::strcmp (mode, "catch") == 0) m= SignalMode::Catch;
+  else return s7_f (sc);
+
+  const bool ok= set_os_signal_action (sc, signum, m);
   return s7_make_boolean (sc, ok);
 }
 
@@ -241,8 +291,6 @@ glue_define (s7_scheme* sc, const char* name, const char* desc, s7_function f, s
 
 void
 glue_liii_signal (s7_scheme* sc) {
-  s7_set_begin_hook (sc, signal_safe_point_hook);
-
   glue_define (sc, "g_signal-supported-signals", "(g_signal-supported-signals) => alist", f_signal_supported_signals, 0,
                0);
   glue_define (sc, "g_signal-os-trap", "(g_signal-os-trap signum mode) => boolean", f_signal_os_trap, 2, 0);
