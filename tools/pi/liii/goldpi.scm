@@ -27,6 +27,7 @@
     (liii goldpi-args)
     (liii goldpi-config)
     (liii goldpi-agent)
+    (liii goldpi-session)
   ) ;import
   (export main display-pi-help read-all-stdin run-goldpi)
   (begin
@@ -147,28 +148,27 @@
     ) ;define
 
     (define (%run-agent-print-session cfg parsed initial-msg)
-      (let* ((system-prompt (%prepare-system-prompt cfg parsed))
-             (init-msgs
-               (list (list (cons 'role "user")
-                       (cons 'content initial-msg)
-                       (cons 'timestamp (pi-current-time-millis))
-                     ) ;list
-               ) ;list
-             ) ;init-msgs
-             (timeout
-               (or (pi-args-ref parsed 'timeout) (cdr (or (assoc 'timeout cfg) '(#f
-                                                                                 . 120))))
-             ) ;timeout
-             (max-turns
-               (or (pi-args-ref parsed 'max-turns)
-                 (cdr (or (assoc 'max-turns cfg) '(#f . 200)))
-               ) ;or
-             ) ;max-turns
-             (res-msgs (run-agent-loop cfg init-msgs system-prompt #f timeout max-turns))
-             (last-msg (if (pair? res-msgs) (car (reverse res-msgs)) #f))
-            ) ;
-        (%handle-print-result last-msg)
-      ) ;let*
+      (let*-values (((cwd) (path->string (path-cwd)))
+                    ((sfile sdir) (setup-session-file parsed cfg cwd))
+                    ((init-msgs) (setup-initial-messages parsed initial-msg sdir))
+                   ) ;
+        (let* ((system-prompt (%prepare-system-prompt cfg parsed))
+               (timeout
+                 (or (pi-args-ref parsed 'timeout) (cdr (or (assoc 'timeout cfg) '(#f
+                                                                                   . 120))))
+               ) ;timeout
+               (max-turns
+                 (or (pi-args-ref parsed 'max-turns)
+                   (cdr (or (assoc 'max-turns cfg) '(#f . 200)))
+                 ) ;or
+               ) ;max-turns
+               (res-msgs (run-agent-loop cfg init-msgs system-prompt #f timeout max-turns))
+               (last-msg (if (pair? res-msgs) (car (reverse res-msgs)) #f))
+              ) ;
+          (persist-new-messages! sfile init-msgs res-msgs)
+          (%handle-print-result last-msg)
+        ) ;let*
+      ) ;let*-values
     ) ;define
 
     (define (%build-json-event ev-type args)
@@ -199,29 +199,30 @@
     ) ;define
 
     (define (%run-agent-json-session cfg parsed initial-msg)
-      (let* ((cwd (path->string (path-cwd)))
-             (system-prompt (%prepare-system-prompt cfg parsed))
-             (init-msgs
-               (list (list (cons 'role "user")
-                       (cons 'content initial-msg)
-                       (cons 'timestamp (pi-current-time-millis))
-                     ) ;list
-               ) ;list
-             ) ;init-msgs
-             (timeout
-               (or (pi-args-ref parsed 'timeout) (cdr (or (assoc 'timeout cfg) '(#f
-                                                                                 . 120))))
-             ) ;timeout
-             (max-turns
-               (or (pi-args-ref parsed 'max-turns)
-                 (cdr (or (assoc 'max-turns cfg) '(#f . 200)))
-               ) ;or
-             ) ;max-turns
-            ) ;
-        (%emit-json-event 'session cwd)
-        (run-agent-loop cfg init-msgs system-prompt %emit-json-event timeout max-turns)
-        0
-      ) ;let*
+      (let*-values (((cwd) (path->string (path-cwd)))
+                    ((sfile sdir) (setup-session-file parsed cfg cwd))
+                    ((init-msgs) (setup-initial-messages parsed initial-msg sdir))
+                   ) ;
+        (let* ((system-prompt (%prepare-system-prompt cfg parsed))
+               (timeout
+                 (or (pi-args-ref parsed 'timeout) (cdr (or (assoc 'timeout cfg) '(#f
+                                                                                   . 120))))
+               ) ;timeout
+               (max-turns
+                 (or (pi-args-ref parsed 'max-turns)
+                   (cdr (or (assoc 'max-turns cfg) '(#f . 200)))
+                 ) ;or
+               ) ;max-turns
+              ) ;
+          (%emit-json-event 'session cwd)
+          (let ((res-msgs (run-agent-loop cfg init-msgs system-prompt %emit-json-event timeout max-turns)
+                ) ;res-msgs
+               ) ;
+            (persist-new-messages! sfile init-msgs res-msgs)
+            0
+          ) ;let
+        ) ;let*
+      ) ;let*-values
     ) ;define
 
     (define (%dispatch-goldpi parsed mode initial-msg rest-msgs)
@@ -250,7 +251,10 @@
                               (build-initial-prompt stdin-content file-text messages)
                              ) ;
                             ) ;
-                  (if (and (string-null? initial-msg) (null? rest-msgs))
+                  (if (and (string-null? initial-msg)
+                        (null? rest-msgs)
+                        (not (pi-args-ref parsed 'continue))
+                      ) ;and
                     (begin
                       (display-pi-help)
                       0

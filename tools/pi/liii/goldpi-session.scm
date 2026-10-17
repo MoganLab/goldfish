@@ -22,12 +22,85 @@
     (liii json)
     (liii time)
     (liii sort)
+    (liii pi)
+    (liii goldpi-args)
   ) ;import
   (export encode-cwd-to-session-dirname get-session-dir make-session-file-path
     read-session-history append-session-entry! find-latest-session-file
-    save-session-header! save-session-message!
+    save-session-header! save-session-message! setup-session-file
+    setup-initial-messages persist-new-messages!
   ) ;export
   (begin
+
+    (define (%init-new-session-file sdir cwd)
+      (path-mkdir sdir :parents #t :exist-ok #t)
+      (let* ((sid (uuid4))
+             (now-iso (pi-iso-8601-utc-now))
+             (fp (make-session-file-path sdir now-iso sid))
+            ) ;
+        (save-session-header! fp sid now-iso cwd)
+        (values fp sdir)
+      ) ;let*
+    ) ;define
+
+    (define (setup-session-file parsed cfg cwd)
+      (if (pi-args-ref parsed 'no-session)
+        (values #f #f)
+        (let* ((agent-dir (cdr (assoc 'agent-dir cfg)))
+               (sdir (get-session-dir agent-dir cwd))
+              ) ;
+          (if (pi-args-ref parsed 'continue)
+            (let ((latest (find-latest-session-file sdir)))
+              (if latest (values latest sdir) (%init-new-session-file sdir cwd))
+            ) ;let
+            (%init-new-session-file sdir cwd)
+          ) ;if
+        ) ;let*
+      ) ;if
+    ) ;define
+
+    (define (setup-initial-messages parsed initial-msg sdir)
+      (let* ((user-msg
+               (if (not (string-null? initial-msg))
+                 (list (list (cons 'role "user")
+                         (cons 'content initial-msg)
+                         (cons 'timestamp (pi-current-time-millis))
+                       ) ;list
+                 ) ;list
+                 '()
+               ) ;if
+             ) ;user-msg
+            ) ;
+        (if (pi-args-ref parsed 'continue)
+          (let ((latest-file (find-latest-session-file sdir)))
+            (if latest-file (append (read-session-history latest-file) user-msg) user-msg)
+          ) ;let
+          user-msg
+        ) ;if
+      ) ;let*
+    ) ;define
+
+    (define (persist-new-messages! sfile init-msgs all-final-msgs)
+      (when sfile
+        (let ((old-len (length init-msgs)) (total-len (length all-final-msgs)))
+          (when (> total-len old-len)
+            (let loop
+              ((rest (list-tail all-final-msgs old-len)))
+              (when (pair? rest)
+                (let* ((m (car rest))
+                       (json-str (pi-serialize-event m))
+                       (mid (uuid4))
+                       (now-iso (pi-iso-8601-utc-now))
+                      ) ;
+                  (save-session-message! sfile json-str mid #f now-iso)
+                  (loop (cdr rest))
+                ) ;let*
+              ) ;when
+            ) ;let
+          ) ;when
+        ) ;let
+      ) ;when
+    ) ;define
 
     (define (encode-cwd-to-session-dirname cwd)
       (let* ((clean-cwd
