@@ -128,6 +128,38 @@
 (let-values (((out is-err) (pi-execute-bash '(("command" . "echo 'ok'")))))
   (check is-err => #f))
 
+;; gemini-map-finish-reason
+(check (gemini-map-finish-reason "STOP" #f) => "stop")
+(check (gemini-map-finish-reason "STOP" #t) => "toolUse")
+(check (gemini-map-finish-reason "MAX_TOKENS" #f) => "length")
+(check (gemini-map-finish-reason "SAFETY" #f) => "error")
+(check (gemini-map-finish-reason "OTHER" #f) => "error")
+
+;; gemini-map-usage
+(let* ((raw-u '(("promptTokenCount" . 100) ("candidatesTokenCount" . 50)
+                ("thoughtsTokenCount" . 20) ("cachedContentTokenCount" . 30)
+                ("totalTokenCount" . 170)))
+       (u (gemini-map-usage raw-u)))
+  (check (cdr (assoc 'input u)) => 70)
+  (check (cdr (assoc 'output u)) => 70)
+  (check (cdr (assoc 'cacheRead u)) => 30)
+  (check (cdr (assoc 'cacheWrite u)) => 0)
+  (check (cdr (assoc 'totalTokens u)) => 170))
+
+;; gemini-normalize-tool-call-id & gemini-generate-tool-call-id
+(check (gemini-normalize-tool-call-id "valid_id-123") => "valid_id-123")
+(check (gemini-normalize-tool-call-id "invalid.id:special!chars") => "invalid_id_special_chars")
+(check (gemini-generate-tool-call-id "bash" 1700000000 1) => "bash_1700000000_1")
+
+;; gemini-build-contents & gemini-build-request-body
+(let* ((msgs (list '((role . "user") (content . "List"))
+                   '((role . "assistant") (content . (((type . "toolCall") (id . "c1") (name . "ls") (arguments . (("path" . ".")))))))
+                   '((role . "toolResult") (toolCallId . "c1") (toolName . "ls") (isError . #f) (content . (((type . "text") (text . "ok")))))))
+       (contents (gemini-build-contents msgs))
+       (body (gemini-build-request-body contents "system" '())))
+  (check (vector-length contents) => 3)
+  (check (cdr (assoc "systemInstruction" body)) => "system"))
+
 ;; pi-resolve-config-value
 (check (pi-resolve-config-value "literal-key") => "literal-key")
 (let ((test-env '(("TEST_LEFT" . "left") ("TEST_RIGHT" . "right"))))

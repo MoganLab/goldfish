@@ -26,6 +26,7 @@
     (liii pi find)
     (liii pi grep)
     (liii pi config)
+    (liii pi provider)
   ) ;import
   (export resolve-app-mode format-file-block build-initial-prompt
     PI_DEFAULT_MAX_LINES PI_DEFAULT_MAX_BYTES PI_GREP_MAX_LINE_LENGTH
@@ -36,7 +37,9 @@
     pi-grep-schema pi-execute-grep pi-resolve-config-value json-dict-ref
     pi-get-agent-dir pi-read-json-file pi-load-settings pi-resolve-proxy-url
     pi-load-auth pi-resolve-provider-key pi-load-models-store
-    pi-resolve-model-metadata
+    pi-resolve-model-metadata gemini-map-finish-reason gemini-map-usage
+    gemini-normalize-tool-call-id gemini-generate-tool-call-id
+    gemini-build-contents gemini-build-request-body
   ) ;export
   (begin
 
