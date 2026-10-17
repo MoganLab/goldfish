@@ -202,4 +202,30 @@
   (check (pi-resolve-proxy-url #f '((http-proxy . #f)) clean-env)
     => #f))
 
+;; pi-load-auth
+(let ((auth (pi-load-auth "tools/pi/tests/fixtures/default"
+                          '(("TEST_ANTHROPIC_KEY" . "sk-ant-test-12345")))))
+  (check (cdr (assoc "google" auth)) => "test-google-key-from-auth-json")
+  (check (cdr (assoc "anthropic" auth)) => "sk-ant-test-12345")
+  (check (assoc "kimi-coding" auth) => #f))
+
+(check-catch 'pi-config-error
+  (pi-load-auth "tools/pi/tests/fixtures/invalid_cmd"))
+
+;; pi-resolve-provider-key
+(let ((auth-with-google '(("google" . "key-from-auth")))
+      (auth-empty '())
+      (env-with-gemini '(("GEMINI_API_KEY" . "gemini-env-key-999"))))
+  ;; 存储条目优先
+  (check (pi-resolve-provider-key "google" auth-with-google env-with-gemini)
+    => "key-from-auth")
+  ;; 存储条目不存在时，探测环境变量 GEMINI_API_KEY
+  (check (pi-resolve-provider-key "google" auth-empty env-with-gemini)
+    => "gemini-env-key-999")
+  ;; 均未配置时返回 #f
+  (check (pi-resolve-provider-key "google" auth-empty '())
+    => #f)
+  (check (pi-resolve-provider-key "unknown-provider" auth-empty '())
+    => #f))
+
 (check-report)

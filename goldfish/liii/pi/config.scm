@@ -23,133 +23,13 @@
     (liii json)
     (liii error)
     (liii pi read)
+    (liii pi template)
   ) ;import
   (export pi-resolve-config-value json-dict-ref pi-get-agent-dir
-    pi-read-json-file pi-load-settings pi-resolve-proxy-url
+    pi-read-json-file pi-load-settings pi-resolve-proxy-url pi-load-auth
+    pi-resolve-provider-key
   ) ;export
   (begin
-
-    (define (env-name-start-char? ch)
-      (or (and (char>=? ch #\a) (char<=? ch #\z))
-        (and (char>=? ch #\A) (char<=? ch #\Z))
-        (char=? ch #\_)
-      ) ;or
-    ) ;define
-
-    (define (env-name-body-char? ch)
-      (or (env-name-start-char? ch) (and (char>=? ch #\0) (char<=? ch #\9)))
-    ) ;define
-
-    (define (valid-env-name? str)
-      (let ((len (string-length str)))
-        (and (> len 0)
-          (env-name-start-char? (string-ref str 0))
-          (let loop
-            ((i 1))
-            (cond ((= i len) #t)
-                  ((not (env-name-body-char? (string-ref str i))) #f)
-                  (else (loop (+ i 1)))
-            ) ;cond
-          ) ;let
-        ) ;and
-      ) ;let
-    ) ;define
-
-    (define (lookup-env-var name custom-env)
-      (cond
-       ((and (pair? custom-env) (assoc name (car custom-env)))
-        (cdr (assoc name (car custom-env)))
-       ) ;
-       (else (get-environment-variable name))
-      ) ;cond
-    ) ;define
-
-    (define (extract-env-var-name str start len)
-      (let loop
-        ((i start))
-        (cond
-         ((and (< i len) (env-name-body-char? (string-ref str i))) (loop (+ i 1)))
-         (else (values (substring str start i) i))
-        ) ;cond
-      ) ;let
-    ) ;define
-
-    (define (resolve-braced-var str i len custom-env parts)
-      (let ((brace-end (string-index str #\} (+ i 2))))
-        (if (not brace-end)
-          (values (+ i 1) (cons "$" parts))
-          (let ((name (substring str (+ i 2) brace-end)))
-            (if (valid-env-name? name)
-              (let ((val (lookup-env-var name custom-env)))
-                (if (not val) (values -1 #f) (values (+ brace-end 1) (cons val parts)))
-              ) ;let
-              (values (+ brace-end 1) (cons (substring str i (+ brace-end 1)) parts))
-            ) ;if
-          ) ;let
-        ) ;if
-      ) ;let
-    ) ;define
-
-    (define (resolve-simple-var str i len custom-env parts)
-      (let-values (((name next-idx) (extract-env-var-name str (+ i 1) len)))
-        (let ((val (lookup-env-var name custom-env)))
-          (if (not val) (values -1 #f) (values next-idx (cons val parts)))
-        ) ;let
-      ) ;let-values
-    ) ;define
-
-    (define (process-dollar-token str i len custom-env parts)
-      (let ((c1 (string-ref str (+ i 1))))
-        (cond
-         ((or (char=? c1 #\$) (char=? c1 #\!)) (values (+ i 2) (cons (string c1) parts)))
-         ((char=? c1 #\{) (resolve-braced-var str i len custom-env parts))
-         ((env-name-start-char? c1) (resolve-simple-var str i len custom-env parts))
-         (else (values (+ i 1) (cons "$" parts)))
-        ) ;cond
-      ) ;let
-    ) ;define
-
-    (define (%advance-dollar str dollar-pos len custom-env parts-with-prefix)
-      (if (>= (+ dollar-pos 1) len)
-        (values -2 (cons "$" parts-with-prefix))
-        (process-dollar-token str dollar-pos len custom-env parts-with-prefix)
-      ) ;if
-    ) ;define
-
-    (define (%loop-template-parts str len custom-env)
-      (let loop
-        ((i 0) (parts '()))
-        (cond ((>= i len) (apply string-append (reverse parts)))
-              (else
-                (let ((dollar-pos (string-index str #\$ i)))
-                  (if (not dollar-pos)
-                    (apply string-append (reverse (cons (substring str i len) parts)))
-                    (let* ((prefix (substring str i dollar-pos))
-                           (parts1 (if (> (string-length prefix) 0) (cons prefix parts) parts))
-                          ) ;
-                      (let-values (((next-i next-parts) (%advance-dollar str dollar-pos len custom-env parts1)))
-                        (cond ((= next-i -1) #f)
-                              ((= next-i -2) (apply string-append (reverse next-parts)))
-                              (else (loop next-i next-parts))
-                        ) ;cond
-                      ) ;let-values
-                    ) ;let*
-                  ) ;if
-                ) ;let
-              ) ;else
-        ) ;cond
-      ) ;let
-    ) ;define
-
-    (define (pi-resolve-config-value str . custom-env)
-      (when (not (string? str))
-        (type-error "pi-resolve-config-value: expected string")
-      ) ;when
-      (if (string-starts? str "!")
-        (error 'pi-config-error "command syntax not supported in config value" str)
-        (%loop-template-parts str (string-length str) custom-env)
-      ) ;if
-    ) ;define
 
     (define (json-dict-ref obj key default-val)
       (if (not (pair? obj))
@@ -270,6 +150,72 @@
             (not (string-null? (string-trim-both settings-proxy)))
           ) ;and
           settings-proxy
+         ) ;
+         (else #f)
+        ) ;cond
+      ) ;let*
+    ) ;define
+
+    (define (%parse-credential-item key val opt-env)
+      (if (not (pair? val))
+        #f
+        (let ((type-val (json-dict-ref val "type" #f)))
+          (if (not (equal? type-val "api_key"))
+            #f
+            (let ((raw-key (json-dict-ref val "key" #f)))
+              (if (not (string? raw-key))
+                #f
+                (let ((resolved (if (pair? opt-env)
+                                  (pi-resolve-config-value raw-key (car opt-env))
+                                  (pi-resolve-config-value raw-key)
+                                ) ;if
+                      ) ;resolved
+                     ) ;
+                  (if resolved (cons (if (symbol? key) (symbol->string key) key) resolved) #f)
+                ) ;let
+              ) ;if
+            ) ;let
+          ) ;if
+        ) ;let
+      ) ;if
+    ) ;define
+
+    (define (pi-load-auth agent-dir . opt-env)
+      (let* ((filepath (path->string (path-join (path agent-dir) (path "auth.json"))))
+             (data (pi-read-json-file filepath))
+            ) ;
+        (if (not (pair? data))
+          '()
+          (let loop
+            ((items data) (acc '()))
+            (if (null? items)
+              (reverse acc)
+              (let* ((entry (car items))
+                     (pair (%parse-credential-item (car entry) (cdr entry) opt-env))
+                    ) ;
+                (if pair (loop (cdr items) (cons pair acc)) (loop (cdr items) acc))
+              ) ;let*
+            ) ;if
+          ) ;let
+        ) ;if
+      ) ;let*
+    ) ;define
+
+    (define (pi-resolve-provider-key provider auth-alist . opt-env)
+      (let* ((p-str (if (symbol? provider) (symbol->string provider) provider))
+             (pair (or (assoc p-str auth-alist) (assoc (string->symbol p-str) auth-alist)))
+            ) ;
+        (cond
+         ((and pair (string? (cdr pair)) (not (string-null? (cdr pair)))) (cdr pair))
+         ((string=? p-str "google")
+          (let ((env-val (lookup-env-var "GEMINI_API_KEY" opt-env)))
+            (if (and (string? env-val) (not (string-null? env-val))) env-val #f)
+          ) ;let
+         ) ;
+         ((string=? p-str "anthropic")
+          (let ((env-val (lookup-env-var "ANTHROPIC_API_KEY" opt-env)))
+            (if (and (string? env-val) (not (string-null? env-val))) env-val #f)
+          ) ;let
          ) ;
          (else #f)
         ) ;cond

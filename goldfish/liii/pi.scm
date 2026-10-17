@@ -35,6 +35,7 @@
     pi-execute-bash pi-ls-schema pi-execute-ls pi-find-schema pi-execute-find
     pi-grep-schema pi-execute-grep pi-resolve-config-value json-dict-ref
     pi-get-agent-dir pi-read-json-file pi-load-settings pi-resolve-proxy-url
+    pi-load-auth pi-resolve-provider-key
   ) ;export
   (begin
 
