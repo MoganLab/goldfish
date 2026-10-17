@@ -1,0 +1,26 @@
+(import (liii check)
+        (srfi srfi-166)
+        (srfi srfi-166 base)
+        (srfi srfi-166 color)
+        (srfi srfi-166 unicode)
+        (srfi srfi-166 columnar)
+        (srfi srfi-166 pretty)
+        (srfi 166))
+
+(check-set-mode! 'report-failed)
+
+;; (srfi srfi-166) 兼容性综合测试
+(check (show #f "hello " "world") => "hello world")
+(check (show #f (as-red "red")) => "\x1b[31mred\x1b[39m")
+(check (show #f (on-blue "blue")) => "\x1b[44mblue\x1b[49m")
+(check (show #f (upcased "abc")) => "ABC")
+(check (show #f (downcased "ABC")) => "abc")
+(check (show #f (padded 5 "abc")) => "  abc")
+(check (show #f (trimmed 3 "abcde")) => "cde")
+(check (show #f (fitted 5 "abc")) => "  abc")
+(check (show #f (numeric 100)) => "100")
+(check (show #f (with ((radix 16)) #xDEAD)) => "#xdead")
+(check (show #f (columnar (each "*"))) => "*\n")
+(check (show #f (pretty '(foo bar))) => "(foo bar)\n")
+
+(check-report)

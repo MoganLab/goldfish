@@ -22,6 +22,8 @@
     (liii path)
     (liii sys)
     (liii par)
+    (liii format base)
+    (liii format color)
   ) ;import
   (export ESC color GREEN RED YELLOW RESET goldfish-cmd run-test-file
     display-fail-log cleanup-log run-tests-parallel failed-test-files
@@ -96,12 +98,11 @@
         ) ;display
         (if (zero? exit-code)
           (begin
-            (display (string-append GREEN "PASS" RESET "\n"))
+            (show #t (as-green "PASS") "\n")
             (cleanup-log log-path)
           ) ;begin
           (begin
-            (display (string-append RED "FAIL" RESET " exit-code=" (number->string exit-code) "\n")
-            ) ;display
+            (show #t (as-red "FAIL") " exit-code=" (number->string exit-code) "\n")
             (display-fail-log log-path)
           ) ;begin
         ) ;if
@@ -167,9 +168,8 @@
             (let ((test-file (car test-result)) (exit-code (cdr test-result)))
               (display (string-append "  " test-file " ... "))
               (if (zero? exit-code)
-                (display (string-append GREEN "PASS" RESET))
-                (display (string-append RED "FAIL" RESET " exit-code=" (number->string exit-code))
-                ) ;display
+                (show #t (as-green "PASS"))
+                (show #t (as-red "FAIL") " exit-code=" (number->string exit-code))
               ) ;if
               (newline)
             ) ;let
@@ -181,11 +181,9 @@
         (newline)
         (display (string-append "  Total:  " (number->string total)))
         (newline)
-        (display (string-append "  " GREEN "Passed: " (number->string passed) RESET))
-        (newline)
+        (show #t "  " (as-green "Passed: " (number->string passed)) "\n")
         (when (> failed 0)
-          (display (string-append "  " RED "Failed: " (number->string failed) RESET))
-          (newline)
+          (show #t "  " (as-red "Failed: " (number->string failed)) "\n")
           (display "  Failed Test Files:")
           (newline)
           (for-each (lambda (test-file) (display (string-append "    " test-file)) (newline))
