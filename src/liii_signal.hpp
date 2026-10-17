@@ -22,6 +22,7 @@
 namespace goldfish {
 
 bool dispatch_pending_signals (s7_scheme* sc);
+bool signal_catch_active ();
 void glue_liii_signal (s7_scheme* sc);
 
 } // namespace goldfish

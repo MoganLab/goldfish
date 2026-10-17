@@ -12,7 +12,7 @@
 ;; 参数
 ;; ----
 ;; sig : symbol?
-;; 信号符号，例如 'sigint, 'sigterm, 'sigpipe 等。
+;; 信号符号，例如 'SIGINT, 'SIGTERM, 'SIGPIPE 等。
 ;;
 ;; 返回值
 ;; -----
@@ -32,20 +32,20 @@
 ;; 查询当前绑定的信号处理程序。若未显式注册，默认为 'default。
 
 ;; 1. 基本功能测试：默认动作与状态同步
-(check (signal-get 'sigint) => 'default)
-(check (signal-get 'sigterm) => 'default)
+(check (signal-get 'SIGINT) => 'default)
+(check (signal-get 'SIGTERM) => 'default)
 
-(let ((prev (signal-trap 'sigterm 'ignore)))
-  (check (signal-get 'sigterm) => 'ignore)
-  (signal-trap 'sigterm prev)
-  (check (signal-get 'sigterm) => prev)
+(let ((prev (signal-trap 'SIGTERM 'ignore)))
+  (check (signal-get 'SIGTERM) => 'ignore)
+  (signal-trap 'SIGTERM prev)
+  (check (signal-get 'SIGTERM) => prev)
 ) ;let
 
 ;; 2. 错误测试：类型错误与非法信号名
 (check-catch 'type-error (signal-get 123))
-(check-catch 'type-error (signal-get "sigint"))
+(check-catch 'type-error (signal-get "SIGINT"))
 (check-catch 'type-error (signal-get #f))
-(check-catch 'type-error (signal-get '(sigterm)))
+(check-catch 'type-error (signal-get '(SIGTERM)))
 
 (check-catch 'value-error (signal-get 'unknown-sig))
 (check-catch 'value-error (signal-get 'nosuchsignal))

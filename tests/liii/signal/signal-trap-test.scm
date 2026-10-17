@@ -12,7 +12,7 @@
 ;; 参数
 ;; ----
 ;; sig : symbol?
-;; 信号符号，例如 'sigint, 'sigterm, 'sigpipe, 'sigusr1 等。
+;; 信号符号，例如 'SIGINT, 'SIGTERM, 'SIGPIPE, 'SIGUSR1 等。
 ;;
 ;; handler : procedure? | 'default | 'ignore
 ;; 信号处理动作：
@@ -39,14 +39,14 @@
 ;; 不在原生中断上下文中直接求值，而是在安全点受控调度执行。
 
 ;; 1. 基本功能测试：注册自定义过程、忽略与恢复默认
-(let* ((orig (signal-get 'sigint))
+(let* ((orig (signal-get 'SIGINT))
        (dummy (lambda (s) s))
-       (old1 (signal-trap 'sigint dummy))
-       (curr1 (signal-get 'sigint))
-       (old2 (signal-trap 'sigint 'ignore))
-       (curr2 (signal-get 'sigint))
-       (old3 (signal-trap 'sigint 'default))
-       (curr3 (signal-get 'sigint))
+       (old1 (signal-trap 'SIGINT dummy))
+       (curr1 (signal-get 'SIGINT))
+       (old2 (signal-trap 'SIGINT 'ignore))
+       (curr2 (signal-get 'SIGINT))
+       (old3 (signal-trap 'SIGINT 'default))
+       (curr3 (signal-get 'SIGINT))
       ) ;
   (check old1 => orig)
   (check (procedure? curr1) => #t)
@@ -58,12 +58,12 @@
 
 ;; 2. 错误测试：类型错误与非法信号名
 (check-catch 'type-error (signal-trap 123 'default))
-(check-catch 'type-error (signal-trap "sigint" 'default))
-(check-catch 'type-error (signal-trap '(sigint) 'default))
-(check-catch 'type-error (signal-trap 'sigint 456))
-(check-catch 'type-error (signal-trap 'sigint "ignore"))
-(check-catch 'type-error (signal-trap 'sigint '(default)))
-(check-catch 'type-error (signal-trap 'sigint #t))
+(check-catch 'type-error (signal-trap "SIGINT" 'default))
+(check-catch 'type-error (signal-trap '(SIGINT) 'default))
+(check-catch 'type-error (signal-trap 'SIGINT 456))
+(check-catch 'type-error (signal-trap 'SIGINT "ignore"))
+(check-catch 'type-error (signal-trap 'SIGINT '(default)))
+(check-catch 'type-error (signal-trap 'SIGINT #t))
 
 (check-catch 'value-error (signal-trap 'unknown-sig 'default))
 (check-catch 'value-error (signal-trap 'siginvalid 'ignore))

@@ -542,14 +542,20 @@ f_sleep (s7_scheme* sc, s7_pointer args) {
   s7_double seconds= s7_real (s7_car (args));
 
   tb_long_t total_ms= (tb_long_t) (seconds * 1000);
-  tb_long_t elapsed = 0;
-  while (elapsed < total_ms) {
-    tb_long_t chunk= (total_ms - elapsed > 50) ? 50 : (total_ms - elapsed);
-    tb_msleep (chunk);
-    elapsed+= chunk;
-    if (dispatch_pending_signals (sc)) {
-      break;
+  if (signal_catch_active ()) {
+    // 有被捕获的信号时才分片睡眠，以便及时派发
+    tb_long_t elapsed= 0;
+    while (elapsed < total_ms) {
+      tb_long_t chunk= (total_ms - elapsed > 50) ? 50 : (total_ms - elapsed);
+      tb_msleep (chunk);
+      elapsed+= chunk;
+      if (dispatch_pending_signals (sc)) {
+        break;
+      }
     }
+  }
+  else {
+    tb_msleep (total_ms);
   }
 
   return s7_nil (sc);
