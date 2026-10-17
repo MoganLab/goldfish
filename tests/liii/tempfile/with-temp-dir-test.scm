@@ -84,7 +84,7 @@
   (check-false (file-exists? saved-dir)))
 
 ;; 测试项4：自定义 prefix、suffix 与 dir
-(let* ((parent-dir (mkdtemp "scope-parent-dir-"))
+(let* ((parent-dir (make-temp-dir "scope-parent-dir-"))
        (saved-dir #f))
   (with-temp-dir
     (lambda (d)

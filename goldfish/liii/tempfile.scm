@@ -15,7 +15,7 @@
 ;;
 
 (define-library (liii tempfile)
-  (export mkstemp mkdtemp with-temp-file with-temp-dir)
+  (export make-temp-file make-temp-dir with-temp-file with-temp-dir)
   (import (scheme base) (scheme file) (liii base) (liii error) (liii os))
   (begin
 
@@ -33,13 +33,13 @@
       ) ;unless
     ) ;define
 
-    (define* (mkstemp (prefix "tmp") (suffix "") (dir #f))
-      (%check-temp-args "mkstemp" prefix suffix dir)
+    (define* (make-temp-file (prefix "tmp") (suffix "") (dir #f))
+      (%check-temp-args "make-temp-file" prefix suffix dir)
       (g_mkstemp prefix suffix (if dir dir (os-temp-dir)))
     ) ;define*
 
-    (define* (mkdtemp (prefix "tmp") (suffix "") (dir #f))
-      (%check-temp-args "mkdtemp" prefix suffix dir)
+    (define* (make-temp-dir (prefix "tmp") (suffix "") (dir #f))
+      (%check-temp-args "make-temp-dir" prefix suffix dir)
       (g_mkdtemp prefix suffix (if dir dir (os-temp-dir)))
     ) ;define*
 
@@ -47,7 +47,7 @@
       (unless (procedure? proc)
         (type-error "with-temp-file: proc must be a procedure")
       ) ;unless
-      (let*-values (((port path) (mkstemp prefix suffix dir)))
+      (let*-values (((port path) (make-temp-file prefix suffix dir)))
         (close-output-port port)
         (dynamic-wind (lambda () #f)
           (lambda () (proc path))
@@ -60,7 +60,7 @@
       (unless (procedure? proc)
         (type-error "with-temp-dir: proc must be a procedure")
       ) ;unless
-      (let ((path (mkdtemp prefix suffix dir)))
+      (let ((path (make-temp-dir prefix suffix dir)))
         (dynamic-wind (lambda () #f)
           (lambda () (proc path))
           (lambda () (when (file-exists? path) (g_rmtree path)))

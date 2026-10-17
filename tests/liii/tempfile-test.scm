@@ -1,18 +1,17 @@
 ;; (liii tempfile) 模块函数分类索引
 ;;
 ;; tempfile 提供跨平台原子的临时文件与目录安全创建与基于动态作用域的管理。
-;; 对齐 Python tempfile 模块。
 
 ;; ==== 常见用法示例 ====
 (import (liii tempfile))
 
 ;; 示例1：独占原子创建临时文件并写入
-;; (let-values (((port path) (mkstemp "my-prefix-" ".log")))
+;; (let-values (((port path) (make-temp-file "my-prefix-" ".log")))
 ;;   (display "data" port)
 ;;   (close-output-port port))
 
 ;; 示例2：独占原子创建临时目录
-;; (let ((dir (mkdtemp "my-dir-"))) ...)
+;; (let ((dir (make-temp-dir "my-dir-"))) ...)
 
 ;; 示例3：作用域自动回收临时文件
 ;; (with-temp-file (lambda (path) ...))
@@ -21,14 +20,14 @@
 ;; (with-temp-dir (lambda (dir) ...))
 
 ;; ==== 如何查看函数的文档和用例 ====
-;;   bin/gf doc liii/tempfile "mkstemp"
-;;   bin/gf doc liii/tempfile "mkdtemp"
+;;   bin/gf doc liii/tempfile "make-temp-file"
+;;   bin/gf doc liii/tempfile "make-temp-dir"
 ;;   bin/gf doc liii/tempfile "with-temp-file"
 ;;   bin/gf doc liii/tempfile "with-temp-dir"
 
 ;; ==== 函数分类索引 ====
-;;   mkstemp         - 原子独占创建临时文件，返回端口与路径
-;;   mkdtemp         - 原子独占创建临时目录，返回目录路径
+;;   make-temp-file  - 原子独占创建临时文件，返回端口与路径
+;;   make-temp-dir   - 原子独占创建临时目录，返回目录路径
 ;;   with-temp-file  - 动态作用域自动回收临时文件
 ;;   with-temp-dir   - 动态作用域自动递归回收临时目录
 
@@ -51,7 +50,7 @@
       (ports '()))
   (let loop ((i 0))
     (when (< i 20)
-      (let-values (((port path) (mkstemp "bulk-" ".tmp")))
+      (let-values (((port path) (make-temp-file "bulk-" ".tmp")))
         (check-false (member path paths))
         (set! paths (cons path paths))
         (set! ports (cons port ports))
@@ -69,7 +68,7 @@
 (let ((dirs '()))
   (let loop ((i 0))
     (when (< i 20)
-      (let ((d (mkdtemp "bulk-dir-")))
+      (let ((d (make-temp-dir "bulk-dir-")))
         (check-false (member d dirs))
         (set! dirs (cons d dirs))
         (loop (+ i 1)))))
@@ -130,7 +129,7 @@
   (check-false (file-exists? outer-dir)))
 
 ;; 5. 大数据日志转储与校验：通过 port 写入 5000 行并验证完整性
-(let-values (((port path) (mkstemp "large-log-" ".log")))
+(let-values (((port path) (make-temp-file "large-log-" ".log")))
   (let loop ((i 0))
     (when (< i 5000)
       (display "log line record index: " port)

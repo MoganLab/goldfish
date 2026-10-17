@@ -152,13 +152,13 @@ f_mkstemp (s7_scheme* sc, s7_pointer args) {
   s7_pointer dir_arg   = s7_caddr (args);
 
   if (!s7_is_string (prefix_arg)) {
-    return string_type_error (sc, "mkstemp: prefix must be a string", prefix_arg);
+    return string_type_error (sc, "make-temp-file: prefix must be a string", prefix_arg);
   }
   if (!s7_is_string (suffix_arg)) {
-    return string_type_error (sc, "mkstemp: suffix must be a string", suffix_arg);
+    return string_type_error (sc, "make-temp-file: suffix must be a string", suffix_arg);
   }
   if (!s7_is_string (dir_arg)) {
-    return string_type_error (sc, "mkstemp: dir must be a string", dir_arg);
+    return string_type_error (sc, "make-temp-file: dir must be a string", dir_arg);
   }
 
   const char* prefix_c= s7_string (prefix_arg);
@@ -191,7 +191,7 @@ f_mkstemp (s7_scheme* sc, s7_pointer args) {
     last_err= GetLastError ();
     return (last_err == ERROR_FILE_EXISTS || last_err == ERROR_ALREADY_EXISTS) ? 1 : -1;
   });
-  if (r == 1) return temp_exhausted_error (sc, "mkstemp");
+  if (r == 1) return temp_exhausted_error (sc, "make-temp-file");
   if (r < 0) return temp_file_error (sc, last_err, chosen_path.c_str ());
   s7_pointer port= s7_open_output_file (sc, chosen_path.c_str (), "w");
   return s7_values (sc, s7_list (sc, 2, port, s7_make_string (sc, chosen_path.c_str ())));
@@ -205,13 +205,13 @@ f_mkdtemp (s7_scheme* sc, s7_pointer args) {
   s7_pointer dir_arg   = s7_caddr (args);
 
   if (!s7_is_string (prefix_arg)) {
-    return string_type_error (sc, "mkdtemp: prefix must be a string", prefix_arg);
+    return string_type_error (sc, "make-temp-dir: prefix must be a string", prefix_arg);
   }
   if (!s7_is_string (suffix_arg)) {
-    return string_type_error (sc, "mkdtemp: suffix must be a string", suffix_arg);
+    return string_type_error (sc, "make-temp-dir: suffix must be a string", suffix_arg);
   }
   if (!s7_is_string (dir_arg)) {
-    return string_type_error (sc, "mkdtemp: dir must be a string", dir_arg);
+    return string_type_error (sc, "make-temp-dir: dir must be a string", dir_arg);
   }
 
   const char* prefix_c= s7_string (prefix_arg);
@@ -234,7 +234,7 @@ f_mkdtemp (s7_scheme* sc, s7_pointer args) {
       if (mkdir (cand.c_str (), 0700) == 0) return 0;
       return errno == EEXIST ? 1 : -1;
     });
-    if (r == 1) return temp_exhausted_error (sc, "mkdtemp");
+    if (r == 1) return temp_exhausted_error (sc, "make-temp-dir");
     if (r < 0) return temp_file_error (sc, errno, chosen_path.c_str ());
   }
   return s7_make_string (sc, chosen_path.c_str ());
@@ -246,7 +246,7 @@ f_mkdtemp (s7_scheme* sc, s7_pointer args) {
     last_err= GetLastError ();
     return last_err == ERROR_ALREADY_EXISTS ? 1 : -1;
   });
-  if (r == 1) return temp_exhausted_error (sc, "mkdtemp");
+  if (r == 1) return temp_exhausted_error (sc, "make-temp-dir");
   if (r < 0) return temp_file_error (sc, last_err, chosen_path.c_str ());
   return s7_make_string (sc, chosen_path.c_str ());
 #endif

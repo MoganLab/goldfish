@@ -9,12 +9,12 @@
 
 (check-set-mode! 'report-failed)
 
-;; mkdtemp
+;; make-temp-dir
 ;; 原子独占创建临时目录，返回目录绝对路径。
 ;;
 ;; 语法
 ;; ----
-;; (mkdtemp [prefix [suffix [dir]]]) → string
+;; (make-temp-dir [prefix [suffix [dir]]]) → string
 ;;
 ;; 参数
 ;; ----
@@ -37,7 +37,7 @@
 ;; permission-denied-error 当显式指定的 dir 无写权限时。
 
 ;; 测试项1：默认参数原子创建临时目录
-(let ((dir (mkdtemp)))
+(let ((dir (make-temp-dir)))
   (check-true (string? dir))
   (check-true (file-exists? dir))
   (check-true (g_isdir dir))
@@ -54,7 +54,7 @@
   (check-false (file-exists? dir)))
 
 ;; 测试项2：自定义 prefix 与 suffix
-(let ((dir (mkdtemp "my-tmp-dir-" "-tail")))
+(let ((dir (make-temp-dir "my-tmp-dir-" "-tail")))
   (check-true (file-exists? dir))
   (check-true (string-contains? dir "my-tmp-dir-"))
   (check-true (string-suffix? "-tail" dir))
@@ -62,8 +62,8 @@
   (check-false (file-exists? dir)))
 
 ;; 测试项3：自定义父目录 dir
-(let* ((parent-dir (mkdtemp "parent-dir-"))
-       (sub-dir (mkdtemp "sub-dir-" "" parent-dir)))
+(let* ((parent-dir (make-temp-dir "parent-dir-"))
+       (sub-dir (make-temp-dir "sub-dir-" "" parent-dir)))
   (check-true (file-exists? sub-dir))
   (check-true (string-contains? sub-dir parent-dir))
   (rmdir sub-dir)
@@ -71,17 +71,17 @@
   (check-false (file-exists? parent-dir)))
 
 ;; 测试项4：类型防御校验
-(check-catch 'type-error (mkdtemp 123))
-(check-catch 'type-error (mkdtemp "tmp" #f))
-(check-catch 'type-error (mkdtemp "tmp" "" 'symbol))
+(check-catch 'type-error (make-temp-dir 123))
+(check-catch 'type-error (make-temp-dir "tmp" #f))
+(check-catch 'type-error (make-temp-dir "tmp" "" 'symbol))
 
 ;; 测试项5：父目录不存在与无写权限校验
-(check-catch 'file-not-found-error (mkdtemp "tmp" "" "/nonexistent/dir/1052"))
+(check-catch 'file-not-found-error (make-temp-dir "tmp" "" "/nonexistent/dir/1052"))
 
 (unless (or (os-windows?) (equal? (getlogin) "root"))
-  (let ((ro-dir (mkdtemp "ro-dir-")))
+  (let ((ro-dir (make-temp-dir "ro-dir-")))
     (g_chmod ro-dir #o400)
-    (check-catch 'permission-denied-error (mkdtemp "tmp" "" ro-dir))
+    (check-catch 'permission-denied-error (make-temp-dir "tmp" "" ro-dir))
     (g_chmod ro-dir #o700)
     (rmdir ro-dir)))
 
