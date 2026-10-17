@@ -104,6 +104,74 @@ class StubHandler(http.server.BaseHTTPRequestHandler):
             self.wfile.write(json.dumps(resp).encode("utf-8"))
             return
 
+        if "/multi-turn" in path:
+            contents = req_json.get("contents", [])
+            fn_responses = []
+            for c in contents:
+                for p in c.get("parts", []):
+                    if "functionResponse" in p:
+                        fn_responses.append(p["functionResponse"])
+            if len(fn_responses) == 0:
+                resp = {
+                    "candidates": [
+                        {
+                            "content": {
+                                "role": "model",
+                                "parts": [
+                                    {
+                                        "functionCall": {
+                                            "name": "bash",
+                                            "args": {"command": "echo 'step 1'"},
+                                            "id": "call_turn_1"
+                                        }
+                                    }
+                                ]
+                            },
+                            "finishReason": "STOP"
+                        }
+                    ],
+                    "usageMetadata": {"promptTokenCount": 20, "candidatesTokenCount": 10, "totalTokenCount": 30}
+                }
+            elif len(fn_responses) == 1:
+                resp = {
+                    "candidates": [
+                        {
+                            "content": {
+                                "role": "model",
+                                "parts": [
+                                    {
+                                        "functionCall": {
+                                            "name": "bash",
+                                            "args": {"command": "echo 'step 2'"},
+                                            "id": "call_turn_2"
+                                        }
+                                    }
+                                ]
+                            },
+                            "finishReason": "STOP"
+                        }
+                    ],
+                    "usageMetadata": {"promptTokenCount": 40, "candidatesTokenCount": 10, "totalTokenCount": 50}
+                }
+            else:
+                resp = {
+                    "candidates": [
+                        {
+                            "content": {
+                                "role": "model",
+                                "parts": [{"text": "Multi-turn tool completed successfully!"}]
+                            },
+                            "finishReason": "STOP"
+                        }
+                    ],
+                    "usageMetadata": {"promptTokenCount": 60, "candidatesTokenCount": 10, "totalTokenCount": 70}
+                }
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps(resp).encode("utf-8"))
+            return
+
         # default echo ok
         resp = {
             "candidates": [
