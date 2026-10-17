@@ -260,4 +260,29 @@
 ) ;check-catch
 (check-catch 'error (pi-execute-ls '() :timed-out? #t))
 
+;; ============================================================
+;; Tool: find
+;; ============================================================
+
+;; 1. 查找 tools/pi 下匹配 *.scm 的文件
+(let ((out (pi-execute-find '(("pattern" . "*.scm") ("path" . ".")))))
+  (check-true (string? out))
+  (check-true (string-contains? out "goldpi")))
+
+;; 2. limit 生效与提示
+(let ((out (pi-execute-find '(("pattern" . "*.scm") ("path" . ".") ("limit" . 1)))))
+  (check-true (string-contains? out "[1 results limit reached]")))
+
+;; 3. 无匹配文件
+(let ((out (pi-execute-find '(("pattern" . "non_existent_pattern_*.xyz") ("path" . ".")))))
+  (check out => "No files found matching pattern"))
+
+;; 4. 路径不存在报错
+(check-catch 'error
+  (pi-execute-find '(("pattern" . "*.scm") ("path" . "non_existent_dir_99999"))))
+
+;; 5. 超时路径测试
+(check-catch 'error
+  (pi-execute-find '(("pattern" . "*.scm")) :timed-out? #t))
+
 (check-report)
