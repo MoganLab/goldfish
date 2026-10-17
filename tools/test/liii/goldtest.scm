@@ -48,6 +48,8 @@
     (liii goldtest-args)
     (liii goldtest-route)
     (liii goldtest-runner)
+    (liii format base)
+    (liii format color)
   ) ;import
   (export parse-test-args parse-test-changed-since parse-test-jobs
     filter-test-files filter-changed-test-files find-test-files
@@ -158,17 +160,10 @@
     ) ;define
 
     (define (handle-no-test-files final-changed-since arg-value)
-      (cond (final-changed-since (display (string-append YELLOW
-                                            "No test files changed since "
-                                            final-changed-since RESET "\n"
-                                          ) ;string-append
-                                 ) ;display
+      (cond (final-changed-since (show #t (as-yellow "No test files changed since " final-changed-since) "\n")
             ) ;final-changed-since
-            (arg-value (display (string-append YELLOW "No test files matching " arg-value RESET "\n"))
-            ) ;arg-value
-            (else (display (string-append YELLOW "No test files found in tests directory" RESET "\n")
-                  ) ;display
-            ) ;else
+            (arg-value (show #t (as-yellow "No test files matching " arg-value) "\n"))
+            (else (show #t (as-yellow "No test files found in tests directory") "\n"))
       ) ;cond
       (exit 0)
     ) ;define
