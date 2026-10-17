@@ -525,7 +525,7 @@ timeout 300 bin/gf test tools/pi/tests/liii/<本提交相关的测试>.scm
 | 阶段 | 状态 | 内容 | 验收标准 |
 |---|---|---|---|
 | 一 | 已完成 | CLI 骨架：注册 `pi` 子命令（`gfproject.json` + `tools/pi/`）、§2 参数解析、模式选择、stdin/@file 组装 | `bin/gf pi --help` 正确；prompt 组装单元测试覆盖 join 规则与 `--` |
-| 二 | 待执行 | 工具层：read/bash/edit/write 默认集 + grep/find/ls（§6.2 全部行为与错误文案、截断常量） | 无网络情况下全部可用；每个工具含超时路径测试 |
+| 二 | 已完成 | 工具层：read/bash/edit/write 默认集 + grep/find/ls（§6.2 全部行为与错误文案、截断常量） | 无网络情况下全部可用；每个工具含超时路径测试 |
 | 三 | 待执行 | 配置层（§4）：settings/auth/models-store 只读解析，`PI_CODING_AGENT_DIR` 重定向 | fixture 目录下 provider/model/key 解析正确；`$VAR` 插值与 `!command` 报错路径有测试 |
 | 四 | 待执行 | Gemini provider（§5，非流式）：请求构造、代理（§5.6）、finishReason/usage 映射、重试 | stub server 下请求体断言通过；socks5 代理参数透传断言；429 触发 3 次退避重试 |
 | 五 | 待执行 | Agent 循环 + 系统提示词 + print 模式（§7、§8） | 多轮 functionCall 端到端；退出码规则逐条验证；AGENTS.md/CLAUDE.md 注入 |
