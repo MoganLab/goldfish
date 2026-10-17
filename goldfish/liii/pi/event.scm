@@ -24,7 +24,8 @@
   ) ;import
   (export pi-iso-8601-utc-now pi-current-time-millis pi-serialize-event
     pi-event-session pi-event-agent-start pi-event-turn-start
-    pi-event-message-start pi-event-message-end pi-event-tool-execution-start
+    pi-event-message-start pi-event-message-update pi-event-message-end
+    pi-event-tool-execution-start pi-event-tool-execution-update
     pi-event-tool-execution-end pi-event-turn-end pi-event-agent-end
     pi-event-agent-settled
   ) ;export
@@ -114,6 +115,13 @@
       (list (cons "type" "message_start") (cons "message" msg))
     ) ;define
 
+    (define (pi-event-message-update usage assistant-message-event)
+      (list (cons "type" "message_update")
+        (cons "usage" usage)
+        (cons "assistantMessageEvent" assistant-message-event)
+      ) ;list
+    ) ;define
+
     (define (pi-event-message-end msg)
       (list (cons "type" "message_end") (cons "message" msg))
     ) ;define
@@ -123,6 +131,15 @@
         (cons "toolCallId" tool-call-id)
         (cons "toolName" tool-name)
         (cons "args" args)
+      ) ;list
+    ) ;define
+
+    (define (pi-event-tool-execution-update tool-call-id tool-name args partial-result)
+      (list (cons "type" "tool_execution_update")
+        (cons "toolCallId" tool-call-id)
+        (cons "toolName" tool-name)
+        (cons "args" args)
+        (cons "partialResult" partial-result)
       ) ;list
     ) ;define
 

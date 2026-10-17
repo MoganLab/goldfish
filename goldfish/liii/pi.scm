@@ -45,7 +45,8 @@
     pi-load-project-context pi-build-system-prompt PI_BUILTIN_TOOL_SNIPPETS
     PI_BUILTIN_TOOL_GUIDELINES pi-iso-8601-utc-now pi-current-time-millis
     pi-serialize-event pi-event-session pi-event-agent-start pi-event-turn-start
-    pi-event-message-start pi-event-message-end pi-event-tool-execution-start
+    pi-event-message-start pi-event-message-update pi-event-message-end
+    pi-event-tool-execution-start pi-event-tool-execution-update
     pi-event-tool-execution-end pi-event-turn-end pi-event-agent-end
     pi-event-agent-settled
   ) ;export
