@@ -85,30 +85,50 @@
       ) ;list
     ) ;define
 
-    (define (%execute-one-tool-call call timeout)
+    (define (%execute-one-tool-call call emit timeout)
       (let* ((id (%assoc-val 'id "id" call ""))
              (name (%assoc-val 'name "name" call ""))
              (args (%assoc-val 'arguments "arguments" call '()))
-             (raw-res (execute-tool-call name args :timeout timeout))
-             (is-err? (%assoc-val 'isError "isError" raw-res #f))
-             (text (%extract-tool-result-text raw-res))
             ) ;
-        (%make-tool-result-msg id name text is-err?)
+        (when (procedure? emit)
+          (emit 'tool_execution_start id name args)
+        ) ;when
+        (let* ((raw-res (execute-tool-call name args :timeout timeout))
+               (is-err? (%assoc-val 'isError "isError" raw-res #f))
+               (text (%extract-tool-result-text raw-res))
+               (tool-msg (%make-tool-result-msg id name text is-err?))
+              ) ;
+          (when (procedure? emit)
+            (emit 'tool_execution_end id name raw-res is-err?)
+            (emit 'message_start tool-msg)
+            (emit 'message_end tool-msg)
+          ) ;when
+          tool-msg
+        ) ;let*
       ) ;let*
     ) ;define
 
-    (define (%execute-tool-calls tool-calls timeout)
-      (map (lambda (call) (%execute-one-tool-call call timeout)) tool-calls)
+    (define (%execute-tool-calls tool-calls emit timeout)
+      (map (lambda (call) (%execute-one-tool-call call emit timeout)) tool-calls)
     ) ;define
 
-    (define (%fail-tool-calls-length tool-calls)
+    (define (%fail-tool-calls-length tool-calls emit)
       (map
         (lambda (call)
-          (let ((id (%assoc-val 'id "id" call "")) (name (%assoc-val 'name "name" call "")))
-            (%make-tool-result-msg id name
-              "Tool call skipped: model output truncated by token limit" #t
-            ) ;%make-tool-result-msg
-          ) ;let
+          (let* ((id (%assoc-val 'id "id" call ""))
+                 (name (%assoc-val 'name "name" call ""))
+                 (tool-msg (%make-tool-result-msg id name
+                             "Tool call skipped: model output truncated by token limit"
+                             #t
+                           ) ;%make-tool-result-msg
+                 ) ;tool-msg
+                ) ;
+            (when (procedure? emit)
+              (emit 'message_start tool-msg)
+              (emit 'message_end tool-msg)
+            ) ;when
+            tool-msg
+          ) ;let*
         ) ;lambda
         tool-calls
       ) ;map
@@ -127,26 +147,66 @@
       (filter (lambda (c) (equal? (%assoc-val 'type "type" c "") "toolCall")) content)
     ) ;define
 
-    (define (%step-agent-turn config msgs system-prompt timeout)
+    (define (%step-agent-turn config msgs system-prompt emit timeout)
+      (when (procedure? emit)
+        (emit 'turn_start)
+      ) ;when
       (let* ((active-tools (cdr (assoc 'tools config)))
              (resp (gemini-request config msgs system-prompt active-tools timeout))
-             (new-msgs (append msgs (list resp)))
-             (stop-reason (%assoc-val 'stopReason "stopReason" resp ""))
-             (content (%assoc-val 'content "content" resp '()))
-             (tool-calls (%filter-tool-calls content))
             ) ;
-        (values new-msgs stop-reason tool-calls)
+        (when (procedure? emit)
+          (emit 'message_start resp)
+          (emit 'message_end resp)
+        ) ;when
+        (let* ((new-msgs (append msgs (list resp)))
+               (stop-reason (%assoc-val 'stopReason "stopReason" resp ""))
+               (content (%assoc-val 'content "content" resp '()))
+               (tool-calls (%filter-tool-calls content))
+              ) ;
+          (values new-msgs stop-reason tool-calls resp)
+        ) ;let*
       ) ;let*
     ) ;define
 
-    (define (%finish-agent-turn new-msgs stop-reason tool-calls)
+    (define (%finish-agent-turn new-msgs stop-reason tool-calls emit)
       (if (equal? stop-reason "length")
         (if (null? tool-calls)
           new-msgs
-          (append new-msgs (%fail-tool-calls-length tool-calls))
+          (append new-msgs (%fail-tool-calls-length tool-calls emit))
         ) ;if
         new-msgs
       ) ;if
+    ) ;define
+
+    (define (%notify-turn-end emit assistant-msg tool-results)
+      (when (procedure? emit)
+        (emit 'turn_end assistant-msg tool-results)
+      ) ;when
+    ) ;define
+
+    (define (%extract-tool-result-blocks msgs count)
+      (let* ((tail (list-tail msgs (- (length msgs) count))))
+        (list->vector
+          (map
+            (lambda (m)
+              (let* ((id (%assoc-val 'toolCallId "toolCallId" m ""))
+                     (name (%assoc-val 'toolName "toolName" m ""))
+                     (c (%assoc-val 'content "content" m '()))
+                     (text (%assoc-val 'text "text" (%first-block-from-content c) ""))
+                     (is-err? (%assoc-val 'isError "isError" m #f))
+                    ) ;
+                (list (cons "role" "toolResult")
+                  (cons "toolCallId" id)
+                  (cons "toolName" name)
+                  (cons "content" (vector (list (cons "type" "text") (cons "text" text))))
+                  (cons "isError" (if is-err? #t #f))
+                ) ;list
+              ) ;let*
+            ) ;lambda
+            tail
+          ) ;map
+        ) ;list->vector
+      ) ;let*
     ) ;define
 
     (define* (run-agent-loop config
@@ -156,19 +216,48 @@
                (timeout 120)
                (max-turns 200)
              ) ;run-agent-loop
+      (when (procedure? emit)
+        (emit 'agent_start)
+        (for-each (lambda (m) (emit 'message_start m) (emit 'message_end m))
+          initial-messages
+        ) ;for-each
+      ) ;when
       (let loop
         ((msgs initial-messages) (turn 0))
         (if (and (> max-turns 0) (>= turn max-turns))
-          (append msgs (list (%make-max-turns-error)))
-          (let*-values (((new-msgs stop-reason tool-calls)
-                         (%step-agent-turn config msgs system-prompt timeout)
+          (let* ((err-msg (%make-max-turns-error)) (final-msgs (append msgs (list err-msg))))
+            (when (procedure? emit)
+              (emit 'turn_start)
+              (emit 'message_start err-msg)
+              (emit 'message_end err-msg)
+              (emit 'turn_end err-msg #())
+              (emit 'agent_end final-msgs #f)
+              (emit 'agent_settled #f)
+            ) ;when
+            final-msgs
+          ) ;let*
+          (let*-values (((new-msgs stop-reason tool-calls resp)
+                         (%step-agent-turn config msgs system-prompt emit timeout)
                         ) ;
                        ) ;
             (if (equal? stop-reason "toolUse")
-              (let ((tools-res (%execute-tool-calls tool-calls timeout)))
-                (loop (append new-msgs tools-res) (+ turn 1))
+              (let* ((tools-res (%execute-tool-calls tool-calls emit timeout))
+                     (all-msgs (append new-msgs tools-res))
+                     (res-vec (%extract-tool-result-blocks all-msgs (length tools-res)))
+                    ) ;
+                (%notify-turn-end emit resp res-vec)
+                (loop all-msgs (+ turn 1))
+              ) ;let*
+              (let ((final-msgs (%finish-agent-turn new-msgs stop-reason tool-calls emit)))
+                (%notify-turn-end emit resp #())
+                (when (procedure? emit)
+                  (let ((aborted? (equal? stop-reason "aborted")))
+                    (emit 'agent_end final-msgs #f)
+                    (emit 'agent_settled aborted?)
+                  ) ;let
+                ) ;when
+                final-msgs
               ) ;let
-              (%finish-agent-turn new-msgs stop-reason tool-calls)
             ) ;if
           ) ;let*-values
         ) ;if
