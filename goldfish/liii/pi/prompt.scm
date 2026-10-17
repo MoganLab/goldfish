@@ -69,25 +69,36 @@
     ) ;define
 
     (define (%find-first-context-file dir candidates)
-      (if (null? candidates)
-        #f
-        (let* ((filename (car candidates))
-               (filepath (path->string (path-join (path dir) (path filename))))
-              ) ;
-          (if (path-file? (path filepath))
-            (let ((content
-                    (catch #t (lambda () (path-read-text (path filepath))) (lambda (k . args) #f))
-                  ) ;content
-                 ) ;
-              (if (string? content)
-                (list (cons 'path filepath) (cons 'content content))
-                (%find-first-context-file dir (cdr candidates))
+      (let loop-dir
+        ((cur-dir dir))
+        (let loop-cand
+          ((cands candidates))
+          (if (null? cands)
+            (let* ((p (path cur-dir)) (parent (path-parent p)))
+              (if (or (not parent) (equal? parent p) (string-null? (path->string parent)))
+                #f
+                (loop-dir (path->string parent))
               ) ;if
-            ) ;let
-            (%find-first-context-file dir (cdr candidates))
+            ) ;let*
+            (let* ((filename (car cands))
+                   (filepath (path->string (path-join (path cur-dir) (path filename))))
+                  ) ;
+              (if (path-file? (path filepath))
+                (let ((content
+                        (catch #t (lambda () (path-read-text (path filepath))) (lambda (k . args) #f))
+                      ) ;content
+                     ) ;
+                  (if (string? content)
+                    (list (cons 'path filepath) (cons 'content content))
+                    (loop-cand (cdr cands))
+                  ) ;if
+                ) ;let
+                (loop-cand (cdr cands))
+              ) ;if
+            ) ;let*
           ) ;if
-        ) ;let*
-      ) ;if
+        ) ;let
+      ) ;let
     ) ;define
 
     (define (pi-load-project-context dir)
