@@ -1,0 +1,51 @@
+;;
+;; Copyright (C) 2026 The Goldfish Scheme Authors
+;;
+;; Licensed under the Apache License, Version 2.0 (the "License");
+;; you may not use this file except in compliance with the License.
+;; You may obtain a copy of the License at
+;;
+;; http://www.apache.org/licenses/LICENSE-2.0
+;;
+;; Unless required by applicable law or agreed to in writing, software
+;; distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+;; WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+;; License for the specific language governing permissions and limitations
+;; under the License.
+;;
+
+(define-library (liii pi)
+  (import (scheme base) (liii string))
+  (export resolve-app-mode format-file-block build-initial-prompt)
+  (begin
+
+    (define (resolve-app-mode mode-option print-flag stdin-tty stdout-tty)
+      (cond ((or (equal? mode-option "json") (eq? mode-option 'json)) 'json)
+            ((or print-flag (not stdin-tty) (not stdout-tty)) 'print)
+            (else 'print)
+      ) ;cond
+    ) ;define
+
+    (define (format-file-block abs-path content)
+      (string-append "<file name=\"" abs-path "\">\n" content "\n</file>\n")
+    ) ;define
+
+    (define (build-initial-prompt stdin-content file-text messages)
+      (let* ((has-stdin? (and (string? stdin-content) (not (string-null? stdin-content))))
+             (has-file? (and (string? file-text) (not (string-null? file-text))))
+             (has-msg? (and (pair? messages) (string? (car messages))))
+             (first-msg (if has-msg? (car messages) #f))
+             (rest-msgs (if has-msg? (cdr messages) '()))
+             (parts (append (if has-stdin? (list stdin-content) '())
+                      (if has-file? (list file-text) '())
+                      (if first-msg (list first-msg) '())
+                    ) ;append
+             ) ;parts
+             (initial-message (if (null? parts) "" (apply string-append parts)))
+            ) ;
+        (values initial-message rest-msgs)
+      ) ;let*
+    ) ;define
+
+  ) ;begin
+) ;define-library
