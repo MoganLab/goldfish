@@ -60,7 +60,8 @@
 # 把计划文档作为输入，指派某个阶段
 # 注意：@文件 必须是独立的位置参数（整个参数以 @ 开头），不能写在 -p 的引号字符串里——
 # 否则整串会被当作文件路径而报 "File not found"（参考 ~/git/dev-agent tools/autocode 的拉起方式）
-timeout 7200 pi -a -p @PI_PLAN.md "按照 §11 阶段一实现 CLI 骨架，并给出测试结果"
+setsid nohup timeout 7200 pi -a -p @PI_PLAN.md "按照 §11 阶段一实现 CLI 骨架，并给出测试结果" \
+  > /tmp/pi-goldfish-run.log 2>&1 < /dev/null &
 
 # 管道输入作为上下文
 cat tests/goldfish/liii/pi-test.scm | timeout 900 pi -p "补充超时路径的测试用例"
@@ -76,6 +77,14 @@ timeout 900 pi --model sonnet:high -p "实现 §11 阶段二的工具层"
 - pi 直接在任务分支（当前 `da/pi`）上提交，不进入主干；主干隔离靠分支 + 合并请求。
 - 超时时长按任务体量设置，拉起编码任务用 `timeout 7200`（两小时）；超时即视为该次
   执行失败，缩小任务重试。
+- **长任务拉起必须脱离 Claude 会话进程树**：用 `setsid nohup ... > /tmp/pi-goldfish-run.log
+  2>&1 < /dev/null &` 拉起，pi 的最终报告落在该日志里。完成判定不依赖会话内后台
+  任务通知，而是定期检查 `pgrep -f "pi -a -p"`（进程是否存活）、`git log/status`
+  （产出是否落地）与日志尾部（最终报告）。
+  - 起因（2026-10-17 故障记录）：会话内 `run_in_background` 拉起的 pi 在阶段五连续
+    3 次被外部终止（存活 13/2/1 分钟，均非 timeout 7200 到期，被杀时 pi 正常干活），
+    同期短任务（9~30 分钟）可正常完成。改为脱离进程树 + 日志轮询后不再依赖会话
+    生命周期。
 
 ### 4.2 构建 / 格式化 / 测试（pi 与人工通用）
 
