@@ -53,4 +53,44 @@
   (delete-file f3)
   (path-rmdir tmp-dir))
 
+;; 5. 测试 setup-session-file 与 setup-initial-messages
+(let* ((tmp-agent-dir "/tmp/test-goldpi-session-agent")
+       (cwd "/home/da/git/goldfish")
+       (cfg `((agent-dir . ,tmp-agent-dir)))
+       (sdir (get-session-dir tmp-agent-dir cwd)))
+  (if (file-exists? tmp-agent-dir) (delete-file tmp-agent-dir))
+  
+  ;; 5.1 no-session: 不产生文件
+  (let-values (((sfile dir) (setup-session-file '((no-session . #t)) cfg cwd)))
+    (check sfile => #f)
+    (check dir => #f))
+
+  ;; 5.2 正常首次启动: 生成 session 文件与 header
+  (let-values (((sfile dir) (setup-session-file '((no-session . #f) (continue . #f)) cfg cwd)))
+    (check (string? sfile) => #t)
+    (check (file-exists? sfile) => #t)
+    ;; 验证写入一条 user 消息
+    (let ((init-msgs (setup-initial-messages '((continue . #f)) "first query" dir)))
+      (check (length init-msgs) => 1)
+      (check (cdr (assoc 'content (car init-msgs))) => "first query")
+      ;; persist 消息
+      (persist-new-messages! sfile '() (list (car init-msgs)
+                                             (list (cons 'role "assistant")
+                                                   (cons 'content "first response"))))
+      (let ((history (read-session-history sfile)))
+        (check (length history) => 2)
+        (check (cdr (assoc "content" (car history))) => "first query")
+        (check (cdr (assoc "content" (cadr history))) => "first response"))
+
+      ;; 5.3 continue: 恢复上一会话并在末尾追加新消息
+      (let-values (((sfile2 dir2) (setup-session-file '((no-session . #f) (continue . #t)) cfg cwd)))
+        (check sfile2 => sfile)
+        (let ((init-msgs-2 (setup-initial-messages '((continue . #t)) "second query" dir2)))
+          (check (length init-msgs-2) => 3)
+          (check (cdr (assoc "content" (car init-msgs-2))) => "first query")
+          (check (cdr (assoc "content" (cadr init-msgs-2))) => "first response")
+          (check (cdr (assoc 'content (caddr init-msgs-2))) => "second query")))))
+  (if (file-exists? sdir)
+    (for-each delete-file (map (lambda (f) (if (string? f) f (path->string f))) (path-glob sdir "*")))))
+
 (check-report)
