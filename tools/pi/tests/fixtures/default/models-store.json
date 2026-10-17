@@ -1,0 +1,20 @@
+{
+  "google": {
+    "models": [
+      {
+        "id": "gemini-3.8-flash",
+        "name": "Gemini 3.8 Flash",
+        "baseUrl": "https://generativelanguage.googleapis.com/v1beta",
+        "contextWindow": 1048576,
+        "maxTokens": 65536
+      },
+      {
+        "id": "gemini-2.5-pro",
+        "name": "Gemini 2.5 Pro",
+        "baseUrl": "https://generativelanguage.googleapis.com/v1beta",
+        "contextWindow": 2097152,
+        "maxTokens": 65536
+      }
+    ]
+  }
+}

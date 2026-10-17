@@ -141,4 +141,65 @@
 (check-catch 'pi-config-error (pi-resolve-config-value "!echo 'not-allowed'"))
 (check-catch 'type-error (pi-resolve-config-value 123))
 
+;; json-dict-ref
+(let ((j '(("foo" . 1) (bar . 2))))
+  (check (json-dict-ref j "foo" 0) => 1)
+  (check (json-dict-ref j 'foo 0) => 1)
+  (check (json-dict-ref j "bar" 0) => 2)
+  (check (json-dict-ref j 'bar 0) => 2)
+  (check (json-dict-ref j "baz" 99) => 99))
+
+;; pi-get-agent-dir
+(check-true (string? (pi-get-agent-dir)))
+(check-true (string-ends? (pi-get-agent-dir) "/.pi/agent"))
+(check-true (string-ends? (pi-get-agent-dir "tools/pi/tests/fixtures/default")
+                          "/tools/pi/tests/fixtures/default"))
+
+;; pi-read-json-file
+(check (pi-read-json-file "non_existent_file.json") => #f)
+(let ((data (pi-read-json-file "tools/pi/tests/fixtures/default/settings.json")))
+  (check-true (pair? data)))
+
+;; pi-load-settings
+(let ((settings (pi-load-settings "tools/pi/tests/fixtures/default")))
+  (check (cdr (assoc 'default-provider settings)) => "google")
+  (check (cdr (assoc 'default-model settings)) => "gemini-3.8-flash")
+  (check (cdr (assoc 'http-proxy settings)) => "http://127.0.0.1:7890")
+  (let ((retry (cdr (assoc 'retry settings))))
+    (check (cdr (assoc 'enabled retry)) => #t)
+    (check (cdr (assoc 'max-retries retry)) => 3)
+    (check (cdr (assoc 'base-delay-ms retry)) => 2000)
+    (check (cdr (assoc 'max-agent-delay-ms retry)) => 60000))
+  (check (cdr (assoc 'default-tools settings)) => '("read" "bash" "edit" "write")))
+
+;; pi-load-settings on empty/non-existent dir falls back to defaults
+(let ((empty-settings (pi-load-settings "non/existent/dir")))
+  (check (cdr (assoc 'default-provider empty-settings)) => "google")
+  (check (cdr (assoc 'default-model empty-settings)) => "gemini-3.8-flash")
+  (check (cdr (assoc 'http-proxy empty-settings)) => #f)
+  (check (cdr (assoc 'default-tools empty-settings)) => #f))
+
+;; pi-resolve-proxy-url
+(let ((settings '((http-proxy . "http://127.0.0.1:7890")))
+      (clean-env '())
+      (env-with-https '(("HTTPS_PROXY" . "https://corp-proxy:8080")))
+      (env-with-all '(("ALL_PROXY" . "socks5h://127.0.0.1:1080"))))
+  ;; CLI 选项优先
+  (check (pi-resolve-proxy-url "socks5h://127.0.0.1:1080" settings clean-env)
+    => "socks5h://127.0.0.1:1080")
+  ;; HTTPS_PROXY 优先于 settings
+  (check (pi-resolve-proxy-url #f settings env-with-https)
+    => "https://corp-proxy:8080")
+  ;; ALL_PROXY 优先于 settings
+  (check (pi-resolve-proxy-url #f settings env-with-all)
+    => "socks5h://127.0.0.1:1080")
+  ;; 降级到 settings.httpProxy
+  (check (pi-resolve-proxy-url #f settings clean-env)
+    => "http://127.0.0.1:7890")
+  (check (pi-resolve-proxy-url "" settings clean-env)
+    => "http://127.0.0.1:7890")
+  ;; 无代理直连
+  (check (pi-resolve-proxy-url #f '((http-proxy . #f)) clean-env)
+    => #f))
+
 (check-report)
