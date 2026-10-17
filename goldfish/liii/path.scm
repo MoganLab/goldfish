@@ -1184,30 +1184,21 @@
       ) ;let*
     ) ;define
 
+    ;; ; 仅做类型校验；目录存在性/类型由 C 层一次性 stat 判定，避免 TOCTOU 预检查
     (define (%check-glob-args who p pattern)
-      (cond
-       ((not (or (string? p) (path? p)))
+      (unless (or (string? p) (path? p))
         (type-error (string-append who ": path must be string or path"))
-       ) ;
-       ((not (string? pattern))
+      ) ;unless
+      (unless (string? pattern)
         (type-error (string-append who ": pattern must be string"))
-       ) ;
-       ((not (path-exists? p))
-        (file-not-found-error (string-append "No such file or directory: '" (path->string p) "'")
-        ) ;file-not-found-error
-       ) ;
-       ((not (path-dir? p))
-        (not-a-directory-error (string-append "Not a directory: '" (path->string p) "'")
-        ) ;not-a-directory-error
-       ) ;
-      ) ;cond
+      ) ;unless
     ) ;define
 
     ;; ; 对齐 pathlib.Path.glob(pattern)
     ;; ; 单层目录通配检索，返回包含匹配项的 <path> 记录列表。
     (define (path-glob p pattern)
       (%check-glob-args "path-glob" p pattern)
-      (let ((entries (g_path-glob (path->string p) pattern 0)))
+      (let ((entries (g_path-glob (path->string p) pattern #f)))
         (map (lambda (entry) (path-join p entry)) entries)
       ) ;let
     ) ;define
@@ -1216,7 +1207,7 @@
     ;; ; 递归全目录树通配检索，返回包含匹配项的 <path> 记录列表。
     (define (path-rglob p pattern)
       (%check-glob-args "path-rglob" p pattern)
-      (let ((entries (g_path-glob (path->string p) pattern -1)))
+      (let ((entries (g_path-glob (path->string p) pattern #t)))
         (map (lambda (entry) (path-join p entry)) entries)
       ) ;let
     ) ;define

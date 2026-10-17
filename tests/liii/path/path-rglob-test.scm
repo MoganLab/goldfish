@@ -1,4 +1,5 @@
 (import (liii check)
+  (liii list)
   (liii path)
   (liii os)
   (scheme file)
@@ -44,13 +45,6 @@
     ) ;for-each
     (path-rmdir dir)
   ) ;when
-) ;define
-
-(define (every pred lst)
-  (cond ((null? lst) #t)
-        ((pred (car lst)) (every pred (cdr lst)))
-        (else #f)
-  ) ;cond
 ) ;define
 
 (let* ((test-dir (path-join (path-temp-dir) "gf-test-path-rglob"))

@@ -764,16 +764,26 @@ f_path_glob (s7_scheme* sc, s7_pointer args) {
 
   s7_int recursion= 0;
   if (s7_is_pair (s7_cddr (args))) {
-    s7_pointer rec_arg= s7_caddr (args);
-    if (s7_is_integer (rec_arg)) {
-      recursion= s7_integer (rec_arg);
-    }
+    recursion= (s7_caddr (args) == s7_t (sc)) ? -1 : 0;
   }
 
   const char* path_c= s7_string (path_arg);
   const char* pat_c = s7_string (pat_arg);
   if (!path_c || !pat_c) {
     return s7_nil (sc);
+  }
+
+  // 起始目录存在性与类型校验：直接操作前的唯一一次 stat，避免 Scheme 层 TOCTOU 预检查
+  tb_file_info_t base_info;
+  if (!tb_file_info (path_c, &base_info)) {
+    return s7_error (
+        sc, s7_make_symbol (sc, "file-not-found-error"),
+        s7_list (sc, 1, s7_make_string (sc, (string ("No such file or directory: '") + path_c + "'").c_str ())));
+  }
+  if (base_info.type != TB_FILE_TYPE_DIRECTORY && base_info.type != TB_FILE_TYPE_DOT &&
+      base_info.type != TB_FILE_TYPE_DOT2) {
+    return s7_error (sc, s7_make_symbol (sc, "not-a-directory-error"),
+                     s7_list (sc, 1, s7_make_string (sc, (string ("Not a directory: '") + path_c + "'").c_str ())));
   }
 
   path_glob_context ctx;
