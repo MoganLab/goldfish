@@ -5,6 +5,7 @@
   (liii string)
   (liii path)
   (liii pi)
+  (liii goldpi-tools)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -232,5 +233,38 @@
 ) ;let-values
 
 (check-catch 'error (pi-execute-bash '()))
+
+;; ============================================================
+;; Tool Registry & Dispatcher
+;; ============================================================
+
+(check PI_DEFAULT_TOOL_NAMES => '("read" "bash" "edit" "write"))
+(check (length PI_ALL_TOOL_NAMES) => 7)
+
+;; parse-tools-selection
+(check (parse-tools-selection #f) => '("read" "bash" "edit" "write"))
+(check (parse-tools-selection "read,grep") => '("read" "grep"))
+(check (parse-tools-selection "+grep,-edit") => '("read" "bash" "write" "grep"))
+
+;; get-tool-definition
+(let ((def (get-tool-definition "read")))
+  (check-true (pair? def))
+  (check (cdr (assoc 'name def)) => "read")
+  (check (cdr (assoc 'snippet def)) => "Read file contents"))
+
+;; execute-tool-call: 未知工具
+(let ((res (execute-tool-call "unknown_tool" '())))
+  (check (cdr (assoc 'isError res)) => #t)
+  (check (vector-ref (cdr (assoc 'content res)) 0) => '((type . "text") (text . "Tool unknown_tool not found"))))
+
+;; execute-tool-call: 工具 throw 错误被捕获转成 isError: #t 的结果，不让整轮失败
+(let ((res (execute-tool-call "read" '(("path" . "non_existent_file.xyz")))))
+  (check (cdr (assoc 'isError res)) => #t)
+  (let ((text (cdr (assoc 'text (vector-ref (cdr (assoc 'content res)) 0)))))
+    (check-true (string-contains? text "Path not found"))))
+
+;; execute-tool-call: 成功调用返回 isError: #f
+(let ((res (execute-tool-call "read" (list (cons "path" test-file) (cons "limit" 1)))))
+  (check (cdr (assoc 'isError res)) => #f))
 
 (check-report)
