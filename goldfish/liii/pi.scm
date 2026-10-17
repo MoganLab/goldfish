@@ -21,12 +21,14 @@
     (liii pi read)
     (liii pi write)
     (liii pi edit)
+    (liii pi bash)
   ) ;import
   (export resolve-app-mode format-file-block build-initial-prompt
     PI_DEFAULT_MAX_LINES PI_DEFAULT_MAX_BYTES PI_GREP_MAX_LINE_LENGTH
     pi-format-size pi-truncate-line pi-truncate-head pi-truncate-tail pi-arg-ref
     pi-resolve-path pi-read-schema pi-execute-read pi-write-schema
-    pi-execute-write pi-edit-schema pi-execute-edit
+    pi-execute-write pi-edit-schema pi-execute-edit pi-bash-schema
+    pi-execute-bash
   ) ;export
   (begin
 

@@ -267,4 +267,33 @@
   ;; 清理
   (delete-file test-edit-file))
 
+;; ============================================================
+;; Tool: bash
+;; ============================================================
+
+;; 1. 成功执行命令
+(let-values (((out is-err) (pi-execute-bash '(("command" . "echo 'hello bash'")))))
+  (check is-err => #f)
+  (check (string-trim-both out) => "hello bash"))
+
+;; 2. 非零退出码返回 isError: #t 与退出码说明
+(let-values (((out is-err) (pi-execute-bash '(("command" . "echo 'fail msg'; exit 42")))))
+  (check is-err => #t)
+  (check-true (string-contains? out "fail msg"))
+  (check-true (string-contains? out "Command exited with code 42")))
+
+;; 3. 超时路径测试
+(let-values (((out is-err) (pi-execute-bash '(("command" . "sleep 5") ("timeout" . 1)))))
+  (check is-err => #t)
+  (check-true (string-contains? out "Command timed out after 1 seconds")))
+
+;; 4. 模拟超时参数测试
+(let-values (((out is-err) (pi-execute-bash '(("command" . "echo test")) :timed-out? #t)))
+  (check is-err => #t)
+  (check-true (string-contains? out "Command timed out after 120 seconds")))
+
+;; 5. 缺少 command 报错
+(check-catch 'error
+  (pi-execute-bash '()))
+
 (check-report)
