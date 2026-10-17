@@ -110,7 +110,9 @@ timeout 900 bin/gf pi --print "@PI_PLAN.md 实现阶段八：会话持久化"
 3. **实现与验证**：pi 按 `PI_PLAN.md` §10 跑构建、格式化、`bin/gf check` 与测试；
    测试代码必须保存在 `tests/` 下的版本控制文件中（禁止 /tmp 临时文件、
    禁止 `bin/gf -e` 做 adhoc 测试）。执行中发现规格要改，pi 直接修订并 commit
-   `PI_PLAN.md`，同时在 §13 偏差清单登记理由。
+   `PI_PLAN.md`，同时在 §13 偏差清单登记理由。**阶段表（`PI_PLAN.md` §11）由 pi
+   自由更新**——可增删、拆分、合并、重排阶段，无需回到 Claude；Claude 每次拉起前
+   以当时的 §11 为准选取下一个未完成阶段。
 4. **提交与推送**：分支固定使用 `da/pi`（不走 `$USER/dddd/descr` 命名规则），提交遵循
    `PI_PLAN.md` §11.1（小提交；每个 commit 必须通过 `bin/gf fmt` 与 `bin/gf check`），
    提交信息 `[x_y] 简短描述`；推送由 pi 负责——每完成一个阶段或一批小提交就
