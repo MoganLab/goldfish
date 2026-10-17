@@ -3,12 +3,14 @@
 
 (import (liii check)
   (liii string)
+  (liii list)
   (liii path)
   (liii json)
   (liii subprocess)
   (liii pi)
   (liii goldpi-config)
   (liii goldpi-anthropic)
+  (liii goldpi-anthropic-stream)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -121,6 +123,29 @@
            (resp (anthropic-request err-cfg '(((role . "user") (content . "500 test"))) #f '() 10)))
       (check (cdr (assoc 'role resp)) => "assistant")
       (check (cdr (assoc 'stopReason resp)) => "error"))
+
+    ;; 2.6 Anthropic SSE 流式请求与 text_delta 事件捕获
+    (let* ((evs '())
+           (stream-cfg (list (cons 'provider "anthropic")
+                             (cons 'model-id "claude-3-7-sonnet-20250219")
+                             (cons 'api-key "sk-ant-test-key")
+                             (cons 'model-meta (list (cons 'base-url (string-append base-url "/stream"))
+                                                     (cons 'max-tokens 4096)))
+                             (cons 'proxy-url #f)
+                             (cons 'tools '("bash"))
+                             (cons 'settings '())))
+           (on-ev (lambda (ev) (set! evs (cons ev evs))))
+           (resp (anthropic-request-stream stream-cfg '(((role . "user") (content . "stream please")))
+                                           #f '("bash") on-ev 10)))
+      (check (cdr (assoc 'role resp)) => "assistant")
+      (check (cdr (assoc 'stopReason resp)) => "stop")
+      (let* ((content (cdr (assoc 'content resp)))
+             (first-blk (car content)))
+        (check (cdr (assoc 'type first-blk)) => "text")
+        (check (cdr (assoc 'text first-blk)) => "Hello from Claude stream!"))
+      ;; 验证是否捕获到 text_delta 事件
+      (let ((delta-evs (filter (lambda (e) (equal? (cdr (assoc 'type e)) "text_delta")) evs)))
+        (check (> (length delta-evs) 0) => #t)))
   )
 
   (process-kill proc))
