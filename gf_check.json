@@ -5,6 +5,7 @@
     "max-tree-depth": { "enabled": true, "limit": 15 }
   },
   "exclude": [
+    { "path": "goldfish/liii/format/", "reason": "SRFI-166 Monadic Formatting 组合子格式化与排版引擎核心实现" },
     { "path": "goldfish/srfi/", "reason": "官方标准规范实现优先保证完整性与对照性" },
     { "path": "tests/srfi/", "reason": "SRFI 规范官方测试集优先保证完整性与对照性" },
     { "path": "bench/", "reason": "性能基准测试脚本包含大量展开测试数据与循环" },
