@@ -558,6 +558,15 @@ glue_path_copy (s7_scheme* sc) {
   s7_define_function (sc, name, f_path_copy, 2, 0, false, desc);
 }
 
+static char
+fold_case (char c) {
+#if defined(TB_CONFIG_OS_WINDOWS)
+  return (char) tolower ((unsigned char) c);
+#else
+  return c;
+#endif
+}
+
 static bool
 charclass_match (const char* pat, size_t plen, size_t& p_idx, char ch) {
   // pat[p_idx] is '['
@@ -567,21 +576,13 @@ charclass_match (const char* pat, size_t plen, size_t& p_idx, char ch) {
     negate= true;
     p_idx++;
   }
-  bool matched= false;
-#if defined(TB_CONFIG_OS_WINDOWS)
-  char target_ch= (char) tolower ((unsigned char) ch);
-#else
-  char target_ch= ch;
-#endif
+  bool matched  = false;
+  char target_ch= fold_case (ch);
 
   while (p_idx < plen && pat[p_idx] != ']') {
     if (p_idx + 2 < plen && pat[p_idx + 1] == '-') {
-      char lo= pat[p_idx];
-      char hi= pat[p_idx + 2];
-#if defined(TB_CONFIG_OS_WINDOWS)
-      lo= (char) tolower ((unsigned char) lo);
-      hi= (char) tolower ((unsigned char) hi);
-#endif
+      char lo= fold_case (pat[p_idx]);
+      char hi= fold_case (pat[p_idx + 2]);
       if (lo > hi) {
         std::swap (lo, hi);
       }
@@ -591,11 +592,7 @@ charclass_match (const char* pat, size_t plen, size_t& p_idx, char ch) {
       p_idx+= 3;
     }
     else {
-      char pc= pat[p_idx];
-#if defined(TB_CONFIG_OS_WINDOWS)
-      pc= (char) tolower ((unsigned char) pc);
-#endif
-      if (pc == target_ch) {
+      if (fold_case (pat[p_idx]) == target_ch) {
         matched= true;
       }
       p_idx++;
@@ -633,13 +630,7 @@ glob_match_rec (const char* pat, size_t plen, size_t p0, const char* str, size_t
     }
     return false;
   }
-  char pc= pat[p0];
-  char sc= str[s0];
-#if defined(TB_CONFIG_OS_WINDOWS)
-  if (tolower ((unsigned char) pc) == tolower ((unsigned char) sc)) {
-#else
-  if (pc == sc) {
-#endif
+  if (fold_case (pat[p0]) == fold_case (str[s0])) {
     return glob_match_rec (pat, plen, p0 + 1, str, slen, s0 + 1);
   }
   return false;
@@ -698,9 +689,6 @@ path_match_segments (const std::vector<std::string>& pat_segs, const std::vector
 
 struct path_glob_context {
   std::string              orig_dir;
-  size_t                   orig_slash_N;
-  std::string              abs_dir;
-  size_t                   abs_slash_N;
   std::vector<std::string> pat_segs;
   bool                     is_absolute_pattern;
   std::vector<std::string> results;
@@ -712,34 +700,26 @@ path_glob_walk_cb (tb_char_t const* item_path, tb_file_info_t const* info, tb_cp
 
   path_glob_context* ctx= (path_glob_context*) priv;
 
+  // tb_directory_walk 保证 item_path 以起始目录为前缀; 等于前缀的是起始目录自身
   std::string item_s (item_path);
-  std::string rel_path;
-  if (item_s.size () >= ctx->orig_slash_N && item_s.compare (0, ctx->orig_dir.size (), ctx->orig_dir) == 0) {
-    rel_path= item_s.substr (ctx->orig_slash_N);
+  if (item_s.size () <= ctx->orig_dir.size ()) {
+    return TB_DIRECTORY_WALK_CODE_CONTINUE;
   }
-  else if (!ctx->abs_dir.empty () && item_s.size () >= ctx->abs_slash_N &&
-           item_s.compare (0, ctx->abs_dir.size (), ctx->abs_dir) == 0) {
-    rel_path= item_s.substr (ctx->abs_slash_N);
-  }
-  else {
-    size_t pos= item_s.find (ctx->orig_dir);
-    if (pos != std::string::npos) {
-      pos+= ctx->orig_dir.size ();
-      while (pos < item_s.size () && (item_s[pos] == '/' || item_s[pos] == '\\')) {
-        pos++;
-      }
-      rel_path= item_s.substr (pos);
-    }
-    else {
-      rel_path= item_s;
-    }
-  }
-
+  std::string rel_path= item_s.substr (ctx->orig_dir.size ());
   while (!rel_path.empty () && (rel_path.front () == '/' || rel_path.front () == '\\')) {
     rel_path.erase (0, 1);
   }
-
   if (rel_path.empty ()) {
+    return TB_DIRECTORY_WALK_CODE_CONTINUE;
+  }
+
+  size_t seg_N= 1;
+  for (char c : rel_path) {
+    if (c == '/' || c == '\\') {
+      seg_N++;
+    }
+  }
+  if (seg_N < ctx->pat_segs.size ()) {
     return TB_DIRECTORY_WALK_CODE_CONTINUE;
   }
 
@@ -769,11 +749,8 @@ f_path_glob (s7_scheme* sc, s7_pointer args) {
 
   const char* path_c= s7_string (path_arg);
   const char* pat_c = s7_string (pat_arg);
-  if (!path_c || !pat_c) {
-    return s7_nil (sc);
-  }
 
-  // 起始目录存在性与类型校验：直接操作前的唯一一次 stat，避免 Scheme 层 TOCTOU 预检查
+  // 起始目录存在性与类型校验（单次 stat）
   tb_file_info_t base_info;
   if (!tb_file_info (path_c, &base_info)) {
     return s7_error (
@@ -790,26 +767,6 @@ f_path_glob (s7_scheme* sc, s7_pointer args) {
   ctx.orig_dir= std::string (path_c);
   while (ctx.orig_dir.size () > 1 && (ctx.orig_dir.back () == '/' || ctx.orig_dir.back () == '\\')) {
     ctx.orig_dir.pop_back ();
-  }
-  ctx.orig_slash_N= ctx.orig_dir.size ();
-  if (ctx.orig_dir.back () != '/' && ctx.orig_dir.back () != '\\') {
-    ctx.orig_slash_N++;
-  }
-
-  tb_char_t   full[TB_PATH_MAXN];
-  const char* abs_c= tb_path_absolute (ctx.orig_dir.c_str (), full, TB_PATH_MAXN);
-  if (abs_c) {
-    ctx.abs_dir= std::string (abs_c);
-    while (ctx.abs_dir.size () > 1 && (ctx.abs_dir.back () == '/' || ctx.abs_dir.back () == '\\')) {
-      ctx.abs_dir.pop_back ();
-    }
-    ctx.abs_slash_N= ctx.abs_dir.size ();
-    if (ctx.abs_dir.back () != '/' && ctx.abs_dir.back () != '\\') {
-      ctx.abs_slash_N++;
-    }
-  }
-  else {
-    ctx.abs_slash_N= 0;
   }
 
   std::string pat_s (pat_c);

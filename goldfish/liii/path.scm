@@ -1184,32 +1184,29 @@
       ) ;let*
     ) ;define
 
-    ;; ; 仅做类型校验；目录存在性/类型由 C 层一次性 stat 判定，避免 TOCTOU 预检查
-    (define (%check-glob-args who p pattern)
+    ;; ; 目录存在性/类型由 C 层单次 stat 判定，此处仅做类型校验
+    (define (%glob-entries who p pattern recursive)
       (unless (or (string? p) (path? p))
         (type-error (string-append who ": path must be string or path"))
       ) ;unless
       (unless (string? pattern)
         (type-error (string-append who ": pattern must be string"))
       ) ;unless
+      (map (lambda (entry) (path-join p entry))
+        (g_path-glob (path->string p) pattern recursive)
+      ) ;map
     ) ;define
 
     ;; ; 对齐 pathlib.Path.glob(pattern)
     ;; ; 单层目录通配检索，返回包含匹配项的 <path> 记录列表。
     (define (path-glob p pattern)
-      (%check-glob-args "path-glob" p pattern)
-      (let ((entries (g_path-glob (path->string p) pattern #f)))
-        (map (lambda (entry) (path-join p entry)) entries)
-      ) ;let
+      (%glob-entries "path-glob" p pattern #f)
     ) ;define
 
     ;; ; 对齐 pathlib.Path.rglob(pattern)
     ;; ; 递归全目录树通配检索，返回包含匹配项的 <path> 记录列表。
     (define (path-rglob p pattern)
-      (%check-glob-args "path-rglob" p pattern)
-      (let ((entries (g_path-glob (path->string p) pattern #t)))
-        (map (lambda (entry) (path-join p entry)) entries)
-      ) ;let
+      (%glob-entries "path-rglob" p pattern #t)
     ) ;define
 
     ;; ; 对齐 pathlib.Path.resolve(strict=False) 简化版
