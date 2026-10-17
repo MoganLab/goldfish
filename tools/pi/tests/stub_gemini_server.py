@@ -172,6 +172,27 @@ class StubHandler(http.server.BaseHTTPRequestHandler):
             self.wfile.write(json.dumps(resp).encode("utf-8"))
             return
 
+        if "/check-project-context" in path:
+            sys_inst = req_json.get("systemInstruction", "")
+            if "project_context" in sys_inst and "CLAUDE.md" in sys_inst:
+                reply = "Project context verified: CLAUDE.md is present"
+            else:
+                reply = "Project context missing"
+            resp = {
+                "candidates": [
+                    {
+                        "content": {"role": "model", "parts": [{"text": reply}]},
+                        "finishReason": "STOP"
+                    }
+                ],
+                "usageMetadata": {"promptTokenCount": 20, "candidatesTokenCount": 10, "totalTokenCount": 30}
+            }
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps(resp).encode("utf-8"))
+            return
+
         # default echo ok
         resp = {
             "candidates": [
