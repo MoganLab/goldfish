@@ -38,7 +38,10 @@
 ;;
 
 (define-library (liii date-time time-delta)
-  (import (scheme base) (liii date-time date))
+  (import (scheme base)
+    (liii date-time date)
+    (liii date-time internal date-arithmetic)
+  ) ;import
   (export make-time-delta time-delta? time-delta-years time-delta-months
     time-delta-weeks time-delta-days time-delta-hours time-delta-minutes
     time-delta-seconds years-delta months-delta weeks-delta days-delta
@@ -244,24 +247,6 @@
       ) ;if
     ) ;define
 
-    (define (add-months year month month+)
-      (let* ((m (+ (- month 1) month+))
-             (y+ (floor-quotient m 12))
-             (rem-m (floor-remainder m 12))
-            ) ;
-        (values (+ year y+) (+ 1 rem-m))
-      ) ;let*
-    ) ;define
-
-    (define (add-days year month day day+)
-      (if (zero? day+)
-        (make-date year month day)
-        (let* ((base (make-date year month day)) (rd (+ (date->rata-die base) day+)))
-          (rata-die->date rd)
-        ) ;let*
-      ) ;if
-    ) ;define
-
     (define (date+ date dt)
       (unless (date? date)
         (error 'type-error "date+: expected a date" date)
@@ -275,19 +260,12 @@
               ) ;and
         (error 'type-error "date+: time-delta cannot have hours, minutes or seconds" dt)
       ) ;unless
-      (let-values (((y m d) (date-ymd date)))
-        (let* ((y (+ y (%time-delta-years dt)))
-               (m+ (%time-delta-months dt))
-               (w+ (%time-delta-weeks dt))
-               (d+ (%time-delta-days dt))
-              ) ;
-          (let-values (((y2 m2) (add-months y m m+)))
-            (let* ((max-d (days-in-month-raw (leap-year? y2) m2)) (d2 (min d max-d)))
-              (add-days y2 m2 d2 (+ (* 7 w+) d+))
-            ) ;let*
-          ) ;let-values
-        ) ;let*
-      ) ;let-values
+      (date-add-components date
+        (%time-delta-years dt)
+        (%time-delta-months dt)
+        (%time-delta-weeks dt)
+        (%time-delta-days dt)
+      ) ;date-add-components
     ) ;define
 
     (define (date- date dt)

@@ -125,6 +125,7 @@ void glue_liii_sort (s7_scheme* sc);
 void glue_liii_string (s7_scheme* sc);
 void glue_liii_string_cursor (s7_scheme* sc);
 void glue_liii_tempfile (s7_scheme* sc);
+void glue_liii_date_time (s7_scheme* sc);
 
 extern "C" void glue_syntax_rules (s7_scheme* sc);
 
@@ -807,6 +808,7 @@ glue_for_community_edition (s7_scheme* sc) {
   glue_liii_string_cursor (sc);
   glue_liii_time (sc);
   glue_liii_datetime (sc);
+  glue_liii_date_time (sc);
   glue_liii_uuid (sc);
   glue_liii_hashlib (sc);
   glue_liii_base64 (sc);

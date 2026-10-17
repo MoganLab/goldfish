@@ -41,6 +41,7 @@
   (export tzif-transition tzif-transition? tzif-transition-time
     tzif-transition-offset tzif-transition-dst? tzif-transition-designation
     tzif-transition-standard? tzif-transition-universal-time? read-tzif-file
+    read-tzif-bytevector
   ) ;export
   (begin
 
@@ -93,7 +94,43 @@
       ) ;let
     ) ;define
 
-    (define (parse-block bv offset-ref is-64bit start-pos)
+    (define (make-ltypes-vec bv types-rec-pos typecnt)
+      (let ((vec (make-vector typecnt)))
+        (do ((i 0 (+ i 1)))
+          ((= i typecnt) vec)
+          (let* ((r-pos (+ types-rec-pos (* i 6)))
+                 (off (bv-s32 bv r-pos))
+                 (dst
+                   (not (zero? (bytevector-u8-ref bv (+ r-pos 4))))
+                 ) ;dst
+                 (d-idx (bytevector-u8-ref bv (+ r-pos 5)))
+                ) ;
+            (vector-set! vec i (local-time-type off dst d-idx))
+          ) ;let*
+        ) ;do
+      ) ;let
+    ) ;define
+
+    (define (read-one-transition bv ltypes typecnt desigs-pos charcnt isstdcnt
+              std-pos isutcnt ut-pos t type-idx
+            ) ;read-one-transition
+      (let* ((ltype (vector-ref ltypes (min type-idx (- typecnt 1))))
+             (off (local-time-type-offset ltype))
+             (dst? (local-time-type-dst? ltype))
+             (didx (local-time-type-desigidx ltype))
+             (desig (read-designation-str bv (+ desigs-pos didx) (+ desigs-pos charcnt)))
+             (std?
+               (if (< type-idx isstdcnt) (= (bytevector-u8-ref bv (+ std-pos type-idx)) 1) #f)
+             ) ;std?
+             (ut?
+               (if (< type-idx isutcnt) (= (bytevector-u8-ref bv (+ ut-pos type-idx)) 1) #f)
+             ) ;ut?
+            ) ;
+        (tzif-transition t off dst? desig std? ut?)
+      ) ;let*
+    ) ;define
+
+    (define (parse-block bv is-64bit start-pos)
       (let* ((version-byte (bytevector-u8-ref bv (+ start-pos 4)))
              (version (case version-byte ((0) 1) ((50) 2) ((51) 3) ((52) 4) (else 4)))
              (header-pos (+ start-pos 20))
@@ -106,114 +143,86 @@
              (data-pos (+ header-pos 24))
              (time-size (if is-64bit 8 4))
              (time-reader (if is-64bit bv-s64 bv-s32))
+             (times-pos data-pos)
+             (types-pos (+ times-pos (* timecnt time-size)))
+             (types-rec-pos (+ types-pos timecnt))
+             (desigs-pos (+ types-rec-pos (* typecnt 6)))
+             (leap-pos (+ desigs-pos charcnt))
+             (leap-size (if is-64bit 12 8))
+             (std-pos (+ leap-pos (* leapcnt leap-size)))
+             (ut-pos (+ std-pos isstdcnt))
+             (next-block-pos (+ ut-pos isutcnt))
+             (ltypes (make-ltypes-vec bv types-rec-pos typecnt))
+             (first (if (> typecnt 0)
+                      (read-one-transition bv ltypes typecnt desigs-pos charcnt
+                        isstdcnt std-pos isutcnt ut-pos #f 0
+                      ) ;read-one-transition
+                      #f
+                    ) ;if
+             ) ;first
+             (transitions (make-vector timecnt))
             ) ;
-
-        (let* ((times-pos data-pos)
-               (types-pos (+ times-pos (* timecnt time-size)))
-               (types-rec-pos (+ types-pos timecnt))
-               (desigs-pos (+ types-rec-pos (* typecnt 6)))
-               (leap-pos (+ desigs-pos charcnt))
-               (leap-size (if is-64bit 12 8))
-               (std-pos (+ leap-pos (* leapcnt leap-size)))
-               (ut-pos (+ std-pos isstdcnt))
-               (next-block-pos (+ ut-pos isutcnt))
-              ) ;
-
-          (let ((types-vec (make-vector typecnt)))
-            (do ((i 0 (+ i 1)))
-              ((= i typecnt))
-              (let* ((r-pos (+ types-rec-pos (* i 6)))
-                     (off (bv-s32 bv r-pos))
-                     (dst
-                       (not (zero? (bytevector-u8-ref bv (+ r-pos 4))))
-                     ) ;dst
-                     (d-idx (bytevector-u8-ref bv (+ r-pos 5)))
-                    ) ;
-                (vector-set! types-vec i (local-time-type off dst d-idx))
-              ) ;let*
-            ) ;do
-
-            (define (derive-transition t type-idx)
-              (let* ((ltype (vector-ref types-vec (min type-idx (- typecnt 1))))
-                     (off (local-time-type-offset ltype))
-                     (dst? (local-time-type-dst? ltype))
-                     (didx (local-time-type-desigidx ltype))
-                     (desig (read-designation-str bv (+ desigs-pos didx) (+ desigs-pos charcnt)))
-                     (std?
-                       (if (< type-idx isstdcnt) (= (bytevector-u8-ref bv (+ std-pos type-idx)) 1) #f)
-                     ) ;std?
-                     (ut?
-                       (if (< type-idx isutcnt) (= (bytevector-u8-ref bv (+ ut-pos type-idx)) 1) #f)
-                     ) ;ut?
-                    ) ;
-                (tzif-transition t off dst? desig std? ut?)
-              ) ;let*
-            ) ;define
-
-            (let* ((first (if (> typecnt 0) (derive-transition #f 0) #f))
-                   (transitions (make-vector timecnt))
-                  ) ;
-              (do ((i 0 (+ i 1)))
-                ((= i timecnt))
-                (let* ((t (time-reader bv (+ times-pos (* i time-size))))
-                       (t-idx (bytevector-u8-ref bv (+ types-pos i)))
-                      ) ;
-                  (vector-set! transitions i (derive-transition t t-idx))
-                ) ;let*
-              ) ;do
-              (values version first transitions next-block-pos)
-            ) ;let*
-          ) ;let
-        ) ;let*
+        (do ((i 0 (+ i 1)))
+          ((= i timecnt))
+          (let* ((t (time-reader bv (+ times-pos (* i time-size))))
+                 (t-idx (bytevector-u8-ref bv (+ types-pos i)))
+                ) ;
+            (vector-set! transitions
+              i
+              (read-one-transition bv ltypes typecnt desigs-pos charcnt isstdcnt
+                std-pos isutcnt ut-pos t t-idx
+              ) ;read-one-transition
+            ) ;vector-set!
+          ) ;let*
+        ) ;do
+        (values version first transitions next-block-pos)
       ) ;let*
     ) ;define
 
-    (define (read-tzif-file path-str)
-      (let ((bv (path-read-bytes (path path-str))))
-        (unless
-          (and (>= (bytevector-length bv) 4)
-            (char=? (integer->char (bytevector-u8-ref bv 0)) #\T)
-            (char=? (integer->char (bytevector-u8-ref bv 1)) #\Z)
-            (char=? (integer->char (bytevector-u8-ref bv 2)) #\i)
-            (char=? (integer->char (bytevector-u8-ref bv 3)) #\f)
-          ) ;and
-          (error 'type-error "read-tzif-file: not a valid TZif file" path-str)
-        ) ;unless
+    (define (extract-footer-tz bv footer-start)
+      (if
+        (or (>= footer-start (bytevector-length bv))
+          (not (= (bytevector-u8-ref bv footer-start) 10))
+        ) ;or
+        #f
+        (let loop
+          ((i (+ footer-start 1)) (acc '()))
+          (cond ((>= i (bytevector-length bv)) #f)
+                ((= (bytevector-u8-ref bv i) 10)
+                 (let ((str (list->string (reverse acc))))
+                   (if (string=? str "") #f (parse-tz str))
+                 ) ;let
+                ) ;
+                (else
+                  (loop (+ i 1) (cons (integer->char (bytevector-u8-ref bv i)) acc))
+                ) ;else
+          ) ;cond
+        ) ;let
+      ) ;if
+    ) ;define
 
-        (let-values (((v1 first1 trans1 next-pos) (parse-block bv bv-s32 #f 0)))
-          (if (= v1 1)
-            (values first1 trans1 #f)
-            ;; Version 2+ : read second block
-            (let-values (((v2 first2 trans2 footer-start) (parse-block bv bv-s64 #t next-pos)))
-              ;; parse footer if present
-              (let ((footer
-                      (if (and (< footer-start (bytevector-length bv))
-                            (= (bytevector-u8-ref bv footer-start) 10)
-                          ) ;and
-                        (let loop
-                          ((i (+ footer-start 1)) (acc '()))
-                          (if (>= i (bytevector-length bv))
-                            #f
-                            (let ((b (bytevector-u8-ref bv i)))
-                              (if (= b 10)
-                                (let ((str (list->string (reverse acc))))
-                                  (if (string=? str "") #f (parse-tz str))
-                                ) ;let
-                                (loop (+ i 1) (cons (integer->char b) acc))
-                              ) ;if
-                            ) ;let
-                          ) ;if
-                        ) ;let
-                        #f
-                      ) ;if
-                    ) ;footer
-                   ) ;
-                (values first2 trans2 footer)
-              ) ;let
-            ) ;let-values
-          ) ;if
-        ) ;let-values
-      ) ;let
+    (define (read-tzif-bytevector bv)
+      (unless
+        (and (>= (bytevector-length bv) 4)
+          (char=? (integer->char (bytevector-u8-ref bv 0)) #\T)
+          (char=? (integer->char (bytevector-u8-ref bv 1)) #\Z)
+          (char=? (integer->char (bytevector-u8-ref bv 2)) #\i)
+          (char=? (integer->char (bytevector-u8-ref bv 3)) #\f)
+        ) ;and
+        (error 'type-error "read-tzif-bytevector: invalid magic bytes")
+      ) ;unless
+      (let-values (((v1 first1 trans1 next-pos) (parse-block bv #f 0)))
+        (if (= v1 1)
+          (values first1 trans1 #f)
+          (let-values (((v2 first2 trans2 footer-start) (parse-block bv #t next-pos)))
+            (values first2 trans2 (extract-footer-tz bv footer-start))
+          ) ;let-values
+        ) ;if
+      ) ;let-values
+    ) ;define
+
+    (define (read-tzif-file path-str)
+      (read-tzif-bytevector (path-read-bytes (path path-str)))
     ) ;define
 
   ) ;begin

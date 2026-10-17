@@ -108,6 +108,7 @@ target ("goldfish") do
         add_defines("GOLDFISH_ENABLE_HTTP")
     end
     add_files ("src/liii_os.cpp")
+    add_files ("src/liii_date_time.cpp")
     add_files ("src/liii_path.cpp")
     add_files ("src/liii_sort.cpp")
     add_files ("src/liii_string.cpp")

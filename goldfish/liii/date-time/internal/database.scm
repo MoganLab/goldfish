@@ -39,7 +39,6 @@
 (define-library (liii date-time internal database)
   (import (scheme base)
     (scheme process-context)
-    (liii path)
     (liii date-time date)
     (liii date-time moment)
     (liii date-time time-delta)
@@ -48,6 +47,9 @@
     (liii date-time internal tzif)
     (liii date-time internal dst)
     (liii date-time internal leap-seconds)
+    (liii date-time internal database-types)
+    (liii date-time internal database-ranges)
+    (liii date-time internal database-discover)
   ) ;import
   (export timezone? time-range time-range? time-range-start time-range-end
     time-range-offset time-range-dst? time-range-designation timezone-first
@@ -58,38 +60,11 @@
   ) ;export
   (begin
 
-    (define-record-type <time-range>
-      (time-range start end offset dst? designation)
-      time-range?
-      (start time-range-start)
-      (end time-range-end)
-      (offset time-range-offset)
-      (dst? time-range-dst?)
-      (designation time-range-designation)
-    ) ;define-record-type
-
-    (define-record-type <timezone>
-      (make-timezone first utc-ranges local-ranges rule)
-      timezone?
-      (first timezone-first)
-      (utc-ranges timezone-utc-ranges)
-      (local-ranges timezone-local-ranges)
-      (rule timezone-rule)
-    ) ;define-record-type
-
     (define *cached-timezones* (make-vector 101 '()))
     (define *timezone-names* #f)
     (define *system-timezone-cached* #f)
 
     (define unix-epoch-rd (date->rata-die (make-date 1970 1 1)))
-
-    (define (seconds->time-delta s)
-      (let-values (((m sec) (floor/ s 60)))
-        (let-values (((h min) (floor/ m 60)))
-          (time-delta+ (hours-delta h) (minutes-delta min) (seconds-delta sec))
-        ) ;let-values
-      ) ;let-values
-    ) ;define
 
     (define (convert-tz-offset offset)
       (and offset
@@ -114,80 +89,23 @@
       ) ;and
     ) ;define
 
-    (define (build-ranges first-trans transitions)
-      (let* ((len (vector-length transitions)))
-        (if (zero? len)
-          (let ((off (if first-trans
-                       (seconds->time-delta (tzif-transition-offset first-trans))
-                       (seconds-delta 0)
-                     ) ;if
-                ) ;off
-                (dst (if first-trans (tzif-transition-dst? first-trans) #f))
-                (des (if first-trans (tzif-transition-designation first-trans) "UTC"))
-               ) ;
-            (let ((r (vector (time-range #f #f off dst des))))
-              (values r r)
-            ) ;let
-          ) ;let
-          (let* ((utc-v (make-vector (+ len 1)))
-                 (loc-v (make-vector (+ len 1)))
-                 (first-off (seconds->time-delta (tzif-transition-offset first-trans)))
-                 (first-dst (tzif-transition-dst? first-trans))
-                 (first-des (tzif-transition-designation first-trans))
-                 (first-t (tzif-transition-time (vector-ref transitions 0)))
-                ) ;
-            ;; First range
-            (vector-set! utc-v 0 (time-range #f first-t first-off first-dst first-des))
-            (let ((loc-end (+ first-t (tzif-transition-offset first-trans))))
-              (vector-set! loc-v 0 (time-range #f loc-end first-off first-dst first-des))
-            ) ;let
-
-            ;; Intermediate ranges
-            (do ((i 0 (+ i 1)))
-              ((= i (- len 1)))
-              (let* ((curr (vector-ref transitions i))
-                     (nxt (vector-ref transitions (+ i 1)))
-                     (t1 (tzif-transition-time curr))
-                     (t2 (tzif-transition-time nxt))
-                     (off-sec (tzif-transition-offset curr))
-                     (off (seconds->time-delta off-sec))
-                     (dst (tzif-transition-dst? curr))
-                     (des (tzif-transition-designation curr))
-                    ) ;
-                (vector-set! utc-v (+ i 1) (time-range t1 t2 off dst des))
-                (vector-set! loc-v
-                  (+ i 1)
-                  (time-range (+ t1 off-sec) (+ t2 off-sec) off dst des)
-                ) ;vector-set!
-              ) ;let*
-            ) ;do
-
-            ;; Last range
-            (let* ((last-idx (- len 1))
-                   (curr (vector-ref transitions last-idx))
-                   (t1 (tzif-transition-time curr))
-                   (off-sec (tzif-transition-offset curr))
-                   (off (seconds->time-delta off-sec))
-                   (dst (tzif-transition-dst? curr))
-                   (des (tzif-transition-designation curr))
-                  ) ;
-              (vector-set! utc-v (+ last-idx 1) (time-range t1 #f off dst des))
-              (vector-set! loc-v (+ last-idx 1) (time-range (+ t1 off-sec) #f off dst des))
-            ) ;let*
-
-            (values utc-v loc-v)
-          ) ;let*
-        ) ;if
-      ) ;let*
+    (define (load-timezone-from-tzif-data first transitions footer)
+      (let-values (((utc-ranges loc-ranges) (build-ranges first transitions)))
+        (let ((rule (convert-footer-rule footer)))
+          (make-timezone first utc-ranges loc-ranges rule)
+        ) ;let
+      ) ;let-values
     ) ;define
 
     (define (load-timezone-from-file filepath)
       (let-values (((first transitions footer) (read-tzif-file filepath)))
-        (let-values (((utc-ranges loc-ranges) (build-ranges first transitions)))
-          (let ((rule (convert-footer-rule footer)))
-            (make-timezone first utc-ranges loc-ranges rule)
-          ) ;let
-        ) ;let-values
+        (load-timezone-from-tzif-data first transitions footer)
+      ) ;let-values
+    ) ;define
+
+    (define (load-timezone-from-bytevector bv)
+      (let-values (((first transitions footer) (read-tzif-bytevector bv)))
+        (load-timezone-from-tzif-data first transitions footer)
       ) ;let-values
     ) ;define
 
@@ -225,58 +143,15 @@
       (let ((cached (get-cached-timezone name)))
         (if cached
           cached
-          (let ((path (string-append "/usr/share/zoneinfo/" name)))
-            (if (file-exists? path)
-              (let ((tz (load-timezone-from-file path)))
-                (cache-timezone! name tz)
-              ) ;let
-              (error 'type-error "tz-timezone: unknown timezone" name)
-            ) ;if
-          ) ;let
-        ) ;if
-      ) ;let
-    ) ;define
-
-    (define (discover-zoneinfo-names)
-      (let ((base "/usr/share/zoneinfo"))
-        (if (not (file-exists? base))
-          '("UTC")
-          (let loop
-            ((subdirs '("")) (acc '()))
-            (if (null? subdirs)
-              acc
-              (let* ((curr (car subdirs))
-                     (dir-path (if (string=? curr "") base (string-append base "/" curr)))
-                    ) ;
-                (if (not (path-dir? (path dir-path)))
-                  (loop (cdr subdirs) acc)
-                  (let* ((entries (path-list (path dir-path)))
-                         (next-subdirs (cdr subdirs))
-                         (new-names acc)
-                        ) ;
-                    (for-each
-                      (lambda (ent)
-                        (let* ((name (path->string ent))
-                               (rel (if (string=? curr "") name (string-append curr "/" name)))
-                               (full (string-append base "/" rel))
-                              ) ;
-                          (cond ((member name '("." ".." "posix" "right" "Etc")) #f)
-                                ((path-dir? (path full)) (set! next-subdirs (cons rel next-subdirs)))
-                                ((and (not (string=? (path-suffix ent) ".tab"))
-                                   (not (string=? (path-suffix ent) ".zi"))
-                                   (not (string=? (path-suffix ent) ".list"))
-                                 ) ;and
-                                 (set! new-names (cons rel new-names))
-                                ) ;
-                          ) ;cond
-                        ) ;let*
-                      ) ;lambda
-                      entries
-                    ) ;for-each
-                    (loop next-subdirs new-names)
-                  ) ;let*
+          (let ((bv (g_get_zoneinfo name)))
+            (if bv
+              (cache-timezone! name (load-timezone-from-bytevector bv))
+              (let ((path (string-append "/usr/share/zoneinfo/" name)))
+                (if (file-exists? path)
+                  (cache-timezone! name (load-timezone-from-file path))
+                  (error 'type-error "tz-timezone: unknown timezone" name)
                 ) ;if
-              ) ;let*
+              ) ;let
             ) ;if
           ) ;let
         ) ;if
@@ -350,147 +225,15 @@
            ((file-exists? "/etc/localtime")
             (set! *system-timezone-cached* (load-timezone-from-file "/etc/localtime"))
            ) ;
-           (else (set! *system-timezone-cached* (utc-timezone)))
+           (else
+             (let ((mins (g_system_timezone_offset_minutes)))
+               (set! *system-timezone-cached* (utc-offset-timezone (minutes-delta mins)))
+             ) ;let
+           ) ;else
           ) ;cond
         ) ;let
       ) ;unless
       *system-timezone-cached*
-    ) ;define
-
-    (define (search-ranges ranges time)
-      (let loop
-        ((l 0) (r (- (vector-length ranges) 1)))
-        (if (< r l)
-          #f
-          (let* ((mid (+ l (floor-quotient (- r l) 2)))
-                 (entry (vector-ref ranges mid))
-                 (st (time-range-start entry))
-                 (en (time-range-end entry))
-                ) ;
-            (cond
-             ((and (or (not st) (<= st time)) (or (not en) (< time en))) mid)
-             ((and st (< time st)) (loop l (- mid 1)))
-             (else (loop (+ mid 1) r))
-            ) ;cond
-          ) ;let*
-        ) ;if
-      ) ;let
-    ) ;define
-
-    (define (find-offset/utc tz unix-time)
-      (let* ((ranges (timezone-utc-ranges tz)) (i (search-ranges ranges unix-time)))
-        (cond ((not i) (vector-ref ranges 0))
-              ((and (= i (- (vector-length ranges) 1)) (timezone-rule tz))
-               (let* ((rule (timezone-rule tz))
-                      (std-offset (tzrule-std-offset rule))
-                      (std-designation (tzrule-std-name rule))
-                     ) ;
-                 (if (not (tzrule-dst-transition rule))
-                   (time-range #f #f std-offset #f std-designation)
-                   (let* ((dst-offset (tzrule-dst-offset rule))
-                          (std-transition (tzrule-std-transition rule))
-                          (dst-transition (tzrule-dst-transition rule))
-                          (dst-designation (tzrule-dst-name rule))
-                          (dst->std (lambda (year . opt-offset) (transition-unix dst-offset year std-transition))
-                          ) ;dst->std
-                          (std->dst (lambda (year . opt-offset) (transition-unix std-offset year dst-transition))
-                          ) ;std->dst
-                         ) ;
-                     (let-values (((year subindex)
-                                   (find-an-offset-rule unix-time dst->std std->dst dst-offset std-offset)
-                                  ) ;
-                                 ) ;
-                       (let ((v (offset-rule time-range unix-time year subindex
-                                  dst->std std->dst dst-offset std-offset
-                                  dst-designation std-designation
-                                ) ;offset-rule
-                             ) ;v
-                            ) ;
-                         (if (> (vector-length v) 0)
-                           (vector-ref v 0)
-                           (time-range #f #f std-offset #f std-designation)
-                         ) ;if
-                       ) ;let
-                     ) ;let-values
-                   ) ;let*
-                 ) ;if
-               ) ;let*
-              ) ;
-              (else (vector-ref ranges i))
-        ) ;cond
-      ) ;let*
-    ) ;define
-
-    (define (find-offset/wall tz local-time)
-      (let* ((ranges (timezone-local-ranges tz))
-             (i (search-ranges ranges local-time))
-             (is-in*
-               (lambda (val)
-                 (let ((st (time-range-start val)) (en (time-range-end val)))
-                   (if (and (or (not st) (<= st local-time)) (or (not en) (< local-time en)))
-                     (vector val)
-                     #()
-                   ) ;if
-                 ) ;let
-               ) ;lambda
-             ) ;is-in*
-             (is-in
-               (lambda (idx)
-                 (if (or (< idx 0) (>= idx (vector-length ranges)))
-                   #()
-                   (is-in* (vector-ref ranges idx))
-                 ) ;if
-               ) ;lambda
-             ) ;is-in
-            ) ;
-        (cond
-         ((and i (= i (- (vector-length ranges) 1)) (timezone-rule tz))
-          (let* ((rule (timezone-rule tz))
-                 (std-offset (tzrule-std-offset rule))
-                 (std-designation (tzrule-std-name rule))
-                ) ;
-            (if (not (tzrule-dst-transition rule))
-              (vector (time-range #f #f std-offset #f std-designation))
-              (let* ((dst-offset (tzrule-dst-offset rule))
-                     (std-transition (tzrule-std-transition rule))
-                     (dst-transition (tzrule-dst-transition rule))
-                     (dst-designation (tzrule-dst-name rule))
-                     (dst->std (lambda (year offset)
-                                 (add-offset (transition-unix dst-offset year std-transition) offset)
-                               ) ;lambda
-                     ) ;dst->std
-                     (std->dst (lambda (year offset)
-                                 (add-offset (transition-unix std-offset year dst-transition) offset)
-                               ) ;lambda
-                     ) ;std->dst
-                    ) ;
-                (let-values (((year subindex)
-                              (find-an-offset-rule local-time dst->std std->dst dst-offset std-offset)
-                             ) ;
-                            ) ;
-                  (let ((is-in-rule (lambda (subidx)
-                                      (offset-rule time-range local-time year
-                                        subidx dst->std std->dst dst-offset
-                                        std-offset dst-designation
-                                        std-designation
-                                      ) ;offset-rule
-                                    ) ;lambda
-                        ) ;is-in-rule
-                       ) ;
-                    (vector-append (is-in-rule (- subindex 1))
-                      (is-in-rule subindex)
-                      (is-in-rule (+ subindex 1))
-                    ) ;vector-append
-                  ) ;let
-                ) ;let-values
-              ) ;let*
-            ) ;if
-          ) ;let*
-         ) ;
-         ((not i) #())
-         (else (vector-append (is-in (- i 1)) (is-in i) (is-in (+ i 1))))
-        ) ;cond
-      ) ;let*
     ) ;define
 
     (define (timezone-earliest tz)

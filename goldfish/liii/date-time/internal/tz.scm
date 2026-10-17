@@ -37,7 +37,7 @@
 ;;
 
 (define-library (liii date-time internal tz)
-  (import (scheme base))
+  (import (scheme base) (liii date-time internal tz-types))
   (export tz-offset tz-offset? tz-offset-sign-negative? tz-offset-hour
     tz-offset-minute tz-offset-second tz-month-week-day tz-month-week-day?
     tz-month-week-day:month tz-month-week-day:week tz-month-week-day:day
@@ -50,63 +50,230 @@
   ) ;export
   (begin
 
-    (define-record-type <tz-offset>
-      (tz-offset sign? hour minute second)
-      tz-offset?
-      (sign? tz-offset-sign-negative?)
-      (hour tz-offset-hour)
-      (minute tz-offset-minute)
-      (second tz-offset-second)
-    ) ;define-record-type
-
-    (define-record-type <tz-month-week-day>
-      (tz-month-week-day month week day)
-      tz-month-week-day?
-      (month tz-month-week-day:month)
-      (week tz-month-week-day:week)
-      (day tz-month-week-day:day)
-    ) ;define-record-type
-
-    (define-record-type <tz-julian-without-leap-day>
-      (tz-julian-without-leap-day date)
-      tz-julian-without-leap-day?
-      (date tz-julian-without-leap-day:date)
-    ) ;define-record-type
-
-    (define-record-type <tz-julian-with-leap-day>
-      (tz-julian-with-leap-day date)
-      tz-julian-with-leap-day?
-      (date tz-julian-with-leap-day:date)
-    ) ;define-record-type
-
-    (define-record-type <tz-transition>
-      (tz-transition date time)
-      tz-transition?
-      (date tz-transition-date)
-      (time tz-transition-time)
-    ) ;define-record-type
-
-    (define-record-type <tz-string>
-      (tz-string stdname stdoffset dstname dstoffset change-to-dst change-to-std)
-      tz-string?
-      (stdname tz-string-stdname)
-      (stdoffset tz-string-stdoffset)
-      (dstname tz-string-dstname)
-      (dstoffset tz-string-dstoffset)
-      (change-to-dst tz-string-change-to-dst)
-      (change-to-std tz-string-change-to-std)
-    ) ;define-record-type
-
-    (define (ASCII-alphabetic? ch)
+    (define (ascii-alpha? ch)
       (or (char<=? #\A ch #\Z) (char<=? #\a ch #\z))
     ) ;define
 
-    (define (ASCII-digit? ch)
+    (define (ascii-digit? ch)
       (char<=? #\0 ch #\9)
     ) ;define
 
-    (define (ASCII-digit-value ch)
+    (define (digit-val ch)
       (- (char->integer ch) (char->integer #\0))
+    ) ;define
+
+    (define (make-parser-state str)
+      (vector str (string-length str) 0)
+    ) ;define
+
+    (define (state-peek s)
+      (let ((str (vector-ref s 0)) (len (vector-ref s 1)) (pos (vector-ref s 2)))
+        (if (< pos len) (string-ref str pos) #f)
+      ) ;let
+    ) ;define
+
+    (define (state-next s)
+      (let ((str (vector-ref s 0)) (len (vector-ref s 1)) (pos (vector-ref s 2)))
+        (if (< pos len) (begin (vector-set! s 2 (+ pos 1)) (string-ref str pos)) #f)
+      ) ;let
+    ) ;define
+
+    (define (parse-quoted-name s)
+      (state-next s)
+      (let loop
+        ((acc '()))
+        (let ((c (state-next s)))
+          (cond ((not c) (error 'type-error "EOF in quoted timezone name"))
+                ((char=? c #\>) (list->string (reverse acc)))
+                (else (loop (cons c acc)))
+          ) ;cond
+        ) ;let
+      ) ;let
+    ) ;define
+
+    (define (parse-unquoted-name s)
+      (let loop
+        ((acc '()))
+        (let ((c (state-peek s)))
+          (if (and c (ascii-alpha? c))
+            (begin
+              (state-next s)
+              (loop (cons c acc))
+            ) ;begin
+            (list->string (reverse acc))
+          ) ;if
+        ) ;let
+      ) ;let
+    ) ;define
+
+    (define (parse-name s)
+      (let ((ch (state-peek s)))
+        (cond ((not ch) #f)
+              ((char=? ch #\<) (parse-quoted-name s))
+              ((ascii-alpha? ch) (parse-unquoted-name s))
+              (else #f)
+        ) ;cond
+      ) ;let
+    ) ;define
+
+    (define (parse-number s)
+      (let loop
+        ((n 0) (count 0))
+        (let ((ch (state-peek s)))
+          (if (and ch (ascii-digit? ch))
+            (begin
+              (state-next s)
+              (loop (+ (* n 10) (digit-val ch)) (+ count 1))
+            ) ;begin
+            (if (zero? count) #f n)
+          ) ;if
+        ) ;let
+      ) ;let
+    ) ;define
+
+    (define (parse-offset-parts s is-neg hour)
+      (let ((has-min? (and (state-peek s) (char=? (state-peek s) #\:))))
+        (if (not has-min?)
+          (tz-offset is-neg hour 0 0)
+          (begin
+            (state-next s)
+            (let ((m (parse-number s)))
+              (unless m
+                (error 'type-error "parse-offset: expected minute")
+              ) ;unless
+              (let ((has-sec? (and (state-peek s) (char=? (state-peek s) #\:))))
+                (if (not has-sec?)
+                  (tz-offset is-neg hour m 0)
+                  (begin
+                    (state-next s)
+                    (let ((sec (parse-number s)))
+                      (unless sec
+                        (error 'type-error "parse-offset: expected second")
+                      ) ;unless
+                      (tz-offset is-neg hour m sec)
+                    ) ;let
+                  ) ;begin
+                ) ;if
+              ) ;let
+            ) ;let
+          ) ;begin
+        ) ;if
+      ) ;let
+    ) ;define
+
+    (define (parse-offset s)
+      (let* ((ch (state-peek s))
+             (is-neg
+               (cond ((and ch (char=? ch #\-)) (state-next s) #t)
+                     ((and ch (char=? ch #\+)) (state-next s) #f)
+                     (else #f)
+               ) ;cond
+             ) ;is-neg
+             (h (parse-number s))
+            ) ;
+        (unless h
+          (error 'type-error "parse-offset: expected hour")
+        ) ;unless
+        (parse-offset-parts s is-neg h)
+      ) ;let*
+    ) ;define
+
+    (define (offset-starts? s)
+      (let ((ch (state-peek s)))
+        (and ch (or (char=? ch #\+) (char=? ch #\-) (ascii-digit? ch)))
+      ) ;let
+    ) ;define
+
+    (define (parse-month-week-day-date s)
+      (state-next s)
+      (let* ((m (parse-number s))
+             (_1
+               (unless (and (state-peek s) (char=? (state-next s) #\.))
+                 (error 'type-error "expected .")
+               ) ;unless
+             ) ;_1
+             (w (parse-number s))
+             (_2
+               (unless (and (state-peek s) (char=? (state-next s) #\.))
+                 (error 'type-error "expected .")
+               ) ;unless
+             ) ;_2
+             (d (parse-number s))
+            ) ;
+        (tz-month-week-day m w d)
+      ) ;let*
+    ) ;define
+
+    (define (parse-date s)
+      (let ((ch (state-peek s)))
+        (cond ((not ch) (error 'type-error "parse-date: unexpected EOF"))
+              ((char=? ch #\J) (state-next s) (tz-julian-without-leap-day (parse-number s)))
+              ((char=? ch #\M) (parse-month-week-day-date s))
+              (else (tz-julian-with-leap-day (parse-number s)))
+        ) ;cond
+      ) ;let
+    ) ;define
+
+    (define (parse-time-after-date s)
+      (if (and (state-peek s) (char=? (state-peek s) #\/))
+        (begin
+          (state-next s)
+          (parse-offset s)
+        ) ;begin
+        (tz-offset #f 2 0 0)
+      ) ;if
+    ) ;define
+
+    (define (parse-transition s)
+      (let* ((d (parse-date s)) (t (parse-time-after-date s)))
+        (tz-transition d t)
+      ) ;let*
+    ) ;define
+
+    (define (calc-default-dst-offset stdoffset)
+      (let ((is-neg (tz-offset-sign-negative? stdoffset))
+            (h (tz-offset-hour stdoffset))
+            (m (tz-offset-minute stdoffset))
+            (sec (tz-offset-second stdoffset))
+           ) ;
+        (cond (is-neg (tz-offset #t (+ h 1) m sec))
+              ((zero? h) (tz-offset #t 1 m sec))
+              (else (tz-offset #f (- h 1) m sec))
+        ) ;cond
+      ) ;let
+    ) ;define
+
+    (define (parse-tz-rules s stdname stdoffset dstname dstoffset)
+      (if
+        (not (and (state-peek s) (char=? (state-peek s) #\,)))
+        (tz-string stdname stdoffset dstname dstoffset #f #f)
+        (begin
+          (state-next s)
+          (let* ((to-dst (parse-transition s))
+                 (_
+                   (unless (and (state-peek s) (char=? (state-next s) #\,))
+                     (error 'type-error "expected , between transitions")
+                   ) ;unless
+                 ) ;_
+                 (to-std (parse-transition s))
+                ) ;
+            (tz-string stdname stdoffset dstname dstoffset to-dst to-std)
+          ) ;let*
+        ) ;begin
+      ) ;if
+    ) ;define
+
+    (define (parse-tz-from-state s)
+      (let* ((stdname (parse-name s)) (stdoffset (parse-offset s)) (dstname (parse-name s)))
+        (if (not dstname)
+          (tz-string stdname stdoffset #f #f #f #f)
+          (let ((dstoffset (if (offset-starts? s) (parse-offset s) (calc-default-dst-offset stdoffset))
+                ) ;dstoffset
+               ) ;
+            (parse-tz-rules s stdname stdoffset dstname dstoffset)
+          ) ;let
+        ) ;if
+      ) ;let*
     ) ;define
 
     (define (parse-tz input)
@@ -116,199 +283,7 @@
                  ) ;cond
             ) ;str
            ) ;
-        (parse-tz-from-string str)
-      ) ;let
-    ) ;define
-
-    (define (parse-tz-from-string str)
-      (let ((len (string-length str)) (pos 0))
-
-        (define (peek)
-          (if (< pos len) (string-ref str pos) #f)
-        ) ;define
-
-        (define (next)
-          (if (< pos len) (let ((ch (string-ref str pos))) (set! pos (+ pos 1)) ch) #f)
-        ) ;define
-
-        (define (parse-name)
-          (let ((ch (peek)))
-            (cond ((not ch) #f)
-                  ((char=? ch #\<)
-                   (next)
-                   (let loop
-                     ((acc '()))
-                     (let ((c (next)))
-                       (cond ((not c) (error 'type-error "EOF in quoted timezone name" str))
-                             ((char=? c #\>) (list->string (reverse acc)))
-                             (else (loop (cons c acc)))
-                       ) ;cond
-                     ) ;let
-                   ) ;let
-                  ) ;
-                  ((ASCII-alphabetic? ch)
-                   (let loop
-                     ((acc '()))
-                     (let ((c (peek)))
-                       (if (and c (ASCII-alphabetic? c))
-                         (begin
-                           (next)
-                           (loop (cons c acc))
-                         ) ;begin
-                         (list->string (reverse acc))
-                       ) ;if
-                     ) ;let
-                   ) ;let
-                  ) ;
-                  (else #f)
-            ) ;cond
-          ) ;let
-        ) ;define
-
-        (define (parse-number)
-          (let loop
-            ((n 0) (count 0))
-            (let ((ch (peek)))
-              (if (and ch (ASCII-digit? ch))
-                (begin
-                  (next)
-                  (loop (+ (* n 10) (ASCII-digit-value ch)) (+ count 1))
-                ) ;begin
-                (if (zero? count) #f n)
-              ) ;if
-            ) ;let
-          ) ;let
-        ) ;define
-
-        (define (parse-offset)
-          (let ((ch (peek)))
-            (let ((is-neg
-                    (cond ((and ch (char=? ch #\-)) (next) #t)
-                          ((and ch (char=? ch #\+)) (next) #f)
-                          (else #f)
-                    ) ;cond
-                  ) ;is-neg
-                 ) ;
-              (let ((hour (parse-number)))
-                (unless hour
-                  (error 'type-error "parse-offset: expected hour" str)
-                ) ;unless
-                (if (and (peek) (char=? (peek) #\:))
-                  (begin
-                    (next)
-                    (let ((minute (parse-number)))
-                      (unless minute
-                        (error 'type-error "parse-offset: expected minute" str)
-                      ) ;unless
-                      (if (and (peek) (char=? (peek) #\:))
-                        (begin
-                          (next)
-                          (let ((second (parse-number)))
-                            (unless second
-                              (error 'type-error "parse-offset: expected second" str)
-                            ) ;unless
-                            (tz-offset is-neg hour minute second)
-                          ) ;let
-                        ) ;begin
-                        (tz-offset is-neg hour minute 0)
-                      ) ;if
-                    ) ;let
-                  ) ;begin
-                  (tz-offset is-neg hour 0 0)
-                ) ;if
-              ) ;let
-            ) ;let
-          ) ;let
-        ) ;define
-
-        (define (parse-offset-starts?)
-          (let ((ch (peek)))
-            (and ch (or (char=? ch #\+) (char=? ch #\-) (ASCII-digit? ch)))
-          ) ;let
-        ) ;define
-
-        (define (parse-date)
-          (let ((ch (peek)))
-            (cond ((not ch) (error 'type-error "parse-date: unexpected EOF" str))
-                  ((char=? ch #\J) (next) (tz-julian-without-leap-day (parse-number)))
-                  ((char=? ch #\M)
-                   (next)
-                   (let* ((m (parse-number))
-                          (_1
-                            (unless (and (peek) (char=? (next) #\.))
-                              (error 'type-error "expected ." str)
-                            ) ;unless
-                          ) ;_1
-                          (w (parse-number))
-                          (_2
-                            (unless (and (peek) (char=? (next) #\.))
-                              (error 'type-error "expected ." str)
-                            ) ;unless
-                          ) ;_2
-                          (d (parse-number))
-                         ) ;
-                     (tz-month-week-day m w d)
-                   ) ;let*
-                  ) ;
-                  (else (tz-julian-with-leap-day (parse-number)))
-            ) ;cond
-          ) ;let
-        ) ;define
-
-        (define (parse-offset-after-date)
-          (if (and (peek) (char=? (peek) #\/))
-            (begin
-              (next)
-              (parse-offset)
-            ) ;begin
-            (tz-offset #f 2 0 0)
-          ) ;if
-        ) ;define
-
-        (define (parse-transition)
-          (let* ((d (parse-date)) (t (parse-offset-after-date)))
-            (tz-transition d t)
-          ) ;let*
-        ) ;define
-
-        (let* ((stdname (parse-name)) (stdoffset (parse-offset)) (dstname (parse-name)))
-          (if (not dstname)
-            (tz-string stdname stdoffset #f #f #f #f)
-            (let* ((dstoffset
-                     (if (parse-offset-starts?)
-                       (parse-offset)
-                       (let ((is-neg (tz-offset-sign-negative? stdoffset))
-                             (h (tz-offset-hour stdoffset))
-                             (m (tz-offset-minute stdoffset))
-                             (s (tz-offset-second stdoffset))
-                            ) ;
-                         (cond (is-neg (tz-offset #t (+ h 1) m s))
-                               ((zero? h) (tz-offset #t 1 m s))
-                               (else (tz-offset #f (- h 1) m s))
-                         ) ;cond
-                       ) ;let
-                     ) ;if
-                   ) ;dstoffset
-                  ) ;
-              (if (and (peek) (char=? (peek) #\,))
-                (begin
-                  (next)
-                  (let* ((to-dst (parse-transition))
-                         (_
-                           (unless (and (peek) (char=? (next) #\,))
-                             (error 'type-error "expected ," str)
-                           ) ;unless
-                         ) ;_
-                         (to-std (parse-transition))
-                        ) ;
-                    (tz-string stdname stdoffset dstname dstoffset to-dst to-std)
-                  ) ;let*
-                ) ;begin
-                (tz-string stdname stdoffset dstname dstoffset #f #f)
-              ) ;if
-            ) ;let*
-          ) ;if
-        ) ;let*
+        (parse-tz-from-state (make-parser-state str))
       ) ;let
     ) ;define
 
