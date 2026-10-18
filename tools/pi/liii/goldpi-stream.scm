@@ -41,11 +41,17 @@
       ) ;cond
     ) ;define
 
-    (define (%make-stream-callback stream-state on-event effective-idle on-idle-timeout)
+    (define (%make-stream-callback stream-state on-event effective-idle
+              on-idle-timeout error-body-acc
+            ) ;%make-stream-callback
       (let* ((last-activity-sec (time-second (current-time)))
              (sse-decoder (make-stream-decoder stream-state on-event))
             ) ;
         (lambda (chunk)
+          (vector-set! error-body-acc
+            0
+            (string-append (vector-ref error-body-acc 0) chunk)
+          ) ;vector-set!
           (let ((now (time-second (current-time))))
             (if (and effective-idle (> (- now last-activity-sec) effective-idle))
               (begin
@@ -64,15 +70,15 @@
     ) ;define
 
     (define (%build-stream-url model-meta model-id)
-      (let ((base-url (cdr (or (assoc 'base-url model-meta)
-                             '(#f
-                               . "https://generativelanguage.googleapis.com/v1beta")
-                           ) ;or
-                      ) ;cdr
-            ) ;base-url
-           ) ;
-        (string-append base-url "/models/" model-id ":streamGenerateContent?alt=sse")
-      ) ;let
+      (string-append (cdr (or (assoc 'base-url model-meta)
+                            '(#f
+                              . "https://generativelanguage.googleapis.com/v1beta")
+                          ) ;or
+                     ) ;cdr
+        "/models/"
+        model-id
+        ":streamGenerateContent?alt=sse"
+      ) ;string-append
     ) ;define
 
     (define (%build-stream-headers api-key)
@@ -138,7 +144,7 @@
     ) ;define
 
     (define (%classify-stream-result stream-state idle-timed-out? resp status
-              eff-idle on-event
+              eff-idle on-event error-body-acc
             ) ;%classify-stream-result
       (let ((resp-err (or (%resp-field resp 'error) (%resp-field resp 'reason) "")))
         (cond
@@ -160,12 +166,27 @@
           ) ;list
          ) ;
          ((and (not (zero? status)) (not (= status 200)))
-          (list (cons 'role "assistant")
-            (cons 'content (vector-ref stream-state 0))
-            (cons 'stopReason "error")
-            (cons 'usage (vector-ref stream-state 2))
-            (cons 'errorMessage (string-append "HTTP " (number->string status) " error"))
-          ) ;list
+          (let ((body
+                  (if (not (string-null? (vector-ref error-body-acc 0)))
+                    (vector-ref error-body-acc 0)
+                    (or (%resp-field resp 'body) (%resp-field resp 'text) "")
+                  ) ;if
+                ) ;body
+               ) ;
+            (list (cons 'role "assistant")
+              (cons 'content (vector-ref stream-state 0))
+              (cons 'stopReason "error")
+              (cons 'usage (vector-ref stream-state 2))
+              (cons 'errorMessage
+                (let ((parsed-msg (extract-stream-error-message body)))
+                  (if (and parsed-msg (not (string=? parsed-msg "")))
+                    (string-append "HTTP " (number->string status) ": " parsed-msg)
+                    (string-append "HTTP " (number->string status) " error")
+                  ) ;if
+                ) ;let
+              ) ;cons
+            ) ;list
+          ) ;let
          ) ;
          (else (%finalize-stream-success stream-state on-event))
         ) ;cond
@@ -187,6 +208,24 @@
       ) ;let*
     ) ;define
 
+    (define (%build-stream-req-params config tool-names messages sys-inst)
+      (let* ((api-key (cdr (assoc 'api-key config)))
+             (model-id (cdr (assoc 'model-id config)))
+             (model-meta (cdr (assoc 'model-meta config)))
+             (proxy-url (cdr (assoc 'proxy-url config)))
+             (eff-tool-names (or tool-names (cdr (assoc 'tools config))))
+             (tool-decls (gemini-build-tool-declarations eff-tool-names))
+             (contents (gemini-build-contents messages))
+             (req-body (gemini-build-request-body contents sys-inst tool-decls))
+            ) ;
+        (values (%build-stream-url model-meta model-id)
+          (json->string req-body)
+          (%build-stream-headers api-key)
+          (%build-stream-proxy proxy-url)
+        ) ;values
+      ) ;let*
+    ) ;define
+
     (define* (gemini-request-stream config
                messages
                (system-instruction #f)
@@ -196,67 +235,62 @@
                (opt-retry #f)
                (idle-timeout #f)
              ) ;gemini-request-stream
-      (let* ((api-key (cdr (assoc 'api-key config)))
-             (model-id (cdr (assoc 'model-id config)))
-             (model-meta (cdr (assoc 'model-meta config)))
-             (proxy-url (cdr (assoc 'proxy-url config)))
-             (url (%build-stream-url model-meta model-id))
-             (eff-tool-names (or tool-names (cdr (assoc 'tools config))))
-             (tool-decls (gemini-build-tool-declarations eff-tool-names))
-             (contents (gemini-build-contents messages))
-             (req-body (gemini-build-request-body contents system-instruction tool-decls))
-             (req-json-str (json->string req-body))
-             (headers (%build-stream-headers api-key))
-             (proxy-alist (%build-stream-proxy proxy-url))
-             (effective-idle (or idle-timeout timeout))
-             (max-retries
-               (if
-                 (or (not opt-retry) (cdr (or (%safe-assoc 'enabled opt-retry) '(#f
-                                                                                 . #t))))
-                 (cdr (or (%safe-assoc 'max-retries (or opt-retry '())) '(#f
-                                                                          . 3)))
-                 0
-               ) ;if
-             ) ;max-retries
-            ) ;
-        (let loop
-          ((attempt 1))
-          (let* ((stream-state (vector '() #f (gemini-map-usage '()) '() #f))
-                 (idle-timed-out? #f)
-                 (stream-cb (%make-stream-callback stream-state
-                              on-event
-                              effective-idle
-                              (lambda () (set! idle-timed-out? #t))
-                            ) ;%make-stream-callback
-                 ) ;stream-cb
-                 (resp (%perform-http-stream url req-json-str headers
-                         proxy-alist stream-cb timeout effective-idle
-                       ) ;%perform-http-stream
-                 ) ;resp
-                 (status (or (%resp-field resp 'status-code) 0))
-                ) ;
-            (if (and (not idle-timed-out?) (gemini-is-retriable-error? status ""))
-              (if (<= attempt max-retries)
-                (begin
-                  (sleep (%calc-retry-delay attempt opt-retry))
-                  (loop (+ attempt 1))
-                ) ;begin
-                (list (cons 'role "assistant")
-                  (cons 'content (vector-ref stream-state 0))
-                  (cons 'stopReason "error")
-                  (cons 'usage (vector-ref stream-state 2))
-                  (cons 'errorMessage
-                    (string-append "HTTP " (number->string status) " stream error")
-                  ) ;cons
-                ) ;list
+      (let-values (((url req-json-str headers proxy-alist)
+                    (%build-stream-req-params config tool-names messages system-instruction)
+                   ) ;
+                  ) ;
+        (let* ((effective-idle (or idle-timeout timeout))
+               (max-retries
+                 (if
+                   (or (not opt-retry) (cdr (or (%safe-assoc 'enabled opt-retry) '(#f
+                                                                                   . #t))))
+                   (cdr (or (%safe-assoc 'max-retries (or opt-retry '())) '(#f
+                                                                            . 3)))
+                   0
+                 ) ;if
+               ) ;max-retries
+              ) ;
+          (let loop
+            ((attempt 1))
+            (let* ((stream-state (vector '() #f (gemini-map-usage '()) '() #f))
+                   (idle-timed-out? #f)
+                   (error-body-acc (vector ""))
+                   (stream-cb (%make-stream-callback stream-state
+                                on-event
+                                effective-idle
+                                (lambda () (set! idle-timed-out? #t))
+                                error-body-acc
+                              ) ;%make-stream-callback
+                   ) ;stream-cb
+                   (resp (%perform-http-stream url req-json-str headers
+                           proxy-alist stream-cb timeout effective-idle
+                         ) ;%perform-http-stream
+                   ) ;resp
+                   (status (or (%resp-field resp 'status-code) 0))
+                  ) ;
+              (if (and (not idle-timed-out?) (gemini-is-retriable-error? status ""))
+                (if (<= attempt max-retries)
+                  (begin
+                    (sleep (%calc-retry-delay attempt opt-retry))
+                    (loop (+ attempt 1))
+                  ) ;begin
+                  (list (cons 'role "assistant")
+                    (cons 'content (vector-ref stream-state 0))
+                    (cons 'stopReason "error")
+                    (cons 'usage (vector-ref stream-state 2))
+                    (cons 'errorMessage
+                      (string-append "HTTP " (number->string status) " stream error")
+                    ) ;cons
+                  ) ;list
+                ) ;if
+                (%classify-stream-result stream-state idle-timed-out? resp
+                  status effective-idle on-event error-body-acc
+                ) ;%classify-stream-result
               ) ;if
-              (%classify-stream-result stream-state idle-timed-out? resp status
-                effective-idle on-event
-              ) ;%classify-stream-result
-            ) ;if
-          ) ;let*
-        ) ;let
-      ) ;let*
+            ) ;let*
+          ) ;let
+        ) ;let*
+      ) ;let-values
     ) ;define*
 
   ) ;begin

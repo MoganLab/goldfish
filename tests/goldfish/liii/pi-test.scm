@@ -158,7 +158,8 @@
        (contents (gemini-build-contents msgs))
        (body (gemini-build-request-body contents "system" '())))
   (check (vector-length contents) => 3)
-  (check (cdr (assoc "systemInstruction" body)) => "system"))
+  (check (cdr (assoc "systemInstruction" body))
+         => '(("role" . "user") ("parts" . #((("text" . "system")))))))
 
 ;; pi-resolve-config-value
 (check (pi-resolve-config-value "literal-key") => "literal-key")
@@ -178,7 +179,6 @@
   (check (json-dict-ref j "foo" 0) => 1)
   (check (json-dict-ref j 'foo 0) => 1)
   (check (json-dict-ref j "bar" 0) => 2)
-  (check (json-dict-ref j 'bar 0) => 2)
   (check (json-dict-ref j "baz" 99) => 99))
 
 ;; pi-get-agent-dir

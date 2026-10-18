@@ -30,6 +30,27 @@
   ) ;export
   (begin
 
+    (define (%make-tool-call-block name args id ts i)
+      (let* ((eff-id
+               (if (and (string? id) (not (string-null? id)))
+                 id
+                 (gemini-generate-tool-call-id name 0 (+ i 1))
+               ) ;if
+             ) ;eff-id
+             (base-blk (list (cons 'type "toolCall")
+                         (cons 'id eff-id)
+                         (cons 'name name)
+                         (cons 'arguments args)
+                       ) ;list
+             ) ;base-blk
+            ) ;
+        (if (and (string? ts) (not (string-null? ts)))
+          (append base-blk (list (cons 'thoughtSignature ts)))
+          base-blk
+        ) ;if
+      ) ;let*
+    ) ;define
+
     (define (%extract-parts-content parts)
       (let loop
         ((i 0) (acc '()) (has-fn? #f))
@@ -47,23 +68,17 @@
                      (name (cdr (assoc "name" fc)))
                      (args (cdr (assoc "args" fc)))
                      (id (cdr (or (assoc "id" fc) (assoc 'id fc) '(#f . #f))))
-                     (eff-id
-                       (if (and (string? id) (not (string-null? id)))
-                         id
-                         (gemini-generate-tool-call-id name 0 (+ i 1))
-                       ) ;if
-                     ) ;eff-id
+                     (ts (cdr (or (assoc "thoughtSignature" part)
+                                (assoc 'thoughtSignature part)
+                                (assoc "thoughtSignature" fc)
+                                (assoc 'thoughtSignature fc)
+                                '(#f . #f)
+                              ) ;or
+                         ) ;cdr
+                     ) ;ts
+                     (tc-blk (%make-tool-call-block name args id ts i))
                     ) ;
-                (loop (+ i 1)
-                  (cons (list (cons 'type "toolCall")
-                          (cons 'id eff-id)
-                          (cons 'name name)
-                          (cons 'arguments args)
-                        ) ;list
-                    acc
-                  ) ;cons
-                  #t
-                ) ;loop
+                (loop (+ i 1) (cons tc-blk acc) #t)
               ) ;let*
              ) ;
              (else (loop (+ i 1) acc has-fn?))
@@ -128,16 +143,12 @@
     ) ;define
 
     (define (gemini-is-retriable-error? status-code response-body-str)
-      (cond ((or (= status-code 408)
-               (= status-code 409)
-               (= status-code 429)
-               (>= status-code 500)
-             ) ;or
-             #t
-            ) ;
-            ((zero? status-code) #t)
-            (else #f)
-      ) ;cond
+      (or (= status-code 408)
+        (= status-code 409)
+        (= status-code 429)
+        (>= status-code 500)
+        (zero? status-code)
+      ) ;or
     ) ;define
 
     (define (gemini-build-tool-declarations active-tool-names)
@@ -190,9 +201,7 @@
              (proxy-url (cdr (assoc 'proxy-url config)))
              (settings (cdr (assoc 'settings config)))
              (retry-cfg
-               (or opt-retry (cdr (or (%safe-assoc 'retry settings) '(#f
-                                                                      #_quote
-                                                                      ()))))
+               (or opt-retry (cdr (or (%safe-assoc 'retry settings) '(#f))))
              ) ;retry-cfg
              (retry-enabled? (cdr (or (%safe-assoc 'enabled retry-cfg) '(#f
                                                                          . #t))))
@@ -223,12 +232,7 @@
              ) ;headers
              (proxy-alist
                (if (and (string? proxy-url) (not (string-null? proxy-url)))
-                 (if (or (string-starts? proxy-url "socks5://")
-                       (string-starts? proxy-url "socks5h://")
-                     ) ;or
-                   (list (cons "http" proxy-url) (cons "https" proxy-url))
-                   (list (cons "http" proxy-url) (cons "https" proxy-url))
-                 ) ;if
+                 (list (cons "http" proxy-url) (cons "https" proxy-url))
                  '()
                ) ;if
              ) ;proxy-alist

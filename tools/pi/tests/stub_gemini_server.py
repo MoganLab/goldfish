@@ -192,6 +192,26 @@ class StubHandler(http.server.BaseHTTPRequestHandler):
             self.wfile.write(json.dumps(resp).encode("utf-8"))
             return
 
+        if "/400" in path:
+            err_resp = {
+                "error": {
+                    "code": 400,
+                    "message": "Invalid value at 'system_instruction': Content object expected",
+                    "status": "INVALID_ARGUMENT"
+                }
+            }
+            body = json.dumps(err_resp).encode("utf-8")
+            self.send_response(400)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            try:
+                self.wfile.write(body)
+                self.wfile.flush()
+            except (BrokenPipeError, ConnectionResetError):
+                pass
+            return
+
         if "/safety" in path:
             resp = {
                 "candidates": [
@@ -337,7 +357,12 @@ class StubHandler(http.server.BaseHTTPRequestHandler):
 
         if "/check-project-context" in path:
             sys_inst = req_json.get("systemInstruction", "")
-            if "project_context" in sys_inst and "CLAUDE.md" in sys_inst:
+            if isinstance(sys_inst, dict):
+                parts = sys_inst.get("parts", [])
+                sys_inst_text = " ".join(p.get("text", "") for p in parts if isinstance(p, dict))
+            else:
+                sys_inst_text = str(sys_inst)
+            if "project_context" in sys_inst_text and "CLAUDE.md" in sys_inst_text:
                 reply = "Project context verified: CLAUDE.md is present"
             else:
                 reply = "Project context missing"

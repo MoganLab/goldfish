@@ -196,6 +196,21 @@
                                              #f '() on-event 10 #f 1)))
       (check (cdr (assoc 'stopReason resp-idle)) => "error")
       (check-true (string-contains? (cdr (assoc 'errorMessage resp-idle)) "idle timed out")))
+
+    ;; 3.8 HTTP 400 错误体透传与摘要输出
+    (let* ((cfg-400 (list (cons 'provider "google")
+                          (cons 'api-key "test-key-stub-123")
+                          (cons 'model-id "400")
+                          (cons 'model-meta (list (cons 'base-url base-url)))
+                          (cons 'proxy-url #f)
+                          (cons 'tools '())
+                          (cons 'settings '())))
+           (resp-400 (gemini-request-stream cfg-400
+                                           (list '((role . "user") (content . "cause-400")))
+                                           #f '() (lambda (ev) #f) 10)))
+      (check (cdr (assoc 'stopReason resp-400)) => "error")
+      (check-true (string-contains? (cdr (assoc 'errorMessage resp-400)) "HTTP 400:"))
+      (check-true (string-contains? (cdr (assoc 'errorMessage resp-400)) "system_instruction")))
   ) ;let*
 
   ;; 清理子进程

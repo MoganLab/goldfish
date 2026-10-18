@@ -24,9 +24,28 @@
   ) ;import
   (export emit-text-start-and-delta append-text-block
     process-stream-function-call process-stream-part process-sse-chunk-data
-    make-stream-decoder
+    make-stream-decoder extract-stream-error-message
   ) ;export
   (begin
+
+    (define (extract-stream-error-message body)
+      (catch #t
+        (lambda ()
+          (let ((json-data (string->json body)))
+            (and (pair? json-data)
+              (let ((err (cdr (or (assoc "error" json-data) '(#f . #f)))))
+                (cond
+                 ((pair? err) (cdr (or (assoc "message" err) '(#f . #f))))
+                 ((string? err) err)
+                 (else #f)
+                ) ;cond
+              ) ;let
+            ) ;and
+          ) ;let
+        ) ;lambda
+        (lambda (tag . args) #f)
+      ) ;catch
+    ) ;define
 
     (define (emit-text-start-and-delta on-event cur-idx text usage)
       (when (procedure? on-event)
@@ -83,17 +102,26 @@
       (let* ((name (cdr (assoc "name" fc)))
              (args (cdr (assoc "args" fc)))
              (id (cdr (or (assoc "id" fc) (assoc 'id fc) '(#f . #f))))
+             (ts (cdr (or (assoc "thoughtSignature" fc) (assoc 'thoughtSignature fc) '(#f
+                                                                                       . #f)))
+             ) ;ts
              (eff-id
                (if (and (string? id) (not (string-null? id)))
                  id
                  (gemini-generate-tool-call-id name 0 (+ (length blocks) 1))
                ) ;if
              ) ;eff-id
-             (tc-blk (list (cons 'type "toolCall")
-                       (cons 'id eff-id)
-                       (cons 'name name)
-                       (cons 'arguments args)
-                     ) ;list
+             (tc-blk
+               (append (list (cons 'type "toolCall")
+                         (cons 'id eff-id)
+                         (cons 'name name)
+                         (cons 'arguments args)
+                       ) ;list
+                 (if (and (string? ts) (not (string-null? ts)))
+                   (list (cons 'thoughtSignature ts))
+                   '()
+                 ) ;if
+               ) ;append
              ) ;tc-blk
              (cur-idx (length blocks))
              (tool-calls (vector-ref stream-state 3))
@@ -131,6 +159,10 @@
       (let* ((blocks (vector-ref stream-state 0))
              (last-text (vector-ref stream-state 1))
              (usage (vector-ref stream-state 2))
+             (part-ts (cdr (or (assoc "thoughtSignature" part) (assoc 'thoughtSignature part) '(#f
+                                                                                                . #f))
+                      ) ;cdr
+             ) ;part-ts
             ) ;
         (cond
          ((assoc "text" part)
@@ -141,11 +173,17 @@
           ) ;let*
          ) ;
          ((assoc "functionCall" part)
-          (process-stream-function-call (cdr (assoc "functionCall" part))
-            blocks
-            stream-state
-            on-event
-          ) ;process-stream-function-call
+          (let ((fc (cdr (assoc "functionCall" part))))
+            (process-stream-function-call
+              (if (and (string? part-ts) (not (assoc "thoughtSignature" fc)))
+                (cons (cons "thoughtSignature" part-ts) fc)
+                fc
+              ) ;if
+              blocks
+              stream-state
+              on-event
+            ) ;process-stream-function-call
+          ) ;let
          ) ;
         ) ;cond
       ) ;let*

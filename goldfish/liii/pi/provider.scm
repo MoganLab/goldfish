@@ -95,14 +95,23 @@
         (cond
          ((equal? btype "text") (list (cons "text" (cdr (assoc 'text blk)))))
          ((equal? btype "toolCall")
-          (list
-            (cons "functionCall"
-              (list (cons "name" (cdr (assoc 'name blk)))
-                (cons "args" (cdr (assoc 'arguments blk)))
-                (cons "id" (cdr (assoc 'id blk)))
-              ) ;list
-            ) ;cons
-          ) ;list
+          (let* ((ts (cdr (or (assoc 'thoughtSignature blk) (assoc "thoughtSignature" blk) '(#f
+                                                                                             . #f))
+                     ) ;cdr
+                 ) ;ts
+                 (fc-obj
+                   (list (cons "name" (cdr (assoc 'name blk)))
+                     (cons "args" (cdr (assoc 'arguments blk)))
+                     (cons "id" (cdr (assoc 'id blk)))
+                   ) ;list
+                 ) ;fc-obj
+                 (part (list (cons "functionCall" fc-obj)))
+                ) ;
+            (if (and (string? ts) (not (string-null? ts)))
+              (cons (cons "thoughtSignature" ts) part)
+              part
+            ) ;if
+          ) ;let*
          ) ;
          (else (list (cons "text" "")))
         ) ;cond
@@ -191,7 +200,14 @@
                  (and (string? system-instruction)
                    (not (string-null? (string-trim-both system-instruction)))
                  ) ;and
-                 (cons (cons "systemInstruction" system-instruction) req)
+                 (let ((sys-content
+                         (list (cons "role" "user")
+                           (cons "parts" (vector (list (cons "text" system-instruction))))
+                         ) ;list
+                       ) ;sys-content
+                      ) ;
+                   (cons (cons "systemInstruction" sys-content) req)
+                 ) ;let
                  req
                ) ;if
              ) ;req
