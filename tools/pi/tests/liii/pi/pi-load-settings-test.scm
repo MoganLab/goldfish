@@ -12,6 +12,12 @@
 ) ;define
 
 (let ((settings (pi-load-settings fixture-dir)))
+  (check-true (pi-settings? settings))
+  (check (pi-settings-default-provider settings) => "google")
+  (check (pi-settings-default-model settings) => "gemini-3.8-flash")
+  (check (pi-settings-http-proxy settings) => "http://127.0.0.1:7890")
+  (check (pi-settings-default-tools settings) => '("read" "bash" "edit" "write"))
+  (check-true (pi-retry-config? (pi-settings-retry settings)))
   (check (cdr (assoc 'default-provider settings)) => "google")
   (check (cdr (assoc 'default-model settings)) => "gemini-3.8-flash")
   (check (cdr (assoc 'http-proxy settings)) => "http://127.0.0.1:7890")
@@ -23,6 +29,8 @@
   (check (cdr (assoc 'default-tools settings)) => '("read" "bash" "edit" "write")))
 
 (let ((empty-settings (pi-load-settings "non/existent/dir")))
+  (check-true (pi-settings? empty-settings))
+  (check (pi-settings-default-provider empty-settings) => "google")
   (check (cdr (assoc 'default-provider empty-settings)) => "google")
   (check (cdr (assoc 'default-model empty-settings)) => "gemini-3.8-flash")
   (check (cdr (assoc 'http-proxy empty-settings)) => #f)

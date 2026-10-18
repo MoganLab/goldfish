@@ -34,6 +34,8 @@
     (liii pi anthropic)
     (liii pi prompt)
     (liii pi message)
+    (liii pi config types)
+    (liii pi config record)
     (liii pi types)
     (liii pi retry)
     (liii pi args)
@@ -101,6 +103,18 @@
     pi-text-block-type pi-text-block-text pi-tool-call-block pi-tool-call-block?
     pi-tool-call-block-type pi-tool-call-block-id pi-tool-call-block-name
     pi-tool-call-block-arguments pi-tool-call-block-thought-signature
+    pi-retry-config pi-retry-config? pi-retry-config-enabled
+    pi-retry-config-max-retries pi-retry-config-base-delay-ms
+    pi-retry-config-max-agent-delay-ms pi-retry-config->alist pi-settings
+    pi-settings? pi-settings-default-provider pi-settings-default-model
+    pi-settings-default-thinking-level pi-settings-http-proxy pi-settings-retry
+    pi-settings-default-tools pi-settings->alist pi-credential pi-credential?
+    pi-credential-provider pi-credential-key pi-credential-type
+    pi-credential->alist pi-model-metadata pi-model-metadata?
+    pi-model-metadata-id pi-model-metadata-name pi-model-metadata-provider
+    pi-model-metadata-base-url pi-model-metadata-context-window
+    pi-model-metadata-max-tokens pi-model-metadata-matched?
+    pi-model-metadata->alist
   ) ;export
   (begin
 

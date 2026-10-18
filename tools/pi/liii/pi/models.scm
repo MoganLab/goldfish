@@ -21,6 +21,9 @@
     (liii path)
     (liii json)
     (liii pi template)
+    (liii pi config types)
+    (liii pi config record)
+    (liii pi event)
   ) ;import
   (export pi-load-models-store pi-resolve-model-metadata)
   (begin
@@ -128,14 +131,14 @@
                       ) ;%apply-meta-env-overrides
                      ) ;
                     ) ;
-          (list (cons 'id model-id)
-            (cons 'name (if m (%dict-ref m "name" model-id) model-id))
-            (cons 'provider p-str)
-            (cons 'base-url f-url)
-            (cons 'context-window f-cw)
-            (cons 'max-tokens f-mt)
-            (cons 'matched? (if m #t #f))
-          ) ;list
+          (%make-pi-model-metadata model-id
+            (if m (%dict-ref m "name" model-id) model-id)
+            p-str
+            f-url
+            f-cw
+            f-mt
+            (if m #t #f)
+          ) ;%make-pi-model-metadata
         ) ;let-values
       ) ;let*
     ) ;define

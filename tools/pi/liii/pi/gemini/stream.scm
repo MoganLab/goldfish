@@ -22,6 +22,8 @@
     (liii http)
     (liii time)
     (liii pi tools)
+    (liii pi event)
+    (liii pi config types)
     (liii pi retry)
     (liii pi message)
     (liii pi gemini core)
@@ -32,7 +34,12 @@
   (begin
 
     (define (%safe-assoc key alist)
-      (if (and (pair? alist) (every pair? alist)) (assoc key alist) #f)
+      (cond ((or (pi-settings? alist) (pi-retry-config? alist) (pi-model-metadata? alist))
+             (assoc key alist)
+            ) ;
+            ((and (pair? alist) (every pair? alist)) (assoc key alist))
+            (else #f)
+      ) ;cond
     ) ;define
 
     (define (%resp-field resp key)

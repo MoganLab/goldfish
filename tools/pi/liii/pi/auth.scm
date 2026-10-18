@@ -21,6 +21,9 @@
     (liii path)
     (liii json)
     (liii pi template)
+    (liii pi config types)
+    (liii pi config record)
+    (liii pi event)
   ) ;import
   (export pi-load-auth pi-resolve-provider-key)
   (begin
@@ -57,7 +60,12 @@
                             ) ;if
                   ) ;resolved
                  ) ;
-              (and resolved (cons (if (symbol? key) (symbol->string key) key) resolved))
+              (and resolved
+                (%make-pi-credential (if (symbol? key) (symbol->string key) key)
+                  resolved
+                  "api_key"
+                ) ;%make-pi-credential
+              ) ;and
             ) ;let
           ) ;and
         ) ;let

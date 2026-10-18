@@ -28,6 +28,9 @@
     (liii pi tools)
     (liii pi auth)
     (liii pi models)
+    (liii pi config types)
+    (liii pi config record)
+    (liii pi event)
   ) ;import
   (export pi-resolve-config-value json-dict-ref pi-get-agent-dir
     pi-read-json-file pi-load-settings pi-resolve-proxy-url pi-load-auth
@@ -89,12 +92,12 @@
       ) ;cond
     ) ;define
 
-    (define (%build-retry-alist retry-obj)
-      (list (cons 'enabled (%normalize-bool (json-dict-ref retry-obj "enabled" #t)))
-        (cons 'max-retries (json-dict-ref retry-obj "maxRetries" 3))
-        (cons 'base-delay-ms (json-dict-ref retry-obj "baseDelayMs" 2000))
-        (cons 'max-agent-delay-ms (json-dict-ref retry-obj "maxAgentDelayMs" 60000))
-      ) ;list
+    (define (%build-retry-record retry-obj)
+      (%make-pi-retry-config (%normalize-bool (json-dict-ref retry-obj "enabled" #t))
+        (json-dict-ref retry-obj "maxRetries" 3)
+        (json-dict-ref retry-obj "baseDelayMs" 2000)
+        (json-dict-ref retry-obj "maxAgentDelayMs" 60000)
+      ) ;%make-pi-retry-config
     ) ;define
 
     (define (pi-load-settings agent-dir)
@@ -108,15 +111,13 @@
                ) ;and
              ) ;clean-proxy
             ) ;
-        (list (cons 'default-provider (json-dict-ref obj "defaultProvider" "google"))
-          (cons 'default-model (json-dict-ref obj "defaultModel" "gemini-3.8-flash"))
-          (cons 'default-thinking-level
-            (json-dict-ref obj "defaultThinkingLevel" "medium")
-          ) ;cons
-          (cons 'http-proxy clean-proxy)
-          (cons 'retry (%build-retry-alist (json-dict-ref obj "retry" '())))
-          (cons 'default-tools (%parse-tools-list (json-dict-ref obj "defaultTools" #f)))
-        ) ;list
+        (%make-pi-settings (json-dict-ref obj "defaultProvider" "google")
+          (json-dict-ref obj "defaultModel" "gemini-3.8-flash")
+          (json-dict-ref obj "defaultThinkingLevel" "medium")
+          clean-proxy
+          (%build-retry-record (json-dict-ref obj "retry" '()))
+          (%parse-tools-list (json-dict-ref obj "defaultTools" #f))
+        ) ;%make-pi-settings
       ) ;let*
     ) ;define
 

@@ -15,7 +15,7 @@
 ;;
 
 (define-library (liii pi retry)
-  (import (scheme base))
+  (import (scheme base) (liii pi config types) (liii pi event))
   (export pi-is-retriable-error? pi-calc-retry-delay pi-resolve-retry-params
     gemini-is-retriable-error? anthropic-is-retriable-error?
   ) ;export
@@ -49,7 +49,7 @@
     ) ;define
 
     (define (%safe-assoc key alist)
-      (and (pair? alist)
+      (and (or (pair? alist) (pi-settings? alist) (pi-retry-config? alist))
         (or (assoc key alist)
           (let ((str-k (if (symbol? key) (symbol->string key) (string->symbol key))))
             (assoc str-k alist)

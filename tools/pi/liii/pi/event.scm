@@ -22,6 +22,8 @@
     (liii pi event types)
     (liii pi event record)
     (liii pi message)
+    (liii pi config types)
+    (liii pi config record)
   ) ;import
   (export pi-iso-8601-utc-now pi-current-time-millis pi-serialize-event assoc
     pi-event? pi-event-type pi-event->alist pi-event-session pi-event-session?
@@ -71,6 +73,12 @@
         ((entries lst))
         (cond ((null? entries) #f)
               ((not (pair? entries)) #f)
+              ((pi-credential? (car entries))
+               (if (%key-match? key (pi-credential-provider (car entries)))
+                 (cons (pi-credential-provider (car entries)) (pi-credential-key (car entries)))
+                 (loop (cdr entries))
+               ) ;if
+              ) ;
               ((and (pair? (car entries)) (%key-match? key (caar entries))) (car entries))
               (else (loop (cdr entries)))
         ) ;cond
@@ -81,6 +89,10 @@
       (cond ((pi-event? obj) (%find-assoc key (pi-event->alist obj)))
             ((pi-message? obj) (%find-assoc key (pi-message->alist obj)))
             ((pi-block? obj) (%find-assoc key (pi-block->alist obj)))
+            ((pi-retry-config? obj) (%find-assoc key (pi-retry-config->alist obj)))
+            ((pi-settings? obj) (%find-assoc key (pi-settings->alist obj)))
+            ((pi-credential? obj) (%find-assoc key (pi-credential->alist obj)))
+            ((pi-model-metadata? obj) (%find-assoc key (pi-model-metadata->alist obj)))
             ((pair? obj) (%find-assoc key obj))
             (else (%orig-assoc key obj))
       ) ;cond

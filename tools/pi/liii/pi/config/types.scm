@@ -1,0 +1,78 @@
+;;
+;; Copyright (C) 2026 The Goldfish Scheme Authors
+;;
+;; Licensed under the Apache License, Version 2.0 (the "License");
+;; you may not use this file except in compliance with the License.
+;; You may obtain a copy of the License at
+;;
+;; http://www.apache.org/licenses/LICENSE-2.0
+;;
+;; Unless required by applicable law or agreed to in writing, software
+;; distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+;; WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+;; License for the specific language governing permissions and limitations
+;; under the License.
+;;
+
+(define-library (liii pi config types)
+  (import (scheme base))
+  (export %make-pi-retry-config pi-retry-config? pi-retry-config-enabled
+    pi-retry-config-max-retries pi-retry-config-base-delay-ms
+    pi-retry-config-max-agent-delay-ms %make-pi-settings pi-settings?
+    pi-settings-default-provider pi-settings-default-model
+    pi-settings-default-thinking-level pi-settings-http-proxy pi-settings-retry
+    pi-settings-default-tools %make-pi-credential pi-credential?
+    pi-credential-provider pi-credential-key pi-credential-type
+    %make-pi-model-metadata pi-model-metadata? pi-model-metadata-id
+    pi-model-metadata-name pi-model-metadata-provider pi-model-metadata-base-url
+    pi-model-metadata-context-window pi-model-metadata-max-tokens
+    pi-model-metadata-matched?
+  ) ;export
+  (begin
+
+    (define-record-type <pi-retry-config>
+      (%make-pi-retry-config enabled max-retries base-delay-ms max-agent-delay-ms)
+      pi-retry-config?
+      (enabled pi-retry-config-enabled)
+      (max-retries pi-retry-config-max-retries)
+      (base-delay-ms pi-retry-config-base-delay-ms)
+      (max-agent-delay-ms pi-retry-config-max-agent-delay-ms)
+    ) ;define-record-type
+
+    (define-record-type <pi-settings>
+      (%make-pi-settings default-provider default-model default-thinking-level
+        http-proxy retry default-tools
+      ) ;%make-pi-settings
+      pi-settings?
+      (default-provider pi-settings-default-provider)
+      (default-model pi-settings-default-model)
+      (default-thinking-level pi-settings-default-thinking-level)
+      (http-proxy pi-settings-http-proxy)
+      (retry pi-settings-retry)
+      (default-tools pi-settings-default-tools)
+    ) ;define-record-type
+
+    (define-record-type <pi-credential>
+      (%make-pi-credential provider key type)
+      pi-credential?
+      (provider pi-credential-provider)
+      (key pi-credential-key)
+      (type pi-credential-type)
+    ) ;define-record-type
+
+    (define-record-type <pi-model-metadata>
+      (%make-pi-model-metadata id name provider base-url context-window
+        max-tokens matched?
+      ) ;%make-pi-model-metadata
+      pi-model-metadata?
+      (id pi-model-metadata-id)
+      (name pi-model-metadata-name)
+      (provider pi-model-metadata-provider)
+      (base-url pi-model-metadata-base-url)
+      (context-window pi-model-metadata-context-window)
+      (max-tokens pi-model-metadata-max-tokens)
+      (matched? pi-model-metadata-matched?)
+    ) ;define-record-type
+
+  ) ;begin
+) ;define-library

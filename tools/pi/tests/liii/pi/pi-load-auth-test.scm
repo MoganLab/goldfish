@@ -20,6 +20,9 @@
 
 (let ((auth (pi-load-auth fixture-dir
                           '(("TEST_ANTHROPIC_KEY" . "sk-ant-test-12345")))))
+  (check-true (pi-credential? (car auth)))
+  (check (pi-credential-provider (car auth)) => "google")
+  (check (pi-credential-key (car auth)) => "test-google-key-from-auth-json")
   (check (cdr (assoc "google" auth)) => "test-google-key-from-auth-json")
   (check (cdr (assoc "anthropic" auth)) => "sk-ant-test-12345")
   (check (assoc "kimi-coding" auth) => #f))

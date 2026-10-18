@@ -14,6 +14,11 @@
 (let ((models-store (pi-load-models-store fixture-dir)))
   ;; 精确匹配已缓存模型
   (let ((meta (pi-resolve-model-metadata "google" "gemini-3.8-flash" models-store '())))
+    (check-true (pi-model-metadata? meta))
+    (check (pi-model-metadata-id meta) => "gemini-3.8-flash")
+    (check (pi-model-metadata-name meta) => "Gemini 3.8 Flash")
+    (check (pi-model-metadata-context-window meta) => 1048576)
+    (check (pi-model-metadata-max-tokens meta) => 65536)
     (check (cdr (assoc 'matched? meta)) => #t)
     (check (cdr (assoc 'id meta)) => "gemini-3.8-flash")
     (check (cdr (assoc 'name meta)) => "Gemini 3.8 Flash")
