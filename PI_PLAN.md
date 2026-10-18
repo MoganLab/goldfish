@@ -83,7 +83,7 @@ Anthropic 已实现但本机无访问权限，不在维护范围；其 OAuth 刷
 |---|---|---|---|
 | 012 | thinking 内容 | `--thinking-level`，用法见 PI_SPEC.md TODO；届时与用户确认后启动 | 待执行【用户裁定 2026-10-19：thinking level 可以做了】 |
 | 013 | 图片输入 | `@图片`，用法见 PI_SPEC.md TODO；届时与用户确认后启动 | 远期（放在最后：Kimi/deepseek/glm/--list-models 等核心任务全部完成后再按需启动） |
-| 022 | `--model` 跨 provider 自动路由【用户实测差距】 | 对齐 pi 的 model-resolver 行为：`--model <id>` 未命中当前 provider 时，在全部 provider 的模型目录（models-store.json 各 provider 条目 + 各 provider 内置模型）中搜索，命中即隐式选定 provider；仍未命中才走自定义模型兜底（当前 provider + warning）；实测用例：`bin/gf pi -p --model k3 "你是什么模型?"` 应自动路由 kimi 并正常回答（当前 404）；TDD 覆盖命中/未命中/多 provider 同名歧义（首个命中或明确报错） | 待执行 |
+| 022 | `--model` 跨 provider 自动路由【用户实测差距】 | 对齐 pi 的 model-resolver 行为：`--model <id>` 未命中当前 provider 时，在全部 provider 的模型目录（models-store.json 各 provider 条目 + 各 provider 内置模型）中搜索，命中即隐式选定 provider；仍未命中才走自定义模型兜底（当前 provider + warning）；实测用例：`bin/gf pi -p --model k3 "你是什么模型?"` 应自动路由 kimi 并正常回答（当前 404）；TDD 覆盖命中/未命中/多 provider 同名歧义（首个命中或明确报错） | 进行中（开发阶段） |
 | 014 | 缺陷修复·4字节UTF-8挂起 | prompt 含 4 字节 UTF-8 字符与 `<` 组合时静默挂起且流式空闲超时未兜底（复现 `timeout 60 bin/gf pi -p '🚀 <'`）；修复后真实冒烟通过 | 已完成（第5轮定位真正根因：特殊输入引发连续工具调用且无会话级总超时兜底；实现 run-agent-loop 会话级 deadline，三 provider 真实验证 2 秒结构化返回；验收脚本偶发网络抖动重跑即绿） |
 共同约束：
 - 每个任务常态三个 commit：`[编号][PLAN]`（建档）+ `[编号][REVIEW]`（代码）
