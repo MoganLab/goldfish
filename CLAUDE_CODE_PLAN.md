@@ -1,23 +1,28 @@
 # CLAUDE_CODE_PLAN：Claude Code 与 pi agent 的协作规范
 
 > 本文档定义 goldfish 仓库中 Claude Code 的职责边界、命令的存放位置与调用方法。
-> **本文件是 Claude Code 唯一有权编辑的文件。** 若职责或流程有变化，先改本文档再动工。
+> 若职责或流程有变化，先改本文档再动工。
 
 ## 1. 角色分工（核心约定）
 
 **整体协作只有两方：Claude Code 与 pi。** 不引入任何第三方 agent 或工具。
-**Claude Code 只负责编辑 `CLAUDE_CODE_PLAN.md` 这一个文件**（即本文件：协作规范与
-拉起方法），并负责把 pi 拉起来；**不编辑 `PI_PLAN.md`，不写实现代码，除此之外不做
-任何干预**。pi 被拉起后全自主运行。
+**Claude Code 负责编辑并 commit 三份计划文档**：`CLAUDE_CODE_PLAN.md`（本文件）、
+`PI_PLAN.md`（任务规格与后续任务书）、`PI_SPEC.md`（经真实冒烟验证的命令行示例）；
+并负责把 pi 拉起来、对 pi 的产出做真实冒烟验收；**不写不改任何实现代码与测试**。
+pi 被拉起后全自主运行。
 
 | 两方 | 职责 | 不做什么 |
 |---|---|---|
-| **Claude Code** | **只编辑并 commit `CLAUDE_CODE_PLAN.md`（本文件）**；用 `pi -p` 拉起 pi | 不编辑、不提交 `PI_PLAN.md`（其维护权在 pi），不改实现代码，不审查产出，不代替提交，**不负责 git push（推送由 pi 负责）** |
-| **pi（脚本模式）** | 被拉起后**全自主**：编辑并 commit `PI_PLAN.md`（任务规格，由 pi 自己负责），完成实现、测试、格式化、提交；并**负责定期推送到 GitHub**——每完成一个阶段或一批小提交就 `git push`，不积压在本地 | 不修改 `CLAUDE_CODE_PLAN.md`（协作规范的修订写进输出，交回 Claude 编辑并提交本文件） |
+| **Claude Code** | **编辑并 commit `CLAUDE_CODE_PLAN.md`、`PI_PLAN.md`、`PI_SPEC.md` 三份文档**；用 `setsid pi -p` 拉起 pi；真实冒烟测试 `bin/gf pi` 并把发现的缺陷作为任务拉起 pi 修复；到达稳定点时同步快照到 `~/git/goldfish2` | 不写、不改任何实现代码与测试；不代替 pi 提交代码；**不负责 git push（推送由 pi 负责）** |
+| **pi（脚本模式）** | 被拉起后**全自主**：按任务完成实现、测试（TDD）、格式化、小步提交；**负责定期推送到 GitHub**——每完成一批小提交就 `git push`，不积压在本地 | 不修改三份计划文档（文档问题与协作规范的修订写进输出，交回 Claude 处理） |
 
-用户（Da）同样**不做任何干预**：编码、测试、提交、推送全部在两方之间闭环完成。
+用户（Da）通过 Claude 下达需求与范围决策；编码、测试、提交、推送在两方之间闭环完成。
 
-一句话：**Claude 只编辑本文件并拉起 pi；`PI_PLAN.md` 与全部代码由 pi 维护。**
+一句话：**Claude 控制三份计划文档 + 测试验收 + 拉起 pi；全部代码由 pi 维护。**
+
+> 职责沿革：2026-10-17 初版为"Claude 只编辑 CLAUDE_CODE_PLAN.md、PI_PLAN.md 由 pi
+> 维护"；2026-10-18 用户指示三份文档归 Claude 控制、并转入"真实冒烟测试→拉 pi 修复"
+> 循环（PI_PLAN §11 九个阶段已全部完成后）。
 
 ## 2. 为什么这样分工
 
