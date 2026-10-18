@@ -81,7 +81,7 @@ Anthropic 已实现但本机无访问权限，不在维护范围；其 OAuth 刷
 |---|---|---|---|
 | 001 | 核心库迁移·文件 | `goldfish/liii/pi.scm` 与 `goldfish/liii/pi/` 整体 git mv 至 `tools/pi/liii/`（模块名暂保留 `(liii pi)` 最小改动），修 load-path 与 import，全量测试通过 | 已完成 |
 | 002 | 核心库迁移·测试与索引 | `tests/liii/pi/` 迁至 `tools/pi/tests/`；`bin/gf doc --build-json` 重建；`bin/gf doc "..."` 抽查可用 | 已完成 |
-| 003 | 核心库迁移·模块名统一【用户已裁定】 | 双向统一为 `(liii pi)` 族：CLI 侧 `goldpi*` 全部改名为 `pi*`（`goldpi-args.scm`→`pi-args.scm` 等，CLI 入口 `goldpi.scm`→`pi-cli.scm`，模块 `(liii pi-cli)`），`gfproject.json` 注册同步；**并按多级子库组织**（同 `(liii datetime xxx)` 先例）：`(liii pi core)`（核心逻辑）、`(liii pi gemini)`、`(liii pi anthropic)`、`(liii pi session)` 等，文件布局 `tools/pi/liii/pi/<子库>.scm`；全量 import/测试更新；完成后由 Claude 更新 PI_SPEC/devel 文档中的路径与模块名 | 已回退（验收失败：目标子库 3/13 达成缺 10 项；开发阶段第 3 轮进行中，另需消除 (liii pi-xxx) 平铺族——最终只有 (liii pi) 与 (liii pi xxx)，CLI 入口 (liii pi cli)） |
+| 003 | 核心库迁移·模块名统一【用户已裁定】 | 模块格局定案：**只有 `(liii pi)`（门面）与 `(liii pi xxx)`（多级子库）两种形式，`(liii pi-xxx)` 平铺族不存在**——子库清单、目录树与 pi 源码三层包映射见 PI_SPEC.md 架构演进节；CLI 入口 `pi/cli.scm`（模块 `(liii pi cli)`），gfproject.json 同步；二级子库为导出层，单文件 300 行放不下继续拆下层；测试目录镜像源码库结构；全量 import/测试更新；完成后由 Claude 更新 PI_SPEC/devel 文档中的路径与模块名 | 已回退（验收失败：目标子库 3/13 达成缺 10 项；开发阶段第 3 轮进行中，还需消除 (liii pi-xxx) 平铺残留） |
 | 004 | record 化·事件结构 | `pi-event-*` 系列构造的事件对象改 `define-record-type`（在任务 1-3 迁移后的新位置进行） | 待执行 |
 | 005 | record 化·消息结构 | user/assistant/toolResult 消息与 text/toolCall content block | 待执行 |
 | 006 | record 化·配置结构 | settings 解析结果、凭据、模型元数据 | 待执行 |
@@ -131,15 +131,21 @@ thoughtSignature）、会话漏记 user 消息与 --continue 类型错误、Anth
 ## 6. 文件布局（参考性，随开发自由演进）
 
 ```
-gfproject.json                    # 注册 "pi" 子命令
-tools/pi/liii/                    # 全部 pi 代码：CLI 入口/参数/配置/provider/agent/
-                                  # 工具/会话/流式 + 核心库（迁移目标，见 §3.2）
-tools/pi/tests/                   # 全部 pi 测试与 fixture/stub server
+gfproject.json                    # 注册 "pi" 子命令（module → pi/cli）
+tools/pi/liii/
+  pi.scm                          # (liii pi) 门面：公开 API 再导出
+  pi/                             # 多级子库（详见 PI_SPEC.md 架构演进节）
+    types/gemini/anthropic/auth/models/retry/agent/
+    tools/config/prompt/session/args/modes.scm
+    cli.scm                       # (liii pi cli) CLI 入口
+tools/pi/tests/liii/pi/           # 测试（镜像源码库结构，一个函数一个测试文件）
+tools/pi/tests/                   # 其余测试与 fixture/stub server
+tools/pi/devel/                   # 任务文档（ddd.md 模板 + 编号.md + 编号.scm 验收脚本）
 PI_SPEC.md                        # 经真实冒烟验证的命令行示例（Claude 维护）
 ```
 
-分层原则：核心库文件只含可复用逻辑（无 CLI 副作用）；CLI 文件只做参数解析、
-组装与输出。
+分层原则：模块只有 `(liii pi)` 与 `(liii pi xxx)` 两种形式；二级子库为导出层
+（无 CLI 副作用），CLI 逻辑集中在 `(liii pi cli)`。
 
 ## 7. goldfish 与 pi 的有意偏差清单
 
