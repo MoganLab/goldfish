@@ -94,7 +94,7 @@ Anthropic 已实现但本机无访问权限，不在维护范围；其 OAuth 刷
 | 019 | glm provider 支持【用户裁定：与 deepseek 分开做】 | 支持 `--provider glm`：复用 anthropic 兼容路径（已知走 ANTHROPIC_BASE_URL=open.bigmodel.cn/api/anthropic + ANTHROPIC_AUTH_TOKEN 环境变量），凭据发现与 pi 共享机制一致；stub 测试 + 真实冒烟（纯文本 + 工具往返）通过 | 已完成 |
 | 020 | deepseek provider 支持【用户裁定：单独做】 | 支持 `--provider deepseek`：调研 deepseek 的 key 位置（~/.claude 生态）与端点（OpenAI 兼容或官方 API），凭据发现与 pi 共享机制一致；stub 测试 + 真实冒烟通过 | 已完成 |
 | 021 | CI 多平台通过【PR 1141 合并门禁，插队最高优先】 | 修复 PR 1141（da/pi→main）四个平台 build 失败：1) 删除旧布局残留测试 tests/goldfish/liii/pi-test.scm 与 pi-anthropic-test.scm（其内容已被 tools/pi/tests/ 覆盖，CI 环境因 load-path 找不到 (liii pi) 而失败）；2) 核查 macOS/Windows build 失败根因（若同为测试问题则同修，若为 src/ C++ 跨平台问题则修复或按 §12 登记偏差）；3) gh pr checks 1141 全绿 | 已完成 |
-| 018 | `--list-models` 支持 | `bin/gf pi --list-models` 列出可用模型（默认当前 provider，可配 `--provider` 过滤；从 models-store.json 读 id/contextWindow/maxTokens，格式对齐 pi --list-models）；用法写入 PI_SPEC | 进行中（开发阶段） |
+| 018 | `--list-models` 支持 | `bin/gf pi --list-models` 列出可用模型（默认当前 provider，可配 `--provider` 过滤；从 models-store.json 读 id/contextWindow/maxTokens，格式对齐 pi --list-models）；用法写入 PI_SPEC | 已完成 |
 | 017 | 测试去除计划文档依赖 | 4 个测试文件（pi-execute-find/grep/read、pi-resolve-path 的测试）把 PI_PLAN.md 当测试素材，改为 fixtures 自建文件；修复后临时改名 PI_PLAN.md 跑全量测试验证无依赖 | 已完成 |
 | 014 | 缺陷修复·4字节UTF-8挂起 | prompt 含 4 字节 UTF-8 字符与 `<` 组合时静默挂起且流式空闲超时未兜底（复现 `timeout 60 bin/gf pi -p '🚀 <'`）；修复后真实冒烟通过 | 已回退（前置排查 3 次执行未修复，待 record 化系列完成后重做） |
 共同约束：
