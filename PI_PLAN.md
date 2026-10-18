@@ -88,7 +88,7 @@ Anthropic 已实现但本机无访问权限，不在维护范围；其 OAuth 刷
 | 010 | Kimi·流式 SSE | 若端点支持：text_delta 增量 + 空闲超时兜底；stub 测试；真实冒烟（JSON 模式见 message_update）通过；端点不支持则记录偏差后关闭 | 待执行 |
 | 011 | Kimi·错误路径 | 401/404/429/5xx 重试与报错语义对齐 §2；凭据缺失明确报错退出码 1；fixture + stub 测试 | 待执行 |
 | 012 | thinking 内容 | `--thinking-level`，用法见 PI_SPEC.md TODO；届时与用户确认后启动 | 远期 |
-| 013 | 图片输入 | `@图片`，用法见 PI_SPEC.md TODO；届时与用户确认后启动 | 远期 |
+| 013 | 图片输入 | `@图片`，用法见 PI_SPEC.md TODO；届时与用户确认后启动 | 远期（放在最后：Kimi/deepseek/glm/--list-models 等核心任务全部完成后再按需启动） |
 | 015 | record 化·收尾全量冒烟 | record 化系列（004-007）完成后的全量真实冒烟：print/JSON/工具多轮/--continue/--provider 切换/错误路径，确认零回归；发现缺陷按编号追加修复任务 | 进行中（开发阶段，执行者 bin/gf pi） |
 | 016 | 文档与实况一致性校验 | 003-007 重构完成后：PI_SPEC.md 架构演进节、gfproject.json、devel 文档与代码实况逐项核对并修正；bin/gf doc 索引全量重建与抽查 | 待执行 |
 | 019 | deepseek 与 glm provider 支持【用户裁定】 | 支持 `--provider deepseek` 与 `--provider glm`：调研 `~/.claude` 生态配置（已知 glm 走 ANTHROPIC_BASE_URL=open.bigmodel.cn/api/anthropic + ANTHROPIC_AUTH_TOKEN 环境变量；deepseek 的 key 位置需调研）确定凭据来源与端点（glm 可走 anthropic 兼容、deepseek 走 OpenAI 兼容或其官方 API）；凭据发现与 pi 共享机制一致（环境变量/共享配置）；stub 测试 + 真实冒烟通过 | 待执行 |
