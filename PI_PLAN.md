@@ -81,7 +81,7 @@ Anthropic 已实现但本机无访问权限，不在维护范围；其 OAuth 刷
 
 | 编号 | 任务 | 内容与验收点 | 状态 |
 |---|---|---|---|
-| 006 | record 化·配置结构 | settings 解析结果、凭据、模型元数据 | 进行中（开发阶段） |
+| 006 | record 化·配置结构 | settings 解析结果、凭据、模型元数据 | 已完成 |
 | 007 | record 化·工具结构 | 工具声明（name/description/schema/execute）与工具结果（含截断产物） | 待执行 |
 | 008 | Kimi·调研与非流式最小可用 | 读 `~/git/pi` 源码确定 kimi-coding 端点/路径/鉴权头/请求响应形状（结论写入提交信息或输出）；实现请求构造 + 响应解析 + `--provider kimi-coding` CLI 分发；stub server 覆盖正常回复；真实冒烟（纯文本对话）通过 | 待执行 |
 | 009 | Kimi·function calling | 工具声明、toolCall 输出、toolResult 回传的 Kimi 形状映射；stub 测试；真实冒烟（bash 工具一轮往返）通过 | 待执行 |
