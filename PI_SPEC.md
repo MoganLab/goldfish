@@ -200,9 +200,6 @@ tools/pi/liii/
 
   实现要点：按扩展名/MIME 判断图片类型，Gemini 走 `inlineData` part（base64），
   Anthropic 走 `image` source block；不支持的格式明确报错。
-- [ ] thinking 内容的请求与解析（`--thinking-level`）。
-- [ ] 图片输入（`@图片`）。
-
 不做项：
 - 交互式 TUI / RPC 模式（goldfish 缺少相关的终端 UI 基础设施，不规划）
 - 项目级 `.pi/settings.json` 读取（首期只读全局 settings.json，暂不引入 trust 门控概念）
