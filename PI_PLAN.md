@@ -84,7 +84,7 @@ Anthropic 已实现但本机无访问权限，不在维护范围；其 OAuth 刷
 | 006 | record 化·配置结构 | settings 解析结果、凭据、模型元数据 | 已完成 |
 | 007 | record 化·工具结构 | 工具声明（name/description/schema/execute）与工具结果（含截断产物） | 已完成 |
 | 008 | Kimi provider 完整支持【简化合并，原 008-011 并入】 | 读 `~/git/pi` 源码确定 kimi-coding 端点/鉴权/请求响应形状（凭据 type:"api_key"）；一次完成：非流式 + function calling + 流式（端点不支持则记录偏差）+ 错误路径（401/404/429/5xx、凭据缺失报错）；stub 测试 + 真实冒烟（纯文本 + bash 工具往返）通过 | 已完成 |
-| 012 | thinking 内容 | `--thinking-level`，用法见 PI_SPEC.md TODO；届时与用户确认后启动 | 远期 |
+| 012 | thinking 内容 | `--thinking-level`，用法见 PI_SPEC.md TODO；届时与用户确认后启动 | 待执行【用户裁定 2026-10-19：thinking level 可以做了】 |
 | 013 | 图片输入 | `@图片`，用法见 PI_SPEC.md TODO；届时与用户确认后启动 | 远期（放在最后：Kimi/deepseek/glm/--list-models 等核心任务全部完成后再按需启动） |
 | 015 | record 化·收尾全量冒烟 | record 化系列（004-007）完成后的全量真实冒烟：print/JSON/工具多轮/--continue/--provider 切换/错误路径，确认零回归；发现缺陷按编号追加修复任务 | 已完成 |
 | 016 | 文档与实况一致性校验 | 003-007 重构完成后：PI_SPEC.md 架构演进节、gfproject.json、devel 文档与代码实况逐项核对并修正；bin/gf doc 索引全量重建与抽查 | 已完成 |
