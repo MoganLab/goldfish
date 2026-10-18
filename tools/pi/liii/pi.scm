@@ -27,6 +27,8 @@
     (liii pi find)
     (liii pi grep)
     (liii pi tools)
+    (liii pi tools types)
+    (liii pi tools record)
     (liii pi auth)
     (liii pi models)
     (liii pi config)
@@ -44,16 +46,16 @@
     (liii pi agent)
   ) ;import
   (export resolve-app-mode format-file-block build-initial-prompt
-    PI_DEFAULT_MAX_LINES PI_DEFAULT_MAX_BYTES PI_GREP_MAX_LINE_LENGTH
-    pi-format-size pi-truncate-line pi-truncate-head pi-truncate-tail pi-arg-ref
-    pi-resolve-path pi-read-schema pi-execute-read pi-write-schema
-    pi-execute-write pi-edit-schema pi-execute-edit pi-bash-schema
-    pi-execute-bash pi-ls-schema pi-execute-ls pi-find-schema pi-execute-find
-    pi-grep-schema pi-execute-grep pi-resolve-config-value json-dict-ref
-    pi-get-agent-dir pi-read-json-file pi-load-settings pi-resolve-proxy-url
-    pi-load-auth pi-resolve-provider-key pi-load-models-store
-    pi-resolve-model-metadata gemini-map-finish-reason gemini-map-usage
-    gemini-normalize-tool-call-id gemini-generate-tool-call-id
+    get-tool-definition execute-tool-call PI_DEFAULT_MAX_LINES
+    PI_DEFAULT_MAX_BYTES PI_GREP_MAX_LINE_LENGTH pi-format-size pi-truncate-line
+    pi-truncate-head pi-truncate-tail pi-arg-ref pi-resolve-path pi-read-schema
+    pi-execute-read pi-write-schema pi-execute-write pi-edit-schema
+    pi-execute-edit pi-bash-schema pi-execute-bash pi-ls-schema pi-execute-ls
+    pi-find-schema pi-execute-find pi-grep-schema pi-execute-grep
+    pi-resolve-config-value json-dict-ref pi-get-agent-dir pi-read-json-file
+    pi-load-settings pi-resolve-proxy-url pi-load-auth pi-resolve-provider-key
+    pi-load-models-store pi-resolve-model-metadata gemini-map-finish-reason
+    gemini-map-usage gemini-normalize-tool-call-id gemini-generate-tool-call-id
     gemini-build-contents gemini-build-request-body anthropic-map-stop-reason
     anthropic-map-usage anthropic-build-tool-declarations
     anthropic-build-messages anthropic-build-request-body
@@ -114,7 +116,19 @@
     pi-model-metadata-id pi-model-metadata-name pi-model-metadata-provider
     pi-model-metadata-base-url pi-model-metadata-context-window
     pi-model-metadata-max-tokens pi-model-metadata-matched?
-    pi-model-metadata->alist
+    pi-model-metadata->alist pi-tool-definition pi-tool-definition?
+    pi-tool-definition-name pi-tool-definition-description
+    pi-tool-definition-parameters pi-tool-definition-execute
+    pi-tool-definition-snippet pi-tool-definition-guidelines
+    pi-tool-definition->alist pi-tool-result pi-tool-result?
+    pi-tool-result-content pi-tool-result-is-error pi-tool-result-isError
+    pi-tool-result->alist pi-trunc-result pi-trunc-result?
+    pi-trunc-result-content pi-trunc-result-truncated pi-trunc-result-truncated?
+    pi-trunc-result-truncated-by pi-trunc-result-total-lines
+    pi-trunc-result-total-bytes pi-trunc-result-output-lines
+    pi-trunc-result-output-bytes pi-trunc-result-first-line-exceeds-limit?
+    pi-trunc-result-first-line-truncated pi-trunc-result-last-line-partial?
+    pi-trunc-result-last-line-truncated pi-trunc-result->alist
   ) ;export
   (begin
 

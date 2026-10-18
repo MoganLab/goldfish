@@ -157,8 +157,8 @@
                      (selected (if limit-reached? (take matched effective-limit) matched))
                      (raw-output (string-join selected "\n"))
                      (trunc (pi-truncate-head raw-output 999999 PI_DEFAULT_MAX_BYTES))
-                     (content (cdr (assoc 'content trunc)))
-                     (truncated? (cdr (assoc 'truncated trunc)))
+                     (content (pi-trunc-result-content trunc))
+                     (truncated? (pi-trunc-result-truncated trunc))
                      (notices (%build-find-notices limit-reached? effective-limit truncated?))
                     ) ;
                 (string-append content notices)

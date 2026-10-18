@@ -145,8 +145,16 @@
           (reverse acc)
           (let* ((name (car names)) (def (get-tool-definition name)))
             (if def
-              (let* ((desc (cdr (assoc 'description def)))
-                     (params (cdr (assoc 'parameters def)))
+              (let* ((desc (if (pi-tool-definition? def)
+                             (pi-tool-definition-description def)
+                             (cdr (assoc 'description def))
+                           ) ;if
+                     ) ;desc
+                     (params (if (pi-tool-definition? def)
+                               (pi-tool-definition-parameters def)
+                               (cdr (assoc 'parameters def))
+                             ) ;if
+                     ) ;params
                      (decl (list (cons "name" name)
                              (cons "description" desc)
                              (cons "parametersJsonSchema" params)

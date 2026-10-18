@@ -15,10 +15,21 @@
 ;;
 
 (define-library (liii pi truncate)
-  (import (scheme base) (scheme char) (liii string))
+  (import (scheme base)
+    (scheme char)
+    (liii string)
+    (liii pi tools types)
+    (liii pi tools record)
+  ) ;import
   (export PI_DEFAULT_MAX_LINES PI_DEFAULT_MAX_BYTES PI_GREP_MAX_LINE_LENGTH
     pi-byte-length pi-format-size pi-truncate-line pi-truncate-head
-    pi-truncate-tail
+    pi-truncate-tail pi-trunc-result pi-trunc-result? pi-trunc-result-content
+    pi-trunc-result-truncated pi-trunc-result-truncated?
+    pi-trunc-result-truncated-by pi-trunc-result-total-lines
+    pi-trunc-result-total-bytes pi-trunc-result-output-lines
+    pi-trunc-result-output-bytes pi-trunc-result-first-line-exceeds-limit?
+    pi-trunc-result-first-line-truncated pi-trunc-result-last-line-partial?
+    pi-trunc-result-last-line-truncated pi-trunc-result->alist
   ) ;export
   (begin
 
@@ -31,29 +42,20 @@
     ) ;define
 
     (define (pi-format-size bytes)
+      (define (%format-scaled divisor unit)
+        (let* ((scaled (/ bytes divisor))
+               (rounded (/ (round (* scaled 10)) 10))
+               (int-part (inexact->exact (floor rounded)))
+               (dec-part
+                 (inexact->exact (round (* (- rounded int-part) 10)))
+               ) ;dec-part
+              ) ;
+          (string-append (number->string int-part) "." (number->string dec-part) unit)
+        ) ;let*
+      ) ;define
       (cond ((< bytes 1024) (string-append (number->string bytes) "B"))
-            ((< bytes (* 1024 1024))
-             (let* ((scaled (/ bytes 1024.0))
-                    (rounded (/ (round (* scaled 10)) 10))
-                    (int-part (inexact->exact (floor rounded)))
-                    (dec-part
-                      (inexact->exact (round (* (- rounded int-part) 10)))
-                    ) ;dec-part
-                   ) ;
-               (string-append (number->string int-part) "." (number->string dec-part) "KB")
-             ) ;let*
-            ) ;
-            (else
-              (let* ((scaled (/ bytes (* 1024.0 1024.0)))
-                     (rounded (/ (round (* scaled 10)) 10))
-                     (int-part (inexact->exact (floor rounded)))
-                     (dec-part
-                       (inexact->exact (round (* (- rounded int-part) 10)))
-                     ) ;dec-part
-                    ) ;
-                (string-append (number->string int-part) "." (number->string dec-part) "MB")
-              ) ;let*
-            ) ;else
+            ((< bytes (* 1024 1024)) (%format-scaled 1024.0 "KB"))
+            (else (%format-scaled (* 1024.0 1024.0) "MB"))
       ) ;cond
     ) ;define
 
@@ -85,15 +87,42 @@
     (define (%trunc-result content truncated by total-lines total-bytes
               out-lines out-bytes flag-key flag-val
             ) ;%trunc-result
-      (list (cons 'content content)
-        (cons 'truncated truncated)
-        (cons 'truncated-by by)
-        (cons 'total-lines total-lines)
-        (cons 'total-bytes total-bytes)
-        (cons 'output-lines out-lines)
-        (cons 'output-bytes out-bytes)
-        (cons flag-key flag-val)
-      ) ;list
+      (pi-trunc-result content
+        truncated
+        by
+        total-lines
+        total-bytes
+        out-lines
+        out-bytes
+        (if (or (eq? flag-key 'first-line-exceeds-limit?)
+              (eq? flag-key 'first-line-truncated)
+            ) ;or
+          flag-val
+          #f
+        ) ;if
+        (if (or (eq? flag-key 'last-line-partial?) (eq? flag-key 'last-line-truncated))
+          flag-val
+          #f
+        ) ;if
+      ) ;pi-trunc-result
+    ) ;define
+
+    (define (%finish-head-trunc collected by total-lines total-bytes)
+      (let* ((out-lines (reverse collected))
+             (out-str (string-join out-lines "\n"))
+             (out-bytes (pi-byte-length out-str))
+            ) ;
+        (%trunc-result out-str
+          #t
+          by
+          total-lines
+          total-bytes
+          (length out-lines)
+          out-bytes
+          'first-line-exceeds-limit?
+          #f
+        ) ;%trunc-result
+      ) ;let*
     ) ;define
 
     (define (%truncate-head-loop lines max-lines max-bytes total-lines total-bytes)
@@ -101,43 +130,18 @@
         ((rest lines) (collected '()) (curr-bytes 0) (count 0))
         (cond
          ((or (null? rest) (>= count max-lines))
-          (let* ((out-lines (reverse collected))
-                 (out-str (string-join out-lines "\n"))
-                 (out-bytes (pi-byte-length out-str))
-                 (by (if (>= count max-lines) 'lines 'bytes))
-                ) ;
-            (%trunc-result out-str
-              #t
-              by
-              total-lines
-              total-bytes
-              (length out-lines)
-              out-bytes
-              'first-line-exceeds-limit?
-              #f
-            ) ;%trunc-result
-          ) ;let*
+          (%finish-head-trunc collected
+            (if (>= count max-lines) 'lines 'bytes)
+            total-lines
+            total-bytes
+          ) ;%finish-head-trunc
          ) ;
          (else
            (let* ((line (car rest))
                   (line-bytes (+ (pi-byte-length line) (if (null? collected) 0 1)))
                  ) ;
              (if (> (+ curr-bytes line-bytes) max-bytes)
-               (let* ((out-lines (reverse collected))
-                      (out-str (string-join out-lines "\n"))
-                      (out-bytes (pi-byte-length out-str))
-                     ) ;
-                 (%trunc-result out-str
-                   #t
-                   'bytes
-                   total-lines
-                   total-bytes
-                   (length out-lines)
-                   out-bytes
-                   'first-line-exceeds-limit?
-                   #f
-                 ) ;%trunc-result
-               ) ;let*
+               (%finish-head-trunc collected 'bytes total-lines total-bytes)
                (loop (cdr rest) (cons line collected) (+ curr-bytes line-bytes) (+ count 1))
              ) ;if
            ) ;let*

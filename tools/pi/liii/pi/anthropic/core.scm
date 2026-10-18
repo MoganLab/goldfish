@@ -22,6 +22,8 @@
     (liii error)
     (liii pi message)
     (liii pi event)
+    (liii pi tools types)
+    (liii pi tools record)
   ) ;import
   (export anthropic-map-stop-reason anthropic-map-usage
     anthropic-build-tool-declarations anthropic-build-messages
@@ -31,19 +33,14 @@
   (begin
 
     (define (%val key obj default-val)
-      (cond
-       ((or (pair? obj) (pi-message? obj) (pi-block? obj))
-        (let ((p
-                (or (assoc key obj)
-                  (assoc (if (symbol? key) (symbol->string key) (string->symbol key)) obj)
-                ) ;or
-              ) ;p
-             ) ;
-          (if (pair? p) (cdr p) default-val)
-        ) ;let
-       ) ;
-       (else default-val)
-      ) ;cond
+      (let ((p
+              (or (assoc key obj)
+                (assoc (if (symbol? key) (symbol->string key) (string->symbol key)) obj)
+              ) ;or
+            ) ;p
+           ) ;
+        (if (pair? p) (cdr p) default-val)
+      ) ;let
     ) ;define
 
     (define (anthropic-map-stop-reason reason)
@@ -76,16 +73,24 @@
     (define (anthropic-build-tool-declarations tool-defs)
       (map
         (lambda (def)
-          (let ((params (or (%val 'parameters def #f)
-                          (%val 'parametersJsonSchema def #f)
-                          '(("type" . "object"))
-                        ) ;or
+          (let ((params
+                  (if (pi-tool-definition? def)
+                    (pi-tool-definition-parameters def)
+                    (or (%val 'parameters def #f)
+                      (%val 'parametersJsonSchema def #f)
+                      '(("type" . "object"))
+                    ) ;or
+                  ) ;if
                 ) ;params
+                (name (if (pi-tool-definition? def) (pi-tool-definition-name def) (%val 'name def ""))
+                ) ;name
+                (desc (if (pi-tool-definition? def)
+                        (pi-tool-definition-description def)
+                        (%val 'description def "")
+                      ) ;if
+                ) ;desc
                ) ;
-            (list (cons "name" (%val 'name def ""))
-              (cons "description" (%val 'description def ""))
-              (cons "input_schema" params)
-            ) ;list
+            (list (cons "name" name) (cons "description" desc) (cons "input_schema" params))
           ) ;let
         ) ;lambda
         tool-defs

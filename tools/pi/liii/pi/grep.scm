@@ -197,10 +197,10 @@
           (let* ((raw-out (string-join (reverse out-lines) "\n"))
                  (trunc (pi-truncate-head raw-out 999999 PI_DEFAULT_MAX_BYTES))
                 ) ;
-            (string-append (cdr (assoc 'content trunc))
+            (string-append (pi-trunc-result-content trunc)
               (%build-grep-notices limit-reached?
                 limit
-                (cdr (assoc 'truncated trunc))
+                (pi-trunc-result-truncated trunc)
                 any-line-trunc?
               ) ;%build-grep-notices
             ) ;string-append

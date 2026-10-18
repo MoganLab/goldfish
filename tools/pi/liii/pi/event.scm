@@ -24,6 +24,8 @@
     (liii pi message)
     (liii pi config types)
     (liii pi config record)
+    (liii pi tools types)
+    (liii pi tools record)
   ) ;import
   (export pi-iso-8601-utc-now pi-current-time-millis pi-serialize-event assoc
     pi-event? pi-event-type pi-event->alist pi-event-session pi-event-session?
@@ -62,10 +64,24 @@
     (define %orig-assoc assoc)
 
     (define (%key-match? k entry-k)
-      (or (equal? entry-k k)
-        (and (symbol? entry-k) (string? k) (string=? (symbol->string entry-k) k))
-        (and (string? entry-k) (symbol? k) (string=? entry-k (symbol->string k)))
-      ) ;or
+      (let ((norm-k (if (or (equal? k 'is-error) (equal? k "is-error")) 'isError k))
+            (norm-ek (if (or (equal? entry-k 'is-error) (equal? entry-k "is-error"))
+                       'isError
+                       entry-k
+                     ) ;if
+            ) ;norm-ek
+           ) ;
+        (or (equal? norm-ek norm-k)
+          (and (symbol? norm-ek)
+            (string? norm-k)
+            (string=? (symbol->string norm-ek) norm-k)
+          ) ;and
+          (and (string? norm-ek)
+            (symbol? norm-k)
+            (string=? norm-ek (symbol->string norm-k))
+          ) ;and
+        ) ;or
+      ) ;let
     ) ;define
 
     (define (%find-assoc key lst)
@@ -93,6 +109,9 @@
             ((pi-settings? obj) (%find-assoc key (pi-settings->alist obj)))
             ((pi-credential? obj) (%find-assoc key (pi-credential->alist obj)))
             ((pi-model-metadata? obj) (%find-assoc key (pi-model-metadata->alist obj)))
+            ((pi-tool-definition? obj) (%find-assoc key (pi-tool-definition->alist obj)))
+            ((pi-tool-result? obj) (%find-assoc key (pi-tool-result->alist obj)))
+            ((pi-trunc-result? obj) (%find-assoc key (pi-trunc-result->alist obj)))
             ((pair? obj) (%find-assoc key obj))
             (else (%orig-assoc key obj))
       ) ;cond
@@ -125,6 +144,9 @@
             ((pi-event? x) (%normalize-json-value (pi-event->alist x)))
             ((pi-message? x) (%normalize-json-value (pi-message->alist x)))
             ((pi-block? x) (%normalize-json-value (pi-block->alist x)))
+            ((pi-tool-result? x) (%normalize-json-value (pi-tool-result->alist x)))
+            ((pi-tool-definition? x) (%normalize-json-value (pi-tool-definition->alist x)))
+            ((pi-trunc-result? x) (%normalize-json-value (pi-trunc-result->alist x)))
             ((vector? x) (list->vector (map %normalize-json-value (vector->list x))))
             ((and (pair? x) (every %json-object-entry? x))
              (let loop

@@ -248,23 +248,30 @@
 
 ;; get-tool-definition
 (let ((def (get-tool-definition "read")))
-  (check-true (pair? def))
+  (check-true (pi-tool-definition? def))
+  (check (pi-tool-definition-name def) => "read")
   (check (cdr (assoc 'name def)) => "read")
   (check (cdr (assoc 'snippet def)) => "Read file contents"))
 
 ;; execute-tool-call: 未知工具
 (let ((res (execute-tool-call "unknown_tool" '())))
+  (check-true (pi-tool-result? res))
+  (check (pi-tool-result-is-error res) => #t)
   (check (cdr (assoc 'isError res)) => #t)
   (check (vector-ref (cdr (assoc 'content res)) 0) => '((type . "text") (text . "Tool unknown_tool not found"))))
 
 ;; execute-tool-call: 工具 throw 错误被捕获转成 isError: #t 的结果，不让整轮失败
 (let ((res (execute-tool-call "read" '(("path" . "non_existent_file.xyz")))))
+  (check-true (pi-tool-result? res))
+  (check (pi-tool-result-is-error res) => #t)
   (check (cdr (assoc 'isError res)) => #t)
   (let ((text (cdr (assoc 'text (vector-ref (cdr (assoc 'content res)) 0)))))
     (check-true (string-contains? text "Path not found"))))
 
 ;; execute-tool-call: 成功调用返回 isError: #f
 (let ((res (execute-tool-call "read" (list (cons "path" test-file) (cons "limit" 1)))))
+  (check-true (pi-tool-result? res))
+  (check (pi-tool-result-is-error res) => #f)
   (check (cdr (assoc 'isError res)) => #f))
 
 (check-report)

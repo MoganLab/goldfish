@@ -19,6 +19,8 @@
     (liii string)
     (liii list)
     (liii pi truncate)
+    (liii pi tools types)
+    (liii pi tools record)
     (liii pi read)
     (liii pi write)
     (liii pi edit)
@@ -33,7 +35,19 @@
     pi-bash-schema pi-execute-bash pi-ls-schema pi-execute-ls pi-find-schema
     pi-execute-find pi-grep-schema pi-execute-grep pi-format-size
     pi-truncate-line pi-truncate-head pi-truncate-tail PI_DEFAULT_MAX_LINES
-    PI_DEFAULT_MAX_BYTES PI_GREP_MAX_LINE_LENGTH
+    PI_DEFAULT_MAX_BYTES PI_GREP_MAX_LINE_LENGTH pi-tool-definition
+    pi-tool-definition? pi-tool-definition-name pi-tool-definition-description
+    pi-tool-definition-parameters pi-tool-definition-execute
+    pi-tool-definition-snippet pi-tool-definition-guidelines
+    pi-tool-definition->alist pi-tool-result pi-tool-result?
+    pi-tool-result-content pi-tool-result-is-error pi-tool-result-isError
+    pi-tool-result->alist pi-trunc-result pi-trunc-result?
+    pi-trunc-result-content pi-trunc-result-truncated pi-trunc-result-truncated?
+    pi-trunc-result-truncated-by pi-trunc-result-total-lines
+    pi-trunc-result-total-bytes pi-trunc-result-output-lines
+    pi-trunc-result-output-bytes pi-trunc-result-first-line-exceeds-limit?
+    pi-trunc-result-first-line-truncated pi-trunc-result-last-line-partial?
+    pi-trunc-result-last-line-truncated pi-trunc-result->alist
   ) ;export
   (begin
 
@@ -79,13 +93,7 @@
     ) ;define
 
     (define (%make-tool-def name desc schema exec snippet guidelines)
-      (list (cons 'name name)
-        (cons 'description desc)
-        (cons 'parameters schema)
-        (cons 'execute exec)
-        (cons 'snippet snippet)
-        (cons 'guidelines guidelines)
-      ) ;list
+      (pi-tool-definition name desc schema exec snippet guidelines)
     ) ;define
 
     (define (%tool-def-read)
@@ -178,10 +186,7 @@
     ) ;define
 
     (define (%make-tool-result text is-error?)
-      (list
-        (cons 'content (vector (list (cons 'type "text") (cons 'text text))))
-        (cons 'isError is-error?)
-      ) ;list
+      (pi-tool-result text is-error?)
     ) ;define
 
     (define (%format-error-info info)
@@ -208,7 +213,7 @@
         (if (not def)
           (%make-tool-result (string-append "Tool " name " not found") #t)
           (catch #t
-            (lambda () (%run-tool-exec (cdr (assoc 'execute def)) name args opts))
+            (lambda () (%run-tool-exec (pi-tool-definition-execute def) name args opts))
             (lambda (tag . info) (%make-tool-result (%format-error-info info) #t))
           ) ;catch
         ) ;if

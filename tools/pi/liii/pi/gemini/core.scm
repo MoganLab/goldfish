@@ -96,19 +96,14 @@
     ) ;define
 
     (define* (%val key obj (default-val #f))
-      (cond
-       ((or (pair? obj) (pi-message? obj) (pi-block? obj))
-        (let ((p
-                (or (assoc key obj)
-                  (assoc (if (symbol? key) (symbol->string key) (string->symbol key)) obj)
-                ) ;or
-              ) ;p
-             ) ;
-          (if (pair? p) (cdr p) default-val)
-        ) ;let
-       ) ;
-       (else default-val)
-      ) ;cond
+      (let ((p
+              (or (assoc key obj)
+                (assoc (if (symbol? key) (symbol->string key) (string->symbol key)) obj)
+              ) ;or
+            ) ;p
+           ) ;
+        (if (pair? p) (cdr p) default-val)
+      ) ;let
     ) ;define*
 
     (define (%assistant-block->part blk)

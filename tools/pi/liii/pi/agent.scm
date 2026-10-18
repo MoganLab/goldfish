@@ -24,19 +24,16 @@
     (liii pi tools)
     (liii pi message)
     (liii pi event)
+    (liii pi tools types)
+    (liii pi tools record)
   ) ;import
   (export run-agent-loop extract-assistant-text)
   (begin
 
     (define (%assoc-val key alt-key obj default-val)
-      (cond
-       ((or (pair? obj) (pi-message? obj) (pi-block? obj))
-        (let ((pair (or (assoc key obj) (assoc alt-key obj))))
-          (if (pair? pair) (cdr pair) default-val)
-        ) ;let
-       ) ;
-       (else default-val)
-      ) ;cond
+      (let ((pair (or (assoc key obj) (assoc alt-key obj))))
+        (if (pair? pair) (cdr pair) default-val)
+      ) ;let
     ) ;define
 
     (define (%collect-text-blocks blks)
@@ -93,7 +90,11 @@
           (emit 'tool_execution_start id name args)
         ) ;when
         (let* ((raw-res (execute-tool-call name args :timeout timeout))
-               (is-err? (%assoc-val 'isError "isError" raw-res #f))
+               (is-err? (if (pi-tool-result? raw-res)
+                          (pi-tool-result-is-error raw-res)
+                          (%assoc-val 'isError "isError" raw-res #f)
+                        ) ;if
+               ) ;is-err?
                (text (%extract-tool-result-text raw-res))
                (tool-msg (%make-tool-result-msg id name text is-err?))
               ) ;

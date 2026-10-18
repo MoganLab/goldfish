@@ -55,14 +55,14 @@
     ) ;define
 
     (define (%format-tail-notice trunc)
-      (let* ((by (cdr (assoc 'truncated-by trunc)))
-             (total (cdr (assoc 'total-lines trunc)))
-             (out-lines (cdr (assoc 'output-lines trunc)))
-             (out-bytes (cdr (assoc 'output-bytes trunc)))
+      (let* ((by (pi-trunc-result-truncated-by trunc))
+             (total (pi-trunc-result-total-lines trunc))
+             (out-lines (pi-trunc-result-output-lines trunc))
+             (out-bytes (pi-trunc-result-output-bytes trunc))
              (start-line (+ (- total out-lines) 1))
              (end-line total)
             ) ;
-        (cond ((cdr (assoc 'last-line-partial? trunc))
+        (cond ((pi-trunc-result-last-line-partial? trunc)
                (string-append "\n\n[Showing last "
                  (pi-format-size out-bytes)
                  " of line "
@@ -95,8 +95,8 @@
 
     (define (%truncate-bash-output text)
       (let ((trunc (pi-truncate-tail text)))
-        (if (cdr (assoc 'truncated trunc))
-          (string-append (cdr (assoc 'content trunc)) (%format-tail-notice trunc))
+        (if (pi-trunc-result-truncated trunc)
+          (string-append (pi-trunc-result-content trunc) (%format-tail-notice trunc))
           text
         ) ;if
       ) ;let

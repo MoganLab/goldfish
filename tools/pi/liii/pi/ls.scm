@@ -116,8 +116,8 @@
               (let-values (((formatted limit-reached?) (%format-entries sorted abs-path effective-limit)))
                 (let* ((raw-output (string-join formatted "\n"))
                        (trunc (pi-truncate-head raw-output 999999 PI_DEFAULT_MAX_BYTES))
-                       (content (cdr (assoc 'content trunc)))
-                       (truncated? (cdr (assoc 'truncated trunc)))
+                       (content (pi-trunc-result-content trunc))
+                       (truncated? (pi-trunc-result-truncated trunc))
                        (notices (%build-notices limit-reached? effective-limit truncated?))
                       ) ;
                   (string-append content notices)

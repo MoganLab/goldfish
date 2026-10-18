@@ -89,13 +89,13 @@
     ) ;define
 
     (define (%format-read-output truncation raw-path start-display total-lines user-lines)
-      (let* ((output (cdr (assoc 'content truncation)))
-             (by (cdr (assoc 'truncated-by truncation)))
-             (out-lines (cdr (assoc 'output-lines truncation)))
+      (let* ((output (pi-trunc-result-content truncation))
+             (by (pi-trunc-result-truncated-by truncation))
+             (out-lines (pi-trunc-result-output-lines truncation))
              (end-display (+ start-display out-lines -1))
              (next-offset (+ end-display 1))
             ) ;
-        (cond ((cdr (assoc 'first-line-exceeds-limit? truncation))
+        (cond ((pi-trunc-result-first-line-exceeds-limit? truncation)
                (string-append "[Line "
                  (number->string start-display)
                  " is large, exceeds 50.0KB limit. Use bash: sed -n '"
@@ -105,7 +105,7 @@
                  " | head -c 51200]"
                ) ;string-append
               ) ;
-              ((cdr (assoc 'truncated truncation))
+              ((pi-trunc-result-truncated truncation)
                (let ((limit-note (if (eq? by 'lines) "" " (50.0KB limit)")))
                  (string-append output
                    "\n\n[Showing lines "
