@@ -201,34 +201,41 @@
       ) ;let*
     ) ;define
 
-    (define (%extract-blocks content-vec)
-      (let loop
-        ((i 0) (acc '()))
-        (if (>= i (vector-length content-vec))
-          (reverse acc)
-          (let* ((blk (vector-ref content-vec i)) (btype (%val "type" blk "")))
-            (cond
-             ((equal? btype "text")
-              (loop (+ i 1)
-                (cons (list (cons 'type "text") (cons 'text (%val "text" blk ""))) acc)
-              ) ;loop
-             ) ;
-             ((equal? btype "tool_use")
-              (loop (+ i 1)
-                (cons (list (cons 'type "toolCall")
-                        (cons 'id (%val "id" blk ""))
-                        (cons 'name (%val "name" blk ""))
-                        (cons 'arguments (%val "input" blk '()))
-                      ) ;list
-                  acc
-                ) ;cons
-              ) ;loop
-             ) ;
-             (else (loop (+ i 1) acc))
-            ) ;cond
-          ) ;let*
-        ) ;if
-      ) ;let
+    (define (%extract-blocks raw-content)
+      (let* ((content-vec (cond ((vector? raw-content) raw-content)
+                                ((list? raw-content) (list->vector raw-content))
+                                (else #())
+                          ) ;cond
+             ) ;content-vec
+            ) ;
+        (let loop
+          ((i 0) (acc '()))
+          (if (>= i (vector-length content-vec))
+            (reverse acc)
+            (let* ((blk (vector-ref content-vec i)) (btype (%val "type" blk "")))
+              (cond
+               ((equal? btype "text")
+                (loop (+ i 1)
+                  (cons (list (cons 'type "text") (cons 'text (%val "text" blk ""))) acc)
+                ) ;loop
+               ) ;
+               ((equal? btype "tool_use")
+                (loop (+ i 1)
+                  (cons (list (cons 'type "toolCall")
+                          (cons 'id (%val "id" blk ""))
+                          (cons 'name (%val "name" blk ""))
+                          (cons 'arguments (%val "input" blk '()))
+                        ) ;list
+                    acc
+                  ) ;cons
+                ) ;loop
+               ) ;
+               (else (loop (+ i 1) acc))
+              ) ;cond
+            ) ;let*
+          ) ;if
+        ) ;let
+      ) ;let*
     ) ;define
 
     (define (anthropic-parse-response json-data status-code)
@@ -251,8 +258,7 @@
               (cons 'errorMessage (%val "message" err "API error"))
             ) ;list
             (let* ((raw-c (%val "content" json-data #()))
-                   (c-vec (if (vector? raw-c) raw-c #()))
-                   (blocks (%extract-blocks c-vec))
+                   (blocks (%extract-blocks raw-c))
                    (stop-reason (anthropic-map-stop-reason raw-stop))
                   ) ;
               (list (cons 'role "assistant")

@@ -109,6 +109,48 @@ class StubHandler(http.server.BaseHTTPRequestHandler):
                 self.wfile.write(json.dumps(resp).encode("utf-8"))
                 return
 
+            if "/compat-gateway" in path:
+                if is_stream:
+                    self.send_response(200)
+                    self.send_header("Content-Type", "text/event-stream")
+                    self.send_header("Cache-Control", "no-cache")
+                    self.end_headers()
+                    evs = [
+                        ("message_start", {"type": "message_start", "message": {"id": "msg_cg1", "type": "message", "role": "assistant", "model": "glm-5-turbo", "content": [], "stop_reason": None, "usage": {"input_tokens": 0, "output_tokens": 0}}}),
+                        ("ping", {"type": "ping"}),
+                        ("content_block_start", {"type": "content_block_start", "index": 0, "content_block": {"type": "thinking", "thinking": "", "signature": ""}}),
+                        ("content_block_delta", {"type": "content_block_delta", "index": 0, "delta": {"type": "thinking_delta", "thinking": "Thinking process..."}}),
+                        ("content_block_delta", {"type": "content_block_delta", "index": 0, "delta": {"type": "signature_delta", "signature": "sig_abc"}}),
+                        ("content_block_stop", {"type": "content_block_stop", "index": 0}),
+                        ("content_block_start", {"type": "content_block_start", "index": 1, "content_block": {"type": "text", "text": ""}}),
+                        ("content_block_delta", {"type": "content_block_delta", "index": 1, "delta": {"type": "text_delta", "text": "Hello from compatible gateway!"}}),
+                        ("content_block_stop", {"type": "content_block_stop", "index": 1}),
+                        ("message_delta", {"type": "message_delta", "delta": {"stop_reason": "end_turn", "stop_sequence": None}, "usage": {"input_tokens": 15, "output_tokens": 8, "cache_read_input_tokens": 4}}),
+                        ("message_stop", {"type": "message_stop"})
+                    ]
+                    for ev_name, ev_data in evs:
+                        self.wfile.write(f"event: {ev_name}\ndata: {json.dumps(ev_data)}\n\n".encode("utf-8"))
+                        self.wfile.flush()
+                    return
+                else:
+                    resp = {
+                        "id": "msg_cg_nonstream",
+                        "type": "message",
+                        "role": "assistant",
+                        "model": "glm-5-turbo",
+                        "content": [
+                            {"type": "thinking", "thinking": "Thinking non-stream", "signature": "sig_1"},
+                            {"type": "text", "text": "Hello from compatible gateway non-stream!"}
+                        ],
+                        "stop_reason": "end_turn",
+                        "usage": {"input_tokens": 15, "output_tokens": 8, "cache_read_input_tokens": 4}
+                    }
+                    self.send_response(200)
+                    self.send_header("Content-Type", "application/json")
+                    self.end_headers()
+                    self.wfile.write(json.dumps(resp).encode("utf-8"))
+                    return
+
             if is_stream:
                 self.send_response(200)
                 self.send_header("Content-Type", "text/event-stream")

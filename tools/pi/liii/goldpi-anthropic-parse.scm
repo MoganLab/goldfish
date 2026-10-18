@@ -213,15 +213,37 @@
         ) ;when
         (when (pair? u)
           (let* ((cur-u (vector-ref stream-state 2))
-                 (out-tok (cdr (or (assoc "output_tokens" u) '(#f . 0))))
-                 (in-tok (cdr (or (assoc 'input cur-u) '(#f . 0))))
+                 (raw-out (or (assoc "output_tokens" u) (assoc 'output_tokens u)))
+                 (out-tok
+                   (if raw-out (cdr raw-out) (cdr (or (assoc 'output cur-u) '(#f
+                                                                              . 0))))
+                 ) ;out-tok
+                 (raw-in (or (assoc "input_tokens" u) (assoc 'input_tokens u)))
+                 (in-tok
+                   (if raw-in (cdr raw-in) (cdr (or (assoc 'input cur-u) '(#f
+                                                                           . 0))))
+                 ) ;in-tok
+                 (raw-cr (or (assoc "cache_read_input_tokens" u) (assoc 'cache_read_input_tokens u))
+                 ) ;raw-cr
+                 (c-read
+                   (if raw-cr (cdr raw-cr) (cdr (or (assoc 'cacheRead cur-u) '(#f
+                                                                               . 0))))
+                 ) ;c-read
+                 (raw-cw (or (assoc "cache_creation_input_tokens" u)
+                           (assoc 'cache_creation_input_tokens u)
+                         ) ;or
+                 ) ;raw-cw
+                 (c-write
+                   (if raw-cw (cdr raw-cw) (cdr (or (assoc 'cacheWrite cur-u) '(#f
+                                                                                . 0))))
+                 ) ;c-write
                 ) ;
             (vector-set! stream-state
               2
               (list (cons 'input in-tok)
                 (cons 'output out-tok)
-                (cons 'cacheRead (cdr (or (assoc 'cacheRead cur-u) '(#f . 0))))
-                (cons 'cacheWrite (cdr (or (assoc 'cacheWrite cur-u) '(#f . 0))))
+                (cons 'cacheRead c-read)
+                (cons 'cacheWrite c-write)
                 (cons 'totalTokens (+ in-tok out-tok))
               ) ;list
             ) ;vector-set!

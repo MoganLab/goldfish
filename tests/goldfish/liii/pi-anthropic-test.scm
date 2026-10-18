@@ -1,8 +1,4 @@
-(import (liii check)
-  (liii string)
-  (liii path)
-  (liii pi)
-) ;import
+(import (liii check) (liii string) (liii path) (liii pi))
 
 (check-set-mode! 'report-failed)
 
@@ -20,8 +16,7 @@
 (let* ((raw-usage '(("input_tokens" . 100)
                     ("output_tokens" . 45)
                     ("cache_read_input_tokens" . 20)
-                    ("cache_creation_input_tokens" . 10)
-                   ) ;raw-usage
+                    ("cache_creation_input_tokens" . 10))
        ) ;raw-usage
        (mapped (anthropic-map-usage raw-usage))
       ) ;
@@ -33,11 +28,13 @@
 ) ;let*
 
 ;; Anthropic tool declarations
-(let* ((tool-defs (list (list (cons 'name "bash")
-                          (cons 'description "Run bash")
-                          (cons 'parameters '(("type" . "object")))
-                        ) ;list
-                  ) ;list
+(let* ((tool-defs
+         (list
+           (list (cons 'name "bash")
+             (cons 'description "Run bash")
+             (cons 'parameters '(("type" . "object")))
+           ) ;list
+         ) ;list
        ) ;tool-defs
        (decls (anthropic-build-tool-declarations tool-defs))
       ) ;
@@ -50,24 +47,26 @@
 ) ;let*
 
 ;; Anthropic messages & tool results
-(let* ((msgs (list (list (cons 'role "user") (cons 'content "hello"))
-               (list (cons 'role "assistant")
-                 (cons 'content
-                   (list (list (cons 'type "toolCall")
-                           (cons 'id "call_1")
-                           (cons 'name "bash")
-                           (cons 'arguments '(("command" . "ls")))
-                         ) ;list
-                   ) ;list
-                 ) ;cons
+(let* ((msgs
+         (list (list (cons 'role "user") (cons 'content "hello"))
+           (list (cons 'role "assistant")
+             (cons 'content
+               (list
+                 (list (cons 'type "toolCall")
+                   (cons 'id "call_1")
+                   (cons 'name "bash")
+                   (cons 'arguments '(("command" . "ls")))
+                 ) ;list
                ) ;list
-               (list (cons 'role "toolResult")
-                 (cons 'toolCallId "call_1")
-                 (cons 'toolName "bash")
-                 (cons 'content (list (list (cons 'type "text") (cons 'text "file.txt"))))
-                 (cons 'isError #f)
-               ) ;list
-             ) ;list
+             ) ;cons
+           ) ;list
+           (list (cons 'role "toolResult")
+             (cons 'toolCallId "call_1")
+             (cons 'toolName "bash")
+             (cons 'content (list (list (cons 'type "text") (cons 'text "file.txt"))))
+             (cons 'isError #f)
+           ) ;list
+         ) ;list
        ) ;msgs
        (built (anthropic-build-messages msgs))
       ) ;
@@ -103,9 +102,16 @@
 ) ;let*
 
 ;; Anthropic build request body
-(let* ((msgs #((("role" . "user") ("content" . #((("type" . "text") ("text" . "hi")))))))
-       (body
-         (anthropic-build-request-body "claude-3-7-sonnet-20250219" msgs "You are pi" '() 4096)
+(let* ((msgs #((("role" . "user")
+                ("content" . #((("type" . "text") ("text" . "hi")))))
+             ) ;#
+       ) ;msgs
+       (body (anthropic-build-request-body "claude-3-7-sonnet-20250219"
+               msgs
+               "You are pi"
+               '()
+               4096
+             ) ;anthropic-build-request-body
        ) ;body
       ) ;
   (check (cdr (assoc "model" body)) => "claude-3-7-sonnet-20250219")
@@ -115,24 +121,50 @@
 ) ;let*
 
 ;; Anthropic parse response
-(let* ((resp '((("type" . "message")
-                ("role" . "assistant")
-                ("content" . #((("type" . "text") ("text" . "Hello from Claude"))))
-                ("stop_reason" . "end_turn")
-                ("usage" . (("input_tokens" . 12) ("output_tokens" . 6)))
-               ) ;
-              ) ;list
+(let* ((resp
+         '((("type" . "message")
+            ("role" . "assistant")
+            ("content" . #((("type" . "text") ("text" . "Hello from Claude"))))
+            ("stop_reason" . "end_turn")
+            ("usage" ("input_tokens" . 12) ("output_tokens" . 6))))
        ) ;resp
        (parsed (anthropic-parse-response (car resp) 200))
       ) ;
   (check (cdr (assoc 'role parsed)) => "assistant")
   (check (cdr (assoc 'stopReason parsed)) => "stop")
-  (let* ((content (cdr (assoc 'content parsed)))
-         (first-blk (car content))
-        ) ;
+  (let* ((content (cdr (assoc 'content parsed))) (first-blk (car content)))
     (check (cdr (assoc 'type first-blk)) => "text")
     (check (cdr (assoc 'text first-blk)) => "Hello from Claude")
   ) ;let*
+) ;let*
+
+;; Anthropic parse response with list content and thinking block (compatible gateway)
+(let* ((resp
+         '((type . "message")
+           (role . "assistant")
+           (content ((type . "thinking")
+                     (thinking . "Hmm...")
+                     (signature . "sig123"))
+             ((type . "text") (text . "Hello compatible!")))
+           (stop_reason . "end_turn")
+           (usage (input_tokens . 20)
+             (output_tokens . 10)
+             (cache_read_input_tokens . 5)))
+       ) ;resp
+       (parsed (anthropic-parse-response resp 200))
+      ) ;
+  (check (cdr (assoc 'role parsed)) => "assistant")
+  (check (cdr (assoc 'stopReason parsed)) => "stop")
+  (let* ((content (cdr (assoc 'content parsed))) (first-blk (car content)))
+    (check (length content) => 1)
+    (check (cdr (assoc 'type first-blk)) => "text")
+    (check (cdr (assoc 'text first-blk)) => "Hello compatible!")
+  ) ;let*
+  (let ((u (cdr (assoc 'usage parsed))))
+    (check (cdr (assoc 'input u)) => 20)
+    (check (cdr (assoc 'output u)) => 10)
+    (check (cdr (assoc 'cacheRead u)) => 5)
+  ) ;let
 ) ;let*
 
 ;; Anthropic retry error detection
@@ -146,29 +178,45 @@
 (check (anthropic-is-retriable-error? 0 "") => #t)
 
 ;; Anthropic model metadata resolution
-(let ((models-store '(("anthropic" . (("models" . #((("id" . "claude-3-7-sonnet-20250219")
-                                                     ("name" . "Claude 3.7 Sonnet")
-                                                     ("baseUrl" . "https://api.anthropic.com")
-                                                     ("contextWindow" . 200000)
-                                                     ("maxTokens" . 8192)))))))))
+(let ((models-store '(("anthropic"
+                       ("models"
+                        . #((("id" . "claude-3-7-sonnet-20250219")
+                             ("name" . "Claude 3.7 Sonnet")
+                             ("baseUrl" . "https://api.anthropic.com")
+                             ("contextWindow" . 200000)
+                             ("maxTokens" . 8192))
+                          ) ;#
+                       )))
+      ) ;models-store
+     ) ;
   ;; Matched Anthropic model
-  (let ((meta (pi-resolve-model-metadata "anthropic" "claude-3-7-sonnet-20250219" models-store '())))
+  (let ((meta (pi-resolve-model-metadata "anthropic"
+                "claude-3-7-sonnet-20250219"
+                models-store
+                '()
+              ) ;pi-resolve-model-metadata
+        ) ;meta
+       ) ;
     (check (cdr (assoc 'matched? meta)) => #t)
     (check (cdr (assoc 'id meta)) => "claude-3-7-sonnet-20250219")
     (check (cdr (assoc 'base-url meta)) => "https://api.anthropic.com")
     (check (cdr (assoc 'context-window meta)) => 200000)
-    (check (cdr (assoc 'max-tokens meta)) => 8192))
+    (check (cdr (assoc 'max-tokens meta)) => 8192)
+  ) ;let
   ;; Fallback Anthropic model
-  (let ((meta (pi-resolve-model-metadata "anthropic" "claude-custom" models-store '())))
+  (let ((meta (pi-resolve-model-metadata "anthropic" "claude-custom" models-store '()))
+       ) ;
     (check (cdr (assoc 'matched? meta)) => #f)
     (check (cdr (assoc 'id meta)) => "claude-custom")
     (check (cdr (assoc 'base-url meta)) => "https://api.anthropic.com")
     (check (cdr (assoc 'context-window meta)) => 200000)
-    (check (cdr (assoc 'max-tokens meta)) => 8192)))
+    (check (cdr (assoc 'max-tokens meta)) => 8192)
+  ) ;let
+) ;let
 
 ;; Anthropic provider key resolution with ANTHROPIC_API_KEY
-(let ((auth '())
-      (env '(("ANTHROPIC_API_KEY" . "sk-ant-test-12345"))))
-  (check (pi-resolve-provider-key "anthropic" auth env) => "sk-ant-test-12345"))
+(let ((auth '()) (env '(("ANTHROPIC_API_KEY" . "sk-ant-test-12345"))))
+  (check (pi-resolve-provider-key "anthropic" auth env) => "sk-ant-test-12345")
+) ;let
 
 (check-report)
