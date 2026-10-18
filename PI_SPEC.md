@@ -108,7 +108,17 @@ timeout 300 bin/gf pi -p --provider google "只回复：google-ok"
 timeout 300 bin/gf pi -p --provider anthropic "只回复：anthropic-ok"
 timeout 300 bin/gf pi -p --provider anthropic --tools bash "用 bash 运行 echo ok 并告诉我输出"
 
-# kimi-coding（TODO，见文末）
+# kimi-coding（支持 auth.json 中 api_key 凭据与 KIMI_API_KEY 环境变量，已实测通过）
+timeout 60 bin/gf pi --provider kimi-coding -p "请回复：kimi-ok"
+timeout 120 bin/gf pi --provider kimi-coding --tools bash -p "用 bash 运行 echo kimi-ok 并告诉我输出"
+
+# glm（智谱 GLM，基于 Anthropic 兼容网关，已实测通过）
+timeout 60 bin/gf pi --provider glm -p "请回复：glm-ok"
+timeout 120 bin/gf pi --provider glm --tools bash -p "用 bash 运行 echo glm-ok 并告诉我输出"
+
+# deepseek（DeepSeek，基于兼容网关，已实测通过）
+timeout 60 bin/gf pi --provider deepseek -p "请回复：deepseek-ok"
+timeout 120 bin/gf pi --provider deepseek --tools bash -p "用 bash 运行 echo deepseek-ok 并告诉我输出"
 ```
 
 注意：API 侧已对新增用户下线的模型会返回 404（如 gemini-2.5-pro），此时
@@ -169,9 +179,11 @@ timeout 120 bin/gf pi -p --model totally-fake-model "hi"
 ## 函数文档索引【可用】
 
 ```bash
-# (liii pi) 测试按"一个函数一个测试文件"组织（tests/liii/pi/<函数名>-test.scm）
-timeout 120 bin/gf doc --build-json     # 重建索引
-timeout 30 bin/gf doc "pi-event-session" # 查看函数源码与测试
+# 全量构建系统文档索引
+timeout 120 bin/gf doc --build-json
+# 若需检索 tools/pi 下的工具函数文档，带上 -I tools/pi：
+timeout 120 bin/gf -I tools/pi doc --build-json
+timeout 30 bin/gf -I tools/pi doc "pi-event-session" # 查看函数源码与测试
 ```
 
 ## 架构演进（目标态）
@@ -184,20 +196,36 @@ timeout 30 bin/gf doc "pi-event-session" # 查看函数源码与测试
 tools/pi/liii/
   pi.scm            # (liii pi)          门面：公开 API 再导出
   pi/
-    types.scm       # (liii pi types)    消息/usage/事件类型与构造（≈ ai/src/types.ts、agent/types.ts）
-    gemini.scm      # (liii pi gemini)   Gemini provider：请求构造/SSE/映射（≈ ai/src/api/google-*）
-    anthropic.scm   # (liii pi anthropic) Anthropic provider（≈ ai/src/api/anthropic-messages）
-    auth.scm        # (liii pi auth)     凭据解析（≈ ai/src/auth + core/auth-storage）
-    models.scm      # (liii pi models)   模型目录与元数据（≈ ai/src/models-store + model-catalog）
+    cli.scm         # (liii pi cli)      CLI 入口（gfproject.json 注册指向）
+    types.scm       # (liii pi types)    类型门面与再导出
+    message.scm     # (liii pi message)  消息 record 与类型定义（message/record.scm, message/types.scm）
+    event.scm       # (liii pi event)    事件 record 与类型定义（event/record.scm, event/types.scm）
+    tools.scm       # (liii pi tools)    工具 record 与类型定义（tools/record.scm, tools/types.scm）
+    config.scm      # (liii pi config)   配置 record 与类型定义（config/record.scm, config/types.scm）
+    models.scm      # (liii pi models)   模型目录解析与表格输出（models/list.scm）
+    gemini.scm      # (liii pi gemini)   Gemini provider（gemini/core, request, stream, stream-parse）
+    anthropic.scm   # (liii pi anthropic) Anthropic provider（anthropic/core, request, stream, stream-parse）
+    kimi.scm        # (liii pi kimi)     Kimi provider（kimi/core, msg, request, stream, stream-parse）
+    deepseek.scm    # (liii pi deepseek) DeepSeek provider（兼容网关路径与 OpenAI 协议）
+    provider.scm    # (liii pi provider) Provider 统一分发调度（含 glm 路由至 anthropic 链路）
+    auth.scm        # (liii pi auth)     凭据解析（auth.json + 环境变量 fallback）
     retry.scm       # (liii pi retry)    指数退避重试（≈ ai/src/utils/retry）
-    agent.scm       # (liii pi agent)    agent 循环与事件发射（≈ packages/agent）
-    tools.scm       # (liii pi tools)    七工具 + 截断 + 路径（≈ core/tools/）
-    config.scm      # (liii pi config)   settings/auth/models-store 只读读取（≈ core/config.ts）
+    agent.scm       # (liii pi agent)    Agent 循环与事件发射（≈ packages/agent）
     prompt.scm      # (liii pi prompt)   系统提示词与项目上下文（≈ core/system-prompt.ts）
     session.scm     # (liii pi session)  会话持久化与恢复（≈ core/session-manager.ts）
     args.scm        # (liii pi args)     参数解析与输入组装（≈ cli/）
     modes.scm       # (liii pi modes)    print/json 输出模式（≈ modes/print-mode + json-event）
-  cli.scm           # (liii pi cli)      CLI 入口（≈ main.ts；gfproject.json 注册指向）
+    read.scm        # (liii pi read)     read 工具
+    write.scm       # (liii pi write)    write 工具
+    edit.scm        # (liii pi edit)     edit 工具
+    bash.scm        # (liii pi bash)     bash 工具
+    grep.scm        # (liii pi grep)     grep 工具
+    find.scm        # (liii pi find)     find 工具
+    ls.scm          # (liii pi ls)       ls 工具
+    truncate.scm    # (liii pi truncate) 输出截断
+    help.scm        # (liii pi help)     帮助信息
+    time.scm        # (liii pi time)     时间辅助
+    template.scm    # (liii pi template) 模板辅助
 ```
 
 **无平铺族**：`(liii pi-xxx)` 形式的模块一律不存在——CLI 入口也是多级子库
@@ -205,9 +233,8 @@ tools/pi/liii/
 
 **分层与拆分规则**：二级子库（如 `(liii pi gemini)`）是**导出函数的层面**——
 对外公开该域的 API；单文件 300 行放不下就把实现继续拆到下一层子文件
-（如 `pi/gemini/request.scm`、`pi/gemini/sse.scm`，由 `(liii pi gemini)` 统一
-导出），与 `bin/gf check` 的 300 行硬约束一致。上面的子库清单只是例子，
-实际划分按代码自然边界走。
+（如 `pi/gemini/request.scm`、`pi/gemini/stream.scm`，由 `(liii pi gemini)` 统一
+导出），与 `bin/gf check` 的 300 行硬约束一致。
 
 **函数文档放哪**：goldfish 的函数文档 = 测试文件本身（`<函数名>-test.scm`，
 `gf doc` 从中提取源码与用法）。测试目录镜像源码库结构——`(liii pi gemini)`
@@ -217,17 +244,19 @@ tools/pi/liii/
 进度（2026-10-19）：
 - ✅ 任务 001：文件物理归口 `tools/pi/liii/`
 - ✅ 任务 002：测试迁至 `tools/pi/tests/liii/pi/`，doc 索引重建
-- 🔄 任务 003（进行中，第 3 轮）：命名统一与二级子库落位大部分完成
-  （types/gemini/anthropic/auth/models/retry/agent/tools/config/prompt/
-  session/args/modes 已在 `pi/` 下），剩余：消除 `(liii pi-xxx)` 平铺残留
-  （pi-agent/pi-args/pi-config/pi-session/pi-tools/pi-provider/pi-help/
-  pi-stream*/pi-anthropic* 迁入二级子库）、CLI 入口落到 `pi/cli.scm`
-  （`(liii pi cli)`）。
+- ✅ 任务 003：模块名与目录统一，彻底消除平铺模块，二级子库全部落位
+- ✅ 任务 004-007：事件、消息、配置、工具全面 record 化（保持外部兼容）
+- ✅ 任务 008：Kimi provider 完整支持（非流式、流式、工具调用与错误处理）
+- ✅ 任务 015：record 化收尾全量真实冒烟通过
+- ✅ 任务 017：测试去除对计划文档（PI_PLAN.md）的硬依赖
+- ✅ 任务 018：`--list-models` 命令支持与对齐格式化输出
+- ✅ 任务 019：GLM provider 完整支持（复用 Anthropic 兼容网关链路）
+- ✅ 任务 020：DeepSeek provider 完整支持（独立子库与兼容网关支持）
+- ✅ 任务 021：PR 1141 CI 跨平台全绿门禁修复（macOS/Linux/Windows）
 
 ## TODO（尚不能运行，随迭代补充）
 
-- [ ] **Kimi provider**：`~/.pi/agent/auth.json` 中已配置的 `kimi-coding`（type:"api_key"，仅 key/type 字段）尚未被消费；需参照 pi 源码（`~/git/pi`）中 Kimi 的端点与鉴权实现，支持 `--provider kimi-coding` 端到端。不涉及 OAuth。【进行中】
-- [ ] **4 字节 UTF-8 + '<' 挂起**：prompt 同时含 4 字节 UTF-8 字符（如 🚀、𠀀）与 `<` 时进程静默挂起且连 HTTP 300s 超时都不生效（复现：`timeout 60 bin/gf pi -p '🚀 <'`）。【修复中】
+- [ ] **4 字节 UTF-8 + '<' 挂起**：prompt 同时含 4 字节 UTF-8 字符（如 🚀、𠀀）与 `<` 时进程静默挂起且连 HTTP 300s 超时都不生效（复现：`timeout 60 bin/gf pi -p '🚀 <'`）。【待重做】
 - [ ] **thinking 内容**：思考级别的请求与解析。预期用法（实现时以 pi 实际 CLI 为准）：
 
   ```bash
@@ -269,7 +298,9 @@ tools/pi/liii/
 
 ## Provider 支持范围
 
-Provider 支持规划：**google（Gemini）**、**kimi-coding（Kimi，TODO）**、
-**deepseek 与 glm（TODO，任务 019——凭据取自 ~/.claude 生态配置，与 pi 共享发现
-机制）**。Anthropic 虽已实现，但本机无 Anthropic 官方访问权限（其兼容网关能力
-已被 glm 复用），不做 OAuth 凭据过期自动刷新。
+目前已支持五大 Provider：
+- **google（Gemini）**：官方原生 API（流式 SSE、function calling、思考能力预留）
+- **kimi-coding（Kimi）**：Moonshot AI 官方编码模型（OpenAI Chat Completions 协议兼容）
+- **deepseek（DeepSeek）**：DeepSeek 官方模型（基于兼容网关路径与 OpenAI 协议）
+- **glm（智谱 GLM）**：智谱大模型（基于 Anthropic Messages 兼容网关）
+- **anthropic（Anthropic）**：Anthropic 协议与兼容网关（凭据缺失明确报错，支持环境变量配置）
