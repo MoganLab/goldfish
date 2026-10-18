@@ -34,6 +34,7 @@
     (liii pi config)
     (liii pi gemini)
     (liii pi anthropic)
+    (liii pi kimi)
     (liii pi prompt)
     (liii pi message)
     (liii pi config types)
@@ -59,7 +60,11 @@
     gemini-build-contents gemini-build-request-body anthropic-map-stop-reason
     anthropic-map-usage anthropic-build-tool-declarations
     anthropic-build-messages anthropic-build-request-body
-    anthropic-parse-response anthropic-is-retriable-error?
+    anthropic-parse-response anthropic-is-retriable-error? kimi-map-stop-reason
+    kimi-map-usage kimi-build-tool-declarations kimi-build-messages
+    kimi-build-request-body kimi-parse-response kimi-is-retriable-error?
+    make-kimi-stream-decoder kimi-build-endpoint
+    kimi-build-tool-declarations-from-names kimi-request kimi-request-stream
     pi-resolve-prompt-input pi-load-project-context pi-build-system-prompt
     PI_BUILTIN_TOOL_SNIPPETS PI_BUILTIN_TOOL_GUIDELINES pi-iso-8601-utc-now
     pi-current-time-millis pi-serialize-event assoc pi-event? pi-event-type

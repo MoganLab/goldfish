@@ -21,6 +21,7 @@
     (liii time)
     (liii pi gemini)
     (liii pi anthropic)
+    (liii pi kimi)
     (liii pi tools)
     (liii pi message)
     (liii pi event)
@@ -147,10 +148,14 @@
     ) ;define
 
     (define (%request-provider-stream provider config msgs sys-prompt tools on-ev timeout)
-      (if (equal? provider "anthropic")
-        (anthropic-request-stream config msgs sys-prompt tools on-ev timeout)
-        (gemini-request-stream config msgs sys-prompt tools on-ev timeout)
-      ) ;if
+      (cond ((equal? provider "anthropic")
+             (anthropic-request-stream config msgs sys-prompt tools on-ev timeout)
+            ) ;
+            ((equal? provider "kimi-coding")
+             (kimi-request-stream config msgs sys-prompt tools on-ev timeout)
+            ) ;
+            (else (gemini-request-stream config msgs sys-prompt tools on-ev timeout))
+      ) ;cond
     ) ;define
 
     (define (%step-agent-turn config msgs system-prompt emit timeout)

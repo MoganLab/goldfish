@@ -19,4 +19,15 @@
   (check (pi-resolve-provider-key "unknown-provider" auth-empty '())
     => #f))
 
+;; kimi-coding 测试
+(let ((auth-with-kimi '(("kimi-coding" . "kimi-auth-key-123")))
+      (auth-empty '())
+      (env-with-kimi '(("KIMI_API_KEY" . "kimi-env-key-456"))))
+  (check (pi-resolve-provider-key "kimi-coding" auth-with-kimi env-with-kimi)
+    => "kimi-auth-key-123")
+  (check (pi-resolve-provider-key "kimi-coding" auth-empty env-with-kimi)
+    => "kimi-env-key-456")
+  (check (pi-resolve-provider-key "kimi-coding" auth-empty '())
+    => #f))
+
 (check-report)

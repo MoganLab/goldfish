@@ -42,6 +42,14 @@
          (meta (pi-resolve-model-metadata "google" "gemini-3.8-flash" models-store override-env)))
     (check (cdr (assoc 'base-url meta)) => "http://localhost:8080/v1beta")
     (check (cdr (assoc 'context-window meta)) => 500000)
-    (check (cdr (assoc 'max-tokens meta)) => 32000)))
+    (check (cdr (assoc 'max-tokens meta)) => 32000))
+
+  ;; kimi-coding 默认配置兜底
+  (let ((meta (pi-resolve-model-metadata "kimi-coding" "kimi-for-coding" '() '())))
+    (check (cdr (assoc 'matched? meta)) => #f)
+    (check (cdr (assoc 'id meta)) => "kimi-for-coding")
+    (check (cdr (assoc 'base-url meta)) => "https://api.kimi.com/coding/v1")
+    (check (cdr (assoc 'context-window meta)) => 262144)
+    (check (cdr (assoc 'max-tokens meta)) => 8192)))
 
 (check-report)

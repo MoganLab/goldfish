@@ -153,10 +153,10 @@
              ) ;env-model
              (settings-model (cdr (assoc 'default-model settings)))
              (settings-provider (cdr (assoc 'default-provider settings)))
-             (def-model (if (equal? provider "anthropic")
-                          "claude-3-7-sonnet-20250219"
-                          "gemini-3.8-flash"
-                        ) ;if
+             (def-model (cond ((equal? provider "anthropic") "claude-3-7-sonnet-20250219")
+                              ((equal? provider "kimi-coding") "kimi-for-coding")
+                              (else "gemini-3.8-flash")
+                        ) ;cond
              ) ;def-model
             ) ;
         (cond

@@ -113,6 +113,11 @@
             (and (string? v) (not (string-null? v)) v)
           ) ;let
          ) ;
+         ((string=? p-str "kimi-coding")
+          (let ((v (lookup-env-var "KIMI_API_KEY" opt-env)))
+            (and (string? v) (not (string-null? v)) v)
+          ) ;let
+         ) ;
          (else #f)
         ) ;cond
       ) ;let*

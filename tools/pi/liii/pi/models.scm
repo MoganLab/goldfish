@@ -111,26 +111,25 @@
     (define (pi-resolve-model-metadata provider model-id models-store . opt-env)
       (let* ((p-str (if (symbol? provider) (symbol->string provider) provider))
              (is-ant? (string=? p-str "anthropic"))
-             (def-url (if is-ant?
-                        "https://api.anthropic.com"
-                        "https://generativelanguage.googleapis.com/v1beta"
-                      ) ;if
+             (is-kimi? (string=? p-str "kimi-coding"))
+             (def-url (cond (is-ant? "https://api.anthropic.com")
+                            (is-kimi? "https://api.kimi.com/coding/v1")
+                            (else "https://generativelanguage.googleapis.com/v1beta")
+                      ) ;cond
              ) ;def-url
              (m (%find-model-in-list (%get-provider-models models-store p-str) model-id))
-             (def-cw (if is-ant? 200000 128000))
-             (def-mt (if is-ant? 8192 16384))
+             (raw-url (if m (%dict-ref m "baseUrl" def-url) def-url))
+             (norm-url (if (and is-kimi? (string=? raw-url "https://api.kimi.com/coding"))
+                         "https://api.kimi.com/coding/v1"
+                         raw-url
+                       ) ;if
+             ) ;norm-url
+             (def-cw (cond (is-ant? 200000) (is-kimi? 262144) (else 128000)))
+             (def-mt (cond (is-ant? 8192) (is-kimi? 8192) (else 16384)))
              (cw (if m (%dict-ref m "contextWindow" def-cw) def-cw))
              (mt (if m (%dict-ref m "maxTokens" def-mt) def-mt))
             ) ;
-        (let-values (((f-url f-cw f-mt)
-                      (%apply-meta-env-overrides (if m (%dict-ref m "baseUrl" def-url) def-url)
-                        cw
-                        mt
-                        opt-env
-                        p-str
-                      ) ;%apply-meta-env-overrides
-                     ) ;
-                    ) ;
+        (let-values (((f-url f-cw f-mt) (%apply-meta-env-overrides norm-url cw mt opt-env p-str)))
           (%make-pi-model-metadata model-id
             (if m (%dict-ref m "name" model-id) model-id)
             p-str
