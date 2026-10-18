@@ -571,7 +571,6 @@ glue_sleep (s7_scheme* sc) {
   glue_define (sc, name, desc, f_sleep, 1, 0);
 }
 
-
 static s7_pointer
 f_datetime_now (s7_scheme* sc, s7_pointer args) {
   // Get current time using tbox for year, month, day, etc.

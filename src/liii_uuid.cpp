@@ -46,8 +46,7 @@ f_uuid7 (s7_scheme* sc, s7_pointer args) {
     try {
       std::random_device rd;
       seed= ((uint64_t) rd () << 32) | rd ();
-    }
-    catch (...) {
+    } catch (...) {
       seed= (uint64_t) std::chrono::high_resolution_clock::now ().time_since_epoch ().count ();
     }
     if (seed == 0) {
@@ -59,9 +58,9 @@ f_uuid7 (s7_scheme* sc, s7_pointer args) {
   thread_local uint64_t last_ms    = 0;
   thread_local uint16_t last_rand_a= 0;
 
-  uint64_t now_ms= std::chrono::duration_cast<std::chrono::milliseconds> (
-                       std::chrono::system_clock::now ().time_since_epoch ())
-                       .count ();
+  uint64_t now_ms=
+      std::chrono::duration_cast<std::chrono::milliseconds> (std::chrono::system_clock::now ().time_since_epoch ())
+          .count ();
 
   if (now_ms > last_ms) {
     last_ms    = now_ms;
@@ -100,13 +99,9 @@ f_uuid7 (s7_scheme* sc, s7_pointer args) {
   bytes[15]      = (uint8_t) (rand_b & 0xFF);
 
   char buf[37];
-  snprintf (buf, sizeof (buf),
-            "%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x",
-            bytes[0], bytes[1], bytes[2], bytes[3],
-            bytes[4], bytes[5],
-            bytes[6], bytes[7],
-            bytes[8], bytes[9],
-            bytes[10], bytes[11], bytes[12], bytes[13], bytes[14], bytes[15]);
+  snprintf (buf, sizeof (buf), "%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x", bytes[0],
+            bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7], bytes[8], bytes[9], bytes[10],
+            bytes[11], bytes[12], bytes[13], bytes[14], bytes[15]);
 
   return s7_make_string (sc, buf);
 }
