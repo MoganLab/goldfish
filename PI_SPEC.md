@@ -261,6 +261,7 @@ tools/pi/liii/
 
 ## Provider 支持范围
 
-当前仅支持两个 provider：**google（Gemini）** 与 **kimi-coding（Kimi，TODO 中）**。
-Anthropic 虽已实现，但本机无 Anthropic 访问权限，不做 OAuth 凭据过期自动刷新，
-该路径不在维护范围内。
+Provider 支持规划：**google（Gemini）**、**kimi-coding（Kimi，TODO）**、
+**deepseek 与 glm（TODO，任务 019——凭据取自 ~/.claude 生态配置，与 pi 共享发现
+机制）**。Anthropic 虽已实现，但本机无 Anthropic 官方访问权限（其兼容网关能力
+已被 glm 复用），不做 OAuth 凭据过期自动刷新。
