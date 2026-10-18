@@ -18,10 +18,10 @@
 ) ;define
 
 (define stub-server-file
-  (if (file-exists? "tests/stub_gemini_server.py")
-    "tests/stub_gemini_server.py"
-    (if (file-exists? "tools/pi/tests/stub_gemini_server.py")
-      "tools/pi/tests/stub_gemini_server.py"
+  (if (file-exists? "tools/pi/tests/stub_gemini_server.py")
+    "tools/pi/tests/stub_gemini_server.py"
+    (if (file-exists? "tests/stub_gemini_server.py")
+      "tests/stub_gemini_server.py"
       "../../tools/pi/tests/stub_gemini_server.py"
     ) ;if
   ) ;if
@@ -135,6 +135,22 @@
     (check code => 0)
     (check-true (or (string-contains? out "Hello from Claude stub!")
                     (string-contains? out "from Claude stream!")))
+    (process-close p))
+
+  ;; 8. 错误路径退出码测试：模型错误时退出码必须为 1（§8 / 缺陷7）
+  (let* ((ant-env (append (list (cons "ANTHROPIC_API_KEY" "sk-ant-test-e2e")
+                                (cons "ANTHROPIC_BASE_URL" (string-append base-url "/error-400"))
+                                (cons "GF_PI_BASE_URL" (string-append base-url "/error-400")))
+                          test-env))
+         (cmd (list GF_BIN "pi" "--provider" "anthropic" "--model" "fake-model"
+                    "--print" "Hello Anthropic error"))
+         (p (process-spawn cmd :env ant-env :stdout 'pipe :stderr 'pipe))
+         (code (process-wait p 10000))
+         (out (process-read p :stream 'stdout))
+         (err (process-read p :stream 'stderr))
+        ) ;
+    (check code => 1)
+    (check-true (string-contains? err "HTTP 400"))
     (process-close p))
 
   (process-kill proc)

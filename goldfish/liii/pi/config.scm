@@ -233,11 +233,11 @@
     ) ;define
 
     (define (%apply-meta-env-overrides base-url context-window max-tokens opt-env provider)
-      (let* ((env-url (or (lookup-env-var "GF_PI_BASE_URL" opt-env)
-                        (and (string? provider)
-                          (string=? provider "anthropic")
-                          (lookup-env-var "ANTHROPIC_BASE_URL" opt-env)
-                        ) ;and
+      (let* ((env-url (or (and (string? provider)
+                            (string=? provider "anthropic")
+                            (lookup-env-var "ANTHROPIC_BASE_URL" opt-env)
+                          ) ;and
+                        (lookup-env-var "GF_PI_BASE_URL" opt-env)
                       ) ;or
              ) ;env-url
              (env-cw (lookup-env-var "GF_PI_CONTEXT_WINDOW" opt-env))

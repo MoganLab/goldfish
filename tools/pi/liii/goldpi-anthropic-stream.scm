@@ -66,12 +66,13 @@
       ) ;if
     ) ;define
 
-    (define (%make-stream-cb stream-state on-event effective-idle on-idle)
+    (define (%build-stream-cb stream-state on-event effective-idle on-idle err-acc)
       (let* ((last-act (time-second (current-time)))
              (decoder (make-anthropic-stream-decoder stream-state on-event))
             ) ;
         (lambda (chunk)
           (let ((now (time-second (current-time))))
+            (vector-set! err-acc 0 (string-append (vector-ref err-acc 0) chunk))
             (if (and effective-idle (> (- now last-act) effective-idle))
               (begin
                 (on-idle)
@@ -117,14 +118,46 @@
       ) ;list
     ) ;define
 
-    (define (%make-stream-error status resp)
+    (define (%parse-err-json body)
+      (catch #t
+        (lambda ()
+          (let ((json-data (string->json body)))
+            (and (pair? json-data)
+              (let ((err (cdr (or (assoc "error" json-data) '(#f . #f)))))
+                (cond
+                 ((pair? err) (cdr (or (assoc "message" err) '(#f . #f))))
+                 ((string? err) err)
+                 (else #f)
+                ) ;cond
+              ) ;let
+            ) ;and
+          ) ;let
+        ) ;lambda
+        (lambda (tag . args) #f)
+      ) ;catch
+    ) ;define
+
+    (define (%extract-anthropic-err-msg body status)
+      (let ((parsed-msg (%parse-err-json body)))
+        (if (and (string? parsed-msg) (not (string-null? parsed-msg)))
+          (string-append "HTTP " (number->string status) ": " parsed-msg)
+          (string-append "HTTP " (number->string status) " stream error")
+        ) ;if
+      ) ;let
+    ) ;define
+
+    (define (%make-stream-error status resp err-acc)
       (let* ((resp-err (or (%resp-field resp 'reason) (%resp-field resp 'error) ""))
              (err-text (if (string? resp-err) (string-trim resp-err) ""))
+             (acc-body (vector-ref err-acc 0))
              (err-msg
-               (if (and (zero? status) (not (string-null? err-text)))
+               (cond
+                ((and (zero? status) (not (string-null? err-text)))
                  (string-append "Request failed: " err-text)
-                 (string-append "HTTP " (number->string status) " stream error")
-               ) ;if
+                ) ;
+                ((not (string-null? acc-body)) (%extract-anthropic-err-msg acc-body status))
+                (else (string-append "HTTP " (number->string status) " stream error"))
+               ) ;cond
              ) ;err-msg
             ) ;
         (list (cons 'role "assistant")
@@ -170,11 +203,13 @@
           ((attempt 1))
           (let* ((stream-state (%init-anthropic-stream-state))
                  (idle-timed-out? #f)
-                 (cb (%make-stream-cb stream-state
+                 (err-acc (vector ""))
+                 (cb (%build-stream-cb stream-state
                        on-ev
                        eff-idle
                        (lambda () (set! idle-timed-out? #t))
-                     ) ;%make-stream-cb
+                       err-acc
+                     ) ;%build-stream-cb
                  ) ;cb
                  (resp (%post-stream url req-json-str headers proxy-alist cb timeout eff-idle))
                  (status (or (%resp-field resp 'status-code) 0))
@@ -186,10 +221,12 @@
                        (sleep 1.0)
                        (loop (+ attempt 1))
                      ) ;begin
-                     (%make-stream-error status resp)
+                     (%make-stream-error status resp err-acc)
                    ) ;if
                   ) ;
-                  ((zero? status) (%make-stream-error status resp))
+                  ((or (zero? status) (not (= status 200)))
+                   (%make-stream-error status resp err-acc)
+                  ) ;
                   (else (%finalize-stream stream-state))
             ) ;cond
           ) ;let*

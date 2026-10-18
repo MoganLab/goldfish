@@ -17,7 +17,14 @@ class StubHandler(http.server.BaseHTTPRequestHandler):
         
         path = self.path
         if "/v1/messages" in path:
-            if "/429-then-ok" in path:
+            if "error-400" in path or "/error-400" in self.headers.get("Host", "") or "/error-400" in path:
+                self.send_response(400)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(b'{"type":"error","error":{"type":"invalid_request_error","message":"model not found"}}')
+                return
+
+            if "429-then-ok" in path:
                 server = self.server
                 server.request_count = getattr(server, "request_count", 0) + 1
                 if server.request_count < 3:

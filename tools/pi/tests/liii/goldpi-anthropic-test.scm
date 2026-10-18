@@ -44,19 +44,11 @@
       ) ;
   (check-true (number? port))
 
-  (let ((config
-          `((provider . "anthropic")
-            (model-id . "claude-3-7-sonnet-20250219")
-            (api-key . "sk-ant-test-key")
-            (model-meta (base-url . ,base-url) (max-tokens . 4096))
-            (proxy-url . #f)
-            (tools "bash")
-            (settings (retry (enabled . #t)
-                        (max-retries . 3)
-                        (base-delay-ms . 10)
-                        (max-agent-delay-ms . 50))))
-        ) ;config
-       ) ;
+  (let ((config `((provider . "anthropic") (model-id . "claude-3-7-sonnet-20250219")
+                        (api-key . "sk-ant-test-key") (model-meta (base-url . ,base-url) (max-tokens . 4096))
+                        (proxy-url . #f) (tools "bash")
+                        (settings (retry (enabled . #t) (max-retries . 3)
+                                         (base-delay-ms . 10) (max-agent-delay-ms . 50))))))
 
     ;; 2.1 基础普通消息请求与回显验证
     (let* ((msgs '(((role . "user") (content . "hello claude"))))
@@ -251,42 +243,30 @@
     ) ;let*
 
     ;; 2.7.2 兼容网关非流式
-    (let* ((compat-cfg
-             `((provider . "anthropic")
-               (model-id . "glm-5-turbo")
-               (api-key . "sk-ant-test-key")
-               (model-meta (base-url
-                             . ,(string-append base-url "/compat-gateway"))
-                 (max-tokens . 4096))
-               (proxy-url . #f)
-               (tools "bash")
-               (settings))
-           ) ;compat-cfg
-           (resp
-             (anthropic-request compat-cfg
-               '(((role . "user") (content . "compat nonstream")))
-               #f
-               '("bash")
-               10
-             ) ;anthropic-request
-           ) ;resp
-          ) ;
+    (let* ((compat-cfg `((provider . "anthropic") (model-id . "glm-5-turbo")
+                         (api-key . "sk-ant-test-key")
+                         (model-meta (base-url . ,(string-append base-url "/compat-gateway")) (max-tokens . 4096))
+                         (proxy-url . #f) (tools "bash") (settings)))
+           (resp (anthropic-request compat-cfg '(((role . "user") (content . "compat nonstream"))) #f '("bash") 10)))
       (check (cdr (assoc 'role resp)) => "assistant")
       (check (cdr (assoc 'stopReason resp)) => "stop")
       (let* ((content (cdr (assoc 'content resp))) (first-blk (car content)))
         (check (length content) => 1)
         (check (cdr (assoc 'type first-blk)) => "text")
-        (check (cdr (assoc 'text first-blk))
-          =>
-          "Hello from compatible gateway non-stream!"
-        ) ;check
-      ) ;let*
+        (check (cdr (assoc 'text first-blk)) => "Hello from compatible gateway non-stream!"))
       (let ((u (cdr (assoc 'usage resp))))
         (check (cdr (assoc 'input u)) => 15)
         (check (cdr (assoc 'output u)) => 8)
-        (check (cdr (assoc 'cacheRead u)) => 4)
-      ) ;let
-    ) ;let*
+        (check (cdr (assoc 'cacheRead u)) => 4)))
+
+    ;; 2.8 错误路径测试：400 报错时返回 stopReason=error 并包含错误信息
+    (let* ((err-stream-cfg `((provider . "anthropic") (model-id . "fake-model")
+                            (api-key . "sk-ant-test-key")
+                            (model-meta (base-url . ,(string-append base-url "/error-400")) (max-tokens . 4096))
+                            (proxy-url . #f) (tools "bash") (settings)))
+           (resp (anthropic-request-stream err-stream-cfg '(((role . "user") (content . "cause 400"))) #f '("bash") #f 10)))
+      (check (cdr (assoc 'stopReason resp)) => "error")
+      (check-true (string-contains? (cdr (assoc 'errorMessage resp)) "model not found")))
   ) ;let
 
   (process-kill proc)
