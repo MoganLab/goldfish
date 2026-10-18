@@ -16,36 +16,28 @@
 
 (define-library (liii pi agent)
   (import (scheme base)
+    (scheme time)
     (liii string)
     (liii list)
-    (liii time)
     (liii pi gemini)
     (liii pi anthropic)
     (liii pi kimi)
     (liii pi deepseek)
-    (liii pi tools)
     (liii pi message)
     (liii pi event)
-    (liii pi tools types)
-    (liii pi tools record)
+    (liii pi agent tools)
   ) ;import
   (export run-agent-loop extract-assistant-text)
   (begin
-
-    (define (%assoc-val key alt-key obj default-val)
-      (let ((pair (or (assoc key obj) (assoc alt-key obj))))
-        (if (pair? pair) (cdr pair) default-val)
-      ) ;let
-    ) ;define
 
     (define (%collect-text-blocks blks)
       (let loop
         ((rest blks) (acc '()))
         (if (null? rest)
           (reverse acc)
-          (let* ((blk (car rest)) (t-val (%assoc-val 'type "type" blk "")))
+          (let* ((blk (car rest)) (t-val (pi-agent-assoc-val 'type "type" blk "")))
             (if (equal? t-val "text")
-              (let ((t (%assoc-val 'text "text" blk "")))
+              (let ((t (pi-agent-assoc-val 'text "text" blk "")))
                 (loop (cdr rest) (cons t acc))
               ) ;let
               (loop (cdr rest) acc)
@@ -56,84 +48,11 @@
     ) ;define
 
     (define (extract-assistant-text msg)
-      (let* ((content (%assoc-val 'content "content" msg '()))
+      (let* ((content (pi-agent-assoc-val 'content "content" msg '()))
              (texts (%collect-text-blocks content))
             ) ;
         (string-join texts "\n")
       ) ;let*
-    ) ;define
-
-    (define (%first-block-from-content c)
-      (cond
-       ((and (vector? c) (> (vector-length c) 0)) (vector-ref c 0))
-       ((and (pair? c) (or (pair? (car c)) (pi-block? (car c)))) (car c))
-       (else '())
-      ) ;cond
-    ) ;define
-
-    (define (%extract-tool-result-text res)
-      (let* ((c (%assoc-val 'content "content" res #()))
-             (first-blk (%first-block-from-content c))
-            ) ;
-        (%assoc-val 'text "text" first-blk "")
-      ) ;let*
-    ) ;define
-
-    (define (%make-tool-result-msg id name text is-err)
-      (pi-tool-result-message id name (list (pi-text-block text)) is-err)
-    ) ;define
-
-    (define (%execute-one-tool-call call emit timeout)
-      (let* ((id (%assoc-val 'id "id" call ""))
-             (name (%assoc-val 'name "name" call ""))
-             (args (%assoc-val 'arguments "arguments" call '()))
-            ) ;
-        (when (procedure? emit)
-          (emit 'tool_execution_start id name args)
-        ) ;when
-        (let* ((raw-res (execute-tool-call name args :timeout timeout))
-               (is-err? (if (pi-tool-result? raw-res)
-                          (pi-tool-result-is-error raw-res)
-                          (%assoc-val 'isError "isError" raw-res #f)
-                        ) ;if
-               ) ;is-err?
-               (text (%extract-tool-result-text raw-res))
-               (tool-msg (%make-tool-result-msg id name text is-err?))
-              ) ;
-          (when (procedure? emit)
-            (emit 'tool_execution_end id name raw-res is-err?)
-            (emit 'message_start tool-msg)
-            (emit 'message_end tool-msg)
-          ) ;when
-          tool-msg
-        ) ;let*
-      ) ;let*
-    ) ;define
-
-    (define (%execute-tool-calls tool-calls emit timeout)
-      (map (lambda (call) (%execute-one-tool-call call emit timeout)) tool-calls)
-    ) ;define
-
-    (define (%fail-tool-calls-length tool-calls emit)
-      (map
-        (lambda (call)
-          (let* ((id (%assoc-val 'id "id" call ""))
-                 (name (%assoc-val 'name "name" call ""))
-                 (tool-msg (%make-tool-result-msg id name
-                             "Tool call skipped: model output truncated by token limit"
-                             #t
-                           ) ;%make-tool-result-msg
-                 ) ;tool-msg
-                ) ;
-            (when (procedure? emit)
-              (emit 'message_start tool-msg)
-              (emit 'message_end tool-msg)
-            ) ;when
-            tool-msg
-          ) ;let*
-        ) ;lambda
-        tool-calls
-      ) ;map
     ) ;define
 
     (define (%make-max-turns-error)
@@ -144,8 +63,13 @@
       ) ;pi-assistant-message
     ) ;define
 
-    (define (%filter-tool-calls content)
-      (filter (lambda (c) (equal? (%assoc-val 'type "type" c "") "toolCall")) content)
+    (define (%make-session-timeout-error)
+      (pi-assistant-message '()
+        :stop-reason "error"
+        :error-message
+        "Session timeout exceeded: total execution deadline reached"
+        :usage '((input . 0) (output . 0) (total . 0))
+      ) ;pi-assistant-message
     ) ;define
 
     (define (%request-provider-stream provider config msgs sys-prompt tools on-ev timeout)
@@ -168,7 +92,7 @@
              (on-stream-ev
                (if (procedure? emit)
                  (lambda (ev)
-                   (let ((usage (%assoc-val 'usage "usage" ev '())))
+                   (let ((usage (pi-agent-assoc-val 'usage "usage" ev '())))
                      (emit 'message_update usage ev)
                    ) ;let
                  ) ;lambda
@@ -185,9 +109,9 @@
           (emit 'message_end resp)
         ) ;when
         (let* ((new-msgs (append msgs (list resp)))
-               (stop-reason (%assoc-val 'stopReason "stopReason" resp ""))
-               (content (%assoc-val 'content "content" resp '()))
-               (tool-calls (%filter-tool-calls content))
+               (stop-reason (pi-agent-assoc-val 'stopReason "stopReason" resp ""))
+               (content (pi-agent-assoc-val 'content "content" resp '()))
+               (tool-calls (pi-filter-tool-calls content))
               ) ;
           (values new-msgs stop-reason tool-calls resp)
         ) ;let*
@@ -198,7 +122,7 @@
       (if (equal? stop-reason "length")
         (if (null? tool-calls)
           new-msgs
-          (append new-msgs (%fail-tool-calls-length tool-calls emit))
+          (append new-msgs (pi-fail-tool-calls-length tool-calls emit))
         ) ;if
         new-msgs
       ) ;if
@@ -210,24 +134,18 @@
       ) ;when
     ) ;define
 
-    (define (%extract-tool-result-blocks msgs count)
-      (let* ((tail (list-tail msgs (- (length msgs) count))))
-        (list->vector
-          (map
-            (lambda (m)
-              (let* ((id (%assoc-val 'toolCallId "toolCallId" m ""))
-                     (name (%assoc-val 'toolName "toolName" m ""))
-                     (c (%assoc-val 'content "content" m '()))
-                     (text (%assoc-val 'text "text" (%first-block-from-content c) ""))
-                     (is-err? (%assoc-val 'isError "isError" m #f))
-                    ) ;
-                (pi-tool-result-message id name (list (pi-text-block text)) is-err?)
-              ) ;let*
-            ) ;lambda
-            tail
-          ) ;map
-        ) ;list->vector
-      ) ;let*
+    (define (%emit-agent-error err-msg msgs emit)
+      (let ((final-msgs (append msgs (list err-msg))))
+        (when (procedure? emit)
+          (emit 'turn_start)
+          (emit 'message_start err-msg)
+          (emit 'message_end err-msg)
+          (emit 'turn_end err-msg #())
+          (emit 'agent_end final-msgs #f)
+          (emit 'agent_settled #f)
+        ) ;when
+        final-msgs
+      ) ;let
     ) ;define
 
     (define* (run-agent-loop config
@@ -236,6 +154,7 @@
                (emit #f)
                (timeout 120)
                (max-turns 200)
+               (session-timeout 600)
              ) ;run-agent-loop
       (when (procedure? emit)
         (emit 'agent_start)
@@ -244,49 +163,56 @@
           initial-messages
         ) ;for-each
       ) ;when
-      (let loop
-        ((msgs initial-messages) (turn 0))
-        (if (and (> max-turns 0) (>= turn max-turns))
-          (let* ((err-msg (%make-max-turns-error)) (final-msgs (append msgs (list err-msg))))
-            (when (procedure? emit)
-              (emit 'turn_start)
-              (emit 'message_start err-msg)
-              (emit 'message_end err-msg)
-              (emit 'turn_end err-msg #())
-              (emit 'agent_end final-msgs #f)
-              (emit 'agent_settled #f)
-            ) ;when
-            final-msgs
-          ) ;let*
-          (let*-values (((new-msgs stop-reason tool-calls resp)
-                         (%step-agent-turn config msgs system-prompt emit timeout)
-                        ) ;
-                       ) ;
-            (if (equal? stop-reason "toolUse")
-              (let* ((tools-res (%execute-tool-calls tool-calls emit timeout))
-                     (all-msgs (append new-msgs tools-res))
-                     (res-vec (%extract-tool-result-blocks all-msgs (length tools-res)))
-                    ) ;
-                (%notify-turn-end emit resp res-vec)
-                (when (procedure? emit)
-                  (emit 'turn_start)
-                ) ;when
-                (loop all-msgs (+ turn 1))
-              ) ;let*
-              (let ((final-msgs (%finish-agent-turn new-msgs stop-reason tool-calls emit)))
-                (%notify-turn-end emit resp #())
-                (when (procedure? emit)
-                  (let ((aborted? (equal? stop-reason "aborted")))
-                    (emit 'agent_end final-msgs #f)
-                    (emit 'agent_settled aborted?)
-                  ) ;let
-                ) ;when
-                final-msgs
-              ) ;let
-            ) ;if
-          ) ;let*-values
-        ) ;if
-      ) ;let
+      (let* ((start-sec (current-second))
+             (deadline-sec (if (and (number? session-timeout) (> session-timeout 0))
+                             (+ start-sec session-timeout)
+                             #f
+                           ) ;if
+             ) ;deadline-sec
+            ) ;
+        (let loop
+          ((msgs initial-messages) (turn 0))
+          (cond ((and (number? session-timeout) (<= session-timeout 0))
+                 (%emit-agent-error (%make-session-timeout-error) msgs emit)
+                ) ;
+                ((and deadline-sec (> (current-second) deadline-sec))
+                 (%emit-agent-error (%make-session-timeout-error) msgs emit)
+                ) ;
+                ((and (> max-turns 0) (>= turn max-turns))
+                 (%emit-agent-error (%make-max-turns-error) msgs emit)
+                ) ;
+                (else
+                  (let*-values (((new-msgs stop-reason tool-calls resp)
+                                 (%step-agent-turn config msgs system-prompt emit timeout)
+                                ) ;
+                               ) ;
+                    (if (equal? stop-reason "toolUse")
+                      (let* ((tools-res (pi-execute-tool-calls tool-calls emit timeout))
+                             (all-msgs (append new-msgs tools-res))
+                             (res-vec (pi-extract-tool-result-blocks all-msgs (length tools-res)))
+                            ) ;
+                        (%notify-turn-end emit resp res-vec)
+                        (when (procedure? emit)
+                          (emit 'turn_start)
+                        ) ;when
+                        (loop all-msgs (+ turn 1))
+                      ) ;let*
+                      (let ((final-msgs (%finish-agent-turn new-msgs stop-reason tool-calls emit)))
+                        (%notify-turn-end emit resp #())
+                        (when (procedure? emit)
+                          (let ((aborted? (equal? stop-reason "aborted")))
+                            (emit 'agent_end final-msgs #f)
+                            (emit 'agent_settled aborted?)
+                          ) ;let
+                        ) ;when
+                        final-msgs
+                      ) ;let
+                    ) ;if
+                  ) ;let*-values
+                ) ;else
+          ) ;cond
+        ) ;let
+      ) ;let*
     ) ;define*
 
   ) ;begin

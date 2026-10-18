@@ -272,6 +272,23 @@
     (let ((tool-results (filter (lambda (m) (equal? (cdr (assoc 'role m)) "toolResult")) res-msgs)))
       (check (= (length tool-results) 1) => #t)))
 
+  ;; 13. session-timeout 兜底：多轮循环累计超时结构化退出
+  (let* ((cfg (list (cons 'provider "google")
+                    (cons 'api-key "test-stub-key")
+                    (cons 'model-id "multi-turn")
+                    (cons 'model-meta (list (cons 'base-url base-url)))
+                    (cons 'proxy-url #f)
+                    (cons 'tools '("read" "bash"))
+                    (cons 'settings '())
+                    (cons 'timeout 10)
+                    (cons 'max-turns 10)))
+         (init-msgs (list '((role . "user") (content . "Run multi steps"))))
+         ;; 传入 session-timeout = -1，迫使在第 1 轮 toolUse 之后立刻超时
+         (res-msgs (run-agent-loop cfg init-msgs "SysPrompt" #f 10 10 -1))
+         (last-msg (car (reverse res-msgs))))
+    (check (pi-assistant-message-stop-reason last-msg) => "error")
+    (check-true (string-contains? (pi-assistant-message-error-message last-msg) "Session timeout exceeded")))
+
   (process-kill proc)
 ) ;let*
 

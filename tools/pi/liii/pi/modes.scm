@@ -148,18 +148,25 @@
     ) ;define
 
     (define (run-agent-loop-with-timeout cfg init-msgs system-prompt emit parsed)
-      (let ((timeout
-              (or (pi-args-ref parsed 'timeout) (cdr (or (assoc 'timeout cfg) '(#f
-                                                                                . 120))))
-            ) ;timeout
-            (max-turns
-              (or (pi-args-ref parsed 'max-turns)
-                (cdr (or (assoc 'max-turns cfg) '(#f . 200)))
-              ) ;or
-            ) ;max-turns
-           ) ;
-        (run-agent-loop cfg init-msgs system-prompt emit timeout max-turns)
-      ) ;let
+      (let* ((timeout
+               (or (pi-args-ref parsed 'timeout) (cdr (or (assoc 'timeout cfg) '(#f
+                                                                                 . 120))))
+             ) ;timeout
+             (max-turns
+               (or (pi-args-ref parsed 'max-turns)
+                 (cdr (or (assoc 'max-turns cfg) '(#f . 200)))
+               ) ;or
+             ) ;max-turns
+             (session-timeout
+               (or (pi-args-ref parsed 'session-timeout)
+                 (cdr (or (assoc 'session-timeout cfg) '(#f . 600)))
+               ) ;or
+             ) ;session-timeout
+            ) ;
+        (run-agent-loop cfg init-msgs system-prompt emit timeout max-turns
+          session-timeout
+        ) ;run-agent-loop
+      ) ;let*
     ) ;define
 
     (define (emit-json-event ev-type . args)
