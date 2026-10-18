@@ -29,7 +29,13 @@
 
     (define (%resolve-model-id parsed-args settings opt-env provider)
       (let* ((cli-model (pi-args-ref parsed-args 'model))
-             (env-model (lookup-env-var "GF_PI_MODEL" opt-env))
+             (env-model (or (lookup-env-var "GF_PI_MODEL" opt-env)
+                          (if (equal? provider "anthropic")
+                            (lookup-env-var "ANTHROPIC_DEFAULT_SONNET_MODEL" opt-env)
+                            #f
+                          ) ;if
+                        ) ;or
+             ) ;env-model
              (settings-model (cdr (assoc 'default-model settings)))
              (settings-provider (cdr (assoc 'default-provider settings)))
              (def-model (if (equal? provider "anthropic")
