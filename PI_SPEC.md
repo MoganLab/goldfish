@@ -193,9 +193,15 @@ tools/pi/liii/
 的函数测试在 `tools/pi/tests/liii/pi/gemini/<函数名>-test.scm`，更深层子文件
 （`pi/gemini/request.scm`）的在其同名子目录下，以此类推。
 
-进度：文件迁移（任务 001）已完成——物理位置已归口 `tools/pi/liii/`；多级子库
-重组（任务 003）待执行，当前 `(liii pi)` 内部仍为平铺子模块，`(liii pi-cli)`
-为 CLI 入口。
+进度（2026-10-19）：
+- ✅ 任务 001：文件物理归口 `tools/pi/liii/`
+- ✅ 任务 002：测试迁至 `tools/pi/tests/liii/pi/`，doc 索引重建
+- 🔄 任务 003（进行中，第 3 轮）：命名统一与二级子库落位大部分完成
+  （types/gemini/anthropic/auth/models/retry/agent/tools/config/prompt/
+  session/args/modes 已在 `pi/` 下），剩余：消除 `(liii pi-xxx)` 平铺残留
+  （pi-agent/pi-args/pi-config/pi-session/pi-tools/pi-provider/pi-help/
+  pi-stream*/pi-anthropic* 迁入二级子库）、CLI 入口落到 `pi/cli.scm`
+  （`(liii pi cli)`）。
 
 ## TODO（尚不能运行，随迭代补充）
 
