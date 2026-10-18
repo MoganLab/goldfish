@@ -53,10 +53,16 @@
     ) ;define
 
     (define (%build-anthropic-headers api-key)
-      (list (cons "Content-Type" "application/json")
-        (cons "x-api-key" (or api-key ""))
-        (cons "anthropic-version" "2023-06-01")
-      ) ;list
+      (let ((base-headers (list (cons "Content-Type" "application/json")
+                            (cons "anthropic-version" "2023-06-01")
+                          ) ;list
+            ) ;base-headers
+           ) ;
+        (if (and (string? api-key) (string-starts? api-key "Bearer "))
+          (cons (cons "Authorization" api-key) base-headers)
+          (cons (cons "x-api-key" (or api-key "")) base-headers)
+        ) ;if
+      ) ;let
     ) ;define
 
     (define (%build-proxy-alist proxy-url)

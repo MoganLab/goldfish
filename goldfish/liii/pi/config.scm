@@ -197,7 +197,11 @@
           ) ;let
          ) ;
          ((string=? p-str "anthropic")
-          (let ((env-val (lookup-env-var "ANTHROPIC_API_KEY" opt-env)))
+          (let ((env-val (or (lookup-env-var "ANTHROPIC_API_KEY" opt-env)
+                           (lookup-env-var "ANTHROPIC_AUTH_TOKEN" opt-env)
+                         ) ;or
+                ) ;env-val
+               ) ;
             (if (and (string? env-val) (not (string-null? env-val))) env-val #f)
           ) ;let
          ) ;

@@ -144,6 +144,21 @@
       ) ;let
     ) ;define
 
+    (define (%run-agent-loop-with-timeout cfg init-msgs system-prompt emit parsed)
+      (let ((timeout
+              (or (pi-args-ref parsed 'timeout) (cdr (or (assoc 'timeout cfg) '(#f
+                                                                                . 120))))
+            ) ;timeout
+            (max-turns
+              (or (pi-args-ref parsed 'max-turns)
+                (cdr (or (assoc 'max-turns cfg) '(#f . 200)))
+              ) ;or
+            ) ;max-turns
+           ) ;
+        (run-agent-loop cfg init-msgs system-prompt emit timeout max-turns)
+      ) ;let
+    ) ;define
+
     (define (%run-agent-print-session cfg parsed initial-msg)
       (let*-values (((cwd) (path->string (path-cwd)))
                     ((sfile sdir) (setup-session-file parsed cfg cwd))
@@ -151,16 +166,7 @@
                    ) ;
         (%persist-initial-user-msg! parsed sdir sfile init-msgs)
         (let* ((system-prompt (%prepare-system-prompt cfg parsed))
-               (timeout
-                 (or (pi-args-ref parsed 'timeout) (cdr (or (assoc 'timeout cfg) '(#f
-                                                                                   . 120))))
-               ) ;timeout
-               (max-turns
-                 (or (pi-args-ref parsed 'max-turns)
-                   (cdr (or (assoc 'max-turns cfg) '(#f . 200)))
-                 ) ;or
-               ) ;max-turns
-               (res-msgs (run-agent-loop cfg init-msgs system-prompt #f timeout max-turns))
+               (res-msgs (%run-agent-loop-with-timeout cfg init-msgs system-prompt #f parsed))
                (last-msg (if (pair? res-msgs) (car (reverse res-msgs)) #f))
               ) ;
           (persist-new-messages! sfile init-msgs res-msgs)
@@ -169,26 +175,8 @@
       ) ;let*-values
     ) ;define
 
-    (define (%build-json-event ev-type args)
-      (case ev-type
-       ((session) (apply pi-event-session args))
-       ((agent_start) (pi-event-agent-start))
-       ((turn_start) (pi-event-turn-start))
-       ((message_start) (pi-event-message-start (car args)))
-       ((message_update) (pi-event-message-update (car args) (cadr args)))
-       ((message_end) (pi-event-message-end (car args)))
-       ((tool_execution_start) (apply pi-event-tool-execution-start args))
-       ((tool_execution_update) (apply pi-event-tool-execution-update args))
-       ((tool_execution_end) (apply pi-event-tool-execution-end args))
-       ((turn_end) (pi-event-turn-end (car args) (cadr args)))
-       ((agent_end) (pi-event-agent-end (car args) (cadr args)))
-       ((agent_settled) (pi-event-agent-settled (car args)))
-       (else #f)
-      ) ;case
-    ) ;define
-
     (define (%emit-json-event ev-type . args)
-      (let ((ev (%build-json-event ev-type args)))
+      (let ((ev (pi-build-json-event ev-type args)))
         (when ev
           (display (pi-serialize-event ev))
           (newline)
@@ -202,30 +190,30 @@
                     ((init-msgs) (setup-initial-messages parsed initial-msg sdir))
                    ) ;
         (%persist-initial-user-msg! parsed sdir sfile init-msgs)
+        (%emit-json-event 'session cwd)
         (let* ((system-prompt (%prepare-system-prompt cfg parsed))
-               (timeout
-                 (or (pi-args-ref parsed 'timeout) (cdr (or (assoc 'timeout cfg) '(#f
-                                                                                   . 120))))
-               ) ;timeout
-               (max-turns
-                 (or (pi-args-ref parsed 'max-turns)
-                   (cdr (or (assoc 'max-turns cfg) '(#f . 200)))
-                 ) ;or
-               ) ;max-turns
+               (res-msgs (%run-agent-loop-with-timeout cfg init-msgs
+                           system-prompt %emit-json-event parsed
+                         ) ;%run-agent-loop-with-timeout
+               ) ;res-msgs
               ) ;
-          (%emit-json-event 'session cwd)
-          (let ((res-msgs (run-agent-loop cfg init-msgs system-prompt %emit-json-event timeout max-turns)
-                ) ;res-msgs
-               ) ;
-            (persist-new-messages! sfile init-msgs res-msgs)
-            0
-          ) ;let
+          (persist-new-messages! sfile init-msgs res-msgs)
+          0
         ) ;let*
       ) ;let*-values
     ) ;define
 
     (define (%dispatch-goldpi parsed mode initial-msg rest-msgs)
-      (let* ((env (get-environment-variables)) (cfg (resolve-goldpi-config parsed env)))
+      (let* ((env (get-environment-variables))
+             (cfg (resolve-goldpi-config parsed env))
+             (provider (cdr (or (assoc 'provider cfg) '(#f . "google"))))
+             (api-key (cdr (or (assoc 'api-key cfg) '(#f . #f))))
+            ) ;
+        (when (or (not api-key) (and (string? api-key) (string-null? api-key)))
+          (error 'credential-error
+            (string-append "No credentials found for provider \"" provider "\"")
+          ) ;error
+        ) ;when
         (cond ((eq? mode 'print) (%run-agent-print-session cfg parsed initial-msg))
               ((eq? mode 'json) (%run-agent-json-session cfg parsed initial-msg))
               (else 0)
@@ -233,54 +221,60 @@
       ) ;let*
     ) ;define
 
-    (define (run-goldpi raw-args)
-      (catch #t
-        (lambda ()
-          (let* ((argv (strip-command-prefix raw-args)) (parsed (parse-pi-args argv)))
-            (if (pi-args-ref parsed 'help)
+    (define (%run-goldpi-main parsed)
+      (if (pi-args-ref parsed 'help)
+        (begin
+          (display-pi-help)
+          0
+        ) ;begin
+        (let* ((file-text (process-file-arguments (pi-args-ref parsed 'file-args)))
+               (stdin-content (if (not (stdin-tty?)) (read-all-stdin) #f))
+               (messages (pi-args-ref parsed 'messages))
+              ) ;
+          (let-values (((initial-msg rest-msgs)
+                        (build-initial-prompt stdin-content file-text messages)
+                       ) ;
+                      ) ;
+            (if (and (string-null? initial-msg)
+                  (null? rest-msgs)
+                  (not (pi-args-ref parsed 'continue))
+                ) ;and
               (begin
                 (display-pi-help)
                 0
               ) ;begin
-              (let* ((file-text (process-file-arguments (pi-args-ref parsed 'file-args)))
-                     (stdin-content (if (not (stdin-tty?)) (read-all-stdin) #f))
-                     (messages (pi-args-ref parsed 'messages))
-                    ) ;
-                (let-values (((initial-msg rest-msgs)
-                              (build-initial-prompt stdin-content file-text messages)
-                             ) ;
-                            ) ;
-                  (if (and (string-null? initial-msg)
-                        (null? rest-msgs)
-                        (not (pi-args-ref parsed 'continue))
-                      ) ;and
-                    (begin
-                      (display-pi-help)
-                      0
-                    ) ;begin
-                    (let ((mode (resolve-app-mode (pi-args-ref parsed 'mode)
-                                  (pi-args-ref parsed 'print)
-                                  (stdin-tty?)
-                                  (stdout-tty?)
-                                ) ;resolve-app-mode
-                          ) ;mode
-                         ) ;
-                      (%dispatch-goldpi parsed mode initial-msg rest-msgs)
-                    ) ;let
-                  ) ;if
-                ) ;let-values
-              ) ;let*
+              (let ((mode (resolve-app-mode (pi-args-ref parsed 'mode)
+                            (pi-args-ref parsed 'print)
+                            (stdin-tty?)
+                            (stdout-tty?)
+                          ) ;resolve-app-mode
+                    ) ;mode
+                   ) ;
+                (%dispatch-goldpi parsed mode initial-msg rest-msgs)
+              ) ;let
             ) ;if
+          ) ;let-values
+        ) ;let*
+      ) ;if
+    ) ;define
+
+    (define (%format-catch-error err-type info)
+      (cond
+       ((and (pair? info) (string? (car info))) (car info))
+       ((and (pair? info) (pair? (car info)) (string? (caar info))) (caar info))
+       (else (object->string (cons err-type info)))
+      ) ;cond
+    ) ;define
+
+    (define (run-goldpi raw-args)
+      (catch #t
+        (lambda ()
+          (let* ((argv (strip-command-prefix raw-args)) (parsed (parse-pi-args argv)))
+            (%run-goldpi-main parsed)
           ) ;let*
         ) ;lambda
         (lambda (err-type . info)
-          (let ((msg
-                  (if (and (pair? info) (string? (car info)))
-                    (car info)
-                    (object->string (cons err-type info))
-                  ) ;if
-                ) ;msg
-               ) ;
+          (let ((msg (%format-catch-error err-type info)))
             (%display-stderr (string-append "Error: " msg))
             1
           ) ;let

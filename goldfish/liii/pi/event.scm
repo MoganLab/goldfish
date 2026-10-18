@@ -27,9 +27,27 @@
     pi-event-message-start pi-event-message-update pi-event-message-end
     pi-event-tool-execution-start pi-event-tool-execution-update
     pi-event-tool-execution-end pi-event-turn-end pi-event-agent-end
-    pi-event-agent-settled
+    pi-event-agent-settled pi-build-json-event
   ) ;export
   (begin
+
+    (define (pi-build-json-event ev-type args)
+      (case ev-type
+       ((session) (apply pi-event-session args))
+       ((agent_start) (pi-event-agent-start))
+       ((turn_start) (pi-event-turn-start))
+       ((message_start) (pi-event-message-start (car args)))
+       ((message_update) (pi-event-message-update (car args) (cadr args)))
+       ((message_end) (pi-event-message-end (car args)))
+       ((tool_execution_start) (apply pi-event-tool-execution-start args))
+       ((tool_execution_update) (apply pi-event-tool-execution-update args))
+       ((tool_execution_end) (apply pi-event-tool-execution-end args))
+       ((turn_end) (pi-event-turn-end (car args) (cadr args)))
+       ((agent_end) (pi-event-agent-end (car args) (cadr args)))
+       ((agent_settled) (pi-event-agent-settled (car args)))
+       (else #f)
+      ) ;case
+    ) ;define
 
     (define (%pad-two-digits n)
       (if (< n 10) (string-append "0" (number->string n)) (number->string n))

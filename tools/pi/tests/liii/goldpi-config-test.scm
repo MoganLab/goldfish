@@ -55,7 +55,7 @@
        (cfg (resolve-goldpi-config args env)))
   (check (cdr (assoc 'proxy-url cfg)) => "socks5h://127.0.0.1:1080"))
 
-;; 5. CLI --provider "anthropic" 配合 $TEST_ANTHROPIC_KEY 插值
+;; 5. CLI --provider "anthropic" 配合 $TEST_ANTHROPIC_KEY 插值与 ANTHROPIC_AUTH_TOKEN
 (let* ((args (parse-pi-args '("--provider" "anthropic")))
        (env `(("PI_CODING_AGENT_DIR" . ,FIXTURE_DIR)
               ("TEST_ANTHROPIC_KEY" . "sk-ant-api-987654321")))
@@ -68,6 +68,13 @@
     (check (cdr (assoc 'base-url meta)) => "https://api.anthropic.com")
     (check (cdr (assoc 'context-window meta)) => 200000)
     (check (cdr (assoc 'max-tokens meta)) => 8192)))
+
+(let* ((args (parse-pi-args '("--provider" "anthropic")))
+       (env `(("PI_CODING_AGENT_DIR" . "non_existent_dir_xyz")
+              ("ANTHROPIC_AUTH_TOKEN" . "auth-token-bearer-123")))
+       (cfg (resolve-goldpi-config args env)))
+  (check (cdr (assoc 'provider cfg)) => "anthropic")
+  (check (cdr (assoc 'api-key cfg)) => "auth-token-bearer-123"))
 
 ;; 6. 未知自定义模型：使用兜底元数据，matched? 为 #f
 (let* ((args (parse-pi-args '("--model" "custom-experimental-model")))
