@@ -49,6 +49,8 @@ Anthropic 已实现但本机无访问权限，不在维护范围；其 OAuth 刷
   <函数名>-test.scm`。**文档跟着实现走，不跟导出走**——实现只有一个（在
   `pi/gemini/request.scm`），导出可以经多层（`(liii pi gemini)`、`(liii pi)`
   门面再导出），但函数的测试文件只放实现所在的那一处。
+  **单元测试不得引用三份计划文档**（`PI_PLAN.md`/`PI_SPEC.md`/`CLAUDE_CODE_PLAN.md`
+  可能被移除）——测试素材一律使用 fixtures 目录下的自建文件。
 - **配置复用**：`~/.pi/agent/`（settings/auth/models-store）只读，绝不写入；
   可用 `PI_CODING_AGENT_DIR` 重定向（测试 fixture 依赖它）。
 - **错误路径**：错误信息必须人可读且可诊断（含原因摘要），退出码语义按 print
@@ -89,6 +91,7 @@ Anthropic 已实现但本机无访问权限，不在维护范围；其 OAuth 刷
 | 013 | 图片输入 | `@图片`，用法见 PI_SPEC.md TODO；届时与用户确认后启动 | 远期 |
 | 015 | record 化·收尾全量冒烟 | record 化系列（004-007）完成后的全量真实冒烟：print/JSON/工具多轮/--continue/--provider 切换/错误路径，确认零回归；发现缺陷按编号追加修复任务 | 待执行 |
 | 016 | 文档与实况一致性校验 | 003-007 重构完成后：PI_SPEC.md 架构演进节、gfproject.json、devel 文档与代码实况逐项核对并修正；bin/gf doc 索引全量重建与抽查 | 待执行 |
+| 017 | 测试去除计划文档依赖 | 4 个测试文件（pi-execute-find/grep/read、pi-resolve-path 的测试）把 PI_PLAN.md 当测试素材，改为 fixtures 自建文件；修复后临时改名 PI_PLAN.md 跑全量测试验证无依赖 | 待执行 |
 | 014 | 缺陷修复·4字节UTF-8挂起 | prompt 含 4 字节 UTF-8 字符与 `<` 组合时静默挂起且流式空闲超时未兜底（复现 `timeout 60 bin/gf pi -p '🚀 <'`）；修复后真实冒烟通过 | 已回退（前置排查 3 次执行未修复，待 record 化系列完成后重做） |
 共同约束：
 - 每个任务常态三个 commit：`[编号][PLAN]`（建档）+ `[编号][REVIEW]`（代码）
