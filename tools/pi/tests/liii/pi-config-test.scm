@@ -100,4 +100,32 @@
   (check (resolve-active-tools args-override settings-with-delta)
     => '("read" "bash")))
 
+;; 9. CLI --provider "glm" 默认模型、端点与凭据解析
+(let* ((args (parse-pi-args '("--provider" "glm")))
+       (env `(("PI_CODING_AGENT_DIR" . "non_existent_dir_xyz")
+              ("ANTHROPIC_AUTH_TOKEN" . "glm-token-xyz-123")))
+       (cfg (resolve-pi-config args env)))
+  (check (cdr (assoc 'provider cfg)) => "glm")
+  (check (cdr (assoc 'model-id cfg)) => "glm-4-plus")
+  (check (cdr (assoc 'api-key cfg)) => "glm-token-xyz-123")
+  (let ((meta (cdr (assoc 'model-meta cfg))))
+    (check (cdr (assoc 'base-url meta)) => "https://open.bigmodel.cn/api/anthropic")
+    (check (cdr (assoc 'context-window meta)) => 128000)
+    (check (cdr (assoc 'max-tokens meta)) => 8192)))
+
+(let* ((args (parse-pi-args '("--provider" "glm")))
+       (env `(("PI_CODING_AGENT_DIR" . "non_existent_dir_xyz")
+              ("GLM_MODEL" . "glm-4-air")
+              ("GLM_API_KEY" . "glm-key-456")))
+       (cfg (resolve-pi-config args env)))
+  (check (cdr (assoc 'provider cfg)) => "glm")
+  (check (cdr (assoc 'model-id cfg)) => "glm-4-air")
+  (check (cdr (assoc 'api-key cfg)) => "glm-key-456"))
+
+(let* ((args (parse-pi-args '("--provider" "glm")))
+       (env `(("PI_CODING_AGENT_DIR" . "non_existent_dir_xyz"))))
+  (let ((cfg (resolve-pi-config args env)))
+    (check (cdr (assoc 'provider cfg)) => "glm")
+    (check (cdr (assoc 'api-key cfg)) => #f)))
+
 (check-report)

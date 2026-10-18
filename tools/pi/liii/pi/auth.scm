@@ -118,6 +118,16 @@
             (and (string? v) (not (string-null? v)) v)
           ) ;let
          ) ;
+         ((string=? p-str "glm")
+          (let ((v (or (lookup-env-var "ANTHROPIC_AUTH_TOKEN" opt-env)
+                     (lookup-env-var "GLM_API_KEY" opt-env)
+                     (lookup-env-var "ANTHROPIC_API_KEY" opt-env)
+                   ) ;or
+                ) ;v
+               ) ;
+            (and (string? v) (not (string-null? v)) v)
+          ) ;let
+         ) ;
          (else #f)
         ) ;cond
       ) ;let*

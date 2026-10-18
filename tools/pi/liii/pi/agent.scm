@@ -148,7 +148,7 @@
     ) ;define
 
     (define (%request-provider-stream provider config msgs sys-prompt tools on-ev timeout)
-      (cond ((equal? provider "anthropic")
+      (cond ((or (equal? provider "anthropic") (equal? provider "glm"))
              (anthropic-request-stream config msgs sys-prompt tools on-ev timeout)
             ) ;
             ((equal? provider "kimi-coding")

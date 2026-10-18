@@ -50,6 +50,24 @@
     (check (cdr (assoc 'id meta)) => "kimi-for-coding")
     (check (cdr (assoc 'base-url meta)) => "https://api.kimi.com/coding/v1")
     (check (cdr (assoc 'context-window meta)) => 262144)
-    (check (cdr (assoc 'max-tokens meta)) => 8192)))
+    (check (cdr (assoc 'max-tokens meta)) => 8192))
+
+  ;; glm 默认配置兜底
+  (let ((meta (pi-resolve-model-metadata "glm" "glm-4-plus" '() '())))
+    (check (cdr (assoc 'matched? meta)) => #f)
+    (check (cdr (assoc 'id meta)) => "glm-4-plus")
+    (check (cdr (assoc 'base-url meta)) => "https://open.bigmodel.cn/api/anthropic")
+    (check (cdr (assoc 'context-window meta)) => 128000)
+    (check (cdr (assoc 'max-tokens meta)) => 8192))
+
+  ;; glm 通过 ANTHROPIC_BASE_URL 覆盖端点
+  (let* ((env '(("ANTHROPIC_BASE_URL" . "https://custom.bigmodel.cn/api/anthropic")))
+         (meta (pi-resolve-model-metadata "glm" "glm-4-plus" '() env)))
+    (check (cdr (assoc 'base-url meta)) => "https://custom.bigmodel.cn/api/anthropic"))
+
+  ;; glm 通过 GF_PI_BASE_URL 覆盖端点
+  (let* ((env '(("GF_PI_BASE_URL" . "https://proxy.example.com/api/anthropic")))
+         (meta (pi-resolve-model-metadata "glm" "glm-4-plus" '() env)))
+    (check (cdr (assoc 'base-url meta)) => "https://proxy.example.com/api/anthropic")))
 
 (check-report)

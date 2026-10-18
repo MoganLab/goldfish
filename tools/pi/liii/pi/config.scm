@@ -144,17 +144,21 @@
 
     (define (%resolve-model-id parsed-args settings opt-env provider)
       (let* ((cli-model (pi-args-ref parsed-args 'model))
-             (env-model (or (lookup-env-var "GF_PI_MODEL" opt-env)
-                          (if (equal? provider "anthropic")
-                            (lookup-env-var "ANTHROPIC_DEFAULT_SONNET_MODEL" opt-env)
-                            #f
-                          ) ;if
-                        ) ;or
+             (env-model
+               (or (lookup-env-var "GF_PI_MODEL" opt-env)
+                 (cond ((equal? provider "anthropic")
+                        (lookup-env-var "ANTHROPIC_DEFAULT_SONNET_MODEL" opt-env)
+                       ) ;
+                       ((equal? provider "glm") (lookup-env-var "GLM_MODEL" opt-env))
+                       (else #f)
+                 ) ;cond
+               ) ;or
              ) ;env-model
              (settings-model (cdr (assoc 'default-model settings)))
              (settings-provider (cdr (assoc 'default-provider settings)))
              (def-model (cond ((equal? provider "anthropic") "claude-3-7-sonnet-20250219")
                               ((equal? provider "kimi-coding") "kimi-for-coding")
+                              ((equal? provider "glm") "glm-4-plus")
                               (else "gemini-3.8-flash")
                         ) ;cond
              ) ;def-model
