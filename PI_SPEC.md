@@ -76,17 +76,41 @@ timeout 300 bin/gf pi --no-session -p "一次性问题"
 ## 模型与 provider【可用】
 
 ```bash
-# 默认走 settings.defaultProvider（本机 google）
+# 默认走 settings.defaultProvider + settings.defaultModel（本机 google / gemini-3.8-flash）
 timeout 300 bin/gf pi -p "hi"
+```
 
-# 指定 provider 与模型
-timeout 300 bin/gf pi -p --provider google --model gemini-3.8-flash "hi"
+同一 provider 切换不同模型（均已实测成功；完整模型清单见
+`~/.pi/agent/models-store.json` 的 google.models）：
+
+```bash
+# flash 系列（不同版本）
+timeout 120 bin/gf pi -p --model gemini-3.8-flash "只回复：ok"   # 默认模型
+timeout 120 bin/gf pi -p --model gemini-3.5-flash "只回复：ok"   # ✅ 实测通过
+timeout 240 bin/gf pi -p --model gemini-3.1-pro-preview "只回复：ok"  # ✅ pro 系列，实测通过
+
+# 模型元数据解析顺序：--model 精确匹配 models-store 条目，取不到则用兜底值
+# （contextWindow=128000 / maxTokens=16384）并向 stderr 发 warning
+```
+
+不同 provider 切换（均已实测成功）：
+
+```bash
+# google（Gemini，默认 provider；同样可显式指定）
+timeout 300 bin/gf pi -p --provider google "只回复：google-ok"
 
 # Anthropic（支持 ANTHROPIC_BASE_URL 兼容网关与 ANTHROPIC_AUTH_TOKEN 环境变量；
 # 凭据缺失时明确报错退出码 1）
-timeout 300 bin/gf pi -p --provider anthropic "只回复两个字：好的"
+timeout 300 bin/gf pi -p --provider anthropic "只回复：anthropic-ok"
 timeout 300 bin/gf pi -p --provider anthropic --tools bash "用 bash 运行 echo ok 并告诉我输出"
 
+# kimi-coding（TODO，见文末）
+```
+
+注意：API 侧已对新增用户下线的模型会返回 404（如 gemini-2.5-pro），此时
+stderr 输出人可读的 404 详情、退出码 1——这是正确的错误路径而非缺陷。
+
+```bash
 # 覆盖代理（socks5h:// 域名解析也走代理；http/https 代理亦可）
 timeout 300 bin/gf pi -p --proxy socks5h://127.0.0.1:1080 "hi"
 ```
