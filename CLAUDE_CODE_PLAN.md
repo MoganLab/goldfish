@@ -153,6 +153,10 @@ CODE commit = 代码改动；REVIEW commit = `tools/pi/devel/ddd.scm`（**验收
 （补执行记录、按实况修正验收点描述）——两个文件可同入 REVIEW commit。
 每个任务在 devel 下留下成对文件。
 
+**验收脚本规范**：ddd.scm 是 Scheme 脚本（`bin/gf tools/pi/devel/ddd.scm` 直接
+运行），内部用 `(liii subprocess)` 的 `run` 执行外部命令——**必带 `:timeout`**
+（与仓库防卡死规范一致），对每步断言退出码与关键输出（`(liii check)`）。
+
 ```bash
 # 文档阶段：登记+建档（产物 tools/pi/devel/ddd.md）
 timeout 900 pi -a -p @PI_PLAN.md "执行任务 ddd 的文档阶段：读 §3 任务表中任务 ddd 的验收点，从 tools/pi/devel/ddd.md 模板建立 tools/pi/devel/ddd.md（填写状态/代码文件/验收点/测试方法），commit 信息 [ddd][PLAN] 任务名：建档"

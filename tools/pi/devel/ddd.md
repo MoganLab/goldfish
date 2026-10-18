@@ -41,6 +41,12 @@ timeout 300 bin/gf test tools/pi/tests/liii/<相关测试>.scm
 
 （实现思路与难点，可省略）
 
+## 验收脚本（REVIEW 阶段产物 ddd.scm 的写法）
+
+- Scheme 脚本，`bin/gf tools/pi/devel/ddd.scm` 直接运行。
+- 外部命令一律用 `(liii subprocess)` 的 `run` 执行，**必带 `:timeout`**；
+  每步用 `(liii check)` 断言退出码与关键输出。
+
 ## 提交清单
 
 - `[ddd] 任务名：简述`（commit hash）
