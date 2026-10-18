@@ -91,7 +91,8 @@ Anthropic 已实现但本机无访问权限，不在维护范围；其 OAuth 刷
 | 013 | 图片输入 | `@图片`，用法见 PI_SPEC.md TODO；届时与用户确认后启动 | 远期（放在最后：Kimi/deepseek/glm/--list-models 等核心任务全部完成后再按需启动） |
 | 015 | record 化·收尾全量冒烟 | record 化系列（004-007）完成后的全量真实冒烟：print/JSON/工具多轮/--continue/--provider 切换/错误路径，确认零回归；发现缺陷按编号追加修复任务 | 进行中（开发阶段，执行者 bin/gf pi） |
 | 016 | 文档与实况一致性校验 | 003-007 重构完成后：PI_SPEC.md 架构演进节、gfproject.json、devel 文档与代码实况逐项核对并修正；bin/gf doc 索引全量重建与抽查 | 待执行 |
-| 019 | deepseek 与 glm provider 支持【用户裁定】 | 支持 `--provider deepseek` 与 `--provider glm`：调研 `~/.claude` 生态配置（已知 glm 走 ANTHROPIC_BASE_URL=open.bigmodel.cn/api/anthropic + ANTHROPIC_AUTH_TOKEN 环境变量；deepseek 的 key 位置需调研）确定凭据来源与端点（glm 可走 anthropic 兼容、deepseek 走 OpenAI 兼容或其官方 API）；凭据发现与 pi 共享机制一致（环境变量/共享配置）；stub 测试 + 真实冒烟通过 | 待执行 |
+| 019 | glm provider 支持【用户裁定：与 deepseek 分开做】 | 支持 `--provider glm`：复用 anthropic 兼容路径（已知走 ANTHROPIC_BASE_URL=open.bigmodel.cn/api/anthropic + ANTHROPIC_AUTH_TOKEN 环境变量），凭据发现与 pi 共享机制一致；stub 测试 + 真实冒烟（纯文本 + 工具往返）通过 | 待执行 |
+| 020 | deepseek provider 支持【用户裁定：单独做】 | 支持 `--provider deepseek`：调研 deepseek 的 key 位置（~/.claude 生态）与端点（OpenAI 兼容或官方 API），凭据发现与 pi 共享机制一致；stub 测试 + 真实冒烟通过 | 待执行 |
 | 018 | `--list-models` 支持 | `bin/gf pi --list-models` 列出可用模型（默认当前 provider，可配 `--provider` 过滤；从 models-store.json 读 id/contextWindow/maxTokens，格式对齐 pi --list-models）；用法写入 PI_SPEC | 待执行 |
 | 017 | 测试去除计划文档依赖 | 4 个测试文件（pi-execute-find/grep/read、pi-resolve-path 的测试）把 PI_PLAN.md 当测试素材，改为 fixtures 自建文件；修复后临时改名 PI_PLAN.md 跑全量测试验证无依赖 | 已完成 |
 | 014 | 缺陷修复·4字节UTF-8挂起 | prompt 含 4 字节 UTF-8 字符与 `<` 组合时静默挂起且流式空闲超时未兜底（复现 `timeout 60 bin/gf pi -p '🚀 <'`）；修复后真实冒烟通过 | 已回退（前置排查 3 次执行未修复，待 record 化系列完成后重做） |
