@@ -30,9 +30,10 @@ Anthropic 已实现但本机无访问权限，不在维护范围；其 OAuth 刷
 - **超时规范（强制）**：每一条命令、每一次 IO 都必须有超时。bash 工具必传
   `:timeout`（默认取 `--timeout`，120s）；单次 HTTP 默认 300s；流式读取必须有
   空闲超时兜底；任何路径不允许静默挂起，超时必须结构化报错（退出码 1）。
-- **提交规范（强制）**：提交越小越好，一个提交只做一件事；每个 commit 前必须
-  依次通过 `timeout 600 xmake b goldfish`、`bin/gf fmt`、`git diff --exit-code`、
-  `bin/gf check` 与相关测试；测试与实现同 commit；信息格式 `[x_y] 单行`。
+- **提交规范（强制）**：**一个任务编号对应一个 commit**（§3 任务表的编号即提交
+  单元，测试与实现同 commit）；commit 前必须依次通过 `timeout 600 xmake b goldfish`、
+  `bin/gf fmt`、`git diff --exit-code`、`bin/gf check` 与相关测试；
+  提交信息格式 `[编号] 任务名：简述`（如 `[001] Kimi·非流式最小可用`）。
 - **测试规范**：TDD，先写测试再实现；测试按 goldfish 惯例**一个函数一个测试文件**
   （`tests/liii/<模块>/<函数名>-test.scm`），改测试后 `bin/gf doc --build-json`。
 - **配置复用**：`~/.pi/agent/`（settings/auth/models-store）只读，绝不写入；
@@ -71,12 +72,14 @@ Anthropic 已实现但本机无访问权限，不在维护范围；其 OAuth 刷
 | 013 | 图片输入 | `@图片`，用法见 PI_SPEC.md TODO；届时与用户确认后启动 | 远期 |
 
 共同约束：
+- 每个任务编号恰好对应一个 commit（观测 git log 即知任务进度）；任务内改动
+  在工作区完成，验收点全部通过后一次性提交。
 - 任务 1-4（Kimi）凭据事实：auth.json `kimi-coding` 为 type:"api_key"，仅
   key/type 字段，无 OAuth。
 - 任务 5-7（迁移）动机：核心库只服务于 pi 子命令，不属于通用 liii 库；完成后由
   Claude 更新 PI_PLAN/PI_SPEC 中的路径描述。
 - 任务 8-11（record 化）外部行为零变化（JSON 输出、CLI 行为、事件序列不变），
-  全部既有测试不回归；先补访问器测试再迁移实现，一组一提交。
+  全部既有测试不回归；先补访问器测试再迁移实现。
 
 ## 4. Non-goals（不做项，用户裁定）
 
