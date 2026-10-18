@@ -19,6 +19,7 @@
     (liii string)
     (liii json)
     (liii sse)
+    (liii pi message)
     (liii pi gemini core)
   ) ;import
   (export emit-text-start-and-delta append-text-block
@@ -86,10 +87,7 @@
         #t
         (if (not (string? last-text))
           (begin
-            (vector-set! stream-state
-              0
-              (append blocks (list (list (cons 'type "text") (cons 'text t))))
-            ) ;vector-set!
+            (vector-set! stream-state 0 (append blocks (list (pi-text-block t))))
             (vector-set! stream-state 1 t)
             (emit-text-start-and-delta on-event cur-idx t usage)
           ) ;begin
@@ -98,7 +96,7 @@
                    (let loop
                      ((lst blocks) (acc '()))
                      (if (null? (cdr lst))
-                       (append (reverse acc) (list (list (cons 'type "text") (cons 'text new-t))))
+                       (append (reverse acc) (list (pi-text-block new-t)))
                        (loop (cdr lst) (cons (car lst) acc))
                      ) ;if
                    ) ;let
@@ -132,18 +130,7 @@
                  (gemini-generate-tool-call-id name 0 (+ (length blocks) 1))
                ) ;if
              ) ;eff-id
-             (tc-blk
-               (append (list (cons 'type "toolCall")
-                         (cons 'id eff-id)
-                         (cons 'name name)
-                         (cons 'arguments args)
-                       ) ;list
-                 (if (and (string? ts) (not (string-null? ts)))
-                   (list (cons 'thoughtSignature ts))
-                   '()
-                 ) ;if
-               ) ;append
-             ) ;tc-blk
+             (tc-blk (pi-tool-call-block eff-id name args :thought-signature ts))
              (cur-idx (length blocks))
              (tool-calls (vector-ref stream-state 3))
              (usage (vector-ref stream-state 2))

@@ -30,6 +30,7 @@
     read-session-history append-session-entry! find-latest-session-file
     save-session-header! save-session-message! setup-session-file
     setup-initial-messages persist-new-messages! find-last-session-message-id
+    assoc
   ) ;export
   (begin
 
@@ -61,15 +62,7 @@
     ) ;define
 
     (define (setup-initial-messages parsed initial-msg sdir)
-      (let* ((user-msg
-               (if (not (string-null? initial-msg))
-                 (list (list (cons 'role "user")
-                         (cons 'content initial-msg)
-                         (cons 'timestamp (pi-current-time-millis))
-                       ) ;list
-                 ) ;list
-                 '()
-               ) ;if
+      (let* ((user-msg (if (not (string-null? initial-msg)) (list (pi-user-message initial-msg)) '())
              ) ;user-msg
             ) ;
         (if (pi-args-ref parsed 'continue)

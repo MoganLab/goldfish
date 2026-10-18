@@ -22,17 +22,21 @@
     (liii pi gemini)
     (liii pi anthropic)
     (liii pi tools)
+    (liii pi message)
+    (liii pi event)
   ) ;import
   (export run-agent-loop extract-assistant-text)
   (begin
 
-    (define (%assoc-val key alt-key alist default-val)
-      (if (not (pair? alist))
-        default-val
-        (let ((pair (or (assoc key alist) (assoc alt-key alist))))
-          (if pair (cdr pair) default-val)
+    (define (%assoc-val key alt-key obj default-val)
+      (cond
+       ((or (pair? obj) (pi-message? obj) (pi-block? obj))
+        (let ((pair (or (assoc key obj) (assoc alt-key obj))))
+          (if (pair? pair) (cdr pair) default-val)
         ) ;let
-      ) ;if
+       ) ;
+       (else default-val)
+      ) ;cond
     ) ;define
 
     (define (%collect-text-blocks blks)
@@ -63,7 +67,7 @@
     (define (%first-block-from-content c)
       (cond
        ((and (vector? c) (> (vector-length c) 0)) (vector-ref c 0))
-       ((and (pair? c) (pair? (car c))) (car c))
+       ((and (pair? c) (or (pair? (car c)) (pi-block? (car c)))) (car c))
        (else '())
       ) ;cond
     ) ;define
@@ -77,13 +81,7 @@
     ) ;define
 
     (define (%make-tool-result-msg id name text is-err)
-      (list (cons 'role "toolResult")
-        (cons 'toolCallId id)
-        (cons 'toolName name)
-        (cons 'content (list (list (cons 'type "text") (cons 'text text))))
-        (cons 'isError is-err)
-        (cons 'timestamp (time-second (current-time)))
-      ) ;list
+      (pi-tool-result-message id name (list (pi-text-block text)) is-err)
     ) ;define
 
     (define (%execute-one-tool-call call emit timeout)
@@ -136,12 +134,11 @@
     ) ;define
 
     (define (%make-max-turns-error)
-      (list (cons 'role "assistant")
-        (cons 'content '())
-        (cons 'stopReason "error")
-        (cons 'errorMessage "Maximum turns limit reached")
-        (cons 'usage '((input . 0) (output . 0) (total . 0)))
-      ) ;list
+      (pi-assistant-message '()
+        :stop-reason   "error"
+        :error-message "Maximum turns limit reached"
+        :usage         '((input . 0) (output . 0) (total . 0))
+      ) ;pi-assistant-message
     ) ;define
 
     (define (%filter-tool-calls content)
@@ -214,12 +211,7 @@
                      (text (%assoc-val 'text "text" (%first-block-from-content c) ""))
                      (is-err? (%assoc-val 'isError "isError" m #f))
                     ) ;
-                (list (cons "role" "toolResult")
-                  (cons "toolCallId" id)
-                  (cons "toolName" name)
-                  (cons "content" (vector (list (cons "type" "text") (cons "text" text))))
-                  (cons "isError" (if is-err? #t #f))
-                ) ;list
+                (pi-tool-result-message id name (list (pi-text-block text)) is-err?)
               ) ;let*
             ) ;lambda
             tail

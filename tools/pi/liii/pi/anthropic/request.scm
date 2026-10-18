@@ -22,6 +22,7 @@
     (liii http)
     (liii error)
     (liii time)
+    (liii pi message)
     (liii pi anthropic core)
     (liii pi tools)
   ) ;import
@@ -99,20 +100,18 @@
     ) ;define
 
     (define (%make-retry-error status attempt body-str)
-      (list (cons 'role "assistant")
-        (cons 'content (list (list (cons 'type "text") (cons 'text ""))))
-        (cons 'stopReason "error")
-        (cons 'usage (anthropic-map-usage '()))
-        (cons 'errorMessage
-          (string-append "HTTP "
-            (number->string status)
-            " after "
-            (number->string attempt)
-            " attempts: "
-            body-str
-          ) ;string-append
-        ) ;cons
-      ) ;list
+      (pi-assistant-message (list (pi-text-block ""))
+        :stop-reason "error"
+        :error-message
+        (string-append "HTTP "
+          (number->string status)
+          " after "
+          (number->string attempt)
+          " attempts: "
+          body-str
+        ) ;string-append
+        :usage (anthropic-map-usage '())
+      ) ;pi-assistant-message
     ) ;define
 
     (define (%post-anthropic url req-json-str headers proxy-alist timeout)

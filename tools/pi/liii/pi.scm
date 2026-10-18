@@ -33,6 +33,7 @@
     (liii pi gemini)
     (liii pi anthropic)
     (liii pi prompt)
+    (liii pi message)
     (liii pi types)
     (liii pi retry)
     (liii pi args)
@@ -86,7 +87,20 @@
     pi-event-agent-end-type pi-event-agent-end-messages
     pi-event-agent-end-will-retry pi-event-agent-settled pi-event-agent-settled?
     pi-event-agent-settled-type pi-event-agent-settled-aborted
-    pi-build-json-event uuid4
+    pi-build-json-event uuid4 pi-message? pi-message-role pi-message->alist
+    pi-block? pi-block-type pi-block->alist pi-user-message pi-user-message?
+    pi-user-message-role pi-user-message-content pi-user-message-timestamp
+    pi-assistant-message pi-assistant-message? pi-assistant-message-role
+    pi-assistant-message-content pi-assistant-message-stop-reason
+    pi-assistant-message-error-message pi-assistant-message-usage
+    pi-assistant-message-timestamp pi-tool-result-message
+    pi-tool-result-message? pi-tool-result-message-role
+    pi-tool-result-message-tool-call-id pi-tool-result-message-tool-name
+    pi-tool-result-message-content pi-tool-result-message-is-error
+    pi-tool-result-message-timestamp pi-text-block pi-text-block?
+    pi-text-block-type pi-text-block-text pi-tool-call-block pi-tool-call-block?
+    pi-tool-call-block-type pi-tool-call-block-id pi-tool-call-block-name
+    pi-tool-call-block-arguments pi-tool-call-block-thought-signature
   ) ;export
   (begin
 

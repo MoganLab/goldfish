@@ -15,7 +15,7 @@
 ;;
 
 (define-library (liii pi types)
-  (import (scheme base) (liii base) (liii pi event))
+  (import (scheme base) (liii base) (liii pi event) (liii pi message))
   (export pi-iso-8601-utc-now pi-current-time-millis pi-serialize-event assoc
     pi-event? pi-event-type pi-event->alist pi-event-session pi-event-session?
     pi-event-session-type pi-event-session-version pi-event-session-id
@@ -47,29 +47,33 @@
     pi-event-agent-end-will-retry pi-event-agent-settled pi-event-agent-settled?
     pi-event-agent-settled-type pi-event-agent-settled-aborted
     pi-build-json-event pi-make-user-message pi-make-assistant-message
-    pi-make-tool-result-message pi-make-usage
+    pi-make-tool-result-message pi-make-usage pi-message? pi-message-role
+    pi-message->alist pi-block? pi-block-type pi-block->alist pi-user-message
+    pi-user-message? pi-user-message-role pi-user-message-content
+    pi-user-message-timestamp pi-assistant-message pi-assistant-message?
+    pi-assistant-message-role pi-assistant-message-content
+    pi-assistant-message-stop-reason pi-assistant-message-error-message
+    pi-assistant-message-usage pi-assistant-message-timestamp
+    pi-tool-result-message pi-tool-result-message? pi-tool-result-message-role
+    pi-tool-result-message-tool-call-id pi-tool-result-message-tool-name
+    pi-tool-result-message-content pi-tool-result-message-is-error
+    pi-tool-result-message-timestamp pi-text-block pi-text-block?
+    pi-text-block-type pi-text-block-text pi-tool-call-block pi-tool-call-block?
+    pi-tool-call-block-type pi-tool-call-block-id pi-tool-call-block-name
+    pi-tool-call-block-arguments pi-tool-call-block-thought-signature
   ) ;export
   (begin
 
     (define (pi-make-user-message text)
-      (list (cons 'role "user") (cons 'content text))
+      (pi-user-message text)
     ) ;define
 
     (define* (pi-make-assistant-message content (stop-reason "stop") (error-msg #f))
-      (list (cons 'role "assistant")
-        (cons 'content content)
-        (cons 'stopReason stop-reason)
-        (cons 'errorMessage error-msg)
-      ) ;list
+      (pi-assistant-message content :stop-reason stop-reason :error-message error-msg)
     ) ;define*
 
     (define (pi-make-tool-result-message tool-call-id tool-name content is-error)
-      (list (cons 'role "toolResult")
-        (cons 'toolCallId tool-call-id)
-        (cons 'toolName tool-name)
-        (cons 'content content)
-        (cons 'isError (if is-error #t #f))
-      ) ;list
+      (pi-tool-result-message tool-call-id tool-name content is-error)
     ) ;define
 
     (define* (pi-make-usage (input 0) (output 0) (total 0))

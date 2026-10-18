@@ -38,4 +38,16 @@
   (check (vector-length model-parts) => 1)
   (check (cdr (assoc "name" (cdr (assoc "functionCall" (vector-ref model-parts 0))))) => "bash"))
 
+;; 支持 record 结构（强类型消息与 content block）
+(let* ((msgs (list (pi-user-message "List files")
+                   (pi-assistant-message
+                     (list (pi-tool-call-block "c1" "ls" '(("path" . ".")))
+                           (pi-text-block "Checking directory")))
+                   (pi-tool-result-message "c1" "ls" (list (pi-text-block "file.txt")) #f)))
+       (contents (gemini-build-contents msgs)))
+  (check (vector-length contents) => 3)
+  (check (cdr (assoc "role" (vector-ref contents 0))) => "user")
+  (check (cdr (assoc "role" (vector-ref contents 1))) => "model")
+  (check (cdr (assoc "role" (vector-ref contents 2))) => "user"))
+
 (check-report)

@@ -21,6 +21,7 @@
     (liii json)
     (liii http)
     (liii time)
+    (liii pi message)
     (liii pi anthropic core)
     (liii pi anthropic request)
     (liii pi anthropic stream-parse)
@@ -95,27 +96,24 @@
              (stop-reason (anthropic-map-stop-reason (or raw-stop "end_turn")))
              (err-msg (if (equal? stop-reason "error") raw-stop #f))
             ) ;
-        (list (cons 'role "assistant")
-          (cons 'content blocks)
-          (cons 'stopReason stop-reason)
-          (cons 'usage (vector-ref stream-state 2))
-          (cons 'errorMessage err-msg)
-        ) ;list
+        (pi-assistant-message blocks
+          :stop-reason   stop-reason
+          :usage         (vector-ref stream-state 2)
+          :error-message err-msg
+        ) ;pi-assistant-message
       ) ;let*
     ) ;define
 
     (define (%make-idle-timeout-error eff-idle)
-      (list (cons 'role "assistant")
-        (cons 'content '())
-        (cons 'stopReason "error")
-        (cons 'usage (anthropic-map-usage '()))
-        (cons 'errorMessage
-          (string-append "Anthropic stream idle timeout after "
-            (number->string eff-idle)
-            " seconds"
-          ) ;string-append
-        ) ;cons
-      ) ;list
+      (pi-assistant-message '()
+        :stop-reason "error"
+        :usage       (anthropic-map-usage '())
+        :error-message
+        (string-append "Anthropic stream idle timeout after "
+          (number->string eff-idle)
+          " seconds"
+        ) ;string-append
+      ) ;pi-assistant-message
     ) ;define
 
     (define (%parse-err-json body)
@@ -160,12 +158,11 @@
                ) ;cond
              ) ;err-msg
             ) ;
-        (list (cons 'role "assistant")
-          (cons 'content '())
-          (cons 'stopReason "error")
-          (cons 'usage (anthropic-map-usage '()))
-          (cons 'errorMessage err-msg)
-        ) ;list
+        (pi-assistant-message '()
+          :stop-reason   "error"
+          :usage         (anthropic-map-usage '())
+          :error-message err-msg
+        ) ;pi-assistant-message
       ) ;let*
     ) ;define
 

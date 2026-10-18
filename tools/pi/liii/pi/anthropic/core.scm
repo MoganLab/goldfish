@@ -15,7 +15,14 @@
 ;;
 
 (define-library (liii pi anthropic core)
-  (import (scheme base) (scheme char) (liii string) (liii json) (liii error))
+  (import (scheme base)
+    (scheme char)
+    (liii string)
+    (liii json)
+    (liii error)
+    (liii pi message)
+    (liii pi event)
+  ) ;import
   (export anthropic-map-stop-reason anthropic-map-usage
     anthropic-build-tool-declarations anthropic-build-messages
     anthropic-build-request-body anthropic-parse-response
@@ -23,18 +30,20 @@
   ) ;export
   (begin
 
-    (define (%val key alist default-val)
-      (if (not (pair? alist))
-        default-val
+    (define (%val key obj default-val)
+      (cond
+       ((or (pair? obj) (pi-message? obj) (pi-block? obj))
         (let ((p
-                (or (assoc key alist)
-                  (assoc (if (symbol? key) (symbol->string key) (string->symbol key)) alist)
+                (or (assoc key obj)
+                  (assoc (if (symbol? key) (symbol->string key) (string->symbol key)) obj)
                 ) ;or
               ) ;p
              ) ;
-          (if p (cdr p) default-val)
+          (if (pair? p) (cdr p) default-val)
         ) ;let
-      ) ;if
+       ) ;
+       (else default-val)
+      ) ;cond
     ) ;define
 
     (define (anthropic-map-stop-reason reason)
@@ -103,11 +112,7 @@
 
     (define (%tool-result-text content)
       (cond ((string? content) content)
-            ((pair? content)
-             (let ((first-blk (car content)))
-               (if (pair? first-blk) (%val 'text first-blk "") "")
-             ) ;let
-            ) ;
+            ((pair? content) (let ((first-blk (car content))) (%val 'text first-blk "")))
             (else "")
       ) ;cond
     ) ;define
@@ -215,17 +220,14 @@
             (let* ((blk (vector-ref content-vec i)) (btype (%val "type" blk "")))
               (cond
                ((equal? btype "text")
-                (loop (+ i 1)
-                  (cons (list (cons 'type "text") (cons 'text (%val "text" blk ""))) acc)
-                ) ;loop
+                (loop (+ i 1) (cons (pi-text-block (%val "text" blk "")) acc))
                ) ;
                ((equal? btype "tool_use")
                 (loop (+ i 1)
-                  (cons (list (cons 'type "toolCall")
-                          (cons 'id (%val "id" blk ""))
-                          (cons 'name (%val "name" blk ""))
-                          (cons 'arguments (%val "input" blk '()))
-                        ) ;list
+                  (cons (pi-tool-call-block (%val "id" blk "")
+                          (%val "name" blk "")
+                          (%val "input" blk '())
+                        ) ;pi-tool-call-block
                     acc
                   ) ;cons
                 ) ;loop
@@ -240,33 +242,30 @@
 
     (define (anthropic-parse-response json-data status-code)
       (if (not (json-object? json-data))
-        (list (cons 'role "assistant")
-          (cons 'content (list (list (cons 'type "text") (cons 'text ""))))
-          (cons 'stopReason "error")
-          (cons 'usage (anthropic-map-usage '()))
-          (cons 'errorMessage "Invalid JSON response from Anthropic API")
-        ) ;list
+        (pi-assistant-message (list (pi-text-block ""))
+          :stop-reason   "error"
+          :usage         (anthropic-map-usage '())
+          :error-message "Invalid JSON response from Anthropic API"
+        ) ;pi-assistant-message
         (let* ((err (%val "error" json-data #f))
                (raw-stop (%val "stop_reason" json-data "end_turn"))
                (usage (anthropic-map-usage (%val "usage" json-data '())))
               ) ;
           (if (pair? err)
-            (list (cons 'role "assistant")
-              (cons 'content (list (list (cons 'type "text") (cons 'text ""))))
-              (cons 'stopReason "error")
-              (cons 'usage usage)
-              (cons 'errorMessage (%val "message" err "API error"))
-            ) ;list
+            (pi-assistant-message (list (pi-text-block ""))
+              :stop-reason   "error"
+              :usage         usage
+              :error-message (%val "message" err "API error")
+            ) ;pi-assistant-message
             (let* ((raw-c (%val "content" json-data #()))
                    (blocks (%extract-blocks raw-c))
                    (stop-reason (anthropic-map-stop-reason raw-stop))
                   ) ;
-              (list (cons 'role "assistant")
-                (cons 'content blocks)
-                (cons 'stopReason stop-reason)
-                (cons 'usage usage)
-                (cons 'errorMessage (if (equal? stop-reason "error") raw-stop #f))
-              ) ;list
+              (pi-assistant-message blocks
+                :stop-reason   stop-reason
+                :usage         usage
+                :error-message (if (equal? stop-reason "error") raw-stop #f)
+              ) ;pi-assistant-message
             ) ;let*
           ) ;if
         ) ;let*

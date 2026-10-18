@@ -21,6 +21,7 @@
     (liii pi time)
     (liii pi event types)
     (liii pi event record)
+    (liii pi message)
   ) ;import
   (export pi-iso-8601-utc-now pi-current-time-millis pi-serialize-event assoc
     pi-event? pi-event-type pi-event->alist pi-event-session pi-event-session?
@@ -58,11 +59,31 @@
 
     (define %orig-assoc assoc)
 
+    (define (%key-match? k entry-k)
+      (or (equal? entry-k k)
+        (and (symbol? entry-k) (string? k) (string=? (symbol->string entry-k) k))
+        (and (string? entry-k) (symbol? k) (string=? entry-k (symbol->string k)))
+      ) ;or
+    ) ;define
+
+    (define (%find-assoc key lst)
+      (let loop
+        ((entries lst))
+        (cond ((null? entries) #f)
+              ((not (pair? entries)) #f)
+              ((and (pair? (car entries)) (%key-match? key (caar entries))) (car entries))
+              (else (loop (cdr entries)))
+        ) ;cond
+      ) ;let
+    ) ;define
+
     (define (assoc key obj)
-      (if (pi-event? obj)
-        (%orig-assoc key (pi-event->alist obj))
-        (%orig-assoc key obj)
-      ) ;if
+      (cond ((pi-event? obj) (%find-assoc key (pi-event->alist obj)))
+            ((pi-message? obj) (%find-assoc key (pi-message->alist obj)))
+            ((pi-block? obj) (%find-assoc key (pi-block->alist obj)))
+            ((pair? obj) (%find-assoc key obj))
+            (else (%orig-assoc key obj))
+      ) ;cond
     ) ;define
 
     (define (pi-build-json-event ev-type args)
@@ -90,6 +111,8 @@
     (define (%normalize-json-value x)
       (cond ((null? x) #())
             ((pi-event? x) (%normalize-json-value (pi-event->alist x)))
+            ((pi-message? x) (%normalize-json-value (pi-message->alist x)))
+            ((pi-block? x) (%normalize-json-value (pi-block->alist x)))
             ((vector? x) (list->vector (map %normalize-json-value (vector->list x))))
             ((and (pair? x) (every %json-object-entry? x))
              (let loop

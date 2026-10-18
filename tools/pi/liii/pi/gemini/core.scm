@@ -21,6 +21,8 @@
     (liii string)
     (liii json)
     (liii error)
+    (liii pi message)
+    (liii pi event)
   ) ;import
   (export gemini-map-finish-reason gemini-map-usage
     gemini-normalize-tool-call-id gemini-generate-tool-call-id
@@ -93,18 +95,20 @@
       ) ;let
     ) ;define
 
-    (define* (%val key alist (default-val #f))
-      (if (not (pair? alist))
-        default-val
+    (define* (%val key obj (default-val #f))
+      (cond
+       ((or (pair? obj) (pi-message? obj) (pi-block? obj))
         (let ((p
-                (or (assoc key alist)
-                  (assoc (if (symbol? key) (symbol->string key) (string->symbol key)) alist)
+                (or (assoc key obj)
+                  (assoc (if (symbol? key) (symbol->string key) (string->symbol key)) obj)
                 ) ;or
               ) ;p
              ) ;
-          (if p (cdr p) default-val)
+          (if (pair? p) (cdr p) default-val)
         ) ;let
-      ) ;if
+       ) ;
+       (else default-val)
+      ) ;cond
     ) ;define*
 
     (define (%assistant-block->part blk)
@@ -156,7 +160,7 @@
                ((rest content) (acc '()))
                (if (null? rest)
                  (string-join (reverse acc) "\n")
-                 (let* ((blk (car rest)) (t (if (pair? blk) (%val 'text blk "") "")))
+                 (let* ((blk (car rest)) (t (%val 'text blk "")))
                    (loop (cdr rest) (if (string-null? t) acc (cons t acc)))
                  ) ;let*
                ) ;if
@@ -205,11 +209,7 @@
             ((vector? content)
              (if (> (vector-length content) 0) (%val 'text (vector-ref content 0) "") "")
             ) ;
-            ((pair? content)
-             (let ((first-blk (car content)))
-               (if (pair? first-blk) (%val 'text first-blk "") "")
-             ) ;let
-            ) ;
+            ((pair? content) (let ((first-blk (car content))) (%val 'text first-blk "")))
             (else "")
       ) ;cond
     ) ;define

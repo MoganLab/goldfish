@@ -23,6 +23,7 @@
     (liii time)
     (liii pi tools)
     (liii pi retry)
+    (liii pi message)
     (liii pi gemini core)
     (liii pi gemini request)
     (liii pi gemini stream-parse)
@@ -146,12 +147,11 @@
             ) ;list
           ) ;on-event
         ) ;when
-        (list (cons 'role "assistant")
-          (cons 'content blocks)
-          (cons 'stopReason stop-reason)
-          (cons 'usage (vector-ref stream-state 2))
-          (cons 'errorMessage err-msg)
-        ) ;list
+        (pi-assistant-message blocks
+          :stop-reason   stop-reason
+          :error-message err-msg
+          :usage         (vector-ref stream-state 2)
+        ) ;pi-assistant-message
       ) ;let*
     ) ;define
 
@@ -165,17 +165,15 @@
             (string-contains? (string-downcase resp-err) "low speed")
             (string-contains? (string-downcase resp-err) "timed out")
           ) ;or
-          (list (cons 'role "assistant")
-            (cons 'content (vector-ref stream-state 0))
-            (cons 'stopReason "error")
-            (cons 'usage (vector-ref stream-state 2))
-            (cons 'errorMessage
-              (string-append "Stream idle timed out after "
-                (number->string eff-idle)
-                " seconds"
-              ) ;string-append
-            ) ;cons
-          ) ;list
+          (pi-assistant-message (vector-ref stream-state 0)
+            :stop-reason "error"
+            :error-message
+            (string-append "Stream idle timed out after "
+              (number->string eff-idle)
+              " seconds"
+            ) ;string-append
+            :usage (vector-ref stream-state 2)
+          ) ;pi-assistant-message
          ) ;
          ((and (not (zero? status)) (not (= status 200)))
           (let ((body
@@ -185,28 +183,25 @@
                   ) ;if
                 ) ;body
                ) ;
-            (list (cons 'role "assistant")
-              (cons 'content (vector-ref stream-state 0))
-              (cons 'stopReason "error")
-              (cons 'usage (vector-ref stream-state 2))
-              (cons 'errorMessage
-                (let ((parsed-msg (extract-stream-error-message body)))
-                  (if (and parsed-msg (not (string=? parsed-msg "")))
-                    (string-append "HTTP " (number->string status) ": " parsed-msg)
-                    (string-append "HTTP " (number->string status) " error")
-                  ) ;if
-                ) ;let
-              ) ;cons
-            ) ;list
+            (pi-assistant-message (vector-ref stream-state 0)
+              :stop-reason "error"
+              :error-message
+              (let ((parsed-msg (extract-stream-error-message body)))
+                (if (and parsed-msg (not (string=? parsed-msg "")))
+                  (string-append "HTTP " (number->string status) ": " parsed-msg)
+                  (string-append "HTTP " (number->string status) " error")
+                ) ;if
+              ) ;let
+              :usage (vector-ref stream-state 2)
+            ) ;pi-assistant-message
           ) ;let
          ) ;
          ((zero? status)
-          (list (cons 'role "assistant")
-            (cons 'content (vector-ref stream-state 0))
-            (cons 'stopReason "error")
-            (cons 'usage (vector-ref stream-state 2))
-            (cons 'errorMessage (format-failed-stream-msg status resp))
-          ) ;list
+          (pi-assistant-message (vector-ref stream-state 0)
+            :stop-reason   "error"
+            :error-message (format-failed-stream-msg status resp)
+            :usage         (vector-ref stream-state 2)
+          ) ;pi-assistant-message
          ) ;
          (else (%finalize-stream-success stream-state on-event))
         ) ;cond

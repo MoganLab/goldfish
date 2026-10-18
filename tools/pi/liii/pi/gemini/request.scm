@@ -24,6 +24,7 @@
     (liii time)
     (liii pi retry)
     (liii pi tools)
+    (liii pi message)
     (liii pi gemini core)
     (liii pi gemini stream-parse)
   ) ;import
@@ -33,12 +34,11 @@
   (begin
 
     (define (%make-error-response msg usage)
-      (list (cons 'role "assistant")
-        (cons 'content (list (list (cons 'type "text") (cons 'text ""))))
-        (cons 'stopReason "error")
-        (cons 'usage usage)
-        (cons 'errorMessage msg)
-      ) ;list
+      (pi-assistant-message (list (pi-text-block ""))
+        :stop-reason   "error"
+        :error-message msg
+        :usage         usage
+      ) ;pi-assistant-message
     ) ;define
 
     (define (%make-tool-call-block name args id ts i)
@@ -48,17 +48,8 @@
                  (gemini-generate-tool-call-id)
                ) ;if
              ) ;eff-id
-             (base-blk (list (cons 'type "toolCall")
-                         (cons 'id eff-id)
-                         (cons 'name name)
-                         (cons 'arguments args)
-                       ) ;list
-             ) ;base-blk
             ) ;
-        (if (and (string? ts) (not (string-null? ts)))
-          (append base-blk (list (cons 'thoughtSignature ts)))
-          base-blk
-        ) ;if
+        (pi-tool-call-block eff-id name args :thought-signature ts)
       ) ;let*
     ) ;define
 
@@ -72,7 +63,7 @@
              ((assoc "text" part)
               (let ((t (cdr (assoc "text" part))))
                 (if (and (string? t) (not (string-null? t)))
-                  (loop (+ i 1) (cons (list (cons 'type "text") (cons 'text t)) acc) has-fn?)
+                  (loop (+ i 1) (cons (pi-text-block t) acc) has-fn?)
                   (loop (+ i 1) acc has-fn?)
                 ) ;if
               ) ;let
@@ -134,12 +125,11 @@
                 (let* ((stop-reason (gemini-map-finish-reason finish-reason has-fn?))
                        (err-msg (if (equal? stop-reason "error") finish-reason #f))
                       ) ;
-                  (list (cons 'role "assistant")
-                    (cons 'content blocks)
-                    (cons 'stopReason stop-reason)
-                    (cons 'usage usage)
-                    (cons 'errorMessage err-msg)
-                  ) ;list
+                  (pi-assistant-message blocks
+                    :stop-reason   stop-reason
+                    :error-message err-msg
+                    :usage         usage
+                  ) ;pi-assistant-message
                 ) ;let*
               ) ;let-values
             ) ;let*

@@ -19,6 +19,7 @@
     (liii string)
     (liii json)
     (liii sse)
+    (liii pi message)
     (liii pi anthropic core)
   ) ;import
   (export append-anthropic-stream-text handle-anthropic-delta
@@ -57,10 +58,7 @@
         (%emit-delta on-ev cur-idx t usage stream-state)
         (if (not (string? last-text))
           (begin
-            (vector-set! stream-state
-              0
-              (append blocks (list (list (cons 'type "text") (cons 'text t))))
-            ) ;vector-set!
+            (vector-set! stream-state 0 (append blocks (list (pi-text-block t))))
             (vector-set! stream-state 1 t)
           ) ;begin
           (let* ((new-t (string-append last-text t))
@@ -68,7 +66,7 @@
                    (let loop
                      ((lst blocks) (acc '()))
                      (if (null? (cdr lst))
-                       (reverse (cons (list (cons 'type "text") (cons 'text new-t)) acc))
+                       (reverse (cons (pi-text-block new-t) acc))
                        (loop (cdr lst) (cons (car lst) acc))
                      ) ;if
                    ) ;let
@@ -133,12 +131,7 @@
              (name (cdr (assoc 'name cur-tool)))
              (json-str (cdr (assoc 'json cur-tool)))
              (args (catch #t (lambda () (string->json json-str)) (lambda _ '())))
-             (blk (list (cons 'type "toolCall")
-                    (cons 'id id)
-                    (cons 'name name)
-                    (cons 'arguments args)
-                  ) ;list
-             ) ;blk
+             (blk (pi-tool-call-block id name args))
             ) ;
         (vector-set! stream-state 0 (append blocks (list blk)))
         (vector-set! stream-state 3 (append (vector-ref stream-state 3) (list blk)))

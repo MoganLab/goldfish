@@ -41,19 +41,29 @@
       ) ;let
     ) ;define
 
+    (define (%to-block-list blks)
+      (cond ((vector? blks) (vector->list blks))
+            ((list? blks) blks)
+            (else '())
+      ) ;cond
+    ) ;define
+
     (define (%has-text-block? blks)
-      (and (pair? blks)
-        (any
-          (lambda (blk)
-            (let ((t (cdr (or (assoc 'type blk) (assoc "type" blk) '(#f . ""))))
-                  (text (cdr (or (assoc 'text blk) (assoc "text" blk) '(#f . ""))))
-                 ) ;
-              (and (equal? t "text") (not (string-null? text)))
-            ) ;let
-          ) ;lambda
-          blks
-        ) ;any
-      ) ;and
+      (let ((lst (%to-block-list blks)))
+        (and (pair? lst)
+          (any
+            (lambda (blk)
+              (let ((t (cdr (or (assoc 'type blk) (assoc "type" blk) '(#f . ""))))
+                    (text (cdr (or (assoc 'text blk) (assoc "text" blk) '(#f
+                                                                          . ""))))
+                   ) ;
+                (and (equal? t "text") (not (string-null? text)))
+              ) ;let
+            ) ;lambda
+            lst
+          ) ;any
+        ) ;and
+      ) ;let
     ) ;define
 
     (define (%print-text-blocks blks)
@@ -65,12 +75,12 @@
             (newline)
           ) ;when
         ) ;lambda
-        blks
+        (%to-block-list blks)
       ) ;for-each
     ) ;define
 
     (define (handle-print-result last-msg)
-      (if (not (pair? last-msg))
+      (if (not (or (pair? last-msg) (pi-message? last-msg)))
         (begin
           (display-stderr "Warning: No assistant response received")
           0
