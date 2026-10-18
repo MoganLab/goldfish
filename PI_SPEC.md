@@ -131,8 +131,30 @@ timeout 30 bin/gf doc "pi-event-session" # 查看函数源码与测试
 
 ## TODO（尚不能运行，随迭代补充）
 
-- [ ] **Kimi provider**：`~/.pi/agent/auth.json` 中已配置的 `kimi-coding`（type:"api_key"，仅 key/type 字段）尚未被消费；需参照 pi 源码（`~/git/pi`）中 Kimi 的端点与鉴权实现，支持 `--provider kimi-coding` 端到端。不涉及 OAuth。
+- [ ] **Kimi provider**：`~/.pi/agent/auth.json` 中已配置的 `kimi-coding`（type:"api_key"，仅 key/type 字段）尚未被消费；需参照 pi 源码（`~/git/pi`）中 Kimi 的端点与鉴权实现，支持 `--provider kimi-coding` 端到端。不涉及 OAuth。【进行中】
 - [ ] **4 字节 UTF-8 + '<' 挂起**：prompt 同时含 4 字节 UTF-8 字符（如 🚀、𠀀）与 `<` 时进程静默挂起且连 HTTP 300s 超时都不生效（复现：`timeout 60 bin/gf pi -p '🚀 <'`）。【修复中】
+- [ ] **thinking 内容**：思考级别的请求与解析。预期用法（实现时以 pi 实际 CLI 为准）：
+
+  ```bash
+  # 指定思考级别（off / low / medium / high；未指定时取 settings.defaultThinkingLevel）
+  timeout 300 bin/gf pi -p --thinking-level high "分析这段递归的时间复杂度并优化"
+  # JSON 事件流中出现 thinking 增量块（assistantMessageEvent type 区分 text/thinking）
+  timeout 300 bin/gf pi --mode json --thinking-level low "证明：任意三角形内角和为180度" > t.jsonl
+  ```
+
+  实现要点：请求侧 Gemini 走 `generationConfig.thinkingConfig`（含 `includeThoughts`），
+  Anthropic 走 thinking block；响应侧 thinking part 解析进消息结构但 print 模式
+  默认只输出 text 块。
+- [ ] **图片输入**：`@文件` 扩展支持图片。预期用法：
+
+  ```bash
+  # @路径指向图片时作为图像 part 注入（而非文本 file block）
+  timeout 300 bin/gf pi -p @screenshot.png "这张截图里的报错是什么？"
+  timeout 300 bin/gf pi -p "对比这两个界面" @ui-v1.png @ui-v2.png
+  ```
+
+  实现要点：按扩展名/MIME 判断图片类型，Gemini 走 `inlineData` part（base64），
+  Anthropic 走 `image` source block；不支持的格式明确报错。
 - [ ] thinking 内容的请求与解析（`--thinking-level`）。
 - [ ] 图片输入（`@图片`）。
 

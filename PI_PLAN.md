@@ -1,9 +1,10 @@
 # PI_PLAN：`bin/gf pi` 任务规格与后续任务书
 
 > 状态：§5 所列九个阶段已全部完成（2026-10-18），print 模式与 JSON 模式可用，
-> 经真实冒烟验证的命令行示例见 `PI_SPEC.md`。
+> 经真实冒烟验证的命令行示例与各功能的预期用法见 `PI_SPEC.md`。
 > 本文档由 Claude 维护（与 `CLAUDE_CODE_PLAN.md`、`PI_SPEC.md` 同为计划文档），
 > 作为拉起 pi 的输入与后续任务书。pi 只负责代码，不改本文档。
+> 分工：本文件写任务书与回归依据；`PI_SPEC.md` 写可运行示例与 TODO 用法。
 
 ## 1. 目标与当前状态
 
@@ -70,6 +71,9 @@ Anthropic 已实现但本机无访问权限，不在维护范围；其 OAuth 刷
 
 - thinking 内容的请求与解析（`--thinking-level`）
 - 图片输入（`@图片`）
+
+两项的预期 CLI 用法与实现要点已写明在 `PI_SPEC.md` 的 TODO 部分，实现时以该处
+为准；完成后由 Claude 将对应条目从 TODO 移入 PI_SPEC.md 正文。
 
 ## 4. Non-goals（不做项，用户裁定）
 
