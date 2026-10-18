@@ -71,7 +71,7 @@ Anthropic 已实现但本机无访问权限，不在维护范围；其 OAuth 刷
 |---|---|---|---|
 | 001 | 核心库迁移·文件 | `goldfish/liii/pi.scm` 与 `goldfish/liii/pi/` 整体 git mv 至 `tools/pi/liii/`（模块名暂保留 `(liii pi)` 最小改动），修 load-path 与 import，全量测试通过 | 进行中（开发阶段） |
 | 002 | 核心库迁移·测试与索引 | `tests/liii/pi/` 迁至 `tools/pi/tests/`；`bin/gf doc --build-json` 重建；`bin/gf doc "..."` 抽查可用 | 待执行 |
-| 003 | 核心库迁移·模块名统一【用户已裁定】 | 反向统一：`(liii pi)` 不动，**CLI 侧 `goldpi*` 全部改名为 `pi*`**——`goldpi-args.scm`→`pi-args.scm`、`goldpi-provider.scm`→`pi-provider.scm` 等；CLI 入口 `goldpi.scm`→`pi-cli.scm`（模块 `(liii pi-cli)`，与核心库 `(liii pi)` 区分），`gfproject.json` 注册同步；全量 import/测试更新；完成后由 Claude 更新 PI_SPEC/devel 文档中的路径与模块名 | 待执行 |
+| 003 | 核心库迁移·模块名统一【用户已裁定】 | 双向统一为 `(liii pi)` 族：CLI 侧 `goldpi*` 全部改名为 `pi*`（`goldpi-args.scm`→`pi-args.scm` 等，CLI 入口 `goldpi.scm`→`pi-cli.scm`，模块 `(liii pi-cli)`），`gfproject.json` 注册同步；**并按多级子库组织**（同 `(liii datetime xxx)` 先例）：`(liii pi core)`（核心逻辑）、`(liii pi gemini)`、`(liii pi anthropic)`、`(liii pi session)` 等，文件布局 `tools/pi/liii/pi/<子库>.scm`；全量 import/测试更新；完成后由 Claude 更新 PI_SPEC/devel 文档中的路径与模块名 | 待执行 |
 | 004 | record 化·事件结构 | `pi-event-*` 系列构造的事件对象改 `define-record-type`（在任务 1-3 迁移后的新位置进行） | 待执行 |
 | 005 | record 化·消息结构 | user/assistant/toolResult 消息与 text/toolCall content block | 待执行 |
 | 006 | record 化·配置结构 | settings 解析结果、凭据、模型元数据 | 待执行 |
