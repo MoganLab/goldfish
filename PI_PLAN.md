@@ -32,9 +32,10 @@ Anthropic 已实现但本机无访问权限，不在维护范围；其 OAuth 刷
   空闲超时兜底；任何路径不允许静默挂起，超时必须结构化报错（退出码 1）。
 - **提交规范（强制）**：**验收之后的代码才有必要 commit**。任务分三阶段
   （文档/开发/验收）：PLAN 建档时 commit 一次（`[编号][PLAN] 任务名：建档`）；
-  开发阶段工作区改动**不 commit**；验收通过后在 REVIEW 阶段把代码与验收脚本
-  一起 commit（`[编号][REVIEW] 任务名：验收`）并 push。`[编号][CODE]` 标记保留
-  给长任务中途保护现场的场合，非必须。commit 前必须依次通过 `timeout 600 xmake b goldfish`、
+  开发阶段工作区改动**不 commit**；验收通过后 REVIEW 阶段 commit **两个**——
+  先 `[编号][REVIEW] 任务名：代码`（实现改动），再 `[编号][REVIEW] 任务名：验收`
+  （tools/pi/devel/ddd.scm 验收脚本 + ddd.md 收尾）。`[编号][CODE]` 标记保留给
+  长任务中途保护现场的场合，非必须。每个任务常态三个 commit。commit 前必须依次通过 `timeout 600 xmake b goldfish`、
   `bin/gf fmt`、`git diff --exit-code`、`bin/gf check` 与相关测试；
   提交信息格式 `[编号] 任务名：简述`（如 `[001] Kimi·非流式最小可用`）。
   **所有代码提交一律使用 `[三位编号]` 格式**（缺陷修复也登记入 §3 任务表获得
@@ -93,8 +94,8 @@ Anthropic 已实现但本机无访问权限，不在维护范围；其 OAuth 刷
 | 013 | 图片输入 | `@图片`，用法见 PI_SPEC.md TODO；届时与用户确认后启动 | 远期 |
 | 014 | 缺陷修复·4字节UTF-8挂起 | prompt 含 4 字节 UTF-8 字符与 `<` 组合时静默挂起且流式空闲超时未兜底（复现 `timeout 60 bin/gf pi -p '🚀 <'`）；修复后真实冒烟通过 | 进行中 |
 共同约束：
-- 每个任务常态两个 commit：`[编号][PLAN]`（建档）+ `[编号][REVIEW]`（代码与
-  验收脚本）；观测 git log 即知任务进度。
+- 每个任务常态三个 commit：`[编号][PLAN]`（建档）+ `[编号][REVIEW]`（代码）
+  + `[编号][REVIEW]`（验收脚本）；观测 git log 即知任务进度。
 - 任务 1-4（Kimi）凭据事实：auth.json `kimi-coding` 为 type:"api_key"，仅
   key/type 字段，无 OAuth。
 - 任务 5-7（迁移）动机：核心库只服务于 pi 子命令，不属于通用 liii 库；完成后由
