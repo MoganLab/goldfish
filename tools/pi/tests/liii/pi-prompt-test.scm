@@ -12,8 +12,7 @@
 ) ;define
 
 (define TEST_FILE
-  (path->string (path-join (path REPO_ROOT) (path "tests/goldfish/liii/pi-test.scm"))
-  ) ;path->string
+  (path->string (path-join (path REPO_ROOT) (path "tools/pi/tests/fixtures/sample.txt")))
 ) ;define
 
 ;; pi-resolve-prompt-input
@@ -23,7 +22,7 @@
 ;; 读取现有文件
 (let ((content (pi-resolve-prompt-input TEST_FILE)))
   (check-true (string? content))
-  (check-true (string-contains? content "(import (liii check)"))
+  (check-true (string-contains? content "hello sample"))
 ) ;let
 
 ;; pi-load-project-context
