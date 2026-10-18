@@ -1,0 +1,140 @@
+# PI_SPEC：`bin/gf pi` 命令行使用说明
+
+> 本文档由真实冒烟测试验证整理：标注【可用】的示例均在开发机上实际运行通过；
+> 尚不能运行的用法收入文末 TODO，随迭代更新。
+> 更新方式：探索新的用法并实际验证后，把示例从 TODO 移入正文并注明验证日期。
+
+## 前置条件
+
+```bash
+# 构建
+timeout 600 xmake b goldfish
+
+# 配置复用 ~/.pi/agent/（只读）：settings.json（defaultProvider/defaultModel/httpProxy/retry）、
+# auth.json（api_key / ANTHROPIC_AUTH_TOKEN 等环境变量兜底）、models-store.json（模型元数据）
+# 访问 Gemini 需要代理：--proxy > HTTPS_PROXY/ALL_PROXY 环境变量 > settings.json httpProxy > 直连
+```
+
+## 基本用法【可用】
+
+```bash
+# 一次性运行：最终 assistant 文本写 stdout 后退出
+timeout 300 bin/gf pi -p "用一句话说明这个仓库是做什么的"
+
+# 管道输入（stdin 非终端时自动读入，与 prompt 无分隔符拼接）
+git diff | timeout 300 bin/gf pi -p "Review this change"
+echo "Goldfish Scheme 是一个 Scheme 解释器" | timeout 300 bin/gf pi -p "把这句话翻译成英文，只输出译文"
+
+# @文件：文件内容包裹为 <file name="..."> 块注入 prompt（支持 ~ 展开）
+timeout 300 bin/gf pi -p @CLAUDE.md "这个项目的提交信息格式是什么？"
+```
+
+## 输出模式【可用】
+
+```bash
+# JSON 模式：JSONL 事件流写 stdout（默认走流式路径，含 message_update 增量事件）
+timeout 300 bin/gf pi --mode json "列出当前目录结构" > events.jsonl
+
+# 事件类型序列
+jq -r .type events.jsonl
+# session / agent_start / turn_start / message_start / message_update... / message_end / turn_end / agent_end / agent_settled
+
+# 工具执行事件
+jq -r 'select(.type=="tool_execution_start") | "\(.toolName) \(.args)"' events.jsonl
+```
+
+## 工具【可用】
+
+```bash
+# 默认只激活 read/bash/edit/write；grep/find/ls 需显式开启
+timeout 300 bin/gf pi -p --tools read,bash,grep,find,ls "统计 tests/ 下测试文件数量"
+
+# bash 工具多轮调用
+timeout 300 bin/gf pi -p --tools bash "运行 echo hello 并把输出原样告诉我"
+
+# write + read 往返（write 自动创建父目录）
+timeout 300 bin/gf pi -p --tools read,bash,edit,write "在 /tmp/demo/ 下写 hello.txt 内容为 hi，然后读回来告诉我"
+
+# 长输出截断：bash 输出保尾部 2000 行 / 50KB
+timeout 300 bin/gf pi -p --tools bash "运行 seq 1 5000 并告诉我最后 4 行"
+```
+
+## 会话【可用】
+
+```bash
+# 默认持久化会话（session JSONL）
+timeout 300 bin/gf pi -p "记住暗号：金鱼42号"
+
+# 继续上一会话（--continue / -c），可多级连续
+timeout 300 bin/gf pi -c -p "刚才的暗号是什么？"
+timeout 300 bin/gf pi -c -p "继续上一轮的话题"
+
+# 纯内存运行，不写盘
+timeout 300 bin/gf pi --no-session -p "一次性问题"
+```
+
+## 模型与 provider【可用】
+
+```bash
+# 默认走 settings.defaultProvider（本机 google）
+timeout 300 bin/gf pi -p "hi"
+
+# 指定 provider 与模型
+timeout 300 bin/gf pi -p --provider google --model gemini-3.8-flash "hi"
+
+# Anthropic（支持 ANTHROPIC_BASE_URL 兼容网关与 ANTHROPIC_AUTH_TOKEN 环境变量；
+# 凭据缺失时明确报错退出码 1）
+timeout 300 bin/gf pi -p --provider anthropic "只回复两个字：好的"
+timeout 300 bin/gf pi -p --provider anthropic --tools bash "用 bash 运行 echo ok 并告诉我输出"
+
+# 覆盖代理（socks5h:// 域名解析也走代理；http/https 代理亦可）
+timeout 300 bin/gf pi -p --proxy socks5h://127.0.0.1:1080 "hi"
+```
+
+## 控制选项【可用】
+
+```bash
+# 轮数上限（默认 200，0 不限）；bash 工具与单次 HTTP 超时秒数（bash 默认取此值）
+timeout 600 bin/gf pi -p --max-turns 20 --timeout 60 "遍历 goldfish/ 给出模块清单"
+
+# bash 工具超时生效后模型可自主以更长 timeout 重试
+timeout 300 bin/gf pi -p --tools bash --timeout 5 "用 bash 运行 sleep 30 然后告诉我结果"
+
+# 系统提示词：替换 preamble / 追加附加节（可重复）
+timeout 300 bin/gf pi -p --system-prompt "You are a Scheme expert." "解释 call/cc"
+timeout 300 bin/gf pi -p --append-system-prompt "回答末尾必须加上 [goldfish-ok]" "只回答两个字：好的"
+
+# 帮助
+bin/gf pi --help
+```
+
+## 错误路径行为【可用】
+
+```bash
+# @文件不存在：stderr 人可读报错（含路径与原因），退出码 1
+timeout 60 bin/gf pi -p @/nonexistent-file "hi"    # Error: cannot read @/nonexistent-file: No such file or directory
+
+# 连接失败：stderr 人可读摘要，退出码 1
+timeout 90 bin/gf pi -p --proxy socks5h://127.0.0.1:9 "hi"
+
+# 模型不存在：stderr 输出 API 404 详情，退出码 1
+timeout 120 bin/gf pi -p --model totally-fake-model "hi"
+```
+
+## 函数文档索引【可用】
+
+```bash
+# (liii pi) 测试按"一个函数一个测试文件"组织（tests/liii/pi/<函数名>-test.scm）
+timeout 120 bin/gf doc --build-json     # 重建索引
+timeout 30 bin/gf doc "pi-event-session" # 查看函数源码与测试
+```
+
+## TODO（尚不能运行，随迭代补充）
+
+- [ ] **Kimi provider**：`~/.pi/agent/auth.json` 中已配置的 `kimi-coding`（type:"oauth"，access/refresh/expires）尚未被消费；需参照 pi 源码（`~/git/pi`）中 Kimi 的端点与鉴权实现，支持 `--provider kimi-coding` 端到端（含 OAuth token 过期处理策略）。【进行中】
+- [ ] **4 字节 UTF-8 + '<' 挂起**：prompt 同时含 4 字节 UTF-8 字符（如 🚀、𠀀）与 `<` 时进程静默挂起且连 HTTP 300s 超时都不生效（复现：`timeout 60 bin/gf pi -p '🚀 <'`）。【修复中】
+- [ ] Anthropic OAuth 凭据过期自动刷新（access/refresh 轮换）。
+- [ ] 项目级 `.pi/settings.json` 读取（当前只读全局 settings.json）。
+- [ ] thinking 内容的请求与解析（`--thinking-level`）。
+- [ ] 图片输入（`@图片`）。
+- [ ] 交互式 TUI / RPC 模式（当前只有 print 与 JSON 两种非交互模式）。
