@@ -153,6 +153,27 @@ timeout 120 bin/gf doc --build-json     # 重建索引
 timeout 30 bin/gf doc "pi-event-session" # 查看函数源码与测试
 ```
 
+## 架构演进（目标态）
+
+pi 子命令的全部代码归口 `tools/pi/liii/`，模块按多级子库组织（同 `(liii datetime xxx)`
+先例）：
+
+```
+tools/pi/liii/
+  pi.scm            # (liii pi)          顶层门面：公开 API 再导出
+  pi/
+    core.scm        # (liii pi core)     agent 循环、消息、事件、工具分发
+    gemini.scm      # (liii pi gemini)   Gemini provider（请求构造/SSE/映射）
+    anthropic.scm   # (liii pi anthropic) Anthropic provider
+    session.scm     # (liii pi session)  会话持久化与恢复
+    args.scm        # (liii pi args)     参数解析
+    ...
+  pi-cli.scm        # (liii pi-cli)      CLI 入口（gfproject.json 注册指向）
+```
+
+进度：文件迁移（任务 001）已完成——物理位置已归口 `tools/pi/liii/`；多级子库
+重组（任务 003）待执行，当前 `(liii pi)` 内部仍为平铺子模块。
+
 ## TODO（尚不能运行，随迭代补充）
 
 - [ ] **Kimi provider**：`~/.pi/agent/auth.json` 中已配置的 `kimi-coding`（type:"api_key"，仅 key/type 字段）尚未被消费；需参照 pi 源码（`~/git/pi`）中 Kimi 的端点与鉴权实现，支持 `--provider kimi-coding` 端到端。不涉及 OAuth。【进行中】
