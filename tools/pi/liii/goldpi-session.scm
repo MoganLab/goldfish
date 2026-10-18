@@ -28,7 +28,7 @@
   (export encode-cwd-to-session-dirname get-session-dir make-session-file-path
     read-session-history append-session-entry! find-latest-session-file
     save-session-header! save-session-message! setup-session-file
-    setup-initial-messages persist-new-messages!
+    setup-initial-messages persist-new-messages! find-last-session-message-id
   ) ;export
   (begin
 
@@ -80,9 +80,44 @@
       ) ;let*
     ) ;define
 
+    (define (%extract-id-from-line line)
+      (let ((trimmed (string-trim line)))
+        (if (<= (string-length trimmed) 0)
+          #f
+          (let ((parsed (catch #t (lambda () (string->json trimmed)) (lambda _ #f))))
+            (and parsed (assoc "id" parsed) (cdr (assoc "id" parsed)))
+          ) ;let
+        ) ;if
+      ) ;let
+    ) ;define
+
+    (define (find-last-session-message-id file-path)
+      (let ((p-str (if (string? file-path) file-path (path->string file-path))))
+        (if (not (file-exists? p-str))
+          #f
+          (let ((lines (path-read-lines p-str)) (last-id #f))
+            (for-each
+              (lambda (line)
+                (let ((mid (%extract-id-from-line line)))
+                  (when mid
+                    (set! last-id mid)
+                  ) ;when
+                ) ;let
+              ) ;lambda
+              lines
+            ) ;for-each
+            last-id
+          ) ;let
+        ) ;if
+      ) ;let
+    ) ;define
+
     (define (persist-new-messages! sfile init-msgs all-final-msgs)
       (when sfile
-        (let ((old-len (length init-msgs)) (total-len (length all-final-msgs)))
+        (let ((old-len (length init-msgs))
+              (total-len (length all-final-msgs))
+              (current-parent-id (find-last-session-message-id sfile))
+             ) ;
           (when (> total-len old-len)
             (let loop
               ((rest (list-tail all-final-msgs old-len)))
@@ -92,7 +127,8 @@
                        (mid (uuid4))
                        (now-iso (pi-iso-8601-utc-now))
                       ) ;
-                  (save-session-message! sfile json-str mid #f now-iso)
+                  (save-session-message! sfile json-str mid current-parent-id now-iso)
+                  (set! current-parent-id mid)
                   (loop (cdr rest))
                 ) ;let*
               ) ;when

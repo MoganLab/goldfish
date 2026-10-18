@@ -90,20 +90,30 @@
       ) ;let
     ) ;define
 
+    (define* (%val key alist (default-val #f))
+      (if (not (pair? alist))
+        default-val
+        (let ((p
+                (or (assoc key alist)
+                  (assoc (if (symbol? key) (symbol->string key) (string->symbol key)) alist)
+                ) ;or
+              ) ;p
+             ) ;
+          (if p (cdr p) default-val)
+        ) ;let
+      ) ;if
+    ) ;define*
+
     (define (%assistant-block->part blk)
-      (let ((btype (cdr (assoc 'type blk))))
+      (let ((btype (%val 'type blk "")))
         (cond
-         ((equal? btype "text") (list (cons "text" (cdr (assoc 'text blk)))))
+         ((equal? btype "text") (list (cons "text" (%val 'text blk ""))))
          ((equal? btype "toolCall")
-          (let* ((ts (cdr (or (assoc 'thoughtSignature blk) (assoc "thoughtSignature" blk) '(#f
-                                                                                             . #f))
-                     ) ;cdr
-                 ) ;ts
-                 (fc-obj
-                   (list (cons "name" (cdr (assoc 'name blk)))
-                     (cons "args" (cdr (assoc 'arguments blk)))
-                     (cons "id" (cdr (assoc 'id blk)))
-                   ) ;list
+          (let* ((ts (%val 'thoughtSignature blk #f))
+                 (fc-obj (list (cons "name" (%val 'name blk ""))
+                           (cons "args" (%val 'arguments blk '()))
+                           (cons "id" (%val 'id blk ""))
+                         ) ;list
                  ) ;fc-obj
                  (part (list (cons "functionCall" fc-obj)))
                 ) ;
@@ -118,16 +128,54 @@
       ) ;let
     ) ;define
 
+    (define (%extract-user-text-content content)
+      (cond ((string? content) content)
+            ((vector? content)
+             (let loop
+               ((i 0) (acc '()))
+               (if (>= i (vector-length content))
+                 (string-join (reverse acc) "\n")
+                 (let* ((blk (vector-ref content i)) (t (%val 'text blk "")))
+                   (loop (+ i 1) (if (string-null? t) acc (cons t acc)))
+                 ) ;let*
+               ) ;if
+             ) ;let
+            ) ;
+            ((pair? content)
+             (let loop
+               ((rest content) (acc '()))
+               (if (null? rest)
+                 (string-join (reverse acc) "\n")
+                 (let* ((blk (car rest)) (t (if (pair? blk) (%val 'text blk "") "")))
+                   (loop (cdr rest) (if (string-null? t) acc (cons t acc)))
+                 ) ;let*
+               ) ;if
+             ) ;let
+            ) ;
+            (else "")
+      ) ;cond
+    ) ;define
+
     (define (%build-single-content msg)
-      (let ((role (cdr (assoc 'role msg))) (content (cdr (assoc 'content msg))))
+      (let ((role (%val 'role msg "")) (content (%val 'content msg '())))
         (cond
          ((equal? role "user")
-          (list (cons "role" "user") (cons "parts" (vector (list (cons "text" content)))))
+          (let ((text-content (%extract-user-text-content content)))
+            (list (cons "role" "user")
+              (cons "parts" (vector (list (cons "text" text-content))))
+            ) ;list
+          ) ;let
          ) ;
          ((equal? role "assistant")
-          (let ((parts (map %assistant-block->part content)))
+          (let* ((blks (cond ((vector? content) (vector->list content))
+                             ((list? content) content)
+                             (else '())
+                       ) ;cond
+                 ) ;blks
+                 (parts (map %assistant-block->part blks))
+                ) ;
             (list (cons "role" "model") (cons "parts" (list->vector parts)))
-          ) ;let
+          ) ;let*
          ) ;
          (else #f)
         ) ;cond
@@ -135,22 +183,24 @@
     ) ;define
 
     (define (%tool-result-text content)
-      (if (not (pair? content))
-        ""
-        (let ((first-blk (car content)))
-          (if (not (pair? first-blk))
-            ""
-            (cdr (or (assoc 'text first-blk) (assoc "text" first-blk) '(#f . "")))
-          ) ;if
-        ) ;let
-      ) ;if
+      (cond ((string? content) content)
+            ((vector? content)
+             (if (> (vector-length content) 0) (%val 'text (vector-ref content 0) "") "")
+            ) ;
+            ((pair? content)
+             (let ((first-blk (car content)))
+               (if (pair? first-blk) (%val 'text first-blk "") "")
+             ) ;let
+            ) ;
+            (else "")
+      ) ;cond
     ) ;define
 
     (define (%tool-result->function-response msg)
-      (let* ((tool-name (cdr (assoc 'toolName msg)))
-             (tool-id (cdr (assoc 'toolCallId msg)))
-             (is-err? (cdr (assoc 'isError msg)))
-             (text (%tool-result-text (cdr (assoc 'content msg))))
+      (let* ((tool-name (%val 'toolName msg ""))
+             (tool-id (%val 'toolCallId msg ""))
+             (is-err? (%val 'isError msg #f))
+             (text (%tool-result-text (%val 'content msg '())))
              (resp-obj (if is-err? (list (cons "error" text)) (list (cons "output" text))))
             ) ;
         (list (cons "functionResponse"
@@ -162,7 +212,7 @@
 
     (define (%take-tool-results rest parts-acc)
       (if
-        (and (pair? rest) (equal? (cdr (assoc 'role (car rest))) "toolResult"))
+        (and (pair? rest) (equal? (%val 'role (car rest) "") "toolResult"))
         (%take-tool-results (cdr rest)
           (cons (%tool-result->function-response (car rest)) parts-acc)
         ) ;%take-tool-results
@@ -175,7 +225,7 @@
         ((rest messages) (acc '()))
         (if (null? rest)
           (list->vector (reverse acc))
-          (let* ((msg (car rest)) (role (cdr (assoc 'role msg))))
+          (let* ((msg (car rest)) (role (%val 'role msg "")))
             (if (equal? role "toolResult")
               (let*-values (((rem-rest rparts) (%take-tool-results rest '()))
                             ((parts-vec) (list->vector (reverse rparts)))

@@ -33,24 +33,7 @@
   (begin
 
     (define (display-pi-help)
-      (display (string-append "gf pi - AI coding assistant script mode\n\n"
-                 "Usage:\n  gf pi [options] [--] [@files...] [messages...]\n\n"
-                 "Options:\n"
-                 "  -p, --print                    Print response to stdout and exit\n"
-                 "      --mode <mode>              Output mode: text, json (default: text)\n"
-                 "      --model <id>               Model ID to use\n"
-                 "      --provider <name>          Provider name (e.g. google)\n"
-                 "      --proxy <url>              Proxy URL (e.g. socks5h://127.0.0.1:1080)\n"
-                 "      --tools <list>             Comma-separated list of tools\n"
-                 "      --max-turns <n>            Maximum turns limit (default: 200, 0 for unlimited)\n"
-                 "      --timeout <seconds>        Timeout in seconds for bash and HTTP (default: 120)\n"
-                 "  -c, --continue                 Continue previous session\n"
-                 "      --no-session               Do not persist session\n"
-                 "      --system-prompt <text>     Override system prompt\n"
-                 "      --append-system-prompt <text>\n"
-                 "                                 Append system prompt section\n"
-                 "  -h, --help                     Show this help message\n"
-               ) ;string-append
+      (display "gf pi - AI coding assistant script mode\n\nUsage:\n  gf pi [options] [--] [@files...] [messages...]\n\nOptions:\n  -p, --print                    Print response to stdout and exit\n      --mode <mode>              Output mode: text, json (default: text)\n      --model <id>               Model ID to use\n      --provider <name>          Provider name (e.g. google)\n      --proxy <url>              Proxy URL (e.g. socks5h://127.0.0.1:1080)\n      --tools <list>             Comma-separated list of tools\n      --max-turns <n>            Maximum turns limit (default: 200, 0 for unlimited)\n      --timeout <seconds>        Timeout in seconds for bash and HTTP (default: 120)\n  -c, --continue                 Continue previous session\n      --no-session               Do not persist session\n      --system-prompt <text>     Override system prompt\n      --append-system-prompt <text>\n                                 Append system prompt section\n  -h, --help                     Show this help message\n"
       ) ;display
     ) ;define
 
@@ -147,11 +130,26 @@
       ) ;let*
     ) ;define
 
+    (define (%persist-initial-user-msg! parsed sdir sfile init-msgs)
+      (let ((old-history
+              (if (and (pi-args-ref parsed 'continue) sdir)
+                (let ((latest (find-latest-session-file sdir)))
+                  (if latest (read-session-history latest) '())
+                ) ;let
+                '()
+              ) ;if
+            ) ;old-history
+           ) ;
+        (persist-new-messages! sfile old-history init-msgs)
+      ) ;let
+    ) ;define
+
     (define (%run-agent-print-session cfg parsed initial-msg)
       (let*-values (((cwd) (path->string (path-cwd)))
                     ((sfile sdir) (setup-session-file parsed cfg cwd))
                     ((init-msgs) (setup-initial-messages parsed initial-msg sdir))
                    ) ;
+        (%persist-initial-user-msg! parsed sdir sfile init-msgs)
         (let* ((system-prompt (%prepare-system-prompt cfg parsed))
                (timeout
                  (or (pi-args-ref parsed 'timeout) (cdr (or (assoc 'timeout cfg) '(#f
@@ -203,6 +201,7 @@
                     ((sfile sdir) (setup-session-file parsed cfg cwd))
                     ((init-msgs) (setup-initial-messages parsed initial-msg sdir))
                    ) ;
+        (%persist-initial-user-msg! parsed sdir sfile init-msgs)
         (let* ((system-prompt (%prepare-system-prompt cfg parsed))
                (timeout
                  (or (pi-args-ref parsed 'timeout) (cdr (or (assoc 'timeout cfg) '(#f

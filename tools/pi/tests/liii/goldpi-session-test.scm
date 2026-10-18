@@ -80,7 +80,8 @@
       (let ((history (read-session-history sfile)))
         (check (length history) => 2)
         (check (cdr (assoc "content" (car history))) => "first query")
-        (check (cdr (assoc "content" (cadr history))) => "first response"))
+        (check (cdr (assoc "content" (cadr history))) => "first response")
+        (check-true (string? (find-last-session-message-id sfile))))
 
       ;; 5.3 continue: 恢复上一会话并在末尾追加新消息
       (let-values (((sfile2 dir2) (setup-session-file '((no-session . #f) (continue . #t)) cfg cwd)))
