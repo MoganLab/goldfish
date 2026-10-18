@@ -46,7 +46,7 @@ Anthropic 已实现但本机无访问权限，不在维护范围；其 OAuth 刷
 - **时间 API 规范（用户裁定）**：除 `sleep` 外不得使用 `(liii time)` 中的函数；
   时间相关功能一律优先使用 `(liii datetime xxx)` 系列。
 
-## 3. 后续任务书（细粒度拆分；编号全局递增，状态由 Claude 维护，便于观测进展）
+## 3. 后续任务书（细粒度拆分；编号从 001 起全局递增，状态由 Claude 维护，便于观测进展）
 
 拆分原则：每个任务一次 pi 拉起、一个可独立验证的验收点、若干小提交；
 全部遵守 §2 规范（TDD、小提交、fmt/check 门禁、命令 timeout）。
@@ -56,19 +56,19 @@ Anthropic 已实现但本机无访问权限，不在维护范围；其 OAuth 刷
 
 | 编号 | 任务 | 内容与验收点 | 状态 |
 |---|---|---|---|
-| 1 | Kimi·调研与非流式最小可用 | 读 `~/git/pi` 源码确定 kimi-coding 端点/路径/鉴权头/请求响应形状（结论写入提交信息或输出）；实现请求构造 + 响应解析 + `--provider kimi-coding` CLI 分发；stub server 覆盖正常回复；真实冒烟（纯文本对话）通过 | 待执行 |
-| 2 | Kimi·function calling | 工具声明、toolCall 输出、toolResult 回传的 Kimi 形状映射；stub 测试；真实冒烟（bash 工具一轮往返）通过 | 待执行 |
-| 3 | Kimi·流式 SSE | 若端点支持：text_delta 增量 + 空闲超时兜底；stub 测试；真实冒烟（JSON 模式见 message_update）通过；端点不支持则记录偏差后关闭 | 待执行 |
-| 4 | Kimi·错误路径 | 401/404/429/5xx 重试与报错语义对齐 §2；凭据缺失明确报错退出码 1；fixture + stub 测试 | 待执行 |
-| 5 | 核心库迁移·文件 | `goldfish/liii/pi.scm` 与 `goldfish/liii/pi/` 整体 git mv 至 `tools/pi/liii/`（模块名暂保留 `(liii pi)` 最小改动），修 load-path 与 import，全量测试通过 | 待执行 |
-| 6 | 核心库迁移·测试与索引 | `tests/liii/pi/` 迁至 `tools/pi/tests/`；`bin/gf doc --build-json` 重建；`bin/gf doc "..."` 抽查可用 | 待执行 |
-| 7 | 核心库迁移·模块名定夺 | 依仓库惯例决定是否改名对齐 `(liii goldpi*)` 族；改名则含全量 import 更新与测试，保留则记录理由后关闭 | 待执行 |
-| 8 | record 化·事件结构 | `pi-event-*` 系列构造的事件对象改 `define-record-type`（在任务 5-7 迁移后的新位置进行） | 待执行 |
-| 9 | record 化·消息结构 | user/assistant/toolResult 消息与 text/toolCall content block | 待执行 |
-| 10 | record 化·配置结构 | settings 解析结果、凭据、模型元数据 | 待执行 |
-| 11 | record 化·工具结构 | 工具声明（name/description/schema/execute）与工具结果（含截断产物） | 待执行 |
-| 12 | thinking 内容 | `--thinking-level`，用法见 PI_SPEC.md TODO；届时与用户确认后启动 | 远期 |
-| 13 | 图片输入 | `@图片`，用法见 PI_SPEC.md TODO；届时与用户确认后启动 | 远期 |
+| 001 | Kimi·调研与非流式最小可用 | 读 `~/git/pi` 源码确定 kimi-coding 端点/路径/鉴权头/请求响应形状（结论写入提交信息或输出）；实现请求构造 + 响应解析 + `--provider kimi-coding` CLI 分发；stub server 覆盖正常回复；真实冒烟（纯文本对话）通过 | 待执行 |
+| 002 | Kimi·function calling | 工具声明、toolCall 输出、toolResult 回传的 Kimi 形状映射；stub 测试；真实冒烟（bash 工具一轮往返）通过 | 待执行 |
+| 003 | Kimi·流式 SSE | 若端点支持：text_delta 增量 + 空闲超时兜底；stub 测试；真实冒烟（JSON 模式见 message_update）通过；端点不支持则记录偏差后关闭 | 待执行 |
+| 004 | Kimi·错误路径 | 401/404/429/5xx 重试与报错语义对齐 §2；凭据缺失明确报错退出码 1；fixture + stub 测试 | 待执行 |
+| 005 | 核心库迁移·文件 | `goldfish/liii/pi.scm` 与 `goldfish/liii/pi/` 整体 git mv 至 `tools/pi/liii/`（模块名暂保留 `(liii pi)` 最小改动），修 load-path 与 import，全量测试通过 | 待执行 |
+| 006 | 核心库迁移·测试与索引 | `tests/liii/pi/` 迁至 `tools/pi/tests/`；`bin/gf doc --build-json` 重建；`bin/gf doc "..."` 抽查可用 | 待执行 |
+| 007 | 核心库迁移·模块名定夺 | 依仓库惯例决定是否改名对齐 `(liii goldpi*)` 族；改名则含全量 import 更新与测试，保留则记录理由后关闭 | 待执行 |
+| 008 | record 化·事件结构 | `pi-event-*` 系列构造的事件对象改 `define-record-type`（在任务 5-7 迁移后的新位置进行） | 待执行 |
+| 009 | record 化·消息结构 | user/assistant/toolResult 消息与 text/toolCall content block | 待执行 |
+| 010 | record 化·配置结构 | settings 解析结果、凭据、模型元数据 | 待执行 |
+| 011 | record 化·工具结构 | 工具声明（name/description/schema/execute）与工具结果（含截断产物） | 待执行 |
+| 012 | thinking 内容 | `--thinking-level`，用法见 PI_SPEC.md TODO；届时与用户确认后启动 | 远期 |
+| 013 | 图片输入 | `@图片`，用法见 PI_SPEC.md TODO；届时与用户确认后启动 | 远期 |
 
 共同约束：
 - 任务 1-4（Kimi）凭据事实：auth.json `kimi-coding` 为 type:"api_key"，仅
