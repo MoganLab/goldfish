@@ -79,11 +79,7 @@ Anthropic 已实现但本机无访问权限，不在维护范围；其 OAuth 刷
 
 | 编号 | 任务 | 内容与验收点 | 状态 |
 |---|---|---|---|
-| 001 | 核心库迁移·文件 | `goldfish/liii/pi.scm` 与 `goldfish/liii/pi/` 整体 git mv 至 `tools/pi/liii/`（模块名暂保留 `(liii pi)` 最小改动），修 load-path 与 import，全量测试通过 | 已完成 |
-| 002 | 核心库迁移·测试与索引 | `tests/liii/pi/` 迁至 `tools/pi/tests/`；`bin/gf doc --build-json` 重建；`bin/gf doc "..."` 抽查可用 | 已完成 |
-| 003 | 核心库迁移·模块名统一【用户已裁定】 | 模块格局定案：**只有 `(liii pi)`（门面）与 `(liii pi xxx)`（多级子库）两种形式，`(liii pi-xxx)` 平铺族不存在**——子库清单、目录树与 pi 源码三层包映射见 PI_SPEC.md 架构演进节；CLI 入口 `pi/cli.scm`（模块 `(liii pi cli)`），gfproject.json 同步；二级子库为导出层，单文件 300 行放不下继续拆下层；测试目录镜像源码库结构；全量 import/测试更新；完成后由 Claude 更新 PI_SPEC/devel 文档中的路径与模块名 | 已完成 |
-| 004 | record 化·事件结构 | `pi-event-*` 系列构造的事件对象改 `define-record-type`（在任务 1-3 迁移后的新位置进行） | 已完成 |
-| 005 | record 化·消息结构 | user/assistant/toolResult 消息与 text/toolCall content block | 进行中（开发阶段） |
+| 005 | record 化·消息结构 | user/assistant/toolResult 消息与 text/toolCall content block | 已完成 |
 | 006 | record 化·配置结构 | settings 解析结果、凭据、模型元数据 | 待执行 |
 | 007 | record 化·工具结构 | 工具声明（name/description/schema/execute）与工具结果（含截断产物） | 待执行 |
 | 008 | Kimi·调研与非流式最小可用 | 读 `~/git/pi` 源码确定 kimi-coding 端点/路径/鉴权头/请求响应形状（结论写入提交信息或输出）；实现请求构造 + 响应解析 + `--provider kimi-coding` CLI 分发；stub server 覆盖正常回复；真实冒烟（纯文本对话）通过 | 待执行 |
@@ -92,7 +88,9 @@ Anthropic 已实现但本机无访问权限，不在维护范围；其 OAuth 刷
 | 011 | Kimi·错误路径 | 401/404/429/5xx 重试与报错语义对齐 §2；凭据缺失明确报错退出码 1；fixture + stub 测试 | 待执行 |
 | 012 | thinking 内容 | `--thinking-level`，用法见 PI_SPEC.md TODO；届时与用户确认后启动 | 远期 |
 | 013 | 图片输入 | `@图片`，用法见 PI_SPEC.md TODO；届时与用户确认后启动 | 远期 |
-| 014 | 缺陷修复·4字节UTF-8挂起 | prompt 含 4 字节 UTF-8 字符与 `<` 组合时静默挂起且流式空闲超时未兜底（复现 `timeout 60 bin/gf pi -p '🚀 <'`）；修复后真实冒烟通过 | 进行中 |
+| 015 | record 化·收尾全量冒烟 | record 化系列（004-007）完成后的全量真实冒烟：print/JSON/工具多轮/--continue/--provider 切换/错误路径，确认零回归；发现缺陷按编号追加修复任务 | 待执行 |
+| 016 | 文档与实况一致性校验 | 003-007 重构完成后：PI_SPEC.md 架构演进节、gfproject.json、devel 文档与代码实况逐项核对并修正；bin/gf doc 索引全量重建与抽查 | 待执行 |
+| 014 | 缺陷修复·4字节UTF-8挂起 | prompt 含 4 字节 UTF-8 字符与 `<` 组合时静默挂起且流式空闲超时未兜底（复现 `timeout 60 bin/gf pi -p '🚀 <'`）；修复后真实冒烟通过 | 已回退（前置排查 3 次执行未修复，待 record 化系列完成后重做） |
 共同约束：
 - 每个任务常态三个 commit：`[编号][PLAN]`（建档）+ `[编号][REVIEW]`（代码）
   + `[编号][REVIEW]`（验收脚本）；观测 git log 即知任务进度。
