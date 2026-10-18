@@ -131,7 +131,7 @@ timeout 30 bin/gf doc "pi-event-session" # 查看函数源码与测试
 
 ## TODO（尚不能运行，随迭代补充）
 
-- [ ] **Kimi provider**：`~/.pi/agent/auth.json` 中已配置的 `kimi-coding`（type:"oauth"，access/refresh/expires）尚未被消费；需参照 pi 源码（`~/git/pi`）中 Kimi 的端点与鉴权实现，支持 `--provider kimi-coding` 端到端。【进行中】
+- [ ] **Kimi provider**：`~/.pi/agent/auth.json` 中已配置的 `kimi-coding`（type:"api_key"，仅 key/type 字段）尚未被消费；需参照 pi 源码（`~/git/pi`）中 Kimi 的端点与鉴权实现，支持 `--provider kimi-coding` 端到端。不涉及 OAuth。
 - [ ] **4 字节 UTF-8 + '<' 挂起**：prompt 同时含 4 字节 UTF-8 字符（如 🚀、𠀀）与 `<` 时进程静默挂起且连 HTTP 300s 超时都不生效（复现：`timeout 60 bin/gf pi -p '🚀 <'`）。【修复中】
 - [ ] 项目级 `.pi/settings.json` 读取（当前只读全局 settings.json）。
 - [ ] thinking 内容的请求与解析（`--thinking-level`）。
