@@ -15,185 +15,41 @@
 ;;
 
 (define-library (liii pi types)
-  (import (scheme base)
-    (liii string)
-    (liii list)
-    (liii time)
-    (liii uuid)
-    (liii json)
-  ) ;import
-  (export pi-iso-8601-utc-now pi-current-time-millis pi-serialize-event
-    pi-event-session pi-event-agent-start pi-event-turn-start
-    pi-event-message-start pi-event-message-update pi-event-message-end
-    pi-event-tool-execution-start pi-event-tool-execution-update
-    pi-event-tool-execution-end pi-event-turn-end pi-event-agent-end
-    pi-event-agent-settled pi-build-json-event pi-make-user-message
-    pi-make-assistant-message pi-make-tool-result-message pi-make-usage
+  (import (scheme base) (liii base) (liii pi event))
+  (export pi-iso-8601-utc-now pi-current-time-millis pi-serialize-event assoc
+    pi-event? pi-event-type pi-event->alist pi-event-session pi-event-session?
+    pi-event-session-type pi-event-session-version pi-event-session-id
+    pi-event-session-timestamp pi-event-session-cwd pi-event-agent-start
+    pi-event-agent-start? pi-event-agent-start-type pi-event-turn-start
+    pi-event-turn-start? pi-event-turn-start-type pi-event-message-start
+    pi-event-message-start? pi-event-message-start-type
+    pi-event-message-start-message pi-event-message-update
+    pi-event-message-update? pi-event-message-update-type
+    pi-event-message-update-usage
+    pi-event-message-update-assistant-message-event pi-event-message-end
+    pi-event-message-end? pi-event-message-end-type pi-event-message-end-message
+    pi-event-tool-execution-start pi-event-tool-execution-start?
+    pi-event-tool-execution-start-type
+    pi-event-tool-execution-start-tool-call-id
+    pi-event-tool-execution-start-tool-name pi-event-tool-execution-start-args
+    pi-event-tool-execution-update pi-event-tool-execution-update?
+    pi-event-tool-execution-update-type
+    pi-event-tool-execution-update-tool-call-id
+    pi-event-tool-execution-update-tool-name pi-event-tool-execution-update-args
+    pi-event-tool-execution-update-partial-result pi-event-tool-execution-end
+    pi-event-tool-execution-end? pi-event-tool-execution-end-type
+    pi-event-tool-execution-end-tool-call-id
+    pi-event-tool-execution-end-tool-name pi-event-tool-execution-end-result
+    pi-event-tool-execution-end-is-error pi-event-turn-end pi-event-turn-end?
+    pi-event-turn-end-type pi-event-turn-end-message
+    pi-event-turn-end-tool-results pi-event-agent-end pi-event-agent-end?
+    pi-event-agent-end-type pi-event-agent-end-messages
+    pi-event-agent-end-will-retry pi-event-agent-settled pi-event-agent-settled?
+    pi-event-agent-settled-type pi-event-agent-settled-aborted
+    pi-build-json-event pi-make-user-message pi-make-assistant-message
+    pi-make-tool-result-message pi-make-usage
   ) ;export
   (begin
-
-    (define (pi-build-json-event ev-type args)
-      (case ev-type
-       ((session) (apply pi-event-session args))
-       ((agent_start) (pi-event-agent-start))
-       ((turn_start) (pi-event-turn-start))
-       ((message_start) (pi-event-message-start (car args)))
-       ((message_update) (pi-event-message-update (car args) (cadr args)))
-       ((message_end) (pi-event-message-end (car args)))
-       ((tool_execution_start) (apply pi-event-tool-execution-start args))
-       ((tool_execution_update) (apply pi-event-tool-execution-update args))
-       ((tool_execution_end) (apply pi-event-tool-execution-end args))
-       ((turn_end) (pi-event-turn-end (car args) (cadr args)))
-       ((agent_end) (pi-event-agent-end (car args) (cadr args)))
-       ((agent_settled) (pi-event-agent-settled (car args)))
-       (else #f)
-      ) ;case
-    ) ;define
-
-    (define (%pad-two-digits n)
-      (if (< n 10) (string-append "0" (number->string n)) (number->string n))
-    ) ;define
-
-    (define (pi-iso-8601-utc-now)
-      (let* ((now (current-time))
-             (d (time-utc->date now 0))
-             (year (number->string (date-year d)))
-             (month (%pad-two-digits (date-month d)))
-             (day (%pad-two-digits (date-day d)))
-             (hour (%pad-two-digits (date-hour d)))
-             (minute (%pad-two-digits (date-minute d)))
-             (second (%pad-two-digits (date-second d)))
-             (millis (%pad-three-digits (quotient (time-nanosecond now) 1000000)))
-            ) ;
-        (string-append year "-" month "-" day "T" hour ":" minute ":" second "."
-          millis "Z"
-        ) ;string-append
-      ) ;let*
-    ) ;define
-
-    (define (%pad-three-digits n)
-      (cond ((< n 10) (string-append "00" (number->string n)))
-            ((< n 100) (string-append "0" (number->string n)))
-            (else (number->string n))
-      ) ;cond
-    ) ;define
-
-    (define (pi-current-time-millis)
-      (let ((now (current-time)))
-        (+ (* (time-second now) 1000) (quotient (time-nanosecond now) 1000000))
-      ) ;let
-    ) ;define
-
-    (define (%json-object-entry? x)
-      (and (pair? x) (not (pair? (car x))) (or (symbol? (car x)) (string? (car x))))
-    ) ;define
-
-    (define (%normalize-json-value x)
-      (cond ((null? x) #())
-            ((vector? x) (list->vector (map %normalize-json-value (vector->list x))))
-            ((and (pair? x) (every %json-object-entry? x))
-             (let loop
-               ((entries x) (acc '()))
-               (if (null? entries)
-                 (reverse acc)
-                 (let* ((entry (car entries))
-                        (raw-k (car entry))
-                        (k (if (symbol? raw-k) (symbol->string raw-k) raw-k))
-                        (v (cdr entry))
-                       ) ;
-                   (if (and (string=? k "errorMessage") (not v))
-                     (loop (cdr entries) acc)
-                     (loop (cdr entries) (cons (cons k (%normalize-json-value v)) acc))
-                   ) ;if
-                 ) ;let*
-               ) ;if
-             ) ;let
-            ) ;
-            ((pair? x) (list->vector (map %normalize-json-value x)))
-            ((symbol? x) (symbol->string x))
-            (else x)
-      ) ;cond
-    ) ;define
-
-    (define (pi-serialize-event alist)
-      (json->string (%normalize-json-value alist))
-    ) ;define
-
-    (define* (pi-event-session cwd (id #f) (timestamp #f))
-      (list (cons "type" "session")
-        (cons "version" 3)
-        (cons "id" (or id (uuid4)))
-        (cons "timestamp" (or timestamp (pi-iso-8601-utc-now)))
-        (cons "cwd" cwd)
-      ) ;list
-    ) ;define*
-
-    (define (pi-event-agent-start)
-      '(("type" . "agent_start"))
-    ) ;define
-
-    (define (pi-event-turn-start)
-      '(("type" . "turn_start"))
-    ) ;define
-
-    (define (pi-event-message-start msg)
-      (list (cons "type" "message_start") (cons "message" msg))
-    ) ;define
-
-    (define (pi-event-message-update usage assistant-message-event)
-      (list (cons "type" "message_update")
-        (cons "usage" usage)
-        (cons "assistantMessageEvent" assistant-message-event)
-      ) ;list
-    ) ;define
-
-    (define (pi-event-message-end msg)
-      (list (cons "type" "message_end") (cons "message" msg))
-    ) ;define
-
-    (define (pi-event-tool-execution-start tool-call-id tool-name args)
-      (list (cons "type" "tool_execution_start")
-        (cons "toolCallId" tool-call-id)
-        (cons "toolName" tool-name)
-        (cons "args" args)
-      ) ;list
-    ) ;define
-
-    (define (pi-event-tool-execution-update tool-call-id tool-name args partial-result)
-      (list (cons "type" "tool_execution_update")
-        (cons "toolCallId" tool-call-id)
-        (cons "toolName" tool-name)
-        (cons "args" args)
-        (cons "partialResult" partial-result)
-      ) ;list
-    ) ;define
-
-    (define (pi-event-tool-execution-end tool-call-id tool-name result is-error)
-      (list (cons "type" "tool_execution_end")
-        (cons "toolCallId" tool-call-id)
-        (cons "toolName" tool-name)
-        (cons "result" result)
-        (cons "isError" (if is-error #t #f))
-      ) ;list
-    ) ;define
-
-    (define* (pi-event-turn-end assistant-msg (tool-results #()))
-      (list (cons "type" "turn_end")
-        (cons "message" assistant-msg)
-        (cons "toolResults" tool-results)
-      ) ;list
-    ) ;define*
-
-    (define* (pi-event-agent-end messages (will-retry #f))
-      (list (cons "type" "agent_end")
-        (cons "messages" messages)
-        (cons "willRetry" (if will-retry #t #f))
-      ) ;list
-    ) ;define*
-
-    (define* (pi-event-agent-settled (aborted #f))
-      (list (cons "type" "agent_settled") (cons "aborted" (if aborted #t #f)))
-    ) ;define*
 
     (define (pi-make-user-message text)
       (list (cons 'role "user") (cons 'content text))
