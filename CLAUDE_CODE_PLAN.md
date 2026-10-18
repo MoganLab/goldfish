@@ -147,15 +147,19 @@ timeout 900 bin/gf pi --print "@PI_PLAN.md 实现阶段八：会话持久化"
 **阶段发起命令**：任务三阶段由 pi 执行，每个阶段发起时 Claude 显式打印并执行
 以下命令（将来自举时把 `pi` 替换为 `bin/gf pi`）：
 
+**阶段产物与 commit 对应**：PLAN commit = `tools/pi/devel/ddd.md`（任务文档）；
+CODE commit = 代码改动；REVIEW commit = `tools/pi/devel/ddd.scm`（**验收脚本**，
+可执行、逐条断言验收点，入库留痕）。每个任务在 devel 下留下成对文件。
+
 ```bash
-# 文档阶段：登记+建档
-timeout 900 pi -a -p @PI_PLAN.md "执行任务 ddd 的文档阶段：读 §3 任务表中任务 ddd 的验收点，从 tools/pi/devel/ddd.md 模板建立 tools/pi/devel/ddd.md（填写状态/代码文件/验收点/测试方法）并 commit"
+# 文档阶段：登记+建档（产物 tools/pi/devel/ddd.md）
+timeout 900 pi -a -p @PI_PLAN.md "执行任务 ddd 的文档阶段：读 §3 任务表中任务 ddd 的验收点，从 tools/pi/devel/ddd.md 模板建立 tools/pi/devel/ddd.md（填写状态/代码文件/验收点/测试方法），commit 信息 [ddd][PLAN] 任务名：建档"
 
-# 开发阶段：TDD 实现（长任务，脱离进程树）
-setsid nohup timeout 7200 pi -a -p @PI_PLAN.md "执行任务 ddd 的开发阶段（验收点见 tools/pi/devel/ddd.md）：先写测试再实现，工作区累积改动不 commit，完成后如实报告各验收点情况" > /tmp/pi-goldfish-run.log 2>&1 < /dev/null &
+# 开发阶段：TDD 实现（产物为代码改动）
+setsid nohup timeout 7200 pi -a -p @PI_PLAN.md "执行任务 ddd 的开发阶段（验收点见 tools/pi/devel/ddd.md）：先写测试再实现，commit 信息 [ddd][CODE] 任务名：简述，鼓励小步；自己执行的每条命令必须 timeout 包裹且不超过 300 秒；完成后在输出中如实报告各验收点情况" > /tmp/pi-goldfish-run.log 2>&1 < /dev/null &
 
-# 验收阶段：门禁+冒烟+结算
-timeout 1800 pi -a -p @PI_PLAN.md "执行任务 ddd 的验收阶段：按 tools/pi/devel/ddd.md 的测试方法依次通过 xmake b goldfish、bin/gf fmt、git diff --exit-code、bin/gf check 与相关测试，逐条验证验收点，通过则 commit（[ddd] 任务名：简述）并 git push，如实报告验收结论"
+# 验收阶段：写验收脚本+跑门禁+结算（产物 tools/pi/devel/ddd.scm）
+timeout 1800 pi -a -p @PI_PLAN.md "执行任务 ddd 的验收阶段：1) 编写验收脚本 tools/pi/devel/ddd.scm（可执行，逐条断言 ddd.md 中的验收点：构建、fmt、check、相关测试、真实冒烟命令与期望输出）；2) 运行该脚本全绿后 commit（[ddd][REVIEW] 任务名：验收）并 git push；3) 在输出中逐条报告验收点通过情况"
 ```
 
 ### 5.1 文档阶段
