@@ -112,6 +112,9 @@
 (let ((empty-result (process-file-arguments '())))
   (check empty-result => ""))
 
+;; 7.1 文件不存在时报错测试（§2.1 / 缺陷6）
+(check-catch 'file-error (process-file-arguments '("/nonexistent-file-xyz")))
+
 ;; 8. 结合 parse-pi-args 与 build-initial-prompt 进行完整 prompt 组装测试（覆盖 join 规则与 --）
 (let* ((parsed (parse-pi-args '("--model" "gemini-3.8-flash" "--" "-h" "second message")))
        (messages (pi-args-ref parsed 'messages)))

@@ -165,12 +165,9 @@
              (abs-str (path->string p))
             ) ;
         (if (not (path-exists? p))
-          (begin
-            (display (string-append "Error: File not found: " abs-str "\n")
-              (current-error-port)
-            ) ;display
-            (exit 1)
-          ) ;begin
+          (error 'file-error
+            (string-append "cannot read @" raw-path ": No such file or directory")
+          ) ;error
           (let ((size (path-getsize p)))
             (if (= size 0) "" (format-file-block abs-str (path-read-text p)))
           ) ;let

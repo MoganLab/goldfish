@@ -69,19 +69,16 @@
 
     (define (%has-text-block? blks)
       (and (pair? blks)
-        (let loop
-          ((lst blks))
-          (and (not (null? lst))
-            (let* ((blk (car lst))
-                   (t-val (cdr (or (assoc 'type blk) (assoc "type" blk) '(#f
-                                                                          . ""))))
-                   (t-text (cdr (or (assoc 'text blk) (assoc "text" blk) '(#f
-                                                                           . ""))))
-                  ) ;
-              (if (and (equal? t-val "text") (not (string-null? t-text))) #t (loop (cdr lst)))
-            ) ;let*
-          ) ;and
-        ) ;let
+        (any
+          (lambda (blk)
+            (let ((t (cdr (or (assoc 'type blk) (assoc "type" blk) '(#f . ""))))
+                  (text (cdr (or (assoc 'text blk) (assoc "text" blk) '(#f . ""))))
+                 ) ;
+              (and (equal? t "text") (not (string-null? text)))
+            ) ;let
+          ) ;lambda
+          blks
+        ) ;any
       ) ;and
     ) ;define
 
@@ -278,6 +275,7 @@
     (define (%format-catch-error err-type info)
       (cond
        ((and (pair? info) (string? (car info))) (car info))
+       ((and (pair? info) (pair? (car info)) (string? (caar info))) (caar info))
        (else (object->string (cons err-type info)))
       ) ;cond
     ) ;define
