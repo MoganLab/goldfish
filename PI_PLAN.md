@@ -58,11 +58,21 @@ Anthropic 已实现但本机无访问权限，不在维护范围；其 OAuth 刷
   真实凭据，端到端真实冒烟验证（timeout 包裹）通过后方可收尾；完成后由 Claude
   更新 PI_SPEC.md 的对应 TODO。
 
-### 3.2 代码重构：数据结构 record 化【用户指定】
+### 3.2 核心库迁移【用户指定，优先于 3.3】
 
-- 用 R7RS `define-record-type` 重构 tools/pi/liii/ 与 goldfish/liii/pi*.scm 中
-  以 `list`/`cons`/alist 手工构造的数据结构（消息、事件、配置、工具结果等），
-  以构造器/访问器收口数据边界。
+- 将 `goldfish/liii/pi.scm` 与 `goldfish/liii/pi/` 子模块整体迁入 `tools/pi/liii/`，
+  模块名与文件命名遵循 tools 惯例（`(liii goldpi*)` 族，或保留 `(liii pi)` 名但
+  位置迁移——由 pi 依仓库惯例定夺，迁移动机：该核心库只服务于 pi 子命令，不属于
+  通用 liii 库）。
+- 对应测试从 `tests/liii/pi/` 迁至 `tools/pi/tests/` 相应位置；迁移后
+  `bin/gf doc --build-json` 重建索引、全量测试通过、PI_PLAN/PI_SPEC 文档中的路径
+  由 Claude 同步更新。
+
+### 3.3 代码重构：数据结构 record 化【用户指定】
+
+- 用 R7RS `define-record-type` 重构 pi 相关 Scheme 文件中以 `list`/`cons`/alist
+  手工构造的数据结构（消息、事件、配置、工具结果等），以构造器/访问器收口数据
+  边界。**在 3.2 迁移完成后的新位置上进行。**
 - 硬约束：外部行为零变化（JSON 序列化输出、CLI 行为、事件序列不变），全部既有
   测试不回归；每重构一组数据结构一个小提交；`bin/gf check` 度量不超标。
 - 遵守 §2 的时间 API 规范与提交规范。
@@ -104,15 +114,14 @@ thoughtSignature）、会话漏记 user 消息与 --continue 类型错误、Anth
 
 ```
 gfproject.json                    # 注册 "pi" 子命令
-tools/pi/liii/goldpi*.scm         # CLI 入口/参数/配置/provider/agent/工具/会话/流式
-tools/pi/tests/                   # CLI/工具层测试与 fixture/stub server
-goldfish/liii/pi.scm 与 pi/       # 可复用核心库（provider/agent/工具/事件）
-tests/liii/pi/                    # 核心库测试（一个函数一个测试文件）
+tools/pi/liii/                    # 全部 pi 代码：CLI 入口/参数/配置/provider/agent/
+                                  # 工具/会话/流式 + 核心库（迁移目标，见 §3.2）
+tools/pi/tests/                   # 全部 pi 测试与 fixture/stub server
 PI_SPEC.md                        # 经真实冒烟验证的命令行示例（Claude 维护）
 ```
 
-分层原则：`goldfish/liii/pi*` 只含可复用逻辑（无 CLI 副作用）；
-`tools/pi/liii/goldpi*` 只做参数解析、组装与输出。
+分层原则：核心库文件只含可复用逻辑（无 CLI 副作用）；CLI 文件只做参数解析、
+组装与输出。
 
 ## 7. goldfish 与 pi 的有意偏差清单
 
