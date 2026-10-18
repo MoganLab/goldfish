@@ -534,7 +534,9 @@ timeout 300 bin/gf test tools/pi/tests/liii/<本提交相关的测试>.scm
 | 八 | 已完成 | Anthropic provider 适配（§5.7）：请求构造（x-api-key、anthropic-version）、input_schema 工具映射、tool_use/tool_result 往返、stop_reason 与 usage 映射、重试与流式/非流式响应接入 | Anthropic 请求体与 input_schema 构造测试通过；stub server 下多轮 tool_use 往返、429 重试通过；stop_reason/usage 映射正确；支持 SSE 流式事件解析与 text_delta 增量输出；集成至 agent 循环与 CLI（`--provider anthropic`） |
 | 九 | 已完成 | 会话持久化与 `--continue`（独立任务）：会话保存、恢复与 `--continue` | 会话按 pi session JSONL 格式正确持久化；`--continue` 能准确还原上一会话消息历史并继续对话；`--no-session` 保证纯内存运行不写盘 |
 
-## 12. 文件布局（约定，必须遵守）
+## 12. 文件布局（参考说明）
+
+> **说明**：以下文件布局为架构设计的参考性描述，在实际开发演进中允许根据工程实践与设计需要自由调整，不受固定路径和模块划分约束。
 
 ```
 gfproject.json                        # 注册 "pi" 子命令
