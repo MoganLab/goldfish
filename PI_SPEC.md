@@ -176,8 +176,11 @@ tools/pi/liii/
     session.scm     # (liii pi session)  会话持久化与恢复（≈ core/session-manager.ts）
     args.scm        # (liii pi args)     参数解析与输入组装（≈ cli/）
     modes.scm       # (liii pi modes)    print/json 输出模式（≈ modes/print-mode + json-event）
-  pi-cli.scm        # (liii pi-cli)      CLI 入口（≈ main.ts；gfproject.json 注册指向）
+  cli.scm           # (liii pi cli)      CLI 入口（≈ main.ts；gfproject.json 注册指向）
 ```
+
+**无平铺族**：`(liii pi-xxx)` 形式的模块一律不存在——CLI 入口也是多级子库
+`(liii pi cli)`，所有代码只以 `(liii pi)` 与 `(liii pi xxx)` 两种形式组织。
 
 **分层与拆分规则**：二级子库（如 `(liii pi gemini)`）是**导出函数的层面**——
 对外公开该域的 API；单文件 300 行放不下就把实现继续拆到下一层子文件
