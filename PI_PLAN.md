@@ -34,6 +34,8 @@ Anthropic 已实现但本机无访问权限，不在维护范围；其 OAuth 刷
   单元，测试与实现同 commit）；commit 前必须依次通过 `timeout 600 xmake b goldfish`、
   `bin/gf fmt`、`git diff --exit-code`、`bin/gf check` 与相关测试；
   提交信息格式 `[编号] 任务名：简述`（如 `[001] Kimi·非流式最小可用`）。
+  **所有代码提交一律使用 `[三位编号]` 格式**；缺陷修复也登记入 §3 任务表获得
+  编号（编号递增追加），保证 git log 的编号与任务表一一对应。
 - **测试规范**：TDD，先写测试再实现；测试按 goldfish 惯例**一个函数一个测试文件**
   （`tests/liii/<模块>/<函数名>-test.scm`），改测试后 `bin/gf doc --build-json`。
 - **配置复用**：`~/.pi/agent/`（settings/auth/models-store）只读，绝不写入；
@@ -70,6 +72,7 @@ Anthropic 已实现但本机无访问权限，不在维护范围；其 OAuth 刷
 | 011 | record 化·工具结构 | 工具声明（name/description/schema/execute）与工具结果（含截断产物） | 待执行 |
 | 012 | thinking 内容 | `--thinking-level`，用法见 PI_SPEC.md TODO；届时与用户确认后启动 | 远期 |
 | 013 | 图片输入 | `@图片`，用法见 PI_SPEC.md TODO；届时与用户确认后启动 | 远期 |
+| 014 | 缺陷修复·4字节UTF-8挂起 | prompt 含 4 字节 UTF-8 字符与 `<` 组合时静默挂起且流式空闲超时未兜底（复现 `timeout 60 bin/gf pi -p '🚀 <'`）；修复后真实冒烟通过 | 进行中 |
 
 共同约束：
 - 每个任务编号恰好对应一个 commit（观测 git log 即知任务进度）；任务内改动
