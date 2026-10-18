@@ -295,6 +295,7 @@ tools/pi/liii/
 | 3 | OAuth 类凭据不消费（pi 支持 kimi-coding oauth 轮换） | auth.json 的 oauth 条目 | 按需（当前 kimi 为 api_key） |
 | 4 | thinking 内容不请求不解析 | `--thinking-level` 用法在 TODO | 远期（任务 012） |
 | 5 | 图片输入不支持 | `@图片` 用法在 TODO | 远期（任务 013） |
+| 6 | `--model` 不跨 provider 自动路由：bin/gf pi 只在当前 provider（--provider 或 defaultProvider）内解析模型 ID；pi 的 model-resolver 会在全部 provider 模型目录中搜索 ID，命中即隐式选定 provider（如 `pi -p --model k3` 自动路由到 kimi） | 实测：`bin/gf pi -p --model k3` 把 k3 发给 Google 得 HTTP 404，而 pi 正常路由 | 修复中（任务 022） |
 
 ## Provider 支持范围
 
