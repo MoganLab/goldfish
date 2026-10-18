@@ -56,7 +56,8 @@
     pi-find-schema pi-execute-find pi-grep-schema pi-execute-grep
     pi-resolve-config-value json-dict-ref pi-get-agent-dir pi-read-json-file
     pi-load-settings pi-resolve-proxy-url pi-load-auth pi-resolve-provider-key
-    pi-load-models-store pi-resolve-model-metadata gemini-map-finish-reason
+    pi-load-models-store pi-resolve-model-metadata pi-format-token-count
+    pi-list-models pi-format-models-table gemini-map-finish-reason
     gemini-map-usage gemini-normalize-tool-call-id gemini-generate-tool-call-id
     gemini-build-contents gemini-build-request-body anthropic-map-stop-reason
     anthropic-map-usage anthropic-build-tool-declarations

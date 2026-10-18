@@ -53,6 +53,7 @@
         (cons 'timeout 120)
         (cons 'no-session #f)
         (cons 'continue #f)
+        (cons 'list-models #f)
         (cons 'system-prompt #f)
         (cons 'append-system-prompt '())
         (cons 'file-args '())
@@ -81,6 +82,15 @@
             ((or (string=? arg "-p") (string=? arg "--print")) (values 'print #t 1))
             ((or (string=? arg "-c") (string=? arg "--continue")) (values 'continue #t 1))
             ((string=? arg "--no-session") (values 'no-session #t 1))
+            ((string=? arg "--list-models")
+             (if (and next-arg
+                   (not (string-starts? next-arg "-"))
+                   (not (string-starts? next-arg "@"))
+                 ) ;and
+               (values 'list-models next-arg 2)
+               (values 'list-models #t 1)
+             ) ;if
+            ) ;
             ((and (string=? arg "--mode") next-arg) (values 'mode next-arg 2))
             ((and (string=? arg "--model") next-arg) (values 'model next-arg 2))
             ((and (string=? arg "--provider") next-arg) (values 'provider next-arg 2))

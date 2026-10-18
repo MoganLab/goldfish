@@ -97,6 +97,21 @@
   (check (pi-args-ref res2 'continue) => #t)
   (check (pi-args-ref res2 'messages) => '("world")))
 
+;; 5.2 --list-models 解析测试
+(let ((res1 (parse-pi-args '("--list-models")))
+      (res2 (parse-pi-args '("--list-models" "kimi")))
+      (res3 (parse-pi-args '("--list-models" "--provider" "google")))
+      (res4 (parse-pi-args '("--provider" "google" "--list-models")))
+      (res5 (parse-pi-args '("--list-models" "@doc.txt"))))
+  (check (pi-args-ref res1 'list-models) => #t)
+  (check (pi-args-ref res2 'list-models) => "kimi")
+  (check (pi-args-ref res3 'list-models) => #t)
+  (check (pi-args-ref res3 'provider) => "google")
+  (check (pi-args-ref res4 'list-models) => #t)
+  (check (pi-args-ref res4 'provider) => "google")
+  (check (pi-args-ref res5 'list-models) => #t)
+  (check (pi-args-ref res5 'file-args) => '("doc.txt")))
+
 ;; 6. process-file-arguments 测试
 (let* ((test-file (if (file-exists? "liii/pi/args.scm")
                       "liii/pi/args.scm"

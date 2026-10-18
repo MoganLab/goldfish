@@ -24,8 +24,11 @@
     (liii pi config types)
     (liii pi config record)
     (liii pi event)
+    (liii pi models list)
   ) ;import
-  (export pi-load-models-store pi-resolve-model-metadata)
+  (export pi-load-models-store pi-resolve-model-metadata pi-format-token-count
+    pi-list-models pi-format-models-table
+  ) ;export
   (begin
 
     (define (%dict-ref obj key default-val)

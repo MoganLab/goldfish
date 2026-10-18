@@ -54,6 +54,27 @@
       ) ;if
     ) ;define
 
+    (define (%handle-list-models parsed)
+      (let* ((agent-dir (pi-get-agent-dir))
+             (models-store (pi-load-models-store agent-dir))
+             (settings (pi-load-settings agent-dir))
+             (cli-provider (pi-args-ref parsed 'provider))
+             (target-provider
+               (if (and (string? cli-provider) (not (string-null? cli-provider)))
+                 cli-provider
+                 (pi-settings-default-provider settings)
+               ) ;if
+             ) ;target-provider
+             (search-arg (pi-args-ref parsed 'list-models))
+             (search-pattern (if (string? search-arg) search-arg #f))
+             (rows (pi-list-models models-store target-provider search-pattern))
+             (table-text (pi-format-models-table rows search-pattern))
+            ) ;
+        (display table-text)
+        0
+      ) ;let*
+    ) ;define
+
     (define (%run-pi-main parsed)
       (let-values (((initial-msg rest-msgs)
                     (build-initial-prompt (and (not (stdin-tty?)) (read-all-stdin))
@@ -62,27 +83,27 @@
                     ) ;build-initial-prompt
                    ) ;
                   ) ;
-        (if
-          (or (pi-args-ref parsed 'help)
-            (and (string-null? initial-msg)
-              (null? rest-msgs)
-              (not (pi-args-ref parsed 'continue))
-            ) ;and
-          ) ;or
-          (begin
-            (display-pi-help)
-            0
-          ) ;begin
-          (let ((mode (resolve-app-mode (pi-args-ref parsed 'mode)
-                        (pi-args-ref parsed 'print)
-                        (stdin-tty?)
-                        (stdout-tty?)
-                      ) ;resolve-app-mode
-                ) ;mode
-               ) ;
-            (dispatch-pi parsed mode initial-msg rest-msgs)
-          ) ;let
-        ) ;if
+        (cond ((pi-args-ref parsed 'help) (display-pi-help) 0)
+              ((pi-args-ref parsed 'list-models) (%handle-list-models parsed))
+              ((and (string-null? initial-msg)
+                 (null? rest-msgs)
+                 (not (pi-args-ref parsed 'continue))
+               ) ;and
+               (display-pi-help)
+               0
+              ) ;
+              (else
+                (let ((mode (resolve-app-mode (pi-args-ref parsed 'mode)
+                              (pi-args-ref parsed 'print)
+                              (stdin-tty?)
+                              (stdout-tty?)
+                            ) ;resolve-app-mode
+                      ) ;mode
+                     ) ;
+                  (dispatch-pi parsed mode initial-msg rest-msgs)
+                ) ;let
+              ) ;else
+        ) ;cond
       ) ;let-values
     ) ;define
 

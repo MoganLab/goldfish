@@ -136,6 +136,23 @@ timeout 300 bin/gf pi -p --append-system-prompt "回答末尾必须加上 [goldf
 bin/gf pi --help
 ```
 
+## 模型列表【可用】（2026-10-19 验证）
+
+```bash
+# 列出当前 provider（默认）的可用模型（包含 provider、model、context、max-out、thinking、images 列）
+timeout 30 bin/gf pi --list-models
+
+# 指定 provider 过滤
+timeout 30 bin/gf pi --provider google --list-models
+timeout 30 bin/gf pi --provider kimi-coding --list-models
+
+# 可选搜索过滤词（模糊/子串匹配）
+timeout 30 bin/gf pi --list-models flash
+
+# 列出全部已配置 provider 的可用模型
+timeout 30 bin/gf pi --provider all --list-models
+```
+
 ## 错误路径行为【可用】
 
 ```bash
@@ -211,15 +228,6 @@ tools/pi/liii/
 
 - [ ] **Kimi provider**：`~/.pi/agent/auth.json` 中已配置的 `kimi-coding`（type:"api_key"，仅 key/type 字段）尚未被消费；需参照 pi 源码（`~/git/pi`）中 Kimi 的端点与鉴权实现，支持 `--provider kimi-coding` 端到端。不涉及 OAuth。【进行中】
 - [ ] **4 字节 UTF-8 + '<' 挂起**：prompt 同时含 4 字节 UTF-8 字符（如 🚀、𠀀）与 `<` 时进程静默挂起且连 HTTP 300s 超时都不生效（复现：`timeout 60 bin/gf pi -p '🚀 <'`）。【修复中】
-- [ ] **`--list-models`**：列出可用模型。预期用法：
-
-  ```bash
-  # 列出当前 provider（默认）的可用模型（id/contextWindow/maxTokens，来自 models-store.json）
-  bin/gf pi --list-models
-  # 指定 provider 过滤
-  bin/gf pi --list-models --provider google
-  ```
-
 - [ ] **thinking 内容**：思考级别的请求与解析。预期用法（实现时以 pi 实际 CLI 为准）：
 
   ```bash
