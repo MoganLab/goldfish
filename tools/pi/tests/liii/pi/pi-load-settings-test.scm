@@ -4,7 +4,14 @@
 
 ;; pi-load-settings
 ;; 从 settings.json 文件加载全局设置。
-(let ((settings (pi-load-settings "tools/pi/tests/fixtures/default")))
+(define fixture-dir
+  (if (file-exists? "tests/fixtures/default")
+    "tests/fixtures/default"
+    "tools/pi/tests/fixtures/default"
+  ) ;if
+) ;define
+
+(let ((settings (pi-load-settings fixture-dir)))
   (check (cdr (assoc 'default-provider settings)) => "google")
   (check (cdr (assoc 'default-model settings)) => "gemini-3.8-flash")
   (check (cdr (assoc 'http-proxy settings)) => "http://127.0.0.1:7890")

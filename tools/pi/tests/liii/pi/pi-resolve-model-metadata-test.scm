@@ -4,7 +4,14 @@
 
 ;; pi-resolve-model-metadata
 ;; 解析指定模型 ID 的上下文窗口、token 上限与 baseUrl 等元数据。
-(let ((models-store (pi-load-models-store "tools/pi/tests/fixtures/default")))
+(define fixture-dir
+  (if (file-exists? "tests/fixtures/default")
+    "tests/fixtures/default"
+    "tools/pi/tests/fixtures/default"
+  ) ;if
+) ;define
+
+(let ((models-store (pi-load-models-store fixture-dir)))
   ;; 精确匹配已缓存模型
   (let ((meta (pi-resolve-model-metadata "google" "gemini-3.8-flash" models-store '())))
     (check (cdr (assoc 'matched? meta)) => #t)
