@@ -155,24 +155,33 @@ timeout 30 bin/gf doc "pi-event-session" # 查看函数源码与测试
 
 ## 架构演进（目标态）
 
-pi 子命令的全部代码归口 `tools/pi/liii/`，模块按多级子库组织（同 `(liii datetime xxx)`
-先例）：
+参照 pi 源码（`~/git/pi`）的三层包结构设计——`packages/ai`（provider 层）、
+`packages/agent`（循环层）、`packages/coding-agent`（应用层）；goldfish 对齐为
+`tools/pi/liii/` 下的多级子库（同 `(liii datetime xxx)` 先例）：
 
 ```
 tools/pi/liii/
-  pi.scm            # (liii pi)          顶层门面：公开 API 再导出
+  pi.scm            # (liii pi)          门面：公开 API 再导出
   pi/
-    core.scm        # (liii pi core)     agent 循环、消息、事件、工具分发
-    gemini.scm      # (liii pi gemini)   Gemini provider（请求构造/SSE/映射）
-    anthropic.scm   # (liii pi anthropic) Anthropic provider
-    session.scm     # (liii pi session)  会话持久化与恢复
-    args.scm        # (liii pi args)     参数解析
-    ...
-  pi-cli.scm        # (liii pi-cli)      CLI 入口（gfproject.json 注册指向）
+    types.scm       # (liii pi types)    消息/usage/事件类型与构造（≈ ai/src/types.ts、agent/types.ts）
+    gemini.scm      # (liii pi gemini)   Gemini provider：请求构造/SSE/映射（≈ ai/src/api/google-*）
+    anthropic.scm   # (liii pi anthropic) Anthropic provider（≈ ai/src/api/anthropic-messages）
+    auth.scm        # (liii pi auth)     凭据解析（≈ ai/src/auth + core/auth-storage）
+    models.scm      # (liii pi models)   模型目录与元数据（≈ ai/src/models-store + model-catalog）
+    retry.scm       # (liii pi retry)    指数退避重试（≈ ai/src/utils/retry）
+    agent.scm       # (liii pi agent)    agent 循环与事件发射（≈ packages/agent）
+    tools.scm       # (liii pi tools)    七工具 + 截断 + 路径（≈ core/tools/）
+    config.scm      # (liii pi config)   settings/auth/models-store 只读读取（≈ core/config.ts）
+    prompt.scm      # (liii pi prompt)   系统提示词与项目上下文（≈ core/system-prompt.ts）
+    session.scm     # (liii pi session)  会话持久化与恢复（≈ core/session-manager.ts）
+    args.scm        # (liii pi args)     参数解析与输入组装（≈ cli/）
+    modes.scm       # (liii pi modes)    print/json 输出模式（≈ modes/print-mode + json-event）
+  pi-cli.scm        # (liii pi-cli)      CLI 入口（≈ main.ts；gfproject.json 注册指向）
 ```
 
 进度：文件迁移（任务 001）已完成——物理位置已归口 `tools/pi/liii/`；多级子库
-重组（任务 003）待执行，当前 `(liii pi)` 内部仍为平铺子模块。
+重组（任务 003）待执行，当前 `(liii pi)` 内部仍为平铺子模块，`(liii pi-cli)`
+为 CLI 入口。
 
 ## TODO（尚不能运行，随迭代补充）
 
