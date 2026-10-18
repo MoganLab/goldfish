@@ -83,7 +83,7 @@ Anthropic 已实现但本机无访问权限，不在维护范围；其 OAuth 刷
 | 002 | 核心库迁移·测试与索引 | `tests/liii/pi/` 迁至 `tools/pi/tests/`；`bin/gf doc --build-json` 重建；`bin/gf doc "..."` 抽查可用 | 已完成 |
 | 003 | 核心库迁移·模块名统一【用户已裁定】 | 模块格局定案：**只有 `(liii pi)`（门面）与 `(liii pi xxx)`（多级子库）两种形式，`(liii pi-xxx)` 平铺族不存在**——子库清单、目录树与 pi 源码三层包映射见 PI_SPEC.md 架构演进节；CLI 入口 `pi/cli.scm`（模块 `(liii pi cli)`），gfproject.json 同步；二级子库为导出层，单文件 300 行放不下继续拆下层；测试目录镜像源码库结构；全量 import/测试更新；完成后由 Claude 更新 PI_SPEC/devel 文档中的路径与模块名 | 已完成 |
 | 004 | record 化·事件结构 | `pi-event-*` 系列构造的事件对象改 `define-record-type`（在任务 1-3 迁移后的新位置进行） | 已完成 |
-| 005 | record 化·消息结构 | user/assistant/toolResult 消息与 text/toolCall content block | 待执行 |
+| 005 | record 化·消息结构 | user/assistant/toolResult 消息与 text/toolCall content block | 进行中（开发阶段） |
 | 006 | record 化·配置结构 | settings 解析结果、凭据、模型元数据 | 待执行 |
 | 007 | record 化·工具结构 | 工具声明（name/description/schema/execute）与工具结果（含截断产物） | 待执行 |
 | 008 | Kimi·调研与非流式最小可用 | 读 `~/git/pi` 源码确定 kimi-coding 端点/路径/鉴权头/请求响应形状（结论写入提交信息或输出）；实现请求构造 + 响应解析 + `--provider kimi-coding` CLI 分发；stub server 覆盖正常回复；真实冒烟（纯文本对话）通过 | 待执行 |
