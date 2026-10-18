@@ -34,8 +34,10 @@ Anthropic 已实现但本机无访问权限，不在维护范围；其 OAuth 刷
   单元，测试与实现同 commit）；commit 前必须依次通过 `timeout 600 xmake b goldfish`、
   `bin/gf fmt`、`git diff --exit-code`、`bin/gf check` 与相关测试；
   提交信息格式 `[编号] 任务名：简述`（如 `[001] Kimi·非流式最小可用`）。
-  **所有代码提交一律使用 `[三位编号]` 格式**；缺陷修复也登记入 §3 任务表获得
-  编号（编号递增追加），保证 git log 的编号与任务表一一对应。
+  **所有代码提交一律使用 `[三位编号]` 格式**（缺陷修复也登记入 §3 任务表获得
+  编号，编号递增追加），保证 git log 的编号与任务表一一对应；
+  仅改动三份计划文档（CLAUDE_CODE_PLAN/PI_PLAN/PI_SPEC）的 commit 不涉及代码，
+  不需要编号。
 - **测试规范**：TDD，先写测试再实现；测试按 goldfish 惯例**一个函数一个测试文件**
   （`tests/liii/<模块>/<函数名>-test.scm`），改测试后 `bin/gf doc --build-json`。
 - **配置复用**：`~/.pi/agent/`（settings/auth/models-store）只读，绝不写入；
