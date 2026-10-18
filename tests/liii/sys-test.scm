@@ -21,5 +21,6 @@
 (check-true (boolean? (stdout-tty?)))
 (check-true (boolean? (stderr-tty?)))
 
+(check-catch 'type-error (sleep 'not-a-number))
 
 (check-report)

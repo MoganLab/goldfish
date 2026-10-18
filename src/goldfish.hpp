@@ -127,6 +127,7 @@ void glue_liii_string (s7_scheme* sc);
 void glue_liii_string_cursor (s7_scheme* sc);
 void glue_liii_tempfile (s7_scheme* sc);
 void glue_liii_date_time (s7_scheme* sc);
+void glue_liii_uuid (s7_scheme* sc);
 
 extern "C" void glue_syntax_rules (s7_scheme* sc);
 
@@ -570,24 +571,6 @@ glue_sleep (s7_scheme* sc) {
   glue_define (sc, name, desc, f_sleep, 1, 0);
 }
 
-static s7_pointer
-f_uuid4 (s7_scheme* sc, s7_pointer args) {
-  tb_char_t        uuid[37];
-  const tb_char_t* ret= tb_uuid4_make_cstr (uuid, tb_null);
-  return s7_make_string (sc, ret);
-}
-
-inline void
-glue_uuid4 (s7_scheme* sc) {
-  const char* name= "g_uuid4";
-  const char* desc= "(g_uuid4) => string";
-  glue_define (sc, name, desc, f_uuid4, 0, 0);
-}
-
-inline void
-glue_liii_uuid (s7_scheme* sc) {
-  glue_uuid4 (sc);
-}
 
 static s7_pointer
 f_datetime_now (s7_scheme* sc, s7_pointer args) {

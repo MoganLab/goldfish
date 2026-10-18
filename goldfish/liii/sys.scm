@@ -1,6 +1,6 @@
 (define-library (liii sys)
-  (export argv executable which stdin-tty? stdout-tty? stderr-tty?)
-  (import (scheme process-context) (liii os))
+  (export argv executable which stdin-tty? stdout-tty? stderr-tty? sleep)
+  (import (scheme process-context) (liii os) (only (liii time) sleep))
   (begin
     (define (argv)
       (command-line)

@@ -36,7 +36,7 @@
 | [(liii generator)](goldfish/liii/generator.scm)   | 生成器与累加器函数库            | `generator`, `gtake`, `generator-fold`                             |
 | [(liii option)](goldfish/liii/option.scm)         | Option 类型库                   | `option?`, `option-map`, `option-flatten`                          |
 | [(liii either)](goldfish/liii/either.scm)         | Either 类型库（左值/右值）      | `left?`, `right?`, `either-map`                                    |
-| [(liii uuid)](goldfish/liii/uuid.scm)             | UUID 生成                       | `uuid4`                                                            |
+| [(liii uuid)](goldfish/liii/uuid.scm)             | UUID 生成                       | `uuid4` `uuid7`                                                    |
 | [(liii http)](goldfish/liii/http.scm)             | HTTP 客户端库                   | `http-get`, `http-post`, `http-head`                               |
 | [(liii http-async)](goldfish/liii/http-async.scm) | 异步 HTTP 客户端库             | `http-async-get`, `http-wait-all`                                  |
 | [(liii http-common)](goldfish/liii/http-common.scm) | HTTP 模块共享辅助库           | `http-ok?`                                                         |

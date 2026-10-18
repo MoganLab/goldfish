@@ -36,7 +36,7 @@ Just like S7 Scheme, [src/goldfish.hpp](src/goldfish.hpp) and [src/goldfish.cpp]
 | [(liii generator)](goldfish/liii/generator.scm)   | Generators and Accumulators          | `generator`, `gtake`, `generator-fold`                            |
 | [(liii option)](goldfish/liii/option.scm)         | Option Type Library                  | `option?`, `option-map`, `option-flatten`                        |
 | [(liii either)](goldfish/liii/either.scm)         | Either Type Library                  | `left?`, `right?`, `either-map`                                  |
-| [(liii uuid)](goldfish/liii/uuid.scm)             | UUID generation                      | `uuid4`                                                          |
+| [(liii uuid)](goldfish/liii/uuid.scm)             | UUID generation                      | `uuid4` `uuid7`                                                  |
 | [(liii http)](goldfish/liii/http.scm)             | HTTP client library                  | `http-get`, `http-post`, `http-head`                             |
 | [(liii http-async)](goldfish/liii/http-async.scm) | Async HTTP client library            | `http-async-get`, `http-wait-all`                                |
 | [(liii http-common)](goldfish/liii/http-common.scm) | Shared helpers for http modules   | `http-ok?`                                                       |
