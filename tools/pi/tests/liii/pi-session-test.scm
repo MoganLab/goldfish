@@ -1,5 +1,5 @@
 (import (liii check)
-        (liii pi-session)
+        (liii pi session)
         (liii path)
         (scheme file))
 

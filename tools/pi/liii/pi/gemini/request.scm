@@ -14,7 +14,7 @@
 ;; under the License.
 ;;
 
-(define-library (liii pi-provider)
+(define-library (liii pi gemini request)
   (import (scheme base)
     (scheme write)
     (liii string)
@@ -22,19 +22,30 @@
     (liii http)
     (liii error)
     (liii time)
-    (liii pi)
-    (liii pi-tools)
+    (liii pi retry)
+    (liii pi tools)
+    (liii pi gemini core)
+    (liii pi gemini stream-parse)
   ) ;import
   (export gemini-parse-response gemini-is-retriable-error? gemini-request
-    gemini-build-tool-declarations
+    gemini-build-tool-declarations format-failed-stream-msg
   ) ;export
   (begin
+
+    (define (%make-error-response msg usage)
+      (list (cons 'role "assistant")
+        (cons 'content (list (list (cons 'type "text") (cons 'text ""))))
+        (cons 'stopReason "error")
+        (cons 'usage usage)
+        (cons 'errorMessage msg)
+      ) ;list
+    ) ;define
 
     (define (%make-tool-call-block name args id ts i)
       (let* ((eff-id
                (if (and (string? id) (not (string-null? id)))
                  id
-                 (gemini-generate-tool-call-id name 0 (+ i 1))
+                 (gemini-generate-tool-call-id)
                ) ;if
              ) ;eff-id
              (base-blk (list (cons 'type "toolCall")
@@ -93,12 +104,9 @@
 
     (define (gemini-parse-response json-data status-code)
       (if (not (json-object? json-data))
-        (list (cons 'role "assistant")
-          (cons 'content (list (list (cons 'type "text") (cons 'text ""))))
-          (cons 'stopReason "error")
-          (cons 'usage (gemini-map-usage '()))
-          (cons 'errorMessage "Invalid JSON response from Gemini API")
-        ) ;list
+        (%make-error-response "Invalid JSON response from Gemini API"
+          (gemini-map-usage '())
+        ) ;%make-error-response
         (let* ((candidates (cdr (or (assoc "candidates" json-data) '(#f . #f))))
                (usage-meta (cdr (or (assoc "usageMetadata" json-data) '(#f . #f))))
                (usage (gemini-map-usage usage-meta))
@@ -112,12 +120,7 @@
                      ) ;if
                    ) ;msg
                   ) ;
-              (list (cons 'role "assistant")
-                (cons 'content (list (list (cons 'type "text") (cons 'text ""))))
-                (cons 'stopReason "error")
-                (cons 'usage usage)
-                (cons 'errorMessage msg)
-              ) ;list
+              (%make-error-response msg usage)
             ) ;let*
             (let* ((candidate (vector-ref candidates 0))
                    (content-obj (cdr (or (assoc "content" candidate) '(#f
@@ -145,15 +148,6 @@
       ) ;if
     ) ;define
 
-    (define (gemini-is-retriable-error? status-code response-body-str)
-      (or (= status-code 408)
-        (= status-code 409)
-        (= status-code 429)
-        (>= status-code 500)
-        (zero? status-code)
-      ) ;or
-    ) ;define
-
     (define (gemini-build-tool-declarations active-tool-names)
       (let loop
         ((names active-tool-names) (acc '()))
@@ -178,16 +172,30 @@
       ) ;let
     ) ;define
 
-    (define (%safe-assoc key alist)
-      (if (and (pair? alist) (every pair? alist)) (assoc key alist) #f)
-    ) ;define
-
     (define (%resp-field resp key)
       (cond ((procedure? resp) (resp key))
             ((hash-table? resp) (resp key))
             ((pair? resp) (cdr (or (assoc key resp) '(#f . #f))))
             (else #f)
       ) ;cond
+    ) ;define
+
+    (define (%http-post-safe url req-json-str headers proxy-alist timeout)
+      (catch #t
+        (lambda ()
+          (http-post url
+            :data    req-json-str
+            :headers headers
+            :proxy   proxy-alist
+            :timeout timeout
+          ) ;http-post
+        ) ;lambda
+        (lambda (tag . args)
+          (let ((err-msg (if (pair? args) (car args) "Network error")))
+            (list (cons 'status-code 0) (cons 'reason err-msg) (cons 'text ""))
+          ) ;let
+        ) ;lambda
+      ) ;catch
     ) ;define
 
     (define* (gemini-request config
@@ -203,20 +211,6 @@
              (model-meta (cdr (assoc 'model-meta config)))
              (proxy-url (cdr (assoc 'proxy-url config)))
              (settings (cdr (assoc 'settings config)))
-             (retry-cfg
-               (or opt-retry (cdr (or (%safe-assoc 'retry settings) '(#f))))
-             ) ;retry-cfg
-             (retry-enabled? (cdr (or (%safe-assoc 'enabled retry-cfg) '(#f
-                                                                         . #t))))
-             (max-retries
-               (if retry-enabled? (cdr (or (%safe-assoc 'max-retries retry-cfg) '(#f
-                                                                                  . 3))) 0)
-             ) ;max-retries
-             (base-delay-ms (cdr (or (%safe-assoc 'base-delay-ms retry-cfg) '(#f
-                                                                              . 2000))))
-             (max-agent-delay-ms (cdr (or (%safe-assoc 'max-agent-delay-ms retry-cfg) '(#f
-                                                                                        . 60000)))
-             ) ;max-agent-delay-ms
              (base-url (cdr (or (assoc 'base-url model-meta)
                               '(#f
                                 . "https://generativelanguage.googleapis.com/v1beta")
@@ -240,53 +234,34 @@
                ) ;if
              ) ;proxy-alist
             ) ;
-        (let loop
-          ((attempt 1))
-          (let* ((resp
-                   (catch #t
-                     (lambda ()
-                       (http-post url
-                         :data    req-json-str
-                         :headers headers
-                         :proxy   proxy-alist
-                         :timeout timeout
-                       ) ;http-post
-                     ) ;lambda
-                     (lambda (tag . args)
-                       ;; 网络异常等
-                       (let ((err-msg (if (pair? args) (car args) "Network error")))
-                         (list (cons 'status-code 0) (cons 'reason err-msg) (cons 'text ""))
-                       ) ;let
-                     ) ;lambda
-                   ) ;catch
-                 ) ;resp
-                 (status (or (%resp-field resp 'status-code) 0))
-                 (body-str (or (%resp-field resp 'text) ""))
-                ) ;
-            (if (gemini-is-retriable-error? status body-str)
-              (if (<= attempt max-retries)
-                (let* ((calc-delay (* base-delay-ms (expt 2 (- attempt 1))))
-                       (delay-ms (min calc-delay max-agent-delay-ms))
-                       (delay-sec (/ delay-ms 1000.0))
-                      ) ;
-                  (sleep delay-sec)
-                  (loop (+ attempt 1))
-                ) ;let*
-                ;; 超出重试次数
-                (list (cons 'role "assistant")
-                  (cons 'content (list (list (cons 'type "text") (cons 'text ""))))
-                  (cons 'stopReason "error")
-                  (cons 'usage (gemini-map-usage '()))
-                  (cons 'errorMessage (format-failed-stream-msg status resp))
-                ) ;list
-              ) ;if
-              ;; 成功或非重试错误
-              (let ((parsed-json (catch #t (lambda () (string->json body-str)) (lambda args #f))))
-                (gemini-parse-response parsed-json status)
-              ) ;let
-            ) ;if
-          ) ;let*
-        ) ;let
+        (let-values (((max-retries base-delay-ms max-agent-delay-ms)
+                      (pi-resolve-retry-params settings opt-retry)
+                     ) ;
+                    ) ;
+          (let loop
+            ((attempt 1))
+            (let* ((resp (%http-post-safe url req-json-str headers proxy-alist timeout))
+                   (status (or (%resp-field resp 'status-code) 0))
+                   (body-str (or (%resp-field resp 'text) ""))
+                  ) ;
+              (cond ((and (gemini-is-retriable-error? status body-str) (<= attempt max-retries))
+                     (sleep (pi-calc-retry-delay attempt base-delay-ms max-agent-delay-ms))
+                     (loop (+ attempt 1))
+                    ) ;
+                    ((gemini-is-retriable-error? status body-str)
+                     (%make-error-response (format-failed-stream-msg status resp)
+                       (gemini-map-usage '())
+                     ) ;%make-error-response
+                    ) ;
+                    (else
+                      (let ((pj (catch #t (lambda () (string->json body-str)) (lambda _ #f))))
+                        (gemini-parse-response pj status)
+                      ) ;let
+                    ) ;else
+              ) ;cond
+            ) ;let*
+          ) ;let
+        ) ;let-values
       ) ;let*
     ) ;define*
 

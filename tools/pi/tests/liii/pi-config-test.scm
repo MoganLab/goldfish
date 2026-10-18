@@ -4,8 +4,8 @@
 (import (liii check)
         (liii string)
         (liii pi)
-        (liii pi-args)
-        (liii pi-config))
+        (liii pi args)
+        (liii pi config))
 
 (check-set-mode! 'report-failed)
 

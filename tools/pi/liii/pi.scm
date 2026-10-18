@@ -17,20 +17,28 @@
 (define-library (liii pi)
   (import (scheme base)
     (liii string)
+    (liii uuid)
     (liii pi truncate)
     (liii pi read)
     (liii pi write)
     (liii pi edit)
     (liii pi bash)
-    (liii uuid)
     (liii pi ls)
     (liii pi find)
     (liii pi grep)
+    (liii pi tools)
+    (liii pi auth)
+    (liii pi models)
     (liii pi config)
-    (liii pi provider)
+    (liii pi gemini)
     (liii pi anthropic)
     (liii pi prompt)
-    (liii pi event)
+    (liii pi types)
+    (liii pi retry)
+    (liii pi args)
+    (liii pi modes)
+    (liii pi session)
+    (liii pi agent)
   ) ;import
   (export resolve-app-mode format-file-block build-initial-prompt
     PI_DEFAULT_MAX_LINES PI_DEFAULT_MAX_BYTES PI_GREP_MAX_LINE_LENGTH
@@ -62,10 +70,6 @@
             ((or print-flag (not stdin-tty) (not stdout-tty)) 'print)
             (else 'print)
       ) ;cond
-    ) ;define
-
-    (define (format-file-block abs-path content)
-      (string-append "<file name=\"" abs-path "\">\n" content "\n</file>\n")
     ) ;define
 
     (define (build-initial-prompt stdin-content file-text messages)

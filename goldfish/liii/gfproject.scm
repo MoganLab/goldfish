@@ -250,20 +250,19 @@
                   ) ;if
                   (begin
                     (set! *load-path* (cons tool-root *load-path*))
-                    (let ((import-err
-                            (catch #t
-                              (lambda ()
-                                (eval
-                                  `(import (,(string->symbol org)
-                                            ,(string->symbol module)))
-                                  (rootlet)
-                                ) ;eval
-                                #f
-                              ) ;lambda
-                              (lambda (tag info) (if (pair? info) (car info) "import failed"))
-                            ) ;catch
-                          ) ;import-err
-                         ) ;
+                    (let* ((mod-parts
+                             (map string->symbol
+                               (filter (lambda (s) (not (string-null? s))) (string-split module "/"))
+                             ) ;map
+                           ) ;mod-parts
+                           (import-spec (cons (string->symbol org) mod-parts))
+                           (import-err
+                             (catch #t
+                               (lambda () (eval `(import ,import-spec) (rootlet)) #f)
+                               (lambda (tag info) (if (pair? info) (car info) "import failed"))
+                             ) ;catch
+                           ) ;import-err
+                          ) ;
                       (if import-err
                         (fail "Error importing (" org " " module "):\n" import-err "\n")
                         (let ((main-proc
@@ -284,7 +283,7 @@
                           ) ;if
                         ) ;let
                       ) ;if
-                    ) ;let
+                    ) ;let*
                   ) ;begin
                 ) ;if
               ) ;let

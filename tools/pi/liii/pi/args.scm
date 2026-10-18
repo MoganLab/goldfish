@@ -14,15 +14,14 @@
 ;; under the License.
 ;;
 
-(define-library (liii pi-args)
-  (import (scheme base)
-    (scheme process-context)
-    (liii string)
-    (liii path)
-    (liii pi)
-  ) ;import
-  (export parse-pi-args pi-args-ref process-file-arguments)
+(define-library (liii pi args)
+  (import (scheme base) (scheme process-context) (liii string) (liii path))
+  (export parse-pi-args pi-args-ref format-file-block process-file-arguments)
   (begin
+
+    (define (format-file-block abs-path content)
+      (string-append "<file name=\"" abs-path "\">\n" content "\n</file>\n")
+    ) ;define
 
     (define (pi-args-ref parsed key . default-val)
       (let ((pair (assoc key parsed)))

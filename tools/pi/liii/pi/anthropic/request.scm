@@ -14,7 +14,7 @@
 ;; under the License.
 ;;
 
-(define-library (liii pi-anthropic)
+(define-library (liii pi anthropic request)
   (import (scheme base)
     (scheme write)
     (liii string)
@@ -22,8 +22,8 @@
     (liii http)
     (liii error)
     (liii time)
-    (liii pi)
-    (liii pi-tools)
+    (liii pi anthropic core)
+    (liii pi tools)
   ) ;import
   (export anthropic-build-tool-declarations-from-names anthropic-request)
   (begin

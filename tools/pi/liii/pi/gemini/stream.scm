@@ -14,17 +14,18 @@
 ;; under the License.
 ;;
 
-(define-library (liii pi-stream)
+(define-library (liii pi gemini stream)
   (import (scheme base)
     (scheme char)
     (liii string)
     (liii json)
     (liii http)
     (liii time)
-    (liii pi)
-    (liii pi-tools)
-    (liii pi-provider)
-    (liii pi-stream-parse)
+    (liii pi tools)
+    (liii pi retry)
+    (liii pi gemini core)
+    (liii pi gemini request)
+    (liii pi gemini stream-parse)
   ) ;import
   (export gemini-request-stream)
   (begin
@@ -212,21 +213,6 @@
       ) ;let
     ) ;define
 
-    (define (%calc-retry-delay attempt opt-retry)
-      (let* ((base-ms
-               (cdr (or (%safe-assoc 'base-delay-ms (or opt-retry '())) '(#f
-                                                                          . 2000)))
-             ) ;base-ms
-             (max-ms
-               (cdr (or (%safe-assoc 'max-agent-delay-ms (or opt-retry '())) '(#f
-                                                                               . 60000)))
-             ) ;max-ms
-             (calc-delay (* base-ms (expt 2 (- attempt 1))))
-            ) ;
-        (/ (min calc-delay max-ms) 1000.0)
-      ) ;let*
-    ) ;define
-
     (define* (gemini-request-stream config
                messages
                (system-instruction #f)
@@ -273,7 +259,7 @@
               (if (and (not idle-timed-out?) (gemini-is-retriable-error? status ""))
                 (if (<= attempt max-retries)
                   (begin
-                    (sleep (%calc-retry-delay attempt retry-cfg))
+                    (sleep (pi-calc-retry-delay attempt 2000 60000))
                     (loop (+ attempt 1))
                   ) ;begin
                   (list (cons 'role "assistant")

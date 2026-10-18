@@ -14,53 +14,27 @@
 ;; under the License.
 ;;
 
-(define-library (liii pi-cli)
+(define-library (liii pi modes)
   (import (scheme base)
     (scheme process-context)
     (scheme write)
     (liii string)
     (liii list)
-    (liii time)
     (liii path)
-    (liii sys)
-    (liii pi)
-    (liii pi-args)
-    (liii pi-config)
-    (liii pi-agent)
-    (liii pi-session)
-    (liii pi-help)
+    (liii pi args)
+    (liii pi config)
+    (liii pi prompt)
+    (liii pi session)
+    (liii pi agent)
+    (liii pi types)
   ) ;import
-  (export main display-pi-help read-all-stdin run-goldpi run-pi)
+  (export display-stderr handle-print-result emit-json-event dispatch-pi
+    prepare-system-prompt persist-initial-user-msg! run-agent-loop-with-timeout
+    run-session-flow
+  ) ;export
   (begin
 
-    (define (read-all-stdin)
-      (let loop
-        ((acc '()))
-        (let ((chunk (read-string 4096 (current-input-port))))
-          (if (or (eof-object? chunk) (= (string-length chunk) 0))
-            (let ((trimmed (string-trim-both (apply string-append (reverse acc)))))
-              (if (string-null? trimmed) #f trimmed)
-            ) ;let
-            (loop (cons chunk acc))
-          ) ;if
-        ) ;let
-      ) ;let
-    ) ;define
-
-    (define (strip-command-prefix args)
-      (if (null? args)
-        '()
-        (let loop
-          ((rest (cdr args)))
-          (cond ((null? rest) '())
-                ((or (string=? (car rest) "pi") (string-ends? (car rest) "/gf")) (cdr rest))
-                (else (loop (cdr rest)))
-          ) ;cond
-        ) ;let
-      ) ;if
-    ) ;define
-
-    (define (%display-stderr msg)
+    (define (display-stderr msg)
       (let ((p (if (defined? '*stderr*) *stderr* (current-error-port))))
         (display msg p)
         (newline p)
@@ -95,10 +69,10 @@
       ) ;for-each
     ) ;define
 
-    (define (%handle-print-result last-msg)
+    (define (handle-print-result last-msg)
       (if (not (pair? last-msg))
         (begin
-          (%display-stderr "Warning: No assistant response received")
+          (display-stderr "Warning: No assistant response received")
           0
         ) ;begin
         (let ((stop-reason (cdr (or (assoc 'stopReason last-msg) (assoc "stopReason" last-msg) '(#f
@@ -113,23 +87,23 @@
              ) ;
           (cond
            ((or (string=? stop-reason "error") (string=? stop-reason "aborted"))
-            (%display-stderr (or err-msg (string-append "Request " stop-reason)))
+            (display-stderr (or err-msg (string-append "Request " stop-reason)))
             1
            ) ;
            ((string=? stop-reason "length")
             (%print-text-blocks content)
-            (%display-stderr "Response was truncated: the model reached its output token limit."
-            ) ;%display-stderr
+            (display-stderr "Response was truncated: the model reached its output token limit."
+            ) ;display-stderr
             1
            ) ;
            ((%has-text-block? content) (%print-text-blocks content) 0)
-           (else (%display-stderr "Warning: Model returned no text output") 0)
+           (else (display-stderr "Warning: Model returned no text output") 0)
           ) ;cond
         ) ;let
       ) ;if
     ) ;define
 
-    (define (%prepare-system-prompt cfg parsed)
+    (define (prepare-system-prompt cfg parsed)
       (let* ((cwd (path->string (path-cwd)))
              (sys-override (and (pi-args-ref parsed 'system-prompt)
                              (pi-resolve-prompt-input (pi-args-ref parsed 'system-prompt))
@@ -149,7 +123,7 @@
       ) ;let*
     ) ;define
 
-    (define (%persist-initial-user-msg! parsed sdir sfile init-msgs)
+    (define (persist-initial-user-msg! parsed sdir sfile init-msgs)
       (let ((old-history
               (if (and (pi-args-ref parsed 'continue) sdir)
                 (let ((latest (find-latest-session-file sdir)))
@@ -163,7 +137,7 @@
       ) ;let
     ) ;define
 
-    (define (%run-agent-loop-with-timeout cfg init-msgs system-prompt emit parsed)
+    (define (run-agent-loop-with-timeout cfg init-msgs system-prompt emit parsed)
       (let ((timeout
               (or (pi-args-ref parsed 'timeout) (cdr (or (assoc 'timeout cfg) '(#f
                                                                                 . 120))))
@@ -178,30 +152,7 @@
       ) ;let
     ) ;define
 
-    (define (%run-session-flow parsed cfg initial-msg emit on-finish)
-      (let*-values (((cwd) (path->string (path-cwd)))
-                    ((sfile sdir) (setup-session-file parsed cfg cwd))
-                    ((init-msgs) (setup-initial-messages parsed initial-msg sdir))
-                   ) ;
-        (%persist-initial-user-msg! parsed sdir sfile init-msgs)
-        (when emit
-          (%emit-json-event 'session cwd)
-        ) ;when
-        (let ((res-msgs (%run-agent-loop-with-timeout cfg
-                          init-msgs
-                          (%prepare-system-prompt cfg parsed)
-                          emit
-                          parsed
-                        ) ;%run-agent-loop-with-timeout
-              ) ;res-msgs
-             ) ;
-          (persist-new-messages! sfile init-msgs res-msgs)
-          (on-finish res-msgs)
-        ) ;let
-      ) ;let*-values
-    ) ;define
-
-    (define (%emit-json-event ev-type . args)
+    (define (emit-json-event ev-type . args)
       (let ((ev (pi-build-json-event ev-type args)))
         (when ev
           (display (pi-serialize-event ev))
@@ -210,7 +161,30 @@
       ) ;let
     ) ;define
 
-    (define (%dispatch-pi parsed mode initial-msg rest-msgs)
+    (define (run-session-flow parsed cfg initial-msg emit on-finish)
+      (let*-values (((cwd) (path->string (path-cwd)))
+                    ((sfile sdir) (setup-session-file parsed cfg cwd))
+                    ((init-msgs) (setup-initial-messages parsed initial-msg sdir))
+                   ) ;
+        (persist-initial-user-msg! parsed sdir sfile init-msgs)
+        (when emit
+          (emit-json-event 'session cwd)
+        ) ;when
+        (let ((res-msgs (run-agent-loop-with-timeout cfg
+                          init-msgs
+                          (prepare-system-prompt cfg parsed)
+                          emit
+                          parsed
+                        ) ;run-agent-loop-with-timeout
+              ) ;res-msgs
+             ) ;
+          (persist-new-messages! sfile init-msgs res-msgs)
+          (on-finish res-msgs)
+        ) ;let
+      ) ;let*-values
+    ) ;define
+
+    (define (dispatch-pi parsed mode initial-msg rest-msgs)
       (let* ((env (get-environment-variables))
              (cfg (resolve-pi-config parsed env))
              (provider (cdr (or (assoc 'provider cfg) '(#f . "google"))))
@@ -223,76 +197,19 @@
         ) ;when
         (case mode
          ((print)
-          (%run-session-flow parsed
+          (run-session-flow parsed
             cfg
             initial-msg
             #f
             (lambda (res-msgs)
-              (%handle-print-result (and (pair? res-msgs) (car (reverse res-msgs))))
+              (handle-print-result (and (pair? res-msgs) (car (reverse res-msgs))))
             ) ;lambda
-          ) ;%run-session-flow
+          ) ;run-session-flow
          ) ;
-         ((json)
-          (%run-session-flow parsed cfg initial-msg %emit-json-event (lambda _ 0))
-         ) ;
+         ((json) (run-session-flow parsed cfg initial-msg emit-json-event (lambda _ 0)))
          (else 0)
         ) ;case
       ) ;let*
-    ) ;define
-
-    (define (%run-pi-main parsed)
-      (let-values (((initial-msg rest-msgs)
-                    (build-initial-prompt (and (not (stdin-tty?)) (read-all-stdin))
-                      (process-file-arguments (pi-args-ref parsed 'file-args))
-                      (pi-args-ref parsed 'messages)
-                    ) ;build-initial-prompt
-                   ) ;
-                  ) ;
-        (if
-          (or (pi-args-ref parsed 'help)
-            (and (string-null? initial-msg)
-              (null? rest-msgs)
-              (not (pi-args-ref parsed 'continue))
-            ) ;and
-          ) ;or
-          (begin
-            (display-pi-help)
-            0
-          ) ;begin
-          (let ((mode (resolve-app-mode (pi-args-ref parsed 'mode)
-                        (pi-args-ref parsed 'print)
-                        (stdin-tty?)
-                        (stdout-tty?)
-                      ) ;resolve-app-mode
-                ) ;mode
-               ) ;
-            (%dispatch-pi parsed mode initial-msg rest-msgs)
-          ) ;let
-        ) ;if
-      ) ;let-values
-    ) ;define
-
-    (define (%format-catch-error err-type info)
-      (cond
-       ((and (pair? info) (string? (car info))) (car info))
-       ((and (pair? info) (pair? (car info)) (string? (caar info))) (caar info))
-       (else (object->string (cons err-type info)))
-      ) ;cond
-    ) ;define
-
-    (define (run-pi raw-args)
-      (catch #t
-        (lambda () (%run-pi-main (parse-pi-args (strip-command-prefix raw-args))))
-        (lambda (err-type . info)
-          (%display-stderr (string-append "Error: " (%format-catch-error err-type info)))
-          1
-        ) ;lambda
-      ) ;catch
-    ) ;define
-    (define run-goldpi run-pi)
-
-    (define (main)
-      (exit (run-pi (command-line)))
     ) ;define
 
   ) ;begin

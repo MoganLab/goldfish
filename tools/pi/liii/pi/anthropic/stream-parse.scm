@@ -14,8 +14,13 @@
 ;; under the License.
 ;;
 
-(define-library (liii pi-anthropic-parse)
-  (import (scheme base) (liii string) (liii json) (liii sse) (liii pi))
+(define-library (liii pi anthropic stream-parse)
+  (import (scheme base)
+    (liii string)
+    (liii json)
+    (liii sse)
+    (liii pi anthropic core)
+  ) ;import
   (export append-anthropic-stream-text handle-anthropic-delta
     stop-anthropic-current-block process-anthropic-sse
     make-anthropic-stream-decoder
@@ -203,6 +208,12 @@
       ) ;let*
     ) ;define
 
+    (define (%usage-num u cur-u str-k sym-k)
+      (let ((p (or (assoc str-k u) (assoc sym-k u))))
+        (if p (cdr p) (cdr (or (assoc sym-k cur-u) '(#f . 0))))
+      ) ;let
+    ) ;define
+
     (define (%handle-msg-delta json-obj stream-state)
       (let* ((delta (cdr (or (assoc "delta" json-obj) '(#f #_quote ()))))
              (sr (cdr (or (assoc "stop_reason" delta) '(#f . #f))))
@@ -213,30 +224,10 @@
         ) ;when
         (when (pair? u)
           (let* ((cur-u (vector-ref stream-state 2))
-                 (raw-out (or (assoc "output_tokens" u) (assoc 'output_tokens u)))
-                 (out-tok
-                   (if raw-out (cdr raw-out) (cdr (or (assoc 'output cur-u) '(#f
-                                                                              . 0))))
-                 ) ;out-tok
-                 (raw-in (or (assoc "input_tokens" u) (assoc 'input_tokens u)))
-                 (in-tok
-                   (if raw-in (cdr raw-in) (cdr (or (assoc 'input cur-u) '(#f
-                                                                           . 0))))
-                 ) ;in-tok
-                 (raw-cr (or (assoc "cache_read_input_tokens" u) (assoc 'cache_read_input_tokens u))
-                 ) ;raw-cr
-                 (c-read
-                   (if raw-cr (cdr raw-cr) (cdr (or (assoc 'cacheRead cur-u) '(#f
-                                                                               . 0))))
-                 ) ;c-read
-                 (raw-cw (or (assoc "cache_creation_input_tokens" u)
-                           (assoc 'cache_creation_input_tokens u)
-                         ) ;or
-                 ) ;raw-cw
-                 (c-write
-                   (if raw-cw (cdr raw-cw) (cdr (or (assoc 'cacheWrite cur-u) '(#f
-                                                                                . 0))))
-                 ) ;c-write
+                 (out-tok (%usage-num u cur-u "output_tokens" 'output))
+                 (in-tok (%usage-num u cur-u "input_tokens" 'input))
+                 (c-read (%usage-num u cur-u "cache_read_input_tokens" 'cacheRead))
+                 (c-write (%usage-num u cur-u "cache_creation_input_tokens" 'cacheWrite))
                 ) ;
             (vector-set! stream-state
               2

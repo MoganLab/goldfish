@@ -4,7 +4,7 @@
 (import (liii check)
         (liii string)
         (liii pi)
-        (liii pi-args))
+        (liii pi args))
 
 (check-set-mode! 'report-failed)
 
@@ -98,14 +98,14 @@
   (check (pi-args-ref res2 'messages) => '("world")))
 
 ;; 6. process-file-arguments 测试
-(let* ((test-file (if (file-exists? "liii/pi-args.scm")
-                      "liii/pi-args.scm"
-                      "tools/pi/liii/pi-args.scm"))
+(let* ((test-file (if (file-exists? "liii/pi/args.scm")
+                      "liii/pi/args.scm"
+                      "tools/pi/liii/pi/args.scm"))
        (block (process-file-arguments (list test-file))))
   (check-true (string? block))
   (check-true (> (string-length block) 0))
   (check-true (string-contains? block "<file name=\""))
-  (check-true (string-contains? block "pi-args.scm"))
+  (check-true (string-contains? block "args.scm"))
   (check-true (string-contains? block "</file>\n")))
 
 ;; 7. 空文件跳过测试

@@ -14,10 +14,26 @@
 ;; under the License.
 ;;
 
-(define-library (liii pi-tools)
-  (import (scheme base) (liii string) (liii list) (liii pi))
+(define-library (liii pi tools)
+  (import (scheme base)
+    (liii string)
+    (liii list)
+    (liii pi truncate)
+    (liii pi read)
+    (liii pi write)
+    (liii pi edit)
+    (liii pi bash)
+    (liii pi ls)
+    (liii pi find)
+    (liii pi grep)
+  ) ;import
   (export PI_DEFAULT_TOOL_NAMES PI_ALL_TOOL_NAMES parse-tools-selection
-    get-tool-definition execute-tool-call
+    get-tool-definition execute-tool-call pi-read-schema pi-execute-read
+    pi-write-schema pi-execute-write pi-edit-schema pi-execute-edit
+    pi-bash-schema pi-execute-bash pi-ls-schema pi-execute-ls pi-find-schema
+    pi-execute-find pi-grep-schema pi-execute-grep pi-format-size
+    pi-truncate-line pi-truncate-head pi-truncate-tail PI_DEFAULT_MAX_LINES
+    PI_DEFAULT_MAX_BYTES PI_GREP_MAX_LINE_LENGTH
   ) ;export
   (begin
 

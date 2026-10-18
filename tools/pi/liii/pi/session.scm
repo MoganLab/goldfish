@@ -14,16 +14,17 @@
 ;; under the License.
 ;;
 
-(define-library (liii pi-session)
+(define-library (liii pi session)
   (import (scheme base)
     (scheme file)
     (liii string)
     (liii path)
     (liii json)
     (liii time)
+    (liii uuid)
     (liii sort)
-    (liii pi)
-    (liii pi-args)
+    (liii pi args)
+    (liii pi types)
   ) ;import
   (export encode-cwd-to-session-dirname get-session-dir make-session-file-path
     read-session-history append-session-entry! find-latest-session-file

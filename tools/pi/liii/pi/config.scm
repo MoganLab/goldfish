@@ -24,10 +24,16 @@
     (liii error)
     (liii pi read)
     (liii pi template)
+    (liii pi args)
+    (liii pi tools)
+    (liii pi auth)
+    (liii pi models)
   ) ;import
   (export pi-resolve-config-value json-dict-ref pi-get-agent-dir
     pi-read-json-file pi-load-settings pi-resolve-proxy-url pi-load-auth
     pi-resolve-provider-key pi-load-models-store pi-resolve-model-metadata
+    resolve-pi-config resolve-goldpi-config resolve-active-tools
+    pi-warn-fallback-model goldpi-warn-fallback-model
   ) ;export
   (begin
 
@@ -135,165 +141,136 @@
       ) ;let
     ) ;define
 
-    (define (%parse-credential-item key val opt-env)
-      (and (pair? val)
-        (equal? (json-dict-ref val "type" #f) "api_key")
-        (let ((raw-key (json-dict-ref val "key" #f)))
-          (and (string? raw-key)
-            (let ((resolved (if (pair? opt-env)
-                              (pi-resolve-config-value raw-key (car opt-env))
-                              (pi-resolve-config-value raw-key)
-                            ) ;if
-                  ) ;resolved
-                 ) ;
-              (and resolved (cons (if (symbol? key) (symbol->string key) key) resolved))
-            ) ;let
-          ) ;and
-        ) ;let
-      ) ;and
-    ) ;define
-
-    (define (pi-load-auth agent-dir . opt-env)
-      (let* ((filepath (path->string (path-join (path agent-dir) (path "auth.json"))))
-             (data (pi-read-json-file filepath))
-            ) ;
-        (if (not (pair? data))
-          '()
-          (let loop
-            ((items data) (acc '()))
-            (if (null? items)
-              (reverse acc)
-              (let* ((entry (car items))
-                     (pair (%parse-credential-item (car entry) (cdr entry) opt-env))
-                    ) ;
-                (if pair (loop (cdr items) (cons pair acc)) (loop (cdr items) acc))
-              ) ;let*
-            ) ;if
-          ) ;let
-        ) ;if
-      ) ;let*
-    ) ;define
-
-    (define (pi-resolve-provider-key provider auth-alist . opt-env)
-      (let* ((p-str (if (symbol? provider) (symbol->string provider) provider))
-             (pair (or (assoc p-str auth-alist) (assoc (string->symbol p-str) auth-alist)))
+    (define (%resolve-model-id parsed-args settings opt-env provider)
+      (let* ((cli-model (pi-args-ref parsed-args 'model))
+             (env-model (or (lookup-env-var "GF_PI_MODEL" opt-env)
+                          (if (equal? provider "anthropic")
+                            (lookup-env-var "ANTHROPIC_DEFAULT_SONNET_MODEL" opt-env)
+                            #f
+                          ) ;if
+                        ) ;or
+             ) ;env-model
+             (settings-model (cdr (assoc 'default-model settings)))
+             (settings-provider (cdr (assoc 'default-provider settings)))
+             (def-model (if (equal? provider "anthropic")
+                          "claude-3-7-sonnet-20250219"
+                          "gemini-3.8-flash"
+                        ) ;if
+             ) ;def-model
             ) ;
         (cond
-         ((and pair (string? (cdr pair)) (not (string-null? (cdr pair)))) (cdr pair))
-         ((string=? p-str "google")
-          (let ((v (lookup-env-var "GEMINI_API_KEY" opt-env)))
-            (and (string? v) (not (string-null? v)) v)
-          ) ;let
+         ((and (string? cli-model) (not (string-null? (string-trim-both cli-model))))
+          cli-model
          ) ;
-         ((string=? p-str "anthropic")
-          (let ((v (or (lookup-env-var "ANTHROPIC_API_KEY" opt-env)
-                     (lookup-env-var "ANTHROPIC_AUTH_TOKEN" opt-env)
-                   ) ;or
-                ) ;v
-               ) ;
-            (and (string? v) (not (string-null? v)) v)
-          ) ;let
+         ((and (string? env-model) (not (string-null? (string-trim-both env-model))))
+          env-model
          ) ;
-         (else #f)
+         ((and (equal? provider settings-provider)
+            (string? settings-model)
+            (not (string-null? (string-trim-both settings-model)))
+          ) ;and
+          settings-model
+         ) ;
+         (else def-model)
         ) ;cond
       ) ;let*
     ) ;define
 
-    (define (pi-load-models-store agent-dir)
-      (let ((data
-              (pi-read-json-file (path->string (path-join (path agent-dir) (path "models-store.json")))
-              ) ;pi-read-json-file
-            ) ;data
+    (define (%resolve-provider parsed-args settings)
+      (let ((cli-provider (pi-args-ref parsed-args 'provider))
+            (settings-provider (cdr (assoc 'default-provider settings)))
            ) ;
-        (if (pair? data) data '())
-      ) ;let
-    ) ;define
-
-    (define (%find-model-in-list models model-id)
-      (and (pair? models)
-        (let loop
-          ((lst models))
-          (cond ((null? lst) #f)
-                ((string=? (json-dict-ref (car lst) "id" "") model-id) (car lst))
-                (else (loop (cdr lst)))
-          ) ;cond
-        ) ;let
-      ) ;and
-    ) ;define
-
-    (define (%get-provider-models models-store provider)
-      (let ((raw-models (json-dict-ref (json-dict-ref models-store provider '()) "models" '())
-            ) ;raw-models
-           ) ;
-        (cond ((vector? raw-models) (vector->list raw-models))
-              ((list? raw-models) raw-models)
-              (else '())
+        (cond
+         ((and (string? cli-provider)
+            (not (string-null? (string-trim-both cli-provider)))
+          ) ;and
+          cli-provider
+         ) ;
+         ((and (string? settings-provider)
+            (not (string-null? (string-trim-both settings-provider)))
+          ) ;and
+          settings-provider
+         ) ;
+         (else "google")
         ) ;cond
       ) ;let
     ) ;define
 
-    (define (%apply-meta-env-overrides base-url context-window max-tokens opt-env provider)
-      (let* ((env-url (or (and (string? provider)
-                            (string=? provider "anthropic")
-                            (lookup-env-var "ANTHROPIC_BASE_URL" opt-env)
-                          ) ;and
-                        (lookup-env-var "GF_PI_BASE_URL" opt-env)
-                      ) ;or
-             ) ;env-url
-             (env-cw (lookup-env-var "GF_PI_CONTEXT_WINDOW" opt-env))
-             (env-mt (lookup-env-var "GF_PI_MAX_TOKENS" opt-env))
-             (final-url
-               (if (and (string? env-url) (not (string-null? env-url))) env-url base-url)
-             ) ;final-url
-             (final-cw (if (and (string? env-cw) (string->number env-cw))
-                         (string->number env-cw)
-                         context-window
-                       ) ;if
-             ) ;final-cw
-             (final-mt (if (and (string? env-mt) (string->number env-mt))
-                         (string->number env-mt)
-                         max-tokens
-                       ) ;if
-             ) ;final-mt
-            ) ;
-        (values final-url final-cw final-mt)
-      ) ;let*
+    (define (resolve-active-tools parsed-args settings)
+      (let ((cli-tools (pi-args-ref parsed-args 'tools))
+            (settings-tools (cdr (assoc 'default-tools settings)))
+           ) ;
+        (cond
+         ((and (string? cli-tools) (not (string-null? (string-trim-both cli-tools))))
+          (parse-tools-selection cli-tools)
+         ) ;
+         ((pair? settings-tools)
+          (if
+            (and (string? (car settings-tools))
+              (or (string-starts? (car settings-tools) "+")
+                (string-starts? (car settings-tools) "-")
+              ) ;or
+            ) ;and
+            (parse-tools-selection (string-join settings-tools ","))
+            settings-tools
+          ) ;if
+         ) ;
+         (else PI_DEFAULT_TOOL_NAMES)
+        ) ;cond
+      ) ;let
     ) ;define
 
-    (define (pi-resolve-model-metadata provider model-id models-store . opt-env)
-      (let* ((p-str (if (symbol? provider) (symbol->string provider) provider))
-             (is-ant? (string=? p-str "anthropic"))
-             (def-url (if is-ant?
-                        "https://api.anthropic.com"
-                        "https://generativelanguage.googleapis.com/v1beta"
+    (define (pi-warn-fallback-model model-id)
+      (display "Warning: Model \"" (current-error-port))
+      (display model-id (current-error-port))
+      (display "\" not found in models store; using fallback defaults\n"
+        (current-error-port)
+      ) ;display
+    ) ;define
+    (define goldpi-warn-fallback-model pi-warn-fallback-model)
+
+    (define (resolve-pi-config parsed-args . opt-env)
+      (let* ((env-agent-dir (lookup-env-var "PI_CODING_AGENT_DIR" opt-env))
+             (agent-dir (pi-get-agent-dir env-agent-dir))
+             (settings (pi-load-settings agent-dir))
+             (provider (%resolve-provider parsed-args settings))
+             (auth (if (pair? opt-env)
+                     (pi-load-auth agent-dir (car opt-env))
+                     (pi-load-auth agent-dir)
+                   ) ;if
+             ) ;auth
+             (api-key (if (pair? opt-env)
+                        (pi-resolve-provider-key provider auth (car opt-env))
+                        (pi-resolve-provider-key provider auth)
                       ) ;if
-             ) ;def-url
-             (m (%find-model-in-list (%get-provider-models models-store p-str) model-id))
-             (def-cw (if is-ant? 200000 128000))
-             (def-mt (if is-ant? 8192 16384))
-             (cw (if m (json-dict-ref m "contextWindow" def-cw) def-cw))
-             (mt (if m (json-dict-ref m "maxTokens" def-mt) def-mt))
+             ) ;api-key
+             (model-id (%resolve-model-id parsed-args settings opt-env provider))
+             (models-store (pi-load-models-store agent-dir))
+             (meta (if (pair? opt-env)
+                     (pi-resolve-model-metadata provider model-id models-store (car opt-env))
+                     (pi-resolve-model-metadata provider model-id models-store)
+                   ) ;if
+             ) ;meta
+             (cli-proxy (pi-args-ref parsed-args 'proxy))
+             (proxy-url (if (pair? opt-env)
+                          (pi-resolve-proxy-url cli-proxy settings (car opt-env))
+                          (pi-resolve-proxy-url cli-proxy settings)
+                        ) ;if
+             ) ;proxy-url
+             (tools (resolve-active-tools parsed-args settings))
             ) ;
-        (let-values (((f-url f-cw f-mt)
-                      (%apply-meta-env-overrides (if m (json-dict-ref m "baseUrl" def-url) def-url)
-                        cw
-                        mt
-                        opt-env
-                        p-str
-                      ) ;%apply-meta-env-overrides
-                     ) ;
-                    ) ;
-          (list (cons 'id model-id)
-            (cons 'name (if m (json-dict-ref m "name" model-id) model-id))
-            (cons 'provider p-str)
-            (cons 'base-url f-url)
-            (cons 'context-window f-cw)
-            (cons 'max-tokens f-mt)
-            (cons 'matched? (if m #t #f))
-          ) ;list
-        ) ;let-values
+        (list (cons 'agent-dir agent-dir)
+          (cons 'provider provider)
+          (cons 'api-key api-key)
+          (cons 'model-id model-id)
+          (cons 'model-meta meta)
+          (cons 'proxy-url proxy-url)
+          (cons 'tools tools)
+          (cons 'settings settings)
+        ) ;list
       ) ;let*
     ) ;define
+    (define resolve-goldpi-config resolve-pi-config)
 
   ) ;begin
 ) ;define-library

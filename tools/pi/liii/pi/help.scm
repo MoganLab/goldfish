@@ -14,7 +14,7 @@
 ;; under the License.
 ;;
 
-(define-library (liii pi-help)
+(define-library (liii pi help)
   (import (scheme base) (scheme write))
   (export PI_HELP_TEXT display-pi-help)
   (begin

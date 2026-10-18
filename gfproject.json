@@ -106,7 +106,7 @@
     },
     "pi": {
       "organization": "liii",
-      "module": "pi-cli",
+      "module": "pi/cli",
       "description": {
         "en_US": "Pi coding agent script mode",
         "zh_CN": "Pi coding agent 脚本模式"

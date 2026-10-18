@@ -7,9 +7,8 @@
   (liii json)
   (liii subprocess)
   (liii pi)
-  (liii pi-config)
-  (liii pi-provider)
-  (liii pi-stream)
+  (liii pi config)
+  (liii pi gemini)
 ) ;import
 
 (check-set-mode! 'report-failed)

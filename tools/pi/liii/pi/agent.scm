@@ -14,15 +14,14 @@
 ;; under the License.
 ;;
 
-(define-library (liii pi-agent)
+(define-library (liii pi agent)
   (import (scheme base)
     (liii string)
     (liii list)
     (liii time)
-    (liii pi-provider)
-    (liii pi-stream)
-    (liii pi-anthropic-stream)
-    (liii pi-tools)
+    (liii pi gemini)
+    (liii pi anthropic)
+    (liii pi tools)
   ) ;import
   (export run-agent-loop extract-assistant-text)
   (begin

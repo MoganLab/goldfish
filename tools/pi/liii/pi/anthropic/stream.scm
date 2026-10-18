@@ -14,16 +14,16 @@
 ;; under the License.
 ;;
 
-(define-library (liii pi-anthropic-stream)
+(define-library (liii pi anthropic stream)
   (import (scheme base)
     (scheme write)
     (liii string)
     (liii json)
     (liii http)
     (liii time)
-    (liii pi)
-    (liii pi-anthropic)
-    (liii pi-anthropic-parse)
+    (liii pi anthropic core)
+    (liii pi anthropic request)
+    (liii pi anthropic stream-parse)
   ) ;import
   (export anthropic-request-stream)
   (begin

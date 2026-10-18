@@ -14,13 +14,12 @@
 ;; under the License.
 ;;
 
-(define-library (liii pi-stream-parse)
+(define-library (liii pi gemini stream-parse)
   (import (scheme base)
     (liii string)
     (liii json)
     (liii sse)
-    (liii pi)
-    (liii pi-provider)
+    (liii pi gemini core)
   ) ;import
   (export emit-text-start-and-delta append-text-block
     process-stream-function-call process-stream-part process-sse-chunk-data

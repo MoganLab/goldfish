@@ -1,0 +1,144 @@
+;;
+;; Copyright (C) 2026 The Goldfish Scheme Authors
+;;
+;; Licensed under the Apache License, Version 2.0 (the "License");
+;; you may not use this file except in compliance with the License.
+;; You may obtain a copy of the License at
+;;
+;; http://www.apache.org/licenses/LICENSE-2.0
+;;
+;; Unless required by applicable law or agreed to in writing, software
+;; distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+;; WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+;; License for the specific language governing permissions and limitations
+;; under the License.
+;;
+
+(define-library (liii pi models)
+  (import (scheme base)
+    (scheme process-context)
+    (liii string)
+    (liii path)
+    (liii json)
+    (liii pi template)
+  ) ;import
+  (export pi-load-models-store pi-resolve-model-metadata)
+  (begin
+
+    (define (%dict-ref obj key default-val)
+      (if (not (pair? obj))
+        default-val
+        (let* ((str-key (if (symbol? key) (symbol->string key) key))
+               (sym-key (if (string? key) (string->symbol key) key))
+               (pair (or (assoc str-key obj) (assoc sym-key obj)))
+              ) ;
+          (if pair (cdr pair) default-val)
+        ) ;let*
+      ) ;if
+    ) ;define
+
+    (define (%read-json-file filepath)
+      (and (path-exists? (path filepath))
+        (catch #t
+          (lambda () (string->json (path-read-text (path filepath))))
+          (lambda args #f)
+        ) ;catch
+      ) ;and
+    ) ;define
+
+    (define (pi-load-models-store agent-dir)
+      (let ((data
+              (%read-json-file (path->string (path-join (path agent-dir) (path "models-store.json")))
+              ) ;%read-json-file
+            ) ;data
+           ) ;
+        (if (pair? data) data '())
+      ) ;let
+    ) ;define
+
+    (define (%find-model-in-list models model-id)
+      (and (pair? models)
+        (let loop
+          ((lst models))
+          (cond ((null? lst) #f)
+                ((string=? (%dict-ref (car lst) "id" "") model-id) (car lst))
+                (else (loop (cdr lst)))
+          ) ;cond
+        ) ;let
+      ) ;and
+    ) ;define
+
+    (define (%get-provider-models models-store provider)
+      (let ((raw-models (%dict-ref (%dict-ref models-store provider '()) "models" '())))
+        (cond ((vector? raw-models) (vector->list raw-models))
+              ((list? raw-models) raw-models)
+              (else '())
+        ) ;cond
+      ) ;let
+    ) ;define
+
+    (define (%apply-meta-env-overrides base-url context-window max-tokens opt-env provider)
+      (let* ((env-url (or (and (string? provider)
+                            (string=? provider "anthropic")
+                            (lookup-env-var "ANTHROPIC_BASE_URL" opt-env)
+                          ) ;and
+                        (lookup-env-var "GF_PI_BASE_URL" opt-env)
+                      ) ;or
+             ) ;env-url
+             (env-cw (lookup-env-var "GF_PI_CONTEXT_WINDOW" opt-env))
+             (env-mt (lookup-env-var "GF_PI_MAX_TOKENS" opt-env))
+             (final-url
+               (if (and (string? env-url) (not (string-null? env-url))) env-url base-url)
+             ) ;final-url
+             (final-cw (if (and (string? env-cw) (string->number env-cw))
+                         (string->number env-cw)
+                         context-window
+                       ) ;if
+             ) ;final-cw
+             (final-mt (if (and (string? env-mt) (string->number env-mt))
+                         (string->number env-mt)
+                         max-tokens
+                       ) ;if
+             ) ;final-mt
+            ) ;
+        (values final-url final-cw final-mt)
+      ) ;let*
+    ) ;define
+
+    (define (pi-resolve-model-metadata provider model-id models-store . opt-env)
+      (let* ((p-str (if (symbol? provider) (symbol->string provider) provider))
+             (is-ant? (string=? p-str "anthropic"))
+             (def-url (if is-ant?
+                        "https://api.anthropic.com"
+                        "https://generativelanguage.googleapis.com/v1beta"
+                      ) ;if
+             ) ;def-url
+             (m (%find-model-in-list (%get-provider-models models-store p-str) model-id))
+             (def-cw (if is-ant? 200000 128000))
+             (def-mt (if is-ant? 8192 16384))
+             (cw (if m (%dict-ref m "contextWindow" def-cw) def-cw))
+             (mt (if m (%dict-ref m "maxTokens" def-mt) def-mt))
+            ) ;
+        (let-values (((f-url f-cw f-mt)
+                      (%apply-meta-env-overrides (if m (%dict-ref m "baseUrl" def-url) def-url)
+                        cw
+                        mt
+                        opt-env
+                        p-str
+                      ) ;%apply-meta-env-overrides
+                     ) ;
+                    ) ;
+          (list (cons 'id model-id)
+            (cons 'name (if m (%dict-ref m "name" model-id) model-id))
+            (cons 'provider p-str)
+            (cons 'base-url f-url)
+            (cons 'context-window f-cw)
+            (cons 'max-tokens f-mt)
+            (cons 'matched? (if m #t #f))
+          ) ;list
+        ) ;let-values
+      ) ;let*
+    ) ;define
+
+  ) ;begin
+) ;define-library
