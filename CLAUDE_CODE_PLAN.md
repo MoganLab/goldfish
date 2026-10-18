@@ -149,7 +149,9 @@ timeout 900 bin/gf pi --print "@PI_PLAN.md 实现阶段八：会话持久化"
 
 **阶段产物与 commit 对应**：PLAN commit = `tools/pi/devel/ddd.md`（任务文档）；
 CODE commit = 代码改动；REVIEW commit = `tools/pi/devel/ddd.scm`（**验收脚本**，
-可执行、逐条断言验收点，入库留痕）。每个任务在 devel 下留下成对文件。
+可执行、逐条断言验收点，入库留痕）。REVIEW 阶段也可能顺带修订 `ddd.md`
+（补执行记录、按实况修正验收点描述）——两个文件可同入 REVIEW commit。
+每个任务在 devel 下留下成对文件。
 
 ```bash
 # 文档阶段：登记+建档（产物 tools/pi/devel/ddd.md）
