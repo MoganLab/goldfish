@@ -221,6 +221,8 @@ timeout 1800 pi -a -p @PI_PLAN.md "执行任务 ddd 的验收阶段：1) 编写�
   的行为差异（哪一步卡住、缺什么能力），把差距登记为缺陷任务，改进 `bin/gf pi`
   后再试——这就是用真实任务驱动自举迭代。
 - 试验记录写在对应 devel 文档的执行记录中（执行者标注 bin/gf pi 或 pi）。
+- 差距分析结果由 Claude 沉淀到 `PI_SPEC.md` 的「bin/gf pi 与 pi 的差距」一节——
+  据此规划 `bin/gf pi` 的后续改进（Claude 据此自主规划 PI_SPEC 的演进）。
 
 ## 6. 给 pi 脚本模式的硬性要求
 

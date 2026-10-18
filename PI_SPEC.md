@@ -237,6 +237,19 @@ tools/pi/liii/
 - 交互式 TUI / RPC 模式（goldfish 缺少相关的终端 UI 基础设施，不规划）
 - 项目级 `.pi/settings.json` 读取（首期只读全局 settings.json，暂不引入 trust 门控概念）
 
+## bin/gf pi 与 pi 的差距（自举差距清单）
+
+> 本节由自举试验的差距分析维护：每次 `bin/gf pi` 尝试执行真实任务失败时，
+> 分析它与 pi（node 版）的差距并登记在此，作为 `bin/gf pi` 改进的规划依据。
+
+| # | 差距 | 证据（失败的任务/场景） | 状态 |
+|---|---|---|---|
+| 1 | 4 字节 UTF-8 字符与 `<` 组合导致请求挂起且流式空闲超时不兜底 | 阶段五冒烟 `'🚀 <'`（pi 正常处理同类 prompt） | 修复中（任务 014） |
+| 2 | 无 `--mode rpc`（pi 有 JSONL over stdio 的 RPC 模式，IDE/长会话集成需要） | pi docs/rpc.md；bin/gf pi 仅 print/json | 未规划（Non-goal 暂缓） |
+| 3 | OAuth 类凭据不消费（pi 支持 kimi-coding oauth 轮换） | auth.json 的 oauth 条目 | 按需（当前 kimi 为 api_key） |
+| 4 | thinking 内容不请求不解析 | `--thinking-level` 用法在 TODO | 远期（任务 012） |
+| 5 | 图片输入不支持 | `@图片` 用法在 TODO | 远期（任务 013） |
+
 ## Provider 支持范围
 
 当前仅支持两个 provider：**google（Gemini）** 与 **kimi-coding（Kimi，TODO 中）**。
