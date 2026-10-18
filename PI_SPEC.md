@@ -179,9 +179,11 @@ tools/pi/liii/
   pi-cli.scm        # (liii pi-cli)      CLI 入口（≈ main.ts；gfproject.json 注册指向）
 ```
 
-拆分规则：单文件 300 行放不下就继续拆子模块（如 `(liii pi gemini)` 超限可拆
-`(liii pi gemini request)`、`(liii pi gemini sse)`），与 `bin/gf check` 的 300 行
-硬约束一致。
+**分层与拆分规则**：二级子库（如 `(liii pi gemini)`）是**导出函数的层面**——
+对外公开该域的 API；单文件 300 行放不下就把实现继续拆到下一层子文件
+（如 `pi/gemini/request.scm`、`pi/gemini/sse.scm`，由 `(liii pi gemini)` 统一
+导出），与 `bin/gf check` 的 300 行硬约束一致。上面的子库清单只是例子，
+实际划分按代码自然边界走。
 
 进度：文件迁移（任务 001）已完成——物理位置已归口 `tools/pi/liii/`；多级子库
 重组（任务 003）待执行，当前 `(liii pi)` 内部仍为平铺子模块，`(liii pi-cli)`
