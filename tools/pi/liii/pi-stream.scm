@@ -14,7 +14,7 @@
 ;; under the License.
 ;;
 
-(define-library (liii goldpi-stream)
+(define-library (liii pi-stream)
   (import (scheme base)
     (scheme char)
     (liii string)
@@ -22,9 +22,9 @@
     (liii http)
     (liii time)
     (liii pi)
-    (liii goldpi-tools)
-    (liii goldpi-provider)
-    (liii goldpi-stream-parse)
+    (liii pi-tools)
+    (liii pi-provider)
+    (liii pi-stream-parse)
   ) ;import
   (export gemini-request-stream)
   (begin

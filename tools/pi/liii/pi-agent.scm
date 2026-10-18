@@ -14,15 +14,15 @@
 ;; under the License.
 ;;
 
-(define-library (liii goldpi-agent)
+(define-library (liii pi-agent)
   (import (scheme base)
     (liii string)
     (liii list)
     (liii time)
-    (liii goldpi-provider)
-    (liii goldpi-stream)
-    (liii goldpi-anthropic-stream)
-    (liii goldpi-tools)
+    (liii pi-provider)
+    (liii pi-stream)
+    (liii pi-anthropic-stream)
+    (liii pi-tools)
   ) ;import
   (export run-agent-loop extract-assistant-text)
   (begin

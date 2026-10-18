@@ -1,5 +1,5 @@
 (import (liii check)
-        (liii goldpi-session)
+        (liii pi-session)
         (liii path)
         (scheme file))
 
@@ -20,7 +20,7 @@
   (check file-path => "/tmp/test-agent/sessions/--home-da-git-goldfish--/2026-10-17T09-29-29-706Z_test-id-123.jsonl"))
 
 ;; 3. 测试 save 与 read 往返
-(let* ((tmp-dir "/tmp/test-goldpi-session-fixture")
+(let* ((tmp-dir "/tmp/test-pi-session-fixture")
        (_ (if (file-exists? tmp-dir) (delete-file tmp-dir) #t))
        (session-file (path->string (path-join "/tmp" "session-test.jsonl"))))
   (if (file-exists? session-file) (delete-file session-file))
@@ -37,7 +37,7 @@
   (delete-file session-file))
 
 ;; 4. 测试 find-latest-session-file
-(let* ((tmp-dir "/tmp/test-goldpi-latest-dir")
+(let* ((tmp-dir "/tmp/test-pi-latest-dir")
        (_ (if (file-exists? tmp-dir) (path-rmdir tmp-dir) #t))
        (_ (path-mkdir tmp-dir))
        (f1 (path->string (path-join tmp-dir "2026-10-01T00-00-00-000Z_id1.jsonl")))
@@ -54,7 +54,7 @@
   (path-rmdir tmp-dir))
 
 ;; 5. 测试 setup-session-file 与 setup-initial-messages
-(let* ((tmp-agent-dir "/tmp/test-goldpi-session-agent")
+(let* ((tmp-agent-dir "/tmp/test-pi-session-agent")
        (cwd "/home/da/git/goldfish")
        (cfg `((agent-dir . ,tmp-agent-dir)))
        (sdir (get-session-dir tmp-agent-dir cwd)))

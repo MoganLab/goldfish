@@ -7,9 +7,9 @@
   (liii json)
   (liii subprocess)
   (liii pi)
-  (liii goldpi-config)
-  (liii goldpi-anthropic)
-  (liii goldpi-anthropic-stream)
+  (liii pi-config)
+  (liii pi-anthropic)
+  (liii pi-anthropic-stream)
 ) ;import
 
 (check-set-mode! 'report-failed)

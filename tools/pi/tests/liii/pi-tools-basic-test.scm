@@ -5,15 +5,15 @@
   (liii string)
   (liii path)
   (liii pi)
-  (liii goldpi-tools)
+  (liii pi-tools)
 ) ;import
 
 (check-set-mode! 'report-failed)
 
 (define test-file
-  (if (file-exists? "liii/goldpi.scm")
-    "liii/goldpi.scm"
-    "tools/pi/liii/goldpi.scm"
+  (if (file-exists? "liii/pi-cli.scm")
+    "liii/pi-cli.scm"
+    "tools/pi/liii/pi-cli.scm"
   ) ;if
 ) ;define
 
@@ -23,7 +23,7 @@
 
 (let ((res (pi-execute-read (list (cons "path" test-file)))))
   (check-true (string? res))
-  (check-true (string-contains? res "(define-library (liii goldpi)"))
+  (check-true (string-contains? res "(define-library (liii pi-cli)"))
 ) ;let
 
 (let ((res (pi-execute-read (list (cons "path" test-file) (cons "limit" 2)))))

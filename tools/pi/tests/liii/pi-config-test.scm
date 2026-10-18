@@ -4,8 +4,8 @@
 (import (liii check)
         (liii string)
         (liii pi)
-        (liii goldpi-args)
-        (liii goldpi-config))
+        (liii pi-args)
+        (liii pi-config))
 
 (check-set-mode! 'report-failed)
 
@@ -21,7 +21,7 @@
 ;; 1. 默认配置解析（基于 default fixture）
 (let* ((args (parse-pi-args '()))
        (env `(("PI_CODING_AGENT_DIR" . ,FIXTURE_DIR)))
-       (cfg (resolve-goldpi-config args env)))
+       (cfg (resolve-pi-config args env)))
   (check (cdr (assoc 'provider cfg)) => "google")
   (check (cdr (assoc 'model-id cfg)) => "gemini-3.8-flash")
   (check (cdr (assoc 'api-key cfg)) => "test-google-key-from-auth-json")
@@ -36,7 +36,7 @@
 (let* ((args (parse-pi-args '("--model" "gemini-2.5-pro")))
        (env `(("PI_CODING_AGENT_DIR" . ,FIXTURE_DIR)
               ("GF_PI_MODEL" . "should-be-ignored-by-cli-flag")))
-       (cfg (resolve-goldpi-config args env)))
+       (cfg (resolve-pi-config args env)))
   (check (cdr (assoc 'model-id cfg)) => "gemini-2.5-pro")
   (let ((meta (cdr (assoc 'model-meta cfg))))
     (check (cdr (assoc 'matched? meta)) => #t)
@@ -46,20 +46,20 @@
 (let* ((args (parse-pi-args '()))
        (env `(("PI_CODING_AGENT_DIR" . ,FIXTURE_DIR)
               ("GF_PI_MODEL" . "gemini-2.5-pro")))
-       (cfg (resolve-goldpi-config args env)))
+       (cfg (resolve-pi-config args env)))
   (check (cdr (assoc 'model-id cfg)) => "gemini-2.5-pro"))
 
 ;; 4. CLI --proxy 覆盖 settings.httpProxy
 (let* ((args (parse-pi-args '("--proxy" "socks5h://127.0.0.1:1080")))
        (env `(("PI_CODING_AGENT_DIR" . ,FIXTURE_DIR)))
-       (cfg (resolve-goldpi-config args env)))
+       (cfg (resolve-pi-config args env)))
   (check (cdr (assoc 'proxy-url cfg)) => "socks5h://127.0.0.1:1080"))
 
 ;; 5. CLI --provider "anthropic" 配合 $TEST_ANTHROPIC_KEY 插值与 ANTHROPIC_AUTH_TOKEN
 (let* ((args (parse-pi-args '("--provider" "anthropic")))
        (env `(("PI_CODING_AGENT_DIR" . ,FIXTURE_DIR)
               ("TEST_ANTHROPIC_KEY" . "sk-ant-api-987654321")))
-       (cfg (resolve-goldpi-config args env)))
+       (cfg (resolve-pi-config args env)))
   (check (cdr (assoc 'provider cfg)) => "anthropic")
   (check (cdr (assoc 'model-id cfg)) => "claude-3-7-sonnet-20250219")
   (check (cdr (assoc 'api-key cfg)) => "sk-ant-api-987654321")
@@ -72,14 +72,14 @@
 (let* ((args (parse-pi-args '("--provider" "anthropic")))
        (env `(("PI_CODING_AGENT_DIR" . "non_existent_dir_xyz")
               ("ANTHROPIC_AUTH_TOKEN" . "auth-token-bearer-123")))
-       (cfg (resolve-goldpi-config args env)))
+       (cfg (resolve-pi-config args env)))
   (check (cdr (assoc 'provider cfg)) => "anthropic")
   (check (cdr (assoc 'api-key cfg)) => "auth-token-bearer-123"))
 
 ;; 6. 未知自定义模型：使用兜底元数据，matched? 为 #f
 (let* ((args (parse-pi-args '("--model" "custom-experimental-model")))
        (env `(("PI_CODING_AGENT_DIR" . ,FIXTURE_DIR)))
-       (cfg (resolve-goldpi-config args env))
+       (cfg (resolve-pi-config args env))
        (meta (cdr (assoc 'model-meta cfg))))
   (check (cdr (assoc 'matched? meta)) => #f)
   (check (cdr (assoc 'context-window meta)) => 128000)
@@ -89,7 +89,7 @@
 (let ((args (parse-pi-args '()))
       (env `(("PI_CODING_AGENT_DIR" . ,INVALID_CMD_DIR))))
   (check-catch 'pi-config-error
-    (resolve-goldpi-config args env)))
+    (resolve-pi-config args env)))
 
 ;; 8. 工具增量配置测试（settings 增删工具）
 (let ((settings-with-delta '((default-tools . ("+grep" "-write"))))

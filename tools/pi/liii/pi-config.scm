@@ -14,17 +14,19 @@
 ;; under the License.
 ;;
 
-(define-library (liii goldpi-config)
+(define-library (liii pi-config)
   (import (scheme base)
     (scheme process-context)
     (scheme write)
     (liii string)
     (liii pi)
     (liii pi template)
-    (liii goldpi-args)
-    (liii goldpi-tools)
+    (liii pi-args)
+    (liii pi-tools)
   ) ;import
-  (export resolve-goldpi-config resolve-active-tools goldpi-warn-fallback-model)
+  (export resolve-goldpi-config resolve-pi-config resolve-active-tools
+    goldpi-warn-fallback-model pi-warn-fallback-model
+  ) ;export
   (begin
 
     (define (%resolve-model-id parsed-args settings opt-env provider)
@@ -106,15 +108,16 @@
       ) ;let
     ) ;define
 
-    (define (goldpi-warn-fallback-model model-id)
+    (define (pi-warn-fallback-model model-id)
       (display "Warning: Model \"" (current-error-port))
       (display model-id (current-error-port))
       (display "\" not found in models store; using fallback defaults\n"
         (current-error-port)
       ) ;display
     ) ;define
+    (define goldpi-warn-fallback-model pi-warn-fallback-model)
 
-    (define (resolve-goldpi-config parsed-args . opt-env)
+    (define (resolve-pi-config parsed-args . opt-env)
       (let* ((env-agent-dir (lookup-env-var "PI_CODING_AGENT_DIR" opt-env))
              (agent-dir (pi-get-agent-dir env-agent-dir))
              (settings (pi-load-settings agent-dir))
@@ -155,6 +158,7 @@
         ) ;list
       ) ;let*
     ) ;define
+    (define resolve-goldpi-config resolve-pi-config)
 
   ) ;begin
 ) ;define-library

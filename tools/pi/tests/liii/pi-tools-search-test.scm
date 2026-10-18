@@ -10,9 +10,9 @@
 (check-set-mode! 'report-failed)
 
 (define test-file
-  (if (file-exists? "liii/goldpi.scm")
-    "liii/goldpi.scm"
-    "tools/pi/liii/goldpi.scm"
+  (if (file-exists? "liii/pi-cli.scm")
+    "liii/pi-cli.scm"
+    "tools/pi/liii/pi-cli.scm"
   ) ;if
 ) ;define
 
@@ -50,7 +50,7 @@
 ;; 1. 查找 tools/pi 下匹配 *.scm 的文件
 (let ((out (pi-execute-find '(("pattern" . "*.scm") ("path" . ".")))))
   (check-true (string? out))
-  (check-true (string-contains? out "goldpi"))
+  (check-true (string-contains? out "pi-cli"))
 ) ;let
 
 ;; 2. limit 生效与提示
@@ -86,7 +86,7 @@
       ) ;out
      ) ;
   (check-true (string? out))
-  (check-true (string-contains? out ": (define-library (liii goldpi)"))
+  (check-true (string-contains? out ": (define-library (liii pi-cli)"))
 ) ;let
 
 ;; 2. 大小写不敏感搜索
@@ -98,14 +98,14 @@
            ) ;pi-execute-grep
       ) ;out
      ) ;
-  (check-true (string-contains? out ": (define-library (liii goldpi)"))
+  (check-true (string-contains? out ": (define-library (liii pi-cli)"))
 ) ;let
 
 ;; 3. 正则搜索
 (let ((out (pi-execute-grep (list (cons "pattern" "define.*display")
-                              (cons "path" (if (file-exists? "liii/goldpi-help.scm")
-                                             "liii/goldpi-help.scm"
-                                             "tools/pi/liii/goldpi-help.scm"
+                              (cons "path" (if (file-exists? "liii/pi-help.scm")
+                                             "liii/pi-help.scm"
+                                             "tools/pi/liii/pi-help.scm"
                                            ) ;if
                               ) ;cons
                             ) ;list

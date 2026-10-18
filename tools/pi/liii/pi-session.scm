@@ -14,7 +14,7 @@
 ;; under the License.
 ;;
 
-(define-library (liii goldpi-session)
+(define-library (liii pi-session)
   (import (scheme base)
     (scheme file)
     (liii string)
@@ -23,7 +23,7 @@
     (liii time)
     (liii sort)
     (liii pi)
-    (liii goldpi-args)
+    (liii pi-args)
   ) ;import
   (export encode-cwd-to-session-dirname get-session-dir make-session-file-path
     read-session-history append-session-entry! find-latest-session-file

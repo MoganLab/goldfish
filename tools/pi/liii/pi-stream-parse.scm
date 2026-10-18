@@ -14,13 +14,13 @@
 ;; under the License.
 ;;
 
-(define-library (liii goldpi-stream-parse)
+(define-library (liii pi-stream-parse)
   (import (scheme base)
     (liii string)
     (liii json)
     (liii sse)
     (liii pi)
-    (liii goldpi-provider)
+    (liii pi-provider)
   ) ;import
   (export emit-text-start-and-delta append-text-block
     process-stream-function-call process-stream-part process-sse-chunk-data

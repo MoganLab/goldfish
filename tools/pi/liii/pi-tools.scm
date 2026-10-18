@@ -14,7 +14,7 @@
 ;; under the License.
 ;;
 
-(define-library (liii goldpi-tools)
+(define-library (liii pi-tools)
   (import (scheme base) (liii string) (liii list) (liii pi))
   (export PI_DEFAULT_TOOL_NAMES PI_ALL_TOOL_NAMES parse-tools-selection
     get-tool-definition execute-tool-call

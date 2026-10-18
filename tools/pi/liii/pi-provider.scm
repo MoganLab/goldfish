@@ -14,7 +14,7 @@
 ;; under the License.
 ;;
 
-(define-library (liii goldpi-provider)
+(define-library (liii pi-provider)
   (import (scheme base)
     (scheme write)
     (liii string)
@@ -23,7 +23,7 @@
     (liii error)
     (liii time)
     (liii pi)
-    (liii goldpi-tools)
+    (liii pi-tools)
   ) ;import
   (export gemini-parse-response gemini-is-retriable-error? gemini-request
     gemini-build-tool-declarations

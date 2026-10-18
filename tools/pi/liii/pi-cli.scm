@@ -14,7 +14,7 @@
 ;; under the License.
 ;;
 
-(define-library (liii goldpi)
+(define-library (liii pi-cli)
   (import (scheme base)
     (scheme process-context)
     (scheme write)
@@ -24,13 +24,13 @@
     (liii path)
     (liii sys)
     (liii pi)
-    (liii goldpi-args)
-    (liii goldpi-config)
-    (liii goldpi-agent)
-    (liii goldpi-session)
-    (liii goldpi-help)
+    (liii pi-args)
+    (liii pi-config)
+    (liii pi-agent)
+    (liii pi-session)
+    (liii pi-help)
   ) ;import
-  (export main display-pi-help read-all-stdin run-goldpi)
+  (export main display-pi-help read-all-stdin run-goldpi run-pi)
   (begin
 
     (define (read-all-stdin)
@@ -210,9 +210,9 @@
       ) ;let
     ) ;define
 
-    (define (%dispatch-goldpi parsed mode initial-msg rest-msgs)
+    (define (%dispatch-pi parsed mode initial-msg rest-msgs)
       (let* ((env (get-environment-variables))
-             (cfg (resolve-goldpi-config parsed env))
+             (cfg (resolve-pi-config parsed env))
              (provider (cdr (or (assoc 'provider cfg) '(#f . "google"))))
              (api-key (cdr (or (assoc 'api-key cfg) '(#f . #f))))
             ) ;
@@ -240,7 +240,7 @@
       ) ;let*
     ) ;define
 
-    (define (%run-goldpi-main parsed)
+    (define (%run-pi-main parsed)
       (let-values (((initial-msg rest-msgs)
                     (build-initial-prompt (and (not (stdin-tty?)) (read-all-stdin))
                       (process-file-arguments (pi-args-ref parsed 'file-args))
@@ -266,7 +266,7 @@
                       ) ;resolve-app-mode
                 ) ;mode
                ) ;
-            (%dispatch-goldpi parsed mode initial-msg rest-msgs)
+            (%dispatch-pi parsed mode initial-msg rest-msgs)
           ) ;let
         ) ;if
       ) ;let-values
@@ -280,18 +280,19 @@
       ) ;cond
     ) ;define
 
-    (define (run-goldpi raw-args)
+    (define (run-pi raw-args)
       (catch #t
-        (lambda () (%run-goldpi-main (parse-pi-args (strip-command-prefix raw-args))))
+        (lambda () (%run-pi-main (parse-pi-args (strip-command-prefix raw-args))))
         (lambda (err-type . info)
           (%display-stderr (string-append "Error: " (%format-catch-error err-type info)))
           1
         ) ;lambda
       ) ;catch
     ) ;define
+    (define run-goldpi run-pi)
 
     (define (main)
-      (exit (run-goldpi (command-line)))
+      (exit (run-pi (command-line)))
     ) ;define
 
   ) ;begin

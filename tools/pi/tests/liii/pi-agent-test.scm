@@ -6,7 +6,7 @@
   (liii list)
   (liii subprocess)
   (liii pi)
-  (liii goldpi-agent)
+  (liii pi-agent)
 ) ;import
 
 (check-set-mode! 'report-failed)

@@ -14,7 +14,7 @@
 ;; under the License.
 ;;
 
-(define-library (liii goldpi-anthropic)
+(define-library (liii pi-anthropic)
   (import (scheme base)
     (scheme write)
     (liii string)
@@ -23,7 +23,7 @@
     (liii error)
     (liii time)
     (liii pi)
-    (liii goldpi-tools)
+    (liii pi-tools)
   ) ;import
   (export anthropic-build-tool-declarations-from-names anthropic-request)
   (begin

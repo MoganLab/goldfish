@@ -14,7 +14,7 @@
 ;; under the License.
 ;;
 
-(define-library (liii goldpi-anthropic-stream)
+(define-library (liii pi-anthropic-stream)
   (import (scheme base)
     (scheme write)
     (liii string)
@@ -22,8 +22,8 @@
     (liii http)
     (liii time)
     (liii pi)
-    (liii goldpi-anthropic)
-    (liii goldpi-anthropic-parse)
+    (liii pi-anthropic)
+    (liii pi-anthropic-parse)
   ) ;import
   (export anthropic-request-stream)
   (begin

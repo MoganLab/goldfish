@@ -14,7 +14,7 @@
 ;; under the License.
 ;;
 
-(define-library (liii goldpi-args)
+(define-library (liii pi-args)
   (import (scheme base)
     (scheme process-context)
     (liii string)
