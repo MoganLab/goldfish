@@ -143,6 +143,20 @@ timeout 900 bin/gf pi --print "@PI_PLAN.md 实现阶段八：会话持久化"
                        └─ 依赖未满足或需用户确认 → 搁置
 ```
 
+**阶段发起命令**：每个阶段发起时使用明确的命令（当前执行者为 Claude 直接编码；
+以下 pi 命令是各阶段的标准发起形式，将来自举时把 `pi` 替换为 `bin/gf pi`）：
+
+```bash
+# 文档阶段：登记+建档
+timeout 900 pi -a -p @PI_PLAN.md "执行任务 ddd 的文档阶段：读 §3 任务表中任务 ddd 的验收点，从 tools/pi/devel/ddd.md 模板建立 tools/pi/devel/ddd.md（填写状态/代码文件/验收点/测试方法）并 commit"
+
+# 开发阶段：TDD 实现（长任务，脱离进程树）
+setsid nohup timeout 7200 pi -a -p @PI_PLAN.md "执行任务 ddd 的开发阶段（验收点见 tools/pi/devel/ddd.md）：先写测试再实现，工作区累积改动不 commit，完成后如实报告各验收点情况" > /tmp/pi-goldfish-run.log 2>&1 < /dev/null &
+
+# 验收阶段：门禁+冒烟+结算
+timeout 1800 pi -a -p @PI_PLAN.md "执行任务 ddd 的验收阶段：按 tools/pi/devel/ddd.md 的测试方法依次通过 xmake b goldfish、bin/gf fmt、git diff --exit-code、bin/gf check 与相关测试，逐条验证验收点，通过则 commit（[ddd] 任务名：简述）并 git push，如实报告验收结论"
+```
+
 ### 5.1 文档阶段
 
 1. 登记：`PI_PLAN.md` §3 任务表新增一行（编号从 001 递增），写明任务名、
