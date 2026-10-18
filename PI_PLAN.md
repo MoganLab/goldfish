@@ -52,6 +52,9 @@ Anthropic 已实现但本机无访问权限，不在维护范围；其 OAuth 刷
   事件流中出现 error 不改变退出码（进程异常才非 0）。
 - **时间 API 规范（用户裁定）**：除 `sleep` 外不得使用 `(liii time)` 中的函数；
   时间相关功能一律优先使用 `(liii datetime xxx)` 系列。
+- **文件组织规范（用户裁定）**：单文件 300 行放不下就继续拆分（与 `bin/gf check`
+  的 300 行硬约束一致）——子库再拆子模块（如 `(liii pi gemini)` 超限可拆出
+  `(liii pi gemini request)`、`(liii pi gemini sse)`），不允许超长文件存在。
 
 ## 3. 后续任务书（细粒度拆分；编号从 001 起全局递增，状态由 Claude 维护，便于观测进展）
 
