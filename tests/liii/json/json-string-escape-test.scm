@@ -129,6 +129,15 @@
   (check (json-string-escape long-utf8) => (string-append "\"" long-utf8 "\""))
 ) ;let
 
+;; 缺陷8防回归测试：4字节 UTF-8 字符（emoji、生僻字等）与 '<' 及各种转义组合
+(check (json-string-escape "🚀 <") => "\"🚀 <\"")
+(check (json-string-escape "𠀀 <") => "\"𠀀 <\"")
+(check (json-string-escape "🚀 x <xml> end") => "\"🚀 x <xml> end\"")
+(check (json-string-escape "<xml> & ampersand") => "\"<xml> & ampersand\"")
+(check (json-string-escape "🚀🎉 done") => "\"🚀🎉 done\"")
+(check (json-string-escape "🚀") => "\"🚀\"")
+(check (json-string-escape "<") => "\"<\"")
+
 ;; 其他控制字符（< 0x20）转义为 \uXXXX，保证输出是可再解析的 JSON
 (check (json-string-escape (string #\x1)) => "\"\\u0001\"")
 (check (json-string-escape (string #\x1f)) => "\"\\u001f\"")

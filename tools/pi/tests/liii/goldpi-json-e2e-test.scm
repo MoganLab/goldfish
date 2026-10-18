@@ -14,8 +14,7 @@
 ;; under the License.
 ;;
 
-(set! *load-path*
-  (append (list "tools/pi" ".") *load-path*))
+(set! *load-path* (append (list "tools/pi" ".") *load-path*))
 
 (import (liii check)
   (liii string)
@@ -67,14 +66,16 @@
        (port (parse-port-line port-line))
        (base-url (string-append "http://127.0.0.1:" (number->string port)))
        (test-env (list (cons "PI_CODING_AGENT_DIR" FIXTURE_DIR)
-                       (cons "GF_PI_BASE_URL" base-url)
-                       (cons "GF_PI_MODEL" "gemini-3.8-flash")
-                       (cons "https_proxy" "")
-                       (cons "http_proxy" "")
-                       (cons "all_proxy" "")
-                       (cons "ALL_PROXY" "")
-                       (cons "HTTPS_PROXY" "")
-                       (cons "HTTP_PROXY" "")))
+                   (cons "GF_PI_BASE_URL" base-url)
+                   (cons "GF_PI_MODEL" "gemini-3.8-flash")
+                   (cons "https_proxy" "")
+                   (cons "http_proxy" "")
+                   (cons "all_proxy" "")
+                   (cons "ALL_PROXY" "")
+                   (cons "HTTPS_PROXY" "")
+                   (cons "HTTP_PROXY" "")
+                 ) ;list
+       ) ;test-env
       ) ;
   (check-true (number? port))
 
@@ -83,9 +84,13 @@
          (p (process-spawn cmd :env test-env :stdout 'pipe :stderr 'pipe))
          (code (process-wait p 10000))
          (raw-out (process-read p :stream 'stdout))
-         (lines (filter (lambda (s) (not (string-null? s))) (string-split raw-out "\n")))
+         (lines
+           (filter (lambda (s) (not (string-null? s))) (string-split raw-out "\n"))
+         ) ;lines
          (events (map string->json lines))
-         (event-types (map (lambda (ev) (cdr (assoc "type" ev))) events))
+         (event-types
+           (map (lambda (ev) (cdr (assoc "type" ev))) events)
+         ) ;event-types
         ) ;
     (check code => 0)
     (check-true (>= (length lines) 8))
@@ -102,16 +107,22 @@
     (check (cadr event-types) => "agent_start")
     (check (caddr event-types) => "turn_start")
     (check (car (reverse event-types)) => "agent_settled")
-    (process-close p))
+    (process-close p)
+  ) ;let*
 
   ;; 2. 多轮带工具调用（functionCall）的 JSONL 事件序列
-  (let* ((cmd (list GF_BIN "pi" "--mode" "json" "--model" "multi-turn" "Run multi turn steps"))
+  (let* ((cmd (list GF_BIN "pi" "--mode" "json" "--model" "multi-turn" "Run multi turn steps")
+         ) ;cmd
          (p (process-spawn cmd :env test-env :stdout 'pipe :stderr 'pipe))
          (code (process-wait p 15000))
          (raw-out (process-read p :stream 'stdout))
-         (lines (filter (lambda (s) (not (string-null? s))) (string-split raw-out "\n")))
+         (lines
+           (filter (lambda (s) (not (string-null? s))) (string-split raw-out "\n"))
+         ) ;lines
          (events (map string->json lines))
-         (event-types (map (lambda (ev) (cdr (assoc "type" ev))) events))
+         (event-types
+           (map (lambda (ev) (cdr (assoc "type" ev))) events)
+         ) ;event-types
         ) ;
     (check code => 0)
     ;; 验证 jq 逐行可解析
@@ -128,37 +139,70 @@
     (check-true (pair? (member "tool_execution_end" event-types)))
     (check (car event-types) => "session")
     (check (car (reverse event-types)) => "agent_settled")
-    (process-close p))
+    (process-close p)
+  ) ;let*
 
   ;; 3. 模型报错/aborted 情况下进程退出码仍为 0（§3.3：事件流中出现 error/aborted 不改变退出码）
   (let* ((cmd (list GF_BIN "pi" "--mode" "json" "--model" "safety" "Run safety check"))
          (p (process-spawn cmd :env test-env :stdout 'pipe :stderr 'pipe))
          (code (process-wait p 10000))
          (raw-out (process-read p :stream 'stdout))
-         (lines (filter (lambda (s) (not (string-null? s))) (string-split raw-out "\n")))
+         (lines
+           (filter (lambda (s) (not (string-null? s))) (string-split raw-out "\n"))
+         ) ;lines
          (events (map string->json lines))
-         (event-types (map (lambda (ev) (cdr (assoc "type" ev))) events))
+         (event-types
+           (map (lambda (ev) (cdr (assoc "type" ev))) events)
+         ) ;event-types
         ) ;
     (check code => 0)
     (check-true (pair? (member "session" event-types)))
     (check-true (pair? (member "agent_settled" event-types)))
-    (process-close p))
+    (process-close p)
+  ) ;let*
 
   ;; 4. Anthropic provider JSON 模式事件流验证
   (let* ((ant-env (append (list (cons "ANTHROPIC_API_KEY" "sk-ant-test-json")) test-env))
-         (cmd (list GF_BIN "pi" "--provider" "anthropic" "--mode" "json" "Hello anthropic json"))
+         (cmd (list GF_BIN "pi" "--provider" "anthropic" "--mode" "json"
+                "Hello anthropic json"
+              ) ;list
+         ) ;cmd
          (p (process-spawn cmd :env ant-env :stdout 'pipe :stderr 'pipe))
          (code (process-wait p 10000))
          (raw-out (process-read p :stream 'stdout))
-         (lines (filter (lambda (s) (not (string-null? s))) (string-split raw-out "\n")))
+         (lines
+           (filter (lambda (s) (not (string-null? s))) (string-split raw-out "\n"))
+         ) ;lines
          (events (map string->json lines))
-         (event-types (map (lambda (ev) (cdr (assoc "type" ev))) events))
+         (event-types
+           (map (lambda (ev) (cdr (assoc "type" ev))) events)
+         ) ;event-types
         ) ;
     (check code => 0)
     (check (car event-types) => "session")
     (check (car (reverse event-types)) => "agent_settled")
     (check-true (pair? (member "message_update" event-types)))
-    (process-close p))
+    (process-close p)
+  ) ;let*
+
+  ;; 5. 缺陷8防回归测试：4字节 UTF-8 字符（emoji）与 '<' 组合在 JSON 模式事件流验证
+  (let* ((cmd (list GF_BIN "pi" "--mode" "json" "🚀 <"))
+         (p (process-spawn cmd :env test-env :stdout 'pipe :stderr 'pipe))
+         (code (process-wait p 10000))
+         (raw-out (process-read p :stream 'stdout))
+         (lines
+           (filter (lambda (s) (not (string-null? s))) (string-split raw-out "\n"))
+         ) ;lines
+         (events (map string->json lines))
+         (event-types
+           (map (lambda (ev) (cdr (assoc "type" ev))) events)
+         ) ;event-types
+        ) ;
+    (check code => 0)
+    (check (car event-types) => "session")
+    (check (car (reverse event-types)) => "agent_settled")
+    (process-close p)
+  ) ;let*
 
   (process-kill proc)
 ) ;let*

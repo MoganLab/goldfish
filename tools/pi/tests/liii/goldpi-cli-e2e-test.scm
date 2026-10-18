@@ -1,12 +1,6 @@
-(set! *load-path*
-  (append (list "tools/pi" ".") *load-path*))
+(set! *load-path* (append (list "tools/pi" ".") *load-path*))
 
-(import (liii check)
-  (liii string)
-  (liii path)
-  (liii subprocess)
-  (liii pi)
-) ;import
+(import (liii check) (liii string) (liii path) (liii subprocess) (liii pi))
 
 (check-set-mode! 'report-failed)
 
@@ -49,14 +43,16 @@
        (port (parse-port-line port-line))
        (base-url (string-append "http://127.0.0.1:" (number->string port)))
        (test-env (list (cons "PI_CODING_AGENT_DIR" FIXTURE_DIR)
-                       (cons "GF_PI_BASE_URL" base-url)
-                       (cons "GF_PI_MODEL" "gemini-3.8-flash")
-                       (cons "https_proxy" "")
-                       (cons "http_proxy" "")
-                       (cons "all_proxy" "")
-                       (cons "ALL_PROXY" "")
-                       (cons "HTTPS_PROXY" "")
-                       (cons "HTTP_PROXY" "")))
+                   (cons "GF_PI_BASE_URL" base-url)
+                   (cons "GF_PI_MODEL" "gemini-3.8-flash")
+                   (cons "https_proxy" "")
+                   (cons "http_proxy" "")
+                   (cons "all_proxy" "")
+                   (cons "ALL_PROXY" "")
+                   (cons "HTTPS_PROXY" "")
+                   (cons "HTTP_PROXY" "")
+                 ) ;list
+       ) ;test-env
       ) ;
   (check-true (number? port))
 
@@ -68,8 +64,11 @@
         ) ;
     (check code => 0)
     (check-true (or (string-contains? out "Hello from stub!")
-                    (string-contains? out "Hello stream!")))
-    (process-close p))
+                  (string-contains? out "Hello stream!")
+                ) ;or
+    ) ;check-true
+    (process-close p)
+  ) ;let*
 
   ;; 2. 多轮 functionCall 端到端（退出码 0，stdout 有输出）
   (let* ((cmd (list GF_BIN "pi" "--model" "multi-turn" "--print" "Run multi turn steps"))
@@ -79,7 +78,8 @@
         ) ;
     (check code => 0)
     (check-true (string-contains? out "Multi-turn tool completed successfully!"))
-    (process-close p))
+    (process-close p)
+  ) ;let*
 
   ;; 3. 截断 MAX_TOKENS（退出码 1，stdout 部分输出，stderr 提示截断）
   (let* ((cmd (list GF_BIN "pi" "--model" "max-tokens" "--print" "Run max tokens"))
@@ -90,8 +90,12 @@
         ) ;
     (check code => 1)
     (check-true (string-contains? out "Partial cut"))
-    (check-true (string-contains? err "Response was truncated: the model reached its output token limit."))
-    (process-close p))
+    (check-true (string-contains? err
+                  "Response was truncated: the model reached its output token limit."
+                ) ;string-contains?
+    ) ;check-true
+    (process-close p)
+  ) ;let*
 
   ;; 4. 报错 SAFETY（退出码 1，stdout 无输出，stderr 提示错误）
   (let* ((cmd (list GF_BIN "pi" "--model" "safety" "--print" "Run safety check"))
@@ -103,47 +107,65 @@
     (check code => 1)
     (check-true (or (eof-object? out) (string-null? (string-trim-both out))))
     (check-true (string-contains? err "SAFETY"))
-    (process-close p))
+    (process-close p)
+  ) ;let*
 
   ;; 5. 轮数超限 max-turns（退出码 1，stderr 提示 Maximum turns）
-  (let* ((cmd (list GF_BIN "pi" "--model" "multi-turn" "--max-turns" "1" "--print" "Run max turns"))
+  (let* ((cmd (list GF_BIN "pi" "--model" "multi-turn" "--max-turns" "1"
+                "--print" "Run max turns"
+              ) ;list
+         ) ;cmd
          (p (process-spawn cmd :env test-env :stdout 'pipe :stderr 'pipe))
          (code (process-wait p 10000))
          (err (process-read p :stream 'stderr))
         ) ;
     (check code => 1)
     (check-true (string-contains? err "Maximum turns limit reached"))
-    (process-close p))
+    (process-close p)
+  ) ;let*
 
   ;; 6. 项目上下文 AGENTS.md / CLAUDE.md 注入验证
-  (let* ((cmd (list GF_BIN "pi" "--model" "check-project-context" "--print" "Check context"))
+  (let* ((cmd (list GF_BIN "pi" "--model" "check-project-context" "--print" "Check context")
+         ) ;cmd
          (p (process-spawn cmd :env test-env :stdout 'pipe :stderr 'pipe))
          (code (process-wait p 10000))
          (out (process-read p :stream 'stdout))
         ) ;
     (check code => 0)
-    (check-true (string-contains? out "Project context verified: CLAUDE.md is present"))
-    (process-close p))
+    (check-true (string-contains? out "Project context verified: CLAUDE.md is present")
+    ) ;check-true
+    (process-close p)
+  ) ;let*
 
   ;; 7. CLI --provider anthropic print 模式端到端测试
   (let* ((ant-env (append (list (cons "ANTHROPIC_API_KEY" "sk-ant-test-e2e")) test-env))
-         (cmd (list GF_BIN "pi" "--provider" "anthropic" "--print" "Hello Anthropic CLI"))
+         (cmd (list GF_BIN "pi" "--provider" "anthropic" "--print" "Hello Anthropic CLI")
+         ) ;cmd
          (p (process-spawn cmd :env ant-env :stdout 'pipe :stderr 'pipe))
          (code (process-wait p 10000))
          (out (process-read p :stream 'stdout))
         ) ;
     (check code => 0)
     (check-true (or (string-contains? out "Hello from Claude stub!")
-                    (string-contains? out "from Claude stream!")))
-    (process-close p))
+                  (string-contains? out "from Claude stream!")
+                ) ;or
+    ) ;check-true
+    (process-close p)
+  ) ;let*
 
   ;; 8. 错误路径退出码测试：模型错误时退出码必须为 1（§8 / 缺陷7）
-  (let* ((ant-env (append (list (cons "ANTHROPIC_API_KEY" "sk-ant-test-e2e")
-                                (cons "ANTHROPIC_BASE_URL" (string-append base-url "/error-400"))
-                                (cons "GF_PI_BASE_URL" (string-append base-url "/error-400")))
-                          test-env))
+  (let* ((ant-env
+           (append (list (cons "ANTHROPIC_API_KEY" "sk-ant-test-e2e")
+                     (cons "ANTHROPIC_BASE_URL" (string-append base-url "/error-400"))
+                     (cons "GF_PI_BASE_URL" (string-append base-url "/error-400"))
+                   ) ;list
+             test-env
+           ) ;append
+         ) ;ant-env
          (cmd (list GF_BIN "pi" "--provider" "anthropic" "--model" "fake-model"
-                    "--print" "Hello Anthropic error"))
+                "--print" "Hello Anthropic error"
+              ) ;list
+         ) ;cmd
          (p (process-spawn cmd :env ant-env :stdout 'pipe :stderr 'pipe))
          (code (process-wait p 10000))
          (out (process-read p :stream 'stdout))
@@ -151,7 +173,24 @@
         ) ;
     (check code => 1)
     (check-true (string-contains? err "HTTP 400"))
-    (process-close p))
+    (process-close p)
+  ) ;let*
+
+  ;; 9. 缺陷8防回归测试：4字节 UTF-8 字符（emoji）与 '<' 组合在 stub server 下端到端验证
+  (let* ((cli-env (append (list (cons "GF_PI_BASE_URL" base-url)) test-env))
+         (cmd (list GF_BIN "pi" "--provider" "google" "--model"
+                "gemini-3.8-flash" "--print" "🚀 <"
+              ) ;list
+         ) ;cmd
+         (p (process-spawn cmd :env cli-env :stdout 'pipe :stderr 'pipe))
+         (code (process-wait p 10000))
+         (out (process-read p :stream 'stdout))
+        ) ;
+    (check code => 0)
+    (check-true (or (string-contains? out "Hello from stub!") (string-contains? out "stream!"))
+    ) ;check-true
+    (process-close p)
+  ) ;let*
 
   (process-kill proc)
 ) ;let*
