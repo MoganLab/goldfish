@@ -68,6 +68,29 @@
   ;; glm 通过 GF_PI_BASE_URL 覆盖端点
   (let* ((env '(("GF_PI_BASE_URL" . "https://proxy.example.com/api/anthropic")))
          (meta (pi-resolve-model-metadata "glm" "glm-4-plus" '() env)))
-    (check (cdr (assoc 'base-url meta)) => "https://proxy.example.com/api/anthropic")))
+    (check (cdr (assoc 'base-url meta)) => "https://proxy.example.com/api/anthropic"))
+
+  ;; deepseek 默认配置兜底
+  (let ((meta (pi-resolve-model-metadata "deepseek" "deepseek-chat" '() '())))
+    (check (cdr (assoc 'matched? meta)) => #f)
+    (check (cdr (assoc 'id meta)) => "deepseek-chat")
+    (check (cdr (assoc 'base-url meta)) => "https://api.deepseek.com/anthropic")
+    (check (cdr (assoc 'context-window meta)) => 128000)
+    (check (cdr (assoc 'max-tokens meta)) => 8192))
+
+  ;; deepseek 通过 DEEPSEEK_BASE_URL 覆盖端点
+  (let* ((env '(("DEEPSEEK_BASE_URL" . "https://custom.deepseek.com/v1")))
+         (meta (pi-resolve-model-metadata "deepseek" "deepseek-chat" '() env)))
+    (check (cdr (assoc 'base-url meta)) => "https://custom.deepseek.com/v1"))
+
+  ;; deepseek 通过 ANTHROPIC_BASE_URL 覆盖端点
+  (let* ((env '(("ANTHROPIC_BASE_URL" . "https://custom.deepseek.com/anthropic")))
+         (meta (pi-resolve-model-metadata "deepseek" "deepseek-chat" '() env)))
+    (check (cdr (assoc 'base-url meta)) => "https://custom.deepseek.com/anthropic"))
+
+  ;; deepseek 通过 GF_PI_BASE_URL 覆盖端点
+  (let* ((env '(("GF_PI_BASE_URL" . "https://proxy.example.com/anthropic")))
+         (meta (pi-resolve-model-metadata "deepseek" "deepseek-chat" '() env)))
+    (check (cdr (assoc 'base-url meta)) => "https://proxy.example.com/anthropic")))
 
 (check-report)

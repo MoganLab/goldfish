@@ -1,6 +1,6 @@
 (set! *load-path* (append (list "tools/pi" ".") *load-path*))
 
-(import (liii check) (liii string) (liii path) (liii subprocess) (liii pi))
+(import (scheme process-context) (liii check) (liii string) (liii path) (liii subprocess) (liii pi))
 
 (check-set-mode! 'report-failed)
 
@@ -191,6 +191,33 @@
     ) ;check-true
     (process-close p)
   ) ;let*
+
+  ;; 10. CLI --provider deepseek 凭据缺失时明确报错退出码 1
+  (let* ((no-key-env (list (cons "PI_CODING_AGENT_DIR" "non_existent_dir_xyz")
+                           (cons "HOME" "/non-existent")
+                           (cons "PATH" (or (get-environment-variable "PATH") ""))))
+         (cmd (list GF_BIN "pi" "--provider" "deepseek" "--print" "Hello missing key"))
+         (p (process-spawn cmd :env no-key-env :stdout 'pipe :stderr 'pipe))
+         (code (process-wait p 10000))
+         (err (process-read p :stream 'stderr)))
+    (check code => 1)
+    (check-true (string-contains? err "No credentials found for provider \"deepseek\""))
+    (process-close p))
+
+  ;; 11. CLI --provider deepseek print 模式端到端测试（通过 stub server）
+  (let* ((ds-env (append (list (cons "DEEPSEEK_API_KEY" "ds-test-key-e2e")
+                               (cons "DEEPSEEK_BASE_URL" base-url)
+                               (cons "ANTHROPIC_BASE_URL" base-url)
+                               (cons "GF_PI_BASE_URL" base-url))
+                         test-env))
+         (cmd (list GF_BIN "pi" "--provider" "deepseek" "--print" "Hello DeepSeek CLI"))
+         (p (process-spawn cmd :env ds-env :stdout 'pipe :stderr 'pipe))
+         (code (process-wait p 10000))
+         (out (process-read p :stream 'stdout)))
+    (check code => 0)
+    (check-true (or (string-contains? out "Hello from Claude stub!")
+                    (string-contains? out "from Claude stream!")))
+    (process-close p))
 
   (process-kill proc)
 ) ;let*

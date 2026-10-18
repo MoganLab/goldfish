@@ -93,6 +93,65 @@
       ) ;let*
     ) ;define
 
+    (define (%find-claude-deepseek-token home)
+      (if (string-null? home)
+        #f
+        (let* ((f (path->string (path-join (path home) (path ".claude") (path "settings.json.deepseek"))
+                  ) ;path->string
+               ) ;f
+               (data (%read-json-file f))
+              ) ;
+          (and data
+            (let ((e (%dict-ref data "env" #f)))
+              (and (pair? e)
+                (let ((tok (%dict-ref e "ANTHROPIC_AUTH_TOKEN" #f)))
+                  (and (string? tok) (not (string-null? tok)) tok)
+                ) ;let
+              ) ;and
+            ) ;let
+          ) ;and
+        ) ;let*
+      ) ;if
+    ) ;define
+
+    (define (%find-dot-deepseek-key home)
+      (if (string-null? home)
+        #f
+        (let* ((f (path->string (path-join (path home) (path ".deepseek.json"))))
+               (data (%read-json-file f))
+              ) ;
+          (and data
+            (let ((k (%dict-ref data "api_key" #f)))
+              (and (string? k) (not (string-null? k)) k)
+            ) ;let
+          ) ;and
+        ) ;let*
+      ) ;if
+    ) ;define
+
+    (define (%resolve-deepseek-key opt-env)
+      (let ((env-k (lookup-env-var "DEEPSEEK_API_KEY" opt-env)))
+        (if (and (string? env-k) (not (string-null? env-k)))
+          env-k
+          (let* ((home (or (lookup-env-var "HOME" opt-env) ""))
+                 (claude-k (%find-claude-deepseek-token home))
+                ) ;
+            (if claude-k
+              claude-k
+              (let ((ds-k (%find-dot-deepseek-key home)))
+                (if ds-k
+                  ds-k
+                  (let ((ant-tok (lookup-env-var "ANTHROPIC_AUTH_TOKEN" opt-env)))
+                    (and (string? ant-tok) (not (string-null? ant-tok)) ant-tok)
+                  ) ;let
+                ) ;if
+              ) ;let
+            ) ;if
+          ) ;let*
+        ) ;if
+      ) ;let
+    ) ;define
+
     (define (pi-resolve-provider-key provider auth-alist . opt-env)
       (let* ((p-str (if (symbol? provider) (symbol->string provider) provider))
              (pair (or (assoc p-str auth-alist) (assoc (string->symbol p-str) auth-alist)))
@@ -128,6 +187,7 @@
             (and (string? v) (not (string-null? v)) v)
           ) ;let
          ) ;
+         ((string=? p-str "deepseek") (%resolve-deepseek-key opt-env))
          (else #f)
         ) ;cond
       ) ;let*

@@ -1,4 +1,4 @@
-(import (liii check) (liii pi))
+(import (liii check) (liii pi) (liii path))
 
 (check-set-mode! 'report-failed)
 
@@ -48,6 +48,45 @@
     => "ant-key-ghi")
   ;; 均未配置时返回 #f
   (check (pi-resolve-provider-key "glm" auth-empty '())
+    => #f))
+
+;; deepseek 测试
+(let* ((auth-with-ds '(("deepseek" . "ds-auth-key-111")))
+       (auth-empty '())
+       (claude-home
+         (cond ((file-exists? "tools/pi/tests/fixtures/deepseek/claude_home")
+                "tools/pi/tests/fixtures/deepseek/claude_home")
+               ((file-exists? "tests/fixtures/deepseek/claude_home")
+                "tests/fixtures/deepseek/claude_home")
+               (else "../../fixtures/deepseek/claude_home")))
+       (ds-home
+         (cond ((file-exists? "tools/pi/tests/fixtures/deepseek/ds_home")
+                "tools/pi/tests/fixtures/deepseek/ds_home")
+               ((file-exists? "tests/fixtures/deepseek/ds_home")
+                "tests/fixtures/deepseek/ds_home")
+               (else "../../fixtures/deepseek/ds_home")))
+       (env-with-ds-key '(("DEEPSEEK_API_KEY" . "ds-env-key-222") ("HOME" . "/non-existent")))
+       (env-with-claude `(("HOME" . ,claude-home)))
+       (env-with-ds-home `(("HOME" . ,ds-home)))
+       (env-with-ant-token '(("ANTHROPIC_AUTH_TOKEN" . "ant-token-333") ("HOME" . "/non-existent")))
+       (env-empty '(("HOME" . "/non-existent"))))
+  ;; 存储条目优先
+  (check (pi-resolve-provider-key "deepseek" auth-with-ds env-with-ds-key)
+    => "ds-auth-key-111")
+  ;; 环境变量 DEEPSEEK_API_KEY
+  (check (pi-resolve-provider-key "deepseek" auth-empty env-with-ds-key)
+    => "ds-env-key-222")
+  ;; ~/.claude/settings.json.deepseek 发现
+  (check (pi-resolve-provider-key "deepseek" auth-empty env-with-claude)
+    => "claude-deepseek-token-mock-123")
+  ;; ~/.deepseek.json 发现
+  (check (pi-resolve-provider-key "deepseek" auth-empty env-with-ds-home)
+    => "deepseek-json-key-mock-456")
+  ;; ANTHROPIC_AUTH_TOKEN 兜底
+  (check (pi-resolve-provider-key "deepseek" auth-empty env-with-ant-token)
+    => "ant-token-333")
+  ;; 均无配置返回 #f
+  (check (pi-resolve-provider-key "deepseek" auth-empty env-empty)
     => #f))
 
 (check-report)

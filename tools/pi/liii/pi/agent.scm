@@ -22,6 +22,7 @@
     (liii pi gemini)
     (liii pi anthropic)
     (liii pi kimi)
+    (liii pi deepseek)
     (liii pi tools)
     (liii pi message)
     (liii pi event)
@@ -150,6 +151,9 @@
     (define (%request-provider-stream provider config msgs sys-prompt tools on-ev timeout)
       (cond ((or (equal? provider "anthropic") (equal? provider "glm"))
              (anthropic-request-stream config msgs sys-prompt tools on-ev timeout)
+            ) ;
+            ((equal? provider "deepseek")
+             (deepseek-request-stream config msgs sys-prompt tools on-ev timeout)
             ) ;
             ((equal? provider "kimi-coding")
              (kimi-request-stream config msgs sys-prompt tools on-ev timeout)

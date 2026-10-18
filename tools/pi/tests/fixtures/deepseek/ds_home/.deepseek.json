@@ -1,0 +1,5 @@
+{
+  "api_key": "deepseek-json-key-mock-456",
+  "base_url": "https://api.deepseek.com",
+  "model": "deepseek-v4-flash"
+}

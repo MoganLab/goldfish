@@ -150,6 +150,7 @@
                         (lookup-env-var "ANTHROPIC_DEFAULT_SONNET_MODEL" opt-env)
                        ) ;
                        ((equal? provider "glm") (lookup-env-var "GLM_MODEL" opt-env))
+                       ((equal? provider "deepseek") (lookup-env-var "DEEPSEEK_MODEL" opt-env))
                        (else #f)
                  ) ;cond
                ) ;or
@@ -159,6 +160,7 @@
              (def-model (cond ((equal? provider "anthropic") "claude-3-7-sonnet-20250219")
                               ((equal? provider "kimi-coding") "kimi-for-coding")
                               ((equal? provider "glm") "glm-4-plus")
+                              ((equal? provider "deepseek") "deepseek-chat")
                               (else "gemini-3.8-flash")
                         ) ;cond
              ) ;def-model

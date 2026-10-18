@@ -82,10 +82,19 @@
 
     (define (%apply-meta-env-overrides base-url context-window max-tokens opt-env provider)
       (let* ((env-url
-               (or (and (string? provider)
-                     (or (string=? provider "anthropic") (string=? provider "glm"))
-                     (lookup-env-var "ANTHROPIC_BASE_URL" opt-env)
-                   ) ;and
+               (or
+                 (and (string? provider)
+                   (string=? provider "deepseek")
+                   (or (lookup-env-var "DEEPSEEK_BASE_URL" opt-env)
+                     (let ((ant-url (lookup-env-var "ANTHROPIC_BASE_URL" opt-env)))
+                       (and (string? ant-url) (string-contains? ant-url "deepseek") ant-url)
+                     ) ;let
+                   ) ;or
+                 ) ;and
+                 (and (string? provider)
+                   (or (string=? provider "anthropic") (string=? provider "glm"))
+                   (lookup-env-var "ANTHROPIC_BASE_URL" opt-env)
+                 ) ;and
                  (lookup-env-var "GF_PI_BASE_URL" opt-env)
                ) ;or
              ) ;env-url
@@ -114,9 +123,11 @@
              (is-ant? (string=? p-str "anthropic"))
              (is-kimi? (string=? p-str "kimi-coding"))
              (is-glm? (string=? p-str "glm"))
+             (is-ds? (string=? p-str "deepseek"))
              (def-url (cond (is-ant? "https://api.anthropic.com")
                             (is-kimi? "https://api.kimi.com/coding/v1")
                             (is-glm? "https://open.bigmodel.cn/api/anthropic")
+                            (is-ds? "https://api.deepseek.com/anthropic")
                             (else "https://generativelanguage.googleapis.com/v1beta")
                       ) ;cond
              ) ;def-url
@@ -128,7 +139,13 @@
                        ) ;if
              ) ;norm-url
              (def-cw (cond (is-ant? 200000) (is-kimi? 262144) (else 128000)))
-             (def-mt (cond (is-ant? 8192) (is-kimi? 8192) (is-glm? 8192) (else 16384)))
+             (def-mt (cond (is-ant? 8192)
+                           (is-kimi? 8192)
+                           (is-glm? 8192)
+                           (is-ds? 8192)
+                           (else 16384)
+                     ) ;cond
+             ) ;def-mt
              (cw (if m (%dict-ref m "contextWindow" def-cw) def-cw))
              (mt (if m (%dict-ref m "maxTokens" def-mt) def-mt))
             ) ;

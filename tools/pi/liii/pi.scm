@@ -35,6 +35,7 @@
     (liii pi gemini)
     (liii pi anthropic)
     (liii pi kimi)
+    (liii pi deepseek)
     (liii pi prompt)
     (liii pi message)
     (liii pi config types)
@@ -65,10 +66,14 @@
     kimi-build-request-body kimi-parse-response kimi-is-retriable-error?
     make-kimi-stream-decoder kimi-build-endpoint
     kimi-build-tool-declarations-from-names kimi-request kimi-request-stream
-    pi-resolve-prompt-input pi-load-project-context pi-build-system-prompt
-    PI_BUILTIN_TOOL_SNIPPETS PI_BUILTIN_TOOL_GUIDELINES pi-iso-8601-utc-now
-    pi-current-time-millis pi-serialize-event assoc pi-event? pi-event-type
-    pi-event->alist pi-event-session pi-event-session? pi-event-session-type
+    deepseek-map-stop-reason deepseek-map-usage deepseek-build-tool-declarations
+    deepseek-build-messages deepseek-build-request-body deepseek-parse-response
+    deepseek-is-retriable-error? deepseek-build-tool-declarations-from-names
+    deepseek-request deepseek-request-stream pi-resolve-prompt-input
+    pi-load-project-context pi-build-system-prompt PI_BUILTIN_TOOL_SNIPPETS
+    PI_BUILTIN_TOOL_GUIDELINES pi-iso-8601-utc-now pi-current-time-millis
+    pi-serialize-event assoc pi-event? pi-event-type pi-event->alist
+    pi-event-session pi-event-session? pi-event-session-type
     pi-event-session-version pi-event-session-id pi-event-session-timestamp
     pi-event-session-cwd pi-event-agent-start pi-event-agent-start?
     pi-event-agent-start-type pi-event-turn-start pi-event-turn-start?
