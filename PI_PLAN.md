@@ -81,7 +81,7 @@ Anthropic 已实现但本机无访问权限，不在维护范围；其 OAuth 刷
 |---|---|---|---|
 | 001 | 核心库迁移·文件 | `goldfish/liii/pi.scm` 与 `goldfish/liii/pi/` 整体 git mv 至 `tools/pi/liii/`（模块名暂保留 `(liii pi)` 最小改动），修 load-path 与 import，全量测试通过 | 已完成 |
 | 002 | 核心库迁移·测试与索引 | `tests/liii/pi/` 迁至 `tools/pi/tests/`；`bin/gf doc --build-json` 重建；`bin/gf doc "..."` 抽查可用 | 已完成 |
-| 003 | 核心库迁移·模块名统一【用户已裁定】 | 模块格局定案：**只有 `(liii pi)`（门面）与 `(liii pi xxx)`（多级子库）两种形式，`(liii pi-xxx)` 平铺族不存在**——子库清单、目录树与 pi 源码三层包映射见 PI_SPEC.md 架构演进节；CLI 入口 `pi/cli.scm`（模块 `(liii pi cli)`），gfproject.json 同步；二级子库为导出层，单文件 300 行放不下继续拆下层；测试目录镜像源码库结构；全量 import/测试更新；完成后由 Claude 更新 PI_SPEC/devel 文档中的路径与模块名 | 已回退（验收失败：目标子库 3/13 达成缺 10 项；开发阶段第 3 轮进行中，还需消除 (liii pi-xxx) 平铺残留） |
+| 003 | 核心库迁移·模块名统一【用户已裁定】 | 模块格局定案：**只有 `(liii pi)`（门面）与 `(liii pi xxx)`（多级子库）两种形式，`(liii pi-xxx)` 平铺族不存在**——子库清单、目录树与 pi 源码三层包映射见 PI_SPEC.md 架构演进节；CLI 入口 `pi/cli.scm`（模块 `(liii pi cli)`），gfproject.json 同步；二级子库为导出层，单文件 300 行放不下继续拆下层；测试目录镜像源码库结构；全量 import/测试更新；完成后由 Claude 更新 PI_SPEC/devel 文档中的路径与模块名 | 已回退×2（第1次验收失败缺10项；第3轮达成13子库但平铺族与CLI入口未落最新格局；开发阶段第4轮收尾中） |
 | 004 | record 化·事件结构 | `pi-event-*` 系列构造的事件对象改 `define-record-type`（在任务 1-3 迁移后的新位置进行） | 待执行 |
 | 005 | record 化·消息结构 | user/assistant/toolResult 消息与 text/toolCall content block | 待执行 |
 | 006 | record 化·配置结构 | settings 解析结果、凭据、模型元数据 | 待执行 |
