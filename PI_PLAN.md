@@ -89,7 +89,7 @@ Anthropic 已实现但本机无访问权限，不在维护范围；其 OAuth 刷
 | 011 | Kimi·错误路径 | 401/404/429/5xx 重试与报错语义对齐 §2；凭据缺失明确报错退出码 1；fixture + stub 测试 | 待执行 |
 | 012 | thinking 内容 | `--thinking-level`，用法见 PI_SPEC.md TODO；届时与用户确认后启动 | 远期 |
 | 013 | 图片输入 | `@图片`，用法见 PI_SPEC.md TODO；届时与用户确认后启动 | 远期 |
-| 015 | record 化·收尾全量冒烟 | record 化系列（004-007）完成后的全量真实冒烟：print/JSON/工具多轮/--continue/--provider 切换/错误路径，确认零回归；发现缺陷按编号追加修复任务 | 待执行 |
+| 015 | record 化·收尾全量冒烟 | record 化系列（004-007）完成后的全量真实冒烟：print/JSON/工具多轮/--continue/--provider 切换/错误路径，确认零回归；发现缺陷按编号追加修复任务 | 进行中（开发阶段，执行者 bin/gf pi） |
 | 016 | 文档与实况一致性校验 | 003-007 重构完成后：PI_SPEC.md 架构演进节、gfproject.json、devel 文档与代码实况逐项核对并修正；bin/gf doc 索引全量重建与抽查 | 待执行 |
 | 017 | 测试去除计划文档依赖 | 4 个测试文件（pi-execute-find/grep/read、pi-resolve-path 的测试）把 PI_PLAN.md 当测试素材，改为 fixtures 自建文件；修复后临时改名 PI_PLAN.md 跑全量测试验证无依赖 | 已完成 |
 | 014 | 缺陷修复·4字节UTF-8挂起 | prompt 含 4 字节 UTF-8 字符与 `<` 组合时静默挂起且流式空闲超时未兜底（复现 `timeout 60 bin/gf pi -p '🚀 <'`）；修复后真实冒烟通过 | 已回退（前置排查 3 次执行未修复，待 record 化系列完成后重做） |
