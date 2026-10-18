@@ -211,6 +211,21 @@
       (check (cdr (assoc 'stopReason resp-400)) => "error")
       (check-true (string-contains? (cdr (assoc 'errorMessage resp-400)) "HTTP 400:"))
       (check-true (string-contains? (cdr (assoc 'errorMessage resp-400)) "system_instruction")))
+
+    ;; 3.9 无效代理错误提示人类可读原因 (status 0)
+    (let* ((cfg-proxy (list (cons 'provider "google")
+                            (cons 'api-key "test-key-stub-123")
+                            (cons 'model-id "normal")
+                            (cons 'model-meta (list (cons 'base-url base-url)))
+                            (cons 'proxy-url "http://127.0.0.1:9999")
+                            (cons 'tools '())
+                            (cons 'settings '())))
+           (resp-proxy (gemini-request-stream cfg-proxy
+                                              (list '((role . "user") (content . "test")))
+                                              #f '() (lambda (ev) #f) 5 #f 2)))
+      (check (cdr (assoc 'stopReason resp-proxy)) => "error")
+      (check-true (string-contains? (cdr (assoc 'errorMessage resp-proxy)) "Request failed:"))
+      (check-false (string=? (cdr (assoc 'errorMessage resp-proxy)) "HTTP 0 stream error")))
   ) ;let*
 
   ;; 清理子进程

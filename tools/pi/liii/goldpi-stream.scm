@@ -70,28 +70,39 @@
     ) ;define
 
     (define (%build-stream-url model-meta model-id)
-      (string-append (cdr (or (assoc 'base-url model-meta)
-                            '(#f
-                              . "https://generativelanguage.googleapis.com/v1beta")
-                          ) ;or
-                     ) ;cdr
-        "/models/"
-        model-id
-        ":streamGenerateContent?alt=sse"
-      ) ;string-append
+      (let ((base (or (%safe-assoc 'base-url model-meta)
+                    '(#f . "https://generativelanguage.googleapis.com/v1beta")
+                  ) ;or
+            ) ;base
+           ) ;
+        (string-append (cdr base) "/models/" model-id ":streamGenerateContent?alt=sse")
+      ) ;let
     ) ;define
 
-    (define (%build-stream-headers api-key)
-      (list (cons "Content-Type" "application/json")
-        (cons "x-goog-api-key" (or api-key ""))
-      ) ;list
-    ) ;define
-
-    (define (%build-stream-proxy proxy-url)
-      (if (and (string? proxy-url) (not (string-null? proxy-url)))
-        (list (cons "http" proxy-url) (cons "https" proxy-url))
-        '()
-      ) ;if
+    (define (%build-stream-req-params config tool-names messages sys-inst)
+      (let* ((api-key (cdr (assoc 'api-key config)))
+             (model-id (cdr (assoc 'model-id config)))
+             (model-meta (cdr (assoc 'model-meta config)))
+             (proxy-url (cdr (assoc 'proxy-url config)))
+             (eff-tool-names (or tool-names (cdr (assoc 'tools config))))
+             (tool-decls (gemini-build-tool-declarations eff-tool-names))
+             (contents (gemini-build-contents messages))
+             (req-body (gemini-build-request-body contents sys-inst tool-decls))
+             (proxy-alist
+               (if (and (string? proxy-url) (not (string-null? proxy-url)))
+                 (list (cons "http" proxy-url) (cons "https" proxy-url))
+                 '()
+               ) ;if
+             ) ;proxy-alist
+            ) ;
+        (values (%build-stream-url model-meta model-id)
+          (json->string req-body)
+          (list (cons "Content-Type" "application/json")
+            (cons "x-goog-api-key" (or api-key ""))
+          ) ;list
+          proxy-alist
+        ) ;values
+      ) ;let*
     ) ;define
 
     (define (%perform-http-stream url req-json-str headers proxy-alist stream-cb
@@ -188,6 +199,14 @@
             ) ;list
           ) ;let
          ) ;
+         ((zero? status)
+          (list (cons 'role "assistant")
+            (cons 'content (vector-ref stream-state 0))
+            (cons 'stopReason "error")
+            (cons 'usage (vector-ref stream-state 2))
+            (cons 'errorMessage (format-failed-stream-msg status resp))
+          ) ;list
+         ) ;
          (else (%finalize-stream-success stream-state on-event))
         ) ;cond
       ) ;let
@@ -205,24 +224,6 @@
              (calc-delay (* base-ms (expt 2 (- attempt 1))))
             ) ;
         (/ (min calc-delay max-ms) 1000.0)
-      ) ;let*
-    ) ;define
-
-    (define (%build-stream-req-params config tool-names messages sys-inst)
-      (let* ((api-key (cdr (assoc 'api-key config)))
-             (model-id (cdr (assoc 'model-id config)))
-             (model-meta (cdr (assoc 'model-meta config)))
-             (proxy-url (cdr (assoc 'proxy-url config)))
-             (eff-tool-names (or tool-names (cdr (assoc 'tools config))))
-             (tool-decls (gemini-build-tool-declarations eff-tool-names))
-             (contents (gemini-build-contents messages))
-             (req-body (gemini-build-request-body contents sys-inst tool-decls))
-            ) ;
-        (values (%build-stream-url model-meta model-id)
-          (json->string req-body)
-          (%build-stream-headers api-key)
-          (%build-stream-proxy proxy-url)
-        ) ;values
       ) ;let*
     ) ;define
 
@@ -278,9 +279,7 @@
                     (cons 'content (vector-ref stream-state 0))
                     (cons 'stopReason "error")
                     (cons 'usage (vector-ref stream-state 2))
-                    (cons 'errorMessage
-                      (string-append "HTTP " (number->string status) " stream error")
-                    ) ;cons
+                    (cons 'errorMessage (format-failed-stream-msg status resp))
                   ) ;list
                 ) ;if
                 (%classify-stream-result stream-state idle-timed-out? resp

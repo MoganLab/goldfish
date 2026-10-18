@@ -117,15 +117,23 @@
       ) ;list
     ) ;define
 
-    (define (%make-stream-error status)
-      (list (cons 'role "assistant")
-        (cons 'content '())
-        (cons 'stopReason "error")
-        (cons 'usage (anthropic-map-usage '()))
-        (cons 'errorMessage
-          (string-append "HTTP " (number->string status) " stream error")
-        ) ;cons
-      ) ;list
+    (define (%make-stream-error status resp)
+      (let* ((resp-err (or (%resp-field resp 'reason) (%resp-field resp 'error) ""))
+             (err-text (if (string? resp-err) (string-trim resp-err) ""))
+             (err-msg
+               (if (and (zero? status) (not (string-null? err-text)))
+                 (string-append "Request failed: " err-text)
+                 (string-append "HTTP " (number->string status) " stream error")
+               ) ;if
+             ) ;err-msg
+            ) ;
+        (list (cons 'role "assistant")
+          (cons 'content '())
+          (cons 'stopReason "error")
+          (cons 'usage (anthropic-map-usage '()))
+          (cons 'errorMessage err-msg)
+        ) ;list
+      ) ;let*
     ) ;define
 
     (define (%post-stream url req-json-str headers proxy-alist cb timeout eff-idle)
@@ -178,9 +186,10 @@
                        (sleep 1.0)
                        (loop (+ attempt 1))
                      ) ;begin
-                     (%make-stream-error status)
+                     (%make-stream-error status resp)
                    ) ;if
                   ) ;
+                  ((zero? status) (%make-stream-error status resp))
                   (else (%finalize-stream stream-state))
             ) ;cond
           ) ;let*

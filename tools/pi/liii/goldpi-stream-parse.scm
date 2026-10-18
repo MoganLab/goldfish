@@ -24,9 +24,28 @@
   ) ;import
   (export emit-text-start-and-delta append-text-block
     process-stream-function-call process-stream-part process-sse-chunk-data
-    make-stream-decoder extract-stream-error-message
+    make-stream-decoder extract-stream-error-message format-failed-stream-msg
   ) ;export
   (begin
+
+    (define (%resp-field resp key)
+      (cond ((procedure? resp) (resp key))
+            ((hash-table? resp) (resp key))
+            ((pair? resp) (cdr (or (assoc key resp) '(#f . #f))))
+            (else #f)
+      ) ;cond
+    ) ;define
+
+    (define (format-failed-stream-msg status resp)
+      (let* ((resp-err (or (%resp-field resp 'reason) (%resp-field resp 'error) ""))
+             (err-text (if (string? resp-err) (string-trim resp-err) ""))
+            ) ;
+        (if (not (string-null? err-text))
+          (string-append "Request failed: " err-text)
+          (string-append "HTTP " (number->string status) " stream error")
+        ) ;if
+      ) ;let*
+    ) ;define
 
     (define (extract-stream-error-message body)
       (catch #t
