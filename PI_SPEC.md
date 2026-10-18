@@ -136,7 +136,8 @@ timeout 30 bin/gf doc "pi-event-session" # 查看函数源码与测试
 - [ ] 项目级 `.pi/settings.json` 读取（当前只读全局 settings.json）。
 - [ ] thinking 内容的请求与解析（`--thinking-level`）。
 - [ ] 图片输入（`@图片`）。
-- [ ] 交互式 TUI / RPC 模式（当前只有 print 与 JSON 两种非交互模式）。
+
+不做项：交互式 TUI / RPC 模式（goldfish 缺少相关的终端 UI 基础设施，不规划）。
 
 ## Provider 支持范围
 
