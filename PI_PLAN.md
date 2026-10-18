@@ -42,6 +42,9 @@ Anthropic 已实现但本机无访问权限，不在维护范围；其 OAuth 刷
   不需要编号。
 - **测试规范**：TDD，先写测试再实现；测试按 goldfish 惯例**一个函数一个测试文件**
   （`tests/liii/<模块>/<函数名>-test.scm`），改测试后 `bin/gf doc --build-json`。
+  **测试目录镜像源码库结构**（函数文档即测试文件，gf doc 从中提取）：库文件
+  `pi/gemini/request.scm` 的函数，测试放 `tools/pi/tests/liii/pi/gemini/request/
+  <函数名>-test.scm`。
 - **配置复用**：`~/.pi/agent/`（settings/auth/models-store）只读，绝不写入；
   可用 `PI_CODING_AGENT_DIR` 重定向（测试 fixture 依赖它）。
 - **错误路径**：错误信息必须人可读且可诊断（含原因摘要），退出码语义按 print

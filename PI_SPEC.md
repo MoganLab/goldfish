@@ -185,6 +185,11 @@ tools/pi/liii/
 导出），与 `bin/gf check` 的 300 行硬约束一致。上面的子库清单只是例子，
 实际划分按代码自然边界走。
 
+**函数文档放哪**：goldfish 的函数文档 = 测试文件本身（`<函数名>-test.scm`，
+`gf doc` 从中提取源码与用法）。测试目录镜像源码库结构——`(liii pi gemini)`
+的函数测试在 `tools/pi/tests/liii/pi/gemini/<函数名>-test.scm`，更深层子文件
+（`pi/gemini/request.scm`）的在其同名子目录下，以此类推。
+
 进度：文件迁移（任务 001）已完成——物理位置已归口 `tools/pi/liii/`；多级子库
 重组（任务 003）待执行，当前 `(liii pi)` 内部仍为平铺子模块，`(liii pi-cli)`
 为 CLI 入口。
