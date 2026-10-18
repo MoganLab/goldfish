@@ -60,7 +60,10 @@
             (cond
              ((assoc "text" part)
               (let ((t (cdr (assoc "text" part))))
-                (loop (+ i 1) (cons (list (cons 'type "text") (cons 'text t)) acc) has-fn?)
+                (if (and (string? t) (not (string-null? t)))
+                  (loop (+ i 1) (cons (list (cons 'type "text") (cons 'text t)) acc) has-fn?)
+                  (loop (+ i 1) acc has-fn?)
+                ) ;if
               ) ;let
              ) ;
              ((assoc "functionCall" part)
@@ -274,15 +277,7 @@
                   (cons 'content (list (list (cons 'type "text") (cons 'text ""))))
                   (cons 'stopReason "error")
                   (cons 'usage (gemini-map-usage '()))
-                  (cons 'errorMessage
-                    (string-append "HTTP "
-                      (number->string status)
-                      " after "
-                      (number->string attempt)
-                      " attempts: "
-                      body-str
-                    ) ;string-append
-                  ) ;cons
+                  (cons 'errorMessage (format-failed-stream-msg status resp))
                 ) ;list
               ) ;if
               ;; 成功或非重试错误

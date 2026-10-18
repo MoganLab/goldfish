@@ -78,9 +78,12 @@
 ) ;define
 
 (define stub-server-file
-  (if (file-exists? "tests/stub_gemini_server.py")
-    "tests/stub_gemini_server.py"
+  (if (file-exists? "tools/pi/tests/stub_gemini_server.py")
     "tools/pi/tests/stub_gemini_server.py"
+    (if (file-exists? "tests/stub_gemini_server.py")
+      "tests/stub_gemini_server.py"
+      "../../tools/pi/tests/stub_gemini_server.py"
+    ) ;if
   ) ;if
 ) ;define
 
@@ -219,10 +222,10 @@
                             (cons 'model-meta (list (cons 'base-url base-url)))
                             (cons 'proxy-url "http://127.0.0.1:9999")
                             (cons 'tools '())
-                            (cons 'settings '())))
+                            (cons 'settings '((retry (enabled . #f))))))
            (resp-proxy (gemini-request-stream cfg-proxy
                                               (list '((role . "user") (content . "test")))
-                                              #f '() (lambda (ev) #f) 5 #f 2)))
+                                              #f '() (lambda (ev) #f) 2 #f 1)))
       (check (cdr (assoc 'stopReason resp-proxy)) => "error")
       (check-true (string-contains? (cdr (assoc 'errorMessage resp-proxy)) "Request failed:"))
       (check-false (string=? (cdr (assoc 'errorMessage resp-proxy)) "HTTP 0 stream error")))

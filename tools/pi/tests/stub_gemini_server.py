@@ -533,8 +533,11 @@ class StubHandler(http.server.BaseHTTPRequestHandler):
     def log_message(self, format, *args):
         pass
 
+class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
+    daemon_threads = True
+
 def main():
-    httpd = socketserver.TCPServer(("127.0.0.1", 0), StubHandler)
+    httpd = ThreadedTCPServer(("127.0.0.1", 0), StubHandler)
     port = httpd.server_address[1]
     # Print port to stdout and flush so child process waiter can read it
     sys.stdout.write(f"PORT:{port}\n")

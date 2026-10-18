@@ -240,13 +240,14 @@
                     (%build-stream-req-params config tool-names messages system-instruction)
                    ) ;
                   ) ;
-        (let* ((effective-idle (or idle-timeout timeout))
+        (let* ((settings (cdr (or (%safe-assoc 'settings config) '(#f))))
+               (retry-cfg
+                 (or opt-retry (cdr (or (%safe-assoc 'retry settings) '(#f))))
+               ) ;retry-cfg
+               (effective-idle (or idle-timeout timeout))
                (max-retries
-                 (if
-                   (or (not opt-retry) (cdr (or (%safe-assoc 'enabled opt-retry) '(#f
-                                                                                   . #t))))
-                   (cdr (or (%safe-assoc 'max-retries (or opt-retry '())) '(#f
-                                                                            . 3)))
+                 (if (cdr (or (%safe-assoc 'enabled retry-cfg) '(#f . #t)))
+                   (cdr (or (%safe-assoc 'max-retries retry-cfg) '(#f . 3)))
                    0
                  ) ;if
                ) ;max-retries
@@ -272,7 +273,7 @@
               (if (and (not idle-timed-out?) (gemini-is-retriable-error? status ""))
                 (if (<= attempt max-retries)
                   (begin
-                    (sleep (%calc-retry-delay attempt opt-retry))
+                    (sleep (%calc-retry-delay attempt retry-cfg))
                     (loop (+ attempt 1))
                   ) ;begin
                   (list (cons 'role "assistant")

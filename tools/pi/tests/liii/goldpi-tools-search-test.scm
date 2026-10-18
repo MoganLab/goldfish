@@ -102,7 +102,16 @@
 ) ;let
 
 ;; 3. 正则搜索
-(let ((out (pi-execute-grep (list (cons "pattern" "define.*display") (cons "path" test-file)))))
+(let ((out (pi-execute-grep (list (cons "pattern" "define.*display")
+                              (cons "path" (if (file-exists? "liii/goldpi-help.scm")
+                                             "liii/goldpi-help.scm"
+                                             "tools/pi/liii/goldpi-help.scm"
+                                           ) ;if
+                              ) ;cons
+                            ) ;list
+           ) ;pi-execute-grep
+      ) ;out
+     ) ;
   (check-true (string-contains? out "display-pi-help"))
 ) ;let
 

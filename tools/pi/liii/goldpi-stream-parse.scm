@@ -83,37 +83,40 @@
     ) ;define
 
     (define (append-text-block blocks last-text t cur-idx usage stream-state on-event)
-      (if (not (string? last-text))
-        (begin
-          (vector-set! stream-state
-            0
-            (append blocks (list (list (cons 'type "text") (cons 'text t))))
-          ) ;vector-set!
-          (vector-set! stream-state 1 t)
-          (emit-text-start-and-delta on-event cur-idx t usage)
-        ) ;begin
-        (let* ((new-t (string-append last-text t))
-               (upd-blocks
-                 (let loop
-                   ((lst blocks) (acc '()))
-                   (if (null? (cdr lst))
-                     (append (reverse acc) (list (list (cons 'type "text") (cons 'text new-t))))
-                     (loop (cdr lst) (cons (car lst) acc))
-                   ) ;if
-                 ) ;let
-               ) ;upd-blocks
-              ) ;
-          (vector-set! stream-state 0 upd-blocks)
-          (vector-set! stream-state 1 new-t)
-          (when (procedure? on-event)
-            (on-event (list (cons 'type "text_delta")
-                        (cons 'contentIndex cur-idx)
-                        (cons 'delta t)
-                        (cons 'usage usage)
-                      ) ;list
-            ) ;on-event
-          ) ;when
-        ) ;let*
+      (if (string-null? t)
+        #t
+        (if (not (string? last-text))
+          (begin
+            (vector-set! stream-state
+              0
+              (append blocks (list (list (cons 'type "text") (cons 'text t))))
+            ) ;vector-set!
+            (vector-set! stream-state 1 t)
+            (emit-text-start-and-delta on-event cur-idx t usage)
+          ) ;begin
+          (let* ((new-t (string-append last-text t))
+                 (upd-blocks
+                   (let loop
+                     ((lst blocks) (acc '()))
+                     (if (null? (cdr lst))
+                       (append (reverse acc) (list (list (cons 'type "text") (cons 'text new-t))))
+                       (loop (cdr lst) (cons (car lst) acc))
+                     ) ;if
+                   ) ;let
+                 ) ;upd-blocks
+                ) ;
+            (vector-set! stream-state 0 upd-blocks)
+            (vector-set! stream-state 1 new-t)
+            (when (procedure? on-event)
+              (on-event (list (cons 'type "text_delta")
+                          (cons 'contentIndex cur-idx)
+                          (cons 'delta t)
+                          (cons 'usage usage)
+                        ) ;list
+              ) ;on-event
+            ) ;when
+          ) ;let*
+        ) ;if
       ) ;if
     ) ;define
 

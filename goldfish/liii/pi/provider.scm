@@ -15,7 +15,13 @@
 ;;
 
 (define-library (liii pi provider)
-  (import (scheme base) (scheme char) (liii string) (liii json) (liii error))
+  (import (scheme base)
+    (scheme char)
+    (liii list)
+    (liii string)
+    (liii json)
+    (liii error)
+  ) ;import
   (export gemini-map-finish-reason gemini-map-usage
     gemini-normalize-tool-call-id gemini-generate-tool-call-id
     gemini-build-contents gemini-build-request-body
@@ -44,18 +50,18 @@
 
     (define (gemini-map-usage usage-meta)
       (let* ((prompt-tokens (%usage-field usage-meta "promptTokenCount" 'promptTokenCount))
-             (candidates-tokens (%usage-field usage-meta "candidatesTokenCount" 'candidatesTokenCount)
-             ) ;candidates-tokens
-             (thoughts-tokens (%usage-field usage-meta "thoughtsTokenCount" 'thoughtsTokenCount)
-             ) ;thoughts-tokens
+             (cand-tokens (%usage-field usage-meta "candidatesTokenCount" 'candidatesTokenCount)
+             ) ;cand-tokens
+             (thought-tokens (%usage-field usage-meta "thoughtsTokenCount" 'thoughtsTokenCount)
+             ) ;thought-tokens
              (cached-tokens (%usage-field usage-meta "cachedContentTokenCount" 'cachedContentTokenCount)
              ) ;cached-tokens
              (total-tokens (%usage-field usage-meta "totalTokenCount" 'totalTokenCount))
-             (input-tokens (- prompt-tokens cached-tokens))
-             (output-tokens (+ candidates-tokens thoughts-tokens))
+             (in-tokens (- prompt-tokens cached-tokens))
+             (out-tokens (+ cand-tokens thought-tokens))
             ) ;
-        (list (cons 'input input-tokens)
-          (cons 'output output-tokens)
+        (list (cons 'input in-tokens)
+          (cons 'output out-tokens)
           (cons 'cacheRead cached-tokens)
           (cons 'cacheWrite 0)
           (cons 'totalTokens total-tokens)
@@ -73,12 +79,9 @@
     (define (gemini-normalize-tool-call-id id)
       (if (not (string? id))
         "tool_call_0"
-        (let* ((chars (string->list id))
-               (mapped (map %map-char chars))
-               (res (list->string mapped))
-              ) ;
+        (let ((res (list->string (map %map-char (string->list id)))))
           (if (> (string-length res) 64) (substring res 0 64) res)
-        ) ;let*
+        ) ;let
       ) ;if
     ) ;define
 
@@ -107,7 +110,14 @@
     (define (%assistant-block->part blk)
       (let ((btype (%val 'type blk "")))
         (cond
-         ((equal? btype "text") (list (cons "text" (%val 'text blk ""))))
+         ((equal? btype "text")
+          (let ((t (%val 'text blk "")))
+            (if (or (not (string? t)) (string-null? (string-trim-both t)))
+              #f
+              (list (cons "text" t))
+            ) ;if
+          ) ;let
+         ) ;
          ((equal? btype "toolCall")
           (let* ((ts (%val 'thoughtSignature blk #f))
                  (fc-obj (list (cons "name" (%val 'name blk ""))
@@ -123,7 +133,7 @@
             ) ;if
           ) ;let*
          ) ;
-         (else (list (cons "text" "")))
+         (else #f)
         ) ;cond
       ) ;let
     ) ;define
@@ -172,9 +182,17 @@
                              (else '())
                        ) ;cond
                  ) ;blks
-                 (parts (map %assistant-block->part blks))
+                 (parts
+                   (filter
+                     (lambda (p) (and p (not (null? p))))
+                     (map %assistant-block->part blks)
+                   ) ;filter
+                 ) ;parts
                 ) ;
-            (list (cons "role" "model") (cons "parts" (list->vector parts)))
+            (if (null? parts)
+              #f
+              (list (cons "role" "model") (cons "parts" (list->vector parts)))
+            ) ;if
           ) ;let*
          ) ;
          (else #f)
@@ -242,29 +260,26 @@
       ) ;let
     ) ;define
 
-    (define (gemini-build-request-body contents system-instruction tool-declarations)
-      (let* ((req '())
-             (req (cons (cons "contents" contents) req))
+    (define (gemini-build-request-body contents sys-inst tool-decls)
+      (let* ((req (list (cons "contents" contents)))
              (req
                (if
-                 (and (string? system-instruction)
-                   (not (string-null? (string-trim-both system-instruction)))
-                 ) ;and
-                 (let ((sys-content
-                         (list (cons "role" "user")
-                           (cons "parts" (vector (list (cons "text" system-instruction))))
-                         ) ;list
-                       ) ;sys-content
-                      ) ;
-                   (cons (cons "systemInstruction" sys-content) req)
-                 ) ;let
+                 (and (string? sys-inst) (not (string-null? (string-trim-both sys-inst))))
+                 (cons
+                   (cons "systemInstruction"
+                     (list (cons "role" "user")
+                       (cons "parts" (vector (list (cons "text" sys-inst))))
+                     ) ;list
+                   ) ;cons
+                   req
+                 ) ;cons
                  req
                ) ;if
              ) ;req
              (req
-               (if (and (pair? tool-declarations) (> (length tool-declarations) 0))
+               (if (and (pair? tool-decls) (> (length tool-decls) 0))
                  (let ((tools-val
-                         (vector (list (cons "functionDeclarations" (list->vector tool-declarations))))
+                         (vector (list (cons "functionDeclarations" (list->vector tool-decls))))
                        ) ;tools-val
                        (tc-val
                          (list (cons "functionCallingConfig" (list (cons "mode" "AUTO"))))
