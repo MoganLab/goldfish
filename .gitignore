@@ -41,3 +41,4 @@ tools/doc/tests/function-library-index.json
 .sisyphus/
 .vscode/
 3rdparty/curl-8.21.0/build-*/
+tools/pi/tests/fixtures/direct/sessions/
