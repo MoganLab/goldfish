@@ -16,6 +16,7 @@
 
 (define-library (liii pi bash)
   (import (scheme base)
+    (scheme file)
     (liii string)
     (liii os)
     (liii either)
@@ -23,8 +24,68 @@
     (liii pi read)
     (liii pi truncate)
   ) ;import
-  (export pi-bash-schema pi-execute-bash)
+  (export pi-bash-schema pi-execute-bash pi-find-bash-path)
   (begin
+
+    (define (%find-windows-bash)
+      (let* ((pf (getenv "ProgramFiles"))
+             (local-app (getenv "LOCALAPPDATA"))
+             (pf86 (getenv "ProgramFiles(x86)"))
+             (candidates
+               (append (list "C:\\Program Files\\Git\\bin\\bash.exe"
+                         "C:\\Program Files\\Git\\usr\\bin\\bash.exe"
+                       ) ;list
+                 (if (and pf (not (string-null? pf)))
+                   (list (string-append pf "\\Git\\bin\\bash.exe")
+                     (string-append pf "\\Git\\usr\\bin\\bash.exe")
+                   ) ;list
+                   '()
+                 ) ;if
+                 (if (and local-app (not (string-null? local-app)))
+                   (list (string-append local-app "\\Programs\\Git\\bin\\bash.exe")
+                     (string-append local-app "\\Programs\\Git\\usr\\bin\\bash.exe")
+                   ) ;list
+                   '()
+                 ) ;if
+                 (list "C:\\Program Files (x86)\\Git\\bin\\bash.exe"
+                   "C:\\Program Files (x86)\\Git\\usr\\bin\\bash.exe"
+                 ) ;list
+                 (if (and pf86 (not (string-null? pf86)))
+                   (list (string-append pf86 "\\Git\\bin\\bash.exe")
+                     (string-append pf86 "\\Git\\usr\\bin\\bash.exe")
+                   ) ;list
+                   '()
+                 ) ;if
+                 (list "bash.exe" "bash")
+               ) ;append
+             ) ;candidates
+            ) ;
+        (let loop
+          ((rest candidates))
+          (cond ((null? rest) "bash")
+                ((or (string=? (car rest) "bash") (string=? (car rest) "bash.exe")) (car rest))
+                ((file-exists? (car rest)) (car rest))
+                (else (loop (cdr rest)))
+          ) ;cond
+        ) ;let
+      ) ;let*
+    ) ;define
+
+    (define (%find-posix-bash)
+      (cond ((file-exists? "/bin/bash") "/bin/bash")
+            ((file-exists? "/usr/bin/bash") "/usr/bin/bash")
+            (else "bash")
+      ) ;cond
+    ) ;define
+
+    (define (pi-find-bash-path . maybe-os)
+      (let ((os (if (null? maybe-os) (if (os-windows?) 'windows 'posix) (car maybe-os))))
+        (case os
+         ((windows) (%find-windows-bash))
+         (else (%find-posix-bash))
+        ) ;case
+      ) ;let
+    ) ;define
 
     (define (pi-bash-schema)
       (list (cons "type" "object")
@@ -137,8 +198,9 @@
             (unless (string? command)
               (error 'error "command must be a string")
             ) ;unless
-            (let ((res (run-either (list "/bin/bash" "-c" command)
+            (let ((res (run-either (list (pi-find-bash-path) "-c" command)
                          :cwd     cwd
+                         :stdin   'null
                          :stdout  'capture
                          :stderr  'stdout
                          :timeout timeout
