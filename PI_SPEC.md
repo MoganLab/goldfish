@@ -310,6 +310,22 @@ tools/pi/liii/
 
   已知阻塞（2026-10-19 实测）：auth.json 有 `minimax`/`minimax-cn` 条目，但
   bin/gf pi 尚无 minimax provider 实现（新增 provider，工作量大于 028/029）。
+- [ ] **`pi-multikey` 密钥池与 429/403 自动轮换（任务 033）**：对照 Node pi 的 `pi-multikey` 扩展，bin/gf pi 内置原生实现。预期用法（实现后转【可用】）：
+
+  ```bash
+  # 自动检测 ~/.pi/agent/multikey.json：配置了 kimi-coding 多 key pool 时，
+  # 周限额 403 或频率 429 自动冷却当前 key 并透明切换下一个（stderr 打印脱敏轮换日志）
+  timeout 180 bin/gf pi --provider kimi-coding -p "统计 tests/ 目录下的测试用例总数"
+  # stderr 示例（key 仅打印前后若干字符）：
+  # [multikey] kimi-coding key sk-***...***a1 429, cooldown 20s, switching to sk-***...***b2
+
+  # 未配置 pool 的 provider 回退 auth.json 单 key，行为不变
+  timeout 180 bin/gf pi --provider google -p "hi"
+  ```
+
+  实现要点：`multikey.json` 受 `PI_CODING_AGENT_DIR` 重定向；内存状态机维护
+  cooldown-until + LRU；429 默认冷却 20s、403/invalid 默认 600s（可按配置覆盖）；
+  仅在未输出实质内容前透明重试；pool 全耗尽才报错（退出码 1）。
 - [ ] **4 字节 UTF-8 + '<' 挂起**：prompt 同时含 4 字节 UTF-8 字符（如 🚀、𠀀）与 `<` 时进程静默挂起且连 HTTP 300s 超时都不生效（复现：`timeout 60 bin/gf pi -p '🚀 <'`）。【待重做】
 - [ ] **thinking 内容**：思考级别的请求与解析。预期用法（实现时以 pi 实际 CLI 为准）：
 

@@ -231,6 +231,9 @@ timeout 1800 pi -a -p @PI_PLAN.md "执行任务 ddd 的验收阶段：1) 编写�
   `ANTHROPIC_BASE_URL=https://api.kimi.com/coding/` + `ANTHROPIC_AUTH_TOKEN`，
   本机 `~/.claude/settings.json.kimi_{da,hongwei,yansong}` 三把 key 可轮换，
   实测 2026-10-19 通过）；glm/deepseek 待任务 028/029 修复后加入。
+  任务 033（multikey 密钥池）完成后，限额管理从 provider 级轮换细化到
+  provider 内 key 级自动轮换——429/403 不再打断流水线阶段任务（027 验收曾因
+  kimi-coding 周配额 403 与 google 429 连续中断两次）。
 - 尝试失败 → **差距分析是最好的测试用例**：对比 `bin/gf pi` 与 pi 在同一任务上
   的行为差异（哪一步卡住、缺什么能力），把差距登记为缺陷任务，改进 `bin/gf pi`
   后再试——这就是用真实任务驱动自举迭代。
