@@ -25,11 +25,12 @@
     (liii pi retry)
     (liii pi tools)
     (liii pi message)
+    (liii pi multikey)
     (liii pi gemini core)
     (liii pi gemini stream-parse)
     (liii pi gemini thinking)
   ) ;import
-  (export gemini-parse-response gemini-is-retriable-error? gemini-request
+  (export gemini-request gemini-parse-response gemini-is-retriable-error?
     gemini-build-tool-declarations format-failed-stream-msg
   ) ;export
   (begin
@@ -211,12 +212,11 @@
                (timeout 300)
                (opt-retry #f)
              ) ;gemini-request
-      (let* ((provider (cdr (assoc 'provider config)))
-             (api-key (cdr (assoc 'api-key config)))
-             (model-id (cdr (assoc 'model-id config)))
+      (let* ((model-id (cdr (assoc 'model-id config)))
              (model-meta (cdr (assoc 'model-meta config)))
              (proxy-url (cdr (assoc 'proxy-url config)))
              (settings (cdr (assoc 'settings config)))
+             (pool (pi-multikey-pool-of config))
              (base-url (cdr (or (assoc 'base-url model-meta)
                               '(#f
                                 . "https://generativelanguage.googleapis.com/v1beta")
@@ -232,10 +232,6 @@
              (thinking-lvl (cdr (or (assoc 'thinking-level config) '(#f . #f))))
              (req-body (gemini-inject-thinking-config raw-req-body thinking-lvl))
              (req-json-str (json->string req-body))
-             (headers (list (cons "Content-Type" "application/json")
-                        (cons "x-goog-api-key" (or api-key ""))
-                      ) ;list
-             ) ;headers
              (proxy-alist
                (if (and (string? proxy-url) (not (string-null? proxy-url)))
                  (list (cons "http" proxy-url) (cons "https" proxy-url))
@@ -248,27 +244,42 @@
                      ) ;
                     ) ;
           (let loop
-            ((attempt 1))
-            (let* ((resp (%http-post-safe url req-json-str headers proxy-alist timeout))
+            ((attempt 1) (api-key (pi-multikey-request-key config)))
+            (let* ((headers (list (cons "Content-Type" "application/json")
+                              (cons "x-goog-api-key" (or api-key ""))
+                            ) ;list
+                   ) ;headers
+                   (resp (%http-post-safe url req-json-str headers proxy-alist timeout))
                    (status (or (%resp-field resp 'status-code) 0))
                    (body-str (or (%resp-field resp 'text) ""))
                   ) ;
-              (cond ((and (gemini-is-retriable-error? status body-str)
-                       (<= attempt provider-max-retries)
-                     ) ;and
-                     (sleep (pi-calc-retry-delay attempt base-delay-ms max-agent-delay-ms))
-                     (loop (+ attempt 1))
-                    ) ;
-                    ((gemini-is-retriable-error? status body-str)
-                     (%make-error-response (format-failed-stream-msg status resp)
-                       (gemini-map-usage '())
-                     ) ;%make-error-response
-                    ) ;
-                    (else
-                      (let ((pj (catch #t (lambda () (string->json body-str)) (lambda _ #f))))
-                        (gemini-parse-response pj status)
-                      ) ;let
-                    ) ;else
+              (cond
+               ((and pool (or (= status 429) (= status 403)))
+                (let ((next (pi-multikey-rotate! config api-key status)))
+                  (if (eq? next 'exhausted)
+                    (%make-error-response (format-failed-stream-msg status resp)
+                      (gemini-map-usage '())
+                    ) ;%make-error-response
+                    (loop 1 next)
+                  ) ;if
+                ) ;let
+               ) ;
+               ((and (gemini-is-retriable-error? status body-str)
+                  (<= attempt provider-max-retries)
+                ) ;and
+                (sleep (pi-calc-retry-delay attempt base-delay-ms max-agent-delay-ms))
+                (loop (+ attempt 1) api-key)
+               ) ;
+               ((gemini-is-retriable-error? status body-str)
+                (%make-error-response (format-failed-stream-msg status resp)
+                  (gemini-map-usage '())
+                ) ;%make-error-response
+               ) ;
+               (else
+                 (let ((pj (catch #t (lambda () (string->json body-str)) (lambda _ #f))))
+                   (gemini-parse-response pj status)
+                 ) ;let
+               ) ;else
               ) ;cond
             ) ;let*
           ) ;let

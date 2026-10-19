@@ -30,6 +30,7 @@
     (liii pi tools types)
     (liii pi tools record)
     (liii pi auth)
+    (liii pi multikey)
     (liii pi models)
     (liii pi config)
     (liii pi gemini)
@@ -56,13 +57,19 @@
     pi-execute-bash pi-find-bash-path pi-ls-schema pi-execute-ls pi-find-schema
     pi-execute-find pi-grep-schema pi-execute-grep pi-resolve-config-value
     json-dict-ref pi-get-agent-dir pi-read-json-file pi-load-settings
-    pi-resolve-proxy-url pi-load-auth pi-resolve-provider-key
-    pi-load-models-store pi-load-models-json pi-merge-models-json-into-store
-    pi-resolve-model-metadata pi-format-token-count pi-list-models
-    pi-format-models-table PI_SUPPORTED_PROVIDERS PI_PROVIDER_BUILTIN_MODELS
-    pi-provider-default-model pi-find-model-provider pi-provider-has-model?
-    pi-route-provider-and-model pi-ensure-catalog-meta gemini-map-finish-reason
-    gemini-map-usage gemini-normalize-tool-call-id gemini-generate-tool-call-id
+    pi-resolve-proxy-url pi-load-auth pi-resolve-provider-key pi-load-multikey
+    pi-multikey-select-key pi-multikey-mark-cooldown! pi-multikey-pool-of
+    pi-multikey-request-key pi-multikey-rotate! pi-mask-key pi-pool-key
+    pi-pool-key? pi-pool-key-key pi-pool-key-label pi-pool-key-enabled
+    pi-pool-key-last-used pi-pool-key-cooling? pi-key-pool pi-key-pool?
+    pi-key-pool-id pi-key-pool-cooldown-ms pi-key-pool-invalid-cooldown-ms
+    pi-key-pool-keys pi-load-models-store pi-load-models-json
+    pi-merge-models-json-into-store pi-resolve-model-metadata
+    pi-format-token-count pi-list-models pi-format-models-table
+    PI_SUPPORTED_PROVIDERS PI_PROVIDER_BUILTIN_MODELS pi-provider-default-model
+    pi-find-model-provider pi-provider-has-model? pi-route-provider-and-model
+    pi-ensure-catalog-meta gemini-map-finish-reason gemini-map-usage
+    gemini-normalize-tool-call-id gemini-generate-tool-call-id
     gemini-build-contents gemini-build-request-body anthropic-map-stop-reason
     anthropic-map-usage anthropic-build-tool-declarations
     anthropic-build-messages anthropic-build-request-body

@@ -196,6 +196,155 @@ class StubHandler(http.server.BaseHTTPRequestHandler):
             self.wfile.write(json.dumps(resp).encode("utf-8"))
             return
 
+        if "/chat/completions" in path:
+            # 任务 033：kimi-coding（OpenAI 兼容）multikey 轮换 e2e。
+            # 场景由 base URL 路径标记（如 /mk-kimi-403）区分，key 取自 Authorization。
+            auth = self.headers.get("Authorization") or ""
+            api_key = auth[7:] if auth.startswith("Bearer ") else ""
+            server = self.server
+            server.mk_kimi_keys_seen = getattr(server, "mk_kimi_keys_seen", [])
+            server.mk_kimi_keys_seen.append(api_key)
+            is_sse = bool(req_json.get("stream"))
+            status_1 = None
+            if "/mk-kimi-all-403" in path:
+                status_1 = 403
+            elif api_key.startswith("mk-kimi-key-1-") and "/mk-kimi-plain" not in path:
+                if "/mk-kimi-403" in path or "/mk-kimi-stream-403" in path:
+                    status_1 = 403
+                elif "/mk-kimi-429" in path or "/mk-kimi-stream-429" in path:
+                    status_1 = 429
+            if status_1 is not None:
+                self.send_response(status_1)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps({
+                    "error": {
+                        "message": "key rejected in kimi stub",
+                        "type": "rate_limit_error" if status_1 == 429 else "permission_error",
+                        "code": status_1
+                    }
+                }).encode("utf-8"))
+                return
+            prefix = "PlainOK:" if "/mk-kimi-plain" in path else "RotatedOK:"
+            text = prefix + api_key + " seen=" + str(len(server.mk_kimi_keys_seen))
+            if is_sse:
+                self.send_response(200)
+                self.send_header("Content-Type", "text/event-stream")
+                self.send_header("Cache-Control", "no-cache")
+                self.end_headers()
+                first = {
+                    "id": "chatcmpl-mk",
+                    "object": "chat.completion.chunk",
+                    "choices": [
+                        {"index": 0, "delta": {"role": "assistant", "content": text}, "finish_reason": None}
+                    ]
+                }
+                last = {
+                    "id": "chatcmpl-mk",
+                    "object": "chat.completion.chunk",
+                    "choices": [{"index": 0, "delta": {}, "finish_reason": "stop"}],
+                    "usage": {"prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15}
+                }
+                self.wfile.write(("data: " + json.dumps(first) + "\n\n").encode("utf-8"))
+                self.wfile.write(("data: " + json.dumps(last) + "\n\n").encode("utf-8"))
+                self.wfile.write(b"data: [DONE]\n\n")
+                self.wfile.flush()
+                return
+            resp = {
+                "id": "chatcmpl-mk",
+                "object": "chat.completion",
+                "model": "kimi-mk",
+                "choices": [
+                    {"index": 0,
+                     "message": {"role": "assistant", "content": text},
+                     "finish_reason": "stop"}
+                ],
+                "usage": {"prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15}
+            }
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps(resp).encode("utf-8"))
+            return
+
+        if "/multikey-" in path:
+            # 任务 033：multikey 轮换 e2e。按 x-goog-api-key 头区分 key：
+            #   mk-gem-key-1-* → /multikey-403 回 403，/multikey-429 回 429
+            #   mk-gem-key-2-* → 正常响应（文本含 RotatedOK 与所用 key）
+            #   其他 key       → 回显 key（无 pool 兼容用例）
+            # /multikey-all-403 对任意 key 回 403（pool 耗尽用例）
+            # 路径含 /multikey-stream-* 时以 SSE 形态应答
+            is_sse = "alt=sse" in path or ":streamGenerateContent" in path
+            api_key_hdr = self.headers.get("x-goog-api-key") or ""
+            server = self.server
+            server.mk_keys_seen = getattr(server, "mk_keys_seen", [])
+            server.mk_keys_seen.append(api_key_hdr)
+            status_1 = None
+            if "/multikey-all-403" in path:
+                status_1 = 403
+            elif api_key_hdr.startswith("mk-gem-key-1-") and "plain" not in path:
+                if "/multikey-403" in path or "/multikey-stream-403" in path:
+                    status_1 = 403
+                elif "/multikey-429" in path or "/multikey-stream-429" in path:
+                    status_1 = 429
+            elif not api_key_hdr.startswith("mk-gem-key-2-") or "plain" in path:
+                text = "PlainOK:" + api_key_hdr + " seen=" + str(len(server.mk_keys_seen))
+                resp = {
+                    "candidates": [
+                        {
+                            "content": {"role": "model", "parts": [{"text": text}]},
+                            "finishReason": "STOP"
+                        }
+                    ],
+                    "usageMetadata": {"promptTokenCount": 10, "candidatesTokenCount": 5, "totalTokenCount": 15}
+                }
+                if is_sse:
+                    self.send_response(200)
+                    self.send_header("Content-Type", "text/event-stream")
+                    self.send_header("Cache-Control", "no-cache")
+                    self.end_headers()
+                    self.wfile.write(f"data: {json.dumps(resp)}\n\n".encode("utf-8"))
+                    self.wfile.flush()
+                    return
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps(resp).encode("utf-8"))
+                return
+            if status_1 is not None:
+                self.send_response(status_1)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps({
+                    "error": {"code": status_1,
+                              "message": "key rejected in stub",
+                              "status": "RESOURCE_EXHAUSTED" if status_1 == 429 else "PERMISSION_DENIED"}
+                }).encode("utf-8"))
+                return
+            text = "RotatedOK:" + api_key_hdr + " seen=" + str(len(server.mk_keys_seen))
+            resp = {
+                "candidates": [
+                    {
+                        "content": {"role": "model", "parts": [{"text": text}]},
+                        "finishReason": "STOP"
+                    }
+                ],
+                "usageMetadata": {"promptTokenCount": 10, "candidatesTokenCount": 5, "totalTokenCount": 15}
+            }
+            if is_sse:
+                self.send_response(200)
+                self.send_header("Content-Type", "text/event-stream")
+                self.send_header("Cache-Control", "no-cache")
+                self.end_headers()
+                self.wfile.write(f"data: {json.dumps(resp)}\n\n".encode("utf-8"))
+                self.wfile.flush()
+                return
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps(resp).encode("utf-8"))
+            return
+
         if "/429-then-ok" in path:
             server = self.server
             server.request_count = getattr(server, "request_count", 0) + 1

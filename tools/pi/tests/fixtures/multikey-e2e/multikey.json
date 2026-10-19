@@ -1,0 +1,38 @@
+{
+  "pools": [
+    {
+      "id": "google",
+      "cooldownMs": 20000,
+      "invalidKeyCooldownMs": 600000,
+      "keys": [
+        {
+          "key": "mk-gem-key-1-aaaaaa",
+          "label": "mk1",
+          "enabled": true
+        },
+        {
+          "key": "mk-gem-key-2-bbbbbb",
+          "label": "mk2",
+          "enabled": true
+        }
+      ]
+    },
+    {
+      "id": "kimi-coding",
+      "cooldownMs": 20000,
+      "invalidKeyCooldownMs": 600000,
+      "keys": [
+        {
+          "key": "mk-kimi-key-1-aaaaaa",
+          "label": "mk1",
+          "enabled": true
+        },
+        {
+          "key": "mk-kimi-key-2-bbbbbb",
+          "label": "mk2",
+          "enabled": true
+        }
+      ]
+    }
+  ]
+}

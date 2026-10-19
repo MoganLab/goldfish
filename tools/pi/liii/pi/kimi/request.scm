@@ -28,6 +28,7 @@
     (liii pi kimi msg)
     (liii pi tools)
     (liii pi retry)
+    (liii pi multikey)
   ) ;import
   (export kimi-build-tool-declarations-from-names kimi-request
     kimi-build-endpoint kimi-build-headers kimi-build-proxy-alist
@@ -135,7 +136,6 @@
              ) ;kimi-request
       (let*-values (((model-id) (cdr (assoc 'model-id config)))
                     ((model-meta) (cdr (assoc 'model-meta config)))
-                    ((api-key) (cdr (assoc 'api-key config)))
                     ((proxy-url) (cdr (assoc 'proxy-url config)))
                     ((settings) (cdr (assoc 'settings config)))
                     ((max-retries base-delay max-delay provider-max-retries)
@@ -155,28 +155,39 @@
                      (kimi-build-request-body model-id kimi-msgs #f tool-decls max-tokens)
                     ) ;
                     ((req-json-str) (json->string req-body))
-                    ((headers) (kimi-build-headers api-key))
                     ((proxy-alist) (kimi-build-proxy-alist proxy-url))
                    ) ;
-        (let loop
-          ((attempt 1))
-          (let* ((resp (%post-kimi url req-json-str headers proxy-alist timeout))
-                 (status (or (%resp-field resp 'status-code) 0))
-                 (body-str (or (%resp-field resp 'text) ""))
-                ) ;
-            (if (kimi-is-retriable-error? status body-str)
-              (if (<= attempt provider-max-retries)
-                (begin
-                  (sleep (%calc-delay-sec base-delay max-delay attempt))
-                  (loop (+ attempt 1))
-                ) ;begin
-                (%make-retry-error status attempt body-str)
-              ) ;if
-              (let ((parsed-json (catch #t (lambda () (string->json body-str)) (lambda args #f))))
-                (kimi-parse-response parsed-json status)
-              ) ;let
-            ) ;if
-          ) ;let*
+        (let ((pool (pi-multikey-pool-of config)))
+          (let loop
+            ((attempt 1) (api-key (pi-multikey-request-key config)))
+            (let* ((headers (kimi-build-headers api-key))
+                   (resp (%post-kimi url req-json-str headers proxy-alist timeout))
+                   (status (or (%resp-field resp 'status-code) 0))
+                   (body-str (or (%resp-field resp 'text) ""))
+                  ) ;
+              (cond
+               ((and pool (or (= status 429) (= status 403)))
+                (let ((next (pi-multikey-rotate! config api-key status)))
+                  (if (eq? next 'exhausted) (%make-retry-error status 1 body-str) (loop 1 next))
+                ) ;let
+               ) ;
+               ((kimi-is-retriable-error? status body-str)
+                (if (<= attempt provider-max-retries)
+                  (begin
+                    (sleep (%calc-delay-sec base-delay max-delay attempt))
+                    (loop (+ attempt 1) api-key)
+                  ) ;begin
+                  (%make-retry-error status attempt body-str)
+                ) ;if
+               ) ;
+               (else
+                 (let ((parsed-json (catch #t (lambda () (string->json body-str)) (lambda args #f))))
+                   (kimi-parse-response parsed-json status)
+                 ) ;let
+               ) ;else
+              ) ;cond
+            ) ;let*
+          ) ;let
         ) ;let
       ) ;let*-values
     ) ;define*

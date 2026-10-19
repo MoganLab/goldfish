@@ -27,7 +27,10 @@
     pi-model-metadata? pi-model-metadata-id pi-model-metadata-name
     pi-model-metadata-provider pi-model-metadata-base-url
     pi-model-metadata-context-window pi-model-metadata-max-tokens
-    pi-model-metadata-matched? pi-model-metadata->alist
+    pi-model-metadata-matched? pi-model-metadata->alist pi-pool-key pi-pool-key?
+    pi-pool-key-key pi-pool-key-label pi-pool-key-enabled pi-pool-key-last-used
+    pi-pool-key-cooling? pi-key-pool pi-key-pool? pi-key-pool-id
+    pi-key-pool-cooldown-ms pi-key-pool-invalid-cooldown-ms pi-key-pool-keys
   ) ;export
   (begin
 
@@ -134,6 +137,18 @@
         ) ;list
       ) ;if
     ) ;define
+
+    (define* (pi-pool-key key (label "") (enabled #t))
+      (%make-pi-pool-key key label (if enabled #t #f) 0 0)
+    ) ;define*
+
+    (define (pi-pool-key-cooling? pk now-ms)
+      (< now-ms (pi-pool-key-cooldown-until pk))
+    ) ;define
+
+    (define* (pi-key-pool id (cooldown-ms 20000) (invalid-cooldown-ms 600000) (keys '()))
+      (%make-pi-key-pool id cooldown-ms invalid-cooldown-ms keys)
+    ) ;define*
 
   ) ;begin
 ) ;define-library

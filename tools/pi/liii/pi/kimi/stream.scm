@@ -28,6 +28,7 @@
     (liii pi kimi msg)
     (liii pi kimi request)
     (liii pi kimi stream-parse)
+    (liii pi multikey)
   ) ;import
   (export kimi-request-stream)
   (begin
@@ -145,44 +146,58 @@
       (vector '() #f (kimi-map-usage '()) "stop" #f '())
     ) ;define
 
-    (define (%run-stream-loop url req-json-str headers proxy-alist on-ev timeout
+    (define (%run-stream-loop config url req-json-str proxy-alist on-ev timeout
               opt-retry eff-idle
             ) ;%run-stream-loop
       (let-values (((max-r base-delay max-delay provider-r)
                     (pi-resolve-retry-params '() opt-retry)
                    ) ;
                   ) ;
-        (let loop
-          ((attempt 1))
-          (let* ((stream-state (%init-kimi-stream-state))
-                 (idle-timed-out? #f)
-                 (err-acc (vector ""))
-                 (cb (%build-stream-cb stream-state
-                       on-ev
-                       eff-idle
-                       (lambda () (set! idle-timed-out? #t))
-                       err-acc
-                     ) ;%build-stream-cb
-                 ) ;cb
-                 (resp (%post-stream url req-json-str headers proxy-alist cb timeout eff-idle))
-                 (status (or (%resp-field resp 'status-code) 0))
-                ) ;
-            (cond (idle-timed-out? (%make-idle-timeout-error eff-idle))
-                  ((kimi-is-retriable-error? status "")
-                   (if (<= attempt provider-r)
-                     (begin
-                       (sleep 1.0)
-                       (loop (+ attempt 1))
-                     ) ;begin
+        (let ((pool (pi-multikey-pool-of config)))
+          (let loop
+            ((attempt 1) (api-key (pi-multikey-request-key config)))
+            (let* ((headers (kimi-build-headers api-key))
+                   (stream-state (%init-kimi-stream-state))
+                   (idle-timed-out? #f)
+                   (emitted? #f)
+                   (wrapped-on-ev (if (procedure? on-ev) (lambda (ev) (set! emitted? #t) (on-ev ev)) #f)
+                   ) ;wrapped-on-ev
+                   (err-acc (vector ""))
+                   (cb (%build-stream-cb stream-state
+                         wrapped-on-ev
+                         eff-idle
+                         (lambda () (set! idle-timed-out? #t))
+                         err-acc
+                       ) ;%build-stream-cb
+                   ) ;cb
+                   (resp (%post-stream url req-json-str headers proxy-alist cb timeout eff-idle))
+                   (status (or (%resp-field resp 'status-code) 0))
+                  ) ;
+              (cond (idle-timed-out? (%make-idle-timeout-error eff-idle))
+                    ((and pool (not emitted?) (or (= status 429) (= status 403)))
+                     (let ((next (pi-multikey-rotate! config api-key status)))
+                       (if (eq? next 'exhausted)
+                         (%make-stream-error status resp err-acc)
+                         (loop 1 next)
+                       ) ;if
+                     ) ;let
+                    ) ;
+                    ((kimi-is-retriable-error? status "")
+                     (if (<= attempt provider-r)
+                       (begin
+                         (sleep 1.0)
+                         (loop (+ attempt 1) api-key)
+                       ) ;begin
+                       (%make-stream-error status resp err-acc)
+                     ) ;if
+                    ) ;
+                    ((or (zero? status) (not (= status 200)))
                      (%make-stream-error status resp err-acc)
-                   ) ;if
-                  ) ;
-                  ((or (zero? status) (not (= status 200)))
-                   (%make-stream-error status resp err-acc)
-                  ) ;
-                  (else (%finalize-stream stream-state))
-            ) ;cond
-          ) ;let*
+                    ) ;
+                    (else (%finalize-stream stream-state))
+              ) ;cond
+            ) ;let*
+          ) ;let
         ) ;let
       ) ;let-values
     ) ;define
@@ -198,7 +213,6 @@
              ) ;kimi-request-stream
       (let* ((model-id (cdr (assoc 'model-id config)))
              (model-meta (cdr (assoc 'model-meta config)))
-             (api-key (cdr (assoc 'api-key config)))
              (proxy-url (cdr (assoc 'proxy-url config)))
              (base-url (cdr (or (assoc 'base-url model-meta) '(#f
                                                                . "https://api.kimi.com/coding/v1")))
@@ -210,11 +224,10 @@
              (kimi-msgs (kimi-build-messages messages system-instruction))
              (req-body (kimi-build-request-body model-id kimi-msgs #t tool-decls max-tokens))
              (req-json-str (json->string req-body))
-             (headers (kimi-build-headers api-key))
              (proxy-alist (kimi-build-proxy-alist proxy-url))
              (eff-idle (or idle-timeout timeout))
             ) ;
-        (%run-stream-loop url req-json-str headers proxy-alist on-event timeout
+        (%run-stream-loop config url req-json-str proxy-alist on-event timeout
           opt-retry eff-idle
         ) ;%run-stream-loop
       ) ;let*

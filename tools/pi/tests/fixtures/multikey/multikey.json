@@ -1,0 +1,26 @@
+{
+  "pools": [
+    {
+      "id": "kimi-coding",
+      "name": "kimi-coding",
+      "baseUrl": "https://api.kimi.com/coding",
+      "api": "anthropic-messages",
+      "cooldownMs": 30000,
+      "invalidKeyCooldownMs": 300000,
+      "keys": [
+        {"key": "sk-pool-alpha-0001", "label": "alpha", "enabled": true},
+        {"key": "sk-pool-beta-00002", "label": "beta", "enabled": true},
+        {"key": "sk-pool-gamma-0003", "label": "gamma", "enabled": false}
+      ],
+      "models": []
+    },
+    {
+      "id": "google",
+      "name": "google",
+      "keys": [
+        {"key": "goog-key-0000000001", "label": "g1", "enabled": true},
+        {"key": "goog-key-0000000002", "label": "g2", "enabled": true}
+      ]
+    }
+  ]
+}

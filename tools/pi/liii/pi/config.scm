@@ -28,6 +28,7 @@
     (liii pi tools)
     (liii pi auth)
     (liii pi models)
+    (liii pi multikey)
     (liii pi config types)
     (liii pi config record)
     (liii pi event)
@@ -210,10 +211,17 @@
                          (pi-load-auth agent-dir)
                        ) ;if
                  ) ;auth
-                 (api-key (if (pair? opt-env)
-                            (pi-resolve-provider-key provider auth (car opt-env))
-                            (pi-resolve-provider-key provider auth)
-                          ) ;if
+                 (api-key-raw (if (pair? opt-env)
+                                (pi-resolve-provider-key provider auth (car opt-env))
+                                (pi-resolve-provider-key provider auth)
+                              ) ;if
+                 ) ;api-key-raw
+                 (multikey-pool (pi-load-multikey agent-dir provider))
+                 (api-key
+                   (if multikey-pool
+                     (pi-pool-key-key (car (pi-key-pool-keys multikey-pool)))
+                     api-key-raw
+                   ) ;if
                  ) ;api-key
                  (raw-meta (if (pair? opt-env)
                              (pi-resolve-model-metadata provider model-id models-store (car opt-env))
@@ -242,6 +250,7 @@
             (list (cons 'agent-dir agent-dir)
               (cons 'provider provider)
               (cons 'api-key api-key)
+              (cons 'multikey-pool multikey-pool)
               (cons 'model-id model-id)
               (cons 'model-meta meta)
               (cons 'models-store models-store)
