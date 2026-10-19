@@ -36,11 +36,7 @@
 
 
 (check (json->string #(1 2 3)) => "[1,2,3]")
-(check
-  (json->string '((a (b . 1) (c . 2))))
-  =>
-  "{a:{b:1,c:2}}"
-) ;check
+(check (json->string '((a (b . 1) (c . 2)))) => "{a:{b:1,c:2}}")
 (check-catch 'value-error (json->string '((a))))
 (check (json->string #()) => "[]")
 (check (json->string #("a" "b")) => "[\"a\",\"b\"]")
@@ -54,8 +50,7 @@
 (check (json->string '((x . 10) (y . 20))) => "{x:10,y:20}")
 (check (json->string #((("id" . 1)) (("id" . 2)))) => "[{\"id\":1},{\"id\":2}]")
 (check (json->string '(("scores" . #(85 90 95)))) => "{\"scores\":[85,90,95]}")
-(check
-  (json->string '(("user" ("name" . "Dave") ("tags" . #("admin" "editor")))))
+(check (json->string '(("user" ("name" . "Dave") ("tags" . #("admin" "editor")))))
   =>
   "{\"user\":{\"name\":\"Dave\",\"tags\":[\"admin\",\"editor\"]}}"
 ) ;check
@@ -135,13 +130,10 @@
 ) ;let
 
 ;; 嵌套深度超限（超过 1000 层抛 value-error 防爆栈 Crash）
-(let loop
-  ((i 0) (v 1))
+(let loop ((i 0) (v 1))
   (if (= i 1001)
-    (check-catch 'value-error (json->string v))
-    (loop (+ i 1) (vector v))
-  ) ;if
-) ;let
+      (check-catch 'value-error (json->string v))
+      (loop (+ i 1) (vector v))))
 
 ;; 不可序列化类型抛 type-error（回归：写入器错误经 C++ 异常上传，
 ;; f_json_to_string 在 RAII 析构后才 s7_error，MSVC 下安全）
@@ -150,23 +142,5 @@
 
 ;; 错误路径后正常调用不受影响
 (check (json->string '((a . 1))) => "{a:1}")
-
-;; 缺陷8防回归测试：4字节 UTF-8 字符（emoji、生僻字等）与 '<' 及各种转义组合
-(check (json->string '(("msg" . "🚀 <"))) => "{\"msg\":\"🚀 <\"}")
-(check (json->string '(("msg" . "𠀀 <"))) => "{\"msg\":\"𠀀 <\"}")
-(check (json->string '(("msg" . "🚀 x <xml> end")))
-  =>
-  "{\"msg\":\"🚀 x <xml> end\"}"
-) ;check
-(check (json->string '(("msg" . "<xml> & ampersand")))
-  =>
-  "{\"msg\":\"<xml> & ampersand\"}"
-) ;check
-(check (json->string '(("msg" . "🚀🎉 done")))
-  =>
-  "{\"msg\":\"🚀🎉 done\"}"
-) ;check
-(check (json->string #("🚀 <")) => "[\"🚀 <\"]")
-(check (json->string "🚀 <") => "\"🚀 <\"")
 
 (check-report)

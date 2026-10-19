@@ -21,5 +21,4 @@
 (check-true (boolean? (stdout-tty?)))
 (check-true (boolean? (stderr-tty?)))
 
-
 (check-report)

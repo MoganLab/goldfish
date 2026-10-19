@@ -35,6 +35,7 @@
                (stream #f)
                (callback #f)
                (timeout #f)
+               (idle-timeout #f)
              ) ;http-get
       (let* ((url (http-require-string "http-get" "url" url))
              (params (http-normalize-string-alist "http-get" "params" params))
@@ -44,8 +45,9 @@
              (stream (http-require-boolean "http-get" "stream" stream))
              (callback (http-optional-procedure "http-get" "callback" callback))
              (timeout (http-optional-timeout "http-get" "timeout" timeout))
+             (idle-timeout (http-optional-timeout "http-get" "idle-timeout" idle-timeout))
             ) ;
-        (cond ((not stream) (g_http-get url params headers proxy #f timeout))
+        (cond ((not stream) (g_http-get url params headers proxy #f timeout idle-timeout))
               ((and (not output-file) (not callback))
                (value-error "http-get: stream mode requires output-file or callback")
               ) ;
@@ -66,12 +68,13 @@
                             proxy
                             (lambda (chunk) (write-string chunk port) (stream-callback chunk))
                             timeout
+                            idle-timeout
                           ) ;g_http-get
                         ) ;lambda
                         (lambda () (close-port port))
                       ) ;dynamic-wind
                     ) ;let
-                    (g_http-get url params headers proxy stream-callback timeout)
+                    (g_http-get url params headers proxy stream-callback timeout idle-timeout)
                   ) ;if
                 ) ;let
               ) ;else

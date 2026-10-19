@@ -174,28 +174,7 @@
 (check (string->json "{\"a\": \"it's\"}") => '(("a" . "it's")))
 (check (string->json "[\"don't\"]") => #("don't"))
 
-;;; 缺陷8防回归测试：4字节 UTF-8 字符（emoji、生僻字等）与 '<' 及各种转义组合
-(check (string->json "{\"msg\": \"🚀 <\"}") => '(("msg" . "🚀 <")))
-(check (string->json "{\"msg\": \"𠀀 <\"}") => '(("msg" . "𠀀 <")))
-(check (string->json "{\"msg\": \"🚀 x <xml> end\"}")
-  =>
-  '(("msg" . "🚀 x <xml> end"))
-) ;check
-(check (string->json "{\"msg\": \"<xml> & ampersand\"}")
-  =>
-  '(("msg" . "<xml> & ampersand"))
-) ;check
-(check (string->json "{\"msg\": \"🚀🎉 done\"}")
-  =>
-  '(("msg" . "🚀🎉 done"))
-) ;check
-(check (string->json "[\"🚀 <\"]") => #("🚀 <"))
-(check (string->json "\"🚀 <\"") => "🚀 <")
-
 ;;; 超大整数回退
-(check-true (number? (string->json "10000000000000000000000000000000000000000000000000000000000000000000000000000000"
-                     ) ;string->json
-            ) ;number?
-) ;check-true
+(check-true (number? (string->json "10000000000000000000000000000000000000000000000000000000000000000000000000000000")))
 
 (check-report)

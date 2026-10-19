@@ -55,9 +55,7 @@
 ) ;let
 
 
-(check-catch 'type-error
-  (random-source-pseudo-randomize! 'not-a-source 0 0)
-) ;check-catch
+(check-catch 'type-error (random-source-pseudo-randomize! 'not-a-source 0 0))
 
 
 (let ((s (make-random-source)))
@@ -67,5 +65,10 @@
   (check-catch 'type-error (random-source-pseudo-randomize! s 0 3.14))
 ) ;let
 
+;; 确定性测试 (123, 456)
+(let ((s (make-random-source)))
+  (random-source-pseudo-randomize! s 123 456)
+  (check (random-source-state-ref s) => '(random-source-state 1518891 24770499))
+) ;let
 
 (check-report)

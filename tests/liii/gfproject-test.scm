@@ -173,4 +173,29 @@
   (check (not (not alias-root)) => #t)
 ) ;let*
 
+;; 8. 测试多级子库路径切分与 import-spec 构造
+(check (gfproject-parse-import-spec "liii" "fmt") => '(liii fmt))
+(check (gfproject-parse-import-spec "liii" "pi/cli") => '(liii pi cli))
+(check (gfproject-parse-import-spec "liii" "/pi/cli/") => '(liii pi cli))
+(check (gfproject-parse-import-spec "liii" "a/b/c") => '(liii a b c))
+(check (gfproject-parse-import-spec "liii" "///pi///cli///") => '(liii pi cli))
+
+;; 8.1 测试多级模块在 allow-fallback 为 #f 时的精准报错格式
+(let* ((gf-lib (gfproject-get-gf-lib))
+       (tool-cfg-multi '(("organization" . "liii")
+                         ("module" . "pi/non_existent_cli_xyz"))
+       ) ;tool-cfg-multi
+       (err-buf (open-output-string))
+       (old-err (set-current-error-port err-buf))
+       (res (gfproject-prepare-and-run-tool "version" tool-cfg-multi gf-lib #f))
+       (err-msg (get-output-string err-buf))
+      ) ;
+  (set-current-error-port old-err)
+  (check res => 1)
+  (check (string-contains? err-msg "Error importing (liii pi non_existent_cli_xyz)")
+    =>
+    #t
+  ) ;check
+) ;let*
+
 (check-report)

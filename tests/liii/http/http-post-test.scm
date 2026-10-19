@@ -28,6 +28,14 @@
 (check-catch 'value-error (http-post "http://x/" :timeout 0.0))
 (check-catch 'value-error (http-post "http://x/" :timeout -1))
 (check-catch 'value-error (http-post "http://x/" :timeout -0.5))
+(check-catch 'type-error (http-post "http://x/" :idle-timeout "5"))
+(check-catch 'type-error (http-post "http://x/" :idle-timeout 'fast))
+(check-catch 'type-error (http-post "http://x/" :idle-timeout #t))
+(check-catch 'type-error (http-post "http://x/" :idle-timeout '()))
+(check-catch 'value-error (http-post "http://x/" :idle-timeout 0))
+(check-catch 'value-error (http-post "http://x/" :idle-timeout 0.0))
+(check-catch 'value-error (http-post "http://x/" :idle-timeout -1))
+(check-catch 'value-error (http-post "http://x/" :idle-timeout -0.5))
 
 ;; C 层入口 g_http-post 的 files 参数类型测试 (devel/0149.md)
 ;; files 必须是 part-spec 列表；每个 part-spec 是 (key . value) 组成的 proper list，
@@ -45,6 +53,8 @@
 ) ;check-catch
 (check-catch 'type-error (g_http-post "http://x/" '() "" '() '() '() #f "5"))
 (check-catch 'value-error (g_http-post "http://x/" '() "" '() '() '() #f 0))
+(check-catch 'type-error (g_http-post "http://x/" '() "" '() '() '() #f #f "5"))
+(check-catch 'value-error (g_http-post "http://x/" '() "" '() '() '() #f #f 0))
 
 ;; 环境检查
 (let ((env (getenv "GOLDFISH_TEST_HTTP")))
@@ -56,11 +66,14 @@
 
 ;; 不可达网络地址短超时熔断
 (let* ((t0 (current-second))
-       (r (http-post "http://10.255.255.1" :data "payload" :timeout 0.5))
+       (r (http-post "http://10.255.255.1" :data "payload" :timeout 0.5 :idle-timeout 1)
+       ) ;r
        (dt (- (current-second) t0))
       ) ;
   (check (r 'status-code) => 0)
   (check-true (< dt 2.5))
+  (check-true (integer? (r 'error-code)))
+  (check-true (> (r 'error-code) 0))
   (check-true (string? (r 'reason)))
   (check-true (> (string-length (r 'reason)) 0))
 ) ;let*
@@ -74,25 +87,25 @@
 ;; ----
 ;; (http-post url :params params :data data :headers headers :proxy proxy
 ;;            :files files :output-file output-file :stream stream
-;;            :callback callback :timeout timeout)
+;;            :callback callback :timeout timeout :idle-timeout idle-timeout)
 ;;
 ;; 参数
 ;; ----
-;; url     : string          - 请求的目标 URL
-;; params  : alist (可选)    - 查询参数列表
-;; data    : string/alist (可选) - 原始请求体；若配合 files 使用，则表示 multipart 文本字段
-;; headers : alist (可选)    - 请求头列表
-;; proxy   : alist (可选)    - 代理配置
-;; files   : alist (可选)    - 文件上传配置，触发 multipart/form-data
-;; output-file: string (可选)   - stream 模式下将响应体按 chunk 写入本地文件
-;; stream     : boolean (可选)  - 启用简单流式模式
-;; callback   : procedure (可选)- 按 chunk 处理响应体 (lambda (chunk) ...)
-;; timeout    : real? | integer? | #f (可选) - 超时时间（单位：秒）
+;; url         : string          - 请求的目标 URL
+;; params      : alist (可选)    - 查询参数列表
+;; data        : string/alist (可选) - 原始请求体；若配合 files 使用，则表示 multipart 文本字段
+;; headers     : alist (可选)    - 请求头列表
+;; proxy       : alist (可选)    - 代理配置
+;; files       : alist (可选)    - 文件上传配置，触发 multipart/form-data
+;; output-file : string (可选)   - stream 模式下将响应体按 chunk 写入本地文件
+;; stream      : boolean (可选)  - 启用简单流式模式
+;; callback    : procedure (可选)- 按 chunk 处理响应体 (lambda (chunk) ...)
+;; timeout     : real? | integer? | #f (可选) - 总时长超时（秒）：整个请求的最长等待时间，到点必中止
+;; idle-timeout: real? | integer? | #f (可选) - 空闲超时（秒）：连续 N 秒无有效数据传输则中止，不限制总时长
 ;;
 ;; 返回值
 ;; ----
-;; stream 为 #f 时返回 response-object；
-;; stream 为 #t 时返回 #<undefined>。
+;; response-object（哈希表，包含 status-code, url, elapsed, text, reason, headers, error-code 等字段）。
 ;;
 ;; files 结构
 ;; ----
@@ -114,6 +127,11 @@
 ;; 3. 当 :stream 为 #t 时，按 chunk 处理响应体
 ;; 4. 文件上传由 http-post 本身处理，不再提供单独的 multipart POST API
 ;; 5. 当 data 非空且未指定 headers 时，默认 Content-Type 为 text/plain。
+;;
+;; timeout 与 idle-timeout 的区别：
+;; 1. :timeout 是总时长超时，限制整个请求（含连接阶段）的最长等待时间，到点必中止
+;; 2. :idle-timeout 是空闲超时，仅在传输停死（连续 N 秒传输速度低于 1 B/s）时中止，不限制总时长
+;; 3. 两者可搭配使用：timeout 兜底总时长，idle-timeout 快速发现挂死且不惩罚慢而健康的传输
 
 (define simpletex-api-key "你的api-key")
 
