@@ -226,7 +226,11 @@ timeout 1800 pi -a -p @PI_PLAN.md "执行任务 ddd 的验收阶段：1) 编写�
   → 开发阶段）。
 - **模型轮换（用户裁定 2026-10-19）**：自举执行时可用 `--provider`/`--model`
   指定不同模型完成同类阶段任务，横向实测各模型的实际工作能力；拉起命令与
-  devel 执行记录中注明所用 provider/模型，便于事后对比。
+  devel 执行记录中注明所用 provider/模型，便于事后对比。轮换池：google
+  gemini-3.8-flash（默认）、kimi-coding、k3（走 anthropic 链路：env 注入
+  `ANTHROPIC_BASE_URL=https://api.kimi.com/coding/` + `ANTHROPIC_AUTH_TOKEN`，
+  本机 `~/.claude/settings.json.kimi_{da,hongwei,yansong}` 三把 key 可轮换，
+  实测 2026-10-19 通过）；glm/deepseek 待任务 028/029 修复后加入。
 - 尝试失败 → **差距分析是最好的测试用例**：对比 `bin/gf pi` 与 pi 在同一任务上
   的行为差异（哪一步卡住、缺什么能力），把差距登记为缺陷任务，改进 `bin/gf pi`
   后再试——这就是用真实任务驱动自举迭代。
