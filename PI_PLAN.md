@@ -86,7 +86,7 @@ Anthropic 已实现但本机无访问权限，不在维护范围；其 OAuth 刷
 |---|---|---|---|
 | 040 | web_search 工具声明与 Schema 注册 | 已完成（040.scm 51/51；commit `5b6c701f`/`e469cc1b` 已推送；开发 deepseek + 验收 minimax） |
 | 041 | Gemini 搜索请求体构造与 Grounding 解析 | 已完成（041.scm 56/56；commit `0facefda`/`3e447f6b` 已推送；全程 gemini） |
-| 042 | web_search 网络执行器与结果格式化 | 开发完成（gemini：执行器+格式化+7 stub 端点错误路径全覆盖，复核通过）；验收阶段进行中 |
+| 042 | web_search 网络执行器与结果格式化 | 已完成（042.scm 51/51；commit `180b7a8b`/`16f619af` 已推送；全程 gemini） |
 | 043 | web_search Agent 工具调用闭环联调 | 用户供稿规划（阶段四）：Gemini 模型时注入 web_search functionDeclaration；Agent 事件循环收到 web_search tool call 自动调度执行器并回传 tool_result；CLI 前端显示搜索 query 与引用来源；整体回归确保不影响既有读写编辑工具 |
 | 050 | deepseek tool_use 参数解析 value-error 修复 | 差距清单 #11：deepseek 首轮响应的 tool_use 参数形状触发 `value-error (("input") ...)`（037 两次同点复现，会话仅 2 行即崩）；需在 anthropic 协议解析层兼容该形状（如 input 为 JSON 字符串时先解析再消费）并加防回归测试；修复前 037 类任务避开 deepseek 首轮大上下文场景 | 已完成（050.scm 30/30；commit `109c4c0d`/`bf88888e` 已推送；gemini 两阶段；差距#11 消除，deepseek 恢复主力） |
 | 044 | `code-review` 内置命令 | 用户裁定前置（同 040-043）：先在原生 pi 安装配置扩展并运行成功作对照基准，再实现 bin/gf pi 对应功能。参考 ~/git/pi-extensions/packages/pi-code-review（agent 写/改文件后自动语言感知代码审查）：bin/gf pi 脚本模式的对应形态在文档阶段对齐扩展源码后裁定（候选：--code-review 对最近 diff 审查输出报告）；验收点含真实审查输出与门禁；TDD | 待执行 |
