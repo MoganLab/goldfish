@@ -306,18 +306,21 @@ tools/pi/liii/
   ```
 
   注：模型目录来自 `~/.pi/agent/models.json` 用户自定义目录（任务 029 起合并进 models-store）。
-- [ ] **MiniMax 中国大陆版接入（任务 030，用户供稿待实测）**：复用 auth.json 中的 `sk-cp-...` 凭据，接入 `https://api.minimaxi.com/anthropic`。主力推荐 `MiniMax-M3`（1M 上下文、512K 最大输出、多模态旗舰，支持思考模式与复杂工具调用），另有 `MiniMax-M2.7`（204.8K 上下文）与 `MiniMax-M2.7-highspeed`（高速版）。预期用法（验证后转【可用】）：
+- [x] **MiniMax 中国大陆版接入【可用】（任务 030 已验收）**：复用 auth.json 中的 `sk-cp-...` 凭据，接入 `https://api.minimaxi.com/anthropic`（国际站 `api.minimax.io` 自动归一）。模型：`MiniMax-M3.1-Flash`（1M 上下文、524K 最大输出，**轮换池主力**——特别快）、`MiniMax-M3`（1M/512K 多模态旗舰）、`MiniMax-M2.7`（204.8K）与 `MiniMax-M2.7-highspeed`（高速版）。已实测用法：
 
   ```bash
-  # 使用 MiniMax-M3 主力模型提问
-  timeout 120 bin/gf pi --provider minimax --model MiniMax-M3 -p "用 Scheme 实现快速排序"
+  # 使用 MiniMax-M3.1-Flash 主力模型提问（实测 2026-10-19，秒回）
+  timeout 120 bin/gf pi --provider minimax --model MiniMax-M3.1-Flash -p "用 Scheme 实现快速排序"
 
-  # 使用 MiniMax-M3 调用 Bash 与读写工具处理实际任务
+  # 使用 MiniMax-M3 调用 Bash 与读写工具处理实际任务（实测工具调用）
   timeout 180 bin/gf pi --provider minimax --model MiniMax-M3 --tools read,bash,write -p "运行 git status 并总结当前工作区状态"
+
+  # 大陆站别名 provider 与模型目录
+  bin/gf pi --provider minimax-cn --list-models
   ```
 
-  已知阻塞（2026-10-19 实测）：auth.json 有 `minimax`/`minimax-cn` 条目，但
-  bin/gf pi 尚无 minimax provider 实现（新增 provider，工作量大于 028/029）。
+  注：minimax 与 minimax-cn 双 provider 均可用；环境变量 MINIMAX_API_KEY /
+  MINIMAX_BASE_URL 可覆盖（任务 035 env 优先体系）。
 - [ ] **`pi-multikey` 密钥池与 429/403 自动轮换（任务 033）**：对照 Node pi 的 `pi-multikey` 扩展，bin/gf pi 内置原生实现。预期用法（实现后转【可用】）：
 
   ```bash
