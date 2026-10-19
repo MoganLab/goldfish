@@ -5,9 +5,9 @@
   (liii either)
   (liii sort)
   (liii goldfmt)
-  (liii goldfmt-lang)
-  (liii goldfmt-path)
-  (liii goldfmt-parallel)
+  (liii goldfmt lang)
+  (liii goldfmt path)
+  (liii goldfmt parallel)
   (liii os)
   (liii path)
   (liii string)
@@ -62,7 +62,9 @@
   (if (file-exists? "gfproject.json")
     (getcwd)
     (if (file-exists? "../../gfproject.json")
-      (path->string (path-parent (path-parent (path (getcwd)))))
+      (path->string
+        (path-parent (path-parent (path (getcwd))))
+      ) ;path->string
       (getcwd)
     ) ;if
   ) ;if
@@ -101,7 +103,10 @@
                   ) ;if
          ) ;content
         ) ;
-    (path-write-text (path (path->string (path-join (path dir) nm))) content)
+    (path-write-text
+      (path (path->string (path-join (path dir) nm)))
+      content
+    ) ;path-write-text
     (path->string (path-join (path dir) nm))
   ) ;let*
 ) ;define
@@ -158,21 +163,35 @@
 ) ;define
 
 (define (test-t2-files dir-a dir-b salt-a salt-b n)
-  (let loop ((i 1))
+  (let loop
+    ((i 1))
     (when (<= i n)
       (write-test-file dir-a i salt-a (= 0 (modulo i 2)))
       (write-test-file dir-b i salt-b (= 0 (modulo i 2)))
-      (loop (+ i 1)))))
+      (loop (+ i 1))
+    ) ;when
+  ) ;let
+) ;define
 
 (define (check-t2-contents dir-a dir-b salt-a salt-b n)
-  (let loop ((i 1))
+  (let loop
+    ((i 1))
     (if (> i n)
       #t
-      (let ((fa (path->string (path-join (path dir-a) (string-append "f" (pad2 i) ".scm"))))
-            (fb (path->string (path-join (path dir-b) (string-append "f" (pad2 i) ".scm")))))
+      (let ((fa
+              (path->string (path-join (path dir-a) (string-append "f" (pad2 i) ".scm")))
+            ) ;fa
+            (fb
+              (path->string (path-join (path dir-b) (string-append "f" (pad2 i) ".scm")))
+            ) ;fb
+           ) ;
         (check (path-read-text (path fa)) => (expected-content i salt-a))
         (check (path-read-text (path fb)) => (expected-content i salt-b))
-        (loop (+ i 1))))))
+        (loop (+ i 1))
+      ) ;let
+    ) ;if
+  ) ;let
+) ;define
 
 (define (test-t2-and-t4)
   (let* ((n 30)
@@ -217,30 +236,32 @@
          (salt-d (string-append salt "d"))
         ) ;
     (mkdir dir-d)
-    (let loop ((i 1))
+    (let loop
+      ((i 1))
       (when (<= i 5)
         (write-test-file dir-d i salt-d (= 0 (modulo i 2)))
-        (loop (+ i 1))))
+        (loop (+ i 1))
+      ) ;when
+    ) ;let
     (let ((res-d (run-gf "fmt" dir-d)))
       (check (either-right? res-d) => #t)
       (let ((out-d (to-right res-d)))
         (check-true (string-contains? out-d "Total files formatted: 5"))
         (check-true (string-contains? out-d "Files updated: 3"))
-        (check (path-read-text (path (path->string (path-join (path dir-d) "f03.scm"))))
-          => (expected-content 3 salt-d)
+        (check
+          (path-read-text
+            (path (path->string (path-join (path dir-d) "f03.scm")))
+          ) ;path-read-text
+          =>
+          (expected-content 3 salt-d)
         ) ;check
       ) ;let
     ) ;let
   ) ;let*
 ) ;define
 
-(dynamic-wind
-  (lambda () (remove-tree sandbox-dir) (mkdir sandbox-dir))
-  (lambda ()
-    (test-t0)
-    (test-t2-and-t4)
-    (test-t2b)
-  ) ;lambda
+(dynamic-wind (lambda () (remove-tree sandbox-dir) (mkdir sandbox-dir))
+  (lambda () (test-t0) (test-t2-and-t4) (test-t2b))
   (lambda () (remove-tree sandbox-dir))
 ) ;dynamic-wind
 

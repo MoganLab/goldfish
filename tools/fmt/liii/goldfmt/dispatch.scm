@@ -14,15 +14,15 @@
 ;; under the License.
 ;;
 
-(define-library (liii goldfmt-dispatch)
+(define-library (liii goldfmt dispatch)
   (import (liii base)
     (liii sys)
     (liii path)
     (liii string)
-    (liii goldfmt-lang)
-    (liii goldfmt-path)
-    (liii goldfmt-config)
-    (liii goldfmt-repo)
+    (liii goldfmt lang)
+    (liii goldfmt path)
+    (liii goldfmt config)
+    (liii goldfmt repo)
   ) ;import
   (export ensure-scheme-handler! scheme-handler-of dispatch-format-file
     directory-handler-for dispatch-format-directory dispatch-check-directory
@@ -32,7 +32,7 @@
 
     (define (ensure-scheme-handler!)
       (unless (lang-for-extension ".scm")
-        (eval '(import (liii scheme-fmt)) (rootlet))
+        (eval '(import (liii goldfmt scheme)) (rootlet))
       ) ;unless
     ) ;define
 
@@ -56,8 +56,8 @@
       (let ((matched (lang-for-extensions extensions)))
         (cond ((null? matched) (scheme-handler-of))
               ((null? (cdr matched)) (car matched))
-              (else
-                (display "错误: 目录格式化不支持混合语言后缀，请用单一语言的 -e")
+              (else (display "错误: 目录格式化不支持混合语言后缀，请用单一语言的 -e"
+                    ) ;display
                 (newline)
                 (exit 1)
               ) ;else

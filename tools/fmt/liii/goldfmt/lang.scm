@@ -31,8 +31,8 @@
 ;; 主入口按文件后缀查注册表派发，不硬编码任何语言。新增语言只需注册 handler。
 ;; 通用 exclude 匹配（精确 + glob *）与文件收集也在此提供，供各 handler 复用。
 
-(define-library (liii goldfmt-lang)
-  (import (liii base) (liii path) (liii string) (liii goldfmt-path))
+(define-library (liii goldfmt lang)
+  (import (liii base) (liii path) (liii string) (liii goldfmt path))
   (export register-lang! lang-list lang-ref lang-name lang-label lang-extensions
     extensions-for-lang-name lang-for-extension lang-for-extensions
     lang-for-name path-matches-exclude? file-excluded? collect-files

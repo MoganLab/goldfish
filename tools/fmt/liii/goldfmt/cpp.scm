@@ -14,15 +14,15 @@
 ;; under the License.
 ;;
 
-(define-library (liii cpp-fmt)
+(define-library (liii goldfmt cpp)
   (import (liii base)
     (liii path)
     (liii string)
-    (liii goldfmt-cache)
-    (liii goldfmt-lang)
-    (liii goldfmt-config)
-    (liii goldfmt-parallel)
-    (liii cpp-fmt-runner)
+    (liii goldfmt cache)
+    (liii goldfmt lang)
+    (liii goldfmt config)
+    (liii goldfmt parallel)
+    (liii goldfmt cpp-runner)
   ) ;import
   (export clang-format-binary cpp-extensions format-cpp-file format-cpp-files
     format-cpp-directory check-cpp-file cpp-format-one-quiet cpp-fmt-one
@@ -39,47 +39,36 @@
     ;; 返回 'cached / #t(有变更) / #f(无变更)。
     (define* (format-cpp-file path-str dry-run (use-cache? #t))
       (let ((cfg (load-fmt-config)))
-        (cond
-         ((not (clang-format-ok? cfg))
-          (clang-format-hint)
-          #f
-         ) ;
-         (dry-run
-          (clang-format-run cfg (list "--dry-run" path-str))
-         ) ;
-         ((and use-cache? (fmt-cache-hit? path-str))
-          (display (string-append "  Cached: " path-str))
-          (newline)
-          'cached
-         ) ;
-         (else
-           (let* ((res (cpp-format-one-quiet (clang-format-binary cfg) path-str))
-                  (status (car res))
-                 ) ;
-             (cond
-              ((eq? status 'updated)
-               (display (string-append "  Updated: " path-str))
-               (newline)
-               #t
-              ) ;
-              ((eq? status 'cached)
+        (cond ((not (clang-format-ok? cfg)) (clang-format-hint) #f)
+              (dry-run (clang-format-run cfg (list "--dry-run" path-str)))
+              ((and use-cache? (fmt-cache-hit? path-str))
                (display (string-append "  Cached: " path-str))
                (newline)
                'cached
               ) ;
-              ((eq? status 'unchanged)
-               (display (string-append "  Unchanged: " path-str))
-               (newline)
-               #f
-              ) ;
               (else
-                (display (string-append "  Failed: " path-str))
-                (newline)
-                #f
+                (let* ((res (cpp-format-one-quiet (clang-format-binary cfg) path-str))
+                       (status (car res))
+                      ) ;
+                  (cond ((eq? status 'updated)
+                         (display (string-append "  Updated: " path-str))
+                         (newline)
+                         #t
+                        ) ;
+                        ((eq? status 'cached)
+                         (display (string-append "  Cached: " path-str))
+                         (newline)
+                         'cached
+                        ) ;
+                        ((eq? status 'unchanged)
+                         (display (string-append "  Unchanged: " path-str))
+                         (newline)
+                         #f
+                        ) ;
+                        (else (display (string-append "  Failed: " path-str)) (newline) #f)
+                  ) ;cond
+                ) ;let*
               ) ;else
-             ) ;cond
-           ) ;let*
-         ) ;else
         ) ;cond
       ) ;let
     ) ;define*
@@ -129,10 +118,7 @@
             ) ;display
             (newline)
             (flush-output-port (current-output-port))
-            (let ((results
-                    (pool-for-each (lambda (path) (cpp-fmt-one cf path)) files
-                      print-cpp-fmt-result
-                    ) ;pool-for-each
+            (let ((results (pool-for-each (lambda (path) (cpp-fmt-one cf path)) files print-cpp-fmt-result)
                   ) ;results
                  ) ;
               (list (length results)
@@ -190,10 +176,10 @@
             files
           ) ;begin
           (let ((cf (clang-format-binary cfg)))
-            (offenders-from
-              (pool-for-each (lambda (path) (cpp-check-one cf path)) files
-                (lambda (file result) #f)
-              ) ;pool-for-each
+            (offenders-from (pool-for-each (lambda (path) (cpp-check-one cf path))
+                              files
+                              (lambda (file result) #f)
+                            ) ;pool-for-each
             ) ;offenders-from
           ) ;let
         ) ;if

@@ -1,4 +1,4 @@
-;; (liii goldfmt-config) 模块测试文件
+;; (liii goldfmt config) 模块测试文件
 ;;
 ;; 重点测试 lang-binary 对 binary / binary-linux 等字段的支持：
 ;; 既接受单个字符串，也接受字符串数组（取第一个存在且可执行的）。
@@ -13,7 +13,7 @@
   (liii json)
   (liii semver)
   (liii subprocess)
-  (liii goldfmt-config)
+  (liii goldfmt config)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -225,6 +225,7 @@
 (run-set! 'gf (string-append project-root "/bin/gf"))
 
 ;; 版本不匹配（更大、更小或非法格式）：阻止执行，打印英文错误并退出 1
+
 (define (check-version-blocked version-str)
   (path-write-text (path (string-append sandbox-dir "/gf_fmt.json"))
     (string-append "{\"goldfish_version\": \""
@@ -243,8 +244,7 @@
     (let ((err (to-left res)))
       (check (process-error-code err) => 1)
       (check (string-contains? (process-error-stdout err)
-               (string-append
-                 "error: gf_fmt.json requires Goldfish version "
+               (string-append "error: gf_fmt.json requires Goldfish version "
                  version-str
                  ", but current version is "
                ) ;string-append

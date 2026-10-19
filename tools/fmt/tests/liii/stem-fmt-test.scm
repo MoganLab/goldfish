@@ -1,9 +1,9 @@
 (import (liii check)
   (liii os)
-  (liii goldfmt-lang)
+  (liii goldfmt lang)
   (liii goldfmt scan)
   (liii goldfmt format)
-  (liii stem-fmt)
+  (liii goldfmt stem-fmt)
   (srfi srfi-13)
 ) ;import
 

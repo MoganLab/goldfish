@@ -14,14 +14,14 @@
 ;; under the License.
 ;;
 
-(define-library (liii cpp-fmt-runner)
+(define-library (liii goldfmt cpp-runner)
   (import (liii base)
     (liii path)
     (liii string)
     (liii subprocess)
-    (liii goldfmt-cache)
-    (liii goldfmt-config)
-    (liii goldfmt-parallel)
+    (liii goldfmt cache)
+    (liii goldfmt config)
+    (liii goldfmt parallel)
   ) ;import
   (export clang-format-binary clang-format-ok? clang-format-hint
     clang-format-run clang-format-run-with cpp-format-one-quiet cpp-fmt-one

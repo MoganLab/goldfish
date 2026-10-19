@@ -30,7 +30,7 @@
 ;;              支持通配符 *（匹配逻辑在各语言模块/通用层）。
 ;; 配置文件放在项目根（g_project-root，即 gfproject.json 所在目录）。
 
-(define-library (liii goldfmt-config)
+(define-library (liii goldfmt config)
   (import (liii base) (liii os) (liii path) (liii string) (liii json) (liii list))
   (export load-fmt-config config-exists? fmt-config-goldfish-version
     lang-suffixes lang-paths lang-excludes lang-binary default-suffixes

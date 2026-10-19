@@ -14,16 +14,16 @@
 ;; under the License.
 ;;
 
-(define-library (liii goldfmt-changed)
+(define-library (liii goldfmt changed)
   (import (liii base)
     (liii path)
     (liii string)
     (liii list)
     (liii json)
-    (liii goldfmt-lang)
-    (liii goldfmt-config)
-    (liii goldfmt-args)
-    (liii goldfmt-repo)
+    (liii goldfmt lang)
+    (liii goldfmt config)
+    (liii goldfmt args)
+    (liii goldfmt repo)
     (liii goldtool-changed)
   ) ;import
   (export all-registered-extensions group-files-by-lang format-changed-since)
@@ -31,7 +31,7 @@
 
     (define (ensure-scheme-handler!)
       (unless (lang-for-extension ".scm")
-        (eval '(import (liii scheme-fmt)) (rootlet))
+        (eval '(import (liii goldfmt scheme)) (rootlet))
       ) ;unless
     ) ;define
 
@@ -112,7 +112,8 @@
           (display (string-append "=== Formatting " (lang-label handler) " files ==="))
           (newline)
           (flush-output-port (current-output-port))
-          (format-changed-group-loop (cdr gs) cfg
+          (format-changed-group-loop (cdr gs)
+            cfg
             (+ total (car stats))
             (+ updated (cadr stats))
             (+ cached (caddr stats))

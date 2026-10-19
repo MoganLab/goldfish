@@ -17,7 +17,7 @@
 ;; 格式化缓存：供 scheme-fmt / cpp-fmt 共享。
 ;; 缓存键为文件内容的 SHA-256；缓存目录按 Goldfish 版本隔离。
 
-(define-library (liii goldfmt-cache)
+(define-library (liii goldfmt cache)
   (import (liii base) (liii path) (liii hashlib))
   (export fmt-cache-base-dir fmt-cache-path fmt-cache-hit? fmt-cache-touch)
   (begin

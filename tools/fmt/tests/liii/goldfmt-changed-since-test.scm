@@ -1,8 +1,5 @@
 ;; (liii path)/(liii list)/(liii sys) 属核心库，无需额外 load-path 条目即可导入。
-(import (liii path)
-  (liii list)
-  (liii sys)
-)
+(import (liii path) (liii list) (liii sys))
 
 ;; load-path 条目以本测试文件自身位置为锚点绝对化：
 ;;  1. gf test 会 chdir 到 tools/fmt 再以相对路径启动本测试（初始 CWD 不是仓库根），
@@ -11,7 +8,9 @@
 ;;     而 (liii go) worker 会话的库加载按进程 CWD 解析相对条目——不绝对化的话
 ;;     worker 会 import 失败，主线程因收不齐结果而永久等待。
 (let* ((script-path (path-absolute (last (argv))))
-       (fmt-root (path->string (path-parent (path-parent (path-parent script-path)))))
+       (fmt-root
+         (path->string (path-parent (path-parent (path-parent script-path))))
+       ) ;fmt-root
        (tools-root (path->string (path-parent (path fmt-root))))
       ) ;
   (set! *load-path* (cons fmt-root *load-path*))
@@ -20,7 +19,7 @@
 
 (import (liii check)
   (liii goldfmt)
-  (liii cpp-fmt)
+  (liii goldfmt cpp)
   (liii goldtool-changed)
   (liii os)
   (liii string)
@@ -96,9 +95,10 @@
 (define original-cwd (getcwd))
 
 (define repo-dir
-  (path->string (path-join (path-temp-dir)
-                  (string-append "goldfmt-changed-since-test-" (number->string (getpid)))
-                ) ;path-join
+  (path->string
+    (path-join (path-temp-dir)
+      (string-append "goldfmt-changed-since-test-" (number->string (getpid)))
+    ) ;path-join
   ) ;path->string
 ) ;define
 
@@ -127,9 +127,10 @@
     ;; 默认使用所有语言时，应识别到 .scm 和 .cpp 两个变更文件
     ;; 这里不实际调用 clang-format，只检查分组结果。
     (let* ((all-files (changed-existing-files-since "HEAD"))
-           (filtered (filter (lambda (f) (or (string-ends? f ".scm") (string-ends? f ".cpp")))
-                       all-files
-                     ) ;filter
+           (filtered
+             (filter (lambda (f) (or (string-ends? f ".scm") (string-ends? f ".cpp")))
+               all-files
+             ) ;filter
            ) ;filtered
            (groups (group-files-by-lang filtered))
           ) ;
