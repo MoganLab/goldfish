@@ -26,6 +26,7 @@
     (liii pi message)
     (liii pi event)
     (liii pi agent tools)
+    (liii pi agent cost)
   ) ;import
   (export run-agent-loop extract-assistant-text)
   (begin
@@ -99,10 +100,11 @@
                  #f
                ) ;if
              ) ;on-stream-ev
-             (resp (%request-provider-stream provider config msgs system-prompt
-                     active-tools on-stream-ev timeout
-                   ) ;%request-provider-stream
-             ) ;resp
+             (raw-resp (%request-provider-stream provider config msgs
+                         system-prompt active-tools on-stream-ev timeout
+                       ) ;%request-provider-stream
+             ) ;raw-resp
+             (resp (pi-agent-attach-cost raw-resp config))
             ) ;
         (when (procedure? emit)
           (emit 'message_start resp)
@@ -118,14 +120,33 @@
       ) ;let*
     ) ;define
 
-    (define (%finish-agent-turn new-msgs stop-reason tool-calls emit)
-      (if (equal? stop-reason "length")
-        (if (null? tool-calls)
-          new-msgs
-          (append new-msgs (pi-fail-tool-calls-length tool-calls emit))
-        ) ;if
-        new-msgs
-      ) ;if
+    (define (%emit-agent-end emit final-msgs stop-reason config)
+      (when (procedure? emit)
+        (let* ((aborted? (equal? stop-reason "aborted"))
+               (summary (pi-agent-session-cost-summary final-msgs config))
+               (cost (cdr (assoc 'totalCost summary)))
+               (savings (cdr (assoc 'totalSavings summary)))
+              ) ;
+          (emit 'agent_end final-msgs #f cost savings)
+          (emit 'agent_settled aborted?)
+        ) ;let*
+      ) ;when
+    ) ;define
+
+    (define (%finish-agent-turn new-msgs stop-reason tool-calls emit config)
+      (let ((final-msgs
+              (if (equal? stop-reason "length")
+                (if (null? tool-calls)
+                  new-msgs
+                  (append new-msgs (pi-fail-tool-calls-length tool-calls emit))
+                ) ;if
+                new-msgs
+              ) ;if
+            ) ;final-msgs
+           ) ;
+        (%emit-agent-end emit final-msgs stop-reason config)
+        final-msgs
+      ) ;let
     ) ;define
 
     (define (%notify-turn-end emit assistant-msg tool-results)
@@ -134,18 +155,23 @@
       ) ;when
     ) ;define
 
-    (define (%emit-agent-error err-msg msgs emit)
-      (let ((final-msgs (append msgs (list err-msg))))
+    (define (%emit-agent-error err-msg msgs emit config)
+      (let* ((resp (pi-agent-attach-cost err-msg config))
+             (final-msgs (append msgs (list resp)))
+             (summary (pi-agent-session-cost-summary final-msgs config))
+             (cost (cdr (assoc 'totalCost summary)))
+             (savings (cdr (assoc 'totalSavings summary)))
+            ) ;
         (when (procedure? emit)
           (emit 'turn_start)
-          (emit 'message_start err-msg)
-          (emit 'message_end err-msg)
-          (emit 'turn_end err-msg #())
-          (emit 'agent_end final-msgs #f)
+          (emit 'message_start resp)
+          (emit 'message_end resp)
+          (emit 'turn_end resp #())
+          (emit 'agent_end final-msgs #f cost savings)
           (emit 'agent_settled #f)
         ) ;when
         final-msgs
-      ) ;let
+      ) ;let*
     ) ;define
 
     (define* (run-agent-loop config
@@ -173,13 +199,13 @@
         (let loop
           ((msgs initial-messages) (turn 0))
           (cond ((and (number? session-timeout) (<= session-timeout 0))
-                 (%emit-agent-error (%make-session-timeout-error) msgs emit)
+                 (%emit-agent-error (%make-session-timeout-error) msgs emit config)
                 ) ;
                 ((and deadline-sec (> (current-second) deadline-sec))
-                 (%emit-agent-error (%make-session-timeout-error) msgs emit)
+                 (%emit-agent-error (%make-session-timeout-error) msgs emit config)
                 ) ;
                 ((and (> max-turns 0) (>= turn max-turns))
-                 (%emit-agent-error (%make-max-turns-error) msgs emit)
+                 (%emit-agent-error (%make-max-turns-error) msgs emit config)
                 ) ;
                 (else
                   (let*-values (((new-msgs stop-reason tool-calls resp)
@@ -197,14 +223,8 @@
                         ) ;when
                         (loop all-msgs (+ turn 1))
                       ) ;let*
-                      (let ((final-msgs (%finish-agent-turn new-msgs stop-reason tool-calls emit)))
+                      (let ((final-msgs (%finish-agent-turn new-msgs stop-reason tool-calls emit config)))
                         (%notify-turn-end emit resp #())
-                        (when (procedure? emit)
-                          (let ((aborted? (equal? stop-reason "aborted")))
-                            (emit 'agent_end final-msgs #f)
-                            (emit 'agent_settled aborted?)
-                          ) ;let
-                        ) ;when
                         final-msgs
                       ) ;let
                     ) ;if

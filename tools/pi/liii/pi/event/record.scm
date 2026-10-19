@@ -48,7 +48,8 @@
     pi-event-turn-end-type pi-event-turn-end-message
     pi-event-turn-end-tool-results pi-event-agent-end pi-event-agent-end?
     pi-event-agent-end-type pi-event-agent-end-messages
-    pi-event-agent-end-will-retry pi-event-agent-settled pi-event-agent-settled?
+    pi-event-agent-end-will-retry pi-event-agent-end-cost
+    pi-event-agent-end-savings pi-event-agent-settled pi-event-agent-settled?
     pi-event-agent-settled-type pi-event-agent-settled-aborted
   ) ;export
   (begin
@@ -183,10 +184,22 @@
         ) ;list
        ) ;
        ((pi-event-agent-end? ev)
-        (list (cons "type" "agent_end")
-          (cons "messages" (pi-event-agent-end-messages ev))
-          (cons "willRetry" (pi-event-agent-end-will-retry ev))
-        ) ;list
+        (let* ((base (list (cons "type" "agent_end")
+                       (cons "messages" (pi-event-agent-end-messages ev))
+                       (cons "willRetry" (pi-event-agent-end-will-retry ev))
+                     ) ;list
+               ) ;base
+               (c (pi-event-agent-end-cost ev))
+               (s (pi-event-agent-end-savings ev))
+               (base
+                 (if c (append base (list (cons "cost" c))) base)
+               ) ;base
+               (base
+                 (if s (append base (list (cons "savings" s))) base)
+               ) ;base
+              ) ;
+          base
+        ) ;let*
        ) ;
        ((pi-event-agent-settled? ev)
         (list (cons "type" "agent_settled")
@@ -247,8 +260,8 @@
       (%make-pi-event-turn-end assistant-msg tool-results)
     ) ;define*
 
-    (define* (pi-event-agent-end messages (will-retry #f))
-      (%make-pi-event-agent-end messages (if will-retry #t #f))
+    (define* (pi-event-agent-end messages (will-retry #f) (cost #f) (savings #f))
+      (%make-pi-event-agent-end messages (if will-retry #t #f) cost savings)
     ) ;define*
 
     (define* (pi-event-agent-settled (aborted #f))

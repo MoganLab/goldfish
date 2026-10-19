@@ -103,7 +103,8 @@
     pi-event-turn-end-type pi-event-turn-end-message
     pi-event-turn-end-tool-results pi-event-agent-end pi-event-agent-end?
     pi-event-agent-end-type pi-event-agent-end-messages
-    pi-event-agent-end-will-retry pi-event-agent-settled pi-event-agent-settled?
+    pi-event-agent-end-will-retry pi-event-agent-end-cost
+    pi-event-agent-end-savings pi-event-agent-settled pi-event-agent-settled?
     pi-event-agent-settled-type pi-event-agent-settled-aborted
     pi-build-json-event uuid4 pi-message? pi-message-role pi-message->alist
     pi-block? pi-block-type pi-block->alist pi-user-message pi-user-message?

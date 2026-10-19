@@ -37,7 +37,8 @@
     pi-event-tool-execution-end-is-error %make-pi-event-turn-end
     pi-event-turn-end? pi-event-turn-end-message pi-event-turn-end-tool-results
     %make-pi-event-agent-end pi-event-agent-end? pi-event-agent-end-messages
-    pi-event-agent-end-will-retry %make-pi-event-agent-settled
+    pi-event-agent-end-will-retry pi-event-agent-end-cost
+    pi-event-agent-end-savings %make-pi-event-agent-settled
     pi-event-agent-settled? pi-event-agent-settled-aborted
   ) ;export
   (begin
@@ -116,10 +117,12 @@
     ) ;define-record-type
 
     (define-record-type <pi-event-agent-end>
-      (%make-pi-event-agent-end messages will-retry)
+      (%make-pi-event-agent-end messages will-retry cost savings)
       pi-event-agent-end?
       (messages pi-event-agent-end-messages)
       (will-retry pi-event-agent-end-will-retry)
+      (cost pi-event-agent-end-cost)
+      (savings pi-event-agent-end-savings)
     ) ;define-record-type
 
     (define-record-type <pi-event-agent-settled>

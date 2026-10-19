@@ -55,7 +55,8 @@
     pi-event-turn-end-type pi-event-turn-end-message
     pi-event-turn-end-tool-results pi-event-agent-end pi-event-agent-end?
     pi-event-agent-end-type pi-event-agent-end-messages
-    pi-event-agent-end-will-retry pi-event-agent-settled pi-event-agent-settled?
+    pi-event-agent-end-will-retry pi-event-agent-end-cost
+    pi-event-agent-end-savings pi-event-agent-settled pi-event-agent-settled?
     pi-event-agent-settled-type pi-event-agent-settled-aborted
     pi-build-json-event
   ) ;export
@@ -129,7 +130,7 @@
        ((tool_execution_update) (apply pi-event-tool-execution-update args))
        ((tool_execution_end) (apply pi-event-tool-execution-end args))
        ((turn_end) (pi-event-turn-end (car args) (cadr args)))
-       ((agent_end) (pi-event-agent-end (car args) (cadr args)))
+       ((agent_end) (apply pi-event-agent-end args))
        ((agent_settled) (pi-event-agent-settled (car args)))
        (else #f)
       ) ;case

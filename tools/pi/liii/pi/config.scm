@@ -239,6 +239,7 @@
               (cons 'api-key api-key)
               (cons 'model-id model-id)
               (cons 'model-meta meta)
+              (cons 'models-store models-store)
               (cons 'thinking-level thinking-level)
               (cons 'proxy-url proxy-url)
               (cons 'tools tools)
