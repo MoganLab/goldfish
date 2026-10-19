@@ -296,6 +296,7 @@ tools/pi/liii/
 | 4 | thinking 内容不请求不解析 | `--thinking-level` 用法在 TODO | 远期（任务 012） |
 | 5 | 图片输入不支持 | `@图片` 用法在 TODO | 远期（任务 013） |
 | 6 | `--model` 不跨 provider 自动路由：bin/gf pi 只在当前 provider（--provider 或 defaultProvider）内解析模型 ID；pi 的 model-resolver 会在全部 provider 模型目录中搜索 ID，命中即隐式选定 provider（如 `pi -p --model k3` 自动路由到 kimi） | 实测：`bin/gf pi -p --model k3` 把 k3 发给 Google 得 HTTP 404，而 pi 正常路由 | 修复中（任务 022） |
+| 7 | Windows 下 bash 工具挂死：子进程 spawn 方式在 Windows 不可用，bash 工具执行任何命令均挂到超时（纯文本对话正常）；bin/gf pi 因此无法跑 git/测试命令，是自举（CLAUDE_CODE_PLAN §5.5）的前置缺陷 | 实测（2026-10-19）：`timeout 180 bin/gf pi --mode json --tools bash "用 bash 工具运行命令 echo win-bash-ok"` → tool_execution_end "Command timed out after 120 seconds" isError:true | 修复中（任务 026，优先） |
 
 ## Provider 支持范围
 
