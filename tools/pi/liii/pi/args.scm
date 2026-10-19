@@ -16,7 +16,9 @@
 
 (define-library (liii pi args)
   (import (scheme base) (scheme process-context) (liii string) (liii path))
-  (export parse-pi-args pi-args-ref format-file-block process-file-arguments)
+  (export parse-pi-args pi-args-ref format-file-block process-file-arguments
+    pi-validate-review-flags
+  ) ;export
   (begin
 
     (define (format-file-block abs-path content)
@@ -60,6 +62,10 @@
         (cons 'compact #f)
         (cons 'no-auto-compact #f)
         (cons 'list-models #f)
+        (cons 'code-review #f)
+        (cons 'auto-review #f)
+        (cons 'staged #f)
+        (cons 'review-ref #f)
         (cons 'system-prompt #f)
         (cons 'append-system-prompt '())
         (cons 'file-args '())
@@ -90,6 +96,13 @@
             ((string=? arg "--compact") (values 'compact #t 1))
             ((string=? arg "--no-auto-compact") (values 'no-auto-compact #t 1))
             ((string=? arg "--no-session") (values 'no-session #t 1))
+            ((string=? arg "--code-review") (values 'code-review #t 1))
+            ((string=? arg "--auto-review") (values 'auto-review #t 1))
+            ((string=? arg "--staged") (values 'staged #t 1))
+            ((string-starts? arg "--ref=")
+             (values 'review-ref (substring arg 6 (string-length arg)) 1)
+            ) ;
+            ((and (string=? arg "--ref") next-arg) (values 'review-ref next-arg 2))
             ((or (string=? arg "--no-tools") (string=? arg "--no-builtin-tools"))
              (values 'no-tools #t 1)
             ) ;
@@ -163,6 +176,25 @@
           ) ;cond
         ) ;let-values
       ) ;let*
+    ) ;define
+
+    (define (pi-validate-review-flags parsed)
+      (let ((code-review (pi-args-ref parsed 'code-review))
+            (auto-review (pi-args-ref parsed 'auto-review))
+            (staged (pi-args-ref parsed 'staged))
+            (ref (pi-args-ref parsed 'review-ref))
+           ) ;
+        (when (and code-review auto-review)
+          (error 'pi-arg-error "--code-review and --auto-review cannot be used together")
+        ) ;when
+        (when (and staged (not code-review))
+          (error 'pi-arg-error "--staged requires --code-review")
+        ) ;when
+        (when (and ref (not code-review))
+          (error 'pi-arg-error "--ref requires --code-review")
+        ) ;when
+        #t
+      ) ;let
     ) ;define
 
     (define (parse-pi-args argv)

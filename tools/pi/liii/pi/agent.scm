@@ -29,7 +29,9 @@
     (liii pi agent tools)
     (liii pi agent cost)
   ) ;import
-  (export run-agent-loop extract-assistant-text pi-request-provider-stream)
+  (export run-agent-loop extract-assistant-text pi-request-provider-stream
+    pi-resolve-turn-system-prompt
+  ) ;export
   (begin
 
     (define (%collect-text-blocks blks)
@@ -72,6 +74,10 @@
         "Session timeout exceeded: total execution deadline reached"
         :usage '((input . 0) (output . 0) (total . 0))
       ) ;pi-assistant-message
+    ) ;define
+
+    (define (pi-resolve-turn-system-prompt system-prompt tool-calls)
+      (if (procedure? system-prompt) (system-prompt tool-calls) system-prompt)
     ) ;define
 
     (define (pi-request-provider-stream provider config msgs sys-prompt tools on-ev timeout)
@@ -215,7 +221,7 @@
              ) ;deadline-sec
             ) ;
         (let loop
-          ((msgs initial-messages) (turn 0))
+          ((msgs initial-messages) (turn 0) (last-tool-calls '()))
           (cond ((and (number? session-timeout) (< session-timeout 0))
                  (%emit-agent-error (%make-session-timeout-error) msgs emit config)
                 ) ;
@@ -226,9 +232,11 @@
                  (%emit-agent-error (%make-max-turns-error) msgs emit config)
                 ) ;
                 (else
-                  (let ((msgs (%maybe-compact compaction msgs)))
+                  (let* ((msgs (%maybe-compact compaction msgs))
+                         (turn-sp (pi-resolve-turn-system-prompt system-prompt last-tool-calls))
+                        ) ;
                     (let*-values (((new-msgs stop-reason tool-calls resp)
-                                   (%step-agent-turn config msgs system-prompt emit timeout)
+                                   (%step-agent-turn config msgs turn-sp emit timeout)
                                   ) ;
                                  ) ;
                       (if (equal? stop-reason "toolUse")
@@ -240,12 +248,12 @@
                           (when (procedure? emit)
                             (emit 'turn_start)
                           ) ;when
-                          (loop all-msgs (+ turn 1))
+                          (loop all-msgs (+ turn 1) tool-calls)
                         ) ;let*
                         (%finish-agent-turn new-msgs stop-reason tool-calls emit config resp)
                       ) ;if
                     ) ;let*-values
-                  ) ;let
+                  ) ;let*
                 ) ;else
           ) ;cond
         ) ;let

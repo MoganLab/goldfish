@@ -27,6 +27,7 @@
     (liii pi find)
     (liii pi grep)
     (liii pi web-search)
+    (liii pi code-review)
     (liii pi tools)
     (liii pi tools types)
     (liii pi tools record)
@@ -62,14 +63,21 @@
     pi-execute-find pi-grep-schema pi-execute-grep pi-web-search-schema
     pi-validate-web-search-args pi-format-web-search-result
     pi-execute-web-search pi-resolve-config-value json-dict-ref pi-get-agent-dir
-    pi-read-json-file pi-load-settings pi-resolve-proxy-url pi-load-auth
-    pi-resolve-provider-key pi-load-multikey pi-multikey-select-key
-    pi-multikey-mark-cooldown! pi-multikey-pool-of pi-multikey-request-key
-    pi-multikey-rotate! pi-mask-key pi-pool-key pi-pool-key? pi-pool-key-key
-    pi-pool-key-label pi-pool-key-enabled pi-pool-key-last-used
-    pi-pool-key-cooling? pi-key-pool pi-key-pool? pi-key-pool-id
-    pi-key-pool-cooldown-ms pi-key-pool-invalid-cooldown-ms pi-key-pool-keys
-    pi-load-models-store pi-load-models-json pi-merge-models-json-into-store
+    PI_REVIEW_MAX_FILES PI_REVIEW_MAX_FILE_CHARS PI_REVIEW_SEVERITIES
+    pi-parse-changed-files pi-changed-files-command pi-collect-changed-files
+    pi-review-file-records pi-detect-language pi-language-checklist
+    pi-build-language-section pi-build-review-prompt pi-build-fallback-prompt
+    pi-parse-review-findings pi-format-review-findings pi-build-review-injection
+    pi-edited-files-from-tool-calls pi-validate-review-flags
+    pi-resolve-turn-system-prompt pi-auto-review-system-prompt pi-read-json-file
+    pi-load-settings pi-resolve-proxy-url pi-load-auth pi-resolve-provider-key
+    pi-load-multikey pi-multikey-select-key pi-multikey-mark-cooldown!
+    pi-multikey-pool-of pi-multikey-request-key pi-multikey-rotate! pi-mask-key
+    pi-pool-key pi-pool-key? pi-pool-key-key pi-pool-key-label
+    pi-pool-key-enabled pi-pool-key-last-used pi-pool-key-cooling? pi-key-pool
+    pi-key-pool? pi-key-pool-id pi-key-pool-cooldown-ms
+    pi-key-pool-invalid-cooldown-ms pi-key-pool-keys pi-load-models-store
+    pi-load-models-json pi-merge-models-json-into-store
     pi-resolve-model-metadata pi-format-token-count pi-list-models
     pi-format-models-table PI_SUPPORTED_PROVIDERS PI_PROVIDER_BUILTIN_MODELS
     pi-provider-default-model pi-find-model-provider pi-provider-has-model?

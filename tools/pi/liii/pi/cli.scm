@@ -85,12 +85,14 @@
                     ) ;build-initial-prompt
                    ) ;
                   ) ;
+        (pi-validate-review-flags parsed)
         (cond ((pi-args-ref parsed 'help) (display-pi-help) 0)
               ((pi-args-ref parsed 'list-models) (%handle-list-models parsed))
               ((and (string-null? initial-msg)
                  (null? rest-msgs)
                  (not (pi-args-ref parsed 'continue))
                  (not (pi-args-ref parsed 'compact))
+                 (not (pi-args-ref parsed 'code-review))
                ) ;and
                (display-pi-help)
                0
