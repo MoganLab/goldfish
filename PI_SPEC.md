@@ -262,6 +262,43 @@ tools/pi/liii/
 
 ## TODO（尚不能运行，随迭代补充）
 
+- [ ] **GLM 5.3 系列接入（任务 028，用户供稿待实测）**：重点支持 GLM 5.3 系列，具备 100 万超长上下文窗口并原生支持思考模式与工具调用。推荐模型：`glm-5.3`（1M 上下文旗舰主力）、`glm-5.3-flash`（1M 上下文轻量高速版）、`glm-5-turbo`（200K 上下文日常开发）、`glm-4.5-air`。预期用法（验证后转【可用】）：
+
+  ```bash
+  # 使用 GLM-5.3 主力模型提问
+  timeout 120 bin/gf pi --provider glm --model glm-5.3 -p "用一句话解释 Scheme 的 continuation"
+
+  # 使用 GLM-5.3-Flash 高速模型执行 Bash 工具任务
+  timeout 180 bin/gf pi --provider glm --model glm-5.3-flash --tools bash -p "统计 tests/ 目录下的测试用例总数"
+  ```
+
+  已知阻塞（2026-10-19 实测）：`bin/gf pi --provider glm --list-models` 报
+  `Unknown provider "glm"`——auth.json 有 glm 条目，但 `--provider all --list-models`
+  仅列出 google/kimi-coding，glm 模型目录缺失，需在任务 028 定位。
+- [ ] **DeepSeek v4 系列接入（任务 029，用户供稿待实测）**：经由 `https://api.deepseek.com/anthropic` 端点接入。推荐模型：`deepseek-v4-flash`（1M 上下文旗舰版，支持深度思考链与代码工具调用）、`deepseek-chat`（通用对话）、`deepseek-reasoner`（强化推理版）。预期用法（验证后转【可用】）：
+
+  ```bash
+  # 使用 DeepSeek V4 Flash 进行代码问答
+  timeout 120 bin/gf pi --provider deepseek --model deepseek-v4-flash -p "解释尾递归优化的原理"
+
+  # 使用 DeepSeek V4 Flash 配合 Bash 工具审查变更
+  git diff | timeout 180 bin/gf pi --provider deepseek --model deepseek-v4-flash --tools bash -p "审查当前 git diff 并提出改进建议"
+  ```
+
+  已知阻塞（2026-10-19 实测）：同 GLM——deepseek 模型目录未出现在
+  `--provider all --list-models` 输出中，需在任务 029 定位。
+- [ ] **MiniMax 中国大陆版接入（任务 030，用户供稿待实测）**：复用 auth.json 中的 `sk-cp-...` 凭据，接入 `https://api.minimaxi.com/anthropic`。主力推荐 `MiniMax-M3`（1M 上下文、512K 最大输出、多模态旗舰，支持思考模式与复杂工具调用），另有 `MiniMax-M2.7`（204.8K 上下文）与 `MiniMax-M2.7-highspeed`（高速版）。预期用法（验证后转【可用】）：
+
+  ```bash
+  # 使用 MiniMax-M3 主力模型提问
+  timeout 120 bin/gf pi --provider minimax --model MiniMax-M3 -p "用 Scheme 实现快速排序"
+
+  # 使用 MiniMax-M3 调用 Bash 与读写工具处理实际任务
+  timeout 180 bin/gf pi --provider minimax --model MiniMax-M3 --tools read,bash,write -p "运行 git status 并总结当前工作区状态"
+  ```
+
+  已知阻塞（2026-10-19 实测）：auth.json 有 `minimax`/`minimax-cn` 条目，但
+  bin/gf pi 尚无 minimax provider 实现（新增 provider，工作量大于 028/029）。
 - [ ] **4 字节 UTF-8 + '<' 挂起**：prompt 同时含 4 字节 UTF-8 字符（如 🚀、𠀀）与 `<` 时进程静默挂起且连 HTTP 300s 超时都不生效（复现：`timeout 60 bin/gf pi -p '🚀 <'`）。【待重做】
 - [ ] **thinking 内容**：思考级别的请求与解析。预期用法（实现时以 pi 实际 CLI 为准）：
 
