@@ -36,7 +36,7 @@
 
     (define (%init-new-session-file sdir cwd)
       (path-mkdir sdir :parents #t :exist-ok #t)
-      (let* ((sid (uuid4))
+      (let* ((sid (uuid7))
              (now-iso (pi-iso-8601-utc-now))
              (fp (make-session-file-path sdir now-iso sid))
             ) ;

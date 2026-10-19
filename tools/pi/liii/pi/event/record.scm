@@ -212,7 +212,7 @@
 
     (define* (pi-event-session cwd (id #f) (timestamp #f))
       (%make-pi-event-session 3
-        (or id (uuid4))
+        (or id (uuid7))
         (or timestamp (pi-iso-8601-utc-now))
         cwd
       ) ;%make-pi-event-session
