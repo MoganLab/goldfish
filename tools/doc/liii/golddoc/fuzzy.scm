@@ -14,10 +14,10 @@
 ;; under the License.
 ;;
 
-(define-library (liii golddoc-fuzzy)
+(define-library (liii golddoc fuzzy)
   (import (scheme base)
-    (liii golddoc-function)
-    (liii golddoc-index)
+    (liii golddoc function)
+    (liii golddoc index)
     (liii sort)
     (liii string)
   ) ;import

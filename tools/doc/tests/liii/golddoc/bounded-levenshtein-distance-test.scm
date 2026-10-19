@@ -1,6 +1,6 @@
-;; 添加 tools/golddoc 到 load path，以便导入 (liii golddoc)
+;; 添加 tools/doc 到 load path，以便导入 (liii golddoc)
 ;; 注意：假设运行测试时工作目录是项目根目录
-(set! *load-path* (cons "tools/golddoc" *load-path*))
+(set! *load-path* (cons "tools/doc" *load-path*))
 
 (import (liii check) (liii golddoc))
 
