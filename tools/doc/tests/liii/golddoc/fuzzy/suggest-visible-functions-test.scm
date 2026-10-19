@@ -1,6 +1,6 @@
-;; 添加 tools/golddoc 到 load path，以便导入 (liii golddoc)
+;; 添加 tools/doc 到 load path，以便导入 (liii golddoc)
 ;; 注意：假设运行测试时工作目录是项目根目录
-(set! *load-path* (cons "tools/golddoc" *load-path*))
+(set! *load-path* (cons "tools/doc" *load-path*))
 
 (import (liii check) (liii golddoc) (liii os) (liii path))
 
@@ -48,9 +48,10 @@
   ) ;let
 ) ;define
 
-(let* ((base-root (path-join (path-temp-dir)
-                    (string-append "golddoc-visible-suggestions-" (number->string (getpid)))
-                  ) ;path-join
+(let* ((base-root
+         (path-join (path-temp-dir)
+           (string-append "golddoc-visible-suggestions-" (number->string (getpid)))
+         ) ;path-join
        ) ;base-root
        (load-root (path-join base-root "goldfish"))
        (liii-root (path-join load-root "liii"))
@@ -74,7 +75,8 @@
   (path-write-text index-path
     "{\"string-split\":[\"(liii demo)\"],\"string-splat\":[\"(liii demo)\"],\"string-spilt\":[\"(liii demo)\"],\"srfi-only\":[\"(srfi 1)\"]}"
   ) ;path-write-text
-  (dynamic-wind (lambda () (set! *load-path* (list (path->string load-root))))
+  (dynamic-wind
+    (lambda () (set! *load-path* (list (path->string load-root))))
     (lambda ()
       (check (suggest-visible-functions "string-spl")
         =>

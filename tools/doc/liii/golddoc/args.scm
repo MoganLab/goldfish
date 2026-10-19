@@ -14,7 +14,7 @@
 ;; under the License.
 ;;
 
-(define-library (liii golddoc-args)
+(define-library (liii golddoc args)
   (import (scheme base) (liii string) (liii argparse))
   (export parse-doc-args library-query? parse-library-query)
   (begin

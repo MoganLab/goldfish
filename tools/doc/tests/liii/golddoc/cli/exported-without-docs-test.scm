@@ -1,6 +1,6 @@
-;; 添加 tools/golddoc 到 load path，以便导入 (liii golddoc)
+;; 添加 tools/doc 到 load path，以便导入 (liii golddoc)
 ;; 注意：假设运行测试时工作目录是项目根目录
-(set! *load-path* (cons "tools/golddoc" *load-path*))
+(set! *load-path* (cons "tools/doc" *load-path*))
 
 (import (liii check)
   (liii golddoc)
@@ -41,9 +41,10 @@
 ) ;define
 
 (when (not (os-windows?))
-  (let* ((base-root (path-join (path-temp-dir)
-                      (string-append "golddoc-exported-without-docs-" (number->string (getpid)))
-                    ) ;path-join
+  (let* ((base-root
+           (path-join (path-temp-dir)
+             (string-append "golddoc-exported-without-docs-" (number->string (getpid)))
+           ) ;path-join
          ) ;base-root
          (load-root (path-join base-root "goldfish"))
          (liii-root (path-join load-root "liii"))
@@ -66,11 +67,12 @@
     (path-write-text (path-join custom-root "other.scm")
       "(define-library (custom other)\n  (export exported-missing)\n  (import (scheme base))\n  (begin))\n"
     ) ;path-write-text
-    (dynamic-wind (lambda ()
-                    (path-unlink global-output-path #t)
-                    (path-unlink library-output-path #t)
-                    (set! *load-path* (list (path->string load-root)))
-                  ) ;lambda
+    (dynamic-wind
+      (lambda ()
+        (path-unlink global-output-path #t)
+        (path-unlink library-output-path #t)
+        (set! *load-path* (list (path->string load-root)))
+      ) ;lambda
       (lambda ()
         (build-function-indexes!)
         (run-shell-command (string-append (executable)

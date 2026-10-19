@@ -14,11 +14,11 @@
 ;; under the License.
 ;;
 
-(define-library (liii golddoc-function)
+(define-library (liii golddoc function)
   (import (scheme base)
-    (liii golddoc-args)
-    (liii golddoc-library)
-    (liii golddoc-naming)
+    (liii golddoc args)
+    (liii golddoc library)
+    (liii golddoc naming)
     (liii os)
     (liii path)
     (liii string)

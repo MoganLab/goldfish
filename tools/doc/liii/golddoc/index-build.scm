@@ -14,10 +14,10 @@
 ;; under the License.
 ;;
 
-(define-library (liii golddoc-index-build)
+(define-library (liii golddoc index-build)
   (import (scheme base)
     (scheme read)
-    (liii golddoc-library)
+    (liii golddoc library)
     (liii json)
     (liii os)
     (liii path)

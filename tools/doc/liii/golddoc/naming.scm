@@ -14,7 +14,7 @@
 ;; under the License.
 ;;
 
-(define-library (liii golddoc-naming)
+(define-library (liii golddoc naming)
   (import (scheme base) (liii string))
   (export exported-name->test-stem pure-operator->stem string-starts-at?)
   (begin

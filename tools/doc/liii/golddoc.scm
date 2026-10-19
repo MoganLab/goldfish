@@ -16,13 +16,13 @@
 
 (define-library (liii golddoc)
   (import (scheme base)
-    (liii golddoc-args)
-    (liii golddoc-library)
-    (liii golddoc-function)
-    (liii golddoc-index)
-    (liii golddoc-index-build)
-    (liii golddoc-fuzzy)
-    (liii golddoc-cli)
+    (liii golddoc args)
+    (liii golddoc library)
+    (liii golddoc function)
+    (liii golddoc index)
+    (liii golddoc index-build)
+    (liii golddoc fuzzy)
+    (liii golddoc cli)
   ) ;import
   (export parse-doc-args library-query? parse-library-query excluded-test-group?
     find-visible-library-root find-tests-root-for-load-root library-doc-path

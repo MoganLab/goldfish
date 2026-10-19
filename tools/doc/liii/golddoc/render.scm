@@ -14,8 +14,8 @@
 ;; under the License.
 ;;
 
-(define-library (liii golddoc-render)
-  (import (scheme base) (liii golddoc-args) (liii path) (liii string) (liii sys))
+(define-library (liii golddoc render)
+  (import (scheme base) (liii golddoc args) (liii path) (liii string) (liii sys))
   (export stderr-line golddoc-command-name shell-double-quote
     function-doc-command library-doc-command library-source-command
     library-query->display-name library-function-doc-command display-usage
