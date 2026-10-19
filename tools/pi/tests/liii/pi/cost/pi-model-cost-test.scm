@@ -1,7 +1,4 @@
-(import (scheme base)
-  (liii check)
-  (liii pi cost)
-) ;import
+(import (scheme base) (liii check) (liii pi cost))
 
 (check-set-mode! 'report-failed)
 
@@ -40,6 +37,26 @@
   (check (cdr (assoc 'output c)) => 0.0)
   (check (cdr (assoc 'cacheRead c)) => 0.0)
   (check (cdr (assoc 'cacheWrite c)) => 0.0)
+) ;let
+
+;; 5. MiniMax 系列定价（minimax-cn 回退到 minimax）
+(let ((c (pi-model-cost "minimax" "MiniMax-M3.1-Flash" '())))
+  (check-true (pair? c))
+  (check (cdr (assoc 'input c)) => 0.3)
+  (check (cdr (assoc 'output c)) => 1.2)
+  (check (cdr (assoc 'cacheRead c)) => 0.06)
+) ;let
+
+(let ((c (pi-model-cost "minimax-cn" "MiniMax-M2.7-highspeed" '())))
+  (check-true (pair? c))
+  (check (cdr (assoc 'input c)) => 0.6)
+  (check (cdr (assoc 'output c)) => 2.4)
+  (check (cdr (assoc 'cacheWrite c)) => 0.375)
+) ;let
+
+(let ((c (pi-model-cost "minimax" "MiniMax-M3" '())))
+  (check-true (pair? c))
+  (check-true (pair? (cdr (assoc 'tiers c))))
 ) ;let
 
 (check-report)

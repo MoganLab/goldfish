@@ -31,6 +31,14 @@
   (check p => "deepseek")
   (check m => "deepseek-v4-flash"))
 
+(let-values (((p m) (pi-route-provider-and-model "minimax" "MiniMax-M3.1-Flash" default-settings fixture-store '())))
+  (check p => "minimax")
+  (check m => "MiniMax-M3.1-Flash"))
+
+(let-values (((p m) (pi-route-provider-and-model "minimax-cn" "MiniMax-M2.7" default-settings fixture-store '())))
+  (check p => "minimax-cn")
+  (check m => "MiniMax-M2.7"))
+
 ;; 1.1 显式 provider 与模型归属不匹配时报 pi-config-error（不允许 fallback 继续）
 (check-catch 'pi-config-error
   (pi-route-provider-and-model "google" "k3" default-settings fixture-store '()))
@@ -71,6 +79,11 @@
 (let-values (((p m) (pi-route-provider-and-model #f "deepseek-chat" default-settings fixture-store '())))
   (check p => "deepseek")
   (check m => "deepseek-chat"))
+
+;; 2.3.2 MiniMax-M3.1-Flash 自动路由至 minimax
+(let-values (((p m) (pi-route-provider-and-model #f "MiniMax-M3.1-Flash" default-settings fixture-store '())))
+  (check p => "minimax")
+  (check m => "MiniMax-M3.1-Flash"))
 
 ;; 2.3.1 glm-5.3 / glm-5.3-flash 自动路由至 glm（models.json 合并目录，任务 028）
 (let-values (((p m) (pi-route-provider-and-model #f "glm-5.3" default-settings fixture-merged '())))

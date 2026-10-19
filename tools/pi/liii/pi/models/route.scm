@@ -66,6 +66,7 @@
               ((equal? p "kimi-coding") "kimi-for-coding")
               ((equal? p "glm") "glm-4-plus")
               ((equal? p "deepseek") "deepseek-chat")
+              ((or (equal? p "minimax") (equal? p "minimax-cn")) "MiniMax-M3.1-Flash")
               (else "gemini-3.8-flash")
         ) ;cond
       ) ;let
@@ -140,6 +141,8 @@
             ) ;
             ((equal? provider "glm") (%safe-lookup-env "GLM_MODEL" opt-env))
             ((equal? provider "deepseek") (%safe-lookup-env "DEEPSEEK_MODEL" opt-env))
+            ((equal? provider "minimax") (%safe-lookup-env "MINIMAX_MODEL" opt-env))
+            ((equal? provider "minimax-cn") (%safe-lookup-env "MINIMAX_CN_MODEL" opt-env))
             (else #f)
       ) ;cond
     ) ;define

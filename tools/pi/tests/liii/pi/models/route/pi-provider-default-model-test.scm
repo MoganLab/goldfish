@@ -11,6 +11,8 @@
 (check (pi-provider-default-model "kimi-coding") => "kimi-for-coding")
 (check (pi-provider-default-model "glm") => "glm-4-plus")
 (check (pi-provider-default-model "deepseek") => "deepseek-chat")
+(check (pi-provider-default-model "minimax") => "MiniMax-M3.1-Flash")
+(check (pi-provider-default-model "minimax-cn") => "MiniMax-M3.1-Flash")
 (check (pi-provider-default-model "other") => "gemini-3.8-flash")
 
 (check-report)

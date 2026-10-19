@@ -23,6 +23,7 @@
     (liii pi anthropic)
     (liii pi kimi)
     (liii pi deepseek)
+    (liii pi minimax)
     (liii pi message)
     (liii pi event)
     (liii pi agent tools)
@@ -82,6 +83,9 @@
             ) ;
             ((equal? provider "kimi-coding")
              (kimi-request-stream config msgs sys-prompt tools on-ev timeout)
+            ) ;
+            ((or (equal? provider "minimax") (equal? provider "minimax-cn"))
+             (minimax-request-stream config msgs sys-prompt tools on-ev timeout)
             ) ;
             (else (gemini-request-stream config msgs sys-prompt tools on-ev timeout))
       ) ;cond

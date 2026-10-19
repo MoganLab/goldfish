@@ -12,5 +12,7 @@
 (check (if (member "anthropic" PI_SUPPORTED_PROVIDERS) #t #f) => #t)
 (check (if (member "glm" PI_SUPPORTED_PROVIDERS) #t #f) => #t)
 (check (if (member "deepseek" PI_SUPPORTED_PROVIDERS) #t #f) => #t)
+(check (if (member "minimax" PI_SUPPORTED_PROVIDERS) #t #f) => #t)
+(check (if (member "minimax-cn" PI_SUPPORTED_PROVIDERS) #t #f) => #t)
 
 (check-report)

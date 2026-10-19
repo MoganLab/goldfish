@@ -163,8 +163,33 @@
              ) ;or
             ) ;
             ((string=? p-str "deepseek") (%env-var-non-empty "DEEPSEEK_API_KEY" opt-env))
+            ((string=? p-str "minimax")
+             (or (%env-var-non-empty "MINIMAX_API_KEY" opt-env)
+               (%env-var-non-empty "MINIMAX_CN_API_KEY" opt-env)
+             ) ;or
+            ) ;
+            ((string=? p-str "minimax-cn")
+             (or (%env-var-non-empty "MINIMAX_CN_API_KEY" opt-env)
+               (%env-var-non-empty "MINIMAX_API_KEY" opt-env)
+             ) ;or
+            ) ;
             (else #f)
       ) ;cond
+    ) ;define
+
+    (define (%provider-alias p-str)
+      (cond ((string=? p-str "minimax") "minimax-cn")
+            ((string=? p-str "minimax-cn") "minimax")
+            (else #f)
+      ) ;cond
+    ) ;define
+
+    (define (%non-empty-auth-key pair)
+      (and pair
+        (string? (cdr pair))
+        (not (string-null? (string-trim-both (cdr pair))))
+        (cdr pair)
+      ) ;and
     ) ;define
 
     (define (pi-resolve-provider-key provider auth-alist . opt-env)
@@ -173,18 +198,21 @@
             ) ;
         (if env-k
           env-k
-          (let ((pair (or (assoc p-str auth-alist) (assoc (string->symbol p-str) auth-alist))))
-            (if
-              (and pair
-                (string? (cdr pair))
-                (not (string-null? (string-trim-both (cdr pair))))
-              ) ;and
-              (cdr pair)
+          (let* ((pair (or (assoc p-str auth-alist) (assoc (string->symbol p-str) auth-alist)))
+                 (alias (%provider-alias p-str))
+                 (alias-pair
+                   (and alias
+                     (or (assoc alias auth-alist) (assoc (string->symbol alias) auth-alist))
+                   ) ;and
+                 ) ;alias-pair
+                ) ;
+            (or (%non-empty-auth-key pair)
+              (%non-empty-auth-key alias-pair)
               (cond ((string=? p-str "deepseek") (%resolve-deepseek-fallback opt-env))
                     (else #f)
               ) ;cond
-            ) ;if
-          ) ;let
+            ) ;or
+          ) ;let*
         ) ;if
       ) ;let*
     ) ;define

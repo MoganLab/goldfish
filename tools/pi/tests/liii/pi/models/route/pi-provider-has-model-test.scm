@@ -25,10 +25,15 @@
 (check-true (pi-provider-has-model? "kimi-coding" "kimi-for-coding" '()))
 (check-true (pi-provider-has-model? "glm" "glm-4-plus" '()))
 (check-true (pi-provider-has-model? "deepseek" "deepseek-chat" '()))
+(check-true (pi-provider-has-model? "minimax" "MiniMax-M3.1-Flash" '()))
+(check-true (pi-provider-has-model? "minimax" "MiniMax-M3" '()))
+(check-true (pi-provider-has-model? "minimax-cn" "MiniMax-M2.7" '()))
+(check-true (pi-provider-has-model? "minimax-cn" "MiniMax-M2.7-highspeed" '()))
 
 ;; 3. 不存在于该 provider 的模型返回 #f
 (check-false (pi-provider-has-model? "google" "k3" fixture-store))
 (check-false (pi-provider-has-model? "kimi-coding" "gemini-3.8-flash" '()))
+(check-false (pi-provider-has-model? "minimax" "gemini-3.8-flash" '()))
 (check-false (pi-provider-has-model? "google" "unknown-xyz" fixture-store))
 
 ;; 4. models.json 合并后 glm-5.3 系列命中（任务 028）

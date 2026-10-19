@@ -35,7 +35,7 @@
     pi-format-token-count pi-list-models pi-format-models-table
     PI_SUPPORTED_PROVIDERS PI_PROVIDER_BUILTIN_MODELS pi-provider-default-model
     pi-find-model-provider pi-provider-has-model? pi-route-provider-and-model
-    pi-ensure-catalog-meta
+    pi-ensure-catalog-meta pi-builtin-augment-store
   ) ;export
   (begin
 
@@ -199,6 +199,14 @@
                    (or (string=? provider "anthropic") (string=? provider "glm"))
                    (lookup-env-var "ANTHROPIC_BASE_URL" opt-env)
                  ) ;and
+                 (and (string? provider)
+                   (or (string=? provider "minimax") (string=? provider "minimax-cn"))
+                   (or (lookup-env-var (if (string=? provider "minimax-cn") "MINIMAX_CN_BASE_URL" "MINIMAX_BASE_URL")
+                         opt-env
+                       ) ;lookup-env-var
+                     (lookup-env-var "MINIMAX_BASE_URL" opt-env)
+                   ) ;or
+                 ) ;and
                  (lookup-env-var "GF_PI_BASE_URL" opt-env)
                ) ;or
              ) ;env-url
@@ -228,25 +236,47 @@
              (is-kimi? (string=? p-str "kimi-coding"))
              (is-glm? (string=? p-str "glm"))
              (is-ds? (string=? p-str "deepseek"))
+             (is-mm? (or (string=? p-str "minimax") (string=? p-str "minimax-cn")))
              (def-url (cond (is-ant? "https://api.anthropic.com")
                             (is-kimi? "https://api.kimi.com/coding/v1")
                             (is-glm? "https://open.bigmodel.cn/api/anthropic")
                             (is-ds? "https://api.deepseek.com/anthropic")
+                            (is-mm? "https://api.minimaxi.com/anthropic")
                             (else "https://generativelanguage.googleapis.com/v1beta")
                       ) ;cond
              ) ;def-url
-             (m (%find-model-in-list (%get-provider-models models-store p-str) model-id))
+             (m
+               (or (%find-model-in-list (%get-provider-models models-store p-str) model-id)
+                 (and is-mm?
+                   (%find-model-in-list (%dict-ref PI_PROVIDER_BUILTIN_MODELS p-str '()) model-id)
+                 ) ;and
+               ) ;or
+             ) ;m
              (raw-url (if m (%dict-ref m "baseUrl" def-url) def-url))
-             (norm-url (if (and is-kimi? (string=? raw-url "https://api.kimi.com/coding"))
-                         "https://api.kimi.com/coding/v1"
-                         raw-url
-                       ) ;if
+             (norm-url
+               (cond ((and is-kimi? (string=? raw-url "https://api.kimi.com/coding"))
+                      "https://api.kimi.com/coding/v1"
+                     ) ;
+                     ((and is-mm? (string=? raw-url "https://api.minimax.io"))
+                      "https://api.minimaxi.com/anthropic"
+                     ) ;
+                     ((and is-mm? (string=? raw-url "https://api.minimax.io/anthropic"))
+                      "https://api.minimaxi.com/anthropic"
+                     ) ;
+                     (else raw-url)
+               ) ;cond
              ) ;norm-url
-             (def-cw (cond (is-ant? 200000) (is-kimi? 262144) (else 128000)))
+             (def-cw (cond (is-ant? 200000)
+                           (is-kimi? 262144)
+                           (is-mm? 1000000)
+                           (else 128000)
+                     ) ;cond
+             ) ;def-cw
              (def-mt (cond (is-ant? 8192)
                            (is-kimi? 8192)
                            (is-glm? 8192)
                            (is-ds? 8192)
+                           (is-mm? 512000)
                            (else 16384)
                      ) ;cond
              ) ;def-mt

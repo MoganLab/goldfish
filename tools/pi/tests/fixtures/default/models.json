@@ -9,7 +9,9 @@
           "id": "deepseek-v4-flash",
           "name": "DeepSeek V4 Flash",
           "reasoning": true,
-          "input": ["text"],
+          "input": [
+            "text"
+          ],
           "contextWindow": 1000000,
           "maxTokens": 131072
         },
@@ -17,7 +19,9 @@
           "id": "deepseek-v4-pro",
           "name": "DeepSeek V4 Pro",
           "reasoning": true,
-          "input": ["text"],
+          "input": [
+            "text"
+          ],
           "contextWindow": 1000000,
           "maxTokens": 131072
         }
@@ -32,7 +36,9 @@
           "id": "glm-5.3",
           "name": "GLM 5.3",
           "reasoning": true,
-          "input": ["text"],
+          "input": [
+            "text"
+          ],
           "contextWindow": 1000000,
           "maxTokens": 131072
         },
@@ -40,7 +46,9 @@
           "id": "glm-5.3-flash",
           "name": "GLM 5.3 Flash",
           "reasoning": true,
-          "input": ["text"],
+          "input": [
+            "text"
+          ],
           "contextWindow": 1000000,
           "maxTokens": 131072
         },
@@ -48,7 +56,9 @@
           "id": "glm-5-turbo",
           "name": "GLM 5 Turbo",
           "reasoning": true,
-          "input": ["text"],
+          "input": [
+            "text"
+          ],
           "contextWindow": 200000,
           "maxTokens": 131072
         },
@@ -56,9 +66,107 @@
           "id": "glm-4.5-air",
           "name": "GLM 4.5 Air",
           "reasoning": true,
-          "input": ["text"],
+          "input": [
+            "text"
+          ],
           "contextWindow": 128000,
           "maxTokens": 16384
+        }
+      ]
+    },
+    "minimax": {
+      "baseUrl": "https://api.minimaxi.com/anthropic",
+      "apiKey": "sk-cp-fixture-not-a-real-key",
+      "api": "anthropic-messages",
+      "models": [
+        {
+          "id": "MiniMax-M3.1-Flash",
+          "name": "MiniMax-M3.1-Flash",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 1000000,
+          "maxTokens": 512000
+        },
+        {
+          "id": "MiniMax-M3",
+          "name": "MiniMax-M3",
+          "reasoning": true,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 1000000,
+          "maxTokens": 512000
+        },
+        {
+          "id": "MiniMax-M2.7",
+          "name": "MiniMax-M2.7",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 204800,
+          "maxTokens": 131072
+        },
+        {
+          "id": "MiniMax-M2.7-highspeed",
+          "name": "MiniMax-M2.7-highspeed",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 204800,
+          "maxTokens": 131072
+        }
+      ]
+    },
+    "minimax-cn": {
+      "baseUrl": "https://api.minimaxi.com/anthropic",
+      "apiKey": "sk-cp-fixture-not-a-real-key",
+      "api": "anthropic-messages",
+      "models": [
+        {
+          "id": "MiniMax-M3.1-Flash",
+          "name": "MiniMax-M3.1-Flash",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 1000000,
+          "maxTokens": 512000
+        },
+        {
+          "id": "MiniMax-M3",
+          "name": "MiniMax-M3",
+          "reasoning": true,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 1000000,
+          "maxTokens": 512000
+        },
+        {
+          "id": "MiniMax-M2.7",
+          "name": "MiniMax-M2.7",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 204800,
+          "maxTokens": 131072
+        },
+        {
+          "id": "MiniMax-M2.7-highspeed",
+          "name": "MiniMax-M2.7-highspeed",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 204800,
+          "maxTokens": 131072
         }
       ]
     }

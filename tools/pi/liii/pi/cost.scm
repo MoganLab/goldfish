@@ -97,7 +97,37 @@
            (input . 0.55)
            (output . 2.19)
            (cacheRead . 0.14)
-           (cacheWrite . 0.0)))))
+           (cacheWrite . 0.0))))
+        ("minimax"
+         (("id" . "MiniMax-M3.1-Flash")
+          ("cost"
+           (input . 0.3)
+           (output . 1.2)
+           (cacheRead . 0.06)
+           (cacheWrite . 0.0)))
+         (("id" . "MiniMax-M3")
+          ("cost"
+           (input . 0.3)
+           (output . 1.2)
+           (cacheRead . 0.06)
+           (cacheWrite . 0.0)
+           (tiers ((inputTokensAbove . 512000)
+                   (input . 0.6)
+                   (output . 2.4)
+                   (cacheRead . 0.12)
+                   (cacheWrite . 0.0)))))
+         (("id" . "MiniMax-M2.7")
+          ("cost"
+           (input . 0.3)
+           (output . 1.2)
+           (cacheRead . 0.06)
+           (cacheWrite . 0.375)))
+         (("id" . "MiniMax-M2.7-highspeed")
+          ("cost"
+           (input . 0.6)
+           (output . 2.4)
+           (cacheRead . 0.06)
+           (cacheWrite . 0.375)))))
     ) ;define
 
     (define (%safe-assoc key alist)
@@ -154,11 +184,19 @@
       ) ;let*
     ) ;define
 
+    (define (%minimax-alias provider)
+      (and (string? provider) (string=? provider "minimax-cn") "minimax")
+    ) ;define
+
     (define (pi-model-cost provider model-id models-store)
-      (or (%find-model-cost-in-store models-store provider model-id)
-        (%find-model-cost-builtin provider model-id)
-        '((input . 0.0) (output . 0.0) (cacheRead . 0.0) (cacheWrite . 0.0))
-      ) ;or
+      (let ((fallback-p (%minimax-alias provider)))
+        (or (%find-model-cost-in-store models-store provider model-id)
+          (and fallback-p (%find-model-cost-in-store models-store fallback-p model-id))
+          (%find-model-cost-builtin provider model-id)
+          (and fallback-p (%find-model-cost-builtin fallback-p model-id))
+          '((input . 0.0) (output . 0.0) (cacheRead . 0.0) (cacheWrite . 0.0))
+        ) ;or
+      ) ;let
     ) ;define
 
     (define (%resolve-cost-tier cost-rates total-input-tokens)

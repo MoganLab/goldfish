@@ -37,6 +37,7 @@
     (liii pi anthropic)
     (liii pi kimi)
     (liii pi deepseek)
+    (liii pi minimax)
     (liii pi prompt)
     (liii pi message)
     (liii pi config types)
@@ -68,8 +69,8 @@
     pi-format-token-count pi-list-models pi-format-models-table
     PI_SUPPORTED_PROVIDERS PI_PROVIDER_BUILTIN_MODELS pi-provider-default-model
     pi-find-model-provider pi-provider-has-model? pi-route-provider-and-model
-    pi-ensure-catalog-meta gemini-map-finish-reason gemini-map-usage
-    gemini-normalize-tool-call-id gemini-generate-tool-call-id
+    pi-ensure-catalog-meta pi-builtin-augment-store gemini-map-finish-reason
+    gemini-map-usage gemini-normalize-tool-call-id gemini-generate-tool-call-id
     gemini-build-contents gemini-build-request-body anthropic-map-stop-reason
     anthropic-map-usage anthropic-build-tool-declarations
     anthropic-build-messages anthropic-build-request-body
@@ -81,7 +82,11 @@
     deepseek-map-stop-reason deepseek-map-usage deepseek-build-tool-declarations
     deepseek-build-messages deepseek-build-request-body deepseek-parse-response
     deepseek-is-retriable-error? deepseek-build-tool-declarations-from-names
-    deepseek-request deepseek-request-stream pi-resolve-prompt-input
+    deepseek-request deepseek-request-stream minimax-map-stop-reason
+    minimax-map-usage minimax-build-tool-declarations minimax-build-messages
+    minimax-build-request-body minimax-parse-response
+    minimax-is-retriable-error? minimax-build-tool-declarations-from-names
+    minimax-request minimax-request-stream pi-resolve-prompt-input
     pi-load-project-context pi-build-system-prompt PI_BUILTIN_TOOL_SNIPPETS
     PI_BUILTIN_TOOL_GUIDELINES pi-iso-8601-utc-now pi-current-time-millis
     pi-serialize-event assoc pi-event? pi-event-type pi-event->alist

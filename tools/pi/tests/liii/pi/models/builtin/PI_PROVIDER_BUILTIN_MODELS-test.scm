@@ -12,5 +12,7 @@
 (check-true (pair? (assoc "anthropic" PI_PROVIDER_BUILTIN_MODELS)))
 (check-true (pair? (assoc "glm" PI_PROVIDER_BUILTIN_MODELS)))
 (check-true (pair? (assoc "deepseek" PI_PROVIDER_BUILTIN_MODELS)))
+(check-true (pair? (assoc "minimax" PI_PROVIDER_BUILTIN_MODELS)))
+(check-true (pair? (assoc "minimax-cn" PI_PROVIDER_BUILTIN_MODELS)))
 
 (check-report)

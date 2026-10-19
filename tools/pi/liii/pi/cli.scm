@@ -56,10 +56,6 @@
 
     (define (%handle-list-models parsed)
       (let* ((agent-dir (pi-get-agent-dir))
-             (models-store (pi-merge-models-json-into-store (pi-load-models-store agent-dir)
-                             (pi-load-models-json agent-dir)
-                           ) ;pi-merge-models-json-into-store
-             ) ;models-store
              (settings (pi-load-settings agent-dir))
              (cli-provider (pi-args-ref parsed 'provider))
              (target-provider
@@ -68,6 +64,12 @@
                  (pi-settings-default-provider settings)
                ) ;if
              ) ;target-provider
+             (models-store (pi-builtin-augment-store (pi-merge-models-json-into-store (pi-load-models-store agent-dir)
+                                                       (pi-load-models-json agent-dir)
+                                                     ) ;pi-merge-models-json-into-store
+                             target-provider
+                           ) ;pi-builtin-augment-store
+             ) ;models-store
              (search-arg (pi-args-ref parsed 'list-models))
              (search-pattern (if (string? search-arg) search-arg #f))
              (rows (pi-list-models models-store target-provider search-pattern))
