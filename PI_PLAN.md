@@ -93,6 +93,12 @@ Anthropic 已实现但本机无访问权限，不在维护范围；其 OAuth 刷
 | 041 | Gemini 搜索请求体构造与 Grounding 解析 | 用户供稿规划（阶段二）：请求体 tools 注入 googleSearch 节；解析响应/流式分片的 groundingMetadata——webSearchQueries/groundingChunks（title+uri）/groundingSupports（段落与 chunk 引用映射）；参考 ~/git/pi-web-search/src/providers/google.ts（228 行，extractGoogleSearchDetails）；TDD 用保存的示例 JSON 断言解析结果 |
 | 042 | web_search 网络执行器与结果格式化 | 用户供稿规划（阶段三）：复用 (liii http) 与 Gemini 通道（httpProxy/Google API Key）实现 pi-execute-web-search；回答内容与引用链接（Sources/Citations）拼装为工具返回值；网络超时、鉴权失败异常处理；stub server 验证返回与错误路径 |
 | 043 | web_search Agent 工具调用闭环联调 | 用户供稿规划（阶段四）：Gemini 模型时注入 web_search functionDeclaration；Agent 事件循环收到 web_search tool call 自动调度执行器并回传 tool_result；CLI 前端显示搜索 query 与引用来源；整体回归确保不影响既有读写编辑工具 |
+| 044 | `code-review` 内置命令 | 参考 ~/git/pi-extensions/packages/pi-code-review（agent 写/改文件后自动语言感知代码审查）：bin/gf pi 脚本模式的对应形态在文档阶段对齐扩展源码后裁定（候选：--code-review 对最近 diff 审查输出报告）；验收点含真实审查输出与门禁；TDD | 待执行 |
+| 045 | `simplify` 内置命令 | 参考 ~/git/pi-extensions/packages/pi-simplify（审查最近改动代码的清晰度/一致性/可维护性并给出改进）：形态文档阶段裁定；验收点含真实简化建议输出；TDD | 待执行 |
+| 046 | `red-green` TDD 强制 | 参考 ~/git/pi-extensions/packages/pi-red-green（强制 RED-GREEN-REFACTOR 循环：先写失败测试再最小实现再重构）：形态文档阶段裁定（候选：--red-green 开关在 agent 循环中强制 TDD 顺序）；TDD | 待执行 |
+| 047 | `blueprint` 计划命令 | 参考 ~/git/pi-extensions/packages/pi-blueprint（高级目标→分阶段多会话构建计划，依赖跟踪+验证门）：形态文档阶段裁定；与现有三阶段流程互补；TDD | 待执行 |
+| 048 | `compass` 代码库导航 | 参考 ~/git/pi-extensions/packages/pi-compass（生成结构化 codemaps 与 code tours，省 token 快速定向）：形态文档阶段裁定；TDD | 待执行 |
+| 049 | `continuous-learning` instincts | 参考 ~/git/pi-extensions/packages/pi-continuous-learning（观察会话提炼可复用 instincts，置信度+项目作用域+闭环验证）：形态文档阶段裁定；TDD | 待执行（较复杂，排最后） |
 共同约束：
 - 每个任务常态三个 commit：`[编号][PLAN]`（建档）+ `[编号][REVIEW]`（代码）
   + `[编号][REVIEW]`（验收脚本）；观测 git log 即知任务进度。
