@@ -1,0 +1,42 @@
+{
+  "providers": {
+    "deepseek": {
+      "baseUrl": "https://api.deepseek.com/anthropic",
+      "apiKey": "sk-fixture-not-a-real-key",
+      "api": "anthropic-messages",
+      "models": [
+        {
+          "id": "deepseek-v4-flash",
+          "name": "DeepSeek V4 Flash",
+          "reasoning": true,
+          "input": ["text"],
+          "contextWindow": 1000000,
+          "maxTokens": 131072
+        },
+        {
+          "id": "deepseek-v4-pro",
+          "name": "DeepSeek V4 Pro",
+          "reasoning": true,
+          "input": ["text"],
+          "contextWindow": 1000000,
+          "maxTokens": 131072
+        }
+      ]
+    },
+    "glm": {
+      "baseUrl": "https://open.bigmodel.cn/api/anthropic",
+      "apiKey": "sk-fixture-not-a-real-key",
+      "api": "anthropic-messages",
+      "models": [
+        {
+          "id": "glm-5.3",
+          "name": "GLM 5.3",
+          "reasoning": true,
+          "input": ["text"],
+          "contextWindow": 200000,
+          "maxTokens": 128000
+        }
+      ]
+    }
+  }
+}

@@ -35,15 +35,17 @@
 
 ;; pi-list-models 全部 provider 与排序
 (let ((all-models (pi-list-models sample-store "all")))
-  (check (length all-models) => 3)
-  ;; 排序：anthropic 在前，google 在后
+  (check (length all-models) => 4)
+  ;; 排序：provider 名字典序 anthropic < deepseek < google
   (check (cdr (assoc 'provider (car all-models))) => "anthropic")
-  (check (cdr (assoc 'provider (cadr all-models))) => "google"))
+  (check (cdr (assoc 'provider (cadr all-models))) => "deepseek")
+  (check (cdr (assoc 'provider (cadddr all-models))) => "google"))
 
 ;; pi-list-models 搜索词过滤
 (let ((filtered (pi-list-models sample-store "all" "flash")))
-  (check (length filtered) => 1)
-  (check (cdr (assoc 'model (car filtered))) => "gemini-3.8-flash"))
+  (check (length filtered) => 2)
+  (check (cdr (assoc 'model (car filtered))) => "deepseek-flash")
+  (check (cdr (assoc 'model (cadr filtered))) => "gemini-3.8-flash"))
 
 ;; pi-list-models 未知 provider 明确报错
 (check-catch 'runtime-error (pi-list-models sample-store "unknown-provider"))

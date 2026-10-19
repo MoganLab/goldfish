@@ -34,9 +34,10 @@
   ) ;import
   (export pi-resolve-config-value json-dict-ref pi-get-agent-dir
     pi-read-json-file pi-load-settings pi-resolve-proxy-url pi-load-auth
-    pi-resolve-provider-key pi-load-models-store pi-resolve-model-metadata
-    resolve-pi-config resolve-goldpi-config resolve-active-tools
-    pi-warn-fallback-model goldpi-warn-fallback-model
+    pi-resolve-provider-key pi-load-models-store pi-load-models-json
+    pi-merge-models-json-into-store pi-resolve-model-metadata resolve-pi-config
+    resolve-goldpi-config resolve-active-tools pi-warn-fallback-model
+    goldpi-warn-fallback-model
   ) ;export
   (begin
 
@@ -190,7 +191,10 @@
       (let* ((env-agent-dir (lookup-env-var "PI_CODING_AGENT_DIR" opt-env))
              (agent-dir (pi-get-agent-dir env-agent-dir))
              (settings (pi-load-settings agent-dir))
-             (models-store (pi-load-models-store agent-dir))
+             (models-store (pi-merge-models-json-into-store (pi-load-models-store agent-dir)
+                             (pi-load-models-json agent-dir)
+                           ) ;pi-merge-models-json-into-store
+             ) ;models-store
              (cli-proxy (pi-args-ref parsed-args 'proxy))
              (proxy-url (if (pair? opt-env)
                           (pi-resolve-proxy-url cli-proxy settings (car opt-env))

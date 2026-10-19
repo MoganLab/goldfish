@@ -57,22 +57,22 @@
     pi-execute-find pi-grep-schema pi-execute-grep pi-resolve-config-value
     json-dict-ref pi-get-agent-dir pi-read-json-file pi-load-settings
     pi-resolve-proxy-url pi-load-auth pi-resolve-provider-key
-    pi-load-models-store pi-resolve-model-metadata pi-format-token-count
-    pi-list-models pi-format-models-table PI_SUPPORTED_PROVIDERS
-    PI_PROVIDER_BUILTIN_MODELS pi-provider-default-model pi-find-model-provider
-    pi-provider-has-model? pi-route-provider-and-model pi-ensure-catalog-meta
-    gemini-map-finish-reason gemini-map-usage gemini-normalize-tool-call-id
-    gemini-generate-tool-call-id gemini-build-contents gemini-build-request-body
-    anthropic-map-stop-reason anthropic-map-usage
-    anthropic-build-tool-declarations anthropic-build-messages
-    anthropic-build-request-body anthropic-parse-response
-    anthropic-is-retriable-error? kimi-map-stop-reason kimi-map-usage
-    kimi-build-tool-declarations kimi-build-messages kimi-build-request-body
-    kimi-parse-response kimi-is-retriable-error? make-kimi-stream-decoder
-    kimi-build-endpoint kimi-build-tool-declarations-from-names kimi-request
-    kimi-request-stream deepseek-map-stop-reason deepseek-map-usage
-    deepseek-build-tool-declarations deepseek-build-messages
-    deepseek-build-request-body deepseek-parse-response
+    pi-load-models-store pi-load-models-json pi-merge-models-json-into-store
+    pi-resolve-model-metadata pi-format-token-count pi-list-models
+    pi-format-models-table PI_SUPPORTED_PROVIDERS PI_PROVIDER_BUILTIN_MODELS
+    pi-provider-default-model pi-find-model-provider pi-provider-has-model?
+    pi-route-provider-and-model pi-ensure-catalog-meta gemini-map-finish-reason
+    gemini-map-usage gemini-normalize-tool-call-id gemini-generate-tool-call-id
+    gemini-build-contents gemini-build-request-body anthropic-map-stop-reason
+    anthropic-map-usage anthropic-build-tool-declarations
+    anthropic-build-messages anthropic-build-request-body
+    anthropic-parse-response anthropic-is-retriable-error? kimi-map-stop-reason
+    kimi-map-usage kimi-build-tool-declarations kimi-build-messages
+    kimi-build-request-body kimi-parse-response kimi-is-retriable-error?
+    make-kimi-stream-decoder kimi-build-endpoint
+    kimi-build-tool-declarations-from-names kimi-request kimi-request-stream
+    deepseek-map-stop-reason deepseek-map-usage deepseek-build-tool-declarations
+    deepseek-build-messages deepseek-build-request-body deepseek-parse-response
     deepseek-is-retriable-error? deepseek-build-tool-declarations-from-names
     deepseek-request deepseek-request-stream pi-resolve-prompt-input
     pi-load-project-context pi-build-system-prompt PI_BUILTIN_TOOL_SNIPPETS

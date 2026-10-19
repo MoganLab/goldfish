@@ -56,7 +56,10 @@
 
     (define (%handle-list-models parsed)
       (let* ((agent-dir (pi-get-agent-dir))
-             (models-store (pi-load-models-store agent-dir))
+             (models-store (pi-merge-models-json-into-store (pi-load-models-store agent-dir)
+                             (pi-load-models-json agent-dir)
+                           ) ;pi-merge-models-json-into-store
+             ) ;models-store
              (settings (pi-load-settings agent-dir))
              (cli-provider (pi-args-ref parsed 'provider))
              (target-provider
