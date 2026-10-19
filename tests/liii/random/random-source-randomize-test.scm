@@ -56,5 +56,23 @@
 (check-catch 'type-error (random-source-randomize! 'not-a-source))
 (check-catch 'type-error (random-source-randomize! 123))
 
+;; 验证两次独立 randomize! 产生的随机序列不同
+(let* ((s1 (make-random-source)) (s2 (make-random-source)))
+  (random-source-randomize! s1)
+  (random-source-randomize! s2)
+  (let ((gen1 (random-source-make-integers s1))
+        (gen2 (random-source-make-integers s2))
+       ) ;
+    (let ((seq1 (list (gen1 1000) (gen1 1000) (gen1 1000) (gen1 1000) (gen1 1000)))
+          (seq2 (list (gen2 1000) (gen2 1000) (gen2 1000) (gen2 1000) (gen2 1000)))
+         ) ;
+      (check (not (equal? seq1 seq2)) => #t)
+    ) ;let
+  ) ;let
+) ;let*
+
+;; 验证不引入 (srfi srfi-19)
+(check (*r7rs-libraries* '(srfi srfi-19)) => #f)
+(check (defined? 'TIME-UTC) => #f)
 
 (check-report)

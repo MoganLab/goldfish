@@ -25,7 +25,7 @@
 ;; WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 (define-library (srfi srfi-27)
-  (import (scheme base) (srfi srfi-19) (liii error))
+  (import (scheme base) (scheme time) (liii error))
   (export random-integer random-real default-random-source make-random-source
     random-source? random-source-state-ref random-source-state-set!
     random-source-randomize! random-source-pseudo-randomize!
@@ -66,9 +66,7 @@
     ;; Get current time in nanoseconds as integer
     ;; Used for randomization
     (define (current-time-nanoseconds)
-      (let ((t (current-time TIME-UTC)))
-        (+ (* (time-second t) 1000000000) (time-nanosecond t))
-      ) ;let
+      (monotonic-nanosecond)
     ) ;define
 
     ;; Create a new s7 random-state with given seed and carry
