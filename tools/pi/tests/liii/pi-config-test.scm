@@ -100,6 +100,23 @@
   (check (resolve-active-tools args-override settings-with-delta)
     => '("read" "bash")))
 
+;; 8.1 --exclude-tools 排除测试与排除优先
+(let ((args-ex (parse-pi-args '("--exclude-tools" "bash,write,edit")))
+      (args-both (parse-pi-args '("--tools" "read,bash,edit" "--exclude-tools" "bash")))
+      (args-unknown (parse-pi-args '("--exclude-tools" "foo,bash")))
+      (args-spaces (parse-pi-args '("--exclude-tools" " bash , edit ")))
+      (settings '((default-tools . ("read" "bash" "edit" "write")))))
+  (check (resolve-active-tools args-ex settings) => '("read"))
+  (check (resolve-active-tools args-both settings) => '("read" "edit"))
+  (check (resolve-active-tools args-unknown settings) => '("read" "edit" "write"))
+  (check (resolve-active-tools args-spaces settings) => '("read" "write")))
+
+;; 8.2 resolve-pi-config 端到端 tools 解析验证
+(let* ((args (parse-pi-args '("--exclude-tools" "bash,write,edit")))
+       (env `(("PI_CODING_AGENT_DIR" . ,FIXTURE_DIR)))
+       (cfg (resolve-pi-config args env)))
+  (check (cdr (assoc 'tools cfg)) => '("read")))
+
 ;; 9. CLI --provider "glm" 默认模型、端点与凭据解析
 (let* ((args (parse-pi-args '("--provider" "glm")))
        (env `(("PI_CODING_AGENT_DIR" . "non_existent_dir_xyz")

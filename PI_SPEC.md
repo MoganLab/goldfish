@@ -53,6 +53,12 @@ jq -r 'select(.type=="tool_execution_start") | "\(.toolName) \(.args)"' events.j
 # 默认只激活 read/bash/edit/write；grep/find/ls 需显式开启
 timeout 300 bin/gf pi -p --tools read,bash,grep,find,ls "统计 tests/ 下测试文件数量"
 
+# 黑名单排除工具：从默认工具集或指定工具集中排除（快速变为只读审计模式）
+timeout 300 bin/gf pi -p --exclude-tools bash,write,edit "你有哪些可用工具？列出工具名称"
+
+# 白名单与黑名单共存时排除优先（--tools 与 --exclude-tools 组合）
+timeout 300 bin/gf pi -p --tools read,bash,edit --exclude-tools bash "你有哪些可用工具？列出工具名称"
+
 # bash 工具多轮调用
 timeout 300 bin/gf pi -p --tools bash "运行 echo hello 并把输出原样告诉我"
 

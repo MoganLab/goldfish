@@ -50,6 +50,7 @@
         (cons 'thinking-level #f)
         (cons 'proxy #f)
         (cons 'tools #f)
+        (cons 'exclude-tools #f)
         (cons 'max-turns 200)
         (cons 'timeout 120)
         (cons 'no-session #f)
@@ -110,6 +111,9 @@
             ) ;
             ((and (string=? arg "--proxy") next-arg) (values 'proxy next-arg 2))
             ((and (string=? arg "--tools") next-arg) (values 'tools next-arg 2))
+            ((and (string=? arg "--exclude-tools") next-arg)
+             (values 'exclude-tools next-arg 2)
+            ) ;
             ((and (string=? arg "--max-turns") next-arg)
              (values 'max-turns (string->number next-arg) 2)
             ) ;

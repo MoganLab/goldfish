@@ -246,6 +246,14 @@
 (check (parse-tools-selection "read,grep") => '("read" "grep"))
 (check (parse-tools-selection "+grep,-edit") => '("read" "bash" "write" "grep"))
 
+;; exclude-tools-from-list
+(check (exclude-tools-from-list '("read" "bash" "edit" "write") #f) => '("read" "bash" "edit" "write"))
+(check (exclude-tools-from-list '("read" "bash" "edit" "write") "") => '("read" "bash" "edit" "write"))
+(check (exclude-tools-from-list '("read" "bash" "edit" "write") "bash,write,edit") => '("read"))
+(check (exclude-tools-from-list '("read" "bash" "edit" "write") " bash , edit ") => '("read" "write"))
+(check (exclude-tools-from-list '("read" "bash" "edit" "write") "foo,bash") => '("read" "edit" "write"))
+(check (exclude-tools-from-list '("read" "bash") "read,bash") => '())
+
 ;; get-tool-definition
 (let ((def (get-tool-definition "read")))
   (check-true (pi-tool-definition? def))

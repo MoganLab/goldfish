@@ -30,10 +30,10 @@
     (liii pi grep)
   ) ;import
   (export PI_DEFAULT_TOOL_NAMES PI_ALL_TOOL_NAMES parse-tools-selection
-    get-tool-definition execute-tool-call pi-read-schema pi-execute-read
-    pi-write-schema pi-execute-write pi-edit-schema pi-execute-edit
-    pi-bash-schema pi-execute-bash pi-ls-schema pi-execute-ls pi-find-schema
-    pi-execute-find pi-grep-schema pi-execute-grep pi-format-size
+    exclude-tools-from-list get-tool-definition execute-tool-call pi-read-schema
+    pi-execute-read pi-write-schema pi-execute-write pi-edit-schema
+    pi-execute-edit pi-bash-schema pi-execute-bash pi-ls-schema pi-execute-ls
+    pi-find-schema pi-execute-find pi-grep-schema pi-execute-grep pi-format-size
     pi-truncate-line pi-truncate-head pi-truncate-tail PI_DEFAULT_MAX_LINES
     PI_DEFAULT_MAX_BYTES PI_GREP_MAX_LINE_LENGTH pi-tool-definition
     pi-tool-definition? pi-tool-definition-name pi-tool-definition-description
@@ -89,6 +89,19 @@
             items
           ) ;if
         ) ;let
+      ) ;if
+    ) ;define
+
+    (define (exclude-tools-from-list tools-list spec)
+      (if (or (not spec) (not (string? spec)) (string-null? (string-trim-both spec)))
+        tools-list
+        (let* ((raw-items (string-split spec ","))
+               (excluded
+                 (filter (lambda (s) (not (string-null? s))) (map string-trim-both raw-items))
+               ) ;excluded
+              ) ;
+          (filter (lambda (t) (not (member t excluded))) tools-list)
+        ) ;let*
       ) ;if
     ) ;define
 

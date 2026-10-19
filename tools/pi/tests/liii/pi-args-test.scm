@@ -40,6 +40,9 @@
 (let ((res (parse-pi-args '("--tools" "read,bash,edit"))))
   (check (pi-args-ref res 'tools) => "read,bash,edit"))
 
+(let ((res (parse-pi-args '("--exclude-tools" "bash,write,edit"))))
+  (check (pi-args-ref res 'exclude-tools) => "bash,write,edit"))
+
 (let ((res (parse-pi-args '("--max-turns" "10"))))
   (check (pi-args-ref res 'max-turns) => 10))
 
@@ -69,6 +72,7 @@
   (check (pi-args-ref res 'provider) => #f)
   (check (pi-args-ref res 'proxy) => #f)
   (check (pi-args-ref res 'tools) => #f)
+  (check (pi-args-ref res 'exclude-tools) => #f)
   (check (pi-args-ref res 'max-turns) => 200)
   (check (pi-args-ref res 'timeout) => 120)
   (check (pi-args-ref res 'no-session) => #f)
