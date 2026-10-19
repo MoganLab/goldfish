@@ -372,7 +372,7 @@ tools/pi/liii/
 | 2 | 无 `--mode rpc`（pi 有 JSONL over stdio 的 RPC 模式，IDE/长会话集成需要） | pi docs/rpc.md；bin/gf pi 仅 print/json | 未规划（Non-goal 暂缓） |
 | 3 | OAuth 类凭据不消费（pi 支持 oauth 轮换） | auth.json 的 oauth 条目 | 不做（用户裁定：维护费劲；当前各 provider 均用 api_key/环境变量） |
 | 4 | thinking 内容不请求不解析 | `--thinking-level` 用法在 TODO | 远期（任务 012） |
-| 5 | 图片输入不支持 | `@图片` 用法在 TODO | 远期（任务 013） |
+| 5 | 图片输入不支持 | `@图片` 用法在 TODO | 不做（用户裁定 2026-10-19：任务 013 取消） |
 | 6 | `--model` 不跨 provider 自动路由：bin/gf pi 只在当前 provider（--provider 或 defaultProvider）内解析模型 ID；pi 的 model-resolver 会在全部 provider 模型目录中搜索 ID，命中即隐式选定 provider（如 `pi -p --model k3` 自动路由到 kimi） | 实测：`bin/gf pi -p --model k3` 把 k3 发给 Google 得 HTTP 404，而 pi 正常路由 | ✅ 已修复（任务 022） |
 | 7 | Windows 下 bash 工具挂死：子进程 spawn 方式在 Windows 不可用，bash 工具执行任何命令均挂到超时（纯文本对话正常）；bin/gf pi 因此无法跑 git/测试命令，是自举（CLAUDE_CODE_PLAN §5.5）的前置缺陷 | 实测（2026-10-19）：`timeout 180 bin/gf pi --mode json --tools bash "用 bash 工具运行命令 echo win-bash-ok"` → tool_execution_end "Command timed out after 120 seconds" isError:true | 修复中（任务 026，优先） |
 | 8 | 会话级超时兜底（任务 014，默认 600s）无法从 CLI 放宽：args.scm 无 `--session-timeout` 选项，`--timeout` 只管 bash/HTTP；自举执行大体量开发任务必在 ~10 分钟被 `Session timeout exceeded` 打断（pi 无此硬上限）。注：012/022 曾误判为 `--timeout 7000` 解决，实为任务恰好在 600s 内完成 | 实测（2026-10-19）：任务 025/031 开发阶段自举均运行 ~10 分钟被会话兜底终止 | ✅ 已修复（任务 031：`--session-timeout <秒>`，0 关闭兜底） |
