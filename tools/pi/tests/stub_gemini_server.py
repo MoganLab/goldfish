@@ -206,6 +206,24 @@ class StubHandler(http.server.BaseHTTPRequestHandler):
                 self.wfile.write(b'{"error":{"code":429,"message":"Rate limit exceeded","status":"RESOURCE_EXHAUSTED"}}')
                 return
 
+        if "/429-5-then-ok" in path:
+            # 前 5 次请求返回 429，之后正常响应；独立计数器
+            server = self.server
+            server.count_429_5 = getattr(server, "count_429_5", 0) + 1
+            if server.count_429_5 <= 5:
+                self.send_response(429)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(b'{"error":{"code":429,"message":"Rate limit exceeded","status":"RESOURCE_EXHAUSTED"}}')
+                return
+
+        if "/429-always" in path:
+            self.send_response(429)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(b'{"error":{"code":429,"message":"Rate limit exceeded","status":"RESOURCE_EXHAUSTED"}}')
+            return
+
         if "/error-500" in path:
             self.send_response(500)
             self.send_header("Content-Type", "application/json")

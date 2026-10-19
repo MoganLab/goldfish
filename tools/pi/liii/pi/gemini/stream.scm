@@ -224,54 +224,50 @@
                    ) ;
                   ) ;
         (let* ((settings (cdr (or (%safe-assoc 'settings config) '(#f))))
-               (retry-cfg
-                 (or opt-retry (cdr (or (%safe-assoc 'retry settings) '(#f))))
-               ) ;retry-cfg
                (effective-idle (or idle-timeout timeout))
-               (max-retries
-                 (if (cdr (or (%safe-assoc 'enabled retry-cfg) '(#f . #t)))
-                   (cdr (or (%safe-assoc 'max-retries retry-cfg) '(#f . 3)))
-                   0
-                 ) ;if
-               ) ;max-retries
               ) ;
-          (let loop
-            ((attempt 1))
-            (let* ((stream-state (vector '() #f (gemini-map-usage '()) '() #f #f #f #f))
-                   (idle-timed-out? #f)
-                   (error-body-acc (vector ""))
-                   (stream-cb (%make-stream-callback stream-state
-                                on-event
-                                effective-idle
-                                (lambda () (set! idle-timed-out? #t))
-                                error-body-acc
-                              ) ;%make-stream-callback
-                   ) ;stream-cb
-                   (resp (%perform-http-stream url req-json-str headers
-                           proxy-alist stream-cb timeout effective-idle
-                         ) ;%perform-http-stream
-                   ) ;resp
-                   (status (or (%resp-field resp 'status-code) 0))
-                  ) ;
-              (if (and (not idle-timed-out?) (gemini-is-retriable-error? status ""))
-                (if (<= attempt max-retries)
-                  (begin
-                    (sleep (pi-calc-retry-delay attempt 2000 60000))
-                    (loop (+ attempt 1))
-                  ) ;begin
-                  (list (cons 'role "assistant")
-                    (cons 'content (vector-ref stream-state 0))
-                    (cons 'stopReason "error")
-                    (cons 'usage (vector-ref stream-state 2))
-                    (cons 'errorMessage (format-failed-stream-msg status resp))
-                  ) ;list
+          (let-values (((max-retries base-delay-ms max-agent-delay-ms provider-max-retries)
+                        (pi-resolve-retry-params settings opt-retry)
+                       ) ;
+                      ) ;
+            (let loop
+              ((attempt 1))
+              (let* ((stream-state (vector '() #f (gemini-map-usage '()) '() #f #f #f #f))
+                     (idle-timed-out? #f)
+                     (error-body-acc (vector ""))
+                     (stream-cb (%make-stream-callback stream-state
+                                  on-event
+                                  effective-idle
+                                  (lambda () (set! idle-timed-out? #t))
+                                  error-body-acc
+                                ) ;%make-stream-callback
+                     ) ;stream-cb
+                     (resp (%perform-http-stream url req-json-str headers
+                             proxy-alist stream-cb timeout effective-idle
+                           ) ;%perform-http-stream
+                     ) ;resp
+                     (status (or (%resp-field resp 'status-code) 0))
+                    ) ;
+                (if (and (not idle-timed-out?) (gemini-is-retriable-error? status ""))
+                  (if (<= attempt provider-max-retries)
+                    (begin
+                      (sleep (pi-calc-retry-delay attempt 2000 60000))
+                      (loop (+ attempt 1))
+                    ) ;begin
+                    (list (cons 'role "assistant")
+                      (cons 'content (vector-ref stream-state 0))
+                      (cons 'stopReason "error")
+                      (cons 'usage (vector-ref stream-state 2))
+                      (cons 'errorMessage (format-failed-stream-msg status resp))
+                    ) ;list
+                  ) ;if
+                  (%classify-stream-result stream-state idle-timed-out? resp
+                    status effective-idle on-event error-body-acc
+                  ) ;%classify-stream-result
                 ) ;if
-                (%classify-stream-result stream-state idle-timed-out? resp
-                  status effective-idle on-event error-body-acc
-                ) ;%classify-stream-result
-              ) ;if
-            ) ;let*
-          ) ;let
+              ) ;let*
+            ) ;let
+          ) ;let-values
         ) ;let*
       ) ;let-values
     ) ;define*

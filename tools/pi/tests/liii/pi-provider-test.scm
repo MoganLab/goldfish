@@ -177,6 +177,40 @@
       (check (cdr (assoc 'stopReason resp-retry)) => "stop")
       (check (cdr (assoc 'text (car (cdr (assoc 'content resp-retry))))) => "Hello from stub!"))
 
+    ;; 3.5b provider 级预算：顶层 max-retries=3 但 provider-max-retries=8，
+    ;;    前 5 次 429 后成功（旧行为下第 4 次尝试即快速失败）
+    (let* ((cfg-retry-p (list (cons 'provider "google")
+                              (cons 'api-key "test-key-stub-123")
+                              (cons 'model-id "429-5-then-ok")
+                              (cons 'model-meta (list (cons 'base-url base-url)))
+                              (cons 'proxy-url #f)
+                              (cons 'tools '())
+                              (cons 'settings '())))
+           (retry-opt-p '((enabled . #t) (max-retries . 3) (provider-max-retries . 8)
+                          (base-delay-ms . 20) (max-agent-delay-ms . 100)))
+           (resp-retry-p (gemini-request cfg-retry-p
+                           (list '((role . "user") (content . "retry me")))
+                           #f '() 10 retry-opt-p)))
+      (check (cdr (assoc 'stopReason resp-retry-p)) => "stop")
+      (check (cdr (assoc 'text (car (cdr (assoc 'content resp-retry-p))))) => "Hello from stub!"))
+
+    ;; 3.5c 无 provider 预算：429 持续时按顶层 max-retries=2 快速失败并报错
+    (let* ((cfg-retry-f (list (cons 'provider "google")
+                              (cons 'api-key "test-key-stub-123")
+                              (cons 'model-id "429-always")
+                              (cons 'model-meta (list (cons 'base-url base-url)))
+                              (cons 'proxy-url #f)
+                              (cons 'tools '())
+                              (cons 'settings '())))
+           (retry-opt-f '((enabled . #t) (max-retries . 2) (base-delay-ms . 10)
+                          (max-agent-delay-ms . 50)))
+           (resp-retry-f (gemini-request cfg-retry-f
+                           (list '((role . "user") (content . "retry me")))
+                           #f '() 10 retry-opt-f)))
+      (check (cdr (assoc 'stopReason resp-retry-f)) => "error")
+      (check-true (string-contains? (cdr (assoc 'errorMessage resp-retry-f))
+                     "Too Many Requests")))
+
     ;; 3.6 SSE 流式调用 (gemini-request-stream)
     (let* ((cfg-stream (list (cons 'provider "google")
                              (cons 'api-key "test-key-stub-123")

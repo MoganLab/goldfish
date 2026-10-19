@@ -22,7 +22,7 @@
     (liii http)
     (liii time)
     (liii pi event)
-    (liii pi config types)
+    (liii pi retry)
     (liii pi message)
     (liii pi anthropic core)
     (liii pi anthropic request)
@@ -36,15 +36,6 @@
       (cond ((procedure? resp) (resp key))
             ((hash-table? resp) (resp key))
             ((pair? resp) (cdr (or (assoc key resp) '(#f . #f))))
-            (else #f)
-      ) ;cond
-    ) ;define
-
-    (define (%safe-assoc key alist)
-      (cond ((or (pi-settings? alist) (pi-retry-config? alist) (pi-model-metadata? alist))
-             (assoc key alist)
-            ) ;
-            ((and (pair? alist) (every pair? alist)) (assoc key alist))
             (else #f)
       ) ;cond
     ) ;define
@@ -205,8 +196,10 @@
     (define (%run-stream-loop url req-json-str headers proxy-alist on-ev timeout
               opt-retry eff-idle
             ) ;%run-stream-loop
-      (let ((max-r (cdr (or (%safe-assoc 'max-retries (or opt-retry '())) '(#f
-                                                                            . 3)))))
+      (let-values (((max-r base-delay max-delay provider-r)
+                    (pi-resolve-retry-params '() opt-retry)
+                   ) ;
+                  ) ;
         (let loop
           ((attempt 1))
           (let* ((stream-state (%init-anthropic-stream-state))
@@ -224,7 +217,7 @@
                 ) ;
             (cond (idle-timed-out? (%make-idle-timeout-error eff-idle))
                   ((anthropic-is-retriable-error? status "")
-                   (if (<= attempt max-r)
+                   (if (<= attempt provider-r)
                      (begin
                        (sleep 1.0)
                        (loop (+ attempt 1))
@@ -239,7 +232,7 @@
             ) ;cond
           ) ;let*
         ) ;let
-      ) ;let
+      ) ;let-values
     ) ;define
 
     (define* (anthropic-request-stream config

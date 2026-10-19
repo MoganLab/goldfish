@@ -17,6 +17,8 @@ timeout 600 xmake b goldfish
 # 配置复用 ~/.pi/agent/（只读）：settings.json（defaultProvider/defaultModel/httpProxy/retry）、
 # auth.json（api_key / ANTHROPIC_AUTH_TOKEN 等环境变量兜底）、models-store.json（模型元数据）
 # 访问 Gemini 需要代理：--proxy > HTTPS_PROXY/ALL_PROXY 环境变量 > settings.json httpProxy > 直连
+# 重试：可重试 provider 错误（429/5xx/408/409/网络错误）使用 retry.provider.maxRetries 预算
+# （本机=12），未配置该嵌套节时回退 retry.maxRetries（缺省 3）
 ```
 
 ## 基本用法【可用】
@@ -374,7 +376,7 @@ tools/pi/liii/
 | 6 | `--model` 不跨 provider 自动路由：bin/gf pi 只在当前 provider（--provider 或 defaultProvider）内解析模型 ID；pi 的 model-resolver 会在全部 provider 模型目录中搜索 ID，命中即隐式选定 provider（如 `pi -p --model k3` 自动路由到 kimi） | 实测：`bin/gf pi -p --model k3` 把 k3 发给 Google 得 HTTP 404，而 pi 正常路由 | ✅ 已修复（任务 022） |
 | 7 | Windows 下 bash 工具挂死：子进程 spawn 方式在 Windows 不可用，bash 工具执行任何命令均挂到超时（纯文本对话正常）；bin/gf pi 因此无法跑 git/测试命令，是自举（CLAUDE_CODE_PLAN §5.5）的前置缺陷 | 实测（2026-10-19）：`timeout 180 bin/gf pi --mode json --tools bash "用 bash 工具运行命令 echo win-bash-ok"` → tool_execution_end "Command timed out after 120 seconds" isError:true | 修复中（任务 026，优先） |
 | 8 | 会话级超时兜底（任务 014，默认 600s）无法从 CLI 放宽：args.scm 无 `--session-timeout` 选项，`--timeout` 只管 bash/HTTP；自举执行大体量开发任务必在 ~10 分钟被 `Session timeout exceeded` 打断（pi 无此硬上限）。注：012/022 曾误判为 `--timeout 7000` 解决，实为任务恰好在 600s 内完成 | 实测（2026-10-19）：任务 025/031 开发阶段自举均运行 ~10 分钟被会话兜底终止 | ✅ 已修复（任务 031：`--session-timeout <秒>`，0 关闭兜底） |
-| 9 | 不消费 settings.json 的 `retry.provider` 嵌套节（pi 配置 `provider.maxRetries=12` 用于扛 429 等 provider 级错误窗口）；bin/gf pi 只读顶层 `maxRetries=3`，429 时重试不足快速失败 | 实测（2026-10-19）：027 验收第 2 次 google 429 快速退出（`Request failed: Too Many Requests`）；对照 pi 配置 retry.provider.maxRetries=12 | 修复中（任务 032） |
+| 9 | ~~不消费 settings.json 的 `retry.provider` 嵌套节~~ | 可重试 provider 错误（429/5xx/408/409/网络错误）现使用 `retry.provider.maxRetries` 预算（本机=12），未配置嵌套节时回退 `retry.maxRetries`（缺省 3），与 pi 的 SDK maxRetries 语义对齐 | ✅ 已修复（任务 032：TDD 覆盖嵌套解析/缺省回退/stub server 429 预算窗口 3.5b/3.5c） |
 | 10 | `KIMI_API_KEY` 环境变量兜底未生效：auth 解析只读 auth.json 的 kimi-coding 条目，env 被忽略——假 key 也返回周配额 403（而非 401），证明请求从未携带 env key；阻塞三把 kimi key 分摊配额 | 实测（2026-10-19）：`KIMI_API_KEY=sk-bogus bin/gf pi --provider kimi-coding --model k3` 返回周配额 403；**对照**：同 hongwei key `KIMI_API_KEY=... pi --provider kimi-coding --model k3` 本尊返回 ok（pi 源码 env-api-keys.ts 同名变量、env 优先） | ✅ 已修复（任务 035：env > auth.json 统一五个 provider；修复后假 key 实测返回 401；验收脚本 035.scm 27/27） |
 
 ## Provider 支持范围

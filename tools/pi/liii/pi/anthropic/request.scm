@@ -23,23 +23,14 @@
     (liii error)
     (liii time)
     (liii pi event)
-    (liii pi config types)
     (liii pi message)
     (liii pi anthropic core)
     (liii pi anthropic thinking)
     (liii pi tools)
+    (liii pi retry)
   ) ;import
   (export anthropic-build-tool-declarations-from-names anthropic-request)
   (begin
-
-    (define (%safe-assoc key alist)
-      (cond ((or (pi-settings? alist) (pi-retry-config? alist) (pi-model-metadata? alist))
-             (assoc key alist)
-            ) ;
-            ((and (pair? alist) (every pair? alist)) (assoc key alist))
-            (else #f)
-      ) ;cond
-    ) ;define
 
     (define (%resp-field resp key)
       (cond ((procedure? resp) (resp key))
@@ -82,21 +73,7 @@
     ) ;define
 
     (define (%resolve-retry-params settings opt-retry)
-      (let* ((retry-cfg
-               (or opt-retry (cdr (or (%safe-assoc 'retry settings) '(#f))))
-             ) ;retry-cfg
-             (enabled? (cdr (or (%safe-assoc 'enabled retry-cfg) '(#f . #t))))
-             (max-retries
-               (if enabled? (cdr (or (%safe-assoc 'max-retries retry-cfg) '(#f
-                                                                            . 3))) 0)
-             ) ;max-retries
-             (base-delay (cdr (or (%safe-assoc 'base-delay-ms retry-cfg) '(#f
-                                                                           . 2000))))
-             (max-delay (cdr (or (%safe-assoc 'max-agent-delay-ms retry-cfg) '(#f
-                                                                               . 60000))))
-            ) ;
-        (values max-retries base-delay max-delay)
-      ) ;let*
+      (pi-resolve-retry-params settings opt-retry)
     ) ;define
 
     (define (%calc-delay-sec base-delay max-delay attempt)
@@ -152,7 +129,9 @@
                     ((api-key) (cdr (assoc 'api-key config)))
                     ((proxy-url) (cdr (assoc 'proxy-url config)))
                     ((settings) (cdr (assoc 'settings config)))
-                    ((max-retries base-delay max-delay) (%resolve-retry-params settings opt-retry))
+                    ((max-retries base-delay max-delay provider-max-retries)
+                     (%resolve-retry-params settings opt-retry)
+                    ) ;
                     ((base-url)
                      (cdr (or (assoc 'base-url model-meta) '(#f
                                                              . "https://api.anthropic.com")))
@@ -182,7 +161,7 @@
                  (body-str (or (%resp-field resp 'text) ""))
                 ) ;
             (if (anthropic-is-retriable-error? status body-str)
-              (if (<= attempt max-retries)
+              (if (<= attempt provider-max-retries)
                 (begin
                   (sleep (%calc-delay-sec base-delay max-delay attempt))
                   (loop (+ attempt 1))

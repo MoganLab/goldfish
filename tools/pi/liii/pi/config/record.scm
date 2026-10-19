@@ -18,16 +18,16 @@
   (import (scheme base) (liii pi config types))
   (export pi-retry-config pi-retry-config? pi-retry-config-enabled
     pi-retry-config-max-retries pi-retry-config-base-delay-ms
-    pi-retry-config-max-agent-delay-ms pi-retry-config->alist pi-settings
-    pi-settings? pi-settings-default-provider pi-settings-default-model
-    pi-settings-default-thinking-level pi-settings-http-proxy pi-settings-retry
-    pi-settings-default-tools pi-settings->alist pi-credential pi-credential?
-    pi-credential-provider pi-credential-key pi-credential-type
-    pi-credential->alist pi-model-metadata pi-model-metadata?
-    pi-model-metadata-id pi-model-metadata-name pi-model-metadata-provider
-    pi-model-metadata-base-url pi-model-metadata-context-window
-    pi-model-metadata-max-tokens pi-model-metadata-matched?
-    pi-model-metadata->alist
+    pi-retry-config-max-agent-delay-ms pi-retry-config-provider-max-retries
+    pi-retry-config->alist pi-settings pi-settings? pi-settings-default-provider
+    pi-settings-default-model pi-settings-default-thinking-level
+    pi-settings-http-proxy pi-settings-retry pi-settings-default-tools
+    pi-settings->alist pi-credential pi-credential? pi-credential-provider
+    pi-credential-key pi-credential-type pi-credential->alist pi-model-metadata
+    pi-model-metadata? pi-model-metadata-id pi-model-metadata-name
+    pi-model-metadata-provider pi-model-metadata-base-url
+    pi-model-metadata-context-window pi-model-metadata-max-tokens
+    pi-model-metadata-matched? pi-model-metadata->alist
   ) ;export
   (begin
 
@@ -35,11 +35,13 @@
                (max-retries 3)
                (base-delay-ms 2000)
                (max-agent-delay-ms 60000)
+               (provider-max-retries #f)
              ) ;pi-retry-config
       (%make-pi-retry-config (if enabled #t #f)
         max-retries
         base-delay-ms
         max-agent-delay-ms
+        provider-max-retries
       ) ;%make-pi-retry-config
     ) ;define*
 
@@ -50,6 +52,7 @@
           (cons 'max-retries (pi-retry-config-max-retries r))
           (cons 'base-delay-ms (pi-retry-config-base-delay-ms r))
           (cons 'max-agent-delay-ms (pi-retry-config-max-agent-delay-ms r))
+          (cons 'provider-max-retries (pi-retry-config-provider-max-retries r))
         ) ;list
       ) ;if
     ) ;define

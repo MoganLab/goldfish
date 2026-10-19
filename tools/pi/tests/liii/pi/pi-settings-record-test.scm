@@ -13,6 +13,7 @@
 (check (pi-retry-config-max-retries test-retry) => 5)
 (check (pi-retry-config-base-delay-ms test-retry) => 1500)
 (check (pi-retry-config-max-agent-delay-ms test-retry) => 45000)
+(check (pi-retry-config-provider-max-retries test-retry) => #f)
 
 ;; assoc 兼容访问 retry record
 (check (cdr (assoc 'enabled test-retry)) => #t)
@@ -23,6 +24,14 @@
 (check (cdr (assoc "base-delay-ms" test-retry)) => 1500)
 (check (cdr (assoc 'max-agent-delay-ms test-retry)) => 45000)
 (check (cdr (assoc "max-agent-delay-ms" test-retry)) => 45000)
+(check (cdr (assoc 'provider-max-retries test-retry)) => #f)
+(check (cdr (assoc "provider-max-retries" test-retry)) => #f)
+
+;; 指定 provider 级预算（第 5 个构造参数）
+(define test-retry-provider (pi-retry-config #t 5 1500 45000 12))
+(check (pi-retry-config-provider-max-retries test-retry-provider) => 12)
+(check (cdr (assoc 'provider-max-retries test-retry-provider)) => 12)
+(check (cdr (assoc "provider-max-retries" test-retry-provider)) => 12)
 
 (define test-settings
   (pi-settings "google" "gemini-3.8-flash" "medium" "http://proxy:8080" test-retry '("read" "bash")))

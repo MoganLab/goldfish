@@ -71,8 +71,27 @@
                                                                            . 2000))))
              (max-delay (cdr (or (%safe-assoc 'max-agent-delay-ms retry-cfg) '(#f
                                                                                . 60000))))
+             (provider-raw (cdr (or (%safe-assoc 'provider-max-retries retry-cfg) '(#f
+                                                                                    . #f)))
+             ) ;provider-raw
+             (provider-nested
+               (let ((section (cdr (or (%safe-assoc 'provider retry-cfg) '(#f
+                                                                           . #f)))))
+                 (and (pair? section) (cdr (or (%safe-assoc 'max-retries section) '(#f
+                                                                                    . #f))))
+               ) ;let
+             ) ;provider-nested
+             (provider-max-retries
+               (if enabled?
+                 (cond ((number? provider-raw) provider-raw)
+                       ((number? provider-nested) provider-nested)
+                       (else max-retries)
+                 ) ;cond
+                 0
+               ) ;if
+             ) ;provider-max-retries
             ) ;
-        (values max-retries base-delay max-delay)
+        (values max-retries base-delay max-delay provider-max-retries)
       ) ;let*
     ) ;define
 

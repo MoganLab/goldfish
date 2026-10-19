@@ -243,7 +243,7 @@
                ) ;if
              ) ;proxy-alist
             ) ;
-        (let-values (((max-retries base-delay-ms max-agent-delay-ms)
+        (let-values (((max-retries base-delay-ms max-agent-delay-ms provider-max-retries)
                       (pi-resolve-retry-params settings opt-retry)
                      ) ;
                     ) ;
@@ -253,7 +253,9 @@
                    (status (or (%resp-field resp 'status-code) 0))
                    (body-str (or (%resp-field resp 'text) ""))
                   ) ;
-              (cond ((and (gemini-is-retriable-error? status body-str) (<= attempt max-retries))
+              (cond ((and (gemini-is-retriable-error? status body-str)
+                       (<= attempt provider-max-retries)
+                     ) ;and
                      (sleep (pi-calc-retry-delay attempt base-delay-ms max-agent-delay-ms))
                      (loop (+ attempt 1))
                     ) ;

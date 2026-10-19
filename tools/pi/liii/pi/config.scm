@@ -93,11 +93,14 @@
     ) ;define
 
     (define (%build-retry-record retry-obj)
-      (%make-pi-retry-config (%normalize-bool (json-dict-ref retry-obj "enabled" #t))
-        (json-dict-ref retry-obj "maxRetries" 3)
-        (json-dict-ref retry-obj "baseDelayMs" 2000)
-        (json-dict-ref retry-obj "maxAgentDelayMs" 60000)
-      ) ;%make-pi-retry-config
+      (let ((provider-obj (json-dict-ref retry-obj "provider" '())))
+        (%make-pi-retry-config (%normalize-bool (json-dict-ref retry-obj "enabled" #t))
+          (json-dict-ref retry-obj "maxRetries" 3)
+          (json-dict-ref retry-obj "baseDelayMs" 2000)
+          (json-dict-ref retry-obj "maxAgentDelayMs" 60000)
+          (json-dict-ref provider-obj "maxRetries" #f)
+        ) ;%make-pi-retry-config
+      ) ;let
     ) ;define
 
     (define (pi-load-settings agent-dir)
