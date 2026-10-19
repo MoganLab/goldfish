@@ -77,17 +77,20 @@
     pi-catalog-provider-models pi-catalog-merge-provider-models
     pi-fuzzy-match-model? pi-split-search-tokens gemini-map-finish-reason
     gemini-map-usage gemini-normalize-tool-call-id gemini-generate-tool-call-id
-    gemini-build-contents gemini-build-request-body anthropic-map-stop-reason
-    anthropic-map-usage anthropic-build-tool-declarations
-    anthropic-build-messages anthropic-build-request-body
-    anthropic-parse-response anthropic-is-retriable-error?
-    anthropic-normalize-input anthropic-parse-tool-arguments
-    kimi-map-stop-reason kimi-map-usage kimi-build-tool-declarations
-    kimi-build-messages kimi-build-request-body kimi-parse-response
-    kimi-is-retriable-error? make-kimi-stream-decoder kimi-build-endpoint
-    kimi-build-tool-declarations-from-names kimi-request kimi-request-stream
-    deepseek-map-stop-reason deepseek-map-usage deepseek-build-tool-declarations
-    deepseek-build-messages deepseek-build-request-body deepseek-parse-response
+    gemini-build-contents gemini-build-request-body gemini-build-search-tools
+    gemini-inject-google-search gemini-extract-grounding-details
+    gemini-grounding-search-queries gemini-grounding-search-results
+    gemini-grounding-citations anthropic-map-stop-reason anthropic-map-usage
+    anthropic-build-tool-declarations anthropic-build-messages
+    anthropic-build-request-body anthropic-parse-response
+    anthropic-is-retriable-error? anthropic-normalize-input
+    anthropic-parse-tool-arguments kimi-map-stop-reason kimi-map-usage
+    kimi-build-tool-declarations kimi-build-messages kimi-build-request-body
+    kimi-parse-response kimi-is-retriable-error? make-kimi-stream-decoder
+    kimi-build-endpoint kimi-build-tool-declarations-from-names kimi-request
+    kimi-request-stream deepseek-map-stop-reason deepseek-map-usage
+    deepseek-build-tool-declarations deepseek-build-messages
+    deepseek-build-request-body deepseek-parse-response
     deepseek-is-retriable-error? deepseek-build-tool-declarations-from-names
     deepseek-request deepseek-request-stream minimax-map-stop-reason
     minimax-map-usage minimax-build-tool-declarations minimax-build-messages

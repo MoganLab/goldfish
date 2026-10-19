@@ -1,0 +1,66 @@
+{
+  "candidates": [
+    {
+      "content": {
+        "parts": [
+          {
+            "text": "Goldfish Scheme is a high-performance Scheme interpreter designed for extensibility and embedding."
+          }
+        ],
+        "role": "model"
+      },
+      "finishReason": "STOP",
+      "groundingMetadata": {
+        "webSearchQueries": [
+          "goldfish scheme programming language",
+          "goldfish scheme github"
+        ],
+        "groundingChunks": [
+          {
+            "web": {
+              "uri": "https://github.com/XmacsLabs/goldfish",
+              "title": "Goldfish Scheme Repository"
+            }
+          },
+          {
+            "web": {
+              "uri": "https://goldfish.scheme.org",
+              "title": "Goldfish Scheme Official Documentation"
+            }
+          },
+          {
+            "web": {
+              "uri": "https://example.com/no-title"
+            }
+          }
+        ],
+        "groundingSupports": [
+          {
+            "segment": {
+              "startIndex": 0,
+              "endIndex": 50,
+              "text": "Goldfish Scheme is a high-performance Scheme"
+            },
+            "groundingChunkIndices": [0]
+          },
+          {
+            "segment": {
+              "startIndex": 51,
+              "endIndex": 98,
+              "text": "interpreter designed for extensibility and embedding."
+            },
+            "groundingChunkIndices": [0, 1]
+          }
+        ],
+        "searchEntryPoint": {
+          "renderedContent": "<div class=\"grounding-entry-point\">Search Goldfish</div>"
+        }
+      }
+    }
+  ],
+  "usageMetadata": {
+    "promptTokenCount": 25,
+    "candidatesTokenCount": 35,
+    "totalTokenCount": 60
+  }
+}
