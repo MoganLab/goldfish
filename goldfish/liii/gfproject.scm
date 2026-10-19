@@ -28,7 +28,7 @@
     gfproject-extract-tools gfproject-deep-merge gfproject-load-config-bundle
     gfproject-load-config gfproject-find-tool-root gfproject-resolve-tool
     gfproject-resolve-tool-bundle gfproject-prepare-and-run-tool
-    gfproject-run-tool gfproject-expand-tools-dir
+    gfproject-run-tool gfproject-expand-tools-dir gfproject-parse-import-spec
   ) ;export
 
   (begin
@@ -204,6 +204,17 @@
       ) ;let*
     ) ;define
 
+    (define (gfproject-parse-import-spec org module)
+      (let ((mod-parts
+              (map string->symbol
+                (filter (lambda (s) (not (string-null? s))) (string-split module "/"))
+              ) ;map
+            ) ;mod-parts
+           ) ;
+        (cons (string->symbol org) mod-parts)
+      ) ;let
+    ) ;define
+
     (define (gfproject-prepare-and-run-tool command tool-config gf-lib allow-fallback)
       (let* ((tool-name (if (json-object? tool-config)
                           (json-ref-string tool-config "tool" command)
@@ -250,28 +261,25 @@
                   ) ;if
                   (begin
                     (set! *load-path* (cons tool-root *load-path*))
-                    (let ((import-err
-                            (catch #t
-                              (lambda ()
-                                (eval
-                                  `(import (,(string->symbol org)
-                                            ,(string->symbol module)))
-                                  (rootlet)
-                                ) ;eval
-                                #f
-                              ) ;lambda
-                              (lambda (tag info) (if (pair? info) (car info) "import failed"))
-                            ) ;catch
-                          ) ;import-err
-                         ) ;
+                    (let* ((import-spec (gfproject-parse-import-spec org module))
+                           (import-err
+                             (catch #t
+                               (lambda () (eval `(import ,import-spec) (rootlet)) #f)
+                               (lambda (tag info) (if (pair? info) (car info) "import failed"))
+                             ) ;catch
+                           ) ;import-err
+                          ) ;
                       (if import-err
-                        (fail "Error importing (" org " " module "):\n" import-err "\n")
+                        (fail "Error importing " (object->string import-spec) ":\n" import-err "\n")
                         (let ((main-proc
                                 (catch #t (lambda () (eval 'main (rootlet))) (lambda (tag info) #f))
                               ) ;main-proc
                              ) ;
                           (if (not (procedure? main-proc))
-                            (fail "Error: Failed to find main function in (" org " " module ").\n")
+                            (fail "Error: Failed to find main function in "
+                              (object->string import-spec)
+                              ".\n"
+                            ) ;fail
                             (let ((res
                                     (catch #t
                                       (lambda () (main-proc))
@@ -284,7 +292,7 @@
                           ) ;if
                         ) ;let
                       ) ;if
-                    ) ;let
+                    ) ;let*
                   ) ;begin
                 ) ;if
               ) ;let
