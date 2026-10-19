@@ -162,7 +162,11 @@
   ) ;let*
 
   ;; 4. Anthropic provider JSON 模式事件流验证
-  (let* ((ant-env (append (list (cons "ANTHROPIC_API_KEY" "sk-ant-test-json")) test-env))
+  ;; GF_PI_MODEL 显式指定模型，避免与 provider 不匹配（任务 034 严格校验）
+  (let* ((ant-env (append test-env
+                           (list (cons "ANTHROPIC_API_KEY" "sk-ant-test-json")
+                             (cons "ANTHROPIC_BASE_URL" base-url)
+                             (cons "GF_PI_MODEL" "claude-3-7-sonnet-20250219"))))
          (cmd (list GF_BIN "pi" "--provider" "anthropic" "--mode" "json"
                 "Hello anthropic json"
               ) ;list

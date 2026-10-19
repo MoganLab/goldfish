@@ -76,14 +76,11 @@
   (check (cdr (assoc 'provider cfg)) => "anthropic")
   (check (cdr (assoc 'api-key cfg)) => "auth-token-bearer-123"))
 
-;; 6. 未知自定义模型：使用兜底元数据，matched? 为 #f
-(let* ((args (parse-pi-args '("--model" "custom-experimental-model")))
-       (env `(("PI_CODING_AGENT_DIR" . ,FIXTURE_DIR)))
-       (cfg (resolve-pi-config args env))
-       (meta (cdr (assoc 'model-meta cfg))))
-  (check (cdr (assoc 'matched? meta)) => #f)
-  (check (cdr (assoc 'context-window meta)) => 128000)
-  (check (cdr (assoc 'max-tokens meta)) => 16384))
+;; 6. 未知模型：直接报 pi-config-error（不再 warning + 兜底）
+(let ((args (parse-pi-args '("--model" "custom-experimental-model")))
+      (env `(("PI_CODING_AGENT_DIR" . ,FIXTURE_DIR))))
+  (check-catch 'pi-config-error
+    (resolve-pi-config args env)))
 
 ;; 7. auth.json 含有 !command 格式的密钥时抛出 pi-config-error
 (let ((args (parse-pi-args '()))
@@ -156,14 +153,26 @@
     (check (cdr (assoc 'context-window meta)) => 128000)
     (check (cdr (assoc 'max-tokens meta)) => 8192)))
 
+;; 9.1 GLM_MODEL 环境变量指定已登记模型（models.json 合并目录）
 (let* ((args (parse-pi-args '("--provider" "glm")))
-       (env `(("PI_CODING_AGENT_DIR" . "non_existent_dir_xyz")
-              ("GLM_MODEL" . "glm-4-air")
+       (env `(("PI_CODING_AGENT_DIR" . ,FIXTURE_DIR)
+              ("GLM_MODEL" . "glm-5.3")
               ("GLM_API_KEY" . "glm-key-456")))
        (cfg (resolve-pi-config args env)))
   (check (cdr (assoc 'provider cfg)) => "glm")
-  (check (cdr (assoc 'model-id cfg)) => "glm-4-air")
-  (check (cdr (assoc 'api-key cfg)) => "glm-key-456"))
+  (check (cdr (assoc 'model-id cfg)) => "glm-5.3")
+  (check (cdr (assoc 'api-key cfg)) => "glm-key-456")
+  (let ((meta (cdr (assoc 'model-meta cfg))))
+    (check (cdr (assoc 'matched? meta)) => #t)
+    (check (cdr (assoc 'context-window meta)) => 1000000)))
+
+;; 9.2 GLM_MODEL 环境变量指向未登记模型时报 pi-config-error
+(let ((args (parse-pi-args '("--provider" "glm")))
+      (env `(("PI_CODING_AGENT_DIR" . ,FIXTURE_DIR)
+             ("GLM_MODEL" . "glm-4-air")
+             ("GLM_API_KEY" . "glm-key-456"))))
+  (check-catch 'pi-config-error
+    (resolve-pi-config args env)))
 
 (let* ((args (parse-pi-args '("--provider" "glm")))
        (env `(("PI_CODING_AGENT_DIR" . "non_existent_dir_xyz"))))
@@ -186,14 +195,17 @@
     (check (cdr (assoc 'max-tokens meta)) => 8192)))
 
 (let* ((args (parse-pi-args '("--provider" "deepseek")))
-       (env `(("PI_CODING_AGENT_DIR" . "non_existent_dir_xyz")
+       (env `(("PI_CODING_AGENT_DIR" . ,FIXTURE_DIR)
               ("DEEPSEEK_MODEL" . "deepseek-v4-flash")
               ("DEEPSEEK_API_KEY" . "ds-key-xyz-789")
               ("HOME" . "/non-existent")))
        (cfg (resolve-pi-config args env)))
   (check (cdr (assoc 'provider cfg)) => "deepseek")
   (check (cdr (assoc 'model-id cfg)) => "deepseek-v4-flash")
-  (check (cdr (assoc 'api-key cfg)) => "ds-key-xyz-789"))
+  (check (cdr (assoc 'api-key cfg)) => "ds-key-xyz-789")
+  (let ((meta (cdr (assoc 'model-meta cfg))))
+    (check (cdr (assoc 'matched? meta)) => #t)
+    (check (cdr (assoc 'context-window meta)) => 1000000)))
 
 (let* ((args (parse-pi-args '("--provider" "deepseek")))
        (env `(("PI_CODING_AGENT_DIR" . "non_existent_dir_xyz")
@@ -228,23 +240,17 @@
   (check (cdr (assoc 'provider cfg)) => "deepseek")
   (check (cdr (assoc 'model-id cfg)) => "deepseek-chat"))
 
-;; 12.4 用户显式指定 --provider 时以用户指定为准，不跨 provider 路由
-(let* ((args (parse-pi-args '("--provider" "google" "--model" "k3")))
-       (env `(("PI_CODING_AGENT_DIR" . ,FIXTURE_DIR)))
-       (cfg (resolve-pi-config args env)))
-  (check (cdr (assoc 'provider cfg)) => "google")
-  (check (cdr (assoc 'model-id cfg)) => "k3")
-  (let ((meta (cdr (assoc 'model-meta cfg))))
-    (check (cdr (assoc 'matched? meta)) => #f)))
+;; 12.4 显式 --provider 与 --model 归属不匹配时直接报错（不允许 fallback）
+(let ((args (parse-pi-args '("--provider" "google" "--model" "k3")))
+      (env `(("PI_CODING_AGENT_DIR" . ,FIXTURE_DIR))))
+  (check-catch 'pi-config-error
+    (resolve-pi-config args env)))
 
-;; 12.5 未命中全部 provider 模型时走自定义模型兜底（保持当前 provider）
-(let* ((args (parse-pi-args '("--model" "non-existent-anywhere-xyz")))
-       (env `(("PI_CODING_AGENT_DIR" . ,FIXTURE_DIR)))
-       (cfg (resolve-pi-config args env)))
-  (check (cdr (assoc 'provider cfg)) => "google")
-  (check (cdr (assoc 'model-id cfg)) => "non-existent-anywhere-xyz")
-  (let ((meta (cdr (assoc 'model-meta cfg))))
-    (check (cdr (assoc 'matched? meta)) => #f)))
+;; 12.5 未指定 provider 且模型未命中全部 provider 时报错（不再兜底）
+(let ((args (parse-pi-args '("--model" "non-existent-anywhere-xyz")))
+      (env `(("PI_CODING_AGENT_DIR" . ,FIXTURE_DIR))))
+  (check-catch 'pi-config-error
+    (resolve-pi-config args env)))
 
 ;; 13. thinking-level 配置与覆盖测试
 ;; 13.1 默认从 settings.defaultThinkingLevel 读取（fixture 中为 medium）
@@ -271,5 +277,13 @@
               ("ANTHROPIC_AUTH_TOKEN" . "test-key")))
        (cfg (resolve-pi-config args env)))
   (check (cdr (assoc 'thinking-level cfg)) => "off"))
+
+;; 14. 严格匹配下正常命中：内置目录模型（gemini-2.5-flash）不被误判
+(let* ((args (parse-pi-args '("--provider" "google" "--model" "gemini-2.5-flash")))
+       (env `(("PI_CODING_AGENT_DIR" . ,FIXTURE_DIR)))
+       (cfg (resolve-pi-config args env)))
+  (check (cdr (assoc 'provider cfg)) => "google")
+  (check (cdr (assoc 'model-id cfg)) => "gemini-2.5-flash")
+  (check (cdr (assoc 'matched? (cdr (assoc 'model-meta cfg)))) => #t))
 
 (check-report)

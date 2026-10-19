@@ -138,7 +138,11 @@
   ) ;let*
 
   ;; 7. CLI --provider anthropic print 模式端到端测试
-  (let* ((ant-env (append (list (cons "ANTHROPIC_API_KEY" "sk-ant-test-e2e")) test-env))
+  ;; GF_PI_MODEL 显式指定模型，避免与 provider 不匹配（任务 034 严格校验）
+  (let* ((ant-env (append test-env
+                           (list (cons "ANTHROPIC_API_KEY" "sk-ant-test-e2e")
+                             (cons "ANTHROPIC_BASE_URL" base-url)
+                             (cons "GF_PI_MODEL" "claude-3-7-sonnet-20250219"))))
          (cmd (list GF_BIN "pi" "--provider" "anthropic" "--print" "Hello Anthropic CLI")
          ) ;cmd
          (p (process-spawn cmd :env ant-env :stdout 'pipe :stderr 'pipe))
@@ -205,11 +209,13 @@
     (process-close p))
 
   ;; 11. CLI --provider deepseek print 模式端到端测试（通过 stub server）
-  (let* ((ds-env (append (list (cons "DEEPSEEK_API_KEY" "ds-test-key-e2e")
-                               (cons "DEEPSEEK_BASE_URL" base-url)
-                               (cons "ANTHROPIC_BASE_URL" base-url)
-                               (cons "GF_PI_BASE_URL" base-url))
-                         test-env))
+  ;; GF_PI_MODEL 显式指定模型，避免与 provider 不匹配（任务 034 严格校验）
+  (let* ((ds-env (append test-env
+                           (list (cons "DEEPSEEK_API_KEY" "ds-test-key-e2e")
+                             (cons "DEEPSEEK_BASE_URL" base-url)
+                             (cons "ANTHROPIC_BASE_URL" base-url)
+                             (cons "GF_PI_MODEL" "deepseek-chat")
+                             (cons "GF_PI_BASE_URL" base-url))))
          (cmd (list GF_BIN "pi" "--provider" "deepseek" "--print" "Hello DeepSeek CLI"))
          (p (process-spawn cmd :env ds-env :stdout 'pipe :stderr 'pipe))
          (code (process-wait p 10000))

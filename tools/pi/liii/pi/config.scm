@@ -36,8 +36,7 @@
     pi-read-json-file pi-load-settings pi-resolve-proxy-url pi-load-auth
     pi-resolve-provider-key pi-load-models-store pi-load-models-json
     pi-merge-models-json-into-store pi-resolve-model-metadata resolve-pi-config
-    resolve-goldpi-config resolve-active-tools pi-warn-fallback-model
-    goldpi-warn-fallback-model
+    resolve-goldpi-config resolve-active-tools
   ) ;export
   (begin
 
@@ -178,15 +177,6 @@
       ) ;if
     ) ;define
 
-    (define (pi-warn-fallback-model model-id)
-      (let ((p (if (defined? '*stderr*) *stderr* (current-error-port))))
-        (display "Warning: Model \"" p)
-        (display model-id p)
-        (display "\" not found in models store; using fallback defaults\n" p)
-      ) ;let
-    ) ;define
-    (define goldpi-warn-fallback-model pi-warn-fallback-model)
-
     (define (resolve-pi-config parsed-args . opt-env)
       (let* ((env-agent-dir (lookup-env-var "PI_CODING_AGENT_DIR" opt-env))
              (agent-dir (pi-get-agent-dir env-agent-dir))
@@ -246,9 +236,6 @@
                    ) ;cond
                  ) ;thinking-level
                 ) ;
-            (when (not (pi-model-metadata-matched? meta))
-              (pi-warn-fallback-model model-id)
-            ) ;when
             (list (cons 'agent-dir agent-dir)
               (cons 'provider provider)
               (cons 'api-key api-key)

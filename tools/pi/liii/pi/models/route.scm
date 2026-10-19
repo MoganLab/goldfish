@@ -162,6 +162,24 @@
       ) ;cond
     ) ;define
 
+    (define (%raise-unknown-model model-id)
+      (error 'pi-config-error
+        (string-append "Unknown model \""
+          model-id
+          "\": not found in any configured provider model catalog. Use --list-models to see available models, or add the model to models.json in the agent dir."
+        ) ;string-append
+      ) ;error
+    ) ;define
+
+    (define (%raise-model-provider-mismatch provider model-id)
+      (error 'pi-config-error
+        (string-append "Model \"" model-id "\" is not available for provider \""
+          provider
+          "\". Use --list-models to see available models, or add the model to models.json in the agent dir."
+        ) ;string-append
+      ) ;error
+    ) ;define
+
     (define (pi-route-provider-and-model cli-p cli-m settings models-store opt-env)
       (let* ((has-cli-p?
                (and (string? cli-p) (not (string-null? (string-trim-both cli-p))))
@@ -188,33 +206,42 @@
                ) ;if
              ) ;default-p
             ) ;
-        (if has-cli-p?
-          (values cli-p
-            (or explicit-m
-              (%provider-env-model cli-p opt-env)
-              (and (equal? cli-p settings-p)
-                (string? settings-m)
-                (not (string-null? (string-trim-both settings-m)))
-                settings-m
-              ) ;and
-              (pi-provider-default-model cli-p)
-            ) ;or
-          ) ;values
-          (if explicit-m
-            (let ((found-p (pi-find-model-provider explicit-m models-store default-p)))
-              (values (or found-p default-p) explicit-m)
-            ) ;let
-            (values default-p
-              (or (%provider-env-model default-p opt-env)
-                (and (string? settings-m)
-                  (not (string-null? (string-trim-both settings-m)))
-                  settings-m
-                ) ;and
-                (pi-provider-default-model default-p)
-              ) ;or
-            ) ;values
+        (let-values (((provider model-id)
+                      (if has-cli-p?
+                        (values cli-p
+                          (or explicit-m
+                            (%provider-env-model cli-p opt-env)
+                            (and (equal? cli-p settings-p)
+                              (string? settings-m)
+                              (not (string-null? (string-trim-both settings-m)))
+                              settings-m
+                            ) ;and
+                            (pi-provider-default-model cli-p)
+                          ) ;or
+                        ) ;values
+                        (if explicit-m
+                          (let ((found-p (pi-find-model-provider explicit-m models-store default-p)))
+                            (if found-p (values found-p explicit-m) (%raise-unknown-model explicit-m))
+                          ) ;let
+                          (values default-p
+                            (or (%provider-env-model default-p opt-env)
+                              (and (string? settings-m)
+                                (not (string-null? (string-trim-both settings-m)))
+                                settings-m
+                              ) ;and
+                              (pi-provider-default-model default-p)
+                            ) ;or
+                          ) ;values
+                        ) ;if
+                      ) ;if
+                     ) ;
+                    ) ;
+          ;; 严格校验：模型必须属于选定的 provider（models-store 或内置目录）
+          (if (pi-provider-has-model? provider model-id models-store)
+            (values provider model-id)
+            (%raise-model-provider-mismatch provider model-id)
           ) ;if
-        ) ;if
+        ) ;let-values
       ) ;let*
     ) ;define
 
