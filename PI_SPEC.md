@@ -273,19 +273,21 @@ tools/pi/liii/
 
 ## TODO（尚不能运行，随迭代补充）
 
-- [ ] **GLM 5.3 系列接入（任务 028，用户供稿待实测）**：重点支持 GLM 5.3 系列，具备 100 万超长上下文窗口并原生支持思考模式与工具调用。推荐模型：`glm-5.3`（1M 上下文旗舰主力）、`glm-5.3-flash`（1M 上下文轻量高速版）、`glm-5-turbo`（200K 上下文日常开发）、`glm-4.5-air`。预期用法（验证后转【可用】）：
+- [x] **GLM 5.3 系列接入【可用】（任务 028 已验收）**：重点支持 GLM 5.3 系列，具备 100 万超长上下文窗口并原生支持思考模式与工具调用。推荐模型：`glm-5.3`（1M 上下文旗舰主力）、`glm-5.3-flash`（1M 上下文轻量高速版）、`glm-5-turbo`（200K 上下文日常开发）、`glm-4.5-air`。已实测用法：
 
   ```bash
-  # 使用 GLM-5.3 主力模型提问
+  # 使用 GLM-5.3 主力模型提问（实测 2026-10-19，退出码 0）
   timeout 120 bin/gf pi --provider glm --model glm-5.3 -p "用一句话解释 Scheme 的 continuation"
 
-  # 使用 GLM-5.3-Flash 高速模型执行 Bash 工具任务
+  # 使用 GLM-5.3-Flash 高速模型执行 Bash 工具任务（实测工具调用）
   timeout 180 bin/gf pi --provider glm --model glm-5.3-flash --tools bash -p "统计 tests/ 目录下的测试用例总数"
+
+  # 列出全部 glm 模型（6 条：5.3/5.3-flash/5-turbo/4.5-air/4.5/4-flash）
+  bin/gf pi --provider glm --list-models
   ```
 
-  已知阻塞（2026-10-19 实测）：`bin/gf pi --provider glm --list-models` 报
-  `Unknown provider "glm"`——auth.json 有 glm 条目，但 `--provider all --list-models`
-  仅列出 google/kimi-coding，glm 模型目录缺失，需在任务 028 定位。
+  注：glm 模型目录来自 `~/.pi/agent/models.json` 用户自定义目录（任务 029 的合并
+  逻辑零改动覆盖）；验收脚本 `tools/pi/devel/028.scm` 41/41 全绿。
 - [x] **DeepSeek v4 系列接入【可用】（任务 029 已验收）**：经由 `https://api.deepseek.com/anthropic` 端点接入。推荐模型：`deepseek-v4-flash`（1M 上下文旗舰版，支持深度思考链与代码工具调用）、`deepseek-chat`（通用对话）、`deepseek-reasoner`（强化推理版）。已实测用法：
 
   ```bash
