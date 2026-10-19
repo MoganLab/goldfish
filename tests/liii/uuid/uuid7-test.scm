@@ -1,8 +1,8 @@
 (import (liii check)
         (liii uuid)
-        (liii os)
-        (liii sys)
-        (liii hash-table))
+        (liii time)
+        (scheme time)
+        (srfi srfi-1))
 
 (check-set-mode! 'report-failed)
 
@@ -49,26 +49,22 @@
 
 ;; 变体位校验：第 20 个字符（索引 19）为 10xx 变体（8, 9, a, b）
 (define (valid-uuid7-variant? u)
-  (let ((ch (string-ref u 19)))
-    (if (memv ch '(#\8 #\9 #\a #\b #\A #\B)) #t #f)))
+  (and (memv (string-ref u 19) '(#\8 #\9 #\a #\b #\A #\B)) #t))
 
 (check (valid-uuid7-variant? (uuid7)) => #t)
 
 ;; 批量版本位与变体位校验
 (define (check-uuid7-batch n)
-  (let loop ((i 0))
-    (if (= i n)
-        #t
-        (let ((u (uuid7)))
-          (if (and (char=? (string-ref u 14) #\7)
-                   (valid-uuid7-variant? u))
-              (loop (+ i 1))
-              #f)))))
+  (every (lambda (_)
+           (let ((u (uuid7)))
+             (and (char=? (string-ref u 14) #\7)
+                  (valid-uuid7-variant? u))))
+         (iota n)))
 
 (check (check-uuid7-batch 100) => #t)
 
-;; 时间戳精度反解：前 48 位 Unix 毫秒时间戳与当前系统时钟 (os-time) 误差小于 5 秒
-(let* ((now-sec (os-time))
+;; 时间戳精度反解：前 48 位 Unix 毫秒时间戳与当前系统时钟 (current-second) 误差小于 5 秒
+(let* ((now-sec (current-second))
        (u (uuid7))
        (hex-ts (string-append (substring u 0 8) (substring u 9 13)))
        (ts-ms (string->number hex-ts 16))
@@ -92,18 +88,7 @@
 (check (check-uuid7-monotonic 50) => #t)
 
 ;; 高频连续调用零碰撞唯一性
-(define (check-uuid7-uniqueness n)
-  (let ((ht (make-hash-table)))
-    (let loop ((i 0))
-      (if (= i n)
-          (= (hash-table-size ht) n)
-          (let ((u (uuid7)))
-            (if (hash-table-ref/default ht u #f)
-                #f
-                (begin
-                  (hash-table-set! ht u #t)
-                  (loop (+ i 1)))))))))
-
-(check (check-uuid7-uniqueness 1000) => #t)
+(let ((us (map (lambda (_) (uuid7)) (iota 1000))))
+  (check (length (delete-duplicates us)) => 1000))
 
 (check-report)

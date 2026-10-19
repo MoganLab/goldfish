@@ -1,11 +1,10 @@
 (define-library (liii os)
   (export os-arch os-type os-windows? os-linux? os-macos? os-temp-dir os-sep
-    pathsep os-call os-time mkdir chdir rmdir remove rename getenv putenv
-    unsetenv getcwd listdir access getlogin getpid os-tty?
+    pathsep os-call mkdir chdir rmdir remove rename getenv putenv unsetenv
+    getcwd listdir access getlogin getpid os-tty?
   ) ;export
   (import (scheme base)
     (scheme process-context)
-    (scheme time)
     (liii base)
     (liii error)
     (liii string)
@@ -59,10 +58,6 @@
 
     (define (os-call command)
       (g_os-call command)
-    ) ;define
-
-    (define (os-time)
-      (current-second)
     ) ;define
 
     (define (system command)

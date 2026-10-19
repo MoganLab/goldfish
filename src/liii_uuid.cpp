@@ -40,19 +40,13 @@ f_uuid4 (s7_scheme* sc, s7_pointer args) {
 
 static s7_pointer
 f_uuid7 (s7_scheme* sc, s7_pointer args) {
-  (void) args;
   thread_local std::mt19937_64 rng= [] {
-    uint64_t seed= 0;
     try {
       std::random_device rd;
-      seed= ((uint64_t) rd () << 32) | rd ();
+      return std::mt19937_64 (((uint64_t) rd () << 32) | rd ());
     } catch (...) {
-      seed= (uint64_t) std::chrono::high_resolution_clock::now ().time_since_epoch ().count ();
+      return std::mt19937_64 ((uint64_t) std::chrono::high_resolution_clock::now ().time_since_epoch ().count ());
     }
-    if (seed == 0) {
-      seed= (uint64_t) std::chrono::high_resolution_clock::now ().time_since_epoch ().count ();
-    }
-    return std::mt19937_64 (seed);
   }();
 
   thread_local uint64_t last_ms    = 0;
@@ -76,12 +70,9 @@ f_uuid7 (s7_scheme* sc, s7_pointer args) {
 
   uint8_t bytes[16];
   // 48-bit timestamp (Big-Endian)
-  bytes[0]= (uint8_t) ((now_ms >> 40) & 0xFF);
-  bytes[1]= (uint8_t) ((now_ms >> 32) & 0xFF);
-  bytes[2]= (uint8_t) ((now_ms >> 24) & 0xFF);
-  bytes[3]= (uint8_t) ((now_ms >> 16) & 0xFF);
-  bytes[4]= (uint8_t) ((now_ms >> 8) & 0xFF);
-  bytes[5]= (uint8_t) (now_ms & 0xFF);
+  for (int i= 0; i < 6; i++) {
+    bytes[i]= (uint8_t) ((now_ms >> (40 - 8 * i)) & 0xFF);
+  }
 
   // Version 7: 4 bits ver (0x7), 12 bits rand_a
   bytes[6]= (uint8_t) (0x70 | ((last_rand_a >> 8) & 0x0F));
@@ -90,13 +81,9 @@ f_uuid7 (s7_scheme* sc, s7_pointer args) {
   // Variant: 2 bits (10xx), 62 bits rand_b
   uint64_t rand_b= rng ();
   bytes[8]       = (uint8_t) (0x80 | ((rand_b >> 56) & 0x3F));
-  bytes[9]       = (uint8_t) ((rand_b >> 48) & 0xFF);
-  bytes[10]      = (uint8_t) ((rand_b >> 40) & 0xFF);
-  bytes[11]      = (uint8_t) ((rand_b >> 32) & 0xFF);
-  bytes[12]      = (uint8_t) ((rand_b >> 24) & 0xFF);
-  bytes[13]      = (uint8_t) ((rand_b >> 16) & 0xFF);
-  bytes[14]      = (uint8_t) ((rand_b >> 8) & 0xFF);
-  bytes[15]      = (uint8_t) (rand_b & 0xFF);
+  for (int i= 0; i < 7; i++) {
+    bytes[9 + i]= (uint8_t) ((rand_b >> (48 - 8 * i)) & 0xFF);
+  }
 
   char buf[37];
   snprintf (buf, sizeof (buf), "%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x", bytes[0],
