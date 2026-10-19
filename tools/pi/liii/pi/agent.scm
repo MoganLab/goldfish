@@ -120,6 +120,12 @@
       ) ;let*
     ) ;define
 
+    (define (%notify-turn-end emit assistant-msg tool-results)
+      (when (procedure? emit)
+        (emit 'turn_end assistant-msg tool-results)
+      ) ;when
+    ) ;define
+
     (define (%emit-agent-end emit final-msgs stop-reason config)
       (when (procedure? emit)
         (let* ((aborted? (equal? stop-reason "aborted"))
@@ -133,7 +139,7 @@
       ) ;when
     ) ;define
 
-    (define (%finish-agent-turn new-msgs stop-reason tool-calls emit config)
+    (define (%finish-agent-turn new-msgs stop-reason tool-calls emit config resp)
       (let ((final-msgs
               (if (equal? stop-reason "length")
                 (if (null? tool-calls)
@@ -144,15 +150,10 @@
               ) ;if
             ) ;final-msgs
            ) ;
+        (%notify-turn-end emit resp #())
         (%emit-agent-end emit final-msgs stop-reason config)
         final-msgs
       ) ;let
-    ) ;define
-
-    (define (%notify-turn-end emit assistant-msg tool-results)
-      (when (procedure? emit)
-        (emit 'turn_end assistant-msg tool-results)
-      ) ;when
     ) ;define
 
     (define (%emit-agent-error err-msg msgs emit config)
@@ -198,7 +199,7 @@
             ) ;
         (let loop
           ((msgs initial-messages) (turn 0))
-          (cond ((and (number? session-timeout) (<= session-timeout 0))
+          (cond ((and (number? session-timeout) (< session-timeout 0))
                  (%emit-agent-error (%make-session-timeout-error) msgs emit config)
                 ) ;
                 ((and deadline-sec (> (current-second) deadline-sec))
@@ -223,10 +224,7 @@
                         ) ;when
                         (loop all-msgs (+ turn 1))
                       ) ;let*
-                      (let ((final-msgs (%finish-agent-turn new-msgs stop-reason tool-calls emit config)))
-                        (%notify-turn-end emit resp #())
-                        final-msgs
-                      ) ;let
+                      (%finish-agent-turn new-msgs stop-reason tool-calls emit config resp)
                     ) ;if
                   ) ;let*-values
                 ) ;else

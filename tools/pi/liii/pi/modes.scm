@@ -158,9 +158,10 @@
                ) ;or
              ) ;max-turns
              (session-timeout
-               (or (pi-args-ref parsed 'session-timeout)
-                 (cdr (or (assoc 'session-timeout cfg) '(#f . 600)))
-               ) ;or
+               (let ((st (pi-args-ref parsed 'session-timeout)))
+                 (if (number? st) st (cdr (or (assoc 'session-timeout cfg) '(#f
+                                                                             . 600))))
+               ) ;let
              ) ;session-timeout
             ) ;
         (run-agent-loop cfg init-msgs system-prompt emit timeout max-turns

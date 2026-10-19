@@ -54,6 +54,7 @@
         (cons 'no-tools #f)
         (cons 'max-turns 200)
         (cons 'timeout 120)
+        (cons 'session-timeout #f)
         (cons 'no-session #f)
         (cons 'continue #f)
         (cons 'list-models #f)
@@ -123,6 +124,9 @@
             ) ;
             ((and (string=? arg "--timeout") next-arg)
              (values 'timeout (string->number next-arg) 2)
+            ) ;
+            ((and (string=? arg "--session-timeout") next-arg)
+             (values 'session-timeout (string->number next-arg) 2)
             ) ;
             ((and (string=? arg "--system-prompt") next-arg)
              (values 'system-prompt next-arg 2)

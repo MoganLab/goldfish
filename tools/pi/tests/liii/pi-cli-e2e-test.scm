@@ -219,6 +219,24 @@
                     (string-contains? out "from Claude stream!")))
     (process-close p))
 
+  ;; 12. CLI --session-timeout 0 关闭兜底端到端测试
+  (let* ((cmd (list GF_BIN "pi" "--model" "multi-turn" "--session-timeout" "0" "--print" "Run multi turn"))
+         (p (process-spawn cmd :env test-env :stdout 'pipe :stderr 'pipe))
+         (code (process-wait p 15000))
+         (out (process-read p :stream 'stdout)))
+    (check code => 0)
+    (check-true (string-contains? out "Multi-turn tool completed successfully!"))
+    (process-close p))
+
+  ;; 13. CLI --session-timeout 立即超时（负数）端到端测试
+  (let* ((cmd (list GF_BIN "pi" "--model" "multi-turn" "--session-timeout" "-1" "--print" "Run timeout"))
+         (p (process-spawn cmd :env test-env :stdout 'pipe :stderr 'pipe))
+         (code (process-wait p 10000))
+         (err (process-read p :stream 'stderr)))
+    (check code => 1)
+    (check-true (string-contains? err "Session timeout exceeded"))
+    (process-close p))
+
   (process-kill proc)
 ) ;let*
 

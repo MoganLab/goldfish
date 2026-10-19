@@ -52,6 +52,12 @@
 (let ((res (parse-pi-args '("--timeout" "60"))))
   (check (pi-args-ref res 'timeout) => 60))
 
+(let ((res (parse-pi-args '("--session-timeout" "1800"))))
+  (check (pi-args-ref res 'session-timeout) => 1800))
+
+(let ((res (parse-pi-args '("--session-timeout" "0"))))
+  (check (pi-args-ref res 'session-timeout) => 0))
+
 (let ((res (parse-pi-args '("--no-session"))))
   (check (pi-args-ref res 'no-session) => #t))
 
@@ -82,6 +88,7 @@
   (check (pi-args-ref res 'no-tools) => #f)
   (check (pi-args-ref res 'max-turns) => 200)
   (check (pi-args-ref res 'timeout) => 120)
+  (check (pi-args-ref res 'session-timeout) => #f)
   (check (pi-args-ref res 'no-session) => #f)
   (check (pi-args-ref res 'system-prompt) => #f)
   (check (pi-args-ref res 'append-system-prompt) => '())
@@ -166,5 +173,13 @@
 
 (check-catch 'pi-arg-error (parse-pi-args '("--thinking-level" "extreme")))
 (check-catch 'pi-arg-error (parse-pi-args '("--thinking" "invalid")))
+
+;; 10. --session-timeout 解析与默认值测试
+(let ((res1 (parse-pi-args '("--session-timeout" "7000" "hello")))
+      (res2 (parse-pi-args '("--session-timeout" "0" "world"))))
+  (check (pi-args-ref res1 'session-timeout) => 7000)
+  (check (pi-args-ref res1 'messages) => '("hello"))
+  (check (pi-args-ref res2 'session-timeout) => 0)
+  (check (pi-args-ref res2 'messages) => '("world")))
 
 (check-report)
