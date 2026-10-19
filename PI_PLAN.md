@@ -81,7 +81,7 @@ Anthropic 已实现但本机无访问权限，不在维护范围；其 OAuth 刷
 
 | 编号 | 任务 | 内容与验收点 | 状态 |
 |---|---|---|---|
-| 027 | 会话 id 迁移至 uuid7 | 合并 main 后 (liii uuid) 已提供 uuid7（实测可用）；把会话 id 生成从自造同格式 ID 迁移为 uuid7（pi 原生同为 uuidv7，消除偏差清单 #9）；改动点：会话创建处 id 生成与相关测试；TDD 覆盖 id 格式断言；偏差清单 #9 由 Claude 收尾移除 | 待执行 |
+| 027 | 会话 id 迁移至 uuid7 | 合并 main 后 (liii uuid) 已提供 uuid7（实测可用）；把会话 id 生成从自造同格式 ID 迁移为 uuid7（pi 原生同为 uuidv7，消除偏差清单 #9）；改动点：会话创建处 id 生成与相关测试；TDD 覆盖 id 格式断言；偏差清单 #9 由 Claude 收尾移除 | 建档完成（bin/gf pi 自举 `3a1dff3d`；开发阶段进行中） |
 | 025 | `--no-tools` / `--no-builtin-tools` 支持 | 彻底关闭工具调用变为纯文本对话模式（不向 API 发送 tools 声明，模型不会发起工具调用）；两个别名等价；--help 与 PI_SPEC 用法；TDD 覆盖关闭后请求体无 tools 字段/纯文本对话可用/与 --tools/--exclude-tools 组合时以关闭优先 | 已完成（建档 bin/gf pi 自举 `6892f2cd`；开发第 1 次自举被差距#8 打断后外部 pi 断点续作；验收脚本 025.scm 37/37；commit `2ef3e613`/`1428a70c` 已推送） |
 | 024 | `--exclude-tools <tools>` 支持 | 从默认工具集中排除指定工具（如 --exclude-tools bash,write,edit 快速变为只读审计模式）；与 --tools 的关系：--tools 是白名单替换、--exclude-tools 是黑名单排除（两者可共存时排除优先）；实现于工具选择逻辑 + --help + PI_SPEC 用法；TDD 覆盖排除生效/未知工具/与 --tools 组合 | 已完成（三阶段全过：文档由 bin/gf pi 自举；验收脚本 024.scm 32/32；commit `1104f09c`/`44b7dbae` 已推送） |
 | 031 | `--session-timeout` CLI 选项 | 差距清单 #8（阻塞大任务自举，优先）：会话级超时兜底默认 600s 且无法从 CLI 放宽（`--timeout` 只管 bash/HTTP）；新增 `--session-timeout <秒>`（0 关闭兜底），--help 与 PI_SPEC 用法；TDD 覆盖解析与生效；验收后自举大任务一律显式加 `--session-timeout 7000` | 已完成（建档 bin/gf pi 自举 `9137f1a3`；开发第 1 次自举被自身要修的问题打断后外部 pi 续作；commit `2d0cae57`/`7de58360` 已推送） |
