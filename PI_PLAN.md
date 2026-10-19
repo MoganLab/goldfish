@@ -85,7 +85,7 @@ Anthropic 已实现但本机无访问权限，不在维护范围；其 OAuth 刷
 | 编号 | 任务 | 内容与验收点 | 状态 |
 |---|---|---|---|
 | 050 | deepseek tool_use 参数解析 value-error 修复 | 差距清单 #11：deepseek 首轮响应的 tool_use 参数形状触发 `value-error (("input") ...)`（037 两次同点复现，会话仅 2 行即崩）；需在 anthropic 协议解析层兼容该形状（如 input 为 JSON 字符串时先解析再消费）并加防回归测试；修复前 037 类任务避开 deepseek 首轮大上下文场景 | 已完成（050.scm 30/30；commit `109c4c0d`/`bf88888e` 已推送；gemini 两阶段；差距#11 消除，deepseek 恢复主力） |
-| 045 | `simplify` 内置命令 | 参考 ~/git/pi-extensions/packages/pi-simplify（审查最近改动代码的清晰度/一致性/可维护性并给出改进）：形态文档阶段裁定；验收点含真实简化建议输出；TDD | 建档完成（minimax 自举 `c557fab2`，pi 本尊对照+形态裁定 --simplify 只读/--apply 改写；偏差 #16-18 已登记 §7）；开发阶段进行中 |
+| 045 | `simplify` 内置命令 | 参考 ~/git/pi-extensions/packages/pi-simplify（审查最近改动代码的清晰度/一致性/可维护性并给出改进）：形态文档阶段裁定；验收点含真实简化建议输出；TDD | 开发完成（deepseek：simplify 7 模块+9 测试，只读 SHA 零写入实证，复核通过）；验收阶段进行中 |
 | 046 | `red-green` TDD 强制 | 参考 ~/git/pi-extensions/packages/pi-red-green（强制 RED-GREEN-REFACTOR 循环：先写失败测试再最小实现再重构）：形态文档阶段裁定（候选：--red-green 开关在 agent 循环中强制 TDD 顺序）；TDD | 待执行 |
 | 047 | `blueprint` 计划命令 | 参考 ~/git/pi-extensions/packages/pi-blueprint（高级目标→分阶段多会话构建计划，依赖跟踪+验证门）：形态文档阶段裁定；与现有三阶段流程互补；TDD | 待执行 |
 | 048 | `compass` 代码库导航 | 参考 ~/git/pi-extensions/packages/pi-compass（生成结构化 codemaps 与 code tours，省 token 快速定向）：形态文档阶段裁定；TDD | 待执行 |
