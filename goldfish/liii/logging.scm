@@ -29,14 +29,13 @@
   (import (scheme base)
     (scheme write)
     (scheme file)
-    (scheme time)
     (srfi srfi-13)
     (liii base)
     (liii error)
     (liii string)
     (liii path)
     (liii os)
-    (liii time)
+    (liii date-time)
   ) ;import
   (begin
 
@@ -74,12 +73,28 @@
 
     ;; 时间戳格式化
     (define (format-timestamp)
-      (let ((d (current-date)))
-        (string-append (date->string d "~Y-~m-~d ~H:~M:~S")
+      (let* ((ts (current-system-timestamp))
+             (d (timestamp-date ts))
+             (ct (timestamp-clock-time ts))
+             (h (clock-time-hour ct))
+             (m (clock-time-minute ct))
+             (s (clock-time-second ct))
+             (s-int (exact (floor s)))
+             (ms
+               (exact (floor (* (- s s-int) 1000)))
+             ) ;ms
+            ) ;
+        (string-append (date->iso-8601 d)
+          " "
+          (string-pad (number->string h) 2 #\0)
+          ":"
+          (string-pad (number->string m) 2 #\0)
+          ":"
+          (string-pad (number->string s-int) 2 #\0)
           "."
-          (substring (date->string d "~N") 0 3)
+          (string-pad (number->string ms) 3 #\0)
         ) ;string-append
-      ) ;let
+      ) ;let*
     ) ;define
 
     ;; ============== plist / alist 转换 ==============
