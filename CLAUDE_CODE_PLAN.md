@@ -238,7 +238,8 @@ timeout 1800 pi -a -p @PI_PLAN.md "执行任务 ddd 的验收阶段：1) 编写�
   （028 已入池——质量高但单次响应慢，适合轻量任务）；任务 030 完成后加入
   minimax m3.1-flash 作为主力（用户裁定 2026-10-19：M3.1 Flash 特别快）。
   **主力偏好（用户裁定 2026-10-19）：多用 minimax、deepseek**——这两家
-  速度快；k3/glm 慢，留作对照与兜底。注：models-store 中 glm 模型实际挂在 `zai-coding-cn`
+  速度快；k3/glm 慢，留作对照与兜底。gemini token 预算充足
+  （用户裁定 2026-10-19），429 只是短时窗口，可继续承担默认与轮换任务。注：models-store 中 glm 模型实际挂在 `zai-coding-cn`
   provider 下（glm-5.3/5.3-flash 等），deepseek 下有 deepseek-flash/v4-pro，
   minimax 与 minimax-cn 各有 MiniMax-M2.7/M3——028/029/030 的定位线索。
   任务 033（multikey 密钥池）完成后，限额管理从 provider 级轮换细化到
