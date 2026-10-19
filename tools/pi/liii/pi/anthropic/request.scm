@@ -26,6 +26,7 @@
     (liii pi config types)
     (liii pi message)
     (liii pi anthropic core)
+    (liii pi anthropic thinking)
     (liii pi tools)
   ) ;import
   (export anthropic-build-tool-declarations-from-names anthropic-request)
@@ -162,11 +163,14 @@
                     ((eff-tool-names) (or tool-names (cdr (assoc 'tools config))))
                     ((tool-decls) (anthropic-build-tool-declarations-from-names eff-tool-names))
                     ((ant-msgs) (anthropic-build-messages messages))
-                    ((req-body)
+                    ((raw-body)
                      (anthropic-build-request-body model-id ant-msgs
                        system-instruction tool-decls max-tokens
                      ) ;anthropic-build-request-body
                     ) ;
+                    ((thinking-lvl) (cdr (or (assoc 'thinking-level config) '(#f
+                                                                              . #f))))
+                    ((req-body) (anthropic-inject-thinking raw-body thinking-lvl))
                     ((req-json-str) (json->string req-body))
                     ((headers) (%build-anthropic-headers api-key))
                     ((proxy-alist) (%build-proxy-alist proxy-url))

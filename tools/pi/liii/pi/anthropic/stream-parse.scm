@@ -21,6 +21,7 @@
     (liii sse)
     (liii pi message)
     (liii pi anthropic core)
+    (liii pi anthropic thinking)
   ) ;import
   (export append-anthropic-stream-text handle-anthropic-delta
     stop-anthropic-current-block process-anthropic-sse
@@ -122,6 +123,9 @@
          ((equal? dtype "input_json_delta")
           (%handle-json-delta delta idx stream-state on-ev)
          ) ;
+         ((or (equal? dtype "thinking_delta") (equal? dtype "signature_delta"))
+          (anthropic-handle-thinking-delta delta idx stream-state on-ev)
+         ) ;
         ) ;cond
       ) ;let*
     ) ;define
@@ -152,11 +156,13 @@
 
     (define (stop-anthropic-current-block stream-state on-ev)
       (let ((cur-tool (vector-ref stream-state 5))
+            (cur-th (vector-ref stream-state 6))
             (last-text (vector-ref stream-state 1))
             (blocks (vector-ref stream-state 0))
             (usage (vector-ref stream-state 2))
            ) ;
         (cond ((pair? cur-tool) (%finish-tool-block cur-tool blocks usage stream-state on-ev))
+              ((pair? cur-th) (anthropic-finish-thinking-block stream-state on-ev))
               ((string? last-text)
                (vector-set! stream-state 1 #f)
                (when (procedure? on-ev)
@@ -178,7 +184,8 @@
              (cb (cdr (or (assoc "content_block" json-obj) '(#f #_quote ()))))
              (cb-type (cdr (or (assoc "type" cb) '(#f . ""))))
             ) ;
-        (if (equal? cb-type "tool_use")
+        (cond
+         ((equal? cb-type "tool_use")
           (let ((id (cdr (or (assoc "id" cb) '(#f . ""))))
                 (name (cdr (or (assoc "name" cb) '(#f . ""))))
                ) ;
@@ -196,8 +203,12 @@
               ) ;on-ev
             ) ;when
           ) ;let
-          (vector-set! stream-state 1 #f)
-        ) ;if
+         ) ;
+         ((equal? cb-type "thinking")
+          (anthropic-start-thinking-block stream-state idx on-ev)
+         ) ;
+         (else (vector-set! stream-state 1 #f))
+        ) ;cond
       ) ;let*
     ) ;define
 

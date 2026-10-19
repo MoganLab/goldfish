@@ -47,6 +47,7 @@
         (cons 'mode #f)
         (cons 'model #f)
         (cons 'provider #f)
+        (cons 'thinking-level #f)
         (cons 'proxy #f)
         (cons 'tools #f)
         (cons 'max-turns 200)
@@ -94,6 +95,19 @@
             ((and (string=? arg "--mode") next-arg) (values 'mode next-arg 2))
             ((and (string=? arg "--model") next-arg) (values 'model next-arg 2))
             ((and (string=? arg "--provider") next-arg) (values 'provider next-arg 2))
+            ((and (or (string=? arg "--thinking-level") (string=? arg "--thinking"))
+               next-arg
+             ) ;and
+             (if (member next-arg '("off" "low" "medium" "high"))
+               (values 'thinking-level next-arg 2)
+               (error 'pi-arg-error
+                 (string-append "Invalid thinking level: \""
+                   next-arg
+                   "\". Allowed values: off, low, medium, high"
+                 ) ;string-append
+               ) ;error
+             ) ;if
+            ) ;
             ((and (string=? arg "--proxy") next-arg) (values 'proxy next-arg 2))
             ((and (string=? arg "--tools") next-arg) (values 'tools next-arg 2))
             ((and (string=? arg "--max-turns") next-arg)

@@ -25,9 +25,10 @@
     pi-tool-result-message-tool-name pi-tool-result-message-content
     pi-tool-result-message-is-error pi-tool-result-message-timestamp
     %make-pi-text-block pi-text-block? pi-text-block-text
-    %make-pi-tool-call-block pi-tool-call-block? pi-tool-call-block-id
-    pi-tool-call-block-name pi-tool-call-block-arguments
-    pi-tool-call-block-thought-signature
+    %make-pi-thinking-block pi-thinking-block? pi-thinking-block-thinking
+    pi-thinking-block-thinking-signature %make-pi-tool-call-block
+    pi-tool-call-block? pi-tool-call-block-id pi-tool-call-block-name
+    pi-tool-call-block-arguments pi-tool-call-block-thought-signature
   ) ;export
   (begin
 
@@ -62,6 +63,13 @@
       (%make-pi-text-block text)
       pi-text-block?
       (text pi-text-block-text)
+    ) ;define-record-type
+
+    (define-record-type <pi-thinking-block>
+      (%make-pi-thinking-block thinking thinking-signature)
+      pi-thinking-block?
+      (thinking pi-thinking-block-thinking)
+      (thinking-signature pi-thinking-block-thinking-signature)
     ) ;define-record-type
 
     (define-record-type <pi-tool-call-block>

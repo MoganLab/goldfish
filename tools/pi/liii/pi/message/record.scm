@@ -26,7 +26,9 @@
     pi-tool-result-message-tool-call-id pi-tool-result-message-tool-name
     pi-tool-result-message-content pi-tool-result-message-is-error
     pi-tool-result-message-timestamp pi-text-block pi-text-block?
-    pi-text-block-type pi-text-block-text pi-tool-call-block pi-tool-call-block?
+    pi-text-block-type pi-text-block-text pi-thinking-block pi-thinking-block?
+    pi-thinking-block-type pi-thinking-block-thinking
+    pi-thinking-block-thinking-signature pi-tool-call-block pi-tool-call-block?
     pi-tool-call-block-type pi-tool-call-block-id pi-tool-call-block-name
     pi-tool-call-block-arguments pi-tool-call-block-thought-signature
   ) ;export
@@ -62,16 +64,20 @@
     (define (pi-text-block-type blk)
       "text"
     ) ;define
+    (define (pi-thinking-block-type blk)
+      "thinking"
+    ) ;define
     (define (pi-tool-call-block-type blk)
       "toolCall"
     ) ;define
 
     (define (pi-block? x)
-      (or (pi-text-block? x) (pi-tool-call-block? x))
+      (or (pi-text-block? x) (pi-thinking-block? x) (pi-tool-call-block? x))
     ) ;define
 
     (define (pi-block-type blk)
       (cond ((pi-text-block? blk) (pi-text-block-type blk))
+            ((pi-thinking-block? blk) (pi-thinking-block-type blk))
             ((pi-tool-call-block? blk) (pi-tool-call-block-type blk))
             ((pair? blk)
              (let ((p (or (assoc "type" blk) (assoc 'type blk))))
@@ -86,6 +92,16 @@
       (cond ((pair? blk) blk)
             ((pi-text-block? blk)
              (list (cons "type" "text") (cons "text" (pi-text-block-text blk)))
+            ) ;
+            ((pi-thinking-block? blk)
+             (let* ((sig (pi-thinking-block-thinking-signature blk))
+                    (base (list (cons "type" "thinking")
+                            (cons "thinking" (pi-thinking-block-thinking blk))
+                          ) ;list
+                    ) ;base
+                   ) ;
+               (if sig (append base (list (cons "thinkingSignature" sig))) base)
+             ) ;let*
             ) ;
             ((pi-tool-call-block? blk)
              (let* ((sig (pi-tool-call-block-thought-signature blk))
@@ -207,6 +223,10 @@
     (define (pi-text-block text)
       (%make-pi-text-block text)
     ) ;define
+
+    (define* (pi-thinking-block thinking (thought-signature #f))
+      (%make-pi-thinking-block thinking thought-signature)
+    ) ;define*
 
     (define* (pi-tool-call-block id name arguments (thought-signature #f))
       (%make-pi-tool-call-block id name arguments thought-signature)

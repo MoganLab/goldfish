@@ -29,6 +29,7 @@
     (liii pi gemini core)
     (liii pi gemini request)
     (liii pi gemini stream-parse)
+    (liii pi gemini thinking)
   ) ;import
   (export gemini-request-stream)
   (begin
@@ -96,7 +97,9 @@
              (eff-tool-names (or tool-names (cdr (assoc 'tools config))))
              (tool-decls (gemini-build-tool-declarations eff-tool-names))
              (contents (gemini-build-contents messages))
-             (req-body (gemini-build-request-body contents sys-inst tool-decls))
+             (raw-req-body (gemini-build-request-body contents sys-inst tool-decls))
+             (thinking-lvl (cdr (or (assoc 'thinking-level config) '(#f . #f))))
+             (req-body (gemini-inject-thinking-config raw-req-body thinking-lvl))
              (proxy-alist
                (if (and (string? proxy-url) (not (string-null? proxy-url)))
                  (list (cons "http" proxy-url) (cons "https" proxy-url))
@@ -138,6 +141,7 @@
     ) ;define
 
     (define (%finalize-stream-success stream-state on-event)
+      (gemini-stream-stop-active-block! stream-state on-event)
       (let* ((blocks (vector-ref stream-state 0))
              (has-fn? (pair? (vector-ref stream-state 3)))
              (raw-finish (vector-ref stream-state 4))
@@ -145,15 +149,6 @@
              (stop-reason (gemini-map-finish-reason finish-reason has-fn?))
              (err-msg (if (equal? stop-reason "error") finish-reason #f))
             ) ;
-        (when (and (string? (vector-ref stream-state 1)) (procedure? on-event))
-          (on-event
-            (list (cons 'type "text_end")
-              (cons 'contentIndex (- (length blocks) 1))
-              (cons 'content (vector-ref stream-state 1))
-              (cons 'usage (vector-ref stream-state 2))
-            ) ;list
-          ) ;on-event
-        ) ;when
         (pi-assistant-message blocks
           :stop-reason   stop-reason
           :error-message err-msg
@@ -242,7 +237,7 @@
               ) ;
           (let loop
             ((attempt 1))
-            (let* ((stream-state (vector '() #f (gemini-map-usage '()) '() #f))
+            (let* ((stream-state (vector '() #f (gemini-map-usage '()) '() #f #f #f #f))
                    (idle-timed-out? #f)
                    (error-body-acc (vector ""))
                    (stream-cb (%make-stream-callback stream-state

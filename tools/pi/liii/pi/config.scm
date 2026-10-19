@@ -113,7 +113,7 @@
             ) ;
         (%make-pi-settings (json-dict-ref obj "defaultProvider" "google")
           (json-dict-ref obj "defaultModel" "gemini-3.8-flash")
-          (json-dict-ref obj "defaultThinkingLevel" "medium")
+          (json-dict-ref obj "defaultThinkingLevel" "off")
           clean-proxy
           (%build-retry-record (json-dict-ref obj "retry" '()))
           (%parse-tools-list (json-dict-ref obj "defaultTools" #f))
@@ -213,6 +213,23 @@
                            ) ;if
                  ) ;raw-meta
                  (meta (pi-ensure-catalog-meta raw-meta provider model-id models-store))
+                 (cli-thinking (pi-args-ref parsed-args 'thinking-level))
+                 (settings-thinking (and settings (pi-settings-default-thinking-level settings)))
+                 (thinking-level
+                   (cond
+                    ((and (string? cli-thinking)
+                       (not (string-null? (string-trim-both cli-thinking)))
+                     ) ;and
+                     cli-thinking
+                    ) ;
+                    ((and (string? settings-thinking)
+                       (not (string-null? (string-trim-both settings-thinking)))
+                     ) ;and
+                     settings-thinking
+                    ) ;
+                    (else "off")
+                   ) ;cond
+                 ) ;thinking-level
                 ) ;
             (when (not (pi-model-metadata-matched? meta))
               (pi-warn-fallback-model model-id)
@@ -222,6 +239,7 @@
               (cons 'api-key api-key)
               (cons 'model-id model-id)
               (cons 'model-meta meta)
+              (cons 'thinking-level thinking-level)
               (cons 'proxy-url proxy-url)
               (cons 'tools tools)
               (cons 'settings settings)

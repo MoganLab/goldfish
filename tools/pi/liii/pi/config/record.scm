@@ -56,7 +56,7 @@
 
     (define* (pi-settings (default-provider "google")
                (default-model "gemini-3.8-flash")
-               (default-thinking-level "medium")
+               (default-thinking-level "off")
                (http-proxy #f)
                (retry #f)
                (default-tools #f)

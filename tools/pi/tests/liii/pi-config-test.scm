@@ -203,4 +203,30 @@
   (let ((meta (cdr (assoc 'model-meta cfg))))
     (check (cdr (assoc 'matched? meta)) => #f)))
 
+;; 13. thinking-level 配置与覆盖测试
+;; 13.1 默认从 settings.defaultThinkingLevel 读取（fixture 中为 medium）
+(let* ((args (parse-pi-args '()))
+       (env `(("PI_CODING_AGENT_DIR" . ,FIXTURE_DIR)))
+       (cfg (resolve-pi-config args env)))
+  (check (cdr (assoc 'thinking-level cfg)) => "medium"))
+
+;; 13.2 CLI --thinking-level low 覆盖 settings
+(let* ((args (parse-pi-args '("--thinking-level" "low")))
+       (env `(("PI_CODING_AGENT_DIR" . ,FIXTURE_DIR)))
+       (cfg (resolve-pi-config args env)))
+  (check (cdr (assoc 'thinking-level cfg)) => "low"))
+
+;; 13.3 CLI --thinking-level off 覆盖 settings
+(let* ((args (parse-pi-args '("--thinking-level" "off")))
+       (env `(("PI_CODING_AGENT_DIR" . ,FIXTURE_DIR)))
+       (cfg (resolve-pi-config args env)))
+  (check (cdr (assoc 'thinking-level cfg)) => "off"))
+
+;; 13.4 未配置 settings 且未传 CLI 参数时默认为 off
+(let* ((args (parse-pi-args '()))
+       (env `(("PI_CODING_AGENT_DIR" . "non_existent_dir_xyz")
+              ("ANTHROPIC_AUTH_TOKEN" . "test-key")))
+       (cfg (resolve-pi-config args env)))
+  (check (cdr (assoc 'thinking-level cfg)) => "off"))
+
 (check-report)

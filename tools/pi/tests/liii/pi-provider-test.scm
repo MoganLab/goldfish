@@ -68,6 +68,25 @@
   (check (cdr (assoc 'stopReason parsed)) => "error")
   (check (cdr (assoc 'errorMessage parsed)) => "SAFETY"))
 
+;; 带有 thinking part 的响应解析
+(let* ((resp-json '(("candidates" . #((("content" . (("parts" . #((("text" . "Let me ponder...")
+                                                                   ("thought" . #t)
+                                                                   ("thoughtSignature" . "sig-abc"))
+                                                                  (("text" . "The final answer."))))))
+                                      ("finishReason" . "STOP"))))))
+       (parsed (gemini-parse-response resp-json 200)))
+  (check (cdr (assoc 'role parsed)) => "assistant")
+  (check (cdr (assoc 'stopReason parsed)) => "stop")
+  (let ((content (cdr (assoc 'content parsed))))
+    (check (length content) => 2)
+    (let ((b1 (car content))
+          (b2 (cadr content)))
+      (check (cdr (assoc 'type b1)) => "thinking")
+      (check (cdr (assoc 'thinking b1)) => "Let me ponder...")
+      (check (cdr (assoc 'thinkingSignature b1)) => "sig-abc")
+      (check (cdr (assoc 'type b2)) => "text")
+      (check (cdr (assoc 'text b2)) => "The final answer."))))
+
 ;; 3. 端到端测试：本地 stub server
 (define (parse-port-line line)
   (if (and (string? line) (string-starts? line "PORT:"))

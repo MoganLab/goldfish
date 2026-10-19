@@ -141,4 +141,19 @@
     (check initial => "stdin text\n<file name=\"/abs/path\">\nfile content\n</file>\n-h")
     (check rest => '("second message"))))
 
+;; 9. --thinking-level 与 --thinking 解析与合法值校验测试
+(let ((res1 (parse-pi-args '("--thinking-level" "off")))
+      (res2 (parse-pi-args '("--thinking-level" "low")))
+      (res3 (parse-pi-args '("--thinking-level" "medium")))
+      (res4 (parse-pi-args '("--thinking-level" "high")))
+      (res5 (parse-pi-args '("--thinking" "low"))))
+  (check (pi-args-ref res1 'thinking-level) => "off")
+  (check (pi-args-ref res2 'thinking-level) => "low")
+  (check (pi-args-ref res3 'thinking-level) => "medium")
+  (check (pi-args-ref res4 'thinking-level) => "high")
+  (check (pi-args-ref res5 'thinking-level) => "low"))
+
+(check-catch 'pi-arg-error (parse-pi-args '("--thinking-level" "extreme")))
+(check-catch 'pi-arg-error (parse-pi-args '("--thinking" "invalid")))
+
 (check-report)

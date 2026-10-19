@@ -21,6 +21,7 @@
     (liii sse)
     (liii pi message)
     (liii pi gemini core)
+    (liii pi gemini thinking)
   ) ;import
   (export emit-text-start-and-delta append-text-block
     process-stream-function-call process-stream-part process-sse-chunk-data
@@ -174,13 +175,26 @@
             ) ;
         (cond
          ((assoc "text" part)
-          (let* ((t (cdr (assoc "text" part)))
-                 (cur-idx (if (string? last-text) (- (length blocks) 1) (length blocks)))
-                ) ;
-            (append-text-block blocks last-text t cur-idx usage stream-state on-event)
-          ) ;let*
+          (let ((t (cdr (assoc "text" part))))
+            (if (gemini-is-thinking-part? part)
+              (gemini-append-thinking-block! stream-state t part-ts on-event)
+              (begin
+                (when (equal? (gemini-stream-state-active-type stream-state) "thinking")
+                  (gemini-stream-stop-active-block! stream-state on-event)
+                ) ;when
+                (vector-set! stream-state 5 "text")
+                (let* ((blocks (vector-ref stream-state 0))
+                       (last-text (vector-ref stream-state 1))
+                       (cur-idx (if (string? last-text) (- (length blocks) 1) (length blocks)))
+                      ) ;
+                  (append-text-block blocks last-text t cur-idx usage stream-state on-event)
+                ) ;let*
+              ) ;begin
+            ) ;if
+          ) ;let
          ) ;
          ((assoc "functionCall" part)
+          (gemini-stream-stop-active-block! stream-state on-event)
           (let ((fc (cdr (assoc "functionCall" part))))
             (process-stream-function-call
               (if (and (string? part-ts) (not (assoc "thoughtSignature" fc)))

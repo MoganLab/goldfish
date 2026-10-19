@@ -27,6 +27,7 @@
     (liii pi message)
     (liii pi gemini core)
     (liii pi gemini stream-parse)
+    (liii pi gemini thinking)
   ) ;import
   (export gemini-parse-response gemini-is-retriable-error? gemini-request
     gemini-build-tool-declarations format-failed-stream-msg
@@ -62,10 +63,17 @@
             (cond
              ((assoc "text" part)
               (let ((t (cdr (assoc "text" part))))
-                (if (and (string? t) (not (string-null? t)))
+                (cond
+                 ((gemini-is-thinking-part? part)
+                  (let ((ts (gemini-part-thought-signature part)))
+                    (loop (+ i 1) (cons (pi-thinking-block t ts) acc) has-fn?)
+                  ) ;let
+                 ) ;
+                 ((and (string? t) (not (string-null? t)))
                   (loop (+ i 1) (cons (pi-text-block t) acc) has-fn?)
-                  (loop (+ i 1) acc has-fn?)
-                ) ;if
+                 ) ;
+                 (else (loop (+ i 1) acc has-fn?))
+                ) ;cond
               ) ;let
              ) ;
              ((assoc "functionCall" part)
@@ -219,7 +227,10 @@
              (eff-tool-names (or tool-names (cdr (assoc 'tools config))))
              (tool-decls (gemini-build-tool-declarations eff-tool-names))
              (contents (gemini-build-contents messages))
-             (req-body (gemini-build-request-body contents system-instruction tool-decls))
+             (raw-req-body (gemini-build-request-body contents system-instruction tool-decls)
+             ) ;raw-req-body
+             (thinking-lvl (cdr (or (assoc 'thinking-level config) '(#f . #f))))
+             (req-body (gemini-inject-thinking-config raw-req-body thinking-lvl))
              (req-json-str (json->string req-body))
              (headers (list (cons "Content-Type" "application/json")
                         (cons "x-goog-api-key" (or api-key ""))

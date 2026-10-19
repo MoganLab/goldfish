@@ -45,9 +45,7 @@
 
     (define (anthropic-map-stop-reason reason)
       (let ((r (if (symbol? reason) (symbol->string reason) reason)))
-        (cond ((or (equal? r "end_turn") (equal? r "pause_turn") (equal? r "stop_sequence"))
-               "stop"
-              ) ;
+        (cond ((member r '("end_turn" "pause_turn" "stop_sequence")) "stop")
               ((equal? r "max_tokens") "length")
               ((equal? r "tool_use") "toolUse")
               (else "error")
@@ -109,6 +107,14 @@
             (cons "name" (%val 'name blk ""))
             (cons "input" (%val 'arguments blk '()))
           ) ;list
+         ) ;
+         ((equal? btype "thinking")
+          (let ((sig (%val 'thinkingSignature blk #f)) (th (%val 'thinking blk "")))
+            (if (and (string? sig) (not (string-null? sig)))
+              (list (cons "type" "thinking") (cons "thinking" th) (cons "signature" sig))
+              (list (cons "type" "thinking") (cons "thinking" th))
+            ) ;if
+          ) ;let
          ) ;
          (else (list (cons "type" "text") (cons "text" "")))
         ) ;cond
@@ -186,28 +192,25 @@
     (define (anthropic-build-request-body model-id messages system-prompt
               tool-decls max-tokens
             ) ;anthropic-build-request-body
-      (let* ((body (list (cons "model" model-id)
-                     (cons "max_tokens" (or max-tokens 8192))
-                     (cons "messages" messages)
-                   ) ;list
-             ) ;body
-             (body
+      (let* ((b (list (cons "model" model-id)
+                  (cons "max_tokens" (or max-tokens 8192))
+                  (cons "messages" messages)
+                ) ;list
+             ) ;b
+             (b
                (if
                  (and (string? system-prompt)
                    (not (string-null? (string-trim-both system-prompt)))
                  ) ;and
-                 (append body (list (cons "system" system-prompt)))
-                 body
+                 (append b (list (cons "system" system-prompt)))
+                 b
                ) ;if
-             ) ;body
-             (body
-               (if (and (pair? tool-decls) (> (length tool-decls) 0))
-                 (append body (list (cons "tools" (list->vector tool-decls))))
-                 body
-               ) ;if
-             ) ;body
+             ) ;b
             ) ;
-        body
+        (if (and (pair? tool-decls) (> (length tool-decls) 0))
+          (append b (list (cons "tools" (list->vector tool-decls))))
+          b
+        ) ;if
       ) ;let*
     ) ;define
 
@@ -236,6 +239,11 @@
                     acc
                   ) ;cons
                 ) ;loop
+               ) ;
+               ((equal? btype "thinking")
+                (let ((th (%val "thinking" blk "")) (sig (%val "signature" blk #f)))
+                  (loop (+ i 1) (cons (pi-thinking-block th sig) acc))
+                ) ;let
                ) ;
                (else (loop (+ i 1) acc))
               ) ;cond
@@ -278,17 +286,13 @@
     ) ;define
 
     (define (anthropic-is-retriable-error? status-code response-body-str)
-      (cond ((or (= status-code 408)
-               (= status-code 409)
-               (= status-code 429)
-               (= status-code 529)
-               (>= status-code 500)
-             ) ;or
-             #t
-            ) ;
-            ((zero? status-code) #t)
-            (else #f)
-      ) ;cond
+      (or (= status-code 408)
+        (= status-code 409)
+        (= status-code 429)
+        (= status-code 529)
+        (>= status-code 500)
+        (zero? status-code)
+      ) ;or
     ) ;define
 
   ) ;begin

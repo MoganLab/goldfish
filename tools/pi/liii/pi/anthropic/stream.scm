@@ -27,6 +27,7 @@
     (liii pi anthropic core)
     (liii pi anthropic request)
     (liii pi anthropic stream-parse)
+    (liii pi anthropic thinking)
   ) ;import
   (export anthropic-request-stream)
   (begin
@@ -98,6 +99,9 @@
     ) ;define
 
     (define (%finalize-stream stream-state)
+      (when (pair? (vector-ref stream-state 6))
+        (anthropic-finish-thinking-block stream-state #f)
+      ) ;when
       (let* ((blocks (vector-ref stream-state 0))
              (raw-stop (vector-ref stream-state 4))
              (stop-reason (anthropic-map-stop-reason (or raw-stop "end_turn")))
@@ -195,7 +199,7 @@
     ) ;define
 
     (define (%init-anthropic-stream-state)
-      (vector '() #f (anthropic-map-usage '()) '() "end_turn" #f)
+      (vector '() #f (anthropic-map-usage '()) '() "end_turn" #f #f)
     ) ;define
 
     (define (%run-stream-loop url req-json-str headers proxy-alist on-ev timeout
@@ -259,8 +263,10 @@
              (eff-tool-names (or tool-names (cdr (assoc 'tools config))))
              (tool-decls (anthropic-build-tool-declarations-from-names eff-tool-names))
              (ant-msgs (anthropic-build-messages messages))
-             (req-body (%build-req-body model-id ant-msgs system-instruction tool-decls max-tokens)
-             ) ;req-body
+             (raw-req-body (%build-req-body model-id ant-msgs system-instruction tool-decls max-tokens)
+             ) ;raw-req-body
+             (thinking-lvl (cdr (or (assoc 'thinking-level config) '(#f . #f))))
+             (req-body (anthropic-inject-thinking raw-req-body thinking-lvl))
              (req-json-str (json->string req-body))
              (headers (%build-headers api-key))
              (proxy-alist (%build-proxy proxy-url))
