@@ -116,12 +116,12 @@
     (check (cdr (assoc 'max-tokens meta)) => 16384)))
 
 ;; minimax 内置模型兜底元数据（任务 030）
-(let ((meta (pi-resolve-model-metadata "minimax" "MiniMax-M3.1-Flash" '() '())))
+(let ((meta (pi-resolve-model-metadata "minimax" "MiniMax-M3" '() '())))
   (check (cdr (assoc 'matched? meta)) => #t)
-  (check (cdr (assoc 'id meta)) => "MiniMax-M3.1-Flash")
+  (check (cdr (assoc 'id meta)) => "MiniMax-M3")
   (check (cdr (assoc 'base-url meta)) => "https://api.minimaxi.com/anthropic")
-  (check (cdr (assoc 'context-window meta)) => 1000000)
-  (check (cdr (assoc 'max-tokens meta)) => 524288))
+  (check (cdr (assoc 'context-window meta)) => 1048576)
+  (check (cdr (assoc 'max-tokens meta)) => 512000))
 
 (let ((meta (pi-resolve-model-metadata "minimax" "MiniMax-M2.7" '() '())))
   (check (cdr (assoc 'matched? meta)) => #t)

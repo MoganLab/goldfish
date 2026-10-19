@@ -208,10 +208,7 @@
       (let* ((env-agent-dir (lookup-env-var "PI_CODING_AGENT_DIR" opt-env))
              (agent-dir (pi-get-agent-dir env-agent-dir))
              (settings (pi-load-settings agent-dir))
-             (models-store (pi-merge-models-json-into-store (pi-load-models-store agent-dir)
-                             (pi-load-models-json agent-dir)
-                           ) ;pi-merge-models-json-into-store
-             ) ;models-store
+             (models-store (pi-build-models-catalog agent-dir))
              (cli-proxy (pi-args-ref parsed-args 'proxy))
              (proxy-url (if (pair? opt-env)
                           (pi-resolve-proxy-url cli-proxy settings (car opt-env))

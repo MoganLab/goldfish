@@ -15,8 +15,16 @@
 ;;
 
 (define-library (liii pi models list)
-  (import (scheme base) (scheme char) (liii string) (liii list) (liii sort))
-  (export pi-format-token-count pi-list-models pi-format-models-table)
+  (import (scheme base)
+    (scheme char)
+    (liii string)
+    (liii list)
+    (liii sort)
+    (liii pi models search)
+  ) ;import
+  (export pi-format-token-count pi-list-models pi-format-models-table
+    pi-fuzzy-match-model? pi-split-search-tokens
+  ) ;export
   (begin
 
     (define (%dict-ref obj key default-val)
@@ -31,12 +39,12 @@
       ) ;if
     ) ;define
 
-    (define (%round-1dec val)
-      (let* ((rounded (/ (round (* val 10.0)) 10.0))
-             (int-part (inexact->exact (floor rounded)))
-             (dec-part
-               (inexact->exact (round (* (- rounded int-part) 10.0)))
-             ) ;dec-part
+    (define (%round-1dec-str val)
+      (let* ((scaled
+               (inexact->exact (floor (+ (* val 10.0) 0.5)))
+             ) ;scaled
+             (int-part (quotient scaled 10))
+             (dec-part (modulo scaled 10))
             ) ;
         (string-append (number->string int-part) "." (number->string dec-part))
       ) ;let*
@@ -47,13 +55,13 @@
        ((>= count 1000000)
         (if (= (modulo count 1000000) 0)
           (string-append (number->string (quotient count 1000000)) "M")
-          (string-append (%round-1dec (/ count 1000000.0)) "M")
+          (string-append (%round-1dec-str (/ count 1000000.0)) "M")
         ) ;if
        ) ;
        ((>= count 1000)
         (if (= (modulo count 1000) 0)
           (string-append (number->string (quotient count 1000)) "K")
-          (string-append (%round-1dec (/ count 1000.0)) "K")
+          (string-append (%round-1dec-str (/ count 1000.0)) "K")
         ) ;if
        ) ;
        (else (number->string count))
@@ -121,21 +129,19 @@
       ) ;let
     ) ;define
 
-    (define (%row-match-search? item pat)
+    (define (%row-match-search? item search-pattern)
       (let ((target
               (string-downcase (string-append (cdr (assoc 'provider item)) " " (cdr (assoc 'model item)))
               ) ;string-downcase
             ) ;target
            ) ;
-        (string-contains? target pat)
+        (pi-fuzzy-match-model? search-pattern target)
       ) ;let
     ) ;define
 
     (define (%filter-search sorted search-pattern)
       (if (and (string? search-pattern) (not (string-null? search-pattern)))
-        (let ((pat (string-downcase search-pattern)))
-          (filter (lambda (item) (%row-match-search? item pat)) sorted)
-        ) ;let
+        (filter (lambda (item) (%row-match-search? item search-pattern)) sorted)
         sorted
       ) ;if
     ) ;define

@@ -61,13 +61,13 @@
               ("TEST_ANTHROPIC_KEY" . "sk-ant-api-987654321")))
        (cfg (resolve-pi-config args env)))
   (check (cdr (assoc 'provider cfg)) => "anthropic")
-  (check (cdr (assoc 'model-id cfg)) => "claude-3-7-sonnet-20250219")
+  (check (cdr (assoc 'model-id cfg)) => "claude-opus-4-8")
   (check (cdr (assoc 'api-key cfg)) => "sk-ant-api-987654321")
   (let ((meta (cdr (assoc 'model-meta cfg))))
     (check (cdr (assoc 'matched? meta)) => #t)
     (check (cdr (assoc 'base-url meta)) => "https://api.anthropic.com")
-    (check (cdr (assoc 'context-window meta)) => 200000)
-    (check (cdr (assoc 'max-tokens meta)) => 8192)))
+    (check (cdr (assoc 'context-window meta)) => 1000000)
+    (check (cdr (assoc 'max-tokens meta)) => 128000)))
 
 (let* ((args (parse-pi-args '("--provider" "anthropic")))
        (env `(("PI_CODING_AGENT_DIR" . "non_existent_dir_xyz")
@@ -140,18 +140,18 @@
        (cfg (resolve-pi-config args env)))
   (check (cdr (assoc 'tools cfg)) => '()))
 
-;; 9. CLI --provider "glm" 默认模型、端点与凭据解析
+;; 9. CLI --provider "glm" 默认模型、端点与凭据解析 (glm 由 models.json 提供)
 (let* ((args (parse-pi-args '("--provider" "glm")))
-       (env `(("PI_CODING_AGENT_DIR" . "non_existent_dir_xyz")
+       (env `(("PI_CODING_AGENT_DIR" . ,FIXTURE_DIR)
               ("ANTHROPIC_AUTH_TOKEN" . "glm-token-xyz-123")))
        (cfg (resolve-pi-config args env)))
   (check (cdr (assoc 'provider cfg)) => "glm")
-  (check (cdr (assoc 'model-id cfg)) => "glm-4-plus")
+  (check (cdr (assoc 'model-id cfg)) => "glm-5.3")
   (check (cdr (assoc 'api-key cfg)) => "glm-token-xyz-123")
   (let ((meta (cdr (assoc 'model-meta cfg))))
     (check (cdr (assoc 'base-url meta)) => "https://open.bigmodel.cn/api/anthropic")
-    (check (cdr (assoc 'context-window meta)) => 128000)
-    (check (cdr (assoc 'max-tokens meta)) => 8192)))
+    (check (cdr (assoc 'context-window meta)) => 1000000)
+    (check (cdr (assoc 'max-tokens meta)) => 131072)))
 
 ;; 9.1 GLM_MODEL 环境变量指定已登记模型（models.json 合并目录）
 (let* ((args (parse-pi-args '("--provider" "glm")))
@@ -175,7 +175,7 @@
     (resolve-pi-config args env)))
 
 (let* ((args (parse-pi-args '("--provider" "glm")))
-       (env `(("PI_CODING_AGENT_DIR" . "non_existent_dir_xyz"))))
+       (env `(("PI_CODING_AGENT_DIR" . ,FIXTURE_DIR))))
   (let ((cfg (resolve-pi-config args env)))
     (check (cdr (assoc 'provider cfg)) => "glm")
     (check (cdr (assoc 'api-key cfg)) => #f)))
@@ -187,12 +187,12 @@
               ("HOME" . "/non-existent")))
        (cfg (resolve-pi-config args env)))
   (check (cdr (assoc 'provider cfg)) => "deepseek")
-  (check (cdr (assoc 'model-id cfg)) => "deepseek-chat")
+  (check (cdr (assoc 'model-id cfg)) => "deepseek-v4-pro")
   (check (cdr (assoc 'api-key cfg)) => "ds-key-xyz-789")
   (let ((meta (cdr (assoc 'model-meta cfg))))
-    (check (cdr (assoc 'base-url meta)) => "https://api.deepseek.com/anthropic")
-    (check (cdr (assoc 'context-window meta)) => 128000)
-    (check (cdr (assoc 'max-tokens meta)) => 8192)))
+    (check (cdr (assoc 'base-url meta)) => "https://api.deepseek.com")
+    (check (cdr (assoc 'context-window meta)) => 1000000)
+    (check (cdr (assoc 'max-tokens meta)) => 384000)))
 
 (let* ((args (parse-pi-args '("--provider" "deepseek")))
        (env `(("PI_CODING_AGENT_DIR" . ,FIXTURE_DIR)
@@ -224,21 +224,21 @@
   (let ((meta (cdr (assoc 'model-meta cfg))))
     (check (cdr (assoc 'matched? meta)) => #t)
     (check (cdr (assoc 'base-url meta)) => "https://api.kimi.com/coding/v1")
-    (check (cdr (assoc 'context-window meta)) => 262144)))
+    (check (cdr (assoc 'context-window meta)) => 1048576)))
 
-;; 12.2 --model glm-4-plus 未显式指定 provider 时，自动路由到 glm
-(let* ((args (parse-pi-args '("--model" "glm-4-plus")))
+;; 12.2 --model glm-5.3 未显式指定 provider 时，自动路由到 glm
+(let* ((args (parse-pi-args '("--model" "glm-5.3")))
        (env `(("PI_CODING_AGENT_DIR" . ,FIXTURE_DIR)))
        (cfg (resolve-pi-config args env)))
   (check (cdr (assoc 'provider cfg)) => "glm")
-  (check (cdr (assoc 'model-id cfg)) => "glm-4-plus"))
+  (check (cdr (assoc 'model-id cfg)) => "glm-5.3"))
 
-;; 12.3 --model deepseek-chat 未显式指定 provider 时，自动路由到 deepseek
-(let* ((args (parse-pi-args '("--model" "deepseek-chat")))
+;; 12.3 --model deepseek-v4-flash 未显式指定 provider 时，自动路由到 deepseek
+(let* ((args (parse-pi-args '("--model" "deepseek-v4-flash")))
        (env `(("PI_CODING_AGENT_DIR" . ,FIXTURE_DIR)))
        (cfg (resolve-pi-config args env)))
   (check (cdr (assoc 'provider cfg)) => "deepseek")
-  (check (cdr (assoc 'model-id cfg)) => "deepseek-chat"))
+  (check (cdr (assoc 'model-id cfg)) => "deepseek-v4-flash"))
 
 ;; 12.4 显式 --provider 与 --model 归属不匹配时直接报错（不允许 fallback）
 (let ((args (parse-pi-args '("--provider" "google" "--model" "k3")))

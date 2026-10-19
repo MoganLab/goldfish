@@ -142,7 +142,7 @@
   (let* ((ant-env (append test-env
                            (list (cons "ANTHROPIC_API_KEY" "sk-ant-test-e2e")
                              (cons "ANTHROPIC_BASE_URL" base-url)
-                             (cons "GF_PI_MODEL" "claude-3-7-sonnet-20250219"))))
+                             (cons "GF_PI_MODEL" "claude-sonnet-4-5"))))
          (cmd (list GF_BIN "pi" "--provider" "anthropic" "--print" "Hello Anthropic CLI")
          ) ;cmd
          (p (process-spawn cmd :env ant-env :stdout 'pipe :stderr 'pipe))
@@ -214,7 +214,7 @@
                            (list (cons "DEEPSEEK_API_KEY" "ds-test-key-e2e")
                              (cons "DEEPSEEK_BASE_URL" base-url)
                              (cons "ANTHROPIC_BASE_URL" base-url)
-                             (cons "GF_PI_MODEL" "deepseek-chat")
+                             (cons "GF_PI_MODEL" "deepseek-v4-pro")
                              (cons "GF_PI_BASE_URL" base-url))))
          (cmd (list GF_BIN "pi" "--provider" "deepseek" "--print" "Hello DeepSeek CLI"))
          (p (process-spawn cmd :env ds-env :stdout 'pipe :stderr 'pipe))

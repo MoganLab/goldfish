@@ -16,26 +16,29 @@
 
 (define-library (liii pi models)
   (import (scheme base)
-    (scheme process-context)
     (srfi srfi-1)
     (liii list)
     (liii string)
     (liii path)
     (liii json)
-    (liii pi template)
     (liii pi config types)
     (liii pi config record)
-    (liii pi event)
     (liii pi models list)
     (liii pi models builtin)
     (liii pi models route)
+    (liii pi models catalog)
+    (liii pi models meta)
+    (liii pi models search)
   ) ;import
   (export pi-load-models-store pi-load-models-json
     pi-merge-models-json-into-store pi-resolve-model-metadata
     pi-format-token-count pi-list-models pi-format-models-table
     PI_SUPPORTED_PROVIDERS PI_PROVIDER_BUILTIN_MODELS pi-provider-default-model
     pi-find-model-provider pi-provider-has-model? pi-route-provider-and-model
-    pi-ensure-catalog-meta pi-builtin-augment-store
+    pi-ensure-catalog-meta pi-builtin-augment-store pi-builtin-augment-all
+    pi-build-models-catalog pi-catalog-provider-names pi-catalog-provider-models
+    pi-catalog-merge-provider-models pi-fuzzy-match-model?
+    pi-split-search-tokens
   ) ;export
   (begin
 
@@ -161,139 +164,6 @@
           ) ;append
         ) ;if
       ) ;let
-    ) ;define
-
-    (define (%find-model-in-list models model-id)
-      (and (pair? models)
-        (let loop
-          ((lst models))
-          (cond ((null? lst) #f)
-                ((string=? (%dict-ref (car lst) "id" "") model-id) (car lst))
-                (else (loop (cdr lst)))
-          ) ;cond
-        ) ;let
-      ) ;and
-    ) ;define
-
-    (define (%get-provider-models models-store provider)
-      (let ((raw-models (%dict-ref (%dict-ref models-store provider '()) "models" '())))
-        (cond ((vector? raw-models) (vector->list raw-models))
-              ((list? raw-models) raw-models)
-              (else '())
-        ) ;cond
-      ) ;let
-    ) ;define
-
-    (define (%apply-meta-env-overrides base-url context-window max-tokens opt-env provider)
-      (let* ((env-url
-               (or
-                 (and (string? provider)
-                   (string=? provider "deepseek")
-                   (or (lookup-env-var "DEEPSEEK_BASE_URL" opt-env)
-                     (let ((ant-url (lookup-env-var "ANTHROPIC_BASE_URL" opt-env)))
-                       (and (string? ant-url) (string-contains? ant-url "deepseek") ant-url)
-                     ) ;let
-                   ) ;or
-                 ) ;and
-                 (and (string? provider)
-                   (or (string=? provider "anthropic") (string=? provider "glm"))
-                   (lookup-env-var "ANTHROPIC_BASE_URL" opt-env)
-                 ) ;and
-                 (and (string? provider)
-                   (or (string=? provider "minimax") (string=? provider "minimax-cn"))
-                   (or (lookup-env-var (if (string=? provider "minimax-cn") "MINIMAX_CN_BASE_URL" "MINIMAX_BASE_URL")
-                         opt-env
-                       ) ;lookup-env-var
-                     (lookup-env-var "MINIMAX_BASE_URL" opt-env)
-                   ) ;or
-                 ) ;and
-                 (lookup-env-var "GF_PI_BASE_URL" opt-env)
-               ) ;or
-             ) ;env-url
-             (env-cw (lookup-env-var "GF_PI_CONTEXT_WINDOW" opt-env))
-             (env-mt (lookup-env-var "GF_PI_MAX_TOKENS" opt-env))
-             (final-url
-               (if (and (string? env-url) (not (string-null? env-url))) env-url base-url)
-             ) ;final-url
-             (final-cw (if (and (string? env-cw) (string->number env-cw))
-                         (string->number env-cw)
-                         context-window
-                       ) ;if
-             ) ;final-cw
-             (final-mt (if (and (string? env-mt) (string->number env-mt))
-                         (string->number env-mt)
-                         max-tokens
-                       ) ;if
-             ) ;final-mt
-            ) ;
-        (values final-url final-cw final-mt)
-      ) ;let*
-    ) ;define
-
-    (define (pi-resolve-model-metadata provider model-id models-store . opt-env)
-      (let* ((p-str (if (symbol? provider) (symbol->string provider) provider))
-             (is-ant? (string=? p-str "anthropic"))
-             (is-kimi? (string=? p-str "kimi-coding"))
-             (is-glm? (string=? p-str "glm"))
-             (is-ds? (string=? p-str "deepseek"))
-             (is-mm? (or (string=? p-str "minimax") (string=? p-str "minimax-cn")))
-             (def-url (cond (is-ant? "https://api.anthropic.com")
-                            (is-kimi? "https://api.kimi.com/coding/v1")
-                            (is-glm? "https://open.bigmodel.cn/api/anthropic")
-                            (is-ds? "https://api.deepseek.com/anthropic")
-                            (is-mm? "https://api.minimaxi.com/anthropic")
-                            (else "https://generativelanguage.googleapis.com/v1beta")
-                      ) ;cond
-             ) ;def-url
-             (m
-               (or (%find-model-in-list (%get-provider-models models-store p-str) model-id)
-                 (and is-mm?
-                   (%find-model-in-list (%dict-ref PI_PROVIDER_BUILTIN_MODELS p-str '()) model-id)
-                 ) ;and
-               ) ;or
-             ) ;m
-             (raw-url (if m (%dict-ref m "baseUrl" def-url) def-url))
-             (norm-url
-               (cond ((and is-kimi? (string=? raw-url "https://api.kimi.com/coding"))
-                      "https://api.kimi.com/coding/v1"
-                     ) ;
-                     ((and is-mm? (string=? raw-url "https://api.minimax.io"))
-                      "https://api.minimaxi.com/anthropic"
-                     ) ;
-                     ((and is-mm? (string=? raw-url "https://api.minimax.io/anthropic"))
-                      "https://api.minimaxi.com/anthropic"
-                     ) ;
-                     (else raw-url)
-               ) ;cond
-             ) ;norm-url
-             (def-cw (cond (is-ant? 200000)
-                           (is-kimi? 262144)
-                           (is-mm? 1000000)
-                           (else 128000)
-                     ) ;cond
-             ) ;def-cw
-             (def-mt (cond (is-ant? 8192)
-                           (is-kimi? 8192)
-                           (is-glm? 8192)
-                           (is-ds? 8192)
-                           (is-mm? 512000)
-                           (else 16384)
-                     ) ;cond
-             ) ;def-mt
-             (cw (if m (%dict-ref m "contextWindow" def-cw) def-cw))
-             (mt (if m (%dict-ref m "maxTokens" def-mt) def-mt))
-            ) ;
-        (let-values (((f-url f-cw f-mt) (%apply-meta-env-overrides norm-url cw mt opt-env p-str)))
-          (%make-pi-model-metadata model-id
-            (if m (%dict-ref m "name" model-id) model-id)
-            p-str
-            f-url
-            f-cw
-            f-mt
-            (if m #t #f)
-          ) ;%make-pi-model-metadata
-        ) ;let-values
-      ) ;let*
     ) ;define
 
   ) ;begin

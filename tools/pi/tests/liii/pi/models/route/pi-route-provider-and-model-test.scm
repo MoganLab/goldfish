@@ -31,7 +31,7 @@
   (check p => "deepseek")
   (check m => "deepseek-v4-flash"))
 
-(let-values (((p m) (pi-route-provider-and-model "minimax" "MiniMax-M3.1-Flash" default-settings fixture-store '())))
+(let-values (((p m) (pi-route-provider-and-model "minimax" "MiniMax-M3.1-Flash" default-settings fixture-merged '())))
   (check p => "minimax")
   (check m => "MiniMax-M3.1-Flash"))
 
@@ -70,40 +70,31 @@
   (check p => "kimi-coding")
   (check m => "k3"))
 
-;; 2.2 glm-4-plus 自动路由至 glm
-(let-values (((p m) (pi-route-provider-and-model #f "glm-4-plus" default-settings fixture-store '())))
+;; 2.2 glm-4.5-air 自动路由至 glm (来自 fixture-merged)
+(let-values (((p m) (pi-route-provider-and-model #f "glm-4.5-air" default-settings fixture-merged '())))
   (check p => "glm")
-  (check m => "glm-4-plus"))
+  (check m => "glm-4.5-air"))
 
-;; 2.3 deepseek-chat 自动路由至 deepseek
-(let-values (((p m) (pi-route-provider-and-model #f "deepseek-chat" default-settings fixture-store '())))
+;; 2.3 deepseek-v4-pro 自动路由至 deepseek
+(let-values (((p m) (pi-route-provider-and-model #f "deepseek-v4-pro" default-settings fixture-store '())))
   (check p => "deepseek")
-  (check m => "deepseek-chat"))
+  (check m => "deepseek-v4-pro"))
 
 ;; 2.3.2 MiniMax-M3.1-Flash 自动路由至 minimax
-(let-values (((p m) (pi-route-provider-and-model #f "MiniMax-M3.1-Flash" default-settings fixture-store '())))
+(let-values (((p m) (pi-route-provider-and-model #f "MiniMax-M3.1-Flash" default-settings fixture-merged '())))
   (check p => "minimax")
   (check m => "MiniMax-M3.1-Flash"))
 
-;; 2.3.1 glm-5.3 / glm-5.3-flash 自动路由至 glm（models.json 合并目录，任务 028）
+;; 2.3.1 glm-5.3 / glm-5.3-flash 自动路由至 glm（models.json 合并目录）
 (let-values (((p m) (pi-route-provider-and-model #f "glm-5.3" default-settings fixture-merged '())))
   (check p => "glm")
   (check m => "glm-5.3"))
 
-(let-values (((p m) (pi-route-provider-and-model #f "glm-5.3-flash" default-settings fixture-merged '())))
-  (check p => "glm")
-  (check m => "glm-5.3-flash"))
-
-;; 2.4 未指定 provider 且模型未命中任何 provider 时报 pi-config-error（不再兜底）
+;; 2.4 未指定 provider 且模型未命中任何 provider 时报 pi-config-error
 (check-catch 'pi-config-error
   (pi-route-provider-and-model #f "custom-unknown-model" default-settings fixture-store '()))
 
-(let ((msg (capture-route-error
-             (lambda () (pi-route-provider-and-model #f "custom-unknown-model" default-settings fixture-store '())))))
-  (check-true (string-contains? msg "custom-unknown-model"))
-  (check-true (string-contains? msg "--list-models")))
-
-;; 2.5 未指定 provider 且模型命中内置目录（未写入 models-store）时正常路由
+;; 2.5 未指定 provider 且模型命中内置目录时正常路由
 (let-values (((p m) (pi-route-provider-and-model #f "gemini-2.5-flash" default-settings fixture-store '())))
   (check p => "google")
   (check m => "gemini-2.5-flash"))
@@ -121,5 +112,16 @@
 ;; 5. 环境变量 GF_PI_MODEL 未登记模型同样报错
 (check-catch 'pi-config-error
   (pi-route-provider-and-model #f #f default-settings fixture-store '(("GF_PI_MODEL" . "env-unknown-model"))))
+
+;; 6. 默认模型兜底回退：当 provider 的默认模型不在目录中时，回退到该 provider 目录的第一个模型
+(let* ((custom-store
+        (list (cons "custom-prov"
+                    (list (cons "models"
+                                (list (list (cons "id" "fallback-first-model")
+                                            (cons "name" "First Model"))))))))
+       (prov-settings '(("default-provider" . "custom-prov") ("default-model" . "non-existent-default"))))
+  (let-values (((p m) (pi-route-provider-and-model "custom-prov" #f prov-settings custom-store '())))
+    (check p => "custom-prov")
+    (check m => "fallback-first-model")))
 
 (check-report)

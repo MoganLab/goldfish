@@ -15,132 +15,34 @@
 ;;
 
 (define-library (liii pi models builtin)
-  (import (scheme base))
-  (export PI_SUPPORTED_PROVIDERS
-    PI_PROVIDER_BUILTIN_MODELS
-    pi-builtin-augment-store
+  (import (scheme base)
+    (liii pi models builtin anthropic)
+    (liii pi models builtin deepseek)
+    (liii pi models builtin google)
+    (liii pi models builtin kimi-coding)
+    (liii pi models builtin minimax)
+    (liii pi models builtin minimax-cn)
+    (liii pi models builtin zai-coding-cn)
+  ) ;import
+  (export PI_SUPPORTED_PROVIDERS PI_PROVIDER_BUILTIN_MODELS
+    pi-builtin-augment-store pi-builtin-augment-all
   ) ;export
   (begin
 
     (define PI_SUPPORTED_PROVIDERS
       '("google" "anthropic" "kimi-coding" "glm" "deepseek" "minimax"
-        "minimax-cn")
+        "minimax-cn" "zai-coding-cn")
     ) ;define
 
     (define PI_PROVIDER_BUILTIN_MODELS
-      '(("google"
-         (("id" . "gemini-3.8-flash")
-          ("name" . "Gemini 3.8 Flash")
-          ("baseUrl" . "https://generativelanguage.googleapis.com/v1beta")
-          ("contextWindow" . 1048576)
-          ("maxTokens" . 65536))
-         (("id" . "gemini-2.5-flash")
-          ("name" . "Gemini 2.5 Flash")
-          ("baseUrl" . "https://generativelanguage.googleapis.com/v1beta")
-          ("contextWindow" . 1048576)
-          ("maxTokens" . 65536))
-         (("id" . "gemini-2.5-pro")
-          ("name" . "Gemini 2.5 Pro")
-          ("baseUrl" . "https://generativelanguage.googleapis.com/v1beta")
-          ("contextWindow" . 2097152)
-          ("maxTokens" . 65536)))
-        ("anthropic"
-         (("id" . "claude-3-7-sonnet-20250219")
-          ("name" . "Claude 3.7 Sonnet")
-          ("baseUrl" . "https://api.anthropic.com")
-          ("contextWindow" . 200000)
-          ("maxTokens" . 8192))
-         (("id" . "claude-3-5-sonnet-20241022")
-          ("name" . "Claude 3.5 Sonnet")
-          ("baseUrl" . "https://api.anthropic.com")
-          ("contextWindow" . 200000)
-          ("maxTokens" . 8192)))
-        ("kimi-coding"
-         (("id" . "kimi-for-coding")
-          ("name" . "Kimi for Coding")
-          ("baseUrl" . "https://api.kimi.com/coding/v1")
-          ("contextWindow" . 262144)
-          ("maxTokens" . 8192))
-         (("id" . "k3")
-          ("name" . "Kimi K3")
-          ("baseUrl" . "https://api.kimi.com/coding/v1")
-          ("contextWindow" . 262144)
-          ("maxTokens" . 8192)))
-        ("glm"
-         (("id" . "glm-4-plus")
-          ("name" . "GLM-4-Plus")
-          ("baseUrl" . "https://open.bigmodel.cn/api/anthropic")
-          ("contextWindow" . 128000)
-          ("maxTokens" . 8192)))
-        ("deepseek"
-         (("id" . "deepseek-chat")
-          ("name" . "DeepSeek-Chat")
-          ("baseUrl" . "https://api.deepseek.com/anthropic")
-          ("contextWindow" . 128000)
-          ("maxTokens" . 8192))
-         (("id" . "deepseek-reasoner")
-          ("name" . "DeepSeek-Reasoner")
-          ("baseUrl" . "https://api.deepseek.com/anthropic")
-          ("contextWindow" . 128000)
-          ("maxTokens" . 8192)))
-        ("minimax"
-         (("id" . "MiniMax-M3.1-Flash")
-          ("name" . "MiniMax-M3.1-Flash")
-          ("baseUrl" . "https://api.minimaxi.com/anthropic")
-          ("contextWindow" . 1000000)
-          ("maxTokens" . 524288)
-          ("reasoning" . #t)
-          ("input" "text" "image"))
-         (("id" . "MiniMax-M3")
-          ("name" . "MiniMax-M3")
-          ("baseUrl" . "https://api.minimaxi.com/anthropic")
-          ("contextWindow" . 1000000)
-          ("maxTokens" . 512000)
-          ("reasoning" . #t)
-          ("input" "text" "image"))
-         (("id" . "MiniMax-M2.7")
-          ("name" . "MiniMax-M2.7")
-          ("baseUrl" . "https://api.minimaxi.com/anthropic")
-          ("contextWindow" . 204800)
-          ("maxTokens" . 131072)
-          ("reasoning" . #t)
-          ("input" "text"))
-         (("id" . "MiniMax-M2.7-highspeed")
-          ("name" . "MiniMax-M2.7-highspeed")
-          ("baseUrl" . "https://api.minimaxi.com/anthropic")
-          ("contextWindow" . 204800)
-          ("maxTokens" . 131072)
-          ("reasoning" . #t)
-          ("input" "text")))
-        ("minimax-cn"
-         (("id" . "MiniMax-M3.1-Flash")
-          ("name" . "MiniMax-M3.1-Flash")
-          ("baseUrl" . "https://api.minimaxi.com/anthropic")
-          ("contextWindow" . 1000000)
-          ("maxTokens" . 524288)
-          ("reasoning" . #t)
-          ("input" "text" "image"))
-         (("id" . "MiniMax-M3")
-          ("name" . "MiniMax-M3")
-          ("baseUrl" . "https://api.minimaxi.com/anthropic")
-          ("contextWindow" . 1000000)
-          ("maxTokens" . 512000)
-          ("reasoning" . #t)
-          ("input" "text" "image"))
-         (("id" . "MiniMax-M2.7")
-          ("name" . "MiniMax-M2.7")
-          ("baseUrl" . "https://api.minimaxi.com/anthropic")
-          ("contextWindow" . 204800)
-          ("maxTokens" . 131072)
-          ("reasoning" . #t)
-          ("input" "text"))
-         (("id" . "MiniMax-M2.7-highspeed")
-          ("name" . "MiniMax-M2.7-highspeed")
-          ("baseUrl" . "https://api.minimaxi.com/anthropic")
-          ("contextWindow" . 204800)
-          ("maxTokens" . 131072)
-          ("reasoning" . #t)
-          ("input" "text"))))
+      (list (cons "anthropic" PI_ANTHROPIC_BUILTIN_MODELS)
+        (cons "deepseek" PI_DEEPSEEK_BUILTIN_MODELS)
+        (cons "google" PI_GOOGLE_BUILTIN_MODELS)
+        (cons "kimi-coding" PI_KIMI_CODING_BUILTIN_MODELS)
+        (cons "minimax" PI_MINIMAX_BUILTIN_MODELS)
+        (cons "minimax-cn" PI_MINIMAX_CN_BUILTIN_MODELS)
+        (cons "zai-coding-cn" PI_ZAI_CODING_CN_BUILTIN_MODELS)
+      ) ;list
     ) ;define
 
     (define (%dict-ref obj key default-val)
@@ -243,6 +145,17 @@
           ) ;let*
         ) ;if
       ) ;let*
+    ) ;define
+
+    ;; 对全部内置 provider 执行缺失模型补齐
+    (define (pi-builtin-augment-all models-store)
+      (let loop
+        ((rest PI_PROVIDER_BUILTIN_MODELS) (acc models-store))
+        (if (null? rest)
+          acc
+          (loop (cdr rest) (pi-builtin-augment-store acc (caar rest)))
+        ) ;if
+      ) ;let
     ) ;define
 
   ) ;begin

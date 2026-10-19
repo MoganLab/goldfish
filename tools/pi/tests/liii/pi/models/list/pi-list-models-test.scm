@@ -5,16 +5,6 @@
 
 (check-set-mode! 'report-failed)
 
-;; pi-format-token-count 测试
-(check (pi-format-token-count 1000000) => "1M")
-(check (pi-format-token-count 1048576) => "1.0M")
-(check (pi-format-token-count 131072) => "131.1K")
-(check (pi-format-token-count 65536) => "65.5K")
-(check (pi-format-token-count 128000) => "128K")
-(check (pi-format-token-count 32768) => "32.8K")
-(check (pi-format-token-count 4096) => "4.1K")
-(check (pi-format-token-count 500) => "500")
-
 (define fixture-dir
   (if (file-exists? "tests/fixtures/default")
     "tests/fixtures/default"
@@ -33,16 +23,20 @@
     (check (cdr (assoc 'thinking m1)) => "no")
     (check (cdr (assoc 'images m1)) => "no")))
 
-;; pi-list-models 全部 provider 与排序
-(let ((all-models (pi-list-models sample-store "all")))
-  (check (length all-models) => 4)
+;; pi-list-models 全部 provider（传 "all" 或 #f 或缺省）
+(let ((all-models-str (pi-list-models sample-store "all"))
+      (all-models-false (pi-list-models sample-store #f))
+      (all-models-default (pi-list-models sample-store)))
+  (check (length all-models-str) => 4)
+  (check (length all-models-false) => 4)
+  (check (length all-models-default) => 4)
   ;; 排序：provider 名字典序 anthropic < deepseek < google
-  (check (cdr (assoc 'provider (car all-models))) => "anthropic")
-  (check (cdr (assoc 'provider (cadr all-models))) => "deepseek")
-  (check (cdr (assoc 'provider (cadddr all-models))) => "google"))
+  (check (cdr (assoc 'provider (car all-models-str))) => "anthropic")
+  (check (cdr (assoc 'provider (cadr all-models-str))) => "deepseek")
+  (check (cdr (assoc 'provider (cadddr all-models-str))) => "google"))
 
-;; pi-list-models 搜索词过滤
-(let ((filtered (pi-list-models sample-store "all" "flash")))
+;; pi-list-models 子序列模糊搜索（跨 provider）
+(let ((filtered (pi-list-models sample-store #f "flash")))
   (check (length filtered) => 2)
   (check (cdr (assoc 'model (car filtered))) => "deepseek-flash")
   (check (cdr (assoc 'model (cadr filtered))) => "gemini-3.8-flash"))

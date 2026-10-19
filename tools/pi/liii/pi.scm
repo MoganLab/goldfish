@@ -70,8 +70,11 @@
     pi-format-token-count pi-list-models pi-format-models-table
     PI_SUPPORTED_PROVIDERS PI_PROVIDER_BUILTIN_MODELS pi-provider-default-model
     pi-find-model-provider pi-provider-has-model? pi-route-provider-and-model
-    pi-ensure-catalog-meta pi-builtin-augment-store gemini-map-finish-reason
-    gemini-map-usage gemini-normalize-tool-call-id gemini-generate-tool-call-id
+    pi-ensure-catalog-meta pi-builtin-augment-store pi-builtin-augment-all
+    pi-build-models-catalog pi-catalog-provider-names pi-catalog-provider-models
+    pi-catalog-merge-provider-models pi-fuzzy-match-model?
+    pi-split-search-tokens gemini-map-finish-reason gemini-map-usage
+    gemini-normalize-tool-call-id gemini-generate-tool-call-id
     gemini-build-contents gemini-build-request-body anthropic-map-stop-reason
     anthropic-map-usage anthropic-build-tool-declarations
     anthropic-build-messages anthropic-build-request-body

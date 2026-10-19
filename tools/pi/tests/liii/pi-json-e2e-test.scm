@@ -166,7 +166,7 @@
   (let* ((ant-env (append test-env
                            (list (cons "ANTHROPIC_API_KEY" "sk-ant-test-json")
                              (cons "ANTHROPIC_BASE_URL" base-url)
-                             (cons "GF_PI_MODEL" "claude-3-7-sonnet-20250219"))))
+                             (cons "GF_PI_MODEL" "claude-sonnet-4-5"))))
          (cmd (list GF_BIN "pi" "--provider" "anthropic" "--mode" "json"
                 "Hello anthropic json"
               ) ;list

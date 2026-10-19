@@ -62,10 +62,11 @@
 
     (define (pi-provider-default-model provider)
       (let ((p (if (symbol? provider) (symbol->string provider) provider)))
-        (cond ((equal? p "anthropic") "claude-3-7-sonnet-20250219")
+        (cond ((equal? p "anthropic") "claude-opus-4-8")
               ((equal? p "kimi-coding") "kimi-for-coding")
-              ((equal? p "glm") "glm-4-plus")
-              ((equal? p "deepseek") "deepseek-chat")
+              ((equal? p "glm") "glm-5.3")
+              ((equal? p "deepseek") "deepseek-v4-pro")
+              ((equal? p "zai-coding-cn") "glm-5.3")
               ((or (equal? p "minimax") (equal? p "minimax-cn")) "MiniMax-M3.1-Flash")
               (else "gemini-3.8-flash")
         ) ;cond
@@ -85,6 +86,19 @@
           ) ;or
           #t
           #f
+        ) ;if
+      ) ;let*
+    ) ;define
+
+    (define (%provider-first-model-id provider models-store)
+      (let* ((p-str (if (symbol? provider) (symbol->string provider) provider))
+             (store-models (%get-provider-models models-store p-str))
+            ) ;
+        (if (pair? store-models)
+          (%dict-ref (car store-models) "id" #f)
+          (let ((builtin (%dict-ref PI_PROVIDER_BUILTIN_MODELS p-str '())))
+            (if (pair? builtin) (%dict-ref (car builtin) "id" #f) #f)
+          ) ;let
         ) ;if
       ) ;let*
     ) ;define
@@ -239,11 +253,24 @@
                       ) ;if
                      ) ;
                     ) ;
-          ;; 严格校验：模型必须属于选定的 provider（models-store 或内置目录）
-          (if (pi-provider-has-model? provider model-id models-store)
-            (values provider model-id)
-            (%raise-model-provider-mismatch provider model-id)
-          ) ;if
+          ;; 校验模型：若非显式传入且默认模型不在目录内，按 buildFallbackModel 回退到 provider 第一个模型
+          (let ((is-default-m? (and (not explicit-m) (not (%provider-env-model provider opt-env)))
+                ) ;is-default-m?
+               ) ;
+            (cond ((pi-provider-has-model? provider model-id models-store)
+                   (values provider model-id)
+                  ) ;
+                  (is-default-m?
+                    (let ((fallback (%provider-first-model-id provider models-store)))
+                      (if (and fallback (pi-provider-has-model? provider fallback models-store))
+                        (values provider fallback)
+                        (%raise-model-provider-mismatch provider model-id)
+                      ) ;if
+                    ) ;let
+                  ) ;is-default-m?
+                  (else (%raise-model-provider-mismatch provider model-id))
+            ) ;cond
+          ) ;let
         ) ;let-values
       ) ;let*
     ) ;define

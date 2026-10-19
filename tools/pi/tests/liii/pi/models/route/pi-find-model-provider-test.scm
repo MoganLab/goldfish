@@ -12,6 +12,8 @@
       "tools/pi/tests/fixtures/default"))
 
 (define fixture-store (pi-load-models-store FIXTURE_DIR))
+(define fixture-merged
+  (pi-merge-models-json-into-store fixture-store (pi-load-models-json FIXTURE_DIR)))
 
 ;; 1. preferred-provider 精确匹配
 (check (pi-find-model-provider "gemini-3.8-flash" fixture-store "google") => "google")
@@ -26,11 +28,14 @@
 ;; 2.2 路由到 anthropic
 (check (pi-find-model-provider "claude-3-7-sonnet-20250219" fixture-store "google") => "anthropic")
 
-;; 2.3 路由到 glm
-(check (pi-find-model-provider "glm-4-plus" fixture-store "google") => "glm")
+;; 2.3 路由到 glm (从 fixture-merged)
+(check (pi-find-model-provider "glm-5.3" fixture-merged "google") => "glm")
 
-;; 2.4 路由到 deepseek
-(check (pi-find-model-provider "deepseek-chat" fixture-store "google") => "deepseek")
+;; 2.4 路由到 deepseek (内置目录中的 deepseek-v4-pro)
+(check (pi-find-model-provider "deepseek-v4-pro" fixture-store "google") => "deepseek")
+
+;; 2.5 路由到 zai-coding-cn (内置目录)
+(check (pi-find-model-provider "glm-5.2" fixture-store "google") => "zai-coding-cn")
 
 ;; 3. 全 provider 未命中返回 #f
 (check (pi-find-model-provider "non-existent-model-xyz" fixture-store "google") => #f)
