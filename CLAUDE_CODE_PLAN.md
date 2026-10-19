@@ -231,10 +231,11 @@ timeout 1800 pi -a -p @PI_PLAN.md "执行任务 ddd 的验收阶段：1) 编写�
 - **模型轮换（用户裁定 2026-10-19）**：自举执行时可用 `--provider`/`--model`
   指定不同模型完成同类阶段任务，横向实测各模型的实际工作能力；拉起命令与
   devel 执行记录中注明所用 provider/模型，便于事后对比。轮换池：google
-  gemini-3.8-flash（默认）、kimi-coding、k3（走 anthropic 链路：env 注入
-  `ANTHROPIC_BASE_URL=https://api.kimi.com/coding/` + `ANTHROPIC_AUTH_TOKEN`，
-  本机 `~/.claude/settings.json.kimi_{da,hongwei,yansong}` 三把 key 可轮换，
-  实测 2026-10-19 通过）；glm/deepseek 待任务 028/029 修复后加入。
+  gemini-3.8-flash（默认）、`kimi-coding --model k3`（k3 归属 kimi-coding
+  provider，用户裁定 2026-10-19——勿用 anthropic 链路）；glm/deepseek 待任务
+  028/029 修复后加入。注：models-store 中 glm 模型实际挂在 `zai-coding-cn`
+  provider 下（glm-5.3/5.3-flash 等），deepseek 下有 deepseek-flash/v4-pro，
+  minimax 与 minimax-cn 各有 MiniMax-M2.7/M3——028/029/030 的定位线索。
   任务 033（multikey 密钥池）完成后，限额管理从 provider 级轮换细化到
   provider 内 key 级自动轮换——429/403 不再打断流水线阶段任务（027 验收曾因
   kimi-coding 周配额 403 与 google 429 连续中断两次）。
