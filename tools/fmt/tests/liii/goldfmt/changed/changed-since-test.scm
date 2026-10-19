@@ -9,7 +9,7 @@
 ;;     worker 会 import 失败，主线程因收不齐结果而永久等待。
 (let* ((script-path (path-absolute (last (argv))))
        (fmt-root
-         (path->string (path-parent (path-parent (path-parent script-path))))
+         (path->string (path-parent (path-parent (path-parent (path-parent (path-parent script-path))))))
        ) ;fmt-root
        (tools-root (path->string (path-parent (path fmt-root))))
       ) ;
