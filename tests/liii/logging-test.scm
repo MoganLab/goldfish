@@ -1,10 +1,45 @@
-(import (liii check)
-        (liii string)
-        (liii path)
-        (scheme file)
-        (liii logging))
+(import (liii check) (liii string) (liii path) (scheme file) (liii logging))
 
 ;; (liii logging) 测试用例
+
+;; 验证不加载 (srfi srfi-19) 且已加载 (liii date-time)
+(check (g_library-defined? '(srfi srfi-19)) => #f)
+(check (g_library-defined? '(liii date-time)) => #t)
+
+;; 时间戳格式校验辅助函数：验证 YYYY-MM-DD HH:MM:SS.mmm
+
+(define (char-digit? c)
+  (char<=? #\0 c #\9)
+) ;define
+
+(define (valid-asctime? s)
+  (and (string? s)
+    (= (string-length s) 23)
+    (char-digit? (string-ref s 0))
+    (char-digit? (string-ref s 1))
+    (char-digit? (string-ref s 2))
+    (char-digit? (string-ref s 3))
+    (char=? (string-ref s 4) #\-)
+    (char-digit? (string-ref s 5))
+    (char-digit? (string-ref s 6))
+    (char=? (string-ref s 7) #\-)
+    (char-digit? (string-ref s 8))
+    (char-digit? (string-ref s 9))
+    (char=? (string-ref s 10) #\space)
+    (char-digit? (string-ref s 11))
+    (char-digit? (string-ref s 12))
+    (char=? (string-ref s 13) #\:)
+    (char-digit? (string-ref s 14))
+    (char-digit? (string-ref s 15))
+    (char=? (string-ref s 16) #\:)
+    (char-digit? (string-ref s 17))
+    (char-digit? (string-ref s 18))
+    (char=? (string-ref s 19) #\.)
+    (char-digit? (string-ref s 20))
+    (char-digit? (string-ref s 21))
+    (char-digit? (string-ref s 22))
+  ) ;and
+) ;define
 
 ;; 用于接收回调结果的全局变量
 
@@ -30,8 +65,7 @@
 (check (current-log-level) => WARNING)
 
 ;; 未配置时默认输出到 stderr，且默认过滤 INFO、放行 WARNING
-(let* ((p (open-output-string))
-       (old-err (set-current-error-port p)))
+(let* ((p (open-output-string)) (old-err (set-current-error-port p)))
   ;; 默认级别 WARNING 下，log-info 应该被过滤
   (log-info "this should be filtered")
   ;; log-warning 应该默认输出到 stderr
@@ -43,7 +77,7 @@
     (check (string-contains? output "WARNING") => #t)
     (check (string-contains? output "this should be filtered") => #f)
   ) ;let
-) ;let
+) ;let*
 
 ;; 设置为 DEBUG 级别测试各级别的发送与回调
 (log-set-level! DEBUG)
@@ -121,8 +155,32 @@
   (let ((output (get-output-string p)))
     (check (string-contains? output "test") => #t)
     (check (string-contains? output "INFO") => #t)
+    ;; 验证默认格式输出中包含合规的 23 位时间戳
+    (let ((time-part (substring output 0 23)))
+      (check (valid-asctime? time-part) => #t)
+    ) ;let
   ) ;let
 ) ;let
+
+;; 毫秒精度补零与格式对齐验证（纯 asctime 格式连续输出）
+(log-set-format! "%(asctime)s")
+(let ((p (open-output-string)))
+  (do ((i 0 (+ i 1)))
+    ((= i 5))
+    (default-log-handler '((SEVERITY . 6) (MESSAGE . "alignment check")) p)
+  ) ;do
+  (let ((lines (string-split (string-trim-right (get-output-string p)) #\newline)))
+    (check (= (length lines) 5) => #t)
+    (for-each
+      (lambda (line)
+        (check (valid-asctime? line) => #t)
+        (check (= (string-length line) 23) => #t)
+      ) ;lambda
+      lines
+    ) ;for-each
+  ) ;let
+) ;let
+(log-set-format! "%(asctime)s [%(levelname)s] %(message)s")
 
 ;; make-stdout-handler 和 make-stderr-handler
 (check (procedure? (make-stdout-handler)) => #t)
@@ -138,36 +196,49 @@
 (log-set-callback! (make-stderr-handler))
 
 ;; default-log-handler 自动 flush 测试
-(let* ((test-log (path->string (path-join (path-temp-dir) "goldfish-test-default-handler.log")))
-       (p (open-output-file test-log "w")))
+(let* ((test-log (path->string (path-join (path-temp-dir) "goldfish-test-default-handler.log"))
+       ) ;test-log
+       (p (open-output-file test-log "w"))
+      ) ;
   (default-log-handler '((SEVERITY . 6) (MESSAGE . "default handler flush")) p)
   ;; 不关闭 p，直接另开 input-file 读取；若已自动 flush，应能立即读到内容
   (let ((content (call-with-input-file test-log (lambda (in) (read-string 100 in)))))
-    (check (string-contains? content "default handler flush") => #t))
+    (check (string-contains? content "default handler flush") => #t)
+  ) ;let
   (close-output-port p)
-  (delete-file test-log))
+  (delete-file test-log)
+) ;let*
 
 ;; make-file-handler 自动 flush 测试
-(let* ((test-log (path->string (path-join (path-temp-dir) "goldfish-test-file-handler.log")))
-       (handler (make-file-handler test-log)))
+(let* ((test-log (path->string (path-join (path-temp-dir) "goldfish-test-file-handler.log"))
+       ) ;test-log
+       (handler (make-file-handler test-log))
+      ) ;
   ;; 写入一条日志（端口保持打开，未关闭，未手动调用 log-flush!）
   (handler '((SEVERITY . 6) (MESSAGE . "file handler flush")))
   ;; 立即读取验证内容已刷新到文件
   (let ((content (call-with-input-file test-log (lambda (in) (read-string 100 in)))))
     (check (string-contains? content "file handler flush") => #t)
-    (check (string-contains? content "INFO") => #t))
+    (check (string-contains? content "INFO") => #t)
+    (check (valid-asctime? (substring content 0 23)) => #t)
+  ) ;let
   ;; 清理
   (log-set-callback! (make-stderr-handler))
-  (delete-file test-log))
+  (delete-file test-log)
+) ;let*
 
 ;; log-warning 配合 log-set-file-handler! 自动 flush 测试
-(let ((test-log (path->string (path-join (path-temp-dir) "goldfish-test-set-file.log"))))
+(let ((test-log (path->string (path-join (path-temp-dir) "goldfish-test-set-file.log"))
+      ) ;test-log
+     ) ;
   (log-set-file-handler! test-log)
   (log-warning "auto flush from log-warning")
   (let ((content (call-with-input-file test-log (lambda (in) (read-string 100 in)))))
-    (check (string-contains? content "auto flush from log-warning") => #t))
+    (check (string-contains? content "auto flush from log-warning") => #t)
+  ) ;let
   (log-set-callback! (make-stderr-handler))
-  (delete-file test-log))
+  (delete-file test-log)
+) ;let
 
 ;; send-log 参数类型错误测试
 (check-catch 'type-error (send-log -1 "bad"))
