@@ -199,6 +199,10 @@ timeout 1800 pi -a -p @PI_PLAN.md "执行任务 ddd 的验收阶段：1) 编写�
    提交清单与验收记录。每个任务常态三个 commit：PLAN 建档、REVIEW 代码、
    REVIEW 验收；`[编号][CODE]` 仅用于长任务中途保护现场。
    仅改动三份计划文档的 commit 不需要编号。
+   **commit message 标注执行模型（用户裁定 2026-10-19）**：格式
+   `[编号][provider/model][阶段] 简述`，如 `[027][google/gemini-3.8-flash][CODE] ...`、
+   `[027][anthropic/k3][REVIEW] ...`；外部 pi（node 版）执行用 `[pi/...]` 标注
+   其报告的实际模型——git log 即模型横评数据源。
 5. 失败：任务状态置「已回退」并注明原因与重试次数（重做在 commit history
    如实保留），按失败点修正后重新进入开发阶段。
 6. **升级到文档阶段**：开发→验收循环连续失败达 **10 次**，说明问题很可能出在

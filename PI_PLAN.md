@@ -38,6 +38,9 @@ Anthropic 已实现但本机无访问权限，不在维护范围；其 OAuth 刷
   长任务中途保护现场的场合，非必须。每个任务常态三个 commit。commit 前必须依次通过 `timeout 600 xmake b goldfish`、
   `bin/gf fmt`、`git diff --exit-code`、`bin/gf check` 与相关测试；
   提交信息格式 `[编号] 任务名：简述`（如 `[001] Kimi·非流式最小可用`）。
+  **commit message 标注执行模型（2026-10-19 起）**：`[编号][provider/model][阶段] 简述`，
+  如 `[027][google/gemini-3.8-flash][CODE] ...`；外部 pi 执行用 `[pi/...]` 标注其实际
+  模型——git log 即模型代码质量横评数据源。
   **所有代码提交一律使用 `[三位编号]` 格式**（缺陷修复也登记入 §3 任务表获得
   编号，编号递增追加），保证 git log 的编号与任务表一一对应；
   仅改动三份计划文档（CLAUDE_CODE_PLAN/PI_PLAN/PI_SPEC）的 commit 不涉及代码，
