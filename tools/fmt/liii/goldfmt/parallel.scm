@@ -14,7 +14,7 @@
 ;; under the License.
 ;;
 
-;; gf fmt 的共享并发设施：(liii goldfmt-parallel)。
+;; gf fmt 的共享并发设施：(liii goldfmt parallel)。
 ;; 基于 (liii par) 的 vector-par-map（底层为 (liii go) 线程池：每 worker
 ;; 线程独占独立 s7 解释器会话，channel 传深拷贝消息）做语言内文件级并行：
 ;; 各语言把"单文件单位函数 + 异常兜底"封装成 file->result 的导出函数交给
@@ -24,10 +24,10 @@
 ;; 并发度参数（-j/--jobs 的解析结果）也寄居于此：所有消费方（主入口与三个
 ;; 语言的批量层）都已 import 本模块。
 
-(define-library (liii goldfmt-parallel)
+(define-library (liii goldfmt parallel)
   (import (liii base) (liii go) (liii list) (liii par))
-  (export pool-for-each run-one-task offenders-from count-status
-    set-fmt-jobs! fmt-jobs
+  (export pool-for-each run-one-task offenders-from count-status set-fmt-jobs!
+    fmt-jobs
   ) ;export
   (begin
 
@@ -68,11 +68,8 @@
     (define (pool-for-each file-fn files on-result)
       (if (null? files)
         '()
-        (let ((results
-                (vector->list
-                  (vector-par-map file-fn (list->vector files) (fmt-jobs))
-                ) ;vector->list
-              ) ;
+        (let ((results (vector->list (vector-par-map file-fn (list->vector files) (fmt-jobs)))
+              ) ;results
              ) ;
           (for-each (lambda (r) (on-result (car r) r)) results)
           results

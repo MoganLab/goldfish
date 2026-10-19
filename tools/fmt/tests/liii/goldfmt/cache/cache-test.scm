@@ -1,8 +1,8 @@
-;; (liii goldfmt-cache) 模块测试文件
+;; (liii goldfmt cache) 模块测试文件
 ;;
 ;; 测试格式化缓存的命中/写入/路径计算逻辑。
 
-(import (liii check) (liii base) (liii os) (liii path) (liii goldfmt-cache))
+(import (liii check) (liii base) (liii os) (liii path) (liii goldfmt cache))
 
 (check-set-mode! 'report-failed)
 
@@ -15,7 +15,8 @@
 ) ;check
 
 ;; 创建一个临时文件，验证路径计算、touch 后缓存命中。
-(let* ((tmp-dir (path->string (path-join (path (getcwd)) "tools" "fmt" "tests" "liii"))
+(let* ((tmp-dir
+         (path->string (path-join (path (getcwd)) "tools" "fmt" "tests" "liii"))
        ) ;tmp-dir
        (tmp-file (path->string (path-join (path tmp-dir) "goldfmt-cache-tmp.txt")))
       ) ;

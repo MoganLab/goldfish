@@ -14,17 +14,17 @@
 ;; under the License.
 ;;
 
-(define-library (liii goldfmt-repo)
+(define-library (liii goldfmt repo)
   (import (liii base)
     (liii os)
     (liii string)
     (liii semver)
-    (liii goldfmt-lang)
-    (liii goldfmt-config)
+    (liii goldfmt lang)
+    (liii goldfmt config)
   ) ;import
-  (export flush-output stats-failed check-goldfish-version
-    print-offenders check-files-or-serial check-lang
-    run-repo-format run-repo-check handle-repo-target
+  (export flush-output stats-failed check-goldfish-version print-offenders
+    check-files-or-serial check-lang run-repo-format run-repo-check
+    handle-repo-target
   ) ;export
   (begin
 
@@ -116,18 +116,18 @@
     (define (check-files-or-serial handler files cfg)
       (let ((check-files-pair (assq 'check-files handler)))
         (if check-files-pair
-          ((cdr check-files-pair) files cfg)
-          (let ((check-file (lang-ref handler 'check-file)))
-            (let loop
-              ((fs files) (bad '()))
-              (if (null? fs)
-                (reverse bad)
-                (let ((f (car fs)))
-                  (loop (cdr fs) (if (check-file f cfg) bad (cons f bad)))
-                ) ;let
-              ) ;if
-            ) ;let
-          ) ;let
+         ((cdr check-files-pair) files cfg)
+         (let ((check-file (lang-ref handler 'check-file)))
+           (let loop
+             ((fs files) (bad '()))
+             (if (null? fs)
+               (reverse bad)
+               (let ((f (car fs)))
+                 (loop (cdr fs) (if (check-file f cfg) bad (cons f bad)))
+               ) ;let
+             ) ;if
+           ) ;let
+         ) ;let
         ) ;if
       ) ;let
     ) ;define
@@ -141,7 +141,8 @@
     (define (report-repo-check-results results)
       (let ((total (apply + (map (lambda (r) (length (cdr r))) results))))
         (newline)
-        (for-each (lambda (r) (print-offenders (lang-label (car r)) (cdr r)))
+        (for-each
+          (lambda (r) (print-offenders (lang-label (car r)) (cdr r)))
           (reverse results)
         ) ;for-each
         (newline)
@@ -184,18 +185,20 @@
     ) ;define
 
     (define (handle-repo-target check-flag)
-      (let ((cfg (catch #t (lambda () (load-fmt-config))
-                   (lambda (type info)
-                     (let ((e (if (null? info) type (car info))))
-                       (display (string-append "error: gf_fmt.json 解析失败 - "
-                                  (if (string? e) e (object->string e))
-                                ) ;string-append
-                       ) ;display
-                       (newline)
-                       (exit 1)
-                     ) ;let
-                   ) ;lambda
-                 ) ;catch
+      (let ((cfg
+              (catch #t
+                (lambda () (load-fmt-config))
+                (lambda (type info)
+                  (let ((e (if (null? info) type (car info))))
+                    (display (string-append "error: gf_fmt.json 解析失败 - "
+                               (if (string? e) e (object->string e))
+                             ) ;string-append
+                    ) ;display
+                    (newline)
+                    (exit 1)
+                  ) ;let
+                ) ;lambda
+              ) ;catch
             ) ;cfg
            ) ;
         (if (not cfg)

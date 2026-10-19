@@ -14,11 +14,11 @@
 ;; under the License.
 ;;
 
-(define-library (liii goldfmt-path)
+(define-library (liii goldfmt path)
   (import (liii base) (liii path) (liii string))
   (export normalize-sep has-wildcard? string-index-of string-starts-with?
-    glob-match? path-matches-exclude? file-excluded? suffix-match?
-    collect-files collect-files-dfs
+    glob-match? path-matches-exclude? file-excluded? suffix-match? collect-files
+    collect-files-dfs
   ) ;export
   (begin
 
@@ -55,19 +55,17 @@
       (if (null? ps)
         pos
         (let ((seg (car ps)))
-          (cond
-           ((string=? seg "") (match-glob-seg (cdr ps) str pos #f))
-           (first?
-            (if (string-starts-with? str seg)
-              (match-glob-seg (cdr ps) str (string-length seg) #f)
-              #f
-            ) ;if
-           ) ;
-           (else
-             (let ((found (string-index-of str seg pos)))
-               (if found (match-glob-seg (cdr ps) str (+ found (string-length seg)) #f) #f)
-             ) ;let
-           ) ;else
+          (cond ((string=? seg "") (match-glob-seg (cdr ps) str pos #f))
+                (first? (if (string-starts-with? str seg)
+                          (match-glob-seg (cdr ps) str (string-length seg) #f)
+                          #f
+                        ) ;if
+                ) ;first?
+                (else
+                  (let ((found (string-index-of str seg pos)))
+                    (if found (match-glob-seg (cdr ps) str (+ found (string-length seg)) #f) #f)
+                  ) ;let
+                ) ;else
           ) ;cond
         ) ;let
       ) ;if
@@ -77,9 +75,7 @@
     (define (glob-match? pattern str)
       (if (not (has-wildcard? pattern))
         (string=? pattern str)
-        (let ((parts (string-split pattern "*"))
-              (ends-with-star (string-ends? pattern "*"))
-             ) ;
+        (let ((parts (string-split pattern "*")) (ends-with-star (string-ends? pattern "*")))
           (let ((pos (match-glob-seg parts str 0 #t)))
             (and pos (or ends-with-star (= pos (string-length str))))
           ) ;let

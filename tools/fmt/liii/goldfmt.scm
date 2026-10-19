@@ -43,14 +43,14 @@
     (liii goldfmt scan)
     (liii goldfmt format)
     (liii goldfmt stem)
-    (liii goldfmt-lang)
-    (liii goldfmt-args)
-    (liii goldfmt-changed)
-    (liii goldfmt-repo)
-    (liii goldfmt-dispatch)
-    (liii cpp-fmt)
-    (liii stem-fmt)
-    (liii goldfmt-parallel)
+    (liii goldfmt lang)
+    (liii goldfmt args)
+    (liii goldfmt changed)
+    (liii goldfmt repo)
+    (liii goldfmt dispatch)
+    (liii goldfmt cpp)
+    (liii goldfmt stem-fmt)
+    (liii goldfmt parallel)
     (liii go)
     (srfi srfi-13)
   ) ;import
@@ -110,9 +110,8 @@
                ) ;dummy-jobs
               ) ;
           (cond (help-flag (display-help) #t)
-                (changed-since
-                 (handle-changed-target changed-since path-str extensions cli-excludes dry-run)
-                ) ;
+                (changed-since (handle-changed-target changed-since path-str extensions cli-excludes dry-run)
+                ) ;changed-since
                 ((string=? path-str "") (handle-repo-target check-flag))
                 ((path-file? (path path-str))
                  (handle-file-target path-str check-flag dry-run cli-excludes)

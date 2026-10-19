@@ -14,43 +14,43 @@
 ;; under the License.
 ;;
 
-;; Scheme 语言处理器：(liii scheme-fmt)。
-;; 格式化核心复用 (liii goldfmt)，
-;; 缓存、单文件/目录/增量格式化逻辑迁移自原 goldfmt.scm。
-;; 加载时通过 register-lang! 把自己注册进 (liii goldfmt-lang)。
+;; TeXmacs stem 语言处理器：(liii goldfmt stem-fmt)。
+;; .stem 文件是 TeXmacs 宏包的源格式，其中的 quote/quasiquote/unquote/
+;; unquote-splicing 是普通符号而非 Scheme reader 语法，格式化时必须保持原样，
+;; 不能糖化为 ' ` , ,@（TeXmacs 无法识别这些写法，改写会损坏文件）。
+;; 格式化核心复用 (liii goldfmt stem)，
+;; 通过 format-stem-string 格式化（结构原样约定：
+;; 源码中的 'x / ,x 统一输出为 (quote x) / (unquote x)）。
+;; 加载时通过 register-lang! 把自己注册进 (liii goldfmt lang)。
 
-(define-library (liii scheme-fmt)
+(define-library (liii goldfmt stem-fmt)
   (import (liii base)
     (liii path)
     (liii string)
     (liii list)
-    (liii goldfmt-cache)
-    (liii goldfmt)
-    (liii goldfmt-lang)
-    (liii goldfmt-config)
-    (liii goldfmt-parallel)
+    (liii goldfmt cache)
+    (liii goldfmt stem)
+    (liii goldfmt lang)
+    (liii goldfmt config)
+    (liii goldfmt parallel)
   ) ;import
-  (export scheme-extensions format-single-file format-directory format-file-list
-    scheme-format-file-quiet scheme-fmt-one scheme-check-file-quiet
-    scheme-check-one scheme-check-files
+  (export stem-extensions stem-format-file-quiet stem-fmt-one
+    stem-check-file-quiet stem-check-one stem-check-files
   ) ;export
   (begin
 
-    ;; Scheme 语言接管的后缀表（带点）。gf_fmt.json 未写 scheme.suffix 时也用此表。
-    (define scheme-extensions '(".scm"))
+    ;; stem 语言接管的后缀表（带点）。gf_fmt.json 未写 stem.suffix 时也用此表。
+    (define stem-extensions '(".stem"))
 
     ;; ---- 单文件格式化 ---------------------------------------------------
-    (define (flush-output)
-      (flush-output-port (current-output-port))
-    ) ;define
-
     ;; dry-run 模式：输出到终端，不写回。
     (define (format-file-dry-run path-str)
-      (let* ((original-content (path-read-text (path path-str)))
+      (let* ((p (path path-str))
+             (original-content (path-read-text p))
              (err #f)
              (formatted
                (catch #t
-                 (lambda () (format-string original-content))
+                 (lambda () (format-stem-string original-content))
                  (lambda (tag info) (set! err (cons tag info)) #f)
                ) ;catch
              ) ;formatted
@@ -60,19 +60,15 @@
             (print-fmt-failure path-str (fmt-extract-error-message (car err) (cdr err)))
             (exit 1)
           ) ;begin
-          (begin
-            (display formatted)
-            (flush-output)
-          ) ;begin
+          (display formatted)
         ) ;if
       ) ;let*
     ) ;define
 
     ;; 安静的单位格式化函数：不打印、不 exit（供串行/并行的批量层与
-    ;; (liii go) worker 会话共用；worker 只能调用导出符号，故导出）。
-    ;; 返回 (list status msg)：status ∈ 'cached / 'updated / 'unchanged / 'failed，
-    ;; msg 为失败信息字符串或 #f。
-    (define (scheme-format-file-quiet path-str)
+    ;; (liii go) worker 会话共用）。返回 (list status msg)：
+    ;; status ∈ 'cached / 'updated / 'unchanged / 'failed，msg 为字符串或 #f。
+    (define (stem-format-file-quiet path-str)
       (if (fmt-cache-hit? path-str)
         (list 'cached #f)
         (let* ((p (path path-str))
@@ -80,7 +76,7 @@
                (err #f)
                (formatted
                  (catch #t
-                   (lambda () (format-string original-content))
+                   (lambda () (format-stem-string original-content))
                    (lambda (tag info) (set! err (cons tag info)) #f)
                  ) ;catch
                ) ;formatted
@@ -110,10 +106,11 @@
 
     ;; 单文件格式化任务（file->result）：供 pool-for-each 经 vector-par-map
     ;; ship 到 worker 会话执行，返回 (list 路径 状态 失败信息)。ship 的只有
-    ;; 本函数自身源码，其引用的 run-one-task / scheme-format-file-quiet /
+    ;; 本函数自身源码，其引用的 run-one-task / stem-format-file-quiet /
     ;; fmt-extract-error-message 均为导出符号（worker 会话经 import 可见）。
-    (define (scheme-fmt-one path)
-      (run-one-task path scheme-format-file-quiet
+    (define (stem-fmt-one path)
+      (run-one-task path
+        stem-format-file-quiet
         (lambda (tag info) (list 'failed (fmt-extract-error-message tag info)))
       ) ;run-one-task
     ) ;define
@@ -138,7 +135,7 @@
               ) ;begin
             ) ;if
           ) ;let
-          (let ((results (pool-for-each scheme-fmt-one targets print-result)))
+          (let ((results (pool-for-each stem-fmt-one targets print-result)))
             (values (length results)
               (count-status 'updated results)
               (count-status 'cached results)
@@ -160,7 +157,7 @@
         ) ;begin
         (if dry-run
           (format-file-dry-run path-str)
-          (let* ((result (scheme-format-file-quiet path-str))
+          (let* ((result (stem-format-file-quiet path-str))
                  (status (car result))
                  (msg (cadr result))
                 ) ;
@@ -175,7 +172,6 @@
                      ) ;string-append
             ) ;display
             (newline)
-            (flush-output)
             #t
           ) ;let*
         ) ;if
@@ -198,12 +194,12 @@
     ;; ---- handler 协议实现（供仓库批量 / check 使用）---------------------
     ;; 各方法统一接收 cfg，内部用 goldfmt-config 访问器自取本语言的 path/exclude。
 
-    ;; 仓库批量收集：从 cfg 的 scheme.path 递归收集所有 scheme 后缀文件
-    ;; （默认 .scm，尊重 gf_fmt.json 的 scheme.suffix 与 scheme.exclude）。
-    (define (scheme-collect cfg)
-      (let ((paths (lang-paths 'scheme cfg))
-            (suffixes (lang-suffixes 'scheme cfg))
-            (excludes (lang-excludes 'scheme cfg))
+    ;; 仓库批量收集：从 cfg 的 stem.path 递归收集所有 stem 后缀文件
+    ;; （默认 .stem，尊重 gf_fmt.json 的 stem.suffix 与 stem.exclude）。
+    (define (stem-collect cfg)
+      (let ((paths (lang-paths 'stem cfg))
+            (suffixes (lang-suffixes 'stem cfg))
+            (excludes (lang-excludes 'stem cfg))
            ) ;
         (let loop
           ((ps paths) (acc '()))
@@ -219,47 +215,46 @@
     ) ;define
 
     ;; 仓库批量格式化：dry-run 恒为 #f（写回），返回 (total updated cached failed) 列表。
-    (define (scheme-format-files files cfg)
-      (call-with-values (lambda () (format-file-list files #f (lang-excludes 'scheme cfg)))
+    (define (stem-format-files files cfg)
+      (call-with-values (lambda () (format-file-list files #f (lang-excludes 'stem cfg)))
         (lambda (total updated cached failed) (list total updated cached failed))
       ) ;call-with-values
     ) ;define
 
     ;; 单文件 check：scan + format-nodes 与磁盘逐字节比；命中 exclude 视为通过（#t）。
-    (define (scheme-check-file path-str cfg)
-      (let ((excludes (lang-excludes 'scheme cfg)))
-        (if (file-excluded? path-str excludes) #t (scheme-check-file-quiet path-str))
+    (define (stem-check-file path-str cfg)
+      (let ((excludes (lang-excludes 'stem cfg)))
+        (if (file-excluded? path-str excludes) #t (stem-check-file-quiet path-str))
       ) ;let
     ) ;define
 
-    ;; 安静的单文件 check（不含 exclude 过滤，批量收集时已过滤；供串行/并行的
-    ;; 批量层与 (liii go) worker 会话共用）：与磁盘逐字节比，返回 #t/#f。
-    (define (scheme-check-file-quiet path-str)
+    ;; 安静的单文件 check（不含 exclude 过滤，批量收集时已过滤）：返回 #t/#f。
+    (define (stem-check-file-quiet path-str)
       (let* ((ondisk (path-read-text (path path-str)))
-             (formatted (catch #t (lambda () (format-string ondisk)) (lambda (tag info) #f)))
+             (formatted (catch #t (lambda () (format-stem-string ondisk)) (lambda (tag info) #f))
+             ) ;formatted
             ) ;
         (and formatted (string=? ondisk formatted))
       ) ;let*
     ) ;define
 
     ;; 单文件 check 任务：结果包装为 (list ok #f)，异常兜底视为未格式化。
-    (define (scheme-check-one path)
+    (define (stem-check-one path)
       (run-one-task path
-        (lambda (p) (list (scheme-check-file-quiet p) #f))
+        (lambda (p) (list (stem-check-file-quiet p) #f))
         (lambda (tag info) (list #f #f))
       ) ;run-one-task
     ) ;define
 
     ;; 批量 check：统一走 Worker Pool；返回未格式化文件列表（保持文件顺序，
     ;; 与串行一致）。
-    (define (scheme-check-files files cfg)
-      (offenders-from (pool-for-each scheme-check-one files (lambda (file result) #f))
-      ) ;offenders-from
+    (define (stem-check-files files cfg)
+      (offenders-from (pool-for-each stem-check-one files (lambda (file result) #f)))
     ) ;define
 
-    ;; 目录格式化（协议适配）：以指定 dir 为准递归格式化。
-    ;; 若传入 cfg，合并其 scheme.exclude 配置。dry-run 不支持目录。返回 (total updated cached failed) 列表。
-    (define (scheme-format-directory dir extensions excludes dry-run . maybe-cfg)
+    ;; 目录格式化（协议适配）：以指定 dir 为准递归收集并格式化。
+    ;; 若传入 cfg，合并其 stem.exclude 配置。dry-run 不支持目录。返回 (total updated cached failed) 列表。
+    (define (stem-format-directory dir extensions excludes dry-run . maybe-cfg)
       (if dry-run
         (begin
           (display "错误: --dry-run 选项仅支持单个文件")
@@ -267,7 +262,7 @@
           (exit 1)
         ) ;begin
         (let* ((cfg (if (null? maybe-cfg) #f (car maybe-cfg)))
-               (cfg-excludes (if cfg (lang-excludes 'scheme cfg) '()))
+               (cfg-excludes (if cfg (lang-excludes 'stem cfg) '()))
                (all-excludes (append excludes cfg-excludes))
               ) ;
           (call-with-values (lambda () (format-directory dir extensions all-excludes dry-run))
@@ -278,20 +273,20 @@
     ) ;define
 
     ;; 注册到语言注册表。
-    (define scheme-handler
-      (list (cons 'name 'scheme)
-        (cons 'label "Scheme")
-        (cons 'extensions scheme-extensions)
-        (cons 'collect scheme-collect)
-        (cons 'format-files scheme-format-files)
+    (define stem-handler
+      (list (cons 'name 'stem)
+        (cons 'label "TeXmacs Stem")
+        (cons 'extensions stem-extensions)
+        (cons 'collect stem-collect)
+        (cons 'format-files stem-format-files)
         (cons 'format-file format-single-file)
-        (cons 'format-directory scheme-format-directory)
-        (cons 'check-file scheme-check-file)
-        (cons 'check-files scheme-check-files)
+        (cons 'format-directory stem-format-directory)
+        (cons 'check-file stem-check-file)
+        (cons 'check-files stem-check-files)
       ) ;list
     ) ;define
 
-    (register-lang! scheme-handler)
+    (register-lang! stem-handler)
 
   ) ;begin
 ) ;define-library
