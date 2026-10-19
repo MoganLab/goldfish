@@ -43,6 +43,7 @@
     (liii pi config types)
     (liii pi config record)
     (liii pi types)
+    (liii pi time)
     (liii pi retry)
     (liii pi args)
     (liii pi modes)
@@ -94,8 +95,8 @@
     minimax-request minimax-request-stream pi-resolve-prompt-input
     pi-load-project-context pi-build-system-prompt PI_BUILTIN_TOOL_SNIPPETS
     PI_BUILTIN_TOOL_GUIDELINES pi-iso-8601-utc-now pi-current-time-millis
-    pi-serialize-event assoc pi-event? pi-event-type pi-event->alist
-    pi-event-session pi-event-session? pi-event-session-type
+    pi-current-time-seconds pi-serialize-event assoc pi-event? pi-event-type
+    pi-event->alist pi-event-session pi-event-session? pi-event-session-type
     pi-event-session-version pi-event-session-id pi-event-session-timestamp
     pi-event-session-cwd pi-event-agent-start pi-event-agent-start?
     pi-event-agent-start-type pi-event-turn-start pi-event-turn-start?

@@ -15,8 +15,8 @@
 ;;
 
 (define-library (liii pi time)
-  (import (scheme base) (liii string) (liii time))
-  (export pi-iso-8601-utc-now pi-current-time-millis)
+  (import (scheme base) (liii string) (liii date-time))
+  (export pi-iso-8601-utc-now pi-current-time-millis pi-current-time-seconds)
   (begin
 
     (define (%pad-two-digits n)
@@ -30,16 +30,25 @@
       ) ;cond
     ) ;define
 
+    ;; 当前 UTC 的 POSIX 时间（精确有理数，含小数秒）
+    (define (%current-utc-posix-time)
+      (timestamp->utc-posix-time (current-utc-timestamp))
+    ) ;define
+
     (define (pi-iso-8601-utc-now)
-      (let* ((now (current-time))
-             (d (time-utc->date now 0))
-             (year (number->string (date-year d)))
-             (month (%pad-two-digits (date-month d)))
-             (day (%pad-two-digits (date-day d)))
-             (hour (%pad-two-digits (date-hour d)))
-             (minute (%pad-two-digits (date-minute d)))
-             (second (%pad-two-digits (date-second d)))
-             (millis (%pad-three-digits (quotient (time-nanosecond now) 1000000)))
+      (let* ((ts (current-utc-timestamp))
+             (posix (timestamp->utc-posix-time ts))
+             (year (number->string (timestamp-year ts)))
+             (month (%pad-two-digits (timestamp-month ts)))
+             (day (%pad-two-digits (timestamp-day ts)))
+             (hour (%pad-two-digits (timestamp-hour ts)))
+             (minute (%pad-two-digits (timestamp-minute ts)))
+             (second (%pad-two-digits (floor (timestamp-second ts))))
+             (millis
+               (%pad-three-digits
+                 (floor (* 1000 (- posix (floor posix))))
+               ) ;%pad-three-digits
+             ) ;millis
             ) ;
         (string-append year "-" month "-" day "T" hour ":" minute ":" second "."
           millis "Z"
@@ -48,9 +57,11 @@
     ) ;define
 
     (define (pi-current-time-millis)
-      (let ((now (current-time)))
-        (+ (* (time-second now) 1000) (quotient (time-nanosecond now) 1000000))
-      ) ;let
+      (floor (* 1000 (%current-utc-posix-time)))
+    ) ;define
+
+    (define (pi-current-time-seconds)
+      (floor (%current-utc-posix-time))
     ) ;define
 
   ) ;begin

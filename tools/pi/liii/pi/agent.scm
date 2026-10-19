@@ -16,7 +16,6 @@
 
 (define-library (liii pi agent)
   (import (scheme base)
-    (scheme time)
     (liii string)
     (liii list)
     (liii pi gemini)
@@ -25,6 +24,7 @@
     (liii pi deepseek)
     (liii pi minimax)
     (liii pi message)
+    (liii pi time)
     (liii pi event)
     (liii pi agent tools)
     (liii pi agent cost)
@@ -207,7 +207,7 @@
           initial-messages
         ) ;for-each
       ) ;when
-      (let* ((start-sec (current-second))
+      (let* ((start-sec (pi-current-time-seconds))
              (deadline-sec (if (and (number? session-timeout) (> session-timeout 0))
                              (+ start-sec session-timeout)
                              #f
@@ -219,7 +219,7 @@
           (cond ((and (number? session-timeout) (< session-timeout 0))
                  (%emit-agent-error (%make-session-timeout-error) msgs emit config)
                 ) ;
-                ((and deadline-sec (> (current-second) deadline-sec))
+                ((and deadline-sec (> (pi-current-time-seconds) deadline-sec))
                  (%emit-agent-error (%make-session-timeout-error) msgs emit config)
                 ) ;
                 ((and (> max-turns 0) (>= turn max-turns))

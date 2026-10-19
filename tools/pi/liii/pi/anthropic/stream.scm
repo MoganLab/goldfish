@@ -21,6 +21,7 @@
     (liii json)
     (liii http)
     (liii time)
+    (liii pi time)
     (liii pi event)
     (liii pi retry)
     (liii pi message)
@@ -67,11 +68,11 @@
     ) ;define
 
     (define (%build-stream-cb stream-state on-event effective-idle on-idle err-acc)
-      (let* ((last-act (time-second (current-time)))
+      (let* ((last-act (pi-current-time-seconds))
              (decoder (make-anthropic-stream-decoder stream-state on-event))
             ) ;
         (lambda (chunk)
-          (let ((now (time-second (current-time))))
+          (let ((now (pi-current-time-seconds)))
             (vector-set! err-acc 0 (string-append (vector-ref err-acc 0) chunk))
             (if (and effective-idle (> (- now last-act) effective-idle))
               (begin
