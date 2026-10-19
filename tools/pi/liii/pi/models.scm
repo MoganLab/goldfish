@@ -25,9 +25,13 @@
     (liii pi config record)
     (liii pi event)
     (liii pi models list)
+    (liii pi models builtin)
+    (liii pi models route)
   ) ;import
   (export pi-load-models-store pi-resolve-model-metadata pi-format-token-count
-    pi-list-models pi-format-models-table
+    pi-list-models pi-format-models-table PI_SUPPORTED_PROVIDERS
+    PI_PROVIDER_BUILTIN_MODELS pi-provider-default-model pi-find-model-provider
+    pi-provider-has-model? pi-route-provider-and-model pi-ensure-catalog-meta
   ) ;export
   (begin
 

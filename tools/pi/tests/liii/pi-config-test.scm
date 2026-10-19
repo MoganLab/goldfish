@@ -159,4 +159,48 @@
     (check (cdr (assoc 'provider cfg)) => "deepseek")
     (check (cdr (assoc 'api-key cfg)) => #f)))
 
+;; 12. --model 跨 provider 自动路由测试
+;; 12.1 --model k3 未显式指定 provider 时，自动路由到 kimi-coding
+(let* ((args (parse-pi-args '("--model" "k3")))
+       (env `(("PI_CODING_AGENT_DIR" . ,FIXTURE_DIR)))
+       (cfg (resolve-pi-config args env)))
+  (check (cdr (assoc 'provider cfg)) => "kimi-coding")
+  (check (cdr (assoc 'model-id cfg)) => "k3")
+  (let ((meta (cdr (assoc 'model-meta cfg))))
+    (check (cdr (assoc 'matched? meta)) => #t)
+    (check (cdr (assoc 'base-url meta)) => "https://api.kimi.com/coding/v1")
+    (check (cdr (assoc 'context-window meta)) => 262144)))
+
+;; 12.2 --model glm-4-plus 未显式指定 provider 时，自动路由到 glm
+(let* ((args (parse-pi-args '("--model" "glm-4-plus")))
+       (env `(("PI_CODING_AGENT_DIR" . ,FIXTURE_DIR)))
+       (cfg (resolve-pi-config args env)))
+  (check (cdr (assoc 'provider cfg)) => "glm")
+  (check (cdr (assoc 'model-id cfg)) => "glm-4-plus"))
+
+;; 12.3 --model deepseek-chat 未显式指定 provider 时，自动路由到 deepseek
+(let* ((args (parse-pi-args '("--model" "deepseek-chat")))
+       (env `(("PI_CODING_AGENT_DIR" . ,FIXTURE_DIR)))
+       (cfg (resolve-pi-config args env)))
+  (check (cdr (assoc 'provider cfg)) => "deepseek")
+  (check (cdr (assoc 'model-id cfg)) => "deepseek-chat"))
+
+;; 12.4 用户显式指定 --provider 时以用户指定为准，不跨 provider 路由
+(let* ((args (parse-pi-args '("--provider" "google" "--model" "k3")))
+       (env `(("PI_CODING_AGENT_DIR" . ,FIXTURE_DIR)))
+       (cfg (resolve-pi-config args env)))
+  (check (cdr (assoc 'provider cfg)) => "google")
+  (check (cdr (assoc 'model-id cfg)) => "k3")
+  (let ((meta (cdr (assoc 'model-meta cfg))))
+    (check (cdr (assoc 'matched? meta)) => #f)))
+
+;; 12.5 未命中全部 provider 模型时走自定义模型兜底（保持当前 provider）
+(let* ((args (parse-pi-args '("--model" "non-existent-anywhere-xyz")))
+       (env `(("PI_CODING_AGENT_DIR" . ,FIXTURE_DIR)))
+       (cfg (resolve-pi-config args env)))
+  (check (cdr (assoc 'provider cfg)) => "google")
+  (check (cdr (assoc 'model-id cfg)) => "non-existent-anywhere-xyz")
+  (let ((meta (cdr (assoc 'model-meta cfg))))
+    (check (cdr (assoc 'matched? meta)) => #f)))
+
 (check-report)
