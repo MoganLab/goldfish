@@ -292,7 +292,7 @@ tools/pi/liii/
 |---|---|---|---|
 | 1 | 4 字节 UTF-8 字符与 `<` 组合导致请求挂起且流式空闲超时不兜底 | 阶段五冒烟 `'🚀 <'`（pi 正常处理同类 prompt） | 修复中（任务 014） |
 | 2 | 无 `--mode rpc`（pi 有 JSONL over stdio 的 RPC 模式，IDE/长会话集成需要） | pi docs/rpc.md；bin/gf pi 仅 print/json | 未规划（Non-goal 暂缓） |
-| 3 | OAuth 类凭据不消费（pi 支持 kimi-coding oauth 轮换） | auth.json 的 oauth 条目 | 按需（当前 kimi 为 api_key） |
+| 3 | OAuth 类凭据不消费（pi 支持 oauth 轮换） | auth.json 的 oauth 条目 | 不做（用户裁定：维护费劲；当前各 provider 均用 api_key/环境变量） |
 | 4 | thinking 内容不请求不解析 | `--thinking-level` 用法在 TODO | 远期（任务 012） |
 | 5 | 图片输入不支持 | `@图片` 用法在 TODO | 远期（任务 013） |
 | 6 | `--model` 不跨 provider 自动路由：bin/gf pi 只在当前 provider（--provider 或 defaultProvider）内解析模型 ID；pi 的 model-resolver 会在全部 provider 模型目录中搜索 ID，命中即隐式选定 provider（如 `pi -p --model k3` 自动路由到 kimi） | 实测：`bin/gf pi -p --model k3` 把 k3 发给 Google 得 HTTP 404，而 pi 正常路由 | 修复中（任务 022） |
@@ -304,4 +304,10 @@ tools/pi/liii/
 - **kimi-coding（Kimi）**：Moonshot AI 官方编码模型（OpenAI Chat Completions 协议兼容）
 - **deepseek（DeepSeek）**：DeepSeek 官方模型（基于兼容网关路径与 OpenAI 协议）
 - **glm（智谱 GLM）**：智谱大模型（基于 Anthropic Messages 兼容网关）
+
+**OAuth 不做（用户裁定）**：OAuth 类凭据（access/refresh 轮换、token 过期刷新）
+整体不做——维护起来比较费劲（各家刷新端点与协议不同、token 生命周期管理持续
+消耗精力）。凭据一律走 `type:"api_key"` 或环境变量；auth.json 中 `type:"oauth"`
+的条目不消费。Anthropic 官方 OAuth 同理不做（本机无官方访问权限，其兼容网关
+能力已被 glm 复用）。
 - **anthropic（Anthropic）**：Anthropic 协议与兼容网关（凭据缺失明确报错，支持环境变量配置）
