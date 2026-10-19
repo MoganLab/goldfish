@@ -84,7 +84,7 @@ Anthropic 已实现但本机无访问权限，不在维护范围；其 OAuth 刷
 | 025 | `--no-tools` / `--no-builtin-tools` 支持 | 彻底关闭工具调用变为纯文本对话模式（不向 API 发送 tools 声明，模型不会发起工具调用）；两个别名等价；--help 与 PI_SPEC 用法；TDD 覆盖关闭后请求体无 tools 字段/纯文本对话可用/与 --tools/--exclude-tools 组合时以关闭优先 | 待执行 |
 | 024 | `--exclude-tools <tools>` 支持 | 从默认工具集中排除指定工具（如 --exclude-tools bash,write,edit 快速变为只读审计模式）；与 --tools 的关系：--tools 是白名单替换、--exclude-tools 是黑名单排除（两者可共存时排除优先）；实现于工具选择逻辑 + --help + PI_SPEC 用法；TDD 覆盖排除生效/未知工具/与 --tools 组合 | 待执行 |
 | 023 | 模型定价表与成本统计 | 内置各大模型定价表（输入/输出/cache 命中价格，可参照 `~/git/pi` 源码定价数据提取）；每次请求结束按 usage 计算 cost（input/output/cacheRead/cacheWrite），消息结构带 cost 字段（对齐 pi 的 usage.cost 形状）；会话结束（agent_end/print 结束）统计本次对话总花费与 Prompt Cache 节省金额（JSON 模式进事件流，print 模式可汇总输出）；定价表缺失的模型 cost 置 0 或标注未知；TDD 覆盖定价匹配与计算 | 待执行 |
-| 012 | thinking 内容 | `--thinking-level`，用法见 PI_SPEC.md TODO；届时与用户确认后启动 | 进行中（开发阶段） |
+| 012 | thinking 内容 | `--thinking-level`，用法见 PI_SPEC.md TODO；届时与用户确认后启动 | 已完成 |
 | 013 | 图片输入 | `@图片`，用法见 PI_SPEC.md TODO；届时与用户确认后启动 | 远期（放在最后：Kimi/deepseek/glm/--list-models 等核心任务全部完成后再按需启动） |
 | 022 | `--model` 跨 provider 自动路由【用户实测差距】 | 对齐 pi 的 model-resolver 行为：`--model <id>` 未命中当前 provider 时，在全部 provider 的模型目录（models-store.json 各 provider 条目 + 各 provider 内置模型）中搜索，命中即隐式选定 provider；仍未命中才走自定义模型兜底（当前 provider + warning）；实测用例：`bin/gf pi -p --model k3 "你是什么模型?"` 应自动路由 kimi 并正常回答（当前 404）；TDD 覆盖命中/未命中/多 provider 同名歧义（首个命中或明确报错） | 已完成 |
 | 014 | 缺陷修复·4字节UTF-8挂起 | prompt 含 4 字节 UTF-8 字符与 `<` 组合时静默挂起且流式空闲超时未兜底（复现 `timeout 60 bin/gf pi -p '🚀 <'`）；修复后真实冒烟通过 | 已完成（第5轮定位真正根因：特殊输入引发连续工具调用且无会话级总超时兜底；实现 run-agent-loop 会话级 deadline，三 provider 真实验证 2 秒结构化返回；验收脚本偶发网络抖动重跑即绿） |
