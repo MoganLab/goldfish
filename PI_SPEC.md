@@ -290,12 +290,12 @@ tools/pi/liii/
 
 | # | 差距 | 证据（失败的任务/场景） | 状态 |
 |---|---|---|---|
-| 1 | 4 字节 UTF-8 字符与 `<` 组合导致请求挂起且流式空闲超时不兜底 | 阶段五冒烟 `'🚀 <'`（pi 正常处理同类 prompt） | 修复中（任务 014） |
+| 1 | ~~4 字节 UTF-8 字符与 `<` 组合导致请求挂起~~ | 阶段五冒烟 `'🚀 <'`（pi 正常处理同类 prompt） | ✅ 已修复（任务 014：会话级超时兜底） |
 | 2 | 无 `--mode rpc`（pi 有 JSONL over stdio 的 RPC 模式，IDE/长会话集成需要） | pi docs/rpc.md；bin/gf pi 仅 print/json | 未规划（Non-goal 暂缓） |
 | 3 | OAuth 类凭据不消费（pi 支持 oauth 轮换） | auth.json 的 oauth 条目 | 不做（用户裁定：维护费劲；当前各 provider 均用 api_key/环境变量） |
 | 4 | thinking 内容不请求不解析 | `--thinking-level` 用法在 TODO | 远期（任务 012） |
 | 5 | 图片输入不支持 | `@图片` 用法在 TODO | 远期（任务 013） |
-| 6 | `--model` 不跨 provider 自动路由：bin/gf pi 只在当前 provider（--provider 或 defaultProvider）内解析模型 ID；pi 的 model-resolver 会在全部 provider 模型目录中搜索 ID，命中即隐式选定 provider（如 `pi -p --model k3` 自动路由到 kimi） | 实测：`bin/gf pi -p --model k3` 把 k3 发给 Google 得 HTTP 404，而 pi 正常路由 | 修复中（任务 022） |
+| 6 | `--model` 不跨 provider 自动路由：bin/gf pi 只在当前 provider（--provider 或 defaultProvider）内解析模型 ID；pi 的 model-resolver 会在全部 provider 模型目录中搜索 ID，命中即隐式选定 provider（如 `pi -p --model k3` 自动路由到 kimi） | 实测：`bin/gf pi -p --model k3` 把 k3 发给 Google 得 HTTP 404，而 pi 正常路由 | ✅ 已修复（任务 022） |
 | 7 | Windows 下 bash 工具挂死：子进程 spawn 方式在 Windows 不可用，bash 工具执行任何命令均挂到超时（纯文本对话正常）；bin/gf pi 因此无法跑 git/测试命令，是自举（CLAUDE_CODE_PLAN §5.5）的前置缺陷 | 实测（2026-10-19）：`timeout 180 bin/gf pi --mode json --tools bash "用 bash 工具运行命令 echo win-bash-ok"` → tool_execution_end "Command timed out after 120 seconds" isError:true | 修复中（任务 026，优先） |
 
 ## Provider 支持范围
