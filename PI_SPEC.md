@@ -286,18 +286,20 @@ tools/pi/liii/
   已知阻塞（2026-10-19 实测）：`bin/gf pi --provider glm --list-models` 报
   `Unknown provider "glm"`——auth.json 有 glm 条目，但 `--provider all --list-models`
   仅列出 google/kimi-coding，glm 模型目录缺失，需在任务 028 定位。
-- [ ] **DeepSeek v4 系列接入（任务 029，用户供稿待实测）**：经由 `https://api.deepseek.com/anthropic` 端点接入。推荐模型：`deepseek-v4-flash`（1M 上下文旗舰版，支持深度思考链与代码工具调用）、`deepseek-chat`（通用对话）、`deepseek-reasoner`（强化推理版）。预期用法（验证后转【可用】）：
+- [x] **DeepSeek v4 系列接入【可用】（任务 029 已验收）**：经由 `https://api.deepseek.com/anthropic` 端点接入。推荐模型：`deepseek-v4-flash`（1M 上下文旗舰版，支持深度思考链与代码工具调用）、`deepseek-chat`（通用对话）、`deepseek-reasoner`（强化推理版）。已实测用法：
 
   ```bash
-  # 使用 DeepSeek V4 Flash 进行代码问答
+  # 使用 DeepSeek V4 Flash 进行代码问答（实测 2026-10-19，退出码 0）
   timeout 120 bin/gf pi --provider deepseek --model deepseek-v4-flash -p "解释尾递归优化的原理"
 
-  # 使用 DeepSeek V4 Flash 配合 Bash 工具审查变更
+  # 使用 DeepSeek V4 Flash 配合 Bash 工具审查变更（实测管道+工具调用）
   git diff | timeout 180 bin/gf pi --provider deepseek --model deepseek-v4-flash --tools bash -p "审查当前 git diff 并提出改进建议"
+
+  # 列出全部 deepseek 模型（5 条：chat/flash/reasoner/v4-flash/v4-pro）
+  bin/gf pi --provider deepseek --list-models
   ```
 
-  已知阻塞（2026-10-19 实测）：同 GLM——deepseek 模型目录未出现在
-  `--provider all --list-models` 输出中，需在任务 029 定位。
+  注：模型目录来自 `~/.pi/agent/models.json` 用户自定义目录（任务 029 起合并进 models-store）。
 - [ ] **MiniMax 中国大陆版接入（任务 030，用户供稿待实测）**：复用 auth.json 中的 `sk-cp-...` 凭据，接入 `https://api.minimaxi.com/anthropic`。主力推荐 `MiniMax-M3`（1M 上下文、512K 最大输出、多模态旗舰，支持思考模式与复杂工具调用），另有 `MiniMax-M2.7`（204.8K 上下文）与 `MiniMax-M2.7-highspeed`（高速版）。预期用法（验证后转【可用】）：
 
   ```bash
