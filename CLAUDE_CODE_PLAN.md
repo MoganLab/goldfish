@@ -232,8 +232,10 @@ timeout 1800 pi -a -p @PI_PLAN.md "执行任务 ddd 的验收阶段：1) 编写�
   指定不同模型完成同类阶段任务，横向实测各模型的实际工作能力；拉起命令与
   devel 执行记录中注明所用 provider/模型，便于事后对比。轮换池：google
   gemini-3.8-flash（默认）、`kimi-coding --model k3`（k3 归属 kimi-coding
-  provider，用户裁定 2026-10-19——勿用 anthropic 链路）；glm/deepseek 待任务
-  028/029 修复后加入。注：models-store 中 glm 模型实际挂在 `zai-coding-cn`
+  provider，用户裁定 2026-10-19——勿用 anthropic 链路）、
+  `deepseek --model deepseek-v4-flash`（029 已入池）、`glm --model glm-5.3-flash`
+  （028 已入池——质量高但单次响应慢，适合轻量任务）；任务 030 完成后加入
+  minimax m3.1-flash 作为主力（用户裁定 2026-10-19：M3.1 Flash 特别快）。注：models-store 中 glm 模型实际挂在 `zai-coding-cn`
   provider 下（glm-5.3/5.3-flash 等），deepseek 下有 deepseek-flash/v4-pro，
   minimax 与 minimax-cn 各有 MiniMax-M2.7/M3——028/029/030 的定位线索。
   任务 033（multikey 密钥池）完成后，限额管理从 provider 级轮换细化到
