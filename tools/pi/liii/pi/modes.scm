@@ -23,10 +23,11 @@
     (liii pi modes output)
     (liii pi modes flow)
     (liii pi modes review)
+    (liii pi modes simplify)
   ) ;import
   (export display-stderr handle-print-result emit-json-event dispatch-pi
     prepare-system-prompt persist-initial-user-msg! run-agent-loop-with-timeout
-    run-session-flow run-compact-flow run-code-review-flow
+    run-session-flow run-compact-flow run-code-review-flow run-simplify-flow
     pi-auto-review-system-prompt
   ) ;export
   (begin
@@ -51,6 +52,7 @@
           ) ;run-compact-flow
          ) ;
          ((pi-args-ref parsed 'code-review) (run-code-review-flow parsed cfg mode))
+         ((pi-args-ref parsed 'simplify) (run-simplify-flow parsed cfg mode))
          ((eq? mode 'print)
           (run-session-flow parsed
             cfg

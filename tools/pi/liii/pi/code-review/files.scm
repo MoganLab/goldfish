@@ -122,9 +122,14 @@
       (map (lambda (f) (cdr (assoc 'path f))) files)
     ) ;define
 
-    (define (%make-result paths total source)
-      (let ((truncated? (> total (length paths))))
-        (list (cons 'paths paths)
+    (define (%status-entry path)
+      (list (cons 'path path) (cons 'status "modified"))
+    ) ;define
+
+    (define (%make-result entries total source)
+      (let* ((paths (%paths-of entries)) (truncated? (> total (length paths))))
+        (list (cons 'entries entries)
+          (cons 'paths paths)
           (cons 'total total)
           (cons 'source source)
           (cons 'truncated? truncated?)
@@ -140,22 +145,24 @@
             ) ;if
           ) ;cons
         ) ;list
-      ) ;let
+      ) ;let*
     ) ;define
 
-    (define (%collect-diff-paths runner ref staged timeout)
+    (define (%collect-diff-entries runner ref staged timeout)
       (let* ((primary (%run-diff runner (pi-changed-files-command ref staged) timeout))
              (primary-paths (%paths-of primary))
             ) ;
         (if (pair? primary-paths)
-          (values primary-paths "diff")
-          (let ((fallback-paths (%paths-of (%run-diff runner "git diff --name-status HEAD~1" timeout))
-                ) ;fallback-paths
-               ) ;
-            (if (pair? fallback-paths) (values fallback-paths "fallback") (values '() #f))
+          (values primary "diff")
+          (let ((fallback (%run-diff runner "git diff --name-status HEAD~1" timeout)))
+            (if (pair? (%paths-of fallback)) (values fallback "fallback") (values '() #f))
           ) ;let
         ) ;if
       ) ;let*
+    ) ;define
+
+    (define (%explicit-entries files)
+      (map %status-entry files)
     ) ;define
 
     (define (pi-collect-changed-files . opts)
@@ -167,10 +174,10 @@
              (max-files (pi-keyword-value :max-files opts PI_REVIEW_MAX_FILES))
             ) ;
         (if (and (pair? files) (not (null? files)))
-          (let ((total (length files)))
-            (%make-result (%take files max-files) total "explicit")
-          ) ;let
-          (let-values (((all source) (%collect-diff-paths runner ref staged timeout)))
+          (let* ((entries (%explicit-entries files)) (total (length entries)))
+            (%make-result (%take entries max-files) total "explicit")
+          ) ;let*
+          (let-values (((all source) (%collect-diff-entries runner ref staged timeout)))
             (%make-result (%take all max-files) (length all) source)
           ) ;let-values
         ) ;if

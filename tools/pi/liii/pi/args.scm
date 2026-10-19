@@ -64,6 +64,8 @@
         (cons 'list-models #f)
         (cons 'code-review #f)
         (cons 'auto-review #f)
+        (cons 'simplify #f)
+        (cons 'apply #f)
         (cons 'staged #f)
         (cons 'review-ref #f)
         (cons 'system-prompt #f)
@@ -98,6 +100,8 @@
             ((string=? arg "--no-session") (values 'no-session #t 1))
             ((string=? arg "--code-review") (values 'code-review #t 1))
             ((string=? arg "--auto-review") (values 'auto-review #t 1))
+            ((string=? arg "--simplify") (values 'simplify #t 1))
+            ((string=? arg "--apply") (values 'apply #t 1))
             ((string=? arg "--staged") (values 'staged #t 1))
             ((string-starts? arg "--ref=")
              (values 'review-ref (substring arg 6 (string-length arg)) 1)
@@ -181,17 +185,25 @@
     (define (pi-validate-review-flags parsed)
       (let ((code-review (pi-args-ref parsed 'code-review))
             (auto-review (pi-args-ref parsed 'auto-review))
+            (simplify (pi-args-ref parsed 'simplify))
+            (apply? (pi-args-ref parsed 'apply))
             (staged (pi-args-ref parsed 'staged))
             (ref (pi-args-ref parsed 'review-ref))
            ) ;
         (when (and code-review auto-review)
           (error 'pi-arg-error "--code-review and --auto-review cannot be used together")
         ) ;when
-        (when (and staged (not code-review))
-          (error 'pi-arg-error "--staged requires --code-review")
+        (when (and code-review simplify)
+          (error 'pi-arg-error "--code-review and --simplify cannot be used together")
         ) ;when
-        (when (and ref (not code-review))
-          (error 'pi-arg-error "--ref requires --code-review")
+        (when (and apply? (not simplify))
+          (error 'pi-arg-error "--apply requires --simplify")
+        ) ;when
+        (when (and staged (not (or code-review simplify)))
+          (error 'pi-arg-error "--staged requires --code-review or --simplify")
+        ) ;when
+        (when (and ref (not (or code-review simplify)))
+          (error 'pi-arg-error "--ref requires --code-review or --simplify")
         ) ;when
         #t
       ) ;let

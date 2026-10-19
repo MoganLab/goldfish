@@ -93,6 +93,7 @@
                  (not (pi-args-ref parsed 'continue))
                  (not (pi-args-ref parsed 'compact))
                  (not (pi-args-ref parsed 'code-review))
+                 (not (pi-args-ref parsed 'simplify))
                ) ;and
                (display-pi-help)
                0
