@@ -14,7 +14,7 @@
 ;; under the License.
 ;;
 
-(define-library (liii goldfix-scan)
+(define-library (liii goldfix scan)
   (export whitespace-char? delimiter-char? string-prefix-at? find-string-end
     find-bar-symbol-end find-block-comment-end find-raw-string-end find-char-end
     find-line-comment-end find-other-end

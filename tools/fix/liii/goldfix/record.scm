@@ -1,4 +1,4 @@
-(define-library (liii goldfix-record)
+(define-library (liii goldfix record)
   (export make-fix-token fix-token? fix-token-type fix-token-offset
     fix-token-end fix-token-line fix-token-column fix-token-text make-fix-line
     fix-line? fix-line-number fix-line-start-offset fix-line-first-code-token

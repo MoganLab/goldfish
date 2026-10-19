@@ -14,7 +14,7 @@
 ;; under the License.
 ;;
 
-(define-library (liii goldfix-batch)
+(define-library (liii goldfix batch)
   (export fix-file-dry-run fix-file-core fix-file fix-file-list
     file-extension-match? fix-changed-since fix-directory
   ) ;export
@@ -23,7 +23,7 @@
     (liii string)
     (liii os)
     (srfi srfi-13)
-    (liii goldfix-cache)
+    (liii goldfix cache)
     (liii goldtool-changed)
   ) ;import
 

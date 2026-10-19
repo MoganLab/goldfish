@@ -1,6 +1,6 @@
 (import (liii check)
-  (liii goldfix-tokenize)
-  (liii goldfix-record)
+  (liii goldfix tokenize)
+  (liii goldfix record)
   (liii raw-string)
 ) ;import
 

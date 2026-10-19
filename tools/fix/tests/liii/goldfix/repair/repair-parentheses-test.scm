@@ -1,4 +1,4 @@
-(import (liii check) (liii goldfix) (liii goldfix-record))
+(import (liii check) (liii goldfix) (liii goldfix record))
 
 (check-set-mode! 'report-failed)
 
