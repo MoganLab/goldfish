@@ -27,6 +27,7 @@
     anthropic-is-retriable-error? anthropic-build-tool-declarations-from-names
     anthropic-request anthropic-request-stream append-anthropic-stream-text
     handle-anthropic-delta stop-anthropic-current-block process-anthropic-sse
-    make-anthropic-stream-decoder
+    make-anthropic-stream-decoder anthropic-normalize-input
+    anthropic-parse-tool-arguments
   ) ;export
 ) ;define-library

@@ -134,7 +134,7 @@
       (let* ((id (cdr (assoc 'id cur-tool)))
              (name (cdr (assoc 'name cur-tool)))
              (json-str (cdr (assoc 'json cur-tool)))
-             (args (catch #t (lambda () (string->json json-str)) (lambda _ '())))
+             (args (anthropic-parse-tool-arguments json-str))
              (blk (pi-tool-call-block id name args))
             ) ;
         (vector-set! stream-state 0 (append blocks (list blk)))

@@ -139,6 +139,9 @@
                       ) ;and
                       "https://api.minimaxi.com/anthropic"
                      ) ;
+                     ((and is-ds? (string=? raw-url "https://api.deepseek.com"))
+                      "https://api.deepseek.com/anthropic"
+                     ) ;
                      (else raw-url)
                ) ;cond
              ) ;norm-url

@@ -142,6 +142,7 @@
 
     (define (%normalize-json-value x)
       (cond ((null? x) #())
+            ((equal? x '(())) '(()))
             ((pi-event? x) (%normalize-json-value (pi-event->alist x)))
             ((pi-message? x) (%normalize-json-value (pi-message->alist x)))
             ((pi-block? x) (%normalize-json-value (pi-block->alist x)))
@@ -159,10 +160,16 @@
                         (k (if (symbol? raw-k) (symbol->string raw-k) raw-k))
                         (v (cdr entry))
                        ) ;
-                   (if (and (string=? k "errorMessage") (not v))
-                     (loop (cdr entries) acc)
-                     (loop (cdr entries) (cons (cons k (%normalize-json-value v)) acc))
-                   ) ;if
+                   (cond ((and (string=? k "errorMessage") (not v)) (loop (cdr entries) acc))
+                         ((and (or (string=? k "arguments") (string=? k "input"))
+                            (or (null? v) (equal? v '(())) (not v) (eq? v 'null))
+                          ) ;and
+                          (loop (cdr entries) (cons (cons k '(())) acc))
+                         ) ;
+                         (else
+                           (loop (cdr entries) (cons (cons k (%normalize-json-value v)) acc))
+                         ) ;else
+                   ) ;cond
                  ) ;let*
                ) ;if
              ) ;let

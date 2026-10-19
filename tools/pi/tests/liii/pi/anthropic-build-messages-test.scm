@@ -1,4 +1,4 @@
-(import (liii check) (liii pi))
+(import (liii check) (liii json) (liii string) (liii pi))
 
 (check-set-mode! 'report-failed)
 
@@ -61,5 +61,24 @@
       (check (cdr (assoc "type" (vector-ref tr-blks 0))) => "tool_result")
       (check (cdr (assoc "tool_use_id" (vector-ref tr-blks 0))) => "call_1")
       (check (cdr (assoc "content" (vector-ref tr-blks 0))) => "file.txt"))))
+
+;; 3. 各种边界形态的 tool_use 参数序列化防回归（空参数、字符串、畸形 entry）
+(let* ((empty-blk (pi-tool-call-block "c_empty" "ls" '()))
+       (empty-obj-blk (pi-tool-call-block "c_empty_obj" "ls" '(())))
+       (str-json-blk (pi-tool-call-block "c_str_json" "bash" "{\"command\":\"pwd\"}"))
+       (str-empty-blk (pi-tool-call-block "c_str_empty" "ls" "{}"))
+       (malformed-blk (pi-tool-call-block "c_malformed" "read" '(("path"))))
+       (msg (pi-assistant-message (list empty-blk
+                                        empty-obj-blk
+                                        str-json-blk
+                                        str-empty-blk
+                                        malformed-blk)))
+       (ant-msgs (anthropic-build-messages (list msg)))
+       (body (anthropic-build-request-body "claude-test" ant-msgs "" '() 1024))
+       (json-str (json->string body)))
+  (check-true (string? json-str))
+  (check-true (string-contains? json-str "\"input\":{}"))
+  (check-true (string-contains? json-str "\"input\":{\"command\":\"pwd\"}"))
+  (check-true (string-contains? json-str "\"input\":{\"path\":{}}")))
 
 (check-report)

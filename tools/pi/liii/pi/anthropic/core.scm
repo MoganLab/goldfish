@@ -24,11 +24,13 @@
     (liii pi event)
     (liii pi tools types)
     (liii pi tools record)
+    (liii pi anthropic input)
   ) ;import
   (export anthropic-map-stop-reason anthropic-map-usage
     anthropic-build-tool-declarations anthropic-build-messages
     anthropic-build-request-body anthropic-parse-response
-    anthropic-is-retriable-error?
+    anthropic-is-retriable-error? anthropic-normalize-input
+    anthropic-parse-tool-arguments
   ) ;export
   (begin
 
@@ -95,31 +97,7 @@
       ) ;map
     ) ;define
 
-    (define (%assistant-blk->anthropic-blk blk)
-      (let ((btype (%val 'type blk "")))
-        (cond
-         ((equal? btype "text")
-          (list (cons "type" "text") (cons "text" (%val 'text blk "")))
-         ) ;
-         ((equal? btype "toolCall")
-          (list (cons "type" "tool_use")
-            (cons "id" (%val 'id blk ""))
-            (cons "name" (%val 'name blk ""))
-            (cons "input" (%val 'arguments blk '()))
-          ) ;list
-         ) ;
-         ((equal? btype "thinking")
-          (let ((sig (%val 'thinkingSignature blk #f)) (th (%val 'thinking blk "")))
-            (if (and (string? sig) (not (string-null? sig)))
-              (list (cons "type" "thinking") (cons "thinking" th) (cons "signature" sig))
-              (list (cons "type" "thinking") (cons "thinking" th))
-            ) ;if
-          ) ;let
-         ) ;
-         (else (list (cons "type" "text") (cons "text" "")))
-        ) ;cond
-      ) ;let
-    ) ;define
+    (define %assistant-blk->anthropic-blk anthropic-assistant-blk->anthropic-blk)
 
     (define (%tool-result-text content)
       (cond ((string? content) content)
@@ -234,7 +212,7 @@
                 (loop (+ i 1)
                   (cons (pi-tool-call-block (%val "id" blk "")
                           (%val "name" blk "")
-                          (%val "input" blk '())
+                          (anthropic-parse-tool-arguments (%val "input" blk '()))
                         ) ;pi-tool-call-block
                     acc
                   ) ;cons

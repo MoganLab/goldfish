@@ -45,4 +45,15 @@
   (check (cdr (assoc "type" parsed-upd)) => "message_update")
 ) ;let*
 
+;; 缺陷11防回归测试：toolCall 块在参数为空列表 '() 时序列化为 {"arguments":{}} 而非 {"arguments":[]}
+(let* ((tc (pi-tool-call-block "tc_01" "ls" '()))
+       (msg (pi-assistant-message (list tc)))
+       (json-str (pi-serialize-event msg))
+       (parsed (string->json json-str))
+       (content (cdr (assoc "content" parsed)))
+       (tc-parsed (vector-ref content 0)))
+  (check-true (string-contains? json-str "\"arguments\":{}"))
+  (check (cdr (assoc "name" tc-parsed)) => "ls")
+  (check (cdr (assoc "arguments" tc-parsed)) => '(())))
+
 (check-report)
