@@ -93,7 +93,10 @@
 (let ((home (get-environment-variable "HOME")))
   (when (and home (> (string-length home) 0))
     (check (gfproject-expand-tools-dir "~") => home)
-    (check (gfproject-expand-tools-dir "~/foo") => (string-append home "/foo"))
+    (check (gfproject-expand-tools-dir "~/foo")
+      =>
+      (path->string (path-join home "foo"))
+    ) ;check
   ) ;when
 ) ;let
 
