@@ -26,6 +26,24 @@
 (check-catch 'value-error (http-get "http://x/" :timeout 0.0))
 (check-catch 'value-error (http-get "http://x/" :timeout -1))
 (check-catch 'value-error (http-get "http://x/" :timeout -0.5))
+(check-catch 'type-error (http-get "http://x/" :idle-timeout "5"))
+(check-catch 'type-error (http-get "http://x/" :idle-timeout 'fast))
+(check-catch 'type-error (http-get "http://x/" :idle-timeout #t))
+(check-catch 'type-error (http-get "http://x/" :idle-timeout '()))
+(check-catch 'value-error (http-get "http://x/" :idle-timeout 0))
+(check-catch 'value-error (http-get "http://x/" :idle-timeout 0.0))
+(check-catch 'value-error (http-get "http://x/" :idle-timeout -1))
+(check-catch 'value-error (http-get "http://x/" :idle-timeout -0.5))
+
+;; C 层入口 g_http-get 的 timeout 与 idle-timeout 参数类型测试
+(check-catch 'type-error (g_http-get "http://x/" '() '() '() #f "5"))
+(check-catch 'type-error (g_http-get "http://x/" '() '() '() #f 'fast))
+(check-catch 'value-error (g_http-get "http://x/" '() '() '() #f 0))
+(check-catch 'value-error (g_http-get "http://x/" '() '() '() #f -1))
+(check-catch 'type-error (g_http-get "http://x/" '() '() '() #f #f "5"))
+(check-catch 'type-error (g_http-get "http://x/" '() '() '() #f #f 'fast))
+(check-catch 'value-error (g_http-get "http://x/" '() '() '() #f #f 0))
+(check-catch 'value-error (g_http-get "http://x/" '() '() '() #f #f -1))
 
 ;; 环境检查
 (let ((env (getenv "GOLDFISH_TEST_HTTP")))
@@ -37,11 +55,13 @@
 
 ;; 不可达网络地址短超时熔断
 (let* ((t0 (current-second))
-       (r (http-get "http://10.255.255.1" :timeout 0.5))
+       (r (http-get "http://10.255.255.1" :timeout 0.5 :idle-timeout 1))
        (dt (- (current-second) t0))
       ) ;
   (check (r 'status-code) => 0)
   (check-true (< dt 2.5))
+  (check-true (integer? (r 'error-code)))
+  (check-true (> (r 'error-code) 0))
   (check-true (string? (r 'reason)))
   (check-true (> (string-length (r 'reason)) 0))
 ) ;let*
@@ -72,29 +92,28 @@
 ;; ----
 ;; (http-get url :params params :headers headers :proxy proxy
 ;;           :output-file output-file :stream stream :callback callback
-;;           :timeout timeout)
+;;           :timeout timeout :idle-timeout idle-timeout)
 ;;
 ;; 参数
 ;; ----
-;; url     : string          - 请求的目标 URL
-;; params  : alist (可选)    - 查询参数列表，如 '(("key" . "value"))
-;; headers : alist (可选)    - 请求头列表
-;; proxy      : alist (可选)    - 代理配置
-;; output-file: string (可选)   - stream 模式下将响应体按 chunk 写入本地文件
-;; stream     : boolean (可选)  - 启用简单流式模式
-;; callback   : procedure (可选)- 按 chunk 处理响应体 (lambda (chunk) ...)
-;; timeout    : real? | integer? | #f (可选) - 超时时间（单位：秒）
+;; url         : string          - 请求的目标 URL
+;; params      : alist (可选)    - 查询参数列表，如 '(("key" . "value"))
+;; headers     : alist (可选)    - 请求头列表
+;; proxy       : alist (可选)    - 代理配置
+;; output-file : string (可选)   - stream 模式下将响应体按 chunk 写入本地文件
+;; stream      : boolean (可选)  - 启用简单流式模式
+;; callback    : procedure (可选)- 按 chunk 处理响应体 (lambda (chunk) ...)
+;; timeout     : real? | integer? | #f (可选) - 超时时间（单位：秒）
+;; idle-timeout: real? | integer? | #f (可选) - 传输空闲超时时间（单位：秒）
 ;;
 ;; 返回值
 ;; ----
-;; stream 为 #f 时返回 response-object；
-;; stream 为 #t 时返回 #<undefined>。
+;; response-object（哈希表，包含 status-code, url, elapsed, text, reason, headers, error-code 等字段）。
 ;;
 ;; 描述
 ;; ----
 ;; GET 请求用于从服务器获取资源。查询参数会自动编码并附加到 URL。
-;; 当 :stream 为 #t 时，会在 Scheme 层按 chunk 处理响应体。
-;; 这个简单流式模式不再返回 response-object。
+;; 当 :stream 为 #t 时，会在 Scheme 层按 chunk 处理响应体，并在请求完成后返回 response-object。
 
 ;; 基本 GET 请求
 (let ((r (http-get "https://httpbin.org")))
@@ -130,7 +149,8 @@
           ) ;http-get
         ) ;r
        ) ;
-    (check-true (undefined? r))
+    (check-true (hash-table? r))
+    (check (r 'status-code) => 200)
     (check-true (> (length collected) 0))
     (let ((body (string-join (reverse collected) "")))
       (check-true (string-contains body "stream"))
@@ -154,7 +174,8 @@
           ) ;http-get
         ) ;r
        ) ;
-    (check-true (undefined? r))
+    (check-true (hash-table? r))
+    (check (r 'status-code) => 200)
     (check-true (> (length collected) 0))
     (let ((body (string-join (reverse collected) "")))
       (check-true (string-contains body "X-Goldfish-Test"))
@@ -176,7 +197,8 @@
           ) ;begin
        ) ;r
       ) ;
-  (check-true (undefined? r))
+  (check-true (hash-table? r))
+  (check (r 'status-code) => 200)
   (check-true (file-exists? output-file))
   (let ((body (call-with-input-file output-file (lambda (port) (read-string 4096 port)))
         ) ;body
@@ -201,7 +223,8 @@
           ) ;http-get
         ) ;r
        ) ;
-    (check-true (undefined? r))
+    (check-true (hash-table? r))
+    (check (r 'status-code) => 200)
     (check-true (> chunks 0))
     (check total-bytes => 102400)
   ) ;let
@@ -220,7 +243,8 @@
           ) ;begin
        ) ;r
       ) ;
-  (check-true (undefined? r))
+  (check-true (hash-table? r))
+  (check (r 'status-code) => 200)
   (check-true (file-exists? output-file))
   (check (binary-file-size output-file) => 1048576)
   (delete-file output-file)
@@ -248,7 +272,8 @@
          ) ;begin
        ) ;r
       ) ;
-  (check-true (undefined? r))
+  (check-true (hash-table? r))
+  (check (r 'status-code) => 200)
   (check-true (> chunks 0))
   (check callback-bytes => 1048576)
   (check-true (file-exists? output-file))
