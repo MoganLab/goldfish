@@ -93,6 +93,7 @@ Anthropic 已实现但本机无访问权限，不在维护范围；其 OAuth 刷
 | 030 | MiniMax provider 适配 | 新增 minimax provider（工作量大于 028/029——bin/gf pi 尚无 minimax 实现）：复用 auth.json `sk-cp-...` 凭据与 `https://api.minimaxi.com/anthropic` 端点（Anthropic 兼容，可参考 glm 链路）；支持 `MiniMax-M3`/`MiniMax-M2.7(-highspeed)`；真实冒烟纯文本与 `--tools read,bash,write`；TDD 覆盖；通过后 Claude 更新 PI_SPEC | 待执行 |
 | 037 | `--list-models` 无 `--provider` 时的全局搜索修复 | 029 开发执行器发现的既有行为：`--list-models "v4"` 不带 `--provider` 时仅列默认 provider google 的目录，命中不到 deepseek/glm 的模型（应像 pi 一样跨全部 provider 搜索）；修复 list 逻辑或文档化；TDD 覆盖全局搜索命中 | 待执行 |
 | 038 | `get-environment-variable` 段错误调查 | 029 验收执行器发现：`(liii pi)` 导入后直接调用 `get-environment-variable` 触发 goldfish 内核段错误（与 `(srfi srfi-13)` 泄漏同类）；需定位根因并修复（或限制为文档化的导入约束）；TDD 覆盖最小复现 | 待执行 |
+| 039 | 时间函数统一迁移至 `(liii datetime)` | 用户裁定（2026-10-19）：`(liii time)` 只保留 `sleep`，其余时间函数全部改用 `(liii datetime)`；改动点：`tools/pi/liii/pi/time.scm`（current-time/time-second/time-nanosecond 用法）+ `pi/agent.scm`（current-second）等所有 `(liii time)` 消费方（gemini/kimi/anthropic request+stream、session.scm 经 pi/time.scm 间接消费）；验收点：除 `sleep` 外代码无 `(liii time)` 依赖，行为不变（ISO 8601 时间戳/毫秒时间戳输出一致），TDD 覆盖时间函数输出格式 | 待执行 |
 | 013 | 图片输入 | `@图片`，用法见 PI_SPEC.md TODO；届时与用户确认后启动 | 远期（放在最后：Kimi/deepseek/glm/--list-models 等核心任务全部完成后再按需启动） |
 共同约束：
 - 每个任务常态三个 commit：`[编号][PLAN]`（建档）+ `[编号][REVIEW]`（代码）
