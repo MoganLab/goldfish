@@ -84,7 +84,7 @@ Anthropic 已实现但本机无访问权限，不在维护范围；其 OAuth 刷
 
 | 编号 | 任务 | 内容与验收点 | 状态 |
 |---|---|---|---|
-| 040 | web_search 工具声明与 Schema 注册 | 开发完成（deepseek：pi-web-search-schema 对齐原生 pi 取证，工具列表 7→8，复核通过）；验收阶段进行中 |
+| 040 | web_search 工具声明与 Schema 注册 | 已完成（040.scm 51/51；commit `5b6c701f`/`e469cc1b` 已推送；开发 deepseek + 验收 minimax） |
 | 041 | Gemini 搜索请求体构造与 Grounding 解析 | 用户供稿规划（阶段二）：请求体 tools 注入 googleSearch 节；解析响应/流式分片的 groundingMetadata——webSearchQueries/groundingChunks（title+uri）/groundingSupports（段落与 chunk 引用映射）；参考 ~/git/pi-web-search/src/providers/google.ts（228 行，extractGoogleSearchDetails）；TDD 用保存的示例 JSON 断言解析结果 |
 | 042 | web_search 网络执行器与结果格式化 | 用户供稿规划（阶段三）：复用 (liii http) 与 Gemini 通道（httpProxy/Google API Key）实现 pi-execute-web-search；回答内容与引用链接（Sources/Citations）拼装为工具返回值；网络超时、鉴权失败异常处理；stub server 验证返回与错误路径 |
 | 043 | web_search Agent 工具调用闭环联调 | 用户供稿规划（阶段四）：Gemini 模型时注入 web_search functionDeclaration；Agent 事件循环收到 web_search tool call 自动调度执行器并回传 tool_result；CLI 前端显示搜索 query 与引用来源；整体回归确保不影响既有读写编辑工具 |
