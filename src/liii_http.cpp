@@ -249,27 +249,34 @@ optional_arg (s7_scheme* sc, s7_pointer args, int i) {
   return s7_f (sc);
 }
 
-// timeout_arg 为 #f 或正数（秒）。校验成功返回 nullptr 并设置 *timeout_ms
-// （0 表示未设置；下限 1ms，因为 libcurl 中 0 超时表示无限等待）。
+// 正数时长参数（单位：秒）的共用解析核心。arg 为 #f 或正数；校验成功返回 nullptr 并设置
+// *out = arg * scale（#f 时 *out= 0，表示未设置）。已设置时下限为 1，因为 libcurl 中 0 会
+// 禁用对应超时（timeout 为 0 表示无限等待，低速检测时间以秒为单位）。
 static s7_pointer
-parse_timeout_ms (s7_scheme* sc, const char* who, s7_pointer timeout_arg, long* timeout_ms) {
-  *timeout_ms= 0;
-  if (timeout_arg == s7_f (sc)) {
+parse_positive_duration (s7_scheme* sc, const char* who, const char* field, s7_pointer arg, s7_double scale,
+                         long* out) {
+  *out= 0;
+  if (arg == s7_f (sc)) {
     return nullptr;
   }
-  if (!s7_is_number (timeout_arg)) {
-    return string_type_error (sc, (string (who) + ": timeout must be a number or #f").c_str (), timeout_arg);
+  if (!s7_is_number (arg)) {
+    return string_type_error (sc, (string (who) + ": " + field + " must be a number or #f").c_str (), arg);
   }
-  s7_double sec= s7_number_to_real (sc, timeout_arg);
+  s7_double sec= s7_number_to_real (sc, arg);
   if (sec <= 0) {
     return s7_error (
         sc, s7_make_symbol (sc, "value-error"),
-        s7_list (sc, 2, s7_make_string (sc, (string (who) + ": timeout must be positive").c_str ()), timeout_arg));
+        s7_list (sc, 2, s7_make_string (sc, (string (who) + ": " + field + " must be positive").c_str ()), arg));
   }
-  long ms= static_cast<long> (sec * 1000.0);
+  long v= static_cast<long> (sec * scale);
   // 不用 std::max：MSVC 下 windows.h 的 max 宏（经 cpr 引入）会与其冲突
-  *timeout_ms= ms > 0 ? ms : 1;
+  *out= v > 0 ? v : 1;
   return nullptr;
+}
+
+static s7_pointer
+parse_timeout_ms (s7_scheme* sc, const char* who, s7_pointer timeout_arg, long* timeout_ms) {
+  return parse_positive_duration (sc, who, "timeout", timeout_arg, 1000.0, timeout_ms);
 }
 
 static void
@@ -280,26 +287,9 @@ apply_session_timeout (cpr::Session& session, long timeout_ms) {
   }
 }
 
-// idle_timeout_arg 为 #f 或正数（秒）。校验成功返回 nullptr 并设置 *idle_timeout_sec
-// （0 表示未设置；下限 1s，因为 libcurl 低速检测时间以秒为单位且 0 表示禁用）。
 static s7_pointer
 parse_idle_timeout_sec (s7_scheme* sc, const char* who, s7_pointer idle_timeout_arg, long* idle_timeout_sec) {
-  *idle_timeout_sec= 0;
-  if (idle_timeout_arg == s7_f (sc)) {
-    return nullptr;
-  }
-  if (!s7_is_number (idle_timeout_arg)) {
-    return string_type_error (sc, (string (who) + ": idle-timeout must be a number or #f").c_str (), idle_timeout_arg);
-  }
-  s7_double sec= s7_number_to_real (sc, idle_timeout_arg);
-  if (sec <= 0) {
-    return s7_error (sc, s7_make_symbol (sc, "value-error"),
-                     s7_list (sc, 2, s7_make_string (sc, (string (who) + ": idle-timeout must be positive").c_str ()),
-                              idle_timeout_arg));
-  }
-  long s           = static_cast<long> (sec);
-  *idle_timeout_sec= s > 0 ? s : 1;
-  return nullptr;
+  return parse_positive_duration (sc, who, "idle-timeout", idle_timeout_arg, 1.0, idle_timeout_sec);
 }
 
 static void

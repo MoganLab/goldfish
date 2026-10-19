@@ -105,8 +105,7 @@
 ;;
 ;; 返回值
 ;; ----
-;; stream 为 #f 时返回 response-object；
-;; stream 为 #t 时返回 #<undefined>。
+;; response-object（哈希表，包含 status-code, url, elapsed, text, reason, headers, error-code 等字段）。
 ;;
 ;; files 结构
 ;; ----
