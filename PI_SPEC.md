@@ -106,8 +106,9 @@ timeout 120 bin/gf pi -p --model gemini-3.8-flash "只回复：ok"   # 默认模
 timeout 120 bin/gf pi -p --model gemini-3.5-flash "只回复：ok"   # ✅ 实测通过
 timeout 240 bin/gf pi -p --model gemini-3.1-pro-preview "只回复：ok"  # ✅ pro 系列，实测通过
 
-# 模型元数据解析顺序：--model 精确匹配 models-store 条目，取不到则用兜底值
-# （contextWindow=128000 / maxTokens=16384）并向 stderr 发 warning
+# 模型元数据解析（任务 034 起）：--model 必须在选定 provider 的目录中命中
+# （models-store + models.json 合并目录），不匹配或查无此模型均报错退出码 1
+# （不再 warning + fallback 兜底）
 ```
 
 不同 provider 切换（均已实测成功）：
@@ -189,8 +190,9 @@ timeout 60 bin/gf pi -p @/nonexistent-file "hi"    # Error: cannot read @/nonexi
 # 连接失败：stderr 人可读摘要，退出码 1
 timeout 90 bin/gf pi -p --proxy socks5h://127.0.0.1:9 "hi"
 
-# 模型不存在：stderr 输出 API 404 详情，退出码 1
+# 模型不存在或不属于该 provider（任务 034 起）：配置层直接报错，退出码 1，不发 HTTP
 timeout 120 bin/gf pi -p --model totally-fake-model "hi"
+# → Error: Unknown model "totally-fake-model": not found in any configured provider model catalog...
 ```
 
 ## 函数文档索引【可用】
