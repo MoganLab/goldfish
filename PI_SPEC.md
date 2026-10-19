@@ -363,6 +363,22 @@ tools/pi/liii/
 不做项：
 - 交互式 TUI / RPC 模式（goldfish 缺少相关的终端 UI 基础设施，不规划）
 - 项目级 `.pi/settings.json` 读取（首期只读全局 settings.json，暂不引入 trust 门控概念）
+## web_search 工具【可用】（任务 040-043 四阶段落地，2026-10-20）
+
+基于 Gemini 原生 Search Grounding，与 pi 本尊 pi-web-search 扩展行为对齐。
+
+```bash
+# 启用 web_search（与其它工具可混合，如 --tools bash,web_search）
+timeout 280 bin/gf pi --tools web_search -p "搜索 Goldfish Scheme 最新版本并给出引用来源"
+
+# JSON 模式事件：tool_execution_start（query/urls）→ tool_execution_end（sources/details）
+timeout 280 bin/gf pi --mode json --tools web_search -p "..."
+```
+
+实现要点：googleSearch 节注入（幂等/与 functionDeclarations 共存）、groundingMetadata
+三要素解析（webSearchQueries/groundingChunks/groundingSupports，对齐 extractGoogleSearchDetails）、
+Sources/Additional Results 拼装、7 类错误路径（401/403/超时/非 JSON/空 candidates 等）。
+
 
 ## bin/gf pi 与 pi 的差距（自举差距清单）
 
