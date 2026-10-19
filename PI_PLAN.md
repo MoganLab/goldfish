@@ -91,6 +91,7 @@ Anthropic 已实现但本机无访问权限，不在维护范围；其 OAuth 刷
 | 028 | GLM 5.3 系列接入验证 | 用户供稿用法（见 PI_SPEC.md TODO）落地为【可用】：定位 glm 模型目录缺失（`--provider glm --list-models` 报 Unknown provider，auth.json 有 glm 条目）——查明 models-store 模型来源并修复或文档化；真实冒烟 `--provider glm --model glm-5.3` 纯文本与 `glm-5.3-flash --tools bash` 工具调用；TDD 覆盖模型目录解析；通过后 Claude 把 PI_SPEC 段落转为【可用】 | 待执行（**优先**：用户裁定 deepseek/glm 接入先行，以便轮换池加入这两家模型） |
 | 029 | DeepSeek v4 系列接入验证 | 用户供稿用法（见 PI_SPEC.md TODO）落地为【可用】：定位 deepseek 模型目录缺失（同 028 现象）；真实冒烟 `--provider deepseek --model deepseek-v4-flash` 纯文本与管道+`--tools bash`；TDD 覆盖；通过后 Claude 更新 PI_SPEC | 建档完成（bin/gf pi 自举 `7a90c8f4`）；开发完成（kimi-coding/k3 + hongwei key 自举成功：models.json 用户目录合并进 store，复核通过；验收阶段进行中） |
 | 030 | MiniMax provider 适配 | 新增 minimax provider（工作量大于 028/029——bin/gf pi 尚无 minimax 实现）：复用 auth.json `sk-cp-...` 凭据与 `https://api.minimaxi.com/anthropic` 端点（Anthropic 兼容，可参考 glm 链路）；支持 `MiniMax-M3`/`MiniMax-M2.7(-highspeed)`；真实冒烟纯文本与 `--tools read,bash,write`；TDD 覆盖；通过后 Claude 更新 PI_SPEC | 待执行 |
+| 037 | `--list-models` 无 `--provider` 时的全局搜索修复 | 029 开发执行器发现的既有行为：`--list-models "v4"` 不带 `--provider` 时仅列默认 provider google 的目录，命中不到 deepseek/glm 的模型（应像 pi 一样跨全部 provider 搜索）；修复 list 逻辑或文档化；TDD 覆盖全局搜索命中 | 待执行 |
 | 013 | 图片输入 | `@图片`，用法见 PI_SPEC.md TODO；届时与用户确认后启动 | 远期（放在最后：Kimi/deepseek/glm/--list-models 等核心任务全部完成后再按需启动） |
 共同约束：
 - 每个任务常态三个 commit：`[编号][PLAN]`（建档）+ `[编号][REVIEW]`（代码）
