@@ -82,7 +82,7 @@ Anthropic 已实现但本机无访问权限，不在维护范围；其 OAuth 刷
 | 编号 | 任务 | 内容与验收点 | 状态 |
 |---|---|---|---|
 | 027 | 会话 id 迁移至 uuid7 | 合并 main 后 (liii uuid) 已提供 uuid7（实测可用）；把会话 id 生成从自造同格式 ID 迁移为 uuid7（pi 原生同为 uuidv7，消除偏差清单 #9）；改动点：会话创建处 id 生成与相关测试；TDD 覆盖 id 格式断言；偏差清单 #9 由 Claude 收尾移除 | 待执行 |
-| 025 | `--no-tools` / `--no-builtin-tools` 支持 | 彻底关闭工具调用变为纯文本对话模式（不向 API 发送 tools 声明，模型不会发起工具调用）；两个别名等价；--help 与 PI_SPEC 用法；TDD 覆盖关闭后请求体无 tools 字段/纯文本对话可用/与 --tools/--exclude-tools 组合时以关闭优先 | 待执行 |
+| 025 | `--no-tools` / `--no-builtin-tools` 支持 | 彻底关闭工具调用变为纯文本对话模式（不向 API 发送 tools 声明，模型不会发起工具调用）；两个别名等价；--help 与 PI_SPEC 用法；TDD 覆盖关闭后请求体无 tools 字段/纯文本对话可用/与 --tools/--exclude-tools 组合时以关闭优先 | 建档完成（文档阶段由 bin/gf pi 自举执行成功，commit `6892f2cd`；开发阶段进行中） |
 | 024 | `--exclude-tools <tools>` 支持 | 从默认工具集中排除指定工具（如 --exclude-tools bash,write,edit 快速变为只读审计模式）；与 --tools 的关系：--tools 是白名单替换、--exclude-tools 是黑名单排除（两者可共存时排除优先）；实现于工具选择逻辑 + --help + PI_SPEC 用法；TDD 覆盖排除生效/未知工具/与 --tools 组合 | 已完成（三阶段全过：文档由 bin/gf pi 自举；验收脚本 024.scm 32/32；commit `1104f09c`/`44b7dbae` 已推送） |
 | 013 | 图片输入 | `@图片`，用法见 PI_SPEC.md TODO；届时与用户确认后启动 | 远期（放在最后：Kimi/deepseek/glm/--list-models 等核心任务全部完成后再按需启动） |
 共同约束：
