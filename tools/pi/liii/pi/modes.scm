@@ -24,11 +24,12 @@
     (liii pi modes flow)
     (liii pi modes review)
     (liii pi modes simplify)
+    (liii pi modes red-green)
   ) ;import
   (export display-stderr handle-print-result emit-json-event dispatch-pi
     prepare-system-prompt persist-initial-user-msg! run-agent-loop-with-timeout
     run-session-flow run-compact-flow run-code-review-flow run-simplify-flow
-    pi-auto-review-system-prompt
+    run-red-green-flow pi-tdd-extend-tool-names pi-auto-review-system-prompt
   ) ;export
   (begin
 
@@ -53,6 +54,9 @@
          ) ;
          ((pi-args-ref parsed 'code-review) (run-code-review-flow parsed cfg mode))
          ((pi-args-ref parsed 'simplify) (run-simplify-flow parsed cfg mode))
+         ((pi-args-ref parsed 'red-green)
+          (run-red-green-flow parsed cfg mode initial-msg)
+         ) ;
          ((eq? mode 'print)
           (run-session-flow parsed
             cfg

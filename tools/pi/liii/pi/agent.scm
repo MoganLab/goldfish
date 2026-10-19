@@ -28,6 +28,7 @@
     (liii pi event)
     (liii pi agent tools)
     (liii pi agent cost)
+    (liii pi red-green state)
   ) ;import
   (export run-agent-loop extract-assistant-text pi-request-provider-stream
     pi-resolve-turn-system-prompt
@@ -231,7 +232,7 @@
                 ((and (> max-turns 0) (>= turn max-turns))
                  (%emit-agent-error (%make-max-turns-error) msgs emit config)
                 ) ;
-                (else
+                (else (pi-tdd-bump-turn!)
                   (let* ((msgs (%maybe-compact compaction msgs))
                          (turn-sp (pi-resolve-turn-system-prompt system-prompt last-tool-calls))
                         ) ;

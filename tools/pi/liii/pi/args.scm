@@ -65,6 +65,7 @@
         (cons 'code-review #f)
         (cons 'auto-review #f)
         (cons 'simplify #f)
+        (cons 'red-green #f)
         (cons 'apply #f)
         (cons 'staged #f)
         (cons 'review-ref #f)
@@ -101,6 +102,7 @@
             ((string=? arg "--code-review") (values 'code-review #t 1))
             ((string=? arg "--auto-review") (values 'auto-review #t 1))
             ((string=? arg "--simplify") (values 'simplify #t 1))
+            ((string=? arg "--red-green") (values 'red-green #t 1))
             ((string=? arg "--apply") (values 'apply #t 1))
             ((string=? arg "--staged") (values 'staged #t 1))
             ((string-starts? arg "--ref=")
@@ -186,6 +188,7 @@
       (let ((code-review (pi-args-ref parsed 'code-review))
             (auto-review (pi-args-ref parsed 'auto-review))
             (simplify (pi-args-ref parsed 'simplify))
+            (red-green (pi-args-ref parsed 'red-green))
             (apply? (pi-args-ref parsed 'apply))
             (staged (pi-args-ref parsed 'staged))
             (ref (pi-args-ref parsed 'review-ref))
@@ -195,6 +198,16 @@
         ) ;when
         (when (and code-review simplify)
           (error 'pi-arg-error "--code-review and --simplify cannot be used together")
+        ) ;when
+        (when (and red-green (or code-review simplify))
+          (error 'pi-arg-error
+            "--red-green cannot be used with --code-review or --simplify"
+          ) ;error
+        ) ;when
+        (when (and red-green (or apply? staged ref))
+          (error 'pi-arg-error
+            "--apply, --staged and --ref are not supported with --red-green"
+          ) ;error
         ) ;when
         (when (and apply? (not simplify))
           (error 'pi-arg-error "--apply requires --simplify")

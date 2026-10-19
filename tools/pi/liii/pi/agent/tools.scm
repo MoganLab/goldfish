@@ -23,6 +23,8 @@
     (liii pi message)
     (liii pi tools types)
     (liii pi tools record)
+    (liii pi red-green gate)
+    (liii pi red-green observe)
   ) ;import
   (export pi-agent-assoc-val pi-first-block-from-content
     pi-extract-tool-result-text pi-make-tool-result-msg pi-execute-one-tool-call
@@ -80,10 +82,15 @@
             ) ;when
           ) ;let
         ) ;when
-        (let* ((raw-res (if opt-config
-                          (apply execute-tool-call name args :timeout timeout (list :config opt-config))
-                          (execute-tool-call name args :timeout timeout)
-                        ) ;if
+        (let* ((gate-message (pi-tdd-write-gate name args))
+               (raw-res
+                 (if gate-message
+                   (pi-tool-result gate-message #t)
+                   (if opt-config
+                     (apply execute-tool-call name args :timeout timeout (list :config opt-config))
+                     (execute-tool-call name args :timeout timeout)
+                   ) ;if
+                 ) ;if
                ) ;raw-res
                (is-err? (if (pi-tool-result? raw-res)
                           (pi-tool-result-is-error raw-res)
@@ -93,6 +100,7 @@
                (text (pi-extract-tool-result-text raw-res))
                (tool-msg (pi-make-tool-result-msg id name text is-err?))
               ) ;
+          (pi-tdd-observe-tool! name args text is-err?)
           (when (procedure? emit)
             (emit 'tool_execution_end id name raw-res is-err?)
             (emit 'message_start tool-msg)

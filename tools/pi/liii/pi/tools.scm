@@ -29,6 +29,7 @@
     (liii pi find)
     (liii pi grep)
     (liii pi web-search)
+    (liii pi red-green tools)
   ) ;import
   (export PI_DEFAULT_TOOL_NAMES PI_ALL_TOOL_NAMES parse-tools-selection
     exclude-tools-from-list get-tool-definition execute-tool-call pi-read-schema
@@ -210,6 +211,9 @@
             ((string=? name "find") (%tool-def-find))
             ((string=? name "grep") (%tool-def-grep))
             ((string=? name "web_search") (%tool-def-web-search))
+            ((string=? name "tdd_status") (pi-tdd-status-definition))
+            ((string=? name "tdd_advance") (pi-tdd-advance-definition))
+            ((string=? name "tdd_reset") (pi-tdd-reset-definition))
             (else #f)
       ) ;cond
     ) ;define
@@ -243,7 +247,7 @@
        ) ;
        (else
          (let ((out (apply exec-fn args opts)))
-           (%make-tool-result out #f)
+           (if (pi-tool-result? out) out (%make-tool-result out #f))
          ) ;let
        ) ;else
       ) ;cond

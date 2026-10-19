@@ -86,6 +86,14 @@
                    ) ;
                   ) ;
         (pi-validate-review-flags parsed)
+        (when (and (pi-args-ref parsed 'red-green)
+                (string-null? initial-msg)
+                (null? rest-msgs)
+              ) ;and
+          (error 'pi-arg-error
+            "--red-green requires a task description (message text or @file)"
+          ) ;error
+        ) ;when
         (cond ((pi-args-ref parsed 'help) (display-pi-help) 0)
               ((pi-args-ref parsed 'list-models) (%handle-list-models parsed))
               ((and (string-null? initial-msg)
@@ -94,6 +102,7 @@
                  (not (pi-args-ref parsed 'compact))
                  (not (pi-args-ref parsed 'code-review))
                  (not (pi-args-ref parsed 'simplify))
+                 (not (pi-args-ref parsed 'red-green))
                ) ;and
                (display-pi-help)
                0

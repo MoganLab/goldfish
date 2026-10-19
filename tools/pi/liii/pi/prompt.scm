@@ -36,7 +36,11 @@
          . "Make precise file edits with exact text replacement, including multiple disjoint edits in one call")
         ("ls" . "List directory contents")
         ("find" . "Find files by glob pattern (respects .gitignore)")
-        ("grep" . "Search file contents for patterns (respects .gitignore)"))
+        ("grep" . "Search file contents for patterns (respects .gitignore)")
+        ("tdd_status" . "Check the current TDD state and phase")
+        ("tdd_advance"
+         . "Manually advance the TDD phase when auto-detection doesn't trigger")
+        ("tdd_reset" . "Reset the TDD session to idle state"))
     ) ;define
 
     (define PI_BUILTIN_TOOL_GUIDELINES
@@ -51,7 +55,13 @@
          "Keep edits[].oldText as small as possible while still being unique in the file. Do not pad with large unchanged regions.")
         ("ls")
         ("find")
-        ("grep"))
+        ("grep")
+        ("tdd_status"
+         "Use TDD tools to check, advance, or reset the current TDD session state.")
+        ("tdd_advance"
+         "Use TDD tools to check, advance, or reset the current TDD session state.")
+        ("tdd_reset"
+         "Use TDD tools to check, advance, or reset the current TDD session state."))
     ) ;define
 
     (define (pi-resolve-prompt-input input)

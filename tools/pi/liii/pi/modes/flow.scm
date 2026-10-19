@@ -31,6 +31,7 @@
     (liii pi compact flow)
     (liii pi modes output)
     (liii pi code-review)
+    (liii pi red-green prompt)
   ) ;import
   (export prepare-system-prompt persist-initial-user-msg!
     run-agent-loop-with-timeout emit-json-event run-session-flow
@@ -68,9 +69,15 @@
     ) ;define
 
     (define (%system-prompt-for cfg parsed)
-      (let ((base (prepare-system-prompt cfg parsed)))
-        (if (pi-args-ref parsed 'auto-review) (pi-auto-review-system-prompt base) base)
-      ) ;let
+      (let* ((base (prepare-system-prompt cfg parsed))
+             (reviewed (if (pi-args-ref parsed 'auto-review) (pi-auto-review-system-prompt base) base)
+             ) ;reviewed
+            ) ;
+        (if (pi-args-ref parsed 'red-green)
+          (pi-tdd-turn-system-prompt reviewed)
+          reviewed
+        ) ;if
+      ) ;let*
     ) ;define
 
     (define (persist-initial-user-msg! parsed sdir sfile init-msgs)
