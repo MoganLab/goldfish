@@ -56,23 +56,27 @@ check_string_alist (s7_scheme* sc, s7_pointer alist) {
 
 static s7_pointer
 error2hashtable (s7_scheme* sc, long status_code, const std::string& url, const std::string& reason) {
-  s7_pointer ht= s7_make_hash_table (sc, 4);
+  s7_pointer ht= s7_make_hash_table (sc, 5);
   s7_hash_table_set (sc, ht, s7_make_symbol (sc, "status-code"), s7_make_integer (sc, status_code));
   s7_hash_table_set (sc, ht, s7_make_symbol (sc, "url"), s7_make_string (sc, url.c_str ()));
   s7_hash_table_set (sc, ht, s7_make_symbol (sc, "text"), s7_make_string (sc, ""));
   s7_hash_table_set (sc, ht, s7_make_symbol (sc, "reason"), s7_make_string (sc, reason.c_str ()));
+  s7_hash_table_set (sc, ht, s7_make_symbol (sc, "error-code"),
+                     s7_make_integer (sc, static_cast<s7_int> (cpr::ErrorCode::UNKNOWN_ERROR)));
   return ht;
 }
 
 static s7_pointer
 response2hashtable (s7_scheme* sc, cpr::Response r) {
-  s7_pointer ht= s7_make_hash_table (sc, 8);
+  s7_pointer ht= s7_make_hash_table (sc, 9);
   s7_hash_table_set (sc, ht, s7_make_symbol (sc, "status-code"), s7_make_integer (sc, r.status_code));
   s7_hash_table_set (sc, ht, s7_make_symbol (sc, "url"), s7_make_string (sc, r.url.c_str ()));
   s7_hash_table_set (sc, ht, s7_make_symbol (sc, "elapsed"), s7_make_real (sc, r.elapsed));
   s7_hash_table_set (sc, ht, s7_make_symbol (sc, "text"), s7_make_string (sc, r.text.c_str ()));
+  s7_hash_table_set (sc, ht, s7_make_symbol (sc, "error-code"),
+                     s7_make_integer (sc, static_cast<s7_int> (r.error.code)));
   std::string reason= r.reason;
-  if (reason.empty () && r.error.code != cpr::ErrorCode::OK) {
+  if (r.error.code != cpr::ErrorCode::OK && !r.error.message.empty ()) {
     reason= r.error.message;
   }
   s7_hash_table_set (sc, ht, s7_make_symbol (sc, "reason"), s7_make_string (sc, reason.c_str ()));
@@ -245,27 +249,34 @@ optional_arg (s7_scheme* sc, s7_pointer args, int i) {
   return s7_f (sc);
 }
 
-// timeout_arg 为 #f 或正数（秒）。校验成功返回 nullptr 并设置 *timeout_ms
-// （0 表示未设置；下限 1ms，因为 libcurl 中 0 超时表示无限等待）。
+// 正数时长参数（单位：秒）的共用解析核心。arg 为 #f 或正数；校验成功返回 nullptr 并设置
+// *out = arg * scale（#f 时 *out= 0，表示未设置）。已设置时下限为 1，因为 libcurl 中 0 会
+// 禁用对应超时（timeout 为 0 表示无限等待，低速检测时间以秒为单位）。
 static s7_pointer
-parse_timeout_ms (s7_scheme* sc, const char* who, s7_pointer timeout_arg, long* timeout_ms) {
-  *timeout_ms= 0;
-  if (timeout_arg == s7_f (sc)) {
+parse_positive_duration (s7_scheme* sc, const char* who, const char* field, s7_pointer arg, s7_double scale,
+                         long* out) {
+  *out= 0;
+  if (arg == s7_f (sc)) {
     return nullptr;
   }
-  if (!s7_is_number (timeout_arg)) {
-    return string_type_error (sc, (string (who) + ": timeout must be a number or #f").c_str (), timeout_arg);
+  if (!s7_is_number (arg)) {
+    return string_type_error (sc, (string (who) + ": " + field + " must be a number or #f").c_str (), arg);
   }
-  s7_double sec= s7_number_to_real (sc, timeout_arg);
+  s7_double sec= s7_number_to_real (sc, arg);
   if (sec <= 0) {
     return s7_error (
         sc, s7_make_symbol (sc, "value-error"),
-        s7_list (sc, 2, s7_make_string (sc, (string (who) + ": timeout must be positive").c_str ()), timeout_arg));
+        s7_list (sc, 2, s7_make_string (sc, (string (who) + ": " + field + " must be positive").c_str ()), arg));
   }
-  long ms= static_cast<long> (sec * 1000.0);
+  long v= static_cast<long> (sec * scale);
   // 不用 std::max：MSVC 下 windows.h 的 max 宏（经 cpr 引入）会与其冲突
-  *timeout_ms= ms > 0 ? ms : 1;
+  *out= v > 0 ? v : 1;
   return nullptr;
+}
+
+static s7_pointer
+parse_timeout_ms (s7_scheme* sc, const char* who, s7_pointer timeout_arg, long* timeout_ms) {
+  return parse_positive_duration (sc, who, "timeout", timeout_arg, 1000.0, timeout_ms);
 }
 
 static void
@@ -273,6 +284,18 @@ apply_session_timeout (cpr::Session& session, long timeout_ms) {
   if (timeout_ms > 0) {
     session.SetTimeout (cpr::Timeout{std::chrono::milliseconds (timeout_ms)});
     session.SetConnectTimeout (cpr::ConnectTimeout{std::chrono::milliseconds (timeout_ms)});
+  }
+}
+
+static s7_pointer
+parse_idle_timeout_sec (s7_scheme* sc, const char* who, s7_pointer idle_timeout_arg, long* idle_timeout_sec) {
+  return parse_positive_duration (sc, who, "idle-timeout", idle_timeout_arg, 1.0, idle_timeout_sec);
+}
+
+static void
+apply_session_idle_timeout (cpr::Session& session, long idle_timeout_sec) {
+  if (idle_timeout_sec > 0) {
+    session.SetLowSpeed (cpr::LowSpeed{1, static_cast<std::int32_t> (idle_timeout_sec)});
   }
 }
 
@@ -332,6 +355,11 @@ f_http_get (s7_scheme* sc, s7_pointer args) {
   if (err) {
     return err;
   }
+  long idle_timeout_sec= 0;
+  err                  = parse_idle_timeout_sec (sc, "http-get", optional_arg (sc, args, 6), &idle_timeout_sec);
+  if (err) {
+    return err;
+  }
 
   const char*     url        = s7_string (url_arg);
   cpr::Parameters cpr_params = to_cpr_parameters (sc, params);
@@ -346,6 +374,7 @@ f_http_get (s7_scheme* sc, s7_pointer args) {
     session.SetProxies (cpr_proxies);
   }
   apply_session_timeout (session, timeout_ms);
+  apply_session_idle_timeout (session, idle_timeout_sec);
 
   if (s7_is_procedure (callback)) {
     session.SetWriteCallback (cpr::WriteCallback{[sc, callback] (const std::string_view& data, intptr_t) -> bool {
@@ -374,10 +403,11 @@ f_http_get (s7_scheme* sc, s7_pointer args) {
 
 inline void
 glue_http_get (s7_scheme* sc) {
-  s7_pointer  cur_env      = s7_curlet (sc);
-  const char* s_http_get   = "g_http-get";
-  const char* d_http_get   = "(g_http-get url params headers proxy callback [timeout]) => hash-table? | undefined";
-  auto        func_http_get= s7_make_typed_function (sc, s_http_get, f_http_get, 5, 1, false, d_http_get, NULL);
+  s7_pointer  cur_env   = s7_curlet (sc);
+  const char* s_http_get= "g_http-get";
+  const char* d_http_get=
+      "(g_http-get url params headers proxy callback [timeout] [idle-timeout]) => hash-table? | undefined";
+  auto func_http_get= s7_make_typed_function (sc, s_http_get, f_http_get, 5, 2, false, d_http_get, NULL);
   s7_define (sc, cur_env, s7_make_symbol (sc, s_http_get), func_http_get);
 }
 
@@ -413,6 +443,11 @@ f_http_post (s7_scheme* sc, s7_pointer args) {
   if (err) {
     return err;
   }
+  long idle_timeout_sec= 0;
+  err                  = parse_idle_timeout_sec (sc, "http-post", optional_arg (sc, args, 8), &idle_timeout_sec);
+  if (err) {
+    return err;
+  }
 
   if (!s7_is_null (sc, files)) {
     if (!check_multipart_files (sc, files)) {
@@ -443,6 +478,7 @@ f_http_post (s7_scheme* sc, s7_pointer args) {
     session.SetProxies (cpr_proxies);
   }
   apply_session_timeout (session, timeout_ms);
+  apply_session_idle_timeout (session, idle_timeout_sec);
 
   if (!s7_is_null (sc, files)) {
     session.SetMultipart (to_cpr_post_multipart (sc, body_or_data, files));
@@ -482,9 +518,9 @@ inline void
 glue_http_post (s7_scheme* sc) {
   s7_pointer  cur_env= s7_curlet (sc);
   const char* name   = "g_http-post";
-  const char* doc=
-      "(g_http-post url params body-or-data headers proxy files callback [timeout]) => hash-table? | undefined";
-  auto func_http_post= s7_make_typed_function (sc, name, f_http_post, 7, 1, false, doc, NULL);
+  const char* doc    = "(g_http-post url params body-or-data headers proxy files callback [timeout] [idle-timeout]) => "
+                       "hash-table? | undefined";
+  auto        func_http_post= s7_make_typed_function (sc, name, f_http_post, 7, 2, false, doc, NULL);
   s7_define (sc, cur_env, s7_make_symbol (sc, name), func_http_post);
 }
 
