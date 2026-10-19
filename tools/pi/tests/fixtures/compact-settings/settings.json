@@ -1,0 +1,8 @@
+{
+  "defaultProvider": "google",
+  "compaction": {
+    "enabled": false,
+    "reserveTokens": 8000,
+    "keepRecentTokens": 9000
+  }
+}

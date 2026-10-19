@@ -1,0 +1,110 @@
+;;
+;; Copyright (C) 2026 The Goldfish Scheme Authors
+;;
+;; Licensed under the Apache License, Version 2.0 (the "License");
+;; you may not use this file except in compliance with the License.
+;; You may obtain a copy of the License at
+;;
+;; http://www.apache.org/licenses/LICENSE-2.0
+;;
+;; Unless required by applicable law or agreed to in writing, software
+;; distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+;; WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+;; License for the specific language governing permissions and limitations
+;; under the License.
+;;
+
+(define-library (liii pi modes output)
+  (import (scheme base)
+    (scheme write)
+    (liii string)
+    (liii list)
+    (liii pi message)
+  ) ;import
+  (export display-stderr handle-print-result)
+  (begin
+
+    (define (display-stderr msg)
+      (let ((p (if (defined? '*stderr*) *stderr* (current-error-port))))
+        (display msg p)
+        (newline p)
+      ) ;let
+    ) ;define
+
+    (define (%block-alist blk)
+      (if (pi-block? blk) (pi-block->alist blk) blk)
+    ) ;define
+
+    (define (%to-block-list blks)
+      (cond ((vector? blks) (map %block-alist (vector->list blks)))
+            ((list? blks) (map %block-alist blks))
+            (else '())
+      ) ;cond
+    ) ;define
+
+    (define (%has-text-block? blks)
+      (let ((lst (%to-block-list blks)))
+        (and (pair? lst)
+          (any
+            (lambda (blk)
+              (let ((t (cdr (or (assoc 'type blk) (assoc "type" blk) '(#f . ""))))
+                    (text (cdr (or (assoc 'text blk) (assoc "text" blk) '(#f
+                                                                          . ""))))
+                   ) ;
+                (and (equal? t "text") (not (string-null? text)))
+              ) ;let
+            ) ;lambda
+            lst
+          ) ;any
+        ) ;and
+      ) ;let
+    ) ;define
+
+    (define (%print-text-blocks blks)
+      (for-each
+        (lambda (blk)
+          (when
+            (equal? (cdr (or (assoc 'type blk) (assoc "type" blk) '(#f . ""))) "text")
+            (display (cdr (or (assoc 'text blk) (assoc "text" blk) '(#f . ""))))
+            (newline)
+          ) ;when
+        ) ;lambda
+        (%to-block-list blks)
+      ) ;for-each
+    ) ;define
+
+    (define (handle-print-result last-msg)
+      (if (not (or (pair? last-msg) (pi-message? last-msg)))
+        (begin
+          (display-stderr "Warning: No assistant response received")
+          0
+        ) ;begin
+        (let* ((msg (if (pi-message? last-msg) (pi-message->alist last-msg) last-msg))
+               (stop-reason (cdr (or (assoc 'stopReason msg) (assoc "stopReason" msg) '(#f
+                                                                                        . "stop")))
+               ) ;stop-reason
+               (content (cdr (or (assoc 'content msg) (assoc "content" msg) '(#f))))
+               (err-msg (cdr (or (assoc 'errorMessage msg) (assoc "errorMessage" msg) '(#f
+                                                                                        . #f)))
+               ) ;err-msg
+              ) ;
+          (cond
+           ((or (string=? stop-reason "error") (string=? stop-reason "aborted"))
+            (display-stderr (or err-msg (string-append "Request " stop-reason)))
+            1
+           ) ;
+           ((string=? stop-reason "length")
+            (%print-text-blocks content)
+            (display-stderr "Response was truncated: the model reached its output token limit."
+            ) ;display-stderr
+            1
+           ) ;
+           ((%has-text-block? content) (%print-text-blocks content) 0)
+           (else (display-stderr "Warning: Model returned no text output") 0)
+          ) ;cond
+        ) ;let*
+      ) ;if
+    ) ;define
+
+  ) ;begin
+) ;define-library

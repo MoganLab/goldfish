@@ -48,6 +48,7 @@
     (liii pi modes)
     (liii pi session)
     (liii pi agent)
+    (liii pi compact)
   ) ;import
   (export resolve-app-mode format-file-block build-initial-prompt
     get-tool-definition execute-tool-call exclude-tools-from-list
@@ -160,6 +161,17 @@
     pi-trunc-result-output-bytes pi-trunc-result-first-line-exceeds-limit?
     pi-trunc-result-first-line-truncated pi-trunc-result-last-line-partial?
     pi-trunc-result-last-line-truncated pi-trunc-result->alist
+    pi-load-compaction-settings pi-estimate-content-chars
+    pi-estimate-message-tokens pi-context-token-estimate pi-should-compact?
+    pi-compaction-default-settings pi-valid-cut-point? pi-find-cut-point
+    pi-messages-to-summarize pi-truncate-for-summary pi-serialize-conversation
+    pi-extract-file-ops pi-compute-file-lists pi-format-file-operations
+    PI_COMPACTION_SUMMARY_PREFIX PI_COMPACTION_SUMMARY_SUFFIX
+    PI_SUMMARIZATION_SYSTEM_PROMPT PI_SUMMARIZATION_PROMPT
+    PI_UPDATE_SUMMARIZATION_PROMPT pi-compaction-summary-message
+    pi-build-summarization-prompt pi-summarization-failure pi-generate-summary
+    pi-read-session-entries pi-project-session-messages
+    pi-last-compaction-summary pi-append-compaction-entry! pi-compact-session!
   ) ;export
   (begin
 

@@ -27,91 +27,15 @@
     (liii pi session)
     (liii pi agent)
     (liii pi types)
+    (liii pi compact session)
+    (liii pi compact flow)
+    (liii pi modes output)
   ) ;import
   (export display-stderr handle-print-result emit-json-event dispatch-pi
     prepare-system-prompt persist-initial-user-msg! run-agent-loop-with-timeout
     run-session-flow
   ) ;export
   (begin
-
-    (define (display-stderr msg)
-      (let ((p (if (defined? '*stderr*) *stderr* (current-error-port))))
-        (display msg p)
-        (newline p)
-      ) ;let
-    ) ;define
-
-    (define (%to-block-list blks)
-      (cond ((vector? blks) (vector->list blks))
-            ((list? blks) blks)
-            (else '())
-      ) ;cond
-    ) ;define
-
-    (define (%has-text-block? blks)
-      (let ((lst (%to-block-list blks)))
-        (and (pair? lst)
-          (any
-            (lambda (blk)
-              (let ((t (cdr (or (assoc 'type blk) (assoc "type" blk) '(#f . ""))))
-                    (text (cdr (or (assoc 'text blk) (assoc "text" blk) '(#f
-                                                                          . ""))))
-                   ) ;
-                (and (equal? t "text") (not (string-null? text)))
-              ) ;let
-            ) ;lambda
-            lst
-          ) ;any
-        ) ;and
-      ) ;let
-    ) ;define
-
-    (define (%print-text-blocks blks)
-      (for-each
-        (lambda (blk)
-          (when
-            (equal? (cdr (or (assoc 'type blk) (assoc "type" blk) '(#f . ""))) "text")
-            (display (cdr (or (assoc 'text blk) (assoc "text" blk) '(#f . ""))))
-            (newline)
-          ) ;when
-        ) ;lambda
-        (%to-block-list blks)
-      ) ;for-each
-    ) ;define
-
-    (define (handle-print-result last-msg)
-      (if (not (or (pair? last-msg) (pi-message? last-msg)))
-        (begin
-          (display-stderr "Warning: No assistant response received")
-          0
-        ) ;begin
-        (let ((stop-reason (cdr (or (assoc 'stopReason last-msg) (assoc "stopReason" last-msg) '(#f
-                                                                                                 . "stop"))
-                           ) ;cdr
-              ) ;stop-reason
-              (content (cdr (or (assoc 'content last-msg) (assoc "content" last-msg) '(#f))))
-              (err-msg (cdr (or (assoc 'errorMessage last-msg) (assoc "errorMessage" last-msg) '(#f
-                                                                                                 . #f))
-                       ) ;cdr
-              ) ;err-msg
-             ) ;
-          (cond
-           ((or (string=? stop-reason "error") (string=? stop-reason "aborted"))
-            (display-stderr (or err-msg (string-append "Request " stop-reason)))
-            1
-           ) ;
-           ((string=? stop-reason "length")
-            (%print-text-blocks content)
-            (display-stderr "Response was truncated: the model reached its output token limit."
-            ) ;display-stderr
-            1
-           ) ;
-           ((%has-text-block? content) (%print-text-blocks content) 0)
-           (else (display-stderr "Warning: Model returned no text output") 0)
-          ) ;cond
-        ) ;let
-      ) ;if
-    ) ;define
 
     (define (prepare-system-prompt cfg parsed)
       (let* ((cwd (path->string (path-cwd)))
@@ -147,7 +71,13 @@
       ) ;let
     ) ;define
 
-    (define (run-agent-loop-with-timeout cfg init-msgs system-prompt emit parsed)
+    (define* (run-agent-loop-with-timeout cfg
+               init-msgs
+               system-prompt
+               emit
+               parsed
+               (compaction #f)
+             ) ;run-agent-loop-with-timeout
       (let* ((timeout
                (or (pi-args-ref parsed 'timeout) (cdr (or (assoc 'timeout cfg) '(#f
                                                                                  . 120))))
@@ -165,10 +95,10 @@
              ) ;session-timeout
             ) ;
         (run-agent-loop cfg init-msgs system-prompt emit timeout max-turns
-          session-timeout
+          session-timeout compaction
         ) ;run-agent-loop
       ) ;let*
-    ) ;define
+    ) ;define*
 
     (define (emit-json-event ev-type . args)
       (let ((ev (pi-build-json-event ev-type args)))
@@ -179,27 +109,102 @@
       ) ;let
     ) ;define
 
+    (define (%session-context parsed sfile)
+      (if (and sfile (pi-args-ref parsed 'continue))
+        (pi-project-session-messages (pi-read-session-entries sfile))
+        '()
+      ) ;if
+    ) ;define
+
     (define (run-session-flow parsed cfg initial-msg emit on-finish)
       (let*-values (((cwd) (path->string (path-cwd)))
                     ((sfile sdir) (setup-session-file parsed cfg cwd))
-                    ((init-msgs) (setup-initial-messages parsed initial-msg sdir))
+                    ((context) (%session-context parsed sfile))
                    ) ;
-        (persist-initial-user-msg! parsed sdir sfile init-msgs)
-        (when emit
-          (emit-json-event 'session cwd)
-        ) ;when
-        (let ((res-msgs (run-agent-loop-with-timeout cfg
-                          init-msgs
-                          (prepare-system-prompt cfg parsed)
-                          emit
-                          parsed
-                        ) ;run-agent-loop-with-timeout
-              ) ;res-msgs
-             ) ;
-          (persist-new-messages! sfile init-msgs res-msgs)
-          (on-finish res-msgs)
-        ) ;let
+        (let* ((has-prompt? (not (string-null? initial-msg)))
+               (init-msgs
+                 (append context (if has-prompt? (list (pi-user-message initial-msg)) '()))
+               ) ;init-msgs
+               (persisted (length context))
+              ) ;
+          (when has-prompt?
+            (persist-new-messages! sfile context init-msgs persisted)
+          ) ;when
+          (when emit
+            (emit-json-event 'session cwd)
+          ) ;when
+          (let* ((state (vector init-msgs (length init-msgs)))
+                 (timeout
+                   (or (pi-args-ref parsed 'timeout) (cdr (or (assoc 'timeout cfg) '(#f
+                                                                                     . 120))))
+                 ) ;timeout
+                 (compaction (pi-make-compaction-option parsed cfg sfile state timeout))
+                 (res-msgs (run-agent-loop-with-timeout cfg
+                             init-msgs
+                             (prepare-system-prompt cfg parsed)
+                             emit
+                             parsed
+                             compaction
+                           ) ;run-agent-loop-with-timeout
+                 ) ;res-msgs
+                ) ;
+            (persist-new-messages! sfile (vector-ref state 0) res-msgs (vector-ref state 1))
+            (on-finish res-msgs)
+          ) ;let*
+        ) ;let*
       ) ;let*-values
+    ) ;define
+
+    (define (run-compact-flow parsed cfg initial-msg emit)
+      (let* ((cwd (path->string (path-cwd)))
+             (agent-dir (cdr (assoc 'agent-dir cfg)))
+             (sdir (get-session-dir agent-dir cwd))
+             (sfile (find-latest-session-file sdir))
+             (has-prompt? (not (string-null? initial-msg)))
+            ) ;
+        (if (not sfile)
+          (error 'compact-error (string-append "No session found to compact under " sdir))
+          (let* ((settings (pi-load-compaction-settings agent-dir))
+                 (timeout
+                   (or (pi-args-ref parsed 'timeout) (cdr (or (assoc 'timeout cfg) '(#f
+                                                                                     . 120))))
+                 ) ;timeout
+                 (result (pi-compact-session! cfg sfile settings timeout "manual"))
+                 (line (pi-format-compaction-summary result "Compacted"))
+                ) ;
+            (display-stderr line)
+            (if (not has-prompt?)
+              (begin
+                (display line)
+                (newline)
+                0
+              ) ;begin
+              (let* ((projection (pi-project-session-messages (pi-read-session-entries sfile)))
+                     (init-msgs (append projection (list (pi-user-message initial-msg))))
+                     (state (vector init-msgs (length init-msgs)))
+                    ) ;
+                (persist-new-messages! sfile projection init-msgs (length projection))
+                (when emit
+                  (emit-json-event 'session cwd)
+                ) ;when
+                (let* ((compaction (pi-make-compaction-option parsed cfg sfile state timeout))
+                       (res-msgs (run-agent-loop-with-timeout cfg
+                                   init-msgs
+                                   (prepare-system-prompt cfg parsed)
+                                   emit
+                                   parsed
+                                   compaction
+                                 ) ;run-agent-loop-with-timeout
+                       ) ;res-msgs
+                      ) ;
+                  (persist-new-messages! sfile (vector-ref state 0) res-msgs (vector-ref state 1))
+                  (handle-print-result (and (pair? res-msgs) (car (reverse res-msgs))))
+                ) ;let*
+              ) ;let*
+            ) ;if
+          ) ;let*
+        ) ;if
+      ) ;let*
     ) ;define
 
     (define (dispatch-pi parsed mode initial-msg rest-msgs)
@@ -213,20 +218,27 @@
             (string-append "No credentials found for provider \"" provider "\"")
           ) ;error
         ) ;when
-        (case mode
-         ((print)
-          (run-session-flow parsed
+        (if (pi-args-ref parsed 'compact)
+          (run-compact-flow parsed
             cfg
             initial-msg
-            #f
-            (lambda (res-msgs)
-              (handle-print-result (and (pair? res-msgs) (car (reverse res-msgs))))
-            ) ;lambda
-          ) ;run-session-flow
-         ) ;
-         ((json) (run-session-flow parsed cfg initial-msg emit-json-event (lambda _ 0)))
-         (else 0)
-        ) ;case
+            (if (eq? mode 'json) emit-json-event #f)
+          ) ;run-compact-flow
+          (case mode
+           ((print)
+            (run-session-flow parsed
+              cfg
+              initial-msg
+              #f
+              (lambda (res-msgs)
+                (handle-print-result (and (pair? res-msgs) (car (reverse res-msgs))))
+              ) ;lambda
+            ) ;run-session-flow
+           ) ;
+           ((json) (run-session-flow parsed cfg initial-msg emit-json-event (lambda _ 0)))
+           (else 0)
+          ) ;case
+        ) ;if
       ) ;let*
     ) ;define
 

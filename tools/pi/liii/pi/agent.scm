@@ -29,7 +29,7 @@
     (liii pi agent tools)
     (liii pi agent cost)
   ) ;import
-  (export run-agent-loop extract-assistant-text)
+  (export run-agent-loop extract-assistant-text pi-request-provider-stream)
   (begin
 
     (define (%collect-text-blocks blks)
@@ -74,7 +74,7 @@
       ) ;pi-assistant-message
     ) ;define
 
-    (define (%request-provider-stream provider config msgs sys-prompt tools on-ev timeout)
+    (define (pi-request-provider-stream provider config msgs sys-prompt tools on-ev timeout)
       (cond ((or (equal? provider "anthropic") (equal? provider "glm"))
              (anthropic-request-stream config msgs sys-prompt tools on-ev timeout)
             ) ;
@@ -104,9 +104,9 @@
                  #f
                ) ;if
              ) ;on-stream-ev
-             (raw-resp (%request-provider-stream provider config msgs
+             (raw-resp (pi-request-provider-stream provider config msgs
                          system-prompt active-tools on-stream-ev timeout
-                       ) ;%request-provider-stream
+                       ) ;pi-request-provider-stream
              ) ;raw-resp
              (resp (pi-agent-attach-cost raw-resp config))
             ) ;
@@ -179,6 +179,18 @@
       ) ;let*
     ) ;define
 
+    (define (%maybe-compact compaction msgs)
+      (if
+        (and (pair? compaction)
+          (procedure? (cdr (or (assoc 'compactor compaction) '(#f . #f))))
+        ) ;and
+        (let ((res ((cdr (assoc 'compactor compaction)) msgs)))
+          (if (and (pair? res) (list? res)) res msgs)
+        ) ;let
+        msgs
+      ) ;if
+    ) ;define
+
     (define* (run-agent-loop config
                initial-messages
                system-prompt
@@ -186,6 +198,7 @@
                (timeout 120)
                (max-turns 200)
                (session-timeout 600)
+               (compaction #f)
              ) ;run-agent-loop
       (when (procedure? emit)
         (emit 'agent_start)
@@ -213,24 +226,26 @@
                  (%emit-agent-error (%make-max-turns-error) msgs emit config)
                 ) ;
                 (else
-                  (let*-values (((new-msgs stop-reason tool-calls resp)
-                                 (%step-agent-turn config msgs system-prompt emit timeout)
-                                ) ;
-                               ) ;
-                    (if (equal? stop-reason "toolUse")
-                      (let* ((tools-res (pi-execute-tool-calls tool-calls emit timeout))
-                             (all-msgs (append new-msgs tools-res))
-                             (res-vec (pi-extract-tool-result-blocks all-msgs (length tools-res)))
-                            ) ;
-                        (%notify-turn-end emit resp res-vec)
-                        (when (procedure? emit)
-                          (emit 'turn_start)
-                        ) ;when
-                        (loop all-msgs (+ turn 1))
-                      ) ;let*
-                      (%finish-agent-turn new-msgs stop-reason tool-calls emit config resp)
-                    ) ;if
-                  ) ;let*-values
+                  (let ((msgs (%maybe-compact compaction msgs)))
+                    (let*-values (((new-msgs stop-reason tool-calls resp)
+                                   (%step-agent-turn config msgs system-prompt emit timeout)
+                                  ) ;
+                                 ) ;
+                      (if (equal? stop-reason "toolUse")
+                        (let* ((tools-res (pi-execute-tool-calls tool-calls emit timeout))
+                               (all-msgs (append new-msgs tools-res))
+                               (res-vec (pi-extract-tool-result-blocks all-msgs (length tools-res)))
+                              ) ;
+                          (%notify-turn-end emit resp res-vec)
+                          (when (procedure? emit)
+                            (emit 'turn_start)
+                          ) ;when
+                          (loop all-msgs (+ turn 1))
+                        ) ;let*
+                        (%finish-agent-turn new-msgs stop-reason tool-calls emit config resp)
+                      ) ;if
+                    ) ;let*-values
+                  ) ;let
                 ) ;else
           ) ;cond
         ) ;let

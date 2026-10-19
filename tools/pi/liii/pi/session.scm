@@ -106,9 +106,9 @@
       ) ;let
     ) ;define
 
-    (define (persist-new-messages! sfile init-msgs all-final-msgs)
+    (define* (persist-new-messages! sfile init-msgs all-final-msgs (persisted-count #f))
       (when sfile
-        (let ((old-len (length init-msgs))
+        (let ((old-len (or persisted-count (length init-msgs)))
               (total-len (length all-final-msgs))
               (current-parent-id (find-last-session-message-id sfile))
              ) ;
@@ -130,7 +130,7 @@
           ) ;when
         ) ;let
       ) ;when
-    ) ;define
+    ) ;define*
 
     (define (encode-cwd-to-session-dirname cwd)
       (let* ((clean-cwd

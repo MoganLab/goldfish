@@ -32,12 +32,14 @@
     (liii pi config types)
     (liii pi config record)
     (liii pi event)
+    (liii pi compact tokens)
   ) ;import
   (export pi-resolve-config-value json-dict-ref pi-get-agent-dir
-    pi-read-json-file pi-load-settings pi-resolve-proxy-url pi-load-auth
-    pi-resolve-provider-key pi-load-models-store pi-load-models-json
-    pi-merge-models-json-into-store pi-resolve-model-metadata resolve-pi-config
-    resolve-goldpi-config resolve-active-tools
+    pi-read-json-file pi-load-settings pi-load-compaction-settings
+    pi-resolve-proxy-url pi-load-auth pi-resolve-provider-key
+    pi-load-models-store pi-load-models-json pi-merge-models-json-into-store
+    pi-resolve-model-metadata resolve-pi-config resolve-goldpi-config
+    resolve-active-tools
   ) ;export
   (begin
 
@@ -122,6 +124,27 @@
           (%build-retry-record (json-dict-ref obj "retry" '()))
           (%parse-tools-list (json-dict-ref obj "defaultTools" #f))
         ) ;%make-pi-settings
+      ) ;let*
+    ) ;define
+
+    (define (pi-load-compaction-settings agent-dir)
+      (let* ((filepath (path->string (path-join (path agent-dir) (path "settings.json"))))
+             (obj (or (pi-read-json-file filepath) '()))
+             (defaults (pi-compaction-default-settings))
+             (node (json-dict-ref obj "compaction" '()))
+             (get (lambda (key default) (json-dict-ref node key default)))
+            ) ;
+        (list
+          (cons 'enabled
+            (%normalize-bool (get "enabled" (cdr (assoc 'enabled defaults))))
+          ) ;cons
+          (cons 'reserve-tokens
+            (get "reserveTokens" (cdr (assoc 'reserve-tokens defaults)))
+          ) ;cons
+          (cons 'keep-recent-tokens
+            (get "keepRecentTokens" (cdr (assoc 'keep-recent-tokens defaults)))
+          ) ;cons
+        ) ;list
       ) ;let*
     ) ;define
 

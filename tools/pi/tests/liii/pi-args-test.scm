@@ -70,6 +70,16 @@
 (let ((res (parse-pi-args '("--system-prompt" "system instructions"))))
   (check (pi-args-ref res 'system-prompt) => "system instructions"))
 
+;; 1.1 --compact / --no-auto-compact
+(let ((res (parse-pi-args '("--compact"))))
+  (check (pi-args-ref res 'compact) => #t)
+  (check (pi-args-ref res 'no-auto-compact) => #f))
+
+(let ((res (parse-pi-args '("--no-auto-compact" "hello"))))
+  (check (pi-args-ref res 'no-auto-compact) => #t)
+  (check (pi-args-ref res 'compact) => #f)
+  (check (pi-args-ref res 'messages) => '("hello")))
+
 ;; 2. 多次追加系统提示词
 (let ((res (parse-pi-args '("--append-system-prompt" "prompt1"
                            "--append-system-prompt" "prompt2"))))
@@ -90,6 +100,8 @@
   (check (pi-args-ref res 'timeout) => 120)
   (check (pi-args-ref res 'session-timeout) => #f)
   (check (pi-args-ref res 'no-session) => #f)
+  (check (pi-args-ref res 'compact) => #f)
+  (check (pi-args-ref res 'no-auto-compact) => #f)
   (check (pi-args-ref res 'system-prompt) => #f)
   (check (pi-args-ref res 'append-system-prompt) => '())
   (check (pi-args-ref res 'file-args) => '())

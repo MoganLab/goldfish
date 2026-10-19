@@ -93,6 +93,7 @@
               ((and (string-null? initial-msg)
                  (null? rest-msgs)
                  (not (pi-args-ref parsed 'continue))
+                 (not (pi-args-ref parsed 'compact))
                ) ;and
                (display-pi-help)
                0
