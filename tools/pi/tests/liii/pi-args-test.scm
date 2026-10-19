@@ -55,6 +55,12 @@
 (let ((res (parse-pi-args '("--no-session"))))
   (check (pi-args-ref res 'no-session) => #t))
 
+(let ((res (parse-pi-args '("--no-tools"))))
+  (check (pi-args-ref res 'no-tools) => #t))
+
+(let ((res (parse-pi-args '("--no-builtin-tools"))))
+  (check (pi-args-ref res 'no-tools) => #t))
+
 (let ((res (parse-pi-args '("--system-prompt" "system instructions"))))
   (check (pi-args-ref res 'system-prompt) => "system instructions"))
 
@@ -73,6 +79,7 @@
   (check (pi-args-ref res 'proxy) => #f)
   (check (pi-args-ref res 'tools) => #f)
   (check (pi-args-ref res 'exclude-tools) => #f)
+  (check (pi-args-ref res 'no-tools) => #f)
   (check (pi-args-ref res 'max-turns) => 200)
   (check (pi-args-ref res 'timeout) => 120)
   (check (pi-args-ref res 'no-session) => #f)

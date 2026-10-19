@@ -7,6 +7,9 @@
 (let* ((contents #((("role" . "user") ("parts" . #((("text" . "hi")))))))
        (body (gemini-build-request-body contents "system" '())))
   (check (cdr (assoc "systemInstruction" body))
-         => '(("role" . "user") ("parts" . #((("text" . "system")))))))
+         => '(("role" . "user") ("parts" . #((("text" . "system"))))))
+  ;; 无 tools 时（空列表），请求体中不含 tools 与 toolConfig 字段
+  (check (assoc "tools" body) => #f)
+  (check (assoc "toolConfig" body) => #f))
 
 (check-report)

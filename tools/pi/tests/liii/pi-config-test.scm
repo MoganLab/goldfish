@@ -117,6 +117,32 @@
        (cfg (resolve-pi-config args env)))
   (check (cdr (assoc 'tools cfg)) => '("read")))
 
+;; 8.3 --no-tools 与 --no-builtin-tools 支持与关闭优先
+(let ((args-no-tools (parse-pi-args '("--no-tools")))
+      (args-no-builtin (parse-pi-args '("--no-builtin-tools")))
+      (args-override-tools (parse-pi-args '("--tools" "read,bash" "--no-tools")))
+      (args-override-builtin (parse-pi-args '("--tools" "read,bash" "--no-builtin-tools")))
+      (args-override-exclude (parse-pi-args '("--exclude-tools" "bash" "--no-tools")))
+      (args-override-all (parse-pi-args '("--tools" "read,bash" "--exclude-tools" "bash" "--no-tools")))
+      (settings '((default-tools . ("read" "bash" "edit" "write")))))
+  (check (resolve-active-tools args-no-tools settings) => '())
+  (check (resolve-active-tools args-no-builtin settings) => '())
+  (check (resolve-active-tools args-override-tools settings) => '())
+  (check (resolve-active-tools args-override-builtin settings) => '())
+  (check (resolve-active-tools args-override-exclude settings) => '())
+  (check (resolve-active-tools args-override-all settings) => '()))
+
+;; 8.4 resolve-pi-config 端到端 no-tools 验证
+(let* ((args (parse-pi-args '("--no-tools")))
+       (env `(("PI_CODING_AGENT_DIR" . ,FIXTURE_DIR)))
+       (cfg (resolve-pi-config args env)))
+  (check (cdr (assoc 'tools cfg)) => '()))
+
+(let* ((args (parse-pi-args '("--no-builtin-tools")))
+       (env `(("PI_CODING_AGENT_DIR" . ,FIXTURE_DIR)))
+       (cfg (resolve-pi-config args env)))
+  (check (cdr (assoc 'tools cfg)) => '()))
+
 ;; 9. CLI --provider "glm" 默认模型、端点与凭据解析
 (let* ((args (parse-pi-args '("--provider" "glm")))
        (env `(("PI_CODING_AGENT_DIR" . "non_existent_dir_xyz")

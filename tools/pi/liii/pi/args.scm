@@ -51,6 +51,7 @@
         (cons 'proxy #f)
         (cons 'tools #f)
         (cons 'exclude-tools #f)
+        (cons 'no-tools #f)
         (cons 'max-turns 200)
         (cons 'timeout 120)
         (cons 'no-session #f)
@@ -84,6 +85,9 @@
             ((or (string=? arg "-p") (string=? arg "--print")) (values 'print #t 1))
             ((or (string=? arg "-c") (string=? arg "--continue")) (values 'continue #t 1))
             ((string=? arg "--no-session") (values 'no-session #t 1))
+            ((or (string=? arg "--no-tools") (string=? arg "--no-builtin-tools"))
+             (values 'no-tools #t 1)
+            ) ;
             ((string=? arg "--list-models")
              (if (and next-arg
                    (not (string-starts? next-arg "-"))

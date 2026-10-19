@@ -143,35 +143,38 @@
     ) ;define
 
     (define (resolve-active-tools parsed-args settings)
-      (let* ((cli-tools (pi-args-ref parsed-args 'tools))
-             (cli-exclude (pi-args-ref parsed-args 'exclude-tools))
-             (settings-tools (cdr (assoc 'default-tools settings)))
-             (base-tools
-               (cond
-                ((and (string? cli-tools) (not (string-null? (string-trim-both cli-tools))))
-                 (parse-tools-selection cli-tools)
-                ) ;
-                ((pair? settings-tools)
-                 (if
-                   (and (string? (car settings-tools))
-                     (or (string-starts? (car settings-tools) "+")
-                       (string-starts? (car settings-tools) "-")
-                     ) ;or
-                   ) ;and
-                   (parse-tools-selection (string-join settings-tools ","))
-                   settings-tools
-                 ) ;if
-                ) ;
-                (else PI_DEFAULT_TOOL_NAMES)
-               ) ;cond
-             ) ;base-tools
-            ) ;
-        (if
-          (and (string? cli-exclude) (not (string-null? (string-trim-both cli-exclude))))
-          (exclude-tools-from-list base-tools cli-exclude)
-          base-tools
-        ) ;if
-      ) ;let*
+      (if (pi-args-ref parsed-args 'no-tools)
+        '()
+        (let* ((cli-tools (pi-args-ref parsed-args 'tools))
+               (cli-exclude (pi-args-ref parsed-args 'exclude-tools))
+               (settings-tools (cdr (assoc 'default-tools settings)))
+               (base-tools
+                 (cond
+                  ((and (string? cli-tools) (not (string-null? (string-trim-both cli-tools))))
+                   (parse-tools-selection cli-tools)
+                  ) ;
+                  ((pair? settings-tools)
+                   (if
+                     (and (string? (car settings-tools))
+                       (or (string-starts? (car settings-tools) "+")
+                         (string-starts? (car settings-tools) "-")
+                       ) ;or
+                     ) ;and
+                     (parse-tools-selection (string-join settings-tools ","))
+                     settings-tools
+                   ) ;if
+                  ) ;
+                  (else PI_DEFAULT_TOOL_NAMES)
+                 ) ;cond
+               ) ;base-tools
+              ) ;
+          (if
+            (and (string? cli-exclude) (not (string-null? (string-trim-both cli-exclude))))
+            (exclude-tools-from-list base-tools cli-exclude)
+            base-tools
+          ) ;if
+        ) ;let*
+      ) ;if
     ) ;define
 
     (define (pi-warn-fallback-model model-id)
