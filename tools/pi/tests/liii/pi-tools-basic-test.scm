@@ -239,12 +239,20 @@
 ;; ============================================================
 
 (check PI_DEFAULT_TOOL_NAMES => '("read" "bash" "edit" "write"))
-(check (length PI_ALL_TOOL_NAMES) => 7)
+(check (length PI_ALL_TOOL_NAMES) => 8)
+(check (member "web_search" PI_ALL_TOOL_NAMES) => '("web_search"))
+
+;; web_search 只在可选工具列表，不在默认工具集
+(check-true (not (member "web_search" PI_DEFAULT_TOOL_NAMES)))
 
 ;; parse-tools-selection
 (check (parse-tools-selection #f) => '("read" "bash" "edit" "write"))
 (check (parse-tools-selection "read,grep") => '("read" "grep"))
 (check (parse-tools-selection "+grep,-edit") => '("read" "bash" "write" "grep"))
+(check (parse-tools-selection "+web_search")
+  => '("read" "bash" "edit" "write" "web_search")
+) ;check
+(check (parse-tools-selection "web_search") => '("web_search"))
 
 ;; exclude-tools-from-list
 (check (exclude-tools-from-list '("read" "bash" "edit" "write") #f) => '("read" "bash" "edit" "write"))

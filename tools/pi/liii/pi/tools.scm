@@ -28,12 +28,14 @@
     (liii pi ls)
     (liii pi find)
     (liii pi grep)
+    (liii pi web-search)
   ) ;import
   (export PI_DEFAULT_TOOL_NAMES PI_ALL_TOOL_NAMES parse-tools-selection
     exclude-tools-from-list get-tool-definition execute-tool-call pi-read-schema
     pi-execute-read pi-write-schema pi-execute-write pi-edit-schema
     pi-execute-edit pi-bash-schema pi-execute-bash pi-ls-schema pi-execute-ls
-    pi-find-schema pi-execute-find pi-grep-schema pi-execute-grep pi-format-size
+    pi-find-schema pi-execute-find pi-grep-schema pi-execute-grep
+    pi-web-search-schema pi-validate-web-search-args pi-format-size
     pi-truncate-line pi-truncate-head pi-truncate-tail PI_DEFAULT_MAX_LINES
     PI_DEFAULT_MAX_BYTES PI_GREP_MAX_LINE_LENGTH pi-tool-definition
     pi-tool-definition? pi-tool-definition-name pi-tool-definition-description
@@ -52,7 +54,9 @@
   (begin
 
     (define PI_DEFAULT_TOOL_NAMES '("read" "bash" "edit" "write"))
-    (define PI_ALL_TOOL_NAMES '("read" "bash" "edit" "write" "grep" "find" "ls"))
+    (define PI_ALL_TOOL_NAMES
+      '("read" "bash" "edit" "write" "grep" "find" "ls" "web_search")
+    ) ;define
 
     (define (%apply-delta-item item current)
       (cond
