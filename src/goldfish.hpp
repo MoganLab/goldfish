@@ -1887,11 +1887,12 @@ struct StartupCliOptions {
 };
 
 static std::string
-parse_mode_option (int argc, char** argv, const std::string& default_mode= "default") {
-  std::string mode= default_mode;
-  for (int i= 1; i < argc; ++i) {
+parse_mode_option (int argc, char** argv, int command_index, const std::string& default_mode= "default") {
+  std::string mode = default_mode;
+  int         limit= (command_index >= 0) ? command_index : argc;
+  for (int i= 1; i < limit; ++i) {
     string arg= argv[i];
-    if ((arg == "--mode" || arg == "-m") && (i + 1) < argc) {
+    if ((arg == "--mode" || arg == "-m") && (i + 1) < limit) {
       mode= argv[++i];
     }
     else if (arg.rfind ("--mode=", 0) == 0) {
@@ -2540,7 +2541,7 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
   if (command == "repl" || command == "load") {
     default_mode= "liii";
   }
-  string mode= parse_mode_option (argc, argv, default_mode);
+  string mode= parse_mode_option (argc, argv, command_index, default_mode);
 
   // 处理旧版的 --help, -h, --version, -v（为了向后兼容）
   if (command == "--help" || command == "-h") {
