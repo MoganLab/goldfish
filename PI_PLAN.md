@@ -84,7 +84,7 @@ Anthropic 已实现但本机无访问权限，不在维护范围；其 OAuth 刷
 
 | 编号 | 任务 | 内容与验收点 | 状态 |
 |---|---|---|---|
-| 036 | 会话压缩（compact）内置命令 | 参考 `~/git/pi` 的 compaction 模块（`packages/coding-agent/src/core/compaction/`：compaction.ts/branch-summarization.ts/utils.ts，TUI 中为 `/compact` 命令，core/messages.ts 有 COMPACTION_SUMMARY_PREFIX）：bin/gf pi 脚本模式的对应形态在文档阶段定（候选：`--compact` 对最近会话压缩后再执行本次 prompt；上下文超窗自动压缩）；验收点：压缩后会话文件含 summary 消息、原文保留可追溯、压缩后继续会话可用；TDD 覆盖压缩消息构造与截断策略 | 待执行 |
+| 036 | 会话压缩（compact）内置命令 | 参考 `~/git/pi` 的 compaction 模块（`packages/coding-agent/src/core/compaction/`：compaction.ts/branch-summarization.ts/utils.ts，TUI 中为 `/compact` 命令，core/messages.ts 有 COMPACTION_SUMMARY_PREFIX）：bin/gf pi 脚本模式的对应形态在文档阶段定（候选：`--compact` 对最近会话压缩后再执行本次 prompt；上下文超窗自动压缩）；验收点：压缩后会话文件含 summary 消息、原文保留可追溯、压缩后继续会话可用；TDD 覆盖压缩消息构造与截断策略 | 建档完成（m3.1-flash 首战自举 `fcff3a68`：形态裁定 --compact 手动+阈值自动，与 pi 互读）；开发阶段进行中 |
 | 030 | MiniMax provider 适配 | 新增 minimax provider（工作量大于 028/029——bin/gf pi 尚无 minimax 实现）：复用 auth.json `sk-cp-...` 凭据与 `https://api.minimaxi.com/anthropic` 端点（Anthropic 兼容，可参考 glm 链路）；支持 `MiniMax-M3`/`MiniMax-M2.7(-highspeed)`；真实冒烟纯文本与 `--tools read,bash,write`；TDD 覆盖；通过后 Claude 更新 PI_SPEC | 已完成（三阶段全过：030.scm 60/60；commit `9c8cf71c`/`612191d5` 已推送；全程 deepseek-v4-flash 自举约 15 分钟；m3.1-flash 实测秒回入轮换池主力） |
 | 037 | `--list-models` 无 `--provider` 时的全局搜索修复 | 029 开发执行器发现的既有行为：`--list-models "v4"` 不带 `--provider` 时仅列默认 provider google 的目录，命中不到 deepseek/glm 的模型（应像 pi 一样跨全部 provider 搜索）；修复 list 逻辑或文档化；TDD 覆盖全局搜索命中 | 待执行 |
 | 038 | `get-environment-variable` 段错误调查 | 029 验收执行器发现：`(liii pi)` 导入后直接调用 `get-environment-variable` 触发 goldfish 内核段错误（与 `(srfi srfi-13)` 泄漏同类）；需定位根因并修复（或限制为文档化的导入约束）；TDD 覆盖最小复现 | 待执行 |
