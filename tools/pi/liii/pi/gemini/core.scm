@@ -88,11 +88,8 @@
     ) ;define
 
     (define (gemini-generate-tool-call-id name timestamp counter)
-      (let ((raw (string-append name "_" (number->string timestamp) "_" (number->string counter))
-            ) ;raw
-           ) ;
-        (gemini-normalize-tool-call-id raw)
-      ) ;let
+      (gemini-normalize-tool-call-id (string-append name "_" (number->string timestamp) "_" (number->string counter))
+      ) ;gemini-normalize-tool-call-id
     ) ;define
 
     (define* (%val key obj (default-val #f))
@@ -271,17 +268,25 @@
                  req
                ) ;if
              ) ;req
+             (has-tools?
+               (or (and (pair? tool-decls) (> (length tool-decls) 0))
+                 (and (vector? tool-decls) (> (vector-length tool-decls) 0))
+               ) ;or
+             ) ;has-tools?
              (req
-               (if (and (pair? tool-decls) (> (length tool-decls) 0))
-                 (let ((tools-val
-                         (vector (list (cons "functionDeclarations" (list->vector tool-decls))))
-                       ) ;tools-val
-                       (tc-val
-                         (list (cons "functionCallingConfig" (list (cons "mode" "AUTO"))))
-                       ) ;tc-val
-                      ) ;
+               (if has-tools?
+                 (let* ((tools-val
+                          (if (vector? tool-decls)
+                            tool-decls
+                            (vector (list (cons "functionDeclarations" (list->vector tool-decls))))
+                          ) ;if
+                        ) ;tools-val
+                        (tc-val
+                          (list (cons "functionCallingConfig" (list (cons "mode" "AUTO"))))
+                        ) ;tc-val
+                       ) ;
                    (cons (cons "toolConfig" tc-val) (cons (cons "tools" tools-val) req))
-                 ) ;let
+                 ) ;let*
                  req
                ) ;if
              ) ;req

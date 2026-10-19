@@ -16,6 +16,7 @@
 
 (define-library (liii pi agent tools)
   (import (scheme base)
+    (liii string)
     (liii list)
     (liii pi event)
     (liii pi tools)
@@ -56,7 +57,14 @@
       (pi-tool-result-message id name (list (pi-text-block text)) is-err)
     ) ;define
 
-    (define (pi-execute-one-tool-call call emit timeout)
+    (define (%log-stderr msg)
+      (let ((p (if (defined? '*stderr*) *stderr* (current-error-port))))
+        (display msg p)
+        (newline p)
+      ) ;let
+    ) ;define
+
+    (define* (pi-execute-one-tool-call call emit timeout (opt-config #f))
       (let* ((id (pi-agent-assoc-val 'id "id" call ""))
              (name (pi-agent-assoc-val 'name "name" call ""))
              (args (pi-agent-assoc-val 'arguments "arguments" call '()))
@@ -64,7 +72,19 @@
         (when (procedure? emit)
           (emit 'tool_execution_start id name args)
         ) ;when
-        (let* ((raw-res (execute-tool-call name args :timeout timeout))
+        (when (and (not (procedure? emit)) (equal? name "web_search"))
+          (let ((q (pi-agent-assoc-val 'query "query" args "")))
+            (when
+              (and (string? q) (not (string-null? (string-trim-both q))))
+              (%log-stderr (string-append "Searching web: " q "..."))
+            ) ;when
+          ) ;let
+        ) ;when
+        (let* ((raw-res (if opt-config
+                          (apply execute-tool-call name args :timeout timeout (list :config opt-config))
+                          (execute-tool-call name args :timeout timeout)
+                        ) ;if
+               ) ;raw-res
                (is-err? (if (pi-tool-result? raw-res)
                           (pi-tool-result-is-error raw-res)
                           (pi-agent-assoc-val 'isError "isError" raw-res #f)
@@ -81,11 +101,13 @@
           tool-msg
         ) ;let*
       ) ;let*
-    ) ;define
+    ) ;define*
 
-    (define (pi-execute-tool-calls tool-calls emit timeout)
-      (map (lambda (call) (pi-execute-one-tool-call call emit timeout)) tool-calls)
-    ) ;define
+    (define* (pi-execute-tool-calls tool-calls emit timeout (opt-config #f))
+      (map (lambda (call) (pi-execute-one-tool-call call emit timeout opt-config))
+        tool-calls
+      ) ;map
+    ) ;define*
 
     (define (pi-fail-tool-calls-length tool-calls emit)
       (map

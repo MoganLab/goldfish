@@ -35,7 +35,12 @@
           (if (string-null? trimmed) #f trimmed)
         ) ;let
        ) ;
-       ((and (pair? config) (assoc 'api-key config))
+       ((and (pair? config)
+          (let ((p (or (assoc 'provider config) (assoc "provider" config))))
+            (or (not p) (equal? (cdr p) "google"))
+          ) ;let
+          (assoc 'api-key config)
+        ) ;and
         (let ((k (cdr (assoc 'api-key config))))
           (if
             (and (string? k) (not (string-null? (string-trim-both k))))
@@ -79,7 +84,24 @@
        ((and (string? opt-url) (not (string-null? (string-trim-both opt-url))))
         opt-url
        ) ;
-       ((and (pair? config) (assoc 'model-meta config))
+       ((get-environment-variable "GOOGLE_BASE_URL")
+        =>
+        (lambda (v) (if (not (string-null? (string-trim-both v))) v #f))
+       ) ;
+       ((get-environment-variable "GEMINI_BASE_URL")
+        =>
+        (lambda (v) (if (not (string-null? (string-trim-both v))) v #f))
+       ) ;
+       ((get-environment-variable "GF_PI_BASE_URL")
+        =>
+        (lambda (v) (if (not (string-null? (string-trim-both v))) v #f))
+       ) ;
+       ((and (pair? config)
+          (let ((p (or (assoc 'provider config) (assoc "provider" config))))
+            (or (not p) (equal? (cdr p) "google"))
+          ) ;let
+          (assoc 'model-meta config)
+        ) ;and
         (let* ((meta (cdr (assoc 'model-meta config)))
                (bu (if (pair? meta) (or (assoc 'base-url meta) (assoc "baseURL" meta)) #f))
               ) ;
@@ -89,14 +111,6 @@
             "https://generativelanguage.googleapis.com/v1beta"
           ) ;if
         ) ;let*
-       ) ;
-       ((get-environment-variable "GOOGLE_BASE_URL")
-        =>
-        (lambda (v) (if (not (string-null? (string-trim-both v))) v #f))
-       ) ;
-       ((get-environment-variable "GEMINI_BASE_URL")
-        =>
-        (lambda (v) (if (not (string-null? (string-trim-both v))) v #f))
        ) ;
        (else "https://generativelanguage.googleapis.com/v1beta")
       ) ;cond

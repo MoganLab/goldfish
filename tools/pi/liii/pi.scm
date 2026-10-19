@@ -78,7 +78,8 @@
     pi-catalog-provider-models pi-catalog-merge-provider-models
     pi-fuzzy-match-model? pi-split-search-tokens gemini-map-finish-reason
     gemini-map-usage gemini-normalize-tool-call-id gemini-generate-tool-call-id
-    gemini-build-contents gemini-build-request-body gemini-build-search-tools
+    gemini-build-contents gemini-build-request-body
+    gemini-build-tool-declarations gemini-build-search-tools
     gemini-inject-google-search gemini-extract-grounding-details
     gemini-grounding-search-queries gemini-grounding-search-results
     gemini-grounding-citations anthropic-map-stop-reason anthropic-map-usage

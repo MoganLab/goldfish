@@ -232,7 +232,7 @@
                                   ) ;
                                  ) ;
                       (if (equal? stop-reason "toolUse")
-                        (let* ((tools-res (pi-execute-tool-calls tool-calls emit timeout))
+                        (let* ((tools-res (pi-execute-tool-calls tool-calls emit timeout config))
                                (all-msgs (append new-msgs tools-res))
                                (res-vec (pi-extract-tool-result-blocks all-msgs (length tools-res)))
                               ) ;

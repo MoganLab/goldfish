@@ -456,7 +456,13 @@ class StubHandler(http.server.BaseHTTPRequestHandler):
             self.wfile.write(json.dumps(resp).encode("utf-8"))
             return
 
-        if "/web-search-basic" in path or "/models/web-search-basic" in path:
+        is_search_grounding = False
+        for t in req_json.get("tools", []):
+            if isinstance(t, dict) and ("googleSearch" in t or "google_search" in t):
+                is_search_grounding = True
+                break
+
+        if "/web-search-basic" in path or "/models/web-search-basic" in path or (is_search_grounding and "/web-search-" not in path):
             resp = {
                 "candidates": [
                     {
@@ -620,6 +626,61 @@ class StubHandler(http.server.BaseHTTPRequestHandler):
                     "totalTokenCount": 30
                 }
             }
+            if "alt=sse" in path or ":streamGenerateContent" in path:
+                self.send_response(200)
+                self.send_header("Content-Type", "text/event-stream")
+                self.send_header("Cache-Control", "no-cache")
+                self.end_headers()
+                self.wfile.write(f"data: {json.dumps(resp)}\n\n".encode("utf-8"))
+                self.wfile.flush()
+                return
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps(resp).encode("utf-8"))
+            return
+
+        if "/agent-web-search" in path or "/models/agent-web-search" in path:
+            contents = req_json.get("contents", [])
+            fn_responses = []
+            for c in contents:
+                for p in c.get("parts", []):
+                    if "functionResponse" in p:
+                        fn_responses.append(p["functionResponse"])
+            if len(fn_responses) == 0:
+                resp = {
+                    "candidates": [
+                        {
+                            "content": {
+                                "role": "model",
+                                "parts": [
+                                    {
+                                        "functionCall": {
+                                            "name": "web_search",
+                                            "args": {"query": "Goldfish Scheme"},
+                                            "id": "search_call_1"
+                                        }
+                                    }
+                                ]
+                            },
+                            "finishReason": "STOP"
+                        }
+                    ],
+                    "usageMetadata": {"promptTokenCount": 20, "candidatesTokenCount": 10, "totalTokenCount": 30}
+                }
+            else:
+                resp = {
+                    "candidates": [
+                        {
+                            "content": {
+                                "role": "model",
+                                "parts": [{"text": "Goldfish Scheme is a minimalist Scheme implementation.\n\n## Sources\n[1] Goldfish Official - https://goldfish.liii.pro"}]
+                            },
+                            "finishReason": "STOP"
+                        }
+                    ],
+                    "usageMetadata": {"promptTokenCount": 60, "candidatesTokenCount": 20, "totalTokenCount": 80}
+                }
             if "alt=sse" in path or ":streamGenerateContent" in path:
                 self.send_response(200)
                 self.send_header("Content-Type", "text/event-stream")

@@ -16,6 +16,13 @@
         "maxTokens": 65536
       },
       {
+        "id": "agent-web-search",
+        "name": "Stub Agent Web Search",
+        "baseUrl": "https://generativelanguage.googleapis.com/v1beta",
+        "contextWindow": 1048576,
+        "maxTokens": 65536
+      },
+      {
         "id": "multi-turn",
         "name": "Stub Multi Turn",
         "baseUrl": "https://generativelanguage.googleapis.com/v1beta",
