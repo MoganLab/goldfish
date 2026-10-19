@@ -12,6 +12,8 @@
       "tools/pi/tests/fixtures/default"))
 
 (define fixture-store (pi-load-models-store FIXTURE_DIR))
+(define fixture-models-json (pi-load-models-json FIXTURE_DIR))
+(define fixture-merged (pi-merge-models-json-into-store fixture-store fixture-models-json))
 
 ;; 1. 从 models-store 中命中
 (check-true (pi-provider-has-model? "google" "gemini-3.8-flash" fixture-store))
@@ -28,5 +30,11 @@
 (check-false (pi-provider-has-model? "google" "k3" fixture-store))
 (check-false (pi-provider-has-model? "kimi-coding" "gemini-3.8-flash" '()))
 (check-false (pi-provider-has-model? "google" "unknown-xyz" fixture-store))
+
+;; 4. models.json 合并后 glm-5.3 系列命中（任务 028）
+(check-true (pi-provider-has-model? "glm" "glm-5.3" fixture-merged))
+(check-true (pi-provider-has-model? "glm" "glm-5.3-flash" fixture-merged))
+(check-true (pi-provider-has-model? "glm" "glm-5-turbo" fixture-merged))
+(check-true (pi-provider-has-model? "glm" "glm-4.5-air" fixture-merged))
 
 (check-report)

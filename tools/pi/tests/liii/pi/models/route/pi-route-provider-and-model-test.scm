@@ -12,6 +12,8 @@
       "tools/pi/tests/fixtures/default"))
 
 (define fixture-store (pi-load-models-store FIXTURE_DIR))
+(define fixture-merged
+  (pi-merge-models-json-into-store fixture-store (pi-load-models-json FIXTURE_DIR)))
 (define empty-settings '())
 (define default-settings '(("default-provider" . "google") ("default-model" . "gemini-3.8-flash")))
 
@@ -35,6 +37,15 @@
 (let-values (((p m) (pi-route-provider-and-model #f "deepseek-chat" default-settings fixture-store '())))
   (check p => "deepseek")
   (check m => "deepseek-chat"))
+
+;; 2.3.1 glm-5.3 / glm-5.3-flash 自动路由至 glm（models.json 合并目录，任务 028）
+(let-values (((p m) (pi-route-provider-and-model #f "glm-5.3" default-settings fixture-merged '())))
+  (check p => "glm")
+  (check m => "glm-5.3"))
+
+(let-values (((p m) (pi-route-provider-and-model #f "glm-5.3-flash" default-settings fixture-merged '())))
+  (check p => "glm")
+  (check m => "glm-5.3-flash"))
 
 ;; 2.4 未命中任何 provider 时兜底至当前 default-provider 并保留该模型
 (let-values (((p m) (pi-route-provider-and-model #f "custom-unknown-model" default-settings fixture-store '())))
