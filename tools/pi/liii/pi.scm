@@ -60,9 +60,10 @@
     pi-execute-write pi-edit-schema pi-execute-edit pi-bash-schema
     pi-execute-bash pi-find-bash-path pi-ls-schema pi-execute-ls pi-find-schema
     pi-execute-find pi-grep-schema pi-execute-grep pi-web-search-schema
-    pi-validate-web-search-args pi-resolve-config-value json-dict-ref
-    pi-get-agent-dir pi-read-json-file pi-load-settings pi-resolve-proxy-url
-    pi-load-auth pi-resolve-provider-key pi-load-multikey pi-multikey-select-key
+    pi-validate-web-search-args pi-format-web-search-result
+    pi-execute-web-search pi-resolve-config-value json-dict-ref pi-get-agent-dir
+    pi-read-json-file pi-load-settings pi-resolve-proxy-url pi-load-auth
+    pi-resolve-provider-key pi-load-multikey pi-multikey-select-key
     pi-multikey-mark-cooldown! pi-multikey-pool-of pi-multikey-request-key
     pi-multikey-rotate! pi-mask-key pi-pool-key pi-pool-key? pi-pool-key-key
     pi-pool-key-label pi-pool-key-enabled pi-pool-key-last-used

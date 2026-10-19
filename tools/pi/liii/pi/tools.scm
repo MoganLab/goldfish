@@ -35,10 +35,11 @@
     pi-execute-read pi-write-schema pi-execute-write pi-edit-schema
     pi-execute-edit pi-bash-schema pi-execute-bash pi-ls-schema pi-execute-ls
     pi-find-schema pi-execute-find pi-grep-schema pi-execute-grep
-    pi-web-search-schema pi-validate-web-search-args pi-format-size
-    pi-truncate-line pi-truncate-head pi-truncate-tail PI_DEFAULT_MAX_LINES
-    PI_DEFAULT_MAX_BYTES PI_GREP_MAX_LINE_LENGTH pi-tool-definition
-    pi-tool-definition? pi-tool-definition-name pi-tool-definition-description
+    pi-web-search-schema pi-validate-web-search-args pi-format-web-search-result
+    pi-execute-web-search pi-format-size pi-truncate-line pi-truncate-head
+    pi-truncate-tail PI_DEFAULT_MAX_LINES PI_DEFAULT_MAX_BYTES
+    PI_GREP_MAX_LINE_LENGTH pi-tool-definition pi-tool-definition?
+    pi-tool-definition-name pi-tool-definition-description
     pi-tool-definition-parameters pi-tool-definition-execute
     pi-tool-definition-snippet pi-tool-definition-guidelines
     pi-tool-definition->alist pi-tool-result pi-tool-result?
@@ -190,6 +191,16 @@
       ) ;%make-tool-def
     ) ;define
 
+    (define (%tool-def-web-search)
+      (%make-tool-def "web_search"
+        "Search the web using Gemini Google Search grounding."
+        (pi-web-search-schema)
+        pi-execute-web-search
+        "Search the web for up-to-date information"
+        '("Use web_search when you need real-time information or external references.")
+      ) ;%make-tool-def
+    ) ;define
+
     (define (get-tool-definition name)
       (cond ((string=? name "read") (%tool-def-read))
             ((string=? name "bash") (%tool-def-bash))
@@ -198,6 +209,7 @@
             ((string=? name "ls") (%tool-def-ls))
             ((string=? name "find") (%tool-def-find))
             ((string=? name "grep") (%tool-def-grep))
+            ((string=? name "web_search") (%tool-def-web-search))
             (else #f)
       ) ;cond
     ) ;define
@@ -215,14 +227,26 @@
     ) ;define
 
     (define (%run-tool-exec exec-fn name args opts)
-      (if (string=? name "bash")
+      (cond
+       ((string=? name "bash")
         (let-values (((out is-err) (apply exec-fn args opts)))
           (%make-tool-result out is-err)
         ) ;let-values
+       ) ;
+       ((string=? name "web_search")
         (let ((out (apply exec-fn args opts)))
-          (%make-tool-result out #f)
+          (cond ((pi-tool-result? out) out)
+                ((and (pair? out) (assoc 'content out)) out)
+                (else (%make-tool-result out #f))
+          ) ;cond
         ) ;let
-      ) ;if
+       ) ;
+       (else
+         (let ((out (apply exec-fn args opts)))
+           (%make-tool-result out #f)
+         ) ;let
+       ) ;else
+      ) ;cond
     ) ;define
 
     (define (execute-tool-call name args . opts)

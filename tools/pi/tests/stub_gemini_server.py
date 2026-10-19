@@ -456,6 +456,145 @@ class StubHandler(http.server.BaseHTTPRequestHandler):
             self.wfile.write(json.dumps(resp).encode("utf-8"))
             return
 
+        if "/web-search-basic" in path or "/models/web-search-basic" in path:
+            resp = {
+                "candidates": [
+                    {
+                        "content": {
+                            "role": "model",
+                            "parts": [{"text": "Goldfish Scheme is a minimalist Scheme implementation."}]
+                        },
+                        "finishReason": "STOP",
+                        "groundingMetadata": {
+                            "webSearchQueries": ["goldfish scheme"],
+                            "groundingChunks": [
+                                {
+                                    "web": {
+                                        "title": "Goldfish Official",
+                                        "uri": "https://goldfish.liii.pro"
+                                    }
+                                },
+                                {
+                                    "web": {
+                                        "title": "GitHub Goldfish",
+                                        "uri": "https://github.com/XmacsLabs/goldfish"
+                                    }
+                                }
+                            ],
+                            "groundingSupports": [
+                                {
+                                    "segment": {
+                                        "startIndex": 0,
+                                        "endIndex": 50,
+                                        "text": "Goldfish Scheme is a minimalist Scheme implementation."
+                                    },
+                                    "groundingChunkIndices": [0]
+                                }
+                            ]
+                        }
+                    }
+                ],
+                "usageMetadata": {
+                    "promptTokenCount": 20,
+                    "candidatesTokenCount": 15,
+                    "totalTokenCount": 35
+                }
+            }
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps(resp).encode("utf-8"))
+            return
+
+        if "/web-search-urls" in path or "/models/web-search-urls" in path:
+            user_text = ""
+            for c in req_json.get("contents", []):
+                for p in c.get("parts", []):
+                    user_text += p.get("text", "")
+            has_urls_prompt = "Also analyze these URLs:" in user_text
+            resp = {
+                "candidates": [
+                    {
+                        "content": {
+                            "role": "model",
+                            "parts": [{"text": f"Analyzed query and URLs (prompt_has_urls={has_urls_prompt})."}]
+                        },
+                        "finishReason": "STOP",
+                        "groundingMetadata": {
+                            "webSearchQueries": ["custom query"],
+                            "groundingChunks": [
+                                {
+                                    "web": {
+                                        "title": "URL 1",
+                                        "uri": "https://example.com/1"
+                                    }
+                                }
+                            ],
+                            "groundingSupports": [
+                                {
+                                    "segment": {
+                                        "startIndex": 0,
+                                        "endIndex": 20,
+                                        "text": "Analyzed query"
+                                    },
+                                    "groundingChunkIndices": [0]
+                                }
+                            ]
+                        }
+                    }
+                ],
+                "usageMetadata": {
+                    "promptTokenCount": 30,
+                    "candidatesTokenCount": 10,
+                    "totalTokenCount": 40
+                }
+            }
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps(resp).encode("utf-8"))
+            return
+
+        if "/web-search-401" in path or "/models/web-search-401" in path:
+            self.send_response(401)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(b'{"error":{"code":401,"message":"API key not valid. Please pass a valid API key.","status":"UNAUTHENTICATED"}}')
+            return
+
+        if "/web-search-403" in path or "/models/web-search-403" in path:
+            self.send_response(403)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(b'{"error":{"code":403,"message":"Permission denied or quota exceeded","status":"PERMISSION_DENIED"}}')
+            return
+
+        if "/web-search-non-json" in path or "/models/web-search-non-json" in path:
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html")
+            self.end_headers()
+            self.wfile.write(b'<html><body>502 Bad Gateway</body></html>')
+            return
+
+        if "/web-search-empty-candidates" in path or "/models/web-search-empty-candidates" in path:
+            resp = {
+                "candidates": []
+            }
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps(resp).encode("utf-8"))
+            return
+
+        if "/web-search-hang" in path or "/models/web-search-hang" in path:
+            import time
+            time.sleep(3)
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(b'{"candidates":[]}')
+            return
+
         if "/function-call" in path:
             resp = {
                 "candidates": [
