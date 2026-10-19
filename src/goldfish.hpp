@@ -969,52 +969,44 @@ goldfish_extract_error_expression (const string& errmsg, size_t search_start) {
 }
 
 static bool
-goldfish_form_contains_called_symbol (s7_scheme* sc, s7_pointer form, const string& function_name) {
-  if (s7_is_pair (form)) {
-    s7_pointer operator_form= s7_car (form);
-    if (s7_is_symbol (operator_form) && (function_name == s7_symbol_name (operator_form))) {
-      return true;
-    }
+goldfish_is_symbol_boundary_char (char ch) {
+  return std::isspace (static_cast<unsigned char> (ch)) || ch == '(' || ch == ')' || ch == '[' || ch == ']' ||
+         ch == '"' || ch == ';' || ch == '\'' || ch == '`' || ch == ',';
+}
 
-    for (s7_pointer iter= form; s7_is_pair (iter); iter= s7_cdr (iter)) {
-      if (goldfish_form_contains_called_symbol (sc, s7_car (iter), function_name)) {
+// 纯文本判断 name 是否出现在调用位置（前面（跳过空白后）是左括号）。
+// 提示路径不允许调用 s7_read：错误处理路径里再触发 reader 错误会让 s7 在
+// 构造 stacktrace 时段错误（见 tools/pi/devel/038.md）。
+static bool
+goldfish_error_expression_contains_function_call (const string& expression, const string& function_name) {
+  if (expression.empty () || function_name.empty ()) {
+    return false;
+  }
+
+  size_t pos= 0;
+  while ((pos= expression.find (function_name, pos)) != string::npos) {
+    size_t end= pos + function_name.size ();
+
+    bool starts_ok= (pos == 0) || goldfish_is_symbol_boundary_char (expression[pos - 1]);
+    bool ends_ok  = (end == expression.size ()) || goldfish_is_symbol_boundary_char (expression[end]);
+    if (starts_ok && ends_ok) {
+      size_t before= pos;
+      while ((before > 0) && (std::isspace (static_cast<unsigned char> (expression[before - 1])))) {
+        --before;
+      }
+      if ((before > 0) && (expression[before - 1] == '(')) {
         return true;
       }
     }
 
-    s7_pointer tail= form;
-    while (s7_is_pair (tail)) {
-      tail= s7_cdr (tail);
-    }
-    if ((!s7_is_null (sc, tail)) && goldfish_form_contains_called_symbol (sc, tail, function_name)) {
-      return true;
-    }
+    pos= end;
   }
 
   return false;
 }
 
-static bool
-goldfish_error_expression_contains_function_call (s7_scheme* sc, const string& expression,
-                                                  const string& function_name) {
-  if (expression.empty ()) {
-    return false;
-  }
-
-  s7_pointer port      = s7_open_input_string (sc, expression.c_str ());
-  s7_pointer eof_object= s7_eof_object (sc);
-  s7_pointer form      = s7_read (sc, port);
-  s7_close_input_port (sc, port);
-
-  if ((form == eof_object) || (!form)) {
-    return expression.find ("(" + function_name) != string::npos;
-  }
-
-  return goldfish_form_contains_called_symbol (sc, form, function_name);
-}
-
 static string
-goldfish_extract_unbound_function_name_from_error (s7_scheme* sc, const string& errmsg) {
+goldfish_extract_unbound_function_name_from_error (const string& errmsg) {
   const string prefix= "unbound variable ";
   size_t       start = errmsg.find (prefix);
   if (start == string::npos) {
@@ -1041,7 +1033,7 @@ goldfish_extract_unbound_function_name_from_error (s7_scheme* sc, const string& 
   }
 
   string error_expression= goldfish_extract_error_expression (errmsg, end);
-  if (!goldfish_error_expression_contains_function_call (sc, error_expression, function_name)) {
+  if (!goldfish_error_expression_contains_function_call (error_expression, function_name)) {
     return "";
   }
 
@@ -1136,7 +1128,7 @@ goldfish_append_doc_hint_if_needed (s7_scheme* sc, const string& errmsg) {
     return errmsg;
   }
 
-  string function_name= goldfish_extract_unbound_function_name_from_error (sc, errmsg);
+  string function_name= goldfish_extract_unbound_function_name_from_error (errmsg);
   if (function_name.empty ()) {
     return errmsg;
   }
@@ -2109,43 +2101,323 @@ split_library_query (const string& query, string& group, string& library) {
   return true;
 }
 
+// 提示（hint）扫描器：只做文本层面的 s-expression 扫描，不使用 s7 reader。
+// 原因见 tools/pi/devel/038.md：在错误处理路径里调用 s7_read，一旦被扫描文件里
+// 出现当前 reader 不认识的语法（例如未导入 (liii raw-string) 时的 #"" 原始字符串），
+// 就会在错误处理中再次抛错，s7 在构造 stacktrace 时段错误。
+enum class SchemeSourceTokenKind { Atom, Open, Close, Quote, DatumComment };
+
+struct SchemeSourceToken {
+  SchemeSourceTokenKind kind;
+  string                text;
+};
+
+struct SchemeSourceNode {
+  bool                     is_list= false;
+  string                   atom;
+  vector<SchemeSourceNode> items;
+};
+
 static bool
-is_named_symbol (s7_pointer value, const char* name) {
-  return s7_is_symbol (value) && (strcmp (s7_symbol_name (value), name) == 0);
+scheme_source_delimiter (char ch) {
+  return std::isspace (static_cast<unsigned char> (ch)) || ch == '(' || ch == ')' || ch == '[' || ch == ']' ||
+         ch == '"' || ch == ';' || ch == '\'' || ch == '`' || ch == ',';
 }
 
 static bool
-library_name_part_to_string (s7_pointer value, string& out) {
-  if (s7_is_symbol (value)) {
-    out= s7_symbol_name (value);
-    return true;
-  }
-  if (s7_is_integer (value)) {
-    out= std::to_string (s7_integer (value));
-    return true;
+skip_scheme_string_literal (const string& text, size_t& pos) {
+  // pos 指向开引号
+  ++pos;
+  while (pos < text.size ()) {
+    if (text[pos] == '\\') {
+      pos+= 2;
+      continue;
+    }
+    if (text[pos] == '"') {
+      ++pos;
+      return true;
+    }
+    ++pos;
   }
   return false;
 }
 
 static bool
-extract_library_name_from_form (s7_scheme* sc, s7_pointer library_name_form, string& group, string& library) {
-  if (!s7_is_list (sc, library_name_form)) {
+skip_scheme_block_comment (const string& text, size_t& pos) {
+  // pos 指向 "#|"
+  pos+= 2;
+  int depth= 1;
+  while (pos < text.size ()) {
+    if ((text[pos] == '#') && (pos + 1 < text.size ()) && (text[pos + 1] == '|')) {
+      ++depth;
+      pos+= 2;
+      continue;
+    }
+    if ((text[pos] == '|') && (pos + 1 < text.size ()) && (text[pos + 1] == '#')) {
+      --depth;
+      pos+= 2;
+      if (depth == 0) {
+        return true;
+      }
+      continue;
+    }
+    ++pos;
+  }
+  return false;
+}
+
+static string
+read_scheme_character_literal (const string& text, size_t& pos) {
+  // pos 指向 "#\\"
+  size_t start= pos;
+  pos+= 2;
+  if ((pos < text.size ()) && (scheme_source_delimiter (text[pos]))) {
+    ++pos;
+  }
+  else {
+    while ((pos < text.size ()) && (!scheme_source_delimiter (text[pos]))) {
+      ++pos;
+    }
+  }
+  return text.substr (start, pos - start);
+}
+
+static bool
+tokenize_scheme_source (const string& text, vector<SchemeSourceToken>& tokens) {
+  size_t pos= 0;
+
+  while (pos < text.size ()) {
+    char ch= text[pos];
+
+    if (std::isspace (static_cast<unsigned char> (ch))) {
+      ++pos;
+      continue;
+    }
+
+    if (ch == ';') {
+      while ((pos < text.size ()) && (text[pos] != '\n')) {
+        ++pos;
+      }
+      continue;
+    }
+
+    if (ch == '#') {
+      if ((pos + 1 < text.size ()) && (text[pos + 1] == '|')) {
+        if (!skip_scheme_block_comment (text, pos)) {
+          return false;
+        }
+        continue;
+      }
+
+      if ((pos + 1 < text.size ()) && (text[pos + 1] == ';')) {
+        pos+= 2;
+        tokens.push_back ({SchemeSourceTokenKind::DatumComment, ""});
+        continue;
+      }
+
+      if ((pos + 1 < text.size ()) && (text[pos + 1] == '!')) {
+        // #!fold-case / #!no-fold-case / shebang 行
+        while ((pos < text.size ()) && (text[pos] != '\n')) {
+          ++pos;
+        }
+        continue;
+      }
+
+      if ((pos + 2 < text.size ()) && (text[pos + 1] == '"')) {
+        // 原始字符串：# 后跟 N 个引号（SRFI-267 / (liii raw-string)），
+        // 以同样数量的引号结束；例如 #""..."" 或 #"""..."""。
+        size_t quote_count= 0;
+        while ((pos + 1 + quote_count < text.size ()) && (text[pos + 1 + quote_count] == '"')) {
+          ++quote_count;
+        }
+        if (quote_count >= 2) {
+          string delimiter (quote_count, '"');
+          size_t body_start= pos + 1 + quote_count;
+          size_t end       = text.find (delimiter, body_start);
+          if (end == string::npos) {
+            return false;
+          }
+          pos= end + quote_count;
+          continue;
+        }
+      }
+
+      if ((pos + 1 < text.size ()) && (text[pos + 1] == '\\')) {
+        tokens.push_back ({SchemeSourceTokenKind::Atom, read_scheme_character_literal (text, pos)});
+        continue;
+      }
+
+      if ((pos + 1 < text.size ()) && ((text[pos + 1] == '(') || (text[pos + 1] == '['))) {
+        tokens.push_back ({SchemeSourceTokenKind::Open, ""});
+        pos+= 2;
+        continue;
+      }
+
+      // #t / #f / #x1f / #u8 等 dispatch 常量走通用 atom 分支
+    }
+
+    if ((ch == '(') || (ch == '[')) {
+      tokens.push_back ({SchemeSourceTokenKind::Open, ""});
+      ++pos;
+      continue;
+    }
+
+    if ((ch == ')') || (ch == ']')) {
+      tokens.push_back ({SchemeSourceTokenKind::Close, ""});
+      ++pos;
+      continue;
+    }
+
+    if (ch == '"') {
+      size_t start= pos;
+      if (!skip_scheme_string_literal (text, pos)) {
+        return false;
+      }
+      tokens.push_back ({SchemeSourceTokenKind::Atom, text.substr (start, pos - start)});
+      continue;
+    }
+
+    if (ch == '|') {
+      size_t start= pos;
+      ++pos;
+      while (pos < text.size ()) {
+        if (text[pos] == '\\') {
+          pos+= 2;
+          continue;
+        }
+        if (text[pos] == '|') {
+          ++pos;
+          break;
+        }
+        ++pos;
+      }
+      tokens.push_back ({SchemeSourceTokenKind::Atom, text.substr (start, pos - start)});
+      continue;
+    }
+
+    if ((ch == '\'') || (ch == '`') || (ch == ',')) {
+      string prefix (1, ch);
+      ++pos;
+      if ((ch == ',') && (pos < text.size ()) && (text[pos] == '@')) {
+        ++pos;
+        prefix= ",@";
+      }
+      tokens.push_back ({SchemeSourceTokenKind::Quote, prefix});
+      continue;
+    }
+
+    size_t start= pos;
+    while ((pos < text.size ()) && (!scheme_source_delimiter (text[pos]))) {
+      ++pos;
+    }
+    if (pos == start) {
+      ++pos;
+      continue;
+    }
+    tokens.push_back ({SchemeSourceTokenKind::Atom, text.substr (start, pos - start)});
+  }
+
+  return true;
+}
+
+static bool
+parse_scheme_source_node (const vector<SchemeSourceToken>& tokens, size_t& pos, SchemeSourceNode& node, int depth) {
+  constexpr int kMaxDepth= 200;
+
+  if (depth > kMaxDepth) {
     return false;
   }
-  s7_int len= s7_list_length (sc, library_name_form);
-  if (len < 2) {
+  if (pos >= tokens.size ()) {
     return false;
   }
+
+  const SchemeSourceToken& token= tokens[pos];
+  if (token.kind == SchemeSourceTokenKind::Close) {
+    return false;
+  }
+  if (token.kind == SchemeSourceTokenKind::Atom) {
+    node.is_list= false;
+    node.atom   = token.text;
+    ++pos;
+    return true;
+  }
+  if (token.kind == SchemeSourceTokenKind::DatumComment) {
+    ++pos;
+    SchemeSourceNode skipped;
+    return parse_scheme_source_node (tokens, pos, skipped, depth + 1);
+  }
+  if (token.kind == SchemeSourceTokenKind::Quote) {
+    // 引用形式（'x / `x / ,x）包成一个列表，避免把被引用的
+    // (define-library ...) 数据误当成真正的库定义。
+    ++pos;
+    SchemeSourceNode quoted;
+    if (!parse_scheme_source_node (tokens, pos, quoted, depth + 1)) {
+      return false;
+    }
+    node.is_list= true;
+    node.items.push_back ({false, "quote", {}});
+    node.items.push_back (std::move (quoted));
+    return true;
+  }
+
+  node.is_list= true;
+  ++pos;
+  while ((pos < tokens.size ()) && (tokens[pos].kind != SchemeSourceTokenKind::Close)) {
+    if (tokens[pos].kind == SchemeSourceTokenKind::DatumComment) {
+      ++pos;
+      SchemeSourceNode skipped;
+      if (!parse_scheme_source_node (tokens, pos, skipped, depth + 1)) {
+        return false;
+      }
+      continue;
+    }
+    SchemeSourceNode child;
+    if (!parse_scheme_source_node (tokens, pos, child, depth + 1)) {
+      return false;
+    }
+    node.items.push_back (std::move (child));
+  }
+  if (pos >= tokens.size ()) {
+    return false;
+  }
+  ++pos;
+  return true;
+}
+
+static bool
+scheme_source_node_is_named_atom (const SchemeSourceNode& node, const char* name) {
+  return (!node.is_list) && (node.atom == name);
+}
+
+static bool
+scheme_source_node_as_library_part (const SchemeSourceNode& node, string& out) {
+  if (node.is_list || node.atom.empty ()) {
+    return false;
+  }
+  // 字符串常量、字符常量不是库名的一部分
+  if ((node.atom[0] == '"') || (node.atom[0] == '#')) {
+    return false;
+  }
+  out= node.atom;
+  return true;
+}
+
+static bool
+extract_library_name_from_node (const SchemeSourceNode& library_name, string& group, string& library) {
+  if ((!library_name.is_list) || (library_name.items.size () < 2)) {
+    return false;
+  }
+
   string first_part;
-  if (!library_name_part_to_string (s7_car (library_name_form), first_part)) {
+  if (!scheme_source_node_as_library_part (library_name.items[0], first_part)) {
     return false;
   }
   group= first_part;
 
   string remaining;
-  for (s7_pointer p= s7_cdr (library_name_form); s7_is_pair (p); p= s7_cdr (p)) {
+  for (size_t i= 1; i < library_name.items.size (); ++i) {
     string part;
-    if (!library_name_part_to_string (s7_car (p), part)) {
+    if (!scheme_source_node_as_library_part (library_name.items[i], part)) {
       return false;
     }
     if (!remaining.empty ()) {
@@ -2158,45 +2430,46 @@ extract_library_name_from_form (s7_scheme* sc, s7_pointer library_name_form, str
 }
 
 static bool
-export_spec_name_matches (s7_scheme* sc, s7_pointer export_spec, const string& function_name) {
-  if (s7_is_symbol (export_spec)) {
-    return function_name == s7_symbol_name (export_spec);
+export_spec_node_matches (const SchemeSourceNode& export_spec, const string& function_name) {
+  if (!export_spec.is_list) {
+    return export_spec.atom == function_name;
   }
 
-  if (s7_is_list (sc, export_spec) && (s7_list_length (sc, export_spec) == 3) &&
-      is_named_symbol (s7_car (export_spec), "rename")) {
-    string renamed_export;
-    if (library_name_part_to_string (s7_caddr (export_spec), renamed_export)) {
-      return function_name == renamed_export;
-    }
+  if ((export_spec.items.size () == 3) && scheme_source_node_is_named_atom (export_spec.items[0], "rename")) {
+    const SchemeSourceNode& renamed_export= export_spec.items[2];
+    return (!renamed_export.is_list) && (renamed_export.atom == function_name);
   }
 
   return false;
 }
 
 static bool
-define_library_form_exports_function (s7_scheme* sc, s7_pointer form, const string& function_name, string& group,
+define_library_node_exports_function (const SchemeSourceNode& form, const string& function_name, string& group,
                                       string& library) {
-  if ((!s7_is_list (sc, form)) || s7_is_null (sc, form) || (!is_named_symbol (s7_car (form), "define-library"))) {
+  if ((!form.is_list) || (form.items.size () < 3)) {
+    return false;
+  }
+  if (!scheme_source_node_is_named_atom (form.items[0], "define-library")) {
     return false;
   }
 
   string form_group;
   string form_library;
-  if (!extract_library_name_from_form (sc, s7_cadr (form), form_group, form_library)) {
+  if (!extract_library_name_from_node (form.items[1], form_group, form_library)) {
     return false;
   }
 
-  for (s7_pointer declarations= s7_cddr (form); s7_is_pair (declarations); declarations= s7_cdr (declarations)) {
-    s7_pointer declaration= s7_car (declarations);
-    if ((!s7_is_list (sc, declaration)) || s7_is_null (sc, declaration) ||
-        (!is_named_symbol (s7_car (declaration), "export"))) {
+  for (size_t i= 2; i < form.items.size (); ++i) {
+    const SchemeSourceNode& declaration= form.items[i];
+    if ((!declaration.is_list) || declaration.items.empty ()) {
+      continue;
+    }
+    if (!scheme_source_node_is_named_atom (declaration.items[0], "export")) {
       continue;
     }
 
-    for (s7_pointer export_specs= s7_cdr (declaration); s7_is_pair (export_specs);
-         export_specs           = s7_cdr (export_specs)) {
-      if (export_spec_name_matches (sc, s7_car (export_specs), function_name)) {
+    for (size_t j= 1; j < declaration.items.size (); ++j) {
+      if (export_spec_node_matches (declaration.items[j], function_name)) {
         group  = form_group;
         library= form_library;
         return true;
@@ -2208,22 +2481,46 @@ define_library_form_exports_function (s7_scheme* sc, s7_pointer form, const stri
 }
 
 static bool
-source_file_exports_function (s7_scheme* sc, const fs::path& source_file, const string& function_name, string& group,
+source_file_exports_function (const fs::path& source_file, const string& function_name, string& group,
                               string& library) {
-  string     source_text= read_text_file_exact (source_file);
-  s7_pointer port       = s7_open_input_string (sc, source_text.c_str ());
-  s7_pointer eof_object = s7_eof_object (sc);
+  string source_text= read_text_file_exact (source_file);
 
-  while (true) {
-    s7_pointer form= s7_read (sc, port);
-    if (form == eof_object) break;
-    if (define_library_form_exports_function (sc, form, function_name, group, library)) {
-      s7_close_input_port (sc, port);
+  // 快速跳过绝大多数与本次查找无关的源码文件
+  if (source_text.find ("define-library") == string::npos) {
+    return false;
+  }
+  if (source_text.find (function_name) == string::npos) {
+    return false;
+  }
+
+  vector<SchemeSourceToken> tokens;
+  if (!tokenize_scheme_source (source_text, tokens)) {
+    return false;
+  }
+
+  size_t pos= 0;
+  while (pos < tokens.size ()) {
+    if (tokens[pos].kind == SchemeSourceTokenKind::DatumComment) {
+      ++pos;
+      SchemeSourceNode skipped;
+      if (!parse_scheme_source_node (tokens, pos, skipped, 0)) {
+        return false;
+      }
+      continue;
+    }
+    if (tokens[pos].kind == SchemeSourceTokenKind::Close) {
+      return false;
+    }
+
+    SchemeSourceNode form;
+    if (!parse_scheme_source_node (tokens, pos, form, 0)) {
+      return false;
+    }
+    if (define_library_node_exports_function (form, function_name, group, library)) {
       return true;
     }
   }
 
-  s7_close_input_port (sc, port);
   return false;
 }
 
@@ -2328,7 +2625,7 @@ find_function_libraries_in_load_path (s7_scheme* sc, const string& function_name
       for (const auto& source_file : sorted_recursive_scheme_source_files (group_dir)) {
         string group;
         string library;
-        if (source_file_exports_function (sc, source_file, function_name, group, library)) {
+        if (source_file_exports_function (source_file, function_name, group, library)) {
           append_unique_exact_string (library_queries, group + "/" + library);
         }
       }
