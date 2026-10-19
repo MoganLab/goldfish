@@ -1,4 +1,4 @@
-(import (liii check) (liii goldfix-record))
+(import (liii check) (liii goldfix record))
 
 (check-set-mode! 'report-failed)
 
@@ -22,14 +22,11 @@
 
 (let* ((token (make-fix-token :type 'other :offset 0 :end 6 :line 1 :column 0 :text "define")
        ) ;token
-       (line (make-fix-line :number
-               1
-               :start-offset
-               0
-               :first-code-token
-               token
-               :tokens
-               (list token)
+       (line (make-fix-line
+               :number           1
+               :start-offset     0
+               :first-code-token token
+               :tokens           (list token)
              ) ;make-fix-line
        ) ;line
       ) ;
@@ -66,24 +63,18 @@
 
 (let* ((insert-edit (make-fix-edit :kind 'insert :offset 10 :text ")" :reason "eof" :open-offset 0)
        ) ;insert-edit
-       (delete-edit (make-fix-edit :kind
-                      'delete
-                      :start
-                      5
-                      :end
-                      6
-                      :reason
-                      "extra-close"
-                      :open-offset
-                      #f
+       (delete-edit (make-fix-edit
+                      :kind        'delete
+                      :start       5
+                      :end         6
+                      :reason      "extra-close"
+                      :open-offset #f
                     ) ;make-fix-edit
        ) ;delete-edit
-       (report (make-repair-report :ok?
-                 #t
-                 :edits
-                 (list insert-edit delete-edit)
-                 :diagnostics
-                 '()
+       (report (make-repair-report
+                 :ok?         #t
+                 :edits       (list insert-edit delete-edit)
+                 :diagnostics '()
                ) ;make-repair-report
        ) ;report
       ) ;

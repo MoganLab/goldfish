@@ -14,7 +14,7 @@
 ;; under the License.
 ;;
 
-(define-library (liii goldfix-cache)
+(define-library (liii goldfix cache)
   (export fix-cache-base-dir fix-cache-path fix-cache-hit? fix-cache-touch)
   (import (liii base)
     (liii sys)

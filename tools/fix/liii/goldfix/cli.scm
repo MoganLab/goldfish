@@ -14,7 +14,7 @@
 ;; under the License.
 ;;
 
-(define-library (liii goldfix-cli)
+(define-library (liii goldfix cli)
   (export display-help make-fix-arg-parser first-positional normalize-extension
     parse-extensions
   ) ;export

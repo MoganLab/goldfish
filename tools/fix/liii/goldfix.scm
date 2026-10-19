@@ -44,11 +44,11 @@
     (liii path)
     (liii string)
     (liii os)
-    (liii goldfix-repair)
-    (liii goldfix-record)
-    (liii goldfix-cache)
-    (liii goldfix-cli)
-    (liii goldfix-batch)
+    (liii goldfix repair)
+    (liii goldfix record)
+    (liii goldfix cache)
+    (liii goldfix cli)
+    (liii goldfix batch)
   ) ;import
 
   (begin
