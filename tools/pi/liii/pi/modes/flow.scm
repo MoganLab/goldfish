@@ -32,6 +32,8 @@
     (liii pi modes output)
     (liii pi code-review)
     (liii pi red-green prompt)
+    (liii pi blueprint prompt)
+    (liii pi blueprint runtime)
   ) ;import
   (export prepare-system-prompt persist-initial-user-msg!
     run-agent-loop-with-timeout emit-json-event run-session-flow
@@ -73,10 +75,17 @@
              (reviewed (if (pi-args-ref parsed 'auto-review) (pi-auto-review-system-prompt base) base)
              ) ;reviewed
             ) ;
-        (if (pi-args-ref parsed 'red-green)
-          (pi-tdd-turn-system-prompt reviewed)
-          reviewed
-        ) ;if
+        (let ((with-tdd (if (pi-args-ref parsed 'red-green)
+                          (pi-tdd-turn-system-prompt reviewed)
+                          reviewed
+                        ) ;if
+              ) ;with-tdd
+             ) ;
+          (if (pi-args-ref parsed 'plan-next)
+            (pi-blueprint-turn-system-prompt with-tdd pi-blueprint-current)
+            with-tdd
+          ) ;if
+        ) ;let
       ) ;let*
     ) ;define
 

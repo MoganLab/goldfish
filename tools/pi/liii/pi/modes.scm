@@ -25,11 +25,14 @@
     (liii pi modes review)
     (liii pi modes simplify)
     (liii pi modes red-green)
+    (liii pi modes blueprint)
+    (liii pi blueprint args)
   ) ;import
   (export display-stderr handle-print-result emit-json-event dispatch-pi
     prepare-system-prompt persist-initial-user-msg! run-agent-loop-with-timeout
     run-session-flow run-compact-flow run-code-review-flow run-simplify-flow
     run-red-green-flow pi-tdd-extend-tool-names pi-auto-review-system-prompt
+    run-blueprint-flow pi-blueprint-extend-tool-names
   ) ;export
   (begin
 
@@ -39,38 +42,44 @@
              (provider (cdr (or (assoc 'provider cfg) '(#f . "google"))))
              (api-key (cdr (or (assoc 'api-key cfg) '(#f . #f))))
             ) ;
-        (when (or (not api-key) (and (string? api-key) (string-null? api-key)))
-          (error 'credential-error
-            (string-append "No credentials found for provider \"" provider "\"")
-          ) ;error
-        ) ;when
-        (cond
-         ((pi-args-ref parsed 'compact)
-          (run-compact-flow parsed
-            cfg
-            initial-msg
-            (if (eq? mode 'json) emit-json-event #f)
-          ) ;run-compact-flow
-         ) ;
-         ((pi-args-ref parsed 'code-review) (run-code-review-flow parsed cfg mode))
-         ((pi-args-ref parsed 'simplify) (run-simplify-flow parsed cfg mode))
-         ((pi-args-ref parsed 'red-green)
-          (run-red-green-flow parsed cfg mode initial-msg)
-         ) ;
-         ((eq? mode 'print)
-          (run-session-flow parsed
-            cfg
-            initial-msg
-            #f
-            (lambda (res-msgs)
-              (handle-print-result (and (pair? res-msgs) (car (reverse res-msgs))))
-            ) ;lambda
-          ) ;run-session-flow
-         ) ;
-         ((eq? mode 'json)
-          (run-session-flow parsed cfg initial-msg emit-json-event (lambda _ 0))
-         ) ;
-         (else 0)
+        (cond ((pi-blueprint-local-flow? parsed)
+               (run-blueprint-flow parsed cfg mode initial-msg)
+              ) ;
+              (else
+                (when (or (not api-key) (and (string? api-key) (string-null? api-key)))
+                  (error 'credential-error
+                    (string-append "No credentials found for provider \"" provider "\"")
+                  ) ;error
+                ) ;when
+                (cond ((pi-blueprint-flag? parsed) (run-blueprint-flow parsed cfg mode initial-msg))
+                      ((pi-args-ref parsed 'compact)
+                       (run-compact-flow parsed
+                         cfg
+                         initial-msg
+                         (if (eq? mode 'json) emit-json-event #f)
+                       ) ;run-compact-flow
+                      ) ;
+                      ((pi-args-ref parsed 'code-review) (run-code-review-flow parsed cfg mode))
+                      ((pi-args-ref parsed 'simplify) (run-simplify-flow parsed cfg mode))
+                      ((pi-args-ref parsed 'red-green)
+                       (run-red-green-flow parsed cfg mode initial-msg)
+                      ) ;
+                      ((eq? mode 'print)
+                       (run-session-flow parsed
+                         cfg
+                         initial-msg
+                         #f
+                         (lambda (res-msgs)
+                           (handle-print-result (and (pair? res-msgs) (car (reverse res-msgs))))
+                         ) ;lambda
+                       ) ;run-session-flow
+                      ) ;
+                      ((eq? mode 'json)
+                       (run-session-flow parsed cfg initial-msg emit-json-event (lambda _ 0))
+                      ) ;
+                      (else 0)
+                ) ;cond
+              ) ;else
         ) ;cond
       ) ;let*
     ) ;define

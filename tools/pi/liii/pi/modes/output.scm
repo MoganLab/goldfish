@@ -21,7 +21,9 @@
     (liii list)
     (liii pi message)
   ) ;import
-  (export display-stderr handle-print-result)
+  (export display-stderr handle-print-result pi-last-message pi-message-field
+    pi-last-assistant-text
+  ) ;export
   (begin
 
     (define (display-stderr msg)
@@ -71,6 +73,59 @@
         ) ;lambda
         (%to-block-list blks)
       ) ;for-each
+    ) ;define
+
+    (define (pi-last-message msgs)
+      (and (pair? msgs) (car (reverse msgs)))
+    ) ;define
+
+    (define (%assoc-field alist key default)
+      (let ((pair
+              (or (assoc key alist)
+                (assoc (if (symbol? key) (symbol->string key) (string->symbol key)) alist)
+              ) ;or
+            ) ;pair
+           ) ;
+        (if pair (cdr pair) default)
+      ) ;let
+    ) ;define
+
+    (define (pi-message-field msg key default)
+      (let ((alist (cond ((pi-message? msg) (pi-message->alist msg))
+                         ((pair? msg) msg)
+                         (else #f)
+                   ) ;cond
+            ) ;alist
+           ) ;
+        (if alist (%assoc-field alist key default) default)
+      ) ;let
+    ) ;define
+
+    (define (%block-text blk)
+      (let ((b (if (pi-block? blk) (pi-block->alist blk) blk)))
+        (if (and (pair? b) (equal? (%assoc-field b 'type "") "text"))
+          (let ((text (%assoc-field b 'text "")))
+            (if (string? text) text "")
+          ) ;let
+          ""
+        ) ;if
+      ) ;let
+    ) ;define
+
+    (define (%content-text content)
+      (apply string-append (map %block-text (%to-block-list content)))
+    ) ;define
+
+    (define (pi-last-assistant-text msgs)
+      (let loop
+        ((rest (reverse msgs)))
+        (if (null? rest)
+          ""
+          (let ((text (%content-text (pi-message-field (car rest) 'content '()))))
+            (if (string-null? (string-trim-both text)) (loop (cdr rest)) text)
+          ) ;let
+        ) ;if
+      ) ;let
     ) ;define
 
     (define (handle-print-result last-msg)

@@ -21,6 +21,7 @@
     (liii sys)
     (liii pi)
     (liii pi args)
+    (liii pi blueprint args)
     (liii pi modes)
     (liii pi help)
   ) ;import
@@ -94,6 +95,14 @@
             "--red-green requires a task description (message text or @file)"
           ) ;error
         ) ;when
+        (when (and (pi-args-ref parsed 'blueprint)
+                (string-null? initial-msg)
+                (null? rest-msgs)
+              ) ;and
+          (error 'pi-arg-error
+            "--blueprint requires an objective (message text or @file)"
+          ) ;error
+        ) ;when
         (cond ((pi-args-ref parsed 'help) (display-pi-help) 0)
               ((pi-args-ref parsed 'list-models) (%handle-list-models parsed))
               ((and (string-null? initial-msg)
@@ -103,6 +112,7 @@
                  (not (pi-args-ref parsed 'code-review))
                  (not (pi-args-ref parsed 'simplify))
                  (not (pi-args-ref parsed 'red-green))
+                 (not (pi-blueprint-flag? parsed))
                ) ;and
                (display-pi-help)
                0

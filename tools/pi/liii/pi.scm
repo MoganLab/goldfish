@@ -30,6 +30,7 @@
     (liii pi code-review)
     (liii pi simplify)
     (liii pi red-green)
+    (liii pi blueprint)
     (liii pi tools)
     (liii pi tools types)
     (liii pi tools record)
@@ -91,7 +92,21 @@
     pi-tdd-status-schema pi-tdd-advance-schema pi-tdd-reset-schema
     pi-execute-tdd-status pi-execute-tdd-advance pi-execute-tdd-reset
     pi-tdd-status-definition pi-tdd-advance-definition pi-tdd-reset-definition
-    run-red-green-flow pi-tdd-extend-tool-names pi-resolve-turn-system-prompt
+    run-red-green-flow pi-tdd-extend-tool-names pi-blueprint-task
+    pi-blueprint-phase pi-blueprint-gate pi-blueprint-blueprint
+    pi-blueprint-new-id pi-task-id pi-task-done? pi-phase-id pi-phase-tasks
+    pi-phase-gates pi-gate-type pi-gate-description pi-gate-command
+    pi-gate-passed? pi-blueprint-objective pi-blueprint-status
+    pi-blueprint-phases pi-blueprint-active-phase-id pi-blueprint-active-task-id
+    pi-blueprint-all-tasks pi-blueprint-detect-cycles pi-blueprint-get-next-task
+    pi-blueprint-start-task pi-blueprint-complete-task pi-blueprint-skip-task
+    pi-blueprint-advance-phase pi-blueprint-create pi-blueprint-abandon
+    pi-parse-blueprint-plan pi-validate-blueprint-plan pi-render-blueprint-plan
+    pi-format-blueprint-progress pi-build-blueprint-context
+    pi-build-blueprint-generate-prompt pi-run-blueprint-gate pi-blueprint-load!
+    pi-blueprint-save-current! pi-execute-blueprint-update
+    pi-execute-blueprint-status pi-execute-blueprint-next run-blueprint-flow
+    pi-blueprint-extend-tool-names pi-resolve-turn-system-prompt
     pi-auto-review-system-prompt pi-read-json-file pi-load-settings
     pi-resolve-proxy-url pi-load-auth pi-resolve-provider-key pi-load-multikey
     pi-multikey-select-key pi-multikey-mark-cooldown! pi-multikey-pool-of

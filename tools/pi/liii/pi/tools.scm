@@ -30,6 +30,7 @@
     (liii pi grep)
     (liii pi web-search)
     (liii pi red-green tools)
+    (liii pi blueprint tools)
   ) ;import
   (export PI_DEFAULT_TOOL_NAMES PI_ALL_TOOL_NAMES parse-tools-selection
     exclude-tools-from-list get-tool-definition execute-tool-call pi-read-schema
@@ -214,6 +215,9 @@
             ((string=? name "tdd_status") (pi-tdd-status-definition))
             ((string=? name "tdd_advance") (pi-tdd-advance-definition))
             ((string=? name "tdd_reset") (pi-tdd-reset-definition))
+            ((string=? name "blueprint_update") (pi-blueprint-update-definition))
+            ((string=? name "blueprint_status") (pi-blueprint-status-definition))
+            ((string=? name "blueprint_next") (pi-blueprint-next-definition))
             (else #f)
       ) ;cond
     ) ;define
