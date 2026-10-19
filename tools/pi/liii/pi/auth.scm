@@ -129,67 +129,63 @@
       ) ;if
     ) ;define
 
-    (define (%resolve-deepseek-key opt-env)
-      (let ((env-k (lookup-env-var "DEEPSEEK_API_KEY" opt-env)))
-        (if (and (string? env-k) (not (string-null? env-k)))
-          env-k
-          (let* ((home (or (lookup-env-var "HOME" opt-env) ""))
-                 (claude-k (%find-claude-deepseek-token home))
-                ) ;
-            (if claude-k
-              claude-k
-              (let ((ds-k (%find-dot-deepseek-key home)))
-                (if ds-k
-                  ds-k
-                  (let ((ant-tok (lookup-env-var "ANTHROPIC_AUTH_TOKEN" opt-env)))
-                    (and (string? ant-tok) (not (string-null? ant-tok)) ant-tok)
-                  ) ;let
-                ) ;if
-              ) ;let
-            ) ;if
-          ) ;let*
-        ) ;if
+    (define (%env-var-non-empty name opt-env)
+      (let ((v (lookup-env-var name opt-env)))
+        (and (string? v) (not (string-null? (string-trim-both v))) v)
       ) ;let
+    ) ;define
+
+    (define (%resolve-deepseek-fallback opt-env)
+      (let* ((home (or (lookup-env-var "HOME" opt-env) ""))
+             (claude-k (%find-claude-deepseek-token home))
+            ) ;
+        (if claude-k
+          claude-k
+          (let ((ds-k (%find-dot-deepseek-key home)))
+            (if ds-k ds-k (%env-var-non-empty "ANTHROPIC_AUTH_TOKEN" opt-env))
+          ) ;let
+        ) ;if
+      ) ;let*
+    ) ;define
+
+    (define (%resolve-provider-env-key p-str opt-env)
+      (cond ((string=? p-str "google") (%env-var-non-empty "GEMINI_API_KEY" opt-env))
+            ((string=? p-str "kimi-coding") (%env-var-non-empty "KIMI_API_KEY" opt-env))
+            ((string=? p-str "anthropic")
+             (or (%env-var-non-empty "ANTHROPIC_API_KEY" opt-env)
+               (%env-var-non-empty "ANTHROPIC_AUTH_TOKEN" opt-env)
+             ) ;or
+            ) ;
+            ((string=? p-str "glm")
+             (or (%env-var-non-empty "ANTHROPIC_AUTH_TOKEN" opt-env)
+               (%env-var-non-empty "GLM_API_KEY" opt-env)
+               (%env-var-non-empty "ANTHROPIC_API_KEY" opt-env)
+             ) ;or
+            ) ;
+            ((string=? p-str "deepseek") (%env-var-non-empty "DEEPSEEK_API_KEY" opt-env))
+            (else #f)
+      ) ;cond
     ) ;define
 
     (define (pi-resolve-provider-key provider auth-alist . opt-env)
       (let* ((p-str (if (symbol? provider) (symbol->string provider) provider))
-             (pair (or (assoc p-str auth-alist) (assoc (string->symbol p-str) auth-alist)))
+             (env-k (%resolve-provider-env-key p-str opt-env))
             ) ;
-        (cond
-         ((and pair (string? (cdr pair)) (not (string-null? (cdr pair)))) (cdr pair))
-         ((string=? p-str "google")
-          (let ((v (lookup-env-var "GEMINI_API_KEY" opt-env)))
-            (and (string? v) (not (string-null? v)) v)
+        (if env-k
+          env-k
+          (let ((pair (or (assoc p-str auth-alist) (assoc (string->symbol p-str) auth-alist))))
+            (if
+              (and pair
+                (string? (cdr pair))
+                (not (string-null? (string-trim-both (cdr pair))))
+              ) ;and
+              (cdr pair)
+              (cond ((string=? p-str "deepseek") (%resolve-deepseek-fallback opt-env))
+                    (else #f)
+              ) ;cond
+            ) ;if
           ) ;let
-         ) ;
-         ((string=? p-str "anthropic")
-          (let ((v (or (lookup-env-var "ANTHROPIC_API_KEY" opt-env)
-                     (lookup-env-var "ANTHROPIC_AUTH_TOKEN" opt-env)
-                   ) ;or
-                ) ;v
-               ) ;
-            (and (string? v) (not (string-null? v)) v)
-          ) ;let
-         ) ;
-         ((string=? p-str "kimi-coding")
-          (let ((v (lookup-env-var "KIMI_API_KEY" opt-env)))
-            (and (string? v) (not (string-null? v)) v)
-          ) ;let
-         ) ;
-         ((string=? p-str "glm")
-          (let ((v (or (lookup-env-var "ANTHROPIC_AUTH_TOKEN" opt-env)
-                     (lookup-env-var "GLM_API_KEY" opt-env)
-                     (lookup-env-var "ANTHROPIC_API_KEY" opt-env)
-                   ) ;or
-                ) ;v
-               ) ;
-            (and (string? v) (not (string-null? v)) v)
-          ) ;let
-         ) ;
-         ((string=? p-str "deepseek") (%resolve-deepseek-key opt-env))
-         (else #f)
-        ) ;cond
+        ) ;if
       ) ;let*
     ) ;define
 
