@@ -1,14 +1,15 @@
 # Agents：`bin/gf pi` 任务规格与后续任务书
 
-> 状态：§5 所列九个阶段已全部完成（2026-10-18），print 模式与 JSON 模式可用，
-> 经真实冒烟验证的命令行示例与各功能的预期用法见 `README.md`。
+> 状态：上一阶段（纯 Scheme 实现 pi agent 脚本模式，覆盖任务 001~053）已于 2026-10-20
+> 在 commit `[1069]`（PR #1141）与 `[1074]` 中全量结项收官并合入主干。
+> **当前阶段目标：研发 `bin/gf pi` 交互式 TUI，第一阶段先做通用的 `(liii tui)` 库**。
 > 本文档由 Claude 维护（与 `CLAUDE.md`、`README.md` 同为计划文档），
-> 作为拉起 pi 的输入与后续任务书。pi 只负责代码，不改本文档。
-> 分工：本文件写任务书与回归依据；`README.md` 写可运行示例与 TODO 用法。
+> 作为 Claude Code 定时流水线拉起 pi 的输入与后续任务书。pi 只负责代码，不改本文档。
+> 分工：本文件写任务书与回归依据；`README.md` 写可运行示例与实测说明。
 
 ## 1. 目标与当前状态
 
-`bin/gf pi` 用纯 Scheme 实现了 pi coding agent 的脚本模式，替代 `pi -p`：
+`bin/gf pi` 已完整实现 pi coding agent 的脚本模式（已在 `[1069]` 与 `[1074]` 结项）：
 
 ```bash
 bin/gf pi --print "..."          # print 模式：最终 assistant 文本写 stdout
@@ -16,12 +17,10 @@ bin/gf pi --mode json "..."      # JSON 模式：JSONL 事件流写 stdout
 ```
 
 已实现：CLI 参数解析、七个内置工具（read/bash/edit/write/grep/find/ls）、
-`~/.pi/agent/` 只读配置复用、Gemini provider（含流式 SSE）、Agent 循环、
-print/JSON 双模式、会话持久化与 `--continue`、Anthropic provider。
+`~/.pi/agent/` 只读配置复用、全套 Provider（google / kimi-coding / deepseek / minimax / zai-coding-cn / anthropic）、
+流式 SSE、Agent 循环、会话持久化与 `--continue`、以及 blueprint / compass / simplify / red-green / compact 等全部扩展模式。
 
-**Provider 支持范围（用户裁定）**：google（Gemini）与 kimi-coding（Kimi）两个。
-Anthropic 已实现但本机无访问权限，不在维护范围；其 OAuth 刷新与交互式 TUI、
-项目级 `.pi/settings.json` 读取均为不做项。
+**平台范围裁定（用户裁定 2026-10-20）**：**本次任务开发机器是 Windows，目前不需要考虑 Linux**。当前全力在 Windows 开发机上推进 `(liii tui)` 库及 `demo/tui/snake.scm`；**等 061 完成之后，再在 Linux 上做系统适配**。
 
 ## 2. 仍生效的关键规格（回归依据）
 
@@ -68,31 +67,32 @@ Anthropic 已实现但本机无访问权限，不在维护范围；其 OAuth 刷
   的 300 行硬约束一致）——子库再拆子模块（如 `(liii pi gemini)` 超限可拆出
   `(liii pi gemini request)`、`(liii pi gemini sse)`），不允许超长文件存在。
 
-## 3. 后续任务书（细粒度拆分；编号从 001 起全局递增，状态由 Claude 维护，便于观测进展）
+## 3. 后续任务书（细粒度拆分；编号从 054 起全局递增，状态由 Claude 维护，供定时流水线调度）
 
 拆分原则：每个任务一次 pi 拉起、一个可独立验证的验收点、若干小提交；
-全部遵守 §2 规范（TDD、小提交、fmt/check 门禁、命令 timeout）。
+全部遵守 §2 规范（TDD、小提交、fmt/check 门禁、命令 timeout、无真实 TTY 非交互测试安全）。
 每个任务执行时，pi 从模板 `tools/pi/devel/ddd.md` 复制建立 `tools/pi/devel/<编号>.md`
 任务文档（任务描述、实现说明、提交清单），随任务 commit 入库；Claude 验收后在该
 文档补充执行与验收记录。
 新任务追加时编号继续递增；完成一项把状态改为「已完成」。
-回退属正常现象：验收失败或后续发现回归时把状态改回「待执行」并在表中注明原因，
-重做过程在 commit history 中如实保留，不做历史改写。
-**滚动窗口（由 Claude Code 执行）**：表中累计 5 个「已完成」任务时，Claude 移除
-这 5 行（已完成任务的完整记录保留在 tools/pi/devel/<编号>.md 与 commit history
-中），并补充新任务行，使表中始终以待执行/进行中任务为主。
+
+### 3.1 第一阶段：`(liii tui)` 通用库研发任务表
+
+> 架构约定：`(liii tui)` 是通用的终端 UI 基础库，功能本身与 pi 业务解耦；**`(liii tui)` 内部不包含 markdown 渲染**。
 
 | 编号 | 任务 | 内容与验收点 | 状态 |
 |---|---|---|---|
-| 050 | deepseek tool_use 参数解析 value-error 修复 | 差距清单 #11：deepseek 首轮响应的 tool_use 参数形状触发 `value-error (("input") ...)`（037 两次同点复现，会话仅 2 行即崩）；需在 anthropic 协议解析层兼容该形状（如 input 为 JSON 字符串时先解析再消费）并加防回归测试；修复前 037 类任务避开 deepseek 首轮大上下文场景 | 已完成（050.scm 30/30；commit `109c4c0d`/`bf88888e` 已推送；gemini 两阶段；差距#11 消除，deepseek 恢复主力） |
-| 045 | `simplify` 内置命令 | 参考 ~/git/pi-extensions/packages/pi-simplify（审查最近改动代码的清晰度/一致性/可维护性并给出改进）：形态文档阶段裁定；验收点含真实简化建议输出；TDD | 已完成（045.scm 138/138；commit `920ed7ac`/`12b36aec` 已推送；建档 minimax+开发验收 deepseek） |
-| 046 | `red-green` TDD 强制 | 参考 ~/git/pi-extensions/packages/pi-red-green（强制 RED-GREEN-REFACTOR 循环：先写失败测试再最小实现再重构）：形态文档阶段裁定（候选：--red-green 开关在 agent 循环中强制 TDD 顺序）；TDD | 已完成（046.scm 138/138；commit `15fcf582`/`54742c1e` 已推送；建档 minimax+开发验收 deepseek） |
-| 047 | `blueprint` 计划命令 | 参考 ~/git/pi-extensions/packages/pi-blueprint（高级目标→分阶段多会话构建计划，依赖跟踪+验证门）：形态文档阶段裁定；与现有三阶段流程互补；TDD | 已完成（047.scm 131/131；commit `ce073a44`/`4b8318cc` 已推送；建档 minimax+开发验收 deepseek） |
-| 048 | `compass` 代码库导航 | 参考 ~/git/pi-extensions/packages/pi-compass（生成结构化 codemaps 与 code tours，省 token 快速定向）：形态文档阶段裁定；TDD | 已完成（048.scm 183/183；commit `d9281290`/`fed06a94` 已推送；建档 minimax+开发验收 deepseek） |
-| 051 | `pi-config-test` 环境卫生化 | 全量回归 `bin/gf test tools/pi/tests/liii/` 恒有 1 项失败：`tests/liii/pi-config-test.scm` 读取本机 `~/.pi/agent/models-store.json`（deepseek `base-url` 实为 `https://api.deepseek.com/anthropic`），与用例期望 `https://api.deepseek.com` 不符——环境依赖导致每次验收都要维护「已知失败白名单」；需改用 `PI_CODING_AGENT_DIR` 指向 `tools/pi/tests/fixtures/` 下的自建 fixture，使全量回归真正全绿、验收脚本不再需要失败白名单；TDD 覆盖 | 开发完成（gemini 续作 minimax 半成品：全量 271/271 首次真绿，生产代码零改动，复核通过）；验收阶段进行中 |
-| 052 | 超时基准改用单调时钟 | 039 迁移后，流式空闲超时（`(- now last-act)`）与会话超时仍以墙钟 `pi-current-time-seconds` 为基准；NTP 回拨使差值为负时空闲超时永不触发；方案：在 `(liii date-time current-time)` 增加 `current-monotonic-millis`/`current-monotonic-seconds`（底层 `time-utc->time-monotonic` 已验证可给出单调 epoch 基准），`pi/time.scm` 暴露 `pi-current-monotonic-seconds`，agent 与三路 stream 的超时基准改用单调钟，墙钟仅用于时间戳展示；验收点：回拨场景下超时仍能触发；TDD 覆盖 | 已完成（052.scm 58/58；commit `2018f5a0`/`96bf2a1d` 已推送；开发验收均 gemini） |
-| 053 | 重试增强：Retry-After 消费 + 重试 stderr 可见性 | 用户观察（2026-10-20）：minimax 当日多次 529（服务过载）。两个改进点：1) Retry-After 头消费——429/503/529 响应通常带该头，当前 pi-calc-retry-delay 只做指数退避未读取服务端指示（服务器说等 1s 我们可能等 30s，或过早重试加重过载）；2) 普通重试（非 multikey 轮换）无 stderr 日志——529/429 发生频率完全不可观测（取证困难）；实现：三 provider 的 request/stream 读取响应头 Retry-After（秒数或 HTTP 日期）并在 pi-calc-retry-delay 优先采用（钳制在合理上下限），重试时 stderr 打印脱敏摘要（状态码+第 N 次重试+等待 ms）；TDD 覆盖头解析/钳制/日志脱敏 | 建档完成（gemini 自举 `4dd12194`，核实 http.scm 已暴露响应头无需改主库）；开发阶段进行中 |
-> **收官裁定（用户裁定 2026-10-20）**：051 与 052 完成后任务表清空，流水线停止（Claude 删除定时任务，进入待命）；后续任务待用户重新发起。
+| 054 | `(liii tui component)` 核心协议与基础文本组件 | 定义 Component 协议（`component-render`、`component-handle-input`、`component-invalidate!` 等标准接口）；实现 `make-text` 组件（支持按 `width` 自动折行换行），以及 `make-truncated-text` 组件（单行超出 `width` 截断带 `...`）、`make-spacer` 占位组件；提供单元测试覆盖各种折行与截断边界 | 待执行 |
+| 055 | `(liii tui keys)` 键盘输入与转义序列解析 | 纯函数解析终端输入字符串/字节流，映射为标准按键符号（`'up`、`'down`、`'left`、`'right`、`'enter`、`'backspace`、`'tab`、`'ctrl-c`、`'ctrl-d`、字符文本等）；单函数单测试，全量覆盖 ANSI/xterm 转义序列 | 待执行 |
+| 056 | `(liii tui terminal)` 终端抽象与 `virtual-terminal` | 定义终端通用接口规范（写入、光标控制、尺寸查询）；实现脱机无头测试用的 `virtual-terminal`（内存模拟屏幕行缓冲区和光标位置，为后续所有组件与差分渲染提供确定性测试基础）；单元测试验证行缓冲记录与尺寸响应 | 待执行 |
+| 057 | `(liii tui box)` 与布局容器组件 | 实现 `make-box` 边框组件（支持单线/双线/圆角 ASCII/ANSI 边框与内边距）、`make-vstack` 垂直拼接组件、`make-hstack` 水平排列组件；测试覆盖嵌套布局计算与宽度自适应 | 待执行 |
+| 058 | `(liii tui loader)` 转轮动画与状态组件 | 实现 Spinner 动态加载转轮组件（多帧状态推进、前缀/后缀文本提示、显示与隐藏切换）；单元测试断言各帧文本渲染与状态转移 | 待执行 |
+| 059 | `(liii tui editor)` 单行与多行交互编辑器组件 | 实现带光标位置指示、字符插入、退格删除、方向键光标移动、回车换行与历史记录的输入编辑器组件，实现 `component-handle-input`；通过输入转义序列进行全流程非交互测试 | 待执行 |
+| 060 | `(liii tui main-screen)` 差分渲染与屏幕刷新 | 实现基于 `terminal` 的主屏幕输出驱动，比较前后帧行差异（差分渲染），只重绘变化行或追加新行，避免终端闪烁；在 `virtual-terminal` 上验证差分输出与完整重绘逻辑 | 待执行 |
+| 061 | `demo/tui/` 终端贪吃蛇游戏验收 | 使用 `(liii tui)` 在 `demo/tui/snake.scm` 实现终端贪吃蛇交互游戏，支持键盘方向键控制、食物生成与贪吃蛇增长、实时计分板、边界/自碰碰撞判定，作为 `(liii tui)` 第一阶段通用库的生动实机交互验收成果 | 待执行 |
+
+### 3.2 历史里程碑收官记录（已完成）
+- **任务 001~053 全部结项**：脚本模式及所有核心能力已在 commit `[1069]` 与 `[1074]` 落地并全部并入主干。历史任务文档与验收脚本完整保留在 `tools/pi/devel/001.md~053.md` 中。
 
 共同约束：
 - 每个任务常态三个 commit：`[编号][PLAN]`（建档）+ `[编号][REVIEW]`（代码）
@@ -106,10 +106,11 @@ Anthropic 已实现但本机无访问权限，不在维护范围；其 OAuth 刷
 
 ## 4. Non-goals（不做项，用户裁定）
 
-交互式 TUI / RPC 模式；extensions/MCP/codemode/packages/themes/prompt templates/
-skills；图片输入（暂缓）；OAuth 凭据刷新（auth.json 的 oauth 类型条目不消费）；
-会话写入 `~/.pi/agent/` 管理；跨平台（仅当前 Linux 开发机）；项目级
-`.pi/settings.json`；Anthropic OAuth 刷新。
+RPC 模式；extensions/MCP/codemode/packages/themes/prompt templates/skills；
+图片输入（暂缓）；OAuth 凭据刷新（auth.json 的 oauth 类型条目不消费）；
+会话写入 `~/.pi/agent/` 管理；项目级 `.pi/settings.json`；Anthropic OAuth 刷新；
+**`(liii tui)` 内部不做 markdown 渲染**（定位为轻量纯通用 TUI 基础库）；
+**当前阶段跨平台（聚焦 Windows 开发机，目前不考虑 Linux；等 061 完成后再做 Linux 适配）**。
 
 ## 5. 阶段完成记录（原 §11 阶段表，全部完成）
 
@@ -161,7 +162,7 @@ tools/pi/CLAUDE.md                # Claude Code 与 pi 的协作规范（Claude 
 | 6 | 只消费 api_key 凭据，`$VAR` 支持而 `` !command `` 不支持 | 不执行任意命令 |
 | 8 | 不注入 `PI_*` 会话环境变量到 bash 工具 | 减少实现面 |
 | 10 | 代理支持 `socks5h://` | libcurl 原生能力，实际网络硬需求 |
-| 11 | 仅当前 Linux 开发机 | 用户裁定 |
+| 11 | 当前聚焦 Windows 开发机，暂不考虑 Linux | 061 贪吃蛇完成后再做 Linux 适配（用户裁定） |
 | 16 | simplify 默认只读（原生 pi 直接改写文件） | 防误改：先看建议再 --apply |
 | 17 | simplify print 模式直接输出报告（原生 TUI 交互改写） | 脚本模式适配（045 裁定） |
 | 18 | simplify 无独立模型通道（复用主模型） | 减少实现面（045 裁定） |
