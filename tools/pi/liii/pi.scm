@@ -34,6 +34,7 @@
     (liii pi kimi)
     (liii pi deepseek)
     (liii pi minimax)
+    (liii pi zai)
     (liii pi prompt)
     (liii pi message)
     (liii pi config types)
@@ -147,7 +148,12 @@
     minimax-map-usage minimax-build-tool-declarations minimax-build-messages
     minimax-build-request-body minimax-parse-response
     minimax-is-retriable-error? minimax-build-tool-declarations-from-names
-    minimax-request minimax-request-stream pi-resolve-prompt-input
+    minimax-request minimax-request-stream
+    zai-map-stop-reason zai-map-usage zai-build-tool-declarations
+    zai-build-messages zai-build-request-body zai-parse-response
+    zai-is-retriable-error? zai-build-tool-declarations-from-names
+    zai-request zai-request-stream zai-build-endpoint zai-build-headers
+    zai-build-proxy-alist pi-resolve-prompt-input
     pi-load-project-context pi-build-system-prompt PI_BUILTIN_TOOL_SNIPPETS
     PI_BUILTIN_TOOL_GUIDELINES pi-iso-8601-utc-now pi-current-time-millis
     pi-current-time-seconds pi-current-monotonic-millis

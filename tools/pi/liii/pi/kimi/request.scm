@@ -40,7 +40,9 @@
              ) ;b
             ) ;
         (cond ((string-ends? b "/chat/completions") b)
-              ((string-ends? b "/v1") (string-append b "/chat/completions"))
+              ((or (string-ends? b "/v1") (string-ends? b "/v4") (string-contains? b "/paas/"))
+               (string-append b "/chat/completions")
+              ) ;
               (else (string-append b "/v1/chat/completions"))
         ) ;cond
       ) ;let*

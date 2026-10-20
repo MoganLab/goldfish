@@ -163,6 +163,13 @@
                (%env-var-non-empty "MINIMAX_API_KEY" opt-env)
              ) ;or
             ) ;
+            ((or (string=? p-str "zai-coding-cn") (string=? p-str "zai"))
+             (or (%env-var-non-empty "ZAI_CODING_CN_API_KEY" opt-env)
+               (%env-var-non-empty "ZAI_API_KEY" opt-env)
+               (%env-var-non-empty "GLM_API_KEY" opt-env)
+               (%env-var-non-empty "ZHIPU_API_KEY" opt-env)
+             ) ;or
+            ) ;
             (else #f)
       ) ;cond
     ) ;define
@@ -170,6 +177,8 @@
     (define (%provider-alias p-str)
       (cond ((string=? p-str "minimax") "minimax-cn")
             ((string=? p-str "minimax-cn") "minimax")
+            ((string=? p-str "zai-coding-cn") "zai")
+            ((string=? p-str "zai") "zai-coding-cn")
             (else #f)
       ) ;cond
     ) ;define
