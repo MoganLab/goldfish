@@ -27,7 +27,7 @@
     vt-cursor-y vt-cursor-y-set! vt-visible? vt-visible?-set! vt-lines
     vt-lines-set! vt-raw vt-raw-set! vt-keys vt-keys-set! make-char-row
     make-screen-lines check-dimension scroll-up-one-line! advance-cursor-line!
-    put-char! copy-row-chars!
+    put-char! copy-row-chars! %skip-ansi-csi %vt-handle-char!
   ) ;export
   (import (liii base) (liii error))
   (begin
@@ -124,6 +124,48 @@
           (vector-set! new-row j (vector-ref old-row j))
           (loop (+ j 1))
         ) ;when
+      ) ;let
+    ) ;define
+
+    (define (%skip-ansi-csi text i len)
+      (if
+        (and (< (+ i 1) len)
+          (= (char->integer (string-ref text i)) 27)
+          (char=? (string-ref text (+ i 1)) #\[)
+        ) ;and
+        (let loop
+          ((j (+ i 2)))
+          (if (>= j len)
+            len
+            (let ((c (string-ref text j)))
+              (cond ((and (char>=? c #\space) (char<=? c #\?)) (loop (+ j 1)))
+                    ((and (char>=? c #\@) (char<=? c #\~)) (+ j 1))
+                    (else j)
+              ) ;cond
+            ) ;let
+          ) ;if
+        ) ;let
+        #f
+      ) ;if
+    ) ;define
+
+    (define (%vt-handle-char! state text i len)
+      (let ((ch (string-ref text i)))
+        (cond
+         ((char=? ch #\return)
+          (vt-cursor-x-set! state 0)
+          (if
+            (and (< (+ i 1) len) (char=? (string-ref text (+ i 1)) #\newline))
+            (begin
+              (advance-cursor-line! state)
+              (+ i 2)
+            ) ;begin
+            (+ i 1)
+          ) ;if
+         ) ;
+         ((char=? ch #\newline) (advance-cursor-line! state) (+ i 1))
+         (else (put-char! state ch) (+ i 1))
+        ) ;cond
       ) ;let
     ) ;define
 

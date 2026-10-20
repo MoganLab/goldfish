@@ -34,13 +34,14 @@
     (liii tui loader)
     (liii tui editor)
     (demo tui snake logic)
+    (demo tui snake style)
   ) ;import
   (begin
 
     (define (%cell-char x y head body food)
-      (cond ((equal? (list x y) head) "@")
-            ((member (list x y) body) "o")
-            ((equal? (list x y) food) "*")
+      (cond ((equal? (list x y) head) (style-head "@"))
+            ((member (list x y) body) (style-body "o"))
+            ((equal? (list x y) food) (style-food "*"))
             (else " ")
       ) ;cond
     ) ;define
@@ -69,13 +70,24 @@
     ) ;define
 
     (define (make-stats-box game spinner)
-      (let* ((score-str (string-append "Score: " (number->string (snake-score game))))
+      (let* ((score-str
+               (string-append "Score: " (style-accent (number->string (snake-score game))))
+             ) ;score-str
              (len-str
-               (string-append "Length: " (number->string (length (snake-body game))))
+               (string-append "Length: "
+                 (style-accent (number->string (length (snake-body game))))
+               ) ;string-append
              ) ;len-str
-             (high-str (string-append "Best:  " (number->string (snake-high-score game))))
-             (st-str (string-append "Status: " (symbol->string (snake-status game))))
-             (spin-str (string-append (spinner-current-frame spinner) " Heartbeat"))
+             (high-str
+               (string-append "Best:  "
+                 (style-accent (number->string (snake-high-score game)))
+               ) ;string-append
+             ) ;high-str
+             (st-str
+               (string-append "Status: " (style-accent (symbol->string (snake-status game))))
+             ) ;st-str
+             (spin-str (string-append (style-heartbeat (spinner-current-frame spinner)) " Heartbeat")
+             ) ;spin-str
              (content (make-vstack (list (make-text score-str)
                                      (make-text len-str)
                                      (make-text high-str)
@@ -87,7 +99,7 @@
              ) ;content
             ) ;
         (make-box content
-          :title         " STATS "
+          :title         (style-title " STATS ")
           :style         'single
           :padding-left  1
           :padding-right 1
@@ -96,17 +108,19 @@
     ) ;define
 
     (define (make-help-box)
-      (let ((content (make-vstack (list (make-text "Arrows / WASD : Move")
-                                    (make-text "Space / P      : Pause")
-                                    (make-text "Q / Esc        : Quit")
-                                    (make-text "Wall wrap     : ON")
-                                  ) ;list
-                       :spacing 0
-                     ) ;make-vstack
+      (let ((content
+              (make-vstack
+                (list (make-text (string-append (style-dim "Arrows / WASD : ") "Move"))
+                  (make-text (string-append (style-dim "Space / P      : ") "Pause"))
+                  (make-text (string-append (style-dim "Q / Esc        : ") "Quit"))
+                  (make-text (string-append (style-dim "Wall wrap     : ") (style-accent "ON")))
+                ) ;list
+                :spacing 0
+              ) ;make-vstack
             ) ;content
            ) ;
         (make-box content
-          :title         " HELP "
+          :title         (style-dim " HELP ")
           :style         'single
           :padding-left  1
           :padding-right 1
@@ -117,7 +131,11 @@
     (define (make-game-view game spinner)
       (let* ((grid-lines (render-grid-lines game))
              (board-comp (make-component (lambda (comp width) grid-lines)))
-             (board-box (make-box board-comp :title " SNAKE (liii tui) " :style 'double :padding 0)
+             (board-box (make-box board-comp
+                          :title   (style-title " SNAKE (liii tui) ")
+                          :style   'double
+                          :padding 0
+                        ) ;make-box
              ) ;board-box
              (stats-box (make-stats-box game spinner))
              (help-box (make-help-box))
@@ -132,16 +150,20 @@
     ) ;define
 
     (define (make-game-over-view game editor-comp)
-      (let* ((over-banner (make-text "=== GAME OVER ==="))
+      (let* ((over-banner (make-text (style-game-over "=== GAME OVER ===")))
              (score-text
-               (make-text (string-append "Final Score: " (number->string (snake-score game))))
+               (make-text
+                 (string-append "Final Score: "
+                   (style-accent (number->string (snake-score game)))
+                 ) ;string-append
+               ) ;make-text
              ) ;score-text
-             (prompt-text (make-text "Register player name:"))
+             (prompt-text (make-text (style-dim "Register player name:")))
              (content (make-vstack (list over-banner score-text prompt-text editor-comp) :spacing 1)
              ) ;content
             ) ;
         (make-box content
-          :title          " RECORD "
+          :title          (style-game-over " RECORD ")
           :style          'double
           :padding-left   2
           :padding-right  2

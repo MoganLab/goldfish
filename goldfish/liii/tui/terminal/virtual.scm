@@ -40,21 +40,9 @@
         (let loop
           ((i 0))
           (when (< i len)
-            (let ((ch (string-ref text i)))
-              (cond
-               ((char=? ch #\return)
-                (vt-cursor-x-set! state 0)
-                (when
-                  (and (< (+ i 1) len) (char=? (string-ref text (+ i 1)) #\newline))
-                  (set! i (+ i 1))
-                  (advance-cursor-line! state)
-                ) ;when
-               ) ;
-               ((char=? ch #\newline) (advance-cursor-line! state))
-               (else (put-char! state ch))
-              ) ;cond
+            (let ((next-i (or (%skip-ansi-csi text i len) (%vt-handle-char! state text i len))))
+              (loop next-i)
             ) ;let
-            (loop (+ i 1))
           ) ;when
         ) ;let
       ) ;let*

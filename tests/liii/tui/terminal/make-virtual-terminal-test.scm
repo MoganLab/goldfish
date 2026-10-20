@@ -49,6 +49,19 @@
     (check (> (car sz) 0) => #t)
     (check (> (cadr sz) 0) => #t)))
 
+;; ANSI 转义序列跳过与屏幕字符隔离测试
+(let ((vt (make-virtual-terminal :width 20 :height 3)))
+  (terminal-write vt "\x1b;[1;32m@\x1b;[0m")
+  ;; 屏幕第一行应仅包含 '@'，后续 19 个空格
+  (let ((row0 (car (virtual-terminal-screen vt))))
+    (check (string-ref row0 0) => #\@)
+    (check (string-ref row0 1) => #\space)
+    (check (string=? row0 (string-append "@" (make-string 19 #\space))) => #t))
+  ;; 光标应只推进了 1 格，而不是被转义字符推进多格
+  (check (terminal-cursor vt) => '(1 0))
+  ;; 原始日志仍完整记录传入的 ANSI 序列
+  (check (car (virtual-terminal-raw vt)) => "\x1b;[1;32m@\x1b;[0m"))
+
 ;; 非法参数校验
 (check-catch 'type-error (make-virtual-terminal "40" 10))
 (check-catch 'type-error (make-virtual-terminal 40 "10"))

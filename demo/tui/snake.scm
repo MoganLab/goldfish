@@ -31,6 +31,7 @@
   (liii tui main-screen)
   (demo tui snake logic)
   (demo tui snake view)
+  (demo tui snake style)
 ) ;import
 
 (define (%run-game-over-loop screen term game)
@@ -60,6 +61,7 @@
 ) ;define
 
 (define (main)
+  (style-enable!)
   (let* ((term (make-standard-terminal))
          (screen (make-main-screen term))
          (spinner (make-spinner))
