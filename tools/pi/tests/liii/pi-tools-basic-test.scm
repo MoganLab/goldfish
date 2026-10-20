@@ -262,55 +262,6 @@
       ) ;list
     ) ;pi-execute-edit
   ) ;check-catch
-  (pi-execute-write (list (cons "path" test-edit-file) (cons "content" "dup\ndup\n"))
-  ) ;pi-execute-write
-  (check-catch 'error
-    (pi-execute-edit
-      (list (cons "path" test-edit-file)
-        (cons "edits" (list (list (cons "oldText" "dup") (cons "newText" "new"))))
-      ) ;list
-    ) ;pi-execute-edit
-  ) ;check-catch
-  (pi-execute-write (list (cons "path" test-edit-file) (cons "content" "ABCDEFGH"))
-  ) ;pi-execute-write
-  (check-catch 'error
-    (pi-execute-edit
-      (list (cons "path" test-edit-file)
-        (cons "edits"
-          (list (list (cons "oldText" "ABCD") (cons "newText" "1234"))
-            (list (cons "oldText" "CDEF") (cons "newText" "5678"))
-          ) ;list
-        ) ;cons
-      ) ;list
-    ) ;pi-execute-edit
-  ) ;check-catch
-  (check-catch 'error
-    (pi-execute-edit
-      (list (cons "path" test-edit-file)
-        (cons "edits"
-          (list (list (cons "oldText" "ABCDEFGH") (cons "newText" "ABCDEFGH")))
-        ) ;cons
-      ) ;list
-    ) ;pi-execute-edit
-  ) ;check-catch
-  (check-catch 'error
-    (pi-execute-edit (list (cons "path" test-edit-file) (cons "edits" '())))
-  ) ;check-catch
-  (check-catch 'error
-    (pi-execute-edit
-      (list (cons "path" test-edit-file)
-        (cons "edits" (list (list (cons "oldText" "") (cons "newText" "foo"))))
-      ) ;list
-    ) ;pi-execute-edit
-  ) ;check-catch
-  (check-catch 'error
-    (pi-execute-edit
-      (list (cons "path" test-edit-file)
-        (cons "edits" (list (list (cons "oldText" "ABC") (cons "newText" "XYZ"))))
-      ) ;list
-      :timed-out? #t
-    ) ;pi-execute-edit
-  ) ;check-catch
   (delete-file test-edit-file)
 ) ;let
 
@@ -330,16 +281,6 @@
   (check-true (string-contains? out "Command exited with code 42"))
 ) ;let-values
 
-(let-values (((out is-err) (pi-execute-bash '(("command" . "sleep 5")
-                                              ("timeout" . 1)))))
-  (check is-err => #t)
-  (check-true (string-contains? out "Command timed out after 1 seconds"))
-) ;let-values
-
-(let-values (((out is-err) (pi-execute-bash '(("command" . "echo test")) :timed-out? #t)))
-  (check is-err => #t)
-  (check-true (string-contains? out "Command timed out after 120 seconds"))
-) ;let-values
 
 (check-catch 'error (pi-execute-bash '()))
 

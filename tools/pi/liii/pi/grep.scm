@@ -144,46 +144,53 @@
     ) ;define
 
     (define (%build-grep-notices limit-reached? limit truncated? lines-truncated?)
-      (let ((notices
-              (append
-                (if limit-reached?
-                  (list (string-append (number->string limit)
-                          " matches limit reached. Use limit="
-                          (number->string (* limit 2))
-                          " for more, or refine pattern"
-                        ) ;string-append
-                  ) ;list
-                  '()
-                ) ;if
-                (if truncated? (list "50.0KB limit reached") '())
-                (if lines-truncated?
-                  (list "Some lines truncated to 500 chars. Use read tool to see full lines")
-                  '()
-                ) ;if
-              ) ;append
-            ) ;notices
-           ) ;
+      (let* ((n1
+               (if limit-reached?
+                 (list (string-append (number->string limit)
+                         " matches limit reached. Use limit="
+                         (number->string (* limit 2))
+                         " for more, or refine pattern"
+                       ) ;string-append
+                 ) ;list
+                 '()
+               ) ;if
+             ) ;n1
+             (n2 (if truncated? (append n1 (list "50.0KB limit reached")) n1))
+             (notices (if lines-truncated?
+                        (append n2
+                          (list "Some lines truncated to 500 chars. Use read tool to see full lines")
+                        ) ;append
+                        n2
+                      ) ;if
+             ) ;notices
+            ) ;
         (if (null? notices) "" (string-append "\n\n[" (string-join notices ". ") "]"))
-      ) ;let
+      ) ;let*
     ) ;define
 
     (define (%collect-grep-candidates abs-path is-dir? glob-pat timeout)
       (if (not is-dir?)
-        (list (list abs-path (path-name (path abs-path))))
-        (let* ((pat (or glob-pat "*"))
-               (files (pi-execute-find (list (cons "path" abs-path) (cons "pattern" pat))
-                        :timeout timeout
-                      ) ;pi-execute-find
-               ) ;files
-              ) ;
+        (if (path-file? (path abs-path))
+          (list (list abs-path (path-name (path abs-path))))
+          '()
+        ) ;if
+        (let ((files
+                (pi-execute-find (list (cons "path" abs-path) (cons "pattern" (or glob-pat "*")))
+                  :timeout timeout
+                ) ;pi-execute-find
+              ) ;files
+             ) ;
           (if (or (string=? files "No files found matching pattern") (string-null? files))
             '()
-            (map
-              (lambda (f) (list (path->string (path-join (path abs-path) (path f))) f))
-              (string-split files "\n")
-            ) ;map
+            (filter
+              (lambda (c) (path-file? (path (car c))))
+              (map
+                (lambda (f) (list (path->string (path-join (path abs-path) (path f))) f))
+                (string-split files "\n")
+              ) ;map
+            ) ;filter
           ) ;if
-        ) ;let*
+        ) ;let
       ) ;if
     ) ;define
 
@@ -229,21 +236,23 @@
           ) ;if
          ) ;
          (else
-           (let* ((cand (car files))
-                  (f-abs (car cand))
-                  (f-rel (cadr cand))
-                  (f-text (guard (e (else "")) (path-read-text (path f-abs))))
-                  (f-lines (string-split f-text "\n"))
-                  (new-cache (cons (cons f-rel f-lines) cache))
-                  (rem-limit (- limit count))
-                  (matches (if literal?
-                             (%scan-file-literal f-lines f-rel pattern ignore-case? rem-limit)
-                             (%scan-file-regex f-abs f-rel pattern ignore-case? timeout)
-                           ) ;if
-                  ) ;matches
-                  (valid (if (> (length matches) rem-limit) (take matches rem-limit) matches))
-                 ) ;
-             (loop (cdr files) (append all-m valid) new-cache (+ count (length valid)))
+           (let* ((cand (car files)) (f-abs (car cand)) (f-rel (cadr cand)))
+             (if (not (path-file? (path f-abs)))
+               (loop (cdr files) all-m cache count)
+               (let* ((f-text (guard (e (else "")) (path-read-text (path f-abs))))
+                      (f-lines (string-split f-text "\n"))
+                      (new-cache (cons (cons f-rel f-lines) cache))
+                      (rem-limit (- limit count))
+                      (matches (if literal?
+                                 (%scan-file-literal f-lines f-rel pattern ignore-case? rem-limit)
+                                 (%scan-file-regex f-abs f-rel pattern ignore-case? timeout)
+                               ) ;if
+                      ) ;matches
+                      (valid (if (> (length matches) rem-limit) (take matches rem-limit) matches))
+                     ) ;
+                 (loop (cdr files) (append all-m valid) new-cache (+ count (length valid)))
+               ) ;let*
+             ) ;if
            ) ;let*
          ) ;else
         ) ;cond
@@ -259,16 +268,10 @@
              (glob-pat (pi-arg-ref args "glob" #f))
              (ignore-case? (pi-arg-ref args "ignoreCase" #f))
              (literal? (pi-arg-ref args "literal" #f))
-             (effective-limit
-               (let ((l (pi-arg-ref args "limit" 100)))
-                 (if (number? l) l 100)
-               ) ;let
-             ) ;effective-limit
-             (ctx-val
-               (let ((c (pi-arg-ref args "context" 0)))
-                 (if (and (number? c) (> c 0)) c 0)
-               ) ;let
-             ) ;ctx-val
+             (l (pi-arg-ref args "limit" 100))
+             (effective-limit (if (number? l) l 100))
+             (c (pi-arg-ref args "context" 0))
+             (ctx-val (if (and (number? c) (> c 0)) c 0))
             ) ;
         (when timed-out?
           (error 'error "Command timed out")

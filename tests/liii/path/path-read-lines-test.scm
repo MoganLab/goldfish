@@ -30,6 +30,7 @@
 ;; type-error 当 path 非 string 且非 path?、keepends 非 boolean、offset 或 limit 非精确整数（limit 允许 #f）时。
 ;; value-error 当 offset 为负数、limit 为非正整数（如 0 或 -1）时。
 ;; file-not-found-error 当文件不存在时。
+;; file-error 当路径为目录时。
 
 ;; 测试项1：默认按行读取与 keepends 换行保留测试
 (let ((test-file (path-join (path-temp-dir) "path-read-lines-basic.txt")))
@@ -218,6 +219,10 @@
   (check-catch 'file-not-found-error
     (path-read-lines "/this/file/does/not/exist")
   ) ;check-catch
+
+  ;; 目录读取错误 (file-error)
+  (check-catch 'file-error (path-read-lines (path-temp-dir)))
+  (check-catch 'file-error (path-read-lines (path->string (path-temp-dir))))
 
   ;; path 类型错误
   (check-catch 'type-error (path-read-lines #\a))

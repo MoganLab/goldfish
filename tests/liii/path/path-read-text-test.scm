@@ -22,6 +22,7 @@
 ;; 错误处理
 ;; ----
 ;; file-not-found-error 当文件不存在时。
+;; file-error 当路径为目录时。
 
 ;; 基本文本读写测试
 (let ((text-file (path-join (path-temp-dir) "path-read-text-basic.txt")))
@@ -78,6 +79,9 @@
 (check-catch 'file-not-found-error
   (path-read-text (path "/this/file/does/not/exist"))
 ) ;check-catch
+
+(check-catch 'file-error (path-read-text (path-temp-dir)))
+(check-catch 'file-error (path-read-text (path->string (path-temp-dir))))
 
 (check-catch 'type-error (path-read-text #\a))
 (check-catch 'type-error (path-read-text 123))
