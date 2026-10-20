@@ -89,9 +89,16 @@
 
     (define %assistant-blk->anthropic-blk anthropic-assistant-blk->anthropic-blk)
 
+    (define (%first-blk-text blk)
+      (if (string? blk) blk (%val 'text blk ""))
+    ) ;define
+
     (define (%tool-result-text content)
       (cond ((string? content) content)
-            ((pair? content) (let ((first-blk (car content))) (%val 'text first-blk "")))
+            ((and (vector? content) (> (vector-length content) 0))
+             (%first-blk-text (vector-ref content 0))
+            ) ;
+            ((pair? content) (%first-blk-text (car content)))
             (else "")
       ) ;cond
     ) ;define
@@ -146,7 +153,10 @@
               ) ;let*
              ) ;
              ((equal? role "assistant")
-              (let* ((c (%val 'content msg '())) (blks (map %assistant-blk->anthropic-blk c)))
+              (let* ((c (%val 'content msg '()))
+                     (c-list (cond ((vector? c) (vector->list c)) ((pair? c) c) (else '())))
+                     (blks (map %assistant-blk->anthropic-blk c-list))
+                    ) ;
                 (loop (cdr rest) (cons (%build-turn-msg "assistant" (list->vector blks)) acc))
               ) ;let*
              ) ;

@@ -63,13 +63,15 @@
 
     (define (%msg-text-content content)
       (cond ((string? content) content)
+            ((vector? content) (%msg-text-content (vector->list content)))
             ((pair? content)
              (let loop
                ((lst content) (acc ""))
                (if (null? lst)
                  acc
                  (let* ((blk (car lst))
-                        (t (cond ((pi-text-block? blk) (pi-text-block-text blk))
+                        (t (cond ((string? blk) blk)
+                                 ((pi-text-block? blk) (pi-text-block-text blk))
                                  ((pair? blk) (%val 'text blk ""))
                                  (else "")
                            ) ;cond

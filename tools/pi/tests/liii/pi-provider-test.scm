@@ -1,15 +1,7 @@
-(set! *load-path*
-  (append (list "tools/pi" ".") *load-path*))
+(set! *load-path* (append (list "tools/pi" ".") *load-path*))
 
-(import (liii check)
-  (liii string)
-  (liii path)
-  (liii json)
-  (liii subprocess)
-  (liii pi)
-  (liii pi config)
-  (liii pi gemini)
-) ;import
+(import (liii check) (liii string) (liii path) (liii json)
+        (liii subprocess) (liii pi) (liii pi config) (liii pi gemini))
 
 (check-set-mode! 'report-failed)
 

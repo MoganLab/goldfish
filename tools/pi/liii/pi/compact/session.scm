@@ -85,7 +85,10 @@
     ) ;define
 
     (define (%as-pi-message msg)
-      (let ((role (%ref msg "role")) (content (%ref msg "content")))
+      (let* ((msg (pi-normalize-session-msg msg))
+             (role (%ref msg "role"))
+             (content (%ref msg "content"))
+            ) ;
         (cond ((equal? role "user") (pi-user-message content))
               ((equal? role "assistant")
                (pi-assistant-message content
@@ -103,7 +106,7 @@
               ) ;
               (else msg)
         ) ;cond
-      ) ;let
+      ) ;let*
     ) ;define
 
     (define (%messages-from entries start)
