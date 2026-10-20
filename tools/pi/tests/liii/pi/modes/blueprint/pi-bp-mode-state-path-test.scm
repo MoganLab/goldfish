@@ -30,12 +30,14 @@
 ) ;check
 
 ;; 绝对路径原样使用。
-(check (pi-bp-mode-state-path
-         (parse-pi-args '("--plan-status" "--blueprint-file" "/tmp/gf-plan.json"))
-       ) ;pi-bp-mode-state-path
-  =>
-  "/tmp/gf-plan.json"
-) ;check
+(let ((abs-path (path->string (path-resolve (path-join (path-temp-dir) "gf-plan.json")))))
+  (check (pi-bp-mode-state-path
+           (parse-pi-args (list "--plan-status" "--blueprint-file" abs-path))
+         ) ;pi-bp-mode-state-path
+    =>
+    abs-path
+  ) ;check
+) ;let
 
 ;; 空字符串回退到默认路径。
 (check (pi-bp-mode-state-path

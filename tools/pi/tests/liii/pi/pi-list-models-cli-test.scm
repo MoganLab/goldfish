@@ -2,14 +2,24 @@
         (liii check)
         (liii string)
         (liii path)
+        (liii os)
+        (liii sys)
         (liii subprocess))
 
 (check-set-mode! 'report-failed)
 
-(define GF_BIN
-  (cond ((file-exists? "bin/gf") "bin/gf")
-        ((file-exists? "../../bin/gf") "../../bin/gf")
-        (else "bin/gf")))
+(define (%with-system-env env-list)
+  (if (os-windows?)
+    (let ((p (get-environment-variable "PATH"))
+          (sr (or (get-environment-variable "SystemRoot")
+                  (get-environment-variable "SYSTEMROOT")
+                  "C:\\Windows")))
+      (append env-list
+        (if p (list (cons "PATH" p)) '())
+        (list (cons "SystemRoot" sr) (cons "SYSTEMROOT" sr))))
+    env-list))
+
+(define GF_BIN (executable))
 
 (define FIXTURE_DIR
   (cond ((file-exists? "tests/fixtures/default")
@@ -20,7 +30,7 @@
 
 (define (exec-gf-pi args)
   (let* ((cmd (cons GF_BIN (cons "pi" args)))
-         (env (list (cons "PI_CODING_AGENT_DIR" FIXTURE_DIR)))
+         (env (%with-system-env (list (cons "PI_CODING_AGENT_DIR" FIXTURE_DIR))))
          (p (process-spawn cmd :env env :stdout 'pipe :stderr 'pipe))
          (code (process-wait p 30000))
          (out (process-read p :stream 'stdout))

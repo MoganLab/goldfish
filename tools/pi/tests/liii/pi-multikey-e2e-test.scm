@@ -1,6 +1,14 @@
 (set! *load-path* (append (list "tools/pi" ".") *load-path*))
 
-(import (scheme process-context) (liii check) (liii string) (liii path) (liii subprocess) (liii pi))
+(import (scheme process-context)
+  (liii check)
+  (liii string)
+  (liii path)
+  (liii os)
+  (liii sys)
+  (liii subprocess)
+  (liii pi)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -45,24 +53,39 @@
   ) ;if
 ) ;define
 
-(define GF_BIN
-  (if (file-exists? "bin/gf")
-    "bin/gf"
-    (if (file-exists? "../../bin/gf") "../../bin/gf" "bin/gf")
+(define (%with-system-env env-list)
+  (if (os-windows?)
+    (let ((p (get-environment-variable "PATH"))
+          (sr (or (get-environment-variable "SystemRoot")
+                  (get-environment-variable "SYSTEMROOT")
+                  "C:\\Windows"
+              ) ;or
+          ) ;sr
+         ) ;
+      (append env-list
+        (if p (list (cons "PATH" p)) '())
+        (list (cons "SystemRoot" sr) (cons "SYSTEMROOT" sr))
+      ) ;append
+    ) ;let
+    env-list
   ) ;if
 ) ;define
 
+(define GF_BIN (executable))
+
 (define (run-pi agent-dir base-url model provider)
-  (let* ((test-env (list (cons "PI_CODING_AGENT_DIR" agent-dir)
-                     (cons "GF_PI_BASE_URL" base-url)
-                     (cons "GF_PI_MODEL" model)
-                     (cons "https_proxy" "")
-                     (cons "http_proxy" "")
-                     (cons "all_proxy" "")
-                     (cons "ALL_PROXY" "")
-                     (cons "HTTPS_PROXY" "")
-                     (cons "HTTP_PROXY" "")
-                   ) ;list
+  (let* ((test-env (%with-system-env
+                     (list (cons "PI_CODING_AGENT_DIR" agent-dir)
+                       (cons "GF_PI_BASE_URL" base-url)
+                       (cons "GF_PI_MODEL" model)
+                       (cons "https_proxy" "")
+                       (cons "http_proxy" "")
+                       (cons "all_proxy" "")
+                       (cons "ALL_PROXY" "")
+                       (cons "HTTPS_PROXY" "")
+                       (cons "HTTP_PROXY" "")
+                     ) ;list
+                   ) ;%with-system-env
          ) ;test-env
          (cmd (append (list GF_BIN "pi" "--print" "--no-session" "--timeout" "20")
                 (if provider (list "--provider" provider) '())

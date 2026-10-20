@@ -1,4 +1,8 @@
-(import (liii check)
+(import (scheme base)
+  (scheme process-context)
+  (liii check)
+  (liii os)
+  (liii sys)
   (liii string)
   (liii list)
   (liii path)
@@ -31,9 +35,9 @@
   ) ;if
 ) ;define
 
-(define GF_BIN (if (file-exists? "bin/gf") "bin/gf" "../../bin/gf"))
+(define GF_BIN (executable))
 
-(define AGENT_DIR "/tmp/pi-compact-e2e-agent")
+(define AGENT_DIR (path->string (path-join (path-temp-dir) "pi-compact-e2e-agent")))
 
 (define (setup-agent-dir)
   (path-mkdir (path AGENT_DIR) :parents #t :exist-ok #t)
@@ -103,16 +107,33 @@
        ) ;proc
        (port (parse-port-line (process-read-line proc)))
        (base-url (string-append "http://127.0.0.1:" (number->string port)))
-       (test-env (list (cons "PI_CODING_AGENT_DIR" AGENT_DIR)
-                   (cons "GF_PI_BASE_URL" base-url)
-                   (cons "GF_PI_MODEL" "gemini-3.8-flash")
-                   (cons "https_proxy" "")
-                   (cons "http_proxy" "")
-                   (cons "all_proxy" "")
-                   (cons "ALL_PROXY" "")
-                   (cons "HTTPS_PROXY" "")
-                   (cons "HTTP_PROXY" "")
-                 ) ;list
+       (raw-env (list (cons "PI_CODING_AGENT_DIR" AGENT_DIR)
+                  (cons "GF_PI_BASE_URL" base-url)
+                  (cons "GF_PI_MODEL" "gemini-3.8-flash")
+                  (cons "https_proxy" "")
+                  (cons "http_proxy" "")
+                  (cons "all_proxy" "")
+                  (cons "ALL_PROXY" "")
+                  (cons "HTTPS_PROXY" "")
+                  (cons "HTTP_PROXY" "")
+                ) ;list
+       ) ;raw-env
+       (test-env
+         (if (os-windows?)
+           (let ((p (get-environment-variable "PATH"))
+                 (sr (or (get-environment-variable "SystemRoot")
+                         (get-environment-variable "SYSTEMROOT")
+                         "C:\\Windows"
+                     ) ;or
+                 ) ;sr
+                ) ;
+             (append raw-env
+               (if p (list (cons "PATH" p)) '())
+               (list (cons "SystemRoot" sr) (cons "SYSTEMROOT" sr))
+             ) ;append
+           ) ;let
+           raw-env
+         ) ;if
        ) ;test-env
       ) ;
   (check-true (number? port))

@@ -34,7 +34,7 @@
   (let ((out (pi-execute-ls (list (cons "path" empty-dir)))))
     (check out => "(empty directory)")
   ) ;let
-  (delete-file empty-dir)
+  (path-rmdir (path empty-dir))
 ) ;let
 
 (check-catch 'error (pi-execute-ls '(("path" . "non_existent_dir_99999"))))

@@ -15,6 +15,7 @@
     (liii path)
     (liii subprocess)
     (liii either)
+    (liii pi bash)
     (liii pi read)
     (liii pi find)
     (liii pi truncate)
@@ -105,16 +106,24 @@
 
     (define (%parse-grep-line line rel-path)
       (let ((parts (string-split line ":")))
-        (and (>= (length parts) 3)
+        (cond
+         ((and (>= (length parts) 4) (= (string-length (car parts)) 1))
+          (let ((n (string->number (caddr parts))))
+            (and n (list rel-path n))
+          ) ;let
+         ) ;
+         ((>= (length parts) 3)
           (let ((n (string->number (cadr parts))))
             (and n (list rel-path n))
           ) ;let
-        ) ;and
+         ) ;
+         (else #f)
+        ) ;cond
       ) ;let
     ) ;define
 
     (define (%scan-file-regex abs-path rel-path pattern ignore-case? timeout)
-      (let* ((args (append (list "grep" "-H" "-n" "-E")
+      (let* ((args (append (list (pi-find-grep-path) "-H" "-n" "-E")
                      (if ignore-case? (list "-i") '())
                      (list "--" pattern abs-path)
                    ) ;append

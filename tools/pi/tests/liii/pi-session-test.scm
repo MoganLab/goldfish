@@ -15,19 +15,19 @@
        => "--var-log--")
 
 ;; 2. 测试 get-session-dir 与 make-session-file-path
-(let* ((agent-dir "/tmp/test-agent")
+(let* ((agent-dir (path->string (path-join (path-temp-dir) "test-agent")))
        (cwd "/home/da/git/goldfish")
        (sdir (get-session-dir agent-dir cwd))
        (file-path (make-session-file-path sdir "2026-10-17T09:29:29.706Z" "test-id-123")))
-  (check sdir => "/tmp/test-agent/sessions/--home-da-git-goldfish--")
-  (check file-path => "/tmp/test-agent/sessions/--home-da-git-goldfish--/2026-10-17T09-29-29-706Z_test-id-123.jsonl"))
+  (check sdir => (path->string (path-join agent-dir "sessions" "--home-da-git-goldfish--")))
+  (check file-path => (path->string (path-join agent-dir "sessions" "--home-da-git-goldfish--" "2026-10-17T09-29-29-706Z_test-id-123.jsonl"))))
 
 ;; 3. 测试 save 与 read 往返
-(let* ((tmp-dir "/tmp/test-pi-session-fixture")
+(let* ((tmp-dir (path->string (path-join (path-temp-dir) "test-pi-session-fixture")))
        (_ (if (file-exists? tmp-dir) (delete-file tmp-dir) #t))
-       (session-file (path->string (path-join "/tmp" "session-test.jsonl"))))
+       (session-file (path->string (path-join (path-temp-dir) "session-test.jsonl"))))
   (if (file-exists? session-file) (delete-file session-file))
-  (save-session-header! session-file "id-1" "2026-10-17T08:00:00.000Z" "/tmp")
+  (save-session-header! session-file "id-1" "2026-10-17T08:00:00.000Z" (path->string (path-temp-dir)))
   (save-session-message! session-file "{\"role\":\"user\",\"content\":\"hello\"}" "msg-1" #f "2026-10-17T08:00:01.000Z")
   (save-session-message! session-file "{\"role\":\"assistant\",\"content\":\"hi!\"}" "msg-2" "msg-1" "2026-10-17T08:00:02.000Z")
   
@@ -40,28 +40,28 @@
   (delete-file session-file))
 
 ;; 4. 测试 find-latest-session-file
-(let* ((tmp-dir "/tmp/test-pi-latest-dir")
-       (_ (if (file-exists? tmp-dir) (path-rmdir tmp-dir) #t))
-       (_ (path-mkdir tmp-dir))
+(let* ((tmp-dir (path->string (path-join (path-temp-dir) "test-pi-latest-dir")))
+       (_ (if (file-exists? tmp-dir) (path-rmdir (path tmp-dir)) #t))
+       (_ (path-mkdir (path tmp-dir)))
        (f1 (path->string (path-join tmp-dir "2026-10-01T00-00-00-000Z_id1.jsonl")))
        (f2 (path->string (path-join tmp-dir "2026-10-02T00-00-00-000Z_id2.jsonl")))
        (f3 (path->string (path-join tmp-dir "2026-09-30T00-00-00-000Z_id0.jsonl"))))
-  (save-session-header! f1 "id1" "2026-10-01T00:00:00.000Z" "/tmp")
-  (save-session-header! f2 "id2" "2026-10-02T00:00:00.000Z" "/tmp")
-  (save-session-header! f3 "id0" "2026-09-30T00:00:00.000Z" "/tmp")
+  (save-session-header! f1 "id1" "2026-10-01T00:00:00.000Z" (path->string (path-temp-dir)))
+  (save-session-header! f2 "id2" "2026-10-02T00:00:00.000Z" (path->string (path-temp-dir)))
+  (save-session-header! f3 "id0" "2026-09-30T00:00:00.000Z" (path->string (path-temp-dir)))
   (let ((latest (find-latest-session-file tmp-dir)))
     (check latest => f2))
   (delete-file f1)
   (delete-file f2)
   (delete-file f3)
-  (path-rmdir tmp-dir))
+  (path-rmdir (path tmp-dir)))
 
 ;; 5. 测试 setup-session-file 与 setup-initial-messages
-(let* ((tmp-agent-dir "/tmp/test-pi-session-agent")
+(let* ((tmp-agent-dir (path->string (path-join (path-temp-dir) "test-pi-session-agent")))
        (cwd "/home/da/git/goldfish")
        (cfg `((agent-dir . ,tmp-agent-dir)))
        (sdir (get-session-dir tmp-agent-dir cwd)))
-  (if (file-exists? tmp-agent-dir) (delete-file tmp-agent-dir))
+  (if (file-exists? tmp-agent-dir) (path-rmdir (path tmp-agent-dir)))
   
   ;; 5.1 no-session: 不产生文件
   (let-values (((sfile dir) (setup-session-file '((no-session . #t)) cfg cwd)))

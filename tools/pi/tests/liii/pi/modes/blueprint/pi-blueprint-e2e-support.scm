@@ -16,7 +16,7 @@
   (path->string (path-join (path %root) "tools/pi/tests/fixtures/direct"))
 ) ;define
 
-(define %gf (path->string (path-join (path %root) "bin/gf")))
+(define %gf (executable))
 
 (define %stub
   (path->string (path-join (path %root) "tools/pi/tests/stub_blueprint_server.py")
@@ -70,18 +70,35 @@
 ) ;define
 
 (define (e2e-env base)
-  (list (cons "PI_CODING_AGENT_DIR" %fixture)
-    (cons "GF_PI_BASE_URL" base)
-    (cons "GF_PI_MODEL" "gemini-3.8-flash")
-    (cons "PATH" (or (get-environment-variable "PATH") "/usr/bin:/bin"))
-    (cons "HOME" (or (get-environment-variable "HOME") "/tmp"))
-    (cons "https_proxy" "")
-    (cons "http_proxy" "")
-    (cons "all_proxy" "")
-    (cons "HTTPS_PROXY" "")
-    (cons "HTTP_PROXY" "")
-    (cons "ALL_PROXY" "")
-  ) ;list
+  (let ((base-env
+          (list (cons "PI_CODING_AGENT_DIR" %fixture)
+            (cons "GF_PI_BASE_URL" base)
+            (cons "GF_PI_MODEL" "gemini-3.8-flash")
+            (cons "PATH" (or (get-environment-variable "PATH") "/usr/bin:/bin"))
+            (cons "HOME" (or (get-environment-variable "HOME") (path->string (path-temp-dir))))
+            (cons "https_proxy" "")
+            (cons "http_proxy" "")
+            (cons "all_proxy" "")
+            (cons "HTTPS_PROXY" "")
+            (cons "HTTP_PROXY" "")
+            (cons "ALL_PROXY" "")
+          ) ;list
+        ) ;base-env
+       ) ;
+    (if (os-windows?)
+      (let ((sysroot (or (get-environment-variable "SystemRoot")
+                         (get-environment-variable "SYSTEMROOT")
+                         "C:\\Windows"
+                     ) ;or
+            ) ;sysroot
+           ) ;
+        (append base-env
+          (list (cons "SystemRoot" sysroot) (cons "SYSTEMROOT" sysroot))
+        ) ;append
+      ) ;let
+      base-env
+    ) ;if
+  ) ;let
 ) ;define
 
 (define (run-pi dir env args)
@@ -180,5 +197,10 @@
 
 
 (define (snapshot-fixture)
-  (vector->list (path-list (path %fixture)))
+  (filter
+    (lambda (entry)
+      (not (string=? (path-name (path entry)) "sessions"))
+    ) ;lambda
+    (vector->list (path-list (path %fixture)))
+  ) ;filter
 ) ;define

@@ -1,6 +1,14 @@
 (set! *load-path* (append (list "tools/pi" ".") *load-path*))
 
-(import (scheme process-context) (liii check) (liii string) (liii path) (liii subprocess) (liii pi))
+(import (scheme process-context)
+  (liii check)
+  (liii string)
+  (liii path)
+  (liii os)
+  (liii sys)
+  (liii subprocess)
+  (liii pi)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -42,27 +50,42 @@
   ) ;if
 ) ;define
 
-(define GF_BIN
-  (if (file-exists? "bin/gf")
-    "bin/gf"
-    (if (file-exists? "../../bin/gf") "../../bin/gf" "bin/gf")
+(define (%with-system-env env-list)
+  (if (os-windows?)
+    (let ((p (get-environment-variable "PATH"))
+          (sr (or (get-environment-variable "SystemRoot")
+                  (get-environment-variable "SYSTEMROOT")
+                  "C:\\Windows"
+              ) ;or
+          ) ;sr
+         ) ;
+      (append env-list
+        (if p (list (cons "PATH" p)) '())
+        (list (cons "SystemRoot" sr) (cons "SYSTEMROOT" sr))
+      ) ;append
+    ) ;let
+    env-list
   ) ;if
 ) ;define
+
+(define GF_BIN (executable))
 
 (let* ((proc (process-spawn (list "python3" stub-server-file) :stdout 'pipe))
        (port-line (process-read-line proc))
        (port (parse-port-line port-line))
        (base-url (string-append "http://127.0.0.1:" (number->string port)))
-       (test-env (list (cons "PI_CODING_AGENT_DIR" FIXTURE_DIR)
-                   (cons "GF_PI_BASE_URL" base-url)
-                   (cons "GF_PI_MODEL" "gemini-3.8-flash")
-                   (cons "https_proxy" "")
-                   (cons "http_proxy" "")
-                   (cons "all_proxy" "")
-                   (cons "ALL_PROXY" "")
-                   (cons "HTTPS_PROXY" "")
-                   (cons "HTTP_PROXY" "")
-                 ) ;list
+       (test-env (%with-system-env
+                   (list (cons "PI_CODING_AGENT_DIR" FIXTURE_DIR)
+                     (cons "GF_PI_BASE_URL" base-url)
+                     (cons "GF_PI_MODEL" "gemini-3.8-flash")
+                     (cons "https_proxy" "")
+                     (cons "http_proxy" "")
+                     (cons "all_proxy" "")
+                     (cons "ALL_PROXY" "")
+                     (cons "HTTPS_PROXY" "")
+                     (cons "HTTP_PROXY" "")
+                   ) ;list
+                 ) ;%with-system-env
        ) ;test-env
       ) ;
   (check-true (number? port))
@@ -208,9 +231,13 @@
   ) ;let*
 
   ;; 10. CLI --provider deepseek 凭据缺失时明确报错退出码 1
-  (let* ((no-key-env (list (cons "PI_CODING_AGENT_DIR" CONFIG_EMPTY_DIR)
-                           (cons "HOME" "/non-existent")
-                           (cons "PATH" (or (get-environment-variable "PATH") ""))))
+  (let* ((no-key-env (%with-system-env
+                       (list (cons "PI_CODING_AGENT_DIR" CONFIG_EMPTY_DIR)
+                         (cons "HOME" "/non-existent")
+                         (cons "PATH" (or (get-environment-variable "PATH") ""))
+                       ) ;list
+                     ) ;%with-system-env
+         ) ;no-key-env
          (cmd (list GF_BIN "pi" "--provider" "deepseek" "--print" "Hello missing key"))
          (p (process-spawn cmd :env no-key-env :stdout 'pipe :stderr 'pipe))
          (code (process-wait p 10000))

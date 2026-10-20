@@ -40,10 +40,15 @@
     ) ;define
 
     (define (%rel-path root full)
-      (let ((prefix (string-append root "/")))
-        (if (string-starts? full prefix)
-          (substring full (string-length prefix) (string-length full))
-          full
+      (let ((rel (path-relative-to (path full) (path root))))
+        (if rel
+          (path-as-posix rel)
+          (let ((prefix (string-append root "/")))
+            (if (string-starts? full prefix)
+              (substring full (string-length prefix) (string-length full))
+              full
+            ) ;if
+          ) ;let
         ) ;if
       ) ;let
     ) ;define

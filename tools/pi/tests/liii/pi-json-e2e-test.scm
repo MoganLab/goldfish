@@ -1,8 +1,11 @@
 (set! *load-path* (append (list "tools/pi" ".") *load-path*))
 
-(import (liii check)
+(import (scheme process-context)
+  (liii check)
   (liii string)
   (liii list)
+  (liii os)
+  (liii sys)
   (liii path)
   (liii subprocess)
   (liii json)
@@ -50,27 +53,42 @@
   ) ;if
 ) ;define
 
-(define GF_BIN
-  (if (file-exists? "bin/gf")
-    "bin/gf"
-    (if (file-exists? "../../bin/gf") "../../bin/gf" "bin/gf")
+(define (%with-system-env env-list)
+  (if (os-windows?)
+    (let ((p (get-environment-variable "PATH"))
+          (sr (or (get-environment-variable "SystemRoot")
+                  (get-environment-variable "SYSTEMROOT")
+                  "C:\\Windows"
+              ) ;or
+          ) ;sr
+         ) ;
+      (append env-list
+        (if p (list (cons "PATH" p)) '())
+        (list (cons "SystemRoot" sr) (cons "SYSTEMROOT" sr))
+      ) ;append
+    ) ;let
+    env-list
   ) ;if
 ) ;define
+
+(define GF_BIN (executable))
 
 (let* ((proc (process-spawn (list "python3" stub-server-file) :stdout 'pipe))
        (port-line (process-read-line proc))
        (port (parse-port-line port-line))
        (base-url (string-append "http://127.0.0.1:" (number->string port)))
-       (test-env (list (cons "PI_CODING_AGENT_DIR" FIXTURE_DIR)
-                   (cons "GF_PI_BASE_URL" base-url)
-                   (cons "GF_PI_MODEL" "gemini-3.8-flash")
-                   (cons "https_proxy" "")
-                   (cons "http_proxy" "")
-                   (cons "all_proxy" "")
-                   (cons "ALL_PROXY" "")
-                   (cons "HTTPS_PROXY" "")
-                   (cons "HTTP_PROXY" "")
-                 ) ;list
+       (test-env (%with-system-env
+                   (list (cons "PI_CODING_AGENT_DIR" FIXTURE_DIR)
+                     (cons "GF_PI_BASE_URL" base-url)
+                     (cons "GF_PI_MODEL" "gemini-3.8-flash")
+                     (cons "https_proxy" "")
+                     (cons "http_proxy" "")
+                     (cons "all_proxy" "")
+                     (cons "ALL_PROXY" "")
+                     (cons "HTTPS_PROXY" "")
+                     (cons "HTTP_PROXY" "")
+                   ) ;list
+                 ) ;%with-system-env
        ) ;test-env
       ) ;
   (check-true (number? port))

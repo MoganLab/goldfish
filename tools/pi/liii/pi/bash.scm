@@ -11,12 +11,13 @@
     (scheme file)
     (liii string)
     (liii os)
+    (liii path)
     (liii either)
     (liii subprocess)
     (liii pi read)
     (liii pi truncate)
   ) ;import
-  (export pi-bash-schema pi-execute-bash pi-find-bash-path)
+  (export pi-bash-schema pi-execute-bash pi-find-bash-path pi-find-grep-path)
   (begin
 
     (define (%find-windows-bash)
@@ -77,6 +78,25 @@
          (else (%find-posix-bash))
         ) ;case
       ) ;let
+    ) ;define
+
+    (define (pi-find-grep-path)
+      (if (os-windows?)
+        (let ((bash (pi-find-bash-path)))
+          (if (string-contains? bash "Git")
+            (let* ((git-dir
+                     (path-parent (if (string-contains? bash "usr") (path-parent (path bash)) (path bash))
+                     ) ;path-parent
+                   ) ;git-dir
+                   (grep-p (path-join git-dir "usr" "bin" "grep.exe"))
+                  ) ;
+              (if (path-file? grep-p) (path->string grep-p) "grep")
+            ) ;let*
+            "grep"
+          ) ;if
+        ) ;let
+        "grep"
+      ) ;if
     ) ;define
 
     (define (pi-bash-schema)
