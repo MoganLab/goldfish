@@ -1,0 +1,11 @@
+frames=61 fps=15.36 events=10
+frame 2 y=271..308 prev_ink=125 next_ink=125
+frame 9 y=271..308 prev_ink=125 next_ink=126
+frame 14 y=271..308 prev_ink=126 next_ink=126
+frame 21 y=271..308 prev_ink=125 next_ink=125
+frame 28 y=271..308 prev_ink=126 next_ink=126
+frame 35 y=271..308 prev_ink=126 next_ink=125
+frame 42 y=271..308 prev_ink=125 next_ink=125
+frame 49 y=271..308 prev_ink=126 next_ink=126
+frame 56 y=271..308 prev_ink=125 next_ink=125
+frame 58 y=271..308 prev_ink=125 next_ink=125
