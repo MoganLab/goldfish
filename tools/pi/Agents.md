@@ -116,7 +116,7 @@ Anthropic 已实现但本机无访问权限，不在维护范围；其 OAuth 刷
 | 071 | 插件目录发现机制与加载器（Discovery & Loader） | 实现插件扫描与自动发现（“只要把相关文件放在对应目录即可生效”）：1) 内置目录 `tools/pi/liii/pi/extensions/`；2) 全局目录 `~/.pi/agent/extensions/*.scm`；3) 项目目录 `.pi/extensions/*.scm`；4) 命令行 `-e, --extension <file.scm>`；加载器执行扩展工厂函数注入 API；单插件异常隔离不崩溃主进程；TDD 覆盖 | 待执行 |
 | 072 | 工具层解耦：接驳动态扩展工具注册表 | 改造 `tools.scm`：将 `get-tool-definition` 与 `execute-tool-call` 从硬编码分支改为查询扩展注册表（保留默认 7 个基础工具，扩展工具由 Extension 动态注册接管）；移除 `tools.scm` 对 `blueprint`, `compass`, `red-green` 的硬编码 import 与 cond 分支；既有工具测试 100% 保持通过 | 待执行 |
 | 073 | 命令行与路由解耦：动态 Flags 挂载与 Local Flow 分发 | 改造 `args.scm`、`cli.scm` 与 `modes.scm`：支持从 Extension 注册表中动态提取扩展声明的命令行 flags 与验证规则；支持扩展注册 local-flow 与 command 路由处理器；移除核心中硬编码的 `--blueprint`, `--codemap`, `--simplify` 等分支；保持所有 CLI 参数与 local-flow 行为 100% 兼容 | 待执行 |
-| 074 | 上下文与生命周期拦截：Prompt 注入与 Tool 拦截 | 支持扩展通过 `prompt-injectors` 向系统提示词注入动态内容（如 codemap、blueprint 状态、TDD 约束）；实现 `tool_call` 拦截钩子（支持返回 block 或修改 input 参数）；移出主干 prompt 与循环中硬编码的各扩展提示词注入逻辑；TDD 覆盖 | 待执行 |
+| 074 | 上下文与生命周期拦截：Prompt 注入与 Tool 拦截 | 支持扩展通过 `prompt-injectors` 向系统提示词注入动态内容（如 codemap、blueprint 状态、TDD 约束）；实现 `tool_call` 拦截钩子（支持返回 block 或修改 input 参数）；**补齐原生 pi 的 `terminate` 语义**（`ToolCallEventResult.terminate`——block 后提示 agent 结束当前工具批次，原生 `packages/coding-agent/src/core/extensions/types.ts:1462`；070 尚未实现，勿遗漏）；移出主干 prompt 与循环中硬编码的各扩展提示词注入逻辑；TDD 覆盖 | 待执行 |
 | 075 | 内置扩展收敛迁移（simplify, red-green, code-review） | 将保留在仓库内的轻量内置插件正式收敛至 `tools/pi/liii/pi/extensions/`，改写为符合标准 Extension 契约的轻量 Scheme 扩展；`red-green` 通过 `register-command` 对齐提供 `/tdd` 与 `/tdd-status` 命令并兼容 `--red-green`；核心层仅通过扫描内置目录自动加载；全量单元测试与既有冒烟示例回归验证全绿 | 待执行 |
 | 076 | `pi install` 插件安装命令实现 | 实现 `pi install <git-url>` 子命令：调用 git 将远程扩展仓库 clone 至对应目录（默认全局 `~/.pi/agent/extensions/<name>`，支持 `--local` 克隆至当前工程 `.pi/extensions/<name>`）；配合目录扫描机制实现插件一键安装即生效；含 git 操作超时控制（强制带 timeout）、目录冲突检查与安全性校验；TDD 覆盖 | 待执行 |
 | 077 | 外部扩展实例移出与端到端实测验证（compass 与 blueprint） | 用户裁定移出 `compass` 与 `blueprint`：1) 将两者代码抽离为独立的外部扩展仓库（作为标准外部扩展参考实现）；2) 主仓库完全清理掉两者的实现代码与硬编码残留；3) 通过 `bin/gf pi install` 安装这两个外部扩展，端到端验证 `--blueprint` 与 `--codemap` 的完整功能无回归 | 待执行 |
@@ -217,3 +217,5 @@ tools/pi/CLAUDE.md                # Claude Code 与 pi 的协作规范（Claude 
 | 33 | 048 compass：源扩展名加 .scm/.sld/.ss + Scheme 入口规则 + xmake.lua | native 白名单不含 Scheme（本仓库几乎为空） |
 | 34 | 048 compass：--tools 白名单时不自动追加 compass 工具 | 白名单即用户意图（有意收紧） |
 | 35 | 048 compass：不移植 stale 提示（native 恒 false 死代码） | 哈希保证新鲜度 |
+| 36 | 070 tool_call 输入改写用「返回值式 override」（`(override (input . ...))`）而非原生 pi 的「原地 mutate `event.input`」 | Scheme 数据不可变，函数式返回更贴合 Scheme 语义；原生 `types.ts:1254` 明示"mutate it in place" |
+| 37 | 070 tool_call 监听器异常被隔离（捕获后告警并继续后续监听器） | 原生 `runner.ts:1250-1268` 的 `emitToolCall` 无 try/catch、异常向上传播中断整个工具流程（仅 `emitUserBash` 有 catch+rethrow）；goldfish 依 §2「错误隔离与容错」取更保守行为 |
