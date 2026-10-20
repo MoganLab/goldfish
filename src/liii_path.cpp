@@ -142,7 +142,7 @@ f_path_read_text (s7_scheme* sc, s7_pointer args) {
     tb_file_sync (file);
 
     tb_size_t size= tb_file_size (file);
-    if (size == (tb_size_t)-1) {
+    if (size == (tb_size_t) -1) {
       tb_file_exit (file);
       return s7_make_boolean (sc, false);
     }
@@ -152,7 +152,7 @@ f_path_read_text (s7_scheme* sc, s7_pointer args) {
       return s7_make_string (sc, "");
     }
 
-    tb_byte_t* buffer   = new (std::nothrow) tb_byte_t[size + 1];
+    tb_byte_t* buffer= new (std::nothrow) tb_byte_t[size + 1];
     if (!buffer) {
       tb_file_exit (file);
       return s7_make_boolean (sc, false);
@@ -161,7 +161,7 @@ f_path_read_text (s7_scheme* sc, s7_pointer args) {
     tb_size_t real_size= tb_file_read (file, buffer, size);
     tb_file_exit (file);
 
-    if (real_size == (tb_size_t)-1) {
+    if (real_size == (tb_size_t) -1) {
       delete[] buffer;
       return s7_make_boolean (sc, false);
     }
@@ -187,11 +187,9 @@ f_path_read_text (s7_scheme* sc, s7_pointer args) {
     }
 
     return s7_make_string (sc, normalized.c_str ());
-  }
-  catch (const std::exception& e) {
+  } catch (const std::exception& e) {
     return s7_make_boolean (sc, false);
-  }
-  catch (...) {
+  } catch (...) {
     return s7_make_boolean (sc, false);
   }
 }
@@ -232,7 +230,7 @@ f_path_read_lines (s7_scheme* sc, s7_pointer args) {
 
     tb_file_sync (file);
     tb_size_t size= tb_file_size (file);
-    if (size == (tb_size_t)-1) {
+    if (size == (tb_size_t) -1) {
       tb_file_exit (file);
       return s7_make_boolean (sc, false);
     }
@@ -247,7 +245,7 @@ f_path_read_lines (s7_scheme* sc, s7_pointer args) {
     tb_size_t real_size= tb_file_read (file, reinterpret_cast<tb_byte_t*> (&content[0]), size);
     tb_file_exit (file);
 
-    if (real_size == (tb_size_t)-1) {
+    if (real_size == (tb_size_t) -1) {
       return s7_make_boolean (sc, false);
     }
     content.resize (real_size);
@@ -292,11 +290,9 @@ f_path_read_lines (s7_scheme* sc, s7_pointer args) {
       result= s7_cons (sc, s7_make_string_with_length (sc, it->data (), it->size ()), result);
     }
     return result;
-  }
-  catch (const std::exception& e) {
+  } catch (const std::exception& e) {
     return s7_make_boolean (sc, false);
-  }
-  catch (...) {
+  } catch (...) {
     return s7_make_boolean (sc, false);
   }
 }
@@ -333,7 +329,7 @@ f_path_read_bytes (s7_scheme* sc, s7_pointer args) {
 
     tb_file_sync (file);
     tb_size_t size= tb_file_size (file);
-    if (size == (tb_size_t)-1) {
+    if (size == (tb_size_t) -1) {
       tb_file_exit (file);
       return s7_make_boolean (sc, false);
     }
@@ -343,7 +339,7 @@ f_path_read_bytes (s7_scheme* sc, s7_pointer args) {
       return s7_make_byte_vector (sc, 0, 1, NULL);
     }
 
-    tb_byte_t* buffer = new (std::nothrow) tb_byte_t[size];
+    tb_byte_t* buffer= new (std::nothrow) tb_byte_t[size];
     if (!buffer) {
       tb_file_exit (file);
       return s7_make_boolean (sc, false);
@@ -352,7 +348,7 @@ f_path_read_bytes (s7_scheme* sc, s7_pointer args) {
     tb_size_t real_size= tb_file_read (file, buffer, size);
     tb_file_exit (file);
 
-    if (real_size == (tb_size_t)-1 || real_size != size) {
+    if (real_size == (tb_size_t) -1 || real_size != size) {
       delete[] buffer;
       return s7_make_boolean (sc, false);
     }
@@ -363,11 +359,9 @@ f_path_read_bytes (s7_scheme* sc, s7_pointer args) {
 
     delete[] buffer;
     return bytevector;
-  }
-  catch (const std::exception& e) {
+  } catch (const std::exception& e) {
     return s7_make_boolean (sc, false);
-  }
-  catch (...) {
+  } catch (...) {
     return s7_make_boolean (sc, false);
   }
 }
@@ -598,7 +592,7 @@ f_path_copy (s7_scheme* sc, s7_pointer args) {
 
     tb_file_sync (src_file);
     tb_size_t size= tb_file_size (src_file);
-    if (size == (tb_size_t)-1) {
+    if (size == (tb_size_t) -1) {
       tb_file_exit (src_file);
       return s7_make_boolean (sc, false);
     }
@@ -612,7 +606,7 @@ f_path_copy (s7_scheme* sc, s7_pointer args) {
     bool success= true;
 
     if (size > 0) {
-      tb_byte_t* buffer   = new (std::nothrow) tb_byte_t[size];
+      tb_byte_t* buffer= new (std::nothrow) tb_byte_t[size];
       if (!buffer) {
         tb_file_exit (src_file);
         tb_file_exit (dst_file);
@@ -637,8 +631,7 @@ f_path_copy (s7_scheme* sc, s7_pointer args) {
     tb_file_exit (dst_file);
 
     return s7_make_boolean (sc, success);
-  }
-  catch (...) {
+  } catch (...) {
     return s7_make_boolean (sc, false);
   }
 }
