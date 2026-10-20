@@ -102,17 +102,19 @@
              (is-glm? (string=? p-str "glm"))
              (is-ds? (string=? p-str "deepseek"))
              (is-mm? (or (string=? p-str "minimax") (string=? p-str "minimax-cn")))
+             (is-zai? (or (string=? p-str "zai-coding-cn") (string=? p-str "zai")))
              (def-url (cond (is-ant? "https://api.anthropic.com")
                             (is-kimi? "https://api.kimi.com/coding/v1")
                             (is-glm? "https://open.bigmodel.cn/api/anthropic")
                             (is-ds? "https://api.deepseek.com/anthropic")
                             (is-mm? "https://api.minimaxi.com/anthropic")
+                            (is-zai? "https://open.bigmodel.cn/api/coding/paas/v4")
                             (else "https://generativelanguage.googleapis.com/v1beta")
                       ) ;cond
              ) ;def-url
              (m
                (or (%find-model-in-list (%get-provider-models models-store p-str) model-id)
-                 (and is-mm?
+                 (and (or is-mm? is-zai?)
                    (%find-model-in-list (%dict-ref PI_PROVIDER_BUILTIN_MODELS p-str '()) model-id)
                  ) ;and
                ) ;or
@@ -138,6 +140,7 @@
              (def-cw (cond (is-ant? 200000)
                            (is-kimi? 262144)
                            (is-mm? 1000000)
+                           (is-zai? 1000000)
                            (else 128000)
                      ) ;cond
              ) ;def-cw
@@ -146,6 +149,7 @@
                            (is-glm? 8192)
                            (is-ds? 8192)
                            (is-mm? 512000)
+                           (is-zai? 131072)
                            (else 16384)
                      ) ;cond
              ) ;def-mt

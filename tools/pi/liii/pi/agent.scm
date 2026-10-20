@@ -15,6 +15,7 @@
     (liii pi kimi)
     (liii pi deepseek)
     (liii pi minimax)
+    (liii pi zai)
     (liii pi message)
     (liii pi time)
     (liii pi event)
@@ -82,6 +83,9 @@
             ) ;
             ((equal? provider "kimi-coding")
              (kimi-request-stream config msgs sys-prompt tools on-ev timeout)
+            ) ;
+            ((or (equal? provider "zai-coding-cn") (equal? provider "zai"))
+             (zai-request-stream config msgs sys-prompt tools on-ev timeout)
             ) ;
             ((or (equal? provider "minimax") (equal? provider "minimax-cn"))
              (minimax-request-stream config msgs sys-prompt tools on-ev timeout)

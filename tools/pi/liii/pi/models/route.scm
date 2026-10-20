@@ -56,7 +56,7 @@
               ((equal? p "kimi-coding") "kimi-for-coding")
               ((equal? p "glm") "glm-5.3")
               ((equal? p "deepseek") "deepseek-v4-pro")
-              ((equal? p "zai-coding-cn") "glm-5.3")
+              ((or (equal? p "zai-coding-cn") (equal? p "zai")) "glm-5.3")
               ((or (equal? p "minimax") (equal? p "minimax-cn")) "MiniMax-M3.1-Flash")
               (else "gemini-3.8-flash")
         ) ;cond
@@ -67,16 +67,9 @@
       (let* ((p-str (if (symbol? provider) (symbol->string provider) provider))
              (store-models (%get-provider-models models-store p-str))
              (store-match (%find-model-in-list store-models model-id))
+             (builtin (%dict-ref PI_PROVIDER_BUILTIN_MODELS p-str '()))
             ) ;
-        (if
-          (or store-match
-            (let ((builtin (%dict-ref PI_PROVIDER_BUILTIN_MODELS p-str '())))
-              (%find-model-in-list builtin model-id)
-            ) ;let
-          ) ;or
-          #t
-          #f
-        ) ;if
+        (and (or store-match (%find-model-in-list builtin model-id)) #t)
       ) ;let*
     ) ;define
 
@@ -195,14 +188,24 @@
                (and (string? cli-m) (not (string-null? (string-trim-both cli-m))))
              ) ;has-cli-m?
              (env-gf-m (%safe-lookup-env "GF_PI_MODEL" opt-env))
-             (explicit-m
+             (raw-m
                (cond (has-cli-m? cli-m)
                      ((and (string? env-gf-m) (not (string-null? (string-trim-both env-gf-m))))
                       env-gf-m
                      ) ;
                      (else #f)
                ) ;cond
+             ) ;raw-m
+             (slash? (and (string? raw-m) (string-contains? raw-m "/")))
+             (parts (if slash? (string-split raw-m "/") '()))
+             (slash-p (and slash? (pair? parts) (car parts)))
+             (explicit-m
+               (if (and slash? (pair? (cdr parts))) (cadr parts) raw-m)
              ) ;explicit-m
+             (effective-p (or (and has-cli-p? cli-p) slash-p))
+             (has-effective-p?
+               (and (string? effective-p) (not (string-null? (string-trim-both effective-p))))
+             ) ;has-effective-p?
              (settings-p (%settings-ref settings 'default-provider "default-provider" #f))
              (settings-m (%settings-ref settings 'default-model "default-model" #f))
              (default-p
@@ -214,16 +217,16 @@
              ) ;default-p
             ) ;
         (let-values (((provider model-id)
-                      (if has-cli-p?
-                        (values cli-p
+                      (if has-effective-p?
+                        (values effective-p
                           (or explicit-m
-                            (%provider-env-model cli-p opt-env)
-                            (and (equal? cli-p settings-p)
+                            (%provider-env-model effective-p opt-env)
+                            (and (equal? effective-p settings-p)
                               (string? settings-m)
                               (not (string-null? (string-trim-both settings-m)))
                               settings-m
                             ) ;and
-                            (pi-provider-default-model cli-p)
+                            (pi-provider-default-model effective-p)
                           ) ;or
                         ) ;values
                         (if explicit-m
