@@ -76,14 +76,6 @@
       (pi-resolve-retry-params settings opt-retry)
     ) ;define
 
-    (define (%calc-delay-sec base-delay max-delay attempt)
-      (let* ((calc-ms (* base-delay (expt 2 (- attempt 1))))
-             (delay-ms (min calc-ms max-delay))
-            ) ;
-        (/ delay-ms 1000.0)
-      ) ;let*
-    ) ;define
-
     (define (%make-retry-error status attempt body-str)
       (pi-assistant-message (list (pi-text-block ""))
         :stop-reason "error"
@@ -162,10 +154,14 @@
                 ) ;
             (if (anthropic-is-retriable-error? status body-str)
               (if (<= attempt provider-max-retries)
-                (begin
-                  (sleep (%calc-delay-sec base-delay max-delay attempt))
+                (let* ((ra-raw (pi-extract-retry-after resp))
+                       (ra-sec (pi-parse-retry-after ra-raw))
+                       (delay-sec (pi-calc-retry-delay attempt base-delay max-delay ra-sec))
+                      ) ;
+                  (pi-log-retry status attempt provider-max-retries delay-sec ra-sec)
+                  (sleep delay-sec)
                   (loop (+ attempt 1))
-                ) ;begin
+                ) ;let*
                 (%make-retry-error status attempt body-str)
               ) ;if
               (let ((parsed-json (catch #t (lambda () (string->json body-str)) (lambda args #f))))

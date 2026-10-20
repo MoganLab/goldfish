@@ -211,8 +211,9 @@
     pi-retry-config pi-retry-config? pi-retry-config-enabled
     pi-retry-config-max-retries pi-retry-config-base-delay-ms
     pi-retry-config-max-agent-delay-ms pi-retry-config-provider-max-retries
-    pi-retry-config->alist pi-resolve-retry-params pi-settings pi-settings?
-    pi-settings-default-provider pi-settings-default-model
+    pi-retry-config->alist pi-resolve-retry-params pi-extract-retry-after
+    pi-parse-retry-after pi-calc-retry-delay pi-log-retry pi-settings
+    pi-settings? pi-settings-default-provider pi-settings-default-model
     pi-settings-default-thinking-level pi-settings-http-proxy pi-settings-retry
     pi-settings-default-tools pi-settings->alist pi-credential pi-credential?
     pi-credential-provider pi-credential-key pi-credential-type

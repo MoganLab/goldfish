@@ -44,15 +44,15 @@
     ) ;define
 
     (define (%make-tool-call-block name args id ts i)
-      (let* ((eff-id
-               (if (and (string? id) (not (string-null? id)))
-                 id
-                 (gemini-generate-tool-call-id)
-               ) ;if
-             ) ;eff-id
-            ) ;
+      (let ((eff-id
+              (if (and (string? id) (not (string-null? id)))
+                id
+                (gemini-generate-tool-call-id)
+              ) ;if
+            ) ;eff-id
+           ) ;
         (pi-tool-call-block eff-id name args :thought-signature ts)
-      ) ;let*
+      ) ;let
     ) ;define
 
     (define (%extract-parts-content parts)
@@ -81,14 +81,13 @@
               (let* ((fc (cdr (assoc "functionCall" part)))
                      (name (cdr (assoc "name" fc)))
                      (args (cdr (assoc "args" fc)))
-                     (id (cdr (or (assoc "id" fc) (assoc 'id fc) '(#f . #f))))
-                     (ts (cdr (or (assoc "thoughtSignature" part)
-                                (assoc 'thoughtSignature part)
-                                (assoc "thoughtSignature" fc)
-                                (assoc 'thoughtSignature fc)
-                                '(#f . #f)
-                              ) ;or
-                         ) ;cdr
+                     (id (cond ((assoc "id" fc) => cdr) ((assoc 'id fc) => cdr) (else #f)))
+                     (ts (cond ((assoc "thoughtSignature" part) => cdr)
+                               ((assoc 'thoughtSignature part) => cdr)
+                               ((assoc "thoughtSignature" fc) => cdr)
+                               ((assoc 'thoughtSignature fc) => cdr)
+                               (else #f)
+                         ) ;cond
                      ) ;ts
                      (tc-blk (%make-tool-call-block name args id ts i))
                     ) ;
@@ -180,11 +179,9 @@
     ) ;define
 
     (define (%resp-field resp key)
-      (cond ((procedure? resp) (resp key))
-            ((hash-table? resp) (resp key))
-            ((pair? resp) (cdr (or (assoc key resp) '(#f . #f))))
-            (else #f)
-      ) ;cond
+      (or (and (or (procedure? resp) (hash-table? resp)) (resp key))
+        (and (pair? resp) (let ((m (assoc key resp))) (and m (cdr m))))
+      ) ;or
     ) ;define
 
     (define (%http-post-safe url req-json-str headers proxy-alist timeout)
@@ -267,8 +264,15 @@
                ((and (gemini-is-retriable-error? status body-str)
                   (<= attempt provider-max-retries)
                 ) ;and
-                (sleep (pi-calc-retry-delay attempt base-delay-ms max-agent-delay-ms))
-                (loop (+ attempt 1) api-key)
+                (let* ((ra-raw (pi-extract-retry-after resp))
+                       (ra-sec (pi-parse-retry-after ra-raw))
+                       (delay-sec (pi-calc-retry-delay attempt base-delay-ms max-agent-delay-ms ra-sec)
+                       ) ;delay-sec
+                      ) ;
+                  (pi-log-retry status attempt provider-max-retries delay-sec ra-sec)
+                  (sleep delay-sec)
+                  (loop (+ attempt 1) api-key)
+                ) ;let*
                ) ;
                ((gemini-is-retriable-error? status body-str)
                 (%make-error-response (format-failed-stream-msg status resp)

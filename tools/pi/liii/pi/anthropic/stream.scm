@@ -194,11 +194,11 @@
       (vector '() #f (anthropic-map-usage '()) '() "end_turn" #f #f)
     ) ;define
 
-    (define (%run-stream-loop url req-json-str headers proxy-alist on-ev timeout
-              opt-retry eff-idle
+    (define (%run-stream-loop settings url req-json-str headers proxy-alist
+              on-ev timeout opt-retry eff-idle
             ) ;%run-stream-loop
       (let-values (((max-r base-delay max-delay provider-r)
-                    (pi-resolve-retry-params '() opt-retry)
+                    (pi-resolve-retry-params settings opt-retry)
                    ) ;
                   ) ;
         (let loop
@@ -219,10 +219,14 @@
             (cond (idle-timed-out? (%make-idle-timeout-error eff-idle))
                   ((anthropic-is-retriable-error? status "")
                    (if (<= attempt provider-r)
-                     (begin
-                       (sleep 1.0)
+                     (let* ((ra-raw (pi-extract-retry-after resp))
+                            (ra-sec (pi-parse-retry-after ra-raw))
+                            (delay-sec (pi-calc-retry-delay attempt base-delay max-delay ra-sec))
+                           ) ;
+                       (pi-log-retry status attempt provider-r delay-sec ra-sec)
+                       (sleep delay-sec)
                        (loop (+ attempt 1))
-                     ) ;begin
+                     ) ;let*
                      (%make-stream-error status resp err-acc)
                    ) ;if
                   ) ;
@@ -264,10 +268,11 @@
              (req-json-str (json->string req-body))
              (headers (%build-headers api-key))
              (proxy-alist (%build-proxy proxy-url))
+             (settings (cdr (or (assoc 'settings config) '(#f))))
              (eff-idle (or idle-timeout timeout))
             ) ;
-        (%run-stream-loop url req-json-str headers proxy-alist on-event timeout
-          opt-retry eff-idle
+        (%run-stream-loop settings url req-json-str headers proxy-alist on-event
+          timeout opt-retry eff-idle
         ) ;%run-stream-loop
       ) ;let*
     ) ;define*

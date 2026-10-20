@@ -199,10 +199,15 @@
                  ) ;
                  ((and (not idle-timed-out?) (gemini-is-retriable-error? status ""))
                   (if (<= attempt provider-max-retries)
-                    (begin
-                      (sleep (pi-calc-retry-delay attempt 2000 60000))
+                    (let* ((ra-raw (pi-extract-retry-after resp))
+                           (ra-sec (pi-parse-retry-after ra-raw))
+                           (delay-sec (pi-calc-retry-delay attempt base-delay-ms max-agent-delay-ms ra-sec)
+                           ) ;delay-sec
+                          ) ;
+                      (pi-log-retry status attempt provider-max-retries delay-sec ra-sec)
+                      (sleep delay-sec)
                       (loop (+ attempt 1) api-key)
-                    ) ;begin
+                    ) ;let*
                     (list (cons 'role "assistant")
                       (cons 'content (vector-ref stream-state 0))
                       (cons 'stopReason "error")

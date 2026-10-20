@@ -150,11 +150,13 @@
     (define (%run-stream-loop config url req-json-str proxy-alist on-ev timeout
               opt-retry eff-idle
             ) ;%run-stream-loop
-      (let-values (((max-r base-delay max-delay provider-r)
-                    (pi-resolve-retry-params '() opt-retry)
-                   ) ;
-                  ) ;
-        (let ((pool (pi-multikey-pool-of config)))
+      (let* ((settings (cdr (or (assoc 'settings config) '(#f))))
+             (pool (pi-multikey-pool-of config))
+            ) ;
+        (let-values (((max-r base-delay max-delay provider-r)
+                      (pi-resolve-retry-params settings opt-retry)
+                     ) ;
+                    ) ;
           (let loop
             ((attempt 1) (api-key (pi-multikey-request-key config)))
             (let* ((headers (kimi-build-headers api-key))
@@ -185,10 +187,14 @@
                     ) ;
                     ((kimi-is-retriable-error? status "")
                      (if (<= attempt provider-r)
-                       (begin
-                         (sleep 1.0)
+                       (let* ((ra-raw (pi-extract-retry-after resp))
+                              (ra-sec (pi-parse-retry-after ra-raw))
+                              (delay-sec (pi-calc-retry-delay attempt base-delay max-delay ra-sec))
+                             ) ;
+                         (pi-log-retry status attempt provider-r delay-sec ra-sec)
+                         (sleep delay-sec)
                          (loop (+ attempt 1) api-key)
-                       ) ;begin
+                       ) ;let*
                        (%make-stream-error status resp err-acc)
                      ) ;if
                     ) ;
@@ -199,8 +205,8 @@
               ) ;cond
             ) ;let*
           ) ;let
-        ) ;let
-      ) ;let-values
+        ) ;let-values
+      ) ;let*
     ) ;define
 
     (define* (kimi-request-stream config
