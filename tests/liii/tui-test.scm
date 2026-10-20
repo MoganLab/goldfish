@@ -132,4 +132,15 @@
   (check (text-area? ta) => #t)
   (check (editor-lines ta) => '("multi" "line")))
 
+;; 主屏幕驱动与差分渲染门面再导出测试
+(let* ((vt (make-virtual-terminal :width 16 :height 3))
+       (screen (make-main-screen vt)))
+  (check (main-screen? screen) => #t)
+  (check (screen-render! screen '("Hello TUI")) => #t)
+  (check (screen-lines screen) => '("Hello TUI"))
+  (check (car (virtual-terminal-screen vt)) => "Hello TUI       ")
+  (check (pair? (screen-diff '("a") '("b"))) => #t)
+  (screen-clear! screen)
+  (check (screen-lines screen) => '()))
+
 (check-report)
