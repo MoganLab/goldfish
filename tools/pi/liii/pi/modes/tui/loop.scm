@@ -17,6 +17,7 @@
     (liii pi modes tui layout)
     (liii pi modes tui loop opts)
     (liii pi modes tui loop dispatch)
+    (liii pi modes tui streaming)
   ) ;import
   (export run-tui-loop)
   (begin
@@ -86,9 +87,11 @@
                   (%handle-resize! term screen current-state)
 
                   ;; 1. 脏标记与渲染调度
-                  (when (and render (state-dirty? current-state))
+                  (when (state-dirty? current-state)
                     (state-clear-dirty! current-state)
-                    (%call-render render current-state term)
+                    (cond (render (%call-render render current-state term))
+                          (screen (render-tui-screen! screen current-state))
+                    ) ;cond
                   ) ;when
 
                   ;; 2. 非阻塞按键轮询与分发

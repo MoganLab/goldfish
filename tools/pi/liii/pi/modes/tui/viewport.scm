@@ -9,7 +9,8 @@
 (define-library (liii pi modes tui viewport)
   (import (scheme base) (liii base) (liii error) (liii pi modes tui message))
   (export compute-max-scroll-offset compute-viewport-window
-    viewport-scroll-indicator render-messages-viewport
+    viewport-scroll-indicator render-messages-viewport compute-committed-lines
+    render-messages-viewport-stream
   ) ;export
   (begin
 
@@ -90,7 +91,51 @@
       ) ;let
     ) ;define
 
-    (define (render-messages-viewport messages width height scroll-offset)
+    (define (compute-committed-lines messages width)
+      (unless (list? messages)
+        (type-error "compute-committed-lines: expected list for messages")
+      ) ;unless
+      (unless (and (exact-integer? width) (> width 0))
+        (type-error "compute-committed-lines: expected positive integer width")
+      ) ;unless
+      (let loop
+        ((rest messages) (acc '()))
+        (if (null? rest)
+          acc
+          (let ((lines (render-message-lines (car rest) width)))
+            (loop (cdr rest) (append acc lines))
+          ) ;let
+        ) ;if
+      ) ;let
+    ) ;define
+
+    (define (%render-message-lines-all messages width maybe-committed)
+      (let ((committed (and (pair? maybe-committed)
+                         (list? (car maybe-committed))
+                         (car maybe-committed)
+                       ) ;and
+            ) ;committed
+           ) ;
+        (if committed
+          (let* ((last-msg (car (reverse messages)))
+                 (active-lines (render-message-lines last-msg width))
+                ) ;
+            (append committed active-lines)
+          ) ;let*
+          (let loop
+            ((rest messages) (acc '()))
+            (if (null? rest)
+              acc
+              (loop (cdr rest) (append acc (render-message-lines (car rest) width)))
+            ) ;if
+          ) ;let
+        ) ;if
+      ) ;let
+    ) ;define
+
+    (define (render-messages-viewport messages width height scroll-offset .
+             maybe-committed-lines
+            ) ;
       (unless (list? messages)
         (type-error "render-messages-viewport: expected list for messages")
       ) ;unless
@@ -104,27 +149,22 @@
         (type-error "render-messages-viewport: expected non-negative integer scroll-offset"
         ) ;type-error
       ) ;unless
-      (if (zero? height)
-        '()
-        (let* ((all-rendered-lines
-                 (let loop
-                   ((rest messages) (acc '()))
-                   (if (null? rest)
-                     acc
-                     (let ((lines (render-message-lines (car rest) width)))
-                       (loop (cdr rest) (append acc lines))
-                     ) ;let
-                   ) ;if
-                 ) ;let
-               ) ;all-rendered-lines
-               (total (length all-rendered-lines))
-              ) ;
-          (let-values (((start end) (compute-viewport-window total height scroll-offset)))
-            (%sublist all-rendered-lines start end)
-          ) ;let-values
-        ) ;let*
-      ) ;if
+      (cond ((zero? height) '())
+            ((null? messages) '())
+            (else
+              (let* ((all-rendered-lines (%render-message-lines-all messages width maybe-committed-lines)
+                     ) ;all-rendered-lines
+                     (total (length all-rendered-lines))
+                    ) ;
+                (let-values (((start end) (compute-viewport-window total height scroll-offset)))
+                  (%sublist all-rendered-lines start end)
+                ) ;let-values
+              ) ;let*
+            ) ;else
+      ) ;cond
     ) ;define
+
+    (define render-messages-viewport-stream render-messages-viewport)
 
   ) ;begin
 ) ;define-library

@@ -17,6 +17,7 @@
     (liii pi modes tui layout)
     (liii pi modes tui message)
     (liii pi modes tui viewport)
+    (liii pi modes tui streaming)
   ) ;import
   (export with-pi-tui-terminal
     run-tui-loop
@@ -52,6 +53,7 @@
     state-with-scroll-offset
     state-with-dirty
     state-with-dimensions
+    state-with-stream-finished
     ;; In-place mutations
     state-mark-dirty!
     state-clear-dirty!
@@ -62,6 +64,8 @@
     state-set-scroll-offset!
     state-set-dimensions!
     state-submit-prompt!
+    state-append-message!
+    state-finish-stream!
     ;; Editor exports
     make-pi-tui-editor
     pi-tui-editor?
@@ -124,6 +128,16 @@
     compute-viewport-window
     viewport-scroll-indicator
     render-messages-viewport
+    compute-committed-lines
+    render-messages-viewport-stream
+    ;; Streaming exports
+    extract-stream-delta
+    append-stream-chunk
+    state-append-stream-chunk!
+    state-with-stream-chunk
+    render-tui-screen-lines
+    render-tui-screen!
+    stream-screen-render!
   ) ;export
   (begin
 

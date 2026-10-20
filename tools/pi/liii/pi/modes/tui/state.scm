@@ -43,6 +43,7 @@
     state-with-scroll-offset
     state-with-dirty
     state-with-dimensions
+    state-with-stream-finished
     ;; In-place mutations
     state-mark-dirty!
     state-clear-dirty!
@@ -53,6 +54,8 @@
     state-set-scroll-offset!
     state-set-dimensions!
     state-submit-prompt!
+    state-append-message!
+    state-finish-stream!
   ) ;export
   (begin
 
@@ -251,6 +254,30 @@
         ) ;unless
         st
       ) ;let*
+    ) ;define
+
+    (define (state-append-message! st msg)
+      (%validate-state st "state-append-message!")
+      (state-set-messages! st (append (state-messages st) (list msg)))
+      st
+    ) ;define
+
+    (define (state-finish-stream! st . maybe-target-status)
+      (%validate-state st "state-finish-stream!")
+      (let ((target (if (pair? maybe-target-status) (car maybe-target-status) 'idle)))
+        (%validate-status target "state-finish-stream!")
+        (state-set-status! st target)
+        (state-mark-dirty! st)
+        st
+      ) ;let
+    ) ;define
+
+    (define (state-with-stream-finished st . maybe-target-status)
+      (%validate-state st "state-with-stream-finished")
+      (let ((target (if (pair? maybe-target-status) (car maybe-target-status) 'idle)))
+        (%validate-status target "state-with-stream-finished")
+        (state-with-status st target)
+      ) ;let
     ) ;define
 
   ) ;begin
