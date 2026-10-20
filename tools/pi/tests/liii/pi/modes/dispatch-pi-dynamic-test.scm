@@ -40,11 +40,13 @@
   (register-flag! reg
     (make-extension-flag-def "--custom-agent" "Custom agent" :key 'custom-agent)
   ) ;register-flag!
+  (register-config-augmenter! reg
+    (lambda (cfg parsed) (cons '(api-key . "dummy-token") cfg))
+  ) ;register-config-augmenter!
   (register-flow! reg flow)
   (with-extension-registry reg
     (lambda ()
-      (let ((parsed (parse-pi-args '("--custom-agent" "--api-key" "dummy-key"
-                                     "hello"))))
+      (let ((parsed (parse-pi-args '("--custom-agent" "hello"))))
         (check (dispatch-pi parsed 'print "hello" '()) => 456)
         (check session-executed => #t)
       ) ;let
