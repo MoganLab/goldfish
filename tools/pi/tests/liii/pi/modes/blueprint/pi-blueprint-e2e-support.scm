@@ -27,6 +27,8 @@
 
 (define %tmp2 (path->string (path-join (path-temp-dir) "gf-bp-e2e-2")))
 
+(define %tmp-agent (path->string (path-join (path-temp-dir) "gf-bp-e2e-agent")))
+
 (define (as-text x)
   (if (string? x) x "")
 ) ;define
@@ -35,6 +37,24 @@
   (unless (path-exists? (path dir))
     (path-mkdir (path dir) :parents #t :exist-ok #t)
   ) ;unless
+) ;define
+
+(define (setup-fixture!)
+  (setup-dir! %tmp-agent)
+  (for-each
+    (lambda (name)
+      (path-copy (path-join (path %fixture) (path name))
+        (path-join (path %tmp-agent) (path name))
+      ) ;path-copy
+    ) ;lambda
+    '("auth.json" "models-store.json" "settings.json")
+  ) ;for-each
+) ;define
+
+(define (cleanup-fixture!)
+  (when (path-exists? (path %tmp-agent))
+    (g_rmtree %tmp-agent)
+  ) ;when
 ) ;define
 
 (define (cleanup-dir! dir)
@@ -70,7 +90,7 @@
 ) ;define
 
 (define (e2e-env base)
-  (append (list (cons "PI_CODING_AGENT_DIR" %fixture)
+  (append (list (cons "PI_CODING_AGENT_DIR" %tmp-agent)
             (cons "GF_PI_BASE_URL" base)
             (cons "GF_PI_MODEL" "gemini-3.8-flash")
             (cons "https_proxy" "")
@@ -80,15 +100,20 @@
             (cons "HTTP_PROXY" "")
             (cons "ALL_PROXY" "")
           ) ;list
-          (get-environment-variables)
+    (get-environment-variables)
   ) ;append
 ) ;define
 
 (define (read-all p . maybe-stream)
   (let ((stream (if (null? maybe-stream) 'stdout (car maybe-stream))))
-    (let loop ((acc ""))
+    (let loop
+      ((acc ""))
       (let ((c (process-read p :stream stream)))
-        (if (eof-object? c) acc (loop (string-append acc c)))))))
+        (if (eof-object? c) acc (loop (string-append acc c)))
+      ) ;let
+    ) ;let
+  ) ;let
+) ;define
 
 (define (run-pi dir env args)
   (let ((p (process-spawn (cons %gf (cons "pi" args))
@@ -186,5 +211,5 @@
 
 
 (define (snapshot-fixture)
-  (vector->list (path-list (path %fixture)))
+  (vector->list (path-list (path %tmp-agent)))
 ) ;define

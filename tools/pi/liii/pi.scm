@@ -51,12 +51,12 @@
   (export resolve-app-mode format-file-block build-initial-prompt
     get-tool-definition execute-tool-call exclude-tools-from-list
     PI_DEFAULT_MAX_LINES PI_DEFAULT_MAX_BYTES PI_GREP_MAX_LINE_LENGTH
-    pi-format-size pi-truncate-line pi-truncate-head pi-truncate-tail pi-arg-ref
-    pi-resolve-path pi-read-schema pi-execute-read pi-write-schema
-    pi-execute-write pi-edit-schema pi-execute-edit pi-bash-schema
-    pi-execute-bash pi-find-bash-path pi-ls-schema pi-execute-ls pi-find-schema
-    pi-execute-find pi-grep-schema pi-execute-grep pi-web-search-schema
-    pi-validate-web-search-args pi-format-web-search-result
+    pi-format-size pi-truncate-line pi-split-lines pi-truncate-head
+    pi-truncate-tail pi-arg-ref pi-resolve-path pi-read-schema pi-execute-read
+    pi-write-schema pi-execute-write pi-edit-schema pi-execute-edit
+    pi-bash-schema pi-execute-bash pi-find-bash-path pi-ls-schema pi-execute-ls
+    pi-find-schema pi-execute-find pi-grep-schema pi-execute-grep
+    pi-web-search-schema pi-validate-web-search-args pi-format-web-search-result
     pi-execute-web-search pi-resolve-config-value json-dict-ref pi-get-agent-dir
     PI_REVIEW_MAX_FILES PI_REVIEW_MAX_FILE_CHARS PI_REVIEW_SEVERITIES
     pi-parse-changed-files pi-changed-files-command pi-collect-changed-files
