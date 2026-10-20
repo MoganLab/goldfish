@@ -22,12 +22,13 @@
 ;;
 
 (define-library (liii tui terminal poll)
-  (export terminal-poll-key %poll-console-key)
+  (export terminal-poll-key %poll-console-key %resolve-ansi-bytes)
   (import (scheme base)
     (liii error)
     (liii os)
     (liii tui terminal protocol)
     (liii tui terminal virtual)
+    (liii tui keys parser)
   ) ;import
   (begin
 
@@ -38,8 +39,8 @@
             ((= code 77) 'right)
             ((= code 71) 'home)
             ((= code 79) 'end)
-            ((= code 73) 'pageup)
-            ((= code 81) 'pagedown)
+            ((= code 73) 'page-up)
+            ((= code 81) 'page-down)
             ((= code 83) 'delete)
             (else #f)
       ) ;cond
@@ -57,15 +58,49 @@
       ) ;cond
     ) ;define
 
+    (define (%resolve-ansi-bytes byte-list)
+      (if (null? byte-list)
+        #f
+        (if (<= (length byte-list) 1)
+          'escape
+          (let* ((str (list->string (map integer->char byte-list))) (k (parse-key str)))
+            k
+          ) ;let*
+        ) ;if
+      ) ;if
+    ) ;define
+
+    (define (%poll-escape-key)
+      (if (not (console-kbhit? 25))
+        'escape
+        (let loop
+          ((bytes (list 27)))
+          (if (console-kbhit? 10)
+            (let ((b (console-getch)))
+              (if (and b (exact-integer? b))
+                (loop (cons b bytes))
+                (%resolve-ansi-bytes (reverse bytes))
+              ) ;if
+            ) ;let
+            (%resolve-ansi-bytes (reverse bytes))
+          ) ;if
+        ) ;let
+      ) ;if
+    ) ;define
+
     (define (%poll-console-key)
       (if (console-kbhit?)
         (let ((c (console-getch)))
-          (if (or (= c 0) (= c 224))
+          (cond
+           ((not (and c (exact-integer? c))) #f)
+           ((or (= c 0) (= c 224))
             (let ((ext (console-getch)))
-              (%map-extended-key ext)
+              (if (and ext (exact-integer? ext)) (%map-extended-key ext) #f)
             ) ;let
-            (%map-standard-key c)
-          ) ;if
+           ) ;
+           ((= c 27) (%poll-escape-key))
+           (else (%map-standard-key c))
+          ) ;cond
         ) ;let
         #f
       ) ;if

@@ -41,7 +41,9 @@
 
 #if !defined(TB_CONFIG_OS_WINDOWS)
 #include <errno.h>
+#include <poll.h>
 #include <pwd.h>
+#include <termios.h>
 #include <unistd.h>
 #if !defined(__EMSCRIPTEN__)
 #include <wordexp.h>
@@ -468,20 +470,114 @@ f_os_tty_p (s7_scheme* sc, s7_pointer args) {
   return s7_make_boolean (sc, ret != 0);
 }
 
+#ifndef TB_CONFIG_OS_WINDOWS
+static struct termios g_orig_termios;
+static bool           g_raw_mode_enabled= false;
+static bool           g_has_orig_termios= false;
+
+static void
+restore_terminal_mode_at_exit () {
+  if (g_raw_mode_enabled && g_has_orig_termios) {
+    tcsetattr (STDIN_FILENO, TCSANOW, &g_orig_termios);
+    g_raw_mode_enabled= false;
+  }
+}
+#endif
+
+static s7_pointer
+f_console_raw_mode (s7_scheme* sc, s7_pointer args) {
+  s7_pointer enable_arg= s7_car (args);
+  if (!s7_is_boolean (enable_arg)) {
+    return string_type_error (sc, "console-raw-mode!: enable must be a boolean", enable_arg);
+  }
+#ifdef TB_CONFIG_OS_WINDOWS
+  return s7_make_boolean (sc, true);
+#else
+  bool enable= (enable_arg == s7_t (sc));
+  if (enable) {
+    if (!isatty (STDIN_FILENO)) {
+      return s7_make_boolean (sc, false);
+    }
+    if (!g_has_orig_termios) {
+      if (tcgetattr (STDIN_FILENO, &g_orig_termios) != 0) {
+        return s7_make_boolean (sc, false);
+      }
+      g_has_orig_termios= true;
+      atexit (restore_terminal_mode_at_exit);
+    }
+    struct termios raw= g_orig_termios;
+    raw.c_lflag&= ~(ICANON | ECHO);
+    raw.c_cc[VMIN] = 0;
+    raw.c_cc[VTIME]= 0;
+    if (tcsetattr (STDIN_FILENO, TCSANOW, &raw) != 0) {
+      return s7_make_boolean (sc, false);
+    }
+    g_raw_mode_enabled= true;
+    return s7_make_boolean (sc, true);
+  }
+  else {
+    if (g_raw_mode_enabled && g_has_orig_termios) {
+      tcsetattr (STDIN_FILENO, TCSANOW, &g_orig_termios);
+      g_raw_mode_enabled= false;
+    }
+    return s7_make_boolean (sc, true);
+  }
+#endif
+}
+
+static void
+glue_console_raw_mode (s7_scheme* sc) {
+  const char* name= "g_console_raw_mode";
+  const char* desc= "(g_console_raw_mode enable) => boolean, set console raw mode";
+  glue_define (sc, name, desc, f_console_raw_mode, 1, 0);
+}
+
 static s7_pointer
 f_console_kbhit (s7_scheme* sc, s7_pointer args) {
+  int timeout_ms= 0;
+  if (s7_is_pair (args)) {
+    s7_pointer t_arg= s7_car (args);
+    if (!s7_is_integer (t_arg)) {
+      return string_type_error (sc, "console-kbhit?: timeout_ms must be an integer", t_arg);
+    }
+    timeout_ms= (int) s7_integer (t_arg);
+    if (timeout_ms < 0) {
+      timeout_ms= 0;
+    }
+  }
 #ifdef TB_CONFIG_OS_WINDOWS
-  return s7_make_boolean (sc, _kbhit () != 0);
-#else
+  if (_kbhit () != 0) {
+    return s7_make_boolean (sc, true);
+  }
+  if (timeout_ms <= 0) {
+    return s7_make_boolean (sc, false);
+  }
+  DWORD start= GetTickCount ();
+  while ((GetTickCount () - start) < (DWORD) timeout_ms) {
+    Sleep (1);
+    if (_kbhit () != 0) {
+      return s7_make_boolean (sc, true);
+    }
+  }
   return s7_make_boolean (sc, false);
+#else
+  if (!isatty (STDIN_FILENO)) {
+    return s7_make_boolean (sc, false);
+  }
+  struct pollfd pfd;
+  pfd.fd     = STDIN_FILENO;
+  pfd.events = POLLIN;
+  pfd.revents= 0;
+  int ret    = poll (&pfd, 1, timeout_ms);
+  return s7_make_boolean (sc, ret > 0 && (pfd.revents & POLLIN));
 #endif
 }
 
 static void
 glue_console_kbhit (s7_scheme* sc) {
   const char* name= "g_console_kbhit";
-  const char* desc= "(g_console_kbhit) => boolean, check if console key is ready";
-  glue_define (sc, name, desc, f_console_kbhit, 0, 0);
+  const char* desc= "(g_console_kbhit [timeout-ms]) => boolean, check if console key is ready";
+  glue_define (sc, name, desc, f_console_kbhit, 0, 1);
 }
 
 static s7_pointer
@@ -490,6 +586,11 @@ f_console_getch (s7_scheme* sc, s7_pointer args) {
   int ch= _getch ();
   return s7_make_integer (sc, ch);
 #else
+  unsigned char ch= 0;
+  ssize_t       n = read (STDIN_FILENO, &ch, 1);
+  if (n == 1) {
+    return s7_make_integer (sc, (int) ch);
+  }
   return s7_make_boolean (sc, false);
 #endif
 }
@@ -528,6 +629,7 @@ glue_liii_os (s7_scheme* sc) {
   glue_getlogin (sc);
   glue_getpid (sc);
   glue_os_tty_p (sc);
+  glue_console_raw_mode (sc);
   glue_console_kbhit (sc);
   glue_console_getch (sc);
 }

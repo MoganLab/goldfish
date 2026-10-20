@@ -23,6 +23,7 @@
 
 (import (scheme base)
   (liii base)
+  (liii os)
   (liii time)
   (liii tui component)
   (liii tui terminal)
@@ -90,56 +91,63 @@
                ) ;make-snake-game
          ) ;game
         ) ;
-    (terminal-hide-cursor! term)
-    (terminal-clear term)
-    (let game-loop
-      ((current-game game) (prev-cols init-cols) (prev-rows init-rows))
-      (if (eq? (snake-status current-game) 'game-over)
-        (begin
-          (%run-game-over-loop screen term current-game prev-cols)
-          (screen-clear! screen)
-          (terminal-show-cursor! term)
-          (display "Thanks for playing Snake (liii tui)!\n")
-        ) ;begin
-        (let* ((cur-sz (terminal-size term))
-               (cur-cols (car cur-sz))
-               (cur-rows (cadr cur-sz))
-               (resized? (or (not (= cur-cols prev-cols)) (not (= cur-rows prev-rows))))
-               (active-game
-                 (if resized?
-                   (let* ((dims (snake-compute-dimensions cur-cols cur-rows))
-                          (nw (car dims))
-                          (nh (cadr dims))
-                         ) ;
-                     (snake-resize current-game nw nh)
-                   ) ;let*
-                   current-game
-                 ) ;if
-               ) ;active-game
-              ) ;
-          (when resized?
-            (screen-resize! screen cur-cols cur-rows)
-          ) ;when
-          (spinner-tick! spinner)
-          (let* ((view (make-game-view active-game spinner cur-cols cur-rows))
-                 (lines (component-render view cur-cols))
-                ) ;
-            (screen-render! screen lines)
-            (sleep 0.1)
-            (let ((key (terminal-poll-key term)))
-              (if (or (eq? key 'escape) (equal? key "q") (equal? key "Q"))
-                (begin
-                  (screen-clear! screen)
-                  (terminal-show-cursor! term)
-                  (display "Game quit by player.\n")
-                ) ;begin
-                (game-loop (snake-tick active-game key) cur-cols cur-rows)
-              ) ;if
-            ) ;let
-          ) ;let*
-        ) ;let*
-      ) ;if
-    ) ;let
+    (dynamic-wind (lambda ()
+                    (console-raw-mode! #t)
+                    (terminal-hide-cursor! term)
+                    (terminal-clear term)
+                  ) ;lambda
+      (lambda ()
+        (let game-loop
+          ((current-game game) (prev-cols init-cols) (prev-rows init-rows))
+          (if (eq? (snake-status current-game) 'game-over)
+            (begin
+              (%run-game-over-loop screen term current-game prev-cols)
+              (screen-clear! screen)
+              (terminal-show-cursor! term)
+              (display "Thanks for playing Snake (liii tui)!\n")
+            ) ;begin
+            (let* ((cur-sz (terminal-size term))
+                   (cur-cols (car cur-sz))
+                   (cur-rows (cadr cur-sz))
+                   (resized? (or (not (= cur-cols prev-cols)) (not (= cur-rows prev-rows))))
+                   (active-game
+                     (if resized?
+                       (let* ((dims (snake-compute-dimensions cur-cols cur-rows))
+                              (nw (car dims))
+                              (nh (cadr dims))
+                             ) ;
+                         (snake-resize current-game nw nh)
+                       ) ;let*
+                       current-game
+                     ) ;if
+                   ) ;active-game
+                  ) ;
+              (when resized?
+                (screen-resize! screen cur-cols cur-rows)
+              ) ;when
+              (spinner-tick! spinner)
+              (let* ((view (make-game-view active-game spinner cur-cols cur-rows))
+                     (lines (component-render view cur-cols))
+                    ) ;
+                (screen-render! screen lines)
+                (sleep 0.1)
+                (let ((key (terminal-poll-key term)))
+                  (if (or (eq? key 'escape) (equal? key "q") (equal? key "Q"))
+                    (begin
+                      (screen-clear! screen)
+                      (terminal-show-cursor! term)
+                      (display "Game quit by player.\n")
+                    ) ;begin
+                    (game-loop (snake-tick active-game key) cur-cols cur-rows)
+                  ) ;if
+                ) ;let
+              ) ;let*
+            ) ;let*
+          ) ;if
+        ) ;let
+      ) ;lambda
+      (lambda () (terminal-show-cursor! term) (console-raw-mode! #f))
+    ) ;dynamic-wind
   ) ;let*
 ) ;define
 

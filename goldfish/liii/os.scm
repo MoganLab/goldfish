@@ -2,6 +2,7 @@
   (export os-arch os-type os-windows? os-linux? os-macos? os-temp-dir os-sep
     pathsep os-call mkdir chdir rmdir remove rename getenv putenv unsetenv
     getcwd listdir access getlogin getpid os-tty? console-kbhit? console-getch
+    console-raw-mode!
   ) ;export
   (import (scheme base)
     (scheme process-context)
@@ -158,12 +159,27 @@
       ) ;if
     ) ;define
 
-    (define (console-kbhit?)
-      (g_console_kbhit)
+    (define (console-kbhit? . args)
+      (if (null? args)
+        (g_console_kbhit 0)
+        (let ((timeout (car args)))
+          (if (not (exact-integer? timeout))
+            (type-error "console-kbhit?: timeout must be an integer")
+            (g_console_kbhit timeout)
+          ) ;if
+        ) ;let
+      ) ;if
     ) ;define
 
     (define (console-getch)
       (g_console_getch)
+    ) ;define
+
+    (define (console-raw-mode! enable)
+      (if (not (boolean? enable))
+        (type-error "console-raw-mode!: expected boolean")
+        (g_console_raw_mode enable)
+      ) ;if
     ) ;define
 
   ) ;begin
