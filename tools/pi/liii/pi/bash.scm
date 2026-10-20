@@ -107,7 +107,7 @@
                 ) ;cons
             (cons "timeout"
               (list (cons "type" "number")
-                (cons "description" "Timeout in seconds (optional, no default timeout)")
+                (cons "description" "Timeout in seconds (optional, defaults to 120s)")
               ) ;list
             ) ;cons
           ) ;list
@@ -120,6 +120,10 @@
       (let loop
         ((rest opts))
         (cond ((null? rest) default)
+              ((and (pair? (car rest)) (pair? (caar rest)) (assq key (car rest)))
+               (cdr (assq key (car rest)))
+              ) ;
+              ((and (pair? (car rest)) (eq? (caar rest) key)) (cdar rest))
               ((and (pair? (cdr rest)) (eq? (car rest) key)) (cadr rest))
               ((null? (cdr rest)) default)
               (else (loop (cddr rest)))
@@ -198,9 +202,16 @@
       (let* ((timed-out? (%keyword-value :timed-out? opts #f))
              (cwd (%keyword-value :cwd opts (getcwd)))
              (def-timeout (%keyword-value :timeout opts 120))
+             (raw-arg (pi-arg-ref args "timeout" #f))
+             (valid-arg (if (and (number? raw-arg) (> raw-arg 0)) raw-arg #f))
+             (valid-def (if (and (number? def-timeout) (> def-timeout 0)) def-timeout #f))
+             (timeout (cond ((and valid-arg valid-def) (min valid-arg valid-def))
+                            (valid-arg valid-arg)
+                            (valid-def valid-def)
+                            (else 120)
+                      ) ;cond
+             ) ;timeout
              (command (pi-arg-ref args "command"))
-             (arg-timeout (pi-arg-ref args "timeout" #f))
-             (timeout (or arg-timeout def-timeout 120))
             ) ;
         (if timed-out?
           (values (string-append "Command timed out after " (number->string timeout) " seconds")
