@@ -12,9 +12,9 @@
     (liii pi tools record)
   ) ;import
   (export PI_DEFAULT_MAX_LINES PI_DEFAULT_MAX_BYTES PI_GREP_MAX_LINE_LENGTH
-    pi-byte-length pi-format-size pi-truncate-line pi-truncate-head
-    pi-truncate-tail pi-trunc-result pi-trunc-result? pi-trunc-result-content
-    pi-trunc-result-truncated pi-trunc-result-truncated?
+    pi-byte-length pi-format-size pi-truncate-line pi-split-lines
+    pi-truncate-head pi-truncate-tail pi-trunc-result pi-trunc-result?
+    pi-trunc-result-content pi-trunc-result-truncated pi-trunc-result-truncated?
     pi-trunc-result-truncated-by pi-trunc-result-total-lines
     pi-trunc-result-total-bytes pi-trunc-result-output-lines
     pi-trunc-result-output-bytes pi-trunc-result-first-line-exceeds-limit?

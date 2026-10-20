@@ -120,7 +120,10 @@
                  (string-append output
                    "\n\n["
                    (number->string remaining)
-                   " more lines in file. Use offset="
+                   (if (= remaining 1)
+                     " more line in file. Use offset="
+                     " more lines in file. Use offset="
+                   ) ;if
                    (number->string user-next)
                    " to continue.]"
                  ) ;string-append
@@ -152,29 +155,42 @@
             (error 'error (string-append "Not a file: " raw-path))
           ) ;when
           (let* ((file-text (path-read-text (path abs-path)))
-                 (all-lines (string-split file-text "\n"))
+                 (all-lines (pi-split-lines file-text))
                  (total-lines (length all-lines))
-                 (start-line (if offset (max 0 (- offset 1)) 0))
-                 (start-display (+ start-line 1))
                 ) ;
-            (when (>= start-line total-lines)
-              (error 'error
-                (string-append "Offset "
-                  (number->string offset)
-                  " is beyond end of file ("
-                  (number->string total-lines)
-                  " lines total)"
-                ) ;string-append
-              ) ;error
-            ) ;when
-            (let* ((user-lines (if limit (min limit (- total-lines start-line)) #f))
-                   (count (if limit user-lines (- total-lines start-line)))
-                   (selected (%slice-lines all-lines start-line count))
-                   (selected-text (string-join selected "\n"))
-                   (truncation (pi-truncate-head selected-text))
-                  ) ;
-              (%format-read-output truncation raw-path start-display total-lines user-lines)
-            ) ;let*
+            (if (null? all-lines)
+              (if offset
+                (error 'error
+                  (string-append "Offset "
+                    (number->string offset)
+                    " is beyond end of file (0 lines total)"
+                  ) ;string-append
+                ) ;error
+                ""
+              ) ;if
+              (let* ((start-line (if offset (max 0 (- offset 1)) 0))
+                     (start-display (+ start-line 1))
+                    ) ;
+                (when (>= start-line total-lines)
+                  (error 'error
+                    (string-append "Offset "
+                      (number->string offset)
+                      " is beyond end of file ("
+                      (number->string total-lines)
+                      " lines total)"
+                    ) ;string-append
+                  ) ;error
+                ) ;when
+                (let* ((user-lines (if limit (min limit (- total-lines start-line)) #f))
+                       (count (if limit user-lines (- total-lines start-line)))
+                       (selected (%slice-lines all-lines start-line count))
+                       (selected-text (string-join selected "\n"))
+                       (truncation (pi-truncate-head selected-text))
+                      ) ;
+                  (%format-read-output truncation raw-path start-display total-lines user-lines)
+                ) ;let*
+              ) ;let*
+            ) ;if
           ) ;let*
         ) ;let
       ) ;let*
