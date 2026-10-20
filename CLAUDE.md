@@ -107,6 +107,7 @@ bin/gf tests/goldfish/liii/xxx-test.scm
 - **测试文件的协议仍旧是 Apache License 2.0**，与项目其他文件保持一致
 - **文件头部不放置协议文本**：为节省上下文 token，测试文件头部直接从 `(import ...)` 开始
 - 代码实现文件（`goldfish/` 目录下）仍需保留完整的 Apache 协议头
+- **例外**：`(liii tui)` 实现文件（`goldfish/liii/tui.scm` 及 `goldfish/liii/tui/` 下的 `.scm`）使用 MIT 协议头——代码衍生自 MIT 许可的 pi TUI，须保留上游版权声明；其测试文件仍按上方规则不放置协议头
 
 示例：
 ```scheme
