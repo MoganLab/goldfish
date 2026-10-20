@@ -17,6 +17,11 @@
   (if (file-exists? "tests/fixtures/invalid_cmd")
       "tests/fixtures/invalid_cmd"
       "tools/pi/tests/fixtures/invalid_cmd"))
+;; 等价于「无用户配置」的自建 fixture，替代依赖 cwd 的相对路径占位目录
+(define CONFIG_EMPTY_DIR
+  (if (file-exists? "tests/fixtures/config-empty")
+      "tests/fixtures/config-empty"
+      "tools/pi/tests/fixtures/config-empty"))
 
 ;; 1. 默认配置解析（基于 default fixture）
 (let* ((args (parse-pi-args '()))
@@ -70,7 +75,7 @@
     (check (cdr (assoc 'max-tokens meta)) => 128000)))
 
 (let* ((args (parse-pi-args '("--provider" "anthropic")))
-       (env `(("PI_CODING_AGENT_DIR" . "non_existent_dir_xyz")
+       (env `(("PI_CODING_AGENT_DIR" . ,CONFIG_EMPTY_DIR)
               ("ANTHROPIC_AUTH_TOKEN" . "auth-token-bearer-123")))
        (cfg (resolve-pi-config args env)))
   (check (cdr (assoc 'provider cfg)) => "anthropic")
@@ -182,7 +187,7 @@
 
 ;; 10. CLI --provider "deepseek" 默认模型、端点与凭据解析
 (let* ((args (parse-pi-args '("--provider" "deepseek")))
-       (env `(("PI_CODING_AGENT_DIR" . "non_existent_dir_xyz")
+       (env `(("PI_CODING_AGENT_DIR" . ,CONFIG_EMPTY_DIR)
               ("DEEPSEEK_API_KEY" . "ds-key-xyz-789")
               ("HOME" . "/non-existent")))
        (cfg (resolve-pi-config args env)))
@@ -190,7 +195,8 @@
   (check (cdr (assoc 'model-id cfg)) => "deepseek-v4-pro")
   (check (cdr (assoc 'api-key cfg)) => "ds-key-xyz-789")
   (let ((meta (cdr (assoc 'model-meta cfg))))
-    (check (cdr (assoc 'base-url meta)) => "https://api.deepseek.com")
+    ;; 生产语义：deepseek 端点一律归一化为 anthropic 兼容端点
+    (check (cdr (assoc 'base-url meta)) => "https://api.deepseek.com/anthropic")
     (check (cdr (assoc 'context-window meta)) => 1000000)
     (check (cdr (assoc 'max-tokens meta)) => 384000)))
 
@@ -208,7 +214,7 @@
     (check (cdr (assoc 'context-window meta)) => 1000000)))
 
 (let* ((args (parse-pi-args '("--provider" "deepseek")))
-       (env `(("PI_CODING_AGENT_DIR" . "non_existent_dir_xyz")
+       (env `(("PI_CODING_AGENT_DIR" . ,CONFIG_EMPTY_DIR)
               ("HOME" . "/non-existent"))))
   (let ((cfg (resolve-pi-config args env)))
     (check (cdr (assoc 'provider cfg)) => "deepseek")
@@ -273,7 +279,7 @@
 
 ;; 13.4 未配置 settings 且未传 CLI 参数时默认为 off
 (let* ((args (parse-pi-args '()))
-       (env `(("PI_CODING_AGENT_DIR" . "non_existent_dir_xyz")
+       (env `(("PI_CODING_AGENT_DIR" . ,CONFIG_EMPTY_DIR)
               ("ANTHROPIC_AUTH_TOKEN" . "test-key")))
        (cfg (resolve-pi-config args env)))
   (check (cdr (assoc 'thinking-level cfg)) => "off"))

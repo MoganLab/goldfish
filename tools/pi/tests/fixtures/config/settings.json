@@ -1,0 +1,5 @@
+{
+  "defaultProvider": "google",
+  "defaultModel": "gemini-3.8-flash",
+  "defaultThinkingLevel": "off"
+}

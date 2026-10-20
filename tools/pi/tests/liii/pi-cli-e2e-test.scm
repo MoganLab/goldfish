@@ -31,6 +31,17 @@
   ) ;if
 ) ;define
 
+;; 等价于「无用户配置」的自建 fixture（仓库内绝对定位，不依赖 cwd）
+(define CONFIG_EMPTY_DIR
+  (if (file-exists? "tests/fixtures/config-empty")
+    "tests/fixtures/config-empty"
+    (if (file-exists? "tools/pi/tests/fixtures/config-empty")
+      "tools/pi/tests/fixtures/config-empty"
+      "../../tools/pi/tests/fixtures/config-empty"
+    ) ;if
+  ) ;if
+) ;define
+
 (define GF_BIN
   (if (file-exists? "bin/gf")
     "bin/gf"
@@ -197,7 +208,7 @@
   ) ;let*
 
   ;; 10. CLI --provider deepseek 凭据缺失时明确报错退出码 1
-  (let* ((no-key-env (list (cons "PI_CODING_AGENT_DIR" "non_existent_dir_xyz")
+  (let* ((no-key-env (list (cons "PI_CODING_AGENT_DIR" CONFIG_EMPTY_DIR)
                            (cons "HOME" "/non-existent")
                            (cons "PATH" (or (get-environment-variable "PATH") ""))))
          (cmd (list GF_BIN "pi" "--provider" "deepseek" "--print" "Hello missing key"))
