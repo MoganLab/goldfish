@@ -20,7 +20,7 @@ bin/gf pi --mode json "..."      # JSON 模式：JSONL 事件流写 stdout
 `~/.pi/agent/` 只读配置复用、全套 Provider（google / kimi-coding / deepseek / minimax / zai-coding-cn / anthropic）、
 流式 SSE、Agent 循环、会话持久化与 `--continue`、以及 blueprint / compass / simplify / red-green / compact 等全部扩展模式。
 
-**平台范围裁定（用户裁定 2026-10-20）**：**本次任务开发机器是 Windows，目前不需要考虑 Linux**。当前全力在 Windows 开发机上推进 `(liii tui)` 库及 `demo/tui/snake.scm`；**等 063 完成之后，再在 Linux 上做系统适配**。
+**平台范围裁定（用户裁定 2026-10-20）**：**本次任务开发机器是 Windows，目前不需要考虑 Linux**。当前全力在 Windows 开发机上推进 `(liii tui)` 库及 `demo/tui/snake.scm`；**等 064 完成之后，再在 Linux 上做系统适配**。
 
 ## 2. 仍生效的关键规格（回归依据）
 
@@ -91,7 +91,8 @@ bin/gf pi --mode json "..."      # JSON 模式：JSONL 事件流写 stdout
 | 060 | `(liii tui)` 实现文件协议头迁移至 MIT | 将 `(liii tui)` 全部实现文件（`goldfish/liii/tui.scm` 及 `goldfish/liii/tui/**/*.scm`，含 059 新增的 loader 文件）的文件头由 Apache License 2.0 统一替换为 MIT 许可（代码衍生自 MIT 许可的 pi TUI，须保留上游版权声明）；测试文件保持无协议头，仓库根 `LICENSE` 与其他库不动；全量测试与门禁保持不变 | 已完成（25 个实现文件全部 MIT 头；060.scm 368 项断言全绿；commit `9b721c20`/`0d5a2a38` 已推送；google/gemini-3.8-flash） |
 | 061 | `(liii tui editor)` 单行与多行交互编辑器组件 | 实现带光标位置指示、字符插入、退格删除、方向键光标移动、回车换行与历史记录的输入编辑器组件，实现 `component-handle-input`；通过输入转义序列进行全流程非交互测试 | 已完成（061.scm 21 项断言全绿，7 个单测与 tui 全套 39 套件通过；commit `b030ba78`/`f10d1a04` 已推送；google/gemini-3.8-flash） |
 | 062 | `(liii tui main-screen)` 差分渲染与屏幕刷新 | 实现基于 `terminal` 的主屏幕输出驱动，比较前后帧行差异（差分渲染），只重绘变化行或追加新行，避免终端闪烁；在 `virtual-terminal` 上断言 viewport 内容、只写变化行、resize 触发全量重绘，并捕获原始 `write()` 验证 ANSI 序列 | 已完成（062.scm 34 项 + 5 个单测全绿；commit `1da40e18`/`f3580ec0` 已推送；google/gemini-3.8-flash） |
-| 063 | `demo/tui/` 终端贪吃蛇游戏验收 | 使用 `(liii tui)` 在 `demo/tui/snake.scm` 实现终端贪吃蛇交互游戏，支持键盘方向键控制、食物生成与贪吃蛇增长、实时计分板、**四面墙壁可穿越（越界后从对侧出现，避免游戏过快结束）**与自碰碰撞判定；验收分两层：① 纯游戏逻辑与脚本化按键回放自动化测试（非 TTY）；② Windows 真实终端冒烟必须用 **Python + pynput** 自动化完成：定位终端窗口、在终端中新建标签页、进入 `~/git/goldfish`、运行贪吃蛇 demo，通过模拟键盘与鼠标事件完成终端控制，并发送键盘事件实际操控贪吃蛇（转向/移动），在启动、移动、计分与结束等关键时刻**截图留档**，最终由模型通过截图判读小游戏是否真正跑通、计分与画面是否正确，脚本、截图与运行记录入库留痕；并**尽可能覆盖 `(liii tui)` 的各项能力**（component、text-width、keys、terminal/virtual-terminal、box/vstack/hstack、loader、editor、main-screen 差分渲染），作为 `(liii tui)` 第一阶段通用库的生动实机交互验收成果。**边界约束：贪吃蛇专属的游戏逻辑与视图必须放在 `demo/tui/`（如 `demo/tui/snake/logic.scm`）及对应测试目录下，不得污染 `goldfish/liii/tui` 通用库；仅通用终端输入能力（如非阻塞按键读取 `terminal-poll-key`）可加入 `(liii tui terminal)`** | 待执行 |
+| 063 | `demo/tui/` 终端贪吃蛇游戏验收 | 使用 `(liii tui)` 在 `demo/tui/snake.scm` 实现终端贪吃蛇交互游戏，支持键盘方向键控制、食物生成与贪吃蛇增长、实时计分板、**四面墙壁可穿越（越界后从对侧出现，避免游戏过快结束）**与自碰碰撞判定；验收分两层：① 纯游戏逻辑与脚本化按键回放自动化测试（非 TTY）；② Windows 真实终端冒烟必须用 **Python + pynput** 自动化完成：定位终端窗口、在终端中新建标签页、进入 `~/git/goldfish`、运行贪吃蛇 demo，通过模拟键盘与鼠标事件完成终端控制，并发送键盘事件实际操控贪吃蛇（转向/移动），在启动、移动、计分与结束等关键时刻**截图留档**，最终由模型通过截图判读小游戏是否真正跑通、计分与画面是否正确，脚本、截图与运行记录入库留痕；并**尽可能覆盖 `(liii tui)` 的各项能力**（component、text-width、keys、terminal/virtual-terminal、box/vstack/hstack、loader、editor、main-screen 差分渲染），作为 `(liii tui)` 第一阶段通用库的生动实机交互验收成果。**边界约束：贪吃蛇专属的游戏逻辑与视图必须放在 `demo/tui/`（如 `demo/tui/snake/logic.scm`）及对应测试目录下，不得污染 `goldfish/liii/tui` 通用库；仅通用终端输入能力（如非阻塞按键读取 `terminal-poll-key`）可加入 `(liii tui terminal)`** | 已完成（用户裁定通过；063.scm 32 项 + 单测 100 项全绿；真实终端 Python + pynput 冒烟与截图留档；commit `d93d9ac8`/`08f020b4` 已推送；google/gemini-3.8-flash） |
+| 064 | `(liii tui)` 差分渲染闪烁修复 | **先复现、后修复**：在 Windows Terminal 真实终端中运行 `demo/tui/snake.scm`（及连续帧压测），先用 pynput/连续截图/ANSI 跟踪记录闪烁现象、复现步骤与前后证据，确认根因（重点排查：每次 update 前 `terminal-clear-line` 先清行、每帧重复发送 hide-cursor、帧内多次小写入导致终端绘制中间态）；随后修复差分渲染输出路径：变化行改为原地覆写、仅在新行更短时清除行尾，不再先清空整行；仅在光标可见性变化时发送 hide/show；整帧写入用终端同步输出（DECSET 2026，`ESC[?2026h`/`ESC[?2026l`，不支持时安全降级）包裹并统一 flush，杜绝帧中间重绘；在 `virtual-terminal` 捕获原始 ANSI，断言更新行不再出现「clear-line 后紧跟同位置 update」、未变化行零写入、缩短行正确清除尾部、每帧同步边界成对出现；更新 062 相关单测；真实终端复测确认闪烁消失；单文件 <=300 行、实现文件 MIT 头、测试无协议头 | 待执行 |
 
 ### 3.2 历史里程碑收官记录（已完成）
 - **任务 001~053 全部结项**：脚本模式及所有核心能力已在 commit `[1069]` 与 `[1074]` 落地并全部并入主干。历史任务文档与验收脚本完整保留在 `tools/pi/devel/001.md~053.md` 中。
@@ -112,7 +113,7 @@ RPC 模式；extensions/MCP/codemode/packages/themes/prompt templates/skills；
 图片输入（暂缓）；OAuth 凭据刷新（auth.json 的 oauth 类型条目不消费）；
 会话写入 `~/.pi/agent/` 管理；项目级 `.pi/settings.json`；Anthropic OAuth 刷新；
 **`(liii tui)` 内部不做 markdown 渲染**（定位为轻量纯通用 TUI 基础库）；
-**当前阶段跨平台（聚焦 Windows 开发机，目前不考虑 Linux；等 063 完成后再做 Linux 适配）**。
+**当前阶段跨平台（聚焦 Windows 开发机，目前不考虑 Linux；等 064 完成后再做 Linux 适配）**。
 
 ## 5. 阶段完成记录（原 §11 阶段表，全部完成）
 
@@ -164,7 +165,7 @@ tools/pi/CLAUDE.md                # Claude Code 与 pi 的协作规范（Claude 
 | 6 | 只消费 api_key 凭据，`$VAR` 支持而 `` !command `` 不支持 | 不执行任意命令 |
 | 8 | 不注入 `PI_*` 会话环境变量到 bash 工具 | 减少实现面 |
 | 10 | 代理支持 `socks5h://` | libcurl 原生能力，实际网络硬需求 |
-| 11 | 当前聚焦 Windows 开发机，暂不考虑 Linux | 063 贪吃蛇完成后再做 Linux 适配（用户裁定） |
+| 11 | 当前聚焦 Windows 开发机，暂不考虑 Linux | 064 闪烁修复完成后再做 Linux 适配（用户裁定） |
 | 16 | simplify 默认只读（原生 pi 直接改写文件） | 防误改：先看建议再 --apply |
 | 17 | simplify print 模式直接输出报告（原生 TUI 交互改写） | 脚本模式适配（045 裁定） |
 | 18 | simplify 无独立模型通道（复用主模型） | 减少实现面（045 裁定） |
