@@ -26,9 +26,12 @@
     (liii date-time timestamp)
     (liii date-time gregorian)
     (liii date-time time-delta)
+    (liii date-time internal date-rd)
   ) ;import
   (export date-time-format date-time-parse)
   (begin
+
+    (define DEFAULT-FMT "%Y-%m-%d %H:%M:%S")
 
     (define ABBR-WEEKDAY (vector "Sun" "Mon" "Tue" "Wed" "Thu" "Fri" "Sat"))
 
@@ -48,6 +51,10 @@
       ) ;vector
     ) ;define
 
+    (define (pad-zero x n)
+      (string-pad (number->string x) n #\0)
+    ) ;define
+
     (define (format-tz-offset off with-colon?)
       (let* ((h (time-delta-hours off))
              (m (time-delta-minutes off))
@@ -57,17 +64,11 @@
              (abs-h (abs h))
              (abs-m (abs m))
             ) ;
-        (if with-colon?
-          (string-append sign-str
-            (string-pad (number->string abs-h) 2 #\0)
-            ":"
-            (string-pad (number->string abs-m) 2 #\0)
-          ) ;string-append
-          (string-append sign-str
-            (string-pad (number->string abs-h) 2 #\0)
-            (string-pad (number->string abs-m) 2 #\0)
-          ) ;string-append
-        ) ;if
+        (string-append sign-str
+          (pad-zero abs-h 2)
+          (if with-colon? ":" "")
+          (pad-zero abs-m 2)
+        ) ;string-append
       ) ;let*
     ) ;define
 
@@ -90,7 +91,7 @@
     ) ;define
 
     (define (date-time-format obj . opt-fmt)
-      (let ((fmt (if (null? opt-fmt) "%Y-%m-%d %H:%M:%S" (car opt-fmt))))
+      (let ((fmt (if (null? opt-fmt) DEFAULT-FMT (car opt-fmt))))
         (unless (string? fmt)
           (error 'type-error "date-time-format: format-string must be a string" fmt)
         ) ;unless
@@ -99,12 +100,8 @@
         (let-values (((year month day hour minute second tz-offset tz-name iso-wday yearday)
                       (cond
                        ((timestamp? obj)
-                        (let* ((d (timestamp-date obj))
-                               (y (date-year d))
-                               (jan1 (make-date y 1 1))
-                               (yd (+ 1 (- (date->rata-die d) (date->rata-die jan1))))
-                              ) ;
-                          (values y
+                        (let ((d (timestamp-date obj)))
+                          (values (date-year d)
                             (date-month d)
                             (date-day d)
                             (timestamp-hour obj)
@@ -113,17 +110,22 @@
                             (timestamp-timezone-offset obj)
                             (timestamp-timezone-abbreviation obj)
                             (date-iso-weekday d)
-                            yd
+                            (days-since-year-start d)
                           ) ;values
-                        ) ;let*
+                        ) ;let
                        ) ;
                        ((date? obj)
-                        (let* ((y (date-year obj))
-                               (jan1 (make-date y 1 1))
-                               (yd (+ 1 (- (date->rata-die obj) (date->rata-die jan1))))
-                              ) ;
-                          (values y (date-month obj) (date-day obj) 0 0 0 #f #f (date-iso-weekday obj) yd)
-                        ) ;let*
+                        (values (date-year obj)
+                          (date-month obj)
+                          (date-day obj)
+                          0
+                          0
+                          0
+                          #f
+                          #f
+                          (date-iso-weekday obj)
+                          (days-since-year-start obj)
+                        ) ;values
                        ) ;
                        ((clock-time? obj)
                         (values 0
@@ -140,16 +142,23 @@
                        ) ;
                        ((moment? obj)
                         (let* ((d (moment-date obj))
-                               (y (date-year d))
-                               (jan1 (make-date y 1 1))
-                               (yd (+ 1 (- (date->rata-die d) (date->rata-die jan1))))
                                (sod (moment-second-of-day obj))
                                (sod-floor (exact (floor sod)))
                                (h (quotient sod-floor 3600))
                                (m (quotient (modulo sod-floor 3600) 60))
                                (s (+ (modulo sod-floor 60) (- sod sod-floor)))
                               ) ;
-                          (values y (date-month d) (date-day d) h m s #f #f (date-iso-weekday d) yd)
+                          (values (date-year d)
+                            (date-month d)
+                            (date-day d)
+                            h
+                            m
+                            s
+                            #f
+                            #f
+                            (date-iso-weekday d)
+                            (days-since-year-start d)
+                          ) ;values
                         ) ;let*
                        ) ;
                        (else (error 'type-error "date-time-format: unsupported date/time object" obj))
@@ -157,183 +166,102 @@
                      ) ;
                     ) ;
 
-          (let* ((flen (string-length fmt))
-                 (out (open-output-string))
+          (let* ((out (open-output-string))
                  (wday (if (and iso-wday (= iso-wday 7)) 0 iso-wday))
                 ) ;
 
+            (define (pad0 x n)
+              (display (pad-zero x n) out)
+            ) ;define
+
             (define (format-directive ch)
               (case ch
-               ((#\Y) (display (string-pad (number->string year) 4 #\0) out))
-               ((#\y) (display (string-pad (number->string (modulo year 100)) 2 #\0) out))
-               ((#\m) (display (string-pad (number->string month) 2 #\0) out))
-               ((#\d) (display (string-pad (number->string day) 2 #\0) out))
+               ((#\Y) (pad0 year 4))
+               ((#\y) (pad0 (modulo year 100) 2))
+               ((#\m) (pad0 month 2))
+               ((#\d) (pad0 day 2))
                ((#\e) (display (string-pad (number->string day) 2 #\space) out))
-               ((#\j) (display (string-pad (number->string (or yearday 0)) 3 #\0) out))
-               ((#\F)
-                (display (date-time-format-extracted year month day hour minute
-                           second tz-offset tz-name iso-wday yearday wday
-                           "%Y-%m-%d"
-                         ) ;date-time-format-extracted
-                  out
-                ) ;display
-               ) ;
-               ((#\H) (display (string-pad (number->string hour) 2 #\0) out))
-               ((#\I)
-                (let ((h (modulo hour 12)))
-                  (display
-                    (string-pad (number->string (if (= h 0) 12 h)) 2 #\0)
-                    out
-                  ) ;display
-                ) ;let
-               ) ;
-               ((#\M) (display (string-pad (number->string minute) 2 #\0) out))
-               ((#\S) (display (string-pad (number->string (exact (floor second))) 2 #\0) out))
+               ((#\j) (pad0 (or yearday 0) 3))
+               ((#\F) (format-scan "%Y-%m-%d"))
+               ((#\H) (pad0 hour 2))
+               ((#\I) (let ((h (modulo hour 12))) (pad0 (if (= h 0) 12 h) 2)))
+               ((#\M) (pad0 minute 2))
+               ((#\S) (pad0 (exact (floor second)) 2))
                ((#\f)
                 (let* ((frac (- second (floor second))) (micros (exact (round (* frac 1000000)))))
-                  (display (string-pad (number->string micros) 6 #\0) out)
+                  (pad0 micros 6)
                 ) ;let*
                ) ;
                ((#\p) (display (if (< hour 12) "AM" "PM") out))
                ((#\P) (display (if (< hour 12) "am" "pm") out))
-               ((#\T)
-                (display (date-time-format-extracted year month day hour minute
-                           second tz-offset tz-name iso-wday yearday wday
-                           "%H:%M:%S"
-                         ) ;date-time-format-extracted
-                  out
-                ) ;display
-               ) ;
-               ((#\R)
-                (display (date-time-format-extracted year month day hour minute
-                           second tz-offset tz-name iso-wday yearday wday
-                           "%H:%M"
-                         ) ;date-time-format-extracted
-                  out
-                ) ;display
-               ) ;
-               ((#\a) (display (if wday (vector-ref ABBR-WEEKDAY wday) "") out))
-               ((#\A) (display (if wday (vector-ref LONG-WEEKDAY wday) "") out))
+               ((#\T) (format-scan "%H:%M:%S"))
+               ((#\R) (format-scan "%H:%M"))
+               ((#\a) (when wday (display (vector-ref ABBR-WEEKDAY wday) out)))
+               ((#\A) (when wday (display (vector-ref LONG-WEEKDAY wday) out)))
                ((#\b #\h)
-                (display (if (and (>= month 1) (<= month 12)) (vector-ref ABBR-MONTH month) "")
-                  out
-                ) ;display
+                (when (and (>= month 1) (<= month 12))
+                  (display (vector-ref ABBR-MONTH month) out)
+                ) ;when
                ) ;
                ((#\B)
-                (display (if (and (>= month 1) (<= month 12)) (vector-ref LONG-MONTH month) "")
-                  out
-                ) ;display
+                (when (and (>= month 1) (<= month 12))
+                  (display (vector-ref LONG-MONTH month) out)
+                ) ;when
                ) ;
-               ((#\w) (display (if wday (number->string wday) "") out))
-               ((#\u) (display (if iso-wday (number->string iso-wday) "") out))
-               ((#\z)
-                (if tz-offset (display (format-tz-offset tz-offset #f) out) (display "" out))
-               ) ;
-               ((#\Z) (if tz-name (display tz-name out) (display "" out)))
-               ((#\c)
-                (display (date-time-format-extracted year month day hour minute
-                           second tz-offset tz-name iso-wday yearday wday
-                           "%a %b %e %H:%M:%S %Y"
-                         ) ;date-time-format-extracted
-                  out
-                ) ;display
-               ) ;
-               ((#\x)
-                (display (date-time-format-extracted year month day hour minute
-                           second tz-offset tz-name iso-wday yearday wday
-                           "%m/%d/%y"
-                         ) ;date-time-format-extracted
-                  out
-                ) ;display
-               ) ;
-               ((#\X)
-                (display (date-time-format-extracted year month day hour minute
-                           second tz-offset tz-name iso-wday yearday wday
-                           "%H:%M:%S"
-                         ) ;date-time-format-extracted
-                  out
-                ) ;display
-               ) ;
+               ((#\w) (when wday (display (number->string wday) out)))
+               ((#\u) (when iso-wday (display (number->string iso-wday) out)))
+               ((#\z) (when tz-offset (display (format-tz-offset tz-offset #f) out)))
+               ((#\Z) (when tz-name (display tz-name out)))
+               ((#\c) (format-scan "%a %b %e %H:%M:%S %Y"))
+               ((#\x) (format-scan "%m/%d/%y"))
+               ((#\X) (format-scan "%H:%M:%S"))
                ((#\%) (write-char #\% out))
                (else (error 'value-error "date-time-format: invalid directive" ch))
               ) ;case
             ) ;define
 
-            (let loop
-              ((i 0))
-              (cond ((>= i flen) (get-output-string out))
-                    ((char=? (string-ref fmt i) #\%)
-                     (let ((next-i (+ i 1)))
-                       (if (>= next-i flen)
-                         (error 'value-error
-                           "date-time-format: unfinished directive at end of format"
-                           fmt
-                         ) ;error
-                         (let ((ch (string-ref fmt next-i)))
-                           (cond
-                            ((char=? ch #\:)
-                             (let ((after-colon (+ next-i 1)))
-                               (if (and (< after-colon flen) (char=? (string-ref fmt after-colon) #\z))
-                                 (begin
-                                   (if tz-offset (display (format-tz-offset tz-offset #t) out) (display "" out))
-                                   (loop (+ after-colon 1))
-                                 ) ;begin
-                                 (error 'value-error "date-time-format: invalid directive %:" fmt)
-                               ) ;if
+            ;; 扫描格式串；组合指令（%F %T %R %c %x %X）递归调用自身展开
+            (define (format-scan f)
+              (let ((f-len (string-length f)))
+                (let loop
+                  ((i 0))
+                  (cond ((>= i f-len) #t)
+                        ((char=? (string-ref f i) #\%)
+                         (let ((next-i (+ i 1)))
+                           (if (>= next-i f-len)
+                             (error 'value-error "date-time-format: unfinished directive at end of format" f)
+                             (let ((ch (string-ref f next-i)))
+                               (cond
+                                ((char=? ch #\:)
+                                 (let ((after-colon (+ next-i 1)))
+                                   (if (and (< after-colon f-len) (char=? (string-ref f after-colon) #\z))
+                                     (begin
+                                       (when tz-offset
+                                         (display (format-tz-offset tz-offset #t) out)
+                                       ) ;when
+                                       (loop (+ after-colon 1))
+                                     ) ;begin
+                                     (error 'value-error "date-time-format: invalid directive %:" f)
+                                   ) ;if
+                                 ) ;let
+                                ) ;
+                                (else (format-directive ch) (loop (+ next-i 1)))
+                               ) ;cond
                              ) ;let
-                            ) ;
-                            (else (format-directive ch) (loop (+ next-i 1)))
-                           ) ;cond
+                           ) ;if
                          ) ;let
-                       ) ;if
-                     ) ;let
-                    ) ;
-                    (else (write-char (string-ref fmt i) out) (loop (+ i 1)))
-              ) ;cond
-            ) ;let
+                        ) ;
+                        (else (write-char (string-ref f i) out) (loop (+ i 1)))
+                  ) ;cond
+                ) ;let
+              ) ;let
+            ) ;define
+
+            (format-scan fmt)
+            (get-output-string out)
           ) ;let*
         ) ;let-values
       ) ;let
-    ) ;define
-
-    (define (date-time-format-extracted year month day hour minute second
-              tz-offset tz-name iso-wday yearday wday fmt
-            ) ;date-time-format-extracted
-      (let* ((flen (string-length fmt)) (out (open-output-string)))
-        (let loop
-          ((i 0))
-          (cond ((>= i flen) (get-output-string out))
-                ((char=? (string-ref fmt i) #\%)
-                 (let ((next-i (+ i 1)))
-                   (if (>= next-i flen)
-                     (error 'value-error "date-time-format: unfinished directive")
-                     (let ((ch (string-ref fmt next-i)))
-                       (case ch
-                        ((#\Y) (display (string-pad (number->string year) 4 #\0) out))
-                        ((#\y) (display (string-pad (number->string (modulo year 100)) 2 #\0) out))
-                        ((#\m) (display (string-pad (number->string month) 2 #\0) out))
-                        ((#\d) (display (string-pad (number->string day) 2 #\0) out))
-                        ((#\e) (display (string-pad (number->string day) 2 #\space) out))
-                        ((#\H) (display (string-pad (number->string hour) 2 #\0) out))
-                        ((#\M) (display (string-pad (number->string minute) 2 #\0) out))
-                        ((#\S) (display (string-pad (number->string (exact (floor second))) 2 #\0) out))
-                        ((#\a) (display (if wday (vector-ref ABBR-WEEKDAY wday) "") out))
-                        ((#\b)
-                         (display (if (and (>= month 1) (<= month 12)) (vector-ref ABBR-MONTH month) "")
-                           out
-                         ) ;display
-                        ) ;
-                        (else (write-char ch out))
-                       ) ;case
-                       (loop (+ next-i 1))
-                     ) ;let
-                   ) ;if
-                 ) ;let
-                ) ;
-                (else (write-char (string-ref fmt i) out) (loop (+ i 1)))
-          ) ;cond
-        ) ;let
-      ) ;let*
     ) ;define
 
     ;; ====================
@@ -341,7 +269,7 @@
     ;; ====================
 
     (define (date-time-parse input-str . opts)
-      (let* ((fmt (if (null? opts) "%Y-%m-%d %H:%M:%S" (car opts)))
+      (let* ((fmt (if (null? opts) DEFAULT-FMT (car opts)))
              (default-tz
                (if (or (null? opts) (null? (cdr opts))) (system-timezone) (cadr opts))
              ) ;default-tz
@@ -434,17 +362,12 @@
                     (values best-idx (+ pos best-len))
                     (error 'value-error "date-time-parse: name mismatch" (list input-str pos))
                   ) ;if
-                  (let ((name (vector-ref vec i)))
-                    (if (and (string? name)
-                          (> (string-length name) 0)
-                          (string-ci-prefix? input-str pos name)
-                        ) ;and
-                      (let ((nlen (string-length name)))
-                        (if (> nlen best-len) (loop (+ i 1) i nlen) (loop (+ i 1) best-idx best-len))
-                      ) ;let
+                  (let* ((name (vector-ref vec i)) (nlen (if (string? name) (string-length name) 0)))
+                    (if (and (> nlen 0) (string-ci-prefix? input-str pos name))
+                      (if (> nlen best-len) (loop (+ i 1) i nlen) (loop (+ i 1) best-idx best-len))
                       (loop (+ i 1) best-idx best-len)
                     ) ;if
-                  ) ;let
+                  ) ;let*
                 ) ;if
               ) ;let
             ) ;let
@@ -471,7 +394,9 @@
                              ) ;pos3
                             ) ;
                          (let-values (((mm pos4) (read-fixed-digits pos3 2)))
-                           (set! tz-delta (make-time-delta 0 0 0 0 (* sign hh) (* sign mm) 0))
+                           (set! tz-delta
+                             (time-delta+ (hours-delta (* sign hh)) (minutes-delta (* sign mm)))
+                           ) ;set!
                            pos4
                          ) ;let-values
                        ) ;let
@@ -480,6 +405,14 @@
                   ) ;
                   (else (error 'value-error "date-time-parse: invalid timezone format" input-str))
             ) ;cond
+          ) ;define
+
+          ;; 将位置 fi 处的组合指令（占 2 字符）文本展开为 sub-fmt 后重新扫描
+          (define (splice-fmt fi sub-fmt)
+            (set! fmt
+              (string-append (substring fmt 0 fi) sub-fmt (substring fmt (+ fi 2) fmt-len))
+            ) ;set!
+            (set! fmt-len (string-length fmt))
           ) ;define
 
           ;; 遍历 fmt
@@ -614,27 +547,18 @@
                           ((#\z) (let ((next-ii (parse-tz ii))) (parse-loop (+ next-fi 1) next-ii)))
                           ((#\F)
                            ;; 展开 %Y-%m-%d
-                           (let* ((sub-fmt "%Y-%m-%d") (remain-fmt (substring fmt (+ next-fi 1) fmt-len)))
-                             (set! fmt (string-append (substring fmt 0 fi) sub-fmt remain-fmt))
-                             (set! fmt-len (string-length fmt))
-                             (parse-loop fi ii)
-                           ) ;let*
+                           (splice-fmt fi "%Y-%m-%d")
+                           (parse-loop fi ii)
                           ) ;
                           ((#\T)
                            ;; 展开 %H:%M:%S
-                           (let* ((sub-fmt "%H:%M:%S") (remain-fmt (substring fmt (+ next-fi 1) fmt-len)))
-                             (set! fmt (string-append (substring fmt 0 fi) sub-fmt remain-fmt))
-                             (set! fmt-len (string-length fmt))
-                             (parse-loop fi ii)
-                           ) ;let*
+                           (splice-fmt fi "%H:%M:%S")
+                           (parse-loop fi ii)
                           ) ;
                           ((#\R)
                            ;; 展开 %H:%M
-                           (let* ((sub-fmt "%H:%M") (remain-fmt (substring fmt (+ next-fi 1) fmt-len)))
-                             (set! fmt (string-append (substring fmt 0 fi) sub-fmt remain-fmt))
-                             (set! fmt-len (string-length fmt))
-                             (parse-loop fi ii)
-                           ) ;let*
+                           (splice-fmt fi "%H:%M")
+                           (parse-loop fi ii)
                           ) ;
                           ((#\%)
                            (let ((next-ii (expect-char ii #\%)))
