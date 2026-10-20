@@ -177,7 +177,9 @@
             ) ;let*
            ) ;
            ((eq? (caar rest) 'space)
-            (cond ((= cur-w 0) (loop (cdr rest) cur-line cur-w active-ansi lines))
+            (cond ((and (= cur-w 0) (pair? lines))
+                   (loop (cdr rest) cur-line cur-w active-ansi lines)
+                  ) ;
                   ((<= (+ cur-w 1) width)
                    (loop (cdr rest) (cons " " cur-line) (+ cur-w 1) active-ansi lines)
                   ) ;

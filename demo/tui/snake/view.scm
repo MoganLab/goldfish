@@ -82,11 +82,16 @@
                                      (make-text st-str)
                                      (make-text spin-str)
                                    ) ;list
-                        :gap 0
+                        :spacing 0
                       ) ;make-vstack
              ) ;content
             ) ;
-        (make-box content :title " STATS " :border-style 'single :padding-x 1)
+        (make-box content
+          :title         " STATS "
+          :style         'single
+          :padding-left  1
+          :padding-right 1
+        ) ;make-box
       ) ;let*
     ) ;define
 
@@ -96,32 +101,33 @@
                                     (make-text "Q / Esc        : Quit")
                                     (make-text "Wall wrap     : ON")
                                   ) ;list
-                       :gap 0
+                       :spacing 0
                      ) ;make-vstack
             ) ;content
            ) ;
-        (make-box content :title " HELP " :border-style 'single :padding-x 1)
+        (make-box content
+          :title         " HELP "
+          :style         'single
+          :padding-left  1
+          :padding-right 1
+        ) ;make-box
       ) ;let
     ) ;define
 
     (define (make-game-view game spinner)
       (let* ((grid-lines (render-grid-lines game))
-             (board-text
-               (make-text
-                 (apply string-append (map (lambda (s) (string-append s "\n")) grid-lines))
-               ) ;make-text
-             ) ;board-text
-             (board-box (make-box board-text
-                          :title        " SNAKE (liii tui) "
-                          :border-style 'double
-                          :padding-x    0
-                        ) ;make-box
+             (board-comp (make-component (lambda (comp width) grid-lines)))
+             (board-box (make-box board-comp :title " SNAKE (liii tui) " :style 'double :padding 0)
              ) ;board-box
              (stats-box (make-stats-box game spinner))
              (help-box (make-help-box))
-             (side-stack (make-vstack (list stats-box help-box) :gap 0))
+             (side-stack (make-vstack (list stats-box help-box) :spacing 0))
+             (board-w (+ (snake-width game) 2))
             ) ;
-        (make-hstack (list board-box side-stack) :gap 1)
+        (make-hstack (list board-box side-stack)
+          :spacing 1
+          :widths  (list board-w 'auto)
+        ) ;make-hstack
       ) ;let*
     ) ;define
 
@@ -131,14 +137,16 @@
                (make-text (string-append "Final Score: " (number->string (snake-score game))))
              ) ;score-text
              (prompt-text (make-text "Register player name:"))
-             (content (make-vstack (list over-banner score-text prompt-text editor-comp) :gap 1)
+             (content (make-vstack (list over-banner score-text prompt-text editor-comp) :spacing 1)
              ) ;content
             ) ;
         (make-box content
-          :title        " RECORD "
-          :border-style 'double
-          :padding-x    2
-          :padding-y    1
+          :title          " RECORD "
+          :style          'double
+          :padding-left   2
+          :padding-right  2
+          :padding-top    1
+          :padding-bottom 1
         ) ;make-box
       ) ;let*
     ) ;define

@@ -62,6 +62,10 @@
 ;; 中英文混合折行
 (check (wrap-text "你好 world" 7) => '("你好" "world"))
 
+;; 首行缩进与前导空格保留（不误删代码或预格式化缩进）
+(check (wrap-text "  hello world" 8) => '("  hello" "world"))
+(check (wrap-text "line1\n  indented" 15) => '("line1" "  indented"))
+
 ;; ANSI 序列安全折行（ANSI 码不占显示宽度，且不被切碎）
 (check (wrap-text "\x1b[31mhello world\x1b[0m" 5)
   => '("\x1b[31mhello\x1b[0m" "\x1b[31mworld\x1b[0m")
