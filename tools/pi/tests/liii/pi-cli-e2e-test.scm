@@ -7,7 +7,7 @@
   (liii subprocess)
   (liii sys)
   (liii pi)
-)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -39,6 +39,7 @@
 ) ;define
 
 ;; 等价于「无用户配置」的自建 fixture（仓库内绝对定位，不依赖 cwd）
+
 (define CONFIG_EMPTY_DIR
   (if (file-exists? "tests/fixtures/config-empty")
     "tests/fixtures/config-empty"
@@ -51,218 +52,317 @@
 
 (define GF_BIN (executable))
 
-(let* ((proc (process-spawn (list "python3" stub-server-file) :stdout 'pipe))
-       (port-line (process-read-line proc))
-       (port (parse-port-line port-line))
-       (base-url (string-append "http://127.0.0.1:" (number->string port)))
-       (test-env (append (list (cons "PI_CODING_AGENT_DIR" FIXTURE_DIR)
-                           (cons "GF_PI_BASE_URL" base-url)
-                           (cons "GF_PI_MODEL" "gemini-3.8-flash")
-                           (cons "https_proxy" "")
-                           (cons "http_proxy" "")
-                           (cons "all_proxy" "")
-                           (cons "ALL_PROXY" "")
-                           (cons "HTTPS_PROXY" "")
-                           (cons "HTTP_PROXY" "")
-                         ) ;list
-                         (get-environment-variables)
-                 ) ;append
-       ) ;test-env
-      ) ;
-  (check-true (number? port))
+(define %tmp-agent-dir
+  (path->string (path-join (path-temp-dir) "gf-pi-cli-e2e-direct"))
+) ;define
 
-  ;; 1. print 模式正常应答（退出码 0，stdout 有输出）
-  (let* ((cmd (list GF_BIN "pi" "--print" "Hello from e2e test"))
-         (p (process-spawn cmd :env test-env :stdout 'pipe :stderr 'pipe))
-         (code (process-wait p 10000))
-         (out (process-read p :stream 'stdout))
+(define %tmp-empty-dir
+  (path->string (path-join (path-temp-dir) "gf-pi-cli-e2e-empty"))
+) ;define
+
+(define (setup-fixtures!)
+  (unless (path-exists? (path %tmp-agent-dir))
+    (path-mkdir (path %tmp-agent-dir) :parents #t :exist-ok #t)
+  ) ;unless
+  (for-each
+    (lambda (name)
+      (let ((src (path-join (path FIXTURE_DIR) (path name)))
+            (dst (path-join (path %tmp-agent-dir) (path name)))
+           ) ;
+        (when (path-exists? src)
+          (path-copy src dst)
+        ) ;when
+      ) ;let
+    ) ;lambda
+    '("auth.json" "models-store.json" "models.json" "settings.json")
+  ) ;for-each
+  (unless (path-exists? (path %tmp-empty-dir))
+    (path-mkdir (path %tmp-empty-dir) :parents #t :exist-ok #t)
+  ) ;unless
+  (let ((src (path-join (path CONFIG_EMPTY_DIR) (path "settings.json")))
+        (dst (path-join (path %tmp-empty-dir) (path "settings.json")))
+       ) ;
+    (when (path-exists? src)
+      (path-copy src dst)
+    ) ;when
+  ) ;let
+) ;define
+
+(define (cleanup-fixtures!)
+  (when (path-exists? (path %tmp-agent-dir))
+    (g_rmtree %tmp-agent-dir)
+  ) ;when
+  (when (path-exists? (path %tmp-empty-dir))
+    (g_rmtree %tmp-empty-dir)
+  ) ;when
+) ;define
+
+(define (read-all-output p stream)
+  (let loop
+    ((acc ""))
+    (let ((c (process-read p :stream stream)))
+      (if (eof-object? c) acc (loop (string-append acc c)))
+    ) ;let
+  ) ;let
+) ;define
+
+(define* (safe-exec cmd env (timeout-ms 10000))
+  (let* ((p (process-spawn cmd :env env :stdout 'pipe :stderr 'pipe))
+         (code (process-wait p timeout-ms))
         ) ;
-    (check code => 0)
-    (check-true (or (string-contains? out "Hello from stub!")
-                  (string-contains? out "Hello stream!")
-                ) ;or
-    ) ;check-true
-    (process-close p)
+    (unless code
+      (process-kill p)
+      (process-wait p 2000)
+    ) ;unless
+    (let ((out (read-all-output p 'stdout)) (err (read-all-output p 'stderr)))
+      (process-close p)
+      (list code out err)
+    ) ;let
   ) ;let*
+) ;define*
 
-  ;; 2. 多轮 functionCall 端到端（退出码 0，stdout 有输出）
-  (let* ((cmd (list GF_BIN "pi" "--model" "multi-turn" "--print" "Run multi turn steps"))
-         (p (process-spawn cmd :env test-env :stdout 'pipe :stderr 'pipe))
-         (code (process-wait p 15000))
-         (out (process-read p :stream 'stdout))
-        ) ;
-    (check code => 0)
-    (check-true (string-contains? out "Multi-turn tool completed successfully!"))
-    (process-close p)
-  ) ;let*
+(setup-fixtures!)
 
-  ;; 3. 截断 MAX_TOKENS（退出码 1，stdout 部分输出，stderr 提示截断）
-  (let* ((cmd (list GF_BIN "pi" "--model" "max-tokens" "--print" "Run max tokens"))
-         (p (process-spawn cmd :env test-env :stdout 'pipe :stderr 'pipe))
-         (code (process-wait p 10000))
-         (out (process-read p :stream 'stdout))
-         (err (process-read p :stream 'stderr))
-        ) ;
-    (check code => 1)
-    (check-true (string-contains? out "Partial cut"))
-    (check-true (string-contains? err
-                  "Response was truncated: the model reached its output token limit."
-                ) ;string-contains?
-    ) ;check-true
-    (process-close p)
-  ) ;let*
-
-  ;; 4. 报错 SAFETY（退出码 1，stdout 无输出，stderr 提示错误）
-  (let* ((cmd (list GF_BIN "pi" "--model" "safety" "--print" "Run safety check"))
-         (p (process-spawn cmd :env test-env :stdout 'pipe :stderr 'pipe))
-         (code (process-wait p 10000))
-         (out (process-read p :stream 'stdout))
-         (err (process-read p :stream 'stderr))
-        ) ;
-    (check code => 1)
-    (check-true (or (eof-object? out) (string-null? (string-trim-both out))))
-    (check-true (string-contains? err "SAFETY"))
-    (process-close p)
-  ) ;let*
-
-  ;; 5. 轮数超限 max-turns（退出码 1，stderr 提示 Maximum turns）
-  (let* ((cmd (list GF_BIN "pi" "--model" "multi-turn" "--max-turns" "1"
-                "--print" "Run max turns"
-              ) ;list
-         ) ;cmd
-         (p (process-spawn cmd :env test-env :stdout 'pipe :stderr 'pipe))
-         (code (process-wait p 10000))
-         (err (process-read p :stream 'stderr))
-        ) ;
-    (check code => 1)
-    (check-true (string-contains? err "Maximum turns limit reached"))
-    (process-close p)
-  ) ;let*
-
-  ;; 6. 项目上下文 AGENTS.md / CLAUDE.md 注入验证
-  (let* ((cmd (list GF_BIN "pi" "--model" "check-project-context" "--print" "Check context")
-         ) ;cmd
-         (p (process-spawn cmd :env test-env :stdout 'pipe :stderr 'pipe))
-         (code (process-wait p 10000))
-         (out (process-read p :stream 'stdout))
-        ) ;
-    (check code => 0)
-    (check-true (string-contains? out "Project context verified: CLAUDE.md is present")
-    ) ;check-true
-    (process-close p)
-  ) ;let*
-
-  ;; 7. CLI --provider anthropic print 模式端到端测试
-  ;; GF_PI_MODEL 显式指定模型，避免与 provider 不匹配（任务 034 严格校验）
-  (let* ((ant-env (append test-env
-                           (list (cons "ANTHROPIC_API_KEY" "sk-ant-test-e2e")
-                             (cons "ANTHROPIC_BASE_URL" base-url)
-                             (cons "GF_PI_MODEL" "claude-sonnet-4-5"))))
-         (cmd (list GF_BIN "pi" "--provider" "anthropic" "--print" "Hello Anthropic CLI")
-         ) ;cmd
-         (p (process-spawn cmd :env ant-env :stdout 'pipe :stderr 'pipe))
-         (code (process-wait p 10000))
-         (out (process-read p :stream 'stdout))
-        ) ;
-    (check code => 0)
-    (check-true (or (string-contains? out "Hello from Claude stub!")
-                  (string-contains? out "from Claude stream!")
-                ) ;or
-    ) ;check-true
-    (process-close p)
-  ) ;let*
-
-  ;; 8. 错误路径退出码测试：模型错误时退出码必须为 1（§8 / 缺陷7）
-  (let* ((ant-env
-           (append (list (cons "ANTHROPIC_API_KEY" "sk-ant-test-e2e")
-                     (cons "ANTHROPIC_BASE_URL" (string-append base-url "/error-400"))
-                     (cons "GF_PI_BASE_URL" (string-append base-url "/error-400"))
-                   ) ;list
-             test-env
-           ) ;append
-         ) ;ant-env
-         (cmd (list GF_BIN "pi" "--provider" "anthropic" "--model" "fake-model"
-                "--print" "Hello Anthropic error"
-              ) ;list
-         ) ;cmd
-         (p (process-spawn cmd :env ant-env :stdout 'pipe :stderr 'pipe))
-         (code (process-wait p 10000))
-         (out (process-read p :stream 'stdout))
-         (err (process-read p :stream 'stderr))
-        ) ;
-    (check code => 1)
-    (check-true (string-contains? err "HTTP 400"))
-    (process-close p)
-  ) ;let*
-
-  ;; 9. 缺陷8防回归测试：4字节 UTF-8 字符（emoji）与 '<' 组合在 stub server 下端到端验证
-  (let* ((cli-env (append (list (cons "GF_PI_BASE_URL" base-url)) test-env))
-         (cmd (list GF_BIN "pi" "--provider" "google" "--model"
-                "gemini-3.8-flash" "--print" "🚀 <"
-              ) ;list
-         ) ;cmd
-         (p (process-spawn cmd :env cli-env :stdout 'pipe :stderr 'pipe))
-         (code (process-wait p 10000))
-         (out (process-read p :stream 'stdout))
-        ) ;
-    (check code => 0)
-    (check-true (or (string-contains? out "Hello from stub!") (string-contains? out "stream!"))
-    ) ;check-true
-    (process-close p)
-  ) ;let*
-
-  ;; 10. CLI --provider deepseek 凭据缺失时明确报错退出码 1
-  (let* ((no-key-env (append (list (cons "PI_CODING_AGENT_DIR" CONFIG_EMPTY_DIR)
-                               (cons "HOME" "/non-existent")
-                               (cons "USERPROFILE" "C:\\non-existent")
-                             ) ;list
-                             (get-environment-variables)
+(dynamic-wind (lambda () #f)
+  (lambda ()
+    (let* ((proc (process-spawn (list "python3" stub-server-file) :stdout 'pipe))
+           (port-line (process-read-line proc))
+           (port (parse-port-line port-line))
+           (base-url (string-append "http://127.0.0.1:" (number->string port)))
+           (test-env (append (get-environment-variables)
+                       (list (cons "PI_CODING_AGENT_DIR" %tmp-agent-dir)
+                         (cons "GF_PI_BASE_URL" base-url)
+                         (cons "GF_PI_MODEL" "gemini-3.8-flash")
+                         (cons "https_proxy" "")
+                         (cons "http_proxy" "")
+                         (cons "all_proxy" "")
+                         (cons "ALL_PROXY" "")
+                         (cons "HTTPS_PROXY" "")
+                         (cons "HTTP_PROXY" "")
+                         (cons "no_proxy" "")
+                         (cons "NO_PROXY" "")
+                         (cons "ANTHROPIC_BASE_URL" "")
+                         (cons "ANTHROPIC_API_KEY" "")
+                         (cons "ANTHROPIC_AUTH_TOKEN" "")
+                         (cons "DEEPSEEK_API_KEY" "")
+                         (cons "DEEPSEEK_BASE_URL" "")
+                       ) ;list
                      ) ;append
-         ) ;no-key-env
-         (cmd (list GF_BIN "pi" "--provider" "deepseek" "--print" "Hello missing key"))
-         (p (process-spawn cmd :env no-key-env :stdout 'pipe :stderr 'pipe))
-         (code (process-wait p 10000))
-         (err (process-read p :stream 'stderr)))
-    (check code => 1)
-    (check-true (string-contains? err "No credentials found for provider \"deepseek\""))
-    (process-close p))
+           ) ;test-env
+          ) ;
+      (dynamic-wind (lambda () #f)
+        (lambda ()
+          (check-true (number? port))
 
-  ;; 11. CLI --provider deepseek print 模式端到端测试（通过 stub server）
-  ;; GF_PI_MODEL 显式指定模型，避免与 provider 不匹配（任务 034 严格校验）
-  (let* ((ds-env (append test-env
+          ;; 1. print 模式正常应答（退出码 0，stdout 有输出）
+          (let* ((cmd (list GF_BIN "pi" "--print" "Hello from e2e test"))
+                 (res (safe-exec cmd test-env 10000))
+                 (code (car res))
+                 (out (cadr res))
+                ) ;
+            (check code => 0)
+            (check-true (or (string-contains? out "Hello from stub!")
+                          (string-contains? out "Hello stream!")
+                        ) ;or
+            ) ;check-true
+          ) ;let*
+
+          ;; 2. 多轮 functionCall 端到端（退出码 0，stdout 有输出）
+          (let* ((cmd (list GF_BIN "pi" "--model" "multi-turn" "--print" "Run multi turn steps"))
+                 (res (safe-exec cmd test-env 15000))
+                 (code (car res))
+                 (out (cadr res))
+                ) ;
+            (check code => 0)
+            (check-true (string-contains? out "Multi-turn tool completed successfully!"))
+          ) ;let*
+
+          ;; 3. 截断 MAX_TOKENS（退出码 1，stdout 部分输出，stderr 提示截断）
+          (let* ((cmd (list GF_BIN "pi" "--model" "max-tokens" "--print" "Run max tokens"))
+                 (res (safe-exec cmd test-env 10000))
+                 (code (car res))
+                 (out (cadr res))
+                 (err (caddr res))
+                ) ;
+            (check code => 1)
+            (check-true (string-contains? out "Partial cut"))
+            (check-true (string-contains? err
+                          "Response was truncated: the model reached its output token limit."
+                        ) ;string-contains?
+            ) ;check-true
+          ) ;let*
+
+          ;; 4. 报错 SAFETY（退出码 1，stdout 无输出，stderr 提示错误）
+          (let* ((cmd (list GF_BIN "pi" "--model" "safety" "--print" "Run safety check"))
+                 (res (safe-exec cmd test-env 10000))
+                 (code (car res))
+                 (out (cadr res))
+                 (err (caddr res))
+                ) ;
+            (check code => 1)
+            (check-true (or (eof-object? out) (string-null? (string-trim-both out))))
+            (check-true (string-contains? err "SAFETY"))
+          ) ;let*
+
+          ;; 5. 轮数超限 max-turns（退出码 1，stderr 提示 Maximum turns）
+          (let* ((cmd (list GF_BIN "pi" "--model" "multi-turn" "--max-turns" "1"
+                        "--print" "Run max turns"
+                      ) ;list
+                 ) ;cmd
+                 (res (safe-exec cmd test-env 10000))
+                 (code (car res))
+                 (err (caddr res))
+                ) ;
+            (check code => 1)
+            (check-true (string-contains? err "Maximum turns limit reached"))
+          ) ;let*
+
+          ;; 6. 项目上下文 AGENTS.md / CLAUDE.md 注入验证
+          (let* ((cmd (list GF_BIN "pi" "--model" "check-project-context" "--print" "Check context")
+                 ) ;cmd
+                 (res (safe-exec cmd test-env 10000))
+                 (code (car res))
+                 (out (cadr res))
+                ) ;
+            (check code => 0)
+            (check-true (string-contains? out "Project context verified: CLAUDE.md is present")
+            ) ;check-true
+          ) ;let*
+
+          ;; 7. CLI --provider anthropic print 模式端到端测试
+          ;; GF_PI_MODEL 显式指定模型，避免与 provider 不匹配（任务 034 严格校验）
+          (let* ((ant-env (append test-env
+                            (list (cons "ANTHROPIC_API_KEY" "sk-ant-test-e2e")
+                              (cons "ANTHROPIC_BASE_URL" base-url)
+                              (cons "GF_PI_MODEL" "claude-sonnet-4-5")
+                            ) ;list
+                          ) ;append
+                 ) ;ant-env
+                 (cmd (list GF_BIN "pi" "--provider" "anthropic" "--print" "Hello Anthropic CLI")
+                 ) ;cmd
+                 (res (safe-exec cmd ant-env 10000))
+                 (code (car res))
+                 (out (cadr res))
+                ) ;
+            (check code => 0)
+            (check-true (or (string-contains? out "Hello from Claude stub!")
+                          (string-contains? out "from Claude stream!")
+                        ) ;or
+            ) ;check-true
+          ) ;let*
+
+          ;; 8. 错误路径退出码测试：模型错误时退出码必须为 1（§8 / 缺陷7）
+          (let* ((ant-env
+                   (append test-env
+                     (list (cons "ANTHROPIC_API_KEY" "sk-ant-test-e2e")
+                       (cons "ANTHROPIC_BASE_URL" (string-append base-url "/error-400"))
+                       (cons "GF_PI_BASE_URL" (string-append base-url "/error-400"))
+                     ) ;list
+                   ) ;append
+                 ) ;ant-env
+                 (cmd (list GF_BIN "pi" "--provider" "anthropic" "--model"
+                        "fake-model" "--print" "Hello Anthropic error"
+                      ) ;list
+                 ) ;cmd
+                 (res (safe-exec cmd ant-env 10000))
+                 (code (car res))
+                 (err (caddr res))
+                ) ;
+            (check code => 1)
+            (check-true (string-contains? err "HTTP 400"))
+          ) ;let*
+
+          ;; 9. 缺陷8防回归测试：4字节 UTF-8 字符（emoji）与 '<' 组合在 stub server 下端到端验证
+          (let* ((cli-env (append test-env (list (cons "GF_PI_BASE_URL" base-url))))
+                 (cmd (list GF_BIN "pi" "--provider" "google" "--model"
+                        "gemini-3.8-flash" "--print" "🚀 <"
+                      ) ;list
+                 ) ;cmd
+                 (res (safe-exec cmd cli-env 10000))
+                 (code (car res))
+                 (out (cadr res))
+                ) ;
+            (check code => 0)
+            (check-true (or (string-contains? out "Hello from stub!") (string-contains? out "stream!"))
+            ) ;check-true
+          ) ;let*
+
+          ;; 10. CLI --provider deepseek 凭据缺失时明确报错退出码 1
+          (let* ((no-key-env (append test-env
+                               (list (cons "PI_CODING_AGENT_DIR" %tmp-empty-dir)
+                                 (cons "HOME" "/non-existent")
+                                 (cons "USERPROFILE" "C:\\non-existent")
+                                 (cons "GF_PI_MODEL" "deepseek-v4-pro")
+                                 (cons "DEEPSEEK_API_KEY" "")
+                                 (cons "ANTHROPIC_AUTH_TOKEN" "")
+                                 (cons "ANTHROPIC_API_KEY" "")
+                               ) ;list
+                             ) ;append
+                 ) ;no-key-env
+                 (cmd (list GF_BIN "pi" "--provider" "deepseek" "--print" "Hello missing key"))
+                 (res (safe-exec cmd no-key-env 10000))
+                 (code (car res))
+                 (err (caddr res))
+                ) ;
+            (check code => 1)
+            (check-true (string-contains? err "No credentials found for provider \"deepseek\"")
+            ) ;check-true
+          ) ;let*
+
+          ;; 11. CLI --provider deepseek print 模式端到端测试（通过 stub server）
+          ;; GF_PI_MODEL 显式指定模型，避免与 provider 不匹配（任务 034 严格校验）
+          (let* ((ds-env (append test-env
                            (list (cons "DEEPSEEK_API_KEY" "ds-test-key-e2e")
                              (cons "DEEPSEEK_BASE_URL" base-url)
                              (cons "ANTHROPIC_BASE_URL" base-url)
                              (cons "GF_PI_MODEL" "deepseek-v4-pro")
-                             (cons "GF_PI_BASE_URL" base-url))))
-         (cmd (list GF_BIN "pi" "--provider" "deepseek" "--print" "Hello DeepSeek CLI"))
-         (p (process-spawn cmd :env ds-env :stdout 'pipe :stderr 'pipe))
-         (code (process-wait p 10000))
-         (out (process-read p :stream 'stdout)))
-    (check code => 0)
-    (check-true (or (string-contains? out "Hello from Claude stub!")
-                    (string-contains? out "from Claude stream!")))
-    (process-close p))
+                             (cons "GF_PI_BASE_URL" base-url)
+                           ) ;list
+                         ) ;append
+                 ) ;ds-env
+                 (cmd (list GF_BIN "pi" "--provider" "deepseek" "--print" "Hello DeepSeek CLI"))
+                 (res (safe-exec cmd ds-env 10000))
+                 (code (car res))
+                 (out (cadr res))
+                ) ;
+            (check code => 0)
+            (check-true (or (string-contains? out "Hello from Claude stub!")
+                          (string-contains? out "from Claude stream!")
+                        ) ;or
+            ) ;check-true
+          ) ;let*
 
-  ;; 12. CLI --session-timeout 0 关闭兜底端到端测试
-  (let* ((cmd (list GF_BIN "pi" "--model" "multi-turn" "--session-timeout" "0" "--print" "Run multi turn"))
-         (p (process-spawn cmd :env test-env :stdout 'pipe :stderr 'pipe))
-         (code (process-wait p 15000))
-         (out (process-read p :stream 'stdout)))
-    (check code => 0)
-    (check-true (string-contains? out "Multi-turn tool completed successfully!"))
-    (process-close p))
+          ;; 12. CLI --session-timeout 0 关闭兜底端到端测试
+          (let* ((cmd (list GF_BIN "pi" "--model" "multi-turn"
+                        "--session-timeout" "0" "--print" "Run multi turn"
+                      ) ;list
+                 ) ;cmd
+                 (res (safe-exec cmd test-env 15000))
+                 (code (car res))
+                 (out (cadr res))
+                ) ;
+            (check code => 0)
+            (check-true (string-contains? out "Multi-turn tool completed successfully!"))
+          ) ;let*
 
-  ;; 13. CLI --session-timeout 立即超时（负数）端到端测试
-  (let* ((cmd (list GF_BIN "pi" "--model" "multi-turn" "--session-timeout" "-1" "--print" "Run timeout"))
-         (p (process-spawn cmd :env test-env :stdout 'pipe :stderr 'pipe))
-         (code (process-wait p 10000))
-         (err (process-read p :stream 'stderr)))
-    (check code => 1)
-    (check-true (string-contains? err "Session timeout exceeded"))
-    (process-close p))
-
-  (process-kill proc)
-) ;let*
+          ;; 13. CLI --session-timeout 立即超时（负数）端到端测试
+          (let* ((cmd (list GF_BIN "pi" "--model" "multi-turn"
+                        "--session-timeout" "-1" "--print" "Run timeout"
+                      ) ;list
+                 ) ;cmd
+                 (res (safe-exec cmd test-env 10000))
+                 (code (car res))
+                 (err (caddr res))
+                ) ;
+            (check code => 1)
+            (check-true (string-contains? err "Session timeout exceeded"))
+          ) ;let*
+        ) ;lambda
+        (lambda () (process-kill proc) (process-close proc))
+      ) ;dynamic-wind
+    ) ;let*
+  ) ;lambda
+  (lambda () (cleanup-fixtures!))
+) ;dynamic-wind
 
 (check-report)

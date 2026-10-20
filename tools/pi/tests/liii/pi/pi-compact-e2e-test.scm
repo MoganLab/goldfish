@@ -111,21 +111,31 @@
        ) ;proc
        (port (parse-port-line (process-read-line proc)))
        (base-url (string-append "http://127.0.0.1:" (number->string port)))
-       (test-env (append (list (cons "PI_CODING_AGENT_DIR" AGENT_DIR)
-                           (cons "GF_PI_BASE_URL" base-url)
-                           (cons "GF_PI_MODEL" "gemini-3.8-flash")
-                           (cons "https_proxy" "")
-                           (cons "http_proxy" "")
-                           (cons "all_proxy" "")
-                           (cons "ALL_PROXY" "")
-                           (cons "HTTPS_PROXY" "")
-                           (cons "HTTP_PROXY" "")
-                         ) ;list
-                         (get-environment-variables)
+       (test-env (append (get-environment-variables)
+                   (list (cons "PI_CODING_AGENT_DIR" AGENT_DIR)
+                     (cons "GF_PI_BASE_URL" base-url)
+                     (cons "GF_PI_MODEL" "gemini-3.8-flash")
+                     (cons "https_proxy" "")
+                     (cons "http_proxy" "")
+                     (cons "all_proxy" "")
+                     (cons "ALL_PROXY" "")
+                     (cons "HTTPS_PROXY" "")
+                     (cons "HTTP_PROXY" "")
+                     (cons "no_proxy" "")
+                     (cons "NO_PROXY" "")
+                     (cons "ANTHROPIC_BASE_URL" "")
+                     (cons "ANTHROPIC_API_KEY" "")
+                     (cons "ANTHROPIC_AUTH_TOKEN" "")
+                     (cons "DEEPSEEK_API_KEY" "")
+                     (cons "DEEPSEEK_BASE_URL" "")
+                   ) ;list
                  ) ;append
        ) ;test-env
       ) ;
-  (check-true (number? port))
+  (dynamic-wind
+    (lambda () #f)
+    (lambda ()
+      (check-true (number? port))
 
   ;; 1. --compact 不带 prompt：只压缩并退出
   (let* ((p (process-spawn (list GF_BIN "pi" "--compact")
@@ -218,9 +228,12 @@
     (check-true (string-contains? err "Auto-compacted session"))
     (process-close p)
   ) ;let*
-
-  (process-kill proc)
-  (process-close proc)
+    ) ;lambda
+    (lambda ()
+      (process-kill proc)
+      (process-close proc)
+    ) ;lambda
+  ) ;dynamic-wind
 ) ;let*
 
 (check-report)

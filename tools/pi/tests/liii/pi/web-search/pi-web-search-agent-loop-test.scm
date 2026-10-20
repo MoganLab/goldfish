@@ -7,6 +7,7 @@
   (liii list)
   (liii json)
   (liii sys)
+  (liii path)
   (liii subprocess)
   (liii pi)
 )
@@ -42,6 +43,34 @@
 
 (define GF_BIN (executable))
 
+(define %tmp-agent-dir
+  (path->string (path-join (path-temp-dir) "gf-pi-websearch-e2e-direct"))
+)
+
+(define (setup-fixtures!)
+  (unless (path-exists? (path %tmp-agent-dir))
+    (path-mkdir (path %tmp-agent-dir) :parents #t :exist-ok #t)
+  ) ;unless
+  (for-each
+    (lambda (name)
+      (let ((src (path-join (path FIXTURE_DIR) (path name)))
+            (dst (path-join (path %tmp-agent-dir) (path name)))
+           ) ;
+        (when (path-exists? src)
+          (path-copy src dst)
+        ) ;when
+      ) ;let
+    ) ;lambda
+    '("auth.json" "models-store.json" "models.json" "settings.json")
+  ) ;for-each
+) ;define
+
+(define (cleanup-fixtures!)
+  (when (path-exists? (path %tmp-agent-dir))
+    (g_rmtree %tmp-agent-dir)
+  ) ;when
+) ;define
+
 (define (read-all p . maybe-stream)
   (let ((stream (if (null? maybe-stream) 'stdout (car maybe-stream))))
     (let loop ((acc ""))
@@ -52,28 +81,43 @@
   (filter (lambda (s) (not (string-null? s)))
     (map string-trim-both (string-split text "\n"))))
 
-(let* ((proc (process-spawn (list "python3" stub-server-file) :stdout 'pipe))
-       (port-line (process-read-line proc))
-       (port (parse-port-line port-line))
-       (base-url (string-append "http://127.0.0.1:" (number->string port)))
-       (test-env (append (list (cons "PI_CODING_AGENT_DIR" FIXTURE_DIR)
-                           (cons "GF_PI_BASE_URL" base-url)
-                           (cons "GOOGLE_BASE_URL" base-url)
-                           (cons "GF_PI_MODEL" "agent-web-search")
-                           (cons "GOOGLE_SEARCH_MODEL" "web-search-basic")
-                           (cons "GOOGLE_API_KEY" "test-key-search")
-                           (cons "https_proxy" "")
-                           (cons "http_proxy" "")
-                           (cons "all_proxy" "")
-                           (cons "ALL_PROXY" "")
-                           (cons "HTTPS_PROXY" "")
-                           (cons "HTTP_PROXY" "")
-                         )
-                         (get-environment-variables)
-                 )
-       )
-      )
-  (check-true (number? port))
+(setup-fixtures!)
+
+(dynamic-wind
+  (lambda () #f)
+  (lambda ()
+    (let* ((proc (process-spawn (list "python3" stub-server-file) :stdout 'pipe))
+           (port-line (process-read-line proc))
+           (port (parse-port-line port-line))
+           (base-url (string-append "http://127.0.0.1:" (number->string port)))
+           (test-env (append (get-environment-variables)
+                       (list (cons "PI_CODING_AGENT_DIR" %tmp-agent-dir)
+                         (cons "GF_PI_BASE_URL" base-url)
+                         (cons "GOOGLE_BASE_URL" base-url)
+                         (cons "GF_PI_MODEL" "agent-web-search")
+                         (cons "GOOGLE_SEARCH_MODEL" "web-search-basic")
+                         (cons "GOOGLE_API_KEY" "test-key-search")
+                         (cons "https_proxy" "")
+                         (cons "http_proxy" "")
+                         (cons "all_proxy" "")
+                         (cons "ALL_PROXY" "")
+                         (cons "HTTPS_PROXY" "")
+                         (cons "HTTP_PROXY" "")
+                         (cons "no_proxy" "")
+                         (cons "NO_PROXY" "")
+                         (cons "ANTHROPIC_BASE_URL" "")
+                         (cons "ANTHROPIC_API_KEY" "")
+                         (cons "ANTHROPIC_AUTH_TOKEN" "")
+                         (cons "DEEPSEEK_API_KEY" "")
+                         (cons "DEEPSEEK_BASE_URL" "")
+                       ) ;list
+                     ) ;append
+           ) ;test-env
+          ) ;
+      (dynamic-wind
+        (lambda () #f)
+        (lambda ()
+          (check-true (number? port))
 
   ;; 1. print 模式：web_search 闭环调用与 Sources 引用展示
   (let* ((cmd (list GF_BIN "pi" "--model" "agent-web-search" "--tools" "+web_search"
@@ -150,7 +194,17 @@
     (process-close p)
   )
 
-  (process-close proc)
-)
+        ) ;lambda
+        (lambda ()
+          (process-kill proc)
+          (process-close proc)
+        ) ;lambda
+      ) ;dynamic-wind
+    ) ;let*
+  ) ;lambda
+  (lambda ()
+    (cleanup-fixtures!)
+  ) ;lambda
+) ;dynamic-wind
 
 (check-report)

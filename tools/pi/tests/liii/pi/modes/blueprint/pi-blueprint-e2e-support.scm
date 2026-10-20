@@ -90,17 +90,24 @@
 ) ;define
 
 (define (e2e-env base)
-  (append (list (cons "PI_CODING_AGENT_DIR" %tmp-agent)
-            (cons "GF_PI_BASE_URL" base)
-            (cons "GF_PI_MODEL" "gemini-3.8-flash")
-            (cons "https_proxy" "")
-            (cons "http_proxy" "")
-            (cons "all_proxy" "")
-            (cons "HTTPS_PROXY" "")
-            (cons "HTTP_PROXY" "")
-            (cons "ALL_PROXY" "")
-          ) ;list
-    (get-environment-variables)
+  (append (get-environment-variables)
+    (list (cons "PI_CODING_AGENT_DIR" %tmp-agent)
+      (cons "GF_PI_BASE_URL" base)
+      (cons "GF_PI_MODEL" "gemini-3.8-flash")
+      (cons "https_proxy" "")
+      (cons "http_proxy" "")
+      (cons "all_proxy" "")
+      (cons "HTTPS_PROXY" "")
+      (cons "HTTP_PROXY" "")
+      (cons "ALL_PROXY" "")
+      (cons "no_proxy" "")
+      (cons "NO_PROXY" "")
+      (cons "ANTHROPIC_BASE_URL" "")
+      (cons "ANTHROPIC_API_KEY" "")
+      (cons "ANTHROPIC_AUTH_TOKEN" "")
+      (cons "DEEPSEEK_API_KEY" "")
+      (cons "DEEPSEEK_BASE_URL" "")
+    ) ;list
   ) ;append
 ) ;define
 

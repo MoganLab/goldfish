@@ -63,25 +63,68 @@
 
 (define GF_BIN (executable))
 
-(let* ((proc (process-spawn (list "python3" stub-server-file) :stdout 'pipe))
-       (port-line (process-read-line proc))
-       (port (parse-port-line port-line))
-       (base-url (string-append "http://127.0.0.1:" (number->string port)))
-       (test-env (append (list (cons "PI_CODING_AGENT_DIR" FIXTURE_DIR)
-                           (cons "GF_PI_BASE_URL" base-url)
-                           (cons "GF_PI_MODEL" "gemini-3.8-flash")
-                           (cons "https_proxy" "")
-                           (cons "http_proxy" "")
-                           (cons "all_proxy" "")
-                           (cons "ALL_PROXY" "")
-                           (cons "HTTPS_PROXY" "")
-                           (cons "HTTP_PROXY" "")
-                         ) ;list
-                         (get-environment-variables)
-                 ) ;append
-       ) ;test-env
-      ) ;
-  (check-true (number? port))
+(define %tmp-agent-dir
+  (path->string (path-join (path-temp-dir) "gf-pi-json-e2e-direct"))
+)
+
+(define (setup-fixtures!)
+  (unless (path-exists? (path %tmp-agent-dir))
+    (path-mkdir (path %tmp-agent-dir) :parents #t :exist-ok #t)
+  ) ;unless
+  (for-each
+    (lambda (name)
+      (let ((src (path-join (path FIXTURE_DIR) (path name)))
+            (dst (path-join (path %tmp-agent-dir) (path name)))
+           ) ;
+        (when (path-exists? src)
+          (path-copy src dst)
+        ) ;when
+      ) ;let
+    ) ;lambda
+    '("auth.json" "models-store.json" "models.json" "settings.json")
+  ) ;for-each
+) ;define
+
+(define (cleanup-fixtures!)
+  (when (path-exists? (path %tmp-agent-dir))
+    (g_rmtree %tmp-agent-dir)
+  ) ;when
+) ;define
+
+(setup-fixtures!)
+
+(dynamic-wind
+  (lambda () #f)
+  (lambda ()
+    (let* ((proc (process-spawn (list "python3" stub-server-file) :stdout 'pipe))
+           (port-line (process-read-line proc))
+           (port (parse-port-line port-line))
+           (base-url (string-append "http://127.0.0.1:" (number->string port)))
+           (test-env (append (get-environment-variables)
+                       (list (cons "PI_CODING_AGENT_DIR" %tmp-agent-dir)
+                         (cons "GF_PI_BASE_URL" base-url)
+                         (cons "GF_PI_MODEL" "gemini-3.8-flash")
+                         (cons "https_proxy" "")
+                         (cons "http_proxy" "")
+                         (cons "all_proxy" "")
+                         (cons "ALL_PROXY" "")
+                         (cons "HTTPS_PROXY" "")
+                         (cons "HTTP_PROXY" "")
+                         (cons "no_proxy" "")
+                         (cons "NO_PROXY" "")
+                         (cons "ANTHROPIC_BASE_URL" "")
+                         (cons "ANTHROPIC_API_KEY" "")
+                         (cons "ANTHROPIC_AUTH_TOKEN" "")
+                         (cons "DEEPSEEK_API_KEY" "")
+                         (cons "DEEPSEEK_BASE_URL" "")
+                       ) ;list
+                     ) ;append
+           ) ;test-env
+          ) ;
+      (dynamic-wind
+        (lambda () #f)
+        (lambda ()
+          (check-true (number? port))
 
   ;; 1. 单轮简单对话的 JSONL 事件序列
   (let* ((cmd (list GF_BIN "pi" "--mode" "json" "Hello from json e2e test"))
@@ -155,9 +198,12 @@
   ;; 4. Anthropic provider JSON 模式事件流验证
   ;; GF_PI_MODEL 显式指定模型，避免与 provider 不匹配（任务 034 严格校验）
   (let* ((ant-env (append test-env
-                           (list (cons "ANTHROPIC_API_KEY" "sk-ant-test-json")
-                             (cons "ANTHROPIC_BASE_URL" base-url)
-                             (cons "GF_PI_MODEL" "claude-sonnet-4-5"))))
+                    (list (cons "ANTHROPIC_API_KEY" "sk-ant-test-json")
+                      (cons "ANTHROPIC_BASE_URL" base-url)
+                      (cons "GF_PI_MODEL" "claude-sonnet-4-5")
+                    ) ;list
+                  ) ;append
+         ) ;ant-env
          (cmd (list GF_BIN "pi" "--provider" "anthropic" "--mode" "json"
                 "Hello anthropic json"
               ) ;list
@@ -194,8 +240,17 @@
     (check (car (reverse event-types)) => "agent_settled")
     (process-close p)
   ) ;let*
-
-  (process-kill proc)
-) ;let*
+        ) ;lambda
+        (lambda ()
+          (process-kill proc)
+          (process-close proc)
+        ) ;lambda
+      ) ;dynamic-wind
+    ) ;let*
+  ) ;lambda
+  (lambda ()
+    (cleanup-fixtures!)
+  ) ;lambda
+) ;dynamic-wind
 
 (check-report)

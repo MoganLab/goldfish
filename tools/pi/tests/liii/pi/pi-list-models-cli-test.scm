@@ -24,14 +24,17 @@
 
 (define (exec-gf-pi args)
   (let* ((cmd (cons GF_BIN (cons "pi" args)))
-         (env (append (list (cons "PI_CODING_AGENT_DIR" FIXTURE_DIR))
-                      (get-environment-variables)))
+         (env (append (get-environment-variables)
+                      (list (cons "PI_CODING_AGENT_DIR" FIXTURE_DIR))))
          (p (process-spawn cmd :env env :stdout 'pipe :stderr 'pipe))
-         (out (read-all p 'stdout))
-         (err (read-all p 'stderr))
          (code (process-wait p 30000)))
-    (process-close p)
-    (list code out err)))
+    (unless code
+      (process-kill p)
+      (process-wait p 2000))
+    (let ((out (read-all p 'stdout))
+          (err (read-all p 'stderr)))
+      (process-close p)
+      (list code (if (string? out) out "") (if (string? err) err "")))))
 
 ;; 1. 全局列出：无 --provider 时跨全部 provider 列出
 (let ((res (exec-gf-pi '("--list-models"))))

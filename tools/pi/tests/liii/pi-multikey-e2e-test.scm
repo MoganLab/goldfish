@@ -55,17 +55,24 @@
 (define GF_BIN (executable))
 
 (define (run-pi agent-dir base-url model provider)
-  (let* ((test-env (append (list (cons "PI_CODING_AGENT_DIR" agent-dir)
-                             (cons "GF_PI_BASE_URL" base-url)
-                             (cons "GF_PI_MODEL" model)
-                             (cons "https_proxy" "")
-                             (cons "http_proxy" "")
-                             (cons "all_proxy" "")
-                             (cons "ALL_PROXY" "")
-                             (cons "HTTPS_PROXY" "")
-                             (cons "HTTP_PROXY" "")
-                           ) ;list
-                           (get-environment-variables)
+  (let* ((test-env (append (get-environment-variables)
+                     (list (cons "PI_CODING_AGENT_DIR" agent-dir)
+                       (cons "GF_PI_BASE_URL" base-url)
+                       (cons "GF_PI_MODEL" model)
+                       (cons "https_proxy" "")
+                       (cons "http_proxy" "")
+                       (cons "all_proxy" "")
+                       (cons "ALL_PROXY" "")
+                       (cons "HTTPS_PROXY" "")
+                       (cons "HTTP_PROXY" "")
+                       (cons "no_proxy" "")
+                       (cons "NO_PROXY" "")
+                       (cons "ANTHROPIC_BASE_URL" "")
+                       (cons "ANTHROPIC_API_KEY" "")
+                       (cons "ANTHROPIC_AUTH_TOKEN" "")
+                       (cons "DEEPSEEK_API_KEY" "")
+                       (cons "DEEPSEEK_BASE_URL" "")
+                     ) ;list
                    ) ;append
          ) ;test-env
          (cmd (append (list GF_BIN "pi" "--print" "--no-session" "--timeout" "20")
@@ -75,11 +82,17 @@
          ) ;cmd
          (p (process-spawn cmd :env test-env :stdout 'pipe :stderr 'pipe))
          (code (process-wait p 30000))
-         (out (process-read p :stream 'stdout))
-         (err (process-read p :stream 'stderr))
         ) ;
-    (process-close p)
-    (list code (if (eof-object? out) "" out) (if (eof-object? err) "" err))
+    (unless code
+      (process-kill p)
+      (process-wait p 2000)
+    ) ;unless
+    (let ((out (process-read p :stream 'stdout))
+          (err (process-read p :stream 'stderr))
+         ) ;
+      (process-close p)
+      (list code (if (eof-object? out) "" out) (if (eof-object? err) "" err))
+    ) ;let
   ) ;let*
 ) ;define
 
@@ -88,7 +101,10 @@
        (port (parse-port-line port-line))
        (base-url (string-append "http://127.0.0.1:" (number->string port)))
       ) ;
-  (check-true (number? port))
+  (dynamic-wind
+    (lambda () #f)
+    (lambda ()
+      (check-true (number? port))
 
   ;; 1. 非流式：key1 403 → 自动轮换 key2 成功（未输出实质内容前透明切换）
   (let ((r (run-pi FIXTURE_DIR base-url "multikey-403" #f)))
@@ -177,8 +193,12 @@
     (check-true (not (string-contains? (caddr r) "mk-kimi-key-1-aaaaaa")))
     (check-true (not (string-contains? (caddr r) "mk-kimi-key-2-bbbbbb")))
   ) ;let
-
-  (process-kill proc)
+    ) ;lambda
+    (lambda ()
+      (process-kill proc)
+      (process-close proc)
+    ) ;lambda
+  ) ;dynamic-wind
 ) ;let*
 
 (check-report)
