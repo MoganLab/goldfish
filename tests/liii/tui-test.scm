@@ -55,4 +55,21 @@
 (check (parse-keys "w\x1b[As\x1b[B") => '("w" up "s" down))
 (check (parse-keys "金鱼") => '("金" "鱼"))
 
+;; 终端抽象测试
+(let ((vt (make-virtual-terminal :width 20 :height 5)))
+  (check (terminal? vt) => #t)
+  (check (virtual-terminal? vt) => #t)
+  (check (terminal-size vt) => '(20 5))
+  (terminal-write vt "Goldfish TUI")
+  (check (car (virtual-terminal-screen vt)) => "Goldfish TUI        ")
+  (terminal-clear vt)
+  (check (terminal-cursor vt) => '(0 0)))
+
+(let* ((p (open-output-string))
+       (st (make-standard-terminal :output-port p)))
+  (check (terminal? st) => #t)
+  (check (standard-terminal? st) => #t)
+  (terminal-write st "hi")
+  (check (get-output-string p) => "hi"))
+
 (check-report)

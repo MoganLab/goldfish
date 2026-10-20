@@ -18,7 +18,17 @@
   (export <component> make-component component? component-render
     component-handle-input component-invalidate! make-text make-truncated-text
     make-spacer strip-ansi display-width truncate-to-width wrap-text parse-key
-    parse-keys
+    parse-keys <terminal> make-terminal-record terminal? terminal-size
+    terminal-write terminal-cursor terminal-set-cursor! terminal-clear
+    terminal-clear-line terminal-cursor-visible? terminal-hide-cursor!
+    terminal-show-cursor! terminal-flush terminal-detect-size
+    make-virtual-terminal virtual-terminal? virtual-terminal-screen
+    virtual-terminal-raw virtual-terminal-resize! make-standard-terminal
+    standard-terminal?
   ) ;export
-  (import (liii tui component) (liii tui text-width) (liii tui keys))
+  (import (liii tui component)
+    (liii tui text-width)
+    (liii tui keys)
+    (liii tui terminal)
+  ) ;import
 ) ;define-library
