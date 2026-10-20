@@ -20,10 +20,16 @@
     extension-registry-flags
     extension-registry-commands
     extension-registry-listeners
+    extension-registry-flows
+    extension-registry-validators
+    extension-registry-augmenters
     set-extension-registry-tools!
     set-extension-registry-flags!
     set-extension-registry-commands!
     set-extension-registry-listeners!
+    set-extension-registry-flows!
+    set-extension-registry-validators!
+    set-extension-registry-augmenters!
     extension-registry-get-listeners
 
     ;; ExtensionAPI
@@ -58,6 +64,10 @@
     extension-flag-def-handler
     extension-flag-def-type
     extension-flag-def-default
+    extension-flag-def-key
+    extension-flag-def-aliases
+    extension-flag-def-takes-arg?
+    extension-flag-def-validator
 
     ;; ExtensionCommandDef
     make-extension-command-def
@@ -67,8 +77,20 @@
     extension-command-def-handler
     extension-command-def-params
 
+    ;; ExtensionFlowDef
+    make-extension-flow-def
+    extension-flow-def?
+    extension-flow-def-name
+    extension-flow-def-predicate
+    extension-flow-def-handler
+    extension-flow-def-local?
+    extension-flow-def-priority
+
     ;; Registry Operations
     target->registry
+    default-extension-registry
+    set-default-extension-registry!
+
     register-tool!
     extension-register-tool!
     find-extension-tool
@@ -83,6 +105,18 @@
     extension-register-command!
     find-extension-command
     extension-registry-commands-list
+
+    register-flow!
+    extension-register-flow!
+    find-extension-flow
+    extension-registry-flows-list
+
+    register-validator!
+    extension-register-validator!
+    extension-registry-validators-list
+
+    register-config-augmenter!
+    extension-registry-augmenters-list
 
     current-extension-registry
     set-current-extension-registry!
