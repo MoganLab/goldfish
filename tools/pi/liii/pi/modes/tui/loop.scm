@@ -16,9 +16,42 @@
     (liii pi modes tui editor)
     (liii pi modes tui layout)
     (liii pi modes tui loop opts)
+    (liii pi modes tui loop dispatch)
   ) ;import
   (export run-tui-loop)
   (begin
+
+    (define (%handle-resize! term screen current-state)
+      (let-values (((term-cols term-rows) (detect-terminal-dimensions term)))
+        (when
+          (or (not (= term-cols (state-cols current-state)))
+            (not (= term-rows (state-rows current-state)))
+          ) ;or
+          (when screen
+            (handle-screen-resize! screen
+              (state-cols current-state)
+              (state-rows current-state)
+              term-cols
+              term-rows
+            ) ;handle-screen-resize!
+          ) ;when
+          (state-set-dimensions! current-state term-cols term-rows)
+          (state-mark-dirty! current-state)
+        ) ;when
+      ) ;let-values
+    ) ;define
+
+    (define (%dispatch-tick on-tick state ticks)
+      (if (not on-tick)
+        state
+        (let ((res (%call-on-tick on-tick state ticks)))
+          (cond ((pi-tui-state? res) res)
+                ((eq? res 'exit) (state-set-status! state 'exit) state)
+                (else state)
+          ) ;cond
+        ) ;let
+      ) ;if
+    ) ;define
 
     (define (run-tui-loop term . opts)
       (unless (terminal? term)
@@ -50,23 +83,7 @@
                 ((and max-ticks (>= ticks max-ticks)) (if return-state? current-state 0))
                 (else
                   ;; 0. 终端 Resize 检测与自适应处理
-                  (let-values (((term-cols term-rows) (detect-terminal-dimensions term)))
-                    (when
-                      (or (not (= term-cols (state-cols current-state)))
-                        (not (= term-rows (state-rows current-state)))
-                      ) ;or
-                      (when screen
-                        (handle-screen-resize! screen
-                          (state-cols current-state)
-                          (state-rows current-state)
-                          term-cols
-                          term-rows
-                        ) ;handle-screen-resize!
-                      ) ;when
-                      (state-set-dimensions! current-state term-cols term-rows)
-                      (state-mark-dirty! current-state)
-                    ) ;when
-                  ) ;let-values
+                  (%handle-resize! term screen current-state)
 
                   ;; 1. 脏标记与渲染调度
                   (when (and render (state-dirty? current-state))
@@ -74,59 +91,15 @@
                     (%call-render render current-state term)
                   ) ;when
 
-                  ;; 2. 非阻塞按键轮询
-                  (let* ((key (terminal-poll-key term)) (next-state current-state) (key-handled? #f))
-                    (when key
-                      (if on-key
-                        (let ((res (%call-on-key on-key next-state key)))
-                          (cond ((pi-tui-state? res) (set! next-state res))
-                                ((eq? res 'exit) (state-set-status! next-state 'exit) (set! key-handled? #t))
-                                ((eq? res 'handled) (set! key-handled? #t))
-                                (else #f)
-                          ) ;cond
-                        ) ;let
-                        #f
-                      ) ;if
-                      ;; 自动路由按键至处于 idle 状态的 pi-tui-editor
-                      (when
-                        (and (not key-handled?)
-                          (not (eq? (state-status next-state) 'exit))
-                          (eq? (state-status next-state) 'idle)
-                          (pi-tui-editor? (state-input-editor next-state))
-                        ) ;and
-                        (let* ((ed (state-input-editor next-state))
-                               (handled? (pi-tui-editor-handle-key ed key))
-                              ) ;
-                          (when handled?
-                            (set! key-handled? #t)
-                            (state-mark-dirty! next-state)
-                          ) ;when
-                        ) ;let*
-                      ) ;when
-                      ;; 终止按键判定：
-                      ;; 1) escape 键直接触发退出
-                      ;; 2) 未被拦截的 "q" / "Q" 触发退出
-                      (cond ((eq? key 'escape) (state-set-status! next-state 'exit))
-                            ((and (not key-handled?) (or (equal? key "q") (equal? key "Q")))
-                             (state-set-status! next-state 'exit)
-                            ) ;
-                      ) ;cond
-                    ) ;when
-
+                  ;; 2. 非阻塞按键轮询与分发
+                  (let* ((key (terminal-poll-key term))
+                         (next-state (if key (%dispatch-tui-key current-state key on-key) current-state))
+                        ) ;
                     ;; 3. 检查按键后是否要求退出
                     (if (eq? (state-status next-state) 'exit)
                       (if return-state? next-state 0)
                       ;; 4. Tick 回调调度
-                      (let ((after-tick-state next-state))
-                        (when on-tick
-                          (let ((res (%call-on-tick on-tick after-tick-state ticks)))
-                            (cond ((pi-tui-state? res) (set! after-tick-state res))
-                                  ((eq? res 'exit) (state-set-status! after-tick-state 'exit))
-                                  (else #f)
-                            ) ;cond
-                          ) ;let
-                        ) ;when
-
+                      (let ((after-tick-state (%dispatch-tick on-tick next-state ticks)))
                         ;; 5. 检查 tick 后是否要求退出
                         (if (eq? (state-status after-tick-state) 'exit)
                           (if return-state? after-tick-state 0)

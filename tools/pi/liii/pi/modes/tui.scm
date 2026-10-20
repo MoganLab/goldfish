@@ -15,6 +15,8 @@
     (liii pi modes tui loop)
     (liii pi modes tui editor)
     (liii pi modes tui layout)
+    (liii pi modes tui message)
+    (liii pi modes tui viewport)
   ) ;import
   (export with-pi-tui-terminal
     run-tui-loop
@@ -108,6 +110,20 @@
     compute-tui-layout
     detect-terminal-dimensions
     handle-screen-resize!
+    ;; Message & Viewport exports
+    <pi-tui-message>
+    make-pi-tui-message
+    pi-tui-message?
+    message-role
+    message-content
+    normalize-pi-tui-message
+    message-role-prefix
+    message-role-indent
+    render-message-lines
+    compute-max-scroll-offset
+    compute-viewport-window
+    viewport-scroll-indicator
+    render-messages-viewport
   ) ;export
   (begin
 

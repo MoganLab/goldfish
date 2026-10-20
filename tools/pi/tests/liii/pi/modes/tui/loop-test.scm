@@ -171,4 +171,20 @@
   ) ;let
 ) ;let
 
+;; 9. 视口滚动按键（PageUp / PageDown）自动调整 scroll-offset
+(let* ((vt (make-virtual-terminal :width 80 :height 24))
+       (st (make-pi-tui-state :scroll-offset 0 :status 'idle))
+      ) ;
+  (virtual-terminal-push-key! vt 'page-up)
+  (virtual-terminal-push-key! vt 'page-up)
+  (virtual-terminal-push-key! vt 'page-down)
+  (virtual-terminal-push-key! vt 'escape)
+
+  (let ((final-st (run-tui-loop vt :state st :return-state #t)))
+    (check (state-status final-st) => 'exit)
+    ;; 两次 page-up (+5 +5 = 10)，一次 page-down (-5 = 5)
+    (check (state-scroll-offset final-st) => 5)
+  ) ;let
+) ;let
+
 (check-report)
