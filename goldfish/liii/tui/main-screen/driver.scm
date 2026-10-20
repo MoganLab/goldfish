@@ -32,6 +32,7 @@
     (liii base)
     (liii error)
     (liii string)
+    (liii tui text-width)
     (liii tui terminal)
     (liii tui component)
     (liii tui main-screen diff)
@@ -122,38 +123,6 @@
       (%screen-auto-hide-cursor-set! screen (if val #t #f))
     ) ;define
 
-    (define (%normalize-lines target caller)
-      (cond ((component? target) #f)
-            ((string? target)
-             (if (string-contains? target "\n") (string-split target "\n") (list target))
-            ) ;
-            ((list? target)
-             (let loop
-               ((rest target) (acc '()))
-               (if (null? rest)
-                 (reverse acc)
-                 (let ((item (car rest)))
-                   (unless (string? item)
-                     (type-error (string-append caller ": line must be string, got " (object->string item))
-                     ) ;type-error
-                   ) ;unless
-                   (if (string-contains? item "\n")
-                     (loop (cdr rest) (append (reverse (string-split item "\n")) acc))
-                     (loop (cdr rest) (cons item acc))
-                   ) ;if
-                 ) ;let
-               ) ;if
-             ) ;let
-            ) ;
-            (else (type-error (string-append caller
-                                ": expected component, string, or list of strings, got "
-                                (object->string target)
-                              ) ;string-append
-                  ) ;type-error
-            ) ;else
-      ) ;cond
-    ) ;define
-
     (define (%parse-cursor opt)
       (and (pair? opt)
         (let ((c (car opt)))
@@ -166,6 +135,30 @@
       ) ;and
     ) ;define
 
+    (define (%render-diff-op! term op old-lines)
+      (let ((type (diff-op-type op)) (idx (diff-op-index op)))
+        (cond ((eq? type 'keep) #t)
+              ((or (eq? type 'update) (eq? type 'append))
+               (let ((new-text (diff-op-text op))
+                     (old-text
+                       (if (and (eq? type 'update) (< idx (length old-lines)))
+                         (list-ref old-lines idx)
+                         ""
+                       ) ;if
+                     ) ;old-text
+                    ) ;
+                 (terminal-set-cursor! term 0 idx)
+                 (terminal-write term new-text)
+                 (when (and (eq? type 'update) (< (display-width new-text) (display-width old-text)))
+                   (terminal-clear-line-to-end term)
+                 ) ;when
+               ) ;let
+              ) ;
+              ((eq? type 'clear) (terminal-set-cursor! term 0 idx) (terminal-clear-line term))
+        ) ;cond
+      ) ;let
+    ) ;define
+
     (define (screen-render! screen target . opt-cursor)
       (%check-main-screen screen "screen-render!")
       (let* ((term (%screen-terminal screen))
@@ -176,7 +169,7 @@
                  (let* ((sz (terminal-size term)) (w (car sz)))
                    (component-render target w)
                  ) ;let*
-                 (%normalize-lines target "screen-render!")
+                 (screen-normalize-lines target "screen-render!")
                ) ;if
              ) ;lines
              (is-dirty (screen-buffer-dirty? buf))
@@ -185,34 +178,27 @@
              ) ;diff-ops
              (has-changes (or is-dirty (screen-diff-has-changes? diff-ops)))
             ) ;
-        (when auto-hide
+        (when (and auto-hide (terminal-cursor-visible? term))
           (terminal-hide-cursor! term)
         ) ;when
         (when has-changes
-          (for-each
-            (lambda (op)
-              (let ((type (diff-op-type op)) (idx (diff-op-index op)))
-                (cond ((eq? type 'keep) #t)
-                      ((or (eq? type 'update) (eq? type 'append))
-                       (terminal-set-cursor! term 0 idx)
-                       (terminal-clear-line term)
-                       (terminal-set-cursor! term 0 idx)
-                       (terminal-write term (diff-op-text op))
-                      ) ;
-                      ((eq? type 'clear) (terminal-set-cursor! term 0 idx) (terminal-clear-line term))
-                ) ;cond
-              ) ;let
-            ) ;lambda
-            diff-ops
-          ) ;for-each
+          (terminal-begin-sync! term)
+          (for-each (lambda (op) (%render-diff-op! term op old-lines)) diff-ops)
+          (terminal-end-sync! term)
           (terminal-flush term)
         ) ;when
         (screen-buffer-commit! buf lines)
         (let ((cur (%parse-cursor opt-cursor)))
           (cond (cur (terminal-set-cursor! term (car cur) (cdr cur))
-                  (terminal-show-cursor! term)
+                  (unless (terminal-cursor-visible? term)
+                    (terminal-show-cursor! term)
+                  ) ;unless
                 ) ;cur
-                ((not auto-hide) (terminal-show-cursor! term))
+                ((not auto-hide)
+                 (unless (terminal-cursor-visible? term)
+                   (terminal-show-cursor! term)
+                 ) ;unless
+                ) ;
           ) ;cond
         ) ;let
         #t

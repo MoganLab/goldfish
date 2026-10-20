@@ -26,8 +26,15 @@
     screen-buffer-lines-set! screen-buffer-prev-lines
     screen-buffer-prev-lines-set! screen-buffer-dirty? screen-buffer-dirty-set!
     screen-buffer-invalidate! screen-buffer-commit! screen-buffer-clear!
+    screen-normalize-lines
   ) ;export
-  (import (scheme base) (scheme write) (liii base) (liii error))
+  (import (scheme base)
+    (scheme write)
+    (liii base)
+    (liii error)
+    (liii string)
+    (liii tui component)
+  ) ;import
   (begin
 
     (define-record-type <screen-buffer>
@@ -112,6 +119,38 @@
       (%screen-buffer-prev-lines-set! buf (%screen-buffer-lines buf))
       (%screen-buffer-lines-set! buf '())
       (%screen-buffer-dirty-set! buf #t)
+    ) ;define
+
+    (define (screen-normalize-lines target caller)
+      (cond ((component? target) #f)
+            ((string? target)
+             (if (string-contains? target "\n") (string-split target "\n") (list target))
+            ) ;
+            ((list? target)
+             (let loop
+               ((rest target) (acc '()))
+               (if (null? rest)
+                 (reverse acc)
+                 (let ((item (car rest)))
+                   (unless (string? item)
+                     (type-error (string-append caller ": line must be string, got " (object->string item))
+                     ) ;type-error
+                   ) ;unless
+                   (if (string-contains? item "\n")
+                     (loop (cdr rest) (append (reverse (string-split item "\n")) acc))
+                     (loop (cdr rest) (cons item acc))
+                   ) ;if
+                 ) ;let
+               ) ;if
+             ) ;let
+            ) ;
+            (else (type-error (string-append caller
+                                ": expected component, string, or list of strings, got "
+                                (object->string target)
+                              ) ;string-append
+                  ) ;type-error
+            ) ;else
+      ) ;cond
     ) ;define
 
   ) ;begin

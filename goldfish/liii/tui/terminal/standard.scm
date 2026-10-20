@@ -87,6 +87,24 @@
       ) ;let
     ) ;define
 
+    (define (%st-clear-line-to-end! term)
+      (let ((state (terminal-data term)))
+        (display "\x1b;[K" (%st-port state))
+      ) ;let
+    ) ;define
+
+    (define (%st-begin-sync! term)
+      (let ((state (terminal-data term)))
+        (display "\x1b;[?2026h" (%st-port state))
+      ) ;let
+    ) ;define
+
+    (define (%st-end-sync! term)
+      (let ((state (terminal-data term)))
+        (display "\x1b;[?2026l" (%st-port state))
+      ) ;let
+    ) ;define
+
     (define (%st-get-visible term)
       (let ((state (terminal-data term)))
         (%st-visible? state)
@@ -95,11 +113,15 @@
 
     (define (%st-set-visible! term visible?)
       (let ((state (terminal-data term)))
-        (%st-visible?-set! state visible?)
-        (if visible?
-          (display "\x1b;[?25h" (%st-port state))
-          (display "\x1b;[?25l" (%st-port state))
-        ) ;if
+        (let ((target (if visible? #t #f)))
+          (unless (eq? (%st-visible? state) target)
+            (%st-visible?-set! state target)
+            (if target
+              (display "\x1b;[?25h" (%st-port state))
+              (display "\x1b;[?25l" (%st-port state))
+            ) ;if
+          ) ;unless
+        ) ;let
       ) ;let
     ) ;define
 
@@ -146,6 +168,9 @@
             %st-set-cursor!
             %st-clear!
             %st-clear-line!
+            %st-clear-line-to-end!
+            %st-begin-sync!
+            %st-end-sync!
             %st-get-visible
             %st-set-visible!
             %st-flush!

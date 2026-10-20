@@ -34,34 +34,6 @@
   ) ;import
   (begin
 
-    (define (%advance-cursor-line! state)
-      (vt-cursor-x-set! state 0)
-      (let ((ny (+ (vt-cursor-y state) 1)))
-        (if (>= ny (vt-height state))
-          (begin
-            (scroll-up-one-line! state)
-            (vt-cursor-y-set! state (- (vt-height state) 1))
-          ) ;begin
-          (vt-cursor-y-set! state ny)
-        ) ;if
-      ) ;let
-    ) ;define
-
-    (define (%put-char! state ch)
-      (let ((cx (vt-cursor-x state))
-            (cy (vt-cursor-y state))
-            (w (vt-width state))
-            (h (vt-height state))
-           ) ;
-        (when (and (< cx w) (< cy h))
-          (let ((row (vector-ref (vt-lines state) cy)))
-            (vector-set! row cx ch)
-          ) ;let
-        ) ;when
-        (vt-cursor-x-set! state (+ cx 1))
-      ) ;let
-    ) ;define
-
     (define (%vt-write! term text)
       (let* ((state (terminal-data term)) (len (string-length text)))
         (vt-raw-set! state (append (vt-raw state) (list text)))
@@ -75,11 +47,11 @@
                 (when
                   (and (< (+ i 1) len) (char=? (string-ref text (+ i 1)) #\newline))
                   (set! i (+ i 1))
-                  (%advance-cursor-line! state)
+                  (advance-cursor-line! state)
                 ) ;when
                ) ;
-               ((char=? ch #\newline) (%advance-cursor-line! state))
-               (else (%put-char! state ch))
+               ((char=? ch #\newline) (advance-cursor-line! state))
+               (else (put-char! state ch))
               ) ;cond
             ) ;let
             (loop (+ i 1))
@@ -110,8 +82,43 @@
 
     (define (%vt-clear-line! term)
       (let* ((state (terminal-data term)) (w (vt-width state)) (cy (vt-cursor-y state)))
+        (vt-raw-set! state (append (vt-raw state) (list "\x1b;[2K\r")))
         (vector-set! (vt-lines state) cy (make-char-row w))
       ) ;let*
+    ) ;define
+
+    (define (%vt-clear-line-to-end! term)
+      (let* ((state (terminal-data term))
+             (w (vt-width state))
+             (cy (vt-cursor-y state))
+             (cx (vt-cursor-x state))
+             (lines (vt-lines state))
+            ) ;
+        (vt-raw-set! state (append (vt-raw state) (list "\x1b;[K")))
+        (when (and (< cy (vt-height state)) (< cx w))
+          (let ((row (vector-ref lines cy)))
+            (let loop
+              ((x (max 0 cx)))
+              (when (< x w)
+                (vector-set! row x #\space)
+                (loop (+ x 1))
+              ) ;when
+            ) ;let
+          ) ;let
+        ) ;when
+      ) ;let*
+    ) ;define
+
+    (define (%vt-begin-sync! term)
+      (let ((state (terminal-data term)))
+        (vt-raw-set! state (append (vt-raw state) (list "\x1b;[?2026h")))
+      ) ;let
+    ) ;define
+
+    (define (%vt-end-sync! term)
+      (let ((state (terminal-data term)))
+        (vt-raw-set! state (append (vt-raw state) (list "\x1b;[?2026l")))
+      ) ;let
     ) ;define
 
     (define (make-virtual-terminal . args)
@@ -172,8 +179,11 @@
             %vt-set-cursor!
             %vt-clear!
             %vt-clear-line!
+            %vt-clear-line-to-end!
+            %vt-begin-sync!
+            %vt-end-sync!
             (lambda (term) (vt-visible? (terminal-data term)))
-            (lambda (term v) (vt-visible?-set! (terminal-data term) v))
+            (lambda (term v) (vt-visible?-set! (terminal-data term) (if v #t #f)))
             (lambda (term) #t)
             state
           ) ;make-terminal-record
@@ -227,16 +237,6 @@
       (vt-raw (terminal-data vt))
     ) ;define
 
-    (define (%copy-row-chars! old-row new-row copy-len)
-      (let loop
-        ((j 0))
-        (when (< j copy-len)
-          (vector-set! new-row j (vector-ref old-row j))
-          (loop (+ j 1))
-        ) ;when
-      ) ;let
-    ) ;define
-
     (define (virtual-terminal-resize! vt new-width new-height)
       (unless (virtual-terminal? vt)
         (type-error "virtual-terminal-resize!: expected virtual-terminal")
@@ -255,7 +255,7 @@
             (let ((new-row (make-char-row new-width)))
               (when (< i old-h)
                 (let ((old-row (vector-ref old-lines i)) (copy-len (min old-w new-width)))
-                  (%copy-row-chars! old-row new-row copy-len)
+                  (copy-row-chars! old-row new-row copy-len)
                 ) ;let
               ) ;when
               (vector-set! new-lines i new-row)

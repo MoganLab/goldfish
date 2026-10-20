@@ -27,7 +27,8 @@
     make-spacer strip-ansi display-width truncate-to-width wrap-text parse-key
     parse-keys <terminal> make-terminal-record terminal? terminal-size
     terminal-write terminal-cursor terminal-set-cursor! terminal-clear
-    terminal-clear-line terminal-cursor-visible? terminal-hide-cursor!
+    terminal-clear-line terminal-clear-line-to-end terminal-begin-sync!
+    terminal-end-sync! terminal-cursor-visible? terminal-hide-cursor!
     terminal-show-cursor! terminal-flush terminal-detect-size
     make-virtual-terminal virtual-terminal? virtual-terminal-screen
     virtual-terminal-raw virtual-terminal-resize! virtual-terminal-push-key!

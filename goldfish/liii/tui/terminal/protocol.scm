@@ -24,6 +24,7 @@
 (define-library (liii tui terminal protocol)
   (export <terminal> make-terminal-record terminal? terminal-size terminal-write
     terminal-cursor terminal-set-cursor! terminal-clear terminal-clear-line
+    terminal-clear-line-to-end terminal-begin-sync! terminal-end-sync!
     terminal-cursor-visible? terminal-hide-cursor! terminal-show-cursor!
     terminal-flush terminal-type terminal-data terminal-data-set!
   ) ;export
@@ -32,7 +33,8 @@
 
     (define-record-type <terminal>
       (%make-terminal type get-size-proc write-proc get-cursor-proc
-        set-cursor-proc clear-proc clear-line-proc get-cursor-visible-proc
+        set-cursor-proc clear-proc clear-line-proc clear-line-to-end-proc
+        begin-sync-proc end-sync-proc get-cursor-visible-proc
         set-cursor-visible-proc flush-proc data
       ) ;%make-terminal
       terminal?
@@ -43,6 +45,9 @@
       (set-cursor-proc %terminal-set-cursor)
       (clear-proc %terminal-clear)
       (clear-line-proc %terminal-clear-line)
+      (clear-line-to-end-proc %terminal-clear-line-to-end)
+      (begin-sync-proc %terminal-begin-sync)
+      (end-sync-proc %terminal-end-sync)
       (get-cursor-visible-proc %terminal-get-cursor-visible)
       (set-cursor-visible-proc %terminal-set-cursor-visible)
       (flush-proc %terminal-flush)
@@ -52,11 +57,13 @@
     (define <terminal> '<terminal>)
 
     (define (make-terminal-record type get-size-proc write-proc get-cursor-proc
-              set-cursor-proc clear-proc clear-line-proc get-cursor-visible-proc
+              set-cursor-proc clear-proc clear-line-proc clear-line-to-end-proc
+              begin-sync-proc end-sync-proc get-cursor-visible-proc
               set-cursor-visible-proc flush-proc data
             ) ;make-terminal-record
       (%make-terminal type get-size-proc write-proc get-cursor-proc
-        set-cursor-proc clear-proc clear-line-proc get-cursor-visible-proc
+        set-cursor-proc clear-proc clear-line-proc clear-line-to-end-proc
+        begin-sync-proc end-sync-proc get-cursor-visible-proc
         set-cursor-visible-proc flush-proc data
       ) ;%make-terminal
     ) ;define
@@ -112,6 +119,21 @@
     (define (terminal-clear-line term)
       (%check-terminal term "terminal-clear-line")
       ((%terminal-clear-line term) term)
+    ) ;define
+
+    (define (terminal-clear-line-to-end term)
+      (%check-terminal term "terminal-clear-line-to-end")
+      ((%terminal-clear-line-to-end term) term)
+    ) ;define
+
+    (define (terminal-begin-sync! term)
+      (%check-terminal term "terminal-begin-sync!")
+      ((%terminal-begin-sync term) term)
+    ) ;define
+
+    (define (terminal-end-sync! term)
+      (%check-terminal term "terminal-end-sync!")
+      ((%terminal-end-sync term) term)
     ) ;define
 
     (define (terminal-cursor-visible? term)

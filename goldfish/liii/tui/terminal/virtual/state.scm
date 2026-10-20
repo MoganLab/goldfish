@@ -26,7 +26,8 @@
     vt-width-set! vt-height vt-height-set! vt-cursor-x vt-cursor-x-set!
     vt-cursor-y vt-cursor-y-set! vt-visible? vt-visible?-set! vt-lines
     vt-lines-set! vt-raw vt-raw-set! vt-keys vt-keys-set! make-char-row
-    make-screen-lines check-dimension scroll-up-one-line!
+    make-screen-lines check-dimension scroll-up-one-line! advance-cursor-line!
+    put-char! copy-row-chars!
   ) ;export
   (import (liii base) (liii error))
   (begin
@@ -86,6 +87,44 @@
         ) ;let
         (vector-set! lines (- h 1) (make-char-row w))
       ) ;let*
+    ) ;define
+
+    (define (advance-cursor-line! state)
+      (vt-cursor-x-set! state 0)
+      (let ((ny (+ (vt-cursor-y state) 1)))
+        (if (>= ny (vt-height state))
+          (begin
+            (scroll-up-one-line! state)
+            (vt-cursor-y-set! state (- (vt-height state) 1))
+          ) ;begin
+          (vt-cursor-y-set! state ny)
+        ) ;if
+      ) ;let
+    ) ;define
+
+    (define (put-char! state ch)
+      (let ((cx (vt-cursor-x state))
+            (cy (vt-cursor-y state))
+            (w (vt-width state))
+            (h (vt-height state))
+           ) ;
+        (when (and (< cx w) (< cy h))
+          (let ((row (vector-ref (vt-lines state) cy)))
+            (vector-set! row cx ch)
+          ) ;let
+        ) ;when
+        (vt-cursor-x-set! state (+ cx 1))
+      ) ;let
+    ) ;define
+
+    (define (copy-row-chars! old-row new-row copy-len)
+      (let loop
+        ((j 0))
+        (when (< j copy-len)
+          (vector-set! new-row j (vector-ref old-row j))
+          (loop (+ j 1))
+        ) ;when
+      ) ;let
     ) ;define
 
   ) ;begin
