@@ -160,15 +160,17 @@
     minimax-request minimax-request-stream pi-resolve-prompt-input
     pi-load-project-context pi-build-system-prompt PI_BUILTIN_TOOL_SNIPPETS
     PI_BUILTIN_TOOL_GUIDELINES pi-iso-8601-utc-now pi-current-time-millis
-    pi-current-time-seconds pi-serialize-event assoc pi-event? pi-event-type
-    pi-event->alist pi-event-session pi-event-session? pi-event-session-type
-    pi-event-session-version pi-event-session-id pi-event-session-timestamp
-    pi-event-session-cwd pi-event-agent-start pi-event-agent-start?
-    pi-event-agent-start-type pi-event-turn-start pi-event-turn-start?
-    pi-event-turn-start-type pi-event-message-start pi-event-message-start?
-    pi-event-message-start-type pi-event-message-start-message
-    pi-event-message-update pi-event-message-update?
-    pi-event-message-update-type pi-event-message-update-usage
+    pi-current-time-seconds pi-current-monotonic-millis
+    pi-current-monotonic-seconds pi-serialize-event assoc pi-event?
+    pi-event-type pi-event->alist pi-event-session pi-event-session?
+    pi-event-session-type pi-event-session-version pi-event-session-id
+    pi-event-session-timestamp pi-event-session-cwd pi-event-agent-start
+    pi-event-agent-start? pi-event-agent-start-type pi-event-turn-start
+    pi-event-turn-start? pi-event-turn-start-type pi-event-message-start
+    pi-event-message-start? pi-event-message-start-type
+    pi-event-message-start-message pi-event-message-update
+    pi-event-message-update? pi-event-message-update-type
+    pi-event-message-update-usage
     pi-event-message-update-assistant-message-event pi-event-message-end
     pi-event-message-end? pi-event-message-end-type pi-event-message-end-message
     pi-event-tool-execution-start pi-event-tool-execution-start?

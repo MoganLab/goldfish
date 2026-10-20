@@ -157,6 +157,8 @@
     current-moment
     current-utc-timestamp
     current-system-timestamp
+    current-monotonic-millis
+    current-monotonic-seconds
   ) ;export
   (begin
   ) ;begin

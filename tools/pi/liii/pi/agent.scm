@@ -214,7 +214,7 @@
           initial-messages
         ) ;for-each
       ) ;when
-      (let* ((start-sec (pi-current-time-seconds))
+      (let* ((start-sec (pi-current-monotonic-seconds))
              (deadline-sec (if (and (number? session-timeout) (> session-timeout 0))
                              (+ start-sec session-timeout)
                              #f
@@ -226,7 +226,7 @@
           (cond ((and (number? session-timeout) (< session-timeout 0))
                  (%emit-agent-error (%make-session-timeout-error) msgs emit config)
                 ) ;
-                ((and deadline-sec (> (pi-current-time-seconds) deadline-sec))
+                ((and deadline-sec (> (pi-current-monotonic-seconds) deadline-sec))
                  (%emit-agent-error (%make-session-timeout-error) msgs emit config)
                 ) ;
                 ((and (> max-turns 0) (>= turn max-turns))

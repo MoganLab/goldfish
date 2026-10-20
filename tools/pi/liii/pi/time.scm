@@ -16,7 +16,9 @@
 
 (define-library (liii pi time)
   (import (scheme base) (liii string) (liii date-time))
-  (export pi-iso-8601-utc-now pi-current-time-millis pi-current-time-seconds)
+  (export pi-iso-8601-utc-now pi-current-time-millis pi-current-time-seconds
+    pi-current-monotonic-millis pi-current-monotonic-seconds
+  ) ;export
   (begin
 
     (define (%pad-two-digits n)
@@ -62,6 +64,14 @@
 
     (define (pi-current-time-seconds)
       (floor (%current-utc-posix-time))
+    ) ;define
+
+    (define (pi-current-monotonic-millis)
+      (current-monotonic-millis)
+    ) ;define
+
+    (define (pi-current-monotonic-seconds)
+      (current-monotonic-seconds)
     ) ;define
 
   ) ;begin

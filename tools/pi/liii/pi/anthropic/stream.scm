@@ -68,11 +68,11 @@
     ) ;define
 
     (define (%build-stream-cb stream-state on-event effective-idle on-idle err-acc)
-      (let* ((last-act (pi-current-time-seconds))
+      (let* ((last-act (pi-current-monotonic-seconds))
              (decoder (make-anthropic-stream-decoder stream-state on-event))
             ) ;
         (lambda (chunk)
-          (let ((now (pi-current-time-seconds)))
+          (let ((now (pi-current-monotonic-seconds)))
             (vector-set! err-acc 0 (string-append (vector-ref err-acc 0) chunk))
             (if (and effective-idle (> (- now last-act) effective-idle))
               (begin

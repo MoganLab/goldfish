@@ -57,7 +57,7 @@
     (define (%make-stream-callback stream-state on-event effective-idle
               on-idle-timeout error-body-acc
             ) ;%make-stream-callback
-      (let* ((last-activity-sec (pi-current-time-seconds))
+      (let* ((last-activity-sec (pi-current-monotonic-seconds))
              (sse-decoder (make-stream-decoder stream-state on-event))
             ) ;
         (lambda (chunk)
@@ -65,7 +65,7 @@
             0
             (string-append (vector-ref error-body-acc 0) chunk)
           ) ;vector-set!
-          (let ((now (pi-current-time-seconds)))
+          (let ((now (pi-current-monotonic-seconds)))
             (if (and effective-idle (> (- now last-activity-sec) effective-idle))
               (begin
                 (on-idle-timeout)
