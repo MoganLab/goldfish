@@ -186,4 +186,13 @@
   (check (car res) => "google")
   (check (cadr res) => "gemini-3.8-flash"))
 
+;; 8. provider/model 斜杠语法路由解析
+(let-values (((p m) (pi-route-provider-and-model #f "zai-coding-cn/glm-5.3-flash" default-settings fixture-store NO-ENV)))
+  (check p => "zai-coding-cn")
+  (check m => "glm-5.3-flash"))
+
+(let-values (((p m) (pi-route-provider-and-model #f "anthropic/claude-opus-4-8" default-settings fixture-store NO-ENV)))
+  (check p => "anthropic")
+  (check m => "claude-opus-4-8"))
+
 (check-report)
