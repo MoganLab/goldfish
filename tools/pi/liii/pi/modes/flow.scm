@@ -114,6 +114,17 @@
       ) ;let
     ) ;define
 
+    (define (%resolve-flow-timeout parsed cfg)
+      (let ((t (pi-args-ref parsed 'timeout)))
+        (if (and (number? t) (> t 0))
+          t
+          (let ((cfg-t (cdr (or (assoc 'timeout cfg) '(#f . 600)))))
+            (if (and (number? cfg-t) (> cfg-t 0)) cfg-t 600)
+          ) ;let
+        ) ;if
+      ) ;let
+    ) ;define
+
     (define* (run-agent-loop-with-timeout cfg
                init-msgs
                system-prompt
@@ -121,10 +132,7 @@
                parsed
                (compaction #f)
              ) ;run-agent-loop-with-timeout
-      (let* ((timeout
-               (or (pi-args-ref parsed 'timeout) (cdr (or (assoc 'timeout cfg) '(#f
-                                                                                 . 120))))
-             ) ;timeout
+      (let* ((timeout (%resolve-flow-timeout parsed cfg))
              (max-turns
                (or (pi-args-ref parsed 'max-turns)
                  (cdr (or (assoc 'max-turns cfg) '(#f . 200)))
@@ -177,10 +185,7 @@
             (emit-json-event 'session cwd)
           ) ;when
           (let* ((state (vector init-msgs (length init-msgs)))
-                 (timeout
-                   (or (pi-args-ref parsed 'timeout) (cdr (or (assoc 'timeout cfg) '(#f
-                                                                                     . 120))))
-                 ) ;timeout
+                 (timeout (%resolve-flow-timeout parsed cfg))
                  (compaction (pi-make-compaction-option parsed cfg sfile state timeout))
                  (res-msgs (run-agent-loop-with-timeout cfg
                              init-msgs
@@ -208,10 +213,7 @@
         (if (not sfile)
           (error 'compact-error (string-append "No session found to compact under " sdir))
           (let* ((settings (pi-load-compaction-settings agent-dir))
-                 (timeout
-                   (or (pi-args-ref parsed 'timeout) (cdr (or (assoc 'timeout cfg) '(#f
-                                                                                     . 120))))
-                 ) ;timeout
+                 (timeout (%resolve-flow-timeout parsed cfg))
                  (result (pi-compact-session! cfg sfile settings timeout "manual"))
                  (line (pi-format-compaction-summary result "Compacted"))
                 ) ;

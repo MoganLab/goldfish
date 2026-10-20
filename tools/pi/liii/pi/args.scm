@@ -49,7 +49,7 @@
         (cons 'exclude-tools #f)
         (cons 'no-tools #f)
         (cons 'max-turns 200)
-        (cons 'timeout 120)
+        (cons 'timeout #f)
         (cons 'session-timeout #f)
         (cons 'no-session #f)
         (cons 'continue #f)

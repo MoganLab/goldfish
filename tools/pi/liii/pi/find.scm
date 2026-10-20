@@ -124,7 +124,7 @@
     (define (pi-execute-find args . opts)
       (let* ((timed-out? (%keyword-value :timed-out? opts #f))
              (cwd (%keyword-value :cwd opts (getcwd)))
-             (timeout (%keyword-value :timeout opts 120))
+             (timeout (%keyword-value :timeout opts 600))
              (pattern (pi-arg-ref args "pattern"))
              (raw-path (pi-arg-ref args "path" "."))
              (limit (pi-arg-ref args "limit" 1000))

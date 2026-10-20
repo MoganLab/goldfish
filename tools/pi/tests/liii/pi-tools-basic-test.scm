@@ -212,6 +212,26 @@
   (check (cdr (assoc 'snippet def)) => "Read file contents")
 ) ;let
 
+;; get-tool-definition bash 支持默认与自定义超时 schema
+(let* ((def (get-tool-definition "bash"))
+       (schema (pi-tool-definition-parameters def))
+       (props (cdr (assoc "properties" schema)))
+       (t-prop (cdr (assoc "timeout" props))))
+  (check-true (pi-tool-definition? def))
+  (check (cdr (assoc "description" t-prop)) => "Timeout in seconds (optional, defaults to 600s)"))
+
+(let* ((def (get-tool-definition "bash" 300))
+       (schema (pi-tool-definition-parameters def))
+       (props (cdr (assoc "properties" schema)))
+       (t-prop (cdr (assoc "timeout" props))))
+  (check (cdr (assoc "description" t-prop)) => "Timeout in seconds (optional, defaults to 300s)"))
+
+(let* ((def (get-tool-definition "bash" :timeout 150))
+       (schema (pi-tool-definition-parameters def))
+       (props (cdr (assoc "properties" schema)))
+       (t-prop (cdr (assoc "timeout" props))))
+  (check (cdr (assoc "description" t-prop)) => "Timeout in seconds (optional, defaults to 150s)"))
+
 ;; execute-tool-call: 未知工具
 (let ((res (execute-tool-call "unknown_tool" '())))
   (check-true (pi-tool-result? res))

@@ -55,27 +55,27 @@
     pi-write-schema pi-execute-write pi-edit-schema pi-execute-edit
     pi-bash-schema pi-execute-bash pi-find-bash-path pi-ls-schema pi-execute-ls
     pi-find-schema pi-execute-find pi-grep-schema pi-execute-grep
-    pi-web-search-schema pi-validate-web-search-args pi-format-web-search-result
-    pi-execute-web-search pi-resolve-config-value json-dict-ref pi-get-agent-dir
-    PI_REVIEW_MAX_FILES PI_REVIEW_MAX_FILE_CHARS PI_REVIEW_SEVERITIES
-    pi-parse-changed-files pi-changed-files-command pi-collect-changed-files
-    pi-review-file-records pi-detect-language pi-language-checklist
-    pi-build-language-section pi-build-review-prompt pi-build-fallback-prompt
-    pi-parse-review-findings pi-format-review-findings pi-build-review-injection
-    pi-edited-files-from-tool-calls pi-validate-review-flags
-    pi-parse-changed-ranges pi-diff-ranges-command pi-collect-simplify-files
-    pi-build-scope-lines pi-format-range pi-build-simplify-prompt
-    pi-build-simplify-apply-prompt pi-parse-simplify-suggestions
-    pi-format-simplify-suggestions pi-tdd-state? pi-tdd-state-phase
-    pi-tdd-state-task pi-tdd-state-test-files pi-tdd-state-impl-files
-    pi-tdd-state-last-test-run pi-tdd-state-phase-history
-    pi-tdd-state-turn-index pi-tdd-state-warning pi-tdd-initial-state
-    pi-tdd-idle-state pi-tdd-set-warning pi-tdd-add-test-file
-    pi-tdd-add-impl-file pi-tdd-set-last-test-run pi-tdd-set-turn-index
-    pi-tdd-stale-test-run? pi-tdd-advance-phase pi-tdd-current-state
-    pi-tdd-set-current-state! pi-tdd-active? pi-tdd-start! pi-tdd-bump-turn!
-    pi-tdd-reset! pi-tdd-glob-match? pi-tdd-language-of pi-classify-tdd-file
-    pi-tdd-test-run-command? pi-tdd-parse-test-run-result
+    PI_MAX_TIMEOUT_SECONDS pi-web-search-schema pi-validate-web-search-args
+    pi-format-web-search-result pi-execute-web-search pi-resolve-config-value
+    json-dict-ref pi-get-agent-dir PI_REVIEW_MAX_FILES PI_REVIEW_MAX_FILE_CHARS
+    PI_REVIEW_SEVERITIES pi-parse-changed-files pi-changed-files-command
+    pi-collect-changed-files pi-review-file-records pi-detect-language
+    pi-language-checklist pi-build-language-section pi-build-review-prompt
+    pi-build-fallback-prompt pi-parse-review-findings pi-format-review-findings
+    pi-build-review-injection pi-edited-files-from-tool-calls
+    pi-validate-review-flags pi-parse-changed-ranges pi-diff-ranges-command
+    pi-collect-simplify-files pi-build-scope-lines pi-format-range
+    pi-build-simplify-prompt pi-build-simplify-apply-prompt
+    pi-parse-simplify-suggestions pi-format-simplify-suggestions pi-tdd-state?
+    pi-tdd-state-phase pi-tdd-state-task pi-tdd-state-test-files
+    pi-tdd-state-impl-files pi-tdd-state-last-test-run
+    pi-tdd-state-phase-history pi-tdd-state-turn-index pi-tdd-state-warning
+    pi-tdd-initial-state pi-tdd-idle-state pi-tdd-set-warning
+    pi-tdd-add-test-file pi-tdd-add-impl-file pi-tdd-set-last-test-run
+    pi-tdd-set-turn-index pi-tdd-stale-test-run? pi-tdd-advance-phase
+    pi-tdd-current-state pi-tdd-set-current-state! pi-tdd-active? pi-tdd-start!
+    pi-tdd-bump-turn! pi-tdd-reset! pi-tdd-glob-match? pi-tdd-language-of
+    pi-classify-tdd-file pi-tdd-test-run-command? pi-tdd-parse-test-run-result
     pi-tdd-test-run-trigger pi-tdd-exit-code-from-text pi-tdd-write-gate
     pi-tdd-note-edited-file! pi-tdd-observe-tool! pi-tdd-red-phase-prompt
     pi-tdd-green-phase-prompt pi-tdd-refactor-phase-prompt

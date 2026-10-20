@@ -52,6 +52,12 @@
 (let ((res (parse-pi-args '("--timeout" "60"))))
   (check (pi-args-ref res 'timeout) => 60))
 
+(let ((res (parse-pi-args '("--timeout" "0"))))
+  (check (pi-args-ref res 'timeout) => 0))
+
+(let ((res (parse-pi-args '("--timeout" "-5"))))
+  (check (pi-args-ref res 'timeout) => -5))
+
 (let ((res (parse-pi-args '("--session-timeout" "1800"))))
   (check (pi-args-ref res 'session-timeout) => 1800))
 
@@ -97,7 +103,7 @@
   (check (pi-args-ref res 'exclude-tools) => #f)
   (check (pi-args-ref res 'no-tools) => #f)
   (check (pi-args-ref res 'max-turns) => 200)
-  (check (pi-args-ref res 'timeout) => 120)
+  (check (pi-args-ref res 'timeout) => #f)
   (check (pi-args-ref res 'session-timeout) => #f)
   (check (pi-args-ref res 'no-session) => #f)
   (check (pi-args-ref res 'compact) => #f)

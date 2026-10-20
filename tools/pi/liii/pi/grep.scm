@@ -262,7 +262,7 @@
     (define (pi-execute-grep args . opts)
       (let* ((timed-out? (pi-keyword-value :timed-out? opts #f))
              (cwd (pi-keyword-value :cwd opts (getcwd)))
-             (timeout (pi-keyword-value :timeout opts 120))
+             (timeout (pi-keyword-value :timeout opts 600))
              (pattern (pi-arg-ref args "pattern"))
              (raw-path (pi-arg-ref args "path" "."))
              (glob-pat (pi-arg-ref args "glob" #f))

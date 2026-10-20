@@ -194,7 +194,7 @@
       ) ;let
     ) ;define
 
-    (define* (pi-compact-session! config file-path settings (timeout 120) (reason "manual"))
+    (define* (pi-compact-session! config file-path settings (timeout 600) (reason "manual"))
       (let* ((entries (pi-read-session-entries file-path))
              (all-msgs (%messages-from entries 0))
              (tokens-before (cdr (assoc 'tokens (pi-context-token-estimate all-msgs))))

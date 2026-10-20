@@ -220,7 +220,7 @@
                initial-messages
                system-prompt
                (emit #f)
-               (timeout 120)
+               (timeout 600)
                (max-turns 200)
                (session-timeout 600)
                (compaction #f)
