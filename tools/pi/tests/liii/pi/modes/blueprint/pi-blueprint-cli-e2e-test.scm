@@ -56,6 +56,7 @@
 (display "=== blueprint 命令行端到端 ===\n")
 (setup-dir! %tmp1)
 (setup-dir! %tmp2)
+(setup-fixture!)
 (let* ((stub (start-stub!))
        (base (string-append "http://127.0.0.1:" (number->string (cdr stub))))
        (env (e2e-env base))
@@ -183,6 +184,7 @@
       (process-close (car stub))
       (cleanup-dir! %tmp1)
       (cleanup-dir! %tmp2)
+      (cleanup-fixture!)
     ) ;lambda
   ) ;dynamic-wind
 ) ;let*
