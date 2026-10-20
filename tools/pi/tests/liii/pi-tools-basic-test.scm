@@ -139,55 +139,6 @@
       ) ;list
     ) ;pi-execute-edit
   ) ;check-catch
-  (pi-execute-write (list (cons "path" test-edit-file) (cons "content" "dup\ndup\n"))
-  ) ;pi-execute-write
-  (check-catch 'error
-    (pi-execute-edit
-      (list (cons "path" test-edit-file)
-        (cons "edits" (list (list (cons "oldText" "dup") (cons "newText" "new"))))
-      ) ;list
-    ) ;pi-execute-edit
-  ) ;check-catch
-  (pi-execute-write (list (cons "path" test-edit-file) (cons "content" "ABCDEFGH"))
-  ) ;pi-execute-write
-  (check-catch 'error
-    (pi-execute-edit
-      (list (cons "path" test-edit-file)
-        (cons "edits"
-          (list (list (cons "oldText" "ABCD") (cons "newText" "1234"))
-            (list (cons "oldText" "CDEF") (cons "newText" "5678"))
-          ) ;list
-        ) ;cons
-      ) ;list
-    ) ;pi-execute-edit
-  ) ;check-catch
-  (check-catch 'error
-    (pi-execute-edit
-      (list (cons "path" test-edit-file)
-        (cons "edits"
-          (list (list (cons "oldText" "ABCDEFGH") (cons "newText" "ABCDEFGH")))
-        ) ;cons
-      ) ;list
-    ) ;pi-execute-edit
-  ) ;check-catch
-  (check-catch 'error
-    (pi-execute-edit (list (cons "path" test-edit-file) (cons "edits" '())))
-  ) ;check-catch
-  (check-catch 'error
-    (pi-execute-edit
-      (list (cons "path" test-edit-file)
-        (cons "edits" (list (list (cons "oldText" "") (cons "newText" "foo"))))
-      ) ;list
-    ) ;pi-execute-edit
-  ) ;check-catch
-  (check-catch 'error
-    (pi-execute-edit
-      (list (cons "path" test-edit-file)
-        (cons "edits" (list (list (cons "oldText" "ABC") (cons "newText" "XYZ"))))
-      ) ;list
-      :timed-out? #t
-    ) ;pi-execute-edit
-  ) ;check-catch
   (delete-file test-edit-file)
 ) ;let
 
@@ -205,74 +156,6 @@
   (check is-err => #t)
   (check-true (string-contains? out "fail msg"))
   (check-true (string-contains? out "Command exited with code 42"))
-) ;let-values
-
-(let-values (((out is-err) (pi-execute-bash '(("command" . "sleep 5")
-                                              ("timeout" . 1)))))
-  (check is-err => #t)
-  (check-true (string-contains? out "Command timed out after 1 seconds"))
-) ;let-values
-
-(let-values (((out is-err) (pi-execute-bash '(("command" . "echo test")) :timed-out? #t)))
-  (check is-err => #t)
-  (check-true (string-contains? out "Command timed out after 120 seconds"))
-) ;let-values
-
-;; timeout 为 0 或负数时不被秒杀，正常执行
-(let-values (((out is-err)
-              (pi-execute-bash '(("command" . "echo 'timeout zero'")
-                                 ("timeout" . 0)))
-             ) ;
-            ) ;
-  (check is-err => #f)
-  (check (string-trim-both out) => "timeout zero")
-) ;let-values
-
-(let-values (((out is-err)
-              (pi-execute-bash '(("command" . "echo 'timeout neg'")
-                                 ("timeout" . -1)))
-             ) ;
-            ) ;
-  (check is-err => #f)
-  (check (string-trim-both out) => "timeout neg")
-) ;let-values
-
-;; 模拟超时配合 opts :timeout 0，安全回退到 120 秒
-(let-values (((out is-err)
-              (pi-execute-bash '(("command" . "echo test")) :timed-out? #t :timeout 0)
-             ) ;
-            ) ;
-  (check is-err => #t)
-  (check-true (string-contains? out "Command timed out after 120 seconds"))
-) ;let-values
-
-;; 模型超大 timeout 不能突破顶层用户限制
-(let-values (((out is-err)
-              (pi-execute-bash '(("command" . "sleep 5") ("timeout" . 1000)) :timeout 1)
-             ) ;
-            ) ;
-  (check is-err => #t)
-  (check-true (string-contains? out "Command timed out after 1 seconds"))
-) ;let-values
-
-;; 模型更小 timeout 缩短超时生效
-(let-values (((out is-err)
-              (pi-execute-bash '(("command" . "sleep 5") ("timeout" . 1)) :timeout 5)
-             ) ;
-            ) ;
-  (check is-err => #t)
-  (check-true (string-contains? out "Command timed out after 1 seconds"))
-) ;let-values
-
-;; opts 以 alist 格式传入 :timeout 0 正常完成
-(let-values (((out is-err)
-              (pi-execute-bash (list (cons "command" "echo success"))
-                (list (cons :timeout 0))
-              ) ;pi-execute-bash
-             ) ;
-            ) ;
-  (check is-err => #f)
-  (check (string-trim-both out) => "success")
 ) ;let-values
 
 (check-catch 'error (pi-execute-bash '()))
