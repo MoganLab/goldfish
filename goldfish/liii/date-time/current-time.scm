@@ -42,7 +42,9 @@
     (liii date-time timestamp)
     (liii date-time timezone)
   ) ;import
-  (export current-moment current-utc-timestamp current-system-timestamp)
+  (export current-moment current-utc-timestamp current-system-timestamp
+    current-monotonic-millis current-monotonic-seconds
+  ) ;export
   (begin
 
     (define (current-moment)
@@ -59,6 +61,14 @@
 
     (define (current-system-timestamp)
       (moment->timestamp (current-moment) (system-timezone))
+    ) ;define
+
+    (define (current-monotonic-millis)
+      (quotient (monotonic-nanosecond) 1000000)
+    ) ;define
+
+    (define (current-monotonic-seconds)
+      (quotient (monotonic-nanosecond) 1000000000)
     ) ;define
 
   ) ;begin
