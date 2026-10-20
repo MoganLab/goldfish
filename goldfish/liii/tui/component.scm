@@ -16,8 +16,8 @@
 
 (define-library (liii tui component)
   (export <component> make-component component? component-render
-    component-handle-input component-invalidate! make-text make-truncated-text
-    make-spacer
+    component-handle-input component-invalidate! component-data
+    component-data-set! make-text make-truncated-text make-spacer
   ) ;export
   (import (liii base) (liii error) (liii string) (liii tui text-width))
   (begin
@@ -122,6 +122,20 @@
         (type-error "component-invalidate!: comp must be a component")
       ) ;unless
       (%call-invalidate-proc (%component-invalidate-proc comp) comp)
+    ) ;define
+
+    (define (component-data comp)
+      (unless (component? comp)
+        (type-error "component-data: comp must be a component")
+      ) ;unless
+      (%component-data comp)
+    ) ;define
+
+    (define (component-data-set! comp val)
+      (unless (component? comp)
+        (type-error "component-data-set!: comp must be a component")
+      ) ;unless
+      (%component-data-set! comp val)
     ) ;define
 
     (define (make-text str)

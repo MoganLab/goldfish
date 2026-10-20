@@ -72,4 +72,22 @@
   (terminal-write st "hi")
   (check (get-output-string p) => "hi"))
 
+;; 布局容器组件测试
+(let ((b (make-box "content" :style 'single :title "Box")))
+  (check (component? b) => #t)
+  (check (box? b) => #t)
+  (check (display-width (car (component-render b 16))) => 16))
+
+(let ((v (make-vstack "row 1" "row 2" :spacing 1)))
+  (check (component? v) => #t)
+  (check (vstack? v) => #t)
+  (check (length (component-render v 20)) => 3))
+
+(let ((h (make-hstack "col 1" "col 2" :spacing 2)))
+  (check (component? h) => #t)
+  (check (hstack? h) => #t)
+  (check (display-width (car (component-render h 20))) => 20))
+
+(check (border-style? (border-style-resolve 'rounded)) => #t)
+
 (check-report)

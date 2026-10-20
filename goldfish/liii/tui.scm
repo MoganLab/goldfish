@@ -24,11 +24,13 @@
     terminal-show-cursor! terminal-flush terminal-detect-size
     make-virtual-terminal virtual-terminal? virtual-terminal-screen
     virtual-terminal-raw virtual-terminal-resize! make-standard-terminal
-    standard-terminal?
+    standard-terminal? make-box box? make-vstack vstack? make-hstack hstack?
+    <border-style> make-border-style border-style? border-style-resolve
   ) ;export
   (import (liii tui component)
     (liii tui text-width)
     (liii tui keys)
     (liii tui terminal)
+    (liii tui box)
   ) ;import
 ) ;define-library
