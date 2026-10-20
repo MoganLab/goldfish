@@ -26,6 +26,10 @@
 ;; truncate-to-width - 安全截断文本
 ;; wrap-text - 按显示宽度安全折行
 
+;; 键盘输入解析工具
+;; parse-key - 解析单个按键
+;; parse-keys - 批量解析按键输入流
+
 (let ((c (make-text "hello world")))
   (check (component? c) => #t)
   (check (component-render c 5) => '("hello" "world"))
@@ -44,5 +48,11 @@
 (check (display-width "金鱼") => 4)
 (check (truncate-to-width "你好世界" 7) => "你好...")
 (check (wrap-text "你好世界" 4) => '("你好" "世界"))
+
+(check (parse-key "\x1b[A") => 'up)
+(check (parse-key "\r\n") => 'enter)
+(check (parse-key "\x03") => 'ctrl-c)
+(check (parse-keys "w\x1b[As\x1b[B") => '("w" up "s" down))
+(check (parse-keys "金鱼") => '("金" "鱼"))
 
 (check-report)

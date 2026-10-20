@@ -17,7 +17,8 @@
 (define-library (liii tui)
   (export <component> make-component component? component-render
     component-handle-input component-invalidate! make-text make-truncated-text
-    make-spacer strip-ansi display-width truncate-to-width wrap-text
+    make-spacer strip-ansi display-width truncate-to-width wrap-text parse-key
+    parse-keys
   ) ;export
-  (import (liii tui component) (liii tui text-width))
+  (import (liii tui component) (liii tui text-width) (liii tui keys))
 ) ;define-library
