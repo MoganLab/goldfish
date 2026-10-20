@@ -187,6 +187,27 @@
       ) ;let
     ) ;define
 
+    (define (%normalize-session-msg msg)
+      (cond ((not (pair? msg)) msg)
+            (else
+              (map
+                (lambda (entry)
+                  (cond
+                   ((and (pair? entry)
+                      (or (equal? (car entry) "content") (eq? (car entry) 'content))
+                      (vector? (cdr entry))
+                    ) ;and
+                    (cons (car entry) (vector->list (cdr entry)))
+                   ) ;
+                   (else entry)
+                  ) ;cond
+                ) ;lambda
+                msg
+              ) ;map
+            ) ;else
+      ) ;cond
+    ) ;define
+
     (define (%extract-msg-from-line line)
       (let ((trimmed (string-trim line)))
         (if (<= (string-length trimmed) 0)
@@ -196,7 +217,7 @@
               (assoc "type" parsed)
               (string=? (cdr (assoc "type" parsed)) "message")
               (assoc "message" parsed)
-              (cdr (assoc "message" parsed))
+              (%normalize-session-msg (cdr (assoc "message" parsed)))
             ) ;and
           ) ;let
         ) ;if

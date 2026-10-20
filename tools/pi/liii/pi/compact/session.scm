@@ -85,7 +85,10 @@
     ) ;define
 
     (define (%as-pi-message msg)
-      (let ((role (%ref msg "role")) (content (%ref msg "content")))
+      (let* ((role (%ref msg "role"))
+             (raw-content (%ref msg "content"))
+             (content (if (vector? raw-content) (vector->list raw-content) raw-content))
+            ) ;
         (cond ((equal? role "user") (pi-user-message content))
               ((equal? role "assistant")
                (pi-assistant-message content
@@ -103,7 +106,7 @@
               ) ;
               (else msg)
         ) ;cond
-      ) ;let
+      ) ;let*
     ) ;define
 
     (define (%messages-from entries start)
