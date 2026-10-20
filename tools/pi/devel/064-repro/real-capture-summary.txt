@@ -1,1 +1,1 @@
-frames=63 fps=15.98 events=0
+frames=56 fps=14.06 events=0
