@@ -1,0 +1,13 @@
+{
+  "name": "compass-sandbox",
+  "version": "0.1.0",
+  "main": "src/index.js",
+  "dependencies": { "express": "^4.0.0", "react": "^18.0.0" },
+  "devDependencies": { "vitest": "^1.0.0" },
+  "scripts": {
+    "build": "tsc -p .",
+    "test": "vitest run",
+    "lint": "eslint src/",
+    "random": "echo nope"
+  }
+}

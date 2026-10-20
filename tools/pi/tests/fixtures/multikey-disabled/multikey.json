@@ -1,0 +1,11 @@
+{
+  "pools": [
+    {
+      "id": "google",
+      "keys": [
+        {"key": "disabled-key-00001", "label": "d1", "enabled": false},
+        {"key": "disabled-key-00002", "label": "d2", "enabled": false}
+      ]
+    }
+  ]
+}

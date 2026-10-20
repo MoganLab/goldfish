@@ -1,0 +1,13 @@
+{
+  "defaultProvider": "google",
+  "defaultModel": "gemini-3.8-flash",
+  "defaultThinkingLevel": "medium",
+  "httpProxy": "http://127.0.0.1:7890",
+  "retry": {
+    "enabled": true,
+    "maxRetries": 3,
+    "baseDelayMs": 2000,
+    "maxAgentDelayMs": 60000
+  },
+  "defaultTools": ["read", "bash", "edit", "write"]
+}

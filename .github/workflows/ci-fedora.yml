@@ -75,6 +75,8 @@ jobs:
         run: bin/gf test tools/doc/tests
       - name: run tools/fix tests
         run: bin/gf test tools/fix/tests
+      - name: run tools/pi tests
+        run: bin/gf test tools/pi/tests
       - name: run tests --all
         run: bin/gf test --all
 

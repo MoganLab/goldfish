@@ -1,0 +1,1 @@
+// src/controllers/home.js

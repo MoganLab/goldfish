@@ -1,0 +1,6 @@
+{"type":"session","version":3,"id":"sess-fixture","timestamp":"2026-10-19T00:00:00.000Z","cwd":"/tmp/compact-fixture"}
+{"type":"message","id":"u1","parentId":null,"timestamp":"2026-10-19T00:00:01.000Z","message":{"role":"user","content":"hello first"}}
+{"type":"message","id":"a1","parentId":"u1","timestamp":"2026-10-19T00:00:02.000Z","message":{"role":"assistant","content":[{"type":"text","text":"first answer"}],"stopReason":"stop","errorMessage":null}}
+{"type":"compaction","id":"c1","parentId":"a1","timestamp":"2026-10-19T00:00:03.000Z","summary":"fixture summary","firstKeptEntryId":"u2","tokensBefore":120,"details":{"reason":"manual","readFiles":["/tmp/a"],"modifiedFiles":[]}}
+{"type":"message","id":"u2","parentId":"c1","timestamp":"2026-10-19T00:00:04.000Z","message":{"role":"user","content":"next question"}}
+{"type":"message","id":"a2","parentId":"u2","timestamp":"2026-10-19T00:00:05.000Z","message":{"role":"assistant","content":[{"type":"text","text":"next answer"}],"stopReason":"stop","errorMessage":null}}

@@ -1,0 +1,35 @@
+{
+  "google": {
+    "models": [
+      {
+        "id": "gemini-3.8-flash",
+        "name": "Gemini 3.8 Flash (fixture)",
+        "baseUrl": "https://generativelanguage.googleapis.com/v1beta",
+        "contextWindow": 1048576,
+        "maxTokens": 65536
+      }
+    ]
+  },
+  "deepseek": {
+    "models": [
+      {
+        "id": "deepseek-v4-pro",
+        "name": "DeepSeek V4 Pro (fixture)",
+        "baseUrl": "https://api.deepseek.com",
+        "contextWindow": 1000000,
+        "maxTokens": 384000
+      }
+    ]
+  },
+  "kimi-coding": {
+    "models": [
+      {
+        "id": "kimi-for-coding",
+        "name": "Kimi K2.7 Code (fixture)",
+        "baseUrl": "https://api.kimi.com/coding",
+        "contextWindow": 262144,
+        "maxTokens": 32768
+      }
+    ]
+  }
+}

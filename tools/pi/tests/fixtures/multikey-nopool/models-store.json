@@ -1,0 +1,101 @@
+{
+  "google": {
+    "models": [
+      {
+        "id": "gemini-3.8-flash",
+        "name": "Gemini 3.8 Flash",
+        "baseUrl": "https://generativelanguage.googleapis.com/v1beta",
+        "contextWindow": 1048576,
+        "maxTokens": 65536
+      },
+      {
+        "id": "gemini-2.5-pro",
+        "name": "Gemini 2.5 Pro",
+        "baseUrl": "https://generativelanguage.googleapis.com/v1beta",
+        "contextWindow": 2097152,
+        "maxTokens": 65536
+      },
+      {
+        "id": "multi-turn",
+        "name": "Stub Multi Turn",
+        "baseUrl": "https://generativelanguage.googleapis.com/v1beta",
+        "contextWindow": 1048576,
+        "maxTokens": 65536
+      },
+      {
+        "id": "max-tokens",
+        "name": "Stub Max Tokens",
+        "baseUrl": "https://generativelanguage.googleapis.com/v1beta",
+        "contextWindow": 1048576,
+        "maxTokens": 65536
+      },
+      {
+        "id": "safety",
+        "name": "Stub Safety",
+        "baseUrl": "https://generativelanguage.googleapis.com/v1beta",
+        "contextWindow": 1048576,
+        "maxTokens": 65536
+      },
+      {
+        "id": "check-project-context",
+        "name": "Stub Project Context",
+        "baseUrl": "https://generativelanguage.googleapis.com/v1beta",
+        "contextWindow": 1048576,
+        "maxTokens": 65536
+      },
+      {
+        "id": "multikey-403",
+        "name": "Stub multikey-403",
+        "baseUrl": "https://generativelanguage.googleapis.com/v1beta",
+        "contextWindow": 1048576,
+        "maxTokens": 65536
+      },
+      {
+        "id": "multikey-429",
+        "name": "Stub multikey-429",
+        "baseUrl": "https://generativelanguage.googleapis.com/v1beta",
+        "contextWindow": 1048576,
+        "maxTokens": 65536
+      },
+      {
+        "id": "multikey-stream-403",
+        "name": "Stub multikey-stream-403",
+        "baseUrl": "https://generativelanguage.googleapis.com/v1beta",
+        "contextWindow": 1048576,
+        "maxTokens": 65536
+      },
+      {
+        "id": "multikey-stream-429",
+        "name": "Stub multikey-stream-429",
+        "baseUrl": "https://generativelanguage.googleapis.com/v1beta",
+        "contextWindow": 1048576,
+        "maxTokens": 65536
+      },
+      {
+        "id": "multikey-plain",
+        "name": "Stub multikey-plain",
+        "baseUrl": "https://generativelanguage.googleapis.com/v1beta",
+        "contextWindow": 1048576,
+        "maxTokens": 65536
+      },
+      {
+        "id": "multikey-all-403",
+        "name": "Stub multikey-all-403",
+        "baseUrl": "https://generativelanguage.googleapis.com/v1beta",
+        "contextWindow": 1048576,
+        "maxTokens": 65536
+      }
+    ]
+  },
+  "anthropic": {
+    "models": [
+      {
+        "id": "fake-model",
+        "name": "Stub Fake Model",
+        "baseUrl": "https://api.anthropic.com",
+        "contextWindow": 200000,
+        "maxTokens": 8192
+      }
+    ]
+  }
+}

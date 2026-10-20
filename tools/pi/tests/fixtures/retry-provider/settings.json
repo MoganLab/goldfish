@@ -1,0 +1,14 @@
+{
+  "defaultProvider": "google",
+  "defaultModel": "gemini-3.8-flash",
+  "defaultThinkingLevel": "medium",
+  "retry": {
+    "enabled": true,
+    "maxRetries": 3,
+    "baseDelayMs": 2000,
+    "maxAgentDelayMs": 60000,
+    "provider": {
+      "maxRetries": 12
+    }
+  }
+}

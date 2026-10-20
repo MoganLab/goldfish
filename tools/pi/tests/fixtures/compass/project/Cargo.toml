@@ -1,0 +1,14 @@
+[package]
+name = "compass-rs"
+version = "0.2.0"
+edition = "2021"
+
+[dependencies]
+tokio = "1"
+serde = { version = "1", features = ["derive"] }
+
+[dev-dependencies]
+axum = "0.6"
+
+[dependencies.clap]
+version = "4"
