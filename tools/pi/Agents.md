@@ -2,12 +2,14 @@
 
 > 状态：§5 所列九个阶段及 050~053 优化已全部完成，print 模式与 JSON 模式可用。
 > **流水线进度（2026-10-21）**：Extension 机制核心任务 070~075 已全部完成（PR #1165，
-> 分支 `da/plugins_pi`，跨平台 CI 修复并已合并最新 main 分支）。第一阶段续作
-> **076~079 已全部完成并 push 至 `origin/da/1079/code_pi`**（分支 `da/1079/code_pi`）：
+> 分支 `da/plugins_pi`，跨平台 CI 修复并已合并最新 main 分支）。**第一阶段
+> 076~080 已全部完成并 push 至 `origin/da/1079/code_pi`**（分支 `da/1079/code_pi`）：
 > 076 内置扩展收敛（5 个插件归位 `extensions/`，核心零硬编码）→ 077 `pi install`
 > 插件生态 → 078 compass/blueprint 外部示范与 E2E → 079 工具 timeout 语义重定
-> （对齐原生 pi，默认 600s、模型决定即生效、非法值显式报错）。当前推进 **080**
-> （会话时限注入 system prompt），随后进入第二阶段 081~092 的 TUI 交互实现。
+> （对齐原生 pi，默认 600s、模型决定即生效、非法值显式报错）→ 080 会话时限注入
+> system prompt（`<session_budget>` 静态注入 + `<current_turn_budget>` 回合级刷新
+> + `<budget_warning>` 临界预警，根治「静默截断丢报告」）。**当前进入第二阶段
+> 081~092 的 `(liii tui)` 原生 TUI 交互实现**，从 081（TUI 架构骨架与启动路由）起步。
 > **全局后续工作两阶段规划（用户裁定 2026-10-20）**：
 > - **第一阶段**：完成当前未完成的工作，主要是 Extension 扩展机制收敛闭环（076~078）以及修复 `bin/gf pi` 核心功能与原生对齐（079~080）；
 > - **第二阶段**：基于刚刚合入 main 的 `(liii tui)` 通用终端 UI 库，实现 `bin/gf pi` 原生沉浸式 TUI 交互界面！
@@ -124,7 +126,7 @@ Anthropic 已实现但本机无访问权限，不在维护范围；其 OAuth 刷
 
 | 编号 | 任务 | 内容与验收点 | 状态 |
 |---|---|---|---|
-| 080 | 会话时限注入 system prompt：让 agent 感知剩余预算 | 修 `gf pi` 的会话死线对 agent 不可见问题：`prompt.scm` 中 timeout/max-turns/deadline **零命中**，system prompt 从不告诉 agent 它的会话预算；而 `--session-timeout` 是硬墙钟死线（`agent.scm`：`deadline = start + session-timeout`），到达即静默截断进程、最终报告全丢——070 阶段二实测触发：`Session timeout exceeded: total execution deadline reached`，仅余 59 字节错误日志，前序产出虽在但结论与验收依据全丢。要求把会话时限（`--session-timeout`）与轮次上限（`--max-turns`）注入 system prompt（或提供剩余预算查询手段），使 agent 可自我配速、临近时限优先收敛产出而非被动被杀；TDD 覆盖。**补充证据（074 阶段二实测）**：**轮次上限同样会静默截断**——`Maximum turns limit reached`（默认 200 轮用尽），最终报告全丢，工作区产出虽在但验收依据全丢（事后实测 18/18 扩展测试仍全绿，说明断在最后的全量回归阶段而非实现阶段）。**拉起侧对策**：`--max-turns 0` 表示不限轮次（见 `gf pi --help`），长时间开发阶段应显式传 0 或大值；**根治侧对策**：两条死线（会话时限、轮次上限）都须对 agent 可见 | 执行中（文档阶段 commit `e233294f`；开发阶段完成未 commit，Claude 独立复核：`pi-build-system-prompt-test.scm` 与 `pi-resolve-turn-system-prompt-test.scm` 均 PASS、`--max-turns 0` 语义坑已正确处理（显示 "unlimited turns" 且不误触发临界告警）、`prompt.scm` 295→249 行并拆出 `prompt/context.scm`、另拆 `agent/{budget,loop}.scm`；验收阶段已拉起） |
+| 080 | 会话时限注入 system prompt：让 agent 感知剩余预算 | 修 `gf pi` 的会话死线对 agent 不可见问题：`prompt.scm` 中 timeout/max-turns/deadline **零命中**，system prompt 从不告诉 agent 它的会话预算；而 `--session-timeout` 是硬墙钟死线（`agent.scm`：`deadline = start + session-timeout`），到达即静默截断进程、最终报告全丢——070 阶段二实测触发：`Session timeout exceeded: total execution deadline reached`，仅余 59 字节错误日志，前序产出虽在但结论与验收依据全丢。要求把会话时限（`--session-timeout`）与轮次上限（`--max-turns`）注入 system prompt（或提供剩余预算查询手段），使 agent 可自我配速、临近时限优先收敛产出而非被动被杀；TDD 覆盖。**补充证据（074 阶段二实测）**：**轮次上限同样会静默截断**——`Maximum turns limit reached`（默认 200 轮用尽），最终报告全丢，工作区产出虽在但验收依据全丢（事后实测 18/18 扩展测试仍全绿，说明断在最后的全量回归阶段而非实现阶段）。**拉起侧对策**：`--max-turns 0` 表示不限轮次（见 `gf pi --help`），长时间开发阶段应显式传 0 或大值；**根治侧对策**：两条死线（会话时限、轮次上限）都须对 agent 可见 | 已完成（commit `e233294f` PLAN + `2d570cac` REVIEW代码 + `d5354c5a` REVIEW验收，已 push 至 `origin/da/1079/code_pi`；执行模型 google/gemini-3.8-flash；Claude 独立复核：`bin/gf tools/pi/devel/080.scm` 实跑 51/51 断言全绿、319/319 全量单测 PASS、`--max-turns 0` 语义坑已正确处理（显示 "unlimited turns" 且不误触发临界告警）、`prompt.scm` 295→249 行并拆出 `prompt/context.scm`、另拆 `agent/{budget,loop}.scm`） |
 | 081 | TUI 架构骨架与启动路由（StandardTerminal 切换与安全还原） | 实现交互式 TUI 启动门面：1) `args.scm` 支持缺省无参时进入 `mode = 'tui`；2) 新建 `modes/tui.scm`，通过 `(make-standard-terminal)` 初始化终端（raw 模式、alternate 屏幕缓冲区 `\x1b[?1049h`、隐藏光标）；3) **安全还原兜底**：使用 `dynamic-wind` 确保任何异常、中断或退出时 100% 恢复终端原始形态（退出 alternate 屏、显示光标、还原 cooked 模式），绝不卡死终端；4) 按 q/Esc 优雅退出返回 0；虚拟终端单测覆盖 | 待执行 |
 | 082 | TUI 会话状态机与主事件循环驱动器 | 实现响应式主循环引擎：1) 定义 `pi-tui-state`（包含 `status` [IDLE/RUNNING/STREAMING/CONFIRM/EXIT]、`messages`、`input-editor`、`active-tool`、`scroll-offset` 等字段）；2) 对接 `(liii tui terminal)` 的非阻塞按键轮询（`terminal-poll-key`）；3) 节拍控制（~30-60fps）与脏标记局部重绘驱动；4) 利用 `virtual-terminal` 注入按键流验证状态机完整流转；TDD 覆盖 | 待执行 |
 | 083 | 用户输入组件集成（(liii tui editor) 与多行编辑） | 集成沉浸式 Prompt 输入框：1) 嵌入 `(liii tui editor)` 为 TUI 输入组件；2) 完整按键映射：字符插入、退格删除、左右方向键光标移动、Home/End 跳转；3) 历史记录导航：上下箭头在空行或首行时翻阅会话历史 Prompt；4) Enter 提取完整输入并提交，Shift+Enter 或反斜杠多行折行；5) 现代化圆角外框包裹与提示符 `> `；虚拟终端断言输入与提交行为；TDD 覆盖 | 待执行 |
