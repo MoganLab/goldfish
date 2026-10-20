@@ -101,7 +101,7 @@
                   (if rel (path->string rel) (path->string p))
                 ) ;let
               ) ;lambda
-              paths
+              (filter path-file? paths)
             ) ;map
           ) ;let
         ) ;if

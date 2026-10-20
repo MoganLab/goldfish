@@ -904,13 +904,15 @@
       ) ;let
     ) ;define
 
-    ;; ; 读取文件为文本。不存在时抛 file-not-found-error。
+    ;; ; 读取文件为文本。不存在时抛 file-not-found-error。目录时抛 file-error。
     (define (path-read-text p)
       (let ((s (path->string p)))
-        (if (not (file-exists? s))
-          (file-not-found-error (string-append "No such file or directory: '" s "'"))
-          (g_path-read-text s)
-        ) ;if
+        (cond ((not (file-exists? s))
+               (file-not-found-error (string-append "No such file or directory: '" s "'"))
+              ) ;
+              ((path-dir? s) (file-error (string-append "Is a directory: '" s "'")))
+              (else (g_path-read-text s))
+        ) ;cond
       ) ;let
     ) ;define
 
@@ -936,20 +938,24 @@
         (value-error "path-read-lines: limit must be a positive integer")
       ) ;if
       (let ((s (path->string p)))
-        (if (not (file-exists? s))
-          (file-not-found-error (string-append "No such file or directory: '" s "'"))
-          (g_path-read-lines s keepends offset (or limit -1))
-        ) ;if
+        (cond ((not (file-exists? s))
+               (file-not-found-error (string-append "No such file or directory: '" s "'"))
+              ) ;
+              ((path-dir? s) (file-error (string-append "Is a directory: '" s "'")))
+              (else (g_path-read-lines s keepends offset (or limit -1)))
+        ) ;cond
       ) ;let
     ) ;define*
 
-    ;; ; 读取文件为字节向量。不存在时抛 file-not-found-error。
+    ;; ; 读取文件为字节向量。不存在时抛 file-not-found-error。目录时抛 file-error。
     (define (path-read-bytes p)
       (let ((s (path->string p)))
-        (if (not (file-exists? s))
-          (file-not-found-error (string-append "No such file or directory: '" s "'"))
-          (g_path-read-bytes s)
-        ) ;if
+        (cond ((not (file-exists? s))
+               (file-not-found-error (string-append "No such file or directory: '" s "'"))
+              ) ;
+              ((path-dir? s) (file-error (string-append "Is a directory: '" s "'")))
+              (else (g_path-read-bytes s))
+        ) ;cond
       ) ;let
     ) ;define
 

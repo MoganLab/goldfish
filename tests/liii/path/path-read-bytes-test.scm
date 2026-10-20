@@ -22,6 +22,7 @@
 ;; 错误处理
 ;; ----
 ;; file-not-found-error 当文件不存在时。
+;; file-error 当路径为目录时。
 
 ;; 基本二进制文件测试
 (let ((binary-file (path-join (path-temp-dir) "path-read-bytes-basic.dat")))
@@ -80,6 +81,10 @@
 (check-catch 'file-not-found-error
   (path-read-bytes (path "/this/file/does/not/exist"))
 ) ;check-catch
+
+(check-catch 'file-error (path-read-bytes (path-temp-dir)))
+(check-catch 'file-error (path-read-bytes (path->string (path-temp-dir))))
+(check (g_path-read-bytes (path->string (path-temp-dir))) => #f)
 
 (check-catch 'type-error (path-read-bytes #\a))
 (check-catch 'type-error (path-read-bytes 123))

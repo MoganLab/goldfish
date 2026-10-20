@@ -128,43 +128,72 @@ f_path_read_text (s7_scheme* sc, s7_pointer args) {
     return s7_make_boolean (sc, false);
   }
 
-  tb_file_ref_t file= tb_file_init (path, TB_FILE_MODE_RO);
-  if (file == tb_null) {
+  try {
+    tb_file_info_t info;
+    if (!tb_file_info (path, &info) || info.type != TB_FILE_TYPE_FILE) {
+      return s7_make_boolean (sc, false);
+    }
+
+    tb_file_ref_t file= tb_file_init (path, TB_FILE_MODE_RO);
+    if (file == tb_null) {
+      return s7_make_boolean (sc, false);
+    }
+
+    tb_file_sync (file);
+
+    tb_size_t size= tb_file_size (file);
+    if (size == (tb_size_t)-1) {
+      tb_file_exit (file);
+      return s7_make_boolean (sc, false);
+    }
+
+    if (size == 0) {
+      tb_file_exit (file);
+      return s7_make_string (sc, "");
+    }
+
+    tb_byte_t* buffer   = new (std::nothrow) tb_byte_t[size + 1];
+    if (!buffer) {
+      tb_file_exit (file);
+      return s7_make_boolean (sc, false);
+    }
+
+    tb_size_t real_size= tb_file_read (file, buffer, size);
+    tb_file_exit (file);
+
+    if (real_size == (tb_size_t)-1) {
+      delete[] buffer;
+      return s7_make_boolean (sc, false);
+    }
+
+    buffer[real_size]= '\0';
+
+    std::string content (reinterpret_cast<char*> (buffer), real_size);
+    delete[] buffer;
+
+    // Normalize line endings: convert \r\n to \n (also handles standalone \r)
+    std::string normalized;
+    normalized.reserve (content.size ());
+    for (size_t i= 0; i < content.size (); ++i) {
+      if (content[i] == '\r') {
+        if (i + 1 < content.size () && content[i + 1] == '\n') {
+          continue;
+        }
+        normalized.push_back ('\n');
+      }
+      else {
+        normalized.push_back (content[i]);
+      }
+    }
+
+    return s7_make_string (sc, normalized.c_str ());
+  }
+  catch (const std::exception& e) {
     return s7_make_boolean (sc, false);
   }
-
-  tb_file_sync (file);
-
-  tb_size_t size= tb_file_size (file);
-  if (size == 0) {
-    tb_file_exit (file);
-    return s7_make_string (sc, "");
+  catch (...) {
+    return s7_make_boolean (sc, false);
   }
-
-  tb_byte_t* buffer   = new tb_byte_t[size + 1];
-  tb_size_t  real_size= tb_file_read (file, buffer, size);
-  buffer[real_size]   = '\0';
-
-  tb_file_exit (file);
-  std::string content (reinterpret_cast<char*> (buffer), real_size);
-  delete[] buffer;
-
-  // Normalize line endings: convert \r\n to \n (also handles standalone \r)
-  std::string normalized;
-  normalized.reserve (content.size ());
-  for (size_t i= 0; i < content.size (); ++i) {
-    if (content[i] == '\r') {
-      if (i + 1 < content.size () && content[i + 1] == '\n') {
-        continue;
-      }
-      normalized.push_back ('\n');
-    }
-    else {
-      normalized.push_back (content[i]);
-    }
-  }
-
-  return s7_make_string (sc, normalized.c_str ());
 }
 
 static void
@@ -190,64 +219,86 @@ f_path_read_lines (s7_scheme* sc, s7_pointer args) {
   s7_pointer limit_arg= s7_cadddr (args);
   s7_int     limit    = s7_is_integer (limit_arg) ? s7_integer (limit_arg) : -1;
 
-  tb_file_ref_t file= tb_file_init (path, TB_FILE_MODE_RO);
-  if (file == tb_null) {
-    return s7_make_boolean (sc, false);
-  }
-
-  tb_file_sync (file);
-  tb_size_t size= tb_file_size (file);
-  if (size == 0) {
-    tb_file_exit (file);
-    return s7_nil (sc);
-  }
-
-  std::string content;
-  content.resize (size);
-  tb_size_t real_size= tb_file_read (file, reinterpret_cast<tb_byte_t*> (&content[0]), size);
-  tb_file_exit (file);
-  content.resize (real_size);
-
-  // 按行切分，\r\n 与孤立 \r 均归一化为 \n
-  std::vector<std::string> lines;
-  s7_int                   skipped  = 0;
-  s7_int                   collected= 0;
-  size_t                   n        = content.size ();
-  size_t                   i        = 0;
-  while (i < n && (limit < 0 || collected < limit)) {
-    size_t j= i;
-    while (j < n && content[j] != '\n' && content[j] != '\r') {
-      j++;
+  try {
+    tb_file_info_t info;
+    if (!tb_file_info (path, &info) || info.type != TB_FILE_TYPE_FILE) {
+      return s7_make_boolean (sc, false);
     }
-    bool   has_end= j < n;
-    size_t next   = n;
-    if (has_end) {
-      if (content[j] == '\r' && j + 1 < n && content[j + 1] == '\n') {
-        next= j + 2;
+
+    tb_file_ref_t file= tb_file_init (path, TB_FILE_MODE_RO);
+    if (file == tb_null) {
+      return s7_make_boolean (sc, false);
+    }
+
+    tb_file_sync (file);
+    tb_size_t size= tb_file_size (file);
+    if (size == (tb_size_t)-1) {
+      tb_file_exit (file);
+      return s7_make_boolean (sc, false);
+    }
+
+    if (size == 0) {
+      tb_file_exit (file);
+      return s7_nil (sc);
+    }
+
+    std::string content;
+    content.resize (size);
+    tb_size_t real_size= tb_file_read (file, reinterpret_cast<tb_byte_t*> (&content[0]), size);
+    tb_file_exit (file);
+
+    if (real_size == (tb_size_t)-1) {
+      return s7_make_boolean (sc, false);
+    }
+    content.resize (real_size);
+
+    // 按行切分，\r\n 与孤立 \r 均归一化为 \n
+    std::vector<std::string> lines;
+    s7_int                   skipped  = 0;
+    s7_int                   collected= 0;
+    size_t                   n        = content.size ();
+    size_t                   i        = 0;
+    while (i < n && (limit < 0 || collected < limit)) {
+      size_t j= i;
+      while (j < n && content[j] != '\n' && content[j] != '\r') {
+        j++;
+      }
+      bool   has_end= j < n;
+      size_t next   = n;
+      if (has_end) {
+        if (content[j] == '\r' && j + 1 < n && content[j + 1] == '\n') {
+          next= j + 2;
+        }
+        else {
+          next= j + 1;
+        }
+      }
+      if (skipped < offset) {
+        skipped++;
       }
       else {
-        next= j + 1;
+        std::string line= content.substr (i, j - i);
+        if (keepends && has_end) {
+          line.push_back ('\n');
+        }
+        lines.push_back (std::move (line));
+        collected++;
       }
+      i= next;
     }
-    if (skipped < offset) {
-      skipped++;
-    }
-    else {
-      std::string line= content.substr (i, j - i);
-      if (keepends && has_end) {
-        line.push_back ('\n');
-      }
-      lines.push_back (std::move (line));
-      collected++;
-    }
-    i= next;
-  }
 
-  s7_pointer result= s7_nil (sc);
-  for (auto it= lines.rbegin (); it != lines.rend (); ++it) {
-    result= s7_cons (sc, s7_make_string_with_length (sc, it->data (), it->size ()), result);
+    s7_pointer result= s7_nil (sc);
+    for (auto it= lines.rbegin (); it != lines.rend (); ++it) {
+      result= s7_cons (sc, s7_make_string_with_length (sc, it->data (), it->size ()), result);
+    }
+    return result;
   }
-  return result;
+  catch (const std::exception& e) {
+    return s7_make_boolean (sc, false);
+  }
+  catch (...) {
+    return s7_make_boolean (sc, false);
+  }
 }
 
 static void
@@ -269,34 +320,56 @@ f_path_read_bytes (s7_scheme* sc, s7_pointer args) {
     return s7_make_boolean (sc, false);
   }
 
-  tb_file_ref_t file= tb_file_init (path, TB_FILE_MODE_RO);
-  if (file == tb_null) {
-    return s7_make_boolean (sc, false);
-  }
+  try {
+    tb_file_info_t info;
+    if (!tb_file_info (path, &info) || info.type != TB_FILE_TYPE_FILE) {
+      return s7_make_boolean (sc, false);
+    }
 
-  tb_file_sync (file);
-  tb_size_t size= tb_file_size (file);
+    tb_file_ref_t file= tb_file_init (path, TB_FILE_MODE_RO);
+    if (file == tb_null) {
+      return s7_make_boolean (sc, false);
+    }
 
-  if (size == 0) {
+    tb_file_sync (file);
+    tb_size_t size= tb_file_size (file);
+    if (size == (tb_size_t)-1) {
+      tb_file_exit (file);
+      return s7_make_boolean (sc, false);
+    }
+
+    if (size == 0) {
+      tb_file_exit (file);
+      return s7_make_byte_vector (sc, 0, 1, NULL);
+    }
+
+    tb_byte_t* buffer = new (std::nothrow) tb_byte_t[size];
+    if (!buffer) {
+      tb_file_exit (file);
+      return s7_make_boolean (sc, false);
+    }
+
+    tb_size_t real_size= tb_file_read (file, buffer, size);
     tb_file_exit (file);
-    return s7_make_byte_vector (sc, 0, 1, NULL);
-  }
 
-  tb_byte_t* buffer   = new tb_byte_t[size];
-  tb_size_t  real_size= tb_file_read (file, buffer, size);
-  tb_file_exit (file);
+    if (real_size == (tb_size_t)-1 || real_size != size) {
+      delete[] buffer;
+      return s7_make_boolean (sc, false);
+    }
 
-  if (real_size != size) {
+    s7_pointer bytevector     = s7_make_byte_vector (sc, real_size, 1, NULL);
+    tb_byte_t* bytevector_data= s7_byte_vector_elements (bytevector);
+    memcpy (bytevector_data, buffer, real_size);
+
     delete[] buffer;
+    return bytevector;
+  }
+  catch (const std::exception& e) {
     return s7_make_boolean (sc, false);
   }
-
-  s7_pointer bytevector     = s7_make_byte_vector (sc, real_size, 1, NULL);
-  tb_byte_t* bytevector_data= s7_byte_vector_elements (bytevector);
-  memcpy (bytevector_data, buffer, real_size);
-
-  delete[] buffer;
-  return bytevector;
+  catch (...) {
+    return s7_make_boolean (sc, false);
+  }
 }
 
 static void
@@ -512,43 +585,62 @@ f_path_copy (s7_scheme* sc, s7_pointer args) {
     return s7_make_boolean (sc, false);
   }
 
-  tb_file_ref_t src_file= tb_file_init (source, TB_FILE_MODE_RO);
-  if (src_file == tb_null) {
-    return s7_make_boolean (sc, false);
-  }
-
-  tb_file_sync (src_file);
-  tb_size_t size= tb_file_size (src_file);
-
-  tb_file_ref_t dst_file= tb_file_init (target, TB_FILE_MODE_WO | TB_FILE_MODE_CREAT | TB_FILE_MODE_TRUNC);
-  if (dst_file == tb_null) {
-    tb_file_exit (src_file);
-    return s7_make_boolean (sc, false);
-  }
-
-  bool success= true;
-
-  if (size > 0) {
-    tb_byte_t* buffer   = new tb_byte_t[size];
-    tb_size_t  read_size= tb_file_read (src_file, buffer, size);
-
-    if (read_size != size) {
-      success= false;
+  try {
+    tb_file_info_t info;
+    if (!tb_file_info (source, &info) || info.type != TB_FILE_TYPE_FILE) {
+      return s7_make_boolean (sc, false);
     }
-    else {
-      tb_size_t written_size= tb_file_writ (dst_file, buffer, read_size);
-      if (written_size != read_size) {
+
+    tb_file_ref_t src_file= tb_file_init (source, TB_FILE_MODE_RO);
+    if (src_file == tb_null) {
+      return s7_make_boolean (sc, false);
+    }
+
+    tb_file_sync (src_file);
+    tb_size_t size= tb_file_size (src_file);
+    if (size == (tb_size_t)-1) {
+      tb_file_exit (src_file);
+      return s7_make_boolean (sc, false);
+    }
+
+    tb_file_ref_t dst_file= tb_file_init (target, TB_FILE_MODE_WO | TB_FILE_MODE_CREAT | TB_FILE_MODE_TRUNC);
+    if (dst_file == tb_null) {
+      tb_file_exit (src_file);
+      return s7_make_boolean (sc, false);
+    }
+
+    bool success= true;
+
+    if (size > 0) {
+      tb_byte_t* buffer   = new (std::nothrow) tb_byte_t[size];
+      if (!buffer) {
+        tb_file_exit (src_file);
+        tb_file_exit (dst_file);
+        return s7_make_boolean (sc, false);
+      }
+      tb_size_t read_size= tb_file_read (src_file, buffer, size);
+
+      if (read_size != size) {
         success= false;
       }
+      else {
+        tb_size_t written_size= tb_file_writ (dst_file, buffer, read_size);
+        if (written_size != read_size) {
+          success= false;
+        }
+      }
+
+      delete[] buffer;
     }
 
-    delete[] buffer;
+    tb_file_exit (src_file);
+    tb_file_exit (dst_file);
+
+    return s7_make_boolean (sc, success);
   }
-
-  tb_file_exit (src_file);
-  tb_file_exit (dst_file);
-
-  return s7_make_boolean (sc, success);
+  catch (...) {
+    return s7_make_boolean (sc, false);
+  }
 }
 
 static void
