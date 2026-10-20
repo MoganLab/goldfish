@@ -105,11 +105,19 @@
                     ) ;build-initial-prompt
                    ) ;
                   ) ;
-        (let ((reg (or (current-extension-registry) (default-extension-registry))))
-          (%validate-parsed-args reg parsed initial-msg rest-msgs)
+        (let* ((reg (or (current-extension-registry) (default-extension-registry)))
+               (_ (%validate-parsed-args reg parsed initial-msg rest-msgs))
+               (mode (resolve-app-mode (pi-args-ref parsed 'mode)
+                       (pi-args-ref parsed 'print)
+                       (stdin-tty?)
+                       (stdout-tty?)
+                     ) ;resolve-app-mode
+               ) ;mode
+              ) ;
           (cond ((pi-args-ref parsed 'help) (display-pi-help) 0)
                 ((pi-args-ref parsed 'list-models) (%handle-list-models parsed))
-                ((and (string-null? initial-msg)
+                ((and (not (eq? mode 'tui))
+                   (string-null? initial-msg)
                    (null? rest-msgs)
                    (not (pi-args-ref parsed 'continue))
                    (not (pi-args-ref parsed 'compact))
@@ -118,21 +126,12 @@
                  (display-pi-help)
                  0
                 ) ;
-                (else
-                  (let ((mode (resolve-app-mode (pi-args-ref parsed 'mode)
-                                (pi-args-ref parsed 'print)
-                                (stdin-tty?)
-                                (stdout-tty?)
-                              ) ;resolve-app-mode
-                        ) ;mode
-                       ) ;
-                    (with-extension-registry reg
-                      (lambda () (dispatch-pi parsed mode initial-msg rest-msgs))
-                    ) ;with-extension-registry
-                  ) ;let
+                (else (with-extension-registry reg
+                        (lambda () (dispatch-pi parsed mode initial-msg rest-msgs))
+                      ) ;with-extension-registry
                 ) ;else
           ) ;cond
-        ) ;let
+        ) ;let*
       ) ;let-values
     ) ;define
 

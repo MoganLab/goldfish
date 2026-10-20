@@ -245,7 +245,15 @@
 
     (define (resolve-app-mode mode-option print-flag stdin-tty stdout-tty)
       (cond ((or (equal? mode-option "json") (eq? mode-option 'json)) 'json)
-            ((or print-flag (not stdin-tty) (not stdout-tty)) 'print)
+            ((or (equal? mode-option "tui") (eq? mode-option 'tui)) 'tui)
+            ((or print-flag
+               (equal? mode-option "text")
+               (equal? mode-option "print")
+               (eq? mode-option 'print)
+             ) ;or
+             'print
+            ) ;
+            ((and stdin-tty stdout-tty) 'tui)
             (else 'print)
       ) ;cond
     ) ;define
