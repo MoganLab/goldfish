@@ -8,6 +8,7 @@
   (import (scheme base)
     (scheme char)
     (liii string)
+    (liii list)
     (liii pi tools types)
     (liii pi tools record)
   ) ;import
@@ -59,19 +60,10 @@
     ) ;define
 
     (define (pi-split-lines content)
-      (if (string-null? content)
-        '()
-        (let ((lines (string-split content "\n")))
-          (if
-            (and (string-ends? content "\n")
-              (not (null? lines))
-              (string-null? (car (reverse lines)))
-            ) ;and
-            (reverse (cdr (reverse lines)))
-            lines
-          ) ;if
-        ) ;let
-      ) ;if
+      (cond ((string-null? content) '())
+            ((string-ends? content "\n") (drop-right (string-split content "\n") 1))
+            (else (string-split content "\n"))
+      ) ;cond
     ) ;define
 
     (define (%trunc-result content truncated by total-lines total-bytes

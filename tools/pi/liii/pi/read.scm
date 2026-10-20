@@ -157,40 +157,27 @@
           (let* ((file-text (path-read-text (path abs-path)))
                  (all-lines (pi-split-lines file-text))
                  (total-lines (length all-lines))
+                 (start-line (if offset (max 0 (- offset 1)) 0))
+                 (start-display (+ start-line 1))
                 ) ;
-            (if (null? all-lines)
-              (if offset
-                (error 'error
-                  (string-append "Offset "
-                    (number->string offset)
-                    " is beyond end of file (0 lines total)"
-                  ) ;string-append
-                ) ;error
-                ""
-              ) ;if
-              (let* ((start-line (if offset (max 0 (- offset 1)) 0))
-                     (start-display (+ start-line 1))
-                    ) ;
-                (when (>= start-line total-lines)
-                  (error 'error
-                    (string-append "Offset "
-                      (number->string offset)
-                      " is beyond end of file ("
-                      (number->string total-lines)
-                      " lines total)"
-                    ) ;string-append
-                  ) ;error
-                ) ;when
-                (let* ((user-lines (if limit (min limit (- total-lines start-line)) #f))
-                       (count (if limit user-lines (- total-lines start-line)))
-                       (selected (%slice-lines all-lines start-line count))
-                       (selected-text (string-join selected "\n"))
-                       (truncation (pi-truncate-head selected-text))
-                      ) ;
-                  (%format-read-output truncation raw-path start-display total-lines user-lines)
-                ) ;let*
-              ) ;let*
-            ) ;if
+            (when (and offset (>= start-line total-lines))
+              (error 'error
+                (string-append "Offset "
+                  (number->string offset)
+                  " is beyond end of file ("
+                  (number->string total-lines)
+                  " lines total)"
+                ) ;string-append
+              ) ;error
+            ) ;when
+            (let* ((user-lines (if limit (min limit (- total-lines start-line)) #f))
+                   (count (if limit user-lines (- total-lines start-line)))
+                   (selected (%slice-lines all-lines start-line count))
+                   (selected-text (string-join selected "\n"))
+                   (truncation (pi-truncate-head selected-text))
+                  ) ;
+              (%format-read-output truncation raw-path start-display total-lines user-lines)
+            ) ;let*
           ) ;let*
         ) ;let
       ) ;let*

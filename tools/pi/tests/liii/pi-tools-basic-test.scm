@@ -158,7 +158,6 @@
   (check-true (string-contains? out "Command exited with code 42"))
 ) ;let-values
 
-
 (check-catch 'error (pi-execute-bash '()))
 
 ;; ============================================================

@@ -40,9 +40,7 @@
 ) ;define
 
 (define (setup-fixture!)
-  (unless (path-exists? (path %tmp-agent))
-    (path-mkdir (path %tmp-agent) :parents #t :exist-ok #t)
-  ) ;unless
+  (setup-dir! %tmp-agent)
   (for-each
     (lambda (name)
       (path-copy (path-join (path %fixture) (path name))
