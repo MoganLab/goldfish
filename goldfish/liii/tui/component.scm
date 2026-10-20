@@ -19,7 +19,7 @@
     component-handle-input component-invalidate! make-text make-truncated-text
     make-spacer
   ) ;export
-  (import (liii base) (liii error) (liii string))
+  (import (liii base) (liii error) (liii string) (liii tui text-width))
   (begin
 
     (define-record-type <component>
@@ -124,61 +124,11 @@
       (%call-invalidate-proc (%component-invalidate-proc comp) comp)
     ) ;define
 
-    (define (%wrap-line line width)
-      (let ((len (string-length line)))
-        (if (<= len width)
-          (list line)
-          (let* ((space-at-width? (and (< width len) (char=? (string-ref line width) #\space)))
-                 (last-space-pos
-                   (if space-at-width?
-                     width
-                     (let loop
-                       ((i (- width 1)))
-                       (cond ((< i 0) #f)
-                             ((char=? (string-ref line i) #\space) i)
-                             (else (loop (- i 1)))
-                       ) ;cond
-                     ) ;let
-                   ) ;if
-                 ) ;last-space-pos
-                ) ;
-            (if (and last-space-pos (> last-space-pos 0))
-              (let ((cur (substring line 0 last-space-pos)) (next-start (+ last-space-pos 1)))
-                (cons cur
-                  (if (>= next-start len) '() (%wrap-line (substring line next-start len) width))
-                ) ;cons
-              ) ;let
-              (let ((cur (substring line 0 width)) (rest (substring line width len)))
-                (cons cur (%wrap-line rest width))
-              ) ;let
-            ) ;if
-          ) ;let*
-        ) ;if
-      ) ;let
-    ) ;define
-
     (define (make-text str)
       (unless (string? str)
         (type-error "make-text: argument must be a string")
       ) ;unless
-      (make-component
-        (lambda (comp width)
-          (cond ((<= width 0) (list ""))
-                ((string=? str "") (list ""))
-                (else
-                  (let ((paragraphs (string-split str "\n")))
-                    (let loop
-                      ((rest paragraphs) (acc '()))
-                      (if (null? rest)
-                        acc
-                        (loop (cdr rest) (append acc (%wrap-line (car rest) width)))
-                      ) ;if
-                    ) ;let
-                  ) ;let
-                ) ;else
-          ) ;cond
-        ) ;lambda
-      ) ;make-component
+      (make-component (lambda (comp width) (wrap-text str width)))
     ) ;define
 
     (define (make-truncated-text str . args)
@@ -193,17 +143,9 @@
           (lambda (comp width)
             (if (<= width 0)
               (list "")
-              (let* ((first-line (car (string-split str "\n"))) (slen (string-length first-line)))
-                (if (<= slen width)
-                  (list first-line)
-                  (let ((elen (string-length ellipsis)))
-                    (if (>= width elen)
-                      (list (string-append (substring first-line 0 (- width elen)) ellipsis))
-                      (list (substring ellipsis 0 width))
-                    ) ;if
-                  ) ;let
-                ) ;if
-              ) ;let*
+              (let ((first-line (car (string-split str "\n"))))
+                (list (truncate-to-width first-line width ellipsis))
+              ) ;let
             ) ;if
           ) ;lambda
         ) ;make-component

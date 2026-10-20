@@ -54,6 +54,15 @@
 (let ((c (make-truncated-text "line1\nline2")))
   (check (component-render c 10) => '("line1")))
 
+;; CJK 表意字符截断与双宽防劈裂
+(let ((c (make-truncated-text "你好世界")))
+  (check (component-render c 7) => '("你好..."))
+  (check (component-render c 6) => '("你...")))
+
+;; ANSI 转义序列安全截断并闭合样式
+(let ((c (make-truncated-text "\x1b[31mhello world\x1b[0m")))
+  (check (component-render c 8) => '("\x1b[31mhello...\x1b[0m")))
+
 ;; 参数非法检查
 (check-catch 'type-error (make-truncated-text 123))
 (check-catch 'type-error (make-truncated-text "text" 456))

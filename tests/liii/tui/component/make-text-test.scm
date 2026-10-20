@@ -55,6 +55,14 @@
   (check (component-render c 0) => '(""))
   (check (component-render c -5) => '("")))
 
+;; CJK 表意字符与全角标点折行
+(let ((c (make-text "金鱼Scheme终端用户界面")))
+  (check (component-render c 10) => '("金鱼Scheme" "终端用户界" "面")))
+
+;; ANSI 转义序列安全折行
+(let ((c (make-text "\x1b[32mhello world\x1b[0m")))
+  (check (component-render c 5) => '("\x1b[32mhello\x1b[0m" "\x1b[32mworld\x1b[0m")))
+
 ;; 参数非法检查
 (check-catch 'type-error (make-text 123))
 (check-catch 'type-error (make-text 'symbol))

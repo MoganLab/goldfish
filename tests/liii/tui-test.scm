@@ -20,6 +20,12 @@
 ;; component-handle-input - 分发键盘或事件输入
 ;; component-invalidate! - 标记组件脏区或刷新
 
+;; 文本宽度工具
+;; strip-ansi - 剔除 ANSI 控制字符
+;; display-width - 计算视觉显示宽度
+;; truncate-to-width - 安全截断文本
+;; wrap-text - 按显示宽度安全折行
+
 (let ((c (make-text "hello world")))
   (check (component? c) => #t)
   (check (component-render c 5) => '("hello" "world"))
@@ -33,5 +39,10 @@
 (let ((c (make-spacer 2)))
   (check (component? c) => #t)
   (check (component-render c 40) => '("" "")))
+
+(check (strip-ansi "\x1b[31mhi\x1b[0m") => "hi")
+(check (display-width "金鱼") => 4)
+(check (truncate-to-width "你好世界" 7) => "你好...")
+(check (wrap-text "你好世界" 4) => '("你好" "世界"))
 
 (check-report)
