@@ -28,4 +28,11 @@
 (check-true (timestamp? (current-utc-timestamp)))
 (check-true (timestamp? (current-system-timestamp)))
 
+;; format 接口聚合导出测试
+(let* ((ts (make-timestamp 2026 2 3 15 30 45 (utc-timezone)))
+       (fmt-str (date-time-format ts "%Y/%m/%d %H:%M:%S"))
+       (parsed-ts (date-time-parse fmt-str "%Y/%m/%d %H:%M:%S" (utc-timezone))))
+  (check fmt-str => "2026/02/03 15:30:45")
+  (check (timestamp=? ts parsed-ts) => #t))
+
 (check-report)
