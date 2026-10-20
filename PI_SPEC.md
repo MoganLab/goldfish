@@ -399,6 +399,7 @@ Sources/Additional Results 拼装、7 类错误路径（401/403/超时/非 JSON/
 | 10 | `KIMI_API_KEY` 环境变量兜底未生效：auth 解析只读 auth.json 的 kimi-coding 条目，env 被忽略——假 key 也返回周配额 403（而非 401），证明请求从未携带 env key；阻塞三把 kimi key 分摊配额 | 实测（2026-10-19）：`KIMI_API_KEY=sk-bogus bin/gf pi --provider kimi-coding --model k3` 返回周配额 403；**对照**：同 hongwei key `KIMI_API_KEY=... pi --provider kimi-coding --model k3` 本尊返回 ok（pi 源码 env-api-keys.ts 同名变量、env 优先） | ✅ 已修复（任务 035：env > auth.json 统一五个 provider；修复后假 key 实测返回 401；验收脚本 035.scm 27/27） |
 | 11 | deepseek 首轮 tool_use 参数解析崩溃：`Error: (value-error (("input") " must be null, pair, or list with at least 2 elements"))`——会话记录仅 2 行（session+user），崩溃发生在首轮 API 响应解析（未执行任何工具）；037 开发两次拉起同点确定性复现（030/033/036 用 deepseek 未触发，疑与 deepseek 某类 tool_use 参数形状相关，如 input 为 JSON 字符串/嵌套形状） | 实测（2026-10-20）：037 开发第 1/2 次拉起均在加载 PI_PLAN.md 首轮响应后秒崩，会话 jsonl 取证 | ✅ 已修复（任务 050：根因 C++ json_write_object_entry 对单元素 list 约束 + 空参数 cons 退化；anthropic-normalize-input/parse-tool-arguments 多形态兼容；deepseek 工具调用实测恢复） |
 | 12 | deepseek 流式间歇性 `HTTP 400 stream error`：验收阶段大上下文拉起偶发连续中断（非每次——039 文档/开发、040 文档/开发均 deepseek 成功；039 验收×2 与 040 验收×1 连续遇到）——疑 deepseek 网关对某类大 prompt 流式响应的偶发拒绝；未定位到请求体差异 | 实测（2026-10-20）：三次同错（/tmp/pi-goldfish-run.log 取证），换模型即恢复 | 观察中（复现频繁时登记修复任务；当前以换模型规避） |
+| 13 | 错误消息格式化残留：`Error: unbound variable ~S in ~S`——038 修复后的错误路径某处 `~S` 占位符未被实际值替换（字面输出 ~S）；偶发（052 验收首拉秒崩一次，重拉后 CLI 双仓库 rc=0 未复现） | 实测（2026-10-20）：/tmp/pi-goldfish-run.log 取证 | 观察中（稳定复现时登记修复） |
 
 ## Provider 支持范围
 
