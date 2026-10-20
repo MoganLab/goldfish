@@ -92,6 +92,58 @@ timeout 300 bin/gf pi -c -p "继续上一轮的话题"
 timeout 300 bin/gf pi --no-session -p "一次性问题"
 ```
 
+## 扩展机制与插件生态（Extension）【对齐原生 pi】
+
+`bin/gf pi` 引入了与原生 pi 概念模型全面对齐的 **轻量纯 Scheme Extension 机制**。
+无需引入 Node.js 运行时或外部进程，扩展全部由 Goldfish Scheme 编写，自包含且轻量。
+
+### 1. 发现机制：目录约定即生效
+
+用户与开发者**只要把相关的 `.scm` 插件文件（或带有 `index.scm` 的目录）放在对应目录下**，启动时自动扫描发现并加载，无需手动注册：
+
+| 扩展类型 | 存放位置 | 说明 |
+|---|---|---|
+| **仓库内置扩展** | `tools/pi/liii/pi/extensions/` | 随 Goldfish 安装包直接分发内置（安装到 `share/goldfish/tools/`），开箱即用 |
+| **用户全局扩展** | `~/.pi/agent/extensions/*.scm` 或 `*/index.scm` | 用户所有项目通用的全局插件 |
+| **项目局部扩展** | `.pi/extensions/*.scm` 或 `*/index.scm` | 仅在当前项目生效的定制插件 |
+| **显式指定加载** | `bin/gf pi -e /path/to/my-ext.scm` | 命令行 `-e` / `--extension` 快速调试单个插件脚本 |
+
+### 2. 常用内置扩展（随包分发，开箱即用）
+
+为保证日常编码体验的高效与开箱即用，最常用的 3 个插件随 Goldfish 安装包内置：
+- **`simplify`**：审查未提交代码的清晰度与可维护性，提供代码简化建议与 `--apply` 应用；
+- **`code-review`**：审查工作区或暂存区的代码变更并输出结构化审查清单；
+- **`red-green`**：强制执行 TDD 循环（先写红测试 → 最小绿实现 → 重构）。
+
+```bash
+# simplify：代码简化审查
+timeout 300 bin/gf pi -p --simplify
+timeout 300 bin/gf pi -p --simplify --staged
+
+# code-review：代码审查
+timeout 300 bin/gf pi -p --code-review
+timeout 300 bin/gf pi -p --code-review --staged
+
+# red-green：强制 TDD 循环
+timeout 300 bin/gf pi -p --red-green "为 string 库补充 string-trim-right 测试与实现"
+```
+
+### 3. 插件生态与安装（`pi install`）
+
+支持通过 `pi install` 命令一键安装社区或第三方的 Git 扩展仓库：
+
+```bash
+# 默认安装至全局扩展目录（~/.pi/agent/extensions/<name>），安装即生效
+timeout 180 bin/gf pi install https://gitee.com/xxx/my-pi-extension.git
+
+# 安装至当前项目局部目录（.pi/extensions/<name>）
+timeout 180 bin/gf pi install --local https://gitee.com/xxx/my-project-extension.git
+```
+
+### 4. 外部独立扩展示范（Reference Implementation）
+
+为了真实检验外部扩展的独立加载与 `pi install` 安装生态，结构复杂且重型的两个扩展——**`blueprint`（分阶段计划系统）** 与 **`compass`（代码库地图与导览）** 已从主仓库核心解耦并移出，作为外部独立扩展仓库维护。用户只需 `bin/gf pi install` 即可安装使用。
+
 ## 模型与 provider【可用】
 
 ```bash
@@ -223,6 +275,9 @@ tools/pi/liii/
     event.scm       # (liii pi event)    事件 record 与类型定义（event/record.scm, event/types.scm）
     tools.scm       # (liii pi tools)    工具 record 与类型定义（tools/record.scm, tools/types.scm）
     config.scm      # (liii pi config)   配置 record 与类型定义（config/record.scm, config/types.scm）
+    extension.scm   # (liii pi extension) 扩展机制门面（API、注册容器、生命周期分发）
+    extension/      # 扩展机制子模块（api, registry, discovery, loader, hooks）
+    extensions/     # ★ 内置轻量扩展（随包分发：simplify, code-review, red-green）
     models.scm      # (liii pi models)   模型目录解析与表格输出（models/list.scm）
     gemini.scm      # (liii pi gemini)   Gemini provider（gemini/core, request, stream, stream-parse）
     anthropic.scm   # (liii pi anthropic) Anthropic provider（anthropic/core, request, stream, stream-parse）

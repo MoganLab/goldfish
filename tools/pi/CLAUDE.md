@@ -44,12 +44,13 @@ pi 被拉起后全自主运行。
 |---|---|
 | 子命令注册 | `gfproject.json` 的 `tools` 字段：命令名 → `{organization, module, description}` |
 | 子命令实现 | `tools/<命令名>/liii/gold<命令名>.scm`，模块名 `(liii gold<命令名>)`（如 `tools/fmt/liii/goldfmt.scm`） |
-| 子命令的辅助模块 | `tools/<命令名>/liii/gold<命令名>-<子模块>.scm` |
+| 子命令的辅助模块 | `tools/<命令名>/liii/gold<命令名>-<子模块>.scm`（或 `tools/pi/liii/pi/`） |
+| 子命令内置扩展 | `tools/pi/liii/pi/extensions/`，模块名 `(liii pi extensions <扩展名>)` |
 | 子命令测试 | `tools/<命令名>/tests/liii/...-test.scm`（用 `bin/gf test` 运行） |
 | 可复用 Scheme 库 | `goldfish/liii/<库名>.scm`，模块 `(liii <库名>)` |
 | 库测试 | `tests/goldfish/liii/<库名>-test.scm`（用 `bin/gf` 直接运行） |
 
-正在推进的例子：`pi` 子命令的完整布局见 `Agents.md` §4.1。
+正在推进的例子：`pi` 子命令与 Extension 机制的完整布局见 `Agents.md` §1 与 §6。
 
 ### 3.2 计划文档与任务文档
 

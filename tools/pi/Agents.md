@@ -1,7 +1,8 @@
 # Agents：`bin/gf pi` 任务规格与后续任务书
 
-> 状态：§5 所列九个阶段已全部完成（2026-10-18），print 模式与 JSON 模式可用，
-> 经真实冒烟验证的命令行示例与各功能的预期用法见 `README.md`。
+> 状态：§5 所列九个阶段及 050~053 优化已全部完成，print 模式与 JSON 模式可用。
+> 当前大任务：**轻量纯 Scheme Extension 机制**（全面对齐原生 pi 概念模型，
+> 目录约定即发现，解耦并迁移内置扩展至 `tools/pi/liii/pi/extensions/`）。
 > 本文档由 Claude 维护（与 `CLAUDE.md`、`README.md` 同为计划文档），
 > 作为拉起 pi 的输入与后续任务书。pi 只负责代码，不改本文档。
 > 分工：本文件写任务书与回归依据；`README.md` 写可运行示例与 TODO 用法。
@@ -15,9 +16,25 @@ bin/gf pi --print "..."          # print 模式：最终 assistant 文本写 std
 bin/gf pi --mode json "..."      # JSON 模式：JSONL 事件流写 stdout
 ```
 
-已实现：CLI 参数解析、七个内置工具（read/bash/edit/write/grep/find/ls）、
-`~/.pi/agent/` 只读配置复用、Gemini provider（含流式 SSE）、Agent 循环、
-print/JSON 双模式、会话持久化与 `--continue`、Anthropic provider。
+已实现：CLI 参数解析、七个内置基础工具（read/bash/edit/write/grep/find/ls）、
+`~/.pi/agent/` 只读配置复用、Gemini/Kimi/Deepseek provider（含流式 SSE）、Agent 循环、
+print/JSON 双模式、会话持久化与 `--continue`、单调时钟与 Retry-After 增强重试。
+
+**当前大任务目标（Extension 机制）**：
+- **纯 Scheme 实现，保持轻量与自包含**：不引入 Node.js 运行时或外部重型进程，所有扩展使用 Goldfish Scheme 实现。
+- **全面对齐原生 pi 的概念模型与发现机制**：
+  - API 模型对齐：`ExtensionAPI` / `ExtensionContext`，提供 `register-tool`、`register-flag`、`register-command`、`on` 事件订阅与拦截；
+  - 发现机制对齐（**目录约定即生效**）：只要把相关的 `.scm` 扩展文件（或带有 `index.scm` 的子目录）放在对应扩展目录下，启动时自动扫描发现并加载；
+  - 分层发现范围：
+    1. 仓库内置扩展：`tools/pi/liii/pi/extensions/`（直接随 Goldfish 安装包内置分发，保留 `simplify`, `red-green`, `code-review` 等轻量内置插件）；
+    2. 用户全局扩展：`~/.pi/agent/extensions/*.scm` 或 `~/.pi/agent/extensions/*/index.scm`；
+    3. 项目局部扩展：`.pi/extensions/*.scm` 或 `.pi/extensions/*/index.scm`；
+    4. 命令行显式指定：`-e, --extension <path.scm>`；
+  - 插件生态安装：提供 `bin/gf pi install <git-url>` 命令，将第三方插件一键 git clone 到扩展目录（默认全局，支持 `--local`），克隆即生效；
+- **核心解耦与外部插件示范（用户裁定 2026-10-20）**：
+  - 将 `compass` 和 `blueprint` 两个重型扩展**正式移出主仓库**，抽离为外部独立的 Extension 仓库，作为标准外部插件的 Reference Implementation；
+  - 彻底移除主核心代码（`args.scm`、`tools.scm`、`cli.scm`、`modes.scm` 等）对 `blueprint`、`compass` 的侵入式硬编码；
+  - 验证端到端闭环：通过 `bin/gf pi install` 安装外部 `compass` 与 `blueprint` 扩展，验证其自动发现与功能的完整运作！
 
 **Provider 支持范围（用户裁定）**：google（Gemini）与 kimi-coding（Kimi）两个。
 Anthropic 已实现但本机无访问权限，不在维护范围；其 OAuth 刷新与交互式 TUI、
@@ -67,6 +84,17 @@ Anthropic 已实现但本机无访问权限，不在维护范围；其 OAuth 刷
 - **文件组织规范（用户裁定）**：单文件 300 行放不下就继续拆分（与 `bin/gf check`
   的 300 行硬约束一致）——子库再拆子模块（如 `(liii pi gemini)` 超限可拆出
   `(liii pi gemini request)`、`(liii pi gemini sse)`），不允许超长文件存在。
+- **Extension 扩展机制规范（用户裁定 2026-10-20）**：
+  - **轻量纯 Scheme 实现**：插件完全由 Goldfish Scheme 编写，不引入 Node.js 运行时或外部进程依赖。
+  - **对齐原生 pi 概念模型**：
+    - 接口对齐：提供 `ExtensionAPI` / `ExtensionContext`，支持 `register-tool`、`register-flag`、`register-command`，以及 `on` 事件监听；
+    - 事件生命周期对齐：`session_start`、`agent_start`、`tool_call`（可拦截/修改输入/block）、`tool_result`、`agent_end`；
+    - 上下文注入对齐：扩展可通过钩子或 `prompt-injectors` 向 system prompt 或用户轮次注入动态上下文；
+  - **发现机制（目录约定即生效）**：
+    - 开发者/用户只要把相关 `.scm` 文件放在对应目录下，启动时自动扫描并加载生效，无需额外手动配置；
+    - 发现层级：内置（`tools/pi/liii/pi/extensions/`，随包分发）→ 全局（`~/.pi/agent/extensions/`）→ 项目（`.pi/extensions/`）→ 显式（`-e/--extension`）；
+  - **核心解耦**：核心 `tools.scm`、`args.scm`、`cli.scm`、`modes.scm` 不得硬编码任何特定扩展的名称、分支或选项，全部由扩展通过注册表动态挂载；
+  - **错误隔离与容错**：单个扩展扫描、加载或运行出错不得导致主进程崩溃，仅在 stderr 输出告警并安全跳过。
 
 ## 3. 后续任务书（细粒度拆分；编号从 001 起全局递增，状态由 Claude 维护，便于观测进展）
 
@@ -84,15 +112,14 @@ Anthropic 已实现但本机无访问权限，不在维护范围；其 OAuth 刷
 
 | 编号 | 任务 | 内容与验收点 | 状态 |
 |---|---|---|---|
-| 050 | deepseek tool_use 参数解析 value-error 修复 | 差距清单 #11：deepseek 首轮响应的 tool_use 参数形状触发 `value-error (("input") ...)`（037 两次同点复现，会话仅 2 行即崩）；需在 anthropic 协议解析层兼容该形状（如 input 为 JSON 字符串时先解析再消费）并加防回归测试；修复前 037 类任务避开 deepseek 首轮大上下文场景 | 已完成（050.scm 30/30；commit `109c4c0d`/`bf88888e` 已推送；gemini 两阶段；差距#11 消除，deepseek 恢复主力） |
-| 045 | `simplify` 内置命令 | 参考 ~/git/pi-extensions/packages/pi-simplify（审查最近改动代码的清晰度/一致性/可维护性并给出改进）：形态文档阶段裁定；验收点含真实简化建议输出；TDD | 已完成（045.scm 138/138；commit `920ed7ac`/`12b36aec` 已推送；建档 minimax+开发验收 deepseek） |
-| 046 | `red-green` TDD 强制 | 参考 ~/git/pi-extensions/packages/pi-red-green（强制 RED-GREEN-REFACTOR 循环：先写失败测试再最小实现再重构）：形态文档阶段裁定（候选：--red-green 开关在 agent 循环中强制 TDD 顺序）；TDD | 已完成（046.scm 138/138；commit `15fcf582`/`54742c1e` 已推送；建档 minimax+开发验收 deepseek） |
-| 047 | `blueprint` 计划命令 | 参考 ~/git/pi-extensions/packages/pi-blueprint（高级目标→分阶段多会话构建计划，依赖跟踪+验证门）：形态文档阶段裁定；与现有三阶段流程互补；TDD | 已完成（047.scm 131/131；commit `ce073a44`/`4b8318cc` 已推送；建档 minimax+开发验收 deepseek） |
-| 048 | `compass` 代码库导航 | 参考 ~/git/pi-extensions/packages/pi-compass（生成结构化 codemaps 与 code tours，省 token 快速定向）：形态文档阶段裁定；TDD | 已完成（048.scm 183/183；commit `d9281290`/`fed06a94` 已推送；建档 minimax+开发验收 deepseek） |
-| 051 | `pi-config-test` 环境卫生化 | 全量回归 `bin/gf test tools/pi/tests/liii/` 恒有 1 项失败：`tests/liii/pi-config-test.scm` 读取本机 `~/.pi/agent/models-store.json`（deepseek `base-url` 实为 `https://api.deepseek.com/anthropic`），与用例期望 `https://api.deepseek.com` 不符——环境依赖导致每次验收都要维护「已知失败白名单」；需改用 `PI_CODING_AGENT_DIR` 指向 `tools/pi/tests/fixtures/` 下的自建 fixture，使全量回归真正全绿、验收脚本不再需要失败白名单；TDD 覆盖 | 开发完成（gemini 续作 minimax 半成品：全量 271/271 首次真绿，生产代码零改动，复核通过）；验收阶段进行中 |
-| 052 | 超时基准改用单调时钟 | 039 迁移后，流式空闲超时（`(- now last-act)`）与会话超时仍以墙钟 `pi-current-time-seconds` 为基准；NTP 回拨使差值为负时空闲超时永不触发；方案：在 `(liii date-time current-time)` 增加 `current-monotonic-millis`/`current-monotonic-seconds`（底层 `time-utc->time-monotonic` 已验证可给出单调 epoch 基准），`pi/time.scm` 暴露 `pi-current-monotonic-seconds`，agent 与三路 stream 的超时基准改用单调钟，墙钟仅用于时间戳展示；验收点：回拨场景下超时仍能触发；TDD 覆盖 | 已完成（052.scm 58/58；commit `2018f5a0`/`96bf2a1d` 已推送；开发验收均 gemini） |
-| 053 | 重试增强：Retry-After 消费 + 重试 stderr 可见性 | 用户观察（2026-10-20）：minimax 当日多次 529（服务过载）。两个改进点：1) Retry-After 头消费——429/503/529 响应通常带该头，当前 pi-calc-retry-delay 只做指数退避未读取服务端指示（服务器说等 1s 我们可能等 30s，或过早重试加重过载）；2) 普通重试（非 multikey 轮换）无 stderr 日志——529/429 发生频率完全不可观测（取证困难）；实现：三 provider 的 request/stream 读取响应头 Retry-After（秒数或 HTTP 日期）并在 pi-calc-retry-delay 优先采用（钳制在合理上下限），重试时 stderr 打印脱敏摘要（状态码+第 N 次重试+等待 ms）；TDD 覆盖头解析/钳制/日志脱敏 | 建档完成（gemini 自举 `4dd12194`，核实 http.scm 已暴露响应头无需改主库）；开发阶段进行中 |
-> **收官裁定（用户裁定 2026-10-20）**：051 与 052 完成后任务表清空，流水线停止（Claude 删除定时任务，进入待命）；后续任务待用户重新发起。
+| 070 | Extension 核心抽象与 ExtensionAPI | 实现 `(liii pi extension)`：定义 `ExtensionAPI` / `ExtensionContext` 记录类型，提供工具注册（`register-tool`）、命令行参数注册（`register-flag`）、子命令注册（`register-command`）、事件监听与派发（`pi-on!`/`pi-emit!`）；事件生命周期对齐原生 pi（`session_start`, `agent_start`, `tool_call`, `tool_result`, `agent_end`）；TDD 覆盖 | 待执行 |
+| 071 | 插件目录发现机制与加载器（Discovery & Loader） | 实现插件扫描与自动发现（“只要把相关文件放在对应目录即可生效”）：1) 内置目录 `tools/pi/liii/pi/extensions/`；2) 全局目录 `~/.pi/agent/extensions/*.scm`；3) 项目目录 `.pi/extensions/*.scm`；4) 命令行 `-e, --extension <file.scm>`；加载器执行扩展工厂函数注入 API；单插件异常隔离不崩溃主进程；TDD 覆盖 | 待执行 |
+| 072 | 工具层解耦：接驳动态扩展工具注册表 | 改造 `tools.scm`：将 `get-tool-definition` 与 `execute-tool-call` 从硬编码分支改为查询扩展注册表（保留默认 7 个基础工具，扩展工具由 Extension 动态注册接管）；移除 `tools.scm` 对 `blueprint`, `compass`, `red-green` 的硬编码 import 与 cond 分支；既有工具测试 100% 保持通过 | 待执行 |
+| 073 | 命令行与路由解耦：动态 Flags 挂载与 Local Flow 分发 | 改造 `args.scm`、`cli.scm` 与 `modes.scm`：支持从 Extension 注册表中动态提取扩展声明的命令行 flags 与验证规则；支持扩展注册 local-flow 与 command 路由处理器；移除核心中硬编码的 `--blueprint`, `--codemap`, `--simplify` 等分支；保持所有 CLI 参数与 local-flow 行为 100% 兼容 | 待执行 |
+| 074 | 上下文与生命周期拦截：Prompt 注入与 Tool 拦截 | 支持扩展通过 `prompt-injectors` 向系统提示词注入动态内容（如 codemap、blueprint 状态、TDD 约束）；实现 `tool_call` 拦截钩子（支持返回 block 或修改 input 参数）；移出主干 prompt 与循环中硬编码的各扩展提示词注入逻辑；TDD 覆盖 | 待执行 |
+| 075 | 内置扩展收敛迁移（simplify, red-green, code-review） | 将保留在仓库内的轻量内置插件正式收敛至 `tools/pi/liii/pi/extensions/`，改写为符合标准 Extension 契约的轻量 Scheme 扩展；`red-green` 通过 `register-command` 对齐提供 `/tdd` 与 `/tdd-status` 命令并兼容 `--red-green`；核心层仅通过扫描内置目录自动加载；全量单元测试与既有冒烟示例回归验证全绿 | 待执行 |
+| 076 | `pi install` 插件安装命令实现 | 实现 `pi install <git-url>` 子命令：调用 git 将远程扩展仓库 clone 至对应目录（默认全局 `~/.pi/agent/extensions/<name>`，支持 `--local` 克隆至当前工程 `.pi/extensions/<name>`）；配合目录扫描机制实现插件一键安装即生效；含 git 操作超时控制（强制带 timeout）、目录冲突检查与安全性校验；TDD 覆盖 | 待执行 |
+| 077 | 外部扩展实例移出与端到端实测验证（compass 与 blueprint） | 用户裁定移出 `compass` 与 `blueprint`：1) 将两者代码抽离为独立的外部扩展仓库（作为标准外部扩展参考实现）；2) 主仓库完全清理掉两者的实现代码与硬编码残留；3) 通过 `bin/gf pi install` 安装这两个外部扩展，端到端验证 `--blueprint` 与 `--codemap` 的完整功能无回归 | 待执行 |
 
 共同约束：
 - 每个任务常态三个 commit：`[编号][PLAN]`（建档）+ `[编号][REVIEW]`（代码）
@@ -106,8 +133,9 @@ Anthropic 已实现但本机无访问权限，不在维护范围；其 OAuth 刷
 
 ## 4. Non-goals（不做项，用户裁定）
 
-交互式 TUI / RPC 模式；extensions/MCP/codemode/packages/themes/prompt templates/
-skills；图片输入（暂缓）；OAuth 凭据刷新（auth.json 的 oauth 类型条目不消费）；
+交互式 TUI / RPC 模式；Node.js 运行时引入 / 跨进程 JS 桥接（保持纯 Scheme 自包含轻量）；
+MCP/codemode/packages/themes/prompt templates/skills；图片输入（暂缓）；
+OAuth 凭据刷新（auth.json 的 oauth 类型条目不消费）；
 会话写入 `~/.pi/agent/` 管理；跨平台（仅当前 Linux 开发机）；项目级
 `.pi/settings.json`；Anthropic OAuth 刷新。
 
@@ -135,11 +163,16 @@ thoughtSignature）、会话漏记 user 消息与 --continue 类型错误、Anth
 gfproject.json                    # 注册 "pi" 子命令（module → pi/cli）
 tools/pi/liii/
   pi.scm                          # (liii pi) 门面：公开 API 再导出
-  pi/                             # 多级子库（详见 README.md 架构演进节）
+  pi/                             # 多级子库
     types/gemini/anthropic/auth/models/retry/agent/
     tools/config/prompt/session/args/modes.scm
+    extension.scm                 # (liii pi extension) 扩展核心机制门面
+    extension/                    # 扩展子模块（api/registry/discovery/loader/hooks）
+    extensions/                   # ★ 内置随包分发扩展（blueprint/compass/red-green 等）
     cli.scm                       # (liii pi cli) CLI 入口
 tools/pi/tests/liii/pi/           # 测试（镜像源码库结构，一个函数一个测试文件）
+  extension/                      # 扩展核心机制测试
+  extensions/                     # 各内置扩展测试
 tools/pi/tests/                   # 其余测试与 fixture/stub server
 tools/pi/devel/                   # 任务文档（ddd.md 模板 + 编号.md + 编号.scm 验收脚本）
 tools/pi/README.md                # 经真实冒烟验证的命令行示例（Claude 维护）
