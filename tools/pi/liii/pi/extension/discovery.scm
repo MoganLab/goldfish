@@ -9,6 +9,7 @@
     (scheme process-context)
     (liii string)
     (liii path)
+    (liii sys)
     (liii os)
     (liii sort)
     (liii pi read)
@@ -37,18 +38,29 @@
           env-dir
          ) ;
          (else
-           (let ((c1 (path "tools/pi/liii/pi/extensions"))
-                 (c2 (path "liii/pi/extensions"))
-                 (c3 (path "../tools/pi/liii/pi/extensions"))
-                 (c4 (path "../../tools/pi/liii/pi/extensions"))
-                ) ;
+           (let* ((c1 (path "tools/pi/liii/pi/extensions"))
+                  (c2 (path "liii/pi/extensions"))
+                  (c3 (path "../tools/pi/liii/pi/extensions"))
+                  (c4 (path "../../tools/pi/liii/pi/extensions"))
+                  (repo-root
+                    (catch #t (lambda () (path-parent (path-parent (executable)))) (lambda _ #f))
+                  ) ;repo-root
+                  (c5 (if repo-root (path-join repo-root "tools/pi/liii/pi/extensions") #f))
+                  (c6 (if repo-root
+                        (path-join repo-root "share/goldfish/tools/pi/liii/pi/extensions")
+                        #f
+                      ) ;if
+                  ) ;c6
+                 ) ;
              (cond ((and (path-exists? c1) (path-dir? c1)) (path->string (path-resolve c1)))
                    ((and (path-exists? c2) (path-dir? c2)) (path->string (path-resolve c2)))
                    ((and (path-exists? c3) (path-dir? c3)) (path->string (path-resolve c3)))
                    ((and (path-exists? c4) (path-dir? c4)) (path->string (path-resolve c4)))
+                   ((and c5 (path-exists? c5) (path-dir? c5)) (path->string (path-resolve c5)))
+                   ((and c6 (path-exists? c6) (path-dir? c6)) (path->string (path-resolve c6)))
                    (else "tools/pi/liii/pi/extensions")
              ) ;cond
-           ) ;let
+           ) ;let*
          ) ;else
         ) ;cond
       ) ;let
