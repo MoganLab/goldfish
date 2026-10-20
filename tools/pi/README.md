@@ -140,9 +140,9 @@ timeout 180 bin/gf pi install https://gitee.com/xxx/my-pi-extension.git
 timeout 180 bin/gf pi install --local https://gitee.com/xxx/my-project-extension.git
 ```
 
-### 4. 外部独立扩展示范（Reference Implementation）
+### 4. 独立扩展解耦示范（Reference Implementation）
 
-为了真实检验外部扩展的独立加载与 `pi install` 安装生态，结构复杂且重型的两个扩展——**`blueprint`（分阶段计划系统）** 与 **`compass`（代码库地图与导览）** 已从主仓库核心解耦并移出，作为外部独立扩展仓库维护。用户只需 `bin/gf pi install` 即可安装使用。
+为了真实检验扩展的独立加载机制，结构复杂且重型的两个扩展——**`blueprint`（分阶段计划系统）** 与 **`compass`（代码库地图与导览）** 已从主核心解耦，直接将其源码移动到对应的扩展目录即可生效（无需在 GitHub 创建外部仓库），端到端验证插件机制的自动发现与完全解耦。
 
 ## 模型与 provider【可用】
 
@@ -415,8 +415,30 @@ tools/pi/liii/
 
   实现要点：按扩展名/MIME 判断图片类型，Gemini 走 `inlineData` part（base64），
   Anthropic 走 `image` source block；不支持的格式明确报错。
+- [ ] **交互式 TUI 终端模式（第二阶段重点任务）**：基于刚刚合入主干的通用终端 UI 库 `(liii tui)`（PR #1159），实现与原生 pi 深度对齐的原生交互模式。预期用法：
+
+  ```bash
+  # 缺省无参时自动进入基于 (liii tui) 的交互终端界面
+  bin/gf pi
+
+  # 指定 provider / model 进入交互会话
+  bin/gf pi --provider google --model gemini-3.8-flash
+  ```
+
+  实现要点：
+  - 核心事件循环与 `(liii tui terminal)` 非阻塞按键轮询（081/082）；
+  - 底部多行 Prompt 输入框（集成 `(liii tui editor)`，支持单行/多行编辑、光标移动、历史记录上下翻阅）（083）；
+  - 响应式多分区视口与窗口 Resize 动态自适应（084）；
+  - 历史消息自然折行排版（全面支持 CJK 汉字与 Emoji 2 列视觉显示宽度）与流式 SSE 增量文本行差分无闪烁实时打字（085/086）；
+  - Thinking 深度思考过程折叠/展开组件（087）；
+  - 工具调用动态看板（带多帧动画 Spinner 与原地完成态覆盖）（088）；
+  - Slash 命令悬浮弹出与自动补全菜单（089）；
+  - 人在回路敏感工具调用（write/edit/bash）模态交互确认弹窗（090）；
+  - 全局快捷键（Ctrl+C 中断、Ctrl+L 清屏、/help 手册）（091）；
+  - 基于虚拟终端 `(make-virtual-terminal)` 的 100% 确定性自动化 CI 回归测试（092）。
+
 不做项：
-- 交互式 TUI / RPC 模式（goldfish 缺少相关的终端 UI 基础设施，不规划）
+- RPC 模式（IDE 跨进程 JSONL over stdio，非当前核心需求）
 - 项目级 `.pi/settings.json` 读取（首期只读全局 settings.json，暂不引入 trust 门控概念）
 ## web_search 工具【可用】（任务 040-043 四阶段落地，2026-10-20）
 
