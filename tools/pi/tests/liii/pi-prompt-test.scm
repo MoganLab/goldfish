@@ -4,11 +4,13 @@
 
 (check-set-mode! 'report-failed)
 
+;; 仓库根目录探测：使用与项目上下文无关的稳定标记（xmake.lua），
+;; 避免 tools/pi 目录下也存在 CLAUDE.md 时把 tools/pi 误判为仓库根目录。
 (define REPO_ROOT
-  (if (file-exists? "CLAUDE.md")
-    "."
-    (if (file-exists? "../../CLAUDE.md") "../.." ".")
-  ) ;if
+  (cond ((file-exists? "xmake.lua") ".")
+        ((file-exists? "../../xmake.lua") "../..")
+        (else ".")
+  ) ;cond
 ) ;define
 
 (define TEST_FILE
