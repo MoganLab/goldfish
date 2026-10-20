@@ -17,6 +17,7 @@
     (liii pi compass render)
     (liii pi compass tour)
     (liii pi compass tools)
+    (liii pi extension)
     (liii pi modes output)
   ) ;import
   (export run-compass-flow pi-compass-augment-config pi-compass-extend-tool-names)
@@ -26,7 +27,23 @@
       (cons (cons key value) (filter (lambda (pair) (not (eq? (car pair) key))) cfg))
     ) ;define
 
+    (define (%ensure-compass-tools-registered!)
+      (let ((reg
+              (or (current-extension-registry)
+                (let ((r (make-extension-registry)))
+                  (set-current-extension-registry! r)
+                  r
+                ) ;let
+              ) ;or
+            ) ;reg
+           ) ;
+        (register-tool! reg (pi-codebase-map-definition))
+        (register-tool! reg (pi-code-tour-definition))
+      ) ;let
+    ) ;define
+
     (define (pi-compass-augment-config parsed cfg)
+      (%ensure-compass-tools-registered!)
       (%replace-field 'tools
         (pi-compass-extend-tool-names (cdr (assoc 'tools cfg)) parsed)
         cfg

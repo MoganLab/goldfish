@@ -1,16 +1,12 @@
 # README：`bin/gf pi` 命令行使用说明
 
-> **核心目标：`bin/gf pi` 全面兼容 pi coding agent**，支持交互式终端界面（TUI 模式）
-> 与脚本模式（print 模式与 JSON 模式）。
->
-> - **脚本模式【已全量结项】**：已在 commit `[1069]`（PR #1141）与 `[1074]` 中全量合入主干，
->   在脚本与管道中原来写 `pi -p "..."`、`pi --mode json "..."` 的地方直接换成 `bin/gf pi ...`
->   即可，行为兼容、配置复用（`~/.pi/agent/`）。
-> - **TUI 交互模式【研发进行中】**：直接运行 `bin/gf pi` 进入交互式编程终端。第一阶段先实现
->   通用基础库 `(liii tui)`（提供终端抽象、按键解析、组件体系与差分渲染；markdown 渲染作为后续工作）。
+> **最终目标：`bin/gf pi` 可以替代 pi coding agent 的脚本模式**（print 模式与
+> JSON 模式）——用户在脚本与管道中原来写 `pi -p "..."`、`pi --mode json "..."`
+> 的地方，直接换成 `bin/gf pi ...` 即可，行为兼容、配置复用（`~/.pi/agent/`）。
 >
 > 本文档由真实冒烟测试验证整理：标注【可用】的示例均在开发机上实际运行通过；
-> 正在推进与尚不能运行的用法收入文末 TODO，随迭代更新。
+> 尚不能运行的用法收入文末 TODO，随迭代更新。
+> 更新方式：探索新的用法并实际验证后，把示例从 TODO 移入正文并注明验证日期。
 
 ## 前置条件
 
@@ -96,6 +92,58 @@ timeout 300 bin/gf pi -c -p "继续上一轮的话题"
 timeout 300 bin/gf pi --no-session -p "一次性问题"
 ```
 
+## 扩展机制与插件生态（Extension）【对齐原生 pi】
+
+`bin/gf pi` 引入了与原生 pi 概念模型全面对齐的 **轻量纯 Scheme Extension 机制**。
+无需引入 Node.js 运行时或外部进程，扩展全部由 Goldfish Scheme 编写，自包含且轻量。
+
+### 1. 发现机制：目录约定即生效
+
+用户与开发者**只要把相关的 `.scm` 插件文件（或带有 `index.scm` 的目录）放在对应目录下**，启动时自动扫描发现并加载，无需手动注册：
+
+| 扩展类型 | 存放位置 | 说明 |
+|---|---|---|
+| **仓库内置扩展** | `tools/pi/liii/pi/extensions/` | 随 Goldfish 安装包直接分发内置（安装到 `share/goldfish/tools/`），开箱即用 |
+| **用户全局扩展** | `~/.pi/agent/extensions/*.scm` 或 `*/index.scm` | 用户所有项目通用的全局插件 |
+| **项目局部扩展** | `.pi/extensions/*.scm` 或 `*/index.scm` | 仅在当前项目生效的定制插件 |
+| **显式指定加载** | `bin/gf pi -e /path/to/my-ext.scm` | 命令行 `-e` / `--extension` 快速调试单个插件脚本 |
+
+### 2. 常用内置扩展（随包分发，开箱即用）
+
+为保证日常编码体验的高效与开箱即用，最常用的 3 个插件随 Goldfish 安装包内置：
+- **`simplify`**：审查未提交代码的清晰度与可维护性，提供代码简化建议与 `--apply` 应用；
+- **`code-review`**：审查工作区或暂存区的代码变更并输出结构化审查清单；
+- **`red-green`**：强制执行 TDD 循环（先写红测试 → 最小绿实现 → 重构）。
+
+```bash
+# simplify：代码简化审查
+timeout 300 bin/gf pi -p --simplify
+timeout 300 bin/gf pi -p --simplify --staged
+
+# code-review：代码审查
+timeout 300 bin/gf pi -p --code-review
+timeout 300 bin/gf pi -p --code-review --staged
+
+# red-green：强制 TDD 循环
+timeout 300 bin/gf pi -p --red-green "为 string 库补充 string-trim-right 测试与实现"
+```
+
+### 3. 插件生态与安装（`pi install`）
+
+支持通过 `pi install` 命令一键安装社区或第三方的 Git 扩展仓库：
+
+```bash
+# 默认安装至全局扩展目录（~/.pi/agent/extensions/<name>），安装即生效
+timeout 180 bin/gf pi install https://gitee.com/xxx/my-pi-extension.git
+
+# 安装至当前项目局部目录（.pi/extensions/<name>）
+timeout 180 bin/gf pi install --local https://gitee.com/xxx/my-project-extension.git
+```
+
+### 4. 外部独立扩展示范（Reference Implementation）
+
+为了真实检验外部扩展的独立加载与 `pi install` 安装生态，结构复杂且重型的两个扩展——**`blueprint`（分阶段计划系统）** 与 **`compass`（代码库地图与导览）** 已从主仓库核心解耦并移出，作为外部独立扩展仓库维护。用户只需 `bin/gf pi install` 即可安装使用。
+
 ## 模型与 provider【可用】
 
 ```bash
@@ -135,10 +183,6 @@ timeout 120 bin/gf pi --provider kimi-coding --tools bash -p "用 bash 运行 ec
 # glm（智谱 GLM，基于 Anthropic 兼容网关，已实测通过）
 timeout 60 bin/gf pi --provider glm -p "请回复：glm-ok"
 timeout 120 bin/gf pi --provider glm --tools bash -p "用 bash 运行 echo glm-ok 并告诉我输出"
-
-# zai-coding-cn（智谱 GLM 开放平台，任务 1074 已支持，支持 provider/model 斜杠语法）
-timeout 60 bin/gf pi --provider zai-coding-cn -p "请回复：zai-ok"
-timeout 60 bin/gf pi -p --model zai-coding-cn/glm-4.5-air "请回复：ok"
 
 # deepseek（DeepSeek，基于兼容网关，已实测通过）
 timeout 60 bin/gf pi --provider deepseek -p "请回复：deepseek-ok"
@@ -231,6 +275,9 @@ tools/pi/liii/
     event.scm       # (liii pi event)    事件 record 与类型定义（event/record.scm, event/types.scm）
     tools.scm       # (liii pi tools)    工具 record 与类型定义（tools/record.scm, tools/types.scm）
     config.scm      # (liii pi config)   配置 record 与类型定义（config/record.scm, config/types.scm）
+    extension.scm   # (liii pi extension) 扩展机制门面（API、注册容器、生命周期分发）
+    extension/      # 扩展机制子模块（api, registry, discovery, loader, hooks）
+    extensions/     # ★ 内置轻量扩展（随包分发：simplify, code-review, red-green）
     models.scm      # (liii pi models)   模型目录解析与表格输出（models/list.scm）
     gemini.scm      # (liii pi gemini)   Gemini provider（gemini/core, request, stream, stream-parse）
     anthropic.scm   # (liii pi anthropic) Anthropic provider（anthropic/core, request, stream, stream-parse）
@@ -329,10 +376,22 @@ tools/pi/liii/
 
   注：minimax 与 minimax-cn 双 provider 均可用；环境变量 MINIMAX_API_KEY /
   MINIMAX_BASE_URL 可覆盖（任务 035 env 优先体系）。
-- [ ] **交互式 TUI 与 `(liii tui)` 基础库**：直接执行 `bin/gf pi` 进入交互式编程终端。
-  - 第一阶段：通用轻量终端 UI 库 `(liii tui)`（组件协议、Text、TruncatedText、TextWidth 显示宽度/ANSI 感知、Keys 按键解析、VirtualTerminal、Box、Loader、Editor、MainScreen 差分渲染；不含 markdown 渲染）；阶段验收成果为 `demo/tui/snake.scm` 终端贪吃蛇交互游戏。**开发机环境为 Windows，当前暂不考虑 Linux**。任务 064 已用同步输出（DECSET 2026）与原地覆写修复真实终端 MainScreen 重绘闪烁并由用户实机确认；任务 065 跟进贪吃蛇中段不可见的排查与修复；任务 066 为贪吃蛇示例增加 ANSI 配色（颜色不参与宽度计算、可降级）；任务 067 让棋盘随终端尺寸放大/缩小，**为本阶段最后一个任务**。
-  - 第二阶段（后续工作）：在 Linux 平台做系统适配；引入 Markdown 渲染与富文本排版；TUI 与 Agent 循环对接；Slash 命令系统（`/model`, `/help`, `/clear` 等）。
-- [x] **`pi-multikey` 密钥池与 429/403 自动轮换（任务 033）**：对照 Node pi 的 `pi-multikey` 扩展，bin/gf pi 内置原生实现。已实测通过。
+- [ ] **`pi-multikey` 密钥池与 429/403 自动轮换（任务 033）**：对照 Node pi 的 `pi-multikey` 扩展，bin/gf pi 内置原生实现。预期用法（实现后转【可用】）：
+
+  ```bash
+  # 自动检测 ~/.pi/agent/multikey.json：配置了 kimi-coding 多 key pool 时，
+  # 周限额 403 或频率 429 自动冷却当前 key 并透明切换下一个（stderr 打印脱敏轮换日志）
+  timeout 180 bin/gf pi --provider kimi-coding -p "统计 tests/ 目录下的测试用例总数"
+  # stderr 示例（key 仅打印前后若干字符）：
+  # [multikey] kimi-coding key sk-***...***a1 429, cooldown 20s, switching to sk-***...***b2
+
+  # 未配置 pool 的 provider 回退 auth.json 单 key，行为不变
+  timeout 180 bin/gf pi --provider google -p "hi"
+  ```
+
+  实现要点：`multikey.json` 受 `PI_CODING_AGENT_DIR` 重定向；内存状态机维护
+  cooldown-until + LRU；429 默认冷却 20s、403/invalid 默认 600s（可按配置覆盖）；
+  仅在未输出实质内容前透明重试；pool 全耗尽才报错（退出码 1）。
 - [ ] **4 字节 UTF-8 + '<' 挂起**：prompt 同时含 4 字节 UTF-8 字符（如 🚀、𠀀）与 `<` 时进程静默挂起且连 HTTP 300s 超时都不生效（复现：`timeout 60 bin/gf pi -p '🚀 <'`）。【待重做】
 - [ ] **thinking 内容**：思考级别的请求与解析。预期用法（实现时以 pi 实际 CLI 为准）：
 
@@ -356,9 +415,8 @@ tools/pi/liii/
 
   实现要点：按扩展名/MIME 判断图片类型，Gemini 走 `inlineData` part（base64），
   Anthropic 走 `image` source block；不支持的格式明确报错。
-不做项与后续规划：
-- RPC 模式暂缓（IDE/外部长会话集成需要，当前阶段非主攻点）
-- Markdown 渲染不放入 `(liii tui)` 基础库，作为后续阶段工作另行规划
+不做项：
+- 交互式 TUI / RPC 模式（goldfish 缺少相关的终端 UI 基础设施，不规划）
 - 项目级 `.pi/settings.json` 读取（首期只读全局 settings.json，暂不引入 trust 门控概念）
 ## web_search 工具【可用】（任务 040-043 四阶段落地，2026-10-20）
 

@@ -21,9 +21,8 @@
     (liii pi find)
     (liii pi grep)
     (liii pi web-search)
-    (liii pi red-green tools)
-    (liii pi blueprint tools)
-    (liii pi compass tools)
+    (liii pi extension types)
+    (liii pi extension registry)
   ) ;import
   (export PI_DEFAULT_TOOL_NAMES PI_ALL_TOOL_NAMES parse-tools-selection
     exclude-tools-from-list get-tool-definition execute-tool-call pi-read-schema
@@ -196,6 +195,21 @@
       ) ;%make-tool-def
     ) ;define
 
+    (define (%extension-tool-def->pi-tool-def ext-tool)
+      (cond ((pi-tool-definition? ext-tool) ext-tool)
+            ((extension-tool-def? ext-tool)
+             (pi-tool-definition (extension-tool-def-name ext-tool)
+               (extension-tool-def-description ext-tool)
+               (extension-tool-def-parameters ext-tool)
+               (extension-tool-def-execute ext-tool)
+               (extension-tool-def-snippet ext-tool)
+               (extension-tool-def-guidelines ext-tool)
+             ) ;pi-tool-definition
+            ) ;
+            (else #f)
+      ) ;cond
+    ) ;define
+
     (define (get-tool-definition name)
       (cond ((string=? name "read") (%tool-def-read))
             ((string=? name "bash") (%tool-def-bash))
@@ -205,15 +219,16 @@
             ((string=? name "find") (%tool-def-find))
             ((string=? name "grep") (%tool-def-grep))
             ((string=? name "web_search") (%tool-def-web-search))
-            ((string=? name "tdd_status") (pi-tdd-status-definition))
-            ((string=? name "tdd_advance") (pi-tdd-advance-definition))
-            ((string=? name "tdd_reset") (pi-tdd-reset-definition))
-            ((string=? name "blueprint_update") (pi-blueprint-update-definition))
-            ((string=? name "blueprint_status") (pi-blueprint-status-definition))
-            ((string=? name "blueprint_next") (pi-blueprint-next-definition))
-            ((string=? name "codebase_map") (pi-codebase-map-definition))
-            ((string=? name "code_tour") (pi-code-tour-definition))
-            (else #f)
+            (else
+              (let ((reg (current-extension-registry)))
+                (if reg
+                  (let ((tool (find-extension-tool reg name)))
+                    (if tool (%extension-tool-def->pi-tool-def tool) #f)
+                  ) ;let
+                  #f
+                ) ;if
+              ) ;let
+            ) ;else
       ) ;cond
     ) ;define
 
@@ -245,9 +260,19 @@
         ) ;let
        ) ;
        (else
-         (let ((out (apply exec-fn args opts)))
-           (if (pi-tool-result? out) out (%make-tool-result out #f))
-         ) ;let
+         (let* ((raw-out
+                  (if (null? opts)
+                    (exec-fn args)
+                    (catch #t
+                      (lambda () (apply exec-fn args opts))
+                      (lambda (tag . info) (exec-fn args))
+                    ) ;catch
+                  ) ;if
+                ) ;raw-out
+                (out (if (pi-tool-result? raw-out) raw-out (%make-tool-result raw-out #f)))
+               ) ;
+           out
+         ) ;let*
        ) ;else
       ) ;cond
     ) ;define

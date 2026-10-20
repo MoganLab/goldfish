@@ -2,6 +2,7 @@
         (liii string)
         (liii pi tools)
         (liii pi tools record)
+        (liii pi extension)
         (liii pi red-green state)
         (liii pi red-green tools)
 ) ;import
@@ -14,7 +15,13 @@
   ) ;let
 ) ;define
 
-;; 三个内置工具注册到工具表。
+;; 三个工具通过注册表挂载到工具表。
+(define tdd-reg (make-extension-registry))
+(register-tool! tdd-reg (pi-tdd-status-definition))
+(register-tool! tdd-reg (pi-tdd-advance-definition))
+(register-tool! tdd-reg (pi-tdd-reset-definition))
+(set-current-extension-registry! tdd-reg)
+
 (check-true (pi-tool-definition? (get-tool-definition "tdd_status")))
 (check-true (pi-tool-definition? (get-tool-definition "tdd_advance")))
 (check-true (pi-tool-definition? (get-tool-definition "tdd_reset")))
@@ -101,5 +108,6 @@
 ) ;let
 
 (pi-tdd-set-current-state! #f)
+(set-current-extension-registry! #f)
 
 (check-report)

@@ -11,10 +11,13 @@
     (liii sys)
     (liii pi)
     (liii pi args)
-    (liii pi blueprint args)
-    (liii pi compass args)
     (liii pi modes)
     (liii pi help)
+    (liii pi extension types)
+    (liii pi extension registry)
+    (liii pi extension discovery)
+    (liii pi extension loader)
+    (liii pi extension builtin)
   ) ;import
   (export main display-pi-help read-all-stdin run-goldpi run-pi)
   (begin
@@ -69,6 +72,30 @@
       ) ;let*
     ) ;define
 
+    (define (%validate-parsed-args reg parsed initial-msg rest-msgs)
+      (let ((validators (extension-registry-validators reg)))
+        (for-each
+          (lambda (v)
+            (catch #t
+              (lambda () (v parsed initial-msg rest-msgs))
+              (lambda (tag . info) (v parsed))
+            ) ;catch
+          ) ;lambda
+          validators
+        ) ;for-each
+      ) ;let
+    ) ;define
+
+    (define (%has-matching-flow? reg parsed)
+      (let loop
+        ((flows (extension-registry-flows reg)))
+        (cond ((null? flows) #f)
+              (((extension-flow-def-predicate (car flows)) parsed) #t)
+              (else (loop (cdr flows)))
+        ) ;cond
+      ) ;let
+    ) ;define
+
     (define (%run-pi-main parsed)
       (let-values (((initial-msg rest-msgs)
                     (build-initial-prompt (and (not (stdin-tty?)) (read-all-stdin))
@@ -77,50 +104,34 @@
                     ) ;build-initial-prompt
                    ) ;
                   ) ;
-        (pi-validate-review-flags parsed)
-        (when (and (pi-args-ref parsed 'red-green)
-                (string-null? initial-msg)
-                (null? rest-msgs)
-              ) ;and
-          (error 'pi-arg-error
-            "--red-green requires a task description (message text or @file)"
-          ) ;error
-        ) ;when
-        (when (and (pi-args-ref parsed 'blueprint)
-                (string-null? initial-msg)
-                (null? rest-msgs)
-              ) ;and
-          (error 'pi-arg-error
-            "--blueprint requires an objective (message text or @file)"
-          ) ;error
-        ) ;when
-        (cond ((pi-args-ref parsed 'help) (display-pi-help) 0)
-              ((pi-args-ref parsed 'list-models) (%handle-list-models parsed))
-              ((and (string-null? initial-msg)
-                 (null? rest-msgs)
-                 (not (pi-args-ref parsed 'continue))
-                 (not (pi-args-ref parsed 'compact))
-                 (not (pi-args-ref parsed 'code-review))
-                 (not (pi-args-ref parsed 'simplify))
-                 (not (pi-args-ref parsed 'red-green))
-                 (not (pi-blueprint-flag? parsed))
-                 (not (pi-compass-flag? parsed))
-               ) ;and
-               (display-pi-help)
-               0
-              ) ;
-              (else
-                (let ((mode (resolve-app-mode (pi-args-ref parsed 'mode)
-                              (pi-args-ref parsed 'print)
-                              (stdin-tty?)
-                              (stdout-tty?)
-                            ) ;resolve-app-mode
-                      ) ;mode
-                     ) ;
-                  (dispatch-pi parsed mode initial-msg rest-msgs)
-                ) ;let
-              ) ;else
-        ) ;cond
+        (let ((reg (or (current-extension-registry) (default-extension-registry))))
+          (%validate-parsed-args reg parsed initial-msg rest-msgs)
+          (cond ((pi-args-ref parsed 'help) (display-pi-help) 0)
+                ((pi-args-ref parsed 'list-models) (%handle-list-models parsed))
+                ((and (string-null? initial-msg)
+                   (null? rest-msgs)
+                   (not (pi-args-ref parsed 'continue))
+                   (not (pi-args-ref parsed 'compact))
+                   (not (%has-matching-flow? reg parsed))
+                 ) ;and
+                 (display-pi-help)
+                 0
+                ) ;
+                (else
+                  (let ((mode (resolve-app-mode (pi-args-ref parsed 'mode)
+                                (pi-args-ref parsed 'print)
+                                (stdin-tty?)
+                                (stdout-tty?)
+                              ) ;resolve-app-mode
+                        ) ;mode
+                       ) ;
+                    (with-extension-registry reg
+                      (lambda () (dispatch-pi parsed mode initial-msg rest-msgs))
+                    ) ;with-extension-registry
+                  ) ;let
+                ) ;else
+          ) ;cond
+        ) ;let
       ) ;let-values
     ) ;define
 
@@ -132,9 +143,20 @@
       ) ;cond
     ) ;define
 
+    (define (%ensure-extensions-loaded!)
+      (let* ((reg (default-extension-registry)) (paths (pi-discover-extensions)))
+        (register-builtin-extensions! reg)
+        (pi-load-extensions paths reg)
+        reg
+      ) ;let*
+    ) ;define
+
     (define (run-pi raw-args)
       (catch #t
-        (lambda () (%run-pi-main (parse-pi-args (strip-command-prefix raw-args))))
+        (lambda ()
+          (%ensure-extensions-loaded!)
+          (%run-pi-main (parse-pi-args (strip-command-prefix raw-args)))
+        ) ;lambda
         (lambda (err-type . info)
           (display-stderr (string-append "Error: " (%format-catch-error err-type info)))
           1

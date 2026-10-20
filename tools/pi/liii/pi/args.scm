@@ -9,9 +9,10 @@
     (scheme process-context)
     (liii string)
     (liii path)
-    (liii pi blueprint args)
-    (liii pi compass args)
     (liii pi args files)
+    (liii pi extension types)
+    (liii pi extension registry)
+    (liii pi extension builtin flags)
   ) ;import
   (export parse-pi-args pi-args-ref format-file-block process-file-arguments
     pi-validate-review-flags
@@ -55,13 +56,6 @@
         (cons 'compact #f)
         (cons 'no-auto-compact #f)
         (cons 'list-models #f)
-        (cons 'code-review #f)
-        (cons 'auto-review #f)
-        (cons 'simplify #f)
-        (cons 'red-green #f)
-        (cons 'apply #f)
-        (cons 'staged #f)
-        (cons 'review-ref #f)
         (cons 'system-prompt #f)
         (cons 'append-system-prompt '())
         (cons 'file-args '())
@@ -85,88 +79,126 @@
       ) ;if
     ) ;define
 
-    (define (handle-flag-or-opt arg next-arg)
-      (let-values (((cp-key cp-val cp-consumed) (pi-compass-handle-flag arg next-arg)))
-        (if cp-key
-          (values cp-key cp-val cp-consumed)
-          (let-values (((bp-key bp-val bp-consumed) (pi-blueprint-handle-flag arg next-arg)))
-            (if bp-key
-              (values bp-key bp-val bp-consumed)
-              (cond ((or (string=? arg "-h") (string=? arg "--help")) (values 'help #t 1))
-                    ((or (string=? arg "-p") (string=? arg "--print")) (values 'print #t 1))
-                    ((or (string=? arg "-c") (string=? arg "--continue")) (values 'continue #t 1))
-                    ((string=? arg "--compact") (values 'compact #t 1))
-                    ((string=? arg "--no-auto-compact") (values 'no-auto-compact #t 1))
-                    ((string=? arg "--no-session") (values 'no-session #t 1))
-                    ((string=? arg "--code-review") (values 'code-review #t 1))
-                    ((string=? arg "--auto-review") (values 'auto-review #t 1))
-                    ((string=? arg "--simplify") (values 'simplify #t 1))
-                    ((string=? arg "--red-green") (values 'red-green #t 1))
-                    ((string=? arg "--apply") (values 'apply #t 1))
-                    ((string=? arg "--staged") (values 'staged #t 1))
-                    ((string-starts? arg "--ref=")
-                     (values 'review-ref (substring arg 6 (string-length arg)) 1)
-                    ) ;
-                    ((and (string=? arg "--ref") next-arg) (values 'review-ref next-arg 2))
-                    ((or (string=? arg "--no-tools") (string=? arg "--no-builtin-tools"))
-                     (values 'no-tools #t 1)
-                    ) ;
-                    ((string=? arg "--list-models")
-                     (if (and next-arg
-                           (not (string-starts? next-arg "-"))
-                           (not (string-starts? next-arg "@"))
-                         ) ;and
-                       (values 'list-models next-arg 2)
-                       (values 'list-models #t 1)
-                     ) ;if
-                    ) ;
-                    ((and (string=? arg "--mode") next-arg) (values 'mode next-arg 2))
-                    ((and (string=? arg "--model") next-arg) (values 'model next-arg 2))
-                    ((and (string=? arg "--provider") next-arg) (values 'provider next-arg 2))
-                    ((and (or (string=? arg "--thinking-level") (string=? arg "--thinking"))
-                       next-arg
-                     ) ;and
-                     (if (member next-arg '("off" "low" "medium" "high"))
-                       (values 'thinking-level next-arg 2)
-                       (error 'pi-arg-error
-                         (string-append "Invalid thinking level: \""
-                           next-arg
-                           "\". Allowed values: off, low, medium, high"
-                         ) ;string-append
-                       ) ;error
-                     ) ;if
-                    ) ;
-                    ((and (string=? arg "--proxy") next-arg) (values 'proxy next-arg 2))
-                    ((and (string=? arg "--tools") next-arg) (values 'tools next-arg 2))
-                    ((and (string=? arg "--exclude-tools") next-arg)
-                     (values 'exclude-tools next-arg 2)
-                    ) ;
-                    ((and (string=? arg "--max-turns") next-arg)
-                     (values 'max-turns (string->number next-arg) 2)
-                    ) ;
-                    ((and (string=? arg "--timeout") next-arg)
-                     (values 'timeout (string->number next-arg) 2)
-                    ) ;
-                    ((and (string=? arg "--session-timeout") next-arg)
-                     (values 'session-timeout (string->number next-arg) 2)
-                    ) ;
-                    ((and (string=? arg "--system-prompt") next-arg)
-                     (values 'system-prompt next-arg 2)
-                    ) ;
-                    ((and (string=? arg "--append-system-prompt") next-arg)
-                     (values 'append-system-prompt next-arg 2)
-                    ) ;
-                    (else (values #f #f 0))
-              ) ;cond
-            ) ;if
-          ) ;let-values
+    (define (%match-prefix-flag arg prefix)
+      (let ((full-prefix (string-append prefix "=")))
+        (if (string-starts? arg full-prefix)
+          (substring arg (string-length full-prefix) (string-length arg))
+          #f
         ) ;if
-      ) ;let-values
+      ) ;let
     ) ;define
 
-    (define (apply-flag-or-opt args res)
+    (define (%match-extension-flag reg arg next-arg)
+      (if (not reg)
+        (values #f #f 0)
+        (let loop
+          ((flags (extension-registry-flags reg)))
+          (if (null? flags)
+            (values #f #f 0)
+            (let* ((f (car flags))
+                   (flag-name (extension-flag-def-flag f))
+                   (aliases (extension-flag-def-aliases f))
+                   (key (extension-flag-def-key f))
+                   (takes-arg? (extension-flag-def-takes-arg? f))
+                   (handler (extension-flag-def-handler f))
+                   (matches? (or (string=? arg flag-name) (member arg aliases)))
+                  ) ;
+              (cond
+               ((and matches? (procedure? handler))
+                (let-values (((v consumed) (handler arg next-arg)))
+                  (values key v consumed)
+                ) ;let-values
+               ) ;
+               ((and takes-arg? (%match-prefix-flag arg flag-name))
+                =>
+                (lambda (val) (values key val 1))
+               ) ;
+               ((and takes-arg?
+                  (let check-als
+                    ((als aliases))
+                    (cond ((null? als) #f)
+                          ((%match-prefix-flag arg (car als)) => (lambda (val) val))
+                          (else (check-als (cdr als)))
+                    ) ;cond
+                  ) ;let
+                ) ;and
+                =>
+                (lambda (val) (values key val 1))
+               ) ;
+               ((and takes-arg? matches?)
+                (if next-arg (values key next-arg 2) (values key #t 1))
+               ) ;
+               (matches? (values key #t 1))
+               (else (loop (cdr flags)))
+              ) ;cond
+            ) ;let*
+          ) ;if
+        ) ;let
+      ) ;if
+    ) ;define
+
+    (define (handle-flag-or-opt arg next-arg reg)
+      (cond ((or (string=? arg "-h") (string=? arg "--help")) (values 'help #t 1))
+            ((or (string=? arg "-p") (string=? arg "--print")) (values 'print #t 1))
+            ((or (string=? arg "-c") (string=? arg "--continue")) (values 'continue #t 1))
+            ((string=? arg "--compact") (values 'compact #t 1))
+            ((string=? arg "--no-auto-compact") (values 'no-auto-compact #t 1))
+            ((string=? arg "--no-session") (values 'no-session #t 1))
+            ((or (string=? arg "--no-tools") (string=? arg "--no-builtin-tools"))
+             (values 'no-tools #t 1)
+            ) ;
+            ((string=? arg "--list-models")
+             (if (and next-arg
+                   (not (string-starts? next-arg "-"))
+                   (not (string-starts? next-arg "@"))
+                 ) ;and
+               (values 'list-models next-arg 2)
+               (values 'list-models #t 1)
+             ) ;if
+            ) ;
+            ((and (string=? arg "--mode") next-arg) (values 'mode next-arg 2))
+            ((and (string=? arg "--model") next-arg) (values 'model next-arg 2))
+            ((and (string=? arg "--provider") next-arg) (values 'provider next-arg 2))
+            ((and (or (string=? arg "--thinking-level") (string=? arg "--thinking"))
+               next-arg
+             ) ;and
+             (if (member next-arg '("off" "low" "medium" "high"))
+               (values 'thinking-level next-arg 2)
+               (error 'pi-arg-error
+                 (string-append "Invalid thinking level: \""
+                   next-arg
+                   "\". Allowed values: off, low, medium, high"
+                 ) ;string-append
+               ) ;error
+             ) ;if
+            ) ;
+            ((and (string=? arg "--proxy") next-arg) (values 'proxy next-arg 2))
+            ((and (string=? arg "--tools") next-arg) (values 'tools next-arg 2))
+            ((and (string=? arg "--exclude-tools") next-arg)
+             (values 'exclude-tools next-arg 2)
+            ) ;
+            ((and (string=? arg "--max-turns") next-arg)
+             (values 'max-turns (string->number next-arg) 2)
+            ) ;
+            ((and (string=? arg "--timeout") next-arg)
+             (values 'timeout (string->number next-arg) 2)
+            ) ;
+            ((and (string=? arg "--session-timeout") next-arg)
+             (values 'session-timeout (string->number next-arg) 2)
+            ) ;
+            ((and (string=? arg "--system-prompt") next-arg)
+             (values 'system-prompt next-arg 2)
+            ) ;
+            ((and (string=? arg "--append-system-prompt") next-arg)
+             (values 'append-system-prompt next-arg 2)
+            ) ;
+            (else (%match-extension-flag reg arg next-arg))
+      ) ;cond
+    ) ;define
+
+    (define (apply-flag-or-opt args res reg)
       (let* ((arg (car args)) (next (if (pair? (cdr args)) (cadr args) #f)))
-        (let-values (((key val consumed) (handle-flag-or-opt arg next)))
+        (let-values (((key val consumed) (handle-flag-or-opt arg next reg)))
           (cond
            ((eq? key 'append-system-prompt)
             (let ((cur (pi-args-ref res 'append-system-prompt '())))
@@ -187,89 +219,57 @@
       ) ;let*
     ) ;define
 
-    (define (pi-validate-blueprint-flags parsed)
-      (pi-blueprint-validate parsed)
-    ) ;define
-
     (define (pi-validate-review-flags parsed)
-      (let ((code-review (pi-args-ref parsed 'code-review))
-            (auto-review (pi-args-ref parsed 'auto-review))
-            (simplify (pi-args-ref parsed 'simplify))
-            (red-green (pi-args-ref parsed 'red-green))
-            (apply? (pi-args-ref parsed 'apply))
-            (staged (pi-args-ref parsed 'staged))
-            (ref (pi-args-ref parsed 'review-ref))
-           ) ;
-        (when (and code-review auto-review)
-          (error 'pi-arg-error "--code-review and --auto-review cannot be used together")
-        ) ;when
-        (when (and code-review simplify)
-          (error 'pi-arg-error "--code-review and --simplify cannot be used together")
-        ) ;when
-        (when (and red-green (or code-review simplify))
-          (error 'pi-arg-error
-            "--red-green cannot be used with --code-review or --simplify"
-          ) ;error
-        ) ;when
-        (when (and red-green (or apply? staged ref))
-          (error 'pi-arg-error
-            "--apply, --staged and --ref are not supported with --red-green"
-          ) ;error
-        ) ;when
-        (when (and apply? (not simplify))
-          (error 'pi-arg-error "--apply requires --simplify")
-        ) ;when
-        (when (and staged (not (or code-review simplify)))
-          (error 'pi-arg-error "--staged requires --code-review or --simplify")
-        ) ;when
-        (when (and ref (not (or code-review simplify)))
-          (error 'pi-arg-error "--ref requires --code-review or --simplify")
-        ) ;when
-        (pi-validate-blueprint-flags parsed)
-        (pi-compass-validate parsed)
-      ) ;let
+      (let* ((reg (or (current-extension-registry) (default-extension-registry)))
+             (validators (extension-registry-validators reg))
+            ) ;
+        (for-each (lambda (v) (v parsed)) validators)
+        #t
+      ) ;let*
     ) ;define
 
     (define (parse-pi-args argv)
-      (let loop
-        ((args argv)
-         (res (append (default-args-alist)
-                (pi-blueprint-args-defaults)
-                (pi-compass-args-defaults)
-              ) ;append
-         ) ;res
-         (file-args '())
-         (messages '())
-        ) ;
-        (cond
-         ((null? args)
-          (pi-args-set (pi-args-set res 'file-args (reverse file-args))
-            'messages
-            (reverse messages)
-          ) ;pi-args-set
-         ) ;
-         ((string=? (car args) "--")
-          (let-values (((f-args m-args) (parse-positionals (cdr args) file-args messages)))
-            (pi-args-set (pi-args-set res 'file-args f-args) 'messages m-args)
-          ) ;let-values
-         ) ;
-         ((string-starts? (car args) "@")
-          (let ((arg (car args)))
-            (loop (cdr args)
-              res
-              (cons (substring arg 1 (string-length arg)) file-args)
-              messages
-            ) ;loop
-          ) ;let
-         ) ;
-         ((string-starts? (car args) "-")
-          (let-values (((next-args next-res) (apply-flag-or-opt args res)))
-            (loop next-args next-res file-args messages)
-          ) ;let-values
-         ) ;
-         (else (loop (cdr args) res file-args (cons (car args) messages)))
-        ) ;cond
-      ) ;let
+      (let* ((reg (or (current-extension-registry) (default-extension-registry)))
+             (ext-flags (extension-registry-flags reg))
+             (ext-defaults
+               (map (lambda (f) (cons (extension-flag-def-key f) (extension-flag-def-default f)))
+                 ext-flags
+               ) ;map
+             ) ;ext-defaults
+             (initial-res (append (default-args-alist) ext-defaults))
+            ) ;
+        (let loop
+          ((args argv) (res initial-res) (file-args '()) (messages '()))
+          (cond
+           ((null? args)
+            (pi-args-set (pi-args-set res 'file-args (reverse file-args))
+              'messages
+              (reverse messages)
+            ) ;pi-args-set
+           ) ;
+           ((string=? (car args) "--")
+            (let-values (((f-args m-args) (parse-positionals (cdr args) file-args messages)))
+              (pi-args-set (pi-args-set res 'file-args f-args) 'messages m-args)
+            ) ;let-values
+           ) ;
+           ((string-starts? (car args) "@")
+            (let ((arg (car args)))
+              (loop (cdr args)
+                res
+                (cons (substring arg 1 (string-length arg)) file-args)
+                messages
+              ) ;loop
+            ) ;let
+           ) ;
+           ((string-starts? (car args) "-")
+            (let-values (((next-args next-res) (apply-flag-or-opt args res reg)))
+              (loop next-args next-res file-args messages)
+            ) ;let-values
+           ) ;
+           (else (loop (cdr args) res file-args (cons (car args) messages)))
+          ) ;cond
+        ) ;let
+      ) ;let*
     ) ;define
 
   ) ;begin

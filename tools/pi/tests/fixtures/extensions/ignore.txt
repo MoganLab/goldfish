@@ -1,0 +1,1 @@
+This file should be ignored because it is not a .scm file.

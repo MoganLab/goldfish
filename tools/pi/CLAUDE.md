@@ -2,11 +2,6 @@
 
 > 本文档定义 goldfish 仓库中 Claude Code 的职责边界、命令的存放位置与调用方法。
 > 若职责或流程有变化，先改本文档再动工。
->
-> **当前阶段说明**：上一个目标（纯 Scheme 实现 pi agent 脚本模式，覆盖任务 001~053）
-> 已在 commit `[1069]`（PR #1141）与 `[1074]` 中全量结项收官并合入主干。
-> **本次阶段核心目标**：完成 `bin/gf pi` 的交互式 TUI 模式。
-> 流水线机制保持运作：由 Claude Code 利用定时任务机制自动调度拉起 pi 执行各阶段任务。
 
 ## 1. 角色分工（核心约定）
 
@@ -33,17 +28,12 @@ pi 被拉起后全自主运行。
 
 ## 2. 为什么这样分工
 
-- **定时机制差异（核心原因）**：**原版的 pi 没有定时任务机制，而 Claude Code
-  拥有定时任务（scheduled loop）机制**。因此由 Claude Code 担任自动化流水线的
-  外部调度中枢，按设定节奏自动拉起 pi 脚本模式执行任务；pi 脚本模式被拉起后
-  全自主完成当次任务的建档、开发与验收，产出独立留痕。
-- **限额约束（成本考量）**：Claude Code 背后是 GLM，有 **5 小时用量限额**。编码迭代
+- **限额约束（根本原因）**：Claude Code 背后是 GLM，有 **5 小时用量限额**。编码迭代
   （写测试→跑→修→再跑）与任务规格的反复修订都是 token 消耗大头，全部交给 pi 执行，
   把限额压到最低——Claude 的产出物只有本文件和拉起命令，两者都很短。
 - 文档先行：`Agents.md`（任务规格）首版已就绪，架构决策、文件布局、验收标准已固定，
   pi 无需反复询问即可执行，且由 pi 自己维护后续修订。
-- pi 脚本模式适合一次性、边界清晰的任务执行；每个阶段一个 `pi -p`（或自举 `bin/gf pi -p`）
-  调用，产出可独立验证。
+- pi 脚本模式适合一次性、边界清晰的任务执行；每个阶段一个 `pi -p` 调用，产出可独立验证。
 - 计划文档同时是回归依据：后续阶段可以引用同一份文档检查早期约定是否被遵守。
 
 ## 3. 命令的存放位置
@@ -54,12 +44,13 @@ pi 被拉起后全自主运行。
 |---|---|
 | 子命令注册 | `gfproject.json` 的 `tools` 字段：命令名 → `{organization, module, description}` |
 | 子命令实现 | `tools/<命令名>/liii/gold<命令名>.scm`，模块名 `(liii gold<命令名>)`（如 `tools/fmt/liii/goldfmt.scm`） |
-| 子命令的辅助模块 | `tools/<命令名>/liii/gold<命令名>-<子模块>.scm` |
+| 子命令的辅助模块 | `tools/<命令名>/liii/gold<命令名>-<子模块>.scm`（或 `tools/pi/liii/pi/`） |
+| 子命令内置扩展 | `tools/pi/liii/pi/extensions/`，模块名 `(liii pi extensions <扩展名>)` |
 | 子命令测试 | `tools/<命令名>/tests/liii/...-test.scm`（用 `bin/gf test` 运行） |
 | 可复用 Scheme 库 | `goldfish/liii/<库名>.scm`，模块 `(liii <库名>)` |
 | 库测试 | `tests/goldfish/liii/<库名>-test.scm`（用 `bin/gf` 直接运行） |
 
-正在推进的例子：`pi` 子命令的完整布局见 `Agents.md` §4.1。
+正在推进的例子：`pi` 子命令与 Extension 机制的完整布局见 `Agents.md` §1 与 §6。
 
 ### 3.2 计划文档与任务文档
 
@@ -131,17 +122,13 @@ timeout 300 bin/gf test tools/pi/tests/liii/goldpi-args-test.scm
 timeout 120 bin/gf doc --build-json
 ```
 
-### 4.3 目标态：`bin/gf pi` 替代 pi 脚本模式并迈向 TUI
+### 4.3 目标态：`bin/gf pi` 替代 pi 脚本模式
 
-脚本模式已在 `[1069]` 完成，`bin/gf pi --print` 与 `bin/gf pi --mode json` 已经具备
-替代原版 pi 脚本模式的能力（自举完成）。当前新目标是研发终端交互式 TUI 界面：
+`Agents.md` 完成后，§4.1 中的 `pi -p` 全部替换为 `bin/gf pi --print`，
+即本仓库的编码执行者也是 goldfish 自己的产物（自举）：
 
 ```bash
-# 脚本模式自举执行（已可用）
-timeout 900 bin/gf pi --print "@tools/pi/Agents.md 实现任务 061：单行与多行交互编辑器组件"
-
-# 最终 TUI 目标态：直接运行进入终端交互
-bin/gf pi
+timeout 900 bin/gf pi --print "@tools/pi/Agents.md 实现阶段八：会话持久化"
 ```
 
 ## 5. 任务生命周期（三阶段）
@@ -181,6 +168,25 @@ setsid nohup timeout 7200 pi -a -p @tools/pi/Agents.md "执行任务 ddd 的开�
 # 验收阶段：写验收脚本+跑门禁+结算（产物 tools/pi/devel/ddd.scm）
 timeout 1800 pi -a -p @tools/pi/Agents.md "执行任务 ddd 的验收阶段：1) 编写验收脚本 tools/pi/devel/ddd.scm（可执行，逐条断言 ddd.md 中的验收点：构建、fmt、check、相关测试、真实冒烟命令与期望输出）；2) 运行该脚本全绿后 commit（[ddd][REVIEW] 任务名：验收）并 git push；3) 在输出中逐条报告验收点通过情况"
 ```
+
+**自举拉起的强制参数（`bin/gf pi`）**：`gf pi` 有两条**静默截断**的硬预算——
+`--session-timeout`（默认 600s 墙钟）与 `--max-turns`（默认 200 轮），触顶即
+`Session timeout exceeded` / `Maximum turns limit reached` 截断进程，**最终报告全丢**
+（工作区产出保留，但验收依据丢失）。拉起任何阶段必须显式给足：
+
+```bash
+# 阶段预算：--session-timeout 给足真实墙钟，--max-turns 0 解除轮次上限
+# （把约束交给时间预算，轮次上限退为交互式使用的防失控兜底）
+timeout 7200 bin/gf pi -p --session-timeout 5400 --max-turns 0 --timeout 300 ...
+```
+
+**为什么 `--max-turns 0` 不可省**：auto-compaction 限的是**上下文长度**（能不能继续聊），
+`--max-turns` 限的是**循环次数**（会不会失控）——两者不可互相替代。且压缩**不重置**
+turn 计数器（`agent.scm` 循环里 turn 单调递增，压缩只替换消息列表），故压缩救不了
+"任务本身需要 200 轮"。反向看，压缩会抹掉"我已经试过 X"的历史、拆掉天然刹车，
+轮次上限反而是压缩之后**唯一**的防失控兜底——故代码里必须保留该参数。
+根治方向见 `Agents.md` §3 任务 079：把两条预算注入 system prompt 让 agent 可见可自配速。
+
 
 ### 5.1 文档阶段
 
@@ -228,22 +234,6 @@ timeout 1800 pi -a -p @tools/pi/Agents.md "执行任务 ddd 的验收阶段：1)
    方向），编号不回收；继续执行下一个任务。后续若条件变化（新信息、新依赖就绪）
    可用新编号重新立项。
 
-### 5.4 TUI 任务特殊规范（防流水线卡死）
-
-TUI 开发涉及终端底层 IO，自动化流水线在无真实交互终端下运行，必须严格遵循以下原则：
-1. **平台聚焦（用户裁定）**：**本次任务开发机器为 Windows，目前不需要考虑 Linux**；
-   当前全力在 Windows 上跑通 `(liii tui)` 库与 `demo/tui/snake.scm` 贪吃蛇验证；**等 067
-   完成之后，再在 Linux 上做系统适配**。
-2. **逻辑与 IO 解耦**：ANSI 转义序列生成、键盘按键解析、行编辑状态转移、界面布局计算
-   一律写成纯函数，在单元测试中通过输入字节流/字符串与断言返回值测试（TDD），绝不在
-   单元测试中等待终端真实用户输入。
-3. **非交互测试保障**：所有测试用例必须能在非 TTY 管道、无交互环境下 10 秒内运行结束。
-4. **真实终端冒烟单独隔离**：端到端交互冒烟（如真实终端渲染与全屏交互）在 REVIEW 验收
-   阶段通过受控的虚拟终端或回放脚本进行；**063 贪吃蛇的真实终端冒烟必须用 Python + pynput
-   自动化完成**：定位终端窗口 → 在终端中新标签页 → 进入 `~/git/goldfish` → 运行贪吃蛇 demo
-   → 用模拟键盘/鼠标事件操控终端并发送键盘事件控制游戏，期间截图留档，最后由模型依据截图
-   判读游戏是否跑通；脚本、截图与记录入库；必要时由 Claude / 开发者在 Windows 终端复核。
-
 ## 5.5 自举试验（bin/gf pi 逐步接管）
 
 从轻量任务开始，定期尝试让 `bin/gf pi` 替代外部 pi 执行阶段任务（首选**文档
@@ -282,18 +272,18 @@ TUI 开发涉及终端底层 IO，自动化流水线在无真实交互终端下�
 - 差距分析结果由 Claude 沉淀到 `README.md` 的「bin/gf pi 与 pi 的差距」一节——
   据此规划 `bin/gf pi` 的后续改进（Claude 据此自主规划 README 的演进）。
 
-## 5.6 收官与阶段里程碑记录
+## 5.6 收官阶段（用户裁定 2026-10-20）
 
-- **脚本模式阶段（001~053）已收官**：2026-10-20 由 commit `[1069]`（PR #1141）与
-  `[1074]` 完成合入主干，脚本模式（print/json、全 provider、全模式）全量通过。
-- **当前 TUI 阶段收官标准**：
-  TUI 任务表（054~067）全部完成后，同样由 Claude Code 执行收官（**067 为本阶段最后一个任务**）：
-  1. **PR 检查**：任务分支 → `main` 的合并请求，确认 CI 全绿；
-  2. **门禁复跑**：`xmake b goldfish` → `bin/gf fmt` → `git diff --exit-code` →
-     `bin/gf check` → 全量测试；
-  3. **真实终端冒烟**：验证直接输入 `bin/gf pi` 进入 TUI、多行输入、流式渲染、
-     打断与退出全链路畅通；
-  4. **定时任务清理**：清理当前阶段的定时驱动任务，向用户做收官汇报。
+任务表清空（051/052 完成后流水线停止）时，由 Claude Code 亲自执行收官：
+
+1. **PR 检查**：`da/pi` → `main` 的合并请求（Gitee），确认 CI 全绿；
+   CI 失败则定位修复（可按缺陷登记流程立任务或 Claude 直接修非代码项）。
+2. **门禁复跑**：`xmake b goldfish` → `bin/gf fmt` → `git diff --exit-code` →
+   `bin/gf check` → 全量测试（`bin/gf test tools/pi/tests/liii/` 应全绿，
+   051 完成后不再有失败白名单）。
+3. **文档收尾**：三份计划文档最终状态对齐（任务表清空注记、差距清单复核）。
+4. **定时任务清理**：CronDelete 流水线驱动任务，会话进入纯待命。
+5. **收官总结**：向用户报告流水线总战绩（任务数/commit 数/模型横评结论）。
 
 
 ## 6. 给 pi 脚本模式的硬性要求

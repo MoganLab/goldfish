@@ -21,7 +21,8 @@
     (liii pi event)
     (liii pi agent tools)
     (liii pi agent cost)
-    (liii pi red-green state)
+    (liii pi extension registry)
+    (liii pi extension event)
   ) ;import
   (export run-agent-loop extract-assistant-text pi-request-provider-stream
     pi-resolve-turn-system-prompt
@@ -194,6 +195,27 @@
       ) ;if
     ) ;define
 
+    (define (%get-active-registry config)
+      (or (and (pair? config) (assoc 'registry config) (cdr (assoc 'registry config)))
+        (current-extension-registry)
+        (default-extension-registry)
+      ) ;or
+    ) ;define
+
+    (define (%handle-tool-use new-msgs tool-calls emit timeout config resp)
+      (let*-values (((tools-res terminated?)
+                     (pi-execute-tool-calls-with-status tool-calls emit timeout config)
+                    ) ;
+                   ) ;
+        (let* ((all-msgs (append new-msgs tools-res))
+               (res-vec (pi-extract-tool-result-blocks all-msgs (length tools-res)))
+              ) ;
+          (%notify-turn-end emit resp res-vec)
+          (values all-msgs terminated?)
+        ) ;let*
+      ) ;let*-values
+    ) ;define
+
     (define* (run-agent-loop config
                initial-messages
                system-prompt
@@ -228,7 +250,7 @@
                 ((and (> max-turns 0) (>= turn max-turns))
                  (%emit-agent-error (%make-max-turns-error) msgs emit config)
                 ) ;
-                (else (pi-tdd-bump-turn!)
+                (else (pi-emit! (%get-active-registry config) 'turn_start (list (cons 'turn turn)))
                   (let* ((msgs (%maybe-compact compaction msgs))
                          (turn-sp (pi-resolve-turn-system-prompt system-prompt last-tool-calls))
                         ) ;
@@ -237,16 +259,20 @@
                                   ) ;
                                  ) ;
                       (if (equal? stop-reason "toolUse")
-                        (let* ((tools-res (pi-execute-tool-calls tool-calls emit timeout config))
-                               (all-msgs (append new-msgs tools-res))
-                               (res-vec (pi-extract-tool-result-blocks all-msgs (length tools-res)))
-                              ) ;
-                          (%notify-turn-end emit resp res-vec)
-                          (when (procedure? emit)
-                            (emit 'turn_start)
-                          ) ;when
-                          (loop all-msgs (+ turn 1) tool-calls)
-                        ) ;let*
+                        (let*-values (((all-msgs terminated?)
+                                       (%handle-tool-use new-msgs tool-calls emit timeout config resp)
+                                      ) ;
+                                     ) ;
+                          (if terminated?
+                            (%finish-agent-turn all-msgs "stop" '() emit config resp)
+                            (begin
+                              (when (procedure? emit)
+                                (emit 'turn_start)
+                              ) ;when
+                              (loop all-msgs (+ turn 1) tool-calls)
+                            ) ;begin
+                          ) ;if
+                        ) ;let*-values
                         (%finish-agent-turn new-msgs stop-reason tool-calls emit config resp)
                       ) ;if
                     ) ;let*-values

@@ -12,6 +12,8 @@
     (liii pi tools)
     (liii pi red-green state)
     (liii pi red-green report)
+    (liii pi red-green tools)
+    (liii pi extension)
     (liii pi modes output)
     (liii pi modes flow)
   ) ;import
@@ -38,7 +40,24 @@
       ) ;if
     ) ;define
 
+    (define (%ensure-red-green-tools-registered!)
+      (let ((reg
+              (or (current-extension-registry)
+                (let ((r (make-extension-registry)))
+                  (set-current-extension-registry! r)
+                  r
+                ) ;let
+              ) ;or
+            ) ;reg
+           ) ;
+        (register-tool! reg (pi-tdd-status-definition))
+        (register-tool! reg (pi-tdd-advance-definition))
+        (register-tool! reg (pi-tdd-reset-definition))
+      ) ;let
+    ) ;define
+
     (define (%red-green-config parsed cfg)
+      (%ensure-red-green-tools-registered!)
       (%replace-field 'tools
         (pi-tdd-extend-tool-names (cdr (assoc 'tools cfg)) parsed)
         cfg
