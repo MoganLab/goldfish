@@ -219,3 +219,5 @@ tools/pi/CLAUDE.md                # Claude Code 与 pi 的协作规范（Claude 
 | 35 | 048 compass：不移植 stale 提示（native 恒 false 死代码） | 哈希保证新鲜度 |
 | 36 | 070 tool_call 输入改写用「返回值式 override」（`(override (input . ...))`）而非原生 pi 的「原地 mutate `event.input`」 | Scheme 数据不可变，函数式返回更贴合 Scheme 语义；原生 `types.ts:1254` 明示"mutate it in place" |
 | 37 | 070 tool_call 监听器异常被隔离（捕获后告警并继续后续监听器） | 原生 `runner.ts:1250-1268` 的 `emitToolCall` 无 try/catch、异常向上传播中断整个工具流程（仅 `emitUserBash` 有 catch+rethrow）；goldfish 依 §2「错误隔离与容错」取更保守行为 |
+| 38 | 071 扩展发现多一层「仓库内置目录」（`tools/pi/liii/pi/extensions/`，可用 `PI_BUILTIN_EXTENSIONS_DIR` 覆盖） | 原生 pi 仅两层：项目级 `<cwd>/.pi/extensions/` 与全局 `~/.pi/agent/extensions/`（`loader.ts:849-853`），无内置层；goldfish 需随包分发 simplify/red-green/code-review |
+| 39 | 071 扩展仅支持 `.scm` 文件与 `<子目录>/index.scm`，不识别 `package.json` 的 `pi` 字段包形态 | 纯 Scheme 扩展不引入 Node 包生态；多入口扩展用 `index.scm` 表达，第三方安装形态归 076（git clone 目录） |
