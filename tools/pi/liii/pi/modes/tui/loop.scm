@@ -12,6 +12,7 @@
     (liii time)
     (liii tui terminal)
     (liii pi modes tui state)
+    (liii pi modes tui editor)
   ) ;import
   (export run-tui-loop)
   (begin
@@ -185,6 +186,22 @@
                         ) ;let
                         #f
                       ) ;if
+                      ;; 自动路由按键至处于 idle 状态的 pi-tui-editor
+                      (when
+                        (and (not key-handled?)
+                          (not (eq? (state-status next-state) 'exit))
+                          (eq? (state-status next-state) 'idle)
+                          (pi-tui-editor? (state-input-editor next-state))
+                        ) ;and
+                        (let* ((ed (state-input-editor next-state))
+                               (handled? (pi-tui-editor-handle-key ed key))
+                              ) ;
+                          (when handled?
+                            (set! key-handled? #t)
+                            (state-mark-dirty! next-state)
+                          ) ;when
+                        ) ;let*
+                      ) ;when
                       ;; 终止按键判定：
                       ;; 1) escape 键直接触发退出
                       ;; 2) 未被拦截的 "q" / "Q" 触发退出

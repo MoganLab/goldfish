@@ -13,6 +13,7 @@
     (liii tui terminal)
     (liii pi modes tui state)
     (liii pi modes tui loop)
+    (liii pi modes tui editor)
   ) ;import
   (export with-pi-tui-terminal
     run-tui-loop
@@ -29,6 +30,7 @@
     pi-tui-state-messages
     state-input-editor
     pi-tui-state-input-editor
+    state-input-text
     state-active-tool
     pi-tui-state-active-tool
     state-scroll-offset
@@ -50,6 +52,33 @@
     state-set-input-editor!
     state-set-active-tool!
     state-set-scroll-offset!
+    state-submit-prompt!
+    ;; Editor exports
+    make-pi-tui-editor
+    pi-tui-editor?
+    pi-tui-editor-text
+    pi-tui-editor-set-text!
+    pi-tui-editor-clear!
+    pi-tui-editor-lines
+    pi-tui-editor-cursor
+    pi-tui-editor-set-cursor!
+    pi-tui-editor-prompt
+    pi-tui-editor-set-prompt!
+    pi-tui-editor-continuation-prompt
+    pi-tui-editor-set-continuation-prompt!
+    pi-tui-editor-placeholder
+    pi-tui-editor-set-placeholder!
+    pi-tui-editor-focused?
+    pi-tui-editor-set-focused!
+    pi-tui-editor-history
+    pi-tui-editor-push-history!
+    pi-tui-editor-handle-key
+    pi-tui-editor-render
+    pi-tui-editor-render-boxed
+    pi-tui-editor-on-submit
+    pi-tui-editor-set-on-submit!
+    pi-tui-editor-on-change
+    pi-tui-editor-set-on-change!
   ) ;export
   (begin
 

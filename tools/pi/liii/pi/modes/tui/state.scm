@@ -7,7 +7,11 @@
 ;;
 
 (define-library (liii pi modes tui state)
-  (import (scheme base) (liii error) (liii pi modes tui state types))
+  (import (scheme base)
+    (liii error)
+    (liii pi modes tui state types)
+    (liii pi modes tui editor)
+  ) ;import
   (export <pi-tui-state>
     make-pi-tui-state
     pi-tui-state?
@@ -19,6 +23,7 @@
     pi-tui-state-messages
     state-input-editor
     pi-tui-state-input-editor
+    state-input-text
     state-active-tool
     pi-tui-state-active-tool
     state-scroll-offset
@@ -40,6 +45,7 @@
     state-set-input-editor!
     state-set-active-tool!
     state-set-scroll-offset!
+    state-submit-prompt!
   ) ;export
   (begin
 
@@ -236,6 +242,37 @@
       (%validate-scroll-offset new-offset "state-set-scroll-offset!")
       (%state-set-scroll-offset-raw! st new-offset)
       (%state-set-dirty-raw! st #t)
+    ) ;define
+
+    (define (state-input-text st)
+      (%validate-state st "state-input-text")
+      (let ((ed (state-input-editor st)))
+        (cond ((pi-tui-editor? ed) (pi-tui-editor-text ed))
+              ((string? ed) ed)
+              (else "")
+        ) ;cond
+      ) ;let
+    ) ;define
+
+    (define (state-submit-prompt! st . maybe-target-status)
+      (%validate-state st "state-submit-prompt!")
+      (let* ((target-status (if (pair? maybe-target-status) (car maybe-target-status) 'running)
+             ) ;target-status
+             (text (state-input-text st))
+             (ed (state-input-editor st))
+            ) ;
+        (%validate-status target-status "state-submit-prompt!")
+        (unless (string=? text "")
+          (when (pi-tui-editor? ed)
+            (pi-tui-editor-push-history! ed text)
+            (pi-tui-editor-clear! ed)
+          ) ;when
+          (state-set-messages! st (append (state-messages st) (list (cons 'user text))))
+          (state-set-status! st target-status)
+          (state-mark-dirty! st)
+        ) ;unless
+        st
+      ) ;let*
     ) ;define
 
   ) ;begin
