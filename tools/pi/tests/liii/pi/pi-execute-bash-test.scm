@@ -35,13 +35,61 @@
   (check-true (string-contains? out "bash timeout 0"))
 ) ;let-values
 
-;; 模型请求大 timeout 受用户选项限制
+;; timeout 为 0 或负数时不被秒杀，正常执行
+(let-values (((out is-err)
+              (pi-execute-bash '(("command" . "echo 'timeout zero'")
+                                 ("timeout" . 0)))
+             ) ;
+            ) ;
+  (check is-err => #f)
+  (check (string-trim-both out) => "timeout zero")
+) ;let-values
+
+(let-values (((out is-err)
+              (pi-execute-bash '(("command" . "echo 'timeout neg'")
+                                 ("timeout" . -1)))
+             ) ;
+            ) ;
+  (check is-err => #f)
+  (check (string-trim-both out) => "timeout neg")
+) ;let-values
+
+;; 模拟超时配合 opts :timeout 0，安全回退到 120 秒
+(let-values (((out is-err)
+              (pi-execute-bash '(("command" . "echo test")) :timed-out? #t :timeout 0)
+             ) ;
+            ) ;
+  (check is-err => #t)
+  (check-true (string-contains? out "Command timed out after 120 seconds"))
+) ;let-values
+
+;; 模型超大 timeout 不能突破顶层用户限制
 (let-values (((out is-err)
               (pi-execute-bash '(("command" . "sleep 5") ("timeout" . 1000)) :timeout 1)
              ) ;
             ) ;
   (check is-err => #t)
   (check-true (string-contains? out "Command timed out after 1 seconds"))
+) ;let-values
+
+;; 模型更小 timeout 缩短超时生效
+(let-values (((out is-err)
+              (pi-execute-bash '(("command" . "sleep 5") ("timeout" . 1)) :timeout 5)
+             ) ;
+            ) ;
+  (check is-err => #t)
+  (check-true (string-contains? out "Command timed out after 1 seconds"))
+) ;let-values
+
+;; opts 以 alist 格式传入 :timeout 0 正常完成
+(let-values (((out is-err)
+              (pi-execute-bash (list (cons "command" "echo success"))
+                (list (cons :timeout 0))
+              ) ;pi-execute-bash
+             ) ;
+            ) ;
+  (check is-err => #f)
+  (check (string-trim-both out) => "success")
 ) ;let-values
 
 (check-report)
