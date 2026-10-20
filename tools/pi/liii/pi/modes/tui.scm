@@ -18,6 +18,7 @@
     (liii pi modes tui message)
     (liii pi modes tui viewport)
     (liii pi modes tui streaming)
+    (liii pi modes tui thinking)
   ) ;import
   (export with-pi-tui-terminal
     run-tui-loop
@@ -138,6 +139,26 @@
     render-tui-screen-lines
     render-tui-screen!
     stream-screen-render!
+    ;; Thinking exports
+    <pi-tui-thinking-card>
+    make-pi-tui-thinking-card
+    pi-tui-thinking-card?
+    thinking-card-content
+    thinking-card-token-count
+    thinking-card-collapsed?
+    thinking-card-completed?
+    thinking-card-scroll-offset
+    thinking-card-toggle!
+    thinking-card-append-content!
+    thinking-card-set-completed!
+    thinking-card-set-token-count!
+    thinking-card-set-scroll-offset!
+    thinking-card-with-toggle
+    render-thinking-collapsed
+    render-thinking-expanded
+    render-thinking-card
+    state-find-active-thinking-card
+    state-toggle-thinking-card!
   ) ;export
   (begin
 

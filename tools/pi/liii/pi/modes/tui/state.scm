@@ -12,6 +12,7 @@
     (liii pi modes tui state types)
     (liii pi modes tui state parse)
     (liii pi modes tui editor)
+    (liii pi modes tui thinking)
   ) ;import
   (export <pi-tui-state>
     make-pi-tui-state
@@ -56,6 +57,8 @@
     state-submit-prompt!
     state-append-message!
     state-finish-stream!
+    state-find-active-thinking-card
+    state-toggle-thinking-card!
   ) ;export
   (begin
 

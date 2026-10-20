@@ -10,6 +10,7 @@
   (import (scheme base)
     (liii pi modes tui state)
     (liii pi modes tui editor)
+    (liii pi modes tui thinking)
     (liii pi modes tui loop opts)
   ) ;import
   (export %dispatch-tui-key)
@@ -65,6 +66,28 @@
       ) ;if
     ) ;define
 
+    (define (%dispatch-thinking-key st key key-handled?)
+      (if (or key-handled? (eq? (state-status st) 'exit))
+        key-handled?
+        (cond
+         ((or (eq? key 'ctrl-o) (equal? key "\x0f;"))
+          (let ((card (state-toggle-thinking-card! st)))
+            (and card #t)
+          ) ;let
+         ) ;
+         ((or (eq? key 'tab) (equal? key "\t"))
+          (if (string=? (state-input-text st) "")
+            (let ((card (state-toggle-thinking-card! st)))
+              (and card #t)
+            ) ;let
+            #f
+          ) ;if
+         ) ;
+         (else #f)
+        ) ;cond
+      ) ;if
+    ) ;define
+
     (define (%check-exit-key st key key-handled?)
       (cond ((eq? key 'escape) (state-set-status! st 'exit))
             ((and (not key-handled?) (or (equal? key "q") (equal? key "Q")))
@@ -75,10 +98,21 @@
 
     (define (%dispatch-tui-key st key on-key)
       (let*-values (((next-st custom-handled?) (%dispatch-custom-key on-key st key))
-                    ((ed-handled?) (%dispatch-editor-key next-st key custom-handled?))
-                    ((scroll-handled?) (%dispatch-scroll-key next-st key ed-handled?))
+                    ((thinking-handled?) (%dispatch-thinking-key next-st key custom-handled?))
+                    ((ed-handled?)
+                     (%dispatch-editor-key next-st key (or custom-handled? thinking-handled?))
+                    ) ;
+                    ((scroll-handled?)
+                     (%dispatch-scroll-key next-st
+                       key
+                       (or custom-handled? thinking-handled? ed-handled?)
+                     ) ;%dispatch-scroll-key
+                    ) ;
                    ) ;
-        (%check-exit-key next-st key scroll-handled?)
+        (%check-exit-key next-st
+          key
+          (or custom-handled? thinking-handled? ed-handled? scroll-handled?)
+        ) ;%check-exit-key
         next-st
       ) ;let*-values
     ) ;define

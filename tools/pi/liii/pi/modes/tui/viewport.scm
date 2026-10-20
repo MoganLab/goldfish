@@ -7,7 +7,12 @@
 ;;
 
 (define-library (liii pi modes tui viewport)
-  (import (scheme base) (liii base) (liii error) (liii pi modes tui message))
+  (import (scheme base)
+    (liii base)
+    (liii error)
+    (liii pi modes tui message)
+    (liii pi modes tui thinking)
+  ) ;import
   (export compute-max-scroll-offset compute-viewport-window
     viewport-scroll-indicator render-messages-viewport compute-committed-lines
     render-messages-viewport-stream
@@ -91,6 +96,13 @@
       ) ;let
     ) ;define
 
+    (define (%render-item-lines item width)
+      (if (pi-tui-thinking-card? item)
+        (render-thinking-card item width)
+        (render-message-lines item width)
+      ) ;if
+    ) ;define
+
     (define (compute-committed-lines messages width)
       (unless (list? messages)
         (type-error "compute-committed-lines: expected list for messages")
@@ -102,7 +114,7 @@
         ((rest messages) (acc '()))
         (if (null? rest)
           acc
-          (let ((lines (render-message-lines (car rest) width)))
+          (let ((lines (%render-item-lines (car rest) width)))
             (loop (cdr rest) (append acc lines))
           ) ;let
         ) ;if
@@ -118,7 +130,7 @@
            ) ;
         (if committed
           (let* ((last-msg (car (reverse messages)))
-                 (active-lines (render-message-lines last-msg width))
+                 (active-lines (%render-item-lines last-msg width))
                 ) ;
             (append committed active-lines)
           ) ;let*
@@ -126,7 +138,7 @@
             ((rest messages) (acc '()))
             (if (null? rest)
               acc
-              (loop (cdr rest) (append acc (render-message-lines (car rest) width)))
+              (loop (cdr rest) (append acc (%render-item-lines (car rest) width)))
             ) ;if
           ) ;let
         ) ;if
