@@ -1,14 +1,15 @@
 # Agents：`bin/gf pi` 任务规格与后续任务书
 
-> 状态：§5 所列九个阶段已全部完成（2026-10-18），print 模式与 JSON 模式可用，
-> 经真实冒烟验证的命令行示例与各功能的预期用法见 `README.md`。
+> 状态：上一阶段（纯 Scheme 实现 pi agent 脚本模式，覆盖任务 001~053）已于 2026-10-20
+> 在 commit `[1069]`（PR #1141）与 `[1074]` 中全量结项收官并合入主干。
+> **当前阶段目标：研发 `bin/gf pi` 交互式 TUI，第一阶段先做通用的 `(liii tui)` 库**。
 > 本文档由 Claude 维护（与 `CLAUDE.md`、`README.md` 同为计划文档），
-> 作为拉起 pi 的输入与后续任务书。pi 只负责代码，不改本文档。
-> 分工：本文件写任务书与回归依据；`README.md` 写可运行示例与 TODO 用法。
+> 作为 Claude Code 定时流水线拉起 pi 的输入与后续任务书。pi 只负责代码，不改本文档。
+> 分工：本文件写任务书与回归依据；`README.md` 写可运行示例与实测说明。
 
 ## 1. 目标与当前状态
 
-`bin/gf pi` 用纯 Scheme 实现了 pi coding agent 的脚本模式，替代 `pi -p`：
+`bin/gf pi` 已完整实现 pi coding agent 的脚本模式（已在 `[1069]` 与 `[1074]` 结项）：
 
 ```bash
 bin/gf pi --print "..."          # print 模式：最终 assistant 文本写 stdout
@@ -16,12 +17,10 @@ bin/gf pi --mode json "..."      # JSON 模式：JSONL 事件流写 stdout
 ```
 
 已实现：CLI 参数解析、七个内置工具（read/bash/edit/write/grep/find/ls）、
-`~/.pi/agent/` 只读配置复用、Gemini provider（含流式 SSE）、Agent 循环、
-print/JSON 双模式、会话持久化与 `--continue`、Anthropic provider。
+`~/.pi/agent/` 只读配置复用、全套 Provider（google / kimi-coding / deepseek / minimax / zai-coding-cn / anthropic）、
+流式 SSE、Agent 循环、会话持久化与 `--continue`、以及 blueprint / compass / simplify / red-green / compact 等全部扩展模式。
 
-**Provider 支持范围（用户裁定）**：google（Gemini）与 kimi-coding（Kimi）两个。
-Anthropic 已实现但本机无访问权限，不在维护范围；其 OAuth 刷新与交互式 TUI、
-项目级 `.pi/settings.json` 读取均为不做项。
+**平台范围裁定（用户裁定 2026-10-20）**：**本次任务开发机器是 Windows，目前不需要考虑 Linux**。当前全力在 Windows 开发机上推进 `(liii tui)` 库及 `demo/tui/snake.scm`；**等 067 完成之后，再在 Linux 上做系统适配**。
 
 ## 2. 仍生效的关键规格（回归依据）
 
@@ -68,31 +67,42 @@ Anthropic 已实现但本机无访问权限，不在维护范围；其 OAuth 刷
   的 300 行硬约束一致）——子库再拆子模块（如 `(liii pi gemini)` 超限可拆出
   `(liii pi gemini request)`、`(liii pi gemini sse)`），不允许超长文件存在。
 
-## 3. 后续任务书（细粒度拆分；编号从 001 起全局递增，状态由 Claude 维护，便于观测进展）
+## 3. 后续任务书（细粒度拆分；编号从 054 起全局递增，状态由 Claude 维护，供定时流水线调度）
 
 拆分原则：每个任务一次 pi 拉起、一个可独立验证的验收点、若干小提交；
-全部遵守 §2 规范（TDD、小提交、fmt/check 门禁、命令 timeout）。
+全部遵守 §2 规范（TDD、小提交、fmt/check 门禁、命令 timeout、无真实 TTY 非交互测试安全）。
 每个任务执行时，pi 从模板 `tools/pi/devel/ddd.md` 复制建立 `tools/pi/devel/<编号>.md`
 任务文档（任务描述、实现说明、提交清单），随任务 commit 入库；Claude 验收后在该
 文档补充执行与验收记录。
 新任务追加时编号继续递增；完成一项把状态改为「已完成」。
-回退属正常现象：验收失败或后续发现回归时把状态改回「待执行」并在表中注明原因，
-重做过程在 commit history 中如实保留，不做历史改写。
-**滚动窗口（由 Claude Code 执行）**：表中累计 5 个「已完成」任务时，Claude 移除
-这 5 行（已完成任务的完整记录保留在 tools/pi/devel/<编号>.md 与 commit history
-中），并补充新任务行，使表中始终以待执行/进行中任务为主。
+
+### 3.1 第一阶段：`(liii tui)` 通用库研发任务表
+
+> 架构约定：`(liii tui)` 是通用的终端 UI 基础库，功能本身与 pi 业务解耦；**`(liii tui)` 内部不包含 markdown 渲染**。
 
 | 编号 | 任务 | 内容与验收点 | 状态 |
 |---|---|---|---|
-| 050 | deepseek tool_use 参数解析 value-error 修复 | 差距清单 #11：deepseek 首轮响应的 tool_use 参数形状触发 `value-error (("input") ...)`（037 两次同点复现，会话仅 2 行即崩）；需在 anthropic 协议解析层兼容该形状（如 input 为 JSON 字符串时先解析再消费）并加防回归测试；修复前 037 类任务避开 deepseek 首轮大上下文场景 | 已完成（050.scm 30/30；commit `109c4c0d`/`bf88888e` 已推送；gemini 两阶段；差距#11 消除，deepseek 恢复主力） |
-| 045 | `simplify` 内置命令 | 参考 ~/git/pi-extensions/packages/pi-simplify（审查最近改动代码的清晰度/一致性/可维护性并给出改进）：形态文档阶段裁定；验收点含真实简化建议输出；TDD | 已完成（045.scm 138/138；commit `920ed7ac`/`12b36aec` 已推送；建档 minimax+开发验收 deepseek） |
-| 046 | `red-green` TDD 强制 | 参考 ~/git/pi-extensions/packages/pi-red-green（强制 RED-GREEN-REFACTOR 循环：先写失败测试再最小实现再重构）：形态文档阶段裁定（候选：--red-green 开关在 agent 循环中强制 TDD 顺序）；TDD | 已完成（046.scm 138/138；commit `15fcf582`/`54742c1e` 已推送；建档 minimax+开发验收 deepseek） |
-| 047 | `blueprint` 计划命令 | 参考 ~/git/pi-extensions/packages/pi-blueprint（高级目标→分阶段多会话构建计划，依赖跟踪+验证门）：形态文档阶段裁定；与现有三阶段流程互补；TDD | 已完成（047.scm 131/131；commit `ce073a44`/`4b8318cc` 已推送；建档 minimax+开发验收 deepseek） |
-| 048 | `compass` 代码库导航 | 参考 ~/git/pi-extensions/packages/pi-compass（生成结构化 codemaps 与 code tours，省 token 快速定向）：形态文档阶段裁定；TDD | 已完成（048.scm 183/183；commit `d9281290`/`fed06a94` 已推送；建档 minimax+开发验收 deepseek） |
-| 051 | `pi-config-test` 环境卫生化 | 全量回归 `bin/gf test tools/pi/tests/liii/` 恒有 1 项失败：`tests/liii/pi-config-test.scm` 读取本机 `~/.pi/agent/models-store.json`（deepseek `base-url` 实为 `https://api.deepseek.com/anthropic`），与用例期望 `https://api.deepseek.com` 不符——环境依赖导致每次验收都要维护「已知失败白名单」；需改用 `PI_CODING_AGENT_DIR` 指向 `tools/pi/tests/fixtures/` 下的自建 fixture，使全量回归真正全绿、验收脚本不再需要失败白名单；TDD 覆盖 | 开发完成（gemini 续作 minimax 半成品：全量 271/271 首次真绿，生产代码零改动，复核通过）；验收阶段进行中 |
-| 052 | 超时基准改用单调时钟 | 039 迁移后，流式空闲超时（`(- now last-act)`）与会话超时仍以墙钟 `pi-current-time-seconds` 为基准；NTP 回拨使差值为负时空闲超时永不触发；方案：在 `(liii date-time current-time)` 增加 `current-monotonic-millis`/`current-monotonic-seconds`（底层 `time-utc->time-monotonic` 已验证可给出单调 epoch 基准），`pi/time.scm` 暴露 `pi-current-monotonic-seconds`，agent 与三路 stream 的超时基准改用单调钟，墙钟仅用于时间戳展示；验收点：回拨场景下超时仍能触发；TDD 覆盖 | 已完成（052.scm 58/58；commit `2018f5a0`/`96bf2a1d` 已推送；开发验收均 gemini） |
-| 053 | 重试增强：Retry-After 消费 + 重试 stderr 可见性 | 用户观察（2026-10-20）：minimax 当日多次 529（服务过载）。两个改进点：1) Retry-After 头消费——429/503/529 响应通常带该头，当前 pi-calc-retry-delay 只做指数退避未读取服务端指示（服务器说等 1s 我们可能等 30s，或过早重试加重过载）；2) 普通重试（非 multikey 轮换）无 stderr 日志——529/429 发生频率完全不可观测（取证困难）；实现：三 provider 的 request/stream 读取响应头 Retry-After（秒数或 HTTP 日期）并在 pi-calc-retry-delay 优先采用（钳制在合理上下限），重试时 stderr 打印脱敏摘要（状态码+第 N 次重试+等待 ms）；TDD 覆盖头解析/钳制/日志脱敏 | 建档完成（gemini 自举 `4dd12194`，核实 http.scm 已暴露响应头无需改主库）；开发阶段进行中 |
-> **收官裁定（用户裁定 2026-10-20）**：051 与 052 完成后任务表清空，流水线停止（Claude 删除定时任务，进入待命）；后续任务待用户重新发起。
+| 054 | `(liii tui component)` 核心协议与基础文本组件 | 定义 Component 协议（`component-render`、`component-handle-input`、`component-invalidate!` 等标准接口）；实现 `make-text` 组件（支持按 `width` 自动折行换行），以及 `make-truncated-text` 组件（单行超出 `width` 截断带 `...`）、`make-spacer` 占位组件；提供单元测试覆盖各种折行与截断边界 | 已完成（054.scm 70 项断言全绿；commit `7e0933e0`/`bfdc6ef9` 已推送；google/gemini-3.8-flash） |
+| 055 | `(liii tui text-width)` 显示宽度与 ANSI 感知文本工具 | 实现纯函数 `display-width`、`truncate-to-width`、`wrap-text`、`strip-ansi`：ANSI SGR/CSI 序列宽度为 0，CJK/全角/emoji 按 2 列，组合字符按 0 列；截断与折行不得切断转义序列；将 054 的 `make-text`/`make-truncated-text` 迁移到显示宽度语义；单函数单测试，覆盖 ASCII/CJK/emoji/ANSI/零宽/负宽/正好等宽边界 | 已完成（055.scm 90 项断言全绿；commit `950349be`/`b1068cc1` 已推送；google/gemini-3.8-flash） |
+| 056 | `(liii tui keys)` 键盘输入与转义序列解析 | 纯函数解析终端输入字符串/字节流，映射为标准按键符号（`'up`、`'down`、`'left`、`'right`、`'enter`、`'backspace`、`'tab`、`'ctrl-c`、`'ctrl-d`、字符文本等）；单函数单测试，全量覆盖 ANSI/xterm 转义序列 | 已完成（056.scm 108 项断言全绿；commit `3011d09b`/`7c8bdaab` 已推送；google/gemini-3.8-flash） |
+| 057 | `(liii tui terminal)` 终端抽象与 `virtual-terminal` | 定义终端通用接口规范（写入、光标控制、尺寸查询）；实现脱机无头测试用的 `virtual-terminal`（内存模拟屏幕行缓冲区和光标位置，为后续所有组件与差分渲染提供确定性测试基础）；尺寸查询需有 `COLUMNS`/`LINES` 式环境变量回退与默认 80x24；单元测试验证行缓冲记录、光标移动、resize 与尺寸响应，全程不依赖真实 TTY | 已完成（057.scm 78 项断言全绿；commit `9b5b3c2f`/`eb8c26d9` 已推送；google/gemini-3.8-flash） |
+| 058 | `(liii tui box)` 与布局容器组件 | 实现 `make-box` 边框组件（支持单线/双线/圆角 ASCII/ANSI 边框与内边距）、`make-vstack` 垂直拼接组件、`make-hstack` 水平排列组件；测试覆盖嵌套布局计算与宽度自适应 | 已完成（058.scm 78 项 + 单测 247 项断言全绿；commit `e546402d`/`3651af4a` 已推送；google/gemini-3.8-flash） |
+| 059 | `(liii tui loader)` 转轮动画与状态组件 | 实现 Spinner 动态加载转轮组件（多帧状态推进、前缀/后缀文本提示、显示与隐藏切换）；单元测试断言各帧文本渲染与状态转移 | 已完成（059.scm 85 项 + 单测 195 项断言全绿；commit `db8e7974`/`d2935ec6` 已推送；google/gemini-3.8-flash） |
+| 060 | `(liii tui)` 实现文件协议头迁移至 MIT | 将 `(liii tui)` 全部实现文件（`goldfish/liii/tui.scm` 及 `goldfish/liii/tui/**/*.scm`，含 059 新增的 loader 文件）的文件头由 Apache License 2.0 统一替换为 MIT 许可（代码衍生自 MIT 许可的 pi TUI，须保留上游版权声明）；测试文件保持无协议头，仓库根 `LICENSE` 与其他库不动；全量测试与门禁保持不变 | 已完成（25 个实现文件全部 MIT 头；060.scm 368 项断言全绿；commit `9b721c20`/`0d5a2a38` 已推送；google/gemini-3.8-flash） |
+| 061 | `(liii tui editor)` 单行与多行交互编辑器组件 | 实现带光标位置指示、字符插入、退格删除、方向键光标移动、回车换行与历史记录的输入编辑器组件，实现 `component-handle-input`；通过输入转义序列进行全流程非交互测试 | 已完成（061.scm 21 项断言全绿，7 个单测与 tui 全套 39 套件通过；commit `b030ba78`/`f10d1a04` 已推送；google/gemini-3.8-flash） |
+| 062 | `(liii tui main-screen)` 差分渲染与屏幕刷新 | 实现基于 `terminal` 的主屏幕输出驱动，比较前后帧行差异（差分渲染），只重绘变化行或追加新行，避免终端闪烁；在 `virtual-terminal` 上断言 viewport 内容、只写变化行、resize 触发全量重绘，并捕获原始 `write()` 验证 ANSI 序列 | 已完成（062.scm 34 项 + 5 个单测全绿；commit `1da40e18`/`f3580ec0` 已推送；google/gemini-3.8-flash） |
+| 063 | `demo/tui/` 终端贪吃蛇游戏验收 | 使用 `(liii tui)` 在 `demo/tui/snake.scm` 实现终端贪吃蛇交互游戏，支持键盘方向键控制、食物生成与贪吃蛇增长、实时计分板、**四面墙壁可穿越（越界后从对侧出现，避免游戏过快结束）**与自碰碰撞判定；验收分两层：① 纯游戏逻辑与脚本化按键回放自动化测试（非 TTY）；② Windows 真实终端冒烟必须用 **Python + pynput** 自动化完成：定位终端窗口、在终端中新建标签页、进入 `~/git/goldfish`、运行贪吃蛇 demo，通过模拟键盘与鼠标事件完成终端控制，并发送键盘事件实际操控贪吃蛇（转向/移动），在启动、移动、计分与结束等关键时刻**截图留档**，最终由模型通过截图判读小游戏是否真正跑通、计分与画面是否正确，脚本、截图与运行记录入库留痕；并**尽可能覆盖 `(liii tui)` 的各项能力**（component、text-width、keys、terminal/virtual-terminal、box/vstack/hstack、loader、editor、main-screen 差分渲染），作为 `(liii tui)` 第一阶段通用库的生动实机交互验收成果。**边界约束：贪吃蛇专属的游戏逻辑与视图必须放在 `demo/tui/`（如 `demo/tui/snake/logic.scm`）及对应测试目录下，不得污染 `goldfish/liii/tui` 通用库；仅通用终端输入能力（如非阻塞按键读取 `terminal-poll-key`）可加入 `(liii tui terminal)`** | 已完成（用户裁定通过；063.scm 32 项 + 单测 100 项全绿；真实终端 Python + pynput 冒烟与截图留档；commit `d93d9ac8`/`08f020b4` 已推送；google/gemini-3.8-flash） |
+| 064 | `(liii tui)` 差分渲染闪烁修复 | **先复现、后修复**：在 Windows Terminal 真实终端中运行 `demo/tui/snake.scm`（及连续帧压测）复现闪烁并留证。**注意：静态截图无法捕捉瞬时闪烁**，复现方法采用：① 捕获原始 ANSI 写入流，逐帧标注 `clear-line` 与 `update` 的先后顺序；② 实现「逐写入重绘模拟器」——每收到一次写入/清行就让虚拟屏幕快照一次，把 `terminal-clear-line` 后、文本写入前的瞬时状态还原为可断言的空白行快照；③ 辅以真实终端人工观察与逐帧录屏（若环境可用）。修复前后用同一套证据对比。确认根因（重点排查：每次 update 前 `terminal-clear-line` 先清行、每帧重复发送 hide-cursor、帧内多次小写入导致终端绘制中间态）；随后修复差分渲染输出路径：变化行改为原地覆写、仅在新行更短时清除行尾，不再先清空整行；仅在光标可见性变化时发送 hide/show；整帧写入用终端同步输出（DECSET 2026，`ESC[?2026h`/`ESC[?2026l`，不支持时安全降级）包裹并统一 flush，杜绝帧中间重绘；在 `virtual-terminal` 捕获原始 ANSI，断言更新行不再出现「clear-line 后紧跟同位置 update」、未变化行零写入、缩短行正确清除尾部、每帧同步边界成对出现；更新 062 相关单测；逐写入重绘模拟器在修复后应不再出现被更新行的空白中间态，且每帧成对出现同步输出边界；真实终端复测确认闪烁消失；单文件 <=300 行、实现文件 MIT 头、测试无协议头。**复现证据（Claude，2026-10-20）**：真实终端 15～16 fps 连拍，4 秒 61 帧中 10 次整行瞬时空白（Heartbeat 行 y=271..308，前后帧 ink 125/126，约每 7 帧一次）；ANSI 流 28 帧中 53 次 `clear-line→cursor→text`，逐写入重放在被更新行产生 40 次空白中间态；复现脚本 `tools/pi/devel/064-capture.py`，证据与前后帧对照见 `tools/pi/devel/064-repro/` | 已完成（064.scm 30 项 + 50 个 TUI 单测全绿；真实连拍 63 帧 0 次空白；用户实机确认不闪烁；REVIEW 两提交已推送；google/gemini-3.8-flash） |
+| 065 | 贪吃蛇中段不可见问题排查与修复 | 用户报告：运行 `demo/tui/snake.scm` 时贪吃蛇身体“中间有一段不可见”；可能是 `demo/tui/snake` 的蛇身/视图实现问题，也可能是 `(liii tui)` 基础设施（box 布局、文本宽度、差分渲染）问题。先稳定复现：构造长蛇与穿墙场景，比较 `render-grid-lines` 的原始行、`virtual-terminal` 屏幕与真实终端画面，确认丢段发生在游戏视图还是终端输出层；再修复并补单测（蛇身每节 `o` 必须出现在预期坐标、穿墙时两侧身体均可见或按设计处理），保留 064 的零闪烁门禁（`064.scm` 与 `064-capture.py` 0 事件）；单文件 <=300 行、实现文件 MIT 头、测试无协议头 | 已完成（065.scm 42 项 + snake 96 项 + TUI/snake 55 个测试文件全绿；真实连拍 56 帧 0 次空白；用户实机确认中段可见；commit `c8099711`/`b6e5fc91` 已推送；google/gemini-3.8-flash） |
+| 066 | `demo/tui/snake` 示例配色 | 为贪吃蛇示例增加 ANSI 颜色分层（蛇头、蛇身、食物、边框、计分/提示等使用不同 SGR 样式），提升真实终端观感。**关键约束**：颜色序列不得参与显示宽度计算；`virtual-terminal` 的屏幕内容与宽度断言必须能忽略/解析 SGR；差分渲染比较需按“可见文本 + 样式”处理，避免带色行被误判为变长/变短而产生行尾残留或整帧重绘闪烁；支持 `NO_COLOR` 或非 TTY 时安全降级为无色；配色辅助优先放在 `demo/tui/snake/`，若确需通用 ANSI 感知能力则加入 `(liii tui text-width)` 并配单测。验收：新增 066.scm，复跑 062/063/064（含 `064-capture.py` 0 次 blank-band event）与全部 TUI/snake 单测；单文件 <=300 行、实现文件 MIT 头、测试无协议头 | 已完成（用户手动 review 并实机确认“颜色正常”；commit `3c861186`/`3a414c22` 已推送；google/gemini-3.8-flash） |
+| 067 | 贪吃蛇棋盘随终端尺寸自适应 | 运行 `demo/tui/snake.scm` 时，棋盘区域需随终端窗口放大/缩小：启动时用 `terminal-size` 计算可用宽高（扣除棋盘边框、右侧 STATS/HELP 侧栏与间距，设置合理下限如 10x5 与上限）；运行中每帧或按需检测终端尺寸变化，变化时调用 `screen-resize!` 并触发全量重绘；逻辑层新增 `snake-resize`（或等价 API），按新宽高对蛇头/蛇身/食物坐标取模或安全裁剪，缩小时避免越界、重复格与误判自碰；窄终端应折叠侧栏或改为上下布局；`component-render` 宽度改用实际终端宽度；若 Windows 下 `terminal-size` 不能实时反映窗口变化，需实现可测试的轮询/环境变量回退并在文档记录限制。resize 后仍须保持 063/064 的交互与零闪烁（复跑 `064-capture.py` 0 次 blank-band event）；补 logic/view 单测与 067.scm 验收（virtual-terminal 放大/缩小断言），单文件 <=300 行、MIT 头、测试无头 | 已完成（067.scm 38 项 + 单测 115 项全绿；commit `f0c783a6`/`affe94d6` 已推送；google/gemini-3.8-flash） |
+| 068 | Linux 平台终端原始模式与按键适配 | 实现 POSIX termios Raw 模式开关与 atexit 恢复机制；基于 poll 实现非阻塞按键探测与超时机制；实现 ANSI 转义序列流式解析；demo/tui/snake 引入 dynamic-wind 保护；单测与 068.scm 全量通过 | 已完成（068.scm 41 项断言全绿；Linux 实机验证通过；commit `765f5925`/`150ca4b1`/`593efc9d`；google/gemini-3.8-flash） |
+| 069 | 修复 Windows 下 `console-getch` 无输入时的阻塞卡死缺陷 | 修复 Windows 平台 `f_console_getch` 未检查 `_kbhit()` 导致 `_getch()` 在非交互环境永久阻塞的 Bug；前置 `_kbhit()` 检测，无就绪按键立即返回 `#f`；保证 Windows 下 `console-raw-mode-test.scm` 与 `bin/gf test --all -j 1` 秒过 | 已完成（tests/liii/os/console-raw-mode-test.scm 秒过全绿；google/gemini-3.8-flash） |
+
+> **任务范围裁定（用户，2026-10-20）**：**067 是本阶段（054~067）最后一个任务**。067 完成后不再新增 TUI 任务，直接进入收官：PLAN 文档收尾、PR/CI 检查、真实终端冒烟、巡检 cron 清理与阶段报告。
+
+### 3.2 历史里程碑收官记录（已完成）
+- **任务 001~053 全部结项**：脚本模式及所有核心能力已在 commit `[1069]` 与 `[1074]` 落地并全部并入主干。历史任务文档与验收脚本完整保留在 `tools/pi/devel/001.md~053.md` 中。
 
 共同约束：
 - 每个任务常态三个 commit：`[编号][PLAN]`（建档）+ `[编号][REVIEW]`（代码）
@@ -106,10 +116,11 @@ Anthropic 已实现但本机无访问权限，不在维护范围；其 OAuth 刷
 
 ## 4. Non-goals（不做项，用户裁定）
 
-交互式 TUI / RPC 模式；extensions/MCP/codemode/packages/themes/prompt templates/
-skills；图片输入（暂缓）；OAuth 凭据刷新（auth.json 的 oauth 类型条目不消费）；
-会话写入 `~/.pi/agent/` 管理；跨平台（仅当前 Linux 开发机）；项目级
-`.pi/settings.json`；Anthropic OAuth 刷新。
+RPC 模式；extensions/MCP/codemode/packages/themes/prompt templates/skills；
+图片输入（暂缓）；OAuth 凭据刷新（auth.json 的 oauth 类型条目不消费）；
+会话写入 `~/.pi/agent/` 管理；项目级 `.pi/settings.json`；Anthropic OAuth 刷新；
+**`(liii tui)` 内部不做 markdown 渲染**（定位为轻量纯通用 TUI 基础库）；
+**当前阶段跨平台（聚焦 Windows 开发机，目前不考虑 Linux；等 067 完成后再做 Linux 适配）**。
 
 ## 5. 阶段完成记录（原 §11 阶段表，全部完成）
 
@@ -161,7 +172,7 @@ tools/pi/CLAUDE.md                # Claude Code 与 pi 的协作规范（Claude 
 | 6 | 只消费 api_key 凭据，`$VAR` 支持而 `` !command `` 不支持 | 不执行任意命令 |
 | 8 | 不注入 `PI_*` 会话环境变量到 bash 工具 | 减少实现面 |
 | 10 | 代理支持 `socks5h://` | libcurl 原生能力，实际网络硬需求 |
-| 11 | 仅当前 Linux 开发机 | 用户裁定 |
+| 11 | 当前聚焦 Windows 开发机，暂不考虑 Linux | 064 闪烁修复完成后再做 Linux 适配（用户裁定） |
 | 16 | simplify 默认只读（原生 pi 直接改写文件） | 防误改：先看建议再 --apply |
 | 17 | simplify print 模式直接输出报告（原生 TUI 交互改写） | 脚本模式适配（045 裁定） |
 | 18 | simplify 无独立模型通道（复用主模型） | 减少实现面（045 裁定） |

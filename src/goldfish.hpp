@@ -2757,6 +2757,11 @@ apply_startup_load_path_options (s7_scheme* sc, const StartupCliOptions& opts) {
   }
   prepend_load_path_entries (sc, prepend_dirs);
   append_load_path_entries (sc, opts.append_dirs);
+
+  fs::path local= find_local_gfproject_json ();
+  if (!local.empty ()) {
+    append_load_path_entries (sc, {local.parent_path ().generic_string ()});
+  }
 }
 
 int
