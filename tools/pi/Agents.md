@@ -20,7 +20,7 @@ bin/gf pi --mode json "..."      # JSON 模式：JSONL 事件流写 stdout
 `~/.pi/agent/` 只读配置复用、全套 Provider（google / kimi-coding / deepseek / minimax / zai-coding-cn / anthropic）、
 流式 SSE、Agent 循环、会话持久化与 `--continue`、以及 blueprint / compass / simplify / red-green / compact 等全部扩展模式。
 
-**平台范围裁定（用户裁定 2026-10-20）**：**本次任务开发机器是 Windows，目前不需要考虑 Linux**。当前全力在 Windows 开发机上推进 `(liii tui)` 库及 `demo/tui/snake.scm`；**等 061 完成之后，再在 Linux 上做系统适配**。
+**平台范围裁定（用户裁定 2026-10-20）**：**本次任务开发机器是 Windows，目前不需要考虑 Linux**。当前全力在 Windows 开发机上推进 `(liii tui)` 库及 `demo/tui/snake.scm`；**等 062 完成之后，再在 Linux 上做系统适配**。
 
 ## 2. 仍生效的关键规格（回归依据）
 
@@ -83,13 +83,14 @@ bin/gf pi --mode json "..."      # JSON 模式：JSONL 事件流写 stdout
 | 编号 | 任务 | 内容与验收点 | 状态 |
 |---|---|---|---|
 | 054 | `(liii tui component)` 核心协议与基础文本组件 | 定义 Component 协议（`component-render`、`component-handle-input`、`component-invalidate!` 等标准接口）；实现 `make-text` 组件（支持按 `width` 自动折行换行），以及 `make-truncated-text` 组件（单行超出 `width` 截断带 `...`）、`make-spacer` 占位组件；提供单元测试覆盖各种折行与截断边界 | 待执行 |
-| 055 | `(liii tui keys)` 键盘输入与转义序列解析 | 纯函数解析终端输入字符串/字节流，映射为标准按键符号（`'up`、`'down`、`'left`、`'right`、`'enter`、`'backspace`、`'tab`、`'ctrl-c`、`'ctrl-d`、字符文本等）；单函数单测试，全量覆盖 ANSI/xterm 转义序列 | 待执行 |
-| 056 | `(liii tui terminal)` 终端抽象与 `virtual-terminal` | 定义终端通用接口规范（写入、光标控制、尺寸查询）；实现脱机无头测试用的 `virtual-terminal`（内存模拟屏幕行缓冲区和光标位置，为后续所有组件与差分渲染提供确定性测试基础）；单元测试验证行缓冲记录与尺寸响应 | 待执行 |
-| 057 | `(liii tui box)` 与布局容器组件 | 实现 `make-box` 边框组件（支持单线/双线/圆角 ASCII/ANSI 边框与内边距）、`make-vstack` 垂直拼接组件、`make-hstack` 水平排列组件；测试覆盖嵌套布局计算与宽度自适应 | 待执行 |
-| 058 | `(liii tui loader)` 转轮动画与状态组件 | 实现 Spinner 动态加载转轮组件（多帧状态推进、前缀/后缀文本提示、显示与隐藏切换）；单元测试断言各帧文本渲染与状态转移 | 待执行 |
-| 059 | `(liii tui editor)` 单行与多行交互编辑器组件 | 实现带光标位置指示、字符插入、退格删除、方向键光标移动、回车换行与历史记录的输入编辑器组件，实现 `component-handle-input`；通过输入转义序列进行全流程非交互测试 | 待执行 |
-| 060 | `(liii tui main-screen)` 差分渲染与屏幕刷新 | 实现基于 `terminal` 的主屏幕输出驱动，比较前后帧行差异（差分渲染），只重绘变化行或追加新行，避免终端闪烁；在 `virtual-terminal` 上验证差分输出与完整重绘逻辑 | 待执行 |
-| 061 | `demo/tui/` 终端贪吃蛇游戏验收 | 使用 `(liii tui)` 在 `demo/tui/snake.scm` 实现终端贪吃蛇交互游戏，支持键盘方向键控制、食物生成与贪吃蛇增长、实时计分板、边界/自碰碰撞判定，作为 `(liii tui)` 第一阶段通用库的生动实机交互验收成果 | 待执行 |
+| 055 | `(liii tui text-width)` 显示宽度与 ANSI 感知文本工具 | 实现纯函数 `display-width`、`truncate-to-width`、`wrap-text`、`strip-ansi`：ANSI SGR/CSI 序列宽度为 0，CJK/全角/emoji 按 2 列，组合字符按 0 列；截断与折行不得切断转义序列；将 054 的 `make-text`/`make-truncated-text` 迁移到显示宽度语义；单函数单测试，覆盖 ASCII/CJK/emoji/ANSI/零宽/负宽/正好等宽边界 | 待执行 |
+| 056 | `(liii tui keys)` 键盘输入与转义序列解析 | 纯函数解析终端输入字符串/字节流，映射为标准按键符号（`'up`、`'down`、`'left`、`'right`、`'enter`、`'backspace`、`'tab`、`'ctrl-c`、`'ctrl-d`、字符文本等）；单函数单测试，全量覆盖 ANSI/xterm 转义序列 | 待执行 |
+| 057 | `(liii tui terminal)` 终端抽象与 `virtual-terminal` | 定义终端通用接口规范（写入、光标控制、尺寸查询）；实现脱机无头测试用的 `virtual-terminal`（内存模拟屏幕行缓冲区和光标位置，为后续所有组件与差分渲染提供确定性测试基础）；尺寸查询需有 `COLUMNS`/`LINES` 式环境变量回退与默认 80x24；单元测试验证行缓冲记录、光标移动、resize 与尺寸响应，全程不依赖真实 TTY | 待执行 |
+| 058 | `(liii tui box)` 与布局容器组件 | 实现 `make-box` 边框组件（支持单线/双线/圆角 ASCII/ANSI 边框与内边距）、`make-vstack` 垂直拼接组件、`make-hstack` 水平排列组件；测试覆盖嵌套布局计算与宽度自适应 | 待执行 |
+| 059 | `(liii tui loader)` 转轮动画与状态组件 | 实现 Spinner 动态加载转轮组件（多帧状态推进、前缀/后缀文本提示、显示与隐藏切换）；单元测试断言各帧文本渲染与状态转移 | 待执行 |
+| 060 | `(liii tui editor)` 单行与多行交互编辑器组件 | 实现带光标位置指示、字符插入、退格删除、方向键光标移动、回车换行与历史记录的输入编辑器组件，实现 `component-handle-input`；通过输入转义序列进行全流程非交互测试 | 待执行 |
+| 061 | `(liii tui main-screen)` 差分渲染与屏幕刷新 | 实现基于 `terminal` 的主屏幕输出驱动，比较前后帧行差异（差分渲染），只重绘变化行或追加新行，避免终端闪烁；在 `virtual-terminal` 上断言 viewport 内容、只写变化行、resize 触发全量重绘，并捕获原始 `write()` 验证 ANSI 序列 | 待执行 |
+| 062 | `demo/tui/` 终端贪吃蛇游戏验收 | 使用 `(liii tui)` 在 `demo/tui/snake.scm` 实现终端贪吃蛇交互游戏，支持键盘方向键控制、食物生成与贪吃蛇增长、实时计分板、边界/自碰碰撞判定；验收分两层：纯游戏逻辑与脚本化按键回放自动化测试（非 TTY），以及在 Windows 终端由 Claude/开发者做真实交互冒烟；作为 `(liii tui)` 第一阶段通用库的生动实机交互验收成果 | 待执行 |
 
 ### 3.2 历史里程碑收官记录（已完成）
 - **任务 001~053 全部结项**：脚本模式及所有核心能力已在 commit `[1069]` 与 `[1074]` 落地并全部并入主干。历史任务文档与验收脚本完整保留在 `tools/pi/devel/001.md~053.md` 中。
@@ -110,7 +111,7 @@ RPC 模式；extensions/MCP/codemode/packages/themes/prompt templates/skills；
 图片输入（暂缓）；OAuth 凭据刷新（auth.json 的 oauth 类型条目不消费）；
 会话写入 `~/.pi/agent/` 管理；项目级 `.pi/settings.json`；Anthropic OAuth 刷新；
 **`(liii tui)` 内部不做 markdown 渲染**（定位为轻量纯通用 TUI 基础库）；
-**当前阶段跨平台（聚焦 Windows 开发机，目前不考虑 Linux；等 061 完成后再做 Linux 适配）**。
+**当前阶段跨平台（聚焦 Windows 开发机，目前不考虑 Linux；等 062 完成后再做 Linux 适配）**。
 
 ## 5. 阶段完成记录（原 §11 阶段表，全部完成）
 
@@ -162,7 +163,7 @@ tools/pi/CLAUDE.md                # Claude Code 与 pi 的协作规范（Claude 
 | 6 | 只消费 api_key 凭据，`$VAR` 支持而 `` !command `` 不支持 | 不执行任意命令 |
 | 8 | 不注入 `PI_*` 会话环境变量到 bash 工具 | 减少实现面 |
 | 10 | 代理支持 `socks5h://` | libcurl 原生能力，实际网络硬需求 |
-| 11 | 当前聚焦 Windows 开发机，暂不考虑 Linux | 061 贪吃蛇完成后再做 Linux 适配（用户裁定） |
+| 11 | 当前聚焦 Windows 开发机，暂不考虑 Linux | 062 贪吃蛇完成后再做 Linux 适配（用户裁定） |
 | 16 | simplify 默认只读（原生 pi 直接改写文件） | 防误改：先看建议再 --apply |
 | 17 | simplify print 模式直接输出报告（原生 TUI 交互改写） | 脚本模式适配（045 裁定） |
 | 18 | simplify 无独立模型通道（复用主模型） | 减少实现面（045 裁定） |
