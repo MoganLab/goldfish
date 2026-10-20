@@ -42,7 +42,8 @@
     '("row 0: ready" "row 1: status ok" "row 2: idle" "row 3: count 0"
       "row 4: end")
   ) ;screen-render!
-  (check (length (virtual-terminal-raw vt)) => 5)
+  ;; 首帧包含 begin-sync, 5 行文本写入, end-sync 共 7 项
+  (check (length (virtual-terminal-raw vt)) => 7)
   (check (virtual-terminal-screen vt)
     =>
     '("row 0: ready        " "row 1: status ok    " "row 2: idle         "
@@ -69,9 +70,9 @@
       '("row 0: ready" "row 1: status ok" "row 2: idle" "row 3: count 1"
         "row 4: end")
     ) ;screen-render!
-    ;; 只追加了 1 次 terminal-write 调用
-    (check (length (virtual-terminal-raw vt)) => (+ raw-count-before 1))
-    (check (list-ref (virtual-terminal-raw vt) raw-count-before)
+    ;; 帧包裹 begin-sync, 1 次更新写入, end-sync 共新增 3 项
+    (check (length (virtual-terminal-raw vt)) => (+ raw-count-before 3))
+    (check (list-ref (virtual-terminal-raw vt) (+ raw-count-before 1))
       =>
       "row 3: count 1"
     ) ;check
@@ -144,8 +145,9 @@
     (check (> (string-length ansi) 0) => #t)
     ;; 验证光标定位转义码 \x1b[y;xH
     (check (string-contains? ansi "\x1b;[") => #t)
-    ;; 验证行清除转义码 \x1b[2K
-    (check (string-contains? ansi "\x1b;[2K") => #t)
+    ;; 验证 DECSET 2026 同步转义码
+    (check (string-contains? ansi "\x1b;[?2026h") => #t)
+    (check (string-contains? ansi "\x1b;[?2026l") => #t)
     ;; 验证渲染文本包含其中
     (check (string-contains? ansi "Hello ANSI") => #t)
     (check (string-contains? ansi "World ANSI") => #t)
