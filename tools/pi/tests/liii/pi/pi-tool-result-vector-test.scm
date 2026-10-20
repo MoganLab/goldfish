@@ -1,0 +1,85 @@
+(import (liii check)
+        (liii pi))
+
+(check-set-mode! 'report-failed)
+
+;; 多协议 toolResult 格式转换测试（支持 vector 与 list 两种形态的 content，防止恢复后落入空串 fallback）
+(let* ((vec-msg (pi-tool-result-message "call_b1"
+                  "bash"
+                  (vector (pi-text-block "SECRET-1071"))
+                  #f))
+       (raw-vec-msg (pi-tool-result-message "call_r1"
+                      "read"
+                      '#((("type" . "text") ("text" . "FILE-CONTENT-1071")))
+                      #f))
+       (list-msg (pi-tool-result-message "call_l1" "read" (list (pi-text-block "LIST-1071")) #f)))
+
+  ;; 1. Anthropic 协议转换
+  (let* ((ant-vec (anthropic-build-messages (list vec-msg)))
+         (ant-raw (anthropic-build-messages (list raw-vec-msg)))
+         (ant-list (anthropic-build-messages (list list-msg))))
+    (check (vector-length ant-vec) => 1)
+    (let* ((turn (vector-ref ant-vec 0)) (blks (cdr (assoc "content" turn))))
+      (check (vector-length blks) => 1)
+      (check (cdr (assoc "type" (vector-ref blks 0))) => "tool_result")
+      (check (cdr (assoc "tool_use_id" (vector-ref blks 0))) => "call_b1")
+      (check (cdr (assoc "content" (vector-ref blks 0))) => "SECRET-1071"))
+    (let* ((turn (vector-ref ant-raw 0)) (blks (cdr (assoc "content" turn))))
+      (check (cdr (assoc "content" (vector-ref blks 0))) => "FILE-CONTENT-1071"))
+    (let* ((turn (vector-ref ant-list 0)) (blks (cdr (assoc "content" turn))))
+      (check (cdr (assoc "content" (vector-ref blks 0))) => "LIST-1071")))
+
+  ;; 2. Kimi 协议转换
+  (let* ((kimi-vec (kimi-build-messages (list vec-msg) #f))
+         (kimi-raw (kimi-build-messages (list raw-vec-msg) #f))
+         (kimi-list (kimi-build-messages (list list-msg) #f)))
+    (check (vector-length kimi-vec) => 1)
+    (let ((m (vector-ref kimi-vec 0)))
+      (check (cdr (assoc "role" m)) => "tool")
+      (check (cdr (assoc "tool_call_id" m)) => "call_b1")
+      (check (cdr (assoc "content" m)) => "SECRET-1071"))
+    (let ((m (vector-ref kimi-raw 0)))
+      (check (cdr (assoc "role" m)) => "tool")
+      (check (cdr (assoc "tool_call_id" m)) => "call_r1")
+      (check (cdr (assoc "content" m)) => "FILE-CONTENT-1071"))
+    (let ((m (vector-ref kimi-list 0)))
+      (check (cdr (assoc "role" m)) => "tool")
+      (check (cdr (assoc "tool_call_id" m)) => "call_l1")
+      (check (cdr (assoc "content" m)) => "LIST-1071")))
+
+  ;; 3. Gemini 协议转换
+  (let* ((gem-vec (gemini-build-contents (list vec-msg)))
+         (gem-raw (gemini-build-contents (list raw-vec-msg)))
+         (gem-list (gemini-build-contents (list list-msg))))
+    (check (vector-length gem-vec) => 1)
+    (let* ((turn (vector-ref gem-vec 0))
+           (parts (cdr (assoc "parts" turn)))
+           (fr (cdr (assoc "functionResponse" (vector-ref parts 0))))
+           (resp (cdr (assoc "response" fr))))
+      (check (cdr (assoc "name" fr)) => "bash")
+      (check (cdr (assoc "id" fr)) => "call_b1")
+      (check (cdr (assoc "output" resp)) => "SECRET-1071"))
+    (let* ((turn (vector-ref gem-raw 0))
+           (parts (cdr (assoc "parts" turn)))
+           (fr (cdr (assoc "functionResponse" (vector-ref parts 0))))
+           (resp (cdr (assoc "response" fr))))
+      (check (cdr (assoc "output" resp)) => "FILE-CONTENT-1071"))
+    (let* ((turn (vector-ref gem-list 0))
+           (parts (cdr (assoc "parts" turn)))
+           (fr (cdr (assoc "functionResponse" (vector-ref parts 0))))
+           (resp (cdr (assoc "response" fr))))
+      (check (cdr (assoc "output" resp)) => "LIST-1071")))
+
+  ;; 4. DeepSeek 协议转换
+  (let* ((ds-vec (deepseek-build-messages (list vec-msg)))
+         (ds-raw (deepseek-build-messages (list raw-vec-msg)))
+         (ds-list (deepseek-build-messages (list list-msg))))
+    (check (vector-length ds-vec) => 1)
+    (let* ((turn (vector-ref ds-vec 0)) (blks (cdr (assoc "content" turn))))
+      (check (cdr (assoc "content" (vector-ref blks 0))) => "SECRET-1071"))
+    (let* ((turn (vector-ref ds-raw 0)) (blks (cdr (assoc "content" turn))))
+      (check (cdr (assoc "content" (vector-ref blks 0))) => "FILE-CONTENT-1071"))
+    (let* ((turn (vector-ref ds-list 0)) (blks (cdr (assoc "content" turn))))
+      (check (cdr (assoc "content" (vector-ref blks 0))) => "LIST-1071"))))
+
+(check-report)
