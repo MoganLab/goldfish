@@ -31,6 +31,7 @@
     (liii pi simplify)
     (liii pi red-green)
     (liii pi blueprint)
+    (liii pi compass)
     (liii pi tools)
     (liii pi tools types)
     (liii pi tools record)
@@ -107,6 +108,18 @@
     pi-blueprint-save-current! pi-execute-blueprint-update
     pi-execute-blueprint-status pi-execute-blueprint-next run-blueprint-flow
     pi-blueprint-extend-tool-names pi-resolve-turn-system-prompt
+    pi-compass-detect-project pi-compass-build-directory-tree
+    pi-compass-format-directory-tree pi-compass-detect-packages
+    pi-compass-detect-frameworks pi-compass-detect-entry-points
+    pi-compass-detect-build-scripts pi-compass-detect-conventions
+    pi-compass-detect-key-files pi-compass-content-hash
+    pi-compass-generate-codemap pi-compass-render-codemap
+    pi-compass-truncate-codemap pi-compass-detect-topics pi-compass-build-tour
+    pi-compass-render-tour pi-compass-describe-file pi-compass-load-codemap
+    pi-compass-save-codemap! pi-compass-get-or-generate
+    pi-compass-build-injection pi-compass-injection-text pi-execute-codebase-map
+    pi-execute-code-tour pi-compass-extend-tool-names pi-compass-validate
+    pi-compass-local-flow? pi-compass-flag? run-compass-flow
     pi-auto-review-system-prompt pi-read-json-file pi-load-settings
     pi-resolve-proxy-url pi-load-auth pi-resolve-provider-key pi-load-multikey
     pi-multikey-select-key pi-multikey-mark-cooldown! pi-multikey-pool-of

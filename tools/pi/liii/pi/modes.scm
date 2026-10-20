@@ -26,23 +26,27 @@
     (liii pi modes simplify)
     (liii pi modes red-green)
     (liii pi modes blueprint)
+    (liii pi modes compass)
+    (liii pi compass args)
     (liii pi blueprint args)
   ) ;import
   (export display-stderr handle-print-result emit-json-event dispatch-pi
     prepare-system-prompt persist-initial-user-msg! run-agent-loop-with-timeout
     run-session-flow run-compact-flow run-code-review-flow run-simplify-flow
     run-red-green-flow pi-tdd-extend-tool-names pi-auto-review-system-prompt
-    run-blueprint-flow pi-blueprint-extend-tool-names
+    run-blueprint-flow pi-blueprint-extend-tool-names run-compass-flow
+    pi-compass-augment-config
   ) ;export
   (begin
 
     (define (dispatch-pi parsed mode initial-msg rest-msgs)
       (let* ((env (get-environment-variables))
-             (cfg (resolve-pi-config parsed env))
+             (cfg (pi-compass-augment-config parsed (resolve-pi-config parsed env)))
              (provider (cdr (or (assoc 'provider cfg) '(#f . "google"))))
              (api-key (cdr (or (assoc 'api-key cfg) '(#f . #f))))
             ) ;
-        (cond ((pi-blueprint-local-flow? parsed)
+        (cond ((pi-compass-local-flow? parsed) (run-compass-flow parsed mode))
+              ((pi-blueprint-local-flow? parsed)
                (run-blueprint-flow parsed cfg mode initial-msg)
               ) ;
               (else

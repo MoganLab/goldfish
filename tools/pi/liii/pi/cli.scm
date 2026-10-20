@@ -22,6 +22,7 @@
     (liii pi)
     (liii pi args)
     (liii pi blueprint args)
+    (liii pi compass args)
     (liii pi modes)
     (liii pi help)
   ) ;import
@@ -113,6 +114,7 @@
                  (not (pi-args-ref parsed 'simplify))
                  (not (pi-args-ref parsed 'red-green))
                  (not (pi-blueprint-flag? parsed))
+                 (not (pi-compass-flag? parsed))
                ) ;and
                (display-pi-help)
                0

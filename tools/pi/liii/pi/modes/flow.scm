@@ -34,6 +34,7 @@
     (liii pi red-green prompt)
     (liii pi blueprint prompt)
     (liii pi blueprint runtime)
+    (liii pi compass prompt)
   ) ;import
   (export prepare-system-prompt persist-initial-user-msg!
     run-agent-loop-with-timeout emit-json-event run-session-flow
@@ -81,10 +82,14 @@
                         ) ;if
               ) ;with-tdd
              ) ;
-          (if (pi-args-ref parsed 'plan-next)
-            (pi-blueprint-turn-system-prompt with-tdd pi-blueprint-current)
-            with-tdd
-          ) ;if
+          (let ((final (if (pi-args-ref parsed 'plan-next)
+                         (pi-blueprint-turn-system-prompt with-tdd pi-blueprint-current)
+                         with-tdd
+                       ) ;if
+                ) ;final
+               ) ;
+            (pi-compass-turn-system-prompt final parsed (path->string (path-cwd)))
+          ) ;let
         ) ;let
       ) ;let*
     ) ;define

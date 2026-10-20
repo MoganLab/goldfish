@@ -1,0 +1,11 @@
+[project]
+name = "compass-py"
+version = "1.2.3"
+dependencies = [
+  "fastapi>=0.100",
+  "pytest>=7.0",
+]
+
+[tool.poetry]
+name = "compass-py"
+version = "1.2.3"

@@ -31,6 +31,7 @@
     (liii pi web-search)
     (liii pi red-green tools)
     (liii pi blueprint tools)
+    (liii pi compass tools)
   ) ;import
   (export PI_DEFAULT_TOOL_NAMES PI_ALL_TOOL_NAMES parse-tools-selection
     exclude-tools-from-list get-tool-definition execute-tool-call pi-read-schema
@@ -218,6 +219,8 @@
             ((string=? name "blueprint_update") (pi-blueprint-update-definition))
             ((string=? name "blueprint_status") (pi-blueprint-status-definition))
             ((string=? name "blueprint_next") (pi-blueprint-next-definition))
+            ((string=? name "codebase_map") (pi-codebase-map-definition))
+            ((string=? name "code_tour") (pi-code-tour-definition))
             (else #f)
       ) ;cond
     ) ;define

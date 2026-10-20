@@ -1,0 +1,4 @@
+{
+  "name": "example/compass-php",
+  "require": { "laravel/framework": "^10.0" }
+}

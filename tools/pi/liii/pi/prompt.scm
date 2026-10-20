@@ -40,7 +40,10 @@
         ("tdd_status" . "Check the current TDD state and phase")
         ("tdd_advance"
          . "Manually advance the TDD phase when auto-detection doesn't trigger")
-        ("tdd_reset" . "Reset the TDD session to idle state"))
+        ("tdd_reset" . "Reset the TDD session to idle state")
+        ("codebase_map"
+         . "Get or generate a structured map of the current codebase")
+        ("code_tour" . "Get a guided code tour for a specific topic or area"))
     ) ;define
 
     (define PI_BUILTIN_TOOL_GUIDELINES
@@ -61,7 +64,11 @@
         ("tdd_advance"
          "Use TDD tools to check, advance, or reset the current TDD session state.")
         ("tdd_reset"
-         "Use TDD tools to check, advance, or reset the current TDD session state."))
+         "Use TDD tools to check, advance, or reset the current TDD session state.")
+        ("codebase_map"
+         "Use codebase_map to understand the overall project structure. Use code_tour to walk through specific areas in detail.")
+        ("code_tour"
+         "Use codebase_map to understand the overall project structure. Use code_tour to walk through specific areas in detail."))
     ) ;define
 
     (define (pi-resolve-prompt-input input)
