@@ -91,6 +91,8 @@ Anthropic 已实现但本机无访问权限，不在维护范围；其 OAuth 刷
 | 048 | `compass` 代码库导航 | 参考 ~/git/pi-extensions/packages/pi-compass（生成结构化 codemaps 与 code tours，省 token 快速定向）：形态文档阶段裁定；TDD | 已完成（048.scm 183/183；commit `d9281290`/`fed06a94` 已推送；建档 minimax+开发验收 deepseek） |
 | 051 | `pi-config-test` 环境卫生化 | 全量回归 `bin/gf test tools/pi/tests/liii/` 恒有 1 项失败：`tests/liii/pi-config-test.scm` 读取本机 `~/.pi/agent/models-store.json`（deepseek `base-url` 实为 `https://api.deepseek.com/anthropic`），与用例期望 `https://api.deepseek.com` 不符——环境依赖导致每次验收都要维护「已知失败白名单」；需改用 `PI_CODING_AGENT_DIR` 指向 `tools/pi/tests/fixtures/` 下的自建 fixture，使全量回归真正全绿、验收脚本不再需要失败白名单；TDD 覆盖 | 待执行 |
 | 052 | 超时基准改用单调时钟 | 039 迁移后，流式空闲超时（`(- now last-act)`）与会话超时仍以墙钟 `pi-current-time-seconds` 为基准；NTP 回拨使差值为负时空闲超时永不触发；方案：在 `(liii date-time current-time)` 增加 `current-monotonic-millis`/`current-monotonic-seconds`（底层 `time-utc->time-monotonic` 已验证可给出单调 epoch 基准），`pi/time.scm` 暴露 `pi-current-monotonic-seconds`，agent 与三路 stream 的超时基准改用单调钟，墙钟仅用于时间戳展示；验收点：回拨场景下超时仍能触发；TDD 覆盖 | 待执行 |
+> **收官裁定（用户裁定 2026-10-20）**：051 与 052 完成后任务表清空，流水线停止（Claude 删除定时任务，进入待命）；后续任务待用户重新发起。
+
 共同约束：
 - 每个任务常态三个 commit：`[编号][PLAN]`（建档）+ `[编号][REVIEW]`（代码）
   + `[编号][REVIEW]`（验收脚本）；观测 git log 即知任务进度。
