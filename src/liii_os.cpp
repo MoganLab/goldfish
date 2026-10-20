@@ -583,6 +583,9 @@ glue_console_kbhit (s7_scheme* sc) {
 static s7_pointer
 f_console_getch (s7_scheme* sc, s7_pointer args) {
 #ifdef TB_CONFIG_OS_WINDOWS
+  if (_kbhit () == 0) {
+    return s7_make_boolean (sc, false);
+  }
   int ch= _getch ();
   return s7_make_integer (sc, ch);
 #else
