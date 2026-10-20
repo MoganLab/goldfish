@@ -9,6 +9,8 @@
     (liii pi extension types)
     (liii pi extension registry)
     (liii pi extension event)
+    (liii pi extension discovery)
+    (liii pi extension loader)
   ) ;import
   (export
     ;; ExtensionRegistry
@@ -85,6 +87,15 @@
     ;; Event Lifecycle
     pi-on!
     pi-emit!
+
+    ;; Discovery & Loader
+    pi-scan-extension-dir
+    pi-discover-extensions
+    pi-default-builtin-extensions-dir
+    pi-load-extension
+    pi-load-extensions
+    pi-load-results-success-count
+    pi-load-results-failed-count
   ) ;export
   (begin
   ) ;begin

@@ -263,6 +263,9 @@
     register-flag! extension-register-flag! find-extension-flag
     extension-registry-flags-list register-command! extension-register-command!
     find-extension-command extension-registry-commands-list pi-on! pi-emit!
+    pi-scan-extension-dir pi-discover-extensions
+    pi-default-builtin-extensions-dir pi-load-extension pi-load-extensions
+    pi-load-results-success-count pi-load-results-failed-count
   ) ;export
   (begin
 
