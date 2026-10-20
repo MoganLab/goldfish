@@ -90,4 +90,26 @@
 
 (check (border-style? (border-style-resolve 'rounded)) => #t)
 
+;; 转轮动画与状态组件测试
+(let ((s (make-spinner "Loading..." :frames 'line)))
+  (check (component? s) => #t)
+  (check (spinner? s) => #t)
+  (check (loader? s) => #t)
+  (check (component-render s 40) => '("- Loading..."))
+  (check (spinner-tick! s) => "\\")
+  (check (component-render s 40) => '("\\ Loading..."))
+  (spinner-success! s "Done")
+  (check (spinner-status s) => 'success)
+  (check (component-render s 40) => '("✔ Done")))
+
+(let ((l (make-loader :frames 'dots :visible #f)))
+  (check (loader? l) => #t)
+  (check (spinner-visible? l) => #f)
+  (check (component-render l 40) => '())
+  (spinner-show! l)
+  (check (spinner-visible? l) => #t))
+
+(check (pair? (spinner-presets)) => #t)
+(check (list? (spinner-frames-resolve 'pipe)) => #t)
+
 (check-report)

@@ -26,11 +26,19 @@
     virtual-terminal-raw virtual-terminal-resize! make-standard-terminal
     standard-terminal? make-box box? make-vstack vstack? make-hstack hstack?
     <border-style> make-border-style border-style? border-style-resolve
+    make-spinner spinner? make-loader loader? spinner-tick! spinner-reset!
+    spinner-current-frame spinner-frame-index spinner-text spinner-set-text!
+    spinner-prefix spinner-set-prefix! spinner-suffix spinner-set-suffix!
+    spinner-interval spinner-set-interval! spinner-visible? spinner-set-visible!
+    spinner-show! spinner-hide! spinner-status spinner-set-status!
+    spinner-success! spinner-fail! spinner-error! spinner-warn! spinner-stop!
+    spinner-presets spinner-frames-resolve
   ) ;export
   (import (liii tui component)
     (liii tui text-width)
     (liii tui keys)
     (liii tui terminal)
     (liii tui box)
+    (liii tui loader)
   ) ;import
 ) ;define-library
