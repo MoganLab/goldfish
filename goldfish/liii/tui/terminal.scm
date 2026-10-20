@@ -27,11 +27,13 @@
     terminal-cursor-visible? terminal-hide-cursor! terminal-show-cursor!
     terminal-flush terminal-detect-size make-virtual-terminal virtual-terminal?
     virtual-terminal-screen virtual-terminal-raw virtual-terminal-resize!
+    virtual-terminal-push-key! virtual-terminal-pop-key! terminal-poll-key
     make-standard-terminal standard-terminal?
   ) ;export
   (import (liii tui terminal protocol)
     (liii tui terminal size)
     (liii tui terminal virtual)
     (liii tui terminal standard)
+    (liii tui terminal poll)
   ) ;import
 ) ;define-library

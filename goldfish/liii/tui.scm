@@ -30,7 +30,8 @@
     terminal-clear-line terminal-cursor-visible? terminal-hide-cursor!
     terminal-show-cursor! terminal-flush terminal-detect-size
     make-virtual-terminal virtual-terminal? virtual-terminal-screen
-    virtual-terminal-raw virtual-terminal-resize! make-standard-terminal
+    virtual-terminal-raw virtual-terminal-resize! virtual-terminal-push-key!
+    virtual-terminal-pop-key! terminal-poll-key make-standard-terminal
     standard-terminal? make-box box? make-vstack vstack? make-hstack hstack?
     <border-style> make-border-style border-style? border-style-resolve
     make-spinner spinner? make-loader loader? spinner-tick! spinner-reset!

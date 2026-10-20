@@ -1,7 +1,7 @@
 (define-library (liii os)
   (export os-arch os-type os-windows? os-linux? os-macos? os-temp-dir os-sep
     pathsep os-call mkdir chdir rmdir remove rename getenv putenv unsetenv
-    getcwd listdir access getlogin getpid os-tty?
+    getcwd listdir access getlogin getpid os-tty? console-kbhit? console-getch
   ) ;export
   (import (scheme base)
     (scheme process-context)
@@ -156,6 +156,14 @@
         (type-error "os-tty?: fd must be an integer")
         (g_os_tty_p fd)
       ) ;if
+    ) ;define
+
+    (define (console-kbhit?)
+      (g_console_kbhit)
+    ) ;define
+
+    (define (console-getch)
+      (g_console_getch)
     ) ;define
 
   ) ;begin

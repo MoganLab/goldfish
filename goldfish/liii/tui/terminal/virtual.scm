@@ -23,7 +23,8 @@
 
 (define-library (liii tui terminal virtual)
   (export make-virtual-terminal virtual-terminal? virtual-terminal-screen
-    virtual-terminal-raw virtual-terminal-resize!
+    virtual-terminal-raw virtual-terminal-resize! virtual-terminal-push-key!
+    virtual-terminal-pop-key!
   ) ;export
   (import (liii base)
     (liii error)
@@ -155,7 +156,7 @@
         ) ;unless
         (check-dimension w "make-virtual-terminal width")
         (check-dimension h "make-virtual-terminal height")
-        (let ((state (make-vt-state w h 0 0 #t (make-screen-lines w h) '())))
+        (let ((state (make-vt-state w h 0 0 #t (make-screen-lines w h) '() '())))
           (make-terminal-record 'virtual
             (lambda (term)
               (let ((st (terminal-data term)))
@@ -198,6 +199,24 @@
             (reverse res)
           ) ;if
         ) ;let
+      ) ;let*
+    ) ;define
+
+    (define (virtual-terminal-push-key! vt key)
+      (unless (virtual-terminal? vt)
+        (type-error "virtual-terminal-push-key!: expected virtual-terminal")
+      ) ;unless
+      (let ((state (terminal-data vt)))
+        (vt-keys-set! state (append (vt-keys state) (list key)))
+      ) ;let
+    ) ;define
+
+    (define (virtual-terminal-pop-key! vt)
+      (unless (virtual-terminal? vt)
+        (type-error "virtual-terminal-pop-key!: expected virtual-terminal")
+      ) ;unless
+      (let* ((state (terminal-data vt)) (q (vt-keys state)))
+        (if (null? q) #f (begin (vt-keys-set! state (cdr q)) (car q)))
       ) ;let*
     ) ;define
 

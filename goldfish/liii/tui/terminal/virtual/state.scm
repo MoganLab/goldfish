@@ -25,14 +25,14 @@
   (export <virtual-terminal-state> make-vt-state vt-state? vt-width
     vt-width-set! vt-height vt-height-set! vt-cursor-x vt-cursor-x-set!
     vt-cursor-y vt-cursor-y-set! vt-visible? vt-visible?-set! vt-lines
-    vt-lines-set! vt-raw vt-raw-set! make-char-row make-screen-lines
-    check-dimension scroll-up-one-line!
+    vt-lines-set! vt-raw vt-raw-set! vt-keys vt-keys-set! make-char-row
+    make-screen-lines check-dimension scroll-up-one-line!
   ) ;export
   (import (liii base) (liii error))
   (begin
 
     (define-record-type <virtual-terminal-state>
-      (make-vt-state width height cursor-x cursor-y visible? lines raw)
+      (make-vt-state width height cursor-x cursor-y visible? lines raw keys)
       vt-state?
       (width vt-width vt-width-set!)
       (height vt-height vt-height-set!)
@@ -41,6 +41,7 @@
       (visible? vt-visible? vt-visible?-set!)
       (lines vt-lines vt-lines-set!)
       (raw vt-raw vt-raw-set!)
+      (keys vt-keys vt-keys-set!)
     ) ;define-record-type
 
     (define <virtual-terminal-state> '<virtual-terminal-state>)

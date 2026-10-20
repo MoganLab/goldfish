@@ -25,6 +25,7 @@
 #include <tbox/tbox.h>
 
 #ifdef TB_CONFIG_OS_WINDOWS
+#include <conio.h>
 #include <io.h>
 #include <windows.h>
 #ifdef _MSC_VER
@@ -467,6 +468,39 @@ f_os_tty_p (s7_scheme* sc, s7_pointer args) {
   return s7_make_boolean (sc, ret != 0);
 }
 
+static s7_pointer
+f_console_kbhit (s7_scheme* sc, s7_pointer args) {
+#ifdef TB_CONFIG_OS_WINDOWS
+  return s7_make_boolean (sc, _kbhit () != 0);
+#else
+  return s7_make_boolean (sc, false);
+#endif
+}
+
+static void
+glue_console_kbhit (s7_scheme* sc) {
+  const char* name= "g_console_kbhit";
+  const char* desc= "(g_console_kbhit) => boolean, check if console key is ready";
+  glue_define (sc, name, desc, f_console_kbhit, 0, 0);
+}
+
+static s7_pointer
+f_console_getch (s7_scheme* sc, s7_pointer args) {
+#ifdef TB_CONFIG_OS_WINDOWS
+  int ch= _getch ();
+  return s7_make_integer (sc, ch);
+#else
+  return s7_make_boolean (sc, false);
+#endif
+}
+
+static void
+glue_console_getch (s7_scheme* sc) {
+  const char* name= "g_console_getch";
+  const char* desc= "(g_console_getch) => integer, read char from console without echo";
+  glue_define (sc, name, desc, f_console_getch, 0, 0);
+}
+
 static void
 glue_os_tty_p (s7_scheme* sc) {
   const char* name= "g_os_tty_p";
@@ -494,6 +528,8 @@ glue_liii_os (s7_scheme* sc) {
   glue_getlogin (sc);
   glue_getpid (sc);
   glue_os_tty_p (sc);
+  glue_console_kbhit (sc);
+  glue_console_getch (sc);
 }
 
 } // namespace goldfish
