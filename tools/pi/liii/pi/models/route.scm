@@ -67,16 +67,9 @@
       (let* ((p-str (if (symbol? provider) (symbol->string provider) provider))
              (store-models (%get-provider-models models-store p-str))
              (store-match (%find-model-in-list store-models model-id))
+             (builtin (%dict-ref PI_PROVIDER_BUILTIN_MODELS p-str '()))
             ) ;
-        (if
-          (or store-match
-            (let ((builtin (%dict-ref PI_PROVIDER_BUILTIN_MODELS p-str '())))
-              (%find-model-in-list builtin model-id)
-            ) ;let
-          ) ;or
-          #t
-          #f
-        ) ;if
+        (and (or store-match (%find-model-in-list builtin model-id)) #t)
       ) ;let*
     ) ;define
 
@@ -195,25 +188,19 @@
                (and (string? cli-m) (not (string-null? (string-trim-both cli-m))))
              ) ;has-cli-m?
              (env-gf-m (%safe-lookup-env "GF_PI_MODEL" opt-env))
-             (raw-explicit-m
+             (raw-m
                (cond (has-cli-m? cli-m)
                      ((and (string? env-gf-m) (not (string-null? (string-trim-both env-gf-m))))
                       env-gf-m
                      ) ;
                      (else #f)
                ) ;cond
-             ) ;raw-explicit-m
-             (slash-parts (if (and (string? raw-explicit-m) (string-contains? raw-explicit-m "/"))
-                            (string-split raw-explicit-m "/")
-                            #f
-                          ) ;if
-             ) ;slash-parts
-             (slash-p (and slash-parts (pair? slash-parts) (car slash-parts)))
+             ) ;raw-m
+             (slash? (and (string? raw-m) (string-contains? raw-m "/")))
+             (parts (if slash? (string-split raw-m "/") '()))
+             (slash-p (and slash? (pair? parts) (car parts)))
              (explicit-m
-               (if (and slash-parts (pair? (cdr slash-parts)))
-                 (cadr slash-parts)
-                 raw-explicit-m
-               ) ;if
+               (if (and slash? (pair? (cdr parts))) (cadr parts) raw-m)
              ) ;explicit-m
              (effective-p (or (and has-cli-p? cli-p) slash-p))
              (has-effective-p?
