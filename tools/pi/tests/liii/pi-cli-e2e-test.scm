@@ -7,7 +7,7 @@
   (liii subprocess)
   (liii sys)
   (liii pi)
-)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -39,6 +39,7 @@
 ) ;define
 
 ;; 等价于「无用户配置」的自建 fixture（仓库内绝对定位，不依赖 cwd）
+
 (define CONFIG_EMPTY_DIR
   (if (file-exists? "tests/fixtures/config-empty")
     "tests/fixtures/config-empty"
@@ -65,7 +66,7 @@
                            (cons "HTTPS_PROXY" "")
                            (cons "HTTP_PROXY" "")
                          ) ;list
-                         (get-environment-variables)
+                   (get-environment-variables)
                  ) ;append
        ) ;test-env
       ) ;
@@ -155,9 +156,12 @@
   ;; 7. CLI --provider anthropic print 模式端到端测试
   ;; GF_PI_MODEL 显式指定模型，避免与 provider 不匹配（任务 034 严格校验）
   (let* ((ant-env (append test-env
-                           (list (cons "ANTHROPIC_API_KEY" "sk-ant-test-e2e")
-                             (cons "ANTHROPIC_BASE_URL" base-url)
-                             (cons "GF_PI_MODEL" "claude-sonnet-4-5"))))
+                    (list (cons "ANTHROPIC_API_KEY" "sk-ant-test-e2e")
+                      (cons "ANTHROPIC_BASE_URL" base-url)
+                      (cons "GF_PI_MODEL" "claude-sonnet-4-5")
+                    ) ;list
+                  ) ;append
+         ) ;ant-env
          (cmd (list GF_BIN "pi" "--provider" "anthropic" "--print" "Hello Anthropic CLI")
          ) ;cmd
          (p (process-spawn cmd :env ant-env :stdout 'pipe :stderr 'pipe))
@@ -216,51 +220,71 @@
                                (cons "HOME" "/non-existent")
                                (cons "USERPROFILE" "C:\\non-existent")
                              ) ;list
-                             (get-environment-variables)
+                       (get-environment-variables)
                      ) ;append
          ) ;no-key-env
          (cmd (list GF_BIN "pi" "--provider" "deepseek" "--print" "Hello missing key"))
          (p (process-spawn cmd :env no-key-env :stdout 'pipe :stderr 'pipe))
          (code (process-wait p 10000))
-         (err (process-read p :stream 'stderr)))
+         (err (process-read p :stream 'stderr))
+        ) ;
     (check code => 1)
-    (check-true (string-contains? err "No credentials found for provider \"deepseek\""))
-    (process-close p))
+    (check-true (string-contains? err "No credentials found for provider \"deepseek\"")
+    ) ;check-true
+    (process-close p)
+  ) ;let*
 
   ;; 11. CLI --provider deepseek print 模式端到端测试（通过 stub server）
   ;; GF_PI_MODEL 显式指定模型，避免与 provider 不匹配（任务 034 严格校验）
   (let* ((ds-env (append test-env
-                           (list (cons "DEEPSEEK_API_KEY" "ds-test-key-e2e")
-                             (cons "DEEPSEEK_BASE_URL" base-url)
-                             (cons "ANTHROPIC_BASE_URL" base-url)
-                             (cons "GF_PI_MODEL" "deepseek-v4-pro")
-                             (cons "GF_PI_BASE_URL" base-url))))
+                   (list (cons "DEEPSEEK_API_KEY" "ds-test-key-e2e")
+                     (cons "DEEPSEEK_BASE_URL" base-url)
+                     (cons "ANTHROPIC_BASE_URL" base-url)
+                     (cons "GF_PI_MODEL" "deepseek-v4-pro")
+                     (cons "GF_PI_BASE_URL" base-url)
+                   ) ;list
+                 ) ;append
+         ) ;ds-env
          (cmd (list GF_BIN "pi" "--provider" "deepseek" "--print" "Hello DeepSeek CLI"))
          (p (process-spawn cmd :env ds-env :stdout 'pipe :stderr 'pipe))
          (code (process-wait p 10000))
-         (out (process-read p :stream 'stdout)))
+         (out (process-read p :stream 'stdout))
+        ) ;
     (check code => 0)
     (check-true (or (string-contains? out "Hello from Claude stub!")
-                    (string-contains? out "from Claude stream!")))
-    (process-close p))
+                  (string-contains? out "from Claude stream!")
+                ) ;or
+    ) ;check-true
+    (process-close p)
+  ) ;let*
 
   ;; 12. CLI --session-timeout 0 关闭兜底端到端测试
-  (let* ((cmd (list GF_BIN "pi" "--model" "multi-turn" "--session-timeout" "0" "--print" "Run multi turn"))
+  (let* ((cmd (list GF_BIN "pi" "--model" "multi-turn" "--session-timeout" "0"
+                "--print" "Run multi turn"
+              ) ;list
+         ) ;cmd
          (p (process-spawn cmd :env test-env :stdout 'pipe :stderr 'pipe))
          (code (process-wait p 15000))
-         (out (process-read p :stream 'stdout)))
+         (out (process-read p :stream 'stdout))
+        ) ;
     (check code => 0)
     (check-true (string-contains? out "Multi-turn tool completed successfully!"))
-    (process-close p))
+    (process-close p)
+  ) ;let*
 
   ;; 13. CLI --session-timeout 立即超时（负数）端到端测试
-  (let* ((cmd (list GF_BIN "pi" "--model" "multi-turn" "--session-timeout" "-1" "--print" "Run timeout"))
+  (let* ((cmd (list GF_BIN "pi" "--model" "multi-turn" "--session-timeout" "-1"
+                "--print" "Run timeout"
+              ) ;list
+         ) ;cmd
          (p (process-spawn cmd :env test-env :stdout 'pipe :stderr 'pipe))
          (code (process-wait p 10000))
-         (err (process-read p :stream 'stderr)))
+         (err (process-read p :stream 'stderr))
+        ) ;
     (check code => 1)
     (check-true (string-contains? err "Session timeout exceeded"))
-    (process-close p))
+    (process-close p)
+  ) ;let*
 
   (process-kill proc)
 ) ;let*
