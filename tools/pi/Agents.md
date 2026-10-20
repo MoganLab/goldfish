@@ -20,7 +20,7 @@ bin/gf pi --mode json "..."      # JSON 模式：JSONL 事件流写 stdout
 `~/.pi/agent/` 只读配置复用、全套 Provider（google / kimi-coding / deepseek / minimax / zai-coding-cn / anthropic）、
 流式 SSE、Agent 循环、会话持久化与 `--continue`、以及 blueprint / compass / simplify / red-green / compact 等全部扩展模式。
 
-**平台范围裁定（用户裁定 2026-10-20）**：**本次任务开发机器是 Windows，目前不需要考虑 Linux**。当前全力在 Windows 开发机上推进 `(liii tui)` 库及 `demo/tui/snake.scm`；**等 066 完成之后，再在 Linux 上做系统适配**。
+**平台范围裁定（用户裁定 2026-10-20）**：**本次任务开发机器是 Windows，目前不需要考虑 Linux**。当前全力在 Windows 开发机上推进 `(liii tui)` 库及 `demo/tui/snake.scm`；**等 067 完成之后，再在 Linux 上做系统适配**。
 
 ## 2. 仍生效的关键规格（回归依据）
 
@@ -95,6 +95,7 @@ bin/gf pi --mode json "..."      # JSON 模式：JSONL 事件流写 stdout
 | 064 | `(liii tui)` 差分渲染闪烁修复 | **先复现、后修复**：在 Windows Terminal 真实终端中运行 `demo/tui/snake.scm`（及连续帧压测）复现闪烁并留证。**注意：静态截图无法捕捉瞬时闪烁**，复现方法采用：① 捕获原始 ANSI 写入流，逐帧标注 `clear-line` 与 `update` 的先后顺序；② 实现「逐写入重绘模拟器」——每收到一次写入/清行就让虚拟屏幕快照一次，把 `terminal-clear-line` 后、文本写入前的瞬时状态还原为可断言的空白行快照；③ 辅以真实终端人工观察与逐帧录屏（若环境可用）。修复前后用同一套证据对比。确认根因（重点排查：每次 update 前 `terminal-clear-line` 先清行、每帧重复发送 hide-cursor、帧内多次小写入导致终端绘制中间态）；随后修复差分渲染输出路径：变化行改为原地覆写、仅在新行更短时清除行尾，不再先清空整行；仅在光标可见性变化时发送 hide/show；整帧写入用终端同步输出（DECSET 2026，`ESC[?2026h`/`ESC[?2026l`，不支持时安全降级）包裹并统一 flush，杜绝帧中间重绘；在 `virtual-terminal` 捕获原始 ANSI，断言更新行不再出现「clear-line 后紧跟同位置 update」、未变化行零写入、缩短行正确清除尾部、每帧同步边界成对出现；更新 062 相关单测；逐写入重绘模拟器在修复后应不再出现被更新行的空白中间态，且每帧成对出现同步输出边界；真实终端复测确认闪烁消失；单文件 <=300 行、实现文件 MIT 头、测试无协议头。**复现证据（Claude，2026-10-20）**：真实终端 15～16 fps 连拍，4 秒 61 帧中 10 次整行瞬时空白（Heartbeat 行 y=271..308，前后帧 ink 125/126，约每 7 帧一次）；ANSI 流 28 帧中 53 次 `clear-line→cursor→text`，逐写入重放在被更新行产生 40 次空白中间态；复现脚本 `tools/pi/devel/064-capture.py`，证据与前后帧对照见 `tools/pi/devel/064-repro/` | 已完成（064.scm 30 项 + 50 个 TUI 单测全绿；真实连拍 63 帧 0 次空白；用户实机确认不闪烁；REVIEW 两提交已推送；google/gemini-3.8-flash） |
 | 065 | 贪吃蛇中段不可见问题排查与修复 | 用户报告：运行 `demo/tui/snake.scm` 时贪吃蛇身体“中间有一段不可见”；可能是 `demo/tui/snake` 的蛇身/视图实现问题，也可能是 `(liii tui)` 基础设施（box 布局、文本宽度、差分渲染）问题。先稳定复现：构造长蛇与穿墙场景，比较 `render-grid-lines` 的原始行、`virtual-terminal` 屏幕与真实终端画面，确认丢段发生在游戏视图还是终端输出层；再修复并补单测（蛇身每节 `o` 必须出现在预期坐标、穿墙时两侧身体均可见或按设计处理），保留 064 的零闪烁门禁（`064.scm` 与 `064-capture.py` 0 事件）；单文件 <=300 行、实现文件 MIT 头、测试无协议头 | 待执行 |
 | 066 | `demo/tui/snake` 示例配色 | 为贪吃蛇示例增加 ANSI 颜色分层（蛇头、蛇身、食物、边框、计分/提示等使用不同 SGR 样式），提升真实终端观感。**关键约束**：颜色序列不得参与显示宽度计算；`virtual-terminal` 的屏幕内容与宽度断言必须能忽略/解析 SGR；差分渲染比较需按“可见文本 + 样式”处理，避免带色行被误判为变长/变短而产生行尾残留或整帧重绘闪烁；支持 `NO_COLOR` 或非 TTY 时安全降级为无色；配色辅助优先放在 `demo/tui/snake/`，若确需通用 ANSI 感知能力则加入 `(liii tui text-width)` 并配单测。验收：新增 066.scm，复跑 062/063/064（含 `064-capture.py` 0 次 blank-band event）与全部 TUI/snake 单测；单文件 <=300 行、实现文件 MIT 头、测试无协议头 | 待执行 |
+| 067 | 贪吃蛇棋盘随终端尺寸自适应 | 运行 `demo/tui/snake.scm` 时，棋盘区域需随终端窗口放大/缩小：启动时用 `terminal-size` 计算可用宽高（扣除棋盘边框、右侧 STATS/HELP 侧栏与间距，设置合理下限如 10x5 与上限）；运行中每帧或按需检测终端尺寸变化，变化时调用 `screen-resize!` 并触发全量重绘；逻辑层新增 `snake-resize`（或等价 API），按新宽高对蛇头/蛇身/食物坐标取模或安全裁剪，缩小时避免越界、重复格与误判自碰；窄终端应折叠侧栏或改为上下布局；`component-render` 宽度改用实际终端宽度；若 Windows 下 `terminal-size` 不能实时反映窗口变化，需实现可测试的轮询/环境变量回退并在文档记录限制。resize 后仍须保持 063/064 的交互与零闪烁（复跑 `064-capture.py` 0 次 blank-band event）；补 logic/view 单测与 067.scm 验收（virtual-terminal 放大/缩小断言），单文件 <=300 行、MIT 头、测试无头 | 待执行 |
 
 ### 3.2 历史里程碑收官记录（已完成）
 - **任务 001~053 全部结项**：脚本模式及所有核心能力已在 commit `[1069]` 与 `[1074]` 落地并全部并入主干。历史任务文档与验收脚本完整保留在 `tools/pi/devel/001.md~053.md` 中。
@@ -115,7 +116,7 @@ RPC 模式；extensions/MCP/codemode/packages/themes/prompt templates/skills；
 图片输入（暂缓）；OAuth 凭据刷新（auth.json 的 oauth 类型条目不消费）；
 会话写入 `~/.pi/agent/` 管理；项目级 `.pi/settings.json`；Anthropic OAuth 刷新；
 **`(liii tui)` 内部不做 markdown 渲染**（定位为轻量纯通用 TUI 基础库）；
-**当前阶段跨平台（聚焦 Windows 开发机，目前不考虑 Linux；等 066 完成后再做 Linux 适配）**。
+**当前阶段跨平台（聚焦 Windows 开发机，目前不考虑 Linux；等 067 完成后再做 Linux 适配）**。
 
 ## 5. 阶段完成记录（原 §11 阶段表，全部完成）
 

@@ -232,7 +232,7 @@ timeout 1800 pi -a -p @tools/pi/Agents.md "执行任务 ddd 的验收阶段：1)
 
 TUI 开发涉及终端底层 IO，自动化流水线在无真实交互终端下运行，必须严格遵循以下原则：
 1. **平台聚焦（用户裁定）**：**本次任务开发机器为 Windows，目前不需要考虑 Linux**；
-   当前全力在 Windows 上跑通 `(liii tui)` 库与 `demo/tui/snake.scm` 贪吃蛇验证；**等 066
+   当前全力在 Windows 上跑通 `(liii tui)` 库与 `demo/tui/snake.scm` 贪吃蛇验证；**等 067
    完成之后，再在 Linux 上做系统适配**。
 2. **逻辑与 IO 解耦**：ANSI 转义序列生成、键盘按键解析、行编辑状态转移、界面布局计算
    一律写成纯函数，在单元测试中通过输入字节流/字符串与断言返回值测试（TDD），绝不在
@@ -287,7 +287,7 @@ TUI 开发涉及终端底层 IO，自动化流水线在无真实交互终端下�
 - **脚本模式阶段（001~053）已收官**：2026-10-20 由 commit `[1069]`（PR #1141）与
   `[1074]` 完成合入主干，脚本模式（print/json、全 provider、全模式）全量通过。
 - **当前 TUI 阶段收官标准**：
-  TUI 任务表（054~066）全部完成后，同样由 Claude Code 执行收官：
+  TUI 任务表（054~067）全部完成后，同样由 Claude Code 执行收官：
   1. **PR 检查**：任务分支 → `main` 的合并请求，确认 CI 全绿；
   2. **门禁复跑**：`xmake b goldfish` → `bin/gf fmt` → `git diff --exit-code` →
      `bin/gf check` → 全量测试；

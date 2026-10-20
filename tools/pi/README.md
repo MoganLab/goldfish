@@ -330,7 +330,7 @@ tools/pi/liii/
   注：minimax 与 minimax-cn 双 provider 均可用；环境变量 MINIMAX_API_KEY /
   MINIMAX_BASE_URL 可覆盖（任务 035 env 优先体系）。
 - [ ] **交互式 TUI 与 `(liii tui)` 基础库**：直接执行 `bin/gf pi` 进入交互式编程终端。
-  - 第一阶段：通用轻量终端 UI 库 `(liii tui)`（组件协议、Text、TruncatedText、TextWidth 显示宽度/ANSI 感知、Keys 按键解析、VirtualTerminal、Box、Loader、Editor、MainScreen 差分渲染；不含 markdown 渲染）；阶段验收成果为 `demo/tui/snake.scm` 终端贪吃蛇交互游戏。**开发机环境为 Windows，当前暂不考虑 Linux**。任务 064 已用同步输出（DECSET 2026）与原地覆写修复真实终端 MainScreen 重绘闪烁并由用户实机确认；任务 065 跟进贪吃蛇中段不可见的排查与修复；任务 066 为贪吃蛇示例增加 ANSI 配色（颜色不参与宽度计算、可降级）。
+  - 第一阶段：通用轻量终端 UI 库 `(liii tui)`（组件协议、Text、TruncatedText、TextWidth 显示宽度/ANSI 感知、Keys 按键解析、VirtualTerminal、Box、Loader、Editor、MainScreen 差分渲染；不含 markdown 渲染）；阶段验收成果为 `demo/tui/snake.scm` 终端贪吃蛇交互游戏。**开发机环境为 Windows，当前暂不考虑 Linux**。任务 064 已用同步输出（DECSET 2026）与原地覆写修复真实终端 MainScreen 重绘闪烁并由用户实机确认；任务 065 跟进贪吃蛇中段不可见的排查与修复；任务 066 为贪吃蛇示例增加 ANSI 配色（颜色不参与宽度计算、可降级）；任务 067 让棋盘随终端尺寸放大/缩小。
   - 第二阶段（后续工作）：在 Linux 平台做系统适配；引入 Markdown 渲染与富文本排版；TUI 与 Agent 循环对接；Slash 命令系统（`/model`, `/help`, `/clear` 等）。
 - [x] **`pi-multikey` 密钥池与 429/403 自动轮换（任务 033）**：对照 Node pi 的 `pi-multikey` 扩展，bin/gf pi 内置原生实现。已实测通过。
 - [ ] **4 字节 UTF-8 + '<' 挂起**：prompt 同时含 4 字节 UTF-8 字符（如 🚀、𠀀）与 `<` 时进程静默挂起且连 HTTP 300s 超时都不生效（复现：`timeout 60 bin/gf pi -p '🚀 <'`）。【待重做】
