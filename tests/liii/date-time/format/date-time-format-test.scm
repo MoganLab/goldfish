@@ -1,10 +1,12 @@
 (import (liii check)
-        (liii date-time date)
-        (liii date-time clock-time)
-        (liii date-time moment)
-        (liii date-time timezone)
-        (liii date-time timestamp)
-        (liii date-time format))
+  (liii date-time date)
+  (liii date-time clock-time)
+  (liii date-time moment)
+  (liii date-time time-delta)
+  (liii date-time timezone)
+  (liii date-time timestamp)
+  (liii date-time format)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -44,7 +46,7 @@
 (check (date-time-format ts "%y") => "24")
 (check (date-time-format ts "%m") => "05")
 (check (date-time-format ts "%d") => "09")
-(check (date-time-format ts "%j") => "130") ; 年内第130天 (001-366)
+(check (date-time-format ts "%j") => "130")
 (check (date-time-format ts "%F") => "2024-05-09")
 
 ;; 3. 时分秒与精度说明符（与 Python 对齐）
@@ -58,14 +60,17 @@
 
 ;; 4. 12 小时制与 %p（与 Python 对齐）
 (let ((ts-am (make-timestamp 2024 1 1 0 15 30 (utc-timezone))))
-  (check (date-time-format ts-am "%I %p") => "12 AM"))
+  (check (date-time-format ts-am "%I %p") => "12 AM")
+) ;let
 
 (let ((ts-noon (make-timestamp 2024 1 1 12 0 0 (utc-timezone))))
-  (check (date-time-format ts-noon "%I %p") => "12 PM"))
+  (check (date-time-format ts-noon "%I %p") => "12 PM")
+) ;let
 
 ;; 5. 微秒说明符 %f（与 Python 对齐，6位补零）
-(let ((ts-frac (make-timestamp 2024 5 9 14 30 (+ 5 123456/1000000) (utc-timezone))))
-  (check (date-time-format ts-frac "%S.%f") => "05.123456"))
+(let ((ts-frac (make-timestamp 2024 5 9 14 30 (+ 5 1929/15625) (utc-timezone))))
+  (check (date-time-format ts-frac "%S.%f") => "05.123456")
+) ;let
 
 (check (date-time-format ts "%f") => "000000")
 
@@ -75,7 +80,7 @@
 (check (date-time-format ts "%A") => "Thursday")
 (check (date-time-format ts "%b") => "May")
 (check (date-time-format ts "%B") => "May")
-(check (date-time-format ts "%w") => "4") ; Python 规范: 0 为周日，4 为周四
+(check (date-time-format ts "%w") => "4")
 
 ;; 周日测试: 2024-01-07 是周日 Sunday (%w 应为 0)
 (let ((ts-sun (make-timestamp 2024 1 7 10 0 0 (utc-timezone))))
@@ -84,17 +89,27 @@
   (check (date-time-format ts-sun "%w") => "0")
   (check (date-time-format ts-sun "%b") => "Jan")
   (check (date-time-format ts-sun "%B") => "January")
-  (check (date-time-format ts-sun "%j") => "007"))
+  (check (date-time-format ts-sun "%j") => "007")
+) ;let
 
 ;; 7. 时区说明符（与 Python 对齐）
 (check (date-time-format ts "%z") => "+0000")
 (check (date-time-format ts "%:z") => "+00:00")
 (check (date-time-format ts "%Z") => "UTC")
 
-(let ((ts-sh (make-timestamp 2024 5 9 14 30 5 (tz-timezone "Asia/Shanghai"))))
-  (check (date-time-format ts-sh "%z") => "+0800")
-  (check (date-time-format ts-sh "%:z") => "+08:00")
-  (check (date-time-format ts-sh "%Z") => "CST"))
+(let ((ts-ny (make-timestamp 2024 5 9 14 30 5 (tz-timezone "America/New_York"))))
+  (check (date-time-format ts-ny "%z") => "-0400")
+  (check (date-time-format ts-ny "%:z") => "-04:00")
+  (check (date-time-format ts-ny "%Z") => "EDT")
+) ;let
+
+(let ((ts-offset (make-timestamp 2024 5 9 14 30 5 (utc-offset-timezone (hours-delta 8)))
+      ) ;ts-offset
+     ) ;
+  (check (date-time-format ts-offset "%z") => "+0800")
+  (check (date-time-format ts-offset "%:z") => "+08:00")
+  (check (date-time-format ts-offset "%Z") => "UTC+08:00")
+) ;let
 
 ;; 8. 复合与快捷说明符（与 Python 对齐）
 (check (date-time-format ts "%x") => "05/09/24")
@@ -111,14 +126,17 @@
   (check (date-time-format d "%F") => "2024-05-09")
   (check (date-time-format d "%Y/%m/%d") => "2024/05/09")
   (check (date-time-format d "%A") => "Thursday")
-  (check (date-time-format d "%w") => "4"))
+  (check (date-time-format d "%w") => "4")
+) ;let
 
 (let ((ct (make-clock-time 14 30 5)))
   (check (date-time-format ct "%T") => "14:30:05")
-  (check (date-time-format ct "%H:%M") => "14:30"))
+  (check (date-time-format ct "%H:%M") => "14:30")
+) ;let
 
 (let ((m (make-moment (make-date 2024 5 9) (+ (* 14 3600) (* 30 60) 5))))
-  (check (date-time-format m "%F %T") => "2024-05-09 14:30:05"))
+  (check (date-time-format m "%F %T") => "2024-05-09 14:30:05")
+) ;let
 
 ;; 11. 错误处理
 (check-catch 'type-error (date-time-format 12345))
