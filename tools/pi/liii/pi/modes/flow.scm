@@ -21,16 +21,30 @@
     (liii pi compact flow)
     (liii pi modes output)
     (liii pi code-review)
-    (liii pi red-green prompt)
-    (liii pi blueprint prompt)
-    (liii pi blueprint runtime)
-    (liii pi compass prompt)
+    (liii pi extension types)
+    (liii pi extension registry)
+    (liii pi extension builtin prompts)
   ) ;import
   (export prepare-system-prompt persist-initial-user-msg!
     run-agent-loop-with-timeout emit-json-event run-session-flow
     run-compact-flow pi-auto-review-system-prompt
   ) ;export
   (begin
+
+    (define (%collect-custom-tool-info reg)
+      (if (not (extension-registry? reg))
+        '()
+        (map
+          (lambda (t)
+            (list (extension-tool-def-name t)
+              (cons 'snippet (extension-tool-def-snippet t))
+              (cons 'guidelines (extension-tool-def-guidelines t))
+            ) ;list
+          ) ;lambda
+          (extension-registry-tools-list reg)
+        ) ;map
+      ) ;if
+    ) ;define
 
     (define (prepare-system-prompt cfg parsed)
       (let* ((cwd (path->string (path-cwd)))
@@ -42,12 +56,20 @@
                         (or (pi-args-ref parsed 'append-system-prompt) '())
                       ) ;map
              ) ;appends
+             (reg
+               (or (and (pair? cfg) (assoc 'registry cfg) (cdr (assoc 'registry cfg)))
+                 (current-extension-registry)
+                 (default-extension-registry)
+               ) ;or
+             ) ;reg
+             (custom-info (%collect-custom-tool-info reg))
             ) ;
         (pi-build-system-prompt (cdr (assoc 'tools cfg))
           cwd
           (pi-load-project-context cwd)
           sys-override
           appends
+          custom-info
         ) ;pi-build-system-prompt
       ) ;let*
     ) ;define
@@ -63,24 +85,18 @@
 
     (define (%system-prompt-for cfg parsed)
       (let* ((base (prepare-system-prompt cfg parsed))
-             (reviewed (if (pi-args-ref parsed 'auto-review) (pi-auto-review-system-prompt base) base)
-             ) ;reviewed
+             (reg
+               (or (and (pair? cfg) (assoc 'registry cfg) (cdr (assoc 'registry cfg)))
+                 (current-extension-registry)
+                 (default-extension-registry)
+               ) ;or
+             ) ;reg
             ) ;
-        (let ((with-tdd (if (pi-args-ref parsed 'red-green)
-                          (pi-tdd-turn-system-prompt reviewed)
-                          reviewed
-                        ) ;if
-              ) ;with-tdd
-             ) ;
-          (let ((final (if (pi-args-ref parsed 'plan-next)
-                         (pi-blueprint-turn-system-prompt with-tdd pi-blueprint-current)
-                         with-tdd
-                       ) ;if
-                ) ;final
-               ) ;
-            (pi-compass-turn-system-prompt final parsed (path->string (path-cwd)))
+        (lambda (tool-calls)
+          (let ((injections (extension-registry-collect-prompt-injectors reg tool-calls)))
+            (if (null? injections) base (string-join (cons base injections) "\n\n"))
           ) ;let
-        ) ;let
+        ) ;lambda
       ) ;let*
     ) ;define
 

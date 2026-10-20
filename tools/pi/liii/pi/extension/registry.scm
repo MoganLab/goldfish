@@ -11,6 +11,7 @@
     (liii pi extension registry flags)
     (liii pi extension registry commands)
     (liii pi extension registry flows)
+    (liii pi extension registry prompt)
   ) ;import
   (export target->registry
     upsert-by-key
@@ -53,6 +54,11 @@
 
     register-config-augmenter!
     extension-registry-augmenters-list
+
+    register-prompt-injector!
+    extension-register-prompt-injector!
+    extension-registry-prompt-injectors-list
+    extension-registry-collect-prompt-injectors
   ) ;export
   (begin
   ) ;begin

@@ -8,6 +8,7 @@
   (import (scheme base)
     (liii string)
     (liii pi read)
+    (liii pi message types)
     (liii pi code-review language)
   ) ;import
   (export pi-build-review-injection pi-edited-files-from-tool-calls)
@@ -20,9 +21,31 @@
     ) ;define
 
     (define (%block-value key alt-key blk default)
-      (let ((pair (or (assoc key blk) (assoc alt-key blk))))
-        (if (pair? pair) (cdr pair) default)
-      ) ;let
+      (cond
+       ((pi-tool-call-block? blk)
+        (cond ((or (equal? key "name") (equal? alt-key 'name)) (pi-tool-call-block-name blk))
+              ((or (equal? key "arguments") (equal? alt-key 'arguments))
+               (pi-tool-call-block-arguments blk)
+              ) ;
+              ((or (equal? key "id") (equal? alt-key 'id)) (pi-tool-call-block-id blk))
+              ((or (equal? key "thought-signature") (equal? alt-key 'thought-signature))
+               (pi-tool-call-block-thought-signature blk)
+              ) ;
+              (else default)
+        ) ;cond
+       ) ;
+       ((list? blk)
+        (let ((pair (or (assoc key blk) (assoc alt-key blk))))
+          (if (pair? pair) (cdr pair) default)
+        ) ;let
+       ) ;
+       ((let? blk)
+        (let ((sym (if (symbol? alt-key) alt-key (string->symbol key))))
+          (if (defined? sym blk) (blk sym) default)
+        ) ;let
+       ) ;
+       (else default)
+      ) ;cond
     ) ;define
 
     (define (%languages files)

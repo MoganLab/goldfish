@@ -1,5 +1,6 @@
 (import (liii check)
         (liii string)
+        (liii pi message)
         (liii pi code-review auto)
 ) ;import
 
@@ -89,5 +90,17 @@
 ) ;let*
 
 (check (pi-edited-files-from-tool-calls '()) => '())
+
+;; 真实 <pi-tool-call-block> record 结构
+(let* ((calls (list (pi-tool-call-block "c1" "write" '(("path" . "foo.scm")) :thought-signature "sig-1234567890")
+                    (pi-tool-call-block "c2" "edit" '(("path" . "bar.py")))
+                    (pi-tool-call-block "c3" "bash" '(("command" . "ls")))
+                    (pi-tool-call-block "c4" "write" '(("path" . "foo.scm")))))
+       (files (pi-edited-files-from-tool-calls calls)))
+  (check (length files) => 2)
+  (check (cdr (assoc 'path (list-ref files 0))) => "foo.scm")
+  (check (cdr (assoc 'language (list-ref files 0))) => "scheme")
+  (check (cdr (assoc 'path (list-ref files 1))) => "bar.py")
+  (check (cdr (assoc 'language (list-ref files 1))) => "python"))
 
 (check-report)

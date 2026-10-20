@@ -28,14 +28,7 @@
          . "Make precise file edits with exact text replacement, including multiple disjoint edits in one call")
         ("ls" . "List directory contents")
         ("find" . "Find files by glob pattern (respects .gitignore)")
-        ("grep" . "Search file contents for patterns (respects .gitignore)")
-        ("tdd_status" . "Check the current TDD state and phase")
-        ("tdd_advance"
-         . "Manually advance the TDD phase when auto-detection doesn't trigger")
-        ("tdd_reset" . "Reset the TDD session to idle state")
-        ("codebase_map"
-         . "Get or generate a structured map of the current codebase")
-        ("code_tour" . "Get a guided code tour for a specific topic or area"))
+        ("grep" . "Search file contents for patterns (respects .gitignore)"))
     ) ;define
 
     (define PI_BUILTIN_TOOL_GUIDELINES
@@ -50,17 +43,7 @@
          "Keep edits[].oldText as small as possible while still being unique in the file. Do not pad with large unchanged regions.")
         ("ls")
         ("find")
-        ("grep")
-        ("tdd_status"
-         "Use TDD tools to check, advance, or reset the current TDD session state.")
-        ("tdd_advance"
-         "Use TDD tools to check, advance, or reset the current TDD session state.")
-        ("tdd_reset"
-         "Use TDD tools to check, advance, or reset the current TDD session state.")
-        ("codebase_map"
-         "Use codebase_map to understand the overall project structure. Use code_tour to walk through specific areas in detail.")
-        ("code_tour"
-         "Use codebase_map to understand the overall project structure. Use code_tour to walk through specific areas in detail."))
+        ("grep"))
     ) ;define
 
     (define (pi-resolve-prompt-input input)
@@ -119,6 +102,34 @@
       ) ;let
     ) ;define
 
+    (define (%find-snippet name custom-info)
+      (let ((custom (assoc name custom-info)))
+        (cond
+         ((and custom (pair? (cdr custom)) (assoc 'snippet (cdr custom)))
+          (cdr (assoc 'snippet (cdr custom)))
+         ) ;
+         ((and custom (string? (cdr custom))) (cdr custom))
+         ((assoc name PI_BUILTIN_TOOL_SNIPPETS) => cdr)
+         (else #f)
+        ) ;cond
+      ) ;let
+    ) ;define
+
+    (define (%find-guidelines name custom-info)
+      (let ((custom (assoc name custom-info)))
+        (cond
+         ((and custom (pair? (cdr custom)) (assoc 'guidelines (cdr custom)))
+          (let ((g (cdr (assoc 'guidelines (cdr custom)))))
+            (if (list? g) g (list (object->string g)))
+          ) ;let
+         ) ;
+         ((and custom (list? (cdr custom))) (cdr custom))
+         ((assoc name PI_BUILTIN_TOOL_GUIDELINES) => cdr)
+         (else '())
+        ) ;cond
+      ) ;let
+    ) ;define
+
     (define (%build-tools-section tools custom-info)
       (let loop
         ((ts tools) (lines '()))
@@ -129,12 +140,8 @@
               "\n\nIn addition to the tools above, you may have access to other custom tools depending on the project."
             ) ;string-append
           ) ;if
-          (let* ((name (car ts))
-                 (snippet-pair (or (assoc name custom-info) (assoc name PI_BUILTIN_TOOL_SNIPPETS))
-                 ) ;snippet-pair
-                 (snippet (if snippet-pair (cdr snippet-pair) #f))
-                ) ;
-            (if snippet
+          (let* ((name (car ts)) (snippet (%find-snippet name custom-info)))
+            (if (and (string? snippet) (> (string-length snippet) 0))
               (loop (cdr ts) (cons (string-append "- " name ": " snippet) lines))
               (loop (cdr ts) lines)
             ) ;if
@@ -148,10 +155,7 @@
         ((ts tools) (acc '()))
         (if (null? ts)
           (reverse acc)
-          (let* ((name (car ts))
-                 (g-pair (or (assoc name custom-info) (assoc name PI_BUILTIN_TOOL_GUIDELINES)))
-                 (gl (if g-pair (cdr g-pair) '()))
-                ) ;
+          (let* ((name (car ts)) (gl (%find-guidelines name custom-info)))
             (loop (cdr ts) (append (reverse gl) acc))
           ) ;let*
         ) ;if

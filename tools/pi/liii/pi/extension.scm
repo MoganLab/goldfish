@@ -23,6 +23,7 @@
     extension-registry-flows
     extension-registry-validators
     extension-registry-augmenters
+    extension-registry-prompt-injectors
     set-extension-registry-tools!
     set-extension-registry-flags!
     set-extension-registry-commands!
@@ -30,6 +31,7 @@
     set-extension-registry-flows!
     set-extension-registry-validators!
     set-extension-registry-augmenters!
+    set-extension-registry-prompt-injectors!
     extension-registry-get-listeners
 
     ;; ExtensionAPI
@@ -117,6 +119,11 @@
 
     register-config-augmenter!
     extension-registry-augmenters-list
+
+    register-prompt-injector!
+    extension-register-prompt-injector!
+    extension-registry-prompt-injectors-list
+    extension-registry-collect-prompt-injectors
 
     current-extension-registry
     set-current-extension-registry!

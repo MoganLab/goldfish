@@ -20,6 +20,7 @@
     extension-registry-flows
     extension-registry-validators
     extension-registry-augmenters
+    extension-registry-prompt-injectors
     set-extension-registry-tools!
     set-extension-registry-flags!
     set-extension-registry-commands!
@@ -27,6 +28,7 @@
     set-extension-registry-flows!
     set-extension-registry-validators!
     set-extension-registry-augmenters!
+    set-extension-registry-prompt-injectors!
 
     ;; ExtensionAPI
     make-extension-api

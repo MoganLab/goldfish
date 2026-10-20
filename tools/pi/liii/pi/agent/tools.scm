@@ -13,13 +13,16 @@
     (liii pi message)
     (liii pi tools types)
     (liii pi tools record)
-    (liii pi red-green gate)
-    (liii pi red-green observe)
+    (liii pi extension types)
+    (liii pi extension registry)
+    (liii pi extension event)
+    (liii pi extension builtin tdd)
   ) ;import
   (export pi-agent-assoc-val pi-first-block-from-content
     pi-extract-tool-result-text pi-make-tool-result-msg pi-execute-one-tool-call
-    pi-execute-tool-calls pi-fail-tool-calls-length pi-filter-tool-calls
-    pi-extract-tool-result-blocks
+    pi-execute-one-tool-call-with-status pi-execute-tool-calls
+    pi-execute-tool-calls-with-status pi-fail-tool-calls-length
+    pi-filter-tool-calls pi-extract-tool-result-blocks
   ) ;export
   (begin
 
@@ -56,10 +59,21 @@
       ) ;let
     ) ;define
 
-    (define* (pi-execute-one-tool-call call emit timeout (opt-config #f))
+    (define (%active-registry opt-config)
+      (cond ((extension-registry? opt-config) opt-config)
+            ((and (pair? opt-config) (assoc 'registry opt-config))
+             (cdr (assoc 'registry opt-config))
+            ) ;
+            ((current-extension-registry) => (lambda (r) r))
+            (else (default-extension-registry))
+      ) ;cond
+    ) ;define
+
+    (define* (pi-execute-one-tool-call-with-status call emit timeout (opt-config #f))
       (let* ((id (pi-agent-assoc-val 'id "id" call ""))
              (name (pi-agent-assoc-val 'name "name" call ""))
              (args (pi-agent-assoc-val 'arguments "arguments" call '()))
+             (reg (%active-registry opt-config))
             ) ;
         (when (procedure? emit)
           (emit 'tool_execution_start id name args)
@@ -72,39 +86,135 @@
             ) ;when
           ) ;let
         ) ;when
-        (let* ((gate-message (pi-tdd-write-gate name args))
-               (raw-res
-                 (if gate-message
-                   (pi-tool-result gate-message #t)
-                   (if opt-config
-                     (apply execute-tool-call name args :timeout timeout (list :config opt-config))
-                     (execute-tool-call name args :timeout timeout)
-                   ) ;if
-                 ) ;if
-               ) ;raw-res
-               (is-err? (if (pi-tool-result? raw-res)
-                          (pi-tool-result-is-error raw-res)
-                          (pi-agent-assoc-val 'isError "isError" raw-res #f)
-                        ) ;if
-               ) ;is-err?
-               (text (pi-extract-tool-result-text raw-res))
-               (tool-msg (pi-make-tool-result-msg id name text is-err?))
+        (let* ((call-payload (list (cons 'id id) (cons 'name name) (cons 'tool name) (cons 'input args))
+               ) ;call-payload
+               (emit-res (pi-emit! reg 'tool_call call-payload))
+               (action (cdr (or (assq 'action emit-res) '(#f . continue))))
               ) ;
-          (pi-tdd-observe-tool! name args text is-err?)
-          (when (procedure? emit)
-            (emit 'tool_execution_end id name raw-res is-err?)
-            (emit 'message_start tool-msg)
-            (emit 'message_end tool-msg)
-          ) ;when
-          tool-msg
+          (if (eq? action 'block)
+            (let* ((reason (cdr (or (assq 'reason emit-res) '(#f
+                                                              . "Tool execution blocked by extension")))
+                   ) ;reason
+                   (term? (cdr (or (assq 'terminate emit-res) '(#f . #f))))
+                   (raw-res
+                     (if term?
+                       (list
+                         (cons 'content (vector (list (cons 'type "text") (cons 'text reason))))
+                         (cons 'isError #t)
+                         (cons 'terminate #t)
+                       ) ;list
+                       (pi-tool-result reason #t)
+                     ) ;if
+                   ) ;raw-res
+                   (tool-msg (pi-make-tool-result-msg id name reason #t))
+                   (res-payload (list (cons 'id id)
+                                  (cons 'name name)
+                                  (cons 'tool name)
+                                  (cons 'input args)
+                                  (cons 'result reason)
+                                  (cons 'isError #t)
+                                ) ;list
+                   ) ;res-payload
+                  ) ;
+              (pi-emit! reg 'tool_result res-payload)
+              (when (procedure? emit)
+                (emit 'tool_execution_end id name raw-res #t)
+                (emit 'message_start tool-msg)
+                (emit 'message_end tool-msg)
+              ) ;when
+              (values tool-msg (if term? #t #f))
+            ) ;let*
+            (let* ((eff-payload
+                     (cdr (or (assq 'payload emit-res) (list (cons 'input args))))
+                   ) ;eff-payload
+                   (effective-args (cdr (or (assq 'input eff-payload) (cons 'input args))))
+                   (raw-res (if opt-config
+                              (apply execute-tool-call
+                                name
+                                effective-args
+                                :timeout timeout
+                                (list :config opt-config)
+                              ) ;apply
+                              (execute-tool-call name effective-args :timeout timeout)
+                            ) ;if
+                   ) ;raw-res
+                   (is-err? (if (pi-tool-result? raw-res)
+                              (pi-tool-result-is-error raw-res)
+                              (pi-agent-assoc-val 'isError "isError" raw-res #f)
+                            ) ;if
+                   ) ;is-err?
+                   (text (pi-extract-tool-result-text raw-res))
+                   (tool-msg (pi-make-tool-result-msg id name text is-err?))
+                   (res-payload (list (cons 'id id)
+                                  (cons 'name name)
+                                  (cons 'tool name)
+                                  (cons 'input effective-args)
+                                  (cons 'result text)
+                                  (cons 'isError is-err?)
+                                ) ;list
+                   ) ;res-payload
+                  ) ;
+              (pi-emit! reg 'tool_result res-payload)
+              (when (procedure? emit)
+                (emit 'tool_execution_end id name raw-res is-err?)
+                (emit 'message_start tool-msg)
+                (emit 'message_end tool-msg)
+              ) ;when
+              (values tool-msg #f)
+            ) ;let*
+          ) ;if
         ) ;let*
       ) ;let*
     ) ;define*
 
+    (define* (pi-execute-one-tool-call call emit timeout (opt-config #f))
+      (let-values (((tool-msg term?)
+                    (pi-execute-one-tool-call-with-status call emit timeout opt-config)
+                   ) ;
+                  ) ;
+        tool-msg
+      ) ;let-values
+    ) ;define*
+
+    (define* (pi-execute-tool-calls-with-status tool-calls emit timeout (opt-config #f))
+      (let loop
+        ((rest tool-calls) (acc '()) (batch-term? #f))
+        (if (null? rest)
+          (values (reverse acc) batch-term?)
+          (if batch-term?
+            (let* ((call (car rest))
+                   (id (pi-agent-assoc-val 'id "id" call ""))
+                   (name (pi-agent-assoc-val 'name "name" call ""))
+                   (skip-text "Tool call skipped: previous tool call terminated the run")
+                   (raw-res (pi-tool-result skip-text #t))
+                   (tool-msg (pi-make-tool-result-msg id name skip-text #t))
+                  ) ;
+              (when (procedure? emit)
+                (emit 'tool_execution_start id name '())
+                (emit 'tool_execution_end id name raw-res #t)
+                (emit 'message_start tool-msg)
+                (emit 'message_end tool-msg)
+              ) ;when
+              (loop (cdr rest) (cons tool-msg acc) #t)
+            ) ;let*
+            (let-values (((msg term?)
+                          (pi-execute-one-tool-call-with-status (car rest) emit timeout opt-config)
+                         ) ;
+                        ) ;
+              (loop (cdr rest) (cons msg acc) term?)
+            ) ;let-values
+          ) ;if
+        ) ;if
+      ) ;let
+    ) ;define*
+
     (define* (pi-execute-tool-calls tool-calls emit timeout (opt-config #f))
-      (map (lambda (call) (pi-execute-one-tool-call call emit timeout opt-config))
-        tool-calls
-      ) ;map
+      (let-values (((res term?)
+                    (pi-execute-tool-calls-with-status tool-calls emit timeout opt-config)
+                   ) ;
+                  ) ;
+        res
+      ) ;let-values
     ) ;define*
 
     (define (pi-fail-tool-calls-length tool-calls emit)

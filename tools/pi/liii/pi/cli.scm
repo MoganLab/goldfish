@@ -17,6 +17,7 @@
     (liii pi extension registry)
     (liii pi extension discovery)
     (liii pi extension loader)
+    (liii pi extension builtin)
   ) ;import
   (export main display-pi-help read-all-stdin run-goldpi run-pi)
   (begin
@@ -124,7 +125,9 @@
                               ) ;resolve-app-mode
                         ) ;mode
                        ) ;
-                    (dispatch-pi parsed mode initial-msg rest-msgs)
+                    (with-extension-registry reg
+                      (lambda () (dispatch-pi parsed mode initial-msg rest-msgs))
+                    ) ;with-extension-registry
                   ) ;let
                 ) ;else
           ) ;cond
@@ -142,6 +145,7 @@
 
     (define (%ensure-extensions-loaded!)
       (let* ((reg (default-extension-registry)) (paths (pi-discover-extensions)))
+        (register-builtin-extensions! reg)
         (pi-load-extensions paths reg)
         reg
       ) ;let*
