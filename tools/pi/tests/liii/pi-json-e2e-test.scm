@@ -34,6 +34,18 @@
   ) ;if
 ) ;define
 
+;; 校验一行 JSONL 输出可被 (liii json) 完整往返：解析→序列化→再解析→再序列化结果稳定
+;; （替代此前依赖外部 jq 的交叉验证，避免 CI 环境缺少 jq 导致失败）
+(define (json-line-round-trip-ok? line)
+  (let* ((value (string->json line))
+         (text (json->string value)))
+    (equal? text (json->string (string->json text)))
+  ) ;let*
+) ;define
+
+;; 自检：非法 JSON 必须被 (liii json) 拒绝（保证往返校验非空转）
+(check-catch 'parse-error (json-line-round-trip-ok? "{\"broken\": }"))
+
 (define stub-server-file
   (if (file-exists? "tests/stub_gemini_server.py")
     "tests/stub_gemini_server.py"
@@ -125,15 +137,8 @@
          ) ;event-types
         ) ;
     (check code => 0)
-    ;; 验证 jq 逐行可解析
-    (let* ((jq-p (process-spawn (list "jq" "-c" ".") :stdin 'pipe :stdout 'pipe))
-           (_ (process-write jq-p raw-out))
-           (_ (process-close-stdin jq-p))
-           (jq-code (process-wait jq-p 5000))
-          ) ;
-      (check jq-code => 0)
-      (process-close jq-p)
-    ) ;let*
+    ;; 验证每行 JSON 都能被 (liii json) 完整往返（解析→序列化→再解析→再序列化结果稳定）
+    (check-true (every json-line-round-trip-ok? lines))
     ;; 检查关键事件包含 tool_execution_start, tool_execution_end
     (check-true (pair? (member "tool_execution_start" event-types)))
     (check-true (pair? (member "tool_execution_end" event-types)))
