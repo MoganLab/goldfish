@@ -7,8 +7,50 @@
 ;;
 
 (define-library (liii pi modes tui)
-  (import (scheme base) (liii error) (liii os) (liii time) (liii tui terminal))
-  (export with-pi-tui-terminal run-tui-loop run-tui-flow)
+  (import (scheme base)
+    (liii error)
+    (liii os)
+    (liii tui terminal)
+    (liii pi modes tui state)
+    (liii pi modes tui loop)
+  ) ;import
+  (export with-pi-tui-terminal
+    run-tui-loop
+    run-tui-flow
+    ;; State type & constructors
+    <pi-tui-state>
+    make-pi-tui-state
+    pi-tui-state?
+    state-valid-status?
+    ;; Getters
+    state-status
+    pi-tui-state-status
+    state-messages
+    pi-tui-state-messages
+    state-input-editor
+    pi-tui-state-input-editor
+    state-active-tool
+    pi-tui-state-active-tool
+    state-scroll-offset
+    pi-tui-state-scroll-offset
+    state-dirty?
+    pi-tui-state-dirty?
+    ;; Pure functional updates
+    state-with-status
+    state-with-messages
+    state-with-input-editor
+    state-with-active-tool
+    state-with-scroll-offset
+    state-with-dirty
+    ;; In-place mutations
+    state-mark-dirty!
+    state-clear-dirty!
+    state-set-status!
+    state-set-messages!
+    state-set-input-editor!
+    state-set-active-tool!
+    state-set-scroll-offset!
+  ) ;export
   (begin
 
     (define (with-pi-tui-terminal term thunk)
@@ -34,41 +76,6 @@
           (terminal-flush term)
         ) ;lambda
       ) ;dynamic-wind
-    ) ;define
-
-    (define (%parse-loop-opts opts)
-      (let loop
-        ((rest opts) (max-ticks #f) (on-key #f) (interval 0.03))
-        (cond ((null? rest) (values max-ticks on-key interval))
-              ((eq? (car rest) :max-ticks) (loop (cddr rest) (cadr rest) on-key interval))
-              ((eq? (car rest) :on-key) (loop (cddr rest) max-ticks (cadr rest) interval))
-              ((eq? (car rest) :interval) (loop (cddr rest) max-ticks on-key (cadr rest)))
-              ((exact-integer? (car rest)) (loop (cdr rest) (car rest) on-key interval))
-              (else (loop (cdr rest) max-ticks on-key interval))
-        ) ;cond
-      ) ;let
-    ) ;define
-
-    (define (run-tui-loop term . opts)
-      (unless (terminal? term)
-        (type-error "run-tui-loop: expected terminal")
-      ) ;unless
-      (let-values (((max-ticks on-key tick-interval) (%parse-loop-opts opts)))
-        (let loop
-          ((ticks 0))
-          (if (and max-ticks (>= ticks max-ticks))
-            0
-            (let ((key (terminal-poll-key term)))
-              (when (and key on-key)
-                (on-key key)
-              ) ;when
-              (cond ((or (eq? key 'escape) (equal? key "q") (equal? key "Q")) 0)
-                    (else (when (standard-terminal? term) (sleep tick-interval)) (loop (+ ticks 1)))
-              ) ;cond
-            ) ;let
-          ) ;if
-        ) ;let
-      ) ;let-values
     ) ;define
 
     (define (run-tui-flow parsed cfg mode initial-msg . maybe-term)
