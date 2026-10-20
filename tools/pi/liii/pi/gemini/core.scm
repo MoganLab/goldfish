@@ -186,21 +186,16 @@
       ) ;let
     ) ;define
 
+    (define (%first-blk-text blk)
+      (if (string? blk) blk (%val 'text blk ""))
+    ) ;define
+
     (define (%tool-result-text content)
       (cond ((string? content) content)
-            ((vector? content)
-             (if (> (vector-length content) 0)
-               (let ((first-blk (vector-ref content 0)))
-                 (if (string? first-blk) first-blk (%val 'text first-blk ""))
-               ) ;let
-               ""
-             ) ;if
+            ((and (vector? content) (> (vector-length content) 0))
+             (%first-blk-text (vector-ref content 0))
             ) ;
-            ((pair? content)
-             (let ((first-blk (car content)))
-               (if (string? first-blk) first-blk (%val 'text first-blk ""))
-             ) ;let
-            ) ;
+            ((pair? content) (%first-blk-text (car content)))
             (else "")
       ) ;cond
     ) ;define

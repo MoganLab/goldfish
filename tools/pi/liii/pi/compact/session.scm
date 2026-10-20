@@ -85,9 +85,9 @@
     ) ;define
 
     (define (%as-pi-message msg)
-      (let* ((role (%ref msg "role"))
-             (raw-content (%ref msg "content"))
-             (content (if (vector? raw-content) (vector->list raw-content) raw-content))
+      (let* ((msg (pi-normalize-session-msg msg))
+             (role (%ref msg "role"))
+             (content (%ref msg "content"))
             ) ;
         (cond ((equal? role "user") (pi-user-message content))
               ((equal? role "assistant")

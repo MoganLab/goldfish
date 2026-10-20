@@ -21,7 +21,7 @@
     read-session-history append-session-entry! find-latest-session-file
     save-session-header! save-session-message! setup-session-file
     setup-initial-messages persist-new-messages! find-last-session-message-id
-    assoc
+    pi-normalize-session-msg assoc
   ) ;export
   (begin
 
@@ -187,39 +187,33 @@
       ) ;let
     ) ;define
 
-    (define (%normalize-session-msg msg)
-      (cond ((not (pair? msg)) msg)
-            (else
-              (map
-                (lambda (entry)
-                  (cond
-                   ((and (pair? entry)
-                      (or (equal? (car entry) "content") (eq? (car entry) 'content))
-                      (vector? (cdr entry))
-                    ) ;and
-                    (cons (car entry) (vector->list (cdr entry)))
-                   ) ;
-                   (else entry)
-                  ) ;cond
-                ) ;lambda
-                msg
-              ) ;map
-            ) ;else
-      ) ;cond
+    ;; JSON 解出的数组是 vector，归一化为 list（键恒为 string，见 save-session-message!）
+    (define (pi-normalize-session-msg msg)
+      (if (pair? msg)
+        (map
+          (lambda (entry)
+            (if (and (equal? (car entry) "content") (vector? (cdr entry)))
+              (cons (car entry) (vector->list (cdr entry)))
+              entry
+            ) ;if
+          ) ;lambda
+          msg
+        ) ;map
+        msg
+      ) ;if
     ) ;define
 
     (define (%extract-msg-from-line line)
       (let ((trimmed (string-trim line)))
         (if (<= (string-length trimmed) 0)
           #f
-          (let ((parsed (catch #t (lambda () (string->json trimmed)) (lambda _ #f))))
-            (and parsed
-              (assoc "type" parsed)
-              (string=? (cdr (assoc "type" parsed)) "message")
-              (assoc "message" parsed)
-              (%normalize-session-msg (cdr (assoc "message" parsed)))
-            ) ;and
-          ) ;let
+          (let* ((parsed (catch #t (lambda () (string->json trimmed)) (lambda _ #f)))
+                 (type-pair (and parsed (assoc "type" parsed)))
+                 (msg-pair (and type-pair (string=? (cdr type-pair) "message") (assoc "message" parsed))
+                 ) ;msg-pair
+                ) ;
+            (and type-pair msg-pair (pi-normalize-session-msg (cdr msg-pair)))
+          ) ;let*
         ) ;if
       ) ;let
     ) ;define

@@ -70,16 +70,10 @@
            (resp (cdr (assoc "response" fr))))
       (check (cdr (assoc "output" resp)) => "LIST-1071")))
 
-  ;; 4. DeepSeek 协议转换
-  (let* ((ds-vec (deepseek-build-messages (list vec-msg)))
-         (ds-raw (deepseek-build-messages (list raw-vec-msg)))
-         (ds-list (deepseek-build-messages (list list-msg))))
-    (check (vector-length ds-vec) => 1)
-    (let* ((turn (vector-ref ds-vec 0)) (blks (cdr (assoc "content" turn))))
-      (check (cdr (assoc "content" (vector-ref blks 0))) => "SECRET-1071"))
-    (let* ((turn (vector-ref ds-raw 0)) (blks (cdr (assoc "content" turn))))
-      (check (cdr (assoc "content" (vector-ref blks 0))) => "FILE-CONTENT-1071"))
-    (let* ((turn (vector-ref ds-list 0)) (blks (cdr (assoc "content" turn))))
-      (check (cdr (assoc "content" (vector-ref blks 0))) => "LIST-1071"))))
+  ;; 4. DeepSeek 复用 anthropic 链路（deepseek-build-messages 即 anthropic-build-messages 的别名），
+  ;;    抽查一例确认别名生效即可
+  (let* ((ds (deepseek-build-messages (list vec-msg)))
+         (blks (cdr (assoc "content" (vector-ref ds 0)))))
+    (check (cdr (assoc "content" (vector-ref blks 0))) => "SECRET-1071")))
 
 (check-report)
