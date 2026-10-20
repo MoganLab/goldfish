@@ -88,7 +88,7 @@ Anthropic 已实现但本机无访问权限，不在维护范围；其 OAuth 刷
 | 045 | `simplify` 内置命令 | 参考 ~/git/pi-extensions/packages/pi-simplify（审查最近改动代码的清晰度/一致性/可维护性并给出改进）：形态文档阶段裁定；验收点含真实简化建议输出；TDD | 已完成（045.scm 138/138；commit `920ed7ac`/`12b36aec` 已推送；建档 minimax+开发验收 deepseek） |
 | 046 | `red-green` TDD 强制 | 参考 ~/git/pi-extensions/packages/pi-red-green（强制 RED-GREEN-REFACTOR 循环：先写失败测试再最小实现再重构）：形态文档阶段裁定（候选：--red-green 开关在 agent 循环中强制 TDD 顺序）；TDD | 已完成（046.scm 138/138；commit `15fcf582`/`54742c1e` 已推送；建档 minimax+开发验收 deepseek） |
 | 047 | `blueprint` 计划命令 | 参考 ~/git/pi-extensions/packages/pi-blueprint（高级目标→分阶段多会话构建计划，依赖跟踪+验证门）：形态文档阶段裁定；与现有三阶段流程互补；TDD | 已完成（047.scm 131/131；commit `ce073a44`/`4b8318cc` 已推送；建档 minimax+开发验收 deepseek） |
-| 048 | `compass` 代码库导航 | 参考 ~/git/pi-extensions/packages/pi-compass（生成结构化 codemaps 与 code tours，省 token 快速定向）：形态文档阶段裁定；TDD | 待执行 |
+| 048 | `compass` 代码库导航 | 参考 ~/git/pi-extensions/packages/pi-compass（生成结构化 codemaps 与 code tours，省 token 快速定向）：形态文档阶段裁定；TDD | 建档完成（minimax 自举 `c90ff211`，624 行 9 组验收点；偏差 #28-35 已并入 §7）；开发阶段进行中 |
 | 049 | `continuous-learning` instincts | 参考 ~/git/pi-extensions/packages/pi-continuous-learning（观察会话提炼可复用 instincts，置信度+项目作用域+闭环验证）：形态文档阶段裁定；TDD | 待执行（较复杂，排最后） |
 | 051 | `pi-config-test` 环境卫生化 | 全量回归 `bin/gf test tools/pi/tests/liii/` 恒有 1 项失败：`tests/liii/pi-config-test.scm` 读取本机 `~/.pi/agent/models-store.json`（deepseek `base-url` 实为 `https://api.deepseek.com/anthropic`），与用例期望 `https://api.deepseek.com` 不符——环境依赖导致每次验收都要维护「已知失败白名单」；需改用 `PI_CODING_AGENT_DIR` 指向 `tools/pi/tests/fixtures/` 下的自建 fixture，使全量回归真正全绿、验收脚本不再需要失败白名单；TDD 覆盖 | 待执行 |
 | 052 | 超时基准改用单调时钟 | 039 迁移后，流式空闲超时（`(- now last-act)`）与会话超时仍以墙钟 `pi-current-time-seconds` 为基准；NTP 回拨使差值为负时空闲超时永不触发；方案：在 `(liii date-time current-time)` 增加 `current-monotonic-millis`/`current-monotonic-seconds`（底层 `time-utc->time-monotonic` 已验证可给出单调 epoch 基准），`pi/time.scm` 暴露 `pi-current-monotonic-seconds`，agent 与三路 stream 的超时基准改用单调钟，墙钟仅用于时间戳展示；验收点：回拨场景下超时仍能触发；TDD 覆盖 | 待执行 |
@@ -170,3 +170,11 @@ PI_SPEC.md                        # 经真实冒烟验证的命令行示例（Cl
 | 25 | 047 blueprint：user_approval 可用 --approve 放行 | 修 native 人工门死锁（047 实测缺陷 3） |
 | 26 | 047 blueprint：门禁超时可配（默认 --timeout 120s） | native 写死同步 120s（047 实测缺陷 4） |
 | 27 | 047 blueprint：print 直接输出计划/进度/门禁结果 | native pi -p stdout 空（同源缺陷 1） |
+| 28 | 048 compass：codemap 状态写工程内 .pi/codemap.json，不写任何 ~/.pi/ | 防互污；~/.pi/agent/ 只读复用一贯原则 |
+| 29 | 048 compass：内容哈希覆盖实际内容（深度 2 树+manifest） | 修 native 深度 2 改动不失效缺陷 |
+| 30 | 048 compass：tour 不落盘实时计算 | 修 native tour 缓存陈旧缺陷 |
+| 31 | 048 compass：print 直接输出 codemap/tour Markdown | 修 native pi -p stdout 0 字节（同源缺陷） |
+| 32 | 048 compass：tour 主题全树搜索（native 只看根与 src/） | 深层主题目录可达 |
+| 33 | 048 compass：源扩展名加 .scm/.sld/.ss + Scheme 入口规则 + xmake.lua | native 白名单不含 Scheme（本仓库几乎为空） |
+| 34 | 048 compass：--tools 白名单时不自动追加 compass 工具 | 白名单即用户意图（有意收紧） |
+| 35 | 048 compass：不移植 stale 提示（native 恒 false 死代码） | 哈希保证新鲜度 |
