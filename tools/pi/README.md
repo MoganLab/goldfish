@@ -415,3 +415,16 @@ Sources/Additional Results 拼装、7 类错误路径（401/403/超时/非 JSON/
 的条目不消费。Anthropic 官方 OAuth 同理不做（本机无官方访问权限，其兼容网关
 能力已被 glm 复用）。
 - **anthropic（Anthropic）**：Anthropic 协议与兼容网关（凭据缺失明确报错，支持环境变量配置）
+
+## 开源协议与第三方版权归属（License & Attribution）
+
+`tools/pi`（`bin/gf pi`）及其相关测试用例采用 [MIT License](LICENSE) 授权开源。
+
+`tools/pi`（`bin/gf pi`）及支撑库 `(liii pi)` 的核心架构、控制流、提示词工程与扩展模式，主要由 Node.js / TypeScript 生态中的 upstream pi 核心仓库及周边开源插件移植（Porting）而来。在此特别鸣谢以下开源原作者及项目贡献者的卓越工作：
+- **Mario Ortiz Manero / Earendil Works**：pi 核心库 [`@earendil-works/pi-coding-agent`](https://github.com/earendil-works/pi)
+- **Matt Devy**：pi 官方周边扩展生态 [`MattDevy/pi-extensions`](https://github.com/MattDevy/pi-extensions)（涵盖 `pi-code-review`、`pi-simplify`、`pi-red-green`、`pi-blueprint` 与 `pi-compass`）
+- **kslamph**：多 Key 轮换插件 [`pi-multikey`](https://github.com/kslamph/multikey)
+- **ttttmr**：联网搜索插件 [`pi-web-search`](https://github.com/ttttmr/pi-web-search)
+
+以上上游项目均基于宽松的 MIT 许可证发布。本项目作为跨语言演绎作品，完整保留了原作者的版权声明与许可证说明。详细的版权清单与许可证全文，请参阅 [`tools/pi/LICENSE`](LICENSE)。
+
