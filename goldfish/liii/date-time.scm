@@ -26,6 +26,7 @@
     (liii date-time timestamp)
     (liii date-time current-time)
     (liii date-time format)
+    (liii date-time parse)
   ) ;import
   (export
     ;; date

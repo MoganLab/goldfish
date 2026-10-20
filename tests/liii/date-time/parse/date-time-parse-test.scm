@@ -3,7 +3,8 @@
         (liii date-time clock-time)
         (liii date-time timezone)
         (liii date-time timestamp)
-        (liii date-time format))
+        (liii date-time format)
+        (liii date-time parse))
 
 (check-set-mode! 'report-failed)
 
