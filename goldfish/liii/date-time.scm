@@ -25,6 +25,7 @@
     (liii date-time tzdb)
     (liii date-time timestamp)
     (liii date-time current-time)
+    (liii date-time format)
   ) ;import
   (export
     ;; date
@@ -159,6 +160,10 @@
     current-system-timestamp
     current-monotonic-millis
     current-monotonic-seconds
+
+    ;; format
+    date-time-format
+    date-time-parse
   ) ;export
   (begin
   ) ;begin
