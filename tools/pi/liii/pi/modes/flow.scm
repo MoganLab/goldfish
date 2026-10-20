@@ -63,6 +63,17 @@
                ) ;or
              ) ;reg
              (custom-info (%collect-custom-tool-info reg))
+             (max-turns
+               (or (pi-args-ref parsed 'max-turns)
+                 (cdr (or (assoc 'max-turns cfg) '(#f . 200)))
+               ) ;or
+             ) ;max-turns
+             (session-timeout
+               (let ((st (pi-args-ref parsed 'session-timeout)))
+                 (if (number? st) st (cdr (or (assoc 'session-timeout cfg) '(#f
+                                                                             . 600))))
+               ) ;let
+             ) ;session-timeout
             ) ;
         (pi-build-system-prompt (cdr (assoc 'tools cfg))
           cwd
@@ -70,6 +81,8 @@
           sys-override
           appends
           custom-info
+          session-timeout
+          max-turns
         ) ;pi-build-system-prompt
       ) ;let*
     ) ;define
