@@ -86,6 +86,11 @@
                   ;; 0. 终端 Resize 检测与自适应处理
                   (%handle-resize! term screen current-state)
 
+                  ;; 0.1 RUNNING 状态下驱动活跃工具卡片 Spinner 步进
+                  (when (eq? (state-status current-state) 'running)
+                    (state-tick-active-tools! current-state)
+                  ) ;when
+
                   ;; 1. 脏标记与渲染调度
                   (when (state-dirty? current-state)
                     (state-clear-dirty! current-state)

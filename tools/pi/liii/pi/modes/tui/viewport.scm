@@ -12,6 +12,7 @@
     (liii error)
     (liii pi modes tui message)
     (liii pi modes tui thinking)
+    (liii pi modes tui tool-card)
   ) ;import
   (export compute-max-scroll-offset compute-viewport-window
     viewport-scroll-indicator render-messages-viewport compute-committed-lines
@@ -97,10 +98,10 @@
     ) ;define
 
     (define (%render-item-lines item width)
-      (if (pi-tui-thinking-card? item)
-        (render-thinking-card item width)
-        (render-message-lines item width)
-      ) ;if
+      (cond ((pi-tui-thinking-card? item) (render-thinking-card item width))
+            ((pi-tui-tool-card? item) (render-tool-card item width))
+            (else (render-message-lines item width))
+      ) ;cond
     ) ;define
 
     (define (compute-committed-lines messages width)

@@ -11,6 +11,7 @@
     (liii error)
     (liii pi modes tui state types)
     (liii pi modes tui state parse)
+    (liii pi modes tui state tool)
     (liii pi modes tui editor)
     (liii pi modes tui thinking)
   ) ;import
@@ -59,6 +60,10 @@
     state-finish-stream!
     state-find-active-thinking-card
     state-toggle-thinking-card!
+    state-active-tool-card
+    state-handle-tool-start!
+    state-tick-active-tools!
+    state-handle-tool-end!
   ) ;export
   (begin
 

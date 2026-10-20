@@ -19,6 +19,7 @@
     (liii pi modes tui viewport)
     (liii pi modes tui streaming)
     (liii pi modes tui thinking)
+    (liii pi modes tui tool-card)
   ) ;import
   (export with-pi-tui-terminal
     run-tui-loop
@@ -159,6 +160,28 @@
     render-thinking-card
     state-find-active-thinking-card
     state-toggle-thinking-card!
+    ;; Tool Card exports
+    <pi-tui-tool-card>
+    make-pi-tui-tool-card
+    pi-tui-tool-card?
+    tool-card-id
+    tool-card-tool-name
+    tool-card-args-summary
+    tool-card-status
+    tool-card-elapsed
+    tool-card-result-summary
+    tool-card-spinner
+    tool-card-start-time
+    tool-card-tick!
+    tool-card-complete!
+    tool-card-fail!
+    render-tool-card
+    format-tool-args-summary
+    format-tool-result-summary
+    state-active-tool-card
+    state-handle-tool-start!
+    state-tick-active-tools!
+    state-handle-tool-end!
   ) ;export
   (begin
 
