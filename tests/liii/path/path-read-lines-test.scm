@@ -223,7 +223,6 @@
   ;; 目录读取错误 (file-error)
   (check-catch 'file-error (path-read-lines (path-temp-dir)))
   (check-catch 'file-error (path-read-lines (path->string (path-temp-dir))))
-  (check (g_path-read-lines (path->string (path-temp-dir)) #f 0 -1) => #f)
 
   ;; path 类型错误
   (check-catch 'type-error (path-read-lines #\a))

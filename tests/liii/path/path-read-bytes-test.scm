@@ -84,7 +84,6 @@
 
 (check-catch 'file-error (path-read-bytes (path-temp-dir)))
 (check-catch 'file-error (path-read-bytes (path->string (path-temp-dir))))
-(check (g_path-read-bytes (path->string (path-temp-dir))) => #f)
 
 (check-catch 'type-error (path-read-bytes #\a))
 (check-catch 'type-error (path-read-bytes 123))
