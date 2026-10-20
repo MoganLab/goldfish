@@ -84,6 +84,10 @@
     find-extension-command
     extension-registry-commands-list
 
+    current-extension-registry
+    set-current-extension-registry!
+    with-extension-registry
+
     ;; Event Lifecycle
     pi-on!
     pi-emit!

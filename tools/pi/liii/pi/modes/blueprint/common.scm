@@ -14,6 +14,8 @@
     (liii pi modes output)
     (liii pi modes flow)
     (liii pi blueprint store)
+    (liii pi blueprint tools)
+    (liii pi extension)
   ) ;import
   (export pi-bp-mode-extend-tools pi-bp-mode-config pi-bp-mode-state-path
     pi-bp-mode-out pi-bp-mode-emit pi-bp-mode-timeout pi-bp-mode-error-text
@@ -43,7 +45,24 @@
       ) ;if
     ) ;define
 
+    (define (%ensure-blueprint-tools-registered!)
+      (let ((reg
+              (or (current-extension-registry)
+                (let ((r (make-extension-registry)))
+                  (set-current-extension-registry! r)
+                  r
+                ) ;let
+              ) ;or
+            ) ;reg
+           ) ;
+        (register-tool! reg (pi-blueprint-update-definition))
+        (register-tool! reg (pi-blueprint-status-definition))
+        (register-tool! reg (pi-blueprint-next-definition))
+      ) ;let
+    ) ;define
+
     (define (pi-bp-mode-config parsed cfg)
+      (%ensure-blueprint-tools-registered!)
       (%replace-field 'tools
         (pi-bp-mode-extend-tools (cdr (assoc 'tools cfg)) parsed)
         cfg

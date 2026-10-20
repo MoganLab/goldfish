@@ -11,6 +11,7 @@
         (liii pi blueprint runtime)
         (liii pi blueprint store)
         (liii pi blueprint tools)
+        (liii pi extension)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -48,9 +49,15 @@
   (cdr (assoc 'text (vector-ref (pi-tool-result-content res) 0)))
 ) ;define
 
-(dynamic-wind (lambda () #f)
+(dynamic-wind (lambda ()
+                (let ((bp-reg (make-extension-registry)))
+                  (register-tool! bp-reg (pi-blueprint-update-definition))
+                  (register-tool! bp-reg (pi-blueprint-status-definition))
+                  (register-tool! bp-reg (pi-blueprint-next-definition))
+                  (set-current-extension-registry! bp-reg)
+                ))
   (lambda ()
-    ;; 三个内置工具注册到工具表。
+    ;; 三个工具通过注册表挂载到工具表。
     (check-true (pi-tool-definition? (get-tool-definition "blueprint_update")))
     (check-true (pi-tool-definition? (get-tool-definition "blueprint_status")))
     (check-true (pi-tool-definition? (get-tool-definition "blueprint_next")))
@@ -152,7 +159,7 @@
                 ) ;pi-tool-result-is-error
     ) ;check-true
   ) ;lambda
-  (lambda () (pi-blueprint-clear!) (cleanup!))
+  (lambda () (pi-blueprint-clear!) (cleanup!) (set-current-extension-registry! #f))
 ) ;dynamic-wind
 
 (check-report)
