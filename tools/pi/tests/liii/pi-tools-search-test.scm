@@ -1,11 +1,6 @@
-(set! *load-path*
-  (append (list "tools/pi" ".") *load-path*))
+(set! *load-path* (append (list "tools/pi" ".") *load-path*))
 
-(import (liii check)
-  (liii string)
-  (liii path)
-  (liii pi)
-) ;import
+(import (liii check) (liii string) (liii path) (liii pi))
 
 (check-set-mode! 'report-failed)
 
@@ -26,7 +21,8 @@
 ) ;let
 
 (let ((out (pi-execute-ls '(("path" . ".") ("limit" . 1)))))
-  (check-true (string-contains? out "[1 entries limit reached. Use limit=2 for more]"))
+  (check-true (string-contains? out "[1 entries limit reached. Use limit=2 for more]")
+  ) ;check-true
 ) ;let
 
 (let ((empty-dir "tests/liii/pi-empty-dir"))
@@ -38,9 +34,7 @@
 ) ;let
 
 (check-catch 'error (pi-execute-ls '(("path" . "non_existent_dir_99999"))))
-(check-catch 'error
-  (pi-execute-ls (list (cons "path" test-file)))
-) ;check-catch
+(check-catch 'error (pi-execute-ls (list (cons "path" test-file))))
 (check-catch 'error (pi-execute-ls '() :timed-out? #t))
 
 ;; ============================================================
@@ -48,10 +42,12 @@
 ;; ============================================================
 
 ;; 1. 查找 tools/pi 下匹配 *.scm 的文件
-(let ((out (pi-execute-find (list (cons "pattern" "*.scm")
-                              (cons "path" (if (file-exists? "liii/pi/cli.scm") "." "tools/pi"))
-                            ) ;list
-           ) ;pi-execute-find
+(let ((out
+        (pi-execute-find
+          (list (cons "pattern" "*.scm")
+            (cons "path" (if (file-exists? "liii/pi/cli.scm") "." "tools/pi"))
+          ) ;list
+        ) ;pi-execute-find
       ) ;out
      ) ;
   (check-true (string? out))
@@ -59,12 +55,17 @@
 ) ;let
 
 ;; 2. limit 生效与提示
-(let ((out (pi-execute-find '(("pattern" . "*.scm") ("path" . ".") ("limit" . 1)))))
+(let ((out (pi-execute-find '(("pattern" . "*.scm")
+                              ("path" . ".")
+                              ("limit" . 1)))))
   (check-true (string-contains? out "[1 results limit reached]"))
 ) ;let
 
 ;; 3. 无匹配文件
-(let ((out (pi-execute-find '(("pattern" . "non_existent_pattern_*.xyz") ("path" . ".")))))
+(let ((out (pi-execute-find '(("pattern" . "non_existent_pattern_*.xyz")
+                              ("path" . ".")))
+      ) ;out
+     ) ;
   (check out => "No files found matching pattern")
 ) ;let
 
@@ -74,9 +75,7 @@
 ) ;check-catch
 
 ;; 5. 超时路径测试
-(check-catch 'error
-  (pi-execute-find '(("pattern" . "*.scm")) :timed-out? #t)
-) ;check-catch
+(check-catch 'error (pi-execute-find '(("pattern" . "*.scm")) :timed-out? #t))
 
 ;; ============================================================
 ;; Tool: grep
@@ -107,14 +106,17 @@
 ) ;let
 
 ;; 3. 正则搜索
-(let ((out (pi-execute-grep (list (cons "pattern" "define.*display")
-                              (cons "path" (if (file-exists? "liii/pi/help.scm")
-                                             "liii/pi/help.scm"
-                                             "tools/pi/liii/pi/help.scm"
-                                           ) ;if
-                              ) ;cons
-                            ) ;list
-           ) ;pi-execute-grep
+(let ((out
+        (pi-execute-grep
+          (list (cons "pattern" "define.*display")
+            (cons "path"
+              (if (file-exists? "liii/pi/help.scm")
+                "liii/pi/help.scm"
+                "tools/pi/liii/pi/help.scm"
+              ) ;if
+            ) ;cons
+          ) ;list
+        ) ;pi-execute-grep
       ) ;out
      ) ;
   (check-true (string-contains? out "display-pi-help"))
@@ -135,18 +137,21 @@
 ) ;let
 
 ;; 5. limit 生效与提示
-(let ((out (pi-execute-grep (list (cons "pattern" "define")
-                              (cons "path" test-file)
-                              (cons "limit" 1)
-                            ) ;list
+(let ((out (pi-execute-grep (list (cons "pattern" "define") (cons "path" test-file) (cons "limit" 1))
            ) ;pi-execute-grep
       ) ;out
      ) ;
-  (check-true (string-contains? out "[1 matches limit reached. Use limit=2 for more, or refine pattern]"))
+  (check-true (string-contains? out
+                "[1 matches limit reached. Use limit=2 for more, or refine pattern]"
+              ) ;string-contains?
+  ) ;check-true
 ) ;let
 
 ;; 6. 无匹配结果
-(let ((out (pi-execute-grep (list (cons "pattern" "non_existent_symbol_8888") (cons "path" test-file)))))
+(let ((out (pi-execute-grep (list (cons "pattern" "non_existent_symbol_8888") (cons "path" test-file))
+           ) ;pi-execute-grep
+      ) ;out
+     ) ;
   (check out => "No matches found")
 ) ;let
 
@@ -156,8 +161,28 @@
 ) ;check-catch
 
 ;; 8. 超时路径测试
-(check-catch 'error
-  (pi-execute-grep '(("pattern" . "foo")) :timed-out? #t)
-) ;check-catch
+(check-catch 'error (pi-execute-grep '(("pattern" . "foo")) :timed-out? #t))
+
+;; 9. 非 git 目录下含子目录的扫描防崩溃测试 (Issue #1153)
+(let* ((test-base (path-join (path-temp-dir) "pi-test-grep-1070"))
+       (sub-dir (path-join test-base "subdir"))
+       (test-f (path-join sub-dir "file.txt"))
+      ) ;
+  (path-mkdir sub-dir :parents #t :exist-ok #t)
+  (path-write-text test-f "target_text_1070\n")
+  (let ((out
+          (pi-execute-grep (list (cons "pattern" "target_text_1070")
+                             (cons "path" (path->string test-base))
+                           ) ;list
+          ) ;pi-execute-grep
+        ) ;out
+       ) ;
+    (check-true (string? out))
+    (check-true (string-contains? out "target_text_1070"))
+  ) ;let
+  (delete-file (path->string test-f))
+  (path-rmdir sub-dir)
+  (path-rmdir test-base)
+) ;let*
 
 (check-report)

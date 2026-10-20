@@ -10,6 +10,9 @@
 (check-catch 'file-not-found-error (file-not-found-error))
 
 
+(check-catch 'file-error (file-error))
+
+
 (check-catch 'permission-denied-error (permission-denied-error))
 
 
