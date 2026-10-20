@@ -273,6 +273,19 @@ turn 计数器（`agent.scm` 循环里 turn 单调递增，压缩只替换消息
 
 - 尝试成功 → 该类任务改由 `bin/gf pi` 执行，逐步扩大范围（文档阶段 → 小修复
   → 开发阶段）。
+- **轮换池的本机可用性实测（2026-10-21 任务 078 拉起时核实）**：§5.5 上述轮换池
+  是**历史任务在其他环境**积累的清单，**在本机（Windows + git-bash）并非全部可用**。
+  逐个实测结果（`gf pi -p --provider X --model Y` 短提示词探测）：
+  - `google` / `gemini-3.8-flash` — **可用**（本机唯一稳定可用的 provider）；
+  - `minimax` / `MiniMax-M3` — **不可用**：`Error: No credentials found for provider "minimax"`；
+  - `kimi-coding` / `kimi-for-coding-highspeed` — **不可用**：`No credentials found`；
+  - `zai` / `glm-5.2` — **不可用**：请求已发出但网关拒绝，报 `HTTP 400: JSON parse
+    error: Invalid UTF-8 start byte`（回显 `messages[1].content` 解析失败）；
+  - `deepseek` / `deepseek-v4-flash` — **不可用**：流式首包即 `HTTP 400 stream error`，
+    进程立即退出（该失败形态**不触发** retry，属协议不兼容而非瞬时抖动）。
+  - **结论**：本机自举执行**只能用 google/gemini-3.8-flash**；横向模型横评需先补齐
+    对应 provider 凭据（或修复协议适配）后才可在本机进行。**拉起前不要盲目轮换**——
+    每次无效轮换都会浪费一整轮阶段执行（078 的首次拉起即因此立即失败）。
 - **模型轮换（用户裁定 2026-10-19）**：自举执行时可用 `--provider`/`--model`
   指定不同模型完成同类阶段任务，横向实测各模型的实际工作能力；拉起命令与
   devel 执行记录中注明所用 provider/模型，便于事后对比。轮换池：google
