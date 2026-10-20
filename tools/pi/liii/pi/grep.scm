@@ -107,15 +107,11 @@
     (define (%parse-grep-line line rel-path)
       (let ((parts (string-split line ":")))
         (cond
-         ((and (>= (length parts) 4) (= (string-length (car parts)) 1))
-          (let ((n (string->number (caddr parts))))
-            (and n (list rel-path n))
-          ) ;let
+         ((and (>= (length parts) 3) (string->number (cadr parts)))
+          (list rel-path (string->number (cadr parts)))
          ) ;
-         ((>= (length parts) 3)
-          (let ((n (string->number (cadr parts))))
-            (and n (list rel-path n))
-          ) ;let
+         ((and (>= (length parts) 4) (string->number (caddr parts)))
+          (list rel-path (string->number (caddr parts)))
          ) ;
          (else #f)
         ) ;cond

@@ -91,7 +91,7 @@
   (path-write-text script-path
     (string-append "(import (liii check) (liii pi))\n"
       "(set! *load-path* (append (list \""
-      (path-as-posix libroot)
+      (string-replace (path->string libroot) "\\" "/")
       "\") *load-path*))\n"
       "(display (get-environment-variable \"PATH\"))\n"
     ) ;string-append

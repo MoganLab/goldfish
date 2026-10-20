@@ -1,13 +1,12 @@
 (import (liii check)
   (scheme file)
   (scheme process-context)
-  (liii os)
-  (liii sys)
   (liii string)
   (liii list)
   (liii path)
   (liii json)
   (liii subprocess)
+  (liii sys)
   (liii pi blueprint types)
   (liii pi blueprint graph)
   (liii pi blueprint state)
@@ -142,7 +141,7 @@
 
       ;; 5) 门禁失败：custom_command 返回 false。
       (complete-phase-one! %tmp1)
-      (set-phase-gate-command! %tmp1 "1" 0 (if (os-windows?) "python3 -c 1/0" "false"))
+      (set-phase-gate-command! %tmp1 "1" 0 "false")
       (let* ((res (run-pi %tmp1 env '("--print" "--plan-verify" "--timeout" "10")))
              (out (cadr res))
             ) ;
@@ -157,7 +156,7 @@
       ) ;let*
 
       ;; 6) 自动门通过但人工门未放行 → 不推进，退出码 1。
-      (set-phase-gate-command! %tmp1 "1" 0 (if (os-windows?) "python3 -c pass" "true"))
+      (set-phase-gate-command! %tmp1 "1" 0 "true")
       (let* ((res (run-pi %tmp1 env '("--print" "--plan-verify" "--timeout" "10")))
              (out (cadr res))
             ) ;

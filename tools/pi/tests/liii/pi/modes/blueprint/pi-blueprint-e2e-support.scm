@@ -70,12 +70,9 @@
 ) ;define
 
 (define (e2e-env base)
-  (let ((base-env
-          (list (cons "PI_CODING_AGENT_DIR" %fixture)
+  (append (list (cons "PI_CODING_AGENT_DIR" %fixture)
             (cons "GF_PI_BASE_URL" base)
             (cons "GF_PI_MODEL" "gemini-3.8-flash")
-            (cons "PATH" (or (get-environment-variable "PATH") "/usr/bin:/bin"))
-            (cons "HOME" (or (get-environment-variable "HOME") (path->string (path-temp-dir))))
             (cons "https_proxy" "")
             (cons "http_proxy" "")
             (cons "all_proxy" "")
@@ -83,23 +80,15 @@
             (cons "HTTP_PROXY" "")
             (cons "ALL_PROXY" "")
           ) ;list
-        ) ;base-env
-       ) ;
-    (if (os-windows?)
-      (let ((sysroot (or (get-environment-variable "SystemRoot")
-                         (get-environment-variable "SYSTEMROOT")
-                         "C:\\Windows"
-                     ) ;or
-            ) ;sysroot
-           ) ;
-        (append base-env
-          (list (cons "SystemRoot" sysroot) (cons "SYSTEMROOT" sysroot))
-        ) ;append
-      ) ;let
-      base-env
-    ) ;if
-  ) ;let
+          (get-environment-variables)
+  ) ;append
 ) ;define
+
+(define (read-all p . maybe-stream)
+  (let ((stream (if (null? maybe-stream) 'stdout (car maybe-stream))))
+    (let loop ((acc ""))
+      (let ((c (process-read p :stream stream)))
+        (if (eof-object? c) acc (loop (string-append acc c)))))))
 
 (define (run-pi dir env args)
   (let ((p (process-spawn (cons %gf (cons "pi" args))
@@ -110,9 +99,9 @@
            ) ;process-spawn
         ) ;p
        ) ;
-    (let* ((code (process-wait p 240000))
-           (out (as-text (process-read p :stream 'stdout)))
-           (err (as-text (process-read p :stream 'stderr)))
+    (let* ((out (read-all p 'stdout))
+           (err (read-all p 'stderr))
+           (code (process-wait p 240000))
           ) ;
       (process-close p)
       (list code out err)
@@ -197,10 +186,5 @@
 
 
 (define (snapshot-fixture)
-  (filter
-    (lambda (entry)
-      (not (string=? (path-name (path entry)) "sessions"))
-    ) ;lambda
-    (vector->list (path-list (path %fixture)))
-  ) ;filter
+  (vector->list (path-list (path %fixture)))
 ) ;define

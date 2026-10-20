@@ -1,4 +1,5 @@
 (import (liii check)
+        (liii os)
         (liii string)
         (liii path)
         (liii pi compass project)
@@ -50,7 +51,14 @@
       ;; 首次生成并落盘。
       (check (pi-compass-jref result "fromCache" #f) => #f)
       (check (path-file? (path codemap-file)) => #t)
-      (check (string-ends? (path-as-posix (path codemap-file)) ".pi/codemap.json") => #t)
+      (check (string-ends? (if (os-windows?)
+                             (string-replace codemap-file "\\" "/")
+                             codemap-file
+                           ) ;if
+               ".pi/codemap.json"
+             ) ;string-ends?
+        => #t
+      ) ;check
 
       ;; 顶层三段结构。
       (let ((entry (pi-compass-load-codemap codemap-file)))

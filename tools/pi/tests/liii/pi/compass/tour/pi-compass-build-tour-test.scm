@@ -9,7 +9,12 @@
 
 (check-set-mode! 'report-failed)
 
-(define fixture "tests/fixtures/compass/project")
+(define fixture
+  (if (file-exists? "tests/fixtures/compass/project")
+    "tests/fixtures/compass/project"
+    "tools/pi/tests/fixtures/compass/project"
+  ) ;if
+) ;define
 
 (define codemap
   (pi-compass-generate-codemap fixture
@@ -66,7 +71,12 @@
 ) ;check
 
 ;; Scheme 源扩展名 .scm 可被 tour 收集。
-(let* ((scheme-fixture "tests/fixtures/compass/scheme")
+(let* ((scheme-fixture
+         (if (file-exists? "tests/fixtures/compass/scheme")
+           "tests/fixtures/compass/scheme"
+           "tools/pi/tests/fixtures/compass/scheme"
+         ) ;if
+       ) ;scheme-fixture
        (scheme-codemap (pi-compass-generate-codemap scheme-fixture
                          (pi-compass-detect-project scheme-fixture)
                        ) ;pi-compass-generate-codemap

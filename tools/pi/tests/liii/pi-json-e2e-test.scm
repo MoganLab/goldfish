@@ -4,10 +4,9 @@
   (liii check)
   (liii string)
   (liii list)
-  (liii os)
-  (liii sys)
   (liii path)
   (liii subprocess)
+  (liii sys)
   (liii json)
   (liii pi)
 ) ;import
@@ -29,6 +28,15 @@
     (equal? text (json->string (string->json text)))
   ) ;let*
 ) ;define
+
+(define* (read-all-output p (stream 'stdout))
+  (let loop ((acc ""))
+    (let ((c (process-read p :stream stream)))
+      (if (eof-object? c) acc (loop (string-append acc c))))))
+
+(define (split-json-lines text)
+  (filter (lambda (s) (not (string-null? s)))
+    (map string-trim-both (string-split text "\n"))))
 
 ;; 自检：非法 JSON 必须被 (liii json) 拒绝（保证往返校验非空转）
 (check-catch 'parse-error (json-line-round-trip-ok? "{\"broken\": }"))
@@ -53,42 +61,24 @@
   ) ;if
 ) ;define
 
-(define (%with-system-env env-list)
-  (if (os-windows?)
-    (let ((p (get-environment-variable "PATH"))
-          (sr (or (get-environment-variable "SystemRoot")
-                  (get-environment-variable "SYSTEMROOT")
-                  "C:\\Windows"
-              ) ;or
-          ) ;sr
-         ) ;
-      (append env-list
-        (if p (list (cons "PATH" p)) '())
-        (list (cons "SystemRoot" sr) (cons "SYSTEMROOT" sr))
-      ) ;append
-    ) ;let
-    env-list
-  ) ;if
-) ;define
-
 (define GF_BIN (executable))
 
 (let* ((proc (process-spawn (list "python3" stub-server-file) :stdout 'pipe))
        (port-line (process-read-line proc))
        (port (parse-port-line port-line))
        (base-url (string-append "http://127.0.0.1:" (number->string port)))
-       (test-env (%with-system-env
-                   (list (cons "PI_CODING_AGENT_DIR" FIXTURE_DIR)
-                     (cons "GF_PI_BASE_URL" base-url)
-                     (cons "GF_PI_MODEL" "gemini-3.8-flash")
-                     (cons "https_proxy" "")
-                     (cons "http_proxy" "")
-                     (cons "all_proxy" "")
-                     (cons "ALL_PROXY" "")
-                     (cons "HTTPS_PROXY" "")
-                     (cons "HTTP_PROXY" "")
-                   ) ;list
-                 ) ;%with-system-env
+       (test-env (append (list (cons "PI_CODING_AGENT_DIR" FIXTURE_DIR)
+                           (cons "GF_PI_BASE_URL" base-url)
+                           (cons "GF_PI_MODEL" "gemini-3.8-flash")
+                           (cons "https_proxy" "")
+                           (cons "http_proxy" "")
+                           (cons "all_proxy" "")
+                           (cons "ALL_PROXY" "")
+                           (cons "HTTPS_PROXY" "")
+                           (cons "HTTP_PROXY" "")
+                         ) ;list
+                         (get-environment-variables)
+                 ) ;append
        ) ;test-env
       ) ;
   (check-true (number? port))
@@ -96,11 +86,9 @@
   ;; 1. 单轮简单对话的 JSONL 事件序列
   (let* ((cmd (list GF_BIN "pi" "--mode" "json" "Hello from json e2e test"))
          (p (process-spawn cmd :env test-env :stdout 'pipe :stderr 'pipe))
+         (raw-out (read-all-output p))
          (code (process-wait p 10000))
-         (raw-out (process-read p :stream 'stdout))
-         (lines
-           (filter (lambda (s) (not (string-null? s))) (string-split raw-out "\n"))
-         ) ;lines
+         (lines (split-json-lines raw-out))
          (events (map string->json lines))
          (event-types
            (map (lambda (ev) (cdr (assoc "type" ev))) events)
@@ -128,11 +116,9 @@
   (let* ((cmd (list GF_BIN "pi" "--mode" "json" "--model" "multi-turn" "Run multi turn steps")
          ) ;cmd
          (p (process-spawn cmd :env test-env :stdout 'pipe :stderr 'pipe))
+         (raw-out (read-all-output p))
          (code (process-wait p 15000))
-         (raw-out (process-read p :stream 'stdout))
-         (lines
-           (filter (lambda (s) (not (string-null? s))) (string-split raw-out "\n"))
-         ) ;lines
+         (lines (split-json-lines raw-out))
          (events (map string->json lines))
          (event-types
            (map (lambda (ev) (cdr (assoc "type" ev))) events)
@@ -152,11 +138,9 @@
   ;; 3. 模型报错/aborted 情况下进程退出码仍为 0（§3.3：事件流中出现 error/aborted 不改变退出码）
   (let* ((cmd (list GF_BIN "pi" "--mode" "json" "--model" "safety" "Run safety check"))
          (p (process-spawn cmd :env test-env :stdout 'pipe :stderr 'pipe))
+         (raw-out (read-all-output p))
          (code (process-wait p 10000))
-         (raw-out (process-read p :stream 'stdout))
-         (lines
-           (filter (lambda (s) (not (string-null? s))) (string-split raw-out "\n"))
-         ) ;lines
+         (lines (split-json-lines raw-out))
          (events (map string->json lines))
          (event-types
            (map (lambda (ev) (cdr (assoc "type" ev))) events)
@@ -179,11 +163,9 @@
               ) ;list
          ) ;cmd
          (p (process-spawn cmd :env ant-env :stdout 'pipe :stderr 'pipe))
+         (raw-out (read-all-output p))
          (code (process-wait p 10000))
-         (raw-out (process-read p :stream 'stdout))
-         (lines
-           (filter (lambda (s) (not (string-null? s))) (string-split raw-out "\n"))
-         ) ;lines
+         (lines (split-json-lines raw-out))
          (events (map string->json lines))
          (event-types
            (map (lambda (ev) (cdr (assoc "type" ev))) events)
@@ -199,11 +181,9 @@
   ;; 5. 缺陷8防回归测试：4字节 UTF-8 字符（emoji）与 '<' 组合在 JSON 模式事件流验证
   (let* ((cmd (list GF_BIN "pi" "--mode" "json" "🚀 <"))
          (p (process-spawn cmd :env test-env :stdout 'pipe :stderr 'pipe))
+         (raw-out (read-all-output p))
          (code (process-wait p 10000))
-         (raw-out (process-read p :stream 'stdout))
-         (lines
-           (filter (lambda (s) (not (string-null? s))) (string-split raw-out "\n"))
-         ) ;lines
+         (lines (split-json-lines raw-out))
          (events (map string->json lines))
          (event-types
            (map (lambda (ev) (cdr (assoc "type" ev))) events)

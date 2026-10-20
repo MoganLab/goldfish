@@ -16,7 +16,8 @@
 ) ;define
 
 (define TARGET
-  (path->string (path-join (path-temp-dir) "pi-compact-append-test.jsonl")))
+  (path->string (path-join (path-temp-dir) "pi-compact-append-test.jsonl"))
+) ;define
 
 (when (file-exists? TARGET) (delete-file TARGET))
 (path-copy (path FIXTURE) (path TARGET))

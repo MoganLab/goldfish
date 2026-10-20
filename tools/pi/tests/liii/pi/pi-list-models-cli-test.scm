@@ -2,22 +2,10 @@
         (liii check)
         (liii string)
         (liii path)
-        (liii os)
         (liii sys)
         (liii subprocess))
 
 (check-set-mode! 'report-failed)
-
-(define (%with-system-env env-list)
-  (if (os-windows?)
-    (let ((p (get-environment-variable "PATH"))
-          (sr (or (get-environment-variable "SystemRoot")
-                  (get-environment-variable "SYSTEMROOT")
-                  "C:\\Windows")))
-      (append env-list
-        (if p (list (cons "PATH" p)) '())
-        (list (cons "SystemRoot" sr) (cons "SYSTEMROOT" sr))))
-    env-list))
 
 (define GF_BIN (executable))
 
@@ -28,17 +16,22 @@
          (path->string (path-resolve (path "tools/pi/tests/fixtures/default"))))
         (else (path->string (path-resolve (path "../../tools/pi/tests/fixtures/default"))))))
 
+(define (read-all p . maybe-stream)
+  (let ((stream (if (null? maybe-stream) 'stdout (car maybe-stream))))
+    (let loop ((acc ""))
+      (let ((c (process-read p :stream stream)))
+        (if (eof-object? c) acc (loop (string-append acc c)))))))
+
 (define (exec-gf-pi args)
   (let* ((cmd (cons GF_BIN (cons "pi" args)))
-         (env (%with-system-env (list (cons "PI_CODING_AGENT_DIR" FIXTURE_DIR))))
+         (env (append (list (cons "PI_CODING_AGENT_DIR" FIXTURE_DIR))
+                      (get-environment-variables)))
          (p (process-spawn cmd :env env :stdout 'pipe :stderr 'pipe))
-         (code (process-wait p 30000))
-         (out (process-read p :stream 'stdout))
-         (err (process-read p :stream 'stderr)))
+         (out (read-all p 'stdout))
+         (err (read-all p 'stderr))
+         (code (process-wait p 30000)))
     (process-close p)
-    (list code
-          (if (eof-object? out) "" out)
-          (if (eof-object? err) "" err))))
+    (list code out err)))
 
 ;; 1. 全局列出：无 --provider 时跨全部 provider 列出
 (let ((res (exec-gf-pi '("--list-models"))))

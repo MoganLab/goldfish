@@ -34,7 +34,7 @@
   (let ((out (pi-execute-ls (list (cons "path" empty-dir)))))
     (check out => "(empty directory)")
   ) ;let
-  (path-rmdir (path empty-dir))
+  (delete-file empty-dir)
 ) ;let
 
 (check-catch 'error (pi-execute-ls '(("path" . "non_existent_dir_99999"))))
@@ -48,7 +48,12 @@
 ;; ============================================================
 
 ;; 1. 查找 tools/pi 下匹配 *.scm 的文件
-(let ((out (pi-execute-find '(("pattern" . "*.scm") ("path" . ".")))))
+(let ((out (pi-execute-find (list (cons "pattern" "*.scm")
+                              (cons "path" (if (file-exists? "liii/pi/cli.scm") "." "tools/pi"))
+                            ) ;list
+           ) ;pi-execute-find
+      ) ;out
+     ) ;
   (check-true (string? out))
   (check-true (string-contains? out "cli.scm"))
 ) ;let

@@ -2,7 +2,6 @@
         (liii check)
         (liii string)
         (liii os)
-        (liii path)
         (liii pi))
 
 (check-set-mode! 'report-failed)
@@ -15,17 +14,15 @@
       "tests/fixtures/default"
       "tools/pi/tests/fixtures/default"))
 
-(define TEMP_TEST_DIR
-  (path->string (path-resolve (path-join (path-temp-dir) "pi-agent-dir-from-env"))))
-
 ;; 1. 显式目录参数优先
 (check-true (string? (pi-get-agent-dir)))
-(check-true (string-ends? (pi-get-agent-dir FIXTURE_DIR) FIXTURE_DIR))
+(let ((dir (pi-get-agent-dir FIXTURE_DIR)))
+  (check-true (string-ends? (if (os-windows?) (string-replace dir "\\" "/") dir) FIXTURE_DIR)))
 
 ;; 2. 真实进程环境中的 PI_CODING_AGENT_DIR 生效（生产语义）
 (let ((saved (get-environment-variable "PI_CODING_AGENT_DIR")))
-  (putenv "PI_CODING_AGENT_DIR" TEMP_TEST_DIR)
-  (check (pi-get-agent-dir) => TEMP_TEST_DIR)
+  (putenv "PI_CODING_AGENT_DIR" "/tmp/pi-agent-dir-from-env")
+  (check (pi-get-agent-dir) => (pi-resolve-path "/tmp/pi-agent-dir-from-env" (getcwd)))
   (if saved
     (putenv "PI_CODING_AGENT_DIR" saved)
     (unsetenv "PI_CODING_AGENT_DIR")
@@ -34,8 +31,9 @@
 
 ;; 3. 污染环境下显式目录仍然胜出（防回归：不得被真实环境覆盖）
 (let ((saved (get-environment-variable "PI_CODING_AGENT_DIR")))
-  (putenv "PI_CODING_AGENT_DIR" TEMP_TEST_DIR)
-  (check-true (string-ends? (pi-get-agent-dir FIXTURE_DIR) FIXTURE_DIR))
+  (putenv "PI_CODING_AGENT_DIR" "/tmp/pi-agent-dir-from-env")
+  (let ((dir (pi-get-agent-dir FIXTURE_DIR)))
+    (check-true (string-ends? (if (os-windows?) (string-replace dir "\\" "/") dir) FIXTURE_DIR)))
   (if saved
     (putenv "PI_CODING_AGENT_DIR" saved)
     (unsetenv "PI_CODING_AGENT_DIR")
@@ -43,23 +41,29 @@
 ) ;let
 
 ;; 4. 真实环境无 PI_CODING_AGENT_DIR 时回退到 ~/.pi/agent（HOME 隔离，与机器无关）
-(let* ((saved-agent (get-environment-variable "PI_CODING_AGENT_DIR"))
-       (home-var (if (os-windows?) "USERPROFILE" "HOME"))
-       (saved-home (get-environment-variable home-var))
-       (isolated-home (path->string (path-resolve (path-join (path-temp-dir) "pi-home-isolated")))))
+(let ((saved-agent (get-environment-variable "PI_CODING_AGENT_DIR"))
+      (saved-home (get-environment-variable "HOME"))
+      (saved-profile (get-environment-variable "USERPROFILE")))
   (unsetenv "PI_CODING_AGENT_DIR")
-  (putenv home-var isolated-home)
-  (check-true (string-ends? (path-as-posix (path (pi-get-agent-dir))) "/.pi/agent"))
-  (check-true (string-contains? (path-as-posix (path (pi-get-agent-dir)))
-                                (path-as-posix (path isolated-home))))
+  (putenv "HOME" "/tmp/pi-home-isolated")
+  (when (os-windows?) (putenv "USERPROFILE" "C:/tmp/pi-home-isolated"))
+  (let ((dir (pi-get-agent-dir)))
+    (check-true (string-ends? (if (os-windows?) (string-replace dir "\\" "/") dir)
+                              "pi-home-isolated/.pi/agent")))
   (if saved-agent
     (putenv "PI_CODING_AGENT_DIR" saved-agent)
     (unsetenv "PI_CODING_AGENT_DIR")
   ) ;if
   (if saved-home
-    (putenv home-var saved-home)
-    (unsetenv home-var)
+    (putenv "HOME" saved-home)
+    (unsetenv "HOME")
   ) ;if
+  (when (os-windows?)
+    (if saved-profile
+      (putenv "USERPROFILE" saved-profile)
+      (unsetenv "USERPROFILE")
+    ) ;if
+  ) ;when
 ) ;let
 
 (check-report)

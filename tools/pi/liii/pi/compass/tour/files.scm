@@ -6,6 +6,7 @@
 
 (define-library (liii pi compass tour files)
   (import (scheme base)
+    (liii os)
     (liii string)
     (liii list)
     (liii sort)
@@ -39,18 +40,20 @@
       ) ;catch
     ) ;define
 
+    (define (%norm-slash s)
+      (if (os-windows?) (string-replace s "\\" "/") s)
+    ) ;define
+
     (define (%rel-path root full)
-      (let ((rel (path-relative-to (path full) (path root))))
-        (if rel
-          (path-as-posix rel)
-          (let ((prefix (string-append root "/")))
-            (if (string-starts? full prefix)
-              (substring full (string-length prefix) (string-length full))
-              full
-            ) ;if
-          ) ;let
+      (let* ((n-root (%norm-slash root))
+             (n-full (%norm-slash full))
+             (prefix (string-append n-root "/"))
+            ) ;
+        (if (string-starts? n-full prefix)
+          (substring n-full (string-length prefix) (string-length n-full))
+          n-full
         ) ;if
-      ) ;let
+      ) ;let*
     ) ;define
 
     (define (%source-file? name)
