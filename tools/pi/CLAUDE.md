@@ -169,6 +169,25 @@ setsid nohup timeout 7200 pi -a -p @tools/pi/Agents.md "执行任务 ddd 的开�
 timeout 1800 pi -a -p @tools/pi/Agents.md "执行任务 ddd 的验收阶段：1) 编写验收脚本 tools/pi/devel/ddd.scm（可执行，逐条断言 ddd.md 中的验收点：构建、fmt、check、相关测试、真实冒烟命令与期望输出）；2) 运行该脚本全绿后 commit（[ddd][REVIEW] 任务名：验收）并 git push；3) 在输出中逐条报告验收点通过情况"
 ```
 
+**自举拉起的强制参数（`bin/gf pi`）**：`gf pi` 有两条**静默截断**的硬预算——
+`--session-timeout`（默认 600s 墙钟）与 `--max-turns`（默认 200 轮），触顶即
+`Session timeout exceeded` / `Maximum turns limit reached` 截断进程，**最终报告全丢**
+（工作区产出保留，但验收依据丢失）。拉起任何阶段必须显式给足：
+
+```bash
+# 阶段预算：--session-timeout 给足真实墙钟，--max-turns 0 解除轮次上限
+# （把约束交给时间预算，轮次上限退为交互式使用的防失控兜底）
+timeout 7200 bin/gf pi -p --session-timeout 5400 --max-turns 0 --timeout 300 ...
+```
+
+**为什么 `--max-turns 0` 不可省**：auto-compaction 限的是**上下文长度**（能不能继续聊），
+`--max-turns` 限的是**循环次数**（会不会失控）——两者不可互相替代。且压缩**不重置**
+turn 计数器（`agent.scm` 循环里 turn 单调递增，压缩只替换消息列表），故压缩救不了
+"任务本身需要 200 轮"。反向看，压缩会抹掉"我已经试过 X"的历史、拆掉天然刹车，
+轮次上限反而是压缩之后**唯一**的防失控兜底——故代码里必须保留该参数。
+根治方向见 `Agents.md` §3 任务 079：把两条预算注入 system prompt 让 agent 可见可自配速。
+
+
 ### 5.1 文档阶段
 
 1. 登记：`Agents.md` §3 任务表新增一行（编号从 001 递增），写明任务名、
