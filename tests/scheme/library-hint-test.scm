@@ -102,9 +102,9 @@
   ) ;path-write-text
   (path-write-text script-path
     (string-append "(import (scheme base))\n"
-      "(set! *load-path* (append (list \""
-      (path->string libroot)
-      "\") *load-path*))\n"
+      "(set! *load-path* (append (list "
+      (object->string (path-as-posix libroot))
+      ") *load-path*))\n"
       "(display (hinted-fn 1))\n"
     ) ;string-append
   ) ;path-write-text
