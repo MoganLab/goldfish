@@ -10,12 +10,13 @@
 ;;  - 注释、#; datum comment、rename 导出都按语义处理；
 ;;  - CLI 在坏文件存在时仍然给出提示并以普通错误码退出（不崩溃）。
 (import (liii check)
-        (liii either)
-        (liii os)
-        (liii path)
-        (liii string)
-        (liii subprocess)
-        (liii sys))
+  (liii either)
+  (liii os)
+  (liii path)
+  (liii string)
+  (liii subprocess)
+  (liii sys)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -30,11 +31,10 @@
       (path-rmdir (path->string path))
     ) ;when
   ) ;define
-  (for-each
-    (lambda (file)
-      (drop-file (path-join base "libroot" "bad" file))
-      (drop-file (path-join base "libroot" "good" file))
-    ) ;lambda
+  (for-each (lambda (file)
+              (drop-file (path-join base "libroot" "bad" file))
+              (drop-file (path-join base "libroot" "good" file))
+            ) ;lambda
     '("broken.scm" "raw.scm" "deep.scm" "odd.scm" "quoted.scm" "unbalanced.scm")
   ) ;for-each
   (drop-file (path-join base "hint-script.scm"))
@@ -46,15 +46,16 @@
 
 (define (library-hint-run-script script-path)
   (run-either (list (executable) "-m" "r7rs" (path->string script-path))
-    :stdout 'capture
-    :stderr 'stdout
+    :stdout  'capture
+    :stderr  'stdout
     :timeout 120
   ) ;run-either
 ) ;define
 
-(let* ((base (path-join (path-temp-dir)
-               (string-append "gf-library-hint-" (number->string (getpid)))
-             ) ;path-join
+(let* ((base
+         (path-join (path-temp-dir)
+           (string-append "gf-library-hint-" (number->string (getpid)))
+         ) ;path-join
        ) ;base
        (libroot (path-join base "libroot"))
        (bad-dir (path-join libroot "bad"))
@@ -84,17 +85,12 @@
   ) ;path-write-text
   (path-write-text (path-join good-dir "odd.scm")
     (string-append "#| block comment with ( parens ) and ; semicolon |#\n"
-      "(define-library (fixture odd)\n"
-      "  (import (scheme base))\n"
+      "(define-library (fixture odd)\n" "  (import (scheme base))\n"
       "  #;(export not-this)\n"
-      "  (export (rename hidden hinted-fn) plain-fn)\n"
-      "  (begin\n"
-      "    (define hidden 1)\n"
-      "    (define plain-fn 2)\n"
+      "  (export (rename hidden hinted-fn) plain-fn)\n" "  (begin\n"
+      "    (define hidden 1)\n" "    (define plain-fn 2)\n"
       "    (define text \"string with ( parens ) and ; semicolon\")\n"
-      "    (define open-char #\\()\n"
-      "  )\n"
-      ")\n"
+      "    (define open-char #\\()\n" "  )\n" ")\n"
     ) ;string-append
   ) ;path-write-text
   (path-write-text (path-join good-dir "quoted.scm")
@@ -102,15 +98,14 @@
   ) ;path-write-text
   (path-write-text script-path
     (string-append "(import (scheme base))\n"
-      "(set! *load-path* (append (list \""
-      (path->string libroot)
-      "\") *load-path*))\n"
+      "(set! *load-path* (append (list "
+      (object->string (path-as-posix libroot))
+      ") *load-path*))\n"
       "(display (hinted-fn 1))\n"
     ) ;string-append
   ) ;path-write-text
 
-  (dynamic-wind
-    (lambda () #f)
+  (dynamic-wind (lambda () #f)
     (lambda ()
       (let ((old-load-path *load-path*))
         (set! *load-path* (list (path->string libroot)))

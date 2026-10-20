@@ -37,7 +37,7 @@
 
 ;; 相对路径
 (check (path-starts-with? "tools/fmt/liii" "tools/fmt") => #t)
-(check (path-starts-with? "tools/fmt/liii/goldfmt-cache.scm" "tools/fmt") => #t)
+(check (path-starts-with? "tools/fmt/liii/goldfmt/cache.scm" "tools/fmt") => #t)
 (check (path-starts-with? "tools/doc" "tools/fmt") => #f)
 
 ;; 不存在的路径也能正常判断

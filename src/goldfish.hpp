@@ -976,7 +976,7 @@ goldfish_is_symbol_boundary_char (char ch) {
 
 // 纯文本判断 name 是否出现在调用位置（前面（跳过空白后）是左括号）。
 // 提示路径不允许调用 s7_read：错误处理路径里再触发 reader 错误会让 s7 在
-// 构造 stacktrace 时段错误（见 tools/pi/devel/038.md）。
+// 构造 stacktrace 时段错误。
 static bool
 goldfish_error_expression_contains_function_call (const string& expression, const string& function_name) {
   if (expression.empty () || function_name.empty ()) {
@@ -2102,9 +2102,9 @@ split_library_query (const string& query, string& group, string& library) {
 }
 
 // 提示（hint）扫描器：只做文本层面的 s-expression 扫描，不使用 s7 reader。
-// 原因见 tools/pi/devel/038.md：在错误处理路径里调用 s7_read，一旦被扫描文件里
-// 出现当前 reader 不认识的语法（例如未导入 (liii raw-string) 时的 #"" 原始字符串），
-// 就会在错误处理中再次抛错，s7 在构造 stacktrace 时段错误。
+// 原因：在错误处理路径里调用 s7_read，一旦被扫描文件里出现当前 reader 不认识的
+// 语法（例如未导入 (liii raw-string) 时的 #"" 原始字符串），就会在错误处理中再次
+// 抛错，s7 在构造 stacktrace 时段错误。
 enum class SchemeSourceTokenKind { Atom, Open, Close, Quote, DatumComment };
 
 struct SchemeSourceToken {

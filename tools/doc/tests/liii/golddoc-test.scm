@@ -4,8 +4,8 @@
 ;; 它负责解析查询、定位文档文件、加载索引，并提供模糊匹配建议。
 
 ;; ==== 常见用法示例 ====
-;; 添加 tools/golddoc 到 load path，以便导入 (liii golddoc)
-(set! *load-path* (cons "tools/golddoc" *load-path*))
+;; 添加 tools/doc 到 load path，以便导入 (liii golddoc)
+(set! *load-path* (cons "tools/doc" *load-path*))
 
 (import (liii golddoc))
 
