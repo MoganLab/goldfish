@@ -34,10 +34,11 @@
   (demo tui snake style)
 ) ;import
 
-(define (%run-game-over-loop screen term game)
-  (let* ((editor-comp (make-editor :placeholder "Your name" :text "Player1"))
+(define (%run-game-over-loop screen term game width)
+  (let* ((render-w (min width 50))
+         (editor-comp (make-editor :placeholder "Your name" :text "Player1"))
          (view (make-game-over-view game editor-comp))
-         (lines (component-render view 45))
+         (lines (component-render view render-w))
         ) ;
     (screen-render! screen lines)
     (let loop
@@ -46,7 +47,7 @@
         (cond ((or (eq? k 'enter) (eq? k 'escape) (equal? k "q") (>= wait-ticks 80)) #t)
               (k (component-handle-input editor-comp k)
                 (let* ((new-view (make-game-over-view game editor-comp))
-                       (new-lines (component-render new-view 45))
+                       (new-lines (component-render new-view render-w))
                       ) ;
                   (screen-render! screen new-lines)
                   (sleep 0.08)
@@ -65,11 +66,25 @@
   (let* ((term (make-standard-terminal))
          (screen (make-main-screen term))
          (spinner (make-spinner))
-         (init-food '(10 5))
+         (init-sz (terminal-size term))
+         (init-cols (car init-sz))
+         (init-rows (cadr init-sz))
+         (init-dims (snake-compute-dimensions init-cols init-rows))
+         (board-w (car init-dims))
+         (board-h (cadr init-dims))
+         (mid-y (quotient board-h 2))
+         (init-snake (list (list 5 mid-y)
+                       (list 4 mid-y)
+                       (list 3 mid-y)
+                       (list 2 mid-y)
+                       (list 1 mid-y)
+                     ) ;list
+         ) ;init-snake
+         (init-food (snake-spawn-food board-w board-h init-snake))
          (game (make-snake-game
-                 :width  20
-                 :height 10
-                 :snake  '((5 5) (4 5) (3 5) (2 5) (1 5))
+                 :width  board-w
+                 :height board-h
+                 :snake  init-snake
                  :dir    'right
                  :food   init-food
                ) ;make-snake-game
@@ -78,18 +93,36 @@
     (terminal-hide-cursor! term)
     (terminal-clear term)
     (let game-loop
-      ((current-game game))
+      ((current-game game) (prev-cols init-cols) (prev-rows init-rows))
       (if (eq? (snake-status current-game) 'game-over)
         (begin
-          (%run-game-over-loop screen term current-game)
+          (%run-game-over-loop screen term current-game prev-cols)
           (screen-clear! screen)
           (terminal-show-cursor! term)
           (display "Thanks for playing Snake (liii tui)!\n")
         ) ;begin
-        (begin
+        (let* ((cur-sz (terminal-size term))
+               (cur-cols (car cur-sz))
+               (cur-rows (cadr cur-sz))
+               (resized? (or (not (= cur-cols prev-cols)) (not (= cur-rows prev-rows))))
+               (active-game
+                 (if resized?
+                   (let* ((dims (snake-compute-dimensions cur-cols cur-rows))
+                          (nw (car dims))
+                          (nh (cadr dims))
+                         ) ;
+                     (snake-resize current-game nw nh)
+                   ) ;let*
+                   current-game
+                 ) ;if
+               ) ;active-game
+              ) ;
+          (when resized?
+            (screen-resize! screen cur-cols cur-rows)
+          ) ;when
           (spinner-tick! spinner)
-          (let* ((view (make-game-view current-game spinner))
-                 (lines (component-render view 60))
+          (let* ((view (make-game-view active-game spinner cur-cols cur-rows))
+                 (lines (component-render view cur-cols))
                 ) ;
             (screen-render! screen lines)
             (sleep 0.1)
@@ -100,11 +133,11 @@
                   (terminal-show-cursor! term)
                   (display "Game quit by player.\n")
                 ) ;begin
-                (game-loop (snake-tick current-game key))
+                (game-loop (snake-tick active-game key) cur-cols cur-rows)
               ) ;if
             ) ;let
           ) ;let*
-        ) ;begin
+        ) ;let*
       ) ;if
     ) ;let
   ) ;let*

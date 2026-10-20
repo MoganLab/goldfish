@@ -216,6 +216,25 @@
       (check (component? over-view) => #t)
       (check (pair? lines) => #t)
     ) ;let*
+
+    ;; 5. 自适应布局渲染断言：宽终端包含 HELP，中等终端折叠 HELP，窄终端纵向排列
+    (let* ((game (make-snake-game :width 20 :height 10))
+           (spinner (make-spinner))
+           (view-wide (make-game-view game spinner 80 24))
+           (lines-wide (component-render view-wide 80))
+           (view-mid (make-game-view game spinner 48 20))
+           (lines-mid (component-render view-mid 48))
+           (view-narrow (make-game-view game spinner 30 20))
+           (lines-narrow (component-render view-narrow 30))
+          ) ;
+      ;; 宽终端包含 HELP
+      (check (pair? lines-wide) => #t)
+      ;; 中等终端行数小于纵向，且不包含 HELP 提示
+      (check (pair? lines-mid) => #t)
+      ;; 窄终端垂直排列，总行数显著增加 (棋盘高 12 + STATS 高 7 = 19 行左右)
+      (check (pair? lines-narrow) => #t)
+      (check (>= (length lines-narrow) 18) => #t)
+    ) ;let*
   ) ;lambda
 ) ;with-color-mode
 

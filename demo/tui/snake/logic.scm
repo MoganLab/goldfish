@@ -25,7 +25,7 @@
   (export <snake-game> make-snake-game snake-game? snake-width snake-height
     snake-body snake-dir snake-food snake-score snake-high-score snake-status
     snake-tick-count snake-head snake-pass-wall snake-normalize-key
-    snake-dir-opposite? snake-turn snake-tick snake-spawn-food
+    snake-dir-opposite? snake-turn snake-tick snake-spawn-food snake-resize
   ) ;export
   (import (scheme base) (liii base) (liii error))
   (begin
@@ -212,6 +212,56 @@
               ) ;else
         ) ;cond
       ) ;let*
+    ) ;define
+
+    (define (snake-resize game new-w new-h)
+      (unless (snake-game? game)
+        (type-error "snake-resize: expected <snake-game>")
+      ) ;unless
+      (unless (and (integer? new-w) (> new-w 0))
+        (type-error "snake-resize: expected positive integer new-width")
+      ) ;unless
+      (unless (and (integer? new-h) (> new-h 0))
+        (type-error "snake-resize: expected positive integer new-height")
+      ) ;unless
+      (if (and (= new-w (snake-width game)) (= new-h (snake-height game)))
+        game
+        (let* ((orig-body (snake-body game))
+               (mapped-body
+                 (let loop
+                   ((rest orig-body) (seen '()))
+                   (if (null? rest)
+                     (reverse seen)
+                     (let* ((seg (car rest))
+                            (mx (modulo (car seg) new-w))
+                            (my (modulo (cadr seg) new-h))
+                            (pt (list mx my))
+                           ) ;
+                       (if (member pt seen) (loop (cdr rest) seen) (loop (cdr rest) (cons pt seen)))
+                     ) ;let*
+                   ) ;if
+                 ) ;let
+               ) ;mapped-body
+               (final-body (if (null? mapped-body) '((0 0)) mapped-body))
+               (orig-food (snake-food game))
+               (m-fx (modulo (car orig-food) new-w))
+               (m-fy (modulo (cadr orig-food) new-h))
+               (m-food (list m-fx m-fy))
+               (final-food (if (member m-food final-body) (snake-spawn-food new-w new-h final-body) m-food)
+               ) ;final-food
+              ) ;
+          (%make-snake-game new-w
+            new-h
+            final-body
+            (snake-dir game)
+            final-food
+            (snake-score game)
+            (snake-high-score game)
+            (snake-status game)
+            (snake-tick-count game)
+          ) ;%make-snake-game
+        ) ;let*
+      ) ;if
     ) ;define
 
     (define*

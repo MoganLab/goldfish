@@ -23,7 +23,7 @@
 
 (define-library (demo tui snake view)
   (export render-grid-lines make-stats-box make-help-box make-game-view
-    make-game-over-view
+    make-game-over-view snake-compute-layout snake-compute-dimensions
   ) ;export
   (import (scheme base)
     (liii base)
@@ -128,8 +128,57 @@
       ) ;let
     ) ;define
 
-    (define (make-game-view game spinner)
-      (let* ((grid-lines (render-grid-lines game))
+    (define (snake-compute-layout term-w term-h)
+      (unless (and (integer? term-w) (> term-w 0))
+        (type-error "snake-compute-layout: expected positive integer term-width")
+      ) ;unless
+      (unless (and (integer? term-h) (> term-h 0))
+        (type-error "snake-compute-layout: expected positive integer term-height")
+      ) ;unless
+      (cond
+       ((and (>= term-w 54) (>= term-h 12))
+        (let ((bw (max 10 (min 50 (- term-w 27)))) (bh (max 5 (min 25 (- term-h 2)))))
+          (list (cons 'board-width bw)
+            (cons 'board-height bh)
+            (cons 'layout 'horizontal)
+            (cons 'show-help? #t)
+          ) ;list
+        ) ;let
+       ) ;
+       ((and (>= term-w 38) (>= term-h 10))
+        (let ((bw (max 10 (min 50 (- term-w 21)))) (bh (max 5 (min 25 (- term-h 2)))))
+          (list (cons 'board-width bw)
+            (cons 'board-height bh)
+            (cons 'layout 'horizontal)
+            (cons 'show-help? #f)
+          ) ;list
+        ) ;let
+       ) ;
+       (else
+         (let ((bw (max 8 (- term-w 2)))
+               (bh (if (>= term-h 14) (max 5 (- term-h 9)) (max 4 (- term-h 4))))
+              ) ;
+           (list (cons 'board-width bw)
+             (cons 'board-height bh)
+             (cons 'layout 'vertical)
+             (cons 'show-help? #f)
+           ) ;list
+         ) ;let
+       ) ;else
+      ) ;cond
+    ) ;define
+
+    (define (snake-compute-dimensions term-w term-h)
+      (let ((info (snake-compute-layout term-w term-h)))
+        (list (cdr (assq 'board-width info)) (cdr (assq 'board-height info)))
+      ) ;let
+    ) ;define
+
+    (define* (make-game-view game spinner (term-width 60) (term-height 24))
+      (let* ((layout-info (snake-compute-layout term-width term-height))
+             (layout (cdr (assq 'layout layout-info)))
+             (show-help? (cdr (assq 'show-help? layout-info)))
+             (grid-lines (render-grid-lines game))
              (board-comp (make-component (lambda (comp width) grid-lines)))
              (board-box (make-box board-comp
                           :title   (style-title " SNAKE (liii tui) ")
@@ -138,16 +187,26 @@
                         ) ;make-box
              ) ;board-box
              (stats-box (make-stats-box game spinner))
-             (help-box (make-help-box))
-             (side-stack (make-vstack (list stats-box help-box) :spacing 0))
              (board-w (+ (snake-width game) 2))
             ) ;
-        (make-hstack (list board-box side-stack)
-          :spacing 1
-          :widths  (list board-w 'auto)
-        ) ;make-hstack
+        (cond
+         ((and (eq? layout 'horizontal) show-help?)
+          (let* ((help-box (make-help-box))
+                 (side-stack (make-vstack (list stats-box help-box) :spacing 0))
+                ) ;
+            (make-hstack (list board-box side-stack)
+              :spacing 1
+              :widths  (list board-w 'auto)
+            ) ;make-hstack
+          ) ;let*
+         ) ;
+         ((eq? layout 'horizontal)
+          (make-hstack (list board-box stats-box) :spacing 1 :widths (list board-w 'auto))
+         ) ;
+         (else (make-vstack (list board-box stats-box) :spacing 0))
+        ) ;cond
       ) ;let*
-    ) ;define
+    ) ;define*
 
     (define (make-game-over-view game editor-comp)
       (let* ((over-banner (make-text (style-game-over "=== GAME OVER ===")))
