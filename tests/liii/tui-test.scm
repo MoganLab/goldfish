@@ -112,4 +112,24 @@
 (check (pair? (spinner-presets)) => #t)
 (check (list? (spinner-frames-resolve 'pipe)) => #t)
 
+;; 编辑器组件门面再导出测试
+(let ((ed (make-editor "hello" :cursor-style 'bar)))
+  (check (component? ed) => #t)
+  (check (editor? ed) => #t)
+  (check (editor-text ed) => "hello")
+  (check (editor-cursor ed) => '(0 5))
+  (component-handle-input ed 'left)
+  (check (editor-cursor ed) => '(0 4))
+  (check (component-render ed 20) => '("hell|o")))
+
+(let ((ti (make-text-input "cmd" :placeholder "prompt")))
+  (check (text-input? ti) => #t)
+  (check (editor-placeholder ti) => "prompt")
+  (component-handle-input ti 'enter)
+  (check (editor-history-list ti) => '("cmd")))
+
+(let ((ta (make-text-area "multi\nline")))
+  (check (text-area? ta) => #t)
+  (check (editor-lines ta) => '("multi" "line")))
+
 (check-report)

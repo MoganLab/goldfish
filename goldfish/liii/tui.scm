@@ -39,7 +39,11 @@
     spinner-interval spinner-set-interval! spinner-visible? spinner-set-visible!
     spinner-show! spinner-hide! spinner-status spinner-set-status!
     spinner-success! spinner-fail! spinner-error! spinner-warn! spinner-stop!
-    spinner-presets spinner-frames-resolve
+    spinner-presets spinner-frames-resolve make-editor editor? make-text-input
+    text-input? make-text-area text-area? editor-text editor-set-text!
+    editor-cursor editor-set-cursor! editor-lines editor-focused?
+    editor-set-focused! editor-placeholder editor-set-placeholder!
+    editor-history-list
   ) ;export
   (import (liii tui component)
     (liii tui text-width)
@@ -47,5 +51,6 @@
     (liii tui terminal)
     (liii tui box)
     (liii tui loader)
+    (liii tui editor)
   ) ;import
 ) ;define-library
