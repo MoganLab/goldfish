@@ -10,9 +10,6 @@
     (liii pi extension registry)
     (liii pi blueprint args)
     (liii pi compass args)
-    (liii pi modes simplify)
-    (liii pi modes red-green)
-    (liii pi modes review)
     (liii pi modes blueprint)
     (liii pi modes compass)
   ) ;import
@@ -62,43 +59,11 @@
       ) ;register-flow!
     ) ;define
 
-    (define (%register-review-flows! reg)
-      (register-flow! reg
-        (make-extension-flow-def 'code-review
-          (lambda (p) (%ref p 'code-review))
-          (lambda (parsed cfg mode initial-msg) (run-code-review-flow parsed cfg mode))
-          :local?   #f
-          :priority 10
-        ) ;make-extension-flow-def
-      ) ;register-flow!
-      (register-flow! reg
-        (make-extension-flow-def 'simplify
-          (lambda (p) (%ref p 'simplify))
-          (lambda (parsed cfg mode initial-msg) (run-simplify-flow parsed cfg mode))
-          :local?   #f
-          :priority 10
-        ) ;make-extension-flow-def
-      ) ;register-flow!
-      (register-flow! reg
-        (make-extension-flow-def 'red-green
-          (lambda (p) (%ref p 'red-green))
-          (lambda (parsed cfg mode initial-msg)
-            (run-red-green-flow parsed cfg mode initial-msg)
-          ) ;lambda
-          :local?   #f
-          :priority 10
-        ) ;make-extension-flow-def
-      ) ;register-flow!
-    ) ;define
-
     (define (register-builtin-flows! reg)
       (%register-blueprint-flows! reg)
       (%register-compass-flows! reg)
-      (%register-review-flows! reg)
       reg
     ) ;define
-
-    (add-registry-initializer! register-builtin-flows!)
 
   ) ;begin
 ) ;define-library
