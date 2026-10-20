@@ -1,4 +1,4 @@
-# CLAUDE_CODE_PLAN：Claude Code 与 pi agent 的协作规范
+# CLAUDE：Claude Code 与 pi agent 的协作规范
 
 > 本文档定义 goldfish 仓库中 Claude Code 的职责边界、命令的存放位置与调用方法。
 > 若职责或流程有变化，先改本文档再动工。
@@ -6,21 +6,21 @@
 ## 1. 角色分工（核心约定）
 
 **整体协作只有两方：Claude Code 与 pi。** 不引入任何第三方 agent 或工具。
-**Claude Code 负责编辑并 commit 三份计划文档**：`CLAUDE_CODE_PLAN.md`（本文件）、
-`PI_PLAN.md`（任务规格与后续任务书）、`PI_SPEC.md`（经真实冒烟验证的命令行示例）；
+**Claude Code 负责编辑并 commit 三份计划文档**：`CLAUDE.md`（本文件）、
+`Agents.md`（任务规格与后续任务书）、`README.md`（经真实冒烟验证的命令行示例）；
 并负责把 pi 拉起来、对 pi 的产出做真实冒烟验收；**不写不改任何实现代码与测试**。
 pi 被拉起后全自主运行。
 
 | 两方 | 职责 | 不做什么 |
 |---|---|---|
-| **Claude Code** | **编辑并 commit 三份计划文档**（`CLAUDE_CODE_PLAN.md`/`PI_PLAN.md`/`PI_SPEC.md`）；**按任务生命周期发起 pi**（显式打印各阶段命令、监控执行、异常处置、维护任务表状态与 devel 文档的执行记录）；真实冒烟复核 pi 的验收结论；到达稳定点时同步快照到 `~/git/goldfish2` | 不直接编码（任务三阶段由 pi 执行）；文档 commit 无需编号 |
+| **Claude Code** | **编辑并 commit 三份计划文档**（`CLAUDE.md`/`Agents.md`/`README.md`）；**按任务生命周期发起 pi**（显式打印各阶段命令、监控执行、异常处置、维护任务表状态与 devel 文档的执行记录）；真实冒烟复核 pi 的验收结论；到达稳定点时同步快照到 `~/git/goldfish2` | 不直接编码（任务三阶段由 pi 执行）；文档 commit 无需编号 |
 | **pi（脚本模式）** | **执行任务三阶段**（文档/开发/验收）：按各阶段标准命令被拉起，全自主完成登记建档、TDD 实现、门禁+冒烟验收、commit 与 push；最终目标是被 `bin/gf pi`（自举）替换 | 不修改三份计划文档（文档与协作问题写进输出交回 Claude） |
 
 用户（Da）通过 Claude 下达需求与范围决策；编码、测试、提交、推送在两方之间闭环完成。
 
 一句话：**Claude 控制三份计划文档 + 测试验收 + 拉起 pi；全部代码由 pi 维护。**
 
-> 职责沿革：2026-10-17 初版为"Claude 只编辑 CLAUDE_CODE_PLAN.md、PI_PLAN.md 由 pi
+> 职责沿革：2026-10-17 初版为"Claude 只编辑 CLAUDE.md、Agents.md 由 pi
 > 维护"；2026-10-18 上午改为三份文档归 Claude + "真实冒烟→拉 pi 修复"循环；同日
 > 同日稍后裁定 **任务三阶段（文档/开发/验收）由 pi 执行**（Claude 回到发起与
 > 监控角色）——此前"Claude 直接编码"的过渡裁定作废；git push 由 pi 负责
@@ -31,7 +31,7 @@ pi 被拉起后全自主运行。
 - **限额约束（根本原因）**：Claude Code 背后是 GLM，有 **5 小时用量限额**。编码迭代
   （写测试→跑→修→再跑）与任务规格的反复修订都是 token 消耗大头，全部交给 pi 执行，
   把限额压到最低——Claude 的产出物只有本文件和拉起命令，两者都很短。
-- 文档先行：`PI_PLAN.md`（任务规格）首版已就绪，架构决策、文件布局、验收标准已固定，
+- 文档先行：`Agents.md`（任务规格）首版已就绪，架构决策、文件布局、验收标准已固定，
   pi 无需反复询问即可执行，且由 pi 自己维护后续修订。
 - pi 脚本模式适合一次性、边界清晰的任务执行；每个阶段一个 `pi -p` 调用，产出可独立验证。
 - 计划文档同时是回归依据：后续阶段可以引用同一份文档检查早期约定是否被遵守。
@@ -49,13 +49,13 @@ pi 被拉起后全自主运行。
 | 可复用 Scheme 库 | `goldfish/liii/<库名>.scm`，模块 `(liii <库名>)` |
 | 库测试 | `tests/goldfish/liii/<库名>-test.scm`（用 `bin/gf` 直接运行） |
 
-正在推进的例子：`pi` 子命令的完整布局见 `PI_PLAN.md` §4.1。
+正在推进的例子：`pi` 子命令的完整布局见 `Agents.md` §4.1。
 
 ### 3.2 计划文档与任务文档
 
-- 仓库根目录：`PI_PLAN.md`（任务书与回归依据）、`PI_SPEC.md`（实测示例）、
-  `CLAUDE_CODE_PLAN.md`（本文档）。
-- **任务文档**：`tools/pi/devel/`，每个任务一个 `<编号>.md`（编号对应 PI_PLAN.md
+- `tools/pi/` 目录：`Agents.md`（任务书与回归依据）、`README.md`（实测示例）、
+  `CLAUDE.md`（本文档）。
+- **任务文档**：`tools/pi/devel/`，每个任务一个 `<编号>.md`（编号对应 Agents.md
   §3 任务表），模板见 `tools/pi/devel/ddd.md`——pi 执行任务时从模板复制并填写
   （随任务 commit 入库）；Claude 在验收后补充「执行与验收记录」。
 - 仓库根目录 `devel/` 已停止维护，不再新增任务文档。
@@ -71,7 +71,7 @@ pi 被拉起后全自主运行。
 # 把计划文档作为输入，指派某个阶段
 # 注意：@文件 必须是独立的位置参数（整个参数以 @ 开头），不能写在 -p 的引号字符串里——
 # 否则整串会被当作文件路径而报 "File not found"（参考 ~/git/dev-agent tools/autocode 的拉起方式）
-setsid nohup timeout 7200 pi -a -p @PI_PLAN.md "按照 §11 阶段一实现 CLI 骨架，并给出测试结果" \
+setsid nohup timeout 7200 pi -a -p @tools/pi/Agents.md "按照 §11 阶段一实现 CLI 骨架，并给出测试结果" \
   > /tmp/pi-goldfish-run.log 2>&1 < /dev/null &
 
 # 管道输入作为上下文
@@ -82,7 +82,7 @@ timeout 900 pi --model sonnet:high -p "实现 §11 阶段二的工具层"
 ```
 
 要点：
-- 一次调用只指派 `PI_PLAN.md` 中一个阶段的任务，产出与验收标准一一对应。
+- 一次调用只指派 `Agents.md` 中一个阶段的任务，产出与验收标准一一对应。
 - `-a` 信任本项目级上下文文件（CLAUDE.md 等）；`-p` 是布尔 flag（print 模式），
   任务文本作为普通位置参数或 `@文件` 位置参数传入。
 - pi 直接在任务分支（当前 `da/pi`）上提交，不进入主干；主干隔离靠分支 + 合并请求。
@@ -123,11 +123,11 @@ timeout 120 bin/gf doc --build-json
 
 ### 4.3 目标态：`bin/gf pi` 替代 pi 脚本模式
 
-`PI_PLAN.md` 完成后，§4.1 中的 `pi -p` 全部替换为 `bin/gf pi --print`，
+`Agents.md` 完成后，§4.1 中的 `pi -p` 全部替换为 `bin/gf pi --print`，
 即本仓库的编码执行者也是 goldfish 自己的产物（自举）：
 
 ```bash
-timeout 900 bin/gf pi --print "@PI_PLAN.md 实现阶段八：会话持久化"
+timeout 900 bin/gf pi --print "@tools/pi/Agents.md 实现阶段八：会话持久化"
 ```
 
 ## 5. 任务生命周期（三阶段）
@@ -159,18 +159,18 @@ CODE commit = 代码改动；REVIEW commit = `tools/pi/devel/ddd.scm`（**验收
 
 ```bash
 # 文档阶段：登记+建档（产物 tools/pi/devel/ddd.md）
-timeout 900 pi -a -p @PI_PLAN.md "执行任务 ddd 的文档阶段：读 §3 任务表中任务 ddd 的验收点，从 tools/pi/devel/ddd.md 模板建立 tools/pi/devel/ddd.md（填写状态/代码文件/验收点/测试方法），commit 信息 [ddd][PLAN] 任务名：建档"
+timeout 900 pi -a -p @tools/pi/Agents.md "执行任务 ddd 的文档阶段：读 §3 任务表中任务 ddd 的验收点，从 tools/pi/devel/ddd.md 模板建立 tools/pi/devel/ddd.md（填写状态/代码文件/验收点/测试方法），commit 信息 [ddd][PLAN] 任务名：建档"
 
 # 开发阶段：TDD 实现（产物为代码改动）
-setsid nohup timeout 7200 pi -a -p @PI_PLAN.md "执行任务 ddd 的开发阶段（验收点见 tools/pi/devel/ddd.md）：先写测试再实现，commit 信息 [ddd][CODE] 任务名：简述，鼓励小步；自己执行的每条命令必须 timeout 包裹且不超过 300 秒；完成后在输出中如实报告各验收点情况" > /tmp/pi-goldfish-run.log 2>&1 < /dev/null &
+setsid nohup timeout 7200 pi -a -p @tools/pi/Agents.md "执行任务 ddd 的开发阶段（验收点见 tools/pi/devel/ddd.md）：先写测试再实现，commit 信息 [ddd][CODE] 任务名：简述，鼓励小步；自己执行的每条命令必须 timeout 包裹且不超过 300 秒；完成后在输出中如实报告各验收点情况" > /tmp/pi-goldfish-run.log 2>&1 < /dev/null &
 
 # 验收阶段：写验收脚本+跑门禁+结算（产物 tools/pi/devel/ddd.scm）
-timeout 1800 pi -a -p @PI_PLAN.md "执行任务 ddd 的验收阶段：1) 编写验收脚本 tools/pi/devel/ddd.scm（可执行，逐条断言 ddd.md 中的验收点：构建、fmt、check、相关测试、真实冒烟命令与期望输出）；2) 运行该脚本全绿后 commit（[ddd][REVIEW] 任务名：验收）并 git push；3) 在输出中逐条报告验收点通过情况"
+timeout 1800 pi -a -p @tools/pi/Agents.md "执行任务 ddd 的验收阶段：1) 编写验收脚本 tools/pi/devel/ddd.scm（可执行，逐条断言 ddd.md 中的验收点：构建、fmt、check、相关测试、真实冒烟命令与期望输出）；2) 运行该脚本全绿后 commit（[ddd][REVIEW] 任务名：验收）并 git push；3) 在输出中逐条报告验收点通过情况"
 ```
 
 ### 5.1 文档阶段
 
-1. 登记：`PI_PLAN.md` §3 任务表新增一行（编号从 001 递增），写明任务名、
+1. 登记：`Agents.md` §3 任务表新增一行（编号从 001 递增），写明任务名、
    内容与验收点；冒烟缺陷须附复现命令与取证（退出码/stdout/stderr）。
 2. 建档：从模板 `tools/pi/devel/ddd.md` 复制建立 `tools/pi/devel/<编号>.md`，
    填写状态（待执行）、涉及的代码文件、验收点、测试方法；建档后 commit
@@ -217,7 +217,7 @@ timeout 1800 pi -a -p @PI_PLAN.md "执行任务 ddd 的验收阶段：1) 编写�
 ## 5.5 自举试验（bin/gf pi 逐步接管）
 
 从轻量任务开始，定期尝试让 `bin/gf pi` 替代外部 pi 执行阶段任务（首选**文档
-阶段**：读 PI_PLAN §3 验收点、写 devel/xxx.md、commit）。
+阶段**：读 Agents §3 验收点、写 devel/xxx.md、commit）。
 
 **执行环境选择（用户裁定）**：
 - **只写文档的任务**（文档阶段等）→ 在当前仓库 `~/git/goldfish` 用 `bin/gf pi`
@@ -249,8 +249,8 @@ timeout 1800 pi -a -p @PI_PLAN.md "执行任务 ddd 的验收阶段：1) 编写�
   的行为差异（哪一步卡住、缺什么能力），把差距登记为缺陷任务，改进 `bin/gf pi`
   后再试——这就是用真实任务驱动自举迭代。
 - 试验记录写在对应 devel 文档的执行记录中（执行者标注 bin/gf pi 或 pi）。
-- 差距分析结果由 Claude 沉淀到 `PI_SPEC.md` 的「bin/gf pi 与 pi 的差距」一节——
-  据此规划 `bin/gf pi` 的后续改进（Claude 据此自主规划 PI_SPEC 的演进）。
+- 差距分析结果由 Claude 沉淀到 `README.md` 的「bin/gf pi 与 pi 的差距」一节——
+  据此规划 `bin/gf pi` 的后续改进（Claude 据此自主规划 README 的演进）。
 
 ## 5.6 收官阶段（用户裁定 2026-10-20）
 
@@ -274,7 +274,7 @@ timeout 1800 pi -a -p @PI_PLAN.md "执行任务 ddd 的验收阶段：1) 编写�
 - 测试一律写入 `tests/` 或 `tools/<命令名>/tests/` 下的版本控制文件。
 - **禁止修改三份计划文档**（2026-10-20 注：任务 039 验收执行器曾越权维护任务表
   并擅自登记 051/052——内容虽合理被保留，但程序违规；此后执行器发现值得登记的
-  任务/状态变更时，一律写进输出报告交回 Claude 处理，不直接改 PI_PLAN.md）。
+  任务/状态变更时，一律写进输出报告交回 Claude 处理，不直接改 Agents.md）。
 - 决策分两类处理：**技术规格问题**（实现细节、验收标准调整）由 pi 自行决策、修订
   `tools/pi/devel/<编号>.md`（任务文档，属 pi 可改范围）并 commit 记录理由；**协作流程/分工问题**（本文件的约定）才停止执行，
   把问题写进输出交回 Claude——Claude 编辑并 commit 本文件后重新拉起 pi 继续。

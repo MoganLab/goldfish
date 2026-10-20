@@ -1,10 +1,10 @@
-# PI_PLAN：`bin/gf pi` 任务规格与后续任务书
+# Agents：`bin/gf pi` 任务规格与后续任务书
 
 > 状态：§5 所列九个阶段已全部完成（2026-10-18），print 模式与 JSON 模式可用，
-> 经真实冒烟验证的命令行示例与各功能的预期用法见 `PI_SPEC.md`。
-> 本文档由 Claude 维护（与 `CLAUDE_CODE_PLAN.md`、`PI_SPEC.md` 同为计划文档），
+> 经真实冒烟验证的命令行示例与各功能的预期用法见 `README.md`。
+> 本文档由 Claude 维护（与 `CLAUDE.md`、`README.md` 同为计划文档），
 > 作为拉起 pi 的输入与后续任务书。pi 只负责代码，不改本文档。
-> 分工：本文件写任务书与回归依据；`PI_SPEC.md` 写可运行示例与 TODO 用法。
+> 分工：本文件写任务书与回归依据；`README.md` 写可运行示例与 TODO 用法。
 
 ## 1. 目标与当前状态
 
@@ -43,7 +43,7 @@ Anthropic 已实现但本机无访问权限，不在维护范围；其 OAuth 刷
   模型——git log 即模型代码质量横评数据源。
   **所有代码提交一律使用 `[三位编号]` 格式**（缺陷修复也登记入 §3 任务表获得
   编号，编号递增追加），保证 git log 的编号与任务表一一对应；
-  仅改动三份计划文档（CLAUDE_CODE_PLAN/PI_PLAN/PI_SPEC）的 commit 不涉及代码，
+  仅改动三份计划文档（CLAUDE/Agents/README）的 commit 不涉及代码，
   不需要编号。
 - **测试规范**：TDD，先写测试再实现；测试按 goldfish 惯例**一个函数一个测试文件**
   （`tests/liii/<模块>/<函数名>-test.scm`），改测试后 `bin/gf doc --build-json`。
@@ -52,7 +52,7 @@ Anthropic 已实现但本机无访问权限，不在维护范围；其 OAuth 刷
   <函数名>-test.scm`。**文档跟着实现走，不跟导出走**——实现只有一个（在
   `pi/gemini/request.scm`），导出可以经多层（`(liii pi gemini)`、`(liii pi)`
   门面再导出），但函数的测试文件只放实现所在的那一处。
-  **单元测试不得引用三份计划文档**（`PI_PLAN.md`/`PI_SPEC.md`/`CLAUDE_CODE_PLAN.md`
+  **单元测试不得引用三份计划文档**（`Agents.md`/`README.md`/`CLAUDE.md`
   可能被移除）——测试素材一律使用 fixtures 目录下的自建文件。
 - **配置复用**：`~/.pi/agent/`（settings/auth/models-store）只读，绝不写入；
   可用 `PI_CODING_AGENT_DIR` 重定向（测试 fixture 依赖它）。
@@ -100,7 +100,7 @@ Anthropic 已实现但本机无访问权限，不在维护范围；其 OAuth 刷
 - 任务 1-4（Kimi）凭据事实：auth.json `kimi-coding` 为 type:"api_key"，仅
   key/type 字段，无 OAuth。
 - 任务 5-7（迁移）动机：核心库只服务于 pi 子命令，不属于通用 liii 库；完成后由
-  Claude 更新 PI_PLAN/PI_SPEC 中的路径描述。
+  Claude 更新 Agents/README 中的路径描述。
 - 任务 8-11（record 化）外部行为零变化（JSON 输出、CLI 行为、事件序列不变），
   全部既有测试不回归；先补访问器测试再迁移实现。
 
@@ -135,14 +135,16 @@ thoughtSignature）、会话漏记 user 消息与 --continue 类型错误、Anth
 gfproject.json                    # 注册 "pi" 子命令（module → pi/cli）
 tools/pi/liii/
   pi.scm                          # (liii pi) 门面：公开 API 再导出
-  pi/                             # 多级子库（详见 PI_SPEC.md 架构演进节）
+  pi/                             # 多级子库（详见 README.md 架构演进节）
     types/gemini/anthropic/auth/models/retry/agent/
     tools/config/prompt/session/args/modes.scm
     cli.scm                       # (liii pi cli) CLI 入口
 tools/pi/tests/liii/pi/           # 测试（镜像源码库结构，一个函数一个测试文件）
 tools/pi/tests/                   # 其余测试与 fixture/stub server
 tools/pi/devel/                   # 任务文档（ddd.md 模板 + 编号.md + 编号.scm 验收脚本）
-PI_SPEC.md                        # 经真实冒烟验证的命令行示例（Claude 维护）
+tools/pi/README.md                # 经真实冒烟验证的命令行示例（Claude 维护）
+tools/pi/Agents.md                # 任务书与回归依据（本文档，Claude 维护）
+tools/pi/CLAUDE.md                # Claude Code 与 pi 的协作规范（Claude 维护）
 ```
 
 分层原则：模块只有 `(liii pi)` 与 `(liii pi xxx)` 两种形式；二级子库为导出层

@@ -1,4 +1,4 @@
-# PI_SPEC：`bin/gf pi` 命令行使用说明
+# README：`bin/gf pi` 命令行使用说明
 
 > **最终目标：`bin/gf pi` 可以替代 pi coding agent 的脚本模式**（print 模式与
 > JSON 模式）——用户在脚本与管道中原来写 `pi -p "..."`、`pi --mode json "..."`
@@ -269,7 +269,7 @@ tools/pi/liii/
 - ✅ 任务 004-007：事件、消息、配置、工具全面 record 化（保持外部兼容）
 - ✅ 任务 008：Kimi provider 完整支持（非流式、流式、工具调用与错误处理）
 - ✅ 任务 015：record 化收尾全量真实冒烟通过
-- ✅ 任务 017：测试去除对计划文档（PI_PLAN.md）的硬依赖
+- ✅ 任务 017：测试去除对计划文档（Agents.md）的硬依赖
 - ✅ 任务 018：`--list-models` 命令支持与对齐格式化输出
 - ✅ 任务 019：GLM provider 完整支持（复用 Anthropic 兼容网关链路）
 - ✅ 任务 020：DeepSeek provider 完整支持（独立子库与兼容网关支持）
@@ -393,11 +393,11 @@ Sources/Additional Results 拼装、7 类错误路径（401/403/超时/非 JSON/
 | 4 | thinking 内容不请求不解析 | `--thinking-level` 用法在 TODO | 远期（任务 012） |
 | 5 | 图片输入不支持 | `@图片` 用法在 TODO | 不做（用户裁定 2026-10-19：任务 013 取消） |
 | 6 | `--model` 不跨 provider 自动路由：bin/gf pi 只在当前 provider（--provider 或 defaultProvider）内解析模型 ID；pi 的 model-resolver 会在全部 provider 模型目录中搜索 ID，命中即隐式选定 provider（如 `pi -p --model k3` 自动路由到 kimi） | 实测：`bin/gf pi -p --model k3` 把 k3 发给 Google 得 HTTP 404，而 pi 正常路由 | ✅ 已修复（任务 022） |
-| 7 | Windows 下 bash 工具挂死：子进程 spawn 方式在 Windows 不可用，bash 工具执行任何命令均挂到超时（纯文本对话正常）；bin/gf pi 因此无法跑 git/测试命令，是自举（CLAUDE_CODE_PLAN §5.5）的前置缺陷 | 实测（2026-10-19）：`timeout 180 bin/gf pi --mode json --tools bash "用 bash 工具运行命令 echo win-bash-ok"` → tool_execution_end "Command timed out after 120 seconds" isError:true | 修复中（任务 026，优先） |
+| 7 | Windows 下 bash 工具挂死：子进程 spawn 方式在 Windows 不可用，bash 工具执行任何命令均挂到超时（纯文本对话正常）；bin/gf pi 因此无法跑 git/测试命令，是自举（CLAUDE §5.5）的前置缺陷 | 实测（2026-10-19）：`timeout 180 bin/gf pi --mode json --tools bash "用 bash 工具运行命令 echo win-bash-ok"` → tool_execution_end "Command timed out after 120 seconds" isError:true | 修复中（任务 026，优先） |
 | 8 | 会话级超时兜底（任务 014，默认 600s）无法从 CLI 放宽：args.scm 无 `--session-timeout` 选项，`--timeout` 只管 bash/HTTP；自举执行大体量开发任务必在 ~10 分钟被 `Session timeout exceeded` 打断（pi 无此硬上限）。注：012/022 曾误判为 `--timeout 7000` 解决，实为任务恰好在 600s 内完成 | 实测（2026-10-19）：任务 025/031 开发阶段自举均运行 ~10 分钟被会话兜底终止 | ✅ 已修复（任务 031：`--session-timeout <秒>`，0 关闭兜底） |
 | 9 | ~~不消费 settings.json 的 `retry.provider` 嵌套节~~ | 可重试 provider 错误（429/5xx/408/409/网络错误）现使用 `retry.provider.maxRetries` 预算（本机=12），未配置嵌套节时回退 `retry.maxRetries`（缺省 3），与 pi 的 SDK maxRetries 语义对齐 | ✅ 已修复（任务 032：TDD 覆盖嵌套解析/缺省回退/stub server 429 预算窗口 3.5b/3.5c） |
 | 10 | `KIMI_API_KEY` 环境变量兜底未生效：auth 解析只读 auth.json 的 kimi-coding 条目，env 被忽略——假 key 也返回周配额 403（而非 401），证明请求从未携带 env key；阻塞三把 kimi key 分摊配额 | 实测（2026-10-19）：`KIMI_API_KEY=sk-bogus bin/gf pi --provider kimi-coding --model k3` 返回周配额 403；**对照**：同 hongwei key `KIMI_API_KEY=... pi --provider kimi-coding --model k3` 本尊返回 ok（pi 源码 env-api-keys.ts 同名变量、env 优先） | ✅ 已修复（任务 035：env > auth.json 统一五个 provider；修复后假 key 实测返回 401；验收脚本 035.scm 27/27） |
-| 11 | deepseek 首轮 tool_use 参数解析崩溃：`Error: (value-error (("input") " must be null, pair, or list with at least 2 elements"))`——会话记录仅 2 行（session+user），崩溃发生在首轮 API 响应解析（未执行任何工具）；037 开发两次拉起同点确定性复现（030/033/036 用 deepseek 未触发，疑与 deepseek 某类 tool_use 参数形状相关，如 input 为 JSON 字符串/嵌套形状） | 实测（2026-10-20）：037 开发第 1/2 次拉起均在加载 PI_PLAN.md 首轮响应后秒崩，会话 jsonl 取证 | ✅ 已修复（任务 050：根因 C++ json_write_object_entry 对单元素 list 约束 + 空参数 cons 退化；anthropic-normalize-input/parse-tool-arguments 多形态兼容；deepseek 工具调用实测恢复） |
+| 11 | deepseek 首轮 tool_use 参数解析崩溃：`Error: (value-error (("input") " must be null, pair, or list with at least 2 elements"))`——会话记录仅 2 行（session+user），崩溃发生在首轮 API 响应解析（未执行任何工具）；037 开发两次拉起同点确定性复现（030/033/036 用 deepseek 未触发，疑与 deepseek 某类 tool_use 参数形状相关，如 input 为 JSON 字符串/嵌套形状） | 实测（2026-10-20）：037 开发第 1/2 次拉起均在加载 Agents.md 首轮响应后秒崩，会话 jsonl 取证 | ✅ 已修复（任务 050：根因 C++ json_write_object_entry 对单元素 list 约束 + 空参数 cons 退化；anthropic-normalize-input/parse-tool-arguments 多形态兼容；deepseek 工具调用实测恢复） |
 | 12 | deepseek 流式间歇性 `HTTP 400 stream error`：验收阶段大上下文拉起偶发连续中断（非每次——039 文档/开发、040 文档/开发均 deepseek 成功；039 验收×2 与 040 验收×1 连续遇到）——疑 deepseek 网关对某类大 prompt 流式响应的偶发拒绝；未定位到请求体差异 | 实测（2026-10-20）：三次同错（/tmp/pi-goldfish-run.log 取证），换模型即恢复 | 观察中（复现频繁时登记修复任务；当前以换模型规避） |
 | 13 | goldfish2 快照同步盲区：任务改动**主库 goldfish/liii/** 且未 commit 时，git 同步拿不到工作区改动，执行器（goldfish2 bin/gf）加载工作区 pi 代码报 `unbound variable ~S in ~S`（052 改 date-time 主库两次触发）；修复：同步时 diff 主库并拷贝未提交文件 | 实测（2026-10-20）：052 验收两次秒崩，cp date-time.scm 后恢复；附带发现错误消息 ~S 占位符未替换的 cosmetic bug（观察中） |
 
