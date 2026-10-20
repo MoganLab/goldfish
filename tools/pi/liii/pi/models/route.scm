@@ -203,11 +203,10 @@
                      (else #f)
                ) ;cond
              ) ;raw-explicit-m
-             (slash-parts
-               (if (and (string? raw-explicit-m) (string-contains? raw-explicit-m "/"))
-                 (string-split raw-explicit-m "/")
-                 #f
-               ) ;if
+             (slash-parts (if (and (string? raw-explicit-m) (string-contains? raw-explicit-m "/"))
+                            (string-split raw-explicit-m "/")
+                            #f
+                          ) ;if
              ) ;slash-parts
              (slash-p (and slash-parts (pair? slash-parts) (car slash-parts)))
              (explicit-m
