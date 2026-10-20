@@ -1,5 +1,6 @@
 (import (liii check)
   (liii error)
+  (liii tui main-screen)
   (liii tui terminal)
   (liii pi modes tui state)
   (liii pi modes tui loop)
@@ -139,6 +140,34 @@
   ) ;run-tui-loop
   (let ((first-line (car (virtual-terminal-screen vt))))
     (check-true (string=? (substring first-line 0 12) "PI-TUI-READY"))
+  ) ;let
+) ;let
+
+;; 8. 窗口 Resize 检测与 screen-resize! 自适应驱动
+(let* ((vt (make-virtual-terminal :width 80 :height 24))
+       (ms (make-main-screen vt))
+       (st (make-pi-tui-state :cols 80 :rows 24))
+       (resize-detected? #f)
+      ) ;
+  ;; 模拟窗口大小由 80x24 调整为 100x30
+  (virtual-terminal-resize! vt 100 30)
+  (virtual-terminal-push-key! vt 'escape)
+
+  (let ((final-st (run-tui-loop vt
+                    :state st
+                    :screen ms
+                    :return-state #t
+                    :render (lambda (s term)
+                              (when (and (= (state-cols s) 100) (= (state-rows s) 30))
+                                (set! resize-detected? #t)
+                              ) ;when
+                            ) ;lambda
+                  ) ;run-tui-loop
+        ) ;final-st
+       ) ;
+    (check (state-cols final-st) => 100)
+    (check (state-rows final-st) => 30)
+    (check resize-detected? => #t)
   ) ;let
 ) ;let
 

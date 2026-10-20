@@ -10,6 +10,7 @@
   (import (scheme base)
     (liii error)
     (liii pi modes tui state types)
+    (liii pi modes tui state parse)
     (liii pi modes tui editor)
   ) ;import
   (export <pi-tui-state>
@@ -30,6 +31,10 @@
     pi-tui-state-scroll-offset
     state-dirty?
     pi-tui-state-dirty?
+    state-cols
+    pi-tui-state-cols
+    state-rows
+    pi-tui-state-rows
     ;; Functional pure updates
     state-with-status
     state-with-messages
@@ -37,6 +42,7 @@
     state-with-active-tool
     state-with-scroll-offset
     state-with-dirty
+    state-with-dimensions
     ;; In-place mutations
     state-mark-dirty!
     state-clear-dirty!
@@ -45,79 +51,13 @@
     state-set-input-editor!
     state-set-active-tool!
     state-set-scroll-offset!
+    state-set-dimensions!
     state-submit-prompt!
   ) ;export
   (begin
 
-    (define (%parse-state-args args)
-      (let loop
-        ((rest args)
-         (status 'idle)
-         (messages '())
-         (input-editor "")
-         (active-tool #f)
-         (scroll-offset 0)
-         (dirty? #t)
-        ) ;
-        (cond ((null? rest)
-               (values status messages input-editor active-tool scroll-offset dirty?)
-              ) ;
-              ((eq? (car rest) :status)
-               (loop (cddr rest)
-                 (cadr rest)
-                 messages
-                 input-editor
-                 active-tool
-                 scroll-offset
-                 dirty?
-               ) ;loop
-              ) ;
-              ((eq? (car rest) :messages)
-               (loop (cddr rest)
-                 status
-                 (cadr rest)
-                 input-editor
-                 active-tool
-                 scroll-offset
-                 dirty?
-               ) ;loop
-              ) ;
-              ((eq? (car rest) :input-editor)
-               (loop (cddr rest) status messages (cadr rest) active-tool scroll-offset dirty?)
-              ) ;
-              ((eq? (car rest) :active-tool)
-               (loop (cddr rest) status messages input-editor (cadr rest) scroll-offset dirty?)
-              ) ;
-              ((eq? (car rest) :scroll-offset)
-               (loop (cddr rest) status messages input-editor active-tool (cadr rest) dirty?)
-              ) ;
-              ((or (eq? (car rest) :dirty?) (eq? (car rest) :dirty))
-               (loop (cddr rest)
-                 status
-                 messages
-                 input-editor
-                 active-tool
-                 scroll-offset
-                 (cadr rest)
-               ) ;loop
-              ) ;
-              (else
-                (let ((len (length rest)))
-                  (values (if (>= len 1) (list-ref rest 0) status)
-                    (if (>= len 2) (list-ref rest 1) messages)
-                    (if (>= len 3) (list-ref rest 2) input-editor)
-                    (if (>= len 4) (list-ref rest 3) active-tool)
-                    (if (>= len 5) (list-ref rest 4) scroll-offset)
-                    (if (>= len 6) (list-ref rest 5) dirty?)
-                  ) ;values
-                ) ;let
-              ) ;else
-        ) ;cond
-      ) ;let
-    ) ;define
-
     (define (make-pi-tui-state . args)
-      (let-values (((status messages input-editor active-tool scroll-offset dirty?)
+      (let-values (((status messages input-editor active-tool scroll-offset dirty? cols rows)
                     (%parse-state-args args)
                    ) ;
                   ) ;
@@ -125,8 +65,10 @@
         (%validate-messages messages "make-pi-tui-state")
         (%validate-scroll-offset scroll-offset "make-pi-tui-state")
         (%validate-dirty dirty? "make-pi-tui-state")
+        (%validate-dimension cols "cols" "make-pi-tui-state")
+        (%validate-dimension rows "rows" "make-pi-tui-state")
         (%make-pi-tui-state status messages input-editor active-tool
-          scroll-offset dirty?
+          scroll-offset dirty? cols rows
         ) ;%make-pi-tui-state
       ) ;let-values
     ) ;define
@@ -140,6 +82,8 @@
         (state-active-tool st)
         (state-scroll-offset st)
         #t
+        (state-cols st)
+        (state-rows st)
       ) ;%make-pi-tui-state
     ) ;define
 
@@ -152,6 +96,8 @@
         (state-active-tool st)
         (state-scroll-offset st)
         #t
+        (state-cols st)
+        (state-rows st)
       ) ;%make-pi-tui-state
     ) ;define
 
@@ -163,6 +109,8 @@
         (state-active-tool st)
         (state-scroll-offset st)
         #t
+        (state-cols st)
+        (state-rows st)
       ) ;%make-pi-tui-state
     ) ;define
 
@@ -174,6 +122,8 @@
         new-tool
         (state-scroll-offset st)
         #t
+        (state-cols st)
+        (state-rows st)
       ) ;%make-pi-tui-state
     ) ;define
 
@@ -186,6 +136,8 @@
         (state-active-tool st)
         new-offset
         #t
+        (state-cols st)
+        (state-rows st)
       ) ;%make-pi-tui-state
     ) ;define
 
@@ -198,6 +150,23 @@
         (state-active-tool st)
         (state-scroll-offset st)
         dirty?
+        (state-cols st)
+        (state-rows st)
+      ) ;%make-pi-tui-state
+    ) ;define
+
+    (define (state-with-dimensions st new-cols new-rows)
+      (%validate-state st "state-with-dimensions")
+      (%validate-dimension new-cols "cols" "state-with-dimensions")
+      (%validate-dimension new-rows "rows" "state-with-dimensions")
+      (%make-pi-tui-state (state-status st)
+        (state-messages st)
+        (state-input-editor st)
+        (state-active-tool st)
+        (state-scroll-offset st)
+        #t
+        new-cols
+        new-rows
       ) ;%make-pi-tui-state
     ) ;define
 
@@ -241,6 +210,15 @@
       (%validate-state st "state-set-scroll-offset!")
       (%validate-scroll-offset new-offset "state-set-scroll-offset!")
       (%state-set-scroll-offset-raw! st new-offset)
+      (%state-set-dirty-raw! st #t)
+    ) ;define
+
+    (define (state-set-dimensions! st new-cols new-rows)
+      (%validate-state st "state-set-dimensions!")
+      (%validate-dimension new-cols "cols" "state-set-dimensions!")
+      (%validate-dimension new-rows "rows" "state-set-dimensions!")
+      (%state-set-cols-raw! st new-cols)
+      (%state-set-rows-raw! st new-rows)
       (%state-set-dirty-raw! st #t)
     ) ;define
 

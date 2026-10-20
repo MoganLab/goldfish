@@ -139,4 +139,32 @@
   (check-catch 'type-error (state-clear-dirty! "not-state"))
 ) ;let
 
+;; 9. state-cols / state-rows 访问与更新
+(let ((st (make-pi-tui-state :cols 100 :rows 35)))
+  (check (state-cols st) => 100)
+  (check (state-rows st) => 35)
+
+  ;; 纯函数更新
+  (let ((st2 (state-with-dimensions st 120 40)))
+    (check (state-cols st) => 100)
+    (check (state-rows st) => 35)
+    (check (state-cols st2) => 120)
+    (check (state-rows st2) => 40)
+    (check (state-dirty? st2) => #t)
+  ) ;let
+
+  ;; 原地更新
+  (state-clear-dirty! st)
+  (state-set-dimensions! st 80 24)
+  (check (state-cols st) => 80)
+  (check (state-rows st) => 24)
+  (check (state-dirty? st) => #t)
+
+  ;; 异常检查
+  (check-catch 'type-error (state-with-dimensions st 0 24))
+  (check-catch 'type-error (state-with-dimensions st 80 -1))
+  (check-catch 'type-error (state-set-dimensions! st 0 24))
+  (check-catch 'type-error (state-set-dimensions! st 80 0))
+) ;let
+
 (check-report)

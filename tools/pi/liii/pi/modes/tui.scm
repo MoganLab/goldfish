@@ -14,6 +14,7 @@
     (liii pi modes tui state)
     (liii pi modes tui loop)
     (liii pi modes tui editor)
+    (liii pi modes tui layout)
   ) ;import
   (export with-pi-tui-terminal
     run-tui-loop
@@ -37,6 +38,10 @@
     pi-tui-state-scroll-offset
     state-dirty?
     pi-tui-state-dirty?
+    state-cols
+    pi-tui-state-cols
+    state-rows
+    pi-tui-state-rows
     ;; Pure functional updates
     state-with-status
     state-with-messages
@@ -44,6 +49,7 @@
     state-with-active-tool
     state-with-scroll-offset
     state-with-dirty
+    state-with-dimensions
     ;; In-place mutations
     state-mark-dirty!
     state-clear-dirty!
@@ -52,6 +58,7 @@
     state-set-input-editor!
     state-set-active-tool!
     state-set-scroll-offset!
+    state-set-dimensions!
     state-submit-prompt!
     ;; Editor exports
     make-pi-tui-editor
@@ -79,6 +86,28 @@
     pi-tui-editor-set-on-submit!
     pi-tui-editor-on-change
     pi-tui-editor-set-on-change!
+    ;; Layout exports
+    <tui-rect>
+    make-tui-rect
+    tui-rect?
+    rect-top
+    rect-left
+    rect-width
+    rect-height
+    <tui-layout>
+    make-tui-layout
+    tui-layout?
+    layout-cols
+    layout-rows
+    layout-messages-rect
+    layout-editor-rect
+    layout-status-rect
+    layout-narrow?
+    layout-compact?
+    compute-editor-height
+    compute-tui-layout
+    detect-terminal-dimensions
+    handle-screen-resize!
   ) ;export
   (begin
 

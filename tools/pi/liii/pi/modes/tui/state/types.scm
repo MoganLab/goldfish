@@ -31,18 +31,25 @@
     state-dirty?
     pi-tui-state-dirty?
     %state-set-dirty-raw!
+    state-cols
+    pi-tui-state-cols
+    %state-set-cols-raw!
+    state-rows
+    pi-tui-state-rows
+    %state-set-rows-raw!
     ;; Validators
     %validate-status
     %validate-messages
     %validate-scroll-offset
     %validate-dirty
+    %validate-dimension
     %validate-state
   ) ;export
   (begin
 
     (define-record-type <pi-tui-state>
       (%make-pi-tui-state status messages input-editor active-tool scroll-offset
-        dirty?
+        dirty? cols rows
       ) ;%make-pi-tui-state
       pi-tui-state?
       (status state-status %state-set-status-raw!)
@@ -51,6 +58,8 @@
       (active-tool state-active-tool %state-set-active-tool-raw!)
       (scroll-offset state-scroll-offset %state-set-scroll-offset-raw!)
       (dirty? state-dirty? %state-set-dirty-raw!)
+      (cols state-cols %state-set-cols-raw!)
+      (rows state-rows %state-set-rows-raw!)
     ) ;define-record-type
 
     (define <pi-tui-state> '<pi-tui-state>)
@@ -61,6 +70,8 @@
     (define pi-tui-state-active-tool state-active-tool)
     (define pi-tui-state-scroll-offset state-scroll-offset)
     (define pi-tui-state-dirty? state-dirty?)
+    (define pi-tui-state-cols state-cols)
+    (define pi-tui-state-rows state-rows)
 
     (define (state-valid-status? s)
       (and (memq s '(idle running streaming confirm exit)) #t)
@@ -91,6 +102,12 @@
     (define (%validate-dirty dirty caller)
       (unless (boolean? dirty)
         (type-error (string-append caller ": expected boolean for dirty?"))
+      ) ;unless
+    ) ;define
+
+    (define (%validate-dimension dim name caller)
+      (unless (and (exact-integer? dim) (> dim 0))
+        (type-error (string-append caller ": expected positive integer for " name))
       ) ;unless
     ) ;define
 

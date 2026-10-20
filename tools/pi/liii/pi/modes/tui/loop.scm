@@ -11,147 +11,29 @@
     (liii error)
     (liii time)
     (liii tui terminal)
+    (liii tui main-screen)
     (liii pi modes tui state)
     (liii pi modes tui editor)
+    (liii pi modes tui layout)
+    (liii pi modes tui loop opts)
   ) ;import
   (export run-tui-loop)
   (begin
-
-    (define (%call-render render-proc state term)
-      (let* ((ar (arity render-proc)) (min-args (car ar)))
-        (cond ((>= min-args 2) (render-proc state term))
-              ((= min-args 1) (render-proc state))
-              (else (render-proc))
-        ) ;cond
-      ) ;let*
-    ) ;define
-
-    (define (%call-on-key on-key-proc state key)
-      (let* ((ar (arity on-key-proc)) (min-args (car ar)))
-        (if (<= min-args 1) (on-key-proc key) (on-key-proc state key))
-      ) ;let*
-    ) ;define
-
-    (define (%call-on-tick on-tick-proc state ticks)
-      (let* ((ar (arity on-tick-proc)) (min-args (car ar)))
-        (cond ((>= min-args 2) (on-tick-proc state ticks))
-              ((= min-args 1) (on-tick-proc state))
-              (else (on-tick-proc))
-        ) ;cond
-      ) ;let*
-    ) ;define
-
-    (define (%parse-loop-opts opts)
-      (let loop
-        ((rest opts)
-         (state #f)
-         (max-ticks #f)
-         (on-key #f)
-         (on-tick #f)
-         (render #f)
-         (interval 0.033)
-         (return-state? #f)
-        ) ;
-        (cond
-         ((null? rest)
-          (values (or state (make-pi-tui-state))
-            max-ticks
-            on-key
-            on-tick
-            render
-            interval
-            return-state?
-          ) ;values
-         ) ;
-         ((eq? (car rest) :state)
-          (loop (cddr rest)
-            (cadr rest)
-            max-ticks
-            on-key
-            on-tick
-            render
-            interval
-            return-state?
-          ) ;loop
-         ) ;
-         ((eq? (car rest) :max-ticks)
-          (loop (cddr rest)
-            state
-            (cadr rest)
-            on-key
-            on-tick
-            render
-            interval
-            return-state?
-          ) ;loop
-         ) ;
-         ((eq? (car rest) :on-key)
-          (loop (cddr rest)
-            state
-            max-ticks
-            (cadr rest)
-            on-tick
-            render
-            interval
-            return-state?
-          ) ;loop
-         ) ;
-         ((eq? (car rest) :on-tick)
-          (loop (cddr rest)
-            state
-            max-ticks
-            on-key
-            (cadr rest)
-            render
-            interval
-            return-state?
-          ) ;loop
-         ) ;
-         ((eq? (car rest) :render)
-          (loop (cddr rest)
-            state
-            max-ticks
-            on-key
-            on-tick
-            (cadr rest)
-            interval
-            return-state?
-          ) ;loop
-         ) ;
-         ((eq? (car rest) :interval)
-          (loop (cddr rest)
-            state
-            max-ticks
-            on-key
-            on-tick
-            render
-            (cadr rest)
-            return-state?
-          ) ;loop
-         ) ;
-         ((eq? (car rest) :return-state)
-          (loop (cddr rest) state max-ticks on-key on-tick render interval (cadr rest))
-         ) ;
-         ((exact-integer? (car rest))
-          (loop (cdr rest) state (car rest) on-key on-tick render interval return-state?)
-         ) ;
-         (else (loop (cdr rest) state max-ticks on-key on-tick render interval return-state?)
-         ) ;else
-        ) ;cond
-      ) ;let
-    ) ;define
 
     (define (run-tui-loop term . opts)
       (unless (terminal? term)
         (type-error "run-tui-loop: expected terminal")
       ) ;unless
-      (let-values (((state max-ticks on-key on-tick render interval return-state?)
+      (let-values (((state max-ticks on-key on-tick render interval return-state? screen)
                     (%parse-loop-opts opts)
                    ) ;
                   ) ;
         (unless (pi-tui-state? state)
           (type-error "run-tui-loop: expected <pi-tui-state> for :state")
         ) ;unless
+        (when (and screen (not (main-screen? screen)))
+          (type-error "run-tui-loop: expected <main-screen> for :screen")
+        ) ;when
         (when (and render (not (procedure? render)))
           (type-error "run-tui-loop: expected procedure for :render")
         ) ;when
@@ -167,6 +49,25 @@
           (cond ((eq? (state-status current-state) 'exit) (if return-state? current-state 0))
                 ((and max-ticks (>= ticks max-ticks)) (if return-state? current-state 0))
                 (else
+                  ;; 0. 终端 Resize 检测与自适应处理
+                  (let-values (((term-cols term-rows) (detect-terminal-dimensions term)))
+                    (when
+                      (or (not (= term-cols (state-cols current-state)))
+                        (not (= term-rows (state-rows current-state)))
+                      ) ;or
+                      (when screen
+                        (handle-screen-resize! screen
+                          (state-cols current-state)
+                          (state-rows current-state)
+                          term-cols
+                          term-rows
+                        ) ;handle-screen-resize!
+                      ) ;when
+                      (state-set-dimensions! current-state term-cols term-rows)
+                      (state-mark-dirty! current-state)
+                    ) ;when
+                  ) ;let-values
+
                   ;; 1. 脏标记与渲染调度
                   (when (and render (state-dirty? current-state))
                     (state-clear-dirty! current-state)
