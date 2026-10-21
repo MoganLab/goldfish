@@ -1,4 +1,7 @@
-(import (liii check)
+(import (scheme base)
+  (liii check)
+  (liii list)
+  (liii string)
   (liii error)
   (liii tui terminal)
   (liii pi modes tui)
@@ -86,14 +89,38 @@
   ) ;let
 ) ;let
 
-;; 8. run-tui-flow 端到端集成验证
+;; 8. run-tui-flow 端到端集成验证与首屏非空渲染
 (let ((vt (make-virtual-terminal :width 80 :height 24)))
   (virtual-terminal-push-key! vt 'escape)
   (let ((ret (run-tui-flow '() '() 'tui "" vt)))
     (check ret => 0)
     (check (terminal-cursor-visible? vt) => #t)
-    (let ((raw (virtual-terminal-raw vt)))
+    (let ((raw (virtual-terminal-raw vt))
+          (screen (virtual-terminal-screen vt))
+         ) ;
       (check-true (not (not (member "\x1b;[?1049l" raw))))
+      ;; 验证首屏绝非全空白，包含输入提示符和状态栏
+      (check-true (pair? screen))
+      (check-true (not (null? (filter (lambda (line) (string-contains line ">")) screen))))
+      (check-true (not (null? (filter (lambda (line) (string-contains line "IDLE")) screen))))
+    ) ;let
+  ) ;let
+) ;let
+
+;; 9. run-tui-flow 输入框打字与交互验证
+(let ((vt (make-virtual-terminal :width 80 :height 24)))
+  ;; 键入字符 "hello" 并按 escape 退出
+  (virtual-terminal-push-key! vt "h")
+  (virtual-terminal-push-key! vt "e")
+  (virtual-terminal-push-key! vt "l")
+  (virtual-terminal-push-key! vt "l")
+  (virtual-terminal-push-key! vt "o")
+  (virtual-terminal-push-key! vt 'escape)
+  (let ((ret (run-tui-flow '() '() 'tui "" vt)))
+    (check ret => 0)
+    (let ((screen (virtual-terminal-screen vt)))
+      ;; 验证输入框中回显了 "hello"
+      (check-true (not (null? (filter (lambda (line) (string-contains line "hello")) screen))))
     ) ;let
   ) ;let
 ) ;let

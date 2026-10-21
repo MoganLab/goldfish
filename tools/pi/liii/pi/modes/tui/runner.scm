@@ -11,7 +11,11 @@
     (liii error)
     (liii os)
     (liii tui terminal)
+    (liii tui main-screen)
     (liii pi modes tui loop)
+    (liii pi modes tui editor)
+    (liii pi modes tui state)
+    (liii pi modes tui layout)
   ) ;import
   (export with-pi-tui-terminal run-tui-flow)
   (begin
@@ -42,15 +46,23 @@
     ) ;define
 
     (define (run-tui-flow parsed cfg mode initial-msg . maybe-term)
-      (let ((term
-              (if (and (pair? maybe-term) (terminal? (car maybe-term)))
-                (car maybe-term)
-                (make-standard-terminal)
-              ) ;if
-            ) ;term
-           ) ;
-        (with-pi-tui-terminal term (lambda () (run-tui-loop term)))
-      ) ;let
+      (let* ((term
+               (if (and (pair? maybe-term) (terminal? (car maybe-term)))
+                 (car maybe-term)
+                 (make-standard-terminal)
+               ) ;if
+             ) ;term
+             (screen (make-main-screen term))
+             (ed (make-pi-tui-editor :focused? #t))
+            ) ;
+        (let-values (((cols rows) (detect-terminal-dimensions term)))
+          (let* ((st (make-pi-tui-state :input-editor ed :cols cols :rows rows :dirty? #t)))
+            (with-pi-tui-terminal term
+              (lambda () (run-tui-loop term :state st :screen screen))
+            ) ;with-pi-tui-terminal
+          ) ;let*
+        ) ;let-values
+      ) ;let*
     ) ;define
 
   ) ;begin

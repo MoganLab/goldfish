@@ -185,9 +185,9 @@
       (if (and (pair? maybe-layout) (tui-layout? (car maybe-layout)))
         (car maybe-layout)
         (let* ((ed (state-input-editor st))
-               (lines (if (pi-tui-editor? ed) (pi-tui-editor-lines ed) 1))
+               (line-count (if (pi-tui-editor? ed) (length (pi-tui-editor-lines ed)) 1))
               ) ;
-          (compute-tui-layout (state-cols st) (state-rows st) lines)
+          (compute-tui-layout (state-cols st) (state-rows st) line-count)
         ) ;let*
       ) ;if
     ) ;define
@@ -197,8 +197,8 @@
         (not (and (eq? (state-status st) 'idle) (pi-tui-editor? ed)))
         #f
         (let* ((cur (pi-tui-editor-cursor ed))
-               (c-col (car cur))
-               (c-row (cdr cur))
+               (c-row (car cur))
+               (c-col (cadr cur))
                (ed-rect (layout-editor-rect layout))
                (top (rect-top ed-rect))
                (left (rect-left ed-rect))
