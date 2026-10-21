@@ -110,7 +110,7 @@
                   ) ;tui-emit
                  ) ;
               (catch #t
-                (lambda () (runner cfg (list (pi-user-message user-text)) #f tui-emit parsed))
+                (lambda () (runner parsed cfg user-text tui-emit (lambda (res-msgs) #t)))
                 (lambda (tag . err-args)
                   (pi-app-add-tool-result! app
                     "error"
@@ -118,6 +118,8 @@
                     'error
                     (string-append (object->string tag) ": " (object->string err-args))
                   ) ;pi-app-add-tool-result!
+                  (pi-queue-finish-task! (pi-app-queue app))
+                  (pi-app-drain-queue! app)
                 ) ;lambda
               ) ;catch
             ) ;let

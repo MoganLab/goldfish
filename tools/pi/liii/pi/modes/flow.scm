@@ -172,7 +172,7 @@
           (when has-prompt?
             (persist-new-messages! sfile context init-msgs persisted)
           ) ;when
-          (when emit
+          (when (eq? emit emit-json-event)
             (emit-json-event 'session cwd)
           ) ;when
           (let* ((state (vector init-msgs (length init-msgs)))

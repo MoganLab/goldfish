@@ -10,7 +10,7 @@
 
 ;; 1. 测试 make-tui-agent-handler 构造与基础类型
 (let* ((mock-cfg '((provider . "mock") (api-key . "mock-key")))
-       (mock-runner (lambda (cfg init-msgs sys-prompt emit parsed)
+       (mock-runner (lambda (parsed cfg initial-msg emit on-finish)
                       ;; 模拟执行：先派发工具调用，再派发助手回复，最后通知结算
                       (emit 'tool_execution_end "call_1" "bash" "test result" #f)
                       (emit 'message_end '(("role" . "assistant")
@@ -32,7 +32,7 @@
     (check (pi-queue-idle? (pi-app-queue app)) => #t))
   
   ;; 3. 模拟工具出错分支
-  (let* ((error-runner (lambda (cfg init-msgs sys-prompt emit parsed)
+  (let* ((error-runner (lambda (parsed cfg initial-msg emit on-finish)
                          (emit 'tool_execution_end "call_2" "read" "File not found" #t)
                          (emit 'agent_settled #f)))
          (err-handler (make-tui-agent-handler '() mock-cfg :runner error-runner))
