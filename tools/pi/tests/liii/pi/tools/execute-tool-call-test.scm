@@ -1,4 +1,5 @@
 (import (liii check)
+  (liii string)
   (liii pi tools)
   (liii pi tools record)
   (liii pi extension)
@@ -80,5 +81,41 @@
         (check-false (pi-tool-result-is-error res))
         (check (cdr (assoc 'text (vector-ref (pi-tool-result-content res) 0)))
                => "safe")))))
+
+;; 6. 工具自身抛错时不得重跑：:timed-out? 标记必须生效（Issue #1189）
+;;    旧实现在 catch 里不带 opts 重跑一次，超时标记被丢掉，命令照常执行，
+;;    结果不是错误——这正是「工具失败被重跑」造成的假成功。
+(let ((res (execute-tool-call "grep" '(("pattern" . "sample")) :timed-out? #t)))
+  (check-true (pi-tool-result? res))
+  (check-true (pi-tool-result-is-error res))
+  (check-true (string-contains?
+                (cdr (assoc 'text (vector-ref (pi-tool-result-content res) 0)))
+                "Command timed out"
+              ) ;string-contains?
+  ) ;check-true
+) ;let
+
+;; 7. 工具能接受 opts 时必须真的收到：扩展工具用 (lambda (args . opts) ...)
+;;    声明可变参数，:timeout 等选项必须原样传下去（Issue #1189）
+(let* ((api (make-extension-api))
+       (tool (make-extension-tool-def
+               "opts_tool"
+               "Accepts keyword options"
+               '()
+               (lambda (args . opts)
+                 (string-append "opts=" (number->string (length opts))))))
+      ) ;
+  (register-tool! api tool)
+  (with-extension-registry api
+    (lambda ()
+      (let ((res (execute-tool-call "opts_tool" '() :timeout 120)))
+        (check-true (pi-tool-result? res))
+        (check-false (pi-tool-result-is-error res))
+        (check (cdr (assoc 'text (vector-ref (pi-tool-result-content res) 0)))
+               => "opts=2")
+      ) ;let
+    ) ;lambda
+  ) ;with-extension-registry
+) ;let*
 
 (check-report)
