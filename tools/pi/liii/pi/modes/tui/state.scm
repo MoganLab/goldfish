@@ -14,6 +14,7 @@
     (liii pi modes tui state tool)
     (liii pi modes tui state pure)
     (liii pi modes tui state slash)
+    (liii pi modes tui state confirm)
     (liii pi modes tui editor)
     (liii pi modes tui thinking)
     (liii pi modes tui slash-menu)
@@ -42,6 +43,8 @@
     pi-tui-state-rows
     state-slash-menu
     pi-tui-state-slash-menu
+    state-confirm-dialog
+    pi-tui-state-confirm-dialog
     ;; Functional pure updates
     state-with-status
     state-with-messages
@@ -51,6 +54,7 @@
     state-with-dirty
     state-with-dimensions
     state-with-slash-menu
+    state-with-confirm-dialog
     state-with-stream-finished
     ;; In-place mutations
     state-mark-dirty!
@@ -79,12 +83,16 @@
     state-slash-menu-complete!
     state-slash-menu-hide!
     dispatch-slash-menu-key!
+    ;; Confirm mutations
+    state-set-confirm-dialog!
+    state-request-confirm!
+    state-resolve-confirm!
   ) ;export
   (begin
 
     (define (make-pi-tui-state . args)
       (let-values (((status messages input-editor active-tool scroll-offset
-                      dirty? cols rows slash-menu
+                      dirty? cols rows slash-menu confirm-dialog
                     ) ;status
                     (%parse-state-args args)
                    ) ;
@@ -96,7 +104,7 @@
         (%validate-dimension cols "cols" "make-pi-tui-state")
         (%validate-dimension rows "rows" "make-pi-tui-state")
         (%make-pi-tui-state status messages input-editor active-tool
-          scroll-offset dirty? cols rows slash-menu
+          scroll-offset dirty? cols rows slash-menu confirm-dialog
         ) ;%make-pi-tui-state
       ) ;let-values
     ) ;define

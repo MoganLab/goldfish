@@ -23,6 +23,7 @@
          (cols 80)
          (rows 24)
          (slash-menu #f)
+         (confirm-dialog #f)
         ) ;
         (cond
          ((null? rest)
@@ -35,6 +36,7 @@
             cols
             rows
             (or slash-menu (make-pi-tui-slash-menu))
+            confirm-dialog
           ) ;values
          ) ;
          ((eq? (car rest) :status)
@@ -48,6 +50,7 @@
             cols
             rows
             slash-menu
+            confirm-dialog
           ) ;loop
          ) ;
          ((eq? (car rest) :messages)
@@ -61,6 +64,7 @@
             cols
             rows
             slash-menu
+            confirm-dialog
           ) ;loop
          ) ;
          ((eq? (car rest) :input-editor)
@@ -74,6 +78,7 @@
             cols
             rows
             slash-menu
+            confirm-dialog
           ) ;loop
          ) ;
          ((eq? (car rest) :active-tool)
@@ -87,6 +92,7 @@
             cols
             rows
             slash-menu
+            confirm-dialog
           ) ;loop
          ) ;
          ((eq? (car rest) :scroll-offset)
@@ -100,6 +106,7 @@
             cols
             rows
             slash-menu
+            confirm-dialog
           ) ;loop
          ) ;
          ((or (eq? (car rest) :dirty?) (eq? (car rest) :dirty))
@@ -113,6 +120,7 @@
             cols
             rows
             slash-menu
+            confirm-dialog
           ) ;loop
          ) ;
          ((eq? (car rest) :cols)
@@ -126,6 +134,7 @@
             (cadr rest)
             rows
             slash-menu
+            confirm-dialog
           ) ;loop
          ) ;
          ((eq? (car rest) :rows)
@@ -139,6 +148,7 @@
             cols
             (cadr rest)
             slash-menu
+            confirm-dialog
           ) ;loop
          ) ;
          ((eq? (car rest) :slash-menu)
@@ -151,6 +161,21 @@
             dirty?
             cols
             rows
+            (cadr rest)
+            confirm-dialog
+          ) ;loop
+         ) ;
+         ((eq? (car rest) :confirm-dialog)
+          (loop (cddr rest)
+            status
+            messages
+            input-editor
+            active-tool
+            scroll-offset
+            dirty?
+            cols
+            rows
+            slash-menu
             (cadr rest)
           ) ;loop
          ) ;
@@ -165,6 +190,7 @@
                (if (>= len 7) (list-ref rest 6) cols)
                (if (>= len 8) (list-ref rest 7) rows)
                (if (>= len 9) (list-ref rest 8) (or slash-menu (make-pi-tui-slash-menu)))
+               (if (>= len 10) (list-ref rest 9) confirm-dialog)
              ) ;values
            ) ;let
          ) ;else

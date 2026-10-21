@@ -21,6 +21,8 @@
     (liii pi modes tui thinking)
     (liii pi modes tui tool-card)
     (liii pi modes tui slash-menu)
+    (liii pi modes tui confirm)
+    (liii pi modes tui runner)
   ) ;import
   (export with-pi-tui-terminal
     run-tui-loop
@@ -50,6 +52,8 @@
     pi-tui-state-rows
     state-slash-menu
     pi-tui-state-slash-menu
+    state-confirm-dialog
+    pi-tui-state-confirm-dialog
     ;; Pure functional updates
     state-with-status
     state-with-messages
@@ -59,6 +63,7 @@
     state-with-dirty
     state-with-dimensions
     state-with-slash-menu
+    state-with-confirm-dialog
     state-with-stream-finished
     ;; In-place mutations
     state-mark-dirty!
@@ -221,45 +226,33 @@
     state-slash-menu-complete!
     state-slash-menu-hide!
     dispatch-slash-menu-key!
+    ;; Confirm exports
+    <pi-tui-confirm-dialog>
+    make-confirm-dialog
+    make-confirm-request
+    confirm-dialog?
+    confirm-dialog-id
+    confirm-dialog-tool-call-id
+    confirm-dialog-tool-name
+    confirm-dialog-args
+    confirm-dialog-danger-level
+    confirm-dialog-target-summary
+    confirm-dialog-diff-preview
+    confirm-dialog-decision
+    confirm-dialog-set-decision!
+    confirm-dialog-rejected-result
+    tool-dangerous?
+    classify-tool-danger
+    extract-target-summary
+    extract-diff-preview
+    make-confirm-tool-call-interceptor
+    render-confirm-dialog
+    overlay-confirm-dialog-lines
+    dispatch-confirm-key!
+    state-set-confirm-dialog!
+    state-request-confirm!
+    state-resolve-confirm!
   ) ;export
   (begin
-
-    (define (with-pi-tui-terminal term thunk)
-      (unless (terminal? term)
-        (type-error "with-pi-tui-terminal: expected terminal")
-      ) ;unless
-      (unless (procedure? thunk)
-        (type-error "with-pi-tui-terminal: expected procedure for thunk")
-      ) ;unless
-      (dynamic-wind
-        (lambda ()
-          (terminal-write term "\x1b;[?1049h")
-          (terminal-hide-cursor! term)
-          (catch #t (lambda () (console-raw-mode! #t)) (lambda _ #f))
-          (terminal-clear term)
-          (terminal-flush term)
-        ) ;lambda
-        thunk
-        (lambda ()
-          (terminal-show-cursor! term)
-          (terminal-write term "\x1b;[?1049l")
-          (catch #t (lambda () (console-raw-mode! #f)) (lambda _ #f))
-          (terminal-flush term)
-        ) ;lambda
-      ) ;dynamic-wind
-    ) ;define
-
-    (define (run-tui-flow parsed cfg mode initial-msg . maybe-term)
-      (let ((term
-              (if (and (pair? maybe-term) (terminal? (car maybe-term)))
-                (car maybe-term)
-                (make-standard-terminal)
-              ) ;if
-            ) ;term
-           ) ;
-        (with-pi-tui-terminal term (lambda () (run-tui-loop term)))
-      ) ;let
-    ) ;define
-
   ) ;begin
 ) ;define-library

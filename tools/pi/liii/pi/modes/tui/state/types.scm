@@ -40,6 +40,9 @@
     state-slash-menu
     pi-tui-state-slash-menu
     %state-set-slash-menu-raw!
+    state-confirm-dialog
+    pi-tui-state-confirm-dialog
+    %state-set-confirm-dialog-raw!
     ;; Validators
     %validate-status
     %validate-messages
@@ -52,7 +55,7 @@
 
     (define-record-type <pi-tui-state>
       (%make-pi-tui-state status messages input-editor active-tool scroll-offset
-        dirty? cols rows slash-menu
+        dirty? cols rows slash-menu confirm-dialog
       ) ;%make-pi-tui-state
       pi-tui-state?
       (status state-status %state-set-status-raw!)
@@ -64,6 +67,7 @@
       (cols state-cols %state-set-cols-raw!)
       (rows state-rows %state-set-rows-raw!)
       (slash-menu state-slash-menu %state-set-slash-menu-raw!)
+      (confirm-dialog state-confirm-dialog %state-set-confirm-dialog-raw!)
     ) ;define-record-type
 
     (define <pi-tui-state> '<pi-tui-state>)
@@ -77,6 +81,7 @@
     (define pi-tui-state-cols state-cols)
     (define pi-tui-state-rows state-rows)
     (define pi-tui-state-slash-menu state-slash-menu)
+    (define pi-tui-state-confirm-dialog state-confirm-dialog)
 
     (define (state-valid-status? s)
       (and (memq s '(idle running streaming confirm exit)) #t)

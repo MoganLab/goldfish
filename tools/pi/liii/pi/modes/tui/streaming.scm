@@ -21,6 +21,7 @@
     (liii pi modes tui layout)
     (liii pi modes tui editor)
     (liii pi modes tui slash-menu)
+    (liii pi modes tui confirm render)
     (liii pi modes tui streaming delta)
   ) ;import
   (export extract-stream-delta append-stream-chunk state-append-stream-chunk!
@@ -167,8 +168,16 @@
              (ed-lines (%compute-ed-lines ed ed-w ed-h))
              (padded-ed-lines (%pad-lines ed-lines ed-h))
              (status-lines (%render-status-line st layout))
+             (base-lines (append final-msg-lines padded-ed-lines status-lines))
             ) ;
-        (append final-msg-lines padded-ed-lines status-lines)
+        (if (and (eq? (state-status st) 'confirm) (state-confirm-dialog st))
+          (overlay-confirm-dialog-lines (state-confirm-dialog st)
+            base-lines
+            (layout-cols layout)
+            (layout-rows layout)
+          ) ;overlay-confirm-dialog-lines
+          base-lines
+        ) ;if
       ) ;let*
     ) ;define
 

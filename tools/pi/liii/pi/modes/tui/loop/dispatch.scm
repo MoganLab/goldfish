@@ -12,6 +12,7 @@
     (liii pi modes tui editor)
     (liii pi modes tui thinking)
     (liii pi modes tui slash-menu)
+    (liii pi modes tui confirm)
     (liii pi modes tui loop opts)
   ) ;import
   (export %dispatch-tui-key)
@@ -27,6 +28,13 @@
                 (else (values st #f))
           ) ;cond
         ) ;let
+      ) ;if
+    ) ;define
+
+    (define (%dispatch-confirm-key st key key-handled?)
+      (if (or key-handled? (eq? (state-status st) 'exit))
+        key-handled?
+        (dispatch-confirm-key! st key)
       ) ;if
     ) ;define
 
@@ -107,27 +115,35 @@
 
     (define (%dispatch-tui-key st key on-key)
       (let*-values (((next-st custom-handled?) (%dispatch-custom-key on-key st key))
-                    ((slash-handled?) (%dispatch-slash-key next-st key custom-handled?))
+                    ((confirm-handled?) (%dispatch-confirm-key next-st key custom-handled?))
+                    ((slash-handled?)
+                     (%dispatch-slash-key next-st key (or custom-handled? confirm-handled?))
+                    ) ;
                     ((thinking-handled?)
-                     (%dispatch-thinking-key next-st key (or custom-handled? slash-handled?))
+                     (%dispatch-thinking-key next-st
+                       key
+                       (or custom-handled? confirm-handled? slash-handled?)
+                     ) ;%dispatch-thinking-key
                     ) ;
                     ((ed-handled?)
                      (%dispatch-editor-key next-st
                        key
-                       (or custom-handled? slash-handled? thinking-handled?)
+                       (or custom-handled? confirm-handled? slash-handled? thinking-handled?)
                      ) ;%dispatch-editor-key
                     ) ;
                     ((scroll-handled?)
                      (%dispatch-scroll-key next-st
                        key
-                       (or custom-handled? slash-handled? thinking-handled? ed-handled?)
+                       (or custom-handled? confirm-handled? slash-handled?
+                         thinking-handled? ed-handled?
+                       ) ;or
                      ) ;%dispatch-scroll-key
                     ) ;
                    ) ;
         (%check-exit-key next-st
           key
-          (or custom-handled? slash-handled? thinking-handled? ed-handled?
-            scroll-handled?
+          (or custom-handled? confirm-handled? slash-handled? thinking-handled?
+            ed-handled? scroll-handled?
           ) ;or
         ) ;%check-exit-key
         next-st

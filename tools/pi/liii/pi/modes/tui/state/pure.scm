@@ -14,7 +14,8 @@
   ) ;import
   (export state-with-status state-with-messages state-with-input-editor
     state-with-active-tool state-with-scroll-offset state-with-dirty
-    state-with-dimensions state-with-slash-menu state-with-stream-finished
+    state-with-dimensions state-with-slash-menu state-with-confirm-dialog
+    state-with-stream-finished
   ) ;export
   (begin
 
@@ -30,6 +31,7 @@
         (state-cols st)
         (state-rows st)
         (state-slash-menu st)
+        (state-confirm-dialog st)
       ) ;%make-pi-tui-state
     ) ;define
 
@@ -45,6 +47,7 @@
         (state-cols st)
         (state-rows st)
         (state-slash-menu st)
+        (state-confirm-dialog st)
       ) ;%make-pi-tui-state
     ) ;define
 
@@ -59,6 +62,7 @@
         (state-cols st)
         (state-rows st)
         (state-slash-menu st)
+        (state-confirm-dialog st)
       ) ;%make-pi-tui-state
     ) ;define
 
@@ -73,6 +77,7 @@
         (state-cols st)
         (state-rows st)
         (state-slash-menu st)
+        (state-confirm-dialog st)
       ) ;%make-pi-tui-state
     ) ;define
 
@@ -88,6 +93,7 @@
         (state-cols st)
         (state-rows st)
         (state-slash-menu st)
+        (state-confirm-dialog st)
       ) ;%make-pi-tui-state
     ) ;define
 
@@ -103,6 +109,7 @@
         (state-cols st)
         (state-rows st)
         (state-slash-menu st)
+        (state-confirm-dialog st)
       ) ;%make-pi-tui-state
     ) ;define
 
@@ -119,6 +126,7 @@
         new-cols
         new-rows
         (state-slash-menu st)
+        (state-confirm-dialog st)
       ) ;%make-pi-tui-state
     ) ;define
 
@@ -136,6 +144,22 @@
         (state-cols st)
         (state-rows st)
         new-menu
+        (state-confirm-dialog st)
+      ) ;%make-pi-tui-state
+    ) ;define
+
+    (define (state-with-confirm-dialog st new-dialog)
+      (%validate-state st "state-with-confirm-dialog")
+      (%make-pi-tui-state (state-status st)
+        (state-messages st)
+        (state-input-editor st)
+        (state-active-tool st)
+        (state-scroll-offset st)
+        #t
+        (state-cols st)
+        (state-rows st)
+        (state-slash-menu st)
+        new-dialog
       ) ;%make-pi-tui-state
     ) ;define
 
