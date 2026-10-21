@@ -880,7 +880,7 @@ display_help () {
   cout << "  -A DIR             Append DIR to library search path" << endl;
   cout << "  -e CODE            Alias for eval CODE" << endl;
   cout << endl;
-  cout << "If no command is specified, help is displayed by default." << endl;
+  cout << "If no command is specified, gf agent is run by default." << endl;
 }
 
 static void
@@ -2784,9 +2784,9 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
   string command      = startup_opts.command;
   int    command_index= startup_opts.command_index;
 
-  // 如果没有找到命令或没有参数，使用 help 命令
+  // 如果没有找到命令或没有参数，使用 pi 命令
   if (argc <= 1 || command.empty ()) {
-    command= "help";
+    command= "pi";
   }
   if (command == "-e") {
     command= "eval";

@@ -40,7 +40,7 @@
     ;; 页眉内容只随 version 变化，与宽度无关，故一次构造后复用
     (define (%header-lines version)
       (let* ((dot (%fg %c-mid " · "))
-             (line1 (string-append " " (%fg-bold %c-brand "pi") (%fg %c-dim " v" version)))
+             (line1 (string-append " " (%fg-bold %c-brand "gf") (%fg %c-dim " v" version)))
              (line2 (string-append " "
                       (%fg %c-dim "escape")
                       (%fg %c-mid " interrupt")
@@ -70,7 +70,7 @@
     ) ;define
 
     (define (make-pi-header . args)
-      (let* ((version (%keyword-value :version args "0.85.1"))
+      (let* ((version (%keyword-value :version args (version)))
              (lines (%header-lines version))
              (comp (make-component :render (lambda (self width) lines)))
             ) ;

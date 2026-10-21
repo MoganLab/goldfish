@@ -19,7 +19,7 @@
     (check (length lines) => 12)
     ;; Header
     (check (list-ref plain-lines 0) => "")
-    (check-true (string-contains? (list-ref plain-lines 1) " pi v"))
+    (check-true (string-contains? (list-ref plain-lines 1) " gf v"))
     ;; Editor 分隔线
     (check (list-ref plain-lines 7) => (utf8-make-string 100 #\─))
     (check (string-trim (list-ref plain-lines 8)) => "")
