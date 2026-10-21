@@ -20,8 +20,9 @@
     (liii pi modes simplify)
   ) ;import
   (export display-stderr handle-print-result emit-json-event dispatch-pi
-    prepare-system-prompt persist-initial-user-msg! run-agent-loop-with-timeout
-    run-session-flow run-compact-flow run-code-review-flow run-simplify-flow
+    pi-resolve-runtime-config prepare-system-prompt persist-initial-user-msg!
+    run-agent-loop-with-timeout run-session-flow run-compact-flow
+    run-code-review-flow run-simplify-flow
   ) ;export
   (begin
 
@@ -43,28 +44,27 @@
       ) ;let
     ) ;define
 
+    ;; 解析基础配置并依次应用扩展注册表中的 augmenters（CLI 派发与 TUI 入口共用）
+    (define (pi-resolve-runtime-config reg parsed)
+      (let ((base-cfg (resolve-pi-config parsed (get-environment-variables))))
+        (let apply-aug
+          ((augs (extension-registry-augmenters reg)) (c base-cfg))
+          (if (null? augs) c (apply-aug (cdr augs) ((car augs) c parsed)))
+        ) ;let
+      ) ;let
+    ) ;define
+
     (define (dispatch-pi parsed mode initial-msg rest-msgs)
       (let* ((reg (or (current-extension-registry) (default-extension-registry)))
-             (env (get-environment-variables))
-             (base-cfg (resolve-pi-config parsed env))
-             (cfg
-               (let apply-aug
-                 ((augs (extension-registry-augmenters reg)) (c base-cfg))
-                 (if (null? augs) c (apply-aug (cdr augs) ((car augs) c parsed)))
-               ) ;let
-             ) ;cfg
+             (cfg (pi-resolve-runtime-config reg parsed))
              (flows (extension-registry-flows reg))
              (matched-local (%find-matching-flow flows parsed #t))
             ) ;
         (if matched-local
          ((extension-flow-def-handler matched-local) parsed cfg mode initial-msg)
-         (let* ((provider (cdr (or (assoc 'provider cfg) '(#f . "google"))))
-                (api-key (cdr (or (assoc 'api-key cfg) '(#f . #f))))
-               ) ;
-           (when (or (not api-key) (and (string? api-key) (string-null? api-key)))
-             (error 'credential-error
-               (string-append "No credentials found for provider \"" provider "\"")
-             ) ;error
+         (let ((cred-msg (pi-missing-credential-msg cfg)))
+           (when cred-msg
+             (error 'credential-error cred-msg)
            ) ;when
            (let ((matched-custom (%find-matching-flow flows parsed #f)))
              (cond (matched-custom ((extension-flow-def-handler matched-custom) parsed cfg mode initial-msg)
@@ -92,7 +92,7 @@
                    (else 0)
              ) ;cond
            ) ;let
-         ) ;let*
+         ) ;let
         ) ;if
       ) ;let*
     ) ;define

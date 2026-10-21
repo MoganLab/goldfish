@@ -19,7 +19,7 @@
   ) ;import
   (export pi-is-retriable-error? pi-calc-retry-delay pi-resolve-retry-params
     gemini-is-retriable-error? anthropic-is-retriable-error?
-    pi-extract-retry-after pi-parse-retry-after pi-log-retry pi-retry-logger
+    pi-extract-retry-after pi-parse-retry-after pi-log-retry
     set-pi-retry-logger!
   ) ;export
   (begin
@@ -195,10 +195,6 @@
     ) ;define*
 
     (define *pi-retry-logger* #f)
-
-    (define (pi-retry-logger)
-      *pi-retry-logger*
-    ) ;define
 
     (define (set-pi-retry-logger! logger)
       (set! *pi-retry-logger* logger)

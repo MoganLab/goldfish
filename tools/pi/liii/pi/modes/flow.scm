@@ -172,8 +172,8 @@
           (when has-prompt?
             (persist-new-messages! sfile context init-msgs persisted)
           ) ;when
-          (when (eq? emit emit-json-event)
-            (emit-json-event 'session cwd)
+          (when emit
+            (emit 'session cwd)
           ) ;when
           (let* ((state (vector init-msgs (length init-msgs)))
                  (timeout (pi-resolve-timeout parsed cfg))
@@ -221,7 +221,7 @@
                     ) ;
                 (persist-new-messages! sfile projection init-msgs (length projection))
                 (when emit
-                  (emit-json-event 'session cwd)
+                  (emit 'session cwd)
                 ) ;when
                 (let* ((compaction (pi-make-compaction-option parsed cfg sfile state timeout))
                        (res-msgs (run-agent-loop-with-timeout cfg

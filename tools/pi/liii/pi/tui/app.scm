@@ -8,7 +8,8 @@
   (export make-pi-app pi-app? pi-app-screen pi-app-editor pi-app-queue
     pi-app-chat pi-app-render! pi-app-run pi-app-submit! pi-app-drain-queue!
     pi-app-add-user-message! pi-app-add-tool-result! pi-app-add-assistant-text!
-    pi-app-add-retry-message! pi-app-jobs-chan pi-app-event-chan pi-app-poll-events!
+    pi-app-add-retry-message! pi-app-jobs-chan pi-app-event-chan
+    pi-app-poll-events!
   ) ;export
   (import (scheme base)
     (liii go)
@@ -43,8 +44,8 @@
       (footer %pi-app-footer)
       (queue pi-app-queue)
       (handler %pi-app-handler)
-      (jobs-chan %pi-app-jobs-chan)
-      (event-chan %pi-app-event-chan)
+      (jobs-chan pi-app-jobs-chan)
+      (event-chan pi-app-event-chan)
     ) ;define-record-type
 
     (define (%detect-git-branch)
@@ -121,43 +122,40 @@
       (container-add! (%pi-app-chat app) (make-retry-card msg))
     ) ;define
 
-    (define (pi-app-jobs-chan app)
-      (%pi-app-jobs-chan app)
-    ) ;define
-
-    (define (pi-app-event-chan app)
-      (%pi-app-event-chan app)
-    ) ;define
-
     ;; 非阻塞轮询来自后台 Worker 的事件流，驱动卡片实时上屏与队列结算
     (define (pi-app-poll-events! app)
-      (let ((ch (%pi-app-event-chan app)) (q (pi-app-queue app)) (has-event #f))
+      (let ((ch (pi-app-event-chan app)) (q (pi-app-queue app)) (has-event #f))
+        ;; 结算队列并接续下一条消息；drain 已渲染时复位 has-event，避免双重渲染
+        (define (settle!)
+          (when (pi-app-drain-queue! app)
+            (set! has-event #f)
+          ) ;when
+        ) ;define
         (let loop
           ()
           (let ((ev (chan-try-recv! ch #f)))
             (when ev
               (set! has-event #t)
-              (let ((type (car ev)))
-                (cond
-                 ((eq? type 'tool_execution_end)
-                  (let ((name (cadr ev))
-                        (args (caddr ev))
-                        (is-err? (cadddr ev))
-                        (raw-res (car (cddddr ev)))
-                       ) ;
-                    (pi-app-add-tool-result! app name args (if is-err? 'error 'success) raw-res)
-                  ) ;let
-                 ) ;
-                 ((eq? type 'assistant_text) (pi-app-add-assistant-text! app (cadr ev)))
-                 ((eq? type 'retry) (pi-app-add-retry-message! app (cadr ev)))
-                 ((eq? type 'agent_settled) (pi-queue-finish-task! q) (pi-app-drain-queue! app))
-                 ((eq? type 'error)
-                  (pi-app-add-tool-result! app "error" '() 'error (cadr ev))
-                  (pi-queue-finish-task! q)
-                  (pi-app-drain-queue! app)
-                 ) ;
-                ) ;cond
-              ) ;let
+              (case (car ev)
+                    ((tool_execution_end)
+                     (let ((name (cadr ev))
+                           (args (caddr ev))
+                           (is-err? (cadddr ev))
+                           (raw-res (car (cddddr ev)))
+                          ) ;
+                       (pi-app-add-tool-result! app name args (if is-err? 'error 'success) raw-res)
+                     ) ;let
+                    ) ;
+                    ((assistant_text) (pi-app-add-assistant-text! app (cadr ev)))
+                    ((retry) (pi-app-add-retry-message! app (cadr ev)))
+                    ((agent_settled) (pi-queue-finish-task! q) (settle!))
+                    ((error)
+                     (pi-app-add-tool-result! app "error" '() 'error (cadr ev))
+                     (pi-queue-finish-task! q)
+                     (settle!)
+                    ) ;
+                    (else #t)
+              ) ;case
               (loop)
             ) ;when
           ) ;let
@@ -169,49 +167,59 @@
     ) ;define
 
     ;; 队列调度核心推进逻辑：
-    ;; 消费前先上屏深蓝卡片并即时渲染刷新，再执行 handler，保证按回车瞬间响应不卡顿
+    ;; 消费前先上屏深蓝卡片并即时渲染刷新，再派发任务，保证按回车瞬间响应不卡顿
+    ;; 返回 #t 表示本次消费并渲染了消息卡片
     (define (pi-app-drain-queue! app)
       (let ((q (pi-app-queue app))
-            (jobs (%pi-app-jobs-chan app))
+            (jobs (pi-app-jobs-chan app))
             (handler (%pi-app-handler app))
            ) ;
-        (unless (pi-queue-busy? q)
+        (if (pi-queue-busy? q)
+          #f
           (let loop
-            ()
+            ((rendered #f))
             (let ((msg (pi-queue-dequeue-next! q)))
-              (when msg
-                ;; 1. 出队并正式上屏为深蓝用户消息卡片
-                (pi-app-add-user-message! app msg)
-                ;; 2. 关键：在进入后台处理前立即渲染上屏，用户按回车瞬间看到消息已发送
-                (pi-app-render! app)
-                ;; 3. 任务派发：
-                (if handler
-                  ;; 自定义 handler 分支（单元测试或特定扩展）：
-                  (let ((ret (handler app msg)))
-                    (unless (eq? ret 'async)
+              (if (not msg)
+                rendered
+                (begin
+                  ;; 1. 出队并正式上屏为深蓝用户消息卡片
+                  (pi-app-add-user-message! app msg)
+                  ;; 2. 关键：在进入后台处理前立即渲染上屏，用户按回车瞬间看到消息已发送
+                  (pi-app-render! app)
+                  ;; 3. 任务派发：
+                  (if handler
+                    ;; 自定义 handler 分支（单元测试或特定扩展）：同步执行并结算
+                    (begin
+                      (handler app msg)
                       (pi-queue-finish-task! q)
                       (pi-app-render! app)
-                      (loop)
-                    ) ;unless
-                  ) ;let
-                  ;; 默认真实分支：通过 (liii go) 后台 worker 并发执行，主线程立即返回继续响应按键！
-                  (chan-send! jobs msg 1000)
-                ) ;if
-              ) ;when
+                      (loop #t)
+                    ) ;begin
+                    ;; 默认真实分支：通过 (liii go) 后台 worker 并发执行，主线程立即返回继续响应按键！
+                    (begin
+                      (chan-send! jobs msg 1000)
+                      #t
+                    ) ;begin
+                  ) ;if
+                ) ;begin
+              ) ;if
             ) ;let
           ) ;let
-        ) ;unless
+        ) ;if
       ) ;let
     ) ;define
 
-    ;; 用户提交动作：消息统一先进入等待队列，清空输入框并立即刷新渲染
+    ;; 用户提交动作：消息统一先进入等待队列并清空输入框；
+    ;; 队列忙时立即渲染出 [Queued] 提示，闲时由 drain-queue! 渲染唯一一帧
     (define (pi-app-submit! app text)
       (let ((clean (string-trim text)))
         (unless (string-null? clean)
           (let ((q (pi-app-queue app)) (ed (pi-app-editor app)))
             (pi-queue-enqueue! q clean)
             (editor-set-text! ed "")
-            (pi-app-render! app)
+            (when (pi-queue-busy? q)
+              (pi-app-render! app)
+            ) ;when
             (pi-app-drain-queue! app)
           ) ;let
         ) ;unless
@@ -221,6 +229,8 @@
     (define (make-pi-app . args)
       (let* ((term (%keyword-value :terminal args #f))
              (handler-opt (%keyword-value :handler args #f))
+             (parsed (%keyword-value :parsed args '()))
+             (cfg (%keyword-value :cfg args '()))
              (actual-term (or term (make-standard-terminal :inline #t)))
              (screen (make-main-screen actual-term :auto-hide-cursor #f))
              (header (make-pi-header))
@@ -253,7 +263,7 @@
         (%pi-app-editor-set! app ed)
         ;; 若未指定自定义 handler，启动后台 (liii go) 独立工作协程
         (unless handler-opt
-          (go (pi-tui-agent-worker jobs-chan event-chan))
+          (go (pi-tui-agent-worker jobs-chan event-chan parsed cfg))
         ) ;unless
         app
       ) ;let*
