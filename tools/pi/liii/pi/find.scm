@@ -15,6 +15,7 @@
     (liii subprocess)
     (liii either)
     (liii pi read)
+    (liii pi failure)
     (liii pi truncate)
   ) ;import
   (export pi-find-schema pi-execute-find)

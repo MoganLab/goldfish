@@ -19,7 +19,7 @@
     (check (cadr lines) => "line2")
   ) ;let
   ;; 2. 读不出来的文件返回 #f，而不是当成空文件（Issue #1189）
-  ;;    这里用目录触发：path-read-text 对目录抛 file-error
+  ;;    这里用目录触发：path-read-lines 对目录抛 file-error
   (check-false (%read-grep-lines (path test-base)))
   (delete-file (path->string test-f))
   (path-rmdir test-base)

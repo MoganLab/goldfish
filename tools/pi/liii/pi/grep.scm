@@ -18,7 +18,7 @@
     (liii pi bash)
     (liii pi read)
     (liii pi find)
-    (liii pi truncate)
+    (liii pi failure)
     (liii pi grep format)
   ) ;import
   (export pi-grep-schema pi-execute-grep %read-grep-lines)
@@ -56,12 +56,12 @@
       ) ;list
     ) ;define
 
-    ;; 读取候选文件的内容并按行切分；读不出来（文件被删除、无权限、是目录等）
-    ;; 时返回 #f，交由调用方记为「已跳过」——静默当成空文件会让「无匹配」
+    ;; 读取候选文件并按行切分；读不出来（文件被删除、无权限、是目录等）时
+    ;; 返回 #f，交由调用方记为「已跳过」——静默当成空文件会让「无匹配」
     ;; 掩盖真实失败（Issue #1189）
     (define (%read-grep-lines p)
-      (let ((text (guard (e (else #f)) (path-read-text p))))
-        (if (string? text) (string-split text "\n") #f)
+      (let ((lines (guard (e (else #f)) (path-read-lines p))))
+        (if (list? lines) lines #f)
       ) ;let
     ) ;define
 
@@ -150,21 +150,20 @@
       ) ;if
     ) ;define
 
-    ;; 扫描单个候选文件：返回 (行列表 匹配列表 跳过?)
-    ;; 文件已消失或读不出来时跳过该文件并置「跳过」标志——静默当成空文件
-    ;; 会让「无匹配」掩盖真实失败（Issue #1189）
+    ;; 扫描单个候选文件：返回 (行列表 匹配列表)
+    ;; 文件已消失或读不出来时行列表为 #f，调用方据此记为「已跳过」——
+    ;; 静默当成空文件会让「无匹配」掩盖真实失败（Issue #1189）
     (define (%scan-grep-file f-abs f-rel pattern literal? ignore-case? rem-limit timeout)
       (if (not (path-file? (path f-abs)))
-        (values #f '() #t)
+        (values #f '())
         (let ((f-lines (%read-grep-lines (path f-abs))))
           (if (not f-lines)
-            (values #f '() #t)
+            (values #f '())
             (values f-lines
               (if literal?
                 (%scan-file-literal f-lines f-rel pattern ignore-case? rem-limit)
                 (%scan-file-regex f-abs f-rel pattern ignore-case? timeout)
               ) ;if
-              #f
             ) ;values
           ) ;if
         ) ;let
@@ -187,11 +186,11 @@
                   (f-rel (cadr cand))
                   (rem-limit (- limit count))
                  ) ;
-             (let-values (((f-lines matches skipped?)
+             (let-values (((f-lines matches)
                            (%scan-grep-file f-abs f-rel pattern literal? ignore-case? rem-limit timeout)
                           ) ;
                          ) ;
-               (if skipped?
+               (if (not f-lines)
                  (loop (cdr files) all-m cache count (cons f-rel skipped))
                  (let* ((new-cache (cons (cons f-rel f-lines) cache))
                         (valid (if (> (length matches) rem-limit) (take matches rem-limit) matches))

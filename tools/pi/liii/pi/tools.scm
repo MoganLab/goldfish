@@ -264,8 +264,10 @@
        ) ;
        (else
          (let* ((raw-out
+                  ;; 扩展工具可能只接受固定个数的参数：先按 arity 判断能不能带
+                  ;; opts。不用 catch 兜底后重跑——那会把工具自身的失败也重跑一遍
                   (if
-                    (or (null? opts) (not (pi-proc-accepts-args? exec-fn (+ 1 (length opts)))))
+                    (or (null? opts) (not (aritable? exec-fn (+ 1 (length opts)))))
                     (exec-fn args)
                     (apply exec-fn args opts)
                   ) ;if

@@ -1,6 +1,6 @@
 (import (liii check)
   (liii subprocess)
-  (liii pi read)
+  (liii pi failure)
 ) ;import
 
 (check-set-mode! 'report-failed)

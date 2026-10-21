@@ -11,9 +11,7 @@
 
 (define-library (liii pi grep format)
   (import (scheme base) (liii string) (liii pi truncate))
-  (export %format-grep-block %format-grep-matches %build-grep-notices
-    %skipped-files-notice %grep-empty-result
-  ) ;export
+  (export %format-grep-matches %skipped-files-notice %grep-empty-result)
   (begin
 
     (define (%format-grep-block file-lines rel-path line-num context)
@@ -43,7 +41,7 @@
     ;; 有文件读不出来时明确告知：静默跳过会让「无匹配」掩盖真实失败
     (define (%skipped-files-notice skipped)
       (string-append (number->string (length skipped))
-        " files skipped (unreadable). First: "
+        " files skipped (unreadable or removed). First: "
         (car skipped)
       ) ;string-append
     ) ;define
@@ -54,27 +52,24 @@
     ) ;define
 
     (define (%build-grep-notices limit-reached? limit truncated? lines-truncated? skipped)
-      (let* ((n1
-               (if limit-reached?
-                 (list (string-append (number->string limit)
-                         " matches limit reached. Use limit="
-                         (number->string (* limit 2))
-                         " for more, or refine pattern"
-                       ) ;string-append
-                 ) ;list
-                 '()
-               ) ;if
-             ) ;n1
-             (n2 (if truncated? (append n1 (list "50.0KB limit reached")) n1))
-             (n3
-               (if (null? skipped) n2 (append n2 (list (%skipped-files-notice skipped))))
-             ) ;n3
-             (notices (if lines-truncated?
-                        (append n3
-                          (list "Some lines truncated to 500 chars. Use read tool to see full lines")
-                        ) ;append
-                        n3
-                      ) ;if
+      (let* ((notices
+               (append
+                 (if limit-reached?
+                   (list (string-append (number->string limit)
+                           " matches limit reached. Use limit="
+                           (number->string (* limit 2))
+                           " for more, or refine pattern"
+                         ) ;string-append
+                   ) ;list
+                   '()
+                 ) ;if
+                 (if truncated? (list "50.0KB limit reached") '())
+                 (if (null? skipped) '() (list (%skipped-files-notice skipped)))
+                 (if lines-truncated?
+                   (list "Some lines truncated to 500 chars. Use read tool to see full lines")
+                   '()
+                 ) ;if
+               ) ;append
              ) ;notices
             ) ;
         (if (null? notices) "" (string-append "\n\n[" (string-join notices ". ") "]"))

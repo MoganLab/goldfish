@@ -14,6 +14,7 @@
     (liii error)
     (liii either)
     (liii pi read)
+    (liii pi failure)
   ) ;import
   (export pi-parse-git-extension-name pi-valid-extension-name?
     pi-resolve-install-target pi-git-clone-extension pi-install-extension

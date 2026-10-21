@@ -95,4 +95,27 @@
   ) ;check-true
 ) ;let
 
+;; 7. 工具能接受 opts 时必须真的收到：扩展工具用 (lambda (args . opts) ...)
+;;    声明可变参数，:timeout 等选项必须原样传下去（Issue #1189）
+(let* ((api (make-extension-api))
+       (tool (make-extension-tool-def
+               "opts_tool"
+               "Accepts keyword options"
+               '()
+               (lambda (args . opts)
+                 (string-append "opts=" (number->string (length opts))))))
+      ) ;
+  (register-tool! api tool)
+  (with-extension-registry api
+    (lambda ()
+      (let ((res (execute-tool-call "opts_tool" '() :timeout 120)))
+        (check-true (pi-tool-result? res))
+        (check-false (pi-tool-result-is-error res))
+        (check (cdr (assoc 'text (vector-ref (pi-tool-result-content res) 0)))
+               => "opts=2")
+      ) ;let
+    ) ;lambda
+  ) ;with-extension-registry
+) ;let*
+
 (check-report)
