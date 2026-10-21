@@ -72,7 +72,6 @@
       (let ((code-review (%ref parsed 'code-review))
             (auto-review (%ref parsed 'auto-review))
             (simplify (%ref parsed 'simplify))
-            (red-green (%ref parsed 'red-green))
             (staged (%ref parsed 'staged))
             (ref (%ref parsed 'review-ref))
            ) ;
@@ -81,11 +80,6 @@
         ) ;when
         (when (and code-review simplify)
           (error 'pi-arg-error "--code-review and --simplify cannot be used together")
-        ) ;when
-        (when (and code-review red-green)
-          (error 'pi-arg-error
-            "--red-green cannot be used with --code-review or --simplify"
-          ) ;error
         ) ;when
         (when (and staged (not (or code-review simplify)))
           (error 'pi-arg-error "--staged requires --code-review or --simplify")

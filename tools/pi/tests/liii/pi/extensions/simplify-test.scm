@@ -55,9 +55,6 @@
       ;; --simplify 与 --code-review 冲突
       (check-catch 'pi-arg-error
         (v '((simplify . #t) (code-review . #t))))
-      ;; --simplify 与 --red-green 冲突
-      (check-catch 'pi-arg-error
-        (v '((simplify . #t) (red-green . #t))))
     ) ;let
   ) ;let
 ) ;let*

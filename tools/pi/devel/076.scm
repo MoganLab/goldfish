@@ -50,7 +50,6 @@
     ) ;let
   ) ;lambda
   '("tools/pi/liii/pi/extensions/simplify.scm"
-    "tools/pi/liii/pi/extensions/red-green.scm"
     "tools/pi/liii/pi/extensions/code-review.scm"
     "tools/pi/liii/pi/args/query.scm" "tools/pi/liii/pi/extension/discovery.scm"
     "tools/pi/liii/pi/extension/builtin/flags.scm"
@@ -58,7 +57,6 @@
     "tools/pi/liii/pi/extension/builtin/prompts.scm"
     "tools/pi/liii/pi/extension/builtin/tdd.scm"
     "tools/pi/tests/liii/pi/extensions/simplify-test.scm"
-    "tools/pi/tests/liii/pi/extensions/red-green-test.scm"
     "tools/pi/tests/liii/pi/extensions/code-review-test.scm"
     "tools/pi/devel/076.scm")
 ) ;for-each
@@ -88,22 +86,7 @@
 ) ;let
 
 (display "=== 验收点 4: 扩展目录收敛与命令注册校验 ===\n")
-;; 4.1 测试 red-green 注册 /tdd, /tdd-status, --red-green
-(let* ((api (make-extension-api))
-       (res (pi-load-extension "tools/pi/liii/pi/extensions/red-green.scm" api))
-      ) ;
-  (check (cdr (assq 'status res)) => 'ok)
-  (check-true (extension-flag-def? (find-extension-flag api "--red-green")))
-  (check-true (extension-command-def? (find-extension-command api "/tdd")))
-  (check-true (extension-command-def? (find-extension-command api "tdd")))
-  (check-true (extension-command-def? (find-extension-command api "/tdd-status")))
-  (check-true (extension-command-def? (find-extension-command api "tdd-status")))
-  (check-true (extension-tool-def? (find-extension-tool api "tdd_status")))
-  (check-true (extension-tool-def? (find-extension-tool api "tdd_advance")))
-  (check-true (extension-tool-def? (find-extension-tool api "tdd_reset")))
-) ;let*
-
-;; 4.2 测试 simplify 注册 --simplify, --apply, /simplify
+;; 4.1 测试 simplify 注册 --simplify, --apply, /simplify
 (let* ((api (make-extension-api))
        (res (pi-load-extension "tools/pi/liii/pi/extensions/simplify.scm" api))
       ) ;
@@ -146,7 +129,6 @@
        ) ;file-names
       ) ;
   (check-true (file-exists? builtin-dir))
-  (check-true (and (member "red-green.scm" file-names) #t))
   (check-true (and (member "simplify.scm" file-names) #t))
   (check-true (and (member "code-review.scm" file-names) #t))
 ) ;let*

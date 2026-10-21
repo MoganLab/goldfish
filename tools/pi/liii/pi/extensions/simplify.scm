@@ -48,15 +48,9 @@
       (let ((simplify (%ref parsed 'simplify))
             (apply? (%ref parsed 'apply))
             (code-review (%ref parsed 'code-review))
-            (red-green (%ref parsed 'red-green))
            ) ;
         (when (and simplify code-review)
           (error 'pi-arg-error "--code-review and --simplify cannot be used together")
-        ) ;when
-        (when (and simplify red-green)
-          (error 'pi-arg-error
-            "--red-green cannot be used with --code-review or --simplify"
-          ) ;error
         ) ;when
         (when (and apply? (not simplify))
           (error 'pi-arg-error "--apply requires --simplify")

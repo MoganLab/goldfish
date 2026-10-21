@@ -110,10 +110,9 @@ timeout 300 bin/gf pi --no-session -p "一次性问题"
 
 ### 2. 常用内置扩展（随包分发，开箱即用）
 
-为保证日常编码体验的高效与开箱即用，最常用的 3 个插件随 Goldfish 安装包内置：
+为保证日常编码体验的高效与开箱即用，最常用的 2 个插件随 Goldfish 安装包内置：
 - **`simplify`**：审查未提交代码的清晰度与可维护性，提供代码简化建议与 `--apply` 应用；
-- **`code-review`**：审查工作区或暂存区的代码变更并输出结构化审查清单；
-- **`red-green`**：强制执行 TDD 循环（先写红测试 → 最小绿实现 → 重构）。
+- **`code-review`**：审查工作区或暂存区的代码变更并输出结构化审查清单。
 
 ```bash
 # simplify：代码简化审查
@@ -123,9 +122,6 @@ timeout 300 bin/gf pi -p --simplify --staged
 # code-review：代码审查
 timeout 300 bin/gf pi -p --code-review
 timeout 300 bin/gf pi -p --code-review --staged
-
-# red-green：强制 TDD 循环
-timeout 300 bin/gf pi -p --red-green "为 string 库补充 string-trim-right 测试与实现"
 ```
 
 ### 3. 插件生态与安装（`pi install`）
@@ -139,10 +135,6 @@ timeout 180 bin/gf pi install https://gitee.com/xxx/my-pi-extension.git
 # 安装至当前项目局部目录（.pi/extensions/<name>）
 timeout 180 bin/gf pi install --local https://gitee.com/xxx/my-project-extension.git
 ```
-
-### 4. 独立扩展解耦示范（Reference Implementation）
-
-为了真实检验扩展的独立加载机制，结构复杂且重型的扩展——**`blueprint`（分阶段计划系统）** 已从主核心解耦，直接将其源码移动到对应的扩展目录即可生效（无需在 GitHub 创建外部仓库），端到端验证插件机制的自动发现与完全解耦。
 
 ## 模型与 provider【可用】
 
@@ -277,7 +269,7 @@ tools/pi/liii/
     config.scm      # (liii pi config)   配置 record 与类型定义（config/record.scm, config/types.scm）
     extension.scm   # (liii pi extension) 扩展机制门面（API、注册容器、生命周期分发）
     extension/      # 扩展机制子模块（api, registry, discovery, loader, hooks）
-    extensions/     # ★ 内置轻量扩展（随包分发：simplify, code-review, red-green）
+    extensions/     # ★ 内置轻量扩展（随包分发：simplify, code-review）
     models.scm      # (liii pi models)   模型目录解析与表格输出（models/list.scm）
     gemini.scm      # (liii pi gemini)   Gemini provider（gemini/core, request, stream, stream-parse）
     anthropic.scm   # (liii pi anthropic) Anthropic provider（anthropic/core, request, stream, stream-parse）

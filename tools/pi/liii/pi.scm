@@ -19,7 +19,6 @@
     (liii pi web-search)
     (liii pi code-review)
     (liii pi simplify)
-    (liii pi red-green)
     (liii pi tools)
     (liii pi tools types)
     (liii pi tools record)
@@ -66,41 +65,24 @@
     pi-validate-review-flags pi-parse-changed-ranges pi-diff-ranges-command
     pi-collect-simplify-files pi-build-scope-lines pi-format-range
     pi-build-simplify-prompt pi-build-simplify-apply-prompt
-    pi-parse-simplify-suggestions pi-format-simplify-suggestions pi-tdd-state?
-    pi-tdd-state-phase pi-tdd-state-task pi-tdd-state-test-files
-    pi-tdd-state-impl-files pi-tdd-state-last-test-run
-    pi-tdd-state-phase-history pi-tdd-state-turn-index pi-tdd-state-warning
-    pi-tdd-initial-state pi-tdd-idle-state pi-tdd-set-warning
-    pi-tdd-add-test-file pi-tdd-add-impl-file pi-tdd-set-last-test-run
-    pi-tdd-set-turn-index pi-tdd-stale-test-run? pi-tdd-advance-phase
-    pi-tdd-current-state pi-tdd-set-current-state! pi-tdd-active? pi-tdd-start!
-    pi-tdd-bump-turn! pi-tdd-reset! pi-tdd-glob-match? pi-tdd-language-of
-    pi-classify-tdd-file pi-tdd-test-run-command? pi-tdd-parse-test-run-result
-    pi-tdd-test-run-trigger pi-tdd-exit-code-from-text pi-tdd-write-gate
-    pi-tdd-note-edited-file! pi-tdd-observe-tool! pi-tdd-red-phase-prompt
-    pi-tdd-green-phase-prompt pi-tdd-refactor-phase-prompt
-    pi-build-red-green-prompt pi-tdd-turn-system-prompt pi-format-tdd-summary
-    pi-tdd-status-schema pi-tdd-advance-schema pi-tdd-reset-schema
-    pi-execute-tdd-status pi-execute-tdd-advance pi-execute-tdd-reset
-    pi-tdd-status-definition pi-tdd-advance-definition pi-tdd-reset-definition
-    run-red-green-flow pi-tdd-extend-tool-names pi-resolve-turn-system-prompt
-    pi-auto-review-system-prompt pi-read-json-file pi-load-settings
-    pi-resolve-proxy-url pi-load-auth pi-resolve-provider-key pi-load-multikey
-    pi-multikey-select-key pi-multikey-mark-cooldown! pi-multikey-pool-of
-    pi-multikey-request-key pi-multikey-rotate! pi-mask-key pi-pool-key
-    pi-pool-key? pi-pool-key-key pi-pool-key-label pi-pool-key-enabled
-    pi-pool-key-last-used pi-pool-key-cooling? pi-key-pool pi-key-pool?
-    pi-key-pool-id pi-key-pool-cooldown-ms pi-key-pool-invalid-cooldown-ms
-    pi-key-pool-keys pi-load-models-store pi-load-models-json
-    pi-merge-models-json-into-store pi-resolve-model-metadata
-    pi-format-token-count pi-list-models pi-format-models-table
-    PI_SUPPORTED_PROVIDERS PI_PROVIDER_BUILTIN_MODELS pi-provider-default-model
-    pi-find-model-provider pi-provider-has-model? pi-route-provider-and-model
-    pi-ensure-catalog-meta pi-builtin-augment-store pi-builtin-augment-all
-    pi-build-models-catalog pi-catalog-provider-names pi-catalog-provider-models
-    pi-catalog-merge-provider-models pi-fuzzy-match-model?
-    pi-split-search-tokens gemini-map-finish-reason gemini-map-usage
-    gemini-normalize-tool-call-id gemini-generate-tool-call-id
+    pi-parse-simplify-suggestions pi-format-simplify-suggestions
+    pi-resolve-turn-system-prompt pi-auto-review-system-prompt pi-read-json-file
+    pi-load-settings pi-resolve-proxy-url pi-load-auth pi-resolve-provider-key
+    pi-load-multikey pi-multikey-select-key pi-multikey-mark-cooldown!
+    pi-multikey-pool-of pi-multikey-request-key pi-multikey-rotate! pi-mask-key
+    pi-pool-key pi-pool-key? pi-pool-key-key pi-pool-key-label
+    pi-pool-key-enabled pi-pool-key-last-used pi-pool-key-cooling? pi-key-pool
+    pi-key-pool? pi-key-pool-id pi-key-pool-cooldown-ms
+    pi-key-pool-invalid-cooldown-ms pi-key-pool-keys pi-load-models-store
+    pi-load-models-json pi-merge-models-json-into-store
+    pi-resolve-model-metadata pi-format-token-count pi-list-models
+    pi-format-models-table PI_SUPPORTED_PROVIDERS PI_PROVIDER_BUILTIN_MODELS
+    pi-provider-default-model pi-find-model-provider pi-provider-has-model?
+    pi-route-provider-and-model pi-ensure-catalog-meta pi-builtin-augment-store
+    pi-builtin-augment-all pi-build-models-catalog pi-catalog-provider-names
+    pi-catalog-provider-models pi-catalog-merge-provider-models
+    pi-fuzzy-match-model? pi-split-search-tokens gemini-map-finish-reason
+    gemini-map-usage gemini-normalize-tool-call-id gemini-generate-tool-call-id
     gemini-build-contents gemini-build-request-body
     gemini-build-tool-declarations gemini-build-search-tools
     gemini-inject-google-search gemini-extract-grounding-details

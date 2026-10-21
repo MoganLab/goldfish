@@ -96,17 +96,11 @@
     "tools/pi/liii/pi/extension/builtin/flags.scm"
     "tools/pi/liii/pi/extension/builtin/flows.scm"
     "tools/pi/liii/pi/extension/builtin/prompts.scm"
-    "tools/pi/liii/pi/extension/discovery.scm"
-    "tools/pi/liii/pi/extensions/blueprint.scm"
-    "tools/pi/tests/liii/pi/extensions/blueprint-test.scm"
-    "tools/pi/devel/078.scm")
+    "tools/pi/liii/pi/extension/discovery.scm" "tools/pi/devel/078.scm")
 ) ;for-each
 
 (display "=== 验收点 3: 核心解耦与无残留硬编码验证 ===\n")
-;; 3.1 扩展文件就位
-(check-true (file-exists? "tools/pi/liii/pi/extensions/blueprint.scm"))
-
-;; 3.2 检查 builtin 模块已无 compass/blueprint 残留
+;; 3.1 检查 builtin 模块已无 compass/blueprint 残留
 (let ((flags-txt (path-read-text (path "tools/pi/liii/pi/extension/builtin/flags.scm"))
       ) ;flags-txt
       (flows-txt (path-read-text (path "tools/pi/liii/pi/extension/builtin/flows.scm"))
@@ -128,24 +122,11 @@
 (display "=== 验收点 4: 自动发现与动态加载机制验证 ===\n")
 ;; 4.1 自动扫描并发现内置扩展
 (let ((discovered (pi-discover-extensions)))
-  (check-true
-    (pair?
-      (member (path->string (path-resolve (path "tools/pi/liii/pi/extensions/blueprint.scm")))
-        discovered
-      ) ;member
-    ) ;pair?
-  ) ;check-true
+  (check-true (pair? discovered))
 
   ;; 4.2 加载全部发现的扩展
   (let* ((api (make-extension-api)) (results (pi-load-extensions discovered api)))
     (check-true (pair? results))
-    ;; 验证 blueprint 工具与 flags 注册
-    (check-true (extension-tool-def? (find-extension-tool api "blueprint_update")))
-    (check-true (extension-tool-def? (find-extension-tool api "blueprint_status")))
-    (check-true (extension-tool-def? (find-extension-tool api "blueprint_next")))
-    (check-true (extension-flag-def? (find-extension-flag api "--blueprint")))
-    (check-true (extension-flag-def? (find-extension-flag api "--plan-status")))
-    (check-true (extension-flag-def? (find-extension-flag api "--plan-next")))
   ) ;let*
 ) ;let
 
@@ -157,16 +138,6 @@
     (%clean-dir-rec work-dir)
   ) ;when
   (path-mkdir work-dir :parents #t :exist-ok #t)
-
-  ;; 在工作目录建立简单测试文件供 codemap 分析
-  (path-mkdir (path-join work-dir "src") :parents #t :exist-ok #t)
-  (path-write-text (path-join work-dir "src" "main.scm") "(define x 1)\n")
-
-  ;; 5.1 在隔离工作目录下运行 --plan-status
-  (let ((res (%run-pi work-dir '("--print" "--plan-status"))))
-    (check (car res) => 0)
-    (check-true (string-contains? (cadr res) "No active blueprint."))
-  ) ;let
 
   ;; 清理隔离目录
   (%clean-dir-rec work-dir)
