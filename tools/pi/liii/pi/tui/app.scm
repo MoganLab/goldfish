@@ -6,7 +6,7 @@
 
 (define-library (liii pi tui app)
   (export make-pi-app pi-app? pi-app-screen pi-app-editor pi-app-queue
-    pi-app-render! pi-app-run pi-app-submit! pi-app-drain-queue!
+    pi-app-chat pi-app-render! pi-app-run pi-app-submit! pi-app-drain-queue!
     pi-app-add-user-message! pi-app-add-tool-result! pi-app-add-assistant-text!
   ) ;export
   (import (scheme base)
@@ -92,6 +92,10 @@
     ) ;define
 
     ;; 以下 add-*! 系列仅做容器变更，统一由 pi-app-drain-queue! / pi-app-render! 上屏
+    (define (pi-app-chat app)
+      (container-children (%pi-app-chat app))
+    ) ;define
+
     (define (pi-app-add-user-message! app text)
       (container-add! (%pi-app-chat app) (make-user-card text))
     ) ;define
