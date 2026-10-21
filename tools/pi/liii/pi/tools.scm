@@ -264,12 +264,10 @@
        ) ;
        (else
          (let* ((raw-out
-                  (if (null? opts)
+                  (if
+                    (or (null? opts) (not (pi-proc-accepts-args? exec-fn (+ 1 (length opts)))))
                     (exec-fn args)
-                    (catch #t
-                      (lambda () (apply exec-fn args opts))
-                      (lambda (tag . info) (exec-fn args))
-                    ) ;catch
+                    (apply exec-fn args opts)
                   ) ;if
                 ) ;raw-out
                 (out (if (pi-tool-result? raw-out) raw-out (pi-tool-result raw-out #f)))

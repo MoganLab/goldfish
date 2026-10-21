@@ -1,4 +1,5 @@
 (import (liii check)
+  (liii string)
   (liii pi tools)
   (liii pi tools record)
   (liii pi extension)
@@ -80,5 +81,18 @@
         (check-false (pi-tool-result-is-error res))
         (check (cdr (assoc 'text (vector-ref (pi-tool-result-content res) 0)))
                => "safe")))))
+
+;; 6. 工具自身抛错时不得重跑：:timed-out? 标记必须生效（Issue #1189）
+;;    旧实现在 catch 里不带 opts 重跑一次，超时标记被丢掉，命令照常执行，
+;;    结果不是错误——这正是「工具失败被重跑」造成的假成功。
+(let ((res (execute-tool-call "grep" '(("pattern" . "sample")) :timed-out? #t)))
+  (check-true (pi-tool-result? res))
+  (check-true (pi-tool-result-is-error res))
+  (check-true (string-contains?
+                (cdr (assoc 'text (vector-ref (pi-tool-result-content res) 0)))
+                "Command timed out"
+              ) ;string-contains?
+  ) ;check-true
+) ;let
 
 (check-report)

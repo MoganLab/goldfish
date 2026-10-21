@@ -12,12 +12,42 @@
     (liii string)
     (liii path)
     (liii os)
+    (liii base)
+    (liii subprocess)
     (liii pi truncate)
   ) ;import
   (export pi-read-schema pi-execute-read pi-arg-ref pi-resolve-path
-    pi-keyword-value pi-get-agent-dir
+    pi-keyword-value pi-get-agent-dir pi-command-failure-detail pi-command-error
+    pi-proc-accepts-args?
   ) ;export
   (begin
+
+    ;; pi 端口统一的「子进程失败 → 工具错误」策略：诊断文本与错误标签
+    ;; 只有这一处实现，各工具（grep/install/...）都经由它转换，
+    ;; 避免每个工具各写一套消息格式。
+    (define (pi-command-failure-detail err)
+      (string-trim-right (process-error-message err))
+    ) ;define
+
+    (define (pi-command-error tool-name err)
+      (error 'error
+        (string-append tool-name " failed: " (pi-command-failure-detail err))
+      ) ;error
+    ) ;define
+
+    ;; 过程能否接受 n 个参数：扩展提供的工具可能只接受固定个数的参数，
+    ;; 调用前先按 arity 判断，而不是靠 catch 兜底后重跑——后者会把工具
+    ;; 自身的失败也重跑一遍，还丢掉调用方传入的 :timeout。
+    (define (pi-proc-accepts-args? proc n)
+      (let ((ar (arity proc)))
+        (if (pair? ar)
+          (let ((max-args (cdr ar)))
+            (if (number? max-args) (>= max-args n) #t)
+          ) ;let
+          #t
+        ) ;if
+      ) ;let
+    ) ;define
 
     (define (pi-arg-ref args key . default-opt)
       (let ((default-val (if (pair? default-opt) (car default-opt) #f))

@@ -19,8 +19,9 @@
     (liii pi read)
     (liii pi find)
     (liii pi truncate)
+    (liii pi grep format)
   ) ;import
-  (export pi-grep-schema pi-execute-grep)
+  (export pi-grep-schema pi-execute-grep %read-grep-lines)
   (begin
 
     (define (%prop name type desc)
@@ -55,28 +56,13 @@
       ) ;list
     ) ;define
 
-    (define (%format-grep-block file-lines rel-path line-num context)
-      (let* ((total (length file-lines))
-             (start (if (> context 0) (max 1 (- line-num context)) line-num))
-             (end (if (> context 0) (min total (+ line-num context)) line-num))
-            ) ;
-        (let loop
-          ((curr start) (acc '()) (any-trunc? #f))
-          (if (> curr end)
-            (values (reverse acc) any-trunc?)
-            (let* ((line (list-ref file-lines (- curr 1)))
-                   (is-match? (= curr line-num))
-                   (sep (if is-match? ":" "-"))
-                  ) ;
-              (let-values (((trunc-text was-trunc?) (pi-truncate-line line)))
-                (let ((entry (string-append rel-path sep (number->string curr) sep " " trunc-text)))
-                  (loop (+ curr 1) (cons entry acc) (or any-trunc? was-trunc?))
-                ) ;let
-              ) ;let-values
-            ) ;let*
-          ) ;if
-        ) ;let
-      ) ;let*
+    ;; 读取候选文件的内容并按行切分；读不出来（文件被删除、无权限、是目录等）
+    ;; 时返回 #f，交由调用方记为「已跳过」——静默当成空文件会让「无匹配」
+    ;; 掩盖真实失败（Issue #1189）
+    (define (%read-grep-lines p)
+      (let ((text (guard (e (else #f)) (path-read-text p))))
+        (if (string? text) (string-split text "\n") #f)
+      ) ;let
     ) ;define
 
     (define (%scan-file-literal file-lines rel-path pattern ignore-case? limit)
@@ -132,39 +118,9 @@
           ) ;let
           (let ((e (to-left res)))
             ;; grep 退出码 1 表示无匹配，其余非零退出码为真实失败
-            (if (= (process-error-code e) 1)
-              '()
-              (error 'error
-                (string-append "grep failed: " (string-trim-right (process-error-message e)))
-              ) ;error
-            ) ;if
+            (if (= (process-error-code e) 1) '() (pi-command-error "grep" e))
           ) ;let
         ) ;if
-      ) ;let*
-    ) ;define
-
-    (define (%build-grep-notices limit-reached? limit truncated? lines-truncated?)
-      (let* ((n1
-               (if limit-reached?
-                 (list (string-append (number->string limit)
-                         " matches limit reached. Use limit="
-                         (number->string (* limit 2))
-                         " for more, or refine pattern"
-                       ) ;string-append
-                 ) ;list
-                 '()
-               ) ;if
-             ) ;n1
-             (n2 (if truncated? (append n1 (list "50.0KB limit reached")) n1))
-             (notices (if lines-truncated?
-                        (append n2
-                          (list "Some lines truncated to 500 chars. Use read tool to see full lines")
-                        ) ;append
-                        n2
-                      ) ;if
-             ) ;notices
-            ) ;
-        (if (null? notices) "" (string-append "\n\n[" (string-join notices ". ") "]"))
       ) ;let*
     ) ;define
 
@@ -194,65 +150,61 @@
       ) ;if
     ) ;define
 
-    (define (%format-grep-matches all-matches cache ctx-val limit limit-reached?)
-      (let block-loop
-        ((m-list all-matches) (out-lines '()) (any-line-trunc? #f))
-        (if (null? m-list)
-          (let* ((raw-out (string-join (reverse out-lines) "\n"))
-                 (trunc (pi-truncate-head raw-out 999999 PI_DEFAULT_MAX_BYTES))
-                ) ;
-            (string-append (pi-trunc-result-content trunc)
-              (%build-grep-notices limit-reached?
-                limit
-                (pi-trunc-result-truncated trunc)
-                any-line-trunc?
-              ) ;%build-grep-notices
-            ) ;string-append
-          ) ;let*
-          (let* ((m (car m-list))
-                 (rel-f (car m))
-                 (line-n (cadr m))
-                 (lines (cdr (assoc rel-f cache)))
-                ) ;
-            (let-values (((block trunc?) (%format-grep-block lines rel-f line-n ctx-val)))
-              (block-loop (cdr m-list)
-                (append (reverse block) out-lines)
-                (or any-line-trunc? trunc?)
-              ) ;block-loop
-            ) ;let-values
-          ) ;let*
-        ) ;if
-      ) ;let
+    ;; 扫描单个候选文件：返回 (行列表 匹配列表 跳过?)
+    ;; 文件已消失或读不出来时跳过该文件并置「跳过」标志——静默当成空文件
+    ;; 会让「无匹配」掩盖真实失败（Issue #1189）
+    (define (%scan-grep-file f-abs f-rel pattern literal? ignore-case? rem-limit timeout)
+      (if (not (path-file? (path f-abs)))
+        (values #f '() #t)
+        (let ((f-lines (%read-grep-lines (path f-abs))))
+          (if (not f-lines)
+            (values #f '() #t)
+            (values f-lines
+              (if literal?
+                (%scan-file-literal f-lines f-rel pattern ignore-case? rem-limit)
+                (%scan-file-regex f-abs f-rel pattern ignore-case? timeout)
+              ) ;if
+              #f
+            ) ;values
+          ) ;if
+        ) ;let
+      ) ;if
     ) ;define
 
     (define (%run-grep-scan candidates literal? pattern ignore-case? ctx-val limit timeout)
       (let loop
-        ((files candidates) (all-m '()) (cache '()) (count 0))
+        ((files candidates) (all-m '()) (cache '()) (count 0) (skipped '()))
         (cond
          ((or (null? files) (>= count limit))
           (if (null? all-m)
-            "No matches found"
-            (%format-grep-matches all-m cache ctx-val limit (>= count limit))
+            (%grep-empty-result skipped)
+            (%format-grep-matches all-m cache ctx-val limit (>= count limit) skipped)
           ) ;if
          ) ;
          (else
-           (let* ((cand (car files)) (f-abs (car cand)) (f-rel (cadr cand)))
-             (if (not (path-file? (path f-abs)))
-               (loop (cdr files) all-m cache count)
-               (let* ((f-text (guard (e (else "")) (path-read-text (path f-abs))))
-                      (f-lines (string-split f-text "\n"))
-                      (new-cache (cons (cons f-rel f-lines) cache))
-                      (rem-limit (- limit count))
-                      (matches (if literal?
-                                 (%scan-file-literal f-lines f-rel pattern ignore-case? rem-limit)
-                                 (%scan-file-regex f-abs f-rel pattern ignore-case? timeout)
-                               ) ;if
-                      ) ;matches
-                      (valid (if (> (length matches) rem-limit) (take matches rem-limit) matches))
-                     ) ;
-                 (loop (cdr files) (append all-m valid) new-cache (+ count (length valid)))
-               ) ;let*
-             ) ;if
+           (let* ((cand (car files))
+                  (f-abs (car cand))
+                  (f-rel (cadr cand))
+                  (rem-limit (- limit count))
+                 ) ;
+             (let-values (((f-lines matches skipped?)
+                           (%scan-grep-file f-abs f-rel pattern literal? ignore-case? rem-limit timeout)
+                          ) ;
+                         ) ;
+               (if skipped?
+                 (loop (cdr files) all-m cache count (cons f-rel skipped))
+                 (let* ((new-cache (cons (cons f-rel f-lines) cache))
+                        (valid (if (> (length matches) rem-limit) (take matches rem-limit) matches))
+                       ) ;
+                   (loop (cdr files)
+                     (append all-m valid)
+                     new-cache
+                     (+ count (length valid))
+                     skipped
+                   ) ;loop
+                 ) ;let*
+               ) ;if
+             ) ;let-values
            ) ;let*
          ) ;else
         ) ;cond

@@ -155,9 +155,7 @@
                 (string-append "Failed to clone extension from "
                   url
                   ": "
-                  (process-error-stderr err-info)
-                  " "
-                  (process-error-stdout err-info)
+                  (pi-command-failure-detail err-info)
                 ) ;string-append
               ) ;error
             ) ;let

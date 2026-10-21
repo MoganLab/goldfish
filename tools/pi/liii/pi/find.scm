@@ -72,11 +72,15 @@
       ) ;let*
     ) ;define
 
+    ;; git ls-files 失败时：退出码 128 表示「不在 git 仓库中」，此时回退到
+    ;; 文件系统遍历是正确的（没有 .gitignore 语义可遵守）；其它失败说明
+    ;; .gitignore 无法生效，若静默回退就会谎报「respects .gitignore」，
+    ;; 故按统一策略抛工具错误。
     (define (%git-files-in-dir abs-dir timeout)
       (let ((res (run-either (list "git" "ls-files" "--cached" "--others" "--exclude-standard")
                    :cwd     abs-dir
                    :stdout  'capture
-                   :stderr  'discard
+                   :stderr  'capture
                    :timeout timeout
                  ) ;run-either
             ) ;res
@@ -85,7 +89,9 @@
           (let ((lines (string-split (to-right res) "\n")))
             (filter (lambda (s) (not (string-null? s))) lines)
           ) ;let
-          #f
+          (let ((err (to-left res)))
+            (if (= (process-error-code err) 128) #f (pi-command-error "git ls-files" err))
+          ) ;let
         ) ;if
       ) ;let
     ) ;define
