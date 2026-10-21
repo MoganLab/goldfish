@@ -142,7 +142,7 @@ timeout 180 bin/gf pi install --local https://gitee.com/xxx/my-project-extension
 
 ### 4. 独立扩展解耦示范（Reference Implementation）
 
-为了真实检验扩展的独立加载机制，结构复杂且重型的两个扩展——**`blueprint`（分阶段计划系统）** 与 **`compass`（代码库地图与导览）** 已从主核心解耦，直接将其源码移动到对应的扩展目录即可生效（无需在 GitHub 创建外部仓库），端到端验证插件机制的自动发现与完全解耦。
+为了真实检验扩展的独立加载机制，结构复杂且重型的扩展——**`blueprint`（分阶段计划系统）** 已从主核心解耦，直接将其源码移动到对应的扩展目录即可生效（无需在 GitHub 创建外部仓库），端到端验证插件机制的自动发现与完全解耦。
 
 ## 模型与 provider【可用】
 
