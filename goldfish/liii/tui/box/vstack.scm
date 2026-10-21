@@ -22,7 +22,9 @@
 ;;
 
 (define-library (liii tui box vstack)
-  (export make-vstack vstack?)
+  (export make-vstack vstack? %validate-child %vstack-render
+    %vstack-handle-input %vstack-invalidate
+  ) ;export
   (import (liii base) (liii error) (liii tui component))
   (begin
 
@@ -63,10 +65,10 @@
       ) ;cond
     ) ;define
 
-    (define (%validate-child child)
+    (define (%validate-child child caller)
       (let ((c (if (string? child) (make-text child) child)))
         (unless (component? c)
-          (type-error "make-vstack: child must be a component or string")
+          (type-error (string-append caller ": child must be a component or string"))
         ) ;unless
         c
       ) ;let
@@ -138,7 +140,7 @@
              (spacing (%keyword-value :spacing opts 0))
             ) ;
         (%validate-spacing spacing)
-        (let* ((children (map %validate-child raw-children))
+        (let* ((children (map (lambda (ch) (%validate-child ch "make-vstack")) raw-children))
                (comp (make-component
                        :render
                        (lambda (self width) (%vstack-render children spacing width))

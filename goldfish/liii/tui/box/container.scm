@@ -25,14 +25,13 @@
   (export make-container container? container-add! container-clear!
     container-children
   ) ;export
-  (import (scheme base) (liii base) (liii error) (liii tui component))
+  (import (scheme base)
+    (liii base)
+    (liii error)
+    (liii tui component)
+    (liii tui box vstack)
+  ) ;import
   (begin
-
-    (define (%container-data comp)
-      (let ((d (component-data comp)))
-        (if (and (pair? d) (eq? (car d) 'container)) d #f)
-      ) ;let
-    ) ;define
 
     (define (container? obj)
       (and (component? obj)
@@ -48,90 +47,42 @@
       ) ;unless
     ) ;define
 
-    (define (%validate-child child caller)
-      (let ((c (if (string? child) (make-text child) child)))
-        (unless (component? c)
-          (type-error (string-append caller ": child must be a component or string"))
-        ) ;unless
-        c
-      ) ;let
-    ) ;define
-
+    ;; children 在 data 中倒序存储，container-add! 为 O(1)；读取时 reverse
     (define (container-children comp)
       (%check-container comp "container-children")
-      (let ((d (%container-data comp)))
-        (cadr d)
-      ) ;let
+      (reverse (cadr (component-data comp)))
     ) ;define
 
     (define (container-add! comp child)
       (%check-container comp "container-add!")
-      (let* ((c (%validate-child child "container-add!"))
-             (d (%container-data comp))
-             (cur (cadr d))
-            ) ;
-        (set-car! (cdr d) (append cur (list c)))
+      (let ((c (%validate-child child "container-add!")) (d (component-data comp)))
+        (set-car! (cdr d) (cons c (cadr d)))
         comp
-      ) ;let*
+      ) ;let
     ) ;define
 
     (define (container-clear! comp)
       (%check-container comp "container-clear!")
-      (let ((d (%container-data comp)))
-        (set-car! (cdr d) '())
-        comp
-      ) ;let
+      (set-car! (cdr (component-data comp)) '())
+      comp
     ) ;define
 
-    (define (%container-render comp width)
-      (let ((children (container-children comp)))
-        (let loop
-          ((rem children) (acc '()))
-          (if (null? rem)
-            (apply append (reverse acc))
-            (let* ((child (car rem)) (lines (component-render child width)))
-              (loop (cdr rem) (cons lines acc))
-            ) ;let*
-          ) ;if
-        ) ;let
-      ) ;let
-    ) ;define
-
-    (define (%container-handle-input comp key)
-      (let ((children (container-children comp)))
-        (let loop
-          ((rest children))
-          (if (null? rest)
-            #f
-            (let ((res (component-handle-input (car rest) key)))
-              (if res res (loop (cdr rest)))
-            ) ;let
-          ) ;if
-        ) ;let
-      ) ;let
-    ) ;define
-
-    (define (%container-invalidate comp)
-      (let ((children (container-children comp)))
-        (for-each component-invalidate! children)
-        #t
-      ) ;let
-    ) ;define
-
+    ;; container 即 children 可变、spacing 为 0 的 vstack，渲染/派发/失效直接复用
     (define (make-container)
-      (let* ((d (list 'container '()))
-             (comp (make-component
-                     :render
-                     (lambda (self width) (%container-render self width))
-                     :handle-input
-                     (lambda (self key) (%container-handle-input self key))
-                     :invalidate (lambda (self) (%container-invalidate self))
-                   ) ;make-component
-             ) ;comp
-            ) ;
-        (component-data-set! comp d)
+      (let ((comp
+              (make-component
+                :render
+                (lambda (self width) (%vstack-render (container-children self) 0 width))
+                :handle-input
+                (lambda (self key) (%vstack-handle-input (container-children self) key))
+                :invalidate
+                (lambda (self) (%vstack-invalidate (container-children self)))
+              ) ;make-component
+            ) ;comp
+           ) ;
+        (component-data-set! comp (list 'container '()))
         comp
-      ) ;let*
+      ) ;let
     ) ;define
 
   ) ;begin

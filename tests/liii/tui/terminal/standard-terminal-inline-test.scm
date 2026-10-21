@@ -1,5 +1,4 @@
 (import (scheme base)
-  (scheme write)
   (liii check)
   (liii tui terminal)
 ) ;import
@@ -18,16 +17,19 @@
   (check (get-output-string p) => "\r\n\r\n")
   (check (terminal-cursor term) => '(0 2))
 
-  ;; 从 (0, 2) 向上移动到 (0, 1)：相对上移 1 行
-  (let ((p2 (open-output-string)))
-    (let ((term2 (make-standard-terminal :output-port p2 :inline #t)))
-      (terminal-set-cursor! term2 0 2)
-      (let ((p3 (open-output-string)))
-        (terminal-set-cursor! term 4 1)
-        (check (terminal-cursor term) => '(4 1))
-      ) ;let
-    ) ;let
-  ) ;let
+  ;; 从 (0, 2) 向上移动到 (4, 1)：相对上移 1 行，再右移 4 列
+  (terminal-set-cursor! term 4 1)
+  (check (terminal-cursor term) => '(4 1))
+  (check (get-output-string p) => "\r\n\r\n\x1b;[1A\r\x1b;[4C")
+) ;let*
+
+;; 2. 非 inline 模式仍为绝对定位
+(let* ((p (open-output-string))
+       (term (make-standard-terminal :output-port p))
+      ) ;let*
+  (terminal-set-cursor! term 4 1)
+  (check (get-output-string p) => "\x1b;[2;5H")
+  (check (terminal-cursor term) => '(4 1))
 ) ;let*
 
 (check-report)

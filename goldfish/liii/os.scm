@@ -2,7 +2,7 @@
   (export os-arch os-type os-windows? os-linux? os-macos? os-temp-dir os-sep
     pathsep os-call mkdir chdir rmdir remove rename getenv putenv unsetenv
     getcwd listdir access getlogin getpid os-tty? console-kbhit? console-getch
-    console-raw-mode! terminal-size
+    console-raw-mode! os-terminal-size
   ) ;export
   (import (scheme base)
     (scheme process-context)
@@ -182,7 +182,7 @@
       ) ;if
     ) ;define
 
-    (define (terminal-size)
+    (define (os-terminal-size)
       (g_terminal_size)
     ) ;define
 

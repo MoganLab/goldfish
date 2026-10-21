@@ -23,7 +23,8 @@
 
 (define-library (liii tui terminal standard)
   (export make-standard-terminal standard-terminal?)
-  (import (liii base)
+  (import (scheme base)
+    (liii base)
     (liii error)
     (liii tui terminal protocol)
     (liii tui terminal size)
@@ -60,13 +61,6 @@
       ) ;let
     ) ;define
 
-    (define (%repeat-crlf n)
-      (let loop
-        ((count n) (acc ""))
-        (if (<= count 0) acc (loop (- count 1) (string-append acc "\r\n")))
-      ) ;let
-    ) ;define
-
     (define (%inline-down-seq state y cur-y max-y)
       (if (<= y max-y)
         (string-append "\x1b;[" (number->string (- y cur-y)) "B\r")
@@ -77,7 +71,7 @@
                            ""
                          ) ;if
                ) ;down-str
-               (nl-str (%repeat-crlf new-lines))
+               (nl-str (apply string-append (make-list new-lines "\r\n")))
               ) ;
           (%st-max-y-set! state y)
           (string-append down-str nl-str)
@@ -102,27 +96,24 @@
     ) ;define
 
     (define (%st-set-cursor! term x y)
-      (let ((state (terminal-data term)))
-        (if (%st-inline? state)
-          (let ((seq (%st-inline-seq state x y)))
-            (%st-cursor-x-set! state x)
-            (%st-cursor-y-set! state y)
-            (display seq (%st-port state))
-          ) ;let
-          (begin
-            (%st-cursor-x-set! state x)
-            (%st-cursor-y-set! state y)
-            (display (string-append "\x1b;["
-                       (number->string (+ y 1))
-                       ";"
-                       (number->string (+ x 1))
-                       "H"
-                     ) ;string-append
-              (%st-port state)
-            ) ;display
-          ) ;begin
-        ) ;if
-      ) ;let
+      (let* ((state (terminal-data term))
+             ;; 先算序列再更新 state：%st-inline-seq 依赖旧光标位置
+             (seq
+               (if (%st-inline? state)
+                 (%st-inline-seq state x y)
+                 (string-append "\x1b;["
+                   (number->string (+ y 1))
+                   ";"
+                   (number->string (+ x 1))
+                   "H"
+                 ) ;string-append
+               ) ;if
+             ) ;seq
+            ) ;
+        (%st-cursor-x-set! state x)
+        (%st-cursor-y-set! state y)
+        (display seq (%st-port state))
+      ) ;let*
     ) ;define
 
     (define (%st-clear! term)
@@ -219,7 +210,7 @@
         (unless (procedure? size-fn)
           (type-error "make-standard-terminal: :detect-size-fn must be a procedure")
         ) ;unless
-        (let ((state (%make-st-state port size-fn 0 0 #t (if inline #t #f) 0)))
+        (let ((state (%make-st-state port size-fn 0 0 #t inline 0)))
           (make-terminal-record 'standard
             %st-get-size
             %st-write
