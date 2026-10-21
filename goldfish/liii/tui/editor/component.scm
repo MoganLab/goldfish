@@ -157,11 +157,13 @@
              (cursor-style (%keyword-value :cursor-style rest-opts 'inverse))
              (on-submit (%keyword-value :on-submit rest-opts #f))
              (on-change (%keyword-value :on-change rest-opts #f))
+             (top-border (%keyword-value :top-border rest-opts #f))
+             (bottom-border (%keyword-value :bottom-border rest-opts #f))
              (history-size (%keyword-value :history-size rest-opts 100))
              (buf (make-buffer initial-text multiline?))
              (hist (make-history history-size))
              (data (%make-editor-data buf hist multiline? focused? placeholder
-                     cursor-style on-submit on-change
+                     cursor-style on-submit on-change top-border bottom-border
                    ) ;%make-editor-data
              ) ;data
              (comp (make-component %editor-render %editor-handle-input))

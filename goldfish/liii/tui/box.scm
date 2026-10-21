@@ -22,7 +22,8 @@
 ;;
 
 (define-library (liii tui box)
-  (export make-box box? make-vstack vstack? make-hstack hstack? <border-style>
+  (export make-box box? make-vstack vstack? make-hstack hstack? make-container
+    container? container-add! container-clear! container-children <border-style>
     make-border-style border-style? border-style-name border-style-tl
     border-style-tr border-style-bl border-style-br border-style-h
     border-style-v border-style-resolve border-render-top border-render-bottom
@@ -32,5 +33,6 @@
     (liii tui box box)
     (liii tui box vstack)
     (liii tui box hstack)
+    (liii tui box container)
   ) ;import
 ) ;define-library

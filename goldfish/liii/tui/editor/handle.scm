@@ -26,6 +26,7 @@
   (import (scheme base)
     (scheme write)
     (liii base)
+    (liii unicode)
     (liii tui component)
     (liii tui editor history)
     (liii tui editor buffer)
@@ -34,6 +35,10 @@
     (liii tui editor state)
   ) ;import
   (begin
+
+    (define (%make-h-border width)
+      (if (<= width 0) "" (utf8-make-string width #\─))
+    ) ;define
 
     (define (%editor-render comp width)
       (let* ((data (component-data comp))
@@ -44,8 +49,13 @@
              (focused? (%ed-focused? data))
              (ph (%ed-placeholder data))
              (cursor-style (%ed-cursor-style data))
+             (top-b (%ed-top-border data))
+             (bot-b (%ed-bottom-border data))
+             (rendered (render-editor-lines lines row col focused? ph width cursor-style))
+             (top-line (if (and top-b (> width 0)) (list (%make-h-border width)) '()))
+             (bot-line (if (and bot-b (> width 0)) (list (%make-h-border width)) '()))
             ) ;
-        (render-editor-lines lines row col focused? ph width cursor-style)
+        (append top-line rendered bot-line)
       ) ;let*
     ) ;define
 
