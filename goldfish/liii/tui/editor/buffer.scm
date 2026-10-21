@@ -27,7 +27,7 @@
     buffer-text buffer-set-text! buffer-insert-char! buffer-insert-string!
     buffer-backspace! buffer-delete! buffer-newline!
   ) ;export
-  (import (scheme base) (scheme write) (liii base) (liii string))
+  (import (scheme base) (scheme write) (liii base) (liii string) (liii unicode))
   (begin
 
     (define-record-type <buffer>
@@ -106,14 +106,14 @@
                (r (%buffer-row buf))
                (c (%buffer-col buf))
                (line (list-ref lines r))
-               (len (string-length line))
+               (len (utf8-string-length line))
                (safe-col (max 0 (min c len)))
-               (before (substring line 0 safe-col))
-               (after (substring line safe-col len))
+               (before (if (= safe-col 0) "" (utf8-substring line 0 safe-col)))
+               (after (if (>= safe-col len) "" (utf8-substring line safe-col len)))
                (new-line (string-append before str after))
               ) ;
           (%buffer-lines-set! buf (%replace-line lines r new-line))
-          (%buffer-col-set! buf (+ safe-col (string-length str)))
+          (%buffer-col-set! buf (+ safe-col (utf8-string-length str)))
           #t
         ) ;let*
       ) ;if
@@ -133,10 +133,10 @@
         (cond
          ((> c 0)
           ;; 行内向左删除一个字符
-          (let* ((len (string-length line))
+          (let* ((len (utf8-string-length line))
                  (safe-col (min c len))
-                 (before (substring line 0 (- safe-col 1)))
-                 (after (substring line safe-col len))
+                 (before (if (<= safe-col 1) "" (utf8-substring line 0 (- safe-col 1))))
+                 (after (if (>= safe-col len) "" (utf8-substring line safe-col len)))
                  (new-line (string-append before after))
                 ) ;
             (%buffer-lines-set! buf (%replace-line lines r new-line))
@@ -147,7 +147,7 @@
          ((and (> r 0) (%buffer-multiline? buf))
           ;; 光标在第 r 行首（c=0），将当前行拼接到上一行末尾
           (let* ((prev-line (list-ref lines (- r 1)))
-                 (prev-len (string-length prev-line))
+                 (prev-len (utf8-string-length prev-line))
                  (merged (string-append prev-line line))
                 ) ;
             ;; 删除第 r 行并更新第 r-1 行
@@ -177,13 +177,13 @@
              (r (%buffer-row buf))
              (c (%buffer-col buf))
              (line (list-ref lines r))
-             (len (string-length line))
+             (len (utf8-string-length line))
             ) ;
         (cond
          ((< c len)
           ;; 行内向右删除一个字符
-          (let* ((before (substring line 0 c))
-                 (after (substring line (+ c 1) len))
+          (let* ((before (if (= c 0) "" (utf8-substring line 0 c)))
+                 (after (if (>= (+ c 1) len) "" (utf8-substring line (+ c 1) len)))
                  (new-line (string-append before after))
                 ) ;
             (%buffer-lines-set! buf (%replace-line lines r new-line))
@@ -219,10 +219,10 @@
                (r (%buffer-row buf))
                (c (%buffer-col buf))
                (line (list-ref lines r))
-               (len (string-length line))
+               (len (utf8-string-length line))
                (safe-col (max 0 (min c len)))
-               (line1 (substring line 0 safe-col))
-               (line2 (substring line safe-col len))
+               (line1 (if (= safe-col 0) "" (utf8-substring line 0 safe-col)))
+               (line2 (if (>= safe-col len) "" (utf8-substring line safe-col len)))
               ) ;
           (let loop
             ((rest lines) (i 0) (acc '()))

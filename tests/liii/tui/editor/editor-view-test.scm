@@ -33,4 +33,12 @@
   (check (render-editor-lines lines 1 0 #t "" 40 'inverse)
     => '("line 1" "\x1b[7ml\x1b[0mine 2")))
 
+;; 8. 包含中文字符的反显与竖线光标样式
+(check (render-line-with-cursor "你好世界" 1 #t 'inverse)
+  => "你\x1b[7m好\x1b[0m世界")
+(check (render-line-with-cursor "你好世界" 1 #t 'bar)
+  => "你|好世界")
+(check (render-line-with-cursor "你好" 2 #t 'inverse)
+  => "你好\x1b[7m \x1b[0m")
+
 (check-report)

@@ -24,13 +24,15 @@
 (define-library (liii tui editor component)
   (export make-editor editor? make-text-input text-input? make-text-area
     text-area? editor-text editor-set-text! editor-cursor editor-set-cursor!
-    editor-lines editor-focused? editor-set-focused! editor-placeholder
-    editor-set-placeholder! editor-history-list
+    editor-display-col editor-lines editor-focused? editor-set-focused!
+    editor-placeholder editor-set-placeholder! editor-history-list
   ) ;export
   (import (scheme base)
     (scheme write)
     (liii base)
     (liii error)
+    (liii unicode)
+    (liii tui text-width)
     (liii tui component)
     (liii tui editor history)
     (liii tui editor buffer)
@@ -102,10 +104,28 @@
              (total-rows (length lines))
              (safe-row (max 0 (min row (- total-rows 1))))
              (line (list-ref lines safe-row))
-             (safe-col (max 0 (min col (string-length line))))
+             (safe-col (max 0 (min col (utf8-string-length line))))
             ) ;
         (buffer-row-set! buf safe-row)
         (buffer-col-set! buf safe-col)
+      ) ;let*
+    ) ;define
+
+    (define (editor-display-col ed)
+      (unless (editor? ed)
+        (type-error "editor-display-col: ed must be an editor")
+      ) ;unless
+      (let* ((buf (%ed-buffer (component-data ed)))
+             (lines (buffer-lines buf))
+             (r (buffer-row buf))
+             (c (buffer-col buf))
+             (line
+               (if (and (>= r 0) (< r (length lines))) (list-ref lines r) "")
+             ) ;line
+             (safe-c (max 0 (min c (utf8-string-length line))))
+             (before (if (= safe-c 0) "" (utf8-substring line 0 safe-c)))
+            ) ;
+        (display-width before)
       ) ;let*
     ) ;define
 

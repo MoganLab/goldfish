@@ -27,6 +27,7 @@
     (scheme write)
     (liii base)
     (liii string)
+    (liii unicode)
     (liii tui text-width)
   ) ;import
   (begin
@@ -36,23 +37,25 @@
     ;; cursor-style: 'inverse (反显), 'bar (竖线 |), 'block (方块或反显),
     ;; 'hardware (不画软件光标，由硬件光标指示)
     (define (render-line-with-cursor line col focused? cursor-style)
-      (let* ((len (string-length line)) (safe-col (max 0 (min col len))))
+      (let* ((len (utf8-string-length line)) (safe-col (max 0 (min col len))))
         (if (not focused?)
           line
-          (let ((before (substring line 0 safe-col))
-                (after (if (< safe-col len) (substring line (+ safe-col 1) len) ""))
+          (let ((before (if (= safe-col 0) "" (utf8-substring line 0 safe-col)))
+                (after (if (>= (+ safe-col 1) len) "" (utf8-substring line (+ safe-col 1) len)))
                ) ;
             (case cursor-style
              ((hardware) line)
              ((bar)
               (string-append before
                 "|"
-                (if (< safe-col len) (substring line safe-col len) "")
+                (if (>= safe-col len) "" (utf8-substring line safe-col len))
               ) ;string-append
              ) ;
              (else
                ;; 默认为反显样式 \x1b[7m ... \x1b[0m
-               (let ((cursor-char (if (< safe-col len) (string (string-ref line safe-col)) " ")))
+               (let ((cursor-char (if (< safe-col len) (utf8-substring line safe-col (+ safe-col 1)) " ")
+                     ) ;cursor-char
+                    ) ;
                  (string-append before "\x1b;[7m" cursor-char "\x1b;[0m" after)
                ) ;let
              ) ;else

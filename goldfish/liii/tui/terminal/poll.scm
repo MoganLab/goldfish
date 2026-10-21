@@ -22,10 +22,13 @@
 ;;
 
 (define-library (liii tui terminal poll)
-  (export terminal-poll-key %poll-console-key %resolve-ansi-bytes)
+  (export terminal-poll-key %poll-console-key %resolve-ansi-bytes
+    %resolve-utf8-bytes
+  ) ;export
   (import (scheme base)
     (liii error)
     (liii os)
+    (liii unicode)
     (liii tui terminal protocol)
     (liii tui terminal virtual)
     (liii tui keys parser)
@@ -70,6 +73,37 @@
       ) ;if
     ) ;define
 
+    (define (%resolve-utf8-bytes byte-list)
+      (if (null? byte-list)
+        #f
+        (catch #t
+          (lambda () (utf8->string (apply bytevector byte-list)))
+          (lambda args #f)
+        ) ;catch
+      ) ;if
+    ) ;define
+
+    (define (%read-continuation-byte)
+      (if (console-kbhit? 20)
+        (let ((b (console-getch)))
+          (if (and b (exact-integer? b) (>= b 128) (<= b 191)) b #f)
+        ) ;let
+        #f
+      ) ;if
+    ) ;define
+
+    (define (%poll-utf8-char first-byte remaining-count)
+      (let loop
+        ((count remaining-count) (acc (list first-byte)))
+        (if (= count 0)
+          (%resolve-utf8-bytes (reverse acc))
+          (let ((b (%read-continuation-byte)))
+            (if b (loop (- count 1) (cons b acc)) #f)
+          ) ;let
+        ) ;if
+      ) ;let
+    ) ;define
+
     (define (%poll-escape-key)
       (if (not (console-kbhit? 25))
         'escape
@@ -93,12 +127,15 @@
         (let ((c (console-getch)))
           (cond
            ((not (and c (exact-integer? c))) #f)
-           ((or (= c 0) (= c 224))
+           ((and (os-windows?) (or (= c 0) (= c 224)))
             (let ((ext (console-getch)))
               (if (and ext (exact-integer? ext)) (%map-extended-key ext) #f)
             ) ;let
            ) ;
            ((= c 27) (%poll-escape-key))
+           ((and (>= c 194) (<= c 223)) (%poll-utf8-char c 1))
+           ((and (>= c 224) (<= c 239)) (%poll-utf8-char c 2))
+           ((and (>= c 240) (<= c 244)) (%poll-utf8-char c 3))
            (else (%map-standard-key c))
           ) ;cond
         ) ;let

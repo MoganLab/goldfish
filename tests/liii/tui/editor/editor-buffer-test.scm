@@ -23,14 +23,35 @@
   (check (buffer-text b) => "hello world")
   (check (buffer-col b) => 11))
 
-;; 3. 插入 CJK 汉字 (UTF-8 字符字节长度为 6，字符数/显示宽度因底层 string-length 为字节长度)
+;; 3. 插入 CJK 汉字 (Unicode 字符计数)
 (let ((b (make-buffer "" #f)))
   (buffer-insert-string! b "金鱼")
   (check (buffer-text b) => "金鱼")
-  (check (buffer-col b) => (string-length "金鱼"))
+  (check (buffer-col b) => 2)
   (buffer-insert-string! b "TUI")
   (check (buffer-text b) => "金鱼TUI")
-  (check (buffer-col b) => (+ (string-length "金鱼") (string-length "TUI"))))
+  (check (buffer-col b) => 5))
+
+;; 3.1 CJK 汉字整字退格与删除
+(let ((b (make-buffer "金鱼" #f)))
+  (buffer-col-set! b 2)
+  ;; 退格删除整字 "鱼"
+  (check (buffer-backspace! b) => #t)
+  (check (buffer-text b) => "金")
+  (check (buffer-col b) => 1)
+  ;; 退格删除整字 "金"
+  (check (buffer-backspace! b) => #t)
+  (check (buffer-text b) => "")
+  (check (buffer-col b) => 0)
+  (check (buffer-backspace! b) => #f))
+
+(let ((b (make-buffer "金鱼Scheme" #f)))
+  ;; 光标在 "金" 和 "鱼" 之间 (col=1)
+  (buffer-col-set! b 1)
+  ;; Delete 删除 "鱼"
+  (check (buffer-delete! b) => #t)
+  (check (buffer-text b) => "金Scheme")
+  (check (buffer-col b) => 1))
 
 ;; 4. 行内 Backspace 退格删除
 (let ((b (make-buffer "abc" #f)))

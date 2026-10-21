@@ -32,6 +32,7 @@
     editor-set-text!
     editor-cursor
     editor-set-cursor!
+    editor-display-col
     editor-lines
     editor-focused?
     editor-set-focused!
