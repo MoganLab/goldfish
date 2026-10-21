@@ -68,6 +68,15 @@ pi 被拉起后全自主运行。
 
 ### 4.1 用 pi 脚本模式驱动编码
 
+> **执行器裁定（用户，2026-10-21）**：**暂停 `bin/gf pi` 自举，阶段任务改用外部 pi
+> （Node 版）执行**。背景：091 开发阶段自举实例连续遭遇 429 限流颠簸/死亡螺旋，
+> 零产出被终止两次。外部 pi 拉起形式：`timeout <秒> pi -a -p @tools/pi/Agents.md
+> "<任务文本>"`（不认 `--session-timeout`/`--max-turns`，预算只靠外层 timeout）；
+> commit 标注 `[NNN][pi/<实际provider/model>][阶段]`；存活检查须用 PowerShell
+> 查 CommandLine（`ps -W` 看不到 pi.exe 的参数）：
+> `Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like '*@tools/pi/Agents.md*' }`。
+> 恢复自举时改回本节的 `bin/gf pi` 模板即可。
+
 ```bash
 # 把计划文档作为输入，指派某个阶段
 # 注意：@文件 必须是独立的位置参数（整个参数以 @ 开头），不能写在 -p 的引号字符串里——
