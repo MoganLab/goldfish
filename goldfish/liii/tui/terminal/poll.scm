@@ -92,9 +92,10 @@
       ) ;if
     ) ;define
 
-    (define (%poll-utf8-char first-byte remaining-count)
+    ;; ; 读取一个 UTF-8 多字节字符：首字节已读入，还需读取后续的 total-len-1 个连续字节
+    (define (%poll-utf8-char first-byte total-len)
       (let loop
-        ((count remaining-count) (acc (list first-byte)))
+        ((count (- total-len 1)) (acc (list first-byte)))
         (if (= count 0)
           (%resolve-utf8-bytes (reverse acc))
           (let ((b (%read-continuation-byte)))
@@ -133,9 +134,11 @@
             ) ;let
            ) ;
            ((= c 27) (%poll-escape-key))
-           ((and (>= c 194) (<= c 223)) (%poll-utf8-char c 1))
-           ((and (>= c 224) (<= c 239)) (%poll-utf8-char c 2))
-           ((and (>= c 240) (<= c 244)) (%poll-utf8-char c 3))
+           ((>= c 194)
+            (let ((seq-len (utf8-sequence-length c)))
+              (if seq-len (%poll-utf8-char c seq-len) (%map-standard-key c))
+            ) ;let
+           ) ;
            (else (%map-standard-key c))
           ) ;cond
         ) ;let

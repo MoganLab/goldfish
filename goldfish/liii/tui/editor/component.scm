@@ -31,7 +31,6 @@
     (scheme write)
     (liii base)
     (liii error)
-    (liii unicode)
     (liii tui text-width)
     (liii tui component)
     (liii tui editor history)
@@ -123,9 +122,8 @@
                (if (and (>= r 0) (< r (length lines))) (list-ref lines r) "")
              ) ;line
              (safe-c (max 0 (min c (utf8-string-length line))))
-             (before (if (= safe-c 0) "" (utf8-substring line 0 safe-c)))
             ) ;
-        (display-width before)
+        (display-width-prefix line safe-c)
       ) ;let*
     ) ;define
 

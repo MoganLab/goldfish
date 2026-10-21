@@ -22,7 +22,9 @@
 ;;
 
 (define-library (liii tui text-width)
-  (export strip-ansi display-width truncate-to-width wrap-text)
+  (export strip-ansi display-width display-width-prefix truncate-to-width
+    wrap-text
+  ) ;export
   (import (liii tui text-width core)
     (liii tui text-width truncate)
     (liii tui text-width wrap)

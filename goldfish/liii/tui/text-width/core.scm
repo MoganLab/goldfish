@@ -23,7 +23,7 @@
 
 (define-library (liii tui text-width core)
   (export %match-ansi-csi %codepoint-width %is-sgr-reset? strip-ansi
-    display-width
+    display-width display-width-prefix
   ) ;export
   (import (scheme base) (liii base) (liii error) (liii unicode))
   (begin
@@ -136,6 +136,41 @@
                          (cw (%codepoint-width cp))
                         ) ;
                     (loop step (+ w cw))
+                  ) ;let*
+                ) ;if
+              ) ;let
+            ) ;if
+          ) ;let
+        ) ;let*
+      ) ;if
+    ) ;define
+
+    ;; ; display-width-prefix: 前 n 个 Unicode 字符占用的终端列宽
+    ;;
+    ;; n 是字符（码点）个数，不是字节数；宽度规则与 display-width 完全一致。
+    (define (display-width-prefix str n)
+      (unless (string? str)
+        (type-error "display-width-prefix: str must be a string")
+      ) ;unless
+      (unless (and (integer? n) (>= n 0))
+        (type-error "display-width-prefix: n must be a non-negative integer")
+      ) ;unless
+      (if (or (= n 0) (string=? str ""))
+        0
+        (let* ((bv (string->utf8 str)) (len (bytevector-length bv)))
+          (let loop
+            ((i 0) (count 0) (w 0))
+            (if (or (>= count n) (>= i len))
+              w
+              (let ((ansi-end (%match-ansi-csi bv i len)))
+                (if ansi-end
+                  (loop ansi-end count w)
+                  (let* ((next (bytevector-advance-utf8 bv i len))
+                         (step (if (= next i) (+ i 1) next))
+                         (cp (utf8->codepoint-at bv i))
+                         (cw (%codepoint-width cp))
+                        ) ;
+                    (loop step (+ count 1) (+ w cw))
                   ) ;let*
                 ) ;if
               ) ;let

@@ -54,6 +54,15 @@
 (check (utf8-substring "" 0 0) => "")
 
 
+;; 空区间：start 等于 end 时返回空串
+(check (utf8-substring "Hello" 0 0) => "")
+(check (utf8-substring "Hello" 3 3) => "")
+(check (utf8-substring "汉字" 1 1) => "")
+;; start 必须小于字符数，end 允许等于字符数
+(check-catch 'out-of-range (utf8-substring "Hello" 5 5))
+(check-catch 'out-of-range (utf8-substring "Hello" 5))
+
+
 ;; 中文字符测试
 (check (utf8-substring "汉字书写" 0 2) => "汉字")
 (check (utf8-substring "汉字书写" 2) => "书写")

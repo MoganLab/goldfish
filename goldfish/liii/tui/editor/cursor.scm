@@ -29,7 +29,6 @@
     (scheme write)
     (liii base)
     (liii string)
-    (liii unicode)
     (liii tui editor buffer)
   ) ;import
   (begin

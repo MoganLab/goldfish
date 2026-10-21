@@ -41,4 +41,8 @@
 (check (render-line-with-cursor "你好" 2 #t 'inverse)
   => "你好\x1b[7m \x1b[0m")
 
+;; 9. 硬件光标样式原样返回行内容（不切分字符串）
+(check (render-line-with-cursor "hello" 2 #t 'hardware) => "hello")
+(check (render-line-with-cursor "你好世界" 2 #t 'hardware) => "你好世界")
+
 (check-report)

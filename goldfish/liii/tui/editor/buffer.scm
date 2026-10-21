@@ -108,7 +108,7 @@
                (line (list-ref lines r))
                (len (utf8-string-length line))
                (safe-col (max 0 (min c len)))
-               (before (if (= safe-col 0) "" (utf8-substring line 0 safe-col)))
+               (before (utf8-substring line 0 safe-col))
                (after (if (>= safe-col len) "" (utf8-substring line safe-col len)))
                (new-line (string-append before str after))
               ) ;
@@ -135,7 +135,7 @@
           ;; 行内向左删除一个字符
           (let* ((len (utf8-string-length line))
                  (safe-col (min c len))
-                 (before (if (<= safe-col 1) "" (utf8-substring line 0 (- safe-col 1))))
+                 (before (utf8-substring line 0 (- safe-col 1)))
                  (after (if (>= safe-col len) "" (utf8-substring line safe-col len)))
                  (new-line (string-append before after))
                 ) ;
@@ -182,7 +182,7 @@
         (cond
          ((< c len)
           ;; 行内向右删除一个字符
-          (let* ((before (if (= c 0) "" (utf8-substring line 0 c)))
+          (let* ((before (utf8-substring line 0 c))
                  (after (if (>= (+ c 1) len) "" (utf8-substring line (+ c 1) len)))
                  (new-line (string-append before after))
                 ) ;
@@ -221,7 +221,7 @@
                (line (list-ref lines r))
                (len (utf8-string-length line))
                (safe-col (max 0 (min c len)))
-               (line1 (if (= safe-col 0) "" (utf8-substring line 0 safe-col)))
+               (line1 (utf8-substring line 0 safe-col))
                (line2 (if (>= safe-col len) "" (utf8-substring line safe-col len)))
               ) ;
           (let loop
