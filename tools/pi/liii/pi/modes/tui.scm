@@ -20,6 +20,7 @@
     (liii pi modes tui streaming)
     (liii pi modes tui thinking)
     (liii pi modes tui tool-card)
+    (liii pi modes tui slash-menu)
   ) ;import
   (export with-pi-tui-terminal
     run-tui-loop
@@ -47,6 +48,8 @@
     pi-tui-state-cols
     state-rows
     pi-tui-state-rows
+    state-slash-menu
+    pi-tui-state-slash-menu
     ;; Pure functional updates
     state-with-status
     state-with-messages
@@ -55,6 +58,7 @@
     state-with-scroll-offset
     state-with-dirty
     state-with-dimensions
+    state-with-slash-menu
     state-with-stream-finished
     ;; In-place mutations
     state-mark-dirty!
@@ -182,6 +186,41 @@
     state-handle-tool-start!
     state-tick-active-tools!
     state-handle-tool-end!
+    ;; Slash Menu exports
+    <pi-tui-slash-command>
+    make-pi-tui-slash-command
+    pi-tui-slash-command?
+    slash-command-name
+    slash-command-description
+    slash-command-handler
+    normalize-slash-command
+    collect-slash-commands
+    filter-slash-commands
+    <pi-tui-slash-menu>
+    make-pi-tui-slash-menu
+    pi-tui-slash-menu?
+    slash-menu-visible?
+    slash-menu-query
+    slash-menu-candidates
+    slash-menu-selected-index
+    slash-menu-commands
+    slash-menu-show!
+    slash-menu-hide!
+    slash-menu-select-next!
+    slash-menu-select-prev!
+    slash-menu-selected-command
+    slash-menu-update-query!
+    slash-menu-complete!
+    render-slash-menu
+    overlay-slash-menu-lines
+    state-set-slash-menu!
+    state-slash-menu-visible?
+    state-sync-slash-menu!
+    state-slash-menu-select-next!
+    state-slash-menu-select-prev!
+    state-slash-menu-complete!
+    state-slash-menu-hide!
+    dispatch-slash-menu-key!
   ) ;export
   (begin
 

@@ -20,81 +20,14 @@
     (liii pi modes tui viewport)
     (liii pi modes tui layout)
     (liii pi modes tui editor)
+    (liii pi modes tui slash-menu)
+    (liii pi modes tui streaming delta)
   ) ;import
   (export extract-stream-delta append-stream-chunk state-append-stream-chunk!
     state-with-stream-chunk render-tui-screen-lines render-tui-screen!
     stream-screen-render!
   ) ;export
   (begin
-
-    (define (%find-val alist key-sym key-str)
-      (if (not (pair? alist))
-        #f
-        (let ((cell (or (assoc key-sym alist) (assoc key-str alist))))
-          (if (pair? cell) (cdr cell) #f)
-        ) ;let
-      ) ;if
-    ) ;define
-
-    (define (%extract-from-pair ev)
-      (let ((delta (%find-val ev 'delta "delta"))
-            (text (%find-val ev 'text "text"))
-            (partial (%find-val ev 'partialResult "partialResult"))
-            (inner (%find-val ev 'assistantMessageEvent "assistantMessageEvent"))
-           ) ;
-        (cond ((string? delta) delta)
-              ((string? text) text)
-              ((string? partial) partial)
-              ((or (pair? inner) (string? inner)) (extract-stream-delta inner))
-              (else "")
-        ) ;cond
-      ) ;let
-    ) ;define
-
-    (define (extract-stream-delta ev)
-      (cond ((string? ev) ev)
-            ((pi-event-message-update? ev)
-             (extract-stream-delta (pi-event-message-update-assistant-message-event ev))
-            ) ;
-            ((pi-event-tool-execution-update? ev)
-             (let ((res (pi-event-tool-execution-update-partial-result ev)))
-               (if (string? res) res "")
-             ) ;let
-            ) ;
-            ((not (pair? ev)) "")
-            (else (%extract-from-pair ev))
-      ) ;cond
-    ) ;define
-
-    (define (%update-last-assistant-msg rev delta)
-      (let* ((last-raw (car rev))
-             (last-msg (normalize-pi-tui-message last-raw))
-             (rest (cdr rev))
-            ) ;
-        (if (eq? (message-role last-msg) 'assistant)
-          (let ((updated (make-pi-tui-message 'assistant
-                           (string-append (message-content last-msg) delta)
-                         ) ;make-pi-tui-message
-                ) ;updated
-               ) ;
-            (reverse (cons updated rest))
-          ) ;let
-          (reverse (cons (make-pi-tui-message 'assistant delta) rev))
-        ) ;if
-      ) ;let*
-    ) ;define
-
-    (define (append-stream-chunk messages chunk)
-      (unless (list? messages)
-        (type-error "append-stream-chunk: expected list for messages")
-      ) ;unless
-      (let ((delta (if (string? chunk) chunk (extract-stream-delta chunk))))
-        (if (null? messages)
-          (list (make-pi-tui-message 'assistant delta))
-          (%update-last-assistant-msg (reverse messages) delta)
-        ) ;if
-      ) ;let
-    ) ;define
 
     (define (state-append-stream-chunk! st chunk)
       (unless (pi-tui-state? st)
@@ -185,14 +118,13 @@
       ) ;let*
     ) ;define
 
-    (define (%compute-msg-lines st msg-w msg-h maybe-committed)
+    (define (%compute-msg-lines st msg-w msg-h maybe-committed-lines)
       (cond ((<= msg-h 0) '())
-            ((pair? maybe-committed)
+            ((pair? maybe-committed-lines)
              (render-messages-viewport-stream (state-messages st)
+               (car maybe-committed-lines)
                msg-w
                msg-h
-               (state-scroll-offset st)
-               (car maybe-committed)
              ) ;render-messages-viewport-stream
             ) ;
             (else (render-messages-viewport (state-messages st)
@@ -224,6 +156,11 @@
              (msg-w (rect-width msg-rect))
              (msg-lines (%compute-msg-lines st msg-w msg-h maybe-committed-lines))
              (padded-msg-lines (%pad-lines msg-lines msg-h))
+             (final-msg-lines (if (state-slash-menu-visible? st)
+                                (overlay-slash-menu-lines (state-slash-menu st) padded-msg-lines msg-w msg-h)
+                                padded-msg-lines
+                              ) ;if
+             ) ;final-msg-lines
              (ed-h (rect-height ed-rect))
              (ed-w (rect-width ed-rect))
              (ed (state-input-editor st))
@@ -231,7 +168,7 @@
              (padded-ed-lines (%pad-lines ed-lines ed-h))
              (status-lines (%render-status-line st layout))
             ) ;
-        (append padded-msg-lines padded-ed-lines status-lines)
+        (append final-msg-lines padded-ed-lines status-lines)
       ) ;let*
     ) ;define
 

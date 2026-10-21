@@ -11,6 +11,7 @@
     (liii pi modes tui state)
     (liii pi modes tui editor)
     (liii pi modes tui thinking)
+    (liii pi modes tui slash-menu)
     (liii pi modes tui loop opts)
   ) ;import
   (export %dispatch-tui-key)
@@ -29,6 +30,13 @@
       ) ;if
     ) ;define
 
+    (define (%dispatch-slash-key st key key-handled?)
+      (if (or key-handled? (eq? (state-status st) 'exit))
+        key-handled?
+        (dispatch-slash-menu-key! st key)
+      ) ;if
+    ) ;define
+
     (define (%dispatch-editor-key st key key-handled?)
       (if
         (or key-handled?
@@ -39,6 +47,7 @@
         key-handled?
         (let* ((ed (state-input-editor st)) (handled? (pi-tui-editor-handle-key ed key)))
           (when handled?
+            (state-sync-slash-menu! st)
             (state-mark-dirty! st)
           ) ;when
           handled?
@@ -89,29 +98,37 @@
     ) ;define
 
     (define (%check-exit-key st key key-handled?)
-      (cond ((eq? key 'escape) (state-set-status! st 'exit))
-            ((and (not key-handled?) (or (equal? key "q") (equal? key "Q")))
-             (state-set-status! st 'exit)
-            ) ;
-      ) ;cond
+      (unless key-handled?
+        (cond ((eq? key 'escape) (state-set-status! st 'exit))
+              ((or (equal? key "q") (equal? key "Q")) (state-set-status! st 'exit))
+        ) ;cond
+      ) ;unless
     ) ;define
 
     (define (%dispatch-tui-key st key on-key)
       (let*-values (((next-st custom-handled?) (%dispatch-custom-key on-key st key))
-                    ((thinking-handled?) (%dispatch-thinking-key next-st key custom-handled?))
+                    ((slash-handled?) (%dispatch-slash-key next-st key custom-handled?))
+                    ((thinking-handled?)
+                     (%dispatch-thinking-key next-st key (or custom-handled? slash-handled?))
+                    ) ;
                     ((ed-handled?)
-                     (%dispatch-editor-key next-st key (or custom-handled? thinking-handled?))
+                     (%dispatch-editor-key next-st
+                       key
+                       (or custom-handled? slash-handled? thinking-handled?)
+                     ) ;%dispatch-editor-key
                     ) ;
                     ((scroll-handled?)
                      (%dispatch-scroll-key next-st
                        key
-                       (or custom-handled? thinking-handled? ed-handled?)
+                       (or custom-handled? slash-handled? thinking-handled? ed-handled?)
                      ) ;%dispatch-scroll-key
                     ) ;
                    ) ;
         (%check-exit-key next-st
           key
-          (or custom-handled? thinking-handled? ed-handled? scroll-handled?)
+          (or custom-handled? slash-handled? thinking-handled? ed-handled?
+            scroll-handled?
+          ) ;or
         ) ;%check-exit-key
         next-st
       ) ;let*-values

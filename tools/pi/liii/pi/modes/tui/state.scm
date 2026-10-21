@@ -12,8 +12,11 @@
     (liii pi modes tui state types)
     (liii pi modes tui state parse)
     (liii pi modes tui state tool)
+    (liii pi modes tui state pure)
+    (liii pi modes tui state slash)
     (liii pi modes tui editor)
     (liii pi modes tui thinking)
+    (liii pi modes tui slash-menu)
   ) ;import
   (export <pi-tui-state>
     make-pi-tui-state
@@ -37,6 +40,8 @@
     pi-tui-state-cols
     state-rows
     pi-tui-state-rows
+    state-slash-menu
+    pi-tui-state-slash-menu
     ;; Functional pure updates
     state-with-status
     state-with-messages
@@ -45,6 +50,7 @@
     state-with-scroll-offset
     state-with-dirty
     state-with-dimensions
+    state-with-slash-menu
     state-with-stream-finished
     ;; In-place mutations
     state-mark-dirty!
@@ -64,11 +70,22 @@
     state-handle-tool-start!
     state-tick-active-tools!
     state-handle-tool-end!
+    ;; Slash-menu mutations & dispatch
+    state-set-slash-menu!
+    state-slash-menu-visible?
+    state-sync-slash-menu!
+    state-slash-menu-select-next!
+    state-slash-menu-select-prev!
+    state-slash-menu-complete!
+    state-slash-menu-hide!
+    dispatch-slash-menu-key!
   ) ;export
   (begin
 
     (define (make-pi-tui-state . args)
-      (let-values (((status messages input-editor active-tool scroll-offset dirty? cols rows)
+      (let-values (((status messages input-editor active-tool scroll-offset
+                      dirty? cols rows slash-menu
+                    ) ;status
                     (%parse-state-args args)
                    ) ;
                   ) ;
@@ -79,106 +96,9 @@
         (%validate-dimension cols "cols" "make-pi-tui-state")
         (%validate-dimension rows "rows" "make-pi-tui-state")
         (%make-pi-tui-state status messages input-editor active-tool
-          scroll-offset dirty? cols rows
+          scroll-offset dirty? cols rows slash-menu
         ) ;%make-pi-tui-state
       ) ;let-values
-    ) ;define
-
-    (define (state-with-status st new-status)
-      (%validate-state st "state-with-status")
-      (%validate-status new-status "state-with-status")
-      (%make-pi-tui-state new-status
-        (state-messages st)
-        (state-input-editor st)
-        (state-active-tool st)
-        (state-scroll-offset st)
-        #t
-        (state-cols st)
-        (state-rows st)
-      ) ;%make-pi-tui-state
-    ) ;define
-
-    (define (state-with-messages st new-messages)
-      (%validate-state st "state-with-messages")
-      (%validate-messages new-messages "state-with-messages")
-      (%make-pi-tui-state (state-status st)
-        new-messages
-        (state-input-editor st)
-        (state-active-tool st)
-        (state-scroll-offset st)
-        #t
-        (state-cols st)
-        (state-rows st)
-      ) ;%make-pi-tui-state
-    ) ;define
-
-    (define (state-with-input-editor st new-editor)
-      (%validate-state st "state-with-input-editor")
-      (%make-pi-tui-state (state-status st)
-        (state-messages st)
-        new-editor
-        (state-active-tool st)
-        (state-scroll-offset st)
-        #t
-        (state-cols st)
-        (state-rows st)
-      ) ;%make-pi-tui-state
-    ) ;define
-
-    (define (state-with-active-tool st new-tool)
-      (%validate-state st "state-with-active-tool")
-      (%make-pi-tui-state (state-status st)
-        (state-messages st)
-        (state-input-editor st)
-        new-tool
-        (state-scroll-offset st)
-        #t
-        (state-cols st)
-        (state-rows st)
-      ) ;%make-pi-tui-state
-    ) ;define
-
-    (define (state-with-scroll-offset st new-offset)
-      (%validate-state st "state-with-scroll-offset")
-      (%validate-scroll-offset new-offset "state-with-scroll-offset")
-      (%make-pi-tui-state (state-status st)
-        (state-messages st)
-        (state-input-editor st)
-        (state-active-tool st)
-        new-offset
-        #t
-        (state-cols st)
-        (state-rows st)
-      ) ;%make-pi-tui-state
-    ) ;define
-
-    (define (state-with-dirty st dirty?)
-      (%validate-state st "state-with-dirty")
-      (%validate-dirty dirty? "state-with-dirty")
-      (%make-pi-tui-state (state-status st)
-        (state-messages st)
-        (state-input-editor st)
-        (state-active-tool st)
-        (state-scroll-offset st)
-        dirty?
-        (state-cols st)
-        (state-rows st)
-      ) ;%make-pi-tui-state
-    ) ;define
-
-    (define (state-with-dimensions st new-cols new-rows)
-      (%validate-state st "state-with-dimensions")
-      (%validate-dimension new-cols "cols" "state-with-dimensions")
-      (%validate-dimension new-rows "rows" "state-with-dimensions")
-      (%make-pi-tui-state (state-status st)
-        (state-messages st)
-        (state-input-editor st)
-        (state-active-tool st)
-        (state-scroll-offset st)
-        #t
-        new-cols
-        new-rows
-      ) ;%make-pi-tui-state
     ) ;define
 
     (define (state-mark-dirty! st)
@@ -277,14 +197,6 @@
         (state-set-status! st target)
         (state-mark-dirty! st)
         st
-      ) ;let
-    ) ;define
-
-    (define (state-with-stream-finished st . maybe-target-status)
-      (%validate-state st "state-with-stream-finished")
-      (let ((target (if (pair? maybe-target-status) (car maybe-target-status) 'idle)))
-        (%validate-status target "state-with-stream-finished")
-        (state-with-status st target)
       ) ;let
     ) ;define
 

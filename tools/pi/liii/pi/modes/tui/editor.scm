@@ -13,6 +13,7 @@
     (liii error)
     (liii tui component)
     (liii tui editor)
+    (liii tui editor buffer)
     (liii pi modes tui editor types)
     (liii pi modes tui editor handle)
     (liii pi modes tui editor render)
