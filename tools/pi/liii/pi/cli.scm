@@ -11,6 +11,7 @@
     (liii sys)
     (liii pi)
     (liii pi args)
+    (liii pi config)
     (liii pi modes)
     (liii pi help)
     (liii pi tui)
@@ -97,6 +98,28 @@
       ) ;let
     ) ;define
 
+    (define (%build-tui-cfg parsed reg)
+      (let* ((env (get-environment-variables))
+             (base-cfg (resolve-pi-config parsed env))
+             (augs (extension-registry-augmenters reg))
+            ) ;
+        (let loop
+          ((rem augs) (c base-cfg))
+          (if (null? rem) c (loop (cdr rem) ((car rem) c parsed)))
+        ) ;let
+      ) ;let*
+    ) ;define
+
+    (define (%run-interactive-mode parsed reg)
+      (if (and (stdin-tty?) (stdout-tty?))
+        (let ((cfg (%build-tui-cfg parsed reg)))
+          (pi-app-run (make-pi-app :handler (make-tui-agent-handler parsed cfg)))
+        ) ;let
+        (display-pi-help)
+      ) ;if
+      0
+    ) ;define
+
     (define (%run-pi-main parsed)
       (let-values (((initial-msg rest-msgs)
                     (build-initial-prompt (and (not (stdin-tty?)) (read-all-stdin))
@@ -115,13 +138,7 @@
                    (not (pi-args-ref parsed 'compact))
                    (not (%has-matching-flow? reg parsed))
                  ) ;and
-                 (begin
-                   (if (and (stdin-tty?) (stdout-tty?))
-                     (pi-app-run (make-pi-app))
-                     (display-pi-help)
-                   ) ;if
-                   0
-                 ) ;begin
+                 (%run-interactive-mode parsed reg)
                 ) ;
                 (else
                   (let ((mode (resolve-app-mode (pi-args-ref parsed 'mode)
