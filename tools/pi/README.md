@@ -197,6 +197,79 @@ stderr 输出人可读的 404 详情、退出码 1——这是正确的错误路
 timeout 300 bin/gf pi -p --proxy socks5h://127.0.0.1:1080 "hi"
 ```
 
+## 多 Key 密钥池与 429/403 自动轮换【可用】（任务 033，2026-10-21 核实转正）
+
+`bin/gf pi` 内置原生 `pi-multikey` 密钥池：可为同一 provider 配置**多个 key**，
+遇 429（频率/配额）或 403（周限额）时**自动冷却当前 key 并透明切换到下一个**，
+池中全部 key 耗尽才报错（退出码 1）。实现位于 `tools/pi/liii/pi/multikey.scm`
+（cooldown-until + LRU 选键 + key 掩码），已接进 gemini 与 kimi 的
+**非流式 request 与流式 stream 两条路径**。
+
+### 配置方式
+
+在 agent 配置目录下放置 `multikey.json`（受 `PI_CODING_AGENT_DIR` 重定向，
+默认 `~/.pi/agent/multikey.json`）。该文件**只读**，pi 绝不写入。
+
+```json
+{
+  "pools": [
+    {
+      "id": "google",
+      "name": "google",
+      "cooldownMs": 20000,
+      "invalidKeyCooldownMs": 600000,
+      "keys": [
+        {"key": "AIza...first-key", "label": "g1", "enabled": true},
+        {"key": "AIza...second-key", "label": "g2", "enabled": true}
+      ],
+      "models": []
+    }
+  ]
+}
+```
+
+要点：
+- `id` 需与 provider 名一致（`google` / `kimi-coding` / `zai` …）；
+- `keys` 逐条给 `key` / `label` / `enabled`，`enabled: false` 的 key 不参与轮换；
+- `cooldownMs` 为 429 后的冷却时长（默认 20s），`invalidKeyCooldownMs` 为
+  403 / key 失效后的冷却时长（默认 600s）；
+- `baseUrl` / `api` 为可选覆盖项，留空则沿用 provider 默认配置。
+
+### 行为与边界（如实说明）
+
+```bash
+# 配置了 pool 的 provider：429/403 自动换 key 重试
+timeout 180 bin/gf pi --provider google -p "hi"
+
+# 未配置 pool（或该 provider 无 pool 条目）：回退 auth.json 单 key，行为不变
+timeout 180 bin/gf pi --provider google -p "hi"
+```
+
+- **未配置 pool 时** `pi-load-multikey` 返回空，调用方直接使用 `auth.json` 的
+  单 key，**行为与未启用该功能时完全一致**，不会报错也不会影响正常使用；
+- **轮换过程不打印 stderr 日志**（早期草案中的 `[multikey] ... switching to ...`
+  脱敏日志并未实现，故本文档不作此承诺）；
+- 轮换仅在**尚未输出实质内容**前透明重试，避免半截输出重复；
+- 池中全部 key 冷却完毕时返回错误并以退出码 1 结束。
+
+### 已知限制
+
+- `multikey.json` **内容格式非法**时，解析错误会被吞掉并静默回退到
+  `auth.json` 单 key（不报错）。排障时请先确认该文件是合法 JSON。
+
+### 验证方式
+
+```bash
+# 单元测试（6 项：装载/掩码/冷却/选键/轮换）
+timeout 120 bin/gf test tools/pi/tests/liii/pi/multikey/
+
+# 端到端测试：stub Gemini server + 双 key 池，验证 429 后确实换 key 成功
+timeout 180 bin/gf test tools/pi/tests/liii/pi-multikey-e2e-test.scm
+```
+
+> 2026-10-21 实测：上述 e2e 用例 **PASS**（池中第一个 key 被服务端拒绝、
+> 第二个放行，断言确实轮换到第二个 key 后请求成功）。
+
 ## 控制选项【可用】
 
 ```bash
@@ -376,22 +449,6 @@ tools/pi/liii/
 
   注：minimax 与 minimax-cn 双 provider 均可用；环境变量 MINIMAX_API_KEY /
   MINIMAX_BASE_URL 可覆盖（任务 035 env 优先体系）。
-- [ ] **`pi-multikey` 密钥池与 429/403 自动轮换（任务 033）**：对照 Node pi 的 `pi-multikey` 扩展，bin/gf pi 内置原生实现。预期用法（实现后转【可用】）：
-
-  ```bash
-  # 自动检测 ~/.pi/agent/multikey.json：配置了 kimi-coding 多 key pool 时，
-  # 周限额 403 或频率 429 自动冷却当前 key 并透明切换下一个（stderr 打印脱敏轮换日志）
-  timeout 180 bin/gf pi --provider kimi-coding -p "统计 tests/ 目录下的测试用例总数"
-  # stderr 示例（key 仅打印前后若干字符）：
-  # [multikey] kimi-coding key sk-***...***a1 429, cooldown 20s, switching to sk-***...***b2
-
-  # 未配置 pool 的 provider 回退 auth.json 单 key，行为不变
-  timeout 180 bin/gf pi --provider google -p "hi"
-  ```
-
-  实现要点：`multikey.json` 受 `PI_CODING_AGENT_DIR` 重定向；内存状态机维护
-  cooldown-until + LRU；429 默认冷却 20s、403/invalid 默认 600s（可按配置覆盖）；
-  仅在未输出实质内容前透明重试；pool 全耗尽才报错（退出码 1）。
 - [ ] **4 字节 UTF-8 + '<' 挂起**：prompt 同时含 4 字节 UTF-8 字符（如 🚀、𠀀）与 `<` 时进程静默挂起且连 HTTP 300s 超时都不生效（复现：`timeout 60 bin/gf pi -p '🚀 <'`）。【待重做】
 - [ ] **thinking 内容**：思考级别的请求与解析。预期用法（实现时以 pi 实际 CLI 为准）：
 
