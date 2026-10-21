@@ -54,10 +54,16 @@
         (lambda (self width)
           (if (<= width 0)
             '()
-            (let* ((content (string-append " > " text))
-                   (row (apply-card-bg content width %bg-user %fg-user))
+            (let* ((lines (string-split text "\n"))
+                   (rows
+                     (map (lambda (line)
+                            (apply-card-bg (string-append " > " line) width %bg-user %fg-user)
+                          ) ;lambda
+                       lines
+                     ) ;map
+                   ) ;rows
                   ) ;
-              (list row "")
+              (append rows (list ""))
             ) ;let*
           ) ;if
         ) ;lambda
@@ -112,7 +118,15 @@
     ;; 助手纯文本回复卡片组件 (make-assistant-card text)
     (define (make-assistant-card text)
       (make-component
-        :render (lambda (self width) (if (<= width 0) '() (list text "")))
+        :render
+        (lambda (self width)
+          (if (<= width 0)
+            '()
+            (let ((lines (string-split text "\n")))
+              (append lines (list ""))
+            ) ;let
+          ) ;if
+        ) ;lambda
       ) ;make-component
     ) ;define
 

@@ -64,13 +64,28 @@
             ) ;unless
           ) ;let
         ) ;when
-        (let* ((doc-lines (component-render (%pi-app-doc app) w))
+        (let* ((raw-doc-lines (component-render (%pi-app-doc app) w))
+               ;; 规范化拆分可能包含 \n 的字符串行，确保 ed-y 计算与 screen-render! 完全对齐
+               (doc-lines
+                 (let loop
+                   ((rest raw-doc-lines) (acc '()))
+                   (if (null? rest)
+                     (reverse acc)
+                     (let ((item (car rest)))
+                       (if (string-contains? item "\n")
+                         (loop (cdr rest) (append (reverse (string-split item "\n")) acc))
+                         (loop (cdr rest) (cons item acc))
+                       ) ;if
+                     ) ;let
+                   ) ;if
+                 ) ;let
+               ) ;doc-lines
                (ed (pi-app-editor app))
                (ed-lines (component-render ed w))
                (footer-lines (component-render (%pi-app-footer app) w))
                (ed-cur (editor-cursor ed))
                (ed-y (+ (length doc-lines) (if %pi-editor-top-border 1 0)))
-               (cur-pos (cons (cadr ed-cur) (+ ed-y (car ed-cur))))
+               (cur-pos (cons (editor-display-col ed) (+ ed-y (car ed-cur))))
               ) ;
           (screen-render! screen (append doc-lines ed-lines footer-lines) cur-pos)
         ) ;let*

@@ -56,4 +56,112 @@
   ) ;let
 ) ;let*
 
+;; 3. 测试中文编辑时光标物理列宽定位（全角中文占据 2 列物理宽度）
+(let* ((vterm (make-virtual-terminal :width 100 :height 40))
+       (dummy-handler (lambda (app msg) #t))
+       (app (make-pi-app :terminal vterm :handler dummy-handler))
+       (editor (pi-app-editor app))
+      ) ;
+  (pi-app-render! app)
+  ;; 初始光标在第 8 行（即输入行），列为 0
+  (check (terminal-cursor vterm) => '(0 8))
+
+  ;; 1) 输入中文字符 "你好" (2个全角字，物理列宽为 4)
+  (component-handle-input editor "你好")
+  (pi-app-render! app)
+  (check (terminal-cursor vterm) => '(4 8))
+
+  ;; 2) 光标向左移动 1 次（移到 "你" 和 "好" 之间，物理列宽为 2）
+  (component-handle-input editor 'left)
+  (pi-app-render! app)
+  (check (terminal-cursor vterm) => '(2 8))
+
+  ;; 3) 在中间插入英文 "Hi"（"你Hi好"，光标在 "Hi" 后面，物理列宽为 2 + 2 = 4）
+  (component-handle-input editor "Hi")
+  (pi-app-render! app)
+  (check (terminal-cursor vterm) => '(4 8))
+  (check (editor-text editor) => "你Hi好")
+
+  ;; 4) 在中间插入中文 "世界"（"你Hi世界好"，光标在 "世界" 后面，物理列宽为 4 + 4 = 8）
+  (component-handle-input editor "世界")
+  (pi-app-render! app)
+  (check (terminal-cursor vterm) => '(8 8))
+  (check (editor-text editor) => "你Hi世界好")
+
+  ;; 5) 按退格键删除 "界"（"你Hi世好"，物理列宽从 8 变为 6）
+  (component-handle-input editor 'backspace)
+  (pi-app-render! app)
+  (check (terminal-cursor vterm) => '(6 8))
+  (check (editor-text editor) => "你Hi世好")
+
+  ;; 6) 按 Delete 键向后删除 "好"（"你Hi世"，光标位置保持 6，行尾缩减）
+  (component-handle-input editor 'delete)
+  (pi-app-render! app)
+  (check (terminal-cursor vterm) => '(6 8))
+  (check (editor-text editor) => "你Hi世")
+
+  ;; 7) 按 Home 键回到行首（物理列宽 0）
+  (component-handle-input editor 'home)
+  (pi-app-render! app)
+  (check (terminal-cursor vterm) => '(0 8))
+
+  ;; 8) 按 End 键回到行尾（物理列宽 6）
+  (component-handle-input editor 'end)
+  (pi-app-render! app)
+  (check (terminal-cursor vterm) => '(6 8))
+) ;let*
+
+;; 4. 测试多轮对话与多行 Markdown 助手回复时，光标精准位于输入框行（不受 \n 干扰）
+(let* ((vterm (make-virtual-terminal :width 100 :height 40))
+       (dummy-handler (lambda (app msg) #t))
+       (app (make-pi-app :terminal vterm :handler dummy-handler))
+       (editor (pi-app-editor app))
+      ) ;
+  ;; 模拟第一轮对话完成：助手回复包含多行文本（含多个 \n）
+  (pi-app-add-user-message! app "第一轮提问")
+  (pi-app-add-assistant-text! app "第一行回答\n\n第二行关键回答\n第三行总结")
+  (pi-app-render! app)
+
+  ;; Header: 7行 (0..6)
+  ;; User Card: 2行 (7..8)
+  ;; Assistant Card: 4行内容 + 1空行 = 5行 (9..13)
+  ;; Editor Top-Border: 行 14
+  ;; Editor Content: 行 15
+  ;; Editor Bottom-Border: 行 16
+  ;; Footer: 行 17..18
+  ;; 光标应位于输入行 (0, 15)，绝不能因 \n 漏算而向上漂移
+  (check (terminal-cursor vterm) => '(0 15))
+
+  ;; 第二轮输入文本 "测试第二轮"
+  (component-handle-input editor "测试第二轮")
+  (pi-app-render! app)
+  ;; 5个汉字，物理列宽 10，行号仍为 15
+  (check (terminal-cursor vterm) => '(10 15))
+
+  ;; 按回车提交第二轮
+  (component-handle-input editor 'enter)
+  (pi-app-render! app)
+  ;; 第二轮用户卡片追加 2 行 (行 14..15)，输入行平移至行 17
+  (check (terminal-cursor vterm) => '(0 17))
+
+  ;; 模拟第二轮助手完成回复
+  (pi-app-add-assistant-text! app "第二轮回复：已完成测试")
+  (pi-app-render! app)
+  ;; Assistant 2 追加 2 行 (行 16..17)，输入行平移至行 19
+  (check (terminal-cursor vterm) => '(0 19))
+
+  ;; 第三轮输入 "第三轮验证"
+  (component-handle-input editor "第三轮验证")
+  (pi-app-render! app)
+  ;; 5个中文字符，物理宽度 10，行号 19
+  (check (terminal-cursor vterm) => '(10 19))
+
+  ;; 按退格键删除 2 个字（剩 "第三轮"，物理宽度 6）
+  (component-handle-input editor 'backspace)
+  (component-handle-input editor 'backspace)
+  (pi-app-render! app)
+  (check (terminal-cursor vterm) => '(6 19))
+  (check (editor-text editor) => "第三轮")
+) ;let*
+
 (check-report)

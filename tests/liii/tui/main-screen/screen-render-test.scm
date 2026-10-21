@@ -107,7 +107,64 @@
   )
 )
 
-;; 10. 类型错误测试
+;; 10. 光标定位与同步帧包裹及 terminal-flush 调用测试
+(let* ((vt (make-virtual-terminal :width 10 :height 3))
+       (trace '())
+       (wrapped-term
+         (make-terminal-record 'virtual
+           (lambda (t) (terminal-size vt))
+           (lambda (t text) (terminal-write vt text))
+           (lambda (t) (terminal-cursor vt))
+           (lambda (t x y)
+             (set! trace (cons (list 'set-cursor x y) trace))
+             (terminal-set-cursor! vt x y)
+           ) ;lambda
+           (lambda (t) (terminal-clear vt))
+           (lambda (t) (terminal-clear-line vt))
+           (lambda (t) (terminal-clear-line-to-end vt))
+           (lambda (t)
+             (set! trace (cons 'begin-sync trace))
+             (terminal-begin-sync! vt)
+           ) ;lambda
+           (lambda (t)
+             (set! trace (cons 'end-sync trace))
+             (terminal-end-sync! vt)
+           ) ;lambda
+           (lambda (t) (terminal-cursor-visible? vt))
+           (lambda (t v)
+             (set! trace (cons (list 'set-visible v) trace))
+             (if v (terminal-show-cursor! vt) (terminal-hide-cursor! vt))
+           ) ;lambda
+           (lambda (t)
+             (set! trace (cons 'flush trace))
+             (terminal-flush vt)
+           ) ;lambda
+           #f
+         ) ;make-terminal-record
+       ) ;wrapped-term
+       (screen (make-main-screen wrapped-term :auto-hide-cursor #f))
+      )
+  (screen-render! screen '("hello" "world") '(2 0))
+  (check (terminal-cursor vt) => '(2 0))
+  ;; 验证 trace 调用的正确顺序：
+  ;; 1. flush 必须是最后一步
+  (check (car trace) => 'flush)
+  ;; 2. set-cursor (2 0) 必须在 end-sync 之前
+  (let ((rev (reverse trace)))
+    (check (car rev) => 'begin-sync)
+    ;; 倒数第二个应该是 end-sync
+    (check (cadr trace) => 'end-sync)
+  )
+
+  ;; 3. 内容未发生变更，仅光标移动时，依然会设置光标并 flush
+  (set! trace '())
+  (screen-render! screen '("hello" "world") '(3 1))
+  (check (terminal-cursor vt) => '(3 1))
+  (check (car trace) => 'flush)
+  (check (member '(set-cursor 3 1) trace) => '((set-cursor 3 1)))
+)
+
+;; 11. 类型错误测试
 (let* ((vt (make-virtual-terminal :width 10 :height 3))
        (screen (make-main-screen vt))
       )

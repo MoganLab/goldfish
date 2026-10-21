@@ -184,8 +184,6 @@
         (when has-changes
           (terminal-begin-sync! term)
           (for-each (lambda (op) (%render-diff-op! term op old-lines)) diff-ops)
-          (terminal-end-sync! term)
-          (terminal-flush term)
         ) ;when
         (screen-buffer-commit! buf lines)
         (let ((cur (%parse-cursor opt-cursor)))
@@ -201,6 +199,10 @@
                 ) ;
           ) ;cond
         ) ;let
+        (when has-changes
+          (terminal-end-sync! term)
+        ) ;when
+        (terminal-flush term)
         #t
       ) ;let*
     ) ;define
