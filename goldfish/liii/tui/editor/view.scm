@@ -33,7 +33,8 @@
 
     ;; 渲染带有光标指示的单行
     ;; focused?: 是否聚焦
-    ;; cursor-style: 'inverse (反显), 'bar (竖线 |), 'block (方块或反显), 'underline 等
+    ;; cursor-style: 'inverse (反显), 'bar (竖线 |), 'block (方块或反显),
+    ;; 'hardware (不画软件光标，由硬件光标指示)
     (define (render-line-with-cursor line col focused? cursor-style)
       (let* ((len (string-length line)) (safe-col (max 0 (min col len))))
         (if (not focused?)
@@ -42,6 +43,7 @@
                 (after (if (< safe-col len) (substring line (+ safe-col 1) len) ""))
                ) ;
             (case cursor-style
+             ((hardware) line)
              ((bar)
               (string-append before
                 "|"

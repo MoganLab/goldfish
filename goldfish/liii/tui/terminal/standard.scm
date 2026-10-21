@@ -23,7 +23,8 @@
 
 (define-library (liii tui terminal standard)
   (export make-standard-terminal standard-terminal?)
-  (import (liii base)
+  (import (scheme base)
+    (liii base)
     (liii error)
     (liii tui terminal protocol)
     (liii tui terminal size)
@@ -31,13 +32,15 @@
   (begin
 
     (define-record-type <standard-terminal-state>
-      (%make-st-state port detect-size-fn cursor-x cursor-y visible?)
+      (%make-st-state port detect-size-fn cursor-x cursor-y visible? inline? max-y)
       %st-state?
       (port %st-port)
       (detect-size-fn %st-detect-size-fn)
       (cursor-x %st-cursor-x %st-cursor-x-set!)
       (cursor-y %st-cursor-y %st-cursor-y-set!)
       (visible? %st-visible? %st-visible?-set!)
+      (inline? %st-inline? %st-inline?-set!)
+      (max-y %st-max-y %st-max-y-set!)
     ) ;define-record-type
 
     (define (%st-write term text)
@@ -58,19 +61,59 @@
       ) ;let
     ) ;define
 
+    (define (%inline-down-seq state y cur-y max-y)
+      (if (<= y max-y)
+        (string-append "\x1b;[" (number->string (- y cur-y)) "B\r")
+        (let* ((down-to-max (max 0 (- max-y cur-y)))
+               (new-lines (- y (max cur-y max-y)))
+               (down-str (if (> down-to-max 0)
+                           (string-append "\x1b;[" (number->string down-to-max) "B\r")
+                           ""
+                         ) ;if
+               ) ;down-str
+               (nl-str (apply string-append (make-list new-lines "\r\n")))
+              ) ;
+          (%st-max-y-set! state y)
+          (string-append down-str nl-str)
+        ) ;let*
+      ) ;if
+    ) ;define
+
+    (define (%st-inline-seq state x y)
+      (let* ((cur-y (%st-cursor-y state))
+             (max-y (%st-max-y state))
+             (y-seq
+               (cond
+                ((< y cur-y) (string-append "\x1b;[" (number->string (- cur-y y)) "A\r"))
+                ((> y cur-y) (%inline-down-seq state y cur-y max-y))
+                (else "\r")
+               ) ;cond
+             ) ;y-seq
+             (x-seq (if (> x 0) (string-append "\x1b;[" (number->string x) "C") ""))
+            ) ;
+        (string-append y-seq x-seq)
+      ) ;let*
+    ) ;define
+
     (define (%st-set-cursor! term x y)
-      (let ((state (terminal-data term)))
-        (%st-cursor-x-set! state x)
-        (%st-cursor-y-set! state y)
-        (display (string-append "\x1b;["
+      (let* ((state (terminal-data term))
+             ;; 先算序列再更新 state：%st-inline-seq 依赖旧光标位置
+             (seq
+               (if (%st-inline? state)
+                 (%st-inline-seq state x y)
+                 (string-append "\x1b;["
                    (number->string (+ y 1))
                    ";"
                    (number->string (+ x 1))
                    "H"
                  ) ;string-append
-          (%st-port state)
-        ) ;display
-      ) ;let
+               ) ;if
+             ) ;seq
+            ) ;
+        (%st-cursor-x-set! state x)
+        (%st-cursor-y-set! state y)
+        (display seq (%st-port state))
+      ) ;let*
     ) ;define
 
     (define (%st-clear! term)
@@ -133,7 +176,7 @@
     ) ;define
 
     (define (make-standard-terminal . args)
-      (let ((port (current-output-port)) (size-fn terminal-detect-size))
+      (let ((port (current-output-port)) (size-fn terminal-detect-size) (inline #f))
         (let parse
           ((rest args))
           (cond ((null? rest) #t)
@@ -151,6 +194,13 @@
                  (set! size-fn (cadr rest))
                  (parse (cddr rest))
                 ) ;
+                ((eq? (car rest) :inline)
+                 (when (null? (cdr rest))
+                   (type-error "make-standard-terminal: missing value for :inline")
+                 ) ;when
+                 (set! inline (cadr rest))
+                 (parse (cddr rest))
+                ) ;
                 (else (type-error "make-standard-terminal: invalid keyword arguments"))
           ) ;cond
         ) ;let
@@ -160,7 +210,7 @@
         (unless (procedure? size-fn)
           (type-error "make-standard-terminal: :detect-size-fn must be a procedure")
         ) ;unless
-        (let ((state (%make-st-state port size-fn 0 0 #t)))
+        (let ((state (%make-st-state port size-fn 0 0 #t inline 0)))
           (make-terminal-record 'standard
             %st-get-size
             %st-write

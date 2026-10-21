@@ -26,14 +26,16 @@
     %ed-buffer-set! %ed-history %ed-history-set! %ed-multiline?
     %ed-multiline?-set! %ed-focused? %ed-focused?-set! %ed-placeholder
     %ed-placeholder-set! %ed-cursor-style %ed-cursor-style-set! %ed-on-submit
-    %ed-on-submit-set! %ed-on-change %ed-on-change-set!
+    %ed-on-submit-set! %ed-on-change %ed-on-change-set! %ed-top-border
+    %ed-top-border-set! %ed-bottom-border %ed-bottom-border-set!
+    %ed-border-color %ed-border-color-set!
   ) ;export
   (import (scheme base))
   (begin
 
     (define-record-type <editor-data>
       (%make-editor-data buffer history multiline? focused? placeholder
-        cursor-style on-submit on-change
+        cursor-style on-submit on-change top-border bottom-border border-color
       ) ;%make-editor-data
       %editor-data?
       (buffer %ed-buffer %ed-buffer-set!)
@@ -44,6 +46,9 @@
       (cursor-style %ed-cursor-style %ed-cursor-style-set!)
       (on-submit %ed-on-submit %ed-on-submit-set!)
       (on-change %ed-on-change %ed-on-change-set!)
+      (top-border %ed-top-border %ed-top-border-set!)
+      (bottom-border %ed-bottom-border %ed-bottom-border-set!)
+      (border-color %ed-border-color %ed-border-color-set!)
     ) ;define-record-type
 
     (define <editor-data> '<editor-data>)

@@ -27,8 +27,9 @@
     terminal-clear-line-to-end terminal-begin-sync! terminal-end-sync!
     terminal-cursor-visible? terminal-hide-cursor! terminal-show-cursor!
     terminal-flush terminal-type terminal-data terminal-data-set!
+    terminal-enter-raw-mode! terminal-exit-raw-mode!
   ) ;export
-  (import (liii base) (liii error))
+  (import (liii base) (liii error) (liii os))
   (begin
 
     (define-record-type <terminal>
@@ -154,6 +155,18 @@
     (define (terminal-flush term)
       (%check-terminal term "terminal-flush")
       ((%terminal-flush term) term)
+    ) ;define
+
+    (define (terminal-enter-raw-mode! term)
+      (%check-terminal term "terminal-enter-raw-mode!")
+      (console-raw-mode! #t)
+      #t
+    ) ;define
+
+    (define (terminal-exit-raw-mode! term)
+      (%check-terminal term "terminal-exit-raw-mode!")
+      (console-raw-mode! #f)
+      #t
     ) ;define
 
   ) ;begin

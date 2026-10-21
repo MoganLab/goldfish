@@ -27,6 +27,7 @@
     (scheme write)
     (liii base)
     (liii tui component)
+    (liii tui box border)
     (liii tui editor history)
     (liii tui editor buffer)
     (liii tui editor cursor)
@@ -34,6 +35,15 @@
     (liii tui editor state)
   ) ;import
   (begin
+
+    ;; 无角纯水平线边框样式，复用 box border 渲染机制
+    (define *editor-h-border-style* (make-border-style "" "" "" "" "─" ""))
+
+    (define (%make-h-border width color)
+      (let ((raw (border-render-top *editor-h-border-style* width)))
+        (if (string? color) (string-append color raw "\x1b;[0m") raw)
+      ) ;let
+    ) ;define
 
     (define (%editor-render comp width)
       (let* ((data (component-data comp))
@@ -44,8 +54,18 @@
              (focused? (%ed-focused? data))
              (ph (%ed-placeholder data))
              (cursor-style (%ed-cursor-style data))
+             (top-b (%ed-top-border data))
+             (bot-b (%ed-bottom-border data))
+             (b-col (%ed-border-color data))
+             (rendered (render-editor-lines lines row col focused? ph width cursor-style))
             ) ;
-        (render-editor-lines lines row col focused? ph width cursor-style)
+        (if (and (> width 0) (or top-b bot-b))
+          (append (if top-b (list (%make-h-border width b-col)) '())
+            rendered
+            (if bot-b (list (%make-h-border width b-col)) '())
+          ) ;append
+          rendered
+        ) ;if
       ) ;let*
     ) ;define
 
