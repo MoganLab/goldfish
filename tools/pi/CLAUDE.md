@@ -217,13 +217,18 @@ CODE commit = 代码改动；REVIEW commit = `tools/pi/devel/ddd.scm`（**验收
 
 ```bash
 # 文档阶段：登记+建档（产物 tools/pi/devel/ddd.md）
-timeout 900 pi -a -p @tools/pi/Agents.md "执行任务 ddd 的文档阶段：读 §3 任务表中任务 ddd 的验收点，从 tools/pi/devel/ddd.md 模板建立 tools/pi/devel/ddd.md（填写状态/代码文件/验收点/测试方法），commit 信息 [ddd][PLAN] 任务名：建档"
+timeout 900 pi -a -p @tools/pi/Agents.md "执行任务 ddd 的文档阶段：读 §3 任务表中任务 ddd 的验收点，从 tools/pi/devel/ddd.md 模板建立 tools/pi/devel/ddd.md（填写状态/代码文件/验收点/测试方法），commit 信息 [ddd][provider/model][PLAN] 任务名：建档"
 
 # 开发阶段：TDD 实现（产物为代码改动）
-setsid nohup timeout 7200 pi -a -p @tools/pi/Agents.md "执行任务 ddd 的开发阶段（验收点见 tools/pi/devel/ddd.md）：先写测试再实现，commit 信息 [ddd][CODE] 任务名：简述，鼓励小步；自己执行的每条命令必须 timeout 包裹且不超过 300 秒；完成后在输出中如实报告各验收点情况" > /tmp/pi-goldfish-run.log 2>&1 < /dev/null &
+setsid nohup timeout 7200 pi -a -p @tools/pi/Agents.md "执行任务 ddd 的开发阶段（验收点见 tools/pi/devel/ddd.md）：先写测试再实现，commit 信息 [ddd][provider/model][CODE] 任务名：简述，鼓励小步；自己执行的每条命令必须 timeout 包裹且不超过 300 秒；完成后在输出中如实报告各验收点情况" > /tmp/pi-goldfish-run.log 2>&1 < /dev/null &
 
 # 验收阶段：写验收脚本+跑门禁+结算（产物 tools/pi/devel/ddd.scm）
-timeout 1800 pi -a -p @tools/pi/Agents.md "执行任务 ddd 的验收阶段：1) 编写验收脚本 tools/pi/devel/ddd.scm（可执行，逐条断言 ddd.md 中的验收点：构建、fmt、check、相关测试、真实冒烟命令与期望输出）；2) 运行该脚本全绿后 commit（[ddd][REVIEW] 任务名：验收）并 git push；3) 在输出中逐条报告验收点通过情况"
+timeout 1800 pi -a -p @tools/pi/Agents.md "执行任务 ddd 的验收阶段：1) 编写验收脚本 tools/pi/devel/ddd.scm（可执行，逐条断言 ddd.md 中的验收点：构建、fmt、check、相关测试、真实冒烟命令与期望输出）；2) 运行该脚本全绿后 commit（[ddd][provider/model][REVIEW] 任务名：验收）并 git push；3) 在输出中逐条报告验收点通过情况"
+
+**阶段 commit 标注（2026-10-21 任务 090 补正）**：三段模板的 commit 信息必须带
+`[provider/model]` 标注（`[ddd][google/gemini-3.8-flash][PLAN] ...`），否则 git log
+无法作为模型横评数据源。090 的 PLAN commit `4cee4dff` 因模板缺标注而写成
+`[090][PLAN]`，已作为已知偏差留痕于 Agents.md 任务表。
 ```
 
 **自举拉起的强制参数（`bin/gf pi`）**：`gf pi` 有两条**静默截断**的硬预算——
