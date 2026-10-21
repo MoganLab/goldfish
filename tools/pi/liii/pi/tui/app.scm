@@ -16,54 +16,34 @@
 
 (define-library (liii pi tui app)
   (export make-pi-app pi-app? pi-app-screen pi-app-editor pi-app-render!
-    pi-app-run pi-detect-git-branch
+    pi-app-run
   ) ;export
   (import (scheme base)
-    (scheme write)
-    (liii base)
-    (liii os)
-    (liii sys)
     (liii time)
     (liii either)
     (liii string)
     (liii subprocess)
     (liii tui)
+    (liii pi tui common)
     (liii pi tui header)
     (liii pi tui footer)
   ) ;import
   (begin
 
+    ;; 编辑器顶边框：开启时占 1 行，渲染时光标行需跳过该行
+    (define %pi-editor-top-border #t)
+
     (define-record-type <pi-app>
-      (%make-pi-app term screen root doc-container chat-container editor footer)
+      (%make-pi-app term screen doc editor footer)
       pi-app?
       (term %pi-app-term)
-      (screen %pi-app-screen)
-      (root %pi-app-root)
-      (doc-container %pi-app-doc)
-      (chat-container %pi-app-chat)
-      (editor %pi-app-editor)
+      (screen pi-app-screen)
+      (doc %pi-app-doc)
+      (editor pi-app-editor %pi-app-editor-set!)
       (footer %pi-app-footer)
     ) ;define-record-type
 
-    (define (pi-app-screen app)
-      (%pi-app-screen app)
-    ) ;define
-    (define (pi-app-editor app)
-      (%pi-app-editor app)
-    ) ;define
-
-    (define (%keyword-value key opts default)
-      (let loop
-        ((rest opts))
-        (cond ((null? rest) default)
-              ((and (pair? (cdr rest)) (eq? (car rest) key)) (cadr rest))
-              ((null? (cdr rest)) default)
-              (else (loop (cddr rest)))
-        ) ;cond
-      ) ;let
-    ) ;define
-
-    (define (pi-detect-git-branch)
+    (define (%detect-git-branch)
       (catch #t
         (lambda ()
           (let ((res (run-either '("git" "branch" "--show-current")
@@ -86,19 +66,20 @@
     ) ;define
 
     (define (pi-app-render! app)
-      (let* ((screen (%pi-app-screen app))
-             (root (%pi-app-root app))
-             (ed (%pi-app-editor app))
-             (ed-cur (editor-cursor ed))
+      (let* ((screen (pi-app-screen app))
              (term (%pi-app-term app))
-             (term-sz (terminal-size term))
-             (w (car term-sz))
+             (w (car (terminal-size term)))
+             ;; 各段只渲染一次，拼成行列表交给 screen-render!，避免重复渲染与重复取尺寸
              (doc-lines (component-render (%pi-app-doc app) w))
-             (ed-y (+ (length doc-lines) 1))
-             ;; top-border 占 1 行
+             (ed (pi-app-editor app))
+             (ed-lines (component-render ed w))
+             (footer-lines (component-render (%pi-app-footer app) w))
+             (ed-cur (editor-cursor ed))
+             ;; 顶边框占 1 行，光标行紧随其后
+             (ed-y (+ (length doc-lines) (if %pi-editor-top-border 1 0)))
              (cur-pos (cons (cadr ed-cur) (+ ed-y (car ed-cur))))
             ) ;
-        (screen-render! screen root cur-pos)
+        (screen-render! screen (append doc-lines ed-lines footer-lines) cur-pos)
       ) ;let*
     ) ;define
 
@@ -109,50 +90,41 @@
              (header (make-pi-header))
              (chat (make-container))
              (doc (make-container))
-             (branch (pi-detect-git-branch))
+             (branch (%detect-git-branch))
              (footer (make-pi-footer :branch branch))
-             (root (make-container))
-             (app-box (list #f))
+             ;; editor 字段后填：提交回调需要引用 app 本身
+             (app (%make-pi-app actual-term screen doc #f footer))
              (ed
                (make-editor ""
                  :multiline     #f
-                 :top-border    #t
+                 :top-border    %pi-editor-top-border
                  :bottom-border #t
                  :border-color  "\x1b;[38;2;129;162;190m"
                  :focused       #t
                  :cursor-style  'hardware
                  :on-submit
                  (lambda (self txt)
-                   (when (car app-box)
-                     (let ((app (car app-box)))
-                       (unless (string-null? (string-trim txt))
-                         (container-add! chat (make-text (string-append "> " txt)))
-                         (container-add! chat (make-text (string-append "Echo: " txt)))
-                       ) ;unless
-                       (editor-set-text! self "")
-                       (pi-app-render! app)
-                     ) ;let
-                   ) ;when
+                   (unless (string-null? (string-trim txt))
+                     (container-add! chat (make-text (string-append "> " txt)))
+                     (container-add! chat (make-text (string-append "Echo: " txt)))
+                   ) ;unless
+                   (editor-set-text! self "")
+                   (pi-app-render! app)
                  ) ;lambda
                ) ;make-editor
              ) ;ed
             ) ;
         (container-add! doc header)
         (container-add! doc chat)
-        (container-add! root doc)
-        (container-add! root ed)
-        (container-add! root footer)
-        (let ((app (%make-pi-app actual-term screen root doc chat ed footer)))
-          (set-car! app-box app)
-          app
-        ) ;let
+        (%pi-app-editor-set! app ed)
+        app
       ) ;let*
     ) ;define
 
     (define (pi-app-run app)
       (let* ((term (%pi-app-term app))
-             (screen (%pi-app-screen app))
-             (ed (%pi-app-editor app))
+             (screen (pi-app-screen app))
+             (ed (pi-app-editor app))
             ) ;
         (dynamic-wind (lambda ()
                         (terminal-enter-raw-mode! term)
@@ -177,7 +149,7 @@
               ) ;when
               (terminal-show-cursor! term)
               (terminal-exit-raw-mode! term)
-              (display "\r\n")
+              (terminal-write term "\r\n")
               (terminal-flush term)
             ) ;let*
           ) ;lambda

@@ -16,19 +16,8 @@
 
 (define-library (liii pi tui header)
   (export make-pi-header pi-header?)
-  (import (scheme base) (liii base) (liii string) (liii tui component))
+  (import (scheme base) (liii tui component) (liii pi tui common))
   (begin
-
-    (define (%keyword-value key opts default)
-      (let loop
-        ((rest opts))
-        (cond ((null? rest) default)
-              ((and (pair? (cdr rest)) (eq? (car rest) key)) (cadr rest))
-              ((null? (cdr rest)) default)
-              (else (loop (cddr rest)))
-        ) ;cond
-      ) ;let
-    ) ;define
 
     (define (pi-header? obj)
       (and (component? obj)
@@ -38,9 +27,9 @@
       ) ;and
     ) ;define
 
-    (define (%render-header version width)
-      (let* ((line0 "")
-             (line1 (string-append " \x1b;[1;38;2;138;190;183mpi\x1b;[0m\x1b;[38;2;102;102;102m v"
+    ;; 页眉内容只随 version 变化，与宽度无关，故一次构造后复用
+    (define (%header-lines version)
+      (let* ((line1 (string-append " \x1b;[1;38;2;138;190;183mpi\x1b;[0m\x1b;[38;2;102;102;102m v"
                       version
                       "\x1b;[0m"
                     ) ;string-append
@@ -58,19 +47,17 @@
              (line2 (string-append " " k-esc dot k-exit dot k-cmd dot k-bash dot k-more))
              (line3 " \x1b;[38;2;102;102;102mPress ctrl+o to show full startup help and loaded resources.\x1b;[0m"
              ) ;line3
-             (line4 "")
              (line5 " \x1b;[38;2;102;102;102mPi can explain its own features and look up its docs. Ask it how to use or extend Pi.\x1b;[0m"
              ) ;line5
-             (line6 "")
             ) ;
-        (list line0 line1 line2 line3 line4 line5 line6)
+        (list "" line1 line2 line3 "" line5 "")
       ) ;let*
     ) ;define
 
     (define (make-pi-header . args)
       (let* ((version (%keyword-value :version args "0.85.1"))
-             (comp (make-component :render (lambda (self width) (%render-header version width)))
-             ) ;comp
+             (lines (%header-lines version))
+             (comp (make-component :render (lambda (self width) lines)))
             ) ;
         (component-data-set! comp (list 'pi-header version))
         comp

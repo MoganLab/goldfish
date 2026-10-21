@@ -38,4 +38,10 @@
   (check-true (string-contains? (list-ref lines 0) "/tmp/test (main)"))
 ) ;let*
 
+;; 3. 主目录缩写
+(check (format-cwd-for-footer "/home/da" "/home/da") => "~")
+(check (format-cwd-for-footer "/home/da/git/goldfish" "/home/da") => "~/git/goldfish")
+(check (format-cwd-for-footer "/tmp/test" "/home/da") => "/tmp/test")
+(check (format-cwd-for-footer "/home/da" #f) => "/home/da")
+
 (check-report)

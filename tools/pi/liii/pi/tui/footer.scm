@@ -17,24 +17,19 @@
 (define-library (liii pi tui footer)
   (export make-pi-footer pi-footer? format-cwd-for-footer)
   (import (scheme base)
-    (scheme process-context)
-    (liii base)
     (liii string)
     (liii os)
+    (liii path)
     (liii tui text-width)
     (liii tui component)
+    (liii pi tui common)
   ) ;import
   (begin
 
-    (define (%keyword-value key opts default)
-      (let loop
-        ((rest opts))
-        (cond ((null? rest) default)
-              ((and (pair? (cdr rest)) (eq? (car rest) key)) (cadr rest))
-              ((null? (cdr rest)) default)
-              (else (loop (cddr rest)))
-        ) ;cond
-      ) ;let
+    ;; 用户主目录：复用 (liii path) 的 path-home（含 Windows HOMEDRIVE/HOMEPATH 回退），
+    ;; 未设置时返回 #f
+    (define (%default-home)
+      (catch #t (lambda () (path->string (path-home))) (lambda args #f))
     ) ;define
 
     (define (format-cwd-for-footer cwd home)
@@ -76,21 +71,20 @@
              (left-w (display-width left-part))
              (right-w (display-width right-part))
              (min-padding 2)
+             (rem-w (- width left-w min-padding))
              (line2
-               (if (<= (+ left-w min-padding right-w) width)
-                 (let ((pad-count (- width left-w right-w)))
-                   (string-append left-part (make-string pad-count #\space) right-part)
-                 ) ;let
-                 (if (<= left-w width)
-                   (let ((rem-w (- width left-w min-padding)))
-                     (if (> rem-w 0)
-                       (string-append left-part "  " (truncate-to-width right-part rem-w ""))
-                       left-part
-                     ) ;if
-                   ) ;let
-                   (truncate-to-width left-part width "...")
-                 ) ;if
-               ) ;if
+               (cond
+                ((<= (+ left-w min-padding right-w) width)
+                 (string-append left-part
+                   (make-string (- width left-w right-w) #\space)
+                   right-part
+                 ) ;string-append
+                ) ;
+                ((and (<= left-w width) (> rem-w 0))
+                 (string-append left-part "  " (truncate-to-width right-part rem-w ""))
+                ) ;
+                (else (truncate-to-width left-part width "..."))
+               ) ;cond
              ) ;line2
              (c-dim (lambda (s) (string-append "\x1b;[38;2;102;102;102m" s "\x1b;[0m")))
              (res1 (c-dim (truncate-to-width line1 width "...")))
@@ -101,11 +95,7 @@
     ) ;define
 
     (define (make-pi-footer . args)
-      (let* ((home (or (%keyword-value :home args #f)
-                     (get-environment-variable "HOME")
-                     (get-environment-variable "USERPROFILE")
-                   ) ;or
-             ) ;home
+      (let* ((home (or (%keyword-value :home args #f) (%default-home)))
              (cwd (%keyword-value :cwd args (getcwd)))
              (branch (%keyword-value :branch args #f))
              (provider (%keyword-value :provider args "google"))

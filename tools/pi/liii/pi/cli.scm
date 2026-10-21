@@ -115,16 +115,13 @@
                    (not (pi-args-ref parsed 'compact))
                    (not (%has-matching-flow? reg parsed))
                  ) ;and
-                 (if (and (stdin-tty?) (stdout-tty?))
-                   (begin
+                 (begin
+                   (if (and (stdin-tty?) (stdout-tty?))
                      (pi-app-run (make-pi-app))
-                     0
-                   ) ;begin
-                   (begin
                      (display-pi-help)
-                     0
-                   ) ;begin
-                 ) ;if
+                   ) ;if
+                   0
+                 ) ;begin
                 ) ;
                 (else
                   (let ((mode (resolve-app-mode (pi-args-ref parsed 'mode)
