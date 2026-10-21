@@ -23,7 +23,7 @@
 
 (define-library (liii tui terminal size)
   (export terminal-detect-size)
-  (import (liii base) (liii error) (scheme process-context))
+  (import (scheme base) (scheme process-context) (liii base) (liii error))
   (begin
 
     (define (%parse-positive-int str default-val)
@@ -36,20 +36,31 @@
     ) ;define
 
     (define (terminal-detect-size . args)
-      (let ((env-fn
-              (if (and (pair? args) (procedure? (car args)))
-                (car args)
-                get-environment-variable
-              ) ;if
-            ) ;env-fn
+      (let ((real-sz
+              (catch #t
+                (lambda () (and (defined? 'g_terminal_size) (g_terminal_size)))
+                (lambda args #f)
+              ) ;catch
+            ) ;real-sz
            ) ;
-        (let* ((col-str (env-fn "COLUMNS"))
-               (line-str (env-fn "LINES"))
-               (w (%parse-positive-int col-str 80))
-               (h (%parse-positive-int line-str 24))
-              ) ;
-          (list w h)
-        ) ;let*
+        (if (and (pair? real-sz) (pair? (cdr real-sz)))
+          real-sz
+          (let ((env-fn
+                  (if (and (pair? args) (procedure? (car args)))
+                    (car args)
+                    get-environment-variable
+                  ) ;if
+                ) ;env-fn
+               ) ;
+            (let* ((col-str (env-fn "COLUMNS"))
+                   (line-str (env-fn "LINES"))
+                   (w (%parse-positive-int col-str 80))
+                   (h (%parse-positive-int line-str 24))
+                  ) ;
+              (list w h)
+            ) ;let*
+          ) ;let
+        ) ;if
       ) ;let
     ) ;define
 

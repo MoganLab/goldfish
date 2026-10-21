@@ -43,6 +43,7 @@
 #include <errno.h>
 #include <poll.h>
 #include <pwd.h>
+#include <sys/ioctl.h>
 #include <termios.h>
 #include <unistd.h>
 #if !defined(__EMSCRIPTEN__)
@@ -533,6 +534,35 @@ glue_console_raw_mode (s7_scheme* sc) {
 }
 
 static s7_pointer
+f_terminal_size (s7_scheme* sc, s7_pointer args) {
+#ifdef TB_CONFIG_OS_WINDOWS
+  CONSOLE_SCREEN_BUFFER_INFO csbi;
+  HANDLE                     h= GetStdHandle (STD_OUTPUT_HANDLE);
+  if (GetConsoleScreenBufferInfo (h, &csbi)) {
+    int cols= csbi.srWindow.Right - csbi.srWindow.Left + 1;
+    int rows= csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
+    return s7_list (sc, 2, s7_make_integer (sc, cols), s7_make_integer (sc, rows));
+  }
+#else
+  struct winsize ws;
+  if (ioctl (STDIN_FILENO, TIOCGWINSZ, &ws) == 0 && ws.ws_col > 0 && ws.ws_row > 0) {
+    return s7_list (sc, 2, s7_make_integer (sc, ws.ws_col), s7_make_integer (sc, ws.ws_row));
+  }
+  if (ioctl (STDOUT_FILENO, TIOCGWINSZ, &ws) == 0 && ws.ws_col > 0 && ws.ws_row > 0) {
+    return s7_list (sc, 2, s7_make_integer (sc, ws.ws_col), s7_make_integer (sc, ws.ws_row));
+  }
+#endif
+  return s7_make_boolean (sc, false);
+}
+
+static void
+glue_terminal_size (s7_scheme* sc) {
+  const char* name= "g_terminal_size";
+  const char* desc= "(g_terminal_size) => (cols rows) or #f, detect terminal dimensions";
+  glue_define (sc, name, desc, f_terminal_size, 0, 0);
+}
+
+static s7_pointer
 f_console_kbhit (s7_scheme* sc, s7_pointer args) {
   int timeout_ms= 0;
   if (s7_is_pair (args)) {
@@ -633,6 +663,7 @@ glue_liii_os (s7_scheme* sc) {
   glue_getpid (sc);
   glue_os_tty_p (sc);
   glue_console_raw_mode (sc);
+  glue_terminal_size (sc);
   glue_console_kbhit (sc);
   glue_console_getch (sc);
 }
