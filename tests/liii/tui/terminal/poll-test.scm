@@ -55,4 +55,11 @@
 (check (%resolve-ansi-bytes '(27 79 80)) => 'f1)
 (check (%resolve-ansi-bytes '(27 79 81)) => 'f2)
 
+;; 6. 测试 UTF-8 多字节解析
+(check (%resolve-utf8-bytes '(228 189 160)) => "你")
+(check (%resolve-utf8-bytes '(229 165 189)) => "好")
+(check (%resolve-utf8-bytes '(240 159 154 128)) => "🚀")
+(check (%resolve-utf8-bytes '()) => #f)
+(check (%resolve-utf8-bytes '(255 255)) => #f)
+
 (check-report)

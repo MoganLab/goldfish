@@ -75,4 +75,27 @@
   (check (buffer-row b) => 1)
   (check (buffer-col b) => 0))
 
+;; 5. 包含中文字符的光标移动与边界吸附
+(let ((b (make-buffer "你好世界" #f)))
+  (buffer-col-set! b 0)
+  (check (buffer-move-right! b) => #t)
+  (check (buffer-col b) => 1)
+  (check (buffer-move-right! b) => #t)
+  (check (buffer-col b) => 2)
+  (check (buffer-move-end! b) => #t)
+  (check (buffer-col b) => 4)
+  (check (buffer-move-right! b) => #f)
+  (check (buffer-move-left! b) => #t)
+  (check (buffer-col b) => 3)
+  (check (buffer-move-home! b) => #t)
+  (check (buffer-col b) => 0))
+
+(let ((b (make-buffer "你好\n世界和平" #t)))
+  (buffer-row-set! b 1)
+  (buffer-col-set! b 4)
+  ;; 向上移动到 "你好" (2 字符)，吸附到 2
+  (check (buffer-move-up! b) => #t)
+  (check (buffer-row b) => 0)
+  (check (buffer-col b) => 2))
+
 (check-report)

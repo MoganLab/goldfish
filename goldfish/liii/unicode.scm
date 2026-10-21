@@ -7,6 +7,7 @@
     string->utf8
     utf8-string-length
     utf8-substring
+    utf8-sequence-length
     bytevector-advance-utf8
     codepoint->utf8
     utf8->codepoint
@@ -97,6 +98,27 @@
     (define* (utf8-substring str (start 0) (end #t))
       (utf8->string (string->utf8 str start end))
     ) ;define*
+
+    ;; ; utf8-sequence-length: 由 UTF-8 前导字节推断该字符序列的字节数
+    ;;
+    ;; 参数
+    ;; ----
+    ;; lead-byte : integer
+    ;; UTF-8 序列的首字节（0-255）。
+    ;;
+    ;; 返回值
+    ;; ----
+    ;; integer 或 #f
+    ;; 合法前导字节返回该字符占用的字节数（1/2/3/4）；
+    ;; 连续字节（0x80-0xBF）与 0xF5-0xFF 等非法前导字节返回 #f。
+    (define (utf8-sequence-length lead-byte)
+      (cond ((<= lead-byte 127) 1)
+            ((<= 194 lead-byte 223) 2)
+            ((<= 224 lead-byte 239) 3)
+            ((<= 240 lead-byte 244) 4)
+            (else #f)
+      ) ;cond
+    ) ;define
 
     ;; ; 辅助函数：检查字符是否为空白字符
     (define (unicode-whitespace? c)

@@ -22,10 +22,13 @@
 ;;
 
 (define-library (liii tui terminal poll)
-  (export terminal-poll-key %poll-console-key %resolve-ansi-bytes)
+  (export terminal-poll-key %poll-console-key %resolve-ansi-bytes
+    %resolve-utf8-bytes
+  ) ;export
   (import (scheme base)
     (liii error)
     (liii os)
+    (liii unicode)
     (liii tui terminal protocol)
     (liii tui terminal virtual)
     (liii tui keys parser)
@@ -70,6 +73,38 @@
       ) ;if
     ) ;define
 
+    (define (%resolve-utf8-bytes byte-list)
+      (if (null? byte-list)
+        #f
+        (catch #t
+          (lambda () (utf8->string (apply bytevector byte-list)))
+          (lambda args #f)
+        ) ;catch
+      ) ;if
+    ) ;define
+
+    (define (%read-continuation-byte)
+      (if (console-kbhit? 20)
+        (let ((b (console-getch)))
+          (if (and b (exact-integer? b) (>= b 128) (<= b 191)) b #f)
+        ) ;let
+        #f
+      ) ;if
+    ) ;define
+
+    ;; ; 读取一个 UTF-8 多字节字符：首字节已读入，还需读取后续的 total-len-1 个连续字节
+    (define (%poll-utf8-char first-byte total-len)
+      (let loop
+        ((count (- total-len 1)) (acc (list first-byte)))
+        (if (= count 0)
+          (%resolve-utf8-bytes (reverse acc))
+          (let ((b (%read-continuation-byte)))
+            (if b (loop (- count 1) (cons b acc)) #f)
+          ) ;let
+        ) ;if
+      ) ;let
+    ) ;define
+
     (define (%poll-escape-key)
       (if (not (console-kbhit? 25))
         'escape
@@ -93,12 +128,17 @@
         (let ((c (console-getch)))
           (cond
            ((not (and c (exact-integer? c))) #f)
-           ((or (= c 0) (= c 224))
+           ((and (os-windows?) (or (= c 0) (= c 224)))
             (let ((ext (console-getch)))
               (if (and ext (exact-integer? ext)) (%map-extended-key ext) #f)
             ) ;let
            ) ;
            ((= c 27) (%poll-escape-key))
+           ((>= c 194)
+            (let ((seq-len (utf8-sequence-length c)))
+              (if seq-len (%poll-utf8-char c seq-len) (%map-standard-key c))
+            ) ;let
+           ) ;
            (else (%map-standard-key c))
           ) ;cond
         ) ;let

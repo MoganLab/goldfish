@@ -39,7 +39,7 @@
         (cond ((> c 0) (buffer-col-set! buf (- c 1)) #t)
               ((and (> r 0) (buffer-multiline? buf))
                (let* ((prev-r (- r 1))
-                      (prev-len (string-length (list-ref (buffer-lines buf) prev-r)))
+                      (prev-len (utf8-string-length (list-ref (buffer-lines buf) prev-r)))
                      ) ;
                  (buffer-row-set! buf prev-r)
                  (buffer-col-set! buf prev-len)
@@ -56,7 +56,7 @@
       (let* ((lines (buffer-lines buf))
              (r (buffer-row buf))
              (c (buffer-col buf))
-             (len (string-length (list-ref lines r)))
+             (len (utf8-string-length (list-ref lines r)))
             ) ;
         (cond ((< c len) (buffer-col-set! buf (+ c 1)) #t)
               ((and (< r (- (length lines) 1)) (buffer-multiline? buf))
@@ -79,7 +79,7 @@
     (define (buffer-move-end! buf)
       (let* ((lines (buffer-lines buf))
              (r (buffer-row buf))
-             (len (string-length (list-ref lines r)))
+             (len (utf8-string-length (list-ref lines r)))
             ) ;
         (buffer-col-set! buf len)
         #t
@@ -92,7 +92,7 @@
         (if (<= r 0)
           #f
           (let* ((new-r (- r 1))
-                 (target-len (string-length (list-ref (buffer-lines buf) new-r)))
+                 (target-len (utf8-string-length (list-ref (buffer-lines buf) new-r)))
                  (new-c (min (buffer-col buf) target-len))
                 ) ;
             (buffer-row-set! buf new-r)
@@ -109,7 +109,7 @@
         (if (>= r (- total-rows 1))
           #f
           (let* ((new-r (+ r 1))
-                 (target-len (string-length (list-ref lines new-r)))
+                 (target-len (utf8-string-length (list-ref lines new-r)))
                  (new-c (min (buffer-col buf) target-len))
                 ) ;
             (buffer-row-set! buf new-r)
