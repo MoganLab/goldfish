@@ -142,18 +142,13 @@
       ) ;let
     ) ;define
 
-    (define (%simplify-timeout parsed cfg)
-      (or (pi-args-ref parsed 'timeout) (cdr (or (assoc 'timeout cfg) '(#f
-                                                                        . 120))))
-    ) ;define
-
     (define (%collect parsed cfg)
       (let ((file-args (pi-args-ref parsed 'messages)))
         (pi-collect-simplify-files
           :ref     (or (pi-args-ref parsed 'review-ref) "HEAD")
           :staged  (pi-args-ref parsed 'staged)
           :files   (and (pair? file-args) file-args)
-          :timeout (%simplify-timeout parsed cfg)
+          :timeout (pi-resolve-timeout parsed cfg)
         ) ;pi-collect-simplify-files
       ) ;let
     ) ;define

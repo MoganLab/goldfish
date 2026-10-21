@@ -9,6 +9,7 @@
 (define-library (liii pi bash)
   (import (scheme base)
     (scheme file)
+    (scheme inexact)
     (liii string)
     (liii os)
     (liii path)
@@ -17,7 +18,9 @@
     (liii pi read)
     (liii pi truncate)
   ) ;import
-  (export pi-bash-schema pi-execute-bash pi-find-bash-path pi-find-grep-path)
+  (export pi-bash-schema pi-execute-bash pi-find-bash-path pi-find-grep-path
+    PI_MAX_TIMEOUT_SECONDS
+  ) ;export
   (begin
 
     (define (%find-windows-bash)
@@ -99,21 +102,35 @@
       ) ;if
     ) ;define
 
-    (define (pi-bash-schema)
-      (list (cons "type" "object")
-        (cons "properties"
-          (list (cons "command"
-                  (list (cons "type" "string") (cons "description" "Shell command to execute"))
-                ) ;cons
-            (cons "timeout"
-              (list (cons "type" "number")
-                (cons "description" "Timeout in seconds (optional, defaults to 120s)")
-              ) ;list
-            ) ;cons
-          ) ;list
-        ) ;cons
-        (cons "required" #("command"))
-      ) ;list
+    (define PI_MAX_TIMEOUT_SECONDS 2147483.647)
+
+    (define (pi-bash-schema . maybe-default-timeout)
+      (let* ((def-timeout
+               (if (and (pair? maybe-default-timeout)
+                     (number? (car maybe-default-timeout))
+                     (> (car maybe-default-timeout) 0)
+                   ) ;and
+                 (car maybe-default-timeout)
+                 600
+               ) ;if
+             ) ;def-timeout
+             (desc (string-append "Timeout in seconds (optional, defaults to "
+                     (number->string def-timeout)
+                     "s)"
+                   ) ;string-append
+             ) ;desc
+            ) ;
+        (list (cons "type" "object")
+          (cons "properties"
+            (list (cons "command"
+                    (list (cons "type" "string") (cons "description" "Shell command to execute"))
+                  ) ;cons
+              (cons "timeout" (list (cons "type" "number") (cons "description" desc)))
+            ) ;list
+          ) ;cons
+          (cons "required" #("command"))
+        ) ;list
+      ) ;let*
     ) ;define
 
     (define (%keyword-value key opts default)
@@ -201,15 +218,29 @@
     (define (pi-execute-bash args . opts)
       (let* ((timed-out? (%keyword-value :timed-out? opts #f))
              (cwd (%keyword-value :cwd opts (getcwd)))
-             (def-timeout (%keyword-value :timeout opts 120))
-             (raw-arg (pi-arg-ref args "timeout" #f))
-             (valid-arg (if (and (number? raw-arg) (> raw-arg 0)) raw-arg #f))
-             (valid-def (if (and (number? def-timeout) (> def-timeout 0)) def-timeout #f))
-             (timeout (cond ((and valid-arg valid-def) (min valid-arg valid-def))
-                            (valid-arg valid-arg)
-                            (valid-def valid-def)
-                            (else 120)
-                      ) ;cond
+             (raw-def (%keyword-value :timeout opts 600))
+             (def-timeout (if (and (number? raw-def) (> raw-def 0)) raw-def 600))
+             (has-timeout? (or (assoc "timeout" args) (assoc 'timeout args)))
+             (timeout
+               (if has-timeout?
+                 (let ((raw-arg (cdr has-timeout?)))
+                   (cond
+                    ((or (not (finite? raw-arg)) (<= raw-arg 0))
+                     (error 'error "Invalid timeout: must be a finite number of seconds")
+                    ) ;
+                    ((> raw-arg PI_MAX_TIMEOUT_SECONDS)
+                     (error 'error
+                       (string-append "Invalid timeout: maximum is "
+                         (number->string PI_MAX_TIMEOUT_SECONDS)
+                         " seconds"
+                       ) ;string-append
+                     ) ;error
+                    ) ;
+                    (else raw-arg)
+                   ) ;cond
+                 ) ;let
+                 def-timeout
+               ) ;if
              ) ;timeout
              (command (pi-arg-ref args "command"))
             ) ;

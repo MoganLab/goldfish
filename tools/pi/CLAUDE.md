@@ -97,6 +97,18 @@ timeout 900 pi --model sonnet:high -p "实现 §11 阶段二的工具层"
     3 次被外部终止（存活 13/2/1 分钟，均非 timeout 7200 到期，被杀时 pi 正常干活），
     同期短任务（9~30 分钟）可正常完成。改为脱离进程树 + 日志轮询后不再依赖会话
     生命周期。
+- **Windows + git-bash 环境的等价做法（2026-10-21 实测修正）**：本机 git-bash
+  **无 `pgrep`、无 `setsid`**，`setsid nohup ... &` 的写法不可用。落地约定：
+  - 进程存活检查改用 `ps -W | grep "goldfish2/bin/gf"`（`ps -W` 能看到原生
+    Windows 进程；注意 scoop 目录下另有同名 `gf.exe`，按路径过滤只认快照执行器）；
+  - 脱离会话进程树改用 Claude Code harness 托管的后台任务（`run_in_background`），
+    配合 `> /tmp/pi-goldfish-run.log 2>&1` 重定向实现日志轮询，二者效果等价；
+  - 外层 `timeout` 必须**大于**内层 `--session-timeout`（否则外层先到期、agent
+    拿不到最终报告），阶段模板中的配对值为：文档阶段 1800/1500、开发阶段
+    7200/6900、验收阶段 3600/3300；
+  - **print 模式（`-p`）的日志在进程运行期间保持 0 字节**，最终报告只在进程退出
+    时一次性落盘——故运行期的进展判定只能依据 `git log`/`git status`/文件 mtime，
+    不能依据日志长度。
 - **死循环实例可提前终止**：若 pi 会话出现确诊的低效死循环——同一动作（同一检索/
   同一 read）重复 3 次以上且 45 分钟以上零提交、零文件改动（阶段六第 1 次、阶段九
   第 1 次均如此，该模式不会自愈）——Claude 可提前终止该实例并从断点缩小任务重拉，
@@ -240,14 +252,40 @@ turn 计数器（`agent.scm` 循环里 turn 单调递增，压缩只替换消息
 阶段**：读 Agents §3 验收点、写 devel/xxx.md、commit）。
 
 **执行环境选择（用户裁定）**：
-- **只写文档的任务**（文档阶段等）→ 在当前仓库 `~/git/goldfish` 用 `bin/gf pi`
+- **只写文档的任务**（文档阶段等）→ 在当前仓库 `~/git/goldfish3` 用 `bin/gf pi`
   执行（最新实现做轻活，顺便实战验证）。
 - **需要改代码的任务**（开发阶段等）→ 用 `~/git/goldfish2/bin/gf`（稳定快照）
   执行——执行器用稳定版，避免当前仓库迭代中的 bin/gf 影响自己；快照在到达
   稳定点时同步并重新构建。
+- **快照机制实测澄清（2026-10-21 任务 076 收尾时核实）**：快照提供的是
+  **C++ 运行时与 `gf` 子命令分发**，**不提供 Scheme 库代码**——库按**当前工作
+  目录**解析。实测证据：`~/git/goldfish2` 树中既无 `tools/pi/liii/pi/extensions/`
+  也无其测试，但在 `~/git/goldfish3` 工作目录下用 `~/git/goldfish2/bin/gf.exe`
+  运行 `gf test tools/pi/tests/liii/pi/extensions/` 仍 **3/3 PASS**（加载的是
+  goldfish3 的新代码）。因此：
+  - 快照的真正保护面是「**当前仓库 C++ 构建处于半改状态时执行器仍可启动**」，
+    而**不是**「执行器自带最新 Scheme 实现」；
+  - 快照同步（拉取最新代码 + `xmake b goldfish`）仍是必要动作，但它保障的是
+    **兜底二进制与其代码树的一致性**，不改变「Scheme 代码取自当前工作目录」
+    这一事实；
+  - 由此推论：若当前工作目录的 Scheme 代码本身处于损坏状态，快照**救不了**
+    该次执行——此时应先回滚工作区再重拉，而非指望换执行器。
 
 - 尝试成功 → 该类任务改由 `bin/gf pi` 执行，逐步扩大范围（文档阶段 → 小修复
   → 开发阶段）。
+- **轮换池的本机可用性实测（2026-10-21 任务 078 拉起时核实）**：§5.5 上述轮换池
+  是**历史任务在其他环境**积累的清单，**在本机（Windows + git-bash）并非全部可用**。
+  逐个实测结果（`gf pi -p --provider X --model Y` 短提示词探测）：
+  - `google` / `gemini-3.8-flash` — **可用**（本机唯一稳定可用的 provider）；
+  - `minimax` / `MiniMax-M3` — **不可用**：`Error: No credentials found for provider "minimax"`；
+  - `kimi-coding` / `kimi-for-coding-highspeed` — **不可用**：`No credentials found`；
+  - `zai` / `glm-5.2` — **不可用**：请求已发出但网关拒绝，报 `HTTP 400: JSON parse
+    error: Invalid UTF-8 start byte`（回显 `messages[1].content` 解析失败）；
+  - `deepseek` / `deepseek-v4-flash` — **不可用**：流式首包即 `HTTP 400 stream error`，
+    进程立即退出（该失败形态**不触发** retry，属协议不兼容而非瞬时抖动）。
+  - **结论**：本机自举执行**只能用 google/gemini-3.8-flash**；横向模型横评需先补齐
+    对应 provider 凭据（或修复协议适配）后才可在本机进行。**拉起前不要盲目轮换**——
+    每次无效轮换都会浪费一整轮阶段执行（078 的首次拉起即因此立即失败）。
 - **模型轮换（用户裁定 2026-10-19）**：自举执行时可用 `--provider`/`--model`
   指定不同模型完成同类阶段任务，横向实测各模型的实际工作能力；拉起命令与
   devel 执行记录中注明所用 provider/模型，便于事后对比。轮换池：google
@@ -285,6 +323,21 @@ turn 计数器（`agent.scm` 循环里 turn 单调递增，压缩只替换消息
 4. **定时任务清理**：CronDelete 流水线驱动任务，会话进入纯待命。
 5. **收官总结**：向用户报告流水线总战绩（任务数/commit 数/模型横评结论）。
 
+
+## 5.7 后续工作两阶段推进（用户裁定 2026-10-20）
+
+Extension 机制核心任务 070~075 顺利落地后，后续规划分为两个清晰的战略阶段：
+
+- **第一阶段（Extension 闭环与核心体验/预算修复）**：
+  - 任务 076：内置扩展收敛迁移（`simplify`, `red-green`, `code-review`）至 `tools/pi/liii/pi/extensions/`，对齐 `/tdd` 子命令；
+  - 任务 077：`pi install <git-url>` 插件一键安装命令；
+  - 任务 078：外部扩展实例示范（`compass`, `blueprint`：直接将源码移动到两个相应的扩展目录即可，无需在 GitHub 创建仓库）与端到端实测验证；
+  - 任务 079：工具调用 timeout 语义重定（对齐原生 pi + 默认 600s，由模型决定）；
+  - 任务 080：会话时限与轮次上限注入系统提示词（避免死线静默截断）。
+
+- **第二阶段（基于 `(liii tui)` 实现 `bin/gf pi` 的 TUI 交互界面）**：
+  - 基于刚刚合入主干的 `(liii tui)` 终端 UI 库，实现自包含、沉浸式的原生交互终端界面；
+  - 细分为 081~092 共 12 个小任务：TUI 架构骨架与启动路由、状态机与主事件循环驱动器、Editor 多行输入框、MainScreen 差分渲染与 Resize 自适应、流式文本实时打字、Thinking 折叠展开、Tool Card 与动画 Spinner、Slash 悬浮补全菜单、人在回路敏感操作模态确认、会话历史管理、快捷键与 /help 面板、以及虚拟终端确定性 E2E 自动化回归。
 
 ## 6. 给 pi 脚本模式的硬性要求
 

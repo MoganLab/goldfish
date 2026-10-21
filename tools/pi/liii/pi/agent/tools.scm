@@ -16,7 +16,6 @@
     (liii pi extension types)
     (liii pi extension registry)
     (liii pi extension event)
-    (liii pi extension builtin tdd)
   ) ;import
   (export pi-agent-assoc-val pi-first-block-from-content
     pi-extract-tool-result-text pi-make-tool-result-msg pi-execute-one-tool-call

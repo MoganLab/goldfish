@@ -8,10 +8,11 @@
   (import (scheme base)
     (scheme process-context)
     (liii string)
+    (liii list)
     (liii path)
+    (liii sys)
     (liii os)
     (liii sort)
-    (liii pi config)
     (liii pi read)
   ) ;import
   (export pi-scan-extension-dir
@@ -22,19 +23,33 @@
 
     (define (pi-default-builtin-extensions-dir)
       (let ((env-dir (get-environment-variable "PI_BUILTIN_EXTENSIONS_DIR")))
-        (cond
-         ((and (string? env-dir) (not (string-null? (string-trim-both env-dir))))
+        (if
+          (and (string? env-dir) (not (string-null? (string-trim-both env-dir))))
           env-dir
-         ) ;
-         (else
-           (let ((candidate (path "tools/pi/liii/pi/extensions")))
-             (if (and (path-exists? candidate) (path-dir? candidate))
-               (path->string (path-resolve candidate))
-               "tools/pi/liii/pi/extensions"
-             ) ;if
-           ) ;let
-         ) ;else
-        ) ;cond
+          (let* ((repo-root
+                   (catch #t (lambda () (path-parent (path-parent (executable)))) (lambda _ #f))
+                 ) ;repo-root
+                 (candidates
+                   (append (list (path "tools/pi/liii/pi/extensions")
+                             (path "liii/pi/extensions")
+                             (path "../tools/pi/liii/pi/extensions")
+                             (path "../../tools/pi/liii/pi/extensions")
+                           ) ;list
+                     (if repo-root
+                       (list (path-join repo-root "tools/pi/liii/pi/extensions")
+                         (path-join repo-root "share/goldfish/tools/pi/liii/pi/extensions")
+                       ) ;list
+                       '()
+                     ) ;if
+                   ) ;append
+                 ) ;candidates
+                 (found
+                   (find (lambda (c) (and (path-exists? c) (path-dir? c))) candidates)
+                 ) ;found
+                ) ;
+            (if found (path->string (path-resolve found)) "tools/pi/liii/pi/extensions")
+          ) ;let*
+        ) ;if
       ) ;let
     ) ;define
 
@@ -84,17 +99,6 @@
       ) ;let
     ) ;define
 
-    (define (%opt-key-value args key default-val)
-      (let loop
-        ((rest args))
-        (cond
-         ((or (null? rest) (null? (cdr rest))) default-val)
-         ((eq? (car rest) key) (cadr rest))
-         (else (loop (cdr rest)))
-        ) ;cond
-      ) ;let
-    ) ;define
-
     (define (%dir-entries-if-valid dir-str)
       (if (and (string? dir-str) (path-exists? (path dir-str)) (path-dir? (path dir-str)))
         (pi-scan-extension-dir dir-str)
@@ -138,11 +142,14 @@
     ) ;define
 
     (define (pi-discover-extensions . options)
-      (let* ((builtin-dir (%opt-key-value options :builtin-dir (pi-default-builtin-extensions-dir))
+      (let* ((builtin-dir (if (memq :builtin-dir options)
+                            (pi-keyword-value :builtin-dir options #f)
+                            (pi-default-builtin-extensions-dir)
+                          ) ;if
              ) ;builtin-dir
-             (agent-dir (%opt-key-value options :agent-dir (pi-get-agent-dir)))
-             (cwd-dir (%opt-key-value options :cwd (getcwd)))
-             (explicit (%opt-key-value options :explicit-extensions '()))
+             (agent-dir (pi-keyword-value :agent-dir options (pi-get-agent-dir)))
+             (cwd-dir (pi-keyword-value :cwd options (getcwd)))
+             (explicit (pi-keyword-value :explicit-extensions options '()))
              (global-dir-str
                (if (string? agent-dir)
                  (path->string (path-join (path agent-dir) "extensions"))

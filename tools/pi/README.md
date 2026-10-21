@@ -110,10 +110,9 @@ timeout 300 bin/gf pi --no-session -p "一次性问题"
 
 ### 2. 常用内置扩展（随包分发，开箱即用）
 
-为保证日常编码体验的高效与开箱即用，最常用的 3 个插件随 Goldfish 安装包内置：
+为保证日常编码体验的高效与开箱即用，最常用的 2 个插件随 Goldfish 安装包内置：
 - **`simplify`**：审查未提交代码的清晰度与可维护性，提供代码简化建议与 `--apply` 应用；
-- **`code-review`**：审查工作区或暂存区的代码变更并输出结构化审查清单；
-- **`red-green`**：强制执行 TDD 循环（先写红测试 → 最小绿实现 → 重构）。
+- **`code-review`**：审查工作区或暂存区的代码变更并输出结构化审查清单。
 
 ```bash
 # simplify：代码简化审查
@@ -123,9 +122,6 @@ timeout 300 bin/gf pi -p --simplify --staged
 # code-review：代码审查
 timeout 300 bin/gf pi -p --code-review
 timeout 300 bin/gf pi -p --code-review --staged
-
-# red-green：强制 TDD 循环
-timeout 300 bin/gf pi -p --red-green "为 string 库补充 string-trim-right 测试与实现"
 ```
 
 ### 3. 插件生态与安装（`pi install`）
@@ -139,10 +135,6 @@ timeout 180 bin/gf pi install https://gitee.com/xxx/my-pi-extension.git
 # 安装至当前项目局部目录（.pi/extensions/<name>）
 timeout 180 bin/gf pi install --local https://gitee.com/xxx/my-project-extension.git
 ```
-
-### 4. 外部独立扩展示范（Reference Implementation）
-
-为了真实检验外部扩展的独立加载与 `pi install` 安装生态，结构复杂且重型的两个扩展——**`blueprint`（分阶段计划系统）** 与 **`compass`（代码库地图与导览）** 已从主仓库核心解耦并移出，作为外部独立扩展仓库维护。用户只需 `bin/gf pi install` 即可安装使用。
 
 ## 模型与 provider【可用】
 
@@ -277,7 +269,7 @@ tools/pi/liii/
     config.scm      # (liii pi config)   配置 record 与类型定义（config/record.scm, config/types.scm）
     extension.scm   # (liii pi extension) 扩展机制门面（API、注册容器、生命周期分发）
     extension/      # 扩展机制子模块（api, registry, discovery, loader, hooks）
-    extensions/     # ★ 内置轻量扩展（随包分发：simplify, code-review, red-green）
+    extensions/     # ★ 内置轻量扩展（随包分发：simplify, code-review）
     models.scm      # (liii pi models)   模型目录解析与表格输出（models/list.scm）
     gemini.scm      # (liii pi gemini)   Gemini provider（gemini/core, request, stream, stream-parse）
     anthropic.scm   # (liii pi anthropic) Anthropic provider（anthropic/core, request, stream, stream-parse）
@@ -415,8 +407,30 @@ tools/pi/liii/
 
   实现要点：按扩展名/MIME 判断图片类型，Gemini 走 `inlineData` part（base64），
   Anthropic 走 `image` source block；不支持的格式明确报错。
+- [ ] **交互式 TUI 终端模式（第二阶段重点任务）**：基于刚刚合入主干的通用终端 UI 库 `(liii tui)`（PR #1159），实现与原生 pi 深度对齐的原生交互模式。预期用法：
+
+  ```bash
+  # 缺省无参时自动进入基于 (liii tui) 的交互终端界面
+  bin/gf pi
+
+  # 指定 provider / model 进入交互会话
+  bin/gf pi --provider google --model gemini-3.8-flash
+  ```
+
+  实现要点：
+  - 核心事件循环与 `(liii tui terminal)` 非阻塞按键轮询（081/082）；
+  - 底部多行 Prompt 输入框（集成 `(liii tui editor)`，支持单行/多行编辑、光标移动、历史记录上下翻阅）（083）；
+  - 响应式多分区视口与窗口 Resize 动态自适应（084）；
+  - 历史消息自然折行排版（全面支持 CJK 汉字与 Emoji 2 列视觉显示宽度）与流式 SSE 增量文本行差分无闪烁实时打字（085/086）；
+  - Thinking 深度思考过程折叠/展开组件（087）；
+  - 工具调用动态看板（带多帧动画 Spinner 与原地完成态覆盖）（088）；
+  - Slash 命令悬浮弹出与自动补全菜单（089）；
+  - 人在回路敏感工具调用（write/edit/bash）模态交互确认弹窗（090）；
+  - 全局快捷键（Ctrl+C 中断、Ctrl+L 清屏、/help 手册）（091）；
+  - 基于虚拟终端 `(make-virtual-terminal)` 的 100% 确定性自动化 CI 回归测试（092）。
+
 不做项：
-- 交互式 TUI / RPC 模式（goldfish 缺少相关的终端 UI 基础设施，不规划）
+- RPC 模式（IDE 跨进程 JSONL over stdio，非当前核心需求）
 - 项目级 `.pi/settings.json` 读取（首期只读全局 settings.json，暂不引入 trust 门控概念）
 ## web_search 工具【可用】（任务 040-043 四阶段落地，2026-10-20）
 

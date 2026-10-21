@@ -35,11 +35,6 @@
       ) ;if
     ) ;define
 
-    (define (%review-timeout parsed cfg)
-      (or (pi-args-ref parsed 'timeout) (cdr (or (assoc 'timeout cfg) '(#f
-                                                                        . 120))))
-    ) ;define
-
     (define (%review-config cfg)
       (cons (cons 'tools '())
         (filter
@@ -137,7 +132,7 @@
                           :ref     (or (pi-args-ref parsed 'review-ref) "HEAD")
                           :staged  (pi-args-ref parsed 'staged)
                           :files   explicit
-                          :timeout (%review-timeout parsed cfg)
+                          :timeout (pi-resolve-timeout parsed cfg)
                         ) ;pi-collect-changed-files
              ) ;collected
              (paths (cdr (assoc 'paths collected)))

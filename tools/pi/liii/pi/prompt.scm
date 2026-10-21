@@ -14,6 +14,7 @@
     (liii os)
     (liii list)
     (liii pi read)
+    (liii pi prompt context)
   ) ;import
   (export pi-resolve-prompt-input pi-load-project-context pi-build-system-prompt
     PI_BUILTIN_TOOL_SNIPPETS PI_BUILTIN_TOOL_GUIDELINES
@@ -44,62 +45,6 @@
         ("ls")
         ("find")
         ("grep"))
-    ) ;define
-
-    (define (pi-resolve-prompt-input input)
-      (if (and (string? input) (file-exists? input))
-        (catch #t
-          (lambda ()
-            (let ((content (path-read-text (path input))))
-              (if (string? content) content input)
-            ) ;let
-          ) ;lambda
-          (lambda (k . args) input)
-        ) ;catch
-        input
-      ) ;if
-    ) ;define
-
-    (define (%find-first-context-file dir candidates)
-      (let loop-dir
-        ((cur-dir dir))
-        (let loop-cand
-          ((cands candidates))
-          (if (null? cands)
-            (let* ((p (path cur-dir)) (parent (path-parent p)))
-              (if (or (not parent) (equal? parent p) (string-null? (path->string parent)))
-                #f
-                (loop-dir (path->string parent))
-              ) ;if
-            ) ;let*
-            (let* ((filename (car cands))
-                   (filepath (path->string (path-join (path cur-dir) (path filename))))
-                  ) ;
-              (if (path-file? (path filepath))
-                (let ((content
-                        (catch #t (lambda () (path-read-text (path filepath))) (lambda (k . args) #f))
-                      ) ;content
-                     ) ;
-                  (if (string? content)
-                    (list (cons 'path filepath) (cons 'content content))
-                    (loop-cand (cdr cands))
-                  ) ;if
-                ) ;let
-                (loop-cand (cdr cands))
-              ) ;if
-            ) ;let*
-          ) ;if
-        ) ;let
-      ) ;let
-    ) ;define
-
-    (define (pi-load-project-context dir)
-      (let ((candidates '("AGENTS.override.md" "AGENTS.md" "AGENTS.MD"
-                          "CLAUDE.md" "CLAUDE.MD")
-            ) ;candidates
-           ) ;
-        (%find-first-context-file dir candidates)
-      ) ;let
     ) ;define
 
     (define (%find-snippet name custom-info)
@@ -196,12 +141,42 @@
       ) ;let*
     ) ;define
 
+    (define (%format-session-budget session-timeout max-turns)
+      (let* ((has-st? (and (number? session-timeout) (> session-timeout 0)))
+             (st-line (if has-st?
+                        (string-append "- Session Timeout: "
+                          (number->string session-timeout)
+                          " seconds (hard wall-clock deadline). When deadline is reached, the process terminates immediately."
+                        ) ;string-append
+                        "- Session Timeout: None (no wall-clock deadline configured)."
+                      ) ;if
+             ) ;st-line
+             (has-mt? (and (number? max-turns) (> max-turns 0)))
+             (mt-line (if has-mt?
+                        (string-append "- Max Turns: "
+                          (number->string max-turns)
+                          " turns. When max turns limit is reached, execution stops."
+                        ) ;string-append
+                        "- Max Turns: Unlimited (no turn limit configured)."
+                      ) ;if
+             ) ;mt-line
+             (pacing-line "- Pacing: Pace your work accordingly. If budget is running low, prioritize finalizing answers and providing summary/conclusions instead of starting new tool operations."
+             ) ;pacing-line
+            ) ;
+        (string-append "<session_budget>\n" st-line "\n" mt-line "\n"
+          pacing-line "\n</session_budget>"
+        ) ;string-append
+      ) ;let*
+    ) ;define
+
     (define* (pi-build-system-prompt (tools '("read" "bash" "edit" "write"))
                (cwd ".")
                (project-context #f)
                (system-prompt-override #f)
                (append-system-prompts '())
                (custom-tool-info '())
+               (session-timeout 600)
+               (max-turns 200)
              ) ;pi-build-system-prompt
       (let* ((has-override?
                (and (string? system-prompt-override)
@@ -258,10 +233,11 @@
                  #f
                ) ;if
              ) ;cwd-sec
+             (budget-sec (%format-session-budget session-timeout max-turns))
              (sections
                (filter
                  (lambda (x) (and (string? x) (not (string-null? x))))
-                 (list preamble tools-sec rules-sec addendum-sec project-sec cwd-sec)
+                 (list preamble tools-sec rules-sec addendum-sec project-sec cwd-sec budget-sec)
                ) ;filter
              ) ;sections
             ) ;

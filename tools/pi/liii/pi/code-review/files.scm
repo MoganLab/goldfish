@@ -160,7 +160,7 @@
              (staged (pi-keyword-value :staged opts #f))
              (files (pi-keyword-value :files opts #f))
              (runner (pi-keyword-value :runner opts %default-runner))
-             (timeout (pi-keyword-value :timeout opts 120))
+             (timeout (pi-keyword-value :timeout opts 600))
              (max-files (pi-keyword-value :max-files opts PI_REVIEW_MAX_FILES))
             ) ;
         (if (and (pair? files) (not (null? files)))

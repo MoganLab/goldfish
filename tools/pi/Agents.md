@@ -1,46 +1,57 @@
 # Agents：`bin/gf pi` 任务规格与后续任务书
 
 > 状态：§5 所列九个阶段及 050~053 优化已全部完成，print 模式与 JSON 模式可用。
-> **流水线进度（2026-10-20）**：Extension 机制任务 070~074 已全部完成（PR #1165，
-> 分支 `da/plugins_pi`）；针对 CI 中 `dispatch-pi-dynamic-test` 无凭据报错执行任务 075 进行修复；
-> 后续 076~080 任务编号顺延。
-> 当前大任务：**轻量纯 Scheme Extension 机制**（全面对齐原生 pi 概念模型，
-> 目录约定即发现，解耦并迁移内置扩展至 `tools/pi/liii/pi/extensions/`）。
+> **流水线进度（2026-10-21）**：Extension 机制核心任务 070~075 已全部完成（PR #1165，
+> 分支 `da/plugins_pi`，跨平台 CI 修复并已合并最新 main 分支）。**第一阶段
+> 076~080 已全部完成并 push 至 `origin/da/1079/code_pi`**（分支 `da/1079/code_pi`）：
+> 076 内置扩展收敛（5 个插件归位 `extensions/`，核心零硬编码）→ 077 `pi install`
+> 插件生态 → 078 compass/blueprint 外部示范与 E2E → 079 工具 timeout 语义重定
+> （对齐原生 pi，默认 600s、模型决定即生效、非法值显式报错）→ 080 会话时限注入
+> system prompt（`<session_budget>` 静态注入 + `<current_turn_budget>` 回合级刷新
+> + `<budget_warning>` 临界预警，根治「静默截断丢报告」）。**当前进入第二阶段
+> 081~092 的 `(liii tui)` 原生 TUI 交互实现**，从 081（TUI 架构骨架与启动路由）起步。
+> **全局后续工作两阶段规划（用户裁定 2026-10-20）**：
+> - **第一阶段**：完成当前未完成的工作，主要是 Extension 扩展机制收敛闭环（076~078）以及修复 `bin/gf pi` 核心功能与原生对齐（079~080）；
+> - **第二阶段**：基于刚刚合入 main 的 `(liii tui)` 通用终端 UI 库，实现 `bin/gf pi` 原生沉浸式 TUI 交互界面！
 > 本文档由 Claude 维护（与 `CLAUDE.md`、`README.md` 同为计划文档），
 > 作为拉起 pi 的输入与后续任务书。pi 只负责代码，不改本文档。
 > 分工：本文件写任务书与回归依据；`README.md` 写可运行示例与 TODO 用法。
 
 ## 1. 目标与当前状态
 
-`bin/gf pi` 用纯 Scheme 实现了 pi coding agent 的脚本模式，替代 `pi -p`：
+`bin/gf pi` 用纯 Scheme 实现了 pi coding agent，目标是全面对齐原生 pi 的脚本模式与终端交互模式：
 
 ```bash
 bin/gf pi --print "..."          # print 模式：最终 assistant 文本写 stdout
 bin/gf pi --mode json "..."      # JSON 模式：JSONL 事件流写 stdout
+bin/gf pi                        # 第二阶段目标：启动基于 (liii tui) 的全屏交互式 TUI
 ```
 
 已实现：CLI 参数解析、八个内置基础工具（read/bash/edit/write/grep/find/ls/web_search）、
 `~/.pi/agent/` 只读配置复用、Gemini/Kimi/Deepseek provider（含流式 SSE）、Agent 循环、
-print/JSON 双模式、会话持久化与 `--continue`、单调时钟与 Retry-After 增强重试。
+print/JSON 双模式、会话持久化与 `--continue`、单调时钟与 Retry-After 增强重试、
+Extension 机制核心（070~075：ExtensionAPI/Context、四层插件发现与安全加载、工具/CLI/路由完全解耦、Prompt 注入与 Tool 生命周期拦截、批次 terminate 截断）。
 
-**当前大任务目标（Extension 机制）**：
-- **纯 Scheme 实现，保持轻量与自包含**：不引入 Node.js 运行时或外部重型进程，所有扩展使用 Goldfish Scheme 实现。
-- **全面对齐原生 pi 的概念模型与发现机制**：
-  - API 模型对齐：`ExtensionAPI` / `ExtensionContext`，提供 `register-tool`、`register-flag`、`register-command`、`on` 事件订阅与拦截；
-  - 发现机制对齐（**目录约定即生效**）：只要把相关的 `.scm` 扩展文件（或带有 `index.scm` 的子目录）放在对应扩展目录下，启动时自动扫描发现并加载；
-  - 分层发现范围：
-    1. 仓库内置扩展：`tools/pi/liii/pi/extensions/`（直接随 Goldfish 安装包内置分发，保留 `simplify`, `red-green`, `code-review` 等轻量内置插件）；
-    2. 用户全局扩展：`~/.pi/agent/extensions/*.scm` 或 `~/.pi/agent/extensions/*/index.scm`；
-    3. 项目局部扩展：`.pi/extensions/*.scm` 或 `.pi/extensions/*/index.scm`；
-    4. 命令行显式指定：`-e, --extension <path.scm>`；
-  - 插件生态安装：提供 `bin/gf pi install <git-url>` 命令，将第三方插件一键 git clone 到扩展目录（默认全局，支持 `--local`），克隆即生效；
-- **核心解耦与外部插件示范（用户裁定 2026-10-20）**：
-  - 将 `compass` 和 `blueprint` 两个重型扩展**正式移出主仓库**，抽离为外部独立的 Extension 仓库，作为标准外部插件的 Reference Implementation；
-  - 彻底移除主核心代码（`args.scm`、`tools.scm`、`cli.scm`、`modes.scm` 等）对 `blueprint`、`compass` 的侵入式硬编码；
-  - 验证端到端闭环：通过 `bin/gf pi install` 安装外部 `compass` 与 `blueprint` 扩展，验证其自动发现与功能的完整运作！
+**全局战略路线（两阶段演进，用户裁定 2026-10-20）**：
+
+### 阶段一：Extension 机制收敛闭环与核心运行能力修复（当前进行中，任务 076~080）
+1. **纯 Scheme 实现，保持轻量与自包含**：不引入 Node.js 运行时或外部重型进程，所有扩展使用 Goldfish Scheme 实现；
+2. **内置扩展规范收敛（任务 076）**：主仓库保留的轻量插件（`simplify`, `red-green`, `code-review`）正式收敛至 `tools/pi/liii/pi/extensions/`，彻底废除过渡的内置适配代码；`red-green` 通过标准 `register-command` 对齐提供 `/tdd` 与 `/tdd-status`；
+3. **插件生态一键安装（任务 077）**：提供 `bin/gf pi install <git-url>` 子命令，支持全局（`~/.pi/agent/extensions/<name>`）与局部（`.pi/extensions/<name>`）一键 git clone 安装，实现「克隆即生效」；
+4. **外部参考插件示范与端到端实测（任务 078）**：用户裁定：将重型扩展 `compass`（代码地图）和 `blueprint`（多任务规划）从主核心解耦，**直接把源码移动到两个相应的插件目录即可（无需在 GitHub 创建独立仓库）**；主核心代码彻底清理残留硬编码，端到端验证两插件自动发现、加载与功能的完整运作；
+5. **工具超时语义重定：对齐原生 pi + 默认 600s（任务 079）**：默认值 120s 提升至 600s（对齐 session-timeout），超时只由模型决定且无 CLI 天花板 clamp 压回限制，非法值显式抛错；
+6. **会话时限与轮次预算注入系统提示词（任务 080）**：将 `--session-timeout` 死线与 `--max-turns` 限制注入 system prompt，让 Agent 自主感知剩余预算并合理配速，避免死线到达时静默截断丢失产出。
+
+### 阶段二：基于 `(liii tui)` 实现 `bin/gf pi` 的 TUI 交互界面（任务 081~090）
+1. **依托通用终端 UI 库**：基于刚刚合入主干的 `(liii tui)` 库（PR #1159，已包含 Component 协议、Box/VStack/HStack 布局、按键流式解析、Standard/Virtual 终端、Spinner/Loader、单行/多行 Editor、MainScreen 行级差分渲染与 DECSET 2026 零闪烁同步输出）；
+2. **交互式主事件循环**：启动沉浸式交互终端，维护 `IDLE`（等待输入）、`RUNNING`（Agent 思考中）、`CONFIRM`（人在回路授权确认）等状态机；
+3. **流式增量文本与动态卡片渲染**：LLM 流式 SSE 回包实时差分上屏；Thinking 过程折叠展开；工具调用状态卡片（带动画 Spinner 与耗时结果展示）；
+4. **Slash 命令悬浮菜单**：输入 `/` 时弹出基于 `Box/VStack` 的悬浮菜单，动态感知扩展注册的命令并支持键盘上下选择与 Tab 补全；
+5. **人在回路（Human-in-the-Loop）**：当扩展拦截到敏感工具调用（如写文件、执行 bash）时，TUI 原地弹出模态交互对话框确认；
+6. **100% 确定性单测**：借助 `(liii tui terminal virtual)` 在无 TTY 环境下注入按键流并断言屏幕缓冲区，实现全自动化 CI 回归。
 
 **Provider 支持范围（用户裁定）**：google（Gemini）与 kimi-coding（Kimi）两个。
-Anthropic 已实现但本机无访问权限，不在维护范围；其 OAuth 刷新与交互式 TUI、
+Anthropic 已实现但本机无访问权限，不在维护范围；其 OAuth 刷新与
 项目级 `.pi/settings.json` 读取均为不做项。
 
 ## 2. 仍生效的关键规格（回归依据）
@@ -115,17 +126,20 @@ Anthropic 已实现但本机无访问权限，不在维护范围；其 OAuth 刷
 
 | 编号 | 任务 | 内容与验收点 | 状态 |
 |---|---|---|---|
-| 070 | Extension 核心抽象与 ExtensionAPI | 实现 `(liii pi extension)`：定义 `ExtensionAPI` / `ExtensionContext` 记录类型，提供工具注册（`register-tool`）、命令行参数注册（`register-flag`）、子命令注册（`register-command`）、事件监听与派发（`pi-on!`/`pi-emit!`）；事件生命周期对齐原生 pi（`session_start`, `agent_start`, `tool_call`, `tool_result`, `agent_end`）；TDD 覆盖 | 已完成 |
-| 071 | 插件目录发现机制与加载器（Discovery & Loader） | 实现插件扫描与自动发现（“只要把相关文件放在对应目录即可生效”）：1) 内置目录 `tools/pi/liii/pi/extensions/`；2) 全局目录 `~/.pi/agent/extensions/*.scm`；3) 项目目录 `.pi/extensions/*.scm`；4) 命令行 `-e, --extension <file.scm>`；加载器执行扩展工厂函数注入 API；单插件异常隔离不崩溃主进程；TDD 覆盖 | 已完成 |
-| 072 | 工具层解耦：接驳动态扩展工具注册表 | 改造 `tools.scm`：将 `get-tool-definition` 与 `execute-tool-call` 从硬编码分支改为查询扩展注册表（保留默认 8 个基础工具 read/bash/edit/write/grep/find/ls/web_search，扩展工具由 Extension 动态注册接管）；移除 `tools.scm` 对 `blueprint`, `compass`, `red-green` 的硬编码 import 与 cond 分支；既有工具测试 100% 保持通过 | 已完成 |
-| 073 | 命令行与路由解耦：动态 Flags 挂载与 Local Flow 分发 | 改造 `args.scm`、`cli.scm` 与 `modes.scm`：支持从 Extension 注册表中动态提取扩展声明的命令行 flags 与验证规则；支持扩展注册 local-flow 与 command 路由处理器；移除核心中硬编码的 `--blueprint`, `--codemap`, `--simplify` 等分支；保持所有 CLI 参数与 local-flow 行为 100% 兼容。**注意行数余量**（072 收尾实测）：`tools/pi/liii/pi.scm` 已 299 行、`tools.scm` 293 行，均逼近 300 行硬约束——新增门面导出前先评估是否需再拆一层子库（如把门面导出下沉到 `(liii pi extension)` 等已有子库），不要硬塞 | 已完成 |
-| 074 | 上下文与生命周期拦截：Prompt 注入与 Tool 拦截 | 支持扩展通过 `prompt-injectors` 向系统提示词注入动态内容（如 codemap、blueprint 状态、TDD 约束）；实现 `tool_call` 拦截钩子（支持返回 block 或修改 input 参数）；**补齐原生 pi 的 `terminate` 语义**（`ToolCallEventResult.terminate`——block 后提示 agent 结束当前工具批次，原生 `packages/coding-agent/src/core/extensions/types.ts:1462`；070 尚未实现，勿遗漏）；移出主干 prompt 与循环中硬编码的各扩展提示词注入逻辑；TDD 覆盖。**实施中顺带修掉两个 `bin/gf pi` 缺陷**（已建 issue 留痕）：#1166 记录感知 `assoc` 漏 `pi-tool-call-block` 记录类型致每轮注入抛 type-error（改用记录访问器修复）；#1167 错误告警倾泻完整 error args（含数 KB thought-signature）致日志刷屏（改为 120 字符摘要） | 已完成 |
-| 075 | 修复 dispatch-pi-dynamic-test 在无凭据 CI 环境下报错 | 解决 `dispatch-pi-dynamic-test.scm` 在 CI（无任何 API key / auth.json 环境变量）环境下因测试 Session Flow 缺少 mock api-key 导致抛出 `credential-error` 的问题；补充 mock api-key 使测试语义与纯净环境兼容；全量测试与 CI 回归通过 | 已完成 |
-| 076 | 内置扩展收敛迁移（simplify, red-green, code-review） | 将保留在仓库内的轻量内置插件正式收敛至 `tools/pi/liii/pi/extensions/`，改写为符合标准 Extension 契约的轻量 Scheme 扩展；`red-green` 通过 `register-command` 对齐提供 `/tdd` 与 `/tdd-status` 命令并兼容 `--red-green`；核心层仅通过扫描内置目录自动加载；全量单元测试与既有冒烟示例回归验证全绿 | 待执行 |
-| 077 | `pi install` 插件安装命令实现 | 实现 `pi install <git-url>` 子命令：调用 git 将远程扩展仓库 clone 至对应目录（默认全局 `~/.pi/agent/extensions/<name>`，支持 `--local` 克隆至当前工程 `.pi/extensions/<name>`）；配合目录扫描机制实现插件一键安装即生效；含 git 操作超时控制（强制带 timeout）、目录冲突检查与安全性校验；TDD 覆盖 | 待执行 |
-| 078 | 外部扩展实例移出与端到端实测验证（compass 与 blueprint） | 用户裁定移出 `compass` 与 `blueprint`：1) 将两者代码抽离为独立的外部扩展仓库（作为标准外部扩展参考实现）；2) 主仓库完全清理掉两者的实现代码与硬编码残留；3) 通过 `bin/gf pi install` 安装这两个外部扩展，端到端验证 `--blueprint` 与 `--codemap` 的完整功能无回归 | 待执行 |
-| 079 | 工具调用 timeout 语义重定：对齐原生 pi + 默认 600s | 用户裁定：默认 timeout 可为 600s，且 **LLM 感知到后能通过工具调用传递更大的 timeout**（默认值只是缺省值、不是禁区），且**行为需与 `~/git/pi` 对齐**。原生 pi 基准（`packages/coding-agent/src/core/tools/bash.ts:22-43`）：① 工具 timeout **只由模型决定**——原生 CLI 根本没有 `--timeout` 参数，无任何 CLI 级天花板；② 模型未指定 → **无超时**（`resolveTimeoutMs(undefined)` 返回 undefined，不挂 setTimeout），schema 如实写 `"optional, no default timeout"`；③ 非法值（≤0 / 非有限）→ **显式抛错** `"Invalid timeout: must be a finite number of seconds"`，非静默忽略；④ 仅保留合理性上界 `MAX_TIMEOUT_SECONDS=2147483.647`（≈24.85 天）作 sanity cap，超出亦显式报错；⑤ 错误文案 `Command timed out after N seconds`（goldfish 已一致）。goldfish 现状四处不合：`bash.scm` 的 `(min valid-arg valid-def)` 把"默认值"当"天花板"、模型请求更大值被**静默压回且无回执**；`pi-bash-schema` 是无参静态函数、描述**硬编码** `"defaults to 120s"`；非法值（≤0/负数）被**静默忽略**而非报错；`--timeout` 默认仅 120s 且 `args.scm` 缺省写死 `120`（与 `session-timeout` 存 `#f` 的做法相反）致显式/缺省不可区分。要求：① **默认值 120s → 600s**（与 `--session-timeout` 默认 600s 对齐），且默认值**仅在模型未指定时**生效；② **模型显式值即生效值，不再被默认 clamp**（对齐原生"模型决定即生效"），最终兜底为会话死线；③ **非法值显式报错**（对齐原生 throw：≤0 / 非有限 / 超 sanity cap），不得静默忽略或静默压回；④ **schema 描述动态如实**，模型在决策前即知真实默认值与"默认值非上限"的语义；⑤ `--timeout` 语义由"天花板"改为"默认超时"（`args.scm` 缺省改 `#f` 以区分显式/缺省，`flow.scm` 判定），并消除 `--timeout 0` 当前的语义冲突（既会致模型值无 clamp 突破，又与既有测试断言的"安全回退 120 秒"矛盾）；⑥ **既有回归用例按新语义改写**——`pi-execute-bash-test.scm:68`「模型超大 timeout 不能突破顶层用户限制」（显式 `:timeout 1` + 模型 1000）表达的正是待废止的"天花板"语义，新语义下 `--timeout` 仅为默认值、模型 1000 应生效 1000，该用例须相应改写并在 078 任务文档中记录此语义变更；⑦ 其他工具（read/edit/write/grep/find/ls）目前无 per-call timeout 参数，一并统一可见性；TDD 覆盖 | 待执行 |
-| 080 | 会话时限注入 system prompt：让 agent 感知剩余预算 | 修 `gf pi` 的会话死线对 agent 不可见问题：`prompt.scm` 中 timeout/max-turns/deadline **零命中**，system prompt 从不告诉 agent 它的会话预算；而 `--session-timeout` 是硬墙钟死线（`agent.scm`：`deadline = start + session-timeout`），到达即静默截断进程、最终报告全丢——070 阶段二实测触发：`Session timeout exceeded: total execution deadline reached`，仅余 59 字节错误日志，前序产出虽在但结论与验收依据全丢。要求把会话时限（`--session-timeout`）与轮次上限（`--max-turns`）注入 system prompt（或提供剩余预算查询手段），使 agent 可自我配速、临近时限优先收敛产出而非被动被杀；TDD 覆盖。**补充证据（074 阶段二实测）**：**轮次上限同样会静默截断**——`Maximum turns limit reached`（默认 200 轮用尽），最终报告全丢，工作区产出虽在但验收依据全丢（事后实测 18/18 扩展测试仍全绿，说明断在最后的全量回归阶段而非实现阶段）。**拉起侧对策**：`--max-turns 0` 表示不限轮次（见 `gf pi --help`），长时间开发阶段应显式传 0 或大值；**根治侧对策**：两条死线（会话时限、轮次上限）都须对 agent 可见 | 待执行 |
+| 080 | 会话时限注入 system prompt：让 agent 感知剩余预算 | 修 `gf pi` 的会话死线对 agent 不可见问题：`prompt.scm` 中 timeout/max-turns/deadline **零命中**，system prompt 从不告诉 agent 它的会话预算；而 `--session-timeout` 是硬墙钟死线（`agent.scm`：`deadline = start + session-timeout`），到达即静默截断进程、最终报告全丢——070 阶段二实测触发：`Session timeout exceeded: total execution deadline reached`，仅余 59 字节错误日志，前序产出虽在但结论与验收依据全丢。要求把会话时限（`--session-timeout`）与轮次上限（`--max-turns`）注入 system prompt（或提供剩余预算查询手段），使 agent 可自我配速、临近时限优先收敛产出而非被动被杀；TDD 覆盖。**补充证据（074 阶段二实测）**：**轮次上限同样会静默截断**——`Maximum turns limit reached`（默认 200 轮用尽），最终报告全丢，工作区产出虽在但验收依据全丢（事后实测 18/18 扩展测试仍全绿，说明断在最后的全量回归阶段而非实现阶段）。**拉起侧对策**：`--max-turns 0` 表示不限轮次（见 `gf pi --help`），长时间开发阶段应显式传 0 或大值；**根治侧对策**：两条死线（会话时限、轮次上限）都须对 agent 可见 | 已完成（commit `e233294f` PLAN + `2d570cac` REVIEW代码 + `d5354c5a` REVIEW验收，已 push 至 `origin/da/1079/code_pi`；执行模型 google/gemini-3.8-flash；Claude 独立复核：`bin/gf tools/pi/devel/080.scm` 实跑 51/51 断言全绿、319/319 全量单测 PASS、`--max-turns 0` 语义坑已正确处理（显示 "unlimited turns" 且不误触发临界告警）、`prompt.scm` 295→249 行并拆出 `prompt/context.scm`、另拆 `agent/{budget,loop}.scm`） |
+| 081 | TUI 架构骨架与启动路由（StandardTerminal 切换与安全还原） | 实现交互式 TUI 启动门面：1) `args.scm` 支持缺省无参时进入 `mode = 'tui`；2) 新建 `modes/tui.scm`，通过 `(make-standard-terminal)` 初始化终端（raw 模式、alternate 屏幕缓冲区 `\x1b[?1049h`、隐藏光标）；3) **安全还原兜底**：使用 `dynamic-wind` 确保任何异常、中断或退出时 100% 恢复终端原始形态（退出 alternate 屏、显示光标、还原 cooked 模式），绝不卡死终端；4) 按 q/Esc 优雅退出返回 0；虚拟终端单测覆盖 | 待执行 |
+| 082 | TUI 会话状态机与主事件循环驱动器 | 实现响应式主循环引擎：1) 定义 `pi-tui-state`（包含 `status` [IDLE/RUNNING/STREAMING/CONFIRM/EXIT]、`messages`、`input-editor`、`active-tool`、`scroll-offset` 等字段）；2) 对接 `(liii tui terminal)` 的非阻塞按键轮询（`terminal-poll-key`）；3) 节拍控制（~30-60fps）与脏标记局部重绘驱动；4) 利用 `virtual-terminal` 注入按键流验证状态机完整流转；TDD 覆盖 | 待执行 |
+| 083 | 用户输入组件集成（(liii tui editor) 与多行编辑） | 集成沉浸式 Prompt 输入框：1) 嵌入 `(liii tui editor)` 为 TUI 输入组件；2) 完整按键映射：字符插入、退格删除、左右方向键光标移动、Home/End 跳转；3) 历史记录导航：上下箭头在空行或首行时翻阅会话历史 Prompt；4) Enter 提取完整输入并提交，Shift+Enter 或反斜杠多行折行；5) 现代化圆角外框包裹与提示符 `> `；虚拟终端断言输入与提交行为；TDD 覆盖 | 待执行 |
+| 084 | MainScreen 动态布局划分与窗口 Resize 自适应 | 构建响应式屏幕分区：1) 基于 `(liii tui box)` 与 `(liii tui main-screen)` 划分界面拓扑（顶部消息视口 + 中部自适应高度输入框 + 底部状态栏）；2) 动态读取 `terminal-detect-size` 计算视口比例；3) 监听窗口尺寸变化，检测到列宽行高变动时调用 `screen-resize!` 全量差分重绘无闪烁；4) 窄屏（<60列）优雅折叠状态栏与装饰边框；TDD 覆盖 | 待执行 |
+| 085 | 消息历史视口与自然折行渲染（Message Viewport & Wrap） | 消息列表排版与滚动浏览：1) 设计 `pi-tui-message-item` 视图组件，区分 User 蓝色前缀、Assistant 绿色前缀与 System 灰色提示；2) 采用 `(liii tui text-width)` 的 `wrap-text` 与 `display-width`，按视口宽度自然折行，精准处理中英文与 emoji 终端显示宽度；3) 超出屏幕时默认自动贴底跟随；4) 支持 PageUp/PageDown 与方向键调整 `scroll-offset` 向上回滚查看历史；TDD 覆盖 | 待执行 |
+| 086 | 流式 SSE 增量文本上屏与行差分渲染（Streaming Output） | 实时打字机效果无闪烁上屏：1) 在 Agent 产生 `message_update` 事件时捕获增量文本 chunk；2) 原地追加到当前轮次助手消息末尾并重新排版末尾变化行；3) 借助 `(liii tui main-screen)` 的行级 diff 引擎，仅原地覆写被追加修改的 1~2 行，行缩短时使用 `terminal-clear-line-to-end` 擦尾；4) 整帧 DECSET 2026 同步包裹单次 flush，达成 0 瞬时空白闪烁；TDD 覆盖 | 待执行 |
+| 087 | Thinking 推理思考过程动态折叠卡片组件 | 深度思考链条可视化呈现：1) 设计 Thinking 折叠卡片组件，状态包含 `collapsed?`（默认收起）；2) 折叠态展示为单行浅灰摘要 `> [Thinking] 正在深度思考 (N tokens)...` 或完成后的 `> [Thinking] 推理已完成 (按 Tab 展开)`；3) 展开态通过单线 Box 边框包裹完整思维链文本，支持独立视口内部滚动；4) 快捷键（Tab / Ctrl+O）自由切换展开/收起态；TDD 覆盖 | 待执行 |
+| 088 | 工具调用状态卡片与执行中 Spinner 动态反馈 | 工具执行生命周期动态看板：1) 集成 `(liii tui loader)` 的 `make-spinner` 多帧动画；2) 收到 `tool_execution_start` 时追加状态卡片 `[⠋] bash: git status`；3) 主事件循环在 RUNNING 节拍驱动 Spinner 动画帧原地刷新；4) 收到 `tool_execution_end` 时 Spinner 停止，原地平滑替换为完成态 `[✓] bash (0.4s)` 或错误态 `[✗] bash: failed`，下方展示结果摘要；TDD 覆盖 | 待执行 |
+| 089 | Slash 命令悬浮菜单与动态自动补全 | 交互式扩展命令感知：1) 输入框首字符输入 `/` 时在输入框上方弹出悬浮选择菜单（Box + VStack）；2) 动态从活跃扩展注册表收集所有已注册的 `ExtensionCommandDef`（如 `/tdd`, `/review`, `/simplify`, `/help`）；3) 键盘上下键高亮切换选中项，Tab 或 Enter 一键填入输入框，Esc 取消；4) 键入后续字符时动态模糊过滤候选列表；TDD 覆盖 | 待执行 |
+| 090 | 人在回路（Human-in-the-loop）敏感操作模态确认 | 危险操作终端拦截确认：1) 结合 074 `tool_call` 拦截钩子，高危工具调用（write/edit/高危 bash）触发模态拦截；2) 状态机切入 `CONFIRM`，主界面中央弹出模态警告对话框；3) 详细展示工具名、目标文件、命令参数与变更差异预览；4) 提示 `[y] 允许 / [n] 阻止 / [e] 编辑`；响应按键返回确认或拒绝的 tool-result，弹窗关闭后平滑恢复原屏幕；TDD 覆盖 | 待执行 |
+| 091 | 全局快捷键调度与 /help 模态帮助屏 | 终端交互快捷操作与手册：1) 全局快捷键：`Ctrl+C`（RUNNING 时向 Agent 发出中断信号；IDLE 且输入空时按两次退出）；`Ctrl+L`（清空行缓冲并全量强制重绘）；`Ctrl+U`（清除当前输入行）；2) `/help` 或 `?` 触发全屏模态帮助面板，展示所有快捷键、可用基础工具、已加载插件列表及当前模型状态；按任意键返回；TDD 覆盖 | 待执行 |
+| 092 | TUI 端到端全量自动化集成验收（Virtual Terminal E2E） | 闭环自动化回归：1) 编写 `tests/liii/pi/tui/e2e-test.scm` 与验收脚本 `092.scm`；2) 利用 `(make-virtual-terminal)` 在纯无 TTY 环境下注入按键流，覆盖从启动、输入、Spinner 动画、流式回包、模态拦截放行到退出的完整交互链路；3) 断言虚拟屏幕字符快照、退出码（0）以及终端状态正确恢复；全平台门禁通过 | 待执行 |
+| 093 | provider 内 key 级轮换落地：消除 429 限流 | **取证（2026-10-21 任务 078 开发阶段实测）**：全程 `HTTP 429` 限流，日志反复出现 `[pi retry] HTTP 429, attempt 1/12 → 2/12 → 3/12`（退避 2s→4s→8s），计数器**按请求独立重置**故未触顶、产出未受阻，但每次响应首字节延迟被显著拉长。`CLAUDE.md` §5.5 记载任务 033 已建 multikey 密钥池且「限额管理从 provider 级轮换细化到 provider 内 key 级自动轮换——429/403 不再打断流水线阶段任务」，但本机实测 **key 级轮换未生效**（`~/.pi/agent/auth.json` 单 key 形态，429 仍高频复现）。要求：1) 核对 `auth.json` / `models-store.json` 的多 key 配置格式与 `multikey.scm` 的实际接线情况，定位「已建能力未生效」的断点；2) 实现并启用 provider 内 key 级自动轮换——遇 429/403 自动切下一 key，池耗尽才回退到单 key 重试；3) 凭据缺失或多 key 格式非法时**明确报错**（绝不静默成功）；4) TDD 覆盖轮换逻辑（可用 mock provider 注入 429 序列断言切换行为）；5) 补一份可用 key 池配置说明（`README.md` 登记） | 待执行 |
 
 共同约束：
 - 每个任务常态三个 commit：`[编号][PLAN]`（建档）+ `[编号][REVIEW]`（代码）

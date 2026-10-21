@@ -19,9 +19,6 @@
     (liii pi web-search)
     (liii pi code-review)
     (liii pi simplify)
-    (liii pi red-green)
-    (liii pi blueprint)
-    (liii pi compass)
     (liii pi tools)
     (liii pi tools types)
     (liii pi tools record)
@@ -57,62 +54,19 @@
     pi-write-schema pi-execute-write pi-edit-schema pi-execute-edit
     pi-bash-schema pi-execute-bash pi-find-bash-path pi-ls-schema pi-execute-ls
     pi-find-schema pi-execute-find pi-grep-schema pi-execute-grep
-    pi-web-search-schema pi-validate-web-search-args pi-format-web-search-result
-    pi-execute-web-search pi-resolve-config-value json-dict-ref pi-get-agent-dir
-    PI_REVIEW_MAX_FILES PI_REVIEW_MAX_FILE_CHARS PI_REVIEW_SEVERITIES
-    pi-parse-changed-files pi-changed-files-command pi-collect-changed-files
-    pi-review-file-records pi-detect-language pi-language-checklist
-    pi-build-language-section pi-build-review-prompt pi-build-fallback-prompt
-    pi-parse-review-findings pi-format-review-findings pi-build-review-injection
-    pi-edited-files-from-tool-calls pi-validate-review-flags
-    pi-parse-changed-ranges pi-diff-ranges-command pi-collect-simplify-files
-    pi-build-scope-lines pi-format-range pi-build-simplify-prompt
-    pi-build-simplify-apply-prompt pi-parse-simplify-suggestions
-    pi-format-simplify-suggestions pi-tdd-state? pi-tdd-state-phase
-    pi-tdd-state-task pi-tdd-state-test-files pi-tdd-state-impl-files
-    pi-tdd-state-last-test-run pi-tdd-state-phase-history
-    pi-tdd-state-turn-index pi-tdd-state-warning pi-tdd-initial-state
-    pi-tdd-idle-state pi-tdd-set-warning pi-tdd-add-test-file
-    pi-tdd-add-impl-file pi-tdd-set-last-test-run pi-tdd-set-turn-index
-    pi-tdd-stale-test-run? pi-tdd-advance-phase pi-tdd-current-state
-    pi-tdd-set-current-state! pi-tdd-active? pi-tdd-start! pi-tdd-bump-turn!
-    pi-tdd-reset! pi-tdd-glob-match? pi-tdd-language-of pi-classify-tdd-file
-    pi-tdd-test-run-command? pi-tdd-parse-test-run-result
-    pi-tdd-test-run-trigger pi-tdd-exit-code-from-text pi-tdd-write-gate
-    pi-tdd-note-edited-file! pi-tdd-observe-tool! pi-tdd-red-phase-prompt
-    pi-tdd-green-phase-prompt pi-tdd-refactor-phase-prompt
-    pi-build-red-green-prompt pi-tdd-turn-system-prompt pi-format-tdd-summary
-    pi-tdd-status-schema pi-tdd-advance-schema pi-tdd-reset-schema
-    pi-execute-tdd-status pi-execute-tdd-advance pi-execute-tdd-reset
-    pi-tdd-status-definition pi-tdd-advance-definition pi-tdd-reset-definition
-    run-red-green-flow pi-tdd-extend-tool-names pi-blueprint-task
-    pi-blueprint-phase pi-blueprint-gate pi-blueprint-blueprint
-    pi-blueprint-new-id pi-task-id pi-task-done? pi-phase-id pi-phase-tasks
-    pi-phase-gates pi-gate-type pi-gate-description pi-gate-command
-    pi-gate-passed? pi-blueprint-objective pi-blueprint-status
-    pi-blueprint-phases pi-blueprint-active-phase-id pi-blueprint-active-task-id
-    pi-blueprint-all-tasks pi-blueprint-detect-cycles pi-blueprint-get-next-task
-    pi-blueprint-start-task pi-blueprint-complete-task pi-blueprint-skip-task
-    pi-blueprint-advance-phase pi-blueprint-create pi-blueprint-abandon
-    pi-parse-blueprint-plan pi-validate-blueprint-plan pi-render-blueprint-plan
-    pi-format-blueprint-progress pi-build-blueprint-context
-    pi-build-blueprint-generate-prompt pi-run-blueprint-gate pi-blueprint-load!
-    pi-blueprint-save-current! pi-execute-blueprint-update
-    pi-execute-blueprint-status pi-execute-blueprint-next run-blueprint-flow
-    pi-blueprint-extend-tool-names pi-resolve-turn-system-prompt
-    pi-compass-detect-project pi-compass-build-directory-tree
-    pi-compass-format-directory-tree pi-compass-detect-packages
-    pi-compass-detect-frameworks pi-compass-detect-entry-points
-    pi-compass-detect-build-scripts pi-compass-detect-conventions
-    pi-compass-detect-key-files pi-compass-content-hash
-    pi-compass-generate-codemap pi-compass-render-codemap
-    pi-compass-truncate-codemap pi-compass-detect-topics pi-compass-build-tour
-    pi-compass-render-tour pi-compass-describe-file pi-compass-load-codemap
-    pi-compass-save-codemap! pi-compass-get-or-generate
-    pi-compass-build-injection pi-compass-injection-text pi-execute-codebase-map
-    pi-execute-code-tour pi-compass-extend-tool-names pi-compass-validate
-    pi-compass-local-flow? pi-compass-flag? run-compass-flow
-    pi-auto-review-system-prompt pi-read-json-file pi-load-settings
+    PI_MAX_TIMEOUT_SECONDS pi-web-search-schema pi-validate-web-search-args
+    pi-format-web-search-result pi-execute-web-search pi-resolve-config-value
+    json-dict-ref pi-get-agent-dir PI_REVIEW_MAX_FILES PI_REVIEW_MAX_FILE_CHARS
+    PI_REVIEW_SEVERITIES pi-parse-changed-files pi-changed-files-command
+    pi-collect-changed-files pi-review-file-records pi-detect-language
+    pi-language-checklist pi-build-language-section pi-build-review-prompt
+    pi-build-fallback-prompt pi-parse-review-findings pi-format-review-findings
+    pi-build-review-injection pi-edited-files-from-tool-calls
+    pi-validate-review-flags pi-parse-changed-ranges pi-diff-ranges-command
+    pi-collect-simplify-files pi-build-scope-lines pi-format-range
+    pi-build-simplify-prompt pi-build-simplify-apply-prompt
+    pi-parse-simplify-suggestions pi-format-simplify-suggestions
+    pi-resolve-turn-system-prompt pi-read-json-file pi-load-settings
     pi-resolve-proxy-url pi-load-auth pi-resolve-provider-key pi-load-multikey
     pi-multikey-select-key pi-multikey-mark-cooldown! pi-multikey-pool-of
     pi-multikey-request-key pi-multikey-rotate! pi-mask-key pi-pool-key

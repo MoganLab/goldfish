@@ -14,21 +14,14 @@
     (liii pi config)
     (liii pi extension types)
     (liii pi extension registry)
-    (liii pi extension builtin flows)
     (liii pi modes output)
     (liii pi modes flow)
     (liii pi modes review)
     (liii pi modes simplify)
-    (liii pi modes red-green)
-    (liii pi modes blueprint)
-    (liii pi modes compass)
   ) ;import
   (export display-stderr handle-print-result emit-json-event dispatch-pi
     prepare-system-prompt persist-initial-user-msg! run-agent-loop-with-timeout
     run-session-flow run-compact-flow run-code-review-flow run-simplify-flow
-    run-red-green-flow pi-tdd-extend-tool-names pi-auto-review-system-prompt
-    run-blueprint-flow pi-blueprint-extend-tool-names run-compass-flow
-    pi-compass-augment-config
   ) ;export
   (begin
 
