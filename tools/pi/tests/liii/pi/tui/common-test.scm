@@ -11,10 +11,12 @@
 (check (%keyword-value :missing '(:key "val") "default") => "default")
 (check (%keyword-value :key '() "default") => "default")
 
-;; 2. 测试 detect-git-branch 在当前仓库下能够探测到分支名称
+;; 2. 测试 detect-git-branch 返回合法分支名或 #f（在 detached HEAD / CI 环境下为 #f）
 (let ((branch (detect-git-branch)))
   (check-true (or (not branch) (string? branch)))
-  (check-true (string? branch))
+  (when (string? branch)
+    (check-true (not (string-null? branch)))
+  ) ;when
 ) ;let
 
 (check-report)
