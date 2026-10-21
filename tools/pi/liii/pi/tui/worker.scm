@@ -28,47 +28,63 @@
 
     ;; 将 agent 会话事件翻译为 TUI 卡片事件并投递到 event-chan（生产与测试共用）
     (define (make-tui-emit event-chan)
-      (lambda (event-type . args)
-        (cond
-          ;; 工具执行完成
-          ((eq? event-type 'tool_execution_end)
-           (let ((name (if (> (length args) 1) (cadr args) "tool"))
-                 (raw-res (if (> (length args) 2) (caddr args) ""))
-                 (is-err? (if (> (length args) 3) (cadddr args) #f))
-                ) ;
-             (pi-tui-send-event! event-chan
-               (list 'tool_execution_end name '() is-err? raw-res)
-             ) ;pi-tui-send-event!
-           ) ;let
-          ) ;
-          ;; 消息回复完成
-          ((eq? event-type 'message_end)
-           (when (pair? args)
-             (let* ((msg (car args))
-                    (role (pi-message-field msg 'role ""))
-                    (content (pi-message-field msg 'content '()))
-                    (text (pi-content-text content))
+      (let ((call-args-map '()))
+        (lambda (event-type . args)
+          (cond
+            ;; 记录工具开始执行时的参数
+            ((eq? event-type 'tool_execution_start)
+             (when (>= (length args) 3)
+               (let ((id (car args)) (call-args (caddr args)))
+                 (set! call-args-map (cons (cons id call-args) call-args-map))
+               ) ;let
+             ) ;when
+            ) ;
+            ;; 工具执行完成
+            ((eq? event-type 'tool_execution_end)
+             (let* ((id (if (pair? args) (car args) ""))
+                    (name (if (> (length args) 1) (cadr args) "tool"))
+                    (raw-res (if (> (length args) 2) (caddr args) ""))
+                    (is-err? (if (> (length args) 3) (cadddr args) #f))
+                    (call-args
+                      (let ((entry (assoc id call-args-map)))
+                        (if entry (cdr entry) (if (> (length args) 4) (list-ref args 4) '()))
+                      ) ;let
+                    ) ;call-args
                    ) ;
-               (when
-                 (and (equal? role "assistant") (not (string-null? (string-trim-both text))))
-                 (pi-tui-send-event! event-chan (list 'assistant_text text))
-               ) ;when
+               (pi-tui-send-event! event-chan
+                 (list 'tool_execution_end name call-args is-err? raw-res)
+               ) ;pi-tui-send-event!
              ) ;let*
-           ) ;when
-          ) ;
-          ;; 重试提示，转为卡片而非污染终端
-          ((eq? event-type 'retry)
-           (when (pair? args)
-             (pi-tui-send-event! event-chan (list 'retry (car args)))
-           ) ;when
-          ) ;
-          ;; 任务全部结算完成
-          ((eq? event-type 'agent_settled)
-           (pi-tui-send-event! event-chan (list 'agent_settled))
-          ) ;
-          (else #t)
-        ) ;cond
-      ) ;lambda
+            ) ;
+            ;; 消息回复完成
+            ((eq? event-type 'message_end)
+             (when (pair? args)
+               (let* ((msg (car args))
+                      (role (pi-message-field msg 'role ""))
+                      (content (pi-message-field msg 'content '()))
+                      (text (pi-content-text content))
+                     ) ;
+                 (when
+                   (and (equal? role "assistant") (not (string-null? (string-trim-both text))))
+                   (pi-tui-send-event! event-chan (list 'assistant_text text))
+                 ) ;when
+               ) ;let*
+             ) ;when
+            ) ;
+            ;; 重试提示，转为卡片而非污染终端
+            ((eq? event-type 'retry)
+             (when (pair? args)
+               (pi-tui-send-event! event-chan (list 'retry (car args)))
+             ) ;when
+            ) ;
+            ;; 任务全部结算完成
+            ((eq? event-type 'agent_settled)
+             (pi-tui-send-event! event-chan (list 'agent_settled))
+            ) ;
+            (else #t)
+          ) ;cond
+        ) ;lambda
+      ) ;let
     ) ;define
 
     ;; 在 (liii go) 的后台独立 worker 线程中运行，完全不阻塞前台终端编辑与打字

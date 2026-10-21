@@ -6,9 +6,14 @@
 
 (define-library (liii pi tui views)
   (export make-user-card make-tool-card make-assistant-card make-queued-card
-    make-retry-card apply-card-bg
+    make-retry-card apply-card-bg format-tool-call format-tool-result-lines
   ) ;export
-  (import (scheme base) (liii string) (liii tui component) (liii tui text-width))
+  (import (scheme base)
+    (liii string)
+    (liii tui component)
+    (liii tui text-width)
+    (liii pi tui renderers)
+  ) ;import
   (begin
 
     ;; ANSI 颜色常量（严格对应 pi 交互主题体系）
@@ -59,6 +64,35 @@
       ) ;make-component
     ) ;define
 
+    ;; 渲染工具卡片多行行列表的辅助函数
+    (define (render-tool-card-lines tool-name args status result width)
+      (let* ((badge-and-colors (case status
+                                ((success) (list " ✔ " %bg-success %fg-success))
+                                ((error) (list " ✖ " %bg-error %fg-error))
+                                (else (list " ● " %bg-pending %fg-pending))
+                               ) ;case
+             ) ;badge-and-colors
+             (badge (car badge-and-colors))
+             (bg (cadr badge-and-colors))
+             (fg (caddr badge-and-colors))
+             (title-line (string-append badge (format-tool-call tool-name args)))
+             (row1 (apply-card-bg title-line width bg fg))
+             (res-lines (if result (format-tool-result-lines tool-name result) '()))
+            ) ;
+        (if (null? res-lines)
+          (list row1 "")
+          (let ((rows
+                  (map (lambda (line) (apply-card-bg (string-append "    " line) width bg fg))
+                    res-lines
+                  ) ;map
+                ) ;rows
+               ) ;
+            (append (cons row1 rows) (list ""))
+          ) ;let
+        ) ;if
+      ) ;let*
+    ) ;define
+
     ;; 工具调用状态卡片组件 (make-tool-card tool-name args status [result])
     ;; status: 'pending / 'success / 'error
     (define (make-tool-card tool-name args status . maybe-result)
@@ -68,27 +102,7 @@
           (lambda (self width)
             (if (<= width 0)
               '()
-              (let* ((prefix-and-colors (case status
-                                         ((success) (list " ✔ " %bg-success %fg-success))
-                                         ((error) (list " ✖ " %bg-error %fg-error))
-                                         (else (list " ● " %bg-pending %fg-pending))
-                                        ) ;case
-                     ) ;prefix-and-colors
-                     (badge (car prefix-and-colors))
-                     (bg (cadr prefix-and-colors))
-                     (fg (caddr prefix-and-colors))
-                     (title-line (string-append badge tool-name " " (object->string args)))
-                     (row1 (apply-card-bg title-line width bg fg))
-                    ) ;
-                (if result
-                  (let* ((res-str (if (string? result) result (object->string result)))
-                         (row2 (apply-card-bg (string-append "    " res-str) width bg fg))
-                        ) ;
-                    (list row1 row2 "")
-                  ) ;let*
-                  (list row1 "")
-                ) ;if
-              ) ;let*
+              (render-tool-card-lines tool-name args status result width)
             ) ;if
           ) ;lambda
         ) ;make-component

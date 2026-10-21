@@ -28,7 +28,7 @@
   ;; 验证成功状态具有绿色背景 ANSI 转义码 (48;2;35;55;35)
   (check (string-contains? (car lines) "48;2;35;55;35") => #t)
   ;; 验证输出包含工具名称与成功标识
-  (check (string-contains? (car lines) "bash") => #t)
+  (check (string-contains? (car lines) "$ npm test") => #t)
 ) ;let*
 
 ;; -----------------------------------------------------------------------------
