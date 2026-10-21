@@ -7,15 +7,10 @@
 (import (scheme base)
   (liii string)
   (liii pi extension)
+  (liii pi args query)
   (liii pi simplify)
   (liii pi modes simplify)
 ) ;import
-
-(define (%ref parsed key)
-  (let ((p (assoc key parsed)))
-    (if p (cdr p) #f)
-  ) ;let
-) ;define
 
 (define (simplify-extension api . opt-context)
   ;; 1. 注册 flags
@@ -45,9 +40,9 @@
   ;; 3. 注册 validator
   (register-validator! api
     (lambda (parsed . extra)
-      (let ((simplify (%ref parsed 'simplify))
-            (apply? (%ref parsed 'apply))
-            (code-review (%ref parsed 'code-review))
+      (let ((simplify (pi-args-ref parsed 'simplify))
+            (apply? (pi-args-ref parsed 'apply))
+            (code-review (pi-args-ref parsed 'code-review))
            ) ;
         (when (and simplify code-review)
           (error 'pi-arg-error "--code-review and --simplify cannot be used together")
@@ -62,7 +57,7 @@
   ;; 4. 注册 flow
   (register-flow! api
     (make-extension-flow-def 'simplify
-      (lambda (p) (%ref p 'simplify))
+      (lambda (p) (pi-args-ref p 'simplify))
       (lambda (parsed cfg mode initial-msg) (run-simplify-flow parsed cfg mode))
       :local?   #f
       :priority 10

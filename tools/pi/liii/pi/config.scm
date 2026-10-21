@@ -47,21 +47,7 @@
       ) ;if
     ) ;define
 
-    (define (pi-get-agent-dir . opt-dir)
-      (let ((custom (and (pair? opt-dir) (car opt-dir)))
-            (env-dir (get-environment-variable "PI_CODING_AGENT_DIR"))
-           ) ;
-        (cond
-         ((and (string? custom) (not (string-null? (string-trim-both custom))))
-          (pi-resolve-path custom (getcwd))
-         ) ;
-         ((and (string? env-dir) (not (string-null? (string-trim-both env-dir))))
-          (pi-resolve-path env-dir (getcwd))
-         ) ;
-         (else (pi-resolve-path "~/.pi/agent" (getcwd)))
-        ) ;cond
-      ) ;let
-    ) ;define
+    ;; pi-get-agent-dir 已下沉至 (liii pi read)，此处经 import 再导出
 
     (define (pi-read-json-file filepath)
       (and (path-exists? (path filepath))

@@ -7,15 +7,10 @@
 (import (scheme base)
   (liii string)
   (liii pi extension)
+  (liii pi args query)
   (liii pi code-review)
   (liii pi modes review)
 ) ;import
-
-(define (%ref parsed key)
-  (let ((p (assoc key parsed)))
-    (if p (cdr p) #f)
-  ) ;let
-) ;define
 
 (define (code-review-extension api . opt-context)
   ;; 1. 注册 flags
@@ -37,43 +32,27 @@
   ) ;register-flag!
 
   ;; 2. 注册 commands
-  (register-command! api
-    (make-extension-command-def "/review"
-      "Run code review on changes (/review)"
-      (lambda (args ctx) "code-review command executed")
-      :params '()
-    ) ;make-extension-command-def
-  ) ;register-command!
-  (register-command! api
-    (make-extension-command-def "review"
-      "Run code review on changes (review)"
-      (lambda (args ctx) "code-review command executed")
-      :params '()
-    ) ;make-extension-command-def
-  ) ;register-command!
-  (register-command! api
-    (make-extension-command-def "/code-review"
-      "Run code review on changes (/code-review)"
-      (lambda (args ctx) "code-review command executed")
-      :params '()
-    ) ;make-extension-command-def
-  ) ;register-command!
-  (register-command! api
-    (make-extension-command-def "code-review"
-      "Run code review on changes (code-review)"
-      (lambda (args ctx) "code-review command executed")
-      :params '()
-    ) ;make-extension-command-def
-  ) ;register-command!
+  (for-each
+    (lambda (n)
+      (register-command! api
+        (make-extension-command-def n
+          "Run code review on changes"
+          (lambda (args ctx) "code-review command executed")
+          :params '()
+        ) ;make-extension-command-def
+      ) ;register-command!
+    ) ;lambda
+    '("/review" "review" "/code-review" "code-review")
+  ) ;for-each
 
   ;; 3. 注册 validator
   (register-validator! api
     (lambda (parsed . extra)
-      (let ((code-review (%ref parsed 'code-review))
-            (auto-review (%ref parsed 'auto-review))
-            (simplify (%ref parsed 'simplify))
-            (staged (%ref parsed 'staged))
-            (ref (%ref parsed 'review-ref))
+      (let ((code-review (pi-args-ref parsed 'code-review))
+            (auto-review (pi-args-ref parsed 'auto-review))
+            (simplify (pi-args-ref parsed 'simplify))
+            (staged (pi-args-ref parsed 'staged))
+            (ref (pi-args-ref parsed 'review-ref))
            ) ;
         (when (and code-review auto-review)
           (error 'pi-arg-error "--code-review and --auto-review cannot be used together")
@@ -94,7 +73,7 @@
   ;; 4. 注册 flow
   (register-flow! api
     (make-extension-flow-def 'code-review
-      (lambda (p) (%ref p 'code-review))
+      (lambda (p) (pi-args-ref p 'code-review))
       (lambda (parsed cfg mode initial-msg) (run-code-review-flow parsed cfg mode))
       :local?   #f
       :priority 10

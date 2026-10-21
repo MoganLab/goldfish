@@ -17,7 +17,6 @@
     (liii pi extension registry)
     (liii pi extension discovery)
     (liii pi extension loader)
-    (liii pi extension builtin)
     (liii pi extension install)
   ) ;import
   (export main display-pi-help read-all-stdin run-goldpi run-pi)
@@ -145,8 +144,11 @@
     ) ;define
 
     (define (%ensure-extensions-loaded!)
-      (let* ((reg (default-extension-registry)) (paths (pi-discover-extensions)))
-        (register-builtin-extensions! reg)
+      ;; 内置扩展由 args.scm 的 registry initializer（ensure-builtin-extensions!）负责加载，
+      ;; 这里只加载全局/项目级扩展，避免 builtin 目录被重复加载
+      (let* ((reg (default-extension-registry))
+             (paths (pi-discover-extensions :builtin-dir #f))
+            ) ;
         (pi-load-extensions paths reg)
         reg
       ) ;let*

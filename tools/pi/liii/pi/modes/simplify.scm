@@ -142,24 +142,13 @@
       ) ;let
     ) ;define
 
-    (define (%simplify-timeout parsed cfg)
-      (let ((t (pi-args-ref parsed 'timeout)))
-        (if (and (number? t) (> t 0))
-          t
-          (let ((cfg-t (cdr (or (assoc 'timeout cfg) '(#f . 600)))))
-            (if (and (number? cfg-t) (> cfg-t 0)) cfg-t 600)
-          ) ;let
-        ) ;if
-      ) ;let
-    ) ;define
-
     (define (%collect parsed cfg)
       (let ((file-args (pi-args-ref parsed 'messages)))
         (pi-collect-simplify-files
           :ref     (or (pi-args-ref parsed 'review-ref) "HEAD")
           :staged  (pi-args-ref parsed 'staged)
           :files   (and (pair? file-args) file-args)
-          :timeout (%simplify-timeout parsed cfg)
+          :timeout (pi-resolve-timeout parsed cfg)
         ) ;pi-collect-simplify-files
       ) ;let
     ) ;define

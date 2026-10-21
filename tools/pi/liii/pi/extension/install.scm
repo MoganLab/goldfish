@@ -7,7 +7,6 @@
 (define-library (liii pi extension install)
   (import (scheme base)
     (scheme char)
-    (scheme process-context)
     (liii string)
     (liii path)
     (liii os)
@@ -20,17 +19,6 @@
     pi-resolve-install-target pi-git-clone-extension pi-install-extension
   ) ;export
   (begin
-
-    (define (%opt-key-value args key default-val)
-      (let loop
-        ((rest args))
-        (cond
-         ((or (null? rest) (null? (cdr rest))) default-val)
-         ((eq? (car rest) key) (cadr rest))
-         (else (loop (cdr rest)))
-        ) ;cond
-      ) ;let
-    ) ;define
 
     (define (pi-parse-git-extension-name url)
       (if (not (string? url))
@@ -84,37 +72,14 @@
     ) ;define
 
     (define (pi-valid-extension-name? name)
-      (if (not (string? name))
-        #f
-        (let ((len (string-length name)))
-          (if (zero? len)
-            #f
-            (let loop
-              ((i 0))
-              (if (>= i len)
-                #t
-                (let ((ch (string-ref name i)))
-                  (if (or (char-alphabetic? ch) (char-numeric? ch) (char=? ch #\-) (char=? ch #\_))
-                    (loop (+ i 1))
-                    #f
-                  ) ;if
-                ) ;let
-              ) ;if
-            ) ;let
-          ) ;if
-        ) ;let
-      ) ;if
-    ) ;define
-
-    (define (%default-agent-dir)
-      (let ((env-dir (get-environment-variable "PI_CODING_AGENT_DIR")))
-        (cond
-         ((and (string? env-dir) (not (string-null? (string-trim-both env-dir))))
-          (pi-resolve-path env-dir (getcwd))
-         ) ;
-         (else (pi-resolve-path "~/.pi/agent" (getcwd)))
-        ) ;cond
-      ) ;let
+      (and (string? name)
+        (not (string-null? name))
+        (string-every (lambda (ch)
+                        (or (char-alphabetic? ch) (char-numeric? ch) (char=? ch #\-) (char=? ch #\_))
+                      ) ;lambda
+          name
+        ) ;string-every
+      ) ;and
     ) ;define
 
     (define (pi-resolve-install-target name . opts)
@@ -124,9 +89,9 @@
       (unless (pi-valid-extension-name? name)
         (value-error (string-append "Invalid extension name: " name))
       ) ;unless
-      (let* ((local? (%opt-key-value opts :local? #f))
-             (agent-dir (%opt-key-value opts :agent-dir (%default-agent-dir)))
-             (cwd-dir (%opt-key-value opts :cwd (getcwd)))
+      (let* ((local? (pi-keyword-value :local? opts #f))
+             (agent-dir (pi-keyword-value :agent-dir opts (pi-get-agent-dir)))
+             (cwd-dir (pi-keyword-value :cwd opts (getcwd)))
              (base-dir (if local?
                          (path-join (path cwd-dir) ".pi" "extensions")
                          (path-join (path agent-dir) "extensions")
@@ -155,7 +120,7 @@
     ) ;define
 
     (define (pi-git-clone-extension url dest-dir-str . opts)
-      (let* ((timeout (%opt-key-value opts :timeout 120))
+      (let* ((timeout (pi-keyword-value :timeout opts 120))
              (dest-path (path dest-dir-str))
              (parent-dir (path-parent dest-path))
             ) ;
@@ -210,7 +175,7 @@
           ) ;value-error
         ) ;unless
         (let* ((target-dir (apply pi-resolve-install-target ext-name opts))
-               (timeout (%opt-key-value opts :timeout 120))
+               (timeout (pi-keyword-value :timeout opts 120))
               ) ;
           (pi-git-clone-extension url target-dir :timeout timeout)
           target-dir

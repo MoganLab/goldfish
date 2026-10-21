@@ -14,7 +14,6 @@
     (liii pi config)
     (liii pi extension types)
     (liii pi extension registry)
-    (liii pi extension builtin flows)
     (liii pi modes output)
     (liii pi modes flow)
     (liii pi modes review)
@@ -23,7 +22,6 @@
   (export display-stderr handle-print-result emit-json-event dispatch-pi
     prepare-system-prompt persist-initial-user-msg! run-agent-loop-with-timeout
     run-session-flow run-compact-flow run-code-review-flow run-simplify-flow
-    pi-auto-review-system-prompt
   ) ;export
   (begin
 

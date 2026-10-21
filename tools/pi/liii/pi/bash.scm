@@ -9,6 +9,7 @@
 (define-library (liii pi bash)
   (import (scheme base)
     (scheme file)
+    (scheme inexact)
     (liii string)
     (liii os)
     (liii path)
@@ -102,10 +103,6 @@
     ) ;define
 
     (define PI_MAX_TIMEOUT_SECONDS 2147483.647)
-
-    (define (%number-finite? x)
-      (and (number? x) (not (nan? x)) (not (infinite? x)))
-    ) ;define
 
     (define (pi-bash-schema . maybe-default-timeout)
       (let* ((def-timeout
@@ -228,11 +225,16 @@
                (if has-timeout?
                  (let ((raw-arg (cdr has-timeout?)))
                    (cond
-                    ((or (not (%number-finite? raw-arg)) (<= raw-arg 0))
+                    ((or (not (finite? raw-arg)) (<= raw-arg 0))
                      (error 'error "Invalid timeout: must be a finite number of seconds")
                     ) ;
                     ((> raw-arg PI_MAX_TIMEOUT_SECONDS)
-                     (error 'error "Invalid timeout: maximum is 2147483.647 seconds")
+                     (error 'error
+                       (string-append "Invalid timeout: maximum is "
+                         (number->string PI_MAX_TIMEOUT_SECONDS)
+                         " seconds"
+                       ) ;string-append
+                     ) ;error
                     ) ;
                     (else raw-arg)
                    ) ;cond

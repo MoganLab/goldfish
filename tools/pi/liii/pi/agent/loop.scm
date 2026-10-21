@@ -96,17 +96,13 @@
     (define (pi-emit-agent-error err-msg msgs emit config)
       (let* ((resp (pi-agent-attach-cost err-msg config))
              (final-msgs (append msgs (list resp)))
-             (summary (pi-agent-session-cost-summary final-msgs config))
-             (cost (cdr (assoc 'totalCost summary)))
-             (savings (cdr (assoc 'totalSavings summary)))
             ) ;
         (when (procedure? emit)
           (emit 'turn_start)
           (emit 'message_start resp)
           (emit 'message_end resp)
           (emit 'turn_end resp #())
-          (pi-emit-agent-end emit final-msgs #f cost savings)
-          (emit 'agent_settled #f)
+          (pi-emit-agent-end emit final-msgs "error" config)
         ) ;when
         final-msgs
       ) ;let*
@@ -125,10 +121,10 @@
     ) ;define
 
     (define (pi-get-active-registry config)
-      (or (and (pair? config) (assoc 'registry config) (cdr (assoc 'registry config)))
-        (current-extension-registry)
-        (default-extension-registry)
-      ) ;or
+      (cond ((and (pair? config) (assoc 'registry config)) => cdr)
+            ((current-extension-registry))
+            (else (default-extension-registry))
+      ) ;cond
     ) ;define
 
     (define (pi-handle-tool-use new-msgs tool-calls emit timeout config resp)

@@ -7,9 +7,15 @@
 ;;
 
 (define-library (liii pi read)
-  (import (scheme base) (liii string) (liii path) (liii os) (liii pi truncate))
+  (import (scheme base)
+    (scheme process-context)
+    (liii string)
+    (liii path)
+    (liii os)
+    (liii pi truncate)
+  ) ;import
   (export pi-read-schema pi-execute-read pi-arg-ref pi-resolve-path
-    pi-keyword-value
+    pi-keyword-value pi-get-agent-dir
   ) ;export
   (begin
 
@@ -32,6 +38,22 @@
           (path->string (path-resolve (path-join (path cwd) expanded)))
         ) ;if
       ) ;let*
+    ) ;define
+
+    (define (pi-get-agent-dir . opt-dir)
+      (let ((custom (and (pair? opt-dir) (car opt-dir)))
+            (env-dir (get-environment-variable "PI_CODING_AGENT_DIR"))
+           ) ;
+        (cond
+         ((and (string? custom) (not (string-null? (string-trim-both custom))))
+          (pi-resolve-path custom (getcwd))
+         ) ;
+         ((and (string? env-dir) (not (string-null? (string-trim-both env-dir))))
+          (pi-resolve-path env-dir (getcwd))
+         ) ;
+         (else (pi-resolve-path "~/.pi/agent" (getcwd)))
+        ) ;cond
+      ) ;let
     ) ;define
 
     (define (pi-read-schema)

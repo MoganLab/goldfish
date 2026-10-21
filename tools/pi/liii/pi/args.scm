@@ -15,10 +15,9 @@
     (liii pi extension registry)
     (liii pi extension discovery)
     (liii pi extension loader)
-    (liii pi extension builtin flags)
   ) ;import
-  (export parse-pi-args pi-args-ref format-file-block process-file-arguments
-    pi-validate-review-flags
+  (export parse-pi-args pi-args-ref pi-resolve-timeout format-file-block
+    process-file-arguments pi-validate-review-flags
   ) ;export
   (begin
 
@@ -27,7 +26,6 @@
     (define (ensure-builtin-extensions! reg)
       (unless *builtin-extensions-loaded*
         (set! *builtin-extensions-loaded* #t)
-        (register-builtin-flags! reg)
         (let ((paths (pi-scan-extension-dir (pi-default-builtin-extensions-dir))))
           (pi-load-extensions paths reg)
         ) ;let

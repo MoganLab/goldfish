@@ -66,23 +66,23 @@
     pi-collect-simplify-files pi-build-scope-lines pi-format-range
     pi-build-simplify-prompt pi-build-simplify-apply-prompt
     pi-parse-simplify-suggestions pi-format-simplify-suggestions
-    pi-resolve-turn-system-prompt pi-auto-review-system-prompt pi-read-json-file
-    pi-load-settings pi-resolve-proxy-url pi-load-auth pi-resolve-provider-key
-    pi-load-multikey pi-multikey-select-key pi-multikey-mark-cooldown!
-    pi-multikey-pool-of pi-multikey-request-key pi-multikey-rotate! pi-mask-key
-    pi-pool-key pi-pool-key? pi-pool-key-key pi-pool-key-label
-    pi-pool-key-enabled pi-pool-key-last-used pi-pool-key-cooling? pi-key-pool
-    pi-key-pool? pi-key-pool-id pi-key-pool-cooldown-ms
-    pi-key-pool-invalid-cooldown-ms pi-key-pool-keys pi-load-models-store
-    pi-load-models-json pi-merge-models-json-into-store
-    pi-resolve-model-metadata pi-format-token-count pi-list-models
-    pi-format-models-table PI_SUPPORTED_PROVIDERS PI_PROVIDER_BUILTIN_MODELS
-    pi-provider-default-model pi-find-model-provider pi-provider-has-model?
-    pi-route-provider-and-model pi-ensure-catalog-meta pi-builtin-augment-store
-    pi-builtin-augment-all pi-build-models-catalog pi-catalog-provider-names
-    pi-catalog-provider-models pi-catalog-merge-provider-models
-    pi-fuzzy-match-model? pi-split-search-tokens gemini-map-finish-reason
-    gemini-map-usage gemini-normalize-tool-call-id gemini-generate-tool-call-id
+    pi-resolve-turn-system-prompt pi-read-json-file pi-load-settings
+    pi-resolve-proxy-url pi-load-auth pi-resolve-provider-key pi-load-multikey
+    pi-multikey-select-key pi-multikey-mark-cooldown! pi-multikey-pool-of
+    pi-multikey-request-key pi-multikey-rotate! pi-mask-key pi-pool-key
+    pi-pool-key? pi-pool-key-key pi-pool-key-label pi-pool-key-enabled
+    pi-pool-key-last-used pi-pool-key-cooling? pi-key-pool pi-key-pool?
+    pi-key-pool-id pi-key-pool-cooldown-ms pi-key-pool-invalid-cooldown-ms
+    pi-key-pool-keys pi-load-models-store pi-load-models-json
+    pi-merge-models-json-into-store pi-resolve-model-metadata
+    pi-format-token-count pi-list-models pi-format-models-table
+    PI_SUPPORTED_PROVIDERS PI_PROVIDER_BUILTIN_MODELS pi-provider-default-model
+    pi-find-model-provider pi-provider-has-model? pi-route-provider-and-model
+    pi-ensure-catalog-meta pi-builtin-augment-store pi-builtin-augment-all
+    pi-build-models-catalog pi-catalog-provider-names pi-catalog-provider-models
+    pi-catalog-merge-provider-models pi-fuzzy-match-model?
+    pi-split-search-tokens gemini-map-finish-reason gemini-map-usage
+    gemini-normalize-tool-call-id gemini-generate-tool-call-id
     gemini-build-contents gemini-build-request-body
     gemini-build-tool-declarations gemini-build-search-tools
     gemini-inject-google-search gemini-extract-grounding-details
