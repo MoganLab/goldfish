@@ -118,17 +118,7 @@
                  ) ;and
                  (begin
                    (if (and (stdin-tty?) (stdout-tty?))
-                     (let* ((env (get-environment-variables))
-                            (base-cfg (resolve-pi-config parsed env))
-                            (cfg
-                              (let apply-aug
-                                ((augs (extension-registry-augmenters reg)) (c base-cfg))
-                                (if (null? augs) c (apply-aug (cdr augs) ((car augs) c parsed)))
-                              ) ;let
-                            ) ;cfg
-                           ) ;
-                       (pi-app-run (make-pi-app :handler (make-tui-agent-handler parsed cfg)))
-                     ) ;let*
+                     (pi-app-run (make-pi-app))
                      (display-pi-help)
                    ) ;if
                    0
