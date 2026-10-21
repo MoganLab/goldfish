@@ -23,40 +23,32 @@
   (export pi-grep-schema pi-execute-grep)
   (begin
 
-    (define (%prop-desc type desc)
-      (list (cons "type" type) (cons "description" desc))
+    (define (%prop name type desc)
+      (cons name (list (cons "type" type) (cons "description" desc)))
     ) ;define
 
     (define (pi-grep-schema)
       (list (cons "type" "object")
         (cons "properties"
-          (list (cons "pattern"
-                  (%prop-desc "string" "Search pattern (regex or literal string)")
-                ) ;cons
-            (cons "path"
-              (%prop-desc "string" "Directory or file to search (default: current directory)")
-            ) ;cons
-            (cons "glob"
-              (%prop-desc "string"
-                "Filter files by glob pattern, e.g. '*.ts' or '**/*.spec.ts'"
-              ) ;%prop-desc
-            ) ;cons
-            (cons "ignoreCase"
-              (%prop-desc "boolean" "Case-insensitive search (default: false)")
-            ) ;cons
-            (cons "literal"
-              (%prop-desc "boolean"
-                "Treat pattern as literal string instead of regex (default: false)"
-              ) ;%prop-desc
-            ) ;cons
-            (cons "context"
-              (%prop-desc "number"
-                "Number of lines to show before and after each match (default: 0)"
-              ) ;%prop-desc
-            ) ;cons
-            (cons "limit"
-              (%prop-desc "number" "Maximum number of matches to return (default: 100)")
-            ) ;cons
+          (list (%prop "pattern" "string" "Search pattern (regex or literal string)")
+            (%prop "path"
+              "string"
+              "Directory or file to search (default: current directory)"
+            ) ;%prop
+            (%prop "glob"
+              "string"
+              "Filter files by glob pattern, e.g. '*.ts' or '**/*.spec.ts'"
+            ) ;%prop
+            (%prop "ignoreCase" "boolean" "Case-insensitive search (default: false)")
+            (%prop "literal"
+              "boolean"
+              "Treat pattern as literal string instead of regex (default: false)"
+            ) ;%prop
+            (%prop "context"
+              "number"
+              "Number of lines to show before and after each match (default: 0)"
+            ) ;%prop
+            (%prop "limit" "number" "Maximum number of matches to return (default: 100)")
           ) ;list
         ) ;cons
         (cons "required" #("pattern"))
@@ -77,9 +69,10 @@
                    (sep (if is-match? ":" "-"))
                   ) ;
               (let-values (((trunc-text was-trunc?) (pi-truncate-line line 500)))
-                (let ((entry (string-append rel-path sep (number->string curr) sep " " trunc-text)))
-                  (loop (+ curr 1) (cons entry acc) (or any-trunc? was-trunc?))
-                ) ;let
+                (loop (+ curr 1)
+                  (cons (string-append rel-path sep (number->string curr) sep " " trunc-text) acc)
+                  (or any-trunc? was-trunc?)
+                ) ;loop
               ) ;let-values
             ) ;let*
           ) ;if
@@ -124,7 +117,7 @@
                      (list "--" pattern abs-path)
                    ) ;append
              ) ;args
-             (res (run-either args :stdout 'capture :stderr 'discard :timeout timeout))
+             (res (run-either args :stdout 'capture :stderr 'capture :timeout timeout))
             ) ;
         (if (either-right? res)
           (let ((lines (string-split (to-right res) "\n")))
@@ -138,7 +131,14 @@
               ) ;if
             ) ;let
           ) ;let
-          '()
+          (let ((e (to-left res)))
+            (if (and (process-error? e) (= (process-error-code e) 1))
+              '()
+              (error 'error
+                (string-append "grep failed: " (string-trim-right (process-error-message e)))
+              ) ;error
+            ) ;if
+          ) ;let
         ) ;if
       ) ;let*
     ) ;define
@@ -209,12 +209,8 @@
               ) ;%build-grep-notices
             ) ;string-append
           ) ;let*
-          (let* ((m (car m-list))
-                 (rel-f (car m))
-                 (line-n (cadr m))
-                 (lines (cdr (assoc rel-f cache)))
-                ) ;
-            (let-values (((block trunc?) (%format-grep-block lines rel-f line-n ctx-val)))
+          (let* ((m (car m-list)) (lines (cdr (assoc (car m) cache))))
+            (let-values (((block trunc?) (%format-grep-block lines (car m) (cadr m) ctx-val)))
               (block-loop (cdr m-list)
                 (append (reverse block) out-lines)
                 (or any-line-trunc? trunc?)

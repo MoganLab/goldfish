@@ -185,4 +185,32 @@
   (path-rmdir test-base)
 ) ;let*
 
+;; 10. 非法正则报错透传 (Issue #1170)
+(check-catch 'error
+  (pi-execute-grep (list (cons "pattern" "[") (cons "path" test-file)))
+) ;check-catch
+
+(check-catch 'error
+  (pi-execute-grep
+    (list (cons "pattern" "[") (cons "path" (path-parent (path test-file))))
+  ) ;pi-execute-grep
+) ;check-catch
+
+;; 11. 合法正则无匹配返回 No matches found (Issue #1170)
+(let ((out (pi-execute-grep (list (cons "pattern" "non_existent_symbol_[0-9]+") (cons "path" test-file))
+           ) ;pi-execute-grep
+      ) ;out
+     ) ;
+  (check out => "No matches found")
+) ;let
+
+;; 12. 字面量模式下特殊正则符号正常检索 (Issue #1170)
+(let ((out (pi-execute-grep (list (cons "pattern" "[") (cons "path" test-file) (cons "literal" #t))
+           ) ;pi-execute-grep
+      ) ;out
+     ) ;
+  (check-true (string? out))
+  (check-true (string-contains? out "["))
+) ;let
+
 (check-report)
