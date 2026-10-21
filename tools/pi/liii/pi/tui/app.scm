@@ -1,17 +1,7 @@
 ;;
 ;; Copyright (C) 2026 The Goldfish Scheme Authors
 ;;
-;; Licensed under the Apache License, Version 2.0 (the "License");
-;; you may not use this file except in compliance with the License.
-;; You may obtain a copy of the License at
-;;
-;; http://www.apache.org/licenses/LICENSE-2.0
-;;
-;; Unless required by applicable law or agreed to in writing, software
-;; distributed under the License is distributed on an "AS IS" BASIS,
-;; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-;; See the License for the specific language governing permissions and
-;; limitations under the License.
+;; Licensed under the MIT License
 ;;
 
 (define-library (liii pi tui app)
@@ -99,9 +89,11 @@
                  :multiline     #f
                  :top-border    %pi-editor-top-border
                  :bottom-border #t
-                 :border-color  "\x1b;[38;2;129;162;190m"
-                 :focused       #t
-                 :cursor-style  'hardware
+                 ;; (liii tui) 的 :border-color 收的是裸 ANSI 前缀（其后由编辑器补复原序列），
+                 ;; (liii format color) 只能产出带收尾复原的完整串，故此处保留字面量
+                 :border-color "\x1b;[38;2;129;162;190m"
+                 :focused      #t
+                 :cursor-style 'hardware
                  :on-submit
                  (lambda (self txt)
                    (unless (string-null? (string-trim txt))

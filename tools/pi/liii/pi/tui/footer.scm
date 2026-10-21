@@ -1,17 +1,7 @@
 ;;
 ;; Copyright (C) 2026 The Goldfish Scheme Authors
 ;;
-;; Licensed under the Apache License, Version 2.0 (the "License");
-;; you may not use this file except in compliance with the License.
-;; You may obtain a copy of the License at
-;;
-;; http://www.apache.org/licenses/LICENSE-2.0
-;;
-;; Unless required by applicable law or agreed to in writing, software
-;; distributed under the License is distributed on an "AS IS" BASIS,
-;; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-;; See the License for the specific language governing permissions and
-;; limitations under the License.
+;; Licensed under the MIT License
 ;;
 
 (define-library (liii pi tui footer)
@@ -20,16 +10,26 @@
     (liii string)
     (liii os)
     (liii path)
+    (liii format base)
+    (liii format color)
     (liii tui text-width)
     (liii tui component)
     (liii pi tui common)
   ) ;import
   (begin
 
-    ;; 用户主目录：复用 (liii path) 的 path-home（含 Windows HOMEDRIVE/HOMEPATH 回退），
+    ;; 用户主目录：复用 (liii path) 的 path-home（含 Windows HOMEDRIVE+HOMEPATH 回退），
     ;; 未设置时返回 #f
     (define (%default-home)
       (catch #t (lambda () (path->string (path-home))) (lambda args #f))
+    ) ;define
+
+    ;; 页脚配色（24-bit RGB）
+    (define %c-dim '(102 102 102))
+
+    ;; 上色
+    (define (c-dim s)
+      (show #f (apply as-true-color (append %c-dim (list s))))
     ) ;define
 
     (define (format-cwd-for-footer cwd home)
@@ -86,7 +86,6 @@
                 (else (truncate-to-width left-part width "..."))
                ) ;cond
              ) ;line2
-             (c-dim (lambda (s) (string-append "\x1b;[38;2;102;102;102m" s "\x1b;[0m")))
              (res1 (c-dim (truncate-to-width line1 width "...")))
              (res2 (c-dim line2))
             ) ;
