@@ -155,8 +155,7 @@
                (query (pi-arg-ref args "query"))
                (urls (pi-arg-ref args "urls" '()))
               ) ;
-          (unless
-            (and (string? api-key) (not (string-null? (string-trim-both api-key))))
+          (unless (pi-valid-key? api-key)
             (error 'error
               "web_search: Google API key not found. Please configure API key in auth.json or set GOOGLE_API_KEY environment variable"
             ) ;error
