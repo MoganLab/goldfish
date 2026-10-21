@@ -10,7 +10,21 @@
   (begin
 
     (define PI_MINIMAX_CN_BUILTIN_MODELS
-      '((("id" . "MiniMax-M2.7")
+      '((("id" . "MiniMax-M3.1-Flash")
+         ("name" . "MiniMax-M3.1-Flash")
+         ("baseUrl" . "https://api.minimaxi.com/anthropic")
+         ("contextWindow" . 1000000)
+         ("maxTokens" . 524288)
+         ("reasoning" . #t)
+         ("input" "text"))
+        (("id" . "MiniMax-M3")
+         ("name" . "MiniMax-M3")
+         ("baseUrl" . "https://api.minimaxi.com/anthropic")
+         ("contextWindow" . 1048576)
+         ("maxTokens" . 512000)
+         ("reasoning" . #t)
+         ("input" "text" "image"))
+        (("id" . "MiniMax-M2.7")
          ("name" . "MiniMax-M2.7")
          ("baseUrl" . "https://api.minimaxi.com/anthropic")
          ("contextWindow" . 204800)
@@ -23,14 +37,7 @@
          ("contextWindow" . 204800)
          ("maxTokens" . 131072)
          ("reasoning" . #t)
-         ("input" "text"))
-        (("id" . "MiniMax-M3")
-         ("name" . "MiniMax-M3")
-         ("baseUrl" . "https://api.minimaxi.com/anthropic")
-         ("contextWindow" . 1048576)
-         ("maxTokens" . 512000)
-         ("reasoning" . #t)
-         ("input" "text" "image")))
+         ("input" "text")))
     ) ;define
 
   ) ;begin

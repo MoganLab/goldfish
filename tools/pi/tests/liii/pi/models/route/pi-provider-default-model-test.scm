@@ -1,5 +1,4 @@
-(import (liii check)
-        (liii pi models))
+(import (liii check) (liii pi models))
 
 (check-set-mode! 'report-failed)
 
