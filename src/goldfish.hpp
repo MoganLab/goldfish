@@ -880,7 +880,7 @@ display_help () {
   cout << "  -A DIR             Append DIR to library search path" << endl;
   cout << "  -e CODE            Alias for eval CODE" << endl;
   cout << endl;
-  cout << "If no command is specified, pi is run by default." << endl;
+  cout << "If no command is specified, gf agent is run by default." << endl;
 }
 
 static void
