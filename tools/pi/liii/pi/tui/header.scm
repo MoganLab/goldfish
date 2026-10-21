@@ -53,19 +53,14 @@
                       dot
                       (%fg %c-dim "!")
                       (%fg %c-mid " bash")
-                      dot
-                      (%fg %c-dim "ctrl+o")
-                      (%fg %c-mid " more")
                     ) ;string-append
              ) ;line2
-             (line3 (%fg %c-dim "Press ctrl+o to show full startup help and loaded resources.")
-             ) ;line3
-             (line5 (%fg %c-dim
-                      "Pi can explain its own features and look up its docs. Ask it how to use or extend Pi."
+             (line4 (%fg %c-dim
+                      "Goldfish Scheme Agent can explain its own features and look up its docs. Ask it how to use or extend it."
                     ) ;%fg
-             ) ;line5
+             ) ;line4
             ) ;
-        (list "" line1 line2 line3 "" line5 "")
+        (list "" line1 line2 "" line4 "")
       ) ;let*
     ) ;define
 
