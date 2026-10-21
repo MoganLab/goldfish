@@ -68,11 +68,10 @@
                    (is-match? (= curr line-num))
                    (sep (if is-match? ":" "-"))
                   ) ;
-              (let-values (((trunc-text was-trunc?) (pi-truncate-line line 500)))
-                (loop (+ curr 1)
-                  (cons (string-append rel-path sep (number->string curr) sep " " trunc-text) acc)
-                  (or any-trunc? was-trunc?)
-                ) ;loop
+              (let-values (((trunc-text was-trunc?) (pi-truncate-line line)))
+                (let ((entry (string-append rel-path sep (number->string curr) sep " " trunc-text)))
+                  (loop (+ curr 1) (cons entry acc) (or any-trunc? was-trunc?))
+                ) ;let
               ) ;let-values
             ) ;let*
           ) ;if
@@ -132,7 +131,8 @@
             ) ;let
           ) ;let
           (let ((e (to-left res)))
-            (if (and (process-error? e) (= (process-error-code e) 1))
+            ;; grep 退出码 1 表示无匹配，其余非零退出码为真实失败
+            (if (= (process-error-code e) 1)
               '()
               (error 'error
                 (string-append "grep failed: " (string-trim-right (process-error-message e)))
@@ -209,8 +209,12 @@
               ) ;%build-grep-notices
             ) ;string-append
           ) ;let*
-          (let* ((m (car m-list)) (lines (cdr (assoc (car m) cache))))
-            (let-values (((block trunc?) (%format-grep-block lines (car m) (cadr m) ctx-val)))
+          (let* ((m (car m-list))
+                 (rel-f (car m))
+                 (line-n (cadr m))
+                 (lines (cdr (assoc rel-f cache)))
+                ) ;
+            (let-values (((block trunc?) (%format-grep-block lines rel-f line-n ctx-val)))
               (block-loop (cdr m-list)
                 (append (reverse block) out-lines)
                 (or any-line-trunc? trunc?)
