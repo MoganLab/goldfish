@@ -14,6 +14,7 @@
     (liii error)
     (liii either)
     (liii pi read)
+    (liii pi failure)
   ) ;import
   (export pi-parse-git-extension-name pi-valid-extension-name?
     pi-resolve-install-target pi-git-clone-extension pi-install-extension
@@ -155,9 +156,7 @@
                 (string-append "Failed to clone extension from "
                   url
                   ": "
-                  (process-error-stderr err-info)
-                  " "
-                  (process-error-stdout err-info)
+                  (pi-command-failure-detail err-info)
                 ) ;string-append
               ) ;error
             ) ;let
