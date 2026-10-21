@@ -5,8 +5,8 @@
 ;;
 
 (define-library (liii pi tui app)
-  (export make-pi-app pi-app? pi-app-screen pi-app-editor pi-app-queue
-    pi-app-chat pi-app-render! pi-app-run pi-app-submit! pi-app-drain-queue!
+  (export make-pi-app pi-app? pi-app-term pi-app-screen pi-app-editor
+    pi-app-queue pi-app-chat pi-app-render! pi-app-submit! pi-app-drain-queue!
     pi-app-add-user-message! pi-app-add-tool-result! pi-app-add-assistant-text!
     pi-app-add-retry-message! pi-app-jobs-chan pi-app-event-chan
     pi-app-poll-events!
@@ -14,9 +14,7 @@
   (import (scheme base)
     (liii go)
     (liii time)
-    (liii either)
     (liii string)
-    (liii subprocess)
     (liii tui)
     (liii pi agent queue)
     (liii pi tui views)
@@ -35,7 +33,7 @@
         jobs-chan event-chan
       ) ;%make-pi-app
       pi-app?
-      (term %pi-app-term)
+      (term pi-app-term)
       (screen pi-app-screen)
       (doc %pi-app-doc)
       (chat %pi-app-chat)
@@ -48,27 +46,7 @@
       (event-chan pi-app-event-chan)
     ) ;define-record-type
 
-    (define (%detect-git-branch)
-      (catch #t
-        (lambda ()
-          (let ((res (run-either '("git" "branch" "--show-current")
-                       :stdout  'capture
-                       :stderr  'discard
-                       :timeout 2
-                     ) ;run-either
-                ) ;res
-               ) ;
-            (if (either-right? res)
-              (let ((b (string-trim-both (to-right res))))
-                (if (string-null? b) #f b)
-              ) ;let
-              #f
-            ) ;if
-          ) ;let
-        ) ;lambda
-        (lambda args #f)
-      ) ;catch
-    ) ;define
+    (define %pi-app-term pi-app-term)
 
     (define (pi-app-render! app)
       (let* ((screen (pi-app-screen app))
@@ -235,7 +213,7 @@
              (chat (make-container))
              (pending-box (make-container))
              (doc (make-container))
-             (branch (%detect-git-branch))
+             (branch (detect-git-branch))
              (footer (make-pi-footer :branch branch))
              (queue (make-pi-message-queue))
              (jobs-chan (make-chan 16))
@@ -264,58 +242,6 @@
           (go (pi-tui-agent-worker jobs-chan event-chan))
         ) ;unless
         app
-      ) ;let*
-    ) ;define
-
-    (define (pi-app-run app)
-      (let* ((term (%pi-app-term app))
-             (screen (pi-app-screen app))
-             (ed (pi-app-editor app))
-             (q (pi-app-queue app))
-            ) ;
-        (dynamic-wind (lambda ()
-                        (terminal-enter-raw-mode! term)
-                        (terminal-hide-cursor! term)
-                        (pi-app-render! app)
-                      ) ;lambda
-          (lambda ()
-            (let loop
-              ()
-              ;; 优先轮询来自后台 Worker 的事件流上屏
-              (pi-app-poll-events! app)
-              (let ((k (terminal-poll-key term)))
-                (cond ((or (eq? k 'ctrl-c) (eq? k 'ctrl-d)) #t)
-                      ;; 按 Escape 时：若队列有等待中的消息，撤回至 editor 重新编辑
-                      ((eq? k 'escape)
-                       (let ((restored (pi-queue-restore-all! q)))
-                         (if (pair? restored)
-                           (begin
-                             (editor-set-text! ed (string-join restored "\n"))
-                             (pi-app-render! app)
-                             (loop)
-                           ) ;begin
-                           #t
-                         ) ;if
-                       ) ;let
-                      ) ;
-                      ((not k) (sleep 0.01) (loop))
-                      (else (component-handle-input ed k) (pi-app-render! app) (loop))
-                ) ;cond
-              ) ;let
-            ) ;let
-          ) ;lambda
-          (lambda ()
-            (let* ((lines (screen-lines screen)) (total (length lines)))
-              (when (> total 0)
-                (terminal-set-cursor! term 0 total)
-              ) ;when
-              (terminal-show-cursor! term)
-              (terminal-exit-raw-mode! term)
-              (terminal-write term "\r\n")
-              (terminal-flush term)
-            ) ;let*
-          ) ;lambda
-        ) ;dynamic-wind
       ) ;let*
     ) ;define
 
