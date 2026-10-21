@@ -104,38 +104,37 @@
       ) ;if
     ) ;define
 
-    (define (%make-tool-def name desc schema exec snippet guidelines)
-      (pi-tool-definition name desc schema exec snippet guidelines)
-    ) ;define
-
     (define (%tool-def-read)
-      (%make-tool-def "read"
+      (pi-tool-definition "read"
         "Read file contents. Supports text files and images."
         (pi-read-schema)
         pi-execute-read
         "Read file contents"
         '("Use read to examine files instead of cat or sed.")
-      ) ;%make-tool-def
+      ) ;pi-tool-definition
     ) ;define
 
-    (define (%tool-def-bash)
-      (%make-tool-def "bash"
-        "Execute a bash command in the current working directory."
-        (pi-bash-schema)
-        pi-execute-bash
-        "Execute bash commands (ls, grep, find, etc.)"
-        '("You can inspect PI_* environment variables for current model and session details.")
-      ) ;%make-tool-def
+    (define (%tool-def-bash . maybe-default-timeout)
+      (let ((def-timeout (if (pair? maybe-default-timeout) (car maybe-default-timeout) 600))
+           ) ;
+        (pi-tool-definition "bash"
+          "Execute a bash command in the current working directory."
+          (pi-bash-schema def-timeout)
+          pi-execute-bash
+          "Execute bash commands (ls, grep, find, etc.)"
+          '("You can inspect PI_* environment variables for current model and session details.")
+        ) ;pi-tool-definition
+      ) ;let
     ) ;define
 
     (define (%tool-def-write)
-      (%make-tool-def "write"
+      (pi-tool-definition "write"
         "Write content to a file. Creates the file if it doesn't exist, overwrites if it does."
         (pi-write-schema)
         pi-execute-write
         "Create or overwrite files"
         '("Use write only for new files or complete rewrites.")
-      ) ;%make-tool-def
+      ) ;pi-tool-definition
     ) ;define
 
     (define %edit-guidelines
@@ -146,53 +145,53 @@
     ) ;define
 
     (define (%tool-def-edit)
-      (%make-tool-def "edit"
+      (pi-tool-definition "edit"
         "Edit a single file using exact text replacement."
         (pi-edit-schema)
         pi-execute-edit
         "Make precise file edits with exact text replacement, including multiple disjoint edits in one call"
         %edit-guidelines
-      ) ;%make-tool-def
+      ) ;pi-tool-definition
     ) ;define
 
     (define (%tool-def-ls)
-      (%make-tool-def "ls"
+      (pi-tool-definition "ls"
         "List directory contents."
         (pi-ls-schema)
         pi-execute-ls
         "List directory contents"
         '()
-      ) ;%make-tool-def
+      ) ;pi-tool-definition
     ) ;define
 
     (define (%tool-def-find)
-      (%make-tool-def "find"
+      (pi-tool-definition "find"
         "Find files by glob pattern (respects .gitignore)."
         (pi-find-schema)
         pi-execute-find
         "Find files by glob pattern (respects .gitignore)"
         '()
-      ) ;%make-tool-def
+      ) ;pi-tool-definition
     ) ;define
 
     (define (%tool-def-grep)
-      (%make-tool-def "grep"
+      (pi-tool-definition "grep"
         "Search file contents for patterns (respects .gitignore)."
         (pi-grep-schema)
         pi-execute-grep
         "Search file contents for patterns (respects .gitignore)"
         '()
-      ) ;%make-tool-def
+      ) ;pi-tool-definition
     ) ;define
 
     (define (%tool-def-web-search)
-      (%make-tool-def "web_search"
+      (pi-tool-definition "web_search"
         "Search the web using Gemini Google Search grounding."
         (pi-web-search-schema)
         pi-execute-web-search
         "Search the web for up-to-date information"
         '("Use web_search when you need real-time information or external references.")
-      ) ;%make-tool-def
+      ) ;pi-tool-definition
     ) ;define
 
     (define (%extension-tool-def->pi-tool-def ext-tool)
@@ -210,30 +209,34 @@
       ) ;cond
     ) ;define
 
-    (define (get-tool-definition name)
-      (cond ((string=? name "read") (%tool-def-read))
-            ((string=? name "bash") (%tool-def-bash))
-            ((string=? name "write") (%tool-def-write))
-            ((string=? name "edit") (%tool-def-edit))
-            ((string=? name "ls") (%tool-def-ls))
-            ((string=? name "find") (%tool-def-find))
-            ((string=? name "grep") (%tool-def-grep))
-            ((string=? name "web_search") (%tool-def-web-search))
-            (else
-              (let ((reg (current-extension-registry)))
-                (if reg
-                  (let ((tool (find-extension-tool reg name)))
-                    (if tool (%extension-tool-def->pi-tool-def tool) #f)
-                  ) ;let
-                  #f
-                ) ;if
-              ) ;let
-            ) ;else
-      ) ;cond
-    ) ;define
-
-    (define (%make-tool-result text is-error?)
-      (pi-tool-result text is-error?)
+    (define (get-tool-definition name . maybe-opts)
+      (let ((def-timeout
+              (cond ((null? maybe-opts) 600)
+                    ((number? (car maybe-opts)) (car maybe-opts))
+                    (else (pi-keyword-value :timeout maybe-opts 600))
+              ) ;cond
+            ) ;def-timeout
+           ) ;
+        (cond ((string=? name "read") (%tool-def-read))
+              ((string=? name "bash") (%tool-def-bash def-timeout))
+              ((string=? name "write") (%tool-def-write))
+              ((string=? name "edit") (%tool-def-edit))
+              ((string=? name "ls") (%tool-def-ls))
+              ((string=? name "find") (%tool-def-find))
+              ((string=? name "grep") (%tool-def-grep))
+              ((string=? name "web_search") (%tool-def-web-search))
+              (else
+                (let ((reg (current-extension-registry)))
+                  (if reg
+                    (let ((tool (find-extension-tool reg name)))
+                      (if tool (%extension-tool-def->pi-tool-def tool) #f)
+                    ) ;let
+                    #f
+                  ) ;if
+                ) ;let
+              ) ;else
+        ) ;cond
+      ) ;let
     ) ;define
 
     (define (%format-error-info info)
@@ -248,14 +251,14 @@
       (cond
        ((string=? name "bash")
         (let-values (((out is-err) (apply exec-fn args opts)))
-          (%make-tool-result out is-err)
+          (pi-tool-result out is-err)
         ) ;let-values
        ) ;
        ((string=? name "web_search")
         (let ((out (apply exec-fn args opts)))
           (cond ((pi-tool-result? out) out)
                 ((and (pair? out) (assoc 'content out)) out)
-                (else (%make-tool-result out #f))
+                (else (pi-tool-result out #f))
           ) ;cond
         ) ;let
        ) ;
@@ -269,7 +272,7 @@
                     ) ;catch
                   ) ;if
                 ) ;raw-out
-                (out (if (pi-tool-result? raw-out) raw-out (%make-tool-result raw-out #f)))
+                (out (if (pi-tool-result? raw-out) raw-out (pi-tool-result raw-out #f)))
                ) ;
            out
          ) ;let*
@@ -280,10 +283,10 @@
     (define (execute-tool-call name args . opts)
       (let ((def (get-tool-definition name)))
         (if (not def)
-          (%make-tool-result (string-append "Tool " name " not found") #t)
+          (pi-tool-result (string-append "Tool " name " not found") #t)
           (catch #t
             (lambda () (%run-tool-exec (pi-tool-definition-execute def) name args opts))
-            (lambda (tag . info) (%make-tool-result (%format-error-info info) #t))
+            (lambda (tag . info) (pi-tool-result (%format-error-info info) #t))
           ) ;catch
         ) ;if
       ) ;let

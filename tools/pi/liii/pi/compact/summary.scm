@@ -66,7 +66,7 @@
       ) ;let
     ) ;define
 
-    (define* (pi-generate-summary config msgs previous-summary (timeout 120))
+    (define* (pi-generate-summary config msgs previous-summary (timeout 600))
       (let* ((provider (cdr (or (assoc 'provider config) '(#f . "google"))))
              (conversation (pi-serialize-conversation msgs))
              (prompt (pi-build-summarization-prompt conversation previous-summary))

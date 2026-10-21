@@ -18,6 +18,7 @@
     (liii pi extension discovery)
     (liii pi extension loader)
     (liii pi extension builtin)
+    (liii pi extension install)
   ) ;import
   (export main display-pi-help read-all-stdin run-goldpi run-pi)
   (begin
@@ -104,11 +105,19 @@
                     ) ;build-initial-prompt
                    ) ;
                   ) ;
-        (let ((reg (or (current-extension-registry) (default-extension-registry))))
-          (%validate-parsed-args reg parsed initial-msg rest-msgs)
+        (let* ((reg (or (current-extension-registry) (default-extension-registry)))
+               (_ (%validate-parsed-args reg parsed initial-msg rest-msgs))
+               (mode (resolve-app-mode (pi-args-ref parsed 'mode)
+                       (pi-args-ref parsed 'print)
+                       (stdin-tty?)
+                       (stdout-tty?)
+                     ) ;resolve-app-mode
+               ) ;mode
+              ) ;
           (cond ((pi-args-ref parsed 'help) (display-pi-help) 0)
                 ((pi-args-ref parsed 'list-models) (%handle-list-models parsed))
-                ((and (string-null? initial-msg)
+                ((and (not (eq? mode 'tui))
+                   (string-null? initial-msg)
                    (null? rest-msgs)
                    (not (pi-args-ref parsed 'continue))
                    (not (pi-args-ref parsed 'compact))
@@ -117,21 +126,12 @@
                  (display-pi-help)
                  0
                 ) ;
-                (else
-                  (let ((mode (resolve-app-mode (pi-args-ref parsed 'mode)
-                                (pi-args-ref parsed 'print)
-                                (stdin-tty?)
-                                (stdout-tty?)
-                              ) ;resolve-app-mode
-                        ) ;mode
-                       ) ;
-                    (with-extension-registry reg
-                      (lambda () (dispatch-pi parsed mode initial-msg rest-msgs))
-                    ) ;with-extension-registry
-                  ) ;let
+                (else (with-extension-registry reg
+                        (lambda () (dispatch-pi parsed mode initial-msg rest-msgs))
+                      ) ;with-extension-registry
                 ) ;else
           ) ;cond
-        ) ;let
+        ) ;let*
       ) ;let-values
     ) ;define
 
@@ -151,11 +151,54 @@
       ) ;let*
     ) ;define
 
+    (define (%handle-install-command args)
+      (let loop
+        ((rem args) (local? #f) (url #f))
+        (cond
+         ((null? rem)
+          (if (not url)
+            (begin
+              (display-stderr "Error: pi install requires a git URL\nUsage: gf pi install [--local|-l] <git-url>\n"
+              ) ;display-stderr
+              1
+            ) ;begin
+            (begin
+              (let ((installed (pi-install-extension url :local? local?)))
+                (display (string-append "Installed extension to " installed "\n"))
+                0
+              ) ;let
+            ) ;begin
+          ) ;if
+         ) ;
+         ((or (string=? (car rem) "--local") (string=? (car rem) "-l"))
+          (loop (cdr rem) #t url)
+         ) ;
+         ((string-starts? (car rem) "-")
+          (display-stderr (string-append "Error: unknown install option: " (car rem) "\n")
+          ) ;display-stderr
+          1
+         ) ;
+         ((not url) (loop (cdr rem) local? (car rem)))
+         (else (display-stderr (string-append "Error: unexpected extra argument: " (car rem) "\n")
+               ) ;display-stderr
+           1
+         ) ;else
+        ) ;cond
+      ) ;let
+    ) ;define
+
     (define (run-pi raw-args)
       (catch #t
         (lambda ()
-          (%ensure-extensions-loaded!)
-          (%run-pi-main (parse-pi-args (strip-command-prefix raw-args)))
+          (let ((stripped (strip-command-prefix raw-args)))
+            (if (and (pair? stripped) (string=? (car stripped) "install"))
+              (%handle-install-command (cdr stripped))
+              (begin
+                (%ensure-extensions-loaded!)
+                (%run-pi-main (parse-pi-args stripped))
+              ) ;begin
+            ) ;if
+          ) ;let
         ) ;lambda
         (lambda (err-type . info)
           (display-stderr (string-append "Error: " (%format-catch-error err-type info)))

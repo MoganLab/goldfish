@@ -20,15 +20,13 @@
     (liii pi modes review)
     (liii pi modes simplify)
     (liii pi modes red-green)
-    (liii pi modes blueprint)
-    (liii pi modes compass)
+    (liii pi modes tui)
   ) ;import
   (export display-stderr handle-print-result emit-json-event dispatch-pi
     prepare-system-prompt persist-initial-user-msg! run-agent-loop-with-timeout
     run-session-flow run-compact-flow run-code-review-flow run-simplify-flow
     run-red-green-flow pi-tdd-extend-tool-names pi-auto-review-system-prompt
-    run-blueprint-flow pi-blueprint-extend-tool-names run-compass-flow
-    pi-compass-augment-config
+    run-tui-flow
   ) ;export
   (begin
 
@@ -96,6 +94,7 @@
                    ((eq? mode 'json)
                     (run-session-flow parsed cfg initial-msg emit-json-event (lambda _ 0))
                    ) ;
+                   ((eq? mode 'tui) (run-tui-flow parsed cfg mode initial-msg))
                    (else 0)
              ) ;cond
            ) ;let

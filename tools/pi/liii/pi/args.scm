@@ -10,8 +10,11 @@
     (liii string)
     (liii path)
     (liii pi args files)
+    (liii pi args query)
     (liii pi extension types)
     (liii pi extension registry)
+    (liii pi extension discovery)
+    (liii pi extension loader)
     (liii pi extension builtin flags)
   ) ;import
   (export parse-pi-args pi-args-ref format-file-block process-file-arguments
@@ -19,23 +22,20 @@
   ) ;export
   (begin
 
-    (define (pi-args-ref parsed key . default-val)
-      (let ((pair (assoc key parsed)))
-        (if pair (cdr pair) (if (pair? default-val) (car default-val) #f))
-      ) ;let
+    (define *builtin-extensions-loaded* #f)
+
+    (define (ensure-builtin-extensions! reg)
+      (unless *builtin-extensions-loaded*
+        (set! *builtin-extensions-loaded* #t)
+        (register-builtin-flags! reg)
+        (let ((paths (pi-scan-extension-dir (pi-default-builtin-extensions-dir))))
+          (pi-load-extensions paths reg)
+        ) ;let
+      ) ;unless
+      reg
     ) ;define
 
-    (define (pi-args-set parsed key val)
-      (cons (cons key val)
-        (let loop
-          ((rest parsed))
-          (cond ((null? rest) '())
-                ((eq? (caar rest) key) (cdr rest))
-                (else (cons (car rest) (loop (cdr rest))))
-          ) ;cond
-        ) ;let
-      ) ;cons
-    ) ;define
+    (add-registry-initializer! ensure-builtin-extensions!)
 
     (define (default-args-alist)
       (list (cons 'help #f)
@@ -49,7 +49,7 @@
         (cons 'exclude-tools #f)
         (cons 'no-tools #f)
         (cons 'max-turns 200)
-        (cons 'timeout 120)
+        (cons 'timeout #f)
         (cons 'session-timeout #f)
         (cons 'no-session #f)
         (cons 'continue #f)
@@ -221,6 +221,7 @@
 
     (define (pi-validate-review-flags parsed)
       (let* ((reg (or (current-extension-registry) (default-extension-registry)))
+             (_ (ensure-builtin-extensions! reg))
              (validators (extension-registry-validators reg))
             ) ;
         (for-each (lambda (v) (v parsed)) validators)
@@ -230,6 +231,7 @@
 
     (define (parse-pi-args argv)
       (let* ((reg (or (current-extension-registry) (default-extension-registry)))
+             (_ (ensure-builtin-extensions! reg))
              (ext-flags (extension-registry-flags reg))
              (ext-defaults
                (map (lambda (f) (cons (extension-flag-def-key f) (extension-flag-def-default f)))

@@ -36,8 +36,14 @@
     ) ;define
 
     (define (%review-timeout parsed cfg)
-      (or (pi-args-ref parsed 'timeout) (cdr (or (assoc 'timeout cfg) '(#f
-                                                                        . 120))))
+      (let ((t (pi-args-ref parsed 'timeout)))
+        (if (and (number? t) (> t 0))
+          t
+          (let ((cfg-t (cdr (or (assoc 'timeout cfg) '(#f . 600)))))
+            (if (and (number? cfg-t) (> cfg-t 0)) cfg-t 600)
+          ) ;let
+        ) ;if
+      ) ;let
     ) ;define
 
     (define (%review-config cfg)

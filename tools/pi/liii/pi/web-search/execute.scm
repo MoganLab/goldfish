@@ -151,7 +151,7 @@
                (proxy-url (pi-resolve-search-proxy-url config opt-proxy))
                (opt-model (pi-keyword-value :model-id opts #f))
                (model-id (pi-resolve-search-model-id config opt-model))
-               (timeout (pi-keyword-value :timeout opts 120))
+               (timeout (pi-keyword-value :timeout opts 600))
                (query (pi-arg-ref args "query"))
                (urls (pi-arg-ref args "urls" '()))
               ) ;
