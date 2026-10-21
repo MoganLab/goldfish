@@ -159,11 +159,13 @@
              (on-change (%keyword-value :on-change rest-opts #f))
              (top-border (%keyword-value :top-border rest-opts #f))
              (bottom-border (%keyword-value :bottom-border rest-opts #f))
+             (border-color (%keyword-value :border-color rest-opts #f))
              (history-size (%keyword-value :history-size rest-opts 100))
              (buf (make-buffer initial-text multiline?))
              (hist (make-history history-size))
              (data (%make-editor-data buf hist multiline? focused? placeholder
                      cursor-style on-submit on-change top-border bottom-border
+                     border-color
                    ) ;%make-editor-data
              ) ;data
              (comp (make-component %editor-render %editor-handle-input))

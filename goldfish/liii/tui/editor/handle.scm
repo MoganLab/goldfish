@@ -36,8 +36,13 @@
   ) ;import
   (begin
 
-    (define (%make-h-border width)
-      (if (<= width 0) "" (utf8-make-string width #\─))
+    (define (%make-h-border width color)
+      (if (<= width 0)
+        ""
+        (let ((raw (utf8-make-string width #\─)))
+          (if (and color (string? color)) (string-append color raw "\x1b;[0m") raw)
+        ) ;let
+      ) ;if
     ) ;define
 
     (define (%editor-render comp width)
@@ -51,9 +56,10 @@
              (cursor-style (%ed-cursor-style data))
              (top-b (%ed-top-border data))
              (bot-b (%ed-bottom-border data))
+             (b-col (%ed-border-color data))
              (rendered (render-editor-lines lines row col focused? ph width cursor-style))
-             (top-line (if (and top-b (> width 0)) (list (%make-h-border width)) '()))
-             (bot-line (if (and bot-b (> width 0)) (list (%make-h-border width)) '()))
+             (top-line (if (and top-b (> width 0)) (list (%make-h-border width b-col)) '()))
+             (bot-line (if (and bot-b (> width 0)) (list (%make-h-border width b-col)) '()))
             ) ;
         (append top-line rendered bot-line)
       ) ;let*

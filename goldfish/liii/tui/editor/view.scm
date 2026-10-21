@@ -42,6 +42,7 @@
                 (after (if (< safe-col len) (substring line (+ safe-col 1) len) ""))
                ) ;
             (case cursor-style
+             ((none hardware) line)
              ((bar)
               (string-append before
                 "|"
