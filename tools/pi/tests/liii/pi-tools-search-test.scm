@@ -185,4 +185,7 @@
   (path-rmdir test-base)
 ) ;let*
 
+;; grep 工具自身的回归用例（非法正则透传、无匹配、字面量模式）统一放在
+;; tools/pi/tests/liii/pi/pi-execute-grep-test.scm，此处不再重复。
+
 (check-report)
