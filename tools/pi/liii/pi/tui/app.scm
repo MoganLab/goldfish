@@ -37,7 +37,7 @@
       (editor pi-app-editor %pi-app-editor-set!)
       (footer %pi-app-footer)
       (queue pi-app-queue)
-      (handler %pi-app-handler %pi-app-handler-set!)
+      (handler %pi-app-handler)
     ) ;define-record-type
 
     (define (%detect-git-branch)
@@ -66,73 +66,68 @@
       (let* ((screen (pi-app-screen app))
              (term (%pi-app-term app))
              (w (car (terminal-size term)))
-             (doc-lines (component-render (%pi-app-doc app) w))
-             (ed (pi-app-editor app))
-             (ed-lines (component-render ed w))
-             (footer-lines (component-render (%pi-app-footer app) w))
-             (ed-cur (editor-cursor ed))
-             (ed-y (+ (length doc-lines) (if %pi-editor-top-border 1 0)))
-             (cur-pos (cons (cadr ed-cur) (+ ed-y (car ed-cur))))
+             ;; pending 容器内容纯由队列状态派生：busy 时展示队首等待消息
+             (q (pi-app-queue app))
+             (pending-box (%pi-app-pending-box app))
             ) ;
-        (screen-render! screen (append doc-lines ed-lines footer-lines) cur-pos)
+        (container-clear! pending-box)
+        (when (pi-queue-busy? q)
+          (let ((items (pi-queue-items q)))
+            (unless (null? items)
+              (container-add! pending-box (make-queued-card (car items)))
+            ) ;unless
+          ) ;let
+        ) ;when
+        (let* ((doc-lines (component-render (%pi-app-doc app) w))
+               (ed (pi-app-editor app))
+               (ed-lines (component-render ed w))
+               (footer-lines (component-render (%pi-app-footer app) w))
+               (ed-cur (editor-cursor ed))
+               (ed-y (+ (length doc-lines) (if %pi-editor-top-border 1 0)))
+               (cur-pos (cons (cadr ed-cur) (+ ed-y (car ed-cur))))
+              ) ;
+          (screen-render! screen (append doc-lines ed-lines footer-lines) cur-pos)
+        ) ;let*
       ) ;let*
     ) ;define
 
+    ;; 以下 add-*! 系列仅做容器变更，统一由 pi-app-drain-queue! / pi-app-render! 上屏
     (define (pi-app-add-user-message! app text)
       (container-add! (%pi-app-chat app) (make-user-card text))
-      (pi-app-render! app)
     ) ;define
 
     (define (pi-app-add-tool-result! app tool-name args status . maybe-result)
       (let ((res (if (pair? maybe-result) (car maybe-result) #f)))
         (container-add! (%pi-app-chat app) (make-tool-card tool-name args status res))
-        (pi-app-render! app)
       ) ;let
     ) ;define
 
     (define (pi-app-add-assistant-text! app text)
       (container-add! (%pi-app-chat app) (make-assistant-card text))
-      (pi-app-render! app)
     ) ;define
 
-    ;; 队列调度核心推进逻辑
+    ;; 队列调度核心推进逻辑：消费期间仅变更状态，结束后统一渲染一次
     (define (pi-app-drain-queue! app)
-      (let ((q (pi-app-queue app))
-            (pending-box (%pi-app-pending-box app))
-            (chat (%pi-app-chat app))
-            (handler (%pi-app-handler app))
-           ) ;
-        (if (pi-queue-busy? q)
-          ;; 当前任务仍在执行：在 pending 容器中展示等待队列提示
-          (begin
-            (container-clear! pending-box)
-            (let ((items (pi-queue-items q)))
-              (unless (null? items)
-                (container-add! pending-box (make-queued-card (car items)))
-              ) ;unless
-            ) ;let
-          ) ;begin
-          ;; 当前处于空闲：尝试出队消费下一条
-          (begin
-            (container-clear! pending-box)
+      (let ((q (pi-app-queue app)) (handler (%pi-app-handler app)))
+        ;; 当前任务仍在执行时不消费；等待队列提示由渲染时按队列状态派生
+        (unless (pi-queue-busy? q)
+          (let loop
+            ()
             (let ((msg (pi-queue-dequeue-next! q)))
               (when msg
                 ;; 出队并正式上屏为深蓝用户消息卡片
-                (container-add! chat (make-user-card msg))
-                (pi-app-render! app)
+                (pi-app-add-user-message! app msg)
                 ;; 调用绑定的 handler 执行处理
-                (when (procedure? handler)
-                  (handler app msg)
-                ) ;when
+                (handler app msg)
                 ;; 完成当前任务，解除 busy
                 (pi-queue-finish-task! q)
-                (pi-app-render! app)
-                ;; 循环递归消费队列中可能累积的后续排队消息
-                (pi-app-drain-queue! app)
+                ;; 循环消费队列中可能累积的后续排队消息
+                (loop)
               ) ;when
             ) ;let
-          ) ;begin
-        ) ;if
+          ) ;let
+        ) ;unless
+        (pi-app-render! app)
       ) ;let
     ) ;define
 
@@ -144,7 +139,6 @@
             (pi-queue-enqueue! q clean)
             (editor-set-text! ed "")
             (pi-app-drain-queue! app)
-            (pi-app-render! app)
           ) ;let
         ) ;unless
       ) ;let
@@ -212,7 +206,6 @@
                        (let ((restored (pi-queue-restore-all! q)))
                          (if (pair? restored)
                            (begin
-                             (container-clear! (%pi-app-pending-box app))
                              (editor-set-text! ed (string-join restored "\n"))
                              (pi-app-render! app)
                              (loop)
