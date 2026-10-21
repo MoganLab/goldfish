@@ -1,5 +1,4 @@
-(import (liii check)
-        (liii pi models))
+(import (liii check) (liii pi models))
 
 (check-set-mode! 'report-failed)
 
@@ -8,17 +7,24 @@
 
 (define FIXTURE_DIR
   (if (file-exists? "tests/fixtures/default")
-      "tests/fixtures/default"
-      "tools/pi/tests/fixtures/default"))
+    "tests/fixtures/default"
+    "tools/pi/tests/fixtures/default"
+  ) ;if
+) ;define
 
 (define fixture-store (pi-load-models-store FIXTURE_DIR))
+
 (define fixture-models-json (pi-load-models-json FIXTURE_DIR))
-(define fixture-merged (pi-merge-models-json-into-store fixture-store fixture-models-json))
+
+(define fixture-merged
+  (pi-merge-models-json-into-store fixture-store fixture-models-json)
+) ;define
 
 ;; 1. 从 models-store 中命中
 (check-true (pi-provider-has-model? "google" "gemini-3.8-flash" fixture-store))
 (check-true (pi-provider-has-model? "google" "gemini-2.5-pro" fixture-store))
-(check-true (pi-provider-has-model? "anthropic" "claude-3-7-sonnet-20250219" fixture-store))
+(check-true (pi-provider-has-model? "anthropic" "claude-3-7-sonnet-20250219" fixture-store)
+) ;check-true
 
 ;; 2. 从内置模型列表中命中（即使 models-store 为空）
 (check-true (pi-provider-has-model? "kimi-coding" "k3" '()))
@@ -26,6 +32,13 @@
 (check-true (pi-provider-has-model? "deepseek" "deepseek-v4-pro" '()))
 (check-true (pi-provider-has-model? "deepseek" "deepseek-v4-flash" '()))
 (check-true (pi-provider-has-model? "minimax" "MiniMax-M3" '()))
+(check-true (pi-provider-has-model? "minimax" (pi-provider-default-model "minimax") '())
+) ;check-true
+(check-true (pi-provider-has-model? "minimax-cn"
+              (pi-provider-default-model "minimax-cn")
+              '()
+            ) ;pi-provider-has-model?
+) ;check-true
 (check-true (pi-provider-has-model? "minimax-cn" "MiniMax-M2.7" '()))
 (check-true (pi-provider-has-model? "minimax-cn" "MiniMax-M2.7-highspeed" '()))
 (check-true (pi-provider-has-model? "zai-coding-cn" "glm-5.3" '()))

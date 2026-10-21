@@ -57,7 +57,7 @@
               ((equal? p "glm") "glm-5.3")
               ((equal? p "deepseek") "deepseek-v4-pro")
               ((or (equal? p "zai-coding-cn") (equal? p "zai")) "glm-5.3")
-              ((or (equal? p "minimax") (equal? p "minimax-cn")) "MiniMax-M3.1-Flash")
+              ((or (equal? p "minimax") (equal? p "minimax-cn")) "MiniMax-M3")
               (else "gemini-3.8-flash")
         ) ;cond
       ) ;let
