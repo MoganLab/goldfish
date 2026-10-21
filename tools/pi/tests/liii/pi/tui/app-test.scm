@@ -143,6 +143,25 @@
   (pi-app-render! app)
   ;; 第二轮用户卡片追加 2 行 (行 14..15)，输入行平移至行 17
   (check (terminal-cursor vterm) => '(0 17))
+
+  ;; 模拟第二轮助手完成回复
+  (pi-app-add-assistant-text! app "第二轮回复：已完成测试")
+  (pi-app-render! app)
+  ;; Assistant 2 追加 2 行 (行 16..17)，输入行平移至行 19
+  (check (terminal-cursor vterm) => '(0 19))
+
+  ;; 第三轮输入 "第三轮验证"
+  (component-handle-input editor "第三轮验证")
+  (pi-app-render! app)
+  ;; 5个中文字符，物理宽度 10，行号 19
+  (check (terminal-cursor vterm) => '(10 19))
+
+  ;; 按退格键删除 2 个字（剩 "第三轮"，物理宽度 6）
+  (component-handle-input editor 'backspace)
+  (component-handle-input editor 'backspace)
+  (pi-app-render! app)
+  (check (terminal-cursor vterm) => '(6 19))
+  (check (editor-text editor) => "第三轮")
 ) ;let*
 
 (check-report)
