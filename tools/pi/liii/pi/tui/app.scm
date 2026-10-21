@@ -229,8 +229,6 @@
     (define (make-pi-app . args)
       (let* ((term (%keyword-value :terminal args #f))
              (handler-opt (%keyword-value :handler args #f))
-             (parsed (%keyword-value :parsed args '()))
-             (cfg (%keyword-value :cfg args '()))
              (actual-term (or term (make-standard-terminal :inline #t)))
              (screen (make-main-screen actual-term :auto-hide-cursor #f))
              (header (make-pi-header))
@@ -263,7 +261,7 @@
         (%pi-app-editor-set! app ed)
         ;; 若未指定自定义 handler，启动后台 (liii go) 独立工作协程
         (unless handler-opt
-          (go (pi-tui-agent-worker jobs-chan event-chan parsed cfg))
+          (go (pi-tui-agent-worker jobs-chan event-chan))
         ) ;unless
         app
       ) ;let*

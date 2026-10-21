@@ -118,8 +118,7 @@
                  ) ;and
                  (begin
                    (if (and (stdin-tty?) (stdout-tty?))
-                     (pi-app-run (make-pi-app :parsed parsed :cfg (pi-resolve-runtime-config reg parsed))
-                     ) ;pi-app-run
+                     (pi-app-run (make-pi-app))
                      (display-pi-help)
                    ) ;if
                    0

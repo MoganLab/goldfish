@@ -10,8 +10,11 @@
   (export make-tui-emit pi-tui-agent-worker pi-tui-run-worker pi-tui-send-event!)
   (import (scheme base)
     (scheme write)
+    (scheme process-context)
     (liii go)
     (liii string)
+    (liii pi args)
+    (liii pi config)
     (liii pi retry)
     (liii pi modes flow)
     (liii pi modes output)
@@ -91,19 +94,24 @@
     ) ;define
 
     ;; 顶层后台工作协程：并发循环消费 jobs-chan 任务并回传事件到 event-chan
-    ;; parsed/cfg 由入口解析一次后传入，worker 不再触碰进程级命令行与环境变量
-    (define (pi-tui-agent-worker jobs-chan event-chan parsed cfg)
-      (set-pi-retry-logger! (lambda (msg) (pi-tui-send-event! event-chan (list 'retry msg)))
-      ) ;set-pi-retry-logger!
-      (let loop
-        ()
-        (let ((text (chan-recv! jobs-chan)))
-          (when text
-            (pi-tui-run-worker parsed cfg text event-chan)
-            (loop)
-          ) ;when
+    ;; 注意：go 绑定的 let 语法会"求值"绑定值，alist 会被当作函数调用而报错，
+    ;; 因此 parsed/cfg 不能跨 go 边界传入，必须在 worker 会话内自行解析
+    (define (pi-tui-agent-worker jobs-chan event-chan)
+      (let* ((parsed (parse-pi-args (cdr (command-line))))
+             (cfg (resolve-pi-config parsed (get-environment-variables)))
+            ) ;
+        (set-pi-retry-logger! (lambda (msg) (pi-tui-send-event! event-chan (list 'retry msg)))
+        ) ;set-pi-retry-logger!
+        (let loop
+          ()
+          (let ((text (chan-recv! jobs-chan)))
+            (when text
+              (pi-tui-run-worker parsed cfg text event-chan)
+              (loop)
+            ) ;when
+          ) ;let
         ) ;let
-      ) ;let
+      ) ;let*
     ) ;define
 
   ) ;begin
