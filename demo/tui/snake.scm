@@ -1,6 +1,6 @@
 ;;
 ;; Copyright (c) 2025 Mario Zechner
-;; Copyright (C) 2024-2026 The Goldfish Scheme Authors
+;; Copyright (C) 2026 The Goldfish Scheme Authors
 ;;
 ;; Permission is hereby granted, free of charge, to any person obtaining a copy
 ;; of this software and associated documentation files (the "Software"), to deal
