@@ -14,9 +14,13 @@
   ) ;import
   (export pi-resolve-google-api-key pi-resolve-search-base-url
     pi-resolve-search-proxy-url pi-resolve-search-proxy-alist
-    pi-resolve-search-model-id
+    pi-resolve-search-model-id pi-valid-key?
   ) ;export
   (begin
+
+    (define (pi-valid-key? k)
+      (and (string? k) (not (string-null? (string-trim-both k))))
+    ) ;define
 
     (define (pi-resolve-google-api-key config opt-key)
       (cond
@@ -29,38 +33,40 @@
           (let ((p (or (assoc 'provider config) (assoc "provider" config))))
             (or (not p) (equal? (cdr p) "google"))
           ) ;let
-          (assoc 'api-key config)
+          (let ((k-pair (or (assoc 'api-key config) (assoc "api-key" config))))
+            (and (pair? k-pair) (pi-valid-key? (cdr k-pair)))
+          ) ;let
         ) ;and
-        (let ((k (cdr (assoc 'api-key config))))
-          (if
-            (and (string? k) (not (string-null? (string-trim-both k))))
-            k
-            #f
-          ) ;if
+        (let ((k (cdr (or (assoc 'api-key config) (assoc "api-key" config)))))
+          (string-trim-both k)
         ) ;let
        ) ;
-       ((get-environment-variable "GOOGLE_API_KEY")
+       ((let ((v (get-environment-variable "GOOGLE_API_KEY")))
+          (and (pi-valid-key? v) (string-trim-both v))
+        ) ;let
         =>
-        (lambda (v) (if (not (string-null? (string-trim-both v))) v #f))
+        (lambda (v) v)
        ) ;
-       ((get-environment-variable "GEMINI_API_KEY")
+       ((let ((v (get-environment-variable "GEMINI_API_KEY")))
+          (and (pi-valid-key? v) (string-trim-both v))
+        ) ;let
         =>
-        (lambda (v) (if (not (string-null? (string-trim-both v))) v #f))
+        (lambda (v) v)
        ) ;
        (else
          (catch #t
            (lambda ()
              (let* ((env-dir (get-environment-variable "PI_CODING_AGENT_DIR"))
-                    (agent-dir
-                      (if
-                        (and (string? env-dir) (not (string-null? (string-trim-both env-dir))))
-                        (pi-resolve-path env-dir (getcwd))
-                        (pi-resolve-path "~/.pi/agent" (getcwd))
-                      ) ;if
+                    (agent-dir (if (pi-valid-key? env-dir)
+                                 (pi-resolve-path env-dir (getcwd))
+                                 (pi-resolve-path "~/.pi/agent" (getcwd))
+                               ) ;if
                     ) ;agent-dir
                     (auth (pi-load-auth agent-dir))
                    ) ;
-               (pi-resolve-provider-key "google" auth)
+               (let ((k (pi-resolve-provider-key "google" auth)))
+                 (if (pi-valid-key? k) (string-trim-both k) #f)
+               ) ;let
              ) ;let*
            ) ;lambda
            (lambda _ #f)
@@ -70,57 +76,68 @@
     ) ;define
 
     (define (pi-resolve-search-base-url config opt-url)
-      (cond
-       ((and (string? opt-url) (not (string-null? (string-trim-both opt-url))))
-        opt-url
-       ) ;
-       ((get-environment-variable "GOOGLE_BASE_URL")
-        =>
-        (lambda (v) (if (not (string-null? (string-trim-both v))) v #f))
-       ) ;
-       ((get-environment-variable "GEMINI_BASE_URL")
-        =>
-        (lambda (v) (if (not (string-null? (string-trim-both v))) v #f))
-       ) ;
-       ((get-environment-variable "GF_PI_BASE_URL")
-        =>
-        (lambda (v) (if (not (string-null? (string-trim-both v))) v #f))
-       ) ;
-       ((and (pair? config)
-          (let ((p (or (assoc 'provider config) (assoc "provider" config))))
-            (or (not p) (equal? (cdr p) "google"))
-          ) ;let
-          (assoc 'model-meta config)
-        ) ;and
-        (let* ((meta (cdr (assoc 'model-meta config)))
-               (bu (if (pair? meta) (or (assoc 'base-url meta) (assoc "baseURL" meta)) #f))
-              ) ;
-          (if
-            (and bu (string? (cdr bu)) (not (string-null? (string-trim-both (cdr bu)))))
-            (cdr bu)
-            "https://generativelanguage.googleapis.com/v1beta"
-          ) ;if
-        ) ;let*
-       ) ;
-       (else "https://generativelanguage.googleapis.com/v1beta")
+      (cond ((pi-valid-key? opt-url) (string-trim-both opt-url))
+            ((let ((v (get-environment-variable "GOOGLE_BASE_URL")))
+               (and (pi-valid-key? v) (string-trim-both v))
+             ) ;let
+             =>
+             (lambda (v) v)
+            ) ;
+            ((let ((v (get-environment-variable "GEMINI_BASE_URL")))
+               (and (pi-valid-key? v) (string-trim-both v))
+             ) ;let
+             =>
+             (lambda (v) v)
+            ) ;
+            ((let ((v (get-environment-variable "GF_PI_BASE_URL")))
+               (and (pi-valid-key? v) (string-trim-both v))
+             ) ;let
+             =>
+             (lambda (v) v)
+            ) ;
+            ((and (pair? config)
+               (let ((p (or (assoc 'provider config) (assoc "provider" config))))
+                 (or (not p) (equal? (cdr p) "google"))
+               ) ;let
+               (assoc 'model-meta config)
+             ) ;and
+             (let* ((meta (cdr (assoc 'model-meta config)))
+                    (bu (if (pair? meta) (or (assoc 'base-url meta) (assoc "baseURL" meta)) #f))
+                   ) ;
+               (if
+                 (and bu (string? (cdr bu)) (not (string-null? (string-trim-both (cdr bu)))))
+                 (string-trim-both (cdr bu))
+                 "https://generativelanguage.googleapis.com/v1beta"
+               ) ;if
+             ) ;let*
+            ) ;
+            (else "https://generativelanguage.googleapis.com/v1beta")
       ) ;cond
     ) ;define
 
     (define (pi-resolve-search-proxy-url config opt-proxy)
-      (cond
-       ((and (string? opt-proxy) (not (string-null? (string-trim-both opt-proxy))))
-        opt-proxy
-       ) ;
-       ((and (pair? config) (assoc 'proxy-url config)) (cdr (assoc 'proxy-url config)))
-       ((get-environment-variable "HTTPS_PROXY")
-        =>
-        (lambda (v) (if (not (string-null? (string-trim-both v))) v #f))
-       ) ;
-       ((get-environment-variable "ALL_PROXY")
-        =>
-        (lambda (v) (if (not (string-null? (string-trim-both v))) v #f))
-       ) ;
-       (else #f)
+      (cond ((pi-valid-key? opt-proxy) (string-trim-both opt-proxy))
+            ((and (pair? config)
+               (let ((pu (or (assoc 'proxy-url config) (assoc "proxy-url" config))))
+                 (and (pair? pu) (pi-valid-key? (cdr pu)))
+               ) ;let
+             ) ;and
+             (string-trim-both (cdr (or (assoc 'proxy-url config) (assoc "proxy-url" config)))
+             ) ;string-trim-both
+            ) ;
+            ((let ((v (get-environment-variable "HTTPS_PROXY")))
+               (and (pi-valid-key? v) (string-trim-both v))
+             ) ;let
+             =>
+             (lambda (v) v)
+            ) ;
+            ((let ((v (get-environment-variable "ALL_PROXY")))
+               (and (pi-valid-key? v) (string-trim-both v))
+             ) ;let
+             =>
+             (lambda (v) v)
+            ) ;
+            (else #f)
       ) ;cond
     ) ;define
 
