@@ -13,6 +13,7 @@
     (liii pi args)
     (liii pi modes)
     (liii pi help)
+    (liii pi tui)
     (liii pi extension types)
     (liii pi extension registry)
     (liii pi extension discovery)
@@ -114,8 +115,16 @@
                    (not (pi-args-ref parsed 'compact))
                    (not (%has-matching-flow? reg parsed))
                  ) ;and
-                 (display-pi-help)
-                 0
+                 (if (and (stdin-tty?) (stdout-tty?))
+                   (begin
+                     (pi-app-run (make-pi-app))
+                     0
+                   ) ;begin
+                   (begin
+                     (display-pi-help)
+                     0
+                   ) ;begin
+                 ) ;if
                 ) ;
                 (else
                   (let ((mode (resolve-app-mode (pi-args-ref parsed 'mode)
@@ -204,7 +213,8 @@
           ) ;let
         ) ;lambda
         (lambda (err-type . info)
-          (display-stderr (string-append "Error: " (%format-catch-error err-type info)))
+          (display-stderr (string-append "Error: " (%format-catch-error err-type info) "\n")
+          ) ;display-stderr
           1
         ) ;lambda
       ) ;catch
