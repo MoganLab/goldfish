@@ -12,7 +12,7 @@
     (liii pi message)
   ) ;import
   (export display-stderr handle-print-result pi-last-message pi-message-field
-    pi-last-assistant-text
+    pi-last-assistant-text pi-content-text
   ) ;export
   (begin
 
@@ -102,7 +102,7 @@
       ) ;let
     ) ;define
 
-    (define (%content-text content)
+    (define (pi-content-text content)
       (apply string-append (map %block-text (%to-block-list content)))
     ) ;define
 
@@ -111,7 +111,7 @@
         ((rest (reverse msgs)))
         (if (null? rest)
           ""
-          (let ((text (%content-text (pi-message-field (car rest) 'content '()))))
+          (let ((text (pi-content-text (pi-message-field (car rest) 'content '()))))
             (if (string-null? (string-trim-both text)) (loop (cdr rest)) text)
           ) ;let
         ) ;if

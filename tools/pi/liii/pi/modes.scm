@@ -58,13 +58,9 @@
             ) ;
         (if matched-local
          ((extension-flow-def-handler matched-local) parsed cfg mode initial-msg)
-         (let* ((provider (cdr (or (assoc 'provider cfg) '(#f . "google"))))
-                (api-key (cdr (or (assoc 'api-key cfg) '(#f . #f))))
-               ) ;
-           (when (or (not api-key) (and (string? api-key) (string-null? api-key)))
-             (error 'credential-error
-               (string-append "No credentials found for provider \"" provider "\"")
-             ) ;error
+         (let ((cred-msg (pi-missing-credential-msg cfg)))
+           (when cred-msg
+             (error 'credential-error cred-msg)
            ) ;when
            (let ((matched-custom (%find-matching-flow flows parsed #f)))
              (cond (matched-custom ((extension-flow-def-handler matched-custom) parsed cfg mode initial-msg)
@@ -92,7 +88,7 @@
                    (else 0)
              ) ;cond
            ) ;let
-         ) ;let*
+         ) ;let
         ) ;if
       ) ;let*
     ) ;define

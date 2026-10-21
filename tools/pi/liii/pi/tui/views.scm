@@ -6,7 +6,7 @@
 
 (define-library (liii pi tui views)
   (export make-user-card make-tool-card make-assistant-card make-queued-card
-    apply-card-bg
+    make-retry-card apply-card-bg
   ) ;export
   (import (scheme base) (liii string) (liii tui component) (liii tui text-width))
   (begin
@@ -113,6 +113,21 @@
           ) ;if
         ) ;lambda
       ) ;make-component
+    ) ;define
+
+    ;; 重试提示卡片组件 (make-retry-card msg)
+    (define (make-retry-card msg)
+      (let ((line (string-append " ↻ " (string-trim-both msg))))
+        (make-component
+          :render
+          (lambda (self width)
+            (if (<= width 0)
+              '()
+              (list (apply-card-bg line width %bg-pending %fg-pending) "")
+            ) ;if
+          ) ;lambda
+        ) ;make-component
+      ) ;let
     ) ;define
 
   ) ;begin

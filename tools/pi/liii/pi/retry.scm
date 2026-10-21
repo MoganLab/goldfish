@@ -20,6 +20,7 @@
   (export pi-is-retriable-error? pi-calc-retry-delay pi-resolve-retry-params
     gemini-is-retriable-error? anthropic-is-retriable-error?
     pi-extract-retry-after pi-parse-retry-after pi-log-retry
+    set-pi-retry-logger!
   ) ;export
   (begin
 
@@ -193,6 +194,12 @@
       ) ;let*
     ) ;define*
 
+    (define *pi-retry-logger* #f)
+
+    (define (set-pi-retry-logger! logger)
+      (set! *pi-retry-logger* logger)
+    ) ;define
+
     (define* (pi-log-retry status attempt max-retries delay-sec (retry-after #f) (port #f))
       (let* ((ra-part (if (and (number? retry-after) (>= retry-after 0))
                         (string-append " (retry-after: " (number->string retry-after) "s)")
@@ -209,13 +216,16 @@
                     (number->string delay-sec)
                     "s"
                     ra-part
-                    "\n"
                   ) ;string-append
              ) ;msg
-             (p (or port (if (defined? '*stderr*) *stderr* (current-error-port))))
             ) ;
-        (display msg p)
-        (flush-output-port p)
+        (if (procedure? *pi-retry-logger*)
+          (*pi-retry-logger* msg)
+          (let ((p (or port (if (defined? '*stderr*) *stderr* (current-error-port)))))
+            (display (string-append msg "\n") p)
+            (flush-output-port p)
+          ) ;let
+        ) ;if
       ) ;let*
     ) ;define*
 

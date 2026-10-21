@@ -31,7 +31,7 @@
     pi-resolve-proxy-url pi-load-auth pi-resolve-provider-key
     pi-load-models-store pi-load-models-json pi-merge-models-json-into-store
     pi-resolve-model-metadata resolve-pi-config resolve-goldpi-config
-    resolve-active-tools
+    resolve-active-tools pi-missing-credential-msg
   ) ;export
   (begin
 
@@ -262,6 +262,18 @@
       ) ;let*
     ) ;define
     (define resolve-goldpi-config resolve-pi-config)
+
+    ;; 凭证缺失时返回用户可读提示消息，否则返回 #f（CLI 报错与 TUI 卡片共用）
+    (define (pi-missing-credential-msg cfg)
+      (let ((provider (cdr (or (assoc 'provider cfg) '(#f . "google"))))
+            (api-key (cdr (or (assoc 'api-key cfg) '(#f . #f))))
+           ) ;
+        (if (or (not api-key) (and (string? api-key) (string-null? api-key)))
+          (string-append "No credentials found for provider \"" provider "\"")
+          #f
+        ) ;if
+      ) ;let
+    ) ;define
 
   ) ;begin
 ) ;define-library

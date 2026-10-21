@@ -29,9 +29,14 @@
   ) ;let*
 ) ;let*
 
-;; 2. 测试消息提交与响应追加
+;; 2. 测试消息提交与响应追加（注入 echo handler，与生产后台 worker 路径隔离）
 (let* ((vterm (make-virtual-terminal :width 100 :height 40))
-       (app (make-pi-app :terminal vterm))
+       (echo-handler
+         (lambda (app msg)
+           (pi-app-add-assistant-text! app (string-append "处理完成: " msg))
+         ) ;lambda
+       ) ;echo-handler
+       (app (make-pi-app :terminal vterm :handler echo-handler))
        (screen (pi-app-screen app))
        (editor (pi-app-editor app))
       ) ;
