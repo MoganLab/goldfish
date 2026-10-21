@@ -4,6 +4,13 @@
 ;; Licensed under the MIT License
 ;;
 
+(import (scheme base)
+  (liii string)
+  (liii pi extension)
+  (liii pi simplify)
+  (liii pi modes simplify)
+) ;import
+
 (define (%ref parsed key)
   (let ((p (assoc key parsed)))
     (if p (cdr p) #f)
