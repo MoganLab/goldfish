@@ -16,6 +16,7 @@
     (liii list)
     (liii pi config)
     (liii pi args)
+    (liii pi retry)
     (liii pi message)
     (liii pi modes flow)
     (liii pi modes output)
@@ -103,6 +104,11 @@
               ) ;lambda
             ) ;tui-emit
            ) ;
+        (set-pi-retry-logger!
+          (lambda (msg)
+            (pi-tui-send-event! event-chan (list 'retry msg))
+          ) ;lambda
+        ) ;set-pi-retry-logger!
         (catch #t
           (lambda ()
             (run-session-flow parsed cfg user-text tui-emit (lambda (res-msgs) #t))

@@ -78,4 +78,18 @@
   (check (string-contains? (car lines) "等待执行的后续指令") => #t)
 ) ;let*
 
+;; -----------------------------------------------------------------------------
+;; 测试项 6: 重试提示卡片 (make-retry-card)
+;; -----------------------------------------------------------------------------
+(let* ((retry-card (make-retry-card "[pi retry] HTTP 429, attempt 1/12, waiting 2.0s"))
+       (w 60)
+       (lines (component-render retry-card w)))
+  (check (component? retry-card) => #t)
+  (check (pair? lines) => #t)
+  ;; 验证包含 ↻ 符号与重试描述
+  (check (string-contains? (car lines) "↻") => #t)
+  (check (string-contains? (car lines) "HTTP 429") => #t)
+  ;; 验证带背景色码填充整行宽度
+  (check (string-contains? (car lines) "\x1b;[48;2;") => #t))
+
 (check-report)

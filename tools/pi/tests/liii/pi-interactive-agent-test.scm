@@ -52,4 +52,17 @@
     (check (length chat) => 2)
     (check (pi-queue-idle? (pi-app-queue app)) => #t)))
 
+;; 5. 验证 [pi retry] 重试事件作为卡片输出而非污染终端
+(let* ((mock-cfg '((provider . "mock") (api-key . "mock-key")))
+       (retry-runner (lambda (parsed cfg initial-msg emit on-finish)
+                       (emit 'retry "[pi retry] HTTP 429, attempt 1/12, waiting 2.0s")
+                       (emit 'agent_settled #f)))
+       (handler (make-tui-agent-handler '() mock-cfg :runner retry-runner))
+       (app (make-pi-app :terminal (make-virtual-terminal 80 24) :handler handler)))
+  (pi-app-submit! app "触发429重试")
+  (let ((chat (pi-app-chat app)))
+    ;; 应当有 2 个条目：1) 用户深蓝卡片 2) ↻ 重试卡片
+    (check (length chat) => 2)
+    (check (pi-queue-idle? (pi-app-queue app)) => #t)))
+
 (check-report)

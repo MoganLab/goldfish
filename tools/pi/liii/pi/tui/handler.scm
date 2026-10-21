@@ -93,7 +93,10 @@
                               ) ;let*
                             ) ;when
                            ) ;
-                           ((eq? event-type 'agent_settled) (pi-tui-send-event! ch (list 'agent_settled)))
+                            ((eq? event-type 'retry)
+                             (pi-tui-send-event! ch (list 'retry (car args)))
+                            ) ;
+                            ((eq? event-type 'agent_settled) (pi-tui-send-event! ch (list 'agent_settled)))
                            (else #t)
                           ) ;cond
                         ) ;lambda

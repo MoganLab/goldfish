@@ -8,7 +8,7 @@
   (export make-pi-app pi-app? pi-app-screen pi-app-editor pi-app-queue
     pi-app-chat pi-app-render! pi-app-run pi-app-submit! pi-app-drain-queue!
     pi-app-add-user-message! pi-app-add-tool-result! pi-app-add-assistant-text!
-    pi-app-jobs-chan pi-app-event-chan pi-app-poll-events!
+    pi-app-add-retry-message! pi-app-jobs-chan pi-app-event-chan pi-app-poll-events!
   ) ;export
   (import (scheme base)
     (liii go)
@@ -117,6 +117,10 @@
       (container-add! (%pi-app-chat app) (make-assistant-card text))
     ) ;define
 
+    (define (pi-app-add-retry-message! app msg)
+      (container-add! (%pi-app-chat app) (make-retry-card msg))
+    ) ;define
+
     (define (pi-app-jobs-chan app)
       (%pi-app-jobs-chan app)
     ) ;define
@@ -145,6 +149,7 @@
                   ) ;let
                  ) ;
                  ((eq? type 'assistant_text) (pi-app-add-assistant-text! app (cadr ev)))
+                 ((eq? type 'retry) (pi-app-add-retry-message! app (cadr ev)))
                  ((eq? type 'agent_settled) (pi-queue-finish-task! q) (pi-app-drain-queue! app))
                  ((eq? type 'error)
                   (pi-app-add-tool-result! app "error" '() 'error (cadr ev))
