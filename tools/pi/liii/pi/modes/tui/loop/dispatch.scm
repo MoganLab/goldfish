@@ -53,12 +53,32 @@
           (not (pi-tui-editor? (state-input-editor st)))
         ) ;or
         key-handled?
-        (let* ((ed (state-input-editor st)) (handled? (pi-tui-editor-handle-key ed key)))
-          (when handled?
+        (let* ((ed (state-input-editor st))
+               (is-enter? (or (eq? key 'enter) (equal? key "\r") (equal? key "\n")))
+              ) ;
+          (cond
+           ((and is-enter? (not (string=? (state-input-text st) "")))
+            ;; 如果有注册 on-submit，调用 on-submit 回调
+            (let ((on-sub (pi-tui-editor-on-submit ed)))
+              (when (procedure? on-sub)
+                (on-sub ed (state-input-text st))
+              ) ;when
+            ) ;let
+            (state-submit-prompt! st)
             (state-sync-slash-menu! st)
             (state-mark-dirty! st)
-          ) ;when
-          handled?
+            #t
+           ) ;
+           (else
+             (let ((handled? (pi-tui-editor-handle-key ed key)))
+               (when handled?
+                 (state-sync-slash-menu! st)
+                 (state-mark-dirty! st)
+               ) ;when
+               handled?
+             ) ;let
+           ) ;else
+          ) ;cond
         ) ;let*
       ) ;if
     ) ;define
