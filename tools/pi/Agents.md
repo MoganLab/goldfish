@@ -151,6 +151,10 @@ Anthropic 已实现但本机无访问权限，不在维护范围；其 OAuth 刷
 | 093 | ~~provider 内 key 级轮换落地：消除 429 限流~~ | **已取消（用户裁定 2026-10-21）——本任务的前提经核实不成立**。核实结论：①**key 级轮换早已实现且已接线**——任务 033 交付的 `tools/pi/liii/pi/multikey.scm`（cooldown + LRU 选键 + 掩码）已接进 gemini/kimi 的 **request 与 stream 两条路径**，`pi-multikey-rotate!` 在 429/403 时冷却当前 key 并切下一个，池耗尽返回 `'exhausted` 由上层报错；配套 6 个单测 + `pi-multikey-e2e-test.scm`（stub Gemini server，池中一个 key 被拒、一个放行）——Claude 于 2026-10-21 实跑该 e2e **PASS**，轮换行为确实有效。②**本机不生效的根因不是代码缺陷**：`~/.pi/agent/multikey.json` **不存在** → `pi-load-multikey` 返回 `#f` → `pi-multikey-rotate!` 立即返回 `#f`，永远单 key 重试；且 **google/gemini 在 `auth.json` 中只有一个 key**（用户确认）——即使建池也只有 1 个成员，429 冷却后必然 `'exhausted`，**无从轮换**。③单 key 配额被打满属**凭据供给问题**，不是编码任务可解；若要提升吞吐需追加第二个 google key（用户侧动作）。④唯一确属缺失的是**文档**：`README.md` 曾把任务 033 列为未完成 TODO、且承诺了代码中并不存在的 stderr 轮换日志（`[multikey] ... switching to ...`，`grep "switching to"` 零命中）——已由 Claude 在 README 中**如实转正并删除该不实承诺**（README 是 Claude 直编的三份文档之一，无需单开编码任务）。⑤遗留的真实小缺陷（**登记于 §7 偏差清单第 40 条，不单开任务**）：`multikey.json` **格式非法**时 `pi-load-multikey` 的 JSON 解析被 `catch #t` 吞掉返回 `#f`，与「文件不存在」不可区分，二者均静默回退到 `auth.json` 单 key——与 §2「凭据缺失必须明确报错，绝不静默成功」相悖 | 已取消（用户裁定 2026-10-21；轮换能力经核实已由任务 033 落地并 e2e 通过，本机不生效系凭据仅单 key 所致；README 转正由 Claude 直接完成） |
 
 共同约束：
+- **执行顺序不按编号**（用户裁定 2026-10-21）：**090 → 094 → 091 → 092 → 095 → 096 → 097**。
+  理由：094 是用户实测的「`bin/gf pi` 首启动黑屏」缺陷，应用当前不可用；而 E2E 系列
+  （092/095/096/097）的价值建立在「界面能正常渲染」之上，黑屏未修时 E2E 只能验证黑屏；
+  091 的 /help 面板加在看不见的界面上亦无意义。**编号只作登记，不作次序**。
 - 每个任务常态三个 commit：`[编号][PLAN]`（建档）+ `[编号][REVIEW]`（代码）
   + `[编号][REVIEW]`（验收脚本）；观测 git log 即知任务进度。
 - 任务 1-4（Kimi）凭据事实：auth.json `kimi-coding` 为 type:"api_key"，仅
