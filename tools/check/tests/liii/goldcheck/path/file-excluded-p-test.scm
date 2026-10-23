@@ -1,4 +1,4 @@
-(import (scheme base) (liii check) (liii goldcheck-config))
+(import (scheme base) (liii check) (liii goldcheck config))
 
 ;; file-excluded?
 ;; 判断待测文件路径是否命中 exclude 列表中的任一条规则。

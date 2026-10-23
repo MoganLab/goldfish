@@ -14,7 +14,7 @@ gf check [options] [PATH...]
 ## Rules (检查规则)
 
 1. **max-file-lines**：单文件物理行数限制
-   - 默认上限：单个 `.scm` 文件不得超过 300 行（计入空行与注释）
+   - 默认上限：单个 `.scm` 文件不得超过 400 行（计入空行与注释）
    - 引导开发者遵循单一职责原则（SRP），遏制上帝文件膨胀
 
 2. **max-tree-depth**：语法树嵌套深度限制
@@ -55,7 +55,7 @@ gf check goldfish/liii/
 {
   "goldfish_version": "18.11",
   "rules": {
-    "max-file-lines": { "enabled": true, "limit": 300 },
+    "max-file-lines": { "enabled": true, "limit": 400 },
     "max-tree-depth": { "enabled": true, "limit": 15 }
   },
   "exclude": [

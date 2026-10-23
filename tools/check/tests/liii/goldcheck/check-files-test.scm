@@ -49,16 +49,18 @@
 (check (check-files #() #f) => #())
 
 ;; 2. 多文件并行检查结果保序：违规按输入文件顺序排列
-(let* ((f1 (make-tmp-file "gf-test-files-a.scm" 305))
+;;    violations 中的路径统一为正斜杠（跨平台一致），断言用 posix 形式
+(let* ((f1 (make-tmp-file "gf-test-files-a.scm" 405))
        (f2 (make-tmp-file "gf-test-files-b.scm" 3))
-       (f3 (make-tmp-file "gf-test-files-c.scm" 305))
+       (f3 (make-tmp-file "gf-test-files-c.scm" 405))
        (viols (check-files (vector f1 f2 f3) #f))
+       (posix (lambda (s) (path->string (path-as-posix (path s)))))
       ) ;
   (check (vector-length viols) => 2)
   (check (car (vector-ref viols 0)) => 'max-file-lines)
   (check (car (vector-ref viols 1)) => 'max-file-lines)
-  (check (cadr (vector-ref viols 0)) => f1)
-  (check (cadr (vector-ref viols 1)) => f3)
+  (check (cadr (vector-ref viols 0)) => (posix f1))
+  (check (cadr (vector-ref viols 1)) => (posix f3))
   (path-unlink f1 #t)
   (path-unlink f2 #t)
   (path-unlink f3 #t)
@@ -71,9 +73,10 @@
             ) ;string->json
        ) ;cfg
        (viols (check-files (vector f1 f2) cfg))
+       (posix (lambda (s) (path->string (path-as-posix (path s)))))
       ) ;
   (check (vector-length viols) => 1)
-  (check (cadr (vector-ref viols 0)) => f2)
+  (check (cadr (vector-ref viols 0)) => (posix f2))
   (path-unlink f1 #t)
   (path-unlink f2 #t)
 ) ;let*

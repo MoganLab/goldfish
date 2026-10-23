@@ -4,7 +4,7 @@
   (liii path)
   (liii os)
   (liii json)
-  (liii goldcheck-config)
+  (liii goldcheck config)
 ) ;import
 
 ;; load-check-config
@@ -39,7 +39,7 @@
   (check-true (not (not cfg)))
   (check (check-config-goldfish-version cfg) => "18.11")
   (check (check-rule-enabled? cfg "max-file-lines") => #t)
-  (check (check-rule-limit cfg "max-file-lines") => 300)
+  (check (check-rule-limit cfg "max-file-lines") => 400)
   (check (check-rule-enabled? cfg "max-tree-depth") => #t)
   (check (check-rule-limit cfg "max-tree-depth") => 15)
 ) ;let

@@ -50,9 +50,11 @@
     (liii par)
     (srfi srfi-133)
     (liii goldtool-changed)
-    (liii goldcheck-path)
-    (liii goldcheck-config)
-    (liii goldcheck-rules)
+    (liii goldcheck path)
+    (liii goldcheck config)
+    (liii goldcheck rules)
+    (liii goldcheck layer)
+    (liii goldcheck only)
   ) ;import
   (export main check-file-lines check-tree-depth check-file check-files
     make-check-arg-parser collect-scheme-files format-violation
@@ -74,6 +76,7 @@
                                 (short . "h")
                                 (action . store-true)))
         (parser :add-argument '((name . "changed-since") (type . string)))
+        (parser :add-argument '((name . "only") (type . string)))
         parser
       ) ;let
     ) ;define
@@ -100,6 +103,10 @@
       ) ;if
     ) ;define
 
+    (define (check-file-rule-layer file-path cfg acc)
+      (append acc (check-layer-order file-path cfg))
+    ) ;define
+
     (define (check-file file-path cfg)
       "检查单个文件是否违反启用的度量规则。若命中 exclude 则直接跳过返回 '()。"
       (let ((excludes (if cfg (check-config-excludes cfg) '())))
@@ -107,8 +114,9 @@
           '()
           (let* ((acc1 (check-file-rule-lines file-path cfg '()))
                  (acc2 (check-file-rule-depth file-path cfg acc1))
+                 (acc3 (check-file-rule-layer file-path cfg acc2))
                 ) ;
-            (reverse acc2)
+            (reverse acc3)
           ) ;let*
         ) ;if
       ) ;let
@@ -257,7 +265,9 @@
             (display-help)
             (exit 0)
           ) ;begin
-          (let* ((cfg (load-check-config))
+          (let* ((cfg0 (load-check-config))
+                 (only (parser 'only))
+                 (cfg (if only (restrict-check-config cfg0 only) cfg0))
                  (files (resolve-target-files parser cfg))
                  (violations (check-files (list->vector files) cfg))
                 ) ;

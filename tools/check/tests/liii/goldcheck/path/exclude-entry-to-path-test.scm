@@ -1,4 +1,4 @@
-(import (scheme base) (liii check) (liii json) (liii goldcheck-config))
+(import (scheme base) (liii check) (liii json) (liii goldcheck config))
 
 ;; exclude-entry->path
 ;; 将 exclude 配置项统一转换为路径模式字符串。

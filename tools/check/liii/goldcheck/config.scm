@@ -14,7 +14,7 @@
 ;; under the License.
 ;;
 
-(define-library (liii goldcheck-config)
+(define-library (liii goldcheck config)
   (import (scheme base)
     (scheme file)
     (liii base)
@@ -24,7 +24,7 @@
     (liii json)
     (liii list)
     (liii error)
-    (liii goldcheck-path)
+    (liii goldcheck path)
   ) ;import
   (export load-check-config check-config-exists? check-config-goldfish-version
     check-config-rules check-rule-enabled? check-rule-limit
@@ -34,7 +34,10 @@
   (begin
 
     (define (validate-rule-name! name)
-      (unless (or (string=? name "max-file-lines") (string=? name "max-tree-depth"))
+      (unless (or (string=? name "max-file-lines")
+                (string=? name "max-tree-depth")
+                (string=? name "layer-order")
+              ) ;or
         (value-error "unknown rule: ~A" name)
       ) ;unless
     ) ;define
@@ -174,7 +177,7 @@
     ) ;define
 
     (define (default-rule-limit rule-name)
-      (cond ((string=? rule-name "max-file-lines") 300)
+      (cond ((string=? rule-name "max-file-lines") 400)
             ((string=? rule-name "max-tree-depth") 15)
             (else 0)
       ) ;cond
