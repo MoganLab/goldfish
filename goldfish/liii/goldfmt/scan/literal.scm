@@ -14,13 +14,9 @@
 ;; limitations under the License.
 
 (define-library (liii goldfmt scan literal)
-  (export rewrite-reader-literals needs-rewrite-reader-literals?
-  ) ;export
+  (export rewrite-reader-literals needs-rewrite-reader-literals?)
 
-  (import (liii base)
-    (liii raw-string)
-    (liii string)
-  ) ;import
+  (import (liii base) (liii raw-string) (liii string))
 
   (begin
 
@@ -99,7 +95,6 @@
         (char=? c #\,)
       ) ;or
     ) ;define
-
     (define (find-char-literal-end source start)
       (let ((len (string-length source)))
         (if (>= start len)
@@ -116,7 +111,6 @@
         ) ;if
       ) ;let
     ) ;define
-
     (define (rewrite-reader-literals source)
       (let ((len (string-length source)))
         (let loop
@@ -206,7 +200,6 @@
         ) ;let
       ) ;let
     ) ;define
-
     (define (needs-rewrite-reader-literals? str)
       (let ((len (string-length str)))
         (let loop
@@ -223,6 +216,5 @@
         ) ;let
       ) ;let
     ) ;define
-
   ) ;begin
 ) ;define-library

@@ -129,6 +129,14 @@
     ) ;define
 
     (define (format-top-level-nodes nodes)
+      (define (node-needs-blank? i is-first node)
+        (let ((prev-node (if (> i 0) (vector-ref nodes (- i 1)) #f)))
+          (and (define-node? node)
+            (not is-first)
+            (not (and prev-node (newline-node? prev-node)))
+          ) ;and
+        ) ;let
+      ) ;define
       (let loop
         ((i 0) (is-first #t) (result '()))
         (if (>= i (vector-length nodes))
@@ -138,18 +146,14 @@
               (loop (+ i 1) #f (cons (make-newlines (newline-count node)) result))
               (call-with-values (lambda () (format-node node 0))
                 (lambda (formatted positioned-node)
-                  (let* ((prev-node (if (> i 0) (vector-ref nodes (- i 1)) #f))
-                         (needs-blank
-                           (and (define-node? node)
-                             (not is-first)
-                             (not (and prev-node (newline-node? prev-node)))
-                           ) ;and
-                         ) ;needs-blank
-                         (next-result (if needs-blank (cons formatted (cons "" result)) (cons formatted result))
-                         ) ;next-result
-                        ) ;
+                  (let ((next-result (if (node-needs-blank? i is-first node)
+                                       (cons formatted (cons "" result))
+                                       (cons formatted result)
+                                     ) ;if
+                        ) ;next-result
+                       ) ;
                     (loop (+ i 1) #f next-result)
-                  ) ;let*
+                  ) ;let
                 ) ;lambda
               ) ;call-with-values
             ) ;if
