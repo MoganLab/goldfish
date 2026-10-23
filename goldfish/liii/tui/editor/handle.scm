@@ -70,6 +70,26 @@
       ) ;let*
     ) ;define
 
+    (define (%apply-edit! buf comp on-ch thunk)
+      (let ((res (thunk)))
+        (when (and res (procedure? on-ch))
+          (on-ch comp (buffer-text buf))
+        ) ;when
+        res
+      ) ;let
+    ) ;define
+
+    (define (%load-history! buf comp on-ch text)
+      (when text
+        (buffer-set-text! buf text)
+        (buffer-move-end! buf)
+        (when (procedure? on-ch)
+          (on-ch comp text)
+        ) ;when
+      ) ;when
+      (if text #t #f)
+    ) ;define
+
     (define (%editor-handle-input comp key)
       (let* ((data (component-data comp))
              (buf (%ed-buffer data))
@@ -95,86 +115,32 @@
               ((or (eq? key 'up) (eq? key 'ctrl-p))
                (if multi?
                  (buffer-move-up! buf)
-                 (let ((prev-text (history-prev hist (buffer-text buf))))
-                   (if prev-text
-                     (begin
-                       (buffer-set-text! buf prev-text)
-                       (buffer-move-end! buf)
-                       (when (procedure? on-ch)
-                         (on-ch comp prev-text)
-                       ) ;when
-                       #t
-                     ) ;begin
-                     #f
-                   ) ;if
-                 ) ;let
+                 (%load-history! buf comp on-ch (history-prev hist (buffer-text buf)))
                ) ;if
               ) ;
               ((or (eq? key 'down) (eq? key 'ctrl-n))
                (if multi?
                  (buffer-move-down! buf)
-                 (let ((next-text (history-next hist (buffer-text buf))))
-                   (if next-text
-                     (begin
-                       (buffer-set-text! buf next-text)
-                       (buffer-move-end! buf)
-                       (when (procedure? on-ch)
-                         (on-ch comp next-text)
-                       ) ;when
-                       #t
-                     ) ;begin
-                     #f
-                   ) ;if
-                 ) ;let
+                 (%load-history! buf comp on-ch (history-next hist (buffer-text buf)))
                ) ;if
               ) ;
               ((or (eq? key 'backspace) (eq? key 'ctrl-h))
-               (let ((res (buffer-backspace! buf)))
-                 (when (and res (procedure? on-ch))
-                   (on-ch comp (buffer-text buf))
-                 ) ;when
-                 res
-               ) ;let
+               (%apply-edit! buf comp on-ch (lambda () (buffer-backspace! buf)))
               ) ;
               ((or (eq? key 'delete) (eq? key 'ctrl-d))
-               (let ((res (buffer-delete! buf)))
-                 (when (and res (procedure? on-ch))
-                   (on-ch comp (buffer-text buf))
-                 ) ;when
-                 res
-               ) ;let
+               (%apply-edit! buf comp on-ch (lambda () (buffer-delete! buf)))
               ) ;
               ((eq? key 'ctrl-k)
-               (let ((res (buffer-kill-line-right! buf)))
-                 (when (and res (procedure? on-ch))
-                   (on-ch comp (buffer-text buf))
-                 ) ;when
-                 res
-               ) ;let
+               (%apply-edit! buf comp on-ch (lambda () (buffer-kill-line-right! buf)))
               ) ;
               ((eq? key 'ctrl-u)
-               (let ((res (buffer-kill-line-left! buf)))
-                 (when (and res (procedure? on-ch))
-                   (on-ch comp (buffer-text buf))
-                 ) ;when
-                 res
-               ) ;let
+               (%apply-edit! buf comp on-ch (lambda () (buffer-kill-line-left! buf)))
               ) ;
               ((or (eq? key 'ctrl-w) (eq? key 'alt-backspace))
-               (let ((res (buffer-kill-word-left! buf)))
-                 (when (and res (procedure? on-ch))
-                   (on-ch comp (buffer-text buf))
-                 ) ;when
-                 res
-               ) ;let
+               (%apply-edit! buf comp on-ch (lambda () (buffer-kill-word-left! buf)))
               ) ;
               ((eq? key 'ctrl-t)
-               (let ((res (buffer-transpose-chars! buf)))
-                 (when (and res (procedure? on-ch))
-                   (on-ch comp (buffer-text buf))
-                 ) ;when
-                 res
-               ) ;let
+               (%apply-edit! buf comp on-ch (lambda () (buffer-transpose-chars! buf)))
               ) ;
               ((eq? key 'enter)
                (if multi?

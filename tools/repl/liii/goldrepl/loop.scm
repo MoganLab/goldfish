@@ -29,7 +29,7 @@
     (liii goldrepl meta)
     (liii goldrepl render)
   ) ;import
-  (export %repl-eval-and-show! %repl-try-complete-first!
+  (export %repl-eval-and-show! %repl-apply-completion! %repl-try-complete-first!
     %repl-try-complete-cycle! %repl-submit-meta! %repl-submit-code!
     %repl-preload-mode! %repl-cleanup! %repl-format-completion-menu %repl-mode
     %repl-atom?
@@ -46,7 +46,7 @@
         (%repl-show-out out app-out!)
         (%repl-show-err err app-out!)
         (%repl-show-val ok? result app-out!)
-        (%repl-update-symbol-cache!)
+        (%repl-invalidate-symbol-cache!)
       ) ;let*
     ) ;define
 
@@ -102,22 +102,23 @@
       ) ;let*
     ) ;define
 
-    (define (%repl-try-complete-first! ed text cur word cands . opt-app-out)
+    (define (%repl-apply-completion! ed text cur word repl)
+      (let* ((col (cadr cur)) (start (- col (string-length word))))
+        (editor-set-text! ed (%repl-replace-word text col word repl))
+        (editor-set-cursor! ed 0 (+ start (string-length repl)))
+      ) ;let*
+    ) ;define
+
+    (define (%repl-try-complete-first! ed text cur word cands)
       (cond ((null? cands) (values '() 0 #f))
             ((null? (cdr cands))
-             (let* ((col (cadr cur)) (start (- col (string-length word))) (repl (caar cands)))
-               (editor-set-text! ed (%repl-replace-word text col word repl))
-               (editor-set-cursor! ed 0 (+ start (string-length repl)))
-               (values '() 0 #t)
-             ) ;let*
+             (%repl-apply-completion! ed text cur word (caar cands))
+             (values '() 0 #t)
             ) ;
             (else
               (let ((common (%repl-common-prefix (map car cands))))
                 (when (> (string-length common) (string-length word))
-                  (let* ((col (cadr cur)) (start (- col (string-length word))))
-                    (editor-set-text! ed (%repl-replace-word text col word common))
-                    (editor-set-cursor! ed 0 (+ start (string-length common)))
-                  ) ;let*
+                  (%repl-apply-completion! ed text cur word common)
                 ) ;when
                 (values cands 0 #t)
               ) ;let
@@ -126,15 +127,8 @@
     ) ;define
 
     (define (%repl-try-complete-cycle! ed text cur word cands idx)
-      (let* ((cand (list-ref cands idx))
-             (col (cadr cur))
-             (start (- col (string-length word)))
-             (repl (car cand))
-            ) ;
-        (editor-set-text! ed (%repl-replace-word text col word repl))
-        (editor-set-cursor! ed 0 (+ start (string-length repl)))
-        (values cands (modulo (+ idx 1) (length cands)) #t)
-      ) ;let*
+      (%repl-apply-completion! ed text cur word (car (list-ref cands idx)))
+      (values cands (modulo (+ idx 1) (length cands)) #t)
     ) ;define
 
     (define (%repl-submit-meta! ed text hist app-out! eval-show!)

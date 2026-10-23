@@ -17,15 +17,28 @@
 (define-library (liii goldrepl complete)
   (import (scheme base) (scheme char) (liii base) (liii list) (liii string))
   (export *repl-symbols* %repl-symbol-char? %repl-update-symbol-cache!
-    %repl-symbol-name? %repl-completions %repl-word-at %repl-replace-word
-    %repl-string-common-prefix %repl-common-prefix
+    %repl-invalidate-symbol-cache! %repl-symbol-name? %repl-completions
+    %repl-word-at %repl-replace-word %repl-string-common-prefix %repl-common-prefix
   ) ;export
   (begin
 
     (define *repl-symbols* '())
+    (define *repl-symbol-cache-valid?* #f)
 
     (define (%repl-symbol-char? ch)
-      (or (char-alphabetic? ch) (string-contains "!$%&*/:<=>?^_~+-." (string ch)))
+      (or (char-alphabetic? ch)
+        (memv ch '(#\! #\$ #\% #\& #\* #\/ #\: #\< #\= #\> #\? #\^ #\_ #\~ #\+ #\- #\.))
+      ) ;or
+    ) ;define
+
+    (define (%repl-maybe-update-symbol-cache!)
+      (when (not *repl-symbol-cache-valid?*)
+        (%repl-update-symbol-cache!)
+      ) ;when
+    ) ;define
+
+    (define (%repl-invalidate-symbol-cache!)
+      (set! *repl-symbol-cache-valid?* #f)
     ) ;define
 
     (define (%repl-entry-doc val)
@@ -53,6 +66,7 @@
           ) ;if
         ) ;let
       ) ;set!
+      (set! *repl-symbol-cache-valid?* #t)
     ) ;define
 
     (define (%repl-symbol-name? token)
@@ -66,52 +80,45 @@
     ) ;define
 
     (define (%repl-completions prefix)
-      (let ((n (string-length prefix)))
-        (let loop
-          ((rest *repl-symbols*) (acc '()))
-          (cond ((null? rest) (reverse acc))
-                ((and (>= (string-length (caar rest)) n)
-                   (string=? (substring (caar rest) 0 n) prefix)
-                 ) ;and
-                 (loop (cdr rest) (cons (car rest) acc))
-                ) ;
-                (else (loop (cdr rest) acc))
-          ) ;cond
-        ) ;let
+      (%repl-maybe-update-symbol-cache!)
+      (let loop
+        ((rest *repl-symbols*) (acc '()))
+        (cond ((null? rest) (reverse acc))
+              ((string-starts? (caar rest) prefix)
+               (loop (cdr rest) (cons (car rest) acc))
+              ) ;
+              (else (loop (cdr rest) acc))
+        ) ;cond
       ) ;let
     ) ;define
 
     (define (%repl-word-at text col)
-      (let ((chars (string->list text)) (k (min col (string-length text))))
+      (let ((k (min col (string-length text))))
         (let loop
-          ((i k) (acc '()))
+          ((i k))
           (if
-            (and (> i 0) (%repl-symbol-char? (list-ref chars (- i 1))))
-            (loop (- i 1) (cons (list-ref chars (- i 1)) acc))
-            (list->string acc)
+            (and (> i 0) (%repl-symbol-char? (string-ref text (- i 1))))
+            (loop (- i 1))
+            (substring text i k)
           ) ;if
         ) ;let
       ) ;let
     ) ;define
 
     (define (%repl-replace-word text col word replacement)
-      (let* ((chars (string->list text))
-             (k (min col (length chars)))
+      (let* ((k (min col (string-length text)))
              (start
                (let loop
                  ((i k))
                  (if
-                   (and (> i 0) (%repl-symbol-char? (list-ref chars (- i 1))))
+                   (and (> i 0) (%repl-symbol-char? (string-ref text (- i 1))))
                    (loop (- i 1))
                    i
                  ) ;if
                ) ;let
              ) ;start
             ) ;
-        (string-append (list->string (take chars start))
-          replacement
-          (list->string (drop chars k))
-        ) ;string-append
+        (string-append (substring text 0 start) replacement (substring text k (string-length text)))
       ) ;let*
     ) ;define
 

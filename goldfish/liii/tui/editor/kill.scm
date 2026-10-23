@@ -27,22 +27,12 @@
   ) ;export
   (import (scheme base)
     (liii base)
-    (liii list)
     (liii string)
     (liii unicode)
     (liii tui editor buffer)
+    (liii tui editor cursor)
   ) ;import
   (begin
-
-    (define (%replace-line lines idx new-line)
-      (let loop
-        ((rest lines) (i 0))
-        (cond ((null? rest) '())
-              ((= i idx) (cons new-line (cdr rest)))
-              (else (cons (car rest) (loop (cdr rest) (+ i 1))))
-        ) ;cond
-      ) ;let
-    ) ;define
 
     ;; 删除光标到行尾 (Ctrl-K)
     (define (buffer-kill-line-right! buf)
@@ -87,38 +77,20 @@
              (r (buffer-row buf))
              (c (buffer-col buf))
              (line (list-ref lines r))
-             (chars (string->list line))
-             (len (length chars))
+             (pos (%word-left-boundary line c))
             ) ;
-        (if (<= c 0)
+        (if (= pos c)
           #f
-          (let* ((safe-c (min c len))
-                 (pos1
-                   (let loop
-                     ((i safe-c))
-                     (if
-                       (and (> i 0) (char=? (list-ref chars (- i 1)) #\space))
-                       (loop (- i 1))
-                       i
-                     ) ;if
-                   ) ;let
-                 ) ;pos1
-                 (pos2
-                   (let loop
-                     ((i pos1))
-                     (if
-                       (and (> i 0) (not (char=? (list-ref chars (- i 1)) #\space)))
-                       (loop (- i 1))
-                       i
-                     ) ;if
-                   ) ;let
-                 ) ;pos2
-                 (before (list->string (take chars pos2)))
-                 (after (list->string (drop chars safe-c)))
-                 (new-line (string-append before after))
+          (let* ((len (string-length line))
+                 (new-line
+                   (string-append
+                     (substring line 0 pos)
+                     (if (>= c len) "" (substring line c len))
+                   ) ;string-append
+                 ) ;new-line
                 ) ;
             (buffer-lines-set! buf (%replace-line lines r new-line))
-            (buffer-col-set! buf pos2)
+            (buffer-col-set! buf pos)
             #t
           ) ;let*
         ) ;if
@@ -131,23 +103,20 @@
              (r (buffer-row buf))
              (c (buffer-col buf))
              (line (list-ref lines r))
-             (chars (string->list line))
-             (len (length chars))
+             (len (string-length line))
             ) ;
-        (cond
-         ((and (>= c 2) (<= c len))
-          (let* ((c1 (list-ref chars (- c 2)))
-                 (c2 (list-ref chars (- c 1)))
-                 (before (take chars (- c 2)))
-                 (after (drop chars c))
-                 (new-chars (append before (list c2 c1) after))
+        (if (and (>= c 2) (<= c len))
+          (let* ((before (substring line 0 (- c 2)))
+                 (c1 (string-ref line (- c 2)))
+                 (c2 (string-ref line (- c 1)))
+                 (after (substring line c len))
+                 (new-line (string-append before (string c2 c1) after))
                 ) ;
-            (buffer-lines-set! buf (%replace-line lines r (list->string new-chars)))
+            (buffer-lines-set! buf (%replace-line lines r new-line))
             #t
           ) ;let*
-         ) ;
-         (else #f)
-        ) ;cond
+          #f
+        ) ;if
       ) ;let*
     ) ;define
 

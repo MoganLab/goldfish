@@ -15,7 +15,9 @@
 ;;
 
 (define-library (liii goldrepl style)
-  (import (scheme base) (scheme char) (liii base) (liii list) (liii string))
+  (import (scheme base) (scheme char) (liii base) (liii list) (liii string)
+    (liii goldrepl complete)
+  ) ;import
   (export *repl-styles* %repl-style %repl-styled %repl-gray *repl-keywords*
     %repl-highlight-line
   ) ;export
@@ -59,10 +61,6 @@
       '("define" "lambda" "if" "else" "let" "let*" "letrec" "begin" "quote"
         "set!" "cond" "case" "and" "or" "do" "delay" "quasiquote" "unquote"
         "unquote-splicing")
-    ) ;define
-
-    (define (%repl-symbol-char? ch)
-      (or (char-alphabetic? ch) (string-contains "!$%&*/:<=>?^_~+-." (string ch)))
     ) ;define
 
     (define (%repl-highlight-string chars n i loop-k)

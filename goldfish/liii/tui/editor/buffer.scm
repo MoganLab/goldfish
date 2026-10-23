@@ -25,7 +25,7 @@
   (export make-buffer buffer? buffer-lines buffer-row buffer-col
     buffer-multiline? buffer-lines-set! buffer-row-set! buffer-col-set!
     buffer-text buffer-set-text! buffer-insert-char! buffer-insert-string!
-    buffer-backspace! buffer-delete! buffer-newline!
+    buffer-backspace! buffer-delete! buffer-newline! %replace-line
   ) ;export
   (import (scheme base) (scheme write) (liii base) (liii string) (liii unicode))
   (begin

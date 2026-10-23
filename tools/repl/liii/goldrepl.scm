@@ -116,15 +116,16 @@
           (max 20 (car (terminal-size term)))
         ) ;define
         (define (refresh!)
-          (let ((menu
-                  (if (pair? comp-cands)
-                    (%repl-format-completion-menu comp-cands (max 20 (- (width) 4)))
-                    '()
-                  ) ;if
-                ) ;menu
-               ) ;
-            (%repl-refresh! screen term scroll ed (width) (pair? (car buf)) menu)
-          ) ;let
+          (let* ((w (width))
+                 (menu
+                   (if (pair? comp-cands)
+                     (%repl-format-completion-menu comp-cands (max 20 (- w 4)))
+                     '()
+                   ) ;if
+                 ) ;menu
+              ) ;
+            (%repl-refresh! screen term scroll ed w (pair? (car buf)) menu)
+          ) ;let*
         ) ;define
         (define (app-out! lines)
           (when (pair? lines)
@@ -145,7 +146,7 @@
                 ) ;
             (if (null? comp-cands)
               (let-values (((cands idx ok?)
-                            (%repl-try-complete-first! ed txt cur w (%repl-completions w) app-out!)
+                            (%repl-try-complete-first! ed txt cur w (%repl-completions w))
                            ) ;
                           ) ;
                 (set! comp-cands cands)
@@ -201,12 +202,8 @@
                  (txt (editor-text ed))
                  (cur (editor-cursor ed))
                  (w (%repl-word-at txt (cadr cur)))
-                 (col (cadr cur))
-                 (start (- col (string-length w)))
-                 (repl (car cand))
                 ) ;
-            (editor-set-text! ed (%repl-replace-word txt col w repl))
-            (editor-set-cursor! ed 0 (+ start (string-length repl)))
+            (%repl-apply-completion! ed txt cur w (car cand))
             (reset-comp!)
           ) ;let*
         ) ;define
