@@ -47,7 +47,7 @@
   (layer-domains-parse
     (%cfg (%dom "goldfish" "goldfish/" '() (list "app" "liii *" "srfi *"))
       (%dom "common" "tools/common/" '("goldfish")
-        (list "shared" "liii goldtool-changed"))
+        (list "shared" "liii goldtool changed"))
       (%dom "tool-x" "tools/tool-x/" '("common") (list "l" "liii toolx*")))
   ) ;layer-domains-parse
 )

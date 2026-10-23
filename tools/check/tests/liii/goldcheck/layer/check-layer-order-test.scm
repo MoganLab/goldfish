@@ -67,7 +67,7 @@
     (%dom "common"
       "tools/common/"
       '("goldfish")
-      (list "shared" "liii goldtool-changed")
+      (list "shared" "liii goldtool changed")
     ) ;%dom
     (%dom "check"
       "tools/check/"
@@ -90,7 +90,7 @@
     (%dom "common"
       "tools/common/"
       '("goldfish")
-      (list "shared" "liii goldtool-changed")
+      (list "shared" "liii goldtool changed")
     ) ;%dom
     (%dom "check" "tools/check/" '("goldfish") (list "tool" "liii goldcheck"))
   ) ;%cfg-on
@@ -166,7 +166,7 @@
 
 ;; 3. 跨域已声明 -> 零违规；未声明 -> 1 条 cross-domain 违规
 (let ((f (%mk "tools/check/liii/goldcheck.scm"
-           (%lib-header "scheme base" "liii goldtool-changed" "liii string")
+           (%lib-header "scheme base" "liii goldtool changed" "liii string")
          ) ;%mk
       ) ;f
      ) ;
@@ -176,7 +176,7 @@
          (details (map caddr (check-layer-order f %cfg-no-common)))
         ) ;
     (check (domain-name-of-lib ds "liii goldcheck") => "check")
-    (check (domain-name-of-lib ds "liii goldtool-changed") => "common")
+    (check (domain-name-of-lib ds "liii goldtool changed") => "common")
     (check-false (domain-allows-dep? check-dom ds "common"))
     (check (length details) => 1)
     (check-true (string-contains? (car details) "goldtool"))

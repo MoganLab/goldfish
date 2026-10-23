@@ -49,8 +49,10 @@
     (liii json)
     (liii par)
     (liii timeit)
+    (liii go)
     (srfi srfi-133)
-    (liii goldtool-changed)
+    (liii goldtool changed)
+    (liii goldtool parallel)
     (liii goldcheck path)
     (liii goldcheck config)
     (liii goldcheck rules)
@@ -307,16 +309,14 @@
         (set! elapsed
           (timeit
             (lambda ()
-              (let ((miss-vec
+              (let ((miss-files
                       (if limit
-                        (vector-par-filter (lambda (f) (not (rule-cache-hit? rule-name limit f)))
-                          (list->vector files)
-                        ) ;vector-par-filter
-                        (list->vector files)
+                        (pool-filter (lambda (f) (not (rule-cache-hit? rule-name limit f))) files)
+                        files
                       ) ;if
-                    ) ;miss-vec
+                    ) ;miss-files
                    ) ;
-                (set! violations (check-files miss-vec single-cfg))
+                (set! violations (check-files (list->vector miss-files) single-cfg))
               ) ;let
             ) ;lambda
             '()
@@ -365,6 +365,7 @@
     ) ;define
 
     (define (main)
+      (set-goldtool-jobs! (go-worker-count))
       (let ((parser (make-check-arg-parser)))
         (parser :parse-argv (command-line))
         (if (parser 'help)

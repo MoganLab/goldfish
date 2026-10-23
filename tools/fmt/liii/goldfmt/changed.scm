@@ -24,7 +24,7 @@
     (liii goldfmt config)
     (liii goldfmt args)
     (liii goldfmt repo)
-    (liii goldtool-changed)
+    (liii goldtool changed)
   ) ;import
   (export all-registered-extensions group-files-by-lang format-changed-since)
   (begin
