@@ -113,9 +113,10 @@
       ) ;let*
     ) ;define
 
-    (define (%repl-refresh! screen term scroll-lines ed width pending?)
-      (let* ((input-lines (%repl-render-input-lines ed width pending?))
-             (all (append scroll-lines input-lines))
+    (define (%repl-refresh! screen term scroll-lines ed width pending? . opt-extra-lines)
+      (let* ((extra-lines (if (pair? opt-extra-lines) (car opt-extra-lines) '()))
+             (input-lines (%repl-render-input-lines ed width pending?))
+             (all (append scroll-lines input-lines extra-lines))
              (cursor (editor-cursor ed))
              (cur-pos (cons (+ 4 (editor-display-col ed)) (+ (length scroll-lines) (car cursor)))
              ) ;cur-pos

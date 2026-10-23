@@ -79,6 +79,9 @@
     %repl-try-complete-first!
     %repl-format-completion-menu
     %repl-editor-help-lines
+    %repl-refresh!
+    %repl-mode
+    %repl-atom?
     main
   ) ;export
   (begin
@@ -89,37 +92,6 @@
 
     (define (%repl-buffer-set! buf lines)
       (set-car! buf lines)
-    ) ;define
-
-    (define (%repl-mode)
-      (let* ((args (command-line))
-             (m
-               (let loop
-                 ((rest args))
-                 (cond ((null? rest) #f)
-                       ((and (pair? (cdr rest)) (member (car rest) '("--mode"
-                                                                     "-m"))) (cadr rest))
-                       ((and (string? (car rest)) (string-starts? (car rest) "--mode="))
-                        (substring (car rest) 7)
-                       ) ;
-                       ((and (string? (car rest)) (string-starts? (car rest) "-m="))
-                        (substring (car rest) 3)
-                       ) ;
-                       (else (loop (cdr rest)))
-                 ) ;cond
-               ) ;let
-             ) ;m
-            ) ;
-        (or m "liii")
-      ) ;let*
-    ) ;define
-
-    (define (%repl-atom? text)
-      (and (> (string-length text) 0)
-        (not (char=? (string-ref text 0) #\())
-        (not (string-contains text "("))
-        (not (string-contains text ")"))
-      ) ;and
     ) ;define
 
     (define (main)
@@ -144,7 +116,15 @@
           (max 20 (car (terminal-size term)))
         ) ;define
         (define (refresh!)
-          (%repl-refresh! screen term scroll ed (width) (pair? (car buf)))
+          (let ((menu
+                  (if (pair? comp-cands)
+                    (%repl-format-completion-menu comp-cands (max 20 (- (width) 4)))
+                    '()
+                  ) ;if
+                ) ;menu
+               ) ;
+            (%repl-refresh! screen term scroll ed (width) (pair? (car buf)) menu)
+          ) ;let
         ) ;define
         (define (app-out! lines)
           (when (pair? lines)
@@ -221,12 +201,12 @@
                  (txt (editor-text ed))
                  (cur (editor-cursor ed))
                  (w (%repl-word-at txt (cadr cur)))
+                 (col (cadr cur))
+                 (start (- col (string-length w)))
+                 (repl (car cand))
                 ) ;
-            (editor-set-text! ed (%repl-replace-word txt (cadr cur) w (car cand)))
-            (editor-set-cursor! ed
-              0
-              (+ (- (string-length txt) (string-length w)) (string-length (car cand)))
-            ) ;editor-set-cursor!
+            (editor-set-text! ed (%repl-replace-word txt col w repl))
+            (editor-set-cursor! ed 0 (+ start (string-length repl)))
             (reset-comp!)
           ) ;let*
         ) ;define

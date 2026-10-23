@@ -17,6 +17,7 @@
 (define-library (liii goldrepl loop)
   (import (scheme base)
     (scheme write)
+    (scheme process-context)
     (liii base)
     (liii list)
     (liii string)
@@ -30,7 +31,8 @@
   ) ;import
   (export %repl-eval-and-show! %repl-try-complete-first!
     %repl-try-complete-cycle! %repl-submit-meta! %repl-submit-code!
-    %repl-preload-mode! %repl-cleanup! %repl-format-completion-menu
+    %repl-preload-mode! %repl-cleanup! %repl-format-completion-menu %repl-mode
+    %repl-atom?
   ) ;export
   (begin
 
@@ -48,13 +50,18 @@
       ) ;let*
     ) ;define
 
-    (define (%repl-format-completion-cand i cand)
+    (define (%repl-format-completion-cand i cand max-w)
       (let* ((name (car cand))
              (raw-doc (cdr cand))
-             (doc (if (> (string-length raw-doc) 60)
-                    (string-append (substring raw-doc 0 60) "...")
-                    raw-doc
-                  ) ;if
+             (prefix-len (+ 5 (string-length name)))
+             (avail (max 0 (- max-w prefix-len 3)))
+             (doc
+               (cond ((<= avail 3) "")
+                     ((> (string-length raw-doc) avail)
+                      (string-append (substring raw-doc 0 (- avail 3)) "...")
+                     ) ;
+                     (else raw-doc)
+               ) ;cond
              ) ;doc
             ) ;
         (string-append " "
@@ -66,14 +73,18 @@
       ) ;let*
     ) ;define
 
-    (define (%repl-format-completion-menu cands)
-      (let* ((top9 (take cands (min 9 (length cands))))
+    (define (%repl-format-completion-menu cands . opt-w)
+      (let* ((max-w (if (pair? opt-w) (car opt-w) 70))
+             (top9 (take cands (min 9 (length cands))))
              (menu-lines
                (let loop
                  ((rest top9) (i 0) (acc '()))
                  (if (null? rest)
                    (reverse acc)
-                   (loop (cdr rest) (+ i 1) (cons (%repl-format-completion-cand i (car rest)) acc))
+                   (loop (cdr rest)
+                     (+ i 1)
+                     (cons (%repl-format-completion-cand i (car rest) max-w) acc)
+                   ) ;loop
                  ) ;if
                ) ;let
              ) ;menu-lines
@@ -91,26 +102,23 @@
       ) ;let*
     ) ;define
 
-    (define (%repl-try-complete-first! ed text cur word cands app-out!)
+    (define (%repl-try-complete-first! ed text cur word cands . opt-app-out)
       (cond ((null? cands) (values '() 0 #f))
             ((null? (cdr cands))
-             (editor-set-text! ed (%repl-replace-word text (cadr cur) word (caar cands)))
-             (editor-set-cursor! ed
-               0
-               (+ (- (string-length text) (string-length word)) (string-length (caar cands)))
-             ) ;editor-set-cursor!
-             (values '() 0 #t)
+             (let* ((col (cadr cur)) (start (- col (string-length word))) (repl (caar cands)))
+               (editor-set-text! ed (%repl-replace-word text col word repl))
+               (editor-set-cursor! ed 0 (+ start (string-length repl)))
+               (values '() 0 #t)
+             ) ;let*
             ) ;
             (else
               (let ((common (%repl-common-prefix (map car cands))))
                 (when (> (string-length common) (string-length word))
-                  (editor-set-text! ed (%repl-replace-word text (cadr cur) word common))
-                  (editor-set-cursor! ed
-                    0
-                    (+ (- (string-length text) (string-length word)) (string-length common))
-                  ) ;editor-set-cursor!
+                  (let* ((col (cadr cur)) (start (- col (string-length word))))
+                    (editor-set-text! ed (%repl-replace-word text col word common))
+                    (editor-set-cursor! ed 0 (+ start (string-length common)))
+                  ) ;let*
                 ) ;when
-                (app-out! (%repl-format-completion-menu cands))
                 (values cands 0 #t)
               ) ;let
             ) ;else
@@ -118,14 +126,15 @@
     ) ;define
 
     (define (%repl-try-complete-cycle! ed text cur word cands idx)
-      (let ((cand (list-ref cands idx)))
-        (editor-set-text! ed (%repl-replace-word text (cadr cur) word (car cand)))
-        (editor-set-cursor! ed
-          0
-          (+ (- (string-length text) (string-length word)) (string-length (car cand)))
-        ) ;editor-set-cursor!
+      (let* ((cand (list-ref cands idx))
+             (col (cadr cur))
+             (start (- col (string-length word)))
+             (repl (car cand))
+            ) ;
+        (editor-set-text! ed (%repl-replace-word text col word repl))
+        (editor-set-cursor! ed 0 (+ start (string-length repl)))
         (values cands (modulo (+ idx 1) (length cands)) #t)
-      ) ;let
+      ) ;let*
     ) ;define
 
     (define (%repl-submit-meta! ed text hist app-out! eval-show!)
@@ -189,6 +198,37 @@
       (terminal-exit-raw-mode! term)
       (terminal-write term "\r\n")
       (terminal-flush term)
+    ) ;define
+
+    (define (%repl-mode)
+      (let* ((args (command-line))
+             (m
+               (let loop
+                 ((rest args))
+                 (cond ((null? rest) #f)
+                       ((and (pair? (cdr rest)) (member (car rest) '("--mode"
+                                                                     "-m"))) (cadr rest))
+                       ((and (string? (car rest)) (string-starts? (car rest) "--mode="))
+                        (substring (car rest) 7)
+                       ) ;
+                       ((and (string? (car rest)) (string-starts? (car rest) "-m="))
+                        (substring (car rest) 3)
+                       ) ;
+                       (else (loop (cdr rest)))
+                 ) ;cond
+               ) ;let
+             ) ;m
+            ) ;
+        (or m "liii")
+      ) ;let*
+    ) ;define
+
+    (define (%repl-atom? text)
+      (and (> (string-length text) 0)
+        (not (char=? (string-ref text 0) #\())
+        (not (string-contains text "("))
+        (not (string-contains text ")"))
+      ) ;and
     ) ;define
 
   ) ;begin
