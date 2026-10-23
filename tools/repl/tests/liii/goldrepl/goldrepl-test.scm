@@ -238,4 +238,13 @@
   (check-true (any (lambda (l) (string-contains l "ctrl-a")) lines))
   (check-true (any (lambda (l) (string-contains l "ctrl-k")) lines)))
 
+;; ------------------------------------------------------------------
+;; 补全菜单排版测试：%repl-format-completion-menu
+;; ------------------------------------------------------------------
+(let* ((cands '(("string" . "doc1") ("string?" . "doc2") ("string=?" . "doc3")))
+       (lines (%repl-format-completion-menu cands)))
+  (check-true (pair? lines))
+  (check-true (string-contains (car lines) "1"))
+  (check-true (string-contains (car lines) "string")))
+
 (check-report)

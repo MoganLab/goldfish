@@ -30,7 +30,7 @@
   ) ;import
   (export %repl-eval-and-show! %repl-try-complete-first!
     %repl-try-complete-cycle! %repl-submit-meta! %repl-submit-code!
-    %repl-preload-mode! %repl-cleanup!
+    %repl-preload-mode! %repl-cleanup! %repl-format-completion-menu
   ) ;export
   (begin
 
@@ -45,6 +45,49 @@
         (%repl-show-err err app-out!)
         (%repl-show-val ok? result app-out!)
         (%repl-update-symbol-cache!)
+      ) ;let*
+    ) ;define
+
+    (define (%repl-format-completion-cand i cand)
+      (let* ((name (car cand))
+             (raw-doc (cdr cand))
+             (doc (if (> (string-length raw-doc) 60)
+                    (string-append (substring raw-doc 0 60) "...")
+                    raw-doc
+                  ) ;if
+             ) ;doc
+            ) ;
+        (string-append " "
+          (number->string (+ i 1))
+          " "
+          (%repl-styled "symbol" name)
+          (if (string-null? doc) "" (string-append "  " (%repl-styled "dim" doc)))
+        ) ;string-append
+      ) ;let*
+    ) ;define
+
+    (define (%repl-format-completion-menu cands)
+      (let* ((top9 (take cands (min 9 (length cands))))
+             (menu-lines
+               (let loop
+                 ((rest top9) (i 0) (acc '()))
+                 (if (null? rest)
+                   (reverse acc)
+                   (loop (cdr rest) (+ i 1) (cons (%repl-format-completion-cand i (car rest)) acc))
+                 ) ;if
+               ) ;let
+             ) ;menu-lines
+             (more (- (length cands) (length top9)))
+            ) ;
+        (if (> more 0)
+          (append menu-lines
+            (list (%repl-styled "dim"
+                    (string-append " (and " (number->string more) " more completions)")
+                  ) ;%repl-styled
+            ) ;list
+          ) ;append
+          menu-lines
+        ) ;if
       ) ;let*
     ) ;define
 
@@ -67,9 +110,7 @@
                     (+ (- (string-length text) (string-length word)) (string-length common))
                   ) ;editor-set-cursor!
                 ) ;when
-                (app-out!
-                  (list (%repl-styled "dim" (string-join (map car cands) "  ")))
-                ) ;app-out!
+                (app-out! (%repl-format-completion-menu cands))
                 (values cands 0 #t)
               ) ;let
             ) ;else
