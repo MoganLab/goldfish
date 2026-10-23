@@ -508,6 +508,12 @@ push_unicode_utf8 (uint32_t cp) {
   }
 }
 
+static void
+push_seq (int prefix, int code) {
+  g_console_key_queue.push_back (prefix);
+  g_console_key_queue.push_back (code);
+}
+
 static bool
 pump_console_input (HANDLE hIn, long timeout_ms) {
   if (!g_console_key_queue.empty ()) {
@@ -516,8 +522,14 @@ pump_console_input (HANDLE hIn, long timeout_ms) {
   DWORD mode;
   if (!GetConsoleMode (hIn, &mode)) {
     DWORD avail= 0;
-    if (PeekNamedPipe (hIn, NULL, 0, NULL, &avail, NULL)) {
-      return avail > 0;
+    if (!PeekNamedPipe (hIn, NULL, 0, NULL, &avail, NULL) || avail == 0) {
+      return false;
+    }
+    unsigned char ch       = 0;
+    DWORD         bytesRead= 0;
+    if (ReadFile (hIn, &ch, 1, &bytesRead, NULL) && bytesRead == 1) {
+      g_console_key_queue.push_back ((int) ch);
+      return true;
     }
     return false;
   }
@@ -578,44 +590,34 @@ pump_console_input (HANDLE hIn, long timeout_ms) {
     if (chr == 0) {
       switch (virt) {
       case VK_UP:
-        g_console_key_queue.push_back (224);
-        g_console_key_queue.push_back (is_ctrl ? 141 : 72);
+        push_seq (224, is_ctrl ? 141 : 72);
         return true;
       case VK_DOWN:
-        g_console_key_queue.push_back (224);
-        g_console_key_queue.push_back (is_ctrl ? 145 : 80);
+        push_seq (224, is_ctrl ? 145 : 80);
         return true;
       case VK_LEFT:
-        g_console_key_queue.push_back (224);
-        g_console_key_queue.push_back (is_ctrl ? 115 : 75);
+        push_seq (224, is_ctrl ? 115 : 75);
         return true;
       case VK_RIGHT:
-        g_console_key_queue.push_back (224);
-        g_console_key_queue.push_back (is_ctrl ? 116 : 77);
+        push_seq (224, is_ctrl ? 116 : 77);
         return true;
       case VK_HOME:
-        g_console_key_queue.push_back (224);
-        g_console_key_queue.push_back (is_ctrl ? 119 : 71);
+        push_seq (224, is_ctrl ? 119 : 71);
         return true;
       case VK_END:
-        g_console_key_queue.push_back (224);
-        g_console_key_queue.push_back (is_ctrl ? 117 : 79);
+        push_seq (224, is_ctrl ? 117 : 79);
         return true;
       case VK_PRIOR:
-        g_console_key_queue.push_back (224);
-        g_console_key_queue.push_back (73);
+        push_seq (224, 73);
         return true;
       case VK_NEXT:
-        g_console_key_queue.push_back (224);
-        g_console_key_queue.push_back (81);
+        push_seq (224, 81);
         return true;
       case VK_DELETE:
-        g_console_key_queue.push_back (224);
-        g_console_key_queue.push_back (is_ctrl ? 147 : 83);
+        push_seq (224, is_ctrl ? 147 : 83);
         return true;
       case VK_INSERT:
-        g_console_key_queue.push_back (224);
-        g_console_key_queue.push_back (82);
+        push_seq (224, 82);
         return true;
       case VK_F1:
       case VK_F2:
@@ -627,16 +629,13 @@ pump_console_input (HANDLE hIn, long timeout_ms) {
       case VK_F8:
       case VK_F9:
       case VK_F10:
-        g_console_key_queue.push_back (0);
-        g_console_key_queue.push_back (59 + (virt - VK_F1));
+        push_seq (0, 59 + (virt - VK_F1));
         return true;
       case VK_F11:
-        g_console_key_queue.push_back (224);
-        g_console_key_queue.push_back (133);
+        push_seq (224, 133);
         return true;
       case VK_F12:
-        g_console_key_queue.push_back (224);
-        g_console_key_queue.push_back (134);
+        push_seq (224, 134);
         return true;
       default:
         break;

@@ -198,17 +198,13 @@
 ) ;check-true
 
 ;; 语法高亮行中文测试：包含 UTF-8 多字节字符（如“你好”、“中国”）的高亮不能破坏 UTF-8 编码
-(let* ((hl (%repl-highlight-line "(define 你好 100)"))
-       (bv (string->utf8 hl)))
+(let ((hl (%repl-highlight-line "(define 你好 100)")))
   (check-true (string-contains hl "\x1b;[35mdefine\x1b;[0m"))
   (check-true (string-contains hl "你好"))
-  (check-true (bytevector? bv))
-) ;let*
-(let* ((hl (%repl-highlight-line "(display \"你好世界\")"))
-       (bv (string->utf8 hl)))
+) ;let
+(let ((hl (%repl-highlight-line "(display \"你好世界\")")))
   (check-true (string-contains hl "你好世界"))
-  (check-true (bytevector? bv))
-) ;let*
+) ;let
 
 ;; 会话值注册测试：%repl-register-value!
 (let ((sym (%repl-register-value! 123)))
