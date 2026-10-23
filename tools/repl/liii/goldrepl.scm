@@ -73,6 +73,7 @@
     ;; buffer & main
     %repl-buffer
     %repl-buffer-set!
+    %repl-try-complete-first!
     main
   ) ;export
   (begin
@@ -176,7 +177,9 @@
           (let ((txt (editor-text ed)) (pending (car buf)))
             (reset-comp!)
             (cond
-             ((and (or (not (pair? pending)) (null? pending)) (string-null? txt)) #t)
+             ((and (or (not (pair? pending)) (null? pending)) (string-null? txt))
+              (app-out! (list (%repl-prompt #t)))
+             ) ;
              ((and (or (not (pair? pending)) (null? pending)) (string-starts? txt ","))
               (let-values (((q ents) (%repl-submit-meta! ed txt hist app-out! eval-show!)))
                 (when (eq? q #t)

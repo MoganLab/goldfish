@@ -64,6 +64,16 @@
     (define (%repl-format-eval-error tag info)
       (string-append (object->string tag) ": " (%repl-format-error-info info))
     ) ;define
+    (define (%repl-collect-values text)
+      (call-with-values (lambda () (eval-string text (rootlet)))
+        (lambda results
+          (cond ((null? results) (if #f #f))
+                ((null? (cdr results)) (car results))
+                (else results)
+          ) ;cond
+        ) ;lambda
+      ) ;call-with-values
+    ) ;define
     (define (%repl-eval text)
       (let* ((out-port (open-output-string))
              (err-port (open-output-string))
@@ -75,7 +85,7 @@
           (lambda ()
             (set! res
               (catch #t
-                (lambda () (eval-string text (rootlet)))
+                (lambda () (%repl-collect-values text))
                 (lambda (tag info)
                   (display (%repl-format-eval-error tag info) err-port)
                   *repl-eval-error*
@@ -98,7 +108,7 @@
       (set! *repl-value-count* (+ *repl-value-count* 1))
       (let ((name (string->symbol (string-append "$" (number->string *repl-value-count*))))
            ) ;
-        (eval `(define ,name (quote ,result)) (rootlet))
+        (varlet (rootlet) name result)
         name
       ) ;let
     ) ;define

@@ -49,7 +49,7 @@
     ) ;define
 
     (define (%repl-try-complete-first! ed text cur word cands app-out!)
-      (cond ((null? cands) #f)
+      (cond ((null? cands) (values '() 0 #f))
             ((null? (cdr cands))
              (editor-set-text! ed (%repl-replace-word text (cadr cur) word (caar cands)))
              (editor-set-cursor! ed

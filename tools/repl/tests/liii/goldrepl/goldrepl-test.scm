@@ -2,6 +2,7 @@
         (liii list)
         (liii os)
         (liii string)
+        (liii tui)
         (liii goldrepl))
 
 ;; ------------------------------------------------------------------
@@ -169,5 +170,62 @@
 (let ((sym (%repl-register-value! 123)))
   (check-true (symbol? sym))
   (check-true (string-starts? (symbol->string sym) "$")))
+
+;; ------------------------------------------------------------------
+;; 边界求值测试：多值与空值
+;; ------------------------------------------------------------------
+(let ((res (%repl-eval "(values 1 2 3)")))
+  (check (caddr res) => #t)
+  (check (cadddr res) => '(1 2 3)))
+
+(let ((res (%repl-eval "(values)")))
+  (check (caddr res) => #t)
+  (check (eq? (cadddr res) (if #f #f)) => #t)
+  (let ((sym (%repl-register-value! (cadddr res))))
+    (check-true (symbol? sym))))
+
+(let ((res (%repl-eval "'()")))
+  (check (caddr res) => #t)
+  (check (cadddr res) => '()))
+
+;; ------------------------------------------------------------------
+;; 元命令完整性测试
+;; ------------------------------------------------------------------
+;; 未知元命令
+(let-values (((quit? lines) (%repl-handle-meta ",xyz")))
+  (check quit? => #f)
+  (check-true (string-contains (car lines) "Unknown meta command")))
+
+;; ,apropos 搜索
+(let ((lines (%repl-meta-apropos "pi")))
+  (check-true (pair? lines)))
+
+;; ,describe 描述数值
+(let ((lines (%repl-meta-describe "*goldrepl-test-var*")))
+  (check-true (pair? lines))
+  (check-true (any (lambda (l) (string-contains l "Value:")) lines)))
+
+;; ------------------------------------------------------------------
+;; 补全单候选与多候选逻辑深度测试
+;; ------------------------------------------------------------------
+;; 单候选：string-app -> string-append
+(let* ((ed (make-text-input "string-app"))
+       (cands (%repl-completions "string-app"))
+       (app-out! (lambda (l) #f)))
+  (let-values (((rest-cands idx ok?)
+                (%repl-try-complete-first! ed "string-app" '(0 10) "string-app" cands app-out!)))
+    (check ok? => #t)
+    (check (editor-text ed) => "string-append")))
+
+;; ------------------------------------------------------------------
+;; 补全无候选时不崩溃测试：%repl-try-complete-first!
+;; ------------------------------------------------------------------
+(let* ((ed (make-text-input "dd"))
+       (app-out! (lambda (lines) #f)))
+  (let-values (((cands idx ok?)
+                (%repl-try-complete-first! ed "dd" '(0 2) "dd" '() app-out!)))
+    (check cands => '())
+    (check idx => 0)
+    (check ok? => #f)))
 
 (check-report)
