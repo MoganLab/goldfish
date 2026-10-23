@@ -46,12 +46,15 @@
     ) ;define
 
     (define (%combine-mod-key base-k mod-code)
-      (let ((prefix (if mod-code (%modifier-prefix mod-code) "")))
-        (if (and base-k (> (string-length prefix) 0))
-          (string->symbol (string-append prefix (symbol->string base-k)))
-          (or base-k 'escape)
-        ) ;if
-      ) ;let
+      (if (eq? base-k 'shift-tab)
+        'shift-tab
+        (let ((prefix (if mod-code (%modifier-prefix mod-code) "")))
+          (if (and base-k (> (string-length prefix) 0))
+            (string->symbol (string-append prefix (symbol->string base-k)))
+            (or base-k 'escape)
+          ) ;if
+        ) ;let
+      ) ;if
     ) ;define
 
     (define (%resolve-csi-tilde param-str next-i)
@@ -72,14 +75,30 @@
 
     (define (%resolve-csi-alpha param-str term-byte next-i)
       (let ((parts (%split-semicolon param-str)))
-        (if (or (= (string-length param-str) 0) (= (length parts) 1))
+        (cond
+         ((= term-byte 117)
+          (let ((code (and (pair? parts) (string->number (car parts))))
+                (mod-code (and (pair? (cdr parts)) (string->number (cadr parts))))
+               ) ;
+            (cond ((and code (= code 9) mod-code (= mod-code 2)) (values 'shift-tab next-i))
+                  ((and code (= code 13) mod-code (= mod-code 2)) (values 'shift-enter next-i))
+                  ((and code (= code 13) mod-code (= mod-code 5)) (values 'ctrl-enter next-i))
+                  ((and code (= code 10)) (values 'ctrl-j next-i))
+                  (else (values 'escape next-i))
+            ) ;cond
+          ) ;let
+         ) ;
+         ((or (= (string-length param-str) 0) (= (length parts) 1))
           (let ((k (%csi-final-key term-byte)))
             (values (or k 'escape) next-i)
           ) ;let
-          (let* ((mod-code (string->number (cadr parts))) (base-k (%csi-final-key term-byte)))
-            (values (%combine-mod-key base-k mod-code) next-i)
-          ) ;let*
-        ) ;if
+         ) ;
+         (else
+           (let* ((mod-code (string->number (cadr parts))) (base-k (%csi-final-key term-byte)))
+             (values (%combine-mod-key base-k mod-code) next-i)
+           ) ;let*
+         ) ;else
+        ) ;cond
       ) ;let
     ) ;define
 

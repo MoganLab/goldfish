@@ -23,7 +23,7 @@
 
 (define-library (liii tui terminal poll)
   (export terminal-poll-key %poll-console-key %resolve-ansi-bytes
-    %resolve-utf8-bytes
+    %resolve-utf8-bytes %map-extended-key
   ) ;export
   (import (scheme base)
     (liii error)
@@ -45,6 +45,7 @@
             ((= code 73) 'page-up)
             ((= code 81) 'page-down)
             ((= code 83) 'delete)
+            ((= code 15) 'shift-tab)
             (else #f)
       ) ;cond
     ) ;define
