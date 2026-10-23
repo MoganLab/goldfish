@@ -24,27 +24,9 @@
     (liii syntax)
     (liii tree)
     (srfi srfi-13)
+    (liii goldfmt format atom)
   ) ;import
   (begin
-    (define (write-to-string value)
-      (let ((port (open-output-string)))
-        (let-temporarily (((*s7* 'print-length) 9223372036854775807))
-          (write value port)
-        ) ;let-temporarily
-        (get-output-string port)
-      ) ;let
-    ) ;define
-    (define (string-contains-newline? text)
-      (if (string-position "\n" text) #t #f)
-    ) ;define
-    (define (format-atom-value value)
-      (cond ((raw-string-literal? value) (raw-string-literal-source value))
-            ((char-literal? value) (char-literal-source value))
-            ((symbol? value) (symbol->string value))
-            ((number? value) (number->string value))
-            (else (write-to-string value))
-      ) ;cond
-    ) ;define
     (define (single-arg-symbol-form? value name)
       (and (pair? value)
         (eq? (car value) name)
@@ -52,6 +34,7 @@
         (null? (cddr value))
       ) ;and
     ) ;define
+
     (define (quote-syntax-form? value)
       (and (pair? value)
         (not (null? value))
@@ -61,6 +44,7 @@
         (null? (cddr value))
       ) ;and
     ) ;define
+
     (define (quote-form->string value)
       (let ((quoted-content (cadr value)))
         (if (pair? quoted-content)
@@ -69,93 +53,15 @@
         ) ;if
       ) ;let
     ) ;define
+
     (define (format-inline-atom-or-quote value)
       (format-reader-datum value)
     ) ;define
+
     (define (format-inline-atom-or-quote-at value indent)
       (format-reader-datum-at value indent)
     ) ;define
-    (define (spaces n)
-      (if (<= n 0) "" (make-string n #\space))
-    ) ;define
-    (define (child-separator parent child-index)
-      (if (and (string=? (env-tag-name parent) "") (= child-index 0)) "" " ")
-    ) ;define
-    (define (comment-node? node)
-      (and (env? node)
-        (string=? (env-tag-name node) "*comment*")
-        (= (vector-length (env-children node)) 1)
-        (let ((child (vector-ref (env-children node) 0)))
-          (and (atom? child) (string? (atom-value child)))
-        ) ;let
-      ) ;and
-    ) ;define
-    (define (newline-node? node)
-      (and (env? node)
-        (string=? (env-tag-name node) "*newline*")
-        (= (vector-length (env-children node)) 1)
-        (let ((child (vector-ref (env-children node) 0)))
-          (and (atom? child) (number? (atom-value child)))
-        ) ;let
-      ) ;and
-    ) ;define
-    (define (newline-count node)
-      (atom-value (vector-ref (env-children node) 0))
-    ) ;define
-    (define (make-newlines n)
-      (if (<= n 1) "" (make-string (- n 1) #\newline))
-    ) ;define
-    (define (comment-content node)
-      (atom-value (vector-ref (env-children node) 0))
-    ) ;define
-    (define (format-comment-content content)
-      (if (or (string=? content "")
-            (char=? (string-ref content 0) #\space)
-            (char=? (string-ref content 0) #\;)
-          ) ;or
-        (string-append ";;" content)
-        (string-append ";; " content)
-      ) ;if
-    ) ;define
-    (define (contains-comment? node)
-      (cond ((comment-node? node) #t)
-            ((atom? node) #f)
-            (else
-              (let ((children (env-children node)))
-                (let loop
-                  ((i 0))
-                  (cond ((>= i (vector-length children)) #f)
-                        ((contains-comment? (vector-ref children i)) #t)
-                        (else (loop (+ i 1)))
-                  ) ;cond
-                ) ;let
-              ) ;let
-            ) ;else
-      ) ;cond
-    ) ;define
-    (define (keyword-node? node)
-      (and (atom? node) (keyword? (atom-value node)))
-    ) ;define
-    (define (keyword-node-len node)
-      (string-length (format-atom-value (atom-value node)))
-    ) ;define
-    (define (keyword-block-prefix pairs indent)
-      (let loop
-        ((rest pairs) (count 0) (max-key-len 0) (max-val-len 0))
-        (cond ((null? rest) (values count max-key-len))
-              ((<= (+ indent (max max-key-len (caar rest)) 1 (max max-val-len (cdar rest)))
-                 max-inline-length
-               ) ;<=
-               (loop (cdr rest)
-                 (+ count 1)
-                 (max max-key-len (caar rest))
-                 (max max-val-len (cdar rest))
-               ) ;loop
-              ) ;
-              (else (values count max-key-len))
-        ) ;cond
-      ) ;let
-    ) ;define
+
     (define (compute-keyword-block children start child-indent)
       (let ((len (vector-length children)))
         (let collect
@@ -185,40 +91,7 @@
         ) ;let
       ) ;let
     ) ;define
-    (define (no-keyword-args-form? tag-name)
-      (and (member tag-name
-             '("define" "define*" "define-values" "define-syntax" "define-macro"
-               "define-record-type" "define-library" "import" "export")
-           ) ;member
-        #t
-      ) ;and
-    ) ;define
-    (define (quote-env? node)
-      (and (not (stem-mode?))
-        (env? node)
-        (or (string=? (env-tag-name node) "quote")
-          (string=? (env-tag-name node) "#_quote")
-        ) ;or
-      ) ;and
-    ) ;define
-    (define (reader-prefix-env? node)
-      (and (not (stem-mode?))
-        (env? node)
-        (or (string=? (env-tag-name node) "quasiquote")
-          (string=? (env-tag-name node) "unquote")
-          (string=? (env-tag-name node) "unquote-splicing")
-        ) ;or
-      ) ;and
-    ) ;define
-    (define (quote-env-content node)
-      (let ((value (env-value node)))
-        (if
-          (and (pair? value) (not (null? (cdr value))))
-          (cadr value)
-          '()
-        ) ;if
-      ) ;let
-    ) ;define
+
     (define (raw-string-datum? datum)
       (and (pair? datum)
         (eq? (car datum) '*raw-string*)
@@ -229,6 +102,7 @@
         (null? (cdddr datum))
       ) ;and
     ) ;define
+
     (define (newline-marker-datum? datum)
       (and (pair? datum)
         (eq? (car datum) '*newline*)
@@ -237,6 +111,7 @@
         (null? (cddr datum))
       ) ;and
     ) ;define
+
     (define (comment-datum? datum)
       (and (pair? datum)
         (eq? (car datum) '*comment*)
@@ -245,12 +120,14 @@
         (null? (cddr datum))
       ) ;and
     ) ;define
+
     (define (reader-newlines count)
       (let loop
         ((i count) (result ""))
         (if (<= i 0) result (loop (- i 1) (string-append result "\n")))
       ) ;let
     ) ;define
+
     (define (reader-datum-contains-newline-marker? datum)
       (cond ((newline-marker-datum? datum) #t)
             ((comment-datum? datum) #t)
@@ -271,6 +148,7 @@
             (else #f)
       ) ;cond
     ) ;define
+
     (define (reader-head-name head)
       (cond ((symbol? head) (symbol->string head))
             ((syntax? head)
@@ -281,24 +159,31 @@
             (else "default")
       ) ;cond
     ) ;define
+
     (define (reader-rule-head? head)
       (or (symbol? head) (syntax? head))
     ) ;define
+
     (define (reader-form-like? datum)
       (pair? datum)
     ) ;define
+
     (define (reader-format-selected-item item column)
       (format-reader-datum-at item column)
     ) ;define
+
     (define (reader-selected-item item)
       (car item)
     ) ;define
+
     (define (reader-selected-column item)
       (cadr item)
     ) ;define
+
     (define (reader-selected-text item)
       (caddr item)
     ) ;define
+
     (define (reader-select-first-line-items head-name rest start-column)
       (let ((limit (first-line-limit head-name))
             (allow-child-env? (allow-first-line-child-env? head-name))
@@ -344,6 +229,7 @@
         ) ;let
       ) ;let
     ) ;define
+
     (define (reader-skip-selected rest selected)
       (let loop
         ((current rest) (remaining (length selected)))
@@ -353,6 +239,7 @@
         ) ;if
       ) ;let
     ) ;define
+
     (define (reader-first-selected-form-column selected)
       (cond ((null? selected) #f)
             ((reader-form-like? (reader-selected-item (car selected)))
@@ -361,6 +248,7 @@
             (else (reader-first-selected-form-column (cdr selected)))
       ) ;cond
     ) ;define
+
     (define (reader-by-first-rest-child-indent parent-indent rest)
       (if
         (and (pair? rest)
@@ -373,6 +261,7 @@
         (+ parent-indent 2)
       ) ;if
     ) ;define
+
     (define (reader-rest-indent head-name parent-indent selected rest)
       (let ((strategy (rest-indent head-name)))
         (cond
@@ -386,6 +275,7 @@
         ) ;cond
       ) ;let
     ) ;define
+
     (define (format-reader-vector-inline datum)
       (let ((prefix (if (byte-vector? datum) "#u8(" "#(")))
         (let loop
@@ -397,9 +287,11 @@
         ) ;let
       ) ;let
     ) ;define
+
     (define (reader-vector-prefix datum)
       (if (byte-vector? datum) "#u8(" "#(")
     ) ;define
+
     (define (reader-vector->list datum)
       (let loop
         ((i 0) (result '()))
@@ -409,6 +301,7 @@
         ) ;if
       ) ;let
     ) ;define
+
     (define (format-reader-vector-multiline datum indent)
       (let* ((prefix (reader-vector-prefix datum))
              (item-indent (+ indent (string-length prefix)))
@@ -441,6 +334,7 @@
         ) ;let
       ) ;let*
     ) ;define
+
     (define (format-reader-vector-at datum indent)
       (let ((candidate (format-reader-vector-inline datum)))
         (if
@@ -455,9 +349,11 @@
         ) ;if
       ) ;let
     ) ;define
+
     (define (format-reader-vector datum)
       (format-reader-vector-at datum 0)
     ) ;define
+
     (define (format-reader-pair-inline datum)
       (let loop
         ((current datum) (pieces '()))
@@ -476,6 +372,7 @@
         ) ;cond
       ) ;let
     ) ;define
+
     (define (reader-append-selected result selected)
       (let loop
         ((items selected) (text result))
@@ -485,6 +382,7 @@
         ) ;if
       ) ;let
     ) ;define
+
     (define (last-line-column text)
       (let loop
         ((i 0) (column 0))
@@ -494,10 +392,13 @@
         ) ;if
       ) ;let
     ) ;define
+
     (define fill-min-children 4)
+
     (define (reader-fill-atom? item)
       (and (not (pair? item)) (not (vector? item)) (not (byte-vector? item)))
     ) ;define
+
     (define (reader-fill-eligible? datum)
       (let loop
         ((current datum) (count 0))
@@ -510,6 +411,7 @@
         ) ;cond
       ) ;let
     ) ;define
+
     (define (format-reader-pair-fill datum indent)
       (let* ((head (car datum))
              (rule-head? (reader-rule-head? head))
@@ -537,12 +439,14 @@
         ) ;let
       ) ;let*
     ) ;define
+
     (define (reader-append-close result close-indent)
       (if (string-suffix? ";#" result)
         (string-append result "\n" (spaces close-indent) ")")
         (string-append result ")")
       ) ;if
     ) ;define
+
     (define (reader-keyword-block-info current rest-indent)
       (let collect
         ((curr current) (pairs '()))
@@ -576,6 +480,7 @@
         ) ;if
       ) ;let
     ) ;define
+
     (define (reader-append-rest current result rest-indent prefix-ready? close-indent)
       (cond
        ((pair? current)
@@ -692,6 +597,7 @@
        ) ;else
       ) ;cond
     ) ;define
+
     (define (format-reader-pair-multiline datum indent)
       (if (not (pair? datum))
         (format-atom-value datum)
@@ -726,6 +632,7 @@
         ) ;if
       ) ;if
     ) ;define
+
     (define (format-reader-pair-at datum indent)
       (let ((candidate (format-reader-pair-inline datum)))
         (if
@@ -738,9 +645,11 @@
         ) ;if
       ) ;let
     ) ;define
+
     (define (format-reader-pair datum)
       (format-reader-pair-at datum 0)
     ) ;define
+
     (define (format-reader-datum-inline datum)
       (cond ((raw-string-literal? datum) (raw-string-literal-source datum))
             ((char-literal? datum) (char-literal-source datum))
@@ -767,6 +676,7 @@
             (else (format-atom-value datum))
       ) ;cond
     ) ;define
+
     (define (format-reader-datum-at datum indent)
       (cond ((raw-string-literal? datum) (raw-string-literal-source datum))
             ((char-literal? datum) (char-literal-source datum))
@@ -795,9 +705,11 @@
             (else (format-atom-value datum))
       ) ;cond
     ) ;define
+
     (define (format-reader-datum datum)
       (format-reader-datum-at datum 0)
     ) ;define
+
     (define (format-inline node)
       (cond ((comment-node? node) (format-comment-content (comment-content node)))
             ((newline-node? node) "")
@@ -832,11 +744,13 @@
             ) ;else
       ) ;cond
     ) ;define
+
     (define (first-child-env? node)
       (let ((children (env-children node)))
         (and (> (vector-length children) 0) (env? (vector-ref children 0)))
       ) ;let
     ) ;define
+
     (define (second-child-node node)
       (if (or (not (env? node)) (string=? (env-tag-name node) ""))
         #f
@@ -845,9 +759,11 @@
         ) ;let
       ) ;if
     ) ;define
+
     (define (node-datum node)
       (if (env? node) (env-value node) (atom-value node))
     ) ;define
+
     (define (second-child-tree-depth-exceeded? node)
       (let ((second (second-child-node node)))
         (and second
@@ -859,6 +775,7 @@
         ) ;and
       ) ;let
     ) ;define
+
     (define (try-inline node)
       (cond ((comment-node? node) #t)
             ((newline-node? node) #f)
@@ -888,30 +805,39 @@
             ) ;else
       ) ;cond
     ) ;define
+
     (define (can-inline? node)
       (if (try-inline node) #t #f)
     ) ;define
+
     (define (make-writer initial-column)
       (vector (open-output-string) 1 initial-column)
     ) ;define
+
     (define (writer-port writer)
       (vector-ref writer 0)
     ) ;define
+
     (define (writer-line writer)
       (vector-ref writer 1)
     ) ;define
+
     (define (writer-column writer)
       (vector-ref writer 2)
     ) ;define
+
     (define (set-writer-line! writer line)
       (vector-set! writer 1 line)
     ) ;define
+
     (define (set-writer-column! writer column)
       (vector-set! writer 2 column)
     ) ;define
+
     (define (writer-result writer)
       (get-output-string (writer-port writer))
     ) ;define
+
     (define (emit-string! writer text)
       (display text (writer-port writer))
       (let loop
@@ -928,11 +854,13 @@
         ) ;if
       ) ;let
     ) ;define
+
     (define (emit-newline! writer)
       (display "\n" (writer-port writer))
       (set-writer-line! writer (+ (writer-line writer) 1))
       (set-writer-column! writer 0)
     ) ;define
+
     (define (emit-spaces! writer n)
       (if (> n 0)
         (begin
@@ -941,12 +869,15 @@
         ) ;begin
       ) ;if
     ) ;define
+
     (define (selected-child pair)
       (car pair)
     ) ;define
+
     (define (selected-column pair)
       (cdr pair)
     ) ;define
+
     (define (let-form? tag-name)
       (if (member tag-name '("let" "let*" "letrec" "letrec*" "let-values"
                              "let*-values"))
@@ -954,6 +885,7 @@
         #f
       ) ;if
     ) ;define
+
     (define (select-first-line-children node first-column)
       (if
         (and (second-child-tree-depth-exceeded? node)
@@ -1003,15 +935,18 @@
         ) ;let
       ) ;if
     ) ;define
+
     (define (selected-count selected)
       (length selected)
     ) ;define
+
     (define (first-selected-env-column selected)
       (cond ((null? selected) #f)
             ((env? (selected-child (car selected))) (selected-column (car selected)))
             (else (first-selected-env-column (cdr selected)))
       ) ;cond
     ) ;define
+
     (define (by-first-rest-child-indent parent-indent rest-start children)
       (let ((first (vector-ref children rest-start)))
         (if (and (env? first) (string=? (env-tag-name first) ""))
@@ -1020,6 +955,7 @@
         ) ;if
       ) ;let
     ) ;define
+
     (define (next-line-child-indent parent parent-indent selected rest-start)
       (let ((children (env-children parent))
             (strategy (rest-indent (env-tag-name parent)))
@@ -1038,6 +974,7 @@
         ) ;cond
       ) ;let
     ) ;define
+
     (define (positioned-atom node indent left-line right-line)
       (make-atom
         :depth      (atom-depth node)
@@ -1047,6 +984,7 @@
         :value      (atom-value node)
       ) ;make-atom
     ) ;define
+
     (define (positioned-env node indent children left-line right-line)
       (make-env
         :tag-name   (env-tag-name node)
@@ -1058,6 +996,7 @@
         :value      (env-value node)
       ) ;make-env
     ) ;define
+
     (define (emit-comment! node writer column)
       (let* ((left-line (writer-line writer))
              (content-node (vector-ref (env-children node) 0))
@@ -1074,12 +1013,14 @@
         ) ;positioned-env
       ) ;let*
     ) ;define
+
     (define (emit-atom! node writer column)
       (let ((left-line (writer-line writer)))
         (emit-string! writer (format-inline-atom-or-quote-at (atom-value node) column))
         (positioned-atom node column left-line (writer-line writer))
       ) ;let
     ) ;define
+
     (define (emit-inline! node writer column)
       (cond ((comment-node? node) (emit-comment! node writer column))
             ((atom? node)
@@ -1132,6 +1073,7 @@
             ) ;else
       ) ;cond
     ) ;define
+
     (define (fill-eligible-children? children)
       (and (>= (vector-length children) fill-min-children)
         (let loop
@@ -1147,6 +1089,7 @@
         ) ;let
       ) ;and
     ) ;define
+
     (define (walk-env-fill! node writer column)
       (let ((env-indent column)
             (left-line (writer-line writer))
@@ -1200,6 +1143,7 @@
         ) ;let
       ) ;let
     ) ;define
+
     (define (walk! node writer column)
       (cond ((comment-node? node) (emit-comment! node writer column))
             ((atom? node) (emit-atom! node writer column))
@@ -1207,6 +1151,7 @@
             (else (walk-env! node writer column))
       ) ;cond
     ) ;define
+
     (define (walk-env! node writer column)
       (let ((env-indent column) (left-line (writer-line writer)))
         (cond
@@ -1387,14 +1332,17 @@
       ) ;let
     ) ;let
   ) ;define
+
   (define (format-datum+node datum)
     (format-node (scan datum) 0)
   ) ;define
+
   (define (format-datum datum)
     (call-with-values (lambda () (format-datum+node datum))
       (lambda (text new-node) text)
     ) ;call-with-values
   ) ;define
+
   (define (read-all port)
     (let loop
       ((result '()))
@@ -1403,6 +1351,7 @@
       ) ;let
     ) ;let
   ) ;define
+
   (define (join-top-level pieces)
     (let ((out (open-output-string)))
       (let loop
@@ -1422,12 +1371,15 @@
       ) ;let
     ) ;let
   ) ;define
+
   (define (define-form? datum)
     (and (pair? datum) (not (null? datum)) (eq? (car datum) 'define))
   ) ;define
+
   (define (define-node? node)
     (and (env? node) (string=? (env-tag-name node) "define"))
   ) ;define
+
   (define (newline-form? datum)
     (and (pair? datum)
       (not (null? datum))
@@ -1436,12 +1388,15 @@
       (number? (cadr datum))
     ) ;and
   ) ;define
+
   (define (newline-form-count datum)
     (cadr datum)
   ) ;define
+
   (define (needs-blank-line? datum is-first-expr)
     (and (define-form? datum) (not is-first-expr))
   ) ;define
+
   (define (format-top-level datums)
     (let loop
       ((rest datums) (is-first #t) (result '()))
@@ -1471,6 +1426,7 @@
       ) ;if
     ) ;let
   ) ;define
+
   (define (format-top-level-nodes nodes)
     (let loop
       ((i 0) (is-first #t) (result '()))
@@ -1500,11 +1456,13 @@
       ) ;if
     ) ;let
   ) ;define
+
   (define (format-string source)
     (let* ((nodes (scan-source-string source)) (pieces (format-top-level-nodes nodes)))
       (join-top-level pieces)
     ) ;let*
   ) ;define
+
   (define (format-nodes nodes)
     (join-top-level (format-top-level-nodes nodes))
   ) ;define
