@@ -56,6 +56,7 @@
             ((= code 27) 'escape)
             ((or (= code 8) (= code 127)) 'backspace)
             ((= code 9) 'tab)
+            ((or (= code 15) (= code 353)) 'shift-tab)
             ((= code 3) 'ctrl-c)
             ((= code 4) 'ctrl-d)
             ((and (>= code 32) (<= code 126)) (string (integer->char code)))

@@ -617,7 +617,32 @@ f_console_getch (s7_scheme* sc, s7_pointer args) {
   if (_kbhit () == 0) {
     return s7_make_boolean (sc, false);
   }
+  HANDLE       hIn          = GetStdHandle (STD_INPUT_HANDLE);
+  INPUT_RECORD records[4];
+  DWORD        numRead      = 0;
+  bool         is_shift_tab = false;
+
+  if (PeekConsoleInputW (hIn, records, 4, &numRead) && numRead > 0) {
+    for (DWORD i= 0; i < numRead; ++i) {
+      if (records[i].EventType == KEY_EVENT && records[i].Event.KeyEvent.bKeyDown) {
+        KEY_EVENT_RECORD k= records[i].Event.KeyEvent;
+        if (k.wVirtualKeyCode == VK_TAB && (k.dwControlKeyState & SHIFT_PRESSED)) {
+          is_shift_tab= true;
+          break;
+        }
+      }
+    }
+  }
+  if (!is_shift_tab) {
+    if ((GetKeyState (VK_SHIFT) & 0x8000) || (GetAsyncKeyState (VK_SHIFT) & 0x8000)) {
+      is_shift_tab= true;
+    }
+  }
+
   int ch= _getch ();
+  if (ch == 9 && is_shift_tab) {
+    return s7_make_integer (sc, 353); // 353: curses KEY_BTAB (Shift-Tab)
+  }
   return s7_make_integer (sc, ch);
 #else
   unsigned char ch= 0;
