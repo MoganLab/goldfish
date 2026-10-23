@@ -14,9 +14,7 @@
 ;; limitations under the License.
 
 (define-library (liii goldfmt format reader)
-  (export format-reader-datum format-reader-datum-at format-reader-datum-inline
-    format-inline-atom-or-quote format-inline-atom-or-quote-at
-  ) ;export
+  (export format-reader-datum format-reader-datum-at format-reader-datum-inline)
   (import (liii base)
     (liii goldfmt record)
     (liii goldfmt rule)
@@ -25,14 +23,6 @@
     (srfi srfi-13)
   ) ;import
   (begin
-    (define (format-inline-atom-or-quote value)
-      (format-reader-datum value)
-    ) ;define
-
-    (define (format-inline-atom-or-quote-at value indent)
-      (format-reader-datum-at value indent)
-    ) ;define
-
     (define (reader-format-selected-item item column)
       (format-reader-datum-at item column)
     ) ;define

@@ -1,5 +1,5 @@
 (import (liii check))
-(import (liii goldfmt format reader))
+(import (liii goldfmt format writer))
 
 (check-set-mode! 'report-failed)
 

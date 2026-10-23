@@ -25,7 +25,7 @@
     reader-selected-column reader-selected-text reader-skip-selected
     reader-first-selected-form-column reader-by-first-rest-child-indent
     reader-rest-indent reader-append-selected last-line-column reader-fill-atom?
-    reader-fill-eligible? reader-append-close fill-min-children
+    reader-fill-eligible? reader-append-close fill-min-children let-form?
   ) ;export
   (import (liii base)
     (liii goldfmt record)
@@ -155,6 +155,14 @@
            ) ;member
         #t
       ) ;and
+    ) ;define
+
+    (define (let-form? tag-name)
+      (if (member tag-name '("let" "let*" "letrec" "letrec*" "let-values"
+                             "let*-values"))
+        #t
+        #f
+      ) ;if
     ) ;define
 
     (define (quote-env? node)
