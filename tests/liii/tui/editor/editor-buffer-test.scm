@@ -1,5 +1,6 @@
 (import (liii check)
-        (liii tui editor buffer))
+        (liii tui editor buffer)
+        (liii tui editor kill))
 
 (check-set-mode! 'report-failed)
 
@@ -98,5 +99,34 @@
   (check (buffer-lines b) => '("abcdef"))
   (check (buffer-row b) => 0)
   (check (buffer-col b) => 3))
+
+;; 8. 行与词删除操作测试：kill-line-right! / kill-line-left! / kill-word-left! / transpose-chars!
+(let ((b (make-buffer "hello world" #f)))
+  (buffer-col-set! b 5)
+  ;; ctrl-k: 删除光标到行尾
+  (check (buffer-kill-line-right! b) => #t)
+  (check (buffer-text b) => "hello")
+  (check (buffer-col b) => 5))
+
+(let ((b (make-buffer "hello world" #f)))
+  (buffer-col-set! b 6)
+  ;; ctrl-u: 删除光标到行首
+  (check (buffer-kill-line-left! b) => #t)
+  (check (buffer-text b) => "world")
+  (check (buffer-col b) => 0))
+
+(let ((b (make-buffer "hello world" #f)))
+  (buffer-col-set! b 11)
+  ;; ctrl-w: 向左删除单词
+  (check (buffer-kill-word-left! b) => #t)
+  (check (buffer-text b) => "hello ")
+  (check (buffer-col b) => 6))
+
+(let ((b (make-buffer "ab" #f)))
+  (buffer-col-set! b 2)
+  ;; ctrl-t: 交换光标前两个字符
+  (check (buffer-transpose-chars! b) => #t)
+  (check (buffer-text b) => "ba")
+  (check (buffer-col b) => 2))
 
 (check-report)

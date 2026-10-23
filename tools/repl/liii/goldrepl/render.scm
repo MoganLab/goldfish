@@ -26,7 +26,7 @@
   ) ;import
   (export %repl-s7-version-text %repl-mode-desc-line %repl-banner-lines
     %repl-prompt %repl-render-input-lines %repl-refresh! %repl-show-out
-    %repl-show-err %repl-show-val
+    %repl-show-err %repl-show-val %repl-editor-help-lines
   ) ;export
   (begin
 
@@ -149,6 +149,38 @@
           (app-out! (list (string-append name " " (%repl-gray "=") " " rs)))
         ) ;let*
       ) ;when
+    ) ;define
+
+    (define (%repl-editor-help-lines)
+      (list (%repl-styled "bold" "Goldfish Scheme REPL Editing Commands:")
+        ""
+        (%repl-styled "bold" "Navigation:")
+        "  left, ctrl-b     : go one character to the left"
+        "  right, ctrl-f    : go one character to the right"
+        "  up, ctrl-p       : go one line up, or back in history"
+        "  down, ctrl-n     : go one line down, or forward in history"
+        "  ctrl-left, alt-b : go to the start of the previous word"
+        "  ctrl-right, alt-f: go to the end of the current word"
+        "  home, ctrl-a     : go to the start of the current line"
+        "  end, ctrl-e      : go to the end of the current line"
+        ""
+        (%repl-styled "bold" "Deletion:")
+        "  del, ctrl-d      : delete the current character (or exit if empty)"
+        "  backsp, ctrl-h   : delete the previous character"
+        "  ctrl-w, alt-bs   : delete to preceding whitespace or word"
+        "  ctrl-u           : delete to the start of the current line"
+        "  ctrl-k           : delete to the end of the current line"
+        "  esc              : delete the current input"
+        ""
+        (%repl-styled "bold" "Editing & Multiline:")
+        "  enter            : accept current input (or newline if parens unclosed)"
+        "  shift-tab        : create a new line for multi-line input"
+        "  ctrl-j           : create a new line for multi-line input"
+        "  ctrl-l           : clear screen"
+        "  ctrl-t           : swap with previous character"
+        "  tab              : try to complete the current input"
+        ""
+      ) ;list
     ) ;define
 
   ) ;begin

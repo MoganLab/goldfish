@@ -74,6 +74,7 @@
     %repl-buffer
     %repl-buffer-set!
     %repl-try-complete-first!
+    %repl-editor-help-lines
     main
   ) ;export
   (begin
@@ -212,6 +213,8 @@
         ) ;define
         (define (handle-key! k)
           (cond ((eq? k 'enter) (do-submit!))
+                ((eq? k 'f1) (app-out! (%repl-editor-help-lines)) (reset-comp!))
+                ((eq? k 'ctrl-l) (set! scroll '()) (reset-comp!))
                 ((eq? k 'ctrl-c)
                  (if (pair? (car buf))
                    (begin
@@ -224,12 +227,16 @@
                  (reset-comp!)
                 ) ;
                 ((eq? k 'ctrl-d)
-                 (when
+                 (if
                    (and (string-null? (editor-text ed)) (not (pair? (car buf))))
                    (set! quit? #t)
-                 ) ;when
+                   (begin
+                     (reset-comp!)
+                     (component-handle-input ed 'ctrl-d)
+                   ) ;begin
+                 ) ;if
                 ) ;
-                ((eq? k 'escape) (reset-comp!))
+                ((eq? k 'escape) (if (pair? comp-cands) (reset-comp!) (editor-set-text! ed "")))
                 ((eq? k 'tab) (do-complete!))
                 ((or (eq? k 'shift-tab) (eq? k 'ctrl-j)) (do-newline!))
                 ((not k) (sleep 0.01))

@@ -23,7 +23,8 @@
 
 (define-library (liii tui editor cursor)
   (export buffer-move-left! buffer-move-right! buffer-move-up! buffer-move-down!
-    buffer-move-home! buffer-move-end!
+    buffer-move-home! buffer-move-end! buffer-move-word-left!
+    buffer-move-word-right!
   ) ;export
   (import (scheme base)
     (scheme write)
@@ -114,6 +115,84 @@
                 ) ;
             (buffer-row-set! buf new-r)
             (buffer-col-set! buf new-c)
+            #t
+          ) ;let*
+        ) ;if
+      ) ;let*
+    ) ;define
+
+    (define (%char-whitespace? ch)
+      (or (char=? ch #\space) (char=? ch #\tab))
+    ) ;define
+
+    (define (buffer-move-word-left! buf)
+      (let* ((lines (buffer-lines buf))
+             (r (buffer-row buf))
+             (c (buffer-col buf))
+             (line (list-ref lines r))
+             (chars (string->list line))
+             (len (length chars))
+            ) ;
+        (if (<= c 0)
+          #f
+          (let* ((safe-c (min c len))
+                 (pos1
+                   (let loop
+                     ((i safe-c))
+                     (if
+                       (and (> i 0) (%char-whitespace? (list-ref chars (- i 1))))
+                       (loop (- i 1))
+                       i
+                     ) ;if
+                   ) ;let
+                 ) ;pos1
+                 (pos2
+                   (let loop
+                     ((i pos1))
+                     (if
+                       (and (> i 0) (not (%char-whitespace? (list-ref chars (- i 1)))))
+                       (loop (- i 1))
+                       i
+                     ) ;if
+                   ) ;let
+                 ) ;pos2
+                ) ;
+            (buffer-col-set! buf pos2)
+            #t
+          ) ;let*
+        ) ;if
+      ) ;let*
+    ) ;define
+
+    (define (buffer-move-word-right! buf)
+      (let* ((lines (buffer-lines buf))
+             (r (buffer-row buf))
+             (c (buffer-col buf))
+             (line (list-ref lines r))
+             (chars (string->list line))
+             (len (length chars))
+            ) ;
+        (if (>= c len)
+          #f
+          (let* ((safe-c (max 0 c))
+                 (pos1
+                   (let loop
+                     ((i safe-c))
+                     (if
+                       (and (< i len) (not (%char-whitespace? (list-ref chars i))))
+                       (loop (+ i 1))
+                       i
+                     ) ;if
+                   ) ;let
+                 ) ;pos1
+                 (pos2
+                   (let loop
+                     ((i pos1))
+                     (if (and (< i len) (%char-whitespace? (list-ref chars i))) (loop (+ i 1)) i)
+                   ) ;let
+                 ) ;pos2
+                ) ;
+            (buffer-col-set! buf pos2)
             #t
           ) ;let*
         ) ;if

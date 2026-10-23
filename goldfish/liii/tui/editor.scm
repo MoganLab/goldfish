@@ -62,6 +62,13 @@
     buffer-move-down!
     buffer-move-home!
     buffer-move-end!
+    buffer-move-word-left!
+    buffer-move-word-right!
+    ;; kill / edit 导出
+    buffer-kill-line-right!
+    buffer-kill-line-left!
+    buffer-kill-word-left!
+    buffer-transpose-chars!
     ;; history 导出
     make-history
     history?
@@ -80,6 +87,7 @@
   (import (liii tui editor history)
     (liii tui editor buffer)
     (liii tui editor cursor)
+    (liii tui editor kill)
     (liii tui editor view)
     (liii tui editor component)
   ) ;import

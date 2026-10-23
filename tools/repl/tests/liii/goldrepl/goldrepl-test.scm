@@ -228,4 +228,14 @@
     (check idx => 0)
     (check ok? => #f)))
 
+;; ------------------------------------------------------------------
+;; F1 编辑帮助测试：%repl-editor-help-lines
+;; ------------------------------------------------------------------
+(let ((lines (%repl-editor-help-lines)))
+  (check-true (pair? lines))
+  (check-true (any (lambda (l) (string-contains l "Editing Commands")) lines))
+  (check-true (any (lambda (l) (string-contains l "shift-tab")) lines))
+  (check-true (any (lambda (l) (string-contains l "ctrl-a")) lines))
+  (check-true (any (lambda (l) (string-contains l "ctrl-k")) lines)))
+
 (check-report)
