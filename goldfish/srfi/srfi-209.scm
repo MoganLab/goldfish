@@ -28,7 +28,7 @@
     (scheme case-lambda)
     (srfi srfi-1)
     (srfi srfi-128)
-    (liii hash-table)
+    (srfi srfi-125)
   ) ;import
   (export enum-type? enum? enum-type-contains? enum=? enum<? enum>? enum<=?
     enum>=? make-enum-type enum-type enum-name enum-ordinal enum-value

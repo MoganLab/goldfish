@@ -24,7 +24,7 @@
 (define-library (srfi srfi-113)
   (import (scheme base)
     (scheme case-lambda)
-    (liii hash-table)
+    (srfi srfi-125)
     (liii error)
     (srfi srfi-1)
     (srfi srfi-128)
