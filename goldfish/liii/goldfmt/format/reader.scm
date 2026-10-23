@@ -19,6 +19,7 @@
     (liii goldfmt record)
     (liii goldfmt rule)
     (liii goldfmt format atom)
+    (liii goldfmt format datum)
     (liii goldfmt scan normalize)
     (srfi srfi-13)
   ) ;import
@@ -82,20 +83,6 @@
             (loop (+ i 1) (cons (format-reader-datum-inline (vector-ref datum i)) pieces))
           ) ;if
         ) ;let
-      ) ;let
-    ) ;define
-
-    (define (reader-vector-prefix datum)
-      (if (byte-vector? datum) "#u8(" "#(")
-    ) ;define
-
-    (define (reader-vector->list datum)
-      (let loop
-        ((i 0) (result '()))
-        (if (>= i (vector-length datum))
-          (reverse result)
-          (loop (+ i 1) (cons (vector-ref datum i) result))
-        ) ;if
       ) ;let
     ) ;define
 
@@ -166,68 +153,6 @@
       ) ;let
     ) ;define
 
-    (define (format-reader-pair-fill datum indent)
-      (let* ((head (car datum))
-             (rule-head? (reader-rule-head? head))
-             (rest-indent (+ indent (if rule-head? 2 1)))
-            ) ;
-        (let loop
-          ((current datum) (column (+ indent 1)) (first? #t) (pieces (list "(")))
-          (if (null? current)
-            (apply string-append (reverse (cons ")" pieces)))
-            (let* ((item (car current))
-                   (text (format-reader-datum-inline item))
-                   (separator (if first? "" " "))
-                   (needed (+ (string-length separator) (string-length text)))
-                  ) ;
-              (if (and (not first?) (> (+ column needed) max-inline-length))
-                (loop (cdr current)
-                  (+ rest-indent (string-length text))
-                  #f
-                  (cons text (cons (string-append "\n" (spaces rest-indent)) pieces))
-                ) ;loop
-                (loop (cdr current) (+ column needed) #f (cons text (cons separator pieces)))
-              ) ;if
-            ) ;let*
-          ) ;if
-        ) ;let
-      ) ;let*
-    ) ;define
-
-    (define (reader-keyword-block-info current rest-indent)
-      (let collect
-        ((curr current) (pairs '()))
-        (define (finish)
-          (keyword-block-prefix (reverse pairs) rest-indent)
-        ) ;define
-        (if
-          (or (not (pair? curr)) (not (pair? (cdr curr))))
-          (finish)
-          (let ((key (car curr)) (val (cadr curr)))
-            (if (and (keyword? key)
-                  (not (newline-marker-datum? val))
-                  (not (comment-datum? val))
-                ) ;and
-              (let ((val-inline (format-reader-datum-inline val)))
-                (if (not (string-contains-newline? val-inline))
-                  (let ((key-len (string-length (format-reader-datum-inline key)))
-                        (val-len (string-length val-inline))
-                       ) ;
-                    (if (<= (+ rest-indent key-len 1 val-len) max-inline-length)
-                      (collect (cddr curr) (cons (cons key-len val-len) pairs))
-                      (finish)
-                    ) ;if
-                  ) ;let
-                  (finish)
-                ) ;if
-              ) ;let
-              (finish)
-            ) ;if
-          ) ;let
-        ) ;if
-      ) ;let
-    ) ;define
-
     (define (reader-append-rest current result rest-indent prefix-ready? close-indent)
       (cond
        ((pair? current)
@@ -246,7 +171,9 @@
               (not (newline-marker-datum? (cadr current)))
               (not (comment-datum? (cadr current)))
             ) ;and
-            (call-with-values (lambda () (reader-keyword-block-info current rest-indent))
+            (call-with-values (lambda ()
+                                (reader-keyword-block-info current rest-indent format-reader-datum-inline)
+                              ) ;lambda
               (lambda (block-count max-key-len)
                 (if (> block-count 0)
                   (let emit-block
@@ -349,7 +276,7 @@
       (if (not (pair? datum))
         (format-atom-value datum)
         (if (reader-fill-eligible? datum)
-          (format-reader-pair-fill datum indent)
+          (format-reader-pair-fill datum indent format-reader-datum-inline)
           (let* ((head (car datum))
                  (head-name (reader-head-name head))
                  (rule-head? (reader-rule-head? head))

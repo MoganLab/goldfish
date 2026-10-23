@@ -80,6 +80,7 @@
             "liii go",
             "liii goldfmt",
             "liii goldfmt format atom",
+            "liii goldfmt format datum",
             "liii goldfmt format reader",
             "liii goldfmt format walk",
             "liii goldfmt format writer",
