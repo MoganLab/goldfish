@@ -43,11 +43,11 @@
 ;;
 
 (define-library (srfi srfi-166)
-  (import (liii format base)
-    (liii format color)
-    (liii format unicode)
-    (liii format columnar)
-    (liii format pretty)
+  (import (srfi srfi-166 base)
+    (srfi srfi-166 color)
+    (srfi srfi-166 unicode)
+    (srfi srfi-166 columnar)
+    (srfi srfi-166 pretty)
   ) ;import
   (export
     ;; basic

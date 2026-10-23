@@ -17,7 +17,7 @@
     list-queue-append! list-queue-concatenate list-queue-map list-queue-map!
     list-queue-for-each
   ) ;export
-  (import (liii base) (liii error) (liii list))
+  (import (liii base) (liii error) (srfi srfi-1))
   (begin
 
     ;; ; The list-queue record

@@ -108,11 +108,7 @@
     fxmapping-split
   ) ;export
 
-  (import (scheme base)
-    (scheme case-lambda)
-    (srfi srfi-1)
-    (rename (liii bitwise) (ash arithmetic-shift))
-  ) ;import
+  (import (scheme base) (scheme case-lambda) (srfi srfi-1) (srfi srfi-151))
 
   (begin
 

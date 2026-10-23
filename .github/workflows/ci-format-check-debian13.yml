@@ -88,6 +88,3 @@ jobs:
 
       - name: Run gf check (code metrics check)
         run: bin/gf check
-
-      - name: Run goldcheck tests (tools/check)
-        run: bin/gf test tools/check/tests

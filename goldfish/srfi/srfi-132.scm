@@ -19,7 +19,7 @@
     vector-merge vector-sort vector-stable-sort list-merge! list-sort!
     list-stable-sort! vector-merge! vector-sort! vector-stable-sort!
   ) ;export
-  (import (liii list) (liii error) (scheme case-lambda))
+  (import (srfi srfi-1) (liii error) (scheme case-lambda))
   (begin
 
     ;; list-sorted? 复用 liii_sort.cpp 的 C++ 实现 g_list-sorted?
