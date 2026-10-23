@@ -20,6 +20,7 @@
     (liii base)
     (liii list)
     (liii string)
+    (liii ascii)
     (liii goldrepl complete)
   ) ;import
   (export *repl-styles* %repl-style %repl-styled %repl-gray *repl-keywords*
@@ -110,52 +111,56 @@
       (let ((chars (string->list line)) (n (string-length line)))
         (let loop
           ((i 0) (acc '()))
-          (cond ((>= i n) (apply string-append (reverse acc)))
-                ((char=? (list-ref chars i) #\;)
-                 (apply string-append
-                   (reverse
-                     (cons (%repl-styled "comment" (list->string (drop chars i))) acc)
-                   ) ;reverse
-                 ) ;apply
-                ) ;
-                ((char=? (list-ref chars i) #\")
-                 (%repl-highlight-string chars
-                   n
-                   i
-                   (lambda (next-i piece) (loop next-i (cons piece acc)))
-                 ) ;%repl-highlight-string
-                ) ;
-                ((and (char=? (list-ref chars i) #\#)
-                   (< (+ i 1) n)
-                   (let ((c2 (list-ref chars (+ i 1))))
-                     (or (char=? c2 #\t) (char=? c2 #\f))
-                   ) ;let
-                 ) ;and
-                 (loop (+ i 2)
-                   (cons
-                     (%repl-styled "constant" (list->string (take (drop chars i) 2)))
-                     acc
-                   ) ;cons
-                 ) ;loop
-                ) ;
-                ((char-numeric? (list-ref chars i))
-                 (%repl-highlight-number chars
-                   n
-                   i
-                   (lambda (next-i piece) (loop next-i (cons piece acc)))
-                 ) ;%repl-highlight-number
-                ) ;
-                ((%repl-symbol-char? (list-ref chars i))
-                 (%repl-highlight-token chars
-                   n
-                   i
-                   (lambda (next-i piece) (loop next-i (cons piece acc)))
-                 ) ;%repl-highlight-token
-                ) ;
-                (else
-                  (loop (+ i 1) (cons (string (list-ref chars i)) acc))
-                ) ;else
-          ) ;cond
+          (if (>= i n)
+            (apply string-append (reverse acc))
+            (let ((c (list-ref chars i)))
+              (cond
+               ((char=? c #\;)
+                (apply string-append
+                  (reverse
+                    (cons (%repl-styled "comment" (list->string (drop chars i))) acc)
+                  ) ;reverse
+                ) ;apply
+               ) ;
+               ((char=? c #\")
+                (%repl-highlight-string chars
+                  n
+                  i
+                  (lambda (next-i piece) (loop next-i (cons piece acc)))
+                ) ;%repl-highlight-string
+               ) ;
+               ((and (char=? c #\#)
+                  (< (+ i 1) n)
+                  (let ((c2 (list-ref chars (+ i 1))))
+                    (or (char=? c2 #\t) (char=? c2 #\f))
+                  ) ;let
+                ) ;and
+                (loop (+ i 2)
+                  (cons
+                    (%repl-styled "constant" (list->string (take (drop chars i) 2)))
+                    acc
+                  ) ;cons
+                ) ;loop
+               ) ;
+               ((not (ascii-char? c)) (loop (+ i 1) (cons (string c) acc)))
+               ((char-numeric? c)
+                (%repl-highlight-number chars
+                  n
+                  i
+                  (lambda (next-i piece) (loop next-i (cons piece acc)))
+                ) ;%repl-highlight-number
+               ) ;
+               ((%repl-symbol-char? c)
+                (%repl-highlight-token chars
+                  n
+                  i
+                  (lambda (next-i piece) (loop next-i (cons piece acc)))
+                ) ;%repl-highlight-token
+               ) ;
+               (else (loop (+ i 1) (cons (string c) acc)))
+              ) ;cond
+            ) ;let
+          ) ;if
         ) ;let
       ) ;let
     ) ;define

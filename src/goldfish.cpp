@@ -21,6 +21,7 @@
 int
 main (int argc, char** argv) {
 #ifdef TB_CONFIG_OS_WINDOWS
+  SetConsoleCP (65001);
   SetConsoleOutputCP (65001);
 #endif
   setlocale (LC_ALL, "C.UTF-8");
