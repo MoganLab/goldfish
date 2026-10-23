@@ -24,8 +24,7 @@
 (define-library (liii tui editor cursor)
   (export buffer-move-left! buffer-move-right! buffer-move-up! buffer-move-down!
     buffer-move-home! buffer-move-end! buffer-move-word-left!
-    buffer-move-word-right!
-    %word-left-boundary
+    buffer-move-word-right! %word-left-boundary
   ) ;export
   (import (scheme base)
     (scheme write)

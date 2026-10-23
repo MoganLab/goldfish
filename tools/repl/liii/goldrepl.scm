@@ -123,7 +123,7 @@
                      '()
                    ) ;if
                  ) ;menu
-              ) ;
+                ) ;
             (%repl-refresh! screen term scroll ed w (pair? (car buf)) menu)
           ) ;let*
         ) ;define
@@ -145,9 +145,7 @@
                  (w (%repl-word-at txt (cadr cur)))
                 ) ;
             (if (null? comp-cands)
-              (let-values (((cands idx ok?)
-                            (%repl-try-complete-first! ed txt cur w (%repl-completions w))
-                           ) ;
+              (let-values (((cands idx ok?) (%repl-try-complete-first! ed txt cur w (%repl-completions w)))
                           ) ;
                 (set! comp-cands cands)
                 (set! comp-idx idx)

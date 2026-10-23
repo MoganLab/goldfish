@@ -15,7 +15,11 @@
 ;;
 
 (define-library (liii goldrepl style)
-  (import (scheme base) (scheme char) (liii base) (liii list) (liii string)
+  (import (scheme base)
+    (scheme char)
+    (liii base)
+    (liii list)
+    (liii string)
     (liii goldrepl complete)
   ) ;import
   (export *repl-styles* %repl-style %repl-styled %repl-gray *repl-keywords*

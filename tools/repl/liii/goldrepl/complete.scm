@@ -18,7 +18,8 @@
   (import (scheme base) (scheme char) (liii base) (liii list) (liii string))
   (export *repl-symbols* %repl-symbol-char? %repl-update-symbol-cache!
     %repl-invalidate-symbol-cache! %repl-symbol-name? %repl-completions
-    %repl-word-at %repl-replace-word %repl-string-common-prefix %repl-common-prefix
+    %repl-word-at %repl-replace-word %repl-string-common-prefix
+    %repl-common-prefix
   ) ;export
   (begin
 
@@ -27,7 +28,8 @@
 
     (define (%repl-symbol-char? ch)
       (or (char-alphabetic? ch)
-        (memv ch '(#\! #\$ #\% #\& #\* #\/ #\: #\< #\= #\> #\? #\^ #\_ #\~ #\+ #\- #\.))
+        (memv ch '(#\! #\$ #\% #\& #\* #\/ #\: #\< #\= #\> #\? #\^ #\_ #\~ #\+
+                   #\- #\.))
       ) ;or
     ) ;define
 
@@ -84,9 +86,7 @@
       (let loop
         ((rest *repl-symbols*) (acc '()))
         (cond ((null? rest) (reverse acc))
-              ((string-starts? (caar rest) prefix)
-               (loop (cdr rest) (cons (car rest) acc))
-              ) ;
+              ((string-starts? (caar rest) prefix) (loop (cdr rest) (cons (car rest) acc)))
               (else (loop (cdr rest) acc))
         ) ;cond
       ) ;let
@@ -118,7 +118,10 @@
                ) ;let
              ) ;start
             ) ;
-        (string-append (substring text 0 start) replacement (substring text k (string-length text)))
+        (string-append (substring text 0 start)
+          replacement
+          (substring text k (string-length text))
+        ) ;string-append
       ) ;let*
     ) ;define
 

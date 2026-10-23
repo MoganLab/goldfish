@@ -82,11 +82,7 @@
         (if (= pos c)
           #f
           (let* ((len (string-length line))
-                 (new-line
-                   (string-append
-                     (substring line 0 pos)
-                     (if (>= c len) "" (substring line c len))
-                   ) ;string-append
+                 (new-line (string-append (substring line 0 pos) (if (>= c len) "" (substring line c len)))
                  ) ;new-line
                 ) ;
             (buffer-lines-set! buf (%replace-line lines r new-line))
