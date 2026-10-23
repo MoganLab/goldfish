@@ -327,28 +327,27 @@
       ) ;let
     ) ;define
 
-    (define (display-rule-result result)
-      (let ((name (car result)) (ok (cadr result)) (elapsed (caddr result)))
-        (display
-          (string-append "  ["
-            (if ok "OK    " "FAILED")
-            "] "
-            name
-            (make-string (max 0 (- 16 (string-length name))) #\space)
-            (format #f "~,3fs" elapsed)
-          ) ;string-append
-        ) ;display
-        (newline)
-      ) ;let
+    (define (format-rule-line ok name elapsed)
+      (string-append "  ["
+        (if ok "OK    " "FAILED")
+        "] "
+        name
+        (make-string (max 0 (- 16 (string-length name))) #\space)
+        (format #f "~,3fs" elapsed)
+      ) ;string-append
     ) ;define
 
-    (define (report-and-exit violations)
+    (define (display-rule-result result)
+      (display (format-rule-line (cadr result) (car result) (caddr result)))
+      (newline)
+    ) ;define
+
+    (define (report-and-exit violations total-elapsed)
+      (display (format-rule-line (zero? (vector-length violations)) "all" total-elapsed)
+      ) ;display
+      (newline)
       (if (zero? (vector-length violations))
-        (begin
-          (display "Check: OK")
-          (newline)
-          (exit 0)
-        ) ;begin
+        (exit 0)
         (begin
           (display (string-append "Check failed: "
                      (number->string (vector-length violations))
@@ -381,14 +380,15 @@
             (if only
               (let ((result (run-rule-check files cfg only)))
                 (display-rule-result result)
-                (report-and-exit (cadddr result))
+                (report-and-exit (cadddr result) (caddr result))
               ) ;let
               (let* ((rules (enabled-rule-names cfg0))
                      (results (map (lambda (rule) (run-rule-check files cfg0 rule)) rules))
                      (all-violations (vector-concatenate (map cadddr results)))
+                     (total-elapsed (apply + (map caddr results)))
                     ) ;
                 (for-each display-rule-result results)
-                (report-and-exit all-violations)
+                (report-and-exit all-violations total-elapsed)
               ) ;let*
             ) ;if
           ) ;let*
