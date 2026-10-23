@@ -32,14 +32,6 @@
         "reason": "Unicode 字符属性与大小写转换规范测试大查表"
       },
       {
-        "path": "goldfish/liii/goldfmt/format.scm",
-        "reason": "排版引擎核心算法不可分割"
-      },
-      {
-        "path": "goldfish/liii/goldfmt/scan.scm",
-        "reason": "排版词法分析器核心实现"
-      },
-      {
         "path": "goldfish/liii/go.scm",
         "reason": "协程调度机核心算法不可分割"
       },
@@ -118,14 +110,6 @@
         "reason": "性能基准测试脚本包含大量展开测试数据与循环"
       },
       {
-        "path": "goldfish/liii/goldfmt/format.scm",
-        "reason": "排版引擎核心算法不可分割"
-      },
-      {
-        "path": "goldfish/liii/goldfmt/scan.scm",
-        "reason": "排版词法分析器核心实现"
-      },
-      {
         "path": "goldfish/liii/goldfmt/tokenize.scm",
         "reason": "排版词法分析器分词引擎"
       },
@@ -196,6 +180,22 @@
       {
         "path": "goldfish/scheme/boot.scm",
         "reason": "Goldfish 系统自举入口与环境初始化"
+      },
+      {
+        "path": "goldfish/liii/goldfmt/format/reader.scm",
+        "reason": "排版引擎 reader 互递归闭包核心算法不可分割"
+      },
+      {
+        "path": "goldfish/liii/goldfmt/format/walk.scm",
+        "reason": "排版引擎节点游走核心算法不可分割"
+      },
+      {
+        "path": "goldfish/liii/goldfmt/scan/literal.scm",
+        "reason": "reader 字面量改写状态机实现"
+      },
+      {
+        "path": "goldfish/liii/goldfmt/scan/normalize.scm",
+        "reason": "datum 归一化状态机实现"
       }
     ]
   }
