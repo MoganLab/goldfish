@@ -81,13 +81,6 @@
         (null? (cdddr datum))
       ) ;and
     ) ;define
-    (define (trim-right-spaces str)
-      (if
-        (string-every (lambda (c) (or (char=? c #\space) (char=? c #\tab))) str)
-        str
-        (utf8-string-trim-right str)
-      ) ;if
-    ) ;define
     (define (atom? x)
       (or (symbol? x)
         (number? x)
@@ -450,12 +443,6 @@
         (char=? c #\,)
       ) ;or
     ) ;define
-    (define (hex-digit? c)
-      (or (char-numeric? c)
-        (and (char>=? c #\a) (char<=? c #\f))
-        (and (char>=? c #\A) (char<=? c #\F))
-      ) ;or
-    ) ;define
     (define (find-char-literal-end source start)
       (let ((len (string-length source)))
         (if (>= start len)
@@ -595,162 +582,6 @@
         (scan-string-fast (rewrite-reader-literals str))
         (scan-string-fast str)
       ) ;if
-    ) ;define
-    (define (whitespace-char? c)
-      (or (char=? c #\space)
-        (char=? c #\tab)
-        (char=? c #\newline)
-        (char=? c #\return)
-      ) ;or
-    ) ;define
-    (define (inside-string? str pos)
-      (let loop
-        ((i 0) (in-string #f) (escaped #f))
-        (cond ((>= i pos) in-string)
-              ((>= i (string-length str)) in-string)
-              (else
-                (let ((c (string-ref str i)))
-                  (cond (escaped (loop (+ i 1) in-string #f))
-                        ((char=? c #\\) (loop (+ i 1) in-string #t))
-                        ((char=? c #\") (loop (+ i 1) (not in-string) #f))
-                        (else (loop (+ i 1) in-string #f))
-                  ) ;cond
-                ) ;let
-              ) ;else
-        ) ;cond
-      ) ;let
-    ) ;define
-    (define (inside-raw-string? str pos)
-      (let loop
-        ((i 0) (in-raw-string #f) (raw-delimiter ""))
-        (cond ((>= i pos) in-raw-string)
-              ((>= i (string-length str)) in-raw-string)
-              ((and (< (+ i 1) (string-length str))
-                 (char=? (string-ref str i) #\#)
-                 (char=? (string-ref str (+ i 1)) #\")
-               ) ;and
-               (let ((end-pos (string-index str #\" (+ i 2))))
-                 (if end-pos
-                   (let ((delimiter (substring str (+ i 2) end-pos)))
-                     (loop (+ end-pos 1) #t delimiter)
-                   ) ;let
-                   (loop (+ i 2) #t "")
-                 ) ;if
-               ) ;let
-              ) ;
-              (in-raw-string
-                (let ((del-len (string-length raw-delimiter)))
-                  (if
-                    (and (<= (+ i del-len) (string-length str))
-                      (string=? (substring str i (+ i del-len)) raw-delimiter)
-                      (< (+ i del-len) (string-length str))
-                      (char=? (string-ref str (+ i del-len)) #\")
-                    ) ;and
-                    (loop (+ i del-len 1) #f "")
-                    (loop (+ i 1) #t raw-delimiter)
-                  ) ;if
-                ) ;let
-              ) ;in-raw-string
-              (else (loop (+ i 1) #f ""))
-        ) ;cond
-      ) ;let
-    ) ;define
-    (define (find-real-comment-start line)
-      (let loop
-        ((pos 0))
-        (cond
-         ((>= pos (- (string-length line) 1)) #f)
-         ((and (char=? (string-ref line pos) #\;)
-            (char=? (string-ref line (+ pos 1)) #\;)
-            (not (inside-string? line pos))
-            (not (inside-raw-string? line pos))
-          ) ;and
-          pos
-         ) ;
-         (else (loop (+ pos 1)))
-        ) ;cond
-      ) ;let
-    ) ;define
-    (define (comment-line? line)
-      (let ((comment-pos (find-real-comment-start line)))
-        (if comment-pos
-          (let ((prefix (substring line 0 comment-pos)))
-            (if (or (string-null? prefix) (string-every whitespace-char? prefix))
-              comment-pos
-              #f
-            ) ;if
-          ) ;let
-          #f
-        ) ;if
-      ) ;let
-    ) ;define
-    (define (extract-comment-content line comment-pos)
-      (trim-right-spaces (substring line (+ comment-pos 2)))
-    ) ;define
-    (define (escape-comment-content content)
-      (let loop
-        ((chars (string->list content)) (result '()))
-        (if (null? chars)
-          (list->string (reverse result))
-          (let ((c (car chars)))
-            (cond
-             ((char=? c #\\) (loop (cdr chars) (cons #\\ (cons #\\ result))))
-             ((char=? c #\") (loop (cdr chars) (cons #\" (cons #\\ result))))
-             (else (loop (cdr chars) (cons c result)))
-            ) ;cond
-          ) ;let
-        ) ;if
-      ) ;let
-    ) ;define
-    (define (tokenize content)
-      (let* ((lines (string-split content #\newline)) (tokens '()) (blank-line-count 0))
-        (for-each
-          (lambda (line)
-            (let ((comment-pos (comment-line? line)))
-              (cond ((or (string-null? line) (string-every whitespace-char? line))
-                     (set! blank-line-count (+ blank-line-count 1))
-                    ) ;
-                    (comment-pos
-                      (when (> blank-line-count 0)
-                        (set! tokens (cons (cons 'newline blank-line-count) tokens))
-                        (set! blank-line-count 0)
-                      ) ;when
-                      (let ((content (extract-comment-content line comment-pos)))
-                        (set! tokens (cons (cons 'comment content) tokens))
-                      ) ;let
-                    ) ;comment-pos
-                    (else
-                      (when (> blank-line-count 0)
-                        (set! tokens (cons (cons 'newline blank-line-count) tokens))
-                        (set! blank-line-count 0)
-                      ) ;when
-                      (set! tokens (cons (cons 'code line) tokens))
-                    ) ;else
-              ) ;cond
-            ) ;let
-          ) ;lambda
-          lines
-        ) ;for-each
-        (reverse tokens)
-      ) ;let*
-    ) ;define
-    (define (tokens->string tokens)
-      (string-join
-        (map
-          (lambda (token)
-            (let ((type (car token)) (content (cdr token)))
-              (cond ((eq? type 'comment)
-                     (string-append "(*comment* \"" (escape-comment-content content) "\")")
-                    ) ;
-                    ((eq? type 'newline) (string-append "(*newline* " (number->string content) ")"))
-                    (else content)
-              ) ;cond
-            ) ;let
-          ) ;lambda
-          tokens
-        ) ;map
-        "\n"
-      ) ;string-join
     ) ;define
     (define (scan-source-string raw-content)
       (let* ((scanned (source-tokenize raw-content))
