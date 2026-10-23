@@ -1,4 +1,4 @@
-(import (scheme base) (liii check) (liii json) (liii goldcheck-config))
+(import (scheme base) (liii check) (liii json) (liii goldcheck config))
 
 ;; check-rule-limit
 ;; 查询指定规则在配置中的数值阈值上限。未配置时回退默认内置上限。

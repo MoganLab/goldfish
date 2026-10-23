@@ -1,4 +1,4 @@
-(import (scheme base) (liii check) (liii goldcheck-config))
+(import (scheme base) (liii check) (liii goldcheck config))
 
 ;; path-matches-exclude?
 ;; 判断待测文件路径是否命中单个排除模式（支持通配符 glob、目录前缀及精确匹配）。

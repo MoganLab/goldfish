@@ -1,4 +1,4 @@
-(import (scheme base) (liii check) (liii json) (liii goldcheck-config))
+(import (scheme base) (liii check) (liii json) (liii goldcheck config))
 
 ;; check-rule-enabled?
 ;; 查询指定规则是否在配置中处于启用状态（enabled 为 #t 或未声明时默认为 #t）。

@@ -4,7 +4,7 @@
   (liii path)
   (liii os)
   (liii json)
-  (liii goldcheck-config)
+  (liii goldcheck config)
 ) ;import
 
 ;; load-check-config

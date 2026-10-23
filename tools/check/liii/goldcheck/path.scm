@@ -14,7 +14,7 @@
 ;; under the License.
 ;;
 
-(define-library (liii goldcheck-path)
+(define-library (liii goldcheck path)
   (import (scheme base)
     (liii base)
     (liii path)

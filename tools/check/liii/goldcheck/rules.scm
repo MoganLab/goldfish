@@ -14,14 +14,14 @@
 ;; under the License.
 ;;
 
-(define-library (liii goldcheck-rules)
+(define-library (liii goldcheck rules)
   (import (scheme base)
     (scheme file)
     (scheme write)
     (liii base)
     (liii string)
     (liii tree)
-    (liii goldcheck-path)
+    (liii goldcheck path)
   ) ;import
   (export check-file-lines check-tree-depth format-violation display-help)
   (begin
@@ -44,6 +44,8 @@
       (newline)
       (display "Rules:")
       (newline)
+      (display "  layer-order            域间依赖与域内层序约束（tools/pi 暂缓纳入）"
+)
       (display "  max-file-lines         单文件行数限制（默认 <= 300 行，含空行与注释）"
       ) ;display
       (newline)
@@ -158,6 +160,11 @@
               (number->string limit)
               ")"
             ) ;string-append
+          ) ;let
+         ) ;
+         ((eq? rule 'layer-order)
+          (let ((file (cadr viol)) (detail (caddr viol)))
+            (string-append "  " file ": layer-order: " detail)
           ) ;let
          ) ;
          ((eq? rule 'max-tree-depth)

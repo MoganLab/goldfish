@@ -1,4 +1,4 @@
-(import (scheme base) (liii check) (liii json) (liii goldcheck-config))
+(import (scheme base) (liii check) (liii json) (liii goldcheck config))
 
 ;; check-config-excludes
 ;; 从检查配置中解析提取所有的 exclude 路径模式列表（支持纯字符串与带 reason 对象两种形态）。

@@ -3,7 +3,7 @@
   (liii check)
   (liii path)
   (liii os)
-  (liii goldcheck-rules)
+  (liii goldcheck rules)
 ) ;import
 
 ;; check-tree-depth
