@@ -99,7 +99,9 @@
       ) ;let
     ) ;define
 
-    ;; import 子句内容 -> 库名字符串列表（跳过 only/except/rename 等修饰）
+    ;; import 子句内容 -> 库名字符串列表。
+    ;; 支持 R7RS 修饰形式：(rename (liii x) a b) / (only ...) 等，
+    ;; 递归提取其中的库说明符。
     (define (%lib-names items)
       (let loop
         ((rest items) (acc '()))
@@ -107,6 +109,10 @@
               ((and (pair? (car rest)) (memq (car (car rest)) '(liii srfi
                                                                  scheme)))
                (loop (cdr rest) (cons (%join-syms (car rest)) acc))
+              ) ;
+              ((and (pair? (car rest)) (memq (car (car rest)) '(rename only
+                                                                 except prefix)))
+               (loop (append (cdr (car rest)) (cdr rest)) acc)
               ) ;
               (else (loop (cdr rest) acc))
         ) ;cond

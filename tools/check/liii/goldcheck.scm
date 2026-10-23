@@ -54,6 +54,7 @@
     (liii goldcheck config)
     (liii goldcheck rules)
     (liii goldcheck layer)
+    (liii goldcheck only)
   ) ;import
   (export main check-file-lines check-tree-depth check-file check-files
     make-check-arg-parser collect-scheme-files format-violation
@@ -75,6 +76,7 @@
                                 (short . "h")
                                 (action . store-true)))
         (parser :add-argument '((name . "changed-since") (type . string)))
+        (parser :add-argument '((name . "only") (type . string)))
         parser
       ) ;let
     ) ;define
@@ -263,7 +265,9 @@
             (display-help)
             (exit 0)
           ) ;begin
-          (let* ((cfg (load-check-config))
+          (let* ((cfg0 (load-check-config))
+                 (only (parser 'only))
+                 (cfg (if only (restrict-check-config cfg0 only) cfg0))
                  (files (resolve-target-files parser cfg))
                  (violations (check-files (list->vector files) cfg))
                 ) ;

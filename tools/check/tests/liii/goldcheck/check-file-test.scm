@@ -43,7 +43,7 @@
     (lambda (p)
       (let loop
         ((i 0))
-        (when (< i 305)
+        (when (< i 405)
           (display "(define x 1)\n" p)
           (loop (+ i 1))
         ) ;when

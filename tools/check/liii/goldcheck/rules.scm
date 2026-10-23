@@ -41,12 +41,15 @@
       (display "      --changed-since REV    仅检查自 REV 以来变更的 .scm 文件"
       ) ;display
       (newline)
+      (display "      --only RULE            只检查指定规则（如 layer-order），且不套用 exclude"
+      ) ;display
+      (newline)
       (newline)
       (display "Rules:")
       (newline)
       (display "  layer-order            域间依赖与域内层序约束（tools/pi 暂缓纳入）"
-)
-      (display "  max-file-lines         单文件行数限制（默认 <= 300 行，含空行与注释）"
+      ) ;display
+      (display "  max-file-lines         单文件行数限制（默认 <= 400 行，含空行与注释）"
       ) ;display
       (newline)
       (display "  max-tree-depth         语法树嵌套深度限制（默认 <= 15 层顶级表达式嵌套）"

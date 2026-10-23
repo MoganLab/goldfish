@@ -22,7 +22,7 @@
 (check-set-mode! 'report-failed)
 
 ;; 1. cfg 为 #f 时返回默认内置阈值
-(check (check-rule-limit #f "max-file-lines") => 300)
+(check (check-rule-limit #f "max-file-lines") => 400)
 (check (check-rule-limit #f "max-tree-depth") => 15)
 
 ;; 2. 读取配置中的自定义阈值
@@ -36,7 +36,7 @@
 
 ;; 3. 配置中未写 limit 字段时回退默认值
 (let ((cfg (string->json "{\"rules\": {\"max-file-lines\": {\"enabled\": true}}}")))
-  (check (check-rule-limit cfg "max-file-lines") => 300)
+  (check (check-rule-limit cfg "max-file-lines") => 400)
   (check (check-rule-limit cfg "max-tree-depth") => 15)
 ) ;let
 

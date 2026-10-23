@@ -21,15 +21,14 @@
     (liii goldcheck path)
     (liii goldcheck layer-config)
   ) ;import
-  (export %locate layer-name-of-lib domain-name-of-lib
-    %locate-layer-in %domain-for-path
+  (export %locate layer-name-of-lib domain-name-of-lib %locate-layer-in
+    %domain-for-path
   ) ;export
   (begin
 
     ;; 家族前缀继承："liii goldfmt" 登记则 "liii goldfmt xxx" 同层
     (define (%lib-under? name lib)
-      (or (string=? name lib)
-          (string-starts-with? lib (string-append name " ")))
+      (or (string=? name lib) (string-starts-with? lib (string-append name " ")))
     ) ;define
 
     (define (%locate-layer layers lib idx)
@@ -40,7 +39,9 @@
             ((names (vector->list (layer-libs-of (car layers)))))
             (cond ((null? names) #f)
                   ((%lib-under? (car names) lib) #t)
-                  (else (scan (cdr names)))))
+                  (else (scan (cdr names)))
+            ) ;cond
+          ) ;let
           (cons (car layers) idx)
           (%locate-layer (cdr layers) lib (+ idx 1))
         ) ;if
@@ -49,14 +50,12 @@
 
     ;; 穷举匹配：库名在域表中首个命中的 (domain layer idx)
     (define (%locate domains lib)
-      (let loop-d ((ds domains))
+      (let loop-d
+        ((ds domains))
         (if (null? ds)
           #f
           (let ((hit (%locate-layer (domain-layers-of (car ds)) lib 0)))
-            (if hit
-              (list (car ds) (car hit) (cdr hit))
-              (loop-d (cdr ds))
-            ) ;if
+            (if hit (list (car ds) (car hit) (cdr hit)) (loop-d (cdr ds)))
           ) ;let
         ) ;if
       ) ;let
@@ -83,7 +82,9 @@
                  ((names (vector->list (layer-libs-of (car layers)))))
                  (cond ((null? names) #f)
                        ((%lib-under? (car names) lib) #t)
-                       (else (scan (cdr names)))))
+                       (else (scan (cdr names)))
+                 ) ;cond
+               ) ;let
                (cons (car layers) idx)
               ) ;
               (else (loop (cdr layers) (+ idx 1)))
@@ -94,31 +95,33 @@
     (define (%root-segs root)
       (let* ((norm (normalize-sep root))
              (norm2
-               (if (string-ends? norm "/")
-                 (substring norm 0 (- (string-length norm) 1))
-                 norm
-               ) ;if
-             ))
+               (if (string-ends? norm "/") (substring norm 0 (- (string-length norm) 1)) norm)
+             ) ;norm2
+            ) ;
         (string-split norm2 "/")
-      ) ;let
+      ) ;let*
     ) ;define
 
     (define (%prefix-at? rsegs segs start)
-      (let loop ((i 0))
+      (let loop
+        ((i 0))
         (or (= i (length rsegs))
-            (and (< (+ start i) (length segs))
-                 (string=? (list-ref rsegs i) (list-ref segs (+ start i)))
-                 (loop (+ i 1)))
+          (and (< (+ start i) (length segs))
+            (string=? (list-ref rsegs i) (list-ref segs (+ start i)))
+            (loop (+ i 1))
+          ) ;and
         ) ;or
       ) ;let
     ) ;define
 
     (define (%seg-match? root segs)
       (let ((rsegs (%root-segs root)))
-        (let scan ((start 0))
-          (cond ((> start (- (length segs) (length rsegs))) #f)
-                ((%prefix-at? rsegs segs start) #t)
-                (else (scan (+ start 1)))
+        (let scan
+          ((start 0))
+          (cond
+           ((> start (- (length segs) (length rsegs))) #f)
+           ((%prefix-at? rsegs segs start) #t)
+           (else (scan (+ start 1)))
           ) ;cond
         ) ;let
       ) ;let

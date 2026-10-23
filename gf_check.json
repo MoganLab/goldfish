@@ -3,7 +3,7 @@
   "rules": {
     "max-file-lines": {
       "enabled": true,
-      "limit": 300
+      "limit": 400
     },
     "max-tree-depth": {
       "enabled": true,

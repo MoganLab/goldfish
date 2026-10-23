@@ -36,3 +36,15 @@
 ) ;let
 
 (check-report)
+
+;; --only 参数：指定只检查的规则名
+(let ((parser (make-check-arg-parser)))
+  (parser :parse-argv '("check" "--only" "layer-order"))
+  (check (parser 'only) => "layer-order")
+)
+
+;; 未传 --only 时为 #f
+(let ((parser (make-check-arg-parser)))
+  (parser :parse-argv '("check"))
+  (check-false (parser 'only))
+)
