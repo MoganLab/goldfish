@@ -59,12 +59,17 @@
 (check (%resolve-utf8-bytes '()) => #f)
 (check (%resolve-utf8-bytes '(255 255)) => #f)
 
-;; 6. 测试 Windows 控制台扩展键码映射 (特别是 Shift-Tab 键码 15)
+;; 6. 测试 Windows 控制台扩展键码映射 (特别是 Shift-Tab 键码 15 与 F1~F12 功能键)
 (check (%map-extended-key 72) => 'up)
 (check (%map-extended-key 80) => 'down)
 (check (%map-extended-key 75) => 'left)
 (check (%map-extended-key 77) => 'right)
 (check (%map-extended-key 15) => 'shift-tab)
+(check (%map-extended-key 59) => 'f1)
+(check (%map-extended-key 60) => 'f2)
+(check (%map-extended-key 68) => 'f10)
+(check (%map-extended-key 133) => 'f11)
+(check (%map-extended-key 134) => 'f12)
 (check (%map-extended-key 999) => #f)
 
 (check-report)

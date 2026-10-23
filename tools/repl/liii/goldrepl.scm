@@ -265,11 +265,7 @@
            ) ;
            ((eq? k 'escape) (if (pair? comp-cands) (reset-comp!) (editor-set-text! ed "")))
            ((eq? k 'tab) (do-complete!))
-           ((or (eq? k 'shift-tab)
-                (eq? k 'ctrl-enter)
-                (eq? k 'shift-enter)
-                (eq? k 'ctrl-j)
-            ) ;or
+           ((or (eq? k 'shift-tab) (eq? k 'ctrl-enter) (eq? k 'shift-enter) (eq? k 'ctrl-j))
             (do-newline!)
            ) ;
            ((not k) (sleep 0.01))

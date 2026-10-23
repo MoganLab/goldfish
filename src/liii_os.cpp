@@ -492,7 +492,31 @@ f_console_raw_mode (s7_scheme* sc, s7_pointer args) {
     return string_type_error (sc, "console-raw-mode!: enable must be a boolean", enable_arg);
   }
 #ifdef TB_CONFIG_OS_WINDOWS
-  return s7_make_boolean (sc, true);
+  HANDLE hIn= GetStdHandle (STD_INPUT_HANDLE);
+  if (hIn == INVALID_HANDLE_VALUE) {
+    return s7_make_boolean (sc, false);
+  }
+  static DWORD g_orig_in_mode = 0;
+  static bool  g_has_orig_mode= false;
+  bool         enable         = (enable_arg == s7_t (sc));
+  if (enable) {
+    if (!g_has_orig_mode) {
+      if (GetConsoleMode (hIn, &g_orig_in_mode)) {
+        g_has_orig_mode= true;
+      }
+    }
+    DWORD raw_mode= g_orig_in_mode;
+    raw_mode&= ~(ENABLE_ECHO_INPUT | ENABLE_LINE_INPUT | ENABLE_PROCESSED_INPUT);
+    raw_mode|= ENABLE_VIRTUAL_TERMINAL_INPUT;
+    SetConsoleMode (hIn, raw_mode);
+    return s7_make_boolean (sc, true);
+  }
+  else {
+    if (g_has_orig_mode) {
+      SetConsoleMode (hIn, g_orig_in_mode);
+    }
+    return s7_make_boolean (sc, true);
+  }
 #else
   bool enable= (enable_arg == s7_t (sc));
   if (enable) {
@@ -617,10 +641,10 @@ f_console_getch (s7_scheme* sc, s7_pointer args) {
   if (_kbhit () == 0) {
     return s7_make_boolean (sc, false);
   }
-  HANDLE       hIn          = GetStdHandle (STD_INPUT_HANDLE);
+  HANDLE       hIn= GetStdHandle (STD_INPUT_HANDLE);
   INPUT_RECORD records[4];
-  DWORD        numRead      = 0;
-  bool         is_shift_tab = false;
+  DWORD        numRead     = 0;
+  bool         is_shift_tab= false;
 
   if (PeekConsoleInputW (hIn, records, 4, &numRead) && numRead > 0) {
     for (DWORD i= 0; i < numRead; ++i) {

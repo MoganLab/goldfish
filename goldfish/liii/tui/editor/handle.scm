@@ -80,8 +80,12 @@
             ) ;
         (cond ((or (eq? key 'left) (eq? key 'ctrl-b)) (buffer-move-left! buf))
               ((or (eq? key 'right) (eq? key 'ctrl-f)) (buffer-move-right! buf))
-              ((or (eq? key 'home) (eq? key 'ctrl-a)) (buffer-move-home! buf))
-              ((or (eq? key 'end) (eq? key 'ctrl-e)) (buffer-move-end! buf))
+              ((or (eq? key 'home) (eq? key 'ctrl-a) (eq? key 'ctrl-home))
+               (buffer-move-home! buf)
+              ) ;
+              ((or (eq? key 'end) (eq? key 'ctrl-e) (eq? key 'ctrl-end))
+               (buffer-move-end! buf)
+              ) ;
               ((or (eq? key 'ctrl-left) (eq? key 'alt-b) (eq? key 'alt-left))
                (buffer-move-word-left! buf)
               ) ;
