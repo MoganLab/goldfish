@@ -25,6 +25,7 @@
     reader-keyword-block-info
   ) ;export
   (import (liii base)
+    (srfi srfi-13)
     (liii goldfmt record)
     (liii goldfmt rule)
     (liii goldfmt format atom)
