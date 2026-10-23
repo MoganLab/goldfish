@@ -23,7 +23,7 @@
 
 (define-library (liii tui terminal poll)
   (export terminal-poll-key %poll-console-key %resolve-ansi-bytes
-    %resolve-utf8-bytes
+    %resolve-utf8-bytes %map-extended-key
   ) ;export
   (import (scheme base)
     (liii error)
@@ -45,19 +45,35 @@
             ((= code 73) 'page-up)
             ((= code 81) 'page-down)
             ((= code 83) 'delete)
+            ((= code 82) 'insert)
+            ((or (= code 15) (= code 353)) 'shift-tab)
+            ((= code 115) 'ctrl-left)
+            ((= code 116) 'ctrl-right)
+            ((= code 119) 'ctrl-home)
+            ((= code 117) 'ctrl-end)
+            ((= code 141) 'ctrl-up)
+            ((= code 145) 'ctrl-down)
+            ((= code 147) 'ctrl-delete)
+            ((and (>= code 59) (<= code 68))
+             (string->symbol (string-append "f" (number->string (- code 58))))
+            ) ;
+            ((= code 133) 'f11)
+            ((= code 134) 'f12)
             (else #f)
       ) ;cond
     ) ;define
 
     (define (%map-standard-key code)
-      (cond ((or (= code 13) (= code 10)) 'enter)
+      (cond ((= code 13) 'enter)
+            ((= code 10) 'ctrl-j)
             ((= code 27) 'escape)
             ((or (= code 8) (= code 127)) 'backspace)
             ((= code 9) 'tab)
+            ((or (= code 15) (= code 353)) 'shift-tab)
             ((= code 3) 'ctrl-c)
             ((= code 4) 'ctrl-d)
             ((and (>= code 32) (<= code 126)) (string (integer->char code)))
-            (else #f)
+            (else (parse-key (string (integer->char code))))
       ) ;cond
     ) ;define
 

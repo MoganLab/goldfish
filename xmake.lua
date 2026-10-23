@@ -19,11 +19,6 @@ option("tbox")
     set_values(false, true)
 option_end()
 
-option("repl")
-    set_description("Enable REPL (isocline) support")
-    set_default(true)
-    set_values(false, true)
-option_end()
 
 option("system-deps")
     set_description("Use system dependences")
@@ -76,12 +71,6 @@ end
     set_toolchains("emcc@emscripten")
 end
 
-local IC_VERSION = "v1.0.9"
-if has_config("pin-deps") then
-    add_requires("isocline " .. IC_VERSION, {system=system})
-else
-    add_requires("isocline", {system=system})
-end
 
 -- local header only dependency, no need to (un)pin version
 add_requires("argh v1.3.2")
@@ -173,11 +162,6 @@ target ("goldfish") do
         add_cflags("/utf-8")
     end
 
-    -- only enable REPL if repl option is enabled
-    if has_config("repl") then
-        add_packages("isocline")
-        add_defines("GOLDFISH_WITH_REPL")
-    end
 
     add_installfiles("$(projectdir)/goldfish/(scheme/*.scm)", {prefixdir = "share/goldfish"})
     add_installfiles("$(projectdir)/goldfish/(srfi/*.scm)", {prefixdir = "share/goldfish"})

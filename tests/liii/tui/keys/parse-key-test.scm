@@ -19,7 +19,7 @@
 
 ;; 基础控制字符与回车退格
 (check (parse-key "\r") => 'enter)
-(check (parse-key "\n") => 'enter)
+(check (parse-key "\n") => 'ctrl-j)
 (check (parse-key "\r\n") => 'enter)
 (check (parse-key "\t") => 'tab)
 (check (parse-key "\x08") => 'backspace)
@@ -106,6 +106,10 @@
 
 ;; 修饰键组合 (Shift / Alt / Ctrl + 导航或功能键)
 (check (parse-key "\x1b[Z") => 'shift-tab)
+(check (parse-key "\x1b[1;2Z") => 'shift-tab)
+(check (parse-key "\x1b[9;2u") => 'shift-tab)
+(check (parse-key "\x1b[13;2u") => 'shift-enter)
+(check (parse-key "\x1b[13;5u") => 'ctrl-enter)
 (check (parse-key "\x1b[1;2A") => 'shift-up)
 (check (parse-key "\x1b[1;3A") => 'alt-up)
 (check (parse-key "\x1b[1;5A") => 'ctrl-up)

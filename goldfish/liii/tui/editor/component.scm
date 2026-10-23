@@ -26,6 +26,7 @@
     text-area? editor-text editor-set-text! editor-cursor editor-set-cursor!
     editor-display-col editor-lines editor-focused? editor-set-focused!
     editor-placeholder editor-set-placeholder! editor-history-list
+    editor-history editor-set-on-submit!
   ) ;export
   (import (scheme base)
     (scheme write)
@@ -160,6 +161,23 @@
         (type-error "editor-history-list: ed must be an editor")
       ) ;unless
       (history-entries (%ed-history (component-data ed)))
+    ) ;define
+
+    (define (editor-history ed)
+      (unless (editor? ed)
+        (type-error "editor-history: ed must be an editor")
+      ) ;unless
+      (%ed-history (component-data ed))
+    ) ;define
+
+    (define (editor-set-on-submit! ed proc)
+      (unless (editor? ed)
+        (type-error "editor-set-on-submit!: ed must be an editor")
+      ) ;unless
+      (unless (or (not proc) (procedure? proc))
+        (type-error "editor-set-on-submit!: proc must be a procedure or #f")
+      ) ;unless
+      (%ed-on-submit-set! (component-data ed) proc)
     ) ;define
 
     (define (make-editor . args)

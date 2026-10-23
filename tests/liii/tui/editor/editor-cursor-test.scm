@@ -98,4 +98,19 @@
   (check (buffer-row b) => 0)
   (check (buffer-col b) => 2))
 
+;; 6. 按词移动测试：buffer-move-word-left! 与 buffer-move-word-right!
+(let ((b (make-buffer "hello worldScheme" #f)))
+  (buffer-col-set! b 17)
+  (check (buffer-move-word-left! b) => #t)
+  (check (buffer-col b) => 6)
+  (check (buffer-move-word-left! b) => #t)
+  (check (buffer-col b) => 0)
+  (check (buffer-move-word-left! b) => #f)
+
+  (check (buffer-move-word-right! b) => #t)
+  (check (buffer-col b) => 6)
+  (check (buffer-move-word-right! b) => #t)
+  (check (buffer-col b) => 17)
+  (check (buffer-move-word-right! b) => #f))
+
 (check-report)

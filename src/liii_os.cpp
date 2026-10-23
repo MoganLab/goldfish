@@ -492,6 +492,25 @@ f_console_raw_mode (s7_scheme* sc, s7_pointer args) {
     return string_type_error (sc, "console-raw-mode!: enable must be a boolean", enable_arg);
   }
 #ifdef TB_CONFIG_OS_WINDOWS
+  HANDLE hIn= GetStdHandle (STD_INPUT_HANDLE);
+  if (hIn == INVALID_HANDLE_VALUE) {
+    return s7_make_boolean (sc, false);
+  }
+  static DWORD g_orig_in_mode = 0;
+  static bool  g_has_orig_mode= false;
+  bool         enable         = (enable_arg == s7_t (sc));
+  if (enable) {
+    if (!g_has_orig_mode && GetConsoleMode (hIn, &g_orig_in_mode)) {
+      g_has_orig_mode= true;
+    }
+    DWORD raw_mode= g_orig_in_mode;
+    raw_mode&= ~(ENABLE_ECHO_INPUT | ENABLE_LINE_INPUT | ENABLE_PROCESSED_INPUT);
+    raw_mode|= ENABLE_VIRTUAL_TERMINAL_INPUT;
+    SetConsoleMode (hIn, raw_mode);
+  }
+  else if (g_has_orig_mode) {
+    SetConsoleMode (hIn, g_orig_in_mode);
+  }
   return s7_make_boolean (sc, true);
 #else
   bool enable= (enable_arg == s7_t (sc));
@@ -507,6 +526,7 @@ f_console_raw_mode (s7_scheme* sc, s7_pointer args) {
       atexit (restore_terminal_mode_at_exit);
     }
     struct termios raw= g_orig_termios;
+    raw.c_iflag&= ~(ICRNL | INLCR);
     raw.c_lflag&= ~(ICANON | ECHO);
     raw.c_cc[VMIN] = 0;
     raw.c_cc[VTIME]= 0;
@@ -616,7 +636,32 @@ f_console_getch (s7_scheme* sc, s7_pointer args) {
   if (_kbhit () == 0) {
     return s7_make_boolean (sc, false);
   }
+  HANDLE       hIn= GetStdHandle (STD_INPUT_HANDLE);
+  INPUT_RECORD records[4];
+  DWORD        numRead     = 0;
+  bool         is_shift_tab= false;
+
+  if (PeekConsoleInputW (hIn, records, 4, &numRead) && numRead > 0) {
+    for (DWORD i= 0; i < numRead; ++i) {
+      if (records[i].EventType == KEY_EVENT && records[i].Event.KeyEvent.bKeyDown) {
+        KEY_EVENT_RECORD k= records[i].Event.KeyEvent;
+        if (k.wVirtualKeyCode == VK_TAB && (k.dwControlKeyState & SHIFT_PRESSED)) {
+          is_shift_tab= true;
+          break;
+        }
+      }
+    }
+  }
+  if (!is_shift_tab) {
+    if (GetAsyncKeyState (VK_SHIFT) & 0x8000) {
+      is_shift_tab= true;
+    }
+  }
+
   int ch= _getch ();
+  if (ch == 9 && is_shift_tab) {
+    return s7_make_integer (sc, 353); // 353: curses KEY_BTAB (Shift-Tab)
+  }
   return s7_make_integer (sc, ch);
 #else
   unsigned char ch= 0;

@@ -31,6 +31,7 @@
     (liii tui editor history)
     (liii tui editor buffer)
     (liii tui editor cursor)
+    (liii tui editor kill)
     (liii tui editor view)
     (liii tui editor state)
   ) ;import
@@ -69,6 +70,26 @@
       ) ;let*
     ) ;define
 
+    (define (%apply-edit! buf comp on-ch thunk)
+      (let ((res (thunk)))
+        (when (and res (procedure? on-ch))
+          (on-ch comp (buffer-text buf))
+        ) ;when
+        res
+      ) ;let
+    ) ;define
+
+    (define (%load-history! buf comp on-ch text)
+      (when text
+        (buffer-set-text! buf text)
+        (buffer-move-end! buf)
+        (when (procedure? on-ch)
+          (on-ch comp text)
+        ) ;when
+      ) ;when
+      (if text #t #f)
+    ) ;define
+
     (define (%editor-handle-input comp key)
       (let* ((data (component-data comp))
              (buf (%ed-buffer data))
@@ -77,61 +98,49 @@
              (on-ch (%ed-on-change data))
              (on-sub (%ed-on-submit data))
             ) ;
-        (cond ((eq? key 'left) (buffer-move-left! buf))
-              ((eq? key 'right) (buffer-move-right! buf))
-              ((eq? key 'home) (buffer-move-home! buf))
-              ((eq? key 'end) (buffer-move-end! buf))
-              ((eq? key 'up)
+        (cond ((or (eq? key 'left) (eq? key 'ctrl-b)) (buffer-move-left! buf))
+              ((or (eq? key 'right) (eq? key 'ctrl-f)) (buffer-move-right! buf))
+              ((or (eq? key 'home) (eq? key 'ctrl-a) (eq? key 'ctrl-home))
+               (buffer-move-home! buf)
+              ) ;
+              ((or (eq? key 'end) (eq? key 'ctrl-e) (eq? key 'ctrl-end))
+               (buffer-move-end! buf)
+              ) ;
+              ((or (eq? key 'ctrl-left) (eq? key 'alt-b) (eq? key 'alt-left))
+               (buffer-move-word-left! buf)
+              ) ;
+              ((or (eq? key 'ctrl-right) (eq? key 'alt-f) (eq? key 'alt-right))
+               (buffer-move-word-right! buf)
+              ) ;
+              ((or (eq? key 'up) (eq? key 'ctrl-p))
                (if multi?
                  (buffer-move-up! buf)
-                 (let ((prev-text (history-prev hist (buffer-text buf))))
-                   (if prev-text
-                     (begin
-                       (buffer-set-text! buf prev-text)
-                       (buffer-move-end! buf)
-                       (when (procedure? on-ch)
-                         (on-ch comp prev-text)
-                       ) ;when
-                       #t
-                     ) ;begin
-                     #f
-                   ) ;if
-                 ) ;let
+                 (%load-history! buf comp on-ch (history-prev hist (buffer-text buf)))
                ) ;if
               ) ;
-              ((eq? key 'down)
+              ((or (eq? key 'down) (eq? key 'ctrl-n))
                (if multi?
                  (buffer-move-down! buf)
-                 (let ((next-text (history-next hist (buffer-text buf))))
-                   (if next-text
-                     (begin
-                       (buffer-set-text! buf next-text)
-                       (buffer-move-end! buf)
-                       (when (procedure? on-ch)
-                         (on-ch comp next-text)
-                       ) ;when
-                       #t
-                     ) ;begin
-                     #f
-                   ) ;if
-                 ) ;let
+                 (%load-history! buf comp on-ch (history-next hist (buffer-text buf)))
                ) ;if
               ) ;
-              ((eq? key 'backspace)
-               (let ((res (buffer-backspace! buf)))
-                 (when (and res (procedure? on-ch))
-                   (on-ch comp (buffer-text buf))
-                 ) ;when
-                 res
-               ) ;let
+              ((or (eq? key 'backspace) (eq? key 'ctrl-h))
+               (%apply-edit! buf comp on-ch (lambda () (buffer-backspace! buf)))
               ) ;
-              ((eq? key 'delete)
-               (let ((res (buffer-delete! buf)))
-                 (when (and res (procedure? on-ch))
-                   (on-ch comp (buffer-text buf))
-                 ) ;when
-                 res
-               ) ;let
+              ((or (eq? key 'delete) (eq? key 'ctrl-d))
+               (%apply-edit! buf comp on-ch (lambda () (buffer-delete! buf)))
+              ) ;
+              ((eq? key 'ctrl-k)
+               (%apply-edit! buf comp on-ch (lambda () (buffer-kill-line-right! buf)))
+              ) ;
+              ((eq? key 'ctrl-u)
+               (%apply-edit! buf comp on-ch (lambda () (buffer-kill-line-left! buf)))
+              ) ;
+              ((or (eq? key 'ctrl-w) (eq? key 'alt-backspace))
+               (%apply-edit! buf comp on-ch (lambda () (buffer-kill-word-left! buf)))
+              ) ;
+              ((eq? key 'ctrl-t)
+               (%apply-edit! buf comp on-ch (lambda () (buffer-transpose-chars! buf)))
               ) ;
               ((eq? key 'enter)
                (if multi?

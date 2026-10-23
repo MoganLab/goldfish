@@ -39,7 +39,7 @@
             ((= byte 7) 'ctrl-g)
             ((= byte 8) 'backspace)
             ((= byte 9) 'tab)
-            ((= byte 10) 'enter)
+            ((= byte 10) 'ctrl-j)
             ((= byte 11) 'ctrl-k)
             ((= byte 12) 'ctrl-l)
             ((= byte 13) 'enter)
