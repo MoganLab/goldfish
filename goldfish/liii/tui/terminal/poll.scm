@@ -50,7 +50,8 @@
     ) ;define
 
     (define (%map-standard-key code)
-      (cond ((or (= code 13) (= code 10)) 'enter)
+      (cond ((= code 13) 'enter)
+            ((= code 10) 'ctrl-j)
             ((= code 27) 'escape)
             ((or (= code 8) (= code 127)) 'backspace)
             ((= code 9) 'tab)

@@ -19,7 +19,7 @@
 
 ;; 基础控制字符与回车退格
 (check (parse-key "\r") => 'enter)
-(check (parse-key "\n") => 'enter)
+(check (parse-key "\n") => 'ctrl-j)
 (check (parse-key "\r\n") => 'enter)
 (check (parse-key "\t") => 'tab)
 (check (parse-key "\x08") => 'backspace)

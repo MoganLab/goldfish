@@ -507,6 +507,7 @@ f_console_raw_mode (s7_scheme* sc, s7_pointer args) {
       atexit (restore_terminal_mode_at_exit);
     }
     struct termios raw= g_orig_termios;
+    raw.c_iflag&= ~(ICRNL | INLCR);
     raw.c_lflag&= ~(ICANON | ECHO);
     raw.c_cc[VMIN] = 0;
     raw.c_cc[VTIME]= 0;
