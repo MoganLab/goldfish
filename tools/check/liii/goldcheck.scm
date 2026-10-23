@@ -56,6 +56,7 @@
     (liii goldcheck rules)
     (liii goldcheck layer)
     (liii goldcheck only)
+    (liii goldcheck cache)
   ) ;import
   (export main check-file-lines check-tree-depth check-file check-files
     make-check-arg-parser collect-scheme-files format-violation
@@ -88,7 +89,12 @@
           acc
           (let ((lines-limit (check-rule-limit cfg "max-file-lines")))
             (call-with-values (lambda () (check-file-lines file-path lines-limit))
-              (lambda (lines viol) (if viol (cons viol acc) acc))
+              (lambda (lines viol)
+                (unless viol
+                  (rule-cache-touch "max-file-lines" lines-limit file-path)
+                ) ;unless
+                (if viol (cons viol acc) acc)
+              ) ;lambda
             ) ;call-with-values
           ) ;let
         ) ;if
@@ -102,7 +108,12 @@
           acc
           (let ((depth-limit (check-rule-limit cfg "max-tree-depth")))
             (call-with-values (lambda () (check-tree-depth file-path depth-limit))
-              (lambda (max-d max-l viol) (if viol (cons viol acc) acc))
+              (lambda (max-d max-l viol)
+                (unless viol
+                  (rule-cache-touch "max-tree-depth" depth-limit file-path)
+                ) ;unless
+                (if viol (cons viol acc) acc)
+              ) ;lambda
             ) ;call-with-values
           ) ;let
         ) ;if
@@ -285,12 +296,29 @@
     (define (run-rule-check files cfg rule-name)
       "对一堆文件执行单个规则检查，返回 (rule-name ok? elapsed violations)。"
       (let ((single-cfg (single-rule-config cfg rule-name))
+            (limit (cond ((string=? rule-name "max-file-lines") (check-rule-limit cfg rule-name))
+                         ((string=? rule-name "max-tree-depth") (check-rule-limit cfg rule-name))
+                         (else #f)
+                   ) ;cond
+            ) ;limit
             (violations '#())
             (elapsed 0.0)
            ) ;
         (set! elapsed
           (timeit
-            (lambda () (set! violations (check-files (list->vector files) single-cfg)))
+            (lambda ()
+              (let ((miss-vec
+                      (if limit
+                        (vector-par-filter (lambda (f) (not (rule-cache-hit? rule-name limit f)))
+                          (list->vector files)
+                        ) ;vector-par-filter
+                        (list->vector files)
+                      ) ;if
+                    ) ;miss-vec
+                   ) ;
+                (set! violations (check-files miss-vec single-cfg))
+              ) ;let
+            ) ;lambda
             '()
             1
           ) ;timeit
