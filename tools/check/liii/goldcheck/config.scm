@@ -27,9 +27,9 @@
     (liii goldcheck path)
   ) ;import
   (export load-check-config check-config-exists? check-config-goldfish-version
-    check-config-rules check-rule-enabled? check-rule-limit
-    check-config-excludes exclude-entry->path path-matches-exclude?
-    file-excluded? validate-check-config!
+    check-config-rules check-rule-enabled? check-rule-limit check-rule-excludes
+    exclude-entry->path path-matches-exclude? file-excluded?
+    validate-check-config!
   ) ;export
   (begin
 
@@ -124,6 +124,18 @@
       (for-each validate-exclude-entry! (vector->list ex))
     ) ;define
 
+    (define (validate-excludes-table! excludes)
+      (unless (json-object? excludes)
+        (type-error "excludes must be a JSON object: ~S" excludes)
+      ) ;unless
+      (for-each (lambda (name)
+                  (validate-rule-name! name)
+                  (validate-exclude-table! (json-ref excludes name))
+                ) ;lambda
+        (json-keys excludes)
+      ) ;for-each
+    ) ;define
+
     (define (validate-check-config! cfg)
       (unless (json-object? cfg)
         (type-error "config must be a JSON object: ~S" cfg)
@@ -138,8 +150,8 @@
       (when (json-contains-key? cfg "rules")
         (validate-rules-table! (json-ref cfg "rules"))
       ) ;when
-      (when (json-contains-key? cfg "exclude")
-        (validate-exclude-table! (json-ref cfg "exclude"))
+      (when (json-contains-key? cfg "excludes")
+        (validate-excludes-table! (json-ref cfg "excludes"))
       ) ;when
       cfg
     ) ;define
@@ -204,17 +216,22 @@
       ) ;let
     ) ;define
 
-    (define (check-config-excludes cfg)
+    (define (check-rule-excludes cfg rule-name)
       (if (or (not cfg) (json-null? cfg))
         '()
-        (let ((ex (json-ref cfg "exclude")))
-          (if (or (json-null? ex) (not (json-array? ex)))
+        (let ((excludes (json-ref cfg "excludes")))
+          (if (or (json-null? excludes) (not (json-object? excludes)))
             '()
-            (filter identity
-              (map (lambda (entry) (if (string? entry) entry (exclude-entry->path entry)))
-                (vector->list ex)
-              ) ;map
-            ) ;filter
+            (let ((ex (json-ref excludes rule-name)))
+              (if (or (json-null? ex) (not (json-array? ex)))
+                '()
+                (filter identity
+                  (map (lambda (entry) (if (string? entry) entry (exclude-entry->path entry)))
+                    (vector->list ex)
+                  ) ;map
+                ) ;filter
+              ) ;if
+            ) ;let
           ) ;if
         ) ;let
       ) ;if

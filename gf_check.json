@@ -13,182 +13,362 @@
       "file": "gf_check_layer_order.json"
     }
   },
-  "exclude": [
-    {
-      "path": "goldfish/liii/format/",
-      "reason": "SRFI-166 Monadic Formatting 组合子格式化与排版引擎核心实现"
-    },
-    {
-      "path": "goldfish/srfi/",
-      "reason": "官方标准规范实现优先保证完整性与对照性"
-    },
-    {
-      "path": "tests/srfi/",
-      "reason": "SRFI 规范官方测试集优先保证完整性与对照性"
-    },
-    {
-      "path": "bench/",
-      "reason": "性能基准测试脚本包含大量展开测试数据与循环"
-    },
-    {
-      "path": "demo/",
-      "reason": "示例演示程序包含完整独立逻辑"
-    },
-    {
-      "path": "tests/scheme/char/",
-      "reason": "Unicode 字符属性与大小写转换规范测试大查表"
-    },
-    {
-      "path": "goldfish/liii/goldfmt/format.scm",
-      "reason": "排版引擎核心算法不可分割"
-    },
-    {
-      "path": "goldfish/liii/goldfmt/scan.scm",
-      "reason": "排版词法分析器核心实现"
-    },
-    {
-      "path": "goldfish/liii/goldfmt/tokenize.scm",
-      "reason": "排版词法分析器分词引擎"
-    },
-    {
-      "path": "goldfish/liii/go.scm",
-      "reason": "协程调度机核心算法不可分割"
-    },
-    {
-      "path": "goldfish/scheme/syntax-rules.scm",
-      "reason": "宏展开器核心算法不可分割"
-    },
-    {
-      "path": "goldfish/liii/syntax-case.scm",
-      "reason": "卫生宏系统实现不可分割"
-    },
-    {
-      "path": "goldfish/liii/match/match-core.scm",
-      "reason": "外部引入的卫生模式匹配器实现不可分割"
-    },
-    {
-      "path": "goldfish/liii/unicode.scm",
-      "reason": "Unicode 码点映射与编码转换大查表"
-    },
-    {
-      "path": "goldfish/liii/path.scm",
-      "reason": "跨平台路径处理核心库"
-    },
-    {
-      "path": "goldfish/liii/subprocess.scm",
-      "reason": "子进程创建与流式管道控制库"
-    },
-    {
-      "path": "goldfish/liii/string-cursor.scm",
-      "reason": "高效字符串游标实现"
-    },
-    {
-      "path": "goldfish/liii/packrat.scm",
-      "reason": "Packrat 语法解析引擎核心实现"
-    },
-    {
-      "path": "goldfish/liii/config-parser.scm",
-      "reason": "配置解析器完整状态机实现"
-    },
-    {
-      "path": "goldfish/liii/gfproject.scm",
-      "reason": "工程配置与工具发现分发核心实现"
-    },
-    {
-      "path": "goldfish/liii/logging.scm",
-      "reason": "日志框架格式化与分发逻辑"
-    },
-    {
-      "path": "goldfish/liii/uri/record.scm",
-      "reason": "URI 规范解析与记录模型"
-    },
-    {
-      "path": "goldfish/liii/par.scm",
-      "reason": "并发执行框架组合子实现"
-    },
-    {
-      "path": "goldfish/liii/http.scm",
-      "reason": "HTTP 客户端核心协议实现"
-    },
-    {
-      "path": "goldfish/liii/string.scm",
-      "reason": "字符串处理核心扩展函数集合"
-    },
-    {
-      "path": "goldfish/scheme/base.scm",
-      "reason": "R7RS 基础库聚合与核心导出定义"
-    },
-    {
-      "path": "goldfish/scheme/char.scm",
-      "reason": "Scheme 标准字符分类核心实现"
-    },
-    {
-      "path": "goldfish/scheme/boot.scm",
-      "reason": "Goldfish 系统自举入口与环境初始化"
-    },
-    {
-      "path": "tests/liii/config-parser-test.scm",
-      "reason": "配置解析器完整测试用例集合"
-    },
-    {
-      "path": "tests/liii/go/select-test.scm",
-      "reason": "协程 select 语句多种分支状态并发测试"
-    },
-    {
-      "path": "tests/liii/goldfmt/format/format-string-test.scm",
-      "reason": "排版引擎字符串测试集包含大量长代码片段"
-    },
-    {
-      "path": "tests/liii/goldfmt/record/good-env-p-test.scm",
-      "reason": "排版环境测试用例集"
-    },
-    {
-      "path": "tests/liii/goldfmt/scan/scan-string-test.scm",
-      "reason": "排版词法扫描器完整测试用例"
-    },
-    {
-      "path": "tests/liii/http/http-post-test.scm",
-      "reason": "HTTP POST 请求与响应完整场景测试"
-    },
-    {
-      "path": "tests/liii/match/match-test.scm",
-      "reason": "模式匹配器全语法分支测试"
-    },
-    {
-      "path": "tests/liii/packrat-test.scm",
-      "reason": "Packrat 解析引擎语法规则测试用例"
-    },
-    {
-      "path": "tests/liii/subprocess/run-values-test.scm",
-      "reason": "子进程管道测试用例集"
-    },
-    {
-      "path": "tests/scheme/base/assoc-test.scm",
-      "reason": "assoc 边界与各种键匹配完整测试集"
-    },
-    {
-      "path": "tests/scheme/base/assv-test.scm",
-      "reason": "assv 边界与类型匹配完整测试集"
-    },
-    {
-      "path": "tests/scheme/base/list-set-bang-test.scm",
-      "reason": "list-set! 异常边界与合法修改完整测试集"
-    },
-    {
-      "path": "tests/scheme/base/list-test.scm",
-      "reason": "list 构造与解构完整规范测试集"
-    },
-    {
-      "path": "tests/scheme/base/memq-test.scm",
-      "reason": "memq 边界测试集"
-    },
-    {
-      "path": "tests/scheme/base/memv-test.scm",
-      "reason": "memv 边界测试集"
-    },
-    {
-      "path": "tests/scheme/boot-test.scm",
-      "reason": "自举环境各模块与全局符号加载测试"
-    }
-  ]
+  "excludes": {
+    "max-file-lines": [
+      {
+        "path": "goldfish/liii/format/",
+        "reason": "SRFI-166 Monadic Formatting 组合子格式化与排版引擎核心实现"
+      },
+      {
+        "path": "goldfish/srfi/",
+        "reason": "官方标准规范实现优先保证完整性与对照性"
+      },
+      {
+        "path": "tests/srfi/",
+        "reason": "SRFI 规范官方测试集优先保证完整性与对照性"
+      },
+      {
+        "path": "bench/",
+        "reason": "性能基准测试脚本包含大量展开测试数据与循环"
+      },
+      {
+        "path": "demo/",
+        "reason": "示例演示程序包含完整独立逻辑"
+      },
+      {
+        "path": "tests/scheme/char/",
+        "reason": "Unicode 字符属性与大小写转换规范测试大查表"
+      },
+      {
+        "path": "goldfish/liii/goldfmt/format.scm",
+        "reason": "排版引擎核心算法不可分割"
+      },
+      {
+        "path": "goldfish/liii/goldfmt/scan.scm",
+        "reason": "排版词法分析器核心实现"
+      },
+      {
+        "path": "goldfish/liii/goldfmt/tokenize.scm",
+        "reason": "排版词法分析器分词引擎"
+      },
+      {
+        "path": "goldfish/liii/go.scm",
+        "reason": "协程调度机核心算法不可分割"
+      },
+      {
+        "path": "goldfish/scheme/syntax-rules.scm",
+        "reason": "宏展开器核心算法不可分割"
+      },
+      {
+        "path": "goldfish/liii/syntax-case.scm",
+        "reason": "卫生宏系统实现不可分割"
+      },
+      {
+        "path": "goldfish/liii/match/match-core.scm",
+        "reason": "外部引入的卫生模式匹配器实现不可分割"
+      },
+      {
+        "path": "goldfish/liii/unicode.scm",
+        "reason": "Unicode 码点映射与编码转换大查表"
+      },
+      {
+        "path": "goldfish/liii/path.scm",
+        "reason": "跨平台路径处理核心库"
+      },
+      {
+        "path": "goldfish/liii/subprocess.scm",
+        "reason": "子进程创建与流式管道控制库"
+      },
+      {
+        "path": "goldfish/liii/string-cursor.scm",
+        "reason": "高效字符串游标实现"
+      },
+      {
+        "path": "goldfish/liii/packrat.scm",
+        "reason": "Packrat 语法解析引擎核心实现"
+      },
+      {
+        "path": "goldfish/liii/config-parser.scm",
+        "reason": "配置解析器完整状态机实现"
+      },
+      {
+        "path": "goldfish/liii/gfproject.scm",
+        "reason": "工程配置与工具发现分发核心实现"
+      },
+      {
+        "path": "goldfish/liii/logging.scm",
+        "reason": "日志框架格式化与分发逻辑"
+      },
+      {
+        "path": "goldfish/liii/uri/record.scm",
+        "reason": "URI 规范解析与记录模型"
+      },
+      {
+        "path": "goldfish/liii/par.scm",
+        "reason": "并发执行框架组合子实现"
+      },
+      {
+        "path": "goldfish/liii/http.scm",
+        "reason": "HTTP 客户端核心协议实现"
+      },
+      {
+        "path": "goldfish/liii/string.scm",
+        "reason": "字符串处理核心扩展函数集合"
+      },
+      {
+        "path": "goldfish/scheme/base.scm",
+        "reason": "R7RS 基础库聚合与核心导出定义"
+      },
+      {
+        "path": "goldfish/scheme/char.scm",
+        "reason": "Scheme 标准字符分类核心实现"
+      },
+      {
+        "path": "goldfish/scheme/boot.scm",
+        "reason": "Goldfish 系统自举入口与环境初始化"
+      },
+      {
+        "path": "tests/liii/config-parser-test.scm",
+        "reason": "配置解析器完整测试用例集合"
+      },
+      {
+        "path": "tests/liii/go/select-test.scm",
+        "reason": "协程 select 语句多种分支状态并发测试"
+      },
+      {
+        "path": "tests/liii/goldfmt/format/format-string-test.scm",
+        "reason": "排版引擎字符串测试集包含大量长代码片段"
+      },
+      {
+        "path": "tests/liii/goldfmt/record/good-env-p-test.scm",
+        "reason": "排版环境测试用例集"
+      },
+      {
+        "path": "tests/liii/goldfmt/scan/scan-string-test.scm",
+        "reason": "排版词法扫描器完整测试用例"
+      },
+      {
+        "path": "tests/liii/http/http-post-test.scm",
+        "reason": "HTTP POST 请求与响应完整场景测试"
+      },
+      {
+        "path": "tests/liii/match/match-test.scm",
+        "reason": "模式匹配器全语法分支测试"
+      },
+      {
+        "path": "tests/liii/packrat-test.scm",
+        "reason": "Packrat 解析引擎语法规则测试用例"
+      },
+      {
+        "path": "tests/liii/subprocess/run-values-test.scm",
+        "reason": "子进程管道测试用例集"
+      },
+      {
+        "path": "tests/scheme/base/assoc-test.scm",
+        "reason": "assoc 边界与各种键匹配完整测试集"
+      },
+      {
+        "path": "tests/scheme/base/assv-test.scm",
+        "reason": "assv 边界与类型匹配完整测试集"
+      },
+      {
+        "path": "tests/scheme/base/list-set-bang-test.scm",
+        "reason": "list-set! 异常边界与合法修改完整测试集"
+      },
+      {
+        "path": "tests/scheme/base/list-test.scm",
+        "reason": "list 构造与解构完整规范测试集"
+      },
+      {
+        "path": "tests/scheme/base/memq-test.scm",
+        "reason": "memq 边界测试集"
+      },
+      {
+        "path": "tests/scheme/base/memv-test.scm",
+        "reason": "memv 边界测试集"
+      },
+      {
+        "path": "tests/scheme/boot-test.scm",
+        "reason": "自举环境各模块与全局符号加载测试"
+      }
+    ],
+    "max-tree-depth": [
+      {
+        "path": "goldfish/liii/format/",
+        "reason": "SRFI-166 Monadic Formatting 组合子格式化与排版引擎核心实现"
+      },
+      {
+        "path": "goldfish/srfi/",
+        "reason": "官方标准规范实现优先保证完整性与对照性"
+      },
+      {
+        "path": "tests/srfi/",
+        "reason": "SRFI 规范官方测试集优先保证完整性与对照性"
+      },
+      {
+        "path": "bench/",
+        "reason": "性能基准测试脚本包含大量展开测试数据与循环"
+      },
+      {
+        "path": "demo/",
+        "reason": "示例演示程序包含完整独立逻辑"
+      },
+      {
+        "path": "tests/scheme/char/",
+        "reason": "Unicode 字符属性与大小写转换规范测试大查表"
+      },
+      {
+        "path": "goldfish/liii/goldfmt/format.scm",
+        "reason": "排版引擎核心算法不可分割"
+      },
+      {
+        "path": "goldfish/liii/goldfmt/scan.scm",
+        "reason": "排版词法分析器核心实现"
+      },
+      {
+        "path": "goldfish/liii/goldfmt/tokenize.scm",
+        "reason": "排版词法分析器分词引擎"
+      },
+      {
+        "path": "goldfish/liii/go.scm",
+        "reason": "协程调度机核心算法不可分割"
+      },
+      {
+        "path": "goldfish/scheme/syntax-rules.scm",
+        "reason": "宏展开器核心算法不可分割"
+      },
+      {
+        "path": "goldfish/liii/syntax-case.scm",
+        "reason": "卫生宏系统实现不可分割"
+      },
+      {
+        "path": "goldfish/liii/match/match-core.scm",
+        "reason": "外部引入的卫生模式匹配器实现不可分割"
+      },
+      {
+        "path": "goldfish/liii/unicode.scm",
+        "reason": "Unicode 码点映射与编码转换大查表"
+      },
+      {
+        "path": "goldfish/liii/path.scm",
+        "reason": "跨平台路径处理核心库"
+      },
+      {
+        "path": "goldfish/liii/subprocess.scm",
+        "reason": "子进程创建与流式管道控制库"
+      },
+      {
+        "path": "goldfish/liii/string-cursor.scm",
+        "reason": "高效字符串游标实现"
+      },
+      {
+        "path": "goldfish/liii/packrat.scm",
+        "reason": "Packrat 语法解析引擎核心实现"
+      },
+      {
+        "path": "goldfish/liii/config-parser.scm",
+        "reason": "配置解析器完整状态机实现"
+      },
+      {
+        "path": "goldfish/liii/gfproject.scm",
+        "reason": "工程配置与工具发现分发核心实现"
+      },
+      {
+        "path": "goldfish/liii/logging.scm",
+        "reason": "日志框架格式化与分发逻辑"
+      },
+      {
+        "path": "goldfish/liii/uri/record.scm",
+        "reason": "URI 规范解析与记录模型"
+      },
+      {
+        "path": "goldfish/liii/par.scm",
+        "reason": "并发执行框架组合子实现"
+      },
+      {
+        "path": "goldfish/liii/http.scm",
+        "reason": "HTTP 客户端核心协议实现"
+      },
+      {
+        "path": "goldfish/liii/string.scm",
+        "reason": "字符串处理核心扩展函数集合"
+      },
+      {
+        "path": "goldfish/scheme/base.scm",
+        "reason": "R7RS 基础库聚合与核心导出定义"
+      },
+      {
+        "path": "goldfish/scheme/char.scm",
+        "reason": "Scheme 标准字符分类核心实现"
+      },
+      {
+        "path": "goldfish/scheme/boot.scm",
+        "reason": "Goldfish 系统自举入口与环境初始化"
+      },
+      {
+        "path": "tests/liii/config-parser-test.scm",
+        "reason": "配置解析器完整测试用例集合"
+      },
+      {
+        "path": "tests/liii/go/select-test.scm",
+        "reason": "协程 select 语句多种分支状态并发测试"
+      },
+      {
+        "path": "tests/liii/goldfmt/format/format-string-test.scm",
+        "reason": "排版引擎字符串测试集包含大量长代码片段"
+      },
+      {
+        "path": "tests/liii/goldfmt/record/good-env-p-test.scm",
+        "reason": "排版环境测试用例集"
+      },
+      {
+        "path": "tests/liii/goldfmt/scan/scan-string-test.scm",
+        "reason": "排版词法扫描器完整测试用例"
+      },
+      {
+        "path": "tests/liii/http/http-post-test.scm",
+        "reason": "HTTP POST 请求与响应完整场景测试"
+      },
+      {
+        "path": "tests/liii/match/match-test.scm",
+        "reason": "模式匹配器全语法分支测试"
+      },
+      {
+        "path": "tests/liii/packrat-test.scm",
+        "reason": "Packrat 解析引擎语法规则测试用例"
+      },
+      {
+        "path": "tests/liii/subprocess/run-values-test.scm",
+        "reason": "子进程管道测试用例集"
+      },
+      {
+        "path": "tests/scheme/base/assoc-test.scm",
+        "reason": "assoc 边界与各种键匹配完整测试集"
+      },
+      {
+        "path": "tests/scheme/base/assv-test.scm",
+        "reason": "assv 边界与类型匹配完整测试集"
+      },
+      {
+        "path": "tests/scheme/base/list-set-bang-test.scm",
+        "reason": "list-set! 异常边界与合法修改完整测试集"
+      },
+      {
+        "path": "tests/scheme/base/list-test.scm",
+        "reason": "list 构造与解构完整规范测试集"
+      },
+      {
+        "path": "tests/scheme/base/memq-test.scm",
+        "reason": "memq 边界测试集"
+      },
+      {
+        "path": "tests/scheme/base/memv-test.scm",
+        "reason": "memv 边界测试集"
+      },
+      {
+        "path": "tests/scheme/boot-test.scm",
+        "reason": "自举环境各模块与全局符号加载测试"
+      }
+    ]
+  }
 }

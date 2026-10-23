@@ -8,10 +8,10 @@
 ;; http://www.apache.org/licenses/LICENSE-2.0
 ;;
 ;; Unless required by applicable law or agreed to in writing, software
-;; distributed under the License is distributed on an "AS IS" BASIS,
-;; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-;; See the License for the specific language governing permissions and
-;; limitations under the License.
+;; distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+;; WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+;; License for the specific language governing permissions and limitations
+;; under the License.
 ;;
 
 (define-library (liii goldcheck only)
@@ -29,7 +29,7 @@
       ) ;cons
     ) ;define
 
-    ;; --only 模式的 cfg：只启用指定规则，并去掉 exclude 豁免
+    ;; --only 模式的 cfg：只启用指定规则，excludes 保持生效
     (define (restrict-check-config cfg only-name)
       (let* ((rules
                (let ((r (json-ref cfg "rules")))
@@ -40,29 +40,35 @@
                (map
                  (lambda (kv)
                    (cons (car kv)
-                     (cond
-                      ((string=? (car kv) only-name)
-                       (if (and (string=? only-name "layer-order") (pair? (cdr kv)))
-                         (cdr kv)
-                         (%with-enabled (cdr kv) #t)
-                       ) ;if
-                      ) ;
-                      ((string=? (car kv) "layer-order") (list (cons "enabled" #f)))
-                      (else (%with-enabled (cdr kv) #f))
-                     ) ;cond
+                     (if (string=? (car kv) only-name)
+                       (%with-enabled (cdr kv) #t)
+                       (%with-enabled (cdr kv) #f)
+                     ) ;if
                    ) ;cons
                  ) ;lambda
                  rules
                ) ;map
              ) ;new-rules
+             (excludes
+               (let ((ex (json-ref cfg "excludes")))
+                 (if (pair? ex) ex '())
+               ) ;let
+             ) ;excludes
              (top
                (filter
-                 (lambda (kv) (and (pair? kv) (not (string=? (car kv) "exclude"))))
+                 (lambda (kv)
+                   (and (pair? kv)
+                     (not (string=? (car kv) "rules"))
+                     (not (string=? (car kv) "excludes"))
+                   ) ;and
+                 ) ;lambda
                  (if (pair? cfg) cfg '())
                ) ;filter
              ) ;top
             ) ;
-        (cons (cons "rules" new-rules) top)
+        (cons (cons "rules" new-rules)
+          (if (null? excludes) top (cons (cons "excludes" excludes) top))
+        ) ;cons
       ) ;let*
     ) ;define
 

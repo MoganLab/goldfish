@@ -69,7 +69,7 @@
 ;; 3. cfg 经 JSON 字符串运输到 worker 后 exclude 与 limit 仍生效
 (let* ((f1 (make-tmp-file "gf-test-files-excl.scm" 20))
        (f2 (make-tmp-file "gf-test-files-kept.scm" 20))
-       (cfg (string->json "{\"exclude\": [\"gf-test-files-excl.scm\"], \"rules\": {\"max-file-lines\": {\"limit\": 10}}}"
+       (cfg (string->json "{\"rules\": {\"max-file-lines\": {\"limit\": 10}}, \"excludes\": {\"max-file-lines\": [\"gf-test-files-excl.scm\"]}}"
             ) ;string->json
        ) ;cfg
        (viols (check-files (vector f1 f2) cfg))

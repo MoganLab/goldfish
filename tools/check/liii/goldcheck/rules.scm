@@ -41,7 +41,7 @@
       (display "      --changed-since REV    仅检查自 REV 以来变更的 .scm 文件"
       ) ;display
       (newline)
-      (display "      --only RULE            只检查指定规则（如 layer-order），且不套用 exclude"
+      (display "      --only RULE            只检查指定规则（如 layer-order）"
       ) ;display
       (newline)
       (newline)
