@@ -500,23 +500,18 @@ f_console_raw_mode (s7_scheme* sc, s7_pointer args) {
   static bool  g_has_orig_mode= false;
   bool         enable         = (enable_arg == s7_t (sc));
   if (enable) {
-    if (!g_has_orig_mode) {
-      if (GetConsoleMode (hIn, &g_orig_in_mode)) {
-        g_has_orig_mode= true;
-      }
+    if (!g_has_orig_mode && GetConsoleMode (hIn, &g_orig_in_mode)) {
+      g_has_orig_mode= true;
     }
     DWORD raw_mode= g_orig_in_mode;
     raw_mode&= ~(ENABLE_ECHO_INPUT | ENABLE_LINE_INPUT | ENABLE_PROCESSED_INPUT);
     raw_mode|= ENABLE_VIRTUAL_TERMINAL_INPUT;
     SetConsoleMode (hIn, raw_mode);
-    return s7_make_boolean (sc, true);
   }
-  else {
-    if (g_has_orig_mode) {
-      SetConsoleMode (hIn, g_orig_in_mode);
-    }
-    return s7_make_boolean (sc, true);
+  else if (g_has_orig_mode) {
+    SetConsoleMode (hIn, g_orig_in_mode);
   }
+  return s7_make_boolean (sc, true);
 #else
   bool enable= (enable_arg == s7_t (sc));
   if (enable) {
