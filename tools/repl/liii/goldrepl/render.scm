@@ -18,6 +18,7 @@
   (import (scheme base)
     (scheme write)
     (liii base)
+    (liii list)
     (liii string)
     (liii tui)
     (liii tui component)

@@ -73,6 +73,9 @@
     ;; buffer & main
     %repl-buffer
     %repl-buffer-set!
+    %repl-show-out
+    %repl-show-err
+    %repl-show-val
     %repl-try-complete-first!
     %repl-format-completion-menu
     %repl-editor-help-lines
