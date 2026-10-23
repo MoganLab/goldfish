@@ -57,7 +57,7 @@
             ((= code 3) 'ctrl-c)
             ((= code 4) 'ctrl-d)
             ((and (>= code 32) (<= code 126)) (string (integer->char code)))
-            (else #f)
+            (else (parse-key (string (integer->char code))))
       ) ;cond
     ) ;define
 

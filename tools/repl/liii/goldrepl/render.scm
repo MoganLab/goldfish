@@ -81,7 +81,7 @@
           "- Type ',quit' or ',q' to quit. (or use ctrl-d)."
           "- Type ',help' for REPL commands help."
           "- Press F1 for help on editing commands."
-          "- Use shift-tab for multiline input. (or ctrl-enter, or ctrl-j)"
+          "- Use shift-tab for multiline input."
           "- Use up/down to navigate history, tab to complete."
           ""
         ) ;list
