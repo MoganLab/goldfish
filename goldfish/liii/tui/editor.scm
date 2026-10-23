@@ -39,6 +39,8 @@
     editor-placeholder
     editor-set-placeholder!
     editor-history-list
+    editor-history
+    editor-set-on-submit!
     ;; buffer 导出
     make-buffer
     buffer?

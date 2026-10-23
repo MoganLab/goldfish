@@ -102,8 +102,7 @@ jobs:
       run: |
         sed -i 's|"deb", "rpm", "srpm"|"deb"|g' xmake.lua
         sed -i '/set_formats("deb")/a\        set_specfile(".tmp/xpack-deb-template/debian")' xmake.lua
-        sed -i 's|set_default(false) -- repl-anchor|set_default(true)|g' xmake.lua
-        xmake config -vyD -o tmp/build --repl=true
+        xmake config -vyD -o tmp/build
         xmake build goldfish
 
     - name: Build function doc index
@@ -207,7 +206,7 @@ jobs:
 
     - name: Config and Build
       run: |
-        xmake config -vyD -o tmp/build -m release --repl=true --yes
+        xmake config -vyD -o tmp/build -m release --yes
         xmake build goldfish
 
     - name: Build function doc index
@@ -302,7 +301,7 @@ jobs:
 
     - name: Config and Build
       run: |
-        xmake config -vyD -o tmp/build -m release --repl=true --yes
+        xmake config -vyD -o tmp/build -m release --yes
         xmake build goldfish
 
     - name: Build function doc index

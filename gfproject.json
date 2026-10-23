@@ -83,6 +83,8 @@
       }
     },
     "repl": {
+      "organization": "liii",
+      "module": "goldrepl",
       "description": {
         "en_US": "Enter interactive REPL mode",
         "zh_CN": "进入交互式 REPL 模式"
