@@ -16,6 +16,7 @@
 
 #include "s7.h"
 #include <cstdlib>
+#include <deque>
 #include <filesystem>
 #include <string>
 #include <vector>
@@ -471,7 +472,198 @@ f_os_tty_p (s7_scheme* sc, s7_pointer args) {
   return s7_make_boolean (sc, ret != 0);
 }
 
-#ifndef TB_CONFIG_OS_WINDOWS
+#ifdef TB_CONFIG_OS_WINDOWS
+static HANDLE          g_hIn_orig     = INVALID_HANDLE_VALUE;
+static DWORD           g_orig_in_mode = 0;
+static bool            g_has_orig_mode= false;
+static std::deque<int> g_console_key_queue;
+static uint32_t        g_surrogate_hi= 0;
+
+static void
+restore_windows_console_mode_at_exit () {
+  if (g_has_orig_mode && g_hIn_orig != INVALID_HANDLE_VALUE) {
+    SetConsoleMode (g_hIn_orig, g_orig_in_mode);
+  }
+}
+
+static void
+push_unicode_utf8 (uint32_t cp) {
+  if (cp < 0x80) {
+    g_console_key_queue.push_back ((int) cp);
+  }
+  else if (cp < 0x800) {
+    g_console_key_queue.push_back ((int) (0xC0 | (cp >> 6)));
+    g_console_key_queue.push_back ((int) (0x80 | (cp & 0x3F)));
+  }
+  else if (cp < 0x10000) {
+    g_console_key_queue.push_back ((int) (0xE0 | (cp >> 12)));
+    g_console_key_queue.push_back ((int) (0x80 | ((cp >> 6) & 0x3F)));
+    g_console_key_queue.push_back ((int) (0x80 | (cp & 0x3F)));
+  }
+  else if (cp <= 0x10FFFF) {
+    g_console_key_queue.push_back ((int) (0xF0 | (cp >> 18)));
+    g_console_key_queue.push_back ((int) (0x80 | ((cp >> 12) & 0x3F)));
+    g_console_key_queue.push_back ((int) (0x80 | ((cp >> 6) & 0x3F)));
+    g_console_key_queue.push_back ((int) (0x80 | (cp & 0x3F)));
+  }
+}
+
+static bool
+pump_console_input (HANDLE hIn, long timeout_ms) {
+  if (!g_console_key_queue.empty ()) {
+    return true;
+  }
+  DWORD mode;
+  if (!GetConsoleMode (hIn, &mode)) {
+    DWORD avail= 0;
+    if (PeekNamedPipe (hIn, NULL, 0, NULL, &avail, NULL)) {
+      return avail > 0;
+    }
+    return false;
+  }
+
+  while (g_console_key_queue.empty ()) {
+    DWORD count= 0;
+    if (!GetNumberOfConsoleInputEvents (hIn, &count)) {
+      return false;
+    }
+    if (count == 0) {
+      if (timeout_ms <= 0) {
+        return false;
+      }
+      ULONGLONG start_ms= GetTickCount64 ();
+      DWORD     res     = WaitForSingleObject (hIn, (DWORD) timeout_ms);
+      if (res != WAIT_OBJECT_0) {
+        return false;
+      }
+      ULONGLONG waited= GetTickCount64 () - start_ms;
+      if ((long) waited >= timeout_ms) {
+        timeout_ms= 0;
+      }
+      else {
+        timeout_ms-= (long) waited;
+      }
+    }
+
+    INPUT_RECORD rec;
+    DWORD        read_count= 0;
+    if (!ReadConsoleInputW (hIn, &rec, 1, &read_count) || read_count != 1) {
+      return false;
+    }
+
+    if (rec.EventType != KEY_EVENT || !rec.Event.KeyEvent.bKeyDown) {
+      continue;
+    }
+
+    const KEY_EVENT_RECORD& ke      = rec.Event.KeyEvent;
+    WORD                    virt    = ke.wVirtualKeyCode;
+    DWORD                   ctrl    = ke.dwControlKeyState;
+    uint32_t                chr     = (uint32_t) ke.uChar.UnicodeChar;
+    bool                    is_ctrl = (ctrl & (LEFT_CTRL_PRESSED | RIGHT_CTRL_PRESSED)) != 0;
+    bool                    is_shift= (ctrl & SHIFT_PRESSED) != 0;
+
+    // Shift-Tab
+    if (virt == VK_TAB && is_shift) {
+      g_console_key_queue.push_back (353); // curses KEY_BTAB
+      return true;
+    }
+
+    // Ctrl-Enter -> 10 (LineFeed)
+    if (virt == VK_RETURN && is_ctrl) {
+      g_console_key_queue.push_back (10);
+      return true;
+    }
+
+    // 功能键/光标键处理
+    if (chr == 0) {
+      switch (virt) {
+      case VK_UP:
+        g_console_key_queue.push_back (224);
+        g_console_key_queue.push_back (is_ctrl ? 141 : 72);
+        return true;
+      case VK_DOWN:
+        g_console_key_queue.push_back (224);
+        g_console_key_queue.push_back (is_ctrl ? 145 : 80);
+        return true;
+      case VK_LEFT:
+        g_console_key_queue.push_back (224);
+        g_console_key_queue.push_back (is_ctrl ? 115 : 75);
+        return true;
+      case VK_RIGHT:
+        g_console_key_queue.push_back (224);
+        g_console_key_queue.push_back (is_ctrl ? 116 : 77);
+        return true;
+      case VK_HOME:
+        g_console_key_queue.push_back (224);
+        g_console_key_queue.push_back (is_ctrl ? 119 : 71);
+        return true;
+      case VK_END:
+        g_console_key_queue.push_back (224);
+        g_console_key_queue.push_back (is_ctrl ? 117 : 79);
+        return true;
+      case VK_PRIOR:
+        g_console_key_queue.push_back (224);
+        g_console_key_queue.push_back (73);
+        return true;
+      case VK_NEXT:
+        g_console_key_queue.push_back (224);
+        g_console_key_queue.push_back (81);
+        return true;
+      case VK_DELETE:
+        g_console_key_queue.push_back (224);
+        g_console_key_queue.push_back (is_ctrl ? 147 : 83);
+        return true;
+      case VK_INSERT:
+        g_console_key_queue.push_back (224);
+        g_console_key_queue.push_back (82);
+        return true;
+      case VK_F1:
+      case VK_F2:
+      case VK_F3:
+      case VK_F4:
+      case VK_F5:
+      case VK_F6:
+      case VK_F7:
+      case VK_F8:
+      case VK_F9:
+      case VK_F10:
+        g_console_key_queue.push_back (0);
+        g_console_key_queue.push_back (59 + (virt - VK_F1));
+        return true;
+      case VK_F11:
+        g_console_key_queue.push_back (224);
+        g_console_key_queue.push_back (133);
+        return true;
+      case VK_F12:
+        g_console_key_queue.push_back (224);
+        g_console_key_queue.push_back (134);
+        return true;
+      default:
+        break;
+      }
+      continue;
+    }
+
+    // 代理对处理 (Surrogate pairs)
+    if (chr >= 0xD800 && chr <= 0xDBFF) {
+      g_surrogate_hi= (chr - 0xD800);
+      continue;
+    }
+    if (chr >= 0xDC00 && chr <= 0xDFFF) {
+      uint32_t full_cp= ((g_surrogate_hi << 10) + (chr - 0xDC00) + 0x10000);
+      g_surrogate_hi  = 0;
+      push_unicode_utf8 (full_cp);
+      return true;
+    }
+
+    // 常规 Unicode 字符 / ASCII 控制码
+    push_unicode_utf8 (chr);
+    return true;
+  }
+
+  return !g_console_key_queue.empty ();
+}
+#else
 static struct termios g_orig_termios;
 static bool           g_raw_mode_enabled= false;
 static bool           g_has_orig_termios= false;
@@ -496,20 +688,21 @@ f_console_raw_mode (s7_scheme* sc, s7_pointer args) {
   if (hIn == INVALID_HANDLE_VALUE) {
     return s7_make_boolean (sc, false);
   }
-  static DWORD g_orig_in_mode = 0;
-  static bool  g_has_orig_mode= false;
-  bool         enable         = (enable_arg == s7_t (sc));
+  bool enable= (enable_arg == s7_t (sc));
   if (enable) {
     if (!g_has_orig_mode && GetConsoleMode (hIn, &g_orig_in_mode)) {
       g_has_orig_mode= true;
+      g_hIn_orig     = hIn;
+      atexit (restore_windows_console_mode_at_exit);
     }
     DWORD raw_mode= g_orig_in_mode;
     raw_mode&= ~(ENABLE_ECHO_INPUT | ENABLE_LINE_INPUT | ENABLE_PROCESSED_INPUT);
-    raw_mode|= ENABLE_VIRTUAL_TERMINAL_INPUT;
+    raw_mode|= ENABLE_WINDOW_INPUT;
     SetConsoleMode (hIn, raw_mode);
   }
   else if (g_has_orig_mode) {
     SetConsoleMode (hIn, g_orig_in_mode);
+    g_console_key_queue.clear ();
   }
   return s7_make_boolean (sc, true);
 #else
@@ -596,20 +789,9 @@ f_console_kbhit (s7_scheme* sc, s7_pointer args) {
     }
   }
 #ifdef TB_CONFIG_OS_WINDOWS
-  if (_kbhit () != 0) {
-    return s7_make_boolean (sc, true);
-  }
-  if (timeout_ms <= 0) {
-    return s7_make_boolean (sc, false);
-  }
-  DWORD start= GetTickCount ();
-  while ((GetTickCount () - start) < (DWORD) timeout_ms) {
-    Sleep (1);
-    if (_kbhit () != 0) {
-      return s7_make_boolean (sc, true);
-    }
-  }
-  return s7_make_boolean (sc, false);
+  HANDLE hIn  = GetStdHandle (STD_INPUT_HANDLE);
+  bool   ready= pump_console_input (hIn, timeout_ms);
+  return s7_make_boolean (sc, ready);
 #else
   if (!isatty (STDIN_FILENO)) {
     return s7_make_boolean (sc, false);
@@ -633,35 +815,20 @@ glue_console_kbhit (s7_scheme* sc) {
 static s7_pointer
 f_console_getch (s7_scheme* sc, s7_pointer args) {
 #ifdef TB_CONFIG_OS_WINDOWS
-  if (_kbhit () == 0) {
-    return s7_make_boolean (sc, false);
-  }
-  HANDLE       hIn= GetStdHandle (STD_INPUT_HANDLE);
-  INPUT_RECORD records[4];
-  DWORD        numRead     = 0;
-  bool         is_shift_tab= false;
-
-  if (PeekConsoleInputW (hIn, records, 4, &numRead) && numRead > 0) {
-    for (DWORD i= 0; i < numRead; ++i) {
-      if (records[i].EventType == KEY_EVENT && records[i].Event.KeyEvent.bKeyDown) {
-        KEY_EVENT_RECORD k= records[i].Event.KeyEvent;
-        if (k.wVirtualKeyCode == VK_TAB && (k.dwControlKeyState & SHIFT_PRESSED)) {
-          is_shift_tab= true;
-          break;
-        }
+  HANDLE hIn= GetStdHandle (STD_INPUT_HANDLE);
+  if (!pump_console_input (hIn, 0)) {
+    DWORD mode;
+    if (!GetConsoleMode (hIn, &mode)) {
+      unsigned char ch       = 0;
+      DWORD         bytesRead= 0;
+      if (ReadFile (hIn, &ch, 1, &bytesRead, NULL) && bytesRead == 1) {
+        return s7_make_integer (sc, (int) ch);
       }
     }
+    return s7_make_boolean (sc, false);
   }
-  if (!is_shift_tab) {
-    if (GetAsyncKeyState (VK_SHIFT) & 0x8000) {
-      is_shift_tab= true;
-    }
-  }
-
-  int ch= _getch ();
-  if (ch == 9 && is_shift_tab) {
-    return s7_make_integer (sc, 353); // 353: curses KEY_BTAB (Shift-Tab)
-  }
+  int ch= g_console_key_queue.front ();
+  g_console_key_queue.pop_front ();
   return s7_make_integer (sc, ch);
 #else
   unsigned char ch= 0;

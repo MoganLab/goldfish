@@ -20,6 +20,7 @@
     (liii base)
     (liii list)
     (liii string)
+    (liii unicode)
     (liii goldrepl complete)
   ) ;import
   (export *repl-styles* %repl-style %repl-styled %repl-gray *repl-keywords*
@@ -85,7 +86,11 @@
     (define (%repl-highlight-token chars n i loop-k)
       (let scan
         ((j i))
-        (if (and (< j n) (%repl-symbol-char? (list-ref chars j)))
+        (if
+          (and (< j n)
+            (< (char->integer (list-ref chars j)) 128)
+            (%repl-symbol-char? (list-ref chars j))
+          ) ;and
           (scan (+ j 1))
           (let ((token (list->string (take (drop chars i) (- j i)))))
             (loop-k j
@@ -98,7 +103,11 @@
     (define (%repl-highlight-number chars n i loop-k)
       (let scan
         ((j i))
-        (if (and (< j n) (char-numeric? (list-ref chars j)))
+        (if
+          (and (< j n)
+            (< (char->integer (list-ref chars j)) 128)
+            (char-numeric? (list-ref chars j))
+          ) ;and
           (scan (+ j 1))
           (let ((num (list->string (take (drop chars i) (- j i)))))
             (loop-k j (%repl-styled "number" num))
@@ -137,6 +146,16 @@
                      acc
                    ) ;cons
                  ) ;loop
+                ) ;
+                ((>= (char->integer (list-ref chars i)) 128)
+                 (let* ((b (char->integer (list-ref chars i)))
+                        (seq-len (utf8-sequence-length b))
+                        (step
+                          (if (and seq-len (<= (+ i seq-len) n)) seq-len 1)
+                        ) ;step
+                       ) ;
+                   (loop (+ i step) (cons (substring line i (+ i step)) acc))
+                 ) ;let*
                 ) ;
                 ((char-numeric? (list-ref chars i))
                  (%repl-highlight-number chars
