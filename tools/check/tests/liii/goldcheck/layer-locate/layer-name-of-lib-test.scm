@@ -49,7 +49,7 @@
             (list "std" "srfi srfi-1" "srfi srfi-113")
             (list "app" "liii *"))
       (%dom "common" "tools/common/" '("goldfish")
-        (list "shared" "liii goldtool-changed"))
+        (list "shared" "liii goldtool changed"))
       (%dom "check" "tools/check/" '("goldfish" "common")
         (list "tool" "liii goldcheck")))
   ) ;layer-domains-parse

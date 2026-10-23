@@ -20,7 +20,7 @@
 (import (liii check)
   (liii goldfmt)
   (liii goldfmt cpp)
-  (liii goldtool-changed)
+  (liii goldtool changed)
   (liii os)
   (liii string)
 ) ;import

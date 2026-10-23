@@ -24,7 +24,7 @@
     (liii os)
     (srfi srfi-13)
     (liii goldfix cache)
-    (liii goldtool-changed)
+    (liii goldtool changed)
   ) ;import
 
   (begin

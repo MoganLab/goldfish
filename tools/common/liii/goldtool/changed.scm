@@ -14,7 +14,7 @@
 ;; under the License.
 ;;
 
-(define-library (liii goldtool-changed)
+(define-library (liii goldtool changed)
   (import (scheme base) (liii list) (liii os) (liii path) (liii string))
   (export changed-files-since
     changed-existing-files-since

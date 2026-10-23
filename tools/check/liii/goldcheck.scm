@@ -48,13 +48,17 @@
     (liii argparse)
     (liii json)
     (liii par)
+    (liii timeit)
+    (liii go)
     (srfi srfi-133)
-    (liii goldtool-changed)
+    (liii goldtool changed)
+    (liii goldtool parallel)
     (liii goldcheck path)
     (liii goldcheck config)
     (liii goldcheck rules)
     (liii goldcheck layer)
     (liii goldcheck only)
+    (liii goldcheck cache)
   ) ;import
   (export main check-file-lines check-tree-depth check-file check-files
     make-check-arg-parser collect-scheme-files format-violation
@@ -83,43 +87,60 @@
 
     (define (check-file-rule-lines file-path cfg acc)
       (if (check-rule-enabled? cfg "max-file-lines")
-        (let ((lines-limit (check-rule-limit cfg "max-file-lines")))
-          (call-with-values (lambda () (check-file-lines file-path lines-limit))
-            (lambda (lines viol) (if viol (cons viol acc) acc))
-          ) ;call-with-values
-        ) ;let
+        (if (file-excluded? file-path (check-rule-excludes cfg "max-file-lines"))
+          acc
+          (let ((lines-limit (check-rule-limit cfg "max-file-lines")))
+            (call-with-values (lambda () (check-file-lines file-path lines-limit))
+              (lambda (lines viol)
+                (unless viol
+                  (rule-cache-touch "max-file-lines" lines-limit file-path)
+                ) ;unless
+                (if viol (cons viol acc) acc)
+              ) ;lambda
+            ) ;call-with-values
+          ) ;let
+        ) ;if
         acc
       ) ;if
     ) ;define
 
     (define (check-file-rule-depth file-path cfg acc)
       (if (check-rule-enabled? cfg "max-tree-depth")
-        (let ((depth-limit (check-rule-limit cfg "max-tree-depth")))
-          (call-with-values (lambda () (check-tree-depth file-path depth-limit))
-            (lambda (max-d max-l viol) (if viol (cons viol acc) acc))
-          ) ;call-with-values
-        ) ;let
+        (if (file-excluded? file-path (check-rule-excludes cfg "max-tree-depth"))
+          acc
+          (let ((depth-limit (check-rule-limit cfg "max-tree-depth")))
+            (call-with-values (lambda () (check-tree-depth file-path depth-limit))
+              (lambda (max-d max-l viol)
+                (unless viol
+                  (rule-cache-touch "max-tree-depth" depth-limit file-path)
+                ) ;unless
+                (if viol (cons viol acc) acc)
+              ) ;lambda
+            ) ;call-with-values
+          ) ;let
+        ) ;if
         acc
       ) ;if
     ) ;define
 
     (define (check-file-rule-layer file-path cfg acc)
-      (append acc (check-layer-order file-path cfg))
+      (if (check-rule-enabled? cfg "layer-order")
+        (if (file-excluded? file-path (check-rule-excludes cfg "layer-order"))
+          acc
+          (append acc (check-layer-order file-path cfg))
+        ) ;if
+        acc
+      ) ;if
     ) ;define
 
     (define (check-file file-path cfg)
-      "检查单个文件是否违反启用的度量规则。若命中 exclude 则直接跳过返回 '()。"
-      (let ((excludes (if cfg (check-config-excludes cfg) '())))
-        (if (file-excluded? file-path excludes)
-          '()
-          (let* ((acc1 (check-file-rule-lines file-path cfg '()))
-                 (acc2 (check-file-rule-depth file-path cfg acc1))
-                 (acc3 (check-file-rule-layer file-path cfg acc2))
-                ) ;
-            (reverse acc3)
-          ) ;let*
-        ) ;if
-      ) ;let
+      "检查单个文件是否违反启用的度量规则。"
+      (let* ((acc1 (check-file-rule-lines file-path cfg '()))
+             (acc2 (check-file-rule-depth file-path cfg acc1))
+             (acc3 (check-file-rule-layer file-path cfg acc2))
+            ) ;
+        (reverse acc3)
+      ) ;let*
     ) ;define
 
     (define (check-files file-vector cfg)
@@ -149,7 +170,7 @@
       ) ;or
     ) ;define
 
-    (define (collect-scheme-files dir-path excludes)
+    (define (collect-scheme-files dir-path)
       (let ((entries (path-list-path (path dir-path))))
         (let loop
           ((i 0) (acc '()))
@@ -161,15 +182,15 @@
                   ) ;
               (cond
                ((path-file? entry)
-                (if (and (string-ends? s ".scm") (not (file-excluded? s excludes)))
+                (if (string-ends? s ".scm")
                   (loop (+ i 1) (cons (relativize-path s) acc))
                   (loop (+ i 1) acc)
                 ) ;if
                ) ;
                ((path-dir? entry)
-                (if (or (builtin-ignored-dir? bname) (file-excluded? s excludes))
+                (if (builtin-ignored-dir? bname)
                   (loop (+ i 1) acc)
-                  (loop (+ i 1) (append (collect-scheme-files s excludes) acc))
+                  (loop (+ i 1) (append (collect-scheme-files s) acc))
                 ) ;if
                ) ;
                (else (loop (+ i 1) acc))
@@ -180,45 +201,42 @@
       ) ;let
     ) ;define
 
-    (define (collect-positional-files positionals cfg)
-      (let ((excludes (if cfg (check-config-excludes cfg) '())))
-        (let loop
-          ((pos positionals) (acc '()))
-          (if (null? pos)
-            acc
-            (let ((p (car pos)))
-              (cond
-               ((path-file? (path p))
-                (if (and (string-ends? p ".scm") (not (file-excluded? p excludes)))
-                  (loop (cdr pos) (append acc (list (relativize-path p))))
-                  (loop (cdr pos) acc)
-                ) ;if
-               ) ;
-               ((path-dir? (path p))
-                (let ((sub (collect-scheme-files p excludes)))
-                  (loop (cdr pos) (append acc sub))
-                ) ;let
-               ) ;
-               (else (loop (cdr pos) acc))
-              ) ;cond
-            ) ;let
-          ) ;if
-        ) ;let
+    (define (collect-positional-files positionals)
+      (let loop
+        ((pos positionals) (acc '()))
+        (if (null? pos)
+          acc
+          (let ((p (car pos)))
+            (cond
+             ((path-file? (path p))
+              (if (string-ends? p ".scm")
+                (loop (cdr pos) (append acc (list (relativize-path p))))
+                (loop (cdr pos) acc)
+              ) ;if
+             ) ;
+             ((path-dir? (path p))
+              (let ((sub (collect-scheme-files p)))
+                (loop (cdr pos) (append acc sub))
+              ) ;let
+             ) ;
+             (else (loop (cdr pos) acc))
+            ) ;cond
+          ) ;let
+        ) ;if
       ) ;let
     ) ;define
 
-    (define (collect-repo-files cfg)
+    (define (collect-repo-files)
       (let* ((root (g_project-root))
              (start-dir
                (if (and root (string? root) (not (string=? root ""))) root ".")
              ) ;start-dir
-             (excludes (if cfg (check-config-excludes cfg) '()))
             ) ;
-        (collect-scheme-files start-dir excludes)
+        (collect-scheme-files start-dir)
       ) ;let*
     ) ;define
 
-    (define (resolve-target-files parser cfg)
+    (define (resolve-target-files parser)
       (let ((since (parser 'changed-since)) (positionals (parser :positionals)))
         (cond
           (since
@@ -229,19 +247,107 @@
               ) ;apply
             ) ;if
           ) ;since
-          ((not (null? positionals)) (collect-positional-files positionals cfg))
-          (else (collect-repo-files cfg))
+          ((not (null? positionals)) (collect-positional-files positionals))
+          (else (collect-repo-files))
         ) ;cond
       ) ;let
     ) ;define
 
-    (define (report-and-exit violations)
+    (define %all-rule-names '("max-file-lines" "max-tree-depth" "layer-order"))
+
+    (define (%rule-with-enabled rule enabled)
+      (cons (cons "enabled" enabled)
+        (filter
+          (lambda (kv) (not (string=? (car kv) "enabled")))
+          rule
+        ) ;filter
+      ) ;cons
+    ) ;define
+
+    (define (single-rule-config cfg rule-name)
+      "构造仅启用指定规则的新配置，保留该规则自身的 exclude 等字段。"
+      (let ((rules (if cfg (json-ref cfg "rules") '())))
+        (let ((new-rules
+                (map
+                  (lambda (name)
+                    (let ((rule (if (json-object? rules) (json-ref rules name) '())))
+                      (cons name (%rule-with-enabled rule (string=? name rule-name)))
+                    ) ;let
+                  ) ;lambda
+                  %all-rule-names
+                ) ;map
+              ) ;new-rules
+             ) ;
+          (if cfg
+            (cons (cons "rules" new-rules)
+              (filter
+                (lambda (kv) (not (string=? (car kv) "rules")))
+                cfg
+              ) ;filter
+            ) ;cons
+            (list (cons "rules" new-rules))
+          ) ;if
+        ) ;let
+      ) ;let
+    ) ;define
+
+    (define (enabled-rule-names cfg)
+      (filter (lambda (name) (check-rule-enabled? cfg name)) %all-rule-names)
+    ) ;define
+
+    (define (run-rule-check files cfg rule-name)
+      "对一堆文件执行单个规则检查，返回 (rule-name ok? elapsed violations)。"
+      (let ((single-cfg (single-rule-config cfg rule-name))
+            (limit (cond ((string=? rule-name "max-file-lines") (check-rule-limit cfg rule-name))
+                         ((string=? rule-name "max-tree-depth") (check-rule-limit cfg rule-name))
+                         (else #f)
+                   ) ;cond
+            ) ;limit
+            (violations '#())
+            (elapsed 0.0)
+           ) ;
+        (set! elapsed
+          (timeit
+            (lambda ()
+              (let ((miss-files
+                      (if limit
+                        (pool-filter (lambda (f) (not (rule-cache-hit? rule-name limit f))) files)
+                        files
+                      ) ;if
+                    ) ;miss-files
+                   ) ;
+                (set! violations (check-files (list->vector miss-files) single-cfg))
+              ) ;let
+            ) ;lambda
+            '()
+            1
+          ) ;timeit
+        ) ;set!
+        (list rule-name (zero? (vector-length violations)) elapsed violations)
+      ) ;let
+    ) ;define
+
+    (define (format-rule-line ok name elapsed)
+      (string-append "  ["
+        (if ok "OK    " "FAILED")
+        "] "
+        name
+        (make-string (max 0 (- 16 (string-length name))) #\space)
+        (format #f "~,3fs" elapsed)
+      ) ;string-append
+    ) ;define
+
+    (define (display-rule-result result)
+      (display (format-rule-line (cadr result) (car result) (caddr result)))
+      (newline)
+    ) ;define
+
+    (define (report-and-exit violations total-elapsed)
+      (display (format-rule-line (zero? (vector-length violations)) "all" total-elapsed)
+      ) ;display
+      (newline)
       (if (zero? (vector-length violations))
-        (begin
-          (display "Check: OK")
-          (newline)
-          (exit 0)
-        ) ;begin
+        (exit 0)
         (begin
           (display (string-append "Check failed: "
                      (number->string (vector-length violations))
@@ -258,6 +364,7 @@
     ) ;define
 
     (define (main)
+      (set-goldtool-jobs! (go-worker-count))
       (let ((parser (make-check-arg-parser)))
         (parser :parse-argv (command-line))
         (if (parser 'help)
@@ -268,10 +375,22 @@
           (let* ((cfg0 (load-check-config))
                  (only (parser 'only))
                  (cfg (if only (restrict-check-config cfg0 only) cfg0))
-                 (files (resolve-target-files parser cfg))
-                 (violations (check-files (list->vector files) cfg))
+                 (files (resolve-target-files parser))
                 ) ;
-            (report-and-exit violations)
+            (if only
+              (let ((result (run-rule-check files cfg only)))
+                (display-rule-result result)
+                (report-and-exit (cadddr result) (caddr result))
+              ) ;let
+              (let* ((rules (enabled-rule-names cfg0))
+                     (results (map (lambda (rule) (run-rule-check files cfg0 rule)) rules))
+                     (all-violations (vector-concatenate (map cadddr results)))
+                     (total-elapsed (apply + (map caddr results)))
+                    ) ;
+                (for-each display-rule-result results)
+                (report-and-exit all-violations total-elapsed)
+              ) ;let*
+            ) ;if
           ) ;let*
         ) ;if
       ) ;let

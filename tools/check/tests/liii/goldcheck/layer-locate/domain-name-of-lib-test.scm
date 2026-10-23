@@ -49,7 +49,7 @@
             (list "std" "srfi srfi-1" "srfi srfi-113")
             (list "app" "liii *"))
       (%dom "common" "tools/common/" '("goldfish")
-        (list "shared" "liii goldtool-changed"))
+        (list "shared" "liii goldtool changed"))
       (%dom "check" "tools/check/" '("goldfish" "common")
         (list "tool" "liii goldcheck")))
   ) ;layer-domains-parse
@@ -57,7 +57,7 @@
 
 ;; 1. 域归属判定
 (check (domain-name-of-lib %domains "srfi srfi-113") => "goldfish")
-(check (domain-name-of-lib %domains "liii goldtool-changed") => "common")
+(check (domain-name-of-lib %domains "liii goldtool changed") => "common")
 
 ;; 2. 最特异 pattern 优先于 goldfish 域的 "liii *" 兜底
 (check (domain-name-of-lib %domains "liii goldcheck") => "check")

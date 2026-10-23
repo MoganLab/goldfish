@@ -59,7 +59,7 @@
 
 ;; 3. 被 exclude 排除的文件即使超限也返回 '()
 (let* ((tmp (path->string (path-join (path-temp-dir) "gf-test-excluded-viol.scm")))
-       (cfg (string->json "{\"exclude\": [\"gf-test-excluded-viol.scm\"], \"rules\": {\"max-file-lines\": {\"limit\": 10}}}"
+       (cfg (string->json "{\"rules\": {\"max-file-lines\": {\"limit\": 10}}, \"excludes\": {\"max-file-lines\": [\"gf-test-excluded-viol.scm\"]}}"
             ) ;string->json
        ) ;cfg
       ) ;

@@ -41,7 +41,7 @@
     (liii sort)
     (liii list)
     (liii string)
-    (liii goldtool-changed)
+    (liii goldtool changed)
     (liii os)
     (liii path)
     (liii sys)

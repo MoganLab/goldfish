@@ -26,7 +26,7 @@
 ;;
 ;; 错误
 ;; ----
-;; type-error: 当字段类型不符合规范时抛出（如 limit 非整数、exclude 非数组）。
+;; type-error: 当字段类型不符合规范时抛出（如 limit 非整数、excludes 非对象）。
 ;; value-error: 当字段取值不合法时抛出（如 limit <= 0、未知规则名）。
 
 (check-set-mode! 'report-failed)
@@ -51,9 +51,19 @@
   ) ;validate-check-config!
 ) ;check-catch
 
-;; 4. 字段类型错误校验：exclude 非数组抛出 type-error
+;; 4. 字段类型错误校验：excludes 非对象抛出 type-error
 (check-catch 'type-error
-  (validate-check-config! (string->json "{\"exclude\": \"not-an-array\"}"))
+  (validate-check-config! (string->json "{\"excludes\": \"not-an-object\"}"))
+) ;check-catch
+
+(check-catch 'type-error
+  (validate-check-config! (string->json "{\"excludes\": {\"max-file-lines\": \"not-an-array\"}}")
+  ) ;validate-check-config!
+) ;check-catch
+
+(check-catch 'value-error
+  (validate-check-config! (string->json "{\"excludes\": {\"unknown-rule-xyz\": []}}")
+  ) ;validate-check-config!
 ) ;check-catch
 
 ;; 5. 字段取值错误校验：limit 为 0 或负数抛出 value-error
