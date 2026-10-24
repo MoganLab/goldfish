@@ -164,6 +164,16 @@
   (check-true (string-contains? (caddr (car viol)) "hash-table"))
 ) ;let*
 
+;; 2b. 裸顶层 import（无 define-library 的扩展插件式文件）同样受检：
+;; std 层裸文件 import app 层 -> 抓到倒挂
+(let* ((f (%mk "goldfish/srfi/srfi-113.scm"
+            "(import (scheme base) (liii hash-table))\n\n(define (x) 1)\n"))
+       (viol (check-layer-order f %cfg))
+      ) ;
+  (check (length viol) => 1)
+  (check-true (and (string-contains? (caddr (car viol)) "hash-table") #t))
+) ;let*
+
 ;; 3. 跨域已声明 -> 零违规；未声明 -> 1 条 cross-domain 违规
 (let ((f (%mk "tools/check/liii/goldcheck.scm"
            (%lib-header "scheme base" "liii goldtool changed" "liii string")

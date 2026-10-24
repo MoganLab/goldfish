@@ -131,21 +131,31 @@
       ) ;let
     ) ;define
 
+    (define (%form-imports form)
+      "单个顶层形式的库名提取：define-library 取其 import 子句，\n裸顶层 (import ...)（如扩展插件文件）取其库名，其余形式返回空。"
+      (cond
+       ((and (pair? form) (eq? (car form) 'import)) (%lib-names (cdr form)))
+       ((and (pair? form) (eq? (car form) 'define-library))
+        (%collect-imports (cdr form))
+       ) ;
+       (else '())
+      ) ;cond
+    ) ;define
+
     (define (file-imports path)
-      "read 解析 define-library，返回 import 块的库名列表（含 scheme）。"
-      (let ((port (open-input-file path)))
-        (dynamic-wind (lambda () #f)
-          (lambda ()
-            (let ((form (read port)))
-              (if (and (pair? form) (eq? (car form) 'define-library))
-                (%collect-imports (cdr form))
-                '()
-              ) ;if
-            ) ;let
-          ) ;lambda
-          (lambda () (close-input-port port))
-        ) ;dynamic-wind
-      ) ;let
+      "read 逐个解析顶层形式，返回 import 的库名列表（含 scheme）：\ndefine-library 提取声明子句；裸顶层 (import ...) 文件（扩展插件、\n工具入口脚本等）同样提取。"
+      (call-with-input-file path
+        (lambda (port)
+          (let loop
+            ((form (read port)) (acc '()))
+            (cond ((eof-object? form) (reverse acc))
+                  (else
+                    (loop (read port) (append (reverse (%form-imports form)) acc))
+                  ) ;else
+            ) ;cond
+          ) ;let
+        ) ;lambda
+      ) ;call-with-input-file
     ) ;define
 
     ;; ---- 定位 --------------------------------------------------------
