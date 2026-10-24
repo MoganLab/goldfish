@@ -16,25 +16,13 @@
 (define-library (liii goldfmt scan literal)
   (export rewrite-reader-literals needs-rewrite-reader-literals?)
 
-  (import (liii base) (liii raw-string) (srfi srfi-13))
+  (import (liii base)
+    (liii raw-string)
+    (srfi srfi-13)
+    (liii goldfmt scan normalize)
+  ) ;import
 
   (begin
-
-    (define (write-to-string value)
-      (let ((port (open-output-string)))
-        (let-temporarily (((*s7* 'print-length) 9223372036854775807))
-          (write value port)
-        ) ;let-temporarily
-        (get-output-string port)
-      ) ;let
-    ) ;define
-
-    (define (fast-string-join strings)
-      (let ((out (open-output-string)))
-        (for-each (lambda (s) (display s out)) strings)
-        (get-output-string out)
-      ) ;let
-    ) ;define
 
     (define (find-raw-string-literal-end str body-start delimiter)
       (let* ((needle (string-append "\"" delimiter "\""))
@@ -125,7 +113,7 @@
            (result '())
           ) ;
           (if (>= i len)
-            (fast-string-join (reverse! result))
+            (string-join (reverse! result) "")
             (let ((c (string-ref source i))
                   (next-c (if (< (+ i 1) len) (string-ref source (+ i 1)) #\nul))
                  ) ;

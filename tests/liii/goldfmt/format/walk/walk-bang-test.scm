@@ -1,5 +1,5 @@
 (import (liii check))
-(import (liii goldfmt format walk) (liii goldfmt format writer) (liii goldfmt format atom) (liii goldfmt scan)
+(import (liii string) (liii goldfmt format walk) (liii goldfmt format writer) (liii goldfmt format atom) (liii goldfmt scan)
   (liii goldfmt record)
   (srfi srfi-13))
 
@@ -33,7 +33,7 @@
 ;; 测试：长 env 多行输出且闭括号带注释
 (let* ((w (make-writer 0))
        (new-node (walk! (scan '(list aaaaaa bbbbbb cccccc dddddd eeeeee ffffff gggggg hhhhhh iiiiii jjjjjj kkkkkk llllll mmmmmm nnnnnn oooooo pppppp)) w 0)))
-  (check (string-contains-newline? (writer-result w)) => #t)
+  (check (string-contains? (writer-result w) "\n") => #t)
   (check (string-suffix? " ;list" (writer-result w)) => #t)
 ) ;let*
 

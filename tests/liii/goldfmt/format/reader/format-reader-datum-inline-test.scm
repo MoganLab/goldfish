@@ -1,5 +1,5 @@
 (import (liii check))
-(import (liii goldfmt format reader) (liii goldfmt format atom))
+(import (liii string) (liii goldfmt format reader) (liii goldfmt format atom))
 
 (check-set-mode! 'report-failed)
 
@@ -24,7 +24,7 @@
 ;; 测试：超长 list 也不产生换行
 (let ((long-datum
         (apply list (map symbol->string (make-list 50 'abcdef)))))
-  (check (string-contains-newline? (format-reader-datum-inline long-datum)) => #f)
+  (check (string-contains? (format-reader-datum-inline long-datum) "\n") => #f)
 ) ;let
 
 ;; 测试：quote 内联

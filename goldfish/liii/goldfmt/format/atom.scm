@@ -14,11 +14,11 @@
 ;; limitations under the License.
 
 (define-library (liii goldfmt format atom)
-  (export write-to-string string-contains-newline? format-atom-value spaces
-    child-separator comment-node? newline-node? newline-count make-newlines
-    comment-content format-comment-content contains-comment? quote-env?
-    reader-prefix-env? quote-env-content keyword-node? keyword-node-len
-    keyword-block-prefix no-keyword-args-form? fill-min-children let-form?
+  (export write-to-string format-atom-value spaces child-separator comment-node?
+    newline-node? newline-count make-newlines comment-content
+    format-comment-content contains-comment? quote-env? reader-prefix-env?
+    quote-env-content keyword-node? keyword-node-len keyword-block-prefix
+    no-keyword-args-form? fill-min-children let-form?
   ) ;export
   (import (liii base)
     (liii vector)
@@ -27,19 +27,6 @@
     (liii goldfmt scan normalize)
   ) ;import
   (begin
-    (define (write-to-string value)
-      (let ((port (open-output-string)))
-        (let-temporarily (((*s7* 'print-length) 9223372036854775807))
-          (write value port)
-        ) ;let-temporarily
-        (get-output-string port)
-      ) ;let
-    ) ;define
-
-    (define (string-contains-newline? text)
-      (if (string-position "\n" text) #t #f)
-    ) ;define
-
     (define (format-atom-value value)
       (cond ((raw-string-literal? value) (raw-string-literal-source value))
             ((char-literal? value) (char-literal-source value))
