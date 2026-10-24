@@ -57,6 +57,7 @@
     extension-tool-def-execute
     extension-tool-def-snippet
     extension-tool-def-guidelines
+    extension-tool-def-default-active?
 
     ;; ExtensionFlagDef
     make-extension-flag-def
@@ -97,6 +98,7 @@
     extension-register-tool!
     find-extension-tool
     extension-registry-tools-list
+    extension-registry-default-tool-names
 
     register-flag!
     extension-register-flag!

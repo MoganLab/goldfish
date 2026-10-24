@@ -6,10 +6,14 @@
 ;; Licensed under the MIT License
 ;;
 
-(import (scheme base) (liii pi code extension) (liii pi web-search))
+(import (scheme base)
+  (liii pi code extension)
+  (liii pi web-search schema)
+  (liii pi web-search execute)
+) ;import
 
-;; web-search 扩展：注册 web_search 工具（默认启用，见 PI_DEFAULT_TOOL_NAMES；
-;; 实现位于 (liii pi web-search) 库，本文件只负责扩展注册）。
+;; web-search 扩展：注册 web_search 工具并声明默认启用（:default-active? #t，
+;; 由 resolve-active-tools 并入默认集）；实现位于 (liii pi web-search ...) 子库。
 
 (define (web-search-extension api . opt-context)
   (register-tool! api
@@ -20,6 +24,7 @@
       :snippet "Search the web for up-to-date information"
       :guidelines
       '("Use web_search when you need real-time information or external references.")
+      :default-active? #t
     ) ;make-extension-tool-def
   ) ;register-tool!
   "web-search-loaded"

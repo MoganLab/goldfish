@@ -14,6 +14,7 @@
     extension-tool-def-execute
     extension-tool-def-snippet
     extension-tool-def-guidelines
+    extension-tool-def-default-active?
 
     make-extension-flag-def
     extension-flag-def?
@@ -63,7 +64,7 @@
     ;; 1. ExtensionToolDef
     (define-record-type <extension-tool-def>
       (%make-extension-tool-def name description parameters execute snippet
-        guidelines
+        guidelines default-active?
       ) ;%make-extension-tool-def
       extension-tool-def?
       (name extension-tool-def-name)
@@ -72,6 +73,7 @@
       (execute extension-tool-def-execute)
       (snippet extension-tool-def-snippet)
       (guidelines extension-tool-def-guidelines)
+      (default-active? extension-tool-def-default-active?)
     ) ;define-record-type
 
     (define* (make-extension-tool-def name
@@ -80,6 +82,7 @@
                execute
                (snippet "")
                (guidelines '())
+               (default-active? #f)
              ) ;make-extension-tool-def
       (%must-non-empty-str "make-extension-tool-def"
         name
@@ -87,8 +90,13 @@
       ) ;%must-non-empty-str
       (%must-str "make-extension-tool-def" description "description must be a string")
       (%must-proc "make-extension-tool-def" execute "execute must be a procedure")
-      (%make-extension-tool-def name description parameters execute snippet
+      (%make-extension-tool-def name
+        description
+        parameters
+        execute
+        snippet
         guidelines
+        (and default-active? #t)
       ) ;%make-extension-tool-def
     ) ;define*
 

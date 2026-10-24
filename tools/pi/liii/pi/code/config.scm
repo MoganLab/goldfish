@@ -149,16 +149,38 @@
       ) ;let
     ) ;define
 
-    (define (resolve-active-tools parsed-args settings)
+    ;; 有效默认基础集 = 内置默认 + 注册表中声明 :default-active? 的扩展工具
+    ;; （去重、保持顺序；reg 缺省动态取当前/默认注册表，传 #f 同样动态取）
+    (define (%effective-base-tools reg)
+      (let* ((r (or reg (current-extension-registry) (default-extension-registry)))
+             (ext-names (if r (extension-registry-default-tool-names r) '()))
+            ) ;
+        (let loop
+          ((rest (append PI_DEFAULT_TOOL_NAMES ext-names)) (seen '()) (acc '()))
+          (if (null? rest)
+            (reverse acc)
+            (let ((n (car rest)))
+              (if (member n seen)
+                (loop (cdr rest) seen acc)
+                (loop (cdr rest) (cons n seen) (cons n acc))
+              ) ;if
+            ) ;let
+          ) ;if
+        ) ;let
+      ) ;let*
+    ) ;define
+
+    (define* (resolve-active-tools parsed-args settings (reg #f))
       (if (pi-args-ref parsed-args 'no-tools)
         '()
         (let* ((cli-tools (pi-args-ref parsed-args 'tools))
                (cli-exclude (pi-args-ref parsed-args 'exclude-tools))
                (settings-tools (cdr (assoc 'default-tools settings)))
+               (base-tools (%effective-base-tools reg))
                (base-tools
                  (cond
                   ((and (string? cli-tools) (not (string-null? (string-trim-both cli-tools))))
-                   (parse-tools-selection cli-tools)
+                   (parse-tools-selection cli-tools base-tools)
                   ) ;
                   ((pair? settings-tools)
                    (if
@@ -167,11 +189,11 @@
                          (string-starts? (car settings-tools) "-")
                        ) ;or
                      ) ;and
-                     (parse-tools-selection (string-join settings-tools ","))
+                     (parse-tools-selection (string-join settings-tools ",") base-tools)
                      settings-tools
                    ) ;if
                   ) ;
-                  (else PI_DEFAULT_TOOL_NAMES)
+                  (else base-tools)
                  ) ;cond
                ) ;base-tools
               ) ;
@@ -182,7 +204,7 @@
           ) ;if
         ) ;let*
       ) ;if
-    ) ;define
+    ) ;define*
 
     (define (%make-extension-emitter)
       ;; 动态取当前注册表：与 with-extension-registry 切换语义保持一致

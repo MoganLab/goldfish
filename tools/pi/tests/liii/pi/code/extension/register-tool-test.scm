@@ -20,7 +20,40 @@
   (check (procedure? (extension-tool-def-execute tool)) => #t)
   (check (extension-tool-def-snippet tool) => "sample_calc(x=1)")
   (check (extension-tool-def-guidelines tool) => '("use for math"))
+  ;; 未声明时缺省 #f（不默认激活）
+  (check (extension-tool-def-default-active? tool) => #f)
 ) ;let
+
+;; 1b. :default-active? 声明默认激活
+(let ((tool (make-extension-tool-def
+              "always_on"
+              "Tool activated by default"
+              '((type . "object"))
+              (lambda (args) "ok")
+              :default-active? #t)))
+  (check (extension-tool-def-default-active? tool) => #t))
+
+;; 1c. extension-registry-default-tool-names：只收 default-active? 的工具，按注册顺序
+(let* ((api (make-extension-api))
+       (t1 (make-extension-tool-def "d1" "d1" '((type . "object")) (lambda (a) 1)
+              :default-active? #t))
+       (t2 (make-extension-tool-def "opt2" "opt2" '((type . "object")) (lambda (a) 2)))
+       (t3 (make-extension-tool-def "d3" "d3" '((type . "object")) (lambda (a) 3)
+              :default-active? #t)))
+  (register-tool! api t1)
+  (register-tool! api t2)
+  (register-tool! api t3)
+  (check (extension-registry-default-tool-names api) => '("d1" "d3")))
+
+;; 1d. alist 注册同样支持 default-active? 字段
+(let* ((api (make-extension-api))
+       (tool-alist (list (cons 'name "alist_dflt")
+                         (cons 'description "alist default tool")
+                         (cons 'parameters '((type . "object")))
+                         (cons 'execute (lambda (args) 42))
+                         (cons 'default-active? #t))))
+  (register-tool! api tool-alist)
+  (check (extension-registry-default-tool-names api) => '("alist_dflt")))
 
 ;; 2. register-tool! 注册 ExtensionToolDef
 (let* ((api (make-extension-api))

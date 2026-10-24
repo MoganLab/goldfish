@@ -164,26 +164,28 @@
 ;; Tool Registry & Dispatcher
 ;; ============================================================
 
-;; web_search 由内置扩展提供，默认启用；不在内置工具全集 PI_ALL_TOOL_NAMES
-(check PI_DEFAULT_TOOL_NAMES => '("read" "bash" "edit" "write" "web_search"))
+;; 默认集不含扩展工具（web_search 由扩展 :default-active? 声明并入，不写死在核心）
+(check PI_DEFAULT_TOOL_NAMES => '("read" "bash" "edit" "write"))
 (check (length PI_ALL_TOOL_NAMES) => 7)
 (check-true (not (member "web_search" PI_ALL_TOOL_NAMES)))
 
 ;; parse-tools-selection
-(check (parse-tools-selection #f) => '("read" "bash" "edit" "write" "web_search"))
+(check (parse-tools-selection #f) => '("read" "bash" "edit" "write"))
 (check (parse-tools-selection "read,grep") => '("read" "grep"))
-(check (parse-tools-selection "+grep,-edit") => '("read" "bash" "write" "web_search" "grep"))
-;; +web_search 幂等：已在默认集
+(check (parse-tools-selection "+grep,-edit") => '("read" "bash" "write" "grep"))
 (check (parse-tools-selection "+web_search")
   =>
   '("read" "bash" "edit" "write" "web_search")
 ) ;check
-;; -web_search 可从默认集移除（也可用 --exclude-tools web_search）
 (check (parse-tools-selection "-web_search")
   =>
   '("read" "bash" "edit" "write")
 ) ;check
 (check (parse-tools-selection "web_search") => '("web_search"))
+;; 可选 base-names：delta 基于指定基础集（内置默认 + 扩展默认工具）
+(check (parse-tools-selection "+grep" '("read" "bash" "edit" "write" "web_search"))
+  => '("read" "bash" "edit" "write" "web_search" "grep"))
+(check (parse-tools-selection #f '("read" "web_search")) => '("read" "web_search"))
 
 ;; exclude-tools-from-list
 (check (exclude-tools-from-list '("read" "bash" "edit" "write") #f)

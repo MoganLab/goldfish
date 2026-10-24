@@ -14,6 +14,7 @@
   ) ;import
   (export normalize-tool-def register-tool! extension-register-tool!
     find-extension-tool extension-registry-tools-list
+    extension-registry-default-tool-names
   ) ;export
   (begin
 
@@ -24,8 +25,9 @@
                (pi-tool-definition-description def)
                (pi-tool-definition-parameters def)
                (pi-tool-definition-execute def)
-               :snippet    (pi-tool-definition-snippet def)
-               :guidelines (pi-tool-definition-guidelines def)
+               :snippet         (pi-tool-definition-snippet def)
+               :guidelines      (pi-tool-definition-guidelines def)
+               :default-active? #f
              ) ;make-extension-tool-def
             ) ;
             ((pair? def)
@@ -35,8 +37,16 @@
                    (exec (cond ((assq 'execute def) => cdr) (else #f)))
                    (snip (cond ((assq 'snippet def) => cdr) (else "")))
                    (guides (cond ((assq 'guidelines def) => cdr) (else '())))
+                   (dflt (cond ((assq 'default-active? def) => cdr) (else #f)))
                   ) ;
-               (make-extension-tool-def name desc params exec :snippet snip :guidelines guides)
+               (make-extension-tool-def name
+                 desc
+                 params
+                 exec
+                 :snippet         snip
+                 :guidelines      guides
+                 :default-active? dflt
+               ) ;make-extension-tool-def
              ) ;let
             ) ;
             (else (type-error "tool-def must be an extension-tool-def or alist"))
@@ -64,6 +74,27 @@
 
     (define (extension-registry-tools-list target)
       (extension-registry-tools (target->registry target))
+    ) ;define
+
+    ;; 注册表中声明 default-active? 的工具名（按注册顺序），
+    ;; 供 resolve-active-tools 并入默认工具集
+    (define (extension-registry-default-tool-names target)
+      (let* ((reg (target->registry target)) (tools (extension-registry-tools reg)))
+        (reverse
+          (let loop
+            ((rest tools) (acc '()))
+            (if (null? rest)
+              acc
+              (loop (cdr rest)
+                (if (extension-tool-def-default-active? (car rest))
+                  (cons (extension-tool-def-name (car rest)) acc)
+                  acc
+                ) ;if
+              ) ;loop
+            ) ;if
+          ) ;let
+        ) ;reverse
+      ) ;let*
     ) ;define
 
   ) ;begin

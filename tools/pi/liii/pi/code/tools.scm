@@ -45,9 +45,10 @@
   ) ;export
   (begin
 
-    ;; web_search 由内置扩展 extensions/web-search.scm 提供，默认启用；
-    ;; 扩展未加载时该名字在请求构建阶段被静默过滤（tool-resolver 返回 #f）
-    (define PI_DEFAULT_TOOL_NAMES '("read" "bash" "edit" "write" "web_search"))
+    ;; 内置默认工具集；扩展工具可通过 register-tool! 声明 :default-active? #t
+    ;; 并入默认集（见 config.scm 的 resolve-active-tools 与 registry 的
+    ;; extension-registry-default-tool-names）——核心不写死扩展工具名
+    (define PI_DEFAULT_TOOL_NAMES '("read" "bash" "edit" "write"))
     (define PI_ALL_TOOL_NAMES '("read" "bash" "edit" "write" "grep" "find" "ls"))
 
     (define (%apply-delta-item item current)
@@ -73,20 +74,20 @@
       ) ;let
     ) ;define
 
-    (define (parse-tools-selection spec)
+    (define* (parse-tools-selection (spec #f) (base-names PI_DEFAULT_TOOL_NAMES))
       (if (or (not spec) (string-null? (string-trim-both spec)))
-        PI_DEFAULT_TOOL_NAMES
+        base-names
         (let ((items (map string-trim-both (string-split spec ","))))
           (if
             (and (pair? items)
               (or (string-starts? (car items) "+") (string-starts? (car items) "-"))
             ) ;and
-            (%parse-delta-tools items PI_DEFAULT_TOOL_NAMES)
+            (%parse-delta-tools items base-names)
             items
           ) ;if
         ) ;let
       ) ;if
-    ) ;define
+    ) ;define*
 
     (define (exclude-tools-from-list tools-list spec)
       (if (or (not spec) (not (string? spec)) (string-null? (string-trim-both spec)))

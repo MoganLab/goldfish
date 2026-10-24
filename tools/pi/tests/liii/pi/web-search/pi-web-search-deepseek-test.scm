@@ -4,7 +4,7 @@
         (liii json)
         (liii subprocess)
         (liii pi code extension)
-        (liii pi web-search)
+        (liii pi web-search execute)
         (liii pi web-search config)
         (liii pi web-search deepseek)
         (liii pi code tools))

@@ -52,7 +52,8 @@ jq -r 'select(.type=="tool_execution_start") | "\(.toolName) \(.args)"' events.j
 ## 工具【可用】
 
 ```bash
-# 默认激活 read/bash/edit/write/web_search（web_search 由内置扩展提供）；grep/find/ls 需显式开启
+# 默认激活 read/bash/edit/write/web_search；grep/find/ls 需显式开启
+# （web_search 由 web-search 扩展注册时声明 :default-active? #t 并入默认集，核心不写死）
 timeout 300 bin/gf pi -p --tools read,bash,grep,find,ls "统计 tests/ 下测试文件数量"
 
 # web_search 已默认启用，无需 --tools 指定（详见内置扩展章节）
@@ -136,7 +137,9 @@ timeout 300 bin/gf pi -p --code-review --staged
 
 移植自 [ttttmr/pi-web-search](https://github.com/ttttmr/pi-web-search)，以内置扩展形式提供
 `web_search` 工具（`extensions/web-search.scm` 注册，实现库 `(liii pi web-search)`）。
-**默认启用**，无需 `--tools` 指定；`--exclude-tools web_search` 可关闭。
+**默认启用**（扩展注册时声明 `:default-active? #t` 并入默认集，核心默认集不写死扩展
+工具名），无需 `--tools` 指定；`--exclude-tools web_search` 可关闭；
+settings.json 显式 `defaultTools` 完整列表时以用户配置为准（不合并扩展默认）。
 
 ```bash
 # 默认已启用，直接联网搜索（Gemini Google Search grounding，回答附 Sources 引用）

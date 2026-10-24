@@ -4,6 +4,7 @@
 (import (liii check)
         (liii string)
         (liii pi code args) (liii pi code config) (liii pi code session)
+        (liii pi code extension)
         (liii pi code args)
         (liii pi code config))
 
@@ -93,13 +94,33 @@
   (check-catch 'pi-config-error
     (resolve-pi-config args env)))
 
-;; 8. 工具增量配置测试（settings 增删工具）
-(let ((settings-with-delta '((default-tools . ("+grep" "-write"))))
-      (args-empty (parse-pi-args '()))
-      (args-override (parse-pi-args '("--tools" "read,bash"))))
-  (check (resolve-active-tools args-empty settings-with-delta)
+;; 8. 工具增量配置测试（settings 增删工具）：delta 基于内置默认 + 扩展 default-active 声明
+(let* ((settings-with-delta '((default-tools . ("+grep" "-write"))))
+       (args-empty (parse-pi-args '()))
+       (args-override (parse-pi-args '("--tools" "read,bash")))
+       ;; 注册了 web-search 扩展（:default-active? #t）的注册表
+       (api-ws (make-extension-api))
+       (_ (pi-load-extension
+            (cond
+              ((file-exists? "tools/pi/extensions/web-search.scm")
+               "tools/pi/extensions/web-search.scm")
+              ((file-exists? "extensions/web-search.scm") "extensions/web-search.scm")
+              (else "../../extensions/web-search.scm")
+            ) ;cond
+            api-ws
+          ) ;pi-load-extension
+       )
+       ;; 无任何 default-active 扩展的空注册表
+       (api-empty (make-extension-api))
+      ) ;
+  ;; 扩展声明 default-active? 的 web_search 并入默认集后再应用 delta
+  (check (resolve-active-tools args-empty settings-with-delta api-ws)
     => '("read" "bash" "edit" "web_search" "grep"))
-  (check (resolve-active-tools args-override settings-with-delta)
+  ;; 无扩展注册表时默认集不含 web_search
+  (check (resolve-active-tools args-empty settings-with-delta api-empty)
+    => '("read" "bash" "edit" "grep"))
+  ;; 显式 --tools 列表以用户为准，不合并扩展默认
+  (check (resolve-active-tools args-override settings-with-delta api-ws)
     => '("read" "bash")))
 
 ;; 8.1 --exclude-tools 排除测试与排除优先
@@ -113,11 +134,20 @@
   (check (resolve-active-tools args-unknown settings) => '("read" "edit" "write"))
   (check (resolve-active-tools args-spaces settings) => '("read" "write")))
 
-;; 8.2 resolve-pi-config 端到端 tools 解析验证
+;; 8.2 resolve-pi-config 端到端：settings 显式 defaultTools 完整列表优先，不合并扩展默认
 (let* ((args (parse-pi-args '("--exclude-tools" "bash,write,edit")))
        (env `(("PI_CODING_AGENT_DIR" . ,FIXTURE_DIR)))
        (cfg (resolve-pi-config args env)))
   (check (cdr (assoc 'tools cfg)) => '("read")))
+
+;; 8.2b resolve-pi-config 端到端：无 settings defaultTools 时扩展 default-active 并入默认集
+(let* ((args (parse-pi-args '("--exclude-tools" "bash,write,edit")))
+       (env `(("PI_CODING_AGENT_DIR" . ,CONFIG_EMPTY_DIR)))
+       (reg (or (current-extension-registry) (default-extension-registry)))
+       (cfg (resolve-pi-config args env)))
+  ;; 诊断前提：默认注册表含声明 default-active? 的 web_search
+  (check (extension-registry-default-tool-names reg) => '("web_search"))
+  (check (cdr (assoc 'tools cfg)) => '("read" "web_search")))
 
 ;; 8.3 --no-tools 与 --no-builtin-tools 支持与关闭优先
 (let ((args-no-tools (parse-pi-args '("--no-tools")))

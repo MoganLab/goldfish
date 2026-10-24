@@ -41,7 +41,12 @@
     (check (extension-tool-def-guidelines tool)
       => '("Use web_search when you need real-time information or external references.")
     ) ;check
+    ;; 默认启用由扩展声明（:default-active? #t），核心默认集不写死 web_search
+    (check (extension-tool-def-default-active? tool) => #t)
   ) ;let
+
+  ;; 2b. 注册表默认工具名：声明 default-active? 的工具并入默认集
+  (check (extension-registry-default-tool-names api) => '("web_search"))
 
   ;; 3. 注册表内 get-tool-definition / execute-tool-call 可分发 web_search
   (with-extension-registry api

@@ -1,5 +1,5 @@
 (import (liii check)
-  (liii pi web-search)
+  (liii pi web-search schema)
 ) ;import
 
 (check-set-mode! 'report-failed)

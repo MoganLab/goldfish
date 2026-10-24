@@ -1,4 +1,4 @@
-(import (liii check) (liii list) (liii pi web-search))
+(import (liii check) (liii list) (liii pi web-search schema))
 
 (check-set-mode! 'report-failed)
 
