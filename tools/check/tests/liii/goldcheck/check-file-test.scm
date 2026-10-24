@@ -28,28 +28,32 @@
 
 (check-set-mode! 'report-failed)
 
+;; 临时文件一律用 path-write-bytes 二进制写入，精确控制 LF 行尾，
+;; 避免文本端口在 Windows 上把 \n 转写为 \r\n。
+(define (write-test-bytes tmp content)
+  (path-write-bytes (path tmp) (string->utf8 content))
+) ;define
+
+(define (repeat-lines n)
+  (let loop
+    ((i 0) (acc '()))
+    (if (>= i n)
+      (apply string-append (reverse acc))
+      (loop (+ i 1) (cons "(define x 1)\n" acc))
+    ) ;if
+  ) ;let
+) ;define
+
 ;; 1. 干净文件检查通过返回 '()
 (let* ((tmp (path->string (path-join (path-temp-dir) "gf-test-clean.scm"))))
-  (call-with-port (open-output-file tmp)
-    (lambda (p) (display "(define a 1)\n(define b 2)\n" p))
-  ) ;call-with-port
+  (write-test-bytes tmp "(define a 1)\n(define b 2)\n")
   (check (check-file tmp #f) => '())
   (path-unlink tmp #t)
 ) ;let*
 
 ;; 2. 超限文件返回违规项
 (let* ((tmp (path->string (path-join (path-temp-dir) "gf-test-lines-viol.scm"))))
-  (call-with-port (open-output-file tmp)
-    (lambda (p)
-      (let loop
-        ((i 0))
-        (when (< i 405)
-          (display "(define x 1)\n" p)
-          (loop (+ i 1))
-        ) ;when
-      ) ;let
-    ) ;lambda
-  ) ;call-with-port
+  (write-test-bytes tmp (repeat-lines 405))
   (let ((viols (check-file tmp #f)))
     (check (length viols) => 1)
     (check (caar viols) => 'max-file-lines)
@@ -63,28 +67,16 @@
             ) ;string->json
        ) ;cfg
       ) ;
-  (call-with-port (open-output-file tmp)
-    (lambda (p)
-      (let loop
-        ((i 0))
-        (when (< i 20)
-          (display "(define x 1)\n" p)
-          (loop (+ i 1))
-        ) ;when
-      ) ;let
-    ) ;lambda
-  ) ;call-with-port
+  (write-test-bytes tmp (repeat-lines 20))
   (check (check-file tmp cfg) => '())
   (path-unlink tmp #t)
 ) ;let*
 
 ;; 4. export <xxx> 记录类型句法标识 -> define-record-type 违规
 (let* ((tmp (path->string (path-join (path-temp-dir) "gf-test-rec-exp.scm"))))
-  (call-with-port (open-output-file tmp)
-    (lambda (p)
-      (display "(define-library (t)\n  (import (scheme base))\n  (export <foo> make-foo)\n) ;define-library\n" p)
-    ) ;call-with-port
-  ) ;call-with-port
+  (write-test-bytes tmp
+    "(define-library (t)\n  (import (scheme base))\n  (export <foo> make-foo)\n) ;define-library\n"
+  ) ;write-test-bytes
   (let ((viols (check-file tmp #f)))
     (check (length viols) => 1)
     (check (caar viols) => 'define-record-type)

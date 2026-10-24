@@ -61,9 +61,11 @@
     (liii goldcheck collect)
     (liii goldcheck only)
     (liii goldcheck cache)
+    (liii goldcheck report)
   ) ;import
   (export main check-file-lines check-tree-depth check-file check-files
-    make-check-arg-parser format-violation display-help
+    make-check-arg-parser format-violation display-help violation-report-lines
+    violation-display-hint
   ) ;export
   (begin
 
@@ -147,14 +149,30 @@
       ) ;if
     ) ;define
 
+    (define (check-file-rule-no-crlf file-path cfg acc)
+      (if (check-rule-enabled? cfg "no-crlf")
+        (if (file-excluded? file-path (check-rule-excludes cfg "no-crlf"))
+          acc
+          (let ((viol (check-no-crlf file-path)))
+            (unless viol
+              (rule-cache-touch "no-crlf" 0 file-path)
+            ) ;unless
+            (if viol (cons viol acc) acc)
+          ) ;let
+        ) ;if
+        acc
+      ) ;if
+    ) ;define
+
     (define (check-file file-path cfg)
       "检查单个文件是否违反启用的度量规则。"
       (let* ((acc1 (check-file-rule-lines file-path cfg '()))
              (acc2 (check-file-rule-depth file-path cfg acc1))
              (acc3 (check-file-rule-record-export file-path cfg acc2))
              (acc4 (check-file-rule-layer file-path cfg acc3))
+             (acc5 (check-file-rule-no-crlf file-path cfg acc4))
             ) ;
-        (reverse acc4)
+        (reverse acc5)
       ) ;let*
     ) ;define
 
@@ -177,7 +195,8 @@
     ) ;define
 
     (define %all-rule-names
-      '("max-file-lines" "max-tree-depth" "define-record-type" "layer-order")
+      '("max-file-lines" "max-tree-depth" "define-record-type" "layer-order"
+        "no-crlf")
     ) ;define
 
     (define (%rule-with-enabled rule enabled)
@@ -227,6 +246,7 @@
                          ((string=? rule-name "max-tree-depth") (check-rule-limit cfg rule-name))
                          ;; 内容哈希缓存键段：无阈值规则用 0 占位
                          ((string=? rule-name "define-record-type") 0)
+                         ((string=? rule-name "no-crlf") 0)
                          (else #f)
                    ) ;cond
             ) ;limit
@@ -254,42 +274,6 @@
       ) ;let
     ) ;define
 
-    (define (format-rule-line ok name elapsed)
-      (string-append "  ["
-        (if ok "OK    " "FAILED")
-        "] "
-        name
-        (make-string (max 1 (- 17 (string-length name))) #\space)
-        (format #f "~,3fs" elapsed)
-      ) ;string-append
-    ) ;define
-
-    (define (display-rule-result result)
-      (display (format-rule-line (cadr result) (car result) (caddr result)))
-      (newline)
-    ) ;define
-
-    (define (report-and-exit violations total-elapsed)
-      (display (format-rule-line (zero? (vector-length violations)) "all" total-elapsed)
-      ) ;display
-      (newline)
-      (if (zero? (vector-length violations))
-        (exit 0)
-        (begin
-          (display (string-append "Check failed: "
-                     (number->string (vector-length violations))
-                     " violation(s) found"
-                   ) ;string-append
-          ) ;display
-          (newline)
-          (vector-for-each (lambda (v) (display (format-violation v)) (newline))
-            violations
-          ) ;vector-for-each
-          (exit 1)
-        ) ;begin
-      ) ;if
-    ) ;define
-
     (define (main)
       (set-goldtool-jobs! (go-worker-count))
       (let ((parser (make-check-arg-parser)))
@@ -305,17 +289,28 @@
                  (files (resolve-target-files parser))
                 ) ;
             (if only
-              (let ((result (run-rule-check files cfg only)))
+              (let* ((rule-files (if (string=? only "no-crlf") (resolve-no-crlf-files parser cfg) files)
+                     ) ;rule-files
+                     (result (run-rule-check rule-files cfg only))
+                    ) ;
                 (display-rule-result result)
                 (report-and-exit (cadddr result) (caddr result))
-              ) ;let
+              ) ;let*
               (let* ((rules (enabled-rule-names cfg0))
-                     (results (map (lambda (rule) (run-rule-check files cfg0 rule)) rules))
+                     (no-crlf-files (resolve-no-crlf-files parser cfg0))
+                     (results
+                       (map
+                         (lambda (rule)
+                           (run-rule-check (if (string=? rule "no-crlf") no-crlf-files files) cfg0 rule)
+                         ) ;lambda
+                         rules
+                       ) ;map
+                     ) ;results
                      (all-violations (vector-concatenate (map cadddr results)))
                      (total-elapsed (apply + (map caddr results)))
                     ) ;
                 (for-each display-rule-result results)
-                (report-and-exit all-violations total-elapsed)
+                (report-and-exit all-violations total-elapsed 5)
               ) ;let*
             ) ;if
           ) ;let*

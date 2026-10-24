@@ -46,4 +46,10 @@
   ) ;check-true
 ) ;let*
 
+;; 4. 格式化 no-crlf 违规（含行号）
+(let* ((viol (list 'no-crlf "foo/bar.scm" 3)) (msg (format-violation viol)))
+  (check-true (string-contains? msg "foo/bar.scm:3: no-crlf: CRLF line ending detected (expected LF)")
+  ) ;check-true
+) ;let*
+
 (check-report)
