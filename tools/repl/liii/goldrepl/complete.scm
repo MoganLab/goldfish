@@ -77,36 +77,21 @@
       (filter (lambda (entry) (string-starts? (car entry) prefix)) *repl-symbols*)
     ) ;define
 
+    (define (%repl-word-start text k)
+      (let ((j (string-index-right text (lambda (c) (not (%repl-symbol-char? c))) 0 k)))
+        (if j (+ j 1) 0)
+      ) ;let
+    ) ;define
+
     (define (%repl-word-at text col)
       (let ((k (min col (string-length text))))
-        (let loop
-          ((i k))
-          (if
-            (and (> i 0) (%repl-symbol-char? (string-ref text (- i 1))))
-            (loop (- i 1))
-            (substring text i k)
-          ) ;if
-        ) ;let
+        (substring text (%repl-word-start text k) k)
       ) ;let
     ) ;define
 
     (define (%repl-replace-word text col word replacement)
-      (let* ((k (min col (string-length text)))
-             (start
-               (let loop
-                 ((i k))
-                 (if
-                   (and (> i 0) (%repl-symbol-char? (string-ref text (- i 1))))
-                   (loop (- i 1))
-                   i
-                 ) ;if
-               ) ;let
-             ) ;start
-            ) ;
-        (string-append (substring text 0 start)
-          replacement
-          (substring text k (string-length text))
-        ) ;string-append
+      (let* ((k (min col (string-length text))) (start (%repl-word-start text k)))
+        (string-append (substring text 0 start) replacement (substring text k))
       ) ;let*
     ) ;define
 

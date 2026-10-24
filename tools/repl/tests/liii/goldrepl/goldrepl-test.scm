@@ -17,6 +17,16 @@
 (check (%repl-word-at "" 0) => "")
 ;; 光标位置超出文本长度时按文本末尾处理
 (check (%repl-word-at "abc" 100) => "abc")
+;; 光标在词中间时只取光标左侧部分
+(check (%repl-word-at "string-ap" 6) => "string")
+
+;; %repl-replace-word：替换光标左侧的词，保留其余部分
+(check (%repl-replace-word "(map string- 123)" 12 "string-" "string-append")
+  =>
+  "(map string-append 123)"
+) ;check
+;; 光标位置超出文本长度时按文本末尾处理
+(check (%repl-replace-word "abc" 100 "abc" "xyz") => "xyz")
 
 ;; %repl-completions：前缀补全
 (%repl-update-symbol-cache!)
@@ -217,6 +227,16 @@
 ) ;let
 (let ((hl (%repl-highlight-line "(display \"你好世界\")")))
   (check-true (string-contains hl "你好世界"))
+) ;let
+
+;; 语法高亮边界测试：#t/#f 常量、转义引号、未闭合字符串
+(check-true (string-contains (%repl-highlight-line "(if #t 1 2)") "\x1b;[34m#t\x1b;[0m"))
+(let ((hl (%repl-highlight-line "(display \"a\\\"b\")")))
+  (check-true (string-contains hl "a\\\"b"))
+) ;let
+(let ((hl (%repl-highlight-line "(display \"abc")))
+  ;; 未闭合字符串不崩溃，剩余部分整体作为字符串样式
+  (check-true (string-contains hl "\x1b;[32m\"abc\x1b;[0m"))
 ) ;let
 
 ;; 会话值注册测试：%repl-register-value!

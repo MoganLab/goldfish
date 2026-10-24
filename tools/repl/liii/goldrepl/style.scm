@@ -18,7 +18,6 @@
   (import (scheme base)
     (scheme char)
     (liii base)
-    (liii list)
     (liii string)
     (liii ascii)
     (liii goldrepl complete)
@@ -68,91 +67,68 @@
         "unquote-splicing")
     ) ;define
 
-    (define (%repl-highlight-string chars n i loop-k)
+    (define (%repl-highlight-string line n i loop-k)
       (let scan
         ((j (+ i 1)))
         (cond
-         ((>= j n) (loop-k n (%repl-styled "string" (list->string (drop chars i)))))
-         ((char=? (list-ref chars j) #\\) (scan (+ j 2)))
-         ((char=? (list-ref chars j) #\")
-          (let ((s (list->string (take (drop chars i) (+ 1 (- j i))))))
-            (loop-k (+ j 1) (%repl-styled "string" s))
-          ) ;let
+         ((>= j n) (loop-k n (%repl-styled "string" (substring line i))))
+         ((char=? (string-ref line j) #\\) (scan (+ j 2)))
+         ((char=? (string-ref line j) #\")
+          (loop-k (+ j 1) (%repl-styled "string" (substring line i (+ j 1))))
          ) ;
          (else (scan (+ j 1)))
         ) ;cond
       ) ;let
     ) ;define
-    (define (%repl-highlight-token chars n i loop-k)
-      (let scan
-        ((j i))
-        (if (and (< j n) (%repl-symbol-char? (list-ref chars j)))
-          (scan (+ j 1))
-          (let ((token (list->string (take (drop chars i) (- j i)))))
-            (loop-k j
-              (if (member token *repl-keywords*) (%repl-styled "keyword" token) token)
-            ) ;loop-k
-          ) ;let
-        ) ;if
-      ) ;let
+    (define (%repl-highlight-token line i loop-k)
+      (let* ((j (or (string-skip line %repl-symbol-char? i) (string-length line)))
+             (token (substring line i j))
+            ) ;
+        (loop-k j
+          (if (member token *repl-keywords*) (%repl-styled "keyword" token) token)
+        ) ;loop-k
+      ) ;let*
     ) ;define
-    (define (%repl-highlight-number chars n i loop-k)
-      (let scan
-        ((j i))
-        (if (and (< j n) (char-numeric? (list-ref chars j)))
-          (scan (+ j 1))
-          (let ((num (list->string (take (drop chars i) (- j i)))))
-            (loop-k j (%repl-styled "number" num))
-          ) ;let
-        ) ;if
-      ) ;let
+    (define (%repl-highlight-number line i loop-k)
+      (let* ((j (or (string-skip line char-numeric? i) (string-length line)))
+             (num (substring line i j))
+            ) ;
+        (loop-k j (%repl-styled "number" num))
+      ) ;let*
     ) ;define
     (define (%repl-highlight-line line)
-      (let ((chars (string->list line)) (n (string-length line)))
+      (let ((n (string-length line)))
         (let loop
           ((i 0) (acc '()))
           (if (>= i n)
             (apply string-append (reverse acc))
-            (let ((c (list-ref chars i)))
+            (let ((c (string-ref line i)))
               (cond
                ((char=? c #\;)
                 (apply string-append
-                  (reverse
-                    (cons (%repl-styled "comment" (list->string (drop chars i))) acc)
-                  ) ;reverse
+                  (reverse (cons (%repl-styled "comment" (substring line i)) acc))
                 ) ;apply
                ) ;
                ((char=? c #\")
-                (%repl-highlight-string chars
+                (%repl-highlight-string line
                   n
                   i
                   (lambda (next-i piece) (loop next-i (cons piece acc)))
                 ) ;%repl-highlight-string
                ) ;
-               ((and (char=? c #\#)
-                  (< (+ i 1) n)
-                  (let ((c2 (list-ref chars (+ i 1))))
-                    (or (char=? c2 #\t) (char=? c2 #\f))
-                  ) ;let
-                ) ;and
-                (loop (+ i 2)
-                  (cons
-                    (%repl-styled "constant" (list->string (take (drop chars i) 2)))
-                    acc
-                  ) ;cons
-                ) ;loop
+               ((and (char=? c #\#) (< (+ i 1) n) (memv (string-ref line (+ i 1)) '(#\t
+                                                                                    #\f)))
+                (loop (+ i 2) (cons (%repl-styled "constant" (substring line i (+ i 2))) acc))
                ) ;
                ((not (ascii-char? c)) (loop (+ i 1) (cons (string c) acc)))
                ((char-numeric? c)
-                (%repl-highlight-number chars
-                  n
+                (%repl-highlight-number line
                   i
                   (lambda (next-i piece) (loop next-i (cons piece acc)))
                 ) ;%repl-highlight-number
                ) ;
                ((%repl-symbol-char? c)
-                (%repl-highlight-token chars
-                  n
+                (%repl-highlight-token line
                   i
                   (lambda (next-i piece) (loop next-i (cons piece acc)))
                 ) ;%repl-highlight-token
