@@ -17,13 +17,10 @@
     (liii pi code extension registry)
     (liii pi code modes output)
     (liii pi code modes flow)
-    (liii pi code modes review)
-    (liii pi code modes simplify)
   ) ;import
   (export display-stderr handle-print-result emit-json-event dispatch-pi
     prepare-system-prompt persist-initial-user-msg! run-agent-loop-with-timeout
-    run-session-flow run-compact-flow run-code-review-flow run-simplify-flow
-    resolve-app-mode
+    run-session-flow run-compact-flow resolve-app-mode
   ) ;export
   (begin
 

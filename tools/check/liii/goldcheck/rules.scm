@@ -47,8 +47,7 @@
       (newline)
       (display "Rules:")
       (newline)
-      (display "  layer-order            域间依赖与域内层序约束"
-      ) ;display
+      (display "  layer-order            域间依赖与域内层序约束")
       (newline)
       (display "  max-file-lines         单文件行数限制（默认 <= 400 行，含空行与注释）"
       ) ;display

@@ -8,8 +8,8 @@
   (liii string)
   (liii pi code extension)
   (liii pi code args query)
-  (liii pi code simplify)
-  (liii pi code modes simplify)
+  (liii pi simplify)
+  (liii pi simplify modes)
 ) ;import
 
 (define (simplify-extension api . opt-context)

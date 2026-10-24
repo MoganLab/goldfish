@@ -8,8 +8,8 @@
   (liii string)
   (liii pi code extension)
   (liii pi code args query)
-  (liii pi code review)
-  (liii pi code modes review)
+  (liii pi review)
+  (liii pi review modes)
 ) ;import
 
 (define (code-review-extension api . opt-context)
