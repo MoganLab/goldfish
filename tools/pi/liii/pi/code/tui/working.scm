@@ -21,8 +21,8 @@
     ) ;define
     (define %working-frame-interval-ms 80)
 
-    ;; pi 的 thinking 边框紫色（tmux 实测 RGB 151,118,229）
-    (define %working-color "\x1b;[38;2;151;118;229m")
+    ;; pi 的 thinking 边框紫色（tmux 实测 RGB 151,118,229）；
+    ;; 现由调用方按当前 thinking level 注入颜色，与编辑器边框保持一致
     (define %ansi-reset "\x1b;[0m")
 
     ;; Working 指示器状态：
@@ -61,13 +61,13 @@
     ) ;define
 
     ;; 渲染嵌入编辑器上边框的 Working 行：
-    ;; "── ⠋ Working " 前缀 + 横线填满整行，统一紫色包裹
-    (define (working-border-line ind width)
+    ;; "── ⠋ Working " 前缀 + 横线填满整行，统一用 color 包裹
+    (define (working-border-line ind width color)
       (let* ((prefix (string-append "── " (working-frame ind) " Working "))
              (fill (max 0 (- width (display-width prefix))))
              (dashes (utf8-make-string fill #\─))
             ) ;
-        (string-append %working-color prefix dashes %ansi-reset)
+        (string-append color prefix dashes %ansi-reset)
       ) ;let*
     ) ;define
 

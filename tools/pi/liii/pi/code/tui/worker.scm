@@ -7,11 +7,14 @@
 (define-library (liii pi code tui worker)
   ;; 注意：go worker 线程通过重新 import 库并求值 procedure-source 来执行，
   ;; 只能看到各库的导出绑定，因此 worker 调用链上的内部函数必须全部导出
-  (export make-tui-emit pi-tui-agent-worker pi-tui-run-worker pi-tui-send-event!)
+  (export make-tui-emit pi-tui-agent-worker pi-tui-run-worker pi-tui-send-event!
+    pi-cfg-with-thinking
+  ) ;export
   (import (scheme base)
     (scheme write)
     (scheme process-context)
     (liii go)
+    (liii list)
     (liii string)
     (liii pi code args)
     (liii pi code config)
@@ -87,6 +90,16 @@
       ) ;let
     ) ;define
 
+    ;; 覆盖 cfg alist 的 thinking-level 项（会话内 shift+tab 切换后生效）
+    (define (pi-cfg-with-thinking cfg tl)
+      (cons (cons 'thinking-level tl)
+        (filter
+          (lambda (p) (not (eq? (car p) 'thinking-level)))
+          cfg
+        ) ;filter
+      ) ;cons
+    ) ;define
+
     ;; 在 (liii go) 的后台独立 worker 线程中运行，完全不阻塞前台终端编辑与打字
     (define (pi-tui-run-worker parsed cfg user-text event-chan)
       (catch #t
@@ -120,9 +133,14 @@
         ) ;set-pi-retry-logger!
         (let loop
           ()
-          (let ((text (chan-recv! jobs-chan)))
-            (when text
-              (pi-tui-run-worker parsed cfg text event-chan)
+          ;; job 消息为 (text thinking-level)：会话内切换的级别对下一条消息生效
+          (let ((job (chan-recv! jobs-chan)))
+            (when job
+              (pi-tui-run-worker parsed
+                (pi-cfg-with-thinking cfg (cadr job))
+                (car job)
+                event-chan
+              ) ;pi-tui-run-worker
               (loop)
             ) ;when
           ) ;let

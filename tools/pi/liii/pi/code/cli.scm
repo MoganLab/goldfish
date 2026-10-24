@@ -97,21 +97,25 @@
     ) ;define
 
     ;; TUI footer 右下角显示实际生效的供应商与模型：与后台 worker 内的解析同源同输入
-    ;; （纯本地文件读取，无网络开销），配置解析失败时回退到 CLI 原始参数
+    ;; （纯本地文件读取，无网络开销），配置解析失败时回退到 CLI 原始参数；
+    ;; 返回 (provider model-id thinking-level supports-thinking) 供 make-pi-app 使用
     (define (%tui-footer-info parsed)
       (catch #t
         (lambda ()
           (let* ((cfg (resolve-pi-config parsed (get-environment-variables)))
                  (provider (cdr (or (assoc 'provider cfg) (cons #f "google"))))
                  (model-id (cdr (or (assoc 'model-id cfg) (cons #f "gemini-3.8-flash"))))
-                 (tl (cdr (or (assoc 'thinking-level cfg) (cons #f #f))))
+                 (tl (cdr (or (assoc 'thinking-level cfg) (cons #f "off"))))
+                 (supports (cdr (or (assoc 'supports-thinking cfg) (cons #f #t))))
                 ) ;
-            (list provider (pi-footer-model-label model-id tl))
+            (list provider model-id tl (and supports #t))
           ) ;let*
         ) ;lambda
         (lambda args
           (list (or (pi-args-ref parsed 'provider) "google")
             (or (pi-args-ref parsed 'model) "gemini-3.8-flash")
+            "off"
+            #t
           ) ;list
         ) ;lambda
       ) ;catch
@@ -138,7 +142,13 @@
                  (begin
                    (if (and (stdin-tty?) (stdout-tty?))
                      (let ((info (%tui-footer-info parsed)))
-                       (pi-app-run (make-pi-app :provider (car info) :model (cadr info)))
+                       (pi-app-run (make-pi-app
+                                     :provider          (car info)
+                                     :model             (cadr info)
+                                     :thinking-level    (caddr info)
+                                     :supports-thinking (cadddr info)
+                                   ) ;make-pi-app
+                       ) ;pi-app-run
                      ) ;let
                      (display-pi-help)
                    ) ;if

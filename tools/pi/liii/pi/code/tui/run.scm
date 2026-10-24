@@ -46,6 +46,9 @@
                          (loop)
                        ) ;let
                       ) ;
+                      ;; 按 shift+tab 时：循环切换 thinking level，
+                      ;; footer 右下角标签与编辑器边框/Working 颜色同步更新
+                      ((eq? k 'shift-tab) (pi-app-cycle-thinking! app) (pi-app-render! app) (loop))
                       ((not k)
                        ;; 空闲轮询：busy 时推进 Working spinner 动画（内部自带 80ms 节拍）
                        (pi-app-working-tick! app)

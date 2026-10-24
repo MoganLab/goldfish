@@ -215,6 +215,20 @@
       ) ;lambda
     ) ;define
 
+    ;; 从 models-store 原始条目查询模型是否支持 reasoning；
+    ;; 元数据缺失时默认支持（对齐上游：无模型信息时返回全集级别）
+    (define (%model-supports-thinking? models-store provider model-id)
+      (let loop
+        ((rest (pi-catalog-provider-models models-store provider)))
+        (cond ((null? rest) #t)
+              ((equal? (json-dict-ref (car rest) "id" #f) model-id)
+               (and (json-dict-ref (car rest) "reasoning" #f) #t)
+              ) ;
+              (else (loop (cdr rest)))
+        ) ;cond
+      ) ;let
+    ) ;define
+
     (define (resolve-pi-config parsed-args . opt-env)
       (let* ((env-agent-dir (lookup-env-var "PI_CODING_AGENT_DIR" opt-env))
              (agent-dir (pi-get-agent-dir env-agent-dir))
@@ -277,6 +291,7 @@
                     (else "off")
                    ) ;cond
                  ) ;thinking-level
+                 (supports-thinking (%model-supports-thinking? models-store provider model-id))
                 ) ;
             (list (cons 'agent-dir agent-dir)
               (cons 'provider provider)
@@ -286,6 +301,7 @@
               (cons 'model-meta meta)
               (cons 'models-store models-store)
               (cons 'thinking-level thinking-level)
+              (cons 'supports-thinking supports-thinking)
               (cons 'proxy-url proxy-url)
               (cons 'tools tools)
               (cons 'tool-resolver get-tool-definition)

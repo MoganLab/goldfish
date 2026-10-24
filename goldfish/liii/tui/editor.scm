@@ -41,6 +41,8 @@
     editor-history-list
     editor-history
     editor-set-on-submit!
+    editor-border-color
+    editor-set-border-color!
     ;; buffer 导出
     make-buffer
     buffer?
