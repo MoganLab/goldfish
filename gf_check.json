@@ -13,7 +13,7 @@
       "enabled": true
     },
     "no-crlf": {
-      "enabled": false,
+      "enabled": true,
       "suffix": ["scm", "json", "c", "cpp", "h", "hpp", "cc", "cxx"],
       "path": ["goldfish", "tests", "tools", "demo", "src", "xmake"]
     },
