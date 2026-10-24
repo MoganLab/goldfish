@@ -5,7 +5,7 @@
 ;;
 
 (define-library (liii pi code tui footer)
-  (export make-pi-footer pi-footer? format-cwd-for-footer)
+  (export make-pi-footer pi-footer? format-cwd-for-footer pi-footer-model-label)
   (import (scheme base)
     (liii string)
     (liii os)
@@ -93,12 +93,22 @@
       ) ;let*
     ) ;define
 
+    ;; 组装 footer 右下角的模型显示串：thinking 为 off 或缺失时只显示 model-id
+    (define (pi-footer-model-label model-id thinking-level)
+      (let ((tl (if (string? thinking-level) (string-trim-both thinking-level) "")))
+        (if (or (string-null? tl) (string=? tl "off"))
+          model-id
+          (string-append model-id " • " tl)
+        ) ;if
+      ) ;let
+    ) ;define
+
     (define (make-pi-footer . args)
       (let* ((home (or (%keyword-value :home args #f) (%default-home)))
              (cwd (%keyword-value :cwd args (getcwd)))
              (branch (%keyword-value :branch args #f))
-             (provider (%keyword-value :provider args "google"))
-             (model (%keyword-value :model args "gemini-3.8-flash • medium"))
+             (provider (or (%keyword-value :provider args #f) "google"))
+             (model (or (%keyword-value :model args #f) "gemini-3.8-flash"))
              (stats (%keyword-value :stats args "0.0%/1.0M (auto)"))
              (comp (make-component
                      :render
