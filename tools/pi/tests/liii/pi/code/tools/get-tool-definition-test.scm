@@ -68,4 +68,31 @@
         (check (pi-tool-definition-snippet def) => "alist()")
         (check (pi-tool-definition-guidelines def) => '("alist guideline"))))))
 
+;; 5. current-extension-registry 未设置时回退到 default-extension-registry：
+;; TUI worker 会话（(liii go) 独立 s7 会话）没有 with-extension-registry 动态作用域，
+;; 扩展工具必须能从默认注册表解析，否则工具 schema 会被静默过滤掉
+(let* ((api (make-extension-api))
+       (_ (register-tool! api
+            (make-extension-tool-def
+              "fallback_tool"
+              "Resolved from default registry"
+              '((type . "object"))
+              (lambda (args) "fb"))))
+       (_ (set-default-extension-registry! api))
+       (def (get-tool-definition "fallback_tool")))
+  (check-true (pi-tool-definition? def))
+  (check (pi-tool-definition-name def) => "fallback_tool")
+  (check (pi-tool-definition-description def) => "Resolved from default registry")
+  ;; with-extension-registry 的优先级仍高于 default：作用域内以 current 为准
+  (let ((other (make-extension-api)))
+    (register-tool! other
+      (make-extension-tool-def "fallback_tool" "Shadowed by current" '((type . "object"))
+        (lambda (args) "other")))
+    (with-extension-registry other
+      (lambda ()
+        (check (pi-tool-definition-description (get-tool-definition "fallback_tool"))
+          => "Shadowed by current"))))
+  ;; 恢复默认注册表，避免影响后续测试
+  (set-default-extension-registry! #f))
+
 (check-report)
