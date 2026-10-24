@@ -52,10 +52,6 @@
         "reason": "Unicode 码点映射与编码转换大查表"
       },
       {
-        "path": "goldfish/liii/subprocess.scm",
-        "reason": "子进程创建与流式管道控制库"
-      },
-      {
         "path": "goldfish/liii/string-cursor.scm",
         "reason": "高效字符串游标实现"
       },
@@ -128,10 +124,6 @@
       {
         "path": "goldfish/liii/unicode.scm",
         "reason": "Unicode 码点映射与编码转换大查表"
-      },
-      {
-        "path": "goldfish/liii/subprocess.scm",
-        "reason": "子进程创建与流式管道控制库"
       },
       {
         "path": "goldfish/liii/string-cursor.scm",
