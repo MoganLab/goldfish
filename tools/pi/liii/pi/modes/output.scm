@@ -9,7 +9,7 @@
     (scheme write)
     (liii string)
     (liii list)
-    (liii pi message)
+    (liii pi ai message)
   ) ;import
   (export display-stderr handle-print-result pi-last-message pi-message-field
     pi-last-assistant-text pi-content-text

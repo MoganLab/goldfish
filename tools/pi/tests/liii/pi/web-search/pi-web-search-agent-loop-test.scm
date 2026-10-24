@@ -9,7 +9,7 @@
   (liii sys)
   (liii path)
   (liii subprocess)
-  (liii pi)
+  (liii pi session)
 )
 
 (check-set-mode! 'report-failed)

@@ -11,7 +11,7 @@
         (liii check)
         (liii string)
         (liii os)
-        (liii pi)
+        (liii pi args) (liii pi config) (liii pi session)
         (liii pi args)
         (liii pi config))
 

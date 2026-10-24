@@ -3,7 +3,7 @@
 
 (import (liii check)
         (liii string)
-        (liii pi)
+        (liii pi args) (liii pi prompt)
         (liii pi args))
 
 (check-set-mode! 'report-failed)

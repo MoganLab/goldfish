@@ -1,6 +1,6 @@
 (import (liii check)
         (liii string)
-        (liii pi)
+        (liii pi ai message) (liii pi compact serialize)
         (liii pi compact))
 
 (check-set-mode! 'report-failed)

@@ -23,6 +23,7 @@
   (export display-stderr handle-print-result emit-json-event dispatch-pi
     prepare-system-prompt persist-initial-user-msg! run-agent-loop-with-timeout
     run-session-flow run-compact-flow run-code-review-flow run-simplify-flow
+    resolve-app-mode
   ) ;export
   (begin
 
@@ -87,6 +88,13 @@
          ) ;let
         ) ;if
       ) ;let*
+    ) ;define
+
+    (define (resolve-app-mode mode-option print-flag stdin-tty stdout-tty)
+      (cond ((or (equal? mode-option "json") (eq? mode-option 'json)) 'json)
+            ((or print-flag (not stdin-tty) (not stdout-tty)) 'print)
+            (else 'print)
+      ) ;cond
     ) ;define
 
   ) ;begin

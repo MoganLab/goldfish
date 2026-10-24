@@ -1,5 +1,5 @@
 (import (liii check)
-        (liii pi)
+        (liii pi ai message) (liii pi compact tokens)
         (liii pi compact))
 
 (check-set-mode! 'report-failed)

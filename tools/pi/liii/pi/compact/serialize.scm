@@ -9,7 +9,7 @@
     (scheme write)
     (liii string)
     (liii list)
-    (liii pi message)
+    (liii pi ai message)
   ) ;import
   (export pi-truncate-for-summary pi-serialize-conversation)
   (begin

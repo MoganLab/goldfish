@@ -9,7 +9,7 @@
     (scheme write)
     (liii string)
     (liii list)
-    (liii pi message)
+    (liii pi ai message)
   ) ;import
   (export pi-estimate-content-chars pi-estimate-message-tokens
     pi-context-token-estimate pi-should-compact? pi-compaction-default-settings

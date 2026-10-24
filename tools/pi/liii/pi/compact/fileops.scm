@@ -5,7 +5,12 @@
 ;;
 
 (define-library (liii pi compact fileops)
-  (import (scheme base) (liii string) (liii list) (liii sort) (liii pi message))
+  (import (scheme base)
+    (liii string)
+    (liii list)
+    (liii sort)
+    (liii pi ai message)
+  ) ;import
   (export pi-extract-file-ops pi-compute-file-lists pi-format-file-operations)
   (begin
 

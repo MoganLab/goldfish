@@ -3,7 +3,7 @@
         (liii path)
         (liii list)
         (liii string)
-        (liii pi)
+        (liii pi ai message) (liii pi compact session) (liii pi session)
         (liii pi compact))
 
 (check-set-mode! 'report-failed)

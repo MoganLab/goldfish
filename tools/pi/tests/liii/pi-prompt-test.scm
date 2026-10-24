@@ -1,6 +1,6 @@
 (set! *load-path* (append (list "tools/pi" ".") *load-path*))
 
-(import (liii check) (liii string) (liii path) (liii json) (liii pi))
+(import (liii check) (liii string) (liii path) (liii json) (liii pi ai gemini) (liii pi prompt) (liii pi session))
 
 (check-set-mode! 'report-failed)
 

@@ -8,7 +8,7 @@
   (liii subprocess)
   (liii sys)
   (liii json)
-  (liii pi)
+  (liii pi session)
 ) ;import
 
 (check-set-mode! 'report-failed)

@@ -15,7 +15,7 @@
     (liii uuid)
     (liii sort)
     (liii pi args)
-    (liii pi types)
+    (liii pi ai types)
   ) ;import
   (export encode-cwd-to-session-dirname get-session-dir make-session-file-path
     read-session-history append-session-entry! find-latest-session-file

@@ -15,15 +15,15 @@
     (liii json)
     (liii error)
     (liii pi read)
-    (liii pi template)
+    (liii pi ai template)
     (liii pi args)
     (liii pi tools)
-    (liii pi auth)
-    (liii pi models)
-    (liii pi multikey)
-    (liii pi config types)
-    (liii pi config record)
-    (liii pi event)
+    (liii pi ai auth)
+    (liii pi ai models)
+    (liii pi ai multikey)
+    (liii pi ai config types)
+    (liii pi ai config record)
+    (liii pi ai event)
     (liii pi compact tokens)
   ) ;import
   (export pi-resolve-config-value json-dict-ref pi-get-agent-dir
@@ -255,6 +255,7 @@
               (cons 'thinking-level thinking-level)
               (cons 'proxy-url proxy-url)
               (cons 'tools tools)
+              (cons 'tool-resolver get-tool-definition)
               (cons 'settings settings)
             ) ;list
           ) ;let*

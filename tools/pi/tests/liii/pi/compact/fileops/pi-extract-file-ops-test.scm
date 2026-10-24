@@ -1,6 +1,6 @@
 (import (liii check)
         (liii string)
-        (liii pi)
+        (liii pi ai message) (liii pi compact fileops) (liii pi session)
         (liii pi compact))
 
 (check-set-mode! 'report-failed)

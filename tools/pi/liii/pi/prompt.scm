@@ -17,7 +17,7 @@
     (liii pi prompt context)
   ) ;import
   (export pi-resolve-prompt-input pi-load-project-context pi-build-system-prompt
-    PI_BUILTIN_TOOL_SNIPPETS PI_BUILTIN_TOOL_GUIDELINES
+    PI_BUILTIN_TOOL_SNIPPETS PI_BUILTIN_TOOL_GUIDELINES build-initial-prompt
   ) ;export
   (begin
 
@@ -242,6 +242,23 @@
         (string-join sections "\n\n")
       ) ;let*
     ) ;define*
+
+    (define (build-initial-prompt stdin-content file-text messages)
+      (let* ((has-stdin? (and (string? stdin-content) (not (string-null? stdin-content))))
+             (has-file? (and (string? file-text) (not (string-null? file-text))))
+             (has-msg? (and (pair? messages) (string? (car messages))))
+             (first-msg (if has-msg? (car messages) #f))
+             (rest-msgs (if has-msg? (cdr messages) '()))
+             (parts (append (if has-stdin? (list stdin-content) '())
+                      (if has-file? (list file-text) '())
+                      (if first-msg (list first-msg) '())
+                    ) ;append
+             ) ;parts
+             (initial-message (if (null? parts) "" (apply string-append parts)))
+            ) ;
+        (values initial-message rest-msgs)
+      ) ;let*
+    ) ;define
 
   ) ;begin
 ) ;define-library
