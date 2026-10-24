@@ -154,7 +154,8 @@
           "name": "extensions",
           "libs": [
             "liii pi review",
-            "liii pi simplify"
+            "liii pi simplify",
+            "liii pi extensions"
           ]
         }
       ]

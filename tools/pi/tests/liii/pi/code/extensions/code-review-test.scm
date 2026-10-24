@@ -7,11 +7,11 @@
 
 (define (get-review-path)
   (cond
-    ((file-exists? "tools/pi/liii/pi/code/extensions/code-review.scm")
-     "tools/pi/liii/pi/code/extensions/code-review.scm")
-    ((file-exists? "liii/pi/code/extensions/code-review.scm")
-     "liii/pi/code/extensions/code-review.scm")
-    (else "../../liii/pi/code/extensions/code-review.scm")
+    ((file-exists? "tools/pi/liii/pi/extensions/code-review.scm")
+     "tools/pi/liii/pi/extensions/code-review.scm")
+    ((file-exists? "liii/pi/extensions/code-review.scm")
+     "liii/pi/extensions/code-review.scm")
+    (else "../../liii/pi/extensions/code-review.scm")
   ) ;cond
 ) ;define
 
