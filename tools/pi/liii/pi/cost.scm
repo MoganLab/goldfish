@@ -147,16 +147,12 @@
                        ) ;cond
                ) ;m-list
               ) ;
-          (let loop
-            ((lst m-list))
-            (cond ((null? lst) #f)
-                  ((string=? (%val "id" (car lst) "") model-id)
-                   (let ((c (%val "cost" (car lst) #f)))
-                     (and (pair? c) c)
-                   ) ;let
-                  ) ;
-                  (else (loop (cdr lst)))
-            ) ;cond
+          (let ((m (find (lambda (m) (string=? (%val "id" m "") model-id)) m-list)))
+            (and m
+              (let ((c (%val "cost" m #f)))
+                (and (pair? c) c)
+              ) ;let
+            ) ;and
           ) ;let
         ) ;let*
       ) ;and
@@ -254,19 +250,22 @@
     ) ;define
 
     (define (pi-summarize-session-cost cost-rates usages)
-      (let loop
-        ((us usages) (tot-cost 0.0) (tot-savings 0.0))
-        (if (null? us)
-          (list (cons 'totalCost (%round6 tot-cost))
-            (cons 'totalSavings (%round6 tot-savings))
-          ) ;list
-          (let* ((u (car us))
-                 (c (pi-calculate-cost cost-rates u))
-                 (s (pi-calculate-cache-savings cost-rates u))
-                ) ;
-            (loop (cdr us) (+ tot-cost (%val 'total c 0.0)) (+ tot-savings s))
-          ) ;let*
-        ) ;if
+      (let ((totals
+              (fold
+                (lambda (u acc)
+                  (cons
+                    (+ (car acc) (%val 'total (pi-calculate-cost cost-rates u) 0.0))
+                    (+ (cdr acc) (pi-calculate-cache-savings cost-rates u))
+                  ) ;cons
+                ) ;lambda
+                '(0.0 . 0.0)
+                usages
+              ) ;fold
+            ) ;totals
+           ) ;
+        (list (cons 'totalCost (%round6 (car totals)))
+          (cons 'totalSavings (%round6 (cdr totals)))
+        ) ;list
       ) ;let
     ) ;define
 

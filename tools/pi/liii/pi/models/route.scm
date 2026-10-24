@@ -8,6 +8,7 @@
   (import (scheme base)
     (scheme process-context)
     (liii string)
+    (liii list)
     (liii pi config types)
     (liii pi config record)
     (liii pi models builtin)
@@ -31,13 +32,7 @@
 
     (define (%find-model-in-list models model-id)
       (and (pair? models)
-        (let loop
-          ((lst models))
-          (cond ((null? lst) #f)
-                ((string=? (%dict-ref (car lst) "id" "") model-id) (car lst))
-                (else (loop (cdr lst)))
-          ) ;cond
-        ) ;let
+        (find (lambda (m) (string=? (%dict-ref m "id" "") model-id)) models)
       ) ;and
     ) ;define
 
@@ -94,13 +89,10 @@
                pref-str
               ) ;
               (else
-                (let loop
-                  ((lst PI_SUPPORTED_PROVIDERS))
-                  (cond ((null? lst) #f)
-                        ((pi-provider-has-model? (car lst) model-id models-store) (car lst))
-                        (else (loop (cdr lst)))
-                  ) ;cond
-                ) ;let
+                (find
+                  (lambda (p) (pi-provider-has-model? p model-id models-store))
+                  PI_SUPPORTED_PROVIDERS
+                ) ;find
               ) ;else
         ) ;cond
       ) ;let*

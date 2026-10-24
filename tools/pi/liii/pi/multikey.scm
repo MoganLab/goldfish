@@ -9,6 +9,7 @@
 (define-library (liii pi multikey)
   (import (scheme base)
     (liii string)
+    (liii list)
     (liii path)
     (liii json)
     (liii pi time)
@@ -71,17 +72,7 @@
                            (else '())
                      ) ;cond
                ) ;keys
-               (parsed
-                 (let loop
-                   ((rest keys) (acc '()))
-                   (if (null? rest)
-                     (reverse acc)
-                     (let ((pk (%parse-pool-key (car rest))))
-                       (if pk (loop (cdr rest) (cons pk acc)) (loop (cdr rest) acc))
-                     ) ;let
-                   ) ;if
-                 ) ;let
-               ) ;parsed
+               (parsed (filter (lambda (pk) pk) (map %parse-pool-key keys)))
                (cooldown (%dict-ref pool-raw "cooldownMs" 20000))
                (invalid-cooldown (%dict-ref pool-raw "invalidKeyCooldownMs" 600000))
               ) ;
@@ -114,15 +105,9 @@
                         ) ;cond
              ) ;pool-list
             ) ;
-        (let loop
-          ((rest pool-list))
-          (if (null? rest)
-            #f
-            (let ((pool (%parse-pool (car rest) provider-str)))
-              (if pool pool (loop (cdr rest)))
-            ) ;let
-          ) ;if
-        ) ;let
+        (find (lambda (pool) pool)
+          (map (lambda (raw) (%parse-pool raw provider-str)) pool-list)
+        ) ;find
       ) ;let*
     ) ;define
 
@@ -175,13 +160,7 @@
     ) ;define
 
     (define (%find-pool-key pool key)
-      (let loop
-        ((rest (pi-key-pool-keys pool)))
-        (cond ((null? rest) #f)
-              ((equal? (pi-pool-key-key (car rest)) key) (car rest))
-              (else (loop (cdr rest)))
-        ) ;cond
-      ) ;let
+      (find (lambda (k) (equal? (pi-pool-key-key k) key)) (pi-key-pool-keys pool))
     ) ;define
 
     ;; 每次请求开始时调用：有 pool 时按 cooldown/LRU 重新选取，
