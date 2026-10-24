@@ -24,8 +24,8 @@
     reader-vector-prefix format-reader-pair-fill reader-keyword-block-info
   ) ;export
   (import (liii base)
-    (liii list)
     (srfi srfi-13)
+    (liii vector)
     (liii goldfmt record)
     (liii goldfmt rule)
     (liii goldfmt format atom)
@@ -94,7 +94,7 @@
              ) ;or
             ) ;
             ((or (vector? datum) (byte-vector? datum))
-             (any reader-datum-contains-newline-marker? (vector->list datum))
+             (vector-any reader-datum-contains-newline-marker? datum)
             ) ;
             (else #f)
       ) ;cond
