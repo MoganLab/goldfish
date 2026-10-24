@@ -29,7 +29,7 @@
     scroll-up-one-line! advance-cursor-line! put-char! copy-row-chars!
     %skip-ansi-csi %vt-handle-char!
   ) ;export
-  (import (liii base) (liii error))
+  (import (liii base) (liii error) (liii vector))
   (begin
 
     (define-record-type <virtual-terminal-state>
@@ -50,18 +50,7 @@
     ) ;define
 
     (define (make-screen-lines width height)
-      (let ((v (make-vector height)))
-        (let loop
-          ((i 0))
-          (if (< i height)
-            (begin
-              (vector-set! v i (make-char-row width))
-              (loop (+ i 1))
-            ) ;begin
-            v
-          ) ;if
-        ) ;let
-      ) ;let
+      (vector-unfold (lambda (i) (make-char-row width)) height)
     ) ;define
 
     (define (check-dimension n name)
@@ -76,13 +65,7 @@
 
     (define (scroll-up-one-line! state)
       (let* ((lines (vt-lines state)) (h (vt-height state)) (w (vt-width state)))
-        (let loop
-          ((i 0))
-          (when (< i (- h 1))
-            (vector-set! lines i (vector-ref lines (+ i 1)))
-            (loop (+ i 1))
-          ) ;when
-        ) ;let
+        (vector-copy! lines 0 lines 1 h)
         (vector-set! lines (- h 1) (make-char-row w))
       ) ;let*
     ) ;define
@@ -116,13 +99,7 @@
     ) ;define
 
     (define (copy-row-chars! old-row new-row copy-len)
-      (let loop
-        ((j 0))
-        (when (< j copy-len)
-          (vector-set! new-row j (vector-ref old-row j))
-          (loop (+ j 1))
-        ) ;when
-      ) ;let
+      (vector-copy! new-row 0 old-row 0 copy-len)
     ) ;define
 
     (define (%skip-ansi-csi text i len)

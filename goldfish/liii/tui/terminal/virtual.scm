@@ -28,6 +28,7 @@
   ) ;export
   (import (liii base)
     (liii error)
+    (liii vector)
     (liii tui terminal protocol)
     (liii tui terminal size)
     (liii tui terminal virtual state)
@@ -187,17 +188,9 @@
       (unless (virtual-terminal? vt)
         (type-error "virtual-terminal-screen: expected virtual-terminal")
       ) ;unless
-      (let* ((state (terminal-data vt)) (h (vt-height state)) (lines (vt-lines state)))
-        (let loop
-          ((i 0) (res '()))
-          (if (< i h)
-            (let* ((row (vector-ref lines i)) (str (vector->string row)))
-              (loop (+ i 1) (cons str res))
-            ) ;let*
-            (reverse res)
-          ) ;if
-        ) ;let
-      ) ;let*
+      (let ((lines (vt-lines (terminal-data vt))))
+        (map vector->string (vector->list lines))
+      ) ;let
     ) ;define
 
     (define (virtual-terminal-push-key! vt key)
@@ -235,22 +228,22 @@
              (old-w (vt-width state))
              (old-h (vt-height state))
              (old-lines (vt-lines state))
-             (new-lines (make-vector new-height))
+             (new-lines
+               (vector-unfold
+                 (lambda (i)
+                   (let ((new-row (make-char-row new-width)))
+                     (when (< i old-h)
+                       (let ((old-row (vector-ref old-lines i)) (copy-len (min old-w new-width)))
+                         (copy-row-chars! old-row new-row copy-len)
+                       ) ;let
+                     ) ;when
+                     new-row
+                   ) ;let
+                 ) ;lambda
+                 new-height
+               ) ;vector-unfold
+             ) ;new-lines
             ) ;
-        (let row-loop
-          ((i 0))
-          (when (< i new-height)
-            (let ((new-row (make-char-row new-width)))
-              (when (< i old-h)
-                (let ((old-row (vector-ref old-lines i)) (copy-len (min old-w new-width)))
-                  (copy-row-chars! old-row new-row copy-len)
-                ) ;let
-              ) ;when
-              (vector-set! new-lines i new-row)
-              (row-loop (+ i 1))
-            ) ;let
-          ) ;when
-        ) ;let
         (vt-width-set! state new-width)
         (vt-height-set! state new-height)
         (vt-lines-set! state new-lines)
