@@ -8,7 +8,8 @@
   (import (scheme base)
     (liii string)
     (liii pi ai message)
-    (liii pi agent)
+    (liii pi ai dispatch)
+    (liii pi agent tools)
     (liii pi compact serialize)
     (liii pi compact prompt)
   ) ;import

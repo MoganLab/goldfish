@@ -24,6 +24,8 @@
     (liii pi ai config types)
     (liii pi ai config record)
     (liii pi ai event)
+    (liii pi extension registry)
+    (liii pi extension event)
     (liii pi compact tokens)
   ) ;import
   (export pi-resolve-config-value json-dict-ref pi-get-agent-dir
@@ -182,6 +184,15 @@
       ) ;if
     ) ;define
 
+    (define (%make-extension-emitter)
+      ;; 动态取当前注册表：与 with-extension-registry 切换语义保持一致
+      (lambda (ev-type payload)
+        (let ((reg (or (current-extension-registry) (default-extension-registry))))
+          (pi-emit! reg ev-type payload)
+        ) ;let
+      ) ;lambda
+    ) ;define
+
     (define (resolve-pi-config parsed-args . opt-env)
       (let* ((env-agent-dir (lookup-env-var "PI_CODING_AGENT_DIR" opt-env))
              (agent-dir (pi-get-agent-dir env-agent-dir))
@@ -256,6 +267,8 @@
               (cons 'proxy-url proxy-url)
               (cons 'tools tools)
               (cons 'tool-resolver get-tool-definition)
+              (cons 'execute-tool-call execute-tool-call)
+              (cons 'emit-extension-event (%make-extension-emitter))
               (cons 'settings settings)
             ) ;list
           ) ;let*

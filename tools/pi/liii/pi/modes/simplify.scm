@@ -10,7 +10,7 @@
     (liii string)
     (liii list)
     (liii pi args)
-    (liii pi agent)
+    (liii pi agent tools)
     (liii pi ai message)
     (liii pi modes output)
     (liii pi modes flow)

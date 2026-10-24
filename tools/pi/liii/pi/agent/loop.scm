@@ -12,17 +12,23 @@
     (liii list)
     (liii pi ai message)
     (liii pi ai time)
+    (liii pi ai dispatch)
     (liii pi agent tools)
     (liii pi agent cost)
     (liii pi agent budget)
-    (liii pi extension registry)
-    (liii pi extension event)
   ) ;import
   (export pi-step-agent-turn pi-notify-turn-end pi-emit-agent-end
-    pi-finish-agent-turn pi-emit-agent-error pi-maybe-compact
-    pi-get-active-registry pi-handle-tool-use
+    pi-finish-agent-turn pi-emit-agent-error pi-maybe-compact pi-handle-tool-use
+    run-agent-loop pi-resolve-turn-system-prompt
   ) ;export
   (begin
+
+    ;; 从 config 取扩展事件桥接（由上层注入；缺失时不向扩展系统转发事件）
+    (define (%ext-emit config)
+      (let ((pair (and (pair? config) (assoc 'emit-extension-event config))))
+        (and pair (procedure? (cdr pair)) (cdr pair))
+      ) ;let
+    ) ;define
 
     (define (pi-step-agent-turn config msgs system-prompt emit timeout request-fn)
       (let* ((active-tools (cdr (assoc 'tools config)))
@@ -120,13 +126,6 @@
       ) ;if
     ) ;define
 
-    (define (pi-get-active-registry config)
-      (cond ((and (pair? config) (assoc 'registry config)) => cdr)
-            ((current-extension-registry))
-            (else (default-extension-registry))
-      ) ;cond
-    ) ;define
-
     (define (pi-handle-tool-use new-msgs tool-calls emit timeout config resp)
       (let*-values (((tools-res terminated?)
                      (pi-execute-tool-calls-with-status tool-calls emit timeout config)
@@ -140,6 +139,124 @@
         ) ;let*
       ) ;let*-values
     ) ;define
+
+    (define (%make-max-turns-error)
+      (pi-assistant-message '()
+        :stop-reason   "error"
+        :error-message "Maximum turns limit reached"
+        :usage         '((input . 0) (output . 0) (total . 0))
+      ) ;pi-assistant-message
+    ) ;define
+
+    (define (%make-session-timeout-error)
+      (pi-assistant-message '()
+        :stop-reason "error"
+        :error-message
+        "Session timeout exceeded: total execution deadline reached"
+        :usage '((input . 0) (output . 0) (total . 0))
+      ) ;pi-assistant-message
+    ) ;define
+
+    (define* (pi-resolve-turn-system-prompt system-prompt
+               tool-calls
+               (turn #f)
+               (max-turns #f)
+               (remaining-sec #f)
+               (deadline-sec #f)
+               (session-timeout #f)
+             ) ;pi-resolve-turn-system-prompt
+      (let ((base (if (procedure? system-prompt) (system-prompt tool-calls) system-prompt))
+           ) ;
+        (if (number? turn)
+          (let ((budget-status (pi-format-turn-budget-status turn max-turns
+                                 remaining-sec deadline-sec session-timeout
+                               ) ;pi-format-turn-budget-status
+                ) ;budget-status
+               ) ;
+            (string-append base "\n\n" budget-status)
+          ) ;let
+          base
+        ) ;if
+      ) ;let
+    ) ;define*
+
+    (define* (run-agent-loop config
+               initial-messages
+               system-prompt
+               (emit #f)
+               (timeout 600)
+               (max-turns 200)
+               (session-timeout 600)
+               (compaction #f)
+               (request-fn pi-request-provider-stream)
+             ) ;run-agent-loop
+      (when (procedure? emit)
+        (emit 'agent_start)
+        (emit 'turn_start)
+        (for-each (lambda (m) (emit 'message_start m) (emit 'message_end m))
+          initial-messages
+        ) ;for-each
+      ) ;when
+      (let* ((start-sec (pi-current-monotonic-seconds))
+             (deadline-sec (if (and (number? session-timeout) (> session-timeout 0))
+                             (+ start-sec session-timeout)
+                             #f
+                           ) ;if
+             ) ;deadline-sec
+             (ext-emit (%ext-emit config))
+            ) ;
+        (let loop
+          ((msgs initial-messages) (turn 0) (last-tool-calls '()))
+          (cond ((and (number? session-timeout) (< session-timeout 0))
+                 (pi-emit-agent-error (%make-session-timeout-error) msgs emit config)
+                ) ;
+                ((and deadline-sec (> (pi-current-monotonic-seconds) deadline-sec))
+                 (pi-emit-agent-error (%make-session-timeout-error) msgs emit config)
+                ) ;
+                ((and (> max-turns 0) (>= turn max-turns))
+                 (pi-emit-agent-error (%make-max-turns-error) msgs emit config)
+                ) ;
+                (else
+                  (when ext-emit
+                    (ext-emit 'turn_start (list (cons 'turn turn)))
+                  ) ;when
+                  (let* ((msgs (pi-maybe-compact compaction msgs))
+                         (now (pi-current-monotonic-seconds))
+                         (rem-sec (if deadline-sec (- deadline-sec now) #f))
+                         (turn-sp (pi-resolve-turn-system-prompt system-prompt
+                                    last-tool-calls turn max-turns rem-sec
+                                    deadline-sec session-timeout
+                                  ) ;pi-resolve-turn-system-prompt
+                         ) ;turn-sp
+                        ) ;
+                    (let*-values (((new-msgs stop-reason tool-calls resp)
+                                   (pi-step-agent-turn config msgs turn-sp emit timeout request-fn)
+                                  ) ;
+                                 ) ;
+                      (if (equal? stop-reason "toolUse")
+                        (let*-values (((all-msgs terminated?)
+                                       (pi-handle-tool-use new-msgs tool-calls emit timeout config resp)
+                                      ) ;
+                                     ) ;
+                          (if terminated?
+                            (pi-finish-agent-turn all-msgs "stop" '() emit config resp)
+                            (begin
+                              (when (procedure? emit)
+                                (emit 'turn_start)
+                              ) ;when
+                              (loop all-msgs (+ turn 1) tool-calls)
+                            ) ;begin
+                          ) ;if
+                        ) ;let*-values
+                        (pi-finish-agent-turn new-msgs stop-reason tool-calls emit config resp)
+                      ) ;if
+                    ) ;let*-values
+                  ) ;let*
+                ) ;else
+          ) ;cond
+        ) ;let
+      ) ;let*
+    ) ;define*
 
   ) ;begin
 ) ;define-library
