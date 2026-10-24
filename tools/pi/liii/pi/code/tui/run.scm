@@ -46,7 +46,12 @@
                          (loop)
                        ) ;let
                       ) ;
-                      ((not k) (sleep 0.01) (loop))
+                      ((not k)
+                       ;; 空闲轮询：busy 时推进 Working spinner 动画（内部自带 80ms 节拍）
+                       (pi-app-working-tick! app)
+                       (sleep 0.01)
+                       (loop)
+                      ) ;
                       (else (component-handle-input ed k) (pi-app-render! app) (loop))
                 ) ;cond
               ) ;let
