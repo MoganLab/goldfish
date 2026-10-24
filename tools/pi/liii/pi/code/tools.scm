@@ -213,7 +213,11 @@
               ((string=? name "find") (%tool-def-find))
               ((string=? name "grep") (%tool-def-grep))
               (else
-                (let ((reg (current-extension-registry)))
+                ;; 与 config.scm/flow.scm 的回退语义一致：优先取动态作用域注册表
+                ;; （with-extension-registry），缺失时回退默认注册表。TUI worker
+                ;; 会话（(liii go) 独立 s7 会话）无 with-extension-registry 作用域，
+                ;; 扩展工具（如 web_search）依赖此回退才能生成工具 schema
+                (let ((reg (or (current-extension-registry) (default-extension-registry))))
                   (if reg
                     (let ((tool (find-extension-tool reg name)))
                       (if tool (%extension-tool-def->pi-tool-def tool) #f)

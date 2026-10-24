@@ -3,6 +3,8 @@
 
 (import (liii check)
         (liii string)
+        (liii os)
+        (liii go)
         (liii pi code args) (liii pi code config) (liii pi code session)
         (liii pi code extension)
         (liii pi code args)
@@ -321,5 +323,27 @@
   (check (cdr (assoc 'provider cfg)) => "google")
   (check (cdr (assoc 'model-id cfg)) => "gemini-2.5-flash")
   (check (cdr (assoc 'matched? (cdr (assoc 'model-meta cfg)))) => #t))
+
+;; 15. TUI worker 会话（(liii go) 独立 s7 会话）中扩展注册表可用性：
+;; worker 通过 prelude (import <主会话活动库>) 重新加载库，args.scm 的
+;; registry initializer 应在此会话中加载内置扩展（含 web_search）
+(let* ((ch (go-result ()
+            (extension-registry-default-tool-names (default-extension-registry))))
+       (res (chan-recv! ch 10000)))
+  (check (car res) => 'ok)
+  (check (member "web_search" (cadr res)) => '("web_search")))
+
+;; 16. 完全模拟 pi-tui-agent-worker 前两步：worker 会话中 parse-pi-args +
+;; resolve-pi-config，settings 未显式配置 defaultTools 时（config-empty fixture），
+;; cfg 的 tools 应含内置扩展默认启用的 web_search（TUI 中工具 schema 由此生成）
+(let* ((_ (putenv "PI_CODING_AGENT_DIR" CONFIG_EMPTY_DIR))
+       (ch (go-result ()
+            (let* ((parsed (parse-pi-args '()))
+                   (cfg (resolve-pi-config parsed (get-environment-variables))))
+              (cdr (assoc 'tools cfg)))))
+       (res (chan-recv! ch 30000)))
+  (check (car res) => 'ok)
+  (check (member "web_search" (cadr res)) => '("web_search"))
+  (unsetenv "PI_CODING_AGENT_DIR"))
 
 (check-report)
