@@ -1,4 +1,4 @@
-(import (liii check) (liii list) (liii pi code tools))
+(import (liii check) (liii list) (liii pi web-search))
 
 (check-set-mode! 'report-failed)
 

@@ -4,7 +4,7 @@
 ;; Licensed under the MIT License
 ;;
 
-(define-library (liii pi code tools web-search schema)
+(define-library (liii pi web-search schema)
   (import (scheme base) (liii error) (liii string) (liii pi code tools read))
   (export pi-web-search-schema pi-validate-web-search-args)
   (begin

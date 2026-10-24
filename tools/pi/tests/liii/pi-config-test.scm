@@ -98,7 +98,7 @@
       (args-empty (parse-pi-args '()))
       (args-override (parse-pi-args '("--tools" "read,bash"))))
   (check (resolve-active-tools args-empty settings-with-delta)
-    => '("read" "bash" "edit" "grep"))
+    => '("read" "bash" "edit" "web_search" "grep"))
   (check (resolve-active-tools args-override settings-with-delta)
     => '("read" "bash")))
 

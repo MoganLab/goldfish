@@ -1,7 +1,7 @@
 (import (scheme base)
         (liii check)
         (liii string)
-        (liii pi code tools web-search format))
+        (liii pi web-search format))
 
 (check-set-mode! 'report-failed)
 

@@ -1,7 +1,5 @@
 (import (liii check)
-  (liii pi code session) (liii pi code tools)
-  (liii pi code tools)
-  (liii pi code tools web-search)
+  (liii pi web-search)
 ) ;import
 
 (check-set-mode! 'report-failed)

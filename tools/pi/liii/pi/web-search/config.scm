@@ -4,7 +4,7 @@
 ;; Licensed under the MIT License
 ;;
 
-(define-library (liii pi code tools web-search config)
+(define-library (liii pi web-search config)
   (import (scheme base)
     (scheme process-context)
     (liii os)

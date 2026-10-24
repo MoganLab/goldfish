@@ -20,7 +20,6 @@
     (liii pi code tools ls)
     (liii pi code tools find)
     (liii pi code tools grep)
-    (liii pi code tools web-search)
     (liii pi code extension types)
     (liii pi code extension registry)
   ) ;import
@@ -28,12 +27,10 @@
     exclude-tools-from-list get-tool-definition execute-tool-call pi-read-schema
     pi-execute-read pi-write-schema pi-execute-write pi-edit-schema
     pi-execute-edit pi-bash-schema pi-execute-bash pi-ls-schema pi-execute-ls
-    pi-find-schema pi-execute-find pi-grep-schema pi-execute-grep
-    pi-web-search-schema pi-validate-web-search-args pi-format-web-search-result
-    pi-execute-web-search pi-format-size pi-truncate-line pi-truncate-head
-    pi-truncate-tail PI_DEFAULT_MAX_LINES PI_DEFAULT_MAX_BYTES
-    PI_GREP_MAX_LINE_LENGTH pi-tool-definition pi-tool-definition?
-    pi-tool-definition-name pi-tool-definition-description
+    pi-find-schema pi-execute-find pi-grep-schema pi-execute-grep pi-format-size
+    pi-truncate-line pi-truncate-head pi-truncate-tail PI_DEFAULT_MAX_LINES
+    PI_DEFAULT_MAX_BYTES PI_GREP_MAX_LINE_LENGTH pi-tool-definition
+    pi-tool-definition? pi-tool-definition-name pi-tool-definition-description
     pi-tool-definition-parameters pi-tool-definition-execute
     pi-tool-definition-snippet pi-tool-definition-guidelines
     pi-tool-definition->alist pi-tool-result pi-tool-result?
@@ -48,10 +45,10 @@
   ) ;export
   (begin
 
-    (define PI_DEFAULT_TOOL_NAMES '("read" "bash" "edit" "write"))
-    (define PI_ALL_TOOL_NAMES
-      '("read" "bash" "edit" "write" "grep" "find" "ls" "web_search")
-    ) ;define
+    ;; web_search 由内置扩展 extensions/web-search.scm 提供，默认启用；
+    ;; 扩展未加载时该名字在请求构建阶段被静默过滤（tool-resolver 返回 #f）
+    (define PI_DEFAULT_TOOL_NAMES '("read" "bash" "edit" "write" "web_search"))
+    (define PI_ALL_TOOL_NAMES '("read" "bash" "edit" "write" "grep" "find" "ls"))
 
     (define (%apply-delta-item item current)
       (cond
@@ -184,16 +181,6 @@
       ) ;pi-tool-definition
     ) ;define
 
-    (define (%tool-def-web-search)
-      (pi-tool-definition "web_search"
-        "Search the web using Gemini Google Search grounding."
-        (pi-web-search-schema)
-        pi-execute-web-search
-        "Search the web for up-to-date information"
-        '("Use web_search when you need real-time information or external references.")
-      ) ;pi-tool-definition
-    ) ;define
-
     (define (%extension-tool-def->pi-tool-def ext-tool)
       (cond ((pi-tool-definition? ext-tool) ext-tool)
             ((extension-tool-def? ext-tool)
@@ -224,7 +211,6 @@
               ((string=? name "ls") (%tool-def-ls))
               ((string=? name "find") (%tool-def-find))
               ((string=? name "grep") (%tool-def-grep))
-              ((string=? name "web_search") (%tool-def-web-search))
               (else
                 (let ((reg (current-extension-registry)))
                   (if reg
@@ -254,14 +240,6 @@
           (pi-tool-result out is-err)
         ) ;let-values
        ) ;
-       ((string=? name "web_search")
-        (let ((out (apply exec-fn args opts)))
-          (cond ((pi-tool-result? out) out)
-                ((and (pair? out) (assoc 'content out)) out)
-                (else (pi-tool-result out #f))
-          ) ;cond
-        ) ;let
-       ) ;
        (else
          (let* ((raw-out
                   ;; 扩展工具可能只接受固定个数的参数：先按 arity 判断能不能带
@@ -272,7 +250,15 @@
                     (apply exec-fn args opts)
                   ) ;if
                 ) ;raw-out
-                (out (if (pi-tool-result? raw-out) raw-out (pi-tool-result raw-out #f)))
+                ;; 扩展工具可返回带 content 块的 alist（如 web_search 的
+                ;; sources/details 结构化结果）：直接透传，保持 JSON 事件
+                ;; 的结构化字段不丢
+                (out
+                  (cond ((pi-tool-result? raw-out) raw-out)
+                        ((and (pair? raw-out) (assoc 'content raw-out)) raw-out)
+                        (else (pi-tool-result raw-out #f))
+                  ) ;cond
+                ) ;out
                ) ;
            out
          ) ;let*

@@ -6,11 +6,11 @@
 ;; Licensed under the MIT License
 ;;
 
-(define-library (liii pi code tools web-search)
+(define-library (liii pi web-search)
   (import (scheme base)
-    (liii pi code tools web-search schema)
-    (liii pi code tools web-search format)
-    (liii pi code tools web-search execute)
+    (liii pi web-search schema)
+    (liii pi web-search format)
+    (liii pi web-search execute)
   ) ;import
   (export pi-web-search-schema pi-validate-web-search-args
     pi-format-web-search-result pi-execute-web-search
