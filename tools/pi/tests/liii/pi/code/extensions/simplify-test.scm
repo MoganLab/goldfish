@@ -7,11 +7,11 @@
 
 (define (get-simplify-path)
   (cond
-    ((file-exists? "tools/pi/liii/pi/code/extensions/simplify.scm")
-     "tools/pi/liii/pi/code/extensions/simplify.scm")
-    ((file-exists? "liii/pi/code/extensions/simplify.scm")
-     "liii/pi/code/extensions/simplify.scm")
-    (else "../../liii/pi/code/extensions/simplify.scm")
+    ((file-exists? "tools/pi/extensions/simplify.scm")
+     "tools/pi/extensions/simplify.scm")
+    ((file-exists? "extensions/simplify.scm")
+     "extensions/simplify.scm")
+    (else "../../extensions/simplify.scm")
   ) ;cond
 ) ;define
 

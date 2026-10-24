@@ -8,7 +8,7 @@
   (liii string)
   (liii pi code extension)
   (liii pi code args query)
-  (liii pi review)
+  (liii pi review auto)
   (liii pi review modes)
 ) ;import
 

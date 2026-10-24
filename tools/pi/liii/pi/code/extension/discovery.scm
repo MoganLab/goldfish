@@ -30,14 +30,14 @@
                    (catch #t (lambda () (path-parent (path-parent (executable)))) (lambda _ #f))
                  ) ;repo-root
                  (candidates
-                   (append (list (path "tools/pi/liii/pi/code/extensions")
-                             (path "liii/pi/code/extensions")
-                             (path "../tools/pi/liii/pi/code/extensions")
-                             (path "../../tools/pi/liii/pi/code/extensions")
+                   (append (list (path "tools/pi/extensions")
+                             (path "extensions")
+                             (path "../tools/pi/extensions")
+                             (path "../../tools/pi/extensions")
                            ) ;list
                      (if repo-root
-                       (list (path-join repo-root "tools/pi/liii/pi/code/extensions")
-                         (path-join repo-root "share/goldfish/tools/pi/liii/pi/code/extensions")
+                       (list (path-join repo-root "tools/pi/extensions")
+                         (path-join repo-root "share/goldfish/tools/pi/extensions")
                        ) ;list
                        '()
                      ) ;if
@@ -47,10 +47,7 @@
                    (find (lambda (c) (and (path-exists? c) (path-dir? c))) candidates)
                  ) ;found
                 ) ;
-            (if found
-              (path->string (path-resolve found))
-              "tools/pi/liii/pi/code/extensions"
-            ) ;if
+            (if found (path->string (path-resolve found)) "tools/pi/extensions")
           ) ;let*
         ) ;if
       ) ;let

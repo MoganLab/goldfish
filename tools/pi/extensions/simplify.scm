@@ -8,7 +8,6 @@
   (liii string)
   (liii pi code extension)
   (liii pi code args query)
-  (liii pi simplify)
   (liii pi simplify modes)
 ) ;import
 
