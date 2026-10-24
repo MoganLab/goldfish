@@ -24,13 +24,7 @@
       (let ((len (string-length str)))
         (and (> len 0)
           (env-name-start-char? (string-ref str 0))
-          (let loop
-            ((i 1))
-            (cond ((= i len) #t)
-                  ((not (env-name-body-char? (string-ref str i))) #f)
-                  (else (loop (+ i 1)))
-            ) ;cond
-          ) ;let
+          (string-every env-name-body-char? (substring str 1))
         ) ;and
       ) ;let
     ) ;define
