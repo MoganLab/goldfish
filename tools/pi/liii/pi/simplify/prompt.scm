@@ -28,7 +28,7 @@
     (define (%truncate content)
       (if (<= (string-length content) PI_SIMPLIFY_MAX_FILE_CHARS)
         content
-        (string-append (substring content 0 PI_SIMPLIFY_MAX_FILE_CHARS) "\n[truncated]")
+        (string-append (string-take content PI_SIMPLIFY_MAX_FILE_CHARS) "\n[truncated]")
       ) ;if
     ) ;define
 

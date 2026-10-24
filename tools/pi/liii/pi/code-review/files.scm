@@ -165,7 +165,7 @@
     (define (%truncate-content content)
       (if (<= (string-length content) PI_REVIEW_MAX_FILE_CHARS)
         content
-        (string-append (substring content 0 PI_REVIEW_MAX_FILE_CHARS) "\n[truncated]")
+        (string-append (string-take content PI_REVIEW_MAX_FILE_CHARS) "\n[truncated]")
       ) ;if
     ) ;define
 
