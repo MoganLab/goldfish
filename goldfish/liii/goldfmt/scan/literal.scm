@@ -16,7 +16,7 @@
 (define-library (liii goldfmt scan literal)
   (export rewrite-reader-literals needs-rewrite-reader-literals?)
 
-  (import (liii base) (liii raw-string) (liii string))
+  (import (liii base) (liii raw-string) (srfi srfi-13))
 
   (begin
 
@@ -36,30 +36,12 @@
       ) ;let
     ) ;define
 
-    (define (string-prefix-at? str start prefix)
-      (let ((prefix-len (string-length prefix)) (str-len (string-length str)))
-        (and (<= (+ start prefix-len) str-len)
-          (let loop
-            ((i 0))
-            (or (>= i prefix-len)
-              (and (char=? (string-ref str (+ start i)) (string-ref prefix i)) (loop (+ i 1)))
-            ) ;or
-          ) ;let
-        ) ;and
-      ) ;let
-    ) ;define
-
     (define (find-raw-string-literal-end str body-start delimiter)
-      (let ((needle (string-append "\"" delimiter "\"")) (str-len (string-length str)))
-        (let loop
-          ((i body-start))
-          (cond
-           ((> (+ i (string-length needle)) str-len) #f)
-           ((string-prefix-at? str i needle) (+ i (string-length needle)))
-           (else (loop (+ i 1)))
-          ) ;cond
-        ) ;let
-      ) ;let
+      (let* ((needle (string-append "\"" delimiter "\""))
+             (match (string-position needle str body-start))
+            ) ;
+        (and match (+ match (string-length needle)))
+      ) ;let*
     ) ;define
 
     (define (read-raw-string-literal-value literal)
@@ -128,20 +110,9 @@
       ) ;or
     ) ;define
     (define (find-char-literal-end source start)
-      (let ((len (string-length source)))
-        (if (>= start len)
-          #f
-          (let loop
-            ((i (+ start 1)))
-            (if (>= i len)
-              len
-              (let ((c (string-ref source i)))
-                (if (reader-delimiter? c) i (loop (+ i 1)))
-              ) ;let
-            ) ;if
-          ) ;let
-        ) ;if
-      ) ;let
+      (and (< start (string-length source))
+        (or (string-index source reader-delimiter? (+ start 1)) (string-length source))
+      ) ;and
     ) ;define
     (define (rewrite-reader-literals source)
       (let ((len (string-length source)))
@@ -206,8 +177,8 @@
       ) ;let
     ) ;define
     (define (needs-rewrite-reader-literals? str)
-      (or (string-contains? str (string #\# #\"))
-        (string-contains? str (string #\# #\\))
+      (or (string-contains str (string #\# #\"))
+        (string-contains str (string #\# #\\))
       ) ;or
     ) ;define
   ) ;begin

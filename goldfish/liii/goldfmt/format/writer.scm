@@ -22,7 +22,9 @@
     format-inline-atom-or-quote-at
   ) ;export
   (import (liii base)
+    (liii list)
     (liii tree)
+    (srfi srfi-13)
     (liii goldfmt record)
     (liii goldfmt rule)
     (liii goldfmt format atom)
@@ -41,24 +43,18 @@
             ((reader-prefix-env? node) (format-inline-atom-or-quote (env-value node)))
             (else
               (let ((children (env-children node)))
-                (let ((out (open-output-string)))
-                  (display "(" out)
-                  (display (env-tag-name node) out)
-                  (let loop
-                    ((i 0))
-                    (if (>= i (vector-length children))
-                      (begin
-                        (display ")" out)
-                        (get-output-string out)
-                      ) ;begin
-                      (begin
-                        (display (child-separator node i) out)
-                        (display (format-inline (vector-ref children i)) out)
-                        (loop (+ i 1))
-                      ) ;begin
-                    ) ;if
-                  ) ;let
-                ) ;let
+                (string-append "("
+                  (env-tag-name node)
+                  (apply string-append
+                    (map
+                      (lambda (i)
+                        (string-append (child-separator node i) (format-inline (vector-ref children i)))
+                      ) ;lambda
+                      (iota (vector-length children))
+                    ) ;map
+                  ) ;apply
+                  ")"
+                ) ;string-append
               ) ;let
             ) ;else
       ) ;cond
@@ -159,18 +155,16 @@
 
     (define (emit-string! writer text)
       (display text (writer-port writer))
-      (let loop
-        ((i 0) (line (writer-line writer)) (column (writer-column writer)))
-        (if (>= i (string-length text))
-          (begin
-            (set-writer-line! writer line)
-            (set-writer-column! writer column)
-          ) ;begin
-          (if (char=? (string-ref text i) #\newline)
-            (loop (+ i 1) (+ line 1) 0)
-            (loop (+ i 1) line (+ column 1))
+      (let ((newlines (string-count text #\newline))
+            (last-newline (string-index-right text #\newline))
+           ) ;
+        (set-writer-line! writer (+ (writer-line writer) newlines))
+        (set-writer-column! writer
+          (if last-newline
+            (- (string-length text) last-newline 1)
+            (+ (writer-column writer) (string-length text))
           ) ;if
-        ) ;if
+        ) ;set-writer-column!
       ) ;let
     ) ;define
 
