@@ -58,8 +58,7 @@
       (if (%tools-contain-google-search? cur-tools)
         cur-tools
         (if (vector? cur-tools)
-          (list->vector (append (vector->list cur-tools) (list (%google-search-tool-spec)))
-          ) ;list->vector
+          (vector-append cur-tools (vector (%google-search-tool-spec)))
           (append cur-tools (list (%google-search-tool-spec)))
         ) ;if
       ) ;if
