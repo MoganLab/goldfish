@@ -9,6 +9,7 @@
     (scheme write)
     (liii string)
     (liii list)
+    (liii uri)
     (liii json)
     (liii http)
     (liii error)
@@ -19,7 +20,10 @@
     (liii pi ai anthropic thinking)
     (liii pi ai retry)
   ) ;import
-  (export anthropic-build-tool-declarations-from-names anthropic-request)
+  (export anthropic-build-tool-declarations-from-names
+    anthropic-request
+    anthropic-build-endpoint
+  ) ;export
   (begin
 
     (define (%resp-field resp key)
@@ -33,6 +37,14 @@
     (define (anthropic-build-tool-declarations-from-names active-tool-names tool-resolver)
       (anthropic-build-tool-declarations (filter (lambda (d) d) (map tool-resolver (or active-tool-names '())))
       ) ;anthropic-build-tool-declarations
+    ) ;define
+
+    (define (anthropic-build-endpoint base-url)
+      (uri->string (uri-join-path (make-uri (or base-url "https://api.anthropic.com"))
+                     "v1"
+                     "messages"
+                   ) ;uri-join-path
+      ) ;uri->string
     ) ;define
 
     (define (%build-anthropic-headers api-key)
@@ -113,7 +125,7 @@
                     ) ;
                     ((max-tokens) (cdr (or (assoc 'max-tokens model-meta) '(#f
                                                                             . 8192))))
-                    ((url) (string-append base-url "/v1/messages"))
+                    ((url) (anthropic-build-endpoint base-url))
                     ((eff-tool-names) (or tool-names (cdr (assoc 'tools config))))
                     ((tool-resolver)
                      (if (assoc 'tool-resolver config)

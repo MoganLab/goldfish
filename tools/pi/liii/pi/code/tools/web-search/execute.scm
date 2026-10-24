@@ -13,6 +13,7 @@
     (liii error)
     (liii pi code tools read)
     (liii pi ai gemini grounding)
+    (liii pi ai gemini request)
     (liii pi code tools web-search schema)
     (liii pi code tools web-search config)
     (liii pi code tools web-search format)
@@ -163,7 +164,7 @@
           ) ;unless
           (let* ((req-body (%build-search-request-body query urls))
                  (req-json-str (json->string req-body))
-                 (endpoint (string-append base-url "/models/" model-id ":generateContent"))
+                 (endpoint (gemini-build-endpoint base-url model-id))
                  (headers (list (cons "Content-Type" "application/json") (cons "x-goog-api-key" api-key))
                  ) ;headers
                  (proxy-alist (pi-resolve-search-proxy-alist proxy-url))

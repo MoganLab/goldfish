@@ -9,6 +9,7 @@
     (scheme write)
     (liii string)
     (liii list)
+    (liii uri)
     (liii json)
     (liii http)
     (liii error)
@@ -34,16 +35,23 @@
     ) ;define
 
     (define (kimi-build-endpoint base-url)
-      (let* ((raw (or base-url "https://api.kimi.com/coding/v1"))
-             (b
-               (if (string-ends? raw "/") (substring raw 0 (- (string-length raw) 1)) raw)
-             ) ;b
+      (let* ((u (make-uri (or base-url "https://api.kimi.com/coding/v1")))
+             (raw-path (or (uri-path u) ""))
+             (path
+               (if (string-ends? raw-path "/")
+                 (substring raw-path 0 (- (string-length raw-path) 1))
+                 raw-path
+               ) ;if
+             ) ;path
             ) ;
-        (cond ((string-ends? b "/chat/completions") b)
-              ((or (string-ends? b "/v1") (string-ends? b "/v4") (string-contains? b "/paas/"))
-               (string-append b "/chat/completions")
+        (cond ((string-ends? path "/chat/completions") (uri->string (uri-with-path u path)))
+              ((or (string-ends? path "/v1")
+                 (string-ends? path "/v4")
+                 (string-contains? path "/paas/")
+               ) ;or
+               (uri->string (uri-join-path u "chat" "completions"))
               ) ;
-              (else (string-append b "/v1/chat/completions"))
+              (else (uri->string (uri-join-path u "v1" "chat" "completions")))
         ) ;cond
       ) ;let*
     ) ;define

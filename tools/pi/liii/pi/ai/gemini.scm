@@ -19,9 +19,9 @@
     gemini-build-contents gemini-build-request-body
     gemini-build-tool-declarations gemini-parse-response
     gemini-is-retriable-error? gemini-request gemini-request-stream
-    format-failed-stream-msg gemini-build-search-tools
-    gemini-inject-google-search gemini-extract-grounding-details
-    gemini-grounding-search-queries gemini-grounding-search-results
-    gemini-grounding-citations
+    gemini-build-endpoint gemini-build-stream-endpoint format-failed-stream-msg
+    gemini-build-search-tools gemini-inject-google-search
+    gemini-extract-grounding-details gemini-grounding-search-queries
+    gemini-grounding-search-results gemini-grounding-citations
   ) ;export
 ) ;define-library

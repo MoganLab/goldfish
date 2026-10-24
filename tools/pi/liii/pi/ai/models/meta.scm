@@ -8,6 +8,7 @@
   (import (scheme base)
     (scheme process-context)
     (liii string)
+    (liii uri)
     (liii pi ai template)
     (liii pi ai config types)
     (liii pi ai config record)
@@ -46,6 +47,18 @@
               ((list? raw-models) raw-models)
               (else '())
         ) ;cond
+      ) ;let
+    ) ;define
+
+    ;; 在 URI 层面比较两个 API base URL：
+    ;; - 空 path 与 "/"、显式默认端口与无端口视为等价（RFC 3986 6.2.3）
+    ;; - path 尾斜杠不敏感（API base URL 的尾斜杠无语义，属本模块的宽松策略）
+    (define (%url=? a b)
+      (let ((ua (uri-normalize (make-uri a))) (ub (uri-normalize (make-uri b))))
+        (uri=?
+          (uri-with-path ua (string-remove-suffix (or (uri-path ua) "") "/"))
+          (uri-with-path ub (string-remove-suffix (or (uri-path ub) "") "/"))
+        ) ;uri=?
       ) ;let
     ) ;define
 
@@ -121,17 +134,17 @@
              ) ;m
              (raw-url (if m (%dict-ref m "baseUrl" def-url) def-url))
              (norm-url
-               (cond ((and is-kimi? (string=? raw-url "https://api.kimi.com/coding"))
+               (cond ((and is-kimi? (%url=? raw-url "https://api.kimi.com/coding"))
                       "https://api.kimi.com/coding/v1"
                      ) ;
                      ((and is-mm?
-                        (or (string=? raw-url "https://api.minimax.io")
-                          (string=? raw-url "https://api.minimax.io/anthropic")
+                        (or (%url=? raw-url "https://api.minimax.io")
+                          (%url=? raw-url "https://api.minimax.io/anthropic")
                         ) ;or
                       ) ;and
                       "https://api.minimaxi.com/anthropic"
                      ) ;
-                     ((and is-ds? (string=? raw-url "https://api.deepseek.com"))
+                     ((and is-ds? (%url=? raw-url "https://api.deepseek.com"))
                       "https://api.deepseek.com/anthropic"
                      ) ;
                      (else raw-url)

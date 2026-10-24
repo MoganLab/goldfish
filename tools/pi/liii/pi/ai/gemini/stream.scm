@@ -72,13 +72,10 @@
     ) ;define
 
     (define (%build-stream-url model-meta model-id)
-      (let ((base (or (%safe-assoc 'base-url model-meta)
-                    '(#f . "https://generativelanguage.googleapis.com/v1beta")
-                  ) ;or
-            ) ;base
-           ) ;
-        (string-append (cdr base) "/models/" model-id ":streamGenerateContent?alt=sse")
-      ) ;let
+      (gemini-build-stream-endpoint (cdr (or (%safe-assoc 'base-url model-meta) '(#f
+                                                                                  . #f)))
+        model-id
+      ) ;gemini-build-stream-endpoint
     ) ;define
 
     (define (%build-stream-req-params config tool-names messages sys-inst)

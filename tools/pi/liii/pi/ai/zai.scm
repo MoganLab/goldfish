@@ -5,7 +5,7 @@
 ;;
 
 (define-library (liii pi ai zai)
-  (import (scheme base) (liii string) (liii pi ai kimi))
+  (import (scheme base) (liii string) (liii uri) (liii pi ai kimi))
   (export zai-map-stop-reason zai-map-usage zai-build-tool-declarations
     zai-build-messages zai-build-request-body zai-parse-response
     zai-is-retriable-error? zai-build-tool-declarations-from-names zai-request
@@ -37,15 +37,13 @@
     (define zai-request kimi-request)
     (define zai-request-stream kimi-request-stream)
     (define (zai-build-endpoint base-url)
-      (let* ((raw (or base-url "https://open.bigmodel.cn/api/coding/paas/v4"))
-             (b (string-remove-suffix raw "/"))
+      (let* ((u (make-uri (or base-url "https://open.bigmodel.cn/api/coding/paas/v4")))
+             (path (string-remove-suffix (or (uri-path u) "") "/"))
             ) ;
-        (cond ((string-ends? b "/chat/completions") b)
-              ((or (string-ends? b "/v1") (string-ends? b "/v4"))
-               (string-append b "/chat/completions")
-              ) ;
-              (else (string-append b "/chat/completions"))
-        ) ;cond
+        (if (string-ends? path "/chat/completions")
+          (uri->string (uri-with-path u path))
+          (uri->string (uri-join-path u "chat" "completions"))
+        ) ;if
       ) ;let*
     ) ;define
     (define zai-build-headers kimi-build-headers)
