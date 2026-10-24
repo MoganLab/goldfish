@@ -29,7 +29,7 @@
 
     ;; 上色
     (define (c-dim s)
-      (show #f (apply as-true-color (append %c-dim (list s))))
+      (show #f (as-true-color %c-dim s))
     ) ;define
 
     (define (format-cwd-for-footer cwd home)

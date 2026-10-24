@@ -29,12 +29,12 @@
 
     ;; 上色：parts 逐段拼接
     (define (%fg c . parts)
-      (show #f (apply as-true-color (append c parts)))
+      (show #f (apply as-true-color (cons c parts)))
     ) ;define
 
     ;; 品牌色加粗
     (define (%fg-bold c . parts)
-      (show #f (as-bold (apply as-true-color (append c parts))))
+      (show #f (as-bold (apply as-true-color (cons c parts))))
     ) ;define
 
     ;; 页眉内容只随 version 变化，与宽度无关，故一次构造后复用
