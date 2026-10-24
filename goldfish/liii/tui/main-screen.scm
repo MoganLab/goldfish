@@ -22,15 +22,15 @@
 ;;
 
 (define-library (liii tui main-screen)
-  (export <main-screen> make-main-screen main-screen? screen-terminal
-    screen-buffer screen-lines screen-render! screen-refresh! screen-invalidate!
+  (export make-main-screen main-screen? screen-terminal screen-buffer
+    screen-lines screen-render! screen-refresh! screen-invalidate!
     screen-resize! screen-clear! screen-auto-hide-cursor?
-    screen-auto-hide-cursor-set! <screen-buffer> make-screen-buffer
-    screen-buffer? screen-buffer-lines screen-buffer-lines-set!
-    screen-buffer-prev-lines screen-buffer-prev-lines-set! screen-buffer-dirty?
-    screen-buffer-dirty-set! screen-buffer-invalidate! screen-buffer-commit!
-    screen-buffer-clear! screen-diff screen-dirty-diff diff-op-type
-    diff-op-index diff-op-text screen-diff-has-changes?
+    screen-auto-hide-cursor-set! make-screen-buffer screen-buffer?
+    screen-buffer-lines screen-buffer-lines-set! screen-buffer-prev-lines
+    screen-buffer-prev-lines-set! screen-buffer-dirty? screen-buffer-dirty-set!
+    screen-buffer-invalidate! screen-buffer-commit! screen-buffer-clear!
+    screen-diff screen-dirty-diff diff-op-type diff-op-index diff-op-text
+    screen-diff-has-changes?
   ) ;export
   (import (liii tui main-screen diff)
     (liii tui main-screen buffer)

@@ -22,10 +22,10 @@
 ;;
 
 (define-library (liii tui box border)
-  (export <border-style> make-border-style border-style? border-style-name
-    border-style-tl border-style-tr border-style-bl border-style-br
-    border-style-h border-style-v border-style-resolve border-render-top
-    border-render-bottom border-render-line
+  (export make-border-style border-style? border-style-name border-style-tl
+    border-style-tr border-style-bl border-style-br border-style-h
+    border-style-v border-style-resolve border-render-top border-render-bottom
+    border-render-line
   ) ;export
   (import (liii base) (liii error) (liii string) (liii tui text-width))
   (begin
@@ -41,8 +41,6 @@
       (h border-style-h)
       (v border-style-v)
     ) ;define-record-type
-
-    (define <border-style> '<border-style>)
 
     (define (make-border-style . args)
       (cond ((= (length args) 6) (apply %make-border-style 'custom args))

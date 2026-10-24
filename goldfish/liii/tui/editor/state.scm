@@ -22,13 +22,12 @@
 ;;
 
 (define-library (liii tui editor state)
-  (export <editor-data> %make-editor-data %editor-data? %ed-buffer
-    %ed-buffer-set! %ed-history %ed-history-set! %ed-multiline?
-    %ed-multiline?-set! %ed-focused? %ed-focused?-set! %ed-placeholder
-    %ed-placeholder-set! %ed-cursor-style %ed-cursor-style-set! %ed-on-submit
-    %ed-on-submit-set! %ed-on-change %ed-on-change-set! %ed-top-border
-    %ed-top-border-set! %ed-bottom-border %ed-bottom-border-set!
-    %ed-border-color %ed-border-color-set!
+  (export %make-editor-data %editor-data? %ed-buffer %ed-buffer-set! %ed-history
+    %ed-history-set! %ed-multiline? %ed-multiline?-set! %ed-focused?
+    %ed-focused?-set! %ed-placeholder %ed-placeholder-set! %ed-cursor-style
+    %ed-cursor-style-set! %ed-on-submit %ed-on-submit-set! %ed-on-change
+    %ed-on-change-set! %ed-top-border %ed-top-border-set! %ed-bottom-border
+    %ed-bottom-border-set! %ed-border-color %ed-border-color-set!
   ) ;export
   (import (scheme base))
   (begin
@@ -50,8 +49,6 @@
       (bottom-border %ed-bottom-border %ed-bottom-border-set!)
       (border-color %ed-border-color %ed-border-color-set!)
     ) ;define-record-type
-
-    (define <editor-data> '<editor-data>)
 
   ) ;begin
 ) ;define-library

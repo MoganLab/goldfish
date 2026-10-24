@@ -22,8 +22,8 @@
 ;;
 
 (define-library (demo tui snake logic)
-  (export <snake-game> make-snake-game snake-game? snake-width snake-height
-    snake-body snake-dir snake-food snake-score snake-high-score snake-status
+  (export make-snake-game snake-game? snake-width snake-height snake-body
+    snake-dir snake-food snake-score snake-high-score snake-status
     snake-tick-count snake-head snake-pass-wall snake-normalize-key
     snake-dir-opposite? snake-turn snake-tick snake-spawn-food snake-resize
   ) ;export
@@ -43,8 +43,6 @@
       (status snake-status)
       (tick-count snake-tick-count)
     ) ;define-record-type
-
-    (define <snake-game> '<snake-game>)
 
     (define (snake-head game)
       (car (snake-body game))

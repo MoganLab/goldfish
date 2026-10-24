@@ -22,7 +22,7 @@
 ;;
 
 (define-library (liii tui terminal protocol)
-  (export <terminal> make-terminal-record terminal? terminal-size terminal-write
+  (export make-terminal-record terminal? terminal-size terminal-write
     terminal-cursor terminal-set-cursor! terminal-clear terminal-clear-line
     terminal-clear-line-to-end terminal-begin-sync! terminal-end-sync!
     terminal-cursor-visible? terminal-hide-cursor! terminal-show-cursor!
@@ -54,8 +54,6 @@
       (flush-proc %terminal-flush)
       (data terminal-data terminal-data-set!)
     ) ;define-record-type
-
-    (define <terminal> '<terminal>)
 
     (define (make-terminal-record type get-size-proc write-proc get-cursor-proc
               set-cursor-proc clear-proc clear-line-proc clear-line-to-end-proc
