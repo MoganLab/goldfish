@@ -10,7 +10,7 @@
     (liii list)
     (liii pi extension types)
     (liii pi extension registry base)
-    (liii pi tools record)
+    (liii pi ai tools record)
   ) ;import
   (export normalize-tool-def register-tool! extension-register-tool!
     find-extension-tool extension-registry-tools-list

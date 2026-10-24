@@ -10,7 +10,7 @@
     (liii os)
     (liii string)
     (liii pi read)
-    (liii pi auth)
+    (liii pi ai auth)
   ) ;import
   (export pi-resolve-google-api-key pi-resolve-search-base-url
     pi-resolve-search-proxy-url pi-resolve-search-proxy-alist

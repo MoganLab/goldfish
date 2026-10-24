@@ -7,7 +7,7 @@
 (define-library (liii pi compact summary)
   (import (scheme base)
     (liii string)
-    (liii pi message)
+    (liii pi ai message)
     (liii pi agent)
     (liii pi compact serialize)
     (liii pi compact prompt)

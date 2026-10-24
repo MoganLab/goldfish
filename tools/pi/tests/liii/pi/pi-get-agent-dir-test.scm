@@ -2,7 +2,7 @@
         (liii check)
         (liii string)
         (liii os)
-        (liii pi))
+        (liii pi config) (liii pi read))
 
 (check-set-mode! 'report-failed)
 

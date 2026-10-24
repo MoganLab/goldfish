@@ -10,7 +10,7 @@
     (liii list)
     (liii pi truncate)
     (liii pi read)
-    (liii pi gemini grounding)
+    (liii pi ai gemini grounding)
   ) ;import
   (export pi-format-web-search-result)
   (begin

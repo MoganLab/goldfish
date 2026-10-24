@@ -16,7 +16,7 @@
     (liii pi prompt)
     (liii pi session)
     (liii pi agent)
-    (liii pi types)
+    (liii pi ai types)
     (liii pi compact session)
     (liii pi compact flow)
     (liii pi modes output)

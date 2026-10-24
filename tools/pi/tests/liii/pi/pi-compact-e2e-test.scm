@@ -5,7 +5,8 @@
   (liii path)
   (liii subprocess)
   (liii sys)
-  (liii pi)
+  (liii pi ai event) (liii pi ai message) (liii pi compact session) (liii pi session) (liii pi tools)
+  (liii uuid)
   (liii pi session)
   (liii pi compact)
 ) ;import

@@ -1,5 +1,5 @@
 (import (liii check)
-  (liii pi)
+  (liii pi session) (liii pi tools)
   (liii pi tools)
   (liii pi web-search)
 ) ;import

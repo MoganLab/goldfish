@@ -5,7 +5,7 @@
 ;;
 
 (define-library (liii pi compact prompt)
-  (import (scheme base) (liii string) (liii pi message))
+  (import (scheme base) (liii string) (liii pi ai message))
   (export PI_COMPACTION_SUMMARY_PREFIX PI_COMPACTION_SUMMARY_SUFFIX
     PI_SUMMARIZATION_SYSTEM_PROMPT PI_SUMMARIZATION_PROMPT
     PI_UPDATE_SUMMARIZATION_PROMPT pi-compaction-summary-message

@@ -1,4 +1,4 @@
-(import (liii check) (liii path) (liii pi) (scheme file))
+(import (liii check) (liii path) (liii pi tools) (scheme file))
 
 (check-set-mode! 'report-failed)
 

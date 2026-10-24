@@ -1,5 +1,5 @@
 (import (liii check)
-        (liii pi)
+        (liii pi config) (liii pi session)
         (liii pi compact))
 
 (check-set-mode! 'report-failed)

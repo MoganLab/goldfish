@@ -5,7 +5,7 @@
   (liii string)
   (liii list)
   (liii subprocess)
-  (liii pi)
+  (liii pi agent) (liii pi ai message) (liii pi session)
   (liii pi agent)
 ) ;import
 

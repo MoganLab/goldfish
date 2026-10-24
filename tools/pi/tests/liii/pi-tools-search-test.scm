@@ -1,6 +1,6 @@
 (set! *load-path* (append (list "tools/pi" ".") *load-path*))
 
-(import (liii check) (liii string) (liii path) (liii pi))
+(import (liii check) (liii string) (liii path) (liii pi cli) (liii pi find) (liii pi grep) (liii pi ls))
 
 (check-set-mode! 'report-failed)
 

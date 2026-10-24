@@ -12,7 +12,7 @@
     (liii http)
     (liii error)
     (liii pi read)
-    (liii pi gemini grounding)
+    (liii pi ai gemini grounding)
     (liii pi web-search schema)
     (liii pi web-search config)
     (liii pi web-search format)

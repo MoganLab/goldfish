@@ -1,4 +1,4 @@
-(import (liii check) (liii pi) (liii pi agent tools) (liii string))
+(import (liii check) (liii pi agent tools) (liii pi tools) (liii pi agent tools) (liii string))
 
 (check-set-mode! 'report-failed)
 

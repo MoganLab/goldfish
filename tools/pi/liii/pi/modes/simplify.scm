@@ -11,7 +11,7 @@
     (liii list)
     (liii pi args)
     (liii pi agent)
-    (liii pi message)
+    (liii pi ai message)
     (liii pi modes output)
     (liii pi modes flow)
     (liii pi simplify)

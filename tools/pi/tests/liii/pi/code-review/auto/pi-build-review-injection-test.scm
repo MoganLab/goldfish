@@ -1,6 +1,6 @@
 (import (liii check)
         (liii string)
-        (liii pi message)
+        (liii pi ai message)
         (liii pi code-review auto)
 ) ;import
 

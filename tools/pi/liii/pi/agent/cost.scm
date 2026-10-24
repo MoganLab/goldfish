@@ -7,8 +7,8 @@
 (define-library (liii pi agent cost)
   (import (scheme base)
     (liii list)
-    (liii pi cost)
-    (liii pi message)
+    (liii pi ai cost)
+    (liii pi ai message)
     (liii pi agent tools)
   ) ;import
   (export pi-agent-attach-cost pi-agent-session-cost-summary)

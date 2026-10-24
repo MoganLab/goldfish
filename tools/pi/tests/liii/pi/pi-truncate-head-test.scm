@@ -1,4 +1,4 @@
-(import (liii check) (liii pi))
+(import (liii check) (liii pi session) (liii pi tools))
 
 (check-set-mode! 'report-failed)
 

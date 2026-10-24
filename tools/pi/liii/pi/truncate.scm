@@ -9,8 +9,8 @@
     (scheme char)
     (liii string)
     (liii list)
-    (liii pi tools types)
-    (liii pi tools record)
+    (liii pi ai tools types)
+    (liii pi ai tools record)
   ) ;import
   (export PI_DEFAULT_MAX_LINES PI_DEFAULT_MAX_BYTES PI_GREP_MAX_LINE_LENGTH
     pi-byte-length pi-format-size pi-truncate-line pi-split-lines

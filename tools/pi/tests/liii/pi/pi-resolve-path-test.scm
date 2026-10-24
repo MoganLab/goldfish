@@ -1,4 +1,4 @@
-(import (liii check) (liii path) (liii pi))
+(import (liii check) (liii path) (liii pi read))
 
 (check-set-mode! 'report-failed)
 
