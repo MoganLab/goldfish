@@ -29,6 +29,7 @@
     extension-register-tool!
     find-extension-tool
     extension-registry-tools-list
+    extension-registry-default-tool-names
 
     normalize-flag-def
     register-flag!

@@ -4,7 +4,7 @@
 ;; Licensed under the MIT License
 ;;
 
-(define-library (liii pi code tools web-search execute)
+(define-library (liii pi web-search execute)
   (import (scheme base)
     (liii string)
     (liii list)
@@ -14,10 +14,10 @@
     (liii pi code tools read)
     (liii pi ai gemini grounding)
     (liii pi ai gemini request)
-    (liii pi code tools web-search schema)
-    (liii pi code tools web-search config)
-    (liii pi code tools web-search deepseek)
-    (liii pi code tools web-search format)
+    (liii pi web-search schema)
+    (liii pi web-search config)
+    (liii pi web-search deepseek)
+    (liii pi web-search format)
   ) ;import
   (export pi-execute-web-search)
   (begin

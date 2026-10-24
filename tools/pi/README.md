@@ -52,8 +52,16 @@ jq -r 'select(.type=="tool_execution_start") | "\(.toolName) \(.args)"' events.j
 ## 工具【可用】
 
 ```bash
-# 默认只激活 read/bash/edit/write；grep/find/ls 需显式开启
+# 默认激活 read/bash/edit/write/web_search；grep/find/ls 需显式开启
+# （web_search 由 web-search 扩展注册时声明 :default-active? #t 并入默认集，核心不写死）
 timeout 300 bin/gf pi -p --tools read,bash,grep,find,ls "统计 tests/ 下测试文件数量"
+
+# web_search 已默认启用，无需 --tools 指定（详见内置扩展章节）
+timeout 280 bin/gf pi -p "搜索 Goldfish Scheme 最新版本并给出引用来源"
+
+# 临时关闭 web_search（黑名单或增量均可）
+timeout 280 bin/gf pi -p --exclude-tools web_search "只回答：1+1等于几"
+timeout 280 bin/gf pi -p --tools "-web_search" "只回答：1+1等于几"
 
 # 黑名单排除工具：从默认工具集或指定工具集中排除（快速变为只读审计模式）
 timeout 300 bin/gf pi -p --exclude-tools bash,write,edit "你有哪些可用工具？列出工具名称"
@@ -103,14 +111,15 @@ timeout 300 bin/gf pi --no-session -p "一次性问题"
 
 | 扩展类型 | 存放位置 | 说明 |
 |---|---|---|
-| **仓库内置扩展** | `tools/pi/liii/pi/extensions/` | 随 Goldfish 安装包直接分发内置（安装到 `share/goldfish/tools/`），开箱即用 |
+| **仓库内置扩展** | `tools/pi/extensions/` | 随 Goldfish 安装包直接分发内置（安装到 `share/goldfish/tools/`），开箱即用 |
 | **用户全局扩展** | `~/.pi/agent/extensions/*.scm` 或 `*/index.scm` | 用户所有项目通用的全局插件 |
 | **项目局部扩展** | `.pi/extensions/*.scm` 或 `*/index.scm` | 仅在当前项目生效的定制插件 |
 | **显式指定加载** | `bin/gf pi -e /path/to/my-ext.scm` | 命令行 `-e` / `--extension` 快速调试单个插件脚本 |
 
 ### 2. 常用内置扩展（随包分发，开箱即用）
 
-为保证日常编码体验的高效与开箱即用，最常用的 2 个插件随 Goldfish 安装包内置：
+为保证日常编码体验的高效与开箱即用，最常用的 3 个插件随 Goldfish 安装包内置：
+- **`web-search`**：注册 `web_search` 工具（联网搜索，默认启用，实现移植自 ttttmr/pi-web-search）；
 - **`simplify`**：审查未提交代码的清晰度与可维护性，提供代码简化建议与 `--apply` 应用；
 - **`code-review`**：审查工作区或暂存区的代码变更并输出结构化审查清单。
 
@@ -123,6 +132,84 @@ timeout 300 bin/gf pi -p --simplify --staged
 timeout 300 bin/gf pi -p --code-review
 timeout 300 bin/gf pi -p --code-review --staged
 ```
+
+#### web-search：联网搜索工具【可用】（任务 040-043，扩展化 2026-10-20）
+
+移植自 [ttttmr/pi-web-search](https://github.com/ttttmr/pi-web-search)，以内置扩展形式提供
+`web_search` 工具（`extensions/web-search.scm` 注册，实现库 `(liii pi web-search)`）。
+**默认启用**（扩展注册时声明 `:default-active? #t` 并入默认集，核心默认集不写死扩展
+工具名），无需 `--tools` 指定；`--exclude-tools web_search` 可关闭；
+settings.json 显式 `defaultTools` 完整列表时以用户配置为准（不合并扩展默认）。
+
+```bash
+# 默认已启用，直接联网搜索（Gemini Google Search grounding，回答附 Sources 引用）
+timeout 280 bin/gf pi -p "搜索 Goldfish Scheme 最新版本并给出引用来源"
+
+# JSON 模式事件：tool_execution_start（query/urls）→ tool_execution_end（sources/details）
+timeout 280 bin/gf pi --mode json -p "搜索 R7RS-small 与 R7RS-large 的区别" | grep tool_execution
+```
+
+后端与凭据（优先级：显式参数 > `web-search.json` > 环境变量 > config）：
+
+| 后端 | 凭据 | base-url | 说明 |
+|---|---|---|---|
+| `google`（默认） | `GOOGLE_API_KEY`/`GEMINI_API_KEY` 或 auth.json 的 google 条目 | `GOOGLE_BASE_URL`/`GEMINI_BASE_URL`/`GF_PI_BASE_URL` | Gemini Search Grounding（默认模型 `gemini-2.5-flash`） |
+| `deepseek` | `DEEPSEEK_API_KEY` 或 auth.json 的 deepseek 条目 | `DEEPSEEK_BASE_URL` | 独立 Search + Fetch API，支持 urls 附带页面拉取 |
+
+```bash
+# 全局后端切换：~/.pi/agent/web-search.json（可用 PI_WEB_SEARCH_CONFIG 指定路径）
+# {"provider": "deepseek", "model": "gemini-2.5-flash"}
+echo '{"provider": "deepseek"}' > ~/.pi/agent/web-search.json
+
+# 或环境变量切换（不落盘）
+GF_PI_WEB_SEARCH_PROVIDER=deepseek timeout 280 bin/gf pi -p "搜索 DeepSeek V4 的发布日期"
+```
+
+工具参数：`query`（必填，搜索词）与 `urls`（可选，随搜索一并分析的 URL，最多 20 个）。
+代理复用 `--proxy > HTTPS_PROXY/ALL_PROXY`；访问 Gemini 官方端点通常需要代理。
+
+#### simplify：代码简化审查【可用】
+
+审查未提交（或指定 ref）的代码变更，输出可维护性/清晰度改进建议（只读，不改代码）。
+
+```bash
+# 审查工作区未提交变更
+timeout 300 bin/gf pi -p --simplify
+
+# 审查已暂存变更（git diff --cached）
+timeout 300 bin/gf pi -p --simplify --staged
+
+# 审查相对某个 ref 的变更
+timeout 300 bin/gf pi -p --simplify --ref origin/main
+
+# 建议确认后，在变更行范围内自动应用简化（写回文件）
+timeout 300 bin/gf pi -p --simplify --apply
+```
+
+约束：`--apply` 需与 `--simplify` 同用；`--staged`/`--ref` 需与 `--simplify` 或
+`--code-review` 之一同用；与 `--code-review` 互斥。
+
+#### code-review：代码变更审查【可用】
+
+对工作区（或暂存区、指定 ref）的变更逐文件输出结构化审查清单（问题等级与位置）。
+
+```bash
+# 审查工作区未提交变更
+timeout 300 bin/gf pi -p --code-review
+
+# 审查已暂存变更
+timeout 300 bin/gf pi -p --code-review --staged
+
+# 审查相对某个 ref 的变更
+timeout 300 bin/gf pi -p --code-review --ref HEAD~3
+
+# 交互注入：write/edit 后自动追加当前语言的审查清单到系统提示词
+# （--auto-review，与 --code-review 互斥）
+timeout 600 bin/gf pi -p --auto-review "修复 src/app.scm 里的空指针问题"
+```
+
+约束：`--staged`/`--ref` 需与 `--code-review` 或 `--simplify` 之一同用；
+`--auto-review` 与 `--code-review` 互斥。
 
 ### 3. 插件生态与安装（`pi install`）
 
@@ -269,7 +356,7 @@ tools/pi/liii/
     config.scm      # (liii pi config)   配置 record 与类型定义（config/record.scm, config/types.scm）
     extension.scm   # (liii pi extension) 扩展机制门面（API、注册容器、生命周期分发）
     extension/      # 扩展机制子模块（api, registry, discovery, loader, hooks）
-    extensions/     # ★ 内置轻量扩展（随包分发：simplify, code-review）
+    extensions/     # ★ 内置轻量扩展（随包分发：web-search, simplify, code-review）
     models.scm      # (liii pi models)   模型目录解析与表格输出（models/list.scm）
     gemini.scm      # (liii pi gemini)   Gemini provider（gemini/core, request, stream, stream-parse）
     anthropic.scm   # (liii pi anthropic) Anthropic provider（anthropic/core, request, stream, stream-parse）
@@ -432,16 +519,19 @@ tools/pi/liii/
 不做项：
 - RPC 模式（IDE 跨进程 JSONL over stdio，非当前核心需求）
 - 项目级 `.pi/settings.json` 读取（首期只读全局 settings.json，暂不引入 trust 门控概念）
-## web_search 工具【可用】（任务 040-043 四阶段落地，2026-10-20）
+## web_search 工具【可用】（任务 040-043 四阶段落地；2026-10-20 扩展化并默认启用）
 
-基于 Gemini 原生 Search Grounding，与 pi 本尊 pi-web-search 扩展行为对齐。
+基于 Gemini 原生 Search Grounding（或 DeepSeek Search/Fetch API），与 pi 本尊
+pi-web-search 扩展行为对齐。**已剥离为内置扩展**（`extensions/web-search.scm`，
+实现库 `(liii pi web-search)`）且**默认启用**：无需 `--tools` 指定，
+`--exclude-tools web_search` 可关闭；后端切换与配置详见「常用内置扩展」章节。
 
 ```bash
-# 启用 web_search（与其它工具可混合，如 --tools bash,web_search）
-timeout 280 bin/gf pi --tools web_search -p "搜索 Goldfish Scheme 最新版本并给出引用来源"
+# 默认已启用，直接搜索（无需 --tools web_search）
+timeout 280 bin/gf pi -p "搜索 Goldfish Scheme 最新版本并给出引用来源"
 
 # JSON 模式事件：tool_execution_start（query/urls）→ tool_execution_end（sources/details）
-timeout 280 bin/gf pi --mode json --tools web_search -p "..."
+timeout 280 bin/gf pi --mode json -p "..."
 ```
 
 实现要点：googleSearch 节注入（幂等/与 functionDeclarations 共存）、groundingMetadata

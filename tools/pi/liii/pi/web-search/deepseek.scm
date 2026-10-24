@@ -4,7 +4,7 @@
 ;; Licensed under the MIT License
 ;;
 
-(define-library (liii pi code tools web-search deepseek)
+(define-library (liii pi web-search deepseek)
   (import (scheme base)
     (liii string)
     (liii list)

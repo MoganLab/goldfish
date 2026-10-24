@@ -5,7 +5,8 @@
         (liii os)
         (liii sys)
         (liii subprocess)
-        (liii pi code tools web-search)
+        (liii pi code extension)
+        (liii pi web-search execute)
         (liii pi code tools))
 
 (check-set-mode! 'report-failed)
@@ -130,14 +131,27 @@
                            :api-key "test-key"
                            :timeout 1))
 
-  ;; 11. 通过 execute-tool-call 分发执行
-  (let ((call-res (execute-tool-call "web_search"
-                                    '(("query" . "goldfish scheme"))
-                                    :provider "google"
-                                    :base-url base-url
-                                    :model-id "web-search-basic"
-                                    :api-key "test-google-key"
-                                    :timeout 10)))
+  ;; 11. 通过 execute-tool-call 分发执行（web_search 为扩展工具，需在注册表内分发）
+  (let* ((api (make-extension-api))
+         (_ (pi-load-extension
+              (cond
+                ((file-exists? "tools/pi/extensions/web-search.scm")
+                 "tools/pi/extensions/web-search.scm")
+                (else "extensions/web-search.scm")
+              ) ;cond
+              api
+            ) ;pi-load-extension
+         )
+         (call-res
+           (with-extension-registry api
+             (lambda ()
+               (execute-tool-call "web_search"
+                 '(("query" . "goldfish scheme"))
+                 :provider "google"
+                 :base-url base-url
+                 :model-id "web-search-basic"
+                 :api-key "test-google-key"
+                 :timeout 10)))))
     (check-false (cdr (assoc 'isError call-res)))
     (let ((txt (cdr (assoc 'text call-res))))
       (check-true (string-contains? txt "Goldfish Scheme"))))

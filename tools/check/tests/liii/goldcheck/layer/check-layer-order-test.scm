@@ -74,6 +74,13 @@
       '("goldfish" "common")
       (list "tool" "liii goldcheck")
     ) ;%dom
+    (%dom "pi"
+      "tools/pi/"
+      '("goldfish")
+      (list "ai" "liii pi ai")
+      (list "code" "liii pi code")
+      (list "extensions" "liii pi review" "liii pi simplify" "liii pi web-search")
+    ) ;%dom
   ) ;%cfg-on
 ) ;define
 
@@ -242,11 +249,36 @@
   (check (check-layer-order f %cfg-off) => '())
 ) ;let
 
+;; 9. pi 域层序：code 层 import extensions 层的 web-search -> 抓到倒挂
+;; （web-search 为扩展实现库，核心层 ai/agent/code 一律不得依赖）
+(let* ((f (%mk "tools/pi/liii/pi/code/tools.scm"
+            (%lib-header "scheme base" "liii pi web-search")
+          ) ;%mk
+       ) ;f
+       (viol (check-layer-order f %cfg))
+       (details (map caddr viol))
+      ) ;
+  (check (length viol) => 1)
+  (check-true (string-contains? (car details) "web-search"))
+) ;let*
+
+;; 9b. pi 域 extensions 层向下依赖（ai/code 层）与同层互依 -> 零违规
+(let ((f (%mk "tools/pi/liii/pi/web-search/execute.scm"
+           (%lib-header "scheme base" "liii pi code tools read"
+             "liii pi ai gemini grounding" "liii pi web-search schema")
+         ) ;%mk
+      ) ;f
+     ) ;
+  (check (check-layer-order f %cfg) => '())
+) ;let
+
 ;; ---- 清理临时目录 ---------------------------------------------------
 (let ((files '("tools/check/liii/goldcheck/path.scm"
                "goldfish/srfi/srfi-113.scm" "tools/check/liii/goldcheck.scm"
                "tools/check/tests/liii/goldcheck/x.scm"
-               "goldfish/scheme/base.scm" "tools/common/liii/goldtool-new.scm")
+               "goldfish/scheme/base.scm" "tools/common/liii/goldtool-new.scm"
+               "tools/pi/liii/pi/code/tools.scm"
+               "tools/pi/liii/pi/web-search/execute.scm")
       ) ;files
      ) ;
   (for-each
@@ -258,7 +290,9 @@
     '("tools/check/liii/goldcheck" "tools/check/tests/liii/goldcheck"
       "tools/check/tests/liii" "tools/check/tests" "tools/check/liii"
       "tools/check" "goldfish/srfi" "goldfish/scheme" "goldfish"
-      "tools/common/liii" "tools/common" "tools")
+      "tools/common/liii" "tools/common"
+      "tools/pi/liii/pi/code" "tools/pi/liii/pi/web-search"
+      "tools/pi/liii/pi" "tools/pi/liii" "tools/pi" "tools")
   ) ;for-each
   (path-rmdir (path %tmp-root))
 ) ;let

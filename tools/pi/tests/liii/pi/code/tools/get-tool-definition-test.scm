@@ -6,8 +6,8 @@
 
 (check-set-mode! 'report-failed)
 
-;; 1. 默认内置基础工具始终可获取
-(let ((names '("read" "bash" "edit" "write" "ls" "find" "grep" "web_search")))
+;; 1. 默认内置基础工具始终可获取（web_search 已剥离为扩展，不在内置名单）
+(let ((names '("read" "bash" "edit" "write" "ls" "find" "grep")))
   (for-each
     (lambda (name)
       (let ((def (get-tool-definition name)))
@@ -16,6 +16,7 @@
     names))
 
 ;; 2. 解耦验证：在未注册扩展工具时，原硬编码的扩展工具不再默认返回定义
+(check (get-tool-definition "web_search") => #f)
 (check (get-tool-definition "tdd_status") => #f)
 (check (get-tool-definition "tdd_advance") => #f)
 (check (get-tool-definition "tdd_reset") => #f)

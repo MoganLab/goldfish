@@ -53,6 +53,7 @@
     extension-tool-def-execute
     extension-tool-def-snippet
     extension-tool-def-guidelines
+    extension-tool-def-default-active?
 
     ;; ExtensionFlagDef
     make-extension-flag-def

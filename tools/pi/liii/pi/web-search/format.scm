@@ -4,7 +4,7 @@
 ;; Licensed under the MIT License
 ;;
 
-(define-library (liii pi code tools web-search format)
+(define-library (liii pi web-search format)
   (import (scheme base)
     (liii string)
     (liii list)
