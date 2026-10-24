@@ -5,7 +5,7 @@
 ;;
 
 (define-library (liii pi gemini grounding)
-  (import (scheme base) (liii pi gemini grounding-parse))
+  (import (scheme base) (liii list) (liii pi gemini grounding-parse))
   (export gemini-build-search-tools gemini-inject-google-search
     gemini-extract-grounding-details gemini-grounding-search-queries
     gemini-grounding-search-results gemini-grounding-citations
@@ -30,13 +30,7 @@
     ) ;define
 
     (define (%tools-contain-google-search? tools)
-      (let loop
-        ((rem (%ensure-list tools)))
-        (cond ((null? rem) #f)
-              ((%has-google-search? (car rem)) #t)
-              (else (loop (cdr rem)))
-        ) ;cond
-      ) ;let
+      (any %has-google-search? (%ensure-list tools))
     ) ;define
 
     (define (%google-search-tool-spec)

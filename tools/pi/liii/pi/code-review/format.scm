@@ -59,9 +59,7 @@
     ) ;define
 
     (define (%count-severity findings severity)
-      (length
-        (filter (lambda (f) (string=? (%field 'severity f "") severity)) findings)
-      ) ;length
+      (count (lambda (f) (string=? (%field 'severity f "") severity)) findings)
     ) ;define
 
     (define (%summary findings)

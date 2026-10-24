@@ -29,13 +29,8 @@
     (define* (get-tool-arg key args (default #f))
       (if (not (list? args))
         default
-        (let loop
-          ((rest args))
-          (cond ((null? rest) default)
-                ((not (pair? (car rest))) (loop (cdr rest)))
-                ((key-matches? (caar rest) key) (cdar rest))
-                (else (loop (cdr rest)))
-          ) ;cond
+        (let ((pair (find (lambda (p) (and (pair? p) (key-matches? (car p) key))) args)))
+          (if pair (cdr pair) default)
         ) ;let
       ) ;if
     ) ;define*

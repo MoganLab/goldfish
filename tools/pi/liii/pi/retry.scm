@@ -11,6 +11,7 @@
     (scheme char)
     (scheme write)
     (liii string)
+    (liii list)
     (liii hash-table)
     (liii date-time)
     (liii pi time)
@@ -93,15 +94,7 @@
     ) ;define
 
     (define (%clean-tokens raw)
-      (let loop
-        ((ts raw) (acc '()))
-        (if (null? ts)
-          (reverse acc)
-          (let ((t (string-trim-both (car ts))))
-            (loop (cdr ts) (if (string-null? t) acc (cons t acc)))
-          ) ;let
-        ) ;if
-      ) ;let
+      (filter (lambda (t) (not (string-null? t))) (map string-trim-both raw))
     ) ;define
 
     (define (%parse-http-time parts)
