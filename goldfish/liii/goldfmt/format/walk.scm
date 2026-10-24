@@ -16,6 +16,7 @@
 (define-library (liii goldfmt format walk)
   (export walk!)
   (import (liii base)
+    (liii vector)
     (liii goldfmt record)
     (liii goldfmt rule)
     (liii goldfmt format atom)
@@ -54,17 +55,12 @@
 
     (define (fill-eligible-children? children)
       (and (>= (vector-length children) fill-min-children)
-        (let loop
-          ((i 0))
-          (cond ((>= i (vector-length children)) #t)
-                ((let ((child (vector-ref children i)))
-                   (and (atom? child) (not (keyword-node? child)) (try-inline child))
-                 ) ;let
-                 (loop (+ i 1))
-                ) ;
-                (else #f)
-          ) ;cond
-        ) ;let
+        (vector-every
+          (lambda (child)
+            (and (atom? child) (not (keyword-node? child)) (try-inline child))
+          ) ;lambda
+          children
+        ) ;vector-every
       ) ;and
     ) ;define
 

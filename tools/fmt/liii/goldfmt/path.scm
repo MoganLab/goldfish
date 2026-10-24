@@ -15,7 +15,7 @@
 ;;
 
 (define-library (liii goldfmt path)
-  (import (liii base) (liii path) (liii string))
+  (import (liii base) (liii path) (liii string) (liii list))
   (export normalize-sep has-wildcard? string-index-of string-starts-with?
     glob-match? path-matches-exclude? file-excluded? suffix-match? collect-files
     collect-files-dfs
@@ -27,10 +27,7 @@
     ) ;define
 
     (define (has-wildcard? s)
-      (let loop
-        ((i (- (string-length s) 1)))
-        (if (< i 0) #f (if (char=? (string-ref s i) #\*) #t (loop (- i 1))))
-      ) ;let
+      (string-contains? s "*")
     ) ;define
 
     (define (string-index-of str sub start)
@@ -106,52 +103,41 @@
 
     ;; entry 是否命中 excludes 列表中任一 pattern。
     (define (file-excluded? entry-str excludes)
-      (let loop
-        ((pats excludes))
-        (if (null? pats)
-          #f
-          (if (path-matches-exclude? entry-str (car pats)) #t (loop (cdr pats)))
-        ) ;if
-      ) ;let
+      (any (lambda (pat) (path-matches-exclude? entry-str pat)) excludes)
     ) ;define
 
     ;; ---- 通用文件收集 ---------------------------------------------------
     (define (suffix-match? name suffixes)
-      (let loop
-        ((exts suffixes))
-        (if (null? exts) #f (if (string-ends? name (car exts)) #t (loop (cdr exts))))
-      ) ;let
+      (any (lambda (ext) (string-ends? name ext)) suffixes)
     ) ;define
 
     (define (collect-files dir-path suffixes excludes)
       (let ((entries (path-list-path (path dir-path))))
-        (let loop
-          ((i 0) (acc '()))
-          (if (>= i (vector-length entries))
-            acc
-            (let ((entry (vector-ref entries i)))
-              (cond
-               ((path-file? entry)
-                (let ((s (path->string entry)))
-                  (if (and (suffix-match? s suffixes) (not (file-excluded? s excludes)))
-                    (loop (+ i 1) (cons s acc))
-                    (loop (+ i 1) acc)
-                  ) ;if
-                ) ;let
-               ) ;
-               ((path-dir? entry)
-                (let ((d (path->string entry)))
-                  (if (file-excluded? d excludes)
-                    (loop (+ i 1) acc)
-                    (loop (+ i 1) (append (collect-files d suffixes excludes) acc))
-                  ) ;if
-                ) ;let
-               ) ;
-               (else (loop (+ i 1) acc))
-              ) ;cond
-            ) ;let
-          ) ;if
-        ) ;let
+        (fold
+          (lambda (entry acc)
+            (cond
+             ((path-file? entry)
+              (let ((s (path->string entry)))
+                (if (and (suffix-match? s suffixes) (not (file-excluded? s excludes)))
+                  (cons s acc)
+                  acc
+                ) ;if
+              ) ;let
+             ) ;
+             ((path-dir? entry)
+              (let ((d (path->string entry)))
+                (if (file-excluded? d excludes)
+                  acc
+                  (append (collect-files d suffixes excludes) acc)
+                ) ;if
+              ) ;let
+             ) ;
+             (else acc)
+            ) ;cond
+          ) ;lambda
+          '()
+          (vector->list entries)
+        ) ;fold
       ) ;let
     ) ;define
 

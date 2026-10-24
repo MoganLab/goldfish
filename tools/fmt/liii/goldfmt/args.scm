@@ -15,7 +15,7 @@
 ;;
 
 (define-library (liii goldfmt args)
-  (import (liii base) (liii string) (liii argparse) (liii goldfmt lang))
+  (import (liii base) (liii string) (liii list) (liii argparse) (liii goldfmt lang))
   (export normalize-extension token->extensions file-extension-match?
     parse-extensions parse-excludes make-fmt-arg-parser normalize-jobs
     parse-fmt-jobs first-positional display-help extension-option-explicit?
@@ -38,43 +38,23 @@
     ) ;define
 
     (define (file-extension-match? filename extensions)
-      (let loop
-        ((exts extensions))
-        (if (null? exts)
-          #f
-          (if (string-ends? filename (car exts)) #t (loop (cdr exts)))
-        ) ;if
-      ) ;let
+      (any (lambda (ext) (string-ends? filename ext)) extensions)
     ) ;define
 
     (define (parse-extensions raw)
-      (let loop
-        ((tokens (string-split raw ",")) (acc '()))
-        (if (null? tokens)
-          (let dedup
-            ((es (reverse acc)) (seen '()))
-            (if (null? es)
-              seen
-              (dedup (cdr es) (if (member (car es) seen) seen (cons (car es) seen)))
-            ) ;if
-          ) ;let
-          (loop (cdr tokens) (append (token->extensions (car tokens)) acc))
-        ) ;if
-      ) ;let
+      (reverse
+        (fold
+          (lambda (ext acc) (if (member ext acc) acc (cons ext acc)))
+          '()
+          (append-map token->extensions (string-split raw ","))
+        ) ;fold
+      ) ;reverse
     ) ;define
 
     (define (parse-excludes raw)
       (if (or (not raw) (string=? raw ""))
         '()
-        (let loop
-          ((parts (string-split raw ",")) (acc '()))
-          (if (null? parts)
-            (reverse acc)
-            (let ((p (car parts)))
-              (if (string=? p "") (loop (cdr parts) acc) (loop (cdr parts) (cons p acc)))
-            ) ;let
-          ) ;if
-        ) ;let
+        (filter (lambda (p) (not (string=? p ""))) (string-split raw ","))
       ) ;if
     ) ;define
 
@@ -199,22 +179,16 @@
     ) ;define
 
     (define (extension-option-explicit? args)
-      (let loop
-        ((as args))
-        (if (null? as)
-          #f
-          (let ((a (car as)))
-            (if (or (string=? a "-e")
-                  (string=? a "--extension")
-                  (string-starts? a "-e=")
-                  (string-starts? a "--extension=")
-                ) ;or
-              #t
-              (loop (cdr as))
-            ) ;if
-          ) ;let
-        ) ;if
-      ) ;let
+      (any
+        (lambda (a)
+          (or (string=? a "-e")
+            (string=? a "--extension")
+            (string-starts? a "-e=")
+            (string-starts? a "--extension=")
+          ) ;or
+        ) ;lambda
+        args
+      ) ;any
     ) ;define
 
   ) ;begin

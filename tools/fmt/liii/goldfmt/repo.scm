@@ -18,6 +18,7 @@
   (import (liii base)
     (liii os)
     (liii string)
+    (liii list)
     (liii semver)
     (liii goldfmt lang)
     (liii goldfmt config)
@@ -57,42 +58,44 @@
     ) ;define
 
     (define (run-repo-format cfg)
-      (let loop
-        ((handlers (lang-list)) (repo-failed 0))
-        (if (null? handlers)
-          (begin
-            (display "Done.")
-            (newline)
-            (if (> repo-failed 0) (exit 1) #t)
-          ) ;begin
-          (let* ((handler (car handlers))
-                 (label (lang-label handler))
-                 (collect (lang-ref handler 'collect))
-                 (format-files (lang-ref handler 'format-files))
-                 (files (collect cfg))
-                 (stats (format-files files cfg))
-                 (failed (stats-failed stats))
-                ) ;
-            (display (string-append "=== Formatting " label " files ==="))
-            (newline)
-            (flush-output)
-            (display
-              (string-append "Total "
-                label
-                " files formatted: "
-                (number->string (car stats))
-                ", Files updated: "
-                (number->string (cadr stats))
-                ", Files unchanged: "
-                (number->string (caddr stats))
-                (if (> failed 0) (string-append ", Files failed: " (number->string failed)) "")
-              ) ;string-append
-            ) ;display
-            (newline)
-            (newline)
-            (loop (cdr handlers) (+ repo-failed failed))
-          ) ;let*
-        ) ;if
+      (let ((repo-failed
+              (fold
+                (lambda (handler total-failed)
+                  (let* ((label (lang-label handler))
+                         (collect (lang-ref handler 'collect))
+                         (format-files (lang-ref handler 'format-files))
+                         (files (collect cfg))
+                         (stats (format-files files cfg))
+                         (failed (stats-failed stats))
+                        ) ;
+                    (display (string-append "=== Formatting " label " files ==="))
+                    (newline)
+                    (flush-output)
+                    (display
+                      (string-append "Total "
+                        label
+                        " files formatted: "
+                        (number->string (car stats))
+                        ", Files updated: "
+                        (number->string (cadr stats))
+                        ", Files unchanged: "
+                        (number->string (caddr stats))
+                        (if (> failed 0) (string-append ", Files failed: " (number->string failed)) "")
+                      ) ;string-append
+                    ) ;display
+                    (newline)
+                    (newline)
+                    (+ total-failed failed)
+                  ) ;let*
+                ) ;lambda
+                0
+                (lang-list)
+              ) ;fold
+            ) ;repo-failed
+           ) ;
+        (display "Done.")
+        (newline)
+        (if (> repo-failed 0) (exit 1) #t)
       ) ;let
     ) ;define
 
@@ -116,18 +119,10 @@
     (define (check-files-or-serial handler files cfg)
       (let ((check-files-pair (assq 'check-files handler)))
         (if check-files-pair
-         ((cdr check-files-pair) files cfg)
-         (let ((check-file (lang-ref handler 'check-file)))
-           (let loop
-             ((fs files) (bad '()))
-             (if (null? fs)
-               (reverse bad)
-               (let ((f (car fs)))
-                 (loop (cdr fs) (if (check-file f cfg) bad (cons f bad)))
-               ) ;let
-             ) ;if
-           ) ;let
-         ) ;let
+          ((cdr check-files-pair) files cfg)
+          (let ((check-file (lang-ref handler 'check-file)))
+            (filter (lambda (f) (not (check-file f cfg))) files)
+          ) ;let
         ) ;if
       ) ;let
     ) ;define
@@ -169,17 +164,21 @@
           (newline)
           (exit 0)
         ) ;begin
-        (let loop
-          ((handlers (lang-list)) (results '()))
-          (if (null? handlers)
-            (report-repo-check-results results)
-            (let* ((handler (car handlers)) (label (lang-label handler)))
-              (display (string-append "=== Checking " label " files ==="))
-              (newline)
-              (flush-output)
-              (loop (cdr handlers) (cons (cons handler (check-lang handler cfg)) results))
-            ) ;let*
-          ) ;if
+        (let ((results
+                (map
+                  (lambda (handler)
+                    (let ((label (lang-label handler)))
+                      (display (string-append "=== Checking " label " files ==="))
+                      (newline)
+                      (flush-output)
+                      (cons handler (check-lang handler cfg))
+                    ) ;let
+                  ) ;lambda
+                  (lang-list)
+                ) ;map
+              ) ;results
+             ) ;
+          (report-repo-check-results (reverse results))
         ) ;let
       ) ;if
     ) ;define

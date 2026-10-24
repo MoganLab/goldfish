@@ -18,6 +18,7 @@
   (import (liii base)
     (liii path)
     (liii string)
+    (liii list)
     (liii goldfmt cache)
     (liii goldfmt lang)
     (liii goldfmt config)
@@ -80,16 +81,15 @@
             (suffixes (lang-suffixes 'cpp cfg))
             (excludes (lang-excludes 'cpp cfg))
            ) ;
-        (let loop
-          ((ps paths) (acc '()))
-          (if (null? ps)
-            acc
-            (if (path-dir? (path (car ps)))
-              (loop (cdr ps) (append (collect-files (car ps) suffixes excludes) acc))
-              (loop (cdr ps) acc)
+        (append-map
+          (lambda (p)
+            (if (path-dir? (path p))
+              (collect-files p suffixes excludes)
+              '()
             ) ;if
-          ) ;if
-        ) ;let
+          ) ;lambda
+          paths
+        ) ;append-map
       ) ;let
     ) ;define
 

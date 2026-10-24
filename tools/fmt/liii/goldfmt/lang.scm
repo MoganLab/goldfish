@@ -32,7 +32,7 @@
 ;; 通用 exclude 匹配（精确 + glob *）与文件收集也在此提供，供各 handler 复用。
 
 (define-library (liii goldfmt lang)
-  (import (liii base) (liii path) (liii string) (liii goldfmt path))
+  (import (liii base) (liii path) (liii string) (liii list) (liii goldfmt path))
   (export register-lang! lang-list lang-ref lang-name lang-label lang-extensions
     extensions-for-lang-name lang-for-extension lang-for-extensions
     lang-for-name path-matches-exclude? file-excluded? collect-files
@@ -49,18 +49,12 @@
     ;; 追加到末尾（保持 import 顺序）；同名 handler 替换旧的。
     (define (register-lang! handler)
       (let ((name (cdr (assq 'name handler))))
-        (set! %lang-registry
-          (let loop
-            ((rs %lang-registry) (acc '()))
-            (if (null? rs)
-              (reverse (cons handler acc))
-              (if (eq? (lang-name (car rs)) name)
-                (loop (cdr rs) (cons handler acc))
-                (loop (cdr rs) (cons (car rs) acc))
-              ) ;if
-            ) ;if
-          ) ;let
-        ) ;set!
+        (if (any (lambda (h) (eq? (lang-name h) name)) %lang-registry)
+          (set! %lang-registry
+            (map (lambda (h) (if (eq? (lang-name h) name) handler h)) %lang-registry)
+          ) ;set!
+          (set! %lang-registry (append %lang-registry (list handler)))
+        ) ;if
         handler
       ) ;let
     ) ;define
@@ -95,73 +89,36 @@
     ;; token（如 "cpp"/"scheme"）若是已注册语言名，返回该语言后缀列表；否则 #f。
     ;; 供 -e 按语言名展开（-e cpp => cpp 语言全部后缀）。
     (define (extensions-for-lang-name token)
-      (let loop
-        ((handlers (lang-list)))
-        (if (null? handlers)
-          #f
-          (if (eq? (lang-name (car handlers)) (string->symbol token))
-            (lang-extensions (car handlers))
-            (loop (cdr handlers))
-          ) ;if
-        ) ;if
+      (let ((h (find (lambda (h) (eq? (lang-name h) (string->symbol token))) (lang-list))))
+        (and h (lang-extensions h))
       ) ;let
     ) ;define
 
     ;; ext（单个带点后缀，如 ".cpp"）是否由 handler 接管。
     (define (handler-matches-ext? handler ext)
-      (let loop
-        ((exts (lang-extensions handler)))
-        (if (null? exts) #f (if (string=? (car exts) ext) #t (loop (cdr exts))))
-      ) ;let
+      (any (lambda (e) (string=? e ext)) (lang-extensions handler))
     ) ;define
 
     ;; 按单个后缀查 handler：遍历注册表返回第一个 extensions 含 ext 的 handler；
     ;; 都不匹配则返回 #f（调用方自行决定默认/报错）。
     (define (lang-for-extension ext)
-      (let loop
-        ((handlers (lang-list)))
-        (if (null? handlers)
-          #f
-          (if (handler-matches-ext? (car handlers) ext)
-            (car handlers)
-            (loop (cdr handlers))
-          ) ;if
-        ) ;if
-      ) ;let
+      (find (lambda (h) (handler-matches-ext? h ext)) (lang-list))
     ) ;define
 
-    ;; 按后缀列表查 handler：返回 extensions 与 exts 有交集的 handler 列表
+    ;; 按后缀列表查 handler：返回 extensions 与 exts 有交集的 handler列表
     ;; （目录模式可能 -e 指定多语言后缀）。
     (define (lang-for-extensions exts)
-      (let loop
-        ((handlers (lang-list)) (acc '()))
-        (if (null? handlers)
-          (reverse acc)
-          (let ((h (car handlers)))
-            (loop (cdr handlers)
-              (if
-                (let any
-                  ((es exts))
-                  (if (null? es) #f (if (handler-matches-ext? h (car es)) #t (any (cdr es))))
-                ) ;let
-                (cons h acc)
-                acc
-              ) ;if
-            ) ;loop
-          ) ;let
-        ) ;if
-      ) ;let
+      (filter
+        (lambda (h)
+          (any (lambda (e) (handler-matches-ext? h e)) exts)
+        ) ;lambda
+        (lang-list)
+      ) ;filter
     ) ;define
 
     ;; 按语言名（符号）查 handler：返回第一个 name 匹配的 handler，无则 #f。
     (define (lang-for-name name)
-      (let loop
-        ((handlers (lang-list)))
-        (if (null? handlers)
-          #f
-          (if (eq? (lang-name (car handlers)) name) (car handlers) (loop (cdr handlers)))
-        ) ;if
-      ) ;let
+      (find (lambda (h) (eq? (lang-name h) name)) (lang-list))
     ) ;define
 
     ;; ---- 共享的错误消息与打印辅助 ----------------------------------------

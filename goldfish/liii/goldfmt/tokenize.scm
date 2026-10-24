@@ -15,7 +15,7 @@
 
 (define-library (liii goldfmt tokenize)
   (export tokenize tokens->string escape-string-content)
-  (import (liii base) (liii string) (liii unicode))
+  (import (liii base) (liii string) (liii list) (liii unicode))
   (begin
     (define (trim-right-spaces str)
       (if
@@ -25,21 +25,20 @@
       ) ;if
     ) ;define
     (define (escape-string-content content)
-      (let loop
-        ((chars (string->list content)) (result '()))
-        (if (null? chars)
-          (list->string (reverse result))
-          (let ((c (car chars)))
-            (cond
-             ((char=? c #\\) (loop (cdr chars) (cons #\\ (cons #\\ result))))
-             ((char=? c #\") (loop (cdr chars) (cons #\" (cons #\\ result))))
-             ((char=? c #\newline) (loop (cdr chars) (cons #\n (cons #\\ result))))
-             ((char=? c #\return) (loop (cdr chars) result))
-             (else (loop (cdr chars) (cons c result)))
+      (string-join
+        (map
+          (lambda (c)
+            (cond ((char=? c #\\) "\\\\")
+                  ((char=? c #\") "\\\"")
+                  ((char=? c #\newline) "\\n")
+                  ((char=? c #\return) "")
+                  (else (string c))
             ) ;cond
-          ) ;let
-        ) ;if
-      ) ;let
+          ) ;lambda
+          (string->list content)
+        ) ;map
+        ""
+      ) ;string-join
     ) ;define
     (define (blank-line? str)
       (or (string-null? str)
@@ -241,32 +240,22 @@
       ) ;let
     ) ;define
     (define (tokens->string tokens)
-      (let ((out (open-output-string)))
-        (let loop
-          ((rest tokens))
-          (if (null? rest)
-            (get-output-string out)
-            (let* ((token (car rest)) (type (car token)) (content (cdr token)))
+      (string-join
+        (map
+          (lambda (token)
+            (let ((type (car token)) (content (cdr token)))
               (cond ((eq? type 'comment)
-                     (display "(*comment* \"" out)
-                     (display (escape-string-content content) out)
-                     (display "\")" out)
+                     (string-append "(*comment* \"" (escape-string-content content) "\")")
                     ) ;
-                    ((eq? type 'newline)
-                     (display "(*newline* " out)
-                     (display (number->string content) out)
-                     (display ")" out)
-                    ) ;
-                    (else (display content out))
+                    ((eq? type 'newline) (string-append "(*newline* " (number->string content) ")"))
+                    (else content)
               ) ;cond
-              (when (not (null? (cdr rest)))
-                (display "\n" out)
-              ) ;when
-              (loop (cdr rest))
-            ) ;let*
-          ) ;if
-        ) ;let
-      ) ;let
+            ) ;let
+          ) ;lambda
+          tokens
+        ) ;map
+        "\n"
+      ) ;string-join
     ) ;define
   ) ;begin
 ) ;define-library
