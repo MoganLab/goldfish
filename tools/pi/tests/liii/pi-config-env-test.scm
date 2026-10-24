@@ -41,7 +41,7 @@
     ("DEEPSEEK_API_KEY" . "polluted-deepseek-key")
     ("GLM_MODEL" . "polluted-glm-model")
     ("GLM_API_KEY" . "polluted-glm-key")
-    ("KIMI_API_KEY" . "polluted-kimi-key")
+    ("KIMI_API_KEY" . "polluted-openai-key")
     ("GEMINI_API_KEY" . "polluted-gemini-key")))
 
 (define (with-env-vars vars thunk)

@@ -4,37 +4,14 @@
 ;; Licensed under the MIT License
 ;;
 
+;; 内置模型目录聚合层：数据源已迁移至 (liii pi ai providers *)，
+;; 此处保留原接口供 models 目录及外部使用方引用
 (define-library (liii pi ai models builtin)
-  (import (scheme base)
-    (liii list)
-    (liii pi ai models builtin anthropic)
-    (liii pi ai models builtin deepseek)
-    (liii pi ai models builtin google)
-    (liii pi ai models builtin kimi-coding)
-    (liii pi ai models builtin minimax)
-    (liii pi ai models builtin minimax-cn)
-    (liii pi ai models builtin zai-coding-cn)
-  ) ;import
+  (import (scheme base) (liii list) (liii pi ai providers registry))
   (export PI_SUPPORTED_PROVIDERS PI_PROVIDER_BUILTIN_MODELS
     pi-builtin-augment-store pi-builtin-augment-all
   ) ;export
   (begin
-
-    (define PI_SUPPORTED_PROVIDERS
-      '("google" "anthropic" "kimi-coding" "glm" "deepseek" "minimax"
-        "minimax-cn" "zai-coding-cn")
-    ) ;define
-
-    (define PI_PROVIDER_BUILTIN_MODELS
-      (list (cons "anthropic" PI_ANTHROPIC_BUILTIN_MODELS)
-        (cons "deepseek" PI_DEEPSEEK_BUILTIN_MODELS)
-        (cons "google" PI_GOOGLE_BUILTIN_MODELS)
-        (cons "kimi-coding" PI_KIMI_CODING_BUILTIN_MODELS)
-        (cons "minimax" PI_MINIMAX_BUILTIN_MODELS)
-        (cons "minimax-cn" PI_MINIMAX_CN_BUILTIN_MODELS)
-        (cons "zai-coding-cn" PI_ZAI_CODING_CN_BUILTIN_MODELS)
-      ) ;list
-    ) ;define
 
     (define (%dict-ref obj key default-val)
       (if (not (pair? obj))

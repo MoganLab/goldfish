@@ -1,5 +1,5 @@
 (import (liii check)
-        (liii pi ai anthropic) (liii pi ai deepseek) (liii pi ai event) (liii pi ai gemini) (liii pi ai kimi) (liii pi ai message))
+        (liii pi ai api anthropic-messages) (liii pi ai event) (liii pi ai api google-generative-ai) (liii pi ai api openai-completions) (liii pi ai message))
 
 (check-set-mode! 'report-failed)
 
@@ -30,19 +30,19 @@
       (check (cdr (assoc "content" (vector-ref blks 0))) => "LIST-1071")))
 
   ;; 2. Kimi 协议转换
-  (let* ((kimi-vec (kimi-build-messages (list vec-msg) #f))
-         (kimi-raw (kimi-build-messages (list raw-vec-msg) #f))
-         (kimi-list (kimi-build-messages (list list-msg) #f)))
-    (check (vector-length kimi-vec) => 1)
-    (let ((m (vector-ref kimi-vec 0)))
+  (let* ((openai-vec (openai-build-messages (list vec-msg) #f))
+         (openai-raw (openai-build-messages (list raw-vec-msg) #f))
+         (openai-list (openai-build-messages (list list-msg) #f)))
+    (check (vector-length openai-vec) => 1)
+    (let ((m (vector-ref openai-vec 0)))
       (check (cdr (assoc "role" m)) => "tool")
       (check (cdr (assoc "tool_call_id" m)) => "call_b1")
       (check (cdr (assoc "content" m)) => "SECRET-1071"))
-    (let ((m (vector-ref kimi-raw 0)))
+    (let ((m (vector-ref openai-raw 0)))
       (check (cdr (assoc "role" m)) => "tool")
       (check (cdr (assoc "tool_call_id" m)) => "call_r1")
       (check (cdr (assoc "content" m)) => "FILE-CONTENT-1071"))
-    (let ((m (vector-ref kimi-list 0)))
+    (let ((m (vector-ref openai-list 0)))
       (check (cdr (assoc "role" m)) => "tool")
       (check (cdr (assoc "tool_call_id" m)) => "call_l1")
       (check (cdr (assoc "content" m)) => "LIST-1071")))
@@ -70,9 +70,9 @@
            (resp (cdr (assoc "response" fr))))
       (check (cdr (assoc "output" resp)) => "LIST-1071")))
 
-  ;; 4. DeepSeek 复用 anthropic 链路（deepseek-build-messages 即 anthropic-build-messages 的别名），
-  ;;    抽查一例确认别名生效即可
-  (let* ((ds (deepseek-build-messages (list vec-msg)))
+  ;; 4. DeepSeek 复用 anthropic-messages 协议（见 providers 注册表），
+  ;;    抽查确认 anthropic 消息构造兼容 vector 消息即可
+  (let* ((ds (anthropic-build-messages (list vec-msg)))
          (blks (cdr (assoc "content" (vector-ref ds 0)))))
     (check (cdr (assoc "content" (vector-ref blks 0))) => "SECRET-1071")))
 

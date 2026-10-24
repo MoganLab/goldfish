@@ -1,0 +1,27 @@
+(import (liii check) (liii pi ai providers registry))
+
+(check-set-mode! 'report-failed)
+
+;; pi-provider-env-keys
+;; 各 provider 依次尝试的 API key 环境变量，与 auth 模块的环境变量解析一致。
+(check (pi-provider-env-keys "anthropic")
+  => '("ANTHROPIC_API_KEY" "ANTHROPIC_AUTH_TOKEN"))
+(check (pi-provider-env-keys "glm")
+  => '("ANTHROPIC_AUTH_TOKEN" "GLM_API_KEY" "ANTHROPIC_API_KEY"))
+(check (pi-provider-env-keys "deepseek") => '("DEEPSEEK_API_KEY"))
+(check (pi-provider-env-keys "google") => '("GEMINI_API_KEY"))
+(check (pi-provider-env-keys "kimi-coding") => '("KIMI_API_KEY"))
+(check (pi-provider-env-keys "minimax")
+  => '("MINIMAX_API_KEY" "MINIMAX_CN_API_KEY"))
+(check (pi-provider-env-keys "minimax-cn")
+  => '("MINIMAX_CN_API_KEY" "MINIMAX_API_KEY"))
+(check (pi-provider-env-keys "zai-coding-cn")
+  => '("ZAI_CODING_CN_API_KEY" "ZAI_API_KEY" "GLM_API_KEY" "ZHIPU_API_KEY"))
+
+;; 未注册 provider 返回空表
+(check (pi-provider-env-keys "unknown-provider") => '())
+
+(check (pi-provider-record "unknown-provider") => #f)
+(check (pair? (pi-provider-record "google")) => #t)
+
+(check-report)

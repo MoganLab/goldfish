@@ -10,7 +10,7 @@
     (liii list)
     (liii pi code tools truncate)
     (liii pi code tools read)
-    (liii pi ai gemini grounding)
+    (liii pi ai api google-generative-ai grounding)
   ) ;import
   (export pi-format-web-search-result)
   (begin

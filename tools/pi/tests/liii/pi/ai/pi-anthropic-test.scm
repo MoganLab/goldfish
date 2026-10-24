@@ -6,7 +6,7 @@
   (liii path)
   (liii json)
   (liii subprocess)
-  (liii pi ai anthropic) (liii pi ai event)
+  (liii pi ai api anthropic-messages) (liii pi ai event)
   (liii pi code config)
   (liii pi code tools)
 ) ;import
