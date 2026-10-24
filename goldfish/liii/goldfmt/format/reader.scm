@@ -16,6 +16,7 @@
 (define-library (liii goldfmt format reader)
   (export format-reader-datum format-reader-datum-at format-reader-datum-inline)
   (import (liii base)
+    (liii string)
     (liii goldfmt record)
     (liii goldfmt rule)
     (liii goldfmt format atom)
@@ -53,7 +54,7 @@
                        (next-result (cons (list item item-column item-text) result))
                        (next-column (+ item-column (string-length item-text)))
                       ) ;
-                  (if (string-contains-newline? item-text)
+                  (if (string-contains? item-text "\n")
                     (reverse next-result)
                     (loop (cdr current)
                       next-column
@@ -115,7 +116,7 @@
         (if
           (or (= (vector-length datum) 0)
             (and (not (reader-datum-contains-newline-marker? datum))
-              (not (string-contains-newline? candidate))
+              (not (string-contains? candidate "\n"))
               (<= (+ indent (string-length candidate)) max-inline-length)
             ) ;and
           ) ;or
@@ -171,7 +172,7 @@
              ) ;key-line-prefix
              (val-inline (format-reader-datum-inline val-item))
              (fits-inline?
-               (and (not (string-contains-newline? val-inline))
+               (and (not (string-contains? val-inline "\n"))
                  (<= (+ rest-indent key-len 1 (string-length val-inline)) max-inline-length)
                ) ;and
              ) ;fits-inline?
@@ -321,7 +322,7 @@
       (let ((candidate (format-reader-pair-inline datum)))
         (if
           (and (not (reader-datum-contains-newline-marker? datum))
-            (not (string-contains-newline? candidate))
+            (not (string-contains? candidate "\n"))
             (<= (+ indent (string-length candidate)) max-inline-length)
           ) ;and
           candidate

@@ -22,6 +22,7 @@
     format-inline-atom-or-quote-at
   ) ;export
   (import (liii base)
+    (liii string)
     (liii list)
     (liii tree)
     (srfi srfi-13)
@@ -96,7 +97,7 @@
             ((newline-node? node) #f)
             ((atom? node)
              (let ((text (format-inline node)))
-               (if (string-contains-newline? text) #f text)
+               (if (string-contains? text "\n") #f text)
              ) ;let
             ) ;
             ((contains-comment? node) #f)
@@ -110,7 +111,7 @@
             ((second-child-tree-depth-exceeded? node) #f)
             (else
               (let ((candidate (format-inline node)))
-                (if (and (not (string-contains-newline? candidate))
+                (if (and (not (string-contains? candidate "\n"))
                       (<= (string-length candidate) max-inline-length)
                     ) ;and
                   candidate

@@ -1,5 +1,5 @@
 (import (liii check))
-(import (liii goldfmt format writer) (liii goldfmt format atom))
+(import (liii string) (liii goldfmt format writer) (liii goldfmt format atom))
 
 (check-set-mode! 'report-failed)
 
@@ -27,7 +27,7 @@
 
 ;; 测试：缩进导致长 list 换行
 (let ((text (format-inline-atom-or-quote-at '(aaaa bbbb cccc dddd eeee ffff gggg hhhh iiii jjjj kkkk aaaa bbbb cccc dddd eeee ffff gggg hhhh) 10)))
-  (check (string-contains-newline? text) => #t)
+  (check (string-contains? text "\n") => #t)
 ) ;let
 
 (check-report)

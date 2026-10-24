@@ -16,7 +16,7 @@
 
 (define-library (liii goldfmt path)
   (import (liii base) (liii path) (liii string) (liii list))
-  (export normalize-sep has-wildcard? string-index-of string-starts-with?
+  (export normalize-sep has-wildcard?
     glob-match? path-matches-exclude? file-excluded? suffix-match? collect-files
     collect-files-dfs
   ) ;export
@@ -30,36 +30,18 @@
       (string-contains? s "*")
     ) ;define
 
-    (define (string-index-of str sub start)
-      (let ((sublen (string-length sub)) (slen (string-length str)))
-        (let loop
-          ((i start))
-          (cond ((> (+ i sublen) slen) #f)
-                ((string=? (substring str i (+ i sublen)) sub) i)
-                (else (loop (+ i 1)))
-          ) ;cond
-        ) ;let
-      ) ;let
-    ) ;define
-
-    (define (string-starts-with? str prefix)
-      (and (>= (string-length str) (string-length prefix))
-        (string=? (substring str 0 (string-length prefix)) prefix)
-      ) ;and
-    ) ;define
-
     (define (match-glob-seg ps str pos first?)
       (if (null? ps)
         pos
         (let ((seg (car ps)))
           (cond ((string=? seg "") (match-glob-seg (cdr ps) str pos #f))
-                (first? (if (string-starts-with? str seg)
+                (first? (if (string-starts? str seg)
                           (match-glob-seg (cdr ps) str (string-length seg) #f)
                           #f
                         ) ;if
                 ) ;first?
                 (else
-                  (let ((found (string-index-of str seg pos)))
+                  (let ((found (string-position seg str pos)))
                     (if found (match-glob-seg (cdr ps) str (+ found (string-length seg)) #f) #f)
                   ) ;let
                 ) ;else

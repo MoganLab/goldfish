@@ -15,7 +15,7 @@
 
 (define-library (liii goldfmt scan normalize)
   (export scan scan-datum normalize-datum stem-mode? call-with-stem-mode
-    split-pair-list
+    write-to-string split-pair-list
   ) ;export
   (import (liii base) (liii syntax) (liii list) (liii goldfmt record))
   (begin
@@ -101,6 +101,15 @@
 
     (define (tag->string x)
       (if (symbol? x) (symbol->string x) (object->string x #f))
+    ) ;define
+
+    (define (write-to-string value)
+      (let ((port (open-output-string)))
+        (let-temporarily (((*s7* 'print-length) 9223372036854775807))
+          (write value port)
+        ) ;let-temporarily
+        (get-output-string port)
+      ) ;let
     ) ;define
 
     (define (procedure-name value)

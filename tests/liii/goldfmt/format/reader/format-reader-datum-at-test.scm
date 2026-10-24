@@ -1,5 +1,5 @@
 (import (liii check))
-(import (liii goldfmt format reader) (liii goldfmt format atom))
+(import (liii string) (liii goldfmt format reader) (liii goldfmt format atom))
 
 (check-set-mode! 'report-failed)
 
@@ -24,7 +24,7 @@
 
 ;; 测试：缩进导致长 list 换行
 (let ((text (format-reader-datum-at '(list aaaa bbbb cccc dddd eeee ffff gggg hhhh iiii jjjj kkkk aaaa bbbb cccc dddd eeee ffff gggg hhhh) 10)))
-  (check (string-contains-newline? text) => #t)
+  (check (string-contains? text "\n") => #t)
 ) ;let
 
 ;; 测试：quote 在缩进下仍带 '

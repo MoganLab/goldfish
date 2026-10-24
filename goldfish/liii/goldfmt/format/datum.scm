@@ -24,6 +24,7 @@
     reader-vector-prefix format-reader-pair-fill reader-keyword-block-info
   ) ;export
   (import (liii base)
+    (liii string)
     (liii list)
     (srfi srfi-13)
     (liii vector)
@@ -254,7 +255,7 @@
                   (not (comment-datum? val))
                 ) ;and
               (let ((val-inline (fmt-inline val)))
-                (if (not (string-contains-newline? val-inline))
+                (if (not (string-contains? val-inline "\n"))
                   (let ((key-len (string-length (fmt-inline key)))
                         (val-len (string-length val-inline))
                        ) ;
