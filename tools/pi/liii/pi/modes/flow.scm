@@ -15,7 +15,7 @@
     (liii pi config)
     (liii pi prompt)
     (liii pi session)
-    (liii pi agent)
+    (liii pi agent loop)
     (liii pi ai types)
     (liii pi compact session)
     (liii pi compact flow)

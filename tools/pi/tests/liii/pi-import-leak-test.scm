@@ -1,4 +1,4 @@
-;; 回归测试：只导入 (liii check) 与 (liii pi agent)、不显式导入 (scheme process-context)
+;; 回归测试：只导入 (liii check) 与 (liii pi agent queue)、不显式导入 (scheme process-context)
 ;; 时，调用 get-environment-variable 必须得到结构化的 unbound-variable 错误，
 ;; 而不是进程段错误。
 ;;
@@ -88,7 +88,7 @@
     "(define-library (fixture process)\n  (export get-environment-variable)\n  (begin)\n)\n"
   ) ;path-write-text
   (path-write-text script-path
-    (string-append "(import (liii check) (liii pi agent))\n"
+    (string-append "(import (liii check) (liii pi agent queue))\n"
       "(set! *load-path* (append (list \""
       (string-replace (path->string libroot) "\\" "/")
       "\") *load-path*))\n"

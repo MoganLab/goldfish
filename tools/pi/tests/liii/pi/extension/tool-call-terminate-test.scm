@@ -3,9 +3,20 @@
   (liii pi ai message)
   (liii pi extension)
   (liii pi agent tools)
+  (liii pi tools)
 ) ;import
 
 (check-set-mode! 'report-failed)
+
+
+;; 构造注入了扩展事件桥接与工具执行器的 agent config
+(define (make-agent-test-config)
+  (list (cons 'emit-extension-event
+          (lambda (ev payload)
+            (let ((reg (or (current-extension-registry) (default-extension-registry))))
+              (pi-emit! reg ev payload))))
+    (cons 'execute-tool-call execute-tool-call)))
+
 
 ;; 1. pi-emit! 正确识别 block + terminate
 (let* ((ctx (make-extension-context)))
@@ -51,7 +62,7 @@
                       ((id . "c2") (name . "t2") (arguments . ()))))
             )
         (let-values (((res terminated?)
-                      (pi-execute-tool-calls-with-status calls #f 10)))
+                      (pi-execute-tool-calls-with-status calls #f 10 (make-agent-test-config))))
           ;; 整个批次被标记为 terminated
           (check terminated? => #t)
           (check (length res) => 2)

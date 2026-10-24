@@ -5,8 +5,7 @@
   (liii string)
   (liii list)
   (liii subprocess)
-  (liii pi agent) (liii pi ai message) (liii pi session)
-  (liii pi agent)
+  (liii pi agent loop) (liii pi agent tools) (liii pi ai message) (liii pi session)
 ) ;import
 
 (check-set-mode! 'report-failed)

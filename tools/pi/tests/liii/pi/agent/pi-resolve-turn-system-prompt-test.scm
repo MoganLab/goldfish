@@ -1,6 +1,6 @@
 (import (liii check)
         (liii string)
-        (liii pi agent)
+        (liii pi agent loop)
 ) ;import
 
 (check-set-mode! 'report-failed)

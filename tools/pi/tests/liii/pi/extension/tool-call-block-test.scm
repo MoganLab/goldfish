@@ -3,9 +3,20 @@
   (liii pi ai message)
   (liii pi extension)
   (liii pi agent tools)
+  (liii pi tools)
 ) ;import
 
 (check-set-mode! 'report-failed)
+
+
+;; 构造注入了扩展事件桥接与工具执行器的 agent config
+(define (make-agent-test-config)
+  (list (cons 'emit-extension-event
+          (lambda (ev payload)
+            (let ((reg (or (current-extension-registry) (default-extension-registry))))
+              (pi-emit! reg ev payload))))
+    (cons 'execute-tool-call execute-tool-call)))
+
 
 ;; 1. tool_call 拦截：block 阻止执行，直接返回 reason
 (let* ((reg (make-extension-registry))
@@ -29,7 +40,7 @@
       (let* ((call '((id . "call_danger")
                      (name . "danger_tool")
                      (arguments . ())))
-             (msg (pi-execute-one-tool-call call #f 10)))
+             (msg (pi-execute-one-tool-call call #f 10 (make-agent-test-config))))
         (check (pi-tool-result-message-is-error msg) => #t)
         (check (pi-extract-tool-result-text msg) => "Policy violation: danger_tool is forbidden")
         (check tool-called? => #f)))))
@@ -56,7 +67,7 @@
       (let* ((call '((id . "call_echo")
                      (name . "echo_tool")
                      (arguments . ((text . "original text")))))
-             (msg (pi-execute-one-tool-call call #f 10)))
+             (msg (pi-execute-one-tool-call call #f 10 (make-agent-test-config))))
         (check (pi-tool-result-message-is-error msg) => #f)
         (check (cdr (assq 'text executed-input)) => "overridden text")))))
 

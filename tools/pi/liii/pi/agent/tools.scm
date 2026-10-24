@@ -9,19 +9,15 @@
     (liii string)
     (liii list)
     (liii pi ai event)
-    (liii pi tools)
     (liii pi ai message)
     (liii pi ai tools types)
     (liii pi ai tools record)
-    (liii pi extension types)
-    (liii pi extension registry)
-    (liii pi extension event)
   ) ;import
   (export pi-agent-assoc-val pi-first-block-from-content
     pi-extract-tool-result-text pi-make-tool-result-msg pi-execute-one-tool-call
     pi-execute-one-tool-call-with-status pi-execute-tool-calls
     pi-execute-tool-calls-with-status pi-fail-tool-calls-length
-    pi-filter-tool-calls pi-extract-tool-result-blocks
+    pi-filter-tool-calls pi-extract-tool-result-blocks extract-assistant-text
   ) ;export
   (begin
 
@@ -58,21 +54,44 @@
       ) ;let
     ) ;define
 
-    (define (%active-registry opt-config)
-      (cond ((extension-registry? opt-config) opt-config)
-            ((and (pair? opt-config) (assoc 'registry opt-config))
-             (cdr (assoc 'registry opt-config))
+    ;; 从 config 取扩展事件桥接（由上层注入；缺失时不向扩展系统转发事件）
+    (define (%ext-emit opt-config)
+      (let ((pair (and (pair? opt-config) (assoc 'emit-extension-event opt-config))))
+        (and pair (procedure? (cdr pair)) (cdr pair))
+      ) ;let
+    ) ;define
+
+    ;; 从 config 取工具执行器（由上层注入；缺失时返回占位错误结果）
+    (define (%tool-executor opt-config)
+      (let ((pair (and (pair? opt-config) (assoc 'execute-tool-call opt-config))))
+        (or (and pair (procedure? (cdr pair)) (cdr pair))
+          (lambda (name . args) (pi-tool-result "execute-tool-call not configured" #t))
+        ) ;or
+      ) ;let
+    ) ;define
+
+    (define (%collect-text-blocks blks)
+      (map (lambda (blk) (pi-agent-assoc-val 'text "text" blk ""))
+        (filter (lambda (blk) (equal? (pi-agent-assoc-val 'type "type" blk "") "text"))
+          blks
+        ) ;filter
+      ) ;map
+    ) ;define
+
+    (define (extract-assistant-text msg)
+      (let* ((content (pi-agent-assoc-val 'content "content" msg '()))
+             (texts (%collect-text-blocks content))
             ) ;
-            ((current-extension-registry) => (lambda (r) r))
-            (else (default-extension-registry))
-      ) ;cond
+        (string-join texts "\n")
+      ) ;let*
     ) ;define
 
     (define* (pi-execute-one-tool-call-with-status call emit timeout (opt-config #f))
       (let* ((id (pi-agent-assoc-val 'id "id" call ""))
              (name (pi-agent-assoc-val 'name "name" call ""))
              (args (pi-agent-assoc-val 'arguments "arguments" call '()))
-             (reg (%active-registry opt-config))
+             (reg-emit (%ext-emit opt-config))
+             (exec (%tool-executor opt-config))
             ) ;
         (when (procedure? emit)
           (emit 'tool_execution_start id name args)
@@ -87,7 +106,9 @@
         ) ;when
         (let* ((call-payload (list (cons 'id id) (cons 'name name) (cons 'tool name) (cons 'input args))
                ) ;call-payload
-               (emit-res (pi-emit! reg 'tool_call call-payload))
+               (emit-res (if reg-emit (reg-emit 'tool_call call-payload) '((action
+                                                                             . continue)))
+               ) ;emit-res
                (action (cdr (or (assq 'action emit-res) '(#f . continue))))
               ) ;
           (if (eq? action 'block)
@@ -115,7 +136,9 @@
                                 ) ;list
                    ) ;res-payload
                   ) ;
-              (pi-emit! reg 'tool_result res-payload)
+              (when reg-emit
+                (reg-emit 'tool_result res-payload)
+              ) ;when
               (when (procedure? emit)
                 (emit 'tool_execution_end id name raw-res #t)
                 (emit 'message_start tool-msg)
@@ -127,14 +150,9 @@
                      (cdr (or (assq 'payload emit-res) (list (cons 'input args))))
                    ) ;eff-payload
                    (effective-args (cdr (or (assq 'input eff-payload) (cons 'input args))))
-                   (raw-res (if opt-config
-                              (apply execute-tool-call
-                                name
-                                effective-args
-                                :timeout timeout
-                                (list :config opt-config)
-                              ) ;apply
-                              (execute-tool-call name effective-args :timeout timeout)
+                   (raw-res (if (pair? opt-config)
+                              (apply exec name effective-args :timeout timeout (list :config opt-config))
+                              (exec name effective-args :timeout timeout)
                             ) ;if
                    ) ;raw-res
                    (is-err? (if (pi-tool-result? raw-res)
@@ -153,7 +171,9 @@
                                 ) ;list
                    ) ;res-payload
                   ) ;
-              (pi-emit! reg 'tool_result res-payload)
+              (when reg-emit
+                (reg-emit 'tool_result res-payload)
+              ) ;when
               (when (procedure? emit)
                 (emit 'tool_execution_end id name raw-res is-err?)
                 (emit 'message_start tool-msg)
