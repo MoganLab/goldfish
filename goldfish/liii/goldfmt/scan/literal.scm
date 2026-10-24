@@ -16,7 +16,7 @@
 (define-library (liii goldfmt scan literal)
   (export rewrite-reader-literals needs-rewrite-reader-literals?)
 
-  (import (liii base) (liii raw-string) (liii string))
+  (import (liii base) (liii raw-string) (srfi srfi-13))
 
   (begin
 
@@ -31,43 +31,17 @@
 
     (define (fast-string-join strings)
       (let ((out (open-output-string)))
-        (let loop
-          ((rest strings))
-          (if (null? rest)
-            (get-output-string out)
-            (begin
-              (display (car rest) out)
-              (loop (cdr rest))
-            ) ;begin
-          ) ;if
-        ) ;let
-      ) ;let
-    ) ;define
-
-    (define (string-prefix-at? str start prefix)
-      (let ((prefix-len (string-length prefix)) (str-len (string-length str)))
-        (and (<= (+ start prefix-len) str-len)
-          (let loop
-            ((i 0))
-            (or (>= i prefix-len)
-              (and (char=? (string-ref str (+ start i)) (string-ref prefix i)) (loop (+ i 1)))
-            ) ;or
-          ) ;let
-        ) ;and
+        (for-each (lambda (s) (display s out)) strings)
+        (get-output-string out)
       ) ;let
     ) ;define
 
     (define (find-raw-string-literal-end str body-start delimiter)
-      (let ((needle (string-append "\"" delimiter "\"")) (str-len (string-length str)))
-        (let loop
-          ((i body-start))
-          (cond
-           ((> (+ i (string-length needle)) str-len) #f)
-           ((string-prefix-at? str i needle) (+ i (string-length needle)))
-           (else (loop (+ i 1)))
-          ) ;cond
-        ) ;let
-      ) ;let
+      (let* ((needle (string-append "\"" delimiter "\""))
+             (match (string-position needle str body-start))
+            ) ;
+        (and match (+ match (string-length needle)))
+      ) ;let*
     ) ;define
 
     (define (read-raw-string-literal-value literal)
@@ -79,6 +53,46 @@
       ) ;let
     ) ;define
 
+    (define (try-rewrite-raw-string source i)
+      (let ((delimiter-end (string-index source #\" (+ i 2))))
+        (if delimiter-end
+          (let* ((delimiter (substring source (+ i 2) delimiter-end))
+                 (literal-end (find-raw-string-literal-end source (+ delimiter-end 1) delimiter))
+                ) ;
+            (if literal-end
+              (let* ((literal (substring source i literal-end))
+                     (value (read-raw-string-literal-value literal))
+                     (rewritten (string-append "(*raw-string* "
+                                  (write-to-string literal)
+                                  " "
+                                  (write-to-string value)
+                                  ")"
+                                ) ;string-append
+                     ) ;rewritten
+                    ) ;
+                (cons literal-end rewritten)
+              ) ;let*
+              #f
+            ) ;if
+          ) ;let*
+          #f
+        ) ;if
+      ) ;let
+    ) ;define
+    (define (try-rewrite-char-literal source i)
+      (let ((literal-end (find-char-literal-end source (+ i 2))))
+        (if literal-end
+          (let* ((literal (substring source i literal-end))
+                 (value (read (open-input-string literal)))
+                 (rewritten (string-append "(*char-literal* " (write-to-string literal) " " literal ")")
+                 ) ;rewritten
+                ) ;
+            (if (char? value) (cons literal-end rewritten) #f)
+          ) ;let*
+          #f
+        ) ;if
+      ) ;let
+    ) ;define
     (define (reader-delimiter? c)
       (or (char=? c #\space)
         (char=? c #\tab)
@@ -96,20 +110,9 @@
       ) ;or
     ) ;define
     (define (find-char-literal-end source start)
-      (let ((len (string-length source)))
-        (if (>= start len)
-          #f
-          (let loop
-            ((i (+ start 1)))
-            (if (>= i len)
-              len
-              (let ((c (string-ref source i)))
-                (if (reader-delimiter? c) i (loop (+ i 1)))
-              ) ;let
-            ) ;if
-          ) ;let
-        ) ;if
-      ) ;let
+      (and (< start (string-length source))
+        (or (string-index source reader-delimiter? (+ start 1)) (string-length source))
+      ) ;and
     ) ;define
     (define (rewrite-reader-literals source)
       (let ((len (string-length source)))
@@ -151,44 +154,17 @@
                 ) ;
                 ((char=? c #\") (loop (+ i 1) #t #f #f #f (cons (string c) result)))
                 ((and (char=? c #\#) (char=? next-c #\"))
-                 (let ((delimiter-end (string-index source #\" (+ i 2))))
-                   (if delimiter-end
-                     (let* ((delimiter (substring source (+ i 2) delimiter-end))
-                            (literal-end (find-raw-string-literal-end source (+ delimiter-end 1) delimiter))
-                           ) ;
-                       (if literal-end
-                         (let* ((literal (substring source i literal-end))
-                                (value (read-raw-string-literal-value literal))
-                                (rewritten (string-append "(*raw-string* "
-                                             (write-to-string literal)
-                                             " "
-                                             (write-to-string value)
-                                             ")"
-                                           ) ;string-append
-                                ) ;rewritten
-                               ) ;
-                           (loop literal-end #f #f #f #f (cons rewritten result))
-                         ) ;let*
-                         (loop (+ i 1) #f #f #f #f (cons (string c) result))
-                       ) ;if
-                     ) ;let*
+                 (let ((rw (try-rewrite-raw-string source i)))
+                   (if rw
+                     (loop (car rw) #f #f #f #f (cons (cdr rw) result))
                      (loop (+ i 1) #f #f #f #f (cons (string c) result))
                    ) ;if
                  ) ;let
                 ) ;
                 ((and (char=? c #\#) (char=? next-c #\\))
-                 (let ((literal-end (find-char-literal-end source (+ i 2))))
-                   (if literal-end
-                     (let* ((literal (substring source i literal-end))
-                            (value (read (open-input-string literal)))
-                            (rewritten (string-append "(*char-literal* " (write-to-string literal) " " literal ")")
-                            ) ;rewritten
-                           ) ;
-                       (if (char? value)
-                         (loop literal-end #f #f #f #f (cons rewritten result))
-                         (loop (+ i 1) #f #f #f #f (cons (string c) result))
-                       ) ;if
-                     ) ;let*
+                 (let ((rw (try-rewrite-char-literal source i)))
+                   (if rw
+                     (loop (car rw) #f #f #f #f (cons (cdr rw) result))
                      (loop (+ i 1) #f #f #f #f (cons (string c) result))
                    ) ;if
                  ) ;let
@@ -201,20 +177,9 @@
       ) ;let
     ) ;define
     (define (needs-rewrite-reader-literals? str)
-      (let ((len (string-length str)))
-        (let loop
-          ((i 0))
-          (cond ((>= i len) #f)
-                ((and (char=? (string-ref str i) #\#)
-                   (< (+ i 1) len)
-                   (or (char=? (string-ref str (+ i 1)) #\") (char=? (string-ref str (+ i 1)) #\\))
-                 ) ;and
-                 #t
-                ) ;
-                (else (loop (+ i 1)))
-          ) ;cond
-        ) ;let
-      ) ;let
+      (or (string-contains str (string #\# #\"))
+        (string-contains str (string #\# #\\))
+      ) ;or
     ) ;define
   ) ;begin
 ) ;define-library

@@ -72,6 +72,7 @@
 
 ;; reader-append-selected
 (check (reader-append-selected "(" (list (list 'a 1 "a") (list 'b 2 "b"))) => "( a b")
+(check (reader-append-selected "(" '()) => "(")
 
 ;; last-line-column
 (check (last-line-column "abc") => 3)
@@ -89,11 +90,9 @@
 (check (reader-append-close "(a" 0) => "(a)")
 (check (reader-append-close "(a ;#" 2) => "(a ;#\n  )")
 
-;; reader-vector-prefix / reader-vector->list
+;; reader-vector-prefix
 (check (reader-vector-prefix #(1)) => "#(")
 (check (reader-vector-prefix (make-byte-vector 2 0)) => "#u8(")
-(check (reader-vector->list #(1 2 3)) => '(1 2 3))
-(check (reader-vector->list #()) => '())
 
 ;; format-reader-pair-fill（fmt 过程参数化）
 (check (format-reader-pair-fill '(a b c d e) 0 format-reader-datum-inline) => "(a b c d e)")

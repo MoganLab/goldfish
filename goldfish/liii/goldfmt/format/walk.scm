@@ -68,6 +68,48 @@
       ) ;and
     ) ;define
 
+    (define (newline-node-blank-lines node)
+      (let ((children (env-children node)))
+        (if (> (vector-length children) 0)
+          (let ((child (vector-ref children 0)))
+            (if (atom? child) (let ((val (atom-value child))) (if (number? val) val 1)) 1)
+          ) ;let
+          1
+        ) ;if
+      ) ;let
+    ) ;define
+
+    (define (walk-env-newline! node writer column)
+      (let ((left-line (writer-line writer)))
+        (emit-string! writer (make-newlines (newline-node-blank-lines node)))
+        (positioned-env node column (vector) left-line (writer-line writer))
+      ) ;let
+    ) ;define
+
+    (define (walk-env-quote! node writer column)
+      (let ((left-line (writer-line writer)))
+        (emit-string! writer "'")
+        (emit-string! writer
+          (format-inline-atom-or-quote-at (quote-env-content node) (+ column 1))
+        ) ;emit-string!
+        (positioned-env node column (vector) left-line (writer-line writer))
+      ) ;let
+    ) ;define
+
+    (define (walk-env-reader-prefix! node writer column)
+      (let ((left-line (writer-line writer)))
+        (emit-string! writer (format-inline-atom-or-quote-at (env-value node) column))
+        (positioned-env node column (vector) left-line (writer-line writer))
+      ) ;let
+    ) ;define
+
+    (define (emit-close-tag! writer env-indent tag-name)
+      (emit-newline! writer)
+      (emit-spaces! writer env-indent)
+      (emit-string! writer ") ;")
+      (emit-string! writer tag-name)
+    ) ;define
+
     (define (walk-env-fill! node writer column)
       (let ((env-indent column)
             (left-line (writer-line writer))
@@ -81,10 +123,7 @@
             ((i 0) (new-children '()))
             (if (>= i (vector-length children))
               (begin
-                (emit-newline! writer)
-                (emit-spaces! writer env-indent)
-                (emit-string! writer ") ;")
-                (emit-string! writer tag-name)
+                (emit-close-tag! writer env-indent tag-name)
                 (positioned-env node
                   env-indent
                   (list->vector (reverse new-children))
@@ -122,6 +161,178 @@
       ) ;let
     ) ;define
 
+    (define (emit-selected-children! writer node selected index result)
+      (if (null? selected)
+        result
+        (begin
+          (emit-string! writer (child-separator node index))
+          (let ((new-child (walk! (selected-child (car selected)) writer (selected-column (car selected)))
+                ) ;new-child
+               ) ;
+            (emit-selected-children! writer
+              node
+              (cdr selected)
+              (+ index 1)
+              (cons new-child result)
+            ) ;emit-selected-children!
+          ) ;let
+        ) ;begin
+      ) ;if
+    ) ;define
+
+    (define (keyword-pair-start? keyword-args? children i)
+      (and keyword-args?
+        (keyword-node? (vector-ref children i))
+        (< (+ i 1) (vector-length children))
+        (not (newline-node? (vector-ref children (+ i 1))))
+        (not (comment-node? (vector-ref children (+ i 1))))
+      ) ;and
+    ) ;define
+
+    (define (emit-keyword-pair! writer children i child-indent result)
+      (emit-newline! writer)
+      (emit-spaces! writer child-indent)
+      (let* ((new-key (walk! (vector-ref children i) writer child-indent))
+             (val (vector-ref children (+ i 1)))
+             (val-inline (try-inline val))
+             (fits-inline?
+               (and (string? val-inline)
+                 (<= (+ (writer-column writer) 1 (string-length val-inline)) max-inline-length)
+               ) ;and
+             ) ;fits-inline?
+            ) ;
+        (if fits-inline?
+          (begin
+            (emit-string! writer " ")
+            (list (+ i 2)
+              (cons (walk! val writer (writer-column writer)) (cons new-key result))
+            ) ;list
+          ) ;begin
+          (begin
+            (emit-newline! writer)
+            (emit-spaces! writer child-indent)
+            (list (+ i 2) (cons (walk! val writer child-indent) (cons new-key result)))
+          ) ;begin
+        ) ;if
+      ) ;let*
+    ) ;define
+
+    (define (emit-keyword-block-pairs! writer children j k block-count
+              child-indent max-key-len result
+            ) ;emit-keyword-block-pairs!
+      (if (>= k block-count)
+        (list j result)
+        (let ((key-node (vector-ref children j)) (val-node (vector-ref children (+ j 1))))
+          (emit-newline! writer)
+          (emit-spaces! writer child-indent)
+          (let ((new-key (walk! key-node writer child-indent)))
+            (emit-string! writer
+              (spaces
+                (+ (- max-key-len (- (writer-column writer) child-indent)) 1)
+              ) ;spaces
+            ) ;emit-string!
+            (let ((new-val (walk! val-node writer (writer-column writer))))
+              (emit-keyword-block-pairs! writer
+                children
+                (+ j 2)
+                (+ k 1)
+                block-count
+                child-indent
+                max-key-len
+                (cons new-val (cons new-key result))
+              ) ;emit-keyword-block-pairs!
+            ) ;let
+          ) ;let
+        ) ;let
+      ) ;if
+    ) ;define
+
+    (define (emit-keyword-section! writer children i child-indent result)
+      (call-with-values (lambda () (compute-keyword-block children i child-indent))
+        (lambda (block-count max-key-len)
+          (if (> block-count 0)
+            (emit-keyword-block-pairs! writer children i 0 block-count
+              child-indent max-key-len result
+            ) ;emit-keyword-block-pairs!
+            (emit-keyword-pair! writer children i child-indent result)
+          ) ;if
+        ) ;lambda
+      ) ;call-with-values
+    ) ;define
+
+    (define (emit-rest-children! writer children child-indent keyword-args? i result)
+      (if (>= i (vector-length children))
+        result
+        (let ((child (vector-ref children i)))
+          (cond ((newline-node? child)
+                 (emit-newline! writer)
+                 (emit-rest-children! writer children child-indent keyword-args? (+ i 1) result)
+                ) ;
+                ((keyword-pair-start? keyword-args? children i)
+                 (let ((next (emit-keyword-section! writer children i child-indent result)))
+                   (emit-rest-children! writer
+                     children
+                     child-indent
+                     keyword-args?
+                     (car next)
+                     (cadr next)
+                   ) ;emit-rest-children!
+                 ) ;let
+                ) ;
+                (else (emit-newline! writer)
+                  (emit-spaces! writer child-indent)
+                  (let ((new-child (walk! child writer child-indent)))
+                    (emit-rest-children! writer
+                      children
+                      child-indent
+                      keyword-args?
+                      (+ i 1)
+                      (cons new-child result)
+                    ) ;emit-rest-children!
+                  ) ;let
+                ) ;else
+          ) ;cond
+        ) ;let
+      ) ;if
+    ) ;define
+
+    (define (walk-env-general! node writer column)
+      (let ((env-indent column) (left-line (writer-line writer)))
+        (emit-string! writer "(")
+        (emit-string! writer (env-tag-name node))
+        (let* ((selected (select-first-line-children node (writer-column writer)))
+               (rest-start (selected-count selected))
+               (children (env-children node))
+              ) ;
+          (let ((head-children (emit-selected-children! writer node selected 0 '())))
+            (let ((new-children
+                    (if (< rest-start (vector-length children))
+                      (let ((child-indent (next-line-child-indent node env-indent selected rest-start)))
+                        (emit-rest-children! writer
+                          children
+                          child-indent
+                          (not (no-keyword-args-form? (env-tag-name node)))
+                          rest-start
+                          head-children
+                        ) ;emit-rest-children!
+                      ) ;let
+                      head-children
+                    ) ;if
+                  ) ;new-children
+                 ) ;
+              (emit-close-tag! writer env-indent (env-tag-name node))
+              (positioned-env node
+                env-indent
+                (list->vector (reverse new-children))
+                left-line
+                (writer-line writer)
+              ) ;positioned-env
+            ) ;let
+          ) ;let
+        ) ;let*
+      ) ;let
+    ) ;define
+
     (define (walk! node writer column)
       (cond ((comment-node? node) (emit-comment! node writer column))
             ((atom? node) (emit-atom! node writer column))
@@ -131,176 +342,15 @@
     ) ;define
 
     (define (walk-env! node writer column)
-      (let ((env-indent column) (left-line (writer-line writer)))
-        (cond
-         ((newline-node? node)
-          (let ((blank-lines
-                  (if (> (vector-length (env-children node)) 0)
-                    (let ((child (vector-ref (env-children node) 0)))
-                      (if (atom? child) (let ((val (atom-value child))) (if (number? val) val 1)) 1)
-                    ) ;let
-                    1
+      (cond ((newline-node? node) (walk-env-newline! node writer column))
+            ((quote-env? node) (walk-env-quote! node writer column))
+            ((reader-prefix-env? node) (walk-env-reader-prefix! node writer column))
+            (else (if (fill-eligible-children? (env-children node))
+                    (walk-env-fill! node writer column)
+                    (walk-env-general! node writer column)
                   ) ;if
-                ) ;blank-lines
-               ) ;
-            (emit-string! writer (make-newlines blank-lines))
-            (positioned-env node env-indent (vector) left-line (writer-line writer))
-          ) ;let
-         ) ;
-         ((quote-env? node)
-          (let ((content (quote-env-content node)))
-            (emit-string! writer "'")
-            (emit-string! writer (format-inline-atom-or-quote-at content (+ env-indent 1)))
-            (positioned-env node env-indent (vector) left-line (writer-line writer))
-          ) ;let
-         ) ;
-         ((reader-prefix-env? node)
-          (emit-string! writer
-            (format-inline-atom-or-quote-at (env-value node) env-indent)
-          ) ;emit-string!
-          (positioned-env node env-indent (vector) left-line (writer-line writer))
-         ) ;
-         (else
-           (if (fill-eligible-children? (env-children node))
-             (walk-env-fill! node writer column)
-             (begin
-               (emit-string! writer "(")
-               (emit-string! writer (env-tag-name node))
-               (let* ((first-column (writer-column writer))
-                      (selected (select-first-line-children node first-column))
-                      (rest-start (selected-count selected))
-                      (children (env-children node))
-                     ) ;
-                 (let ((new-children
-                         (let loop-selected
-                           ((items selected) (index 0) (result '()))
-                           (if (null? items)
-                             result
-                             (begin
-                               (emit-string! writer (child-separator node index))
-                               (let ((new-child (walk! (selected-child (car items)) writer (selected-column (car items)))
-                                     ) ;new-child
-                                    ) ;
-                                 (loop-selected (cdr items) (+ index 1) (cons new-child result))
-                               ) ;let
-                             ) ;begin
-                           ) ;if
-                         ) ;let
-                       ) ;new-children
-                      ) ;
-                   (let ((new-children
-                           (if (< rest-start (vector-length children))
-                             (let ((child-indent (next-line-child-indent node env-indent selected rest-start)))
-                               (let ((keyword-args? (not (no-keyword-args-form? (env-tag-name node)))))
-                                 (let loop-rest
-                                   ((i rest-start) (result new-children))
-                                   (if (>= i (vector-length children))
-                                     result
-                                     (let ((child (vector-ref children i)))
-                                       (cond
-                                        ((newline-node? child)
-                                         (begin
-                                           (emit-newline! writer)
-                                           (loop-rest (+ i 1) result)
-                                         ) ;begin
-                                        ) ;
-                                        ((and keyword-args?
-                                           (keyword-node? child)
-                                           (< (+ i 1) (vector-length children))
-                                           (not (newline-node? (vector-ref children (+ i 1))))
-                                           (not (comment-node? (vector-ref children (+ i 1))))
-                                         ) ;and
-                                         (call-with-values (lambda () (compute-keyword-block children i child-indent))
-                                           (lambda (block-count max-key-len)
-                                             (if (> block-count 0)
-                                               (let emit-block
-                                                 ((j i) (k 0) (res result))
-                                                 (if (>= k block-count)
-                                                   (loop-rest j res)
-                                                   (let ((key-node (vector-ref children j)) (val-node (vector-ref children (+ j 1))))
-                                                     (emit-newline! writer)
-                                                     (emit-spaces! writer child-indent)
-                                                     (let ((new-key (walk! key-node writer child-indent)))
-                                                       (emit-string! writer
-                                                         (spaces
-                                                           (+ (- max-key-len (- (writer-column writer) child-indent)) 1)
-                                                         ) ;spaces
-                                                       ) ;emit-string!
-                                                       (let ((new-val (walk! val-node writer (writer-column writer))))
-                                                         (emit-block (+ j 2) (+ k 1) (cons new-val (cons new-key res)))
-                                                       ) ;let
-                                                     ) ;let
-                                                   ) ;let
-                                                 ) ;if
-                                               ) ;let
-                                               (let* ((val (vector-ref children (+ i 1)))
-                                                      (_ (emit-newline! writer))
-                                                      (_ (emit-spaces! writer child-indent))
-                                                      (new-key (walk! child writer child-indent))
-                                                      (val-inline (try-inline val))
-                                                      (fits-inline?
-                                                        (and (string? val-inline)
-                                                          (<= (+ (writer-column writer) 1 (string-length val-inline)) max-inline-length)
-                                                        ) ;and
-                                                      ) ;fits-inline?
-                                                     ) ;
-                                                 (if fits-inline?
-                                                   (begin
-                                                     (emit-string! writer " ")
-                                                     (let ((new-val (walk! val writer (writer-column writer))))
-                                                       (loop-rest (+ i 2) (cons new-val (cons new-key result)))
-                                                     ) ;let
-                                                   ) ;begin
-                                                   (begin
-                                                     (emit-newline! writer)
-                                                     (emit-spaces! writer child-indent)
-                                                     (let ((new-val (walk! val writer child-indent)))
-                                                       (loop-rest (+ i 2) (cons new-val (cons new-key result)))
-                                                     ) ;let
-                                                   ) ;begin
-                                                 ) ;if
-                                               ) ;let*
-                                             ) ;if
-                                           ) ;lambda
-                                         ) ;call-with-values
-                                        ) ;
-                                        (else
-                                          (begin
-                                            (emit-newline! writer)
-                                            (emit-spaces! writer child-indent)
-                                            (let ((new-child (walk! child writer child-indent)))
-                                              (loop-rest (+ i 1) (cons new-child result))
-                                            ) ;let
-                                          ) ;begin
-                                        ) ;else
-                                       ) ;cond
-                                     ) ;let
-                                   ) ;if
-                                 ) ;let
-                               ) ;let
-                             ) ;let
-                             new-children
-                           ) ;if
-                         ) ;new-children
-                        ) ;
-                     (emit-newline! writer)
-                     (emit-spaces! writer env-indent)
-                     (emit-string! writer ") ;")
-                     (emit-string! writer (env-tag-name node))
-                     (positioned-env node
-                       env-indent
-                       (list->vector (reverse new-children))
-                       left-line
-                       (writer-line writer)
-                     ) ;positioned-env
-                   ) ;let
-                 ) ;let
-               ) ;let*
-             ) ;begin
-           ) ;if
-         ) ;else
-        ) ;cond
-      ) ;let
+            ) ;else
+      ) ;cond
     ) ;define
   ) ;begin
 ) ;define-library

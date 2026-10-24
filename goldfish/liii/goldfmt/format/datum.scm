@@ -21,11 +21,11 @@
     reader-selected-text reader-skip-selected reader-first-selected-form-column
     reader-by-first-rest-child-indent reader-rest-indent reader-append-selected
     last-line-column reader-fill-atom? reader-fill-eligible? reader-append-close
-    reader-vector-prefix reader-vector->list format-reader-pair-fill
-    reader-keyword-block-info
+    reader-vector-prefix format-reader-pair-fill reader-keyword-block-info
   ) ;export
   (import (liii base)
     (srfi srfi-13)
+    (liii vector)
     (liii goldfmt record)
     (liii goldfmt rule)
     (liii goldfmt format atom)
@@ -94,13 +94,7 @@
              ) ;or
             ) ;
             ((or (vector? datum) (byte-vector? datum))
-             (let loop
-               ((i 0))
-               (cond ((>= i (vector-length datum)) #f)
-                     ((reader-datum-contains-newline-marker? (vector-ref datum i)) #t)
-                     (else (loop (+ i 1)))
-               ) ;cond
-             ) ;let
+             (vector-any reader-datum-contains-newline-marker? datum)
             ) ;
             (else #f)
       ) ;cond
@@ -184,22 +178,15 @@
     ) ;define
 
     (define (reader-append-selected result selected)
-      (let loop
-        ((items selected) (text result))
-        (if (null? items)
-          text
-          (loop (cdr items) (string-append text " " (reader-selected-text (car items))))
-        ) ;if
-      ) ;let
+      (if (null? selected)
+        result
+        (string-append result " " (string-join (map reader-selected-text selected) " "))
+      ) ;if
     ) ;define
 
     (define (last-line-column text)
-      (let loop
-        ((i 0) (column 0))
-        (if (>= i (string-length text))
-          column
-          (loop (+ i 1) (if (char=? (string-ref text i) #\newline) 0 (+ column 1)))
-        ) ;if
+      (let ((last-newline (string-index-right text #\newline)))
+        (if last-newline (- (string-length text) last-newline 1) (string-length text))
       ) ;let
     ) ;define
 
@@ -229,16 +216,6 @@
 
     (define (reader-vector-prefix datum)
       (if (byte-vector? datum) "#u8(" "#(")
-    ) ;define
-
-    (define (reader-vector->list datum)
-      (let loop
-        ((i 0) (result '()))
-        (if (>= i (vector-length datum))
-          (reverse result)
-          (loop (+ i 1) (cons (vector-ref datum i) result))
-        ) ;if
-      ) ;let
     ) ;define
 
     (define (format-reader-pair-fill datum indent fmt-inline)

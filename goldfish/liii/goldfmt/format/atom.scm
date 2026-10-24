@@ -21,6 +21,7 @@
     keyword-block-prefix no-keyword-args-form? fill-min-children let-form?
   ) ;export
   (import (liii base)
+    (liii vector)
     (liii goldfmt record)
     (liii goldfmt rule)
     (liii goldfmt scan normalize)
@@ -101,17 +102,7 @@
     (define (contains-comment? node)
       (cond ((comment-node? node) #t)
             ((atom? node) #f)
-            (else
-              (let ((children (env-children node)))
-                (let loop
-                  ((i 0))
-                  (cond ((>= i (vector-length children)) #f)
-                        ((contains-comment? (vector-ref children i)) #t)
-                        (else (loop (+ i 1)))
-                  ) ;cond
-                ) ;let
-              ) ;let
-            ) ;else
+            (else (vector-any contains-comment? (env-children node)))
       ) ;cond
     ) ;define
 

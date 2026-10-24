@@ -19,7 +19,14 @@
     first-line-limit second-child-tree-depth-limit rest-indent
     path-has-common-ancestor? find-node-rules-paths find-node-rules-path
   ) ;export
-  (import (liii base) (liii json) (liii os) (liii path) (liii string) (liii sys))
+  (import (liii base)
+    (liii json)
+    (liii list)
+    (liii os)
+    (liii path)
+    (liii string)
+    (liii sys)
+  ) ;import
   (begin
     (define max-inline-length 80)
     (define node-rules-paths
@@ -31,18 +38,9 @@
       (or (string-null? s) (string=? s "/") (string=? s "\\"))
     ) ;define
     (define (segments-list p)
-      (let loop
-        ((i 0) (parts (path-parts (path p))) (result '()))
-        (if (>= i (vector-length parts))
-          (reverse result)
-          (let ((s (vector-ref parts i)))
-            (if (anchor-or-empty? s)
-              (loop (+ i 1) parts result)
-              (loop (+ i 1) parts (cons s result))
-            ) ;if
-          ) ;let
-        ) ;if
-      ) ;let
+      (filter (lambda (s) (not (anchor-or-empty? s)))
+        (vector->list (path-parts (path p)))
+      ) ;filter
     ) ;define
     (define (path-has-common-ancestor? path1 path2)
       (let ((parts1 (segments-list path1)) (parts2 (segments-list path2)))
@@ -55,45 +53,34 @@
         ) ;let
       ) ;let
     ) ;define
+    (define (rules-json-under load-root)
+      (let* ((direct (path->string (path-join load-root "node-rules.json")))
+             (parent-root (path->string (path-parent (path load-root))))
+             (parent (path->string (path-join parent-root "node-rules.json")))
+            ) ;
+        (cond ((path-file? direct) direct)
+              ((path-file? parent) parent)
+              (else #f)
+        ) ;cond
+      ) ;let*
+    ) ;define
     (define (find-node-rules-paths)
       (let ((exe (executable)))
-        (let loop
-          ((paths *load-path*) (result '()))
-          (if (null? paths)
-            result
-            (let ((load-root (car paths)))
-              (if (and (string? load-root) (path-has-common-ancestor? exe load-root))
-                (let* ((direct (path->string (path-join load-root "node-rules.json")))
-                       (parent-str (path->string (path-parent (path load-root))))
-                       (parent (path->string (path-join parent-str "node-rules.json")))
-                       (found (cond ((path-file? direct) direct)
-                                    ((path-file? parent) parent)
-                                    (else #f)
-                              ) ;cond
-                       ) ;found
-                      ) ;
-                  (if found
-                    (loop (cdr paths) (append result (list found)))
-                    (loop (cdr paths) result)
-                  ) ;if
-                ) ;let*
-                (loop (cdr paths) result)
-              ) ;if
-            ) ;let
-          ) ;if
-        ) ;let
+        (filter string?
+          (map rules-json-under
+            (filter (lambda (load-root)
+                      (and (string? load-root) (path-has-common-ancestor? exe load-root))
+                    ) ;lambda
+              *load-path*
+            ) ;filter
+          ) ;map
+        ) ;filter
       ) ;let
     ) ;define
     (define (find-node-rules-path)
       (let ((paths (find-node-rules-paths)))
         (if (null? paths)
-          (let loop
-            ((legacy-paths node-rules-paths))
-            (cond ((null? legacy-paths) "node-rules.json")
-                  ((access (car legacy-paths) 'R_OK) (car legacy-paths))
-                  (else (loop (cdr legacy-paths)))
-            ) ;cond
-          ) ;let
+          (or (find (lambda (p) (access p 'R_OK)) node-rules-paths) "node-rules.json")
           (car paths)
         ) ;if
       ) ;let
