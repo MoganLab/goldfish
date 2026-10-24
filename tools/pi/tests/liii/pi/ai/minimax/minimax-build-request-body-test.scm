@@ -1,4 +1,4 @@
-(import (liii check) (liii pi ai minimax) (liii pi tools))
+(import (liii check) (liii pi ai minimax) (liii pi code tools))
 
 (check-set-mode! 'report-failed)
 

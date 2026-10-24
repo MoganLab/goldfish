@@ -3,9 +3,9 @@
 
 (import (liii check)
         (liii string)
-        (liii pi args) (liii pi config) (liii pi session)
-        (liii pi args)
-        (liii pi config))
+        (liii pi code args) (liii pi code config) (liii pi code session)
+        (liii pi code args)
+        (liii pi code config))
 
 (check-set-mode! 'report-failed)
 

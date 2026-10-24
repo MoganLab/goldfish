@@ -12,11 +12,13 @@
     (liii pi simplify prompt)
     (liii pi simplify parse)
     (liii pi simplify format)
+    (liii pi simplify modes)
   ) ;import
   (export pi-parse-changed-ranges pi-diff-ranges-command
     pi-collect-simplify-files pi-build-scope-lines pi-format-range
     pi-build-simplify-prompt pi-build-simplify-apply-prompt
     pi-parse-simplify-suggestions pi-format-simplify-suggestions
+    run-simplify-flow
   ) ;export
   (begin
   ) ;begin

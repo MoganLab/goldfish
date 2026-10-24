@@ -126,6 +126,40 @@
       ]
     },
     {
+      "name": "pi",
+      "root": "tools/pi/",
+      "depends-on": [
+        "goldfish"
+      ],
+      "layers": [
+        {
+          "name": "ai",
+          "libs": [
+            "liii pi ai"
+          ]
+        },
+        {
+          "name": "agent",
+          "libs": [
+            "liii pi agent"
+          ]
+        },
+        {
+          "name": "code",
+          "libs": [
+            "liii pi code"
+          ]
+        },
+        {
+          "name": "extensions",
+          "libs": [
+            "liii pi review",
+            "liii pi simplify"
+          ]
+        }
+      ]
+    },
+    {
       "name": "common",
       "root": "tools/common/",
       "depends-on": [

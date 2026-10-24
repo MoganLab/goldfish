@@ -7,8 +7,8 @@
   (liii json)
   (liii subprocess)
   (liii pi ai anthropic) (liii pi ai event)
-  (liii pi config)
-  (liii pi tools)
+  (liii pi code config)
+  (liii pi code tools)
 ) ;import
 
 (check-set-mode! 'report-failed)

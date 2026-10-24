@@ -1,4 +1,4 @@
-(import (liii check) (liii pi ai event) (liii pi ai kimi) (liii pi tools))
+(import (liii check) (liii pi ai event) (liii pi ai kimi) (liii pi code tools))
 
 (check-set-mode! 'report-failed)
 

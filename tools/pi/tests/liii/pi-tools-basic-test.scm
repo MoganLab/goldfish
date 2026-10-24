@@ -1,13 +1,13 @@
 (set! *load-path* (append (list "tools/pi" ".") *load-path*))
 
-(import (liii check) (liii string) (liii path) (liii pi extension) (liii pi session) (liii pi tools) (liii pi tools))
+(import (liii check) (liii string) (liii path) (liii pi code extension) (liii pi code session) (liii pi code tools) (liii pi code tools))
 
 (check-set-mode! 'report-failed)
 
 (define test-file
-  (if (file-exists? "liii/pi/cli.scm")
-    "liii/pi/cli.scm"
-    "tools/pi/liii/pi/cli.scm"
+  (if (file-exists? "liii/pi/code/cli.scm")
+    "liii/pi/code/cli.scm"
+    "tools/pi/liii/pi/code/cli.scm"
   ) ;if
 ) ;define
 
@@ -17,7 +17,7 @@
 
 (let ((res (pi-execute-read (list (cons "path" test-file)))))
   (check-true (string? res))
-  (check-true (string-contains? res "(define-library (liii pi cli)"))
+  (check-true (string-contains? res "(define-library (liii pi code cli)"))
 ) ;let
 
 (let ((res (pi-execute-read (list (cons "path" test-file) (cons "limit" 2)))))

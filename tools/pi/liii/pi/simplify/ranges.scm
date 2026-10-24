@@ -10,9 +10,9 @@
     (liii string)
     (liii list)
     (liii path)
-    (liii pi read)
-    (liii pi bash)
-    (liii pi code-review files)
+    (liii pi code read)
+    (liii pi code bash)
+    (liii pi code files)
   ) ;import
   (export pi-parse-changed-ranges
     pi-diff-ranges-command
@@ -176,7 +176,7 @@
              (files (pi-keyword-value :files opts #f))
              (runner (pi-keyword-value :runner opts #f))
              (timeout (pi-keyword-value :timeout opts 600))
-             (max-files (pi-keyword-value :max-files opts PI_REVIEW_MAX_FILES))
+             (max-files (pi-keyword-value :max-files opts PI_DEFAULT_MAX_CHANGED_FILES))
              (collected (if runner
                           (pi-collect-changed-files
                             :ref       ref
