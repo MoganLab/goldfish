@@ -13,7 +13,7 @@
     (liii sys)
     (liii os)
     (liii sort)
-    (liii pi code read)
+    (liii pi code tools read)
   ) ;import
   (export pi-scan-extension-dir
     pi-discover-extensions

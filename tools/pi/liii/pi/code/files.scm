@@ -9,8 +9,8 @@
     (scheme char)
     (liii string)
     (liii list)
-    (liii pi code read)
-    (liii pi code bash)
+    (liii pi code tools read)
+    (liii pi code tools bash)
   ) ;import
   (export pi-parse-changed-files pi-changed-files-command
     pi-collect-changed-files PI_DEFAULT_MAX_CHANGED_FILES

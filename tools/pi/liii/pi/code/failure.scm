@@ -9,7 +9,7 @@
 ;; 避免每个工具各写一套消息格式。
 ;;
 ;; 单独成模块还有两个好处：
-;; 1. 不必让 (liii pi code read)（文件读取工具）依赖 (liii subprocess)；
+;; 1. 不必让 (liii pi code tools read)（文件读取工具）依赖 (liii subprocess)；
 ;; 2. 依赖的是轻量的 (liii subprocess process-error)，不是整个子进程库。
 
 (define-library (liii pi code failure)

@@ -13,7 +13,7 @@
     (liii path)
     (liii os)
     (liii list)
-    (liii pi code read)
+    (liii pi code tools read)
     (liii pi code prompt context)
   ) ;import
   (export pi-resolve-prompt-input pi-load-project-context pi-build-system-prompt
