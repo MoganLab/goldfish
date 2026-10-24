@@ -1,0 +1,26 @@
+# 文本文件统一 LF 检出（优先级高于 core.autocrlf，对所有克隆生效）
+* text=auto eol=lf
+
+# Windows 批处理脚本保持 CRLF（仓库当前无 .bat 文件，防御性声明）
+*.bat text eol=crlf
+
+# 二进制文件不做任何行尾转换
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.gz binary
+*.7z binary
+*.tar binary
+*.dll binary
+*.exe binary
+*.a binary
+*.lib binary
+*.so binary
+*.dylib binary
+*.ttf binary
+*.woff binary
+*.woff2 binary
