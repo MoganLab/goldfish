@@ -164,4 +164,21 @@
   (check (editor-text editor) => "第三轮")
 ) ;let*
 
+;; 5. 测试 make-pi-app 透传 provider/model 至 footer，右下角显示实际使用的供应商与模型
+(let* ((vterm (make-virtual-terminal :width 100 :height 40))
+       (dummy-handler (lambda (app msg) #t))
+       (app (make-pi-app :terminal vterm :handler dummy-handler
+              :provider "kimi-coding"
+              :model "kimi-for-coding • medium"
+            ) ;make-pi-app
+       ) ;app
+       (screen (pi-app-screen app))
+      ) ;let*
+  (pi-app-render! app)
+  (let* ((lines (screen-lines screen)) (plain-lines (map strip-ansi lines)))
+    ;; Footer 第二行应包含透传的 provider 与 model
+    (check-true (string-contains? (list-ref plain-lines 10) "(kimi-coding) kimi-for-coding • medium"))
+  ) ;let*
+) ;let*
+
 (check-report)

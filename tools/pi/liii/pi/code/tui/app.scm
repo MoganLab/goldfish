@@ -223,7 +223,12 @@
              (pending-box (make-container))
              (doc (make-container))
              (branch (detect-git-branch))
-             (footer (make-pi-footer :branch branch))
+             (footer (make-pi-footer
+                       :branch   branch
+                       :provider (%keyword-value :provider args #f)
+                       :model    (%keyword-value :model args #f)
+                     ) ;make-pi-footer
+             ) ;footer
              (queue (make-pi-message-queue))
              (jobs-chan (make-chan 16))
              (event-chan (make-chan 32))

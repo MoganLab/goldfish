@@ -38,7 +38,30 @@
   (check-true (string-contains? (list-ref lines 0) "/tmp/test (main)"))
 ) ;let*
 
-;; 3. 主目录缩写
+;; 3. 模型显示串组装：thinking 为 off 或缺失时只显示 model-id
+(check (pi-footer-model-label "gemini-3.8-flash" "medium") => "gemini-3.8-flash • medium")
+(check (pi-footer-model-label "gemini-3.8-flash" "off") => "gemini-3.8-flash")
+(check (pi-footer-model-label "kimi-for-coding" #f) => "kimi-for-coding")
+(check (pi-footer-model-label "glm-5.3" "") => "glm-5.3")
+(check (pi-footer-model-label "glm-5.3" " high ") => "glm-5.3 • high")
+
+;; 4. 未显式指定 provider/model 时按默认渲染，不再显示假的 thinking 后缀
+(let* ((ft (make-pi-footer :cwd "/tmp/test" :branch "main"))
+       (lines (component-render ft 80))
+       (line2 (list-ref lines 1))
+      ) ;let*
+  (check-true (string-contains? line2 "(google) gemini-3.8-flash"))
+  (check-false (string-contains? line2 "•"))
+) ;let*
+
+;; 5. 显式传入 #f 时回退默认值
+(let* ((ft (make-pi-footer :provider #f :model #f))
+       (lines (component-render ft 80))
+      ) ;let*
+  (check-true (string-contains? (list-ref lines 1) "(google) gemini-3.8-flash"))
+) ;let*
+
+;; 6. 主目录缩写
 (check (format-cwd-for-footer "/home/da" "/home/da") => "~")
 (check (format-cwd-for-footer "/home/da/git/goldfish" "/home/da") => "~/git/goldfish")
 (check (format-cwd-for-footer "/tmp/test" "/home/da") => "/tmp/test")

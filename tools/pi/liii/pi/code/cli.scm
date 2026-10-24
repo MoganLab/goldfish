@@ -96,6 +96,27 @@
       ) ;any
     ) ;define
 
+    ;; TUI footer 右下角显示实际生效的供应商与模型：与后台 worker 内的解析同源同输入
+    ;; （纯本地文件读取，无网络开销），配置解析失败时回退到 CLI 原始参数
+    (define (%tui-footer-info parsed)
+      (catch #t
+        (lambda ()
+          (let* ((cfg (resolve-pi-config parsed (get-environment-variables)))
+                 (provider (cdr (or (assoc 'provider cfg) (cons #f "google"))))
+                 (model-id (cdr (or (assoc 'model-id cfg) (cons #f "gemini-3.8-flash"))))
+                 (tl (cdr (or (assoc 'thinking-level cfg) (cons #f #f))))
+                ) ;
+            (list provider (pi-footer-model-label model-id tl))
+          ) ;let*
+        ) ;lambda
+        (lambda args
+          (list (or (pi-args-ref parsed 'provider) "google")
+            (or (pi-args-ref parsed 'model) "gemini-3.8-flash")
+          ) ;list
+        ) ;lambda
+      ) ;catch
+    ) ;define
+
     (define (%run-pi-main parsed)
       (let-values (((initial-msg rest-msgs)
                     (build-initial-prompt (and (not (stdin-tty?)) (read-all-stdin))
@@ -116,7 +137,9 @@
                  ) ;and
                  (begin
                    (if (and (stdin-tty?) (stdout-tty?))
-                     (pi-app-run (make-pi-app))
+                     (let ((info (%tui-footer-info parsed)))
+                       (pi-app-run (make-pi-app :provider (car info) :model (cadr info)))
+                     ) ;let
                      (display-pi-help)
                    ) ;if
                    0
