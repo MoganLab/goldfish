@@ -1,3 +1,18 @@
+;;
+;; Copyright (C) 2026 The Goldfish Scheme Authors
+;;
+;; Licensed under the Apache License, Version 2.0 (the "License");
+;; you may not use this file except in compliance with the License.
+;; You may obtain a copy of the License at
+;;
+;;  http://www.apache.org/licenses/LICENSE-2.0
+;;
+;; Unless required by applicable law or agreed to in writing, software
+;; distributed under the License is distributed on an "AS IS" BASIS,
+;; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+;; See the License for the specific language governing permissions and
+;; limitations under the License.
+;;
 ;; ; (liii uri transform) - URI 修改函数
 ;; ; 本模块包含 URI 的修改函数（with-系列、query更新、路径操作）
 
@@ -9,6 +24,7 @@
     (liii error)
     (liii uri record)
     (liii uri parse)
+    (liii uri predicate)
   ) ;import
 
   ;; ; ---------- 导出接口 ----------
@@ -30,6 +46,7 @@
   (export uri-with-name)
   (export uri-with-suffix)
   (export uri-join)
+  (export uri-normalize)
 
   (begin
     ;; ; ---------- 修改函数 ----------
@@ -115,6 +132,31 @@
       (uri-update-query uri-obj
         (lambda (q) (filter (lambda (p) (not (string=? (car p) key))) q))
       ) ;uri-update-query
+    ) ;define
+
+    ;; 按 RFC 3986 6.2.3 节做基于协议的语法归一化：
+    ;; - 网络协议的空 path 归一化为 "/"
+    ;; - 移除等于协议默认端口的显式端口
+    (define (uri-normalize uri-obj)
+      (if (not (uri? uri-obj))
+        (type-error "uri-normalize: expected uri")
+        (let* ((scheme (uri-scheme-raw uri-obj))
+               (network? (and scheme (uri-network-scheme? scheme)))
+               (u
+                 (if
+                   (and network? (string=? (or (uri-path-raw uri-obj) "") ""))
+                   (uri-with-path uri-obj "/")
+                   uri-obj
+                 ) ;if
+               ) ;u
+               (explicit-port (uri-explicit-port u))
+              ) ;
+          (if (and network? explicit-port (= explicit-port (uri-default-port scheme)))
+            (uri-with-port u #f)
+            u
+          ) ;if
+        ) ;let*
+      ) ;if
     ) ;define
 
     ;; 路径操作函数
