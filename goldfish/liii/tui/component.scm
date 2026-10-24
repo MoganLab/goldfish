@@ -179,14 +179,7 @@
         (when (< height 0)
           (value-error "make-spacer: height must be non-negative")
         ) ;when
-        (make-component
-          (lambda (comp width)
-            (let loop
-              ((n height) (acc '()))
-              (if (<= n 0) acc (loop (- n 1) (cons "" acc)))
-            ) ;let
-          ) ;lambda
-        ) ;make-component
+        (make-component (lambda (comp width) (make-list height "")))
       ) ;let
     ) ;define
 
