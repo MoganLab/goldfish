@@ -26,6 +26,7 @@
   (import (scheme base)
     (liii base)
     (liii error)
+    (liii list)
     (liii string)
     (liii unicode)
     (liii tui text-width core)
@@ -217,17 +218,9 @@
               ((string=? str "") (list ""))
               (else
                 (let ((paragraphs (string-split str "\n")))
-                  (let loop
-                    ((rest paragraphs) (acc '()))
-                    (if (null? rest)
-                      acc
-                      (let* ((para (car rest))
-                             (wrapped (if (string=? para "") (list "") (%wrap-single-line para w)))
-                            ) ;
-                        (loop (cdr rest) (append acc wrapped))
-                      ) ;let*
-                    ) ;if
-                  ) ;let
+                  (append-map (lambda (para) (if (string=? para "") (list "") (%wrap-single-line para w)))
+                    paragraphs
+                  ) ;append-map
                 ) ;let
               ) ;else
         ) ;cond
