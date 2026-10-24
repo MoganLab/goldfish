@@ -84,4 +84,22 @@
 (check (f 1 2 :z 100) => 103)
 
 
+;; 可选参数与 rest 参数混合：可选参数会按位置先于 rest 被填充
+(define* (mix a (b 99) . rest) (list a b rest))
+
+
+(check (mix 1) => '(1 99 ()))
+(check (mix 1 2) => '(1 2 ()))
+(check (mix 1 2 3 4) => '(1 2 (3 4)))
+(check (mix 1 :b 5 6) => '(1 5 (6)))
+
+
+;; 无必需参数时的行为
+(define* (mix2 (b 99) . rest) (list b rest))
+
+
+(check (mix2) => '(99 ()))
+(check (mix2 1 2 3) => '(1 (2 3)))
+
+
 (check-report)

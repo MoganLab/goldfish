@@ -5,7 +5,9 @@
 (check-set-mode! 'report-failed)
 
 ;; as-color
-;; 终端自定义 RGB 颜色格式化组合子。as-color 支持 6x6x6 调色板（0~5 级别），as-true-color 支持 24-bit 真实色彩（0~255）。
+;; 终端自定义 RGB 颜色格式化组合子。as-color 支持 6x6x6 调色板（0~5 级别）。
+;; as-true-color/on-true-color 的文档和用例见：
+;;   gf doc liii/format/color as-true-color
 ;;
 ;; 语法
 ;; ----
