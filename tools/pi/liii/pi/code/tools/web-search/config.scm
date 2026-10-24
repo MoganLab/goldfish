@@ -176,14 +176,43 @@
       ) ;let
     ) ;define
 
-    (define (%env-non-empty name opt-env)
+    (define (%env-ref-str name env)
+      ;; env 是 alist 时只查 env（测试可控）；否则查真实环境变量
       (let ((v
-              ;; lookup-env-var 期望 rest 风格的 env（(car custom-env) 才是 alist）
-              (lookup-env-var name (if (pair? opt-env) (list opt-env) #f))
+              (if (pair? env)
+                (let ((p (assoc name env)))
+                  (and p (string? (cdr p)) (cdr p))
+                ) ;let
+                (get-environment-variable name)
+              ) ;if
             ) ;v
            ) ;
         (and (string? v) (not (string-null? (string-trim-both v))) v)
       ) ;let
+    ) ;define
+
+    (define (%agent-dir-from env)
+      (catch #t
+        (lambda ()
+          (let ((env-dir (%env-ref-str "PI_CODING_AGENT_DIR" env)))
+            (if env-dir
+              (pi-resolve-path env-dir (getcwd))
+              (pi-resolve-path "~/.pi/agent" (getcwd))
+            ) ;if
+          ) ;let
+        ) ;lambda
+        (lambda _ #f)
+      ) ;catch
+    ) ;define
+
+    (define (%read-json-file path-str)
+      (and (string? path-str)
+        (path-exists? (path path-str))
+        (catch #t
+          (lambda () (string->json (path-read-text (path path-str))))
+          (lambda _ #f)
+        ) ;catch
+      ) ;and
     ) ;define
 
     (define (%norm-provider s)
@@ -208,47 +237,18 @@
     ;; 不存在或解析失败返回 #f。opt-env 提供时只查 opt-env（测试可控）。
     (define (pi-load-web-search-config . opt-env)
       (let* ((env (if (pair? opt-env) (car opt-env) #f))
-             (explicit
-               (let ((v
-                       (if (pair? env)
-                         (let ((p (assoc "PI_WEB_SEARCH_CONFIG" env)))
-                           (and p (string? (cdr p)) (cdr p))
-                         ) ;let
-                         (get-environment-variable "PI_WEB_SEARCH_CONFIG")
-                       ) ;if
-                     ) ;v
-                    ) ;
-                 (and (string? v) (not (string-null? (string-trim-both v))) v)
-               ) ;let
-             ) ;explicit
-             (path-str
-               (or explicit
+             (explicit (%env-ref-str "PI_WEB_SEARCH_CONFIG" env))
+             (agent-dir (%agent-dir-from env))
+             (default-path
+               (and agent-dir
                  (catch #t
-                   (lambda ()
-                     (let* ((env-dir (lookup-env-var "PI_CODING_AGENT_DIR" (if (pair? env) (list env) #f)))
-                            (agent-dir
-                              (if
-                                (and (string? env-dir) (not (string-null? (string-trim-both env-dir))))
-                                (pi-resolve-path env-dir (getcwd))
-                                (pi-resolve-path "~/.pi/agent" (getcwd))
-                              ) ;if
-                            ) ;agent-dir
-                           ) ;
-                       (path->string (path-join (path agent-dir) (path "web-search.json")))
-                     ) ;let*
-                   ) ;lambda
+                   (lambda () (path->string (path-join (path agent-dir) (path "web-search.json"))))
                    (lambda _ #f)
                  ) ;catch
-               ) ;or
-             ) ;path-str
+               ) ;and
+             ) ;default-path
             ) ;
-        (and path-str
-          (path-exists? (path path-str))
-          (catch #t
-            (lambda () (string->json (path-read-text (path path-str))))
-            (lambda _ #f)
-          ) ;catch
-        ) ;and
+        (or (%read-json-file explicit) (%read-json-file default-path))
       ) ;let*
     ) ;define
 
@@ -270,7 +270,7 @@
                 ) ;
                 ((%cfg-str ws-config 'provider))
                 ((%cfg-str config 'web-search-provider))
-                ((%env-non-empty "GF_PI_WEB_SEARCH_PROVIDER" env))
+                ((%env-ref-str "GF_PI_WEB_SEARCH_PROVIDER" env))
                 ((%cfg-str config 'provider))
                 (else "google")
                ) ;cond
@@ -279,6 +279,26 @@
             ) ;
         (if (equal? p "deepseek") "deepseek" "google")
       ) ;let*
+    ) ;define
+
+    (define (%deepseek-key-from-auth env)
+      ;; 环境变量 + auth.json + deepseek 回退链（claude settings、~/.deepseek.json 等）
+      (catch #t
+        (lambda ()
+          (if (pair? env)
+            (pi-resolve-provider-key "deepseek" '() env)
+            (pi-resolve-provider-key "deepseek" (pi-load-auth (%agent-dir-from env)))
+          ) ;if
+        ) ;lambda
+        (lambda _ #f)
+      ) ;catch
+    ) ;define
+
+    (define (%config-wants-deepseek? config)
+      (equal? (%norm-provider (or (%cfg-str config 'web-search-provider) (%cfg-str config 'provider) "")
+              ) ;%norm-provider
+        "deepseek"
+      ) ;equal?
     ) ;define
 
     (define (pi-resolve-deepseek-api-key config opt-key . opt-env)
@@ -291,34 +311,10 @@
            ) ;let
           ) ;
           ;; config 的 api-key 仅当 provider 是 deepseek 时才可用
-          ((and (%cfg-str config 'api-key)
-             (equal? (%norm-provider (or (%cfg-str config 'web-search-provider) (%cfg-str config 'provider) "")
-                     ) ;%norm-provider
-               "deepseek"
-             ) ;equal?
-           ) ;and
+          ((and (%config-wants-deepseek? config) (%cfg-str config 'api-key))
            (%cfg-str config 'api-key)
           ) ;
-          ;; 环境变量 + auth.json + deepseek 回退链（claude settings、~/.deepseek.json 等）
-          (else
-            (catch #t
-              (lambda ()
-                (let* ((env-dir (lookup-env-var "PI_CODING_AGENT_DIR" (if (pair? env) (list env) #f)))
-                       (agent-dir
-                         (if
-                           (and (string? env-dir) (not (string-null? (string-trim-both env-dir))))
-                           (pi-resolve-path env-dir (getcwd))
-                           (pi-resolve-path "~/.pi/agent" (getcwd))
-                         ) ;if
-                       ) ;agent-dir
-                       (auth (if (pair? env) '() (pi-load-auth agent-dir)))
-                      ) ;
-                  (pi-resolve-provider-key "deepseek" '() env)
-                ) ;let*
-              ) ;lambda
-              (lambda _ #f)
-            ) ;catch
-          ) ;else
+          (else (%deepseek-key-from-auth env))
         ) ;cond
       ) ;let
     ) ;define
@@ -333,47 +329,37 @@
       ) ;if
     ) ;define
 
+    (define (%deepseek-base-from-meta config)
+      (let* ((meta (%cfg-ref config 'model-meta))
+             (bu (if (pair? meta) (or (%cfg-ref meta 'base-url) (%cfg-ref meta "baseURL")) #f)
+             ) ;bu
+            ) ;
+        (if
+          (and (string? bu) (not (string-null? (string-trim-both bu))))
+          bu
+          #f
+        ) ;if
+      ) ;let*
+    ) ;define
+
     (define (pi-resolve-deepseek-search-base-url config opt-url . opt-env)
-      (let ((env (if (pair? opt-env) (car opt-env) #f)))
-        (%strip-anthropic-suffix
-          (cond
-           ((and (string? opt-url) (not (string-null? (string-trim-both opt-url))))
-            opt-url
-           ) ;
-           ((%env-non-empty "DEEPSEEK_BASE_URL" env))
-           ;; config 的 base-url 仅当 provider 是 deepseek 时才可用
-           ((and (%cfg-str config 'web-search-base-url)
-              (equal? (%norm-provider (or (%cfg-str config 'web-search-provider) (%cfg-str config 'provider) "")
-                      ) ;%norm-provider
-                "deepseek"
-              ) ;equal?
-            ) ;and
-            (%cfg-str config 'web-search-base-url)
-           ) ;
-           ((and
-              (equal? (%norm-provider (or (%cfg-str config 'web-search-provider) (%cfg-str config 'provider) "")
-                      ) ;%norm-provider
-                "deepseek"
-              ) ;equal?
-              (%cfg-ref config 'model-meta)
-            ) ;and
-            =>
-            (lambda (meta)
-              (let ((bu (if (pair? meta) (or (%cfg-ref meta 'base-url) (%cfg-ref meta "baseURL")) #f)
-                    ) ;bu
-                   ) ;
-                (if
-                  (and (string? bu) (not (string-null? (string-trim-both bu))))
-                  bu
-                  "https://api.deepseek.com"
-                ) ;if
-              ) ;let
-            ) ;lambda
-           ) ;
-           (else "https://api.deepseek.com")
-          ) ;cond
-        ) ;%strip-anthropic-suffix
-      ) ;let
+      (let* ((env (if (pair? opt-env) (car opt-env) #f))
+             (ds? (%config-wants-deepseek? config))
+             (raw
+               (cond
+                ((and (string? opt-url) (not (string-null? (string-trim-both opt-url))))
+                 opt-url
+                ) ;
+                ((%env-ref-str "DEEPSEEK_BASE_URL" env))
+                ;; config 的 base-url 仅当 provider 是 deepseek 时才可用
+                ((and ds? (%cfg-str config 'web-search-base-url)))
+                ((and ds? (%deepseek-base-from-meta config)))
+                (else "https://api.deepseek.com")
+               ) ;cond
+             ) ;raw
+            ) ;
+        (%strip-anthropic-suffix raw)
+      ) ;let*
     ) ;define
 
   ) ;begin

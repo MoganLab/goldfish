@@ -65,47 +65,50 @@
       (string-append (%strip-trailing-slash base-url) "/v1/tools/fetch")
     ) ;define
 
-    ;; 解析 Search API 响应：每条结果取 title/url/snippet/summary
-    ;; （summary 缺失时回退到 snippet）
-    (define (deepseek-parse-search-results json-data)
+    (define (%results-list json-data)
       (let ((results (%json-field json-data "results")))
-        (let loop
-          ((rem (cond ((vector? results) (vector->list results))
-                      ((pair? results) results)
-                      (else '())
-                ) ;cond
-           ) ;rem
-           (acc '())
-          ) ;
-          (if (null? rem)
-            (reverse acc)
-            (let* ((item (car rem))
-                   (title (%json-field item "title"))
-                   (url (%json-field item "url"))
-                   (snippet (%json-field item "snippet"))
-                   (summary (%json-field item "summary"))
-                   (snippet-str
-                     (if (and (string? snippet) (not (string-null? snippet))) snippet "")
-                   ) ;snippet-str
-                  ) ;
-              (if (or (not (string? url)) (string-null? (string-trim-both url)))
-                (loop (cdr rem) acc)
-                (loop (cdr rem)
-                  (cons
-                    (list (cons "title" (if (string? title) title url))
-                      (cons "url" url)
-                      (cons "snippet" snippet-str)
-                      (cons "summary"
-                        (if (and (string? summary) (not (string-null? summary))) summary snippet-str)
-                      ) ;cons
-                    ) ;list
-                    acc
-                  ) ;cons
-                ) ;loop
-              ) ;if
-            ) ;let*
-          ) ;if
-        ) ;let
+        (cond ((vector? results) (vector->list results))
+              ((pair? results) results)
+              (else '())
+        ) ;cond
+      ) ;let
+    ) ;define
+
+    ;; 单条结果 -> (("title" . ...) ("url" . ...) ("snippet" . ...) ("summary" . ...))
+    ;; summary 缺失时回退到 snippet；无有效 url 时返回 #f（跳过该条）
+    (define (%result-item item)
+      (let* ((title (%json-field item "title"))
+             (url (%json-field item "url"))
+             (snippet (%json-field item "snippet"))
+             (summary (%json-field item "summary"))
+             (snippet-str
+               (if (and (string? snippet) (not (string-null? snippet))) snippet "")
+             ) ;snippet-str
+             (summary-str
+               (if (and (string? summary) (not (string-null? summary))) summary snippet-str)
+             ) ;summary-str
+            ) ;
+        (and (string? url)
+          (not (string-null? (string-trim-both url)))
+          (list (cons "title" (if (string? title) title url))
+            (cons "url" url)
+            (cons "snippet" snippet-str)
+            (cons "summary" summary-str)
+          ) ;list
+        ) ;and
+      ) ;let*
+    ) ;define
+
+    ;; 解析 Search API 响应：每条结果取 title/url/snippet/summary
+    (define (deepseek-parse-search-results json-data)
+      (let loop
+        ((rem (%results-list json-data)) (acc '()))
+        (if (null? rem)
+          (reverse acc)
+          (let ((parsed (%result-item (car rem))))
+            (loop (cdr rem) (if parsed (cons parsed acc) acc))
+          ) ;let
+        ) ;if
       ) ;let
     ) ;define
 
@@ -156,32 +159,41 @@
       ) ;let
     ) ;define
 
+    (define (%truncate-str str max-chars)
+      (if (> (string-length str) max-chars)
+        (string-append (substring str 0 max-chars) "\n[...truncated]")
+        str
+      ) ;if
+    ) ;define
+
+    (define (%page-title-str page)
+      (let ((title (%json-field page "title")) (url (%json-field page "url")))
+        (cond ((string? title) title)
+              ((string? url) url)
+              (else "page")
+        ) ;cond
+      ) ;let
+    ) ;define
+
     ;; 把 fetch 到的页面拼进正文（content 截断，避免正文爆炸）
     (define (deepseek-append-fetched-page text page . opt-max-chars)
       (let* ((max-chars (if (pair? opt-max-chars) (car opt-max-chars) 2000))
-             (title (%json-field page "title"))
              (url (%json-field page "url"))
              (content (%json-field page "content"))
              (content-str (if (string? content) content ""))
-             (truncated (if (> (string-length content-str) max-chars)
-                          (string-append (substring content-str 0 max-chars) "\n[...truncated]")
-                          content-str
-                        ) ;if
-             ) ;truncated
-             (section
-               (string-append (if (string-null? (string-trim-both text))
-                                "## Fetched Pages"
-                                (string-append text "\n\n" "## Fetched Pages")
-                              ) ;if
-                 "\n\n### "
-                 (if (string? title) title (if (string? url) url "page"))
-                 "\n"
-                 (if (string? url) (string-append url "\n") "")
-                 truncated
-               ) ;string-append
-             ) ;section
+             (head (if (string-null? (string-trim-both text))
+                     "## Fetched Pages"
+                     (string-append text "\n\n" "## Fetched Pages")
+                   ) ;if
+             ) ;head
             ) ;
-        section
+        (string-append head
+          "\n\n### "
+          (%page-title-str page)
+          "\n"
+          (if (string? url) (string-append url "\n") "")
+          (%truncate-str content-str max-chars)
+        ) ;string-append
       ) ;let*
     ) ;define
 
