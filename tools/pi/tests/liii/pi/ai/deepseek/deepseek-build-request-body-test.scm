@@ -1,4 +1,4 @@
-(import (liii check) (liii pi ai deepseek) (liii pi tools))
+(import (liii check) (liii pi ai deepseek) (liii pi code tools))
 
 (check-set-mode! 'report-failed)
 

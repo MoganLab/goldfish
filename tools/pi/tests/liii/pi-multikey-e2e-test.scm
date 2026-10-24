@@ -6,7 +6,7 @@
   (liii path)
   (liii subprocess)
   (liii sys)
-  (liii pi cli)
+  (liii pi code cli)
 )
 
 (check-set-mode! 'report-failed)

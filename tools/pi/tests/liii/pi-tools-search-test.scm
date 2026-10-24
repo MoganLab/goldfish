@@ -1,13 +1,13 @@
 (set! *load-path* (append (list "tools/pi" ".") *load-path*))
 
-(import (liii check) (liii string) (liii path) (liii pi cli) (liii pi find) (liii pi grep) (liii pi ls))
+(import (liii check) (liii string) (liii path) (liii pi code cli) (liii pi code find) (liii pi code grep) (liii pi code ls))
 
 (check-set-mode! 'report-failed)
 
 (define test-file
-  (if (file-exists? "liii/pi/cli.scm")
-    "liii/pi/cli.scm"
-    "tools/pi/liii/pi/cli.scm"
+  (if (file-exists? "liii/pi/code/cli.scm")
+    "liii/pi/code/cli.scm"
+    "tools/pi/liii/pi/code/cli.scm"
   ) ;if
 ) ;define
 
@@ -45,7 +45,7 @@
 (let ((out
         (pi-execute-find
           (list (cons "pattern" "*.scm")
-            (cons "path" (if (file-exists? "liii/pi/cli.scm") "." "tools/pi"))
+            (cons "path" (if (file-exists? "liii/pi/code/cli.scm") "." "tools/pi"))
           ) ;list
         ) ;pi-execute-find
       ) ;out
@@ -90,7 +90,7 @@
       ) ;out
      ) ;
   (check-true (string? out))
-  (check-true (string-contains? out ": (define-library (liii pi cli)"))
+  (check-true (string-contains? out ": (define-library (liii pi code cli)"))
 ) ;let
 
 ;; 2. 大小写不敏感搜索
@@ -102,7 +102,7 @@
            ) ;pi-execute-grep
       ) ;out
      ) ;
-  (check-true (string-contains? out ": (define-library (liii pi cli)"))
+  (check-true (string-contains? out ": (define-library (liii pi code cli)"))
 ) ;let
 
 ;; 3. 正则搜索
@@ -110,9 +110,9 @@
         (pi-execute-grep
           (list (cons "pattern" "define.*display")
             (cons "path"
-              (if (file-exists? "liii/pi/help.scm")
-                "liii/pi/help.scm"
-                "tools/pi/liii/pi/help.scm"
+              (if (file-exists? "liii/pi/code/help.scm")
+                "liii/pi/code/help.scm"
+                "tools/pi/liii/pi/code/help.scm"
               ) ;if
             ) ;cons
           ) ;list

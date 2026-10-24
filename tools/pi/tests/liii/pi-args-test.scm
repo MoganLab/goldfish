@@ -3,8 +3,8 @@
 
 (import (liii check)
         (liii string)
-        (liii pi args) (liii pi prompt)
-        (liii pi args))
+        (liii pi code args) (liii pi code prompt)
+        (liii pi code args))
 
 (check-set-mode! 'report-failed)
 
@@ -149,9 +149,9 @@
   (check (pi-args-ref res5 'file-args) => '("doc.txt")))
 
 ;; 6. process-file-arguments 测试
-(let* ((test-file (if (file-exists? "liii/pi/args.scm")
-                      "liii/pi/args.scm"
-                      "tools/pi/liii/pi/args.scm"))
+(let* ((test-file (if (file-exists? "liii/pi/code/args.scm")
+                      "liii/pi/code/args.scm"
+                      "tools/pi/liii/pi/code/args.scm"))
        (block (process-file-arguments (list test-file))))
   (check-true (string? block))
   (check-true (> (string-length block) 0))
