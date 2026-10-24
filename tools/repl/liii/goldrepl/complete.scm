@@ -52,44 +52,29 @@
 
     (define (%repl-update-symbol-cache!)
       (set! *repl-symbols*
-        (let loop
-          ((rest (let->list (rootlet))) (acc '()))
-          (if (null? rest)
-            acc
-            (let* ((entry (car rest))
-                   (name (if (pair? entry) (car entry) entry))
+        (fold
+          (lambda (entry acc)
+            (let* ((name (if (pair? entry) (car entry) entry))
                    (val (if (pair? entry) (cdr entry) #f))
                    (doc (%repl-entry-doc val))
                   ) ;
-              (loop (cdr rest)
-                (if (symbol? name) (cons (cons (symbol->string name) doc) acc) acc)
-              ) ;loop
+              (if (symbol? name) (cons (cons (symbol->string name) doc) acc) acc)
             ) ;let*
-          ) ;if
-        ) ;let
+          ) ;lambda
+          '()
+          (let->list (rootlet))
+        ) ;fold
       ) ;set!
       (set! *repl-symbol-cache-valid?* #t)
     ) ;define
 
     (define (%repl-symbol-name? token)
-      (let loop
-        ((rest *repl-symbols*))
-        (cond ((null? rest) #f)
-              ((string=? (caar rest) token) #t)
-              (else (loop (cdr rest)))
-        ) ;cond
-      ) ;let
+      (any (lambda (entry) (string=? (car entry) token)) *repl-symbols*)
     ) ;define
 
     (define (%repl-completions prefix)
       (%repl-maybe-update-symbol-cache!)
-      (let loop
-        ((rest *repl-symbols*) (acc '()))
-        (cond ((null? rest) (reverse acc))
-              ((string-starts? (caar rest) prefix) (loop (cdr rest) (cons (car rest) acc)))
-              (else (loop (cdr rest) acc))
-        ) ;cond
-      ) ;let
+      (filter (lambda (entry) (string-starts? (car entry) prefix)) *repl-symbols*)
     ) ;define
 
     (define (%repl-word-at text col)
@@ -139,16 +124,7 @@
     ) ;define
 
     (define (%repl-common-prefix strs)
-      (if (null? strs)
-        ""
-        (let loop
-          ((prefix (car strs)) (rest (cdr strs)))
-          (if (null? rest)
-            prefix
-            (loop (%repl-string-common-prefix prefix (car rest)) (cdr rest))
-          ) ;if
-        ) ;let
-      ) ;if
+      (if (null? strs) "" (fold %repl-string-common-prefix (car strs) (cdr strs)))
     ) ;define
 
   ) ;begin

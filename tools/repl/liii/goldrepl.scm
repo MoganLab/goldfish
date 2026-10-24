@@ -51,6 +51,8 @@
     %repl-completions
     %repl-word-at
     %repl-replace-word
+    %repl-string-common-prefix
+    %repl-common-prefix
     ;; history
     %repl-history-dir
     %repl-history-file
@@ -243,9 +245,7 @@
            ) ;
            ((eq? k 'escape) (if (pair? comp-cands) (reset-comp!) (editor-set-text! ed "")))
            ((eq? k 'tab) (do-complete!))
-           ((or (eq? k 'shift-tab) (eq? k 'ctrl-enter) (eq? k 'shift-enter) (eq? k 'ctrl-j))
-            (do-newline!)
-           ) ;
+           ((memq k '(shift-tab ctrl-enter shift-enter ctrl-j)) (do-newline!))
            ((not k) (sleep 0.01))
            (else (reset-comp!) (component-handle-input ed k))
           ) ;cond
