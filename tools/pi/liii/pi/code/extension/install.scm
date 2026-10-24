@@ -13,7 +13,7 @@
     (liii subprocess)
     (liii error)
     (liii either)
-    (liii pi code read)
+    (liii pi code tools read)
     (liii pi code failure)
   ) ;import
   (export pi-parse-git-extension-name pi-valid-extension-name?

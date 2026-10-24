@@ -14,7 +14,7 @@
     (liii os)
     (liii json)
     (liii error)
-    (liii pi code read)
+    (liii pi code tools read)
     (liii pi ai template)
     (liii pi code args)
     (liii pi code tools)
@@ -49,7 +49,7 @@
       ) ;if
     ) ;define
 
-    ;; pi-get-agent-dir 已下沉至 (liii pi code read)，此处经 import 再导出
+    ;; pi-get-agent-dir 已下沉至 (liii pi code tools read)，此处经 import 再导出
 
     (define (pi-read-json-file filepath)
       (and (path-exists? (path filepath))
