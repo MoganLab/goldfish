@@ -134,6 +134,7 @@
             (lambda (t) (terminal-cursor-visible? vt))
             (lambda (t v) (if v (terminal-show-cursor! vt) (terminal-hide-cursor! vt)))
             (lambda (t) (terminal-flush vt))
+            (lambda (t) 0)
             #f
           ) ;make-terminal-record
         ) ;wrapped-term

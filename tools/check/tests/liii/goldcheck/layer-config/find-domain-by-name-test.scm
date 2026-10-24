@@ -46,8 +46,9 @@
   ) ;layer-domains-parse
 )
 
-;; 1. 找到存在的域
-(check-true (find-domain-by-name %domains "common"))
+;; 1. 找到存在的域（返回 domain 对象，非布尔 #t）
+(check-true (pair? (find-domain-by-name %domains "common")))
+(check (domain-name-of (find-domain-by-name %domains "common")) => "common")
 
 ;; 2. 不存在的域返回 #f
-(check-false (find-domain-by-name %domains "ghost"))
+(check (find-domain-by-name %domains "ghost") => #f)

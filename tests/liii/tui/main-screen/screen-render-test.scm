@@ -139,6 +139,7 @@
              (set! trace (cons 'flush trace))
              (terminal-flush vt)
            ) ;lambda
+           (lambda (t) 0)
            #f
          ) ;make-terminal-record
        ) ;wrapped-term

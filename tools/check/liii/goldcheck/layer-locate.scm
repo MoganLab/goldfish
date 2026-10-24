@@ -26,38 +26,67 @@
   ) ;export
   (begin
 
-    ;; 家族前缀继承："liii goldfmt" 登记则 "liii goldfmt xxx" 同层
-    (define (%lib-under? name lib)
-      (or (string=? name lib) (string-starts-with? lib (string-append name " ")))
-    ) ;define
-
-    (define (%locate-layer layers lib idx)
-      (if (null? layers)
+    ;; 家族前缀继承：“liii goldfmt” 登记则 “liii goldfmt xxx” 同层
+    ;; 通配：pattern 末尾 ". *" 表示该前缀下任意子库，如 "liii *" 匹配
+    ;; "liii string"，但不匹配 "liii" 本身。
+    (define (%wildcard-prefix name)
+      (if (and (string-ends? name " *") (> (string-length name) 2))
+        (substring name 0 (- (string-length name) 2))
         #f
-        (if
-          (let scan
-            ((names (vector->list (layer-libs-of (car layers)))))
-            (cond ((null? names) #f)
-                  ((%lib-under? (car names) lib) #t)
-                  (else (scan (cdr names)))
-            ) ;cond
-          ) ;let
-          (cons (car layers) idx)
-          (%locate-layer (cdr layers) lib (+ idx 1))
-        ) ;if
       ) ;if
     ) ;define
 
-    ;; 穷举匹配：库名在域表中首个命中的 (domain layer idx)
+    (define (%lib-under? name lib)
+      (let ((prefix (%wildcard-prefix name)))
+        (if prefix
+          (string-starts-with? lib (string-append prefix " "))
+          (or (string=? name lib) (string-starts-with? lib (string-append name " ")))
+        ) ;if
+      ) ;let
+    ) ;define
+
+    ;; 特异性：pattern 字面长度（通配取前缀长度）。
+    ;; 越长越特异，使 "liii goldcheck" 胜过 "liii *"。
+    (define (%pattern-specificity name)
+      (string-length (or (%wildcard-prefix name) name))
+    ) ;define
+
+    ;; 在一层的 libs 中找匹配该库的最特异 pattern，返回其特异性或 -1
+    (define (%layer-match-score layer lib)
+      (let loop
+        ((names (vector->list (layer-libs-of layer))) (best -1))
+        (cond ((null? names) best)
+              ((not (%lib-under? (car names) lib)) (loop (cdr names) best))
+              (else
+                (loop (cdr names) (max best (%pattern-specificity (car names))))
+              ) ;else
+        ) ;cond
+      ) ;let
+    ) ;define
+
+    ;; 穷举匹配：在全部域/层中找最特异命中，返回 (domain layer idx) 或 #f。
+    ;; 按特异性全局择优（而非按域顺序首个命中），保证 "liii goldcheck"
+    ;; 胜过 goldfish 域的 "liii *" 兜底；同特异性时保持先出现者优先。
     (define (%locate domains lib)
       (let loop-d
-        ((ds domains))
-        (if (null? ds)
-          #f
-          (let ((hit (%locate-layer (domain-layers-of (car ds)) lib 0)))
-            (if hit (list (car ds) (car hit) (cdr hit)) (loop-d (cdr ds)))
-          ) ;let
-        ) ;if
+        ((ds domains) (best #f) (best-score -1))
+        (cond ((null? ds) best)
+              (else
+                (let loop-l
+                  ((layers (domain-layers-of (car ds))) (idx 0) (b best) (bs best-score))
+                  (cond ((null? layers) (loop-d (cdr ds) b bs))
+                        (else
+                          (let ((score (%layer-match-score (car layers) lib)))
+                            (if (> score bs)
+                              (loop-l (cdr layers) (+ idx 1) (list (car ds) (car layers) idx) score)
+                              (loop-l (cdr layers) (+ idx 1) b bs)
+                            ) ;if
+                          ) ;let
+                        ) ;else
+                  ) ;cond
+                ) ;let
+              ) ;else
+        ) ;cond
       ) ;let
     ) ;define
 
@@ -73,7 +102,7 @@
       ) ;let
     ) ;define
 
-    ;; 在指定域内找库名所在层（家族前缀继承），返回 (layer . idx) 或 #f
+    ;; 在指定域内找库名所在层（家族前缀继承 + 通配），返回 (layer . idx) 或 #f
     (define (%locate-layer-in domains domain lib)
       (let loop
         ((layers (domain-layers-of domain)) (idx 0))
