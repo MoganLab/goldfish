@@ -12,20 +12,66 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; 1. provider 解析测试
+;; 签名：(pi-resolve-web-search-provider config opt-provider ws-config . opt-env)
+;; 优先级：显式 opt > ws-config（web-search.json） > 环境变量 > config
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; 显式 opt 优先
-(check (pi-resolve-web-search-provider '() "deepseek") => "deepseek")
-(check (pi-resolve-web-search-provider '((provider . "deepseek")) "google") => "google")
+(check (pi-resolve-web-search-provider '() "deepseek" #f) => "deepseek")
+(check (pi-resolve-web-search-provider '((provider . "deepseek")) "google" #f) => "google")
+;; ws-config（web-search.json，全局覆盖：任何会话 provider 都生效）
+(check (pi-resolve-web-search-provider '() #f '(("provider" . "deepseek"))) => "deepseek")
+(check (pi-resolve-web-search-provider '((provider . "google")) #f
+              '(("provider" . "deepseek"))) => "deepseek")
+(check (pi-resolve-web-search-provider '() "google"
+              '(("provider" . "deepseek"))) => "google")
+;; ws-config 里不认识的 provider 回退 google
+(check (pi-resolve-web-search-provider '() #f '(("provider" . "openai"))) => "google")
 ;; config 的 web-search-provider 字段
-(check (pi-resolve-web-search-provider '((web-search-provider . "deepseek")) #f) => "deepseek")
+(check (pi-resolve-web-search-provider '((web-search-provider . "deepseek")) #f #f) => "deepseek")
 ;; config 的 provider 字段
-(check (pi-resolve-web-search-provider '((provider . "deepseek")) #f) => "deepseek")
+(check (pi-resolve-web-search-provider '((provider . "deepseek")) #f #f) => "deepseek")
 ;; 环境变量
-(check (pi-resolve-web-search-provider '() #f '(("GF_PI_WEB_SEARCH_PROVIDER" . "deepseek"))) => "deepseek")
+(check (pi-resolve-web-search-provider '() #f #f
+              '(("GF_PI_WEB_SEARCH_PROVIDER" . "deepseek"))) => "deepseek")
 ;; 默认 google
-(check (pi-resolve-web-search-provider '() #f) => "google")
-(check (pi-resolve-web-search-provider '((provider . "anthropic")) #f) => "google")
+(check (pi-resolve-web-search-provider '() #f #f) => "google")
+(check (pi-resolve-web-search-provider '((provider . "anthropic")) #f #f) => "google")
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 1b. web-search.json 加载与 model 字段
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; 从显式路径加载
+(define (find-web-search-fixture)
+  (let loop ((candidates '("tools/pi/tests/fixtures/web-search.json"
+                           "tests/fixtures/web-search.json"
+                           "fixtures/web-search.json"
+                           "../fixtures/web-search.json"
+                           "../../fixtures/web-search.json"
+                           "../../../fixtures/web-search.json"
+                           "../../../../tools/pi/tests/fixtures/web-search.json")))
+    (cond ((null? candidates) (error 'file-not-found "web-search.json fixture not found"))
+          ((file-exists? (car candidates)) (car candidates))
+          (else (loop (cdr candidates))))))
+
+(let ((cfg (pi-load-web-search-config
+             (list (cons "PI_WEB_SEARCH_CONFIG" (find-web-search-fixture))
+               (cons "HOME" "/nonexistent-gf-test")
+               (cons "PI_CODING_AGENT_DIR" "/nonexistent-gf-test")))))
+  (check-true (pair? cfg))
+  (check (cdr (assoc "provider" cfg)) => "deepseek"))
+
+;; 路径不存在时返回 #f
+(check-false (pi-load-web-search-config
+               '(("PI_WEB_SEARCH_CONFIG" . "/nonexistent-gf-test/ws.json")
+                 ("HOME" . "/nonexistent-gf-test")
+                 ("PI_CODING_AGENT_DIR" . "/nonexistent-gf-test"))))
+
+;; model 字段提取
+(check (pi-web-search-config-model
+         '(("provider" . "google") ("model" . "gemini-2.5-pro"))) => "gemini-2.5-pro")
+(check (pi-web-search-config-model '(("provider" . "deepseek"))) => #f)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; 2. deepseek key 解析测试
@@ -139,9 +185,24 @@
     (let ((txt (cdr (assoc 'text res))))
       (check-true (string-contains? txt "Goldfish Official"))))
 
-  ;; 5.3 不带 :provider 且 config 为空时仍走 google 分支（google 场景已由
+  ;; 5.2b web-search.json 全局覆盖：会话 provider 是别的，也走配置的 deepseek
+  (let ((res (pi-execute-web-search '(("query" . "goldfish scheme"))
+                                     :config '((provider . "kimi-coding"))
+                                     :env (list (cons "PI_WEB_SEARCH_CONFIG"
+                                                  (find-web-search-fixture))
+                                            (cons "HOME" "/nonexistent-gf-test")
+                                            (cons "PI_CODING_AGENT_DIR" "/nonexistent-gf-test"))
+                                     :api-key "ds-test-key"
+                                     :base-url base-url
+                                     :timeout 10)))
+    (check-false (cdr (assoc 'isError res)))
+    (let ((txt (cdr (assoc 'text res))))
+      (check-true (string-contains? txt "Goldfish Official"))))
+
+
+  ;; 5.3 不带 :provider 且无任何配置时仍走 google 分支（google 场景已由
   ;;     pi-web-search-execute-test.scm 覆盖，这里验证 provider 默认值即可）
-  (check (pi-resolve-web-search-provider '() #f) => "google")
+  (check (pi-resolve-web-search-provider '() #f #f) => "google")
 
   ;; 5.4 带 urls：deepseek 分支用 fetch API 读取页面
   (let ((res (pi-execute-web-search '(("query" . "goldfish scheme")

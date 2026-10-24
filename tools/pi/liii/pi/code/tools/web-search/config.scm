@@ -9,13 +9,16 @@
     (scheme process-context)
     (liii os)
     (liii string)
+    (liii json)
+    (liii path)
     (liii pi code tools read)
     (liii pi ai auth)
     (liii pi ai template)
   ) ;import
   (export pi-resolve-google-api-key pi-resolve-search-base-url
     pi-resolve-search-proxy-url pi-resolve-search-proxy-alist
-    pi-resolve-search-model-id pi-resolve-web-search-provider
+    pi-resolve-search-model-id pi-load-web-search-config
+    pi-web-search-config-model pi-resolve-web-search-provider
     pi-resolve-deepseek-api-key pi-resolve-deepseek-search-base-url
   ) ;export
   (begin
@@ -199,10 +202,64 @@
       ) ;if
     ) ;define
 
+    ;; 加载 ~/.pi/agent/web-search.json（可用 PI_WEB_SEARCH_CONFIG 指定路径）：
+    ;; {"provider": "deepseek|google", "model": "..."}
+    ;; 存在时是全局覆盖：任何会话 provider/模型的 web_search 都用它。
+    ;; 不存在或解析失败返回 #f。opt-env 提供时只查 opt-env（测试可控）。
+    (define (pi-load-web-search-config . opt-env)
+      (let* ((env (if (pair? opt-env) (car opt-env) #f))
+             (explicit
+               (let ((v
+                       (if (pair? env)
+                         (let ((p (assoc "PI_WEB_SEARCH_CONFIG" env)))
+                           (and p (string? (cdr p)) (cdr p))
+                         ) ;let
+                         (get-environment-variable "PI_WEB_SEARCH_CONFIG")
+                       ) ;if
+                     ) ;v
+                    ) ;
+                 (and (string? v) (not (string-null? (string-trim-both v))) v)
+               ) ;let
+             ) ;explicit
+             (path-str
+               (or explicit
+                 (catch #t
+                   (lambda ()
+                     (let* ((env-dir (lookup-env-var "PI_CODING_AGENT_DIR" (if (pair? env) (list env) #f)))
+                            (agent-dir
+                              (if
+                                (and (string? env-dir) (not (string-null? (string-trim-both env-dir))))
+                                (pi-resolve-path env-dir (getcwd))
+                                (pi-resolve-path "~/.pi/agent" (getcwd))
+                              ) ;if
+                            ) ;agent-dir
+                           ) ;
+                       (path->string (path-join (path agent-dir) (path "web-search.json")))
+                     ) ;let*
+                   ) ;lambda
+                   (lambda _ #f)
+                 ) ;catch
+               ) ;or
+             ) ;path-str
+            ) ;
+        (and path-str
+          (path-exists? (path path-str))
+          (catch #t
+            (lambda () (string->json (path-read-text (path path-str))))
+            (lambda _ #f)
+          ) ;catch
+        ) ;and
+      ) ;let*
+    ) ;define
+
+    (define (pi-web-search-config-model ws-config)
+      (%cfg-str ws-config 'model)
+    ) ;define
+
     ;; 决定 web_search 用哪个后端：只有 google/deepseek 两个后端，
     ;; 其余 provider 一律回退 google。
-    ;; 优先级：显式 opt > config 的 web-search-provider > 环境变量 > config 的 provider
-    (define (pi-resolve-web-search-provider config opt-provider . opt-env)
+    ;; 优先级：显式 opt > web-search.json（全局覆盖） > 环境变量 > config
+    (define (pi-resolve-web-search-provider config opt-provider ws-config . opt-env)
       (let* ((env (if (pair? opt-env) (car opt-env) #f))
              (raw
                (cond
@@ -211,6 +268,7 @@
                  ) ;and
                  opt-provider
                 ) ;
+                ((%cfg-str ws-config 'provider))
                 ((%cfg-str config 'web-search-provider))
                 ((%env-non-empty "GF_PI_WEB_SEARCH_PROVIDER" env))
                 ((%cfg-str config 'provider))

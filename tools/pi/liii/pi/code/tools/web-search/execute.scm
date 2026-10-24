@@ -272,10 +272,15 @@
         (pi-validate-web-search-args args)
         (let* ((config (pi-keyword-value :config opts '()))
                (opt-env (pi-keyword-value :env opts #f))
+               (ws-config (if (pair? opt-env)
+                            (pi-load-web-search-config opt-env)
+                            (pi-load-web-search-config)
+                          ) ;if
+               ) ;ws-config
                (opt-provider (pi-keyword-value :provider opts #f))
                (provider (if (pair? opt-env)
-                           (pi-resolve-web-search-provider config opt-provider opt-env)
-                           (pi-resolve-web-search-provider config opt-provider)
+                           (pi-resolve-web-search-provider config opt-provider ws-config opt-env)
+                           (pi-resolve-web-search-provider config opt-provider ws-config)
                          ) ;if
                ) ;provider
                (opt-key (pi-keyword-value :api-key opts #f))
@@ -312,7 +317,8 @@
             (let* ((api-key (pi-resolve-google-api-key config opt-key))
                    (base-url (pi-resolve-search-base-url config opt-url))
                    (opt-model (pi-keyword-value :model-id opts #f))
-                   (model-id (pi-resolve-search-model-id config opt-model))
+                   (ws-model (pi-web-search-config-model ws-config))
+                   (model-id (pi-resolve-search-model-id config (or opt-model ws-model)))
                   ) ;
               (unless
                 (and (string? api-key) (not (string-null? (string-trim-both api-key))))
