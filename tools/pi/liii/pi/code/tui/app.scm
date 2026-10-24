@@ -9,16 +9,18 @@
     pi-app-queue pi-app-chat pi-app-render! pi-app-submit! pi-app-drain-queue!
     pi-app-add-user-message! pi-app-add-tool-result! pi-app-add-assistant-text!
     pi-app-add-retry-message! pi-app-jobs-chan pi-app-event-chan
-    pi-app-poll-events!
+    pi-app-poll-events! pi-app-working pi-app-working-tick!
   ) ;export
   (import (scheme base)
     (liii go)
     (liii time)
+    (liii date-time)
     (liii string)
     (liii list)
     (liii tui)
     (liii pi agent queue)
     (liii pi code tui views)
+    (liii pi code tui working)
     (liii pi code tui worker)
     (liii pi code tui common)
     (liii pi code tui header)
@@ -31,7 +33,7 @@
 
     (define-record-type <pi-app>
       (%make-pi-app term screen doc chat pending-box editor footer queue handler
-        jobs-chan event-chan
+        jobs-chan event-chan working
       ) ;%make-pi-app
       pi-app?
       (term pi-app-term)
@@ -45,6 +47,7 @@
       (handler %pi-app-handler)
       (jobs-chan pi-app-jobs-chan)
       (event-chan pi-app-event-chan)
+      (working pi-app-working)
     ) ;define-record-type
 
     (define %pi-app-term pi-app-term)
@@ -75,7 +78,15 @@
                  ) ;append-map
                ) ;doc-lines
                (ed (pi-app-editor app))
-               (ed-lines (component-render ed w))
+               ;; busy 时编辑器上边框替换为 Working 动画行（行数不变）
+               (ed-lines
+                 (let ((raw (component-render ed w)))
+                   (if (and (pi-queue-busy? q) (pair? raw) %pi-editor-top-border)
+                     (cons (working-border-line (pi-app-working app) w) (cdr raw))
+                     raw
+                   ) ;if
+                 ) ;let
+               ) ;ed-lines
                (footer-lines (component-render (%pi-app-footer app) w))
                (ed-cur (editor-cursor ed))
                (ed-y (+ (length doc-lines) (if %pi-editor-top-border 1 0)))
@@ -153,6 +164,34 @@
       ) ;let
     ) ;define
 
+    ;; Working 动画节拍推进：
+    ;; idle 时复位指示器并返回 #f；busy 时首拍立即渲染，
+    ;; 之后每隔 80ms 推进一帧并重绘，返回 #t 表示本拍发生了渲染
+    (define (pi-app-working-tick! app)
+      (let ((q (pi-app-queue app)) (ind (pi-app-working app)))
+        (if (not (pi-queue-busy? q))
+          (begin (working-reset! ind) #f)
+          (let ((now (current-monotonic-millis)))
+            (cond ((not (working-last-tick ind))
+                    ;; busy 首拍：无论从何种路径进入 busy，都从 ⠋ 起始
+                    (working-reset! ind)
+                    (working-last-tick-set! ind now)
+                    (pi-app-render! app)
+                    #t
+                  ) ;branch
+                  ((>= (- now (working-last-tick ind)) %working-frame-interval-ms)
+                    (working-advance! ind)
+                    (working-last-tick-set! ind now)
+                    (pi-app-render! app)
+                    #t
+                  ) ;branch
+                  (else #f)
+            ) ;cond
+          ) ;let
+        ) ;if
+      ) ;let
+    ) ;define
+
     ;; 队列调度核心推进逻辑：
     ;; 消费前先上屏深蓝卡片并即时渲染刷新，再派发任务，保证按回车瞬间响应不卡顿
     ;; 返回 #t 表示本次消费并渲染了消息卡片
@@ -172,6 +211,8 @@
                   ;; 1. 出队并正式上屏为深蓝用户消息卡片
                   (pi-app-add-user-message! app msg)
                   ;; 2. 关键：在进入后台处理前立即渲染上屏，用户按回车瞬间看到消息已发送
+                  ;;    同时复位 Working 指示器，保证任务期间从 ⠋ 帧起动画
+                  (working-reset! (pi-app-working app))
                   (pi-app-render! app)
                   ;; 3. 任务派发：
                   (if handler
@@ -234,6 +275,7 @@
              (event-chan (make-chan 32))
              (app (%make-pi-app actual-term screen doc chat pending-box #f
                     footer queue handler-opt jobs-chan event-chan
+                    (make-working-indicator)
                   ) ;%make-pi-app
              ) ;app
              (ed (make-editor ""
