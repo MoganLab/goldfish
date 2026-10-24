@@ -33,17 +33,17 @@
               (pi-app-poll-events! app)
               (let ((k (terminal-poll-key term)))
                 (cond ((or (eq? k 'ctrl-c) (eq? k 'ctrl-d)) #t)
-                      ;; 按 Escape 时：若队列有等待中的消息，撤回至 editor 重新编辑
+                      ;; 按 Escape 时：若队列有等待中的消息，撤回至 editor 重新编辑；
+                      ;; 队列为空时仅忽略该按键，不退出 TUI
                       ((eq? k 'escape)
                        (let ((restored (pi-queue-restore-all! q)))
                          (if (pair? restored)
                            (begin
                              (editor-set-text! ed (string-join restored "\n"))
                              (pi-app-render! app)
-                             (loop)
                            ) ;begin
-                           #t
                          ) ;if
+                         (loop)
                        ) ;let
                       ) ;
                       ((not k) (sleep 0.01) (loop))
