@@ -1,6 +1,6 @@
 (import (liii check)
-        (liii format base)
-        (liii format unicode))
+        (srfi srfi-166 base)
+        (srfi srfi-166 unicode))
 
 (check-set-mode! 'report-failed)
 

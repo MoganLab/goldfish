@@ -1,6 +1,6 @@
 (import (liii check)
         (scheme char)
-        (liii format base))
+        (srfi srfi-166 base))
 
 (check-set-mode! 'report-failed)
 

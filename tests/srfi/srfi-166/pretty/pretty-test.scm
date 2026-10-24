@@ -1,6 +1,6 @@
 (import (liii check)
-        (liii format base)
-        (liii format pretty))
+        (srfi srfi-166 base)
+        (srfi srfi-166 pretty))
 
 (check-set-mode! 'report-failed)
 

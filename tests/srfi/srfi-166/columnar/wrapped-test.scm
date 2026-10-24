@@ -1,6 +1,6 @@
 (import (liii check)
-        (liii format base)
-        (liii format columnar))
+        (srfi srfi-166 base)
+        (srfi srfi-166 columnar))
 
 (check-set-mode! 'report-failed)
 
