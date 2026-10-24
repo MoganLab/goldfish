@@ -177,19 +177,28 @@
     (check initial => "stdin text\n<file name=\"/abs/path\">\nfile content\n</file>\n-h")
     (check rest => '("second message"))))
 
-;; 9. --thinking-level 与 --thinking 解析与合法值校验测试
-(let ((res1 (parse-pi-args '("--thinking-level" "off")))
-      (res2 (parse-pi-args '("--thinking-level" "low")))
-      (res3 (parse-pi-args '("--thinking-level" "medium")))
-      (res4 (parse-pi-args '("--thinking-level" "high")))
-      (res5 (parse-pi-args '("--thinking" "low"))))
+;; 9. --thinking 解析与合法值校验测试
+(let ((res1 (parse-pi-args '("--thinking" "off")))
+      (res2 (parse-pi-args '("--thinking" "minimal")))
+      (res3 (parse-pi-args '("--thinking" "low")))
+      (res4 (parse-pi-args '("--thinking" "medium")))
+      (res5 (parse-pi-args '("--thinking" "high")))
+      (res6 (parse-pi-args '("--thinking" "xhigh")))
+      (res7 (parse-pi-args '("--thinking" "max"))))
   (check (pi-args-ref res1 'thinking-level) => "off")
-  (check (pi-args-ref res2 'thinking-level) => "low")
-  (check (pi-args-ref res3 'thinking-level) => "medium")
-  (check (pi-args-ref res4 'thinking-level) => "high")
-  (check (pi-args-ref res5 'thinking-level) => "low"))
+  (check (pi-args-ref res2 'thinking-level) => "minimal")
+  (check (pi-args-ref res3 'thinking-level) => "low")
+  (check (pi-args-ref res4 'thinking-level) => "medium")
+  (check (pi-args-ref res5 'thinking-level) => "high")
+  (check (pi-args-ref res6 'thinking-level) => "xhigh")
+  (check (pi-args-ref res7 'thinking-level) => "max"))
 
-(check-catch 'pi-arg-error (parse-pi-args '("--thinking-level" "extreme")))
+;; --thinking-level 已移除，应落入 unknown-flags
+(let ((res (parse-pi-args '("--thinking-level" "high"))))
+  (check (pi-args-ref res 'thinking-level) => #f)
+  (check (member "--thinking-level" (pi-args-ref res 'unknown-flags '()))
+    => '("--thinking-level")))
+
 (check-catch 'pi-arg-error (parse-pi-args '("--thinking" "invalid")))
 
 ;; 10. --session-timeout 解析与默认值测试

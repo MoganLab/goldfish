@@ -297,14 +297,14 @@
        (cfg (resolve-pi-config args env)))
   (check (cdr (assoc 'thinking-level cfg)) => "medium"))
 
-;; 13.2 CLI --thinking-level low 覆盖 settings
-(let* ((args (parse-pi-args '("--thinking-level" "low")))
+;; 13.2 CLI --thinking low 覆盖 settings
+(let* ((args (parse-pi-args '("--thinking" "low")))
        (env `(("PI_CODING_AGENT_DIR" . ,FIXTURE_DIR)))
        (cfg (resolve-pi-config args env)))
   (check (cdr (assoc 'thinking-level cfg)) => "low"))
 
-;; 13.3 CLI --thinking-level off 覆盖 settings
-(let* ((args (parse-pi-args '("--thinking-level" "off")))
+;; 13.3 CLI --thinking off 覆盖 settings
+(let* ((args (parse-pi-args '("--thinking" "off")))
        (env `(("PI_CODING_AGENT_DIR" . ,FIXTURE_DIR)))
        (cfg (resolve-pi-config args env)))
   (check (cdr (assoc 'thinking-level cfg)) => "off"))

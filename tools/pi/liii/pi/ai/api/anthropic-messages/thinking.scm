@@ -13,9 +13,11 @@
   (begin
 
     (define (anthropic-thinking-level->budget level)
-      (cond ((equal? level "low") 1024)
-            ((equal? level "medium") 4096)
-            ((equal? level "high") 8192)
+      (cond ((equal? level "minimal") 1024)
+            ((equal? level "low") 2048)
+            ((equal? level "medium") 8192)
+            ((equal? level "high") 16384)
+            ((or (equal? level "xhigh") (equal? level "max")) 16384)
             (else #f)
       ) ;cond
     ) ;define

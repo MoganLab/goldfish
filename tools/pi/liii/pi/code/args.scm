@@ -157,15 +157,14 @@
             ((and (string=? arg "--mode") next-arg) (values 'mode next-arg 2))
             ((and (string=? arg "--model") next-arg) (values 'model next-arg 2))
             ((and (string=? arg "--provider") next-arg) (values 'provider next-arg 2))
-            ((and (or (string=? arg "--thinking-level") (string=? arg "--thinking"))
-               next-arg
-             ) ;and
-             (if (member next-arg '("off" "low" "medium" "high"))
+            ((and (string=? arg "--thinking") next-arg)
+             (if (member next-arg '("off" "minimal" "low" "medium" "high"
+                                    "xhigh" "max"))
                (values 'thinking-level next-arg 2)
                (error 'pi-arg-error
                  (string-append "Invalid thinking level: \""
                    next-arg
-                   "\". Allowed values: off, low, medium, high"
+                   "\". Allowed values: off, minimal, low, medium, high, xhigh, max"
                  ) ;string-append
                ) ;error
              ) ;if

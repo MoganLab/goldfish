@@ -3,9 +3,13 @@
 (check-set-mode! 'report-failed)
 
 ;; 1. gemini-thinking-level->google-level 级别映射
+(check (gemini-thinking-level->google-level "minimal") => "MINIMAL")
 (check (gemini-thinking-level->google-level "low") => "LOW")
 (check (gemini-thinking-level->google-level "medium") => "MEDIUM")
 (check (gemini-thinking-level->google-level "high") => "HIGH")
+;; xhigh/max 钳制到 high
+(check (gemini-thinking-level->google-level "xhigh") => "HIGH")
+(check (gemini-thinking-level->google-level "max") => "HIGH")
 (check (gemini-thinking-level->google-level "off") => #f)
 (check (gemini-thinking-level->google-level "unknown") => #f)
 

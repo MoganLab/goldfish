@@ -4,10 +4,14 @@
 
 (check-set-mode! 'report-failed)
 
-;; 1. anthropic-thinking-level->budget
-(check (anthropic-thinking-level->budget "low") => 1024)
-(check (anthropic-thinking-level->budget "medium") => 4096)
-(check (anthropic-thinking-level->budget "high") => 8192)
+;; 1. anthropic-thinking-level->budget（对齐上游 pi DEFAULT_THINKING_BUDGETS）
+(check (anthropic-thinking-level->budget "minimal") => 1024)
+(check (anthropic-thinking-level->budget "low") => 2048)
+(check (anthropic-thinking-level->budget "medium") => 8192)
+(check (anthropic-thinking-level->budget "high") => 16384)
+;; xhigh/max 钳制到 high
+(check (anthropic-thinking-level->budget "xhigh") => 16384)
+(check (anthropic-thinking-level->budget "max") => 16384)
 (check (anthropic-thinking-level->budget "off") => #f)
 (check (anthropic-thinking-level->budget "unknown") => #f)
 
@@ -17,19 +21,19 @@
        (res (anthropic-inject-thinking body "off")))
   (check-false (assoc "thinking" res)))
 
-;; low 时注入 thinking 并保持 max_tokens (8192 > 1024)
+;; low 时注入 thinking 并保持 max_tokens (8192 > 2048)
 (let* ((body '(("model" . "claude-3-7-sonnet") ("max_tokens" . 8192)))
        (res (anthropic-inject-thinking body "low")))
   (check-true (pair? (assoc "thinking" res)))
   (let ((th (cdr (assoc "thinking" res))))
     (check (cdr (assoc "type" th)) => "enabled")
-    (check (cdr (assoc "budget_tokens" th)) => 1024))
+    (check (cdr (assoc "budget_tokens" th)) => 2048))
   (check (cdr (assoc "max_tokens" res)) => 8192))
 
-;; high 时 budget 是 8192，若原 max_tokens 是 4096 <= 8192，自动提升到 budget + 4096
-(let* ((body '(("model" . "claude-3-7-sonnet") ("max_tokens" . 4096)))
+;; high 时 budget 是 16384，若原 max_tokens 是 8192 <= 16384，自动提升到 budget + 4096
+(let* ((body '(("model" . "claude-3-7-sonnet") ("max_tokens" . 8192)))
        (res (anthropic-inject-thinking body "high")))
-  (check (cdr (assoc "max_tokens" res)) => (+ 8192 4096)))
+  (check (cdr (assoc "max_tokens" res)) => (+ 16384 4096)))
 
 ;; 3. 流式 thinking 状态机：anthropic-handle-thinking-delta 与 anthropic-finish-thinking-block
 (let* ((stream-state (vector '() #f '((input . 10) (output . 5)) '() #f #f #f))

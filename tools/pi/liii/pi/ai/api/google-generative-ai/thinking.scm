@@ -14,9 +14,10 @@
   (begin
 
     (define (gemini-thinking-level->google-level level)
-      (cond ((equal? level "low") "LOW")
+      (cond ((equal? level "minimal") "MINIMAL")
+            ((equal? level "low") "LOW")
             ((equal? level "medium") "MEDIUM")
-            ((equal? level "high") "HIGH")
+            ((or (equal? level "high") (equal? level "xhigh") (equal? level "max")) "HIGH")
             (else #f)
       ) ;cond
     ) ;define
