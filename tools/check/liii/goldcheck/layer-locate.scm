@@ -31,31 +31,53 @@
       (or (string=? name lib) (string-starts-with? lib (string-append name " ")))
     ) ;define
 
-    (define (%locate-layer layers lib idx)
+    ;; pattern 匹配特异性：3 = 精确，2 = 家族前缀，1 = 尾通配（"liii *"），#f = 不匹配
+    (define (%pattern-rank pattern lib)
+      (cond ((string=? pattern lib) 3)
+            ((string-starts-with? lib (string-append pattern " ")) 2)
+            ((and (string-ends? pattern " *")
+               (> (string-length lib) (- (string-length pattern) 1))
+               (string-starts-with? lib (substring pattern 0 (- (string-length pattern) 1)))
+             ) ;and
+             1
+            ) ;
+            (else #f)
+      ) ;cond
+    ) ;define
+
+    ;; 在层序中找 pattern 匹配特异性为 rank 的首层，返回 (layer . idx) 或 #f
+    (define (%locate-layer layers lib rank idx)
       (if (null? layers)
         #f
         (if
           (let scan
             ((names (vector->list (layer-libs-of (car layers)))))
             (cond ((null? names) #f)
-                  ((%lib-under? (car names) lib) #t)
+                  ((eqv? (%pattern-rank (car names) lib) rank) #t)
                   (else (scan (cdr names)))
             ) ;cond
           ) ;let
           (cons (car layers) idx)
-          (%locate-layer (cdr layers) lib (+ idx 1))
+          (%locate-layer (cdr layers) lib rank (+ idx 1))
         ) ;if
       ) ;if
     ) ;define
 
-    ;; 穷举匹配：库名在域表中首个命中的 (domain layer idx)
+    ;; 穷举匹配：按特异性（精确 > 家族前缀 > 尾通配）三轮扫描，
+    ;; 库名在域表中首个命中的 (domain layer idx)
     (define (%locate domains lib)
-      (let loop-d
-        ((ds domains))
-        (if (null? ds)
+      (let loop-rank
+        ((ranks '(3 2 1)))
+        (if (null? ranks)
           #f
-          (let ((hit (%locate-layer (domain-layers-of (car ds)) lib 0)))
-            (if hit (list (car ds) (car hit) (cdr hit)) (loop-d (cdr ds)))
+          (let loop-d
+            ((ds domains))
+            (if (null? ds)
+              (loop-rank (cdr ranks))
+              (let ((hit (%locate-layer (domain-layers-of (car ds)) lib (car ranks) 0)))
+                (if hit (list (car ds) (car hit) (cdr hit)) (loop-d (cdr ds)))
+              ) ;let
+            ) ;if
           ) ;let
         ) ;if
       ) ;let

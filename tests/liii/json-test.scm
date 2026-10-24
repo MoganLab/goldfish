@@ -30,6 +30,8 @@
   ) ;let
 ) ;let
 
+(check-report)
+
 
 ;; ==== 如何查看函数的文档和用例 ====
 ;;   bin/gf doc liii/json "string->json"

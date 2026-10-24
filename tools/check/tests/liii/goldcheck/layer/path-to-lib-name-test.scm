@@ -50,3 +50,5 @@
 ;; 7. liii 前一段不是 goldfish 且前两段不是 tools/T -> #f
 (check (path->lib-name "foo/liii/bar.scm") => #f)
 (check (path->lib-name "tools/check/tests/liii/x.scm") => #f)
+
+(check-report)

@@ -69,3 +69,5 @@
 ;; 4. 未配置 layer-order 或 cfg 为 #f 时返回空表
 (check (layer-domains-parse #f) => '())
 (check (layer-domains-parse '((rules . ()))) => '())
+
+(check-report)

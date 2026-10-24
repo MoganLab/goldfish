@@ -35,9 +35,9 @@
   ) ;call-with-port
   (let ((libs (file-imports tmp)))
     ;; 1. 提取 import 块中的库名（同行多库与多行均支持）
-    (check-true (member "scheme base" libs))
-    (check-true (member "liii json" libs))
-    (check-true (member "liii string" libs))
+    (check-true (and (member "scheme base" libs) #t))
+    (check-true (and (member "liii json" libs) #t))
+    (check-true (and (member "liii string" libs) #t))
     ;; 2. 注释行中的库名不被提取
     (check-false (member "liii comment" libs))
     ;; 3. (begin 之后的内容不扫描
@@ -61,9 +61,9 @@
   ) ;call-with-port
   (let ((libs (file-imports tmp)))
     ;; 4. 裸顶层 (import ...)（无 define-library）同样提取
-    (check-true (member "scheme base" libs))
-    (check-true (member "liii pi review" libs))
-    (check-true (member "liii pi review modes" libs))
+    (check-true (and (member "scheme base" libs) #t))
+    (check-true (and (member "liii pi review" libs) #t))
+    (check-true (and (member "liii pi review modes" libs) #t))
     ;; 5. import 之后的形式不产生库名
     (check (length libs) => 3)
   ) ;let
@@ -84,9 +84,11 @@
   ) ;call-with-port
   (let ((libs (file-imports tmp)))
     ;; 6. define-library 非首个顶层形式时仍能提取
-    (check-true (member "scheme base" libs))
-    (check-true (member "liii json" libs))
+    (check-true (and (member "scheme base" libs) #t))
+    (check-true (and (member "liii json" libs) #t))
     (check (length libs) => 2)
   ) ;let
   (path-unlink (path tmp) #t)
 ) ;let*
+
+(check-report)
