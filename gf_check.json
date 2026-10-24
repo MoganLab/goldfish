@@ -52,10 +52,6 @@
         "reason": "Unicode 码点映射与编码转换大查表"
       },
       {
-        "path": "goldfish/liii/path.scm",
-        "reason": "跨平台路径处理核心库"
-      },
-      {
         "path": "goldfish/liii/subprocess.scm",
         "reason": "子进程创建与流式管道控制库"
       },
@@ -132,10 +128,6 @@
       {
         "path": "goldfish/liii/unicode.scm",
         "reason": "Unicode 码点映射与编码转换大查表"
-      },
-      {
-        "path": "goldfish/liii/path.scm",
-        "reason": "跨平台路径处理核心库"
       },
       {
         "path": "goldfish/liii/subprocess.scm",
