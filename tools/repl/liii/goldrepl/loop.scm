@@ -196,10 +196,10 @@
                        ((and (pair? (cdr rest)) (member (car rest) '("--mode"
                                                                      "-m"))) (cadr rest))
                        ((and (string? (car rest)) (string-starts? (car rest) "--mode="))
-                        (substring (car rest) 7)
+                        (string-remove-prefix (car rest) "--mode=")
                        ) ;
                        ((and (string? (car rest)) (string-starts? (car rest) "-m="))
-                        (substring (car rest) 3)
+                        (string-remove-prefix (car rest) "-m=")
                        ) ;
                        (else (loop (cdr rest)))
                  ) ;cond

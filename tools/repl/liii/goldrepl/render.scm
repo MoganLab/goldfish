@@ -122,12 +122,10 @@
 
     (define (%repl-show-out out app-out!)
       (when (> (string-length out) 0)
-        (let* ((has-newline? (string-ends? out "\n"))
-               (disp-out (if has-newline? out (string-append out "↩\n")))
-               (ls (string-split disp-out "\n"))
-               (clean-ls (if (string-ends? disp-out "\n") (drop-right ls 1) ls))
+        (let* ((clean (string-remove-suffix out "\n"))
+               (marked (if (string-ends? out "\n") clean (string-append clean "↩")))
               ) ;
-          (app-out! clean-ls)
+          (app-out! (string-split marked "\n"))
         ) ;let*
       ) ;when
     ) ;define
