@@ -15,6 +15,7 @@
     (liii go)
     (liii time)
     (liii string)
+    (liii list)
     (liii tui)
     (liii pi agent queue)
     (liii pi tui views)
@@ -67,18 +68,15 @@
         (let* ((raw-doc-lines (component-render (%pi-app-doc app) w))
                ;; 规范化拆分可能包含 \n 的字符串行，确保 ed-y 计算与 screen-render! 完全对齐
                (doc-lines
-                 (let loop
-                   ((rest raw-doc-lines) (acc '()))
-                   (if (null? rest)
-                     (reverse acc)
-                     (let ((item (car rest)))
-                       (if (string-contains? item "\n")
-                         (loop (cdr rest) (append (reverse (string-split item "\n")) acc))
-                         (loop (cdr rest) (cons item acc))
-                       ) ;if
-                     ) ;let
-                   ) ;if
-                 ) ;let
+                 (append-map
+                   (lambda (item)
+                     (if (string-contains? item "\n")
+                       (string-split item "\n")
+                       (list item)
+                     ) ;if
+                   ) ;lambda
+                   raw-doc-lines
+                 ) ;append-map
                ) ;doc-lines
                (ed (pi-app-editor app))
                (ed-lines (component-render ed w))

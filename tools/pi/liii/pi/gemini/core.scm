@@ -126,26 +126,14 @@
 
     (define (%extract-user-text-content content)
       (cond ((string? content) content)
-            ((vector? content)
-             (let loop
-               ((i 0) (acc '()))
-               (if (>= i (vector-length content))
-                 (string-join (reverse acc) "\n")
-                 (let* ((blk (vector-ref content i)) (t (%val 'text blk "")))
-                   (loop (+ i 1) (if (string-null? t) acc (cons t acc)))
-                 ) ;let*
-               ) ;if
-             ) ;let
-            ) ;
-            ((pair? content)
-             (let loop
-               ((rest content) (acc '()))
-               (if (null? rest)
-                 (string-join (reverse acc) "\n")
-                 (let* ((blk (car rest)) (t (%val 'text blk "")))
-                   (loop (cdr rest) (if (string-null? t) acc (cons t acc)))
-                 ) ;let*
-               ) ;if
+            ((or (vector? content) (pair? content))
+             (let ((blocks (if (vector? content) (vector->list content) content)))
+               (string-join
+                 (filter (lambda (t) (not (string-null? t)))
+                   (map (lambda (blk) (%val 'text blk "")) blocks)
+                 ) ;filter
+                 "\n"
+               ) ;string-join
              ) ;let
             ) ;
             (else "")

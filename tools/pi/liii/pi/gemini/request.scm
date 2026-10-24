@@ -8,6 +8,7 @@
   (import (scheme base)
     (scheme write)
     (liii string)
+    (liii list)
     (liii json)
     (liii http)
     (liii error)
@@ -137,35 +138,33 @@
     ) ;define
 
     (define (gemini-build-tool-declarations active-tool-names)
-      (let loop
-        ((names active-tool-names) (acc '()))
-        (if (null? names)
-          (reverse acc)
-          (let* ((name (car names)) (def (get-tool-definition name)))
-            (if def
-              (let* ((desc (if (pi-tool-definition? def)
-                             (pi-tool-definition-description def)
-                             (cdr (assoc 'description def))
-                           ) ;if
-                     ) ;desc
-                     (params (if (pi-tool-definition? def)
-                               (pi-tool-definition-parameters def)
-                               (cdr (assoc 'parameters def))
+      (filter (lambda (d) d)
+        (map
+          (lambda (name)
+            (let ((def (get-tool-definition name)))
+              (and def
+                (let* ((desc (if (pi-tool-definition? def)
+                               (pi-tool-definition-description def)
+                               (cdr (assoc 'description def))
                              ) ;if
-                     ) ;params
-                     (decl (list (cons "name" name)
-                             (cons "description" desc)
-                             (cons "parametersJsonSchema" params)
-                           ) ;list
-                     ) ;decl
-                    ) ;
-                (loop (cdr names) (cons decl acc))
-              ) ;let*
-              (loop (cdr names) acc)
-            ) ;if
-          ) ;let*
-        ) ;if
-      ) ;let
+                       ) ;desc
+                       (params (if (pi-tool-definition? def)
+                                 (pi-tool-definition-parameters def)
+                                 (cdr (assoc 'parameters def))
+                               ) ;if
+                       ) ;params
+                      ) ;
+                  (list (cons "name" name)
+                    (cons "description" desc)
+                    (cons "parametersJsonSchema" params)
+                  ) ;list
+                ) ;let*
+              ) ;and
+            ) ;let
+          ) ;lambda
+          active-tool-names
+        ) ;map
+      ) ;filter
     ) ;define
 
     (define (%resp-field resp key)

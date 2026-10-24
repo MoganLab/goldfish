@@ -55,21 +55,15 @@
     ) ;define
 
     (define (%safe-ref? ref)
-      (let loop
-        ((i 0))
-        (if (>= i (string-length ref))
-          #t
-          (let ((ch (string-ref ref i)))
-            (if (or (char-alphabetic? ch)
-                  (char-numeric? ch)
-                  (memv ch '(#\. #\_ #\/ #\~ #\- #\^ #\@ #\+))
-                ) ;or
-              (loop (+ i 1))
-              #f
-            ) ;if
-          ) ;let
-        ) ;if
-      ) ;let
+      (string-every
+        (lambda (ch)
+          (or (char-alphabetic? ch)
+            (char-numeric? ch)
+            (memv ch '(#\. #\_ #\/ #\~ #\- #\^ #\@ #\+))
+          ) ;or
+        ) ;lambda
+        ref
+      ) ;string-every
     ) ;define
 
     (define (%shell-quote text)
@@ -99,13 +93,7 @@
     ) ;define
 
     (define (%take items n)
-      (let loop
-        ((rest items) (left n) (acc '()))
-        (if (or (null? rest) (<= left 0))
-          (reverse acc)
-          (loop (cdr rest) (- left 1) (cons (car rest) acc))
-        ) ;if
-      ) ;let
+      (list-take items n)
     ) ;define
 
     (define (%paths-of files)
