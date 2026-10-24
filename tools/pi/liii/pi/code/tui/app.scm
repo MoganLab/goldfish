@@ -10,6 +10,7 @@
     pi-app-add-user-message! pi-app-add-tool-result! pi-app-add-assistant-text!
     pi-app-add-retry-message! pi-app-jobs-chan pi-app-event-chan
     pi-app-poll-events! pi-app-working pi-app-working-tick!
+    pi-app-thinking-level pi-app-supports-thinking? pi-app-cycle-thinking!
   ) ;export
   (import (scheme base)
     (liii go)
@@ -20,6 +21,7 @@
     (liii tui)
     (liii pi agent queue)
     (liii pi code tui views)
+    (liii pi code tui thinking)
     (liii pi code tui working)
     (liii pi code tui worker)
     (liii pi code tui common)
@@ -33,7 +35,7 @@
 
     (define-record-type <pi-app>
       (%make-pi-app term screen doc chat pending-box editor footer queue handler
-        jobs-chan event-chan working
+        jobs-chan event-chan working thinking-level supports-thinking
       ) ;%make-pi-app
       pi-app?
       (term pi-app-term)
@@ -48,6 +50,8 @@
       (jobs-chan pi-app-jobs-chan)
       (event-chan pi-app-event-chan)
       (working pi-app-working)
+      (thinking-level pi-app-thinking-level %pi-app-thinking-level-set!)
+      (supports-thinking pi-app-supports-thinking?)
     ) ;define-record-type
 
     (define %pi-app-term pi-app-term)
@@ -82,7 +86,12 @@
                (ed-lines
                  (let ((raw (component-render ed w)))
                    (if (and (pi-queue-busy? q) (pair? raw) %pi-editor-top-border)
-                     (cons (working-border-line (pi-app-working app) w) (cdr raw))
+                     (cons (working-border-line (pi-app-working app)
+                             w
+                             (pi-thinking-border-color (pi-app-thinking-level app))
+                           ) ;working-border-line
+                       (cdr raw)
+                     ) ;cons
                      raw
                    ) ;if
                  ) ;let
@@ -227,8 +236,9 @@
                       (loop #t)
                     ) ;begin
                     ;; 默认真实分支：通过 (liii go) 后台 worker 并发执行，主线程立即返回继续响应按键！
+                    ;; 消息携带当前 thinking level，会话内切换后下一条消息生效
                     (begin
-                      (chan-send! jobs msg 1000)
+                      (chan-send! jobs (list msg (pi-app-thinking-level app)) 1000)
                       #t
                     ) ;begin
                   ) ;if
@@ -257,6 +267,21 @@
       ) ;let
     ) ;define
 
+    ;; shift+tab 会话内循环切换 thinking level（对齐上游 pi 的 app.thinking.cycle）：
+    ;; 同步 footer 右下角标签与编辑器边框/Working spinner 颜色；
+    ;; 模型不支持 reasoning 时返回 #f 且状态不变
+    (define (pi-app-cycle-thinking! app)
+      (if (pi-app-supports-thinking? app)
+        (let ((next (pi-next-thinking-level (pi-app-thinking-level app))))
+          (%pi-app-thinking-level-set! app next)
+          (pi-footer-set-thinking-level! (%pi-app-footer app) next)
+          (editor-set-border-color! (pi-app-editor app) (pi-thinking-border-color next))
+          next
+        ) ;let
+        #f
+      ) ;if
+    ) ;define
+
     (define (make-pi-app . args)
       (let* ((term (%keyword-value :terminal args #f))
              (handler-opt (%keyword-value :handler args #f))
@@ -267,10 +292,14 @@
              (pending-box (make-container))
              (doc (make-container))
              (branch (detect-git-branch))
+             (tl (or (%keyword-value :thinking-level args #f) "off"))
+             (supports? (%keyword-value :supports-thinking args #t))
              (footer (make-pi-footer
-                       :branch   branch
-                       :provider (%keyword-value :provider args #f)
-                       :model    (%keyword-value :model args #f)
+                       :branch            branch
+                       :provider          (%keyword-value :provider args #f)
+                       :model             (%keyword-value :model args #f)
+                       :thinking-level    tl
+                       :supports-thinking supports?
                      ) ;make-pi-footer
              ) ;footer
              (queue (make-pi-message-queue))
@@ -288,13 +317,15 @@
                     jobs-chan
                     event-chan
                     (make-working-indicator)
+                    tl
+                    supports?
                   ) ;%make-pi-app
              ) ;app
              (ed (make-editor ""
                    :multiline     #f
                    :top-border    %pi-editor-top-border
                    :bottom-border #t
-                   :border-color  "\x1b;[38;2;129;162;190m"
+                   :border-color  (pi-thinking-border-color tl)
                    :focused       #t
                    :cursor-style  'hardware
                    :on-submit     (lambda (self txt) (pi-app-submit! app txt))

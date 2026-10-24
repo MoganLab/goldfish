@@ -5,7 +5,9 @@
 ;;
 
 (define-library (liii pi code tui footer)
-  (export make-pi-footer pi-footer? format-cwd-for-footer pi-footer-model-label)
+  (export make-pi-footer pi-footer? format-cwd-for-footer pi-footer-model-label
+    pi-footer-set-thinking-level!
+  ) ;export
   (import (scheme base)
     (liii string)
     (liii os)
@@ -93,14 +95,23 @@
       ) ;let*
     ) ;define
 
-    ;; 组装 footer 右下角的模型显示串：thinking 为 off 或缺失时只显示 model-id
-    (define (pi-footer-model-label model-id thinking-level)
-      (let ((tl (if (string? thinking-level) (string-trim-both thinking-level) "")))
-        (if (or (string-null? tl) (string=? tl "off"))
-          model-id
-          (string-append model-id " • " tl)
-        ) ;if
-      ) ;let
+    ;; 组装 footer 右下角的模型显示串（对齐上游 pi）：
+    ;; 模型支持 reasoning 时，off 也显式显示 " • thinking off"；
+    ;; 不支持 reasoning 的模型只显示 model-id
+    (define (pi-footer-model-label model-id thinking-level supports-thinking?)
+      (if supports-thinking?
+        (let ((tl (if (string? thinking-level) (string-trim-both thinking-level) "")))
+          (if (or (string-null? tl) (string=? tl "off"))
+            (string-append model-id " • thinking off")
+            (string-append model-id " • " tl)
+          ) ;if
+        ) ;let
+        model-id
+      ) ;if
+    ) ;define
+
+    (define (%footer-state comp)
+      (cdr (component-data comp))
     ) ;define
 
     (define (make-pi-footer . args)
@@ -110,17 +121,48 @@
              (provider (or (%keyword-value :provider args #f) "google"))
              (model (or (%keyword-value :model args #f) "gemini-3.8-flash"))
              (stats (%keyword-value :stats args "0.0%/1.0M (auto)"))
-             (comp (make-component
-                     :render
-                     (lambda (self width)
-                       (%render-footer cwd home branch provider model stats width)
-                     ) ;lambda
-                   ) ;make-component
+             (tl (%keyword-value :thinking-level args "off"))
+             (supports? (%keyword-value :supports-thinking args #f))
+             (comp
+               (make-component
+                 :render
+                 (lambda (self width)
+                   (let ((st (%footer-state self)))
+                     (%render-footer (list-ref st 0)
+                       home
+                       (list-ref st 1)
+                       (list-ref st 2)
+                       (pi-footer-model-label (list-ref st 3) (list-ref st 5) (list-ref st 6))
+                       (list-ref st 4)
+                       width
+                     ) ;%render-footer
+                   ) ;let
+                 ) ;lambda
+               ) ;make-component
              ) ;comp
             ) ;
-        (component-data-set! comp (list 'pi-footer cwd branch provider model stats))
+        (component-data-set! comp
+          (list 'pi-footer cwd branch provider model stats tl supports?)
+        ) ;component-data-set!
         comp
       ) ;let*
+    ) ;define
+
+    ;; 会话内切换 thinking level 后同步 footer 右下角标签
+    (define (pi-footer-set-thinking-level! comp tl)
+      (let ((st (%footer-state comp)))
+        (component-data-set! comp
+          (list 'pi-footer
+            (list-ref st 0)
+            (list-ref st 1)
+            (list-ref st 2)
+            (list-ref st 3)
+            (list-ref st 4)
+            tl
+            (list-ref st 6)
+          ) ;list
+        ) ;component-data-set!
+      ) ;let
     ) ;define
 
   ) ;begin

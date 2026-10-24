@@ -14,7 +14,9 @@
              :home "/home/da"
              :branch "da/1082/pi_enter"
              :provider "google"
-             :model "gemini-3.8-flash • medium"
+             :model "gemini-3.8-flash"
+             :thinking-level "medium"
+             :supports-thinking #t
              :stats "0.0%/1.0M (auto)"
            ) ;make-pi-footer
        ) ;ft
@@ -38,12 +40,14 @@
   (check-true (string-contains? (list-ref lines 0) "/tmp/test (main)"))
 ) ;let*
 
-;; 3. 模型显示串组装：thinking 为 off 或缺失时只显示 model-id
-(check (pi-footer-model-label "gemini-3.8-flash" "medium") => "gemini-3.8-flash • medium")
-(check (pi-footer-model-label "gemini-3.8-flash" "off") => "gemini-3.8-flash")
-(check (pi-footer-model-label "kimi-for-coding" #f) => "kimi-for-coding")
-(check (pi-footer-model-label "glm-5.3" "") => "glm-5.3")
-(check (pi-footer-model-label "glm-5.3" " high ") => "glm-5.3 • high")
+;; 3. 模型显示串组装（对齐上游 pi）：
+;;    支持 reasoning 时 off 也显式显示 " • thinking off"；
+;;    不支持 reasoning 时只显示 model-id
+(check (pi-footer-model-label "gemini-3.8-flash" "medium" #t) => "gemini-3.8-flash • medium")
+(check (pi-footer-model-label "gemini-3.8-flash" "off" #t) => "gemini-3.8-flash • thinking off")
+(check (pi-footer-model-label "kimi-for-coding" #f #f) => "kimi-for-coding")
+(check (pi-footer-model-label "glm-5.3" "" #f) => "glm-5.3")
+(check (pi-footer-model-label "glm-5.3" " high " #t) => "glm-5.3 • high")
 
 ;; 4. 未显式指定 provider/model 时按默认渲染，不再显示假的 thinking 后缀
 (let* ((ft (make-pi-footer :cwd "/tmp/test" :branch "main"))

@@ -26,7 +26,8 @@
     text-area? editor-text editor-set-text! editor-cursor editor-set-cursor!
     editor-display-col editor-lines editor-focused? editor-set-focused!
     editor-placeholder editor-set-placeholder! editor-history-list
-    editor-history editor-set-on-submit!
+    editor-history editor-set-on-submit! editor-border-color
+    editor-set-border-color!
   ) ;export
   (import (scheme base)
     (scheme write)
@@ -154,6 +155,20 @@
         (type-error "editor-set-placeholder!: ed must be an editor")
       ) ;unless
       (%ed-placeholder-set! (component-data ed) ph)
+    ) ;define
+
+    (define (editor-border-color ed)
+      (unless (editor? ed)
+        (type-error "editor-border-color: ed must be an editor")
+      ) ;unless
+      (%ed-border-color (component-data ed))
+    ) ;define
+
+    (define (editor-set-border-color! ed color)
+      (unless (editor? ed)
+        (type-error "editor-set-border-color!: ed must be an editor")
+      ) ;unless
+      (%ed-border-color-set! (component-data ed) color)
     ) ;define
 
     (define (editor-history-list ed)
