@@ -10,6 +10,7 @@
   (import (scheme base)
     (scheme process-context)
     (liii string)
+    (liii list)
     (liii pi args)
     (liii pi config)
     (liii pi extension types)
@@ -26,32 +27,27 @@
   (begin
 
     (define (%find-matching-flow flows parsed local-only?)
-      (let loop
-        ((rest flows))
-        (cond ((null? rest) #f)
-              ((and
-                 (if local-only?
-                   (extension-flow-def-local? (car rest))
-                   (not (extension-flow-def-local? (car rest)))
-                 ) ;if
-                 ((extension-flow-def-predicate (car rest)) parsed)
-               ) ;and
-               (car rest)
-              ) ;
-              (else (loop (cdr rest)))
-        ) ;cond
-      ) ;let
+      (find
+        (lambda (flow)
+          (and (if local-only?
+                 (extension-flow-def-local? flow)
+                 (not (extension-flow-def-local? flow))
+               ) ;if
+           ((extension-flow-def-predicate flow) parsed)
+          ) ;and
+        ) ;lambda
+        flows
+      ) ;find
     ) ;define
 
     (define (dispatch-pi parsed mode initial-msg rest-msgs)
       (let* ((reg (or (current-extension-registry) (default-extension-registry)))
              (env (get-environment-variables))
              (base-cfg (resolve-pi-config parsed env))
-             (cfg
-               (let apply-aug
-                 ((augs (extension-registry-augmenters reg)) (c base-cfg))
-                 (if (null? augs) c (apply-aug (cdr augs) ((car augs) c parsed)))
-               ) ;let
+             (cfg (fold (lambda (aug c) (aug c parsed))
+                    base-cfg
+                    (extension-registry-augmenters reg)
+                  ) ;fold
              ) ;cfg
              (flows (extension-registry-flows reg))
              (matched-local (%find-matching-flow flows parsed #t))

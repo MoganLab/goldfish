@@ -21,13 +21,7 @@
     ) ;define
 
     (define (%severity-order severity)
-      (let loop
-        ((rest PI_REVIEW_SEVERITIES) (i 0))
-        (cond ((null? rest) 99)
-              ((string=? (car rest) severity) i)
-              (else (loop (cdr rest) (+ i 1)))
-        ) ;cond
-      ) ;let
+      (or (list-index (lambda (s) (string=? s severity)) PI_REVIEW_SEVERITIES) 99)
     ) ;define
 
     (define (%sorted findings)
@@ -65,9 +59,7 @@
     ) ;define
 
     (define (%count-severity findings severity)
-      (length
-        (filter (lambda (f) (string=? (%field 'severity f "") severity)) findings)
-      ) ;length
+      (count (lambda (f) (string=? (%field 'severity f "") severity)) findings)
     ) ;define
 
     (define (%summary findings)

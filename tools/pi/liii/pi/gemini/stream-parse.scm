@@ -7,6 +7,7 @@
 (define-library (liii pi gemini stream-parse)
   (import (scheme base)
     (liii string)
+    (liii list)
     (liii json)
     (liii sse)
     (liii pi message)
@@ -83,15 +84,7 @@
             (emit-text-start-and-delta on-event cur-idx t usage)
           ) ;begin
           (let* ((new-t (string-append last-text t))
-                 (upd-blocks
-                   (let loop
-                     ((lst blocks) (acc '()))
-                     (if (null? (cdr lst))
-                       (append (reverse acc) (list (pi-text-block new-t)))
-                       (loop (cdr lst) (cons (car lst) acc))
-                     ) ;if
-                   ) ;let
-                 ) ;upd-blocks
+                 (upd-blocks (append (drop-right blocks 1) (list (pi-text-block new-t))))
                 ) ;
             (vector-set! stream-state 0 upd-blocks)
             (vector-set! stream-state 1 new-t)
@@ -219,13 +212,9 @@
               (vector-set! stream-state 4 finish-reason)
             ) ;when
             (when (vector? parts)
-              (let loop
-                ((i 0))
-                (when (< i (vector-length parts))
-                  (process-stream-part (vector-ref parts i) stream-state on-event)
-                  (loop (+ i 1))
-                ) ;when
-              ) ;let
+              (vector-for-each (lambda (part) (process-stream-part part stream-state on-event))
+                parts
+              ) ;vector-for-each
             ) ;when
           ) ;let*
         ) ;when

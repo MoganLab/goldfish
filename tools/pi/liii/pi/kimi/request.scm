@@ -8,6 +8,7 @@
   (import (scheme base)
     (scheme write)
     (liii string)
+    (liii list)
     (liii json)
     (liii http)
     (liii error)
@@ -63,15 +64,8 @@
     ) ;define
 
     (define (kimi-build-tool-declarations-from-names active-tool-names)
-      (let loop
-        ((names (or active-tool-names '())) (acc '()))
-        (if (null? names)
-          (kimi-build-tool-declarations (reverse acc))
-          (let* ((name (car names)) (def (get-tool-definition name)))
-            (if def (loop (cdr names) (cons def acc)) (loop (cdr names) acc))
-          ) ;let*
-        ) ;if
-      ) ;let
+      (kimi-build-tool-declarations (filter (lambda (d) d) (map get-tool-definition (or active-tool-names '())))
+      ) ;kimi-build-tool-declarations
     ) ;define
 
     (define (%resolve-retry-params settings opt-retry)

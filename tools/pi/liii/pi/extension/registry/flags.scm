@@ -7,6 +7,7 @@
 (define-library (liii pi extension registry flags)
   (import (scheme base)
     (liii error)
+    (liii list)
     (liii pi extension types)
     (liii pi extension registry base)
   ) ;import
@@ -59,17 +60,14 @@
 
     (define (find-extension-flag target flag-name)
       (let* ((reg (target->registry target)) (flags (extension-registry-flags reg)))
-        (let loop
-          ((rest flags))
-          (cond ((null? rest) #f)
-                ((or (string=? (extension-flag-def-flag (car rest)) flag-name)
-                   (member flag-name (extension-flag-def-aliases (car rest)))
-                 ) ;or
-                 (car rest)
-                ) ;
-                (else (loop (cdr rest)))
-          ) ;cond
-        ) ;let
+        (find
+          (lambda (f)
+            (or (string=? (extension-flag-def-flag f) flag-name)
+              (member flag-name (extension-flag-def-aliases f))
+            ) ;or
+          ) ;lambda
+          flags
+        ) ;find
       ) ;let*
     ) ;define
 

@@ -7,6 +7,7 @@
 (define-library (liii pi web-search format)
   (import (scheme base)
     (liii string)
+    (liii list)
     (liii pi truncate)
     (liii pi read)
     (liii pi gemini grounding)
@@ -127,15 +128,7 @@
     (define (%append-sources summary sources)
       (if (or (null? sources) (string-contains? summary "## Sources"))
         summary
-        (let* ((lines
-                 (let loop
-                   ((rem sources) (i 1) (acc '()))
-                   (if (null? rem)
-                     (reverse acc)
-                     (loop (cdr rem) (+ i 1) (cons (%format-source-line i (car rem)) acc))
-                   ) ;if
-                 ) ;let
-               ) ;lines
+        (let* ((lines (map %format-source-line (iota (length sources) 1) sources))
                (sec (string-append "## Sources\n" (string-join lines "\n")))
               ) ;
           (if (string-null? (string-trim-both summary))
@@ -151,15 +144,7 @@
             (string-contains? summary "## Additional Search Results")
           ) ;or
         summary
-        (let* ((lines
-                 (let loop
-                   ((rem additional) (i 1) (acc '()))
-                   (if (null? rem)
-                     (reverse acc)
-                     (loop (cdr rem) (+ i 1) (cons (%format-additional-line i (car rem)) acc))
-                   ) ;if
-                 ) ;let
-               ) ;lines
+        (let* ((lines (map %format-additional-line (iota (length additional) 1) additional))
                (sec (string-append "## Additional Search Results\n" (string-join lines "\n")))
               ) ;
           (if (string-null? (string-trim-both summary))

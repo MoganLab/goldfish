@@ -29,20 +29,11 @@
   (begin
 
     (define (%collect-text-blocks blks)
-      (let loop
-        ((rest blks) (acc '()))
-        (if (null? rest)
-          (reverse acc)
-          (let* ((blk (car rest)) (t-val (pi-agent-assoc-val 'type "type" blk "")))
-            (if (equal? t-val "text")
-              (let ((t (pi-agent-assoc-val 'text "text" blk "")))
-                (loop (cdr rest) (cons t acc))
-              ) ;let
-              (loop (cdr rest) acc)
-            ) ;if
-          ) ;let*
-        ) ;if
-      ) ;let
+      (map (lambda (blk) (pi-agent-assoc-val 'text "text" blk ""))
+        (filter (lambda (blk) (equal? (pi-agent-assoc-val 'type "type" blk "") "text"))
+          blks
+        ) ;filter
+      ) ;map
     ) ;define
 
     (define (extract-assistant-text msg)

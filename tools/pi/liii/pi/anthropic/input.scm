@@ -7,6 +7,7 @@
 (define-library (liii pi anthropic input)
   (import (scheme base)
     (liii string)
+    (liii list)
     (liii json)
     (liii pi message)
     (liii pi event)
@@ -57,14 +58,8 @@
     ) ;define
 
     (define (%normalize-entries entries)
-      (let loop
-        ((rest entries) (acc '()))
-        (if (null? rest)
-          (if (null? acc) '(()) (reverse acc))
-          (let ((norm (%normalize-one-entry (car rest))))
-            (if norm (loop (cdr rest) (cons norm acc)) (loop (cdr rest) acc))
-          ) ;let
-        ) ;if
+      (let ((acc (filter (lambda (e) e) (map %normalize-one-entry entries))))
+        (if (null? acc) '(()) acc)
       ) ;let
     ) ;define
 
@@ -103,15 +98,7 @@
     ) ;define
 
     (define (%parse-entries entries)
-      (let loop
-        ((rest entries) (acc '()))
-        (if (null? rest)
-          (reverse acc)
-          (let ((norm (%parse-one-entry (car rest))))
-            (if norm (loop (cdr rest) (cons norm acc)) (loop (cdr rest) acc))
-          ) ;let
-        ) ;if
-      ) ;let
+      (filter (lambda (e) e) (map %parse-one-entry entries))
     ) ;define
 
     (define (%parse-string-arguments trimmed)

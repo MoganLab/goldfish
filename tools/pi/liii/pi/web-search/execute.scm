@@ -7,6 +7,7 @@
 (define-library (liii pi web-search execute)
   (import (scheme base)
     (liii string)
+    (liii list)
     (liii json)
     (liii http)
     (liii error)
@@ -56,16 +57,15 @@
                                                                                   . #()))) #())
                  ) ;parts
                 ) ;
-            (let loop
-              ((i 0) (acc '()))
-              (if (>= i (vector-length parts))
-                (string-join (reverse acc) "")
-                (let* ((p (vector-ref parts i)) (t (cdr (or (assoc "text" p) '(#f
-                                                                               . #f)))))
-                  (if (string? t) (loop (+ i 1) (cons t acc)) (loop (+ i 1) acc))
-                ) ;let*
-              ) ;if
-            ) ;let
+            (string-join
+              (filter string?
+                (map
+                  (lambda (p) (cdr (or (assoc "text" p) '(#f . #f))))
+                  (vector->list parts)
+                ) ;map
+              ) ;filter
+              ""
+            ) ;string-join
           ) ;let*
         ) ;if
       ) ;let

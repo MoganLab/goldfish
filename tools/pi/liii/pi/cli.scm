@@ -8,6 +8,7 @@
   (import (scheme base)
     (scheme process-context)
     (liii string)
+    (liii list)
     (liii sys)
     (liii pi)
     (liii pi args)
@@ -89,13 +90,9 @@
     ) ;define
 
     (define (%has-matching-flow? reg parsed)
-      (let loop
-        ((flows (extension-registry-flows reg)))
-        (cond ((null? flows) #f)
-              (((extension-flow-def-predicate (car flows)) parsed) #t)
-              (else (loop (cdr flows)))
-        ) ;cond
-      ) ;let
+      (any (lambda (flow) ((extension-flow-def-predicate flow) parsed))
+        (extension-registry-flows reg)
+      ) ;any
     ) ;define
 
     (define (%run-pi-main parsed)

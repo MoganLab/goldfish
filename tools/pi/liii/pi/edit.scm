@@ -9,6 +9,7 @@
 (define-library (liii pi edit)
   (import (scheme base)
     (liii string)
+    (liii list)
     (liii path)
     (liii os)
     (liii sort)
@@ -178,21 +179,20 @@
     ) ;define
 
     (define (%apply-replacements content desc-edits)
-      (let loop
-        ((res content) (rest desc-edits))
-        (if (null? rest)
-          res
-          (let* ((e (car rest))
-                 (start (cadr e))
+      (fold
+        (lambda (e res)
+          (let* ((start (cadr e))
                  (len (caddr e))
                  (new-txt (cadddr e))
                  (prefix (substring res 0 start))
                  (suffix (substring res (+ start len) (string-length res)))
                 ) ;
-            (loop (string-append prefix new-txt suffix) (cdr rest))
+            (string-append prefix new-txt suffix)
           ) ;let*
-        ) ;if
-      ) ;let
+        ) ;lambda
+        content
+        desc-edits
+      ) ;fold
     ) ;define
 
     (define (pi-execute-edit args . opts)
@@ -223,17 +223,10 @@
             (error 'error (string-append "Not a file: " raw-path))
           ) ;when
           (let* ((content (path-read-text (path abs-path)))
-                 (matched-edits
-                   (let loop
-                     ((lst edits-list) (idx 0) (acc '()))
-                     (if (null? lst)
-                       (reverse acc)
-                       (loop (cdr lst)
-                         (+ idx 1)
-                         (cons (%match-single-edit (car lst) idx total-edits content raw-path) acc)
-                       ) ;loop
-                     ) ;if
-                   ) ;let
+                 (matched-edits (map (lambda (e i) (%match-single-edit e i total-edits content raw-path))
+                                  edits-list
+                                  (iota total-edits)
+                                ) ;map
                  ) ;matched-edits
                  (sorted
                    (list-sort (lambda (a b) (< (cadr a) (cadr b))) matched-edits)

@@ -7,6 +7,7 @@
 (define-library (liii pi extension registry tools)
   (import (scheme base)
     (liii error)
+    (liii list)
     (liii pi extension types)
     (liii pi extension registry base)
     (liii pi tools record)
@@ -57,13 +58,7 @@
 
     (define (find-extension-tool target name)
       (let* ((reg (target->registry target)) (tools (extension-registry-tools reg)))
-        (let loop
-          ((rest tools))
-          (cond ((null? rest) #f)
-                ((string=? (extension-tool-def-name (car rest)) name) (car rest))
-                (else (loop (cdr rest)))
-          ) ;cond
-        ) ;let
+        (find (lambda (t) (string=? (extension-tool-def-name t) name)) tools)
       ) ;let*
     ) ;define
 

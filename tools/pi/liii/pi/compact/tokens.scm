@@ -5,7 +5,12 @@
 ;;
 
 (define-library (liii pi compact tokens)
-  (import (scheme base) (scheme write) (liii string) (liii pi message))
+  (import (scheme base)
+    (scheme write)
+    (liii string)
+    (liii list)
+    (liii pi message)
+  ) ;import
   (export pi-estimate-content-chars pi-estimate-message-tokens
     pi-context-token-estimate pi-should-compact? pi-compaction-default-settings
   ) ;export
@@ -61,6 +66,10 @@
       ) ;cond
     ) ;define
 
+    (define (%sum-block-chars blocks)
+      (fold (lambda (b acc) (+ acc (%block-chars b))) 0 blocks)
+    ) ;define
+
     (define (pi-estimate-content-chars content)
       (cond ((string? content) (string-length content))
             ((vector? content) (pi-estimate-content-chars (vector->list content)))
@@ -71,10 +80,7 @@
                  (or (string? (caar content)) (symbol? (caar content)))
                ) ;and
                (%block-chars content)
-               (let loop
-                 ((rest content) (acc 0))
-                 (if (null? rest) acc (loop (cdr rest) (+ acc (%block-chars (car rest)))))
-               ) ;let
+               (%sum-block-chars content)
              ) ;if
             ) ;
             (else 0)
@@ -89,16 +95,11 @@
                (if (equal? role "assistant")
                  (if (string? content)
                    (pi-estimate-content-chars content)
-                   (let loop
-                     ((rest (cond ((vector? content) (vector->list content))
-                                  ((list? content) content)
-                                  (else '())
-                            ) ;cond
-                      ) ;rest
-                      (acc 0)
-                     ) ;
-                     (if (null? rest) acc (loop (cdr rest) (+ acc (%block-chars (car rest)))))
-                   ) ;let
+                   (%sum-block-chars (cond ((vector? content) (vector->list content))
+                                           ((list? content) content)
+                                           (else '())
+                                     ) ;cond
+                   ) ;%sum-block-chars
                  ) ;if
                  (pi-estimate-content-chars content)
                ) ;if

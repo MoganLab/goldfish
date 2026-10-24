@@ -5,7 +5,7 @@
 ;;
 
 (define-library (liii pi models search)
-  (import (scheme base) (scheme char) (liii string))
+  (import (scheme base) (scheme char) (liii string) (liii list))
   (export pi-split-search-tokens pi-fuzzy-match-model?)
   (begin
 
@@ -51,16 +51,7 @@
       (if (or (not search-query) (not (string? search-query)))
         #t
         (let ((tokens (pi-split-search-tokens search-query)))
-          (if (null? tokens)
-            #t
-            (let loop
-              ((rest tokens))
-              (cond ((null? rest) #t)
-                    ((%subsequence-match? (car rest) text) (loop (cdr rest)))
-                    (else #f)
-              ) ;cond
-            ) ;let
-          ) ;if
+          (or (null? tokens) (every (lambda (tok) (%subsequence-match? tok text)) tokens))
         ) ;let
       ) ;if
     ) ;define

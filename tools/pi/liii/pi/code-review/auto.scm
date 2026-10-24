@@ -7,6 +7,7 @@
 (define-library (liii pi code-review auto)
   (import (scheme base)
     (liii string)
+    (liii list)
     (liii pi read)
     (liii pi message types)
     (liii pi code-review language)
@@ -103,10 +104,7 @@
     ) ;define
 
     (define (%has-path? files path)
-      (cond ((null? files) #f)
-            ((string=? (%field 'path (car files) "") path) #t)
-            (else (%has-path? (cdr files) path))
-      ) ;cond
+      (any (lambda (f) (string=? (%field 'path f "") path)) files)
     ) ;define
 
     (define (%push-edited files path)

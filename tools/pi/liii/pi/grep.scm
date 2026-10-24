@@ -106,15 +106,7 @@
             ) ;
         (if (either-right? res)
           (let ((lines (string-split (to-right res) "\n")))
-            (let loop
-              ((lst lines) (acc '()))
-              (if (null? lst)
-                (reverse acc)
-                (let ((parsed (%parse-grep-line (car lst) rel-path)))
-                  (loop (cdr lst) (if parsed (cons parsed acc) acc))
-                ) ;let
-              ) ;if
-            ) ;let
+            (filter (lambda (p) p) (map (lambda (l) (%parse-grep-line l rel-path)) lines))
           ) ;let
           (let ((e (to-left res)))
             ;; grep 退出码 1 表示无匹配，其余非零退出码为真实失败

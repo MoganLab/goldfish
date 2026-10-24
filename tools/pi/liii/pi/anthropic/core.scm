@@ -8,6 +8,7 @@
   (import (scheme base)
     (scheme char)
     (liii string)
+    (liii list)
     (liii json)
     (liii error)
     (liii pi message)
@@ -199,35 +200,27 @@
                           ) ;cond
              ) ;content-vec
             ) ;
-        (let loop
-          ((i 0) (acc '()))
-          (if (>= i (vector-length content-vec))
-            (reverse acc)
-            (let* ((blk (vector-ref content-vec i)) (btype (%val "type" blk "")))
-              (cond
-               ((equal? btype "text")
-                (loop (+ i 1) (cons (pi-text-block (%val "text" blk "")) acc))
-               ) ;
-               ((equal? btype "tool_use")
-                (loop (+ i 1)
-                  (cons (pi-tool-call-block (%val "id" blk "")
-                          (%val "name" blk "")
-                          (anthropic-parse-tool-arguments (%val "input" blk '()))
-                        ) ;pi-tool-call-block
-                    acc
-                  ) ;cons
-                ) ;loop
-               ) ;
-               ((equal? btype "thinking")
-                (let ((th (%val "thinking" blk "")) (sig (%val "signature" blk #f)))
-                  (loop (+ i 1) (cons (pi-thinking-block th sig) acc))
-                ) ;let
-               ) ;
-               (else (loop (+ i 1) acc))
-              ) ;cond
-            ) ;let*
-          ) ;if
-        ) ;let
+        (filter (lambda (b) b)
+          (map
+            (lambda (blk)
+              (let ((btype (%val "type" blk "")))
+                (cond ((equal? btype "text") (pi-text-block (%val "text" blk "")))
+                      ((equal? btype "tool_use")
+                       (pi-tool-call-block (%val "id" blk "")
+                         (%val "name" blk "")
+                         (anthropic-parse-tool-arguments (%val "input" blk '()))
+                       ) ;pi-tool-call-block
+                      ) ;
+                      ((equal? btype "thinking")
+                       (pi-thinking-block (%val "thinking" blk "") (%val "signature" blk #f))
+                      ) ;
+                      (else #f)
+                ) ;cond
+              ) ;let
+            ) ;lambda
+            (vector->list content-vec)
+          ) ;map
+        ) ;filter
       ) ;let*
     ) ;define
 

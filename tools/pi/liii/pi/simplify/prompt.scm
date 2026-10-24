@@ -83,28 +83,20 @@
     ) ;define
 
     (define (%excerpt lines ranges)
-      (let loop
-        ((rest ranges) (acc '()))
-        (if (null? rest)
-          (reverse acc)
-          (let* ((start (%field 'start (car rest) 1))
-                 (end (%field 'end (car rest) 1))
-                 (body
-                   (let inner
-                     ((i start) (rows '()))
-                     (if (> i end)
-                       (string-join (reverse rows) "\n")
-                       (inner (+ i 1)
-                         (cons (string-append (number->string i) " | " (list-ref lines (- i 1))) rows)
-                       ) ;inner
-                     ) ;if
-                   ) ;let
-                 ) ;body
-                ) ;
-            (loop (cdr rest) (cons body acc))
+      (map
+        (lambda (r)
+          (let* ((start (%field 'start r 1)) (end (%field 'end r 1)))
+            (string-join
+              (map
+                (lambda (i) (string-append (number->string i) " | " (list-ref lines (- i 1))))
+                (iota (+ (- end start) 1) start)
+              ) ;map
+              "\n"
+            ) ;string-join
           ) ;let*
-        ) ;if
-      ) ;let
+        ) ;lambda
+        ranges
+      ) ;map
     ) ;define
 
     (define (%format-file-block file)

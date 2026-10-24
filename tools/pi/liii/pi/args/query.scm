@@ -5,7 +5,7 @@
 ;;
 
 (define-library (liii pi args query)
-  (import (scheme base))
+  (import (scheme base) (liii list))
   (export pi-args-ref pi-args-set pi-resolve-timeout)
   (begin
 
@@ -27,15 +27,7 @@
     ) ;define
 
     (define (pi-args-set parsed key val)
-      (cons (cons key val)
-        (let loop
-          ((rest parsed))
-          (cond ((null? rest) '())
-                ((eq? (caar rest) key) (cdr rest))
-                (else (cons (car rest) (loop (cdr rest))))
-          ) ;cond
-        ) ;let
-      ) ;cons
+      (cons (cons key val) (filter (lambda (p) (not (eq? (car p) key))) parsed))
     ) ;define
 
   ) ;begin

@@ -6,6 +6,7 @@
 
 (define-library (liii pi models builtin)
   (import (scheme base)
+    (liii list)
     (liii pi models builtin anthropic)
     (liii pi models builtin deepseek)
     (liii pi models builtin google)
@@ -62,13 +63,7 @@
 
     (define (%missing-models store-models builtin-models)
       (let ((store-ids (%model-ids store-models)))
-        (let loop
-          ((rest builtin-models) (acc '()))
-          (cond ((null? rest) (reverse acc))
-                ((member (%dict-ref (car rest) "id" "") store-ids) (loop (cdr rest) acc))
-                (else (loop (cdr rest) (cons (car rest) acc)))
-          ) ;cond
-        ) ;let
+        (remove (lambda (m) (member (%dict-ref m "id" "") store-ids)) builtin-models)
       ) ;let
     ) ;define
 
@@ -79,17 +74,10 @@
     ) ;define
 
     (define (%strip-models-field fields)
-      (let loop
-        ((rest fields) (acc '()))
-        (cond ((null? rest) (reverse acc))
-              ((let ((k (caar rest)))
-                 (or (equal? k "models") (eq? k 'models))
-               ) ;let
-               (loop (cdr rest) acc)
-              ) ;
-              (else (loop (cdr rest) (cons (car rest) acc)))
-        ) ;cond
-      ) ;let
+      (remove
+        (lambda (f) (let ((k (car f))) (or (equal? k "models") (eq? k 'models))))
+        fields
+      ) ;remove
     ) ;define
 
     (define (%merge-entry-models entry store-models missing)
@@ -101,13 +89,7 @@
     ) ;define
 
     (define (%find-provider-entry models-store p-str)
-      (let loop
-        ((rest models-store))
-        (cond ((null? rest) #f)
-              ((equal? (%provider-entry-name (car rest)) p-str) (car rest))
-              (else (loop (cdr rest)))
-        ) ;cond
-      ) ;let
+      (find (lambda (e) (equal? (%provider-entry-name e) p-str)) models-store)
     ) ;define
 
     ;; 把 provider 的内置模型目录补进 models-store。已有条目保留原顺序，
@@ -139,13 +121,10 @@
 
     ;; 对全部内置 provider 执行缺失模型补齐
     (define (pi-builtin-augment-all models-store)
-      (let loop
-        ((rest PI_PROVIDER_BUILTIN_MODELS) (acc models-store))
-        (if (null? rest)
-          acc
-          (loop (cdr rest) (pi-builtin-augment-store acc (caar rest)))
-        ) ;if
-      ) ;let
+      (fold (lambda (entry acc) (pi-builtin-augment-store acc (car entry)))
+        models-store
+        PI_PROVIDER_BUILTIN_MODELS
+      ) ;fold
     ) ;define
 
   ) ;begin

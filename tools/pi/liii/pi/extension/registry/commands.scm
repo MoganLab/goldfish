@@ -7,6 +7,7 @@
 (define-library (liii pi extension registry commands)
   (import (scheme base)
     (liii error)
+    (liii list)
     (liii pi extension types)
     (liii pi extension registry base)
   ) ;import
@@ -45,13 +46,7 @@
 
     (define (find-extension-command target name)
       (let* ((reg (target->registry target)) (cmds (extension-registry-commands reg)))
-        (let loop
-          ((rest cmds))
-          (cond ((null? rest) #f)
-                ((string=? (extension-command-def-name (car rest)) name) (car rest))
-                (else (loop (cdr rest)))
-          ) ;cond
-        ) ;let
+        (find (lambda (c) (string=? (extension-command-def-name c) name)) cmds)
       ) ;let*
     ) ;define
 

@@ -141,7 +141,7 @@
             ((pi-tool-result? x) (%normalize-json-value (pi-tool-result->alist x)))
             ((pi-tool-definition? x) (%normalize-json-value (pi-tool-definition->alist x)))
             ((pi-trunc-result? x) (%normalize-json-value (pi-trunc-result->alist x)))
-            ((vector? x) (list->vector (map %normalize-json-value (vector->list x))))
+            ((vector? x) (vector-map %normalize-json-value x))
             ((and (pair? x) (every %json-object-entry? x))
              (let loop
                ((entries x) (acc '()))

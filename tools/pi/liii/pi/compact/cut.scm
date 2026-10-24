@@ -48,21 +48,8 @@
       (if (null? lst) #f (car (reverse lst)))
     ) ;define
 
-    (define (%find-index pred lst)
-      (let loop
-        ((rest lst) (idx 0))
-        (cond ((null? rest) #f)
-              ((pred (car rest)) idx)
-              (else (loop (cdr rest) (+ idx 1)))
-        ) ;cond
-      ) ;let
-    ) ;define
-
     (define (%all-indices start count)
-      (let loop
-        ((i start) (acc '()))
-        (if (>= i count) (reverse acc) (loop (+ i 1) (cons i acc)))
-      ) ;let
+      (iota (- count start) start)
     ) ;define
 
     (define (%cut-points entries start count)
@@ -109,15 +96,9 @@
     ) ;define
 
     (define (pi-messages-to-summarize entries first-kept-index)
-      (let loop
-        ((rest entries) (idx 0) (acc '()))
-        (if (or (null? rest) (>= idx first-kept-index))
-          (reverse acc)
-          (let ((msg (pi-entry-message (car rest))))
-            (loop (cdr rest) (+ idx 1) (if msg (cons msg acc) acc))
-          ) ;let
-        ) ;if
-      ) ;let
+      (filter (lambda (m) m)
+        (map pi-entry-message (list-take entries first-kept-index))
+      ) ;filter
     ) ;define
 
   ) ;begin

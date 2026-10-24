@@ -38,26 +38,18 @@
     ) ;define
 
     (define (%tool-paths msg)
-      (let loop
-        ((rest (%blocks (%ref msg "content"))) (acc '()))
-        (if (null? rest)
-          (reverse acc)
-          (let* ((blk (%block-alist (car rest)))
-                 (name (%ref blk "name"))
-                 (path (%ref (%ref blk "arguments") "path"))
-                ) ;
-            (loop (cdr rest)
-              (if (and (equal? (%ref blk "type") "toolCall")
-                    (string? path)
-                    (member name '("read" "write" "edit"))
-                  ) ;and
-                (cons (cons name path) acc)
-                acc
-              ) ;if
-            ) ;loop
-          ) ;let*
-        ) ;if
-      ) ;let
+      (map
+        (lambda (blk) (cons (%ref blk "name") (%ref (%ref blk "arguments") "path")))
+        (filter
+          (lambda (blk)
+            (and (equal? (%ref blk "type") "toolCall")
+              (string? (%ref (%ref blk "arguments") "path"))
+              (member (%ref blk "name") '("read" "write" "edit"))
+            ) ;and
+          ) ;lambda
+          (map %block-alist (%blocks (%ref msg "content")))
+        ) ;filter
+      ) ;map
     ) ;define
 
     (define (pi-extract-file-ops msgs)
@@ -94,12 +86,7 @@
       (let* ((read (%ref file-ops "read"))
              (written (%ref file-ops "written"))
              (edited (%ref file-ops "edited"))
-             (modified
-               (let loop
-                 ((rest written) (acc edited))
-                 (if (null? rest) acc (loop (cdr rest) (%add-unique acc (car rest))))
-               ) ;let
-             ) ;modified
+             (modified (fold (lambda (p acc) (%add-unique acc p)) edited written))
              (read-only
                (list-sort string<? (filter (lambda (p) (not (member p modified))) read))
              ) ;read-only

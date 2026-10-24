@@ -8,6 +8,7 @@
   (import (scheme base)
     (scheme write)
     (liii string)
+    (liii list)
     (liii json)
     (liii http)
     (liii error)
@@ -31,15 +32,8 @@
     ) ;define
 
     (define (anthropic-build-tool-declarations-from-names active-tool-names)
-      (let loop
-        ((names active-tool-names) (acc '()))
-        (if (null? names)
-          (anthropic-build-tool-declarations (reverse acc))
-          (let* ((name (car names)) (def (get-tool-definition name)))
-            (if def (loop (cdr names) (cons def acc)) (loop (cdr names) acc))
-          ) ;let*
-        ) ;if
-      ) ;let
+      (anthropic-build-tool-declarations (filter (lambda (d) d) (map get-tool-definition active-tool-names))
+      ) ;anthropic-build-tool-declarations
     ) ;define
 
     (define (%build-anthropic-headers api-key)

@@ -111,7 +111,7 @@
 
     (define (%normalize-content-for-alist c)
       (cond ((pi-block? c) (pi-block->alist c))
-            ((vector? c) (list->vector (map %normalize-content-for-alist (vector->list c))))
+            ((vector? c) (vector-map %normalize-content-for-alist c))
             ((pair? c)
              (if (pi-block? (car c))
                (map %normalize-content-for-alist c)

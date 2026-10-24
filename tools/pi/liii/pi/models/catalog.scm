@@ -7,6 +7,7 @@
 (define-library (liii pi models catalog)
   (import (scheme base)
     (liii string)
+    (liii list)
     (liii path)
     (liii json)
     (liii sort)
@@ -55,13 +56,7 @@
              (overlay-list (%models-as-list overlay))
              (overlay-ids (map %model-id overlay-list))
              (filtered-base
-               (let loop
-                 ((rest base-list) (acc '()))
-                 (cond ((null? rest) (reverse acc))
-                       ((member (%model-id (car rest)) overlay-ids) (loop (cdr rest) acc))
-                       (else (loop (cdr rest) (cons (car rest) acc)))
-                 ) ;cond
-               ) ;let
+               (remove (lambda (m) (member (%model-id m) overlay-ids)) base-list)
              ) ;filtered-base
             ) ;
         (append overlay-list filtered-base)
@@ -100,10 +95,10 @@
       ) ;let
     ) ;define
 
-    ;; 返回 catalog 中全部 provider 名称列表（字符串、字典序排序）
-    (define (pi-catalog-provider-names catalog)
+    ;; 收集 alist 中不重复的 provider 名称，字典序排序
+    (define (%unique-sorted-names entries)
       (let loop
-        ((rest catalog) (acc '()))
+        ((rest entries) (acc '()))
         (if (null? rest)
           (list-sort string<? acc)
           (let ((name (%entry-name-str (car rest))))
@@ -111,6 +106,11 @@
           ) ;let
         ) ;if
       ) ;let
+    ) ;define
+
+    ;; 返回 catalog 中全部 provider 名称列表（字符串、字典序排序）
+    (define (pi-catalog-provider-names catalog)
+      (%unique-sorted-names catalog)
     ) ;define
 
     (define (%extract-providers-alist data)
@@ -133,16 +133,8 @@
              (store-data (or (%read-json-file store-path) '()))
              (custom-data (%extract-providers-alist (or (%read-json-file models-path) '())))
              ;; 提取所有出现过的 provider 名称
-             (all-names
-               (let loop
-                 ((rest (append PI_PROVIDER_BUILTIN_MODELS store-data custom-data)) (acc '()))
-                 (if (null? rest)
-                   (list-sort string<? acc)
-                   (let ((n (%entry-name-str (car rest))))
-                     (if (member n acc) (loop (cdr rest) acc) (loop (cdr rest) (cons n acc)))
-                   ) ;let
-                 ) ;if
-               ) ;let
+             (all-names (%unique-sorted-names (append PI_PROVIDER_BUILTIN_MODELS store-data custom-data)
+                        ) ;%unique-sorted-names
              ) ;all-names
             ) ;
         (map

@@ -76,35 +76,33 @@
     ) ;define
 
     (define (%build-tools-section tools custom-info)
-      (let loop
-        ((ts tools) (lines '()))
-        (if (null? ts)
-          (if (null? lines)
-            ""
-            (string-append (string-join (reverse lines) "\n")
-              "\n\nIn addition to the tools above, you may have access to other custom tools depending on the project."
-            ) ;string-append
-          ) ;if
-          (let* ((name (car ts)) (snippet (%find-snippet name custom-info)))
-            (if (and (string? snippet) (> (string-length snippet) 0))
-              (loop (cdr ts) (cons (string-append "- " name ": " snippet) lines))
-              (loop (cdr ts) lines)
-            ) ;if
-          ) ;let*
+      (let ((lines
+              (filter (lambda (l) l)
+                (map
+                  (lambda (name)
+                    (let ((snippet (%find-snippet name custom-info)))
+                      (and (string? snippet)
+                        (> (string-length snippet) 0)
+                        (string-append "- " name ": " snippet)
+                      ) ;and
+                    ) ;let
+                  ) ;lambda
+                  tools
+                ) ;map
+              ) ;filter
+            ) ;lines
+           ) ;
+        (if (null? lines)
+          ""
+          (string-append (string-join lines "\n")
+            "\n\nIn addition to the tools above, you may have access to other custom tools depending on the project."
+          ) ;string-append
         ) ;if
       ) ;let
     ) ;define
 
     (define (%collect-tool-guidelines tools custom-info)
-      (let loop
-        ((ts tools) (acc '()))
-        (if (null? ts)
-          (reverse acc)
-          (let* ((name (car ts)) (gl (%find-guidelines name custom-info)))
-            (loop (cdr ts) (append (reverse gl) acc))
-          ) ;let*
-        ) ;if
-      ) ;let
+      (append-map (lambda (name) (%find-guidelines name custom-info)) tools)
     ) ;define
 
     (define (%build-rules-section tools custom-info)

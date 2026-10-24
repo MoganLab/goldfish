@@ -9,6 +9,7 @@
     (scheme char)
     (liii string)
     (liii list)
+    (liii vector)
     (liii sort)
     (liii pi models search)
   ) ;import
@@ -60,14 +61,7 @@
 
     (define (%has-image? input)
       (cond
-       ((vector? input)
-        (let loop
-          ((i 0))
-          (and (< i (vector-length input))
-            (or (equal? (vector-ref input i) "image") (loop (+ i 1)))
-          ) ;and
-        ) ;let
-       ) ;
+       ((vector? input) (vector-any (lambda (x) (equal? x "image")) input))
        ((list? input) (and (member "image" input) #t))
        (else #f)
       ) ;cond

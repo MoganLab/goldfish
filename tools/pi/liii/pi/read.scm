@@ -10,6 +10,7 @@
   (import (scheme base)
     (scheme process-context)
     (liii string)
+    (liii list)
     (liii path)
     (liii os)
     (liii pi truncate)
@@ -92,14 +93,7 @@
     ) ;define
 
     (define (%slice-lines lines start count)
-      (let loop
-        ((lst lines) (i 0) (acc '()))
-        (cond ((null? lst) (reverse acc))
-              ((< i start) (loop (cdr lst) (+ i 1) acc))
-              ((>= i (+ start count)) (reverse acc))
-              (else (loop (cdr lst) (+ i 1) (cons (car lst) acc)))
-        ) ;cond
-      ) ;let
+      (list-take (list-drop lines start) count)
     ) ;define
 
     (define (%format-read-output truncation raw-path start-display total-lines user-lines)
