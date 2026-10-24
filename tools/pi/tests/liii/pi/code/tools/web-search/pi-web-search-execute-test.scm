@@ -50,6 +50,7 @@
 
   ;; 3. 正常搜索请求测试
   (let ((res (pi-execute-web-search '(("query" . "goldfish scheme"))
+                                   :provider "google"
                                    :base-url base-url
                                    :model-id "web-search-basic"
                                    :api-key "test-google-key"
@@ -64,6 +65,7 @@
   ;; 4. 带 URLs 的调用测试
   (let ((res (pi-execute-web-search '(("query" . "compare goldfish")
                                       ("urls" . ("https://goldfish.liii.pro" "https://scheme.org")))
+                                   :provider "google"
                                    :base-url base-url
                                    :model-id "web-search-urls"
                                    :api-key "test-google-key"
@@ -75,6 +77,7 @@
   ;; 5. HTTP 401 鉴权失败测试
   (check-catch 'error
     (pi-execute-web-search '(("query" . "scheme"))
+                           :provider "google"
                            :base-url base-url
                            :model-id "web-search-401"
                            :api-key "bad-key"
@@ -83,6 +86,7 @@
   ;; 6. HTTP 403 权限拒绝/超限测试
   (check-catch 'error
     (pi-execute-web-search '(("query" . "scheme"))
+                           :provider "google"
                            :base-url base-url
                            :model-id "web-search-403"
                            :api-key "test-key"
@@ -91,6 +95,7 @@
   ;; 7. HTTP 500 服务端错误测试
   (check-catch 'error
     (pi-execute-web-search '(("query" . "scheme"))
+                           :provider "google"
                            :base-url base-url
                            :model-id "error-500"
                            :api-key "test-key"
@@ -99,6 +104,7 @@
   ;; 8. 非 JSON 响应测试
   (check-catch 'error
     (pi-execute-web-search '(("query" . "scheme"))
+                           :provider "google"
                            :base-url base-url
                            :model-id "web-search-non-json"
                            :api-key "test-key"
@@ -106,6 +112,7 @@
 
   ;; 9. 空 candidates 安全降级测试
   (let ((res (pi-execute-web-search '(("query" . "empty query"))
+                                   :provider "google"
                                    :base-url base-url
                                    :model-id "web-search-empty-candidates"
                                    :api-key "test-key"
@@ -117,6 +124,7 @@
   ;; 10. 超时控制测试
   (check-catch 'error
     (pi-execute-web-search '(("query" . "slow query"))
+                           :provider "google"
                            :base-url base-url
                            :model-id "web-search-hang"
                            :api-key "test-key"
@@ -125,6 +133,7 @@
   ;; 11. 通过 execute-tool-call 分发执行
   (let ((call-res (execute-tool-call "web_search"
                                     '(("query" . "goldfish scheme"))
+                                    :provider "google"
                                     :base-url base-url
                                     :model-id "web-search-basic"
                                     :api-key "test-google-key"
