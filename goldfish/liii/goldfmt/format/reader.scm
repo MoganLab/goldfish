@@ -83,7 +83,7 @@
              (close-marker (string-append "\n" (spaces indent) ") ;#"))
             ) ;
         (let loop
-          ((items (reader-vector->list datum)) (pieces (list prefix)) (prefix-ready? #t))
+          ((items (vector->list datum)) (pieces (list prefix)) (prefix-ready? #t))
           (if (null? items)
             (apply string-append (reverse (cons close-marker pieces)))
             (let ((item (car items)))
@@ -126,22 +126,15 @@
     ) ;define
 
     (define (format-reader-pair-inline datum)
-      (let loop
-        ((current datum) (pieces '()))
-        (cond
-         ((pair? current)
-          (loop (cdr current) (cons (format-reader-datum-inline (car current)) pieces))
-         ) ;
-         ((null? current) (string-append "(" (string-join (reverse pieces) " ") ")"))
-         (else (string-append "("
-                 (string-join (reverse pieces) " ")
-                 " . "
-                 (format-reader-datum-inline current)
-                 ")"
-               ) ;string-append
-         ) ;else
-        ) ;cond
-      ) ;let
+      (call-with-values (lambda () (split-pair-list datum))
+        (lambda (elems tail)
+          (string-append "("
+            (string-join (map format-reader-datum-inline elems) " ")
+            (if (null? tail) "" (string-append " . " (format-reader-datum-inline tail)))
+            ")"
+          ) ;string-append
+        ) ;lambda
+      ) ;call-with-values
     ) ;define
 
     (define (reader-append-keyword-block current result rest-indent

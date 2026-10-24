@@ -14,7 +14,9 @@
 ;; limitations under the License.
 
 (define-library (liii goldfmt scan normalize)
-  (export scan scan-datum normalize-datum stem-mode? call-with-stem-mode)
+  (export scan scan-datum normalize-datum stem-mode? call-with-stem-mode
+    split-pair-list
+  ) ;export
   (import (liii base) (liii syntax) (liii list) (liii goldfmt record))
   (begin
     (define %stem-mode? #f)
@@ -240,30 +242,33 @@
       ) ;let
     ) ;define
 
+    (define (normalize-qq-pair datum)
+      (call-with-values (lambda () (split-pair-list datum))
+        (lambda (elems tail)
+          (let* ((len (length elems))
+                 (penult (and (>= len 3) (list-ref elems (- len 2))))
+                 (last-elem (and (>= len 1) (list-ref elems (- len 1))))
+                 (dotted-tail? (and (null? tail) penult (eq? penult 'unquote)))
+                ) ;
+            (if dotted-tail?
+              (make-dotted-list (map normalize-explicit-qq-template (take elems (- len 2)))
+                (make-dotted-tail (list 'unquote (normalize-datum last-elem)))
+              ) ;make-dotted-list
+              (if (null? tail)
+                (map normalize-explicit-qq-template elems)
+                (make-dotted-list (map normalize-explicit-qq-template elems)
+                  (normalize-explicit-qq-template tail)
+                ) ;make-dotted-list
+              ) ;if
+            ) ;if
+          ) ;let*
+        ) ;lambda
+      ) ;call-with-values
+    ) ;define
+
     (define (normalize-explicit-qq-template datum)
       (cond ((unquote-form? datum) (normalize-datum datum))
-            ((pair? datum)
-             (call-with-values (lambda () (split-pair-list datum))
-               (lambda (elems tail)
-                 (let ((len (length elems)))
-                   (cond
-                    ((and (null? tail) (>= len 3) (eq? (list-ref elems (- len 2)) 'unquote))
-                     (make-dotted-list (map normalize-explicit-qq-template (take elems (- len 2)))
-                       (make-dotted-tail
-                         (list 'unquote (normalize-datum (list-ref elems (- len 1))))
-                       ) ;make-dotted-tail
-                     ) ;make-dotted-list
-                    ) ;
-                    ((null? tail) (map normalize-explicit-qq-template elems))
-                    (else (make-dotted-list (map normalize-explicit-qq-template elems)
-                            (normalize-explicit-qq-template tail)
-                          ) ;make-dotted-list
-                    ) ;else
-                   ) ;cond
-                 ) ;let
-               ) ;lambda
-             ) ;call-with-values
-            ) ;
+            ((pair? datum) (normalize-qq-pair datum))
             (else datum)
       ) ;cond
     ) ;define
@@ -303,18 +308,7 @@
              (cons (normalize-datum (car datum)) (normalize-datum (cdr datum)))
             ) ;
             ((byte-vector? datum)
-             (let ((result (make-byte-vector (vector-length datum) 0)))
-               (let loop
-                 ((i 0))
-                 (if (>= i (vector-length datum))
-                   result
-                   (begin
-                     (byte-vector-set! result i (normalize-datum (vector-ref datum i)))
-                     (loop (+ i 1))
-                   ) ;begin
-                 ) ;if
-               ) ;let
-             ) ;let
+             (apply bytevector (map normalize-datum (vector->list datum)))
             ) ;
             ((vector? datum) (list->vector (map normalize-datum (vector->list datum))))
             (else datum)
@@ -332,16 +326,11 @@
     ) ;define
 
     (define (dotted-list-elements lst)
-      (let loop
-        ((current lst) (result '()))
-        (cond
-         ((pair? current) (loop (cdr current) (cons (car current) result)))
-         ((null? current) (reverse result))
-         (else
-           (reverse (cons current (cons (string->symbol ".") result)))
-         ) ;else
-        ) ;cond
-      ) ;let
+      (call-with-values (lambda () (split-pair-list lst))
+        (lambda (elems tail)
+          (if (null? tail) elems (append elems (list (string->symbol ".") tail)))
+        ) ;lambda
+      ) ;call-with-values
     ) ;define
 
     (define (scan-list lst depth)
