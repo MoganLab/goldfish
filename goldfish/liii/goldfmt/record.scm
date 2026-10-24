@@ -21,7 +21,7 @@
     make-char-literal char-literal? char-literal-source char-literal-value
     make-dotted-tail dotted-tail? dotted-tail-form good-env? assert-env
   ) ;export
-  (import (liii base) (liii error))
+  (import (liii base) (liii error) (liii list))
   (begin
     (define-record-type env
       (%make-env tag-name depth indent children left-line right-line value)
@@ -163,21 +163,11 @@
       ) ;and
     ) ;define
     (define (check-env env parent-depth parent-indent)
-      (if (not (env-valid? env parent-depth parent-indent))
-        #f
-        (let ((children (env-children env))
-              (my-depth (env-depth env))
-              (my-indent (env-indent env))
-             ) ;
-          (let loop
-            ((i 0))
-            (if (>= i (vector-length children))
-              #t
-              (if (check-env (vector-ref children i) my-depth my-indent) (loop (+ i 1)) #f)
-            ) ;if
-          ) ;let
-        ) ;let
-      ) ;if
+      (and (env-valid? env parent-depth parent-indent)
+        (every (lambda (child) (check-env child (env-depth env) (env-indent env)))
+          (vector->list (env-children env))
+        ) ;every
+      ) ;and
     ) ;define
     (define (good-env? env)
       (check-env env -1 0)
