@@ -88,11 +88,9 @@
         (cond ((and pref-str (pi-provider-has-model? pref-str model-id models-store))
                pref-str
               ) ;
-              (else
-                (find
-                  (lambda (p) (pi-provider-has-model? p model-id models-store))
-                  PI_SUPPORTED_PROVIDERS
-                ) ;find
+              (else (find (lambda (p) (pi-provider-has-model? p model-id models-store))
+                      PI_SUPPORTED_PROVIDERS
+                    ) ;find
               ) ;else
         ) ;cond
       ) ;let*

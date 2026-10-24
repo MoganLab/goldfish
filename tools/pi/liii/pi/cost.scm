@@ -148,11 +148,7 @@
                ) ;m-list
               ) ;
           (let ((m (find (lambda (m) (string=? (%val "id" m "") model-id)) m-list)))
-            (and m
-              (let ((c (%val "cost" m #f)))
-                (and (pair? c) c)
-              ) ;let
-            ) ;and
+            (and m (let ((c (%val "cost" m #f))) (and (pair? c) c)))
           ) ;let
         ) ;let*
       ) ;and
@@ -253,8 +249,7 @@
       (let ((totals
               (fold
                 (lambda (u acc)
-                  (cons
-                    (+ (car acc) (%val 'total (pi-calculate-cost cost-rates u) 0.0))
+                  (cons (+ (car acc) (%val 'total (pi-calculate-cost cost-rates u) 0.0))
                     (+ (cdr acc) (pi-calculate-cache-savings cost-rates u))
                   ) ;cons
                 ) ;lambda

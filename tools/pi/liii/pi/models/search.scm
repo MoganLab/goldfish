@@ -51,9 +51,7 @@
       (if (or (not search-query) (not (string? search-query)))
         #t
         (let ((tokens (pi-split-search-tokens search-query)))
-          (or (null? tokens)
-            (every (lambda (tok) (%subsequence-match? tok text)) tokens)
-          ) ;or
+          (or (null? tokens) (every (lambda (tok) (%subsequence-match? tok text)) tokens))
         ) ;let
       ) ;if
     ) ;define

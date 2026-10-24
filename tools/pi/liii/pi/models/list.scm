@@ -61,9 +61,7 @@
 
     (define (%has-image? input)
       (cond
-       ((vector? input)
-        (vector-any (lambda (x) (equal? x "image")) input)
-       ) ;
+       ((vector? input) (vector-any (lambda (x) (equal? x "image")) input))
        ((list? input) (and (member "image" input) #t))
        (else #f)
       ) ;cond

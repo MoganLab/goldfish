@@ -66,12 +66,8 @@
     ) ;define
 
     (define (%basename file-path)
-      (let loop
-        ((parts (string-split file-path "/")))
-        (cond ((null? parts) file-path)
-              ((null? (cdr parts)) (car parts))
-              (else (loop (cdr parts)))
-        ) ;cond
+      (let ((parts (string-split file-path "/")))
+        (if (null? parts) file-path (last parts))
       ) ;let
     ) ;define
 

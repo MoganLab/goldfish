@@ -5,7 +5,12 @@
 ;;
 
 (define-library (liii pi extension loader)
-  (import (scheme base) (liii string) (liii path) (liii pi extension types))
+  (import (scheme base)
+    (liii string)
+    (liii list)
+    (liii path)
+    (liii pi extension types)
+  ) ;import
   (export pi-load-extension pi-load-extensions pi-load-results-success-count
     pi-load-results-failed-count
   ) ;export
@@ -96,30 +101,19 @@
     (define (pi-load-extensions paths api . opt-context)
       (let* ((ctx (if (pair? opt-context) (car opt-context) #f))
              (results
-               (let loop
-                 ((rest (if (list? paths) paths '())) (acc '()))
-                 (if (null? rest)
-                   (reverse acc)
-                   (let ((res (if ctx
-                                (pi-load-extension (car rest) api ctx)
-                                (pi-load-extension (car rest) api)
-                              ) ;if
-                         ) ;res
-                        ) ;
-                     (loop (cdr rest) (cons res acc))
-                   ) ;let
-                 ) ;if
-               ) ;let
+               (map (if ctx
+                      (lambda (p) (pi-load-extension p api ctx))
+                      (lambda (p) (pi-load-extension p api))
+                    ) ;if
+                 (if (list? paths) paths '())
+               ) ;map
              ) ;results
              (total (length results))
              (success
-               (let loop
-                 ((lst results) (c 0))
-                 (cond ((null? lst) c)
-                       ((eq? (cdr (assq 'status (car lst))) 'ok) (loop (cdr lst) (+ c 1)))
-                       (else (loop (cdr lst) c))
-                 ) ;cond
-               ) ;let
+               (count
+                 (lambda (r) (eq? (cdr (assq 'status r)) 'ok))
+                 results
+               ) ;count
              ) ;success
              (failed (- total success))
             ) ;

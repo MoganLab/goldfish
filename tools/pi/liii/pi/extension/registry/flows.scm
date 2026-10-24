@@ -7,6 +7,7 @@
 (define-library (liii pi extension registry flows)
   (import (scheme base)
     (liii error)
+    (liii list)
     (liii pi extension types)
     (liii pi extension registry base)
   ) ;import
@@ -74,13 +75,7 @@
              (flows (extension-registry-flows reg))
              (target-str (if (symbol? name) (symbol->string name) (object->string name)))
             ) ;
-        (let loop
-          ((rest flows))
-          (cond ((null? rest) #f)
-                ((string=? (%flow-key-str (car rest)) target-str) (car rest))
-                (else (loop (cdr rest)))
-          ) ;cond
-        ) ;let
+        (find (lambda (f) (string=? (%flow-key-str f) target-str)) flows)
       ) ;let*
     ) ;define
 

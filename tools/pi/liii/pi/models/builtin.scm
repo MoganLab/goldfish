@@ -75,11 +75,7 @@
 
     (define (%strip-models-field fields)
       (remove
-        (lambda (f)
-          (let ((k (car f)))
-            (or (equal? k "models") (eq? k 'models))
-          ) ;let
-        ) ;lambda
+        (lambda (f) (let ((k (car f))) (or (equal? k "models") (eq? k 'models))))
         fields
       ) ;remove
     ) ;define
@@ -125,8 +121,7 @@
 
     ;; 对全部内置 provider 执行缺失模型补齐
     (define (pi-builtin-augment-all models-store)
-      (fold
-        (lambda (entry acc) (pi-builtin-augment-store acc (car entry)))
+      (fold (lambda (entry acc) (pi-builtin-augment-store acc (car entry)))
         models-store
         PI_PROVIDER_BUILTIN_MODELS
       ) ;fold

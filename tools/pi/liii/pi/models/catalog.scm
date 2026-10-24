@@ -102,10 +102,7 @@
         (if (null? rest)
           (list-sort string<? acc)
           (let ((name (%entry-name-str (car rest))))
-            (if (member name acc)
-              (loop (cdr rest) acc)
-              (loop (cdr rest) (cons name acc))
-            ) ;if
+            (if (member name acc) (loop (cdr rest) acc) (loop (cdr rest) (cons name acc)))
           ) ;let
         ) ;if
       ) ;let
@@ -136,10 +133,8 @@
              (store-data (or (%read-json-file store-path) '()))
              (custom-data (%extract-providers-alist (or (%read-json-file models-path) '())))
              ;; 提取所有出现过的 provider 名称
-             (all-names
-               (%unique-sorted-names
-                 (append PI_PROVIDER_BUILTIN_MODELS store-data custom-data)
-               ) ;%unique-sorted-names
+             (all-names (%unique-sorted-names (append PI_PROVIDER_BUILTIN_MODELS store-data custom-data)
+                        ) ;%unique-sorted-names
              ) ;all-names
             ) ;
         (map
