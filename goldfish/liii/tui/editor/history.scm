@@ -25,7 +25,7 @@
   (export make-history history? history-entries history-max-size history-index
     history-draft history-push! history-prev history-next history-reset!
   ) ;export
-  (import (scheme base) (scheme write))
+  (import (scheme base) (scheme write) (liii list))
   (begin
 
     (define-record-type <history>
@@ -67,15 +67,7 @@
           (unless (and (pair? ents) (string=? (car ents) text))
             (let* ((new-ents (cons text ents))
                    (max-sz (%history-max-size h))
-                   (trimmed
-                     (if (> (length new-ents) max-sz)
-                       (let loop
-                         ((lst new-ents) (n max-sz))
-                         (if (<= n 0) '() (cons (car lst) (loop (cdr lst) (- n 1))))
-                       ) ;let
-                       new-ents
-                     ) ;if
-                   ) ;trimmed
+                   (trimmed (if (> (length new-ents) max-sz) (list-take new-ents max-sz) new-ents))
                   ) ;
               (%history-entries-set! h trimmed)
             ) ;let*

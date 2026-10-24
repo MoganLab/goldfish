@@ -32,6 +32,7 @@
     (scheme write)
     (liii base)
     (liii error)
+    (liii list)
     (liii string)
     (liii tui component)
   ) ;import
@@ -125,22 +126,16 @@
              (if (string-contains? target "\n") (string-split target "\n") (list target))
             ) ;
             ((list? target)
-             (let loop
-               ((rest target) (acc '()))
-               (if (null? rest)
-                 (reverse acc)
-                 (let ((item (car rest)))
-                   (unless (string? item)
-                     (type-error (string-append caller ": line must be string, got " (object->string item))
-                     ) ;type-error
-                   ) ;unless
-                   (if (string-contains? item "\n")
-                     (loop (cdr rest) (append (reverse (string-split item "\n")) acc))
-                     (loop (cdr rest) (cons item acc))
-                   ) ;if
-                 ) ;let
-               ) ;if
-             ) ;let
+             (append-map
+               (lambda (item)
+                 (unless (string? item)
+                   (type-error (string-append caller ": line must be string, got " (object->string item))
+                   ) ;type-error
+                 ) ;unless
+                 (if (string-contains? item "\n") (string-split item "\n") (list item))
+               ) ;lambda
+               target
+             ) ;append-map
             ) ;
             (else (type-error (string-append caller
                                 ": expected component, string, or list of strings, got "

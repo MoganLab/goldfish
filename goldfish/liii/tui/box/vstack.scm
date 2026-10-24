@@ -25,7 +25,7 @@
   (export make-vstack vstack? %validate-child %vstack-render
     %vstack-handle-input %vstack-invalidate
   ) ;export
-  (import (liii base) (liii error) (liii tui component))
+  (import (liii base) (liii error) (liii list) (liii tui component))
   (begin
 
     (define (%keyword-value key opts default)
@@ -83,35 +83,16 @@
       ) ;unless
     ) ;define
 
-    (define (%append-spacing acc spacing)
-      (let loop
-        ((s 0) (cur acc))
-        (if (< s spacing) (loop (+ s 1) (cons "" cur)) cur)
-      ) ;let
-    ) ;define
-
-    (define (%append-lines acc lines)
-      (let loop
-        ((rem lines) (cur acc))
-        (if (null? rem) cur (loop (cdr rem) (cons (car rem) cur)))
-      ) ;let
-    ) ;define
-
     (define (%vstack-render children spacing width)
       (if (null? children)
         '()
-        (let loop
-          ((rem children) (first? #t) (acc '()))
-          (if (null? rem)
-            (reverse acc)
-            (let* ((child (car rem))
-                   (lines (component-render child width))
-                   (with-space (if first? acc (%append-spacing acc spacing)))
-                   (next-acc (%append-lines with-space lines))
-                  ) ;
-              (loop (cdr rem) #f next-acc)
-            ) ;let*
-          ) ;if
+        (let ((sep (make-list spacing ""))
+              (rendered (map (lambda (child) (component-render child width)) children))
+             ) ;
+          (fold-right (lambda (lines acc) (if (null? acc) lines (append lines sep acc)))
+            '()
+            rendered
+          ) ;fold-right
         ) ;let
       ) ;if
     ) ;define

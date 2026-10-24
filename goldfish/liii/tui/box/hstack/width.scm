@@ -23,14 +23,11 @@
 
 (define-library (liii tui box hstack width)
   (export calculate-hstack-widths repeat-item)
-  (import (liii base) (liii error))
+  (import (liii base) (liii error) (liii list))
   (begin
 
     (define (repeat-item item n)
-      (let loop
-        ((i 0) (acc '()))
-        (if (>= i n) acc (loop (+ i 1) (cons item acc)))
-      ) ;let
+      (make-list n item)
     ) ;define
 
     (define (%adjust-last-width lst avail)
@@ -41,30 +38,22 @@
 
     (define (%widths-auto avail num-cols)
       (let* ((base (quotient avail num-cols)) (rem (remainder avail num-cols)))
-        (let loop
-          ((i 0) (acc '()))
-          (if (>= i num-cols)
-            (reverse acc)
-            (loop (+ i 1) (cons (+ base (if (< i rem) 1 0)) acc))
-          ) ;if
-        ) ;let
+        (map
+          (lambda (i) (+ base (if (< i rem) 1 0)))
+          (iota num-cols)
+        ) ;map
       ) ;let*
     ) ;define
 
     (define (%widths-ratios-or-weights avail sum-w widths-spec)
-      (let loop
-        ((cur widths-spec) (acc '()))
-        (if (null? cur)
-          (%adjust-last-width (reverse acc) avail)
-          (let* ((w (car cur))
-                 (denom (if (> sum-w 0) sum-w 1))
-                 (col-w
-                   (max 0 (inexact->exact (round (/ (* w avail) denom))))
-                 ) ;col-w
-                ) ;
-            (loop (cdr cur) (cons col-w acc))
-          ) ;let*
-        ) ;if
+      (let ((denom (if (> sum-w 0) sum-w 1)))
+        (%adjust-last-width
+          (map
+            (lambda (w) (max 0 (inexact->exact (round (/ (* w avail) denom)))))
+            widths-spec
+          ) ;map
+          avail
+        ) ;%adjust-last-width
       ) ;let
     ) ;define
 
@@ -78,23 +67,11 @@
     ) ;define
 
     (define (%all-numbers? lst)
-      (let loop
-        ((cur lst))
-        (cond ((null? cur) #t)
-              ((number? (car cur)) (loop (cdr cur)))
-              (else #f)
-        ) ;cond
-      ) ;let
+      (every number? lst)
     ) ;define
 
     (define (%has-ratios? lst)
-      (let loop
-        ((cur lst))
-        (cond ((null? cur) #t)
-              ((or (inexact? (car cur)) (<= (car cur) 1)) (loop (cdr cur)))
-              (else #f)
-        ) ;cond
-      ) ;let
+      (every (lambda (x) (or (inexact? x) (<= x 1))) lst)
     ) ;define
 
     (define (%widths-mixed avail widths-spec)

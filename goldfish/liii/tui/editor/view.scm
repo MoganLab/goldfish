@@ -26,6 +26,7 @@
   (import (scheme base)
     (scheme write)
     (liii base)
+    (liii list)
     (liii string)
     (liii unicode)
     (liii tui text-width)
@@ -75,21 +76,16 @@
         (if (and empty? (not (string=? placeholder "")) (not focused?))
           ;; 未聚焦且为空时显示占位文本
           (if (<= width 0) '("") (wrap-text placeholder width))
-          (let loop
-            ((rest lines) (r 0) (acc '()))
-            (if (null? rest)
-              (reverse acc)
-              (let* ((line (car rest))
-                     (line-rendered (if (and focused? (= r row))
-                                      (render-line-with-cursor line col #t cursor-style)
-                                      line
-                                    ) ;if
-                     ) ;line-rendered
-                    ) ;
-                (loop (cdr rest) (+ r 1) (cons line-rendered acc))
-              ) ;let*
-            ) ;if
-          ) ;let
+          (map
+            (lambda (line r)
+              (if (and focused? (= r row))
+                (render-line-with-cursor line col #t cursor-style)
+                line
+              ) ;if
+            ) ;lambda
+            lines
+            (iota (length lines))
+          ) ;map
         ) ;if
       ) ;let*
     ) ;define

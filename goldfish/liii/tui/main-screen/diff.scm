@@ -25,7 +25,7 @@
   (export screen-diff screen-dirty-diff diff-op-type diff-op-index diff-op-text
     screen-diff-has-changes?
   ) ;export
-  (import (scheme base) (scheme write) (liii base) (liii error))
+  (import (scheme base) (scheme write) (liii base) (liii error) (liii list))
   (begin
 
     (define (%check-lines lst caller)
@@ -57,13 +57,10 @@
     ) ;define
 
     (define (screen-diff-has-changes? diff-ops)
-      (let loop
-        ((ops diff-ops))
-        (cond ((null? ops) #f)
-              ((eq? (car (car ops)) 'keep) (loop (cdr ops)))
-              (else #t)
-        ) ;cond
-      ) ;let
+      (any
+        (lambda (op) (not (eq? (car op) 'keep)))
+        diff-ops
+      ) ;any
     ) ;define
 
     (define (screen-diff old-lines new-lines)
@@ -73,46 +70,33 @@
              (len-new (length new-lines))
              (max-len (max len-old len-new))
             ) ;
-        (let loop
-          ((i 0) (acc '()))
-          (if (= i max-len)
-            (reverse acc)
-            (let ((op
-                    (cond
-                     ((and (< i len-old) (< i len-new))
-                      (let ((old-str (list-ref old-lines i)) (new-str (list-ref new-lines i)))
-                        (if (string=? old-str new-str) (list 'keep i) (list 'update i new-str))
-                      ) ;let
-                     ) ;
-                     ((and (>= i len-old) (< i len-new)) (list 'append i (list-ref new-lines i)))
-                     (else (list 'clear i))
-                    ) ;cond
-                  ) ;op
-                 ) ;
-              (loop (+ i 1) (cons op acc))
-            ) ;let
-          ) ;if
-        ) ;let
+        (map
+          (lambda (i)
+            (cond
+             ((and (< i len-old) (< i len-new))
+              (let ((old-str (list-ref old-lines i)) (new-str (list-ref new-lines i)))
+                (if (string=? old-str new-str) (list 'keep i) (list 'update i new-str))
+              ) ;let
+             ) ;
+             ((and (>= i len-old) (< i len-new)) (list 'append i (list-ref new-lines i)))
+             (else (list 'clear i))
+            ) ;cond
+          ) ;lambda
+          (iota max-len)
+        ) ;map
       ) ;let*
     ) ;define
 
     (define (screen-dirty-diff old-lines new-lines)
       (%check-lines old-lines "screen-dirty-diff: old-lines")
       (%check-lines new-lines "screen-dirty-diff: new-lines")
-      (let* ((len-old (length old-lines))
-             (len-new (length new-lines))
-             (max-len (max len-old len-new))
-            ) ;
-        (let loop
-          ((i 0) (acc '()))
-          (if (= i max-len)
-            (reverse acc)
-            (let ((op (if (< i len-new) (list 'update i (list-ref new-lines i)) (list 'clear i)))
-                 ) ;
-              (loop (+ i 1) (cons op acc))
-            ) ;let
-          ) ;if
-        ) ;let
+      (let* ((len-new (length new-lines)) (max-len (max (length old-lines) len-new)))
+        (map
+          (lambda (i)
+            (if (< i len-new) (list 'update i (list-ref new-lines i)) (list 'clear i))
+          ) ;lambda
+          (iota max-len)
+        ) ;map
       ) ;let*
     ) ;define
 

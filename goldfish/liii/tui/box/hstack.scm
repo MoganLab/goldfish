@@ -25,6 +25,7 @@
   (export make-hstack hstack?)
   (import (liii base)
     (liii error)
+    (liii list)
     (liii string)
     (liii tui component)
     (liii tui text-width)
@@ -145,15 +146,9 @@
                      ) ;padded-cols
                      (space-str (make-string spacing #\space))
                     ) ;
-                (let loop
-                  ((r 0) (acc '()))
-                  (if (>= r max-h)
-                    (reverse acc)
-                    (let ((row-str (%render-hstack-row padded-cols col-widths num-cols space-str r)))
-                      (loop (+ r 1) (cons row-str acc))
-                    ) ;let
-                  ) ;if
-                ) ;let
+                (map (lambda (r) (%render-hstack-row padded-cols col-widths num-cols space-str r))
+                  (iota max-h)
+                ) ;map
               ) ;let*
             ) ;if
           ) ;let*
