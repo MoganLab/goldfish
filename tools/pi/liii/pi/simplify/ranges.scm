@@ -39,16 +39,6 @@
       ) ;if
     ) ;define
 
-    (define (%first-space text start)
-      (let loop
-        ((i start))
-        (cond ((>= i (string-length text)) #f)
-              ((char-whitespace? (string-ref text i)) i)
-              (else (loop (+ i 1)))
-        ) ;cond
-      ) ;let
-    ) ;define
-
     (define (%parse-hunk-header line)
       (let* ((trimmed (string-trim-both line))
              (plus (and (string-starts? trimmed "@@") (string-index trimmed #\+)))
@@ -57,7 +47,7 @@
           #f
           (let* ((rest (substring trimmed (+ plus 1) (string-length trimmed)))
                  (comma (string-index rest #\,))
-                 (space (%first-space rest 0))
+                 (space (string-index rest char-whitespace?))
                  (start-end (if comma comma (if space space (string-length rest))))
                  (start (%parse-number rest 0 start-end))
                  (count-end (if space space (string-length rest)))
@@ -90,33 +80,29 @@
     ) ;define
 
     (define (pi-parse-changed-ranges output)
-      (let loop
-        ((lines (string-split (or output "") "\n")) (acc '()))
-        (if (null? lines)
-          (reverse acc)
-          (let ((range (%parse-hunk-header (car lines))))
-            (loop (cdr lines) (if range (%merge-range acc range) acc))
-          ) ;let
-        ) ;if
-      ) ;let
+      (reverse
+        (fold
+          (lambda (line acc)
+            (let ((range (%parse-hunk-header line)))
+              (if range (%merge-range acc range) acc)
+            ) ;let
+          ) ;lambda
+          '()
+          (string-split (or output "") "\n")
+        ) ;fold
+      ) ;reverse
     ) ;define
 
     (define (%safe-token? text)
-      (let loop
-        ((i 0))
-        (if (>= i (string-length text))
-          #t
-          (let ((ch (string-ref text i)))
-            (if (or (char-alphabetic? ch)
-                  (char-numeric? ch)
-                  (memv ch '(#\. #\_ #\/ #\~ #\- #\^ #\@ #\+))
-                ) ;or
-              (loop (+ i 1))
-              #f
-            ) ;if
-          ) ;let
-        ) ;if
-      ) ;let
+      (string-every
+        (lambda (ch)
+          (or (char-alphabetic? ch)
+            (char-numeric? ch)
+            (memv ch '(#\. #\_ #\/ #\~ #\- #\^ #\@ #\+))
+          ) ;or
+        ) ;lambda
+        text
+      ) ;string-every
     ) ;define
 
     (define (%shell-quote text)

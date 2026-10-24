@@ -5,7 +5,7 @@
 ;;
 
 (define-library (liii pi compact serialize)
-  (import (scheme base) (scheme write) (liii string) (liii pi message))
+  (import (scheme base) (scheme write) (liii string) (liii list) (liii pi message))
   (export pi-truncate-for-summary pi-serialize-conversation)
   (begin
 
@@ -35,24 +35,21 @@
     ) ;define
 
     (define (%content-text content)
-      (cond ((string? content) content)
-            (else
-              (let loop
-                ((rest (%blocks content)) (acc '()))
-                (if (null? rest)
-                  (string-join (reverse acc) "")
-                  (let* ((blk (%block-text (car rest))) (text (%ref blk "text")))
-                    (loop (cdr rest)
-                      (if (and (equal? (%ref blk "type") "text") (string? text) (not (string-null? text)))
-                        (cons text acc)
-                        acc
-                      ) ;if
-                    ) ;loop
-                  ) ;let*
-                ) ;if
-              ) ;let
-            ) ;else
-      ) ;cond
+      (if (string? content)
+        content
+        (string-join
+          (filter
+            (lambda (t) (and (string? t) (not (string-null? t))))
+            (map
+              (lambda (blk)
+                (and (equal? (%ref blk "type") "text") (%ref blk "text"))
+              ) ;lambda
+              (map %block-text (%blocks content))
+            ) ;map
+          ) ;filter
+          ""
+        ) ;string-join
+      ) ;if
     ) ;define
 
     (define (%json-value v)
@@ -92,37 +89,25 @@
     ) ;define
 
     (define (%assistant-tool-calls content)
-      (let loop
-        ((rest (%blocks content)) (acc '()))
-        (if (null? rest)
-          (reverse acc)
-          (let ((blk (%block-text (car rest))))
-            (if (equal? (%ref blk "type") "toolCall")
-              (loop (cdr rest)
-                (cons (string-append (%ref blk "name") "(" (%format-args (%ref blk "arguments")) ")")
-                  acc
-                ) ;cons
-              ) ;loop
-              (loop (cdr rest) acc)
-            ) ;if
-          ) ;let
-        ) ;if
-      ) ;let
+      (map
+        (lambda (blk)
+          (string-append (%ref blk "name") "(" (%format-args (%ref blk "arguments")) ")")
+        ) ;lambda
+        (filter (lambda (blk) (equal? (%ref blk "type") "toolCall"))
+          (map %block-text (%blocks content))
+        ) ;filter
+      ) ;map
     ) ;define
 
     (define (%has-text-block? content)
-      (let loop
-        ((rest (%blocks content)))
-        (cond ((null? rest) #f)
-              ((and
-                 (equal? (%ref (%block-text (car rest)) "type") "text")
-                 (string? (%ref (%block-text (car rest)) "text"))
-               ) ;and
-               #t
-              ) ;
-              (else (loop (cdr rest)))
-        ) ;cond
-      ) ;let
+      (any
+        (lambda (blk)
+          (and (equal? (%ref blk "type") "text")
+            (string? (%ref blk "text"))
+          ) ;and
+        ) ;lambda
+        (map %block-text (%blocks content))
+      ) ;any
     ) ;define
 
     (define (pi-truncate-for-summary text max-chars)
@@ -174,13 +159,7 @@
     ) ;define
 
     (define (pi-serialize-conversation msgs)
-      (let loop
-        ((rest msgs) (parts '()))
-        (if (null? rest)
-          (string-join (reverse parts) "\n\n")
-          (loop (cdr rest) (append (reverse (%message-parts (car rest))) parts))
-        ) ;if
-      ) ;let
+      (string-join (append-map %message-parts msgs) "\n\n")
     ) ;define
 
   ) ;begin

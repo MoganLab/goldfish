@@ -8,6 +8,7 @@
   (import (scheme base)
     (scheme file)
     (liii string)
+    (liii list)
     (liii path)
     (liii json)
     (liii uuid)
@@ -48,39 +49,24 @@
       (let ((p-str (if (string? file-path) file-path (path->string file-path))))
         (if (not (file-exists? p-str))
           '()
-          (let loop
-            ((lines (path-read-lines p-str)) (acc '()))
-            (if (null? lines)
-              (reverse acc)
-              (let ((entry (%parse-line (car lines))))
-                (loop (cdr lines) (if entry (cons entry acc) acc))
-              ) ;let
-            ) ;if
-          ) ;let
+          (filter (lambda (e) e) (map %parse-line (path-read-lines p-str)))
         ) ;if
       ) ;let
     ) ;define
 
     (define (%entry-index-by-id entries id)
-      (let loop
-        ((rest entries) (idx 0))
-        (cond ((null? rest) #f)
-              ((equal? (%ref (car rest) "id") id) idx)
-              (else (loop (cdr rest) (+ idx 1)))
-        ) ;cond
-      ) ;let
+      (list-index (lambda (e) (equal? (%ref e "id") id)) entries)
     ) ;define
 
     (define (%last-compaction-index entries)
-      (let loop
-        ((rest entries) (idx 0) (found #f))
-        (if (null? rest)
-          found
-          (loop (cdr rest)
-            (+ idx 1)
-            (if (equal? (%ref (car rest) "type") "compaction") idx found)
-          ) ;loop
-        ) ;if
+      (let ((rev-idx
+              (list-index
+                (lambda (e) (equal? (%ref e "type") "compaction"))
+                (reverse entries)
+              ) ;list-index
+            ) ;rev-idx
+           ) ;
+        (and rev-idx (- (length entries) 1 rev-idx))
       ) ;let
     ) ;define
 
@@ -110,21 +96,19 @@
     ) ;define
 
     (define (%messages-from entries start)
-      (let loop
-        ((rest entries) (idx 0) (acc '()))
-        (if (null? rest)
-          (reverse acc)
-          (let ((msg
-                  (and (equal? (%ref (car rest) "type") "message") (%ref (car rest) "message"))
-                ) ;msg
-               ) ;
-            (loop (cdr rest)
-              (+ idx 1)
-              (if (and msg (>= idx start)) (cons (%as-pi-message msg) acc) acc)
-            ) ;loop
-          ) ;let
-        ) ;if
-      ) ;let
+      (filter (lambda (m) m)
+        (map (lambda (entry idx)
+               (and (>= idx start)
+                 (equal? (%ref entry "type") "message")
+                 (let ((m (%ref entry "message")))
+                   (and m (%as-pi-message m))
+                 ) ;let
+               ) ;and
+             ) ;lambda
+          entries
+          (iota (length entries))
+        ) ;map
+      ) ;filter
     ) ;define
 
     (define (pi-last-compaction-summary entries)
@@ -178,20 +162,13 @@
     ) ;define
 
     (define (%kept-message-count entries start)
-      (let loop
-        ((rest entries) (idx 0) (acc 0))
-        (if (null? rest)
-          acc
-          (loop (cdr rest)
-            (+ idx 1)
-            (if
-              (and (>= idx start) (equal? (%ref (car rest) "type") "message"))
-              (+ acc 1)
-              acc
-            ) ;if
-          ) ;loop
-        ) ;if
-      ) ;let
+      (count
+        (lambda (entry idx)
+          (and (>= idx start) (equal? (%ref entry "type") "message"))
+        ) ;lambda
+        entries
+        (iota (length entries))
+      ) ;count
     ) ;define
 
     (define* (pi-compact-session! config file-path settings (timeout 600) (reason "manual"))
