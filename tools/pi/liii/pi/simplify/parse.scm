@@ -33,10 +33,7 @@
                    ) ;if
                  ) ;body
                 ) ;
-            (if (string-ends? body "```")
-              (string-remove-suffix body "```")
-              body
-            ) ;if
+            (if (string-ends? body "```") (string-remove-suffix body "```") body)
           ) ;let*
           trimmed
         ) ;if
