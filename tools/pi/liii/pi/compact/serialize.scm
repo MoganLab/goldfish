@@ -5,7 +5,12 @@
 ;;
 
 (define-library (liii pi compact serialize)
-  (import (scheme base) (scheme write) (liii string) (liii list) (liii pi message))
+  (import (scheme base)
+    (scheme write)
+    (liii string)
+    (liii list)
+    (liii pi message)
+  ) ;import
   (export pi-truncate-for-summary pi-serialize-conversation)
   (begin
 
@@ -41,9 +46,7 @@
           (filter
             (lambda (t) (and (string? t) (not (string-null? t))))
             (map
-              (lambda (blk)
-                (and (equal? (%ref blk "type") "text") (%ref blk "text"))
-              ) ;lambda
+              (lambda (blk) (and (equal? (%ref blk "type") "text") (%ref blk "text")))
               (map %block-text (%blocks content))
             ) ;map
           ) ;filter
@@ -102,9 +105,7 @@
     (define (%has-text-block? content)
       (any
         (lambda (blk)
-          (and (equal? (%ref blk "type") "text")
-            (string? (%ref blk "text"))
-          ) ;and
+          (and (equal? (%ref blk "type") "text") (string? (%ref blk "text")))
         ) ;lambda
         (map %block-text (%blocks content))
       ) ;any

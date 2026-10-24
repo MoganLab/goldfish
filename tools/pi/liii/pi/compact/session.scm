@@ -60,8 +60,7 @@
 
     (define (%last-compaction-index entries)
       (let ((rev-idx
-              (list-index
-                (lambda (e) (equal? (%ref e "type") "compaction"))
+              (list-index (lambda (e) (equal? (%ref e "type") "compaction"))
                 (reverse entries)
               ) ;list-index
             ) ;rev-idx
@@ -97,14 +96,15 @@
 
     (define (%messages-from entries start)
       (filter (lambda (m) m)
-        (map (lambda (entry idx)
-               (and (>= idx start)
-                 (equal? (%ref entry "type") "message")
-                 (let ((m (%ref entry "message")))
-                   (and m (%as-pi-message m))
-                 ) ;let
-               ) ;and
-             ) ;lambda
+        (map
+          (lambda (entry idx)
+            (and (>= idx start)
+              (equal? (%ref entry "type") "message")
+              (let ((m (%ref entry "message")))
+                (and m (%as-pi-message m))
+              ) ;let
+            ) ;and
+          ) ;lambda
           entries
           (iota (length entries))
         ) ;map
@@ -163,9 +163,7 @@
 
     (define (%kept-message-count entries start)
       (count
-        (lambda (entry idx)
-          (and (>= idx start) (equal? (%ref entry "type") "message"))
-        ) ;lambda
+        (lambda (entry idx) (and (>= idx start) (equal? (%ref entry "type") "message")))
         entries
         (iota (length entries))
       ) ;count

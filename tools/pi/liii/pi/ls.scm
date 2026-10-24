@@ -10,6 +10,7 @@
   (import (scheme base)
     (scheme char)
     (liii string)
+    (liii list)
     (liii os)
     (liii path)
     (liii sort)
@@ -49,20 +50,17 @@
     ) ;define
 
     (define (%format-entries entries abs-path effective-limit)
-      (let loop
-        ((lst entries) (count 0) (acc '()))
-        (cond ((null? lst) (values (reverse acc) #f))
-              ((>= count effective-limit) (values (reverse acc) #t))
-              (else
-                (let* ((entry (car lst))
-                       (full-p (path-join (path abs-path) (path entry)))
-                       (suffix (if (path-dir? full-p) "/" ""))
-                      ) ;
-                  (loop (cdr lst) (+ count 1) (cons (string-append entry suffix) acc))
-                ) ;let*
-              ) ;else
-        ) ;cond
-      ) ;let
+      (values
+        (map
+          (lambda (entry)
+            (let ((full-p (path-join (path abs-path) (path entry))))
+              (string-append entry (if (path-dir? full-p) "/" ""))
+            ) ;let
+          ) ;lambda
+          (list-take entries effective-limit)
+        ) ;map
+        (> (length entries) effective-limit)
+      ) ;values
     ) ;define
 
     (define (%build-notices limit-reached? effective-limit truncated?)
