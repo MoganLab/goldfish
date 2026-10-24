@@ -170,21 +170,24 @@
     (define (pi-app-working-tick! app)
       (let ((q (pi-app-queue app)) (ind (pi-app-working app)))
         (if (not (pi-queue-busy? q))
-          (begin (working-reset! ind) #f)
+          (begin
+            (working-reset! ind)
+            #f
+          ) ;begin
           (let ((now (current-monotonic-millis)))
             (cond ((not (working-last-tick ind))
-                    ;; busy 首拍：无论从何种路径进入 busy，都从 ⠋ 起始
-                    (working-reset! ind)
-                    (working-last-tick-set! ind now)
-                    (pi-app-render! app)
-                    #t
-                  ) ;branch
+                   ;; busy 首拍：无论从何种路径进入 busy，都从 ⠋ 起始
+                   (working-reset! ind)
+                   (working-last-tick-set! ind now)
+                   (pi-app-render! app)
+                   #t
+                  ) ;
                   ((>= (- now (working-last-tick ind)) %working-frame-interval-ms)
-                    (working-advance! ind)
-                    (working-last-tick-set! ind now)
-                    (pi-app-render! app)
-                    #t
-                  ) ;branch
+                   (working-advance! ind)
+                   (working-last-tick-set! ind now)
+                   (pi-app-render! app)
+                   #t
+                  ) ;
                   (else #f)
             ) ;cond
           ) ;let
@@ -273,8 +276,17 @@
              (queue (make-pi-message-queue))
              (jobs-chan (make-chan 16))
              (event-chan (make-chan 32))
-             (app (%make-pi-app actual-term screen doc chat pending-box #f
-                    footer queue handler-opt jobs-chan event-chan
+             (app (%make-pi-app actual-term
+                    screen
+                    doc
+                    chat
+                    pending-box
+                    #f
+                    footer
+                    queue
+                    handler-opt
+                    jobs-chan
+                    event-chan
                     (make-working-indicator)
                   ) ;%make-pi-app
              ) ;app

@@ -51,7 +51,7 @@
                        (pi-app-working-tick! app)
                        (sleep 0.01)
                        (loop)
-                      ) ;not k
+                      ) ;
                       (else (component-handle-input ed k) (pi-app-render! app) (loop))
                 ) ;cond
               ) ;let
