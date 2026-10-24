@@ -170,10 +170,6 @@
         "reason": "排版引擎 reader 互递归闭包核心算法不可分割"
       },
       {
-        "path": "goldfish/liii/goldfmt/format/walk.scm",
-        "reason": "排版引擎节点游走核心算法不可分割"
-      },
-      {
         "path": "goldfish/liii/goldfmt/scan/literal.scm",
         "reason": "reader 字面量改写状态机实现"
       },
