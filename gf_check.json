@@ -9,11 +9,72 @@
       "enabled": true,
       "limit": 15
     },
+    "define-record-type": {
+      "enabled": true
+    },
     "layer-order": {
       "file": "gf_check_layer_order.json"
     }
   },
   "excludes": {
+    "define-record-type": [
+      {
+        "path": "goldfish/liii/sse.scm",
+        "reason": "历史遗留：<xxx> 错误导出与占位定义，待 #1202 清理"
+      },
+      {
+        "path": "goldfish/liii/tui.scm",
+        "reason": "历史遗留：<xxx> 错误转发导出，待 #1202 清理"
+      },
+      {
+        "path": "goldfish/liii/tui/box.scm",
+        "reason": "历史遗留：<xxx> 错误转发导出，待 #1202 清理"
+      },
+      {
+        "path": "goldfish/liii/tui/box/border.scm",
+        "reason": "历史遗留：<xxx> 错误导出与占位定义，待 #1202 清理"
+      },
+      {
+        "path": "goldfish/liii/tui/component.scm",
+        "reason": "历史遗留：<xxx> 错误导出与占位定义，待 #1202 清理"
+      },
+      {
+        "path": "goldfish/liii/tui/editor/state.scm",
+        "reason": "历史遗留：<xxx> 错误导出与占位定义，待 #1202 清理"
+      },
+      {
+        "path": "goldfish/liii/tui/loader/state.scm",
+        "reason": "历史遗留：<xxx> 错误导出与占位定义，待 #1202 清理"
+      },
+      {
+        "path": "goldfish/liii/tui/main-screen.scm",
+        "reason": "历史遗留：<xxx> 错误转发导出，待 #1202 清理"
+      },
+      {
+        "path": "goldfish/liii/tui/main-screen/buffer.scm",
+        "reason": "历史遗留：<xxx> 错误导出与占位定义，待 #1202 清理"
+      },
+      {
+        "path": "goldfish/liii/tui/main-screen/driver.scm",
+        "reason": "历史遗留：<xxx> 错误导出与占位定义，待 #1202 清理"
+      },
+      {
+        "path": "goldfish/liii/tui/terminal.scm",
+        "reason": "历史遗留：<xxx> 错误转发导出，待 #1202 清理"
+      },
+      {
+        "path": "goldfish/liii/tui/terminal/protocol.scm",
+        "reason": "历史遗留：<xxx> 错误导出与占位定义，待 #1202 清理"
+      },
+      {
+        "path": "goldfish/liii/tui/terminal/virtual/state.scm",
+        "reason": "历史遗留：<xxx> 错误导出与占位定义，待 #1202 清理"
+      },
+      {
+        "path": "demo/tui/snake/logic.scm",
+        "reason": "历史遗留：<xxx> 错误导出与占位定义，待 #1202 清理"
+      }
+    ],
     "max-file-lines": [
       {
         "path": "goldfish/srfi/",

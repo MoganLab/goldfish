@@ -36,6 +36,7 @@
     (define (validate-rule-name! name)
       (unless (or (string=? name "max-file-lines")
                 (string=? name "max-tree-depth")
+                (string=? name "define-record-type")
                 (string=? name "layer-order")
               ) ;or
         (value-error "unknown rule: ~A" name)

@@ -21,6 +21,12 @@ gf check [options] [PATH...]
    - 默认上限：单个顶级表达式的最大括号嵌套深度不得超过 15 层（基于 `(liii tree)` 的 `(tree-depth expr)` 度量）
    - 引导开发者提取辅助过程、使用 `(liii match)` 模式匹配、管道流扁平化深层嵌套，降低认知负荷
 
+3. **define-record-type**：记录类型句法标识导出限制
+   - R7RS/SRFI 9 中 `(define-record-type <t> ...)` 的 `<t>` 仅是句法标识，不对应运行时绑定
+   - `<xxx>` 形状的符号不得出现在 `(export ...)` 中（含 `rename` 内外两个位置，转发导出同样违规）
+   - 禁止 `(define <xxx> '<xxx>)` 占位定义
+   - 项目约定：记录类型名统一用 `<xxx>` 形状，构造器/谓词/访问器才是应导出的绑定
+
 ## Options
 
 - `-h, --help`: 显示帮助信息
