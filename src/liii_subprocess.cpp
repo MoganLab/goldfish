@@ -398,6 +398,24 @@ struct Subprocess {
     }
     else {
       if (update_status ()) {
+        // 进程刚退出时，退出前瞬间 flush 的数据可能尚未出现在本次 Peek 结果
+        // 中：退出后再确认一次，避免置 EOF 时丢弃管道中的尾数据（与 POSIX
+        // 分支退出后的 final read 语义对齐）。进程句柄 signaled 时其 stdio
+        // 缓冲已全部写入内核管道，二次 Peek 即可覆盖
+        if (!PeekNamedPipe (h, NULL, 0, NULL, &avail, NULL)) {
+          eof= true;
+          return 0;
+        }
+        if (avail > 0) {
+          char  tmp[65536];
+          DWORD to_read= (std::min) ((DWORD) sizeof (tmp), avail);
+          DWORD n      = 0;
+          if (ReadFile (h, tmp, to_read, &n, NULL) && n > 0) {
+            buf.append (tmp, n);
+            update_activity ();
+            return (int) n;
+          }
+        }
         eof= true;
         return 0;
       }
