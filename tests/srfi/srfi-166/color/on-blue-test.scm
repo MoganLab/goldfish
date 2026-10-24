@@ -21,6 +21,12 @@
 ;; 示例
 ;; ----
 ;; (show #f (on-blue "blue-bg")) => "\x1b[44mblue-bg\x1b[49m"
+;;
+;; 另见
+;; ----
+;; (liii format color) 同名再导出本函数，日常使用更推荐导入该库：
+;;   (import (liii format color))
+;;   (show #f (on-blue "blue-bg"))
 
 (check (show #f (on-blue "blue-bg")) => "\x1b[44mblue-bg\x1b[49m")
 (check (show #f (on-red "red-bg")) => "\x1b[41mred-bg\x1b[49m")

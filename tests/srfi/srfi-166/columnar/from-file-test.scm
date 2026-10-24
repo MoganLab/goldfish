@@ -15,6 +15,12 @@
 ;; 示例
 ;; ----
 ;; (show #f (from-file "test.txt"))
+;;
+;; 另见
+;; ----
+;; (liii format columnar) 同名再导出本函数，日常使用更推荐导入该库：
+;;   (import (liii format columnar))
+;;   (show #f (from-file "test.txt"))
 
 (let* ((tmp-file "tests/resources/test-columnar-from-file.txt")
        (content "first line\nsecond line\nthird line"))

@@ -19,6 +19,12 @@
 ;; ----
 ;; (show #f (joined each '(1 2 3) " ")) => "1 2 3"
 ;; (show #f (joined/prefix each '("a" "b") ":")) => ":a:b"
+;;
+;; 另见
+;; ----
+;; (liii format base) 同名再导出本函数，日常使用更推荐导入该库：
+;;   (import (liii format base))
+;;   (show #f (joined each '(1 2 3) " "))
 
 (check (show #f (joined each '(1 2 3) " ")) => "1 2 3")
 (check (show #f (joined/prefix (lambda (x) (trimmed/right 3 x)) '("abcdef" "123456") ":"))

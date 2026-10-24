@@ -17,6 +17,12 @@
 ;; ----
 ;; (string-terminal-width "日本語") => 6
 ;; (substring-terminal-width "ａｂｃ" 0 4) => "ａｂ"
+;;
+;; 另见
+;; ----
+;; (liii format unicode) 同名再导出本函数，日常使用更推荐导入该库：
+;;   (import (liii format unicode))
+;;   (string-terminal-width "日本語")
 
 (check (string-terminal-width "日本語") => 6)
 (check (string-terminal-width "abc") => 3)

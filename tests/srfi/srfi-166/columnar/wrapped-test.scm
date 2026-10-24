@@ -16,6 +16,12 @@
 ;; 示例
 ;; ----
 ;; (show #f (with ((width 8)) (wrapped "hello world"))) => "hello\nworld"
+;;
+;; 另见
+;; ----
+;; (liii format columnar) 同名再导出本函数，日常使用更推荐导入该库：
+;;   (import (liii format columnar))
+;;   (show #f (with ((width 8)) (wrapped "hello world")))
 
 (check (show #f (wrapped "foo")) => "foo")
 (check (show #f (wrapped "    ")) => "")

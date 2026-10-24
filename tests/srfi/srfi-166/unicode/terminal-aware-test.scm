@@ -15,6 +15,12 @@
 ;; 示例
 ;; ----
 ;; (show #f (terminal-aware (padded/both 10 "日本語"))) => "  日本語  "
+;;
+;; 另见
+;; ----
+;; (liii format unicode) 同名再导出本函数，日常使用更推荐导入该库：
+;;   (import (liii format unicode))
+;;   (show #f (terminal-aware (padded/both 10 "日本語")))
 
 (check (show #f (terminal-aware (with ((pad-char #\~)) (padded/both 10 "日本語"))))
        => "~~日本語~~")

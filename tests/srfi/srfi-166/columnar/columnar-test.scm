@@ -16,6 +16,12 @@
 ;; 示例
 ;; ----
 ;; (show #f (columnar (each "*"))) => "*\n"
+;;
+;; 另见
+;; ----
+;; (liii format columnar) 同名再导出本函数，日常使用更推荐导入该库：
+;;   (import (liii format columnar))
+;;   (show #f (columnar (each "*")))
 
 (check (show #f (columnar)) => "\n")
 (check (show #f (columnar (each "*"))) => "*\n")

@@ -17,6 +17,12 @@
 ;; 示例
 ;; ----
 ;; (show #f (pretty '(foo bar))) => "(foo bar)\n"
+;;
+;; 另见
+;; ----
+;; (liii format pretty) 同名再导出本函数，日常使用更推荐导入该库：
+;;   (import (liii format pretty))
+;;   (show #f (pretty '(foo bar)))
 
 (check (show #f (pretty '(foo bar))) => "(foo bar)\n")
 

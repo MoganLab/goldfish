@@ -16,6 +16,12 @@
 ;; ----
 ;; (show #f (written "hi")) => "\"hi\""
 ;; (show #f (written '(1 2 3))) => "(1 2 3)"
+;;
+;; 另见
+;; ----
+;; (liii format base) 同名再导出本函数，日常使用更推荐导入该库：
+;;   (import (liii format base))
+;;   (show #f (written '(1 2 3)))
 
 (check (show #f (written "hi")) => "\"hi\"")
 (check (show #f (written "hi \"bob\"")) => "\"hi \\\"bob\\\"\"")

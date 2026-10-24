@@ -18,6 +18,12 @@
 ;; (show #f (trimmed 3 "abcde")) => "cde"
 ;; (show #f (trimmed/right 3 "abcde")) => "abc"
 ;; (show #f (trimmed/both 3 "abcde")) => "bcd"
+;;
+;; 另见
+;; ----
+;; (liii format base) 同名再导出本函数，日常使用更推荐导入该库：
+;;   (import (liii format base))
+;;   (show #f (trimmed 3 "abcde"))
 
 (check (show #f (trimmed 3 "abcde")) => "cde")
 (check (show #f (trimmed/right 3 "abcde")) => "abc")
