@@ -164,10 +164,6 @@
       {
         "path": "goldfish/scheme/boot.scm",
         "reason": "Goldfish 系统自举入口与环境初始化"
-      },
-      {
-        "path": "goldfish/liii/goldfmt/scan/normalize.scm",
-        "reason": "datum 归一化状态机实现"
       }
     ]
   }
