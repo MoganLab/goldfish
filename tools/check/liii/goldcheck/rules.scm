@@ -47,7 +47,7 @@
       (newline)
       (display "Rules:")
       (newline)
-      (display "  layer-order            域间依赖与域内层序约束（tools/pi 暂缓纳入）"
+      (display "  layer-order            域间依赖与域内层序约束（tools/pi 含 ai/agent/code 三层）"
       ) ;display
       (newline)
       (display "  max-file-lines         单文件行数限制（默认 <= 400 行，含空行与注释）"
