@@ -188,6 +188,33 @@
   (check (cdr (assoc 'context-window meta)) => 1000000)
   (check (cdr (assoc 'max-tokens meta)) => 512000))
 
+;; 旧 baseUrl 带尾斜杠时也能归一（URI 层面比较）
+(let* ((mm-store
+         '(("minimax" . (("models" . #((("id" . "MiniMax-M3")
+                                        ("baseUrl" . "https://api.minimax.io/")
+                                        ("contextWindow" . 1000000)
+                                        ("maxTokens" . 512000))))))))
+       (meta (pi-resolve-model-metadata "minimax" "MiniMax-M3" mm-store (list NO-ENV))))
+  (check (cdr (assoc 'base-url meta)) => "https://api.minimaxi.com/anthropic"))
+
+;; kimi 旧 baseUrl 带尾斜杠时也能归一
+(let* ((k-store
+         '(("kimi-coding" . (("models" . #((("id" . "kimi-for-coding")
+                                          ("baseUrl" . "https://api.kimi.com/coding/")
+                                          ("contextWindow" . 262144)
+                                          ("maxTokens" . 8192))))))))
+       (meta (pi-resolve-model-metadata "kimi-coding" "kimi-for-coding" k-store (list NO-ENV))))
+  (check (cdr (assoc 'base-url meta)) => "https://api.kimi.com/coding/v1"))
+
+;; deepseek 旧 baseUrl 显式默认端口时也能归一
+(let* ((ds-store
+         '(("deepseek" . (("models" . #((("id" . "deepseek-chat")
+                                       ("baseUrl" . "https://api.deepseek.com:443")
+                                       ("contextWindow" . 128000)
+                                       ("maxTokens" . 8192))))))))
+       (meta (pi-resolve-model-metadata "deepseek" "deepseek-chat" ds-store (list NO-ENV))))
+  (check (cdr (assoc 'base-url meta)) => "https://api.deepseek.com/anthropic"))
+
 ;; minimax 端点环境变量覆盖
 (let* ((env '(("MINIMAX_BASE_URL" . "https://proxy.example.com/minimax")))
        (meta (pi-resolve-model-metadata "minimax" "MiniMax-M3.1-Flash" '() env)))

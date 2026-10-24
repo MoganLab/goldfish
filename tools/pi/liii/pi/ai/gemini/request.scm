@@ -9,6 +9,7 @@
     (scheme write)
     (liii string)
     (liii list)
+    (liii uri)
     (liii json)
     (liii http)
     (liii error)
@@ -23,8 +24,28 @@
   ) ;import
   (export gemini-request gemini-parse-response gemini-is-retriable-error?
     gemini-build-tool-declarations format-failed-stream-msg
+    gemini-build-endpoint gemini-build-stream-endpoint
   ) ;export
   (begin
+
+    (define (gemini-build-endpoint base-url model-id)
+      (uri->string (uri-join-path (make-uri (or base-url "https://generativelanguage.googleapis.com/v1beta"))
+                     "models"
+                     (string-append model-id ":generateContent")
+                   ) ;uri-join-path
+      ) ;uri->string
+    ) ;define
+
+    (define (gemini-build-stream-endpoint base-url model-id)
+      (uri->string
+        (uri-extend-query (uri-join-path (make-uri (or base-url "https://generativelanguage.googleapis.com/v1beta"))
+                            "models"
+                            (string-append model-id ":streamGenerateContent")
+                          ) ;uri-join-path
+          '(("alt" . "sse"))
+        ) ;uri-extend-query
+      ) ;uri->string
+    ) ;define
 
     (define (%make-error-response msg usage)
       (pi-assistant-message (list (pi-text-block ""))
@@ -209,7 +230,7 @@
                             ) ;or
                        ) ;cdr
              ) ;base-url
-             (url (string-append base-url "/models/" model-id ":generateContent"))
+             (url (gemini-build-endpoint base-url model-id))
              (eff-tool-names (or tool-names (cdr (assoc 'tools config))))
              (tool-resolver (if (assoc 'tool-resolver config)
                               (cdr (assoc 'tool-resolver config))

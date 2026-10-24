@@ -247,7 +247,7 @@
                                                                . "https://api.anthropic.com")))
              ) ;base-url
              (max-tokens (cdr (or (assoc 'max-tokens model-meta) '(#f . 8192))))
-             (url (string-append base-url "/v1/messages"))
+             (url (anthropic-build-endpoint base-url))
              (eff-tool-names (or tool-names (cdr (assoc 'tools config))))
              (tool-resolver (if (assoc 'tool-resolver config)
                               (cdr (assoc 'tool-resolver config))

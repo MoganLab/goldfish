@@ -20,4 +20,22 @@
   "https://open.bigmodel.cn/api/coding/paas/v4/chat/completions"
 ) ;check
 
+;; 缺省值
+(check (zai-build-endpoint #f)
+  =>
+  "https://open.bigmodel.cn/api/coding/paas/v4/chat/completions"
+) ;check
+
+;; 仅主机名，无路径
+(check (zai-build-endpoint "http://localhost:8080")
+  =>
+  "http://localhost:8080/chat/completions"
+) ;check
+
+;; 已带 /chat/completions 且带尾斜杠
+(check (zai-build-endpoint "http://localhost:8080/chat/completions/")
+  =>
+  "http://localhost:8080/chat/completions"
+) ;check
+
 (check-report)
