@@ -1,5 +1,5 @@
 (import (liii check)
-        (liii format base))
+        (srfi srfi-166 base))
 
 (check-set-mode! 'report-failed)
 
@@ -17,6 +17,12 @@
 ;; (show #f (fitted 5 "abc")) => "  abc"
 ;; (show #f (fitted/right 5 "abc")) => "abc  "
 ;; (show #f (fitted 5 "abcdefgh")) => "defgh"
+;;
+;; 另见
+;; ----
+;; (liii format base) 同名再导出本函数，日常使用更推荐导入该库：
+;;   (import (liii format base))
+;;   (show #f (fitted 5 "abc"))
 
 (check (show #f (fitted 5 "abc")) => "  abc")
 (check (show #f (fitted/right 5 "abc")) => "abc  ")

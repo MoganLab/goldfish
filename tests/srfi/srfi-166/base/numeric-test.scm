@@ -1,5 +1,5 @@
 (import (liii check)
-        (liii format base))
+        (srfi srfi-166 base))
 
 (check-set-mode! 'report-failed)
 
@@ -18,6 +18,12 @@
 ;; (show #f (numeric 100)) => "100"
 ;; (show #f (numeric 2 2)) => "10"
 ;; (show #f (with ((radix 16)) #xDEAD)) => "#xdead"
+;;
+;; 另见
+;; ----
+;; (liii format base) 同名再导出本函数，日常使用更推荐导入该库：
+;;   (import (liii format base))
+;;   (show #f (numeric 100))
 
 (check (show #f -1) => "-1")
 (check (show #f 0) => "0")

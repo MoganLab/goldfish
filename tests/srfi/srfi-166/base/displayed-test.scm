@@ -1,5 +1,5 @@
 (import (liii check)
-        (liii format base))
+        (srfi srfi-166 base))
 
 (check-set-mode! 'report-failed)
 
@@ -15,6 +15,12 @@
 ;; (show #f (displayed "hi")) => "hi"
 ;; (show #f (displayed #\a)) => "a"
 ;; (show #f (displayed 123)) => "123"
+;;
+;; 另见
+;; ----
+;; (liii format base) 同名再导出本函数，日常使用更推荐导入该库：
+;;   (import (liii format base))
+;;   (show #f (displayed "hi"))
 
 (check (show #f (displayed "hi")) => "hi")
 (check (show #f (displayed #\a)) => "a")

@@ -1,6 +1,6 @@
 (import (liii check)
-        (liii format base)
-        (liii format color))
+        (srfi srfi-166 base)
+        (srfi srfi-166 color))
 
 (check-set-mode! 'report-failed)
 
@@ -21,6 +21,12 @@
 ;; 示例
 ;; ----
 ;; (show #f (as-red "red")) => "\x1b[31mred\x1b[39m"
+;;
+;; 另见
+;; ----
+;; (liii format color) 同名再导出本函数，日常使用更推荐导入该库：
+;;   (import (liii format color))
+;;   (show #f (as-red "red"))
 
 (check (show #f (as-red "red")) => "\x1b[31mred\x1b[39m")
 (check (show #f (as-red "red" (as-blue "blue") "red"))

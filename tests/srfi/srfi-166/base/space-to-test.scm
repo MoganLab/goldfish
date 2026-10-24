@@ -1,5 +1,5 @@
 (import (liii check)
-        (liii format base))
+        (srfi srfi-166 base))
 
 (check-set-mode! 'report-failed)
 
@@ -18,6 +18,12 @@
 ;; ----
 ;; (show #f "a" (space-to 5) "b") => "a    b"
 ;; (show #f "abc" (tab-to 5) "def") => "abc  def"
+;;
+;; 另见
+;; ----
+;; (liii format base) 同名再导出本函数，日常使用更推荐导入该库：
+;;   (import (liii format base))
+;;   (show #f "a" (space-to 5) "b")
 
 (check (show #f "a" (space-to 5) "b") => "a    b")
 (check (show #f "a" (space-to 0) "b") => "ab")

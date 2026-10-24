@@ -1,6 +1,6 @@
 (import (liii check)
         (scheme char)
-        (liii format base))
+        (srfi srfi-166 base))
 
 (check-set-mode! 'report-failed)
 
@@ -16,6 +16,12 @@
 ;; ----
 ;; (show #f (escaped "hi, bob!")) => "hi, bob!"
 ;; (show #f (escaped "hi, 'bob'" #\')) => "hi, \\'bob\\'"
+;;
+;; 另见
+;; ----
+;; (liii format base) 同名再导出本函数，日常使用更推荐导入该库：
+;;   (import (liii format base))
+;;   (show #f (escaped "hi, bob!"))
 
 (check (show #f (escaped "hi, bob!")) => "hi, bob!")
 (check (show #f (escaped "hi, 'bob'" #\')) => "hi, \\'bob\\'")
