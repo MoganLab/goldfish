@@ -90,4 +90,59 @@
   (process-wait proc 2000)
 ) ;let
 
+;; 进程退出后读取数据不丢失：子进程写入并退出后，父进程先 wait 再 read，
+;; 必须读到全部输出。修复前 Windows 分支存在竞态：Peek 无数据时若恰好检测
+;; 到进程已退出则直接置 EOF，退出瞬间 flush 的数据被丢弃（CI 偶发
+;; pi-json-e2e 段 anthropic 空输出的根因）
+(let* ((child-code (string-append "import sys\n"
+                   "sys.stdout.write('flush-at-exit')\n"
+                 ) ;string-append
+       ) ;child-code
+      ) ;let*
+  (let loop ((i 0))
+    (if (< i 20)
+      (let* ((proc (process-spawn `(,"python3" ,"-c" ,child-code) :stdout 'pipe))
+             (code (process-wait proc 5000))
+             (data (process-read proc :max-bytes 65536 :stream 'stdout))
+            ) ;let*
+        (check code => 0)
+        (check data => "flush-at-exit")
+        (process-close proc)
+        (loop (+ i 1))
+      ) ;let*
+    ) ;if
+  ) ;let
+) ;let*
+
+;; 读写交错场景：父进程持续轮询读，子进程短暂存活后打印并退出，
+;; 轮询窗口内数据不得丢失
+(let* ((child-code (string-append "import sys\n"
+                   "sys.stdout.write('quick-exit-data')\n"
+                 ) ;string-append
+       ) ;child-code
+      ) ;let*
+  (let loop ((i 0))
+    (if (< i 20)
+      (let* ((proc (process-spawn `(,"python3" ,"-c" ,child-code) :stdout 'pipe))
+             (acc
+               (let inner ((acc ""))
+                 (let ((chunk (process-read proc :max-bytes 65536 :stream 'stdout)))
+                   (if (eof-object? chunk)
+                     acc
+                     (inner (string-append acc chunk))
+                   ) ;if
+                 ) ;let
+               ) ;let
+             ) ;acc
+             (code (process-wait proc 5000))
+            ) ;let*
+        (check code => 0)
+        (check acc => "quick-exit-data")
+        (process-close proc)
+        (loop (+ i 1))
+      ) ;let*
+    ) ;if
+  ) ;let
+) ;let*
+
 (check-report)
