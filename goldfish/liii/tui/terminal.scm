@@ -30,7 +30,7 @@
     virtual-terminal-screen virtual-terminal-raw virtual-terminal-resize!
     virtual-terminal-push-key! virtual-terminal-pop-key! terminal-poll-key
     make-standard-terminal standard-terminal? terminal-enter-raw-mode!
-    terminal-exit-raw-mode!
+    terminal-exit-raw-mode! terminal-max-y
   ) ;export
   (import (liii tui terminal protocol)
     (liii tui terminal size)

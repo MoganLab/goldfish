@@ -174,6 +174,7 @@
             (lambda (term) (vt-visible? (terminal-data term)))
             (lambda (term v) (vt-visible?-set! (terminal-data term) (if v #t #f)))
             (lambda (term) #t)
+            (lambda (term) (max (vt-cursor-y (terminal-data term)) 0))
             state
           ) ;make-terminal-record
         ) ;let
