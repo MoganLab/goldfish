@@ -60,3 +60,5 @@
   ;; 3. 未声明的域拒绝
   (check-false (domain-allows-dep? tool-x %domains "check"))
 )
+
+(check-report)

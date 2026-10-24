@@ -46,26 +46,42 @@
   (layer-domains-parse
     (%cfg (%dom "goldfish" "goldfish/" '()
             (list "kernel" "liii base" "liii error")
-            (list "std" "srfi srfi-1" "srfi srfi-113")
-            (list "app" "liii *"))
+            (list "std" "srfi srfi-1" "liii goldcheck" "srfi srfi-113")
+            (list "app" "liii string"))
       (%dom "common" "tools/common/" '("goldfish")
         (list "shared" "liii goldtool changed"))
       (%dom "check" "tools/check/" '("goldfish" "common")
-        (list "tool" "liii goldcheck")))
+        (list "tool" "liii goldcheck base")))
   ) ;layer-domains-parse
 )
+
+
 
 ;; 1. 精确 pattern 命中
 (check (layer-name-of-lib %domains "liii base") => "kernel")
 (check (layer-name-of-lib %domains "liii error") => "kernel")
-
-;; 2. 通配 pattern 命中
 (check (layer-name-of-lib %domains "srfi srfi-1") => "std")
 (check (layer-name-of-lib %domains "liii string") => "app")
 
-;; 3. 最特异优先："liii goldcheck layer" 同时命中
-;;    goldfish 域 "liii *"（通配兜底）与 check 域 "liii goldcheck"（更长通配）
-(check (layer-name-of-lib %domains "liii goldcheck layer") => "tool")
+;; 2. 最特异优先："liii goldcheck base" 同时命中
+;;    goldfish 域 "liii goldcheck"（家族前缀 rank 2，域序在前）与
+;;    check 域 "liii goldcheck base"（精确 rank 3），精确优先
+(check (layer-name-of-lib %domains "liii goldcheck base") => "tool")
+
+;; 3. 家族前缀继承：登记 "liii goldcheck" 则 "liii goldcheck xxx" 同层
+(check (layer-name-of-lib %domains "liii goldcheck other") => "std")
 
 ;; 4. 未登记库返回 #f
 (check (layer-name-of-lib %domains "liii csv") => #f)
+
+;; 5. 尾通配符 "liii *"：兜底匹配任意 liii 库（rank 1）
+(define %wild-domains
+  (layer-domains-parse
+    (%cfg (%dom "goldfish" "goldfish/" '()
+            (list "app" "liii *"))))
+)
+
+(check (layer-name-of-lib %wild-domains "liii anything") => "app")
+(check (layer-name-of-lib %wild-domains "srfi srfi-1") => #f)
+
+(check-report)

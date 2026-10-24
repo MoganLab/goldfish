@@ -46,8 +46,8 @@
   (layer-domains-parse
     (%cfg (%dom "goldfish" "goldfish/" '()
             (list "kernel" "liii base" "liii error")
-            (list "std" "srfi srfi-1" "srfi srfi-113")
-            (list "app" "liii *"))
+            (list "std" "srfi srfi-1" "liii goldtool" "srfi srfi-113")
+            (list "app" "liii string"))
       (%dom "common" "tools/common/" '("goldfish")
         (list "shared" "liii goldtool changed"))
       (%dom "check" "tools/check/" '("goldfish" "common")
@@ -55,13 +55,29 @@
   ) ;layer-domains-parse
 )
 
+
 ;; 1. 域归属判定
 (check (domain-name-of-lib %domains "srfi srfi-113") => "goldfish")
+
+;; 2. 最特异 pattern 优先：goldfish 域在前的家族前缀 "liii goldtool"（rank 2）
+;;    让位于 common 域的精确 "liii goldtool changed"（rank 3）
 (check (domain-name-of-lib %domains "liii goldtool changed") => "common")
 
-;; 2. 最特异 pattern 优先于 goldfish 域的 "liii *" 兜底
-(check (domain-name-of-lib %domains "liii goldcheck") => "check")
+;; 3. 家族前缀继承：登记 "liii goldcheck" 则 "liii goldcheck layer" 同域同层
+(check (domain-name-of-lib %domains "liii goldcheck layer") => "check")
 (check (domain-name-of-lib %domains "liii string") => "goldfish")
 
-;; 3. 未登记库返回 #f
+;; 4. 未登记库返回 #f
 (check (domain-name-of-lib %domains "liii csv") => #f)
+
+;; 5. 尾通配符 "liii *"：兜底匹配任意 liii 库（rank 1）
+(define %wild-domains
+  (layer-domains-parse
+    (%cfg (%dom "goldfish" "goldfish/" '()
+            (list "app" "liii *"))))
+)
+
+(check (domain-name-of-lib %wild-domains "liii anything") => "goldfish")
+(check (domain-name-of-lib %wild-domains "srfi srfi-1") => #f)
+
+(check-report)

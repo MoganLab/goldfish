@@ -262,3 +262,5 @@
   ) ;for-each
   (path-rmdir (path %tmp-root))
 ) ;let
+
+(check-report)

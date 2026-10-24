@@ -47,7 +47,9 @@
 )
 
 ;; 1. 找到存在的域
-(check-true (find-domain-by-name %domains "common"))
+(check-true (and (find-domain-by-name %domains "common") #t))
 
 ;; 2. 不存在的域返回 #f
 (check-false (find-domain-by-name %domains "ghost"))
+
+(check-report)

@@ -142,3 +142,5 @@
 (check-catch 'raw-string-write-error
   (write-raw-string "\"" "" (open-output-string))
 ) ;check-catch
+
+(check-report)
