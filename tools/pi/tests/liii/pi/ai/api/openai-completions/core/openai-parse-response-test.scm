@@ -1,0 +1,52 @@
+(import (liii check) (liii pi ai event) (liii pi ai api openai-completions) (liii pi ai message))
+
+(check-set-mode! 'report-failed)
+
+;; openai-parse-response
+;; 正常文本响应解析
+(let* ((json-data '(("id" . "chatcmpl-1")
+                    ("choices" . #((("index" . 0)
+                                    ("message" . (("role" . "assistant")
+                                                  ("content" . "PONG")))
+                                    ("finish_reason" . "stop"))))
+                    ("usage" . (("prompt_tokens" . 10)
+                                ("completion_tokens" . 5)
+                                ("total_tokens" . 15)))))
+       (resp (openai-parse-response json-data 200)))
+  (check (pi-assistant-message? resp) => #t)
+  (check (pi-assistant-message-stop-reason resp) => "stop")
+  (let ((content (pi-assistant-message-content resp)))
+    (check (length content) => 1)
+    (check (pi-text-block-text (car content)) => "PONG")))
+
+;; 工具调用响应解析
+(let* ((json-data '(("id" . "chatcmpl-2")
+                    ("choices" . #((("index" . 0)
+                                    ("message" . (("role" . "assistant")
+                                                  ("content" . "")
+                                                  ("tool_calls" . #((("id" . "call_1")
+                                                                     ("type" . "function")
+                                                                     ("function" . (("name" . "bash")
+                                                                                    ("arguments" . "{\"command\":\"ls\"}"))))))))
+                                    ("finish_reason" . "tool_calls"))))
+                    ("usage" . (("prompt_tokens" . 20)
+                                ("completion_tokens" . 10)
+                                ("total_tokens" . 30)))))
+       (resp (openai-parse-response json-data 200)))
+  (check (pi-assistant-message-stop-reason resp) => "toolUse")
+  (let ((content (pi-assistant-message-content resp)))
+    (check (length content) => 1)
+    (let ((tc (car content)))
+      (check (pi-tool-call-block? tc) => #t)
+      (check (pi-tool-call-block-id tc) => "call_1")
+      (check (pi-tool-call-block-name tc) => "bash")
+      (check (cdr (assoc "command" (pi-tool-call-block-arguments tc))) => "ls"))))
+
+;; 错误响应解析
+(let* ((json-data '(("error" . (("message" . "Invalid API key")
+                                ("type" . "invalid_request_error")))))
+       (resp (openai-parse-response json-data 401)))
+  (check (pi-assistant-message-stop-reason resp) => "error")
+  (check (pi-assistant-message-error-message resp) => "Invalid API key"))
+
+(check-report)

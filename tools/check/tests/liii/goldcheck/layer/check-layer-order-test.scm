@@ -265,7 +265,7 @@
 ;; 9b. pi 域 extensions 层向下依赖（ai/code 层）与同层互依 -> 零违规
 (let ((f (%mk "tools/pi/liii/pi/web-search/execute.scm"
            (%lib-header "scheme base" "liii pi code tools read"
-             "liii pi ai gemini grounding" "liii pi web-search schema")
+             "liii pi ai api google-generative-ai grounding" "liii pi web-search schema")
          ) ;%mk
       ) ;f
      ) ;

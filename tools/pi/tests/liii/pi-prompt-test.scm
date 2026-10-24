@@ -1,6 +1,6 @@
 (set! *load-path* (append (list "tools/pi" ".") *load-path*))
 
-(import (liii check) (liii string) (liii path) (liii json) (liii pi ai gemini) (liii pi code prompt) (liii pi code session))
+(import (liii check) (liii string) (liii path) (liii json) (liii pi ai api google-generative-ai) (liii pi code prompt) (liii pi code session))
 
 (check-set-mode! 'report-failed)
 
