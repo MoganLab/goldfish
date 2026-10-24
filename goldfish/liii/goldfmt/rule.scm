@@ -44,13 +44,7 @@
     ) ;define
     (define (path-has-common-ancestor? path1 path2)
       (let ((parts1 (segments-list path1)) (parts2 (segments-list path2)))
-        (let loop
-          ((p1 parts1) (p2 parts2) (common 0))
-          (cond ((or (null? p1) (null? p2)) (> common 0))
-                ((string=? (car p1) (car p2)) (loop (cdr p1) (cdr p2) (+ common 1)))
-                (else (> common 0))
-          ) ;cond
-        ) ;let
+        (and (pair? parts1) (pair? parts2) (string=? (car parts1) (car parts2)))
       ) ;let
     ) ;define
     (define (rules-json-under load-root)

@@ -24,6 +24,7 @@
     reader-vector-prefix format-reader-pair-fill reader-keyword-block-info
   ) ;export
   (import (liii base)
+    (liii list)
     (srfi srfi-13)
     (liii vector)
     (liii goldfmt record)
@@ -79,10 +80,7 @@
     ) ;define
 
     (define (reader-newlines count)
-      (let loop
-        ((i count) (result ""))
-        (if (<= i 0) result (loop (- i 1) (string-append result "\n")))
-      ) ;let
+      (make-string (max 0 count) #\newline)
     ) ;define
 
     (define (reader-datum-contains-newline-marker? datum)
@@ -195,16 +193,11 @@
     ) ;define
 
     (define (reader-fill-eligible? datum)
-      (let loop
-        ((current datum) (count 0))
-        (cond ((null? current) (>= count fill-min-children))
-              ((and (pair? current) (keyword? (car current))) #f)
-              ((and (pair? current) (reader-fill-atom? (car current)))
-               (loop (cdr current) (+ count 1))
-              ) ;
-              (else #f)
-        ) ;cond
-      ) ;let
+      (and (list? datum)
+        (>= (length datum) fill-min-children)
+        (not (any keyword? datum))
+        (every reader-fill-atom? datum)
+      ) ;and
     ) ;define
 
     (define (reader-append-close result close-indent)

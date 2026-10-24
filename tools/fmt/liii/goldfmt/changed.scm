@@ -42,13 +42,7 @@
 
     (define (all-registered-extensions)
       (ensure-scheme-handler!)
-      (let loop
-        ((handlers (lang-list)) (acc '()))
-        (if (null? handlers)
-          acc
-          (loop (cdr handlers) (append (lang-extensions (car handlers)) acc))
-        ) ;if
-      ) ;let
+      (append-map lang-extensions (lang-list))
     ) ;define
 
     (define (add-file-to-group groups file handler)
@@ -70,18 +64,17 @@
 
     (define (group-files-by-lang files)
       (ensure-scheme-handler!)
-      (let loop
-        ((fs files) (groups '()))
-        (if (null? fs)
-          groups
-          (let* ((file (car fs))
-                 (ext (path-suffix (path file)))
+      (fold
+        (lambda (file groups)
+          (let* ((ext (path-suffix (path file)))
                  (handler (or (lang-for-extension ext) (scheme-handler-of)))
                 ) ;
-            (loop (cdr fs) (add-file-to-group groups file handler))
+            (add-file-to-group groups file handler)
           ) ;let*
-        ) ;if
-      ) ;let
+        ) ;lambda
+        '()
+        files
+      ) ;fold
     ) ;define
 
     (define (stats-failed stats)

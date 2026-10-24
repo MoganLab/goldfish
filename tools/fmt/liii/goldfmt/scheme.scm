@@ -127,18 +127,17 @@
     (define (format-file-list files dry-run excludes)
       (let ((targets (filter (lambda (f) (not (file-excluded? f excludes))) files)))
         (if dry-run
-          (let loop
-            ((remaining targets) (total 0))
-            (if (null? remaining)
-              (values total 0 0 0)
-              (begin
-                (display (string-append "Formatting: " (car remaining)))
+          (begin
+            (for-each
+              (lambda (target)
+                (display (string-append "Formatting: " target))
                 (newline)
-                (format-file-dry-run (car remaining))
-                (loop (cdr remaining) (+ total 1))
-              ) ;begin
-            ) ;if
-          ) ;let
+                (format-file-dry-run target)
+              ) ;lambda
+              targets
+            ) ;for-each
+            (values (length targets) 0 0 0)
+          ) ;begin
           (let ((results (pool-for-each scheme-fmt-one targets print-result)))
             (values (length results)
               (count-status 'updated results)
@@ -206,16 +205,15 @@
             (suffixes (lang-suffixes 'scheme cfg))
             (excludes (lang-excludes 'scheme cfg))
            ) ;
-        (let loop
-          ((ps paths) (acc '()))
-          (if (null? ps)
-            acc
-            (if (path-dir? (path (car ps)))
-              (loop (cdr ps) (append (collect-files (car ps) suffixes excludes) acc))
-              (loop (cdr ps) acc)
+        (append-map
+          (lambda (p)
+            (if (path-dir? (path p))
+              (collect-files p suffixes excludes)
+              '()
             ) ;if
-          ) ;if
-        ) ;let
+          ) ;lambda
+          paths
+        ) ;append-map
       ) ;let
     ) ;define
 

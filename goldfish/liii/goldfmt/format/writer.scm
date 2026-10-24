@@ -246,10 +246,9 @@
     ) ;define
 
     (define (first-selected-env-column selected)
-      (cond ((null? selected) #f)
-            ((env? (selected-child (car selected))) (selected-column (car selected)))
-            (else (first-selected-env-column (cdr selected)))
-      ) ;cond
+      (let ((found (find (lambda (item) (env? (selected-child item))) selected)))
+        (and found (selected-column found))
+      ) ;let
     ) ;define
 
     (define (by-first-rest-child-indent parent-indent rest-start children)
