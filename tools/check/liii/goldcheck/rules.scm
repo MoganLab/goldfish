@@ -19,11 +19,14 @@
     (scheme file)
     (scheme write)
     (liii base)
+    (liii path)
     (liii string)
     (liii tree)
     (liii goldcheck path)
   ) ;import
-  (export check-file-lines check-tree-depth format-violation display-help)
+  (export check-file-lines check-tree-depth check-no-crlf format-violation
+    display-help
+  ) ;export
   (begin
 
     (define (display-help)
@@ -56,6 +59,9 @@
       ) ;display
       (newline)
       (display "  define-record-type     <xxx> 记录类型句法标识不得导出，禁止占位定义"
+      ) ;display
+      (newline)
+      (display "  no-crlf                换行符统一为 LF，发现 CRLF 报错（按 suffix/path 限定范围）"
       ) ;display
       (newline)
       (newline)
@@ -153,6 +159,30 @@
       ) ;let*
     ) ;define
 
+    (define (check-no-crlf file-path)
+      "检测文件是否包含 CRLF 换行符，仓库统一使用 LF。返回 violation-or-#f，\nviolation 为 (list 'no-crlf file line)，line 为首个 CRLF 所在行号。"
+      (let* ((rel-path (relativize-path file-path))
+             (bytes (path-read-bytes (path file-path)))
+             (len (bytevector-length bytes))
+            ) ;
+        (let loop
+          ((i 0) (line 1))
+          (if (>= i len)
+            #f
+            (let ((b (bytevector-u8-ref bytes i)))
+              (cond
+               ((and (= b 13) (< (+ i 1) len) (= (bytevector-u8-ref bytes (+ i 1)) 10))
+                (list 'no-crlf rel-path line)
+               ) ;
+               ((= b 10) (loop (+ i 1) (+ line 1)))
+               (else (loop (+ i 1) line))
+              ) ;cond
+            ) ;let
+          ) ;if
+        ) ;let
+      ) ;let*
+    ) ;define
+
     (define (format-violation viol)
       (let ((rule (car viol)))
         (cond
@@ -194,6 +224,16 @@
          ((eq? rule 'define-record-type)
           (let ((file (cadr viol)) (line (caddr viol)) (msg (cadddr viol)))
             (string-append "  " file ":" (number->string line) ": define-record-type: " msg)
+          ) ;let
+         ) ;
+         ((eq? rule 'no-crlf)
+          (let ((file (cadr viol)) (line (caddr viol)))
+            (string-append "  "
+              file
+              ":"
+              (number->string line)
+              ": no-crlf: CRLF line ending detected (expected LF)"
+            ) ;string-append
           ) ;let
          ) ;
          (else (string-append "  " (object->string viol)))

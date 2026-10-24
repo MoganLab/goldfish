@@ -28,8 +28,8 @@
   ) ;import
   (export load-check-config check-config-exists? check-config-goldfish-version
     check-config-rules check-rule-enabled? check-rule-limit check-rule-excludes
-    exclude-entry->path path-matches-exclude? file-excluded?
-    validate-check-config!
+    check-rule-suffixes check-rule-paths exclude-entry->path
+    path-matches-exclude? file-excluded? validate-check-config!
   ) ;export
   (begin
 
@@ -38,6 +38,7 @@
                 (string=? name "max-tree-depth")
                 (string=? name "define-record-type")
                 (string=? name "layer-order")
+                (string=? name "no-crlf")
               ) ;or
         (value-error "unknown rule: ~A" name)
       ) ;unless
@@ -66,12 +67,31 @@
       ) ;when
     ) ;define
 
+    (define (validate-string-array-field! name r field)
+      (when (json-contains-key? r field)
+        (let ((v (json-ref r field)))
+          (unless (json-array? v)
+            (type-error "rule ~A ~A must be an array: ~S" name field v)
+          ) ;unless
+          (for-each (lambda (item)
+                      (unless (string? item)
+                        (type-error "rule ~A ~A entries must be strings: ~S" name field item)
+                      ) ;unless
+                    ) ;lambda
+            (vector->list v)
+          ) ;for-each
+        ) ;let
+      ) ;when
+    ) ;define
+
     (define (validate-rule-config! name r)
       (unless (json-object? r)
         (type-error "rule configuration for ~A must be an object: ~S" name r)
       ) ;unless
       (validate-rule-enabled! name r)
       (validate-rule-limit! name r)
+      (validate-string-array-field! name r "suffix")
+      (validate-string-array-field! name r "path")
     ) ;define
 
     (define (validate-exclude-object! item)
@@ -158,6 +178,39 @@
     ) ;define
 
     ;; ---- 配置访问器 -----------------------------------------------------
+
+    (define (%rule-field cfg rule-name field)
+      (if (or (not cfg) (json-null? cfg))
+        #f
+        (let ((rules (json-ref cfg "rules")))
+          (if (or (json-null? rules) (not (json-object? rules)))
+            #f
+            (let ((rule (json-ref rules rule-name)))
+              (if (or (json-null? rule) (not (json-object? rule)))
+                #f
+                (let ((v (json-ref rule field)))
+                  (if (or (not v) (json-null? v)) #f v)
+                ) ;let
+              ) ;if
+            ) ;let
+          ) ;if
+        ) ;let
+      ) ;if
+    ) ;define
+
+    (define (check-rule-suffixes cfg rule-name)
+      "读取规则配置的 suffix 字段（不带点的后缀名数组）。默认 (\"scm\")。"
+      (let ((v (%rule-field cfg rule-name "suffix")))
+        (if (and v (json-array? v)) (filter string? (vector->list v)) '("scm"))
+      ) ;let
+    ) ;define
+
+    (define (check-rule-paths cfg rule-name)
+      "读取规则配置的 path 字段（目录白名单数组）。默认 () 表示全仓。"
+      (let ((v (%rule-field cfg rule-name "path")))
+        (if (and v (json-array? v)) (filter string? (vector->list v)) '())
+      ) ;let
+    ) ;define
 
     (define (check-config-goldfish-version cfg)
       (if (and cfg (not (json-null? cfg)))

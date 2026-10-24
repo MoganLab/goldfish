@@ -28,21 +28,23 @@
 
 (check-set-mode! 'report-failed)
 
+;; 临时文件一律用 path-write-bytes 二进制写入，精确控制 LF 行尾，
+;; 避免文本端口在 Windows 上把 \n 转写为 \r\n。
 (define (make-tmp-file name lines)
-  (let ((tmp (path->string (path-join (path-temp-dir) name))))
-    (call-with-port (open-output-file tmp)
-      (lambda (p)
-        (let loop
-          ((i 0))
-          (when (< i lines)
-            (display "(define x 1)\n" p)
-            (loop (+ i 1))
-          ) ;when
-        ) ;let
-      ) ;lambda
-    ) ;call-with-port
+  (let* ((tmp (path->string (path-join (path-temp-dir) name)))
+         (content
+           (let loop
+             ((i 0) (acc '()))
+             (if (>= i lines)
+               (apply string-append (reverse acc))
+               (loop (+ i 1) (cons "(define x 1)\n" acc))
+             ) ;if
+           ) ;let
+         ) ;content
+        ) ;
+    (path-write-bytes (path tmp) (string->utf8 content))
     tmp
-  ) ;let
+  ) ;let*
 ) ;define
 
 ;; 1. 空向量返回 #()
