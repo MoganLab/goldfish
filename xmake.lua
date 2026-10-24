@@ -160,6 +160,7 @@ target ("goldfish") do
         add_cxxflags("/fp:precise")
         add_cxxflags("/utf-8")
         add_cflags("/utf-8")
+        add_syslinks("shell32")
     end
 
 
