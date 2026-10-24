@@ -224,6 +224,7 @@
             %st-get-visible
             %st-set-visible!
             %st-flush!
+            (lambda (term) (%st-max-y (terminal-data term)))
             state
           ) ;make-terminal-record
         ) ;let

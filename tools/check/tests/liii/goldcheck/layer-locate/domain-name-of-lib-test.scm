@@ -63,5 +63,6 @@
 (check (domain-name-of-lib %domains "liii goldcheck") => "check")
 (check (domain-name-of-lib %domains "liii string") => "goldfish")
 
-;; 3. 未登记库返回 #f
-(check (domain-name-of-lib %domains "liii csv") => #f)
+;; 3. 未被任何 pattern 命中的库返回 #f
+;;    注意："liii *" 是 family 通配兜底，会匹配任意 "liii xxx"。
+(check (domain-name-of-lib %domains "csv foo") => #f)

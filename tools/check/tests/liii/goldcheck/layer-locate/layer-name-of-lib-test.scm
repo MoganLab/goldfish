@@ -67,5 +67,7 @@
 ;;    goldfish 域 "liii *"（通配兜底）与 check 域 "liii goldcheck"（更长通配）
 (check (layer-name-of-lib %domains "liii goldcheck layer") => "tool")
 
-;; 4. 未登记库返回 #f
-(check (layer-name-of-lib %domains "liii csv") => #f)
+;; 4. 未被任何 pattern 命中的库返回 #f
+;;    注意："liii *" 是 family 通配兜底，会匹配任意 "liii xxx"，
+;;    因此这里用一个完全不属于任何登记前缀的库名。
+(check (layer-name-of-lib %domains "csv foo") => #f)
