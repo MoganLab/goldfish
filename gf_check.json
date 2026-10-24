@@ -9,6 +9,9 @@
       "enabled": true,
       "limit": 15
     },
+    "define-record-type": {
+      "enabled": true
+    },
     "layer-order": {
       "file": "gf_check_layer_order.json"
     }

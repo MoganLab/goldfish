@@ -49,10 +49,14 @@
       (newline)
       (display "  layer-order            域间依赖与域内层序约束（tools/pi 暂缓纳入）"
       ) ;display
+      (newline)
       (display "  max-file-lines         单文件行数限制（默认 <= 400 行，含空行与注释）"
       ) ;display
       (newline)
       (display "  max-tree-depth         语法树嵌套深度限制（默认 <= 15 层顶级表达式嵌套）"
+      ) ;display
+      (newline)
+      (display "  define-record-type     <xxx> 记录类型句法标识不得导出，禁止占位定义"
       ) ;display
       (newline)
       (newline)
@@ -186,6 +190,11 @@
               (number->string limit)
               ")"
             ) ;string-append
+          ) ;let
+         ) ;
+         ((eq? rule 'define-record-type)
+          (let ((file (cadr viol)) (line (caddr viol)) (msg (cadddr viol)))
+            (string-append "  " file ":" (number->string line) ": define-record-type: " msg)
           ) ;let
          ) ;
          (else (string-append "  " (object->string viol)))

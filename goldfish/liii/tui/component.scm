@@ -22,9 +22,9 @@
 ;;
 
 (define-library (liii tui component)
-  (export <component> make-component component? component-render
-    component-handle-input component-invalidate! component-data
-    component-data-set! make-text make-truncated-text make-spacer
+  (export make-component component? component-render component-handle-input
+    component-invalidate! component-data component-data-set! make-text
+    make-truncated-text make-spacer
   ) ;export
   (import (liii base) (liii error) (liii string) (liii tui text-width))
   (begin
@@ -37,8 +37,6 @@
       (invalidate %component-invalidate-proc %component-invalidate-proc-set!)
       (data %component-data %component-data-set!)
     ) ;define-record-type
-
-    (define <component> '<component>)
 
     (define (%keyword-value key opts default)
       (let loop

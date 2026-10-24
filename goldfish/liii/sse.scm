@@ -15,8 +15,8 @@
 ;;
 
 (define-library (liii sse)
-  (export <sse-event> make-sse-event sse-event? sse-event-event sse-event-data
-    sse-event-id sse-event-retry sse-event-json read-sse-event make-sse-decoder
+  (export make-sse-event sse-event? sse-event-event sse-event-data sse-event-id
+    sse-event-retry sse-event-json read-sse-event make-sse-decoder
     sse-event->string write-sse-event
   ) ;export
   (import (scheme base) (liii error) (liii json) (liii string))
@@ -30,8 +30,6 @@
       (id sse-event-id)
       (retry sse-event-retry)
     ) ;define-record-type
-
-    (define <sse-event> '<sse-event>)
 
     (define %default-event "message")
 

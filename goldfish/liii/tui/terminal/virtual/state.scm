@@ -22,12 +22,12 @@
 ;;
 
 (define-library (liii tui terminal virtual state)
-  (export <virtual-terminal-state> make-vt-state vt-state? vt-width
-    vt-width-set! vt-height vt-height-set! vt-cursor-x vt-cursor-x-set!
-    vt-cursor-y vt-cursor-y-set! vt-visible? vt-visible?-set! vt-lines
-    vt-lines-set! vt-raw vt-raw-set! vt-keys vt-keys-set! make-char-row
-    make-screen-lines check-dimension scroll-up-one-line! advance-cursor-line!
-    put-char! copy-row-chars! %skip-ansi-csi %vt-handle-char!
+  (export make-vt-state vt-state? vt-width vt-width-set! vt-height
+    vt-height-set! vt-cursor-x vt-cursor-x-set! vt-cursor-y vt-cursor-y-set!
+    vt-visible? vt-visible?-set! vt-lines vt-lines-set! vt-raw vt-raw-set!
+    vt-keys vt-keys-set! make-char-row make-screen-lines check-dimension
+    scroll-up-one-line! advance-cursor-line! put-char! copy-row-chars!
+    %skip-ansi-csi %vt-handle-char!
   ) ;export
   (import (liii base) (liii error))
   (begin
@@ -44,8 +44,6 @@
       (raw vt-raw vt-raw-set!)
       (keys vt-keys vt-keys-set!)
     ) ;define-record-type
-
-    (define <virtual-terminal-state> '<virtual-terminal-state>)
 
     (define (make-char-row width)
       (make-vector width #\space)

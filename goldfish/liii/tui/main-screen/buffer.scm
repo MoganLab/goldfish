@@ -22,7 +22,7 @@
 ;;
 
 (define-library (liii tui main-screen buffer)
-  (export <screen-buffer> make-screen-buffer screen-buffer? screen-buffer-lines
+  (export make-screen-buffer screen-buffer? screen-buffer-lines
     screen-buffer-lines-set! screen-buffer-prev-lines
     screen-buffer-prev-lines-set! screen-buffer-dirty? screen-buffer-dirty-set!
     screen-buffer-invalidate! screen-buffer-commit! screen-buffer-clear!
@@ -44,8 +44,6 @@
       (prev-lines %screen-buffer-prev-lines %screen-buffer-prev-lines-set!)
       (dirty %screen-buffer-dirty %screen-buffer-dirty-set!)
     ) ;define-record-type
-
-    (define <screen-buffer> '<screen-buffer>)
 
     (define (%check-buffer buf caller)
       (unless (screen-buffer? buf)

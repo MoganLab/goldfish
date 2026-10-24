@@ -36,4 +36,14 @@
   ) ;check-true
 ) ;let*
 
+;; 3. 格式化 define-record-type 违规（含行号）
+(let* ((viol (list 'define-record-type "foo/rec.scm" 7
+              "record type '<foo>' should not be exported")
+       ) ;viol
+       (msg (format-violation viol))
+      ) ;
+  (check-true (string-contains? msg "foo/rec.scm:7: define-record-type: record type '<foo>' should not be exported")
+  ) ;check-true
+) ;let*
+
 (check-report)

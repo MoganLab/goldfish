@@ -78,4 +78,19 @@
   (path-unlink tmp #t)
 ) ;let*
 
+;; 4. export <xxx> 记录类型句法标识 -> define-record-type 违规
+(let* ((tmp (path->string (path-join (path-temp-dir) "gf-test-rec-exp.scm"))))
+  (call-with-port (open-output-file tmp)
+    (lambda (p)
+      (display "(define-library (t)\n  (import (scheme base))\n  (export <foo> make-foo)\n) ;define-library\n" p)
+    ) ;call-with-port
+  ) ;call-with-port
+  (let ((viols (check-file tmp #f)))
+    (check (length viols) => 1)
+    (check (caar viols) => 'define-record-type)
+    (check (caddr (car viols)) => 3)
+  ) ;let
+  (path-unlink tmp #t)
+) ;let*
+
 (check-report)

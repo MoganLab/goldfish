@@ -56,13 +56,14 @@
     (liii goldcheck path)
     (liii goldcheck config)
     (liii goldcheck rules)
+    (liii goldcheck record-export)
     (liii goldcheck layer)
+    (liii goldcheck collect)
     (liii goldcheck only)
     (liii goldcheck cache)
   ) ;import
   (export main check-file-lines check-tree-depth check-file check-files
-    make-check-arg-parser collect-scheme-files format-violation
-    collect-repo-files collect-positional-files display-help
+    make-check-arg-parser format-violation display-help
   ) ;export
   (begin
 
@@ -123,6 +124,19 @@
       ) ;if
     ) ;define
 
+    (define (check-file-rule-record-export file-path cfg acc)
+      (if (check-rule-enabled? cfg "define-record-type")
+        (if (file-excluded? file-path (check-rule-excludes cfg "define-record-type"))
+          acc
+          (let ((viols (check-record-export file-path)))
+            (if (null? viols) (rule-cache-touch "define-record-type" 0 file-path))
+            (append acc viols)
+          ) ;let
+        ) ;if
+        acc
+      ) ;if
+    ) ;define
+
     (define (check-file-rule-layer file-path cfg acc)
       (if (check-rule-enabled? cfg "layer-order")
         (if (file-excluded? file-path (check-rule-excludes cfg "layer-order"))
@@ -137,9 +151,10 @@
       "检查单个文件是否违反启用的度量规则。"
       (let* ((acc1 (check-file-rule-lines file-path cfg '()))
              (acc2 (check-file-rule-depth file-path cfg acc1))
-             (acc3 (check-file-rule-layer file-path cfg acc2))
+             (acc3 (check-file-rule-record-export file-path cfg acc2))
+             (acc4 (check-file-rule-layer file-path cfg acc3))
             ) ;
-        (reverse acc3)
+        (reverse acc4)
       ) ;let*
     ) ;define
 
@@ -161,99 +176,9 @@
       ) ;let
     ) ;define
 
-    (define (builtin-ignored-dir? name)
-      (or (string=? name ".git")
-        (string=? name "build")
-        (string=? name ".pi")
-        (string=? name ".cache")
-        (string=? name ".xmake")
-      ) ;or
+    (define %all-rule-names
+      '("max-file-lines" "max-tree-depth" "define-record-type" "layer-order")
     ) ;define
-
-    (define (collect-scheme-files dir-path)
-      (let ((entries (path-list-path (path dir-path))))
-        (let loop
-          ((i 0) (acc '()))
-          (if (>= i (vector-length entries))
-            acc
-            (let* ((entry (vector-ref entries i))
-                   (s (path->string entry))
-                   (bname (path-name (path s)))
-                  ) ;
-              (cond
-               ((path-file? entry)
-                (if (string-ends? s ".scm")
-                  (loop (+ i 1) (cons (relativize-path s) acc))
-                  (loop (+ i 1) acc)
-                ) ;if
-               ) ;
-               ((path-dir? entry)
-                (if (builtin-ignored-dir? bname)
-                  (loop (+ i 1) acc)
-                  (loop (+ i 1) (append (collect-scheme-files s) acc))
-                ) ;if
-               ) ;
-               (else (loop (+ i 1) acc))
-              ) ;cond
-            ) ;let*
-          ) ;if
-        ) ;let
-      ) ;let
-    ) ;define
-
-    (define (collect-positional-files positionals)
-      (let loop
-        ((pos positionals) (acc '()))
-        (if (null? pos)
-          acc
-          (let ((p (car pos)))
-            (cond
-             ((path-file? (path p))
-              (if (string-ends? p ".scm")
-                (loop (cdr pos) (append acc (list (relativize-path p))))
-                (loop (cdr pos) acc)
-              ) ;if
-             ) ;
-             ((path-dir? (path p))
-              (let ((sub (collect-scheme-files p)))
-                (loop (cdr pos) (append acc sub))
-              ) ;let
-             ) ;
-             (else (loop (cdr pos) acc))
-            ) ;cond
-          ) ;let
-        ) ;if
-      ) ;let
-    ) ;define
-
-    (define (collect-repo-files)
-      (let* ((root (g_project-root))
-             (start-dir
-               (if (and root (string? root) (not (string=? root ""))) root ".")
-             ) ;start-dir
-            ) ;
-        (collect-scheme-files start-dir)
-      ) ;let*
-    ) ;define
-
-    (define (resolve-target-files parser)
-      (let ((since (parser 'changed-since)) (positionals (parser :positionals)))
-        (cond
-          (since
-            (if (null? positionals)
-              (changed-scheme-files-since since)
-              (apply append
-                (map (lambda (p) (changed-scheme-files-since since p)) positionals)
-              ) ;apply
-            ) ;if
-          ) ;since
-          ((not (null? positionals)) (collect-positional-files positionals))
-          (else (collect-repo-files))
-        ) ;cond
-      ) ;let
-    ) ;define
-
-    (define %all-rule-names '("max-file-lines" "max-tree-depth" "layer-order"))
 
     (define (%rule-with-enabled rule enabled)
       (cons (cons "enabled" enabled)
@@ -300,6 +225,8 @@
       (let ((single-cfg (single-rule-config cfg rule-name))
             (limit (cond ((string=? rule-name "max-file-lines") (check-rule-limit cfg rule-name))
                          ((string=? rule-name "max-tree-depth") (check-rule-limit cfg rule-name))
+                         ;; 内容哈希缓存键段：无阈值规则用 0 占位
+                         ((string=? rule-name "define-record-type") 0)
                          (else #f)
                    ) ;cond
             ) ;limit
@@ -332,7 +259,7 @@
         (if ok "OK    " "FAILED")
         "] "
         name
-        (make-string (max 0 (- 16 (string-length name))) #\space)
+        (make-string (max 1 (- 17 (string-length name))) #\space)
         (format #f "~,3fs" elapsed)
       ) ;string-append
     ) ;define

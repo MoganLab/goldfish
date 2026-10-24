@@ -22,8 +22,8 @@
 ;;
 
 (define-library (liii tui main-screen driver)
-  (export <main-screen> make-main-screen main-screen? screen-terminal
-    screen-buffer screen-lines screen-render! screen-refresh! screen-invalidate!
+  (export make-main-screen main-screen? screen-terminal screen-buffer
+    screen-lines screen-render! screen-refresh! screen-invalidate!
     screen-resize! screen-clear! screen-auto-hide-cursor?
     screen-auto-hide-cursor-set!
   ) ;export
@@ -47,8 +47,6 @@
       (buffer %screen-buffer)
       (auto-hide-cursor %screen-auto-hide-cursor %screen-auto-hide-cursor-set!)
     ) ;define-record-type
-
-    (define <main-screen> '<main-screen>)
 
     (define (%check-main-screen screen caller)
       (unless (main-screen? screen)

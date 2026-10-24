@@ -22,40 +22,39 @@
 ;;
 
 (define-library (liii tui)
-  (export <component> make-component component? component-render
-    component-handle-input component-invalidate! make-text make-truncated-text
-    make-spacer strip-ansi display-width display-width-prefix truncate-to-width
-    wrap-text parse-key parse-keys <terminal> make-terminal-record terminal?
-    terminal-size terminal-write terminal-cursor terminal-set-cursor!
-    terminal-clear terminal-clear-line terminal-clear-line-to-end
-    terminal-begin-sync! terminal-end-sync! terminal-cursor-visible?
-    terminal-hide-cursor! terminal-show-cursor! terminal-flush
-    terminal-detect-size make-virtual-terminal virtual-terminal?
+  (export make-component component? component-render component-handle-input
+    component-invalidate! make-text make-truncated-text make-spacer strip-ansi
+    display-width display-width-prefix truncate-to-width wrap-text parse-key
+    parse-keys make-terminal-record terminal? terminal-size terminal-write
+    terminal-cursor terminal-set-cursor! terminal-clear terminal-clear-line
+    terminal-clear-line-to-end terminal-begin-sync! terminal-end-sync!
+    terminal-cursor-visible? terminal-hide-cursor! terminal-show-cursor!
+    terminal-flush terminal-detect-size make-virtual-terminal virtual-terminal?
     virtual-terminal-screen virtual-terminal-raw virtual-terminal-resize!
     virtual-terminal-push-key! virtual-terminal-pop-key! terminal-poll-key
     make-standard-terminal standard-terminal? terminal-enter-raw-mode!
     terminal-exit-raw-mode! make-box box? make-vstack vstack? make-hstack
     hstack? make-container container? container-add! container-clear!
-    container-children <border-style> make-border-style border-style?
-    border-style-resolve make-spinner spinner? make-loader loader? spinner-tick!
-    spinner-reset! spinner-current-frame spinner-frame-index spinner-text
-    spinner-set-text! spinner-prefix spinner-set-prefix! spinner-suffix
-    spinner-set-suffix! spinner-interval spinner-set-interval! spinner-visible?
-    spinner-set-visible! spinner-show! spinner-hide! spinner-status
-    spinner-set-status! spinner-success! spinner-fail! spinner-error!
-    spinner-warn! spinner-stop! spinner-presets spinner-frames-resolve
-    make-editor editor? make-text-input text-input? make-text-area text-area?
-    editor-text editor-set-text! editor-cursor editor-set-cursor!
-    editor-display-col editor-lines editor-focused? editor-set-focused!
-    editor-placeholder editor-set-placeholder! editor-history-list
-    editor-history editor-set-on-submit! make-history history? history-entries
-    history-push! history-reset! <main-screen> make-main-screen main-screen?
-    screen-terminal screen-buffer screen-lines screen-render! screen-refresh!
-    screen-invalidate! screen-resize! screen-clear! screen-auto-hide-cursor?
-    screen-auto-hide-cursor-set! <screen-buffer> make-screen-buffer
-    screen-buffer? screen-buffer-lines screen-buffer-prev-lines
-    screen-buffer-dirty? screen-diff screen-dirty-diff diff-op-type
-    diff-op-index diff-op-text screen-diff-has-changes?
+    container-children make-border-style border-style? border-style-resolve
+    make-spinner spinner? make-loader loader? spinner-tick! spinner-reset!
+    spinner-current-frame spinner-frame-index spinner-text spinner-set-text!
+    spinner-prefix spinner-set-prefix! spinner-suffix spinner-set-suffix!
+    spinner-interval spinner-set-interval! spinner-visible? spinner-set-visible!
+    spinner-show! spinner-hide! spinner-status spinner-set-status!
+    spinner-success! spinner-fail! spinner-error! spinner-warn! spinner-stop!
+    spinner-presets spinner-frames-resolve make-editor editor? make-text-input
+    text-input? make-text-area text-area? editor-text editor-set-text!
+    editor-cursor editor-set-cursor! editor-display-col editor-lines
+    editor-focused? editor-set-focused! editor-placeholder
+    editor-set-placeholder! editor-history-list editor-history
+    editor-set-on-submit! make-history history? history-entries history-push!
+    history-reset! make-main-screen main-screen? screen-terminal screen-buffer
+    screen-lines screen-render! screen-refresh! screen-invalidate!
+    screen-resize! screen-clear! screen-auto-hide-cursor?
+    screen-auto-hide-cursor-set! make-screen-buffer screen-buffer?
+    screen-buffer-lines screen-buffer-prev-lines screen-buffer-dirty?
+    screen-diff screen-dirty-diff diff-op-type diff-op-index diff-op-text
+    screen-diff-has-changes?
   ) ;export
   (import (liii tui component)
     (liii tui text-width)

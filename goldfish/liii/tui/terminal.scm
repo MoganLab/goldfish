@@ -22,7 +22,7 @@
 ;;
 
 (define-library (liii tui terminal)
-  (export <terminal> make-terminal-record terminal? terminal-size terminal-write
+  (export make-terminal-record terminal? terminal-size terminal-write
     terminal-cursor terminal-set-cursor! terminal-clear terminal-clear-line
     terminal-clear-line-to-end terminal-begin-sync! terminal-end-sync!
     terminal-cursor-visible? terminal-hide-cursor! terminal-show-cursor!

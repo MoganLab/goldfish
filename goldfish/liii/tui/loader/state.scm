@@ -22,11 +22,11 @@
 ;;
 
 (define-library (liii tui loader state)
-  (export <spinner-data> %make-spinner-data %spinner-data? %sp-frames
-    %sp-frames-set! %sp-frame-idx %sp-frame-idx-set! %sp-text %sp-text-set!
-    %sp-prefix %sp-prefix-set! %sp-suffix %sp-suffix-set! %sp-interval
-    %sp-interval-set! %sp-visible %sp-visible-set! %sp-status %sp-status-set!
-    %sp-on-change %sp-on-change-set! %sp-comp %sp-comp-set! %unwrap-spinner
+  (export %make-spinner-data %spinner-data? %sp-frames %sp-frames-set!
+    %sp-frame-idx %sp-frame-idx-set! %sp-text %sp-text-set! %sp-prefix
+    %sp-prefix-set! %sp-suffix %sp-suffix-set! %sp-interval %sp-interval-set!
+    %sp-visible %sp-visible-set! %sp-status %sp-status-set! %sp-on-change
+    %sp-on-change-set! %sp-comp %sp-comp-set! %unwrap-spinner
     %notify-spinner-change! spinner-frames spinner-frame-index
     spinner-current-frame spinner-text spinner-set-text! spinner-prefix
     spinner-set-prefix! spinner-suffix spinner-set-suffix! spinner-interval
@@ -59,8 +59,6 @@
       (on-change %sp-on-change %sp-on-change-set!)
       (comp %sp-comp %sp-comp-set!)
     ) ;define-record-type
-
-    (define <spinner-data> '<spinner-data>)
 
     (define (%unwrap-spinner obj caller)
       (cond ((%spinner-data? obj) obj)
