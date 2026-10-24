@@ -19,6 +19,7 @@
     (scheme file)
     (scheme write)
     (liii base)
+    (liii list)
     (liii os)
     (liii path)
     (liii string)
@@ -78,13 +79,14 @@
         (let* ((text (catch #t (lambda () (path-read-text path)) (lambda (t i) "")))
                (lines (string-split text "\n"))
               ) ;
-          (let loop
-            ((rest lines) (count 0) (acc '()))
-            (cond ((null? rest) (cons count (reverse acc)))
-                  ((string-null? (car rest)) (loop (cdr rest) count acc))
-                  ((string-starts? (car rest) "#!") (loop (cdr rest) count acc))
-                  (else (loop (cdr rest) (+ count 1) (cons (car rest) acc)))
-            ) ;cond
+          (let ((valid-lines
+                  (filter
+                    (lambda (line) (and (not (string-null? line)) (not (string-starts? line "#!"))))
+                    lines
+                  ) ;filter
+                ) ;valid-lines
+               ) ;
+            (cons (length valid-lines) valid-lines)
           ) ;let
         ) ;let*
       ) ;if

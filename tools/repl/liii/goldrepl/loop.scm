@@ -76,17 +76,10 @@
     (define (%repl-format-completion-menu cands . opt-w)
       (let* ((max-w (if (pair? opt-w) (car opt-w) 70))
              (top9 (take cands (min 9 (length cands))))
-             (menu-lines
-               (let loop
-                 ((rest top9) (i 0) (acc '()))
-                 (if (null? rest)
-                   (reverse acc)
-                   (loop (cdr rest)
-                     (+ i 1)
-                     (cons (%repl-format-completion-cand i (car rest) max-w) acc)
-                   ) ;loop
-                 ) ;if
-               ) ;let
+             (menu-lines (map (lambda (cand i) (%repl-format-completion-cand i cand max-w))
+                           top9
+                           (iota (length top9))
+                         ) ;map
              ) ;menu-lines
              (more (- (length cands) (length top9)))
             ) ;

@@ -40,6 +40,19 @@
   ) ;check-true
 ) ;let
 
+;; %repl-symbol-name?：判断符号名是否存在
+(check (%repl-symbol-name? "string-append") => #t)
+(check (%repl-symbol-name? "no-such-symbol-xyz-abc") => #f)
+
+;; %repl-common-prefix：求字符串列表的最长公共前缀
+(check (%repl-common-prefix '()) => "")
+(check (%repl-common-prefix '("single")) => "single")
+(check (%repl-common-prefix '("string-append" "string-copy" "string-map"))
+  =>
+  "string-"
+) ;check
+(check (%repl-common-prefix '("apple" "banana")) => "")
+
 (define (%test-temp-path name)
   (let ((tmp-dir
           (cond ((getenv "TEMP") => (lambda (p) (string-replace p "\\" "/")))

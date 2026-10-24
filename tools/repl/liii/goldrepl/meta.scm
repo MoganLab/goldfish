@@ -185,20 +185,24 @@
     ) ;define
 
     (define (%repl-handle-meta input)
-      (let loop
-        ((rest *repl-meta-commands*))
-        (if (null? rest)
+      (let ((cmd
+              (find (lambda (c) (%repl-meta-match? input (car c) (caddr c)))
+                *repl-meta-commands*
+              ) ;find
+            ) ;cmd
+           ) ;
+        (if cmd
+          (let* ((name (car cmd))
+                 (exact? (caddr cmd))
+                 (arg
+                   (if exact? #f (string-trim-both (substring input (string-length name))))
+                 ) ;arg
+                ) ;
+            (%repl-dispatch-meta name arg)
+          ) ;let*
           (values #f
             (list (%repl-styled "error" (string-append "Unknown meta command: " input)))
           ) ;values
-          (let* ((cmd (car rest)) (name (car cmd)) (exact? (caddr cmd)))
-            (if (%repl-meta-match? input name exact?)
-              (let ((arg (if exact? #f (string-trim-both (substring input (string-length name))))))
-                (%repl-dispatch-meta name arg)
-              ) ;let
-              (loop (cdr rest))
-            ) ;if
-          ) ;let*
         ) ;if
       ) ;let
     ) ;define

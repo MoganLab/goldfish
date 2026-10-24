@@ -98,18 +98,13 @@
              (prompt (%repl-prompt (not pending?)))
              (cont (%repl-prompt #f))
             ) ;
-        (let loop
-          ((rest text-lines) (i 0) (acc '()))
-          (if (null? rest)
-            (reverse acc)
-            (let* ((line (car rest))
-                   (hl (%repl-highlight-line line))
-                   (prefix (if (= i 0) prompt cont))
-                  ) ;
-              (loop (cdr rest) (+ i 1) (cons (string-append prefix hl) acc))
-            ) ;let*
-          ) ;if
-        ) ;let
+        (map
+          (lambda (line i)
+            (string-append (if (= i 0) prompt cont) (%repl-highlight-line line))
+          ) ;lambda
+          text-lines
+          (iota (length text-lines))
+        ) ;map
       ) ;let*
     ) ;define
 
