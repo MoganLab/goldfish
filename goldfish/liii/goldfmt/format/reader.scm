@@ -24,10 +24,6 @@
     (srfi srfi-13)
   ) ;import
   (begin
-    (define (reader-format-selected-item item column)
-      (format-reader-datum-at item column)
-    ) ;define
-
     (define (reader-select-first-line-items head-name rest start-column)
       (let ((limit (first-line-limit head-name))
             (allow-child-env? (allow-first-line-child-env? head-name))
@@ -53,7 +49,7 @@
               (if (or (and item-is-env? (not allow-child-env?)) (> next-direct-env-count 1))
                 (reverse result)
                 (let* ((item-column (+ column 1))
-                       (item-text (reader-format-selected-item item item-column))
+                       (item-text (format-reader-datum-at item item-column))
                        (next-result (cons (list item item-column item-text) result))
                        (next-column (+ item-column (string-length item-text)))
                       ) ;
@@ -75,15 +71,10 @@
     ) ;define
 
     (define (format-reader-vector-inline datum)
-      (let ((prefix (if (byte-vector? datum) "#u8(" "#(")))
-        (let loop
-          ((i 0) (pieces '()))
-          (if (>= i (vector-length datum))
-            (string-append prefix (string-join (reverse pieces) " ") ")")
-            (loop (+ i 1) (cons (format-reader-datum-inline (vector-ref datum i)) pieces))
-          ) ;if
-        ) ;let
-      ) ;let
+      (string-append (if (byte-vector? datum) "#u8(" "#(")
+        (string-join (map format-reader-datum-inline (vector->list datum)) " ")
+        ")"
+      ) ;string-append
     ) ;define
 
     (define (format-reader-vector-multiline datum indent)
@@ -153,6 +144,91 @@
       ) ;let
     ) ;define
 
+    (define (reader-append-keyword-block current result rest-indent
+              prefix-ready? close-indent block-count max-key-len
+            ) ;reader-append-keyword-block
+      (let emit-block
+        ((curr current) (k 0) (res result) (ready? prefix-ready?))
+        (if (>= k block-count)
+          (reader-append-rest curr res rest-indent #f close-indent)
+          (let* ((key-text (format-reader-datum-inline (car curr)))
+                 (val-inline (format-reader-datum-inline (cadr curr)))
+                 (key-line-prefix (if ready? "" (string-append "\n" (spaces rest-indent))))
+                 (sep-spaces
+                   (spaces (+ (- max-key-len (string-length key-text)) 1))
+                 ) ;sep-spaces
+                ) ;
+            (emit-block (cddr curr)
+              (+ k 1)
+              (string-append res key-line-prefix key-text sep-spaces val-inline)
+              #f
+            ) ;emit-block
+          ) ;let*
+        ) ;if
+      ) ;let
+    ) ;define
+
+    (define (reader-append-keyword-single current result rest-indent
+              prefix-ready? close-indent
+            ) ;reader-append-keyword-single
+      (let* ((key-text (format-reader-datum-inline (car current)))
+             (key-len (string-length key-text))
+             (val-item (cadr current))
+             (key-line-prefix (if prefix-ready? "" (string-append "\n" (spaces rest-indent)))
+             ) ;key-line-prefix
+             (val-inline (format-reader-datum-inline val-item))
+             (fits-inline?
+               (and (not (string-contains-newline? val-inline))
+                 (<= (+ rest-indent key-len 1 (string-length val-inline)) max-inline-length)
+               ) ;and
+             ) ;fits-inline?
+            ) ;
+        (if fits-inline?
+          (reader-append-rest (cddr current)
+            (string-append result key-line-prefix key-text " " val-inline)
+            rest-indent
+            #f
+            close-indent
+          ) ;reader-append-rest
+          (reader-append-rest (cddr current)
+            (string-append result
+              key-line-prefix
+              key-text
+              "\n"
+              (spaces rest-indent)
+              (format-reader-datum-at val-item rest-indent)
+            ) ;string-append
+            rest-indent
+            #f
+            close-indent
+          ) ;reader-append-rest
+        ) ;if
+      ) ;let*
+    ) ;define
+
+    (define (reader-append-normal-item current result rest-indent prefix-ready?
+              close-indent
+            ) ;reader-append-normal-item
+      (let* ((item (car current))
+             (is-last-comment? (and (null? (cdr current)) (comment-datum? item)))
+             (item-text (format-reader-datum-at item
+                          (if prefix-ready? (last-line-column result) rest-indent)
+                        ) ;format-reader-datum-at
+             ) ;item-text
+            ) ;
+        (reader-append-rest (cdr current)
+          (string-append result
+            (if prefix-ready? "" (string-append "\n" (spaces rest-indent)))
+            item-text
+            (if is-last-comment? (string-append "\n" (spaces close-indent)) "")
+          ) ;string-append
+          rest-indent
+          #f
+          close-indent
+        ) ;reader-append-rest
+      ) ;let*
+    ) ;define
+
     (define (reader-append-rest current result rest-indent prefix-ready? close-indent)
       (cond
        ((pair? current)
@@ -171,87 +247,28 @@
               (not (newline-marker-datum? (cadr current)))
               (not (comment-datum? (cadr current)))
             ) ;and
-            (call-with-values (lambda ()
-                                (reader-keyword-block-info current rest-indent format-reader-datum-inline)
-                              ) ;lambda
-              (lambda (block-count max-key-len)
+            (let ((info (call-with-values (lambda ()
+                                            (reader-keyword-block-info current rest-indent format-reader-datum-inline)
+                                          ) ;lambda
+                          (lambda (block-count max-key-len) (list block-count max-key-len))
+                        ) ;call-with-values
+                  ) ;info
+                 ) ;
+              (let ((block-count (car info)) (max-key-len (cadr info)))
                 (if (> block-count 0)
-                  (let emit-block
-                    ((curr current) (k 0) (res result) (ready? prefix-ready?))
-                    (if (>= k block-count)
-                      (reader-append-rest curr res rest-indent #f close-indent)
-                      (let* ((key-text (format-reader-datum-inline (car curr)))
-                             (val-inline (format-reader-datum-inline (cadr curr)))
-                             (key-line-prefix (if ready? "" (string-append "\n" (spaces rest-indent))))
-                             (sep-spaces
-                               (spaces (+ (- max-key-len (string-length key-text)) 1))
-                             ) ;sep-spaces
-                            ) ;
-                        (emit-block (cddr curr)
-                          (+ k 1)
-                          (string-append res key-line-prefix key-text sep-spaces val-inline)
-                          #f
-                        ) ;emit-block
-                      ) ;let*
-                    ) ;if
-                  ) ;let
-                  (let* ((key-text (format-reader-datum-inline item))
-                         (key-len (string-length key-text))
-                         (val-item (cadr current))
-                         (key-line-prefix (if prefix-ready? "" (string-append "\n" (spaces rest-indent)))
-                         ) ;key-line-prefix
-                         (val-inline (format-reader-datum-inline val-item))
-                         (fits-inline?
-                           (and (not (string-contains-newline? val-inline))
-                             (<= (+ rest-indent key-len 1 (string-length val-inline)) max-inline-length)
-                           ) ;and
-                         ) ;fits-inline?
-                        ) ;
-                    (if fits-inline?
-                      (reader-append-rest (cddr current)
-                        (string-append result key-line-prefix key-text " " val-inline)
-                        rest-indent
-                        #f
-                        close-indent
-                      ) ;reader-append-rest
-                      (let ((val-text (format-reader-datum-at val-item rest-indent)))
-                        (reader-append-rest (cddr current)
-                          (string-append result
-                            key-line-prefix
-                            key-text
-                            "\n"
-                            (spaces rest-indent)
-                            val-text
-                          ) ;string-append
-                          rest-indent
-                          #f
-                          close-indent
-                        ) ;reader-append-rest
-                      ) ;let
-                    ) ;if
-                  ) ;let*
+                  (reader-append-keyword-block current result rest-indent
+                    prefix-ready? close-indent block-count max-key-len
+                  ) ;reader-append-keyword-block
+                  (reader-append-keyword-single current result rest-indent
+                    prefix-ready? close-indent
+                  ) ;reader-append-keyword-single
                 ) ;if
-              ) ;lambda
-            ) ;call-with-values
+              ) ;let
+            ) ;let
            ) ;
-           (else
-             (let ((is-last-comment? (and (null? (cdr current)) (comment-datum? item)))
-                   (item-text (format-reader-datum-at item
-                                (if prefix-ready? (last-line-column result) rest-indent)
-                              ) ;format-reader-datum-at
-                   ) ;item-text
-                  ) ;
-               (reader-append-rest (cdr current)
-                 (string-append result
-                   (if prefix-ready? "" (string-append "\n" (spaces rest-indent)))
-                   item-text
-                   (if is-last-comment? (string-append "\n" (spaces close-indent)) "")
-                 ) ;string-append
-                 rest-indent
-                 #f
-                 close-indent
-               ) ;reader-append-rest
-             ) ;let
+           (else (reader-append-normal-item current result rest-indent
+                   prefix-ready? close-indent
+                 ) ;reader-append-normal-item
            ) ;else
           ) ;cond
         ) ;let

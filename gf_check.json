@@ -166,10 +166,6 @@
         "reason": "Goldfish 系统自举入口与环境初始化"
       },
       {
-        "path": "goldfish/liii/goldfmt/format/reader.scm",
-        "reason": "排版引擎 reader 互递归闭包核心算法不可分割"
-      },
-      {
         "path": "goldfish/liii/goldfmt/scan/literal.scm",
         "reason": "reader 字面量改写状态机实现"
       },
