@@ -38,9 +38,7 @@
     (define zai-request-stream kimi-request-stream)
     (define (zai-build-endpoint base-url)
       (let* ((raw (or base-url "https://open.bigmodel.cn/api/coding/paas/v4"))
-             (b
-               (if (string-ends? raw "/") (substring raw 0 (- (string-length raw) 1)) raw)
-             ) ;b
+             (b (string-remove-suffix raw "/"))
             ) ;
         (cond ((string-ends? b "/chat/completions") b)
               ((or (string-ends? b "/v1") (string-ends? b "/v4"))

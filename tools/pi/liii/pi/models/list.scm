@@ -67,12 +67,6 @@
       ) ;cond
     ) ;define
 
-    (define (%pad-right str width)
-      (let ((len (string-length str)))
-        (if (>= len width) str (string-append str (make-string (- width len) #\space)))
-      ) ;let
-    ) ;define
-
     (define (%build-model-row p-name m)
       (let* ((mid (%dict-ref m "id" ""))
              (cw (%dict-ref m "contextWindow" 128000))
@@ -183,17 +177,17 @@
     ) ;define
 
     (define (%format-table-line p m c mo th im w-p w-m w-c w-mo w-th w-im)
-      (string-append (%pad-right p w-p)
+      (string-append (string-pad-right p w-p)
         "  "
-        (%pad-right m w-m)
+        (string-pad-right m w-m)
         "  "
-        (%pad-right c w-c)
+        (string-pad-right c w-c)
         "  "
-        (%pad-right mo w-mo)
+        (string-pad-right mo w-mo)
         "  "
-        (%pad-right th w-th)
+        (string-pad-right th w-th)
         "  "
-        (%pad-right im w-im)
+        (string-pad-right im w-im)
         "\n"
       ) ;string-append
     ) ;define

@@ -12,14 +12,11 @@
   (begin
 
     (define (%pad-two-digits n)
-      (if (< n 10) (string-append "0" (number->string n)) (number->string n))
+      (string-pad (number->string n) 2 #\0)
     ) ;define
 
     (define (%pad-three-digits n)
-      (cond ((< n 10) (string-append "00" (number->string n)))
-            ((< n 100) (string-append "0" (number->string n)))
-            (else (number->string n))
-      ) ;cond
+      (string-pad (number->string n) 3 #\0)
     ) ;define
 
     ;; 当前 UTC 的 POSIX 时间（精确有理数，含小数秒）

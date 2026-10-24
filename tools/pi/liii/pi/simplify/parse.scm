@@ -33,10 +33,7 @@
                    ) ;if
                  ) ;body
                 ) ;
-            (if (string-ends? body "```")
-              (string-trim-both (substring body 0 (- (string-length body) 3)))
-              body
-            ) ;if
+            (if (string-ends? body "```") (string-remove-suffix body "```") body)
           ) ;let*
           trimmed
         ) ;if
@@ -56,7 +53,7 @@
     ) ;define
 
     (define (%truncate-raw text)
-      (if (<= (string-length text) 200) text (substring text 0 200))
+      (if (<= (string-length text) 200) text (string-take text 200))
     ) ;define
 
     (define (%fallback text)
