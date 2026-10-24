@@ -44,7 +44,7 @@
 
 (define-library (liii format color)
   (import (scheme base)
-    (liii base)
+    (scheme case-lambda)
     (liii error)
     (liii string)
     (rename (srfi srfi-166 color)
@@ -80,9 +80,6 @@
     on-true-color
   ) ;export
   (begin
-
-    ;; 哨兵：标记可选参数未被调用者传入
-    (define %not-given (list '*not-given*))
 
     ;; 0~255 的精确整数，即合法的 RGB 分量
     (define (%rgb-component? x)
@@ -122,32 +119,37 @@
       ) ;cond
     ) ;define
 
-    ;; 统一分发：兼容散参形式，同时支持颜色作为单个值传递。
-    ;; 可选参数按位置先于 rest 填充，单值形式下被 g/b 吞掉的参数拼回 fmt。
+    ;; 散参约定分发：r g b 均为合法分量时为 srfi-166 散参形式；
+    ;; r 为颜色值（RGB 列表或 hex 字符串）时，被散参子句绑定的 g、b 归入内容
     (define (%true-color-args r g b fmt)
-      (cond
-       ((or (pair? r) (string? r))
-        (append (%color->rgb24 r)
-          (if (eq? g %not-given) '() (list g))
-          (if (eq? b %not-given) '() (list b))
-          fmt
-        ) ;append
-       ) ;
-       ((and (%rgb-component? r) (%rgb-component? g) (%rgb-component? b))
-        (append (list r g b) fmt)
-       ) ;
-       (else (type-error "invalid true-color arguments" r))
+      (cond ((and (%rgb-component? r) (%rgb-component? g) (%rgb-component? b))
+             (append (list r g b) fmt)
+            ) ;
+            ((or (pair? r) (string? r)) (append (%color->rgb24 r) (list g b) fmt))
+            (else (type-error "invalid true-color arguments" r))
       ) ;cond
     ) ;define
 
-    ;; 增强版：颜色可以是 RGB 列表、hex 字符串，也兼容 srfi-166 散参形式
-    (define* (as-true-color r (g %not-given) (b %not-given) . fmt)
-      (apply %as-true-color/rgb (%true-color-args r g b fmt))
-    ) ;define*
+    ;; 单值约定分发：color 必须是 RGB 列表或 hex 字符串，fmt 均为内容
+    (define (%true-color-args/color color fmt)
+      (append (%color->rgb24 color) fmt)
+    ) ;define
 
-    (define* (on-true-color r (g %not-given) (b %not-given) . fmt)
-      (apply %on-true-color/rgb (%true-color-args r g b fmt))
-    ) ;define*
+    ;; 增强版：颜色可以是 RGB 列表、hex 字符串，也兼容 srfi-166 散参形式。
+    ;; case-lambda 按参数个数分发：3 个以上匹配散参形式，其余匹配单值形式
+    (define as-true-color
+      (case-lambda
+       ((r g b . fmt) (apply %as-true-color/rgb (%true-color-args r g b fmt)))
+       ((color . fmt) (apply %as-true-color/rgb (%true-color-args/color color fmt)))
+      ) ;case-lambda
+    ) ;define
+
+    (define on-true-color
+      (case-lambda
+       ((r g b . fmt) (apply %on-true-color/rgb (%true-color-args r g b fmt)))
+       ((color . fmt) (apply %on-true-color/rgb (%true-color-args/color color fmt)))
+      ) ;case-lambda
+    ) ;define
 
   ) ;begin
 ) ;define-library
