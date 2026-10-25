@@ -76,9 +76,13 @@
       ) ;let-values
     ) ;define
 
+    ;; offset 是加到 1-based day-of-year 上的偏移量，
+    ;; 使 day-cnt 相对 ISO 第 1 周的周一：
+    ;; - 1月1日为周一~周四（wd<=4）：第 1 周包含 1 月 1 日，offset = wd-2
+    ;; - 1月1日为周五~周日（wd>=5）：第 1 周的周一是 1 月 (10-wd) 日，offset = wd-9
     (define (iso-week-offset-for-jan1 year)
       (let ((wd (calc-date-iso-weekday (make-date year 1 1))))
-        (if (>= 5 wd) (- wd 1) (- 1 wd))
+        (if (<= wd 4) (- wd 2) (- wd 9))
       ) ;let
     ) ;define
 
