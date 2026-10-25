@@ -46,7 +46,7 @@
     time-delta-weeks time-delta-days time-delta-hours time-delta-minutes
     time-delta-seconds years-delta months-delta weeks-delta days-delta
     hours-delta minutes-delta seconds-delta time-delta+ time-delta-
-    time-delta-negate date+ date-
+    time-delta-negate time-delta=? date+ date-
   ) ;export
   (begin
 
@@ -245,6 +245,23 @@
           (time-delta+ dt1 (time-delta-negate sub))
         ) ;let
       ) ;if
+    ) ;define
+
+    ;; Component-wise equality. No carrying is done: (hours-delta 8)
+    ;; and (minutes-delta 480) denote the same duration but differ in
+    ;; components, so they are not equal.
+    (define (time-delta=? dt1 dt2)
+      (unless (and (time-delta? dt1) (time-delta? dt2))
+        (error 'type-error "time-delta=?: expected time-deltas" dt1 dt2)
+      ) ;unless
+      (and (= (%time-delta-years dt1) (%time-delta-years dt2))
+        (= (%time-delta-months dt1) (%time-delta-months dt2))
+        (= (%time-delta-weeks dt1) (%time-delta-weeks dt2))
+        (= (%time-delta-days dt1) (%time-delta-days dt2))
+        (= (%time-delta-hours dt1) (%time-delta-hours dt2))
+        (= (%time-delta-minutes dt1) (%time-delta-minutes dt2))
+        (= (%time-delta-seconds dt1) (%time-delta-seconds dt2))
+      ) ;and
     ) ;define
 
     (define (date+ date dt)
