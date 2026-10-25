@@ -72,4 +72,11 @@
 (check (%map-extended-key 134) => 'f12)
 (check (%map-extended-key 999) => #f)
 
+;; 7. 标准键码映射：裸字节 15 是真正的 Ctrl+O（如 pty/tmux 下），
+;;    不是 Shift+Tab；C++ 控制台层的 Shift+Tab 编码为 353（curses KEY_BTAB）
+(check (%map-standard-key 15) => 'ctrl-o)
+(check (%map-standard-key 353) => 'shift-tab)
+(check (%map-standard-key 9) => 'tab)
+(check (%map-standard-key 13) => 'enter)
+
 (check-report)

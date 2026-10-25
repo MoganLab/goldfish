@@ -11,8 +11,11 @@
     pi-app-add-retry-message! pi-app-jobs-chan pi-app-event-chan
     pi-app-poll-events! pi-app-working pi-app-working-tick!
     pi-app-thinking-level pi-app-supports-thinking? pi-app-cycle-thinking!
+    pi-app-bash-mode? pi-app-tools-expanded? pi-app-toggle-tool-output!
+    pi-app-bash-jobs-chan pi-app-run-bash!
   ) ;export
   (import (scheme base)
+    (liii base)
     (liii go)
     (liii time)
     (liii date-time)
@@ -20,95 +23,84 @@
     (liii list)
     (liii tui)
     (liii pi agent queue)
+    (liii pi code tui state)
+    (liii pi code tui render)
     (liii pi code tui views)
     (liii pi code tui thinking)
     (liii pi code tui working)
     (liii pi code tui worker)
+    (liii pi code tui bash)
     (liii pi code tui common)
     (liii pi code tui header)
     (liii pi code tui footer)
   ) ;import
   (begin
 
-    ;; 编辑器顶边框：开启时占 1 行，渲染时光标行需跳过该行
-    (define %pi-editor-top-border #t)
-
-    (define-record-type <pi-app>
-      (%make-pi-app term screen doc chat pending-box editor footer queue handler
-        jobs-chan event-chan working thinking-level supports-thinking
-      ) ;%make-pi-app
-      pi-app?
-      (term pi-app-term)
-      (screen pi-app-screen)
-      (doc %pi-app-doc)
-      (chat %pi-app-chat)
-      (pending-box %pi-app-pending-box)
-      (editor pi-app-editor %pi-app-editor-set!)
-      (footer %pi-app-footer)
-      (queue pi-app-queue)
-      (handler %pi-app-handler)
-      (jobs-chan pi-app-jobs-chan)
-      (event-chan pi-app-event-chan)
-      (working pi-app-working)
-      (thinking-level pi-app-thinking-level %pi-app-thinking-level-set!)
-      (supports-thinking pi-app-supports-thinking?)
-    ) ;define-record-type
-
-    (define %pi-app-term pi-app-term)
-
-    (define (pi-app-render! app)
-      (let* ((screen (pi-app-screen app))
-             (term (%pi-app-term app))
-             (w (car (terminal-size term)))
-             ;; pending 容器内容纯由队列状态派生：busy 时展示队首等待消息
-             (q (pi-app-queue app))
-             (pending-box (%pi-app-pending-box app))
-            ) ;
-        (container-clear! pending-box)
-        (when (pi-queue-busy? q)
-          (let ((items (pi-queue-items q)))
-            (unless (null? items)
-              (container-add! pending-box (make-queued-card (car items)))
-            ) ;unless
-          ) ;let
-        ) ;when
-        (let* ((raw-doc-lines (component-render (%pi-app-doc app) w))
-               ;; 规范化拆分可能包含 \n 的字符串行，确保 ed-y 计算与 screen-render! 完全对齐
-               (doc-lines
-                 (append-map (lambda (item)
-                               (if (string-contains? item "\n") (string-split item "\n") (list item))
-                             ) ;lambda
-                   raw-doc-lines
-                 ) ;append-map
-               ) ;doc-lines
-               (ed (pi-app-editor app))
-               ;; busy 时编辑器上边框替换为 Working 动画行（行数不变）
-               (ed-lines
-                 (let ((raw (component-render ed w)))
-                   (if (and (pi-queue-busy? q) (pair? raw) %pi-editor-top-border)
-                     (cons (working-border-line (pi-app-working app)
-                             w
-                             (pi-thinking-border-color (pi-app-thinking-level app))
-                           ) ;working-border-line
-                       (cdr raw)
-                     ) ;cons
-                     raw
-                   ) ;if
-                 ) ;let
-               ) ;ed-lines
-               (footer-lines (component-render (%pi-app-footer app) w))
-               (ed-cur (editor-cursor ed))
-               (ed-y (+ (length doc-lines) (if %pi-editor-top-border 1 0)))
-               (cur-pos (cons (editor-display-col ed) (+ ed-y (car ed-cur))))
-              ) ;
-          (screen-render! screen (append doc-lines ed-lines footer-lines) cur-pos)
-        ) ;let*
-      ) ;let*
-    ) ;define
-
     ;; 以下 add-*! 系列仅做容器变更，统一由 pi-app-drain-queue! / pi-app-render! 上屏
     (define (pi-app-chat app)
       (container-children (%pi-app-chat app))
+    ) ;define
+
+    ;; 判断字符串是否以指定字符开头（避免 string-prefix? 跨库歧义）
+    (define (%starts-with-char? s c)
+      (and (> (string-length s) 0) (char=? (string-ref s 0) c))
+    ) ;define
+
+    ;; bash 模式边框联动（对齐 pi onChange + updateEditorBorderColor）：
+    ;; 文本（去前导空白后）以 ! 开头 → 绿色；否则恢复当前 thinking 级别颜色
+    (define (%pi-app-editor-on-change app ed text)
+      (let ((bash? (%starts-with-char? (string-trim-left text) #\!)))
+        (%pi-app-bash-mode?-set! app bash?)
+        (editor-set-border-color! ed
+          (if bash?
+            pi-bash-border-color
+            (pi-thinking-border-color (pi-app-thinking-level app))
+          ) ;if
+        ) ;editor-set-border-color!
+      ) ;let
+    ) ;define
+
+    ;; 执行 bash 命令并上屏卡片（对齐 pi handleBashCommand）：
+    ;; 同步 handler（测试接缝）直接回填；生产路径派发到后台 worker，
+    ;; 完成后经 event-chan 发 bash_complete 事件由 poll-events! 回填
+    (define (pi-app-run-bash! app command)
+      (let* ((ed (pi-app-editor app))
+             (cards (%pi-app-bash-cards app))
+             (id (+ 1 (length cards)))
+             (card (make-bash-card command :expanded? (pi-app-tools-expanded? app)))
+            ) ;
+        ;; 清空输入框（触发 on-change → 退出 bash 模式、恢复边框颜色）
+        (editor-set-text! ed "")
+        (%pi-app-bash-cards-set! app (cons (cons id card) cards))
+        (container-add! (%pi-app-chat app) card)
+        (pi-app-render! app)
+        (let ((handler (%pi-app-bash-handler app)))
+          (if handler
+            (let-values (((text code) (handler command)))
+              (bash-card-set-output! card text)
+              (bash-card-set-complete! card code)
+              (pi-app-render! app)
+            ) ;let-values
+            (chan-send! (pi-app-bash-jobs-chan app) (list id command) 1000)
+          ) ;if
+        ) ;let
+      ) ;let*
+    ) ;define
+
+    ;; Ctrl+O 全局切换 bash 卡片展开/折叠（对齐 pi toggleToolOutputExpansion）
+    ;; 返回切换后的展开状态
+    (define (pi-app-toggle-tool-output! app)
+      (let ((next (not (pi-app-tools-expanded? app))))
+        (%pi-app-tools-expanded?-set! app next)
+        (for-each (lambda (child)
+                    (when (bash-card-component? child)
+                      (bash-card-set-expanded! child next)
+                    ) ;when
+                  ) ;lambda
+          (pi-app-chat app)
+        ) ;for-each
+        next
+      ) ;let
     ) ;define
 
     (define (pi-app-add-user-message! app text)
@@ -144,6 +136,17 @@
             (when ev
               (set! has-event #t)
               (case (car ev)
+                    ((bash_complete)
+                     ;; 后台 bash 执行完成：按 id 回填卡片输出与退出码
+                     (let ((id (cadr ev)) (text (caddr ev)) (code (cadddr ev)))
+                       (let ((entry (assq id (%pi-app-bash-cards app))))
+                         (when entry
+                           (bash-card-set-output! (cdr entry) text)
+                           (bash-card-set-complete! (cdr entry) code)
+                         ) ;when
+                       ) ;let
+                     ) ;let
+                    ) ;
                     ((tool_execution_end)
                      (let ((name (cadr ev))
                            (args (caddr ev))
@@ -250,19 +253,28 @@
       ) ;let
     ) ;define
 
-    ;; 用户提交动作：消息统一先进入等待队列并清空输入框；
+    ;; 用户提交动作：! 前缀拦截为 bash 模式（不发给模型）；
+    ;; 其余消息统一先进入等待队列并清空输入框；
     ;; 队列忙时立即渲染出 [Queued] 提示，闲时由 drain-queue! 渲染唯一一帧
     (define (pi-app-submit! app text)
       (let ((clean (string-trim text)))
         (unless (string-null? clean)
-          (let ((q (pi-app-queue app)) (ed (pi-app-editor app)))
-            (pi-queue-enqueue! q clean)
-            (editor-set-text! ed "")
-            (when (pi-queue-busy? q)
-              (pi-app-render! app)
-            ) ;when
-            (pi-app-drain-queue! app)
-          ) ;let
+          ;; bash 模式：!cmd 直接经 bash 执行（对齐 pi 的 ! 前缀行为）；
+          ;; 命令为空（仅 "!"）时回退为普通消息提交（对齐 pi 的 fall-through）
+          (if
+            (and (%starts-with-char? clean #\!)
+              (not (string-null? (string-trim (substring clean 1))))
+            ) ;and
+            (pi-app-run-bash! app (string-trim (substring clean 1)))
+            (let ((q (pi-app-queue app)) (ed (pi-app-editor app)))
+              (pi-queue-enqueue! q clean)
+              (editor-set-text! ed "")
+              (when (pi-queue-busy? q)
+                (pi-app-render! app)
+              ) ;when
+              (pi-app-drain-queue! app)
+            ) ;let
+          ) ;if
         ) ;unless
       ) ;let
     ) ;define
@@ -282,29 +294,35 @@
       ) ;if
     ) ;define
 
-    (define (make-pi-app . args)
-      (let* ((term (%keyword-value :terminal args #f))
-             (handler-opt (%keyword-value :handler args #f))
-             (actual-term (or term (make-standard-terminal :inline #t)))
+    ;; 参数名与调用侧关键字一一对应（:terminal/:handler/:bash-handler 等）
+    (define* (make-pi-app (terminal #f)
+               (handler #f)
+               (bash-handler #f)
+               (provider #f)
+               (model #f)
+               (thinking-level #f)
+               (supports-thinking #t)
+             ) ;make-pi-app
+      (let* ((actual-term (or terminal (make-standard-terminal :inline #t)))
              (screen (make-main-screen actual-term :auto-hide-cursor #f))
              (header (make-pi-header))
              (chat (make-container))
              (pending-box (make-container))
              (doc (make-container))
              (branch (detect-git-branch))
-             (tl (or (%keyword-value :thinking-level args #f) "off"))
-             (supports? (%keyword-value :supports-thinking args #t))
+             (tl (or thinking-level "off"))
              (footer (make-pi-footer
                        :branch            branch
-                       :provider          (%keyword-value :provider args #f)
-                       :model             (%keyword-value :model args #f)
+                       :provider          provider
+                       :model             model
                        :thinking-level    tl
-                       :supports-thinking supports?
+                       :supports-thinking supports-thinking
                      ) ;make-pi-footer
              ) ;footer
              (queue (make-pi-message-queue))
              (jobs-chan (make-chan 16))
              (event-chan (make-chan 32))
+             (bash-jobs-chan (make-chan 16))
              (app (%make-pi-app actual-term
                     screen
                     doc
@@ -313,12 +331,17 @@
                     #f
                     footer
                     queue
-                    handler-opt
+                    handler
                     jobs-chan
                     event-chan
                     (make-working-indicator)
                     tl
-                    supports?
+                    supports-thinking
+                    #f
+                    #f
+                    '()
+                    bash-jobs-chan
+                    bash-handler
                   ) ;%make-pi-app
              ) ;app
              (ed (make-editor ""
@@ -329,6 +352,8 @@
                    :focused       #t
                    :cursor-style  'hardware
                    :on-submit     (lambda (self txt) (pi-app-submit! app txt))
+                   :on-change
+                   (lambda (ed* txt) (%pi-app-editor-on-change app ed* txt))
                  ) ;make-editor
              ) ;ed
             ) ;
@@ -337,12 +362,16 @@
         (container-add! doc pending-box)
         (%pi-app-editor-set! app ed)
         ;; 若未指定自定义 handler，启动后台 (liii go) 独立工作协程
-        (unless handler-opt
+        (unless handler
           (go (pi-tui-agent-worker jobs-chan event-chan))
+        ) ;unless
+        ;; 同理：未注入同步 bash 执行器时，启动后台 bash 工作协程
+        (unless bash-handler
+          (go (pi-bash-worker bash-jobs-chan event-chan))
         ) ;unless
         app
       ) ;let*
-    ) ;define
+    ) ;define*
 
   ) ;begin
 ) ;define-library

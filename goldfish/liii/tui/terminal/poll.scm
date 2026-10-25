@@ -23,7 +23,7 @@
 
 (define-library (liii tui terminal poll)
   (export terminal-poll-key %poll-console-key %resolve-ansi-bytes
-    %resolve-utf8-bytes %map-extended-key
+    %resolve-utf8-bytes %map-extended-key %map-standard-key
   ) ;export
   (import (scheme base)
     (liii error)
@@ -69,7 +69,10 @@
             ((= code 27) 'escape)
             ((or (= code 8) (= code 127)) 'backspace)
             ((= code 9) 'tab)
-            ((or (= code 15) (= code 353)) 'shift-tab)
+            ;; 裸字节 15 是真正的 Ctrl+O（pty/Windows 控制台层均如此）；
+            ;; Shift+Tab 由 C++ 控制台层编码为 353（curses KEY_BTAB），
+            ;; DOS conio 的 15 扩展码仅出现在 0/224 前缀之后（%map-extended-key）
+            ((= code 353) 'shift-tab)
             ((= code 3) 'ctrl-c)
             ((= code 4) 'ctrl-d)
             ((and (>= code 32) (<= code 126)) (string (integer->char code)))
