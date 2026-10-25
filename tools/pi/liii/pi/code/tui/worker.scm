@@ -16,6 +16,7 @@
     (liii go)
     (liii list)
     (liii string)
+    (liii pi abort)
     (liii pi code args)
     (liii pi code config)
     (liii pi ai retry)
@@ -80,9 +81,11 @@
                (pi-tui-send-event! event-chan (list 'retry (car args)))
              ) ;when
             ) ;
-            ;; 任务全部结算完成
+            ;; 任务全部结算完成：携带 aborted 标志（主线程据此上屏 Aborted 提示）
             ((eq? event-type 'agent_settled)
-             (pi-tui-send-event! event-chan (list 'agent_settled))
+             (pi-tui-send-event! event-chan
+               (list 'agent_settled (and (pair? args) (car args)))
+             ) ;pi-tui-send-event!
             ) ;
             (else #t)
           ) ;cond
@@ -117,15 +120,15 @@
               (string-append (object->string tag) ": " (object->string err-args))
             ) ;list
           ) ;pi-tui-send-event!
-          (pi-tui-send-event! event-chan (list 'agent_settled))
+          (pi-tui-send-event! event-chan (list 'agent_settled #f))
         ) ;lambda
       ) ;catch
     ) ;define
 
     ;; 顶层后台工作协程：并发循环消费 jobs-chan 任务并回传事件到 event-chan
-    ;; 注意：go 绑定的 let 语法会"求值"绑定值，alist 会被当作函数调用而报错，
+    ;; 注意：go 绑定的 let 语法会“求值”绑定值，alist 会被当作函数调用而报错，
     ;; 因此 parsed/cfg 不能跨 go 边界传入，必须在 worker 会话内自行解析
-    (define (pi-tui-agent-worker jobs-chan event-chan)
+    (define (pi-tui-agent-worker jobs-chan event-chan abort-chan)
       (let* ((parsed (parse-pi-args (cdr (command-line))))
              (cfg (resolve-pi-config parsed (get-environment-variables)))
             ) ;
@@ -136,6 +139,9 @@
           ;; job 消息为 (text thinking-level)：会话内切换的级别对下一条消息生效
           (let ((job (chan-recv! jobs-chan)))
             (when job
+              ;; 新任务开始前 arm abort 通道：排空上一轮残留信号并复位标志，
+              ;; 本轮任务期间流式回调 / turn 边界 / 工具边界经 pi-aborted? 探测
+              (pi-abort-arm-chan! abort-chan)
               (pi-tui-run-worker parsed
                 (pi-cfg-with-thinking cfg (cadr job))
                 (car job)

@@ -1,5 +1,8 @@
 (import (scheme base)
+  (liii list)
+  (liii string)
   (liii check)
+  (liii go)
   (liii tui)
   (liii pi agent queue)
   (liii pi code tui app)
@@ -11,7 +14,10 @@
 ;; 语义约定：
 ;;   Ctrl+C —— 仅清空输入框，永不退出、不中断任务。
 ;;   Ctrl+D —— 输入框为空时退出（EOF 语义）；有内容时无操作。
-;; 因此所有「需要退出主循环」的测试都必须用 Ctrl+D 触发。
+;;   Escape —— busy 时发 abort 信号中断任务（对齐上游 pi），并把排队
+;;             消息撤回至 editor 重新编辑；不退出 TUI。
+;; 因此所有「需要退出主循环」的测试都必须用 Ctrl+D 触发，
+;; 且退出前必须保证输入框为空（必要时先按 Ctrl+C 清空）。
 
 ;; 1. 测试 pi-app-run 过程定义
 (check-true (procedure? pi-app-run))
@@ -71,7 +77,58 @@
   (check (editor-text ed) => "")
 ) ;let*
 
-;; 6. Ctrl+C 在 busy 时也不中断任务、不退出，也不追加任何卡片
+;; 6. 队列空闲时按 escape 不发 abort 信号（保持现有行为）
+(let* ((vt (make-virtual-terminal :width 80 :height 24))
+       (app (make-pi-app :terminal vt :handler (lambda (a m) #t)))
+       (q (pi-app-queue app))
+      ) ;
+  (check-true (pi-queue-idle? q))
+  (virtual-terminal-push-key! vt 'escape)
+  ;; 输入框为空，Ctrl+D 直接退出
+  (virtual-terminal-push-key! vt 'ctrl-d)
+  (check (pi-app-run app) => #t)
+  (check (chan-try-recv! (pi-app-abort-chan app) #f) => #f)
+) ;let*
+
+;; 7. busy 时按 escape：发送 abort 信号并撤回排队消息到编辑器
+(let* ((vt (make-virtual-terminal :width 80 :height 24))
+       (app (make-pi-app :terminal vt :handler (lambda (a m) #t)))
+       (q (pi-app-queue app))
+       (ed (pi-app-editor app))
+      ) ;
+  (pi-queue-enqueue! q "queued-1")
+  (pi-queue-enqueue! q "queued-2")
+  (pi-queue-set-busy! q)
+  (virtual-terminal-push-key! vt 'escape)
+  ;; 此时编辑器已恢复 "queued-1\nqueued-2"：先按一次无操作的 Ctrl+D 证明
+  ;; 有内容时不退出，再用 Ctrl+C 清空后 Ctrl+D 退出
+  (virtual-terminal-push-key! vt 'ctrl-d)
+  (virtual-terminal-push-key! vt 'ctrl-c)
+  (virtual-terminal-push-key! vt 'ctrl-d)
+  (check (pi-app-run app) => #t)
+  ;; abort 信号已发送到 abort-chan
+  (check (chan-try-recv! (pi-app-abort-chan app) #f) => 'abort)
+  ;; 排队消息已撤回（队列清空，消息经编辑器又被 Ctrl+C 清空）
+  (check (pi-queue-length q) => 0)
+  (check (editor-text ed) => "")
+) ;let*
+
+;; 8. busy 且队列为空时按 escape：仍发送 abort 信号（中断正在进行的任务）
+(let* ((vt (make-virtual-terminal :width 80 :height 24))
+       (app (make-pi-app :terminal vt :handler (lambda (a m) #t)))
+       (q (pi-app-queue app))
+       (ed (pi-app-editor app))
+      ) ;
+  (pi-queue-set-busy! q)
+  (virtual-terminal-push-key! vt 'escape)
+  ;; 编辑器为空，Ctrl+D 直接退出
+  (virtual-terminal-push-key! vt 'ctrl-d)
+  (check (pi-app-run app) => #t)
+  (check (chan-try-recv! (pi-app-abort-chan app) #f) => 'abort)
+  (check (editor-text ed) => "")
+) ;let*
+
+;; 9. Ctrl+C 在 busy 时也不中断任务、不退出，也不追加任何卡片
 (let* ((vt (make-virtual-terminal :width 80 :height 24))
        (app (make-pi-app :terminal vt :handler (lambda (a m) #t)))
        (q (pi-app-queue app))
@@ -95,7 +152,7 @@
   (check (> (length (screen-lines screen)) 0) => #t)
 ) ;let*
 
-;; 7. Ctrl+D 在输入框有内容时不退出（避免误触丢草稿）
+;; 10. Ctrl+D 在输入框有内容时不退出（避免误触丢草稿）
 (let* ((vt (make-virtual-terminal :width 80 :height 24))
        (app (make-pi-app :terminal vt :handler (lambda (a m) #t)))
        (ed (pi-app-editor app))
@@ -112,8 +169,35 @@
   (check (editor-text ed) => "")
 ) ;let*
 
-;; 8. 退出后光标必须位于整个 TUI 块下方，而不是停在输入框所在行。
-;;    虚拟终端高度 24，TUI 内容约 11 行，退出后光标行应 >= 内容行数
+;; 11. agent_settled 带 aborted=#t 时上屏 Aborted 提示卡片并结算队列
+(let* ((vt (make-virtual-terminal :width 80 :height 24))
+       (app (make-pi-app :terminal vt :handler (lambda (a m) #t)))
+       (q (pi-app-queue app))
+      ) ;
+  (pi-queue-set-busy! q)
+  (chan-send! (pi-app-event-chan app) '(agent_settled #t) 1000)
+  ;; 输入框为空，Ctrl+D 直接退出
+  (virtual-terminal-push-key! vt 'ctrl-d)
+  (check (pi-app-run app) => #t)
+  ;; 队列回到 idle
+  (check-true (pi-queue-idle? q))
+  ;; Aborted 提示卡片已渲染上屏
+  (let* ((lines (screen-lines (pi-app-screen app)))
+         (plain-lines (map strip-ansi lines))
+        ) ;
+    (check-true
+      (pair?
+        (filter
+          (lambda (l) (string-contains? l "Aborted"))
+          plain-lines
+        ) ;filter
+      ) ;pair?
+    ) ;check-true
+  ) ;let*
+) ;let*
+
+;; 12. 退出后光标必须位于整个 TUI 块下方，而不是停在输入框所在行。
+;;     虚拟终端高度 24，TUI 内容约 11 行，退出后光标行应 >= 内容行数
 (let* ((vt (make-virtual-terminal :width 80 :height 24))
        (app (make-pi-app :terminal vt :handler (lambda (a m) #t)))
        (screen (pi-app-screen app))

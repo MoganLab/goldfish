@@ -32,6 +32,22 @@
 (check (date-iso-week-year (make-date 2008 12 29)) => 2009)
 (check (date-iso-week-year (make-date 2010 1 2)) => 2009)
 
+;; 1 月初属于上一年 ISO 周年的边界日期
+(check (date-iso-week-year (make-date 2016 1 1)) => 2015)
+(check (date-iso-week-year (make-date 2022 1 1)) => 2021)
+(check (date-iso-week-year (make-date 2022 1 2)) => 2021)
+(check (date-iso-week-year (make-date 2022 1 3)) => 2022)
+(check (date-iso-week-year (make-date 2023 1 1)) => 2022)
+(check (date-iso-week-year (make-date 2023 1 2)) => 2023)
+(check (date-iso-week-year (make-date 1993 1 3)) => 1992)
+(check (date-iso-week-year (make-date 1994 1 1)) => 1993)
+(check (date-iso-week-year (make-date 2017 1 1)) => 2016)
+
+;; 12 月末属于下一年 ISO 周年的边界日期
+(check (date-iso-week-year (make-date 2016 12 31)) => 2016)
+(check (date-iso-week-year (make-date 2024 12 30)) => 2025)
+(check (date-iso-week-year (make-date 2020 12 31)) => 2020)
+
 (check-catch 'type-error (date-iso-week-year "2025-10-14"))
 (check-catch 'type-error (date-iso-week-year 2025))
 

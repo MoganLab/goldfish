@@ -102,6 +102,7 @@
             "liii raw-string",
             "liii semver",
             "liii set",
+            "liii shutil",
             "liii signal",
             "liii sort",
             "liii sse",
@@ -136,7 +137,8 @@
         {
           "name": "ai",
           "libs": [
-            "liii pi ai"
+            "liii pi ai",
+            "liii pi abort"
           ]
         },
         {

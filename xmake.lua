@@ -1,4 +1,4 @@
-set_version ("18.11.41")
+set_version ("18.11.42")
 
 -- mode
 set_allowedmodes("releasedbg", "release", "debug", "profile")
@@ -108,6 +108,7 @@ target ("goldfish") do
     add_files ("src/liii_json.cpp")
     add_files ("src/liii_go.cpp")
     add_files ("src/liii_fs_watch.cpp")
+    add_files ("src/liii_shutil.cpp")
     add_files ("src/liii_tempfile.cpp")
     add_files ("src/liii_uuid.cpp")
     add_files ("src/scheme_base.cpp")

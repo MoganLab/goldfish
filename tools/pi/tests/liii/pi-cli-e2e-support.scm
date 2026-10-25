@@ -75,10 +75,10 @@
 
 (define (cleanup-fixtures!)
   (when (path-exists? (path %tmp-agent-dir))
-    (g_rmtree %tmp-agent-dir)
+    (rmtree %tmp-agent-dir #t)
   ) ;when
   (when (path-exists? (path %tmp-empty-dir))
-    (g_rmtree %tmp-empty-dir)
+    (rmtree %tmp-empty-dir #t)
   ) ;when
 ) ;define
 

@@ -10,11 +10,11 @@
   (export %make-pi-app pi-app? pi-app-term %pi-app-term pi-app-screen
     %pi-app-doc %pi-app-chat %pi-app-pending-box pi-app-editor
     %pi-app-editor-set! %pi-app-footer pi-app-queue %pi-app-handler
-    pi-app-jobs-chan pi-app-event-chan pi-app-working pi-app-thinking-level
-    %pi-app-thinking-level-set! pi-app-supports-thinking? pi-app-bash-mode?
-    %pi-app-bash-mode?-set! pi-app-tools-expanded? %pi-app-tools-expanded?-set!
-    %pi-app-bash-cards %pi-app-bash-cards-set! pi-app-bash-jobs-chan
-    %pi-app-bash-handler %pi-editor-top-border
+    pi-app-jobs-chan pi-app-event-chan pi-app-abort-chan pi-app-working
+    pi-app-thinking-level %pi-app-thinking-level-set! pi-app-supports-thinking?
+    pi-app-bash-mode? %pi-app-bash-mode?-set! pi-app-tools-expanded?
+    %pi-app-tools-expanded?-set! %pi-app-bash-cards %pi-app-bash-cards-set!
+    pi-app-bash-jobs-chan %pi-app-bash-handler %pi-editor-top-border
   ) ;export
   (import (scheme base))
   (begin
@@ -24,8 +24,8 @@
 
     (define-record-type <pi-app>
       (%make-pi-app term screen doc chat pending-box editor footer queue handler
-        jobs-chan event-chan working thinking-level supports-thinking bash-mode?
-        tools-expanded? bash-cards bash-jobs-chan bash-handler
+        jobs-chan event-chan abort-chan working thinking-level supports-thinking
+        bash-mode? tools-expanded? bash-cards bash-jobs-chan bash-handler
       ) ;%make-pi-app
       pi-app?
       (term pi-app-term)
@@ -39,6 +39,8 @@
       (handler %pi-app-handler)
       (jobs-chan pi-app-jobs-chan)
       (event-chan pi-app-event-chan)
+      ;; ESC 中断信号通道：主线程发送，后台 worker 接收探测
+      (abort-chan pi-app-abort-chan)
       (working pi-app-working)
       (thinking-level pi-app-thinking-level %pi-app-thinking-level-set!)
       (supports-thinking pi-app-supports-thinking?)
