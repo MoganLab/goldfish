@@ -49,6 +49,8 @@
                       ;; 按 shift+tab 时：循环切换 thinking level，
                       ;; footer 右下角标签与编辑器边框/Working 颜色同步更新
                       ((eq? k 'shift-tab) (pi-app-cycle-thinking! app) (pi-app-render! app) (loop))
+                      ;; 按 ctrl+o 时：全局切换 bash/工具输出卡片的展开与折叠
+                      ((eq? k 'ctrl-o) (pi-app-toggle-tool-output! app) (pi-app-render! app) (loop))
                       ((not k)
                        ;; 空闲轮询：busy 时推进 Working spinner 动画（内部自带 80ms 节拍）
                        (pi-app-working-tick! app)
@@ -69,6 +71,12 @@
               (terminal-exit-raw-mode! term)
               (terminal-write term "\r\n")
               (terminal-flush term)
+              ;; 关闭 bash 任务通道，后台 worker 收到 eof 后退出，
+              ;; 避免进程退出时后台线程仍在阻塞 recv 导致崩溃
+              (catch #t
+                (lambda () (chan-close! (pi-app-bash-jobs-chan app)))
+                (lambda args #f)
+              ) ;catch
             ) ;let*
           ) ;lambda
         ) ;dynamic-wind
