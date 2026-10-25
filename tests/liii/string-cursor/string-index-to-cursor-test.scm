@@ -29,6 +29,12 @@
 ;; 2. 如果 index 已经是游标，则直接返回
 ;; 3. 与 (liii string) 的区别：(liii string-cursor) 提供了完整的游标操作支持
 ;; 4. 性能：O(n)，需要扫描字符串建立位置映射表
+;; 5. 支持 Unicode 字符（包括多字节字符如中文、Emoji）的正确索引转换
+;;
+;; 相关实现
+;; --------
+;; (liii string-cursor) 独有函数，无 (liii string) 对应版本
+;; 参见: gf doc liii/string-cursor "string-index->cursor"
 
 ;; 基本测试
 (let* ((s "abcdef")

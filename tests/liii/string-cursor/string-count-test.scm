@@ -8,7 +8,7 @@
 ;;
 ;; 语法
 ;; ----
-;; (string-count pred s)
+;; (string-count pred s [start end])
 ;;
 ;; 参数
 ;; ----
@@ -17,6 +17,9 @@
 ;;
 ;; s : string
 ;; 要统计的字符串
+;;
+;; start, end : integer 或 string-cursor? (可选)
+;; 子串范围，默认为整个字符串
 ;;
 ;; 返回值
 ;; ------
@@ -28,6 +31,12 @@
 ;; 1. 适用于 ASCII、中文、emoji 等各种 Unicode 字符
 ;; 2. 空字符串返回 0
 ;; 3. 性能：O(n)，n 为检查的字符数
+;; 4. 支持 Unicode 字符（包括多字节字符如中文、Emoji）的正确统计
+;;
+;; 相关实现
+;; --------
+;; (liii string) 库中也提供了 string-count 函数
+;; 参见: gf doc liii/string "string-count"
 
 ;; 基本测试 - 统计字母字符
 (check (string-count char-alphabetic? "abc123") => 3)
@@ -41,6 +50,9 @@
 ;; 空字符串测试
 (check (string-count (lambda (c) #t) "") => 0)
 
+;; Emoji 测试
+(check (string-count (lambda (c) (char=? c #\😀)) "hello😀world😀") => 2)
+(check (string-count char-alphabetic? "hello😀world") => 10)
 
 ;; 测试使用游标作为 start/end
 (let* ((s "abc123") (start (string-cursor-start s)) (end (string-cursor-end s)))

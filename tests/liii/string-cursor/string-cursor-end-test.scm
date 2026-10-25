@@ -25,6 +25,12 @@
 ;; 1. 创建游标时会预扫描字符串生成偏移表
 ;; 2. 空字符串返回指向位置0的游标
 ;; 3. 性能：O(n)，n为字符串字节长度（预扫描一次）
+;; 4. 支持 Unicode 字符（包括多字节字符如中文、Emoji）的正确游标定位
+;;
+;; 相关实现
+;; --------
+;; (liii string-cursor) 独有函数，无 (liii string) 对应版本
+;; 参见: gf doc liii/string-cursor "string-cursor-end"
 
 ;; 测试空字符串
 (let ((c (string-cursor-end "")))
