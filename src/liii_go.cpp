@@ -184,6 +184,7 @@ private:
     // 以下符号均被 rootlet 常驻引用，跨任务复用是 GC 安全的
     s7_pointer lambda_sym= s7_make_symbol (worker_sc, "lambda");
     s7_pointer let_sym   = s7_make_symbol (worker_sc, "let");
+    s7_pointer quote_sym = s7_make_symbol (worker_sc, "quote");
 
     uint64_t my_epoch= 0;
     while (true) {
@@ -213,7 +214,10 @@ private:
       std::vector<s7_int> gc_locs;
       auto                prot= [&] (s7_pointer obj) { gc_locs.push_back (s7_gc_protect (worker_sc, obj)); };
 
-      // Build bindings: ((name1 val1) (name2 val2) ...)
+      // Build bindings: ((name1 (quote val1)) (name2 (quote val2)) ...)
+      // binding 的 value 位置会被 let 求值，必须包 quote 保护非自求值的
+      // 复合数据（如 (("modified" . "(lambda ...)"))）：裸 pair 会被当作
+      // 组合式求值报 attempt to evaluate；标量与 c-object 经 quote 仍为自身
       s7_pointer bindings= s7_nil (worker_sc);
       prot (bindings);
       for (size_t i= task.var_names.size (); i > 0; --i) {
@@ -221,7 +225,9 @@ private:
         s7_pointer sym= s7_make_symbol (worker_sc, task.var_names[idx].c_str ());
         s7_pointer val= gfvalue_to_s7 (worker_sc, task.var_vals[idx]);
         prot (val);
-        s7_pointer pair= s7_list (worker_sc, 2, sym, val);
+        s7_pointer quoted= s7_list (worker_sc, 2, quote_sym, val);
+        prot (quoted);
+        s7_pointer pair= s7_list (worker_sc, 2, sym, quoted);
         prot (pair);
         bindings= s7_cons (worker_sc, pair, bindings);
         prot (bindings);

@@ -74,6 +74,7 @@
             "liii enum",
             "liii flexvector",
             "liii format",
+            "liii fs-watch",
             "liii fxmapping",
             "liii generator",
             "liii gfproject",
