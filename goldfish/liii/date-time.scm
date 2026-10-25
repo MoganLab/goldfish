@@ -105,6 +105,7 @@
     time-delta+
     time-delta-
     time-delta-negate
+    time-delta=?
     date+
     date-
 
@@ -116,6 +117,8 @@
     tz-timezone
     timezone-earliest
     timezone-latest
+    timezone-offset
+    timezone-dst?
 
     ;; tzdb
     tz-timezones

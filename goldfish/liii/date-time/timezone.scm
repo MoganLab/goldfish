@@ -37,10 +37,32 @@
 ;;
 
 (define-library (liii date-time timezone)
-  (import (scheme base) (liii date-time internal database))
+  (import (scheme base) (scheme time) (liii date-time internal database))
   (export timezone? utc-timezone utc-offset-timezone system-timezone tz-timezone
-    timezone-earliest timezone-latest
+    timezone-earliest timezone-latest timezone-offset timezone-dst?
   ) ;export
   (begin
+
+    (define (resolve-posix-time tz posix-time)
+      (unless (timezone? tz)
+        (error 'type-error "expected a timezone" tz)
+      ) ;unless
+      (cond
+       ((not posix-time) (inexact->exact (truncate (current-second))))
+       ((and (integer? posix-time) (exact? posix-time)) posix-time)
+       (else (error 'type-error "expected an exact integer posix-time" posix-time))
+      ) ;cond
+    ) ;define
+
+    (define* (timezone-offset tz (posix-time #f))
+      "Return the UTC offset of tz at posix-time (seconds since the\nUNIX epoch), or at the current time when omitted."
+      (time-range-offset (find-offset/utc tz (resolve-posix-time tz posix-time)))
+    ) ;define*
+
+    (define* (timezone-dst? tz (posix-time #f))
+      "Return #t if tz is in daylight saving time at posix-time\n(seconds since the UNIX epoch), or at the current time when omitted."
+      (time-range-dst? (find-offset/utc tz (resolve-posix-time tz posix-time)))
+    ) ;define*
+
   ) ;begin
 ) ;define-library
