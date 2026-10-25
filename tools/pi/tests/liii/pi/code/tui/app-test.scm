@@ -8,6 +8,7 @@
   (liii either)
   (liii time)
   (liii subprocess)
+  (liii shutil)
   (liii tempfile)
   (liii fs-watch)
   (liii pi code tui app)
@@ -280,7 +281,7 @@
         (stop-branch-watcher! obs)
         (%dbg "[dbg7] stopped")
       ) ;let
-      (g_rmtree dir)
+      (rmtree dir #t)
       (%dbg "[dbg7] rmtree done")
     ) ;let*
   ) ;when

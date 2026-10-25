@@ -1,4 +1,6 @@
-(import (liii check) (liii sys) (liii os))
+(import (liii check)
+        (liii os)
+        (liii shutil))
 
 
 (check-set-mode! 'report-failed)
@@ -35,9 +37,6 @@
 (check-catch 'type-error (which 123))
 (check-catch 'type-error (which 'ls))
 (check-catch 'type-error (which "ls" 123))
-;; C 层入口 g_which 走同一实现，两个参数都需要类型检查
-(check-catch 'type-error (g_which 123))
-(check-catch 'type-error (g_which "ls" 123))
 
 
 (check-report)

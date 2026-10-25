@@ -244,18 +244,6 @@ f_mkdtemp (s7_scheme* sc, s7_pointer args) {
 }
 
 static s7_pointer
-f_rmtree (s7_scheme* sc, s7_pointer args) {
-  s7_pointer path_arg= s7_car (args);
-  if (!s7_is_string (path_arg)) {
-    return string_type_error (sc, "rmtree: path must be a string", path_arg);
-  }
-  const char*     path_c= s7_string (path_arg);
-  std::error_code ec;
-  fs::remove_all (fs::u8path (path_c), ec);
-  return s7_make_boolean (sc, !ec);
-}
-
-static s7_pointer
 f_file_mode (s7_scheme* sc, s7_pointer args) {
   s7_pointer path_arg= s7_car (args);
   if (!s7_is_string (path_arg)) {
@@ -296,7 +284,6 @@ void
 glue_liii_tempfile (s7_scheme* sc) {
   glue_define (sc, "g_mkstemp", "(g_mkstemp prefix suffix dir) => (values port path)", f_mkstemp, 3, 0);
   glue_define (sc, "g_mkdtemp", "(g_mkdtemp prefix suffix dir) => string", f_mkdtemp, 3, 0);
-  glue_define (sc, "g_rmtree", "(g_rmtree path) => boolean", f_rmtree, 1, 0);
   glue_define (sc, "g_file-mode", "(g_file-mode path) => integer", f_file_mode, 1, 0);
   glue_define (sc, "g_chmod", "(g_chmod path mode) => boolean", f_chmod, 2, 0);
 }

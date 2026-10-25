@@ -8,6 +8,7 @@
   (liii subprocess)
   (liii sys)
   (liii json)
+  (liii shutil)
   (liii pi code session)
 ) ;import
 
@@ -87,7 +88,7 @@
 
 (define (cleanup-fixtures!)
   (when (path-exists? (path %tmp-agent-dir))
-    (g_rmtree %tmp-agent-dir)
+    (rmtree %tmp-agent-dir #t)
   ) ;when
 ) ;define
 
