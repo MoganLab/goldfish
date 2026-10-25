@@ -40,10 +40,7 @@
                ;; 规范化拆分可能包含 \n 的字符串行，确保 ed-y 计算与 screen-render! 完全对齐
                (doc-lines
                  (append-map (lambda (item)
-                               (if (string-contains? item "\n")
-                                 (string-split item "\n")
-                                 (list item)
-                               ) ;if
+                               (if (string-contains? item "\n") (string-split item "\n") (list item))
                              ) ;lambda
                    raw-doc-lines
                  ) ;append-map
