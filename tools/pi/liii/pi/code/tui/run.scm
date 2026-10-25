@@ -7,6 +7,7 @@
 (define-library (liii pi code tui run)
   (export pi-app-run)
   (import (scheme base)
+    (liii go)
     (liii time)
     (liii string)
     (liii tui)
@@ -38,18 +39,22 @@
               (pi-app-poll-events! app)
               (let ((k (terminal-poll-key term)))
                 (cond ((or (eq? k 'ctrl-c) (eq? k 'ctrl-d)) #t)
-                      ;; 按 Escape 时：若队列有等待中的消息，撤回至 editor 重新编辑；
-                      ;; 队列为空时仅忽略该按键，不退出 TUI
+                      ;; 按 Escape 时（对齐上游 pi 的 onEscape）：
+                      ;; busy：发 abort 信号中断正在进行的任务（worker 检查点
+                      ;;   探测后以 aborted 结算）；队列空闲：仅撤回至 editor，
+                      ;;   两种情况下都把排队消息恢复到编辑器重新编辑，不退出 TUI
                       ((eq? k 'escape)
+                       (when (pi-queue-busy? q)
+                         ;; 非阻塞发送：容量 1，丢弃旧信号也无所谓（语义同为中止）
+                         (chan-send! (pi-app-abort-chan app) 'abort 0)
+                       ) ;when
                        (let ((restored (pi-queue-restore-all! q)))
-                         (if (pair? restored)
-                           (begin
-                             (editor-set-text! ed (string-join restored "\n"))
-                             (pi-app-render! app)
-                           ) ;begin
-                         ) ;if
-                         (loop)
+                         (when (pair? restored)
+                           (editor-set-text! ed (string-join restored "\n"))
+                         ) ;when
                        ) ;let
+                       (pi-app-render! app)
+                       (loop)
                       ) ;
                       ;; 按 shift+tab 时：循环切换 thinking level，
                       ;; footer 右下角标签与编辑器边框/Working 颜色同步更新
