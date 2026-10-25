@@ -194,8 +194,9 @@
                      (status (or (%resp-field resp 'status-code) 0))
                     ) ;
                 (cond
-                  ;; 用户中止优先：不进入 multikey 轮换 / 重试，直接结算 aborted
-                  (aborted? (%finalize-aborted-stream stream-state))
+                  ;; 用户中止优先：不进入 multikey 轮换 / 重试，直接结算 aborted；
+                  ;; 流尾补探测 pi-aborted? 覆盖单 chunk 交付时信号无后续检查点的场景
+                  ((or aborted? (pi-aborted?)) (%finalize-aborted-stream stream-state))
                   ((and pool (not emitted?) (or (= status 429) (= status 403)))
                    (let ((next (pi-multikey-rotate! config api-key status)))
                      (if (eq? next 'exhausted)
