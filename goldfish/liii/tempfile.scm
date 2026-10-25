@@ -64,7 +64,7 @@
       (let ((path (make-temp-dir prefix suffix dir)))
         (dynamic-wind (lambda () #f)
           (lambda () (proc path))
-          (lambda () (g_rmtree path))
+          (lambda () (g_rmtree path #t))
         ) ;dynamic-wind
       ) ;let
     ) ;define*

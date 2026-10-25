@@ -221,6 +221,6 @@
 
 ;; 清理
 ;; 清理（递归删除，容忍事件用例残留的探测文件）
-(g_rmtree %test-dir)
+(g_rmtree %test-dir #t)
 
 (check-report)

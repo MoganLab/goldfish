@@ -1,5 +1,5 @@
 (define-library (liii sys)
-  (export argv executable which stdin-tty? stdout-tty? stderr-tty?)
+  (export argv executable stdin-tty? stdout-tty? stderr-tty?)
   (import (scheme process-context) (liii os))
   (begin
     (define (argv)
@@ -9,8 +9,6 @@
     (define (executable)
       (g_executable)
     ) ;define
-
-    (define* (which cmd (path #f)) (if path (g_which cmd path) (g_which cmd)))
 
     (define (stdin-tty?)
       (os-tty? 0)
