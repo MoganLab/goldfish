@@ -11,6 +11,7 @@
     (liii json)
     (liii http)
     (liii time)
+    (liii pi abort)
     (liii pi ai time)
     (liii pi ai event)
     (liii pi ai config types)
@@ -44,31 +45,45 @@
     ) ;define
 
     (define (%make-stream-callback stream-state on-event effective-idle
-              on-idle-timeout error-body-acc
+              on-idle-timeout on-abort error-body-acc
             ) ;%make-stream-callback
       (let* ((last-activity-sec (pi-current-monotonic-seconds))
              (sse-decoder (make-stream-decoder stream-state on-event))
             ) ;
         (lambda (chunk)
-          (vector-set! error-body-acc
-            0
-            (string-append (vector-ref error-body-acc 0) chunk)
-          ) ;vector-set!
-          (let ((now (pi-current-monotonic-seconds)))
-            (if (and effective-idle (> (- now last-activity-sec) effective-idle))
-              (begin
-                (on-idle-timeout)
-                #f
-              ) ;begin
-              (begin
-                (set! last-activity-sec now)
-                (sse-decoder chunk)
-                #t
-              ) ;begin
-            ) ;if
-          ) ;let
+          (cond
+            ;; 用户中止（ESC）：返回 #f 令 C 层中止 HTTP 下载
+            ((pi-aborted?) (on-abort) #f)
+            (else (vector-set! error-body-acc
+                    0
+                    (string-append (vector-ref error-body-acc 0) chunk)
+                  ) ;vector-set!
+              (let ((now (pi-current-monotonic-seconds)))
+                (if (and effective-idle (> (- now last-activity-sec) effective-idle))
+                  (begin
+                    (on-idle-timeout)
+                    #f
+                  ) ;begin
+                  (begin
+                    (set! last-activity-sec now)
+                    (sse-decoder chunk)
+                    #t
+                  ) ;begin
+                ) ;if
+              ) ;let
+            ) ;else
+          ) ;cond
         ) ;lambda
       ) ;let*
+    ) ;define
+
+    ;; 用户中止（ESC）：保留已收到的部分内容，stop-reason 强制为 aborted
+    (define (%finalize-aborted-stream stream-state)
+      (pi-assistant-message (vector-ref stream-state 0)
+        :stop-reason   "aborted"
+        :error-message #f
+        :usage         (vector-ref stream-state 2)
+      ) ;pi-assistant-message
     ) ;define
 
     (define (%build-stream-url model-meta model-id)
@@ -159,6 +174,7 @@
                      ) ;eff-headers
                      (stream-state (vector '() #f (gemini-map-usage '()) '() #f #f #f #f))
                      (idle-timed-out? #f)
+                     (aborted? #f)
                      (emitted? #f)
                      (wrapped-on-event (if (procedure? on-event) (lambda (ev) (set! emitted? #t) (on-event ev)) #f)
                      ) ;wrapped-on-event
@@ -167,6 +183,7 @@
                                   wrapped-on-event
                                   effective-idle
                                   (lambda () (set! idle-timed-out? #t))
+                                  (lambda () (set! aborted? #t))
                                   error-body-acc
                                 ) ;%make-stream-callback
                      ) ;stream-cb
@@ -177,41 +194,43 @@
                      (status (or (%resp-field resp 'status-code) 0))
                     ) ;
                 (cond
-                 ((and pool (not emitted?) (or (= status 429) (= status 403)))
-                  (let ((next (pi-multikey-rotate! config api-key status)))
-                    (if (eq? next 'exhausted)
-                      (gemini-classify-stream-result stream-state
-                        idle-timed-out? resp status effective-idle
-                        wrapped-on-event error-body-acc
-                      ) ;gemini-classify-stream-result
-                      (loop 1 next)
-                    ) ;if
-                  ) ;let
-                 ) ;
-                 ((and (not idle-timed-out?) (gemini-is-retriable-error? status ""))
-                  (if (<= attempt provider-max-retries)
-                    (let* ((ra-raw (pi-extract-retry-after resp))
-                           (ra-sec (pi-parse-retry-after ra-raw))
-                           (delay-sec (pi-calc-retry-delay attempt base-delay-ms max-agent-delay-ms ra-sec)
-                           ) ;delay-sec
-                          ) ;
-                      (pi-log-retry status attempt provider-max-retries delay-sec ra-sec)
-                      (sleep delay-sec)
-                      (loop (+ attempt 1) api-key)
-                    ) ;let*
-                    (list (cons 'role "assistant")
-                      (cons 'content (vector-ref stream-state 0))
-                      (cons 'stopReason "error")
-                      (cons 'usage (vector-ref stream-state 2))
-                      (cons 'errorMessage (format-failed-stream-msg status resp))
-                    ) ;list
-                  ) ;if
-                 ) ;
-                 (else (gemini-classify-stream-result stream-state
+                  ;; 用户中止优先：不进入 multikey 轮换 / 重试，直接结算 aborted
+                  (aborted? (%finalize-aborted-stream stream-state))
+                  ((and pool (not emitted?) (or (= status 429) (= status 403)))
+                   (let ((next (pi-multikey-rotate! config api-key status)))
+                     (if (eq? next 'exhausted)
+                       (gemini-classify-stream-result stream-state
                          idle-timed-out? resp status effective-idle
                          wrapped-on-event error-body-acc
                        ) ;gemini-classify-stream-result
-                 ) ;else
+                       (loop 1 next)
+                     ) ;if
+                   ) ;let
+                  ) ;
+                  ((and (not idle-timed-out?) (gemini-is-retriable-error? status ""))
+                   (if (<= attempt provider-max-retries)
+                     (let* ((ra-raw (pi-extract-retry-after resp))
+                            (ra-sec (pi-parse-retry-after ra-raw))
+                            (delay-sec (pi-calc-retry-delay attempt base-delay-ms max-agent-delay-ms ra-sec)
+                            ) ;delay-sec
+                           ) ;
+                       (pi-log-retry status attempt provider-max-retries delay-sec ra-sec)
+                       (sleep delay-sec)
+                       (loop (+ attempt 1) api-key)
+                     ) ;let*
+                     (list (cons 'role "assistant")
+                       (cons 'content (vector-ref stream-state 0))
+                       (cons 'stopReason "error")
+                       (cons 'usage (vector-ref stream-state 2))
+                       (cons 'errorMessage (format-failed-stream-msg status resp))
+                     ) ;list
+                   ) ;if
+                  ) ;
+                  (else (gemini-classify-stream-result stream-state
+                          idle-timed-out? resp status effective-idle
+                          wrapped-on-event error-body-acc
+                        ) ;gemini-classify-stream-result
+                  ) ;else
                 ) ;cond
               ) ;let*
             ) ;let

@@ -9,7 +9,7 @@
     pi-app-queue pi-app-chat pi-app-render! pi-app-submit! pi-app-drain-queue!
     pi-app-add-user-message! pi-app-add-tool-result! pi-app-add-assistant-text!
     pi-app-add-retry-message! pi-app-jobs-chan pi-app-event-chan
-    pi-app-poll-events! pi-app-working pi-app-working-tick!
+    pi-app-abort-chan pi-app-poll-events! pi-app-working pi-app-working-tick!
     pi-app-thinking-level pi-app-supports-thinking? pi-app-cycle-thinking!
     pi-app-bash-mode? pi-app-tools-expanded? pi-app-toggle-tool-output!
     pi-app-bash-jobs-chan pi-app-run-bash!
@@ -41,7 +41,7 @@
       (container-children (%pi-app-chat app))
     ) ;define
 
-    ;; 判断字符串是否以指定字符开头（避免 string-prefix? 跨库歧义）
+    ;; 判断字符串是否以指定字符开头
     (define (%starts-with-char? s c)
       (and (> (string-length s) 0) (char=? (string-ref s 0) c))
     ) ;define
@@ -60,9 +60,9 @@
       ) ;let
     ) ;define
 
-    ;; 执行 bash 命令并上屏卡片（对齐 pi handleBashCommand）：
-    ;; 同步 handler（测试接缝）直接回填；生产路径派发到后台 worker，
-    ;; 完成后经 event-chan 发 bash_complete 事件由 poll-events! 回填
+    ;; 执行 bash 命令并上屏卡片（对齐 pi handleBashCommand）：同步 handler
+    ;; （测试接缝）直接回填；生产路径派发到后台 worker，完成后经
+    ;; event-chan 发 bash_complete 事件由 poll-events! 回填
     (define (pi-app-run-bash! app command)
       (let* ((ed (pi-app-editor app))
              (cards (%pi-app-bash-cards app))
@@ -148,11 +148,8 @@
                      ) ;let
                     ) ;
                     ((branch_changed)
-                     ;; (liii fs-watch) worker 会话检测到 .git/HEAD 变化：
-                     ;; 事件携带 git-dir 时直接读 HEAD 文件解析分支（事件路径
-                     ;; 不跑子进程：CI 上子进程与后台 watcher 并发存在退出
-                     ;; 竞态，可能无界阻塞）；未携带时按 cwd 子进程探测兜底；
-                     ;; 未变化则不动（抑制 ORIG_HEAD/FETCH_HEAD 等同名噪音）
+                     ;; (liii fs-watch) 检测到 .git/HEAD 变化：携带 git-dir 时直接读
+                     ;; HEAD 文件解析（避免 CI 子进程并发退出竞态）；否则按 cwd 探测
                      (let ((git-dir (if (> (length ev) 1) (cadr ev) #f)))
                        (let ((b (if (string? git-dir) (git-branch-from-head-file git-dir) (detect-git-branch))
                              ) ;b
@@ -174,7 +171,15 @@
                     ) ;
                     ((assistant_text) (pi-app-add-assistant-text! app (cadr ev)))
                     ((retry) (pi-app-add-retry-message! app (cadr ev)))
-                    ((agent_settled) (pi-queue-finish-task! q) (settle!))
+                    ;; 任务结算：aborted 时先上屏 Aborted 提示卡片（对齐上游
+                    ;; pi 的 Aborted 状态显示），再解除 busy 锁定
+                    ((agent_settled)
+                     (when (and (> (length ev) 1) (cadr ev))
+                       (pi-app-add-assistant-text! app "Aborted")
+                     ) ;when
+                     (pi-queue-finish-task! q)
+                     (settle!)
+                    ) ;
                     ((error)
                      (pi-app-add-tool-result! app "error" '() 'error (cadr ev))
                      (pi-queue-finish-task! q)
@@ -223,9 +228,7 @@
       ) ;let
     ) ;define
 
-    ;; 队列调度核心推进逻辑：
-    ;; 消费前先上屏深蓝卡片并即时渲染刷新，再派发任务，保证按回车瞬间响应不卡顿
-    ;; 返回 #t 表示本次消费并渲染了消息卡片
+    ;; 队列调度：消费前先上屏深蓝卡片并即时渲染；返回 #t 表示本次消费并渲染
     (define (pi-app-drain-queue! app)
       (let ((q (pi-app-queue app))
             (jobs (pi-app-jobs-chan app))
@@ -338,6 +341,7 @@
              (queue (make-pi-message-queue))
              (jobs-chan (make-chan 16))
              (event-chan (make-chan 32))
+             (abort-chan (make-chan 1))
              (bash-jobs-chan (make-chan 16))
              (app (%make-pi-app actual-term
                     screen
@@ -350,6 +354,7 @@
                     handler
                     jobs-chan
                     event-chan
+                    abort-chan
                     (make-working-indicator)
                     tl
                     supports-thinking
@@ -378,8 +383,9 @@
         (container-add! doc pending-box)
         (%pi-app-editor-set! app ed)
         ;; 若未指定自定义 handler，启动后台 (liii go) 独立工作协程
+        ;; （abort-chan 供 worker 探测主线程 ESC 中断信号）
         (unless handler
-          (go (pi-tui-agent-worker jobs-chan event-chan))
+          (go (pi-tui-agent-worker jobs-chan event-chan abort-chan))
         ) ;unless
         ;; 同理：未注入同步 bash 执行器时，启动后台 bash 工作协程
         (unless bash-handler

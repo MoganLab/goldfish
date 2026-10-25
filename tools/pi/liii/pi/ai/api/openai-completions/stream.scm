@@ -11,6 +11,7 @@
     (liii json)
     (liii http)
     (liii time)
+    (liii pi abort)
     (liii pi ai time)
     (liii pi ai event)
     (liii pi ai retry)
@@ -32,25 +33,31 @@
       ) ;cond
     ) ;define
 
-    (define (%build-stream-cb stream-state on-event effective-idle on-idle err-acc)
+    (define (%build-stream-cb stream-state on-event effective-idle on-idle on-abort err-acc)
       (let* ((last-act (pi-current-monotonic-seconds))
              (decoder (make-openai-stream-decoder stream-state on-event))
             ) ;
         (lambda (chunk)
-          (let ((now (pi-current-monotonic-seconds)))
-            (vector-set! err-acc 0 (string-append (vector-ref err-acc 0) chunk))
-            (if (and effective-idle (> (- now last-act) effective-idle))
-              (begin
-                (on-idle)
-                #f
-              ) ;begin
-              (begin
-                (set! last-act now)
-                (decoder chunk)
-                #t
-              ) ;begin
-            ) ;if
-          ) ;let
+          (cond
+            ;; 用户中止（ESC）：返回 #f 令 C 层中止 HTTP 下载
+            ((pi-aborted?) (on-abort) #f)
+            (else
+              (let ((now (pi-current-monotonic-seconds)))
+                (vector-set! err-acc 0 (string-append (vector-ref err-acc 0) chunk))
+                (if (and effective-idle (> (- now last-act) effective-idle))
+                  (begin
+                    (on-idle)
+                    #f
+                  ) ;begin
+                  (begin
+                    (set! last-act now)
+                    (decoder chunk)
+                    #t
+                  ) ;begin
+                ) ;if
+              ) ;let
+            ) ;else
+          ) ;cond
         ) ;lambda
       ) ;let*
     ) ;define
@@ -67,6 +74,16 @@
           :error-message err-msg
         ) ;pi-assistant-message
       ) ;let*
+    ) ;define
+
+    ;; 用户中止（ESC）：保留已收到的部分内容，stop-reason 强制为 aborted
+    (define (%finalize-aborted-stream stream-state)
+      (finish-openai-stream stream-state #f)
+      (pi-assistant-message (vector-ref stream-state 0)
+        :stop-reason   "aborted"
+        :usage         (vector-ref stream-state 2)
+        :error-message (vector-ref stream-state 4)
+      ) ;pi-assistant-message
     ) ;define
 
     (define (%make-idle-timeout-error eff-idle)
@@ -153,6 +170,7 @@
                    (stream-state (%init-openai-stream-state))
                    (idle-timed-out? #f)
                    (emitted? #f)
+                   (aborted? #f)
                    (wrapped-on-ev (if (procedure? on-ev) (lambda (ev) (set! emitted? #t) (on-ev ev)) #f)
                    ) ;wrapped-on-ev
                    (err-acc (vector ""))
@@ -160,13 +178,15 @@
                          wrapped-on-ev
                          eff-idle
                          (lambda () (set! idle-timed-out? #t))
+                         (lambda () (set! aborted? #t))
                          err-acc
                        ) ;%build-stream-cb
                    ) ;cb
                    (resp (%post-stream url req-json-str headers proxy-alist cb timeout eff-idle))
                    (status (or (%resp-field resp 'status-code) 0))
                   ) ;
-              (cond (idle-timed-out? (%make-idle-timeout-error eff-idle))
+              (cond (aborted? (%finalize-aborted-stream stream-state))
+                    (idle-timed-out? (%make-idle-timeout-error eff-idle))
                     ((and pool (not emitted?) (or (= status 429) (= status 403)))
                      (let ((next (pi-multikey-rotate! config api-key status)))
                        (if (eq? next 'exhausted)

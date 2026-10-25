@@ -8,6 +8,7 @@
   (import (scheme base)
     (liii string)
     (liii list)
+    (liii pi abort)
     (liii pi ai event)
     (liii pi ai message)
     (liii pi ai tools types)
@@ -216,12 +217,31 @@
               ) ;when
               (loop (cdr rest) (cons tool-msg acc) #t)
             ) ;let*
-            (let-values (((msg term?)
-                          (pi-execute-one-tool-call-with-status (car rest) emit timeout opt-config)
-                         ) ;
-                        ) ;
-              (loop (cdr rest) (cons msg acc) term?)
-            ) ;let-values
+            ;; 用户中止（ESC）：不再实际执行剩余工具，标记为 aborted 跳过结果；
+            ;; pi-aborted? 一旦置位恒为 #t，后续循环继续命中本分支
+            (if (pi-aborted?)
+              (let* ((call (car rest))
+                     (id (pi-agent-assoc-val 'id "id" call ""))
+                     (name (pi-agent-assoc-val 'name "name" call ""))
+                     (skip-text "Tool call aborted by user")
+                     (raw-res (pi-tool-result skip-text #t))
+                     (tool-msg (pi-make-tool-result-msg id name skip-text #t))
+                    ) ;
+                (when (procedure? emit)
+                  (emit 'tool_execution_start id name '())
+                  (emit 'tool_execution_end id name raw-res #t)
+                  (emit 'message_start tool-msg)
+                  (emit 'message_end tool-msg)
+                ) ;when
+                (loop (cdr rest) (cons tool-msg acc) #f)
+              ) ;let*
+              (let-values (((msg term?)
+                            (pi-execute-one-tool-call-with-status (car rest) emit timeout opt-config)
+                           ) ;
+                          ) ;
+                (loop (cdr rest) (cons msg acc) term?)
+              ) ;let-values
+            ) ;if
           ) ;if
         ) ;if
       ) ;let

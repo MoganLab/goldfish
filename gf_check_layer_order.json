@@ -136,7 +136,8 @@
         {
           "name": "ai",
           "libs": [
-            "liii pi ai"
+            "liii pi ai",
+            "liii pi abort"
           ]
         },
         {
