@@ -38,58 +38,80 @@
               ;; 优先轮询来自后台 Worker 的事件流上屏
               (pi-app-poll-events! app)
               (let ((k (terminal-poll-key term)))
-                (cond ((or (eq? k 'ctrl-c) (eq? k 'ctrl-d)) #t)
-                      ;; 按 Escape 时（对齐上游 pi 的 onEscape）：
-                      ;; busy：发 abort 信号中断正在进行的任务（worker 检查点
-                      ;;   探测后以 aborted 结算）；队列空闲：仅撤回至 editor，
-                      ;;   两种情况下都把排队消息恢复到编辑器重新编辑，不退出 TUI
-                      ((eq? k 'escape)
-                       (when (pi-queue-busy? q)
-                         ;; 非阻塞发送：容量 1，丢弃旧信号也无所谓（语义同为中止）
-                         (chan-send! (pi-app-abort-chan app) 'abort 0)
-                       ) ;when
-                       (let ((restored (pi-queue-restore-all! q)))
-                         (when (pair? restored)
-                           (editor-set-text! ed (string-join restored "\n"))
-                         ) ;when
-                       ) ;let
-                       (pi-app-render! app)
-                       (loop)
-                      ) ;
-                      ;; 按 shift+tab 时：循环切换 thinking level，
-                      ;; footer 右下角标签与编辑器边框/Working 颜色同步更新
-                      ((eq? k 'shift-tab) (pi-app-cycle-thinking! app) (pi-app-render! app) (loop))
-                      ;; 按 ctrl+o 时：全局切换 bash/工具输出卡片的展开与折叠
-                      ((eq? k 'ctrl-o) (pi-app-toggle-tool-output! app) (pi-app-render! app) (loop))
-                      ((not k)
-                       ;; 空闲轮询：busy 时推进 Working spinner 动画（内部自带 80ms 节拍）
-                       (pi-app-working-tick! app)
-                       (sleep 0.01)
-                       (loop)
-                      ) ;
-                      (else (component-handle-input ed k) (pi-app-render! app) (loop))
+                (cond
+                  ;; Ctrl+C：仅清空输入框，从不退出、也不中断正在跑的任务。
+                  ((eq? k 'ctrl-c)
+                   (unless (string-null? (editor-text ed))
+                     (editor-set-text! ed "")
+                   ) ;unless
+                   (pi-app-render! app)
+                   (loop)
+                  ) ;
+                  ;; Ctrl+D：仅在输入框为空时退出（EOF 语义），有内容时无操作
+                  ((eq? k 'ctrl-d) (if (string-null? (editor-text ed)) #t (loop)))
+                  ;; 按 Escape 时（对齐上游 pi 的 onEscape）：
+                  ;; busy：发 abort 信号中断正在进行的任务（worker 检查点
+                  ;;   探测后以 aborted 结算）；队列空闲：仅撤回至 editor，
+                  ;;   两种情况下都把排队消息恢复到编辑器重新编辑，不退出 TUI
+                  ((eq? k 'escape)
+                   (when (pi-queue-busy? q)
+                     ;; 非阻塞发送：容量 1，丢弃旧信号也无所谓（语义同为中止）
+                     (chan-send! (pi-app-abort-chan app) 'abort 0)
+                   ) ;when
+                   (let ((restored (pi-queue-restore-all! q)))
+                     (when (pair? restored)
+                       (editor-set-text! ed (string-join restored "\n"))
+                     ) ;when
+                   ) ;let
+                   (pi-app-render! app)
+                   (loop)
+                  ) ;
+                  ;; 按 shift+tab 时：循环切换 thinking level，
+                  ;; footer 右下角标签与编辑器边框/Working 颜色同步更新
+                  ((eq? k 'shift-tab) (pi-app-cycle-thinking! app) (pi-app-render! app) (loop))
+                  ;; 按 ctrl+o 时：全局切换 bash/工具输出卡片的展开与折叠
+                  ((eq? k 'ctrl-o) (pi-app-toggle-tool-output! app) (pi-app-render! app) (loop))
+                  ((not k)
+                   ;; 空闲轮询：busy 时推进 Working spinner 动画（内部自带 80ms 节拍）
+                   (pi-app-working-tick! app)
+                   (sleep 0.01)
+                   (loop)
+                  ) ;
+                  (else (component-handle-input ed k) (pi-app-render! app) (loop))
                 ) ;cond
               ) ;let
             ) ;let
           ) ;lambda
           (lambda ()
-            (let* ((lines (screen-lines screen)) (total (length lines)))
-              (when (> total 0)
-                (terminal-set-cursor! term 0 total)
-              ) ;when
-              (terminal-show-cursor! term)
-              (terminal-exit-raw-mode! term)
-              (terminal-write term "\r\n")
-              (terminal-flush term)
-              ;; 关闭 bash 任务通道，后台 worker 收到 eof 后退出，
-              ;; 避免进程退出时后台线程仍在阻塞 recv 导致崩溃
-              (catch #t
-                (lambda () (chan-close! (pi-app-bash-jobs-chan app)))
-                (lambda args #f)
-              ) ;catch
-              ;; 停止分支监听：C 层 watcher 撤销，后台泵收到 stopped 后自行退出
-              (stop-branch-watcher! watcher)
-            ) ;let*
+            ;; 退出清理：光标必须跨过整个 TUI 块，否则 shell prompt 会画在输入框位置
+            (catch #t
+              (lambda ()
+                (let* ((lines (screen-lines screen))
+                       (total (length lines))
+                       ;; inline 模式下 total 只是内容行数，而光标实际停在输入行；
+                       ;; 取渲染行数与曾到达的最大行数的较大者才能真正落到块下方
+                       (max-y (terminal-max-y term))
+                       (bottom (max total max-y))
+                      ) ;
+                  (when (> total 0)
+                    (terminal-set-cursor! term 0 bottom)
+                  ) ;when
+                ) ;let*
+              ) ;lambda
+              (lambda (tag . args) #f)
+            ) ;catch
+            (terminal-show-cursor! term)
+            (terminal-exit-raw-mode! term)
+            (terminal-write term "\r\n")
+            (terminal-flush term)
+            ;; 关闭 bash 任务通道，后台 worker 收到 eof 后退出，
+            ;; 避免进程退出时后台线程仍在阻塞 recv 导致崩溃
+            (catch #t
+              (lambda () (chan-close! (pi-app-bash-jobs-chan app)))
+              (lambda args #f)
+            ) ;catch
+            ;; 停止分支监听：C 层 watcher 撤销，后台泵收到 stopped 后自行退出
+            (stop-branch-watcher! watcher)
           ) ;lambda
         ) ;dynamic-wind
       ) ;let*

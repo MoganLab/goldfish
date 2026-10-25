@@ -27,7 +27,7 @@
     terminal-clear-line-to-end terminal-begin-sync! terminal-end-sync!
     terminal-cursor-visible? terminal-hide-cursor! terminal-show-cursor!
     terminal-flush terminal-type terminal-data terminal-data-set!
-    terminal-enter-raw-mode! terminal-exit-raw-mode!
+    terminal-enter-raw-mode! terminal-exit-raw-mode! terminal-max-y
   ) ;export
   (import (liii base) (liii error) (liii os))
   (begin
@@ -36,7 +36,7 @@
       (%make-terminal type get-size-proc write-proc get-cursor-proc
         set-cursor-proc clear-proc clear-line-proc clear-line-to-end-proc
         begin-sync-proc end-sync-proc get-cursor-visible-proc
-        set-cursor-visible-proc flush-proc data
+        set-cursor-visible-proc flush-proc max-y-proc data
       ) ;%make-terminal
       terminal?
       (type terminal-type)
@@ -52,18 +52,19 @@
       (get-cursor-visible-proc %terminal-get-cursor-visible)
       (set-cursor-visible-proc %terminal-set-cursor-visible)
       (flush-proc %terminal-flush)
+      (max-y-proc %terminal-max-y-proc)
       (data terminal-data terminal-data-set!)
     ) ;define-record-type
 
     (define (make-terminal-record type get-size-proc write-proc get-cursor-proc
               set-cursor-proc clear-proc clear-line-proc clear-line-to-end-proc
               begin-sync-proc end-sync-proc get-cursor-visible-proc
-              set-cursor-visible-proc flush-proc data
+              set-cursor-visible-proc flush-proc max-y-proc data
             ) ;make-terminal-record
       (%make-terminal type get-size-proc write-proc get-cursor-proc
         set-cursor-proc clear-proc clear-line-proc clear-line-to-end-proc
         begin-sync-proc end-sync-proc get-cursor-visible-proc
-        set-cursor-visible-proc flush-proc data
+        set-cursor-visible-proc flush-proc max-y-proc data
       ) ;%make-terminal
     ) ;define
 
@@ -165,6 +166,20 @@
       (%check-terminal term "terminal-exit-raw-mode!")
       (console-raw-mode! #f)
       #t
+    ) ;define
+
+    ;; 终端曾渲染到达的最大行索引（0-based）。
+    ;; 用于在退出 TUI 时把光标定位到整个块的下方，而不是停留在最后一次
+    ;; 渲染时光标所在的行（如输入框行），导致 shell prompt 画错位置。
+    ;; 未提供实现时回退为当前光标行。
+    (define (terminal-max-y term)
+      (%check-terminal term "terminal-max-y")
+      (let* ((cur (terminal-cursor term))
+             (cur-y (if (pair? (cdr cur)) (cadr cur) 0))
+             (proc (%terminal-max-y-proc term))
+            ) ;
+        (if (procedure? proc) (max cur-y (proc term)) cur-y)
+      ) ;let*
     ) ;define
 
   ) ;begin

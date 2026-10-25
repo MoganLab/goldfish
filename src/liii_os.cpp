@@ -473,9 +473,11 @@ f_os_tty_p (s7_scheme* sc, s7_pointer args) {
 }
 
 #ifdef TB_CONFIG_OS_WINDOWS
-static HANDLE          g_hIn_orig     = INVALID_HANDLE_VALUE;
-static DWORD           g_orig_in_mode = 0;
-static bool            g_has_orig_mode= false;
+static HANDLE g_hIn_orig     = INVALID_HANDLE_VALUE;
+static DWORD  g_orig_in_mode = 0;
+static bool   g_has_orig_mode= false;
+// 当前是否处于 raw mode（与 POSIX 分支的同名变量语义一致）
+static bool            g_raw_mode_enabled= false;
 static std::deque<int> g_console_key_queue;
 static uint32_t        g_surrogate_hi= 0;
 
@@ -483,6 +485,7 @@ static void
 restore_windows_console_mode_at_exit () {
   if (g_has_orig_mode && g_hIn_orig != INVALID_HANDLE_VALUE) {
     SetConsoleMode (g_hIn_orig, g_orig_in_mode);
+    g_raw_mode_enabled= false;
   }
 }
 
@@ -698,9 +701,11 @@ f_console_raw_mode (s7_scheme* sc, s7_pointer args) {
     raw_mode&= ~(ENABLE_ECHO_INPUT | ENABLE_LINE_INPUT | ENABLE_PROCESSED_INPUT);
     raw_mode|= ENABLE_WINDOW_INPUT;
     SetConsoleMode (hIn, raw_mode);
+    g_raw_mode_enabled= true;
   }
   else if (g_has_orig_mode) {
     SetConsoleMode (hIn, g_orig_in_mode);
+    g_raw_mode_enabled= false;
     g_console_key_queue.clear ();
   }
   return s7_make_boolean (sc, true);
@@ -719,7 +724,15 @@ f_console_raw_mode (s7_scheme* sc, s7_pointer args) {
     }
     struct termios raw= g_orig_termios;
     raw.c_iflag&= ~(ICRNL | INLCR);
-    raw.c_lflag&= ~(ICANON | ECHO);
+    /*
+     * 必须同时清除 ISIG：否则 tty 驱动会把 Ctrl+C/Ctrl+Z 等按键转成
+     * SIGINT/SIGTSTP 信号而不会作为字节（0x03 等）交给上层。TUI 依赖
+     * 读到 0x03 来识别 'ctrl-c（见 terminal-poll-key），若保留 ISIG，
+     * 按键会直接杀死进程，Pi TUI 永远收不到 ctrl-c。
+     * IXON 一并清除，避免 Ctrl+S/Ctrl+Q 被当成流控吞掉。
+     */
+    raw.c_lflag&= ~(ICANON | ECHO | ISIG | IEXTEN);
+    raw.c_iflag&= ~(IXON);
     raw.c_cc[VMIN] = 0;
     raw.c_cc[VTIME]= 0;
     if (tcsetattr (STDIN_FILENO, TCSANOW, &raw) != 0) {
@@ -743,6 +756,61 @@ glue_console_raw_mode (s7_scheme* sc) {
   const char* name= "g_console_raw_mode";
   const char* desc= "(g_console_raw_mode enable) => boolean, set console raw mode";
   glue_define (sc, name, desc, f_console_raw_mode, 1, 0);
+}
+
+/*
+ * 诊断接口：(g_console_raw_mode_state) => alist
+ * 用于验证 raw mode 是否真正关闭了把按键转成信号的位。
+ * TUI 依赖读到 Ctrl+C 的 0x03 字节而不是收到 SIGINT；若 ISIG 未清除，
+ * 按键会在 tty 层被转成 SIGINT 直接杀死进程，上层永远收不到 'ctrl-c。
+ * 返回字段：
+ *   (isig-disabled . bool)   —— c_lflag 中 ISIG 是否已清除（关键）
+ *   (icanon-disabled . bool) —— 行缓冲是否已关闭
+ *   (echo-disabled . bool)   —— 回显是否已关闭
+ *   (ixon-disabled . bool)   —— 流控是否已关闭
+ *   (raw-active . bool)      —— 当前是否处于 raw mode
+ * Windows 下控制台不走 termios，统一返回 #t（ENABLE_PROCESSED_INPUT
+ * 已关闭，Ctrl+C 不会作为信号处理）。
+ */
+static s7_pointer
+f_console_raw_mode_state (s7_scheme* sc, s7_pointer args) {
+  (void) args;
+#ifdef TB_CONFIG_OS_WINDOWS
+  bool isig_off  = true;
+  bool icanon_off= true;
+  bool echo_off  = true;
+  bool ixon_off  = true;
+  bool active    = g_raw_mode_enabled;
+#else
+  struct termios cur;
+  bool           ok        = (tcgetattr (STDIN_FILENO, &cur) == 0);
+  bool           isig_off  = ok && ((cur.c_lflag & ISIG) == 0);
+  bool           icanon_off= ok && ((cur.c_lflag & ICANON) == 0);
+  bool           echo_off  = ok && ((cur.c_lflag & ECHO) == 0);
+  bool           ixon_off  = ok && ((cur.c_iflag & IXON) == 0);
+  bool           active    = g_raw_mode_enabled;
+#endif
+  s7_pointer res= s7_nil (sc);
+  // 逐项转换为 alist；数组遍历避免五段重复 cons 链与超长行造成的对齐跳变
+  const struct {
+    const char* key;
+    bool        val;
+  } fields[]= {{"ixon-disabled", ixon_off},
+               {"echo-disabled", echo_off},
+               {"icanon-disabled", icanon_off},
+               {"isig-disabled", isig_off},
+               {"raw-active", active}};
+  for (const auto& f : fields) {
+    res= s7_cons (sc, s7_cons (sc, s7_make_symbol (sc, f.key), s7_make_boolean (sc, f.val)), res);
+  }
+  return res;
+}; /* f_console_raw_mode_state */
+
+static void
+glue_console_raw_mode_state (s7_scheme* sc) {
+  const char* name= "g_console_raw_mode_state";
+  const char* desc= "(g_console_raw_mode_state) => alist describing raw-mode termios flags";
+  glue_define (sc, name, desc, f_console_raw_mode_state, 0, 0);
 }
 
 static s7_pointer
@@ -874,6 +942,7 @@ glue_liii_os (s7_scheme* sc) {
   glue_getpid (sc);
   glue_os_tty_p (sc);
   glue_console_raw_mode (sc);
+  glue_console_raw_mode_state (sc);
   glue_terminal_size (sc);
   glue_console_kbhit (sc);
   glue_console_getch (sc);
