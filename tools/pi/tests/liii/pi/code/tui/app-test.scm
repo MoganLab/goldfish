@@ -210,45 +210,61 @@
 
 ;; 7. 端到端（真实 watcher + 真实事件轮询）：临时 git 仓库切分支，
 ;;    footer 左下角应实时更新为切换后的分支名
+;; %dbg 显式 flush：子进程 stdout 在捕获管道下全缓冲，
+;; 必须强制刷新才能在 CI 上定位真实卡点
+(define (%dbg msg)
+  (display msg)
+  (newline)
+  (flush-output-port (current-output-port))
+) ;define
+
 (let ((git? (either-right? (run-either '("git" "--version")
                             :stdout 'discard :stderr 'discard :timeout 10))))
   (when git?
+    (%dbg "[dbg7] begin")
     (let* ((dir (make-temp-dir "gf-pi-appwatch-"))
            (vterm (make-virtual-terminal :width 120 :height 40))
            (app (make-pi-app :terminal vterm :handler (lambda (a m) #t)))
            (footer (%pi-app-footer app))
           ) ;let*
+      (%dbg "[dbg7] app created")
       (check-true
         (either-right?
           (run-either (list "git" "init" dir)
             :stdout 'discard :stderr 'discard :timeout 30)))
+      (%dbg "[dbg7] git init done")
       ;; 监听临时仓库（cwd 仍是当前仓库，故直接指定 git-dir）
       (let ((obs (make-branch-watcher (pi-app-event-chan app)
                    (string-append dir "/.git"))))
         (check-true (fs-observer? obs))
+        (%dbg "[dbg7] watcher started")
         (pi-footer-set-branch! footer "before-switch")
         (check-true
           (either-right?
             (run-either (list "git" "-C" dir "checkout" "-b" "feature-y")
               :stdout 'discard :stderr 'discard :timeout 30)))
+        (%dbg "[dbg7] checkout done")
         ;; 限时轮询事件循环，等待 footer 更新（branch_changed 处理器按 cwd
         ;; 重新探测分支，因此期望值是 detect-git-branch 的当前返回值）
         (let ((updated
                 (let ((deadline (+ (current-second) 15)))
                   (let loop
-                    ()
+                    ((n 0))
+                    (when (zero? (modulo n 20))
+                      (%dbg (string-append "[dbg7]   poll iter=" (object->string n))))
                     (pi-app-poll-events! app)
                     (if (not (string=? (pi-footer-branch footer) "before-switch"))
                       #t
                       (if (> (current-second) deadline)
                         #f
-                        (begin (sleep 0.05) (loop))
+                        (begin (sleep 0.05) (loop (+ n 1)))
                       ) ;if
                     ) ;if
                   ) ;let loop
                 ) ;let
               ) ;updated
            ) ;
+          (%dbg "[dbg7] poll loop done")
           (check-true updated)
           (check (pi-footer-branch footer) => (detect-git-branch))
           (let ((b (pi-footer-branch footer)))
@@ -262,10 +278,14 @@
           ) ;let
         ) ;let
         (stop-branch-watcher! obs)
+        (%dbg "[dbg7] stopped")
       ) ;let
       (g_rmtree dir)
+      (%dbg "[dbg7] rmtree done")
     ) ;let*
   ) ;when
 ) ;let
+
+(%dbg "[dbg7] ALL-DONE")
 
 (check-report)

@@ -43,9 +43,18 @@
 
 ;; 5. 端到端：临时 git 仓库内切分支 → 收到 branch_changed 信号
 ;;    （真实 C watcher 线程 + (liii go) worker 独立 s7 会话回调 + channel 跨会话桥接）
+;; %dbg 显式 flush：子进程 stdout 在捕获管道下全缓冲，
+;; 必须强制刷新才能在 CI 上定位真实卡点
+(define (%dbg msg)
+  (display msg)
+  (newline)
+  (flush-output-port (current-output-port))
+) ;define
+
 (let ((git? (either-right? (run-either '("git" "--version")
                             :stdout 'discard :stderr 'discard :timeout 10))))
   (when git?
+    (%dbg "[dbg5] begin")
     (let* ((dir (make-temp-dir "gf-pi-gitwatch-"))
            (ch (make-chan 16))
           ) ;
@@ -53,36 +62,46 @@
         (either-right?
           (run-either (list "git" "init" dir)
             :stdout 'discard :stderr 'discard :timeout 30)))
+      (%dbg "[dbg5] git init done")
       (let ((obs (make-branch-watcher ch (string-append dir "/.git"))))
         (check-true (fs-observer? obs))
+        (%dbg "[dbg5] watcher started")
         ;; 切换分支重写 .git/HEAD（rename 或原地改写），应触发 branch_changed
         (check-true
           (either-right?
             (run-either (list "git" "-C" dir "checkout" "-b" "feature-x")
               :stdout 'discard :stderr 'discard :timeout 30)))
+        (%dbg "[dbg5] checkout done")
         (let ((got
                 (let ((deadline (+ (current-second) 15)))
                   (let loop
-                    ()
+                    ((n 0))
+                    (when (zero? (modulo n 20))
+                      (%dbg (string-append "[dbg5]   poll iter=" (object->string n))))
                     (let ((v (chan-try-recv! ch #f)))
                       (cond (v v)
                             ((> (current-second) deadline) #f)
-                            (else (sleep 0.05) (loop))
+                            (else (sleep 0.05) (loop (+ n 1)))
                       ) ;cond
                     ) ;let
                   ) ;let loop
                 ) ;let
               ) ;got
            ) ;
+          (%dbg "[dbg5] got event")
           (check got => '(branch_changed))
         ) ;let
         ;; 停止幂等
         (stop-branch-watcher! obs)
         (stop-branch-watcher! obs)
+        (%dbg "[dbg5] stopped")
       ) ;let
       (g_rmtree dir)
+      (%dbg "[dbg5] rmtree done")
     ) ;let*
   ) ;when
 ) ;let
+
+(%dbg "[dbg5] ALL-DONE")
 
 (check-report)
