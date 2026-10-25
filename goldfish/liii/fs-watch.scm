@@ -24,13 +24,27 @@
 ;; 等价 Python 回调持有 queue.Queue 的模式）；回调体内引用的自由符号必须是
 ;; 库导出绑定（如 chan-send! / fs-event-path），不能闭包捕获主会话对象。
 (define-library (liii fs-watch)
-  (export make-fs-event-handler fs-event-handler? fs-handler-on-modified
-    fs-handler-on-created fs-handler-on-deleted fs-handler-on-moved
-    make-fs-event fs-event? fs-event-type fs-event-path fs-event-dest-path
-    make-fs-observer fs-observer? fs-observer-schedule!
-    fs-observer-start! fs-observer-stop!
-    fs-watch-dispatch! fs-watch-make-dispatcher fs-watch-handler->src-list
-    fs-watch-pump fs-watch-start%
+  (export make-fs-event-handler
+    fs-event-handler?
+    fs-handler-on-modified
+    fs-handler-on-created
+    fs-handler-on-deleted
+    fs-handler-on-moved
+    make-fs-event
+    fs-event?
+    fs-event-type
+    fs-event-path
+    fs-event-dest-path
+    make-fs-observer
+    fs-observer?
+    fs-observer-schedule!
+    fs-observer-start!
+    fs-observer-stop!
+    fs-watch-dispatch!
+    fs-watch-make-dispatcher
+    fs-watch-handler->src-list
+    fs-watch-pump
+    fs-watch-start%
     ;; 仅限 (liii go) worker 会话内使用的实现细节（导出因子必须可见）
     %fs-event-from-alist
   ) ;export
