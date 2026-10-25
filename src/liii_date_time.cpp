@@ -15,6 +15,7 @@
 //
 
 #include "liii_date_time_embedded_tz.h"
+#include "liii_date_time_windows_tz.h"
 #include "s7.h"
 #include <cstdio>
 #include <cstdlib>
@@ -52,6 +53,36 @@ f_system_timezone_offset_minutes (s7_scheme* sc, s7_pointer args) {
   localtime_r (&t, &lt);
   return s7_make_integer (sc, lt.tm_gmtoff / 60);
 #endif
+}
+
+static s7_pointer
+f_windows_tz_to_iana (s7_scheme* sc, s7_pointer args) {
+  s7_pointer name_arg= s7_car (args);
+  if (!s7_is_string (name_arg)) {
+    return s7_error (sc, s7_make_symbol (sc, "type-error"),
+                     s7_cons (sc, s7_make_string (sc, "g_windows_tz_to_iana: expected a string"), args));
+  }
+  const char* iana= goldfish_windows_tz_to_iana (s7_string (name_arg));
+  if (iana) return s7_make_string (sc, iana);
+  return s7_f (sc);
+}
+
+static s7_pointer
+f_system_timezone_name (s7_scheme* sc, s7_pointer args) {
+#ifdef TB_CONFIG_OS_WINDOWS
+  DYNAMIC_TIME_ZONE_INFORMATION dtzi;
+  if (GetDynamicTimeZoneInformation (&dtzi) == TIME_ZONE_ID_INVALID) return s7_f (sc);
+  // When the user disables automatic DST adjustment, Windows keeps a fixed
+  // bias: fall back to the fixed-offset path instead of an IANA timezone.
+  if (dtzi.DynamicDaylightTimeDisabled) return s7_f (sc);
+  if (dtzi.TimeZoneKeyName[0] == 0) return s7_f (sc);
+  char name[256];
+  int  len= WideCharToMultiByte (CP_UTF8, 0, dtzi.TimeZoneKeyName, -1, name, (int) sizeof (name), NULL, NULL);
+  if (len <= 0) return s7_f (sc);
+  const char* iana= goldfish_windows_tz_to_iana (name);
+  if (iana) return s7_make_string (sc, iana);
+#endif
+  return s7_f (sc);
 }
 
 static s7_pointer
@@ -138,6 +169,10 @@ glue_liii_date_time (s7_scheme* sc) {
                       "(g_zoneinfo_available?) => boolean");
   s7_define_function (sc, "g_embedded_zoneinfo_names", goldfish::f_embedded_zoneinfo_names, 0, 0, false,
                       "(g_embedded_zoneinfo_names) => list of embedded timezone names");
+  s7_define_function (sc, "g_windows_tz_to_iana", goldfish::f_windows_tz_to_iana, 1, 0, false,
+                      "(g_windows_tz_to_iana windows-tz-name) => IANA timezone name or #f");
+  s7_define_function (sc, "g_system_timezone_name", goldfish::f_system_timezone_name, 0, 0, false,
+                      "(g_system_timezone_name) => IANA name of the system timezone or #f");
 }
 
 } // namespace goldfish
