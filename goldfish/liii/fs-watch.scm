@@ -16,8 +16,8 @@
 
 ;; 文件系统监听（API 对齐 Python watchdog）：
 ;;   (make-fs-event-handler :on-modified (lambda (ctx ev) ...) ...)
-;;   (observer-schedule! obs handler dir :recursive #f :context ctx)
-;;   (observer-start! obs) / (observer-stop! obs)
+;;   (fs-observer-schedule! obs handler dir :recursive #f :context ctx)
+;;   (fs-observer-start! obs) / (fs-observer-stop! obs)
 ;;
 ;; 线程语义与 watchdog 一致：回调在后台 (liii go) worker 会话中执行，
 ;; 不在主会话。跨线程状态请经 :context 显式传递可序列化值（典型为 channel，
@@ -27,7 +27,8 @@
   (export make-fs-event-handler fs-event-handler? fs-handler-on-modified
     fs-handler-on-created fs-handler-on-deleted fs-handler-on-moved
     make-fs-event fs-event? fs-event-type fs-event-path fs-event-dest-path
-    make-observer observer? observer-schedule! observer-start! observer-stop!
+    make-fs-observer fs-observer? fs-observer-schedule!
+    fs-observer-start! fs-observer-stop!
     fs-watch-dispatch! fs-watch-make-dispatcher fs-watch-handler->src-list
     fs-watch-pump fs-watch-start%
     ;; 仅限 (liii go) worker 会话内使用的实现细节（导出因子必须可见）
@@ -56,10 +57,11 @@
     ) ;define-record-type
 
     ;; 公开事件构造器（对齐 watchdog 的 FileSystemEvent 可实例化语义）：
-    ;; (make-fs-event "modified" "/path" [:dest #f])
+    ;; (make-fs-event 'modified "/path" [:dest #f])
+    ;; type 为符号：'modified / 'created / 'deleted / 'moved
     (define* (make-fs-event type path (dest #f))
-      (unless (string? type)
-        (type-error "make-fs-event: type must be a string" type)
+      (unless (symbol? type)
+        (type-error "make-fs-event: type must be a symbol" type)
       ) ;unless
       (unless (string? path)
         (type-error "make-fs-event: path must be a string" path)
@@ -100,7 +102,7 @@
     ;; 分发核心（纯逻辑，主会话单测与 worker 会话共用）
     ;; ------------------------------------------------------------
 
-    ;; handler → (("modified" . "(lambda (ctx ev) ...)") ...)：
+    ;; handler → ((modified . "(lambda (ctx ev) ...)") ...)：
     ;; 过程不可跨 go 会话序列化，改为源码字符串传递，worker 侧 eval 重建
     (define (fs-watch-handler->src-list handler)
       (filter pair?
@@ -110,10 +112,10 @@
               (if cb (cons (car slot) (object->string (procedure-source cb))) #f)
             ) ;let
           ) ;lambda
-          (list (cons "modified" (fs-handler-on-modified handler))
-            (cons "created" (fs-handler-on-created handler))
-            (cons "deleted" (fs-handler-on-deleted handler))
-            (cons "moved" (fs-handler-on-moved handler))
+          (list (cons 'modified (fs-handler-on-modified handler))
+            (cons 'created (fs-handler-on-created handler))
+            (cons 'deleted (fs-handler-on-deleted handler))
+            (cons 'moved (fs-handler-on-moved handler))
           ) ;list
         ) ;map
       ) ;filter
@@ -199,13 +201,13 @@
 
     (define-record-type <fs-observer>
       (%make-fs-observer schedules handles running?)
-      observer?
+      fs-observer?
       (schedules %fs-observer-schedules %fs-observer-schedules-set!)
       (handles %fs-observer-handles %fs-observer-handles-set!)
       (running? %fs-observer-running? %fs-observer-running?-set!)
     ) ;define-record-type
 
-    (define (make-observer)
+    (define (make-fs-observer)
       (%make-fs-observer '() '() #f)
     ) ;define
 
@@ -221,18 +223,18 @@
 
     ;; 注册监听项：start 前可多次累积；running 中注册会抛 value-error（对齐
     ;; watchdog 的 schedule 语义差异见文档：v1 要求 start 前完成注册）
-    (define (observer-schedule! obs handler path . opts)
-      (unless (observer? obs)
-        (type-error "observer-schedule!: obs must be an observer")
+    (define (fs-observer-schedule! obs handler path . opts)
+      (unless (fs-observer? obs)
+        (type-error "fs-observer-schedule!: obs must be an fs-observer")
       ) ;unless
       (unless (fs-event-handler? handler)
-        (type-error "observer-schedule!: handler must be an fs-event-handler")
+        (type-error "fs-observer-schedule!: handler must be an fs-event-handler")
       ) ;unless
       (unless (string? path)
-        (type-error "observer-schedule!: path must be a string")
+        (type-error "fs-observer-schedule!: path must be a string")
       ) ;unless
       (when (%fs-observer-running? obs)
-        (value-error "observer-schedule!: observer is running, stop it first")
+        (value-error "fs-observer-schedule!: observer is running, stop it first")
       ) ;when
       (let ((recursive (%kw-value opts :recursive #f)) (ctx (%kw-value opts :context #f)))
         (%fs-observer-schedules-set! obs
@@ -246,12 +248,12 @@
     ;; 不走通用 go 宏（其 prelude 会 import 主会话全部活跃库，若含
     ;; tools/pi 等非主库路径的库，worker 会话将加载失败），
     ;; 此处手工构造任务：prelude 精确限定为主库的 (liii fs-watch)/(liii go)。
-    (define (observer-start! obs)
-      (unless (observer? obs)
-        (type-error "observer-start!: obs must be an observer")
+    (define (fs-observer-start! obs)
+      (unless (fs-observer? obs)
+        (type-error "fs-observer-start!: obs must be an observer")
       ) ;unless
       (when (%fs-observer-running? obs)
-        (value-error "observer-start!: observer is already running")
+        (value-error "fs-observer-start!: observer is already running")
       ) ;when
       (for-each
         (lambda (sched)
@@ -280,9 +282,9 @@
 
     ;; 停止：逐个停掉 C 层 watcher（泵线程收到 'stopped 后自行退出）；
     ;; 幂等，可重复调用；stop 后允许重新 schedule + start
-    (define (observer-stop! obs)
-      (unless (observer? obs)
-        (type-error "observer-stop!: obs must be an observer")
+    (define (fs-observer-stop! obs)
+      (unless (fs-observer? obs)
+        (type-error "fs-observer-stop!: obs must be an observer")
       ) ;unless
       (for-each g_fs_watch_stop (%fs-observer-handles obs))
       (%fs-observer-handles-set! obs '())

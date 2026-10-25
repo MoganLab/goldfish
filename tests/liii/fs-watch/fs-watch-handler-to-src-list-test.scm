@@ -17,7 +17,7 @@
 ;; 返回值
 ;; -----
 ;; list?
-;; 形如 (("modified" . "(lambda (ctx ev) ...)") ...)，仅含非 #f 槽。
+;; 形如 (('modified . "(lambda (ctx ev) ...)") ...)，仅含非 #f 槽。
 ;;
 ;; 说明
 ;; ----
@@ -29,7 +29,7 @@
 (let ((h (make-fs-event-handler :on-deleted (lambda (ctx ev) 'del))))
   (let ((src-list (fs-watch-handler->src-list h)))
     (check (length src-list) => 1)
-    (check (car (car src-list)) => "deleted")
+    (check (car (car src-list)) => 'deleted)
     (check-true (string-contains? (cdr (car src-list)) "lambda"))
   ) ;let
 ) ;let
@@ -55,23 +55,23 @@
        ) ;h
        (cbs (fs-watch-make-dispatcher (fs-watch-handler->src-list h)))
       ) ;
-  (check-true (procedure? (cdr (assoc "modified" cbs))))
-  (fs-watch-dispatch! cbs 'tok (make-fs-event "modified" "/p/h" #f))
+  (check-true (procedure? (cdr (assoc 'modified cbs))))
+  (fs-watch-dispatch! cbs 'tok (make-fs-event 'modified "/p/h" #f))
 ) ;let*
 
 ;; worker 会话内重建并调用（go-result 全链路）
 (let* ((rch
          (go-result
-           (let* ((src-list '(("modified"
-                               . "(lambda (ctx ev) (list 'rebuilt ctx (fs-event-path ev)))"))
+           (let* ((src-list '((modified
+                                . "(lambda (ctx ev) (list 'rebuilt ctx (fs-event-path ev)))"))
                   ) ;src-list
                   (cbs (fs-watch-make-dispatcher src-list))
                  ) ;
-             (if (procedure? (cdr (assoc "modified" cbs)))
+             (if (procedure? (cdr (assoc 'modified cbs)))
                (list 'ok
-                ((cdr (assoc "modified" cbs))
+                ((cdr (assoc 'modified cbs))
                  'tok
-                 (%fs-event-from-alist '((type . "modified") (path . "/w/h")))
+                 (%fs-event-from-alist '((type . modified) (path . "/w/h")))
                 ) ;
                ) ;list
                (list 'bad cbs)

@@ -19,7 +19,7 @@
 ;;   fs-watch-dispatch-bang-test.scm / fs-watch-handler-to-src-list-test.scm /
 ;;   fs-watch-start-percent-test.scm / observer-test.scm
 ;; 平台差异：Windows/Linux 提供具体文件事件（created/modified/deleted/moved）；
-;; macOS kqueue 后端只报目录级 "modified"（path 为监听目录本身）。
+;; macOS kqueue 后端只报目录级 'modified（path 为监听目录本身）。
 ;; TODO(macOS): kqueue 事件路径在 macOS CI 上尚未调通（exit 255 待排查），
 ;; 依赖真实事件的用例暂在 macOS 跳过。
 
@@ -66,11 +66,11 @@
 ) ;define
 
 ;; 4d. args 路径最小复现：cbs-src 经 go-result vars 序列化传入 worker
-(let* ((src '(("modified" . "(lambda (ctx ev) 'ok)")))
+(let* ((src '((modified . "(lambda (ctx ev) 'ok)")))
        (rch
          (go-result (src)
            (let ((cbs (fs-watch-make-dispatcher src)))
-             (procedure? (cdr (assoc "modified" cbs)))
+             (procedure? (cdr (assoc 'modified cbs)))
            ) ;let
          ) ;go-result
        ) ;rch
@@ -95,7 +95,7 @@
                 (any
                   (lambda (e)
                     (and (pair? (assoc 'type e))
-                      (string=? (cdr (assoc 'type e)) (%expect-type "created"))
+                      (eq? (cdr (assoc 'type e)) (%expect-type 'created))
                       (string-contains? (cdr (assoc 'path e)) (%expect-path-contains "probe-a.txt"))
                     ) ;and
                   ) ;lambda
@@ -117,7 +117,7 @@
                 (any
                   (lambda (e)
                     (and (pair? (assoc 'type e))
-                      (string=? (cdr (assoc 'type e)) (%expect-type "modified"))
+                      (eq? (cdr (assoc 'type e)) (%expect-type 'modified))
                       (string-contains? (cdr (assoc 'path e)) (%expect-path-contains "probe-a.txt"))
                     ) ;and
                   ) ;lambda
@@ -139,7 +139,7 @@
                 (any
                   (lambda (e)
                     (and (pair? (assoc 'type e))
-                      (string=? (cdr (assoc 'type e)) (%expect-type "deleted"))
+                      (eq? (cdr (assoc 'type e)) (%expect-type 'deleted))
                       (string-contains? (cdr (assoc 'path e)) (%expect-path-contains "probe-a.txt"))
                     ) ;and
                   ) ;lambda
@@ -175,10 +175,10 @@
              (lambda (ctx ev) (chan-send! ctx (fs-event-path ev) 5000))
            ) ;make-fs-event-handler
          ) ;h
-         (obs (make-observer))
+         (obs (make-fs-observer))
         ) ;
-    (observer-schedule! obs h %test-dir :context ch)
-    (observer-start! obs)
+    (fs-observer-schedule! obs h %test-dir :context ch)
+    (fs-observer-start! obs)
     (%probe-write "probe-b.txt" "hello")
     ;; 主会话限时轮询 chan，收到后台回调投递的路径
     (let ((received
@@ -197,9 +197,9 @@
          ) ;
       (check-true (and received (string? received) (not (string-null? received))))
     ) ;let
-    (observer-stop! obs)
+    (fs-observer-stop! obs)
     ;; stop 幂等
-    (observer-stop! obs)
+    (fs-observer-stop! obs)
   ) ;let*
 ) ;unless
 

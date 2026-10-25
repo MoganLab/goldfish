@@ -27,8 +27,8 @@
 ;;    （规避 C++ 内 s7_error 跨线程活跃过的栈帧 longjmp 崩溃风险）。
 ;; 2. start 返回即保证监听就位（Linux/macOS 调用线程同步注册；
 ;;    Windows 等待监听线程首次 ReadDirectoryChangesW 挂载），此后变更不丢。
-;; 3. 一般情况下无需直接使用本函数——通过 make-observer +
-;;    observer-schedule! / observer-start! 的高层 API 即可。
+;; 3. 一般情况下无需直接使用本函数——通过 make-fs-observer +
+;;    fs-observer-schedule! / fs-observer-start! 的高层 API 即可。
 ;;
 ;; 错误处理
 ;; ----

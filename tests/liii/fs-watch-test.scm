@@ -11,12 +11,12 @@
 ;;        (handler (make-fs-event-handler
 ;;                   :on-modified (lambda (ctx ev)
 ;;                                  (chan-send! ctx (fs-event-path ev) 5000))))
-;;        (obs (make-observer)))
-;;   (observer-schedule! obs handler "path/to/.git" :context ch)
-;;   (observer-start! obs)
+;;        (obs (make-fs-observer)))
+;;   (fs-observer-schedule! obs handler "path/to/.git" :context ch)
+;;   (fs-observer-start! obs)
 ;;   ;; 主线程: (chan-try-recv! ch #f) 取回变更路径
 ;;   ...
-;;   (observer-stop! obs))
+;;   (fs-observer-stop! obs))
 
 ;; 示例2：四类事件回调
 ;; (make-fs-event-handler
@@ -28,19 +28,19 @@
 ;; ==== 如何查看函数的文档和用例 ====
 ;;   bin/gf doc liii/fs-watch "make-fs-event-handler"
 ;;   bin/gf doc liii/fs-watch "make-observer"
-;;   bin/gf doc liii/fs-watch "observer-schedule!"
-;;   bin/gf doc liii/fs-watch "observer-start!"
-;;   bin/gf doc liii/fs-watch "observer-stop!"
+;;   bin/gf doc liii/fs-watch "fs-observer-schedule!"
+;;   bin/gf doc liii/fs-watch "fs-observer-start!"
+;;   bin/gf doc liii/fs-watch "fs-observer-stop!"
 ;;   bin/gf doc liii/fs-watch "fs-watch-dispatch!"
 
 ;; ==== 函数分类索引 ====
 ;;   make-fs-event-handler  - 创建事件处理器（四个回调槽，对齐 FileSystemEventHandler）
 ;;   make-fs-event          - 构造事件记录（对齐 FileSystemEvent 可实例化）
 ;;   fs-event?              - 事件记录谓词（含 type/path/dest-path 访问器）
-;;   make-observer          - 创建监听 observer（对齐 watchdog Observer）
-;;   observer-schedule!     - 注册监听项（目录 + 处理器 + :context）
-;;   observer-start!        - 启动监听（后台 go 泵线程分发）
-;;   observer-stop!         - 停止监听（幂等，可复用 observer）
+;;   make-fs-observer          - 创建监听 observer（对齐 watchdog Observer）
+;;   fs-observer-schedule!     - 注册监听项（目录 + 处理器 + :context）
+;;   fs-observer-start!        - 启动监听（后台 go 泵线程分发）
+;;   fs-observer-stop!         - 停止监听（幂等，可复用 observer）
 ;;   fs-watch-dispatch!     - 按事件类型分发回调（纯逻辑核心）
 ;;   fs-watch-handler->src-list - 处理器回调序列化为源码串列表
 ;;   fs-watch-start%        - 带校验的底层 watcher 启动包装

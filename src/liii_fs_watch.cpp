@@ -409,7 +409,7 @@ f_fs_watch_poll (s7_scheme* sc, s7_pointer args) {
       ev= s7_cons (sc, s7_cons (sc, s7_make_symbol (sc, "dest"), s7_make_string (sc, it->dest.c_str ())), ev);
     }
     ev  = s7_cons (sc, s7_cons (sc, s7_make_symbol (sc, "path"), s7_make_string (sc, it->path.c_str ())), ev);
-    ev  = s7_cons (sc, s7_cons (sc, s7_make_symbol (sc, "type"), s7_make_string (sc, it->type.c_str ())), ev);
+    ev  = s7_cons (sc, s7_cons (sc, s7_make_symbol (sc, "type"), s7_make_symbol (sc, it->type.c_str ())), ev);
     head= s7_cons (sc, ev, head);
   }
   return head;

@@ -25,13 +25,13 @@
 ;; 返回值
 ;; -----
 ;; fs-event-handler?
-;; 事件处理器对象，供 observer-schedule! 注册。
+;; 事件处理器对象，供 fs-observer-schedule! 注册。
 ;;
 ;; 说明
 ;; ----
 ;; 1. 回调在后台 (liii go) worker 会话中执行，不在主会话（对齐 watchdog
 ;;    回调运行于 observer 线程的语义）。
-;; 2. 回调签名为 (ctx event)：ctx 为 observer-schedule! 的 :context 传入值
+;; 2. 回调签名为 (ctx event)：ctx 为 fs-observer-schedule! 的 :context 传入值
 ;;    （跨线程状态传递通道，典型为 channel，等价 Python 回调持有 queue.Queue），
 ;;    event 为 <fs-event> 记录。
 ;; 3. 回调体内引用的自由符号必须是库导出绑定（如 chan-send!、fs-event-path），
