@@ -29,6 +29,7 @@
     gfproject-load-config gfproject-find-tool-root gfproject-resolve-tool
     gfproject-resolve-tool-bundle gfproject-prepare-and-run-tool
     gfproject-run-tool gfproject-expand-tools-dir gfproject-parse-import-spec
+    gfproject-error->string
   ) ;export
 
   (begin
@@ -46,6 +47,18 @@
 
     (define (bundle-ref bundle key)
       (cdr (assoc key bundle))
+    ) ;define
+
+    ;; 将 s7 的错误 info 转换为可读字符串：info 是 (格式串 参数...) 列表时
+    ;; 完整格式化（替换 ~S/~A 等占位符），否则整体打印
+    (define (gfproject-error->string info)
+      (if (and (pair? info) (string? (car info)))
+        (catch #t
+          (lambda () (apply format #f info))
+          (lambda (tag e) (format #f "~A" info))
+        ) ;catch
+        (format #f "~A" info)
+      ) ;if
     ) ;define
 
     (define (gfproject-find-local-path)
@@ -265,7 +278,7 @@
                            (import-err
                              (catch #t
                                (lambda () (eval `(import ,import-spec) (rootlet)) #f)
-                               (lambda (tag info) (if (pair? info) (car info) "import failed"))
+                               (lambda (tag info) (gfproject-error->string info))
                              ) ;catch
                            ) ;import-err
                           ) ;
@@ -283,7 +296,12 @@
                             (let ((res
                                     (catch #t
                                       (lambda () (main-proc))
-                                      (lambda (tag info) (display (format #f "~A\n" info) (current-error-port)) 1)
+                                      (lambda (tag info)
+                                        (display (string-append (gfproject-error->string info) "\n")
+                                          (current-error-port)
+                                        ) ;display
+                                        1
+                                      ) ;lambda
                                     ) ;catch
                                   ) ;res
                                  ) ;

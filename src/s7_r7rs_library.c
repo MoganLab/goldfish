@@ -586,7 +586,21 @@ r7rs_library_env (s7_scheme* sc, s7_pointer libname) {
   s7_pointer env= s7_hash_table_ref (sc, r7rs_library_registry (sc), libname);
   if (s7_is_let (env)) return env;
   char* path= r7rs_library_name_to_path (sc, libname);
-  s7_load (sc, path); /* errors if the file cannot be found */
+  char* found= r7rs_find_include_file (sc, path);
+  if (!found) {
+    /* report the missing file explicitly rather than the misleading
+     * "loading did not define the library" below: s7_load returns NULL
+     * quietly when the file is nowhere to be found. */
+    s7_pointer err= s7_error (sc, s7_make_symbol (sc, "io-error"),
+      s7_list (sc, 3,
+        s7_make_string (sc, "import: cannot find file ~S for library ~S"),
+        s7_make_string (sc, path),
+        libname));
+    free (path);
+    return err;
+  }
+  s7_load (sc, found);
+  free (found);
   free (path);
   env= s7_hash_table_ref (sc, r7rs_library_registry (sc), libname);
   if (!s7_is_let (env))
