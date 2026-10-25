@@ -28,7 +28,7 @@
     (liii error)
     (liii sys)
     (liii list)
-    (liii gfproject)
+    (liii gfproject tools)
   ) ;import
   (export main load-gfproject get-tool-description display-help find-tool-readme)
   (begin

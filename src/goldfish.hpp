@@ -1146,7 +1146,7 @@ f_project_root (s7_scheme* sc, s7_pointer args) {
 static int
 goldfish_run_tool (s7_scheme* sc, const char* gf_lib, const string& command, const char*& errmsg, s7_pointer old_port,
                    int gc_loc) {
-  s7_eval_c_string (sc, "(import (liii gfproject))");
+  s7_eval_c_string (sc, "(import (liii gfproject tools))");
   s7_pointer func= s7_name_to_value (sc, "gfproject-run-tool");
   if (!func || !s7_is_procedure (func)) {
     return -1;

@@ -63,20 +63,22 @@
           (check (json-ref test-desc "zh_CN") => "运行测试（本地覆盖）")
         ) ;let*
 
-        ;; 单命令回退：本地把 version.module 覆盖成错误值时，gf version 仍应回退到 lib 实现
+        ;; [1131] 本地注册内置命令名：提示忽略本地注册，内置实现正常执行
         (path-write-text config-path broken-version-fixture)
         (path-unlink output-path #t)
         (run-shell-command (string-append (executable) " version > " (path->string output-path) " 2>&1")
         ) ;run-shell-command
         (check-true (string-contains? (path-read-text output-path) "Goldfish Scheme"))
+        (check-true (string-contains? (path-read-text output-path) "ignoring local registration"))
 
-        ;; 指定 tools_dir 时禁用 fallback：本地配置不存在的 tools_dir，严格报错且绝不回退到内置 version
-        (let ((nofallback-fixture "{\n  \"tools\": {\n    \"version\": {\n      \"tools_dir\": \"~/non_existent_tools_dir_xyz\",\n      \"organization\": \"liii\",\n      \"module\": \"goldversion\"\n    }\n  }\n}\n"
+        ;; 指定 tools_dir 时禁用 fallback：自定义命令（非内置名）配置不存在的
+        ;; tools_dir，严格报错且绝不回退到内置工具
+        (let ((nofallback-fixture "{\n  \"tools\": {\n    \"myversion\": {\n      \"tools_dir\": \"~/non_existent_tools_dir_xyz\",\n      \"organization\": \"liii\",\n      \"module\": \"goldversion\"\n    }\n  }\n}\n"
               ) ;nofallback-fixture
              ) ;
           (path-write-text config-path nofallback-fixture)
           (path-unlink output-path #t)
-          (let ((code (run-shell-command (string-append (executable) " version > " (path->string output-path) " 2>&1")
+          (let ((code (run-shell-command (string-append (executable) " myversion > " (path->string output-path) " 2>&1")
                       ) ;run-shell-command
                 ) ;code
                ) ;

@@ -14,8 +14,24 @@
     },
     "no-crlf": {
       "enabled": true,
-      "suffix": ["scm", "json", "c", "cpp", "h", "hpp", "cc", "cxx"],
-      "path": ["goldfish", "tests", "tools", "demo", "src", "xmake"]
+      "suffix": [
+        "scm",
+        "json",
+        "c",
+        "cpp",
+        "h",
+        "hpp",
+        "cc",
+        "cxx"
+      ],
+      "path": [
+        "goldfish",
+        "tests",
+        "tools",
+        "demo",
+        "src",
+        "xmake"
+      ]
     },
     "layer-order": {
       "file": "gf_check_layer_order.json"
@@ -144,10 +160,6 @@
       {
         "path": "goldfish/liii/config-parser.scm",
         "reason": "配置解析器完整状态机实现"
-      },
-      {
-        "path": "goldfish/liii/gfproject.scm",
-        "reason": "工程配置与工具发现分发核心实现"
       },
       {
         "path": "goldfish/liii/logging.scm",
