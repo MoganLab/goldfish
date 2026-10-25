@@ -1,9 +1,19 @@
 (import (scheme base)
+  (scheme time)
   (liii check)
   (liii unicode)
   (liii string)
   (liii tui)
+  (liii go)
+  (liii either)
+  (liii time)
+  (liii subprocess)
+  (liii tempfile)
+  (liii fs-watch)
   (liii pi code tui app)
+  (liii pi code tui state)
+  (liii pi code tui footer)
+  (liii pi code tui common)
 ) ;import
 
 (check-set-mode! 'report)
@@ -180,5 +190,82 @@
     (check-true (string-contains? (list-ref plain-lines 10) "(kimi-coding) kimi-for-coding • medium"))
   ) ;let*
 ) ;let*
+
+;; 6. branch_changed 事件驱动 footer 左下角分支实时更新
+;;    （模拟 (liii fs-watch) worker 会话经 event-chan 发来的信号）
+(let* ((vterm (make-virtual-terminal :width 100 :height 40))
+       (app (make-pi-app :terminal vterm :handler (lambda (a m) #t)))
+       (footer (%pi-app-footer app))
+      ) ;let*
+  (pi-footer-set-branch! footer "zzz-stale-branch")
+  (pi-app-render! app)
+  (check-true (string-contains?
+                (string-join (map strip-ansi (screen-lines (pi-app-screen app))) "\n")
+                "(zzz-stale-branch)"))
+  ;; 投递 branch_changed 事件并轮询，footer 应刷新为当前真实分支
+  (chan-send! (pi-app-event-chan app) '(branch_changed) 1000)
+  (pi-app-poll-events! app)
+  (check (pi-footer-branch footer) => (detect-git-branch))
+) ;let*
+
+;; 7. 端到端（真实 watcher + 真实事件轮询）：临时 git 仓库切分支，
+;;    footer 左下角应实时更新为切换后的分支名
+(let ((git? (either-right? (run-either '("git" "--version")
+                            :stdout 'discard :stderr 'discard :timeout 10))))
+  (when git?
+    (let* ((dir (make-temp-dir "gf-pi-appwatch-"))
+           (vterm (make-virtual-terminal :width 120 :height 40))
+           (app (make-pi-app :terminal vterm :handler (lambda (a m) #t)))
+           (footer (%pi-app-footer app))
+          ) ;let*
+      (check-true
+        (either-right?
+          (run-either (list "git" "init" dir)
+            :stdout 'discard :stderr 'discard :timeout 30)))
+      ;; 监听临时仓库（cwd 仍是当前仓库，故直接指定 git-dir）
+      (let ((obs (make-branch-watcher (pi-app-event-chan app)
+                   (string-append dir "/.git"))))
+        (check-true (fs-observer? obs))
+        (pi-footer-set-branch! footer "before-switch")
+        (check-true
+          (either-right?
+            (run-either (list "git" "-C" dir "checkout" "-b" "feature-y")
+              :stdout 'discard :stderr 'discard :timeout 30)))
+        ;; 限时轮询事件循环，等待 footer 更新（branch_changed 处理器按 cwd
+        ;; 重新探测分支，因此期望值是 detect-git-branch 的当前返回值）
+        (let ((updated
+                (let ((deadline (+ (current-second) 15)))
+                  (let loop
+                    ()
+                    (pi-app-poll-events! app)
+                    (if (not (string=? (pi-footer-branch footer) "before-switch"))
+                      #t
+                      (if (> (current-second) deadline)
+                        #f
+                        (begin (sleep 0.05) (loop))
+                      ) ;if
+                    ) ;if
+                  ) ;let loop
+                ) ;let
+              ) ;updated
+           ) ;
+          (check-true updated)
+          (check (pi-footer-branch footer) => (detect-git-branch))
+          (let ((b (pi-footer-branch footer)))
+            (when b
+              (pi-app-render! app)
+              (check-true
+                (string-contains?
+                  (string-join (map strip-ansi (screen-lines (pi-app-screen app))) "\n")
+                  (string-append "(" b ")")))
+            ) ;when
+          ) ;let
+        ) ;let
+        (stop-branch-watcher! obs)
+      ) ;let
+      (g_rmtree dir)
+    ) ;let*
+  ) ;when
+) ;let
 
 (check-report)

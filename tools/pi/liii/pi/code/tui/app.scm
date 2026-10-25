@@ -147,6 +147,16 @@
                        ) ;let
                      ) ;let
                     ) ;
+                    ((branch_changed)
+                     ;; (liii fs-watch) worker 会话检测到 .git/HEAD 变化：
+                     ;; 主会话重新探测分支，变化时同步 footer 左下角；
+                     ;; 未变化则不动（抑制 ORIG_HEAD/FETCH_HEAD 等同名噪音）
+                     (let ((b (detect-git-branch)))
+                       (unless (equal? b (pi-footer-branch (%pi-app-footer app)))
+                         (pi-footer-set-branch! (%pi-app-footer app) b)
+                       ) ;unless
+                     ) ;let
+                    ) ;
                     ((tool_execution_end)
                      (let ((name (cadr ev))
                            (args (caddr ev))

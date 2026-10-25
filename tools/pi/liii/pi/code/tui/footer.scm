@@ -6,7 +6,7 @@
 
 (define-library (liii pi code tui footer)
   (export make-pi-footer pi-footer? format-cwd-for-footer pi-footer-model-label
-    pi-footer-set-thinking-level!
+    pi-footer-set-thinking-level! pi-footer-branch pi-footer-set-branch!
   ) ;export
   (import (scheme base)
     (liii string)
@@ -146,6 +146,28 @@
         ) ;component-data-set!
         comp
       ) ;let*
+    ) ;define
+
+    ;; 读取 footer 当前显示的分支名（#f 表示无分支）
+    (define (pi-footer-branch comp)
+      (list-ref (%footer-state comp) 1)
+    ) ;define
+
+    ;; 分支切换检测联动：更新左下角分支显示（与 set-thinking-level! 同风格）
+    (define (pi-footer-set-branch! comp branch)
+      (let ((st (%footer-state comp)))
+        (component-data-set! comp
+          (list 'pi-footer
+            (list-ref st 0)
+            branch
+            (list-ref st 2)
+            (list-ref st 3)
+            (list-ref st 4)
+            (list-ref st 5)
+            (list-ref st 6)
+          ) ;list
+        ) ;component-data-set!
+      ) ;let
     ) ;define
 
     ;; 会话内切换 thinking level 后同步 footer 右下角标签
