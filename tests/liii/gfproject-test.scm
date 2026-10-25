@@ -1,9 +1,10 @@
 (import (liii check)
-  (liii gfproject)
+  (liii gfproject tools)
   (liii json)
   (liii os)
   (liii path)
   (liii string)
+  (liii tempfile)
   (scheme process-context)
 ) ;import
 
@@ -205,6 +206,7 @@
 ) ;let*
 
 ;; 9. [1128] 错误信息格式化：s7 的 error info 是 (格式串 参数...) 列表，需完整格式化后呈现
+
 (check (gfproject-error->string '("value is ~S" 42)) => "value is 42")
 (check (gfproject-error->string '("lib ~S missing" (no such lib))) => "lib (no such lib) missing")
 ;; 非列表的 info：原样转换为字符串
@@ -212,5 +214,125 @@
 (check (gfproject-error->string "plain") => "plain")
 ;; 首元素非格式串的列表：回退到整体打印
 (check (gfproject-error->string '(a b)) => "(a b)")
+
+;; 10. [1131] 内置工具隔离：本地 gfproject.json 与内置重名时必须提示冲突，
+;;    且 cwd 下的 tools/<内置名> 不得遮蔽内置插件（cwd 仅作自定义工具的兜底）
+;; 10.1 gfproject-tool-conflict? 纯函数
+;; 同源（lib_path 与 local_path 归一化后为同一文件）=> 不冲突（bin/gf 开发场景）
+(check
+  (gfproject-tool-conflict? "doc"
+    '(("lib_path" . "/repo/goldfish/../gfproject.json")
+      ("local_path" . "/repo/gfproject.json")
+      ("lib_tools" ("doc" ("module" . "golddoc")))
+      ("local_tools" ("doc" ("module" . "golddoc"))))
+    )
+  => #f
+) ;check
+
+;; 不同源且两边重名 => 冲突
+(check
+  (gfproject-tool-conflict? "doc"
+    '(("lib_path" . "/usr/share/goldfish/gfproject.json")
+      ("local_path" . "/proj/gfproject.json")
+      ("lib_tools" ("doc" ("module" . "golddoc")))
+      ("local_tools" ("doc" ("module" . "mydoc"))))
+    )
+  => #t
+) ;check
+
+;; 不同源但仅本地注册 => 不冲突（自定义项目工具）
+(check
+  (gfproject-tool-conflict? "mytool"
+    '(("lib_path" . "/usr/share/goldfish/gfproject.json")
+      ("local_path" . "/proj/gfproject.json")
+      ("lib_tools" ("doc" ("module" . "golddoc")))
+      ("local_tools" ("mytool" ("module" . "mytool"))))
+    )
+  => #f
+) ;check
+
+;; lib_path 缺失（无内置注册表）=> 不冲突
+(check
+  (gfproject-tool-conflict? "doc"
+    '(("lib_path" . #f)
+      ("local_path" . "/proj/gfproject.json")
+      ("lib_tools" . (()))
+      ("local_tools" ("doc" ("module" . "mydoc"))))
+    )
+  => #f
+) ;check
+
+;; 10.2 真实仓库：lib_path 与 local_path 同源 => doc 不冲突
+(let ((bundle (gfproject-resolve-tool-bundle "doc")))
+  (check (string? (cdr (assoc "lib_path" bundle))) => #t)
+  (check (gfproject-tool-conflict? "doc" bundle) => #f)
+) ;let
+
+;; 10.3 gfproject-find-tool-root：内置目录优先于 cwd 同名目录，cwd 仅作兜底
+;; 注：路径统一用 chdir 后 getcwd 的真实形态，避免 macOS $TMPDIR 符号链接
+;; （/var -> /private/var）造成的期望值/实际值前缀差异
+(with-temp-dir
+  (lambda (tmp)
+    (let ((old-cwd (getcwd)))
+      (dynamic-wind
+        (lambda () (chdir tmp))
+        (lambda ()
+          (let* ((real-tmp (getcwd))
+                 (fake-lib (path-join real-tmp "fake-lib"))
+                 (proj (path-join real-tmp "proj"))
+                ) ;
+            (path-mkdir (path-join fake-lib "tools" "doc") :parents #t)
+            (path-mkdir (path-join proj "tools" "doc") :parents #t)
+            (dynamic-wind
+              (lambda () (chdir (path->string proj)))
+              (lambda ()
+                ;; 内置侧存在时，即使 cwd 也有同名目录，也必须解析到内置侧
+                (check (gfproject-find-tool-root "doc" #f (path->string fake-lib))
+                  =>
+                  (path->string (path-join fake-lib "tools" "doc"))
+                ) ;check
+                ;; 内置侧不存在时，cwd 兜底仍然可用（自定义工具场景）
+                (path-rmdir (path-join fake-lib "tools" "doc"))
+                (check (gfproject-find-tool-root "doc" #f (path->string fake-lib))
+                  =>
+                  (path->string (path-join proj "tools" "doc"))
+                ) ;check
+              ) ;lambda
+              (lambda () (chdir real-tmp))
+            ) ;dynamic-wind
+          ) ;let*
+        ) ;lambda
+        (lambda () (chdir old-cwd))
+      ) ;dynamic-wind
+    ) ;let
+  ) ;lambda
+) ;with-temp-dir
+
+;; 10.4 集成：本地 gfproject.json 与内置重名 => 提示忽略本地注册，内置实现正常执行
+(with-temp-dir
+  (lambda (tmp)
+    (let ((old-cwd (getcwd)))
+      (path-write-text (path-join tmp "gfproject.json")
+        "{\"tools\": {\"version\": {\"organization\": \"liii\", \"module\": \"goldversion\"}}}")
+      (dynamic-wind
+        (lambda () (chdir tmp))
+        (lambda ()
+          (let* ((err-buf (open-output-string))
+                 (old-err (set-current-error-port err-buf))
+                 (res (gfproject-run-tool "version" (gfproject-get-gf-lib)))
+                 (err-msg (get-output-string err-buf))
+                ) ;
+            (set-current-error-port old-err)
+            ;; Warning 直写进程 stderr（不经过捕获 port，由 load-gfproject 的
+            ;; shell 级测试断言），这里只断言内置实现正常执行
+            (check res => 0)
+            (check (string-contains? err-msg "ignoring local registration") => #f)
+          ) ;let*
+        ) ;lambda
+        (lambda () (chdir old-cwd))
+      ) ;dynamic-wind
+    ) ;let
+  ) ;lambda
+) ;with-temp-dir
 
 (check-report)
