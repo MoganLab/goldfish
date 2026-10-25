@@ -8,6 +8,7 @@
   (liii go)
   (liii tempfile)
   (liii subprocess)
+  (liii shutil)
   (liii fs-watch)
   (liii pi code tui common)
 ) ;import
@@ -98,7 +99,7 @@
         (stop-branch-watcher! obs)
         (%dbg "[dbg5] stopped")
       ) ;let
-      (g_rmtree dir)
+      (rmtree dir #t)
       (%dbg "[dbg5] rmtree done")
     ) ;let*
   ) ;when

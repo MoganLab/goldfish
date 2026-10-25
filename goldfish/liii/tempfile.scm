@@ -16,7 +16,13 @@
 
 (define-library (liii tempfile)
   (export make-temp-file make-temp-dir with-temp-file with-temp-dir)
-  (import (scheme base) (scheme file) (liii base) (liii error) (liii os))
+  (import (scheme base)
+    (scheme file)
+    (liii base)
+    (liii error)
+    (liii os)
+    (liii shutil)
+  ) ;import
   (begin
 
     ;; 目录不存在/无权限等错误由 C 层按 errno 映射抛出，
@@ -64,7 +70,7 @@
       (let ((path (make-temp-dir prefix suffix dir)))
         (dynamic-wind (lambda () #f)
           (lambda () (proc path))
-          (lambda () (g_rmtree path #t))
+          (lambda () (rmtree path #t))
         ) ;dynamic-wind
       ) ;let
     ) ;define*

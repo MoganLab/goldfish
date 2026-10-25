@@ -1,4 +1,5 @@
-(import (scheme base) (liii check) (liii tempfile) (liii fs-watch))
+(import (scheme base) (liii check) (liii tempfile) (liii fs-watch)
+  (liii shutil))
 
 (check-set-mode! 'report-failed)
 
@@ -103,7 +104,7 @@
   (fs-observer-stop! obs)
   ;; 重复 stop 幂等
   (fs-observer-stop! obs)
-  (g_rmtree dir #t)
+  (rmtree dir #t)
 ) ;let*
 
 ;; 参数校验
@@ -116,7 +117,7 @@
   (check-catch 'type-error (fs-observer-schedule! obs h 123))
   (check-catch 'type-error (fs-observer-stop! "x"))
   (check-catch 'type-error (fs-observer-start! "x"))
-  (g_rmtree dir #t)
+  (rmtree dir #t)
 ) ;let
 
 (check-report)
