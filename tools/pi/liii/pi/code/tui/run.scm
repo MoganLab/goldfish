@@ -12,6 +12,7 @@
     (liii tui)
     (liii pi agent queue)
     (liii pi code tui app)
+    (liii pi code tui common)
   ) ;import
   (begin
 
@@ -20,6 +21,10 @@
              (screen (pi-app-screen app))
              (ed (pi-app-editor app))
              (q (pi-app-queue app))
+             ;; 分支切换监听：worker 会话回调经 event-chan 发 branch_changed，
+             ;; 由主循环 pi-app-poll-events! 消费并更新 footer；
+             ;; 非 git 仓库时为 #f（make-branch-watcher 内部优雅降级）
+             (watcher (make-branch-watcher (pi-app-event-chan app) (detect-git-dir)))
             ) ;
         (dynamic-wind (lambda ()
                         (terminal-enter-raw-mode! term)
@@ -77,6 +82,8 @@
                 (lambda () (chan-close! (pi-app-bash-jobs-chan app)))
                 (lambda args #f)
               ) ;catch
+              ;; 停止分支监听：C 层 watcher 撤销，后台泵收到 stopped 后自行退出
+              (stop-branch-watcher! watcher)
             ) ;let*
           ) ;lambda
         ) ;dynamic-wind
