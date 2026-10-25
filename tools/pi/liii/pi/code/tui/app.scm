@@ -23,6 +23,8 @@
     (liii list)
     (liii tui)
     (liii pi agent queue)
+    (liii pi code tui state)
+    (liii pi code tui render)
     (liii pi code tui views)
     (liii pi code tui thinking)
     (liii pi code tui working)
@@ -33,92 +35,6 @@
     (liii pi code tui footer)
   ) ;import
   (begin
-
-    ;; 编辑器顶边框：开启时占 1 行，渲染时光标行需跳过该行
-    (define %pi-editor-top-border #t)
-
-    (define-record-type <pi-app>
-      (%make-pi-app term screen doc chat pending-box editor footer queue handler
-        jobs-chan event-chan working thinking-level supports-thinking bash-mode?
-        tools-expanded? bash-cards bash-jobs-chan bash-handler
-      ) ;%make-pi-app
-      pi-app?
-      (term pi-app-term)
-      (screen pi-app-screen)
-      (doc %pi-app-doc)
-      (chat %pi-app-chat)
-      (pending-box %pi-app-pending-box)
-      (editor pi-app-editor %pi-app-editor-set!)
-      (footer %pi-app-footer)
-      (queue pi-app-queue)
-      (handler %pi-app-handler)
-      (jobs-chan pi-app-jobs-chan)
-      (event-chan pi-app-event-chan)
-      (working pi-app-working)
-      (thinking-level pi-app-thinking-level %pi-app-thinking-level-set!)
-      (supports-thinking pi-app-supports-thinking?)
-      ;; bash 模式：编辑器文本以 ! 开头时边框变绿（对齐 pi isBashMode）
-      (bash-mode? pi-app-bash-mode? %pi-app-bash-mode?-set!)
-      ;; Ctrl+O 全局工具输出展开状态（对齐 pi toolOutputExpanded）
-      (tools-expanded? pi-app-tools-expanded? %pi-app-tools-expanded?-set!)
-      ;; id → bash 卡片的关联表（后台事件回填用）
-      (bash-cards %pi-app-bash-cards %pi-app-bash-cards-set!)
-      (bash-jobs-chan pi-app-bash-jobs-chan)
-      ;; 测试接缝：注入同步 bash 执行器 (lambda (cmd) (values text exit-code))
-      (bash-handler %pi-app-bash-handler)
-    ) ;define-record-type
-
-    (define %pi-app-term pi-app-term)
-
-    (define (pi-app-render! app)
-      (let* ((screen (pi-app-screen app))
-             (term (%pi-app-term app))
-             (w (car (terminal-size term)))
-             ;; pending 容器内容纯由队列状态派生：busy 时展示队首等待消息
-             (q (pi-app-queue app))
-             (pending-box (%pi-app-pending-box app))
-            ) ;
-        (container-clear! pending-box)
-        (when (pi-queue-busy? q)
-          (let ((items (pi-queue-items q)))
-            (unless (null? items)
-              (container-add! pending-box (make-queued-card (car items)))
-            ) ;unless
-          ) ;let
-        ) ;when
-        (let* ((raw-doc-lines (component-render (%pi-app-doc app) w))
-               ;; 规范化拆分可能包含 \n 的字符串行，确保 ed-y 计算与 screen-render! 完全对齐
-               (doc-lines
-                 (append-map (lambda (item)
-                               (if (string-contains? item "\n") (string-split item "\n") (list item))
-                             ) ;lambda
-                   raw-doc-lines
-                 ) ;append-map
-               ) ;doc-lines
-               (ed (pi-app-editor app))
-               ;; busy 时编辑器上边框替换为 Working 动画行（行数不变）
-               (ed-lines
-                 (let ((raw (component-render ed w)))
-                   (if (and (pi-queue-busy? q) (pair? raw) %pi-editor-top-border)
-                     (cons (working-border-line (pi-app-working app)
-                             w
-                             (pi-thinking-border-color (pi-app-thinking-level app))
-                           ) ;working-border-line
-                       (cdr raw)
-                     ) ;cons
-                     raw
-                   ) ;if
-                 ) ;let
-               ) ;ed-lines
-               (footer-lines (component-render (%pi-app-footer app) w))
-               (ed-cur (editor-cursor ed))
-               (ed-y (+ (length doc-lines) (if %pi-editor-top-border 1 0)))
-               (cur-pos (cons (editor-display-col ed) (+ ed-y (car ed-cur))))
-              ) ;
-          (screen-render! screen (append doc-lines ed-lines footer-lines) cur-pos)
-        ) ;let*
-      ) ;let*
-    ) ;define
 
     ;; 以下 add-*! 系列仅做容器变更，统一由 pi-app-drain-queue! / pi-app-render! 上屏
     (define (pi-app-chat app)
