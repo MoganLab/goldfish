@@ -13,8 +13,17 @@
 
 (check-set-mode! 'report-failed)
 
-;; 本轮测试专用临时目录：make-temp-dir（mkdtemp 语义）原子创建且全局唯一，
-;; 无需 pid 拼接与存在性预清理（无 TOCTOU、无残留冲突）
+;; (liii fs-watch) 集成测试：真实 watcher + go worker 全链路验证。
+;; 各公开函数的文档与单元用例见同目录按函数拆分的测试文件：
+;;   make-fs-event-handler-test.scm / fs-event-p-test.scm /
+;;   fs-watch-dispatch-bang-test.scm / fs-watch-handler-to-src-list-test.scm /
+;;   fs-watch-start-percent-test.scm / observer-test.scm
+;; 平台差异：Windows/Linux 提供具体文件事件（created/modified/deleted/moved）；
+;; macOS kqueue 后端只报目录级 "modified"（path 为监听目录本身）。
+;; TODO(macOS): kqueue 事件路径在 macOS CI 上尚未调通（exit 255 待排查），
+;; 依赖真实事件的用例暂在 macOS 跳过。
+
+(define %mac? (os-macos?))
 
 (define %test-dir (make-temp-dir "gf-fswatch-"))
 
@@ -25,14 +34,6 @@
 ) ;define
 
 (define %event-log '())
-
-;; 平台差异说明：
-;;   Windows/Linux 后端提供具体文件事件（created/modified/deleted/moved）；
-;;   macOS kqueue 后端只报目录级 "modified"（path 为监听目录本身）。
-;; TODO(macOS): kqueue 事件路径在 macOS CI 上尚未调通（exit 255 待排查），
-;; 依赖真实事件的用例暂在 macOS 跳过，平台无关用例全平台启用。
-
-(define %mac? (os-macos?))
 
 (define (%expect-type platform-type)
   (if %mac? "modified" platform-type)
@@ -63,107 +64,6 @@
     ) ;let
   ) ;let
 ) ;define
-
-
-;; ============================================================
-;; 一、handler record（对齐 watchdog FileSystemEventHandler）
-;; ============================================================
-
-;; 1. 四个回调槽的存取与缺省 #f
-(let ((h (make-fs-event-handler
-           :on-modified (lambda (ctx ev) 'mod)
-           :on-created  (lambda (ctx ev) 'cre)
-         ) ;make-fs-event-handler
-      ) ;h
-     ) ;
-  (check-true (fs-event-handler? h))
-  (check-true (procedure? (fs-handler-on-modified h)))
-  (check-true (procedure? (fs-handler-on-created h)))
-  (check-false (fs-handler-on-deleted h))
-  (check-false (fs-handler-on-moved h))
-) ;let
-
-;; 2. 事件 record 访问器（moved 携带 dest，其余为 #f）
-(let ((ev (%make-fs-event-for-test "modified" "/x/HEAD" #f)))
-  (check (fs-event-type ev) => "modified")
-  (check (fs-event-path ev) => "/x/HEAD")
-  (check-false (fs-event-dest-path ev))
-) ;let
-
-;; ============================================================
-;; 二、纯分发逻辑（不依赖真实 watcher）
-;; ============================================================
-
-;; 3. dispatch! 按类型调用对应回调，签名 (ctx event)
-(let* ((log '())
-       (cbs
-         (list
-           (cons "modified"
-             (lambda (ctx ev)
-               (set! log (cons (list ctx (fs-event-type ev) (fs-event-path ev)) log))
-             ) ;lambda
-           ) ;cons
-         ) ;list
-       ) ;cbs
-      ) ;
-  (fs-watch-dispatch! cbs
-    'ctx-token
-    (%make-fs-event-for-test "modified" "/a/b" #f)
-  ) ;fs-watch-dispatch!
-  (fs-watch-dispatch! cbs
-    'ctx-token
-    (%make-fs-event-for-test "deleted" "/a/b" #f)
-  ) ;fs-watch-dispatch!
-  ;; deleted 无对应回调：静默忽略，不报错
-  (check log => '((ctx-token "modified" "/a/b")))
-) ;let*
-
-;; 4. handler → 源码串列表：仅序列化非 #f 槽，供 worker 会话重建
-(let ((h (make-fs-event-handler :on-deleted (lambda (ctx ev) 'del))))
-  (let ((src-list (fs-watch-handler->src-list h)))
-    (check (length src-list) => 1)
-    (check (car (car src-list)) => "deleted")
-    (check-true (string-contains? (cdr (car src-list)) "lambda"))
-  ) ;let
-) ;let
-
-;; 4b. 主会话直接重建：回调闭包变量在设计上不可访问（worker 语义），
-;;     仅验证重建产物可调用且不抛错
-(let* ((h
-         (make-fs-event-handler
-           :on-modified (lambda (ctx ev) (list ctx (fs-event-path ev)))
-         ) ;make-fs-event-handler
-       ) ;h
-       (cbs (fs-watch-make-dispatcher (fs-watch-handler->src-list h)))
-      ) ;
-  (check-true (procedure? (cdr (assoc "modified" cbs))))
-  (fs-watch-dispatch! cbs 'tok (%make-fs-event-for-test "modified" "/p/h" #f))
-) ;let*
-
-;; 4c. worker 会话重建诊断：go-result 在 worker 里执行重建并调用
-(let* ((rch
-         (go-result
-           (let* ((src-list '(("modified"
-                               . "(lambda (ctx ev) (list 'rebuilt ctx (fs-event-path ev)))"))
-                  ) ;src-list
-                  (cbs (fs-watch-make-dispatcher src-list))
-                 ) ;
-             (if (procedure? (cdr (assoc "modified" cbs)))
-               (list 'ok
-                ((cdr (assoc "modified" cbs))
-                 'tok
-                 (%fs-event-from-alist '((type . "modified") (path . "/w/h")))
-                ) ;
-               ) ;list
-               (list 'bad cbs)
-             ) ;if
-           ) ;let*
-         ) ;go-result
-       ) ;rch
-       (r (go-result-recv! rch 10000))
-      ) ;
-  (check r => '(ok (rebuilt tok "/w/h")))
-) ;let*
 
 ;; 4d. args 路径最小复现：cbs-src 经 go-result vars 序列化传入 worker
 (let* ((src '(("modified" . "(lambda (ctx ev) 'ok)")))
@@ -259,13 +159,6 @@
   ) ;let
 ) ;unless
 
-;; 6. 参数校验（Scheme 层前置校验，C 层哨兵 #f）
-(check-catch 'type-error (fs-watch-start% 123 #f))
-(check-catch 'type-error (fs-watch-start% %test-dir "yes"))
-(check-catch 'value-error (fs-watch-start% %test-dir #t))
-(check-catch 'value-error
-  (fs-watch-start% (string-append %test-dir "/no-such-dir") #f)
-) ;check-catch
 
 ;; ============================================================
 ;; 四、Observer 集成（真实 go worker 线程 + chan 桥接）
@@ -310,21 +203,6 @@
   ) ;let*
 ) ;unless
 
-;; 8. observer 状态机：start 后再 schedule → value-error；未 start 直接 stop 无害
-(let* ((h (make-fs-event-handler :on-modified (lambda (ctx ev) #t)))
-       (obs (make-observer))
-      ) ;
-  (check-true (observer? obs))
-  (observer-stop! obs)
-  (observer-schedule! obs h %test-dir)
-  (observer-start! obs)
-  (check-catch 'value-error (observer-schedule! obs h %test-dir))
-  (observer-stop! obs)
-  ;; stop 后可重新 schedule + start（复用同一 observer）
-  (observer-schedule! obs h %test-dir)
-  (observer-start! obs)
-  (observer-stop! obs)
-) ;let*
 
 ;; 9. C 层多轮启停稳定性：连续 5 轮 start/poll/stop 不崩溃不挂起
 (unless %mac?

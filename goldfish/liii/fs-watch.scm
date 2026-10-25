@@ -220,6 +220,9 @@
       (unless (fs-event-handler? handler)
         (type-error "observer-schedule!: handler must be an fs-event-handler")
       ) ;unless
+      (unless (string? path)
+        (type-error "observer-schedule!: path must be a string")
+      ) ;unless
       (when (%fs-observer-running? obs)
         (value-error "observer-schedule!: observer is running, stop it first")
       ) ;when
