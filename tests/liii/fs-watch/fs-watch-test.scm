@@ -7,20 +7,16 @@
   (liii os)
   (liii time)
   (liii go)
+  (liii tempfile)
   (liii fs-watch)
 ) ;import
 
 (check-set-mode! 'report-failed)
 
-;; 构造本轮测试专用的临时目录（进程级唯一，避免并行冲突）
+;; 本轮测试专用临时目录：make-temp-dir（mkdtemp 语义）原子创建且全局唯一，
+;; 无需 pid 拼接与存在性预清理（无 TOCTOU、无残留冲突）
 
-(define %test-dir
-  (string-append (os-temp-dir)
-    (string (os-sep))
-    "gf-fswatch-"
-    (number->string (getpid))
-  ) ;string-append
-) ;define
+(define %test-dir (make-temp-dir "gf-fswatch-"))
 
 (define (%probe-write name content)
   (call-with-output-file (string-append %test-dir (string (os-sep)) name)
@@ -68,10 +64,6 @@
   ) ;let
 ) ;define
 
-(when (access %test-dir 'F_OK)
-  (rmdir %test-dir)
-) ;when
-(mkdir %test-dir)
 
 ;; ============================================================
 ;; 一、handler record（对齐 watchdog FileSystemEventHandler）
@@ -350,8 +342,7 @@
 ) ;unless
 
 ;; 清理
-(when (access %test-dir 'F_OK)
-  (rmdir %test-dir)
-) ;when
+;; 清理（递归删除，容忍事件用例残留的探测文件）
+(g_rmtree %test-dir)
 
 (check-report)
