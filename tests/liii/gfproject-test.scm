@@ -199,6 +199,18 @@
     =>
     #t
   ) ;check
+  ;; [1128] 错误信息应完整格式化：~S 占位符被替换，并指明缺失的文件路径
+  (check (string-contains? err-msg "cannot find file") => #t)
+  (check (string-contains? err-msg "liii/pi/non_existent_cli_xyz.scm") => #t)
 ) ;let*
+
+;; 9. [1128] 错误信息格式化：s7 的 error info 是 (格式串 参数...) 列表，需完整格式化后呈现
+(check (gfproject-error->string '("value is ~S" 42)) => "value is 42")
+(check (gfproject-error->string '("lib ~S missing" (no such lib))) => "lib (no such lib) missing")
+;; 非列表的 info：原样转换为字符串
+(check (gfproject-error->string 42) => "42")
+(check (gfproject-error->string "plain") => "plain")
+;; 首元素非格式串的列表：回退到整体打印
+(check (gfproject-error->string '(a b)) => "(a b)")
 
 (check-report)

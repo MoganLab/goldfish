@@ -229,6 +229,44 @@
 ;; 修饰符结构不完整：报错
 (check-catch 'syntax-error (import (only)))
 
+;; [1128] import 找不到库文件：报 io-error 并指明缺失文件路径
+(check-catch 'io-error (import (goldfish no-such-lib-xyz)))
+(let ((info (catch #t
+              (lambda () (import (goldfish no-such-lib-xyz)) #f)
+              (lambda (tag info) info))))
+  (check (car info) => "import: cannot find file ~S for library ~S")
+  (check (cadr info) => "goldfish/no-such-lib-xyz.scm")
+) ;let
+
+;; 文件存在但未定义该库：仍报 unbound-variable
+(let* ((probe-root (path-join (path-temp-dir)
+                     (string-append "goldfish-1128-" (number->string (getpid)))
+                   ) ;path-join
+       ) ;probe-root
+       (old-load-path *load-path*)
+      ) ;
+  (dynamic-wind
+    (lambda ()
+      (mkdir (path->string probe-root))
+      (mkdir (path->string (path-join probe-root "gf1128")))
+      ;; 文件名匹配库名，但内容定义的是另一个库
+      (path-write-text (path-join probe-root "gf1128" "wronglib.scm")
+        "(define-library (gf1128 otherlib) (export x))\n"
+      ) ;path-write-text
+      (set! *load-path* (cons (path->string probe-root) *load-path*))
+    ) ;lambda
+    (lambda ()
+      (check-catch 'unbound-variable (import (gf1128 wronglib)))
+    ) ;lambda
+    (lambda ()
+      (set! *load-path* old-load-path)
+      (path-unlink (path-join probe-root "gf1128" "wronglib.scm") #t)
+      (path-rmdir (path->string (path-join probe-root "gf1128")))
+      (path-rmdir (path->string probe-root))
+    ) ;lambda
+  ) ;dynamic-wind
+) ;let*
+
 ;; [0112_4] define-library 支持 cond-expand 声明
 ;; 特性条件：r7rs 特性已注册
 (define-library (goldfish test-lib-ce1)
