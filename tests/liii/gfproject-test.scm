@@ -269,32 +269,42 @@
 ) ;let
 
 ;; 10.3 gfproject-find-tool-root：内置目录优先于 cwd 同名目录，cwd 仅作兜底
+;; 注：路径统一用 chdir 后 getcwd 的真实形态，避免 macOS $TMPDIR 符号链接
+;; （/var -> /private/var）造成的期望值/实际值前缀差异
 (with-temp-dir
   (lambda (tmp)
-    (let* ((fake-lib (path-join tmp "fake-lib"))
-           (proj (path-join tmp "proj"))
-           (old-cwd (getcwd))
-          ) ;
-      (path-mkdir (path-join fake-lib "tools" "doc") :parents #t)
-      (path-mkdir (path-join proj "tools" "doc") :parents #t)
+    (let ((old-cwd (getcwd)))
       (dynamic-wind
-        (lambda () (chdir (path->string proj)))
+        (lambda () (chdir tmp))
         (lambda ()
-          ;; 内置侧存在时，即使 cwd 也有同名目录，也必须解析到内置侧
-          (check (gfproject-find-tool-root "doc" #f (path->string fake-lib))
-            =>
-            (path->string (path-join fake-lib "tools" "doc"))
-          ) ;check
-          ;; 内置侧不存在时，cwd 兜底仍然可用（自定义工具场景）
-          (path-rmdir (path-join fake-lib "tools" "doc"))
-          (check (gfproject-find-tool-root "doc" #f (path->string fake-lib))
-            =>
-            (path->string (path-join proj "tools" "doc"))
-          ) ;check
+          (let* ((real-tmp (getcwd))
+                 (fake-lib (path-join real-tmp "fake-lib"))
+                 (proj (path-join real-tmp "proj"))
+                ) ;
+            (path-mkdir (path-join fake-lib "tools" "doc") :parents #t)
+            (path-mkdir (path-join proj "tools" "doc") :parents #t)
+            (dynamic-wind
+              (lambda () (chdir (path->string proj)))
+              (lambda ()
+                ;; 内置侧存在时，即使 cwd 也有同名目录，也必须解析到内置侧
+                (check (gfproject-find-tool-root "doc" #f (path->string fake-lib))
+                  =>
+                  (path->string (path-join fake-lib "tools" "doc"))
+                ) ;check
+                ;; 内置侧不存在时，cwd 兜底仍然可用（自定义工具场景）
+                (path-rmdir (path-join fake-lib "tools" "doc"))
+                (check (gfproject-find-tool-root "doc" #f (path->string fake-lib))
+                  =>
+                  (path->string (path-join proj "tools" "doc"))
+                ) ;check
+              ) ;lambda
+              (lambda () (chdir real-tmp))
+            ) ;dynamic-wind
+          ) ;let*
         ) ;lambda
         (lambda () (chdir old-cwd))
       ) ;dynamic-wind
-    ) ;let*
+    ) ;let
   ) ;lambda
 ) ;with-temp-dir
 
