@@ -209,26 +209,40 @@
       ) ;let*
     ) ;define
 
+    ;; Load a timezone by name, returning #f instead of raising on failure
+    ;; (unknown name, missing tzdata). Used by system-timezone fallbacks.
+    (define (try-tz-timezone name)
+      (catch #t (lambda () (tz-timezone name)) (lambda args #f))
+    ) ;define
+
+    ;; Fallback when neither TZ nor /etc/localtime provides a timezone:
+    ;; on Windows map the system timezone to an IANA name (preserving DST
+    ;; rules); otherwise degrade to a fixed UTC offset.
+    (define (fallback-system-timezone)
+      (let ((iana (g_system_timezone_name)))
+        (or (and iana (try-tz-timezone iana))
+          (utc-offset-timezone (minutes-delta (g_system_timezone_offset_minutes)))
+        ) ;or
+      ) ;let
+    ) ;define
+
     (define (system-timezone)
       (unless *system-timezone-cached*
         (let ((env-tz (get-environment-variable "TZ")))
           (cond
            ((and env-tz (not (string=? env-tz "")))
             (set! *system-timezone-cached*
-              (if (char=? (string-ref env-tz 0) #\:)
-                (tz-timezone (substring env-tz 1))
-                (tz-timezone env-tz)
-              ) ;if
+              (or
+                (try-tz-timezone (if (char=? (string-ref env-tz 0) #\:) (substring env-tz 1) env-tz)
+                ) ;try-tz-timezone
+                (fallback-system-timezone)
+              ) ;or
             ) ;set!
            ) ;
            ((file-exists? "/etc/localtime")
             (set! *system-timezone-cached* (load-timezone-from-file "/etc/localtime"))
            ) ;
-           (else
-             (let ((mins (g_system_timezone_offset_minutes)))
-               (set! *system-timezone-cached* (utc-offset-timezone (minutes-delta mins)))
-             ) ;let
-           ) ;else
+           (else (set! *system-timezone-cached* (fallback-system-timezone)))
           ) ;cond
         ) ;let
       ) ;unless
