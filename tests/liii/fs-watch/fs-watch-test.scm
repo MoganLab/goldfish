@@ -27,6 +27,15 @@
 
 (define %event-log '())   ; 诊断：累积所有收到的事件
 
+;; 平台差异：macOS kqueue 后端只报目录级 "modified"（path 为监听目录），
+;; 不提供文件名与 created/deleted/moved 细分；Windows/Linux 报具体文件事件
+(define %mac? (os-macos?))
+
+(define (%expect-type platform-type) (if %mac? "modified" platform-type))
+(define (%expect-path-contains filename)
+  (if %mac? "gf-fswatch-" filename)
+) ;define
+
 (define (%poll-until pred handle . opts)
   ;; 在 deadline 内反复 poll，累积全部事件；直到累积集合满足 pred 或超时
   ;; 返回 (满足时的完整累积列表 . #t) 或 (累积列表 . #f)
@@ -164,14 +173,14 @@
 ;; 5. 创建/修改/删除文件产生对应事件；stop 后 poll 返回 'stopped
 (let ((handle (fs-watch-start% %test-dir #f)))
   (check-true (integer? handle))
-  ;; created：新建探测文件
+  ;; created：新建探测文件（macOS 上表现为目录级 modified）
   (%probe-write "probe-a.txt" "v1")
   (let ((res (%poll-until
                (lambda (events)
                  (any (lambda (e)
                         (and (pair? (assoc 'type e))
-                             (string=? (cdr (assoc 'type e)) "created")
-                             (string-contains? (cdr (assoc 'path e)) "probe-a.txt")
+                             (string=? (cdr (assoc 'type e)) (%expect-type "created"))
+                             (string-contains? (cdr (assoc 'path e)) (%expect-path-contains "probe-a.txt"))
                            ) ;and
                       ) ;lambda
                    events
@@ -195,8 +204,8 @@
                (lambda (events)
                  (any (lambda (e)
                         (and (pair? (assoc 'type e))
-                             (string=? (cdr (assoc 'type e)) "modified")
-                             (string-contains? (cdr (assoc 'path e)) "probe-a.txt")
+                             (string=? (cdr (assoc 'type e)) (%expect-type "modified"))
+                             (string-contains? (cdr (assoc 'path e)) (%expect-path-contains "probe-a.txt"))
                            ) ;and
                       ) ;lambda
                    events
@@ -215,8 +224,8 @@
                (lambda (events)
                  (any (lambda (e)
                         (and (pair? (assoc 'type e))
-                             (string=? (cdr (assoc 'type e)) "deleted")
-                             (string-contains? (cdr (assoc 'path e)) "probe-a.txt")
+                             (string=? (cdr (assoc 'type e)) (%expect-type "deleted"))
+                             (string-contains? (cdr (assoc 'path e)) (%expect-path-contains "probe-a.txt"))
                            ) ;and
                       ) ;lambda
                    events
