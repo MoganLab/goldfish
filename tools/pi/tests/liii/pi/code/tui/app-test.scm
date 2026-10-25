@@ -244,8 +244,8 @@
             (run-either (list "git" "-C" dir "checkout" "-b" "feature-y")
               :stdout 'discard :stderr 'discard :timeout 30)))
         (%dbg "[dbg7] checkout done")
-        ;; 限时轮询事件循环，等待 footer 更新（branch_changed 处理器按 cwd
-        ;; 重新探测分支，因此期望值是 detect-git-branch 的当前返回值）
+        ;; 限时轮询事件循环，等待 footer 更新（branch_changed 事件携带临时
+        ;; 仓库的 git-dir，主会话直接读其 HEAD 文件解析分支）
         (let ((updated
                 (let ((deadline (+ (current-second) 15)))
                   (let loop
@@ -266,7 +266,7 @@
            ) ;
           (%dbg "[dbg7] poll loop done")
           (check-true updated)
-          (check (pi-footer-branch footer) => (detect-git-branch))
+          (check (pi-footer-branch footer) => "feature-y")
           (let ((b (pi-footer-branch footer)))
             (when b
               (pi-app-render! app)

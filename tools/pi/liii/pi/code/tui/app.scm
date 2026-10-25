@@ -149,12 +149,18 @@
                     ) ;
                     ((branch_changed)
                      ;; (liii fs-watch) worker 会话检测到 .git/HEAD 变化：
-                     ;; 主会话重新探测分支，变化时同步 footer 左下角；
+                     ;; 事件携带 git-dir 时直接读 HEAD 文件解析分支（事件路径
+                     ;; 不跑子进程：CI 上子进程与后台 watcher 并发存在退出
+                     ;; 竞态，可能无界阻塞）；未携带时按 cwd 子进程探测兜底；
                      ;; 未变化则不动（抑制 ORIG_HEAD/FETCH_HEAD 等同名噪音）
-                     (let ((b (detect-git-branch)))
-                       (unless (equal? b (pi-footer-branch (%pi-app-footer app)))
-                         (pi-footer-set-branch! (%pi-app-footer app) b)
-                       ) ;unless
+                     (let ((git-dir (if (> (length ev) 1) (cadr ev) #f)))
+                       (let ((b (if (string? git-dir) (git-branch-from-head-file git-dir) (detect-git-branch))
+                             ) ;b
+                            ) ;
+                         (unless (equal? b (pi-footer-branch (%pi-app-footer app)))
+                           (pi-footer-set-branch! (%pi-app-footer app) b)
+                         ) ;unless
+                       ) ;let
                      ) ;let
                     ) ;
                     ((tool_execution_end)

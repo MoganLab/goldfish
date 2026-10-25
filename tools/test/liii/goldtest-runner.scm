@@ -87,7 +87,7 @@
            ) ;
         (if (either-right? res)
           (cons 0 #f)
-          (let ((code (process-error-code res)))
+          (let ((code (process-error-code (to-left res))))
             (cons (if (integer? code) code -1) (eqv? code -1))
           ) ;let
         ) ;if
@@ -241,7 +241,7 @@
     ;; 从 run-either 结果提取退出码（导出以便 worker 会话可见）
     (define (%process-exit-code res)
       (if (either-left? res)
-        (let ((c (process-error-code res)))
+        (let ((c (process-error-code (to-left res))))
           (if (integer? c) c -1)
         ) ;let
         0
@@ -250,11 +250,11 @@
 
     ;; 从 run-either 结果提取捕获的 stdout/stderr（导出以便 worker 会话可见）
     (define (%captured-stdout res)
-      (if (either-left? res) (process-error-stdout res) "")
+      (if (either-left? res) (process-error-stdout (to-left res)) "")
     ) ;define
 
     (define (%captured-stderr res)
-      (if (either-left? res) (process-error-stderr res) "")
+      (if (either-left? res) (process-error-stderr (to-left res)) "")
     ) ;define
 
     ;; 打印 [n/total] file ... 进度标记并立即 flush（导出以便 worker 会话可见）
@@ -271,8 +271,27 @@
       (flush-output-port (current-output-port))
     ) ;define
 
-    ;; 并行任务结果处置（导出以便 worker 会话可见）
+    ;; 并行任务结果处置（导出以便 worker 会话可见）；
+    ;; 整体防御性 catch：报告路径出错时降级为 FAIL 结果，
+    ;; 不让单个异常炸掉整个 runner（之前 CI 上曾因处理超时结果时
+    ;; 的访问错误导致 runner 崩溃，掩盖真实卡点）
     (define (%parallel-result res test-file tmo)
+      (catch #t
+        (lambda () (%parallel-result% res test-file tmo))
+        (lambda args
+          (show #t
+            (as-red "FAIL")
+            " (report error: "
+            (object->string (car args))
+            ")"
+            "\n"
+          ) ;show
+          (list test-file -1 "")
+        ) ;lambda
+      ) ;catch
+    ) ;define
+
+    (define (%parallel-result% res test-file tmo)
       (if (either-right? res)
         (begin
           (show #t (as-green "PASS") "\n")

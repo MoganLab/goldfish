@@ -89,7 +89,9 @@
               ) ;got
            ) ;
           (%dbg "[dbg5] got event")
-          (check got => '(branch_changed))
+          (check (car got) => 'branch_changed)
+          ;; 事件携带 git-dir，供主会话直接读 HEAD 文件
+          (check-true (and (pair? (cdr got)) (string? (cadr got))))
         ) ;let
         ;; 停止幂等
         (stop-branch-watcher! obs)

@@ -6,11 +6,12 @@
 
 (define-library (liii pi code tui common)
   (export %keyword-value detect-git-branch detect-git-dir make-branch-watcher
-    stop-branch-watcher!
+    stop-branch-watcher! git-branch-from-head-file
   ) ;export
   (import (scheme base)
     (liii either)
     (liii string)
+    (liii path)
     (liii subprocess)
     (liii fs-watch)
   ) ;import
@@ -63,6 +64,29 @@
       ) ;catch
     ) ;define
 
+    ;; 直接读 <git-dir>/HEAD 文件解析当前分支（零子进程）：
+    ;; "ref: refs/heads/<branch>" → branch；detached HEAD（40 位 hex）→ #f。
+    ;; 用于 branch_changed 事件路径：CI 上子进程与后台 watcher 并发时
+    ;; 存在退出竞态（tb_process_wait 无界等待），事件路径不跑子进程
+    (define (git-branch-from-head-file git-dir)
+      (catch #t
+        (lambda ()
+          (let* ((text (path-read-text (string-append git-dir "/HEAD")))
+                 (lines (if (string? text) (string-split text "\n") '()))
+                 (line (if (pair? lines) (string-trim-both (car lines)) ""))
+                ) ;
+            (if (string-starts? line "ref: refs/heads/")
+              (let ((b (string-trim-both (substring line 16 (string-length line)))))
+                (if (string-null? b) #f b)
+              ) ;let
+              #f
+            ) ;if
+          ) ;let*
+        ) ;lambda
+        (lambda args #f)
+      ) ;catch
+    ) ;define
+
     ;; 分支监听回调：在 (liii go) worker 的独立 s7 会话内执行！
     ;; 源码经 procedure-source 序列化后 worker 会话 eval 重建，因此：
     ;; 1. 自由符号只能是 (scheme base) 与 (liii go)/(liii fs-watch) 的导出绑定，
@@ -71,6 +95,9 @@
     ;; 事件过滤：git checkout 走 HEAD.lock→HEAD 的 rename（moved 看 dest），
     ;; 原地改写 HEAD 是 modified（看 path）；macOS kqueue 后端只有目录级事件
     ;; （path 即监听目录本身），无法按文件过滤，直接放行。
+    ;; 消息形态为 (branch_changed git-dir) 列表，与 event-chan 其余事件语法
+    ;; 一致（主会话以 (case (car ev) ...) 分发）；携带 git-dir 使主会话
+    ;; 能直接读 HEAD 文件而不必跑子进程；
     ;; chan-send! 超时/异常由 fs-watch-dispatch! 统一吞掉，不会拖垮监听泵
     (define %branch-watch-callback
       (lambda (ctx ev)
@@ -86,7 +113,7 @@
                ) ;
             (let ((p (fs-event-path ev)) (d (fs-event-dest-path ev)))
               (when (or (string=? p git-dir) (ends-head? p) (ends-head? d))
-                (chan-send! ch (list 'branch_changed) 5000)
+                (chan-send! ch (list 'branch_changed git-dir) 5000)
               ) ;when
             ) ;let
           ) ;let
