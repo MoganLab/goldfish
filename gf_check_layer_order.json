@@ -1,347 +1,348 @@
 {
-  "enabled": true,
-  "domains": [
+ "enabled": true,
+ "domains": [
+  {
+   "name": "goldfish",
+   "root": "goldfish/",
+   "depends-on": [],
+   "layers": [
     {
-      "name": "goldfish",
-      "root": "goldfish/",
-      "depends-on": [],
-      "layers": [
-        {
-          "name": "kernel",
-          "libs": [
-            "liii base",
-            "liii error",
-            "srfi srfi-2",
-            "srfi srfi-8"
-          ]
-        },
-        {
-          "name": "standard",
-          "libs": [
-            "srfi 166",
-            "srfi 78",
-            "srfi sicp",
-            "srfi srfi-1",
-            "srfi srfi-11",
-            "srfi srfi-113",
-            "srfi srfi-117",
-            "srfi srfi-125",
-            "srfi srfi-128",
-            "srfi srfi-13",
-            "srfi srfi-132",
-            "srfi srfi-133",
-            "srfi srfi-151",
-            "srfi srfi-158",
-            "srfi srfi-16",
-            "srfi srfi-165",
-            "srfi srfi-166",
-            "srfi srfi-175",
-            "srfi srfi-196",
-            "srfi srfi-2",
-            "srfi srfi-209",
-            "srfi srfi-214",
-            "srfi srfi-215",
-            "srfi srfi-216",
-            "srfi srfi-217",
-            "srfi srfi-224",
-            "srfi srfi-26",
-            "srfi srfi-267",
-            "srfi srfi-27",
-            "srfi srfi-39",
-            "srfi srfi-48",
-            "srfi srfi-78",
-            "srfi srfi-8",
-            "srfi srfi-9"
-          ]
-        },
-        {
-          "name": "application",
-          "libs": [
-            "liii alist",
-            "liii argparse",
-            "liii ascii",
-            "liii bag",
-            "liii base64",
-            "liii bitwise",
-            "liii check",
-            "liii chez",
-            "liii comparator",
-            "liii config-parser",
-            "liii cut",
-            "liii date-time",
-            "liii diff",
-            "liii either",
-            "liii enum",
-            "liii flexvector",
-            "liii format",
-            "liii fxmapping",
-            "liii generator",
-            "liii gfproject",
-            "liii go",
-            "liii goldfmt",
-            "liii han-zi",
-            "liii hash-table",
-            "liii hashlib",
-            "liii http",
-            "liii http-async",
-            "liii http-common",
-            "liii iset",
-            "liii json",
-            "liii list",
-            "liii logging",
-            "liii match",
-            "liii option",
-            "liii os",
-            "liii packrat",
-            "liii par",
-            "liii path",
-            "liii queue",
-            "liii random",
-            "liii range",
-            "liii raw-string",
-            "liii semver",
-            "liii set",
-            "liii signal",
-            "liii sort",
-            "liii sse",
-            "liii stack",
-            "liii string",
-            "liii string-cursor",
-            "liii subprocess",
-            "liii syntax",
-            "liii syntax-case",
-            "liii sys",
-            "liii tempfile",
-            "liii time",
-            "liii timeit",
-            "liii tree",
-            "liii trie",
-            "liii tui",
-            "liii unicode",
-            "liii uri",
-            "liii uuid",
-            "liii vector"
-          ]
-        }
-      ]
+     "name": "kernel",
+     "libs": [
+      "liii base",
+      "liii error",
+      "srfi srfi-2",
+      "srfi srfi-8"
+     ]
     },
     {
-      "name": "pi",
-      "root": "tools/pi/",
-      "depends-on": [
-        "goldfish"
-      ],
-      "layers": [
-        {
-          "name": "ai",
-          "libs": [
-            "liii pi ai"
-          ]
-        },
-        {
-          "name": "agent",
-          "libs": [
-            "liii pi agent"
-          ]
-        },
-        {
-          "name": "code",
-          "libs": [
-            "liii pi code"
-          ]
-        },
-        {
-          "name": "extensions",
-          "libs": [
-            "liii pi review",
-            "liii pi simplify",
-            "liii pi web-search"
-          ]
-        }
-      ]
+     "name": "standard",
+     "libs": [
+      "srfi 166",
+      "srfi 78",
+      "srfi sicp",
+      "srfi srfi-1",
+      "srfi srfi-11",
+      "srfi srfi-113",
+      "srfi srfi-117",
+      "srfi srfi-125",
+      "srfi srfi-128",
+      "srfi srfi-13",
+      "srfi srfi-132",
+      "srfi srfi-133",
+      "srfi srfi-151",
+      "srfi srfi-158",
+      "srfi srfi-16",
+      "srfi srfi-165",
+      "srfi srfi-166",
+      "srfi srfi-175",
+      "srfi srfi-196",
+      "srfi srfi-2",
+      "srfi srfi-209",
+      "srfi srfi-214",
+      "srfi srfi-215",
+      "srfi srfi-216",
+      "srfi srfi-217",
+      "srfi srfi-224",
+      "srfi srfi-26",
+      "srfi srfi-267",
+      "srfi srfi-27",
+      "srfi srfi-39",
+      "srfi srfi-48",
+      "srfi srfi-78",
+      "srfi srfi-8",
+      "srfi srfi-9"
+     ]
     },
     {
-      "name": "common",
-      "root": "tools/common/",
-      "depends-on": [
-        "goldfish"
-      ],
-      "layers": [
-        {
-          "name": "shared",
-          "libs": [
-            "liii goldtool changed",
-            "liii goldtool cache",
-            "liii goldtool parallel"
-          ]
-        }
-      ]
-    },
-    {
-      "name": "check",
-      "root": "tools/check/",
-      "depends-on": [
-        "goldfish",
-        "common"
-      ],
-      "layers": [
-        {
-          "name": "tool",
-          "libs": [
-            "liii goldcheck"
-          ]
-        }
-      ]
-    },
-    {
-      "name": "doc",
-      "root": "tools/doc/",
-      "depends-on": [
-        "goldfish",
-        "common"
-      ],
-      "layers": [
-        {
-          "name": "tool",
-          "libs": [
-            "liii golddoc"
-          ]
-        }
-      ]
-    },
-    {
-      "name": "fix",
-      "root": "tools/fix/",
-      "depends-on": [
-        "goldfish",
-        "common"
-      ],
-      "layers": [
-        {
-          "name": "tool",
-          "libs": [
-            "liii goldfix"
-          ]
-        }
-      ]
-    },
-    {
-      "name": "repl",
-      "root": "tools/repl/",
-      "depends-on": [
-        "goldfish",
-        "common"
-      ],
-      "layers": [
-        {
-          "name": "tool",
-          "libs": [
-            "liii goldrepl"
-          ]
-        }
-      ]
-    },
-    {
-      "name": "test",
-      "root": "tools/test/",
-      "depends-on": [
-        "goldfish",
-        "common"
-      ],
-      "layers": [
-        {
-          "name": "tool",
-          "libs": [
-            "liii goldtest",
-            "liii goldtest-args",
-            "liii goldtest-route",
-            "liii goldtest-runner"
-          ]
-        }
-      ]
-    },
-    {
-      "name": "help",
-      "root": "tools/help/",
-      "depends-on": [
-        "goldfish",
-        "common"
-      ],
-      "layers": [
-        {
-          "name": "tool",
-          "libs": [
-            "liii goldhelp"
-          ]
-        }
-      ]
-    },
-    {
-      "name": "pr",
-      "root": "tools/pr/",
-      "depends-on": [
-        "goldfish",
-        "common"
-      ],
-      "layers": [
-        {
-          "name": "tool",
-          "libs": [
-            "liii goldpr"
-          ]
-        }
-      ]
-    },
-    {
-      "name": "code",
-      "root": "tools/code/",
-      "depends-on": [
-        "goldfish",
-        "common"
-      ],
-      "layers": [
-        {
-          "name": "tool",
-          "libs": [
-            "liii goldcode"
-          ]
-        }
-      ]
-    },
-    {
-      "name": "source",
-      "root": "tools/source/",
-      "depends-on": [
-        "goldfish",
-        "common"
-      ],
-      "layers": [
-        {
-          "name": "tool",
-          "libs": [
-            "liii goldsource",
-            "liii goldsource-args",
-            "liii goldsource-cli",
-            "liii goldsource-library"
-          ]
-        }
-      ]
-    },
-    {
-      "name": "version",
-      "root": "tools/version/",
-      "depends-on": [
-        "goldfish",
-        "common"
-      ],
-      "layers": [
-        {
-          "name": "tool",
-          "libs": [
-            "liii goldversion"
-          ]
-        }
-      ]
+     "name": "application",
+     "libs": [
+      "liii alist",
+      "liii argparse",
+      "liii ascii",
+      "liii bag",
+      "liii base64",
+      "liii bitwise",
+      "liii check",
+      "liii chez",
+      "liii comparator",
+      "liii config-parser",
+      "liii cut",
+      "liii date-time",
+      "liii diff",
+      "liii either",
+      "liii enum",
+      "liii flexvector",
+      "liii format",
+      "liii fs-watch",
+      "liii fxmapping",
+      "liii generator",
+      "liii gfproject",
+      "liii go",
+      "liii goldfmt",
+      "liii han-zi",
+      "liii hash-table",
+      "liii hashlib",
+      "liii http",
+      "liii http-async",
+      "liii http-common",
+      "liii iset",
+      "liii json",
+      "liii list",
+      "liii logging",
+      "liii match",
+      "liii option",
+      "liii os",
+      "liii packrat",
+      "liii par",
+      "liii path",
+      "liii queue",
+      "liii random",
+      "liii range",
+      "liii raw-string",
+      "liii semver",
+      "liii set",
+      "liii signal",
+      "liii sort",
+      "liii sse",
+      "liii stack",
+      "liii string",
+      "liii string-cursor",
+      "liii subprocess",
+      "liii syntax",
+      "liii syntax-case",
+      "liii sys",
+      "liii tempfile",
+      "liii time",
+      "liii timeit",
+      "liii tree",
+      "liii trie",
+      "liii tui",
+      "liii unicode",
+      "liii uri",
+      "liii uuid",
+      "liii vector"
+     ]
     }
-  ]
+   ]
+  },
+  {
+   "name": "pi",
+   "root": "tools/pi/",
+   "depends-on": [
+    "goldfish"
+   ],
+   "layers": [
+    {
+     "name": "ai",
+     "libs": [
+      "liii pi ai"
+     ]
+    },
+    {
+     "name": "agent",
+     "libs": [
+      "liii pi agent"
+     ]
+    },
+    {
+     "name": "code",
+     "libs": [
+      "liii pi code"
+     ]
+    },
+    {
+     "name": "extensions",
+     "libs": [
+      "liii pi review",
+      "liii pi simplify",
+      "liii pi web-search"
+     ]
+    }
+   ]
+  },
+  {
+   "name": "common",
+   "root": "tools/common/",
+   "depends-on": [
+    "goldfish"
+   ],
+   "layers": [
+    {
+     "name": "shared",
+     "libs": [
+      "liii goldtool changed",
+      "liii goldtool cache",
+      "liii goldtool parallel"
+     ]
+    }
+   ]
+  },
+  {
+   "name": "check",
+   "root": "tools/check/",
+   "depends-on": [
+    "goldfish",
+    "common"
+   ],
+   "layers": [
+    {
+     "name": "tool",
+     "libs": [
+      "liii goldcheck"
+     ]
+    }
+   ]
+  },
+  {
+   "name": "doc",
+   "root": "tools/doc/",
+   "depends-on": [
+    "goldfish",
+    "common"
+   ],
+   "layers": [
+    {
+     "name": "tool",
+     "libs": [
+      "liii golddoc"
+     ]
+    }
+   ]
+  },
+  {
+   "name": "fix",
+   "root": "tools/fix/",
+   "depends-on": [
+    "goldfish",
+    "common"
+   ],
+   "layers": [
+    {
+     "name": "tool",
+     "libs": [
+      "liii goldfix"
+     ]
+    }
+   ]
+  },
+  {
+   "name": "repl",
+   "root": "tools/repl/",
+   "depends-on": [
+    "goldfish",
+    "common"
+   ],
+   "layers": [
+    {
+     "name": "tool",
+     "libs": [
+      "liii goldrepl"
+     ]
+    }
+   ]
+  },
+  {
+   "name": "test",
+   "root": "tools/test/",
+   "depends-on": [
+    "goldfish",
+    "common"
+   ],
+   "layers": [
+    {
+     "name": "tool",
+     "libs": [
+      "liii goldtest",
+      "liii goldtest-args",
+      "liii goldtest-route",
+      "liii goldtest-runner"
+     ]
+    }
+   ]
+  },
+  {
+   "name": "help",
+   "root": "tools/help/",
+   "depends-on": [
+    "goldfish",
+    "common"
+   ],
+   "layers": [
+    {
+     "name": "tool",
+     "libs": [
+      "liii goldhelp"
+     ]
+    }
+   ]
+  },
+  {
+   "name": "pr",
+   "root": "tools/pr/",
+   "depends-on": [
+    "goldfish",
+    "common"
+   ],
+   "layers": [
+    {
+     "name": "tool",
+     "libs": [
+      "liii goldpr"
+     ]
+    }
+   ]
+  },
+  {
+   "name": "code",
+   "root": "tools/code/",
+   "depends-on": [
+    "goldfish",
+    "common"
+   ],
+   "layers": [
+    {
+     "name": "tool",
+     "libs": [
+      "liii goldcode"
+     ]
+    }
+   ]
+  },
+  {
+   "name": "source",
+   "root": "tools/source/",
+   "depends-on": [
+    "goldfish",
+    "common"
+   ],
+   "layers": [
+    {
+     "name": "tool",
+     "libs": [
+      "liii goldsource",
+      "liii goldsource-args",
+      "liii goldsource-cli",
+      "liii goldsource-library"
+     ]
+    }
+   ]
+  },
+  {
+   "name": "version",
+   "root": "tools/version/",
+   "depends-on": [
+    "goldfish",
+    "common"
+   ],
+   "layers": [
+    {
+     "name": "tool",
+     "libs": [
+      "liii goldversion"
+     ]
+    }
+   ]
+  }
+ ]
 }
