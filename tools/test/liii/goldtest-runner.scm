@@ -39,7 +39,8 @@
   ) ;import
   (export ESC color GREEN RED YELLOW RESET goldfish-cmd run-test-file
     display-fail-log cleanup-log run-tests-parallel failed-test-files
-    display-summary %dump-captured-tail
+    display-summary %dump-captured-tail %report-test-failure %parallel-result
+    %process-exit-code %captured-stdout %captured-stderr %print-progress-marker
   ) ;export
   (begin
 
@@ -199,16 +200,7 @@
              (run-one-test
                (lambda (pair)
                  (let ((idx (car pair)) (test-file (cadr pair)))
-                   (display (string-append "  ["
-                              (number->string (+ idx 1))
-                              "/"
-                              (number->string total)
-                              "] "
-                              test-file
-                              " ... "
-                            ) ;string-append
-                   ) ;display
-                   (flush-output-port (current-output-port))
+                   (%print-progress-marker idx total test-file)
                    (let ((res
                            (catch #t
                              (lambda ()
@@ -223,32 +215,7 @@
                            ) ;catch
                          ) ;res
                         ) ;
-                     (if (either-right? res)
-                       (begin
-                         (show #t (as-green "PASS") "\n")
-                         (list test-file 0 "")
-                       ) ;begin
-                       (let* ((code
-                                (if (either-left? res)
-                                  (let ((c (process-error-code res)))
-                                    (if (integer? c) c -1)
-                                  ) ;let
-                                  -1
-                                ) ;if
-                              ) ;code
-                              (out (if (either-left? res) (process-error-stdout res) ""))
-                              (err (if (either-left? res) (process-error-stderr res) ""))
-                             ) ;
-                         (if (= code -1)
-                           (show #t (as-red "FAIL") " (timeout " (number->string tmo) "s, killed)" "\n")
-                           (show #t (as-red "FAIL") " exit-code=" (number->string code) "\n")
-                         ) ;if
-                         ;; 失败时打印捕获输出的尾部，帮助定位卡点
-                         (%dump-captured-tail "stdout" out)
-                         (%dump-captured-tail "stderr" err)
-                         (list test-file code "")
-                       ) ;let*
-                     ) ;if
+                     (%parallel-result res test-file tmo)
                    ) ;let
                  ) ;let
                ) ;lambda
@@ -259,6 +226,63 @@
           (vector-map (lambda (r) (cons (car r) (cadr r))) raw-results)
         ) ;vector->list
       ) ;let*
+    ) ;define
+
+    ;; 打印单文件失败行与捕获输出尾部（导出以便 worker 会话可见）
+    (define (%report-test-failure tmo code out err)
+      (if (= code -1)
+        (show #t (as-red "FAIL") " (timeout " (number->string tmo) "s, killed)" "\n")
+        (show #t (as-red "FAIL") " exit-code=" (number->string code) "\n")
+      ) ;if
+      (%dump-captured-tail "stdout" out)
+      (%dump-captured-tail "stderr" err)
+    ) ;define
+
+    ;; 从 run-either 结果提取退出码（导出以便 worker 会话可见）
+    (define (%process-exit-code res)
+      (if (either-left? res)
+        (let ((c (process-error-code res)))
+          (if (integer? c) c -1)
+        ) ;let
+        0
+      ) ;if
+    ) ;define
+
+    ;; 从 run-either 结果提取捕获的 stdout/stderr（导出以便 worker 会话可见）
+    (define (%captured-stdout res)
+      (if (either-left? res) (process-error-stdout res) "")
+    ) ;define
+
+    (define (%captured-stderr res)
+      (if (either-left? res) (process-error-stderr res) "")
+    ) ;define
+
+    ;; 打印 [n/total] file ... 进度标记并立即 flush（导出以便 worker 会话可见）
+    (define (%print-progress-marker idx total test-file)
+      (display (string-append "  ["
+                 (number->string (+ idx 1))
+                 "/"
+                 (number->string total)
+                 "] "
+                 test-file
+                 " ... "
+               ) ;string-append
+      ) ;display
+      (flush-output-port (current-output-port))
+    ) ;define
+
+    ;; 并行任务结果处置（导出以便 worker 会话可见）
+    (define (%parallel-result res test-file tmo)
+      (if (either-right? res)
+        (begin
+          (show #t (as-green "PASS") "\n")
+          (list test-file 0 "")
+        ) ;begin
+        (let ((code (%process-exit-code res)))
+          (%report-test-failure tmo code (%captured-stdout res) (%captured-stderr res))
+          (list test-file code "")
+        ) ;let
+      ) ;if
     ) ;define
 
     ;; 打印捕获文本的末尾若干行（供失败诊断；导出以便 worker 会话可见）
