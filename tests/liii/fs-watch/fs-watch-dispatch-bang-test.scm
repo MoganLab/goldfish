@@ -41,14 +41,8 @@
          ) ;list
        ) ;cbs
       ) ;
-  (fs-watch-dispatch! cbs
-    'ctx-token
-    (%make-fs-event-for-test "modified" "/a/b" #f)
-  ) ;fs-watch-dispatch!
-  (fs-watch-dispatch! cbs
-    'ctx-token
-    (%make-fs-event-for-test "deleted" "/a/b" #f)
-  ) ;fs-watch-dispatch!
+  (fs-watch-dispatch! cbs 'ctx-token (make-fs-event "modified" "/a/b" #f))
+  (fs-watch-dispatch! cbs 'ctx-token (make-fs-event "deleted" "/a/b" #f))
   ;; deleted 无对应回调：静默忽略，不报错
   (check log => '((ctx-token "modified" "/a/b")))
 ) ;let*
@@ -59,13 +53,13 @@
       ) ;cbs
       (called '())
      ) ;
-  (fs-watch-dispatch! cbs #f (%make-fs-event-for-test "created" "/x" #f))
+  (fs-watch-dispatch! cbs #f (make-fs-event "created" "/x" #f))
   (fs-watch-dispatch!
     (list
       (cons "created" (lambda (ctx ev) (set! called (cons 'ok called))))
     ) ;list
     #f
-    (%make-fs-event-for-test "created" "/x" #f)
+    (make-fs-event "created" "/x" #f)
   ) ;fs-watch-dispatch!
   (check called => '(ok))
 ) ;let

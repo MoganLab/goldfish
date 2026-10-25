@@ -35,6 +35,7 @@
 
 ;; ==== 函数分类索引 ====
 ;;   make-fs-event-handler  - 创建事件处理器（四个回调槽，对齐 FileSystemEventHandler）
+;;   make-fs-event          - 构造事件记录（对齐 FileSystemEvent 可实例化）
 ;;   fs-event?              - 事件记录谓词（含 type/path/dest-path 访问器）
 ;;   make-observer          - 创建监听 observer（对齐 watchdog Observer）
 ;;   observer-schedule!     - 注册监听项（目录 + 处理器 + :context）

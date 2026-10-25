@@ -69,7 +69,7 @@
 (let* ((src '(("modified" . "(lambda (ctx ev) 'ok)")))
        (rch
          (go-result (src)
-           (let ((cbs (fs-watch-pump-diag src)))
+           (let ((cbs (fs-watch-make-dispatcher src)))
              (procedure? (cdr (assoc "modified" cbs)))
            ) ;let
          ) ;go-result

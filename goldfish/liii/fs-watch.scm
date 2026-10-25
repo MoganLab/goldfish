@@ -25,11 +25,13 @@
 ;; 库导出绑定（如 chan-send! / fs-event-path），不能闭包捕获主会话对象。
 (define-library (liii fs-watch)
   (export make-fs-event-handler fs-event-handler? fs-handler-on-modified
-    fs-handler-on-created fs-handler-on-deleted fs-handler-on-moved fs-event?
-    fs-event-type fs-event-path fs-event-dest-path %make-fs-event-for-test
-    %fs-event-from-alist make-observer observer? observer-schedule!
-    observer-start! observer-stop! fs-watch-dispatch! fs-watch-make-dispatcher
-    fs-watch-handler->src-list fs-watch-pump fs-watch-pump-diag fs-watch-start%
+    fs-handler-on-created fs-handler-on-deleted fs-handler-on-moved
+    make-fs-event fs-event? fs-event-type fs-event-path fs-event-dest-path
+    make-observer observer? observer-schedule! observer-start! observer-stop!
+    fs-watch-dispatch! fs-watch-make-dispatcher fs-watch-handler->src-list
+    fs-watch-pump fs-watch-start%
+    ;; 仅限 (liii go) worker 会话内使用的实现细节（导出因子必须可见）
+    %fs-event-from-alist
   ) ;export
   (import (scheme base)
     (scheme eval)
@@ -53,9 +55,20 @@
       (dest fs-event-dest-path)
     ) ;define-record-type
 
-    (define (%make-fs-event-for-test type path dest)
+    ;; 公开事件构造器（对齐 watchdog 的 FileSystemEvent 可实例化语义）：
+    ;; (make-fs-event "modified" "/path" [:dest #f])
+    (define* (make-fs-event type path (dest #f))
+      (unless (string? type)
+        (type-error "make-fs-event: type must be a string" type)
+      ) ;unless
+      (unless (string? path)
+        (type-error "make-fs-event: path must be a string" path)
+      ) ;unless
+      (unless (or (not dest) (string? dest))
+        (type-error "make-fs-event: dest must be a string or #f" dest)
+      ) ;unless
       (%make-fs-event type path dest)
-    ) ;define
+    ) ;define*
 
     (define-record-type <fs-event-handler>
       (%make-fs-event-handler on-modified on-created on-deleted on-moved)
@@ -178,11 +191,6 @@
               ) ;let
             ) ;else
       ) ;cond
-    ) ;define
-
-    ;; 诊断接缝：仅重建 dispatcher 并返回（排查 go 参数路径）
-    (define (fs-watch-pump-diag cbs-src)
-      (fs-watch-make-dispatcher cbs-src)
     ) ;define
 
     ;; ------------------------------------------------------------

@@ -56,7 +56,7 @@
        (cbs (fs-watch-make-dispatcher (fs-watch-handler->src-list h)))
       ) ;
   (check-true (procedure? (cdr (assoc "modified" cbs))))
-  (fs-watch-dispatch! cbs 'tok (%make-fs-event-for-test "modified" "/p/h" #f))
+  (fs-watch-dispatch! cbs 'tok (make-fs-event "modified" "/p/h" #f))
 ) ;let*
 
 ;; worker 会话内重建并调用（go-result 全链路）
