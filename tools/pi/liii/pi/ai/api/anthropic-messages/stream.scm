@@ -227,7 +227,9 @@
                  (resp (%post-stream url req-json-str headers proxy-alist cb timeout eff-idle))
                  (status (or (%resp-field resp 'status-code) 0))
                 ) ;
-            (cond (aborted? (%finalize-aborted-stream stream-state))
+            ;; 流尾补探测一次中止信号：单 chunk 交付时 on-event 发出的 abort
+            ;; 无后续 chunk 检查点，此处探测保证确定性结算为 aborted
+            (cond ((or aborted? (pi-aborted?)) (%finalize-aborted-stream stream-state))
                   (idle-timed-out? (%make-idle-timeout-error eff-idle))
                   ((anthropic-is-retriable-error? status "")
                    (if (<= attempt provider-r)
