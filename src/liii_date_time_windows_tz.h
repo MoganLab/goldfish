@@ -24,8 +24,7 @@
 //
 // Only the "golden" mappings (territory="001") are kept: each Windows
 // timezone name maps to its primary IANA timezone. Regenerate with:
-//   perl tools/windows-tz/gen.pl common/supplemental/windowsZones.xml \
-//     > src/liii_date_time_windows_tz.h
+//   bin/gf tools/windows-tz/gen.scm <path-to>/windowsZones.xml
 // after updating the CLDR checkout.
 
 #ifndef LIII_DATE_TIME_WINDOWS_TZ_H
