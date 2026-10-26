@@ -8,7 +8,7 @@
   (import (scheme base)
     (liii string)
     (liii list)
-    (liii pi code tools read)
+    (liii pi code core tools read)
     (liii pi ai message types)
     (liii pi review language)
   ) ;import

@@ -11,7 +11,7 @@
     (liii json)
     (liii http)
     (liii error)
-    (liii pi code tools read)
+    (liii pi code core tools read)
     (liii pi ai api google-generative-ai grounding)
     (liii pi ai api google-generative-ai request)
     (liii pi web-search schema)

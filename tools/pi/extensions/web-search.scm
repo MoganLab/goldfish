@@ -7,7 +7,7 @@
 ;;
 
 (import (scheme base)
-  (liii pi code extension)
+  (liii pi code core extensions)
   (liii pi web-search schema)
   (liii pi web-search execute)
 ) ;import

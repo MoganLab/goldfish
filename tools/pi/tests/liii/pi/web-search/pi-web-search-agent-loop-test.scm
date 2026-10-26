@@ -9,7 +9,7 @@
   (liii sys)
   (liii path)
   (liii subprocess)
-  (liii pi code session)
+  (liii pi code core session-manager)
   (liii shutil)
 ) ;import
 

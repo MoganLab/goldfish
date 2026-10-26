@@ -8,7 +8,7 @@
   (liii subprocess)
   (liii pi ai api anthropic-messages) (liii pi ai event)
   (liii pi code config)
-  (liii pi code tools)
+  (liii pi code core tools)
 ) ;import
 
 (check-set-mode! 'report-failed)

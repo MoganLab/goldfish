@@ -1,4 +1,4 @@
-(import (scheme base) (liii check) (liii string) (liii tui) (liii pi code tui views))
+(import (scheme base) (liii check) (liii string) (liii tui) (liii pi code modes interactive views))
 
 (check-set-mode! 'report-failed)
 

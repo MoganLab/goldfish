@@ -1,4 +1,4 @@
-(import (liii check) (liii pi ai event) (liii pi ai api openai-completions) (liii pi code tools))
+(import (liii check) (liii pi ai event) (liii pi ai api openai-completions) (liii pi code core tools))
 
 (check-set-mode! 'report-failed)
 

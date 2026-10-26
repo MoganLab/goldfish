@@ -5,9 +5,9 @@
         (liii string)
         (liii os)
         (liii go)
-        (liii pi code args) (liii pi code config) (liii pi code session)
-        (liii pi code extension)
-        (liii pi code args)
+        (liii pi code cli args) (liii pi code config) (liii pi code core session-manager)
+        (liii pi code core extensions)
+        (liii pi code cli args)
         (liii pi code config))
 
 (check-set-mode! 'report-failed)

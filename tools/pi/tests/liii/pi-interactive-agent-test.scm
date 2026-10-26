@@ -2,8 +2,8 @@
         (scheme process-context)
         (liii check)
         (liii tui)
-        (liii pi code tui)
-        (liii pi code tui handler)
+        (liii pi code modes interactive)
+        (liii pi code modes interactive handler)
         (liii pi agent queue))
 
 (check-set-mode! 'report-failed)

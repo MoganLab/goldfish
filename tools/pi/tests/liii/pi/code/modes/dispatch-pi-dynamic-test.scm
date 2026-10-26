@@ -1,4 +1,4 @@
-(import (liii check) (liii pi code args) (liii pi code modes) (liii pi code extension))
+(import (liii check) (liii pi code cli args) (liii pi code modes) (liii pi code core extensions))
 
 (check-set-mode! 'report-failed)
 

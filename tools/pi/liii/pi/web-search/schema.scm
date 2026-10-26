@@ -5,7 +5,7 @@
 ;;
 
 (define-library (liii pi web-search schema)
-  (import (scheme base) (liii error) (liii string) (liii pi code tools read))
+  (import (scheme base) (liii error) (liii string) (liii pi code core tools read))
   (export pi-web-search-schema pi-validate-web-search-args)
   (begin
 

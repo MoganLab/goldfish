@@ -11,10 +11,10 @@
     (scheme process-context)
     (liii string)
     (liii list)
-    (liii pi code args)
+    (liii pi code cli args)
     (liii pi code config)
-    (liii pi code extension types)
-    (liii pi code extension registry)
+    (liii pi code core extensions types)
+    (liii pi code core extensions registry)
     (liii pi code modes output)
     (liii pi code modes flow)
   ) ;import

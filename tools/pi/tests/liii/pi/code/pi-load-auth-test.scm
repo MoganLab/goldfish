@@ -1,4 +1,4 @@
-(import (liii check) (liii pi ai config record) (liii pi code config) (liii pi code session))
+(import (liii check) (liii pi ai config record) (liii pi code config) (liii pi code core session-manager))
 
 (check-set-mode! 'report-failed)
 

@@ -1,6 +1,6 @@
 (set! *load-path* (append (list "tools/pi" ".") *load-path*))
 
-(import (liii check) (liii string) (liii path) (liii pi code cli) (liii pi code tools find) (liii pi code tools grep) (liii pi code tools ls))
+(import (liii check) (liii string) (liii path) (liii pi code cli) (liii pi code core tools find) (liii pi code core tools grep) (liii pi code core tools ls))
 
 (check-set-mode! 'report-failed)
 
@@ -110,9 +110,9 @@
         (pi-execute-grep
           (list (cons "pattern" "define.*display")
             (cons "path"
-              (if (file-exists? "liii/pi/code/help.scm")
-                "liii/pi/code/help.scm"
-                "tools/pi/liii/pi/code/help.scm"
+              (if (file-exists? "liii/pi/code/cli/help.scm")
+                "liii/pi/code/cli/help.scm"
+                "tools/pi/liii/pi/code/cli/help.scm"
               ) ;if
             ) ;cons
           ) ;list
