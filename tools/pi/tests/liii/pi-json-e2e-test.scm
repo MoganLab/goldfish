@@ -205,8 +205,8 @@
                     ) ;list
                   ) ;append
          ) ;ant-env
-         (cmd (list GF_BIN "pi" "--provider" "anthropic" "--mode" "json"
-                "Hello anthropic json"
+         (cmd (list GF_BIN "pi" "--provider" "anthropic" "--model"
+                "claude-sonnet-4-5" "--mode" "json" "Hello anthropic json"
               ) ;list
          ) ;cmd
          (p (process-spawn cmd :env ant-env :stdout 'pipe :stderr 'pipe))

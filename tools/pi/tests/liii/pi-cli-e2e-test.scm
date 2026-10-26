@@ -7,7 +7,7 @@
   (liii subprocess)
   (liii sys)
   (liii shutil)
-  
+
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -148,7 +148,9 @@
                             ) ;list
                           ) ;append
                  ) ;ant-env
-                 (cmd (list GF_BIN "pi" "--provider" "anthropic" "--print" "Hello Anthropic CLI")
+                 (cmd (list GF_BIN "pi" "--provider" "anthropic" "--model"
+                        "claude-sonnet-4-5" "--print" "Hello Anthropic CLI"
+                      ) ;list
                  ) ;cmd
                  (res (safe-exec cmd ant-env 10000))
                  (code (car res))
@@ -209,7 +211,10 @@
                                ) ;list
                              ) ;append
                  ) ;no-key-env
-                 (cmd (list GF_BIN "pi" "--provider" "deepseek" "--print" "Hello missing key"))
+                 (cmd (list GF_BIN "pi" "--provider" "deepseek" "--model"
+                        "deepseek-v4-pro" "--print" "Hello missing key"
+                      ) ;list
+                 ) ;cmd
                  (res (safe-exec cmd no-key-env 10000))
                  (code (car res))
                  (err (caddr res))
@@ -230,7 +235,10 @@
                            ) ;list
                          ) ;append
                  ) ;ds-env
-                 (cmd (list GF_BIN "pi" "--provider" "deepseek" "--print" "Hello DeepSeek CLI"))
+                 (cmd (list GF_BIN "pi" "--provider" "deepseek" "--model"
+                        "deepseek-v4-pro" "--print" "Hello DeepSeek CLI"
+                      ) ;list
+                 ) ;cmd
                  (res (safe-exec cmd ds-env 10000))
                  (code (car res))
                  (out (cadr res))
@@ -268,9 +276,7 @@
             (check-true (string-contains? err "Session timeout exceeded"))
           ) ;let*
           ;; 14. 多条 prompt 必须在同一会话中依次执行，print 只输出最终回复
-          (let* ((cmd (list GF_BIN "pi" "--model" "multi-prompt" "--print"
-                        "I am a frog" "who am I"
-                      ) ;list
+          (let* ((cmd (list GF_BIN "pi" "--model" "multi-prompt" "--print" "I am a frog" "who am I")
                  ) ;cmd
                  (res (safe-exec cmd test-env 15000))
                  (code (car res))
@@ -279,6 +285,32 @@
             (check code => 0)
             (check-true (string-contains? out "You are a frog"))
             (check-true (not (string-contains? out "First prompt received")))
+          ) ;let*
+
+          ;; 15. 显式 --provider 必须同时显式指定 --model；重定向输出不含 ANSI
+          (let* ((cmd (list GF_BIN "pi" "--provider" "deepseek" "--print" "Hello"))
+                 (res (safe-exec cmd test-env 10000))
+                 (code (car res))
+                 (err (caddr res))
+                 (expected "Error: --provider requires --model (for example: --provider deepseek --model <pattern>)"
+                 ) ;expected
+                ) ;
+            (check code => 1)
+            (check-true (string-contains? err expected))
+            (check-false (string-contains? err "\x1b;["))
+          ) ;let*
+
+          ;; 16. FORCE_COLOR=1 时参数错误整条显示为红色
+          (let* ((color-env (append test-env '(("FORCE_COLOR" . "1"))))
+                 (cmd (list GF_BIN "pi" "--provider" "deepseek" "--print" "Hello"))
+                 (res (safe-exec cmd color-env 10000))
+                 (code (car res))
+                 (err (caddr res))
+                 (expected "\x1b;[31mError: --provider requires --model (for example: --provider deepseek --model <pattern>)\x1b;[39m"
+                 ) ;expected
+                ) ;
+            (check code => 1)
+            (check-true (string-contains? err expected))
           ) ;let*
         ) ;lambda
         (lambda () (process-kill proc) (process-close proc))

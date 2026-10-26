@@ -45,6 +45,7 @@
     (liii path)
     (liii string)
     (liii list)
+    (liii raw-string)
     (liii argparse)
     (liii json)
     (liii par)

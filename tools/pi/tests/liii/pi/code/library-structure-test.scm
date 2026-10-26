@@ -3,16 +3,18 @@
 ;; packages/coding-agent 的 src/cli、src/core、src/modes、src/utils 组织）。
 ;; 本测试逐一导入各新库路径并验证代表性导出，防止结构回退。
 (import (liii check)
-        (liii pi code cli args)
-        (liii pi code cli help)
-        (liii pi code core compaction)
-        (liii pi code core extensions)
-        (liii pi code core failure)
-        (liii pi code core prompt)
-        (liii pi code core session-manager)
-        (liii pi code core tools)
-        (liii pi code modes interactive)
-        (liii pi code utils git))
+  (liii raw-string)
+  (liii pi code cli args)
+  (liii pi code cli help)
+  (liii pi code core compaction)
+  (liii pi code core extensions)
+  (liii pi code core failure)
+  (liii pi code core prompt)
+  (liii pi code core session-manager)
+  (liii pi code core tools)
+  (liii pi code modes interactive)
+  (liii pi code utils git)
+) ;import
 
 (check-set-mode! 'report-failed)
 

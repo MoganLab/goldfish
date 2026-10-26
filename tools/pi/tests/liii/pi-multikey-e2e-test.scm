@@ -76,7 +76,7 @@
                    ) ;append
          ) ;test-env
          (cmd (append (list GF_BIN "pi" "--print" "--no-session" "--timeout" "20")
-                (if provider (list "--provider" provider) '())
+                (if provider (list "--provider" provider "--model" model) '())
                 (list "multikey rotation test")
               ) ;append
          ) ;cmd
