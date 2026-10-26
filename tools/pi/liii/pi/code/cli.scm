@@ -101,8 +101,9 @@
 
     ;; TUI footer 右下角显示实际生效的供应商与模型：与后台 worker 内的解析同源同输入
     ;; （纯本地文件读取，无网络开销），配置解析失败时回退到 CLI 原始参数；
-    ;; 返回 (provider model-id thinking-level supports-thinking default-thinking-level agent-dir)
-    ;; 供 make-pi-app 使用
+    ;; 返回 (provider model-id thinking-level supports-thinking default-thinking-level
+    ;;         agent-dir models default-model)
+    ;; 供 make-pi-app 使用（models 为有凭证 provider 的模型列表，供 /model 选择器）
     (define (%tui-footer-info parsed)
       (catch #t
         (lambda ()
@@ -114,8 +115,26 @@
                  (settings (cdr (or (assoc 'settings cfg) (cons #f #f))))
                  (default-tl (if settings (pi-settings-default-thinking-level settings) tl))
                  (agent-dir (cdr (assoc 'agent-dir cfg)))
+                 (models-store (cdr (or (assoc 'models-store cfg) (cons #f '()))))
+                 (auth (pi-load-auth agent-dir))
+                 (models (pi-usable-models models-store auth))
+                 (default-model
+                   (and settings
+                     (list (cons 'provider (pi-settings-default-provider settings))
+                       (cons 'id (pi-settings-default-model settings))
+                     ) ;list
+                   ) ;and
+                 ) ;default-model
                 ) ;
-            (list provider model-id tl (and supports #t) default-tl agent-dir)
+            (list provider
+              model-id
+              tl
+              (and supports #t)
+              default-tl
+              agent-dir
+              models
+              default-model
+            ) ;list
           ) ;let*
         ) ;lambda
         (lambda args
@@ -125,6 +144,8 @@
             #t
             "off"
             (pi-get-agent-dir)
+            '()
+            #f
           ) ;list
         ) ;lambda
       ) ;catch
@@ -162,7 +183,13 @@
                  :default-thinking-level (list-ref info 4)
                  :on-save-thinking-level
                  (lambda (level) (pi-save-default-thinking-level! (list-ref info 5) level))
-                 :session-name session-name
+                 :session-name  session-name
+                 :models        (list-ref info 6)
+                 :default-model (list-ref info 7)
+                 :on-save-model
+                 (lambda (provider model-id)
+                   (pi-save-default-model! (list-ref info 5) provider model-id)
+                 ) ;lambda
                ) ;make-pi-app
              ) ;app
             ) ;

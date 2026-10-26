@@ -15,6 +15,8 @@
     pi-app-active-selector pi-app-slash-command-menu pi-app-handle-input!
     pi-app-default-thinking-level pi-app-tools-expanded?
     pi-app-toggle-tool-output! pi-app-bash-jobs-chan pi-app-run-bash!
+    pi-app-provider pi-app-model pi-app-models %pi-app-job-payload
+    pi-app-available-thinking-levels
   ) ;export
   (import (scheme base)
     (liii base)
@@ -36,6 +38,7 @@
     (liii pi code modes interactive app-name)
     (liii pi code modes interactive app-session)
     (liii pi code modes interactive app-thinking)
+    (liii pi code modes interactive app-model)
     (liii pi code modes interactive app-submit)
     (liii pi code modes interactive common)
     (liii pi code modes interactive header)
@@ -76,11 +79,13 @@
       ) ;let
     ) ;define
 
-    ;; 用户提交：/session 展示统计；/name 管理名称；! 前缀执行 bash；其余消息进入队列
+    ;; 用户提交：/model 切换模型；/session 展示统计；/name 管理名称；
+    ;; ! 前缀执行 bash；其余消息进入队列
     (define (pi-app-submit! app text)
       (let ((clean (string-trim text)))
         (unless (string-null? clean)
-          (cond ((pi-app-thinking-command? clean) (pi-app-submit-thinking! app clean))
+          (cond ((pi-app-model-command? clean) (pi-app-submit-model! app clean))
+                ((pi-app-thinking-command? clean) (pi-app-submit-thinking! app clean))
                 ((pi-app-session-command? clean) (pi-app-submit-session! app))
                 ((pi-app-name-command? clean) (pi-app-submit-name! app clean))
                 (else
@@ -200,6 +205,9 @@
                (default-thinking-level #f)
                (on-save-thinking-level #f)
                (session-name #f)
+               (models '())
+               (default-model #f)
+               (on-save-model #f)
              ) ;make-pi-app
       (let* ((actual-term (or terminal (make-standard-terminal :inline #t)))
              (screen (make-main-screen actual-term :auto-hide-cursor #f))
@@ -256,6 +264,11 @@
                     bash-handler
                     actual-record-sink
                     session-name
+                    (or provider "google")
+                    (or model "gemini-3.8-flash")
+                    (or models '())
+                    default-model
+                    on-save-model
                   ) ;%make-pi-app
              ) ;app
              (ed (%make-pi-editor app tl))

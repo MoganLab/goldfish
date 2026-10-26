@@ -11,10 +11,12 @@
     (liii list)
     (liii vector)
     (liii sort)
+    (liii pi ai auth)
+    (liii pi ai models catalog)
     (liii pi ai models search)
   ) ;import
   (export pi-format-token-count pi-list-models pi-format-models-table
-    pi-fuzzy-match-model? pi-split-search-tokens
+    pi-fuzzy-match-model? pi-split-search-tokens pi-usable-models
   ) ;export
   (begin
 
@@ -234,6 +236,48 @@
           ) ;let*
         ) ;if
       ) ;let
+    ) ;define
+
+    (define (%usable-model-item p-name m)
+      (list (cons 'provider p-name)
+        (cons 'id (%dict-ref m "id" ""))
+        (cons 'name (%dict-ref m "name" ""))
+        (cons 'reasoning (and (%dict-ref m "reasoning" #f) #t))
+      ) ;list
+    ) ;define
+
+    ;; 可用模型列表（对齐上游 getAvailableSnapshot）：
+    ;; 只收求有凭证 provider 的模型，条目为 (provider id name reasoning) alist，
+    ;; 按 provider/id 排序，供 TUI /model 选择器使用
+    (define (pi-usable-models models-store auth . opt-env)
+      (let* ((provider-names (pi-catalog-provider-names models-store))
+             (usable
+               (filter (lambda (p-name) (and (apply pi-resolve-provider-key p-name auth opt-env) #t))
+                 provider-names
+               ) ;filter
+             ) ;usable
+             (rows
+               (apply append
+                 (map
+                   (lambda (p-name)
+                     (map (lambda (m) (%usable-model-item p-name m))
+                       (pi-catalog-provider-models models-store p-name)
+                     ) ;map
+                   ) ;lambda
+                   usable
+                 ) ;map
+               ) ;apply
+             ) ;rows
+            ) ;
+        (list-sort
+          (lambda (a b)
+            (string<? (string-append (cdr (assoc 'provider a)) "\x00;" (cdr (assoc 'id a)))
+              (string-append (cdr (assoc 'provider b)) "\x00;" (cdr (assoc 'id b)))
+            ) ;string<?
+          ) ;lambda
+          rows
+        ) ;list-sort
+      ) ;let*
     ) ;define
 
   ) ;begin

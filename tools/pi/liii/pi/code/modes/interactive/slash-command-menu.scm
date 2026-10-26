@@ -15,7 +15,8 @@
     (define %reset "\x1b;[0m")
 
     (define %commands
-      (list (list (cons 'name "thinking") (cons 'description "Set thinking level"))
+      (list (list (cons 'name "model") (cons 'description "Select model"))
+        (list (cons 'name "thinking") (cons 'description "Set thinking level"))
         (list (cons 'name "name") (cons 'description "Get or set session name"))
         (list (cons 'name "session") (cons 'description "Show session statistics"))
       ) ;list

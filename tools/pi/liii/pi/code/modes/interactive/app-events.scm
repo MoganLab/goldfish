@@ -8,7 +8,7 @@
 (define-library (liii pi code modes interactive app-events)
   (export pi-app-chat pi-app-add-user-message! pi-app-add-tool-result!
     pi-app-add-assistant-text! pi-app-add-retry-message! pi-app-drain-queue!
-    pi-app-poll-events!
+    pi-app-poll-events! %pi-app-job-payload
   ) ;export
   (import (scheme base)
     (liii go)
@@ -49,6 +49,12 @@
       (container-add! (%pi-app-chat app) (make-retry-card msg))
     ) ;define
 
+    ;; job 载荷：(消息 thinking-level provider model-id)，
+    ;; 会话内 /model 与 /thinking 切换均对下一条消息生效（对齐上游 per-request 覆盖）
+    (define (%pi-app-job-payload app msg)
+      (list msg (pi-app-thinking-level app) (pi-app-provider app) (pi-app-model app))
+    ) ;define
+
     ;; 队列调度：消费前先上屏深蓝卡片并即时渲染；返回 #t 表示本次消费并渲染
     (define (pi-app-drain-queue! app)
       (let ((q (pi-app-queue app))
@@ -79,9 +85,9 @@
                       (loop #t)
                     ) ;begin
                     ;; 默认真实分支：通过 (liii go) 后台 worker 并发执行，主线程立即返回继续响应按键！
-                    ;; 消息携带当前 thinking level，会话内切换后下一条消息生效
+                    ;; 消息携带当前 thinking level 与 provider/model，会话内切换后下一条消息生效
                     (begin
-                      (chan-send! jobs (list msg (pi-app-thinking-level app)) 1000)
+                      (chan-send! jobs (%pi-app-job-payload app msg) 1000)
                       #t
                     ) ;begin
                   ) ;if

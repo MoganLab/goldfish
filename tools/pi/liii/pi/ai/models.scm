@@ -30,7 +30,7 @@
     pi-ensure-catalog-meta pi-builtin-augment-store pi-builtin-augment-all
     pi-build-models-catalog pi-catalog-provider-names pi-catalog-provider-models
     pi-catalog-merge-provider-models pi-fuzzy-match-model?
-    pi-split-search-tokens
+    pi-split-search-tokens pi-usable-models
   ) ;export
   (begin
 
