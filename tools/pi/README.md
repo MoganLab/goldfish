@@ -100,6 +100,24 @@ timeout 300 bin/gf pi -c -p "继续上一轮的话题"
 timeout 300 bin/gf pi --no-session -p "一次性问题"
 ```
 
+## TUI bash 模式与上下文注入【可用】（任务 1134，对齐 pi）
+
+交互式 TUI（`bin/gf pi` 无参进入）中，整行以 `!` 开头的输入不发给模型，
+而是直接经 bash 执行，输出显示在绿色边框卡片内（Ctrl+O 展开/折叠）：
+
+```text
+!ls -la                 # 执行并显示；命令与输出作为 user 消息注入后续 LLM 上下文
+!!git status --short    # 仅执行显示（暗色卡片），不注入上下文（excludeFromContext）
+!                       # 命令为空时回退为普通消息提交
+```
+
+注入格式对齐 pi 的 `bashExecutionToText`：`Ran \`cmd\`` + 围栏输出 +
+非零退出码行；长输出复用 bash 工具的保尾 2000 行 / 50KB 截断策略。
+会话文件以 `bashExecution` 角色落盘（`--continue` / 压缩摘要同样生效）。
+agent 正在流式输出时结果延迟落盘，下一条消息才可见（对齐 pi 的 pending 语义）。
+同一 TUI 运行内复用同一会话文件，跨消息保持上下文连续。
+
+
 ## 扩展机制与插件生态（Extension）【对齐原生 pi】
 
 `bin/gf pi` 引入了与原生 pi 概念模型全面对齐的 **轻量纯 Scheme Extension 机制**。

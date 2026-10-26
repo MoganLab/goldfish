@@ -14,14 +14,16 @@
     (liii json)
     (liii uuid)
     (liii sort)
+    (liii time)
     (liii pi code args)
+    (liii pi code tools bash)
     (liii pi ai types)
   ) ;import
   (export encode-cwd-to-session-dirname get-session-dir make-session-file-path
     read-session-history append-session-entry! find-latest-session-file
     save-session-header! save-session-message! setup-session-file
     setup-initial-messages persist-new-messages! find-last-session-message-id
-    pi-normalize-session-msg assoc
+    pi-normalize-session-msg append-bash-execution! assoc
   ) ;export
   (begin
 
@@ -97,6 +99,67 @@
       ) ;let
     ) ;define
 
+    ;; 将 ! 命令的执行结果作为 bashExecution 消息追加到会话文件
+    ;; （对齐 pi 的 recordBashResult）：
+    ;; - 输出经 bash 工具同款保尾 2000 行 / 50KB 截断后再落盘
+    ;; - excluded? 为 #t（!! 前缀）时标记 excludeFromContext，投影时跳过
+    ;; - sfile 为 #f（--no-session）时静默无操作
+    ;; - Windows 下新建文件可能被杀毒/索引短暂锁定（读或写均可能瞬时失败），
+    ;;   整体带退避重试
+    ;; 返回新条目 id（未写入时返回 #f）
+    (define (%append-bash-once! sfile command out exit-code excluded?)
+      (let* ((msg
+               (append (list (cons "role" "bashExecution")
+                         (cons "command" command)
+                         (cons "output" out)
+                         (cons "exitCode" exit-code)
+                       ) ;list
+                 (if excluded? (list (cons "excludeFromContext" #t)) '())
+               ) ;append
+             ) ;msg
+             (json-str (json->string msg))
+             (mid (uuid4))
+             (now-iso (pi-iso-8601-utc-now))
+            ) ;
+        (save-session-message! sfile
+          json-str
+          mid
+          (find-last-session-message-id sfile)
+          now-iso
+        ) ;save-session-message!
+        mid
+      ) ;let*
+    ) ;define
+
+    (define (append-bash-execution! sfile command output exit-code . opts)
+      (let ((excluded? (and (pair? opts) (car opts))))
+        (if (not sfile)
+          #f
+          (let ((out (pi-truncate-bash-output output)))
+            (let loop
+              ((attempt 0))
+              (or (catch #t
+                    (lambda () (%append-bash-once! sfile command out exit-code excluded?))
+                    (lambda args #f)
+                  ) ;catch
+                (if (< attempt 5)
+                  (begin
+                    (sleep 0.05)
+                    (loop (+ attempt 1))
+                  ) ;begin
+                  (error 'io-error
+                    (string-append "cannot append bash execution entry: "
+                      (if (string? sfile) sfile (path->string sfile))
+                    ) ;string-append
+                  ) ;error
+                ) ;if
+              ) ;or
+            ) ;let
+          ) ;let
+        ) ;if
+      ) ;let
+    ) ;define
+
     (define* (persist-new-messages! sfile init-msgs all-final-msgs (persisted-count #f))
       (when sfile
         (let ((old-len (or persisted-count (length init-msgs)))
@@ -149,25 +212,52 @@
       ) ;let
     ) ;define
 
-    (define (append-session-entry! file-path entry-json-str)
-      (let* ((p-str (if (string? file-path) file-path (path->string file-path)))
-             (port (open-output-file p-str "a"))
-            ) ;
-        (display entry-json-str port)
-        (newline port)
-        (close-output-port port)
-      ) ;let*
+    ;; 追加写入：Windows 下新建文件可能被杀毒/索引短暂锁定导致打开失败，
+    ;; 带退避重试（对齐上游 pi 会话写入的容错语义）
+    (define (%append-entry-safe! p-str entry-json-str)
+      (let loop
+        ((attempt 0))
+        (or
+          (catch #t
+            (lambda ()
+              (let ((port (open-output-file p-str "a")))
+                (display entry-json-str port)
+                (newline port)
+                (close-output-port port)
+                #t
+              ) ;let
+            ) ;lambda
+            (lambda args #f)
+          ) ;catch
+          (if (< attempt 5)
+            (begin
+              (sleep 0.05)
+              (loop (+ attempt 1))
+            ) ;begin
+            (error 'io-error (string-append "cannot append session entry: " p-str))
+          ) ;if
+        ) ;or
+      ) ;let
     ) ;define
 
-    (define (save-session-header! file-path session-id timestamp-iso cwd)
-      (let ((header (string-append "{\"type\":\"session\",\"version\":3,\"id\":\""
-                      session-id "\",\"timestamp\":\"" timestamp-iso
-                      "\",\"cwd\":\"" cwd "\"}"
-                    ) ;string-append
-            ) ;header
-           ) ;
-        (append-session-entry! file-path header)
+    (define (append-session-entry! file-path entry-json-str)
+      (let ((p-str (if (string? file-path) file-path (path->string file-path))))
+        (%append-entry-safe! p-str entry-json-str)
       ) ;let
+    ) ;define
+
+    ;; header 用 json->string 构造：cwd 在 Windows 上含反斜杠，
+    ;; 手工拼接会产生 \\a、\\g 等非法 JSON 转义导致 header 行读回时被丢弃
+    (define (save-session-header! file-path session-id timestamp-iso cwd)
+      (append-session-entry! file-path
+        (json->string (list (cons "type" "session")
+                        (cons "version" 3)
+                        (cons "id" session-id)
+                        (cons "timestamp" timestamp-iso)
+                        (cons "cwd" cwd)
+                      ) ;list
+        ) ;json->string
+      ) ;append-session-entry!
     ) ;define
 
     (define (save-session-message! file-path message-json-str id parent-id timestamp-iso)

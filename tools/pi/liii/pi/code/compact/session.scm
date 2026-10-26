@@ -36,6 +36,12 @@
       ) ;let*
     ) ;define
 
+    ;; string->json 将 JSON true 解析为符号 true（对齐 json-ref 的转换语义），
+    ;; 布尔字段需同时兼容符号与 #t 两种表示
+    (define (%json-true? v)
+      (or (eq? #t v) (eq? v 'true))
+    ) ;define
+
     (define (%parse-line line)
       (let ((trimmed (string-trim line)))
         (if (string-null? trimmed)
@@ -75,6 +81,17 @@
              (content (%ref msg "content"))
             ) ;
         (cond ((equal? role "user") (pi-user-message content))
+              ;; ! 命令结果：转为 user 消息注入上下文（对齐 pi convertToLlm）；
+              ;; !! 前缀（excludeFromContext）不进入 LLM 上下文，返回 #f 被过滤
+              ((equal? role "bashExecution")
+               (and (not (%json-true? (%ref msg "excludeFromContext")))
+                 (pi-user-message (pi-bash-execution->user-text (%ref msg "command")
+                                    (%ref msg "output")
+                                    (%ref msg "exitCode")
+                                  ) ;pi-bash-execution->user-text
+                 ) ;pi-user-message
+               ) ;and
+              ) ;
               ((equal? role "assistant")
                (pi-assistant-message content
                  (or (%ref msg "stopReason") "stop")
@@ -86,7 +103,7 @@
                (pi-tool-result-message (or (%ref msg "toolCallId") "")
                  (or (%ref msg "toolName") "")
                  content
-                 (eq? #t (%ref msg "isError"))
+                 (%json-true? (%ref msg "isError"))
                ) ;pi-tool-result-message
               ) ;
               (else msg)

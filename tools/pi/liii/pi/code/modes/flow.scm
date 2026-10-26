@@ -151,47 +151,55 @@
       ) ;let
     ) ;define
 
-    (define (%session-context parsed sfile)
-      (if (and sfile (pi-args-ref parsed 'continue))
+    (define (%session-context parsed sfile session-file-override)
+      ;; 会话文件覆盖（TUI worker 复用同一文件）时始终携带既有上下文；
+      ;; 否则仅 --continue 时恢复历史
+      (if (and sfile (or session-file-override (pi-args-ref parsed 'continue)))
         (pi-project-session-messages (pi-read-session-entries sfile))
         '()
       ) ;if
     ) ;define
 
-    (define (run-session-flow parsed cfg initial-msg emit on-finish)
-      (let*-values (((cwd) (path->string (path-cwd)))
-                    ((sfile sdir) (setup-session-file parsed cfg cwd))
-                    ((context) (%session-context parsed sfile))
-                   ) ;
-        (let* ((has-prompt? (not (string-null? initial-msg)))
-               (init-msgs
-                 (append context (if has-prompt? (list (pi-user-message initial-msg)) '()))
-               ) ;init-msgs
-               (persisted (length context))
-              ) ;
-          (when has-prompt?
-            (persist-new-messages! sfile context init-msgs persisted)
-          ) ;when
-          (when emit
-            (emit 'session cwd)
-          ) ;when
-          (let* ((state (vector init-msgs (length init-msgs)))
-                 (timeout (pi-resolve-timeout parsed cfg))
-                 (compaction (pi-make-compaction-option parsed cfg sfile state timeout))
-                 (res-msgs (run-agent-loop-with-timeout cfg
-                             init-msgs
-                             (%system-prompt-for cfg parsed)
-                             emit
-                             parsed
-                             compaction
-                           ) ;run-agent-loop-with-timeout
-                 ) ;res-msgs
+    ;; session-file（可选）：TUI 后台 worker 传入复用的会话文件，
+    ;; 同一 TUI 运行内跨消息保持上下文连续（对齐 pi 单会话模型）
+    (define (run-session-flow parsed cfg initial-msg emit on-finish . opts)
+      (let* ((session-file (and (pair? opts) (car opts))))
+        (let*-values (((cwd) (path->string (path-cwd)))
+                      ((sfile sdir)
+                       (if session-file (values session-file #f) (setup-session-file parsed cfg cwd))
+                      ) ;
+                      ((context) (%session-context parsed sfile session-file))
+                     ) ;
+          (let* ((has-prompt? (not (string-null? initial-msg)))
+                 (init-msgs
+                   (append context (if has-prompt? (list (pi-user-message initial-msg)) '()))
+                 ) ;init-msgs
+                 (persisted (length context))
                 ) ;
-            (persist-new-messages! sfile (vector-ref state 0) res-msgs (vector-ref state 1))
-            (on-finish res-msgs)
+            (when has-prompt?
+              (persist-new-messages! sfile context init-msgs persisted)
+            ) ;when
+            (when emit
+              (emit 'session cwd)
+            ) ;when
+            (let* ((state (vector init-msgs (length init-msgs)))
+                   (timeout (pi-resolve-timeout parsed cfg))
+                   (compaction (pi-make-compaction-option parsed cfg sfile state timeout))
+                   (res-msgs (run-agent-loop-with-timeout cfg
+                               init-msgs
+                               (%system-prompt-for cfg parsed)
+                               emit
+                               parsed
+                               compaction
+                             ) ;run-agent-loop-with-timeout
+                   ) ;res-msgs
+                  ) ;
+              (persist-new-messages! sfile (vector-ref state 0) res-msgs (vector-ref state 1))
+              (on-finish res-msgs)
+            ) ;let*
           ) ;let*
-        ) ;let*
-      ) ;let*-values
+        ) ;let*-values
+      ) ;let*
     ) ;define
 
     (define (run-compact-flow parsed cfg initial-msg emit)

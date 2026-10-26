@@ -14,8 +14,9 @@
   ) ;import
   (export pi-message? pi-message-role pi-message->alist pi-block? pi-block-type
     pi-block->alist pi-user-message pi-user-message? pi-user-message-role
-    pi-user-message-content pi-user-message-timestamp pi-assistant-message
-    pi-assistant-message? pi-assistant-message-role pi-assistant-message-content
+    pi-user-message-content pi-user-message-timestamp
+    pi-bash-execution->user-text pi-assistant-message pi-assistant-message?
+    pi-assistant-message-role pi-assistant-message-content
     pi-assistant-message-stop-reason pi-assistant-message-error-message
     pi-assistant-message-usage pi-assistant-message-timestamp
     pi-tool-result-message pi-tool-result-message? pi-tool-result-message-role
