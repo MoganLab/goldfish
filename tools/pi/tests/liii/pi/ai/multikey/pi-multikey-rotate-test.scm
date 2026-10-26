@@ -46,7 +46,19 @@
   (check next => "sk-pool-beta-00002")
 ) ;let*
 
-;; 4. 逐个耗尽：最后一个 key 被冷却后返回 'exhausted
+;; 4. 三个 key 按故障顺序切换：key-1 → key-2 → key-3 → exhausted
+(let* ((pool (pi-load-multikey fixture-dir "kimi-coding"))
+       (cfg (list (cons 'multikey-pool pool) (cons 'api-key "sk-pool-alpha-0001")))
+       (second (pi-multikey-rotate! cfg "sk-pool-alpha-0001" 429))
+       (third (pi-multikey-rotate! cfg second 403))
+       (exhausted (pi-multikey-rotate! cfg third 429))
+      ) ;
+  (check second => "sk-pool-beta-00002")
+  (check third => "sk-pool-delta-00004")
+  (check exhausted => 'exhausted)
+) ;let*
+
+;; 5. 两个 key 逐个耗尽：最后一个 key 被冷却后返回 'exhausted
 (let* ((pool (pi-load-multikey fixture-dir "google"))
        (cfg (list (cons 'multikey-pool pool) (cons 'api-key "goog-key-0000000001")))
        (first-next (pi-multikey-rotate! cfg "goog-key-0000000001" 429))
@@ -56,7 +68,7 @@
   (check second-next => 'exhausted)
 ) ;let*
 
-;; 5. 无 pool：返回 #f，不改变任何状态
+;; 6. 无 pool：返回 #f，不改变任何状态
 (check (pi-multikey-rotate! (list (cons 'multikey-pool #f)
                                 (cons 'api-key "auth-json-key")
                               ) ;list

@@ -19,6 +19,7 @@
     (liii pi abort)
     (liii pi code args)
     (liii pi code config)
+    (liii pi ai multikey)
     (liii pi ai retry)
     (liii pi code modes flow)
     (liii pi code modes output)
@@ -134,6 +135,8 @@
             ) ;
         (set-pi-retry-logger! (lambda (msg) (pi-tui-send-event! event-chan (list 'retry msg)))
         ) ;set-pi-retry-logger!
+        (set-pi-multikey-logger! (lambda (msg) (pi-tui-send-event! event-chan (list 'retry msg)))
+        ) ;set-pi-multikey-logger!
         (let loop
           ()
           ;; job 消息为 (text thinking-level)：会话内切换的级别对下一条消息生效

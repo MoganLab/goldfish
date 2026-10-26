@@ -79,6 +79,13 @@
         "maxTokens": 65536
       },
       {
+        "id": "multikey-sticky",
+        "name": "Stub multikey-sticky",
+        "baseUrl": "https://generativelanguage.googleapis.com/v1beta",
+        "contextWindow": 1048576,
+        "maxTokens": 65536
+      },
+      {
         "id": "multikey-all-403",
         "name": "Stub multikey-all-403",
         "baseUrl": "https://generativelanguage.googleapis.com/v1beta",
