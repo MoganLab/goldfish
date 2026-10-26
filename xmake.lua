@@ -89,6 +89,9 @@ target ("goldfish") do
         -- preload goldfish stdlib in `bin/goldfish.data`
         add_ldflags("--preload-file goldfish@/goldfish")
     end
+    if is_plat("windows") then
+        add_syslinks("psapi")
+    end
     add_files ("src/goldfish.cpp")
     add_files ("src/liii_subprocess.cpp")
     add_files ("src/liii_signal.cpp")
@@ -100,6 +103,7 @@ target ("goldfish") do
     add_files ("src/liii_date_time.cpp")
     add_files ("src/liii_path.cpp")
     add_files ("src/liii_path_stat.cpp")
+    add_files ("src/liii_psutil.cpp")
     add_files ("src/liii_sort.cpp")
     add_files ("src/liii_string.cpp")
     add_files ("src/liii_string_cursor.cpp")

@@ -7,6 +7,8 @@
 (check-catch 'os-error (os-error))
 
 
+(check-catch 'process-not-found-error (process-not-found-error))
+
 (check-catch 'file-not-found-error (file-not-found-error))
 
 
