@@ -1,17 +1,19 @@
 (import (scheme base)
-        (scheme file)
-        (liii check)
-        (liii string)
-        (liii list)
-        (liii path)
-        (liii go)
-        (liii shutil)
-        (liii pi ai message)
-        (liii pi code args)
-        (liii pi code config)
-        (liii pi code session)
-        (liii pi code compact session)
-        (liii pi code tui worker))
+  (scheme file)
+  (scheme write)
+  (liii check)
+  (liii string)
+  (liii list)
+  (liii path)
+  (liii go)
+  (liii shutil)
+  (liii pi ai message)
+  (liii pi code args)
+  (liii pi code config)
+  (liii pi code session)
+  (liii pi code compact session)
+  (liii pi code tui worker)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -20,7 +22,9 @@
 ) ;define
 
 ;; 清理旧运行残留，保证测试可重复
-(when (file-exists? TMP-AGENT-DIR) (rmtree TMP-AGENT-DIR))
+(when (file-exists? TMP-AGENT-DIR)
+  (rmtree TMP-AGENT-DIR)
+) ;when
 
 (let* ((env (list (cons "PI_CODING_AGENT_DIR" TMP-AGENT-DIR)))
        (parsed (parse-pi-args '()))
@@ -30,38 +34,54 @@
        (err-chan (make-chan 16))
       ) ;
 
-  ;; 1. 第一条 bash_record 任务：惰性创建会话文件并写入 bashExecution 条目
-  (pi-worker-handle-job (list 'bash_record "echo hi" "hi" 0) parsed cfg box err-chan #f)
+  ;; 依次投递三条 bash_record 任务：首条惰性创建会话文件，后续复用
+  (for-each (lambda (job) (pi-worker-handle-job job parsed cfg box err-chan #f))
+    (list (list 'bash_record "echo hi" "hi" 0)
+      (list 'bash_record "echo yo" "yo" 0)
+      (list 'bash_record "true" "" 0)
+    ) ;list
+  ) ;for-each
+
   (let* ((sfile (vector-ref box 0))
-         (entries (pi-read-session-entries sfile))
+         (entries (if (string? sfile) (pi-read-session-entries sfile) '()))
          (msgs (pi-project-session-messages entries))
         ) ;
+    ;; 1. 会话文件已创建且三次落盘全部成功：header + 3 条 bashExecution
     (check-true (string? sfile))
-    ;; header + 1 条 bashExecution 消息
-    (check (length entries) => 2)
-    (check (length msgs) => 1)
+    (check (length entries) => 4)
+    (check (length msgs) => 3)
     (check (pi-message-role (car msgs)) => "user")
-    (check-true (string-contains? (pi-user-message-content (car msgs)) "Ran `echo hi`"))
+    (check-true (string-contains? (pi-user-message-content (car msgs)) "Ran `echo hi`")
+    ) ;check-true
+    (check-true (string-contains? (pi-user-message-content (cadr msgs)) "Ran `echo yo`")
+    ) ;check-true
+    ;; 2. 全程无错误事件：三次落盘（含重试兜底）均成功
+    (check (chan-try-recv! err-chan #f) => #f)
+
+    ;; 诊断输出（位于断言之后、报告之前，确保落在 CI stdout 尾部窗口内）
+    (display ";; diag sfile: ")
+    (write sfile)
+    (newline)
+    (display ";; diag entry-roles: ")
+    (write
+      (map
+        (lambda (e)
+          (let ((m (assoc "message" e)))
+            (if m (cdr (assoc "role" (cdr m))) (cdr (assoc "type" e)))
+          ) ;let
+        ) ;lambda
+        entries
+      ) ;map
+    ) ;write
+    (newline)
+    (display ";; diag msgs-roles: ")
+    (write (map pi-message-role msgs))
+    (newline)
+    (display ";; diag err-event: ")
+    (write (chan-try-recv! err-chan #f))
+    (newline)
+    (flush-output-port)
   ) ;let*
-
-  ;; 2. 第二条 bash_record 任务：复用同一会话文件（TUI 会话连续性）
-  (pi-worker-handle-job (list 'bash_record "echo yo" "yo" 0) parsed cfg box err-chan #f)
-  (let* ((sfile2 (vector-ref box 0))
-         (entries (pi-read-session-entries sfile2))
-         (msgs (pi-project-session-messages entries))
-        ) ;
-    (check sfile2 => (vector-ref box 0))
-    (check (length entries) => 3)
-    (check (length msgs) => 2)
-    (check-true (string-contains? (pi-user-message-content (cadr msgs)) "Ran `echo yo`"))
-  ) ;let*
-
-  ;; 3. 第三条 bash_record：继续复用同一会话文件，不新建
-  (pi-worker-handle-job (list 'bash_record "true" "" 0) parsed cfg box err-chan #f)
-  (check (length (pi-read-session-entries (vector-ref box 0))) => 4)
-
-  ;; 4. 全程无错误事件：三次落盘（含重试兜底）均成功
-  (check (chan-try-recv! err-chan #f) => #f)
 ) ;let*
 
 (check-report)
