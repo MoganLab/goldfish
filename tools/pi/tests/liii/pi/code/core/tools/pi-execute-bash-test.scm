@@ -182,4 +182,15 @@
     (check-true (pair? updates))
     (check (car updates) => "ok")))
 
+;; 快速大量输出时回调次数有界（100ms 节流生效，避免每个字节块都全量清理能CPU飙升）
+(let ((updates '()))
+  (let-values (((out is-err)
+                (pi-execute-bash
+                  '(("command" . "seq 1 2000"))
+                  :on-update (lambda (text) (set! updates (cons text updates))))))
+    (check is-err => #f)
+    (check-true (string-contains? out "2000"))
+    ;; 2000 行快速输出应在毫秒级完成，回调次数远小于行数
+    (check-true (<= (length updates) 10))))
+
 (check-report)

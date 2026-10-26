@@ -217,22 +217,23 @@
     ;; stdout/stderr 合并到同一管道，按原始字节块收集输出，
     ;; 并按 100ms 节流回调累计文本快照。
     ;; 返回值：(values 累计文本 退出码)，超时强杀时退出码为 -1。
-    ;; 后台流式执行：累计文本保留原始字节，回调与返回值都是清理后的文本；
-    ;; 每次对累计全文重新清理，跨块不完整转义序列在下一帧自愈
-    ;; （上游用 splitIncompleteAnsiSuffix 暂存块尾不完整序列，此处等效）
+    ;; 后台流式执行：累计文本保留原始字节，回调与返回值都是清理后的文本。
+    ;; 清理只在通过 100ms 节流后才执行（高频字节块不触发挥霍性的全量清理，
+    ;; 否则大输出流式时 CPU 会飕升）；每次对累计全文重新清理，
+    ;; 跨块不完整转义序列在下一帧自愈（等效上游 splitIncompleteAnsiSuffix）
     (define (%run-bash-streaming command cwd timeout on-update)
-      (let* ((text "") (last-update 0) (last-sent ""))
+      (let* ((text "") (last-update 0) (last-raw ""))
         (define (send-update! force?)
-          (let* ((clean (pi-bash-clean-output text)) (now (%bash-now-ms)))
+          (let ((now (%bash-now-ms)))
             (when
-              (and (not (string=? clean last-sent))
+              (and (not (string=? text last-raw))
                 (or force? (>= (- now last-update) %bash-update-throttle-ms))
               ) ;and
-              (on-update clean)
-              (set! last-sent clean)
+              (on-update (pi-bash-clean-output text))
+              (set! last-raw text)
               (set! last-update now)
             ) ;when
-          ) ;let*
+          ) ;let
         ) ;define
         (define (append-chunk! chunk)
           (when (and (string? chunk) (not (string-null? chunk)))

@@ -119,6 +119,16 @@
       (or (string=? s "\x1b;[0m") (string=? s "\x1b;[m"))
     ) ;define
 
+    ;; 快速路径：不含 ESC 字节时无转义序列可剥，直接返回原串
+    ;; （对齐上游 ansi-regex 的 includes("\\u001B") 检查，
+    ;; 避免渲染层每帧对纯文本输出做逐字节重建的浪费）
+    (define (%bv-contains-esc? bv len)
+      (let loop
+        ((i 0))
+        (if (>= i len) #f (if (= (bytevector-u8-ref bv i) 27) #t (loop (+ i 1))))
+      ) ;let
+    ) ;define
+
     (define (strip-ansi str)
       (unless (string? str)
         (type-error "strip-ansi: str must be a string")
@@ -126,23 +136,26 @@
       (if (string=? str "")
         ""
         (let* ((bv (string->utf8 str)) (len (bytevector-length bv)))
-          (let loop
-            ((i 0) (acc '()))
-            (if (>= i len)
-              (apply string-append (reverse acc))
-              (let ((ansi-end (%match-ansi bv i len)))
-                (if ansi-end
-                  (loop ansi-end acc)
-                  (let* ((next (bytevector-advance-utf8 bv i len))
-                         (step (if (= next i) (+ i 1) next))
-                         (chunk (utf8->string (bytevector-copy bv i step)))
-                        ) ;
-                    (loop step (cons chunk acc))
-                  ) ;let*
-                ) ;if
-              ) ;let
-            ) ;if
-          ) ;let
+          (if (not (%bv-contains-esc? bv len))
+            str
+            (let loop
+              ((i 0) (acc '()))
+              (if (>= i len)
+                (apply string-append (reverse acc))
+                (let ((ansi-end (%match-ansi bv i len)))
+                  (if ansi-end
+                    (loop ansi-end acc)
+                    (let* ((next (bytevector-advance-utf8 bv i len))
+                           (step (if (= next i) (+ i 1) next))
+                           (chunk (utf8->string (bytevector-copy bv i step)))
+                          ) ;
+                      (loop step (cons chunk acc))
+                    ) ;let*
+                  ) ;if
+                ) ;let
+              ) ;if
+            ) ;let
+          ) ;if
         ) ;let*
       ) ;if
     ) ;define
