@@ -24,13 +24,13 @@
     (liii queue)
     (liii syntax-case)
   ) ;import
-  (export go go-call go-apply go-apply/source go-worker-count go-result
-    go-result-recv! make-chan chan? chan-send! chan-recv! chan-try-recv!
-    chan-try-send! chan-close! chan-closed? select make-context
-    make-timeout-context context? context-done? context-cancel! context-channel
-    spawn-fiber fiber-yield! fiber-scheduler-run! make-fiber-chan fiber-chan?
-    fiber-send! fiber-recv! %set-scheduler-idle-return! %run-worker-task
-    %drain-suspended!
+  (export go go-call go-apply go-apply/source go-worker-count
+    go-active-worker-count go-result go-result-recv! make-chan chan? chan-send!
+    chan-recv! chan-try-recv! chan-try-send! chan-close! chan-closed? select
+    make-context make-timeout-context context? context-done? context-cancel!
+    context-channel spawn-fiber fiber-yield! fiber-scheduler-run!
+    make-fiber-chan fiber-chan? fiber-send! fiber-recv!
+    %set-scheduler-idle-return! %run-worker-task %drain-suspended!
   ) ;export
   (begin
     (define make-chan (case-lambda (() (g_make-chan 0)) ((cap) (g_make-chan cap))))
@@ -75,6 +75,10 @@
 
     (define (go-worker-count)
       (g_go-worker-count)
+    ) ;define
+
+    (define (go-active-worker-count)
+      (g_go-active-worker-count)
     ) ;define
 
     (define-record-type <go-context>

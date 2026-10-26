@@ -1,9 +1,9 @@
-(import (liii check) (liii go))
+(import (liii check) (liii go) (liii time))
 
 (check-set-mode! 'report-failed)
 
 ;; go-worker-count
-;; 返回后台 worker 线程池的大小。
+;; 返回后台 worker 线程池的配置上限。
 ;;
 ;; 语法
 ;; ----
@@ -12,7 +12,7 @@
 ;; 返回值
 ;; ----
 ;; integer
-;; worker 线程数，等于系统硬件核心数（无法探测时为 4）。
+;; worker 最大线程数，等于系统硬件核心数（无法探测时为 4）。
 ;;
 ;; 说明
 ;; ----
@@ -21,5 +21,34 @@
 (define n (go-worker-count))
 (check (integer? n) => #t)
 (check (> n 0) => #t)
+(check (go-active-worker-count) => 0)
+
+;; 线程池按需创建：第一个后台任务完成后只保留一个实际 worker，
+;; 不按 CPU 核数预先创建整套空闲的 S7 会话。
+
+(define lazy-ch (make-chan 1))
+
+(define (lazy-worker-task ch)
+  (chan-send! ch 'done)
+) ;define
+(go (lazy-worker-task lazy-ch))
+(check (chan-recv! lazy-ch 3000 'timeout) => 'done)
+(check (go-active-worker-count) => 1)
+
+;; 已有 worker 忙于阻塞式 C 调用时，新任务按需触发扩容，保留并行能力。
+
+(define (slow-worker-task ch)
+  (sleep 0.5)
+  (chan-send! ch 'done)
+) ;define
+(when (> n 1)
+  (let ((slow-ch-1 (make-chan 1)) (slow-ch-2 (make-chan 1)))
+    (go (slow-worker-task slow-ch-1))
+    (go (slow-worker-task slow-ch-2))
+    (check (go-active-worker-count) => 2)
+    (check (chan-recv! slow-ch-1 3000 'timeout) => 'done)
+    (check (chan-recv! slow-ch-2 3000 'timeout) => 'done)
+  ) ;let
+) ;when
 
 (check-report)
