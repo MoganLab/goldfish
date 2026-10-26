@@ -24,10 +24,13 @@
        => "$ ...")
 
 ;; read 工具
+;; 范围后缀对齐上游 formatReadLineRange："路径:起-止"
 (check (format-tool-call "read" '(("path" . "src/app.scm")))
        => "read src/app.scm")
 (check (format-tool-call "read" '(("file_path" . "src/app.scm") ("offset" . 10) ("limit" . 20)))
-       => "read src/app.scm [L10-29]")
+       => "read src/app.scm:10-29")
+(check (format-tool-call "read" '(("path" . "a.scm") ("offset" . 10)))
+       => "read a.scm:10")
 (check (format-tool-call "read" "main.scm")
        => "read main.scm")
 
@@ -45,17 +48,17 @@
 (check (format-tool-call "edit" "main.scm")
        => "edit main.scm")
 
-;; grep 工具
+;; grep 工具（对齐上游：accent 模式 /pattern/ + muted " in 路径"）
 (check (format-tool-call "grep" '(("pattern" . "define") ("path" . "src/")))
-       => "grep \"define\" src/")
+       => "grep /define/ in src/")
 (check (format-tool-call "grep" '(("pattern" . "define")))
-       => "grep \"define\"")
+       => "grep /define/ in .")
 
-;; find 工具
+;; find 工具（对齐上游：accent pattern + muted " in 路径"）
 (check (format-tool-call "find" '(("pattern" . "*.scm") ("path" . "tools/")))
-       => "find \"*.scm\" tools/")
+       => "find *.scm in tools/")
 (check (format-tool-call "find" '(("pattern" . "*.scm")))
-       => "find \"*.scm\"")
+       => "find *.scm in .")
 
 ;; ls 工具
 (check (format-tool-call "ls" '(("path" . "src/")))
@@ -70,6 +73,48 @@
 ;; 兜底未知工具
 (check (format-tool-call "custom_tool" '(("key" . "value")))
        => "custom_tool key=value")
+
+;; -----------------------------------------------------------------------------
+;; 1b. format-tool-call-segments: 各内置工具的着色分段（对齐 pi renderCall 渲染器）
+;;      角色: bold=toolTitle 粗体 / accent=路径或模式 / muted=次要信息 / warning=范围
+;; -----------------------------------------------------------------------------
+
+;; bash：整段 "$ cmd" 粗体，超时后缀 muted
+(check (format-tool-call-segments "bash" '((command . "npm test") (timeout . 30)))
+       => '((bold . "$ npm test") (muted . " (timeout 30s)")))
+(check (format-tool-call-segments "bash" '(("command" . "ls -la")))
+       => '((bold . "$ ls -la")))
+
+;; read：粗体工具名 + accent 路径 + warning 范围
+(check (format-tool-call-segments "read"
+         '(("file_path" . "src/app.scm") ("offset" . 10) ("limit" . 20)))
+       => '((bold . "read") (accent . " src/app.scm") (warning . ":10-29")))
+
+;; write/edit：粗体工具名 + accent 路径
+(check (format-tool-call-segments "write" '(("path" . "README.md")))
+       => '((bold . "write") (accent . " README.md")))
+(check (format-tool-call-segments "edit" "main.scm")
+       => '((bold . "edit") (accent . " main.scm")))
+
+;; grep：accent /pattern/ + muted " in 路径"
+(check (format-tool-call-segments "grep" '(("pattern" . "define") ("path" . "src/")))
+       => '((bold . "grep") (accent . " /define/") (muted . " in src/")))
+
+;; find：accent pattern + muted " in 路径"
+(check (format-tool-call-segments "find" '(("pattern" . "*.scm")))
+       => '((bold . "find") (accent . " *.scm") (muted . " in .")))
+
+;; ls：粗体工具名 + accent 路径
+(check (format-tool-call-segments "ls" '(("path" . "src/")))
+       => '((bold . "ls") (accent . " src/")))
+
+;; web_search：粗体工具名 + accent 查询串
+(check (format-tool-call-segments "web_search" '(("query" . "Goldfish Scheme")))
+       => '((bold . "web_search") (accent . " \"Goldfish Scheme\"")))
+
+;; 兜底未知工具：粗体工具名 + muted 参数预览（对齐上游 formatToolCallWithArgs）
+(check (format-tool-call-segments "custom_tool" '(("key" . "value")))
+       => '((bold . "custom_tool") (muted . " key=value")))
 
 ;; -----------------------------------------------------------------------------
 ;; 2. format-tool-result-lines: 多行结果切分与折叠预览
@@ -87,14 +132,15 @@
 (let* ((text "1\n2\n3\n4\n5\n6\n7\n8")
        (lines (format-tool-result-lines "bash" text :max-lines 5)))
   (check (length lines) => 6)
-  (check (car lines) => "... (3 earlier lines)")
+  (check (car lines) => "... (3 earlier lines, ctrl+o to expand)")
   (check (cdr lines) => '("4" "5" "6" "7" "8")))
 
-;; read/grep 等超长（如 8 行）：默认保留头部 5 行，并在尾部追加折叠提示
+;; read/grep 等超长（如 8 行）：默认保留头部 5 行，尾部追加折叠提示
+;; 提示文案对齐上游 createResultFallback："... (N more lines, ctrl+o to expand)"
 (let* ((text "1\n2\n3\n4\n5\n6\n7\n8")
        (lines (format-tool-result-lines "read" text :max-lines 5)))
   (check (length lines) => 6)
-  (check (list-ref lines 5) => "... (3 more lines)")
+  (check (list-ref lines 5) => "... (3 more lines, ctrl+o to expand)")
   (check (take lines 5) => '("1" "2" "3" "4" "5")))
 
 ;; 结构化结果（如 pi-tool-result 或 inlet 包含 content）提取测试
@@ -111,25 +157,31 @@
        (w 40)
        (rendered (component-render card w)))
   (check (component? card) => #t)
-  ;; 包含标题行、输出前空行、两行结果、末尾空行隔断，共 5 行
-  (check (length rendered) => 5)
-  ;; 标题行包含绿色背景色码和 "$ git status -s"
+  ;; 对齐 pi Box(paddingX=1, paddingY=1)：上下各一行背景空行包住命令与输出，共 7 行
+  (check (length rendered) => 7)
+  ;; 首行 padding 空行带深绿背景、不含命令
   (check (string-contains? (car rendered) "48;2;37;65;49") => #t)
-  (check (string-contains? (car rendered) "$ git status -s") => #t)
-  ;; 输出前空行也带有深绿背景并填充至宽度 40
+  (check-false (string-contains? (car rendered) "git status"))
+  ;; 标题行包含绿色背景色码和 "$ git status -s"
   (check (string-contains? (cadr rendered) "48;2;37;65;49") => #t)
-  ;; 第三、四行为结果
-  (check (string-contains? (caddr rendered) "M a.scm") => #t)
-  (check (string-contains? (cadddr rendered) "?? b.scm") => #t))
+  (check (string-contains? (cadr rendered) "$ git status -s") => #t)
+  ;; 第三行为背景空行；第四、五行为结果
+  (check (string-contains? (list-ref rendered 2) "48;2;37;65;49") => #t)
+  (check (string-contains? (list-ref rendered 3) "M a.scm") => #t)
+  (check (string-contains? (list-ref rendered 4) "?? b.scm") => #t)
+  ;; 尾部 padding 空行带背景 + 无背景 spacer
+  (check (string-contains? (list-ref rendered 5) "48;2;37;65;49") => #t)
+  (check (list-ref rendered 6) => ""))
 
-;; 测试 read 失败卡片
+;; 测试 read 失败卡片：红背景把命令行也整个包住，标题不染色
 (let* ((card (make-tool-card "read" '(("path" . "missing.txt")) 'error "File not found"))
        (w 40)
        (rendered (component-render card w)))
-  ;; 出错卡片应包含红色背景
-  (check (string-contains? (car rendered) "48;2;91;40;42") => #t)
-  (check (string-contains? (car rendered) "read missing.txt") => #t)
-  (check (string-contains? (cadr rendered) "File not found") => #t))
+  ;; 出错卡片：命令行与输出行都被红背景包住
+  (check (string-contains? (cadr rendered) "48;2;91;40;42") => #t)
+  (check (string-contains? (strip-ansi (cadr rendered)) "read missing.txt") => #t)
+  (check (string-contains? (list-ref rendered 3) "File not found") => #t)
+  (check (string-contains? (list-ref rendered 3) "48;2;91;40;42") => #t))
 
 ;; -----------------------------------------------------------------------------
 ;; 4. Bash 工具卡片：对齐上游的运行计时与视觉行折叠

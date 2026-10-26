@@ -47,12 +47,12 @@
   ;; 验证任务完成后恢复为 idle
   (check (pi-queue-idle? (pi-app-queue app)) => #t)
 
-  ;; 验证屏幕渲染内容中包含深蓝背景色码 (48;2;38;44;64) 与绿色成功色码 (48;2;37;65;49)
+  ;; 验证屏幕渲染内容中包含用户卡片背景色码 (48;2;33;59;73) 与绿色成功色码 (48;2;37;65;49)
   (let* ((screen (pi-app-screen app))
          (lines (screen-lines screen))
          (full-text (string-join lines "\n"))
         ) ;
-    (check (string-contains? full-text "48;2;38;44;64") => #t)
+    (check (string-contains? full-text "48;2;33;59;73") => #t)
     (check (string-contains? full-text "测试用户指令") => #t)
     (check (string-contains? full-text "48;2;37;65;49") => #t)
     (check (string-contains? full-text "bash") => #t)
