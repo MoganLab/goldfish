@@ -32,6 +32,7 @@
                 --session-timeout <seconds>
                                            Total session timeout in seconds (default: 600, 0 to disable)
             -c, --continue                 Continue previous session
+            -n, --name <name>              Set session display name
                 --compact                  Compact latest session, then run the prompt (if any)
                 --no-auto-compact          Disable automatic context compaction
                 --no-session               Do not persist session

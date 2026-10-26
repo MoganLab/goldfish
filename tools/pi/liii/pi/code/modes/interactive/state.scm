@@ -15,7 +15,7 @@
     pi-app-bash-mode? %pi-app-bash-mode?-set! pi-app-tools-expanded?
     %pi-app-tools-expanded?-set! %pi-app-bash-cards %pi-app-bash-cards-set!
     pi-app-bash-jobs-chan %pi-app-bash-handler %pi-app-record-sink
-    %pi-editor-top-border
+    pi-app-session-name %pi-app-session-name-set! %pi-editor-top-border
   ) ;export
   (import (scheme base))
   (begin
@@ -27,7 +27,7 @@
       (%make-pi-app term screen doc chat pending-box editor footer queue handler
         jobs-chan event-chan abort-chan working thinking-level supports-thinking
         bash-mode? tools-expanded? bash-cards bash-jobs-chan bash-handler
-        record-sink
+        record-sink session-name
       ) ;%make-pi-app
       pi-app?
       (term pi-app-term)
@@ -58,6 +58,7 @@
       ;; ! 命令结果注入会话上下文的回调 (lambda (command text code))；
       ;; 默认投递 (bash_record cmd text code) 任务到 jobs-chan 由后台 worker 落盘
       (record-sink %pi-app-record-sink)
+      (session-name pi-app-session-name %pi-app-session-name-set!)
     ) ;define-record-type
 
     (define %pi-app-term pi-app-term)

@@ -201,6 +201,16 @@
 
 (check-catch 'pi-arg-error (parse-pi-args '("--thinking" "invalid")))
 
+;; 9.1 --name / -n 解析、规范化与参数校验
+(let ((res1 (parse-pi-args '("--name" "  Refactor auth module  ")))
+      (res2 (parse-pi-args '("-n" "Fix\nWindows\r\nbuild"))))
+  (check (pi-args-ref res1 'name) => "Refactor auth module")
+  (check (pi-args-ref res2 'name) => "Fix Windows build"))
+
+(check (pi-args-ref (parse-pi-args '()) 'name) => #f)
+(check-catch 'pi-arg-error (parse-pi-args '("--name")))
+(check-catch 'pi-arg-error (parse-pi-args '("--name" "   ")))
+
 ;; 10. --session-timeout 解析与默认值测试
 (let ((res1 (parse-pi-args '("--session-timeout" "7000" "hello")))
       (res2 (parse-pi-args '("--session-timeout" "0" "world"))))

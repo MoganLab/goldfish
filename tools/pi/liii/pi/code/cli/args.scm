@@ -17,7 +17,7 @@
     (liii pi code core extensions loader)
   ) ;import
   (export parse-pi-args pi-args-ref pi-resolve-timeout format-file-block
-    process-file-arguments pi-validate-review-flags
+    process-file-arguments pi-validate-review-flags pi-normalize-session-name
   ) ;export
   (begin
 
@@ -50,6 +50,7 @@
         (cons 'timeout #f)
         (cons 'session-timeout #f)
         (cons 'session-dir #f)
+        (cons 'name #f)
         (cons 'no-session #f)
         (cons 'continue #f)
         (cons 'compact #f)
@@ -74,6 +75,26 @@
             ) ;parse-positionals
             (parse-positionals (cdr rest) file-args (cons arg messages))
           ) ;if
+        ) ;let
+      ) ;if
+    ) ;define
+
+    (define (pi-normalize-session-name name)
+      (if (not (string? name))
+        #f
+        (let loop
+          ((chars (string->list name)) (acc '()) (newline? #f))
+          (cond
+           ((null? chars)
+            (let ((trimmed (string-trim-both (list->string (reverse acc)))))
+              (if (string-null? trimmed) #f trimmed)
+            ) ;let
+           ) ;
+           ((or (char=? (car chars) #\return) (char=? (car chars) #\newline))
+            (loop (cdr chars) (if newline? acc (cons #\space acc)) #t)
+           ) ;
+           (else (loop (cdr chars) (cons (car chars) acc) #f))
+          ) ;cond
         ) ;let
       ) ;if
     ) ;define
@@ -143,6 +164,17 @@
             ((string=? arg "--compact") (values 'compact #t 1))
             ((string=? arg "--no-auto-compact") (values 'no-auto-compact #t 1))
             ((string=? arg "--no-session") (values 'no-session #t 1))
+            ((or (string=? arg "--name") (string=? arg "-n"))
+             (if next-arg
+               (let ((name (pi-normalize-session-name next-arg)))
+                 (if name
+                   (values 'name name 2)
+                   (error 'pi-arg-error "--name requires a non-empty value")
+                 ) ;if
+               ) ;let
+               (error 'pi-arg-error "--name requires a non-empty value")
+             ) ;if
+            ) ;
             ((or (string=? arg "--no-tools") (string=? arg "--no-builtin-tools"))
              (values 'no-tools #t 1)
             ) ;

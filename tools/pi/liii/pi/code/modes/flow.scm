@@ -15,6 +15,7 @@
     (liii pi code config)
     (liii pi code core prompt)
     (liii pi code core session-manager)
+    (liii pi code core session-name)
     (liii pi agent loop)
     (liii pi ai dispatch)
     (liii pi ai types)
@@ -175,7 +176,10 @@
              ) ;run-session-flow
       (let*-values (((cwd) (path->string (path-cwd)))
                     ((sfile sdir)
-                     (if session-file (values session-file #f) (setup-session-file parsed cfg cwd))
+                     (if session-file
+                       (values session-file #f)
+                       (setup-session-file-with-name parsed cfg cwd)
+                     ) ;if
                     ) ;
                     ((context) (%session-context parsed sfile session-file))
                    ) ;

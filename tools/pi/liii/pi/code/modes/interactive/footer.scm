@@ -7,6 +7,7 @@
 (define-library (liii pi code modes interactive footer)
   (export make-pi-footer pi-footer? format-cwd-for-footer pi-footer-model-label
     pi-footer-set-thinking-level! pi-footer-branch pi-footer-set-branch!
+    pi-footer-set-session-name!
   ) ;export
   (import (scheme base)
     (liii string)
@@ -55,12 +56,18 @@
       ) ;and
     ) ;define
 
-    (define (%render-footer cwd home branch provider model stats width)
+    (define (%render-footer cwd home branch provider model stats session-name width)
       (let* ((formatted-cwd (format-cwd-for-footer cwd home))
-             (line1
+             (base-line1
                (if (and branch (not (string-null? branch)))
                  (string-append formatted-cwd " (" branch ")")
                  formatted-cwd
+               ) ;if
+             ) ;base-line1
+             (line1
+               (if (and session-name (not (string-null? session-name)))
+                 (string-append base-line1 " • " session-name)
+                 base-line1
                ) ;if
              ) ;line1
              (right-part
@@ -123,6 +130,7 @@
              (stats (%keyword-value :stats args "0.0%/1.0M (auto)"))
              (tl (%keyword-value :thinking-level args "off"))
              (supports? (%keyword-value :supports-thinking args #f))
+             (session-name (%keyword-value :session-name args #f))
              (comp
                (make-component
                  :render
@@ -134,6 +142,7 @@
                        (list-ref st 2)
                        (pi-footer-model-label (list-ref st 3) (list-ref st 5) (list-ref st 6))
                        (list-ref st 4)
+                       (list-ref st 7)
                        width
                      ) ;%render-footer
                    ) ;let
@@ -142,7 +151,7 @@
              ) ;comp
             ) ;
         (component-data-set! comp
-          (list 'pi-footer cwd branch provider model stats tl supports?)
+          (list 'pi-footer cwd branch provider model stats tl supports? session-name)
         ) ;component-data-set!
         comp
       ) ;let*
@@ -165,6 +174,7 @@
             (list-ref st 4)
             (list-ref st 5)
             (list-ref st 6)
+            (list-ref st 7)
           ) ;list
         ) ;component-data-set!
       ) ;let
@@ -182,6 +192,24 @@
             (list-ref st 4)
             tl
             (list-ref st 6)
+            (list-ref st 7)
+          ) ;list
+        ) ;component-data-set!
+      ) ;let
+    ) ;define
+
+    (define (pi-footer-set-session-name! comp session-name)
+      (let ((st (%footer-state comp)))
+        (component-data-set! comp
+          (list 'pi-footer
+            (list-ref st 0)
+            (list-ref st 1)
+            (list-ref st 2)
+            (list-ref st 3)
+            (list-ref st 4)
+            (list-ref st 5)
+            (list-ref st 6)
+            session-name
           ) ;list
         ) ;component-data-set!
       ) ;let
