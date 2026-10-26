@@ -71,6 +71,10 @@
   => '("\x1b[31mhello\x1b[0m" "\x1b[31mworld\x1b[0m")
 )
 
+;; 裸 ESC（非 CSI 开头，如 OSC 的 ESC]）不导致死循环，计 0 宽丢弃
+(check (wrap-text "a\x1b]0;tb" 80) => '("a]0;tb"))
+(check (wrap-text "x\x1b" 80) => '("x"))
+
 ;; 类型错误检查
 (check-catch 'type-error (wrap-text 123 10))
 (check-catch 'type-error (wrap-text "hello" "10"))

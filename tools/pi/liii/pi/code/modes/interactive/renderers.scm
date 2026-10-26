@@ -8,7 +8,12 @@
   (export format-tool-call format-tool-result-lines extract-result-text
     format-bash-tool-result-lines format-tool-duration get-tool-arg
   ) ;export
-  (import (scheme base) (liii string) (liii list) (liii tui text-width))
+  (import (scheme base)
+    (liii string)
+    (liii list)
+    (liii tui text-width)
+    (liii pi code utils shell)
+  ) ;import
   (begin
 
     ;; 判断键是否匹配 (兼容 string 与 symbol)
@@ -225,11 +230,18 @@
       ) ;let
     ) ;define
 
-    ;; Bash 输出折叠以视觉行为单位：先剥离 ANSI/CR，再按当前宽度换行。
+    ;; Bash 输出折叠以视觉行为单位：对齐上游 getTextOutput + Text 组件，
+    ;; 先剥 ANSI（CSI+OSC）、删控制字符与 \r，再把 TAB 展开为定宽 3 空格
+    ;; （防止终端制表位导致卡片背景错位），最后按当前宽度换行。
     ;; 折叠时保留末尾 5 行，与上游 VisualLinePreview 一致。
     (define (format-bash-tool-result-lines result width expanded?)
       (let* ((raw (string-trim-both (extract-result-text result)))
-             (clean (string-replace (strip-ansi raw) "\r" ""))
+             (clean
+               (string-replace (string-replace (sanitize-binary-output (strip-ansi raw)) "\r" "")
+                 "\t"
+                 "   "
+               ) ;string-replace
+             ) ;clean
              (all-lines (if (string-null? clean) '() (wrap-text clean (max 1 width))))
              (total (length all-lines))
             ) ;

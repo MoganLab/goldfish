@@ -166,6 +166,18 @@
   (check (car lines) => "abcdefgh")
   (check (cadr lines) => "ijklmnop"))
 
+;; 渲染层对齐上游 getTextOutput + Text：剥 ANSI/OSC、删控制字符与 \r，TAB 展开为定宽 3 空格
+(let ((lines (format-bash-tool-result-lines "a\tb\tc" 80 #f)))
+  (check lines => '("a   b   c")))
+
+;; 残留 ANSI（含 OSC）与 \r 不出现在渲染行中
+(let ((lines (format-bash-tool-result-lines "\x1b]0;title\x07;\x1b[32mok\x1b[0m\r\ndone" 80 #f)))
+  (check lines => '("ok" "done")))
+
+;; 控制字符被删除
+(let ((lines (format-bash-tool-result-lines "a\x01;b" 80 #f)))
+  (check lines => '("ab")))
+
 ;; 卡片展开状态可往返切换，运行中的日志也遵循同一折叠状态
 (let ((card (make-tool-card "bash" '(("command" . "seq 1 8")) 'pending "1\n2\n3\n4\n5\n6\n7\n8")))
   (check-false (tool-card-expanded? card))
