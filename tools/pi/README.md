@@ -459,22 +459,14 @@ tools/pi/liii/
 
   ```bash
   # 自动检测 ~/.pi/agent/multikey.json：配置了 kimi-coding 多 key pool 时，
-  # 周限额 403 或频率 429 自动冷却当前 key 并透明切换下一个（stderr 打印脱敏轮换日志）
+  # 正常请求固定使用当前 key；429/403 时冷却当前 key 并切换下一个（首个 key 不打日志）
   timeout 180 bin/gf pi --provider kimi-coding -p "统计 tests/ 目录下的测试用例总数"
-  # stderr 示例（key 仅打印前后若干字符）：
-  # [multikey] kimi-coding key sk-***...***a1 429, cooldown 20s, switching to sk-***...***b2
+  # 每次切换在 stderr 打印一条脱敏日志（key 仅显示首尾若干字符，TUI 模式转为界面卡片）：
+  # multikey[kimi-coding]: 429 on alpha (sk-poo…0001), rotating to another key
 
   # 未配置 pool 的 provider 回退 auth.json 单 key，行为不变
   timeout 180 bin/gf pi --provider google -p "hi"
   ```
-
-  实现要点：`multikey.json` 受 `PI_CODING_AGENT_DIR` 重定向；内存状态机维护
-  cooldown-until + last-used，正常请求固定使用当前 key，429/403 时才冷却并切换；
-  429 默认冷却 20s、403/invalid 默认 600s（可按配置覆盖）；每次实际切换在 stderr
-  打印一条脱敏日志（首个 key 不打），格式对齐原生 pi：
-  `multikey[kimi-coding]: 429 on alpha (sk-poo…0001), rotating to another key`，
-  TUI 模式下同一消息转为界面卡片；
-  仅在未输出实质内容前透明重试；pool 全耗尽才报错（退出码 1）。
 - [ ] **4 字节 UTF-8 + '<' 挂起**：prompt 同时含 4 字节 UTF-8 字符（如 🚀、𠀀）与 `<` 时进程静默挂起且连 HTTP 300s 超时都不生效（复现：`timeout 60 bin/gf pi -p '🚀 <'`）。【待重做】
 - [ ] **thinking 内容**：思考级别的请求与解析。预期用法（实现时以 pi 实际 CLI 为准）：
 
