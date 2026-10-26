@@ -98,8 +98,11 @@ public:
       std::unique_lock<std::mutex> lock (mtx);
       tasks.push (std::move (task));
       // 不为空闲容量预先创建 S7 会话。仅在出现排队任务且现有空闲 worker
-      // 不足时扩容；每次入队至多新增一个，避免线程尚未进入 wait 前重复扩容。
-      if (workers.size () < max_workers && tasks.size () > idle_workers) {
+      // 不足时扩容；把启动中（尚未进入 cv.wait、idle_workers 未 +1）的
+      // worker 计入可用容量，避免连续入队时重复扩容（Windows 上线程启动
+      // 较慢，emplace_back 后 idle_workers 仍为 0，导致多建一个 worker）。
+      if (workers.size () < max_workers && tasks.size () > idle_workers + starting_workers) {
+        ++starting_workers;
         workers.emplace_back ([this] () { worker_loop (); });
       }
     }
@@ -199,6 +202,7 @@ private:
         std::unique_lock<std::mutex> lock (mtx);
         // 空唤醒来源：gate fire 递增 wake_epoch（挂起 fiber 有事件待消费）
         ++idle_workers;
+        if (starting_workers > 0) --starting_workers;
         cv.wait (lock, [this, &my_epoch] () { return stop || !tasks.empty () || wake_epoch != my_epoch; });
         --idle_workers;
         if (stop && tasks.empty ()) break;
@@ -278,7 +282,8 @@ private:
   }
 
   const size_t             max_workers;
-  size_t                   idle_workers= 0;
+  size_t                   idle_workers    = 0;
+  size_t                   starting_workers= 0;
   std::vector<std::thread> workers;
   std::queue<GoTask>       tasks;
   std::mutex               mtx;

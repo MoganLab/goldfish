@@ -13,6 +13,7 @@
     (liii pi code modes interactive state)
     (liii pi code modes interactive thinking)
     (liii pi code modes interactive bash)
+    (liii pi code modes interactive slash-command-menu)
   ) ;import
   (begin
 
@@ -23,7 +24,12 @@
     ;; bash 模式边框联动（对齐 pi onChange + updateEditorBorderColor）：
     ;; 文本（去前导空白后）以 ! 开头 → 绿色；否则恢复当前 thinking 级别颜色
     (define (%pi-app-editor-on-change app ed text)
-      (let ((bash? (%starts-with-char? (string-trim-left text) #\!)))
+      (let ((bash? (%starts-with-char? (string-trim-left text) #\!))
+            (matches (pi-slash-command-matches text))
+           ) ;
+        (%pi-app-slash-command-menu-set! app
+          (and matches (make-pi-slash-command-menu matches))
+        ) ;%pi-app-slash-command-menu-set!
         (%pi-app-bash-mode?-set! app bash?)
         (editor-set-border-color! ed
           (if bash?

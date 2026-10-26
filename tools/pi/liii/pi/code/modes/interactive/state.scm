@@ -10,7 +10,8 @@
   (export %make-pi-app pi-app? pi-app-term %pi-app-term pi-app-screen
     %pi-app-doc %pi-app-chat %pi-app-pending-box pi-app-editor
     %pi-app-editor-set! %pi-app-footer pi-app-queue %pi-app-handler
-    pi-app-active-selector %pi-app-active-selector-set! pi-app-jobs-chan
+    pi-app-active-selector %pi-app-active-selector-set!
+    pi-app-slash-command-menu %pi-app-slash-command-menu-set! pi-app-jobs-chan
     pi-app-event-chan pi-app-abort-chan pi-app-working pi-app-thinking-level
     %pi-app-thinking-level-set! pi-app-supports-thinking?
     pi-app-available-thinking-levels pi-app-default-thinking-level
@@ -28,8 +29,8 @@
 
     (define-record-type <pi-app>
       (%make-pi-app term screen doc chat pending-box editor active-selector
-        footer queue handler jobs-chan event-chan abort-chan working
-        thinking-level supports-thinking available-thinking-levels
+        slash-command-menu footer queue handler jobs-chan event-chan abort-chan
+        working thinking-level supports-thinking available-thinking-levels
         default-thinking-level on-save-thinking-level bash-mode? tools-expanded?
         bash-cards bash-jobs-chan bash-handler record-sink session-name
       ) ;%make-pi-app
@@ -41,6 +42,7 @@
       (pending-box %pi-app-pending-box)
       (editor pi-app-editor %pi-app-editor-set!)
       (active-selector pi-app-active-selector %pi-app-active-selector-set!)
+      (slash-command-menu pi-app-slash-command-menu %pi-app-slash-command-menu-set!)
       (footer %pi-app-footer)
       (queue pi-app-queue)
       (handler %pi-app-handler)
