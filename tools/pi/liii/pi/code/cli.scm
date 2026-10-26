@@ -15,7 +15,7 @@
     (liii pi code config)
     (liii pi code modes)
     (liii pi code core prompt)
-    (liii pi code core session-manager)
+    (liii pi code core session-name)
     (liii pi code cli help)
     (liii pi ai models)
     (liii pi code modes interactive)

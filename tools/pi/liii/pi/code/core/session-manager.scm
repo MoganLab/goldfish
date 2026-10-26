@@ -26,7 +26,7 @@
     find-latest-session-file save-session-header! save-session-message!
     setup-session-file setup-initial-messages persist-new-messages!
     find-last-session-message-id pi-normalize-session-msg append-bash-execution!
-    append-session-info! get-session-name resolve-initial-session-name assoc
+    assoc
   ) ;export
   (begin
 
@@ -45,37 +45,14 @@
       (if (pi-args-ref parsed 'no-session)
         (values #f #f)
         (let ((sdir (resolve-session-dir parsed cfg cwd)))
-          (let-values (((sfile dir)
-                        (if (pi-args-ref parsed 'continue)
-                          (let ((latest (find-latest-session-file sdir)))
-                            (if latest (values latest sdir) (%init-new-session-file sdir cwd))
-                          ) ;let
-                          (%init-new-session-file sdir cwd)
-                        ) ;if
-                       ) ;
-                      ) ;
-            (let ((name (pi-args-ref parsed 'name)))
-              (when (and sfile name)
-                (append-session-info! sfile name)
-              ) ;when
+          (if (pi-args-ref parsed 'continue)
+            (let ((latest (find-latest-session-file sdir)))
+              (if latest (values latest sdir) (%init-new-session-file sdir cwd))
             ) ;let
-            (values sfile dir)
-          ) ;let-values
+            (%init-new-session-file sdir cwd)
+          ) ;if
         ) ;let
       ) ;if
-    ) ;define
-
-    (define (resolve-initial-session-name parsed cfg cwd)
-      (or (pi-args-ref parsed 'name)
-        (and (not (pi-args-ref parsed 'no-session))
-          (pi-args-ref parsed 'continue)
-          (let* ((sdir (resolve-session-dir parsed cfg cwd))
-                 (latest (find-latest-session-file sdir))
-                ) ;
-            (if latest (get-session-name latest) #f)
-          ) ;let*
-        ) ;and
-      ) ;or
     ) ;define
 
     (define (setup-initial-messages parsed initial-msg sdir)
@@ -313,50 +290,6 @@
                       ) ;list
         ) ;json->string
       ) ;append-session-entry!
-    ) ;define
-
-    (define (append-session-info! file-path name)
-      (let ((normalized (pi-normalize-session-name name)))
-        (if (or (not file-path) (not normalized))
-          #f
-          (let* ((id (uuid4))
-                 (parent-id (find-last-session-message-id file-path))
-                 (entry (list (cons "type" "session_info")
-                          (cons "id" id)
-                          (cons "parentId" (or parent-id 'null))
-                          (cons "timestamp" (pi-iso-8601-utc-now))
-                          (cons "name" normalized)
-                        ) ;list
-                 ) ;entry
-                ) ;
-            (append-session-entry! file-path (json->string entry))
-            id
-          ) ;let*
-        ) ;if
-      ) ;let
-    ) ;define
-
-    (define (get-session-name file-path)
-      (if (or (not file-path) (not (file-exists? file-path)))
-        #f
-        (let ((name #f))
-          (for-each
-            (lambda (line)
-              (let ((entry (catch #t (lambda () (string->json (string-trim line))) (lambda _ #f))))
-                (when
-                  (and entry
-                    (assoc "type" entry)
-                    (equal? (cdr (assoc "type" entry)) "session_info")
-                  ) ;and
-                  (set! name (pi-normalize-session-name (cdr (assoc "name" entry))))
-                ) ;when
-              ) ;let
-            ) ;lambda
-            (path-read-lines file-path)
-          ) ;for-each
-          name
-        ) ;let
-      ) ;if
     ) ;define
 
     (define (save-session-message! file-path message-json-str id parent-id timestamp-iso)

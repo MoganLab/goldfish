@@ -20,6 +20,7 @@
   (liii pi code cli args)
   (liii pi code config)
   (liii pi code core session-manager)
+  (liii pi code core session-name)
   (liii pi code modes interactive worker)
 ) ;import
 

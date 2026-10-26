@@ -1,6 +1,7 @@
 (import (liii check)
         (liii pi ai message) (liii pi code core session-manager)
         (liii pi code core session-manager)
+        (liii pi code core session-name)
         (liii os)
         (liii path)
         (liii json)
@@ -236,7 +237,7 @@
   (when (file-exists? tmp-agent-dir)
     (rmtree tmp-agent-dir))
   (let-values (((sfile sdir)
-                (setup-session-file
+                (setup-session-file-with-name
                   '((no-session . #f) (continue . #f) (name . "  Initial task  "))
                   cfg cwd)))
     (check-true (string? sfile))
@@ -245,11 +246,11 @@
       => "Initial task")
     (let ((line-count (length (path-read-lines sfile))))
       (let-values (((continued _)
-                    (setup-session-file '((no-session . #f) (continue . #t) (name . #f)) cfg cwd)))
+                    (setup-session-file-with-name '((no-session . #f) (continue . #t) (name . #f)) cfg cwd)))
         (check continued => sfile)
         (check (length (path-read-lines sfile)) => line-count)))
     (let-values (((renamed _)
-                  (setup-session-file
+                  (setup-session-file-with-name
                     '((no-session . #f) (continue . #t) (name . "Renamed task")) cfg cwd)))
       (check renamed => sfile)
       (check (get-session-name sfile) => "Renamed task")))

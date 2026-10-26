@@ -21,6 +21,7 @@
     (liii pi code cli args)
     (liii pi code config)
     (liii pi code core session-manager)
+    (liii pi code core session-name)
     (liii pi ai retry)
     (liii pi code modes flow)
     (liii pi code modes output)
@@ -138,7 +139,8 @@
     ;; 跨消息保持上下文连续；--no-session 时恒为 #f
     (define (pi-worker-ensure-session-file! parsed cfg sfile-box)
       (unless (vector-ref sfile-box 0)
-        (let-values (((sf _sdir) (setup-session-file parsed cfg (path->string (path-cwd)))))
+        (let-values (((sf _sdir) (setup-session-file-with-name parsed cfg (path->string (path-cwd))))
+                    ) ;
           (vector-set! sfile-box 0 sf)
         ) ;let-values
       ) ;unless
