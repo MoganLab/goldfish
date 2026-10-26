@@ -19,6 +19,7 @@
     (liii pi code modes interactive views)
     (liii pi code modes interactive working)
     (liii pi code modes interactive app-bash)
+    (liii pi code modes interactive bash)
     (liii pi code modes interactive app-name)
     (liii pi code modes interactive app-session)
     (liii pi code modes interactive common)
