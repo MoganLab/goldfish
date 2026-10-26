@@ -79,7 +79,7 @@
       '("goldfish")
       (list "ai" "liii pi ai")
       (list "code" "liii pi code")
-      (list "extensions" "liii pi review" "liii pi simplify" "liii pi web-search")
+      (list "extensions" "liii pi multikey" "liii pi review" "liii pi simplify" "liii pi web-search")
     ) ;%dom
   ) ;%cfg-on
 ) ;define
@@ -272,13 +272,27 @@
   (check (check-layer-order f %cfg) => '())
 ) ;let
 
+;; 9c. pi 域层序：ai 层 import extensions 层的 multikey -> 抓到倒挂
+;; （multikey 为扩展实现库，核心层 ai/agent/code 一律不得依赖）
+(let* ((f (%mk "tools/pi/liii/pi/ai/request.scm"
+            (%lib-header "scheme base" "liii pi multikey")
+          ) ;%mk
+       ) ;f
+       (viol (check-layer-order f %cfg))
+       (details (map caddr viol))
+      ) ;
+  (check (length viol) => 1)
+  (check-true (string-contains? (car details) "multikey"))
+) ;let*
+
 ;; ---- 清理临时目录 ---------------------------------------------------
 (let ((files '("tools/check/liii/goldcheck/path.scm"
                "goldfish/srfi/srfi-113.scm" "tools/check/liii/goldcheck.scm"
                "tools/check/tests/liii/goldcheck/x.scm"
                "goldfish/scheme/base.scm" "tools/common/liii/goldtool-new.scm"
                "tools/pi/liii/pi/code/tools.scm"
-               "tools/pi/liii/pi/web-search/execute.scm")
+               "tools/pi/liii/pi/web-search/execute.scm"
+               "tools/pi/liii/pi/ai/request.scm")
       ) ;files
      ) ;
   (for-each
@@ -291,7 +305,7 @@
       "tools/check/tests/liii" "tools/check/tests" "tools/check/liii"
       "tools/check" "goldfish/srfi" "goldfish/scheme" "goldfish"
       "tools/common/liii" "tools/common"
-      "tools/pi/liii/pi/code" "tools/pi/liii/pi/web-search"
+      "tools/pi/liii/pi/code" "tools/pi/liii/pi/web-search" "tools/pi/liii/pi/ai"
       "tools/pi/liii/pi" "tools/pi/liii" "tools/pi" "tools")
   ) ;for-each
   (path-rmdir (path %tmp-root))

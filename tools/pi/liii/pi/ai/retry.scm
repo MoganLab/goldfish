@@ -21,7 +21,7 @@
   (export pi-is-retriable-error? pi-calc-retry-delay pi-resolve-retry-params
     gemini-is-retriable-error? anthropic-is-retriable-error?
     pi-extract-retry-after pi-parse-retry-after pi-log-retry
-    set-pi-retry-logger!
+    set-pi-retry-logger! pi-ai-log!
   ) ;export
   (begin
 
@@ -193,6 +193,18 @@
       (set! *pi-retry-logger* logger)
     ) ;define
 
+    ;; 核心层通用日志通道：优先走已注入的 logger（如 TUI 界面卡片），
+    ;; 否则写 stderr；multikey 等内置扩展经此输出脱敏切换日志。
+    (define* (pi-ai-log! msg (port #f))
+      (if (procedure? *pi-retry-logger*)
+        (*pi-retry-logger* msg)
+        (let ((p (or port (if (defined? '*stderr*) *stderr* (current-error-port)))))
+          (display (string-append msg "\n") p)
+          (flush-output-port p)
+        ) ;let
+      ) ;if
+    ) ;define*
+
     (define* (pi-log-retry status attempt max-retries delay-sec (retry-after #f) (port #f))
       (let* ((ra-part (if (and (number? retry-after) (>= retry-after 0))
                         (string-append " (retry-after: " (number->string retry-after) "s)")
@@ -212,13 +224,7 @@
                   ) ;string-append
              ) ;msg
             ) ;
-        (if (procedure? *pi-retry-logger*)
-          (*pi-retry-logger* msg)
-          (let ((p (or port (if (defined? '*stderr*) *stderr* (current-error-port)))))
-            (display (string-append msg "\n") p)
-            (flush-output-port p)
-          ) ;let
-        ) ;if
+        (pi-ai-log! msg port)
       ) ;let*
     ) ;define*
 

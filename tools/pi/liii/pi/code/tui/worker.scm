@@ -19,7 +19,6 @@
     (liii pi abort)
     (liii pi code args)
     (liii pi code config)
-    (liii pi ai multikey)
     (liii pi ai retry)
     (liii pi code modes flow)
     (liii pi code modes output)
@@ -131,12 +130,14 @@
     ;; 因此 parsed/cfg 不能跨 go 边界传入，必须在 worker 会话内自行解析
     (define (pi-tui-agent-worker jobs-chan event-chan abort-chan)
       (let* ((parsed (parse-pi-args (cdr (command-line))))
-             (cfg (resolve-pi-config parsed (get-environment-variables)))
+             (cfg (augment-pi-config (resolve-pi-config parsed (get-environment-variables))
+                    parsed
+                  ) ;augment-pi-config
+             ) ;cfg
             ) ;
+        ;; 重试与 multikey 换 key 日志共用 retry logger 通道，转为界面卡片
         (set-pi-retry-logger! (lambda (msg) (pi-tui-send-event! event-chan (list 'retry msg)))
         ) ;set-pi-retry-logger!
-        (set-pi-multikey-logger! (lambda (msg) (pi-tui-send-event! event-chan (list 'retry msg)))
-        ) ;set-pi-multikey-logger!
         (let loop
           ()
           ;; job 消息为 (text thinking-level)：会话内切换的级别对下一条消息生效

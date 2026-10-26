@@ -17,7 +17,7 @@
     (liii pi ai config types)
     (liii pi ai retry)
     (liii pi ai message)
-    (liii pi ai multikey)
+    (liii pi ai keyring)
     (liii pi ai api google-generative-ai core)
     (liii pi ai api google-generative-ai request)
     (liii pi ai api google-generative-ai stream-parse)
@@ -160,14 +160,14 @@
                   ) ;
         (let* ((settings (cdr (or (%safe-assoc 'settings config) '(#f))))
                (effective-idle (or idle-timeout timeout))
-               (pool (pi-multikey-pool-of config))
+               (key-rotation? (pi-key-rotation? config))
               ) ;
           (let-values (((max-retries base-delay-ms max-agent-delay-ms provider-max-retries)
                         (pi-resolve-retry-params settings opt-retry)
                        ) ;
                       ) ;
             (let loop
-              ((attempt 1) (api-key (pi-multikey-request-key config)))
+              ((attempt 1) (api-key (pi-request-api-key config)))
               (let* ((eff-headers (list (cons "Content-Type" "application/json")
                                     (cons "x-goog-api-key" (or api-key ""))
                                   ) ;list
@@ -197,8 +197,8 @@
                   ;; 用户中止优先：不进入 multikey 轮换 / 重试，直接结算 aborted；
                   ;; 流尾补探测 pi-aborted? 覆盖单 chunk 交付时信号无后续检查点的场景
                   ((or aborted? (pi-aborted?)) (%finalize-aborted-stream stream-state))
-                  ((and pool (not emitted?) (or (= status 429) (= status 403)))
-                   (let ((next (pi-multikey-rotate! config api-key status)))
+                  ((and key-rotation? (not emitted?) (or (= status 429) (= status 403)))
+                   (let ((next (pi-rotate-api-key! config api-key status)))
                      (if (eq? next 'exhausted)
                        (gemini-classify-stream-result stream-state
                          idle-timed-out? resp status effective-idle

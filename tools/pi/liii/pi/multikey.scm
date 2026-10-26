@@ -6,21 +6,64 @@
 ;; Licensed under the MIT License
 ;;
 
-(define-library (liii pi ai multikey)
+;; multikey 内置扩展实现库：密钥池与 429/403 自动轮换。
+;; 经 extensions/multikey.scm 注册 config augmenter 接入核心：
+;; 命中 <agent-dir>/multikey.json 的 pool 时向 config 注入
+;; api-key / multikey-pool / request-key / rotate-key，
+;; 核心请求路径经 (liii pi ai keyring) 通用钩子调用，不直接依赖本库。
+
+(define-library (liii pi multikey)
   (import (scheme base)
     (liii string)
     (liii list)
     (liii path)
     (liii json)
     (liii pi ai time)
-    (liii pi ai config types)
-    (liii pi ai config record)
+    (liii pi ai retry)
   ) ;import
   (export pi-mask-key pi-load-multikey pi-multikey-select-key
     pi-multikey-mark-cooldown! pi-multikey-pool-of pi-multikey-request-key
-    pi-multikey-rotate! set-pi-multikey-logger!
+    pi-multikey-rotate! pi-multikey-augment-config pi-pool-key pi-pool-key?
+    pi-pool-key-key pi-pool-key-label pi-pool-key-enabled pi-pool-key-last-used
+    pi-pool-key-set-last-used! pi-pool-key-cooldown-until
+    pi-pool-key-set-cooldown-until! pi-pool-key-cooling? pi-key-pool
+    pi-key-pool? pi-key-pool-id pi-key-pool-cooldown-ms
+    pi-key-pool-invalid-cooldown-ms pi-key-pool-keys
   ) ;export
   (begin
+
+    ;; ---- 密钥池记录（随插件从 liii pi ai config 迁出） ----
+
+    (define-record-type <pi-pool-key>
+      (%make-pi-pool-key key label enabled last-used cooldown-until)
+      pi-pool-key?
+      (key pi-pool-key-key)
+      (label pi-pool-key-label)
+      (enabled pi-pool-key-enabled)
+      (last-used pi-pool-key-last-used pi-pool-key-set-last-used!)
+      (cooldown-until pi-pool-key-cooldown-until pi-pool-key-set-cooldown-until!)
+    ) ;define-record-type
+
+    (define* (pi-pool-key key (label "") (enabled #t))
+      (%make-pi-pool-key key label (if enabled #t #f) 0 0)
+    ) ;define*
+
+    (define (pi-pool-key-cooling? pk now-ms)
+      (< now-ms (pi-pool-key-cooldown-until pk))
+    ) ;define
+
+    (define-record-type <pi-key-pool>
+      (%make-pi-key-pool id cooldown-ms invalid-cooldown-ms keys)
+      pi-key-pool?
+      (id pi-key-pool-id)
+      (cooldown-ms pi-key-pool-cooldown-ms)
+      (invalid-cooldown-ms pi-key-pool-invalid-cooldown-ms)
+      (keys pi-key-pool-keys)
+    ) ;define-record-type
+
+    (define* (pi-key-pool id (cooldown-ms 20000) (invalid-cooldown-ms 600000) (keys '()))
+      (%make-pi-key-pool id cooldown-ms invalid-cooldown-ms keys)
+    ) ;define*
 
     ;; ---- 脱敏 ----
 
@@ -155,46 +198,31 @@
       ) ;let
     ) ;define
 
-    ;; ---- provider 层接入 ----
+    ;; ---- config 钩子接入 ----
 
     (define (pi-multikey-pool-of config)
       (cdr (or (assoc 'multikey-pool config) '(#f . #f)))
     ) ;define
 
-    (define *pi-multikey-logger* #f)
-
-    (define (set-pi-multikey-logger! logger)
-      (set! *pi-multikey-logger* logger)
-    ) ;define
-
-    (define (%multikey-log! provider status pk port)
-      (let ((msg
-              (string-append "multikey["
-                provider
-                "]: "
-                (if (number? status) (number->string status) (object->string status))
-                " on "
-                (let ((lb (pi-pool-key-label pk)))
-                  (if (and (string? lb) (not (string-null? lb))) lb "key")
-                ) ;let
-                " ("
-                (pi-mask-key (pi-pool-key-key pk))
-                "), rotating to another key"
-              ) ;string-append
-            ) ;msg
-           ) ;
-        (if (procedure? *pi-multikey-logger*)
-          (*pi-multikey-logger* msg)
-          (let ((p (or port (if (defined? '*stderr*) *stderr* (current-error-port)))))
-            (display (string-append msg "\n") p)
-            (flush-output-port p)
-          ) ;let
-        ) ;if
-      ) ;let
-    ) ;define
-
     ;; 切换日志：首次选 key 不打日志，每次实际切换打一条脱敏日志；
-    ;; 默认写 stderr，TUI 经 set-pi-multikey-logger! 重定向为界面卡片。
+    ;; 复用核心 retry logger 通道（TUI 经 set-pi-retry-logger! 重定向为界面卡片）。
+    (define (%multikey-log! provider status pk port)
+      (pi-ai-log!
+        (string-append "multikey["
+          provider
+          "]: "
+          (if (number? status) (number->string status) (object->string status))
+          " on "
+          (let ((lb (pi-pool-key-label pk)))
+            (if (and (string? lb) (not (string-null? lb))) lb "key")
+          ) ;let
+          " ("
+          (pi-mask-key (pi-pool-key-key pk))
+          "), rotating to another key"
+        ) ;string-append
+        port
+      ) ;pi-ai-log!
+    ) ;define
 
     ;; 每次请求开始时调用：优先复用最近使用的可用 key，
     ;; 无 pool 时回退 config 的 api-key（auth.json 路径）。
@@ -234,6 +262,42 @@
         ) ;if
       ) ;let
     ) ;define*
+
+    ;; ---- config augmenter（扩展注册入口调用） ----
+
+    ;; 命中 pool 时替换 api-key 为首个池内 key，并注入 request-key /
+    ;; rotate-key 钩子供核心 (liii pi ai keyring) 调用；
+    ;; 未命中（无 multikey.json 或无对应 provider 的 pool）时原样返回。
+    (define (pi-multikey-augment-config cfg . opt-parsed)
+      (let* ((agent-dir
+               (if (pair? cfg) (cdr (or (assoc 'agent-dir cfg) '(#f . #f))) #f)
+             ) ;agent-dir
+             (provider
+               (if (pair? cfg) (cdr (or (assoc 'provider cfg) '(#f . #f))) #f)
+             ) ;provider
+             (pool (and (string? agent-dir) provider (pi-load-multikey agent-dir provider)))
+            ) ;
+        (if (not pool)
+          cfg
+          (let* ((first-key (pi-pool-key-key (car (pi-key-pool-keys pool))))
+                 (kept
+                   (filter
+                     (lambda (p) (not (memq (car p) '(api-key multikey-pool))))
+                     (if (pair? cfg) cfg '())
+                   ) ;filter
+                 ) ;kept
+                ) ;
+            (cons (cons 'api-key first-key)
+              (cons (cons 'multikey-pool pool)
+                (cons (cons 'request-key pi-multikey-request-key)
+                  (cons (cons 'rotate-key pi-multikey-rotate!) kept)
+                ) ;cons
+              ) ;cons
+            ) ;cons
+          ) ;let*
+        ) ;if
+      ) ;let*
+    ) ;define
 
   ) ;begin
 ) ;define-library

@@ -16,12 +16,7 @@
     pi-credential-type %make-pi-model-metadata pi-model-metadata?
     pi-model-metadata-id pi-model-metadata-name pi-model-metadata-provider
     pi-model-metadata-base-url pi-model-metadata-context-window
-    pi-model-metadata-max-tokens pi-model-metadata-matched? %make-pi-pool-key
-    pi-pool-key? pi-pool-key-key pi-pool-key-label pi-pool-key-enabled
-    pi-pool-key-last-used pi-pool-key-set-last-used! pi-pool-key-cooldown-until
-    pi-pool-key-set-cooldown-until! %make-pi-key-pool pi-key-pool?
-    pi-key-pool-id pi-key-pool-cooldown-ms pi-key-pool-invalid-cooldown-ms
-    pi-key-pool-keys
+    pi-model-metadata-max-tokens pi-model-metadata-matched?
   ) ;export
   (begin
 
@@ -70,25 +65,6 @@
       (context-window pi-model-metadata-context-window)
       (max-tokens pi-model-metadata-max-tokens)
       (matched? pi-model-metadata-matched?)
-    ) ;define-record-type
-
-    (define-record-type <pi-pool-key>
-      (%make-pi-pool-key key label enabled last-used cooldown-until)
-      pi-pool-key?
-      (key pi-pool-key-key)
-      (label pi-pool-key-label)
-      (enabled pi-pool-key-enabled)
-      (last-used pi-pool-key-last-used pi-pool-key-set-last-used!)
-      (cooldown-until pi-pool-key-cooldown-until pi-pool-key-set-cooldown-until!)
-    ) ;define-record-type
-
-    (define-record-type <pi-key-pool>
-      (%make-pi-key-pool id cooldown-ms invalid-cooldown-ms keys)
-      pi-key-pool?
-      (id pi-key-pool-id)
-      (cooldown-ms pi-key-pool-cooldown-ms)
-      (invalid-cooldown-ms pi-key-pool-invalid-cooldown-ms)
-      (keys pi-key-pool-keys)
     ) ;define-record-type
 
   ) ;begin

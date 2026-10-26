@@ -41,12 +41,7 @@
     (define (dispatch-pi parsed mode initial-msg rest-msgs)
       (let* ((reg (or (current-extension-registry) (default-extension-registry)))
              (env (get-environment-variables))
-             (base-cfg (resolve-pi-config parsed env))
-             (cfg (fold (lambda (aug c) (aug c parsed))
-                    base-cfg
-                    (extension-registry-augmenters reg)
-                  ) ;fold
-             ) ;cfg
+             (cfg (augment-pi-config (resolve-pi-config parsed env) parsed))
              (flows (extension-registry-flows reg))
              (matched-local (%find-matching-flow flows parsed #t))
             ) ;
