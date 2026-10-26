@@ -9,7 +9,7 @@
     (scheme write)
     (liii string)
     (liii list)
-    (liii pi code args)
+    (liii pi code cli args)
     (liii pi agent tools)
     (liii pi ai message)
     (liii pi code modes output)

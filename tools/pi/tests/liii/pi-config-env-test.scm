@@ -11,8 +11,8 @@
         (liii check)
         (liii string)
         (liii os)
-        (liii pi code args) (liii pi code config) (liii pi code session)
-        (liii pi code args)
+        (liii pi code cli args) (liii pi code config) (liii pi code core session-manager)
+        (liii pi code cli args)
         (liii pi code config))
 
 (check-set-mode! 'report-failed)

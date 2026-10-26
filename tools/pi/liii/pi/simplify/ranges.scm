@@ -10,9 +10,9 @@
     (liii string)
     (liii list)
     (liii path)
-    (liii pi code tools read)
-    (liii pi code tools bash)
-    (liii pi code files)
+    (liii pi code core tools read)
+    (liii pi code core tools bash)
+    (liii pi code utils git)
   ) ;import
   (export pi-parse-changed-ranges
     pi-diff-ranges-command

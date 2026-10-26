@@ -6,8 +6,8 @@
 
 (import (scheme base)
   (liii string)
-  (liii pi code extension)
-  (liii pi code args query)
+  (liii pi code core extensions)
+  (liii pi code cli args query)
   (liii pi simplify modes)
 ) ;import
 

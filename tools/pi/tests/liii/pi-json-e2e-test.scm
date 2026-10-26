@@ -9,7 +9,7 @@
   (liii sys)
   (liii json)
   (liii shutil)
-  (liii pi code session)
+  (liii pi code core session-manager)
 ) ;import
 
 (check-set-mode! 'report-failed)

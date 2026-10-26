@@ -3,11 +3,11 @@
         (liii string)
         (liii json)
         (liii subprocess)
-        (liii pi code extension)
+        (liii pi code core extensions)
         (liii pi web-search execute)
         (liii pi web-search config)
         (liii pi web-search deepseek)
-        (liii pi code tools))
+        (liii pi code core tools))
 
 (check-set-mode! 'report-failed)
 

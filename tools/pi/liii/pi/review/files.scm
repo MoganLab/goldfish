@@ -9,8 +9,8 @@
     (liii string)
     (liii list)
     (liii path)
-    (liii pi code tools read)
-    (liii pi code files)
+    (liii pi code core tools read)
+    (liii pi code utils git)
     (liii pi review language)
   ) ;import
   (export PI_REVIEW_MAX_FILES PI_REVIEW_MAX_FILE_CHARS pi-parse-changed-files

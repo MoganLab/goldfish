@@ -2,7 +2,7 @@
   (liii string)
   (liii pi agent tools)
   (liii pi ai message)
-  (liii pi code tools)
+  (liii pi code core tools)
 )
 
 (check-set-mode! 'report-failed)

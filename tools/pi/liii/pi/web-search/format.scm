@@ -8,8 +8,8 @@
   (import (scheme base)
     (liii string)
     (liii list)
-    (liii pi code tools truncate)
-    (liii pi code tools read)
+    (liii pi code core tools truncate)
+    (liii pi code core tools read)
     (liii pi ai api google-generative-ai grounding)
   ) ;import
   (export pi-format-web-search-result)

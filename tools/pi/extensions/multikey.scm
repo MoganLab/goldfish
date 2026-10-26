@@ -6,7 +6,7 @@
 ;; Licensed under the MIT License
 ;;
 
-(import (scheme base) (liii pi code extension) (liii pi multikey config))
+(import (scheme base) (liii pi code core extensions) (liii pi multikey config))
 
 ;; multikey 扩展：注册 config augmenter，检测 <agent-dir>/multikey.json；
 ;; 命中 provider 对应的密钥池时注入 request-key / rotate-key 钩子，

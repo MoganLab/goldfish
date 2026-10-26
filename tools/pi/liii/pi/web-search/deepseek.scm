@@ -9,7 +9,7 @@
     (liii string)
     (liii list)
     (liii json)
-    (liii pi code tools read)
+    (liii pi code core tools read)
   ) ;import
   (export deepseek-build-search-request-body deepseek-build-fetch-request-body
     deepseek-build-search-endpoint deepseek-build-fetch-endpoint

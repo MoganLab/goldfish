@@ -5,9 +5,9 @@
         (liii os)
         (liii sys)
         (liii subprocess)
-        (liii pi code extension)
+        (liii pi code core extensions)
         (liii pi web-search execute)
-        (liii pi code tools))
+        (liii pi code core tools))
 
 (check-set-mode! 'report-failed)
 

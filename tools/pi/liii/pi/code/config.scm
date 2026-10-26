@@ -15,18 +15,18 @@
     (liii os)
     (liii json)
     (liii error)
-    (liii pi code tools read)
+    (liii pi code core tools read)
     (liii pi ai template)
-    (liii pi code args)
-    (liii pi code tools)
+    (liii pi code cli args)
+    (liii pi code core tools)
     (liii pi ai auth)
     (liii pi ai models)
     (liii pi ai config types)
     (liii pi ai config record)
     (liii pi ai event)
-    (liii pi code extension registry)
-    (liii pi code extension event)
-    (liii pi code compact tokens)
+    (liii pi code core extensions registry)
+    (liii pi code core extensions event)
+    (liii pi code core compaction tokens)
   ) ;import
   (export pi-resolve-config-value json-dict-ref pi-get-agent-dir
     pi-read-json-file pi-load-settings pi-load-compaction-settings
@@ -49,7 +49,7 @@
       ) ;if
     ) ;define
 
-    ;; pi-get-agent-dir 已下沉至 (liii pi code tools read)，此处经 import 再导出
+    ;; pi-get-agent-dir 已下沉至 (liii pi code core tools read)，此处经 import 再导出
 
     (define (pi-read-json-file filepath)
       (and (path-exists? (path filepath))

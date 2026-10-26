@@ -1,6 +1,6 @@
 (import (liii check)
-        (liii pi code config) (liii pi code session)
-        (liii pi code compact))
+        (liii pi code config) (liii pi code core session-manager)
+        (liii pi code core compaction))
 
 (check-set-mode! 'report-failed)
 
