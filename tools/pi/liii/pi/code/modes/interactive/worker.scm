@@ -117,6 +117,8 @@
               (make-tui-emit event-chan)
               (lambda (res-msgs) #t)
               session-file
+              '()
+              #f
             ) ;run-session-flow
           ) ;lambda
           (lambda (tag . err-args)

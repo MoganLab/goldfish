@@ -287,6 +287,18 @@
   ) ;when
 ) ;let
 
+;; 8. CLI 初始 prompt 应按参数顺序依次进入同一个 TUI 会话
+(let* ((vterm (make-virtual-terminal :width 100 :height 40))
+       (received '())
+       (app (make-pi-app :terminal vterm
+              :handler (lambda (a msg) (set! received (cons msg received)))
+            ) ;make-pi-app
+       ) ;app
+      ) ;
+  (pi-app-submit-initial! app "I am a frog" '("who am I"))
+  (check (reverse received) => '("I am a frog" "who am I"))
+) ;let*
+
 (%dbg "[dbg7] ALL-DONE")
 
 (check-report)

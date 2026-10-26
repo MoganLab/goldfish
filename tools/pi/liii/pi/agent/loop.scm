@@ -190,13 +190,16 @@
                (session-timeout 600)
                (compaction #f)
                (request-fn pi-request-provider-stream)
+               (emit-initial? #t)
              ) ;run-agent-loop
       (when (procedure? emit)
         (emit 'agent_start)
         (emit 'turn_start)
-        (for-each (lambda (m) (emit 'message_start m) (emit 'message_end m))
-          initial-messages
-        ) ;for-each
+        (when emit-initial?
+          (for-each (lambda (m) (emit 'message_start m) (emit 'message_end m))
+            initial-messages
+          ) ;for-each
+        ) ;when
       ) ;when
       (let* ((start-sec (pi-current-monotonic-seconds))
              (deadline-sec (if (and (number? session-timeout) (> session-timeout 0))

@@ -121,6 +121,21 @@
       ) ;catch
     ) ;define
 
+    (define (%run-interactive parsed initial-msg rest-msgs)
+      (let* ((info (%tui-footer-info parsed))
+             (app (make-pi-app
+                    :provider          (car info)
+                    :model             (cadr info)
+                    :thinking-level    (caddr info)
+                    :supports-thinking (cadddr info)
+                  ) ;make-pi-app
+             ) ;app
+            ) ;
+        (pi-app-run app initial-msg rest-msgs)
+        0
+      ) ;let*
+    ) ;define
+
     (define (%run-pi-main parsed)
       (let-values (((initial-msg rest-msgs)
                     (build-initial-prompt (and (not (stdin-tty?)) (read-all-stdin))
@@ -141,15 +156,7 @@
                  ) ;and
                  (begin
                    (if (and (stdin-tty?) (stdout-tty?))
-                     (let ((info (%tui-footer-info parsed)))
-                       (pi-app-run (make-pi-app
-                                     :provider          (car info)
-                                     :model             (cadr info)
-                                     :thinking-level    (caddr info)
-                                     :supports-thinking (cadddr info)
-                                   ) ;make-pi-app
-                       ) ;pi-app-run
-                     ) ;let
+                     (%run-interactive parsed "" '())
                      (display-pi-help)
                    ) ;if
                    0
@@ -163,9 +170,12 @@
                               ) ;resolve-app-mode
                         ) ;mode
                        ) ;
-                    (with-extension-registry reg
-                      (lambda () (dispatch-pi parsed mode initial-msg rest-msgs))
-                    ) ;with-extension-registry
+                    (if (eq? mode 'interactive)
+                      (%run-interactive parsed initial-msg rest-msgs)
+                      (with-extension-registry reg
+                        (lambda () (dispatch-pi parsed mode initial-msg rest-msgs))
+                      ) ;with-extension-registry
+                    ) ;if
                   ) ;let
                 ) ;else
           ) ;cond

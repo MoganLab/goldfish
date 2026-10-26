@@ -10,6 +10,6 @@
 (check (resolve-app-mode #f #t #t #t) => 'print)
 (check (resolve-app-mode #f #f #f #t) => 'print)
 (check (resolve-app-mode #f #f #t #f) => 'print)
-(check (resolve-app-mode #f #f #t #t) => 'print)
+(check (resolve-app-mode #f #f #t #t) => 'interactive)
 
 (check-report)

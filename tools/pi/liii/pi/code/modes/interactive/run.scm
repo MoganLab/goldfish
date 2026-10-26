@@ -17,7 +17,7 @@
   ) ;import
   (begin
 
-    (define (pi-app-run app)
+    (define* (pi-app-run app (initial-msg "") (rest-msgs '()))
       (let* ((term (pi-app-term app))
              (screen (pi-app-screen app))
              (ed (pi-app-editor app))
@@ -33,6 +33,7 @@
                         (pi-app-render! app)
                       ) ;lambda
           (lambda ()
+            (pi-app-submit-initial! app initial-msg rest-msgs)
             (let loop
               ()
               ;; 优先轮询来自后台 Worker 的事件流上屏
@@ -115,7 +116,7 @@
           ) ;lambda
         ) ;dynamic-wind
       ) ;let*
-    ) ;define
+    ) ;define*
 
   ) ;begin
 ) ;define-library

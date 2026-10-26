@@ -2,7 +2,11 @@
         (scheme process-context)
         (liii check)
         (liii tui)
+        (liii string)
+        (liii pi ai message)
+        (liii pi agent loop)
         (liii pi code modes interactive)
+        (liii pi code modes interactive worker)
         (liii pi code modes interactive handler)
         (liii pi agent queue))
 
@@ -64,5 +68,27 @@
     ;; 应当有 2 个条目：1) 用户深蓝卡片 2) ↻ 重试卡片
     (check (length chat) => 2)
     (check (pi-queue-idle? (pi-app-queue app)) => #t)))
+
+;; 6. 续会话时历史 assistant 消息的事件重放不得重复上屏，新回复仍需正常显示
+(let* ((old-msg (pi-assistant-message (list (pi-text-block "第一条回复"))))
+       (new-msg (pi-assistant-message (list (pi-text-block "第二条回复"))))
+       (app (make-pi-app :terminal (make-virtual-terminal 80 24)
+              :handler (lambda (a m) #t)
+            ) ;make-pi-app
+       ) ;app
+       (emit (make-tui-emit (pi-app-event-chan app)))
+       (cfg '((provider . "test") (tools . ()) (settings . ())))
+       (request-fn
+         (lambda (provider config msgs sys-prompt tools on-ev timeout) new-msg)
+       ) ;request-fn
+      ) ;
+  (run-agent-loop cfg (list old-msg) "sys" emit 10 5 600 #f request-fn #f)
+  (pi-app-poll-events! app)
+  (let ((text (string-join (map strip-ansi (screen-lines (pi-app-screen app))) "\n")))
+    (check (length (pi-app-chat app)) => 1)
+    (check-true (not (string-contains? text "第一条回复")))
+    (check-true (string-contains? text "第二条回复"))
+  ) ;let
+) ;let*
 
 (check-report)

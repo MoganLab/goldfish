@@ -267,6 +267,19 @@
             (check code => 1)
             (check-true (string-contains? err "Session timeout exceeded"))
           ) ;let*
+          ;; 14. 多条 prompt 必须在同一会话中依次执行，print 只输出最终回复
+          (let* ((cmd (list GF_BIN "pi" "--model" "multi-prompt" "--print"
+                        "I am a frog" "who am I"
+                      ) ;list
+                 ) ;cmd
+                 (res (safe-exec cmd test-env 15000))
+                 (code (car res))
+                 (out (cadr res))
+                ) ;
+            (check code => 0)
+            (check-true (string-contains? out "You are a frog"))
+            (check-true (not (string-contains? out "First prompt received")))
+          ) ;let*
         ) ;lambda
         (lambda () (process-kill proc) (process-close proc))
       ) ;dynamic-wind
