@@ -25,16 +25,21 @@
     (define %fg-user "\x1b;[38;2;230;235;245m")
 
     ;; toolPendingBg: 执行中微蓝暗灰背景
-    (define %bg-pending "\x1b;[48;2;40;42;50m")
+    (define %bg-pending "\x1b;[48;2;52;56;58m")
     (define %fg-pending "\x1b;[38;2;180;185;195m")
 
     ;; toolSuccessBg: 工具执行成功标志性深绿背景
-    (define %bg-success "\x1b;[48;2;35;55;35m")
+    (define %bg-success "\x1b;[48;2;37;65;49m")
     (define %fg-success "\x1b;[38;2;220;245;220m")
 
     ;; toolErrorBg: 工具执行失败警示深红背景
-    (define %bg-error "\x1b;[48;2;60;35;35m")
+    (define %bg-error "\x1b;[48;2;91;40;42m")
     (define %fg-error "\x1b;[38;2;250;210;210m")
+
+    ;; toolTitle: 命令标题亮色加粗前景（text，暗色主题 #dee0e1）
+    (define %fg-title "\x1b;[0;1;38;2;222;224;225m")
+    ;; toolOutput: 输出/计时 muted 前景（#9da5a9）
+    (define %fg-output "\x1b;[38;2;157;165;169m")
 
     ;; 暗淡排队提示
     (define %fg-dim "\x1b;[38;2;130;135;145m")
@@ -177,11 +182,10 @@
       ) ;let
     ) ;define
 
-    ;; Bash 使用上游专用渲染：无状态徽标，输出与计时前后各一个空行。
+    ;; Bash 使用上游专用渲染：无状态徽标，输出与计时前后各一个空行；
+    ;; 命令标题用 toolTitle（亮色加粗），输出/计时用 toolOutput（muted）。
     (define (%render-bash-tool-card st width)
-      (let* ((colors (%tool-colors (%tool-card-status st)))
-             (bg (car colors))
-             (fg (cadr colors))
+      (let* ((bg (car (%tool-colors (%tool-card-status st))))
              (content-width (max 1 (- width 2)))
              (title-lines (wrap-text (format-tool-call (%tool-card-name st) (%tool-card-args st))
                             content-width
@@ -190,16 +194,22 @@
              (result (%tool-card-result st))
              (result-lines (%cached-bash-result-lines st result content-width))
              (timer (%tool-timer-text st))
-             (body (append title-lines
-                     (if (null? result-lines) '() (cons "" result-lines))
-                     (if timer (list "" timer) '())
-                   ) ;append
-             ) ;body
-             (rows
-               (map (lambda (line) (apply-card-bg (string-append " " line) width bg fg)) body)
-             ) ;rows
+             (title-rows
+               (map (lambda (line) (apply-card-bg (string-append " " line) width bg %fg-title))
+                 title-lines
+               ) ;map
+             ) ;title-rows
+             (rest-body (append (if (null? result-lines) '() (cons "" result-lines))
+                          (if timer (list "" timer) '())
+                        ) ;append
+             ) ;rest-body
+             (rest-rows
+               (map (lambda (line) (apply-card-bg (string-append " " line) width bg %fg-output))
+                 rest-body
+               ) ;map
+             ) ;rest-rows
             ) ;
-        (append rows (list ""))
+        (append title-rows rest-rows (list ""))
       ) ;let*
     ) ;define
 

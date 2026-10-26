@@ -114,10 +114,10 @@
   ;; 包含标题行、输出前空行、两行结果、末尾空行隔断，共 5 行
   (check (length rendered) => 5)
   ;; 标题行包含绿色背景色码和 "$ git status -s"
-  (check (string-contains? (car rendered) "48;2;35;55;35") => #t)
+  (check (string-contains? (car rendered) "48;2;37;65;49") => #t)
   (check (string-contains? (car rendered) "$ git status -s") => #t)
   ;; 输出前空行也带有深绿背景并填充至宽度 40
-  (check (string-contains? (cadr rendered) "48;2;35;55;35") => #t)
+  (check (string-contains? (cadr rendered) "48;2;37;65;49") => #t)
   ;; 第三、四行为结果
   (check (string-contains? (caddr rendered) "M a.scm") => #t)
   (check (string-contains? (cadddr rendered) "?? b.scm") => #t))
@@ -127,7 +127,7 @@
        (w 40)
        (rendered (component-render card w)))
   ;; 出错卡片应包含红色背景
-  (check (string-contains? (car rendered) "48;2;60;35;35") => #t)
+  (check (string-contains? (car rendered) "48;2;91;40;42") => #t)
   (check (string-contains? (car rendered) "read missing.txt") => #t)
   (check (string-contains? (cadr rendered) "File not found") => #t))
 

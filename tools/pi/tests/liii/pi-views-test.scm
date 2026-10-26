@@ -25,10 +25,28 @@
       ) ;
   (check (component? tool-card) => #t)
   (check (>= (length lines) 1) => #t)
-  ;; 验证成功状态具有绿色背景 ANSI 转义码 (48;2;35;55;35)
-  (check (string-contains? (car lines) "48;2;35;55;35") => #t)
+  ;; 验证成功状态具有绿色背景 ANSI 转义码 (48;2;37;65;49)
+  (check (string-contains? (car lines) "48;2;37;65;49") => #t)
   ;; 验证输出包含工具名称与成功标识
   (check (string-contains? (car lines) "$ npm test") => #t)
+) ;let*
+
+;; -----------------------------------------------------------------------------
+;; 测试项 2b: bash 工具卡片 - 命令标题与输出使用不同前景色
+;; （对齐 pi：命令 toolTitle 亮色加粗，输出 toolOutput muted）
+;; -----------------------------------------------------------------------------
+(let* ((tool-card (make-tool-card "bash" "npm test" 'success "Tests passed"))
+       (w 50)
+       (lines (component-render tool-card w))
+      ) ;
+  ;; 命令行（首行）使用亮色加粗前景 toolTitle (38;2;222;224;225)
+  (check (string-contains? (car lines) "38;2;222;224;225") => #t)
+  ;; 输出行使用 muted 前景 toolOutput (38;2;157;165;169)
+  (check (string-contains? (list-ref lines 2) "38;2;157;165;169") => #t)
+  ;; 命令行不含 muted 前景色
+  (check-false (string-contains? (car lines) "38;2;157;165;169"))
+  ;; 输出行不含亮色加粗前景色
+  (check-false (string-contains? (list-ref lines 2) "38;2;222;224;225"))
 ) ;let*
 
 ;; -----------------------------------------------------------------------------
@@ -38,8 +56,8 @@
        (w 50)
        (lines (component-render pending-card w))
       ) ;
-  ;; 验证等待状态具有暗灰背景 ANSI 转义码 (48;2;40;42;50)
-  (check (string-contains? (car lines) "48;2;40;42;50") => #t)
+  ;; 验证等待状态具有暗灰背景 ANSI 转义码 (48;2;52;56;58)
+  (check (string-contains? (car lines) "48;2;52;56;58") => #t)
   (check (string-contains? (car lines) "read") => #t)
 ) ;let*
 
@@ -47,8 +65,8 @@
        (w 50)
        (lines (component-render error-card w))
       ) ;
-  ;; 验证出错状态具有深红背景 ANSI 转义码 (48;2;60;35;35)
-  (check (string-contains? (car lines) "48;2;60;35;35") => #t)
+  ;; 验证出错状态具有深红背景 ANSI 转义码 (48;2;91;40;42)
+  (check (string-contains? (car lines) "48;2;91;40;42") => #t)
   (check (string-contains? (car lines) "write") => #t)
 ) ;let*
 
