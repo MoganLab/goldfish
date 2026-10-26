@@ -68,6 +68,18 @@
 ;; 4. sfile 为 #f（--no-session）：静默无操作
 (check-false (append-bash-execution! #f "cmd" "out" 0))
 
+;; 5. Windows 风格反斜杠 cwd：header 行为合法 JSON，读回不丢失（回归）
+(let* ((tmp (path->string (path-join (path-temp-dir) "pi-bash-exec-header-win.jsonl")))
+      ) ;
+  (when (file-exists? tmp) (delete-file tmp))
+  (save-session-header! tmp "win-sid" "2026-01-01T00:00:00.000Z" "D:\\a\\goldfish\\tools\\pi")
+  (let ((entries (pi-read-session-entries tmp)))
+    (check (length entries) => 1)
+    (check (cdr (assoc "type" (car entries))) => "session")
+    (check (cdr (assoc "cwd" (car entries))) => "D:\\a\\goldfish\\tools\\pi")
+  ) ;let
+) ;let*
+
 ;; ============================================================
 ;; 二、长输出截断：复用 bash 工具的保尾 2000 行策略
 ;; ============================================================

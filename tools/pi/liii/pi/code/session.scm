@@ -246,15 +246,18 @@
       ) ;let
     ) ;define
 
+    ;; header 用 json->string 构造：cwd 在 Windows 上含反斜杠，
+    ;; 手工拼接会产生 \\a、\\g 等非法 JSON 转义导致 header 行读回时被丢弃
     (define (save-session-header! file-path session-id timestamp-iso cwd)
-      (let ((header (string-append "{\"type\":\"session\",\"version\":3,\"id\":\""
-                      session-id "\",\"timestamp\":\"" timestamp-iso
-                      "\",\"cwd\":\"" cwd "\"}"
-                    ) ;string-append
-            ) ;header
-           ) ;
-        (append-session-entry! file-path header)
-      ) ;let
+      (append-session-entry! file-path
+        (json->string (list (cons "type" "session")
+                        (cons "version" 3)
+                        (cons "id" session-id)
+                        (cons "timestamp" timestamp-iso)
+                        (cons "cwd" cwd)
+                      ) ;list
+        ) ;json->string
+      ) ;append-session-entry!
     ) ;define
 
     (define (save-session-message! file-path message-json-str id parent-id timestamp-iso)

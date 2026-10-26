@@ -47,8 +47,10 @@
          (msgs (pi-project-session-messages entries))
         ) ;
     ;; 1. 会话文件已创建且三次落盘全部成功：header + 3 条 bashExecution
+    ;;    （首条为 session header——回归覆盖 Windows 反斜杠 cwd 转义）
     (check-true (string? sfile))
     (check (length entries) => 4)
+    (check (cdr (assoc "type" (car entries))) => "session")
     (check (length msgs) => 3)
     (check (pi-message-role (car msgs)) => "user")
     (check-true (string-contains? (pi-user-message-content (car msgs)) "Ran `echo hi`")
