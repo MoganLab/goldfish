@@ -49,10 +49,19 @@
     ) ;define
 
     ;; 创建缓存条目（空文件）；按需创建父目录。
+    ;; 并发安全：多个 worker 并行 touch 相同内容（相同哈希 → 相同缓存目录）时，
+    ;; mkdir 的检查-创建窗口可能被其他 worker 抢先；目录已被并发创建则视为成功。
     (define (goldtool-cache-touch file-path)
       (let* ((cache file-path) (cache-dir (path->string (path-parent (path cache)))))
         (unless (path-dir? (path cache-dir))
-          (mkdir cache-dir)
+          (catch #t
+            (lambda () (mkdir cache-dir))
+            (lambda (tag info)
+              (unless (path-dir? (path cache-dir))
+                (apply error (list tag info))
+              ) ;unless
+            ) ;lambda
+          ) ;catch
         ) ;unless
         (path-touch (path cache))
       ) ;let*
