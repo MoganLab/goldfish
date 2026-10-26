@@ -18,6 +18,13 @@
   ) ;if
 ) ;define
 
+(define session-dir-fixture-dir
+  (if (file-exists? "tests/fixtures/default")
+    "tests/fixtures/session-dir"
+    "tools/pi/tests/fixtures/session-dir"
+  ) ;if
+) ;define
+
 (let ((settings (pi-load-settings fixture-dir)))
   (check-true (pi-settings? settings))
   (check (pi-settings-default-provider settings) => "google")
@@ -59,5 +66,14 @@
                 (pi-resolve-retry-params settings #f)))
     (check max-retries => 3)
     (check provider-max-retries => 12)))
+
+;; sessionDir 设置项：读取原始字符串（~ 与相对路径在会话目录解析时展开）
+(let ((settings (pi-load-settings session-dir-fixture-dir)))
+  (check (pi-settings-session-dir settings) => "/tmp/session-dir-fixture")
+  (check (cdr (assoc 'session-dir settings)) => "/tmp/session-dir-fixture"))
+
+;; 无 sessionDir 键时保持 #f
+(let ((settings (pi-load-settings fixture-dir)))
+  (check (pi-settings-session-dir settings) => #f))
 
 (check-report)

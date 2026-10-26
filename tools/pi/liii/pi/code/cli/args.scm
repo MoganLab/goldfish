@@ -49,6 +49,7 @@
         (cons 'max-turns 200)
         (cons 'timeout #f)
         (cons 'session-timeout #f)
+        (cons 'session-dir #f)
         (cons 'no-session #f)
         (cons 'continue #f)
         (cons 'compact #f)
@@ -183,6 +184,7 @@
             ((and (string=? arg "--session-timeout") next-arg)
              (values 'session-timeout (string->number next-arg) 2)
             ) ;
+            ((and (string=? arg "--session-dir") next-arg) (values 'session-dir next-arg 2))
             ((and (string=? arg "--system-prompt") next-arg)
              (values 'system-prompt next-arg 2)
             ) ;

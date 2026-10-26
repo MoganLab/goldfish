@@ -13,11 +13,12 @@
     pi-settings-default-model pi-settings-default-thinking-level
     pi-settings-http-proxy pi-settings-retry pi-settings-default-tools
     pi-settings->alist pi-credential pi-credential? pi-credential-provider
-    pi-credential-key pi-credential-type pi-credential->alist pi-model-metadata
-    pi-model-metadata? pi-model-metadata-id pi-model-metadata-name
-    pi-model-metadata-provider pi-model-metadata-base-url
-    pi-model-metadata-context-window pi-model-metadata-max-tokens
-    pi-model-metadata-matched? pi-model-metadata->alist
+    pi-settings-session-dir pi-credential-key pi-credential-type
+    pi-credential->alist pi-model-metadata pi-model-metadata?
+    pi-model-metadata-id pi-model-metadata-name pi-model-metadata-provider
+    pi-model-metadata-base-url pi-model-metadata-context-window
+    pi-model-metadata-max-tokens pi-model-metadata-matched?
+    pi-model-metadata->alist
   ) ;export
   (begin
 
@@ -53,6 +54,7 @@
                (http-proxy #f)
                (retry #f)
                (default-tools #f)
+               (session-dir #f)
              ) ;pi-settings
       (%make-pi-settings default-provider
         default-model
@@ -60,6 +62,7 @@
         http-proxy
         (or retry (pi-retry-config))
         default-tools
+        session-dir
       ) ;%make-pi-settings
     ) ;define*
 
@@ -72,6 +75,7 @@
           (cons 'http-proxy (pi-settings-http-proxy s))
           (cons 'retry (pi-settings-retry s))
           (cons 'default-tools (pi-settings-default-tools s))
+          (cons 'session-dir (pi-settings-session-dir s))
         ) ;list
       ) ;if
     ) ;define

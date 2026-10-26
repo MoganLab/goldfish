@@ -103,6 +103,7 @@
           clean-proxy
           (%build-retry-record (json-dict-ref obj "retry" '()))
           (%parse-tools-list (json-dict-ref obj "defaultTools" #f))
+          (json-dict-ref obj "sessionDir" #f)
         ) ;%make-pi-settings
       ) ;let*
     ) ;define

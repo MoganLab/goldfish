@@ -58,4 +58,17 @@
 (check (cdr (assoc 'default-tools test-settings)) => '("read" "bash"))
 (check (cdr (assoc "default-tools" test-settings)) => '("read" "bash"))
 
+;; session-dir 字段（--session-dir / PI_CODING_AGENT_SESSION_DIR / sessionDir 设置）
+;; 默认 #f；构造时可指定；assoc 兼容访问
+(check (pi-settings-session-dir test-settings) => #f)
+(check (cdr (assoc 'session-dir test-settings)) => #f)
+
+(define test-settings-sd
+  (pi-settings "google" "gemini-3.8-flash" "medium" "http://proxy:8080"
+    test-retry '("read" "bash") "/tmp/my-sessions"))
+
+(check (pi-settings-session-dir test-settings-sd) => "/tmp/my-sessions")
+(check (cdr (assoc 'session-dir test-settings-sd)) => "/tmp/my-sessions")
+(check (cdr (assoc "session-dir" test-settings-sd)) => "/tmp/my-sessions")
+
 (check-report)

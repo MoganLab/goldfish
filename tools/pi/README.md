@@ -96,6 +96,11 @@ timeout 300 bin/gf pi -p "记住暗号：金鱼42号"
 timeout 300 bin/gf pi -c -p "刚才的暗号是什么？"
 timeout 300 bin/gf pi -c -p "继续上一轮的话题"
 
+# 指定会话存储目录（优先级：--session-dir > PI_CODING_AGENT_SESSION_DIR
+# > settings.json 的 sessionDir > 默认 <agent-dir>/sessions/<encoded-cwd>/）
+timeout 300 bin/gf pi --session-dir ~/my-sessions -p "记住暗号：金鱼42号"
+timeout 300 bin/gf pi --session-dir ~/my-sessions -c -p "刚才的暗号是什么？"
+
 # 纯内存运行，不写盘
 timeout 300 bin/gf pi --no-session -p "一次性问题"
 ```
