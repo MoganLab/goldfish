@@ -4,6 +4,7 @@
         (liii string)
         (liii list)
         (liii path)
+        (liii go)
         (liii shutil)
         (liii pi ai message)
         (liii pi code args)
@@ -25,10 +26,12 @@
        (parsed (parse-pi-args '()))
        (cfg (resolve-pi-config parsed env))
        (box (vector #f))
+       ;; 错误事件通道：record 分支失败时经此上报，便于诊断
+       (err-chan (make-chan 16))
       ) ;
 
   ;; 1. 第一条 bash_record 任务：惰性创建会话文件并写入 bashExecution 条目
-  (pi-worker-handle-job (list 'bash_record "echo hi" "hi" 0) parsed cfg box #f #f)
+  (pi-worker-handle-job (list 'bash_record "echo hi" "hi" 0) parsed cfg box err-chan #f)
   (let* ((sfile (vector-ref box 0))
          (entries (pi-read-session-entries sfile))
          (msgs (pi-project-session-messages entries))
@@ -42,7 +45,7 @@
   ) ;let*
 
   ;; 2. 第二条 bash_record 任务：复用同一会话文件（TUI 会话连续性）
-  (pi-worker-handle-job (list 'bash_record "echo yo" "yo" 0) parsed cfg box #f #f)
+  (pi-worker-handle-job (list 'bash_record "echo yo" "yo" 0) parsed cfg box err-chan #f)
   (let* ((sfile2 (vector-ref box 0))
          (entries (pi-read-session-entries sfile2))
          (msgs (pi-project-session-messages entries))
@@ -54,8 +57,11 @@
   ) ;let*
 
   ;; 3. 第三条 bash_record：继续复用同一会话文件，不新建
-  (pi-worker-handle-job (list 'bash_record "true" "" 0) parsed cfg box #f #f)
+  (pi-worker-handle-job (list 'bash_record "true" "" 0) parsed cfg box err-chan #f)
   (check (length (pi-read-session-entries (vector-ref box 0))) => 4)
+
+  ;; 4. 全程无错误事件：三次落盘（含重试兜底）均成功
+  (check (chan-try-recv! err-chan #f) => #f)
 ) ;let*
 
 (check-report)
