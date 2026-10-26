@@ -58,15 +58,16 @@
     (liii goldcheck config)
     (liii goldcheck rules)
     (liii goldcheck record-export)
+    (liii goldcheck no-glue)
     (liii goldcheck layer)
     (liii goldcheck collect)
     (liii goldcheck only)
     (liii goldcheck cache)
     (liii goldcheck report)
   ) ;import
-  (export main check-file-lines check-tree-depth check-file check-files
-    make-check-arg-parser format-violation display-help violation-report-lines
-    violation-display-hint
+  (export main check-file-lines check-tree-depth check-no-glue check-file
+    check-files make-check-arg-parser format-violation display-help
+    violation-report-lines violation-display-hint
   ) ;export
   (begin
 
@@ -165,6 +166,16 @@
       ) ;if
     ) ;define
 
+    (define (check-file-rule-no-glue file-path cfg acc)
+      (if (check-rule-enabled? cfg "no-glue")
+        (if (file-excluded? file-path (check-rule-excludes cfg "no-glue"))
+          acc
+          (append acc (check-no-glue file-path))
+        ) ;if
+        acc
+      ) ;if
+    ) ;define
+
     (define (check-file file-path cfg)
       "检查单个文件是否违反启用的度量规则。"
       (let* ((acc1 (check-file-rule-lines file-path cfg '()))
@@ -172,32 +183,48 @@
              (acc3 (check-file-rule-record-export file-path cfg acc2))
              (acc4 (check-file-rule-layer file-path cfg acc3))
              (acc5 (check-file-rule-no-crlf file-path cfg acc4))
+             (acc6 (check-file-rule-no-glue file-path cfg acc5))
             ) ;
-        (reverse acc5)
+        (reverse acc6)
       ) ;let*
     ) ;define
 
     (define (check-files file-vector cfg)
-      "检查文件向量，vector-par-map 并行检查且保序，返回违规项向量。\ncfg 是 JSON alist（含点对），无法作为捕获变量运输到 worker 会话，\n故序列化为 JSON 字符串捕获，worker 内用 string->json 重建。"
-      (let ((cfg-text (if cfg (json->string cfg) "")))
-        (vector-concatenate
-          (vector->list
-            (vector-map list->vector
-              (vector-par-map
-                (lambda (f)
-                  (check-file f (if (string=? cfg-text "") #f (string->json cfg-text)))
-                ) ;lambda
-                file-vector
-              ) ;vector-par-map
-            ) ;vector-map
-          ) ;vector->list
-        ) ;vector-concatenate
-      ) ;let
+      "检查文件向量并行执行单文件规则，并检查跨文件 no-glue 唯一归属。"
+      (let* ((cfg-text (if cfg (json->string cfg) ""))
+             (violations
+               (vector-concatenate
+                 (vector->list
+                   (vector-map list->vector
+                     (vector-par-map
+                       (lambda (f)
+                         (check-file f (if (string=? cfg-text "") #f (string->json cfg-text)))
+                       ) ;lambda
+                       file-vector
+                     ) ;vector-par-map
+                   ) ;vector-map
+                 ) ;vector->list
+               ) ;vector-concatenate
+             ) ;violations
+            ) ;
+        (if (check-rule-enabled? cfg "no-glue")
+          (let ((files
+                  (filter
+                    (lambda (f) (not (file-excluded? f (check-rule-excludes cfg "no-glue"))))
+                    (vector->list file-vector)
+                  ) ;filter
+                ) ;files
+               ) ;
+            (vector-append violations (list->vector (check-no-glue-duplicates files)))
+          ) ;let
+          violations
+        ) ;if
+      ) ;let*
     ) ;define
 
     (define %all-rule-names
       '("max-file-lines" "max-tree-depth" "define-record-type" "layer-order"
-        "no-crlf")
+        "no-crlf" "no-glue")
     ) ;define
 
     (define (%rule-with-enabled rule enabled)
@@ -241,13 +268,14 @@
     ) ;define
 
     (define (run-rule-check files cfg rule-name)
-      "对一堆文件执行单个规则检查，返回 (rule-name ok? elapsed violations)。"
+      "执行单个规则检查，返回 (rule-name ok? elapsed violations)。"
       (let ((single-cfg (single-rule-config cfg rule-name))
             (limit (cond ((string=? rule-name "max-file-lines") (check-rule-limit cfg rule-name))
                          ((string=? rule-name "max-tree-depth") (check-rule-limit cfg rule-name))
                          ;; 内容哈希缓存键段：无阈值规则用 0 占位
                          ((string=? rule-name "define-record-type") 0)
                          ((string=? rule-name "no-crlf") 0)
+                         ((string=? rule-name "no-glue") #f)
                          (else #f)
                    ) ;cond
             ) ;limit
@@ -275,6 +303,39 @@
       ) ;let
     ) ;define
 
+    (define (filter-result-files result files)
+      (let* ((violations
+               (list->vector
+                 (filter (lambda (v) (member (cadr v) files string=?))
+                   (vector->list (cadddr result))
+                 ) ;filter
+               ) ;list->vector
+             ) ;violations
+            ) ;
+        (list (car result) (zero? (vector-length violations)) (caddr result) violations)
+      ) ;let*
+    ) ;define
+
+    (define (only-rule-result parser cfg only files)
+      (let* ((rule-files (if (string=? only "no-crlf") (resolve-no-crlf-files parser cfg) files)
+             ) ;rule-files
+             (incremental-global? (and (string=? only "no-glue") (parser 'changed-since)))
+             (analysis-files (if incremental-global? (collect-repo-files) rule-files))
+             (result (run-rule-check analysis-files cfg only))
+            ) ;
+        (if incremental-global? (filter-result-files result rule-files) result)
+      ) ;let*
+    ) ;define
+
+    (define (configured-rule-result parser cfg rule files no-crlf-files)
+      (cond ((string=? rule "no-crlf") (run-rule-check no-crlf-files cfg rule))
+            ((and (string=? rule "no-glue") (parser 'changed-since))
+             (filter-result-files (run-rule-check (collect-repo-files) cfg rule) files)
+            ) ;
+            (else (run-rule-check files cfg rule))
+      ) ;cond
+    ) ;define
+
     (define (main)
       (set-goldtool-jobs! (go-worker-count))
       (let ((parser (make-check-arg-parser)))
@@ -290,22 +351,15 @@
                  (files (resolve-target-files parser))
                 ) ;
             (if only
-              (let* ((rule-files (if (string=? only "no-crlf") (resolve-no-crlf-files parser cfg) files)
-                     ) ;rule-files
-                     (result (run-rule-check rule-files cfg only))
-                    ) ;
+              (let ((result (only-rule-result parser cfg only files)))
                 (display-rule-result result)
                 (report-and-exit (cadddr result) (caddr result))
-              ) ;let*
+              ) ;let
               (let* ((rules (enabled-rule-names cfg0))
                      (no-crlf-files (resolve-no-crlf-files parser cfg0))
-                     (results
-                       (map
-                         (lambda (rule)
-                           (run-rule-check (if (string=? rule "no-crlf") no-crlf-files files) cfg0 rule)
-                         ) ;lambda
-                         rules
-                       ) ;map
+                     (results (map (lambda (rule) (configured-rule-result parser cfg0 rule files no-crlf-files))
+                                rules
+                              ) ;map
                      ) ;results
                      (all-violations (vector-concatenate (map cadddr results)))
                      (total-elapsed (apply + (map caddr results)))

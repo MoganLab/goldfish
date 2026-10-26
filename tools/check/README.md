@@ -21,7 +21,14 @@ gf check [options] [PATH...]
    - 默认上限：单个顶级表达式的最大括号嵌套深度不得超过 15 层（基于 `(liii tree)` 的 `(tree-depth expr)` 度量）
    - 引导开发者提取辅助过程、使用 `(liii match)` 模式匹配、管道流扁平化深层嵌套，降低认知负荷
 
-3. **define-record-type**：记录类型句法标识导出限制
+3. **no-glue**：底层胶水接口封装约束
+   - `g_xxx` 只能出现在唯一一个 `define-library` 中，不得出现在测试、脚本等库外代码
+   - 同一库可以多次使用该 glue，但其他库不得重复封装
+   - 同一库必须定义并导出对应的公开接口 `xxx`，不得直接导出 `g_xxx`
+   - 名称映射仅删除 `g_` 前缀，不转换下划线、连字符或谓词后缀
+   - 跨库唯一性基于全仓分析；`--changed-since` 仅过滤最终报告
+
+4. **define-record-type**：记录类型句法标识导出限制
    - R7RS/SRFI 9 中 `(define-record-type <t> ...)` 的 `<t>` 仅是句法标识，不对应运行时绑定
    - `<xxx>` 形状的符号不得出现在 `(export ...)` 中（含 `rename` 内外两个位置，转发导出同样违规）
    - 禁止 `(define <xxx> '<xxx>)` 占位定义
@@ -31,6 +38,7 @@ gf check [options] [PATH...]
 
 - `-h, --help`: 显示帮助信息
 - `--changed-since REV`: 仅检查自 git 提交 `REV` 以来发生变更的 `.scm` 文件
+- `--only RULE`: 只执行指定规则，例如 `--only no-glue`
 
 ## Arguments
 
@@ -49,6 +57,9 @@ gf check --changed-since=main
 # 检查指定单文件
 gf check goldfish/liii/os.scm
 
+# 只检查 glue 封装约束
+gf check --only no-glue
+
 # 递归检查指定目录
 gf check goldfish/liii/
 ```
@@ -62,7 +73,8 @@ gf check goldfish/liii/
   "goldfish_version": "18.11",
   "rules": {
     "max-file-lines": { "enabled": true, "limit": 400 },
-    "max-tree-depth": { "enabled": true, "limit": 15 }
+    "max-tree-depth": { "enabled": true, "limit": 15 },
+    "no-glue": { "enabled": true }
   },
   "exclude": [
     { "path": "goldfish/srfi/", "reason": "官方标准规范实现优先保证完整性与对照性" },

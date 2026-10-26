@@ -39,6 +39,7 @@
                 (string=? name "define-record-type")
                 (string=? name "layer-order")
                 (string=? name "no-crlf")
+                (string=? name "no-glue")
               ) ;or
         (value-error "unknown rule: ~A" name)
       ) ;unless

@@ -17,6 +17,7 @@
 (define-library (liii goldcheck collect)
   (import (scheme base)
     (liii base)
+    (liii list)
     (liii path)
     (liii string)
     (liii goldtool changed)
