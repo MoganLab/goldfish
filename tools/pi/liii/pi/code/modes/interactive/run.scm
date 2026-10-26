@@ -41,7 +41,7 @@
               (let ((k (terminal-poll-key term)))
                 (cond
                   ;; Ctrl+C：仅清空输入框，从不退出、也不中断正在跑的任务。
-                  ((eq? k 'ctrl-c)
+                  ((and (not (pi-app-active-selector app)) (eq? k 'ctrl-c))
                    (unless (string-null? (editor-text ed))
                      (editor-set-text! ed "")
                    ) ;unless
@@ -49,12 +49,14 @@
                    (loop)
                   ) ;
                   ;; Ctrl+D：仅在输入框为空时退出（EOF 语义），有内容时无操作
-                  ((eq? k 'ctrl-d) (if (string-null? (editor-text ed)) #t (loop)))
+                  ((and (not (pi-app-active-selector app)) (eq? k 'ctrl-d))
+                   (if (string-null? (editor-text ed)) #t (loop))
+                  ) ;
                   ;; 按 Escape 时（对齐上游 pi 的 onEscape）：
                   ;; busy：发 abort 信号中断正在进行的任务（worker 检查点
                   ;;   探测后以 aborted 结算）；队列空闲：仅撤回至 editor，
                   ;;   两种情况下都把排队消息恢复到编辑器重新编辑，不退出 TUI
-                  ((eq? k 'escape)
+                  ((and (not (pi-app-active-selector app)) (eq? k 'escape))
                    (when (pi-queue-busy? q)
                      ;; 非阻塞发送：容量 1，丢弃旧信号也无所谓（语义同为中止）
                      (chan-send! (pi-app-abort-chan app) 'abort 0)
@@ -69,7 +71,11 @@
                   ) ;
                   ;; 按 shift+tab 时：循环切换 thinking level，
                   ;; footer 右下角标签与编辑器边框/Working 颜色同步更新
-                  ((eq? k 'shift-tab) (pi-app-cycle-thinking! app) (pi-app-render! app) (loop))
+                  ((and (not (pi-app-active-selector app)) (eq? k 'shift-tab))
+                   (pi-app-cycle-thinking! app)
+                   (pi-app-render! app)
+                   (loop)
+                  ) ;
                   ;; 按 ctrl+o 时：全局切换 bash/工具输出卡片的展开与折叠
                   ((eq? k 'ctrl-o) (pi-app-toggle-tool-output! app) (pi-app-render! app) (loop))
                   ((not k)
@@ -78,7 +84,10 @@
                    (sleep 0.01)
                    (loop)
                   ) ;
-                  (else (component-handle-input ed k) (pi-app-render! app) (loop))
+                  (else (component-handle-input (or (pi-app-active-selector app) ed) k)
+                    (pi-app-render! app)
+                    (loop)
+                  ) ;else
                 ) ;cond
               ) ;let
             ) ;let

@@ -12,8 +12,8 @@
     pi-app-jobs-chan pi-app-event-chan pi-app-abort-chan pi-app-poll-events!
     pi-app-working pi-app-working-tick! pi-app-thinking-level
     pi-app-supports-thinking? pi-app-cycle-thinking! pi-app-bash-mode?
-    pi-app-tools-expanded? pi-app-toggle-tool-output! pi-app-bash-jobs-chan
-    pi-app-run-bash!
+    pi-app-active-selector pi-app-default-thinking-level pi-app-tools-expanded?
+    pi-app-toggle-tool-output! pi-app-bash-jobs-chan pi-app-run-bash!
   ) ;export
   (import (scheme base)
     (liii base)
@@ -34,6 +34,7 @@
     (liii pi code modes interactive app-bash)
     (liii pi code modes interactive app-name)
     (liii pi code modes interactive app-session)
+    (liii pi code modes interactive app-thinking)
     (liii pi code modes interactive app-submit)
     (liii pi code modes interactive common)
     (liii pi code modes interactive header)
@@ -229,7 +230,8 @@
     (define (pi-app-submit! app text)
       (let ((clean (string-trim text)))
         (unless (string-null? clean)
-          (cond ((pi-app-session-command? clean) (pi-app-submit-session! app))
+          (cond ((pi-app-thinking-command? clean) (pi-app-submit-thinking! app clean))
+                ((pi-app-session-command? clean) (pi-app-submit-session! app))
                 ((pi-app-name-command? clean) (pi-app-submit-name! app clean))
                 (else
                   ;; bash 模式：!cmd 直接经 bash 执行（对齐 pi 的 !/!! 前缀行为）；
@@ -270,21 +272,6 @@
       (for-each (lambda (msg) (pi-app-submit! app msg)) rest-msgs)
     ) ;define
 
-    ;; shift+tab 会话内循环切换 thinking level（对齐上游 pi 的 app.thinking.cycle）：
-    ;; 同步 footer 右下角标签与编辑器边框/Working spinner 颜色；
-    ;; 模型不支持 reasoning 时返回 #f 且状态不变
-    (define (pi-app-cycle-thinking! app)
-      (if (pi-app-supports-thinking? app)
-        (let ((next (pi-next-thinking-level (pi-app-thinking-level app))))
-          (%pi-app-thinking-level-set! app next)
-          (pi-footer-set-thinking-level! (%pi-app-footer app) next)
-          (editor-set-border-color! (pi-app-editor app) (pi-thinking-border-color next))
-          next
-        ) ;let
-        #f
-      ) ;if
-    ) ;define
-
     ;; 参数名与调用侧关键字一一对应（:terminal/:handler/:bash-handler/:record-sink 等）
     (define* (make-pi-app (terminal #f)
                (handler #f)
@@ -294,6 +281,9 @@
                (model #f)
                (thinking-level #f)
                (supports-thinking #t)
+               (available-thinking-levels #f)
+               (default-thinking-level #f)
+               (on-save-thinking-level #f)
                (session-name #f)
              ) ;make-pi-app
       (let* ((actual-term (or terminal (make-standard-terminal :inline #t)))
@@ -304,6 +294,11 @@
              (doc (make-container))
              (branch (detect-git-branch))
              (tl (or thinking-level "off"))
+             (available-levels (or available-thinking-levels
+                                 (if supports-thinking pi-thinking-levels '("off"))
+                               ) ;or
+             ) ;available-levels
+             (default-level (or default-thinking-level tl))
              (footer (make-pi-footer
                        :branch            branch
                        :provider          provider
@@ -335,6 +330,7 @@
                     chat
                     pending-box
                     #f
+                    #f
                     footer
                     queue
                     handler
@@ -344,6 +340,9 @@
                     (make-working-indicator)
                     tl
                     supports-thinking
+                    available-levels
+                    default-level
+                    on-save-thinking-level
                     #f
                     #f
                     '()

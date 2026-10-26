@@ -29,11 +29,12 @@
     (liii pi code core compaction tokens)
   ) ;import
   (export pi-resolve-config-value json-dict-ref pi-get-agent-dir
-    pi-read-json-file pi-load-settings pi-load-compaction-settings
-    pi-resolve-proxy-url pi-load-auth pi-resolve-provider-key
-    pi-load-models-store pi-load-models-json pi-merge-models-json-into-store
-    pi-resolve-model-metadata resolve-pi-config resolve-goldpi-config
-    resolve-active-tools pi-missing-credential-msg augment-pi-config
+    pi-read-json-file pi-load-settings pi-save-default-thinking-level!
+    pi-load-compaction-settings pi-resolve-proxy-url pi-load-auth
+    pi-resolve-provider-key pi-load-models-store pi-load-models-json
+    pi-merge-models-json-into-store pi-resolve-model-metadata resolve-pi-config
+    resolve-goldpi-config resolve-active-tools pi-missing-credential-msg
+    augment-pi-config
   ) ;export
   (begin
 
@@ -105,6 +106,29 @@
           (%parse-tools-list (json-dict-ref obj "defaultTools" #f))
           (json-dict-ref obj "sessionDir" #f)
         ) ;%make-pi-settings
+      ) ;let*
+    ) ;define
+
+    (define (pi-save-default-thinking-level! agent-dir level)
+      (let* ((filepath (path->string (path-join (path agent-dir) (path "settings.json"))))
+             (settings (or (pi-read-json-file filepath) '()))
+             (updated
+               (cons (cons "defaultThinkingLevel" level)
+                 (filter
+                   (lambda (entry)
+                     (not (or (equal? (car entry) "defaultThinkingLevel")
+                            (equal? (car entry) 'defaultThinkingLevel)
+                          ) ;or
+                     ) ;not
+                   ) ;lambda
+                   settings
+                 ) ;filter
+               ) ;cons
+             ) ;updated
+            ) ;
+        (path-mkdir agent-dir :parents #t :exist-ok #t)
+        (path-write-text filepath (string-append (json->string updated) "\n"))
+        level
       ) ;let*
     ) ;define
 
