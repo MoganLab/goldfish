@@ -65,10 +65,10 @@
   (component-handle-input editor 'enter)
   (pi-app-render! app)
   (let ((lines (screen-lines screen)))
-    ;; 追加了用户卡片与助手回复卡片（各占内容行与间隔空行）
-    (check (length lines) => 15)
-    (check-true (string-contains? (list-ref lines 6) "ping"))
-    (check-true (string-contains? (list-ref lines 8) "处理完成: ping"))
+    ;; 用户卡片为 4 行（背景空行 + 正文 + 背景空行 + spacer），助手卡片 2 行
+    (check (length lines) => 17)
+    (check-true (string-contains? (list-ref lines 7) "ping"))
+    (check-true (string-contains? (list-ref lines 10) "处理完成: ping"))
     ;; Editor 恢复为空
     (check (editor-text editor) => "")
   ) ;let
@@ -141,44 +141,44 @@
   (pi-app-render! app)
 
   ;; Header: 6行 (0..5)
-  ;; User Card: 2行 (6..7)
-  ;; Assistant Card: 4行内容 + 1空行 = 5行 (8..12)
-  ;; Editor Top-Border: 行 13
-  ;; Editor Content: 行 14
-  ;; Editor Bottom-Border: 行 15
-  ;; Footer: 行 16..17
-  ;; 光标应位于输入行 (0, 14)，绝不能因 \n 漏算而向上漂移
-  (check (terminal-cursor vterm) => '(0 14))
+  ;; User Card: 4行 (6..9)：背景空行 + 正文 + 背景空行 + spacer
+  ;; Assistant Card: 5行 (10..14)
+  ;; Editor Top-Border: 行 15
+  ;; Editor Content: 行 16
+  ;; Editor Bottom-Border: 行 17
+  ;; Footer: 行 18..19
+  ;; 光标应位于输入行 (0, 16)，绝不能因 \n 漏算而向上漂移
+  (check (terminal-cursor vterm) => '(0 16))
 
   ;; 第二轮输入文本 "测试第二轮"
   (component-handle-input editor "测试第二轮")
   (pi-app-render! app)
-  ;; 5个汉字，物理列宽 10，行号仍为 14
-  (check (terminal-cursor vterm) => '(10 14))
+  ;; 5个汉字，物理列宽 10，行号仍为 16
+  (check (terminal-cursor vterm) => '(10 16))
 
   ;; 按回车提交第二轮
   (component-handle-input editor 'enter)
   (pi-app-render! app)
-  ;; 第二轮用户卡片追加 2 行 (行 13..14)，输入行平移至行 16
-  (check (terminal-cursor vterm) => '(0 16))
+  ;; 第二轮用户卡片追加 4 行 (行 15..18)，输入行平移至行 20
+  (check (terminal-cursor vterm) => '(0 20))
 
   ;; 模拟第二轮助手完成回复
   (pi-app-add-assistant-text! app "第二轮回复：已完成测试")
   (pi-app-render! app)
-  ;; Assistant 2 追加 2 行 (行 15..16)，输入行平移至行 18
-  (check (terminal-cursor vterm) => '(0 18))
+  ;; Assistant 2 追加 2 行 (行 19..20)，输入行平移至行 22
+  (check (terminal-cursor vterm) => '(0 22))
 
   ;; 第三轮输入 "第三轮验证"
   (component-handle-input editor "第三轮验证")
   (pi-app-render! app)
-  ;; 5个中文字符，物理宽度 10，行号 18
-  (check (terminal-cursor vterm) => '(10 18))
+  ;; 5个中文字符，物理宽度 10，行号 22
+  (check (terminal-cursor vterm) => '(10 22))
 
   ;; 按退格键删除 2 个字（剩 "第三轮"，物理宽度 6）
   (component-handle-input editor 'backspace)
   (component-handle-input editor 'backspace)
   (pi-app-render! app)
-  (check (terminal-cursor vterm) => '(6 18))
+  (check (terminal-cursor vterm) => '(6 22))
   (check (editor-text editor) => "第三轮")
 ) ;let*
 

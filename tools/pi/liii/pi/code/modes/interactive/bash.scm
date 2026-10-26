@@ -33,7 +33,8 @@
     ;; !! 排除卡片用暗色（对齐 pi colorKey "dim"：结果不进入模型上下文）
     (define pi-bash-dim-border-color "\x1b;[38;2;126;136;142m")
     (define %fg-muted "\x1b;[38;2;157;165;169m")
-    (define %fg-error "\x1b;[38;2;235;106;106m")
+    ;; error (#ea7f81 = okhsl(20 72% 67%))
+    (define %fg-error "\x1b;[38;2;234;127;129m")
     (define %fg-key "\x1b;[38;2;126;136;142m")
     (define %bold-green "\x1b;[0;1;38;2;94;178;134m")
     (define %bold-dim "\x1b;[0;1;38;2;126;136;142m")

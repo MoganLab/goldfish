@@ -19,28 +19,42 @@
   ) ;import
   (begin
 
-    ;; ANSI 颜色常量（严格对应 pi 交互主题体系）
-    ;; userMessageBg: 深蓝背景
-    (define %bg-user "\x1b;[48;2;38;44;64m")
-    (define %fg-user "\x1b;[38;2;230;235;245m")
+    ;; ANSI 颜色常量（严格对应 pi dark 主题 dark.json 的 okhsl 精确换算值）
+    ;; userMessageBg: 深蓝背景 (#213b49 = okhsl(233 41% 24%))
+    (define %bg-user "\x1b;[48;2;33;59;73m")
+    ;; userMessageText = text (#dee0e1 = okhsl(234 3% 89%))
+    (define %fg-user "\x1b;[38;2;222;224;225m")
 
-    ;; toolPendingBg: 执行中微蓝暗灰背景
-    (define %bg-pending "\x1b;[48;2;40;42;50m")
-    (define %fg-pending "\x1b;[38;2;180;185;195m")
+    ;; toolPendingBg: 执行中微蓝暗灰背景 (#34383a = okhsl(229 5% 24%))
+    (define %bg-pending "\x1b;[48;2;52;56;58m")
+    ;; toolSuccessBg: 工具执行成功标志性深绿背景 (#254131 = okhsl(158 46% 25%))
+    (define %bg-success "\x1b;[48;2;37;65;49m")
+    ;; toolErrorBg: 工具执行失败警示深红背景 (#5b282a = okhsl(19 54% 25%))
+    (define %bg-error "\x1b;[48;2;91;40;42m")
 
-    ;; toolSuccessBg: 工具执行成功标志性深绿背景
-    (define %bg-success "\x1b;[48;2;35;55;35m")
-    (define %fg-success "\x1b;[38;2;220;245;220m")
+    ;; toolTitle: 命令标题亮色加粗前景（text，暗色主题 #dee0e1）。
+    ;; 注意：不得使用前导 0 的全重置序列（如 0;1;38;2;...），
+    ;; 0 会清掉行首已设置的背景色；粗体用独立的 1m 开启
+    (define %fg-title "\x1b;[1m\x1b;[38;2;222;224;225m")
+    ;; toolOutput: 输出/计时 muted 前景（#9da5a9）
+    (define %fg-output "\x1b;[38;2;157;165;169m")
+    ;; accent: 路径/模式紫色 (#a798d7 = okhsl(295 50% 67%))
+    (define %fg-accent "\x1b;[38;2;167;152;215m")
+    ;; warning: read 范围后缀黄色 (#cd9a22 = okhsl(83 88% 67%))
+    (define %fg-warning "\x1b;[38;2;205;154;34m")
 
-    ;; toolErrorBg: 工具执行失败警示深红背景
-    (define %bg-error "\x1b;[48;2;60;35;35m")
-    (define %fg-error "\x1b;[38;2;250;210;210m")
+    ;; 选择性重置（对齐 pi styleTextWithAnsi 的 39/22 语义）：
+    ;; 只关前景/粗体，绝不清背景，保证背景铺满整行（含尾部 padding）
+    (define %fg-reset "\x1b;[39m")
+    (define %bold-reset "\x1b;[22m\x1b;[39m")
 
-    ;; 暗淡排队提示
-    (define %fg-dim "\x1b;[38;2;130;135;145m")
+    ;; 暗淡排队提示（dim，#7e888e = okhsl(229 8% 56%)）
+    (define %fg-dim "\x1b;[38;2;126;136;142m")
     (define %ansi-reset "\x1b;[0m")
 
-    ;; 行背景填充函数：计算可见宽度，补足空格并包裹在指定背景/前景 ANSI 码中
+    ;; 行背景填充函数：计算可见宽度，补足空格并包裹在指定背景/前景 ANSI 码中。
+    ;; padding 空格在背景色范围内：line 内部只允许出现选择性重置（39/22），
+    ;; 不得包含 \x1b[0m 全重置（会清背景，导致空行只剩左侧有色）
     (define (apply-card-bg line width bg-code fg-code)
       (let* ((vlen (display-width line))
              (pad-needed (max 0 (- width vlen)))
@@ -51,6 +65,8 @@
     ) ;define
 
     ;; 用户提问卡片组件 (make-user-card text)
+    ;; 对齐 pi UserMessageComponent：Markdown(paddingX=1, paddingY=1) + userMessageBg/userMessageText，
+    ;; 上下各一行带背景的空 padding 行，正文 1 空格缩进，无前缀符号
     (define (make-user-card text)
       (make-component
         :render
@@ -59,14 +75,15 @@
             '()
             (let* ((lines (string-split text "\n"))
                    (rows
-                     (map (lambda (line)
-                            (apply-card-bg (string-append " > " line) width %bg-user %fg-user)
-                          ) ;lambda
+                     (map (lambda (line) (apply-card-bg (string-append " " line) width %bg-user %fg-user))
                        lines
                      ) ;map
                    ) ;rows
                   ) ;
-              (append rows (list ""))
+              (append (list (apply-card-bg "" width %bg-user %fg-user))
+                rows
+                (list (apply-card-bg "" width %bg-user %fg-user) "")
+              ) ;append
             ) ;let*
           ) ;if
         ) ;lambda
@@ -153,11 +170,13 @@
       ) ;if
     ) ;define
 
-    (define (%tool-colors status)
+    ;; 状态仅由背景表达（对齐 pi Box bgFn）：pending 灰蓝 / success 绿 / error 红；
+    ;; 前景不随状态染色（标题 toolTitle、输出 muted）
+    (define (%tool-bg status)
       (case status
-       ((success) (list %bg-success %fg-success))
-       ((error) (list %bg-error %fg-error))
-       (else (list %bg-pending %fg-pending))
+       ((success) %bg-success)
+       ((error) %bg-error)
+       (else %bg-pending)
       ) ;case
     ) ;define
 
@@ -177,11 +196,11 @@
       ) ;let
     ) ;define
 
-    ;; Bash 使用上游专用渲染：无状态徽标，输出与计时前后各一个空行。
+    ;; Bash 使用上游专用渲染：无状态徽标，输出与计时前后各一个空行；
+    ;; 命令标题用 toolTitle（亮色加粗），输出/计时用 toolOutput（muted）；
+    ;; 对齐 pi Box(paddingX=1, paddingY=1)：上下各一行背景空行包住命令与输出
     (define (%render-bash-tool-card st width)
-      (let* ((colors (%tool-colors (%tool-card-status st)))
-             (bg (car colors))
-             (fg (cadr colors))
+      (let* ((bg (%tool-bg (%tool-card-status st)))
              (content-width (max 1 (- width 2)))
              (title-lines (wrap-text (format-tool-call (%tool-card-name st) (%tool-card-args st))
                             content-width
@@ -190,45 +209,80 @@
              (result (%tool-card-result st))
              (result-lines (%cached-bash-result-lines st result content-width))
              (timer (%tool-timer-text st))
-             (body (append title-lines
-                     (if (null? result-lines) '() (cons "" result-lines))
-                     (if timer (list "" timer) '())
-                   ) ;append
-             ) ;body
-             (rows
-               (map (lambda (line) (apply-card-bg (string-append " " line) width bg fg)) body)
-             ) ;rows
+             (title-rows
+               (map (lambda (line) (apply-card-bg (string-append " " line) width bg %fg-title))
+                 title-lines
+               ) ;map
+             ) ;title-rows
+             (rest-body (append (if (null? result-lines) '() (cons "" result-lines))
+                          (if timer (list "" timer) '())
+                        ) ;append
+             ) ;rest-body
+             (rest-rows
+               (map (lambda (line) (apply-card-bg (string-append " " line) width bg %fg-output))
+                 rest-body
+               ) ;map
+             ) ;rest-rows
+             (pad-rows (list (apply-card-bg "" width bg %fg-output)))
             ) ;
-        (append rows (list ""))
+        (append pad-rows title-rows rest-rows pad-rows (list ""))
       ) ;let*
     ) ;define
 
-    ;; 渲染工具卡片多行行列表的辅助函数
+    ;; 着色分段 → ANSI 文本：bold=toolTitle 粗体 / accent / muted / warning
+    (define (%style-segments segs)
+      (apply string-append
+        (map
+          (lambda (seg)
+            (let ((role (car seg)) (text (cdr seg)))
+              (string-append (case role
+                              ((bold) %fg-title)
+                              ((accent) %fg-accent)
+                              ((warning) %fg-warning)
+                              (else %fg-output)
+                             ) ;case
+                text
+                %ansi-reset
+              ) ;string-append
+            ) ;let
+          ) ;lambda
+          segs
+        ) ;map
+      ) ;apply
+    ) ;define
+
+    ;; 渲染工具卡片多行行列表的辅助函数（非 bash 工具）
+    ;; 对齐 pi ToolExecutionComponent 的 Box(paddingX=1, paddingY=1)：
+    ;; 无状态徽标；标题 = 粗体工具名 + accent 路径；输出 = muted、缩进 1；
+    ;; 上下各一行背景空行；pending/绿/红背景把命令与输出整个包住；
+    ;; 标题超宽时降级为纯文本 wrap 后按 toolTitle 着色
     (define (render-tool-card-lines tool-name args status result width)
-      (let* ((badge-and-colors (case status
-                                ((success) (list " ✔ " %bg-success %fg-success))
-                                ((error) (list " ✖ " %bg-error %fg-error))
-                                (else (list " ● " %bg-pending %fg-pending))
-                               ) ;case
-             ) ;badge-and-colors
-             (badge (car badge-and-colors))
-             (bg (cadr badge-and-colors))
-             (fg (caddr badge-and-colors))
-             (title-line (string-append badge (format-tool-call tool-name args)))
-             (row1 (apply-card-bg title-line width bg fg))
+      (let* ((bg (%tool-bg status))
+             (content-width (max 1 (- width 2)))
+             (segs (format-tool-call-segments tool-name args))
+             (plain (format-tool-call tool-name args))
+             (title-rows
+               (if (<= (display-width plain) content-width)
+                 (list (apply-card-bg (string-append " " (%style-segments segs)) width bg ""))
+                 (map (lambda (line) (apply-card-bg (string-append " " %fg-title line) width bg ""))
+                   (wrap-text plain content-width)
+                 ) ;map
+               ) ;if
+             ) ;title-rows
              (res-lines (if result (format-tool-result-lines tool-name result) '()))
+             (out-rows
+               (if (null? res-lines)
+                 '()
+                 (cons (apply-card-bg "" width bg %fg-output)
+                   (map (lambda (line) (apply-card-bg (string-append " " %fg-output line) width bg ""))
+                     res-lines
+                   ) ;map
+                 ) ;cons
+               ) ;if
+             ) ;out-rows
+             (pad-rows (list (apply-card-bg "" width bg %fg-output)))
             ) ;
-        (if (null? res-lines)
-          (list row1 "")
-          (let ((rows
-                  (map (lambda (line) (apply-card-bg (string-append "    " line) width bg fg))
-                    res-lines
-                  ) ;map
-                ) ;rows
-               ) ;
-            (append (cons row1 rows) (list ""))
-          ) ;let
-        ) ;if
+        (append pad-rows title-rows out-rows pad-rows (list ""))
       ) ;let*
     ) ;define
 
@@ -307,7 +361,7 @@
           (lambda (self width)
             (if (<= width 0)
               '()
-              (list (apply-card-bg line width %bg-pending %fg-pending) "")
+              (list (apply-card-bg line width %bg-pending %fg-output) "")
             ) ;if
           ) ;lambda
         ) ;make-component

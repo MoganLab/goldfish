@@ -5,8 +5,9 @@
 ;;
 
 (define-library (liii pi code modes interactive renderers)
-  (export format-tool-call format-tool-result-lines extract-result-text
-    format-bash-tool-result-lines format-tool-duration get-tool-arg
+  (export format-tool-call format-tool-call-segments format-tool-result-lines
+    extract-result-text format-bash-tool-result-lines format-tool-duration
+    get-tool-arg
   ) ;export
   (import (scheme base)
     (liii string)
@@ -70,8 +71,12 @@
       ) ;cond
     ) ;define
 
-    ;; bash 格式化
-    (define (format-bash-call args)
+    ;; 着色分段：角色与文本的 alist，角色为 symbol：
+    ;;   bold=toolTitle 粗体 / accent=路径或模式 / muted=次要信息 / warning=范围
+    ;; 对齐上游各 renderCall 渲染器（bash.ts/read.ts/grep.ts 等）的着色结构。
+
+    ;; bash 格式化：整段 "$ cmd" 粗体，超时后缀 muted
+    (define (format-bash-call-segments args)
       (let* ((cmd (cond ((string? args) args)
                         ((list? args) (get-tool-arg "command" args))
                         (else #f)
@@ -91,29 +96,30 @@
                              ) ;if
              ) ;timeout-suffix
             ) ;
-        (string-append "$ " cmd-str timeout-suffix)
+        (if (string-null? timeout-suffix)
+          (list (cons 'bold (string-append "$ " cmd-str)))
+          (list (cons 'bold (string-append "$ " cmd-str)) (cons 'muted timeout-suffix))
+        ) ;if
       ) ;let*
     ) ;define
 
-    ;; read 范围后缀计算
+    ;; read 范围后缀计算（对齐上游 formatReadLineRange：":起-止" / ":起"）
     (define (read-range-suffix offset limit)
       (cond
        ((and (number? offset) (number? limit))
-        (string-append " [L"
+        (string-append ":"
           (number->string offset)
           "-"
           (number->string (+ offset limit -1))
-          "]"
         ) ;string-append
        ) ;
-       ((number? offset) (string-append " [L" (number->string offset) "+]"))
-       ((number? limit) (string-append " [limit " (number->string limit) "]"))
+       ((number? offset) (string-append ":" (number->string offset)))
        (else "")
       ) ;cond
     ) ;define
 
-    ;; read 格式化
-    (define (format-read-call args)
+    ;; read 格式化：粗体名 + accent 路径 + warning 范围
+    (define (format-read-call-segments args)
       (let* ((path
                (cond ((string? args) args)
                      ((list? args)
@@ -124,13 +130,20 @@
              ) ;path
              (offset (if (list? args) (get-tool-arg "offset" args #f) #f))
              (limit (if (list? args) (get-tool-arg "limit" args #f) #f))
+             (range (read-range-suffix offset limit))
             ) ;
-        (string-append "read " path (read-range-suffix offset limit))
+        (if (string-null? range)
+          (list (cons 'bold "read") (cons 'accent (string-append " " path)))
+          (list (cons 'bold "read")
+            (cons 'accent (string-append " " path))
+            (cons 'warning range)
+          ) ;list
+        ) ;if
       ) ;let*
     ) ;define
 
-    ;; 单文件操作工具（write/edit）格式化
-    (define (format-file-call tool-name args)
+    ;; 单文件操作工具（write/edit）格式化：粗体名 + accent 路径
+    (define (format-file-call-segments tool-name args)
       (let ((path
               (cond ((string? args) args)
                     ((list? args)
@@ -140,24 +153,29 @@
               ) ;cond
             ) ;path
            ) ;
-        (string-append tool-name " " path)
+        (list (cons 'bold tool-name) (cons 'accent (string-append " " path)))
       ) ;let
     ) ;define
 
-    ;; 模式查找工具（grep/find）格式化
-    (define (format-pattern-call tool-name args)
+    ;; 模式查找工具（grep/find）格式化：粗体名 + accent 模式 + muted " in 路径"
+    ;; 对齐上游：grep 模式包裹为 /pattern/，find 模式原样；路径缺省为 "."
+    (define (format-pattern-call-segments tool-name args)
       (let* ((pattern (if (list? args) (get-tool-arg "pattern" args "") ""))
              (path (if (list? args) (get-tool-arg "path" args #f) #f))
             ) ;
-        (if path
-          (string-append tool-name " \"" pattern "\" " path)
-          (string-append tool-name " \"" pattern "\"")
-        ) ;if
+        (list (cons 'bold tool-name)
+          (cons 'accent
+            (string-append " "
+              (if (string=? tool-name "grep") (string-append "/" pattern "/") pattern)
+            ) ;string-append
+          ) ;cons
+          (cons 'muted (string-append " in " (if path path ".")))
+        ) ;list
       ) ;let*
     ) ;define
 
-    ;; ls 格式化
-    (define (format-ls-call args)
+    ;; ls 格式化：粗体名 + accent 路径
+    (define (format-ls-call-segments args)
       (let ((path
               (cond ((string? args) args)
                     ((list? args) (or (get-tool-arg "path" args #f) "."))
@@ -165,36 +183,47 @@
               ) ;cond
             ) ;path
            ) ;
-        (string-append "ls " path)
+        (list (cons 'bold "ls") (cons 'accent (string-append " " path)))
       ) ;let
     ) ;define
 
-    ;; web_search 格式化
-    (define (format-web-search-call args)
+    ;; web_search 格式化：粗体名 + accent 查询串
+    (define (format-web-search-call-segments args)
       (let ((query (if (list? args) (get-tool-arg "query" args "") "")))
-        (string-append "web_search \"" query "\"")
+        (list (cons 'bold "web_search") (cons 'accent (string-append " \"" query "\"")))
       ) ;let
     ) ;define
 
-    ;; 格式化工具调用命令行第一行 (format-tool-call tool-name args)
-    (define (format-tool-call name args)
-      (cond ((string=? name "bash") (format-bash-call args))
-            ((string=? name "read") (format-read-call args))
-            ((string=? name "write") (format-file-call "write" args))
-            ((string=? name "edit") (format-file-call "edit" args))
-            ((string=? name "grep") (format-pattern-call "grep" args))
-            ((string=? name "find") (format-pattern-call "find" args))
-            ((string=? name "ls") (format-ls-call args))
-            ((string=? name "web_search") (format-web-search-call args))
-            (else
-              (let ((summary (format-generic-args args)))
-                (if (string-null? (string-trim-both summary))
-                  name
-                  (string-append name " " summary)
-                ) ;if
-              ) ;let
-            ) ;else
+    ;; 未知工具兜底：粗体名 + muted 参数预览（对齐上游 formatToolCallWithArgs）
+    (define (format-generic-call-segments name args)
+      (let ((summary (format-generic-args args)))
+        (if (string-null? (string-trim-both summary))
+          (list (cons 'bold name))
+          (list (cons 'bold name) (cons 'muted (string-append " " summary)))
+        ) ;if
+      ) ;let
+    ) ;define
+
+    ;; 各内置工具的着色分段 (format-tool-call-segments name args)
+    (define (format-tool-call-segments name args)
+      (cond ((string=? name "bash") (format-bash-call-segments args))
+            ((string=? name "read") (format-read-call-segments args))
+            ((string=? name "write") (format-file-call-segments "write" args))
+            ((string=? name "edit") (format-file-call-segments "edit" args))
+            ((string=? name "grep") (format-pattern-call-segments "grep" args))
+            ((string=? name "find") (format-pattern-call-segments "find" args))
+            ((string=? name "ls") (format-ls-call-segments args))
+            ((string=? name "web_search") (format-web-search-call-segments args))
+            (else (format-generic-call-segments name args))
       ) ;cond
+    ) ;define
+
+    ;; 格式化工具调用命令行第一行的纯文本 (format-tool-call name args)
+    ;; 即着色分段的文本拼接，供无色场景与降级换行使用
+    (define (format-tool-call name args)
+      (apply string-append
+        (map (lambda (seg) (cdr seg)) (format-tool-call-segments name args))
+      ) ;apply
     ) ;define
 
     ;; 时长格式与上游 formatToolDuration 一致。
@@ -294,11 +323,18 @@
     (define (truncate-lines name raw-lines max-lines)
       (let* ((total (length raw-lines)) (skipped (- total max-lines)))
         (if (string=? name "bash")
-          (cons (string-append "... (" (number->string skipped) " earlier lines)")
+          (cons (string-append "... ("
+                  (number->string skipped)
+                  " earlier lines, ctrl+o to expand)"
+                ) ;string-append
             (drop raw-lines skipped)
           ) ;cons
           (append (take raw-lines max-lines)
-            (list (string-append "... (" (number->string skipped) " more lines)"))
+            (list (string-append "... ("
+                    (number->string skipped)
+                    " more lines, ctrl+o to expand)"
+                  ) ;string-append
+            ) ;list
           ) ;append
         ) ;if
       ) ;let*
