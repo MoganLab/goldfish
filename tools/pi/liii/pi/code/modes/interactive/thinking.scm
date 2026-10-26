@@ -19,17 +19,18 @@
     ) ;define
 
     ;; 循环切换到下一个级别；非法输入容错回 "off"
-    (define (pi-next-thinking-level level)
-      (let loop
-        ((rest pi-thinking-levels) (idx 0))
-        (cond ((null? rest) "off")
-              ((equal? (car rest) level)
-               (list-ref pi-thinking-levels (modulo (+ idx 1) (length pi-thinking-levels)))
-              ) ;
-              (else (loop (cdr rest) (+ idx 1)))
-        ) ;cond
-      ) ;let
-    ) ;define
+    (define* (pi-next-thinking-level level (levels pi-thinking-levels))
+      (if (null? levels)
+        "off"
+        (let loop
+          ((rest levels) (idx 0))
+          (cond ((null? rest) "off")
+                ((equal? (car rest) level) (list-ref levels (modulo (+ idx 1) (length levels))))
+                (else (loop (cdr rest) (+ idx 1)))
+          ) ;cond
+        ) ;let
+      ) ;if
+    ) ;define*
 
     ;; 各级别的边框/ spinner 颜色（24-bit RGB 前缀，dark 主题实测）：
     ;; off 灰 → minimal 灰蓝 → low 蓝 → medium 长春花蓝 → high 紫 → xhigh 品红 → max 红

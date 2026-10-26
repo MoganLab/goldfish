@@ -231,4 +231,15 @@
   (check (reverse received) => '("I am a frog" "who am I"))
 ) ;let*
 
+;; 14. ThinkingSelector 激活时 Ctrl+C 取消选择器而不是清空主编辑器；随后 Ctrl+D 正常退出
+(let* ((vt (make-virtual-terminal :width 100 :height 40))
+       (app (make-pi-app :terminal vt :handler (lambda (a m) #t) :thinking-level "medium")))
+  (pi-app-submit! app "/thinking")
+  (check-true (component? (pi-app-active-selector app)))
+  (virtual-terminal-push-key! vt 'ctrl-c)
+  (virtual-terminal-push-key! vt 'ctrl-d)
+  (check (pi-app-run app) => #t)
+  (check (pi-app-active-selector app) => #f)
+  (check (pi-app-thinking-level app) => "medium"))
+
 (check-report)

@@ -17,6 +17,7 @@
     (liii pi code modes interactive views)
     (liii pi code modes interactive working)
     (liii pi code modes interactive thinking)
+    (liii pi code modes interactive thinking-selector)
   ) ;import
   (begin
 
@@ -46,10 +47,12 @@
                  ) ;append-map
                ) ;doc-lines
                (ed (pi-app-editor app))
+               (active-selector (pi-app-active-selector app))
+               (input-component (or active-selector ed))
                ;; busy 时编辑器上边框替换为 Working 动画行（行数不变）
                (ed-lines
-                 (let ((raw (component-render ed w)))
-                   (if (and (pi-queue-busy? q) (pair? raw) %pi-editor-top-border)
+                 (let ((raw (component-render input-component w)))
+                   (if (and (not active-selector) (pi-queue-busy? q) (pair? raw) %pi-editor-top-border)
                      (cons (working-border-line (pi-app-working app)
                              w
                              (pi-thinking-border-color (pi-app-thinking-level app))
@@ -61,9 +64,18 @@
                  ) ;let
                ) ;ed-lines
                (footer-lines (component-render (%pi-app-footer app) w))
-               (ed-cur (editor-cursor ed))
-               (ed-y (+ (length doc-lines) (if %pi-editor-top-border 1 0)))
-               (cur-pos (cons (editor-display-col ed) (+ ed-y (car ed-cur))))
+               (cur-pos
+                 (if active-selector
+                   (let ((pos (thinking-selector-cursor-position active-selector)))
+                     (cons (cadr pos) (+ (length doc-lines) (car pos)))
+                   ) ;let
+                   (let ((ed-cur (editor-cursor ed))
+                         (ed-y (+ (length doc-lines) (if %pi-editor-top-border 1 0)))
+                        ) ;
+                     (cons (editor-display-col ed) (+ ed-y (car ed-cur)))
+                   ) ;let
+                 ) ;if
+               ) ;cur-pos
               ) ;
           (screen-render! screen (append doc-lines ed-lines footer-lines) cur-pos)
         ) ;let*

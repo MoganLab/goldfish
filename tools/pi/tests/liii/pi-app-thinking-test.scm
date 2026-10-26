@@ -125,4 +125,83 @@
   (check (cdr (assoc 'thinking-level received-cfg)) => "high")
 ) ;let*
 
+;; 8. /thinking 打开选择器；方向键 + Enter 选择并恢复编辑器
+(let* ((vterm (make-virtual-terminal :width 120 :height 50))
+       (received '())
+       (app (make-pi-app :terminal vterm
+              :handler (lambda (a msg) (set! received (cons msg received)))
+              :thinking-level "off" :default-thinking-level "off" :supports-thinking #t)))
+  (pi-app-submit! app "/thinking")
+  (check received => '())
+  (check (editor-text (pi-app-editor app)) => "")
+  (check-true (component? (pi-app-active-selector app)))
+  (pi-app-render! app)
+  (check-true
+    (string-contains?
+      (string-join (map strip-ansi (screen-lines (pi-app-screen app))) "\n")
+      "Thinking Level"))
+  (component-handle-input (pi-app-active-selector app) 'down)
+  (component-handle-input (pi-app-active-selector app) 'enter)
+  (check (pi-app-thinking-level app) => "minimal")
+  (check (pi-app-active-selector app) => #f)
+  (check (editor-border-color (pi-app-editor app)) => (pi-thinking-border-color "minimal"))
+  (pi-app-render! app)
+  (let ((text (string-join (map strip-ansi (screen-lines (pi-app-screen app))) "\n")))
+    (check-true (string-contains? text "Thinking level: minimal"))
+    (check-true (string-contains? text "gemini-3.8-flash • minimal")))
+  (check received => '()))
+
+;; 9. Escape 取消选择器，不改变当前级别
+(let ((app (make-pi-app :terminal (make-virtual-terminal 100 40)
+             :handler (lambda (a m) #t) :thinking-level "medium" :supports-thinking #t)))
+  (pi-app-submit! app "/thinking")
+  (component-handle-input (pi-app-active-selector app) 'down)
+  (component-handle-input (pi-app-active-selector app) 'escape)
+  (check (pi-app-active-selector app) => #f)
+  (check (pi-app-thinking-level app) => "medium"))
+
+;; 10. /thinking <level> 大小写不敏感直接设置；非法值显示可用级别
+(let ((app (make-pi-app :terminal (make-virtual-terminal 120 40)
+             :handler (lambda (a m) #t) :thinking-level "off" :supports-thinking #t)))
+  (pi-app-submit! app "/thinking HIGH")
+  (check (pi-app-thinking-level app) => "high")
+  (check (pi-app-active-selector app) => #f)
+  (pi-app-submit! app "/thinking bogus")
+  (check (pi-app-thinking-level app) => "high")
+  (pi-app-render! app)
+  (check-true
+    (string-contains?
+      (string-join (map strip-ansi (screen-lines (pi-app-screen app))) "\n")
+      "Unknown thinking level \"bogus\". Available levels: off, minimal, low, medium, high, xhigh, max.")))
+
+;; 11. Ctrl+S 更新当前级别、默认级别并调用持久化回调
+(let* ((saved '())
+       (app (make-pi-app :terminal (make-virtual-terminal 120 50)
+              :handler (lambda (a m) #t) :thinking-level "off" :default-thinking-level "off"
+              :supports-thinking #t
+              :on-save-thinking-level (lambda (level) (set! saved (cons level saved))))))
+  (pi-app-submit! app "/thinking")
+  (component-handle-input (pi-app-active-selector app) 'down)
+  (component-handle-input (pi-app-active-selector app) 'ctrl-s)
+  (check saved => '("minimal"))
+  (check (pi-app-thinking-level app) => "minimal")
+  (check (pi-app-default-thinking-level app) => "minimal")
+  (check (pi-app-active-selector app) => #f)
+  (pi-app-render! app)
+  (check-true
+    (string-contains?
+      (string-join (map strip-ansi (screen-lines (pi-app-screen app))) "\n")
+      "Default thinking level: minimal")))
+
+;; 12. 不支持 thinking 的模型仅允许 off
+(let ((app (make-pi-app :terminal (make-virtual-terminal 120 40)
+             :handler (lambda (a m) #t) :thinking-level "off" :supports-thinking #f)))
+  (pi-app-submit! app "/thinking high")
+  (check (pi-app-thinking-level app) => "off")
+  (pi-app-render! app)
+  (check-true
+    (string-contains?
+      (string-join (map strip-ansi (screen-lines (pi-app-screen app))) "\n")
+      "Available levels: off.")))
+
 (check-report)

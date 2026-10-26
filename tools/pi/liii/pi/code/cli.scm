@@ -18,6 +18,7 @@
     (liii pi code core session-name)
     (liii pi code cli help)
     (liii pi ai models)
+    (liii pi ai config record)
     (liii pi code modes interactive)
     (liii pi code core extensions types)
     (liii pi code core extensions registry)
@@ -100,7 +101,8 @@
 
     ;; TUI footer 右下角显示实际生效的供应商与模型：与后台 worker 内的解析同源同输入
     ;; （纯本地文件读取，无网络开销），配置解析失败时回退到 CLI 原始参数；
-    ;; 返回 (provider model-id thinking-level supports-thinking) 供 make-pi-app 使用
+    ;; 返回 (provider model-id thinking-level supports-thinking default-thinking-level agent-dir)
+    ;; 供 make-pi-app 使用
     (define (%tui-footer-info parsed)
       (catch #t
         (lambda ()
@@ -109,8 +111,11 @@
                  (model-id (cdr (or (assoc 'model-id cfg) (cons #f "gemini-3.8-flash"))))
                  (tl (cdr (or (assoc 'thinking-level cfg) (cons #f "off"))))
                  (supports (cdr (or (assoc 'supports-thinking cfg) (cons #f #t))))
+                 (settings (cdr (or (assoc 'settings cfg) (cons #f #f))))
+                 (default-tl (if settings (pi-settings-default-thinking-level settings) tl))
+                 (agent-dir (cdr (assoc 'agent-dir cfg)))
                 ) ;
-            (list provider model-id tl (and supports #t))
+            (list provider model-id tl (and supports #t) default-tl agent-dir)
           ) ;let*
         ) ;lambda
         (lambda args
@@ -118,6 +123,8 @@
             (or (pi-args-ref parsed 'model) "gemini-3.8-flash")
             "off"
             #t
+            "off"
+            (pi-get-agent-dir)
           ) ;list
         ) ;lambda
       ) ;catch
@@ -146,13 +153,17 @@
     (define (%run-interactive parsed initial-msg rest-msgs)
       (let* ((info (%tui-footer-info parsed))
              (session-name (%tui-session-name parsed))
-             (app (make-pi-app
-                    :provider          (car info)
-                    :model             (cadr info)
-                    :thinking-level    (caddr info)
-                    :supports-thinking (cadddr info)
-                    :session-name      session-name
-                  ) ;make-pi-app
+             (app
+               (make-pi-app
+                 :provider               (car info)
+                 :model                  (cadr info)
+                 :thinking-level         (caddr info)
+                 :supports-thinking      (cadddr info)
+                 :default-thinking-level (list-ref info 4)
+                 :on-save-thinking-level
+                 (lambda (level) (pi-save-default-thinking-level! (list-ref info 5) level))
+                 :session-name session-name
+               ) ;make-pi-app
              ) ;app
             ) ;
         (pi-app-run app initial-msg rest-msgs)
