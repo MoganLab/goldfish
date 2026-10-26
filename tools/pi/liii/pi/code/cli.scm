@@ -15,6 +15,7 @@
     (liii pi code config)
     (liii pi code modes)
     (liii pi code core prompt)
+    (liii pi code core session-manager)
     (liii pi code cli help)
     (liii pi ai models)
     (liii pi code modes interactive)
@@ -122,13 +123,35 @@
       ) ;catch
     ) ;define
 
+    (define (%tui-session-name parsed)
+      (or (pi-args-ref parsed 'name)
+        (and (pi-args-ref parsed 'continue)
+          (catch #t
+            (lambda ()
+              (let* ((cfg (augment-pi-config (resolve-pi-config parsed (get-environment-variables))
+                            parsed
+                          ) ;augment-pi-config
+                     ) ;cfg
+                     (cwd (getcwd))
+                    ) ;
+                (resolve-initial-session-name parsed cfg cwd)
+              ) ;let*
+            ) ;lambda
+            (lambda args #f)
+          ) ;catch
+        ) ;and
+      ) ;or
+    ) ;define
+
     (define (%run-interactive parsed initial-msg rest-msgs)
       (let* ((info (%tui-footer-info parsed))
+             (session-name (%tui-session-name parsed))
              (app (make-pi-app
                     :provider          (car info)
                     :model             (cadr info)
                     :thinking-level    (caddr info)
                     :supports-thinking (cadddr info)
+                    :session-name      session-name
                   ) ;make-pi-app
              ) ;app
             ) ;

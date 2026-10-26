@@ -116,6 +116,14 @@
                        (%pi-app-record-bash! app command text code excluded?)
                      ) ;let*
                     ) ;
+                    ((session_name_changed)
+                     (let ((name (cadr ev)))
+                       (%pi-app-session-name-set! app name)
+                       (pi-footer-set-session-name! (%pi-app-footer app) name)
+                       (pi-app-add-assistant-text! app (string-append "Session name set: " name))
+                     ) ;let
+                    ) ;
+                    ((session_name_error) (pi-app-add-tool-result! app "name" '() 'error (cadr ev)))
                     ((branch_changed)
                      ;; (liii fs-watch) 检测到 .git/HEAD 变化：携带 git-dir 时直接读
                      ;; HEAD 文件解析（避免 CI 子进程并发退出竞态）；否则按 cwd 探测
@@ -241,37 +249,64 @@
       ) ;let
     ) ;define
 
-    ;; 用户提交动作：! 前缀拦截为 bash 模式（!cmd 结果注入上下文，
+    (define (%pi-app-name-command? text)
+      (or (string=? text "/name") (string-starts? text "/name "))
+    ) ;define
+
+    (define (%pi-app-handle-name-command! app text)
+      (let ((name (string-trim-both (substring text 5))) (ed (pi-app-editor app)))
+        (editor-set-text! ed "")
+        (if (string-null? name)
+          (let ((current (pi-app-session-name app)))
+            (pi-app-add-assistant-text! app
+              (if current (string-append "Session name: " current) "Usage: /name <name>")
+            ) ;pi-app-add-assistant-text!
+          ) ;let
+          (catch #t
+            (lambda () (chan-send! (pi-app-jobs-chan app) (list 'session_name name) 1000))
+            (lambda (tag . args)
+              (pi-app-add-tool-result! app "name" '() 'error "Failed to set session name")
+            ) ;lambda
+          ) ;catch
+        ) ;if
+        (pi-app-render! app)
+      ) ;let
+    ) ;define
+
+    ;; 用户提交动作：/name 管理会话名称；! 前缀拦截为 bash 模式（!cmd 结果注入上下文，
     ;; !!cmd 仅显示不注入）；其余消息统一先进入等待队列并清空输入框；
     ;; 队列忙时立即渲染出 [Queued] 提示，闲时由 drain-queue! 渲染唯一一帧
     (define (pi-app-submit! app text)
       (let ((clean (string-trim text)))
         (unless (string-null? clean)
-          ;; bash 模式：!cmd 直接经 bash 执行（对齐 pi 的 !/!! 前缀行为）；
-          ;; 命令为空（仅 "!" 或 "!!"）时回退为普通消息提交（对齐 pi 的 fall-through）
-          (let* ((bang? (%starts-with-char? clean #\!))
-                 (excluded? (and bang? (> (string-length clean) 1) (char=? (string-ref clean 1) #\!))
-                 ) ;excluded?
-                 (cmd-start (if excluded? 2 1))
-                 (command
-                   (and bang?
-                     (not (string-null? (string-trim (substring clean cmd-start))))
-                     (string-trim (substring clean cmd-start))
-                   ) ;and
-                 ) ;command
-                ) ;
-            (if command
-              (pi-app-run-bash! app command :excluded? excluded?)
-              (let ((q (pi-app-queue app)) (ed (pi-app-editor app)))
-                (pi-queue-enqueue! q clean)
-                (editor-set-text! ed "")
-                (when (pi-queue-busy? q)
-                  (pi-app-render! app)
-                ) ;when
-                (pi-app-drain-queue! app)
-              ) ;let
-            ) ;if
-          ) ;let*
+          (if (%pi-app-name-command? clean)
+            (%pi-app-handle-name-command! app clean)
+            ;; bash 模式：!cmd 直接经 bash 执行（对齐 pi 的 !/!! 前缀行为）；
+            ;; 命令为空（仅 "!" 或 "!!"）时回退为普通消息提交（对齐 pi 的 fall-through）
+            (let* ((bang? (%starts-with-char? clean #\!))
+                   (excluded? (and bang? (> (string-length clean) 1) (char=? (string-ref clean 1) #\!))
+                   ) ;excluded?
+                   (cmd-start (if excluded? 2 1))
+                   (command
+                     (and bang?
+                       (not (string-null? (string-trim (substring clean cmd-start))))
+                       (string-trim (substring clean cmd-start))
+                     ) ;and
+                   ) ;command
+                  ) ;
+              (if command
+                (pi-app-run-bash! app command :excluded? excluded?)
+                (let ((q (pi-app-queue app)) (ed (pi-app-editor app)))
+                  (pi-queue-enqueue! q clean)
+                  (editor-set-text! ed "")
+                  (when (pi-queue-busy? q)
+                    (pi-app-render! app)
+                  ) ;when
+                  (pi-app-drain-queue! app)
+                ) ;let
+              ) ;if
+            ) ;let*
+          ) ;if
         ) ;unless
       ) ;let
     ) ;define
@@ -307,6 +342,7 @@
                (model #f)
                (thinking-level #f)
                (supports-thinking #t)
+               (session-name #f)
              ) ;make-pi-app
       (let* ((actual-term (or terminal (make-standard-terminal :inline #t)))
              (screen (make-main-screen actual-term :auto-hide-cursor #f))
@@ -322,6 +358,7 @@
                        :model             model
                        :thinking-level    tl
                        :supports-thinking supports-thinking
+                       :session-name      session-name
                      ) ;make-pi-footer
              ) ;footer
              (queue (make-pi-message-queue))
@@ -362,6 +399,7 @@
                     bash-jobs-chan
                     bash-handler
                     actual-record-sink
+                    session-name
                   ) ;%make-pi-app
              ) ;app
              (ed (make-editor ""

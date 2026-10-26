@@ -134,7 +134,7 @@
     ) ;define
 
     ;; 惰性解析并复用会话文件（对齐 pi 单 TUI 会话模型）：
-    ;; 首个任务（消息或 bash 记录）时创建/恢复会话文件，后续任务全部复用，
+    ;; 首个任务（消息、bash 记录或会话命名）时创建/恢复会话文件，后续任务全部复用，
     ;; 跨消息保持上下文连续；--no-session 时恒为 #f
     (define (pi-worker-ensure-session-file! parsed cfg sfile-box)
       (unless (vector-ref sfile-box 0)
@@ -149,9 +149,11 @@
     ;; - (bash_record 命令 输出 退出码)：! 命令结果写入会话文件，不触发 LLM
     ;;   请求；agent 忙时在 jobs-chan 排队，结算后才落盘（对齐 pi 流式期间
     ;;   pending、agent_end 冲洗的语义）
+    ;; - (session_name 名称)：更新会话显示名并写入 session_info，不触发 LLM
     ;; - (消息 thinking-level)：正常 agent 任务，携带复用的会话文件
     (define (pi-worker-handle-job job parsed cfg sfile-box event-chan abort-chan)
-      (if (and (pair? job) (eq? (car job) 'bash_record))
+      (cond
+       ((and (pair? job) (eq? (car job) 'bash_record))
         (catch #t
           (lambda ()
             (append-bash-execution! (pi-worker-ensure-session-file! parsed cfg sfile-box)
@@ -168,22 +170,42 @@
             ) ;pi-tui-send-event!
           ) ;lambda
         ) ;catch
-        (begin
-          ;; 新任务开始前 arm abort 通道：排空上一轮残留信号并复位标志，
-          ;; 本轮任务期间流式回调 / turn 边界 / 工具边界经 pi-aborted? 探测
-          (pi-abort-arm-chan! abort-chan)
-          (pi-tui-run-worker parsed
-            (pi-cfg-with-thinking cfg (cadr job))
-            (car job)
-            event-chan
-            (pi-worker-ensure-session-file! parsed cfg sfile-box)
-          ) ;pi-tui-run-worker
-        ) ;begin
-      ) ;if
+       ) ;
+       ((and (pair? job) (eq? (car job) 'session_name))
+        (catch #t
+          (lambda ()
+            (let ((name (pi-normalize-session-name (cadr job))))
+              (append-session-info! (pi-worker-ensure-session-file! parsed cfg sfile-box)
+                name
+              ) ;append-session-info!
+              (pi-tui-send-event! event-chan (list 'session_name_changed name))
+            ) ;let
+          ) ;lambda
+          (lambda (tag . args)
+            (pi-tui-send-event! event-chan
+              (list 'session_name_error
+                (string-append "Failed to set session name: " (object->string (cons tag args)))
+              ) ;list
+            ) ;pi-tui-send-event!
+          ) ;lambda
+        ) ;catch
+       ) ;
+       (else
+         ;; 新任务开始前 arm abort 通道：排空上一轮残留信号并复位标志，
+         ;; 本轮任务期间流式回调 / turn 边界 / 工具边界经 pi-aborted? 探测
+         (pi-abort-arm-chan! abort-chan)
+         (pi-tui-run-worker parsed
+           (pi-cfg-with-thinking cfg (cadr job))
+           (car job)
+           event-chan
+           (pi-worker-ensure-session-file! parsed cfg sfile-box)
+         ) ;pi-tui-run-worker
+       ) ;else
+      ) ;cond
     ) ;define
 
     ;; 顶层后台工作协程：并发循环消费 jobs-chan 任务并回传事件到 event-chan；
-    ;; jobs 包含用户消息 (text thinking-level) 与 bash 记录 (bash_record cmd out code)
+    ;; jobs 包含用户消息 (text thinking-level)、bash 记录与 session_name 命名任务
     ;; 注意：go 绑定的 let 语法会“求值”绑定值，alist 会被当作函数调用而报错，
     ;; 因此 parsed/cfg 不能跨 go 边界传入，必须在 worker 会话内自行解析
     (define (pi-tui-agent-worker jobs-chan event-chan abort-chan)
@@ -200,7 +222,7 @@
         ) ;set-pi-retry-logger!
         (let loop
           ()
-          ;; job 消息为 (text thinking-level) 或 (bash_record cmd out code)：
+          ;; job 消息为 (text thinking-level)、bash_record 或 session_name：
           ;; 会话内切换的 thinking 级别对下一条消息生效
           (let ((job (chan-recv! jobs-chan)))
             (when job
