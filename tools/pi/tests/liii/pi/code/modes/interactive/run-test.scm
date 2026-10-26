@@ -242,4 +242,18 @@
   (check (pi-app-active-selector app) => #f)
   (check (pi-app-thinking-level app) => "medium"))
 
+;; 15. 命令菜单激活时 Escape 仅关闭菜单；随后 Enter 把保留的 / 作为普通输入提交。
+(let* ((vt (make-virtual-terminal :width 100 :height 40))
+       (received '())
+       (app (make-pi-app :terminal vt
+              :handler (lambda (a msg) (set! received (cons msg received))))))
+  (virtual-terminal-push-key! vt "/")
+  (virtual-terminal-push-key! vt 'escape)
+  (virtual-terminal-push-key! vt 'enter)
+  (virtual-terminal-push-key! vt 'ctrl-c)
+  (virtual-terminal-push-key! vt 'ctrl-d)
+  (check (pi-app-run app) => #t)
+  (check received => '("/"))
+  (check (pi-app-active-selector app) => #f))
+
 (check-report)

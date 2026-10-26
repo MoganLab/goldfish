@@ -51,17 +51,22 @@
                (input-component (or active-selector ed))
                ;; busy 时编辑器上边框替换为 Working 动画行（行数不变）
                (ed-lines
-                 (let ((raw (component-render input-component w)))
-                   (if (and (not active-selector) (pi-queue-busy? q) (pair? raw) %pi-editor-top-border)
-                     (cons (working-border-line (pi-app-working app)
-                             w
-                             (pi-thinking-border-color (pi-app-thinking-level app))
-                           ) ;working-border-line
-                       (cdr raw)
-                     ) ;cons
-                     raw
-                   ) ;if
-                 ) ;let
+                 (let* ((raw (component-render input-component w))
+                        (editor-lines
+                          (if (and (not active-selector) (pi-queue-busy? q) (pair? raw) %pi-editor-top-border)
+                            (cons (working-border-line (pi-app-working app)
+                                    w
+                                    (pi-thinking-border-color (pi-app-thinking-level app))
+                                  ) ;working-border-line
+                              (cdr raw)
+                            ) ;cons
+                            raw
+                          ) ;if
+                        ) ;editor-lines
+                        (menu (and (not active-selector) (pi-app-slash-command-menu app)))
+                       ) ;
+                   (append editor-lines (if menu (component-render menu w) '()))
+                 ) ;let*
                ) ;ed-lines
                (footer-lines (component-render (%pi-app-footer app) w))
                (cur-pos

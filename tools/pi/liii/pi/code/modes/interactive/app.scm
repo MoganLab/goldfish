@@ -12,7 +12,8 @@
     pi-app-jobs-chan pi-app-event-chan pi-app-abort-chan pi-app-poll-events!
     pi-app-working pi-app-working-tick! pi-app-thinking-level
     pi-app-supports-thinking? pi-app-cycle-thinking! pi-app-bash-mode?
-    pi-app-active-selector pi-app-default-thinking-level pi-app-tools-expanded?
+    pi-app-active-selector pi-app-slash-command-menu pi-app-handle-input!
+    pi-app-default-thinking-level pi-app-tools-expanded?
     pi-app-toggle-tool-output! pi-app-bash-jobs-chan pi-app-run-bash!
   ) ;export
   (import (scheme base)
@@ -265,6 +266,46 @@
       ) ;let
     ) ;define
 
+    ;; 输入分发：命令菜单激活时处理选择键，其余输入仍交给编辑器；
+    ;; thinking 选择器优先，与既有主循环行为一致。
+    (define (pi-app-handle-input! app key)
+      (let ((selector (pi-app-active-selector app))
+            (menu (pi-app-slash-command-menu app))
+            (ed (pi-app-editor app))
+           ) ;
+        (cond (selector (component-handle-input selector key))
+              (menu
+                (case key
+                 ((escape) (%pi-app-slash-command-menu-set! app #f) #t)
+                 ((up down) (component-handle-input menu key))
+                 ((tab)
+                  (let ((item (select-list-selected-item menu)))
+                    (when item
+                      (let ((completed (string-append "/" (cdr (assoc 'value item)) " ")))
+                        (editor-set-text! ed completed)
+                        (editor-set-cursor! ed 0 (string-length completed))
+                      ) ;let
+                    ) ;when
+                  ) ;let
+                  #t
+                 ) ;
+                 ((enter)
+                  (let ((item (select-list-selected-item menu)))
+                    (when item
+                      (%pi-app-slash-command-menu-set! app #f)
+                      (pi-app-submit! app (string-append "/" (cdr (assoc 'value item))))
+                    ) ;when
+                  ) ;let
+                  #t
+                 ) ;
+                 (else (component-handle-input ed key))
+                ) ;case
+              ) ;menu
+              (else (component-handle-input ed key))
+        ) ;cond
+      ) ;let
+    ) ;define
+
     (define (pi-app-submit-initial! app initial-msg rest-msgs)
       (unless (string-null? initial-msg)
         (pi-app-submit! app initial-msg)
@@ -329,6 +370,7 @@
                     doc
                     chat
                     pending-box
+                    #f
                     #f
                     #f
                     footer
