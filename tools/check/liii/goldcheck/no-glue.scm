@@ -41,10 +41,6 @@
       (and (symbol? x) (string-starts-with? (symbol->string x) "g_"))
     ) ;define
 
-    (define (public-symbol glue)
-      (string->symbol (substring (symbol->string glue) 2))
-    ) ;define
-
     (define (tagged? form tag)
       (and (pair? form) (eq? (car form) tag))
     ) ;define
@@ -205,38 +201,11 @@
     ) ;define
 
     (define (library-violations info)
-      (let ((path (info-path info))
-            (bindings (info-bindings info))
-            (exports (info-exports info))
-           ) ;
-        (append
-          (map (lambda (entry) (violation path (cadr entry) (car entry) 'exported-glue))
-            (info-exported-glue info)
-          ) ;map
-          (let loop
-            ((refs (info-refs info)) (acc '()))
-            (if (null? refs)
-              (reverse acc)
-              (let* ((ref (car refs))
-                     (glue (car ref))
-                     (line (cadr ref))
-                     (public (public-symbol glue))
-                    ) ;
-                (loop (cdr refs)
-                  (cond ((not (memq public bindings))
-                         (cons (violation path line glue 'missing-binding) acc)
-                        ) ;
-                        ((not (memq public exports))
-                         (cons (violation path line glue 'not-exported) acc)
-                        ) ;
-                        (else acc)
-                  ) ;cond
-                ) ;loop
-              ) ;let*
-            ) ;if
-          ) ;let
-        ) ;append
-      ) ;let
+      (map (lambda (entry)
+             (violation (info-path info) (cadr entry) (car entry) 'exported-glue)
+           ) ;lambda
+        (info-exported-glue info)
+      ) ;map
     ) ;define
 
     (define (scan-top-level-form rel owner form)
@@ -281,7 +250,7 @@
     ) ;define
 
     (define (check-no-glue file-path)
-      "检查 glue 是否只在 define-library 中封装，且有同名公开绑定并被导出。"
+      "检查 glue 是否只在 define-library 中使用，且未被直接导出。"
       (cadr (scan-no-glue-file file-path))
     ) ;define
 
