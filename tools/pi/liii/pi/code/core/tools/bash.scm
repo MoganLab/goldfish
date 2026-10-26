@@ -204,20 +204,12 @@
     ;; 上游 Bash 工具按 100ms 节流发送累计输出快照。
     (define %bash-update-throttle-ms 100)
 
+    ;; 基于 (liii subprocess) 公开的 run-streaming-chunks 实现流式执行：
+    ;; stdout/stderr 合并到同一管道，按原始字节块收集输出，
+    ;; 并按 100ms 节流回调累计文本快照。
+    ;; 返回值：(values 累计文本 退出码)，超时强杀时退出码为 -1。
     (define (%run-bash-streaming command cwd timeout on-update)
-      (let* ((proc (process-spawn (list (pi-find-bash-path) "-c" command)
-                     :cwd    cwd
-                     :stdin  'null
-                     :stdout 'pipe
-                     ;; 合并到同一个 OS 管道，保留 stdout/stderr 的写入顺序
-                     :stderr 'stdout
-                   ) ;process-spawn
-             ) ;proc
-             (deadline (+ (%bash-now-ms) (* timeout 1000.0)))
-             (text "")
-             (last-update 0)
-             (last-sent "")
-            ) ;
+      (let* ((text "") (last-update 0) (last-sent ""))
         (define (send-update! force?)
           (let ((now (%bash-now-ms)))
             (when
@@ -236,49 +228,15 @@
             (send-update! #f)
           ) ;when
         ) ;define
-        (define (drain!)
-          (let loop
-            ()
-            (let ((chunk (process-read proc :max-bytes 65536 :stream 'stdout)))
-              (unless (eof-object? chunk)
-                (append-chunk! chunk)
-                (loop)
-              ) ;unless
-            ) ;let
-          ) ;let
-        ) ;define
-        (define (finish!)
-          (drain!)
+        (let ((ret (run-streaming-chunks (list (pi-find-bash-path) "-c" command)
+                     :cwd      cwd
+                     :on-chunk append-chunk!
+                     :timeout  timeout
+                   ) ;run-streaming-chunks
+              ) ;ret
+             ) ;
           (send-update! #t)
-          (process-close proc)
-          (let ((remaining (max 0 (inexact->exact (round (- deadline (%bash-now-ms)))))))
-            (values text (process-wait proc remaining))
-          ) ;let
-        ) ;define
-        (let loop
-          ()
-          (if (<= (- deadline (%bash-now-ms)) 0)
-            (begin
-              (process-kill-tree proc)
-              (drain!)
-              (send-update! #t)
-              (process-close proc)
-              (process-wait proc 500)
-              (values text -1)
-            ) ;begin
-            (let ((ev (g_subprocess-poll-io proc 50)))
-              (cond
-               ((eq? ev 'stdout)
-                (let ((chunk (process-read proc :max-bytes 65536 :stream 'stdout)))
-                  (if (eof-object? chunk) (finish!) (begin (append-chunk! chunk) (loop)))
-                ) ;let
-               ) ;
-               ((eq? ev 'eof) (finish!))
-               ((and (not (process-alive? proc)) (g_subprocess-eof? proc 'stdout)) (finish!))
-               (else (loop))
-              ) ;cond
-            ) ;let
-          ) ;if
+          (if (eq? ret #f) (values text -1) (values text ret))
         ) ;let
       ) ;let*
     ) ;define

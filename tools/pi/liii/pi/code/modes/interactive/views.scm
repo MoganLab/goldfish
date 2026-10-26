@@ -118,6 +118,16 @@
       ) ;let
     ) ;define
 
+    ;; 与上游每秒刷新一致：Working 动画可更频繁重绘，但时间只按秒推进
+    (define (%tool-elapsed-text started)
+      (let ((elapsed
+              (* 1000 (quotient (inexact->exact (floor (- (%tool-now-ms) started))) 1000))
+            ) ;elapsed
+           ) ;
+        (string-append "Elapsed " (format-tool-duration elapsed))
+      ) ;let
+    ) ;define
+
     (define (%tool-timer-text st)
       (if (not (string=? (%tool-card-name st) "bash"))
         #f
@@ -130,19 +140,11 @@
             (string-append "Took " (format-tool-duration duration))
            ) ;
            ((not started) #f)
-           ((eq? status 'pending)
-            ;; 与上游每秒刷新一致：Working 动画可更频繁重绘，但时间只按秒推进
-            (let ((elapsed
-                    (* 1000 (quotient (inexact->exact (floor (- (%tool-now-ms) started))) 1000))
-                  ) ;elapsed
-                 ) ;
-              (string-append "Elapsed " (format-tool-duration elapsed))
-            ) ;let
-           ) ;
+           ((eq? status 'pending) (%tool-elapsed-text started))
            (else
-             (let ((ended (or (%tool-card-ended-at st) (%tool-now-ms))))
-               (string-append "Took " (format-tool-duration (- ended started)))
-             ) ;let
+             (string-append "Took "
+               (format-tool-duration (- (or (%tool-card-ended-at st) (%tool-now-ms)) started))
+             ) ;string-append
            ) ;else
           ) ;cond
         ) ;let
