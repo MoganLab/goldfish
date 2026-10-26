@@ -55,7 +55,9 @@
     screen-auto-hide-cursor-set! make-screen-buffer screen-buffer?
     screen-buffer-lines screen-buffer-prev-lines screen-buffer-dirty?
     screen-diff screen-dirty-diff diff-op-type diff-op-index diff-op-text
-    screen-diff-has-changes?
+    screen-diff-has-changes? fuzzy-match fuzzy-filter make-select-list
+    select-list? select-list-items select-list-selected-item
+    select-list-selected-index select-list-set-selected-index!
   ) ;export
   (import (liii tui component)
     (liii tui text-width)
@@ -65,5 +67,7 @@
     (liii tui loader)
     (liii tui editor)
     (liii tui main-screen)
+    (liii tui fuzzy)
+    (liii tui select-list)
   ) ;import
 ) ;define-library
