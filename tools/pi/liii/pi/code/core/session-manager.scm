@@ -17,13 +17,16 @@
     (liii time)
     (liii pi code cli args)
     (liii pi code core tools bash)
+    (liii pi code core tools read)
+    (liii pi ai template)
     (liii pi ai types)
   ) ;import
   (export encode-cwd-to-session-dirname get-session-dir make-session-file-path
-    read-session-history append-session-entry! find-latest-session-file
-    save-session-header! save-session-message! setup-session-file
-    setup-initial-messages persist-new-messages! find-last-session-message-id
-    pi-normalize-session-msg append-bash-execution! assoc
+    resolve-session-dir read-session-history append-session-entry!
+    find-latest-session-file save-session-header! save-session-message!
+    setup-session-file setup-initial-messages persist-new-messages!
+    find-last-session-message-id pi-normalize-session-msg append-bash-execution!
+    assoc
   ) ;export
   (begin
 
@@ -41,16 +44,14 @@
     (define (setup-session-file parsed cfg cwd)
       (if (pi-args-ref parsed 'no-session)
         (values #f #f)
-        (let* ((agent-dir (cdr (assoc 'agent-dir cfg)))
-               (sdir (get-session-dir agent-dir cwd))
-              ) ;
+        (let ((sdir (resolve-session-dir parsed cfg cwd)))
           (if (pi-args-ref parsed 'continue)
             (let ((latest (find-latest-session-file sdir)))
               (if latest (values latest sdir) (%init-new-session-file sdir cwd))
             ) ;let
             (%init-new-session-file sdir cwd)
           ) ;if
-        ) ;let*
+        ) ;let
       ) ;if
     ) ;define
 
@@ -203,6 +204,37 @@
       (let ((dirname (encode-cwd-to-session-dirname cwd)))
         (path->string (path-join agent-dir "sessions" dirname))
       ) ;let
+    ) ;define
+
+    ;; 非空字符串判定：空白字符串视为未设置
+    (define (%non-empty-session-path s)
+      (and (string? s) (not (string-null? (string-trim-both s))) s)
+    ) ;define
+
+    ;; 会话目录解析（对齐 pi 的会话目录选择优先级）：
+    ;; --session-dir > PI_CODING_AGENT_SESSION_DIR > settings 的 sessionDir > 默认
+    ;; 覆盖路径经 ~ 展开与 cwd 相对解析后直接作为会话目录
+    ;; （不做 cwd 编码、不追加 sessions/<encoded-cwd> 子目录）；
+    ;; opt-env 为可选的显式环境表（(("NAME" . "value") ...)），缺省读真实环境
+    (define (resolve-session-dir parsed cfg cwd . opt-env)
+      (let* ((cli-dir (%non-empty-session-path (pi-args-ref parsed 'session-dir)))
+             (env-dir (%non-empty-session-path (lookup-env-var "PI_CODING_AGENT_SESSION_DIR" opt-env))
+             ) ;env-dir
+             (settings (cdr (or (assoc 'settings cfg) '(#f . #f))))
+             (settings-dir
+               (%non-empty-session-path (cond ((not settings) #f)
+                                              ((assoc 'session-dir settings) => cdr)
+                                              (else #f)
+                                        ) ;cond
+               ) ;%non-empty-session-path
+             ) ;settings-dir
+             (override (or cli-dir env-dir settings-dir))
+            ) ;
+        (if override
+          (pi-resolve-path override cwd)
+          (get-session-dir (cdr (assoc 'agent-dir cfg)) cwd)
+        ) ;if
+      ) ;let*
     ) ;define
 
     (define (make-session-file-path session-dir timestamp-iso session-id)

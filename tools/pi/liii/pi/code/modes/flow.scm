@@ -205,7 +205,7 @@
     (define (run-compact-flow parsed cfg initial-msg emit)
       (let* ((cwd (path->string (path-cwd)))
              (agent-dir (cdr (assoc 'agent-dir cfg)))
-             (sdir (get-session-dir agent-dir cwd))
+             (sdir (resolve-session-dir parsed cfg cwd))
              (sfile (find-latest-session-file sdir))
              (has-prompt? (not (string-null? initial-msg)))
             ) ;
