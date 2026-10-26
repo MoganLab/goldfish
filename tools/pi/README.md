@@ -214,7 +214,7 @@ timeout 600 bin/gf pi -p --auto-review "修复 src/app.scm 里的空指针问题
 #### multikey：密钥池与 429/403 自动轮换【可用】（任务 033，扩展化 2026-10）
 
 移植自 [kslamph/multikey](https://github.com/kslamph/multikey)，以内置扩展形式提供
-（`extensions/multikey.scm` 注册，实现库 `(liii pi multikey)`）。检测
+（`extensions/multikey.scm` 注册，实现库族 `(liii pi multikey pool/load/policy/config)`）。检测
 `~/.pi/agent/multikey.json`：命中当前 provider 的 pool 时自动注入
 `request-key` / `rotate-key` 钩子，正常请求固定使用当前 key，429/403 时
 冷却当前 key 并切换下一个（切换日志与重试日志共用通道：CLI 写 stderr，
@@ -497,7 +497,7 @@ tools/pi/liii/
   MINIMAX_BASE_URL 可覆盖（任务 035 env 优先体系）。
 - [x] **`pi-multikey` 密钥池与 429/403 自动轮换【可用】（任务 033，已扩展化）**：
   对照 Node pi 的 `pi-multikey` 扩展移植。**已剥离为内置扩展**（`extensions/multikey.scm`，
-  实现库 `(liii pi multikey)`；核心只保留通用 key 钩子接口 `(liii pi ai keyring)`），
+  实现库族 `(liii pi multikey pool/load/policy/config)`；核心只保留通用 key 钩子接口 `(liii pi ai keyring)`），
   用法与配置详见「常用内置扩展」章节。
 - [ ] **4 字节 UTF-8 + '<' 挂起**：prompt 同时含 4 字节 UTF-8 字符（如 🚀、𠀀）与 `<` 时进程静默挂起且连 HTTP 300s 超时都不生效（复现：`timeout 60 bin/gf pi -p '🚀 <'`）。【待重做】
 - [ ] **thinking 内容**：思考级别的请求与解析。预期用法（实现时以 pi 实际 CLI 为准）：

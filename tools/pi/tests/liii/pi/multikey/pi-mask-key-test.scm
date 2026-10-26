@@ -1,4 +1,4 @@
-(import (liii check) (liii pi multikey))
+(import (liii check) (liii pi multikey pool))
 
 (check-set-mode! 'report-failed)
 

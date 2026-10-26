@@ -1,6 +1,5 @@
-(import (liii check)
-  (liii pi ai keyring)
-  (liii pi multikey))
+(import (liii check) (liii pi ai keyring)
+  (liii pi multikey pool) (liii pi multikey config))
 
 (check-set-mode! 'report-failed)
 

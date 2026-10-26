@@ -2,7 +2,7 @@
   (liii pi code extension)
   (liii pi code config)
   (liii pi ai keyring)
-  (liii pi multikey)
+  (liii pi multikey config)
 ) ;import
 
 (check-set-mode! 'report-failed)

@@ -2,7 +2,8 @@
   (liii check)
   (liii string)
   (liii pi ai retry)
-  (liii pi multikey)
+  (liii pi multikey load)
+  (liii pi multikey policy)
 )
 
 (check-set-mode! 'report-failed)
