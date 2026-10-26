@@ -46,17 +46,12 @@
       "goldfish/liii/fs-watch.scm",
       "goldfish/liii/gfproject/tools.scm",
       "goldfish/liii/path/fs.scm",
-      "goldfish/liii/psutil.scm",
-      "goldfish/liii/subprocess/streaming.scm",
       "goldfish/scheme/boot.scm",
-      "goldfish/srfi/srfi-13.scm",
       "tests/",
       "tools/check/liii/goldcheck/collect.scm",
       "tools/check/liii/goldcheck/config.scm",
       "tools/check/liii/goldcheck/layer-config.scm",
       "tools/check/liii/goldcheck/path.scm",
-      "tools/common/liii/goldtool/cache.scm",
-      "tools/fix/liii/goldfix/cache.scm",
       "tools/fmt/liii/goldfmt/config.scm"
     ],
     "max-file-lines": [

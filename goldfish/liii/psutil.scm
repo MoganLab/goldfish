@@ -19,7 +19,7 @@
     memory-info-resident-set-memory-size memory-info-virtual-memory-size
     memory-info-proportional-set-memory-size
   ) ;export
-  (import (liii base))
+  (import (liii base) (liii os))
   (begin
 
     (define-record-type <memory-info>
@@ -33,13 +33,13 @@
       (proportional-set-memory-size memory-info-proportional-set-memory-size)
     ) ;define-record-type
 
-    (define* (process-memory-info (pid (g_getpid)))
+    (define* (process-memory-info (pid (getpid)))
       (let ((info (g_process-memory-info pid)))
         (%make-memory-info (car info) (cadr info) (caddr info))
       ) ;let
     ) ;define*
 
-    (define* (process-num-threads (pid (g_getpid))) (g_process-num-threads pid))
+    (define* (process-num-threads (pid (getpid))) (g_process-num-threads pid))
 
   ) ;begin
 ) ;define-library
