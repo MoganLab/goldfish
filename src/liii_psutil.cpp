@@ -18,6 +18,7 @@
 #include <cerrno>
 #include <cstdint>
 #include <cstdio>
+#include <ctime>
 #include <limits>
 #include <string>
 
@@ -34,6 +35,8 @@
 // clang-format on
 #elif defined(__APPLE__)
 #include <libproc.h>
+#include <sys/sysctl.h>
+#include <sys/time.h>
 #include <unistd.h>
 #elif defined(__linux__)
 #include <unistd.h>
@@ -51,6 +54,12 @@ static s7_pointer
 psutil_error (s7_scheme* sc, const char* type, const char* operation, s7_int pid) {
   std::string message= std::string (operation) + " failed for process " + std::to_string (pid);
   return s7_error (sc, s7_make_symbol (sc, type), s7_list (sc, 1, s7_make_string (sc, message.c_str ())));
+}
+
+static s7_pointer
+psutil_system_error (s7_scheme* sc, const char* operation) {
+  std::string message= std::string (operation) + " failed";
+  return s7_error (sc, s7_make_symbol (sc, "os-error"), s7_list (sc, 1, s7_make_string (sc, message.c_str ())));
 }
 
 static s7_pointer
@@ -292,12 +301,52 @@ f_process_num_threads (s7_scheme* sc, s7_pointer args) {
   return s7_make_integer (sc, (s7_int) count);
 }
 
+static s7_pointer
+f_boot_time (s7_scheme* sc, s7_pointer args) {
+  double boot_time= 0.0;
+
+#if defined(__linux__)
+  FILE* file= fopen ("/proc/stat", "r");
+  if (!file) return psutil_system_error (sc, "boot-time");
+  char line[256];
+  bool found= false;
+  while (fgets (line, sizeof (line), file)) {
+    unsigned long long seconds= 0;
+    if (sscanf (line, "btime %llu", &seconds) == 1) {
+      boot_time= (double) seconds;
+      found    = true;
+      break;
+    }
+  }
+  fclose (file);
+  if (!found) return psutil_system_error (sc, "boot-time");
+#elif defined(__APPLE__)
+  int            mib[2]= {CTL_KERN, KERN_BOOTTIME};
+  struct timeval value;
+  size_t         size= sizeof (value);
+  if (sysctl (mib, 2, &value, &size, NULL, 0) != 0 || size != sizeof (value)) {
+    return psutil_system_error (sc, "boot-time");
+  }
+  boot_time= (double) value.tv_sec + (double) value.tv_usec / 1000000.0;
+#elif defined(_WIN32)
+  std::time_t now= std::time (NULL);
+  if (now == (std::time_t) -1) return psutil_system_error (sc, "boot-time");
+  boot_time= (double) now - (double) GetTickCount64 () / 1000.0;
+#else
+  return psutil_system_error (sc, "boot-time is unsupported on this platform");
+#endif
+
+  return s7_make_real (sc, boot_time);
+}
+
 void
 glue_liii_psutil (s7_scheme* sc) {
   glue_define (sc, "g_process-memory-info", "(g_process-memory-info [pid]) => (rss vms pss), sizes in bytes",
                f_process_memory_info, 0, 1);
   glue_define (sc, "g_process-num-threads", "(g_process-num-threads [pid]) => positive integer", f_process_num_threads,
                0, 1);
+  glue_define (sc, "g_boot-time", "(g_boot-time) => system boot time in seconds since the Unix epoch", f_boot_time, 0,
+               0);
 }
 
 } // namespace goldfish

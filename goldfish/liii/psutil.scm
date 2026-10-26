@@ -15,7 +15,7 @@
 ;;
 
 (define-library (liii psutil)
-  (export process-memory-info process-num-threads memory-info?
+  (export process-memory-info process-num-threads boot-time memory-info?
     memory-info-resident-set-memory-size memory-info-virtual-memory-size
     memory-info-proportional-set-memory-size
   ) ;export
@@ -40,6 +40,10 @@
     ) ;define*
 
     (define* (process-num-threads (pid (getpid))) (g_process-num-threads pid))
+
+    (define (boot-time)
+      (g_boot-time)
+    ) ;define
 
   ) ;begin
 ) ;define-library
