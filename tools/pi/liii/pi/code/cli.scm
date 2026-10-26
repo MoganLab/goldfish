@@ -279,10 +279,10 @@
     ) ;define
 
     (define (%ensure-extensions-loaded!)
-      ;; 内置扩展由 args.scm 的 registry initializer（ensure-builtin-extensions!）负责加载，
-      ;; 这里只加载全局/项目级扩展，避免 builtin 目录被重复加载
+      ;; 内置扩展由 args.scm 提前加载；这里仍传入内置目录用于同名冲突仲裁，
+      ;; 但不重复返回内置文件。用户级可覆盖内置，项目级不能覆盖内置名称。
       (let* ((reg (default-extension-registry))
-             (paths (pi-discover-extensions :builtin-dir #f))
+             (paths (pi-discover-extensions :include-builtin? #f))
             ) ;
         (pi-load-extensions paths reg)
         reg
