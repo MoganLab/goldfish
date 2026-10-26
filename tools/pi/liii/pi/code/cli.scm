@@ -7,6 +7,7 @@
 (define-library (liii pi code cli)
   (import (scheme base)
     (scheme process-context)
+    (liii raw-string)
     (liii string)
     (liii list)
     (liii sys)
@@ -148,6 +149,14 @@
           (%validate-parsed-args reg parsed initial-msg rest-msgs)
           (cond ((pi-args-ref parsed 'help) (display-pi-help) 0)
                 ((pi-args-ref parsed 'list-models) (%handle-list-models parsed))
+                ((and (pi-args-ref parsed 'provider) (not (pi-args-ref parsed 'model)))
+                 (error 'pi-arg-error
+                   (string-append "--provider requires --model (for example: --provider "
+                     (pi-args-ref parsed 'provider)
+                     " --model <pattern>)"
+                   ) ;string-append
+                 ) ;error
+                ) ;
                 ((and (string-null? initial-msg)
                    (null? rest-msgs)
                    (not (pi-args-ref parsed 'continue))
@@ -189,6 +198,23 @@
        ((and (pair? info) (pair? (car info)) (string? (caar info))) (caar info))
        (else (object->string (cons err-type info)))
       ) ;cond
+    ) ;define
+
+    (define (%cli-error-use-color?)
+      (let ((force-color (get-environment-variable "FORCE_COLOR")))
+        (cond
+         ((and force-color (not (string=? force-color "0"))) #t)
+         ((get-environment-variable "NO_COLOR") #f)
+         (else (stderr-tty?))
+        ) ;cond
+      ) ;let
+    ) ;define
+
+    (define (%display-cli-error message)
+      (let ((text (string-append "Error: " message)))
+        (display-stderr (if (%cli-error-use-color?) (string-append "\x1b;[31m" text "\x1b;[39m") text)
+        ) ;display-stderr
+      ) ;let
     ) ;define
 
     (define (%ensure-extensions-loaded!)
@@ -252,8 +278,7 @@
           ) ;let
         ) ;lambda
         (lambda (err-type . info)
-          (display-stderr (string-append "Error: " (%format-catch-error err-type info) "\n")
-          ) ;display-stderr
+          (%display-cli-error (%format-catch-error err-type info))
           1
         ) ;lambda
       ) ;catch
