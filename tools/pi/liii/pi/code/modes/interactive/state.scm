@@ -20,6 +20,9 @@
     %pi-app-tools-expanded?-set! %pi-app-bash-cards %pi-app-bash-cards-set!
     pi-app-bash-jobs-chan %pi-app-bash-handler %pi-app-record-sink
     pi-app-session-name %pi-app-session-name-set! %pi-editor-top-border
+    pi-app-provider %pi-app-provider-set! pi-app-model %pi-app-model-set!
+    pi-app-models %pi-app-default-model %pi-app-on-save-model
+    %pi-app-supports-thinking?-set! %pi-app-available-thinking-levels-set!
   ) ;export
   (import (scheme base))
   (begin
@@ -32,7 +35,8 @@
         slash-command-menu footer queue handler jobs-chan event-chan abort-chan
         working thinking-level supports-thinking available-thinking-levels
         default-thinking-level on-save-thinking-level bash-mode? tools-expanded?
-        bash-cards bash-jobs-chan bash-handler record-sink session-name
+        bash-cards bash-jobs-chan bash-handler record-sink session-name provider
+        model models default-model on-save-model
       ) ;%make-pi-app
       pi-app?
       (term pi-app-term)
@@ -52,8 +56,10 @@
       (abort-chan pi-app-abort-chan)
       (working pi-app-working)
       (thinking-level pi-app-thinking-level %pi-app-thinking-level-set!)
-      (supports-thinking pi-app-supports-thinking?)
-      (available-thinking-levels pi-app-available-thinking-levels)
+      (supports-thinking pi-app-supports-thinking? %pi-app-supports-thinking?-set!)
+      (available-thinking-levels pi-app-available-thinking-levels
+        %pi-app-available-thinking-levels-set!
+      ) ;available-thinking-levels
       (default-thinking-level pi-app-default-thinking-level
         %pi-app-default-thinking-level-set!
       ) ;default-thinking-level
@@ -71,6 +77,14 @@
       ;; 默认投递 (bash_record cmd text code) 任务到 jobs-chan 由后台 worker 落盘
       (record-sink %pi-app-record-sink)
       (session-name pi-app-session-name %pi-app-session-name-set!)
+      ;; /model 会话内切换：当前 provider/model，随下一条消息生效
+      (provider pi-app-provider %pi-app-provider-set!)
+      (model pi-app-model %pi-app-model-set!)
+      ;; 可用模型列表与默认模型（settings），选择器数据源与 · default 标记
+      (models pi-app-models)
+      (default-model %pi-app-default-model)
+      ;; Ctrl+S 持久化回调 (lambda (provider model-id))
+      (on-save-model %pi-app-on-save-model)
     ) ;define-record-type
 
     (define %pi-app-term pi-app-term)

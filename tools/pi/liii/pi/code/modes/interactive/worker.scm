@@ -8,7 +8,8 @@
   ;; 注意：go worker 线程通过重新 import 库并求值 procedure-source 来执行，
   ;; 只能看到各库的导出绑定，因此 worker 调用链上的内部函数必须全部导出
   (export make-tui-emit pi-tui-agent-worker pi-tui-run-worker pi-tui-send-event!
-    pi-cfg-with-thinking pi-worker-ensure-session-file! pi-worker-handle-job
+    pi-cfg-with-thinking pi-cfg-with-model %worker-job-cfg
+    pi-worker-ensure-session-file! pi-worker-handle-job
   ) ;export
   (import (scheme base)
     (scheme write)
@@ -18,6 +19,9 @@
     (liii string)
     (liii path)
     (liii pi abort)
+    (liii pi ai auth)
+    (liii pi ai models meta)
+    (liii pi ai models route)
     (liii pi code cli args)
     (liii pi code config)
     (liii pi code core session-manager)
@@ -105,6 +109,47 @@
           cfg
         ) ;filter
       ) ;cons
+    ) ;define
+
+    ;; alist 覆盖：pairs 中的键优先，其余沿用原 cfg
+    (define (%cfg-override cfg pairs)
+      (let ((keys (map car pairs)))
+        (append pairs (filter (lambda (p) (not (memq (car p) keys))) cfg))
+      ) ;let
+    ) ;define
+
+    ;; 覆盖 cfg 的模型相关项（会话内 /model 切换后下一条消息生效，对齐上游 setModel）：
+    ;; 重新解析 provider 凭证与 model 元数据，并按新模型重算 supports-thinking
+    (define (pi-cfg-with-model cfg provider model-id)
+      (let* ((agent-dir (cdr (or (assoc 'agent-dir cfg) (cons #f #f))))
+             (models-store (cdr (or (assoc 'models-store cfg) (cons #f '()))))
+             (auth (pi-load-auth agent-dir))
+             (api-key (pi-resolve-provider-key provider auth))
+             (raw-meta (pi-resolve-model-metadata provider model-id models-store))
+             (meta (pi-ensure-catalog-meta raw-meta provider model-id models-store))
+             (supports (pi-model-supports-thinking? models-store provider model-id))
+            ) ;
+        (%cfg-override cfg
+          (list (cons 'provider provider)
+            (cons 'model-id model-id)
+            (cons 'model-meta meta)
+            (cons 'api-key api-key)
+            (cons 'supports-thinking supports)
+          ) ;list
+        ) ;%cfg-override
+      ) ;let*
+    ) ;define
+
+    ;; job 载荷 → 任务 cfg：
+    ;; - (消息 thinking-level) 旧格式：仅覆盖 thinking（向后兼容）
+    ;; - (消息 thinking-level provider model-id)：再叠加 /model 切换
+    (define (%worker-job-cfg cfg job)
+      (let ((base (pi-cfg-with-thinking cfg (cadr job))))
+        (if (and (> (length job) 3) (string? (list-ref job 2)) (string? (list-ref job 3)))
+          (pi-cfg-with-model base (list-ref job 2) (list-ref job 3))
+          base
+        ) ;if
+      ) ;let
     ) ;define
 
     ;; 在 (liii go) 的后台独立 worker 线程中运行，完全不阻塞前台终端编辑与打字；
@@ -218,7 +263,7 @@
          ;; 本轮任务期间流式回调 / turn 边界 / 工具边界经 pi-aborted? 探测
          (pi-abort-arm-chan! abort-chan)
          (pi-tui-run-worker parsed
-           (pi-cfg-with-thinking cfg (cadr job))
+           (%worker-job-cfg cfg job)
            (car job)
            event-chan
            (pi-worker-ensure-session-file! parsed cfg sfile-box)
@@ -228,7 +273,8 @@
     ) ;define
 
     ;; 顶层后台工作协程：并发循环消费 jobs-chan 任务并回传事件到 event-chan；
-    ;; jobs 包含用户消息 (text thinking-level)、bash 记录与 session_name 命名任务
+    ;; jobs 包含用户消息 (text thinking-level [provider model-id])、
+    ;; bash 记录与 session_name 命名任务
     ;; 注意：go 绑定的 let 语法会“求值”绑定值，alist 会被当作函数调用而报错，
     ;; 因此 parsed/cfg 不能跨 go 边界传入，必须在 worker 会话内自行解析
     (define (pi-tui-agent-worker jobs-chan event-chan abort-chan)
@@ -245,8 +291,8 @@
         ) ;set-pi-retry-logger!
         (let loop
           ()
-          ;; job 消息为 (text thinking-level)、bash_record 或 session_name：
-          ;; 会话内切换的 thinking 级别对下一条消息生效
+          ;; job 消息为 (text thinking-level [provider model-id])、bash_record 或 session_name：
+          ;; 会话内切换的 thinking 级别与 /model 模型均对下一条消息生效
           (let ((job (chan-recv! jobs-chan)))
             (when job
               (pi-worker-handle-job job parsed cfg sfile-box event-chan abort-chan)

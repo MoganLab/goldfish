@@ -30,6 +30,7 @@
   ) ;import
   (export pi-resolve-config-value json-dict-ref pi-get-agent-dir
     pi-read-json-file pi-load-settings pi-save-default-thinking-level!
+    pi-save-default-model! pi-model-supports-thinking?
     pi-load-compaction-settings pi-resolve-proxy-url pi-load-auth
     pi-resolve-provider-key pi-load-models-store pi-load-models-json
     pi-merge-models-json-into-store pi-resolve-model-metadata resolve-pi-config
@@ -129,6 +130,32 @@
         (path-mkdir agent-dir :parents #t :exist-ok #t)
         (path-write-text filepath (string-append (json->string updated) "\n"))
         level
+      ) ;let*
+    ) ;define
+
+    ;; /model Ctrl+S 持久化：只更新 defaultProvider/defaultModel，保留其他设置
+    (define (pi-save-default-model! agent-dir provider model-id)
+      (let* ((filepath (path->string (path-join (path agent-dir) (path "settings.json"))))
+             (settings (or (pi-read-json-file filepath) '()))
+             (updated
+               (append (list (cons "defaultProvider" provider) (cons "defaultModel" model-id))
+                 (filter
+                   (lambda (entry)
+                     (not (or (equal? (car entry) "defaultProvider")
+                            (equal? (car entry) 'defaultProvider)
+                            (equal? (car entry) "defaultModel")
+                            (equal? (car entry) 'defaultModel)
+                          ) ;or
+                     ) ;not
+                   ) ;lambda
+                   settings
+                 ) ;filter
+               ) ;append
+             ) ;updated
+            ) ;
+        (path-mkdir agent-dir :parents #t :exist-ok #t)
+        (path-write-text filepath (string-append (json->string updated) "\n"))
+        (list provider model-id)
       ) ;let*
     ) ;define
 
@@ -252,6 +279,11 @@
               (else (loop (cdr rest)))
         ) ;cond
       ) ;let
+    ) ;define
+
+    ;; 公开包装：/model 切换后重算 supports-thinking（worker 与 TUI 共用）
+    (define (pi-model-supports-thinking? models-store provider model-id)
+      (%model-supports-thinking? models-store provider model-id)
     ) ;define
 
     (define (resolve-pi-config parsed-args . opt-env)

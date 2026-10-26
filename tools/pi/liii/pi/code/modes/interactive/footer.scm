@@ -7,7 +7,7 @@
 (define-library (liii pi code modes interactive footer)
   (export make-pi-footer pi-footer? format-cwd-for-footer pi-footer-model-label
     pi-footer-set-thinking-level! pi-footer-branch pi-footer-set-branch!
-    pi-footer-set-session-name!
+    pi-footer-set-session-name! pi-footer-set-model!
   ) ;export
   (import (scheme base)
     (liii string)
@@ -174,6 +174,24 @@
             (list-ref st 4)
             (list-ref st 5)
             (list-ref st 6)
+            (list-ref st 7)
+          ) ;list
+        ) ;component-data-set!
+      ) ;let
+    ) ;define
+
+    ;; /model 会话内切换模型后同步 footer 右下角：provider/model 与 supports 联动
+    (define (pi-footer-set-model! comp provider model supports?)
+      (let ((st (%footer-state comp)))
+        (component-data-set! comp
+          (list 'pi-footer
+            (list-ref st 0)
+            (list-ref st 1)
+            provider
+            model
+            (list-ref st 4)
+            (list-ref st 5)
+            supports?
             (list-ref st 7)
           ) ;list
         ) ;component-data-set!

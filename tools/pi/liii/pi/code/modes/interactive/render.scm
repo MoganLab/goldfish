@@ -18,6 +18,7 @@
     (liii pi code modes interactive working)
     (liii pi code modes interactive thinking)
     (liii pi code modes interactive thinking-selector)
+    (liii pi code modes interactive model-selector)
   ) ;import
   (begin
 
@@ -71,7 +72,17 @@
                (footer-lines (component-render (%pi-app-footer app) w))
                (cur-pos
                  (if active-selector
-                   (let ((pos (thinking-selector-cursor-position active-selector)))
+                   ;; 选择器类型分发：搜索行光标定位（thinking 与 model 同构）
+                   (let ((pos (cond ((thinking-selector? active-selector)
+                                     (thinking-selector-cursor-position active-selector)
+                                    ) ;
+                                    ((model-selector? active-selector)
+                                     (model-selector-cursor-position active-selector)
+                                    ) ;
+                                    (else '(6 2))
+                              ) ;cond
+                         ) ;pos
+                        ) ;
                      (cons (cadr pos) (+ (length doc-lines) (car pos)))
                    ) ;let
                    (let ((ed-cur (editor-cursor ed))
