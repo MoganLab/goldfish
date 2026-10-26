@@ -103,21 +103,21 @@
   (path-unlink tmp #t)
 ) ;let*
 
-;; 7. no-glue：缺少与 glue 同名的公开绑定时违规
+;; 7. no-glue：glue 不要求存在同名公开绑定
 (let* ((tmp (path->string (path-join (path-temp-dir) "gf-test-no-glue-binding.scm"))))
   (write-test-bytes tmp
     "(define-library (demo missing)\n  (export other)\n  (import (scheme base))\n  (begin\n    (define (other str) (g_md5 str)))\n) ;define-library\n"
   ) ;write-test-bytes
-  (check (map (lambda (v) (list-ref v 4)) (check-file tmp #f)) => '(missing-binding))
+  (check (check-file tmp #f) => '())
   (path-unlink tmp #t)
 ) ;let*
 
-;; 8. no-glue：对应公开绑定存在但未导出时违规
+;; 8. no-glue：glue 的封装绑定不要求导出
 (let* ((tmp (path->string (path-join (path-temp-dir) "gf-test-no-glue-export.scm"))))
   (write-test-bytes tmp
     "(define-library (demo private)\n  (export)\n  (import (scheme base))\n  (begin\n    (define md5 g_md5))\n) ;define-library\n"
   ) ;write-test-bytes
-  (check (map (lambda (v) (list-ref v 4)) (check-file tmp #f)) => '(not-exported))
+  (check (check-file tmp #f) => '())
   (path-unlink tmp #t)
 ) ;let*
 
