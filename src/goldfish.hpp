@@ -119,6 +119,7 @@ void glue_liii_fs_watch (s7_scheme* sc);
 void glue_liii_path (s7_scheme* sc);
 void glue_liii_path_stat (s7_scheme* sc);
 void glue_liii_psutil (s7_scheme* sc);
+void glue_liii_time (s7_scheme* sc);
 void glue_liii_sort (s7_scheme* sc);
 void glue_liii_string (s7_scheme* sc);
 void glue_liii_string_cursor (s7_scheme* sc);
@@ -511,11 +512,6 @@ glue_date_now (s7_scheme* sc) {
 }
 
 inline void
-glue_liii_time (s7_scheme* sc) {
-  glue_sleep (sc);
-}
-
-inline void
 glue_liii_datetime (s7_scheme* sc) {
   glue_datetime_now (sc);
   glue_date_now (sc);
@@ -657,6 +653,7 @@ glue_for_community_edition (s7_scheme* sc) {
   glue_liii_list (sc);
   glue_liii_string (sc);
   glue_liii_string_cursor (sc);
+  glue_sleep (sc);
   glue_liii_time (sc);
   glue_liii_datetime (sc);
   glue_liii_date_time (sc);
