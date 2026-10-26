@@ -104,6 +104,7 @@ target ("goldfish") do
     add_files ("src/liii_path.cpp")
     add_files ("src/liii_path_stat.cpp")
     add_files ("src/liii_psutil.cpp")
+    add_files ("src/liii_time.cpp")
     add_files ("src/liii_sort.cpp")
     add_files ("src/liii_string.cpp")
     add_files ("src/liii_string_cursor.cpp")

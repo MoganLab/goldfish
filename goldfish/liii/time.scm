@@ -15,7 +15,7 @@
 ;;
 
 (define-library (liii time)
-  (export sleep)
+  (export sleep process-time process-time-ns thread-time thread-time-ns)
   (import (liii base) (scheme time))
   (begin
 
@@ -24,6 +24,22 @@
         (error 'type-error "(sleep seconds): seconds must be a number")
         (g_sleep seconds)
       ) ;if
+    ) ;define
+
+    (define (process-time)
+      (g_process-time)
+    ) ;define
+
+    (define (process-time-ns)
+      (g_process-time-ns)
+    ) ;define
+
+    (define (thread-time)
+      (g_thread-time)
+    ) ;define
+
+    (define (thread-time-ns)
+      (g_thread-time-ns)
     ) ;define
 
   ) ;begin
