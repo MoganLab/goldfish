@@ -224,17 +224,17 @@ f_process_memory_info (s7_scheme* sc, s7_pointer args) {
   return psutil_error (sc, "os-error", "process-memory-info is unsupported on this platform", pid);
 #endif
 
-  s7_pointer rss_value= s7_make_integer (sc, (s7_int) rss);
-  s7_int     rss_loc  = s7_gc_protect (sc, rss_value);
-  s7_pointer vms_value= s7_make_integer (sc, (s7_int) vms);
-  s7_int     vms_loc  = s7_gc_protect (sc, vms_value);
-  s7_pointer pss_value= pss_available ? s7_make_integer (sc, (s7_int) pss) : s7_make_boolean (sc, false);
-  s7_int     pss_loc  = s7_gc_protect (sc, pss_value);
-  s7_pointer result   = s7_list (sc, 3, rss_value, vms_value, pss_value);
+  s7_pointer rss_value    = s7_make_integer (sc, (s7_int) rss);
+  s7_int     rss_loc      = s7_gc_protect (sc, rss_value);
+  s7_pointer vms_value    = s7_make_integer (sc, (s7_int) vms);
+  s7_int     vms_loc      = s7_gc_protect (sc, vms_value);
+  s7_pointer pss_value    = pss_available ? s7_make_integer (sc, (s7_int) pss) : s7_make_boolean (sc, false);
+  s7_int     pss_loc      = s7_gc_protect (sc, pss_value);
+  s7_pointer scheme_result= s7_list (sc, 3, rss_value, vms_value, pss_value);
   s7_gc_unprotect_at (sc, pss_loc);
   s7_gc_unprotect_at (sc, vms_loc);
   s7_gc_unprotect_at (sc, rss_loc);
-  return result;
+  return scheme_result;
 }
 
 static s7_pointer
