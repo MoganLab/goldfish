@@ -22,6 +22,7 @@
     (liii pi code config)
     (liii pi code core session-manager)
     (liii pi code core session-name)
+    (liii pi code core session-stats)
     (liii pi ai retry)
     (liii pi code modes flow)
     (liii pi code modes output)
@@ -168,6 +169,26 @@
             (pi-tui-send-event! event-chan
               (list 'error
                 (string-append "bash record failed: " (object->string (cons tag args)))
+              ) ;list
+            ) ;pi-tui-send-event!
+          ) ;lambda
+        ) ;catch
+       ) ;
+       ((and (pair? job) (eq? (car job) 'session_stats))
+        (catch #t
+          (lambda ()
+            (let* ((sfile (pi-worker-ensure-session-file! parsed cfg sfile-box))
+                   (stats (pi-get-session-stats sfile))
+                  ) ;
+              (pi-tui-send-event! event-chan (list 'session_stats stats))
+            ) ;let*
+          ) ;lambda
+          (lambda (tag . args)
+            (pi-tui-send-event! event-chan
+              (list 'session_stats_error
+                (string-append "Failed to read session stats: "
+                  (object->string (cons tag args))
+                ) ;string-append
               ) ;list
             ) ;pi-tui-send-event!
           ) ;lambda
