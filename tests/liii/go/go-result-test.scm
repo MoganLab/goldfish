@@ -70,4 +70,14 @@
 (define ch7 (go-result () (string-base64-encode "hi")))
 (check (chan-recv! ch7 2000) => '(ok "aGk="))
 
+;; 8. [1147] worker 会话同样加载 boot.scm，堆增长阈值与主会话一致：
+;; 库 import 峰值后堆不会维持数倍虚胖（实测 worker 全量 import 252 库后
+;; 进程 RSS 增量从 47MB 降至约 21MB）
+
+(define ch8 (go-result () (*s7* 'gc-resize-heap-fraction)))
+(check (chan-recv! ch8 2000) => '(ok 0.15))
+
+(define ch9 (go-result () (*s7* 'gc-resize-heap-by-4-fraction)))
+(check (chan-recv! ch9 2000) => '(ok 0.01))
+
 (check-report)
