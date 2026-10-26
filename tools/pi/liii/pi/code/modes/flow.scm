@@ -16,6 +16,7 @@
     (liii pi code core prompt)
     (liii pi code core session-manager)
     (liii pi agent loop)
+    (liii pi ai dispatch)
     (liii pi ai types)
     (liii pi code core compaction session)
     (liii pi code core compaction flow)
@@ -122,6 +123,7 @@
                emit
                parsed
                (compaction #f)
+               (emit-initial? #t)
              ) ;run-agent-loop-with-timeout
       (let* ((timeout (pi-resolve-timeout parsed cfg))
              (max-turns
@@ -137,7 +139,7 @@
              ) ;session-timeout
             ) ;
         (run-agent-loop cfg init-msgs system-prompt emit timeout max-turns
-          session-timeout compaction
+          session-timeout compaction pi-request-provider-stream emit-initial?
         ) ;run-agent-loop
       ) ;let*
     ) ;define*
@@ -169,6 +171,7 @@
                on-finish
                (session-file #f)
                (rest-msgs '())
+               (emit-initial? #t)
              ) ;run-session-flow
       (let*-values (((cwd) (path->string (path-cwd)))
                     ((sfile sdir)
@@ -206,6 +209,7 @@
                                    emit
                                    parsed
                                    compaction
+                                   emit-initial?
                                  ) ;run-agent-loop-with-timeout
                        ) ;res-msgs
                       ) ;
