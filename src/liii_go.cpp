@@ -97,8 +97,18 @@ public:
     {
       std::unique_lock<std::mutex> lock (mtx);
       tasks.push (std::move (task));
+      // 不为空闲容量预先创建 S7 会话。仅在出现排队任务且现有空闲 worker
+      // 不足时扩容；每次入队至多新增一个，避免线程尚未进入 wait 前重复扩容。
+      if (workers.size () < max_workers && tasks.size () > idle_workers) {
+        workers.emplace_back ([this] () { worker_loop (); });
+      }
     }
     cv.notify_one ();
+  }
+
+  size_t active_worker_count () {
+    std::lock_guard<std::mutex> lock (mtx);
+    return workers.size ();
   }
 
   // gate fire 时调用：唤醒空闲 worker 进调度器消费事件（挂起 fiber 的及时唤醒）
@@ -135,12 +145,7 @@ public:
   }
 
 private:
-  GoThreadPool () {
-    size_t n= configured_worker_count ();
-    for (size_t i= 0; i < n; ++i) {
-      workers.emplace_back ([this] () { worker_loop (); });
-    }
-  }
+  GoThreadPool () : max_workers (configured_worker_count ()) {}
 
   ~GoThreadPool () { shutdown (); }
 
@@ -193,7 +198,9 @@ private:
       {
         std::unique_lock<std::mutex> lock (mtx);
         // 空唤醒来源：gate fire 递增 wake_epoch（挂起 fiber 有事件待消费）
+        ++idle_workers;
         cv.wait (lock, [this, &my_epoch] () { return stop || !tasks.empty () || wake_epoch != my_epoch; });
+        --idle_workers;
         if (stop && tasks.empty ()) break;
         if (!tasks.empty ()) {
           task= std::move (tasks.front ());
@@ -270,6 +277,8 @@ private:
     }
   }
 
+  const size_t             max_workers;
+  size_t                   idle_workers= 0;
   std::vector<std::thread> workers;
   std::queue<GoTask>       tasks;
   std::mutex               mtx;
@@ -1399,6 +1408,11 @@ f_go_worker_count (s7_scheme* sc, s7_pointer args) {
   return s7_make_integer (sc, static_cast<s7_int> (configured_worker_count ()));
 }
 
+static s7_pointer
+f_go_active_worker_count (s7_scheme* sc, s7_pointer args) {
+  return s7_make_integer (sc, static_cast<s7_int> (GoThreadPool::instance ().active_worker_count ()));
+}
+
 // ---------------------------------------------------------------------------
 // select wait-set glue
 // ---------------------------------------------------------------------------
@@ -1801,6 +1815,8 @@ glue_liii_go (s7_scheme* sc) {
   s7_define_function (sc, "g_worker-notify-error", f_worker_notify_error, 2, 0, false,
                       "(g_worker-notify-error tag args) => unspecified");
   s7_define_function (sc, "g_go-worker-count", f_go_worker_count, 0, 0, false, "(g_go-worker-count) => integer");
+  s7_define_function (sc, "g_go-active-worker-count", f_go_active_worker_count, 0, 0, false,
+                      "(g_go-active-worker-count) => integer");
   s7_define_function (sc, "g_select", f_select, 3, 0, false,
                       "(g_select recv-chs send-pairs timeout-ms) => #(0 idx val) | #(1 idx) | #f");
   s7_define_function (sc, "g_chan-timeout-close!", f_chan_timeout_close, 2, 0, false,
