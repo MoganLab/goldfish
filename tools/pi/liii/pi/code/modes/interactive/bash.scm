@@ -162,11 +162,20 @@
       ) ;let*
     ) ;define
 
-    ;; 设置输出文本（按 \n 拆分为逻辑行；空串归一化为无行）
+    ;; 设置输出文本（对齐上游 appendOutput + Text 组件：
+    ;; 剥 ANSI（CSI+OSC）、\r\n→\n、\r→\n（进度条帧变为独立行）、
+    ;; TAB 展开为定宽 3 空格；尾部空行不渲染；空串归一化为无行）
     (define (bash-card-set-output! card text)
-      (let ((st (component-data card)))
-        (%bash-card-lines-set! st (if (string-null? text) '() (string-split text "\n")))
-      ) ;let
+      (let* ((st (component-data card))
+             (no-ansi (strip-ansi text))
+             (no-cr (string-replace (string-replace no-ansi "\r\n" "\n") "\r" "\n"))
+             (no-tab (string-replace no-cr "\t" "   "))
+             (clean (string-trim-right no-tab #\newline))
+            ) ;
+        (%bash-card-lines-set! st
+          (if (string-null? clean) '() (string-split clean "\n"))
+        ) ;%bash-card-lines-set!
+      ) ;let*
     ) ;define
 
     ;; 结束运行：exit-code 0 → complete；-1 → timeout；其他 → error
@@ -196,7 +205,9 @@
     ) ;define
 
     ;; 生产执行器：经 bash -c 运行命令，返回 (values 合并输出 退出码)
-    ;; 退出码 -1 表示超时（对齐 subprocess 的超时约定）
+    ;; 退出码 -1 表示超时（对齐 subprocess 的超时约定）；
+    ;; 输出对齐上游 session.executeBash，返回前已清理
+    ;; （剥 ANSI/OSC、删控制字符、删 \r，保留 \t\n）
     (define (pi-bash-run-command command . opts)
       (let ((timeout (%keyword-value :timeout opts 600)))
         (let ((res (run-either (list (pi-find-bash-path) "-c" command)
@@ -209,9 +220,11 @@
               ) ;res
              ) ;
           (if (either-right? res)
-            (values (to-right res) 0)
+            (values (pi-bash-clean-output (to-right res)) 0)
             (let ((err (to-left res)))
-              (values (process-error-stdout err) (process-error-code err))
+              (values (pi-bash-clean-output (process-error-stdout err))
+                (process-error-code err)
+              ) ;values
             ) ;let
           ) ;if
         ) ;let

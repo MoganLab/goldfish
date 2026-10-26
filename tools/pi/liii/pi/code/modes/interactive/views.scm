@@ -76,7 +76,7 @@
     ;; 工具调用卡片的可变状态。pending 卡片在 start/update/end 事件间复用。
     (define-record-type <tool-card>
       (%make-tool-card tool-name args status result expanded? started-at
-        ended-at duration-ms
+        ended-at duration-ms render-cache
       ) ;%make-tool-card
       tool-card?
       (tool-name %tool-card-name)
@@ -87,6 +87,8 @@
       (started-at %tool-card-started-at)
       (ended-at %tool-card-ended-at %tool-card-ended-at-set!)
       (duration-ms %tool-card-duration-ms %tool-card-duration-ms-set!)
+      ;; bash 输出渲染缓存：(key . lines)，key = (result width expanded?)
+      (render-cache %tool-card-render-cache %tool-card-render-cache-set!)
     ) ;define-record-type
 
     (define (%tool-now-ms)
@@ -159,6 +161,22 @@
       ) ;case
     ) ;define
 
+    ;; 对齐上游 VisualLinePreview：按 (result width expanded?) 缓存渲染行。
+    ;; 转录中每个结果每帧都会渲染，不缓存时大输出会使 CPU 飕升
+    (define (%cached-bash-result-lines st result width)
+      (let ((key (list result width (%tool-card-expanded? st))))
+        (let ((cache (%tool-card-render-cache st)))
+          (if (and (pair? cache) (equal? (car cache) key))
+            (cdr cache)
+            (let ((lines (format-bash-tool-result-lines result width (%tool-card-expanded? st))))
+              (%tool-card-render-cache-set! st (cons key lines))
+              lines
+            ) ;let
+          ) ;if
+        ) ;let
+      ) ;let
+    ) ;define
+
     ;; Bash 使用上游专用渲染：无状态徽标，输出与计时前后各一个空行。
     (define (%render-bash-tool-card st width)
       (let* ((colors (%tool-colors (%tool-card-status st)))
@@ -170,8 +188,7 @@
                           ) ;wrap-text
              ) ;title-lines
              (result (%tool-card-result st))
-             (result-lines (format-bash-tool-result-lines result content-width (%tool-card-expanded? st))
-             ) ;result-lines
+             (result-lines (%cached-bash-result-lines st result content-width))
              (timer (%tool-timer-text st))
              (body (append title-lines
                      (if (null? result-lines) '() (cons "" result-lines))
@@ -228,6 +245,7 @@
                    (if (eq? status 'pending) (%tool-now-ms) #f)
                    #f
                    duration
+                   #f
                  ) ;%make-tool-card
              ) ;st
              (card

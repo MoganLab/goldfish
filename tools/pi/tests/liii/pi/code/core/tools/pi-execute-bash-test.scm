@@ -140,4 +140,57 @@
   (check is-err => #t)
   (check-true (string-contains? out "Command timed out after 1 seconds")))
 
+;; ---------------------------------------------------------------------------
+;; 输出清理：对齐上游 bash-executor appendText
+;; sanitizeBinaryOutput(stripAnsi(rawText)).replace(/\r/g, "")
+;; 即：剥 ANSI（CSI+OSC）、删控制字符、删 \r，保留 \t\n
+;; ---------------------------------------------------------------------------
+
+;; SGR 颜色序列被剥离
+(let-values (((out is-err) (pi-execute-bash '(("command" . "printf '\\033[31mred\\033[0m'")))))
+  (check is-err => #f)
+  (check out => "red"))
+
+;; \r 被删除（进度条、CRLF 行尾）
+(let-values (((out is-err) (pi-execute-bash '(("command" . "printf 'a\\rb\\r\\n'")))))
+  (check is-err => #f)
+  (check out => "ab\n"))
+
+;; TAB 保留（属于内容，由渲染层展开）
+(let-values (((out is-err) (pi-execute-bash '(("command" . "printf 'a\\tb'")))))
+  (check is-err => #f)
+  (check out => "a\tb"))
+
+;; 控制字符被删除（除 \t\n\r）
+(let-values (((out is-err) (pi-execute-bash '(("command" . "printf 'a\\001b\\002c'")))))
+  (check is-err => #f)
+  (check out => "abc"))
+
+;; OSC 序列被剥离（终端标题，BEL 终结）
+(let-values (((out is-err) (pi-execute-bash '(("command" . "printf '\\033]0;title\\007hi'")))))
+  (check is-err => #f)
+  (check out => "hi"))
+
+;; 流式快照同样是干净的
+(let ((updates '()))
+  (let-values (((out is-err)
+                (pi-execute-bash
+                  '(("command" . "printf '\\033[32mok\\033[0m'"))
+                  :on-update (lambda (text) (set! updates (cons text updates))))))
+    (check is-err => #f)
+    (check out => "ok")
+    (check-true (pair? updates))
+    (check (car updates) => "ok")))
+
+;; 快速大量输出时回调次数有界（100ms 节流生效，避免每个字节块都全量清理能CPU飙升）
+(let ((updates '()))
+  (let-values (((out is-err)
+                (pi-execute-bash
+                  '(("command" . "seq 1 2000"))
+                  :on-update (lambda (text) (set! updates (cons text updates))))))
+    (check is-err => #f)
+    (check-true (string-contains? out "2000"))
+    ;; 2000 行快速输出应在毫秒级完成，回调次数远小于行数
+    (check-true (<= (length updates) 10))))
+
 (check-report)

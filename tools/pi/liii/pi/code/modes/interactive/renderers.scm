@@ -8,7 +8,12 @@
   (export format-tool-call format-tool-result-lines extract-result-text
     format-bash-tool-result-lines format-tool-duration get-tool-arg
   ) ;export
-  (import (scheme base) (liii string) (liii list) (liii tui text-width))
+  (import (scheme base)
+    (liii string)
+    (liii list)
+    (liii tui text-width)
+    (liii pi code utils shell)
+  ) ;import
   (begin
 
     ;; 判断键是否匹配 (兼容 string 与 symbol)
@@ -225,26 +230,62 @@
       ) ;let
     ) ;define
 
-    ;; Bash 输出折叠以视觉行为单位：先剥离 ANSI/CR，再按当前宽度换行。
-    ;; 折叠时保留末尾 5 行，与上游 VisualLinePreview 一致。
+    ;; Bash 输出折叠预览行数（对齐上游 BASH_PREVIEW_LINES = 5）
+    (define %bash-preview-lines 5)
+
+    ;; 折叠态尾部处理：只 wrap 最后 %bash-preview-lines 个逻辑行，
+    ;; 取最后 %bash-preview-lines 个视觉行（每个逻辑行至少占 1 视觉行，
+    ;; 因此最后 N 个视觉行必然来自最后 N 个逻辑行）。
+    ;; 大输出每帧全文 wrap 会使 CPU 飙升，故折叠态绝不处理全文。
+    ;; 注：hidden 计数为逻辑行数（上游为视觉行数，因其 wrap 为 C 实现；
+    ;; 两者仅在超宽行 wrap 场景有差异，展示效果等价）
+    (define (%collapsed-preview-lines clean width)
+      (let* ((logical (string-split clean "\n"))
+             (total (length logical))
+             (tail (if (<= total %bash-preview-lines)
+                     logical
+                     (list-tail logical (- total %bash-preview-lines))
+                   ) ;if
+             ) ;tail
+             (tail-visual (wrap-text (string-join tail "\n") width))
+             (visual-total (length tail-visual))
+             (shown (if (> visual-total %bash-preview-lines)
+                      (list-tail tail-visual (- visual-total %bash-preview-lines))
+                      tail-visual
+                    ) ;if
+             ) ;shown
+             ;; 显示的逻辑行数：尾部全部显示，或被截到前 %bash-preview-lines 个逻辑行
+             (shown-logical (if (> visual-total %bash-preview-lines) %bash-preview-lines (length tail))
+             ) ;shown-logical
+             (hidden (- total shown-logical))
+            ) ;
+        (if (> hidden 0)
+          (cons (string-append "... ("
+                  (number->string hidden)
+                  " earlier lines, ctrl+o to expand)"
+                ) ;string-append
+            shown
+          ) ;cons
+          shown
+        ) ;if
+      ) ;let*
+    ) ;define
+
+    ;; 渲染层对齐上游 getTextOutput + Text：剥 ANSI/OSC、删控制字符与 \r，
+    ;; TAB 展开为定宽 3 空格；展开态全文 wrap，折叠态仅尾部处理（见上）
     (define (format-bash-tool-result-lines result width expanded?)
       (let* ((raw (string-trim-both (extract-result-text result)))
-             (clean (string-replace (strip-ansi raw) "\r" ""))
-             (all-lines (if (string-null? clean) '() (wrap-text clean (max 1 width))))
-             (total (length all-lines))
+             (clean
+               (string-replace (string-replace (sanitize-binary-output (strip-ansi raw)) "\r" "")
+                 "\t"
+                 "   "
+               ) ;string-replace
+             ) ;clean
+             (w (max 1 width))
             ) ;
-        (cond ((null? all-lines) '())
-              ((or expanded? (<= total 5)) all-lines)
-              (else
-                (let ((hidden (- total 5)))
-                  (cons (string-append "... ("
-                          (number->string hidden)
-                          " earlier lines, ctrl+o to expand)"
-                        ) ;string-append
-                    (drop all-lines hidden)
-                  ) ;cons
-                ) ;let
-              ) ;else
+        (cond ((string-null? clean) '())
+              (expanded? (wrap-text clean w))
+              (else (%collapsed-preview-lines clean w))
         ) ;cond
       ) ;let*
     ) ;define

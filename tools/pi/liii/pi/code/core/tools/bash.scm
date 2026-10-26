@@ -16,11 +16,13 @@
     (liii path)
     (liii either)
     (liii subprocess)
+    (liii tui text-width)
+    (liii pi code utils shell)
     (liii pi code core tools read)
     (liii pi code core tools truncate)
   ) ;import
   (export pi-bash-schema pi-execute-bash pi-find-bash-path pi-find-grep-path
-    pi-truncate-bash-output PI_MAX_TIMEOUT_SECONDS
+    pi-truncate-bash-output pi-bash-clean-output PI_MAX_TIMEOUT_SECONDS
   ) ;export
   (begin
 
@@ -204,20 +206,31 @@
     ;; 上游 Bash 工具按 100ms 节流发送累计输出快照。
     (define %bash-update-throttle-ms 100)
 
+    ;; 对齐上游 bash-executor appendText：
+    ;; sanitizeBinaryOutput(stripAnsi(rawText)).replace(/\r/g, "")
+    ;; 即：剥 ANSI（CSI+OSC）、删控制字符、删 \r，保留 \t\n
+    (define (pi-bash-clean-output raw)
+      (string-replace (sanitize-binary-output (strip-ansi raw)) "\r" "")
+    ) ;define
+
     ;; 基于 (liii subprocess) 公开的 run-streaming-chunks 实现流式执行：
     ;; stdout/stderr 合并到同一管道，按原始字节块收集输出，
     ;; 并按 100ms 节流回调累计文本快照。
     ;; 返回值：(values 累计文本 退出码)，超时强杀时退出码为 -1。
+    ;; 后台流式执行：累计文本保留原始字节，回调与返回值都是清理后的文本。
+    ;; 清理只在通过 100ms 节流后才执行（高频字节块不触发挥霍性的全量清理，
+    ;; 否则大输出流式时 CPU 会飕升）；每次对累计全文重新清理，
+    ;; 跨块不完整转义序列在下一帧自愈（等效上游 splitIncompleteAnsiSuffix）
     (define (%run-bash-streaming command cwd timeout on-update)
-      (let* ((text "") (last-update 0) (last-sent ""))
+      (let* ((text "") (last-update 0) (last-raw ""))
         (define (send-update! force?)
           (let ((now (%bash-now-ms)))
             (when
-              (and (not (string=? text last-sent))
+              (and (not (string=? text last-raw))
                 (or force? (>= (- now last-update) %bash-update-throttle-ms))
               ) ;and
-              (on-update text)
-              (set! last-sent text)
+              (on-update (pi-bash-clean-output text))
+              (set! last-raw text)
               (set! last-update now)
             ) ;when
           ) ;let
@@ -236,13 +249,16 @@
               ) ;ret
              ) ;
           (send-update! #t)
-          (if (eq? ret #f) (values text -1) (values text ret))
+          (let ((clean (pi-bash-clean-output text)))
+            (if (eq? ret #f) (values clean -1) (values clean ret))
+          ) ;let
         ) ;let
       ) ;let*
     ) ;define
 
     (define (%format-bash-result raw-text exit-code timeout)
-      (let* ((text (pi-truncate-bash-output raw-text))
+      (let* ((clean-text (pi-bash-clean-output raw-text))
+             (text (pi-truncate-bash-output clean-text))
              (trimmed-text (string-trim-both text))
             ) ;
         (cond ((= exit-code 0) (values text #f))

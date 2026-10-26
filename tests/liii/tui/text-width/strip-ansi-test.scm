@@ -54,6 +54,19 @@
 ;; CSI 光标控制或清除序列
 (check (strip-ansi "\x1b[2J\x1b[HHello") => "Hello")
 
+;; OSC 序列（终端标题设置，BEL 终结）
+(check (strip-ansi "\x1b]0;title\x07hello") => "hello")
+
+;; OSC 序列（ESC \\ 终结，如背景色查询 OSC 11、超链接）
+(check (strip-ansi "\x1b]11;?\x1b\\ok") => "ok")
+(check (strip-ansi "a\x1b]8;;http://x\x1b\\link\x1b]8;;\x1b\\b") => "alinkb")
+
+;; 不完整 OSC（无终结符）：保守保留原文，等待后续块补全
+(check (strip-ansi "\x1b]0;tit") => "\x1b]0;tit")
+
+;; OSC 与 CSI 混合
+(check (strip-ansi "\x1b]0;t\x07\x1b[31mred\x1b[0m") => "red")
+
 ;; 纯转义序列
 (check (strip-ansi "\x1b[0m") => "")
 (check (strip-ansi "\x1b[31m\x1b[0m") => "")

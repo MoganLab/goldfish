@@ -120,6 +120,59 @@
   (check (length plain) => 4)
 ) ;let*
 
+;; 7b. 输出含 ANSI 转义序列：set-output! 剥离后再拆行，渲染无残留转义
+(let* ((card (make-bash-card "ls --color"))
+       (_ (bash-card-set-output! card "\x1b;[31mred\x1b;[0m\n\x1b;[1;32mbold green\x1b;[0m"))
+       (_2 (bash-card-set-complete! card 0))
+       (lines (component-render card 80))
+       (plain (map strip-ansi lines))
+      ) ;
+  ;; 剥离后输出行为纯文本
+  (check (list-ref plain 3) => " red")
+  (check (list-ref plain 4) => " bold green")
+  ;; 渲染行中除卡片自身颜色码外，不应残留输出自带的 SGR（31m / 1;32m）
+  (check-false (string-contains? (list-ref lines 3) "[31m"))
+  (check-false (string-contains? (list-ref lines 4) "1;32m"))
+) ;let*
+
+;; 7c. 输出含 \r（进度条、CRLF 行尾）：对齐上游 appendOutput，
+;; \r\n→\n、\r→\n（进度条帧变为独立行），尾部空行不渲染
+(let* ((card (make-bash-card "cmd-with-progress"))
+       (_ (bash-card-set-output! card "step1\rstep2\rstep3\ndone\r\n"))
+       (_2 (bash-card-set-complete! card 0))
+       (plain (map strip-ansi (component-render card 80)))
+      ) ;
+  ;; 边框+头+空+4 输出+边框+空 = 9 行，无残留 \r，帧成为独立行
+  (check (length plain) => 9)
+  (check-false (string-contains? (string-join plain "\n") "\r"))
+  (check (list-ref plain 3) => " step1")
+  (check (list-ref plain 4) => " step2")
+  (check (list-ref plain 5) => " step3")
+  (check (list-ref plain 6) => " done")
+) ;let*
+
+;; 7d. TAB 分隔的列式输出（如 gh workflow list）：展开为定宽 3 空格，
+;; 与 display-width 一致，卡片背景不错位
+(let* ((card (make-bash-card "gh workflow list"))
+       (_ (bash-card-set-output! card "CI on Debian\tactive\t110808756"))
+       (_2 (bash-card-set-complete! card 0))
+       (plain (map strip-ansi (component-render card 80)))
+      ) ;
+  (check (list-ref plain 3) => " CI on Debian   active   110808756")
+  ;; 渲染行宽度（含卡片自身颜色码被 strip 后）与终端实际列宽一致，无 TAB 残留
+  (check-false (string-contains? (list-ref plain 3) "\t"))
+) ;let*
+
+;; 7e. OSC 转义序列（终端标题、背景色查询）被剥离
+(let* ((card (make-bash-card "gh auth status"))
+       (_ (bash-card-set-output! card "\x1b]11;?\x1b\\\x1b[32mok\x1b[0m"))
+       (_2 (bash-card-set-complete! card 0))
+       (plain (map strip-ansi (component-render card 80)))
+      ) ;
+  (check (list-ref plain 3) => " ok")
+  (check-false (string-contains? (string-join plain "\n") "]11;"))
+) ;let*
+
 ;; ============================================================
 ;; 二、App 集成：bash mode 边框变色与提交执行
 ;; ============================================================
@@ -236,6 +289,12 @@
 
 ;; 12. bash 预览行数常量对齐 pi（PREVIEW_LINES = 20）
 (check pi-bash-preview-lines => 20)
+
+;; 12b. ! 执行器对齐上游 session.executeBash：返回文本已清理
+;; （剥 ANSI/OSC、删控制字符、删 \r，保留 \t\n）
+(let-values (((text code) (pi-bash-run-command "printf '\\033[31mred\\033[0m\\r\\n'")))
+  (check code => 0)
+  (check text => "red\n"))
 
 ;; ============================================================
 ;; 三、上下文注入（对齐 pi recordBashResult）：

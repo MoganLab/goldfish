@@ -63,6 +63,10 @@
 (check (display-width "\x1b[33m金鱼\x1b[0m") => 4)
 (check (display-width "\x1b[1m\x1b[34m🚀金鱼\x1b[0m") => 6)
 
+;; OSC 序列计 0 宽（终端标题、背景色查询）
+(check (display-width "\x1b]0;title\x07hi") => 2)
+(check (display-width "\x1b]11;?\x1b\\ok") => 2)
+
 ;; 类型错误检查
 (check-catch 'type-error (display-width 123))
 (check-catch 'type-error (display-width 'sym))

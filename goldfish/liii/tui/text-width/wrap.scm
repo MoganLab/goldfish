@@ -91,7 +91,7 @@
         (let loop
           ((i 0) (acc '()))
           (cond ((>= i len) (reverse acc))
-                ((%match-ansi-csi bv i len)
+                ((%match-ansi bv i len)
                  =>
                  (lambda (ansi-end)
                    (let ((chunk (utf8->string (bytevector-copy bv i ansi-end))))
@@ -99,6 +99,9 @@
                    ) ;let
                  ) ;lambda
                 ) ;
+                ;; 裸 ESC（非 CSI/OSC 开头，如不完整 OSC 的残余）：
+                ;; 零宽丢弃，避免 %scan-ascii-word 返回空词不前进导致死循环
+                ((= (bytevector-u8-ref bv i) 27) (loop (+ i 1) acc))
                 ((= (bytevector-u8-ref bv i) 32) (loop (+ i 1) (cons (list 'space 1 " ") acc)))
                 ((< (bytevector-u8-ref bv i) 128)
                  (let* ((res (%scan-ascii-word bv i len)) (next-i (car res)) (word-str (cdr res)))
