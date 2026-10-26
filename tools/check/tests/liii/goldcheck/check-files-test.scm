@@ -83,4 +83,37 @@
   (path-unlink f2 #t)
 ) ;let*
 
+;; 4. no-glue：不同 define-library 不得重复封装同一个 glue
+(let* ((f1 (make-tmp-file "gf-test-no-glue-owner-a.scm" 0))
+       (f2 (make-tmp-file "gf-test-no-glue-owner-b.scm" 0))
+       (library
+         (lambda (name)
+           (string-append "(define-library (demo " name ")\n"
+             "  (export md5)\n"
+             "  (import (scheme base))\n"
+             "  (begin (define md5 g_md5))\n"
+             ") ;define-library\n"))))
+  (path-write-bytes (path f1) (string->utf8 (library "one")))
+  (path-write-bytes (path f2) (string->utf8 (library "two")))
+  (check (map (lambda (v) (list (car v) (list-ref v 4)))
+           (vector->list (check-files (vector f1 f2) #f)))
+    => '((no-glue multiple-libraries) (no-glue multiple-libraries)))
+  (path-unlink f1 #t)
+  (path-unlink f2 #t)
+) ;let*
+
+;; 5. no-glue：不同库分别封装不同 glue 时通过
+(let* ((f1 (make-tmp-file "gf-test-no-glue-distinct-a.scm" 0))
+       (f2 (make-tmp-file "gf-test-no-glue-distinct-b.scm" 0)))
+  (path-write-bytes (path f1)
+    (string->utf8
+      "(define-library (demo md5) (export md5) (import (scheme base)) (begin (define md5 g_md5)))\n"))
+  (path-write-bytes (path f2)
+    (string->utf8
+      "(define-library (demo sha1) (export sha1) (import (scheme base)) (begin (define sha1 g_sha1)))\n"))
+  (check (check-files (vector f1 f2) #f) => #())
+  (path-unlink f1 #t)
+  (path-unlink f2 #t)
+) ;let*
+
 (check-report)

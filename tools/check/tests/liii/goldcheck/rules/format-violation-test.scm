@@ -52,4 +52,11 @@
   ) ;check-true
 ) ;let*
 
+;; 5. 格式化 no-glue 违规，展示对应公开绑定
+(let* ((viol (list 'no-glue "foo/glue.scm" 8 'g_md5 'missing-binding))
+       (msg (format-violation viol)))
+  (check-true
+    (string-contains? msg "foo/glue.scm:8: no-glue: g_md5 missing public binding md5"))
+) ;let*
+
 (check-report)
