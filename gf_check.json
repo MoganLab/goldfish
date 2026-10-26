@@ -44,6 +44,7 @@
     "no-glue": [
       "bench/",
       "goldfish/scheme/boot.scm",
+      "goldfish/srfi/srfi-13.scm",
       "tests/"
     ],
     "max-file-lines": [
