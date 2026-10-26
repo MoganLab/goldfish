@@ -178,6 +178,21 @@
 (let ((lines (format-bash-tool-result-lines "a\x01;b" 80 #f)))
   (check lines => '("ab")))
 
+;; 折叠态尾部处理：500 行大输出只显示最后 5 个视觉行（避免每帧全文 wrap 能CPU飕升）
+(let* ((big (string-join (map number->string (iota 500 1)) "\n"))
+       (lines (format-bash-tool-result-lines big 80 #f)))
+  (check (length lines) => 6)
+  (check (car lines) => "... (495 earlier lines, ctrl+o to expand)")
+  (check (cadr lines) => "496")
+  (check (last lines) => "500"))
+
+;; 超宽行 wrap 后折叠：显示最后 5 个视觉行，hidden 计逻辑行数（尾部处理语义）
+(let* ((text (string-append "1\n2\n3\n4\n5\n6\n7\n" "abcdefghijklmnop"))
+       (lines (format-bash-tool-result-lines text 8 #f)))
+  ;; 尾部 5 逻辑行 = 4..7+超宽行，超宽行 wrap 成 2 视觉行 → M=6 > 5，取最后 5
+  (check lines => '("... (3 earlier lines, ctrl+o to expand)"
+                   "5" "6" "7" "abcdefgh" "ijklmnop")))
+
 ;; 卡片展开状态可往返切换，运行中的日志也遵循同一折叠状态
 (let ((card (make-tool-card "bash" '(("command" . "seq 1 8")) 'pending "1\n2\n3\n4\n5\n6\n7\n8")))
   (check-false (tool-card-expanded? card))
