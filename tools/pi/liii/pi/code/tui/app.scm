@@ -30,6 +30,7 @@
     (liii pi code tui working)
     (liii pi code tui worker)
     (liii pi code tui bash)
+    (liii pi code tui app-bash)
     (liii pi code tui common)
     (liii pi code tui header)
     (liii pi code tui footer)
@@ -60,48 +61,8 @@
       ) ;let
     ) ;define
 
-    ;; 执行 bash 命令并上屏卡片（对齐 pi handleBashCommand）：同步 handler
-    ;; （测试接缝）直接回填；生产路径派发到后台 worker，完成后经
-    ;; event-chan 发 bash_complete 事件由 poll-events! 回填
-    (define (pi-app-run-bash! app command)
-      (let* ((ed (pi-app-editor app))
-             (cards (%pi-app-bash-cards app))
-             (id (+ 1 (length cards)))
-             (card (make-bash-card command :expanded? (pi-app-tools-expanded? app)))
-            ) ;
-        ;; 清空输入框（触发 on-change → 退出 bash 模式、恢复边框颜色）
-        (editor-set-text! ed "")
-        (%pi-app-bash-cards-set! app (cons (cons id card) cards))
-        (container-add! (%pi-app-chat app) card)
-        (pi-app-render! app)
-        (let ((handler (%pi-app-bash-handler app)))
-          (if handler
-            (let-values (((text code) (handler command)))
-              (bash-card-set-output! card text)
-              (bash-card-set-complete! card code)
-              (pi-app-render! app)
-            ) ;let-values
-            (chan-send! (pi-app-bash-jobs-chan app) (list id command) 1000)
-          ) ;if
-        ) ;let
-      ) ;let*
-    ) ;define
-
-    ;; Ctrl+O 全局切换 bash 卡片展开/折叠（对齐 pi toggleToolOutputExpansion）
-    ;; 返回切换后的展开状态
-    (define (pi-app-toggle-tool-output! app)
-      (let ((next (not (pi-app-tools-expanded? app))))
-        (%pi-app-tools-expanded?-set! app next)
-        (for-each (lambda (child)
-                    (when (bash-card-component? child)
-                      (bash-card-set-expanded! child next)
-                    ) ;when
-                  ) ;lambda
-          (pi-app-chat app)
-        ) ;for-each
-        next
-      ) ;let
-    ) ;define
+    ;; bash 编排（! 执行、!! 排除、结果注入上下文、Ctrl+O 展开/折叠）已拆至
+    ;; (liii pi code tui app-bash)，此处经 import 再导出保持对外接口不变
 
     (define (pi-app-add-user-message! app text)
       (container-add! (%pi-app-chat app) (make-user-card text))
@@ -137,15 +98,22 @@
               (set! has-event #t)
               (case (car ev)
                     ((bash_complete)
-                     ;; 后台 bash 执行完成：按 id 回填卡片输出与退出码
-                     (let ((id (cadr ev)) (text (caddr ev)) (code (cadddr ev)))
+                     ;; 后台 bash 执行完成：按 id 回填卡片输出与退出码；
+                     ;; 未排除的结果（! 前缀）经 record-sink 注入会话上下文
+                     (let* ((id (cadr ev))
+                            (command (caddr ev))
+                            (text (cadddr ev))
+                            (code (list-ref ev 4))
+                            (excluded? (and (> (length ev) 5) (list-ref ev 5)))
+                           ) ;
                        (let ((entry (assq id (%pi-app-bash-cards app))))
                          (when entry
                            (bash-card-set-output! (cdr entry) text)
                            (bash-card-set-complete! (cdr entry) code)
                          ) ;when
                        ) ;let
-                     ) ;let
+                       (%pi-app-record-bash! app command text code excluded?)
+                     ) ;let*
                     ) ;
                     ((branch_changed)
                      ;; (liii fs-watch) 检测到 .git/HEAD 变化：携带 git-dir 时直接读
@@ -272,28 +240,37 @@
       ) ;let
     ) ;define
 
-    ;; 用户提交动作：! 前缀拦截为 bash 模式（不发给模型）；
-    ;; 其余消息统一先进入等待队列并清空输入框；
+    ;; 用户提交动作：! 前缀拦截为 bash 模式（!cmd 结果注入上下文，
+    ;; !!cmd 仅显示不注入）；其余消息统一先进入等待队列并清空输入框；
     ;; 队列忙时立即渲染出 [Queued] 提示，闲时由 drain-queue! 渲染唯一一帧
     (define (pi-app-submit! app text)
       (let ((clean (string-trim text)))
         (unless (string-null? clean)
-          ;; bash 模式：!cmd 直接经 bash 执行（对齐 pi 的 ! 前缀行为）；
-          ;; 命令为空（仅 "!"）时回退为普通消息提交（对齐 pi 的 fall-through）
-          (if
-            (and (%starts-with-char? clean #\!)
-              (not (string-null? (string-trim (substring clean 1))))
-            ) ;and
-            (pi-app-run-bash! app (string-trim (substring clean 1)))
-            (let ((q (pi-app-queue app)) (ed (pi-app-editor app)))
-              (pi-queue-enqueue! q clean)
-              (editor-set-text! ed "")
-              (when (pi-queue-busy? q)
-                (pi-app-render! app)
-              ) ;when
-              (pi-app-drain-queue! app)
-            ) ;let
-          ) ;if
+          ;; bash 模式：!cmd 直接经 bash 执行（对齐 pi 的 !/!! 前缀行为）；
+          ;; 命令为空（仅 "!" 或 "!!"）时回退为普通消息提交（对齐 pi 的 fall-through）
+          (let* ((bang? (%starts-with-char? clean #\!))
+                 (excluded? (and bang? (> (string-length clean) 1) (char=? (string-ref clean 1) #\!))
+                 ) ;excluded?
+                 (cmd-start (if excluded? 2 1))
+                 (command
+                   (and bang?
+                     (not (string-null? (string-trim (substring clean cmd-start))))
+                     (string-trim (substring clean cmd-start))
+                   ) ;and
+                 ) ;command
+                ) ;
+            (if command
+              (pi-app-run-bash! app command :excluded? excluded?)
+              (let ((q (pi-app-queue app)) (ed (pi-app-editor app)))
+                (pi-queue-enqueue! q clean)
+                (editor-set-text! ed "")
+                (when (pi-queue-busy? q)
+                  (pi-app-render! app)
+                ) ;when
+                (pi-app-drain-queue! app)
+              ) ;let
+            ) ;if
+          ) ;let*
         ) ;unless
       ) ;let
     ) ;define
@@ -313,10 +290,11 @@
       ) ;if
     ) ;define
 
-    ;; 参数名与调用侧关键字一一对应（:terminal/:handler/:bash-handler 等）
+    ;; 参数名与调用侧关键字一一对应（:terminal/:handler/:bash-handler/:record-sink 等）
     (define* (make-pi-app (terminal #f)
                (handler #f)
                (bash-handler #f)
+               (record-sink #f)
                (provider #f)
                (model #f)
                (thinking-level #f)
@@ -343,6 +321,18 @@
              (event-chan (make-chan 32))
              (abort-chan (make-chan 1))
              (bash-jobs-chan (make-chan 16))
+             ;; ! 命令结果注入上下文的默认回调：投递 bash_record 任务到
+             ;; jobs-chan（后台 worker 写入会话文件；agent 忙时在通道排队延迟注入）
+             (actual-record-sink
+               (or record-sink
+                 (lambda (command text code)
+                   (catch #t
+                     (lambda () (chan-send! jobs-chan (list 'bash_record command text code) 1000))
+                     (lambda args #f)
+                   ) ;catch
+                 ) ;lambda
+               ) ;or
+             ) ;actual-record-sink
              (app (%make-pi-app actual-term
                     screen
                     doc
@@ -363,6 +353,7 @@
                     '()
                     bash-jobs-chan
                     bash-handler
+                    actual-record-sink
                   ) ;%make-pi-app
              ) ;app
              (ed (make-editor ""

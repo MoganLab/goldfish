@@ -3,6 +3,7 @@
   (liii string)
   (liii list)
   (liii unicode)
+  (liii go)
   (liii tui)
   (liii pi code tui bash)
   (liii pi code tui app)
@@ -235,5 +236,89 @@
 
 ;; 12. bash 预览行数常量对齐 pi（PREVIEW_LINES = 20）
 (check pi-bash-preview-lines => 20)
+
+;; ============================================================
+;; 三、上下文注入（对齐 pi recordBashResult）：
+;; !cmd 结果经 record-sink 注入会话上下文；!!cmd 仅显示不注入
+;; ============================================================
+
+;; 13. !cmd：同步 bash-handler 路径完成后调用 record-sink（命令、输出、退出码）
+(let* ((vt (make-virtual-terminal :width 100 :height 40))
+       (recorded '())
+       (app (make-pi-app :terminal vt
+              :handler      (lambda (a m) #t)
+              :bash-handler (lambda (cmd) (values "out-13" 0))
+              :record-sink  (lambda (command text code)
+                              (set! recorded (cons (list command text code) recorded)))
+            ) ;make-pi-app
+           )
+       (ed (pi-app-editor app))
+      ) ;
+  (component-handle-input ed "!echo hi")
+  (component-handle-input ed 'enter)
+  (check recorded => '(("echo hi" "out-13" 0)))
+) ;let*
+
+;; 14. !!cmd：命令执行、卡片上屏（暗色边框），但 record-sink 不被调用
+(let* ((vt (make-virtual-terminal :width 100 :height 40))
+       (recorded '())
+       (bash-calls '())
+       (app (make-pi-app :terminal vt
+              :handler      (lambda (a m) #t)
+              :bash-handler (lambda (cmd)
+                              (set! bash-calls (cons cmd bash-calls))
+                              (values "hidden" 0))
+              :record-sink  (lambda (command text code)
+                              (set! recorded (cons command recorded)))
+            ) ;make-pi-app
+           )
+       (ed (pi-app-editor app))
+       (screen (pi-app-screen app))
+      ) ;
+  (pi-app-render! app)
+  (component-handle-input ed "!!whoami")
+  (component-handle-input ed 'enter)
+  (pi-app-render! app)
+  ;; 命令仍执行且卡片上屏
+  (check bash-calls => '("whoami"))
+  (let ((joined (string-join (screen-lines screen) "\n")))
+    (check-true (string-contains? joined "$ whoami"))
+    (check-true (string-contains? joined "hidden"))
+    ;; 排除卡片用暗色边框而非 bash 绿色（全屏无 bash 绿）
+    (check-false (string-contains? joined "38;2;94;178;134"))
+  ) ;let
+  ;; 不注入上下文
+  (check recorded => '())
+) ;let*
+
+;; 15. 单个 "!!"：命令为空，回退为普通消息提交（对齐 pi fall-through）
+(let* ((vt (make-virtual-terminal :width 100 :height 40))
+       (agent-called '())
+       (app (make-pi-app :terminal vt
+              :handler      (lambda (a m) (set! agent-called (cons m agent-called)))
+              :bash-handler (lambda (cmd) (values "should-not-run" 0))
+              :record-sink  (lambda args (error 'sink "must not be called"))
+            ) ;make-pi-app
+           )
+       (ed (pi-app-editor app))
+      ) ;
+  (component-handle-input ed "!!")
+  (component-handle-input ed 'enter)
+  (check agent-called => '("!!"))
+) ;let*
+
+;; 16. 默认 record-sink：bash 完成后投递 (bash_record 命令 输出 退出码) 到 jobs-chan
+(let* ((vt (make-virtual-terminal :width 100 :height 40))
+       (app (make-pi-app :terminal vt
+              :handler      (lambda (a m) #t)
+              :bash-handler (lambda (cmd) (values "out-16" 0))
+            ) ;make-pi-app
+           )
+       (ed (pi-app-editor app))
+      ) ;
+  (component-handle-input ed "!echo hi")
+  (component-handle-input ed 'enter)
+  (check (chan-try-recv! (pi-app-jobs-chan app) #f) => '(bash_record "echo hi" "out-16" 0))
+) ;let*
 
 (check-report)

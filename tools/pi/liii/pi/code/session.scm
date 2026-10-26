@@ -15,13 +15,14 @@
     (liii uuid)
     (liii sort)
     (liii pi code args)
+    (liii pi code tools bash)
     (liii pi ai types)
   ) ;import
   (export encode-cwd-to-session-dirname get-session-dir make-session-file-path
     read-session-history append-session-entry! find-latest-session-file
     save-session-header! save-session-message! setup-session-file
     setup-initial-messages persist-new-messages! find-last-session-message-id
-    pi-normalize-session-msg assoc
+    pi-normalize-session-msg append-bash-execution! assoc
   ) ;export
   (begin
 
@@ -93,6 +94,42 @@
             ) ;for-each
             last-id
           ) ;let
+        ) ;if
+      ) ;let
+    ) ;define
+
+    ;; 将 ! 命令的执行结果作为 bashExecution 消息追加到会话文件
+    ;; （对齐 pi 的 recordBashResult）：
+    ;; - 输出经 bash 工具同款保尾 2000 行 / 50KB 截断后再落盘
+    ;; - excluded? 为 #t（!! 前缀）时标记 excludeFromContext，投影时跳过
+    ;; - sfile 为 #f（--no-session）时静默无操作
+    ;; 返回新条目 id（未写入时返回 #f）
+    (define (append-bash-execution! sfile command output exit-code . opts)
+      (let ((excluded? (and (pair? opts) (car opts))))
+        (if (not sfile)
+          #f
+          (let* ((out (pi-truncate-bash-output output))
+                 (msg
+                   (append (list (cons "role" "bashExecution")
+                             (cons "command" command)
+                             (cons "output" out)
+                             (cons "exitCode" exit-code)
+                           ) ;list
+                     (if excluded? (list (cons "excludeFromContext" #t)) '())
+                   ) ;append
+                 ) ;msg
+                 (json-str (json->string msg))
+                 (mid (uuid4))
+                 (now-iso (pi-iso-8601-utc-now))
+                ) ;
+            (save-session-message! sfile
+              json-str
+              mid
+              (find-last-session-message-id sfile)
+              now-iso
+            ) ;save-session-message!
+            mid
+          ) ;let*
         ) ;if
       ) ;let
     ) ;define

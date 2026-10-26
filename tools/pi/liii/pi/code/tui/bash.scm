@@ -8,10 +8,10 @@
 ;; 输入 !cmd 直接经 bash 执行（不发给模型），输出显示在绿色边框卡片内；
 ;; 折叠时仅显示最后 PI-BASH-PREVIEW-LINES 行，Ctrl+O 全局切换展开/折叠。
 (define-library (liii pi code tui bash)
-  (export pi-bash-border-color pi-bash-preview-lines make-bash-card bash-card?
-    bash-card-component? bash-card-expanded? bash-card-set-output!
-    bash-card-set-complete! bash-card-set-expanded! pi-bash-run-command
-    pi-bash-worker pi-bash-send-event!
+  (export pi-bash-border-color pi-bash-dim-border-color pi-bash-preview-lines
+    make-bash-card bash-card? bash-card-component? bash-card-expanded?
+    bash-card-set-output! bash-card-set-complete! bash-card-set-expanded!
+    pi-bash-run-command pi-bash-worker pi-bash-send-event!
   ) ;export
   (import (scheme base)
     (scheme write)
@@ -30,10 +30,13 @@
 
     ;; bash mode 主题色（pi system-theme bashMode: green）
     (define pi-bash-border-color "\x1b;[38;2;94;178;134m")
+    ;; !! 排除卡片用暗色（对齐 pi colorKey "dim"：结果不进入模型上下文）
+    (define pi-bash-dim-border-color "\x1b;[38;2;126;136;142m")
     (define %fg-muted "\x1b;[38;2;157;165;169m")
     (define %fg-error "\x1b;[38;2;235;106;106m")
     (define %fg-key "\x1b;[38;2;126;136;142m")
     (define %bold-green "\x1b;[0;1;38;2;94;178;134m")
+    (define %bold-dim "\x1b;[0;1;38;2;126;136;142m")
     (define %ansi-reset "\x1b;[0m")
 
     ;; 折叠态预览行数（对齐 pi BashExecutionComponent PREVIEW_LINES = 20）
@@ -41,17 +44,21 @@
 
     ;; 卡片状态：running → complete(0) / error(N) / timeout(-1)
     (define-record-type <bash-card>
-      (%make-bash-card command lines status exit-code expanded?)
+      (%make-bash-card command lines status exit-code expanded? excluded?)
       bash-card?
       (command bash-card-command)
       (lines %bash-card-lines %bash-card-lines-set!)
       (status %bash-card-status %bash-card-status-set!)
       (exit-code %bash-card-exit-code %bash-card-exit-code-set!)
       (expanded? %bash-card-expanded? %bash-card-expanded?-set!)
+      (excluded? %bash-card-excluded?)
     ) ;define-record-type
 
-    (define (%border width)
-      (string-append pi-bash-border-color (utf8-make-string width #\─) %ansi-reset)
+    (define (%border width excluded?)
+      (string-append (if excluded? pi-bash-dim-border-color pi-bash-border-color)
+        (utf8-make-string width #\─)
+        %ansi-reset
+      ) ;string-append
     ) ;define
 
     (define (%color-line prefix text fg width)
@@ -108,7 +115,13 @@
     (define (%render st width)
       (if (<= width 0)
         '()
-        (let* ((header (%color-line " $ " (bash-card-command st) %bold-green width))
+        (let* ((excluded? (%bash-card-excluded? st))
+               (header (%color-line " $ "
+                         (bash-card-command st)
+                         (if excluded? %bold-dim %bold-green)
+                         width
+                       ) ;%color-line
+               ) ;header
                (all-lines (%bash-card-lines st))
                (total (length all-lines))
                ;; 隐藏行数按折叠预览计算（与展开状态无关，对齐 pi hiddenLineCount）
@@ -121,19 +134,25 @@
                (out-lines (map (lambda (l) (%color-line " " l %fg-muted width)) shown))
                (status (%status-lines st hidden width))
               ) ;
-          (append (list (%border width) header)
+          (append (list (%border width excluded?) header)
             ;; 输出非空时：空行 + 输出行（对齐 pi 的 "\n${output}" 结构）
             (if (null? out-lines) '() (cons "" out-lines))
             ;; 状态区：仅在有输出时前置空行（Running... 直接跟在头部后）
             (if (null? status) '() (if (null? out-lines) status (cons "" status)))
-            (list (%border width) "")
+            (list (%border width excluded?) "")
           ) ;append
         ) ;let*
       ) ;if
     ) ;define
 
     (define (make-bash-card command . opts)
-      (let* ((st (%make-bash-card command '() 'running #f (%keyword-value :expanded? opts #f))
+      (let* ((st (%make-bash-card command
+                   '()
+                   'running
+                   #f
+                   (%keyword-value :expanded? opts #f)
+                   (%keyword-value :excluded? opts #f)
+                 ) ;%make-bash-card
              ) ;st
             ) ;
         (let ((card (make-component :render (lambda (width) (%render st width)))))
@@ -204,7 +223,9 @@
       (catch #t (lambda () (chan-send! ch ev 2000)) (lambda (t . a) #f))
     ) ;define
 
-    ;; 后台工作协程：顺序消费 (id command) 任务并回传 (bash_complete id text exit-code)
+    ;; 后台工作协程：顺序消费 (id command excluded?) 任务并回传
+    ;; (bash_complete id command text exit-code excluded?)；主线程据此回填卡片
+    ;; 并把未排除的结果作为 bash_record 任务投递给 agent worker 注入上下文。
     ;; 通道关闭（TUI 退出）时 recv 返回 eof-object，循环正常结束
     ;; 注意：go 线程只能看到导出绑定，故此过程必须顶层导出
     (define (pi-bash-worker bash-jobs-chan event-chan)
@@ -212,23 +233,32 @@
         ()
         (let ((job (chan-recv! bash-jobs-chan)))
           (when (and job (not (eof-object? job)))
-            (catch #t
-              (lambda ()
-                (let-values (((text code) (pi-bash-run-command (cadr job))))
-                  (pi-bash-send-event! event-chan (list 'bash_complete (car job) text code))
-                ) ;let-values
-              ) ;lambda
-              (lambda (t . a)
-                (pi-bash-send-event! event-chan
-                  (list 'bash_complete
-                    (car job)
-                    (string-append "bash error: " (object->string t))
-                    1
-                  ) ;list
-                ) ;pi-bash-send-event!
-              ) ;lambda
-            ) ;catch
-            (loop)
+            (let* ((id (car job))
+                   (command (cadr job))
+                   (excluded? (and (> (length job) 2) (caddr job)))
+                  ) ;
+              (catch #t
+                (lambda ()
+                  (let-values (((text code) (pi-bash-run-command command)))
+                    (pi-bash-send-event! event-chan
+                      (list 'bash_complete id command text code (and excluded? #t))
+                    ) ;pi-bash-send-event!
+                  ) ;let-values
+                ) ;lambda
+                (lambda (t . a)
+                  (pi-bash-send-event! event-chan
+                    (list 'bash_complete
+                      id
+                      command
+                      (string-append "bash error: " (object->string t))
+                      1
+                      #f
+                    ) ;list
+                  ) ;pi-bash-send-event!
+                ) ;lambda
+              ) ;catch
+              (loop)
+            ) ;let*
           ) ;when
         ) ;let
       ) ;let

@@ -19,7 +19,7 @@
     (liii pi code tools truncate)
   ) ;import
   (export pi-bash-schema pi-execute-bash pi-find-bash-path pi-find-grep-path
-    PI_MAX_TIMEOUT_SECONDS
+    pi-truncate-bash-output PI_MAX_TIMEOUT_SECONDS
   ) ;export
   (begin
 
@@ -187,7 +187,7 @@
       ) ;let*
     ) ;define
 
-    (define (%truncate-bash-output text)
+    (define (pi-truncate-bash-output text)
       (let ((trunc (pi-truncate-tail text)))
         (if (pi-trunc-result-truncated trunc)
           (string-append (pi-trunc-result-content trunc) (%format-tail-notice trunc))
@@ -197,7 +197,9 @@
     ) ;define
 
     (define (%format-bash-result raw-text exit-code timeout)
-      (let* ((text (%truncate-bash-output raw-text)) (trimmed-text (string-trim-both text)))
+      (let* ((text (pi-truncate-bash-output raw-text))
+             (trimmed-text (string-trim-both text))
+            ) ;
         (cond ((= exit-code 0) (values text #f))
               ((= exit-code -1)
                (let ((msg (string-append "Command timed out after " (number->string timeout) " seconds")

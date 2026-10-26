@@ -21,6 +21,7 @@
     pi-thinking-block-thinking-signature pi-tool-call-block pi-tool-call-block?
     pi-tool-call-block-type pi-tool-call-block-id pi-tool-call-block-name
     pi-tool-call-block-arguments pi-tool-call-block-thought-signature
+    pi-bash-execution->user-text
   ) ;export
   (begin
 
@@ -221,6 +222,24 @@
     (define* (pi-tool-call-block id name arguments (thought-signature #f))
       (%make-pi-tool-call-block id name arguments thought-signature)
     ) ;define*
+
+    ;; 将 bashExecution 消息转为注入 LLM 上下文的 user 消息文本
+    ;; （对齐 pi 的 bashExecutionToText）：
+    ;;   Ran `cmd` + 围栏输出（空输出为 (no output)）+ 非零退出码行
+    (define (pi-bash-execution->user-text command output exit-code)
+      (let ((base (string-append "Ran `"
+                    command
+                    "`\n"
+                    (if (string-null? output) "(no output)" (string-append "```\n" output "\n```"))
+                  ) ;string-append
+            ) ;base
+           ) ;
+        (if (and (number? exit-code) (not (= exit-code 0)))
+          (string-append base "\n\nCommand exited with code " (number->string exit-code))
+          base
+        ) ;if
+      ) ;let
+    ) ;define
 
   ) ;begin
 ) ;define-library
