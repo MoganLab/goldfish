@@ -1,6 +1,11 @@
 (import (liii check)
   (liii path)
   (liii os)
+  (only (liii list) find)
+  (liii string)
+  (liii shutil)
+  (liii subprocess)
+  (liii sys)
   (liii pi code core extensions)
 ) ;import
 
@@ -92,6 +97,119 @@
               (rmdir project-dir)
               (rmdir (string-append test-base "/test-layers")))
             (lambda args #f))
+) ;let*
+
+;; 5. 同名扩展冲突：用户级可覆盖内置，项目级不可覆盖内置，
+;; 但项目级可以覆盖普通用户级扩展
+(let* ((test-base (path->string (path-resolve (path (get-fixtures-dir)))))
+       (conflict-base (string-append test-base "/test-conflicts"))
+       (builtin-dir (string-append conflict-base "/builtin"))
+       (global-ext-dir (string-append conflict-base "/global-agent/extensions"))
+       (project-dir (string-append conflict-base "/project"))
+       (project-ext-dir (string-append project-dir "/.pi/extensions"))
+      ) ;
+  (for-each
+    (lambda (dir)
+      (path-mkdir (path dir) :parents #t :exist-ok #t)
+    ) ;lambda
+    (list builtin-dir global-ext-dir project-ext-dir)
+  ) ;for-each
+
+  (for-each
+    (lambda (dir)
+      (path-write-text (path (string-append dir "/shared.scm")) "(lambda (api) 'shared)")
+    ) ;lambda
+    (list builtin-dir global-ext-dir project-ext-dir)
+  ) ;for-each
+  (path-write-text (path (string-append builtin-dir "/builtin-only.scm"))
+    "(lambda (api) 'builtin-only)"
+  ) ;path-write-text
+  (for-each
+    (lambda (dir)
+      (path-write-text (path (string-append dir "/custom.scm")) "(lambda (api) 'custom)")
+    ) ;lambda
+    (list global-ext-dir project-ext-dir)
+  ) ;for-each
+
+  (let ((discovered (pi-discover-extensions
+                      :builtin-dir builtin-dir
+                      :agent-dir (string-append conflict-base "/global-agent")
+                      :cwd project-dir)))
+    (define (discovered-named name)
+      (find (lambda (p) (string=? (path-name (path p)) name)) discovered)
+    ) ;define
+
+    (check (length discovered) => 3)
+    ;; 内置名称受保护：用户级覆盖内置，项目级不能再覆盖
+    (check (discovered-named "shared.scm") => (string-append global-ext-dir "/shared.scm"))
+    ;; 非内置名称：项目级覆盖用户级
+    (check (discovered-named "custom.scm") => (string-append project-ext-dir "/custom.scm"))
+    (check (discovered-named "builtin-only.scm")
+      => (string-append builtin-dir "/builtin-only.scm")
+    ) ;check
+  ) ;let
+
+  ;; 实际 CLI 已单独加载内置扩展：外部发现仍保护内置名称，但不重复返回内置文件
+  (let ((discovered (pi-discover-extensions
+                      :builtin-dir builtin-dir
+                      :include-builtin? #f
+                      :agent-dir (string-append conflict-base "/global-agent")
+                      :cwd project-dir)))
+    (define (discovered-named name)
+      (find (lambda (p) (string=? (path-name (path p)) name)) discovered)
+    ) ;define
+
+    (check (length discovered) => 2)
+    (check (discovered-named "shared.scm") => (string-append global-ext-dir "/shared.scm"))
+    (check (discovered-named "custom.scm") => (string-append project-ext-dir "/custom.scm"))
+    (check (discovered-named "builtin-only.scm") => #f)
+  ) ;let
+
+  (catch #t (lambda () (rmtree conflict-base #t)) (lambda args #f))
+) ;let*
+
+;; 6. 当前目录存在 tools/pi/extensions 时，仍优先使用程序自身的内置目录
+(let* ((test-base (path->string (path-resolve (path (get-fixtures-dir)))))
+       (priority-base (string-append test-base "/test-builtin-priority"))
+       (decoy-cwd (string-append priority-base "/cwd"))
+       (decoy-ext-dir (string-append decoy-cwd "/tools/pi/extensions"))
+       (empty-agent-dir (string-append priority-base "/agent"))
+      ) ;
+  (path-mkdir (path decoy-ext-dir) :parents #t :exist-ok #t)
+  (path-mkdir (path empty-agent-dir) :parents #t :exist-ok #t)
+  (path-write-text (path (string-append decoy-ext-dir "/decoy.scm"))
+    "(import (liii pi definitely-missing-library))"
+  ) ;path-write-text
+
+  (let* ((proc (process-spawn (list (executable) "pi" "--help")
+                 :cwd decoy-cwd
+                 :env (list (cons "PI_CODING_AGENT_DIR" empty-agent-dir))
+                 :stdout 'pipe
+                 :stderr 'pipe
+               ) ;process-spawn
+         ) ;proc
+         (code (process-wait proc 10000))
+        ) ;
+    (unless code
+      (process-kill proc)
+      (process-wait proc 2000)
+    ) ;unless
+    (define (read-all stream)
+      (let loop ((acc ""))
+        (let ((chunk (process-read proc :stream stream)))
+          (if (eof-object? chunk) acc (loop (string-append acc chunk)))
+        ) ;let
+      ) ;loop
+    ) ;define
+    (let ((err (read-all 'stderr)))
+      (process-close proc)
+      (check code => 0)
+      (check (string-contains? err "decoy.scm") => #f)
+      (check (string-contains? err "definitely-missing-library") => #f)
+    ) ;let
+  ) ;let*
+
+  (catch #t (lambda () (rmtree priority-base #t)) (lambda args #f))
 ) ;let*
 
 (check-report)
