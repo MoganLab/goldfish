@@ -1,5 +1,14 @@
 (import (liii list) (liii check) (liii os) (liii path))
 (check-set-mode! 'report-failed)
+
+;; [1147] boot.scm 统一调低 s7 堆增长阈值：
+;; s7 默认 gc-resize-heap-fraction 为 0.8（堆占用超过 20% 即翻倍，且堆只增
+;; 不减），大量库 import 的瞬时峰值会把堆推到数倍于活跃集的大小，RSS 虚高
+;; 且不归还 OS。boot.scm 将其调低为 0.15（占用超过 85% 才扩容），并禁止
+;; 4 倍扩容（扩容一律翻倍，避免峰值越界时堆从 12MB 直接跳到 49MB）。
+(check (*s7* 'gc-resize-heap-fraction) => 0.15)
+(check (*s7* 'gc-resize-heap-by-4-fraction) => 0.01)
+
 (when (not (os-windows?))
   (check (file-exists? "/tmp") => #t)
   (check (file-exists? "/not_exists") => #f)

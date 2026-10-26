@@ -2,6 +2,18 @@
   (set! (*s7* 'scheme-version) 'r7rs)
 ) ;unless
 
+;; [1147] 堆增长策略调优：
+;; 1. gc-resize-heap-fraction 默认 0.8，即堆占用超过 20% 就翻倍，且堆只增
+;;    不减；大量库 import 的瞬时峰值会把堆推到数倍于活跃集的大小，RSS 虚
+;;    高且不归还 OS。调低为 0.15（占用超过 85% 才扩容），实测 gf pi 的
+;;    252 库加载链主会话 RSS 60MB -> 37MB、go worker 增量 47MB -> 21MB。
+;; 2. gc-resize-heap-by-4-fraction 默认 0.67，空闲紧张时一次扩容 4 倍，
+;;    峰值越界时堆会从 12MB 直接跳到 49MB；调低为 0.01 后扩容实际上总是
+;;    翻倍，最坏 24MB，行为可预期（s7 要求该值大于 0，无法置 0）。
+;; go worker 会话同样加载本文件，主/worker 会话统一生效。
+(set! (*s7* 'gc-resize-heap-fraction) 0.15)
+(set! (*s7* 'gc-resize-heap-by-4-fraction) 0.01)
+
 (define (file-exists? path)
   (if (string? path)
     (if (not (g_access path 0))
