@@ -10,7 +10,8 @@
       "keys": [
         {"key": "sk-pool-alpha-0001", "label": "alpha", "enabled": true},
         {"key": "sk-pool-beta-00002", "label": "beta", "enabled": true},
-        {"key": "sk-pool-gamma-0003", "label": "gamma", "enabled": false}
+        {"key": "sk-pool-gamma-0003", "label": "gamma", "enabled": false},
+        {"key": "sk-pool-delta-00004", "label": "delta", "enabled": true}
       ],
       "models": []
     },

@@ -111,7 +111,7 @@
       ) ;let*
     ) ;define
 
-    ;; ---- cooldown + LRU 状态机 ----
+    ;; ---- cooldown + 固定当前 key 状态机 ----
 
     (define (pi-multikey-mark-cooldown! pool-key reason now-ms pool)
       (let* ((invalid? (or (equal? reason 403)
@@ -130,6 +130,8 @@
       ) ;let*
     ) ;define
 
+    ;; 正常请求优先复用最近使用的可用 key，保持缓存亲和性；
+    ;; 当前 key 冷却后才选择下一个，初始 last-used 相同时保持配置顺序。
     (define (pi-multikey-select-key pool now-ms)
       (let loop
         ((rest (pi-key-pool-keys pool)) (best #f))
@@ -143,7 +145,7 @@
           (let ((k (car rest)))
             (if (pi-pool-key-cooling? k now-ms)
               (loop (cdr rest) best)
-              (if (or (not best) (< (pi-pool-key-last-used k) (pi-pool-key-last-used best)))
+              (if (or (not best) (> (pi-pool-key-last-used k) (pi-pool-key-last-used best)))
                 (loop (cdr rest) k)
                 (loop (cdr rest) best)
               ) ;if

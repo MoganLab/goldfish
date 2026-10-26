@@ -25,14 +25,14 @@
 (let ((pool (pi-load-multikey fixture-dir "kimi-coding")))
   (check-true (pi-key-pool? pool))
   (check (pi-key-pool-id pool) => "kimi-coding")
-  (check (length (pi-key-pool-keys pool)) => 2)
+  (check (length (pi-key-pool-keys pool)) => 3)
   (check (pi-key-pool-cooldown-ms pool) => 30000)
   (check (pi-key-pool-invalid-cooldown-ms pool) => 300000)
   (let ((first-key (car (pi-key-pool-keys pool))))
     (check (pi-pool-key-key first-key) => "sk-pool-alpha-0001")
     (check (pi-pool-key-label first-key) => "alpha")
     (check-true (pi-pool-key-enabled first-key))
-    ;; 初始状态：不在冷却期，last-used 为 0（最久未用）
+    ;; 初始状态：不在冷却期，last-used 为 0，配置顺序决定首个 key
     (check-true (not (pi-pool-key-cooling? first-key 1000000)))
     (check (pi-pool-key-last-used first-key) => 0)
   ) ;let

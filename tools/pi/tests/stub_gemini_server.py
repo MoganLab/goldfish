@@ -279,6 +279,9 @@ class StubHandler(http.server.BaseHTTPRequestHandler):
             server = self.server
             server.mk_keys_seen = getattr(server, "mk_keys_seen", [])
             server.mk_keys_seen.append(api_key_hdr)
+            if "/multikey-sticky" in path:
+                server.mk_sticky_keys_seen = getattr(server, "mk_sticky_keys_seen", [])
+                server.mk_sticky_keys_seen.append(api_key_hdr)
             status_1 = None
             if "/multikey-all-403" in path:
                 status_1 = 403
@@ -320,6 +323,59 @@ class StubHandler(http.server.BaseHTTPRequestHandler):
                               "message": "key rejected in stub",
                               "status": "RESOURCE_EXHAUSTED" if status_1 == 429 else "PERMISSION_DENIED"}
                 }).encode("utf-8"))
+                return
+            if "/multikey-sticky" in path:
+                contents = req_json.get("contents", [])
+                has_fn_response = any(
+                    "functionResponse" in p
+                    for c in contents
+                    for p in c.get("parts", [])
+                    if isinstance(p, dict)
+                )
+                if has_fn_response:
+                    text = "StickyOK:" + ",".join(server.mk_sticky_keys_seen)
+                    resp = {
+                        "candidates": [
+                            {
+                                "content": {"role": "model", "parts": [{"text": text}]},
+                                "finishReason": "STOP"
+                            }
+                        ],
+                        "usageMetadata": {"promptTokenCount": 40, "candidatesTokenCount": 10, "totalTokenCount": 50}
+                    }
+                else:
+                    resp = {
+                        "candidates": [
+                            {
+                                "content": {
+                                    "role": "model",
+                                    "parts": [
+                                        {
+                                            "functionCall": {
+                                                "name": "bash",
+                                                "args": {"command": "echo sticky"},
+                                                "id": "sticky_call_1"
+                                            }
+                                        }
+                                    ]
+                                },
+                                "finishReason": "STOP"
+                            }
+                        ],
+                        "usageMetadata": {"promptTokenCount": 20, "candidatesTokenCount": 10, "totalTokenCount": 30}
+                    }
+                if is_sse:
+                    self.send_response(200)
+                    self.send_header("Content-Type", "text/event-stream")
+                    self.send_header("Cache-Control", "no-cache")
+                    self.end_headers()
+                    self.wfile.write(f"data: {json.dumps(resp)}\n\n".encode("utf-8"))
+                    self.wfile.flush()
+                    return
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps(resp).encode("utf-8"))
                 return
             text = "RotatedOK:" + api_key_hdr + " seen=" + str(len(server.mk_keys_seen))
             resp = {

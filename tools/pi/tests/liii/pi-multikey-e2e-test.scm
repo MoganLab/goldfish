@@ -140,6 +140,13 @@
     (check-true (string-contains? (cadr r) "PlainOK:mk-gem-key-1-aaaaaa"))
   ) ;let
 
+  ;; 5A. 同一会话多轮请求：无异常时始终使用 key-1，不做 LRU 轮询
+  (let ((r (run-pi FIXTURE_DIR base-url "multikey-sticky" #f)))
+    (check (car r) => 0)
+    (check-true (string-contains? (cadr r)
+                  "StickyOK:mk-gem-key-1-aaaaaa,mk-gem-key-1-aaaaaa"))
+  ) ;let
+
   ;; 6. pool 耗尽：所有 key 403 → 退出码 1，stderr 报错且脱敏
   (let ((r (run-pi FIXTURE_DIR base-url "multikey-all-403" #f)))
     (check (car r) => 1)
