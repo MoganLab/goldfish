@@ -82,9 +82,12 @@
                   ;; 按 ctrl+o 时：全局切换 bash/工具输出卡片的展开与折叠
                   ((eq? k 'ctrl-o) (pi-app-toggle-tool-output! app) (pi-app-render! app) (loop))
                   ((not k)
-                   ;; 空闲轮询：busy 时推进 Working spinner 动画（内部自带 80ms 节拍）
+                   ;; 空闲轮询：busy 时推进 Working spinner 动画（内部自带 80ms 节拍）。
+                   ;; 自适应休眠：busy 保持 10ms 保证流式上屏与动画顺滑；
+                   ;; 空闲时只等用户按键，睡 50ms（键盘延迟无感，
+                   ;; 每秒唤醒从 100 次降到 20 次，显著降低空闲 CPU 底噪）
                    (pi-app-working-tick! app)
-                   (sleep 0.01)
+                   (sleep (if (pi-queue-busy? q) 0.01 0.05))
                    (loop)
                   ) ;
                   (else (pi-app-handle-input! app k) (pi-app-render! app) (loop))
