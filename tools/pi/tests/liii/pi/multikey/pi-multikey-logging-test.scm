@@ -1,16 +1,16 @@
 (import (scheme base)
   (liii check)
   (liii string)
-  (liii pi ai config record)
-  (liii pi ai event)
-  (liii pi ai multikey)
+  (liii pi ai retry)
+  (liii pi multikey load)
+  (liii pi multikey policy)
 )
 
 (check-set-mode! 'report-failed)
 
 ;; multikey 切换日志
 ;; 首次选 key 和正常复用当前 key 不打日志；每次实际切换都打一条脱敏日志。
-;; 默认写 stderr；TUI 通过 set-pi-multikey-logger! 转为界面卡片；
+;; 默认写 stderr；TUI 经 set-pi-retry-logger! 共用通道转为界面卡片；
 ;; 单测经 rotate! 的可选 port 参数捕获日志内容。
 
 (define fixture-dir
@@ -72,14 +72,14 @@
                 "multikey[google]: 429 on g1 (goog-k…0001), rotating to another key"))
 ) ;let*
 
-;; 5. 自定义 logger 接收同样的消息，供 TUI 转为可见卡片
+;; 5. 经 retry logger 通道接收同样的消息，供 TUI 转为可见卡片
 (let ((pool (pi-load-multikey fixture-dir "kimi-coding"))
       (cfg #f)
       (logged '()))
   (set! cfg (list (cons 'multikey-pool pool) (cons 'api-key "sk-pool-alpha-0001")))
   (dynamic-wind
     (lambda ()
-      (set-pi-multikey-logger! (lambda (msg) (set! logged (cons msg logged))))
+      (set-pi-retry-logger! (lambda (msg) (set! logged (cons msg logged))))
     ) ;lambda
     (lambda ()
       (pi-multikey-rotate! cfg "sk-pool-alpha-0001" 429)
@@ -87,7 +87,7 @@
       (check-true (string-contains (car logged)
                     "multikey[kimi-coding]: 429 on alpha (sk-poo…0001), rotating to another key"))
     ) ;lambda
-    (lambda () (set-pi-multikey-logger! #f))
+    (lambda () (set-pi-retry-logger! #f))
   ) ;dynamic-wind
 ) ;let
 

@@ -1,4 +1,4 @@
-(import (liii check) (liii pi ai config record) (liii pi ai multikey))
+(import (liii check) (liii pi multikey pool) (liii pi multikey load))
 
 (check-set-mode! 'report-failed)
 

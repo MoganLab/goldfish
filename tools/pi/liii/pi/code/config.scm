@@ -10,6 +10,7 @@
   (import (scheme base)
     (scheme process-context)
     (liii string)
+    (liii list)
     (liii path)
     (liii os)
     (liii json)
@@ -20,7 +21,6 @@
     (liii pi code tools)
     (liii pi ai auth)
     (liii pi ai models)
-    (liii pi ai multikey)
     (liii pi ai config types)
     (liii pi ai config record)
     (liii pi ai event)
@@ -33,7 +33,7 @@
     pi-resolve-proxy-url pi-load-auth pi-resolve-provider-key
     pi-load-models-store pi-load-models-json pi-merge-models-json-into-store
     pi-resolve-model-metadata resolve-pi-config resolve-goldpi-config
-    resolve-active-tools pi-missing-credential-msg
+    resolve-active-tools pi-missing-credential-msg augment-pi-config
   ) ;export
   (begin
 
@@ -261,13 +261,7 @@
                                 (pi-resolve-provider-key provider auth)
                               ) ;if
                  ) ;api-key-raw
-                 (multikey-pool (pi-load-multikey agent-dir provider))
-                 (api-key
-                   (if multikey-pool
-                     (pi-pool-key-key (car (pi-key-pool-keys multikey-pool)))
-                     api-key-raw
-                   ) ;if
-                 ) ;api-key
+                 (api-key api-key-raw)
                  (raw-meta (if (pair? opt-env)
                              (pi-resolve-model-metadata provider model-id models-store (car opt-env))
                              (pi-resolve-model-metadata provider model-id models-store)
@@ -296,7 +290,6 @@
             (list (cons 'agent-dir agent-dir)
               (cons 'provider provider)
               (cons 'api-key api-key)
-              (cons 'multikey-pool multikey-pool)
               (cons 'model-id model-id)
               (cons 'model-meta meta)
               (cons 'models-store models-store)
@@ -314,6 +307,14 @@
       ) ;let*
     ) ;define
     (define resolve-goldpi-config resolve-pi-config)
+
+    ;; 应用扩展注册的 config augmenter：multikey 等内置/用户扩展经此
+    ;; 注入 request-key / rotate-key 等钩子（CLI dispatch 与 TUI worker 共用）
+    (define (augment-pi-config cfg parsed)
+      (let* ((reg (or (current-extension-registry) (default-extension-registry))))
+        (fold (lambda (aug c) (aug c parsed)) cfg (extension-registry-augmenters reg))
+      ) ;let*
+    ) ;define
 
     ;; 凭证缺失时返回用户可读提示消息，否则返回 #f（CLI 报错与 TUI 卡片共用）
     (define (pi-missing-credential-msg cfg)

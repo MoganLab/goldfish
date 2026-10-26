@@ -17,7 +17,7 @@
     (liii pi ai retry)
     (liii pi ai tools types)
     (liii pi ai message)
-    (liii pi ai multikey)
+    (liii pi ai keyring)
     (liii pi ai api google-generative-ai core)
     (liii pi ai api google-generative-ai stream-parse)
     (liii pi ai api google-generative-ai thinking)
@@ -223,7 +223,7 @@
              (model-meta (cdr (assoc 'model-meta config)))
              (proxy-url (cdr (assoc 'proxy-url config)))
              (settings (cdr (assoc 'settings config)))
-             (pool (pi-multikey-pool-of config))
+             (key-rotation? (pi-key-rotation? config))
              (base-url (cdr (or (assoc 'base-url model-meta)
                               '(#f
                                 . "https://generativelanguage.googleapis.com/v1beta")
@@ -256,7 +256,7 @@
                      ) ;
                     ) ;
           (let loop
-            ((attempt 1) (api-key (pi-multikey-request-key config)))
+            ((attempt 1) (api-key (pi-request-api-key config)))
             (let* ((headers (list (cons "Content-Type" "application/json")
                               (cons "x-goog-api-key" (or api-key ""))
                             ) ;list
@@ -266,8 +266,8 @@
                    (body-str (or (%resp-field resp 'text) ""))
                   ) ;
               (cond
-               ((and pool (or (= status 429) (= status 403)))
-                (let ((next (pi-multikey-rotate! config api-key status)))
+               ((and key-rotation? (or (= status 429) (= status 403)))
+                (let ((next (pi-rotate-api-key! config api-key status)))
                   (if (eq? next 'exhausted)
                     (%make-error-response (format-failed-stream-msg status resp)
                       (gemini-map-usage '())

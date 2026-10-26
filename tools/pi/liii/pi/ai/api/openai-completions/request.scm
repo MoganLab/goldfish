@@ -19,7 +19,7 @@
     (liii pi ai api openai-completions core)
     (liii pi ai api openai-completions msg)
     (liii pi ai retry)
-    (liii pi ai multikey)
+    (liii pi ai keyring)
   ) ;import
   (export openai-build-tool-declarations-from-names openai-request
     openai-build-endpoint openai-build-headers openai-build-proxy-alist
@@ -150,17 +150,17 @@
                     ((req-json-str) (json->string req-body))
                     ((proxy-alist) (openai-build-proxy-alist proxy-url))
                    ) ;
-        (let ((pool (pi-multikey-pool-of config)))
+        (let ((key-rotation? (pi-key-rotation? config)))
           (let loop
-            ((attempt 1) (api-key (pi-multikey-request-key config)))
+            ((attempt 1) (api-key (pi-request-api-key config)))
             (let* ((headers (openai-build-headers api-key))
                    (resp (%post-openai url req-json-str headers proxy-alist timeout))
                    (status (or (%resp-field resp 'status-code) 0))
                    (body-str (or (%resp-field resp 'text) ""))
                   ) ;
               (cond
-               ((and pool (or (= status 429) (= status 403)))
-                (let ((next (pi-multikey-rotate! config api-key status)))
+               ((and key-rotation? (or (= status 429) (= status 403)))
+                (let ((next (pi-rotate-api-key! config api-key status)))
                   (if (eq? next 'exhausted) (%make-retry-error status 1 body-str) (loop 1 next))
                 ) ;let
                ) ;

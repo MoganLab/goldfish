@@ -15,12 +15,12 @@
     (liii pi ai time)
     (liii pi ai event)
     (liii pi ai retry)
+    (liii pi ai keyring)
     (liii pi ai message)
     (liii pi ai api openai-completions core)
     (liii pi ai api openai-completions msg)
     (liii pi ai api openai-completions request)
     (liii pi ai api openai-completions stream-parse)
-    (liii pi ai multikey)
   ) ;import
   (export openai-request-stream)
   (begin
@@ -158,14 +158,14 @@
               opt-retry eff-idle
             ) ;%run-stream-loop
       (let* ((settings (cdr (or (assoc 'settings config) '(#f))))
-             (pool (pi-multikey-pool-of config))
+             (key-rotation? (pi-key-rotation? config))
             ) ;
         (let-values (((max-r base-delay max-delay provider-r)
                       (pi-resolve-retry-params settings opt-retry)
                      ) ;
                     ) ;
           (let loop
-            ((attempt 1) (api-key (pi-multikey-request-key config)))
+            ((attempt 1) (api-key (pi-request-api-key config)))
             (let* ((headers (openai-build-headers api-key))
                    (stream-state (%init-openai-stream-state))
                    (idle-timed-out? #f)
@@ -189,8 +189,8 @@
               ;; 无后续 chunk 检查点，此处探测保证确定性结算为 aborted
               (cond ((or aborted? (pi-aborted?)) (%finalize-aborted-stream stream-state))
                     (idle-timed-out? (%make-idle-timeout-error eff-idle))
-                    ((and pool (not emitted?) (or (= status 429) (= status 403)))
-                     (let ((next (pi-multikey-rotate! config api-key status)))
+                    ((and key-rotation? (not emitted?) (or (= status 429) (= status 403)))
+                     (let ((next (pi-rotate-api-key! config api-key status)))
                        (if (eq? next 'exhausted)
                          (%make-stream-error status resp err-acc)
                          (loop 1 next)

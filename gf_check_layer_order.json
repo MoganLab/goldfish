@@ -157,6 +157,7 @@
         {
           "name": "extensions",
           "libs": [
+            "liii pi multikey",
             "liii pi review",
             "liii pi simplify",
             "liii pi web-search"

@@ -211,6 +211,46 @@ timeout 600 bin/gf pi -p --auto-review "修复 src/app.scm 里的空指针问题
 约束：`--staged`/`--ref` 需与 `--code-review` 或 `--simplify` 之一同用；
 `--auto-review` 与 `--code-review` 互斥。
 
+#### multikey：密钥池与 429/403 自动轮换【可用】（任务 033，扩展化 2026-10）
+
+移植自 [kslamph/multikey](https://github.com/kslamph/multikey)，以内置扩展形式提供
+（`extensions/multikey.scm` 注册，实现库族 `(liii pi multikey pool/load/policy/config)`）。检测
+`~/.pi/agent/multikey.json`：命中当前 provider 的 pool 时自动注入
+`request-key` / `rotate-key` 钩子，正常请求固定使用当前 key，429/403 时
+冷却当前 key 并切换下一个（切换日志与重试日志共用通道：CLI 写 stderr，
+TUI 转为界面卡片）；核心请求路径只依赖通用钩子接口 `(liii pi ai keyring)`，
+不依赖任何具体密钥池实现。
+
+```bash
+# 自动检测 ~/.pi/agent/multikey.json：配置了 kimi-coding 多 key pool 时，
+# 正常请求固定使用当前 key；429/403 时冷却当前 key 并切换下一个（首个 key 不打日志）
+timeout 180 bin/gf pi --provider kimi-coding -p "统计 tests/ 目录下的测试用例总数"
+# 每次切换打一条脱敏日志（key 仅显示首尾若干字符）：
+# multikey[kimi-coding]: 429 on alpha (sk-poo…0001), rotating to another key
+
+# 未配置 pool 的 provider 回退 auth.json 单 key，行为不变
+timeout 180 bin/gf pi --provider google -p "hi"
+```
+
+multikey.json 示例（`pools[].id` 匹配 provider，`enabled: false` 的 key 被过滤；
+`cooldownMs` 为 429 冷却时长，`invalidKeyCooldownMs` 为 403/invalid 冷却时长）：
+
+```json
+{
+  "pools": [
+    {
+      "id": "kimi-coding",
+      "cooldownMs": 30000,
+      "invalidKeyCooldownMs": 600000,
+      "keys": [
+        {"key": "sk-pool-alpha-0001", "label": "alpha", "enabled": true},
+        {"key": "sk-pool-beta-00002", "label": "beta", "enabled": true}
+      ]
+    }
+  ]
+}
+```
+
 ### 3. 插件生态与安装（`pi install`）
 
 支持通过 `pi install` 命令一键安装社区或第三方的 Git 扩展仓库：
@@ -356,7 +396,7 @@ tools/pi/liii/
     config.scm      # (liii pi config)   配置 record 与类型定义（config/record.scm, config/types.scm）
     extension.scm   # (liii pi extension) 扩展机制门面（API、注册容器、生命周期分发）
     extension/      # 扩展机制子模块（api, registry, discovery, loader, hooks）
-    extensions/     # ★ 内置轻量扩展（随包分发：web-search, simplify, code-review）
+    extensions/     # ★ 内置轻量扩展（随包分发：web-search, simplify, code-review, multikey）
     models.scm      # (liii pi models)   模型目录解析与表格输出（models/list.scm）
     gemini.scm      # (liii pi gemini)   Gemini provider（gemini/core, request, stream, stream-parse）
     anthropic.scm   # (liii pi anthropic) Anthropic provider（anthropic/core, request, stream, stream-parse）
@@ -455,18 +495,10 @@ tools/pi/liii/
 
   注：minimax 与 minimax-cn 双 provider 均可用；环境变量 MINIMAX_API_KEY /
   MINIMAX_BASE_URL 可覆盖（任务 035 env 优先体系）。
-- [ ] **`pi-multikey` 密钥池与 429/403 自动轮换（任务 033）**：对照 Node pi 的 `pi-multikey` 扩展，bin/gf pi 内置原生实现。预期用法（实现后转【可用】）：
-
-  ```bash
-  # 自动检测 ~/.pi/agent/multikey.json：配置了 kimi-coding 多 key pool 时，
-  # 正常请求固定使用当前 key；429/403 时冷却当前 key 并切换下一个（首个 key 不打日志）
-  timeout 180 bin/gf pi --provider kimi-coding -p "统计 tests/ 目录下的测试用例总数"
-  # 每次切换在 stderr 打印一条脱敏日志（key 仅显示首尾若干字符，TUI 模式转为界面卡片）：
-  # multikey[kimi-coding]: 429 on alpha (sk-poo…0001), rotating to another key
-
-  # 未配置 pool 的 provider 回退 auth.json 单 key，行为不变
-  timeout 180 bin/gf pi --provider google -p "hi"
-  ```
+- [x] **`pi-multikey` 密钥池与 429/403 自动轮换【可用】（任务 033，已扩展化）**：
+  对照 Node pi 的 `pi-multikey` 扩展移植。**已剥离为内置扩展**（`extensions/multikey.scm`，
+  实现库族 `(liii pi multikey pool/load/policy/config)`；核心只保留通用 key 钩子接口 `(liii pi ai keyring)`），
+  用法与配置详见「常用内置扩展」章节。
 - [ ] **4 字节 UTF-8 + '<' 挂起**：prompt 同时含 4 字节 UTF-8 字符（如 🚀、𠀀）与 `<` 时进程静默挂起且连 HTTP 300s 超时都不生效（复现：`timeout 60 bin/gf pi -p '🚀 <'`）。【待重做】
 - [ ] **thinking 内容**：思考级别的请求与解析。预期用法（实现时以 pi 实际 CLI 为准）：
 
