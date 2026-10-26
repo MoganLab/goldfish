@@ -21,6 +21,7 @@
     (liii string)
     (liii json)
     (liii error)
+    (liii gfproject config)
   ) ;import
   (export normalize-sep has-wildcard? string-index-of string-starts-with?
     glob-match? path-matches-exclude? exclude-entry->path file-excluded?
@@ -42,7 +43,7 @@
     ) ;define
 
     (define (relativize-path path-str)
-      (let ((root (g_project-root)))
+      (let ((root (gfproject-root)))
         (if (and root (string? root) (not (string=? root "")))
           (let* ((norm-root (normalize-sep root))
                  (norm-path (normalize-sep path-str))

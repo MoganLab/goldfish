@@ -51,7 +51,7 @@
 
     ;; ; 判断是否为目录。跨平台行为一致。
     (define (path-dir? p)
-      (g_isdir (path->string p))
+      (isdir (path->string p))
     ) ;define
 
     ;; ; 判断是否为普通文件。跨平台行为一致。

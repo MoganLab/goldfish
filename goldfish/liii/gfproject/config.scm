@@ -24,11 +24,14 @@
     (liii path)
     (liii string)
   ) ;import
-  (export gfproject-get-gf-lib gfproject-find-lib-path gfproject-find-local-path
-    gfproject-extract-tools gfproject-deep-merge gfproject-load-config-bundle
-    gfproject-load-config gfproject-read-file gfproject--opt-gf-lib bundle-ref
+  (export gfproject-root gfproject-get-gf-lib gfproject-find-lib-path
+    gfproject-find-local-path gfproject-extract-tools gfproject-deep-merge
+    gfproject-load-config-bundle gfproject-load-config gfproject-read-file
+    gfproject--opt-gf-lib bundle-ref
   ) ;export
   (begin
+
+    (define gfproject-root g_project-root)
 
     (define (gfproject-get-gf-lib)
       (g_goldfish-library-dir)
@@ -46,7 +49,7 @@
     ) ;define
 
     (define (gfproject-find-local-path)
-      (let ((root (g_project-root)))
+      (let ((root (gfproject-root)))
         (and root (path->string (path-join root "gfproject.json")))
       ) ;let
     ) ;define

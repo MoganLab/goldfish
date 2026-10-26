@@ -30,9 +30,11 @@
     make-context make-timeout-context context? context-done? context-cancel!
     context-channel spawn-fiber fiber-yield! fiber-scheduler-run!
     make-fiber-chan fiber-chan? fiber-send! fiber-recv!
-    %set-scheduler-idle-return! %run-worker-task %drain-suspended!
+    %set-scheduler-idle-return! %run-worker-task %drain-suspended! %go-spawn
   ) ;export
   (begin
+    (define %go-spawn g_go-spawn)
+
     (define make-chan (case-lambda (() (g_make-chan 0)) ((cap) (g_make-chan cap))))
 
     (define (chan? obj)
@@ -371,7 +373,7 @@
                    `(begin ,@(%go-worker-prelude libs) (,src ,@arg-names))
                  ) ;code
                 ) ;
-            (g_go-spawn arg-names args code)
+            (%go-spawn arg-names args code)
           ) ;let*
           (error 'type-error "go: cannot extract source code from procedure" fn)
         ) ;if
@@ -433,7 +435,7 @@
     ;; （*go-err-handler* 只在 worker 会话中定义，此处引用不会出现在主会话）
     (define (%go-result-spawn vars vals body rc-sym rc)
       (let ((libs (%go-active-libs)))
-        (g_go-spawn (append vars (list rc-sym))
+        (%go-spawn (append vars (list rc-sym))
           (append vals (list rc))
           `(begin
              ,@(%go-worker-prelude libs)
@@ -443,7 +445,7 @@
                  (catch #t
                    (lambda ,() (chan-send! ,rc-sym (list 'error tag args)))
                    (lambda (t2 a2) (*go-err-handler* t2 a2))))))
-        ) ;g_go-spawn
+        ) ;%go-spawn
       ) ;let
     ) ;define
 
@@ -564,7 +566,7 @@
                             (list 'error tag (list (object->string args)))))))))
              ) ;code
             ) ;
-        (g_go-spawn names vals code)
+        (%go-spawn names vals code)
       ) ;let*
     ) ;define
 

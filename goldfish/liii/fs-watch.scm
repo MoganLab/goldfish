@@ -54,6 +54,7 @@
     (liii base)
     (liii string)
     (liii list)
+    (liii go)
     (liii error)
   ) ;import
   (begin
@@ -280,13 +281,13 @@
                  (pump-src (procedure-source fs-watch-pump))
                 ) ;
             (%fs-observer-handles-set! obs (cons handle (%fs-observer-handles obs)))
-            (g_go-spawn (list 'handle 'cbs-src 'ctx)
+            (%go-spawn (list 'handle 'cbs-src 'ctx)
               (list handle cbs-src ctx)
               (list 'begin
                 '(import (liii fs-watch) (liii go))
                 (list pump-src 'handle 'cbs-src 'ctx)
               ) ;list
-            ) ;g_go-spawn
+            ) ;%go-spawn
           ) ;let*
         ) ;lambda
         (%fs-observer-schedules obs)

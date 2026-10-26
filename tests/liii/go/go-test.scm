@@ -98,6 +98,8 @@
 ;; 3. go-spawn 参数错误路径（覆盖携带 RAII 对象的 raise 路径，Windows 回归）
 (check-catch 'value-error (g_go-spawn '(a) '() '(begin)))
 (check-catch 'type-error (g_go-spawn '(a) '(1) (lambda (x) x)))
+(check-catch 'value-error (%go-spawn '(a) '() '(begin)))
+(check-catch 'type-error (%go-spawn '(a) '(1) (lambda (x) x)))
 
 ;; 4. 函数直接调用形式：(go (fn arg ...))
 

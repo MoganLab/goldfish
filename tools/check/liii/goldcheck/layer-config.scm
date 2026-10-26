@@ -21,6 +21,7 @@
     (liii string)
     (liii error)
     (liii json)
+    (liii gfproject config)
   ) ;import
   (export layer-domains-parse layer-order-enabled? find-domain-by-name
     domain-allows-dep? domain-name-of domain-root-of domain-deps-of
@@ -29,7 +30,7 @@
   (begin
 
     (define (%project-root)
-      (if (defined? 'g_project-root (rootlet)) (g_project-root) #f)
+      (gfproject-root)
     ) ;define
 
     ;; 规则对象：rules.layer-order 内联；或有 "file" 键时从外部

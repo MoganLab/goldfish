@@ -21,6 +21,7 @@
     (liii path)
     (liii string)
     (liii goldtool changed)
+    (liii gfproject config)
     (liii goldcheck path)
     (liii goldcheck config)
   ) ;import
@@ -113,7 +114,7 @@
     ) ;define
 
     (define (collect-repo-files)
-      (let* ((root (g_project-root))
+      (let* ((root (gfproject-root))
              (start-dir
                (if (and root (string? root) (not (string=? root ""))) root ".")
              ) ;start-dir
@@ -157,7 +158,7 @@
           ((not (null? positionals)) (collect-positional-files positionals suffixes))
           (else
             (let* ((paths (check-rule-paths cfg "no-crlf"))
-                   (root (g_project-root))
+                   (root (gfproject-root))
                    (start-dir
                      (if (and root (string? root) (not (string=? root ""))) root ".")
                    ) ;start-dir
