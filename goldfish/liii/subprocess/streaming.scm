@@ -107,7 +107,7 @@
       (let loop
         ()
         (let* ((rem-ms (%calc-rem-ms deadline-ms))
-               (idle-secs (and (or idle-timeout on-idle) (g_subprocess-idle-seconds proc)))
+               (idle-secs (and (or idle-timeout on-idle) (process-idle-seconds proc)))
                (idle-rem-ms (%calc-idle-rem-ms idle-timeout idle-secs))
               ) ;
           (cond
