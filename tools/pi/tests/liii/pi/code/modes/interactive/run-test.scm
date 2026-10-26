@@ -218,4 +218,17 @@
   ) ;let*
 ) ;let*
 
+;; 13. TUI 启动时依次提交 CLI initial-msg 与 rest-msgs，再进入交互主循环
+(let* ((vt (make-virtual-terminal :width 80 :height 24))
+       (received '())
+       (app (make-pi-app :terminal vt
+              :handler (lambda (a msg) (set! received (cons msg received)))
+            ) ;make-pi-app
+       ) ;app
+      ) ;
+  (virtual-terminal-push-key! vt 'ctrl-d)
+  (check (pi-app-run app "I am a frog" '("who am I")) => #t)
+  (check (reverse received) => '("I am a frog" "who am I"))
+) ;let*
+
 (check-report)

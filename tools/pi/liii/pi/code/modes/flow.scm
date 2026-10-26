@@ -162,45 +162,69 @@
 
     ;; session-file（可选）：TUI 后台 worker 传入复用的会话文件，
     ;; 同一 TUI 运行内跨消息保持上下文连续（对齐 pi 单会话模型）
-    (define (run-session-flow parsed cfg initial-msg emit on-finish . opts)
-      (let* ((session-file (and (pair? opts) (car opts))))
-        (let*-values (((cwd) (path->string (path-cwd)))
-                      ((sfile sdir)
-                       (if session-file (values session-file #f) (setup-session-file parsed cfg cwd))
+    (define* (run-session-flow parsed
+               cfg
+               initial-msg
+               emit
+               on-finish
+               (session-file #f)
+               (rest-msgs '())
+             ) ;run-session-flow
+      (let*-values (((cwd) (path->string (path-cwd)))
+                    ((sfile sdir)
+                     (if session-file (values session-file #f) (setup-session-file parsed cfg cwd))
+                    ) ;
+                    ((context) (%session-context parsed sfile session-file))
+                   ) ;
+        (let ((prompts (append (if (string-null? initial-msg) '() (list initial-msg)) rest-msgs)
+              ) ;prompts
+             ) ;
+          (when emit
+            (emit 'session cwd)
+          ) ;when
+          (let ((state (vector context (length context)))
+                (timeout (pi-resolve-timeout parsed cfg))
+               ) ;
+            (let loop
+              ((remaining prompts) (current-msgs context))
+              (let* ((next-msgs
+                       (if (pair? remaining)
+                         (append current-msgs (list (pi-user-message (car remaining))))
+                         current-msgs
+                       ) ;if
+                     ) ;next-msgs
+                    ) ;
+                (when (pair? remaining)
+                  (persist-new-messages! sfile current-msgs next-msgs (length current-msgs))
+                ) ;when
+                (vector-set! state 0 next-msgs)
+                (vector-set! state 1 (length next-msgs))
+                (let* ((compaction (pi-make-compaction-option parsed cfg sfile state timeout))
+                       (res-msgs (run-agent-loop-with-timeout cfg
+                                   next-msgs
+                                   (%system-prompt-for cfg parsed)
+                                   emit
+                                   parsed
+                                   compaction
+                                 ) ;run-agent-loop-with-timeout
+                       ) ;res-msgs
                       ) ;
-                      ((context) (%session-context parsed sfile session-file))
-                     ) ;
-          (let* ((has-prompt? (not (string-null? initial-msg)))
-                 (init-msgs
-                   (append context (if has-prompt? (list (pi-user-message initial-msg)) '()))
-                 ) ;init-msgs
-                 (persisted (length context))
-                ) ;
-            (when has-prompt?
-              (persist-new-messages! sfile context init-msgs persisted)
-            ) ;when
-            (when emit
-              (emit 'session cwd)
-            ) ;when
-            (let* ((state (vector init-msgs (length init-msgs)))
-                   (timeout (pi-resolve-timeout parsed cfg))
-                   (compaction (pi-make-compaction-option parsed cfg sfile state timeout))
-                   (res-msgs (run-agent-loop-with-timeout cfg
-                               init-msgs
-                               (%system-prompt-for cfg parsed)
-                               emit
-                               parsed
-                               compaction
-                             ) ;run-agent-loop-with-timeout
-                   ) ;res-msgs
-                  ) ;
-              (persist-new-messages! sfile (vector-ref state 0) res-msgs (vector-ref state 1))
-              (on-finish res-msgs)
-            ) ;let*
-          ) ;let*
-        ) ;let*-values
-      ) ;let*
-    ) ;define
+                  (persist-new-messages! sfile (vector-ref state 0) res-msgs (vector-ref state 1))
+                  (if (and (pair? remaining) (pair? (cdr remaining)))
+                    (begin
+                      (vector-set! state 0 res-msgs)
+                      (vector-set! state 1 (length res-msgs))
+                      (loop (cdr remaining) res-msgs)
+                    ) ;begin
+                    (on-finish res-msgs)
+                  ) ;if
+                ) ;let*
+              ) ;let*
+            ) ;let
+          ) ;let
+        ) ;let
+      ) ;let*-values
+    ) ;define*
 
     (define (run-compact-flow parsed cfg initial-msg emit)
       (let* ((cwd (path->string (path-cwd)))

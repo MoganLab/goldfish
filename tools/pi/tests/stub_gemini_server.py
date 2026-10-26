@@ -861,6 +861,38 @@ class StubHandler(http.server.BaseHTTPRequestHandler):
             self.wfile.write(json.dumps(resp).encode("utf-8"))
             return
 
+        if "/multi-prompt" in path:
+            contents = req_json.get("contents", [])
+            user_texts = [
+                " ".join(p.get("text", "") for p in c.get("parts", []) if isinstance(p, dict))
+                for c in contents if c.get("role") == "user"
+            ]
+            has_frog_context = any("I am a frog" in text for text in user_texts)
+            has_follow_up = any("who am I" in text for text in user_texts)
+            reply = "You are a frog" if has_frog_context and has_follow_up else "First prompt received"
+            resp = {
+                "candidates": [
+                    {
+                        "content": {"role": "model", "parts": [{"text": reply}]},
+                        "finishReason": "STOP"
+                    }
+                ],
+                "usageMetadata": {"promptTokenCount": 20, "candidatesTokenCount": 10, "totalTokenCount": 30}
+            }
+            if "alt=sse" in path or ":streamGenerateContent" in path:
+                self.send_response(200)
+                self.send_header("Content-Type", "text/event-stream")
+                self.send_header("Cache-Control", "no-cache")
+                self.end_headers()
+                self.wfile.write(f"data: {json.dumps(resp)}\n\n".encode("utf-8"))
+                self.wfile.flush()
+                return
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps(resp).encode("utf-8"))
+            return
+
         if "alt=sse" in path or ":streamGenerateContent" in path:
             # 模拟 SSE 流式响应
             self.send_response(200)

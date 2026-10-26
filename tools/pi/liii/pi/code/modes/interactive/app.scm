@@ -6,13 +6,14 @@
 
 (define-library (liii pi code modes interactive app)
   (export make-pi-app pi-app? pi-app-term pi-app-screen pi-app-editor
-    pi-app-queue pi-app-chat pi-app-render! pi-app-submit! pi-app-drain-queue!
-    pi-app-add-user-message! pi-app-add-tool-result! pi-app-add-assistant-text!
-    pi-app-add-retry-message! pi-app-jobs-chan pi-app-event-chan
-    pi-app-abort-chan pi-app-poll-events! pi-app-working pi-app-working-tick!
-    pi-app-thinking-level pi-app-supports-thinking? pi-app-cycle-thinking!
-    pi-app-bash-mode? pi-app-tools-expanded? pi-app-toggle-tool-output!
-    pi-app-bash-jobs-chan pi-app-run-bash!
+    pi-app-queue pi-app-chat pi-app-render! pi-app-submit!
+    pi-app-submit-initial! pi-app-drain-queue! pi-app-add-user-message!
+    pi-app-add-tool-result! pi-app-add-assistant-text! pi-app-add-retry-message!
+    pi-app-jobs-chan pi-app-event-chan pi-app-abort-chan pi-app-poll-events!
+    pi-app-working pi-app-working-tick! pi-app-thinking-level
+    pi-app-supports-thinking? pi-app-cycle-thinking! pi-app-bash-mode?
+    pi-app-tools-expanded? pi-app-toggle-tool-output! pi-app-bash-jobs-chan
+    pi-app-run-bash!
   ) ;export
   (import (scheme base)
     (liii base)
@@ -273,6 +274,13 @@
           ) ;let*
         ) ;unless
       ) ;let
+    ) ;define
+
+    (define (pi-app-submit-initial! app initial-msg rest-msgs)
+      (unless (string-null? initial-msg)
+        (pi-app-submit! app initial-msg)
+      ) ;unless
+      (for-each (lambda (msg) (pi-app-submit! app msg)) rest-msgs)
     ) ;define
 
     ;; shift+tab 会话内循环切换 thinking level（对齐上游 pi 的 app.thinking.cycle）：

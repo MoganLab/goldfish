@@ -69,10 +69,19 @@
                       (lambda (res-msgs)
                         (handle-print-result (and (pair? res-msgs) (car (reverse res-msgs))))
                       ) ;lambda
+                      #f
+                      rest-msgs
                     ) ;run-session-flow
                    ) ;
                    ((eq? mode 'json)
-                    (run-session-flow parsed cfg initial-msg emit-json-event (lambda _ 0))
+                    (run-session-flow parsed
+                      cfg
+                      initial-msg
+                      emit-json-event
+                      (lambda _ 0)
+                      #f
+                      rest-msgs
+                    ) ;run-session-flow
                    ) ;
                    (else 0)
              ) ;cond
@@ -84,8 +93,15 @@
 
     (define (resolve-app-mode mode-option print-flag stdin-tty stdout-tty)
       (cond ((or (equal? mode-option "json") (eq? mode-option 'json)) 'json)
-            ((or print-flag (not stdin-tty) (not stdout-tty)) 'print)
-            (else 'print)
+            ((or print-flag
+               (equal? mode-option "text")
+               (eq? mode-option 'text)
+               (not stdin-tty)
+               (not stdout-tty)
+             ) ;or
+             'print
+            ) ;
+            (else 'interactive)
       ) ;cond
     ) ;define
 
