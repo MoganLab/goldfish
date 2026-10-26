@@ -1,7 +1,7 @@
 (define-library (liii error)
   (export ??? os-error file-not-found-error not-a-directory-error
     file-exists-error timeout-error type-error type-error? key-error value-error
-    index-error permission-denied-error file-error
+    index-error permission-denied-error process-not-found-error file-error
   ) ;export
   (begin
 
@@ -11,6 +11,10 @@
 
     (define (permission-denied-error . args)
       (apply error (cons 'permission-denied-error args))
+    ) ;define
+
+    (define (process-not-found-error . args)
+      (apply error (cons 'process-not-found-error args))
     ) ;define
 
     (define (file-not-found-error . args)
