@@ -1,8 +1,8 @@
 (define-library (liii os)
   (export os-arch os-type os-windows? os-linux? os-macos? os-temp-dir os-sep
     pathsep os-call mkdir chdir rmdir remove rename getenv putenv unsetenv
-    getcwd listdir access getlogin getpid os-tty? console-kbhit? console-getch
-    console-raw-mode! console-raw-mode-state os-terminal-size
+    getcwd listdir access getlogin getpid isdir os-tty? console-kbhit?
+    console-getch console-raw-mode! console-raw-mode-state os-terminal-size
   ) ;export
   (import (scheme base)
     (scheme process-context)
@@ -45,6 +45,8 @@
     (define (pathsep)
       (if (os-windows?) #\; #\:)
     ) ;define
+
+    (define isdir g_isdir)
 
     (define (%check-dir-andthen path f)
       (cond ((not (file-exists? path))

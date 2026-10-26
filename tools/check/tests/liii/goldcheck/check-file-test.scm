@@ -85,4 +85,58 @@
   (path-unlink tmp #t)
 ) ;let*
 
+;; 5. no-glue：同一库内封装并导出对应公开接口时通过
+(let* ((tmp (path->string (path-join (path-temp-dir) "gf-test-no-glue-clean.scm"))))
+  (write-test-bytes tmp
+    "(define-library (demo clean)\n  (export md5)\n  (import (scheme base))\n  (begin\n    (define md5 g_md5)\n    (define (md5-again str) (g_md5 str)))\n) ;define-library\n"
+  ) ;write-test-bytes
+  (check (check-file tmp #f) => '())
+  (path-unlink tmp #t)
+) ;let*
+
+;; 6. no-glue：库外直接引用 glue 违规
+(let* ((tmp (path->string (path-join (path-temp-dir) "gf-test-no-glue-outside.scm"))))
+  (write-test-bytes tmp "(g_md5 \"abc\")\n")
+  (check (map (lambda (v) (list (car v) (caddr v) (cadddr v) (list-ref v 4)))
+           (check-file tmp #f))
+    => '((no-glue 1 g_md5 outside-library)))
+  (path-unlink tmp #t)
+) ;let*
+
+;; 7. no-glue：glue 不要求存在同名公开绑定
+(let* ((tmp (path->string (path-join (path-temp-dir) "gf-test-no-glue-binding.scm"))))
+  (write-test-bytes tmp
+    "(define-library (demo missing)\n  (export other)\n  (import (scheme base))\n  (begin\n    (define (other str) (g_md5 str)))\n) ;define-library\n"
+  ) ;write-test-bytes
+  (check (check-file tmp #f) => '())
+  (path-unlink tmp #t)
+) ;let*
+
+;; 8. no-glue：glue 的封装绑定不要求导出
+(let* ((tmp (path->string (path-join (path-temp-dir) "gf-test-no-glue-export.scm"))))
+  (write-test-bytes tmp
+    "(define-library (demo private)\n  (export)\n  (import (scheme base))\n  (begin\n    (define md5 g_md5))\n) ;define-library\n"
+  ) ;write-test-bytes
+  (check (check-file tmp #f) => '())
+  (path-unlink tmp #t)
+) ;let*
+
+;; 9. no-glue：不得直接导出 glue 绑定
+(let* ((tmp (path->string (path-join (path-temp-dir) "gf-test-no-glue-export-glue.scm"))))
+  (write-test-bytes tmp
+    "(define-library (demo exposed)\n  (export md5 g_md5)\n  (import (scheme base))\n  (begin\n    (define md5 g_md5))\n) ;define-library\n"
+  ) ;write-test-bytes
+  (check (map (lambda (v) (list-ref v 4)) (check-file tmp #f)) => '(exported-glue))
+  (path-unlink tmp #t)
+) ;let*
+
+;; 10. no-glue：注释、字符串和 quoted 数据不构成 glue 引用
+(let* ((tmp (path->string (path-join (path-temp-dir) "gf-test-no-glue-data.scm"))))
+  (write-test-bytes tmp
+    ";; (g_md5 \"abc\")\n(define doc \"g_md5\")\n(define example 'g_md5)\n(define examples '(g_md5 g_sha1))\n"
+  ) ;write-test-bytes
+  (check (check-file tmp #f) => '())
+  (path-unlink tmp #t)
+) ;let*
+
 (check-report)

@@ -65,6 +65,8 @@
 ) ;check
 (check (not (not (gfproject-find-lib-path))) => #t)
 (check (not (not (gfproject-find-local-path))) => #t)
+(check (string? (gfproject-root)) => #t)
+(check-true (path-dir? (gfproject-root)))
 (let* ((p (gfproject-find-local-path)) (txt (path-read-text p)))
   (check (string? txt) => #t)
 ) ;let*

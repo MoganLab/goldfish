@@ -35,6 +35,7 @@
     gfproject-tool-conflict?
     gfproject-error->string
     ;; re-export 自 (liii gfproject config)，保持旧 API 兼容
+    gfproject-root
     gfproject-get-gf-lib
     gfproject-find-lib-path
     gfproject-find-local-path
@@ -62,7 +63,7 @@
         (path->string
           (if (path-absolute? p)
             p
-            (let ((root (if (defined? 'g_project-root (rootlet)) (g_project-root) #f)))
+            (let ((root (gfproject-root)))
               (path-join (or root (getcwd)) p)
             ) ;let
           ) ;if

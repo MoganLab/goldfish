@@ -12,6 +12,9 @@
     "define-record-type": {
       "enabled": true
     },
+    "no-glue": {
+      "enabled": true
+    },
     "no-crlf": {
       "enabled": true,
       "suffix": [
@@ -38,6 +41,12 @@
     }
   },
   "excludes": {
+    "no-glue": [
+      "bench/",
+      "goldfish/scheme/boot.scm",
+      "goldfish/srfi/srfi-13.scm",
+      "tests/"
+    ],
     "max-file-lines": [
       {
         "path": "goldfish/srfi/",

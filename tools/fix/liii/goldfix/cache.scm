@@ -51,7 +51,7 @@
              (cache-dir (path->string (path-parent (path cache))))
             ) ;
         (unless (path-dir? (path cache-dir))
-          (g_mkdir cache-dir)
+          (mkdir cache-dir)
         ) ;unless
         (path-touch (path cache))
       ) ;let*

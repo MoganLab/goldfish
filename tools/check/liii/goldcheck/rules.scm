@@ -64,6 +64,9 @@
       (display "  no-crlf                换行符统一为 LF，发现 CRLF 报错（按 suffix/path 限定范围）"
       ) ;display
       (newline)
+      (display "  no-glue                glue 仅限唯一 define-library 封装，并提供同名公开接口"
+      ) ;display
+      (newline)
       (newline)
       (display "Arguments:")
       (newline)
@@ -235,6 +238,38 @@
               ": no-crlf: CRLF line ending detected (expected LF)"
             ) ;string-append
           ) ;let
+         ) ;
+         ((eq? rule 'no-glue)
+          (let* ((file (cadr viol))
+                 (line (caddr viol))
+                 (glue (cadddr viol))
+                 (reason (list-ref viol 4))
+                 (public (substring (symbol->string glue) 2))
+                 (detail (cond ((eq? reason 'outside-library)
+                                "must only be used inside its encapsulating define-library"
+                               ) ;
+                               ((eq? reason 'multiple-libraries)
+                                "is encapsulated by multiple define-library forms"
+                               ) ;
+                               ((eq? reason 'missing-binding) (string-append "missing public binding " public))
+                               ((eq? reason 'not-exported)
+                                (string-append "public binding " public " is not exported")
+                               ) ;
+                               ((eq? reason 'exported-glue) "glue binding must not be exported")
+                               (else (symbol->string reason))
+                         ) ;cond
+                 ) ;detail
+                ) ;
+            (string-append "  "
+              file
+              ":"
+              (number->string line)
+              ": no-glue: "
+              (symbol->string glue)
+              " "
+              detail
+            ) ;string-append
+          ) ;let*
          ) ;
          (else (string-append "  " (object->string viol)))
         ) ;cond

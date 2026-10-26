@@ -24,6 +24,7 @@
     (liii json)
     (liii list)
     (liii error)
+    (liii gfproject config)
     (liii goldcheck path)
   ) ;import
   (export load-check-config check-config-exists? check-config-goldfish-version
@@ -39,6 +40,7 @@
                 (string=? name "define-record-type")
                 (string=? name "layer-order")
                 (string=? name "no-crlf")
+                (string=? name "no-glue")
               ) ;or
         (value-error "unknown rule: ~A" name)
       ) ;unless
@@ -292,13 +294,13 @@
     ) ;define
 
     (define (check-config-exists? . maybe-root)
-      (let ((root (if (null? maybe-root) (or (g_project-root) ".") (car maybe-root))))
+      (let ((root (if (null? maybe-root) (or (gfproject-root) ".") (car maybe-root))))
         (and root (string? root) (file-exists? (string-append root "/gf_check.json")))
       ) ;let
     ) ;define
 
     (define (find-check-config-file)
-      (let ((root (g_project-root)))
+      (let ((root (gfproject-root)))
         (if (and root (string? root) (not (string=? root "")))
           (let ((candidate (string-append root "/gf_check.json")))
             (if (file-exists? candidate) candidate #f)

@@ -18,7 +18,7 @@
 ;; 缓存键为文件内容的 SHA-256；缓存目录按工具名、Goldfish 版本与额外路径段隔离。
 
 (define-library (liii goldtool cache)
-  (import (scheme base) (liii base) (liii path) (liii hashlib))
+  (import (scheme base) (liii base) (liii path) (liii hashlib) (liii os))
   (export goldtool-cache-base-dir goldtool-cache-path goldtool-cache-hit?
     goldtool-cache-touch
   ) ;export
@@ -52,7 +52,7 @@
     (define (goldtool-cache-touch file-path)
       (let* ((cache file-path) (cache-dir (path->string (path-parent (path cache)))))
         (unless (path-dir? (path cache-dir))
-          (g_mkdir cache-dir)
+          (mkdir cache-dir)
         ) ;unless
         (path-touch (path cache))
       ) ;let*
