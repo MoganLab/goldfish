@@ -120,6 +120,21 @@
   (check (length plain) => 4)
 ) ;let*
 
+;; 7b. 输出含 ANSI 转义序列：set-output! 剥离后再拆行，渲染无残留转义
+(let* ((card (make-bash-card "ls --color"))
+       (_ (bash-card-set-output! card "\x1b;[31mred\x1b;[0m\n\x1b;[1;32mbold green\x1b;[0m"))
+       (_2 (bash-card-set-complete! card 0))
+       (lines (component-render card 80))
+       (plain (map strip-ansi lines))
+      ) ;
+  ;; 剥离后输出行为纯文本
+  (check (list-ref plain 3) => " red")
+  (check (list-ref plain 4) => " bold green")
+  ;; 渲染行中除卡片自身颜色码外，不应残留输出自带的 SGR（31m / 1;32m）
+  (check-false (string-contains? (list-ref lines 3) "[31m"))
+  (check-false (string-contains? (list-ref lines 4) "1;32m"))
+) ;let*
+
 ;; ============================================================
 ;; 二、App 集成：bash mode 边框变色与提交执行
 ;; ============================================================

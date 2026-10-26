@@ -162,10 +162,12 @@
       ) ;let*
     ) ;define
 
-    ;; 设置输出文本（按 \n 拆分为逻辑行；空串归一化为无行）
+    ;; 设置输出文本（剥离 ANSI 转义序列，按 \n 拆分为逻辑行；空串归一化为无行）
     (define (bash-card-set-output! card text)
       (let ((st (component-data card)))
-        (%bash-card-lines-set! st (if (string-null? text) '() (string-split text "\n")))
+        (%bash-card-lines-set! st
+          (if (string-null? text) '() (string-split (strip-ansi text) "\n"))
+        ) ;%bash-card-lines-set!
       ) ;let
     ) ;define
 
