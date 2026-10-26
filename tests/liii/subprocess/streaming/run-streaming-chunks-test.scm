@@ -2,6 +2,12 @@
 
 (check-set-mode! 'report-failed)
 
+;; Windows 上子进程 stdout 为文本模式时按 CRLF 输出，规范化后再比较。
+
+(define (norm-chunk-text s)
+  (string-replace s "\r\n" "\n")
+) ;define
+
 ;; run-streaming-chunks
 ;; 以块级流式回调方式执行命令，stdout/stderr 合并到同一管道，
 ;; 按原始字节块回调，保留两个流的写入顺序。
@@ -36,15 +42,13 @@
        ) ;code
       ) ;
   (check code => 0)
-  (check (string-join (reverse chunks) "") => "hello\n")
+  (check (norm-chunk-text (string-join (reverse chunks) "")) => "hello\n")
 ) ;let*
 
 ;; stdout/stderr 合并后保留写入顺序
 (let* ((chunks '())
-       (child-code (string-append "import sys\n"
-                     "print('out-1', flush=True)\n"
-                     "sys.stderr.write('err-1\\n')\n"
-                     "sys.stderr.flush()\n"
+       (child-code (string-append "import sys\n" "print('out-1', flush=True)\n"
+                     "sys.stderr.write('err-1\\n')\n" "sys.stderr.flush()\n"
                      "print('out-2', flush=True)\n"
                    ) ;string-append
        ) ;child-code
@@ -56,7 +60,7 @@
        (text (string-join (reverse chunks) ""))
       ) ;
   (check code => 0)
-  (check text => "out-1\nerr-1\nout-2\n")
+  (check (norm-chunk-text text) => "out-1\nerr-1\nout-2\n")
 ) ;let*
 
 ;; 无回调时仅等待退出码
@@ -72,8 +76,9 @@
 ;; 超时强杀并返回 #f，已产生的输出仍回调
 (let* ((chunks '())
        (ret
-         (run-streaming-chunks
-           '("python3" "-c" "import time; print('first', flush=True); time.sleep(10)")
+         (run-streaming-chunks '("python3"
+                                 "-c"
+                                 "import time; print('first', flush=True); time.sleep(10)")
            :on-chunk (lambda (c) (set! chunks (cons c chunks)))
            :timeout  0.5
          ) ;run-streaming-chunks
