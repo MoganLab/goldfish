@@ -28,12 +28,15 @@
   (let ((content (pi-tool-result-message-content msg)))
     (check-true (pair? content))
     (check (pi-text-block-text (car content)) => "hello-agent-tool\n"))
-  ;; 验证发射的事件序列包含 start 与 end
+  ;; Bash 执行过程还会发出累计输出快照，end 携带真实执行耗时
   (let ((types (map car (reverse evs))))
     (check-true (pair? (member 'tool_execution_start types)))
+    (check-true (pair? (member 'tool_execution_update types)))
     (check-true (pair? (member 'tool_execution_end types)))
     (check-true (pair? (member 'message_start types)))
-    (check-true (pair? (member 'message_end types)))))
+    (check-true (pair? (member 'message_end types))))
+  (let ((end-ev (assq 'tool_execution_end evs)))
+    (check-true (number? (list-ref end-ev 5)))))
 
 ;; 2. 传递 opt-config 参数，确保正常执行不崩溃
 (let* ((call (list (cons 'id "call_bash_2")

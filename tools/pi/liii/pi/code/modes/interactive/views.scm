@@ -7,8 +7,11 @@
 (define-library (liii pi code modes interactive views)
   (export make-user-card make-tool-card make-assistant-card make-queued-card
     make-retry-card apply-card-bg format-tool-call format-tool-result-lines
+    tool-card? tool-card-component? tool-card-expanded? tool-card-set-expanded!
+    tool-card-set-output! tool-card-set-complete!
   ) ;export
   (import (scheme base)
+    (scheme time)
     (liii string)
     (liii tui component)
     (liii tui text-width)
@@ -70,6 +73,119 @@
       ) ;make-component
     ) ;define
 
+    ;; 工具调用卡片的可变状态。pending 卡片在 start/update/end 事件间复用。
+    (define-record-type <tool-card>
+      (%make-tool-card tool-name args status result expanded? started-at
+        ended-at duration-ms
+      ) ;%make-tool-card
+      tool-card?
+      (tool-name %tool-card-name)
+      (args %tool-card-args)
+      (status %tool-card-status %tool-card-status-set!)
+      (result %tool-card-result %tool-card-result-set!)
+      (expanded? %tool-card-expanded? %tool-card-expanded?-set!)
+      (started-at %tool-card-started-at)
+      (ended-at %tool-card-ended-at %tool-card-ended-at-set!)
+      (duration-ms %tool-card-duration-ms %tool-card-duration-ms-set!)
+    ) ;define-record-type
+
+    (define (%tool-now-ms)
+      (* 1000.0 (/ (current-jiffy) (jiffies-per-second)))
+    ) ;define
+
+    (define (tool-card-set-expanded! card flag)
+      (%tool-card-expanded?-set! (component-data card) flag)
+    ) ;define
+
+    (define (tool-card-expanded? card)
+      (%tool-card-expanded? (component-data card))
+    ) ;define
+
+    (define (tool-card-component? obj)
+      (and (component? obj) (tool-card? (component-data obj)))
+    ) ;define
+
+    (define (tool-card-set-output! card result)
+      (%tool-card-result-set! (component-data card) result)
+    ) ;define
+
+    (define (tool-card-set-complete! card result is-error? duration-ms)
+      (let ((st (component-data card)))
+        (%tool-card-result-set! st result)
+        (%tool-card-status-set! st (if is-error? 'error 'success))
+        (%tool-card-ended-at-set! st (%tool-now-ms))
+        (%tool-card-duration-ms-set! st duration-ms)
+      ) ;let
+    ) ;define
+
+    ;; 与上游每秒刷新一致：Working 动画可更频繁重绘，但时间只按秒推进
+    (define (%tool-elapsed-text started)
+      (let ((elapsed
+              (* 1000 (quotient (inexact->exact (floor (- (%tool-now-ms) started))) 1000))
+            ) ;elapsed
+           ) ;
+        (string-append "Elapsed " (format-tool-duration elapsed))
+      ) ;let
+    ) ;define
+
+    (define (%tool-timer-text st)
+      (if (not (string=? (%tool-card-name st) "bash"))
+        #f
+        (let ((started (%tool-card-started-at st))
+              (status (%tool-card-status st))
+              (duration (%tool-card-duration-ms st))
+             ) ;
+          (cond
+           ((and (not (eq? status 'pending)) (number? duration))
+            (string-append "Took " (format-tool-duration duration))
+           ) ;
+           ((not started) #f)
+           ((eq? status 'pending) (%tool-elapsed-text started))
+           (else
+             (string-append "Took "
+               (format-tool-duration (- (or (%tool-card-ended-at st) (%tool-now-ms)) started))
+             ) ;string-append
+           ) ;else
+          ) ;cond
+        ) ;let
+      ) ;if
+    ) ;define
+
+    (define (%tool-colors status)
+      (case status
+       ((success) (list %bg-success %fg-success))
+       ((error) (list %bg-error %fg-error))
+       (else (list %bg-pending %fg-pending))
+      ) ;case
+    ) ;define
+
+    ;; Bash 使用上游专用渲染：无状态徽标，输出与计时前后各一个空行。
+    (define (%render-bash-tool-card st width)
+      (let* ((colors (%tool-colors (%tool-card-status st)))
+             (bg (car colors))
+             (fg (cadr colors))
+             (content-width (max 1 (- width 2)))
+             (title-lines (wrap-text (format-tool-call (%tool-card-name st) (%tool-card-args st))
+                            content-width
+                          ) ;wrap-text
+             ) ;title-lines
+             (result (%tool-card-result st))
+             (result-lines (format-bash-tool-result-lines result content-width (%tool-card-expanded? st))
+             ) ;result-lines
+             (timer (%tool-timer-text st))
+             (body (append title-lines
+                     (if (null? result-lines) '() (cons "" result-lines))
+                     (if timer (list "" timer) '())
+                   ) ;append
+             ) ;body
+             (rows
+               (map (lambda (line) (apply-card-bg (string-append " " line) width bg fg)) body)
+             ) ;rows
+            ) ;
+        (append rows (list ""))
+      ) ;let*
+    ) ;define
+
     ;; 渲染工具卡片多行行列表的辅助函数
     (define (render-tool-card-lines tool-name args status result width)
       (let* ((badge-and-colors (case status
@@ -102,17 +218,39 @@
     ;; 工具调用状态卡片组件 (make-tool-card tool-name args status [result])
     ;; status: 'pending / 'success / 'error
     (define (make-tool-card tool-name args status . maybe-result)
-      (let ((result (if (pair? maybe-result) (car maybe-result) #f)))
-        (make-component
-          :render
-          (lambda (self width)
-            (if (<= width 0)
-              '()
-              (render-tool-card-lines tool-name args status result width)
-            ) ;if
-          ) ;lambda
-        ) ;make-component
-      ) ;let
+      (let* ((result (if (pair? maybe-result) (car maybe-result) #f))
+             (duration (if (> (length maybe-result) 1) (cadr maybe-result) #f))
+             (st (%make-tool-card tool-name
+                   args
+                   status
+                   result
+                   #f
+                   (if (eq? status 'pending) (%tool-now-ms) #f)
+                   #f
+                   duration
+                 ) ;%make-tool-card
+             ) ;st
+             (card
+               (make-component
+                 :render
+                 (lambda (self width)
+                   (cond ((<= width 0) '())
+                         ((string=? tool-name "bash") (%render-bash-tool-card st width))
+                         (else (render-tool-card-lines tool-name
+                                 args
+                                 (%tool-card-status st)
+                                 (%tool-card-result st)
+                                 width
+                               ) ;render-tool-card-lines
+                         ) ;else
+                   ) ;cond
+                 ) ;lambda
+               ) ;make-component
+             ) ;card
+            ) ;
+        (component-data-set! card st)
+        card
+      ) ;let*
     ) ;define
 
     ;; 助手纯文本回复卡片组件 (make-assistant-card text)

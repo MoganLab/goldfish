@@ -15,7 +15,7 @@
 ;;
 
 (define-library (liii subprocess streaming)
-  (export run-streaming)
+  (export run-streaming run-streaming-chunks)
   (import (scheme base) (scheme time) (liii error) (liii subprocess process))
   (begin
 
@@ -186,6 +186,85 @@
             ) ;let
             (%streaming-loop proc on-stdout on-stderr on-idle idle-timeout deadline-ms)
           ) ;if
+        ) ;let*
+      ) ;let
+    ) ;define
+
+    ;; 块级流式执行：与 run-streaming 的逐行回调不同，本接口在 stdout/stderr
+    ;; 合并到同一管道后按原始字节块回调，保留两个流的写入顺序。
+    ;; (run-streaming-chunks command :cwd cwd :on-chunk proc :timeout seconds)
+    ;; 返回退出码；超时强杀时返回 #f。
+    (define (run-streaming-chunks command . opts)
+      (let ((cwd (%keyword-value :cwd opts #f))
+            (env (%keyword-value :env opts #f))
+            (on-chunk (%keyword-value :on-chunk opts #f))
+            (timeout (%keyword-value :timeout opts #f))
+           ) ;
+        (when (and on-chunk (not (procedure? on-chunk)))
+          (type-error "run-streaming-chunks: :on-chunk must be a procedure")
+        ) ;when
+        (when (and timeout (not (real? timeout)))
+          (type-error "run-streaming-chunks: :timeout must be a real number")
+        ) ;when
+        (when (and timeout (<= timeout 0))
+          (value-error "run-streaming-chunks: :timeout must be a positive number")
+        ) ;when
+        (let* ((proc (process-spawn command
+                       :cwd    cwd
+                       :env    env
+                       :stdin  'null
+                       :stdout 'pipe
+                       :stderr 'stdout
+                     ) ;process-spawn
+               ) ;proc
+               (deadline-ms (and timeout (+ (%current-time-ms) (* timeout 1000.0))))
+              ) ;
+          (define (emit! chunk)
+            (when (and on-chunk (string? chunk) (not (string-null? chunk)))
+              (on-chunk chunk)
+            ) ;when
+          ) ;define
+          (define (drain!)
+            (let loop
+              ()
+              (let ((chunk (process-read proc :max-bytes 65536 :stream 'stdout)))
+                (unless (eof-object? chunk)
+                  (emit! chunk)
+                  (loop)
+                ) ;unless
+              ) ;let
+            ) ;let
+          ) ;define
+          (define (finish!)
+            (drain!)
+            (process-close proc)
+            (process-wait proc (%calc-rem-ms deadline-ms))
+          ) ;define
+          (define (kill!)
+            (process-kill-tree proc)
+            (drain!)
+            (process-close proc)
+            (process-wait proc 500)
+            #f
+          ) ;define
+          (let loop
+            ()
+            (if (and deadline-ms (<= (%calc-rem-ms deadline-ms) 0))
+              (kill!)
+              (let ((ev (g_subprocess-poll-io proc 50)))
+                (cond
+                 ((eq? ev 'stdout)
+                  (let ((chunk (process-read proc :max-bytes 65536 :stream 'stdout)))
+                    (if (eof-object? chunk) (finish!) (begin (emit! chunk) (loop)))
+                  ) ;let
+                 ) ;
+                 ((eq? ev 'eof) (finish!))
+                 ((and (not (process-alive? proc)) (g_subprocess-eof? proc 'stdout)) (finish!))
+                 (else (loop))
+                ) ;cond
+              ) ;let
+            ) ;if
+          ) ;let
         ) ;let*
       ) ;let
     ) ;define

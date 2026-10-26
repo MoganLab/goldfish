@@ -269,6 +269,7 @@
                     (or models '())
                     default-model
                     on-save-model
+                    '()
                   ) ;%make-pi-app
              ) ;app
              (ed (%make-pi-editor app tl))

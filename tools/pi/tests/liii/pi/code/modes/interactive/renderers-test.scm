@@ -1,4 +1,5 @@
 (import (scheme base)
+        (liii time)
         (liii check)
         (liii list)
         (liii string)
@@ -110,16 +111,16 @@
        (w 40)
        (rendered (component-render card w)))
   (check (component? card) => #t)
-  ;; 包含标题行（$ git status -s）、两行结果、以及末尾的空行隔断，共 4 行
-  (check (length rendered) => 4)
+  ;; 包含标题行、输出前空行、两行结果、末尾空行隔断，共 5 行
+  (check (length rendered) => 5)
   ;; 标题行包含绿色背景色码和 "$ git status -s"
   (check (string-contains? (car rendered) "48;2;35;55;35") => #t)
   (check (string-contains? (car rendered) "$ git status -s") => #t)
-  ;; 第二行结果带有深绿背景并填充空格至宽度 40
+  ;; 输出前空行也带有深绿背景并填充至宽度 40
   (check (string-contains? (cadr rendered) "48;2;35;55;35") => #t)
-  (check (string-contains? (cadr rendered) "M a.scm") => #t)
-  ;; 第三行结果
-  (check (string-contains? (caddr rendered) "?? b.scm") => #t))
+  ;; 第三、四行为结果
+  (check (string-contains? (caddr rendered) "M a.scm") => #t)
+  (check (string-contains? (cadddr rendered) "?? b.scm") => #t))
 
 ;; 测试 read 失败卡片
 (let* ((card (make-tool-card "read" '(("path" . "missing.txt")) 'error "File not found"))
@@ -129,5 +130,52 @@
   (check (string-contains? (car rendered) "48;2;60;35;35") => #t)
   (check (string-contains? (car rendered) "read missing.txt") => #t)
   (check (string-contains? (cadr rendered) "File not found") => #t))
+
+;; -----------------------------------------------------------------------------
+;; 4. Bash 工具卡片：对齐上游的运行计时与视觉行折叠
+;; -----------------------------------------------------------------------------
+
+;; 时长格式：不足一分钟保留一位小数，其余与上游 formatToolDuration 一致
+(check (format-tool-duration 4200) => "4.2s")
+(check (format-tool-duration 61000) => "1m 1s")
+(check (format-tool-duration 3661000) => "1h 1m 1s")
+
+;; 运行中显示 Elapsed；结束后使用执行层记录的耗时，之后不再滚动
+(let* ((card (make-tool-card "bash" '(("command" . "sleep 5")) 'pending))
+       (pending-text (string-join (map strip-ansi (component-render card 80)) "\n")))
+  (check-true (string-contains? pending-text "Elapsed "))
+  (tool-card-set-complete! card "done" #f 4200)
+  (let ((done-text (string-join (map strip-ansi (component-render card 80)) "\n")))
+    (check-true (string-contains? done-text "done"))
+    (check-true (string-contains? done-text "Took 4.2s"))
+    (check-false (string-contains? done-text "Elapsed"))
+    (sleep 0.02)
+    (check (string-join (map strip-ansi (component-render card 80)) "\n") => done-text)))
+
+;; Bash 折叠保留最后 5 个视觉行，隐藏行提示及 Ctrl+O 文案与上游一致
+(let* ((result "1\n2\n3\n4\n5\n6\n7\n8")
+       (lines (format-bash-tool-result-lines result 80 #f)))
+  (check (car lines) => "... (3 earlier lines, ctrl+o to expand)")
+  (check (cdr lines) => '("4" "5" "6" "7" "8"))
+  (check (format-bash-tool-result-lines result 80 #t)
+    => '("1" "2" "3" "4" "5" "6" "7" "8")))
+
+;; 一个长逻辑行按终端宽度换为多个视觉行，折叠时不能只按换行符计数
+(let ((lines (format-bash-tool-result-lines "abcdefghijklmnop" 8 #f)))
+  (check (length lines) => 2)
+  (check (car lines) => "abcdefgh")
+  (check (cadr lines) => "ijklmnop"))
+
+;; 卡片展开状态可往返切换，运行中的日志也遵循同一折叠状态
+(let ((card (make-tool-card "bash" '(("command" . "seq 1 8")) 'pending "1\n2\n3\n4\n5\n6\n7\n8")))
+  (check-false (tool-card-expanded? card))
+  (tool-card-set-expanded! card #t)
+  (check-true (tool-card-expanded? card))
+  (let ((lines (map string-trim-both (map strip-ansi (component-render card 80)))))
+    (check-true (pair? (member "1" lines)))
+    (check-true (pair? (member "8" lines))))
+  (tool-card-set-expanded! card #f)
+  (let ((text (string-join (map strip-ansi (component-render card 80)) "\n")))
+    (check-true (string-contains? text "... (3 earlier lines, ctrl+o to expand)"))))
 
 (check-report)

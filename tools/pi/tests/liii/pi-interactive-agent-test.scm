@@ -91,4 +91,34 @@
   ) ;let
 ) ;let*
 
+;; 7. 工具 start/update/end 在同一张卡片上原地推进，不重复追加卡片
+(let* ((app (make-pi-app :terminal (make-virtual-terminal 100 40)
+              :handler (lambda (a m) #t)))
+       (emit (make-tui-emit (pi-app-event-chan app)))
+       (args '(("command" . "seq 1 8"))))
+  (emit 'tool_execution_start "live-1" "bash" args)
+  (pi-app-poll-events! app)
+  (check (length (pi-app-chat app)) => 1)
+  (let ((card (car (pi-app-chat app))))
+    (emit 'tool_execution_update "live-1" "bash" args "1\n2\n3\n4\n5\n6\n7\n8")
+    (pi-app-poll-events! app)
+    (check (length (pi-app-chat app)) => 1)
+    (check (car (pi-app-chat app)) => card)
+    (let ((text (string-join (map strip-ansi (screen-lines (pi-app-screen app))) "\n")))
+      (check-true (string-contains? text "... (3 earlier lines, ctrl+o to expand)"))
+      (check-true (string-contains? text "Elapsed ")))
+    ;; 运行中也可展开；全局 Ctrl+O 同时作用于模型工具卡片
+    (check (pi-app-toggle-tool-output! app) => #t)
+    (pi-app-render! app)
+    (let ((lines (map string-trim-both (map strip-ansi (screen-lines (pi-app-screen app))))))
+      (check-true (pair? (member "1" lines)))
+      (check-true (pair? (member "8" lines))))
+    (emit 'tool_execution_end "live-1" "bash" "1\n2\n3\n4\n5\n6\n7\n8" #f 4200)
+    (pi-app-poll-events! app)
+    (check (length (pi-app-chat app)) => 1)
+    (check (car (pi-app-chat app)) => card)
+    (let ((text (string-join (map strip-ansi (screen-lines (pi-app-screen app))) "\n")))
+      (check-true (string-contains? text "Took 4.2s"))
+      (check-false (string-contains? text "Elapsed ")))))
+
 (check-report)

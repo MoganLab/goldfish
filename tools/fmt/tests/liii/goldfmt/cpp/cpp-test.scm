@@ -90,6 +90,17 @@
   (let ((n1 (string-replace (string-replace out1 d1 "DIR") s1 "SALT"))
         (n2 (string-replace (string-replace out2 d2 "DIR") s2 "SALT"))
        ) ;
+    (if (not (equal? (sorted-lines n1) (sorted-lines n2)))
+      (begin
+        (display "DBG1: ")
+        (display (sorted-lines n1))
+        (newline)
+        (display "DBG2: ")
+        (display (sorted-lines n2))
+        (newline)
+      ) ;begin
+      #f
+    ) ;if
     (check (equal? (sorted-lines n1) (sorted-lines n2)) => #t)
   ) ;let
 ) ;define

@@ -43,12 +43,21 @@
       (let ((call-args-map '()))
         (lambda (event-type . args)
           (cond
-            ;; 记录工具开始执行时的参数
+            ;; 工具开始：立即创建 pending 卡片，并记录参数供结束事件查找
             ((eq? event-type 'tool_execution_start)
              (when (>= (length args) 3)
-               (let ((id (car args)) (call-args (caddr args)))
+               (let ((id (car args)) (name (cadr args)) (call-args (caddr args)))
                  (set! call-args-map (cons (cons id call-args) call-args-map))
+                 (pi-tui-send-event! event-chan (list 'tool_execution_start id name call-args))
                ) ;let
+             ) ;when
+            ) ;
+            ;; 流式部分结果：保留调用 id，主线程据此更新原卡片
+            ((eq? event-type 'tool_execution_update)
+             (when (>= (length args) 4)
+               (pi-tui-send-event! event-chan
+                 (list 'tool_execution_update (car args) (cadr args) (caddr args) (cadddr args))
+               ) ;pi-tui-send-event!
              ) ;when
             ) ;
             ;; 工具执行完成
@@ -59,12 +68,13 @@
                     (is-err? (if (> (length args) 3) (cadddr args) #f))
                     (call-args
                       (let ((entry (assoc id call-args-map)))
-                        (if entry (cdr entry) (if (> (length args) 4) (list-ref args 4) '()))
+                        (if entry (cdr entry) '())
                       ) ;let
                     ) ;call-args
+                    (duration-ms (and (> (length args) 4) (list-ref args 4)))
                    ) ;
                (pi-tui-send-event! event-chan
-                 (list 'tool_execution_end name call-args is-err? raw-res)
+                 (list 'tool_execution_end id name call-args is-err? raw-res duration-ms)
                ) ;pi-tui-send-event!
              ) ;let*
             ) ;

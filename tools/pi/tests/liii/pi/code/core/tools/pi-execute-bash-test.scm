@@ -103,4 +103,41 @@
 ;; 缺少 command 参数抛出异常
 (check-catch 'error (pi-execute-bash '()))
 
+;; on-update 收到累计输出快照；没有换行的数据块也应在进程结束前可见
+(let ((updates '()))
+  (let-values (((out is-err)
+                (pi-execute-bash
+                  '(("command" . "printf first; sleep 0.2; printf second"))
+                  :on-update (lambda (text) (set! updates (cons text updates))))))
+    (check is-err => #f)
+    (check out => "firstsecond")
+    (set! updates (reverse updates))
+    (check-true (pair? (member "first" updates)))
+    (check (car (reverse updates)) => "firstsecond")))
+
+;; stderr 与 stdout 按 shell 写入顺序合并，并进入同一条流式回调
+(let ((updates '()))
+  (let-values (((out is-err)
+                (pi-execute-bash
+                  '(("command" . "printf out; printf err >&2"))
+                  :on-update (lambda (text) (set! updates (cons text updates))))))
+    (check is-err => #f)
+    (check out => "outerr")
+    (check-true (pair? updates))
+    (check (car updates) => "outerr")))
+
+;; 流式路径保留非零退出与超时语义
+(let-values (((out is-err)
+              (pi-execute-bash '(("command" . "printf boom; exit 42"))
+                :on-update (lambda (text) #t))))
+  (check is-err => #t)
+  (check-true (string-contains? out "boom"))
+  (check-true (string-contains? out "Command exited with code 42")))
+
+(let-values (((out is-err)
+              (pi-execute-bash '(("command" . "sleep 5") ("timeout" . 1))
+                :on-update (lambda (text) #t))))
+  (check is-err => #t)
+  (check-true (string-contains? out "Command timed out after 1 seconds")))
+
 (check-report)

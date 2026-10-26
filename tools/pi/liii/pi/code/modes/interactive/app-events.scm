@@ -131,14 +131,66 @@
       ) ;let*
     ) ;define
 
-    (define (%pi-app-handle-tool-end! app ev)
-      (let ((name (cadr ev))
-            (args (caddr ev))
-            (is-err? (cadddr ev))
-            (raw-res (car (cddddr ev)))
-           ) ;
-        (pi-app-add-tool-result! app name args (if is-err? 'error 'success) raw-res)
+    (define (%pi-app-find-tool-card app id)
+      (let ((entry (assoc id (%pi-app-tool-cards app))))
+        (and entry (cdr entry))
       ) ;let
+    ) ;define
+
+    (define (%pi-app-handle-tool-start! app ev)
+      (let* ((id (cadr ev))
+             (name (caddr ev))
+             (args (cadddr ev))
+             (existing (%pi-app-find-tool-card app id))
+            ) ;
+        (unless existing
+          (let ((card (make-tool-card name args 'pending)))
+            (tool-card-set-expanded! card (pi-app-tools-expanded? app))
+            (%pi-app-tool-cards-set! app (cons (cons id card) (%pi-app-tool-cards app)))
+            (container-add! (%pi-app-chat app) card)
+          ) ;let
+        ) ;unless
+      ) ;let*
+    ) ;define
+
+    (define (%pi-app-handle-tool-update! app ev)
+      (let ((card (%pi-app-find-tool-card app (cadr ev))))
+        (when card
+          (tool-card-set-output! card (car (cddddr ev)))
+        ) ;when
+      ) ;let
+    ) ;define
+
+    (define (%pi-app-handle-tool-end! app ev)
+      (if (>= (length ev) 6)
+        ;; 新事件：(end id name args is-error? result [duration-ms])
+        (let* ((id (cadr ev))
+               (name (caddr ev))
+               (args (cadddr ev))
+               (is-err? (list-ref ev 4))
+               (raw-res (list-ref ev 5))
+               (duration (and (> (length ev) 6) (list-ref ev 6)))
+               (card (%pi-app-find-tool-card app id))
+              ) ;
+          (if card
+            (tool-card-set-complete! card raw-res is-err? duration)
+            ;; 兼容未收到 start 的恢复/测试路径
+            (let ((new-card (make-tool-card name args 'pending)))
+              (tool-card-set-expanded! new-card (pi-app-tools-expanded? app))
+              (tool-card-set-complete! new-card raw-res is-err? duration)
+              (container-add! (%pi-app-chat app) new-card)
+            ) ;let
+          ) ;if
+        ) ;let*
+        ;; 旧自定义 handler：(end name args is-error? result)
+        (let ((name (cadr ev))
+              (args (caddr ev))
+              (is-err? (cadddr ev))
+              (raw-res (car (cddddr ev)))
+             ) ;
+          (pi-app-add-tool-result! app name args (if is-err? 'error 'success) raw-res)
+        ) ;let
+      ) ;if
     ) ;define
 
     (define (%pi-app-handle-event! app ev)
@@ -147,6 +199,8 @@
             ((session_name_changed session_name_error) (pi-app-handle-name-event! app ev))
             ((session_stats session_stats_error) (pi-app-handle-session-event! app ev))
             ((branch_changed) (%pi-app-handle-branch-changed! app ev))
+            ((tool_execution_start) (%pi-app-handle-tool-start! app ev))
+            ((tool_execution_update) (%pi-app-handle-tool-update! app ev))
             ((tool_execution_end) (%pi-app-handle-tool-end! app ev))
             ((assistant_text) (pi-app-add-assistant-text! app (cadr ev)))
             ((retry) (pi-app-add-retry-message! app (cadr ev)))

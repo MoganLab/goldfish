@@ -10,6 +10,7 @@
   (import (scheme base)
     (scheme file)
     (scheme inexact)
+    (scheme time)
     (liii string)
     (liii os)
     (liii path)
@@ -196,6 +197,50 @@
       ) ;let
     ) ;define
 
+    (define (%bash-now-ms)
+      (* 1000.0 (/ (current-jiffy) (jiffies-per-second)))
+    ) ;define
+
+    ;; 上游 Bash 工具按 100ms 节流发送累计输出快照。
+    (define %bash-update-throttle-ms 100)
+
+    ;; 基于 (liii subprocess) 公开的 run-streaming-chunks 实现流式执行：
+    ;; stdout/stderr 合并到同一管道，按原始字节块收集输出，
+    ;; 并按 100ms 节流回调累计文本快照。
+    ;; 返回值：(values 累计文本 退出码)，超时强杀时退出码为 -1。
+    (define (%run-bash-streaming command cwd timeout on-update)
+      (let* ((text "") (last-update 0) (last-sent ""))
+        (define (send-update! force?)
+          (let ((now (%bash-now-ms)))
+            (when
+              (and (not (string=? text last-sent))
+                (or force? (>= (- now last-update) %bash-update-throttle-ms))
+              ) ;and
+              (on-update text)
+              (set! last-sent text)
+              (set! last-update now)
+            ) ;when
+          ) ;let
+        ) ;define
+        (define (append-chunk! chunk)
+          (when (and (string? chunk) (not (string-null? chunk)))
+            (set! text (string-append text chunk))
+            (send-update! #f)
+          ) ;when
+        ) ;define
+        (let ((ret (run-streaming-chunks (list (pi-find-bash-path) "-c" command)
+                     :cwd      cwd
+                     :on-chunk append-chunk!
+                     :timeout  timeout
+                   ) ;run-streaming-chunks
+              ) ;ret
+             ) ;
+          (send-update! #t)
+          (if (eq? ret #f) (values text -1) (values text ret))
+        ) ;let
+      ) ;let*
+    ) ;define
+
     (define (%format-bash-result raw-text exit-code timeout)
       (let* ((text (pi-truncate-bash-output raw-text))
              (trimmed-text (string-trim-both text))
@@ -245,6 +290,7 @@
                ) ;if
              ) ;timeout
              (command (pi-arg-ref args "command"))
+             (on-update (%keyword-value :on-update opts #f))
             ) ;
         (if timed-out?
           (values (string-append "Command timed out after " (number->string timeout) " seconds")
@@ -254,25 +300,33 @@
             (unless (string? command)
               (error 'error "command must be a string")
             ) ;unless
-            (let ((res (run-either (list (pi-find-bash-path) "-c" command)
-                         :cwd     cwd
-                         :stdin   'null
-                         :stdout  'capture
-                         :stderr  'stdout
-                         :timeout timeout
-                       ) ;run-either
-                  ) ;res
-                 ) ;
-              (if (either-right? res)
-                (%format-bash-result (to-right res) 0 timeout)
-                (let ((err (to-left res)))
-                  (%format-bash-result (process-error-stdout err)
-                    (process-error-code err)
-                    timeout
-                  ) ;%format-bash-result
-                ) ;let
-              ) ;if
-            ) ;let
+            (when (and on-update (not (procedure? on-update)))
+              (error 'type-error "on-update must be a procedure")
+            ) ;when
+            (if on-update
+              (let-values (((text code) (%run-bash-streaming command cwd timeout on-update)))
+                (%format-bash-result text code timeout)
+              ) ;let-values
+              (let ((res (run-either (list (pi-find-bash-path) "-c" command)
+                           :cwd     cwd
+                           :stdin   'null
+                           :stdout  'capture
+                           :stderr  'stdout
+                           :timeout timeout
+                         ) ;run-either
+                    ) ;res
+                   ) ;
+                (if (either-right? res)
+                  (%format-bash-result (to-right res) 0 timeout)
+                  (let ((err (to-left res)))
+                    (%format-bash-result (process-error-stdout err)
+                      (process-error-code err)
+                      timeout
+                    ) ;%format-bash-result
+                  ) ;let
+                ) ;if
+              ) ;let
+            ) ;if
           ) ;begin
         ) ;if
       ) ;let*

@@ -6,6 +6,7 @@
 
 (define-library (liii pi agent tools)
   (import (scheme base)
+    (scheme time)
     (liii string)
     (liii list)
     (liii pi abort)
@@ -151,11 +152,28 @@
                      (cdr (or (assq 'payload emit-res) (list (cons 'input args))))
                    ) ;eff-payload
                    (effective-args (cdr (or (assq 'input eff-payload) (cons 'input args))))
-                   (raw-res (if (pair? opt-config)
-                              (apply exec name effective-args :timeout timeout (list :config opt-config))
-                              (exec name effective-args :timeout timeout)
-                            ) ;if
-                   ) ;raw-res
+                   (on-update
+                     (lambda (text)
+                       (when (procedure? emit)
+                         (emit 'tool_execution_update id name effective-args (pi-tool-result text #f))
+                       ) ;when
+                     ) ;lambda
+                   ) ;on-update
+                   (exec-opts
+                     (append (list :timeout timeout)
+                       (if (equal? name "bash") (list :on-update on-update) '())
+                       (if (pair? opt-config) (list (list :config opt-config)) '())
+                     ) ;append
+                   ) ;exec-opts
+                   (started-at (current-jiffy))
+                   (raw-res (apply exec name effective-args exec-opts))
+                   (duration-ms
+                     (inexact->exact
+                       (round
+                         (* 1000.0 (/ (- (current-jiffy) started-at) (jiffies-per-second)))
+                       ) ;round
+                     ) ;inexact->exact
+                   ) ;duration-ms
                    (is-err? (if (pi-tool-result? raw-res)
                               (pi-tool-result-is-error raw-res)
                               (pi-agent-assoc-val 'isError "isError" raw-res #f)
@@ -176,7 +194,7 @@
                 (reg-emit 'tool_result res-payload)
               ) ;when
               (when (procedure? emit)
-                (emit 'tool_execution_end id name raw-res is-err?)
+                (emit 'tool_execution_end id name raw-res is-err? duration-ms)
                 (emit 'message_start tool-msg)
                 (emit 'message_end tool-msg)
               ) ;when

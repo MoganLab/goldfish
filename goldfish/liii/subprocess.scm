@@ -20,9 +20,10 @@
     process-spawn process-alive? process-poll process-wait process-terminate
     process-kill process-kill-tree process-close process-close-stdin
     process-write process-write-stdin process-read process-read-line
-    run-streaming process-last-activity-time process-idle-seconds
-    make-process-error process-error? process-error-code process-error-stderr
-    process-error-stdout process-error-command process-error-message
+    run-streaming run-streaming-chunks process-last-activity-time
+    process-idle-seconds make-process-error process-error? process-error-code
+    process-error-stderr process-error-stdout process-error-command
+    process-error-message
   ) ;export
   (import (liii subprocess process-error)
     (liii subprocess registry)

@@ -43,10 +43,10 @@
     pi-event-tool-execution-end? pi-event-tool-execution-end-type
     pi-event-tool-execution-end-tool-call-id
     pi-event-tool-execution-end-tool-name pi-event-tool-execution-end-result
-    pi-event-tool-execution-end-is-error pi-event-turn-end pi-event-turn-end?
-    pi-event-turn-end-type pi-event-turn-end-message
-    pi-event-turn-end-tool-results pi-event-agent-end pi-event-agent-end?
-    pi-event-agent-end-type pi-event-agent-end-messages
+    pi-event-tool-execution-end-is-error pi-event-tool-execution-end-duration-ms
+    pi-event-turn-end pi-event-turn-end? pi-event-turn-end-type
+    pi-event-turn-end-message pi-event-turn-end-tool-results pi-event-agent-end
+    pi-event-agent-end? pi-event-agent-end-type pi-event-agent-end-messages
     pi-event-agent-end-will-retry pi-event-agent-end-cost
     pi-event-agent-end-savings pi-event-agent-settled pi-event-agent-settled?
     pi-event-agent-settled-type pi-event-agent-settled-aborted
