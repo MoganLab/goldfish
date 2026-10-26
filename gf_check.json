@@ -47,6 +47,7 @@
       "goldfish/liii/gfproject/tools.scm",
       "goldfish/liii/path/fs.scm",
       "goldfish/scheme/boot.scm",
+      "goldfish/srfi/srfi-13.scm",
       "tests/",
       "tools/check/liii/goldcheck/collect.scm",
       "tools/check/liii/goldcheck/config.scm",
