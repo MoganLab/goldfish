@@ -34,10 +34,10 @@
     pi-event-tool-execution-end? pi-event-tool-execution-end-type
     pi-event-tool-execution-end-tool-call-id
     pi-event-tool-execution-end-tool-name pi-event-tool-execution-end-result
-    pi-event-tool-execution-end-is-error pi-event-turn-end pi-event-turn-end?
-    pi-event-turn-end-type pi-event-turn-end-message
-    pi-event-turn-end-tool-results pi-event-agent-end pi-event-agent-end?
-    pi-event-agent-end-type pi-event-agent-end-messages
+    pi-event-tool-execution-end-is-error pi-event-tool-execution-end-duration-ms
+    pi-event-turn-end pi-event-turn-end? pi-event-turn-end-type
+    pi-event-turn-end-message pi-event-turn-end-tool-results pi-event-agent-end
+    pi-event-agent-end? pi-event-agent-end-type pi-event-agent-end-messages
     pi-event-agent-end-will-retry pi-event-agent-end-cost
     pi-event-agent-end-savings pi-event-agent-settled pi-event-agent-settled?
     pi-event-agent-settled-type pi-event-agent-settled-aborted
@@ -160,12 +160,17 @@
         ) ;list
        ) ;
        ((pi-event-tool-execution-end? ev)
-        (list (cons "type" "tool_execution_end")
-          (cons "toolCallId" (pi-event-tool-execution-end-tool-call-id ev))
-          (cons "toolName" (pi-event-tool-execution-end-tool-name ev))
-          (cons "result" (pi-event-tool-execution-end-result ev))
-          (cons "isError" (pi-event-tool-execution-end-is-error ev))
-        ) ;list
+        (let ((base (list (cons "type" "tool_execution_end")
+                      (cons "toolCallId" (pi-event-tool-execution-end-tool-call-id ev))
+                      (cons "toolName" (pi-event-tool-execution-end-tool-name ev))
+                      (cons "result" (pi-event-tool-execution-end-result ev))
+                      (cons "isError" (pi-event-tool-execution-end-is-error ev))
+                    ) ;list
+              ) ;base
+              (duration (pi-event-tool-execution-end-duration-ms ev))
+             ) ;
+          (if (number? duration) (append base (list (cons "durationMs" duration))) base)
+        ) ;let
        ) ;
        ((pi-event-turn-end? ev)
         (list (cons "type" "turn_end")
@@ -238,13 +243,19 @@
       ) ;%make-pi-event-tool-execution-update
     ) ;define
 
-    (define (pi-event-tool-execution-end tool-call-id tool-name result is-error)
+    (define* (pi-event-tool-execution-end tool-call-id
+               tool-name
+               result
+               is-error
+               (duration-ms #f)
+             ) ;pi-event-tool-execution-end
       (%make-pi-event-tool-execution-end tool-call-id
         tool-name
         result
         (if is-error #t #f)
+        duration-ms
       ) ;%make-pi-event-tool-execution-end
-    ) ;define
+    ) ;define*
 
     (define* (pi-event-turn-end assistant-msg (tool-results #()))
       (%make-pi-event-turn-end assistant-msg tool-results)

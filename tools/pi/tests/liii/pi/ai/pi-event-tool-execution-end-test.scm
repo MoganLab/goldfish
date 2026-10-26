@@ -18,4 +18,9 @@
   (check (cdr (assoc "result" ev)) => "res")
   (check (cdr (assoc "isError" ev)) => #f))
 
+;; 可选 durationMs 与上游 Agent 事件一致；未提供时不产生该字段
+(let ((ev (pi-event-tool-execution-end "c2" "bash" "ok" #f 4200)))
+  (check (pi-event-tool-execution-end-duration-ms ev) => 4200)
+  (check (cdr (assoc "durationMs" ev)) => 4200))
+
 (check-report)

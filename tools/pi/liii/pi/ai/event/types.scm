@@ -24,12 +24,13 @@
     %make-pi-event-tool-execution-end pi-event-tool-execution-end?
     pi-event-tool-execution-end-tool-call-id
     pi-event-tool-execution-end-tool-name pi-event-tool-execution-end-result
-    pi-event-tool-execution-end-is-error %make-pi-event-turn-end
-    pi-event-turn-end? pi-event-turn-end-message pi-event-turn-end-tool-results
-    %make-pi-event-agent-end pi-event-agent-end? pi-event-agent-end-messages
-    pi-event-agent-end-will-retry pi-event-agent-end-cost
-    pi-event-agent-end-savings %make-pi-event-agent-settled
-    pi-event-agent-settled? pi-event-agent-settled-aborted
+    pi-event-tool-execution-end-is-error pi-event-tool-execution-end-duration-ms
+    %make-pi-event-turn-end pi-event-turn-end? pi-event-turn-end-message
+    pi-event-turn-end-tool-results %make-pi-event-agent-end pi-event-agent-end?
+    pi-event-agent-end-messages pi-event-agent-end-will-retry
+    pi-event-agent-end-cost pi-event-agent-end-savings
+    %make-pi-event-agent-settled pi-event-agent-settled?
+    pi-event-agent-settled-aborted
   ) ;export
   (begin
 
@@ -91,12 +92,15 @@
     ) ;define-record-type
 
     (define-record-type <pi-event-tool-execution-end>
-      (%make-pi-event-tool-execution-end tool-call-id tool-name result is-error)
+      (%make-pi-event-tool-execution-end tool-call-id tool-name result is-error
+        duration-ms
+      ) ;%make-pi-event-tool-execution-end
       pi-event-tool-execution-end?
       (tool-call-id pi-event-tool-execution-end-tool-call-id)
       (tool-name pi-event-tool-execution-end-tool-name)
       (result pi-event-tool-execution-end-result)
       (is-error pi-event-tool-execution-end-is-error)
+      (duration-ms pi-event-tool-execution-end-duration-ms)
     ) ;define-record-type
 
     (define-record-type <pi-event-turn-end>

@@ -14,6 +14,7 @@
     (liii pi code modes interactive state)
     (liii pi code modes interactive render)
     (liii pi code modes interactive bash)
+    (liii pi code modes interactive views)
   ) ;import
   (begin
 
@@ -72,6 +73,7 @@
     ) ;define
 
     ;; Ctrl+O 全局切换 bash 卡片展开/折叠（对齐 pi toggleToolOutputExpansion）
+    ;; 同时覆盖 ! 命令卡片与模型工具调用卡片。
     ;; 返回切换后的展开状态
     (define (pi-app-toggle-tool-output! app)
       (let ((next (not (pi-app-tools-expanded? app))))
@@ -79,6 +81,9 @@
         (for-each (lambda (child)
                     (when (bash-card-component? child)
                       (bash-card-set-expanded! child next)
+                    ) ;when
+                    (when (tool-card-component? child)
+                      (tool-card-set-expanded! child next)
                     ) ;when
                   ) ;lambda
           (container-children (%pi-app-chat app))

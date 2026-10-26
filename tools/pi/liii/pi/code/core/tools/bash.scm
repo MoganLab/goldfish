@@ -10,6 +10,7 @@
   (import (scheme base)
     (scheme file)
     (scheme inexact)
+    (scheme time)
     (liii string)
     (liii os)
     (liii path)
@@ -196,6 +197,92 @@
       ) ;let
     ) ;define
 
+    (define (%bash-now-ms)
+      (* 1000.0 (/ (current-jiffy) (jiffies-per-second)))
+    ) ;define
+
+    ;; 上游 Bash 工具按 100ms 节流发送累计输出快照。
+    (define %bash-update-throttle-ms 100)
+
+    (define (%run-bash-streaming command cwd timeout on-update)
+      (let* ((proc (process-spawn (list (pi-find-bash-path) "-c" command)
+                     :cwd    cwd
+                     :stdin  'null
+                     :stdout 'pipe
+                     ;; 合并到同一个 OS 管道，保留 stdout/stderr 的写入顺序
+                     :stderr 'stdout
+                   ) ;process-spawn
+             ) ;proc
+             (deadline (+ (%bash-now-ms) (* timeout 1000.0)))
+             (text "")
+             (last-update 0)
+             (last-sent "")
+            ) ;
+        (define (send-update! force?)
+          (let ((now (%bash-now-ms)))
+            (when
+              (and (not (string=? text last-sent))
+                (or force? (>= (- now last-update) %bash-update-throttle-ms))
+              ) ;and
+              (on-update text)
+              (set! last-sent text)
+              (set! last-update now)
+            ) ;when
+          ) ;let
+        ) ;define
+        (define (append-chunk! chunk)
+          (when (and (string? chunk) (not (string-null? chunk)))
+            (set! text (string-append text chunk))
+            (send-update! #f)
+          ) ;when
+        ) ;define
+        (define (drain!)
+          (let loop
+            ()
+            (let ((chunk (process-read proc :max-bytes 65536 :stream 'stdout)))
+              (unless (eof-object? chunk)
+                (append-chunk! chunk)
+                (loop)
+              ) ;unless
+            ) ;let
+          ) ;let
+        ) ;define
+        (define (finish!)
+          (drain!)
+          (send-update! #t)
+          (process-close proc)
+          (let ((remaining (max 0 (inexact->exact (round (- deadline (%bash-now-ms)))))))
+            (values text (process-wait proc remaining))
+          ) ;let
+        ) ;define
+        (let loop
+          ()
+          (if (<= (- deadline (%bash-now-ms)) 0)
+            (begin
+              (process-kill-tree proc)
+              (drain!)
+              (send-update! #t)
+              (process-close proc)
+              (process-wait proc 500)
+              (values text -1)
+            ) ;begin
+            (let ((ev (g_subprocess-poll-io proc 50)))
+              (cond
+               ((eq? ev 'stdout)
+                (let ((chunk (process-read proc :max-bytes 65536 :stream 'stdout)))
+                  (if (eof-object? chunk) (finish!) (begin (append-chunk! chunk) (loop)))
+                ) ;let
+               ) ;
+               ((eq? ev 'eof) (finish!))
+               ((and (not (process-alive? proc)) (g_subprocess-eof? proc 'stdout)) (finish!))
+               (else (loop))
+              ) ;cond
+            ) ;let
+          ) ;if
+        ) ;let
+      ) ;let*
+    ) ;define
+
     (define (%format-bash-result raw-text exit-code timeout)
       (let* ((text (pi-truncate-bash-output raw-text))
              (trimmed-text (string-trim-both text))
@@ -245,6 +332,7 @@
                ) ;if
              ) ;timeout
              (command (pi-arg-ref args "command"))
+             (on-update (%keyword-value :on-update opts #f))
             ) ;
         (if timed-out?
           (values (string-append "Command timed out after " (number->string timeout) " seconds")
@@ -254,25 +342,33 @@
             (unless (string? command)
               (error 'error "command must be a string")
             ) ;unless
-            (let ((res (run-either (list (pi-find-bash-path) "-c" command)
-                         :cwd     cwd
-                         :stdin   'null
-                         :stdout  'capture
-                         :stderr  'stdout
-                         :timeout timeout
-                       ) ;run-either
-                  ) ;res
-                 ) ;
-              (if (either-right? res)
-                (%format-bash-result (to-right res) 0 timeout)
-                (let ((err (to-left res)))
-                  (%format-bash-result (process-error-stdout err)
-                    (process-error-code err)
-                    timeout
-                  ) ;%format-bash-result
-                ) ;let
-              ) ;if
-            ) ;let
+            (when (and on-update (not (procedure? on-update)))
+              (error 'type-error "on-update must be a procedure")
+            ) ;when
+            (if on-update
+              (let-values (((text code) (%run-bash-streaming command cwd timeout on-update)))
+                (%format-bash-result text code timeout)
+              ) ;let-values
+              (let ((res (run-either (list (pi-find-bash-path) "-c" command)
+                           :cwd     cwd
+                           :stdin   'null
+                           :stdout  'capture
+                           :stderr  'stdout
+                           :timeout timeout
+                         ) ;run-either
+                    ) ;res
+                   ) ;
+                (if (either-right? res)
+                  (%format-bash-result (to-right res) 0 timeout)
+                  (let ((err (to-left res)))
+                    (%format-bash-result (process-error-stdout err)
+                      (process-error-code err)
+                      timeout
+                    ) ;%format-bash-result
+                  ) ;let
+                ) ;if
+              ) ;let
+            ) ;if
           ) ;begin
         ) ;if
       ) ;let*

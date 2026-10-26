@@ -18,11 +18,12 @@
     %pi-app-default-thinking-level-set! %pi-app-on-save-thinking-level
     pi-app-bash-mode? %pi-app-bash-mode?-set! pi-app-tools-expanded?
     %pi-app-tools-expanded?-set! %pi-app-bash-cards %pi-app-bash-cards-set!
-    pi-app-bash-jobs-chan %pi-app-bash-handler %pi-app-record-sink
-    pi-app-session-name %pi-app-session-name-set! %pi-editor-top-border
-    pi-app-provider %pi-app-provider-set! pi-app-model %pi-app-model-set!
-    pi-app-models %pi-app-default-model %pi-app-on-save-model
-    %pi-app-supports-thinking?-set! %pi-app-available-thinking-levels-set!
+    %pi-app-tool-cards %pi-app-tool-cards-set! pi-app-bash-jobs-chan
+    %pi-app-bash-handler %pi-app-record-sink pi-app-session-name
+    %pi-app-session-name-set! %pi-editor-top-border pi-app-provider
+    %pi-app-provider-set! pi-app-model %pi-app-model-set! pi-app-models
+    %pi-app-default-model %pi-app-on-save-model %pi-app-supports-thinking?-set!
+    %pi-app-available-thinking-levels-set!
   ) ;export
   (import (scheme base))
   (begin
@@ -36,7 +37,7 @@
         working thinking-level supports-thinking available-thinking-levels
         default-thinking-level on-save-thinking-level bash-mode? tools-expanded?
         bash-cards bash-jobs-chan bash-handler record-sink session-name provider
-        model models default-model on-save-model
+        model models default-model on-save-model tool-cards
       ) ;%make-pi-app
       pi-app?
       (term pi-app-term)
@@ -76,6 +77,8 @@
       ;; ! 命令结果注入会话上下文的回调 (lambda (command text code))；
       ;; 默认投递 (bash_record cmd text code) 任务到 jobs-chan 由后台 worker 落盘
       (record-sink %pi-app-record-sink)
+      ;; 模型工具调用 id → 可更新卡片；start/update/end 在同一组件上原地推进
+      (tool-cards %pi-app-tool-cards %pi-app-tool-cards-set!)
       (session-name pi-app-session-name %pi-app-session-name-set!)
       ;; /model 会话内切换：当前 provider/model，随下一条消息生效
       (provider pi-app-provider %pi-app-provider-set!)

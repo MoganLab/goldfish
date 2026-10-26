@@ -6,9 +6,9 @@
 
 (define-library (liii pi code modes interactive renderers)
   (export format-tool-call format-tool-result-lines extract-result-text
-    get-tool-arg
+    format-bash-tool-result-lines format-tool-duration get-tool-arg
   ) ;export
-  (import (scheme base) (liii string) (liii list))
+  (import (scheme base) (liii string) (liii list) (liii tui text-width))
   (begin
 
     ;; 判断键是否匹配 (兼容 string 与 symbol)
@@ -190,6 +190,63 @@
               ) ;let
             ) ;else
       ) ;cond
+    ) ;define
+
+    ;; 时长格式与上游 formatToolDuration 一致。
+    (define (format-tool-duration ms)
+      (let ((seconds (/ ms 1000.0)))
+        (if (< seconds 60)
+          (let* ((tenths (inexact->exact (round (* seconds 10))))
+                 (whole (quotient tenths 10))
+                 (digit (remainder tenths 10))
+                ) ;
+            (string-append (number->string whole) "." (number->string digit) "s")
+          ) ;let*
+          (let* ((total-seconds (inexact->exact (floor seconds)))
+                 (minutes (quotient total-seconds 60))
+                 (remainder-seconds (remainder total-seconds 60))
+                ) ;
+            (if (< minutes 60)
+              (string-append (number->string minutes)
+                "m "
+                (number->string remainder-seconds)
+                "s"
+              ) ;string-append
+              (string-append (number->string (quotient minutes 60))
+                "h "
+                (number->string (remainder minutes 60))
+                "m "
+                (number->string remainder-seconds)
+                "s"
+              ) ;string-append
+            ) ;if
+          ) ;let*
+        ) ;if
+      ) ;let
+    ) ;define
+
+    ;; Bash 输出折叠以视觉行为单位：先剥离 ANSI/CR，再按当前宽度换行。
+    ;; 折叠时保留末尾 5 行，与上游 VisualLinePreview 一致。
+    (define (format-bash-tool-result-lines result width expanded?)
+      (let* ((raw (string-trim-both (extract-result-text result)))
+             (clean (string-replace (strip-ansi raw) "\r" ""))
+             (all-lines (if (string-null? clean) '() (wrap-text clean (max 1 width))))
+             (total (length all-lines))
+            ) ;
+        (cond ((null? all-lines) '())
+              ((or expanded? (<= total 5)) all-lines)
+              (else
+                (let ((hidden (- total 5)))
+                  (cons (string-append "... ("
+                          (number->string hidden)
+                          " earlier lines, ctrl+o to expand)"
+                        ) ;string-append
+                    (drop all-lines hidden)
+                  ) ;cons
+                ) ;let
+              ) ;else
+        ) ;cond
+      ) ;let*
     ) ;define
 
     ;; 截断折叠辅助
