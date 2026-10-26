@@ -21,7 +21,9 @@
     ;; ; 基于 SRFI-13 的 string-trim 实现
     (define string-trim-left string-trim)
 
-    (define string-starts? g_string-starts?)
+    (define (string-starts? str prefix)
+      (string-prefix? prefix str)
+    ) ;define
 
     (define string-contains?
       (typed-lambda ((str string?) (sub-str string?)) (string-contains str sub-str))
@@ -31,7 +33,9 @@
 
     (define string-replace g_string-replace)
 
-    (define string-ends? g_string-ends?)
+    (define (string-ends? str suffix)
+      (string-suffix? suffix str)
+    ) ;define
 
     (define string-remove-prefix
       (typed-lambda ((str string?) (prefix string?))
