@@ -6829,7 +6829,6 @@ static void sweep(s7_scheme *sc)
 
   gp = sc->gensyms;
   process_gc_list(remove_gensym_from_symbol_table(sc, gc_obj); liberate(sc, gensym_block(gc_obj)));
-  if (gp->loc == 0) mark_function[T_SYMBOL] = mark_noop;
 
   gp = sc->undefineds;
   process_gc_list(free(undefined_name(gc_obj)));
@@ -6945,7 +6944,6 @@ void just_mark(s7_pointer p) {set_mark(p);}
 static void add_gensym(s7_scheme *sc, s7_pointer p)
 {
   add_to_gc_list(sc, sc->gensyms, p);
-  mark_function[T_SYMBOL] = just_mark;
 }
 
 #define add_c_object(sc, p)          add_to_gc_list(sc, sc->c_objects, p)
@@ -7390,7 +7388,7 @@ static void init_mark_functions(void)
   mark_function[T_SLOT]                = mark_slot;
   mark_function[T_STACK]               = mark_stack;
   mark_function[T_STRING]              = just_mark;
-  mark_function[T_SYMBOL]              = mark_noop; /* this changes to just_mark when gensyms are in the heap */
+  mark_function[T_SYMBOL]              = just_mark; /* constant in multi-session builds: dynamic mark_noop switching races across s7 instances */
   mark_function[T_SYNTAX]              = mark_noop;
   mark_function[T_UNDEFINED]           = just_mark;
   mark_function[T_UNSPECIFIED]         = mark_noop;
@@ -7972,7 +7970,6 @@ static void remove_gensym_from_heap(s7_scheme *sc, s7_pointer x) /* x known to b
 	    gp->list[i] = gp->list[j];
 	  gp->list[i] = NULL;
 	  gp->loc--;
-	  if (gp->loc == 0) mark_function[T_SYMBOL] = mark_noop;
 	  break;
 	}}
 }
