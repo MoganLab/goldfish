@@ -110,6 +110,8 @@
   (let ((r (run-pi FIXTURE_DIR base-url "multikey-403" #f)))
     (check (car r) => 0)
     (check-true (string-contains? (cadr r) "RotatedOK:mk-gem-key-2-bbbbbb"))
+    (check-true (string-contains? (caddr r)
+                  "multikey[google]: 403 on mk1 (mk-gem…aaaa), rotating to another key"))
     ;; 脱敏：stderr 不含完整 key
     (check-true (not (string-contains? (caddr r) "mk-gem-key-1-aaaaaa")))
     (check-true (not (string-contains? (caddr r) "mk-gem-key-2-bbbbbb")))
@@ -138,6 +140,8 @@
   (let ((r (run-pi FIXTURE_DIR base-url "multikey-plain" #f)))
     (check (car r) => 0)
     (check-true (string-contains? (cadr r) "PlainOK:mk-gem-key-1-aaaaaa"))
+    ;; 首个 key 的正常选择不打印 multikey 日志
+    (check-false (string-contains? (caddr r) "multikey["))
   ) ;let
 
   ;; 5A. 同一会话多轮请求：无异常时始终使用 key-1，不做 LRU 轮询
@@ -145,6 +149,7 @@
     (check (car r) => 0)
     (check-true (string-contains? (cadr r)
                   "StickyOK:mk-gem-key-1-aaaaaa,mk-gem-key-1-aaaaaa"))
+    (check-false (string-contains? (caddr r) "multikey["))
   ) ;let
 
   ;; 6. pool 耗尽：所有 key 403 → 退出码 1，stderr 报错且脱敏
@@ -168,6 +173,8 @@
              "kimi-coding")))
     (check (car r) => 0)
     (check-true (string-contains? (cadr r) "RotatedOK:mk-kimi-key-2-bbbbbb"))
+    (check-true (string-contains? (caddr r)
+                  "multikey[kimi-coding]: 403 on mk1 (mk-kim…aaaa), rotating to another key"))
     (check-true (not (string-contains? (caddr r) "mk-kimi-key-1-aaaaaa")))
   ) ;let
 

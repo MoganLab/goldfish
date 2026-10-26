@@ -470,7 +470,10 @@ tools/pi/liii/
 
   实现要点：`multikey.json` 受 `PI_CODING_AGENT_DIR` 重定向；内存状态机维护
   cooldown-until + last-used，正常请求固定使用当前 key，429/403 时才冷却并切换；
-  429 默认冷却 20s、403/invalid 默认 600s（可按配置覆盖）；
+  429 默认冷却 20s、403/invalid 默认 600s（可按配置覆盖）；每次实际切换在 stderr
+  打印一条脱敏日志（首个 key 不打），格式对齐原生 pi：
+  `multikey[kimi-coding]: 429 on alpha (sk-poo…0001), rotating to another key`，
+  TUI 模式下同一消息转为界面卡片；
   仅在未输出实质内容前透明重试；pool 全耗尽才报错（退出码 1）。
 - [ ] **4 字节 UTF-8 + '<' 挂起**：prompt 同时含 4 字节 UTF-8 字符（如 🚀、𠀀）与 `<` 时进程静默挂起且连 HTTP 300s 超时都不生效（复现：`timeout 60 bin/gf pi -p '🚀 <'`）。【待重做】
 - [ ] **thinking 内容**：思考级别的请求与解析。预期用法（实现时以 pi 实际 CLI 为准）：
