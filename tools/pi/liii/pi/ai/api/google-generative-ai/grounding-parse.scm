@@ -5,7 +5,7 @@
 ;;
 
 (define-library (liii pi ai api google-generative-ai grounding-parse)
-  (import (scheme base) (liii string))
+  (import (scheme base) (liii string) (liii list))
   (export gemini-extract-grounding-details gemini-grounding-search-queries
     gemini-grounding-search-results gemini-grounding-citations
   ) ;export
@@ -107,42 +107,43 @@
     ) ;define
 
     (define (%extract-search-queries gm)
-      (let loop
-        ((rem (%ensure-list (%val "webSearchQueries" gm '()))) (acc '()))
-        (if (null? rem)
-          (reverse acc)
-          (let ((q (car rem)))
-            (if
-              (and (string? q) (not (string-null? (string-trim-both q))) (not (member q acc)))
-              (loop (cdr rem) (cons q acc))
-              (loop (cdr rem) acc)
+      (fold-right
+        (lambda (q queries)
+          (if
+            (and (string? q)
+              (not (string-null? (string-trim-both q)))
+              (not (member q queries))
+            ) ;and
+            (cons q queries)
+            queries
+          ) ;if
+        ) ;lambda
+        '()
+        (%ensure-list (%val "webSearchQueries" gm '()))
+      ) ;fold-right
+    ) ;define
+
+    (define (%collect-search-result chunk state)
+      (let ((c-info (%chunk-info chunk)) (acc (car state)) (seen (cdr state)))
+        (if c-info
+          (let* ((title (car (car c-info)))
+                 (url (cdr (car c-info)))
+                 (web (cdr c-info))
+                 (key (string-append url "\t" title "\tweb"))
+                ) ;
+            (if (member key seen)
+              state
+              (cons (cons (%make-search-result title url web) acc) (cons key seen))
             ) ;if
-          ) ;let
+          ) ;let*
+          state
         ) ;if
       ) ;let
     ) ;define
 
     (define (%extract-search-results chunks-vec)
-      (let loop
-        ((i 0) (acc '()) (seen '()))
-        (if (>= i (vector-length chunks-vec))
-          (reverse acc)
-          (let ((c-info (%chunk-info (vector-ref chunks-vec i))))
-            (if c-info
-              (let* ((title (car (car c-info)))
-                     (url (cdr (car c-info)))
-                     (web (cdr c-info))
-                     (key (string-append url "\t" title "\tweb"))
-                    ) ;
-                (if (member key seen)
-                  (loop (+ i 1) acc seen)
-                  (loop (+ i 1) (cons (%make-search-result title url web) acc) (cons key seen))
-                ) ;if
-              ) ;let*
-              (loop (+ i 1) acc seen)
-            ) ;if
-          ) ;let
-        ) ;if
+      (let ((state (fold %collect-search-result '(()) (vector->list chunks-vec))))
+        (reverse (car state))
       ) ;let
     ) ;define
 

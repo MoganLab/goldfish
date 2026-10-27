@@ -7,7 +7,30 @@
 (check-set-mode! 'report-failed)
 
 ;; pi-build-models-catalog
-;; 合并目录构造：models.json > models-store.json > 内置目录
+;; 合并内置目录、models-store.json 和 models.json，构造模型目录。
+;;
+;; 语法
+;; ----
+;; (pi-build-models-catalog agent-dir)
+;;
+;; 参数
+;; ----
+;; agent-dir : string
+;; 包含 models-store.json 和可选 models.json 的配置目录。
+;;
+;; 返回值
+;; ----
+;; alist
+;; provider 到模型列表的目录，provider 名称为排序后的字符串。
+;;
+;; 说明
+;; ----
+;; 同一模型的合并优先级为 models.json > models-store.json > 内置目录。
+;; provider 名称去重，配置文件不存在时使用可用的底层目录。
+;;
+;; 示例
+;; ----
+;; (pi-catalog-provider-names (pi-build-models-catalog "~/.pi/agent")) => '("anthropic" "google" ...)
 
 (define fixture-dir
   (if (file-exists? "tests/fixtures/default")

@@ -6,7 +6,36 @@
 (check-set-mode! 'report-failed)
 
 ;; pi-resolve-model-metadata
-;; 解析指定模型 ID 的上下文窗口、token 上限与 baseUrl 等元数据。
+;; 解析模型的 base URL、上下文窗口和最大输出 token 等元数据。
+;;
+;; 语法
+;; ----
+;; (pi-resolve-model-metadata provider model-id models-store . opt-env)
+;;
+;; 参数
+;; ----
+;; provider : string | symbol
+;; 模型供应商名称。
+;; model-id : string
+;; 模型标识。
+;; models-store : alist
+;; 已缓存的 provider 和模型元数据目录。
+;; opt-env : alist
+;; 可选环境变量表，用于覆盖默认配置。
+;;
+;; 返回值
+;; ----
+;; pi-model-metadata
+;; 包含模型名称、provider、base-url、context-window 和 max-tokens 的 record。
+;;
+;; 说明
+;; ----
+;; 优先使用 models-store 中的精确模型匹配，缺失时使用 provider 默认值。
+;; 支持旧 base URL 归一化及 GF_PI_* 和 provider 特定环境变量覆盖。
+;;
+;; 示例
+;; ----
+;; (pi-model-metadata-id (pi-resolve-model-metadata "google" "gemini" store)) => "gemini"
 (define fixture-dir
   (if (file-exists? "tests/fixtures/default")
     "tests/fixtures/default"

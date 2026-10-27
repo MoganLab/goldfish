@@ -3,7 +3,30 @@
 (check-set-mode! 'report-failed)
 
 ;; anthropic-build-messages
-;; 将内部会话消息历史映射为 Anthropic Messages API 的 messages 列表。
+;; 将内部会话消息历史转换为 Anthropic Messages API 消息。
+;;
+;; 语法
+;; ----
+;; (anthropic-build-messages messages)
+;;
+;; 参数
+;; ----
+;; messages : list
+;; 内部 user、assistant 和 toolResult 消息列表，支持 alist 和 record。
+;;
+;; 返回值
+;; ----
+;; vector
+;; Anthropic API messages 向量，每个元素为包含 role 和 content 的 alist。
+;;
+;; 说明
+;; ----
+;; 连续 toolResult 合并为一个 user message，未知角色被过滤。
+;; 工具调用转换为 tool_use，空或畸形参数规范化为 JSON 对象。
+;;
+;; 示例
+;; ----
+;; (anthropic-build-messages (list (pi-user-message "hello"))) => #((("role" . "user") ...))
 (let* ((messages (list (list (cons 'role "user") (cons 'content "hello"))
                        (list (cons 'role "assistant")
                              (cons 'content (list (list (cons 'type "text") (cons 'text "Let me check"))
@@ -80,5 +103,18 @@
   (check-true (string-contains? json-str "\"input\":{}"))
   (check-true (string-contains? json-str "\"input\":{\"command\":\"pwd\"}"))
   (check-true (string-contains? json-str "\"input\":{\"path\":{}}")))
+
+;; 连续 toolResult 合并为一个 user message，未知角色被过滤
+(let* ((messages (list (pi-user-message "run")
+                       (pi-tool-result-message "c1" "read" (list (pi-text-block "one")) #f)
+                       (pi-tool-result-message "c2" "bash" (list (pi-text-block "two")) #f)
+                       '((role . "unknown") (content . "ignored"))))
+       (ant-msgs (anthropic-build-messages messages))
+       (merged (vector-ref ant-msgs 1))
+       (blocks (cdr (assoc "content" merged))))
+  (check (vector-length ant-msgs) => 2)
+  (check (vector-length blocks) => 2)
+  (check (cdr (assoc "tool_use_id" (vector-ref blocks 0))) => "c1")
+  (check (cdr (assoc "tool_use_id" (vector-ref blocks 1))) => "c2"))
 
 (check-report)

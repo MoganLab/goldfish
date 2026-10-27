@@ -3,7 +3,32 @@
 (check-set-mode! 'report-failed)
 
 ;; openai-build-messages
-;; 将内部消息列表与可选 system-instruction 转换为 OpenAI Chat Completions messages 向量。
+;; 将内部消息历史转换为 OpenAI Chat Completions messages。
+;;
+;; 语法
+;; ----
+;; (openai-build-messages messages system-instruction)
+;;
+;; 参数
+;; ----
+;; messages : list
+;; 内部 user、assistant 和 toolResult 消息列表。
+;; system-instruction : string | #f
+;; 可选系统提示词；非空白字符串会生成首条 system message。
+;;
+;; 返回值
+;; ----
+;; vector
+;; OpenAI messages 向量，元素为对应角色的 alist。
+;;
+;; 说明
+;; ----
+;; assistant 的多个文本块按顺序拼接，工具参数序列化为 JSON 字符串。
+;; toolResult 映射为 tool 角色并保留 tool_call_id。
+;;
+;; 示例
+;; ----
+;; (openai-build-messages (list (pi-user-message "hi")) #f) => #((("role" . "user") ...))
 (let* ((messages (list (pi-user-message "echo hello")
                        (pi-assistant-message
                          (list (pi-tool-call-block "call_1" "bash" '(("command" . "echo hello")))))
@@ -37,5 +62,13 @@
        (vec (openai-build-messages messages #f)))
   (check (vector-length vec) => 1)
   (check (cdr (assoc "role" (vector-ref vec 0))) => "user"))
+
+;; assistant 的多个文本块按顺序拼接
+(let* ((messages (list (pi-assistant-message
+                         (list (pi-text-block "hello ")
+                               (pi-text-block "world")))))
+       (vec (openai-build-messages messages #f))
+       (msg (vector-ref vec 0)))
+  (check (cdr (assoc "content" msg)) => "hello world"))
 
 (check-report)

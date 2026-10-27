@@ -77,21 +77,24 @@
       ) ;let
     ) ;define
 
+    (define (%entry->assoc key entry)
+      (cond
+       ((pi-credential? entry)
+        (and (%key-match? key (pi-credential-provider entry))
+          (cons (pi-credential-provider entry) (pi-credential-key entry))
+        ) ;and
+       ) ;
+       ((and (pair? entry) (%key-match? key (car entry))) entry)
+       (else #f)
+      ) ;cond
+    ) ;define
+
     (define (%find-assoc key lst)
-      (let loop
-        ((entries lst))
-        (cond ((null? entries) #f)
-              ((not (pair? entries)) #f)
-              ((pi-credential? (car entries))
-               (if (%key-match? key (pi-credential-provider (car entries)))
-                 (cons (pi-credential-provider (car entries)) (pi-credential-key (car entries)))
-                 (loop (cdr entries))
-               ) ;if
-              ) ;
-              ((and (pair? (car entries)) (%key-match? key (caar entries))) (car entries))
-              (else (loop (cdr entries)))
-        ) ;cond
-      ) ;let
+      (and (list? lst)
+        (find (lambda (entry) entry)
+          (map (lambda (entry) (%entry->assoc key entry)) lst)
+        ) ;find
+      ) ;and
     ) ;define
 
     (define (assoc key obj)
@@ -132,6 +135,22 @@
       (and (pair? x) (not (pair? (car x))) (or (symbol? (car x)) (string? (car x))))
     ) ;define
 
+    (define (%normalize-json-entry entry)
+      (let* ((raw-k (car entry))
+             (k (if (symbol? raw-k) (symbol->string raw-k) raw-k))
+             (v (cdr entry))
+            ) ;
+        (cond ((and (string=? k "errorMessage") (not v)) #f)
+              ((and (or (string=? k "arguments") (string=? k "input"))
+                 (or (null? v) (equal? v '(())) (not v) (eq? v 'null))
+               ) ;and
+               (cons k '(()))
+              ) ;
+              (else (cons k (%normalize-json-value v)))
+        ) ;cond
+      ) ;let*
+    ) ;define
+
     (define (%normalize-json-value x)
       (cond ((null? x) #())
             ((equal? x '(())) '(()))
@@ -143,28 +162,7 @@
             ((pi-trunc-result? x) (%normalize-json-value (pi-trunc-result->alist x)))
             ((vector? x) (vector-map %normalize-json-value x))
             ((and (pair? x) (every %json-object-entry? x))
-             (let loop
-               ((entries x) (acc '()))
-               (if (null? entries)
-                 (reverse acc)
-                 (let* ((entry (car entries))
-                        (raw-k (car entry))
-                        (k (if (symbol? raw-k) (symbol->string raw-k) raw-k))
-                        (v (cdr entry))
-                       ) ;
-                   (cond ((and (string=? k "errorMessage") (not v)) (loop (cdr entries) acc))
-                         ((and (or (string=? k "arguments") (string=? k "input"))
-                            (or (null? v) (equal? v '(())) (not v) (eq? v 'null))
-                          ) ;and
-                          (loop (cdr entries) (cons (cons k '(())) acc))
-                         ) ;
-                         (else
-                           (loop (cdr entries) (cons (cons k (%normalize-json-value v)) acc))
-                         ) ;else
-                   ) ;cond
-                 ) ;let*
-               ) ;if
-             ) ;let
+             (filter (lambda (entry) entry) (map %normalize-json-entry x))
             ) ;
             ((pair? x) (list->vector (map %normalize-json-value x)))
             ((symbol? x) (symbol->string x))

@@ -67,49 +67,46 @@
       ) ;let
     ) ;define
 
+    (define (%part->content-block part i)
+      (cond
+       ((assoc "text" part)
+        (let ((t (cdr (assoc "text" part))))
+          (cond ((gemini-is-thinking-part? part)
+                 (pi-thinking-block t (gemini-part-thought-signature part))
+                ) ;
+                ((and (string? t) (not (string-null? t))) (pi-text-block t))
+                (else #f)
+          ) ;cond
+        ) ;let
+       ) ;
+       ((assoc "functionCall" part)
+        (let* ((fc (cdr (assoc "functionCall" part)))
+               (name (cdr (assoc "name" fc)))
+               (args (cdr (assoc "args" fc)))
+               (id (cond ((assoc "id" fc) => cdr) ((assoc 'id fc) => cdr) (else #f)))
+               (ts (cond ((assoc "thoughtSignature" part) => cdr)
+                         ((assoc 'thoughtSignature part) => cdr)
+                         ((assoc "thoughtSignature" fc) => cdr)
+                         ((assoc 'thoughtSignature fc) => cdr)
+                         (else #f)
+                   ) ;cond
+               ) ;ts
+              ) ;
+          (%make-tool-call-block name args id ts i)
+        ) ;let*
+       ) ;
+       (else #f)
+      ) ;cond
+    ) ;define
+
     (define (%extract-parts-content parts)
-      (let loop
-        ((i 0) (acc '()) (has-fn? #f))
-        (if (>= i (vector-length parts))
-          (values (reverse acc) has-fn?)
-          (let ((part (vector-ref parts i)))
-            (cond
-             ((assoc "text" part)
-              (let ((t (cdr (assoc "text" part))))
-                (cond
-                 ((gemini-is-thinking-part? part)
-                  (let ((ts (gemini-part-thought-signature part)))
-                    (loop (+ i 1) (cons (pi-thinking-block t ts) acc) has-fn?)
-                  ) ;let
-                 ) ;
-                 ((and (string? t) (not (string-null? t)))
-                  (loop (+ i 1) (cons (pi-text-block t) acc) has-fn?)
-                 ) ;
-                 (else (loop (+ i 1) acc has-fn?))
-                ) ;cond
-              ) ;let
-             ) ;
-             ((assoc "functionCall" part)
-              (let* ((fc (cdr (assoc "functionCall" part)))
-                     (name (cdr (assoc "name" fc)))
-                     (args (cdr (assoc "args" fc)))
-                     (id (cond ((assoc "id" fc) => cdr) ((assoc 'id fc) => cdr) (else #f)))
-                     (ts (cond ((assoc "thoughtSignature" part) => cdr)
-                               ((assoc 'thoughtSignature part) => cdr)
-                               ((assoc "thoughtSignature" fc) => cdr)
-                               ((assoc 'thoughtSignature fc) => cdr)
-                               (else #f)
-                         ) ;cond
-                     ) ;ts
-                     (tc-blk (%make-tool-call-block name args id ts i))
-                    ) ;
-                (loop (+ i 1) (cons tc-blk acc) #t)
-              ) ;let*
-             ) ;
-             (else (loop (+ i 1) acc has-fn?))
-            ) ;cond
-          ) ;let
-        ) ;if
+      (let ((blocks
+              (filter (lambda (block) block)
+                (map %part->content-block (vector->list parts) (iota (vector-length parts)))
+              ) ;filter
+            ) ;blocks
+           ) ;
+        (values blocks (any pi-tool-call-block? blocks))
       ) ;let
     ) ;define
 

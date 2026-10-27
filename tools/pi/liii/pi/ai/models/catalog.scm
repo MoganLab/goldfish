@@ -97,15 +97,17 @@
 
     ;; 收集 alist 中不重复的 provider 名称，字典序排序
     (define (%unique-sorted-names entries)
-      (let loop
-        ((rest entries) (acc '()))
-        (if (null? rest)
-          (list-sort string<? acc)
-          (let ((name (%entry-name-str (car rest))))
-            (if (member name acc) (loop (cdr rest) acc) (loop (cdr rest) (cons name acc)))
-          ) ;let
-        ) ;if
-      ) ;let
+      (list-sort string<?
+        (fold-right
+          (lambda (entry names)
+            (let ((name (%entry-name-str entry)))
+              (if (member name names) names (cons name names))
+            ) ;let
+          ) ;lambda
+          '()
+          entries
+        ) ;fold-right
+      ) ;list-sort
     ) ;define
 
     ;; 返回 catalog 中全部 provider 名称列表（字符串、字典序排序）

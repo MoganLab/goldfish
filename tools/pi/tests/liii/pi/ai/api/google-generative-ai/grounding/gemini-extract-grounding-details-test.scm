@@ -20,6 +20,31 @@
     obj))
 
 ;; gemini-extract-grounding-details
+;; 从 Gemini 响应中提取搜索查询、搜索结果和引用信息。
+;;
+;; 语法
+;; ----
+;; (gemini-extract-grounding-details json-data)
+;;
+;; 参数
+;; ----
+;; json-data : alist | vector | #f
+;; Gemini 完整响应、candidate 或 groundingMetadata 对象。
+;;
+;; 返回值
+;; ----
+;; alist
+;; 包含 searchQueries、searchResults 和 citations，支持 symbol/string 双键访问。
+;;
+;; 说明
+;; ----
+;; 残缺结构和无效索引被安全忽略，重复查询、结果和引用被去重。
+;; 查询和结果保持首次出现的顺序。
+;;
+;; 示例
+;; ----
+;; (gemini-grounding-search-queries (gemini-extract-grounding-details response)) => '("goldfish scheme")
+
 ;; 1. 从真实 fixture 文件解析非流式完整响应 JSON
 (let* ((resp (%read-fixture-json "gemini/grounding-response.json"))
        (details (gemini-extract-grounding-details resp))
@@ -135,5 +160,10 @@
        (citations (gemini-grounding-citations d)))
   (check (length results) => 1)
   (check (length citations) => 1))
+
+;; 7. 查询词过滤空白并按首次出现顺序去重
+(let* ((gm '(("webSearchQueries" . #("first" " " "first" "second" "second"))))
+       (d (gemini-extract-grounding-details gm)))
+  (check (gemini-grounding-search-queries d) => '("first" "second")))
 
 (check-report)

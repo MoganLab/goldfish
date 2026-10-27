@@ -12,23 +12,9 @@
     (define (pi-split-search-tokens str)
       (if (not (string? str))
         '()
-        (let ((len (string-length str)))
-          (let loop
-            ((i 0) (cur '()) (acc '()))
-            (if (>= i len)
-              (if (null? cur) (reverse acc) (reverse (cons (list->string (reverse cur)) acc)))
-              (let ((ch (string-ref str i)))
-                (if (or (char-whitespace? ch) (char=? ch #\/))
-                  (if (null? cur)
-                    (loop (+ i 1) '() acc)
-                    (loop (+ i 1) '() (cons (list->string (reverse cur)) acc))
-                  ) ;if
-                  (loop (+ i 1) (cons ch cur) acc)
-                ) ;if
-              ) ;let
-            ) ;if
-          ) ;let
-        ) ;let
+        (filter (lambda (token) (not (string-null? token)))
+          (string-tokenize str (lambda (ch) (or (char-whitespace? ch) (char=? ch #\/))))
+        ) ;filter
       ) ;if
     ) ;define
 

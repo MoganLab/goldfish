@@ -6,6 +6,34 @@
 
 (check-set-mode! 'report-failed)
 
+;; gemini-parse-response
+;; 将 Gemini generateContent JSON 响应解析为内部 assistant message。
+;;
+;; 语法
+;; ----
+;; (gemini-parse-response json-data status-code)
+;;
+;; 参数
+;; ----
+;; json-data : alist
+;; Gemini API 响应对象。
+;; status-code : integer
+;; HTTP 响应状态码。
+;;
+;; 返回值
+;; ----
+;; pi-assistant-message
+;; 包含 content、stopReason、usage 和可选 errorMessage 的消息 record。
+;;
+;; 说明
+;; ----
+;; text、thinking 和 functionCall 按原始顺序转换为内部 content block。
+;; finishReason 映射为 stop、length、toolUse 或 error。
+;;
+;; 示例
+;; ----
+;; (pi-assistant-message-stop-reason (gemini-parse-response response 200)) => "stop"
+
 ;; 正常普通回复
 (let* ((resp-json '(("candidates"
                      . #((("content" ("parts" . #((("text" . "Hello world")))))
