@@ -156,9 +156,9 @@
     ) ;define
 
     (define (hash-table-find proc ht failure)
-      (when (not (procedure? proc))
-        (error 'type-error hash-table-find "this parameter must be typed as procedure")
-      ) ;when
+      (unless (procedure? proc)
+        (error 'type-error "hash-table-find: first argument must be a procedure" proc)
+      ) ;unless
       (assert-hash-table-type ht hash-table-find)
       (let ((keys (hash-table-keys ht)))
         (let loop
