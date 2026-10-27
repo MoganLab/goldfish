@@ -27,8 +27,9 @@
   (export hint-liii/gfproject/config)
   (begin
 
-    ;; bundle-ref : (any? symbol? -> any?)
-    (define hint-bundle-ref '((any? symbol? -> any?)))
+    ;; bundle-ref : (alist? any? -> any?)
+    ;; 命中返回 cdr 值，未命中返回 #f；(or #f any?) 等价于 any?
+    (define hint-bundle-ref '((alist? any? -> any?)))
 
     (define (hint-liii/gfproject/config name)
       (case name
