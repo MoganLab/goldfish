@@ -2,6 +2,7 @@
   (liii pi code core tools)
   (liii pi ai tools record)
   (liii pi code core extensions)
+  (liii pi ai types)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -94,5 +95,35 @@
           => "Shadowed by current"))))
   ;; 恢复默认注册表，避免影响后续测试
   (set-default-extension-registry! #f))
+
+;; read 定义的 record 与 alist 视图
+(let ((def (get-tool-definition "read")))
+  (check-true (pi-tool-definition? def))
+  (check (pi-tool-definition-name def) => "read")
+  (check (cdr (assoc 'name def)) => "read")
+  (check (cdr (assoc 'snippet def)) => "Read file contents"))
+
+;; bash 支持默认与自定义超时 schema
+(let* ((def (get-tool-definition "bash"))
+       (schema (pi-tool-definition-parameters def))
+       (props (cdr (assoc "properties" schema)))
+       (t-prop (cdr (assoc "timeout" props))))
+  (check-true (pi-tool-definition? def))
+  (check (cdr (assoc "description" t-prop))
+    => "Timeout in seconds (optional, defaults to 600s)"))
+
+(let* ((def (get-tool-definition "bash" 300))
+       (schema (pi-tool-definition-parameters def))
+       (props (cdr (assoc "properties" schema)))
+       (t-prop (cdr (assoc "timeout" props))))
+  (check (cdr (assoc "description" t-prop))
+    => "Timeout in seconds (optional, defaults to 300s)"))
+
+(let* ((def (get-tool-definition "bash" :timeout 150))
+       (schema (pi-tool-definition-parameters def))
+       (props (cdr (assoc "properties" schema)))
+       (t-prop (cdr (assoc "timeout" props))))
+  (check (cdr (assoc "description" t-prop))
+    => "Timeout in seconds (optional, defaults to 150s)"))
 
 (check-report)

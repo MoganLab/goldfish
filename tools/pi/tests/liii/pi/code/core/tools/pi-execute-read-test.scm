@@ -1,4 +1,4 @@
-(import (liii check) (liii path) (liii pi code core tools read) (liii pi code core tools))
+(import (liii check) (liii string) (liii path) (liii pi code core tools read) (liii pi code core tools))
 
 (check-set-mode! 'report-failed)
 
@@ -142,5 +142,30 @@
   ) ;check
   (delete-file sample-file)
 ) ;let
+
+;; 读取源码文件、offset/limit 与错误路径
+(define legacy-test-file
+  (if (file-exists? "liii/pi/code/cli.scm")
+    "liii/pi/code/cli.scm"
+    "tools/pi/liii/pi/code/cli.scm"))
+
+(let ((res (pi-execute-read (list (cons "path" legacy-test-file)))))
+  (check-true (string? res))
+  (check-true (string-contains? res "(define-library (liii pi code cli)")))
+
+(let ((res (pi-execute-read (list (cons "path" legacy-test-file) (cons "limit" 2)))))
+  (check-true (string-contains? res "more lines in file. Use offset=3 to continue.")))
+
+(let ((res (pi-execute-read
+             (list (cons "path" legacy-test-file) (cons "offset" 3) (cons "limit" 2)))))
+  (check-true (string-contains? res "more lines in file. Use offset=5 to continue.")))
+
+(check-catch 'error
+  (pi-execute-read (list (cons "path" legacy-test-file) (cons "offset" 999999))))
+(check-catch 'error
+  (pi-execute-read '(("path" . "non_existent_file_12345.txt"))))
+(check-catch 'error (pi-execute-read '(("path" . "tests"))))
+(check-catch 'error
+  (pi-execute-read (list (cons "path" legacy-test-file)) :timed-out? #t))
 
 (check-report)

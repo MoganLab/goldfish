@@ -16,4 +16,13 @@
   ) ;let
 ) ;let
 
+;; 与单调秒接口的换算关系
+(let* ((sec-before (pi-current-monotonic-seconds))
+       (ms (pi-current-monotonic-millis))
+       (sec-after (pi-current-monotonic-seconds))
+      ) ;
+  (check-true (<= (* sec-before 1000) ms))
+  (check-true (< ms (* (+ sec-after 1) 1000)))
+) ;let*
+
 (check-report)

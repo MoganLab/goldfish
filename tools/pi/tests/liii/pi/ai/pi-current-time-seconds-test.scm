@@ -32,4 +32,6 @@
   ) ;let*
 ) ;let
 
+(check-true (> (pi-current-time-seconds) 1700000000))
+
 (check-report)

@@ -3,6 +3,7 @@
   (liii pi code core tools)
   (liii pi ai tools record)
   (liii pi code core extensions)
+  (liii pi ai types)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -117,5 +118,30 @@
     ) ;lambda
   ) ;with-extension-registry
 ) ;let*
+
+;; 未知工具的 alist 错误视图
+(let ((res (execute-tool-call "unknown_tool" '())))
+  (check-true (pi-tool-result? res))
+  (check (pi-tool-result-is-error res) => #t)
+  (check (cdr (assoc 'isError res)) => #t)
+  (check (vector-ref (cdr (assoc 'content res)) 0)
+    => '((type . "text") (text . "Tool unknown_tool not found"))))
+
+;; 工具 throw 错误被捕获转成 isError 结果
+(let ((res (execute-tool-call "read" '(("path" . "non_existent_file.xyz")))))
+  (check-true (pi-tool-result? res))
+  (check (pi-tool-result-is-error res) => #t)
+  (check (cdr (assoc 'isError res)) => #t)
+  (let ((text (cdr (assoc 'text (vector-ref (cdr (assoc 'content res)) 0)))))
+    (check-true (string-contains? text "Path not found"))))
+
+;; 成功调用返回 isError: #f
+(let ((test-file (if (file-exists? "liii/pi/code/cli.scm")
+                   "liii/pi/code/cli.scm"
+                   "tools/pi/liii/pi/code/cli.scm")))
+  (let ((res (execute-tool-call "read" (list (cons "path" test-file) (cons "limit" 1)))))
+    (check-true (pi-tool-result? res))
+    (check (pi-tool-result-is-error res) => #f)
+    (check (cdr (assoc 'isError res)) => #f)))
 
 (check-report)

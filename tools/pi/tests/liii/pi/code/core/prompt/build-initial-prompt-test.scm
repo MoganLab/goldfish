@@ -1,4 +1,4 @@
-(import (liii check) (liii pi code core prompt))
+(import (liii check) (liii pi code cli args) (liii pi code core prompt))
 
 (check-set-mode! 'report-failed)
 
@@ -27,5 +27,15 @@
 (let-values (((prompt rest) (build-initial-prompt #f "" '())))
   (check prompt => "")
   (check rest => '()))
+
+;; 结合 parse-pi-args 与 build-initial-prompt 进行完整 prompt 组装测试
+(let* ((parsed (parse-pi-args '("--model" "gemini-3.8-flash" "--" "-h" "second message")))
+       (messages (pi-args-ref parsed 'messages)))
+  (let-values (((initial rest)
+                (build-initial-prompt "stdin text\n"
+                                      "<file name=\"/abs/path\">\nfile content\n</file>\n"
+                                      messages)))
+    (check initial => "stdin text\n<file name=\"/abs/path\">\nfile content\n</file>\n-h")
+    (check rest => '("second message"))))
 
 (check-report)

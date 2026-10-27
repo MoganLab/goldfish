@@ -1,4 +1,4 @@
-(import (liii check) (liii pi code core tools find))
+(import (liii check) (liii string) (liii pi code core tools find))
 
 (check-set-mode! 'report-failed)
 
@@ -6,5 +6,24 @@
 ;; 执行 find 工具按 pattern 查找文件。
 (let ((out (pi-execute-find '(("pattern" . "sample.txt")))))
   (check-true (string? out)))
+
+;; 查找 tools/pi 下匹配 *.scm 的文件
+(let ((out (pi-execute-find
+             (list (cons "pattern" "*.scm")
+                   (cons "path" (if (file-exists? "liii/pi/code/cli.scm") "." "tools/pi"))))))
+  (check-true (string? out))
+  (check-true (string-contains? out "cli.scm")))
+
+;; limit 生效与提示
+(let ((out (pi-execute-find '(("pattern" . "*.scm") ("path" . ".") ("limit" . 1)))))
+  (check-true (string-contains? out "[1 results limit reached]")))
+
+;; 无匹配文件
+(let ((out (pi-execute-find '(("pattern" . "non_existent_pattern_*.xyz") ("path" . ".")))))
+  (check out => "No files found matching pattern"))
+
+(check-catch 'error
+  (pi-execute-find '(("pattern" . "*.scm") ("path" . "non_existent_dir_99999"))))
+(check-catch 'error (pi-execute-find '(("pattern" . "*.scm")) :timed-out? #t))
 
 (check-report)
