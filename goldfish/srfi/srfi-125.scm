@@ -192,10 +192,15 @@
       ) ;let
     ) ;define
 
-    (define hash-table-for-each
-      (typed-lambda ((proc procedure?) (ht hash-table?))
-        (for-each (lambda (entry) (proc (car entry) (cdr entry))) (map values ht))
-      ) ;typed-lambda
+    (define (hash-table-for-each proc ht)
+      (unless (procedure? proc)
+        (error 'type-error
+          "hash-table-for-each: first argument must be a procedure"
+          proc
+        ) ;error
+      ) ;unless
+      (assert-hash-table-type ht hash-table-for-each)
+      (for-each (lambda (entry) (proc (car entry) (cdr entry))) (map values ht))
     ) ;define
 
     (define hash-table-map->list
