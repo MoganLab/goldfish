@@ -72,9 +72,13 @@ inline s7_pointer
 string_vector_to_s7_vector (s7_scheme* sc, vector<string> v) {
   int        N  = v.size ();
   s7_pointer ret= s7_make_vector (sc, N);
+  // 循环内 s7_make_string 可能触发 GC，构造中的 vector 必须保护，
+  // 否则大目录（数千条目）时返回悬挂对象 <free cell!>
+  s7_gc_protect_via_stack (sc, ret);
   for (int i= 0; i < N; i++) {
     s7_vector_set (sc, ret, i, s7_make_string (sc, v[i].c_str ()));
   }
+  s7_gc_unprotect_via_stack (sc, ret);
   return ret;
 }
 
