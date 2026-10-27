@@ -34,9 +34,9 @@
 (check-catch 'type-error (iso-8601->timestamp 12345))
 (check-catch 'type-error (iso-8601->timestamp "2026-01-02"))
 
-;; 时区偏移非法（如 "+ab:cd"）时报 type-error：
+;; 时区偏移非法（如 "+ab:cd"）时报 value-error：
 ;; string->number 可能返回 #f，不能直接参与乘法
-(check (catch 'type-error
+(check (catch 'value-error
          (lambda () (iso-8601->timestamp "2026-01-02T03:04:05+ab:cd"))
          (lambda (err-type info) (car info))
        ) ;catch

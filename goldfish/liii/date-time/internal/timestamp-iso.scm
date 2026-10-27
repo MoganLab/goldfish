@@ -143,7 +143,7 @@
                   (utc-offset-timezone (time-delta+ (hours-delta (* sign zh)) (minutes-delta (* sign zm)))
                   ) ;utc-offset-timezone
                 ) ;values
-                (error 'type-error "iso-8601->timestamp: invalid timezone offset" tz-str)
+                (error 'value-error "iso-8601->timestamp: invalid timezone offset" tz-str)
               ) ;if
             ) ;let
             (values t-str (utc-timezone))
