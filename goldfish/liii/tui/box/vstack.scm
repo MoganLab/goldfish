@@ -28,6 +28,12 @@
   (import (liii base) (liii error) (liii list) (liii tui component))
   (begin
 
+    (define-record-type <vstack-data>
+      (%make-vstack-data children)
+      %vstack-data?
+      (children %vstack-data-children)
+    ) ;define-record-type
+
     (define (%keyword-value key opts default)
       (let loop
         ((rest opts))
@@ -40,11 +46,7 @@
     ) ;define
 
     (define (vstack? obj)
-      (and (component? obj)
-        (let ((d (component-data obj)))
-          (and (pair? d) (eq? (car d) 'vstack))
-        ) ;let
-      ) ;and
+      (and (component? obj) (%vstack-data? (component-data obj)))
     ) ;define
 
     (define (%parse-children-and-opts args)
@@ -123,7 +125,7 @@
                      ) ;make-component
                ) ;comp
               ) ;
-          (component-data-set! comp (list 'vstack children))
+          (component-data-set! comp (%make-vstack-data children))
           comp
         ) ;let*
       ) ;let*
