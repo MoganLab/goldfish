@@ -27,12 +27,44 @@
   (export hint-liii/gfproject/config)
   (begin
 
+    ;; gfproject-root : (-> (or #f string?))
+    (define hint-gfproject-root '((-> (or #f string?))))
+
+    ;; gfproject-get-gf-lib : (-> string?)
+    (define hint-gfproject-get-gf-lib '((-> string?)))
+
+    ;; gfproject--opt-gf-lib : (list? -> string?)
+    (define hint-gfproject--opt-gf-lib '((list? -> string?)))
+
+    ;; 配置文件查找：可选参数为库目录。
+    (define hint-gfproject-find-lib-path
+      '((-> (or #f string?)) (string? -> (or #f string?)))
+    ) ;define
+    (define hint-gfproject-find-local-path '((-> (or #f string?))))
+
+    ;; JSON 配置统一使用 any?，避免把空配置 '(()) 误标为普通 alist。
+    (define hint-gfproject-read-file '((any? -> any?)))
+    (define hint-gfproject-extract-tools '((any? -> any?)))
+    (define hint-gfproject-deep-merge '((any? any? -> any?)))
+    (define hint-gfproject-load-config-bundle '((-> list?) (string? -> list?)))
+    (define hint-gfproject-load-config '((-> any?) (string? -> any?)))
+
     ;; bundle-ref : (alist? any? -> any?)
     ;; 命中返回 cdr 值，未命中返回 #f；(or #f any?) 等价于 any?
     (define hint-bundle-ref '((alist? any? -> any?)))
 
     (define (hint-liii/gfproject/config name)
       (case name
+       ((gfproject-root) hint-gfproject-root)
+       ((gfproject-get-gf-lib) hint-gfproject-get-gf-lib)
+       ((gfproject--opt-gf-lib) hint-gfproject--opt-gf-lib)
+       ((gfproject-find-lib-path) hint-gfproject-find-lib-path)
+       ((gfproject-find-local-path) hint-gfproject-find-local-path)
+       ((gfproject-read-file) hint-gfproject-read-file)
+       ((gfproject-extract-tools) hint-gfproject-extract-tools)
+       ((gfproject-deep-merge) hint-gfproject-deep-merge)
+       ((gfproject-load-config-bundle) hint-gfproject-load-config-bundle)
+       ((gfproject-load-config) hint-gfproject-load-config)
        ((bundle-ref) hint-bundle-ref)
        (else #f)
       ) ;case

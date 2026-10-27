@@ -28,9 +28,13 @@
     ;; every : 列表中每个元素都满足谓词时返回 #t
     (define hint-every '((procedure? list? -> boolean?)))
 
+    ;; filter : (procedure? list? -> list?)
+    (define hint-filter '((procedure? list? -> list?)))
+
     (define (hint-srfi/srfi-1 name)
       (case name
        ((every) hint-every)
+       ((filter) hint-filter)
        (else #f)
       ) ;case
     ) ;define

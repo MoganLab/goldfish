@@ -4,6 +4,16 @@
   (liii os)
   (liii path)
   (liii goldcheck type-hint)
+  (hint scheme base)
+  (hint scheme file)
+  (hint srfi srfi-1)
+  (hint srfi srfi-13)
+  (hint liii error)
+  (hint liii string)
+  (hint liii path)
+  (hint liii json)
+  (hint liii goldcheck path)
+  (hint liii goldfmt format writer)
 ) ;import
 
 ;; check-type-hint
@@ -82,14 +92,84 @@
 ;; --------------------------------------------------------------------
 (check (check-type-hint (resource-file "goldfish/hint/liii/clean.scm")) => '())
 
+;; 逐库状态：部分/全量覆盖，以及通过/失败。
+(let ((lines
+        (type-hint-status-lines
+          (list (resource-file "goldfish/hint/liii/arity.scm")
+            (resource-file "goldfish/hint/liii/clean.scm")
+            (resource-file "goldfish/hint/liii/inferok.scm")
+          ) ;list
+          (check-type-hint (resource-file "goldfish/hint/liii/arity.scm"))
+        ) ;type-hint-status-lines
+       )) ;
+  (check lines
+    =>
+    '("  [FULL FAIL\t] (liii arity)" "  [PARTIAL PASS\t] (liii clean)"
+      "  [FULL PASS\t] (liii inferok)")
+  ) ;check
+) ;let
+
 ;; --------------------------------------------------------------------
-;; 2. 真实仓库的 4 个 hint 库 -> 全部通过（当前基线）
+;; 2. 真实仓库的 hint 库 -> 全部通过（当前基线）
 ;; --------------------------------------------------------------------
 (for-each
   (lambda (f) (check (check-type-hint (repo-file f)) => '()))
   '("goldfish/hint/liii/alist.scm" "goldfish/hint/liii/error.scm"
-    "goldfish/hint/scheme/base.scm" "goldfish/hint/srfi/srfi-1.scm")
+    "goldfish/hint/liii/gfproject/config.scm" "goldfish/hint/scheme/base.scm"
+    "goldfish/hint/srfi/srfi-1.scm" "tools/check/hint/liii/goldcheck/no-glue.scm"
+    "goldfish/hint/scheme/file.scm" "tools/check/hint/liii/goldcheck/path.scm"
+    "goldfish/hint/liii/string.scm" "goldfish/hint/liii/path.scm"
+    "goldfish/hint/liii/json.scm"
+    "goldfish/hint/srfi/srfi-13.scm" "goldfish/hint/liii/goldfmt/format.scm"
+    "goldfish/hint/liii/goldfmt/format/writer.scm")
 ) ;for-each
+
+(check (type-hint-status-lines (list (repo-file "goldfish/hint/liii/gfproject/config.scm")
+                                  (repo-file "tools/check/hint/liii/goldcheck/path.scm")
+                                  (repo-file "goldfish/hint/liii/alist.scm")
+                                  (repo-file "goldfish/hint/liii/goldfmt/format.scm"))
+                                '())
+  =>
+  '("  [FULL PASS\t] (liii gfproject config)"
+    "  [FULL PASS\t] (liii goldcheck path)"
+    "  [FULL PASS\t] (liii alist)"
+    "  [FULL PASS\t] (liii goldfmt format)")
+) ;check
+
+;; no-glue 全量部分检查涉及的外部过程均已登记 hint。
+(for-each
+  (lambda (name) (check-true (pair? (hint-scheme/base name))))
+  '(car read open-input-string catch eof-object null? pair? pair-line-number
+    symbol? symbol->string eq? eqv? equal? assq cons list cdr reverse cadr
+    assoc caar append map cddr cadddr list-ref + dynamic-wind eof-object?
+    caddr close-input-port string=? = not apply cadar values error)
+) ;for-each
+(check-true (pair? (hint-scheme/file 'open-input-file)))
+(check-true (pair? (hint-srfi/srfi-1 'filter)))
+(check-true (pair? (hint-liii/goldcheck/path 'relativize-path)))
+(check-true (pair? (hint-liii/string 'string-ends?)))
+(check-true (pair? (hint-liii/string 'string-contains?)))
+(check-true (pair? (hint-liii/string 'string-split)))
+(check-true (pair? (hint-liii/string 'string-replace)))
+(check-true (pair? (hint-liii/path 'path->string)))
+(check-true (pair? (hint-liii/path 'path-join)))
+(check-true (pair? (hint-liii/path 'path-file?)))
+(check-true (pair? (hint-liii/path 'path-read-text)))
+(check-true (pair? (hint-liii/json 'string->json)))
+(check-true (pair? (hint-liii/json 'json-object?)))
+(check-true (pair? (hint-liii/json 'json-ref)))
+(check-true (pair? (hint-liii/json 'json-set)))
+(check-true (pair? (hint-liii/error 'type-error)))
+
+;; goldfmt format 全量检查涉及的公开依赖签名。
+(for-each
+  (lambda (name) (check-true (pair? (hint-scheme/base name))))
+  '(string-append string-length substring string-ref vector-ref vector-length
+    number? char=? > >= < <= - zero? call-with-values)
+) ;for-each
+(check-true (pair? (hint-srfi/srfi-13 'string-join)))
+(check-true (pair? (hint-liii/goldfmt/format/writer 'format-inline)))
+(check-true (pair? (hint-liii/goldfmt/format/writer 'can-inline?)))
 
 ;; --------------------------------------------------------------------
 ;; 3. A1 库名与路径不符：wrongname.scm 内是 (hint liii other) -> 1 违规
@@ -182,8 +262,9 @@
 ) ;check
 
 ;; --------------------------------------------------------------------
-;; 12. 文件级检查（spec 8.4 最小子集）：
-;;     调用实参类型与依赖库 hint 签名的确定冲突
+;; 12. 有 hint 的函数自身做部分类型检查（spec 8.4 最小子集）：
+;;     根据 import 依赖的 hint 检查确定的调用实参类型冲突；
+;;     不递归检查没有 hint 的本地依赖函数。
 ;; --------------------------------------------------------------------
 ;; 12a. (cdr (assoc k b))：assoc 返回 (or #f pair?)，cdr 需要 pair? -> 1 违规
 (let ((viol (check-type-hint (resource-file "goldfish/hint/liii/infercheck.scm"))))
@@ -193,9 +274,17 @@
   (check-true (string-contains? (cadddr (car viol)) "pair?"))
 ) ;let
 
-;; 12b. 合法调用（cons 返回 pair? 喂 car；any? 参数吃一切）-> '()
+;; 12b. good1/good2 均有 hint，覆盖全部导出函数：
+;;      内部函数 internal-bad 的确定冲突也应报告。
 (let ((viol (check-type-hint (resource-file "goldfish/hint/liii/inferok.scm"))))
-  (check viol => '())
+  (check (length viol) => 1)
+  (check-true (string-contains? (cadddr (car viol)) "my-cdr"))
+) ;let
+
+;; 12c. tools/check 的局部 hint 根缺少基础签名时，回退到 goldfish/hint
+(let ((viol (check-type-hint (resource-file "tools/check/hint/liii/base-fallback.scm"))))
+  (check (length viol) => 1)
+  (check-true (string-contains? (cadddr (car viol)) "cadr"))
 ) ;let
 
 ;; --------------------------------------------------------------------

@@ -29,6 +29,7 @@
     (liii goldcheck type-hint parse)
     (liii goldcheck type-hint util)
     (liii goldcheck type-hint hint-data)
+    (liii goldcheck type-hint env)
   ) ;import
   (export check-infer)
   (begin
@@ -179,67 +180,6 @@
 
     ;; ---------- 环境与检查 ----------
 
-    (define (hint-root-of hint-file)
-      (let loop
-        ((pre '()) (rest (split-slash (normalize-sep hint-file))))
-        (cond ((null? rest) #f)
-              ((string=? (car rest) "hint")
-               (join-strings (append (reverse pre) '("hint")) "/")
-              ) ;
-              (else (loop (cons (car rest) pre) (cdr rest)))
-        ) ;cond
-      ) ;let
-    ) ;define
-
-    ;; 登记条目 -> (name . sigs) 绑定；变量未定义时值为 #f
-    (define (entry->binding e vars)
-      (let ((d (find-def (cadr e) vars)))
-        (cons (car e) (if d (signature-value d) #f))
-      ) ;let
-    ) ;define
-
-    ;; 解析后的 hint 信息 -> 类型环境条目列表
-    (define (hint-env-entries info)
-      (let* ((qname (query-func-name (lib-name info)))
-             (vars (hint-var-defs info))
-             (entries (registered-entries info qname))
-            ) ;
-        (filter
-          (lambda (kv) (and (cdr kv) (list? (cdr kv))))
-          (map (lambda (e) (entry->binding e vars)) entries)
-        ) ;filter
-      ) ;let*
-    ) ;define
-
-    ;; 加载单个 hint 库的登记 -> ((name . sigs) ...)
-    (define (load-hint-env lib-syms hint-root)
-      (let ((path (string-append hint-root
-                    "/"
-                    (join-strings (map symbol->string lib-syms) "/")
-                    ".scm"
-                  ) ;string-append
-            ) ;path
-           ) ;
-        (if (not (file-exists? path))
-          '()
-          (let ((info (parse-library-file path)))
-            (if info (hint-env-entries info) '())
-          ) ;let
-        ) ;if
-      ) ;let
-    ) ;define
-
-    (define (build-env oinfo hint-file)
-      (let ((hint-root (hint-root-of hint-file)))
-        (if (not hint-root)
-          '()
-          (apply append
-            (map (lambda (lib) (load-hint-env lib hint-root)) (lib-imports oinfo))
-          ) ;apply
-        ) ;if
-      ) ;let
-    ) ;define
-
     ;; define 的体表达式列表
     (define (def-bodies d)
       (let ((e (def-expr d)))
@@ -339,22 +279,30 @@
     ) ;define
 
     (define (check-infer hint-file)
-      "检查原库源码体内的调用类型冲突，返回违规列表；\n违规定位到原库文件"
+      "导出函数均有签名时检查全库，否则只检查有签名的函数。"
       (let ((orig (orig-lib-path hint-file)))
         (if (not (and orig (file-exists? orig)))
           '()
           (let ((oinfo (parse-library-file orig)))
             (if (not oinfo)
               '()
-              (let ((env (build-env oinfo hint-file)) (orig-rel (relativize-path orig)))
+              (let* ((env (build-env oinfo hint-file))
+                     (orig-rel (relativize-path orig))
+                     (definitions
+                       (if (full-coverage? env oinfo)
+                         (lib-defines oinfo)
+                         (filter (lambda (d) (assq (def-name d) env)) (lib-defines oinfo))
+                       ) ;if
+                     ) ;definitions
+                    ) ;
                 (let loop
-                  ((ds (lib-defines oinfo)) (acc '()))
+                  ((ds definitions) (acc '()))
                   (if (null? ds)
                     (reverse acc)
                     (loop (cdr ds) (walk-bodies orig-rel (def-bodies (car ds)) env acc))
                   ) ;if
                 ) ;let
-              ) ;let
+              ) ;let*
             ) ;if
           ) ;let
         ) ;if

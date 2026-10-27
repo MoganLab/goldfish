@@ -13,5 +13,10 @@
     (define (good2 x)
       (my-cons 'a x)
     ) ;define
+
+    ;; 所有导出函数都有 hint 时，未标记的内部函数也做部分检查。
+    (define (internal-bad)
+      (my-cdr (my-assoc 'a '()))
+    ) ;define
   ) ;begin
 ) ;define-library

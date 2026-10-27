@@ -2,7 +2,7 @@
 ;; my-cdr 需要 pair?
 
 (define-library (liii infercheck)
-  (import (liii dep))
+  (import (liii reexport-dep))
   (export bad-ref ok-unknown)
   (begin
 
@@ -14,6 +14,11 @@
     ;; 变量实参为 unknown，不报
     (define (ok-unknown x)
       (my-cdr (my-cdr x))
+    ) ;define
+
+    ;; 没有 hint，即使有确定冲突也不检查
+    (define (unmarked-bad)
+      (my-cdr (my-assoc 'a '()))
     ) ;define
   ) ;begin
 ) ;define-library

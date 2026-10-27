@@ -370,6 +370,9 @@
             (if only
               (let ((result (only-rule-result parser cfg only files)))
                 (display-rule-result result)
+                (when (string=? only "type-hint")
+                  (display-type-hint-statuses (vector->list (cadddr result)))
+                ) ;when
                 (report-and-exit (cadddr result) (caddr result))
               ) ;let
               (let* ((rules (enabled-rule-names cfg0))
