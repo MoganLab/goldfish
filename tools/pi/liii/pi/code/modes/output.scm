@@ -106,21 +106,20 @@
       (apply string-append (map %block-text (%to-block-list content)))
     ) ;define
 
+    (define (%message-text msg)
+      (pi-content-text (pi-message-field msg 'content '()))
+    ) ;define
+
     (define (pi-last-assistant-text msgs)
       (or
         (let ((msg
                 (find
-                  (lambda (msg)
-                    (not
-                      (string-null? (string-trim-both (pi-content-text (pi-message-field msg 'content '())))
-                      ) ;string-null?
-                    ) ;not
-                  ) ;lambda
+                  (lambda (msg) (not (string-null? (string-trim-both (%message-text msg)))))
                   (reverse msgs)
                 ) ;find
               ) ;msg
              ) ;
-          (and msg (pi-content-text (pi-message-field msg 'content '())))
+          (and msg (%message-text msg))
         ) ;let
         ""
       ) ;or
