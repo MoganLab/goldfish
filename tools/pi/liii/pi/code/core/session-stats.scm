@@ -128,13 +128,14 @@
                ) ;let
              ) ;first-len
             ) ;
-        (let loop
-          ((pos first-len) (parts (list (substring text 0 first-len))))
-          (if (>= pos len)
-            (string-join (reverse parts) ",")
-            (loop (+ pos 3) (cons (substring text pos (+ pos 3)) parts))
-          ) ;if
-        ) ;let
+        (string-join
+          (cons (substring text 0 first-len)
+            (map (lambda (pos) (substring text pos (+ pos 3)))
+              (iota (quotient (- len first-len) 3) first-len 3)
+            ) ;map
+          ) ;cons
+          ","
+        ) ;string-join
       ) ;let*
     ) ;define
 
