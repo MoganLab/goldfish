@@ -121,12 +121,10 @@
              ) ;fixed-rules
              (all-rules (append bash-rule tool-gl fixed-rules))
              (unique-rules
-               (reverse
-                 (fold (lambda (rule acc) (if (member rule acc) acc (cons rule acc)))
-                   '()
-                   all-rules
-                 ) ;fold
-               ) ;reverse
+               (fold-right (lambda (rule acc) (if (member rule acc) acc (cons rule acc)))
+                 '()
+                 all-rules
+               ) ;fold-right
              ) ;unique-rules
             ) ;
         (string-join (map (lambda (x) (string-append "- " x)) unique-rules) "\n")
