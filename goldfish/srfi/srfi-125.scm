@@ -27,9 +27,12 @@
   (begin
 
     (define (assert-hash-table-type ht f)
-      (when (not (hash-table? ht))
-        (error 'type-error f "this parameter must be typed as hash-table")
-      ) ;when
+      (unless (hash-table? ht)
+        (error 'type-error
+          (string-append (symbol->string f) ": this parameter must be a hash-table")
+          ht
+        ) ;error
+      ) ;unless
     ) ;define
 
     (define (make-hash-table . args)
