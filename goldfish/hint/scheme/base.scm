@@ -23,7 +23,7 @@
 
 (define-library (hint scheme base)
   (import (scheme base))
-  (export hint-scheme-base)
+  (export hint-scheme/base)
   (begin
 
     ;; 谓词
@@ -57,7 +57,7 @@
     ;; 错误抛出：(error type message . irritants)
     (define hint-error '((any? any? -> any?)))
 
-    (define (hint-scheme-base name)
+    (define (hint-scheme/base name)
       (case name
        ((list?) hint-list?)
        ((pair?) hint-pair?)

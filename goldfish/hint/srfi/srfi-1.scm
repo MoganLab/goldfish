@@ -22,13 +22,13 @@
 
 (define-library (hint srfi srfi-1)
   (import (scheme base))
-  (export hint-srfi-srfi-1)
+  (export hint-srfi/srfi-1)
   (begin
 
     ;; every : 列表中每个元素都满足谓词时返回 #t
     (define hint-every '((procedure? list? -> boolean?)))
 
-    (define (hint-srfi-srfi-1 name)
+    (define (hint-srfi/srfi-1 name)
       (case name
        ((every) hint-every)
        (else #f)

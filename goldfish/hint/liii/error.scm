@@ -22,13 +22,13 @@
 
 (define-library (hint liii error)
   (import (scheme base))
-  (export hint-liii-error)
+  (export hint-liii/error)
   (begin
 
     ;; key-error : (key-error message . irritants)
     (define hint-key-error '((any? any? -> any?)))
 
-    (define (hint-liii-error name)
+    (define (hint-liii/error name)
       (case name
        ((key-error) hint-key-error)
        (else #f)

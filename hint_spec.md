@@ -41,12 +41,12 @@ Hint 库只由文档、检查和其他开发工具显式加载。
 
 | 原库 | Hint 库 | 标准查询函数 |
 | --- | --- | --- |
-| `(scheme base)` | `(hint scheme base)` | `hint-scheme-base` |
-| `(scheme write)` | `(hint scheme write)` | `hint-scheme-write` |
-| `(liii list)` | `(hint liii list)` | `hint-liii-list` |
-| `(liii xyz)` | `(hint liii xyz)` | `hint-liii-xyz` |
+| `(scheme base)` | `(hint scheme base)` | `hint-scheme/base` |
+| `(scheme write)` | `(hint scheme write)` | `hint-scheme/write` |
+| `(liii list)` | `(hint liii list)` | `hint-liii/list` |
+| `(liii xyz)` | `(hint liii xyz)` | `hint-liii/xyz` |
 
-查询函数名由原库各部分的名称用 `-` 连接，并添加 `hint-` 前缀。
+查询函数名由原库各部分的名称用 `/` 连接，并添加 `hint-` 前缀。
 
 ### 4.1 文件路径
 
@@ -79,7 +79,7 @@ Hint 库之间零依赖：任何 `(hint ...)` 库都不得导入其他 hint 库�
 ```scheme
 (define-library (hint liii xyz)
   (import (scheme base))
-  (export hint-liii-xyz)
+  (export hint-liii/xyz)
   (begin
     (define hint-buzz
       '((string? -> integer?)))
@@ -88,7 +88,7 @@ Hint 库之间零依赖：任何 `(hint ...)` 库都不得导入其他 hint 库�
       '((integer? integer? -> string?)
         (string? string? -> string?)))
 
-    (define (hint-liii-xyz name)
+    (define (hint-liii/xyz name)
       (case name
         ((buzz) hint-buzz)
         ((fizz) hint-fizz)
@@ -100,10 +100,10 @@ Hint 库之间零依赖：任何 `(hint ...)` 库都不得导入其他 hint 库�
 ```scheme
 (import (hint liii xyz))
 
-(hint-liii-xyz 'buzz)
+(hint-liii/xyz 'buzz)
 ;; => ((string? -> integer?))
 
-(hint-liii-xyz 'not-exported)
+(hint-liii/xyz 'not-exported)
 ;; => #f
 ```
 
@@ -122,10 +122,10 @@ Hint 库之间零依赖：任何 `(hint ...)` 库都不得导入其他 hint 库�
 Hint 库可以选择导出 `hint-buzz` 等单函数签名数据，但这种导出是可选的。例如：
 
 ```scheme
-(export hint-liii-xyz hint-buzz)
+(export hint-liii/xyz hint-buzz)
 ```
 
-`hint-liii-xyz` 必须导出，`hint-buzz` 是否导出由库维护者决定。`gf doc`、
+`hint-liii/xyz` 必须导出，`hint-buzz` 是否导出由库维护者决定。`gf doc`、
 `gf check` 和其他通用工具不得依赖这些可选绑定，只能依赖标准查询函数和
 后文定义的统一解析接口。
 
@@ -150,7 +150,7 @@ Hint 库可以选择导出 `hint-buzz` 等单函数签名数据，但这种导�
 1. 确认 `every` 确实由 `(liii list)` 导出。
 2. 查询 `(hint liii list)` 的本地签名；若存在则直接返回。
 3. 若过程来自再导出，根据原库的导入、导出和重命名关系确定来源库。
-4. 递归查询来源库，最终调用 `(hint-srfi-srfi-1 'every)` 获取唯一签名。
+4. 递归查询来源库，最终调用 `(hint-srfi/srfi-1 'every)` 获取唯一签名。
 
 无法自动确定来源时，可以补充少量 re-export 来源元数据，但仍不得复制类型
 签名，也不得让再导出库的 hint 导入来源 hint。`gf doc` 和 `gf check` 查询库
@@ -169,7 +169,7 @@ Hint 库可以选择导出 `hint-buzz` 等单函数签名数据，但这种导�
 例如：
 
 ```scheme
-(hint-liii-xyz 'buzz)
+(hint-liii/xyz 'buzz)
 ;; => ((string? -> integer?))
 ```
 
@@ -201,7 +201,7 @@ Hint 库可以选择导出 `hint-buzz` 等单函数签名数据，但这种导�
 查询结果始终保留这一层列表结构：
 
 ```scheme
-(hint-liii-xyz 'convert)
+(hint-liii/xyz 'convert)
 ;; => ((string? -> integer?)
 ;;     (integer? -> string?)
 ;;     (string? integer? -> integer?))
@@ -472,7 +472,7 @@ goldfish/hint/liii/list.scm
 对于 `(liii xyz)` 自己实现的 `buzz`，`hint-ref` 最终调用：
 
 ```scheme
-(hint-liii-xyz 'buzz)
+(hint-liii/xyz 'buzz)
 ```
 
 多个 hint 库使用不同的查询函数名，因此可以同时导入而不会因统一查询函数名
@@ -494,7 +494,7 @@ goldfish/hint/liii/list.scm
 例如，已知：
 
 ```scheme
-(hint-liii-xyz 'buzz)
+(hint-liii/xyz 'buzz)
 ;; => ((string? -> integer?))
 ```
 

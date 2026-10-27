@@ -30,7 +30,7 @@
 
 (define-library (hint liii alist)
   (import (scheme base))
-  (export hint-liii-alist)
+  (export hint-liii/alist)
   (begin
 
     ;; alist? : (any? -> boolean?)
@@ -54,7 +54,7 @@
     ;; vector->alist : (vector? -> alist?)
     (define hint-vector->alist '((vector? -> alist?)))
 
-    (define (hint-liii-alist name)
+    (define (hint-liii/alist name)
       (case name
        ((alist?) hint-alist?)
        ((alist-ref) hint-alist-ref)
