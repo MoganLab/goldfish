@@ -57,42 +57,34 @@
       ) ;map
     ) ;define
 
+    (define (%message-tool-paths msg)
+      (let ((normalized (%normalize-message msg)))
+        (if (equal? (%ref normalized "role") "assistant") (%tool-paths normalized) '())
+      ) ;let
+    ) ;define
+
+    (define (%group-file-op op groups)
+      (let ((name (car op))
+            (path (cdr op))
+            (read (car groups))
+            (written (cadr groups))
+            (edited (caddr groups))
+           ) ;
+        (cond ((equal? name "read") (list (%add-unique read path) written edited))
+              ((equal? name "write") (list read (%add-unique written path) edited))
+              (else (list read written (%add-unique edited path)))
+        ) ;cond
+      ) ;let
+    ) ;define
+
     (define (pi-extract-file-ops msgs)
-      (let* ((ops
-               (append-map
-                 (lambda (msg)
-                   (let ((normalized (%normalize-message msg)))
-                     (if (equal? (%ref normalized "role") "assistant") (%tool-paths normalized) '())
-                   ) ;let
-                 ) ;lambda
-                 msgs
-               ) ;append-map
-             ) ;ops
-             (groups
-               (fold
-                 (lambda (op groups)
-                   (let ((name (car op))
-                         (path (cdr op))
-                         (read (car groups))
-                         (written (cadr groups))
-                         (edited (caddr groups))
-                        ) ;
-                     (cond ((equal? name "read") (list (%add-unique read path) written edited))
-                           ((equal? name "write") (list read (%add-unique written path) edited))
-                           (else (list read written (%add-unique edited path)))
-                     ) ;cond
-                   ) ;let
-                 ) ;lambda
-                 '(() () ())
-                 ops
-               ) ;fold
-             ) ;groups
-            ) ;
+      (let ((groups (fold %group-file-op '(() () ()) (append-map %message-tool-paths msgs)))
+           ) ;
         (list (cons 'read (car groups))
           (cons 'written (cadr groups))
           (cons 'edited (caddr groups))
         ) ;list
-      ) ;let*
+      ) ;let
     ) ;define
 
     (define (pi-compute-file-lists file-ops)
