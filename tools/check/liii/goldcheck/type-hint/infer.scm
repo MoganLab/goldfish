@@ -111,6 +111,31 @@
     ;; ---------- 类型推导 ----------
 
     ;; 表达式 -> 类型（符号、 或 #f 表示 unknown）
+    ;; 候选签名的公共返回类型：唯一则返回该类型，否则 #f
+    (define (call-return-type sigs expr env)
+      (let ((survivors (filter (lambda (s) (call-args-ok? s expr env)) sigs)))
+        (if (null? survivors)
+          #f
+          (same-return-type
+            (map
+              (lambda (s) (let ((p (signature-parts s))) (if p (cadr p) #f)))
+              survivors
+            ) ;map
+          ) ;same-return-type
+        ) ;if
+      ) ;let
+    ) ;define
+
+    (define (same-return-type rets)
+      (let loop
+        ((rs rets))
+        (cond ((null? rs) (car rets))
+              ((not (equal? (car rs) (car rets))) #f)
+              (else (loop (cdr rs)))
+        ) ;cond
+      ) ;let
+    ) ;define
+
     (define (infer-type expr env)
       (cond ((integer? expr) 'integer?)
             ((number? expr) 'number?)
@@ -128,29 +153,7 @@
             ) ;
             ((and (pair? expr) (symbol? (car expr)))
              (let ((sigs (assq (car expr) env)))
-               (if (not sigs)
-                 #f
-                 (let ((survivors (filter (lambda (s) (call-args-ok? s expr env)) (cdr sigs))))
-                   (if (null? survivors)
-                     #f
-                     (let ((rets
-                             (map
-                               (lambda (s) (let ((p (signature-parts s))) (if p (cadr p) #f)))
-                               survivors
-                             ) ;map
-                           ) ;rets
-                          ) ;
-                       (let loop
-                         ((rs rets))
-                         (cond ((null? rs) (car rets))
-                               ((not (equal? (car rs) (car rets))) #f)
-                               (else (loop (cdr rs)))
-                         ) ;cond
-                       ) ;let
-                     ) ;let
-                   ) ;if
-                 ) ;let
-               ) ;if
+               (if (not sigs) #f (call-return-type (cdr sigs) expr env))
              ) ;let
             ) ;
             (else #f)
@@ -188,6 +191,26 @@
       ) ;let
     ) ;define
 
+    ;; 登记条目 -> (name . sigs) 绑定；变量未定义时值为 #f
+    (define (entry->binding e vars)
+      (let ((d (find-def (cadr e) vars)))
+        (cons (car e) (if d (signature-value d) #f))
+      ) ;let
+    ) ;define
+
+    ;; 解析后的 hint 信息 -> 类型环境条目列表
+    (define (hint-env-entries info)
+      (let* ((qname (query-func-name (lib-name info)))
+             (vars (hint-var-defs info))
+             (entries (registered-entries info qname))
+            ) ;
+        (filter
+          (lambda (kv) (and (cdr kv) (list? (cdr kv))))
+          (map (lambda (e) (entry->binding e vars)) entries)
+        ) ;filter
+      ) ;let*
+    ) ;define
+
     ;; 加载单个 hint 库的登记 -> ((name . sigs) ...)
     (define (load-hint-env lib-syms hint-root)
       (let ((path (string-append hint-root
@@ -200,34 +223,7 @@
         (if (not (file-exists? path))
           '()
           (let ((info (parse-library-file path)))
-            (if (not info)
-              '()
-              (let* ((qname (query-func-name (lib-name info)))
-                     (vars (hint-var-defs info))
-                     (entries (registered-entries info qname))
-                    ) ;
-                (filter
-                  (lambda (kv) (and (cdr kv) (list? (cdr kv))))
-                  (map
-                    (lambda (e)
-                      (let ((d
-                              (let loop
-                                ((ds vars))
-                                (cond ((null? ds) #f)
-                                      ((eq? (def-name (car ds)) (cadr e)) (car ds))
-                                      (else (loop (cdr ds)))
-                                ) ;cond
-                              ) ;let
-                            ) ;d
-                           ) ;
-                        (cons (car e) (if d (signature-value d) #f))
-                      ) ;let
-                    ) ;lambda
-                    entries
-                  ) ;map
-                ) ;filter
-              ) ;let*
-            ) ;if
+            (if info (hint-env-entries info) '())
           ) ;let
         ) ;if
       ) ;let
@@ -277,40 +273,37 @@
       ) ;if
     ) ;define
 
+    ;; 数量匹配的候选签名
+    (define (arity-match-sigs sigs nargs)
+      (filter
+        (lambda (s) (let ((p (signature-parts s))) (and p (= (length (car p)) nargs))))
+        sigs
+      ) ;filter
+    ) ;define
+
+    ;; 签名第 idx（从 1 计）个参数类型；无签名部分时 any?
+    (define (sig-param-type s idx)
+      (let ((p (signature-parts s)))
+        (if p (list-ref (car p) (- idx 1)) 'any?)
+      ) ;let
+    ) ;define
+
+    ;; 保留第 idx 参数可接受 ti 的候选
+    (define (pos-accept-sigs cands idx ti)
+      (filter (lambda (s) (%accepts? (sig-param-type s idx) ti)) cands)
+    ) ;define
+
     (define (check-call rel expr env acc)
       (let* ((f (car expr))
              (sigs (cdr (assq f env)))
-             (alive
-               (filter
-                 (lambda (s)
-                   (let ((p (signature-parts s)))
-                     (and p (= (length (car p)) (length (cdr expr))))
-                   ) ;let
-                 ) ;lambda
-                 sigs
-               ) ;filter
-             ) ;alive
+             (alive (arity-match-sigs sigs (length (cdr expr))))
              (line (form-line expr))
             ) ;
         (let loop
           ((i 1) (args (cdr expr)) (cands alive))
           (if (or (null? args) (null? cands))
             acc
-            (let* ((ti (infer-type (car args) env))
-                   (ok-cands
-                     (filter
-                       (lambda (s)
-                         (%accepts?
-                           (let ((p (signature-parts s)))
-                             (if p (list-ref (car p) (- i 1)) 'any?)
-                           ) ;let
-                           ti
-                         ) ;%accepts?
-                       ) ;lambda
-                       cands
-                     ) ;filter
-                   ) ;ok-cands
-                  ) ;
+            (let* ((ti (infer-type (car args) env)) (ok-cands (pos-accept-sigs cands i ti)))
               (if (and ti (not (eq? ti 'unknown)) (null? ok-cands))
                 (cons
                   (list 'type-hint
@@ -321,11 +314,7 @@
                       " of "
                       (symbol->string f)
                       " requires "
-                      (object->string
-                        (let ((p (signature-parts (car alive))))
-                          (if p (list-ref (car p) (- i 1)) 'any?)
-                        ) ;let
-                      ) ;object->string
+                      (object->string (sig-param-type (car alive) i))
                       ", got "
                       (object->string ti)
                     ) ;string-append
@@ -338,6 +327,14 @@
           ) ;if
         ) ;let
       ) ;let*
+    ) ;define
+
+    ;; 遍历单个 define 的体表达式列表
+    (define (walk-bodies orig-rel bodies env acc)
+      (let loop
+        ((bs bodies) (a acc))
+        (if (null? bs) a (loop (cdr bs) (walk orig-rel (car bs) env a)))
+      ) ;let
     ) ;define
 
     (define (check-infer hint-file)
@@ -353,12 +350,7 @@
                   ((ds (lib-defines oinfo)) (acc '()))
                   (if (null? ds)
                     (reverse acc)
-                    (loop (cdr ds)
-                      (let body-loop
-                        ((bs (def-bodies (car ds))) (a acc))
-                        (if (null? bs) a (body-loop (cdr bs) (walk orig-rel (car bs) env a)))
-                      ) ;let
-                    ) ;loop
+                    (loop (cdr ds) (walk-bodies orig-rel (def-bodies (car ds)) env acc))
                   ) ;if
                 ) ;let
               ) ;let

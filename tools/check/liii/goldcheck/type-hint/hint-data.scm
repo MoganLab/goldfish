@@ -27,7 +27,7 @@
   ) ;import
   (export quote-marker? query-func-name expected-lib-name orig-lib-path
     hint-var-defs signature-value query-define registered-entries type-ok?
-    signature-parts signature-ok? signature-arity
+    signature-parts signature-ok? signature-arity find-def
   ) ;export
   (begin
 
@@ -143,6 +143,17 @@
                 (else (find-case (cdr body)))
           ) ;cond
         ) ;let
+      ) ;let
+    ) ;define
+
+    ;; 在 def 记录列表中按名字查找
+    (define (find-def name ds)
+      (let loop
+        ((ds ds))
+        (cond ((null? ds) #f)
+              ((eq? (def-name (car ds)) name) (car ds))
+              (else (loop (cdr ds)))
+        ) ;cond
       ) ;let
     ) ;define
 
