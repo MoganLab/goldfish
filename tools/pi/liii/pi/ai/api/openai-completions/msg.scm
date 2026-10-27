@@ -8,6 +8,7 @@
   (import (scheme base)
     (liii string)
     (liii json)
+    (liii list)
     (liii pi ai message)
     (liii pi ai event)
     (liii pi ai tools types)
@@ -61,29 +62,45 @@
       ) ;map
     ) ;define
 
+    (define (%block->text blk)
+      (cond ((string? blk) blk)
+            ((pi-text-block? blk) (pi-text-block-text blk))
+            ((pair? blk) (%val 'text blk ""))
+            (else "")
+      ) ;cond
+    ) ;define
+
     (define (%msg-text-content content)
       (cond ((string? content) content)
             ((vector? content) (%msg-text-content (vector->list content)))
-            ((pair? content)
-             (let loop
-               ((lst content) (acc ""))
-               (if (null? lst)
-                 acc
-                 (let* ((blk (car lst))
-                        (t (cond ((string? blk) blk)
-                                 ((pi-text-block? blk) (pi-text-block-text blk))
-                                 ((pair? blk) (%val 'text blk ""))
-                                 (else "")
-                           ) ;cond
-                        ) ;t
-                       ) ;
-                   (loop (cdr lst) (string-append acc t))
-                 ) ;let*
-               ) ;if
-             ) ;let
-            ) ;
+            ((pair? content) (apply string-append (map %block->text content)))
             (else "")
       ) ;cond
+    ) ;define
+
+    (define (%assistant-text-block? blk)
+      (or (pi-text-block? blk) (equal? (%val 'type blk "") "text"))
+    ) ;define
+
+    (define (%assistant-block->tool-call blk)
+      (and (or (pi-tool-call-block? blk) (equal? (%val 'type blk "") "toolCall"))
+        (let* ((id (if (pi-tool-call-block? blk) (pi-tool-call-block-id blk) (%val 'id blk ""))
+               ) ;id
+               (name (if (pi-tool-call-block? blk) (pi-tool-call-block-name blk) (%val 'name blk ""))
+               ) ;name
+               (raw-args (if (pi-tool-call-block? blk)
+                           (pi-tool-call-block-arguments blk)
+                           (%val 'arguments blk '())
+                         ) ;if
+               ) ;raw-args
+               (args-str (if (string? raw-args) raw-args (json->string raw-args)))
+              ) ;
+          (list (cons "id" id)
+            (cons "type" "function")
+            (cons "function" (list (cons "name" name) (cons "arguments" args-str)))
+          ) ;list
+        ) ;let*
+      ) ;and
     ) ;define
 
     (define (%convert-assistant-msg msg)
@@ -93,107 +110,62 @@
                            (else '())
                      ) ;cond
              ) ;c-list
-             (text-acc "")
-             (tc-acc '())
+             (text-acc (%msg-text-content (filter %assistant-text-block? c-list)))
+             (tc-acc (filter (lambda (tc) tc) (map %assistant-block->tool-call c-list)))
             ) ;
-        (for-each
-          (lambda (blk)
-            (cond
-             ((or (pi-text-block? blk) (equal? (%val 'type blk "") "text"))
-              (set! text-acc
-                (string-append text-acc
-                  (if (pi-text-block? blk) (pi-text-block-text blk) (%val 'text blk ""))
-                ) ;string-append
-              ) ;set!
-             ) ;
-             ((or (pi-tool-call-block? blk) (equal? (%val 'type blk "") "toolCall"))
-              (let* ((id (if (pi-tool-call-block? blk) (pi-tool-call-block-id blk) (%val 'id blk ""))
-                     ) ;id
-                     (name (if (pi-tool-call-block? blk) (pi-tool-call-block-name blk) (%val 'name blk ""))
-                     ) ;name
-                     (raw-args (if (pi-tool-call-block? blk)
-                                 (pi-tool-call-block-arguments blk)
-                                 (%val 'arguments blk '())
-                               ) ;if
-                     ) ;raw-args
-                     (args-str (if (string? raw-args) raw-args (json->string raw-args)))
-                     (tc
-                       (list (cons "id" id)
-                         (cons "type" "function")
-                         (cons "function" (list (cons "name" name) (cons "arguments" args-str)))
-                       ) ;list
-                     ) ;tc
-                    ) ;
-                (set! tc-acc (cons tc tc-acc))
-              ) ;let*
-             ) ;
-            ) ;cond
-          ) ;lambda
-          c-list
-        ) ;for-each
         (if (pair? tc-acc)
           (list (cons "role" "assistant")
-            (cons "content" (if (string-null? text-acc) "" text-acc))
-            (cons "tool_calls" (list->vector (reverse tc-acc)))
+            (cons "content" text-acc)
+            (cons "tool_calls" (list->vector tc-acc))
           ) ;list
           (list (cons "role" "assistant") (cons "content" text-acc))
         ) ;if
       ) ;let*
     ) ;define
 
+    (define (%convert-message msg)
+      (let ((role (%val 'role msg "")))
+        (cond
+         ((equal? role "user")
+          (list (cons "role" "user")
+            (cons "content" (%msg-text-content (%val 'content msg "")))
+          ) ;list
+         ) ;
+         ((equal? role "assistant") (%convert-assistant-msg msg))
+         ((equal? role "toolResult")
+          (let ((call-id (if (pi-tool-result-message? msg)
+                           (pi-tool-result-message-tool-call-id msg)
+                           (%val 'toolCallId msg "")
+                         ) ;if
+                ) ;call-id
+                (text (if (pi-tool-result-message? msg)
+                        (%msg-text-content (pi-tool-result-message-content msg))
+                        (%msg-text-content (%val 'content msg ""))
+                      ) ;if
+                ) ;text
+               ) ;
+            (list (cons "role" "tool") (cons "tool_call_id" call-id) (cons "content" text))
+          ) ;let
+         ) ;
+         (else #f)
+        ) ;cond
+      ) ;let
+    ) ;define
+
     (define (openai-build-messages messages system-instruction)
-      (let* ((acc '())
-             (acc
-               (if
-                 (and (string? system-instruction)
-                   (not (string-null? (string-trim-both system-instruction)))
-                 ) ;and
-                 (cons (list (cons "role" "system") (cons "content" system-instruction)) acc)
-                 acc
-               ) ;if
-             ) ;acc
-            ) ;
-        (for-each
-          (lambda (msg)
-            (let ((role (%val 'role msg "")))
-              (cond
-               ((equal? role "user")
-                (set! acc
-                  (cons
-                    (list (cons "role" "user")
-                      (cons "content" (%msg-text-content (%val 'content msg "")))
-                    ) ;list
-                    acc
-                  ) ;cons
-                ) ;set!
-               ) ;
-               ((equal? role "assistant") (set! acc (cons (%convert-assistant-msg msg) acc)))
-               ((equal? role "toolResult")
-                (let ((call-id (if (pi-tool-result-message? msg)
-                                 (pi-tool-result-message-tool-call-id msg)
-                                 (%val 'toolCallId msg "")
-                               ) ;if
-                      ) ;call-id
-                      (text (if (pi-tool-result-message? msg)
-                              (%msg-text-content (pi-tool-result-message-content msg))
-                              (%msg-text-content (%val 'content msg ""))
-                            ) ;if
-                      ) ;text
-                     ) ;
-                  (set! acc
-                    (cons (list (cons "role" "tool") (cons "tool_call_id" call-id) (cons "content" text))
-                      acc
-                    ) ;cons
-                  ) ;set!
-                ) ;let
-               ) ;
-              ) ;cond
-            ) ;let
-          ) ;lambda
-          messages
-        ) ;for-each
-        (list->vector (reverse acc))
-      ) ;let*
+      (let ((converted (filter (lambda (msg) msg) (map %convert-message messages))))
+        (list->vector
+          (if
+            (and (string? system-instruction)
+              (not (string-null? (string-trim-both system-instruction)))
+            ) ;and
+            (cons (list (cons "role" "system") (cons "content" system-instruction))
+              converted
+            ) ;cons
+            converted
+          ) ;if
+        ) ;list->vector
+      ) ;let
     ) ;define
 
     (define (openai-build-request-body model-id messages stream? tool-decls max-tokens)

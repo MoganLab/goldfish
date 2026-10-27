@@ -185,18 +185,20 @@
       (let ((tiers (%val 'tiers cost-rates '())))
         (if (not (pair? tiers))
           cost-rates
-          (let loop
-            ((t-list tiers) (best cost-rates) (max-thresh -1))
-            (if (null? t-list)
-              best
-              (let* ((tier (car t-list)) (thresh (%val 'inputTokensAbove tier -1)))
-                (if (and (> total-input-tokens thresh) (> thresh max-thresh))
-                  (loop (cdr t-list) tier thresh)
-                  (loop (cdr t-list) best max-thresh)
-                ) ;if
-              ) ;let*
-            ) ;if
-          ) ;let
+          (car
+            (fold
+              (lambda (tier best)
+                (let ((thresh (%val 'inputTokensAbove tier -1)))
+                  (if (and (> total-input-tokens thresh) (> thresh (cdr best)))
+                    (cons tier thresh)
+                    best
+                  ) ;if
+                ) ;let
+              ) ;lambda
+              (cons cost-rates -1)
+              tiers
+            ) ;fold
+          ) ;car
         ) ;if
       ) ;let
     ) ;define

@@ -66,21 +66,19 @@
                                                                    #_quote
                                                                    ()))))
              (cost-rates (pi-model-cost provider model-id models-store))
-             (usages '())
             ) ;
-        (for-each
-          (lambda (m)
-            (when (equal? (pi-agent-assoc-val 'role "role" m "") "assistant")
-              (let ((u (pi-agent-assoc-val 'usage "usage" m #f)))
-                (when (pair? u)
-                  (set! usages (cons u usages))
-                ) ;when
-              ) ;let
-            ) ;when
-          ) ;lambda
-          msgs
-        ) ;for-each
-        (pi-summarize-session-cost cost-rates (reverse usages))
+        (pi-summarize-session-cost cost-rates
+          (filter pair?
+            (map
+              (lambda (m)
+                (and (equal? (pi-agent-assoc-val 'role "role" m "") "assistant")
+                  (pi-agent-assoc-val 'usage "usage" m #f)
+                ) ;and
+              ) ;lambda
+              msgs
+            ) ;map
+          ) ;filter
+        ) ;pi-summarize-session-cost
       ) ;let*
     ) ;define
 

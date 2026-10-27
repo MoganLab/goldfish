@@ -8,6 +8,7 @@
   (import (scheme base)
     (scheme process-context)
     (liii string)
+    (liii list)
     (liii uri)
     (liii pi ai template)
     (liii pi ai config types)
@@ -31,13 +32,7 @@
 
     (define (%find-model-in-list models model-id)
       (and (pair? models)
-        (let loop
-          ((lst models))
-          (cond ((null? lst) #f)
-                ((string=? (%dict-ref (car lst) "id" "") model-id) (car lst))
-                (else (loop (cdr lst)))
-          ) ;cond
-        ) ;let
+        (find (lambda (model) (string=? (%dict-ref model "id" "") model-id)) models)
       ) ;and
     ) ;define
 

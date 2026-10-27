@@ -3,7 +3,30 @@
 (check-set-mode! 'report-failed)
 
 ;; pi-serialize-event
-;; 将事件或消息 alist 序列化为单行 JSON 字符串。
+;; 将事件或消息序列化为单行 JSON 字符串。
+;;
+;; 语法
+;; ----
+;; (pi-serialize-event alist)
+;;
+;; 参数
+;; ----
+;; alist : alist | record
+;; 事件、消息或 content block，可包含嵌套 alist 和 vector。
+;;
+;; 返回值
+;; ----
+;; string
+;; 规范化后的单行 JSON 字符串。
+;;
+;; 说明
+;; ----
+;; errorMessage=#f 被过滤，空 arguments/input 规范化为 JSON 对象。
+;; 对象 entry 顺序和 Unicode 文本保持不变。
+;;
+;; 示例
+;; ----
+;; (pi-serialize-event '(("type" . "test"))) => "{\"type\":\"test\"}"
 (let ((json-str (pi-serialize-event '(("type" . "test") ("key" . "value")))))
   (check-true (string-contains? json-str "type"))
 ) ;let
@@ -55,5 +78,15 @@
   (check-true (string-contains? json-str "\"arguments\":{}"))
   (check (cdr (assoc "name" tc-parsed)) => "ls")
   (check (cdr (assoc "arguments" tc-parsed)) => '(())))
+
+;; 对象 entry 顺序保持不变，过滤 errorMessage=#f，并将空 arguments 规范化为对象
+(let* ((json-str (pi-serialize-event '((type . "toolCall")
+                                       (errorMessage . #f)
+                                       (arguments . ())
+                                       (name . "ls"))))
+       (parsed (string->json json-str)))
+  (check (map car parsed) => '("type" "arguments" "name"))
+  (check (assoc "errorMessage" parsed) => #f)
+  (check (cdr (assoc "arguments" parsed)) => '(())))
 
 (check-report)

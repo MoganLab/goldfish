@@ -3,7 +3,30 @@
 (check-set-mode! 'report-failed)
 
 ;; gemini-build-contents
-;; 将消息历史转换为 Gemini 接口 contents 向量。
+;; 将内部消息历史转换为 Gemini API contents。
+;;
+;; 语法
+;; ----
+;; (gemini-build-contents messages)
+;;
+;; 参数
+;; ----
+;; messages : list
+;; 内部 user、assistant 和 toolResult 消息列表，支持 alist 和 record。
+;;
+;; 返回值
+;; ----
+;; vector
+;; Gemini contents 向量，每个元素包含 role 和 parts。
+;;
+;; 说明
+;; ----
+;; assistant 映射为 model，空文本块被过滤。
+;; 连续 toolResult 合并为一个 user turn，parts 顺序保持不变。
+;;
+;; 示例
+;; ----
+;; (gemini-build-contents (list (pi-user-message "hello"))) => #((("role" . "user") ...))
 (let* ((msgs (list '((role . "user") (content . "List"))
                    '((role . "assistant") (content . (((type . "toolCall") (id . "c1") (name . "ls") (arguments . (("path" . ".")))))))
                    '((role . "toolResult") (toolCallId . "c1") (toolName . "ls") (isError . #f) (content . (((type . "text") (text . "ok")))))))
@@ -49,5 +72,17 @@
   (check (cdr (assoc "role" (vector-ref contents 0))) => "user")
   (check (cdr (assoc "role" (vector-ref contents 1))) => "model")
   (check (cdr (assoc "role" (vector-ref contents 2))) => "user"))
+
+;; 连续 toolResult 合并为一个 user turn，且 parts 顺序不变
+(let* ((msgs (list (pi-user-message "run")
+                   (pi-tool-result-message "c1" "read" (list (pi-text-block "one")) #f)
+                   (pi-tool-result-message "c2" "bash" (list (pi-text-block "two")) #f)))
+       (contents (gemini-build-contents msgs))
+       (merged (vector-ref contents 1))
+       (parts (cdr (assoc "parts" merged))))
+  (check (vector-length contents) => 2)
+  (check (vector-length parts) => 2)
+  (check (cdr (assoc "id" (cdr (assoc "functionResponse" (vector-ref parts 0))))) => "c1")
+  (check (cdr (assoc "id" (cdr (assoc "functionResponse" (vector-ref parts 1))))) => "c2"))
 
 (check-report)

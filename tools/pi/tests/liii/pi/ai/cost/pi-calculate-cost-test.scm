@@ -5,6 +5,34 @@
 
 (check-set-mode! 'report-failed)
 
+;; pi-calculate-cost
+;; 按每百万 token 费率计算各项 token 费用及总费用。
+;;
+;; 语法
+;; ----
+;; (pi-calculate-cost cost-rates usage)
+;;
+;; 参数
+;; ----
+;; cost-rates : alist
+;; input、output、cacheRead、cacheWrite 费率及可选 tiers。
+;; usage : alist
+;; 各类 token 数量。
+;;
+;; 返回值
+;; ----
+;; alist
+;; 包含 input、output、cacheRead、cacheWrite 和 total 费用。
+;;
+;; 说明
+;; ----
+;; inputTokensAbove 使用严格大于判断。
+;; 多个 tiers 无序时选择已触发阈值最大的档位。
+;;
+;; 示例
+;; ----
+;; (cdr (assoc 'total (pi-calculate-cost rates usage))) => 0.55
+
 ;; 1. 基本计算：无 cache 无 tier
 (let* ((cost-rates '((input . 1.0) (output . 2.0) (cacheRead . 0.1) (cacheWrite . 0.5)))
        (usage '((input . 1000000) (output . 500000) (cacheRead . 0) (cacheWrite . 0)))
@@ -59,5 +87,25 @@
   (check (cdr (assoc 'cacheRead cost)) => 0.025)
   (check (cdr (assoc 'total cost)) => 0.55)
 ) ;let
+
+;; 4. tiers 顺序不影响结果：选择满足条件的最大 inputTokensAbove 档位
+(let* ((cost-rates '((input . 1.0)
+                     (output . 2.0)
+                     (cacheRead . 0.1)
+                     (cacheWrite . 0.0)
+                     (tiers . (((inputTokensAbove . 100)
+                                (input . 10.0)
+                                (output . 20.0)
+                                (cacheRead . 1.0)
+                                (cacheWrite . 0.0))
+                               ((inputTokensAbove . 10)
+                                (input . 5.0)
+                                (output . 10.0)
+                                (cacheRead . 0.5)
+                                (cacheWrite . 0.0))))))
+       (usage '((input . 1000) (output . 0) (cacheRead . 0) (cacheWrite . 0)))
+       (cost (pi-calculate-cost cost-rates usage)))
+  (check (cdr (assoc 'input cost)) => 0.01)
+  (check (cdr (assoc 'total cost)) => 0.01))
 
 (check-report)

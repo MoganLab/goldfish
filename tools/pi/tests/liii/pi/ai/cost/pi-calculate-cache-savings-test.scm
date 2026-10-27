@@ -2,6 +2,34 @@
 
 (check-set-mode! 'report-failed)
 
+;; pi-calculate-cache-savings
+;; 计算 cacheRead 相比普通 input 费率节省的费用。
+;;
+;; 语法
+;; ----
+;; (pi-calculate-cache-savings cost-rates usage)
+;;
+;; 参数
+;; ----
+;; cost-rates : alist
+;; input、cacheRead 等每百万 token 费率及可选 tiers。
+;; usage : alist
+;; 包含 cacheRead 等 token 数量的用量记录。
+;;
+;; 返回值
+;; ----
+;; number
+;; 非负缓存节省费用，单位为与费率一致的货币单位。
+;;
+;; 说明
+;; ----
+;; 节省为 max(0, input费率-cacheRead费率) × cacheRead tokens / 1000000。
+;; 无 cacheRead 时返回 0，阶梯费率选择与 pi-calculate-cost 一致。
+;;
+;; 示例
+;; ----
+;; (pi-calculate-cache-savings cost-rates usage) => 1.35
+
 ;; 命中 cacheRead 产生节省
 (let* ((cost-rates '((input . 3.0)
                      (output . 15.0)

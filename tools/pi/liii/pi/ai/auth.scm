@@ -10,6 +10,7 @@
     (liii string)
     (liii path)
     (liii json)
+    (liii list)
     (liii pi ai template)
     (liii pi ai config types)
     (liii pi ai config record)
@@ -68,17 +69,11 @@
             ) ;
         (if (not (pair? data))
           '()
-          (let loop
-            ((items data) (acc '()))
-            (if (null? items)
-              (reverse acc)
-              (let* ((entry (car items))
-                     (pair (%parse-credential-item (car entry) (cdr entry) opt-env))
-                    ) ;
-                (if pair (loop (cdr items) (cons pair acc)) (loop (cdr items) acc))
-              ) ;let*
-            ) ;if
-          ) ;let
+          (filter (lambda (credential) credential)
+            (map (lambda (entry) (%parse-credential-item (car entry) (cdr entry) opt-env))
+              data
+            ) ;map
+          ) ;filter
         ) ;if
       ) ;let*
     ) ;define

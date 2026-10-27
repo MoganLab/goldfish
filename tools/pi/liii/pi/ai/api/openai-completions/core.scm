@@ -53,6 +53,25 @@
       ) ;let*
     ) ;define
 
+    (define (%tool-call->block tc)
+      (let* ((id (%val "id" tc ""))
+             (fn (%val "function" tc '()))
+             (name (%val "name" fn ""))
+             (raw-args (%val "arguments" fn "{}"))
+             (args
+               (cond
+                ((string? raw-args)
+                 (catch #t (lambda () (string->json raw-args)) (lambda args '()))
+                ) ;
+                ((pair? raw-args) raw-args)
+                (else '())
+               ) ;cond
+             ) ;args
+            ) ;
+        (pi-tool-call-block id name args)
+      ) ;let*
+    ) ;define
+
     (define (%extract-message-blocks msg-obj)
       (let* ((content-str (%val "content" msg-obj ""))
              (raw-tc (%val "tool_calls" msg-obj #()))
@@ -61,35 +80,14 @@
                            (else #())
                      ) ;cond
              ) ;tc-vec
-             (blocks '())
+             (text-blocks
+               (if (and (string? content-str) (not (string-null? content-str)))
+                 (list (pi-text-block content-str))
+                 '()
+               ) ;if
+             ) ;text-blocks
             ) ;
-        (when (and (string? content-str) (not (string-null? content-str)))
-          (set! blocks (cons (pi-text-block content-str) blocks))
-        ) ;when
-        (let loop
-          ((i 0))
-          (when (< i (vector-length tc-vec))
-            (let* ((tc (vector-ref tc-vec i))
-                   (id (%val "id" tc ""))
-                   (fn (%val "function" tc '()))
-                   (name (%val "name" fn ""))
-                   (raw-args (%val "arguments" fn "{}"))
-                   (args
-                     (cond
-                      ((string? raw-args)
-                       (catch #t (lambda () (string->json raw-args)) (lambda args '()))
-                      ) ;
-                      ((pair? raw-args) raw-args)
-                      (else '())
-                     ) ;cond
-                   ) ;args
-                  ) ;
-              (set! blocks (cons (pi-tool-call-block id name args) blocks))
-              (loop (+ i 1))
-            ) ;let*
-          ) ;when
-        ) ;let
-        (reverse blocks)
+        (append text-blocks (map %tool-call->block (vector->list tc-vec)))
       ) ;let*
     ) ;define
 

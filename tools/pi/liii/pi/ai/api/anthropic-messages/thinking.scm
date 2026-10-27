@@ -31,18 +31,15 @@
                  (eff-max (if cur-max (cdr cur-max) 8192))
                 ) ;
             (if (<= eff-max budget)
-              (let loop
-                ((lst with-th) (acc '()))
-                (if (null? lst)
-                  (reverse acc)
-                  (let ((pair (car lst)))
-                    (if (or (equal? (car pair) "max_tokens") (eq? (car pair) 'max_tokens))
-                      (loop (cdr lst) (cons (cons (car pair) (+ budget 4096)) acc))
-                      (loop (cdr lst) (cons pair acc))
-                    ) ;if
-                  ) ;let
-                ) ;if
-              ) ;let
+              (map
+                (lambda (pair)
+                  (if (or (equal? (car pair) "max_tokens") (eq? (car pair) 'max_tokens))
+                    (cons (car pair) (+ budget 4096))
+                    pair
+                  ) ;if
+                ) ;lambda
+                with-th
+              ) ;map
               with-th
             ) ;if
           ) ;let*

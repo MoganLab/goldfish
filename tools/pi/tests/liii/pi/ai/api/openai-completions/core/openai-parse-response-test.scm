@@ -3,6 +3,33 @@
 (check-set-mode! 'report-failed)
 
 ;; openai-parse-response
+;; 将 OpenAI Chat Completions JSON 响应解析为内部 assistant message。
+;;
+;; 语法
+;; ----
+;; (openai-parse-response json-data status-code)
+;;
+;; 参数
+;; ----
+;; json-data : alist
+;; OpenAI API 响应对象。
+;; status-code : integer
+;; HTTP 响应状态码。
+;;
+;; 返回值
+;; ----
+;; pi-assistant-message
+;; 包含 content、stopReason、usage 和可选 errorMessage 的消息 record。
+;;
+;; 说明
+;; ----
+;; 文本和工具调用转换为内部 content block，并保持原始顺序。
+;; API 错误响应映射为 stopReason=error。
+;;
+;; 示例
+;; ----
+;; (pi-assistant-message-stop-reason (openai-parse-response response 200)) => "stop"
+
 ;; 正常文本响应解析
 (let* ((json-data '(("id" . "chatcmpl-1")
                     ("choices" . #((("index" . 0)
@@ -48,5 +75,22 @@
        (resp (openai-parse-response json-data 401)))
   (check (pi-assistant-message-stop-reason resp) => "error")
   (check (pi-assistant-message-error-message resp) => "Invalid API key"))
+
+;; 文本与多个工具调用保持原始顺序
+(let* ((json-data '(("choices" . #((("message" . (("role" . "assistant")
+                                                   ("content" . "Working")
+                                                   ("tool_calls" . #((("id" . "call_1")
+                                                                      ("function" . (("name" . "read")
+                                                                                     ("arguments" . "{}"))))
+                                                                     (("id" . "call_2")
+                                                                      ("function" . (("name" . "bash")
+                                                                                     ("arguments" . "{}"))))))))
+                                    ("finish_reason" . "tool_calls"))))))
+       (resp (openai-parse-response json-data 200))
+       (content (pi-assistant-message-content resp)))
+  (check (length content) => 3)
+  (check (pi-text-block-text (car content)) => "Working")
+  (check (pi-tool-call-block-id (cadr content)) => "call_1")
+  (check (pi-tool-call-block-id (caddr content)) => "call_2"))
 
 (check-report)
