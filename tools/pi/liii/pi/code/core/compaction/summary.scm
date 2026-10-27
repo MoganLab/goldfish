@@ -7,6 +7,7 @@
 (define-library (liii pi code core compaction summary)
   (import (scheme base)
     (liii string)
+    (liii list)
     (liii pi ai message)
     (liii pi ai dispatch)
     (liii pi agent tools)
@@ -46,25 +47,17 @@
     ) ;define
 
     (define (%has-tool-call? content)
-      (let loop
-        ((rest (cond ((vector? content) (vector->list content))
-                     ((pair? content) content)
-                     (else '())
-               ) ;cond
-         ) ;rest
-        ) ;
-        (cond ((null? rest) #f)
-              ((equal?
-                 (%ref (if (pi-block? (car rest)) (pi-block->alist (car rest)) (car rest))
-                   "type"
-                 ) ;%ref
-                 "toolCall"
-               ) ;equal?
-               #t
-              ) ;
-              (else (loop (cdr rest)))
+      (any
+        (lambda (block)
+          (equal? (%ref (if (pi-block? block) (pi-block->alist block) block) "type")
+            "toolCall"
+          ) ;equal?
+        ) ;lambda
+        (cond ((vector? content) (vector->list content))
+              ((pair? content) content)
+              (else '())
         ) ;cond
-      ) ;let
+      ) ;any
     ) ;define
 
     (define* (pi-generate-summary config msgs previous-summary (timeout 600))
