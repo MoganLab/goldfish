@@ -79,6 +79,10 @@
     (define (resolve-initial-session-name parsed cfg cwd)
       (or (pi-args-ref parsed 'name)
         (and (not (pi-args-ref parsed 'no-session))
+          (pi-args-ref parsed 'session-file)
+          (get-session-name (pi-args-ref parsed 'session-file))
+        ) ;and
+        (and (not (pi-args-ref parsed 'no-session))
           (pi-args-ref parsed 'continue)
           (let* ((sdir (resolve-session-dir parsed cfg cwd))
                  (latest (find-latest-session-file sdir))

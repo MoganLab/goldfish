@@ -96,6 +96,11 @@ timeout 300 bin/gf pi -p "记住暗号：金鱼42号"
 timeout 300 bin/gf pi -c -p "刚才的暗号是什么？"
 timeout 300 bin/gf pi -c -p "继续上一轮的话题"
 
+# 选择并恢复历史会话（--resume / -r）：默认当前目录，Tab 切换全部项目；
+# 输入模糊搜索，Enter 恢复，Esc 取消；Ctrl+N 仅看命名会话，
+# Ctrl+P 显示文件路径，Ctrl+S 切换最近时间/相关度排序。
+bin/gf pi --resume
+
 # 指定会话存储目录（优先级：--session-dir > PI_CODING_AGENT_SESSION_DIR
 # > settings.json 的 sessionDir > 默认 <agent-dir>/sessions/<encoded-cwd>/）
 timeout 300 bin/gf pi --session-dir ~/my-sessions -p "记住暗号：金鱼42号"

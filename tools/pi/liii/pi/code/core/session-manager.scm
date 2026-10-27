@@ -45,12 +45,17 @@
       (if (pi-args-ref parsed 'no-session)
         (values #f #f)
         (let ((sdir (resolve-session-dir parsed cfg cwd)))
-          (if (pi-args-ref parsed 'continue)
-            (let ((latest (find-latest-session-file sdir)))
-              (if latest (values latest sdir) (%init-new-session-file sdir cwd))
-            ) ;let
-            (%init-new-session-file sdir cwd)
-          ) ;if
+          (cond ((pi-args-ref parsed 'session-file)
+                 =>
+                 (lambda (selected) (values selected sdir))
+                ) ;
+                ((pi-args-ref parsed 'continue)
+                 (let ((latest (find-latest-session-file sdir)))
+                   (if latest (values latest sdir) (%init-new-session-file sdir cwd))
+                 ) ;let
+                ) ;
+                (else (%init-new-session-file sdir cwd))
+          ) ;cond
         ) ;let
       ) ;if
     ) ;define
@@ -59,12 +64,17 @@
       (let* ((user-msg (if (not (string-null? initial-msg)) (list (pi-user-message initial-msg)) '())
              ) ;user-msg
             ) ;
-        (if (pi-args-ref parsed 'continue)
+        (cond
+         ((pi-args-ref parsed 'session-file)
+          (append (read-session-history (pi-args-ref parsed 'session-file)) user-msg)
+         ) ;
+         ((pi-args-ref parsed 'continue)
           (let ((latest-file (find-latest-session-file sdir)))
             (if latest-file (append (read-session-history latest-file) user-msg) user-msg)
           ) ;let
-          user-msg
-        ) ;if
+         ) ;
+         (else user-msg)
+        ) ;cond
       ) ;let*
     ) ;define
 

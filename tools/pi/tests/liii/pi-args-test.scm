@@ -133,7 +133,15 @@
   (check (pi-args-ref res2 'continue) => #t)
   (check (pi-args-ref res2 'messages) => '("world")))
 
-;; 5.2 --list-models 解析测试
+;; 5.2 --resume / -r 解析测试
+(let ((res1 (parse-pi-args '("-r")))
+      (res2 (parse-pi-args '("--resume"))))
+  (check (pi-args-ref res1 'resume) => #t)
+  (check (pi-args-ref res2 'resume) => #t))
+
+(check (pi-args-ref (parse-pi-args '()) 'resume) => #f)
+
+;; 5.3 --list-models 解析测试
 (let ((res1 (parse-pi-args '("--list-models")))
       (res2 (parse-pi-args '("--list-models" "kimi")))
       (res3 (parse-pi-args '("--list-models" "--provider" "google")))

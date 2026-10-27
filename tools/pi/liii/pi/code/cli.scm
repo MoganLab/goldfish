@@ -11,15 +11,18 @@
     (liii string)
     (liii list)
     (liii sys)
+    (liii path)
     (liii pi code cli args)
     (liii pi code config)
     (liii pi code modes)
     (liii pi code core prompt)
     (liii pi code core session-name)
+    (liii pi code core session-manager)
     (liii pi code cli help)
     (liii pi ai models)
     (liii pi ai config record)
     (liii pi code modes interactive)
+    (liii pi code modes interactive resume)
     (liii pi code core extensions types)
     (liii pi code core extensions registry)
     (liii pi code core extensions discovery)
@@ -153,14 +156,14 @@
 
     (define (%tui-session-name parsed)
       (or (pi-args-ref parsed 'name)
-        (and (pi-args-ref parsed 'continue)
+        (and (or (pi-args-ref parsed 'continue) (pi-args-ref parsed 'session-file))
           (catch #t
             (lambda ()
               (let* ((cfg (augment-pi-config (resolve-pi-config parsed (get-environment-variables))
                             parsed
                           ) ;augment-pi-config
                      ) ;cfg
-                     (cwd (getcwd))
+                     (cwd (path->string (path-cwd)))
                     ) ;
                 (resolve-initial-session-name parsed cfg cwd)
               ) ;let*
@@ -169,6 +172,19 @@
           ) ;catch
         ) ;and
       ) ;or
+    ) ;define
+
+    (define (%select-resume-session parsed)
+      (let* ((cwd (path->string (path-cwd)))
+             (cfg (augment-pi-config (resolve-pi-config parsed (get-environment-variables))
+                    parsed
+                  ) ;augment-pi-config
+             ) ;cfg
+            ) ;
+        (let-values (((current all) (pi-load-resume-sessions parsed cfg cwd)))
+          (pi-run-session-selector current all)
+        ) ;let-values
+      ) ;let*
     ) ;define
 
     (define (%run-interactive parsed initial-msg rest-msgs)
@@ -186,6 +202,7 @@
                  :session-name  session-name
                  :models        (list-ref info 6)
                  :default-model (list-ref info 7)
+                 :session-file  (pi-args-ref parsed 'session-file)
                  :on-save-model
                  (lambda (provider model-id)
                    (pi-save-default-model! (list-ref info 5) provider model-id)
@@ -199,58 +216,67 @@
     ) ;define
 
     (define (%run-pi-main parsed)
-      (let-values (((initial-msg rest-msgs)
-                    (build-initial-prompt (and (not (stdin-tty?)) (read-all-stdin))
-                      (process-file-arguments (pi-args-ref parsed 'file-args))
-                      (pi-args-ref parsed 'messages)
-                    ) ;build-initial-prompt
-                   ) ;
-                  ) ;
-        (let ((reg (or (current-extension-registry) (default-extension-registry))))
-          (%validate-parsed-args reg parsed initial-msg rest-msgs)
-          (cond ((pi-args-ref parsed 'help) (display-pi-help) 0)
-                ((pi-args-ref parsed 'list-models) (%handle-list-models parsed))
-                ((and (pi-args-ref parsed 'provider) (not (pi-args-ref parsed 'model)))
-                 (error 'pi-arg-error
-                   (string-append "--provider requires --model (for example: --provider "
-                     (pi-args-ref parsed 'provider)
-                     " --model <pattern>)"
-                   ) ;string-append
-                 ) ;error
-                ) ;
-                ((and (string-null? initial-msg)
-                   (null? rest-msgs)
-                   (not (pi-args-ref parsed 'continue))
-                   (not (pi-args-ref parsed 'compact))
-                   (not (%has-matching-flow? reg parsed))
-                 ) ;and
-                 (begin
-                   (if (and (stdin-tty?) (stdout-tty?))
-                     (%run-interactive parsed "" '())
-                     (display-pi-help)
-                   ) ;if
-                   0
-                 ) ;begin
-                ) ;
-                (else
-                  (let ((mode (resolve-app-mode (pi-args-ref parsed 'mode)
-                                (pi-args-ref parsed 'print)
-                                (stdin-tty?)
-                                (stdout-tty?)
-                              ) ;resolve-app-mode
-                        ) ;mode
-                       ) ;
-                    (if (eq? mode 'interactive)
-                      (%run-interactive parsed initial-msg rest-msgs)
-                      (with-extension-registry reg
-                        (lambda () (dispatch-pi parsed mode initial-msg rest-msgs))
-                      ) ;with-extension-registry
-                    ) ;if
-                  ) ;let
-                ) ;else
-          ) ;cond
+      (if (pi-args-ref parsed 'resume)
+        (let ((selected (%select-resume-session parsed)))
+          (if selected
+            (%run-pi-main (pi-args-set (pi-args-set parsed 'resume #f) 'session-file selected)
+            ) ;%run-pi-main
+            0
+          ) ;if
         ) ;let
-      ) ;let-values
+        (let-values (((initial-msg rest-msgs)
+                      (build-initial-prompt (and (not (stdin-tty?)) (read-all-stdin))
+                        (process-file-arguments (pi-args-ref parsed 'file-args))
+                        (pi-args-ref parsed 'messages)
+                      ) ;build-initial-prompt
+                     ) ;
+                    ) ;
+          (let ((reg (or (current-extension-registry) (default-extension-registry))))
+            (%validate-parsed-args reg parsed initial-msg rest-msgs)
+            (cond ((pi-args-ref parsed 'help) (display-pi-help) 0)
+                  ((pi-args-ref parsed 'list-models) (%handle-list-models parsed))
+                  ((and (pi-args-ref parsed 'provider) (not (pi-args-ref parsed 'model)))
+                   (error 'pi-arg-error
+                     (string-append "--provider requires --model (for example: --provider "
+                       (pi-args-ref parsed 'provider)
+                       " --model <pattern>)"
+                     ) ;string-append
+                   ) ;error
+                  ) ;
+                  ((and (string-null? initial-msg)
+                     (null? rest-msgs)
+                     (not (pi-args-ref parsed 'continue))
+                     (not (pi-args-ref parsed 'compact))
+                     (not (%has-matching-flow? reg parsed))
+                   ) ;and
+                   (begin
+                     (if (and (stdin-tty?) (stdout-tty?))
+                       (%run-interactive parsed "" '())
+                       (display-pi-help)
+                     ) ;if
+                     0
+                   ) ;begin
+                  ) ;
+                  (else
+                    (let ((mode (resolve-app-mode (pi-args-ref parsed 'mode)
+                                  (pi-args-ref parsed 'print)
+                                  (stdin-tty?)
+                                  (stdout-tty?)
+                                ) ;resolve-app-mode
+                          ) ;mode
+                         ) ;
+                      (if (eq? mode 'interactive)
+                        (%run-interactive parsed initial-msg rest-msgs)
+                        (with-extension-registry reg
+                          (lambda () (dispatch-pi parsed mode initial-msg rest-msgs))
+                        ) ;with-extension-registry
+                      ) ;if
+                    ) ;let
+                  ) ;else
+            ) ;cond
+          ) ;let
+        ) ;let-values
+      ) ;if
     ) ;define
 
     (define (%format-catch-error err-type info)
