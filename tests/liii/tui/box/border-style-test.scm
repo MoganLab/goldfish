@@ -102,6 +102,12 @@
   (check (border-render-top single 1) => "┌")
   (check (border-render-top single 2) => "┌┐"))
 
+;; 多字符边框单元重复填充，并在剩余一列时补空格。
+(let ((multi (make-border-style 'custom "(" ")" "[" "]" "ab" "|")))
+  (check (border-render-top multi 8) => "(ababab)")
+  (check (border-render-top multi 9) => "(ababab )")
+  (check (border-render-bottom multi 8) => "[ababab]"))
+
 ;; 4. 边框底行渲染 (border-render-bottom)
 (let ((single (border-style-resolve 'single))
       (ascii (border-style-resolve 'ascii))

@@ -54,13 +54,10 @@
             ) ;
             ((null? (car args)) (cons '() (cdr args)))
             (else
-              (let loop
-                ((rest args) (children-acc '()))
-                (cond ((null? rest) (cons (reverse children-acc) '()))
-                      ((keyword? (car rest)) (cons (reverse children-acc) rest))
-                      (else (loop (cdr rest) (cons (car rest) children-acc)))
-                ) ;cond
-              ) ;let
+              (cons
+                (take-while (lambda (arg) (not (keyword? arg))) args)
+                (drop-while (lambda (arg) (not (keyword? arg))) args)
+              ) ;cons
             ) ;else
       ) ;cond
     ) ;define
@@ -98,15 +95,10 @@
     ) ;define
 
     (define (%vstack-handle-input children key)
-      (let loop
-        ((rest children))
-        (if (null? rest)
-          #f
-          (let ((res (component-handle-input (car rest) key)))
-            (if res res (loop (cdr rest)))
-          ) ;let
-        ) ;if
-      ) ;let
+      (fold (lambda (child result) (or result (component-handle-input child key)))
+        #f
+        children
+      ) ;fold
     ) ;define
 
     (define (%vstack-invalidate children)

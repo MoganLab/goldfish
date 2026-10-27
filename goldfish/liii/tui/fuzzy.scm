@@ -33,15 +33,7 @@
     ) ;define
 
     (define (%find-char text ch start)
-      (let ((len (string-length text)))
-        (let loop
-          ((i start))
-          (cond ((>= i len) #f)
-                ((char=? (string-ref text i) ch) i)
-                (else (loop (+ i 1)))
-          ) ;cond
-        ) ;let
-      ) ;let
+      (string-index text (lambda (current) (char=? current ch)) start)
     ) ;define
 
     (define (%match-score-state text i last score consecutive)
@@ -91,16 +83,7 @@
 
     (define (%swap-alphanumeric-query query)
       (let* ((len (string-length query))
-             (split
-               (let loop
-                 ((i 0))
-                 (if
-                   (or (>= i len) (not (%ascii-letters? (string-ref query i))))
-                   i
-                   (loop (+ i 1))
-                 ) ;if
-               ) ;let
-             ) ;split
+             (split (or (string-skip query %ascii-letters?) len))
             ) ;
         (cond
          ((and (> split 0)
@@ -110,17 +93,7 @@
           (string-append (substring query split len) (substring query 0 split))
          ) ;
          (else
-           (let ((digits
-                   (let loop
-                     ((i 0))
-                     (if
-                       (or (>= i len) (not (char-numeric? (string-ref query i))))
-                       i
-                       (loop (+ i 1))
-                     ) ;if
-                   ) ;let
-                 ) ;digits
-                ) ;
+           (let ((digits (or (string-skip query char-numeric?) len)))
              (if
                (and (> digits 0)
                  (< digits len)
@@ -155,25 +128,7 @@
     ) ;define
 
     (define (%search-tokens query)
-      (let ((len (string-length query)))
-        (let loop
-          ((i 0) (current '()) (tokens '()))
-          (if (>= i len)
-            (reverse
-              (if (null? current) tokens (cons (list->string (reverse current)) tokens))
-            ) ;reverse
-            (let ((ch (string-ref query i)))
-              (if (or (char-whitespace? ch) (char=? ch #\/))
-                (loop (+ i 1)
-                  '()
-                  (if (null? current) tokens (cons (list->string (reverse current)) tokens))
-                ) ;loop
-                (loop (+ i 1) (cons ch current) tokens)
-              ) ;if
-            ) ;let
-          ) ;if
-        ) ;let
-      ) ;let
+      (string-tokenize query (lambda (ch) (or (char-whitespace? ch) (char=? ch #\/))))
     ) ;define
 
     (define (%match-score query text)
@@ -183,27 +138,26 @@
     ) ;define
 
     (define (%score-item tokens text)
-      (let loop
-        ((qs tokens) (total 0))
-        (if (null? qs)
-          total
-          (let ((score (%match-score (car qs) text)))
-            (and score (loop (cdr qs) (+ total score)))
-          ) ;let
-        ) ;if
-      ) ;let
+      (fold
+        (lambda (token total)
+          (and total
+            (let ((score (%match-score token text)))
+              (and score (+ total score))
+            ) ;let
+          ) ;and
+        ) ;lambda
+        0
+        tokens
+      ) ;fold
     ) ;define
 
     (define (%collect-scored items tokens get-text)
-      (let loop
-        ((rest items) (acc '()))
-        (if (null? rest)
-          (reverse acc)
-          (let ((score (%score-item tokens (get-text (car rest)))))
-            (loop (cdr rest) (if score (cons (cons score (car rest)) acc) acc))
-          ) ;let
-        ) ;if
-      ) ;let
+      (filter (lambda (scored) (car scored))
+        (map
+          (lambda (item) (cons (%score-item tokens (get-text item)) item))
+          items
+        ) ;map
+      ) ;filter
     ) ;define
 
     (define (fuzzy-filter items query get-text)

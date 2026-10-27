@@ -100,6 +100,41 @@
   (check (buffer-row b) => 0)
   (check (buffer-col b) => 3))
 
+;; 三行以上缓冲区在合并中间行时保留前后行及顺序。
+(let ((b (make-buffer "first\nsecond\nthird" #t)))
+  (buffer-row-set! b 1)
+  (buffer-col-set! b 0)
+  (check (buffer-backspace! b) => #t)
+  (check (buffer-lines b) => '("firstsecond" "third"))
+  (check (buffer-row b) => 0)
+  (check (buffer-col b) => 5))
+
+(let ((b (make-buffer "first\nsecond\nthird" #t)))
+  (buffer-row-set! b 1)
+  (buffer-col-set! b 6)
+  (check (buffer-delete! b) => #t)
+  (check (buffer-lines b) => '("first" "secondthird"))
+  (check (buffer-row b) => 1)
+  (check (buffer-col b) => 6))
+
+(let ((b (make-buffer "first\nsecond\nthird" #t)))
+  (buffer-row-set! b 1)
+  (buffer-col-set! b 3)
+  (check (buffer-newline! b) => #t)
+  (check (buffer-lines b) => '("first" "sec" "ond" "third"))
+  (check (buffer-row b) => 2)
+  (check (buffer-col b) => 0))
+
+;; 行替换覆盖首行、中间行、末行及越界索引。
+(check (%replace-line '("one" "two" "three") 0 "first") =>
+  '("first" "two" "three"))
+(check (%replace-line '("one" "two" "three") 1 "second") =>
+  '("one" "second" "three"))
+(check (%replace-line '("one" "two" "three") 2 "third") =>
+  '("one" "two" "third"))
+(check (%replace-line '("one" "two" "three") 3 "missing") =>
+  '("one" "two" "three"))
+
 ;; 8. 行与词删除操作测试：kill-line-right! / kill-line-left! / kill-word-left! / transpose-chars!
 (let ((b (make-buffer "hello world" #f)))
   (buffer-col-set! b 5)

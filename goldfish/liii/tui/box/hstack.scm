@@ -59,13 +59,10 @@
             ) ;
             ((null? (car args)) (cons '() (cdr args)))
             (else
-              (let loop
-                ((rest args) (children-acc '()))
-                (cond ((null? rest) (cons (reverse children-acc) '()))
-                      ((keyword? (car rest)) (cons (reverse children-acc) rest))
-                      (else (loop (cdr rest) (cons (car rest) children-acc)))
-                ) ;cond
-              ) ;let
+              (cons
+                (take-while (lambda (arg) (not (keyword? arg))) args)
+                (drop-while (lambda (arg) (not (keyword? arg))) args)
+              ) ;cons
             ) ;else
       ) ;cond
     ) ;define
@@ -114,22 +111,14 @@
       ) ;let
     ) ;define
 
-    (define (%render-hstack-row padded-cols col-widths num-cols space-str r)
-      (let loop
-        ((c 0) (parts '()))
-        (if (>= c num-cols)
-          (apply string-append (reverse parts))
-          (let* ((col-w (list-ref col-widths c))
-                 (cell (list-ref (list-ref padded-cols c) r))
-                 (fitted (%fit-cell cell col-w))
-                ) ;
-            (if (> c 0)
-              (loop (+ c 1) (cons fitted (cons space-str parts)))
-              (loop (+ c 1) (cons fitted parts))
-            ) ;if
-          ) ;let*
-        ) ;if
-      ) ;let
+    (define (%render-hstack-row padded-cols col-widths space-str r)
+      (string-join
+        (map (lambda (col col-w) (%fit-cell (list-ref col r) col-w))
+          padded-cols
+          col-widths
+        ) ;map
+        space-str
+      ) ;string-join
     ) ;define
 
     (define (%hstack-render children spacing widths-spec valign width)
@@ -146,7 +135,7 @@
                      ) ;padded-cols
                      (space-str (make-string spacing #\space))
                     ) ;
-                (map (lambda (r) (%render-hstack-row padded-cols col-widths num-cols space-str r))
+                (map (lambda (r) (%render-hstack-row padded-cols col-widths space-str r))
                   (iota max-h)
                 ) ;map
               ) ;let*
@@ -157,15 +146,10 @@
     ) ;define
 
     (define (%hstack-handle-input children key)
-      (let loop
-        ((rest children))
-        (if (null? rest)
-          #f
-          (let ((res (component-handle-input (car rest) key)))
-            (if res res (loop (cdr rest)))
-          ) ;let
-        ) ;if
-      ) ;let
+      (fold (lambda (child result) (or result (component-handle-input child key)))
+        #f
+        children
+      ) ;fold
     ) ;define
 
     (define (%hstack-invalidate children)
