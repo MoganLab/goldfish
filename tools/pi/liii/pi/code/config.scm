@@ -207,12 +207,10 @@
       (let* ((r (or reg (current-extension-registry) (default-extension-registry)))
              (ext-names (if r (extension-registry-default-tool-names r) '()))
             ) ;
-        (reverse
-          (fold (lambda (name acc) (if (member name acc) acc (cons name acc)))
-            '()
-            (append PI_DEFAULT_TOOL_NAMES ext-names)
-          ) ;fold
-        ) ;reverse
+        (fold-right (lambda (name acc) (if (member name acc) acc (cons name acc)))
+          '()
+          (append PI_DEFAULT_TOOL_NAMES ext-names)
+        ) ;fold-right
       ) ;let*
     ) ;define
 
