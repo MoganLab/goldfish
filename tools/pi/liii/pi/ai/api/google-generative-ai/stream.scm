@@ -21,6 +21,7 @@
     (liii pi ai api google-generative-ai core)
     (liii pi ai api google-generative-ai request)
     (liii pi ai api google-generative-ai stream-parse)
+    (liii pi ai api google-generative-ai stream-state)
     (liii pi ai api google-generative-ai stream-result)
     (liii pi ai api google-generative-ai thinking)
   ) ;import
@@ -79,10 +80,10 @@
 
     ;; 用户中止（ESC）：保留已收到的部分内容，stop-reason 强制为 aborted
     (define (%finalize-aborted-stream stream-state)
-      (pi-assistant-message (vector-ref stream-state 0)
+      (pi-assistant-message (gemini-stream-state-blocks stream-state)
         :stop-reason   "aborted"
         :error-message #f
-        :usage         (vector-ref stream-state 2)
+        :usage         (gemini-stream-state-usage stream-state)
       ) ;pi-assistant-message
     ) ;define
 
@@ -172,7 +173,8 @@
                                     (cons "x-goog-api-key" (or api-key ""))
                                   ) ;list
                      ) ;eff-headers
-                     (stream-state (vector '() #f (gemini-map-usage '()) '() #f #f #f #f))
+                     (stream-state (make-gemini-stream-state '() #f (gemini-map-usage '()) '() #f #f #f #f)
+                     ) ;stream-state
                      (idle-timed-out? #f)
                      (aborted? #f)
                      (emitted? #f)
@@ -220,9 +222,9 @@
                        (loop (+ attempt 1) api-key)
                      ) ;let*
                      (list (cons 'role "assistant")
-                       (cons 'content (vector-ref stream-state 0))
+                       (cons 'content (gemini-stream-state-blocks stream-state))
                        (cons 'stopReason "error")
-                       (cons 'usage (vector-ref stream-state 2))
+                       (cons 'usage (gemini-stream-state-usage stream-state))
                        (cons 'errorMessage (format-failed-stream-msg status resp))
                      ) ;list
                    ) ;if

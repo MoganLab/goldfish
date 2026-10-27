@@ -11,6 +11,7 @@
     (liii pi ai message)
     (liii pi ai api google-generative-ai core)
     (liii pi ai api google-generative-ai stream-parse)
+    (liii pi ai api google-generative-ai stream-state)
     (liii pi ai api google-generative-ai thinking)
   ) ;import
   (export gemini-finalize-stream-success gemini-classify-stream-result)
@@ -26,9 +27,9 @@
 
     (define (gemini-finalize-stream-success stream-state on-event)
       (gemini-stream-stop-active-block! stream-state on-event)
-      (let* ((blocks (vector-ref stream-state 0))
-             (has-fn? (pair? (vector-ref stream-state 3)))
-             (raw-finish (vector-ref stream-state 4))
+      (let* ((blocks (gemini-stream-state-blocks stream-state))
+             (has-fn? (pair? (gemini-stream-state-tool-calls stream-state)))
+             (raw-finish (gemini-stream-state-finish-reason stream-state))
              (finish-reason (or raw-finish "STOP"))
              (stop-reason (gemini-map-finish-reason finish-reason has-fn?))
              (err-msg (if (equal? stop-reason "error") finish-reason #f))
@@ -36,7 +37,7 @@
         (pi-assistant-message blocks
           :stop-reason   stop-reason
           :error-message err-msg
-          :usage         (vector-ref stream-state 2)
+          :usage         (gemini-stream-state-usage stream-state)
         ) ;pi-assistant-message
       ) ;let*
     ) ;define
@@ -51,14 +52,14 @@
             (string-contains? (string-downcase resp-err) "low speed")
             (string-contains? (string-downcase resp-err) "timed out")
           ) ;or
-          (pi-assistant-message (vector-ref stream-state 0)
+          (pi-assistant-message (gemini-stream-state-blocks stream-state)
             :stop-reason "error"
             :error-message
             (string-append "Stream idle timed out after "
               (number->string eff-idle)
               " seconds"
             ) ;string-append
-            :usage (vector-ref stream-state 2)
+            :usage (gemini-stream-state-usage stream-state)
           ) ;pi-assistant-message
          ) ;
          ((and (not (zero? status)) (not (= status 200)))
@@ -69,7 +70,7 @@
                   ) ;if
                 ) ;body
                ) ;
-            (pi-assistant-message (vector-ref stream-state 0)
+            (pi-assistant-message (gemini-stream-state-blocks stream-state)
               :stop-reason "error"
               :error-message
               (let ((parsed-msg (extract-stream-error-message body)))
@@ -78,15 +79,15 @@
                   (string-append "HTTP " (number->string status) " error")
                 ) ;if
               ) ;let
-              :usage (vector-ref stream-state 2)
+              :usage (gemini-stream-state-usage stream-state)
             ) ;pi-assistant-message
           ) ;let
          ) ;
          ((zero? status)
-          (pi-assistant-message (vector-ref stream-state 0)
+          (pi-assistant-message (gemini-stream-state-blocks stream-state)
             :stop-reason   "error"
             :error-message (format-failed-stream-msg status resp)
-            :usage         (vector-ref stream-state 2)
+            :usage         (gemini-stream-state-usage stream-state)
           ) ;pi-assistant-message
          ) ;
          (else (gemini-finalize-stream-success stream-state on-event))
