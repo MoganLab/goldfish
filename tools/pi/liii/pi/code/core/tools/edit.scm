@@ -156,26 +156,24 @@
     ) ;define
 
     (define (%check-overlaps sorted-edits raw-path)
-      (let loop
-        ((prev (car sorted-edits)) (rest (cdr sorted-edits)))
-        (unless (null? rest)
-          (let ((curr (car rest)))
-            (when (> (+ (cadr prev) (caddr prev)) (cadr curr))
-              (error 'error
-                (string-append "edits["
-                  (number->string (car prev))
-                  "] and edits["
-                  (number->string (car curr))
-                  "] overlap in "
-                  raw-path
-                  ". Merge them into one edit or target disjoint regions."
-                ) ;string-append
-              ) ;error
-            ) ;when
-            (loop curr (cdr rest))
-          ) ;let
-        ) ;unless
-      ) ;let
+      (for-each
+        (lambda (prev curr)
+          (when (> (+ (cadr prev) (caddr prev)) (cadr curr))
+            (error 'error
+              (string-append "edits["
+                (number->string (car prev))
+                "] and edits["
+                (number->string (car curr))
+                "] overlap in "
+                raw-path
+                ". Merge them into one edit or target disjoint regions."
+              ) ;string-append
+            ) ;error
+          ) ;when
+        ) ;lambda
+        sorted-edits
+        (cdr sorted-edits)
+      ) ;for-each
     ) ;define
 
     (define (%apply-replacements content desc-edits)
