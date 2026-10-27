@@ -107,14 +107,19 @@
     ) ;define
 
     (define (pi-last-assistant-text msgs)
-      (let loop
-        ((rest (reverse msgs)))
-        (if (null? rest)
-          ""
-          (let ((text (pi-content-text (pi-message-field (car rest) 'content '()))))
-            (if (string-null? (string-trim-both text)) (loop (cdr rest)) text)
-          ) ;let
-        ) ;if
+      (let ((msg
+              (find
+                (lambda (msg)
+                  (not
+                    (string-null? (string-trim-both (pi-content-text (pi-message-field msg 'content '())))
+                    ) ;string-null?
+                  ) ;not
+                ) ;lambda
+                (reverse msgs)
+              ) ;find
+            ) ;msg
+           ) ;
+        (if msg (pi-content-text (pi-message-field msg 'content '())) "")
       ) ;let
     ) ;define
 
