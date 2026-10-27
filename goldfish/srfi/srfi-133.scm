@@ -95,7 +95,16 @@
 
     (define (vector= elt=? . rest)
       (define compare2vecs
-        (typed-lambda ((cmp procedure?) (vec1 vector?) (vec2 vector?))
+        (lambda (cmp vec1 vec2)
+          (unless (procedure? cmp)
+            (error 'type-error "vector=: comparison function must be a procedure" cmp)
+          ) ;unless
+          (unless (vector? vec1)
+            (error 'type-error "vector=: first vector must be a vector" vec1)
+          ) ;unless
+          (unless (vector? vec2)
+            (error 'type-error "vector=: second vector must be a vector" vec2)
+          ) ;unless
           (let* ((len1 (vector-length vec1)) (len2 (vector-length vec2)))
             (if (not (= len1 len2))
               #f
@@ -108,7 +117,7 @@
               ) ;let
             ) ;if
           ) ;let*
-        ) ;typed-lambda
+        ) ;lambda
       ) ;define
       (when (not (procedure? elt=?))
         (error 'type-error "elt=? should be a procedure")
