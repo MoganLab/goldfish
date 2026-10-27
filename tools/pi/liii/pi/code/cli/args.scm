@@ -8,6 +8,7 @@
   (import (scheme base)
     (scheme process-context)
     (liii string)
+    (liii list)
     (liii path)
     (liii pi code cli args files)
     (liii pi code cli args query)
@@ -84,19 +85,18 @@
     (define (pi-normalize-session-name name)
       (if (not (string? name))
         #f
-        (let loop
-          ((chars (string->list name)) (acc '()) (newline? #f))
-          (cond
-           ((null? chars)
-            (let ((trimmed (string-trim-both (list->string (reverse acc)))))
-              (if (string-null? trimmed) #f trimmed)
-            ) ;let
-           ) ;
-           ((or (char=? (car chars) #\return) (char=? (car chars) #\newline))
-            (loop (cdr chars) (if newline? acc (cons #\space acc)) #t)
-           ) ;
-           (else (loop (cdr chars) (cons (car chars) acc) #f))
-          ) ;cond
+        (let ((normalized
+                (string-join
+                  (string-tokenize name
+                    (lambda (ch) (or (char=? ch #\return) (char=? ch #\newline)))
+                  ) ;string-tokenize
+                  " "
+                ) ;string-join
+              ) ;normalized
+             ) ;
+          (let ((trimmed (string-trim-both normalized)))
+            (if (string-null? trimmed) #f trimmed)
+          ) ;let
         ) ;let
       ) ;if
     ) ;define
@@ -136,12 +136,8 @@
                 (lambda (val) (values key val 1))
                ) ;
                ((and takes-arg?
-                  (let check-als
-                    ((als aliases))
-                    (cond ((null? als) #f)
-                          ((%match-prefix-flag arg (car als)) => (lambda (val) val))
-                          (else (check-als (cdr als)))
-                    ) ;cond
+                  (let ((alias (find (lambda (name) (%match-prefix-flag arg name)) aliases)))
+                    (and alias (%match-prefix-flag arg alias))
                   ) ;let
                 ) ;and
                 =>
