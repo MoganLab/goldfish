@@ -214,10 +214,9 @@
       (map (lambda (entry) (proc (car entry) (cdr entry))) (map values ht))
     ) ;define
 
-    (define hash-table->alist
-      (typed-lambda ((ht hash-table?))
-        (append-map (lambda (x) (list (car x) (cdr x))) (map values ht))
-      ) ;typed-lambda
+    (define (hash-table->alist ht)
+      (assert-hash-table-type ht hash-table->alist)
+      (append-map (lambda (x) (list (car x) (cdr x))) (map values ht))
     ) ;define
 
     (define hash-table-copy
