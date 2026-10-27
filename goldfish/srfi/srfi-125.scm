@@ -219,13 +219,12 @@
       (append-map (lambda (x) (list (car x) (cdr x))) (map values ht))
     ) ;define
 
-    (define hash-table-copy
-      (typed-lambda ((ht hash-table?) . rest)
-        (let ((new-ht (make-hash-table)) (mutable? (if (null? rest) #t (car rest))))
-          (hash-table-for-each (lambda (k v) (hash-table-set! new-ht k v)) ht)
-          new-ht
-        ) ;let
-      ) ;typed-lambda
+    (define (hash-table-copy ht . rest)
+      (assert-hash-table-type ht hash-table-copy)
+      (let ((new-ht (make-hash-table)) (mutable? (if (null? rest) #t (car rest))))
+        (hash-table-for-each (lambda (k v) (hash-table-set! new-ht k v)) ht)
+        new-ht
+      ) ;let
     ) ;define
   ) ;begin
 ) ;define-library
