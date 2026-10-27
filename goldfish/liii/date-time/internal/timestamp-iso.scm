@@ -138,10 +138,13 @@
             (let ((zh (string->number (substring tz-body 0 colon)))
                   (zm (string->number (substring tz-body (+ colon 1))))
                  ) ;
-              (values t-str
-                (utc-offset-timezone (time-delta+ (hours-delta (* sign zh)) (minutes-delta (* sign zm)))
-                ) ;utc-offset-timezone
-              ) ;values
+              (if (and zh zm)
+                (values t-str
+                  (utc-offset-timezone (time-delta+ (hours-delta (* sign zh)) (minutes-delta (* sign zm)))
+                  ) ;utc-offset-timezone
+                ) ;values
+                (error 'value-error "iso-8601->timestamp: invalid timezone offset" tz-str)
+              ) ;if
             ) ;let
             (values t-str (utc-timezone))
           ) ;if
