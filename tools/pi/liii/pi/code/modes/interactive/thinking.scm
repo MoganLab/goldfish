@@ -10,7 +10,7 @@
 ;; 编辑器边框与 Working spinner 共用同一颜色，随级别联动
 (define-library (liii pi code modes interactive thinking)
   (export pi-thinking-levels pi-next-thinking-level pi-thinking-border-color)
-  (import (scheme base) (liii string))
+  (import (scheme base) (liii string) (liii list))
   (begin
 
     ;; 级别全集：与上游 pi 的 EXTENDED_THINKING_LEVELS 一致
@@ -22,12 +22,8 @@
     (define* (pi-next-thinking-level level (levels pi-thinking-levels))
       (if (null? levels)
         "off"
-        (let loop
-          ((rest levels) (idx 0))
-          (cond ((null? rest) "off")
-                ((equal? (car rest) level) (list-ref levels (modulo (+ idx 1) (length levels))))
-                (else (loop (cdr rest) (+ idx 1)))
-          ) ;cond
+        (let ((idx (list-index (lambda (item) (equal? item level)) levels)))
+          (if idx (list-ref levels (modulo (+ idx 1) (length levels))) "off")
         ) ;let
       ) ;if
     ) ;define*
