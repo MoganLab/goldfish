@@ -194,13 +194,16 @@
                (buffer-move-word-right! buf)
               ) ;
               ((or (eq? key 'up) (eq? key 'ctrl-p))
-               (if multi?
+               ;; 粘贴后即使编辑器是单行模式，只要缓冲区有多行也应能上下移动
+               (if
+                 (or multi? (> (length (buffer-lines buf)) 1))
                  (buffer-move-up! buf)
                  (%load-history! buf comp on-ch (history-prev hist (buffer-text buf)))
                ) ;if
               ) ;
               ((or (eq? key 'down) (eq? key 'ctrl-n))
-               (if multi?
+               (if
+                 (or multi? (> (length (buffer-lines buf)) 1))
                  (buffer-move-down! buf)
                  (%load-history! buf comp on-ch (history-next hist (buffer-text buf)))
                ) ;if
@@ -247,6 +250,16 @@
               ) ;
               ((and (string? key) (%bracketed-paste? key))
                (%handle-paste! comp data buf on-ch (%bracketed-paste-content key))
+              ) ;
+              ((and (string? key)
+                 (or (> (utf8-string-length key) 1)
+                   (string=? key "\n")
+                   (string=? key "\r")
+                   (string=? key "\t")
+                 ) ;or
+               ) ;and
+               ;; 多字符/带换行的字符串按粘贴处理：统一归一化，超过阈值才折叠
+               (%handle-paste! comp data buf on-ch key)
               ) ;
               ((string? key)
                (buffer-insert-string! buf key)

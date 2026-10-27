@@ -186,8 +186,9 @@
             #t
           ) ;let*
          ) ;
-         ((and (> r 0) (%buffer-multiline? buf))
-          ;; 光标在第 r 行首（c=0），将当前行拼接到上一行末尾
+         ((> r 0)
+          ;; 光标在第 r 行首（c=0），将当前行拼接到上一行末尾；
+          ;; 只要缓冲区实际有多行就允许跨行编辑（如 10 行以内的展开粘贴）
           (let* ((prev-line (list-ref lines (- r 1)))
                  (prev-len (utf8-string-length prev-line))
                  (merged (string-append prev-line line))
@@ -232,7 +233,7 @@
             #t
           ) ;let*
          ) ;
-         ((and (< r (- (length lines) 1)) (%buffer-multiline? buf))
+         ((< r (- (length lines) 1))
           ;; 光标在行尾，将下一行拼接到当前行
           (let* ((next-line (list-ref lines (+ r 1))) (merged (string-append line next-line)))
             (let loop

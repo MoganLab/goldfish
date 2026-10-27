@@ -11,13 +11,21 @@
   (string-append "\x1b;[200~" text "\x1b;[201~")
 ) ;define
 
-;; 1. 小段多行粘贴直接内联插入，不触发提交
+;; 1. 10 行以内展开插入，保留多行内容且不触发提交
 (let ((ed (make-editor "" :multiline #f)))
   (check (component-handle-input ed (paste-event "line1\r\nline2\tend")) => #t)
   (check (editor-text ed) => "line1\nline2    end")
   (check (editor-lines ed) => '("line1" "line2    end"))
   (check (editor-cursor ed) => '(1 12))
   (check (editor-expanded-text ed) => "line1\nline2    end")
+) ;let
+
+;; 1.1 未经 bracketed marker 包装的多行字符串同样按行插入
+(let ((ed (make-editor "")))
+  (check (component-handle-input ed "line1\nline2") => #t)
+  (check (editor-text ed) => "line1\nline2")
+  (check (editor-lines ed) => '("line1" "line2"))
+  (check (editor-cursor ed) => '(1 5))
 ) ;let
 
 ;; 2. 大段粘贴折叠为 [paste #1 N chars]，提交时展开
@@ -92,6 +100,38 @@
   (component-handle-input ed 'backspace)
   (check (editor-text ed) => "你好")
 ) ;let*
+
+;; 7.2 单行模式下，多行缓冲区仍可用上下方向键移动光标
+(let ((ed (make-editor "a\nb" :multiline #f)))
+  (editor-set-cursor! ed 1 1)
+  (check (component-handle-input ed 'up) => #t)
+  (check (editor-cursor ed) => '(0 1))
+  (check (component-handle-input ed 'down) => #t)
+  (check (editor-cursor ed) => '(1 1))
+) ;let
+
+;; 7.3 展开的多行缓冲区：左右键可跨行移动
+(let ((ed (make-editor "ab\ncd" :multiline #f)))
+  (editor-set-cursor! ed 0 2)
+  (check (component-handle-input ed 'right) => #t)
+  (check (editor-cursor ed) => '(1 0))
+  (check (component-handle-input ed 'left) => #t)
+  (check (editor-cursor ed) => '(0 2))
+) ;let
+
+;; 7.4 行首退格 / 行尾 Delete 可合并相邻行
+(let ((ed (make-editor "ab\ncd" :multiline #f)))
+  (editor-set-cursor! ed 1 0)
+  (check (component-handle-input ed 'backspace) => #t)
+  (check (editor-text ed) => "abcd")
+  (check (editor-cursor ed) => '(0 2))
+) ;let
+(let ((ed (make-editor "ab\ncd" :multiline #f)))
+  (editor-set-cursor! ed 0 2)
+  (check (component-handle-input ed 'delete) => #t)
+  (check (editor-text ed) => "abcd")
+  (check (editor-cursor ed) => '(0 2))
+) ;let
 
 ;; 8. 空粘贴不改变内容
 (let ((ed (make-editor "x")))

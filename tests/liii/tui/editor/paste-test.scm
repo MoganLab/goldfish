@@ -12,10 +12,11 @@
 (check (%paste-normalize "a\r\nb\rc\td") => "a\nb\nc    d")
 (check (%paste-normalize (string #\a (integer->char 1) #\b)) => "ab")
 
-;; 3. 大粘贴阈值：>10 行或 >1000 字符
+;; 3. 大粘贴阈值（对齐 pi）：>10 行或 >1000 字符
 (check (%paste-large? "1234567890") => #f)
 (check (%paste-large? (make-string 1000 #\a)) => #f)
 (check (%paste-large? (make-string 1001 #\a)) => #t)
+(check (%paste-large? "a\nb") => #f)
 (check (%paste-large? (string-append "a" (make-string 9 #\newline) "b")) => #f)
 (check (%paste-large? (string-append "a" (make-string 11 #\newline) "b")) => #t)
 

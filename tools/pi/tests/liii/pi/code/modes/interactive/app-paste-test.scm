@@ -36,7 +36,7 @@
   (check (editor-text editor) => "[paste #1 1965 chars]")
 ) ;let*
 
-;; 2. 小段多行粘贴直接进入编辑器，不触发提交
+;; 2. 10 行以内多行粘贴展开插入，不触发提交
 (let* ((vterm (make-virtual-terminal :width 100 :height 40))
        (received #f)
        (handler (lambda (app msg) (set! received msg)))
@@ -49,6 +49,25 @@
   (check received => #f)
   (component-handle-input editor 'enter)
   (check received => "line1\nline2")
+) ;let*
+
+;; 3. 展开的多行粘贴：方向键移动光标，硬件光标行同步
+(let* ((vterm (make-virtual-terminal :width 100 :height 40))
+       (handler (lambda (app msg) #t))
+       (app (make-pi-app :terminal vterm :handler handler))
+       (editor (pi-app-editor app))
+      ) ;
+  (pi-app-render! app)
+  (pi-app-handle-input! app (paste-event "line1\nline2"))
+  (pi-app-render! app)
+  ;; 光标在第二行末尾 (row=1, col=5)，编辑器内容从第 7 行开始
+  (check (terminal-cursor vterm) => '(5 8))
+  (component-handle-input editor 'up)
+  (pi-app-render! app)
+  (check (terminal-cursor vterm) => '(5 7))
+  (component-handle-input editor 'left)
+  (pi-app-render! app)
+  (check (terminal-cursor vterm) => '(4 7))
 ) ;let*
 
 (check-report)

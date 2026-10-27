@@ -117,6 +117,8 @@
       ) ;let
     ) ;define
 
+    ;; 粘贴折叠阈值（对齐上游 pi）：超过 10 行，或超过 1000 字符。
+    ;; 10 行以内保持展开，允许用户在多行之间移动光标继续编辑。
     (define (%paste-large? text)
       (let ((lines (+ 1 (%count-newlines text))) (chars (utf8-string-length text)))
         (or (> lines %paste-max-lines) (> chars %paste-max-chars))
