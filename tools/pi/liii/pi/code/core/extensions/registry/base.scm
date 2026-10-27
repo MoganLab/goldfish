@@ -29,14 +29,14 @@
     ) ;define
 
     (define (upsert-by-key lst key-fn new-item)
-      (if
-        (any (lambda (item) (string=? (key-fn item) (key-fn new-item))) lst)
-        (map
-          (lambda (item) (if (string=? (key-fn item) (key-fn new-item)) new-item item))
-          lst
-        ) ;map
-        (append lst (list new-item))
-      ) ;if
+      (let* ((new-key (key-fn new-item))
+             (matches? (lambda (item) (string=? (key-fn item) new-key)))
+            ) ;
+        (if (any matches? lst)
+          (map (lambda (item) (if (matches? item) new-item item)) lst)
+          (append lst (list new-item))
+        ) ;if
+      ) ;let*
     ) ;define
 
     (define (extension-registry-get-listeners target event-type)
