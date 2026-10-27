@@ -182,7 +182,24 @@
 ) ;check
 
 ;; --------------------------------------------------------------------
-;; 11. 非 define-library 文件 -> '()
+;; 12. 文件级检查（spec 8.4 最小子集）：
+;;     调用实参类型与依赖库 hint 签名的确定冲突
+;; --------------------------------------------------------------------
+;; 12a. (cdr (assoc k b))：assoc 返回 (or #f pair?)，cdr 需要 pair? -> 1 违规
+(let ((viol (check-type-hint (resource-file "goldfish/hint/liii/infercheck.scm"))))
+  (check (length viol) => 1)
+  (check (caar viol) => 'type-hint)
+  (check-true (string-contains? (cadddr (car viol)) "cdr"))
+  (check-true (string-contains? (cadddr (car viol)) "pair?"))
+) ;let
+
+;; 12b. 合法调用（cons 返回 pair? 喂 car；any? 参数吃一切）-> '()
+(let ((viol (check-type-hint (resource-file "goldfish/hint/liii/inferok.scm"))))
+  (check viol => '())
+) ;let
+
+;; --------------------------------------------------------------------
+;; 13. 非 define-library 文件 -> '()
 ;; --------------------------------------------------------------------
 (check (check-type-hint (resource-file "script.scm")) => '())
 

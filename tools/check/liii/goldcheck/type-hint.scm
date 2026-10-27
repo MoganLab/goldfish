@@ -31,6 +31,7 @@
     (liii goldcheck type-hint util)
     (liii goldcheck type-hint hint-data)
     (liii goldcheck type-hint checks)
+    (liii goldcheck type-hint infer)
   ) ;import
   (export scan-hint-libs check-type-hint check-type-hint-all)
   (begin
@@ -102,6 +103,7 @@
                 (apply append (map (lambda (d) (check-var rel d)) vars))
                 (check-a5 rel vars entries query-exists?)
                 (check-b rel hint-file entries vars)
+                (check-infer hint-file)
               ) ;append
             ) ;let*
           ) ;if
