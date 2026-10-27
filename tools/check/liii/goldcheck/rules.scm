@@ -67,6 +67,9 @@
       (display "  no-glue                glue 仅限唯一 define-library 封装，并提供同名公开接口"
       ) ;display
       (newline)
+      (display "  type-hint              hint 库结构与签名校验（仅检查 goldfish/hint/ 下的库）"
+      ) ;display
+      (newline)
       (newline)
       (display "Arguments:")
       (newline)
@@ -237,6 +240,11 @@
               (number->string line)
               ": no-crlf: CRLF line ending detected (expected LF)"
             ) ;string-append
+          ) ;let
+         ) ;
+         ((eq? rule 'type-hint)
+          (let ((file (cadr viol)) (line (caddr viol)) (msg (cadddr viol)))
+            (string-append "  " file ":" (number->string line) ": type-hint: " msg)
           ) ;let
          ) ;
          ((eq? rule 'no-glue)

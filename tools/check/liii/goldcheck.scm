@@ -60,6 +60,7 @@
     (liii goldcheck record-export)
     (liii goldcheck no-glue)
     (liii goldcheck layer)
+    (liii goldcheck type-hint)
     (liii goldcheck collect)
     (liii goldcheck only)
     (liii goldcheck cache)
@@ -67,7 +68,8 @@
   ) ;import
   (export main check-file-lines check-tree-depth check-no-glue check-file
     check-files make-check-arg-parser format-violation display-help
-    violation-report-lines violation-display-hint
+    violation-report-lines violation-display-hint scan-hint-libs check-type-hint
+    check-type-hint-all
   ) ;export
   (begin
 
@@ -206,25 +208,40 @@
                  ) ;vector->list
                ) ;vector-concatenate
              ) ;violations
+             (violations
+               (if (check-rule-enabled? cfg "no-glue")
+                 (let ((files
+                         (filter
+                           (lambda (f) (not (file-excluded? f (check-rule-excludes cfg "no-glue"))))
+                           (vector->list file-vector)
+                         ) ;filter
+                       ) ;files
+                      ) ;
+                   (vector-append violations (list->vector (check-no-glue-duplicates files)))
+                 ) ;let
+                 violations
+               ) ;if
+             ) ;violations
+             (violations
+               (if (check-rule-enabled? cfg "type-hint")
+                 (vector-append violations
+                   (list->vector
+                     (filter (lambda (v) (member (cadr v) (vector->list file-vector) string=?))
+                       (check-type-hint-all)
+                     ) ;filter
+                   ) ;list->vector
+                 ) ;vector-append
+                 violations
+               ) ;if
+             ) ;violations
             ) ;
-        (if (check-rule-enabled? cfg "no-glue")
-          (let ((files
-                  (filter
-                    (lambda (f) (not (file-excluded? f (check-rule-excludes cfg "no-glue"))))
-                    (vector->list file-vector)
-                  ) ;filter
-                ) ;files
-               ) ;
-            (vector-append violations (list->vector (check-no-glue-duplicates files)))
-          ) ;let
-          violations
-        ) ;if
+        violations
       ) ;let*
     ) ;define
 
     (define %all-rule-names
       '("max-file-lines" "max-tree-depth" "define-record-type" "layer-order"
-        "no-crlf" "no-glue")
+        "no-crlf" "no-glue" "type-hint")
     ) ;define
 
     (define (%rule-with-enabled rule enabled)
