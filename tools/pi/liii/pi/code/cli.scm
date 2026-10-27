@@ -49,13 +49,15 @@
     (define (strip-command-prefix args)
       (if (null? args)
         '()
-        (let loop
-          ((rest (cdr args)))
-          (cond ((null? rest) '())
-                ((or (string=? (car rest) "pi") (string-ends? (car rest) "/gf")) (cdr rest))
-                (else (loop (cdr rest)))
-          ) ;cond
-        ) ;let
+        (let* ((rest (cdr args))
+               (idx
+                 (list-index (lambda (arg) (or (string=? arg "pi") (string-ends? arg "/gf")))
+                   rest
+                 ) ;list-index
+               ) ;idx
+              ) ;
+          (if idx (drop rest (+ idx 1)) '())
+        ) ;let*
       ) ;if
     ) ;define
 
