@@ -25,7 +25,8 @@
     pi-valid-cut-point? pi-find-cut-point pi-messages-to-summarize
     pi-truncate-for-summary pi-serialize-conversation pi-content->text
     pi-extract-file-ops pi-compute-file-lists pi-format-file-operations
-    PI_COMPACTION_SUMMARY_PREFIX PI_COMPACTION_SUMMARY_SUFFIX
+    make-pi-file-ops pi-file-ops? pi-file-ops-read pi-file-ops-written
+    pi-file-ops-edited PI_COMPACTION_SUMMARY_PREFIX PI_COMPACTION_SUMMARY_SUFFIX
     PI_SUMMARIZATION_SYSTEM_PROMPT PI_SUMMARIZATION_PROMPT
     PI_UPDATE_SUMMARIZATION_PROMPT pi-compaction-summary-message
     pi-build-summarization-prompt pi-summarization-failure pi-generate-summary
