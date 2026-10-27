@@ -18,25 +18,23 @@
   (export %format-grep-matches %skipped-files-notice %grep-empty-result)
   (begin
 
+    (define (%format-grep-line file-lines rel-path line-num curr)
+      (let ((line (list-ref file-lines (- curr 1))) (sep (if (= curr line-num) ":" "-")))
+        (let-values (((trunc-text was-trunc?) (pi-truncate-line line)))
+          (cons (string-append rel-path sep (number->string curr) sep " " trunc-text)
+            was-trunc?
+          ) ;cons
+        ) ;let-values
+      ) ;let
+    ) ;define
+
     (define (%format-grep-block file-lines rel-path line-num context)
       (let* ((total (length file-lines))
              (start (if (> context 0) (max 1 (- line-num context)) line-num))
              (end (if (> context 0) (min total (+ line-num context)) line-num))
             ) ;
         (let ((formatted
-                (map
-                  (lambda (curr)
-                    (let* ((line (list-ref file-lines (- curr 1)))
-                           (is-match? (= curr line-num))
-                           (sep (if is-match? ":" "-"))
-                          ) ;
-                      (let-values (((trunc-text was-trunc?) (pi-truncate-line line)))
-                        (cons (string-append rel-path sep (number->string curr) sep " " trunc-text)
-                          was-trunc?
-                        ) ;cons
-                      ) ;let-values
-                    ) ;let*
-                  ) ;lambda
+                (map (lambda (curr) (%format-grep-line file-lines rel-path line-num curr))
                   (iota (+ 1 (- end start)) start)
                 ) ;map
               ) ;formatted
@@ -84,18 +82,19 @@
       ) ;let*
     ) ;define
 
+    (define (%format-grep-match match cache ctx-val)
+      (let ((rel-f (car match))
+            (line-n (cadr match))
+            (lines (cdr (assoc (car match) cache)))
+           ) ;
+        (let-values (((block trunc?) (%format-grep-block lines rel-f line-n ctx-val)))
+          (cons block trunc?)
+        ) ;let-values
+      ) ;let
+    ) ;define
+
     (define (%format-grep-matches all-matches cache ctx-val limit limit-reached? skipped)
-      (let* ((blocks
-               (map
-                 (lambda (m)
-                   (let ((rel-f (car m)) (line-n (cadr m)) (lines (cdr (assoc (car m) cache))))
-                     (let-values (((block trunc?) (%format-grep-block lines rel-f line-n ctx-val)))
-                       (cons block trunc?)
-                     ) ;let-values
-                   ) ;let
-                 ) ;lambda
-                 all-matches
-               ) ;map
+      (let* ((blocks (map (lambda (match) (%format-grep-match match cache ctx-val)) all-matches)
              ) ;blocks
              (raw-out (string-join (append-map car blocks) "\n"))
              (trunc (pi-truncate-head raw-out 999999 PI_DEFAULT_MAX_BYTES))
