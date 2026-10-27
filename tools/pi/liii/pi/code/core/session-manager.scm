@@ -10,6 +10,7 @@
   (import (scheme base)
     (scheme file)
     (liii string)
+    (liii list)
     (liii path)
     (liii json)
     (liii uuid)
@@ -169,20 +170,18 @@
               (current-parent-id (find-last-session-message-id sfile))
              ) ;
           (when (> total-len old-len)
-            (let loop
-              ((rest (list-tail all-final-msgs old-len)))
-              (when (pair? rest)
-                (let* ((m (car rest))
-                       (json-str (pi-serialize-event m))
+            (for-each
+              (lambda (m)
+                (let* ((json-str (pi-serialize-event m))
                        (mid (uuid4))
                        (now-iso (pi-iso-8601-utc-now))
                       ) ;
                   (save-session-message! sfile json-str mid current-parent-id now-iso)
                   (set! current-parent-id mid)
-                  (loop (cdr rest))
                 ) ;let*
-              ) ;when
-            ) ;let
+              ) ;lambda
+              (drop all-final-msgs old-len)
+            ) ;for-each
           ) ;when
         ) ;let
       ) ;when

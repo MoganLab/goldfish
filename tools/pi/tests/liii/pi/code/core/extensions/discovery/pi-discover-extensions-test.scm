@@ -11,6 +11,28 @@
 
 (check-set-mode! 'report-failed)
 
+;; pi-discover-extensions
+;; 按内置、用户级、项目级和显式路径的顺序发现并合并扩展文件。
+;;
+;; 语法
+;; ----
+;; (pi-discover-extensions . options) -> list
+;;
+;; 参数
+;; ----
+;; options : list
+;; 支持 :builtin-dir、:agent-dir、:cwd、:explicit-extensions 和 :include-builtin?。
+;;
+;; 返回值
+;; ----
+;; list
+;; 规范化后的 .scm 文件路径列表。同名扩展由后层覆盖前层，
+;; 但项目级扩展不能覆盖内置名称；无效显式路径项会被忽略。
+;;
+;; 示例
+;; ----
+;; (pi-discover-extensions :cwd "/project" :include-builtin? #f)
+
 (define (get-fixtures-dir)
   (cond ((file-exists? "tests/fixtures/extensions") "tests/fixtures/extensions")
         ((file-exists? "tools/pi/tests/fixtures/extensions")

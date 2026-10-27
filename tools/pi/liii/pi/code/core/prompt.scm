@@ -121,18 +121,10 @@
              ) ;fixed-rules
              (all-rules (append bash-rule tool-gl fixed-rules))
              (unique-rules
-               (let loop
-                 ((r all-rules) (seen '()) (out '()))
-                 (if (null? r)
-                   (reverse out)
-                   (let ((item (car r)))
-                     (if (member item seen)
-                       (loop (cdr r) seen out)
-                       (loop (cdr r) (cons item seen) (cons item out))
-                     ) ;if
-                   ) ;let
-                 ) ;if
-               ) ;let
+               (fold-right (lambda (rule acc) (if (member rule acc) acc (cons rule acc)))
+                 '()
+                 all-rules
+               ) ;fold-right
              ) ;unique-rules
             ) ;
         (string-join (map (lambda (x) (string-append "- " x)) unique-rules) "\n")

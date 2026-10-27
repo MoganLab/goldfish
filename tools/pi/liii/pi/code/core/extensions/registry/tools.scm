@@ -80,20 +80,7 @@
     ;; 供 resolve-active-tools 并入默认工具集
     (define (extension-registry-default-tool-names target)
       (let* ((reg (target->registry target)) (tools (extension-registry-tools reg)))
-        (reverse
-          (let loop
-            ((rest tools) (acc '()))
-            (if (null? rest)
-              acc
-              (loop (cdr rest)
-                (if (extension-tool-def-default-active? (car rest))
-                  (cons (extension-tool-def-name (car rest)) acc)
-                  acc
-                ) ;if
-              ) ;loop
-            ) ;if
-          ) ;let
-        ) ;reverse
+        (map extension-tool-def-name (filter extension-tool-def-default-active? tools))
       ) ;let*
     ) ;define
 

@@ -9,6 +9,28 @@
 
 (check-set-mode! 'report-failed)
 
+;; pi-format-session-stats
+;; 将 pi-get-session-stats 的统计 alist 格式化为可读的纯文本报告。
+;;
+;; 语法
+;; ----
+;; (pi-format-session-stats stats) -> string
+;;
+;; 参数
+;; ----
+;; stats : alist
+;; 包含会话名称、消息数量、token 用量和费用的统计信息。
+;;
+;; 返回值
+;; ----
+;; string
+;; 多行文本报告；大整数按三位分组，费用保留三位小数。
+;; 没有缓存、名称或费用信息时省略相应附加内容。
+;;
+;; 示例
+;; ----
+;; (pi-format-session-stats (pi-get-session-stats "session.jsonl"))
+
 (define SESSION-FILE
   (path->string (path-join (path-temp-dir) "pi-session-stats-test.jsonl"))
 ) ;define

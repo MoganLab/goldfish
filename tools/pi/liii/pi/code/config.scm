@@ -207,18 +207,10 @@
       (let* ((r (or reg (current-extension-registry) (default-extension-registry)))
              (ext-names (if r (extension-registry-default-tool-names r) '()))
             ) ;
-        (let loop
-          ((rest (append PI_DEFAULT_TOOL_NAMES ext-names)) (seen '()) (acc '()))
-          (if (null? rest)
-            (reverse acc)
-            (let ((n (car rest)))
-              (if (member n seen)
-                (loop (cdr rest) seen acc)
-                (loop (cdr rest) (cons n seen) (cons n acc))
-              ) ;if
-            ) ;let
-          ) ;if
-        ) ;let
+        (fold-right (lambda (name acc) (if (member name acc) acc (cons name acc)))
+          '()
+          (append PI_DEFAULT_TOOL_NAMES ext-names)
+        ) ;fold-right
       ) ;let*
     ) ;define
 
@@ -270,14 +262,13 @@
     ;; 从 models-store 原始条目查询模型是否支持 reasoning；
     ;; 元数据缺失时默认支持（对齐上游：无模型信息时返回全集级别）
     (define (%model-supports-thinking? models-store provider model-id)
-      (let loop
-        ((rest (pi-catalog-provider-models models-store provider)))
-        (cond ((null? rest) #t)
-              ((equal? (json-dict-ref (car rest) "id" #f) model-id)
-               (and (json-dict-ref (car rest) "reasoning" #f) #t)
-              ) ;
-              (else (loop (cdr rest)))
-        ) ;cond
+      (let ((model
+              (find (lambda (entry) (equal? (json-dict-ref entry "id" #f) model-id))
+                (pi-catalog-provider-models models-store provider)
+              ) ;find
+            ) ;model
+           ) ;
+        (if model (and (json-dict-ref model "reasoning" #f) #t) #t)
       ) ;let
     ) ;define
 

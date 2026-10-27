@@ -5,7 +5,11 @@
 ;;
 
 (define-library (liii pi code core extensions registry base)
-  (import (scheme base) (liii error) (liii pi code core extensions types))
+  (import (scheme base)
+    (liii error)
+    (liii list)
+    (liii pi code core extensions types)
+  ) ;import
   (export target->registry upsert-by-key extension-registry-get-listeners
     current-extension-registry set-current-extension-registry!
     with-extension-registry default-extension-registry
@@ -25,18 +29,14 @@
     ) ;define
 
     (define (upsert-by-key lst key-fn new-item)
-      (let loop
-        ((rest lst) (acc '()) (replaced #f))
-        (if (null? rest)
-          (if replaced (reverse acc) (reverse (cons new-item acc)))
-          (let ((item (car rest)))
-            (if (string=? (key-fn item) (key-fn new-item))
-              (loop (cdr rest) (cons new-item acc) #t)
-              (loop (cdr rest) (cons item acc) replaced)
-            ) ;if
-          ) ;let
+      (let* ((new-key (key-fn new-item))
+             (matches? (lambda (item) (string=? (key-fn item) new-key)))
+            ) ;
+        (if (any matches? lst)
+          (map (lambda (item) (if (matches? item) new-item item)) lst)
+          (append lst (list new-item))
         ) ;if
-      ) ;let
+      ) ;let*
     ) ;define
 
     (define (extension-registry-get-listeners target event-type)

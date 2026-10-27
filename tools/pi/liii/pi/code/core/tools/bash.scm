@@ -12,6 +12,7 @@
     (scheme inexact)
     (scheme time)
     (liii string)
+    (liii list)
     (liii os)
     (liii path)
     (liii either)
@@ -59,14 +60,17 @@
                ) ;append
              ) ;candidates
             ) ;
-        (let loop
-          ((rest candidates))
-          (cond ((null? rest) "bash")
-                ((or (string=? (car rest) "bash") (string=? (car rest) "bash.exe")) (car rest))
-                ((file-exists? (car rest)) (car rest))
-                (else (loop (cdr rest)))
-          ) ;cond
-        ) ;let
+        (or
+          (find (lambda (candidate)
+                  (or (string=? candidate "bash")
+                    (string=? candidate "bash.exe")
+                    (file-exists? candidate)
+                  ) ;or
+                ) ;lambda
+            candidates
+          ) ;find
+          "bash"
+        ) ;or
       ) ;let*
     ) ;define
 

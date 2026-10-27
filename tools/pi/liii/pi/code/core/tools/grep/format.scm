@@ -10,30 +10,36 @@
 ;; 单独成模块以遵守 300 行/文件的硬约束（见 gf_check.json）。
 
 (define-library (liii pi code core tools grep format)
-  (import (scheme base) (liii string) (liii pi code core tools truncate))
+  (import (scheme base)
+    (liii string)
+    (liii list)
+    (liii pi code core tools truncate)
+  ) ;import
   (export %format-grep-matches %skipped-files-notice %grep-empty-result)
   (begin
+
+    (define (%format-grep-line file-lines rel-path line-num curr)
+      (let ((line (list-ref file-lines (- curr 1))) (sep (if (= curr line-num) ":" "-")))
+        (let-values (((trunc-text was-trunc?) (pi-truncate-line line)))
+          (cons (string-append rel-path sep (number->string curr) sep " " trunc-text)
+            was-trunc?
+          ) ;cons
+        ) ;let-values
+      ) ;let
+    ) ;define
 
     (define (%format-grep-block file-lines rel-path line-num context)
       (let* ((total (length file-lines))
              (start (if (> context 0) (max 1 (- line-num context)) line-num))
              (end (if (> context 0) (min total (+ line-num context)) line-num))
             ) ;
-        (let loop
-          ((curr start) (acc '()) (any-trunc? #f))
-          (if (> curr end)
-            (values (reverse acc) any-trunc?)
-            (let* ((line (list-ref file-lines (- curr 1)))
-                   (is-match? (= curr line-num))
-                   (sep (if is-match? ":" "-"))
-                  ) ;
-              (let-values (((trunc-text was-trunc?) (pi-truncate-line line)))
-                (let ((entry (string-append rel-path sep (number->string curr) sep " " trunc-text)))
-                  (loop (+ curr 1) (cons entry acc) (or any-trunc? was-trunc?))
-                ) ;let
-              ) ;let-values
-            ) ;let*
-          ) ;if
+        (let ((formatted
+                (map (lambda (curr) (%format-grep-line file-lines rel-path line-num curr))
+                  (iota (+ 1 (- end start)) start)
+                ) ;map
+              ) ;formatted
+             ) ;
+          (values (map car formatted) (any cdr formatted))
         ) ;let
       ) ;let*
     ) ;define
@@ -76,36 +82,32 @@
       ) ;let*
     ) ;define
 
-    (define (%format-grep-matches all-matches cache ctx-val limit limit-reached? skipped)
-      (let block-loop
-        ((m-list all-matches) (out-lines '()) (any-line-trunc? #f))
-        (if (null? m-list)
-          (let* ((raw-out (string-join (reverse out-lines) "\n"))
-                 (trunc (pi-truncate-head raw-out 999999 PI_DEFAULT_MAX_BYTES))
-                ) ;
-            (string-append (pi-trunc-result-content trunc)
-              (%build-grep-notices limit-reached?
-                limit
-                (pi-trunc-result-truncated trunc)
-                any-line-trunc?
-                skipped
-              ) ;%build-grep-notices
-            ) ;string-append
-          ) ;let*
-          (let* ((m (car m-list))
-                 (rel-f (car m))
-                 (line-n (cadr m))
-                 (lines (cdr (assoc rel-f cache)))
-                ) ;
-            (let-values (((block trunc?) (%format-grep-block lines rel-f line-n ctx-val)))
-              (block-loop (cdr m-list)
-                (append (reverse block) out-lines)
-                (or any-line-trunc? trunc?)
-              ) ;block-loop
-            ) ;let-values
-          ) ;let*
-        ) ;if
+    (define (%format-grep-match match cache ctx-val)
+      (let ((rel-f (car match))
+            (line-n (cadr match))
+            (lines (cdr (assoc (car match) cache)))
+           ) ;
+        (let-values (((block trunc?) (%format-grep-block lines rel-f line-n ctx-val)))
+          (cons block trunc?)
+        ) ;let-values
       ) ;let
+    ) ;define
+
+    (define (%format-grep-matches all-matches cache ctx-val limit limit-reached? skipped)
+      (let* ((blocks (map (lambda (match) (%format-grep-match match cache ctx-val)) all-matches)
+             ) ;blocks
+             (raw-out (string-join (append-map car blocks) "\n"))
+             (trunc (pi-truncate-head raw-out 999999 PI_DEFAULT_MAX_BYTES))
+            ) ;
+        (string-append (pi-trunc-result-content trunc)
+          (%build-grep-notices limit-reached?
+            limit
+            (pi-trunc-result-truncated trunc)
+            (any cdr blocks)
+            skipped
+          ) ;%build-grep-notices
+        ) ;string-append
+      ) ;let*
     ) ;define
 
   ) ;begin
