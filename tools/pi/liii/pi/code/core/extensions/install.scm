@@ -21,49 +21,45 @@
   ) ;export
   (begin
 
+    (define (%trim-git-trailing-separator trimmed)
+      (let ((len (string-length trimmed)))
+        (if
+          (and (> len 1)
+            (or (char=? (string-ref trimmed (- len 1)) #\/)
+              (char=? (string-ref trimmed (- len 1)) #\\)
+            ) ;or
+          ) ;and
+          (substring trimmed 0 (- len 1))
+          trimmed
+        ) ;if
+      ) ;let
+    ) ;define
+
+    (define (%git-last-segment text)
+      (let ((idx
+              (string-index-right text
+                (lambda (ch) (or (char=? ch #\/) (char=? ch #\\) (char=? ch #\:)))
+              ) ;string-index-right
+            ) ;idx
+           ) ;
+        (if idx (string-drop text (+ idx 1)) text)
+      ) ;let
+    ) ;define
+
+    (define (%strip-git-suffix name)
+      (if (and (> (string-length name) 4) (string-ends? (string-downcase name) ".git"))
+        (substring name 0 (- (string-length name) 4))
+        name
+      ) ;if
+    ) ;define
+
     (define (pi-parse-git-extension-name url)
       (if (not (string? url))
         #f
-        (let* ((trimmed (string-trim-both url)) (len (string-length trimmed)))
-          (if (zero? len)
-            #f
-            (let* (
-                    ;; 去除末尾斜杠
-                    (s
-                      (if
-                        (and (> len 1)
-                          (or (char=? (string-ref trimmed (- len 1)) #\/)
-                            (char=? (string-ref trimmed (- len 1)) #\\)
-                          ) ;or
-                        ) ;and
-                        (substring trimmed 0 (- len 1))
-                        trimmed
-                      ) ;if
-                    ) ;s
-                    ;; 提取最后一个路径段（兼容 / 与 \ 与 :）
-                    (last-seg
-                      (let ((idx
-                              (string-index-right s
-                                (lambda (ch) (or (char=? ch #\/) (char=? ch #\\) (char=? ch #\:)))
-                              ) ;string-index-right
-                            ) ;idx
-                           ) ;
-                        (if idx (string-drop s (+ idx 1)) s)
-                      ) ;let
-                    ) ;last-seg
-                  ) ;
-              (if (string-null? last-seg)
-                #f
-                ;; 如果以 .git 结尾则剥除
-                (if (and (> (string-length last-seg) 4)
-                      (string-ends? (string-downcase last-seg) ".git")
-                    ) ;and
-                  (substring last-seg 0 (- (string-length last-seg) 4))
-                  last-seg
-                ) ;if
-              ) ;if
-            ) ;let*
-          ) ;if
+        (let* ((trimmed (string-trim-both url))
+               (last-seg (%git-last-segment (%trim-git-trailing-separator trimmed)))
+              ) ;
+          (if (string-null? last-seg) #f (%strip-git-suffix last-seg))
         ) ;let*
       ) ;if
     ) ;define
