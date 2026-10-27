@@ -33,12 +33,14 @@
   ) ;import
   (begin
 
+    (define-record-type <container-data>
+      (%make-container-data children)
+      %container-data?
+      (children %container-data-children %container-data-children-set!)
+    ) ;define-record-type
+
     (define (container? obj)
-      (and (component? obj)
-        (let ((d (component-data obj)))
-          (and (pair? d) (eq? (car d) 'container))
-        ) ;let
-      ) ;and
+      (and (component? obj) (%container-data? (component-data obj)))
     ) ;define
 
     (define (%check-container comp caller)
@@ -50,20 +52,20 @@
     ;; children 在 data 中倒序存储，container-add! 为 O(1)；读取时 reverse
     (define (container-children comp)
       (%check-container comp "container-children")
-      (reverse (cadr (component-data comp)))
+      (reverse (%container-data-children (component-data comp)))
     ) ;define
 
     (define (container-add! comp child)
       (%check-container comp "container-add!")
-      (let ((c (%validate-child child "container-add!")) (d (component-data comp)))
-        (set-car! (cdr d) (cons c (cadr d)))
+      (let ((c (%validate-child child "container-add!")) (data (component-data comp)))
+        (%container-data-children-set! data (cons c (%container-data-children data)))
         comp
       ) ;let
     ) ;define
 
     (define (container-clear! comp)
       (%check-container comp "container-clear!")
-      (set-car! (cdr (component-data comp)) '())
+      (%container-data-children-set! (component-data comp) '())
       comp
     ) ;define
 
@@ -80,7 +82,7 @@
               ) ;make-component
             ) ;comp
            ) ;
-        (component-data-set! comp (list 'container '()))
+        (component-data-set! comp (%make-container-data '()))
         comp
       ) ;let
     ) ;define

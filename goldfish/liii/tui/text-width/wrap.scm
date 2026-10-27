@@ -33,6 +33,14 @@
   ) ;import
   (begin
 
+    (define-record-type <wrap-token>
+      (%make-wrap-token kind width text)
+      %wrap-token?
+      (kind %wrap-token-kind)
+      (width %wrap-token-width)
+      (text %wrap-token-text)
+    ) ;define-record-type
+
     (define (%string-ends-with-reset? str)
       (let ((len (string-length str)))
         (and (>= len 4) (string=? (substring str (- len 4) len) "\x1b;[0m"))
@@ -82,7 +90,7 @@
              (cp (utf8->codepoint-at bv i))
              (cw (%codepoint-width cp))
             ) ;
-        (list step (list 'cchar cw chunk))
+        (list step (%make-wrap-token 'cchar cw chunk))
       ) ;let*
     ) ;define
 
@@ -95,17 +103,21 @@
                  =>
                  (lambda (ansi-end)
                    (let ((chunk (utf8->string (bytevector-copy bv i ansi-end))))
-                     (loop ansi-end (cons (list 'ansi 0 chunk) acc))
+                     (loop ansi-end (cons (%make-wrap-token 'ansi 0 chunk) acc))
                    ) ;let
                  ) ;lambda
                 ) ;
                 ;; 裸 ESC（非 CSI/OSC 开头，如不完整 OSC 的残余）：
                 ;; 零宽丢弃，避免 %scan-ascii-word 返回空词不前进导致死循环
                 ((= (bytevector-u8-ref bv i) 27) (loop (+ i 1) acc))
-                ((= (bytevector-u8-ref bv i) 32) (loop (+ i 1) (cons (list 'space 1 " ") acc)))
+                ((= (bytevector-u8-ref bv i) 32)
+                 (loop (+ i 1) (cons (%make-wrap-token 'space 1 " ") acc))
+                ) ;
                 ((< (bytevector-u8-ref bv i) 128)
                  (let* ((res (%scan-ascii-word bv i len)) (next-i (car res)) (word-str (cdr res)))
-                   (loop next-i (cons (list 'word (string-length word-str) word-str) acc))
+                   (loop next-i
+                     (cons (%make-wrap-token 'word (string-length word-str) word-str) acc)
+                   ) ;loop
                  ) ;let*
                 ) ;
                 (else
@@ -172,15 +184,15 @@
               (reverse (cons closed lines))
             ) ;let
            ) ;
-           ((eq? (caar rest) 'ansi)
+           ((eq? (%wrap-token-kind (car rest)) 'ansi)
             (let* ((tok (car rest))
-                   (tok-str (caddr tok))
+                   (tok-str (%wrap-token-text tok))
                    (next-a (if (%is-sgr-reset? tok-str) "" (string-append active-ansi tok-str)))
                   ) ;
               (loop (cdr rest) (cons tok-str cur-line) cur-w next-a lines)
             ) ;let*
            ) ;
-           ((eq? (caar rest) 'space)
+           ((eq? (%wrap-token-kind (car rest)) 'space)
             (cond ((and (= cur-w 0) (pair? lines))
                    (loop (cdr rest) cur-line cur-w active-ansi lines)
                   ) ;
@@ -198,7 +210,14 @@
            ) ;
            (else
              (let* ((tok (car rest))
-                    (res (%handle-word (caddr tok) (cadr tok) cur-line cur-w active-ansi lines width)
+                    (res (%handle-word (%wrap-token-text tok)
+                           (%wrap-token-width tok)
+                           cur-line
+                           cur-w
+                           active-ansi
+                           lines
+                           width
+                         ) ;%handle-word
                     ) ;res
                    ) ;
                (loop (cdr rest) (car res) (cadr res) active-ansi (caddr res))

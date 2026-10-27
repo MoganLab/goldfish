@@ -66,7 +66,7 @@
 
     (define (%state comp)
       (let ((data (component-data comp)))
-        (and (pair? data) (eq? (car data) 'select-list) (cadr data))
+        (and (select-list-state? data) data)
       ) ;let
     ) ;define
 
@@ -287,7 +287,7 @@
              ) ;state
              (comp (make-component :render %render :handle-input %handle-input))
             ) ;
-        (component-data-set! comp (list 'select-list state))
+        (component-data-set! comp state)
         comp
       ) ;let*
     ) ;define

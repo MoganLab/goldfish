@@ -32,6 +32,13 @@
   ) ;import
   (begin
 
+    (define-record-type <box-data>
+      (%make-box-data child border)
+      %box-data?
+      (child %box-data-child)
+      (border %box-data-border)
+    ) ;define-record-type
+
     (define (%keyword-value key opts default)
       (let loop
         ((rest opts))
@@ -44,11 +51,7 @@
     ) ;define
 
     (define (box? obj)
-      (and (component? obj)
-        (let ((d (component-data obj)))
-          (and (pair? d) (eq? (car d) 'box))
-        ) ;let
-      ) ;and
+      (and (component? obj) (%box-data? (component-data obj)))
     ) ;define
 
     (define (%validate-pad val name)
@@ -138,7 +141,7 @@
                       ) ;make-component
                 ) ;comp
                ) ;
-            (component-data-set! comp (list 'box c border))
+            (component-data-set! comp (%make-box-data c border))
             comp
           ) ;let
         ) ;let*
