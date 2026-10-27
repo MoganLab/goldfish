@@ -9,9 +9,12 @@
   (import (scheme base)
     (liii string)
     (liii list)
+    (liii sort)
     (liii unicode)
+    (liii date-time)
     (liii tui)
     (liii tui component)
+    (liii pi code core session-list)
     (liii pi code modes interactive session-selector-time)
   ) ;import
   (export make-session-selector session-selector? session-selector-scope
@@ -35,7 +38,7 @@
 
     (define-record-type <session-selector-state>
       (%make-state current all on-select on-cancel scope sort-mode name-filter
-        show-path? search visible selected
+        show-path? search visible selected text-cache
       ) ;%make-state
       state?
       (current state-current)
@@ -49,6 +52,8 @@
       (search state-search state-search-set!)
       (visible state-visible state-visible-set!)
       (selected state-selected state-selected-set!)
+      ;; 会话在选择器生命周期内不变，搜索串按会话缓存，避免每次按键重新拼接
+      (text-cache state-text-cache state-text-cache-set!)
     ) ;define-record-type
 
     (define (%state comp)
@@ -95,29 +100,47 @@
         ) ;let
       ) ;if
     ) ;define
-    (define (%search-text session)
-      (string-join (list (%ref session 'id)
-                     (or (%ref session 'name) "")
-                     (%ref session 'all-messages-text)
-                     (%ref session 'cwd)
-                   ) ;list
-        " "
-      ) ;string-join
+    (define (%search-text state session)
+      (let ((hit (assq session (state-text-cache state))))
+        (if hit
+          (cdr hit)
+          (let ((text
+                  (string-join (list (%ref session 'id)
+                                 (or (%ref session 'name) "")
+                                 (%ref session 'all-messages-text)
+                                 (%ref session 'cwd)
+                               ) ;list
+                    " "
+                  ) ;string-join
+                ) ;text
+               ) ;
+            (state-text-cache-set! state
+              (cons (cons session text) (state-text-cache state))
+            ) ;state-text-cache-set!
+            text
+          ) ;let
+        ) ;if
+      ) ;let
     ) ;define
     (define (%refresh! state)
-      (let* ((named
+      (let* ((source (%source state))
+             (named
                (if (eq? (state-name-filter state) 'named)
-                 (filter (lambda (s) (%ref s 'name)) (%source state))
-                 (%source state)
+                 (filter (lambda (s) (%ref s 'name)) source)
+                 source
                ) ;if
              ) ;named
              (query (string-trim-both (editor-text (state-search state))))
-             (matched (if (string-null? query) named (fuzzy-filter named query %search-text))
+             (matched
+               (if (string-null? query)
+                 named
+                 (fuzzy-filter named query (lambda (s) (%search-text state s)))
+               ) ;if
              ) ;matched
              (visible
                (if (or (string-null? query) (eq? (state-sort-mode state) 'relevance))
                  matched
-                 (filter (lambda (s) (memq s matched)) named)
+                 (list-sort pi-session-info-newer? matched)
                ) ;if
              ) ;visible
              (last (max 0 (- (length visible) 1)))
@@ -134,14 +157,14 @@
                         ) ;string-replace
       ) ;string-trim-both
     ) ;define
-    (define (%row state session selected? width)
+    (define (%row state session selected? width now-posix)
       (let* ((label (%one-line (or (%ref session 'name) (%ref session 'first-message))))
              (right
                (string-join
                  (append (if (eq? (state-scope state) 'all) (list (%ref session 'cwd)) '())
                    (if (state-show-path? state) (list (%ref session 'path)) '())
                    (list (number->string (%ref session 'message-count))
-                     (session-selector-format-age (%ref session 'modified))
+                     (session-selector-format-age (%ref session 'modified) now-posix)
                    ) ;list
                  ) ;append
                  " "
@@ -166,11 +189,13 @@
              (selected (state-selected state))
              (start (max 0 (min (- selected 5) (- count 10))))
              (end (min count (+ start 10)))
+             ;; 一次渲染内所有行共用同一 now，避免逐行重复读取系统时间
+             (now-posix (timestamp->utc-posix-time (current-utc-timestamp)))
             ) ;
         (if (zero? count)
           (list (%colored %muted "  No sessions found"))
           (append
-            (map (lambda (s i) (%row state s (= i selected) width))
+            (map (lambda (s i) (%row state s (= i selected) width now-posix))
               (list-tail items start)
               (iota (- end start) start)
             ) ;map
@@ -274,6 +299,7 @@
                       #f
                       '()
                       0
+                      '()
                     ) ;%make-state
              ) ;state
              (search (make-text-input ""

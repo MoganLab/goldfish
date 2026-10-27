@@ -21,14 +21,22 @@
     (liii pi ai template)
     (liii pi ai types)
   ) ;import
-  (export encode-cwd-to-session-dirname get-session-dir make-session-file-path
-    resolve-session-dir read-session-history append-session-entry!
-    find-latest-session-file save-session-header! save-session-message!
-    setup-session-file setup-initial-messages persist-new-messages!
-    find-last-session-message-id pi-normalize-session-msg append-bash-execution!
-    assoc
+  (export encode-cwd-to-session-dirname get-session-dir get-sessions-root
+    make-session-file-path resolve-session-dir read-session-history
+    append-session-entry! find-latest-session-file save-session-header!
+    save-session-message! setup-session-file setup-initial-messages
+    persist-new-messages! find-last-session-message-id pi-normalize-session-msg
+    append-bash-execution! resolve-resume-session-file assoc
   ) ;export
   (begin
+
+    ;; 恢复来源解析（session-file / continue 优先级的单一事实源）：
+    ;; 显式 session-file 优先，其次 --continue 取目录最新会话，否则 #f（新会话）
+    (define (resolve-resume-session-file parsed sdir)
+      (or (pi-args-ref parsed 'session-file)
+        (and (pi-args-ref parsed 'continue) sdir (find-latest-session-file sdir))
+      ) ;or
+    ) ;define
 
     (define (%init-new-session-file sdir cwd)
       (path-mkdir sdir :parents #t :exist-ok #t)
@@ -44,37 +52,20 @@
     (define (setup-session-file parsed cfg cwd)
       (if (pi-args-ref parsed 'no-session)
         (values #f #f)
-        (let ((sdir (resolve-session-dir parsed cfg cwd)))
-          (cond ((pi-args-ref parsed 'session-file)
-                 =>
-                 (lambda (selected) (values selected sdir))
-                ) ;
-                ((pi-args-ref parsed 'continue)
-                 (let ((latest (find-latest-session-file sdir)))
-                   (if latest (values latest sdir) (%init-new-session-file sdir cwd))
-                 ) ;let
-                ) ;
-                (else (%init-new-session-file sdir cwd))
-          ) ;cond
-        ) ;let
+        (let* ((sdir (resolve-session-dir parsed cfg cwd))
+               (resume (resolve-resume-session-file parsed sdir))
+              ) ;
+          (if resume (values resume sdir) (%init-new-session-file sdir cwd))
+        ) ;let*
       ) ;if
     ) ;define
 
     (define (setup-initial-messages parsed initial-msg sdir)
       (let* ((user-msg (if (not (string-null? initial-msg)) (list (pi-user-message initial-msg)) '())
              ) ;user-msg
+             (source (resolve-resume-session-file parsed sdir))
             ) ;
-        (cond
-         ((pi-args-ref parsed 'session-file)
-          (append (read-session-history (pi-args-ref parsed 'session-file)) user-msg)
-         ) ;
-         ((pi-args-ref parsed 'continue)
-          (let ((latest-file (find-latest-session-file sdir)))
-            (if latest-file (append (read-session-history latest-file) user-msg) user-msg)
-          ) ;let
-         ) ;
-         (else user-msg)
-        ) ;cond
+        (if source (append (read-session-history source) user-msg) user-msg)
       ) ;let*
     ) ;define
 
@@ -210,9 +201,13 @@
       ) ;let*
     ) ;define
 
+    (define (get-sessions-root agent-dir)
+      (path->string (path-join agent-dir "sessions"))
+    ) ;define
+
     (define (get-session-dir agent-dir cwd)
       (let ((dirname (encode-cwd-to-session-dirname cwd)))
-        (path->string (path-join agent-dir "sessions" dirname))
+        (path->string (path-join (get-sessions-root agent-dir) dirname))
       ) ;let
     ) ;define
 

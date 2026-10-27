@@ -8,9 +8,7 @@
 (define-library (liii pi code modes interactive resume)
   (import (scheme base)
     (liii time)
-    (liii string)
     (liii tui)
-    (liii path)
     (liii pi code core session-manager)
     (liii pi code core session-list)
     (liii pi code modes interactive session-selector)
@@ -20,18 +18,17 @@
 
     (define (pi-load-resume-sessions parsed cfg cwd)
       (let* ((current-dir (resolve-session-dir parsed cfg cwd))
-             (default-dir (get-session-dir (cdr (assoc 'agent-dir cfg)) cwd))
-             (default-layout? (string=? current-dir default-dir))
-             (all-dir
-               (if default-layout?
-                 (path->string (path-join (cdr (assoc 'agent-dir cfg)) "sessions"))
-                 current-dir
-               ) ;if
-             ) ;all-dir
+             (agent-dir (cdr (assoc 'agent-dir cfg)))
+             (default-layout? (string=? current-dir (get-session-dir agent-dir cwd)))
              (current (pi-list-session-infos current-dir))
             ) ;
         (values current
-          (lambda () (if default-layout? (pi-list-session-infos all-dir #t) current))
+          (lambda ()
+            (if default-layout?
+              (pi-list-session-infos (get-sessions-root agent-dir) #t)
+              current
+            ) ;if
+          ) ;lambda
         ) ;values
       ) ;let*
     ) ;define
@@ -66,13 +63,7 @@
               ()
               (unless done?
                 (let ((key (terminal-poll-key term)))
-                  (when key
-                    (component-handle-input selector key)
-                    (render!)
-                  ) ;when
-                  (unless key
-                    (sleep 0.02)
-                  ) ;unless
+                  (if key (begin (component-handle-input selector key) (render!)) (sleep 0.02))
                   (loop)
                 ) ;let
               ) ;unless

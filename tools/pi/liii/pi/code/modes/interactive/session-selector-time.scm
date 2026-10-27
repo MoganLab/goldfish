@@ -10,23 +10,10 @@
   (export session-selector-format-age)
   (begin
 
-    (define (%activity-posix timestamp)
-      ;; 会话时间戳均为 UTC ISO-8601；避免依赖当前 date-time 的
-      ;; iso-8601->timestamp 传递依赖，按日期与时分秒直接换算 POSIX 秒。
-      (let* ((date (iso-8601->date (substring timestamp 0 10)))
-             (days (- (date->rata-die date) (date->rata-die (make-date 1970 1 1))))
-             (hour (string->number (substring timestamp 11 13)))
-             (minute (string->number (substring timestamp 14 16)))
-             (second (string->number (substring timestamp 17 19)))
-            ) ;
-        (+ (* days 86400) (* hour 3600) (* minute 60) second)
-      ) ;let*
-    ) ;define
-
     (define* (session-selector-format-age timestamp (now-posix #f))
       (catch #t
         (lambda ()
-          (let* ((then (%activity-posix timestamp))
+          (let* ((then (timestamp->utc-posix-time (iso-8601->timestamp timestamp)))
                  (now (or now-posix (timestamp->utc-posix-time (current-utc-timestamp))))
                  (minutes
                    (max 0 (floor (/ (- now then) 60)))

@@ -106,11 +106,8 @@
 
     (define (persist-initial-user-msg! parsed sdir sfile init-msgs)
       (let ((old-history
-              (if (and sdir
-                    (or (pi-args-ref parsed 'continue) (pi-args-ref parsed 'session-file))
-                  ) ;and
-                (let ((source (or (pi-args-ref parsed 'session-file) (find-latest-session-file sdir)))
-                     ) ;
+              (if sdir
+                (let ((source (resolve-resume-session-file parsed sdir)))
                   (if source (read-session-history source) '())
                 ) ;let
                 '()
@@ -157,15 +154,13 @@
       ) ;let
     ) ;define
 
-    (define (%session-context parsed sfile session-file-override)
+    (define (%session-context parsed sfile sdir session-file-override)
       ;; 会话文件覆盖（TUI worker 复用同一文件）时始终携带既有上下文；
       ;; 否则 --continue / --resume 时恢复历史
-      (if (and sfile
-            (or session-file-override
-              (pi-args-ref parsed 'continue)
-              (pi-args-ref parsed 'session-file)
-            ) ;or
-          ) ;and
+      (if
+        (and sfile
+          (or session-file-override (and sdir (resolve-resume-session-file parsed sdir)))
+        ) ;and
         (pi-project-session-messages (pi-read-session-entries sfile))
         '()
       ) ;if
@@ -189,7 +184,7 @@
                        (setup-session-file-with-name parsed cfg cwd)
                      ) ;if
                     ) ;
-                    ((context) (%session-context parsed sfile session-file))
+                    ((context) (%session-context parsed sfile sdir session-file))
                    ) ;
         (let ((prompts (append (if (string-null? initial-msg) '() (list initial-msg)) rest-msgs)
               ) ;prompts

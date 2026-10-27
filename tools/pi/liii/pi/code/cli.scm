@@ -154,19 +154,21 @@
       ) ;catch
     ) ;define
 
+    (define (%resolved-cfg parsed)
+      (augment-pi-config (resolve-pi-config parsed (get-environment-variables))
+        parsed
+      ) ;augment-pi-config
+    ) ;define
+
     (define (%tui-session-name parsed)
       (or (pi-args-ref parsed 'name)
         (and (or (pi-args-ref parsed 'continue) (pi-args-ref parsed 'session-file))
           (catch #t
             (lambda ()
-              (let* ((cfg (augment-pi-config (resolve-pi-config parsed (get-environment-variables))
-                            parsed
-                          ) ;augment-pi-config
-                     ) ;cfg
-                     (cwd (path->string (path-cwd)))
-                    ) ;
-                (resolve-initial-session-name parsed cfg cwd)
-              ) ;let*
+              (resolve-initial-session-name parsed
+                (%resolved-cfg parsed)
+                (path->string (path-cwd))
+              ) ;resolve-initial-session-name
             ) ;lambda
             (lambda args #f)
           ) ;catch
@@ -175,16 +177,15 @@
     ) ;define
 
     (define (%select-resume-session parsed)
-      (let* ((cwd (path->string (path-cwd)))
-             (cfg (augment-pi-config (resolve-pi-config parsed (get-environment-variables))
-                    parsed
-                  ) ;augment-pi-config
-             ) ;cfg
-            ) ;
-        (let-values (((current all) (pi-load-resume-sessions parsed cfg cwd)))
-          (pi-run-session-selector current all)
-        ) ;let-values
-      ) ;let*
+      (let-values (((current all)
+                    (pi-load-resume-sessions parsed
+                      (%resolved-cfg parsed)
+                      (path->string (path-cwd))
+                    ) ;pi-load-resume-sessions
+                   ) ;
+                  ) ;
+        (pi-run-session-selector current all)
+      ) ;let-values
     ) ;define
 
     (define (%run-interactive parsed initial-msg rest-msgs)
