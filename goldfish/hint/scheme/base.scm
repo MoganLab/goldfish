@@ -82,6 +82,7 @@
     (define hint-string-length '((string? -> integer?)))
     (define hint-substring '((string? integer? integer? -> string?)))
     (define hint-string-ref '((string? integer? -> char?)))
+    (define hint-string->number '((string? -> (or #f number?))))
 
     ;; string-append 为可变参数，登记 2-5 个参数的形式
     (define hint-string-append
@@ -110,6 +111,7 @@
 
     ;; 数值
     (define hint+ '((number? number? -> number?)))
+    (define hint* '((number? number? -> number?)))
     (define hint= '((number? number? -> boolean?)))
     (define hint-< '((number? number? -> boolean?)))
     (define hint-> '((number? number? -> boolean?)))
@@ -182,6 +184,7 @@
        ((string-length) hint-string-length)
        ((substring) hint-substring)
        ((string-ref) hint-string-ref)
+       ((string->number) hint-string->number)
        ((string-append) hint-string-append)
        ((char=?) hint-char=?)
        ((vector-ref) hint-vector-ref)
@@ -195,6 +198,7 @@
        ((call-with-values) hint-call-with-values)
        ((length) hint-length)
        ((+) hint+)
+       ((*) hint*)
        ((=) hint=)
        ((-) hint--)
        ((<) hint-<)

@@ -113,8 +113,10 @@
 
     ;; 表达式 -> 类型（符号、 或 #f 表示 unknown）
     ;; 候选签名的公共返回类型：唯一则返回该类型，否则 #f
-    (define (call-return-type sigs expr env)
-      (let ((survivors (filter (lambda (s) (call-args-ok? s expr env)) sigs)))
+    ;; 注意：(boolean? #f) 为 #t（R7RS 语义），故 #f 字面量必须先行判定，
+    ;; 否则 #f 会被误推导为 boolean? 而产生假阳性。
+    (define (call-return-type sigs expr env locals)
+      (let ((survivors (filter (lambda (s) (call-args-ok? s expr env locals)) sigs)))
         (if (null? survivors)
           #f
           (same-return-type
@@ -137,12 +139,14 @@
       ) ;let
     ) ;define
 
-    (define (infer-type expr env)
-      (cond ((integer? expr) 'integer?)
+    (define (infer-type expr env locals)
+      (cond ((eq? expr #f) #f)
+            ((integer? expr) 'integer?)
             ((number? expr) 'number?)
             ((string? expr) 'string?)
             ((boolean? expr) 'boolean?)
             ((char? expr) 'char?)
+            ((symbol? expr) (let ((local (assq expr locals))) (if local (cdr local) #f)))
             ((and (pair? expr) (eq? (car expr) 'quote) (pair? (cdr expr)))
              (let ((x (cadr expr)))
                (cond ((symbol? x) 'symbol?)
@@ -153,22 +157,27 @@
              ) ;let
             ) ;
             ((and (pair? expr) (symbol? (car expr)))
-             (let ((sigs (assq (car expr) env)))
-               (if (not sigs) #f (call-return-type (cdr sigs) expr env))
+             (let ((local (assq expr locals)))
+               (if local
+                 (cdr local)
+                 (let ((sigs (assq (car expr) env)))
+                   (if (not sigs) #f (call-return-type (cdr sigs) expr env locals))
+                 ) ;let
+               ) ;if
              ) ;let
             ) ;
             (else #f)
       ) ;cond
     ) ;define
 
-    (define (call-args-ok? sig expr env)
+    (define (call-args-ok? sig expr env locals)
       (let ((p (signature-parts sig)))
         (and p
           (= (length (car p)) (length (cdr expr)))
           (let loop
             ((params (car p)) (args (cdr expr)))
             (cond ((null? params) #t)
-                  ((%accepts? (car params) (infer-type (car args) env))
+                  ((%accepts? (car params) (infer-type (car args) env locals))
                    (loop (cdr params) (cdr args))
                   ) ;
                   (else #f)
@@ -191,26 +200,75 @@
       ) ;let
     ) ;define
 
+    ;; let 绑定列表 -> 局部类型绑定表
+    ;; 绑定形如 (name value)：name 取 (car b)，value 取 (cadr b)。
+    ;; sequential? 为 #t（let*）时按顺序推导，后面的绑定可见前面的结果；
+    ;; 否则（普通 let、命名 let）为并行语义，只能看到外层的 locals。
+    (define (let-bindings bindings env locals sequential?)
+      (let loop
+        ((bs bindings) (acc locals))
+        (if (null? bs)
+          acc
+          (let* ((b (car bs))
+                 (name (and (pair? b) (symbol? (car b)) (car b)))
+                 (value (and (pair? (cdr b)) (cadr b)))
+                 (base (if sequential? acc locals))
+                 (type (and name (infer-type value env base)))
+                ) ;
+            (loop (cdr bs) (if (and name type) (cons (cons name type) acc) acc))
+          ) ;let*
+        ) ;if
+      ) ;let
+    ) ;define
+
+    ;; let 形式：绑定局部类型后在体内继续检查
+    (define (walk-let rel expr env locals acc sequential?)
+      (let* ((raw (cadr expr))
+             (named? (and (symbol? raw) (pair? (cdr expr))))
+             (bindings (if named? (caddr expr) raw))
+             (body (if named? (cdddr expr) (cddr expr)))
+             (acc1 (walk rel bindings env locals acc))
+             (new-locals (let-bindings bindings env locals sequential?))
+            ) ;
+        (walk-body rel body env new-locals acc1)
+      ) ;let*
+    ) ;define
+
     ;; 递归遍历表达式，对环境内函数的调用做实参类型检查
-    (define (walk rel expr env acc)
+    (define (walk rel expr env locals acc)
       (if (not (pair? expr))
         acc
         (let ((acc1
                 (if (and (symbol? (car expr)) (assq (car expr) env))
-                  (check-call rel expr env acc)
+                  (check-call rel expr env locals acc)
                   acc
                 ) ;if
               ) ;acc1
              ) ;
-          (if (eq? (car expr) 'quote)
-            acc1
-            (let loop
-              ((l expr) (a acc1))
-              (if (null? l) a (loop (cdr l) (walk rel (car l) env a)))
-            ) ;let
-          ) ;if
+          (cond ((eq? (car expr) 'quote) acc1)
+                ((and (eq? (car expr) 'let) (pair? (cdr expr)) (pair? (cddr expr)))
+                 (walk-let rel expr env locals acc #f)
+                ) ;
+                ((and (eq? (car expr) 'let*) (pair? (cdr expr)) (pair? (cddr expr)))
+                 (walk-let rel expr env locals acc #t)
+                ) ;
+                (else
+                  (let loop
+                    ((l expr) (a acc1))
+                    (if (null? l) a (loop (cdr l) (walk rel (car l) env locals a)))
+                  ) ;let
+                ) ;else
+          ) ;cond
         ) ;let
       ) ;if
+    ) ;define
+
+    ;; 遍历表达式序列
+    (define (walk-body rel exprs env locals acc)
+      (let loop
+        ((l exprs) (a acc))
+        (if (null? l) a (loop (cdr l) (walk rel (car l) env locals a)))
+      ) ;let
     ) ;define
 
     ;; 数量匹配的候选签名
@@ -233,7 +291,7 @@
       (filter (lambda (s) (%accepts? (sig-param-type s idx) ti)) cands)
     ) ;define
 
-    (define (check-call rel expr env acc)
+    (define (check-call rel expr env locals acc)
       (let* ((f (car expr))
              (sigs (cdr (assq f env)))
              (alive (arity-match-sigs sigs (length (cdr expr))))
@@ -243,7 +301,9 @@
           ((i 1) (args (cdr expr)) (cands alive))
           (if (or (null? args) (null? cands))
             acc
-            (let* ((ti (infer-type (car args) env)) (ok-cands (pos-accept-sigs cands i ti)))
+            (let* ((ti (infer-type (car args) env locals))
+                   (ok-cands (pos-accept-sigs cands i ti))
+                  ) ;
               (if (and ti (not (eq? ti 'unknown)) (null? ok-cands))
                 (cons
                   (list 'type-hint
@@ -274,8 +334,12 @@
     (define (walk-bodies orig-rel bodies env acc)
       (let loop
         ((bs bodies) (a acc))
-        (if (null? bs) a (loop (cdr bs) (walk orig-rel (car bs) env a)))
+        (if (null? bs) a (loop (cdr bs) (walk-bodies-one orig-rel (car bs) env a)))
       ) ;let
+    ) ;define
+
+    (define (walk-bodies-one orig-rel body env acc)
+      (walk orig-rel body env '() acc)
     ) ;define
 
     (define (check-infer hint-file)

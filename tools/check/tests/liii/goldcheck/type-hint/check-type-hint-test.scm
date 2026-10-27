@@ -124,6 +124,20 @@
     "goldfish/hint/liii/goldfmt/format/writer.scm")
 ) ;for-each
 
+;; timestamp-iso 全量检查能发现真实的未校验 string->number 结果。
+(let ((viol
+        (check-type-hint (repo-file "goldfish/hint/liii/date-time/internal/timestamp-iso.scm"))
+      )) ;
+  (check (length viol) => 2)
+  (for-each
+    (lambda (v)
+      (check-true (string-contains? (cadddr v) "argument 2 of *"))
+      (check-true (string-contains? (cadddr v) "(or #f number?)"))
+    ) ;lambda
+    viol
+  ) ;for-each
+) ;let
+
 (check (type-hint-status-lines (list (repo-file "goldfish/hint/liii/gfproject/config.scm")
                                   (repo-file "tools/check/hint/liii/goldcheck/path.scm")
                                   (repo-file "goldfish/hint/liii/alist.scm")
