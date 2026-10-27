@@ -148,12 +148,11 @@
       (map cdr ht)
     ) ;define
 
-    (define hash-table-entries
-      (typed-lambda ((ht hash-table?))
-        (let ((ks (hash-table-keys ht)) (vs (hash-table-values ht)))
-          (values ks vs)
-        ) ;let
-      ) ;typed-lambda
+    (define (hash-table-entries ht)
+      (assert-hash-table-type ht hash-table-entries)
+      (let ((ks (hash-table-keys ht)) (vs (hash-table-values ht)))
+        (values ks vs)
+      ) ;let
     ) ;define
 
     (define (hash-table-find proc ht failure)
