@@ -18,8 +18,7 @@
 ;; 本库只提供类型签名数据，不导出 (scheme base) 的任何过程，
 ;; 也不导入其他 hint 库，因此可以被独立加载。
 ;;
-;; 目前只登记 (liii alist) 实际用到的核心过程，
-;; 其余过程随使用范围扩展逐步补充。
+;; 目前登记类型检查实际用到的核心过程，其余过程随使用范围扩展逐步补充。
 
 (define-library (hint scheme base)
   (import (scheme base))
@@ -36,7 +35,22 @@
     (define hint-cons '((any? any? -> pair?)))
     (define hint-car '((pair? -> any?)))
     (define hint-cdr '((pair? -> any?)))
+    (define hint-caar '((pair? -> any?)))
+    (define hint-cadr '((pair? -> any?)))
+    (define hint-cadar '((pair? -> any?)))
+    (define hint-reverse '((list? -> list?)))
     (define hint-vector->list '((vector? -> list?)))
+
+    ;; apply 的可变中间参数暂不能表达；登记无中间参数的形式。
+    (define hint-apply '((procedure? list? -> any?)))
+
+    ;; append 的任意数量参数暂不能完整表达；登记 0、1、2 个参数。
+    (define hint-append '((-> list?) (list? -> list?) (list? list? -> list?)))
+
+    ;; map 的可变列表参数暂不能完整表达；登记 1、2 个列表。
+    (define hint-map
+      '((procedure? list? -> list?) (procedure? list? list? -> list?))
+    ) ;define
 
     ;; 长度：s7 中 length 是泛型过程，列表、向量、字符串等均可
     (define hint-length '((any? -> integer?)))
@@ -66,6 +80,13 @@
        ((cons) hint-cons)
        ((car) hint-car)
        ((cdr) hint-cdr)
+       ((caar) hint-caar)
+       ((cadr) hint-cadr)
+       ((cadar) hint-cadar)
+       ((reverse) hint-reverse)
+       ((apply) hint-apply)
+       ((append) hint-append)
+       ((map) hint-map)
        ((vector->list) hint-vector->list)
        ((length) hint-length)
        ((+) hint+)

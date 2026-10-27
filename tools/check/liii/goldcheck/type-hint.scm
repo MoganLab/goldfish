@@ -103,7 +103,7 @@
                 (apply append (map (lambda (d) (check-var rel d)) vars))
                 (check-a5 rel vars entries query-exists?)
                 (check-b rel hint-file entries vars)
-                (check-infer hint-file)
+                (check-infer hint-file entries)
               ) ;append
             ) ;let*
           ) ;if

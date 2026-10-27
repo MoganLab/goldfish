@@ -83,12 +83,13 @@
 (check (check-type-hint (resource-file "goldfish/hint/liii/clean.scm")) => '())
 
 ;; --------------------------------------------------------------------
-;; 2. 真实仓库的 4 个 hint 库 -> 全部通过（当前基线）
+;; 2. 真实仓库的 hint 库 -> 全部通过（当前基线）
 ;; --------------------------------------------------------------------
 (for-each
   (lambda (f) (check (check-type-hint (repo-file f)) => '()))
   '("goldfish/hint/liii/alist.scm" "goldfish/hint/liii/error.scm"
-    "goldfish/hint/scheme/base.scm" "goldfish/hint/srfi/srfi-1.scm")
+    "goldfish/hint/scheme/base.scm" "goldfish/hint/srfi/srfi-1.scm"
+    "tools/check/hint/liii/goldcheck/no-glue.scm")
 ) ;for-each
 
 ;; --------------------------------------------------------------------
@@ -182,8 +183,9 @@
 ) ;check
 
 ;; --------------------------------------------------------------------
-;; 12. 文件级检查（spec 8.4 最小子集）：
-;;     调用实参类型与依赖库 hint 签名的确定冲突
+;; 12. 有 hint 的函数自身做部分类型检查（spec 8.4 最小子集）：
+;;     根据 import 依赖的 hint 检查确定的调用实参类型冲突；
+;;     不递归检查没有 hint 的本地依赖函数。
 ;; --------------------------------------------------------------------
 ;; 12a. (cdr (assoc k b))：assoc 返回 (or #f pair?)，cdr 需要 pair? -> 1 违规
 (let ((viol (check-type-hint (resource-file "goldfish/hint/liii/infercheck.scm"))))
@@ -196,6 +198,12 @@
 ;; 12b. 合法调用（cons 返回 pair? 喂 car；any? 参数吃一切）-> '()
 (let ((viol (check-type-hint (resource-file "goldfish/hint/liii/inferok.scm"))))
   (check viol => '())
+) ;let
+
+;; 12c. tools/check 的局部 hint 根缺少基础签名时，回退到 goldfish/hint
+(let ((viol (check-type-hint (resource-file "tools/check/hint/liii/base-fallback.scm"))))
+  (check (length viol) => 1)
+  (check-true (string-contains? (cadddr (car viol)) "cadr"))
 ) ;let
 
 ;; --------------------------------------------------------------------

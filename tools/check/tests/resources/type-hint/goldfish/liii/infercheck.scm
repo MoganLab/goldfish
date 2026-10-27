@@ -15,5 +15,10 @@
     (define (ok-unknown x)
       (my-cdr (my-cdr x))
     ) ;define
+
+    ;; 没有 hint，即使有确定冲突也不检查
+    (define (unmarked-bad)
+      (my-cdr (my-assoc 'a '()))
+    ) ;define
   ) ;begin
 ) ;define-library
