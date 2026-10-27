@@ -124,12 +124,12 @@
 
     (define (hash-table-update!/default ht key updater default)
       (assert-hash-table-type ht hash-table-update!/default)
-      (when (not (procedure? updater))
+      (unless (procedure? updater)
         (error 'type-error
-          hash-table-update!/default
-          "this parameter must be typed as procedure"
+          "hash-table-update!/default: third argument must be a procedure"
+          updater
         ) ;error
-      ) ;when
+      ) ;unless
       (hash-table-set! ht key (updater (hash-table-ref/default ht key default)))
     ) ;define
 
