@@ -107,20 +107,23 @@
     ) ;define
 
     (define (pi-last-assistant-text msgs)
-      (let ((msg
-              (find
-                (lambda (msg)
-                  (not
-                    (string-null? (string-trim-both (pi-content-text (pi-message-field msg 'content '())))
-                    ) ;string-null?
-                  ) ;not
-                ) ;lambda
-                (reverse msgs)
-              ) ;find
-            ) ;msg
-           ) ;
-        (if msg (pi-content-text (pi-message-field msg 'content '())) "")
-      ) ;let
+      (or
+        (let ((msg
+                (find
+                  (lambda (msg)
+                    (not
+                      (string-null? (string-trim-both (pi-content-text (pi-message-field msg 'content '())))
+                      ) ;string-null?
+                    ) ;not
+                  ) ;lambda
+                  (reverse msgs)
+                ) ;find
+              ) ;msg
+             ) ;
+          (and msg (pi-content-text (pi-message-field msg 'content '())))
+        ) ;let
+        ""
+      ) ;or
     ) ;define
 
     (define (handle-print-result last-msg)
