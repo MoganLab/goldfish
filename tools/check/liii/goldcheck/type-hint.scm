@@ -21,6 +21,7 @@
 (define-library (liii goldcheck type-hint)
   (import (scheme base)
     (scheme file)
+    (scheme write)
     (liii base)
     (liii list)
     (liii string)
@@ -32,8 +33,11 @@
     (liii goldcheck type-hint hint-data)
     (liii goldcheck type-hint checks)
     (liii goldcheck type-hint infer)
+    (liii goldcheck type-hint env)
   ) ;import
-  (export scan-hint-libs check-type-hint check-type-hint-all)
+  (export scan-hint-libs check-type-hint check-type-hint-all
+    type-hint-status-lines display-type-hint-statuses
+  ) ;export
   (begin
 
     ;; 仓库根下的 goldfish/hint 目录；gfproject-root 带尾斜杠时不再补
@@ -83,7 +87,7 @@
 
     (define (scan-hint-libs)
       "扫描 goldfish/hint/ 下所有 .scm，返回存在 hint 的库文件相对路径列表"
-      (scan-scm-dir (hint-dir))
+      (append (scan-scm-dir (hint-dir)) (scan-scm-dir "tools/check/hint"))
     ) ;define
 
     (define (check-type-hint hint-file)
@@ -103,12 +107,66 @@
                 (apply append (map (lambda (d) (check-var rel d)) vars))
                 (check-a5 rel vars entries query-exists?)
                 (check-b rel hint-file entries vars)
-                (check-infer hint-file entries)
+                (check-infer hint-file)
               ) ;append
             ) ;let*
           ) ;if
         ) ;let
       ) ;let
+    ) ;define
+
+    (define (type-hint-status-line hint-file violations)
+      (let ((info (parse-library-file hint-file)))
+        (if (not info)
+          #f
+          (let* ((orig (orig-lib-path hint-file))
+                 (oinfo (and orig (file-exists? orig) (parse-library-file orig)))
+                 (env (and oinfo (build-env oinfo hint-file)))
+                 (full? (and env (full-coverage? env oinfo) #t))
+                 (rel (relativize-path hint-file))
+                 (orig-rel (and orig (relativize-path orig)))
+                 (failed?
+                   (any
+                     (lambda (v)
+                       (or (string=? (cadr v) rel) (and orig-rel (string=? (cadr v) orig-rel)))
+                     ) ;lambda
+                     violations
+                   ) ;any
+                 ) ;failed?
+                 (name (lib-name info))
+                 (name-text
+                   (syms-join (if (eq? (car name) 'hint) (cdr name) name))
+                 ) ;name-text
+                ) ;
+            (string-append "  ["
+              (if full? "FULL" "PARTIAL")
+              " "
+              (if failed? "FAIL" "PASS")
+              "\t] ("
+              name-text
+              ")"
+            ) ;string-append
+          ) ;let*
+        ) ;if
+      ) ;let
+    ) ;define
+
+    (define (type-hint-status-lines hint-files violations)
+      (let loop
+        ((files hint-files) (acc '()))
+        (if (null? files)
+          (reverse acc)
+          (let ((line (type-hint-status-line (car files) violations)))
+            (loop (cdr files) (if line (cons line acc) acc))
+          ) ;let
+        ) ;if
+      ) ;let
+    ) ;define
+
+    (define (display-type-hint-statuses violations)
+      (for-each (lambda (line) (display line) (newline))
+        (type-hint-status-lines (scan-hint-libs) violations)
+      ) ;for-each
     ) ;define
 
     (define (check-type-hint-all)

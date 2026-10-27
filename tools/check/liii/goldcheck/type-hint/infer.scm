@@ -29,6 +29,7 @@
     (liii goldcheck type-hint parse)
     (liii goldcheck type-hint util)
     (liii goldcheck type-hint hint-data)
+    (liii goldcheck type-hint env)
   ) ;import
   (export check-infer)
   (begin
@@ -179,93 +180,6 @@
 
     ;; ---------- 环境与检查 ----------
 
-    (define (hint-root-of hint-file)
-      (let loop
-        ((pre '()) (rest (split-slash (normalize-sep hint-file))))
-        (cond ((null? rest) #f)
-              ((string=? (car rest) "hint")
-               (join-strings (append (reverse pre) '("hint")) "/")
-              ) ;
-              (else (loop (cons (car rest) pre) (cdr rest)))
-        ) ;cond
-      ) ;let
-    ) ;define
-
-    ;; 按局部 hint 根、仓库 goldfish/hint 的顺序查找。
-    ;; 这样 tools/check 等目录可以只登记自身接口，复用基础库签名。
-    ;; tools/<name>/hint/... 与同一源码根下的 goldfish/hint 对应。
-    ;; bin/gf test 子进程中的 gfproject-root 未必指向仓库根，因此也从路径推导。
-    (define (tool-goldfish-hint-root hint-file)
-      (let loop
-        ((pre '()) (rest (split-slash (normalize-sep hint-file))))
-        (cond ((null? rest) #f)
-              ((and (string=? (car rest) "tools")
-                 (pair? (cdr rest))
-                 (pair? (cddr rest))
-                 (string=? (caddr rest) "hint")
-               ) ;and
-               (join-strings (append (reverse pre) '("goldfish" "hint")) "/")
-              ) ;
-              (else (loop (cons (car rest) pre) (cdr rest)))
-        ) ;cond
-      ) ;let
-    ) ;define
-
-    (define (hint-roots-of hint-file)
-      (let ((local (hint-root-of hint-file)) (global (tool-goldfish-hint-root hint-file)))
-        (append (if local (list local) '()) (if global (list global) '()))
-      ) ;let
-    ) ;define
-
-    ;; 登记条目 -> (name . sigs) 绑定；变量未定义时值为 #f
-    (define (entry->binding e vars)
-      (let ((d (find-def (cadr e) vars)))
-        (cons (car e) (if d (signature-value d) #f))
-      ) ;let
-    ) ;define
-
-    ;; 解析后的 hint 信息 -> 类型环境条目列表
-    (define (hint-env-entries info)
-      (let* ((qname (query-func-name (lib-name info)))
-             (vars (hint-var-defs info))
-             (entries (registered-entries info qname))
-            ) ;
-        (filter
-          (lambda (kv) (and (cdr kv) (list? (cdr kv))))
-          (map (lambda (e) (entry->binding e vars)) entries)
-        ) ;filter
-      ) ;let*
-    ) ;define
-
-    ;; 加载单个 hint 库的登记 -> ((name . sigs) ...)
-    (define (load-hint-env-from-roots lib-syms roots)
-      (if (null? roots)
-        '()
-        (let ((path (string-append (car roots)
-                      "/"
-                      (join-strings (map symbol->string lib-syms) "/")
-                      ".scm"
-                    ) ;string-append
-              ) ;path
-             ) ;
-          (if (file-exists? path)
-            (let ((info (parse-library-file path)))
-              (if info (hint-env-entries info) '())
-            ) ;let
-            (load-hint-env-from-roots lib-syms (cdr roots))
-          ) ;if
-        ) ;let
-      ) ;if
-    ) ;define
-
-    (define (build-env oinfo hint-file)
-      (let ((roots (hint-roots-of hint-file)))
-        (apply append
-          (map (lambda (lib) (load-hint-env-from-roots lib roots)) (lib-imports oinfo))
-        ) ;apply
-      ) ;let
-    ) ;define
-
     ;; define 的体表达式列表
     (define (def-bodies d)
       (let ((e (def-expr d)))
@@ -364,31 +278,31 @@
       ) ;let
     ) ;define
 
-    (define (check-infer hint-file entries)
-      "只检查有 hint 的原函数自身；不递归检查其本地依赖函数。"
+    (define (check-infer hint-file)
+      "导出函数均有签名时检查全库，否则只检查有签名的函数。"
       (let ((orig (orig-lib-path hint-file)))
         (if (not (and orig (file-exists? orig)))
           '()
           (let ((oinfo (parse-library-file orig)))
             (if (not oinfo)
               '()
-              (let ((env (build-env oinfo hint-file))
-                    (orig-rel (relativize-path orig))
-                    (hinted-names (map car entries))
-                   ) ;
+              (let* ((env (build-env oinfo hint-file))
+                     (orig-rel (relativize-path orig))
+                     (definitions
+                       (if (full-coverage? env oinfo)
+                         (lib-defines oinfo)
+                         (filter (lambda (d) (assq (def-name d) env)) (lib-defines oinfo))
+                       ) ;if
+                     ) ;definitions
+                    ) ;
                 (let loop
-                  ((ds (lib-defines oinfo)) (acc '()))
+                  ((ds definitions) (acc '()))
                   (if (null? ds)
                     (reverse acc)
-                    (loop (cdr ds)
-                      (if (memq (def-name (car ds)) hinted-names)
-                        (walk-bodies orig-rel (def-bodies (car ds)) env acc)
-                        acc
-                      ) ;if
-                    ) ;loop
+                    (loop (cdr ds) (walk-bodies orig-rel (def-bodies (car ds)) env acc))
                   ) ;if
                 ) ;let
-              ) ;let
+              ) ;let*
             ) ;if
           ) ;let
         ) ;if

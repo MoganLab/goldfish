@@ -2,7 +2,7 @@
 ;; my-cdr 需要 pair?
 
 (define-library (liii infercheck)
-  (import (liii dep))
+  (import (liii reexport-dep))
   (export bad-ref ok-unknown)
   (begin
 

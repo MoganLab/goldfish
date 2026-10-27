@@ -28,9 +28,13 @@
     ;; key-error : (key-error message . irritants)
     (define hint-key-error '((any? any? -> any?)))
 
+    ;; type-error 为可变参数，登记 1、2 个参数的形式
+    (define hint-type-error '((string? -> any?) (string? any? -> any?)))
+
     (define (hint-liii/error name)
       (case name
        ((key-error) hint-key-error)
+       ((type-error) hint-type-error)
        (else #f)
       ) ;case
     ) ;define
