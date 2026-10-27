@@ -124,22 +124,14 @@
       ) ;cond
     ) ;define
 
+    (define (%input-field? pair)
+      (or (eq? (car pair) 'input) (eq? (car pair) 'params))
+    ) ;define
+
     (define (apply-input-override payload new-input)
-      (let ((replaced?
-              (any
-                (lambda (pair) (or (eq? (car pair) 'input) (eq? (car pair) 'params)))
-                payload
-              ) ;any
-            ) ;replaced?
-           ) ;
+      (let ((replaced? (any %input-field? payload)))
         (if replaced?
-          (map
-            (lambda (pair)
-              (if (or (eq? (car pair) 'input) (eq? (car pair) 'params))
-                (cons 'input new-input)
-                pair
-              ) ;if
-            ) ;lambda
+          (map (lambda (pair) (if (%input-field? pair) (cons 'input new-input) pair))
             payload
           ) ;map
           (cons (cons 'input new-input) payload)
