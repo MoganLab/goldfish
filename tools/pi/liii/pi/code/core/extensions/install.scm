@@ -42,17 +42,13 @@
                     ) ;s
                     ;; 提取最后一个路径段（兼容 / 与 \ 与 :）
                     (last-seg
-                      (let loop
-                        ((i (- (string-length s) 1)))
-                        (cond ((< i 0) s)
-                              ((or (char=? (string-ref s i) #\/)
-                                 (char=? (string-ref s i) #\\)
-                                 (char=? (string-ref s i) #\:)
-                               ) ;or
-                               (substring s (+ i 1) (string-length s))
-                              ) ;
-                              (else (loop (- i 1)))
-                        ) ;cond
+                      (let ((idx
+                              (string-index-right s
+                                (lambda (ch) (or (char=? ch #\/) (char=? ch #\\) (char=? ch #\:)))
+                              ) ;string-index-right
+                            ) ;idx
+                           ) ;
+                        (if idx (string-drop s (+ idx 1)) s)
                       ) ;let
                     ) ;last-seg
                   ) ;
