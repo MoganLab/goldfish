@@ -33,6 +33,12 @@
   ) ;import
   (begin
 
+    (define-record-type <hstack-data>
+      (%make-hstack-data children)
+      %hstack-data?
+      (children %hstack-data-children)
+    ) ;define-record-type
+
     (define (%keyword-value key opts default)
       (let loop
         ((rest opts))
@@ -45,11 +51,7 @@
     ) ;define
 
     (define (hstack? obj)
-      (and (component? obj)
-        (let ((d (component-data obj)))
-          (and (pair? d) (eq? (car d) 'hstack))
-        ) ;let
-      ) ;and
+      (and (component? obj) (%hstack-data? (component-data obj)))
     ) ;define
 
     (define (%parse-children-and-opts args)
@@ -184,7 +186,7 @@
                      ) ;make-component
                ) ;comp
               ) ;
-          (component-data-set! comp (list 'hstack children))
+          (component-data-set! comp (%make-hstack-data children))
           comp
         ) ;let*
       ) ;let*
