@@ -136,9 +136,9 @@
                 (lambda (val) (values key val 1))
                ) ;
                ((and takes-arg?
-                  (let ((alias (find (lambda (name) (%match-prefix-flag arg name)) aliases)))
-                    (and alias (%match-prefix-flag arg alias))
-                  ) ;let
+                  (find (lambda (val) val)
+                    (map (lambda (name) (%match-prefix-flag arg name)) aliases)
+                  ) ;find
                 ) ;and
                 =>
                 (lambda (val) (values key val 1))
