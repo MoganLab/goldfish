@@ -23,8 +23,14 @@
 
     (define string-starts? g_string-starts?)
 
-    (define string-contains?
-      (typed-lambda ((str string?) (sub-str string?)) (string-contains str sub-str))
+    (define (string-contains? str sub-str)
+      (unless (string? str)
+        (error 'type-error "string-contains?: first argument must be a string" str)
+      ) ;unless
+      (unless (string? sub-str)
+        (error 'type-error "string-contains?: second argument must be a string" sub-str)
+      ) ;unless
+      (string-contains str sub-str)
     ) ;define
 
     (define string-split g_string-split)
