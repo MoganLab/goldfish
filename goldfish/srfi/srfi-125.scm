@@ -48,24 +48,25 @@
       ) ;cond
     ) ;define
 
-    (define alist->hash-table
-      (typed-lambda ((lst list?))
-        (when (odd? (length lst))
-          (value-error "The length of lst must be even!")
-        ) ;when
-        (let ((ht (make-hash-table)))
-          (let loop
-            ((rest lst))
-            (if (null? rest)
-              ht
-              (begin
-                (hash-table-set! ht (car rest) (cadr rest))
-                (loop (cddr rest))
-              ) ;begin
-            ) ;if
-          ) ;let
+    (define (alist->hash-table lst)
+      (unless (list? lst)
+        (error 'type-error "alist->hash-table: argument must be a list" lst)
+      ) ;unless
+      (when (odd? (length lst))
+        (value-error "The length of lst must be even!")
+      ) ;when
+      (let ((ht (make-hash-table)))
+        (let loop
+          ((rest lst))
+          (if (null? rest)
+            ht
+            (begin
+              (hash-table-set! ht (car rest) (cadr rest))
+              (loop (cddr rest))
+            ) ;begin
+          ) ;if
         ) ;let
-      ) ;typed-lambda
+      ) ;let
     ) ;define
 
     (define (hash-table-contains? ht key)
