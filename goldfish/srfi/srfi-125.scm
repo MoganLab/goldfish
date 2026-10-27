@@ -173,10 +173,12 @@
       ) ;let
     ) ;define
 
-    (define hash-table-count
-      (typed-lambda ((pred? procedure?) (ht hash-table?))
-        (count (lambda (x) (pred? (car x) (cdr x))) (map values ht))
-      ) ;typed-lambda
+    (define (hash-table-count pred? ht)
+      (unless (procedure? pred?)
+        (error 'type-error "hash-table-count: first argument must be a procedure" pred?)
+      ) ;unless
+      (assert-hash-table-type ht hash-table-count)
+      (count (lambda (x) (pred? (car x) (cdr x))) (map values ht))
     ) ;define
 
     (define (hash-table-fold proc seed ht)
