@@ -19,6 +19,15 @@
   ) ;export
   (begin
 
+    (define-record-type <openai-tool-state>
+      (%make-openai-tool-state id name args emitted)
+      %openai-tool-state?
+      (id %openai-tool-state-id)
+      (name %openai-tool-state-name)
+      (args %openai-tool-state-args)
+      (emitted %openai-tool-state-emitted)
+    ) ;define-record-type
+
     (define (%val key obj default-val)
       (let ((p
               (or (assoc key obj)
@@ -110,20 +119,21 @@
              (args-delta (%val "arguments" fn ""))
              (tools-alist (openai-stream-state-tools stream-state))
              (entry (assoc idx tools-alist))
-             (curr-item (if entry (cdr entry) '()))
-             (curr-id (or id (%val 'id curr-item "")))
-             (curr-name (or name (%val 'name curr-item "")))
-             (curr-args (string-append (%val 'args curr-item "") (or args-delta "")))
-             (was-emitted? (%val 'emitted curr-item #f))
+             (curr-item (if entry (cdr entry) (%make-openai-tool-state "" "" "" #f)))
+             (curr-id (or id (%openai-tool-state-id curr-item)))
+             (curr-name (or name (%openai-tool-state-name curr-item)))
+             (curr-args (string-append (%openai-tool-state-args curr-item) (or args-delta ""))
+             ) ;curr-args
+             (was-emitted? (%openai-tool-state-emitted curr-item))
              (usage (openai-stream-state-usage stream-state))
              (blocks (openai-stream-state-blocks stream-state))
              (cur-idx (+ (length blocks) (length tools-alist)))
              (should-emit-start? (and (not was-emitted?) (not (string-null? curr-name))))
-             (upd-item (list (cons 'id curr-id)
-                         (cons 'name curr-name)
-                         (cons 'args curr-args)
-                         (cons 'emitted (or was-emitted? should-emit-start?))
-                       ) ;list
+             (upd-item (%make-openai-tool-state curr-id
+                         curr-name
+                         curr-args
+                         (or was-emitted? should-emit-start?)
+                       ) ;%make-openai-tool-state
              ) ;upd-item
              (new-tools-alist
                (if entry
@@ -167,9 +177,9 @@
           (for-each
             (lambda (p)
               (let* ((item (cdr p))
-                     (id (%val 'id item ""))
-                     (name (%val 'name item ""))
-                     (args-str (%val 'args item "{}"))
+                     (id (%openai-tool-state-id item))
+                     (name (%openai-tool-state-name item))
+                     (args-str (%openai-tool-state-args item))
                      (args-json
                        (catch #t
                          (lambda () (if (string-null? args-str) '() (string->json args-str)))
