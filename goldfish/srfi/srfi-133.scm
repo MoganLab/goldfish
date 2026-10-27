@@ -180,23 +180,27 @@
       ) ;let
     ) ;define
 
-    (define vector-cumulate
-      (typed-lambda ((fn procedure?) knil (vec vector?))
-        (let* ((len (vector-length vec)) (v-rst (make-vector len)))
-          (let loop
-            ((i 0) (lhs knil))
-            (if (= i len)
-              v-rst
-              (let ((cumu-i (fn lhs (vec i))))
-                (begin
-                  (vector-set! v-rst i cumu-i)
-                  (loop (+ 1 i) cumu-i)
-                ) ;begin
-              ) ;let
-            ) ;if
-          ) ;let
-        ) ;let*
-      ) ;typed-lambda
+    (define (vector-cumulate fn knil vec)
+      (unless (procedure? fn)
+        (error 'type-error "vector-cumulate: first argument must be a procedure" fn)
+      ) ;unless
+      (unless (vector? vec)
+        (error 'type-error "vector-cumulate: third argument must be a vector" vec)
+      ) ;unless
+      (let* ((len (vector-length vec)) (v-rst (make-vector len)))
+        (let loop
+          ((i 0) (lhs knil))
+          (if (= i len)
+            v-rst
+            (let ((cumu-i (fn lhs (vec i))))
+              (begin
+                (vector-set! v-rst i cumu-i)
+                (loop (+ 1 i) cumu-i)
+              ) ;begin
+            ) ;let
+          ) ;if
+        ) ;let
+      ) ;let*
     ) ;define
     (define (vector-any pred v)
       (unless (procedure? pred)
