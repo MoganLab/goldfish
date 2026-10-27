@@ -59,4 +59,19 @@
     (string-contains? msg "foo/glue.scm:8: no-glue: g_md5 missing public binding md5"))
 ) ;let*
 
+;; 6. 格式化 type-hint 违规；文件不可读时降级为无源码片段
+(let* ((viol (list 'type-hint "foo/bar.scm" 9 "argument 1 of cdr requires pair?"))
+       (msg (format-violation viol)))
+  (check-true
+    (string-contains? msg "foo/bar.scm:9: type-hint: argument 1 of cdr requires pair?"))
+) ;let*
+
+;; 7. type-hint 违规携带冲突表达式；源码行可读时输出行内容与标记
+(let* ((viol (list 'type-hint "goldfish/liii/alist.scm" 6 "demo msg" '(alist? l)))
+       (msg (format-violation viol)))
+  (check-true (string-contains? msg "type-hint: demo msg"))
+  (check-true (string-contains? msg "6 |     (define (alist? l)"))
+  (check-true (string-contains? msg "^^^^^^^^^"))
+) ;let*
+
 (check-report)

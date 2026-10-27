@@ -41,6 +41,7 @@
                 (string=? name "layer-order")
                 (string=? name "no-crlf")
                 (string=? name "no-glue")
+                (string=? name "type-hint")
               ) ;or
         (value-error "unknown rule: ~A" name)
       ) ;unless

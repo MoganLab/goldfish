@@ -45,7 +45,9 @@
     ) ;define
 
     (define (bundle-ref bundle key)
-      (cdr (assoc key bundle))
+      (let ((entry (assoc key bundle)))
+        (and entry (cdr entry))
+      ) ;let
     ) ;define
 
     (define (gfproject-find-local-path)
