@@ -85,13 +85,7 @@
     ) ;define
 
     (define (%string-repeat str n)
-      (if (<= n 0)
-        ""
-        (let loop
-          ((i 0) (acc '()))
-          (if (>= i n) (apply string-append (reverse acc)) (loop (+ i 1) (cons str acc)))
-        ) ;let
-      ) ;if
+      (if (<= n 0) "" (string-join (make-list n str) ""))
     ) ;define
 
     (define (%make-filler-pad h h-w fill-w)

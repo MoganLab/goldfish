@@ -51,12 +51,16 @@
 ;; 9. 自定义帧列表解析
 (let ((custom '("." "o" "O" "o")))
   (check (spinner-frames-resolve custom) => custom))
+(check (spinner-frames-resolve '(".")) => '("."))
+(check (spinner-frames-resolve '("")) => '(""))
 
 ;; 10. 异常情况拦截
 (check-catch 'type-error (spinner-frames-resolve 'unknown-style))
 (check-catch 'type-error (spinner-frames-resolve '()))
 (check-catch 'type-error (spinner-frames-resolve 123))
+(check-catch 'type-error (spinner-frames-resolve '(1 "b" "c")))
 (check-catch 'type-error (spinner-frames-resolve '("a" 2 "c")))
+(check-catch 'type-error (spinner-frames-resolve '("a" "b" 3)))
 
 ;; 11. 状态图标解析
 (check (spinner-status-icon 'spinning) => #f)

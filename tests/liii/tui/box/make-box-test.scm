@@ -76,12 +76,22 @@
   (check (list-ref lines 2) => "|  hi  |")
   (check (list-ref lines 3) => "+------+"))
 
+;; 多行内容与上下内边距保持原有顺序。
+(let* ((b (make-box "one\ntwo" :style 'ascii :padding-top 2 :padding-bottom 1))
+       (lines (component-render b 7)))
+  (check lines =>
+    '("+-----+" "|     |" "|     |" "|one  |" "|two  |" "|     |" "+-----+")))
+
 ;; 6. 'none 风格边框（无边框，仅内边距 padding 效果）
 (let* ((b (make-box "text" :style 'none :padding-left 2))
        (lines (component-render b 10)))
   (check (length lines) => 1)
   (check (car lines) => "  text    ")
   (check (display-width (car lines)) => 10))
+
+(let* ((b (make-box "one\ntwo" :style 'none :padding-top 1 :padding-bottom 1))
+       (lines (component-render b 4)))
+  (check lines => '("    " "one " "two " "    ")))
 
 ;; 7. 自动折行支持与宽度收缩自适应
 ;; 内部 child 为长文本，当 width 变小时自动在可用内容宽度内折行

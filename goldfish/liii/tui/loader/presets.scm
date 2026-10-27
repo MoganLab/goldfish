@@ -23,7 +23,7 @@
 
 (define-library (liii tui loader presets)
   (export spinner-presets spinner-frames-resolve spinner-status-icon)
-  (import (liii base) (liii error))
+  (import (liii base) (liii error) (liii list))
   (begin
 
     (define %dots-frames
@@ -57,15 +57,7 @@
     ) ;define
 
     (define (%string-list? lst)
-      (and (pair? lst)
-        (let loop
-          ((rest lst))
-          (cond ((null? rest) #t)
-                ((string? (car rest)) (loop (cdr rest)))
-                (else #f)
-          ) ;cond
-        ) ;let
-      ) ;and
+      (and (pair? lst) (every string? lst))
     ) ;define
 
     (define (spinner-frames-resolve spec)

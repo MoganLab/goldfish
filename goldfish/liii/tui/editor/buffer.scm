@@ -27,7 +27,13 @@
     buffer-text buffer-set-text! buffer-insert-char! buffer-insert-string!
     buffer-backspace! buffer-delete! buffer-newline! %replace-line
   ) ;export
-  (import (scheme base) (scheme write) (liii base) (liii string) (liii unicode))
+  (import (scheme base)
+    (scheme write)
+    (liii base)
+    (liii list)
+    (liii string)
+    (liii unicode)
+  ) ;import
   (begin
 
     (define-record-type <buffer>
@@ -89,13 +95,7 @@
 
     ;; 辅助：更新某行的内容
     (define (%replace-line lines idx new-line)
-      (let loop
-        ((rest lines) (i 0))
-        (cond ((null? rest) '())
-              ((= i idx) (cons new-line (cdr rest)))
-              (else (cons (car rest) (loop (cdr rest) (+ i 1))))
-        ) ;cond
-      ) ;let
+      (map (lambda (line i) (if (= i idx) new-line line)) lines (iota (length lines)))
     ) ;define
 
     ;; 插入字符串到当前光标 (row, col)
@@ -150,17 +150,9 @@
                  (prev-len (utf8-string-length prev-line))
                  (merged (string-append prev-line line))
                 ) ;
-            ;; 删除第 r 行并更新第 r-1 行
-            (let loop
-              ((rest lines) (i 0) (acc '()))
-              (cond ((null? rest) (%buffer-lines-set! buf (reverse acc)))
-                    ((= i (- r 1))
-                     ;; 放入合并行，并跳过下一行 (r)
-                     (loop (cddr rest) (+ i 2) (cons merged acc))
-                    ) ;
-                    (else (loop (cdr rest) (+ i 1) (cons (car rest) acc)))
-              ) ;cond
-            ) ;let
+            (%buffer-lines-set! buf
+              (append (take lines (- r 1)) (list merged) (drop lines (+ r 1)))
+            ) ;%buffer-lines-set!
             (%buffer-row-set! buf (- r 1))
             (%buffer-col-set! buf prev-len)
             #t
@@ -193,16 +185,9 @@
          ((and (< r (- (length lines) 1)) (%buffer-multiline? buf))
           ;; 光标在行尾，将下一行拼接到当前行
           (let* ((next-line (list-ref lines (+ r 1))) (merged (string-append line next-line)))
-            (let loop
-              ((rest lines) (i 0) (acc '()))
-              (cond ((null? rest) (%buffer-lines-set! buf (reverse acc)))
-                    ((= i r)
-                     ;; 放入合并行，并跳过下一行 (r+1)
-                     (loop (cddr rest) (+ i 2) (cons merged acc))
-                    ) ;
-                    (else (loop (cdr rest) (+ i 1) (cons (car rest) acc)))
-              ) ;cond
-            ) ;let
+            (%buffer-lines-set! buf
+              (append (take lines r) (list merged) (drop lines (+ r 2)))
+            ) ;%buffer-lines-set!
             #t
           ) ;let*
          ) ;
@@ -224,13 +209,9 @@
                (line1 (utf8-substring line 0 safe-col))
                (line2 (if (>= safe-col len) "" (utf8-substring line safe-col len)))
               ) ;
-          (let loop
-            ((rest lines) (i 0) (acc '()))
-            (cond ((null? rest) (%buffer-lines-set! buf (reverse acc)))
-                  ((= i r) (loop (cdr rest) (+ i 1) (cons line2 (cons line1 acc))))
-                  (else (loop (cdr rest) (+ i 1) (cons (car rest) acc)))
-            ) ;cond
-          ) ;let
+          (%buffer-lines-set! buf
+            (append (take lines r) (list line1 line2) (drop lines (+ r 1)))
+          ) ;%buffer-lines-set!
           (%buffer-row-set! buf (+ r 1))
           (%buffer-col-set! buf 0)
           #t

@@ -88,6 +88,45 @@
   (check (component-handle-input h 'tab) => #t)
   (check handled => 'tab))
 
+;; 输入分发遇到第一个消费事件的子组件后立即停止。
+(let* ((order '())
+       (c1 (make-component
+             :render (lambda (w) '("c1"))
+             :handle-input (lambda (k) (set! order (cons 'c1 order)) #f)))
+       (c2 (make-component
+             :render (lambda (w) '("c2"))
+             :handle-input (lambda (k) (set! order (cons 'c2 order)) 'handled)))
+       (c3 (make-component
+             :render (lambda (w) '("c3"))
+             :handle-input (lambda (k) (set! order (cons 'c3 order)) #t)))
+       (h (make-hstack (list c1 c2 c3))))
+  (check (component-handle-input h 'enter) => 'handled)
+  (check (reverse order) => '(c1 c2)))
+
+;; 所有子组件均未消费时返回 #f，且按顺序全部分发。
+(let* ((order '())
+       (c1 (make-component
+             :render (lambda (w) '("c1"))
+             :handle-input (lambda (k) (set! order (cons 'c1 order)) #f)))
+       (c2 (make-component
+             :render (lambda (w) '("c2"))
+             :handle-input (lambda (k) (set! order (cons 'c2 order)) #f)))
+       (h (make-hstack (list c1 c2))))
+  (check (component-handle-input h 'up) => #f)
+  (check (reverse order) => '(c1 c2)))
+
+;; 刷新通知分发到全部子组件。
+(let* ((inv-count 0)
+       (c1 (make-component
+             :render (lambda (w) '("c1"))
+             :invalidate (lambda () (set! inv-count (+ inv-count 1)) #t)))
+       (c2 (make-component
+             :render (lambda (w) '("c2"))
+             :invalidate (lambda () (set! inv-count (+ inv-count 1)) #t)))
+       (h (make-hstack (list c1 c2))))
+  (check (component-invalidate! h) => #t)
+  (check inv-count => 2))
+
 ;; 8. 边界与异常
 (let ((h-empty (make-hstack '())))
   (check (component-render h-empty 20) => '()))

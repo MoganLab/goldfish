@@ -60,13 +60,6 @@
       ) ;unless
     ) ;define
 
-    (define (%repeat-line line count acc)
-      (let loop
-        ((i 0) (cur acc))
-        (if (< i count) (loop (+ i 1) (cons line cur)) cur)
-      ) ;let
-    ) ;define
-
     (define (%render-box-lines border c content-w pad-l pad-r pad-t pad-b
               narrow? v-str width
             ) ;%render-box-lines
@@ -76,22 +69,19 @@
                            (border-render-line border "" content-w pad-l pad-r)
                          ) ;if
              ) ;empty-line
-             (acc (%repeat-line empty-line pad-t '()))
+             (render-line
+               (lambda (line)
+                 (if narrow?
+                   (truncate-to-width (string-append v-str v-str) width "")
+                   (border-render-line border line content-w pad-l pad-r)
+                 ) ;if
+               ) ;lambda
+             ) ;render-line
             ) ;
-        (let loop
-          ((rem child-lines) (cur acc))
-          (if (null? rem)
-            (%repeat-line empty-line pad-b cur)
-            (let ((row (if narrow?
-                         (truncate-to-width (string-append v-str v-str) width "")
-                         (border-render-line border (car rem) content-w pad-l pad-r)
-                       ) ;if
-                  ) ;row
-                 ) ;
-              (loop (cdr rem) (cons row cur))
-            ) ;let
-          ) ;if
-        ) ;let
+        (append (make-list pad-t empty-line)
+          (map render-line child-lines)
+          (make-list pad-b empty-line)
+        ) ;append
       ) ;let*
     ) ;define
 
@@ -104,14 +94,13 @@
                (h-overhead (+ (* 2 v-w) pad-l pad-r))
                (content-w (max 0 (- width h-overhead)))
                (narrow? (<= width (* 2 v-w)))
-               (body-rev (%render-box-lines border c content-w pad-l pad-r pad-t
-                           pad-b narrow? v-str width
-                         ) ;%render-box-lines
-               ) ;body-rev
+               (body-lines (%render-box-lines border c content-w pad-l pad-r
+                             pad-t pad-b narrow? v-str width
+                           ) ;%render-box-lines
+               ) ;body-lines
                (top-line (border-render-top border width title))
                (bot-line (border-render-bottom border width))
-               (with-bot (if none? body-rev (cons bot-line body-rev)))
-               (full (reverse with-bot))
+               (full (if none? body-lines (append body-lines (list bot-line))))
               ) ;
           (if none? full (cons top-line full))
         ) ;let*
