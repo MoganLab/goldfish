@@ -318,6 +318,7 @@
                       ", got "
                       (object->string ti)
                     ) ;string-append
+                    (car args)
                   ) ;list
                   acc
                 ) ;cons

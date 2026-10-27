@@ -22,6 +22,8 @@
     (liii path)
     (liii string)
     (liii tree)
+    (liii os)
+    (liii gfproject config)
     (liii goldcheck path)
   ) ;import
   (export check-file-lines check-tree-depth check-no-crlf format-violation
@@ -189,6 +191,83 @@
       ) ;let*
     ) ;define
 
+    ;; 定位仓库根：优先 g_project-root，不可用时从 cwd 向上找
+    ;; goldfish/ 目录与 gf_check.json 并存处视为根
+    (define (%find-root)
+      (let ((root (gfproject-root)))
+        (if (and root (string? root) (not (string=? root "")))
+          (if (string-ends? root "/") root (string-append root "/"))
+          (let loop
+            ((dir (getcwd)))
+            (if
+              (and (path-dir? (path (string-append dir "/goldfish")))
+                (path-file? (path (string-append dir "/gf_check.json")))
+              ) ;and
+              (if (string-ends? dir "/") dir (string-append dir "/"))
+              (let ((parent (path->string (path-parent (path dir)))))
+                (if (or (string=? parent dir) (string=? parent "/")) #f (loop parent))
+              ) ;let
+            ) ;if
+          ) ;let
+        ) ;if
+      ) ;let
+    ) ;define
+
+    ;; 仓库根下的绝对路径；无法定位根时 rel 原样返回
+    (define (%repo-file rel)
+      (let ((root (%find-root)))
+        (if root (string-append root rel) rel)
+      ) ;let
+    ) ;define
+
+    ;; 读取文件第 n 行（1 起）；失败或越界返回 #f
+    (define (%nth-line file n)
+      (catch #t
+        (lambda ()
+          (let ((lines (path-read-lines (%repo-file file) #f (- n 1) 1)))
+            (cond
+             ((and (vector? lines) (> (vector-length lines) 0)) (vector-ref lines 0))
+             ((and (pair? lines) (not (null? lines))) (car lines))
+             (else #f)
+            ) ;cond
+          ) ;let
+        ) ;lambda
+        (lambda (tag info) #f)
+      ) ;catch
+    ) ;define
+
+    ;; 表达式文本在源码行内的插入符标记；跨行等不可定位时 #f
+    (define (%expr-caret src expr)
+      (let ((t (object->string expr)))
+        (let ((pos (string-index-of src t 0)))
+          (and pos
+            (> (string-length t) 0)
+            (string-append (make-string pos #\space) (make-string (string-length t) #\^))
+          ) ;and
+        ) ;let
+      ) ;let
+    ) ;define
+
+    ;; type-hint 违规的源码片段：违规行内容 + 冲突表达式标记
+    (define (type-hint-snippet file line expr)
+      (let ((src (%nth-line file line)))
+        (if (not src)
+          ""
+          (let* ((num (number->string line))
+                 (pad (make-string (string-length num) #\space))
+                 (caret (if expr (%expr-caret src expr) #f))
+                ) ;
+            (string-append "\n    "
+              num
+              " | "
+              src
+              (if caret (string-append "\n    " pad " | " caret) "")
+            ) ;string-append
+          ) ;let*
+        ) ;if
+      ) ;let
+    ) ;define
+
     (define (format-violation viol)
       (let ((rule (car viol)))
         (cond
@@ -243,8 +322,19 @@
           ) ;let
          ) ;
          ((eq? rule 'type-hint)
-          (let ((file (cadr viol)) (line (caddr viol)) (msg (cadddr viol)))
-            (string-append "  " file ":" (number->string line) ": type-hint: " msg)
+          (let ((file (cadr viol))
+                (line (caddr viol))
+                (msg (cadddr viol))
+                (expr (if (> (length viol) 4) (list-ref viol 4) #f))
+               ) ;
+            (string-append "  "
+              file
+              ":"
+              (number->string line)
+              ": type-hint: "
+              msg
+              (type-hint-snippet file line expr)
+            ) ;string-append
           ) ;let
          ) ;
          ((eq? rule 'no-glue)
