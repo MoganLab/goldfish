@@ -5,7 +5,7 @@
 ;;
 
 (define-library (liii pi code core extensions types defs)
-  (import (scheme base) (liii error))
+  (import (scheme base) (liii error) (liii string))
   (export make-extension-tool-def
     extension-tool-def?
     extension-tool-def-name
@@ -118,12 +118,8 @@
     ) ;define-record-type
 
     (define (%derive-key-from-flag flag-str)
-      (let loop
-        ((i 0) (len (string-length flag-str)))
-        (if (and (< i len) (char=? (string-ref flag-str i) #\-))
-          (loop (+ i 1) len)
-          (if (>= i len) 'flag (string->symbol (substring flag-str i len)))
-        ) ;if
+      (let ((idx (string-skip flag-str #\-)))
+        (if idx (string->symbol (string-drop flag-str idx)) 'flag)
       ) ;let
     ) ;define
 
