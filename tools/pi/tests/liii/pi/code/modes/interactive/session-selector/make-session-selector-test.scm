@@ -2,6 +2,7 @@
   (liii check)
   (liii string)
   (liii tui)
+  (liii pi code core session-list)
   (liii pi code modes interactive session-selector)
 ) ;import
 
@@ -13,11 +14,9 @@
 ;; Ctrl+P 显示路径，Ctrl+S 切换相关度排序
 
 (define (info path id cwd name first modified count . all-text)
-  (list (cons 'path path) (cons 'id id) (cons 'cwd cwd) (cons 'name name)
-    (cons 'first-message first) (cons 'modified modified)
-    (cons 'message-count count)
-    (cons 'all-messages-text (if (pair? all-text) (car all-text) first))
-  ) ;list
+  (make-pi-session-info path id cwd name "created" modified count first
+    (if (pair? all-text) (car all-text) first)
+  ) ;make-pi-session-info
 ) ;define
 
 (define OLD
@@ -63,16 +62,14 @@
   (component-handle-input selector 'tab)
   (check-true (string-contains? (plain selector) "/work/other"))
   (component-handle-input selector "old answer")
-  (check (map (lambda (s) (cdr (assoc 'path s)))
-           (session-selector-visible-sessions selector))
+  (check (map pi-session-info-path (session-selector-visible-sessions selector))
     => '("/sessions/old.jsonl"))
 ) ;let
 
 ;; 3. Ctrl+N 只看命名会话，Ctrl+P 显示完整文件路径，Ctrl+S 切换相关度排序
 (let ((selector (make-selector)))
   (component-handle-input selector 'ctrl-n)
-  (check (map (lambda (s) (cdr (assoc 'path s)))
-           (session-selector-visible-sessions selector))
+  (check (map pi-session-info-path (session-selector-visible-sessions selector))
     => '("/sessions/new.jsonl"))
   (component-handle-input selector 'ctrl-p)
   (check-true (string-contains? (plain selector) "/sessions/new.jsonl"))

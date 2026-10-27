@@ -2,6 +2,7 @@
   (liii check)
   (liii path)
   (liii tui)
+  (liii pi code core session-list)
   (liii pi code modes interactive resume)
 ) ;import
 
@@ -11,10 +12,8 @@
 ;; 返回选中会话的文件路径；Escape / Ctrl+C 取消时返回 #f
 
 (define (info path)
-  (list (cons 'path path) (cons 'id path) (cons 'cwd "/work")
-    (cons 'name #f) (cons 'first-message path)
-    (cons 'modified "2026-10-21T08:00:01.000Z")
-    (cons 'message-count 1) (cons 'all-messages-text path))
+  (make-pi-session-info path path "/work" #f "created"
+    "2026-10-21T08:00:01.000Z" 1 path path)
 ) ;define
 
 ;; 1. down + enter 选中第二条

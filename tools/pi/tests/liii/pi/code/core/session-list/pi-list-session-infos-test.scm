@@ -41,13 +41,13 @@
 
 ;; 1. 默认只枚举当前目录，按 modified 降序
 (let ((sessions (pi-list-session-infos CURRENT)))
-  (check (map (lambda (s) (cdr (assoc 'path s))) sessions)
+  (check (map pi-session-info-path sessions)
     => (list NEW-FILE OLD-FILE))
 ) ;let
 
 ;; 2. 递归模式枚举所有子目录（All scope）
 (let ((sessions (pi-list-session-infos ROOT #t)))
-  (check (map (lambda (s) (cdr (assoc 'path s))) sessions)
+  (check (map pi-session-info-path sessions)
     => (list OTHER-FILE NEW-FILE OLD-FILE))
 ) ;let
 
