@@ -182,9 +182,9 @@
     ) ;define
 
     (define (hash-table-fold proc seed ht)
-      (when (not (procedure? proc))
-        (error 'type-error hash-table-fold "this parameter must be typed as procedure")
-      ) ;when
+      (unless (procedure? proc)
+        (error 'type-error "hash-table-fold: first argument must be a procedure" proc)
+      ) ;unless
       (assert-hash-table-type ht hash-table-fold)
       (let ((result seed))
         (hash-table-for-each (lambda (k v) (set! result (proc k v result))) ht)
