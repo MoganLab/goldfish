@@ -302,7 +302,17 @@
 ) ;let
 
 ;; --------------------------------------------------------------------
-;; 13. 非 define-library 文件 -> '()
+;; 13. 类型收窄：and / if / cond 的守卫让 (or #f T) 收窄为 T
+;; --------------------------------------------------------------------
+;; 13a. 有守卫的调用不报；无守卫的 unguarded 仍报 1 条
+(let ((viol (check-type-hint (resource-file "goldfish/hint/liii/narrow.scm"))))
+  (check (length viol) => 1)
+  (check-true (string-contains? (cadddr (car viol)) "my-cdr"))
+  (check-true (string-contains? (cadddr (car viol)) "pair?"))
+) ;let
+
+;; --------------------------------------------------------------------
+;; 14. 非 define-library 文件 -> '()
 ;; --------------------------------------------------------------------
 (check (check-type-hint (resource-file "script.scm")) => '())
 

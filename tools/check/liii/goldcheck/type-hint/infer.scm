@@ -29,6 +29,7 @@
     (liii goldcheck type-hint parse)
     (liii goldcheck type-hint util)
     (liii goldcheck type-hint hint-data)
+    (liii goldcheck type-hint narrow)
     (liii goldcheck type-hint env)
   ) ;import
   (export check-infer)
@@ -246,6 +247,9 @@
               ) ;acc1
              ) ;
           (cond ((eq? (car expr) 'quote) acc1)
+                ((eq? (car expr) 'if) (walk-if walk rel expr env locals acc1))
+                ((eq? (car expr) 'and) (walk-and walk rel expr env locals acc1))
+                ((eq? (car expr) 'cond) (walk-cond walk walk-body rel expr env locals acc1))
                 ((and (eq? (car expr) 'let) (pair? (cdr expr)) (pair? (cddr expr)))
                  (walk-let rel expr env locals acc #f)
                 ) ;
