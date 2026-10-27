@@ -109,19 +109,14 @@
     ) ;define
 
     (define (%resolve-explicit-items explicit cwd-dir)
-      (let loop
-        ((items (if (list? explicit) explicit '())) (acc '()))
-        (if (null? items)
-          (reverse acc)
-          (let ((item (car items)))
-            (if
-              (and (string? item) (not (string-null? (string-trim-both item))))
-              (loop (cdr items) (cons (pi-resolve-path item cwd-dir) acc))
-              (loop (cdr items) acc)
-            ) ;if
-          ) ;let
-        ) ;if
-      ) ;let
+      (map (lambda (item) (pi-resolve-path item cwd-dir))
+        (filter
+          (lambda (item)
+            (and (string? item) (not (string-null? (string-trim-both item))))
+          ) ;lambda
+          (if (list? explicit) explicit '())
+        ) ;filter
+      ) ;map
     ) ;define
 
     (define (%extension-name path-str)
