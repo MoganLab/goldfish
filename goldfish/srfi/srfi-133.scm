@@ -95,7 +95,16 @@
 
     (define (vector= elt=? . rest)
       (define compare2vecs
-        (typed-lambda ((cmp procedure?) (vec1 vector?) (vec2 vector?))
+        (lambda (cmp vec1 vec2)
+          (unless (procedure? cmp)
+            (error 'type-error "vector=: comparison function must be a procedure" cmp)
+          ) ;unless
+          (unless (vector? vec1)
+            (error 'type-error "vector=: first vector must be a vector" vec1)
+          ) ;unless
+          (unless (vector? vec2)
+            (error 'type-error "vector=: second vector must be a vector" vec2)
+          ) ;unless
           (let* ((len1 (vector-length vec1)) (len2 (vector-length vec2)))
             (if (not (= len1 len2))
               #f
@@ -108,7 +117,7 @@
               ) ;let
             ) ;if
           ) ;let*
-        ) ;typed-lambda
+        ) ;lambda
       ) ;define
       (when (not (procedure? elt=?))
         (error 'type-error "elt=? should be a procedure")
@@ -171,23 +180,27 @@
       ) ;let
     ) ;define
 
-    (define vector-cumulate
-      (typed-lambda ((fn procedure?) knil (vec vector?))
-        (let* ((len (vector-length vec)) (v-rst (make-vector len)))
-          (let loop
-            ((i 0) (lhs knil))
-            (if (= i len)
-              v-rst
-              (let ((cumu-i (fn lhs (vec i))))
-                (begin
-                  (vector-set! v-rst i cumu-i)
-                  (loop (+ 1 i) cumu-i)
-                ) ;begin
-              ) ;let
-            ) ;if
-          ) ;let
-        ) ;let*
-      ) ;typed-lambda
+    (define (vector-cumulate fn knil vec)
+      (unless (procedure? fn)
+        (error 'type-error "vector-cumulate: first argument must be a procedure" fn)
+      ) ;unless
+      (unless (vector? vec)
+        (error 'type-error "vector-cumulate: third argument must be a vector" vec)
+      ) ;unless
+      (let* ((len (vector-length vec)) (v-rst (make-vector len)))
+        (let loop
+          ((i 0) (lhs knil))
+          (if (= i len)
+            v-rst
+            (let ((cumu-i (fn lhs (vec i))))
+              (begin
+                (vector-set! v-rst i cumu-i)
+                (loop (+ 1 i) cumu-i)
+              ) ;begin
+            ) ;let
+          ) ;if
+        ) ;let
+      ) ;let*
     ) ;define
     (define (vector-any pred v)
       (unless (procedure? pred)
@@ -221,30 +234,41 @@
       ) ;let
     ) ;define
 
-    (define vector-index
-      (typed-lambda ((pred procedure?) (v vector?))
-        (let loop
-          ((i 0))
-          (cond ((= i (vector-length v)) #f)
-                ((pred (vector-ref v i)) i)
-                (else (loop (+ i 1)))
-          ) ;cond
-        ) ;let
-      ) ;typed-lambda
+    (define (vector-index pred v)
+      (unless (procedure? pred)
+        (error 'type-error "vector-index: first argument must be a procedure" pred)
+      ) ;unless
+      (unless (vector? v)
+        (error 'type-error "vector-index: second argument must be a vector" v)
+      ) ;unless
+      (let loop
+        ((i 0))
+        (cond ((= i (vector-length v)) #f)
+              ((pred (vector-ref v i)) i)
+              (else (loop (+ i 1)))
+        ) ;cond
+      ) ;let
     ) ;define
 
-    (define vector-index-right
-      (typed-lambda ((pred procedure?) (v vector?))
-        (let ((len (vector-length v)))
-          (let loop
-            ((i (- len 1)))
-            (cond ((< i 0) #f)
-                  ((pred (vector-ref v i)) i)
-                  (else (loop (- i 1)))
-            ) ;cond
-          ) ;let
+    (define (vector-index-right pred v)
+      (unless (procedure? pred)
+        (error 'type-error
+          "vector-index-right: first argument must be a procedure"
+          pred
+        ) ;error
+      ) ;unless
+      (unless (vector? v)
+        (error 'type-error "vector-index-right: second argument must be a vector" v)
+      ) ;unless
+      (let ((len (vector-length v)))
+        (let loop
+          ((i (- len 1)))
+          (cond ((< i 0) #f)
+                ((pred (vector-ref v i)) i)
+                (else (loop (- i 1)))
+          ) ;cond
         ) ;let
-      ) ;typed-lambda
+      ) ;let
     ) ;define
 
     (define (vector-skip pred v)
@@ -471,21 +495,22 @@
       ) ;let
     ) ;define*
 
-    (define reverse-list->vector
-      (typed-lambda ((lst proper-list?))
-        (let* ((len (length lst)) (v-rst (make-vector len)))
-          (let loop
-            ((l lst) (i (- len 1)))
-            (if (null? l)
-              v-rst
-              (begin
-                (vector-set! v-rst i (car l))
-                (loop (cdr l) (- i 1))
-              ) ;begin
-            ) ;if
-          ) ;let
-        ) ;let*
-      ) ;typed-lambda
+    (define (reverse-list->vector lst)
+      (unless (proper-list? lst)
+        (error 'type-error "reverse-list->vector: argument must be a proper list" lst)
+      ) ;unless
+      (let* ((len (length lst)) (v-rst (make-vector len)))
+        (let loop
+          ((l lst) (i (- len 1)))
+          (if (null? l)
+            v-rst
+            (begin
+              (vector-set! v-rst i (car l))
+              (loop (cdr l) (- i 1))
+            ) ;begin
+          ) ;if
+        ) ;let
+      ) ;let*
     ) ;define
   ) ;begin
 ) ;define-library

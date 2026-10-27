@@ -28,16 +28,17 @@
       ) ;case-lambda
     ) ;define
 
-    (define vector->alist
-      (typed-lambda ((x vector?))
-        (if (zero? (length x))
-          '()
-          (let loop
-            ((x (vector->list x)) (n 0))
-            (cons (cons n (car x)) (if (null? (cdr x)) '() (loop (cdr x) (+ n 1))))
-          ) ;let
-        ) ;if
-      ) ;typed-lambda
+    (define (vector->alist x)
+      (unless (vector? x)
+        (error 'type-error "vector->alist: argument must be a vector" x)
+      ) ;unless
+      (if (zero? (length x))
+        '()
+        (let loop
+          ((x (vector->list x)) (n 0))
+          (cons (cons n (car x)) (if (null? (cdr x)) '() (loop (cdr x) (+ n 1))))
+        ) ;let
+      ) ;if
     ) ;define
   ) ;begin
 ) ;define-library

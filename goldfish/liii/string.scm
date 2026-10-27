@@ -23,8 +23,14 @@
 
     (define string-starts? g_string-starts?)
 
-    (define string-contains?
-      (typed-lambda ((str string?) (sub-str string?)) (string-contains str sub-str))
+    (define (string-contains? str sub-str)
+      (unless (string? str)
+        (error 'type-error "string-contains?: first argument must be a string" str)
+      ) ;unless
+      (unless (string? sub-str)
+        (error 'type-error "string-contains?: second argument must be a string" sub-str)
+      ) ;unless
+      (string-contains str sub-str)
     ) ;define
 
     (define string-split g_string-split)
@@ -33,19 +39,33 @@
 
     (define string-ends? g_string-ends?)
 
-    (define string-remove-prefix
-      (typed-lambda ((str string?) (prefix string?))
-        (if (string-prefix? prefix str) (substring str (string-length prefix)) str)
-      ) ;typed-lambda
+    (define (string-remove-prefix str prefix)
+      (unless (string? str)
+        (error 'type-error "string-remove-prefix: first argument must be a string" str)
+      ) ;unless
+      (unless (string? prefix)
+        (error 'type-error
+          "string-remove-prefix: second argument must be a string"
+          prefix
+        ) ;error
+      ) ;unless
+      (if (string-prefix? prefix str) (substring str (string-length prefix)) str)
     ) ;define
 
-    (define string-remove-suffix
-      (typed-lambda ((str string?) (suffix string?))
-        (if (string-suffix? suffix str)
-          (substring str 0 (- (string-length str) (string-length suffix)))
-          (string-copy str)
-        ) ;if
-      ) ;typed-lambda
+    (define (string-remove-suffix str suffix)
+      (unless (string? str)
+        (error 'type-error "string-remove-suffix: first argument must be a string" str)
+      ) ;unless
+      (unless (string? suffix)
+        (error 'type-error
+          "string-remove-suffix: second argument must be a string"
+          suffix
+        ) ;error
+      ) ;unless
+      (if (string-suffix? suffix str)
+        (substring str 0 (- (string-length str) (string-length suffix)))
+        (string-copy str)
+      ) ;if
     ) ;define
 
     ;; 将 plist 转为以字符串为键的 alist

@@ -27,9 +27,12 @@
   (begin
 
     (define (assert-hash-table-type ht f)
-      (when (not (hash-table? ht))
-        (error 'type-error f "this parameter must be typed as hash-table")
-      ) ;when
+      (unless (hash-table? ht)
+        (error 'type-error
+          (string-append (symbol->string f) ": this parameter must be a hash-table")
+          ht
+        ) ;error
+      ) ;unless
     ) ;define
 
     (define (make-hash-table . args)
@@ -45,24 +48,25 @@
       ) ;cond
     ) ;define
 
-    (define alist->hash-table
-      (typed-lambda ((lst list?))
-        (when (odd? (length lst))
-          (value-error "The length of lst must be even!")
-        ) ;when
-        (let ((ht (make-hash-table)))
-          (let loop
-            ((rest lst))
-            (if (null? rest)
-              ht
-              (begin
-                (hash-table-set! ht (car rest) (cadr rest))
-                (loop (cddr rest))
-              ) ;begin
-            ) ;if
-          ) ;let
+    (define (alist->hash-table lst)
+      (unless (list? lst)
+        (error 'type-error "alist->hash-table: argument must be a list" lst)
+      ) ;unless
+      (when (odd? (length lst))
+        (value-error "The length of lst must be even!")
+      ) ;when
+      (let ((ht (make-hash-table)))
+        (let loop
+          ((rest lst))
+          (if (null? rest)
+            ht
+            (begin
+              (hash-table-set! ht (car rest) (cadr rest))
+              (loop (cddr rest))
+            ) ;begin
+          ) ;if
         ) ;let
-      ) ;typed-lambda
+      ) ;let
     ) ;define
 
     (define (hash-table-contains? ht key)
@@ -120,12 +124,12 @@
 
     (define (hash-table-update!/default ht key updater default)
       (assert-hash-table-type ht hash-table-update!/default)
-      (when (not (procedure? updater))
+      (unless (procedure? updater)
         (error 'type-error
-          hash-table-update!/default
-          "this parameter must be typed as procedure"
+          "hash-table-update!/default: third argument must be a procedure"
+          updater
         ) ;error
-      ) ;when
+      ) ;unless
       (hash-table-set! ht key (updater (hash-table-ref/default ht key default)))
     ) ;define
 
@@ -144,18 +148,17 @@
       (map cdr ht)
     ) ;define
 
-    (define hash-table-entries
-      (typed-lambda ((ht hash-table?))
-        (let ((ks (hash-table-keys ht)) (vs (hash-table-values ht)))
-          (values ks vs)
-        ) ;let
-      ) ;typed-lambda
+    (define (hash-table-entries ht)
+      (assert-hash-table-type ht hash-table-entries)
+      (let ((ks (hash-table-keys ht)) (vs (hash-table-values ht)))
+        (values ks vs)
+      ) ;let
     ) ;define
 
     (define (hash-table-find proc ht failure)
-      (when (not (procedure? proc))
-        (error 'type-error hash-table-find "this parameter must be typed as procedure")
-      ) ;when
+      (unless (procedure? proc)
+        (error 'type-error "hash-table-find: first argument must be a procedure" proc)
+      ) ;unless
       (assert-hash-table-type ht hash-table-find)
       (let ((keys (hash-table-keys ht)))
         (let loop
@@ -170,16 +173,18 @@
       ) ;let
     ) ;define
 
-    (define hash-table-count
-      (typed-lambda ((pred? procedure?) (ht hash-table?))
-        (count (lambda (x) (pred? (car x) (cdr x))) (map values ht))
-      ) ;typed-lambda
+    (define (hash-table-count pred? ht)
+      (unless (procedure? pred?)
+        (error 'type-error "hash-table-count: first argument must be a procedure" pred?)
+      ) ;unless
+      (assert-hash-table-type ht hash-table-count)
+      (count (lambda (x) (pred? (car x) (cdr x))) (map values ht))
     ) ;define
 
     (define (hash-table-fold proc seed ht)
-      (when (not (procedure? proc))
-        (error 'type-error hash-table-fold "this parameter must be typed as procedure")
-      ) ;when
+      (unless (procedure? proc)
+        (error 'type-error "hash-table-fold: first argument must be a procedure" proc)
+      ) ;unless
       (assert-hash-table-type ht hash-table-fold)
       (let ((result seed))
         (hash-table-for-each (lambda (k v) (set! result (proc k v result))) ht)
@@ -187,31 +192,39 @@
       ) ;let
     ) ;define
 
-    (define hash-table-for-each
-      (typed-lambda ((proc procedure?) (ht hash-table?))
-        (for-each (lambda (entry) (proc (car entry) (cdr entry))) (map values ht))
-      ) ;typed-lambda
+    (define (hash-table-for-each proc ht)
+      (unless (procedure? proc)
+        (error 'type-error
+          "hash-table-for-each: first argument must be a procedure"
+          proc
+        ) ;error
+      ) ;unless
+      (assert-hash-table-type ht hash-table-for-each)
+      (for-each (lambda (entry) (proc (car entry) (cdr entry))) (map values ht))
     ) ;define
 
-    (define hash-table-map->list
-      (typed-lambda ((proc procedure?) (ht hash-table?))
-        (map (lambda (entry) (proc (car entry) (cdr entry))) (map values ht))
-      ) ;typed-lambda
+    (define (hash-table-map->list proc ht)
+      (unless (procedure? proc)
+        (error 'type-error
+          "hash-table-map->list: first argument must be a procedure"
+          proc
+        ) ;error
+      ) ;unless
+      (assert-hash-table-type ht hash-table-map->list)
+      (map (lambda (entry) (proc (car entry) (cdr entry))) (map values ht))
     ) ;define
 
-    (define hash-table->alist
-      (typed-lambda ((ht hash-table?))
-        (append-map (lambda (x) (list (car x) (cdr x))) (map values ht))
-      ) ;typed-lambda
+    (define (hash-table->alist ht)
+      (assert-hash-table-type ht hash-table->alist)
+      (append-map (lambda (x) (list (car x) (cdr x))) (map values ht))
     ) ;define
 
-    (define hash-table-copy
-      (typed-lambda ((ht hash-table?) . rest)
-        (let ((new-ht (make-hash-table)) (mutable? (if (null? rest) #t (car rest))))
-          (hash-table-for-each (lambda (k v) (hash-table-set! new-ht k v)) ht)
-          new-ht
-        ) ;let
-      ) ;typed-lambda
+    (define (hash-table-copy ht . rest)
+      (assert-hash-table-type ht hash-table-copy)
+      (let ((new-ht (make-hash-table)) (mutable? (if (null? rest) #t (car rest))))
+        (hash-table-for-each (lambda (k v) (hash-table-set! new-ht k v)) ht)
+        new-ht
+      ) ;let
     ) ;define
   ) ;begin
 ) ;define-library
