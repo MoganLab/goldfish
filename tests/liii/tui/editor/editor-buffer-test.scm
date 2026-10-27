@@ -24,6 +24,14 @@
   (check (buffer-text b) => "hello world")
   (check (buffer-col b) => 11))
 
+;; 2.1 跨行文本插入（粘贴）：按 \n 拆分并重建行列表
+(let ((b (make-buffer "ab" #t)))
+  (buffer-col-set! b 1)
+  (check (buffer-insert-text! b "X\nY\nZ") => #t)
+  (check (buffer-lines b) => '("aX" "Y" "Zb"))
+  (check (buffer-row b) => 2)
+  (check (buffer-col b) => 1))
+
 ;; 3. 插入 CJK 汉字 (Unicode 字符计数)
 (let ((b (make-buffer "" #f)))
   (buffer-insert-string! b "金鱼")

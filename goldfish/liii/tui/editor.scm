@@ -30,6 +30,7 @@
     text-area?
     editor-text
     editor-set-text!
+    editor-expanded-text
     editor-cursor
     editor-set-cursor!
     editor-display-col
@@ -54,6 +55,7 @@
     buffer-set-text!
     buffer-insert-char!
     buffer-insert-string!
+    buffer-insert-text!
     buffer-backspace!
     buffer-delete!
     buffer-newline!

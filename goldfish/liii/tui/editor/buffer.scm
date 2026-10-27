@@ -25,9 +25,16 @@
   (export make-buffer buffer? buffer-lines buffer-row buffer-col
     buffer-multiline? buffer-lines-set! buffer-row-set! buffer-col-set!
     buffer-text buffer-set-text! buffer-insert-char! buffer-insert-string!
-    buffer-backspace! buffer-delete! buffer-newline! %replace-line
+    buffer-insert-text! buffer-backspace! buffer-delete! buffer-newline!
+    %replace-line
   ) ;export
-  (import (scheme base) (scheme write) (liii base) (liii string) (liii unicode))
+  (import (scheme base)
+    (scheme write)
+    (liii base)
+    (liii list)
+    (liii string)
+    (liii unicode)
+  ) ;import
   (begin
 
     (define-record-type <buffer>
@@ -115,6 +122,41 @@
           (%buffer-lines-set! buf (%replace-line lines r new-line))
           (%buffer-col-set! buf (+ safe-col (utf8-string-length str)))
           #t
+        ) ;let*
+      ) ;if
+    ) ;define
+
+    ;; 插入可能跨行的文本（粘贴用）：按 \n 拆分后重建行列表。
+    (define (buffer-insert-text! buf text)
+      (if (string=? text "")
+        #t
+        (let* ((parts (string-split text "\n"))
+               (lines (%buffer-lines buf))
+               (r (%buffer-row buf))
+               (c (%buffer-col buf))
+               (line (list-ref lines r))
+               (len (utf8-string-length line))
+               (safe-col (max 0 (min c len)))
+               (before (utf8-substring line 0 safe-col))
+               (after (if (>= safe-col len) "" (utf8-substring line safe-col len)))
+              ) ;
+          (if (<= (length parts) 1)
+            (buffer-insert-string! buf text)
+            (let* ((first-line (string-append before (car parts)))
+                   (last-line (string-append (car (reverse parts)) after))
+                   (middle (take (cdr parts) (- (length parts) 2)))
+                  ) ;
+              (%buffer-lines-set! buf
+                (append (take lines r)
+                  (cons first-line (append middle (list last-line)))
+                  (drop lines (+ r 1))
+                ) ;append
+              ) ;%buffer-lines-set!
+              (%buffer-row-set! buf (+ r (- (length parts) 1)))
+              (%buffer-col-set! buf (utf8-string-length (car (reverse parts))))
+              #t
+            ) ;let*
+          ) ;if
         ) ;let*
       ) ;if
     ) ;define

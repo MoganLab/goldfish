@@ -2,6 +2,25 @@
 
 (check-set-mode! 'report-failed)
 
+;; 0. 粘贴模式默认关闭，只有 gf pi 等 TUI 显式开启后才生效
+(check (terminal-paste-mode?) => #f)
+(check (terminal-set-paste-mode! #t) => #t)
+(check (terminal-paste-mode?) => #t)
+(check (terminal-set-paste-mode! #f) => #f)
+
+;; 0.1 bracketed paste 结束标记解析（内容中的换行/中文需原样保留）
+(check (%string-chunks "ab") => '("a" "b"))
+(check (%string-chunks "你好") => '("你" "好"))
+(check (%split-paste-end '("a" "b")) => #f)
+(check (%split-paste-end '("a" "\n" "\x1b;" "[" "2" "0" "1" "~"))
+  => (cons "a\n" "")
+) ;check
+(check (%split-paste-end '("a" "\x1b;" "[" "2" "0" "1" "~" "b"))
+  => (cons "a" "b")
+) ;check
+(check (%reverse-paste-end? '("~" "1" "0" "2" "[" "\x1b;")) => #t)
+(check (%reverse-paste-end? '("[paste #1 10 chars]")) => #f)
+
 ;; 1. 测试 virtual-terminal 初始无输入时返回 #f
 (let ((vt (make-virtual-terminal 40 20)))
   (check (terminal-poll-key vt) => #f)

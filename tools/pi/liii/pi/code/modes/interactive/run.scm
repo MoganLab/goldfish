@@ -29,6 +29,10 @@
             ) ;
         (dynamic-wind (lambda ()
                         (terminal-enter-raw-mode! term)
+                        ;; 开启 bracketed paste：多行粘贴作为整体交给 editor，
+                        ;; 不再把粘贴内容里的换行当作 Enter 提交
+                        (terminal-set-paste-mode! #t)
+                        (terminal-write term "\x1b;[?2004h")
                         (terminal-hide-cursor! term)
                         (pi-app-render! app)
                       ) ;lambda
@@ -113,6 +117,8 @@
               ) ;lambda
               (lambda (tag . args) #f)
             ) ;catch
+            (terminal-write term "\x1b;[?2004l")
+            (terminal-set-paste-mode! #f)
             (terminal-show-cursor! term)
             (terminal-exit-raw-mode! term)
             (terminal-write term "\r\n")

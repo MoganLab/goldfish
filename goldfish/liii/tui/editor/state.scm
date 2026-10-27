@@ -27,7 +27,7 @@
     %ed-focused?-set! %ed-placeholder %ed-placeholder-set! %ed-cursor-style
     %ed-cursor-style-set! %ed-on-submit %ed-on-submit-set! %ed-on-change
     %ed-on-change-set! %ed-top-border %ed-top-border-set! %ed-bottom-border
-    %ed-bottom-border-set! %ed-border-color %ed-border-color-set!
+    %ed-bottom-border-set! %ed-border-color %ed-border-color-set! %ed-pastes
   ) ;export
   (import (scheme base))
   (begin
@@ -35,6 +35,7 @@
     (define-record-type <editor-data>
       (%make-editor-data buffer history multiline? focused? placeholder
         cursor-style on-submit on-change top-border bottom-border border-color
+        pastes
       ) ;%make-editor-data
       %editor-data?
       (buffer %ed-buffer %ed-buffer-set!)
@@ -48,6 +49,8 @@
       (top-border %ed-top-border %ed-top-border-set!)
       (bottom-border %ed-bottom-border %ed-bottom-border-set!)
       (border-color %ed-border-color %ed-border-color-set!)
+      ;; 大段粘贴的隐藏内容注册表（见 (liii tui editor paste)）
+      (pastes %ed-pastes)
     ) ;define-record-type
 
   ) ;begin
