@@ -21,6 +21,7 @@
     (liii pi ai api openai-completions msg)
     (liii pi ai api openai-completions request)
     (liii pi ai api openai-completions stream-parse)
+    (liii pi ai api openai-completions stream-state)
   ) ;import
   (export openai-request-stream)
   (begin
@@ -64,13 +65,13 @@
 
     (define (%finalize-stream stream-state)
       (finish-openai-stream stream-state #f)
-      (let* ((blocks (vector-ref stream-state 0))
-             (stop-reason (vector-ref stream-state 3))
-             (err-msg (vector-ref stream-state 4))
+      (let* ((blocks (openai-stream-state-blocks stream-state))
+             (stop-reason (openai-stream-state-stop-reason stream-state))
+             (err-msg (openai-stream-state-error-message stream-state))
             ) ;
         (pi-assistant-message blocks
           :stop-reason   stop-reason
-          :usage         (vector-ref stream-state 2)
+          :usage         (openai-stream-state-usage stream-state)
           :error-message err-msg
         ) ;pi-assistant-message
       ) ;let*
@@ -79,10 +80,10 @@
     ;; 用户中止（ESC）：保留已收到的部分内容，stop-reason 强制为 aborted
     (define (%finalize-aborted-stream stream-state)
       (finish-openai-stream stream-state #f)
-      (pi-assistant-message (vector-ref stream-state 0)
+      (pi-assistant-message (openai-stream-state-blocks stream-state)
         :stop-reason   "aborted"
-        :usage         (vector-ref stream-state 2)
-        :error-message (vector-ref stream-state 4)
+        :usage         (openai-stream-state-usage stream-state)
+        :error-message (openai-stream-state-error-message stream-state)
       ) ;pi-assistant-message
     ) ;define
 
@@ -151,7 +152,7 @@
     ) ;define
 
     (define (%init-openai-stream-state)
-      (vector '() #f (openai-map-usage '()) "stop" #f '())
+      (make-openai-stream-state '() #f (openai-map-usage '()) "stop" #f '())
     ) ;define
 
     (define (%run-stream-loop config url req-json-str proxy-alist on-ev timeout

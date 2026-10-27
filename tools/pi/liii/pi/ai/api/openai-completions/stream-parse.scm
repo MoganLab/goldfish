@@ -11,12 +11,22 @@
     (liii sse)
     (liii pi ai message)
     (liii pi ai api openai-completions core)
+    (liii pi ai api openai-completions stream-state)
   ) ;import
   (export append-openai-stream-text process-openai-tool-call-delta
     finish-openai-stream process-openai-chunk make-openai-stream-decoder
     extract-openai-stream-error-message
   ) ;export
   (begin
+
+    (define-record-type <openai-tool-state>
+      (%make-openai-tool-state id name args emitted)
+      %openai-tool-state?
+      (id %openai-tool-state-id)
+      (name %openai-tool-state-name)
+      (args %openai-tool-state-args)
+      (emitted %openai-tool-state-emitted)
+    ) ;define-record-type
 
     (define (%val key obj default-val)
       (let ((p
@@ -49,14 +59,16 @@
 
     (define (append-openai-stream-text stream-state text on-event)
       (when (and (string? text) (not (string-null? text)))
-        (let* ((blocks (vector-ref stream-state 0))
-               (last-text (vector-ref stream-state 1))
-               (usage (vector-ref stream-state 2))
+        (let* ((blocks (openai-stream-state-blocks stream-state))
+               (last-text (openai-stream-state-last-text stream-state))
+               (usage (openai-stream-state-usage stream-state))
               ) ;
           (if (not (string? last-text))
             (let ((cur-idx (length blocks)))
-              (vector-set! stream-state 0 (append blocks (list (pi-text-block text))))
-              (vector-set! stream-state 1 text)
+              (openai-stream-state-blocks-set! stream-state
+                (append blocks (list (pi-text-block text)))
+              ) ;openai-stream-state-blocks-set!
+              (openai-stream-state-last-text-set! stream-state text)
               (when (procedure? on-event)
                 (on-event (list (cons 'type "text_start")
                             (cons 'contentIndex cur-idx)
@@ -83,8 +95,8 @@
                      ) ;let
                    ) ;upd-blocks
                   ) ;
-              (vector-set! stream-state 0 upd-blocks)
-              (vector-set! stream-state 1 new-text)
+              (openai-stream-state-blocks-set! stream-state upd-blocks)
+              (openai-stream-state-last-text-set! stream-state new-text)
               (when (procedure? on-event)
                 (on-event (list (cons 'type "text_delta")
                             (cons 'contentIndex cur-idx)
@@ -105,22 +117,23 @@
              (fn (%val "function" tc '()))
              (name (%val "name" fn #f))
              (args-delta (%val "arguments" fn ""))
-             (tools-alist (vector-ref stream-state 5))
+             (tools-alist (openai-stream-state-tools stream-state))
              (entry (assoc idx tools-alist))
-             (curr-item (if entry (cdr entry) '()))
-             (curr-id (or id (%val 'id curr-item "")))
-             (curr-name (or name (%val 'name curr-item "")))
-             (curr-args (string-append (%val 'args curr-item "") (or args-delta "")))
-             (was-emitted? (%val 'emitted curr-item #f))
-             (usage (vector-ref stream-state 2))
-             (blocks (vector-ref stream-state 0))
+             (curr-item (if entry (cdr entry) (%make-openai-tool-state "" "" "" #f)))
+             (curr-id (or id (%openai-tool-state-id curr-item)))
+             (curr-name (or name (%openai-tool-state-name curr-item)))
+             (curr-args (string-append (%openai-tool-state-args curr-item) (or args-delta ""))
+             ) ;curr-args
+             (was-emitted? (%openai-tool-state-emitted curr-item))
+             (usage (openai-stream-state-usage stream-state))
+             (blocks (openai-stream-state-blocks stream-state))
              (cur-idx (+ (length blocks) (length tools-alist)))
              (should-emit-start? (and (not was-emitted?) (not (string-null? curr-name))))
-             (upd-item (list (cons 'id curr-id)
-                         (cons 'name curr-name)
-                         (cons 'args curr-args)
-                         (cons 'emitted (or was-emitted? should-emit-start?))
-                       ) ;list
+             (upd-item (%make-openai-tool-state curr-id
+                         curr-name
+                         curr-args
+                         (or was-emitted? should-emit-start?)
+                       ) ;%make-openai-tool-state
              ) ;upd-item
              (new-tools-alist
                (if entry
@@ -132,7 +145,7 @@
                ) ;if
              ) ;new-tools-alist
             ) ;
-        (vector-set! stream-state 5 new-tools-alist)
+        (openai-stream-state-tools-set! stream-state new-tools-alist)
         (when (procedure? on-event)
           (when should-emit-start?
             (on-event (list (cons 'type "toolcall_start")
@@ -156,17 +169,17 @@
     ) ;define
 
     (define (finish-openai-stream stream-state on-event)
-      (let ((tools-alist (vector-ref stream-state 5))
-            (blocks (vector-ref stream-state 0))
-            (usage (vector-ref stream-state 2))
+      (let ((tools-alist (openai-stream-state-tools stream-state))
+            (blocks (openai-stream-state-blocks stream-state))
+            (usage (openai-stream-state-usage stream-state))
            ) ;
         (when (pair? tools-alist)
           (for-each
             (lambda (p)
               (let* ((item (cdr p))
-                     (id (%val 'id item ""))
-                     (name (%val 'name item ""))
-                     (args-str (%val 'args item "{}"))
+                     (id (%openai-tool-state-id item))
+                     (name (%openai-tool-state-name item))
+                     (args-str (%openai-tool-state-args item))
                      (args-json
                        (catch #t
                          (lambda () (if (string-null? args-str) '() (string->json args-str)))
@@ -174,9 +187,11 @@
                        ) ;catch
                      ) ;args-json
                      (tc-blk (pi-tool-call-block id name args-json))
-                     (cur-idx (length (vector-ref stream-state 0)))
+                     (cur-idx (length (openai-stream-state-blocks stream-state)))
                     ) ;
-                (vector-set! stream-state 0 (append (vector-ref stream-state 0) (list tc-blk)))
+                (openai-stream-state-blocks-set! stream-state
+                  (append (openai-stream-state-blocks stream-state) (list tc-blk))
+                ) ;openai-stream-state-blocks-set!
                 (when (procedure? on-event)
                   (on-event (list (cons 'type "toolcall_end")
                               (cons 'contentIndex cur-idx)
@@ -190,8 +205,8 @@
             ) ;lambda
             tools-alist
           ) ;for-each
-          (vector-set! stream-state 3 "toolUse")
-          (vector-set! stream-state 5 '())
+          (openai-stream-state-stop-reason-set! stream-state "toolUse")
+          (openai-stream-state-tools-set! stream-state '())
         ) ;when
       ) ;let
     ) ;define
@@ -211,10 +226,12 @@
              (delta (%val "delta" choice '()))
             ) ;
         (when (pair? eff-usage)
-          (vector-set! stream-state 2 (openai-map-usage eff-usage))
+          (openai-stream-state-usage-set! stream-state (openai-map-usage eff-usage))
         ) ;when
         (when (and (string? raw-stop) (not (string-null? raw-stop)))
-          (vector-set! stream-state 3 (openai-map-stop-reason raw-stop))
+          (openai-stream-state-stop-reason-set! stream-state
+            (openai-map-stop-reason raw-stop)
+          ) ;openai-stream-state-stop-reason-set!
         ) ;when
         (when (pair? delta)
           (let ((content (%val "content" delta #f)) (raw-tc (%val "tool_calls" delta #f)))

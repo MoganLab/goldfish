@@ -5,12 +5,46 @@
 ;;
 
 (define-library (liii pi ai api anthropic-messages thinking)
-  (import (scheme base) (scheme char) (liii string) (liii pi ai message))
+  (import (scheme base)
+    (scheme char)
+    (liii string)
+    (liii pi ai message)
+    (liii pi ai api anthropic-messages stream-state)
+  ) ;import
   (export anthropic-thinking-level->budget anthropic-inject-thinking
     anthropic-start-thinking-block anthropic-handle-thinking-delta
     anthropic-finish-thinking-block
   ) ;export
   (begin
+
+    (define-record-type <anthropic-thinking-state>
+      (%make-anthropic-thinking-state thinking signature index)
+      %anthropic-thinking-state?
+      (thinking %anthropic-thinking-state-record-thinking)
+      (signature %anthropic-thinking-state-record-signature)
+      (index %anthropic-thinking-state-record-index)
+    ) ;define-record-type
+
+    (define (%anthropic-thinking-state-thinking state)
+      (if (%anthropic-thinking-state? state)
+        (%anthropic-thinking-state-record-thinking state)
+        (cdr (assoc 'thinking state))
+      ) ;if
+    ) ;define
+
+    (define (%anthropic-thinking-state-signature state)
+      (if (%anthropic-thinking-state? state)
+        (%anthropic-thinking-state-record-signature state)
+        (cdr (assoc 'signature state))
+      ) ;if
+    ) ;define
+
+    (define (%anthropic-thinking-state-index state)
+      (if (%anthropic-thinking-state? state)
+        (%anthropic-thinking-state-record-index state)
+        (cdr (assoc 'index state))
+      ) ;if
+    ) ;define
 
     (define (anthropic-thinking-level->budget level)
       (cond ((equal? level "minimal") 1024)
@@ -49,15 +83,14 @@
     ) ;define
 
     (define (anthropic-start-thinking-block stream-state idx on-ev)
-      (vector-set! stream-state
-        6
-        (list (cons 'thinking "") (cons 'signature "") (cons 'index idx))
-      ) ;vector-set!
-      (vector-set! stream-state 1 #f)
+      (anthropic-stream-state-current-thinking-set! stream-state
+        (%make-anthropic-thinking-state "" "" idx)
+      ) ;anthropic-stream-state-current-thinking-set!
+      (anthropic-stream-state-last-text-set! stream-state #f)
       (when (procedure? on-ev)
         (on-ev (list (cons 'type "thinking_start")
                  (cons 'contentIndex idx)
-                 (cons 'usage (vector-ref stream-state 2))
+                 (cons 'usage (anthropic-stream-state-usage stream-state))
                ) ;list
         ) ;on-ev
       ) ;when
@@ -66,22 +99,21 @@
     (define (anthropic-handle-thinking-delta delta idx stream-state on-ev)
       (let* ((th (cdr (or (assoc "thinking" delta) '(#f . ""))))
              (sig (cdr (or (assoc "signature" delta) '(#f . ""))))
-             (cur-th (vector-ref stream-state 6))
+             (cur-th (anthropic-stream-state-current-thinking stream-state))
             ) ;
-        (when (pair? cur-th)
-          (let* ((prev-text (cdr (assoc 'thinking cur-th)))
-                 (prev-sig (cdr (assoc 'signature cur-th)))
+        (when cur-th
+          (let* ((prev-text (%anthropic-thinking-state-thinking cur-th))
+                 (prev-sig (%anthropic-thinking-state-signature cur-th))
                  (new-text (string-append prev-text th))
                  (new-sig (string-append prev-sig sig))
-                 (upd (list (cons 'thinking new-text) (cons 'signature new-sig) (cons 'index idx))
-                 ) ;upd
+                 (upd (%make-anthropic-thinking-state new-text new-sig idx))
                 ) ;
-            (vector-set! stream-state 6 upd)
+            (anthropic-stream-state-current-thinking-set! stream-state upd)
             (when (and (procedure? on-ev) (not (string-null? th)))
               (on-ev (list (cons 'type "thinking_delta")
                        (cons 'contentIndex idx)
                        (cons 'delta th)
-                       (cons 'usage (vector-ref stream-state 2))
+                       (cons 'usage (anthropic-stream-state-usage stream-state))
                      ) ;list
               ) ;on-ev
             ) ;when
@@ -91,25 +123,24 @@
     ) ;define
 
     (define (anthropic-finish-thinking-block stream-state on-ev)
-      (let* ((cur-th (vector-ref stream-state 6))
-             (blocks (vector-ref stream-state 0))
-             (usage (vector-ref stream-state 2))
+      (let* ((cur-th (anthropic-stream-state-current-thinking stream-state))
+             (blocks (anthropic-stream-state-blocks stream-state))
+             (usage (anthropic-stream-state-usage stream-state))
             ) ;
-        (when (pair? cur-th)
-          (let* ((th (cdr (assoc 'thinking cur-th)))
-                 (sig (cdr (assoc 'signature cur-th)))
+        (when cur-th
+          (let* ((th (%anthropic-thinking-state-thinking cur-th))
+                 (sig (%anthropic-thinking-state-signature cur-th))
                  (eff-sig (if (string-null? sig) #f sig))
                  (blk (pi-thinking-block th eff-sig))
                 ) ;
-            (vector-set! stream-state 0 (append blocks (list blk)))
-            (vector-set! stream-state 6 #f)
+            (anthropic-stream-state-blocks-set! stream-state (append blocks (list blk)))
+            (anthropic-stream-state-current-thinking-set! stream-state #f)
             (when (procedure? on-ev)
-              (on-ev
-                (list (cons 'type "thinking_end")
-                  (cons 'contentIndex (cdr (assoc 'index cur-th)))
-                  (cons 'content th)
-                  (cons 'usage usage)
-                ) ;list
+              (on-ev (list (cons 'type "thinking_end")
+                       (cons 'contentIndex (%anthropic-thinking-state-index cur-th))
+                       (cons 'content th)
+                       (cons 'usage usage)
+                     ) ;list
               ) ;on-ev
             ) ;when
           ) ;let*

@@ -12,6 +12,7 @@
     (liii sse)
     (liii pi ai message)
     (liii pi ai api google-generative-ai core)
+    (liii pi ai api google-generative-ai stream-state)
     (liii pi ai api google-generative-ai thinking)
   ) ;import
   (export emit-text-start-and-delta append-text-block
@@ -79,15 +80,17 @@
         #t
         (if (not (string? last-text))
           (begin
-            (vector-set! stream-state 0 (append blocks (list (pi-text-block t))))
-            (vector-set! stream-state 1 t)
+            (gemini-stream-state-blocks-set! stream-state
+              (append blocks (list (pi-text-block t)))
+            ) ;gemini-stream-state-blocks-set!
+            (gemini-stream-state-last-text-set! stream-state t)
             (emit-text-start-and-delta on-event cur-idx t usage)
           ) ;begin
           (let* ((new-t (string-append last-text t))
                  (upd-blocks (append (drop-right blocks 1) (list (pi-text-block new-t))))
                 ) ;
-            (vector-set! stream-state 0 upd-blocks)
-            (vector-set! stream-state 1 new-t)
+            (gemini-stream-state-blocks-set! stream-state upd-blocks)
+            (gemini-stream-state-last-text-set! stream-state new-t)
             (when (procedure? on-event)
               (on-event (list (cons 'type "text_delta")
                           (cons 'contentIndex cur-idx)
@@ -116,12 +119,14 @@
              ) ;eff-id
              (tc-blk (pi-tool-call-block eff-id name args :thought-signature ts))
              (cur-idx (length blocks))
-             (tool-calls (vector-ref stream-state 3))
-             (usage (vector-ref stream-state 2))
+             (tool-calls (gemini-stream-state-tool-calls stream-state))
+             (usage (gemini-stream-state-usage stream-state))
             ) ;
-        (vector-set! stream-state 0 (append blocks (list tc-blk)))
-        (vector-set! stream-state 1 #f)
-        (vector-set! stream-state 3 (append tool-calls (list tc-blk)))
+        (gemini-stream-state-blocks-set! stream-state (append blocks (list tc-blk)))
+        (gemini-stream-state-last-text-set! stream-state #f)
+        (gemini-stream-state-tool-calls-set! stream-state
+          (append tool-calls (list tc-blk))
+        ) ;gemini-stream-state-tool-calls-set!
         (when (procedure? on-event)
           (on-event (list (cons 'type "toolcall_start")
                       (cons 'contentIndex cur-idx)
@@ -148,9 +153,9 @@
     ) ;define
 
     (define (process-stream-part part stream-state on-event)
-      (let* ((blocks (vector-ref stream-state 0))
-             (last-text (vector-ref stream-state 1))
-             (usage (vector-ref stream-state 2))
+      (let* ((blocks (gemini-stream-state-blocks stream-state))
+             (last-text (gemini-stream-state-last-text stream-state))
+             (usage (gemini-stream-state-usage stream-state))
              (part-ts (cdr (or (assoc "thoughtSignature" part) (assoc 'thoughtSignature part) '(#f
                                                                                                 . #f))
                       ) ;cdr
@@ -162,12 +167,12 @@
             (if (gemini-is-thinking-part? part)
               (gemini-append-thinking-block! stream-state t part-ts on-event)
               (begin
-                (when (equal? (gemini-stream-state-active-type stream-state) "thinking")
+                (when (equal? (gemini-stream-state-current-active-type stream-state) "thinking")
                   (gemini-stream-stop-active-block! stream-state on-event)
                 ) ;when
-                (vector-set! stream-state 5 "text")
-                (let* ((blocks (vector-ref stream-state 0))
-                       (last-text (vector-ref stream-state 1))
+                (gemini-stream-state-current-active-type-set! stream-state "text")
+                (let* ((blocks (gemini-stream-state-blocks stream-state))
+                       (last-text (gemini-stream-state-last-text stream-state))
                        (cur-idx (if (string? last-text) (- (length blocks) 1) (length blocks)))
                       ) ;
                   (append-text-block blocks last-text t cur-idx usage stream-state on-event)
@@ -199,7 +204,7 @@
              (usage-meta (cdr (or (assoc "usageMetadata" json-obj) '(#f . #f))))
             ) ;
         (when (pair? usage-meta)
-          (vector-set! stream-state 2 (gemini-map-usage usage-meta))
+          (gemini-stream-state-usage-set! stream-state (gemini-map-usage usage-meta))
         ) ;when
         (when (and (vector? candidates) (> (vector-length candidates) 0))
           (let* ((candidate (vector-ref candidates 0))
@@ -209,7 +214,7 @@
                  (parts (cdr (or (assoc "parts" content-obj) '(#f . #()))))
                 ) ;
             (when finish-reason
-              (vector-set! stream-state 4 finish-reason)
+              (gemini-stream-state-finish-reason-set! stream-state finish-reason)
             ) ;when
             (when (vector? parts)
               (vector-for-each (lambda (part) (process-stream-part part stream-state on-event))

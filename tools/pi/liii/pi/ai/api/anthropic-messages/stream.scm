@@ -19,6 +19,7 @@
     (liii pi ai api anthropic-messages core)
     (liii pi ai api anthropic-messages request)
     (liii pi ai api anthropic-messages stream-parse)
+    (liii pi ai api anthropic-messages stream-state)
     (liii pi ai api anthropic-messages thinking)
   ) ;import
   (export anthropic-request-stream)
@@ -88,17 +89,17 @@
     ) ;define
 
     (define (%finalize-stream stream-state)
-      (when (pair? (vector-ref stream-state 6))
+      (when (anthropic-stream-state-current-thinking stream-state)
         (anthropic-finish-thinking-block stream-state #f)
       ) ;when
-      (let* ((blocks (vector-ref stream-state 0))
-             (raw-stop (vector-ref stream-state 4))
+      (let* ((blocks (anthropic-stream-state-blocks stream-state))
+             (raw-stop (anthropic-stream-state-stop-reason stream-state))
              (stop-reason (anthropic-map-stop-reason (or raw-stop "end_turn")))
              (err-msg (if (equal? stop-reason "error") raw-stop #f))
             ) ;
         (pi-assistant-message blocks
           :stop-reason   stop-reason
-          :usage         (vector-ref stream-state 2)
+          :usage         (anthropic-stream-state-usage stream-state)
           :error-message err-msg
         ) ;pi-assistant-message
       ) ;let*
@@ -106,12 +107,12 @@
 
     ;; 用户中止（ESC）：保留已收到的部分内容，stop-reason 强制为 aborted
     (define (%finalize-aborted-stream stream-state)
-      (when (pair? (vector-ref stream-state 6))
+      (when (anthropic-stream-state-current-thinking stream-state)
         (anthropic-finish-thinking-block stream-state #f)
       ) ;when
-      (pi-assistant-message (vector-ref stream-state 0)
+      (pi-assistant-message (anthropic-stream-state-blocks stream-state)
         :stop-reason   "aborted"
-        :usage         (vector-ref stream-state 2)
+        :usage         (anthropic-stream-state-usage stream-state)
         :error-message #f
       ) ;pi-assistant-message
     ) ;define
@@ -200,7 +201,14 @@
     ) ;define
 
     (define (%init-anthropic-stream-state)
-      (vector '() #f (anthropic-map-usage '()) '() "end_turn" #f #f)
+      (make-anthropic-stream-state '()
+        #f
+        (anthropic-map-usage '())
+        '()
+        "end_turn"
+        #f
+        #f
+      ) ;make-anthropic-stream-state
     ) ;define
 
     (define (%run-stream-loop settings url req-json-str headers proxy-alist

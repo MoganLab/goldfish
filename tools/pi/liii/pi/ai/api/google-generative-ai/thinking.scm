@@ -5,7 +5,12 @@
 ;;
 
 (define-library (liii pi ai api google-generative-ai thinking)
-  (import (scheme base) (scheme char) (liii string) (liii pi ai message))
+  (import (scheme base)
+    (scheme char)
+    (liii string)
+    (liii pi ai message)
+    (liii pi ai api google-generative-ai stream-state)
+  ) ;import
   (export gemini-thinking-level->google-level gemini-build-thinking-config
     gemini-inject-thinking-config gemini-is-thinking-part? gemini-part-text
     gemini-part-thought-signature gemini-stream-state-active-type
@@ -72,19 +77,21 @@
     ) ;define
 
     (define (gemini-stream-state-active-type stream-state)
-      (if (>= (vector-length stream-state) 6) (vector-ref stream-state 5) #f)
+      (gemini-stream-state-current-active-type stream-state)
     ) ;define
 
     (define (gemini-stream-stop-active-block! stream-state on-event)
       (let ((act-type (gemini-stream-state-active-type stream-state)))
         (cond
-         ((and (equal? act-type "text") (string? (vector-ref stream-state 1)))
-          (let ((cur-idx (- (length (vector-ref stream-state 0)) 1))
-                (content (vector-ref stream-state 1))
-                (usage (vector-ref stream-state 2))
+         ((and (equal? act-type "text")
+            (string? (gemini-stream-state-last-text stream-state))
+          ) ;and
+          (let ((cur-idx (- (length (gemini-stream-state-blocks stream-state)) 1))
+                (content (gemini-stream-state-last-text stream-state))
+                (usage (gemini-stream-state-usage stream-state))
                ) ;
-            (vector-set! stream-state 1 #f)
-            (vector-set! stream-state 5 #f)
+            (gemini-stream-state-last-text-set! stream-state #f)
+            (gemini-stream-state-current-active-type-set! stream-state #f)
             (when (procedure? on-event)
               (on-event (list (cons 'type "text_end")
                           (cons 'contentIndex cur-idx)
@@ -95,14 +102,16 @@
             ) ;when
           ) ;let
          ) ;
-         ((and (equal? act-type "thinking") (string? (vector-ref stream-state 6)))
-          (let ((cur-idx (- (length (vector-ref stream-state 0)) 1))
-                (content (vector-ref stream-state 6))
-                (usage (vector-ref stream-state 2))
+         ((and (equal? act-type "thinking")
+            (string? (gemini-stream-state-thinking-text stream-state))
+          ) ;and
+          (let ((cur-idx (- (length (gemini-stream-state-blocks stream-state)) 1))
+                (content (gemini-stream-state-thinking-text stream-state))
+                (usage (gemini-stream-state-usage stream-state))
                ) ;
-            (vector-set! stream-state 5 #f)
-            (vector-set! stream-state 6 #f)
-            (vector-set! stream-state 7 #f)
+            (gemini-stream-state-current-active-type-set! stream-state #f)
+            (gemini-stream-state-thinking-text-set! stream-state #f)
+            (gemini-stream-state-thinking-signature-set! stream-state #f)
             (when (procedure? on-event)
               (on-event (list (cons 'type "thinking_end")
                           (cons 'contentIndex cur-idx)
@@ -125,15 +134,15 @@
           (if (not (equal? act-type "thinking"))
             (begin
               (gemini-stream-stop-active-block! stream-state on-event)
-              (vector-set! stream-state 5 "thinking")
-              (let* ((blocks (vector-ref stream-state 0))
+              (gemini-stream-state-current-active-type-set! stream-state "thinking")
+              (let* ((blocks (gemini-stream-state-blocks stream-state))
                      (cur-idx (length blocks))
                      (blk (pi-thinking-block t ts))
-                     (usage (vector-ref stream-state 2))
+                     (usage (gemini-stream-state-usage stream-state))
                     ) ;
-                (vector-set! stream-state 0 (append blocks (list blk)))
-                (vector-set! stream-state 6 t)
-                (vector-set! stream-state 7 ts)
+                (gemini-stream-state-blocks-set! stream-state (append blocks (list blk)))
+                (gemini-stream-state-thinking-text-set! stream-state t)
+                (gemini-stream-state-thinking-signature-set! stream-state ts)
                 (when (procedure? on-event)
                   (on-event (list (cons 'type "thinking_start")
                               (cons 'contentIndex cur-idx)
@@ -149,12 +158,12 @@
                 ) ;when
               ) ;let*
             ) ;begin
-            (let* ((cur-t (vector-ref stream-state 6))
+            (let* ((cur-t (gemini-stream-state-thinking-text stream-state))
                    (new-t (string-append cur-t t))
-                   (cur-sig (or ts (vector-ref stream-state 7)))
-                   (blocks (vector-ref stream-state 0))
+                   (cur-sig (or ts (gemini-stream-state-thinking-signature stream-state)))
+                   (blocks (gemini-stream-state-blocks stream-state))
                    (cur-idx (- (length blocks) 1))
-                   (usage (vector-ref stream-state 2))
+                   (usage (gemini-stream-state-usage stream-state))
                    (upd-blocks
                      (let loop
                        ((lst blocks) (acc '()))
@@ -165,9 +174,9 @@
                      ) ;let
                    ) ;upd-blocks
                   ) ;
-              (vector-set! stream-state 0 upd-blocks)
-              (vector-set! stream-state 6 new-t)
-              (vector-set! stream-state 7 cur-sig)
+              (gemini-stream-state-blocks-set! stream-state upd-blocks)
+              (gemini-stream-state-thinking-text-set! stream-state new-t)
+              (gemini-stream-state-thinking-signature-set! stream-state cur-sig)
               (when (procedure? on-event)
                 (on-event (list (cons 'type "thinking_delta")
                             (cons 'contentIndex cur-idx)
