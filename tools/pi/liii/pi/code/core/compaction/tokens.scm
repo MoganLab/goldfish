@@ -140,29 +140,21 @@
     ) ;define
 
     (define (pi-context-token-estimate msgs)
-      (let ((norm (map %normalize-message msgs)))
-        (let loop
-          ((rev (reverse norm)) (idx (- (length norm) 1)) (trailing 0))
-          (cond ((null? rev)
-                 (list (cons 'tokens trailing)
-                   (cons 'usage-tokens 0)
-                   (cons 'trailing-tokens trailing)
-                 ) ;list
-                ) ;
-                ((%valid-usage? (car rev))
-                 (let ((u (%usage-total (%ref (car rev) "usage"))))
-                   (list (cons 'tokens (+ u trailing))
-                     (cons 'usage-tokens u)
-                     (cons 'trailing-tokens trailing)
-                   ) ;list
-                 ) ;let
-                ) ;
-                (else
-                  (loop (cdr rev) (- idx 1) (+ trailing (pi-estimate-message-tokens (car rev))))
-                ) ;else
-          ) ;cond
-        ) ;let
-      ) ;let
+      (let* ((rev (reverse (map %normalize-message msgs)))
+             (usage-msg (find %valid-usage? rev))
+             (trailing
+               (fold (lambda (msg acc) (+ acc (pi-estimate-message-tokens msg)))
+                 0
+                 (take-while (lambda (msg) (not (%valid-usage? msg))) rev)
+               ) ;fold
+             ) ;trailing
+             (usage (if usage-msg (%usage-total (%ref usage-msg "usage")) 0))
+            ) ;
+        (list (cons 'tokens (+ usage trailing))
+          (cons 'usage-tokens usage)
+          (cons 'trailing-tokens trailing)
+        ) ;list
+      ) ;let*
     ) ;define
 
     (define (%setting settings key default)
