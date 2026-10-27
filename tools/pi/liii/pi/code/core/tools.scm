@@ -68,10 +68,7 @@
     ) ;define
 
     (define (%parse-delta-tools items current)
-      (let loop
-        ((rest items) (acc current))
-        (if (null? rest) acc (loop (cdr rest) (%apply-delta-item (car rest) acc)))
-      ) ;let
+      (fold %apply-delta-item current items)
     ) ;define
 
     (define* (parse-tools-selection (spec #f) (base-names PI_DEFAULT_TOOL_NAMES))
