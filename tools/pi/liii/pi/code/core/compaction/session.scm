@@ -189,12 +189,9 @@
     (define* (pi-compact-session! config file-path settings (timeout 600) (reason "manual"))
       (let* ((entries (pi-read-session-entries file-path))
              (all-msgs (%messages-from entries 0))
-             (tokens-before (cdr (assoc 'tokens (pi-context-token-estimate all-msgs))))
-             (keep
-               (let ((p (assoc 'keep-recent-tokens settings)))
-                 (if p (cdr p) 20000)
-               ) ;let
-             ) ;keep
+             (tokens-before (pi-context-token-estimate-tokens (pi-context-token-estimate all-msgs))
+             ) ;tokens-before
+             (keep (pi-compaction-settings-keep-recent-tokens settings))
              (cut (pi-find-cut-point entries keep))
              (cut-index (cdr (assoc 'first-kept-index cut)))
              (summarize-msgs (pi-messages-to-summarize entries cut-index))
@@ -211,11 +208,10 @@
                (summary (cdr (assoc 'summary gen)))
                (ops (pi-extract-file-ops summarize-msgs))
                (lists (pi-compute-file-lists ops))
-               (details
-                 (list (cons "reason" reason)
-                   (cons "readFiles" (cdr (assoc 'read-files lists)))
-                   (cons "modifiedFiles" (cdr (assoc 'modified-files lists)))
-                 ) ;list
+               (details (list (cons "reason" reason)
+                          (cons "readFiles" (pi-file-lists-read-files lists))
+                          (cons "modifiedFiles" (pi-file-lists-modified-files lists))
+                        ) ;list
                ) ;details
                (id (pi-append-compaction-entry! file-path summary first-kept-id
                      tokens-before details

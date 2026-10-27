@@ -9,7 +9,7 @@
 ;; modified 降序；modified 相同时按 path 升序打破平局
 
 (define (info path modified)
-  (list (cons 'path path) (cons 'modified modified))
+  (make-pi-session-info path "id" "/work" #f "created" modified 0 "first" "all")
 ) ;define
 
 ;; 1. modified 较新的排在前面

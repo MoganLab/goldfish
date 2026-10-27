@@ -1,6 +1,7 @@
 (import (scheme base)
   (liii check)
   (liii tui)
+  (liii pi code core session-list)
   (liii pi code modes interactive session-selector)
 ) ;import
 
@@ -10,21 +11,17 @@
 ;; 默认按最近活动序；输入搜索词后按模糊匹配过滤
 
 (define (info path first)
-  (list (cons 'path path) (cons 'id path) (cons 'cwd "/work")
-    (cons 'name #f) (cons 'first-message first)
-    (cons 'modified "2026-10-21T08:00:01.000Z")
-    (cons 'message-count 1) (cons 'all-messages-text first))
+  (make-pi-session-info path path "/work" #f "created"
+    "2026-10-21T08:00:01.000Z" 1 first first)
 ) ;define
 
 (let ((selector (make-session-selector
                   (list (info "a" "alpha") (info "b" "beta")) '()
                   (lambda (path) #f) (lambda () #f))))
-  (check (map (lambda (s) (cdr (assoc 'path s)))
-           (session-selector-visible-sessions selector))
+  (check (map pi-session-info-path (session-selector-visible-sessions selector))
     => '("a" "b"))
   (component-handle-input selector "alpha")
-  (check (map (lambda (s) (cdr (assoc 'path s)))
-           (session-selector-visible-sessions selector))
+  (check (map pi-session-info-path (session-selector-visible-sessions selector))
     => '("a"))
 ) ;let
 

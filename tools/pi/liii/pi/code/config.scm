@@ -166,17 +166,10 @@
              (node (json-dict-ref obj "compaction" '()))
              (get (lambda (key default) (json-dict-ref node key default)))
             ) ;
-        (list
-          (cons 'enabled
-            (%normalize-bool (get "enabled" (cdr (assoc 'enabled defaults))))
-          ) ;cons
-          (cons 'reserve-tokens
-            (get "reserveTokens" (cdr (assoc 'reserve-tokens defaults)))
-          ) ;cons
-          (cons 'keep-recent-tokens
-            (get "keepRecentTokens" (cdr (assoc 'keep-recent-tokens defaults)))
-          ) ;cons
-        ) ;list
+        (make-pi-compaction-settings (%normalize-bool (get "enabled" (pi-compaction-settings-enabled defaults)))
+          (get "reserveTokens" (pi-compaction-settings-reserve-tokens defaults))
+          (get "keepRecentTokens" (pi-compaction-settings-keep-recent-tokens defaults))
+        ) ;make-pi-compaction-settings
       ) ;let*
     ) ;define
 

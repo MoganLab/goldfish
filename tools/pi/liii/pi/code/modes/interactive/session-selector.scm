@@ -32,9 +32,6 @@
     (define (%colored color text)
       (string-append color text %reset)
     ) ;define
-    (define (%ref alist key)
-      (cdr (assoc key alist))
-    ) ;define
 
     (define-record-type <session-selector-state>
       (%make-state current all on-select on-cancel scope sort-mode name-filter
@@ -105,10 +102,10 @@
         (if hit
           (cdr hit)
           (let ((text
-                  (string-join (list (%ref session 'id)
-                                 (or (%ref session 'name) "")
-                                 (%ref session 'all-messages-text)
-                                 (%ref session 'cwd)
+                  (string-join (list (pi-session-info-id session)
+                                 (or (pi-session-info-name session) "")
+                                 (pi-session-info-all-messages-text session)
+                                 (pi-session-info-cwd session)
                                ) ;list
                     " "
                   ) ;string-join
@@ -126,7 +123,7 @@
       (let* ((source (%source state))
              (named
                (if (eq? (state-name-filter state) 'named)
-                 (filter (lambda (s) (%ref s 'name)) source)
+                 (filter (lambda (s) (pi-session-info-name s)) source)
                  source
                ) ;if
              ) ;named
@@ -158,13 +155,15 @@
       ) ;string-trim-both
     ) ;define
     (define (%row state session selected? width now-posix)
-      (let* ((label (%one-line (or (%ref session 'name) (%ref session 'first-message))))
+      (let* ((label (%one-line (or (pi-session-info-name session) (pi-session-info-first-message session))
+                    ) ;%one-line
+             ) ;label
              (right
                (string-join
-                 (append (if (eq? (state-scope state) 'all) (list (%ref session 'cwd)) '())
-                   (if (state-show-path? state) (list (%ref session 'path)) '())
-                   (list (number->string (%ref session 'message-count))
-                     (session-selector-format-age (%ref session 'modified) now-posix)
+                 (append (if (eq? (state-scope state) 'all) (list (pi-session-info-cwd session)) '())
+                   (if (state-show-path? state) (list (pi-session-info-path session)) '())
+                   (list (number->string (pi-session-info-message-count session))
+                     (session-selector-format-age (pi-session-info-modified session) now-posix)
                    ) ;list
                  ) ;append
                  " "
@@ -276,7 +275,9 @@
          ((eq? key 'enter)
           (let ((items (state-visible state)))
             (when (pair? items)
-              ((state-on-select state) (%ref (list-ref items (state-selected state)) 'path))
+              ((state-on-select state)
+               (pi-session-info-path (list-ref items (state-selected state)))
+              ) ;
             ) ;when
           ) ;let
          ) ;

@@ -17,8 +17,30 @@
     (liii pi code core compaction session)
     (liii pi code core compaction serialize)
   ) ;import
-  (export pi-read-session-info pi-list-session-infos pi-session-info-newer?)
+  (export pi-read-session-info pi-list-session-infos pi-session-info-newer?
+    make-pi-session-info pi-session-info? pi-session-info-path
+    pi-session-info-id pi-session-info-cwd pi-session-info-name
+    pi-session-info-created pi-session-info-modified
+    pi-session-info-message-count pi-session-info-first-message
+    pi-session-info-all-messages-text
+  ) ;export
   (begin
+
+    (define-record-type <pi-session-info>
+      (make-pi-session-info path id cwd name created modified message-count
+        first-message all-messages-text
+      ) ;make-pi-session-info
+      pi-session-info?
+      (path pi-session-info-path)
+      (id pi-session-info-id)
+      (cwd pi-session-info-cwd)
+      (name pi-session-info-name)
+      (created pi-session-info-created)
+      (modified pi-session-info-modified)
+      (message-count pi-session-info-message-count)
+      (first-message pi-session-info-first-message)
+      (all-messages-text pi-session-info-all-messages-text)
+    ) ;define-record-type
 
     (define (%ref object key default)
       (let ((pair (assoc key object)))
@@ -57,18 +79,16 @@
                (find (lambda (rt) (equal? (car rt) "user")) role-texts)
              ) ;first-user
             ) ;
-        (list (cons 'path path)
-          (cons 'id (%ref header "id" ""))
-          (cons 'cwd (%ref header "cwd" ""))
-          (cons 'name name)
-          (cons 'created (%ref header "timestamp" ""))
-          (cons 'modified
-            (if (pair? timestamps) (last timestamps) (%ref header "timestamp" ""))
-          ) ;cons
-          (cons 'message-count (length messages))
-          (cons 'first-message (if first-user (cdr first-user) "(no messages)"))
-          (cons 'all-messages-text (string-join (map cdr role-texts) " "))
-        ) ;list
+        (make-pi-session-info path
+          (%ref header "id" "")
+          (%ref header "cwd" "")
+          name
+          (%ref header "timestamp" "")
+          (if (pair? timestamps) (last timestamps) (%ref header "timestamp" ""))
+          (length messages)
+          (if first-user (cdr first-user) "(no messages)")
+          (string-join (map cdr role-texts) " ")
+        ) ;make-pi-session-info
       ) ;let*
     ) ;define
 
@@ -88,9 +108,9 @@
     ;; 会话摘要的最近活动序（modified 降序，path 升序打破平局），
     ;; 供列表枚举与选择器 recent 排序共用，保证两处口径一致
     (define (pi-session-info-newer? a b)
-      (let ((am (cdr (assoc 'modified a))) (bm (cdr (assoc 'modified b))))
+      (let ((am (pi-session-info-modified a)) (bm (pi-session-info-modified b)))
         (if (equal? am bm)
-          (string<? (cdr (assoc 'path a)) (cdr (assoc 'path b)))
+          (string<? (pi-session-info-path a) (pi-session-info-path b))
           (string>? am bm)
         ) ;if
       ) ;let

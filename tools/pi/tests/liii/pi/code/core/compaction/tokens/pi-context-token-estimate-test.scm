@@ -12,7 +12,7 @@
 ;;
 ;; 语法
 ;; ----
-;; (pi-context-token-estimate messages) -> alist
+;; (pi-context-token-estimate messages) => pi-context-token-estimate
 ;;
 ;; 参数
 ;; ----
@@ -21,22 +21,20 @@
 ;;
 ;; 返回值
 ;; ----
-;; alist
-;; tokens 为总估算值，usage-tokens 为最后一次有效响应的用量，
-;; trailing-tokens 为该响应之后消息的估算值。
+;; pi-context-token-estimate
+;; 可通过访问器读取 tokens、usage-tokens 和 trailing-tokens 的 record。
 ;; 没有有效 usage 时，全部消息按约四字符一个 token 估算。
 ;;
 ;; 示例
 ;; ----
-;; (pi-context-token-estimate messages)
-;; => '((tokens . 102) (usage-tokens . 100) (trailing-tokens . 2))
+;; (pi-context-token-estimate-tokens (pi-context-token-estimate messages)) => 102
 
 ;; pi-context-token-estimate
 ;; 无 usage 时全部按 chars/4 估算
 (let ((est (pi-context-token-estimate (list (pi-user-message "abcdefgh")))))
-  (check (cdr (assoc 'tokens est)) => 2)
-  (check (cdr (assoc 'usage-tokens est)) => 0)
-  (check (cdr (assoc 'trailing-tokens est)) => 2)
+  (check (pi-context-token-estimate-tokens est) => 2)
+  (check (pi-context-token-estimate-usage-tokens est) => 0)
+  (check (pi-context-token-estimate-trailing-tokens est) => 2)
 ) ;let
 
 ;; 末条有效 assistant usage + 其后消息估算
@@ -50,9 +48,9 @@
        ) ;msgs
        (est (pi-context-token-estimate msgs))
       ) ;
-  (check (cdr (assoc 'usage-tokens est)) => 100)
-  (check (cdr (assoc 'trailing-tokens est)) => 2)
-  (check (cdr (assoc 'tokens est)) => 102)
+  (check (pi-context-token-estimate-usage-tokens est) => 100)
+  (check (pi-context-token-estimate-trailing-tokens est) => 2)
+  (check (pi-context-token-estimate-tokens est) => 102)
 ) ;let*
 
 ;; usage 无 totalTokens 时用 input+output+cacheRead+cacheWrite
@@ -64,8 +62,8 @@
        ) ;msgs
        (est (pi-context-token-estimate msgs))
       ) ;
-  (check (cdr (assoc 'usage-tokens est)) => 15)
-  (check (cdr (assoc 'tokens est)) => 15)
+  (check (pi-context-token-estimate-usage-tokens est) => 15)
+  (check (pi-context-token-estimate-tokens est) => 15)
 ) ;let*
 
 (check-report)

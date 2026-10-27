@@ -13,14 +13,33 @@
   ) ;import
   (export pi-estimate-content-chars pi-estimate-message-tokens
     pi-context-token-estimate pi-should-compact? pi-compaction-default-settings
+    make-pi-compaction-settings pi-compaction-settings?
+    pi-compaction-settings-enabled pi-compaction-settings-reserve-tokens
+    pi-compaction-settings-keep-recent-tokens make-pi-context-token-estimate
+    pi-context-token-estimate? pi-context-token-estimate-tokens
+    pi-context-token-estimate-usage-tokens
+    pi-context-token-estimate-trailing-tokens
   ) ;export
   (begin
 
+    (define-record-type <pi-compaction-settings>
+      (make-pi-compaction-settings enabled reserve-tokens keep-recent-tokens)
+      pi-compaction-settings?
+      (enabled pi-compaction-settings-enabled)
+      (reserve-tokens pi-compaction-settings-reserve-tokens)
+      (keep-recent-tokens pi-compaction-settings-keep-recent-tokens)
+    ) ;define-record-type
+
+    (define-record-type <pi-context-token-estimate>
+      (make-pi-context-token-estimate tokens usage-tokens trailing-tokens)
+      pi-context-token-estimate?
+      (tokens pi-context-token-estimate-tokens)
+      (usage-tokens pi-context-token-estimate-usage-tokens)
+      (trailing-tokens pi-context-token-estimate-trailing-tokens)
+    ) ;define-record-type
+
     (define (pi-compaction-default-settings)
-      (list (cons 'enabled #t)
-        (cons 'reserve-tokens 16384)
-        (cons 'keep-recent-tokens 20000)
-      ) ;list
+      (make-pi-compaction-settings #t 16384 20000)
     ) ;define
 
     (define (%ref obj key)
@@ -142,18 +161,10 @@
     (define (pi-context-token-estimate msgs)
       (let loop
         ((rev (reverse (map %normalize-message msgs))) (trailing 0))
-        (cond ((null? rev)
-               (list (cons 'tokens trailing)
-                 (cons 'usage-tokens 0)
-                 (cons 'trailing-tokens trailing)
-               ) ;list
-              ) ;
+        (cond ((null? rev) (make-pi-context-token-estimate trailing 0 trailing))
               ((%valid-usage? (car rev))
                (let ((usage (%usage-total (%ref (car rev) "usage"))))
-                 (list (cons 'tokens (+ usage trailing))
-                   (cons 'usage-tokens usage)
-                   (cons 'trailing-tokens trailing)
-                 ) ;list
+                 (make-pi-context-token-estimate (+ usage trailing) usage trailing)
                ) ;let
               ) ;
               (else
@@ -163,22 +174,13 @@
       ) ;let
     ) ;define
 
-    (define (%setting settings key default)
-      (let ((pair
-              (or (assoc key settings)
-                (assoc (string->symbol (if (symbol? key) (symbol->string key) key)) settings)
-              ) ;or
-            ) ;pair
-           ) ;
-        (if pair (cdr pair) default)
-      ) ;let
-    ) ;define
-
     (define (pi-should-compact? context-tokens context-window settings)
       (and (number? context-window)
         (> context-window 0)
-        (eq? #t (%setting settings 'enabled #t))
-        (> context-tokens (- context-window (%setting settings 'reserve-tokens 16384)))
+        (eq? #t (pi-compaction-settings-enabled settings))
+        (> context-tokens
+          (- context-window (pi-compaction-settings-reserve-tokens settings))
+        ) ;>
       ) ;and
     ) ;define
 

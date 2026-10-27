@@ -4,9 +4,9 @@
 
 ;; 与 pi SETTINGS_DEFAULTS.compaction 一致
 (let ((s (pi-compaction-default-settings)))
-  (check (cdr (assoc 'enabled s)) => #t)
-  (check (cdr (assoc 'reserve-tokens s)) => 16384)
-  (check (cdr (assoc 'keep-recent-tokens s)) => 20000)
+  (check (pi-compaction-settings-enabled s) => #t)
+  (check (pi-compaction-settings-reserve-tokens s) => 16384)
+  (check (pi-compaction-settings-keep-recent-tokens s) => 20000)
 ) ;let
 
 (check-report)

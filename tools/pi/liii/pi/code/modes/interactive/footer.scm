@@ -48,12 +48,27 @@
       ) ;if
     ) ;define
 
+    (define-record-type <pi-footer-state>
+      (%make-pi-footer-state cwd branch provider model stats thinking-level
+        supports-thinking? session-name
+      ) ;%make-pi-footer-state
+      pi-footer-state?
+      (cwd pi-footer-state-cwd)
+      (branch pi-footer-state-branch pi-footer-state-branch-set!)
+      (provider pi-footer-state-provider pi-footer-state-provider-set!)
+      (model pi-footer-state-model pi-footer-state-model-set!)
+      (stats pi-footer-state-stats)
+      (thinking-level pi-footer-state-thinking-level
+        pi-footer-state-thinking-level-set!
+      ) ;thinking-level
+      (supports-thinking? pi-footer-state-supports-thinking?
+        pi-footer-state-supports-thinking?-set!
+      ) ;supports-thinking?
+      (session-name pi-footer-state-session-name pi-footer-state-session-name-set!)
+    ) ;define-record-type
+
     (define (pi-footer? obj)
-      (and (component? obj)
-        (let ((d (component-data obj)))
-          (and (pair? d) (eq? (car d) 'pi-footer))
-        ) ;let
-      ) ;and
+      (and (component? obj) (pi-footer-state? (component-data obj)))
     ) ;define
 
     (define (%render-footer cwd home branch provider model stats session-name width)
@@ -118,7 +133,7 @@
     ) ;define
 
     (define (%footer-state comp)
-      (cdr (component-data comp))
+      (component-data comp)
     ) ;define
 
     (define (make-pi-footer . args)
@@ -136,13 +151,16 @@
                  :render
                  (lambda (self width)
                    (let ((st (%footer-state self)))
-                     (%render-footer (list-ref st 0)
+                     (%render-footer (pi-footer-state-cwd st)
                        home
-                       (list-ref st 1)
-                       (list-ref st 2)
-                       (pi-footer-model-label (list-ref st 3) (list-ref st 5) (list-ref st 6))
-                       (list-ref st 4)
-                       (list-ref st 7)
+                       (pi-footer-state-branch st)
+                       (pi-footer-state-provider st)
+                       (pi-footer-model-label (pi-footer-state-model st)
+                         (pi-footer-state-thinking-level st)
+                         (pi-footer-state-supports-thinking? st)
+                       ) ;pi-footer-model-label
+                       (pi-footer-state-stats st)
+                       (pi-footer-state-session-name st)
                        width
                      ) ;%render-footer
                    ) ;let
@@ -151,7 +169,9 @@
              ) ;comp
             ) ;
         (component-data-set! comp
-          (list 'pi-footer cwd branch provider model stats tl supports? session-name)
+          (%make-pi-footer-state cwd branch provider model stats tl supports?
+            session-name
+          ) ;%make-pi-footer-state
         ) ;component-data-set!
         comp
       ) ;let*
@@ -159,78 +179,30 @@
 
     ;; 读取 footer 当前显示的分支名（#f 表示无分支）
     (define (pi-footer-branch comp)
-      (list-ref (%footer-state comp) 1)
+      (pi-footer-state-branch (%footer-state comp))
     ) ;define
 
     ;; 分支切换检测联动：更新左下角分支显示（与 set-thinking-level! 同风格）
     (define (pi-footer-set-branch! comp branch)
-      (let ((st (%footer-state comp)))
-        (component-data-set! comp
-          (list 'pi-footer
-            (list-ref st 0)
-            branch
-            (list-ref st 2)
-            (list-ref st 3)
-            (list-ref st 4)
-            (list-ref st 5)
-            (list-ref st 6)
-            (list-ref st 7)
-          ) ;list
-        ) ;component-data-set!
-      ) ;let
+      (pi-footer-state-branch-set! (%footer-state comp) branch)
     ) ;define
 
     ;; /model 会话内切换模型后同步 footer 右下角：provider/model 与 supports 联动
     (define (pi-footer-set-model! comp provider model supports?)
       (let ((st (%footer-state comp)))
-        (component-data-set! comp
-          (list 'pi-footer
-            (list-ref st 0)
-            (list-ref st 1)
-            provider
-            model
-            (list-ref st 4)
-            (list-ref st 5)
-            supports?
-            (list-ref st 7)
-          ) ;list
-        ) ;component-data-set!
+        (pi-footer-state-provider-set! st provider)
+        (pi-footer-state-model-set! st model)
+        (pi-footer-state-supports-thinking?-set! st supports?)
       ) ;let
     ) ;define
 
     ;; 会话内切换 thinking level 后同步 footer 右下角标签
     (define (pi-footer-set-thinking-level! comp tl)
-      (let ((st (%footer-state comp)))
-        (component-data-set! comp
-          (list 'pi-footer
-            (list-ref st 0)
-            (list-ref st 1)
-            (list-ref st 2)
-            (list-ref st 3)
-            (list-ref st 4)
-            tl
-            (list-ref st 6)
-            (list-ref st 7)
-          ) ;list
-        ) ;component-data-set!
-      ) ;let
+      (pi-footer-state-thinking-level-set! (%footer-state comp) tl)
     ) ;define
 
     (define (pi-footer-set-session-name! comp session-name)
-      (let ((st (%footer-state comp)))
-        (component-data-set! comp
-          (list 'pi-footer
-            (list-ref st 0)
-            (list-ref st 1)
-            (list-ref st 2)
-            (list-ref st 3)
-            (list-ref st 4)
-            (list-ref st 5)
-            (list-ref st 6)
-            session-name
-          ) ;list
-        ) ;component-data-set!
-      ) ;let
+      (pi-footer-state-session-name-set! (%footer-state comp) session-name)
     ) ;define
 
   ) ;begin

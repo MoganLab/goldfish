@@ -57,29 +57,29 @@
 
 ;; 1. 多消息会话：文本投影、消息计数、modified 取最后一条消息时间戳
 (let ((info (pi-read-session-info OLD-FILE)))
-  (check (cdr (assoc 'path info)) => OLD-FILE)
-  (check (cdr (assoc 'id info)) => "old-id")
-  (check (cdr (assoc 'cwd info)) => "/work/current")
-  (check (cdr (assoc 'name info)) => #f)
-  (check (cdr (assoc 'first-message info)) => "old question")
-  (check (cdr (assoc 'all-messages-text info)) => "old question old answer")
-  (check (cdr (assoc 'message-count info)) => 2)
-  (check (cdr (assoc 'modified info)) => "2026-10-20T08:00:02.000Z")
+  (check (pi-session-info-path info) => OLD-FILE)
+  (check (pi-session-info-id info) => "old-id")
+  (check (pi-session-info-cwd info) => "/work/current")
+  (check (pi-session-info-name info) => #f)
+  (check (pi-session-info-first-message info) => "old question")
+  (check (pi-session-info-all-messages-text info) => "old question old answer")
+  (check (pi-session-info-message-count info) => 2)
+  (check (pi-session-info-modified info) => "2026-10-20T08:00:02.000Z")
 ) ;let
 
 ;; 2. 命名会话：name 取自 session_info 条目
 (let ((info (pi-read-session-info NEW-FILE)))
-  (check (cdr (assoc 'name info)) => "Named current session")
-  (check (cdr (assoc 'modified info)) => "2026-10-21T08:00:01.000Z")
+  (check (pi-session-info-name info) => "Named current session")
+  (check (pi-session-info-modified info) => "2026-10-21T08:00:01.000Z")
 ) ;let
 
 ;; 3. 仅 header 的空会话：first-message 占位、modified 回退 header 时间戳
 (let* ((empty-file (path->string (path-join CURRENT "empty.jsonl"))))
   (save-session-header! empty-file "empty-id" "2026-10-22T08:00:00.000Z" "/work/empty")
   (let ((info (pi-read-session-info empty-file)))
-    (check (cdr (assoc 'first-message info)) => "(no messages)")
-    (check (cdr (assoc 'message-count info)) => 0)
-    (check (cdr (assoc 'modified info)) => "2026-10-22T08:00:00.000Z")
+    (check (pi-session-info-first-message info) => "(no messages)")
+    (check (pi-session-info-message-count info) => 0)
+    (check (pi-session-info-modified info) => "2026-10-22T08:00:00.000Z")
   ) ;let
 ) ;let*
 
@@ -95,7 +95,7 @@
                  (path-join fixture-dir
                    "2026-10-18T18-30-49-221Z_2F231627-07C6-4CC0-9360-B474C925C96A.jsonl"))))
   (when (file-exists? sample)
-    (check-true (pair? (pi-read-session-info sample)))))
+    (check-true (pi-session-info? (pi-read-session-info sample)))))
 
 (rmtree ROOT)
 

@@ -12,7 +12,7 @@
 ;;
 ;; 语法
 ;; ----
-;; (pi-extract-file-ops messages) -> alist
+;; (pi-extract-file-ops messages) => pi-file-ops
 ;;
 ;; 参数
 ;; ----
@@ -21,13 +21,12 @@
 ;;
 ;; 返回值
 ;; ----
-;; alist
-;; 包含 read、written、edited 三个键，值为按出现顺序排列且不重复的路径列表。
+;; pi-file-ops
+;; 包含 read、written、edited 字段，值为按出现顺序排列且不重复的路径列表。
 ;;
 ;; 示例
 ;; ----
-;; (pi-extract-file-ops messages)
-;; => '((read . ("/a")) (written . ("/b")) (edited . ("/c")))
+;; (pi-file-ops-read (pi-extract-file-ops messages)) => '("/a" "/d")
 
 (define (tc name path)
   (pi-tool-call-block (string-append "id-" name)
@@ -45,9 +44,9 @@
        ) ;msgs
        (ops (pi-extract-file-ops msgs))
       ) ;
-  (check (cdr (assoc 'read ops)) => '("/a" "/d"))
-  (check (cdr (assoc 'written ops)) => '("/b"))
-  (check (cdr (assoc 'edited ops)) => '("/c"))
+  (check (pi-file-ops-read ops) => '("/a" "/d"))
+  (check (pi-file-ops-written ops) => '("/b"))
+  (check (pi-file-ops-edited ops) => '("/c"))
 ) ;let*
 
 (check-report)

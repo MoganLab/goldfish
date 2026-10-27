@@ -2,6 +2,7 @@
   (liii check)
   (liii tui)
   (liii tui component)
+  (liii pi code core session-list)
   (liii pi code modes interactive session-selector)
 ) ;import
 
@@ -11,10 +12,8 @@
 ;; 普通字符键进入搜索框并即时过滤会话列表
 
 (define (info path)
-  (list (cons 'path path) (cons 'id path) (cons 'cwd "/work")
-    (cons 'name #f) (cons 'first-message path)
-    (cons 'modified "2026-10-21T08:00:01.000Z")
-    (cons 'message-count 1) (cons 'all-messages-text path))
+  (make-pi-session-info path path "/work" #f "created"
+    "2026-10-21T08:00:01.000Z" 1 path path)
 ) ;define
 
 (let ((selector (make-session-selector (list (info "a")) '()

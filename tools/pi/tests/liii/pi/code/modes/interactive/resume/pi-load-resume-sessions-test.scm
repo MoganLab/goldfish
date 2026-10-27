@@ -1,6 +1,7 @@
 (import (scheme base)
   (liii check)
   (liii path)
+  (liii pi code core session-list)
   (liii pi code modes interactive resume)
 ) ;import
 
@@ -23,6 +24,6 @@
     (check (length current) => 1)
     (check-true (procedure? all))
     (check (length (all)) => 1)
-    (check (cdr (assoc 'id (car current))) => "sess-fixture")))
+    (check (pi-session-info-id (car current)) => "sess-fixture")))
 
 (check-report)

@@ -53,7 +53,7 @@
 
     (define (%auto-compact cfg sfile state timeout settings window msgs)
       (let* ((estimate (pi-context-token-estimate msgs))
-             (tokens (cdr (assoc 'tokens estimate)))
+             (tokens (pi-context-token-estimate-tokens estimate))
             ) ;
         (if (not (pi-should-compact? tokens window settings))
           msgs
@@ -77,11 +77,10 @@
     (define (pi-make-compaction-option parsed cfg sfile state timeout)
       (let* ((agent-dir (cdr (assoc 'agent-dir cfg)))
              (settings (pi-load-compaction-settings agent-dir))
-             (enabled
-               (and sfile
-                 (not (pi-args-ref parsed 'no-auto-compact))
-                 (eq? #t (cdr (assoc 'enabled settings)))
-               ) ;and
+             (enabled (and sfile
+                        (not (pi-args-ref parsed 'no-auto-compact))
+                        (eq? #t (pi-compaction-settings-enabled settings))
+                      ) ;and
              ) ;enabled
              (window (%context-window cfg))
             ) ;

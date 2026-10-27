@@ -12,8 +12,62 @@
     (liii list)
     (liii pi code core compaction session)
   ) ;import
-  (export pi-get-session-stats pi-format-session-stats)
+  (export pi-get-session-stats pi-format-session-stats
+    make-pi-session-token-stats pi-session-token-stats?
+    pi-session-token-stats-input pi-session-token-stats-output
+    pi-session-token-stats-cache-read pi-session-token-stats-cache-write
+    pi-session-token-stats-total make-pi-session-stats pi-session-stats?
+    pi-session-stats-session-file pi-session-stats-session-id
+    pi-session-stats-session-name pi-session-stats-total-messages
+    pi-session-stats-user-messages pi-session-stats-assistant-messages
+    pi-session-stats-tool-calls pi-session-stats-tool-results
+    pi-session-stats-tokens pi-session-stats-cost
+  ) ;export
   (begin
+
+    (define-record-type <pi-session-token-stats>
+      (make-pi-session-token-stats input output cache-read cache-write)
+      pi-session-token-stats?
+      (input pi-session-token-stats-input pi-session-token-stats-input-set!)
+      (output pi-session-token-stats-output pi-session-token-stats-output-set!)
+      (cache-read pi-session-token-stats-cache-read
+        pi-session-token-stats-cache-read-set!
+      ) ;cache-read
+      (cache-write pi-session-token-stats-cache-write
+        pi-session-token-stats-cache-write-set!
+      ) ;cache-write
+    ) ;define-record-type
+
+    (define (pi-session-token-stats-total tokens)
+      (+ (pi-session-token-stats-input tokens)
+        (pi-session-token-stats-output tokens)
+        (pi-session-token-stats-cache-read tokens)
+        (pi-session-token-stats-cache-write tokens)
+      ) ;+
+    ) ;define
+
+    (define-record-type <pi-session-stats>
+      (make-pi-session-stats session-file session-id session-name total-messages
+        user-messages assistant-messages tool-calls tool-results tokens cost
+      ) ;make-pi-session-stats
+      pi-session-stats?
+      (session-file pi-session-stats-session-file)
+      (session-id pi-session-stats-session-id pi-session-stats-session-id-set!)
+      (session-name pi-session-stats-session-name pi-session-stats-session-name-set!)
+      (total-messages pi-session-stats-total-messages
+        pi-session-stats-total-messages-set!
+      ) ;total-messages
+      (user-messages pi-session-stats-user-messages
+        pi-session-stats-user-messages-set!
+      ) ;user-messages
+      (assistant-messages pi-session-stats-assistant-messages
+        pi-session-stats-assistant-messages-set!
+      ) ;assistant-messages
+      (tool-calls pi-session-stats-tool-calls pi-session-stats-tool-calls-set!)
+      (tool-results pi-session-stats-tool-results pi-session-stats-tool-results-set!)
+      (tokens pi-session-stats-tokens)
+      (cost pi-session-stats-cost pi-session-stats-cost-set!)
+    ) ;define-record-type
 
     (define (%ref obj key default)
       (if (not (pair? obj))
@@ -34,34 +88,52 @@
       ) ;cond
     ) ;define
 
-    (define (%add-usage! totals usage)
-      (vector-set! totals 5 (+ (vector-ref totals 5) (%ref usage 'input 0)))
-      (vector-set! totals 6 (+ (vector-ref totals 6) (%ref usage 'output 0)))
-      (vector-set! totals 7 (+ (vector-ref totals 7) (%ref usage 'cacheRead 0)))
-      (vector-set! totals 8 (+ (vector-ref totals 8) (%ref usage 'cacheWrite 0)))
-      (vector-set! totals
-        9
-        (+ (vector-ref totals 9) (%ref (%ref usage 'cost '()) 'total 0.0))
-      ) ;vector-set!
+    (define (%add-usage! stats usage)
+      (let ((tokens (pi-session-stats-tokens stats)))
+        (pi-session-token-stats-input-set! tokens
+          (+ (pi-session-token-stats-input tokens) (%ref usage 'input 0))
+        ) ;pi-session-token-stats-input-set!
+        (pi-session-token-stats-output-set! tokens
+          (+ (pi-session-token-stats-output tokens) (%ref usage 'output 0))
+        ) ;pi-session-token-stats-output-set!
+        (pi-session-token-stats-cache-read-set! tokens
+          (+ (pi-session-token-stats-cache-read tokens) (%ref usage 'cacheRead 0))
+        ) ;pi-session-token-stats-cache-read-set!
+        (pi-session-token-stats-cache-write-set! tokens
+          (+ (pi-session-token-stats-cache-write tokens) (%ref usage 'cacheWrite 0))
+        ) ;pi-session-token-stats-cache-write-set!
+        (pi-session-stats-cost-set! stats
+          (+ (pi-session-stats-cost stats) (%ref (%ref usage 'cost '()) 'total 0.0))
+        ) ;pi-session-stats-cost-set!
+      ) ;let
     ) ;define
 
-    (define (%collect-message! totals msg)
+    (define (%collect-message! stats msg)
       (let ((role (%ref msg 'role "")))
         (cond
-         ((equal? role "user") (vector-set! totals 1 (+ (vector-ref totals 1) 1)))
+         ((equal? role "user")
+          (pi-session-stats-user-messages-set! stats
+            (+ (pi-session-stats-user-messages stats) 1)
+          ) ;pi-session-stats-user-messages-set!
+         ) ;
          ((equal? role "assistant")
-          (vector-set! totals 2 (+ (vector-ref totals 2) 1))
-          (vector-set! totals
-            3
-            (+ (vector-ref totals 3)
+          (pi-session-stats-assistant-messages-set! stats
+            (+ (pi-session-stats-assistant-messages stats) 1)
+          ) ;pi-session-stats-assistant-messages-set!
+          (pi-session-stats-tool-calls-set! stats
+            (+ (pi-session-stats-tool-calls stats)
               (count (lambda (block) (equal? (%ref block 'type "") "toolCall"))
                 (%content-list (%ref msg 'content '()))
               ) ;count
             ) ;+
-          ) ;vector-set!
-          (%add-usage! totals (%ref msg 'usage '()))
+          ) ;pi-session-stats-tool-calls-set!
+          (%add-usage! stats (%ref msg 'usage '()))
          ) ;
-         ((equal? role "toolResult") (vector-set! totals 4 (+ (vector-ref totals 4) 1)))
+         ((equal? role "toolResult")
+          (pi-session-stats-tool-results-set! stats
+            (+ (pi-session-stats-tool-results stats) 1)
+          ) ;pi-session-stats-tool-results-set!
+         ) ;
         ) ;cond
       ) ;let
     ) ;define
@@ -72,50 +144,40 @@
                         '()
                       ) ;if
              ) ;entries
-             ;; total, user, assistant, tool-calls, tool-results,
-             ;; input, output, cache-read, cache-write, cost
-             (totals (make-vector 10 0))
-             (session-id #f)
-             (session-name #f)
+             (stats (make-pi-session-stats file-path
+                      #f
+                      #f
+                      0
+                      0
+                      0
+                      0
+                      0
+                      (make-pi-session-token-stats 0 0 0 0)
+                      0
+                    ) ;make-pi-session-stats
+             ) ;stats
             ) ;
         (for-each
           (lambda (entry)
             (let ((type (%ref entry 'type "")))
-              (cond ((equal? type "session") (set! session-id (%ref entry 'id #f)))
-                    ((equal? type "session_info") (set! session-name (%ref entry 'name #f)))
+              (cond ((equal? type "session")
+                     (pi-session-stats-session-id-set! stats (%ref entry 'id #f))
+                    ) ;
+                    ((equal? type "session_info")
+                     (pi-session-stats-session-name-set! stats (%ref entry 'name #f))
+                    ) ;
                     ((equal? type "message")
-                     (vector-set! totals 0 (+ (vector-ref totals 0) 1))
-                     (%collect-message! totals (%ref entry 'message '()))
+                     (pi-session-stats-total-messages-set! stats
+                       (+ (pi-session-stats-total-messages stats) 1)
+                     ) ;pi-session-stats-total-messages-set!
+                     (%collect-message! stats (%ref entry 'message '()))
                     ) ;
               ) ;cond
             ) ;let
           ) ;lambda
           entries
         ) ;for-each
-        (list (cons 'session-file file-path)
-          (cons 'session-id session-id)
-          (cons 'session-name session-name)
-          (cons 'total-messages (vector-ref totals 0))
-          (cons 'user-messages (vector-ref totals 1))
-          (cons 'assistant-messages (vector-ref totals 2))
-          (cons 'tool-calls (vector-ref totals 3))
-          (cons 'tool-results (vector-ref totals 4))
-          (cons 'tokens
-            (let ((input (vector-ref totals 5))
-                  (output (vector-ref totals 6))
-                  (cache-read (vector-ref totals 7))
-                  (cache-write (vector-ref totals 8))
-                 ) ;
-              (list (cons 'input input)
-                (cons 'output output)
-                (cons 'cache-read cache-read)
-                (cons 'cache-write cache-write)
-                (cons 'total (+ input output cache-read cache-write))
-              ) ;list
-            ) ;let
-          ) ;cons
-          (cons 'cost (vector-ref totals 9))
-        ) ;list
+        stats
       ) ;let*
     ) ;define
 
@@ -158,16 +220,16 @@
     ) ;define
 
     (define (pi-format-session-stats stats)
-      (let* ((name (%ref stats 'session-name #f))
-             (file (%ref stats 'session-file #f))
-             (id (%ref stats 'session-id #f))
-             (tokens (%ref stats 'tokens '()))
-             (input (%ref tokens 'input 0))
-             (output (%ref tokens 'output 0))
-             (cache-read (%ref tokens 'cache-read 0))
-             (cache-write (%ref tokens 'cache-write 0))
+      (let* ((name (pi-session-stats-session-name stats))
+             (file (pi-session-stats-session-file stats))
+             (id (pi-session-stats-session-id stats))
+             (tokens (pi-session-stats-tokens stats))
+             (input (pi-session-token-stats-input tokens))
+             (output (pi-session-token-stats-output tokens))
+             (cache-read (pi-session-token-stats-cache-read tokens))
+             (cache-write (pi-session-token-stats-cache-write tokens))
              (prompt-tokens (+ input cache-read cache-write))
-             (cost (%ref stats 'cost 0.0))
+             (cost (pi-session-stats-cost stats))
              (lines
                (append (list "Session Info" "")
                  (if name (list (string-append "Name: " name)) '())
@@ -175,15 +237,17 @@
                    (string-append "ID: " (or id "Unavailable"))
                    ""
                    "Messages"
-                   (string-append "Total: " (number->string (%ref stats 'total-messages 0)))
-                   (string-append "User: " (number->string (%ref stats 'user-messages 0)))
+                   (string-append "Total: "
+                     (number->string (pi-session-stats-total-messages stats))
+                   ) ;string-append
+                   (string-append "User: " (number->string (pi-session-stats-user-messages stats)))
                    (string-append "Assistant: "
-                     (number->string (%ref stats 'assistant-messages 0))
+                     (number->string (pi-session-stats-assistant-messages stats))
                    ) ;string-append
                    (string-append "Tools: "
-                     (number->string (%ref stats 'tool-calls 0))
+                     (number->string (pi-session-stats-tool-calls stats))
                      " calls, "
-                     (number->string (%ref stats 'tool-results 0))
+                     (number->string (pi-session-stats-tool-results stats))
                      " results"
                    ) ;string-append
                    ""
@@ -209,7 +273,7 @@
                    '()
                  ) ;if
                  (list (string-append "Output: " (%comma-number output))
-                   (string-append "Total: " (%comma-number (%ref tokens 'total 0)))
+                   (string-append "Total: " (%comma-number (pi-session-token-stats-total tokens)))
                  ) ;list
                  (if (> cost 0) (list "" "Cost" (string-append "Total: $" (%fixed cost 3))) '())
                ) ;append

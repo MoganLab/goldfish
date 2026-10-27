@@ -3,11 +3,11 @@
 (check-set-mode! 'report-failed)
 
 ;; 只读文件 = read - modified，且排序
-(let* ((ops '((read "/z" "/b" "/a") (written "/b") (edited "/c")))
+(let* ((ops (make-pi-file-ops '("/z" "/b" "/a") '("/b") '("/c")))
        (lists (pi-compute-file-lists ops))
       ) ;
-  (check (cdr (assoc 'read-files lists)) => '("/a" "/z"))
-  (check (cdr (assoc 'modified-files lists)) => '("/b" "/c"))
+  (check (pi-file-lists-read-files lists) => '("/a" "/z"))
+  (check (pi-file-lists-modified-files lists) => '("/b" "/c"))
 ) ;let*
 
 (check-report)

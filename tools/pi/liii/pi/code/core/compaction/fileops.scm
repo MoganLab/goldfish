@@ -11,8 +11,27 @@
     (liii sort)
     (liii pi ai message)
   ) ;import
-  (export pi-extract-file-ops pi-compute-file-lists pi-format-file-operations)
+  (export pi-extract-file-ops pi-compute-file-lists pi-format-file-operations
+    make-pi-file-ops pi-file-ops? pi-file-ops-read pi-file-ops-written
+    pi-file-ops-edited make-pi-file-lists pi-file-lists?
+    pi-file-lists-read-files pi-file-lists-modified-files
+  ) ;export
   (begin
+
+    (define-record-type <pi-file-ops>
+      (make-pi-file-ops read written edited)
+      pi-file-ops?
+      (read pi-file-ops-read)
+      (written pi-file-ops-written)
+      (edited pi-file-ops-edited)
+    ) ;define-record-type
+
+    (define-record-type <pi-file-lists>
+      (make-pi-file-lists read-files modified-files)
+      pi-file-lists?
+      (read-files pi-file-lists-read-files)
+      (modified-files pi-file-lists-modified-files)
+    ) ;define-record-type
 
     (define (%ref obj key)
       (let* ((str-key (if (symbol? key) (symbol->string key) key))
@@ -64,41 +83,46 @@
     ) ;define
 
     (define (%group-file-op op groups)
-      (let ((name (car op))
-            (path (cdr op))
-            (read (car groups))
-            (written (cadr groups))
-            (edited (caddr groups))
-           ) ;
-        (cond ((equal? name "read") (list (%add-unique read path) written edited))
-              ((equal? name "write") (list read (%add-unique written path) edited))
-              (else (list read written (%add-unique edited path)))
+      (let ((name (car op)) (path (cdr op)))
+        (cond
+         ((equal? name "read")
+          (make-pi-file-ops (%add-unique (pi-file-ops-read groups) path)
+            (pi-file-ops-written groups)
+            (pi-file-ops-edited groups)
+          ) ;make-pi-file-ops
+         ) ;
+         ((equal? name "write")
+          (make-pi-file-ops (pi-file-ops-read groups)
+            (%add-unique (pi-file-ops-written groups) path)
+            (pi-file-ops-edited groups)
+          ) ;make-pi-file-ops
+         ) ;
+         (else (make-pi-file-ops (pi-file-ops-read groups)
+                 (pi-file-ops-written groups)
+                 (%add-unique (pi-file-ops-edited groups) path)
+               ) ;make-pi-file-ops
+         ) ;else
         ) ;cond
       ) ;let
     ) ;define
 
     (define (pi-extract-file-ops msgs)
-      (let ((groups (fold %group-file-op '(() () ()) (append-map %message-tool-paths msgs)))
-           ) ;
-        (list (cons 'read (car groups))
-          (cons 'written (cadr groups))
-          (cons 'edited (caddr groups))
-        ) ;list
-      ) ;let
+      (fold %group-file-op
+        (make-pi-file-ops '() '() '())
+        (append-map %message-tool-paths msgs)
+      ) ;fold
     ) ;define
 
     (define (pi-compute-file-lists file-ops)
-      (let* ((read (%ref file-ops "read"))
-             (written (%ref file-ops "written"))
-             (edited (%ref file-ops "edited"))
+      (let* ((read (pi-file-ops-read file-ops))
+             (written (pi-file-ops-written file-ops))
+             (edited (pi-file-ops-edited file-ops))
              (modified (fold (lambda (p acc) (%add-unique acc p)) edited written))
              (read-only
                (list-sort string<? (filter (lambda (p) (not (member p modified))) read))
              ) ;read-only
             ) ;
-        (list (cons 'read-files read-only)
-          (cons 'modified-files (list-sort string<? modified))
-        ) ;list
+        (make-pi-file-lists read-only (list-sort string<? modified))
       ) ;let*
     ) ;define
 
