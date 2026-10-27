@@ -93,18 +93,18 @@
 (check (check-type-hint (resource-file "goldfish/hint/liii/clean.scm")) => '())
 
 ;; 逐库状态：部分/全量覆盖，以及通过/失败。
-(let ((lines
-        (type-hint-status-lines
-          (list (resource-file "goldfish/hint/liii/arity.scm")
-            (resource-file "goldfish/hint/liii/clean.scm")
-            (resource-file "goldfish/hint/liii/inferok.scm")
-          ) ;list
-          (check-type-hint (resource-file "goldfish/hint/liii/arity.scm"))
-        ) ;type-hint-status-lines
-       )) ;
+(let ((lines (type-hint-status-lines (list (resource-file "goldfish/hint/liii/arity.scm")
+                                       (resource-file "goldfish/hint/liii/clean.scm")
+                                       (resource-file "goldfish/hint/liii/inferok.scm")
+                                     ) ;list
+               (check-type-hint (resource-file "goldfish/hint/liii/arity.scm"))
+             ) ;type-hint-status-lines
+      ) ;lines
+     ) ;
   (check lines
     =>
-    '("  [FULL FAIL\t] (liii arity)" "  [PARTIAL PASS\t] (liii clean)"
+    '("  [FULL FAIL\t] (liii arity)"
+      "  [PARTIAL PASS\t] (liii clean)"
       "  [FULL PASS\t] (liii inferok)")
   ) ;check
 ) ;let
@@ -116,37 +116,39 @@
   (lambda (f) (check (check-type-hint (repo-file f)) => '()))
   '("goldfish/hint/liii/alist.scm" "goldfish/hint/liii/error.scm"
     "goldfish/hint/liii/gfproject/config.scm" "goldfish/hint/scheme/base.scm"
-    "goldfish/hint/srfi/srfi-1.scm" "tools/check/hint/liii/goldcheck/no-glue.scm"
+    "goldfish/hint/srfi/srfi-1.scm"
+    "tools/check/hint/liii/goldcheck/no-glue.scm"
     "goldfish/hint/scheme/file.scm" "tools/check/hint/liii/goldcheck/path.scm"
     "goldfish/hint/liii/string.scm" "goldfish/hint/liii/path.scm"
-    "goldfish/hint/liii/json.scm"
-    "goldfish/hint/srfi/srfi-13.scm" "goldfish/hint/liii/goldfmt/format.scm"
+    "goldfish/hint/liii/json.scm" "goldfish/hint/srfi/srfi-13.scm"
+    "goldfish/hint/liii/goldfmt/format.scm"
     "goldfish/hint/liii/goldfmt/format/writer.scm")
 ) ;for-each
 
-;; timestamp-iso 全量检查能发现真实的未校验 string->number 结果。
-(let ((viol
-        (check-type-hint (repo-file "goldfish/hint/liii/date-time/internal/timestamp-iso.scm"))
-      )) ;
-  (check (length viol) => 2)
-  (for-each
-    (lambda (v)
-      (check-true (string-contains? (cadddr v) "argument 2 of *"))
-      (check-true (string-contains? (cadddr v) "(or #f number?)"))
-    ) ;lambda
-    viol
-  ) ;for-each
+;; timestamp-iso 已修复：string->number 的结果先校验再参与乘法。
+(check (check-type-hint (repo-file "goldfish/hint/liii/date-time/internal/timestamp-iso.scm")
+       ) ;check-type-hint
+  =>
+  '()
+) ;check
+
+;; 未校验可能为 #f 的数值结果：确定的类型冲突要报告
+(let ((viol (check-type-hint (resource-file "goldfish/hint/liii/numcheck.scm"))))
+  (check (length viol) => 1)
+  (check-true (string-contains? (cadddr (car viol)) "argument 2 of my-mul"))
+  (check-true (string-contains? (cadddr (car viol)) "(or #f number?)"))
 ) ;let
 
 (check (type-hint-status-lines (list (repo-file "goldfish/hint/liii/gfproject/config.scm")
-                                  (repo-file "tools/check/hint/liii/goldcheck/path.scm")
-                                  (repo-file "goldfish/hint/liii/alist.scm")
-                                  (repo-file "goldfish/hint/liii/goldfmt/format.scm"))
-                                '())
+                                 (repo-file "tools/check/hint/liii/goldcheck/path.scm")
+                                 (repo-file "goldfish/hint/liii/alist.scm")
+                                 (repo-file "goldfish/hint/liii/goldfmt/format.scm")
+                               ) ;list
+         '()
+       ) ;type-hint-status-lines
   =>
   '("  [FULL PASS\t] (liii gfproject config)"
-    "  [FULL PASS\t] (liii goldcheck path)"
-    "  [FULL PASS\t] (liii alist)"
+    "  [FULL PASS\t] (liii goldcheck path)" "  [FULL PASS\t] (liii alist)"
     "  [FULL PASS\t] (liii goldfmt format)")
 ) ;check
 
@@ -154,9 +156,9 @@
 (for-each
   (lambda (name) (check-true (pair? (hint-scheme/base name))))
   '(car read open-input-string catch eof-object null? pair? pair-line-number
-    symbol? symbol->string eq? eqv? equal? assq cons list cdr reverse cadr
-    assoc caar append map cddr cadddr list-ref + dynamic-wind eof-object?
-    caddr close-input-port string=? = not apply cadar values error)
+     symbol? symbol->string eq? eqv? equal? assq cons list cdr reverse cadr
+     assoc caar append map cddr cadddr list-ref + dynamic-wind eof-object? caddr
+     close-input-port string=? = not apply cadar values error)
 ) ;for-each
 (check-true (pair? (hint-scheme/file 'open-input-file)))
 (check-true (pair? (hint-srfi/srfi-1 'filter)))
@@ -179,7 +181,7 @@
 (for-each
   (lambda (name) (check-true (pair? (hint-scheme/base name))))
   '(string-append string-length substring string-ref vector-ref vector-length
-    number? char=? > >= < <= - zero? call-with-values)
+     number? char=? > >= < <= - zero? call-with-values)
 ) ;for-each
 (check-true (pair? (hint-srfi/srfi-13 'string-join)))
 (check-true (pair? (hint-liii/goldfmt/format/writer 'format-inline)))
@@ -296,7 +298,9 @@
 ) ;let
 
 ;; 12c. tools/check 的局部 hint 根缺少基础签名时，回退到 goldfish/hint
-(let ((viol (check-type-hint (resource-file "tools/check/hint/liii/base-fallback.scm"))))
+(let ((viol (check-type-hint (resource-file "tools/check/hint/liii/base-fallback.scm"))
+      ) ;viol
+     ) ;
   (check (length viol) => 1)
   (check-true (string-contains? (cadddr (car viol)) "cadr"))
 ) ;let
