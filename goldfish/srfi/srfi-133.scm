@@ -495,21 +495,22 @@
       ) ;let
     ) ;define*
 
-    (define reverse-list->vector
-      (typed-lambda ((lst proper-list?))
-        (let* ((len (length lst)) (v-rst (make-vector len)))
-          (let loop
-            ((l lst) (i (- len 1)))
-            (if (null? l)
-              v-rst
-              (begin
-                (vector-set! v-rst i (car l))
-                (loop (cdr l) (- i 1))
-              ) ;begin
-            ) ;if
-          ) ;let
-        ) ;let*
-      ) ;typed-lambda
+    (define (reverse-list->vector lst)
+      (unless (proper-list? lst)
+        (error 'type-error "reverse-list->vector: argument must be a proper list" lst)
+      ) ;unless
+      (let* ((len (length lst)) (v-rst (make-vector len)))
+        (let loop
+          ((l lst) (i (- len 1)))
+          (if (null? l)
+            v-rst
+            (begin
+              (vector-set! v-rst i (car l))
+              (loop (cdr l) (- i 1))
+            ) ;begin
+          ) ;if
+        ) ;let
+      ) ;let*
     ) ;define
   ) ;begin
 ) ;define-library
