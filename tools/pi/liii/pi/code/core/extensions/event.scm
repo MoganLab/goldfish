@@ -7,6 +7,7 @@
 (define-library (liii pi code core extensions event)
   (import (scheme base)
     (liii error)
+    (liii list)
     (liii pi code core extensions types)
     (liii pi code core extensions registry)
   ) ;import
@@ -124,16 +125,24 @@
     ) ;define
 
     (define (apply-input-override payload new-input)
-      (let loop
-        ((rest payload) (acc '()) (replaced #f))
-        (if (null? rest)
-          (if replaced (reverse acc) (cons (cons 'input new-input) (reverse acc)))
-          (let ((pair (car rest)))
-            (if (or (eq? (car pair) 'input) (eq? (car pair) 'params))
-              (loop (cdr rest) (cons (cons 'input new-input) acc) #t)
-              (loop (cdr rest) (cons pair acc) replaced)
-            ) ;if
-          ) ;let
+      (let ((replaced?
+              (any
+                (lambda (pair) (or (eq? (car pair) 'input) (eq? (car pair) 'params)))
+                payload
+              ) ;any
+            ) ;replaced?
+           ) ;
+        (if replaced?
+          (map
+            (lambda (pair)
+              (if (or (eq? (car pair) 'input) (eq? (car pair) 'params))
+                (cons 'input new-input)
+                pair
+              ) ;if
+            ) ;lambda
+            payload
+          ) ;map
+          (cons (cons 'input new-input) payload)
         ) ;if
       ) ;let
     ) ;define
