@@ -15,7 +15,10 @@
     pi-context-token-estimate pi-should-compact? pi-compaction-default-settings
     make-pi-compaction-settings pi-compaction-settings?
     pi-compaction-settings-enabled pi-compaction-settings-reserve-tokens
-    pi-compaction-settings-keep-recent-tokens
+    pi-compaction-settings-keep-recent-tokens make-pi-context-token-estimate
+    pi-context-token-estimate? pi-context-token-estimate-tokens
+    pi-context-token-estimate-usage-tokens
+    pi-context-token-estimate-trailing-tokens
   ) ;export
   (begin
 
@@ -25,6 +28,14 @@
       (enabled pi-compaction-settings-enabled)
       (reserve-tokens pi-compaction-settings-reserve-tokens)
       (keep-recent-tokens pi-compaction-settings-keep-recent-tokens)
+    ) ;define-record-type
+
+    (define-record-type <pi-context-token-estimate>
+      (make-pi-context-token-estimate tokens usage-tokens trailing-tokens)
+      pi-context-token-estimate?
+      (tokens pi-context-token-estimate-tokens)
+      (usage-tokens pi-context-token-estimate-usage-tokens)
+      (trailing-tokens pi-context-token-estimate-trailing-tokens)
     ) ;define-record-type
 
     (define (pi-compaction-default-settings)
@@ -150,18 +161,10 @@
     (define (pi-context-token-estimate msgs)
       (let loop
         ((rev (reverse (map %normalize-message msgs))) (trailing 0))
-        (cond ((null? rev)
-               (list (cons 'tokens trailing)
-                 (cons 'usage-tokens 0)
-                 (cons 'trailing-tokens trailing)
-               ) ;list
-              ) ;
+        (cond ((null? rev) (make-pi-context-token-estimate trailing 0 trailing))
               ((%valid-usage? (car rev))
                (let ((usage (%usage-total (%ref (car rev) "usage"))))
-                 (list (cons 'tokens (+ usage trailing))
-                   (cons 'usage-tokens usage)
-                   (cons 'trailing-tokens trailing)
-                 ) ;list
+                 (make-pi-context-token-estimate (+ usage trailing) usage trailing)
                ) ;let
               ) ;
               (else

@@ -18,7 +18,10 @@
     pi-context-token-estimate pi-should-compact? pi-compaction-default-settings
     make-pi-compaction-settings pi-compaction-settings?
     pi-compaction-settings-enabled pi-compaction-settings-reserve-tokens
-    pi-compaction-settings-keep-recent-tokens pi-entry-message pi-entry-id
+    pi-compaction-settings-keep-recent-tokens make-pi-context-token-estimate
+    pi-context-token-estimate? pi-context-token-estimate-tokens
+    pi-context-token-estimate-usage-tokens
+    pi-context-token-estimate-trailing-tokens pi-entry-message pi-entry-id
     pi-valid-cut-point? pi-find-cut-point pi-messages-to-summarize
     pi-truncate-for-summary pi-serialize-conversation pi-content->text
     pi-extract-file-ops pi-compute-file-lists pi-format-file-operations

@@ -189,7 +189,8 @@
     (define* (pi-compact-session! config file-path settings (timeout 600) (reason "manual"))
       (let* ((entries (pi-read-session-entries file-path))
              (all-msgs (%messages-from entries 0))
-             (tokens-before (cdr (assoc 'tokens (pi-context-token-estimate all-msgs))))
+             (tokens-before (pi-context-token-estimate-tokens (pi-context-token-estimate all-msgs))
+             ) ;tokens-before
              (keep (pi-compaction-settings-keep-recent-tokens settings))
              (cut (pi-find-cut-point entries keep))
              (cut-index (cdr (assoc 'first-kept-index cut)))

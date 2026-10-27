@@ -53,7 +53,7 @@
 
     (define (%auto-compact cfg sfile state timeout settings window msgs)
       (let* ((estimate (pi-context-token-estimate msgs))
-             (tokens (cdr (assoc 'tokens estimate)))
+             (tokens (pi-context-token-estimate-tokens estimate))
             ) ;
         (if (not (pi-should-compact? tokens window settings))
           msgs
