@@ -7,6 +7,7 @@
 (define-library (liii pi code core extensions registry prompt)
   (import (scheme base)
     (liii error)
+    (liii list)
     (liii pi code core extensions types)
     (liii pi code core extensions registry base)
   ) ;import
@@ -82,18 +83,10 @@
       (let* ((reg (target->registry target))
              (injectors (extension-registry-prompt-injectors reg))
             ) ;
-        (let loop
-          ((rest injectors) (acc '()))
-          (if (null? rest)
-            (reverse acc)
-            (let ((val (%eval-injector (car rest) tool-calls reg)))
-              (if (and (string? val) (> (string-length val) 0))
-                (loop (cdr rest) (cons val acc))
-                (loop (cdr rest) acc)
-              ) ;if
-            ) ;let
-          ) ;if
-        ) ;let
+        (filter
+          (lambda (val) (and (string? val) (> (string-length val) 0)))
+          (map (lambda (inj) (%eval-injector inj tool-calls reg)) injectors)
+        ) ;filter
       ) ;let*
     ) ;define*
 
