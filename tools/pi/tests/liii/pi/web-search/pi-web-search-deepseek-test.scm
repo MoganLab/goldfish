@@ -62,8 +62,13 @@
     (check (length (cdr (assoc 'sources res))) => 2))
 
   ;; 5.2 通过 config 的 provider 自动分发（不带 :provider opt）
+  ;; 注意：web-search.json 是全局覆盖，优先级高于 config 的 provider，
+  ;;      因此用 :env 指向不存在的路径隔离开发者本机的真实全局配置
   (let ((res (pi-execute-web-search '(("query" . "goldfish scheme"))
                                      :config '((provider . "deepseek") (api-key . "ds-test-key"))
+                                     :env (list (cons "PI_WEB_SEARCH_CONFIG" "/nonexistent-gf-test/ws.json")
+                                            (cons "HOME" "/nonexistent-gf-test")
+                                            (cons "PI_CODING_AGENT_DIR" "/nonexistent-gf-test"))
                                      :base-url base-url
                                      :timeout 10)))
     (check-false (cdr (assoc 'isError res)))
