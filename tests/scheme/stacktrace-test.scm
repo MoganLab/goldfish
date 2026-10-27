@@ -55,7 +55,7 @@
 
   ;; 2. 标准库 (liii string) 输入类型检查报错调用栈测试
   (check-demo-stacktrace "string" (path "demo/stacktrace/liii_string.scm")
-    (list "goldfish/liii/string.scm:44:" "string-remove-suffix"
+    (list "goldfish/liii/string.scm:59:" "string-remove-suffix"
           "demo/stacktrace/liii_string.scm:8:" "clean-file-extension"
           "demo/stacktrace/liii_string.scm:14:" "process-attachment"
           "demo/stacktrace/liii_string.scm:20:" "handle-upload-job"

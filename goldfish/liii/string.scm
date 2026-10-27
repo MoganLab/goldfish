@@ -52,13 +52,20 @@
       (if (string-prefix? prefix str) (substring str (string-length prefix)) str)
     ) ;define
 
-    (define string-remove-suffix
-      (typed-lambda ((str string?) (suffix string?))
-        (if (string-suffix? suffix str)
-          (substring str 0 (- (string-length str) (string-length suffix)))
-          (string-copy str)
-        ) ;if
-      ) ;typed-lambda
+    (define (string-remove-suffix str suffix)
+      (unless (string? str)
+        (error 'type-error "string-remove-suffix: first argument must be a string" str)
+      ) ;unless
+      (unless (string? suffix)
+        (error 'type-error
+          "string-remove-suffix: second argument must be a string"
+          suffix
+        ) ;error
+      ) ;unless
+      (if (string-suffix? suffix str)
+        (substring str 0 (- (string-length str) (string-length suffix)))
+        (string-copy str)
+      ) ;if
     ) ;define
 
     ;; 将 plist 转为以字符串为键的 alist
