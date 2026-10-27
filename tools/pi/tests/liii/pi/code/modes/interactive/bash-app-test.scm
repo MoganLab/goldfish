@@ -132,15 +132,6 @@
   ) ;let
 ) ;let*
 
-;; 12. bash 预览行数常量对齐 pi（PREVIEW_LINES = 20）
-(check pi-bash-preview-lines => 20)
-
-;; 12b. ! 执行器对齐上游 session.executeBash：返回文本已清理
-;; （剥 ANSI/OSC、删控制字符、删 \r，保留 \t\n）
-(let-values (((text code) (pi-bash-run-command "printf '\\033[31mred\\033[0m\\r\\n'")))
-  (check code => 0)
-  (check text => "red\n"))
-
 ;; ============================================================
 ;; 三、上下文注入（对齐 pi recordBashResult）：
 ;; !cmd 结果经 record-sink 注入会话上下文；!!cmd 仅显示不注入

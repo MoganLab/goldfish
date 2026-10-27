@@ -46,6 +46,7 @@
     (liii date-time internal util)
     (liii date-time internal timestamp-types)
     (liii date-time internal timestamp-conv)
+    (liii date-time internal timestamp-construct)
   ) ;import
   (export timestamp->iso-8601 iso-8601->timestamp)
   (begin

@@ -208,6 +208,7 @@
                (models '())
                (default-model #f)
                (on-save-model #f)
+               (session-file #f)
              ) ;make-pi-app
       (let* ((actual-term (or terminal (make-standard-terminal :inline #t)))
              (screen (make-main-screen actual-term :auto-hide-cursor #f))
@@ -280,7 +281,7 @@
         (%pi-app-editor-set! app ed)
         ;; 无自定义 handler 时启动后台 agent worker
         (unless handler
-          (go (pi-tui-agent-worker jobs-chan event-chan abort-chan))
+          (go (pi-tui-agent-worker jobs-chan event-chan abort-chan session-file))
         ) ;unless
         ;; 无注入执行器时启动后台 bash worker
         (unless bash-handler

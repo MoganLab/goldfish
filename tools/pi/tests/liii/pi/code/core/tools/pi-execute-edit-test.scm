@@ -1,4 +1,4 @@
-(import (liii check) (liii path) (liii pi code core tools edit) (liii pi code core tools) (scheme file))
+(import (liii check) (liii string) (liii path) (liii pi code core tools edit) (liii pi code core tools) (scheme file))
 
 (check-set-mode! 'report-failed)
 
@@ -73,5 +73,35 @@
   ) ;check-catch
   (delete-file target)
 ) ;let
+
+;; 单块、多块替换与不匹配错误
+(let ((test-edit-file "tests/liii/pi-edit-fixture.txt"))
+  (pi-execute-write
+    (list (cons "path" test-edit-file)
+          (cons "content" "line 1\nline 2: AAA\nline 3\nline 4: BBB\nline 5")))
+  (let ((msg (pi-execute-edit
+               (list (cons "path" test-edit-file)
+                     (cons "edits"
+                       (list (list (cons "oldText" "line 2: AAA")
+                                   (cons "newText" "line 2: MODIFIED_A"))))))))
+    (check msg => (string-append "Successfully replaced 1 block(s) in " test-edit-file "."))
+    (let ((c (pi-execute-read (list (cons "path" test-edit-file)))))
+      (check-true (string-contains? c "line 2: MODIFIED_A"))))
+  (let ((msg (pi-execute-edit
+               (list (cons "path" test-edit-file)
+                     (cons "edits"
+                       (list (list (cons "oldText" "line 1") (cons "newText" "line 1: FIRST"))
+                             (list (cons "oldText" "line 4: BBB")
+                                   (cons "newText" "line 4: SECOND"))))))))
+    (check msg => (string-append "Successfully replaced 2 block(s) in " test-edit-file "."))
+    (let ((c (pi-execute-read (list (cons "path" test-edit-file)))))
+      (check-true (string-contains? c "line 1: FIRST"))
+      (check-true (string-contains? c "line 4: SECOND"))))
+  (check-catch 'error
+    (pi-execute-edit
+      (list (cons "path" test-edit-file)
+            (cons "edits"
+              (list (list (cons "oldText" "NON_EXISTENT") (cons "newText" "NEW")))))))
+  (delete-file test-edit-file))
 
 (check-report)

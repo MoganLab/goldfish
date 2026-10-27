@@ -69,4 +69,69 @@
   (path-rmdir tmp-dir)
 ) ;let*
 
+;; 搜索源码文件：字面量、大小写、正则、context、limit 与错误路径
+(define legacy-test-file
+  (if (file-exists? "liii/pi/code/cli.scm")
+    "liii/pi/code/cli.scm"
+    "tools/pi/liii/pi/code/cli.scm"))
+
+(let ((out (pi-execute-grep
+             (list (cons "pattern" "define-library")
+                   (cons "path" legacy-test-file)
+                   (cons "literal" #t)))))
+  (check-true (string? out))
+  (check-true (string-contains? out ": (define-library (liii pi code cli)")))
+
+(let ((out (pi-execute-grep
+             (list (cons "pattern" "DEFINE-LIBRARY")
+                   (cons "path" legacy-test-file)
+                   (cons "ignoreCase" #t)
+                   (cons "literal" #t)))))
+  (check-true (string-contains? out ": (define-library (liii pi code cli)")))
+
+(let ((out (pi-execute-grep
+             (list (cons "pattern" "define.*display")
+                   (cons "path"
+                     (if (file-exists? "liii/pi/code/cli/help.scm")
+                       "liii/pi/code/cli/help.scm"
+                       "tools/pi/liii/pi/code/cli/help.scm"))))))
+  (check-true (string-contains? out "display-pi-help")))
+
+(let ((out (pi-execute-grep
+             (list (cons "pattern" "display-pi-help")
+                   (cons "path" legacy-test-file)
+                   (cons "context" 1)
+                   (cons "limit" 1)))))
+  (check-true (string? out))
+  (check-true (string-contains? out "- "))
+  (check-true (string-contains? out ": ")))
+
+(let ((out (pi-execute-grep
+             (list (cons "pattern" "define") (cons "path" legacy-test-file) (cons "limit" 1)))))
+  (check-true (string-contains? out
+                "[1 matches limit reached. Use limit=2 for more, or refine pattern]")))
+
+(let ((out (pi-execute-grep
+             (list (cons "pattern" "non_existent_symbol_8888") (cons "path" legacy-test-file)))))
+  (check out => "No matches found"))
+
+(check-catch 'error
+  (pi-execute-grep '(("pattern" . "foo") ("path" . "non_existent_file_999"))))
+(check-catch 'error (pi-execute-grep '(("pattern" . "foo")) :timed-out? #t))
+
+;; 非 git 目录下含子目录的扫描防崩溃
+(let* ((test-base (path-join (path-temp-dir) "pi-test-grep-1070"))
+       (sub-dir (path-join test-base "subdir"))
+       (test-f (path-join sub-dir "file.txt")))
+  (path-mkdir sub-dir :parents #t :exist-ok #t)
+  (path-write-text test-f "target_text_1070\n")
+  (let ((out (pi-execute-grep
+               (list (cons "pattern" "target_text_1070")
+                     (cons "path" (path->string test-base))))))
+    (check-true (string? out))
+    (check-true (string-contains? out "target_text_1070")))
+  (delete-file (path->string test-f))
+  (path-rmdir sub-dir)
+  (path-rmdir test-base))
+
 (check-report)

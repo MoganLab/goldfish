@@ -193,4 +193,15 @@
     ;; 2000 行快速输出应在毫秒级完成，回调次数远小于行数
     (check-true (<= (length updates) 10))))
 
+;; 输出修剪与非零退出输出
+(let-values (((out is-err) (pi-execute-bash '(("command" . "echo 'hello bash'")))))
+  (check is-err => #f)
+  (check (string-trim-both out) => "hello bash"))
+
+(let-values (((out is-err)
+              (pi-execute-bash '(("command" . "echo 'fail msg'; exit 42")))))
+  (check is-err => #t)
+  (check-true (string-contains? out "fail msg"))
+  (check-true (string-contains? out "Command exited with code 42")))
+
 (check-report)

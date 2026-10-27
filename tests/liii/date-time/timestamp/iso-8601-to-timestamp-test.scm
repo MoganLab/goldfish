@@ -35,4 +35,7 @@
 (check-catch 'type-error (iso-8601->timestamp 12345))
 (check-catch 'type-error (iso-8601->timestamp "2026-01-02"))
 
+;; 带毫秒与 Z 后缀的真实会话时间戳格式
+(check (timestamp->utc-posix-time (iso-8601->timestamp "2026-10-20T08:00:02.000Z"))
+  => 1792483202)
 (check-report)

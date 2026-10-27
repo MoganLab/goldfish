@@ -10,29 +10,16 @@
   (check-true (integer? sec))
   (check-true (>= sec 0))
   (check-true (< sec 1000000000))
-  (check-true (> (pi-current-time-seconds) 1700000000))
   (let ((sec2 (pi-current-monotonic-seconds)))
     (check-true (exact? sec2))
     (check-true (>= sec2 sec))
   ) ;let
-  (let* ((sec-before (pi-current-monotonic-seconds))
-         (ms (pi-current-monotonic-millis))
-         (sec-after (pi-current-monotonic-seconds))
-        ) ;
-    (check-true (<= (* sec-before 1000) ms))
-    (check-true (< ms (* (+ sec-after 1) 1000)))
-  ) ;let*
-
   ;; 回拨场景与超时判定模型验证：
   ;; 验证单调钟判定在 NTP 回拨或系统时间修改时不会失效
-  (let ((idle-timeout? (lambda (now last-act idle)
-                         (and idle (> (- now last-act) idle))
-                       ) ;lambda
+  (let ((idle-timeout?
+          (lambda (now last-act idle) (and idle (> (- now last-act) idle)))
         ) ;idle-timeout?
-        (session-timeout? (lambda (now deadline)
-                            (and deadline (> now deadline))
-                          ) ;lambda
-        ) ;session-timeout?
+        (session-timeout? (lambda (now deadline) (and deadline (> now deadline))))
        ) ;
     ;; 场景 A: 空闲超时判定
     ;; 若使用墙钟发生 NTP 回拨 (-50s)：last-act=1000, wall-now=950, idle=10

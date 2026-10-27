@@ -1,0 +1,32 @@
+(import (liii check) (liii pi ai event))
+
+(check-set-mode! 'report-failed)
+
+(let ((sess (pi-event-session "/tmp"))
+      (a-start (pi-event-agent-start))
+      (t-start (pi-event-turn-start))
+      (m-start (pi-event-message-start '(("role" . "user"))))
+      (m-upd (pi-event-message-update '() '(("type" . "text_delta"))))
+      (m-end (pi-event-message-end '(("role" . "assistant"))))
+      (te-start (pi-event-tool-execution-start "c1" "bash" '()))
+      (te-upd (pi-event-tool-execution-update "c1" "bash" '() '()))
+      (te-end (pi-event-tool-execution-end "c1" "bash" "res" #f))
+      (t-end (pi-event-turn-end '(("role" . "assistant")) #()))
+      (a-end (pi-event-agent-end '() #f))
+      (a-settled (pi-event-agent-settled #f))
+     ) ;
+  (check (pi-event-type sess) => "session")
+  (check (pi-event-type a-start) => "agent_start")
+  (check (pi-event-type t-start) => "turn_start")
+  (check (pi-event-type m-start) => "message_start")
+  (check (pi-event-type m-upd) => "message_update")
+  (check (pi-event-type m-end) => "message_end")
+  (check (pi-event-type te-start) => "tool_execution_start")
+  (check (pi-event-type te-upd) => "tool_execution_update")
+  (check (pi-event-type te-end) => "tool_execution_end")
+  (check (pi-event-type t-end) => "turn_end")
+  (check (pi-event-type a-end) => "agent_end")
+  (check (pi-event-type a-settled) => "agent_settled")
+) ;let
+
+(check-report)

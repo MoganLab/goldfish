@@ -11,7 +11,7 @@
     (liii list)
     (liii pi ai message)
   ) ;import
-  (export pi-truncate-for-summary pi-serialize-conversation)
+  (export pi-truncate-for-summary pi-serialize-conversation pi-content->text)
   (begin
 
     (define (%ref obj key)
@@ -39,7 +39,7 @@
       (if (pi-block? blk) (pi-block->alist blk) blk)
     ) ;define
 
-    (define (%content-text content)
+    (define (pi-content->text content)
       (if (string? content)
         content
         (string-join
@@ -141,7 +141,7 @@
       (let* ((msg (%normalize-message msg))
              (role (%ref msg "role"))
              (content (%ref msg "content"))
-             (text (%content-text content))
+             (text (pi-content->text content))
             ) ;
         (cond
          ((equal? role "user")

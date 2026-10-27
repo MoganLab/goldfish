@@ -287,14 +287,14 @@
     ;; bash 记录与 session_name 命名任务
     ;; 注意：go 绑定的 let 语法会“求值”绑定值，alist 会被当作函数调用而报错，
     ;; 因此 parsed/cfg 不能跨 go 边界传入，必须在 worker 会话内自行解析
-    (define (pi-tui-agent-worker jobs-chan event-chan abort-chan)
+    (define* (pi-tui-agent-worker jobs-chan event-chan abort-chan (initial-session-file #f))
       (let* ((parsed (parse-pi-args (cdr (command-line))))
              (cfg (augment-pi-config (resolve-pi-config parsed (get-environment-variables))
                     parsed
                   ) ;augment-pi-config
              ) ;cfg
              ;; 会话文件盒：全生命周期复用同一文件（TUI 会话连续性）
-             (sfile-box (vector #f))
+             (sfile-box (vector initial-session-file))
             ) ;
         ;; 重试与 multikey 换 key 日志共用 retry logger 通道，转为界面卡片
         (set-pi-retry-logger! (lambda (msg) (pi-tui-send-event! event-chan (list 'retry msg)))
@@ -311,7 +311,7 @@
           ) ;let
         ) ;let
       ) ;let*
-    ) ;define
+    ) ;define*
 
   ) ;begin
 ) ;define-library
