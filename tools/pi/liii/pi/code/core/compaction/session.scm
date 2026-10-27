@@ -190,11 +190,7 @@
       (let* ((entries (pi-read-session-entries file-path))
              (all-msgs (%messages-from entries 0))
              (tokens-before (cdr (assoc 'tokens (pi-context-token-estimate all-msgs))))
-             (keep
-               (let ((p (assoc 'keep-recent-tokens settings)))
-                 (if p (cdr p) 20000)
-               ) ;let
-             ) ;keep
+             (keep (pi-compaction-settings-keep-recent-tokens settings))
              (cut (pi-find-cut-point entries keep))
              (cut-index (cdr (assoc 'first-kept-index cut)))
              (summarize-msgs (pi-messages-to-summarize entries cut-index))

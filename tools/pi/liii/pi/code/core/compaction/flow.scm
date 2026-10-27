@@ -77,11 +77,10 @@
     (define (pi-make-compaction-option parsed cfg sfile state timeout)
       (let* ((agent-dir (cdr (assoc 'agent-dir cfg)))
              (settings (pi-load-compaction-settings agent-dir))
-             (enabled
-               (and sfile
-                 (not (pi-args-ref parsed 'no-auto-compact))
-                 (eq? #t (cdr (assoc 'enabled settings)))
-               ) ;and
+             (enabled (and sfile
+                        (not (pi-args-ref parsed 'no-auto-compact))
+                        (eq? #t (pi-compaction-settings-enabled settings))
+                      ) ;and
              ) ;enabled
              (window (%context-window cfg))
             ) ;
