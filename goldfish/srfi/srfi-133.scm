@@ -250,18 +250,25 @@
       ) ;let
     ) ;define
 
-    (define vector-index-right
-      (typed-lambda ((pred procedure?) (v vector?))
-        (let ((len (vector-length v)))
-          (let loop
-            ((i (- len 1)))
-            (cond ((< i 0) #f)
-                  ((pred (vector-ref v i)) i)
-                  (else (loop (- i 1)))
-            ) ;cond
-          ) ;let
+    (define (vector-index-right pred v)
+      (unless (procedure? pred)
+        (error 'type-error
+          "vector-index-right: first argument must be a procedure"
+          pred
+        ) ;error
+      ) ;unless
+      (unless (vector? v)
+        (error 'type-error "vector-index-right: second argument must be a vector" v)
+      ) ;unless
+      (let ((len (vector-length v)))
+        (let loop
+          ((i (- len 1)))
+          (cond ((< i 0) #f)
+                ((pred (vector-ref v i)) i)
+                (else (loop (- i 1)))
+          ) ;cond
         ) ;let
-      ) ;typed-lambda
+      ) ;let
     ) ;define
 
     (define (vector-skip pred v)
