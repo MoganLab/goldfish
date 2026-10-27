@@ -6,8 +6,8 @@
 (let* ((ops (make-pi-file-ops '("/z" "/b" "/a") '("/b") '("/c")))
        (lists (pi-compute-file-lists ops))
       ) ;
-  (check (cdr (assoc 'read-files lists)) => '("/a" "/z"))
-  (check (cdr (assoc 'modified-files lists)) => '("/b" "/c"))
+  (check (pi-file-lists-read-files lists) => '("/a" "/z"))
+  (check (pi-file-lists-modified-files lists) => '("/b" "/c"))
 ) ;let*
 
 (check-report)

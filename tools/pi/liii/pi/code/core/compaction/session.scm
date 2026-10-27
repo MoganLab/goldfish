@@ -208,11 +208,10 @@
                (summary (cdr (assoc 'summary gen)))
                (ops (pi-extract-file-ops summarize-msgs))
                (lists (pi-compute-file-lists ops))
-               (details
-                 (list (cons "reason" reason)
-                   (cons "readFiles" (cdr (assoc 'read-files lists)))
-                   (cons "modifiedFiles" (cdr (assoc 'modified-files lists)))
-                 ) ;list
+               (details (list (cons "reason" reason)
+                          (cons "readFiles" (pi-file-lists-read-files lists))
+                          (cons "modifiedFiles" (pi-file-lists-modified-files lists))
+                        ) ;list
                ) ;details
                (id (pi-append-compaction-entry! file-path summary first-kept-id
                      tokens-before details

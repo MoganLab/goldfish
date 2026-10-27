@@ -13,7 +13,8 @@
   ) ;import
   (export pi-extract-file-ops pi-compute-file-lists pi-format-file-operations
     make-pi-file-ops pi-file-ops? pi-file-ops-read pi-file-ops-written
-    pi-file-ops-edited
+    pi-file-ops-edited make-pi-file-lists pi-file-lists?
+    pi-file-lists-read-files pi-file-lists-modified-files
   ) ;export
   (begin
 
@@ -23,6 +24,13 @@
       (read pi-file-ops-read)
       (written pi-file-ops-written)
       (edited pi-file-ops-edited)
+    ) ;define-record-type
+
+    (define-record-type <pi-file-lists>
+      (make-pi-file-lists read-files modified-files)
+      pi-file-lists?
+      (read-files pi-file-lists-read-files)
+      (modified-files pi-file-lists-modified-files)
     ) ;define-record-type
 
     (define (%ref obj key)
@@ -114,9 +122,7 @@
                (list-sort string<? (filter (lambda (p) (not (member p modified))) read))
              ) ;read-only
             ) ;
-        (list (cons 'read-files read-only)
-          (cons 'modified-files (list-sort string<? modified))
-        ) ;list
+        (make-pi-file-lists read-only (list-sort string<? modified))
       ) ;let*
     ) ;define
 
