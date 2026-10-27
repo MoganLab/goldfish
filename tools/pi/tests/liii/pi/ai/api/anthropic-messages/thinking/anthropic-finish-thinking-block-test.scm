@@ -3,6 +3,33 @@
   (liii pi ai api anthropic-messages thinking)
 ) ;import
 
+;; anthropic-finish-thinking-block
+;; 结束当前 Anthropic thinking 块，将累积内容写入消息块列表。
+;;
+;; 语法
+;; ----
+;; (anthropic-finish-thinking-block stream-state on-ev)
+;;
+;; 参数
+;; ----
+;; stream-state : anthropic-stream-state | vector
+;; 可变流状态；record 为当前表示，vector 用于兼容旧调用。
+;; on-ev : procedure | #f
+;; 接收 thinking_end 事件的回调；为 #f 时不派发事件。
+;;
+;; 返回值
+;; ----
+;; 未指定
+;; 通过副作用追加 pi-thinking-block 并清除当前 thinking 状态。
+;;
+;; 说明
+;; ----
+;; 空签名转换为 #f；没有活动 thinking 块时不执行任何操作。
+;;
+;; 示例
+;; ----
+;; (anthropic-finish-thinking-block stream-state on-ev)
+
 (check-set-mode! 'report-failed)
 
 (let* ((stream-state (vector '() #f '((input . 10) (output . 5)) '() #f #f #f))

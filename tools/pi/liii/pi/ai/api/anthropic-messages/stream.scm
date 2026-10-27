@@ -89,7 +89,7 @@
     ) ;define
 
     (define (%finalize-stream stream-state)
-      (when (pair? (anthropic-stream-state-current-thinking stream-state))
+      (when (anthropic-stream-state-current-thinking stream-state)
         (anthropic-finish-thinking-block stream-state #f)
       ) ;when
       (let* ((blocks (anthropic-stream-state-blocks stream-state))
@@ -107,7 +107,7 @@
 
     ;; 用户中止（ESC）：保留已收到的部分内容，stop-reason 强制为 aborted
     (define (%finalize-aborted-stream stream-state)
-      (when (pair? (anthropic-stream-state-current-thinking stream-state))
+      (when (anthropic-stream-state-current-thinking stream-state)
         (anthropic-finish-thinking-block stream-state #f)
       ) ;when
       (pi-assistant-message (anthropic-stream-state-blocks stream-state)

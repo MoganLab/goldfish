@@ -166,7 +166,7 @@
         (cond ((%anthropic-tool-state? cur-tool)
                (%finish-tool-block cur-tool blocks usage stream-state on-ev)
               ) ;
-              ((pair? cur-th) (anthropic-finish-thinking-block stream-state on-ev))
+              (cur-th (anthropic-finish-thinking-block stream-state on-ev))
               ((string? last-text)
                (anthropic-stream-state-last-text-set! stream-state #f)
                (when (procedure? on-ev)

@@ -17,6 +17,35 @@
   ) ;export
   (begin
 
+    (define-record-type <anthropic-thinking-state>
+      (%make-anthropic-thinking-state thinking signature index)
+      %anthropic-thinking-state?
+      (thinking %anthropic-thinking-state-record-thinking)
+      (signature %anthropic-thinking-state-record-signature)
+      (index %anthropic-thinking-state-record-index)
+    ) ;define-record-type
+
+    (define (%anthropic-thinking-state-thinking state)
+      (if (%anthropic-thinking-state? state)
+        (%anthropic-thinking-state-record-thinking state)
+        (cdr (assoc 'thinking state))
+      ) ;if
+    ) ;define
+
+    (define (%anthropic-thinking-state-signature state)
+      (if (%anthropic-thinking-state? state)
+        (%anthropic-thinking-state-record-signature state)
+        (cdr (assoc 'signature state))
+      ) ;if
+    ) ;define
+
+    (define (%anthropic-thinking-state-index state)
+      (if (%anthropic-thinking-state? state)
+        (%anthropic-thinking-state-record-index state)
+        (cdr (assoc 'index state))
+      ) ;if
+    ) ;define
+
     (define (anthropic-thinking-level->budget level)
       (cond ((equal? level "minimal") 1024)
             ((equal? level "low") 2048)
@@ -55,7 +84,7 @@
 
     (define (anthropic-start-thinking-block stream-state idx on-ev)
       (anthropic-stream-state-current-thinking-set! stream-state
-        (list (cons 'thinking "") (cons 'signature "") (cons 'index idx))
+        (%make-anthropic-thinking-state "" "" idx)
       ) ;anthropic-stream-state-current-thinking-set!
       (anthropic-stream-state-last-text-set! stream-state #f)
       (when (procedure? on-ev)
@@ -72,13 +101,12 @@
              (sig (cdr (or (assoc "signature" delta) '(#f . ""))))
              (cur-th (anthropic-stream-state-current-thinking stream-state))
             ) ;
-        (when (pair? cur-th)
-          (let* ((prev-text (cdr (assoc 'thinking cur-th)))
-                 (prev-sig (cdr (assoc 'signature cur-th)))
+        (when cur-th
+          (let* ((prev-text (%anthropic-thinking-state-thinking cur-th))
+                 (prev-sig (%anthropic-thinking-state-signature cur-th))
                  (new-text (string-append prev-text th))
                  (new-sig (string-append prev-sig sig))
-                 (upd (list (cons 'thinking new-text) (cons 'signature new-sig) (cons 'index idx))
-                 ) ;upd
+                 (upd (%make-anthropic-thinking-state new-text new-sig idx))
                 ) ;
             (anthropic-stream-state-current-thinking-set! stream-state upd)
             (when (and (procedure? on-ev) (not (string-null? th)))
@@ -99,21 +127,20 @@
              (blocks (anthropic-stream-state-blocks stream-state))
              (usage (anthropic-stream-state-usage stream-state))
             ) ;
-        (when (pair? cur-th)
-          (let* ((th (cdr (assoc 'thinking cur-th)))
-                 (sig (cdr (assoc 'signature cur-th)))
+        (when cur-th
+          (let* ((th (%anthropic-thinking-state-thinking cur-th))
+                 (sig (%anthropic-thinking-state-signature cur-th))
                  (eff-sig (if (string-null? sig) #f sig))
                  (blk (pi-thinking-block th eff-sig))
                 ) ;
             (anthropic-stream-state-blocks-set! stream-state (append blocks (list blk)))
             (anthropic-stream-state-current-thinking-set! stream-state #f)
             (when (procedure? on-ev)
-              (on-ev
-                (list (cons 'type "thinking_end")
-                  (cons 'contentIndex (cdr (assoc 'index cur-th)))
-                  (cons 'content th)
-                  (cons 'usage usage)
-                ) ;list
+              (on-ev (list (cons 'type "thinking_end")
+                       (cons 'contentIndex (%anthropic-thinking-state-index cur-th))
+                       (cons 'content th)
+                       (cons 'usage usage)
+                     ) ;list
               ) ;on-ev
             ) ;when
           ) ;let*
