@@ -9,7 +9,7 @@
   (export PI_HELP_TEXT display-pi-help)
   (begin
     (define PI_HELP_TEXT
-      (string-append (&- "
+      (string-append (&- #""
           gf pi - AI coding assistant script mode
 
           Usage:
@@ -55,7 +55,7 @@
             Retriable provider errors (429/5xx/408/409/network) use the budget from
             retry.provider.maxRetries in ~/.pi/agent/settings.json,
             falling back to retry.maxRetries when the nested section is absent.
-          "
+          ""
                      ) ;&-
         "\n"
       ) ;string-append
