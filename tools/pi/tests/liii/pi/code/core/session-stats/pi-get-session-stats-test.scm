@@ -53,11 +53,11 @@
   (check (cdr (assoc 'assistant-messages stats)) => 2)
   (check (cdr (assoc 'tool-calls stats)) => 2)
   (check (cdr (assoc 'tool-results stats)) => 1)
-  (check (cdr (assoc 'input tokens)) => 3000)
-  (check (cdr (assoc 'output tokens)) => 500)
-  (check (cdr (assoc 'cache-read tokens)) => 1200)
-  (check (cdr (assoc 'cache-write tokens)) => 100)
-  (check (cdr (assoc 'total tokens)) => 4800)
+  (check (pi-session-token-stats-input tokens) => 3000)
+  (check (pi-session-token-stats-output tokens) => 500)
+  (check (pi-session-token-stats-cache-read tokens) => 1200)
+  (check (pi-session-token-stats-cache-write tokens) => 100)
+  (check (pi-session-token-stats-total tokens) => 4800)
   (check (cdr (assoc 'cost stats)) => 0.5)
 ) ;let*
 

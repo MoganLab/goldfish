@@ -12,8 +12,34 @@
     (liii list)
     (liii pi code core compaction session)
   ) ;import
-  (export pi-get-session-stats pi-format-session-stats)
+  (export pi-get-session-stats pi-format-session-stats
+    make-pi-session-token-stats pi-session-token-stats?
+    pi-session-token-stats-input pi-session-token-stats-output
+    pi-session-token-stats-cache-read pi-session-token-stats-cache-write
+    pi-session-token-stats-total
+  ) ;export
   (begin
+
+    (define-record-type <pi-session-token-stats>
+      (make-pi-session-token-stats input output cache-read cache-write)
+      pi-session-token-stats?
+      (input pi-session-token-stats-input pi-session-token-stats-input-set!)
+      (output pi-session-token-stats-output pi-session-token-stats-output-set!)
+      (cache-read pi-session-token-stats-cache-read
+        pi-session-token-stats-cache-read-set!
+      ) ;cache-read
+      (cache-write pi-session-token-stats-cache-write
+        pi-session-token-stats-cache-write-set!
+      ) ;cache-write
+    ) ;define-record-type
+
+    (define (pi-session-token-stats-total tokens)
+      (+ (pi-session-token-stats-input tokens)
+        (pi-session-token-stats-output tokens)
+        (pi-session-token-stats-cache-read tokens)
+        (pi-session-token-stats-cache-write tokens)
+      ) ;+
+    ) ;define
 
     (define (%ref obj key default)
       (if (not (pair? obj))
@@ -101,18 +127,11 @@
           (cons 'tool-calls (vector-ref totals 3))
           (cons 'tool-results (vector-ref totals 4))
           (cons 'tokens
-            (let ((input (vector-ref totals 5))
-                  (output (vector-ref totals 6))
-                  (cache-read (vector-ref totals 7))
-                  (cache-write (vector-ref totals 8))
-                 ) ;
-              (list (cons 'input input)
-                (cons 'output output)
-                (cons 'cache-read cache-read)
-                (cons 'cache-write cache-write)
-                (cons 'total (+ input output cache-read cache-write))
-              ) ;list
-            ) ;let
+            (make-pi-session-token-stats (vector-ref totals 5)
+              (vector-ref totals 6)
+              (vector-ref totals 7)
+              (vector-ref totals 8)
+            ) ;make-pi-session-token-stats
           ) ;cons
           (cons 'cost (vector-ref totals 9))
         ) ;list
@@ -162,10 +181,10 @@
              (file (%ref stats 'session-file #f))
              (id (%ref stats 'session-id #f))
              (tokens (%ref stats 'tokens '()))
-             (input (%ref tokens 'input 0))
-             (output (%ref tokens 'output 0))
-             (cache-read (%ref tokens 'cache-read 0))
-             (cache-write (%ref tokens 'cache-write 0))
+             (input (pi-session-token-stats-input tokens))
+             (output (pi-session-token-stats-output tokens))
+             (cache-read (pi-session-token-stats-cache-read tokens))
+             (cache-write (pi-session-token-stats-cache-write tokens))
              (prompt-tokens (+ input cache-read cache-write))
              (cost (%ref stats 'cost 0.0))
              (lines
@@ -209,7 +228,7 @@
                    '()
                  ) ;if
                  (list (string-append "Output: " (%comma-number output))
-                   (string-append "Total: " (%comma-number (%ref tokens 'total 0)))
+                   (string-append "Total: " (%comma-number (pi-session-token-stats-total tokens)))
                  ) ;list
                  (if (> cost 0) (list "" "Cost" (string-append "Total: $" (%fixed cost 3))) '())
                ) ;append
