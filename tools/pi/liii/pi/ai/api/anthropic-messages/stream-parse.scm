@@ -20,6 +20,15 @@
   ) ;export
   (begin
 
+    (define-record-type <anthropic-tool-state>
+      (%make-anthropic-tool-state id name json index)
+      %anthropic-tool-state?
+      (id %anthropic-tool-state-id)
+      (name %anthropic-tool-state-name)
+      (json %anthropic-tool-state-json)
+      (index %anthropic-tool-state-index)
+    ) ;define-record-type
+
     (define (%emit-delta on-ev cur-idx text usage stream-state)
       (when (procedure? on-ev)
         (when
@@ -77,14 +86,13 @@
       (let* ((pj (cdr (or (assoc "partial_json" delta) '(#f . ""))))
              (cur-tool (anthropic-stream-state-current-tool stream-state))
             ) ;
-        (when (pair? cur-tool)
-          (let* ((cur-json (cdr (assoc 'json cur-tool)))
-                 (upd-tool
-                   (list (cons 'id (cdr (assoc 'id cur-tool)))
-                     (cons 'name (cdr (assoc 'name cur-tool)))
-                     (cons 'json (string-append cur-json pj))
-                     (cons 'index idx)
-                   ) ;list
+        (when (%anthropic-tool-state? cur-tool)
+          (let* ((cur-json (%anthropic-tool-state-json cur-tool))
+                 (upd-tool (%make-anthropic-tool-state (%anthropic-tool-state-id cur-tool)
+                             (%anthropic-tool-state-name cur-tool)
+                             (string-append cur-json pj)
+                             idx
+                           ) ;%make-anthropic-tool-state
                  ) ;upd-tool
                 ) ;
             (anthropic-stream-state-current-tool-set! stream-state upd-tool)
@@ -124,9 +132,9 @@
     ) ;define
 
     (define (%finish-tool-block cur-tool blocks usage stream-state on-ev)
-      (let* ((id (cdr (assoc 'id cur-tool)))
-             (name (cdr (assoc 'name cur-tool)))
-             (json-str (cdr (assoc 'json cur-tool)))
+      (let* ((id (%anthropic-tool-state-id cur-tool))
+             (name (%anthropic-tool-state-name cur-tool))
+             (json-str (%anthropic-tool-state-json cur-tool))
              (args (anthropic-parse-tool-arguments json-str))
              (blk (pi-tool-call-block id name args))
             ) ;
@@ -136,14 +144,13 @@
         ) ;anthropic-stream-state-tool-calls-set!
         (anthropic-stream-state-current-tool-set! stream-state #f)
         (when (procedure? on-ev)
-          (on-ev
-            (list (cons 'type "toolcall_end")
-              (cons 'contentIndex (cdr (assoc 'index cur-tool)))
-              (cons 'id id)
-              (cons 'name name)
-              (cons 'arguments args)
-              (cons 'usage usage)
-            ) ;list
+          (on-ev (list (cons 'type "toolcall_end")
+                   (cons 'contentIndex (%anthropic-tool-state-index cur-tool))
+                   (cons 'id id)
+                   (cons 'name name)
+                   (cons 'arguments args)
+                   (cons 'usage usage)
+                 ) ;list
           ) ;on-ev
         ) ;when
       ) ;let*
@@ -156,7 +163,9 @@
             (blocks (anthropic-stream-state-blocks stream-state))
             (usage (anthropic-stream-state-usage stream-state))
            ) ;
-        (cond ((pair? cur-tool) (%finish-tool-block cur-tool blocks usage stream-state on-ev))
+        (cond ((%anthropic-tool-state? cur-tool)
+               (%finish-tool-block cur-tool blocks usage stream-state on-ev)
+              ) ;
               ((pair? cur-th) (anthropic-finish-thinking-block stream-state on-ev))
               ((string? last-text)
                (anthropic-stream-state-last-text-set! stream-state #f)
@@ -185,7 +194,7 @@
                 (name (cdr (or (assoc "name" cb) '(#f . ""))))
                ) ;
             (anthropic-stream-state-current-tool-set! stream-state
-              (list (cons 'id id) (cons 'name name) (cons 'json "") (cons 'index idx))
+              (%make-anthropic-tool-state id name "" idx)
             ) ;anthropic-stream-state-current-tool-set!
             (when (procedure? on-ev)
               (on-ev (list (cons 'type "toolcall_start")
