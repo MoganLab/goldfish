@@ -39,10 +39,17 @@
 
     (define string-ends? g_string-ends?)
 
-    (define string-remove-prefix
-      (typed-lambda ((str string?) (prefix string?))
-        (if (string-prefix? prefix str) (substring str (string-length prefix)) str)
-      ) ;typed-lambda
+    (define (string-remove-prefix str prefix)
+      (unless (string? str)
+        (error 'type-error "string-remove-prefix: first argument must be a string" str)
+      ) ;unless
+      (unless (string? prefix)
+        (error 'type-error
+          "string-remove-prefix: second argument must be a string"
+          prefix
+        ) ;error
+      ) ;unless
+      (if (string-prefix? prefix str) (substring str (string-length prefix)) str)
     ) ;define
 
     (define string-remove-suffix
