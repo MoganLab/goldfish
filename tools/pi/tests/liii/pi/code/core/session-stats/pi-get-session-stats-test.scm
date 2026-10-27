@@ -43,27 +43,27 @@
 
 ;; bashExecution 计入 Total，但不计入 User/Assistant/Tools
 (let* ((stats (pi-get-session-stats SESSION-FILE))
-       (tokens (cdr (assoc 'tokens stats)))
+       (tokens (pi-session-stats-tokens stats))
       ) ;
-  (check (cdr (assoc 'session-file stats)) => SESSION-FILE)
-  (check (cdr (assoc 'session-id stats)) => "session-stats-id")
-  (check (cdr (assoc 'session-name stats)) => "Core stats")
-  (check (cdr (assoc 'total-messages stats)) => 5)
-  (check (cdr (assoc 'user-messages stats)) => 1)
-  (check (cdr (assoc 'assistant-messages stats)) => 2)
-  (check (cdr (assoc 'tool-calls stats)) => 2)
-  (check (cdr (assoc 'tool-results stats)) => 1)
+  (check (pi-session-stats-session-file stats) => SESSION-FILE)
+  (check (pi-session-stats-session-id stats) => "session-stats-id")
+  (check (pi-session-stats-session-name stats) => "Core stats")
+  (check (pi-session-stats-total-messages stats) => 5)
+  (check (pi-session-stats-user-messages stats) => 1)
+  (check (pi-session-stats-assistant-messages stats) => 2)
+  (check (pi-session-stats-tool-calls stats) => 2)
+  (check (pi-session-stats-tool-results stats) => 1)
   (check (pi-session-token-stats-input tokens) => 3000)
   (check (pi-session-token-stats-output tokens) => 500)
   (check (pi-session-token-stats-cache-read tokens) => 1200)
   (check (pi-session-token-stats-cache-write tokens) => 100)
   (check (pi-session-token-stats-total tokens) => 4800)
-  (check (cdr (assoc 'cost stats)) => 0.5)
+  (check (pi-session-stats-cost stats) => 0.5)
 ) ;let*
 
 (let ((empty-stats (pi-get-session-stats #f)))
-  (check (cdr (assoc 'session-file empty-stats)) => #f)
-  (check (cdr (assoc 'total-messages empty-stats)) => 0)
+  (check (pi-session-stats-session-file empty-stats) => #f)
+  (check (pi-session-stats-total-messages empty-stats) => 0)
 ) ;let
 
 (delete-file SESSION-FILE)
