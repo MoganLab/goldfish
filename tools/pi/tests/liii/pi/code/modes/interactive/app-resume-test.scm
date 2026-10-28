@@ -306,4 +306,27 @@
   ) ;let
 ) ;let*
 
+;; 13. 真实按键路径：输入 /resume 后回车（走命令菜单选中项），
+;;     与直接提交 "/resume" 走同一处理路径，均打开会话选择器
+(let* ((vterm (make-virtual-terminal :width 100 :height 40))
+       (received '())
+       (app
+         (make-pi-app
+           :terminal        vterm
+           :handler         (lambda (a msg) (set! received (cons msg received)))
+           :resume-sessions (lambda () (values '() (lambda () '())))
+         ) ;make-pi-app
+       ) ;app
+       (ed (pi-app-editor app))
+      ) ;
+  (component-handle-input ed "/resume")
+  (check-true (component? (pi-app-slash-command-menu app)))
+  (pi-app-handle-input! app 'enter)
+  (check-true (session-selector? (pi-app-active-selector app)))
+  (check (pi-app-slash-command-menu app) => #f)
+  (check (editor-text ed) => "")
+  (check received => '())
+  (check (chan-try-recv! (pi-app-jobs-chan app) #f) => #f)
+) ;let*
+
 (check-report)

@@ -6,6 +6,7 @@
   (liii list)
   (liii path)
   (liii go)
+  (liii time)
   (liii shutil)
   (liii pi code cli args)
   (liii pi code config)
@@ -142,6 +143,33 @@
 
       (rmtree TMP-AGENT-DIR #t)
     ) ;let-values
+  ) ;let-values
+) ;let*
+
+;; 8. 真实后台 worker 线程路径：session_resume 与后续任务串行落到同一文件
+;;    （与 TUI 生产路径一致：go worker 消费 jobs-chan）
+(let* ((env (list (cons "PI_CODING_AGENT_DIR" TMP-AGENT-DIR)))
+       (parsed (parse-pi-args '()))
+       (cfg (resolve-pi-config parsed env))
+       (jobs (make-chan 16))
+       (events (make-chan 16))
+       (cwd (path->string (path-cwd)))
+      ) ;
+  (when (file-exists? TMP-AGENT-DIR)
+    (rmtree TMP-AGENT-DIR)
+  ) ;when
+  (let-values (((sfile _) (setup-session-file parsed cfg cwd)))
+    (go (pi-tui-agent-worker jobs events #f #f))
+    ;; 先恢复会话，再投递 bash_record：两者必须串行落到同一文件
+    (chan-send! jobs (list 'session_resume sfile) 1000)
+    (let ((ev (chan-recv! events)))
+      (check (car ev) => 'session_resumed)
+      (check (cadr ev) => sfile)
+    ) ;let
+    (chan-send! jobs (list 'bash_record "echo bg-marker" "bg-marker" 0) 1000)
+    (sleep 0.5)
+    (check-true (string-contains? (path-read-text sfile) "bg-marker"))
+    (rmtree TMP-AGENT-DIR #t)
   ) ;let-values
 ) ;let*
 
