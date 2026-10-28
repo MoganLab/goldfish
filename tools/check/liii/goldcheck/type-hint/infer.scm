@@ -31,6 +31,7 @@
     (liii goldcheck type-hint hint-data)
     (liii goldcheck type-hint narrow)
     (liii goldcheck type-hint env)
+    (liii goldcheck type-hint value)
   ) ;import
   (export check-infer)
   (begin
@@ -156,6 +157,9 @@
                      (else #f)
                ) ;cond
              ) ;let
+            ) ;
+            ((and (pair? expr) (eq? (car expr) 'cond))
+             (infer-cond infer-type expr env locals)
             ) ;
             ((and (pair? expr) (symbol? (car expr)))
              (let ((local (assq expr locals)))

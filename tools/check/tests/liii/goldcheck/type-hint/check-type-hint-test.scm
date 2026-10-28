@@ -1,5 +1,6 @@
 (import (scheme base)
   (liii check)
+  (liii list)
   (liii string)
   (liii os)
   (liii path)
@@ -320,5 +321,33 @@
 ;; 14. 非 define-library 文件 -> '()
 ;; --------------------------------------------------------------------
 (check (check-type-hint (resource-file "script.scm")) => '())
+
+;; --------------------------------------------------------------------
+;; 15. cond 值聚合：cond 作为值表达式时，其类型为各子 clause 末表达式的
+;;     聚合（用例形态取自 date-week.scm 的 year-offset）
+;; --------------------------------------------------------------------
+;; 15a. 违规：cond-bad、cond-no-else、nested-bad 各 1 条 = 3
+(let ((viol (check-type-hint (resource-file "goldfish/hint/liii/aggcheck.scm"))))
+  (check (length viol) => 3)
+  ;; nested-bad：my-cdr 需要 pair?，得
+  (check
+    (count
+      (lambda (v)
+        (and (string-contains? (cadddr v) "of my-cdr")
+          (string-contains? (cadddr v) "pair?")
+        ) ;and
+      ) ;lambda
+      viol
+    ) ;count
+    =>
+    1
+  ) ;check
+  ;; cond-bad / cond-no-else：my-mul 需要 number?，得 /boolean?
+  (check
+    (count (lambda (v) (string-contains? (cadddr v) "of my-mul")) viol)
+    =>
+    2
+  ) ;check
+) ;let
 
 (check-report)
