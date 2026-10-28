@@ -28,6 +28,7 @@
     terminal-cursor-visible? terminal-hide-cursor! terminal-show-cursor!
     terminal-flush terminal-type terminal-data terminal-data-set!
     terminal-enter-raw-mode! terminal-exit-raw-mode! terminal-max-y
+    terminal-mouse-mode!
   ) ;export
   (import (liii base) (liii error) (liii os))
   (begin
@@ -180,6 +181,26 @@
             ) ;
         (if (procedure? proc) (max cur-y (proc term)) cur-y)
       ) ;let*
+    ) ;define
+
+    ;; 开启/关闭终端鼠标事件报告（XTerm 模式）：
+    ;; 1000=按键上报，1002=按钮拖动上报，1006=SGR 十进制坐标编码。
+    ;; 关闭时逆序下发，与开启对称。Windows 控制台不走 ANSI 鼠标，序列
+    ;; 无副作用，实际事件由 C++ 层（src/liii_os.cpp）合成 SGR 字节流。
+    (define (terminal-mouse-mode! term enable?)
+      (%check-terminal term "terminal-mouse-mode!")
+      (unless (boolean? enable?)
+        (type-error
+          (string-append "terminal-mouse-mode!: expected boolean, got "
+            (object->string enable?)
+          ) ;string-append
+        ) ;type-error
+      ) ;unless
+      (if enable?
+        (terminal-write term "\x1b;[?1000h\x1b;[?1002h\x1b;[?1006h")
+        (terminal-write term "\x1b;[?1006l\x1b;[?1002l\x1b;[?1000l")
+      ) ;if
+      #t
     ) ;define
 
   ) ;begin

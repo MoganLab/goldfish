@@ -28,6 +28,7 @@
     (liii error)
     (liii unicode)
     (liii tui keys table)
+    (liii tui mouse)
   ) ;import
   (begin
 
@@ -73,7 +74,28 @@
       ) ;let
     ) ;define
 
+    ;; 参数段以 '<' 开头的是 SGR 鼠标序列（1006 模式），拼回完整序列
+    ;; （参数段 + 终结字节 M/m）交给 (liii tui mouse) 解析；
+    ;; 非鼠标则回退到普通 CSI 键解析
+    (define (%try-parse-mouse param-str term-byte)
+      (if (and (> (string-length param-str) 0) (char=? (string-ref param-str 0) #\<))
+        (parse-mouse-event
+          (string-append "\x1b;[" param-str (string (integer->char term-byte)))
+        ) ;parse-mouse-event
+        #f
+      ) ;if
+    ) ;define
+
     (define (%resolve-csi-alpha param-str term-byte next-i)
+      (let ((mouse (%try-parse-mouse param-str term-byte)))
+        (if mouse
+          (values mouse next-i)
+          (%resolve-csi-key param-str term-byte next-i)
+        ) ;if
+      ) ;let
+    ) ;define
+
+    (define (%resolve-csi-key param-str term-byte next-i)
       (let ((parts (%split-semicolon param-str)))
         (cond
          ((= term-byte 117)
