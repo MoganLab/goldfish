@@ -256,4 +256,23 @@
   (check received => '("/"))
   (check (pi-app-active-selector app) => #f))
 
+;; 16. Ctrl+Z 撤销：主循环把未消费按键交给编辑器，撤销后再提交，
+;;     提交内容不含已被撤销的文本（若撤销失效会提交 "abcd"）
+(let* ((submitted '())
+       (vt (make-virtual-terminal :width 80 :height 24))
+       (app (make-pi-app :terminal vt
+              :handler (lambda (a msg) (set! submitted (cons msg submitted)))))
+       (ed (pi-app-editor app))
+      ) ;
+  (component-handle-input ed "ab")
+  (virtual-terminal-push-key! vt 'ctrl-z)
+  (virtual-terminal-push-key! vt "cd")
+  (virtual-terminal-push-key! vt 'enter)
+  (virtual-terminal-push-key! vt 'ctrl-d)
+  (check (pi-app-run app) => #t)
+  (check submitted => '("cd"))
+  (check (editor-text ed) => "")
+  (check (virtual-terminal-pop-key! vt) => #f)
+) ;let*
+
 (check-report)

@@ -18,6 +18,7 @@
   (check-true (string-contains? (list-ref plain-lines 1) (string-append " gf v" (version))))
   (check-true (string-contains? (list-ref plain-lines 2) "escape interrupt"))
   (check-true (string-contains? (list-ref plain-lines 2) "ctrl+c/ctrl+d clear/exit"))
+  (check-true (string-contains? (list-ref plain-lines 2) "ctrl+z undo"))
   (check-true (string-contains? (list-ref plain-lines 2) "/ commands"))
   (check-true (string-contains? (list-ref plain-lines 2) "! bash"))
   (check-false (string-contains? (list-ref plain-lines 2) "ctrl+o"))

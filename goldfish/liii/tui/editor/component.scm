@@ -43,6 +43,7 @@
     (liii tui editor viewport)
     (liii tui editor paste)
     (liii tui editor handle)
+    (liii tui editor undo)
   ) ;import
   (begin
 
@@ -76,6 +77,11 @@
         (type-error "editor-set-text!: ed must be an editor")
       ) ;unless
       (let* ((data (component-data ed)) (buf (%ed-buffer data)))
+        (unless (string=? (buffer-text buf) text)
+          ;; 外部整体替换（含清空）可撤销：先记录替换前快照
+          (%ed-undo-stack-set! data (cons (%editor-snapshot data) (%ed-undo-stack data)))
+          (%ed-last-action-set! data #f)
+        ) ;unless
         (buffer-set-text! buf text)
         ;; 外部整体替换文本时，旧的粘贴隐藏内容与编号不再适用
         (paste-registry-clear! (%ed-pastes data))
@@ -281,6 +287,8 @@
                      max-lines
                      0
                      (make-paste-registry)
+                     '()
+                     #f
                    ) ;%make-editor-data
              ) ;data
              (comp (make-component %editor-render %editor-handle-input))

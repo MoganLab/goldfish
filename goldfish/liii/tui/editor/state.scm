@@ -29,7 +29,8 @@
     %ed-on-change-set! %ed-top-border %ed-top-border-set! %ed-bottom-border
     %ed-bottom-border-set! %ed-border-color %ed-border-color-set!
     %ed-submit-on-enter? %ed-submit-on-enter?-set! %ed-max-lines
-    %ed-max-lines-set! %ed-top-row %ed-top-row-set! %ed-pastes
+    %ed-max-lines-set! %ed-top-row %ed-top-row-set! %ed-pastes %ed-pastes-set!
+    %ed-undo-stack %ed-undo-stack-set! %ed-last-action %ed-last-action-set!
   ) ;export
   (import (scheme base))
   (begin
@@ -37,7 +38,7 @@
     (define-record-type <editor-data>
       (%make-editor-data buffer history multiline? focused? placeholder
         cursor-style on-submit on-change top-border bottom-border border-color
-        submit-on-enter? max-lines top-row pastes
+        submit-on-enter? max-lines top-row pastes undo-stack last-action
       ) ;%make-editor-data
       %editor-data?
       (buffer %ed-buffer %ed-buffer-set!)
@@ -58,6 +59,9 @@
       (top-row %ed-top-row %ed-top-row-set!)
       ;; 大段粘贴的注册表（marker . 原文），提交时展开
       (pastes %ed-pastes %ed-pastes-set!)
+      ;; 撤销栈：编辑前快照列表；last-action 用于打字输入的合并判断
+      (undo-stack %ed-undo-stack %ed-undo-stack-set!)
+      (last-action %ed-last-action %ed-last-action-set!)
     ) ;define-record-type
 
   ) ;begin
