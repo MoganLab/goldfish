@@ -76,7 +76,13 @@
                      (safe-col (max 0 (min col (utf8-string-length line))))
                      (prefix-parts (wrap-text (utf8-substring line 0 safe-col) width))
                      (last-part (car (reverse prefix-parts)))
-                     (display-col (display-width last-part))
+                     ;; wrap-text 会去掉行尾空格；未折行时直接计算原始前缀宽度，
+                     ;; 避免光标位于空格之后时显示列少算。
+                     (display-col (if (= (length prefix-parts) 1)
+                                    (display-width-prefix line safe-col)
+                                    (display-width last-part)
+                                  ) ;if
+                     ) ;display-col
                      (prefix-row (+ visual-row (- (length prefix-parts) 1)))
                     ) ;
                 (if (and (> width 0) (< safe-col (utf8-string-length line)) (>= display-col width))
