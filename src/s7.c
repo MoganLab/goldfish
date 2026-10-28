@@ -7061,13 +7061,17 @@ static inline void mark_slot(s7_pointer slot)
 
 static void mark_let(s7_pointer let)
 {
-  for (; (let) && (!is_marked(let)); let = let_outlet(let))
+  /* goldfish: outlet/slot 链不变量被破坏时（链上出现非 LET/SLOT 对象，
+     如 sc->nil/sc->unspecified），遍历会把它当 let/slot 读取，
+     set_mark(slot_symbol(...)=NULL) 等空指针解引用导致段错误（CI 稳定复现）。
+     这里在遍历条件上增加类型检查：遇到非 LET/SLOT 节点视为链尾终止。 */
+  for (; (let) && (!is_marked(let)) && (is_let(let)); let = let_outlet(let))
     {
       set_mark(let);
       if (has_dox_slot1(let)) mark_slot(let_dox_slot1(let));
       if ((has_dox_slot2(let)) && (is_slot(let_dox_slot2(let)))) mark_slot(let_dox_slot2(let));
       /* it can happen (call/cc related) that let_dox_slot2 is a slot but invalid, but in that case has_dox_slot2 will not be set(?) */
-      for (s7_pointer slot = let_slots(let); is_not_slot_end(slot); slot = next_slot(slot))
+      for (s7_pointer slot = let_slots(let); (is_not_slot_end(slot)) && (is_slot(slot)); slot = next_slot(slot))
 	if (!is_marked(slot)) /* slot value might be the enclosing let */
 	  mark_slot(slot);
     }
@@ -7078,7 +7082,7 @@ static void mark_wrappers(s7_scheme *sc)
   s7_pointer p = sc->let_wrappers;
   s7_pointer end_p = p;
   do {
-    for (s7_pointer slot = let_slots(car(p)); is_not_slot_end(slot); slot = next_slot(slot))
+    for (s7_pointer slot = let_slots(car(p)); (is_not_slot_end(slot)) && (is_slot(slot)); slot = next_slot(slot))
       if (!is_marked(slot)) mark_slot(slot);
     p = cdr(p);
   } while (p != end_p);
@@ -7091,7 +7095,8 @@ static void unmark_wrappers(s7_scheme *sc)
   s7_pointer p = sc->let_wrappers;
   s7_pointer end_p = p;
   do {
-    for (s7_pointer slot = let_slots(car(p)); is_not_slot_end(slot); slot = next_slot(slot)) clear_mark(slot);
+    /* goldfish: 与 mark_wrappers 保持对称，链上出现非 SLOT 节点时视为链尾终止 */
+    for (s7_pointer slot = let_slots(car(p)); (is_not_slot_end(slot)) && (is_slot(slot)); slot = next_slot(slot)) clear_mark(slot);
     p = cdr(p);
   } while (p != end_p);
 }
