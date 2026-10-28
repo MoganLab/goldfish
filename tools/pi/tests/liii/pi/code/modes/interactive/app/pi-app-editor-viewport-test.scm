@@ -63,7 +63,8 @@
        (ed (pi-app-editor app))
       ) ;
   (pi-app-render! app)
-  (let loop ((i 0))
+  (let loop
+    ((i 0))
     (when (< i 10)
       (pi-app-handle-input! app 'ctrl-j)
       (pi-app-render! app)
@@ -71,7 +72,8 @@
     ) ;when
   ) ;let
   (let ((filled-y (cadr (terminal-cursor vterm))))
-    (let loop ((i 0))
+    (let loop
+      ((i 0))
       (when (< i 15)
         (pi-app-handle-input! app 'ctrl-j)
         (pi-app-render! app)
@@ -81,6 +83,23 @@
     (check (editor-viewport ed) => '(16 10 16 0))
     (check (cadr (terminal-cursor vterm)) => filled-y)
   ) ;let
+) ;let*
+
+;; 长输入按视觉行滚动，光标停留在最后一个视觉行且下边框不被覆盖
+(let* ((vterm (make-virtual-terminal :width 10 :height 40))
+       (app (make-pi-app :terminal vterm :handler (lambda (app msg) #t)))
+       (ed (pi-app-editor app))
+       (screen (pi-app-screen app))
+      ) ;
+  (editor-set-text! ed "one two three")
+  (editor-set-cursor! ed 0 13)
+  (pi-app-render! app)
+  (check (editor-viewport ed 10) => '(0 2 0 0))
+  (check (terminal-cursor vterm) => '(5 8))
+  (check (list-ref (map strip-ansi (screen-lines screen)) 9)
+    =>
+    (utf8-make-string 10 #\─)
+  ) ;check
 ) ;let*
 
 (check-report)

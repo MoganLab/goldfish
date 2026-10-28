@@ -23,16 +23,28 @@
 
 (define-library (liii tui editor viewport)
   (export %ed-sync-viewport! %ed-viewport)
-  (import (scheme base) (liii tui editor buffer) (liii tui editor state))
+  (import (scheme base)
+    (liii list)
+    (liii tui text-width)
+    (liii tui editor buffer)
+    (liii tui editor state)
+    (liii tui editor view)
+  ) ;import
   (begin
 
-    (define (%ed-total-rows data)
-      (length (buffer-lines (%ed-buffer data)))
+    (define (%ed-visual-lines data width)
+      (append-map (lambda (line) (wrap-text line width))
+        (buffer-lines (%ed-buffer data))
+      ) ;append-map
+    ) ;define
+
+    (define (%ed-total-rows data width)
+      (length (%ed-visual-lines data width))
     ) ;define
 
     ;; 可视内容行数：受 max-lines 限制，但不超过总行数
-    (define (%ed-visible-count data)
-      (let ((total (%ed-total-rows data)) (max-lines (%ed-max-lines data)))
+    (define (%ed-visible-count data width)
+      (let ((total (%ed-total-rows data width)) (max-lines (%ed-max-lines data)))
         (cond ((not max-lines) total)
               ((< max-lines 1) 1)
               (else (min max-lines total))
@@ -41,10 +53,17 @@
     ) ;define
 
     ;; 让光标保持在视口内：仅在越界时移动 top-row，窗口内移动不抖动
-    (define (%ed-sync-viewport! data)
-      (let* ((total (%ed-total-rows data))
-             (visible (%ed-visible-count data))
-             (row (buffer-row (%ed-buffer data)))
+    (define (%ed-sync-viewport! data width)
+      (let* ((total (%ed-total-rows data width))
+             (visible (%ed-visible-count data width))
+             (row
+               (car (editor-visual-cursor (buffer-lines (%ed-buffer data))
+                      (buffer-row (%ed-buffer data))
+                      (buffer-col (%ed-buffer data))
+                      width
+                    ) ;editor-visual-cursor
+               ) ;car
+             ) ;row
              (max-top (max 0 (- total visible)))
              (top (max 0 (min (%ed-top-row data) max-top)))
              (new-top
@@ -60,10 +79,10 @@
     ) ;define
 
     ;; 返回 (top visible above below)，above/below 为隐藏行数（用于滚动提示）
-    (define (%ed-viewport data)
-      (let* ((top (%ed-sync-viewport! data))
-             (total (%ed-total-rows data))
-             (visible (%ed-visible-count data))
+    (define (%ed-viewport data width)
+      (let* ((top (%ed-sync-viewport! data width))
+             (total (%ed-total-rows data width))
+             (visible (%ed-visible-count data width))
              (end (min total (+ top visible)))
             ) ;
         (list top visible top (- total end))

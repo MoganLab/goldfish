@@ -74,7 +74,7 @@
         (if (>= k len)
           (cons k (list->string (reverse acc)))
           (let ((b (bytevector-u8-ref bv k)))
-            (if (or (= b 32) (>= b 128) (= b 27))
+            (if (or (= b 32) (= b 44) (>= b 128) (= b 27))
               (cons k (list->string (reverse acc)))
               (loop (+ k 1) (cons (integer->char b) acc))
             ) ;if
@@ -112,6 +112,10 @@
                 ((= (bytevector-u8-ref bv i) 27) (loop (+ i 1) acc))
                 ((= (bytevector-u8-ref bv i) 32)
                  (loop (+ i 1) (cons (%make-wrap-token 'space 1 " ") acc))
+                ) ;
+                ;; 逗号作为独立 token，使逗号分隔的长列表可在条目边界折行
+                ((= (bytevector-u8-ref bv i) 44)
+                 (loop (+ i 1) (cons (%make-wrap-token 'word 1 ",") acc))
                 ) ;
                 ((< (bytevector-u8-ref bv i) 128)
                  (let* ((res (%scan-ascii-word bv i len)) (next-i (car res)) (word-str (cdr res)))

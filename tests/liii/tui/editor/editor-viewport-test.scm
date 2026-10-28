@@ -82,4 +82,15 @@
   (check (editor-top-row ed) => 1)
 ) ;let
 
+;; 8. 长逻辑行按宽度折行，视口跟踪其视觉光标所在行
+(let ((ed (make-editor "one two three four" :max-lines 2 :cursor-style 'hardware)))
+  (let ((lines (component-render ed 7)))
+    (check (length lines) => 3)
+    (check (string-contains? (list-ref lines 1) "three") => #t)
+    (check (list-ref lines 2) => "four")
+    (check (editor-viewport ed 7) => '(1 2 1 0))
+    (check (editor-display-position ed 7) => '(1 4))
+  ) ;let
+) ;let
+
 (check-report)
