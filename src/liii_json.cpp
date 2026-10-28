@@ -365,6 +365,27 @@ json_parse_error (s7_scheme* sc, const char* msg) {
 // glue 时缓存 string->number 并永久 GC 保护：仅用于超出 int64 范围的大整数回退
 static s7_pointer cached_string_to_number= NULL;
 
+// [1311] glue 时缓存 (gc) 并永久 GC 保护：string->json/read-json 解析成功后
+// 按累计输入字节数周期性触发完整 GC。解析本身采用 gc_off + C++ 容器暂存
+// 裸指针的模式，循环解析大输入时垃圾要等到 cell 耗尽才被 s7 自动回收，
+// RSS 随循环次数线性增长（issue 1311）；周期 GC 把峰值压回单次解析的量级。
+// 触发时机在 gc_off 已恢复、C++ 容器已析构之后，仅 result 一个裸指针待返回，
+// 用 s7_gc_protect_via_stack 临时保护（与 json_parse_number 的用法一致）。
+#define JSON_GC_BYTES_THRESHOLD (128 * 1024)
+static s7_pointer cached_gc          = NULL;
+static s7_int     json_gc_bytes_since= 0;
+
+static void
+json_maybe_gc (s7_scheme* sc, s7_pointer result, s7_int len) {
+  json_gc_bytes_since+= len;
+  if (json_gc_bytes_since < JSON_GC_BYTES_THRESHOLD) return;
+  json_gc_bytes_since= 0;
+  bool protect       = (result != NULL);
+  if (protect) s7_gc_protect_via_stack (sc, result);
+  s7_call (sc, cached_gc, s7_nil (sc));
+  if (protect) s7_gc_unprotect_via_stack (sc, result);
+}
+
 // glue 时缓存 true/false/null 符号并永久 GC 保护：
 // parser 高频构造这三个符号，缓存避免每次符号 intern 查找（json-ref 转换亦复用）
 static s7_pointer symbol_true = NULL;
@@ -812,9 +833,12 @@ f_string_to_json (s7_scheme* sc, s7_pointer args) {
   }
   s7_gc_on (sc, true);
   if (!ok) {
+    // 解析失败同样产生了部分垃圾，累计并按需回收
+    json_maybe_gc (sc, NULL, len);
     return json_parse_error (sc, result == NULL ? "string->json: invalid JSON"
                                                 : "string->json: trailing garbage after JSON value");
   }
+  json_maybe_gc (sc, result, len);
   return result;
 }
 
@@ -825,6 +849,8 @@ glue_string_to_json (s7_scheme* sc) {
   s7_define_function (sc, name, f_string_to_json, 1, 0, false, desc);
   cached_string_to_number= s7_name_to_value (sc, "string->number");
   s7_gc_protect (sc, cached_string_to_number);
+  cached_gc= s7_name_to_value (sc, "gc");
+  s7_gc_protect (sc, cached_gc);
 }
 
 // 基于 s7 端口的流式 JSON 解析器
@@ -832,7 +858,8 @@ struct json_port_reader {
   s7_scheme* sc;
   s7_pointer port;
   int        ungot[8];
-  int        ungot_cnt= 0;
+  int        ungot_cnt = 0;
+  s7_int     chars_read= 0; // 从端口实际读取的字符数，用于 json_maybe_gc 估算垃圾量
 
   void unget (int c) {
     if (c != -1 && ungot_cnt < 8) {
@@ -851,6 +878,7 @@ struct json_port_reader {
     if (ungot_cnt > 0) return ungot[--ungot_cnt];
     s7_pointer ch= s7_read_char (sc, port);
     if (ch == s7_eof_object (sc)) return -1;
+    chars_read++;
     return (int) (unsigned char) s7_character (ch);
   }
 };
@@ -1248,8 +1276,10 @@ f_read_json (s7_scheme* sc, s7_pointer args) {
   s7_gc_on (sc, true);
 
   if (!ok) {
+    json_maybe_gc (sc, NULL, reader.chars_read);
     return json_parse_error (sc, "read-json: invalid JSON");
   }
+  json_maybe_gc (sc, result, reader.chars_read);
   return result;
 }
 
