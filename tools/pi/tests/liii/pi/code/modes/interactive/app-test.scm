@@ -129,7 +129,36 @@
   (check (terminal-cursor vterm) => '(6 7))
 ) ;let*
 
-;; 4. 测试多轮对话与多行 Markdown 助手回复时，光标精准位于输入框行（不受 \n 干扰）
+;; 4. 测试空格输入后硬件光标随文本位置移动，而不是回退到行尾
+(let* ((vterm (make-virtual-terminal :width 100 :height 40))
+       (app (make-pi-app :terminal vterm :handler (lambda (a m) #t)))
+       (editor (pi-app-editor app))
+      ) ;
+  (pi-app-render! app)
+  (pi-app-handle-input! app "hello")
+  (pi-app-render! app)
+  (check (terminal-cursor vterm) => '(5 7))
+
+  (pi-app-handle-input! app " ")
+  (pi-app-render! app)
+  (check (editor-text editor) => "hello ")
+  (check (terminal-cursor vterm) => '(6 7))
+
+  (pi-app-handle-input! app "world")
+  (pi-app-render! app)
+  (check (editor-text editor) => "hello world")
+  (check (terminal-cursor vterm) => '(11 7))
+
+  ;; 行尾已有后续文本时，在单词之间插入空格也只应移动一列
+  (pi-app-handle-input! app 'home)
+  (pi-app-handle-input! app 'right)
+  (pi-app-handle-input! app " ")
+  (pi-app-render! app)
+  (check (editor-text editor) => "h ello world")
+  (check (terminal-cursor vterm) => '(2 7))
+) ;let*
+
+;; 5. 测试多轮对话与多行 Markdown 助手回复时，光标精准位于输入框行（不受 \n 干扰）
 (let* ((vterm (make-virtual-terminal :width 100 :height 40))
        (dummy-handler (lambda (app msg) #t))
        (app (make-pi-app :terminal vterm :handler dummy-handler))
