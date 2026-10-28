@@ -2,6 +2,12 @@
 
 (check-set-mode! 'report-failed)
 
+;; 0. 粘贴模式默认关闭，只有显式开启的 TUI 才生效
+(check (terminal-paste-mode?) => #f)
+(check (terminal-set-paste-mode! #t) => #t)
+(check (terminal-paste-mode?) => #t)
+(check (terminal-set-paste-mode! #f) => #f)
+
 ;; 1. 测试 virtual-terminal 初始无输入时返回 #f
 (let ((vt (make-virtual-terminal 40 20)))
   (check (terminal-poll-key vt) => #f)

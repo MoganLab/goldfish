@@ -47,6 +47,7 @@
     editor-set-max-lines!
     editor-top-row
     editor-viewport
+    editor-expanded-text
     ;; buffer 导出
     make-buffer
     buffer?
@@ -58,6 +59,7 @@
     buffer-set-text!
     buffer-insert-char!
     buffer-insert-string!
+    buffer-insert-text!
     buffer-backspace!
     buffer-delete!
     buffer-newline!
