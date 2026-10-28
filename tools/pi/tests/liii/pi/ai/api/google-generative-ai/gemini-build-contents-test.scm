@@ -21,7 +21,9 @@
 ;;
 ;; 说明
 ;; ----
-;; assistant 映射为 model，空文本块被过滤。
+;; assistant 映射为 model，空文本块被过滤；整条空 content 的 assistant 消息
+;; （如 ESC abort 后 stopReason=aborted 的残留）被整体跳过，
+;; 跳过后允许产生连续 user 消息。
 ;; 连续 toolResult 合并为一个 user turn，parts 顺序保持不变。
 ;;
 ;; 示例
@@ -84,5 +86,15 @@
   (check (vector-length parts) => 2)
   (check (cdr (assoc "id" (cdr (assoc "functionResponse" (vector-ref parts 0))))) => "c1")
   (check (cdr (assoc "id" (cdr (assoc "functionResponse" (vector-ref parts 1))))) => "c2"))
+
+;; ESC abort 后整条空 content 的 assistant 消息（stopReason=aborted）同样不得进入请求：
+;; parts 为空时整条跳过，允许产生连续 user 消息（防回归用例，当前实现已正确）
+(let* ((msgs (list (pi-user-message "hello")
+                   (pi-assistant-message '() :stop-reason "aborted")
+                   (pi-user-message "world")))
+       (contents (gemini-build-contents msgs)))
+  (check (vector-length contents) => 2)
+  (check (cdr (assoc "role" (vector-ref contents 0))) => "user")
+  (check (cdr (assoc "role" (vector-ref contents 1))) => "user"))
 
 (check-report)

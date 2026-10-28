@@ -23,6 +23,9 @@
 ;; ----
 ;; 连续 toolResult 合并为一个 user message，未知角色被过滤。
 ;; 工具调用转换为 tool_use，空或畸形参数规范化为 JSON 对象。
+;; 空 content 的 assistant 消息（如 ESC abort 后 stopReason=aborted 的残留）
+;; 被整体跳过，不进入 API 请求（对齐上游 blocks 为空时 continue），
+;; 跳过后允许产生连续 user 消息。
 ;;
 ;; 示例
 ;; ----
@@ -116,5 +119,23 @@
   (check (vector-length blocks) => 2)
   (check (cdr (assoc "tool_use_id" (vector-ref blocks 0))) => "c1")
   (check (cdr (assoc "tool_use_id" (vector-ref blocks 1))) => "c2"))
+
+;; ESC abort 后空 content 的 assistant 消息（stopReason=aborted）不得进入 API 请求：
+;; 跳过后允许产生连续 user 消息（对齐上游 blocks 为空时 continue 的行为）
+(let* ((messages (list (pi-user-message "hello")
+                       (pi-assistant-message '() :stop-reason "aborted")
+                       (pi-user-message "world")))
+       (ant-msgs (anthropic-build-messages messages)))
+  (check (vector-length ant-msgs) => 2)
+  (check (cdr (assoc "role" (vector-ref ant-msgs 0))) => "user")
+  (check (cdr (assoc "role" (vector-ref ant-msgs 1))) => "user"))
+
+;; 非空 assistant 消息正常保留，不受空消息过滤影响
+(let* ((messages (list (pi-user-message "q")
+                       (pi-assistant-message (list (pi-text-block "answer")))
+                       (pi-user-message "next")))
+       (ant-msgs (anthropic-build-messages messages)))
+  (check (vector-length ant-msgs) => 3)
+  (check (cdr (assoc "role" (vector-ref ant-msgs 1))) => "assistant"))
 
 (check-report)

@@ -113,13 +113,18 @@
              (text-acc (%msg-text-content (filter %assistant-text-block? c-list)))
              (tc-acc (filter (lambda (tc) tc) (map %assistant-block->tool-call c-list)))
             ) ;
-        (if (pair? tc-acc)
-          (list (cons "role" "assistant")
-            (cons "content" text-acc)
-            (cons "tool_calls" (list->vector tc-acc))
-          ) ;list
-          (list (cons "role" "assistant") (cons "content" text-acc))
-        ) ;if
+        ;; ESC abort 后可能残留空 content 的 assistant 消息（stopReason=aborted），
+        ;; 空 assistant 消息会被部分 API 拒绝：返回 #f 跳过
+        ;; （对齐上游 blocks 为空时 continue，允许产生连续 user 消息）
+        (cond ((and (null? tc-acc) (string-null? text-acc)) #f)
+              ((pair? tc-acc)
+               (list (cons "role" "assistant")
+                 (cons "content" text-acc)
+                 (cons "tool_calls" (list->vector tc-acc))
+               ) ;list
+              ) ;
+              (else (list (cons "role" "assistant") (cons "content" text-acc)))
+        ) ;cond
       ) ;let*
     ) ;define
 
