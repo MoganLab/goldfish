@@ -181,7 +181,7 @@
 
     (define (%make-pi-editor app thinking-level)
       (make-editor ""
-        :multiline        #f
+        :multiline        #t
         :submit-on-enter? #t
         :top-border       %pi-editor-top-border
         :bottom-border    #t

@@ -32,7 +32,7 @@
   (check (editor-text ed) => "hello")
 ) ;let*
 
-;; 显式关闭 submit-on-enter? 时，即使多行模式 Enter 也不提交、不换行
+;; 显式关闭 submit-on-enter? 时，多行模式 Enter 插入换行
 (let* ((submitted-text #f)
        (ed (make-editor "hello" :multiline #t :submit-on-enter? #f
              :on-submit (lambda (comp text)
@@ -41,9 +41,26 @@
            ) ;make-editor
        ) ;ed
       ) ;let*
-  (check (component-handle-input ed 'enter) => #f)
+  (check (component-handle-input ed 'enter) => #t)
   (check submitted-text => #f)
-  (check (editor-text ed) => "hello")
+  (check (editor-text ed) => "hello\n")
+  (check (editor-cursor ed) => '(1 0))
+) ;let*
+
+;; 多行模式下 Ctrl-J / Shift-Enter 显式换行（Enter 仍提交）
+(let* ((submitted-text #f)
+       (ed (make-editor "hello" :multiline #t :submit-on-enter? #t
+             :on-submit (lambda (comp text)
+                          (set! submitted-text text)
+                        ) ;lambda
+           ) ;make-editor
+       ) ;ed
+      ) ;let*
+  (check (component-handle-input ed 'ctrl-j) => #t)
+  (check (component-handle-input ed 'shift-enter) => #t)
+  (check (editor-text ed) => "hello\n\n")
+  (check (editor-cursor ed) => '(2 0))
+  (check submitted-text => #f)
 ) ;let*
 
 ;; 显式关闭 submit-on-enter? 时，单行模式 Enter 不提交
