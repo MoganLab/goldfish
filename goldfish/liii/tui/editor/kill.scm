@@ -27,6 +27,7 @@
   ) ;export
   (import (scheme base)
     (liii base)
+    (liii list)
     (liii string)
     (liii unicode)
     (liii tui editor buffer)
@@ -34,7 +35,8 @@
   ) ;import
   (begin
 
-    ;; 删除光标到行尾 (Ctrl-K)
+    ;; 删除光标到行尾 (Ctrl-K)；光标已在行尾时删除换行、
+    ;; 把下一行拉到当前行（对空行即删除该空行）
     (define (buffer-kill-line-right! buf)
       (let* ((lines (buffer-lines buf))
              (r (buffer-row buf))
@@ -42,17 +44,27 @@
              (line (list-ref lines r))
              (len (utf8-string-length line))
             ) ;
-        (if (>= c len)
-          #f
-          (let ((new-line (utf8-substring line 0 c)))
-            (buffer-lines-set! buf (%replace-line lines r new-line))
+        (cond
+         ((< c len)
+          (buffer-lines-set! buf (%replace-line lines r (utf8-substring line 0 c)))
+          #t
+         ) ;
+         ((< r (- (length lines) 1))
+          ;; 行尾且非末行：与下一行合并（同 Delete 键行尾语义）
+          (let ((merged (string-append line (list-ref lines (+ r 1)))))
+            (buffer-lines-set! buf
+              (append (take lines r) (list merged) (drop lines (+ r 2)))
+            ) ;buffer-lines-set!
             #t
           ) ;let
-        ) ;if
+         ) ;
+         (else #f)
+        ) ;cond
       ) ;let*
     ) ;define
 
-    ;; 删除光标到行首 (Ctrl-U)
+    ;; 删除光标到行首 (Ctrl-U)；光标已在行首时删除换行、
+    ;; 回退到上一行末尾（对空行即删除该空行）
     (define (buffer-kill-line-left! buf)
       (let* ((lines (buffer-lines buf))
              (r (buffer-row buf))
@@ -60,14 +72,27 @@
              (line (list-ref lines r))
              (len (utf8-string-length line))
             ) ;
-        (if (<= c 0)
-          #f
-          (let ((new-line (if (>= c len) "" (utf8-substring line c len))))
-            (buffer-lines-set! buf (%replace-line lines r new-line))
-            (buffer-col-set! buf 0)
+        (cond
+         ((> c 0)
+          (buffer-lines-set! buf
+            (%replace-line lines r (if (>= c len) "" (utf8-substring line c len)))
+          ) ;buffer-lines-set!
+          (buffer-col-set! buf 0)
+          #t
+         ) ;
+         ((> r 0)
+          ;; 行首且非首行：与上一行合并（同 Backspace 键行首语义）
+          (let* ((prev-line (list-ref lines (- r 1))) (merged (string-append prev-line line)))
+            (buffer-lines-set! buf
+              (append (take lines (- r 1)) (list merged) (drop lines (+ r 1)))
+            ) ;buffer-lines-set!
+            (buffer-row-set! buf (- r 1))
+            (buffer-col-set! buf (utf8-string-length prev-line))
             #t
-          ) ;let
-        ) ;if
+          ) ;let*
+         ) ;
+         (else #f)
+        ) ;cond
       ) ;let*
     ) ;define
 
