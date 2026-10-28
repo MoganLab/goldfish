@@ -1,4 +1,4 @@
-(import (liii check) (liii pi agent tools) (liii pi code core tools) (liii pi agent tools) (liii string))
+(import (liii check) (liii pi agent tools) (liii pi code core tools) (liii pi agent tools) (liii string) (liii go) (liii time) (scheme time))
 
 (check-set-mode! 'report-failed)
 
@@ -48,7 +48,6 @@
 ;; timeout 超过 sanity cap (2147483.647s) 抛出异常
 (check-catch 'error (pi-execute-bash '(("command" . "echo 'timeout huge'")
                                        ("timeout" . 2147484))))
-
 ;; 通过 execute-tool-call 调用时非法 timeout 结构化捕获为 isError
 (let ((res (execute-tool-call "bash" '(("command" . "echo test") ("timeout" . 0)))))
   (check (pi-tool-result-is-error res) => #t)
@@ -203,5 +202,51 @@
   (check is-err => #t)
   (check-true (string-contains? out "fail msg"))
   (check-true (string-contains? out "Command exited with code 42")))
+
+;; :check-abort 中止：延迟信号保证 echo 先完成，中止后已产生的
+;; 部分输出仍保留在结果里，并追加 "Command aborted" 错误状态
+;; （对齐上游 signal.aborted → "Command aborted"）
+(let* ((sig (make-chan 1))
+       (t (go-call (lambda (ch) (sleep 0.5) (chan-send! ch 'abort 0)) sig))
+      ) ;
+  (let-values (((out is-err)
+                (pi-execute-bash '(("command" . "echo 'partial'; sleep 30"))
+                  :check-abort (lambda () (chan-try-recv! sig #f))
+                ) ;pi-execute-bash
+               ) ;
+              ) ;
+    (check is-err => #t)
+    (check-true (string-contains? out "partial"))
+    (check-true (string-contains? out "Command aborted"))
+  ) ;let-values
+) ;let*
+
+;; :check-abort 后台延迟中止：短延迟后中止 sleep 长命令，
+;; 总耗时不等自然退出（验证真的杀掉了进程树）
+(let* ((sig (make-chan 1))
+       (t (go-call (lambda (ch) (sleep 0.3) (chan-send! ch 'abort 0)) sig))
+       (start (current-jiffy))
+      ) ;
+  (let-values (((out is-err)
+                (pi-execute-bash '(("command" . "sleep 30"))
+                  :check-abort (lambda () (chan-try-recv! sig #f))
+                ) ;pi-execute-bash
+               ) ;
+              ) ;
+    (check is-err => #t)
+    (check-true (string-contains? out "Command aborted"))
+    (check-true
+      (< (/ (- (current-jiffy) start) (jiffies-per-second)) 10))
+  ) ;let-values
+) ;let*
+
+;; 无 :check-abort 时行为不变
+(let-values (((out is-err) (pi-execute-bash '(("command" . "echo 'no-abort'")))))
+  (check is-err => #f)
+  (check-true (string-contains? out "no-abort")))
+
+;; :check-abort 非过程时抛 type-error
+(check-catch 'type-error
+  (pi-execute-bash '(("command" . "echo x")) :check-abort "not-a-proc"))
 
 (check-report)

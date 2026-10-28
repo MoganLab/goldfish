@@ -192,16 +192,22 @@
 
     ;; 块级流式执行：与 run-streaming 的逐行回调不同，本接口在 stdout/stderr
     ;; 合并到同一管道后按原始字节块回调，保留两个流的写入顺序。
-    ;; (run-streaming-chunks command :cwd cwd :on-chunk proc :timeout seconds)
-    ;; 返回退出码；超时强杀时返回 #f。
+    ;; (run-streaming-chunks command :cwd cwd :on-chunk proc :timeout seconds
+    ;;                       :should-abort? thunk)
+    ;; 返回退出码；超时强杀时返回 #f；:should-abort? 谓词变真时杀进程树
+    ;; 并返回 'aborted（对齐上游 pi 信号中止语义，已产生输出仍回调）。
     (define (run-streaming-chunks command . opts)
       (let ((cwd (%keyword-value :cwd opts #f))
             (env (%keyword-value :env opts #f))
             (on-chunk (%keyword-value :on-chunk opts #f))
             (timeout (%keyword-value :timeout opts #f))
+            (should-abort? (%keyword-value :should-abort? opts #f))
            ) ;
         (when (and on-chunk (not (procedure? on-chunk)))
           (type-error "run-streaming-chunks: :on-chunk must be a procedure")
+        ) ;when
+        (when (and should-abort? (not (procedure? should-abort?)))
+          (type-error "run-streaming-chunks: :should-abort? must be a procedure")
         ) ;when
         (when (and timeout (not (real? timeout)))
           (type-error "run-streaming-chunks: :timeout must be a real number")
@@ -247,22 +253,32 @@
             (process-wait proc 500)
             #f
           ) ;define
+          (define (abort!)
+            (process-kill-tree proc)
+            (drain!)
+            (process-close proc)
+            (process-wait proc 500)
+            'aborted
+          ) ;define
           (let loop
             ()
-            (if (and deadline-ms (<= (%calc-rem-ms deadline-ms) 0))
-              (kill!)
-              (let ((ev (g_subprocess-poll-io proc 50)))
-                (cond
-                 ((eq? ev 'stdout)
-                  (let ((chunk (process-read proc :max-bytes 65536 :stream 'stdout)))
-                    (if (eof-object? chunk) (finish!) (begin (emit! chunk) (loop)))
-                  ) ;let
-                 ) ;
-                 ((eq? ev 'eof) (finish!))
-                 ((and (not (process-alive? proc)) (g_subprocess-eof? proc 'stdout)) (finish!))
-                 (else (loop))
-                ) ;cond
-              ) ;let
+            (if (and should-abort? (should-abort?))
+              (abort!)
+              (if (and deadline-ms (<= (%calc-rem-ms deadline-ms) 0))
+                (kill!)
+                (let ((ev (g_subprocess-poll-io proc 50)))
+                  (cond
+                   ((eq? ev 'stdout)
+                    (let ((chunk (process-read proc :max-bytes 65536 :stream 'stdout)))
+                      (if (eof-object? chunk) (finish!) (begin (emit! chunk) (loop)))
+                    ) ;let
+                   ) ;
+                   ((eq? ev 'eof) (finish!))
+                   ((and (not (process-alive? proc)) (g_subprocess-eof? proc 'stdout)) (finish!))
+                   (else (loop))
+                  ) ;cond
+                ) ;let
+              ) ;if
             ) ;if
           ) ;let
         ) ;let*

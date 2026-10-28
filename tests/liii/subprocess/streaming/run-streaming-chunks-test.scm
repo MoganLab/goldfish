@@ -1,4 +1,4 @@
-(import (liii check) (liii subprocess) (liii string))
+(import (liii check) (liii subprocess) (liii string) (liii go) (liii time) (scheme time))
 
 (check-set-mode! 'report-failed)
 
@@ -88,9 +88,58 @@
   (check (string-contains (string-join (reverse chunks) "") "first") => #t)
 ) ;let*
 
+;; :should-abort? 立即中止：sleep 5s 的命令，300ms 后后台协程经 channel 发信号，
+;; 循环在 50ms 轮询点探测到后强杀进程树并返回 'aborted（不等自然退出）。
+;; 注：go worker 是独立 s7 会话，副作用不回传，须用 channel 传信号
+(let* ((sig (make-chan 1))
+       (t (go-call (lambda (ch) (sleep 0.3) (chan-send! ch 'abort 0)) sig))
+       (start (current-jiffy))
+       (ret
+         (run-streaming-chunks '("python3" "-c" "import time; time.sleep(5)")
+           :should-abort? (lambda () (chan-try-recv! sig #f))
+           :timeout      30
+         ) ;run-streaming-chunks
+       ) ;ret
+       (elapsed (/ (- (current-jiffy) start) (jiffies-per-second)))
+      ) ;
+  (check ret => 'aborted)
+  (check-true (< elapsed 3))
+) ;let*
+
+;; 中止前已产生的输出仍回调（对齐上游：aborted 命令保留已产生输出）
+(let* ((chunks '())
+       (sig (make-chan 1))
+       (t (go-call (lambda (ch) (sleep 0.3) (chan-send! ch 'abort 0)) sig))
+       (ret
+         (run-streaming-chunks
+           '("python3" "-c" "import time; print('first', flush=True); time.sleep(5)")
+           :on-chunk      (lambda (c) (set! chunks (cons c chunks)))
+           :should-abort? (lambda () (chan-try-recv! sig #f))
+         ) ;run-streaming-chunks
+       ) ;ret
+      ) ;
+  (check ret => 'aborted)
+  (check-true (string-contains (string-join (reverse chunks) "") "first"))
+) ;let*
+
+;; 全程不触发中止时行为不变：正常返回退出码
+(let* ((sig (make-chan 1))
+       (ret
+         (run-streaming-chunks '("python3" "-c" "print('ok')")
+           :should-abort? (lambda () (chan-try-recv! sig #f))
+         ) ;run-streaming-chunks
+       ) ;ret
+      ) ;
+  (check ret => 0)
+) ;let*
+
 ;; 错误参数检查
 (check-catch 'type-error
   (run-streaming-chunks '("python3" "-c" "pass") :on-chunk "not-a-procedure")
+) ;check-catch
+
+(check-catch 'type-error
+  (run-streaming-chunks '("python3" "-c" "pass") :should-abort? "not-a-procedure")
 ) ;check-catch
 
 (check-catch 'type-error
