@@ -24,9 +24,9 @@
 (define-library (liii tui editor component)
   (export make-editor editor? make-text-input text-input? make-text-area
     text-area? editor-text editor-set-text! editor-cursor editor-set-cursor!
-    editor-display-col editor-lines editor-focused? editor-set-focused!
-    editor-placeholder editor-set-placeholder! editor-history-list
-    editor-history editor-set-on-submit! editor-border-color
+    editor-display-col editor-display-position editor-lines editor-focused?
+    editor-set-focused! editor-placeholder editor-set-placeholder!
+    editor-history-list editor-history editor-set-on-submit! editor-border-color
     editor-set-border-color! editor-max-lines editor-set-max-lines!
     editor-top-row editor-viewport editor-expanded-text
   ) ;export
@@ -40,6 +40,7 @@
     (liii tui editor buffer)
     (liii tui editor cursor)
     (liii tui editor state)
+    (liii tui editor view)
     (liii tui editor viewport)
     (liii tui editor paste)
     (liii tui editor handle)
@@ -193,16 +194,35 @@
         (type-error "editor-set-max-lines!: max-lines must be #f or a positive integer")
       ) ;unless
       (%ed-max-lines-set! (component-data ed) max-lines)
-      (%ed-sync-viewport! (component-data ed))
+      (%ed-sync-viewport! (component-data ed) 0)
       #t
     ) ;define
 
     ;; 返回 (top visible above below)：视口首行、可视行数、上方/下方隐藏行数
-    (define (editor-viewport ed)
+    (define (editor-viewport ed . width-arg)
       (unless (editor? ed)
         (type-error "editor-viewport: ed must be an editor")
       ) ;unless
-      (%ed-viewport (component-data ed))
+      (%ed-viewport (component-data ed) (if (pair? width-arg) (car width-arg) 0))
+    ) ;define
+
+    ;; 返回相对当前视口的视觉光标位置 (row col)
+    (define (editor-display-position ed width)
+      (unless (editor? ed)
+        (type-error "editor-display-position: ed must be an editor")
+      ) ;unless
+      (let* ((data (component-data ed))
+             (buf (%ed-buffer data))
+             (vp (%ed-viewport data width))
+             (pos (editor-visual-cursor (buffer-lines buf)
+                    (buffer-row buf)
+                    (buffer-col buf)
+                    width
+                  ) ;editor-visual-cursor
+             ) ;pos
+            ) ;
+        (list (- (car pos) (car vp)) (cadr pos))
+      ) ;let*
     ) ;define
 
     (define (editor-top-row ed)

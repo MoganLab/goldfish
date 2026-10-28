@@ -29,6 +29,7 @@
     (liii list)
     (liii unicode)
     (liii tui component)
+    (liii tui text-width)
     (liii tui box border)
     (liii tui editor history)
     (liii tui editor buffer)
@@ -67,7 +68,7 @@
     (define (%editor-render comp width)
       (let* ((data (component-data comp))
              (buf (%ed-buffer data))
-             (all-lines (buffer-lines buf))
+             (raw-lines (buffer-lines buf))
              (row (buffer-row buf))
              (col (buffer-col buf))
              (focused? (%ed-focused? data))
@@ -76,20 +77,37 @@
              (top-b (%ed-top-border data))
              (bot-b (%ed-bottom-border data))
              (b-col (%ed-border-color data))
-             (vp (%ed-viewport data))
+             (vp (%ed-viewport data width))
              (top (car vp))
              (visible (cadr vp))
              (above (caddr vp))
              (below (cadddr vp))
-             (visible-lines (take (drop all-lines top) visible))
-             (rendered (render-editor-lines visible-lines
-                         (- row top)
-                         col
-                         focused?
-                         ph
-                         width
-                         cursor-style
-                       ) ;render-editor-lines
+             (placeholder? (and (not focused?) (= (length raw-lines) 1) (string=? (car raw-lines) ""))
+             ) ;placeholder?
+             (visual-lines (append-map (lambda (line) (wrap-text line width)) raw-lines))
+             (visible-lines (if placeholder? raw-lines (take (drop visual-lines top) visible))
+             ) ;visible-lines
+             (rendered
+               (if placeholder?
+                 (render-editor-lines visible-lines 0 0 #f ph width cursor-style)
+                 (if (and focused? (not (eq? cursor-style 'hardware)))
+                   (let* ((pos (editor-visual-cursor raw-lines row col width))
+                          (cursor-row (- (car pos) top))
+                          (cursor-col (cadr pos))
+                         ) ;
+                     (map (lambda (line r)
+                            (if (= r cursor-row)
+                              (render-line-with-cursor line cursor-col #t cursor-style)
+                              line
+                            ) ;if
+                          ) ;lambda
+                       visible-lines
+                       (iota (length visible-lines))
+                     ) ;map
+                   ) ;let*
+                   visible-lines
+                 ) ;if
+               ) ;if
              ) ;rendered
              (body
                (append (if (> above 0) (list (%editor-scroll-line "↑" above)) '())
@@ -359,7 +377,7 @@
                 ) ;cond
               ) ;res
              ) ;
-          (%ed-sync-viewport! data)
+          (%ed-sync-viewport! data 0)
           res
         ) ;let
       ) ;let*

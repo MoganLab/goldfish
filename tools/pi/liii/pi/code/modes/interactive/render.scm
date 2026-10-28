@@ -110,14 +110,13 @@
                         ) ;
                      (cons (cadr pos) (+ (length doc-lines) (car pos)))
                    ) ;let
-                   (let* ((ed-cur (editor-cursor ed))
-                          (vp (editor-viewport ed))
-                          (top (car vp))
+                   (let* ((vp (editor-viewport ed w))
                           (above (caddr vp))
+                          (pos (editor-display-position ed w))
                           (ed-y (+ (length doc-lines) (if %pi-editor-top-border 1 0) (if (> above 0) 1 0))
                           ) ;ed-y
                          ) ;
-                     (cons (editor-display-col ed) (+ ed-y (- (car ed-cur) top)))
+                     (cons (cadr pos) (+ ed-y (car pos)))
                    ) ;let*
                  ) ;if
                ) ;cur-pos

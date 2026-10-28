@@ -33,6 +33,7 @@
     editor-cursor
     editor-set-cursor!
     editor-display-col
+    editor-display-position
     editor-lines
     editor-focused?
     editor-set-focused!
@@ -91,6 +92,7 @@
     ;; view 导出
     render-editor-lines
     render-line-with-cursor
+    editor-visual-cursor
   ) ;export
   (import (liii tui editor history)
     (liii tui editor buffer)

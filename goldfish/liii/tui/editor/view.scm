@@ -22,7 +22,7 @@
 ;;
 
 (define-library (liii tui editor view)
-  (export render-editor-lines render-line-with-cursor)
+  (export render-editor-lines render-line-with-cursor editor-visual-cursor)
   (import (scheme base)
     (scheme write)
     (liii base)
@@ -64,6 +64,33 @@
       ) ;if
     ) ;define
 
+    ;; 将逻辑光标转换为折行后的视觉行和显示列。
+    (define (editor-visual-cursor lines row col width)
+      (let loop
+        ((rest lines) (r 0) (visual-row 0))
+        (if (null? rest)
+          (list visual-row 0)
+          (let ((parts (wrap-text (car rest) width)))
+            (if (= r row)
+              (let* ((line (car rest))
+                     (safe-col (max 0 (min col (utf8-string-length line))))
+                     (prefix-parts (wrap-text (utf8-substring line 0 safe-col) width))
+                     (last-part (car (reverse prefix-parts)))
+                     (display-col (display-width last-part))
+                     (prefix-row (+ visual-row (- (length prefix-parts) 1)))
+                    ) ;
+                (if (and (> width 0) (< safe-col (utf8-string-length line)) (>= display-col width))
+                  (list (+ prefix-row 1) 0)
+                  (list prefix-row display-col)
+                ) ;if
+              ) ;let*
+              (loop (cdr rest) (+ r 1) (+ visual-row (length parts)))
+            ) ;if
+          ) ;let
+        ) ;if
+      ) ;let
+    ) ;define
+
     ;; 渲染编辑器全部可见行
     ;; lines: 行列表
     ;; row, col: 光标位置
@@ -75,17 +102,32 @@
       (let* ((empty? (and (= (length lines) 1) (string=? (car lines) ""))))
         (if (and empty? (not (string=? placeholder "")) (not focused?))
           ;; 未聚焦且为空时显示占位文本
-          (if (<= width 0) '("") (wrap-text placeholder width))
-          (map
+          (wrap-text placeholder width)
+          (append-map
             (lambda (line r)
-              (if (and focused? (= r row))
-                (render-line-with-cursor line col #t cursor-style)
-                line
-              ) ;if
+              (let ((parts (wrap-text line width)))
+                (if (and focused? (= r row))
+                  (let* ((pos (editor-visual-cursor (list line) 0 col width))
+                         (cursor-row (car pos))
+                         (cursor-col (cadr pos))
+                        ) ;
+                    (map (lambda (part part-row)
+                           (if (= part-row cursor-row)
+                             (render-line-with-cursor part cursor-col #t cursor-style)
+                             part
+                           ) ;if
+                         ) ;lambda
+                      parts
+                      (iota (length parts))
+                    ) ;map
+                  ) ;let*
+                  parts
+                ) ;if
+              ) ;let
             ) ;lambda
             lines
             (iota (length lines))
-          ) ;map
+          ) ;append-map
         ) ;if
       ) ;let*
     ) ;define

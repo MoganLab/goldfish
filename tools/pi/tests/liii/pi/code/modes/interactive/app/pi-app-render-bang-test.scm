@@ -8,6 +8,28 @@
 
 (check-set-mode! 'report)
 
+;; pi-app-render!
+;; 渲染交互式应用的完整界面，并更新编辑器视口与硬件光标位置。
+;;
+;; 语法
+;; ----
+;; (pi-app-render! app)
+;;
+;; 参数
+;; ----
+;; app : pi-app?
+;; 待渲染的交互式应用状态。
+;;
+;; 返回值
+;; ----
+;; 未指定
+;; 该过程通过副作用将界面写入应用关联的屏幕。
+;;
+;; 注意
+;; ----
+;; 编辑器内容按终端宽度折行。长输入使用视觉行滚动，硬件光标跟随
+;; 光标所在的视觉行，编辑器下边框不会被内容覆盖。
+
 ;; 编辑器可视行随终端高度（1/3）与滚动提示
 (let* ((vterm (make-virtual-terminal :width 100 :height 40))
        (app (make-pi-app :terminal vterm :handler (lambda (app msg) #t)))
@@ -63,7 +85,8 @@
        (ed (pi-app-editor app))
       ) ;
   (pi-app-render! app)
-  (let loop ((i 0))
+  (let loop
+    ((i 0))
     (when (< i 10)
       (pi-app-handle-input! app 'ctrl-j)
       (pi-app-render! app)
@@ -71,7 +94,8 @@
     ) ;when
   ) ;let
   (let ((filled-y (cadr (terminal-cursor vterm))))
-    (let loop ((i 0))
+    (let loop
+      ((i 0))
       (when (< i 15)
         (pi-app-handle-input! app 'ctrl-j)
         (pi-app-render! app)
@@ -81,6 +105,23 @@
     (check (editor-viewport ed) => '(16 10 16 0))
     (check (cadr (terminal-cursor vterm)) => filled-y)
   ) ;let
+) ;let*
+
+;; 长输入按视觉行滚动，光标停留在最后一个视觉行且下边框不被覆盖
+(let* ((vterm (make-virtual-terminal :width 10 :height 40))
+       (app (make-pi-app :terminal vterm :handler (lambda (app msg) #t)))
+       (ed (pi-app-editor app))
+       (screen (pi-app-screen app))
+      ) ;
+  (editor-set-text! ed "one two three")
+  (editor-set-cursor! ed 0 13)
+  (pi-app-render! app)
+  (check (editor-viewport ed 10) => '(0 2 0 0))
+  (check (terminal-cursor vterm) => '(5 8))
+  (check (list-ref (map strip-ansi (screen-lines screen)) 9)
+    =>
+    (utf8-make-string 10 #\─)
+  ) ;check
 ) ;let*
 
 (check-report)

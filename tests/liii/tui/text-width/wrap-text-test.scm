@@ -1,5 +1,4 @@
-(import (liii check)
-        (liii tui text-width))
+(import (liii check) (liii tui text-width))
 
 (check-set-mode! 'report-failed)
 
@@ -49,6 +48,7 @@
 
 ;; 英文超长词硬折行
 (check (wrap-text "abcdefghij" 4) => '("abcd" "efgh" "ij"))
+(check (wrap-text "12,34,56" 5) => '("12,34" ",56"))
 
 ;; 原文本自带换行符
 (check (wrap-text "hello\nworld" 10) => '("hello" "world"))
@@ -67,13 +67,14 @@
 (check (wrap-text "line1\n  indented" 15) => '("line1" "  indented"))
 
 ;; ANSI 序列安全折行（ANSI 码不占显示宽度，且不被切碎）
-(check (wrap-text "\x1b[31mhello world\x1b[0m" 5)
-  => '("\x1b[31mhello\x1b[0m" "\x1b[31mworld\x1b[0m")
-)
+(check (wrap-text "\x1b;[31mhello world\x1b;[0m" 5)
+  =>
+  '("\x1b;[31mhello\x1b;[0m" "\x1b;[31mworld\x1b;[0m")
+) ;check
 
 ;; 裸 ESC（非 CSI 开头，如 OSC 的 ESC]）不导致死循环，计 0 宽丢弃
-(check (wrap-text "a\x1b]0;tb" 80) => '("a]0;tb"))
-(check (wrap-text "x\x1b" 80) => '("x"))
+(check (wrap-text "a\x1b;]0;tb" 80) => '("a]0;tb"))
+(check (wrap-text "x\x1b;" 80) => '("x"))
 
 ;; 类型错误检查
 (check-catch 'type-error (wrap-text 123 10))
