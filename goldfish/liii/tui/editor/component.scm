@@ -203,6 +203,8 @@
                (if (and (pair? args) (string? (car args))) (cdr args) args)
              ) ;rest-opts
              (multiline? (%keyword-value :multiline rest-opts #f))
+             ;; Enter 行为只由该信号控制；多行编辑/换行留待后续实现
+             (submit-on-enter? (%keyword-value :submit-on-enter? rest-opts #t))
              (focused? (%keyword-value :focused rest-opts #t))
              (placeholder (%keyword-value :placeholder rest-opts ""))
              (cursor-style (%keyword-value :cursor-style rest-opts 'inverse))
@@ -216,7 +218,7 @@
              (hist (make-history history-size))
              (data (%make-editor-data buf hist multiline? focused? placeholder
                      cursor-style on-submit on-change top-border bottom-border
-                     border-color
+                     border-color submit-on-enter?
                    ) ;%make-editor-data
              ) ;data
              (comp (make-component %editor-render %editor-handle-input))

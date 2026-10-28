@@ -181,14 +181,15 @@
 
     (define (%make-pi-editor app thinking-level)
       (make-editor ""
-        :multiline     #f
-        :top-border    %pi-editor-top-border
-        :bottom-border #t
-        :border-color  (pi-thinking-border-color thinking-level)
-        :focused       #t
-        :cursor-style  'hardware
-        :on-submit     (lambda (self txt) (pi-app-submit! app txt))
-        :on-change     (lambda (ed txt) (%pi-app-editor-on-change app ed txt))
+        :multiline        #f
+        :submit-on-enter? #t
+        :top-border       %pi-editor-top-border
+        :bottom-border    #t
+        :border-color     (pi-thinking-border-color thinking-level)
+        :focused          #t
+        :cursor-style     'hardware
+        :on-submit        (lambda (self txt) (pi-app-submit! app txt))
+        :on-change (lambda (ed txt) (%pi-app-editor-on-change app ed txt))
       ) ;make-editor
     ) ;define
 
