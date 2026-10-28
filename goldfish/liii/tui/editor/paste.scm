@@ -220,6 +220,22 @@
       ) ;let
     ) ;define
 
+    ;; 在 text 的 i 处展开标记：命中时把 [start, i) 段与标记内容
+    ;; 写入 p，返回展开后的下一扫描位置；未命中返回 #f。
+    (define (%expand-marker-at! pairs text i len start p)
+      (let ((hit (%lookup-marker pairs text i len)))
+        (and hit
+          (let ((next (+ i (string-length (car hit)))))
+            (when (> i start)
+              (write-string (substring text start i) p)
+            ) ;when
+            (write-string (cdr hit) p)
+            next
+          ) ;let
+        ) ;and
+      ) ;let
+    ) ;define
+
     ;; 把文本中的标记展开为真实内容。
     ;; 单趟从左到右扫描：只有文本里原有的标记会被展开，替换进来的
     ;; 内容不再参与后续匹配，粘贴原文中恰好含有的旧标记文本保持
@@ -240,15 +256,9 @@
                 ) ;begin
                 ;; 标记都以 "[" 开头，其余字节直接跳过
                 (if (char=? (string-ref text i) #\[)
-                  (let ((hit (%lookup-marker pairs text i len)))
-                    (if hit
-                      (let ((next (+ i (string-length (car hit)))))
-                        (when (> i start)
-                          (write-string (substring text start i) p)
-                        ) ;when
-                        (write-string (cdr hit) p)
-                        (loop next next)
-                      ) ;let
+                  (let ((next (%expand-marker-at! pairs text i len start p)))
+                    (if next
+                      (loop next next)
                       (loop (+ i 1) start)
                     ) ;if
                   ) ;let
