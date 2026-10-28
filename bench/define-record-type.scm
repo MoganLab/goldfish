@@ -39,15 +39,17 @@
 (define-macro (define-record-type-old type make ? . fields)
   (let ((obj (gensym))
         (typ (gensym))
-        (args (map (lambda (field)
-                     (values (list 'quote (car field))
-                       (let ((par (memq (car field) (cdr make))))
-                         (and (pair? par) (car par))
-                       ) ;let
-                     ) ;values
-                   ) ;lambda
-                fields
-              ) ;map
+        (args
+          (map
+            (lambda (field)
+              (values (list 'quote (car field))
+                (let ((par (memq (car field) (cdr make))))
+                  (and (pair? par) (car par))
+                ) ;let
+              ) ;values
+            ) ;lambda
+            fields
+          ) ;map
         ) ;args
        ) ;
     `(begin
@@ -78,8 +80,8 @@
   ) ;display
   (bench "旧 Scheme 宏展开"
     (lambda ()
-      (macroexpand (define-record-type-old :person
-                     (make-person name age)
+      (macroexpand (define-record-type-old
+                     :person (make-person name age)
                      person?
                      (name get-name set-name!)
                      (age get-age set-age!)
@@ -92,7 +94,7 @@
   ) ;bench
   (bench "新 C 宏展开     "
     (lambda ()
-      (macroexpand (define-record-type :person
+      (macroexpand (define-record-type <person>
                      (make-person name age)
                      person?
                      (name get-name set-name!)
@@ -108,13 +110,13 @@
 
   ;; 两个版本展开式相同，运行时性能一致（展示用，各定义一个类型）
   (display "=== 运行时操作（两版展开式相同，性能一致）===\n\n")
-  (eval '(define-record-type-old :pare/old
-           (kons/old x y)
+  (eval '(define-record-type-old
+           :pare/old (kons/old x y)
            pare/old?
            (x kar/old)
            (y kdr/old))
   ) ;eval
-  (eval '(define-record-type :pare (kons x y) pare? (x kar) (y kdr)))
+  (eval '(define-record-type <pare> (kons x y) pare? (x kar) (y kdr)))
   (bench "构造（旧展开式）" (lambda () (kons/old 1 2)) 100000)
   (bench "构造（新展开式）" (lambda () (kons 1 2)) 100000)
   (let ((old-obj (kons/old 1 2)) (new-obj (kons 1 2)))

@@ -31,7 +31,7 @@
 
 (define default-model "deepseek-chat")
 
-(define-record-type config
+(define-record-type <config>
   (make-config api-key base-url model)
   config?
   (api-key config-api-key)
@@ -55,7 +55,7 @@
 
 ;; 流式解析状态记录
 
-(define-record-type stream-state
+(define-record-type <stream-state>
   (%make-stream-state pending out-buffer out-char-count chunk-char-count
     full-response
   ) ;%make-stream-state
@@ -177,7 +177,7 @@
 
 ;; 聊天请求记录：model / messages（按时间顺序的消息列表）
 
-(define-record-type chat-request
+(define-record-type <chat-request>
   (make-chat-request model messages)
   chat-request?
   (model chat-request-model)

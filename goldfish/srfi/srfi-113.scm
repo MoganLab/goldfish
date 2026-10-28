@@ -46,7 +46,7 @@
   ) ;export
   (begin
 
-    (define-record-type set-impl
+    (define-record-type <set-impl>
       (%make-set hash-table comparator)
       set?
       (hash-table set-hash-table)
@@ -617,7 +617,7 @@
       (apply set-delete set element-list)
     ) ;define
 
-    (define-record-type bag-impl
+    (define-record-type <bag-impl>
       (%make-bag entries comparator)
       bag?
       (entries bag-entries set-bag-entries!)

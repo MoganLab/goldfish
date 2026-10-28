@@ -6,7 +6,7 @@
   (import (liii error))
   (begin
 
-    (define-record-type stack
+    (define-record-type <stack>
       (%make-stack elements size)
       stack?
       (elements stack-elements stack-elements-set!)

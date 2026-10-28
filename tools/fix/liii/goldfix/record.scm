@@ -13,7 +13,7 @@
   (import (liii base) (liii error))
 
   (begin
-    (define-record-type fix-token
+    (define-record-type <fix-token>
       (%make-fix-token type offset end line column text)
       fix-token?
       (type fix-token-type)
@@ -24,7 +24,7 @@
       (text fix-token-text)
     ) ;define-record-type
 
-    (define-record-type fix-line
+    (define-record-type <fix-line>
       (%make-fix-line number start-offset first-code-token tokens)
       fix-line?
       (number fix-line-number)
@@ -33,7 +33,7 @@
       (tokens fix-line-tokens)
     ) ;define-record-type
 
-    (define-record-type open-frame
+    (define-record-type <open-frame>
       (%make-open-frame offset line column tag-name)
       open-frame?
       (offset open-frame-offset)
@@ -42,7 +42,7 @@
       (tag-name open-frame-tag-name)
     ) ;define-record-type
 
-    (define-record-type pending-close
+    (define-record-type <pending-close>
       (%make-pending-close frame offset end line column)
       pending-close?
       (frame pending-close-frame)
@@ -52,7 +52,7 @@
       (column pending-close-column)
     ) ;define-record-type
 
-    (define-record-type fix-edit
+    (define-record-type <fix-edit>
       (%make-fix-edit kind offset start end text reason open-offset)
       fix-edit?
       (kind fix-edit-kind)
@@ -64,7 +64,7 @@
       (open-offset fix-edit-open-offset)
     ) ;define-record-type
 
-    (define-record-type repair-report
+    (define-record-type <repair-report>
       (%make-repair-report ok? edits diagnostics)
       repair-report?
       (ok? repair-report-ok?)

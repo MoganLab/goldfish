@@ -1,6 +1,7 @@
 (import (scheme base)
   (scheme file)
   (liii check)
+  (liii string)
   (liii path)
   (liii os)
   (liii json)
@@ -30,6 +31,7 @@
 
 ;; 临时文件一律用 path-write-bytes 二进制写入，精确控制 LF 行尾，
 ;; 避免文本端口在 Windows 上把 \n 转写为 \r\n。
+
 (define (write-test-bytes tmp content)
   (path-write-bytes (path tmp) (string->utf8 content))
 ) ;define
@@ -97,9 +99,13 @@
 ;; 6. no-glue：库外直接引用 glue 违规
 (let* ((tmp (path->string (path-join (path-temp-dir) "gf-test-no-glue-outside.scm"))))
   (write-test-bytes tmp "(g_md5 \"abc\")\n")
-  (check (map (lambda (v) (list (car v) (caddr v) (cadddr v) (list-ref v 4)))
-           (check-file tmp #f))
-    => '((no-glue 1 g_md5 outside-library)))
+  (check
+    (map (lambda (v) (list (car v) (caddr v) (cadddr v) (list-ref v 4)))
+      (check-file tmp #f)
+    ) ;map
+    =>
+    '((no-glue 1 g_md5 outside-library))
+  ) ;check
   (path-unlink tmp #t)
 ) ;let*
 
@@ -122,11 +128,16 @@
 ) ;let*
 
 ;; 9. no-glue：不得直接导出 glue 绑定
-(let* ((tmp (path->string (path-join (path-temp-dir) "gf-test-no-glue-export-glue.scm"))))
+(let* ((tmp (path->string (path-join (path-temp-dir) "gf-test-no-glue-export-glue.scm"))
+       ) ;tmp
+      ) ;
   (write-test-bytes tmp
     "(define-library (demo exposed)\n  (export md5 g_md5)\n  (import (scheme base))\n  (begin\n    (define md5 g_md5))\n) ;define-library\n"
   ) ;write-test-bytes
-  (check (map (lambda (v) (list-ref v 4)) (check-file tmp #f)) => '(exported-glue))
+  (check (map (lambda (v) (list-ref v 4)) (check-file tmp #f))
+    =>
+    '(exported-glue)
+  ) ;check
   (path-unlink tmp #t)
 ) ;let*
 
@@ -135,6 +146,34 @@
   (write-test-bytes tmp
     ";; (g_md5 \"abc\")\n(define doc \"g_md5\")\n(define example 'g_md5)\n(define examples '(g_md5 g_sha1))\n"
   ) ;write-test-bytes
+  (check (check-file tmp #f) => '())
+  (path-unlink tmp #t)
+) ;let*
+
+;; 11. define-record-type：裸标识与 keyword 类型名均被拒绝（check-file 组合层保持既有倒序输出）
+(let* ((tmp (path->string (path-join (path-temp-dir) "gf-test-record-name.scm"))))
+  (write-test-bytes tmp
+    "(define-record-type foo (make-foo) foo?)\n(define-record-type :bar (make-bar) bar?)\n"
+  ) ;write-test-bytes
+  (let ((viols (check-file tmp #f)))
+    (check (length viols) => 2)
+    ;; check-file 对 append 型规则统一 reverse，与旧实现输出顺序一致
+    (check (map caddr viols) => '(2 1))
+    (check-true (string-contains? (cadddr (car viols)) ":bar"))
+    (check-true (string-contains? (cadddr (cadr viols)) "foo"))
+  ) ;let
+  (path-unlink tmp #t)
+) ;let*
+
+;; 12. define-record-type：合法命名通过，规则级 excludes 保持有效
+(let* ((tmp (path->string (path-join (path-temp-dir) "gf-test-record-excluded.scm")))
+       (cfg (string->json "{\"excludes\": {\"define-record-type\": [\"gf-test-record-excluded.scm\"]}}"
+            ) ;string->json
+       ) ;cfg
+      ) ;
+  (write-test-bytes tmp "(define-record-type foo (make-foo) foo?)\n")
+  (check (check-file tmp cfg) => '())
+  (write-test-bytes tmp "(define-record-type <foo> (make-foo) foo?)\n")
   (check (check-file tmp #f) => '())
   (path-unlink tmp #t)
 ) ;let*

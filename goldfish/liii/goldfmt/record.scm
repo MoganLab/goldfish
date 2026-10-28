@@ -23,7 +23,7 @@
   ) ;export
   (import (liii base) (liii error) (liii vector))
   (begin
-    (define-record-type env
+    (define-record-type <env>
       (%make-env tag-name depth indent children left-line right-line value)
       env?
       (tag-name env-tag-name)
@@ -34,7 +34,7 @@
       (right-line env-right-line)
       (value env-value)
     ) ;define-record-type
-    (define-record-type atom
+    (define-record-type <atom>
       (%make-atom depth indent left-line right-line value)
       atom?
       (depth atom-depth)
@@ -71,7 +71,7 @@
       ) ;when
       (%make-atom depth indent left-line right-line value)
     ) ;define*
-    (define-record-type raw-string-literal
+    (define-record-type <raw-string-literal>
       (%make-raw-string-literal source value)
       raw-string-literal?
       (source raw-string-literal-source)
@@ -88,7 +88,7 @@
       ) ;when
       (%make-raw-string-literal source value)
     ) ;define*
-    (define-record-type char-literal
+    (define-record-type <char-literal>
       (%make-char-literal source value)
       char-literal?
       (source char-literal-source)
@@ -104,7 +104,7 @@
       ) ;when
       (%make-char-literal source value)
     ) ;define*
-    (define-record-type dotted-tail
+    (define-record-type <dotted-tail>
       (%make-dotted-tail form)
       dotted-tail?
       (form dotted-tail-form)

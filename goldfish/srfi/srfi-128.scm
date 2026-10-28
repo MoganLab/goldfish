@@ -43,7 +43,7 @@
   ) ;export
   (begin
 
-    (define-record-type comparator
+    (define-record-type <comparator>
       (make-raw-comparator type-test equality ordering hash ordering? hash?)
       comparator?
       (type-test comparator-type-test-predicate)

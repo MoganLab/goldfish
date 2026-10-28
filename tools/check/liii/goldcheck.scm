@@ -130,12 +130,15 @@
       ) ;if
     ) ;define
 
+    (define %record-type-check-version 1)
     (define (check-file-rule-record-export file-path cfg acc)
       (if (check-rule-enabled? cfg "define-record-type")
         (if (file-excluded? file-path (check-rule-excludes cfg "define-record-type"))
           acc
           (let ((viols (check-record-export file-path)))
-            (if (null? viols) (rule-cache-touch "define-record-type" 0 file-path))
+            (if (null? viols)
+              (rule-cache-touch "define-record-type" %record-type-check-version file-path)
+            ) ;if
             (append acc viols)
           ) ;let
         ) ;if
@@ -290,7 +293,7 @@
             (limit (cond ((string=? rule-name "max-file-lines") (check-rule-limit cfg rule-name))
                          ((string=? rule-name "max-tree-depth") (check-rule-limit cfg rule-name))
                          ;; 内容哈希缓存键段：无阈值规则用 0 占位
-                         ((string=? rule-name "define-record-type") 0)
+                         ((string=? rule-name "define-record-type") %record-type-check-version)
                          ((string=? rule-name "no-crlf") 0)
                          ((string=? rule-name "no-glue") #f)
                          (else #f)
