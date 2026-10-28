@@ -6,10 +6,11 @@
 ) ;import
 
 ;; check-record-export
-;; 检查 define-library 中记录类型句法标识 <xxx> 的错误导出与占位定义。
-;; 规则一：<xxx> 不得出现在 (export ...) 中（含 rename 内外两个位置，
+;; 检查 define-record-type 类型名、错误导出与占位定义。
+;; 规则一：记录类型名必须采用 <xxx> 形状；
+;; 规则二：<xxx> 不得出现在 (export ...) 中（含 rename 内外两个位置，
 ;; 即使 <xxx> 来自其他库的转发导出也违规）；
-;; 规则二：(define <xxx> '<xxx>) 占位定义违规。
+;; 规则三：(define <xxx> '<xxx>) 占位定义违规。
 ;;
 ;; 语法
 ;; ----
@@ -26,7 +27,9 @@
 
 (check-set-mode! 'report-failed)
 
-(define %tmp-root (path->string (path-join (path-temp-dir) "gf-record-export-test")))
+(define %tmp-root
+  (path->string (path-join (path-temp-dir) "gf-record-export-test"))
+) ;define
 
 (define (%mkdirs p)
   (if (path-dir? p) #f (begin (%mkdirs (path-parent p)) (path-mkdir p)))
@@ -137,11 +140,78 @@
   (check (check-record-export f) => '())
 ) ;let
 
+;; 10. 普通脚本中的裸标识、keyword、空名和缺失类型名均违规
+(let* ((f (%mk "bad-type-names.scm"
+            "(define-record-type foo (make-foo) foo?)\n(define-record-type :bar (make-bar) bar?)\n(define-record-type <> (make-empty) empty?)\n(define-record-type)\n"
+          ) ;%mk
+       ) ;f
+       (viol (check-record-export f))
+      ) ;
+  (check (map caddr viol) => '(1 2 3 4))
+  (check-true (string-contains? (cadddr (car viol)) "foo"))
+  (check-true (string-contains? (cadddr (cadr viol)) ":bar"))
+  (check-true (string-contains? (cadddr (caddr viol)) "<>"))
+  (check-true (string-contains? (cadddr (cadddr viol)) "missing"))
+  (for-each
+    (lambda (v) (check-true (string-contains? (cadddr v) "<xxx>")))
+    viol
+  ) ;for-each
+) ;let*
+
+;; 11. define-library、begin、let 和 lambda 内的局部定义均被发现
+(let* ((f (%mk "nested-type-names.scm"
+            "(define-library (demo nested)\n  (import (scheme base))\n  (begin\n    (let ()\n      (define-record-type nested (make-nested) nested?)\n      (lambda ()\n        (define-record-type :inner (make-inner) inner?)))))\n"
+          ) ;%mk
+       ) ;f
+       (viol (check-record-export f))
+      ) ;
+  (check (length viol) => 2)
+  (check (map caddr viol) => '(5 7))
+) ;let*
+
+;; 12. 合法名称、非符号数据及非可执行模板不误报
+(let ((f (%mk "type-name-boundaries.scm"
+           ";; (define-record-type comment (make-comment) comment?)\n(define doc \"(define-record-type string (make-string) string?)\")\n(define quoted '(define-record-type quoted (make-quoted) quoted?))\n(define templated `(define-record-type templated (make-templated) templated?))\n(define-record-type* similar (make-similar) similar?)\n(define-record-type <foo> (make-foo) foo?)\n(define dotted . (define-record-type data (make-data) data?))\n"
+         ) ;%mk
+      ) ;f
+     ) ;
+  (check (check-record-export f) => '())
+) ;let
+
+;; 13. 非符号类型名安全报告，点对中的缺失名称也不会中断扫描
+(let* ((f (%mk "malformed-type-names.scm"
+            "(define-record-type 42 (make-answer) answer?)\n(define-record-type . foo)\n"
+          ) ;%mk
+       ) ;f
+       (viol (check-record-export f))
+      ) ;
+  (check (length viol) => 2)
+  (check (map caddr viol) => '(1 2))
+  (check-true (string-contains? (cadddr (car viol)) "42"))
+  (check-true (string-contains? (cadddr (cadr viol)) "missing"))
+) ;let*
+
+;; 14. 新旧三类违规按源码顺序完整输出
+(let* ((f (%mk "ordered-violations.scm"
+            "(define-library (demo ordered)\n  (import (scheme base))\n  (export <foo>)\n  (begin\n    (define-record-type foo (make-foo) foo?)\n    (define <foo> '<foo>)))\n"
+          ) ;%mk
+       ) ;f
+       (viol (check-record-export f))
+      ) ;
+  (check (length viol) => 3)
+  (check (map caddr viol) => '(3 5 6))
+  (check-true (string-contains? (cadddr (car viol)) "exported"))
+  (check-true (string-contains? (cadddr (cadr viol)) "<xxx>"))
+  (check-true (string-contains? (cadddr (caddr viol)) "placeholder"))
+) ;let*
+
 ;; ---- 清理临时目录 ---------------------------------------------------
 (for-each
   (lambda (name) (path-unlink (path (string-append %tmp-root "/" name)) #t))
-  '("clean.scm" "bad-export.scm" "placeholder.scm" "rename.scm"
-    "ok-names.scm" "reexport.scm" "script.scm" "multi.scm" "not-placeholder.scm")
+  '("clean.scm" "bad-export.scm" "placeholder.scm" "rename.scm" "ok-names.scm"
+    "reexport.scm" "script.scm" "multi.scm" "not-placeholder.scm"
+    "bad-type-names.scm" "nested-type-names.scm" "type-name-boundaries.scm"
+    "malformed-type-names.scm" "ordered-violations.scm")
 ) ;for-each
 (path-rmdir (path %tmp-root))
 

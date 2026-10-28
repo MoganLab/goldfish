@@ -14,7 +14,7 @@
 ;; 参数
 ;; ----
 ;; type-name : symbol
-;; 记录类型名，通常以冒号开头（如 :pare）。
+;; 记录类型名，统一采用 <xxx> 形状（如 <pare>）。
 ;;
 ;; constructor : symbol
 ;; 构造函数名。
@@ -43,7 +43,7 @@
 ;; - 访问函数：用于读取字段值
 ;; - 修改函数（可选）：用于修改字段值
 ;; 基础记录类型定义
-(define-record-type :pare
+(define-record-type <pare>
   (kons x y)
   pare?
   (x kar set-kar!)
@@ -56,9 +56,16 @@
 (check (kar (kons 1 2)) => 1)
 (check (kdr (kons 1 2)) => 2)
 ;; 修改器测试
-(check (let ((k (kons 1 2))) (set-kar! k 3) (kar k)) => 3)
+(check
+  (let ((k (kons 1 2)))
+    (set-kar! k 3)
+    (kar k)
+  ) ;let
+  =>
+  3
+) ;check
 ;; 更实用的记录类型 - 人员信息
-(define-record-type :person
+(define-record-type <person>
   (make-person name age)
   person?
   (name get-name set-name!)
@@ -68,10 +75,11 @@
 (check (get-age (make-person "Da" 3)) => 3)
 (check (get-name (make-person "Da" 3)) => "Da")
 ;; 使用修改器
-(check (let ((da (make-person "Da" 3)))
-         (set-name! da "Darcy")
-         (get-name da)
-       ) ;let
+(check
+  (let ((da (make-person "Da" 3)))
+    (set-name! da "Darcy")
+    (get-name da)
+  ) ;let
   =>
   "Darcy"
 ) ;check
@@ -84,7 +92,7 @@
   (check (+ (get-age p1) (get-age p2)) => 55)
 ) ;let
 ;; 构造器参数顺序与字段声明顺序不同
-(define-record-type :point
+(define-record-type <point>
   (make-point y x)
   point?
   (x point-x)
@@ -95,7 +103,7 @@
   (check (point-x p) => 20)
 ) ;let
 ;; 构造器只初始化部分字段，其余字段默认 #f（Goldfish 行为）
-(define-record-type :partial
+(define-record-type <partial>
   (make-partial a)
   partial?
   (a partial-a)
@@ -106,7 +114,7 @@
   (check (partial-b p) => #f)
 ) ;let
 ;; 构造器不含任何字段
-(define-record-type :empty
+(define-record-type <empty>
   (make-empty)
   empty-rec?
   (a empty-a)
@@ -134,7 +142,7 @@
 (check-catch 'wrong-number-of-args (set-kar! (kons 1 2)))
 ;; 在局部作用域中定义记录类型
 (let ()
-  (define-record-type :local
+  (define-record-type <local>
     (make-local v)
     local?
     (v local-v set-local-v!)
@@ -147,7 +155,7 @@
   ) ;let
 ) ;let
 ;; 字段值可以是另一个记录（嵌套记录）
-(define-record-type :holder
+(define-record-type <holder>
   (make-holder content)
   holder?
   (content holder-content)
@@ -159,12 +167,12 @@
 ) ;let
 ;; 同名类型重复定义互不干扰（各自拥有独立的类型标识）
 (let ()
-  (define-record-type :dup
+  (define-record-type <dup>
     (make-dup1 v)
     dup1?
     (v dup1-v)
   ) ;define-record-type
-  (define-record-type :dup
+  (define-record-type <dup>
     (make-dup2 v)
     dup2?
     (v dup2-v)

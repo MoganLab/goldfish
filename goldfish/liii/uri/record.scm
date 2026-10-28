@@ -106,7 +106,7 @@
     ;; path: 路径部分
     ;; query: 查询字符串（alist 格式）
     ;; fragment: 片段标识符
-    (define-record-type uri
+    (define-record-type <uri>
       (make-uri-raw scheme netloc path query fragment)
       uri?
       (scheme uri-scheme-raw uri-scheme-set!)

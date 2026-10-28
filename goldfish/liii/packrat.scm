@@ -57,7 +57,7 @@
   ) ;export
 
   (begin
-    (define-record-type parse-result
+    (define-record-type <parse-result>
       (make-parse-result successful? semantic-value next error)
       parse-result?
       (successful? parse-result-successful?)
@@ -68,7 +68,7 @@
     ) ;define-record-type
     ;; ^^ #f if none, but usually a parse-error structure
 
-    (define-record-type parse-results
+    (define-record-type <parse-results>
       (make-parse-results position base next map)
       parse-results?
       (position parse-results-position)
@@ -81,7 +81,7 @@
     ) ;define-record-type
     ;; ^^ an alist mapping a nonterminal to a parse-result
 
-    (define-record-type parse-error
+    (define-record-type <parse-error>
       (make-parse-error position expected messages)
       parse-error?
       (position parse-error-position)
@@ -92,7 +92,7 @@
       ;; list of strings
     ) ;define-record-type
 
-    (define-record-type parse-position
+    (define-record-type <parse-position>
       (make-parse-position file line column)
       parse-position?
       (file parse-position-file)
@@ -454,7 +454,7 @@
       ) ;letrec
     ) ;define-macro
 
-    (define-record-type packrat-parse-pattern
+    (define-record-type <packrat-parse-pattern>
       (make-packrat-parse-pattern binding-names parser-proc)
       packrat-parse-pattern?
       (binding-names packrat-parse-pattern-binding-names)

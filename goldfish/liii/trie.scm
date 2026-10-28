@@ -4,7 +4,7 @@
   (import (srfi srfi-1) (srfi srfi-2) (srfi srfi-9) (liii alist))
 
   (begin
-    (define-record-type :trie
+    (define-record-type <trie>
       (make-trie* children value)
       trie?
       (children trie-children trie-children-set!)

@@ -60,7 +60,7 @@
       (display "  max-tree-depth         语法树嵌套深度限制（默认 <= 15 层顶级表达式嵌套）"
       ) ;display
       (newline)
-      (display "  define-record-type     <xxx> 记录类型句法标识不得导出，禁止占位定义"
+      (display "  define-record-type     类型名必须为 <xxx>；禁止错误导出和占位定义"
       ) ;display
       (newline)
       (display "  no-crlf                换行符统一为 LF，发现 CRLF 报错（按 suffix/path 限定范围）"

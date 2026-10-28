@@ -27,11 +27,11 @@ gf check [options] [PATH...]
    - `g_xxx` 可以没有对应的公开接口 `xxx`，但不得直接导出 `g_xxx`
    - 跨库唯一性基于全仓分析；`--changed-since` 仅过滤最终报告
 
-4. **define-record-type**：记录类型句法标识导出限制
-   - R7RS/SRFI 9 中 `(define-record-type <t> ...)` 的 `<t>` 仅是句法标识，不对应运行时绑定
-   - `<xxx>` 形状的符号不得出现在 `(export ...)` 中（含 `rename` 内外两个位置，转发导出同样违规）
+4. **define-record-type**：记录类型命名与句法标识限制
+   - `(define-record-type <t> ...)` 的类型名必须采用 `<xxx>` 形状，普通脚本及嵌套定义同样检查；裸标识、keyword、空名和缺失类型名均违规
+   - R7RS/SRFI 9 中 `<t>` 仅是句法标识，不对应运行时绑定，不得出现在 `(export ...)` 中（含 `rename` 内外两个位置，转发导出同样违规）
    - 禁止 `(define <xxx> '<xxx>)` 占位定义
-   - 项目约定：记录类型名统一用 `<xxx>` 形状，构造器/谓词/访问器才是应导出的绑定
+   - 构造器、谓词和字段访问器才是应导出的运行时绑定
 
 ## Options
 
