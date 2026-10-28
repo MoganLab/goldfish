@@ -202,9 +202,7 @@
           (let loop
             ((j 0))
             (or (= j m-len)
-              (and (char=? (string-ref text (+ i j)) (string-ref marker j))
-                (loop (+ j 1))
-              ) ;and
+              (and (char=? (string-ref text (+ i j)) (string-ref marker j)) (loop (+ j 1)))
             ) ;or
           ) ;let
         ) ;and
@@ -217,10 +215,7 @@
         ((ps pairs))
         (if (null? ps)
           #f
-          (if (%match-marker-at? text i len (caar ps))
-            (car ps)
-            (loop (cdr ps))
-          ) ;if
+          (if (%match-marker-at? text i len (caar ps)) (car ps) (loop (cdr ps)))
         ) ;if
       ) ;let
     ) ;define

@@ -238,22 +238,24 @@
                          (buffer-move-up! buf)
                          ;; 草稿保存展开后的文本：down 返回草稿时不会
                          ;; 还原出已失效的标记
-                         (%load-history! data buf comp on-ch
-                           (history-prev hist
-                             (paste-expand (%ed-pastes data) (buffer-text buf))
-                           )
-                         )
+                         (%load-history! data
+                           buf
+                           comp
+                           on-ch
+                           (history-prev hist (paste-expand (%ed-pastes data) (buffer-text buf)))
+                         ) ;%load-history!
                        ) ;if
                       ) ;
                       ((or (eq? key 'down) (eq? key 'ctrl-n))
                        (if
                          (or multi? (> (length (buffer-lines buf)) 1))
                          (buffer-move-down! buf)
-                         (%load-history! data buf comp on-ch
-                           (history-next hist
-                             (paste-expand (%ed-pastes data) (buffer-text buf))
-                           )
-                         )
+                         (%load-history! data
+                           buf
+                           comp
+                           on-ch
+                           (history-next hist (paste-expand (%ed-pastes data) (buffer-text buf)))
+                         ) ;%load-history!
                        ) ;if
                       ) ;
                       ((or (eq? key 'backspace) (eq? key 'ctrl-h))
