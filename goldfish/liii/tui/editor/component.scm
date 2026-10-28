@@ -266,9 +266,21 @@
              (history-size (%keyword-value :history-size rest-opts 100))
              (buf (make-buffer initial-text multiline?))
              (hist (make-history history-size))
-             (data (%make-editor-data buf hist multiline? focused? placeholder
-                     cursor-style on-submit on-change top-border bottom-border
-                     border-color submit-on-enter? max-lines 0 (make-paste-registry)
+             (data (%make-editor-data buf
+                     hist
+                     multiline?
+                     focused?
+                     placeholder
+                     cursor-style
+                     on-submit
+                     on-change
+                     top-border
+                     bottom-border
+                     border-color
+                     submit-on-enter?
+                     max-lines
+                     0
+                     (make-paste-registry)
                    ) ;%make-editor-data
              ) ;data
              (comp (make-component %editor-render %editor-handle-input))

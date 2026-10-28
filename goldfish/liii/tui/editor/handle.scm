@@ -230,13 +230,15 @@
                       ) ;
                       ((or (eq? key 'up) (eq? key 'ctrl-p))
                        ;; 粘贴展开后即使单行模式，缓冲区有多行也应允许上下移动
-                       (if (or multi? (> (length (buffer-lines buf)) 1))
+                       (if
+                         (or multi? (> (length (buffer-lines buf)) 1))
                          (buffer-move-up! buf)
                          (%load-history! buf comp on-ch (history-prev hist (buffer-text buf)))
                        ) ;if
                       ) ;
                       ((or (eq? key 'down) (eq? key 'ctrl-n))
-                       (if (or multi? (> (length (buffer-lines buf)) 1))
+                       (if
+                         (or multi? (> (length (buffer-lines buf)) 1))
                          (buffer-move-down! buf)
                          (%load-history! buf comp on-ch (history-next hist (buffer-text buf)))
                        ) ;if

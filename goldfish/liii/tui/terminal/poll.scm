@@ -98,7 +98,9 @@
       (let loop
         ((acc (reverse initial-bytes)))
         (if (%rev-ends-with? acc '(126 49 48 50 91 27))
-          (%wrap-paste (or (%resolve-utf8-bytes (reverse (drop acc 6))) ""))
+          (%wrap-paste
+            (or (%resolve-utf8-bytes (reverse (drop acc 6))) "")
+          ) ;%wrap-paste
           (if (console-kbhit? 50)
             (let ((b (console-getch)))
               (if (and b (exact-integer? b))
@@ -128,31 +130,32 @@
         ((acc (list first)))
         (if (console-kbhit? 10)
           (let ((c (console-getch)))
-            (cond ((not (and c (exact-integer? c))) (%finish-paste-burst acc))
-                  ((= c 13) (loop (cons "\r" acc)))
-                  ((= c 10) (loop (cons "\n" acc)))
-                  ((= c 9) (loop (cons "\t" acc)))
-                  ((= c 27) (%pending-push! (%poll-escape-key)) (%finish-paste-burst acc))
-                  ((and (os-windows?) (or (= c 0) (= c 224)))
-                   (let ((ext (console-getch)))
-                     (when (and ext (exact-integer? ext))
-                       (%pending-push! (%map-extended-key ext))
-                     ) ;when
-                   ) ;let
-                   (%finish-paste-burst acc)
-                  ) ;
-                  ((>= c 194)
-                   (let ((n (utf8-sequence-length c)))
-                     (if n
-                       (let ((ch (%poll-utf8-char c n)))
-                         (loop (if ch (cons ch acc) acc))
-                       ) ;let
-                       (loop acc)
-                     ) ;if
-                   ) ;let
-                  ) ;
-                  ((>= c 32) (loop (cons (string (integer->char c)) acc)))
-                  (else (%pending-push! (%map-standard-key c)) (%finish-paste-burst acc))
+            (cond
+             ((not (and c (exact-integer? c))) (%finish-paste-burst acc))
+             ((= c 13) (loop (cons "\r" acc)))
+             ((= c 10) (loop (cons "\n" acc)))
+             ((= c 9) (loop (cons "\t" acc)))
+             ((= c 27) (%pending-push! (%poll-escape-key)) (%finish-paste-burst acc))
+             ((and (os-windows?) (or (= c 0) (= c 224)))
+              (let ((ext (console-getch)))
+                (when (and ext (exact-integer? ext))
+                  (%pending-push! (%map-extended-key ext))
+                ) ;when
+              ) ;let
+              (%finish-paste-burst acc)
+             ) ;
+             ((>= c 194)
+              (let ((n (utf8-sequence-length c)))
+                (if n
+                  (let ((ch (%poll-utf8-char c n)))
+                    (loop (if ch (cons ch acc) acc))
+                  ) ;let
+                  (loop acc)
+                ) ;if
+              ) ;let
+             ) ;
+             ((>= c 32) (loop (cons (string (integer->char c)) acc)))
+             (else (%pending-push! (%map-standard-key c)) (%finish-paste-burst acc))
             ) ;cond
           ) ;let
           (%finish-paste-burst acc)
@@ -253,9 +256,7 @@
       (if (not (console-kbhit? 25))
         'escape
         (let ((bytes (%read-escape-bytes)))
-          (if (and %paste-mode?
-                (%bytes-start-with? bytes (list 27 91 50 48 48 126))
-              ) ;and
+          (if (and %paste-mode? (%bytes-start-with? bytes (list 27 91 50 48 48 126)))
             (%read-bracketed-paste (drop bytes 6))
             (%resolve-ansi-bytes bytes)
           ) ;if
@@ -290,17 +291,16 @@
                   ) ;key
                  ) ;
               ;; 普通字符/回车之后紧跟更多输入：按粘贴突发处理（Windows 兜底）
-              (if (and %paste-mode?
-                    (or (eq? key 'enter)
-                      (and (string? key)
-                        (not (and (>= (string-length key) 6)
-                               (string=? (substring key 0 6) %paste-start)
-                             ) ;and
-                        ) ;not
-                      ) ;and
-                    ) ;or
-                    (console-kbhit? 5)
-                  ) ;and
+              (if
+                (and %paste-mode?
+                  (or (eq? key 'enter)
+                    (and (string? key)
+                      (not (and (>= (string-length key) 6) (string=? (substring key 0 6) %paste-start))
+                      ) ;not
+                    ) ;and
+                  ) ;or
+                  (console-kbhit? 5)
+                ) ;and
                 (%read-paste-burst (if (eq? key 'enter) "\r" key))
                 key
               ) ;if

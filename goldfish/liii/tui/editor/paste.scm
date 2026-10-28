@@ -30,12 +30,7 @@
     paste-registry-clear! paste-registry-count paste-registry-remove!
     paste-expand paste-marker-at-end paste-marker-at-start
   ) ;export
-  (import (scheme base)
-    (liii base)
-    (liii list)
-    (liii string)
-    (liii unicode)
-  ) ;import
+  (import (scheme base) (liii base) (liii list) (liii string) (liii unicode))
   (begin
 
     (define %paste-start-marker "\x1b;[200~")
@@ -156,9 +151,7 @@
     ) ;define
 
     (define (paste-registry-add! reg text)
-      (let* ((id (+ (%paste-counter reg) 1))
-             (marker (%paste-marker id text))
-            ) ;
+      (let* ((id (+ (%paste-counter reg) 1)) (marker (%paste-marker id text)))
         (%paste-counter-set! reg id)
         (%paste-entries-set! reg (cons (cons marker text) (%paste-entries reg)))
         marker
@@ -174,7 +167,8 @@
     (define (paste-registry-remove! reg marker)
       (when (assoc marker (%paste-entries reg))
         (%paste-entries-set! reg
-          (filter (lambda (entry) (not (string=? (car entry) marker)))
+          (filter
+            (lambda (entry) (not (string=? (car entry) marker)))
             (%paste-entries reg)
           ) ;filter
         ) ;%paste-entries-set!
@@ -200,9 +194,8 @@
         (if (null? entries)
           #f
           (let* ((marker (caar entries)) (len (utf8-string-length marker)))
-            (if (and (>= col len)
-                  (string=? (utf8-substring line (- col len) col) marker)
-                ) ;and
+            (if
+              (and (>= col len) (string=? (utf8-substring line (- col len) col) marker))
               (cons marker (- col len))
               (loop (cdr entries))
             ) ;if
@@ -219,9 +212,10 @@
           (if (null? entries)
             #f
             (let* ((marker (caar entries)) (len (utf8-string-length marker)))
-              (if (and (<= (+ col len) line-len)
-                    (string=? (utf8-substring line col (+ col len)) marker)
-                  ) ;and
+              (if
+                (and (<= (+ col len) line-len)
+                  (string=? (utf8-substring line col (+ col len)) marker)
+                ) ;and
                 (cons marker (+ col len))
                 (loop (cdr entries))
               ) ;if
