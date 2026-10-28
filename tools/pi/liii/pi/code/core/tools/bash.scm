@@ -220,12 +220,13 @@
     ;; 基于 (liii subprocess) 公开的 run-streaming-chunks 实现流式执行：
     ;; stdout/stderr 合并到同一管道，按原始字节块收集输出，
     ;; 并按 100ms 节流回调累计文本快照。
-    ;; 返回值：(values 累计文本 退出码)，超时强杀时退出码为 -1。
+    ;; 返回值：(values 累计文本 退出码)，超时强杀时退出码为 -1；
+    ;; check-abort 谓词为真时杀进程树并返回退出码 -2（aborted）。
     ;; 后台流式执行：累计文本保留原始字节，回调与返回值都是清理后的文本。
     ;; 清理只在通过 100ms 节流后才执行（高频字节块不触发挥霍性的全量清理，
     ;; 否则大输出流式时 CPU 会飕升）；每次对累计全文重新清理，
     ;; 跨块不完整转义序列在下一帧自愈（等效上游 splitIncompleteAnsiSuffix）
-    (define (%run-bash-streaming command cwd timeout on-update)
+    (define (%run-bash-streaming command cwd timeout on-update check-abort)
       (let* ((text "") (last-update 0) (last-raw ""))
         (define (send-update! force?)
           (let ((now (%bash-now-ms)))
@@ -246,15 +247,19 @@
           ) ;when
         ) ;define
         (let ((ret (run-streaming-chunks (list (pi-find-bash-path) "-c" command)
-                     :cwd      cwd
-                     :on-chunk append-chunk!
-                     :timeout  timeout
+                     :cwd           cwd
+                     :on-chunk      append-chunk!
+                     :timeout       timeout
+                     :should-abort? check-abort
                    ) ;run-streaming-chunks
               ) ;ret
              ) ;
           (send-update! #t)
           (let ((clean (pi-bash-clean-output text)))
-            (if (eq? ret #f) (values clean -1) (values clean ret))
+            (cond ((eq? ret 'aborted) (values clean -2))
+                  ((eq? ret #f) (values clean -1))
+                  (else (values clean ret))
+            ) ;cond
           ) ;let
         ) ;let
       ) ;let*
@@ -266,6 +271,11 @@
              (trimmed-text (string-trim-both text))
             ) ;
         (cond ((= exit-code 0) (values text #f))
+              ((= exit-code -2)
+               (let ((msg "Command aborted"))
+                 (values (if (string-null? trimmed-text) msg (string-append text "\n\n" msg)) #t)
+               ) ;let
+              ) ;
               ((= exit-code -1)
                (let ((msg (string-append "Command timed out after " (number->string timeout) " seconds")
                      ) ;msg
@@ -311,6 +321,7 @@
              ) ;timeout
              (command (pi-arg-ref args "command"))
              (on-update (%keyword-value :on-update opts #f))
+             (check-abort (%keyword-value :check-abort opts #f))
             ) ;
         (if timed-out?
           (values (string-append "Command timed out after " (number->string timeout) " seconds")
@@ -323,8 +334,19 @@
             (when (and on-update (not (procedure? on-update)))
               (error 'type-error "on-update must be a procedure")
             ) ;when
-            (if on-update
-              (let-values (((text code) (%run-bash-streaming command cwd timeout on-update)))
+            (when (and check-abort (not (procedure? check-abort)))
+              (error 'type-error "check-abort must be a procedure")
+            ) ;when
+            (if (or on-update check-abort)
+              (let-values (((text code)
+                            (%run-bash-streaming command
+                              cwd
+                              timeout
+                              (or on-update (lambda (text) #f))
+                              check-abort
+                            ) ;%run-bash-streaming
+                           ) ;
+                          ) ;
                 (%format-bash-result text code timeout)
               ) ;let-values
               (let ((res (run-either (list (pi-find-bash-path) "-c" command)
