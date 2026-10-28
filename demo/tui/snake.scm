@@ -163,15 +163,14 @@
                     ;; 其他按键：方向键立即转向（不消耗 tick），
                     ;; 暂停/退出交给 tick；转向后继续排空队列
                     (else
-                      (let ((cmd (snake-normalize-key key)))
-                        (cond ((memq cmd '(up down left right))
-                               (set! active-game (snake-turn active-game key))
-                               (poll-loop (terminal-poll-key term))
-                              ) ;
-                              ((eq? cmd 'pause) (game-loop (snake-tick active-game key) cur-cols cur-rows))
-                              (else (poll-loop (terminal-poll-key term)))
-                        ) ;cond
-                      ) ;let
+                      (case (snake-normalize-key key)
+                            ((up down left right)
+                             (set! active-game (snake-turn active-game key))
+                             (poll-loop (terminal-poll-key term))
+                            ) ;
+                            ((pause) (game-loop (snake-tick active-game key) cur-cols cur-rows))
+                            (else (poll-loop (terminal-poll-key term)))
+                      ) ;case
                     ) ;else
                   ) ;cond
                 ) ;let
