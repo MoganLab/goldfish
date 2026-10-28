@@ -353,9 +353,9 @@ timeout 600 bin/gf pi -p --max-turns 20 --timeout 60 "遍历 goldfish/ 给出模
 # bash 工具超时生效后模型可自主以更长 timeout 重试
 timeout 300 bin/gf pi -p --tools bash --timeout 5 "用 bash 运行 sleep 30 然后告诉我结果"
 
-# 会话级累计超时（默认 600s，0 为关闭兜底放宽限制）
-timeout 7200 bin/gf pi -p --session-timeout 7000 "长任务执行"
-timeout 7200 bin/gf pi -p --session-timeout 0 "长任务执行（不设会话超时）"
+# 会话级累计超时（默认 0，即不设上限；正数按需开启兜底）
+timeout 7200 bin/gf pi -p --session-timeout 7000 "长任务执行（最多 7000 秒）"
+bin/gf pi -p "长任务执行（默认不设会话超时）"
 
 # 系统提示词：替换 preamble / 追加附加节（可重复）
 timeout 300 bin/gf pi -p --system-prompt "You are a Scheme expert." "解释 call/cc"

@@ -71,7 +71,7 @@
              (session-timeout
                (let ((st (pi-args-ref parsed 'session-timeout)))
                  (if (number? st) st (cdr (or (assoc 'session-timeout cfg) '(#f
-                                                                             . 600))))
+                                                                             . 0))))
                ) ;let
              ) ;session-timeout
             ) ;
@@ -135,7 +135,7 @@
              (session-timeout
                (let ((st (pi-args-ref parsed 'session-timeout)))
                  (if (number? st) st (cdr (or (assoc 'session-timeout cfg) '(#f
-                                                                             . 600))))
+                                                                             . 0))))
                ) ;let
              ) ;session-timeout
             ) ;
