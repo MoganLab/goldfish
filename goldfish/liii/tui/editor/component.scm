@@ -27,7 +27,8 @@
     editor-display-col editor-lines editor-focused? editor-set-focused!
     editor-placeholder editor-set-placeholder! editor-history-list
     editor-history editor-set-on-submit! editor-border-color
-    editor-set-border-color!
+    editor-set-border-color! editor-max-lines editor-set-max-lines!
+    editor-top-row editor-viewport
   ) ;export
   (import (scheme base)
     (scheme write)
@@ -39,6 +40,7 @@
     (liii tui editor buffer)
     (liii tui editor cursor)
     (liii tui editor state)
+    (liii tui editor viewport)
     (liii tui editor handle)
   ) ;import
   (begin
@@ -157,6 +159,40 @@
       (%ed-placeholder-set! (component-data ed) ph)
     ) ;define
 
+    (define (editor-max-lines ed)
+      (unless (editor? ed)
+        (type-error "editor-max-lines: ed must be an editor")
+      ) ;unless
+      (%ed-max-lines (component-data ed))
+    ) ;define
+
+    (define (editor-set-max-lines! ed max-lines)
+      (unless (editor? ed)
+        (type-error "editor-set-max-lines!: ed must be an editor")
+      ) ;unless
+      (unless (or (not max-lines) (and (integer? max-lines) (> max-lines 0)))
+        (type-error "editor-set-max-lines!: max-lines must be #f or a positive integer")
+      ) ;unless
+      (%ed-max-lines-set! (component-data ed) max-lines)
+      (%ed-sync-viewport! (component-data ed))
+      #t
+    ) ;define
+
+    ;; 返回 (top visible above below)：视口首行、可视行数、上方/下方隐藏行数
+    (define (editor-viewport ed)
+      (unless (editor? ed)
+        (type-error "editor-viewport: ed must be an editor")
+      ) ;unless
+      (%ed-viewport (component-data ed))
+    ) ;define
+
+    (define (editor-top-row ed)
+      (unless (editor? ed)
+        (type-error "editor-top-row: ed must be an editor")
+      ) ;unless
+      (%ed-top-row (component-data ed))
+    ) ;define
+
     (define (editor-border-color ed)
       (unless (editor? ed)
         (type-error "editor-border-color: ed must be an editor")
@@ -203,8 +239,9 @@
                (if (and (pair? args) (string? (car args))) (cdr args) args)
              ) ;rest-opts
              (multiline? (%keyword-value :multiline rest-opts #f))
-             ;; Enter 行为只由该信号控制；多行编辑/换行留待后续实现
+             ;; Enter 提交与多行换行通过该信号解耦
              (submit-on-enter? (%keyword-value :submit-on-enter? rest-opts #t))
+             (max-lines (%keyword-value :max-lines rest-opts #f))
              (focused? (%keyword-value :focused rest-opts #t))
              (placeholder (%keyword-value :placeholder rest-opts ""))
              (cursor-style (%keyword-value :cursor-style rest-opts 'inverse))
@@ -218,11 +255,14 @@
              (hist (make-history history-size))
              (data (%make-editor-data buf hist multiline? focused? placeholder
                      cursor-style on-submit on-change top-border bottom-border
-                     border-color submit-on-enter?
+                     border-color submit-on-enter? max-lines 0
                    ) ;%make-editor-data
              ) ;data
              (comp (make-component %editor-render %editor-handle-input))
             ) ;
+        (unless (or (not max-lines) (and (integer? max-lines) (> max-lines 0)))
+          (type-error "make-editor: :max-lines must be #f or a positive integer")
+        ) ;unless
         (component-data-set! comp data)
         (buffer-move-end! buf)
         comp

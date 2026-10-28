@@ -22,6 +22,20 @@
   ) ;import
   (begin
 
+    ;; 编辑器可视行预算：至少 5 行，且不超过终端高度的 1/3；
+    ;; chrome 扣除上下边框与可能出现的上下滚动提示（各 1 行）
+    (define %pi-editor-min-lines 5)
+    (define %pi-editor-chrome-lines 4)
+
+    (define (%pi-editor-max-lines rows footer-lines menu-lines)
+      (let* ((rows (max 1 rows))
+             (by-ratio (quotient rows 3))
+             (by-space (- rows %pi-editor-chrome-lines footer-lines menu-lines))
+            ) ;
+        (max %pi-editor-min-lines (min by-ratio by-space))
+      ) ;let*
+    ) ;define
+
     (define (pi-app-render! app)
       (let* ((screen (pi-app-screen app))
              (term (%pi-app-term app))
@@ -50,27 +64,37 @@
                (ed (pi-app-editor app))
                (active-selector (pi-app-active-selector app))
                (input-component (or active-selector ed))
+               (footer-lines (component-render (%pi-app-footer app) w))
+               (menu (and (not active-selector) (pi-app-slash-command-menu app)))
+               (menu-lines (if menu (component-render menu w) '()))
                ;; busy 时编辑器上边框替换为 Working 动画行（行数不变）
                (ed-lines
-                 (let* ((raw (component-render input-component w))
+                 (let* ((_ (unless active-selector
+                             (editor-set-max-lines! ed
+                               (%pi-editor-max-lines (cadr (terminal-size term))
+                                 (length footer-lines)
+                                 (length menu-lines)
+                               ) ;%pi-editor-max-lines
+                             ) ;editor-set-max-lines!
+                           ) ;unless
+                       ) ;
+                        (raw (component-render input-component w))
                         (editor-lines
                           (if (and (not active-selector) (pi-queue-busy? q) (pair? raw) %pi-editor-top-border)
-                            (cons (working-border-line (pi-app-working app)
-                                    w
-                                    (pi-thinking-border-color (pi-app-thinking-level app))
-                                  ) ;working-border-line
-                              (cdr raw)
-                            ) ;cons
-                            raw
-                          ) ;if
-                        ) ;editor-lines
-                        (menu (and (not active-selector) (pi-app-slash-command-menu app)))
+                              (cons (working-border-line (pi-app-working app)
+                                      w
+                                      (pi-thinking-border-color (pi-app-thinking-level app))
+                                    ) ;working-border-line
+                                (cdr raw)
+                              ) ;cons
+                              raw
+                            ) ;if
+                          ) ;editor-lines
                        ) ;
-                   (append editor-lines (if menu (component-render menu w) '()))
-                 ) ;let*
-               ) ;ed-lines
-               (footer-lines (component-render (%pi-app-footer app) w))
-               (cur-pos
+                     (append editor-lines menu-lines)
+                   ) ;let*
+                 ) ;ed-lines
+                 (cur-pos
                  (if active-selector
                    ;; 选择器类型分发：搜索行光标定位（thinking 与 model 同构）
                    (let ((pos (cond ((thinking-selector? active-selector)
@@ -85,11 +109,18 @@
                         ) ;
                      (cons (cadr pos) (+ (length doc-lines) (car pos)))
                    ) ;let
-                   (let ((ed-cur (editor-cursor ed))
-                         (ed-y (+ (length doc-lines) (if %pi-editor-top-border 1 0)))
-                        ) ;
-                     (cons (editor-display-col ed) (+ ed-y (car ed-cur)))
-                   ) ;let
+                    (let* ((ed-cur (editor-cursor ed))
+                           (vp (editor-viewport ed))
+                           (top (car vp))
+                           (above (caddr vp))
+                           (ed-y (+ (length doc-lines)
+                                    (if %pi-editor-top-border 1 0)
+                                    above
+                                  ) ;+
+                           ) ;
+                          ) ;
+                      (cons (editor-display-col ed) (+ ed-y (- (car ed-cur) top)))
+                    ) ;let*
                  ) ;if
                ) ;cur-pos
               ) ;

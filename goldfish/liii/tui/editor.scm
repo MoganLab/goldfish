@@ -43,6 +43,10 @@
     editor-set-on-submit!
     editor-border-color
     editor-set-border-color!
+    editor-max-lines
+    editor-set-max-lines!
+    editor-top-row
+    editor-viewport
     ;; buffer 导出
     make-buffer
     buffer?

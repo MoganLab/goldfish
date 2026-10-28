@@ -26,6 +26,7 @@
   (import (scheme base)
     (scheme write)
     (liii base)
+    (liii list)
     (liii tui component)
     (liii tui box border)
     (liii tui editor history)
@@ -34,6 +35,7 @@
     (liii tui editor kill)
     (liii tui editor view)
     (liii tui editor state)
+    (liii tui editor viewport)
   ) ;import
   (begin
 
@@ -46,10 +48,23 @@
       ) ;let
     ) ;define
 
+    (define %editor-scroll-dim "\x1b;[2m")
+    (define %editor-scroll-reset "\x1b;[0m")
+
+    (define (%editor-scroll-line arrow n)
+      (string-append %editor-scroll-dim
+        arrow
+        " "
+        (number->string n)
+        " more"
+        %editor-scroll-reset
+      ) ;string-append
+    ) ;define
+
     (define (%editor-render comp width)
       (let* ((data (component-data comp))
              (buf (%ed-buffer data))
-             (lines (buffer-lines buf))
+             (all-lines (buffer-lines buf))
              (row (buffer-row buf))
              (col (buffer-col buf))
              (focused? (%ed-focused? data))
@@ -58,14 +73,34 @@
              (top-b (%ed-top-border data))
              (bot-b (%ed-bottom-border data))
              (b-col (%ed-border-color data))
-             (rendered (render-editor-lines lines row col focused? ph width cursor-style))
+             (vp (%ed-viewport data))
+             (top (car vp))
+             (visible (cadr vp))
+             (above (caddr vp))
+             (below (cadddr vp))
+             (visible-lines (take (drop all-lines top) visible))
+             (rendered (render-editor-lines visible-lines
+                         (- row top)
+                         col
+                         focused?
+                         ph
+                         width
+                         cursor-style
+                       ) ;render-editor-lines
+             ) ;rendered
+             (body
+               (append (if (> above 0) (list (%editor-scroll-line "↑" above)) '())
+                 rendered
+                 (if (> below 0) (list (%editor-scroll-line "↓" below)) '())
+               ) ;append
+             ) ;body
             ) ;
         (if (and (> width 0) (or top-b bot-b))
           (append (if top-b (list (%make-h-border width b-col)) '())
-            rendered
+            body
             (if bot-b (list (%make-h-border width b-col)) '())
           ) ;append
-          rendered
+          body
         ) ;if
       ) ;let*
     ) ;define
@@ -99,83 +134,89 @@
              (on-ch (%ed-on-change data))
              (on-sub (%ed-on-submit data))
             ) ;
-        (cond ((or (eq? key 'left) (eq? key 'ctrl-b)) (buffer-move-left! buf))
-              ((or (eq? key 'right) (eq? key 'ctrl-f)) (buffer-move-right! buf))
-              ((or (eq? key 'home) (eq? key 'ctrl-a) (eq? key 'ctrl-home))
-               (buffer-move-home! buf)
-              ) ;
-              ((or (eq? key 'end) (eq? key 'ctrl-e) (eq? key 'ctrl-end))
-               (buffer-move-end! buf)
-              ) ;
-              ((or (eq? key 'ctrl-left) (eq? key 'alt-b) (eq? key 'alt-left))
-               (buffer-move-word-left! buf)
-              ) ;
-              ((or (eq? key 'ctrl-right) (eq? key 'alt-f) (eq? key 'alt-right))
-               (buffer-move-word-right! buf)
-              ) ;
-              ((or (eq? key 'up) (eq? key 'ctrl-p))
-               (if multi?
-                 (buffer-move-up! buf)
-                 (%load-history! buf comp on-ch (history-prev hist (buffer-text buf)))
-               ) ;if
-              ) ;
-              ((or (eq? key 'down) (eq? key 'ctrl-n))
-               (if multi?
-                 (buffer-move-down! buf)
-                 (%load-history! buf comp on-ch (history-next hist (buffer-text buf)))
-               ) ;if
-              ) ;
-              ((or (eq? key 'backspace) (eq? key 'ctrl-h))
-               (%apply-edit! buf comp on-ch (lambda () (buffer-backspace! buf)))
-              ) ;
-              ((or (eq? key 'delete) (eq? key 'ctrl-d))
-               (%apply-edit! buf comp on-ch (lambda () (buffer-delete! buf)))
-              ) ;
-              ((eq? key 'ctrl-k)
-               (%apply-edit! buf comp on-ch (lambda () (buffer-kill-line-right! buf)))
-              ) ;
-              ((eq? key 'ctrl-u)
-               (%apply-edit! buf comp on-ch (lambda () (buffer-kill-line-left! buf)))
-              ) ;
-              ((or (eq? key 'ctrl-w) (eq? key 'alt-backspace))
-               (%apply-edit! buf comp on-ch (lambda () (buffer-kill-word-left! buf)))
-              ) ;
-              ((eq? key 'ctrl-t)
-               (%apply-edit! buf comp on-ch (lambda () (buffer-transpose-chars! buf)))
-              ) ;
-              ((eq? key 'ctrl-j)
-               ;; 多行模式下的显式换行键（Enter 已被提交占用）
-               (if multi? (%apply-edit! buf comp on-ch (lambda () (buffer-newline! buf))) #f)
-              ) ;
-              ((eq? key 'enter)
-               ;; Enter 优先提交；submit-on-enter? 关闭时多行模式插入换行
-               (if submit-on-enter?
-                 (let ((txt (buffer-text buf)))
-                   (history-push! hist txt)
-                   (when (procedure? on-sub)
-                     (on-sub comp txt)
-                   ) ;when
-                   #t
-                 ) ;let
-                 (if multi? (%apply-edit! buf comp on-ch (lambda () (buffer-newline! buf))) #f)
-               ) ;if
-              ) ;
-              ((string? key)
-               (buffer-insert-string! buf key)
-               (when (procedure? on-ch)
-                 (on-ch comp (buffer-text buf))
-               ) ;when
-               #t
-              ) ;
-              ((char? key)
-               (buffer-insert-char! buf key)
-               (when (procedure? on-ch)
-                 (on-ch comp (buffer-text buf))
-               ) ;when
-               #t
-              ) ;
-              (else #f)
-        ) ;cond
+        (let ((res
+                (cond ((or (eq? key 'left) (eq? key 'ctrl-b)) (buffer-move-left! buf))
+                      ((or (eq? key 'right) (eq? key 'ctrl-f)) (buffer-move-right! buf))
+                      ((or (eq? key 'home) (eq? key 'ctrl-a) (eq? key 'ctrl-home))
+                       (buffer-move-home! buf)
+                      ) ;
+                      ((or (eq? key 'end) (eq? key 'ctrl-e) (eq? key 'ctrl-end))
+                       (buffer-move-end! buf)
+                      ) ;
+                      ((or (eq? key 'ctrl-left) (eq? key 'alt-b) (eq? key 'alt-left))
+                       (buffer-move-word-left! buf)
+                      ) ;
+                      ((or (eq? key 'ctrl-right) (eq? key 'alt-f) (eq? key 'alt-right))
+                       (buffer-move-word-right! buf)
+                      ) ;
+                      ((or (eq? key 'up) (eq? key 'ctrl-p))
+                       (if multi?
+                         (buffer-move-up! buf)
+                         (%load-history! buf comp on-ch (history-prev hist (buffer-text buf)))
+                       ) ;if
+                      ) ;
+                      ((or (eq? key 'down) (eq? key 'ctrl-n))
+                       (if multi?
+                         (buffer-move-down! buf)
+                         (%load-history! buf comp on-ch (history-next hist (buffer-text buf)))
+                       ) ;if
+                      ) ;
+                      ((or (eq? key 'backspace) (eq? key 'ctrl-h))
+                       (%apply-edit! buf comp on-ch (lambda () (buffer-backspace! buf)))
+                      ) ;
+                      ((or (eq? key 'delete) (eq? key 'ctrl-d))
+                       (%apply-edit! buf comp on-ch (lambda () (buffer-delete! buf)))
+                      ) ;
+                      ((eq? key 'ctrl-k)
+                       (%apply-edit! buf comp on-ch (lambda () (buffer-kill-line-right! buf)))
+                      ) ;
+                      ((eq? key 'ctrl-u)
+                       (%apply-edit! buf comp on-ch (lambda () (buffer-kill-line-left! buf)))
+                      ) ;
+                      ((or (eq? key 'ctrl-w) (eq? key 'alt-backspace))
+                       (%apply-edit! buf comp on-ch (lambda () (buffer-kill-word-left! buf)))
+                      ) ;
+                      ((eq? key 'ctrl-t)
+                       (%apply-edit! buf comp on-ch (lambda () (buffer-transpose-chars! buf)))
+                      ) ;
+                      ((eq? key 'ctrl-j)
+                       ;; 多行模式下的显式换行键（Enter 已被提交占用）
+                       (if multi? (%apply-edit! buf comp on-ch (lambda () (buffer-newline! buf))) #f)
+                      ) ;
+                      ((eq? key 'enter)
+                       ;; Enter 优先提交；submit-on-enter? 关闭时多行模式插入换行
+                       (if submit-on-enter?
+                         (let ((txt (buffer-text buf)))
+                           (history-push! hist txt)
+                           (when (procedure? on-sub)
+                             (on-sub comp txt)
+                           ) ;when
+                           #t
+                         ) ;let
+                         (if multi? (%apply-edit! buf comp on-ch (lambda () (buffer-newline! buf))) #f)
+                       ) ;if
+                      ) ;
+                      ((string? key)
+                       (buffer-insert-string! buf key)
+                       (when (procedure? on-ch)
+                         (on-ch comp (buffer-text buf))
+                       ) ;when
+                       #t
+                      ) ;
+                      ((char? key)
+                       (buffer-insert-char! buf key)
+                       (when (procedure? on-ch)
+                         (on-ch comp (buffer-text buf))
+                       ) ;when
+                       #t
+                      ) ;
+                      (else #f)
+                ) ;cond
+              ) ;res
+             ) ;
+          (%ed-sync-viewport! data)
+          res
+        ) ;let
       ) ;let*
     ) ;define
 
