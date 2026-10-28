@@ -47,7 +47,7 @@
   (check (editor-cursor ed) => '(1 0))
 ) ;let*
 
-;; 多行模式下 Ctrl-J / Shift-Enter 显式换行（Enter 仍提交）
+;; 多行模式下 Ctrl-J 显式换行（Enter 仍提交）
 (let* ((submitted-text #f)
        (ed (make-editor "hello" :multiline #t :submit-on-enter? #t
              :on-submit (lambda (comp text)
@@ -57,9 +57,8 @@
        ) ;ed
       ) ;let*
   (check (component-handle-input ed 'ctrl-j) => #t)
-  (check (component-handle-input ed 'shift-enter) => #t)
-  (check (editor-text ed) => "hello\n\n")
-  (check (editor-cursor ed) => '(2 0))
+  (check (editor-text ed) => "hello\n")
+  (check (editor-cursor ed) => '(1 0))
   (check submitted-text => #f)
 ) ;let*
 
