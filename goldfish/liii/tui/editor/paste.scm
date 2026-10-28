@@ -35,15 +35,16 @@
 
     (define %paste-start-marker "\x1b;[200~")
     (define %paste-end-marker "\x1b;[201~")
+    (define %paste-marker-len 6)
     (define %paste-max-lines 10)
     (define %paste-max-chars 1000)
 
     (define (%bracketed-paste? text)
       (and (string? text)
-        (let ((len (utf8-string-length text)))
+        (let ((len (string-length text)))
           (and (>= len 12)
-            (string=? (utf8-substring text 0 6) %paste-start-marker)
-            (string=? (utf8-substring text (- len 6) len) %paste-end-marker)
+            (string=? (substring text 0 %paste-marker-len) %paste-start-marker)
+            (string=? (substring text (- len %paste-marker-len) len) %paste-end-marker)
           ) ;and
         ) ;let
       ) ;and
@@ -51,28 +52,22 @@
 
     (define (%bracketed-paste-content text)
       (if (%bracketed-paste? text)
-        (utf8-substring text 6 (- (utf8-string-length text) 6))
+        (let ((len (string-length text)))
+          (substring text %paste-marker-len (- len %paste-marker-len))
+        ) ;let
         ""
       ) ;if
     ) ;define
 
-    (define (%string-chunks text)
-      (let loop
-        ((i 0) (acc '()))
-        (if (>= i (utf8-string-length text))
-          (reverse acc)
-          (loop (+ i 1) (cons (utf8-substring text i (+ i 1)) acc))
-        ) ;if
-      ) ;let
-    ) ;define
-
     (define (%count-newlines text)
-      (let loop
-        ((chunks (%string-chunks text)) (n 0))
-        (cond ((null? chunks) n)
-              ((string=? (car chunks) "\n") (loop (cdr chunks) (+ n 1)))
-              (else (loop (cdr chunks) n))
-        ) ;cond
+      (let ((len (string-length text)))
+        (let loop
+          ((i 0) (n 0))
+          (cond ((= i len) n)
+                ((char=? (string-ref text i) #\newline) (loop (+ i 1) (+ n 1)))
+                (else (loop (+ i 1) n))
+          ) ;cond
+        ) ;let
       ) ;let
     ) ;define
 
@@ -82,32 +77,55 @@
 
     ;; 归一化：CRLF/CR -> LF，Tab -> 4 空格，过滤除换行外的控制字符
     (define (%paste-normalize text)
-      (let loop
-        ((chunks (%string-chunks text)) (acc '()))
-        (cond ((null? chunks) (string-join (reverse acc) ""))
-              ((string=? (car chunks) "\r")
-               (let ((rest (cdr chunks)))
-                 (if (and (pair? rest) (string=? (car rest) "\n"))
-                   (loop (cdr rest) (cons "\n" acc))
-                   (loop rest (cons "\n" acc))
-                 ) ;if
-               ) ;let
-              ) ;
-              ((string=? (car chunks) "\t") (loop (cdr chunks) (cons "    " acc)))
-              ((and (= (string-length (car chunks)) 1)
-                 (char<? (string-ref (car chunks) 0) #\space)
-                 (not (char=? (string-ref (car chunks) 0) #\newline))
-               ) ;and
-               (loop (cdr chunks) acc)
-              ) ;
-              (else (loop (cdr chunks) (cons (car chunks) acc)))
-        ) ;cond
+      (let ((len (string-length text)) (p (open-output-string)))
+        (let loop
+          ((i 0) (start 0))
+          (if (>= i len)
+            (begin
+              (when (> i start)
+                (write-string (substring text start i) p)
+              ) ;when
+              (get-output-string p)
+            ) ;begin
+            (let ((c (string-ref text i)))
+              (cond
+               ((char=? c #\return)
+                (when (> i start)
+                  (write-string (substring text start i) p)
+                ) ;when
+                (write-string "\n" p)
+                (if
+                  (and (< (+ i 1) len) (char=? (string-ref text (+ i 1)) #\newline))
+                  (loop (+ i 2) (+ i 2))
+                  (loop (+ i 1) (+ i 1))
+                ) ;if
+               ) ;
+               ((char=? c #\tab)
+                (when (> i start)
+                  (write-string (substring text start i) p)
+                ) ;when
+                (write-string "    " p)
+                (loop (+ i 1) (+ i 1))
+               ) ;
+               ((and (char<? c #\space) (not (char=? c #\newline)))
+                (when (> i start)
+                  (write-string (substring text start i) p)
+                ) ;when
+                (loop (+ i 1) (+ i 1))
+               ) ;
+               (else (loop (+ i 1) start))
+              ) ;cond
+            ) ;let
+          ) ;if
+        ) ;let
       ) ;let
     ) ;define
 
     (define (%paste-large? text)
       (or (> (%paste-lines text) %paste-max-lines)
-        (> (utf8-string-length text) %paste-max-chars)
+        (and (> (string-length text) %paste-max-chars)
+          (> (utf8-string-length text) %paste-max-chars)
+        ) ;and
       ) ;or
     ) ;define
 
