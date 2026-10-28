@@ -28,7 +28,8 @@
     %ed-cursor-style-set! %ed-on-submit %ed-on-submit-set! %ed-on-change
     %ed-on-change-set! %ed-top-border %ed-top-border-set! %ed-bottom-border
     %ed-bottom-border-set! %ed-border-color %ed-border-color-set!
-    %ed-submit-on-enter? %ed-submit-on-enter?-set!
+    %ed-submit-on-enter? %ed-submit-on-enter?-set! %ed-max-lines
+    %ed-max-lines-set! %ed-top-row %ed-top-row-set!
   ) ;export
   (import (scheme base))
   (begin
@@ -36,7 +37,7 @@
     (define-record-type <editor-data>
       (%make-editor-data buffer history multiline? focused? placeholder
         cursor-style on-submit on-change top-border bottom-border border-color
-        submit-on-enter?
+        submit-on-enter? max-lines top-row
       ) ;%make-editor-data
       %editor-data?
       (buffer %ed-buffer %ed-buffer-set!)
@@ -52,6 +53,9 @@
       (border-color %ed-border-color %ed-border-color-set!)
       ;; Enter 是否直接提交（独立于 multiline?）
       (submit-on-enter? %ed-submit-on-enter? %ed-submit-on-enter?-set!)
+      ;; 可视内容行上限（#f 表示不限制）；top-row 为视口首行
+      (max-lines %ed-max-lines %ed-max-lines-set!)
+      (top-row %ed-top-row %ed-top-row-set!)
     ) ;define-record-type
 
   ) ;begin
