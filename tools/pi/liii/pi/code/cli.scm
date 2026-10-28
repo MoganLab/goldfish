@@ -206,6 +206,15 @@
                  :models        (list-ref info 6)
                  :default-model (list-ref info 7)
                  :session-file  (pi-args-ref parsed 'session-file)
+                 :resume-sessions
+                 ;; /resume 的会话数据源：与 --resume 共用同一枚举逻辑
+                 (lambda ()
+                   (pi-load-resume-sessions parsed
+                     (%resolved-cfg parsed)
+                     (path->string (path-cwd))
+                   ) ;pi-load-resume-sessions
+                 )
+                 :no-session?   (and (pi-args-ref parsed 'no-session) #t)
                  :on-save-model
                  (lambda (provider model-id)
                    (pi-save-default-model! (list-ref info 5) provider model-id)

@@ -19,6 +19,7 @@
     (liii pi code modes interactive thinking)
     (liii pi code modes interactive thinking-selector)
     (liii pi code modes interactive model-selector)
+    (liii pi code modes interactive session-selector)
   ) ;import
   (begin
 
@@ -103,6 +104,9 @@
                                     ) ;
                                     ((model-selector? active-selector)
                                      (model-selector-cursor-position active-selector)
+                                    ) ;
+                                    ((session-selector? active-selector)
+                                     (session-selector-cursor-position active-selector)
                                     ) ;
                                     (else '(6 2))
                               ) ;cond

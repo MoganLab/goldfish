@@ -19,6 +19,7 @@
         (list (cons 'name "thinking") (cons 'description "Set thinking level"))
         (list (cons 'name "name") (cons 'description "Get or set session name"))
         (list (cons 'name "session") (cons 'description "Show session statistics"))
+        (list (cons 'name "resume") (cons 'description "Select and resume a session"))
       ) ;list
     ) ;define
 
