@@ -8,6 +8,28 @@
 
 (check-set-mode! 'report)
 
+;; pi-app-render!
+;; 渲染交互式应用的完整界面，并更新编辑器视口与硬件光标位置。
+;;
+;; 语法
+;; ----
+;; (pi-app-render! app)
+;;
+;; 参数
+;; ----
+;; app : pi-app?
+;; 待渲染的交互式应用状态。
+;;
+;; 返回值
+;; ----
+;; 未指定
+;; 该过程通过副作用将界面写入应用关联的屏幕。
+;;
+;; 注意
+;; ----
+;; 编辑器内容按终端宽度折行。长输入使用视觉行滚动，硬件光标跟随
+;; 光标所在的视觉行，编辑器下边框不会被内容覆盖。
+
 ;; 编辑器可视行随终端高度（1/3）与滚动提示
 (let* ((vterm (make-virtual-terminal :width 100 :height 40))
        (app (make-pi-app :terminal vterm :handler (lambda (app msg) #t)))

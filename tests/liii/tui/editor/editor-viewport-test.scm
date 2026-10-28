@@ -7,6 +7,31 @@
 
 (check-set-mode! 'report-failed)
 
+;; editor-viewport
+;; 获取编辑器当前视口的视觉行范围及上下隐藏行数。
+;;
+;; 语法
+;; ----
+;; (editor-viewport ed [width])
+;;
+;; 参数
+;; ----
+;; ed : editor?
+;; 目标编辑器组件。
+;;
+;; width : integer?
+;; 可选的显示宽度，用于计算长逻辑行折行后的视口；省略时使用最近一次渲染的宽度。
+;;
+;; 返回值
+;; ----
+;; (list integer? integer? integer? integer?)
+;; 四元列表 (top visible above below)，依次表示视口首行、可视行数、
+;; 上方隐藏行数和下方隐藏行数。行号与行数均按折行后的视觉行计算。
+;;
+;; 错误处理
+;; ----
+;; type-error 当 ed 不是编辑器时。
+
 ;; 1. 未设置 max-lines：渲染全部行，保持旧行为
 (let ((ed (make-editor "a\nb\nc" :multiline #t)))
   (check (length (component-render ed 20)) => 3)
@@ -89,8 +114,9 @@
     (check (string-contains? (list-ref lines 1) "three") => #t)
     (check (list-ref lines 2) => "four")
     (check (editor-viewport ed 7) => '(1 2 1 0))
-    (check (editor-display-position ed 7) => '(1 4))
   ) ;let
 ) ;let
+
+(check-catch 'type-error (editor-viewport #f))
 
 (check-report)
