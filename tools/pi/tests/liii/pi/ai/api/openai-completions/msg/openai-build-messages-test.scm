@@ -25,6 +25,9 @@
 ;; ----
 ;; assistant 的多个文本块按顺序拼接，工具参数序列化为 JSON 字符串。
 ;; toolResult 映射为 tool 角色并保留 tool_call_id。
+;; 空 content 的 assistant 消息（如 ESC abort 后 stopReason=aborted 的残留）
+;; 被整体跳过，不产生空 assistant API 消息（对齐上游 blocks 为空时 continue），
+;; 跳过后允许产生连续 user 消息。
 ;;
 ;; 示例
 ;; ----
@@ -70,5 +73,22 @@
        (vec (openai-build-messages messages #f))
        (msg (vector-ref vec 0)))
   (check (cdr (assoc "content" msg)) => "hello world"))
+
+;; ESC abort 后空 content 的 assistant 消息不得进入 API 请求：
+;; 跳过后允许产生连续 user 消息（对齐上游 blocks 为空时 continue 的行为）
+(let* ((messages (list (pi-user-message "hello")
+                       (pi-assistant-message '() :stop-reason "aborted")
+                       (pi-user-message "world")))
+       (vec (openai-build-messages messages #f)))
+  (check (vector-length vec) => 2)
+  (check (cdr (assoc "role" (vector-ref vec 0))) => "user")
+  (check (cdr (assoc "role" (vector-ref vec 1))) => "user"))
+
+;; 非空 assistant 消息正常保留
+(let* ((messages (list (pi-assistant-message (list (pi-text-block "ok")))))
+       (vec (openai-build-messages messages #f)))
+  (check (vector-length vec) => 1)
+  (check (cdr (assoc "role" (vector-ref vec 0))) => "assistant")
+  (check (cdr (assoc "content" (vector-ref vec 0))) => "ok"))
 
 (check-report)

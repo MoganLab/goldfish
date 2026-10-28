@@ -158,7 +158,13 @@
                      (c-list (cond ((vector? c) (vector->list c)) ((pair? c) c) (else '())))
                      (blks (map %assistant-blk->anthropic-blk c-list))
                     ) ;
-                (loop (cdr rest) (cons (%build-turn-msg "assistant" (list->vector blks)) acc))
+                ;; ESC abort 后可能残留空 content 的 assistant 消息（stopReason=aborted），
+                ;; 空 assistant 消息会被 API 拒绝（HTTP 400 must not be empty）：
+                ;; 整体跳过（对齐上游 blocks 为空时 continue），允许产生连续 user 消息
+                (if (null? blks)
+                  (loop (cdr rest) acc)
+                  (loop (cdr rest) (cons (%build-turn-msg "assistant" (list->vector blks)) acc))
+                ) ;if
               ) ;let*
              ) ;
              (else (loop (cdr rest) acc))
