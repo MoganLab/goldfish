@@ -363,9 +363,7 @@ json_parse_error (s7_scheme* sc, const char* msg) {
 }
 
 // glue 时缓存 string->number 并永久 GC 保护：仅用于超出 int64 范围的大整数回退
-// thread_local：每个 s7 会话独占一个 OS 线程（gf 主线程与 (liii go) worker 线程），
-// 全局 static 会被后初始化的会话覆盖，导致跨会话 s7_call/对象泄漏（CI 段错误）
-static thread_local s7_pointer cached_string_to_number= NULL;
+static s7_pointer cached_string_to_number= NULL;
 
 // [1311] glue 时缓存 (gc) 并永久 GC 保护：string->json/read-json 解析成功后
 // 按累计输入字节数周期性触发完整 GC。解析本身采用 gc_off + C++ 容器暂存
@@ -374,10 +372,8 @@ static thread_local s7_pointer cached_string_to_number= NULL;
 // 触发时机在 gc_off 已恢复、C++ 容器已析构之后，仅 result 一个裸指针待返回，
 // 用 s7_gc_protect_via_stack 临时保护（与 json_parse_number 的用法一致）。
 #define JSON_GC_BYTES_THRESHOLD (128 * 1024)
-// thread_local：见 cached_string_to_number 的说明，跨会话共享会让任意会话
-// 累计字节数后调用其他会话缓存的 (gc)，在错误的堆上执行完整 GC
-static thread_local s7_pointer cached_gc          = NULL;
-static thread_local s7_int     json_gc_bytes_since= 0;
+static s7_pointer cached_gc          = NULL;
+static s7_int     json_gc_bytes_since= 0;
 
 static void
 json_maybe_gc (s7_scheme* sc, s7_pointer result, s7_int len) {
@@ -392,11 +388,9 @@ json_maybe_gc (s7_scheme* sc, s7_pointer result, s7_int len) {
 
 // glue 时缓存 true/false/null 符号并永久 GC 保护：
 // parser 高频构造这三个符号，缓存避免每次符号 intern 查找（json-ref 转换亦复用）
-// thread_local：符号对象属于 glue 它的会话，跨会话返回会把外来堆对象
-// 泄漏进调用方会话，调用方 GC 扫描外来对象与 worker 并发写竞态导致崩溃
-static thread_local s7_pointer symbol_true = NULL;
-static thread_local s7_pointer symbol_false= NULL;
-static thread_local s7_pointer symbol_null = NULL;
+static s7_pointer symbol_true = NULL;
+static s7_pointer symbol_false= NULL;
+static s7_pointer symbol_null = NULL;
 
 // 与 (liii unicode) 的 codepoint->utf8 一致：不排斥代理区码点，逐字节编码
 static bool
@@ -1354,9 +1348,8 @@ json_is_object (s7_scheme* sc, s7_pointer x, s7_int& len) {
 
 // glue 时缓存 vector-ref / list->vector 并永久 GC 保护：
 // 仅在报错路径上调用，保证错误类型和消息与 Scheme 实现逐字节一致
-// thread_local：见 cached_string_to_number 的说明，避免跨会话 s7_call
-static thread_local s7_pointer cached_vector_ref    = NULL;
-static thread_local s7_pointer cached_list_to_vector= NULL;
+static s7_pointer cached_vector_ref    = NULL;
+static s7_pointer cached_list_to_vector= NULL;
 
 // guenchi json-ref 的 return 包装：'true -> #t，'false -> #f
 
