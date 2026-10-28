@@ -160,12 +160,18 @@
                     ) ;
                     ;; 无输入：继续游戏循环
                     ((not key) (game-loop (snake-tick active-game #f) cur-cols cur-rows))
-                    ;; 其他按键：交给 tick 处理（含方向/暂停）
-                    (else (if (eq? (snake-normalize-key key) 'pause)
-                            ;; 暂停键不应消耗 tick，立即重绘
-                            (game-loop (snake-tick active-game key) cur-cols cur-rows)
-                            (poll-loop (terminal-poll-key term))
-                          ) ;if
+                    ;; 其他按键：方向键立即转向（不消耗 tick），
+                    ;; 暂停/退出交给 tick；转向后继续排空队列
+                    (else
+                      (let ((cmd (snake-normalize-key key)))
+                        (cond ((memq cmd '(up down left right))
+                               (set! active-game (snake-turn active-game key))
+                               (poll-loop (terminal-poll-key term))
+                              ) ;
+                              ((eq? cmd 'pause) (game-loop (snake-tick active-game key) cur-cols cur-rows))
+                              (else (poll-loop (terminal-poll-key term)))
+                        ) ;cond
+                      ) ;let
                     ) ;else
                   ) ;cond
                 ) ;let
