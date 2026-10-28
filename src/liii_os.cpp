@@ -593,20 +593,16 @@ pump_console_input (HANDLE hIn, long timeout_ms) {
     }
 
     if (rec.EventType == MOUSE_EVENT) {
-      const MOUSE_EVENT_RECORD& me= rec.Event.MouseEvent;
-      DWORD ctrl                = me.dwControlKeyState;
+      const MOUSE_EVENT_RECORD& me  = rec.Event.MouseEvent;
+      DWORD                     ctrl= me.dwControlKeyState;
       // dwButtonState 低 5 位：1=左 2=右 4=中 8/16=XBUTTON
       // SGR 按钮码：0=左 1=中 2=右，需要重映射
-      DWORD win_button         = me.dwButtonState & 0xF;
-      int    sgr_button        = -1; // -1 = 无按钮
-      if (win_button == FROM_LEFT_1ST_BUTTON_PRESSED)
-        sgr_button= 0;
-      else if (win_button == RIGHTMOST_BUTTON_PRESSED)
-        sgr_button= 2;
-      else if (win_button == FROM_LEFT_2ND_BUTTON_PRESSED)
-        sgr_button= 1;
-      else if (win_button != 0)
-        continue; // XBUTTON 忽略
+      DWORD win_button= me.dwButtonState & 0xF;
+      int   sgr_button= -1; // -1 = 无按钮
+      if (win_button == FROM_LEFT_1ST_BUTTON_PRESSED) sgr_button= 0;
+      else if (win_button == RIGHTMOST_BUTTON_PRESSED) sgr_button= 2;
+      else if (win_button == FROM_LEFT_2ND_BUTTON_PRESSED) sgr_button= 1;
+      else if (win_button != 0) continue; // XBUTTON 忽略
 
       DWORD button_code= 0;
       if (me.dwEventFlags & MOUSE_WHEELED) {
@@ -622,12 +618,12 @@ pump_console_input (HANDLE hIn, long timeout_ms) {
         button_code= 32 | (DWORD) (sgr_button >= 0 ? sgr_button : g_mouse_prev_button);
       }
       else if (sgr_button >= 0) {
-        button_code= (DWORD) sgr_button; // 按下（含双击，重复上报无害）
+        button_code        = (DWORD) sgr_button; // 按下（含双击，重复上报无害）
         g_mouse_prev_button= sgr_button;
       }
       else {
         // 释放：final m，报告上一次按下的按钮号
-        DWORD rel= g_mouse_prev_button >= 0 ? (DWORD) g_mouse_prev_button : 3;
+        DWORD rel          = g_mouse_prev_button >= 0 ? (DWORD) g_mouse_prev_button : 3;
         g_mouse_prev_button= -1;
         push_sgr_mouse (rel, me.dwMousePosition.X, me.dwMousePosition.Y, true);
         return true;

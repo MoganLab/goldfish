@@ -190,10 +190,9 @@
     (define (terminal-mouse-mode! term enable?)
       (%check-terminal term "terminal-mouse-mode!")
       (unless (boolean? enable?)
-        (type-error
-          (string-append "terminal-mouse-mode!: expected boolean, got "
-            (object->string enable?)
-          ) ;string-append
+        (type-error (string-append "terminal-mouse-mode!: expected boolean, got "
+                      (object->string enable?)
+                    ) ;string-append
         ) ;type-error
       ) ;unless
       (if enable?

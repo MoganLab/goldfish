@@ -20,10 +20,7 @@
 
 (define-library (demo tui snake mouse)
   (export snake-click->dir snake-mouse-press->dir)
-  (import (scheme base)
-    (liii base)
-    (liii tui mouse)
-    (demo tui snake logic))
+  (import (scheme base) (liii base) (liii tui mouse) (demo tui snake logic))
   (begin
 
     ;; 点击屏幕坐标 -> 方向。与蛇头重合返回 #f。
@@ -49,8 +46,10 @@
             (eq? (mouse-event-button event) 'left)
           ) ;and
         (snake-click->dir game
-          (mouse-event-x event) (mouse-event-y event)
-          origin-x origin-y
+          (mouse-event-x event)
+          (mouse-event-y event)
+          origin-x
+          origin-y
         ) ;snake-click->dir
         #f
       ) ;if

@@ -79,8 +79,7 @@
     ;; 非鼠标则回退到普通 CSI 键解析
     (define (%try-parse-mouse param-str term-byte)
       (if (and (> (string-length param-str) 0) (char=? (string-ref param-str 0) #\<))
-        (parse-mouse-event
-          (string-append "\x1b;[" param-str (string (integer->char term-byte)))
+        (parse-mouse-event (string-append "\x1b;[" param-str (string (integer->char term-byte)))
         ) ;parse-mouse-event
         #f
       ) ;if
@@ -88,10 +87,7 @@
 
     (define (%resolve-csi-alpha param-str term-byte next-i)
       (let ((mouse (%try-parse-mouse param-str term-byte)))
-        (if mouse
-          (values mouse next-i)
-          (%resolve-csi-key param-str term-byte next-i)
-        ) ;if
+        (if mouse (values mouse next-i) (%resolve-csi-key param-str term-byte next-i))
       ) ;let
     ) ;define
 

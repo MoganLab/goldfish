@@ -30,11 +30,9 @@
 (define-library (liii tui mouse)
   (export make-mouse-event mouse-event? mouse-event-type mouse-event-button
     mouse-event-x mouse-event-y mouse-event-shift? mouse-event-ctrl?
-    mouse-event-alt? parse-mouse-event mouse-sequence?)
-  (import (scheme base)
-    (liii base)
-    (liii error)
-    (liii string))
+    mouse-event-alt? parse-mouse-event mouse-sequence?
+  ) ;export
+  (import (scheme base) (liii base) (liii error) (liii string))
   (begin
 
     (define-record-type <mouse-event>
@@ -61,10 +59,10 @@
     ;; 按钮码低 2 位 -> 符号；35（无按钮 motion）归为 none
     (define (%decode-button b)
       (case (modulo b 4)
-        ((0) 'left)
-        ((1) 'middle)
-        ((2) 'right)
-        (else 'none)
+            ((0) 'left)
+            ((1) 'middle)
+            ((2) 'right)
+            (else 'none)
       ) ;case
     ) ;define
 
@@ -76,10 +74,7 @@
                 (x (string->number (cadr parts)))
                 (y (string->number (caddr parts)))
                ) ;
-            (if (and b x y)
-              (list b x y)
-              #f
-            ) ;if
+            (if (and b x y) (list b x y) #f)
           ) ;let
           #f
         ) ;if
@@ -88,10 +83,11 @@
 
     ;; 事件类型：滚轮优先，其次释放、拖动、按下
     (define (%event-type b release?)
-      (cond ((>= b 64) (if (= (modulo b 4) 0) 'wheel-up 'wheel-down))
-            (release? 'release)
-            ((>= (modulo b 128) 32) 'drag)
-            (else 'press)
+      (cond
+       ((>= b 64) (if (= (modulo b 4) 0) 'wheel-up 'wheel-down))
+       (release? 'release)
+       ((>= (modulo b 128) 32) 'drag)
+       (else 'press)
       ) ;cond
     ) ;define
 
@@ -108,14 +104,15 @@
         (type-error "parse-mouse-event: str must be a string")
       ) ;unless
       (let ((len (string-length str)))
-        (if (and (>= len 9)
-              (char=? (string-ref str 0) #\x1b)
-              (char=? (string-ref str 1) #\[)
-              (char=? (string-ref str 2) #\<)
-              (or (char=? (string-ref str (- len 1)) #\M)
-                (char=? (string-ref str (- len 1)) #\m)
-              ) ;or
-            ) ;and
+        (if
+          (and (>= len 9)
+            (char=? (string-ref str 0) #\x1b)
+            (char=? (string-ref str 1) #\[)
+            (char=? (string-ref str 2) #\<)
+            (or (char=? (string-ref str (- len 1)) #\M)
+              (char=? (string-ref str (- len 1)) #\m)
+            ) ;or
+          ) ;and
           (let ((params (%split-mouse-params (substring str 3 (- len 1)))))
             (if params
               (let* ((b (car params))
@@ -125,7 +122,8 @@
                     ) ;
                 (%make-mouse-event (%event-type b release?)
                   (%event-button b release?)
-                  (- x 1) (- y 1)
+                  (- x 1)
+                  (- y 1)
                   (= (modulo (quotient b 4) 2) 1)
                   (>= (modulo b 32) 16)
                   (>= (modulo b 16) 8)
