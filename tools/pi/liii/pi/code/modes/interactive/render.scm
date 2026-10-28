@@ -69,32 +69,33 @@
                (menu-lines (if menu (component-render menu w) '()))
                ;; busy 时编辑器上边框替换为 Working 动画行（行数不变）
                (ed-lines
-                 (let* ((_ (unless active-selector
-                             (editor-set-max-lines! ed
-                               (%pi-editor-max-lines (cadr (terminal-size term))
-                                 (length footer-lines)
-                                 (length menu-lines)
-                               ) ;%pi-editor-max-lines
-                             ) ;editor-set-max-lines!
-                           ) ;unless
-                       ) ;
+                 (let* ((_
+                          (unless active-selector
+                            (editor-set-max-lines! ed
+                              (%pi-editor-max-lines (cadr (terminal-size term))
+                                (length footer-lines)
+                                (length menu-lines)
+                              ) ;%pi-editor-max-lines
+                            ) ;editor-set-max-lines!
+                          ) ;unless
+                        ) ;_
                         (raw (component-render input-component w))
                         (editor-lines
                           (if (and (not active-selector) (pi-queue-busy? q) (pair? raw) %pi-editor-top-border)
-                              (cons (working-border-line (pi-app-working app)
-                                      w
-                                      (pi-thinking-border-color (pi-app-thinking-level app))
-                                    ) ;working-border-line
-                                (cdr raw)
-                              ) ;cons
-                              raw
-                            ) ;if
-                          ) ;editor-lines
+                            (cons (working-border-line (pi-app-working app)
+                                    w
+                                    (pi-thinking-border-color (pi-app-thinking-level app))
+                                  ) ;working-border-line
+                              (cdr raw)
+                            ) ;cons
+                            raw
+                          ) ;if
+                        ) ;editor-lines
                        ) ;
-                     (append editor-lines menu-lines)
-                   ) ;let*
-                 ) ;ed-lines
-                 (cur-pos
+                   (append editor-lines menu-lines)
+                 ) ;let*
+               ) ;ed-lines
+               (cur-pos
                  (if active-selector
                    ;; 选择器类型分发：搜索行光标定位（thinking 与 model 同构）
                    (let ((pos (cond ((thinking-selector? active-selector)
@@ -109,18 +110,15 @@
                         ) ;
                      (cons (cadr pos) (+ (length doc-lines) (car pos)))
                    ) ;let
-                    (let* ((ed-cur (editor-cursor ed))
-                           (vp (editor-viewport ed))
-                           (top (car vp))
-                           (above (caddr vp))
-                           (ed-y (+ (length doc-lines)
-                                    (if %pi-editor-top-border 1 0)
-                                    (if (> above 0) 1 0)
-                                  ) ;+
-                           ) ;
-                          ) ;
-                      (cons (editor-display-col ed) (+ ed-y (- (car ed-cur) top)))
-                    ) ;let*
+                   (let* ((ed-cur (editor-cursor ed))
+                          (vp (editor-viewport ed))
+                          (top (car vp))
+                          (above (caddr vp))
+                          (ed-y (+ (length doc-lines) (if %pi-editor-top-border 1 0) (if (> above 0) 1 0))
+                          ) ;ed-y
+                         ) ;
+                     (cons (editor-display-col ed) (+ ed-y (- (car ed-cur) top)))
+                   ) ;let*
                  ) ;if
                ) ;cur-pos
               ) ;

@@ -23,10 +23,7 @@
 
 (define-library (liii tui editor viewport)
   (export %ed-sync-viewport! %ed-viewport)
-  (import (scheme base)
-    (liii tui editor buffer)
-    (liii tui editor state)
-  ) ;import
+  (import (scheme base) (liii tui editor buffer) (liii tui editor state))
   (begin
 
     (define (%ed-total-rows data)
@@ -55,7 +52,7 @@
                      ((>= row (+ top visible)) (min max-top (+ 1 (- row visible))))
                      (else top)
                ) ;cond
-             ) ;
+             ) ;new-top
             ) ;
         (%ed-top-row-set! data (max 0 new-top))
         (%ed-top-row data)
