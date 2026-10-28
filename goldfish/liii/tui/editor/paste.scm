@@ -28,6 +28,7 @@
   (export %bracketed-paste? %bracketed-paste-content %paste-normalize
     %paste-large? make-paste-registry paste-registry? paste-registry-add!
     paste-registry-clear! paste-registry-count paste-registry-remove!
+    paste-registry-snapshot paste-registry-restore!
     paste-expand paste-marker-at-end paste-marker-at-start
   ) ;export
   (import (scheme base) (liii base) (liii list) (liii string) (liii unicode))
@@ -192,6 +193,17 @@
         ) ;%paste-entries-set!
         #t
       ) ;when
+    ) ;define
+
+    ;; 快照/恢复：entries 与 counter 均为不可变数据，撤销栈直接持引用
+    (define (paste-registry-snapshot reg)
+      (list (%paste-entries reg) (%paste-counter reg))
+    ) ;define
+
+    (define (paste-registry-restore! reg snap)
+      (%paste-entries-set! reg (list-ref snap 0))
+      (%paste-counter-set! reg (list-ref snap 1))
+      #t
     ) ;define
 
     ;; 把文本中的标记展开为真实内容

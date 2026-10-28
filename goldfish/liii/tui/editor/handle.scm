@@ -38,6 +38,7 @@
     (liii tui editor state)
     (liii tui editor viewport)
     (liii tui editor paste)
+    (liii tui editor undo)
   ) ;import
   (begin
 
@@ -107,17 +108,35 @@
       ) ;let*
     ) ;define
 
+    ;; 编辑前先取快照，编辑生效则入撤销栈（编辑未生效不产生空快照）
     (define (%apply-edit! buf comp on-ch thunk)
-      (let ((res (thunk)))
+      (let* ((data (component-data comp))
+             (snap (%editor-snapshot data))
+             (res (thunk))
+            ) ;
+        (when res
+          (%ed-undo-stack-set! data (cons snap (%ed-undo-stack data)))
+          (%ed-last-action-set! data #f)
+        ) ;when
         (when (and res (procedure? on-ch))
           (on-ch comp (buffer-text buf))
         ) ;when
         res
-      ) ;let
+      ) ;let*
     ) ;define
 
-    (define (%load-history! buf comp on-ch text)
+    ;; push-undo? 为真时记录浏览前快照（仅首次进入历史浏览时传入，
+    ;; 对齐上游 navigateHistory 只在进入浏览时入栈），使 Ctrl+Z 直接回到草稿
+    (define (%load-history! buf comp on-ch text push-undo?)
       (when text
+        (when push-undo?
+          (let ((data (component-data comp)))
+            (%ed-undo-stack-set! data
+              (cons (%editor-snapshot data) (%ed-undo-stack data))
+            ) ;%ed-undo-stack-set!
+            (%ed-last-action-set! data #f)
+          ) ;let
+        ) ;when
         (buffer-set-text! buf text)
         (buffer-move-end! buf)
         (when (procedure? on-ch)
@@ -136,10 +155,15 @@
         (if (string=? clean "")
           #t
           (begin
-            (if (%paste-large? clean)
-              (buffer-insert-text! buf (paste-registry-add! (%ed-pastes data) clean))
-              (buffer-insert-text! buf clean)
-            ) ;if
+            ;; 粘贴为原子操作：记录粘贴前快照，撤销可整体还原（含注册表）
+            (let ((snap (%editor-snapshot data)))
+              (if (%paste-large? clean)
+                (buffer-insert-text! buf (paste-registry-add! (%ed-pastes data) clean))
+                (buffer-insert-text! buf clean)
+              ) ;if
+              (%ed-undo-stack-set! data (cons snap (%ed-undo-stack data)))
+              (%ed-last-action-set! data #f)
+            ) ;let
             (when (procedure? on-ch)
               (on-ch comp (buffer-text buf))
             ) ;when
@@ -175,12 +199,16 @@
              (span (paste-marker-at-end reg line col))
             ) ;
         (when span
-          (%remove-span! buf (cdr span) col)
-          (paste-registry-remove! reg (car span))
-          (buffer-col-set! buf (min (cdr span) (utf8-string-length (%current-line buf))))
-          (when (procedure? on-ch)
-            (on-ch comp (buffer-text buf))
-          ) ;when
+          (let ((snap (%editor-snapshot data)))
+            (%remove-span! buf (cdr span) col)
+            (paste-registry-remove! reg (car span))
+            (buffer-col-set! buf (min (cdr span) (utf8-string-length (%current-line buf))))
+            (%ed-undo-stack-set! data (cons snap (%ed-undo-stack data)))
+            (%ed-last-action-set! data #f)
+            (when (procedure? on-ch)
+              (on-ch comp (buffer-text buf))
+            ) ;when
+          ) ;let
         ) ;when
         (if span #t #f)
       ) ;let*
@@ -194,11 +222,15 @@
              (span (paste-marker-at-start reg line col))
             ) ;
         (when span
-          (%remove-span! buf col (cdr span))
-          (paste-registry-remove! reg (car span))
-          (when (procedure? on-ch)
-            (on-ch comp (buffer-text buf))
-          ) ;when
+          (let ((snap (%editor-snapshot data)))
+            (%remove-span! buf col (cdr span))
+            (paste-registry-remove! reg (car span))
+            (%ed-undo-stack-set! data (cons snap (%ed-undo-stack data)))
+            (%ed-last-action-set! data #f)
+            (when (procedure? on-ch)
+              (on-ch comp (buffer-text buf))
+            ) ;when
+          ) ;let
         ) ;when
         (if span #t #f)
       ) ;let*
@@ -214,7 +246,12 @@
              (on-sub (%ed-on-submit data))
             ) ;
         (let ((res
-                (cond ((or (eq? key 'left) (eq? key 'ctrl-b)) (buffer-move-left! buf))
+                (cond ((eq? key 'ctrl-z)
+                       ;; 撤销：恢复最近快照（栈空时无操作），键始终被消费
+                       (%editor-undo! comp data)
+                       #t
+                      ) ;
+                      ((or (eq? key 'left) (eq? key 'ctrl-b)) (buffer-move-left! buf))
                       ((or (eq? key 'right) (eq? key 'ctrl-f)) (buffer-move-right! buf))
                       ((or (eq? key 'home) (eq? key 'ctrl-a) (eq? key 'ctrl-home))
                        (buffer-move-home! buf)
@@ -233,14 +270,24 @@
                        (if
                          (or multi? (> (length (buffer-lines buf)) 1))
                          (buffer-move-up! buf)
-                         (%load-history! buf comp on-ch (history-prev hist (buffer-text buf)))
+                         ;; 首次进入历史浏览时记录快照，Ctrl+Z 可一步回到草稿；
+                         ;; entering? 必须先于 history-prev 求值（后者会改动 index）
+                         (let ((entering? (not (history-index hist))))
+                           (%load-history! buf comp on-ch
+                             (history-prev hist (buffer-text buf))
+                             entering?
+                           ) ;%load-history!
+                         ) ;let
                        ) ;if
                       ) ;
                       ((or (eq? key 'down) (eq? key 'ctrl-n))
                        (if
                          (or multi? (> (length (buffer-lines buf)) 1))
                          (buffer-move-down! buf)
-                         (%load-history! buf comp on-ch (history-next hist (buffer-text buf)))
+                         (%load-history! buf comp on-ch
+                           (history-next hist (buffer-text buf))
+                           #f
+                         ) ;%load-history!
                        ) ;if
                       ) ;
                       ((or (eq? key 'backspace) (eq? key 'ctrl-h))
@@ -278,6 +325,8 @@
                            (when (procedure? on-sub)
                              (on-sub comp txt)
                            ) ;when
+                           ;; 提交后清空撤销栈：新一轮输入从零开始
+                           (%editor-undo-clear! data)
                            #t
                          ) ;let
                          (if multi? (%apply-edit! buf comp on-ch (lambda () (buffer-newline! buf))) #f)
@@ -287,6 +336,7 @@
                        (%handle-paste! comp data buf on-ch (%bracketed-paste-content key))
                       ) ;
                       ((string? key)
+                       (%editor-undo-type! data key)
                        (buffer-insert-string! buf key)
                        (when (procedure? on-ch)
                          (on-ch comp (buffer-text buf))
@@ -294,6 +344,7 @@
                        #t
                       ) ;
                       ((char? key)
+                       (%editor-undo-type! data (string key))
                        (buffer-insert-char! buf key)
                        (when (procedure? on-ch)
                          (on-ch comp (buffer-text buf))

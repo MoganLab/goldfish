@@ -48,6 +48,9 @@
                       (%fg %c-dim "ctrl+c/ctrl+d")
                       (%fg %c-mid " clear/exit")
                       dot
+                      (%fg %c-dim "ctrl+z")
+                      (%fg %c-mid " undo")
+                      dot
                       (%fg %c-dim "/")
                       (%fg %c-mid " commands")
                       dot
