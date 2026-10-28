@@ -257,10 +257,7 @@
                 ;; 标记都以 "[" 开头，其余字节直接跳过
                 (if (char=? (string-ref text i) #\[)
                   (let ((next (%expand-marker-at! pairs text i len start p)))
-                    (if next
-                      (loop next next)
-                      (loop (+ i 1) start)
-                    ) ;if
+                    (if next (loop next next) (loop (+ i 1) start))
                   ) ;let
                   (loop (+ i 1) start)
                 ) ;if
