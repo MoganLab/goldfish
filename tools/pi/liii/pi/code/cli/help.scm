@@ -27,7 +27,7 @@
                 --exclude-tools <list>     Comma-separated list of tools to exclude
                 --no-tools                 Disable all tools
                 --no-builtin-tools         Alias for --no-tools
-                --max-turns <n>            Maximum turns limit (default: 200, 0 for unlimited)
+                --max-turns <n>            Maximum turns limit (0 or unset for unlimited)
                 --timeout <seconds>        Timeout in seconds for bash and HTTP (default: 600)
                 --session-timeout <seconds>
                                            Total session timeout in seconds (default: 600, 0 to disable)

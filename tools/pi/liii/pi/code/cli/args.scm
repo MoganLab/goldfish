@@ -47,7 +47,7 @@
         (cons 'tools #f)
         (cons 'exclude-tools #f)
         (cons 'no-tools #f)
-        (cons 'max-turns 200)
+        (cons 'max-turns #f)
         (cons 'timeout #f)
         (cons 'session-timeout #f)
         (cons 'session-dir #f)
