@@ -122,7 +122,8 @@
     "goldfish/hint/liii/string.scm" "goldfish/hint/liii/path.scm"
     "goldfish/hint/liii/json.scm" "goldfish/hint/srfi/srfi-13.scm"
     "goldfish/hint/liii/goldfmt/format.scm"
-    "goldfish/hint/liii/goldfmt/format/writer.scm")
+    "goldfish/hint/liii/goldfmt/format/writer.scm"
+    "goldfish/hint/liii/base.scm")
 ) ;for-each
 
 ;; timestamp-iso 已修复：string->number 的结果先校验再参与乘法。

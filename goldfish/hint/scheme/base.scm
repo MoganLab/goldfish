@@ -127,6 +127,7 @@
     ;; 等价比较
     (define hint-eq? '((any? any? -> boolean?)))
     (define hint-eqv? '((any? any? -> boolean?)))
+    (define hint-equal? '((any? any? -> boolean?)))
 
     ;; 关联表查找：命中返回键值对，未命中返回 #f；第三参可选比较函数
     (define hint-assoc
@@ -135,11 +136,6 @@
     ) ;define
     (define hint-assq '((any? alist? -> (or #f pair?))))
     (define hint-assv '((any? alist? -> (or #f pair?))))
-
-    ;; 等价比较
-    (define hint-eq? '((any? any? -> boolean?)))
-    (define hint-eqv? '((any? any? -> boolean?)))
-    (define hint-equal? '((any? any? -> boolean?)))
 
     ;; 错误抛出：(error type message . irritants) 为可变参数，登记 2、3 参形式
     (define hint-error '((any? any? -> any?) (any? any? any? -> any?)))

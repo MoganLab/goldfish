@@ -19,8 +19,8 @@
 ;; 也不导入其他 hint 库，因此可以被独立加载。
 ;;
 ;; 只在实现库中标记签名：(liii alist) 自身实现的过程在这里声明类型；
-;; 再导出的过程（如 alist-cons，定义于 srfi-1）也在此登记导出签名，
-;; 以覆盖全部导出接口，但不在其定义库重复登记。
+;; 再导出的过程（如 alist-cons，定义于 srfi-1）在其实现库的 hint 中声明，
+;; 本库不重复登记。
 ;;
 ;; (liii alist) 实现中用到的依赖过程，其签名位于：
 ;;   (hint scheme base)  - list? pair? null? vector? cons car cdr length
@@ -36,9 +36,6 @@
 
     ;; alist? : (any? -> boolean?)
     (define hint-alist? '((any? -> boolean?)))
-
-    ;; alist-cons : (any? any? alist? -> alist?)，再导出自 (srfi srfi-1)
-    (define hint-alist-cons '((any? any? alist? -> alist?)))
 
     ;; alist-ref : (alist? any? -> any?)
     ;;             (alist? any? procedure? -> any?)
@@ -61,7 +58,6 @@
     (define (hint-liii/alist name)
       (case name
        ((alist?) hint-alist?)
-       ((alist-cons) hint-alist-cons)
        ((alist-ref) hint-alist-ref)
        ((alist-ref/default) hint-alist-ref/default)
        ((vector->alist) hint-vector->alist)
