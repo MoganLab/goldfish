@@ -30,7 +30,7 @@
                 --max-turns <n>            Maximum turns limit (0 or unset for unlimited)
                 --timeout <seconds>        Timeout in seconds for bash and HTTP (default: 600)
                 --session-timeout <seconds>
-                                           Total session timeout in seconds (default: 600, 0 to disable)
+                                           Total session timeout in seconds (default: 0, unlimited)
             -c, --continue                 Continue previous session
             -r, --resume                   Select a session to resume
             -n, --name <name>              Set session display name

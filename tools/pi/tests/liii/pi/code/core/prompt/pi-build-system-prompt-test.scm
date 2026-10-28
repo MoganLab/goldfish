@@ -3,6 +3,8 @@
   (liii json)
   (liii pi ai api google-generative-ai)
   (liii pi code core prompt)
+  (liii pi code cli args)
+  (liii pi code modes flow)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -41,17 +43,27 @@
 ;; ----
 ;; (pi-build-system-prompt '("read" "bash") "/project" #f #f '())
 
-;; 1. 默认预算参数（session-timeout 600, max-turns 0 即不限轮数）
+;; 1. 默认预算参数（session-timeout 0 即不限时长，max-turns 0 即不限轮数）
 (let ((sp (pi-build-system-prompt '("read" "bash") "/test/cwd" #f #f '())))
   (check-true (string-contains? sp "You are an expert coding assistant operating inside pi")
   ) ;check-true
   (check-true (string-contains? sp "<cwd>\n/test/cwd\n</cwd>"))
   (check-true (string-contains? sp "<session_budget>"))
-  (check-true (string-contains? sp "Session Timeout: 600 seconds (hard wall-clock deadline)")
+  (check-true (string-contains? sp
+                "Session Timeout: None (no wall-clock deadline configured)."
+              ) ;string-contains?
   ) ;check-true
   (check-true (string-contains? sp "Max Turns: Unlimited (no turn limit configured)."))
   (check-true (string-contains? sp "Pacing: Pace your work accordingly."))
   (check-true (string-contains? sp "</session_budget>"))
+) ;let
+
+;; 未指定 CLI 参数和配置时，会话流程同样默认不限时长。
+(let ((sp (prepare-system-prompt '((tools . ("read"))) (parse-pi-args '()))))
+  (check-true (string-contains? sp
+                "Session Timeout: None (no wall-clock deadline configured)."
+              ) ;string-contains?
+  ) ;check-true
 ) ;let
 
 ;; 2. 自定义有限预算（例如 1800s, 50 轮）

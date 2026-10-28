@@ -187,7 +187,7 @@
                (emit #f)
                (timeout 600)
                (max-turns 0)
-               (session-timeout 600)
+               (session-timeout 0)
                (compaction #f)
                (request-fn pi-request-provider-stream)
                (emit-initial? #t)
