@@ -32,27 +32,27 @@
     terminal-flush terminal-detect-size make-virtual-terminal virtual-terminal?
     virtual-terminal-screen virtual-terminal-raw virtual-terminal-resize!
     virtual-terminal-push-key! virtual-terminal-pop-key! terminal-poll-key
-    make-standard-terminal standard-terminal? terminal-enter-raw-mode!
-    terminal-exit-raw-mode! terminal-max-y make-box box? make-vstack vstack?
-    make-hstack hstack? make-container container? container-add!
-    container-clear! container-children make-border-style border-style?
-    border-style-resolve make-spinner spinner? make-loader loader? spinner-tick!
-    spinner-reset! spinner-current-frame spinner-frame-index spinner-text
-    spinner-set-text! spinner-prefix spinner-set-prefix! spinner-suffix
-    spinner-set-suffix! spinner-interval spinner-set-interval! spinner-visible?
-    spinner-set-visible! spinner-show! spinner-hide! spinner-status
-    spinner-set-status! spinner-success! spinner-fail! spinner-error!
-    spinner-warn! spinner-stop! spinner-presets spinner-frames-resolve
-    make-editor editor? make-text-input text-input? make-text-area text-area?
-    editor-text editor-set-text! editor-cursor editor-set-cursor!
-    editor-display-col editor-lines editor-focused? editor-set-focused!
-    editor-placeholder editor-set-placeholder! editor-history-list
-    editor-history editor-set-on-submit! editor-border-color
+    terminal-paste-mode? terminal-set-paste-mode! make-standard-terminal
+    standard-terminal? terminal-enter-raw-mode! terminal-exit-raw-mode!
+    terminal-max-y make-box box? make-vstack vstack? make-hstack hstack?
+    make-container container? container-add! container-clear! container-children
+    make-border-style border-style? border-style-resolve make-spinner spinner?
+    make-loader loader? spinner-tick! spinner-reset! spinner-current-frame
+    spinner-frame-index spinner-text spinner-set-text! spinner-prefix
+    spinner-set-prefix! spinner-suffix spinner-set-suffix! spinner-interval
+    spinner-set-interval! spinner-visible? spinner-set-visible! spinner-show!
+    spinner-hide! spinner-status spinner-set-status! spinner-success!
+    spinner-fail! spinner-error! spinner-warn! spinner-stop! spinner-presets
+    spinner-frames-resolve make-editor editor? make-text-input text-input?
+    make-text-area text-area? editor-text editor-set-text! editor-cursor
+    editor-set-cursor! editor-display-col editor-lines editor-focused?
+    editor-set-focused! editor-placeholder editor-set-placeholder!
+    editor-history-list editor-history editor-set-on-submit! editor-border-color
     editor-set-border-color! editor-max-lines editor-set-max-lines!
-    editor-top-row editor-viewport make-history history? history-entries
-    history-push! history-reset! make-main-screen main-screen? screen-terminal
-    screen-buffer screen-lines screen-render! screen-refresh! screen-invalidate!
-    screen-resize! screen-clear! screen-auto-hide-cursor?
+    editor-top-row editor-viewport editor-expanded-text make-history history?
+    history-entries history-push! history-reset! make-main-screen main-screen?
+    screen-terminal screen-buffer screen-lines screen-render! screen-refresh!
+    screen-invalidate! screen-resize! screen-clear! screen-auto-hide-cursor?
     screen-auto-hide-cursor-set! make-screen-buffer screen-buffer?
     screen-buffer-lines screen-buffer-prev-lines screen-buffer-dirty?
     screen-diff screen-dirty-diff diff-op-type diff-op-index diff-op-text

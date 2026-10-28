@@ -27,6 +27,7 @@
     (scheme write)
     (liii base)
     (liii list)
+    (liii unicode)
     (liii tui component)
     (liii tui box border)
     (liii tui editor history)
@@ -36,6 +37,7 @@
     (liii tui editor view)
     (liii tui editor state)
     (liii tui editor viewport)
+    (liii tui editor paste)
   ) ;import
   (begin
 
@@ -125,6 +127,83 @@
       (if text #t #f)
     ) ;define
 
+    ;; -----------------------------------------------------------------
+    ;; 粘贴：大段内容折叠为 [paste #N ...]，提交时由 paste-expand 展开
+    ;; -----------------------------------------------------------------
+
+    (define (%handle-paste! comp data buf on-ch text)
+      (let ((clean (%paste-normalize text)))
+        (if (string=? clean "")
+          #t
+          (begin
+            (if (%paste-large? clean)
+              (buffer-insert-text! buf (paste-registry-add! (%ed-pastes data) clean))
+              (buffer-insert-text! buf clean)
+            ) ;if
+            (when (procedure? on-ch)
+              (on-ch comp (buffer-text buf))
+            ) ;when
+            #t
+          ) ;begin
+        ) ;if
+      ) ;let
+    ) ;define
+
+    (define (%current-line buf)
+      (list-ref (buffer-lines buf) (buffer-row buf))
+    ) ;define
+
+    (define (%remove-span! buf start end)
+      (let* ((lines (buffer-lines buf))
+             (r (buffer-row buf))
+             (line (list-ref lines r))
+             (len (utf8-string-length line))
+             (before (if (<= start 0) "" (utf8-substring line 0 start)))
+             (after (if (>= end len) "" (utf8-substring line end len)))
+             (new-line (string-append before after))
+            ) ;
+        (buffer-lines-set! buf (%replace-line lines r new-line))
+        #t
+      ) ;let*
+    ) ;define
+
+    ;; 光标前是有效标记时整体退格删除
+    (define (%try-backspace-marker! comp data buf on-ch)
+      (let* ((reg (%ed-pastes data))
+             (line (%current-line buf))
+             (col (buffer-col buf))
+             (span (paste-marker-at-end reg line col))
+            ) ;
+        (when span
+          (%remove-span! buf (cdr span) col)
+          (paste-registry-remove! reg (car span))
+          (buffer-col-set! buf (min (cdr span) (utf8-string-length (%current-line buf))))
+          (when (procedure? on-ch)
+            (on-ch comp (buffer-text buf))
+          ) ;when
+        ) ;when
+        (if span #t #f)
+      ) ;let*
+    ) ;define
+
+    ;; Delete 键删除光标处的有效标记
+    (define (%try-delete-marker! comp data buf on-ch)
+      (let* ((reg (%ed-pastes data))
+             (line (%current-line buf))
+             (col (buffer-col buf))
+             (span (paste-marker-at-start reg line col))
+            ) ;
+        (when span
+          (%remove-span! buf col (cdr span))
+          (paste-registry-remove! reg (car span))
+          (when (procedure? on-ch)
+            (on-ch comp (buffer-text buf))
+          ) ;when
+        ) ;when
+        (if span #t #f)
+      ) ;let*
+    ) ;define
+
     (define (%editor-handle-input comp key)
       (let* ((data (component-data comp))
              (buf (%ed-buffer data))
@@ -150,22 +229,27 @@
                        (buffer-move-word-right! buf)
                       ) ;
                       ((or (eq? key 'up) (eq? key 'ctrl-p))
-                       (if multi?
+                       ;; 粘贴展开后即使单行模式，缓冲区有多行也应允许上下移动
+                       (if (or multi? (> (length (buffer-lines buf)) 1))
                          (buffer-move-up! buf)
                          (%load-history! buf comp on-ch (history-prev hist (buffer-text buf)))
                        ) ;if
                       ) ;
                       ((or (eq? key 'down) (eq? key 'ctrl-n))
-                       (if multi?
+                       (if (or multi? (> (length (buffer-lines buf)) 1))
                          (buffer-move-down! buf)
                          (%load-history! buf comp on-ch (history-next hist (buffer-text buf)))
                        ) ;if
                       ) ;
                       ((or (eq? key 'backspace) (eq? key 'ctrl-h))
-                       (%apply-edit! buf comp on-ch (lambda () (buffer-backspace! buf)))
+                       (or (%try-backspace-marker! comp data buf on-ch)
+                         (%apply-edit! buf comp on-ch (lambda () (buffer-backspace! buf)))
+                       ) ;or
                       ) ;
                       ((or (eq? key 'delete) (eq? key 'ctrl-d))
-                       (%apply-edit! buf comp on-ch (lambda () (buffer-delete! buf)))
+                       (or (%try-delete-marker! comp data buf on-ch)
+                         (%apply-edit! buf comp on-ch (lambda () (buffer-delete! buf)))
+                       ) ;or
                       ) ;
                       ((eq? key 'ctrl-k)
                        (%apply-edit! buf comp on-ch (lambda () (buffer-kill-line-right! buf)))
@@ -186,7 +270,8 @@
                       ((eq? key 'enter)
                        ;; Enter 优先提交；submit-on-enter? 关闭时多行模式插入换行
                        (if submit-on-enter?
-                         (let ((txt (buffer-text buf)))
+                         ;; 提交前展开隐藏的粘贴内容
+                         (let ((txt (paste-expand (%ed-pastes data) (buffer-text buf))))
                            (history-push! hist txt)
                            (when (procedure? on-sub)
                              (on-sub comp txt)
@@ -195,6 +280,9 @@
                          ) ;let
                          (if multi? (%apply-edit! buf comp on-ch (lambda () (buffer-newline! buf))) #f)
                        ) ;if
+                      ) ;
+                      ((and (string? key) (%bracketed-paste? key))
+                       (%handle-paste! comp data buf on-ch (%bracketed-paste-content key))
                       ) ;
                       ((string? key)
                        (buffer-insert-string! buf key)

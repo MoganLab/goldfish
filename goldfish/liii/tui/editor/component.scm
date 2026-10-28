@@ -28,7 +28,7 @@
     editor-placeholder editor-set-placeholder! editor-history-list
     editor-history editor-set-on-submit! editor-border-color
     editor-set-border-color! editor-max-lines editor-set-max-lines!
-    editor-top-row editor-viewport
+    editor-top-row editor-viewport editor-expanded-text
   ) ;export
   (import (scheme base)
     (scheme write)
@@ -41,6 +41,7 @@
     (liii tui editor cursor)
     (liii tui editor state)
     (liii tui editor viewport)
+    (liii tui editor paste)
     (liii tui editor handle)
   ) ;import
   (begin
@@ -76,10 +77,22 @@
       ) ;unless
       (let* ((data (component-data ed)) (buf (%ed-buffer data)))
         (buffer-set-text! buf text)
+        ;; 外部整体替换文本时，旧的粘贴隐藏内容与编号不再适用
+        (paste-registry-clear! (%ed-pastes data))
         (when (procedure? (%ed-on-change data))
           ((%ed-on-change data) ed text)
         ) ;when
       ) ;let*
+    ) ;define
+
+    ;; 提交/外部读取用：把 [paste #N ...] 标记展开成真实内容
+    (define (editor-expanded-text ed)
+      (unless (editor? ed)
+        (type-error "editor-expanded-text: ed must be an editor")
+      ) ;unless
+      (let ((data (component-data ed)))
+        (paste-expand (%ed-pastes data) (buffer-text (%ed-buffer data)))
+      ) ;let
     ) ;define
 
     (define (editor-lines ed)
@@ -255,7 +268,7 @@
              (hist (make-history history-size))
              (data (%make-editor-data buf hist multiline? focused? placeholder
                      cursor-style on-submit on-change top-border bottom-border
-                     border-color submit-on-enter? max-lines 0
+                     border-color submit-on-enter? max-lines 0 (make-paste-registry)
                    ) ;%make-editor-data
              ) ;data
              (comp (make-component %editor-render %editor-handle-input))

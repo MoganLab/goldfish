@@ -29,7 +29,7 @@
     %ed-on-change-set! %ed-top-border %ed-top-border-set! %ed-bottom-border
     %ed-bottom-border-set! %ed-border-color %ed-border-color-set!
     %ed-submit-on-enter? %ed-submit-on-enter?-set! %ed-max-lines
-    %ed-max-lines-set! %ed-top-row %ed-top-row-set!
+    %ed-max-lines-set! %ed-top-row %ed-top-row-set! %ed-pastes
   ) ;export
   (import (scheme base))
   (begin
@@ -37,7 +37,7 @@
     (define-record-type <editor-data>
       (%make-editor-data buffer history multiline? focused? placeholder
         cursor-style on-submit on-change top-border bottom-border border-color
-        submit-on-enter? max-lines top-row
+        submit-on-enter? max-lines top-row pastes
       ) ;%make-editor-data
       %editor-data?
       (buffer %ed-buffer %ed-buffer-set!)
@@ -56,6 +56,8 @@
       ;; 可视内容行上限（#f 表示不限制）；top-row 为视口首行
       (max-lines %ed-max-lines %ed-max-lines-set!)
       (top-row %ed-top-row %ed-top-row-set!)
+      ;; 大段粘贴的注册表（marker . 原文），提交时展开
+      (pastes %ed-pastes %ed-pastes-set!)
     ) ;define-record-type
 
   ) ;begin
