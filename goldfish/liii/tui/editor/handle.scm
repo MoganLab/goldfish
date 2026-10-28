@@ -143,8 +143,12 @@
               ((eq? key 'ctrl-t)
                (%apply-edit! buf comp on-ch (lambda () (buffer-transpose-chars! buf)))
               ) ;
+              ((eq? key 'ctrl-j)
+               ;; 多行模式下的显式换行键（Enter 已被提交占用）
+               (if multi? (%apply-edit! buf comp on-ch (lambda () (buffer-newline! buf))) #f)
+              ) ;
               ((eq? key 'enter)
-               ;; Enter 只由 submit-on-enter? 控制；多行换行留待后续实现
+               ;; Enter 优先提交；submit-on-enter? 关闭时多行模式插入换行
                (if submit-on-enter?
                  (let ((txt (buffer-text buf)))
                    (history-push! hist txt)
@@ -153,7 +157,7 @@
                    ) ;when
                    #t
                  ) ;let
-                 #f
+                 (if multi? (%apply-edit! buf comp on-ch (lambda () (buffer-newline! buf))) #f)
                ) ;if
               ) ;
               ((string? key)
