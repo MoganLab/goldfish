@@ -157,6 +157,57 @@
   (check (buffer-text b) => "hello ")
   (check (buffer-col b) => 6))
 
+;; 8.1 ctrl-k 在行尾时删除换行：把下一行拉到当前行
+(let ((b (make-buffer "abc\ndef" #t)))
+  (buffer-row-set! b 0)
+  (buffer-col-set! b 3)
+  (check (buffer-kill-line-right! b) => #t)
+  (check (buffer-lines b) => '("abcdef"))
+  (check (buffer-row b) => 0)
+  (check (buffer-col b) => 3))
+
+;; ctrl-k 在空行上：把下一行拉到当前行（空行被删除）
+(let ((b (make-buffer "abc\n\ndef" #t)))
+  (buffer-row-set! b 1)
+  (check (buffer-kill-line-right! b) => #t)
+  (check (buffer-lines b) => '("abc" "def"))
+  (check (buffer-row b) => 1)
+  (check (buffer-col b) => 0))
+
+;; ctrl-k 在末行行尾：无操作
+(let ((b (make-buffer "abc\ndef" #t)))
+  (buffer-row-set! b 1)
+  (buffer-col-set! b 3)
+  (check (buffer-kill-line-right! b) => #f)
+  (check (buffer-lines b) => '("abc" "def")))
+
+;; 8.2 ctrl-u 在行首时删除换行：回退到上一行末尾
+(let ((b (make-buffer "abc\ndef" #t)))
+  (buffer-row-set! b 1)
+  (buffer-col-set! b 0)
+  (check (buffer-kill-line-left! b) => #t)
+  (check (buffer-lines b) => '("abcdef"))
+  (check (buffer-row b) => 0)
+  (check (buffer-col b) => 3))
+
+;; ctrl-u 在空行上：回退到上一行末尾（空行被删除）
+(let ((b (make-buffer "abc\n\ndef" #t)))
+  (buffer-row-set! b 1)
+  (check (buffer-kill-line-left! b) => #t)
+  (check (buffer-lines b) => '("abc" "def"))
+  (check (buffer-row b) => 0)
+  (check (buffer-col b) => 3))
+
+;; ctrl-u 在首行行首：无操作
+(let ((b (make-buffer "abc\ndef" #t)))
+  (check (buffer-kill-line-left! b) => #f)
+  (check (buffer-lines b) => '("abc" "def")))
+
+;; ctrl-u 在空行且为首行：无操作
+(let ((b (make-buffer "\nabc" #t)))
+  (check (buffer-kill-line-left! b) => #f)
+  (check (buffer-lines b) => '("" "abc")))
+
 (let ((b (make-buffer "ab" #f)))
   (buffer-col-set! b 2)
   ;; ctrl-t: 交换光标前两个字符

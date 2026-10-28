@@ -147,7 +147,7 @@
   (check (pi-args-ref res 'tools) => #f)
   (check (pi-args-ref res 'exclude-tools) => #f)
   (check (pi-args-ref res 'no-tools) => #f)
-  (check (pi-args-ref res 'max-turns) => 200)
+  (check (pi-args-ref res 'max-turns) => #f)
   (check (pi-args-ref res 'timeout) => #f)
   (check (pi-args-ref res 'session-timeout) => #f)
   (check (pi-args-ref res 'no-session) => #f)

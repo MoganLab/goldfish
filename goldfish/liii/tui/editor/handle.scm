@@ -110,10 +110,7 @@
 
     ;; 编辑前先取快照，编辑生效则入撤销栈（编辑未生效不产生空快照）
     (define (%apply-edit! buf comp on-ch thunk)
-      (let* ((data (component-data comp))
-             (snap (%editor-snapshot data))
-             (res (thunk))
-            ) ;
+      (let* ((data (component-data comp)) (snap (%editor-snapshot data)) (res (thunk)))
         (when res
           (%ed-undo-stack-set! data (cons snap (%ed-undo-stack data)))
           (%ed-last-action-set! data #f)
@@ -126,17 +123,17 @@
     ) ;define
 
     ;; push-undo? 为真时记录浏览前快照（仅首次进入历史浏览时传入，
-    ;; 对齐上游 navigateHistory 只在进入浏览时入栈），使 Ctrl+Z 直接回到草稿
-    (define (%load-history! buf comp on-ch text push-undo?)
+    ;; 对齐上游 navigateHistory 只在进入浏览时入栈），使 Ctrl+Z 直接回到草稿；
+    ;; 快照先于注册表清空记录，撤销时文本与粘贴注册表一并还原
+    (define (%load-history! data buf comp on-ch text push-undo?)
       (when text
         (when push-undo?
-          (let ((data (component-data comp)))
-            (%ed-undo-stack-set! data
-              (cons (%editor-snapshot data) (%ed-undo-stack data))
-            ) ;%ed-undo-stack-set!
-            (%ed-last-action-set! data #f)
-          ) ;let
+          (%ed-undo-stack-set! data (cons (%editor-snapshot data) (%ed-undo-stack data)))
+          (%ed-last-action-set! data #f)
         ) ;when
+        ;; 历史整体替换缓冲区后，旧标记全部失效；清掉注册表，
+        ;; 避免之后手打的标记文本被误展开
+        (paste-registry-clear! (%ed-pastes data))
         (buffer-set-text! buf text)
         (buffer-move-end! buf)
         (when (procedure? on-ch)
@@ -271,10 +268,14 @@
                          (or multi? (> (length (buffer-lines buf)) 1))
                          (buffer-move-up! buf)
                          ;; 首次进入历史浏览时记录快照，Ctrl+Z 可一步回到草稿；
-                         ;; entering? 必须先于 history-prev 求值（后者会改动 index）
+                         ;; entering? 必须先于 history-prev 求值（后者会改动 index）；
+                         ;; 草稿保存展开后的文本：down 返回草稿时不会还原出已失效的标记
                          (let ((entering? (not (history-index hist))))
-                           (%load-history! buf comp on-ch
-                             (history-prev hist (buffer-text buf))
+                           (%load-history! data
+                             buf
+                             comp
+                             on-ch
+                             (history-prev hist (paste-expand (%ed-pastes data) (buffer-text buf)))
                              entering?
                            ) ;%load-history!
                          ) ;let
@@ -284,8 +285,11 @@
                        (if
                          (or multi? (> (length (buffer-lines buf)) 1))
                          (buffer-move-down! buf)
-                         (%load-history! buf comp on-ch
-                           (history-next hist (buffer-text buf))
+                         (%load-history! data
+                           buf
+                           comp
+                           on-ch
+                           (history-next hist (paste-expand (%ed-pastes data) (buffer-text buf)))
                            #f
                          ) ;%load-history!
                        ) ;if

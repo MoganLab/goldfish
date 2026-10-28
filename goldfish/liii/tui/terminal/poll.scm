@@ -35,6 +35,7 @@
     (liii tui terminal protocol)
     (liii tui terminal virtual)
     (liii tui keys parser)
+    (liii tui mouse)
   ) ;import
   (begin
 
@@ -213,8 +214,8 @@
         #f
         (if (<= (length byte-list) 1)
           'escape
-          (let* ((str (list->string (map integer->char byte-list))) (k (parse-key str)))
-            k
+          (let* ((bv (apply bytevector byte-list)) (str (utf8->string bv)) (k (parse-key str)))
+            (or k (parse-mouse-event str))
           ) ;let*
         ) ;if
       ) ;if

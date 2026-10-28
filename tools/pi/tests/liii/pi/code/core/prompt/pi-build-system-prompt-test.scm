@@ -41,7 +41,7 @@
 ;; ----
 ;; (pi-build-system-prompt '("read" "bash") "/project" #f #f '())
 
-;; 1. 默认预算参数（session-timeout 600, max-turns 200）
+;; 1. 默认预算参数（session-timeout 600, max-turns 0 即不限轮数）
 (let ((sp (pi-build-system-prompt '("read" "bash") "/test/cwd" #f #f '())))
   (check-true (string-contains? sp "You are an expert coding assistant operating inside pi")
   ) ;check-true
@@ -49,7 +49,7 @@
   (check-true (string-contains? sp "<session_budget>"))
   (check-true (string-contains? sp "Session Timeout: 600 seconds (hard wall-clock deadline)")
   ) ;check-true
-  (check-true (string-contains? sp "Max Turns: 200 turns."))
+  (check-true (string-contains? sp "Max Turns: Unlimited (no turn limit configured)."))
   (check-true (string-contains? sp "Pacing: Pace your work accordingly."))
   (check-true (string-contains? sp "</session_budget>"))
 ) ;let

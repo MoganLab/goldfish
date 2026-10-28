@@ -121,4 +121,48 @@
   (check seen => "x[paste #1 1200 chars]")
 ) ;let*
 
+;; 10. 历史导航整体替换缓冲区后旧标记失效：手打的标记文本按字面提交
+(let* ((big (make-string 1200 #\a))
+       (submitted #f)
+       (ed (make-editor ""
+             :on-submit (lambda (comp text) (set! submitted text))
+           ) ;make-editor
+       ) ;
+      ) ;
+  (component-handle-input ed "h")
+  (component-handle-input ed 'enter)
+  (check submitted => "h")
+  (editor-set-text! ed "")
+  (component-handle-input ed (paste-event big))
+  (check (editor-text ed) => "[paste #1 1200 chars]")
+  ;; up 加载历史：整体替换缓冲区，注册表随之清空
+  (check (component-handle-input ed 'up) => #t)
+  (check (editor-text ed) => "h")
+  ;; 手打与旧标记相同的文本：不再被展开
+  (let ((fake "[paste #1 1200 chars]"))
+    (let loop ((i 0))
+      (when (< i (string-length fake))
+        (component-handle-input ed (substring fake i (+ i 1)))
+        (loop (+ i 1))
+      ) ;when
+    ) ;let
+  ) ;let
+  (component-handle-input ed 'enter)
+  (check submitted => "h[paste #1 1200 chars]")
+) ;let*
+
+;; 11. 历史往返不丢粘贴内容：草稿保存的是展开后的文本
+(let* ((big (make-string 1200 #\a))
+       (ed (make-editor "" :on-submit (lambda (comp text) #f)))
+      ) ;
+  (component-handle-input ed "h")
+  (component-handle-input ed 'enter)
+  (editor-set-text! ed "")
+  (component-handle-input ed (paste-event big))
+  (component-handle-input ed 'up)
+  (check (editor-text ed) => "h")
+  (component-handle-input ed 'down)
+  (check (editor-text ed) => big)
+) ;let*
+
 (check-report)
