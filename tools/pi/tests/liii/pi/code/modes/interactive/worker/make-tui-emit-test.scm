@@ -49,6 +49,13 @@
   (chan-try-recv! ch 'none)
 ) ;define
 
+;; 0. %assistant-error-text：error 结算提取错误文本，缺省兜底 "Error"，非 error 返回 #f
+(check (%assistant-error-text
+          (pi-assistant-message '() :stop-reason "error" :error-message "boom"))
+  => "boom")
+(check (%assistant-error-text (pi-assistant-message '() :stop-reason "error")) => "Error")
+(check (%assistant-error-text (pi-assistant-message '() :stop-reason "aborted")) => #f)
+
 ;; 1. error 结算且无部分文本：仅投递 (error errorMessage)，不投递 assistant_text
 (let* ((ch (make-chan 16))
        (emit (make-tui-emit ch))
