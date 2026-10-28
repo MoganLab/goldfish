@@ -31,7 +31,7 @@
     virtual-terminal-push-key! virtual-terminal-pop-key! terminal-poll-key
     terminal-paste-mode? terminal-set-paste-mode! make-standard-terminal
     standard-terminal? terminal-enter-raw-mode! terminal-exit-raw-mode!
-    terminal-max-y
+    terminal-max-y terminal-mouse-mode!
   ) ;export
   (import (liii tui terminal protocol)
     (liii tui terminal size)

@@ -484,6 +484,9 @@ static bool   g_has_orig_mode= false;
 static bool            g_raw_mode_enabled= false;
 static std::deque<int> g_console_key_queue;
 static uint32_t        g_surrogate_hi= 0;
+// 上一次处于按下状态的鼠标按钮（SGR 编码：0=左 1=中 2=右，-1=无），
+// 用于在释放事件中还原按钮号
+static int g_mouse_prev_button= -1;
 
 static void
 restore_windows_console_mode_at_exit () {
@@ -519,6 +522,25 @@ static void
 push_seq (int prefix, int code) {
   g_console_key_queue.push_back (prefix);
   g_console_key_queue.push_back (code);
+}
+
+/* 把 Windows MOUSE_EVENT_RECORD 合成为 XTerm SGR 鼠标序列（1006 模式）：
+ * ESC [ < B ; X ; Y M/m，B 为按钮码（bit0-1 按钮 0/1/2，bit3 Alt，
+ * bit4 Shift，bit5 Ctrl，bit6 motion，bit7 滚轮），X/Y 为 1-based 坐标。
+ * 滚轮：WHEEL_UP=64，WHEEL_DOWN=65。按钮释放统一报 3（无按钮）。
+ * Scheme 侧由 (liii tui mouse) 的 parse-mouse-event 解析。 */
+static void
+push_sgr_mouse (DWORD button_code, DWORD x, DWORD y, bool release) {
+  std::string seq= "\x1b[<";
+  seq+= std::to_string ((long long) button_code);
+  seq+= ';';
+  seq+= std::to_string ((long long) (x + 1));
+  seq+= ';';
+  seq+= std::to_string ((long long) (y + 1));
+  seq+= release ? 'm' : 'M';
+  for (unsigned char c : seq) {
+    g_console_key_queue.push_back ((int) c);
+  }
 }
 
 static bool
@@ -568,6 +590,50 @@ pump_console_input (HANDLE hIn, long timeout_ms) {
     DWORD        read_count= 0;
     if (!ReadConsoleInputW (hIn, &rec, 1, &read_count) || read_count != 1) {
       return false;
+    }
+
+    if (rec.EventType == MOUSE_EVENT) {
+      const MOUSE_EVENT_RECORD& me  = rec.Event.MouseEvent;
+      DWORD                     ctrl= me.dwControlKeyState;
+      // dwButtonState 低 5 位：1=左 2=右 4=中 8/16=XBUTTON
+      // SGR 按钮码：0=左 1=中 2=右，需要重映射
+      DWORD win_button= me.dwButtonState & 0xF;
+      int   sgr_button= -1; // -1 = 无按钮
+      if (win_button == FROM_LEFT_1ST_BUTTON_PRESSED) sgr_button= 0;
+      else if (win_button == RIGHTMOST_BUTTON_PRESSED) sgr_button= 2;
+      else if (win_button == FROM_LEFT_2ND_BUTTON_PRESSED) sgr_button= 1;
+      else if (win_button != 0) continue; // XBUTTON 忽略
+
+      DWORD button_code= 0;
+      if (me.dwEventFlags & MOUSE_WHEELED) {
+        // 高字为有符号滚轮增量，负数表示向上滚；按钮码 64=上，65=下
+        SHORT delta= (SHORT) ((me.dwButtonState >> 16) & 0xFFFF);
+        button_code= delta < 0 ? 64 : 65;
+      }
+      else if (me.dwEventFlags & MOUSE_MOVED) {
+        if (sgr_button < 0 && g_mouse_prev_button < 0) {
+          continue; // 无按钮移动（1003 才上报，这里忽略）
+        }
+        // 拖动：motion 位 32 + 按钮号（若当前无按钮则用上一次的）
+        button_code= 32 | (DWORD) (sgr_button >= 0 ? sgr_button : g_mouse_prev_button);
+      }
+      else if (sgr_button >= 0) {
+        button_code        = (DWORD) sgr_button; // 按下（含双击，重复上报无害）
+        g_mouse_prev_button= sgr_button;
+      }
+      else {
+        // 释放：final m，报告上一次按下的按钮号
+        DWORD rel          = g_mouse_prev_button >= 0 ? (DWORD) g_mouse_prev_button : 3;
+        g_mouse_prev_button= -1;
+        push_sgr_mouse (rel, me.dwMousePosition.X, me.dwMousePosition.Y, true);
+        return true;
+      }
+      // 修饰位：Shift(4) Alt(8) Ctrl(16)，与 SGR 按钮码位定义一致
+      if (ctrl & SHIFT_PRESSED) button_code|= 4;
+      if (ctrl & (LEFT_ALT_PRESSED | RIGHT_ALT_PRESSED)) button_code|= 8;
+      if (ctrl & (LEFT_CTRL_PRESSED | RIGHT_CTRL_PRESSED)) button_code|= 16;
+      push_sgr_mouse (button_code, me.dwMousePosition.X, me.dwMousePosition.Y, false);
+      return true;
     }
 
     if (rec.EventType != KEY_EVENT || !rec.Event.KeyEvent.bKeyDown) {
@@ -704,6 +770,11 @@ f_console_raw_mode (s7_scheme* sc, s7_pointer args) {
     DWORD raw_mode= g_orig_in_mode;
     raw_mode&= ~(ENABLE_ECHO_INPUT | ENABLE_LINE_INPUT | ENABLE_PROCESSED_INPUT);
     raw_mode|= ENABLE_WINDOW_INPUT;
+    /* 鼠标事件上报：需同时清 QUICK_EDIT（否则点击被终端自带的文本选择占用），
+     * MOUSE_EVENT 在 pump_console_input 中合成为 SGR 字节序列（1006 模式），
+     * 与 POSIX 终端的 ESC[<B;X;YM/m 序列统一，Scheme 层只需一条解析路径。 */
+    raw_mode&= ~ENABLE_QUICK_EDIT_MODE;
+    raw_mode|= ENABLE_EXTENDED_FLAGS | ENABLE_MOUSE_INPUT;
     SetConsoleMode (hIn, raw_mode);
     g_raw_mode_enabled= true;
   }

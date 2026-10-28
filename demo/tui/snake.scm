@@ -27,11 +27,13 @@
   (liii time)
   (liii tui component)
   (liii tui terminal)
+  (liii tui mouse)
   (liii tui loader)
   (liii tui editor)
   (liii tui main-screen)
   (demo tui snake logic)
   (demo tui snake view)
+  (demo tui snake mouse)
   (demo tui snake style)
 ) ;import
 
@@ -94,6 +96,10 @@
     (dynamic-wind (lambda ()
                     (console-raw-mode! #t)
                     (terminal-hide-cursor! term)
+                    ;; 开启鼠标报告：POSIX 终端发 ANSI 序列，
+                    ;; Windows 控制台由 C++ 层合成 SGR 字节流
+                    (terminal-mouse-mode! term #t)
+                    (terminal-flush term)
                     (terminal-clear term)
                   ) ;lambda
       (lambda ()
@@ -131,15 +137,42 @@
                     ) ;
                 (screen-render! screen lines)
                 (sleep 0.1)
-                (let ((key (terminal-poll-key term)))
-                  (if (or (eq? key 'escape) (equal? key "q") (equal? key "Q"))
-                    (begin
-                      (screen-clear! screen)
-                      (terminal-show-cursor! term)
-                      (display "Game quit by player.\n")
-                    ) ;begin
-                    (game-loop (snake-tick active-game key) cur-cols cur-rows)
-                  ) ;if
+                ;; 排空输入队列：键盘与鼠标（一次 tick 可能积压多个事件）
+                (let poll-loop
+                  ((key (terminal-poll-key term)))
+                  (cond
+                    ;; 鼠标点击：转为转向指令，继续排空队列
+                    ((mouse-event? key)
+                     (let ((dir (snake-mouse-press->dir active-game key 0 0)))
+                       (when dir
+                         (set! active-game (snake-turn active-game dir))
+                       ) ;when
+                     ) ;let
+                     (poll-loop (terminal-poll-key term))
+                    ) ;
+                    ;; 退出键
+                    ((or (eq? key 'escape) (equal? key "q") (equal? key "Q"))
+                     (begin
+                       (screen-clear! screen)
+                       (terminal-show-cursor! term)
+                       (display "Game quit by player.\n")
+                     ) ;begin
+                    ) ;
+                    ;; 无输入：继续游戏循环
+                    ((not key) (game-loop (snake-tick active-game #f) cur-cols cur-rows))
+                    ;; 其他按键：方向键立即转向（不消耗 tick），
+                    ;; 暂停/退出交给 tick；转向后继续排空队列
+                    (else
+                      (case (snake-normalize-key key)
+                            ((up down left right)
+                             (set! active-game (snake-turn active-game key))
+                             (poll-loop (terminal-poll-key term))
+                            ) ;
+                            ((pause) (game-loop (snake-tick active-game key) cur-cols cur-rows))
+                            (else (poll-loop (terminal-poll-key term)))
+                      ) ;case
+                    ) ;else
+                  ) ;cond
                 ) ;let
               ) ;let*
             ) ;let*
