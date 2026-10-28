@@ -29,9 +29,8 @@
     %ed-on-change-set! %ed-top-border %ed-top-border-set! %ed-bottom-border
     %ed-bottom-border-set! %ed-border-color %ed-border-color-set!
     %ed-submit-on-enter? %ed-submit-on-enter?-set! %ed-max-lines
-    %ed-max-lines-set! %ed-top-row %ed-top-row-set! %ed-pastes
-    %ed-pastes-set! %ed-undo-stack %ed-undo-stack-set! %ed-last-action
-    %ed-last-action-set!
+    %ed-max-lines-set! %ed-top-row %ed-top-row-set! %ed-pastes %ed-pastes-set!
+    %ed-undo-stack %ed-undo-stack-set! %ed-last-action %ed-last-action-set!
   ) ;export
   (import (scheme base))
   (begin

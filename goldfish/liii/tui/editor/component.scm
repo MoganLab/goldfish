@@ -79,9 +79,7 @@
       (let* ((data (component-data ed)) (buf (%ed-buffer data)))
         (unless (string=? (buffer-text buf) text)
           ;; 外部整体替换（含清空）可撤销：先记录替换前快照
-          (%ed-undo-stack-set! data
-            (cons (%editor-snapshot data) (%ed-undo-stack data))
-          ) ;%ed-undo-stack-set!
+          (%ed-undo-stack-set! data (cons (%editor-snapshot data) (%ed-undo-stack data)))
           (%ed-last-action-set! data #f)
         ) ;unless
         (buffer-set-text! buf text)

@@ -28,8 +28,8 @@
   (export %bracketed-paste? %bracketed-paste-content %paste-normalize
     %paste-large? make-paste-registry paste-registry? paste-registry-add!
     paste-registry-clear! paste-registry-count paste-registry-remove!
-    paste-registry-snapshot paste-registry-restore!
-    paste-expand paste-marker-at-end paste-marker-at-start
+    paste-registry-snapshot paste-registry-restore! paste-expand
+    paste-marker-at-end paste-marker-at-start
   ) ;export
   (import (scheme base) (liii base) (liii list) (liii string) (liii unicode))
   (begin
