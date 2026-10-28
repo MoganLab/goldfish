@@ -48,10 +48,6 @@
       {
         "path": "tools/check/tests/resources/",
         "reason": "type-hint 规则测试 fixture 使用虚构库名"
-      },
-      {
-        "path": "tests/liii/json/resources/",
-        "reason": "type-hint 规则 e2e 测试 fixture 使用虚构库名"
       }
     ],
     "no-glue": [

@@ -1,8 +1,0 @@
-{
-  "goldfish_version": "18.11",
-  "rules": {
-    "type-hint": {
-      "enabled": true
-    }
-  }
-}
