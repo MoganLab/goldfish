@@ -34,9 +34,10 @@
     (liii goldcheck type-hint checks)
     (liii goldcheck type-hint infer)
     (liii goldcheck type-hint env)
+    (liii goldcheck type-hint owner)
   ) ;import
   (export scan-hint-libs check-type-hint check-type-hint-all
-    type-hint-status-lines display-type-hint-statuses
+    check-type-hint-duplicates type-hint-status-lines display-type-hint-statuses
   ) ;export
   (begin
 
@@ -100,6 +101,9 @@
                    (vars (hint-var-defs info))
                    (query-exists? (and (query-define info qname) #t))
                    (entries (registered-entries info qname))
+                   (orig (orig-lib-path hint-file))
+                   (oinfo (and orig (file-exists? orig) (parse-library-file orig)))
+                   (roots (hint-roots-of hint-file))
                   ) ;
               (append (check-a1 rel hint-file info)
                 (check-a2 rel info qname)
@@ -107,6 +111,7 @@
                 (apply append (map (lambda (d) (check-var rel d)) vars))
                 (check-a5 rel vars entries query-exists?)
                 (check-b rel hint-file entries vars)
+                (check-a7 rel info oinfo roots)
                 (check-infer hint-file)
               ) ;append
             ) ;let*
@@ -171,7 +176,11 @@
 
     (define (check-type-hint-all)
       "扫描 goldfish/hint/ 并检查全部 hint 库，返回违规列表"
-      (apply append (map check-type-hint (scan-hint-libs)))
+      (let ((files (scan-hint-libs)))
+        (append (apply append (map check-type-hint files))
+          (check-type-hint-duplicates files)
+        ) ;append
+      ) ;let
     ) ;define
 
   ) ;begin

@@ -26,7 +26,9 @@
     (liii goldcheck type-hint util)
     (liii goldcheck type-hint hint-data)
   ) ;import
-  (export build-env full-coverage?)
+  (export build-env full-coverage? hint-roots-of library-file source-closure
+    defining-libs exporting-libs hint-lib-file cached-library-info
+  ) ;export
   (begin
 
     (define (hint-root-of hint-file)
@@ -62,6 +64,77 @@
       (let ((local (hint-root-of hint-file)) (global (tool-goldfish-hint-root hint-file)))
         (append (if local (list local) '()) (if global (list global) '()))
       ) ;let
+    ) ;define
+
+    ;; ---------- 归属库分析（A7） ----------
+
+    ;; 路径 -> 库信息 的缓存，避免同一文件被重复解析
+    (define %lib-info-cache '())
+
+    (define (cached-library-info path)
+      (if (not path)
+        #f
+        (let ((hit (assq path %lib-info-cache)))
+          (if hit
+            (cdr hit)
+            (let ((info (parse-library-file path)))
+              (set! %lib-info-cache (cons (cons path info) %lib-info-cache))
+              info
+            ) ;let
+          ) ;if
+        ) ;let
+      ) ;if
+    ) ;define
+
+    ;; 原库及其 import 闭包，按广度优先顺序返回 (深度 . 库信息)；
+    ;; 深度 0 为原库自身。
+    (define (source-closure oinfo roots)
+      (let loop
+        ((queue (lib-imports oinfo))
+         (depth 1)
+         (acc (list (cons 0 oinfo)))
+         (seen (list (lib-name oinfo)))
+        ) ;
+        (if (null? queue)
+          (reverse acc)
+          (let ((lib (car queue)))
+            (if (member lib seen equal?)
+              (loop (cdr queue) depth acc seen)
+              (let ((info (cached-library-info (library-file roots lib #t))))
+                (if (not info)
+                  (loop (cdr queue) depth acc (cons lib seen))
+                  (loop (append (cdr queue) (lib-imports info))
+                    (+ depth 1)
+                    (cons (cons depth info) acc)
+                    (cons lib seen)
+                  ) ;loop
+                ) ;if
+              ) ;let
+            ) ;if
+          ) ;let
+        ) ;if
+      ) ;let
+    ) ;define
+
+    ;; 闭包中本地 define 了 name 的库，按广度优先顺序
+    (define (defining-libs name closure)
+      (filter
+        (lambda (c) (assq name (lib-defines (cdr c))))
+        closure
+      ) ;filter
+    ) ;define
+
+    ;; 闭包中导出了 name 的库，按广度优先顺序
+    (define (exporting-libs name closure)
+      (filter
+        (lambda (c) (memq name (lib-exports (cdr c))))
+        closure
+      ) ;filter
+    ) ;define
+
+    ;; 库对应的 hint 库文件路径；不存在返回 #f
+    (define (hint-lib-file lib-name roots)
+      (library-file roots lib-name #f)
     ) ;define
 
     (define (entry->binding e vars)

@@ -18,7 +18,8 @@
 ;; 本库只提供类型签名数据，不导出 (srfi srfi-1) 的任何过程，
 ;; 也不导入其他 hint 库，因此可以被独立加载。
 ;;
-;; 目前只登记 (liii alist) 实际用到的过程。
+;; 目前只登记 (liii alist) 实际用到的过程，以及由 (liii alist) 再导出的
+;; alist-cons（实现在本库，签名只在本库声明）。
 
 (define-library (hint srfi srfi-1)
   (import (scheme base))
@@ -31,10 +32,14 @@
     ;; filter : (procedure? list? -> list?)
     (define hint-filter '((procedure? list? -> list?)))
 
+    ;; alist-cons : (any? any? alist? -> alist?)，由 (liii alist) 再导出
+    (define hint-alist-cons '((any? any? alist? -> alist?)))
+
     (define (hint-srfi/srfi-1 name)
       (case name
        ((every) hint-every)
        ((filter) hint-filter)
+       ((alist-cons) hint-alist-cons)
        (else #f)
       ) ;case
     ) ;define
