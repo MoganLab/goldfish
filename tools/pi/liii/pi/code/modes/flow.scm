@@ -65,7 +65,7 @@
              (custom-info (%collect-custom-tool-info reg))
              (max-turns
                (or (pi-args-ref parsed 'max-turns)
-                 (cdr (or (assoc 'max-turns cfg) '(#f . 200)))
+                 (cdr (or (assoc 'max-turns cfg) (cons #f 0)))
                ) ;or
              ) ;max-turns
              (session-timeout
@@ -129,7 +129,7 @@
       (let* ((timeout (pi-resolve-timeout parsed cfg))
              (max-turns
                (or (pi-args-ref parsed 'max-turns)
-                 (cdr (or (assoc 'max-turns cfg) '(#f . 200)))
+                 (cdr (or (assoc 'max-turns cfg) (cons #f 0)))
                ) ;or
              ) ;max-turns
              (session-timeout

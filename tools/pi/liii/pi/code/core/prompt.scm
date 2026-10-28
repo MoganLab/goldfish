@@ -166,7 +166,7 @@
                (append-system-prompts '())
                (custom-tool-info '())
                (session-timeout 600)
-               (max-turns 200)
+               (max-turns 0)
              ) ;pi-build-system-prompt
       (let* ((has-override?
                (and (string? system-prompt-override)
