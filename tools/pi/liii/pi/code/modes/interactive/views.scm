@@ -230,6 +230,8 @@
     ) ;define
 
     ;; 着色分段 → ANSI 文本：bold=toolTitle 粗体 / accent / muted / warning
+    ;; 对齐上游 theme.fg：每段末尾只选择性重置（粗体 22+39，其余 39），
+    ;; 绝不发 \x1b[0m 全重置，否则会清掉行首 apply-card-bg 设置的卡片背景色
     (define (%style-segments segs)
       (apply string-append
         (map
@@ -242,7 +244,7 @@
                               (else %fg-output)
                              ) ;case
                 text
-                %ansi-reset
+                (if (eq? role 'bold) %bold-reset %fg-reset)
               ) ;string-append
             ) ;let
           ) ;lambda

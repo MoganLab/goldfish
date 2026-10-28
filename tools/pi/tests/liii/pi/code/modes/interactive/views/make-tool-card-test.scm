@@ -33,7 +33,22 @@
   (check (string-contains? (cadr lines) "48;2;52;56;58") => #t)
   (check (string-contains? (cadr lines) "\x1b;[1m\x1b;[38;2;222;224;225mread") => #t)
   (check (string-contains? (cadr lines) "38;2;167;152;215m file.scm") => #t)
-  (check-false (string-contains? plain "●")))
+  (check-false (string-contains? plain "●"))
+  ;; 对齐上游 theme.fg 的选择性重置（39/22）：分段间绝不清背景。
+  ;; 粗体段以 \x1b[22m\x1b[39m 收尾，其余段以 \x1b[39m 收尾；
+  ;; 标题行内不允许出现 \x1b[0m 全重置（末尾 apply-card-bg 的收尾除外）
+  (let ((title (cadr lines)))
+    (check (string-contains? title "read\x1b;[22m\x1b;[39m") => #t)
+    (check (string-contains? title "file.scm\x1b;[39m") => #t)
+    (check (= (length (string-split title "\x1b;[0m")) 2) => #t))
+  ;; 带 warning 范围后缀的 read 调用：范围段同样只重置前景
+  (let* ((range-card (make-tool-card "read"
+                         '(("path" . "a.scm") ("offset" . 10) ("limit" . 5))
+                         'pending))
+         (title (cadr (component-render range-card 60))))
+    (check (string-contains? title ":10-14") => #t)
+    (check (string-contains? title ":10-14\x1b;[39m") => #t)
+    (check (= (length (string-split title "\x1b;[0m")) 2) => #t)))
 
 ;; write 失败卡片：红背景、输出 muted，无状态红字和徽标
 (let* ((error-card (make-tool-card "write" "out.txt" 'error "Permission denied"))
@@ -43,6 +58,10 @@
   (check (string-contains? (cadr lines) "48;2;91;40;42") => #t)
   (check (string-contains? (cadr lines) "\x1b;[1m\x1b;[38;2;222;224;225mwrite") => #t)
   (check (string-contains? (cadr lines) "38;2;167;152;215m out.txt") => #t)
+  ;; 与 read 相同：分段间只选择性重置，背景铺满整行（write/edit/grep 等共用该路径）
+  (check (string-contains? (cadr lines) "write\x1b;[22m\x1b;[39m") => #t)
+  (check (string-contains? (cadr lines) "out.txt\x1b;[39m") => #t)
+  (check (= (length (string-split (cadr lines) "\x1b;[0m")) 2) => #t)
   (check-false (string-contains? joined "38;2;250;210;210"))
   (check-false (string-contains? joined "✖"))
   (check (string-contains? (list-ref lines 3) "38;2;157;165;169") => #t)
