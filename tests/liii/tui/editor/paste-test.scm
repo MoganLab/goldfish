@@ -1,8 +1,4 @@
-(import (scheme base)
-  (liii check)
-  (liii unicode)
-  (liii tui editor paste)
-) ;import
+(import (scheme base) (liii check) (liii unicode) (liii tui editor paste))
 
 (check-set-mode! 'report)
 
@@ -10,11 +6,26 @@
 (check (%bracketed-paste? "\x1b;[200~hello\x1b;[201~") => #t)
 (check (%bracketed-paste? "hello") => #f)
 (check (%bracketed-paste? "\x1b;[200~hello") => #f)
+(check (%bracketed-paste? "\x1b;[200~你好世界🎉\x1b;[201~") => #t)
 (check (%bracketed-paste-content "\x1b;[200~hello\x1b;[201~") => "hello")
+(check (%bracketed-paste-content "\x1b;[200~你好世界🎉\x1b;[201~")
+  =>
+  "你好世界🎉"
+) ;check
 
 ;; 2. 归一化：CRLF/CR -> LF，Tab -> 4 空格，过滤控制字符
+(check (%paste-normalize "") => "")
 (check (%paste-normalize "a\r\nb\rc\td") => "a\nb\nc    d")
 (check (%paste-normalize (string #\a (integer->char 1) #\b)) => "ab")
+(check (%paste-normalize "你好\r\n世界\t🎉\r测试")
+  =>
+  "你好\n世界    🎉\n测试"
+) ;check
+(check
+  (%paste-normalize (string-append "你" (string (integer->char 2)) "好"))
+  =>
+  "你好"
+) ;check
 
 ;; 3. 大粘贴阈值：>10 行 或 >1000 字符
 (check (%paste-large? "1234567890") => #f)
@@ -26,13 +37,20 @@
 ;; 4. 标记格式：>1000 字符优先展示字符数，否则展示总行数
 (let ((reg (make-paste-registry)))
   (check (paste-registry-add! reg (make-string 1965 #\a))
-    => "[paste #1 1965 chars]")
+    =>
+    "[paste #1 1965 chars]"
+  ) ;check
   (check (paste-registry-add! reg (string-append "a" (make-string 11 #\newline) "b"))
-    => "[paste #2 +12 lines]")
+    =>
+    "[paste #2 +12 lines]"
+  ) ;check
   ;; 多行且超长：字符数优先
-  (check (paste-registry-add! reg (string-append (make-string 1200 #\a)
-                                   (make-string 20 #\newline)))
-    => "[paste #3 1220 chars]")
+  (check (paste-registry-add! reg
+           (string-append (make-string 1200 #\a) (make-string 20 #\newline))
+         ) ;paste-registry-add!
+    =>
+    "[paste #3 1220 chars]"
+  ) ;check
   (check (paste-registry-count reg) => 3)
 ) ;let
 
@@ -43,7 +61,9 @@
       ) ;
   (check (paste-expand reg marker) => text)
   (check (paste-expand reg (string-append "x" marker "y"))
-    => (string-append "x" text "y"))
+    =>
+    (string-append "x" text "y")
+  ) ;check
   ;; 未知标记保持原样
   (check (paste-expand reg "[paste #9 1 chars]") => "[paste #9 1 chars]")
 ) ;let*
@@ -67,6 +87,26 @@
   (check (paste-registry-remove! reg marker) => #t)
   (check (paste-registry-count reg) => 1)
   (check (paste-expand reg marker) => marker)
+) ;let*
+
+;; 8. 较大多行文本规范化与标记生成正确性
+(let* ((lines 100)
+       (line-content "  (define (foo x y z) (if (> x 0) (+ y z) (- y z)))\n")
+       (big-text
+         (let loop
+           ((i 0) (acc '()))
+           (if (>= i lines)
+             (apply string-append acc)
+             (loop (+ i 1) (cons line-content acc))
+           ) ;if
+         ) ;let
+       ) ;big-text
+       (normalized (%paste-normalize big-text))
+       (reg (make-paste-registry))
+      ) ;
+  (check (%paste-large? normalized) => #t)
+  (check (paste-registry-add! reg normalized) => "[paste #1 5200 chars]")
+  (check (paste-expand reg "[paste #1 5200 chars]") => normalized)
 ) ;let*
 
 (check-report)
