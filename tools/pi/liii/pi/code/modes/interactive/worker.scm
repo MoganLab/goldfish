@@ -85,10 +85,26 @@
                       (role (pi-message-field msg 'role ""))
                       (content (pi-message-field msg 'content '()))
                       (text (pi-content-text content))
+                      (stop-reason (pi-message-field msg 'stopReason ""))
+                      (err-msg (pi-message-field msg 'errorMessage #f))
                      ) ;
                  (when
                    (and (equal? role "assistant") (not (string-null? (string-trim-both text))))
                    (pi-tui-send-event! event-chan (list 'assistant_text text))
+                 ) ;when
+                 ;; 错误结算（对齐上游 message_end 渲染 errorMessage）：
+                 ;; stopReason=error 时转为 error 卡片事件，保证用户可见；
+                 ;; errorMessage 缺省时兜底 "Error"
+                 (when (and (equal? role "assistant") (equal? stop-reason "error"))
+                   (pi-tui-send-event! event-chan
+                     (list 'error
+                       (if
+                         (and (string? err-msg) (not (string-null? (string-trim-both err-msg))))
+                         err-msg
+                         "Error"
+                       ) ;if
+                     ) ;list
+                   ) ;pi-tui-send-event!
                  ) ;when
                ) ;let*
              ) ;when
