@@ -9,7 +9,8 @@
 ;; 打开 make-session-selector；确认后向 jobs-chan 投递 session_resume 任务，
 ;; 由后台 worker 串行切换 sfile-box，完成后经 event-chan 回填名称与提示。
 (define-library (liii pi code modes interactive app-resume)
-  (export pi-app-resume-command? pi-app-submit-resume!
+  (export pi-app-resume-command?
+    pi-app-submit-resume!
     pi-app-handle-resume-event!
   ) ;export
   (import (scheme base)
@@ -39,6 +40,9 @@
       (pi-app-render! app)
     ) ;define
 
+    ;; 固定的拒绝文案（忙碌时提示稍后重试）
+    (define %busy-message "Agent is busy; try /resume again later")
+
     ;; 打开会话选择器：沿用 --resume 的交互（Tab 切换范围、模糊搜索、
     ;; Ctrl+S 排序、Ctrl+N 命名过滤、Ctrl+P 显示路径），编辑器暂时失焦
     (define (%show-resume-selector! app)
@@ -57,9 +61,7 @@
             (pi-app-render! app)
           ) ;let-values
         ) ;lambda
-        (lambda (tag . args)
-          (%refuse! app "Failed to load resume sessions")
-        ) ;lambda
+        (lambda (tag . args) (%refuse! app "Failed to load resume sessions"))
       ) ;catch
     ) ;define
 
@@ -68,14 +70,18 @@
     (define (%confirm-resume! app path)
       (%pi-app-active-selector-set! app #f)
       (editor-set-focused! (pi-app-editor app) #t)
-      (catch #t
-        (lambda () (chan-send! (pi-app-jobs-chan app) (list 'session_resume path) 1000))
-        (lambda (tag . args)
-          (container-add! (%pi-app-chat app)
-            (make-tool-card "resume" '() 'error "Failed to resume session")
-          ) ;container-add!
-        ) ;lambda
-      ) ;catch
+      (if (%busy? app)
+        ;; 选择器打开期间 agent 可能转为忙碌：此时切换会让在途消息写入旧会话
+        (%refuse! app %busy-message)
+        (catch #t
+          (lambda () (chan-send! (pi-app-jobs-chan app) (list 'session_resume path) 1000))
+          (lambda (tag . args)
+            (container-add! (%pi-app-chat app)
+              (make-tool-card "resume" '() 'error "Failed to resume session")
+            ) ;container-add!
+          ) ;lambda
+        ) ;catch
+      ) ;if
       (pi-app-render! app)
     ) ;define
 
@@ -88,19 +94,18 @@
     ) ;define
 
     (define (pi-app-submit-resume! app text)
-      (cond ((not (string=? (string-trim-both text) "/resume"))
-             (%refuse! app "Usage: /resume")
-             ) ;
-            ((%busy? app)
-             (%refuse! app "Agent is busy; try /resume again later")
-             ) ;
-            ((pi-app-no-session? app)
-             (%refuse! app "Session persistence is disabled (--no-session)")
-             ) ;
-            ((not (procedure? (pi-app-resume-sessions app)))
-             (%refuse! app "Session listing is unavailable")
-             ) ;
-            (else (%show-resume-selector! app))
+      (cond
+       ((not (string=? (string-trim-both text) "/resume"))
+        (%refuse! app "Usage: /resume")
+       ) ;
+       ((%busy? app) (%refuse! app %busy-message))
+       ((pi-app-no-session? app)
+        (%refuse! app "Session persistence is disabled (--no-session)")
+       ) ;
+       ((not (procedure? (pi-app-resume-sessions app)))
+        (%refuse! app "Session listing is unavailable")
+       ) ;
+       (else (%show-resume-selector! app))
       ) ;cond
     ) ;define
 
@@ -108,18 +113,15 @@
     (define (pi-app-handle-resume-event! app ev)
       (case (car ev)
             ((session_resumed)
-             (let* ((path (cadr ev))
-                    (name (and (> (length ev) 2) (caddr ev)))
-                   ) ;
+             (let* ((path (cadr ev)) (name (and (> (length ev) 2) (caddr ev))))
                ;; 未命名会话也要清空旧名称，避免 footer 显示陈旧会话名
                (%pi-app-session-name-set! app name)
                (pi-footer-set-session-name! (%pi-app-footer app) name)
                (container-add! (%pi-app-chat app)
-                 (make-assistant-card
-                   (if name
-                     (string-append "Resumed session: " name)
-                     (string-append "Resumed session: " path)
-                   ) ;if
+                 (make-assistant-card (if name
+                                        (string-append "Resumed session: " name)
+                                        (string-append "Resumed session: " path)
+                                      ) ;if
                  ) ;make-assistant-card
                ) ;container-add!
                (pi-app-render! app)

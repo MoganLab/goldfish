@@ -213,8 +213,8 @@
                      (%resolved-cfg parsed)
                      (path->string (path-cwd))
                    ) ;pi-load-resume-sessions
-                 )
-                 :no-session?   (and (pi-args-ref parsed 'no-session) #t)
+                 ) ;lambda
+                 :no-session? (and (pi-args-ref parsed 'no-session) #t)
                  :on-save-model
                  (lambda (provider model-id)
                    (pi-save-default-model! (list-ref info 5) provider model-id)

@@ -27,28 +27,23 @@
 ) ;when
 
 ;; 追加一条用户消息（模拟历史上下文中的“暗号”）
+
 (define (append-user-message! file id text)
   (append-session-entry! file
-    (string-append
-      "{\"type\":\"message\",\"id\":\""
-      id
+    (string-append "{\"type\":\"message\",\"id\":\"" id
       "\",\"parentId\":null,\"timestamp\":\"2026-10-21T08:00:00.000Z\","
       "\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\""
-      text
-      "\"}]}}"
+      text "\"}]}}"
     ) ;string-append
   ) ;append-session-entry!
 ) ;define
 
 ;; 会话文件投影出的消息文本（拼接全部 role/text）
+
 (define (projected-text file)
-  (string-join
-    (map
-      (lambda (msg)
-        (object->string msg)
-      ) ;lambda
-      (pi-project-session-messages (pi-read-session-entries file))
-    ) ;map
+  (string-join (map (lambda (msg) (object->string msg))
+                 (pi-project-session-messages (pi-read-session-entries file))
+               ) ;map
     " "
   ) ;string-join
 ) ;define
@@ -73,7 +68,8 @@
       (let ((ev (chan-recv! ev-chan)))
         (check (car ev) => 'session_resumed)
         (check (cadr ev) => sfile-a)
-        (check (caddr ev) => "会话甲"))
+        (check (caddr ev) => "会话甲")
+      ) ;let
       (check (vector-ref box 0) => sfile-a)
 
       ;; 2. 切换后下一条消息使用目标文件：A 的上下文生效，B 的上下文不串入
@@ -83,10 +79,17 @@
       (check-false (string-contains? (projected-text sfile-b) "菠萝"))
 
       ;; 3. 切换后的落盘写入目标文件：/name 记到 A 上，B 不受影响
-      (pi-worker-handle-job (list 'session_name "改名后") parsed cfg box ev-chan #f)
+      (pi-worker-handle-job (list 'session_name "改名后")
+        parsed
+        cfg
+        box
+        ev-chan
+        #f
+      ) ;pi-worker-handle-job
       (let ((ev (chan-recv! ev-chan)))
         (check (car ev) => 'session_name_changed)
-        (check (cadr ev) => "改名后"))
+        (check (cadr ev) => "改名后")
+      ) ;let
       (check (get-session-name sfile-a) => "改名后")
       (check (get-session-name sfile-b) => #f)
 
@@ -94,12 +97,14 @@
       (pi-worker-handle-job (list 'session_resume sfile-b) parsed cfg box ev-chan #f)
       (let ((ev (chan-recv! ev-chan)))
         (check (car ev) => 'session_resumed)
-        (check (cadr ev) => sfile-b))
+        (check (cadr ev) => sfile-b)
+      ) ;let
       (check (vector-ref box 0) => sfile-b)
       (pi-worker-handle-job (list 'session_resume sfile-a) parsed cfg box ev-chan #f)
       (let ((ev (chan-recv! ev-chan)))
         (check (car ev) => 'session_resumed)
-        (check (cadr ev) => sfile-a))
+        (check (cadr ev) => sfile-a)
+      ) ;let
       (check (vector-ref box 0) => sfile-a)
       (check (pi-worker-ensure-session-file! parsed cfg box) => sfile-a)
 
@@ -108,12 +113,32 @@
         (pi-worker-handle-job (list 'session_resume missing) parsed cfg box ev-chan #f)
         (let ((ev (chan-recv! ev-chan)))
           (check (car ev) => 'session_resume_error)
-          (check-true (string-contains? (cadr ev) "not found")))
+          (check-true (string-contains? (cadr ev) "not found"))
+        ) ;let
         (check (vector-ref box 0) => sfile-a)
-        (check (file-exists? missing) => #f))
+        (check (file-exists? missing) => #f)
+      ) ;let
 
       ;; 6. 无错误事件残留
       (check (chan-try-recv! ev-chan #f) => #f)
+
+      ;; 7. --no-session 模式：worker 侧同样拒绝恢复，不切换会话文件
+      (let ((parsed-no-session (parse-pi-args '("--no-session")))
+            (box-no-session (vector sfile-a))
+           ) ;
+        (pi-worker-handle-job (list 'session_resume sfile-b)
+          parsed-no-session
+          cfg
+          box-no-session
+          ev-chan
+          #f
+        ) ;pi-worker-handle-job
+        (let ((ev (chan-recv! ev-chan)))
+          (check (car ev) => 'session_resume_error)
+          (check-true (string-contains? (cadr ev) "--no-session"))
+        ) ;let
+        (check (vector-ref box-no-session 0) => sfile-a)
+      ) ;let
 
       (rmtree TMP-AGENT-DIR #t)
     ) ;let-values

@@ -296,31 +296,34 @@
        ((and (pair? job) (eq? (car job) 'session_resume))
         (catch #t
           (lambda ()
-            (let* ((path (cadr job))
-                   (normalized (if (string? path) path (path->string path)))
-                  ) ;
-              (if (not (file-exists? normalized))
+            (let* ((path (cadr job)) (normalized (if (string? path) path (path->string path))))
+              (cond
+                ;; --no-session 模式：会话持久化已禁用，拒绝恢复（不切换、不建文件）
+                ((pi-args-ref parsed 'no-session)
+                 (pi-tui-send-event! event-chan
+                   (list 'session_resume_error "Session persistence is disabled (--no-session)")
+                 ) ;pi-tui-send-event!
+                ) ;
                 ;; 目标文件不存在：保留原会话并报错，不创建任何新文件
-                (pi-tui-send-event! event-chan
-                  (list 'session_resume_error
-                    (string-append "Session file not found: " normalized)
-                  ) ;list
-                ) ;pi-tui-send-event!
-                (begin
-                  (vector-set! sfile-box 0 normalized)
+                ((not (file-exists? normalized))
+                 (pi-tui-send-event! event-chan
+                   (list 'session_resume_error
+                     (string-append "Session file not found: " normalized)
+                   ) ;list
+                 ) ;pi-tui-send-event!
+                ) ;
+                (else (vector-set! sfile-box 0 normalized)
                   (pi-tui-send-event! event-chan
                     (list 'session_resumed normalized (get-session-name normalized))
                   ) ;pi-tui-send-event!
-                ) ;begin
-              ) ;if
+                ) ;else
+              ) ;cond
             ) ;let*
           ) ;lambda
           (lambda (tag . args)
             (pi-tui-send-event! event-chan
               (list 'session_resume_error
-                (string-append "Failed to resume session: "
-                  (object->string (cons tag args))
-                ) ;string-append
+                (string-append "Failed to resume session: " (object->string (cons tag args)))
               ) ;list
             ) ;pi-tui-send-event!
           ) ;lambda
