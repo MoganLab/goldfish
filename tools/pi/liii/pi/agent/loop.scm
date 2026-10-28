@@ -213,8 +213,11 @@
           ((msgs initial-messages) (turn 0) (last-tool-calls '()))
           (cond
             ;; 用户中止（ESC）：不再发起新一轮请求，直接以 aborted 结算；
-            ;; 已在途的流式请求由 stream 层检查点中止
-            ((pi-aborted?) (pi-emit-agent-end emit msgs "aborted" config))
+            ;; 已在途的流式请求由 stream 层检查点中止。
+            ;; 注意：pi-emit-agent-end 返回 emit 回调的结果（非消息列表），
+            ;; 必须显式返回 msgs，否则下游 persist-new-messages! 会把
+            ;; #t/#f 当消息列表处理而报 type-error
+            ((pi-aborted?) (pi-emit-agent-end emit msgs "aborted" config) msgs)
             ((and (number? session-timeout) (< session-timeout 0))
              (pi-emit-agent-error (%make-session-timeout-error) msgs emit config)
             ) ;

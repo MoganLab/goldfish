@@ -66,12 +66,19 @@
       ) ;
   (pi-abort-arm-chan! ch)
   (chan-send! ch 'abort 0)
-  (run-agent-loop cfg (list (pi-user-message "hi")) "sys" emit 10 5
-    600 #f request-fn
-  ) ;run-agent-loop
-  (check (vector-ref req-count 0) => 0)
-  (let ((settled (find-settled (emit 'dump))))
-    (check settled => '(#t))
+  (let ((res-msgs (run-agent-loop cfg (list (pi-user-message "hi")) "sys" emit 10 5
+                    600 #f request-fn
+                  ) ;run-agent-loop
+               ) ;res-msgs
+           ) ;let
+    (check (vector-ref req-count 0) => 0)
+    (let ((settled (find-settled (emit 'dump))))
+      (check settled => '(#t))
+    ) ;let
+    ;; 中止时 run-agent-loop 必须返回消息列表（供会话落盘），
+    ;; 而不是 pi-emit-agent-end 内 emit 回调的返回值
+    (check-true (list? res-msgs))
+    (check (length res-msgs) => 1)
   ) ;let
 ) ;let*
 
@@ -104,23 +111,29 @@
            )
         ) ;
   (pi-abort-arm-chan! ch)
-  (run-agent-loop cfg (list (pi-user-message "hi")) "sys" emit 10 5
-    600 #f request-fn
-  ) ;run-agent-loop
-  ;; 第 1 轮请求发生，第 2 轮前检测到中止不再请求
-  (check (vector-ref req-count 0) => 1)
-  (let ((settled (find-settled (emit 'dump))))
-    (check settled => '(#t))
+  (let ((res-msgs (run-agent-loop cfg (list (pi-user-message "hi")) "sys" emit 10 5
+                    600 #f request-fn
+                  ) ;run-agent-loop
+               ) ;res-msgs
+           ) ;let
+    ;; 第 1 轮请求发生，第 2 轮前检测到中止不再请求
+    (check (vector-ref req-count 0) => 1)
+    (let ((settled (find-settled (emit 'dump))))
+      (check settled => '(#t))
+    ) ;let
+    ;; 工具确实被执行了 1 次（tool_execution_end 事件存在）
+    (check-true
+      (pair?
+        (filter
+          (lambda (ev) (eq? (car ev) 'tool_execution_end))
+          (emit 'dump)
+        ) ;filter
+      ) ;pair?
+    ) ;check-true
+    ;; 中止时返回消息列表：用户 + assistant(toolUse) + 工具结果共 3 条
+    (check-true (list? res-msgs))
+    (check (length res-msgs) => 3)
   ) ;let
-  ;; 工具确实被执行了 1 次（tool_execution_end 事件存在）
-  (check-true
-    (pair?
-      (filter
-        (lambda (ev) (eq? (car ev) 'tool_execution_end))
-        (emit 'dump)
-      ) ;filter
-    ) ;pair?
-  ) ;check-true
 ) ;let*
 
 ;; 3. 未中止时行为不变：request-fn 正常调用且 agent_settled 带 aborted=#f
