@@ -9,7 +9,7 @@
   ;; 只能看到各库的导出绑定，因此 worker 调用链上的内部函数必须全部导出
   (export make-tui-emit pi-tui-agent-worker pi-tui-run-worker pi-tui-send-event!
     pi-cfg-with-thinking pi-cfg-with-model %worker-job-cfg
-    pi-worker-ensure-session-file! pi-worker-handle-job
+    pi-worker-ensure-session-file! pi-worker-handle-job %assistant-error-text
   ) ;export
   (import (scheme base)
     (scheme write)
@@ -36,6 +36,23 @@
     ;; 安全带超时的事件发送，防止 channel 堵塞导致 worker 永久卡死
     (define (pi-tui-send-event! ch ev)
       (catch #t (lambda () (chan-send! ch ev 2000)) (lambda (t . a) #f))
+    ) ;define
+
+    ;; 错误结算辅助：stopReason=error 的 assistant 消息返回应上屏的错误文本
+    ;; （errorMessage 缺省或空白时兜底 "Error"，对齐上游 errorMessage || "Error"），
+    ;; 非 error 结算返回 #f
+    (define (%assistant-error-text msg)
+      (let* ((stop-reason (pi-message-field msg 'stopReason ""))
+             (err-msg (pi-message-field msg 'errorMessage #f))
+            ) ;
+        (and (equal? stop-reason "error")
+          (if
+            (and (string? err-msg) (not (string-null? (string-trim-both err-msg))))
+            err-msg
+            "Error"
+          ) ;if
+        ) ;and
+      ) ;let*
     ) ;define
 
     ;; 将 agent 会话事件翻译为 TUI 卡片事件并投递到 event-chan（生产与测试共用）
@@ -85,10 +102,16 @@
                       (role (pi-message-field msg 'role ""))
                       (content (pi-message-field msg 'content '()))
                       (text (pi-content-text content))
+                      (err-text (%assistant-error-text msg))
                      ) ;
                  (when
                    (and (equal? role "assistant") (not (string-null? (string-trim-both text))))
                    (pi-tui-send-event! event-chan (list 'assistant_text text))
+                 ) ;when
+                 ;; 错误结算（对齐上游 message_end 渲染 errorMessage）：
+                 ;; stopReason=error 时转为 error 卡片事件，保证用户可见
+                 (when (and (equal? role "assistant") err-text)
+                   (pi-tui-send-event! event-chan (list 'error err-text))
                  ) ;when
                ) ;let*
              ) ;when
