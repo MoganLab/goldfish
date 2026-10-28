@@ -11,6 +11,35 @@
 
 (check-set-mode! 'report-failed)
 
+;; make-tui-emit
+;; 将 agent 会话事件翻译为 TUI 卡片事件并投递到事件通道（生产与测试共用）。
+;;
+;; 语法
+;; ----
+;; (make-tui-emit event-chan)
+;;
+;; 参数
+;; ----
+;; event-chan : chan?
+;; 事件通道，TUI 主线程通过 pi-app-poll-events! 从该通道轮询卡片事件。
+;;
+;; 返回值
+;; ----
+;; procedure?
+;; emit 回调函数，接受 (event-type . args) 形式的可变参数，可直接传给
+;; run-agent-loop 的 emit 参数。
+;;
+;; 描述
+;; ----
+;; 该回调将 agent loop 的会话事件翻译为 TUI 可消费的卡片事件：
+;; 1. message_end：assistant 消息文本非空时投递 (assistant_text text)；
+;;    stopReason=error 时投递 (error errorMessage)，errorMessage 缺省时
+;;    兜底为 "Error"（对齐上游 errorMessage || "Error" 语义）；
+;; 2. tool_execution_start/update/end：工具卡片的原地推进事件；
+;; 3. retry：重试提示卡片事件；
+;; 4. agent_settled：携带 aborted? 标志，主线程据此上屏 Aborted 提示。
+;; 其余事件类型（agent_start/turn_start/message_start 等）被忽略。
+
 ;; 模拟 ESC 中止后再发消息触发 HTTP 400 的错误文本
 (define ERR-TEXT
   "HTTP 400: the message at position 2 with role 'assistant' must not be empty")
