@@ -115,7 +115,7 @@
                            (above (caddr vp))
                            (ed-y (+ (length doc-lines)
                                     (if %pi-editor-top-border 1 0)
-                                    above
+                                    (if (> above 0) 1 0)
                                   ) ;+
                            ) ;
                           ) ;

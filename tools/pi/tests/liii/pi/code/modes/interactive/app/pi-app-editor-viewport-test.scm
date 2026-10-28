@@ -56,3 +56,31 @@
   (pi-app-render! app)
   (check (editor-max-lines (pi-app-editor app)) => 5)
 ) ;let*
+
+;; 连续换行：窗口填满后继续输入，光标不再向下移动
+(let* ((vterm (make-virtual-terminal :width 80 :height 30))
+       (app (make-pi-app :terminal vterm :handler (lambda (app msg) #t)))
+       (ed (pi-app-editor app))
+      ) ;
+  (pi-app-render! app)
+  (let loop ((i 0))
+    (when (< i 10)
+      (pi-app-handle-input! app 'ctrl-j)
+      (pi-app-render! app)
+      (loop (+ i 1))
+    ) ;when
+  ) ;let
+  (let ((filled-y (cadr (terminal-cursor vterm))))
+    (let loop ((i 0))
+      (when (< i 15)
+        (pi-app-handle-input! app 'ctrl-j)
+        (pi-app-render! app)
+        (loop (+ i 1))
+      ) ;when
+    ) ;let
+    (check (editor-viewport ed) => '(16 10 16 0))
+    (check (cadr (terminal-cursor vterm)) => filled-y)
+  ) ;let
+) ;let*
+
+(check-report)
