@@ -7,6 +7,7 @@
   (liii pi agent queue)
   (liii pi code modes interactive app)
   (liii pi code modes interactive state)
+  (liii pi code modes interactive footer)
   (liii pi code modes interactive session-selector)
   (liii pi code core session-list)
 ) ;import
@@ -16,6 +17,11 @@
 ;; 屏幕纯文本（去掉 ANSI 颜色码），便于断言提示文案
 (define (screen-text app)
   (string-join (map strip-ansi (screen-lines (pi-app-screen app))) "\n")
+) ;define
+
+;; footer 纯文本：会话名只应出现在 footer，聊天卡片里的历史文案不参与判断
+(define (footer-text app)
+  (string-join (map strip-ansi (component-render (%pi-app-footer app) 100)) "\n")
 ) ;define
 
 ;; 构造一条会话摘要（供选择器枚举使用）
@@ -198,13 +204,14 @@
   (pi-app-handle-resume-event! app (list 'session_resumed "/tmp/x.jsonl" "新会话名"))
   (check (pi-app-session-name app) => "新会话名")
   (pi-app-render! app)
+  (check-true (string-contains? (footer-text app) "新会话名"))
   (check-true (string-contains? (screen-text app) "新会话名"))
   (check-true (string-contains? (screen-text app) "Resumed session"))
   ;; 未命名会话：旧名称必须被清空，footer 不残留上一个会话名
   (pi-app-handle-resume-event! app (list 'session_resumed "/tmp/y.jsonl" #f))
   (check (pi-app-session-name app) => #f)
   (pi-app-render! app)
-  (check-false (string-contains? (screen-text app) "新会话名"))
+  (check-false (string-contains? (footer-text app) "新会话名"))
   ;; 失败事件：错误卡片上屏
   (let ((before (length (pi-app-chat app))))
     (pi-app-handle-resume-event! app (list 'session_resume_error "boom"))
