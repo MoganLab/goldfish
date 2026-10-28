@@ -194,13 +194,74 @@
       ) ;when
     ) ;define
 
-    ;; 把文本中的标记展开为真实内容
-    (define (paste-expand reg text)
+    ;; text 的字节位置 i 起是否恰好是 marker（标记均为 ASCII，
+    ;; UTF-8 多字节序列中不会出现 ASCII 字节，按字节比较安全）
+    (define (%match-marker-at? text i len marker)
+      (let ((m-len (string-length marker)))
+        (and (<= (+ i m-len) len)
+          (let loop
+            ((j 0))
+            (or (= j m-len)
+              (and (char=? (string-ref text (+ i j)) (string-ref marker j))
+                (loop (+ j 1))
+              ) ;and
+            ) ;or
+          ) ;let
+        ) ;and
+      ) ;let
+    ) ;define
+
+    ;; pairs（(marker . content) 列表）中恰好从 i 开始的标记，返回该项或 #f
+    (define (%lookup-marker pairs text i len)
       (let loop
-        ((entries (%paste-entries reg)) (acc text))
-        (if (null? entries)
-          acc
-          (loop (cdr entries) (string-replace acc (caar entries) (cdar entries)))
+        ((ps pairs))
+        (if (null? ps)
+          #f
+          (if (%match-marker-at? text i len (caar ps))
+            (car ps)
+            (loop (cdr ps))
+          ) ;if
+        ) ;if
+      ) ;let
+    ) ;define
+
+    ;; 把文本中的标记展开为真实内容。
+    ;; 单趟从左到右扫描：只有文本里原有的标记会被展开，替换进来的
+    ;; 内容不再参与后续匹配，粘贴原文中恰好含有的旧标记文本保持
+    ;; 字面，不会被二次展开。
+    (define (paste-expand reg text)
+      (let ((pairs (%paste-entries reg)))
+        (if (null? pairs)
+          text
+          (let ((len (string-length text)) (p (open-output-string)))
+            (let loop
+              ((i 0) (start 0))
+              (if (>= i len)
+                (begin
+                  (when (> i start)
+                    (write-string (substring text start i) p)
+                  ) ;when
+                  (get-output-string p)
+                ) ;begin
+                ;; 标记都以 "[" 开头，其余字节直接跳过
+                (if (char=? (string-ref text i) #\[)
+                  (let ((hit (%lookup-marker pairs text i len)))
+                    (if hit
+                      (let ((next (+ i (string-length (car hit)))))
+                        (when (> i start)
+                          (write-string (substring text start i) p)
+                        ) ;when
+                        (write-string (cdr hit) p)
+                        (loop next next)
+                      ) ;let
+                      (loop (+ i 1) start)
+                    ) ;if
+                  ) ;let
+                  (loop (+ i 1) start)
+                ) ;if
+              ) ;if
+            ) ;let
+          ) ;let
         ) ;if
       ) ;let
     ) ;define

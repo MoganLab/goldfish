@@ -109,4 +109,20 @@
   (check (paste-expand reg "[paste #1 5200 chars]") => normalized)
 ) ;let*
 
+;; 9. 嵌套防护：只有文本里原有的标记被展开，替换进来的内容不再参与匹配
+(let* ((reg (make-paste-registry))
+       (text1 (make-string 1965 #\a))
+       (m1 (paste-registry-add! reg text1))
+       ;; #2 的原文里恰含有 #1 的标记文本
+       (m2 (paste-registry-add! reg (string-append "see " m1 " here")))
+      ) ;
+  (check (paste-expand reg (string-append "x" m2 "y"))
+    => (string-append "xsee " m1 " herey"))
+  ;; 同一标记多次出现且都在原有文本里：都被展开
+  (check (paste-expand reg (string-append m1 m1))
+    => (string-append text1 text1))
+  ;; 空文本安全
+  (check (paste-expand reg "") => "")
+) ;let*
+
 (check-report)
