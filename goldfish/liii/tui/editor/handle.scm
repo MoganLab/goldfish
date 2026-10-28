@@ -116,8 +116,11 @@
       ) ;let
     ) ;define
 
-    (define (%load-history! buf comp on-ch text)
+    (define (%load-history! data buf comp on-ch text)
       (when text
+        ;; 历史整体替换缓冲区后，旧标记全部失效；清掉注册表，
+        ;; 避免之后手打的标记文本被误展开
+        (paste-registry-clear! (%ed-pastes data))
         (buffer-set-text! buf text)
         (buffer-move-end! buf)
         (when (procedure? on-ch)
@@ -233,14 +236,26 @@
                        (if
                          (or multi? (> (length (buffer-lines buf)) 1))
                          (buffer-move-up! buf)
-                         (%load-history! buf comp on-ch (history-prev hist (buffer-text buf)))
+                         ;; 草稿保存展开后的文本：down 返回草稿时不会
+                         ;; 还原出已失效的标记
+                         (%load-history! data
+                           buf
+                           comp
+                           on-ch
+                           (history-prev hist (paste-expand (%ed-pastes data) (buffer-text buf)))
+                         ) ;%load-history!
                        ) ;if
                       ) ;
                       ((or (eq? key 'down) (eq? key 'ctrl-n))
                        (if
                          (or multi? (> (length (buffer-lines buf)) 1))
                          (buffer-move-down! buf)
-                         (%load-history! buf comp on-ch (history-next hist (buffer-text buf)))
+                         (%load-history! data
+                           buf
+                           comp
+                           on-ch
+                           (history-next hist (paste-expand (%ed-pastes data) (buffer-text buf)))
+                         ) ;%load-history!
                        ) ;if
                       ) ;
                       ((or (eq? key 'backspace) (eq? key 'ctrl-h))
