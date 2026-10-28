@@ -14,14 +14,10 @@
   (check (editor-text ta) => "line1\nline2")
   (check (editor-lines ta) => '("line1" "line2")))
 
-;; 2. 多行模式下回车换行
+;; 2. 多行模式下 Enter 由 submit-on-enter? 控制，不再插入换行
 (let ((ta (make-text-area "hello")))
   (check (component-handle-input ta 'enter) => #t)
-  (check (editor-lines ta) => '("hello" ""))
-  (check (editor-cursor ta) => '(1 0))
-  (component-handle-input ta "world")
-  (check (editor-lines ta) => '("hello" "world"))
-  (check (editor-cursor ta) => '(1 5)))
+  (check (editor-lines ta) => '("hello")))
 
 ;; 3. 多行模式下上下键移动光标
 (let ((ta (make-text-area "line 1\nline 2")))

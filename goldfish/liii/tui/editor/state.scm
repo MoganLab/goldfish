@@ -28,6 +28,7 @@
     %ed-cursor-style-set! %ed-on-submit %ed-on-submit-set! %ed-on-change
     %ed-on-change-set! %ed-top-border %ed-top-border-set! %ed-bottom-border
     %ed-bottom-border-set! %ed-border-color %ed-border-color-set!
+    %ed-submit-on-enter? %ed-submit-on-enter?-set!
   ) ;export
   (import (scheme base))
   (begin
@@ -35,6 +36,7 @@
     (define-record-type <editor-data>
       (%make-editor-data buffer history multiline? focused? placeholder
         cursor-style on-submit on-change top-border bottom-border border-color
+        submit-on-enter?
       ) ;%make-editor-data
       %editor-data?
       (buffer %ed-buffer %ed-buffer-set!)
@@ -48,6 +50,8 @@
       (top-border %ed-top-border %ed-top-border-set!)
       (bottom-border %ed-bottom-border %ed-bottom-border-set!)
       (border-color %ed-border-color %ed-border-color-set!)
+      ;; Enter 是否直接提交（独立于 multiline?）
+      (submit-on-enter? %ed-submit-on-enter? %ed-submit-on-enter?-set!)
     ) ;define-record-type
 
   ) ;begin

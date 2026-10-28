@@ -95,6 +95,7 @@
              (buf (%ed-buffer data))
              (hist (%ed-history data))
              (multi? (%ed-multiline? data))
+             (submit-on-enter? (%ed-submit-on-enter? data))
              (on-ch (%ed-on-change data))
              (on-sub (%ed-on-submit data))
             ) ;
@@ -143,13 +144,8 @@
                (%apply-edit! buf comp on-ch (lambda () (buffer-transpose-chars! buf)))
               ) ;
               ((eq? key 'enter)
-               (if multi?
-                 (let ((res (buffer-newline! buf)))
-                   (when (procedure? on-ch)
-                     (on-ch comp (buffer-text buf))
-                   ) ;when
-                   res
-                 ) ;let
+               ;; Enter 只由 submit-on-enter? 控制；多行换行留待后续实现
+               (if submit-on-enter?
                  (let ((txt (buffer-text buf)))
                    (history-push! hist txt)
                    (when (procedure? on-sub)
@@ -157,6 +153,7 @@
                    ) ;when
                    #t
                  ) ;let
+                 #f
                ) ;if
               ) ;
               ((string? key)

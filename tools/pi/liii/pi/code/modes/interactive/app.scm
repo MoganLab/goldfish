@@ -182,6 +182,7 @@
     (define (%make-pi-editor app thinking-level)
       (make-editor ""
         :multiline     #f
+        :submit-on-enter? #t
         :top-border    %pi-editor-top-border
         :bottom-border #t
         :border-color  (pi-thinking-border-color thinking-level)
