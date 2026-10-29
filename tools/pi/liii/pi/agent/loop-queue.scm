@@ -6,13 +6,10 @@
 
 ;; run-agent-loop 的排队消息轮询与注入助手（steering / follow-up）
 (define-library (liii pi agent loop-queue)
-  (export %get-poll-fn %poll-config-messages %poll-steering
-    %inject-steering %maybe-inject-steering! %queue-before-stop
-    %natural-stop-continue
+  (export %get-poll-fn %poll-config-messages %poll-steering %inject-steering
+    %maybe-inject-steering! %queue-before-stop %natural-stop-continue
   ) ;export
-  (import (scheme base)
-    (liii pi ai message)
-  ) ;import
+  (import (scheme base) (liii pi ai message))
   (begin
 
     ;; 从 config 取轮询回调（由上层注入；缺失时返回 #f）。
@@ -67,10 +64,9 @@
     ;; 无工具调用且无 steering 时才检查 follow-up）；
     ;; 任一有消息则注入、上报 turn_start 并返回新列表，两者皆空返回 #f
     (define (%natural-stop-continue msgs config emit)
-      (let ((next
-             (or (%queue-before-stop msgs config emit 'get-steering-messages)
-               (%queue-before-stop msgs config emit 'get-follow-up-messages)
-             ) ;or
+      (let ((next (or (%queue-before-stop msgs config emit 'get-steering-messages)
+                    (%queue-before-stop msgs config emit 'get-follow-up-messages)
+                  ) ;or
             ) ;next
            ) ;
         (when next
