@@ -20,7 +20,7 @@
     pi-app-submit-resume! pi-app-handle-resume-event! pi-app-scroll-view
     pi-app-scroll-up! pi-app-scroll-down! pi-app-scroll-top!
     pi-app-scroll-bottom! pi-app-scroll-line-up! pi-app-scroll-line-down!
-    pi-app-frame-lines
+    pi-app-frame-lines pi-app-wheel-accelerator pi-app-handle-mouse!
   ) ;export
   (import (scheme base)
     (liii base)
@@ -197,6 +197,35 @@
       (scroll-view-to-bottom! (pi-app-scroll-view app))
     ) ;define
 
+    ;; 鼠标事件处理：滚轮上下滚动对话记录（其余事件暂不处理）
+    ;; 返回 #t 表示事件已被消费
+    (define (pi-app-handle-mouse! app event)
+      (let ((type (mouse-event-type event)))
+        (case type
+         ((wheel-up)
+          (let ((n (wheel-scroll-next! (pi-app-wheel-accelerator app)
+                     -1
+                     (current-monotonic-millis)
+                   ) ;wheel-scroll-next!
+                ) ;n
+               ) ;
+            (scroll-view-scroll-by! (pi-app-scroll-view app) (- n))
+          ) ;let
+          #t
+         ) ;
+         ((wheel-down)
+          (let ((n (wheel-scroll-next! (pi-app-wheel-accelerator app) 1 (current-monotonic-millis))
+                ) ;n
+               ) ;
+            (scroll-view-scroll-by! (pi-app-scroll-view app) n)
+          ) ;let
+          #t
+         ) ;
+         (else #f)
+        ) ;case
+      ) ;let
+    ) ;define
+
     (define (pi-app-submit-initial! app initial-msg rest-msgs)
       (unless (string-null? initial-msg)
         (pi-app-submit! app initial-msg)
@@ -314,6 +343,7 @@
                     resume-sessions
                     (and no-session? #t)
                     (make-scroll-view doc)
+                    (make-wheel-scroll-accelerator)
                   ) ;%make-pi-app
              ) ;app
              (ed (%make-pi-editor app tl))

@@ -55,6 +55,9 @@
                         (terminal-write term "\x1b;[?2004h")
                         ;; 进入备用屏：整屏由 TUI 独占，退出后主屏内容原样恢复
                         (terminal-enter-alt-screen! term)
+                        ;; 开启鼠标事件上报（XTerm 1000/1002/1006）：
+                        ;; 滚轮用于滚动对话记录
+                        (terminal-mouse-mode! term #t)
                         (terminal-hide-cursor! term)
                         (pi-app-render! app)
                       ) ;lambda
@@ -144,6 +147,13 @@
                    (pi-app-render! app)
                    (loop)
                   ) ;
+                  ;; 鼠标事件：滚轮上下滚动对话记录
+                  ((and (mouse-event? k) (not (pi-app-active-selector app)))
+                   (when (pi-app-handle-mouse! app k)
+                     (pi-app-render! app)
+                   ) ;when
+                   (loop)
+                  ) ;
                   ;; 按 ctrl+o 时：全局切换 bash/工具输出卡片的展开与折叠
                   ((eq? k 'ctrl-o) (pi-app-toggle-tool-output! app) (pi-app-render! app) (loop))
                   ((not k)
@@ -161,8 +171,10 @@
             ) ;let
           ) ;lambda
           (lambda ()
-            ;; 退出清理：先离开备用屏（主屏内容自动恢复），
-            ;; 再把对话记录打印回主屏，避免退出后看不到本次会话内容
+            ;; 退出清理：先关闭鼠标事件上报（与进入时对称），
+            ;; 再离开备用屏（主屏内容自动恢复），
+            ;; 最后把对话记录打印回主屏，避免退出后看不到本次会话内容
+            (catch #t (lambda () (terminal-mouse-mode! term #f)) (lambda (tag . args) #f))
             (catch #t (lambda () (terminal-exit-alt-screen! term)) (lambda (tag . args) #f))
             (%pi-print-transcript app)
             (terminal-write term "\x1b;[?2004l")

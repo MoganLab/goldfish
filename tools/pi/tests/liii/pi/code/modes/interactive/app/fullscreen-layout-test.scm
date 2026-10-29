@@ -135,4 +135,66 @@
   ) ;let
 ) ;let*
 
+;; 6. 鼠标滚轮：向上滚动对话记录
+(let* ((vterm (make-virtual-terminal :width 100 :height 24))
+       (app (make-pi-app :terminal vterm :handler (lambda (a msg) #t)))
+       (screen (pi-app-screen app))
+       (sv (pi-app-scroll-view app))
+      ) ;
+  (let loop
+    ((i 0))
+    (when (< i 10)
+      (pi-app-add-user-message! app (string-append "msg-" (number->string i)))
+      (loop (+ i 1))
+    ) ;when
+  ) ;let
+  (pi-app-render! app)
+  ;; 初始跟随末尾
+  (check (scroll-view-follow? sv) => #t)
+  (let ((before (scroll-view-offset sv)))
+    ;; 滚轮向上：视口离开跟随位置，向上滚动
+    (check (pi-app-handle-mouse! app (make-mouse-event 'wheel-up 'none 10 5)) => #t)
+    (pi-app-render! app)
+    (check (scroll-view-follow? sv) => #f)
+    (check (< (scroll-view-offset sv) before) => #t)
+  ) ;let
+  ;; 反复向下滚动回到末尾，恢复跟随
+  (let loop
+    ((i 0))
+    (when (< i 40)
+      (pi-app-handle-mouse! app (make-mouse-event 'wheel-down 'none 10 5))
+      (loop (+ i 1))
+    ) ;when
+  ) ;let
+  (pi-app-render! app)
+  (check (scroll-view-follow? sv) => #t)
+  ;; 非滚轮事件（按下/释放/拖动）暂不处理
+  (check (pi-app-handle-mouse! app (make-mouse-event 'press 'left 10 5)) => #f)
+) ;let*
+
+;; 7. 主循环接线：滚轮事件经 virtual terminal 注入后滚动对话记录
+(let* ((vterm (make-virtual-terminal :width 100 :height 24))
+       (app (make-pi-app :terminal vterm :handler (lambda (a msg) #t)))
+       (screen (pi-app-screen app))
+       (sv (pi-app-scroll-view app))
+      ) ;
+  (let loop
+    ((i 0))
+    (when (< i 10)
+      (pi-app-add-user-message! app (string-append "msg-" (number->string i)))
+      (loop (+ i 1))
+    ) ;when
+  ) ;let
+  (virtual-terminal-push-key! vterm (make-mouse-event 'wheel-up 'none 10 5))
+  (virtual-terminal-push-key! vterm 'ctrl-d)
+  (check (pi-app-run app) => #t)
+  ;; 滚轮事件已被主循环消费：视口离开跟随位置
+  (check (scroll-view-follow? sv) => #f)
+  ;; 进入/退出 TUI 时开启并关闭鼠标事件上报
+  (let ((raw (string-join (virtual-terminal-raw vterm) "")))
+    (check-true (string-contains? raw "\x1b;[?1000h"))
+    (check-true (string-contains? raw "\x1b;[?1000l"))
+  ) ;let
+) ;let*
+
 (check-report)

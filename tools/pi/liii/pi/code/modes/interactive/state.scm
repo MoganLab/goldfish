@@ -25,6 +25,7 @@
     %pi-app-default-model %pi-app-on-save-model %pi-app-supports-thinking?-set!
     %pi-app-available-thinking-levels-set! pi-app-resume-sessions
     %pi-app-resume-sessions-set! pi-app-no-session? pi-app-scroll-view
+    pi-app-wheel-accelerator
   ) ;export
   (import (scheme base))
   (begin
@@ -39,7 +40,7 @@
         default-thinking-level on-save-thinking-level bash-mode? tools-expanded?
         bash-cards bash-jobs-chan bash-handler record-sink session-name provider
         model models default-model on-save-model tool-cards resume-sessions
-        no-session? scroll-view
+        no-session? scroll-view wheel-accelerator
       ) ;%make-pi-app
       pi-app?
       (term pi-app-term)
@@ -97,6 +98,8 @@
       (no-session? pi-app-no-session?)
       ;; 全屏模式的对话记录视口：可滚动，支持 follow 末尾
       (scroll-view pi-app-scroll-view)
+      ;; 鼠标滚轮滚动加速器：把滚轮事件换算成滚动行数
+      (wheel-accelerator pi-app-wheel-accelerator)
     ) ;define-record-type
 
     (define %pi-app-term pi-app-term)
