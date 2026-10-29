@@ -57,6 +57,11 @@
     ;; 返回 #f：仍未结算，调用方需强制退出（跳过线程池 join）
     (define* (pi-app-abort-inflight! app (grace-ms %pi-app-exit-grace-ms))
       (let ((q (pi-app-queue app)))
+        ;; 退出即丢弃排队消息（对齐上游 process.exit 丢弃未发送的消息）：
+        ;; 否则宽限期内收到 agent_settled 解锁队列后，settle! 会调用
+        ;; pi-app-drain-queue! 把这些消息再次派发给 worker，
+        ;; 等用户已要求退出后又发起新的 LLM 请求
+        (pi-queue-restore-all! q)
         (if (not (pi-queue-busy? q))
           #t
           (begin
