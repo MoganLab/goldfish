@@ -153,12 +153,30 @@
         ;; 避免之后手打的标记文本被误展开
         (paste-registry-clear! (%ed-pastes data))
         (buffer-set-text! buf text)
+        ;; 光标置于行尾：与既有行为一致（回溯历史后继续编辑末尾）；
+        ;; 上游 navigateHistory 向上时置于行首，此处保持行尾以便连续回溯
+        ;; （浏览历史态下 ↑ 直接继续回溯，不依赖光标列位置）
         (buffer-move-end! buf)
         (when (procedure? on-ch)
           (on-ch comp text)
         ) ;when
       ) ;when
       (if text #t #f)
+    ) ;define
+
+    ;; 光标是否位于首个逻辑行（对齐上游 isOnFirstVisualLine 的逻辑行近似）
+    (define (%editor-first-line? buf)
+      (= (buffer-row buf) 0)
+    ) ;define
+
+    ;; 光标是否位于末个逻辑行（对齐上游 isOnLastVisualLine 的逻辑行近似）
+    (define (%editor-last-line? buf)
+      (= (buffer-row buf) (- (length (buffer-lines buf)) 1))
+    ) ;define
+
+    ;; 缓冲区是否为空（单行且空串，对齐上游 isEditorEmpty）
+    (define (%editor-empty? buf)
+      (and (= (length (buffer-lines buf)) 1) (string=? (car (buffer-lines buf)) ""))
     ) ;define
 
     ;; -----------------------------------------------------------------
@@ -279,28 +297,39 @@
                        (buffer-move-word-right! buf)
                       ) ;
                       ((or (eq? key 'up) (eq? key 'ctrl-p))
-                       ;; 粘贴展开后即使单行模式，缓冲区有多行也应允许上下移动
-                       (if
-                         (or multi? (> (length (buffer-lines buf)) 1))
+                       ;; 上下键语义（对齐上游 packages/tui/src/components/editor.ts）：
+                       ;;   光标在首行时：编辑器为空 / 正在浏览历史 / 光标在行首
+                       ;;     → 回溯输入历史；否则先跳到行首（再按一次即回溯）；
+                       ;;   光标不在首行时：上下移动光标。
+                       ;; 单行编辑器保持经典 readline 行为：↑ 直接回溯历史。
+                       ;; 首次进入历史浏览时记录快照，Ctrl+Z 可一步回到草稿；
+                       ;; entering? 必须先于 history-prev 求值（后者会改动 index）；
+                       ;; 草稿保存展开后的文本：down 返回草稿时不会还原出已失效的标记
+                       (if (%editor-first-line? buf)
+                         (if
+                           (and multi?
+                             (not (or (%editor-empty? buf) (history-index hist) (= (buffer-col buf) 0)))
+                           ) ;and
+                           ;; 多行编辑器且光标不在行首：先跳到行首
+                           (buffer-move-home! buf)
+                           (let ((entering? (not (history-index hist))))
+                             (%load-history! data
+                               buf
+                               comp
+                               on-ch
+                               (history-prev hist (paste-expand (%ed-pastes data) (buffer-text buf)))
+                               entering?
+                             ) ;%load-history!
+                           ) ;let
+                         ) ;if
                          (buffer-move-up! buf)
-                         ;; 首次进入历史浏览时记录快照，Ctrl+Z 可一步回到草稿；
-                         ;; entering? 必须先于 history-prev 求值（后者会改动 index）；
-                         ;; 草稿保存展开后的文本：down 返回草稿时不会还原出已失效的标记
-                         (let ((entering? (not (history-index hist))))
-                           (%load-history! data
-                             buf
-                             comp
-                             on-ch
-                             (history-prev hist (paste-expand (%ed-pastes data) (buffer-text buf)))
-                             entering?
-                           ) ;%load-history!
-                         ) ;let
                        ) ;if
                       ) ;
                       ((or (eq? key 'down) (eq? key 'ctrl-n))
-                       (if
-                         (or multi? (> (length (buffer-lines buf)) 1))
-                         (buffer-move-down! buf)
+                       ;; 向下：浏览历史中且位于末行 → 回退历史；
+                       ;;       位于末行 → 跳到行尾；否则下移光标
+                       ;;       （对齐上游 cursorDown 分支）
+                       (if (and (history-index hist) (%editor-last-line? buf))
                          (%load-history! data
                            buf
                            comp
@@ -308,6 +337,7 @@
                            (history-next hist (paste-expand (%ed-pastes data) (buffer-text buf)))
                            #f
                          ) ;%load-history!
+                         (if (%editor-last-line? buf) (buffer-move-end! buf) (buffer-move-down! buf))
                        ) ;if
                       ) ;
                       ((or (eq? key 'backspace) (eq? key 'ctrl-h))
