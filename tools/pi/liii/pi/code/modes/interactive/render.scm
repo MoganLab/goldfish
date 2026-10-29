@@ -15,7 +15,10 @@
 ;; 对齐上游 packages/coding-agent/src/modes/interactive/chat-viewport.ts：
 ;; transcript 占据剩余空间（grow），dock 固定在底部。
 (define-library (liii pi code modes interactive render)
-  (export pi-app-render! pi-app-frame-lines pi-app-transcript-lines)
+  (export pi-app-render! pi-app-frame-lines pi-app-transcript-lines
+    pi-app-scroll-up! pi-app-scroll-down! pi-app-scroll-top!
+    pi-app-scroll-bottom! pi-app-scroll-line-up! pi-app-scroll-line-down!
+  ) ;export
   (import (scheme base)
     (liii string)
     (liii list)
@@ -214,6 +217,33 @@
           (alt-screen-render! screen frame cur-pos)
         ) ;let-values
       ) ;let
+    ) ;define
+
+    ;; 全屏模式下的对话记录滚动：
+    ;; page-up/page-down 整页滚动，ctrl+shift+up/down 单行滚动，
+    ;; ctrl+shift+home/end 跳到记录顶部/末尾（末尾即恢复 follow）
+    (define (pi-app-scroll-up! app)
+      (scroll-view-page-up! (pi-app-scroll-view app))
+    ) ;define
+
+    (define (pi-app-scroll-down! app)
+      (scroll-view-page-down! (pi-app-scroll-view app))
+    ) ;define
+
+    (define (pi-app-scroll-line-up! app)
+      (scroll-view-scroll-by! (pi-app-scroll-view app) -1)
+    ) ;define
+
+    (define (pi-app-scroll-line-down! app)
+      (scroll-view-scroll-by! (pi-app-scroll-view app) 1)
+    ) ;define
+
+    (define (pi-app-scroll-top! app)
+      (scroll-view-to-top! (pi-app-scroll-view app))
+    ) ;define
+
+    (define (pi-app-scroll-bottom! app)
+      (scroll-view-to-bottom! (pi-app-scroll-view app))
     ) ;define
 
   ) ;begin

@@ -86,64 +86,6 @@
       ) ;let
     ) ;define
 
-    ;; 用户提交：/model 切换模型；/session 展示统计；/name 管理名称；
-    ;; /resume 恢复历史会话；! 前缀执行 bash；其余消息按运行状态路由：
-    ;; 空闲 → 等待队列（现有调度）；busy → steering（默认，回车）
-    ;; 或 follow-up（:mode 'follow-up，alt+enter）注入运行中/下一轮任务
-    (define* (pi-app-submit! app text (mode 'auto))
-      (let ((clean (string-trim text)))
-        (unless (string-null? clean)
-          (cond ((pi-app-model-command? clean) (pi-app-submit-model! app clean))
-                ((pi-app-thinking-command? clean) (pi-app-submit-thinking! app clean))
-                ((pi-app-session-command? clean) (pi-app-submit-session! app))
-                ((pi-app-name-command? clean) (pi-app-submit-name! app clean))
-                ((pi-app-resume-command? clean) (pi-app-submit-resume! app clean))
-                (else
-                  ;; bash 模式：!cmd 直接经 bash 执行（对齐 pi 的 !/!! 前缀行为）；
-                  ;; 命令为空（仅 "!" 或 "!!"）时回退为普通消息提交（对齐 pi 的 fall-through）
-                  (let* ((bang? (%starts-with-char? clean #\!))
-                         (excluded? (and bang? (> (string-length clean) 1) (char=? (string-ref clean 1) #\!))
-                         ) ;excluded?
-                         (cmd-start (if excluded? 2 1))
-                         (command
-                           (and bang?
-                             (not (string-null? (string-trim (substring clean cmd-start))))
-                             (string-trim (substring clean cmd-start))
-                           ) ;and
-                         ) ;command
-                        ) ;
-                    (if command
-                      (pi-app-run-bash! app command :excluded? excluded?)
-                      (let ((q (pi-app-queue app)) (ed (pi-app-editor app)))
-                        (cond
-                          ;; busy：按模式注入运行中任务（steering / follow-up）
-                          ((pi-queue-busy? q)
-                           (if (eq? mode 'follow-up)
-                             (pi-app-queue-follow-up! app clean)
-                             (pi-app-queue-steering! app clean)
-                           ) ;if
-                           (editor-set-text! ed "")
-                           ;; 发送新消息时把对话记录拉回末尾（恢复 follow），
-                           ;; 否则用户停留在历史位置会看不到自己的新消息
-                           (pi-app-scroll-bottom! app)
-                           (pi-app-render! app)
-                          ) ;
-                          ;; 空闲：进入等待队列，沿用现有调度路径
-                          (else (pi-queue-enqueue! q clean)
-                            (editor-set-text! ed "")
-                            (pi-app-scroll-bottom! app)
-                            (pi-app-drain-queue! app)
-                          ) ;else
-                        ) ;cond
-                      ) ;let
-                    ) ;if
-                  ) ;let*
-                ) ;else
-          ) ;cond
-        ) ;unless
-      ) ;let
-    ) ;define*
-
     (define (%pi-app-complete-command! app menu ed)
       (let ((item (select-list-selected-item menu)))
         (when item
@@ -196,33 +138,6 @@
               (else (component-handle-input ed key))
         ) ;cond
       ) ;let
-    ) ;define
-
-    ;; 全屏模式下的对话记录滚动：
-    ;; page-up/page-down 整页滚动，ctrl+shift+up/down 单行滚动，
-    ;; ctrl+shift+home/end 跳到记录顶部/末尾（末尾即恢复 follow）
-    (define (pi-app-scroll-up! app)
-      (scroll-view-page-up! (pi-app-scroll-view app))
-    ) ;define
-
-    (define (pi-app-scroll-down! app)
-      (scroll-view-page-down! (pi-app-scroll-view app))
-    ) ;define
-
-    (define (pi-app-scroll-line-up! app)
-      (scroll-view-scroll-by! (pi-app-scroll-view app) -1)
-    ) ;define
-
-    (define (pi-app-scroll-line-down! app)
-      (scroll-view-scroll-by! (pi-app-scroll-view app) 1)
-    ) ;define
-
-    (define (pi-app-scroll-top! app)
-      (scroll-view-to-top! (pi-app-scroll-view app))
-    ) ;define
-
-    (define (pi-app-scroll-bottom! app)
-      (scroll-view-to-bottom! (pi-app-scroll-view app))
     ) ;define
 
     ;; 鼠标事件处理：滚轮上下滚动对话记录；点击派发给 doc 组件树
