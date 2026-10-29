@@ -32,7 +32,7 @@
                   lines
                 ) ;for-each
                 (terminal-flush term)
-              ) ;let*
+              ) ;let
             ) ;lambda
             (lambda args #f)
           ) ;catch
