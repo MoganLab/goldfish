@@ -1,4 +1,6 @@
-(import (liii check) (liii string) (liii pi code cli))
+;; 先导入 (liii pi code cli)：若 (liii check) 先于它导入，编译器在宏展开期
+;; 会拿到已回收的常量（报 "lambda parameter is a constant: <free cell!>"）。
+(import (liii pi code cli) (liii check) (liii string))
 
 (check-set-mode! 'report-failed)
 
