@@ -5,7 +5,7 @@
 ;;
 
 (define-library (liii pi code modes interactive run)
-  (export pi-app-run)
+  (export pi-app-run pi-app-print-transcript!)
   (import (scheme base)
     (liii go)
     (liii time)
@@ -20,12 +20,14 @@
     ;; 退出备用屏后把对话记录打印回主屏，
     ;; 对齐上游 fullscreenExitOutput=transcript 的行为。
     ;; 仅标准终端执行：虚拟终端（测试用）没有真实输出端口。
-    (define (%pi-print-transcript app)
+    ;; 历史内容由 pi-app-transcript-lines 提供（完整消息列表，
+    ;; 不含页眉横幅与输入区）；任何异常都不得影响退出流程。
+    (define (pi-app-print-transcript! app)
       (let ((term (pi-app-term app)))
         (when (standard-terminal? term)
           (catch #t
             (lambda ()
-              (let* ((w (car (terminal-size term))) (lines (component-render (pi-app-chat app) w)))
+              (let ((lines (pi-app-transcript-lines app)))
                 (for-each (lambda (line) (terminal-write term line) (terminal-write term "\r\n"))
                   lines
                 ) ;for-each
@@ -177,7 +179,7 @@
             ;; 最后把对话记录打印回主屏，避免退出后看不到本次会话内容
             (catch #t (lambda () (terminal-mouse-mode! term #f)) (lambda (tag . args) #f))
             (catch #t (lambda () (terminal-exit-alt-screen! term)) (lambda (tag . args) #f))
-            (%pi-print-transcript app)
+            (pi-app-print-transcript! app)
             (terminal-write term "\x1b;[?2004l")
             (terminal-set-paste-mode! #f)
             (terminal-show-cursor! term)

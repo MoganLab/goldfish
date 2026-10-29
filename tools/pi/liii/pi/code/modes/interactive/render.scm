@@ -15,7 +15,7 @@
 ;; 对齐上游 packages/coding-agent/src/modes/interactive/chat-viewport.ts：
 ;; transcript 占据剩余空间（grow），dock 固定在底部。
 (define-library (liii pi code modes interactive render)
-  (export pi-app-render! pi-app-frame-lines)
+  (export pi-app-render! pi-app-frame-lines pi-app-transcript-lines)
   (import (scheme base)
     (liii string)
     (liii list)
@@ -166,6 +166,20 @@
               ) ;
           (values frame cur-pos)
         ) ;let*
+      ) ;let*
+    ) ;define
+
+    ;; 退出 TUI 后打印回主屏的对话记录（完整历史，不含页眉横幅与输入区）。
+    ;; 对齐上游 fullscreenExitOutput=transcript 行为：
+    ;; 退出全屏界面后，终端上仍可回看本次会话的全部消息。
+    ;; 只渲染消息卡片容器（%pi-app-chat），页眉与底部 dock 不计入历史。
+    (define (pi-app-transcript-lines app)
+      (let* ((term (%pi-app-term app))
+             (w (car (terminal-size term)))
+             (children (container-children (%pi-app-chat app)))
+            ) ;
+        (%pi-split-lines (append-map (lambda (child) (component-render child w)) children)
+        ) ;%pi-split-lines
       ) ;let*
     ) ;define
 
