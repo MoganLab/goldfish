@@ -1,4 +1,5 @@
 (import (scheme base)
+  (liii go)
   (liii check)
   (liii string)
   (liii tui)
@@ -61,7 +62,8 @@
 ) ;let*
 
 ;; -----------------------------------------------------------------------------
-;; 测试项 3: 异步/Busy 期间连续提交，消息在队列排队并在完成后自动消费
+;; 测试项 3: Busy 期间回车提交 → steering 注入（通道 + 显示列表），
+;; 等待队列（items）不再接收；消费事件上屏用户卡片并同步显示列表
 ;; -----------------------------------------------------------------------------
 (let* ((vterm (make-virtual-terminal :width 80 :height 24))
        (processed '())
@@ -77,26 +79,39 @@
   ;; 1. 手动将状态设为 busy，模拟正在执行长任务
   (pi-queue-set-busy! (pi-app-queue app))
 
-  ;; 2. 用户在长任务期间提交 2 条新消息
-  (pi-app-submit! app "等待中的任务 1")
-  (pi-app-submit! app "等待中的任务 2")
+  ;; 2. 用户在长任务期间回车提交 2 条新消息：进入 steering 注入路径
+  (pi-app-submit! app "运行中插话 1")
+  (pi-app-submit! app "运行中插话 2")
 
-  ;; 此时任务在忙，handler 尚未处理这两条消息，它们都在队列中
+  ;; 等待队列（items）不再接收；steering 显示列表与通道各就各位
   (check processed => '())
-  (check (pi-queue-length (pi-app-queue app)) => 2)
-  (check (pi-queue-items (pi-app-queue app))
-    =>
-    '("等待中的任务 1" "等待中的任务 2")
-  ) ;check
+  (check (pi-queue-length (pi-app-queue app)) => 0)
+  (check (%pi-app-steering-pending app) => '("运行中插话 1" "运行中插话 2"))
+  (check (chan-try-recv! (pi-app-steering-chan app) #f) => "运行中插话 1")
+  (check (chan-try-recv! (pi-app-steering-chan app) #f) => "运行中插话 2")
 
-  ;; 3. 前序长任务结束 (finish-task!) 并推进队列
-  (pi-queue-finish-task! (pi-app-queue app))
-  (pi-app-drain-queue! app)
+  ;; 3. 模拟 worker 消费第一条：回发 user_message 事件后主线程同步显示
+  (chan-send! (pi-app-event-chan app) '(user_message "运行中插话 1") 10)
+  (pi-app-poll-events! app)
+  (check (%pi-app-steering-pending app) => '("运行中插话 2"))
+  ;; 用户卡片已上屏（深蓝背景色码）
+  (let* ((screen (pi-app-screen app))
+         (full-text (string-join (alt-screen-lines screen) "\n"))
+        ) ;let*
+    (check (string-contains? full-text "运行中插话 1") => #t)
+    (check (string-contains? full-text "Steering: 运行中插话 2") => #t)
+  ) ;let*
 
-  ;; 验证队列中的两条消息均被顺序自动消费处理完毕
-  (check (reverse processed) => '("等待中的任务 1" "等待中的任务 2"))
-  (check (pi-queue-empty? (pi-app-queue app)) => #t)
-  (check (pi-queue-idle? (pi-app-queue app)) => #t)
+  ;; 4. busy 期间 alt+enter（follow-up 模式）：走 follow-up 通道而非 steering
+  (pi-app-submit! app "结束后再做" 'follow-up)
+  (check (%pi-app-steering-pending app) => '("运行中插话 2"))
+  (check (%pi-app-follow-up-pending app) => '("结束后再做"))
+  (check (chan-try-recv! (pi-app-follow-up-chan app) #f) => "结束后再做")
+
+  ;; 5. ESC 撤回：steering → follow-up 合并返回并清空显示
+  (check (pi-app-restore-queues! app) => '("运行中插话 2" "结束后再做"))
+  (check (%pi-app-steering-pending app) => '())
+  (check (%pi-app-follow-up-pending app) => '())
 ) ;let*
 
 (check-report)

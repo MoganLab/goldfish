@@ -87,8 +87,10 @@
     ) ;define
 
     ;; 用户提交：/model 切换模型；/session 展示统计；/name 管理名称；
-    ;; /resume 恢复历史会话；! 前缀执行 bash；其余消息进入队列
-    (define (pi-app-submit! app text)
+    ;; /resume 恢复历史会话；! 前缀执行 bash；其余消息按运行状态路由：
+    ;; 空闲 → 等待队列（现有调度）；busy → steering（默认，回车）
+    ;; 或 follow-up（:mode 'follow-up，alt+enter）注入运行中/下一轮任务
+    (define* (pi-app-submit! app text (mode 'auto))
       (let ((clean (string-trim text)))
         (unless (string-null? clean)
           (cond ((pi-app-model-command? clean) (pi-app-submit-model! app clean))
@@ -113,15 +115,26 @@
                     (if command
                       (pi-app-run-bash! app command :excluded? excluded?)
                       (let ((q (pi-app-queue app)) (ed (pi-app-editor app)))
-                        (pi-queue-enqueue! q clean)
-                        (editor-set-text! ed "")
-                        ;; 发送新消息时把对话记录拉回末尾（恢复 follow），
-                        ;; 否则用户停留在历史位置会看不到自己的新消息
-                        (pi-app-scroll-bottom! app)
-                        (when (pi-queue-busy? q)
-                          (pi-app-render! app)
-                        ) ;when
-                        (pi-app-drain-queue! app)
+                        (cond
+                          ;; busy：按模式注入运行中任务（steering / follow-up）
+                          ((pi-queue-busy? q)
+                           (if (eq? mode 'follow-up)
+                             (pi-app-queue-follow-up! app clean)
+                             (pi-app-queue-steering! app clean)
+                           ) ;if
+                           (editor-set-text! ed "")
+                           ;; 发送新消息时把对话记录拉回末尾（恢复 follow），
+                           ;; 否则用户停留在历史位置会看不到自己的新消息
+                           (pi-app-scroll-bottom! app)
+                           (pi-app-render! app)
+                          ) ;
+                          ;; 空闲：进入等待队列，沿用现有调度路径
+                          (else (pi-queue-enqueue! q clean)
+                            (editor-set-text! ed "")
+                            (pi-app-scroll-bottom! app)
+                            (pi-app-drain-queue! app)
+                          ) ;else
+                        ) ;cond
                       ) ;let
                     ) ;if
                   ) ;let*
@@ -129,7 +142,7 @@
           ) ;cond
         ) ;unless
       ) ;let
-    ) ;define
+    ) ;define*
 
     (define (%pi-app-complete-command! app menu ed)
       (let ((item (select-list-selected-item menu)))
@@ -319,6 +332,9 @@
              (event-chan (make-chan 32))
              (abort-chan (make-chan 1))
              (bash-jobs-chan (make-chan 16))
+             ;; steering / follow-up 注入通道：容量 16 与 jobs-chan 对齐
+             (steering-chan (make-chan 16))
+             (follow-up-chan (make-chan 16))
              (actual-record-sink (%make-pi-record-sink record-sink jobs-chan))
              (app (%make-pi-app actual-term
                     screen
@@ -357,6 +373,10 @@
                     (and no-session? #t)
                     (make-scroll-view doc)
                     (make-wheel-scroll-accelerator)
+                    steering-chan
+                    follow-up-chan
+                    '()
+                    '()
                   ) ;%make-pi-app
              ) ;app
              (ed (%make-pi-editor app tl))
@@ -368,7 +388,10 @@
         (%pi-app-editor-set! app ed)
         ;; 无自定义 handler 时启动后台 agent worker
         (unless handler
-          (go (pi-tui-agent-worker jobs-chan event-chan abort-chan session-file))
+          (go (pi-tui-agent-worker jobs-chan event-chan abort-chan session-file
+                steering-chan follow-up-chan
+              ) ;pi-tui-agent-worker
+          ) ;go
         ) ;unless
         ;; 无注入执行器时启动后台 bash worker
         (unless bash-handler

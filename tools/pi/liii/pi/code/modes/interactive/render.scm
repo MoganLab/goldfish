@@ -82,6 +82,24 @@
             ) ;
         (container-clear! pending-box)
         (when (pi-queue-busy? q)
+          ;; 待处理区分组展示全部排队消息（对齐上游 updatePendingMessagesDisplay）：
+          ;; steering 组 → follow-up 组 → 原等待队列（旧语义兼容）
+          (for-each
+            (lambda (text)
+              (container-add! pending-box
+                (make-queued-card (string-append "Steering: " text))
+              ) ;container-add!
+            ) ;lambda
+            (%pi-app-steering-pending app)
+          ) ;for-each
+          (for-each
+            (lambda (text)
+              (container-add! pending-box
+                (make-queued-card (string-append "Follow-up: " text))
+              ) ;container-add!
+            ) ;lambda
+            (%pi-app-follow-up-pending app)
+          ) ;for-each
           (let ((items (pi-queue-items q)))
             (unless (null? items)
               (container-add! pending-box (make-queued-card (car items)))

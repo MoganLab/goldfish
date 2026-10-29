@@ -10,6 +10,7 @@
   (export make-tui-emit pi-tui-agent-worker pi-tui-run-worker pi-tui-send-event!
     pi-cfg-with-thinking pi-cfg-with-model %worker-job-cfg
     pi-worker-ensure-session-file! pi-worker-handle-job %assistant-error-text
+    %poll-one-injected
   ) ;export
   (import (scheme base)
     (scheme write)
@@ -36,6 +37,24 @@
     ;; 安全带超时的事件发送，防止 channel 堵塞导致 worker 永久卡死
     (define (pi-tui-send-event! ch ev)
       (catch #t (lambda () (chan-send! ch ev 2000)) (lambda (t . a) #f))
+    ) ;define
+
+    ;; 轮询一条注入消息（steering / follow-up 通道共用）：
+    ;; 非阻塞拉取；拉到非空文本时先回发 user_message 事件同步主线程显示，
+    ;; 再返回单元素列表供 run-agent-loop 注入
+    (define (%poll-one-injected chan event-chan)
+      (let ((msg
+              (and chan (catch #t (lambda () (chan-try-recv! chan #f)) (lambda args #f)))
+            ) ;msg
+           ) ;
+        (if (and (string? msg) (not (string-null? msg)))
+          (begin
+            (pi-tui-send-event! event-chan (list 'user_message msg))
+            (list msg)
+          ) ;begin
+          '()
+        ) ;if
+      ) ;let
     ) ;define
 
     ;; 错误结算辅助：stopReason=error 的 assistant 消息返回应上屏的错误文本
@@ -346,9 +365,17 @@
     ;; 顶层后台工作协程：并发循环消费 jobs-chan 任务并回传事件到 event-chan；
     ;; jobs 包含用户消息 (text thinking-level [provider model-id])、
     ;; bash 记录与 session_name 命名任务
+    ;; steering-chan / follow-up-chan（可选）：运行中注入消息通道，
+    ;; 由 run-agent-loop 在轮询点消费，消费时回发 user_message 事件同步显示
     ;; 注意：go 绑定的 let 语法会“求值”绑定值，alist 会被当作函数调用而报错，
     ;; 因此 parsed/cfg 不能跨 go 边界传入，必须在 worker 会话内自行解析
-    (define* (pi-tui-agent-worker jobs-chan event-chan abort-chan (initial-session-file #f))
+    (define* (pi-tui-agent-worker jobs-chan
+               event-chan
+               abort-chan
+               (initial-session-file #f)
+               (steering-chan #f)
+               (follow-up-chan #f)
+             ) ;pi-tui-agent-worker
       (let* ((parsed (parse-pi-args (cdr (command-line))))
              (cfg (augment-pi-config (resolve-pi-config parsed (get-environment-variables))
                     parsed
@@ -356,6 +383,21 @@
              ) ;cfg
              ;; 会话文件盒：全生命周期复用同一文件（TUI 会话连续性）
              (sfile-box (vector initial-session-file))
+             ;; 注入轮询回调：非阻塞拉取一条消息，拉到时回发 user_message
+             ;; 事件（主线程移除待处理显示并上屏用户卡片）；
+             ;; 未提供通道或拉取失败时返回空表（循环按无消息处理）
+             (poll-cfg
+               (append
+                 (list (cons 'get-steering-messages
+                         (lambda () (%poll-one-injected steering-chan event-chan))
+                       ) ;cons
+                   (cons 'get-follow-up-messages
+                     (lambda () (%poll-one-injected follow-up-chan event-chan))
+                   ) ;cons
+                 ) ;list
+                 cfg
+               ) ;append
+             ) ;poll-cfg
             ) ;
         ;; 重试与 multikey 换 key 日志共用 retry logger 通道，转为界面卡片
         (set-pi-retry-logger! (lambda (msg) (pi-tui-send-event! event-chan (list 'retry msg)))
@@ -368,7 +410,7 @@
           ;; chan-recv! 此时返回 eof 对象（eof 为真值），必须显式排除
           (let ((job (chan-recv! jobs-chan)))
             (when (and job (not (eof-object? job)))
-              (pi-worker-handle-job job parsed cfg sfile-box event-chan abort-chan)
+              (pi-worker-handle-job job parsed poll-cfg sfile-box event-chan abort-chan)
               (loop)
             ) ;when
           ) ;let

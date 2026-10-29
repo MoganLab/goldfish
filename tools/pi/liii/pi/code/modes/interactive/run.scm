@@ -14,6 +14,7 @@
     (liii tui)
     (liii pi agent queue)
     (liii pi code modes interactive app)
+    (liii pi code modes interactive app-events)
     (liii pi code modes interactive common)
   ) ;import
   (begin
@@ -150,9 +151,11 @@
                      ;; 非阻塞发送：容量 1，丢弃旧信号也无所谓（语义同为中止）
                      (chan-send! (pi-app-abort-chan app) 'abort 0)
                    ) ;when
-                   (let ((restored (pi-queue-restore-all! q)))
+                   ;; 撤回全部排队消息：steering → follow-up → 等待队列，
+                   ;; 合并回编辑器重新编辑（对齐上游 restoreQueuedMessagesToEditor）
+                   (let ((restored (pi-app-restore-queues! app)))
                      (when (pair? restored)
-                       (editor-set-text! ed (string-join restored "\n"))
+                       (editor-set-text! ed (string-join restored "\n\n"))
                      ) ;when
                    ) ;let
                    (pi-app-render! app)

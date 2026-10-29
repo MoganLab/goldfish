@@ -25,7 +25,9 @@
     %pi-app-default-model %pi-app-on-save-model %pi-app-supports-thinking?-set!
     %pi-app-available-thinking-levels-set! pi-app-resume-sessions
     %pi-app-resume-sessions-set! pi-app-no-session? pi-app-scroll-view
-    pi-app-wheel-accelerator
+    pi-app-wheel-accelerator pi-app-steering-chan pi-app-follow-up-chan
+    %pi-app-steering-pending %pi-app-steering-pending-set!
+    %pi-app-follow-up-pending %pi-app-follow-up-pending-set!
   ) ;export
   (import (scheme base))
   (begin
@@ -40,7 +42,8 @@
         default-thinking-level on-save-thinking-level bash-mode? tools-expanded?
         bash-cards bash-jobs-chan bash-handler record-sink session-name provider
         model models default-model on-save-model tool-cards resume-sessions
-        no-session? scroll-view wheel-accelerator
+        no-session? scroll-view wheel-accelerator steering-chan follow-up-chan
+        steering-pending follow-up-pending
       ) ;%make-pi-app
       pi-app?
       (term pi-app-term)
@@ -100,6 +103,13 @@
       (scroll-view pi-app-scroll-view)
       ;; 鼠标滚轮滚动加速器：把滚轮事件换算成滚动行数
       (wheel-accelerator pi-app-wheel-accelerator)
+      ;; steering / follow-up 注入通道（主线程写入，后台 worker 轮询消费）
+      (steering-chan pi-app-steering-chan)
+      (follow-up-chan pi-app-follow-up-chan)
+      ;; 待处理消息显示列表（主线程维护，与通道内容 1:1 同步；
+      ;; worker 消费时经 user_message 事件逐条移除）
+      (steering-pending %pi-app-steering-pending %pi-app-steering-pending-set!)
+      (follow-up-pending %pi-app-follow-up-pending %pi-app-follow-up-pending-set!)
     ) ;define-record-type
 
     (define %pi-app-term pi-app-term)
