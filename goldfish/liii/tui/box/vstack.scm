@@ -23,9 +23,14 @@
 
 (define-library (liii tui box vstack)
   (export make-vstack vstack? %validate-child %vstack-render
-    %vstack-handle-input %vstack-invalidate
+    %vstack-handle-input %vstack-handle-mouse %vstack-invalidate
   ) ;export
-  (import (liii base) (liii error) (liii list) (liii tui component))
+  (import (liii base)
+    (liii error)
+    (liii list)
+    (liii tui component)
+    (liii tui mouse)
+  ) ;import
   (begin
 
     (define-record-type <vstack-data>
@@ -108,6 +113,37 @@
       #t
     ) ;define
 
+    ;; 鼠标按高度区间命中：spacing 行不属于任何子组件；
+    ;; 命中后把 y 换算为子组件局部坐标派发，对齐上游 pi Container.handleMouse
+    (define (%vstack-handle-mouse children spacing ev)
+      (let ((y (mouse-event-y ev)) (x (mouse-event-x ev)))
+        (let loop
+          ((rest children) (base 0))
+          (if (null? rest)
+            #f
+            (let* ((h (length (component-render (car rest) x))) (next (+ base h spacing)))
+              (cond
+               ((and (>= y base) (< y (+ base h)))
+                (component-handle-mouse! (car rest)
+                  (make-mouse-event (mouse-event-type ev)
+                    (mouse-event-button ev)
+                    x
+                    (- y base)
+                    (mouse-event-shift? ev)
+                    (mouse-event-ctrl? ev)
+                    (mouse-event-alt? ev)
+                  ) ;make-mouse-event
+                ) ;component-handle-mouse!
+               ) ;
+               ((>= y next) (loop (cdr rest) next))
+               (else #f)
+              ) ;cond
+            ) ;let*
+          ) ;if
+        ) ;let
+      ) ;let
+    ) ;define
+
     (define (make-vstack . args)
       (let* ((parsed (%parse-children-and-opts args))
              (raw-children (car parsed))
@@ -121,6 +157,8 @@
                        (lambda (self width) (%vstack-render children spacing width))
                        :handle-input
                        (lambda (self key) (%vstack-handle-input children key))
+                       :handle-mouse
+                       (lambda (self ev) (%vstack-handle-mouse children spacing ev))
                        :invalidate (lambda (self) (%vstack-invalidate children))
                      ) ;make-component
                ) ;comp
