@@ -37,4 +37,16 @@
 (check (editor-visual-cursor '("hello world" "next") 1 2 6) => '(2 2))
 (check (editor-visual-cursor '("你好世界") 0 3 4) => '(1 2))
 
+;; 折行后光标紧跟最后一段行尾空格时，显示列需补回被 wrap-text 丢弃的空格
+(check (editor-visual-cursor '("aaaa bbbb cccc dddd eeee ") 0 26 20) => '(1 5))
+
+;; 折行后光标位于行中分隔空格之后、后续词之前，同样补回空格宽度
+(check (editor-visual-cursor '("aaaa bbbb cccc dddd eeee ff") 0 25 20) => '(1 5))
+
+;; 光标前缀达到显示宽度且后面还有内容时，光标移至下一视觉行行首
+(check (editor-visual-cursor '("ab cd ef gh") 0 9 6) => '(1 3))
+
+;; 行尾空格填满最后显示行时，光标贴当前视觉行最后一列
+(check (editor-visual-cursor '("ab cd ef      ") 0 14 6) => '(2 5))
+
 (check-report)
