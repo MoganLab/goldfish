@@ -234,12 +234,17 @@
                 (if absolute? (string-append "/" normalized) normalized)
               ) ;let
             ) ;if
-            (cond ((string=? (car segs) "") (loop (cdr segs) result))
-                  ((string=? (car segs) ".") (loop (cdr segs) result))
-                  ((string=? (car segs) "..")
-                   (loop (cdr segs) (if (null? result) result (cdr result)))
-                  ) ;
-                  (else (loop (cdr segs) (cons (car segs) result)))
+            (cond
+             ((string=? (car segs) "")
+              (loop (cdr segs)
+                (if (and (null? (cdr segs)) (not (null? result))) (cons "" result) result)
+              ) ;loop
+             ) ;
+             ((string=? (car segs) ".") (loop (cdr segs) result))
+             ((string=? (car segs) "..")
+              (loop (cdr segs) (if (null? result) result (cdr result)))
+             ) ;
+             (else (loop (cdr segs) (cons (car segs) result)))
             ) ;cond
           ) ;if
         ) ;let
