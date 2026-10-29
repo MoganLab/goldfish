@@ -27,8 +27,9 @@
     (check-true (string-contains? (list-ref plain 1) " gf v"))
     ;; 输入区上边框贴在底部（视口 19 + 上边框）
     (check-true (string-contains? (list-ref plain 19) "─"))
-    ;; 页脚最后两行
-    (check-true (string-contains? (list-ref plain 22) "("))
+    ;; 页脚最后两行（页脚含路径/分支与用量/模型，内容随环境变化，只断言非空）
+    (check-true (> (string-length (string-trim (list-ref plain 22))) 0))
+    (check-true (> (string-length (string-trim (list-ref plain 23))) 0))
   ) ;let
 ) ;let*
 
