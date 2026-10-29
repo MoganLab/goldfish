@@ -21,7 +21,7 @@
     pi-app-scroll-up! pi-app-scroll-down! pi-app-scroll-top!
     pi-app-scroll-bottom! pi-app-scroll-line-up! pi-app-scroll-line-down!
     pi-app-frame-lines pi-app-transcript-lines pi-app-wheel-accelerator
-    pi-app-handle-mouse!
+    pi-app-handle-mouse! pi-app-handle-mouse-events!
   ) ;export
   (import (scheme base)
     (liii base)
@@ -203,30 +203,46 @@
     ;; （由卡片自身回调完成点击切换展开）
     ;; 返回 #t 表示事件已被消费
     (define (pi-app-handle-mouse! app event)
-      (let ((type (mouse-event-type event)))
-        (case type
-         ((wheel-up)
-          (let ((n (wheel-scroll-next! (pi-app-wheel-accelerator app)
-                     -1
-                     (current-monotonic-millis)
-                   ) ;wheel-scroll-next!
-                ) ;n
-               ) ;
-            (scroll-view-scroll-by! (pi-app-scroll-view app) (- n))
-          ) ;let
-          #t
-         ) ;
-         ((wheel-down)
-          (let ((n (wheel-scroll-next! (pi-app-wheel-accelerator app) 1 (current-monotonic-millis))
-                ) ;n
-               ) ;
-            (scroll-view-scroll-by! (pi-app-scroll-view app) n)
-          ) ;let
-          #t
-         ) ;
-         ((click) (pi-app-dispatch-mouse! app event))
-         (else #f)
-        ) ;case
+      (pi-app-handle-mouse-events! app (list event))
+    ) ;define
+
+    ;; 批量鼠标事件处理：把连续到达的滚轮事件合并为一次滚动（只滚动一次），
+    ;; 点击事件照旧逐个派发。
+    ;;
+    ;; 合并的意义：滚轮事件到达间隔（约 5~10ms）远小于单次滚动的渲染耗时，
+    ;; 逐个处理会让输入队列不断积压，表现为“滑几下就越滚越慢”；
+    ;; 合并后一次滚动处理完所有已到达事件，视图不再滞后。
+    ;; 返回 #t 表示需要重绘。
+    (define (pi-app-handle-mouse-events! app events)
+      (let ((acc (pi-app-wheel-accelerator app))
+            (delta 0)
+            (handled? #f)
+           ) ;
+        (for-each
+          (lambda (ev)
+            (case (mouse-event-type ev)
+              ((wheel-up)
+               (set! delta (- delta (wheel-scroll-next! acc -1 (current-monotonic-millis))))
+               (set! handled? #t)
+              ) ;
+              ((wheel-down)
+               (set! delta (+ delta (wheel-scroll-next! acc 1 (current-monotonic-millis))))
+               (set! handled? #t)
+              ) ;
+              ((click)
+               (when (pi-app-dispatch-mouse! app ev)
+                 (set! handled? #t)
+               ) ;when
+              ) ;
+              (else #f)
+            ) ;case
+          ) ;lambda
+          events
+        ) ;for-each
+        (unless (zero? delta)
+          (scroll-view-scroll-by! (pi-app-scroll-view app) delta)
+        ) ;unless
+        handled?
       ) ;let
     ) ;define
 

@@ -32,6 +32,7 @@
     terminal-flush terminal-detect-size make-virtual-terminal virtual-terminal?
     virtual-terminal-screen virtual-terminal-raw virtual-terminal-resize!
     virtual-terminal-push-key! virtual-terminal-pop-key! terminal-poll-key
+    terminal-drain-mouse-events
     terminal-paste-mode? terminal-set-paste-mode! make-standard-terminal
     standard-terminal? terminal-enter-raw-mode! terminal-exit-raw-mode!
     terminal-max-y terminal-enter-alt-screen! terminal-exit-alt-screen!
@@ -43,6 +44,7 @@
     scroll-view-scroll-by! scroll-view-page-up! scroll-view-page-down!
     scroll-view-to-top! scroll-view-to-bottom! scroll-view-total-lines
     scroll-view-max-offset scroll-view-height make-wheel-scroll-accelerator
+    scroll-view-invalidate!
     wheel-scroll-accelerator? wheel-scroll-next! wheel-scroll-reset!
     wheel-scroll-lines wheel-scroll-set-lines! mouse-event? mouse-event-type
     mouse-event-button mouse-event-x mouse-event-y mouse-event-shift?

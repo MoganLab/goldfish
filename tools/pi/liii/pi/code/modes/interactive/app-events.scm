@@ -33,21 +33,31 @@
       (container-children (%pi-app-chat app))
     ) ;define
 
+    ;; 对话记录内容变化后，滚动视口的行数缓存失效：
+    ;; 下一次统计行数时重新渲染内容（缓存只是滚动上界的换算依据）
+    (define (%pi-app-invalidate-scroll! app)
+      (scroll-view-invalidate! (pi-app-scroll-view app))
+    ) ;define
+
     (define (pi-app-add-user-message! app text)
+      (%pi-app-invalidate-scroll! app)
       (container-add! (%pi-app-chat app) (make-user-card text))
     ) ;define
 
     (define (pi-app-add-tool-result! app tool-name args status . maybe-result)
       (let ((res (if (pair? maybe-result) (car maybe-result) #f)))
+        (%pi-app-invalidate-scroll! app)
         (container-add! (%pi-app-chat app) (make-tool-card tool-name args status res))
       ) ;let
     ) ;define
 
     (define (pi-app-add-assistant-text! app text)
+      (%pi-app-invalidate-scroll! app)
       (container-add! (%pi-app-chat app) (make-assistant-card text))
     ) ;define
 
     (define (pi-app-add-retry-message! app msg)
+      (%pi-app-invalidate-scroll! app)
       (container-add! (%pi-app-chat app) (make-retry-card msg))
     ) ;define
 

@@ -29,6 +29,7 @@
     terminal-flush terminal-detect-size make-virtual-terminal virtual-terminal?
     virtual-terminal-screen virtual-terminal-raw virtual-terminal-resize!
     virtual-terminal-push-key! virtual-terminal-pop-key! terminal-poll-key
+    virtual-terminal-unshift-key! terminal-drain-mouse-events
     terminal-paste-mode? terminal-set-paste-mode! make-standard-terminal
     standard-terminal? terminal-enter-raw-mode! terminal-exit-raw-mode!
     terminal-max-y terminal-mouse-mode! terminal-enter-alt-screen!

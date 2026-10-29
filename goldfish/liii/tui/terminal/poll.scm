@@ -25,6 +25,7 @@
   (export terminal-poll-key terminal-paste-mode? terminal-set-paste-mode!
     %poll-console-key %resolve-ansi-bytes %resolve-utf8-bytes %map-extended-key
     %map-standard-key %poll-mouse-feed %poll-mouse-reset!
+    terminal-drain-mouse-events
   ) ;export
   (import (scheme base)
     (liii error)
@@ -82,14 +83,48 @@
       ) ;let
     ) ;define
 
+    ;; CSI 终结字节（0x40~0x7E）：序列到此结束
+    (define (%csi-final-byte? b)
+      (and (integer? b) (>= b 64) (<= b 126))
+    ) ;define
+
+    ;; 转义序列是否已完整（bytes 按到达顺序排列）：
+    ;;   ESC [ ... <终结字节>  → CSI 序列（鼠标 SGR 事件即此类）
+    ;;   ESC O <终结字节>      → SS3 序列
+    ;;   ESC <字符>            → 单字符转义
+    ;; 序列完整即可停止读取：否则每个转义序列都要在末尾多等一次超时
+    ;; （鼠标滚轮事件因此凭空多出 10ms 延迟）。
+    (define (%escape-bytes-complete? bytes)
+      (let ((len (length bytes)))
+        (cond ((< len 2) #f)
+              ((= (cadr bytes) 91)   ; '['
+               (and (> len 2) (%csi-final-byte? (list-ref bytes (- len 1))))
+              ) ;
+              ((= (cadr bytes) 79)   ; 'O'
+               (> len 2)
+              ) ;
+              (else #t)
+        ) ;cond
+      ) ;let
+    ) ;define
+
+    ;; 读取一个转义序列的字节：按到达顺序累积，序列完整即返回
     (define (%read-escape-bytes)
       (let loop
         ((bytes (list 27)))
         (if (console-kbhit? 10)
           (let ((b (console-getch)))
-            (if (and b (exact-integer? b)) (loop (cons b bytes)) (reverse bytes))
+            (if (and b (exact-integer? b))
+              (let ((bytes (append bytes (list b))))
+                (if (%escape-bytes-complete? bytes)
+                  bytes
+                  (loop bytes)
+                ) ;if
+              ) ;let
+              bytes
+            ) ;if
           ) ;let
-          (reverse bytes)
+          bytes
         ) ;if
       ) ;let
     ) ;define
@@ -368,6 +403,38 @@
               ((terminal? term) (%poll-console-key))
               (else (type-error "terminal-poll-key: expected a terminal or #f"))
         ) ;cond
+      ) ;let
+    ) ;define
+
+    ;; 把一个按键原样放回输入队列头部（不丢键、不改顺序）：
+    ;; 标准终端走 %pending-keys 栈（只回填一个键，出栈即恢复原序），
+    ;; 虚拟终端走 unshift（插回队首）。
+    (define (%unshift-key! term key)
+      (if (and term (virtual-terminal? term))
+        (virtual-terminal-unshift-key! term key)
+        (%pending-push! key)
+      ) ;if
+    ) ;define
+
+    ;; 一次性取走当前已到达的所有鼠标事件（非阻塞）。
+    ;; 遇到非鼠标按键立即停止，并把它原样放回输入队列头部：
+    ;; 既不丢按键，也不改变按键顺序。
+    ;; 典型用法：滚轮事件连续到达时一次取走、合并成一次滚动，
+    ;; 避免单事件渲染耗时大于事件到达间隔时输入不断积压（越滚越慢）。
+    (define (terminal-drain-mouse-events . args)
+      (let ((term (if (null? args) #f (car args))))
+        (if (and term (not (or (virtual-terminal? term) (terminal? term))))
+          (type-error "terminal-drain-mouse-events: expected a terminal or #f")
+          (let loop
+            ((acc '()))
+            (let ((k (terminal-poll-key term)))
+              (cond ((not k) (reverse acc))
+                    ((mouse-event? k) (loop (cons k acc)))
+                    (else (%unshift-key! term k) (reverse acc))
+              ) ;cond
+            ) ;let
+          ) ;let
+        ) ;if
       ) ;let
     ) ;define
 
