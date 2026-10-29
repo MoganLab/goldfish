@@ -13,6 +13,13 @@
 (let ((out (pi-execute-ls '(("path" . ".") ("limit" . 1)))))
   (check-true (string-contains? out "[1 entries limit reached. Use limit=2 for more]")))
 
+;; 浮点形式的 limit：模型偶尔用 1.0 这类浮点表示数量
+(let ((out (pi-execute-ls '(("path" . ".") ("limit" . 1.0)))))
+  (check-true (string-contains? out "[1 entries limit reached. Use limit=2 for more]")))
+
+;; 非整数值的浮点参数：报清晰的参数错误
+(check-catch 'error (pi-execute-ls '(("path" . ".") ("limit" . 1.5))))
+
 (let ((empty-dir "tests/liii/pi-empty-dir"))
   (path-mkdir (path empty-dir) :parents #t :exist-ok #t)
   (let ((out (pi-execute-ls (list (cons "path" empty-dir)))))

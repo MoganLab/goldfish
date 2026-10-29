@@ -18,6 +18,14 @@
 (let ((out (pi-execute-find '(("pattern" . "*.scm") ("path" . ".") ("limit" . 1)))))
   (check-true (string-contains? out "[1 results limit reached]")))
 
+;; 浮点形式的 limit：模型偶尔用 1.0 这类浮点表示数量
+(let ((out (pi-execute-find '(("pattern" . "*.scm") ("path" . ".") ("limit" . 1.0)))))
+  (check-true (string-contains? out "[1 results limit reached]")))
+
+;; 非整数值的浮点参数：报清晰的参数错误
+(check-catch 'error
+  (pi-execute-find '(("pattern" . "*.scm") ("path" . ".") ("limit" . 1.5))))
+
 ;; 无匹配文件
 (let ((out (pi-execute-find '(("pattern" . "non_existent_pattern_*.xyz") ("path" . ".")))))
   (check out => "No files found matching pattern"))

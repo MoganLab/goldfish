@@ -135,7 +135,8 @@
              (pattern (pi-arg-ref args "pattern"))
              (raw-path (pi-arg-ref args "path" "."))
              (limit (pi-arg-ref args "limit" 1000))
-             (effective-limit (if (number? limit) limit 1000))
+             ;; 模型偶尔用 1000.0 这类浮点形式表示数量，这里统一规范化为整数
+             (effective-limit (if (number? limit) (pi-int-arg limit "limit") 1000))
             ) ;
         (when timed-out?
           (error 'error "Command timed out")
