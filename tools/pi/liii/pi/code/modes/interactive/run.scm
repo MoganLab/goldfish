@@ -17,9 +17,29 @@
   ) ;import
   (begin
 
+    ;; 退出备用屏后把对话记录打印回主屏，
+    ;; 对齐上游 fullscreenExitOutput=transcript 的行为。
+    ;; 仅标准终端执行：虚拟终端（测试用）没有真实输出端口。
+    (define (%pi-print-transcript app)
+      (let ((term (pi-app-term app)))
+        (when (standard-terminal? term)
+          (catch #t
+            (lambda ()
+              (let* ((w (car (terminal-size term))) (lines (component-render (pi-app-chat app) w)))
+                (for-each (lambda (line) (terminal-write term line) (terminal-write term "\r\n"))
+                  lines
+                ) ;for-each
+                (terminal-flush term)
+              ) ;let*
+            ) ;lambda
+            (lambda args #f)
+          ) ;catch
+        ) ;when
+      ) ;let
+    ) ;define
+
     (define* (pi-app-run app (initial-msg "") (rest-msgs '()))
       (let* ((term (pi-app-term app))
-             (screen (pi-app-screen app))
              (ed (pi-app-editor app))
              (q (pi-app-queue app))
              ;; 分支切换监听：worker 会话回调经 event-chan 发 branch_changed，
@@ -33,6 +53,11 @@
                         ;; 其中的换行不会被当成 Enter 提交
                         (terminal-set-paste-mode! #t)
                         (terminal-write term "\x1b;[?2004h")
+                        ;; 进入备用屏：整屏由 TUI 独占，退出后主屏内容原样恢复
+                        (terminal-enter-alt-screen! term)
+                        ;; 开启鼠标事件上报（XTerm 1000/1002/1006）：
+                        ;; 滚轮用于滚动对话记录
+                        (terminal-mouse-mode! term #t)
                         (terminal-hide-cursor! term)
                         (pi-app-render! app)
                       ) ;lambda
@@ -90,6 +115,46 @@
                    (pi-app-render! app)
                    (loop)
                   ) ;
+                  ;; 对话记录滚动：page-up/page-down 整页，
+                  ;; ctrl+shift+up/down 单行，ctrl+home/ctrl+end 跳到首尾
+                  ;; （对齐上游 tui.altScreen.top / tui.altScreen.bottom）
+                  ((and (not (pi-app-active-selector app)) (eq? k 'page-up))
+                   (pi-app-scroll-up! app)
+                   (pi-app-render! app)
+                   (loop)
+                  ) ;
+                  ((and (not (pi-app-active-selector app)) (eq? k 'page-down))
+                   (pi-app-scroll-down! app)
+                   (pi-app-render! app)
+                   (loop)
+                  ) ;
+                  ((and (not (pi-app-active-selector app)) (eq? k 'shift-ctrl-up))
+                   (pi-app-scroll-line-up! app)
+                   (pi-app-render! app)
+                   (loop)
+                  ) ;
+                  ((and (not (pi-app-active-selector app)) (eq? k 'shift-ctrl-down))
+                   (pi-app-scroll-line-down! app)
+                   (pi-app-render! app)
+                   (loop)
+                  ) ;
+                  ((and (not (pi-app-active-selector app)) (eq? k 'ctrl-home))
+                   (pi-app-scroll-top! app)
+                   (pi-app-render! app)
+                   (loop)
+                  ) ;
+                  ((and (not (pi-app-active-selector app)) (eq? k 'ctrl-end))
+                   (pi-app-scroll-bottom! app)
+                   (pi-app-render! app)
+                   (loop)
+                  ) ;
+                  ;; 鼠标事件：滚轮上下滚动对话记录
+                  ((and (mouse-event? k) (not (pi-app-active-selector app)))
+                   (when (pi-app-handle-mouse! app k)
+                     (pi-app-render! app)
+                   ) ;when
+                   (loop)
+                  ) ;
                   ;; 按 ctrl+o 时：全局切换 bash/工具输出卡片的展开与折叠
                   ((eq? k 'ctrl-o) (pi-app-toggle-tool-output! app) (pi-app-render! app) (loop))
                   ((not k)
@@ -107,23 +172,12 @@
             ) ;let
           ) ;lambda
           (lambda ()
-            ;; 退出清理：光标必须跨过整个 TUI 块，否则 shell prompt 会画在输入框位置
-            (catch #t
-              (lambda ()
-                (let* ((lines (screen-lines screen))
-                       (total (length lines))
-                       ;; inline 模式下 total 只是内容行数，而光标实际停在输入行；
-                       ;; 取渲染行数与曾到达的最大行数的较大者才能真正落到块下方
-                       (max-y (terminal-max-y term))
-                       (bottom (max total max-y))
-                      ) ;
-                  (when (> total 0)
-                    (terminal-set-cursor! term 0 bottom)
-                  ) ;when
-                ) ;let*
-              ) ;lambda
-              (lambda (tag . args) #f)
-            ) ;catch
+            ;; 退出清理：先关闭鼠标事件上报（与进入时对称），
+            ;; 再离开备用屏（主屏内容自动恢复），
+            ;; 最后把对话记录打印回主屏，避免退出后看不到本次会话内容
+            (catch #t (lambda () (terminal-mouse-mode! term #f)) (lambda (tag . args) #f))
+            (catch #t (lambda () (terminal-exit-alt-screen! term)) (lambda (tag . args) #f))
+            (%pi-print-transcript app)
             (terminal-write term "\x1b;[?2004l")
             (terminal-set-paste-mode! #f)
             (terminal-show-cursor! term)

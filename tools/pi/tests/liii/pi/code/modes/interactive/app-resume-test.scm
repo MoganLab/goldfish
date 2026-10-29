@@ -17,7 +17,7 @@
 ;; 屏幕纯文本（去掉 ANSI 颜色码），便于断言提示文案
 
 (define (screen-text app)
-  (string-join (map strip-ansi (screen-lines (pi-app-screen app))) "\n")
+  (string-join (map strip-ansi (alt-screen-lines (pi-app-screen app))) "\n")
 ) ;define
 
 ;; footer 纯文本：会话名只应出现在 footer，聊天卡片里的历史文案不参与判断

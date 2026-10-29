@@ -36,7 +36,7 @@
   (check-true (model-selector? (pi-app-active-selector app)))
   (check-false (editor-focused? (pi-app-editor app)))
   (pi-app-render! app)
-  (let ((plain (string-join (map strip-ansi (screen-lines (pi-app-screen app))) "\n")))
+  (let ((plain (string-join (map strip-ansi (alt-screen-lines (pi-app-screen app))) "\n")))
     (check-true (string-contains? plain "Model"))
     (check-true (string-contains? plain "✓ gemini-2.5-pro")))
   (pi-app-handle-input! app 'escape)
@@ -64,7 +64,7 @@
   (check (editor-text (pi-app-editor app)) => "")
   (check (pi-app-thinking-level app) => "medium")
   (pi-app-render! app)
-  (let ((plain (string-join (map strip-ansi (screen-lines (pi-app-screen app))) "\n")))
+  (let ((plain (string-join (map strip-ansi (alt-screen-lines (pi-app-screen app))) "\n")))
     (check-true (string-contains? plain "Model: glm-5"))
     (check-true (string-contains? plain "(zai) glm-5")))
   (check (%pi-app-job-payload app "hi") => '("hi" "medium" "zai" "glm-5")))
@@ -94,7 +94,7 @@
   (check (pi-app-thinking-level app) => "off")
   (check (pi-app-available-thinking-levels app) => '("off"))
   (pi-app-render! app)
-  (let ((plain (string-join (map strip-ansi (screen-lines (pi-app-screen app))) "\n")))
+  (let ((plain (string-join (map strip-ansi (alt-screen-lines (pi-app-screen app))) "\n")))
     (check-true (string-contains? plain "text-bison-99"))
     (check-false (string-contains? plain "thinking off"))))
 
@@ -111,7 +111,7 @@
   (pi-app-render! app)
   (check-true
     (string-contains?
-      (string-join (map strip-ansi (screen-lines (pi-app-screen app))) "\n")
+      (string-join (map strip-ansi (alt-screen-lines (pi-app-screen app))) "\n")
       "Default model: zai/glm-5")))
 
 ;; 会话内 shift+tab 循环使用切换后的可用级别（非 reasoning 模型只剩 off）。

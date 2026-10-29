@@ -152,7 +152,7 @@
   (check (length (pi-app-chat app)) => before)
   ;; "y" 被插入后又被清空，证明 Ctrl+C 未退出主循环
   (check (editor-text ed) => "")
-  (check (> (length (screen-lines screen)) 0) => #t)
+  (check (> (length (alt-screen-lines screen)) 0) => #t)
 ) ;let*
 
 ;; 10. Ctrl+D 在输入框有内容时不退出（避免误触丢草稿）
@@ -186,7 +186,7 @@
   ;; 队列回到 idle
   (check-true (pi-queue-idle? q))
   ;; Aborted 提示卡片已渲染上屏
-  (let* ((lines (screen-lines (pi-app-screen app)))
+  (let* ((lines (alt-screen-lines (pi-app-screen app)))
          (plain-lines (map strip-ansi lines))
         ) ;
     (check-true
@@ -195,25 +195,21 @@
   ) ;let*
 ) ;let*
 
-;; 12. 退出后光标必须位于整个 TUI 块下方，而不是停在输入框所在行。
-;;     虚拟终端高度 24，TUI 内容约 11 行，退出后光标行应 >= 内容行数
+;; 12. 全屏模式：进入时切换到备用屏，退出时离开备用屏并把对话记录打印回主屏
+;;     （对齐上游 fullscreenExitOutput=transcript 行为）
 (let* ((vt (make-virtual-terminal :width 80 :height 24))
        (app (make-pi-app :terminal vt :handler (lambda (a m) #t)))
        (screen (pi-app-screen app))
       ) ;
+  (pi-app-add-user-message! app "hello fullscreen")
   (virtual-terminal-push-key! vt 'ctrl-d)
   (pi-app-run app)
-  (let* ((lines (screen-lines screen))
-         (total (length lines))
-         (cur (terminal-cursor vt))
-         (cur-y (cadr cur))
-         ;; 输入行（editor 文本行）位于距末尾 3 行处：header/chat + top-border + 文本行 + 底边框 + footer
-         (editor-row (- total 3))
-        ) ;
-    (check (> total 0) => #t)
-    ;; 退出后光标必须越过输入框（不能停在输入行），否则 shell prompt 会被画在输入框位置
-    (check (> cur-y editor-row) => #t)
-    (check (>= cur-y total) => #t)
+  (let* ((raw (string-join (virtual-terminal-raw vt) ""))
+         (lines (alt-screen-lines screen)))
+    (check (> (length lines) 0) => #t)
+    ;; 进入与退出备用屏的序列都已下发
+    (check-true (string-contains? raw "\x1b;[?1049h"))
+    (check-true (string-contains? raw "\x1b;[?1049l"))
   ) ;let*
 ) ;let*
 

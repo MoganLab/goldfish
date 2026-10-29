@@ -49,7 +49,7 @@
 
   ;; 验证屏幕渲染内容中包含用户卡片背景色码 (48;2;33;59;73) 与绿色成功色码 (48;2;37;65;49)
   (let* ((screen (pi-app-screen app))
-         (lines (screen-lines screen))
+         (lines (alt-screen-lines screen))
          (full-text (string-join lines "\n"))
         ) ;
     (check (string-contains? full-text "48;2;33;59;73") => #t)

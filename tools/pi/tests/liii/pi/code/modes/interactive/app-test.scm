@@ -25,18 +25,19 @@
        (screen (pi-app-screen app))
       ) ;
   (pi-app-render! app)
-  (let* ((lines (screen-lines screen)) (plain-lines (map strip-ansi lines)))
-    ;; 初始应包含 Header(6行) + Editor(3行) + Footer(2行) = 11 行
-    (check (length lines) => 11)
+  (let* ((lines (alt-screen-lines screen)) (plain-lines (map strip-ansi lines)))
+    ;; 全屏帧固定为终端高度（40 行）：
+    ;; 对话记录视口 35 行 + Header(6行) + Editor(3行) + Footer(2行)
+    (check (length lines) => 40)
     ;; Header
     (check (list-ref plain-lines 0) => "")
     (check-true (string-contains? (list-ref plain-lines 1) " gf v"))
-    ;; Editor 分隔线
-    (check (list-ref plain-lines 6) => (utf8-make-string 100 #\─))
-    (check (string-trim (list-ref plain-lines 7)) => "")
-    (check (list-ref plain-lines 8) => (utf8-make-string 100 #\─))
-    ;; Footer
-    (check-true (string-contains? (list-ref plain-lines 10) "(auto)"))
+    ;; Editor 分隔线（输入区固定贴在屏幕底部）
+    (check (list-ref plain-lines 35) => (utf8-make-string 100 #\─))
+    (check (string-trim (list-ref plain-lines 36)) => "")
+    (check (list-ref plain-lines 37) => (utf8-make-string 100 #\─))
+    ;; Footer（两行：左下角路径/分支，右下角用量与模型）
+    (check-true (string-contains? (list-ref plain-lines 39) "(auto)"))
   ) ;let*
 ) ;let*
 
@@ -57,9 +58,10 @@
   ;; 按回车触发提交
   (component-handle-input editor 'enter)
   (pi-app-render! app)
-  (let ((lines (screen-lines screen)))
-    ;; 用户卡片为 4 行（背景空行 + 正文 + 背景空行 + spacer），助手卡片 2 行
-    (check (length lines) => 17)
+  (let ((lines (alt-screen-lines screen)))
+    ;; 用户卡片为 4 行（背景空行 + 正文 + 背景空行 + spacer），助手卡片 2 行；
+    ;; 全屏帧高度固定为终端高度 40 行
+    (check (length lines) => 40)
     (check-true (string-contains? (list-ref lines 7) "ping"))
     (check-true (string-contains? (list-ref lines 10) "处理完成: ping"))
     ;; Editor 恢复为空
@@ -74,52 +76,52 @@
        (editor (pi-app-editor app))
       ) ;
   (pi-app-render! app)
-  ;; 初始光标在第 7 行（即输入行），列为 0
-  (check (terminal-cursor vterm) => '(0 7))
+  ;; 初始光标在第 36 行（即输入行，全屏布局下输入区固定在屏幕底部），列为 0
+  (check (terminal-cursor vterm) => '(0 36))
 
   ;; 1) 输入中文字符 "你好" (2个全角字，物理列宽为 4)
   (component-handle-input editor "你好")
   (pi-app-render! app)
-  (check (terminal-cursor vterm) => '(4 7))
+  (check (terminal-cursor vterm) => '(4 36))
 
   ;; 2) 光标向左移动 1 次（移到 "你" 和 "好" 之间，物理列宽为 2）
   (component-handle-input editor 'left)
   (pi-app-render! app)
-  (check (terminal-cursor vterm) => '(2 7))
+  (check (terminal-cursor vterm) => '(2 36))
 
   ;; 3) 在中间插入英文 "Hi"（"你Hi好"，光标在 "Hi" 后面，物理列宽为 2 + 2 = 4）
   (component-handle-input editor "Hi")
   (pi-app-render! app)
-  (check (terminal-cursor vterm) => '(4 7))
+  (check (terminal-cursor vterm) => '(4 36))
   (check (editor-text editor) => "你Hi好")
 
   ;; 4) 在中间插入中文 "世界"（"你Hi世界好"，光标在 "世界" 后面，物理列宽为 4 + 4 = 8）
   (component-handle-input editor "世界")
   (pi-app-render! app)
-  (check (terminal-cursor vterm) => '(8 7))
+  (check (terminal-cursor vterm) => '(8 36))
   (check (editor-text editor) => "你Hi世界好")
 
   ;; 5) 按退格键删除 "界"（"你Hi世好"，物理列宽从 8 变为 6）
   (component-handle-input editor 'backspace)
   (pi-app-render! app)
-  (check (terminal-cursor vterm) => '(6 7))
+  (check (terminal-cursor vterm) => '(6 36))
   (check (editor-text editor) => "你Hi世好")
 
   ;; 6) 按 Delete 键向后删除 "好"（"你Hi世"，光标位置保持 6，行尾缩减）
   (component-handle-input editor 'delete)
   (pi-app-render! app)
-  (check (terminal-cursor vterm) => '(6 7))
+  (check (terminal-cursor vterm) => '(6 36))
   (check (editor-text editor) => "你Hi世")
 
   ;; 7) 按 Home 键回到行首（物理列宽 0）
   (component-handle-input editor 'home)
   (pi-app-render! app)
-  (check (terminal-cursor vterm) => '(0 7))
+  (check (terminal-cursor vterm) => '(0 36))
 
   ;; 8) 按 End 键回到行尾（物理列宽 6）
   (component-handle-input editor 'end)
   (pi-app-render! app)
-  (check (terminal-cursor vterm) => '(6 7))
+  (check (terminal-cursor vterm) => '(6 36))
 ) ;let*
 
 ;; 4. 测试空格输入后硬件光标随文本位置移动，而不是回退到行尾
@@ -130,17 +132,17 @@
   (pi-app-render! app)
   (pi-app-handle-input! app "hello")
   (pi-app-render! app)
-  (check (terminal-cursor vterm) => '(5 7))
+  (check (terminal-cursor vterm) => '(5 36))
 
   (pi-app-handle-input! app " ")
   (pi-app-render! app)
   (check (editor-text editor) => "hello ")
-  (check (terminal-cursor vterm) => '(6 7))
+  (check (terminal-cursor vterm) => '(6 36))
 
   (pi-app-handle-input! app "world")
   (pi-app-render! app)
   (check (editor-text editor) => "hello world")
-  (check (terminal-cursor vterm) => '(11 7))
+  (check (terminal-cursor vterm) => '(11 36))
 
   ;; 行尾已有后续文本时，在单词之间插入空格也只应移动一列
   (pi-app-handle-input! app 'home)
@@ -148,7 +150,7 @@
   (pi-app-handle-input! app " ")
   (pi-app-render! app)
   (check (editor-text editor) => "h ello world")
-  (check (terminal-cursor vterm) => '(2 7))
+  (check (terminal-cursor vterm) => '(2 36))
 ) ;let*
 
 ;; 5. 折行后行尾输入空格，光标位于第二显示行空格之后，而不是行首
@@ -159,12 +161,12 @@
   (pi-app-render! app)
   (pi-app-handle-input! app "aaaaaaaaaaaaaaaaaa bbbb") ; 18 个 a 折行，bbbb 位于第二显示行
   (pi-app-render! app)
-  (check (terminal-cursor vterm) => '(4 8))
+  (check (terminal-cursor vterm) => '(4 36))
 
   (pi-app-handle-input! app " ")
   (pi-app-render! app)
   (check (editor-text editor) => "aaaaaaaaaaaaaaaaaa bbbb ")
-  (check (terminal-cursor vterm) => '(5 8))
+  (check (terminal-cursor vterm) => '(5 36))
 ) ;let*
 
 ;; 6. 测试多轮对话与多行 Markdown 助手回复时，光标精准位于输入框行（不受 \n 干扰）
@@ -181,42 +183,43 @@
   ;; Header: 6行 (0..5)
   ;; User Card: 4行 (6..9)：背景空行 + 正文 + 背景空行 + spacer
   ;; Assistant Card: 5行 (10..14)
-  ;; Editor Top-Border: 行 15
-  ;; Editor Content: 行 16
-  ;; Editor Bottom-Border: 行 17
-  ;; Footer: 行 18..19
-  ;; 光标应位于输入行 (0, 16)，绝不能因 \n 漏算而向上漂移
-  (check (terminal-cursor vterm) => '(0 16))
+  ;; 其余为对话记录视口的空白行（视口 35 行）
+  ;; Editor Top-Border: 行 35
+  ;; Editor Content: 行 36
+  ;; Editor Bottom-Border: 行 37
+  ;; Footer: 行 38..39
+  ;; 光标应位于输入行 (0, 36)，绝不能因 \n 漏算而向上漂移
+  (check (terminal-cursor vterm) => '(0 36))
 
   ;; 第二轮输入文本 "测试第二轮"
   (component-handle-input editor "测试第二轮")
   (pi-app-render! app)
   ;; 5个汉字，物理列宽 10，行号仍为 16
-  (check (terminal-cursor vterm) => '(10 16))
+  (check (terminal-cursor vterm) => '(10 36))
 
   ;; 按回车提交第二轮
   (component-handle-input editor 'enter)
   (pi-app-render! app)
   ;; 第二轮用户卡片追加 4 行 (行 15..18)，输入行平移至行 20
-  (check (terminal-cursor vterm) => '(0 20))
+  (check (terminal-cursor vterm) => '(0 36))
 
   ;; 模拟第二轮助手完成回复
   (pi-app-add-assistant-text! app "第二轮回复：已完成测试")
   (pi-app-render! app)
-  ;; Assistant 2 追加 2 行 (行 19..20)，输入行平移至行 22
-  (check (terminal-cursor vterm) => '(0 22))
+  ;; 全屏布局：助手卡片追加到对话记录，输入行位置不变
+  (check (terminal-cursor vterm) => '(0 36))
 
   ;; 第三轮输入 "第三轮验证"
   (component-handle-input editor "第三轮验证")
   (pi-app-render! app)
-  ;; 5个中文字符，物理宽度 10，行号 22
-  (check (terminal-cursor vterm) => '(10 22))
+  ;; 5个中文字符，物理宽度 10，行号 36
+  (check (terminal-cursor vterm) => '(10 36))
 
   ;; 按退格键删除 2 个字（剩 "第三轮"，物理宽度 6）
   (component-handle-input editor 'backspace)
   (component-handle-input editor 'backspace)
   (pi-app-render! app)
-  (check (terminal-cursor vterm) => '(6 22))
+  (check (terminal-cursor vterm) => '(6 36))
   (check (editor-text editor) => "第三轮")
 ) ;let*
 
@@ -231,9 +234,9 @@
        (screen (pi-app-screen app))
       ) ;let*
   (pi-app-render! app)
-  (let* ((lines (screen-lines screen)) (plain-lines (map strip-ansi lines)))
-    ;; Footer 第二行应包含透传的 provider 与 model
-    (check-true (string-contains? (list-ref plain-lines 10) "(kimi-coding) kimi-for-coding • medium"))
+  (let* ((lines (alt-screen-lines screen)) (plain-lines (map strip-ansi lines)))
+    ;; Footer 第二行应包含透传的 provider 与 model（全屏布局下页脚位于底部）
+    (check-true (string-contains? (list-ref plain-lines 39) "(kimi-coding) kimi-for-coding • medium"))
   ) ;let*
 ) ;let*
 
@@ -246,7 +249,7 @@
   (pi-footer-set-branch! footer "zzz-stale-branch")
   (pi-app-render! app)
   (check-true (string-contains?
-                (string-join (map strip-ansi (screen-lines (pi-app-screen app))) "\n")
+                (string-join (map strip-ansi (alt-screen-lines (pi-app-screen app))) "\n")
                 "(zzz-stale-branch)"))
   ;; 投递 branch_changed 事件并轮询，footer 应刷新为当前真实分支
   (chan-send! (pi-app-event-chan app) '(branch_changed) 1000)
@@ -318,7 +321,7 @@
               (pi-app-render! app)
               (check-true
                 (string-contains?
-                  (string-join (map strip-ansi (screen-lines (pi-app-screen app))) "\n")
+                  (string-join (map strip-ansi (alt-screen-lines (pi-app-screen app))) "\n")
                   (string-append "(" b ")")))
             ) ;when
           ) ;let

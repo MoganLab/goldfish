@@ -28,7 +28,7 @@
     terminal-cursor-visible? terminal-hide-cursor! terminal-show-cursor!
     terminal-flush terminal-type terminal-data terminal-data-set!
     terminal-enter-raw-mode! terminal-exit-raw-mode! terminal-max-y
-    terminal-mouse-mode!
+    terminal-mouse-mode! terminal-enter-alt-screen! terminal-exit-alt-screen!
   ) ;export
   (import (liii base) (liii error) (liii os))
   (begin
@@ -183,7 +183,22 @@
       ) ;let*
     ) ;define
 
-    ;; 开启/关闭终端鼠标事件报告（XTerm 模式）：
+    ;; 进入备用屏（alt screen）：切换到独立的全屏缓冲区，
+    ;; 主屏内容被完整保留，退出备用屏后自动恢复。
+    ;; 对齐上游 tui-alt-screen.ts 的 ENTER_ALT_SCREEN/EXIT_ALT_SCREEN。
+    (define (terminal-enter-alt-screen! term)
+      (%check-terminal term "terminal-enter-alt-screen!")
+      (terminal-write term "\x1b;[?1049h")
+      #t
+    ) ;define
+
+    (define (terminal-exit-alt-screen! term)
+      (%check-terminal term "terminal-exit-alt-screen!")
+      (terminal-write term "\x1b;[?1049l")
+      #t
+    ) ;define
+
+    ;; 开启/关闭终端鼠标事件报告（Xterm 模式）：
     ;; 1000=按键上报，1002=按钮拖动上报，1006=SGR 十进制坐标编码。
     ;; 关闭时逆序下发，与开启对称。Windows 控制台不走 ANSI 鼠标，序列
     ;; 无副作用，实际事件由 C++ 层（src/liii_os.cpp）合成 SGR 字节流。

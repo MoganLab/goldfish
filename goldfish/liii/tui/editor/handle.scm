@@ -268,12 +268,10 @@
                       ) ;
                       ((or (eq? key 'left) (eq? key 'ctrl-b)) (buffer-move-left! buf))
                       ((or (eq? key 'right) (eq? key 'ctrl-f)) (buffer-move-right! buf))
-                      ((or (eq? key 'home) (eq? key 'ctrl-a) (eq? key 'ctrl-home))
-                       (buffer-move-home! buf)
-                      ) ;
-                      ((or (eq? key 'end) (eq? key 'ctrl-e) (eq? key 'ctrl-end))
-                       (buffer-move-end! buf)
-                      ) ;
+                      ;; 行首/行尾：与上游 tui-editor 一致，只绑定 home/ctrl+a 与 end/ctrl+e；
+                      ;; ctrl+home/ctrl+end 留给全屏视口（跳到记录顶部/末尾）
+                      ((or (eq? key 'home) (eq? key 'ctrl-a)) (buffer-move-home! buf))
+                      ((or (eq? key 'end) (eq? key 'ctrl-e)) (buffer-move-end! buf))
                       ((or (eq? key 'ctrl-left) (eq? key 'alt-b) (eq? key 'alt-left))
                        (buffer-move-word-left! buf)
                       ) ;

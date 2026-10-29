@@ -48,16 +48,17 @@
   ;; 40 行终端：内容上限 13 行（1/3 与剩余空间取小）
   (check (editor-viewport ed) => '(7 13 7 0))
   (check (editor-max-lines ed) => 13)
-  (let ((plain (map strip-ansi (screen-lines screen))))
-    ;; header 6 + 上边框 + 顶部提示 + 13 行内容 + 下边框 + footer 2
-    (check (length plain) => 24)
-    (check-true (string-contains? (list-ref plain 7) "↑ 7"))
-    (check (string-contains? (list-ref plain 8) "line 7") => #t)
-    (check (string-contains? (list-ref plain 20) "line 19") => #t)
-    (check (list-ref plain 21) => (utf8-make-string 100 #\─))
+  (let ((plain (map strip-ansi (alt-screen-lines screen))))
+    ;; 全屏帧固定 40 行：对话记录视口 22 行 + 上边框 + 顶部提示 + 13 行内容
+    ;; + 下边框 + footer 2
+    (check (length plain) => 40)
+    (check-true (string-contains? (list-ref plain 23) "↑ 7"))
+    (check (string-contains? (list-ref plain 24) "line 7") => #t)
+    (check (string-contains? (list-ref plain 36) "line 19") => #t)
+    (check (list-ref plain 37) => (utf8-make-string 100 #\─))
   ) ;let
-  ;; 硬件光标跟随滚动后的可视行（header 6 + 上边框 + 顶部提示 + (19 - 7)）
-  (check (terminal-cursor vterm) => '(0 20))
+  ;; 硬件光标跟随滚动后的可视行（视口 22 + 上边框 + 顶部提示 + (19 - 7)）
+  (check (terminal-cursor vterm) => '(0 36))
 ) ;let*
 
 ;; 行数不足上限时不出现滚动提示
@@ -71,12 +72,12 @@
   (check (length (component-render ed 80)) => 5)
 ) ;let*
 
-;; 极矮终端：预算不低于 5 行
+;; 极矮终端：输入区预算取终端高度的 1/3，且给对话记录视口留出空间
 (let* ((vterm (make-virtual-terminal :width 80 :height 12))
        (app (make-pi-app :terminal vterm :handler (lambda (app msg) #t)))
       ) ;
   (pi-app-render! app)
-  (check (editor-max-lines (pi-app-editor app)) => 5)
+  (check (editor-max-lines (pi-app-editor app)) => 4)
 ) ;let*
 
 ;; 连续换行：窗口填满后继续输入，光标不再向下移动
@@ -117,8 +118,9 @@
   (editor-set-cursor! ed 0 13)
   (pi-app-render! app)
   (check (editor-viewport ed 10) => '(0 2 0 0))
-  (check (terminal-cursor vterm) => '(5 8))
-  (check (list-ref (map strip-ansi (screen-lines screen)) 9)
+  ;; 全屏布局：视口 34 行 + 上边框 + 第 2 个可视行
+  (check (terminal-cursor vterm) => '(5 36))
+  (check (list-ref (map strip-ansi (alt-screen-lines screen)) 37)
     =>
     (utf8-make-string 10 #\─)
   ) ;check

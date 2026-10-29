@@ -109,7 +109,7 @@
   (pi-app-poll-events! app)
   ;; chat 中恰有一张 error 卡片，屏幕可见 HTTP 400 错误文本
   (check (length (pi-app-chat app)) => 1)
-  (let ((text (string-join (map strip-ansi (screen-lines (pi-app-screen app))) "\n")))
+  (let ((text (string-join (map strip-ansi (alt-screen-lines (pi-app-screen app))) "\n")))
     (check-true (string-contains? text "HTTP 400"))))
 
 (check-report)
