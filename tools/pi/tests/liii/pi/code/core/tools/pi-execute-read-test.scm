@@ -160,6 +160,31 @@
              (list (cons "path" legacy-test-file) (cons "offset" 3) (cons "limit" 2)))))
   (check-true (string-contains? res "more lines in file. Use offset=5 to continue.")))
 
+;; 浮点形式的 offset/limit：模型偶尔用 1.0/90.0 这类浮点表示行号，
+;; 数值上为整数的应按整数处理，不能泄露 list-drop 内部类型错误
+(let ((content (pi-execute-read
+                 (list (cons "path" test-file) (cons "offset" 1.0) (cons "limit" 2.0)))))
+  (check-true (string? content))
+  (check content
+    =>
+    "hello sample\nline 2\n\n[1 more line in file. Use offset=3 to continue.]"
+  ) ;check
+) ;let
+
+;; 浮点 offset 的越界报错信息使用整数形式
+(check (%read-error-msg
+         (lambda () (pi-execute-read (list (cons "path" test-file) (cons "offset" 4.0))))
+       ) ;%read-error-msg
+  =>
+  "Offset 4 is beyond end of file (3 lines total)"
+) ;check
+
+;; 非整数值的浮点参数：报清晰的参数错误，而不是 list-drop 的内部错误
+(check-catch 'error
+  (pi-execute-read (list (cons "path" test-file) (cons "offset" 1.5))))
+(check-catch 'error
+  (pi-execute-read (list (cons "path" test-file) (cons "limit" 2.5))))
+
 (check-catch 'error
   (pi-execute-read (list (cons "path" legacy-test-file) (cons "offset" 999999))))
 (check-catch 'error
