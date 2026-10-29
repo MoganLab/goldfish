@@ -364,8 +364,10 @@
           ()
           ;; job 消息为 (text thinking-level [provider model-id])、bash_record 或 session_name：
           ;; 会话内切换的 thinking 级别与 /model 模型均对下一条消息生效
+          ;; 通道关闭（eof）时结束循环：TUI 退出路径会关闭 jobs-chan，
+          ;; chan-recv! 此时返回 eof 对象（eof 为真值），必须显式排除
           (let ((job (chan-recv! jobs-chan)))
-            (when job
+            (when (and job (not (eof-object? job)))
               (pi-worker-handle-job job parsed cfg sfile-box event-chan abort-chan)
               (loop)
             ) ;when
