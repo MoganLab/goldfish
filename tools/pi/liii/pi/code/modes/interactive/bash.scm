@@ -23,6 +23,7 @@
     (liii subprocess)
     (liii tui)
     (liii tui component)
+    (liii tui mouse)
     (liii pi code modes interactive common)
     (liii pi code core tools bash)
   ) ;import
@@ -156,7 +157,27 @@
                  ) ;%make-bash-card
              ) ;st
             ) ;
-        (let ((card (make-component :render (lambda (width) (%render st width)))))
+        (let ((card
+                (make-component
+                  :render (lambda (width) (%render st width))
+                  ;; 点击切换展开（对齐上游）：click + 左键 + 已完成时翻转；
+                  ;; running 中的卡片不响应
+                  :handle-mouse
+                  (lambda (self ev)
+                    (if (and (mouse-event-click? ev)
+                          (eq? (mouse-event-button ev) 'left)
+                          (eq? (%bash-card-status st) 'complete)
+                        ) ;and
+                      (begin
+                        (%bash-card-expanded?-set! st (not (%bash-card-expanded? st)))
+                        #t
+                      ) ;begin
+                      #f
+                    ) ;if
+                  ) ;lambda
+                ) ;make-component
+              ) ;card
+             ) ;
           (component-data-set! card st)
           card
         ) ;let

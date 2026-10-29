@@ -29,14 +29,17 @@
     (liii base)
     (liii error)
     (liii tui component)
+    (liii tui mouse)
     (liii tui box vstack)
   ) ;import
   (begin
 
     (define-record-type <container-data>
-      (%make-container-data children)
+      (%make-container-data children mouse-layout)
       %container-data?
       (children %container-data-children %container-data-children-set!)
+      ;; 鼠标布局缓存：(width . ((child . height) ...))，渲染时登记
+      (mouse-layout %container-data-mouse-layout %container-data-mouse-layout-set!)
     ) ;define-record-type
 
     (define (container? obj)
@@ -59,6 +62,7 @@
       (%check-container comp "container-add!")
       (let ((c (%validate-child child "container-add!")) (data (component-data comp)))
         (%container-data-children-set! data (cons c (%container-data-children data)))
+        (%container-data-mouse-layout-set! data #f)
         comp
       ) ;let
     ) ;define
@@ -66,6 +70,7 @@
     (define (container-clear! comp)
       (%check-container comp "container-clear!")
       (%container-data-children-set! (component-data comp) '())
+      (%container-data-mouse-layout-set! (component-data comp) #f)
       comp
     ) ;define
 
@@ -74,17 +79,38 @@
       (let ((comp
               (make-component
                 :render
-                (lambda (self width) (%vstack-render (container-children self) 0 width))
+                (lambda (self width)
+                  (let* ((children (container-children self))
+                         (res (%vstack-render-layout children 0 width))
+                         (lines (car res))
+                        ) ;
+                    (%container-data-mouse-layout-set! (component-data self) (cons width (cdr res)))
+                    lines
+                  ) ;let*
+                ) ;lambda
                 :handle-input
                 (lambda (self key) (%vstack-handle-input (container-children self) key))
+                :handle-mouse
+                (lambda (self ev) (%container-handle-mouse self ev))
                 :invalidate
                 (lambda (self) (%vstack-invalidate (container-children self)))
               ) ;make-component
             ) ;comp
            ) ;
-        (component-data-set! comp (%make-container-data '()))
+        (component-data-set! comp (%make-container-data '() #f))
         comp
       ) ;let
+    ) ;define
+
+    ;; 鼠标按布局命中：未渲染过（无布局缓存）时不命中；
+    ;; 命中后 y 换算为子组件局部坐标派发（对齐上游 pi Container.handleMouse）
+    (define (%container-handle-mouse self ev)
+      (let* ((layout (%container-data-mouse-layout (component-data self))))
+        (if layout
+          (%vstack-dispatch-mouse (container-children self) (cdr layout) 0 ev)
+          #f
+        ) ;if
+      ) ;let*
     ) ;define
 
   ) ;begin

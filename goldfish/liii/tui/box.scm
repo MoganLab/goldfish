@@ -24,9 +24,10 @@
 (define-library (liii tui box)
   (export make-box box? make-vstack vstack? make-hstack hstack? make-container
     container? container-add! container-clear! container-children
-    make-border-style border-style? border-style-name border-style-tl
-    border-style-tr border-style-bl border-style-br border-style-h
-    border-style-v border-style-resolve border-render-top border-render-bottom
+    make-mouse-region mouse-region? mouse-region-child make-border-style
+    border-style? border-style-name border-style-tl border-style-tr
+    border-style-bl border-style-br border-style-h border-style-v
+    border-style-resolve border-render-top border-render-bottom
     border-render-line
   ) ;export
   (import (liii tui box border)
@@ -34,5 +35,6 @@
     (liii tui box vstack)
     (liii tui box hstack)
     (liii tui box container)
+    (liii tui box mouse-region)
   ) ;import
 ) ;define-library

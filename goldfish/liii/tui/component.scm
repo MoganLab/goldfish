@@ -23,17 +23,23 @@
 
 (define-library (liii tui component)
   (export make-component component? component-render component-handle-input
-    component-invalidate! component-data component-data-set! make-text
-    make-truncated-text make-spacer
+    component-handle-mouse! component-invalidate! component-data
+    component-data-set! make-text make-truncated-text make-spacer
   ) ;export
-  (import (liii base) (liii error) (liii string) (liii tui text-width))
+  (import (liii base)
+    (liii error)
+    (liii string)
+    (liii tui text-width)
+    (liii tui mouse)
+  ) ;import
   (begin
 
     (define-record-type <component>
-      (%make-component-record render handle-input invalidate data)
+      (%make-component-record render handle-input handle-mouse invalidate data)
       component?
       (render %component-render-proc %component-render-proc-set!)
       (handle-input %component-handle-input-proc %component-handle-input-proc-set!)
+      (handle-mouse %component-handle-mouse-proc %component-handle-mouse-proc-set!)
       (invalidate %component-invalidate-proc %component-invalidate-proc-set!)
       (data %component-data %component-data-set!)
     ) ;define-record-type
@@ -52,12 +58,14 @@
     (define (make-component . args)
       (let ((render-fn #f)
             (handle-input-fn (lambda (comp key) #f))
+            (handle-mouse-fn (lambda (comp ev) #f))
             (invalidate-fn (lambda (comp) #t))
            ) ;
         (cond ((null? args) (type-error "make-component: missing render procedure"))
               ((keyword? (car args))
                (set! render-fn (%keyword-value :render args #f))
                (set! handle-input-fn (%keyword-value :handle-input args handle-input-fn))
+               (set! handle-mouse-fn (%keyword-value :handle-mouse args handle-mouse-fn))
                (set! invalidate-fn (%keyword-value :invalidate args invalidate-fn))
               ) ;
               ((procedure? (car args))
@@ -78,10 +86,15 @@
         (unless (procedure? handle-input-fn)
           (type-error "make-component: handle-input must be a procedure")
         ) ;unless
+        (unless (procedure? handle-mouse-fn)
+          (type-error "make-component: handle-mouse must be a procedure")
+        ) ;unless
         (unless (procedure? invalidate-fn)
           (type-error "make-component: invalidate must be a procedure")
         ) ;unless
-        (%make-component-record render-fn handle-input-fn invalidate-fn #f)
+        (%make-component-record render-fn handle-input-fn handle-mouse-fn
+          invalidate-fn #f
+        ) ;%make-component-record
       ) ;let
     ) ;define
 
@@ -94,6 +107,12 @@
     (define (%call-handle-input-proc proc comp key)
       (let* ((ar (arity proc)) (min-args (car ar)))
         (if (<= min-args 1) (proc key) (proc comp key))
+      ) ;let*
+    ) ;define
+
+    (define (%call-handle-mouse-proc proc comp ev)
+      (let* ((ar (arity proc)) (min-args (car ar)))
+        (if (<= min-args 1) (proc ev) (proc comp ev))
       ) ;let*
     ) ;define
 
@@ -120,6 +139,18 @@
         (type-error "component-handle-input: comp must be a component")
       ) ;unless
       (%call-handle-input-proc (%component-handle-input-proc comp) comp key)
+    ) ;define
+
+    ;; 鼠标事件派发：容器按布局命中子组件后调用，返回 #t 表示已处理。
+    ;; 对齐上游 pi Component.handleMouse；ev 必须是 (liii tui mouse) 的 mouse-event
+    (define (component-handle-mouse! comp ev)
+      (unless (component? comp)
+        (type-error "component-handle-mouse!: comp must be a component")
+      ) ;unless
+      (unless (mouse-event? ev)
+        (type-error "component-handle-mouse!: ev must be a mouse-event")
+      ) ;unless
+      (%call-handle-mouse-proc (%component-handle-mouse-proc comp) comp ev)
     ) ;define
 
     (define (component-invalidate! comp)
