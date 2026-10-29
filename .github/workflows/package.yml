@@ -253,7 +253,7 @@ jobs:
     # GitHub 已退役 Intel macOS runner（macos-13 于 2025-12 下线），
     # 当前所有 macOS runner 均为 Apple Silicon (arm64)，故只产出 arm64 包。
     # Intel Mac 用户走源码编译（Homebrew formula 回退到 build）。
-    runs-on: macos-14
+    runs-on: macos-15
     env:
       XMAKE_GLOBALDIR: ${{ github.workspace }}/.xmake-global
 
@@ -294,7 +294,7 @@ jobs:
       uses: actions/cache@v4
       with:
         path: ${{ env.XMAKE_GLOBALDIR }}/.xmake/packages
-        key: macos-14-xrepo-${{ hashFiles('**/xmake.lua') }}
+        key: macos-15-xrepo-${{ hashFiles('**/xmake.lua') }}
 
     - name: xmake repo --update
       run: xmake repo --update
