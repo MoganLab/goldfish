@@ -63,4 +63,25 @@
   (check (chan-try-recv! (pi-app-abort-chan app) #f) => 'abort)
 ) ;let*
 
+;; 4. 退出宽限期内不得派发新任务
+;;    退出路径先中止在途任务，等待结算期间会调用 pi-app-poll-events!；
+;;    agent_settled 会 pi-queue-finish-task! 把队列解锁，随后 settle! 调用
+;;    pi-app-drain-queue!，若此时队列里还有排队消息，就会被再次派发给 worker，
+;;    等于用户要求退出后又发起了新的 LLM 请求。
+;;    正确行为：退出期间只中止、不派发；排队消息随进程退出而丢弃。
+(let* ((vt (make-virtual-terminal :width 80 :height 24))
+       (calls '())
+       (app (make-pi-app :terminal vt
+                :handler (lambda (a m) (set! calls (cons m calls)) #t)))
+       (q (pi-app-queue app))
+      ) ;
+  (pi-queue-set-busy! q)
+  ;; 队列中还有一条排队消息
+  (pi-queue-enqueue! q "queued-msg")
+  (go (settle-after-abort (pi-app-abort-chan app) (pi-app-event-chan app)))
+  (check (pi-app-abort-inflight! app 5000) => #t)
+  ;; 退出宽限期内不应派发任何新任务
+  (check calls => '())
+) ;let*
+
 (check-report)
