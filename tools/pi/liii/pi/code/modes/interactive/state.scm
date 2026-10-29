@@ -24,7 +24,7 @@
     %pi-app-provider-set! pi-app-model %pi-app-model-set! pi-app-models
     %pi-app-default-model %pi-app-on-save-model %pi-app-supports-thinking?-set!
     %pi-app-available-thinking-levels-set! pi-app-resume-sessions
-    %pi-app-resume-sessions-set! pi-app-no-session?
+    %pi-app-resume-sessions-set! pi-app-no-session? pi-app-scroll-view
   ) ;export
   (import (scheme base))
   (begin
@@ -39,7 +39,7 @@
         default-thinking-level on-save-thinking-level bash-mode? tools-expanded?
         bash-cards bash-jobs-chan bash-handler record-sink session-name provider
         model models default-model on-save-model tool-cards resume-sessions
-        no-session?
+        no-session? scroll-view
       ) ;%make-pi-app
       pi-app?
       (term pi-app-term)
@@ -95,6 +95,8 @@
       (resume-sessions pi-app-resume-sessions %pi-app-resume-sessions-set!)
       ;; --no-session 模式：会话持久化已禁用，/resume 明确拒绝切换
       (no-session? pi-app-no-session?)
+      ;; 全屏模式的对话记录视口：可滚动，支持 follow 末尾
+      (scroll-view pi-app-scroll-view)
     ) ;define-record-type
 
     (define %pi-app-term pi-app-term)

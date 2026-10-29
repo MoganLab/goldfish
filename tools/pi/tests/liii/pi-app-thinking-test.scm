@@ -23,7 +23,7 @@
   (check (editor-border-color ed) => (pi-thinking-border-color "minimal"))
   (pi-app-render! app)
   (check (string-contains?
-           (string-join (screen-lines (pi-app-screen app)) "\n")
+           (string-join (alt-screen-lines (pi-app-screen app)) "\n")
            "minimal") => #t))
 
 ;; 模型不支持 thinking：cycle 返回 #f 且状态不变
@@ -61,7 +61,7 @@
   (pi-app-render! app)
   (check-true
     (string-contains?
-      (string-join (map strip-ansi (screen-lines (pi-app-screen app))) "\n")
+      (string-join (map strip-ansi (alt-screen-lines (pi-app-screen app))) "\n")
       "Thinking Level"))
   (component-handle-input (pi-app-active-selector app) 'down)
   (component-handle-input (pi-app-active-selector app) 'enter)
@@ -69,7 +69,7 @@
   (check (pi-app-active-selector app) => #f)
   (check (editor-border-color (pi-app-editor app)) => (pi-thinking-border-color "minimal"))
   (pi-app-render! app)
-  (let ((text (string-join (map strip-ansi (screen-lines (pi-app-screen app))) "\n")))
+  (let ((text (string-join (map strip-ansi (alt-screen-lines (pi-app-screen app))) "\n")))
     (check-true (string-contains? text "Thinking level: minimal"))
     (check-true (string-contains? text "gemini-3.8-flash • minimal")))
   (check received => '()))
@@ -94,7 +94,7 @@
   (pi-app-render! app)
   (check-true
     (string-contains?
-      (string-join (map strip-ansi (screen-lines (pi-app-screen app))) "\n")
+      (string-join (map strip-ansi (alt-screen-lines (pi-app-screen app))) "\n")
       "Unknown thinking level \"bogus\". Available levels: off, minimal, low, medium, high, xhigh, max.")))
 
 ;; Ctrl+S 更新当前级别、默认级别并调用持久化回调
@@ -113,7 +113,7 @@
   (pi-app-render! app)
   (check-true
     (string-contains?
-      (string-join (map strip-ansi (screen-lines (pi-app-screen app))) "\n")
+      (string-join (map strip-ansi (alt-screen-lines (pi-app-screen app))) "\n")
       "Default thinking level: minimal")))
 
 ;; 不支持 thinking 的模型仅允许 off
@@ -124,7 +124,7 @@
   (pi-app-render! app)
   (check-true
     (string-contains?
-      (string-join (map strip-ansi (screen-lines (pi-app-screen app))) "\n")
+      (string-join (map strip-ansi (alt-screen-lines (pi-app-screen app))) "\n")
       "Available levels: off.")))
 
 (check-report)

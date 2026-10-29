@@ -2,6 +2,7 @@
   (scheme file)
   (liii check)
   (liii string)
+  (liii list)
   (liii tui)
   (liii go)
   (liii shutil)
@@ -40,17 +41,17 @@
   (pi-app-render! app)
   (check-true
     (string-contains?
-      (string-join (map strip-ansi (screen-lines (pi-app-screen app))) "\n")
+      (string-join (map strip-ansi (alt-screen-lines (pi-app-screen app))) "\n")
       "Session name set: Refactor auth module"))
   (check-true
     (string-contains?
-      (string-join (map strip-ansi (screen-lines (pi-app-screen app))) "\n")
+      (string-join (map strip-ansi (alt-screen-lines (pi-app-screen app))) "\n")
       "• Refactor auth module"))
   (pi-app-submit! app "/name")
   (pi-app-render! app)
   (check-true
     (string-contains?
-      (string-join (map strip-ansi (screen-lines (pi-app-screen app))) "\n")
+      (string-join (map strip-ansi (alt-screen-lines (pi-app-screen app))) "\n")
       "Session name: Refactor auth module"))
   (check received => '())
   (rmtree tmp-agent-dir #t))
@@ -64,7 +65,7 @@
   (pi-app-render! app)
   (check-true
     (string-contains?
-      (string-join (map strip-ansi (screen-lines (pi-app-screen app))) "\n")
+      (string-join (map strip-ansi (alt-screen-lines (pi-app-screen app))) "\n")
       "Usage: /name <name>"))
   (check received => '())
   (check (chan-try-recv! (pi-app-jobs-chan app) #f) => #f))
@@ -91,7 +92,16 @@
   (pi-app-render! app)
   (check (length (pi-app-chat app)) => 1)
   (let* ((sfile (vector-ref sfile-box 0))
-         (text (string-join (map strip-ansi (screen-lines (pi-app-screen app))) "\n")))
+         ;; 统计卡片可能超出视口高度，这里直接检查卡片内容本身
+         (text (string-join
+                 (map strip-ansi
+                   (append-map (lambda (card) (component-render card 120))
+                     (pi-app-chat app)
+                   ) ;append-map
+                 ) ;map
+                 "\n"
+               ))) ;string-join
+           ;text
     (check-true (string? sfile))
     (check-true (string-contains? text "Session Info"))
     (check-true (string-contains? text (string-append "File: " sfile)))

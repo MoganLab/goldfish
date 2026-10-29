@@ -17,7 +17,10 @@
     pi-app-toggle-tool-output! pi-app-bash-jobs-chan pi-app-run-bash!
     pi-app-provider pi-app-model pi-app-models %pi-app-job-payload
     pi-app-available-thinking-levels pi-app-resume-command?
-    pi-app-submit-resume! pi-app-handle-resume-event!
+    pi-app-submit-resume! pi-app-handle-resume-event! pi-app-scroll-view
+    pi-app-scroll-up! pi-app-scroll-down! pi-app-scroll-top!
+    pi-app-scroll-bottom! pi-app-scroll-line-up! pi-app-scroll-line-down!
+    pi-app-frame-lines
   ) ;export
   (import (scheme base)
     (liii base)
@@ -110,6 +113,9 @@
                       (let ((q (pi-app-queue app)) (ed (pi-app-editor app)))
                         (pi-queue-enqueue! q clean)
                         (editor-set-text! ed "")
+                        ;; 发送新消息时把对话记录拉回末尾（恢复 follow），
+                        ;; 否则用户停留在历史位置会看不到自己的新消息
+                        (pi-app-scroll-bottom! app)
                         (when (pi-queue-busy? q)
                           (pi-app-render! app)
                         ) ;when
@@ -164,6 +170,33 @@
       ) ;let
     ) ;define
 
+    ;; 全屏模式下的对话记录滚动：
+    ;; page-up/page-down 整页滚动，ctrl+shift+up/down 单行滚动，
+    ;; ctrl+shift+home/end 跳到记录顶部/末尾（末尾即恢复 follow）
+    (define (pi-app-scroll-up! app)
+      (scroll-view-page-up! (pi-app-scroll-view app))
+    ) ;define
+
+    (define (pi-app-scroll-down! app)
+      (scroll-view-page-down! (pi-app-scroll-view app))
+    ) ;define
+
+    (define (pi-app-scroll-line-up! app)
+      (scroll-view-scroll-by! (pi-app-scroll-view app) -1)
+    ) ;define
+
+    (define (pi-app-scroll-line-down! app)
+      (scroll-view-scroll-by! (pi-app-scroll-view app) 1)
+    ) ;define
+
+    (define (pi-app-scroll-top! app)
+      (scroll-view-to-top! (pi-app-scroll-view app))
+    ) ;define
+
+    (define (pi-app-scroll-bottom! app)
+      (scroll-view-to-bottom! (pi-app-scroll-view app))
+    ) ;define
+
     (define (pi-app-submit-initial! app initial-msg rest-msgs)
       (unless (string-null? initial-msg)
         (pi-app-submit! app initial-msg)
@@ -216,8 +249,9 @@
                (resume-sessions #f)
                (no-session? #f)
              ) ;make-pi-app
-      (let* ((actual-term (or terminal (make-standard-terminal :inline #t)))
-             (screen (make-main-screen actual-term :auto-hide-cursor #f))
+      (let* ((actual-term (or terminal (make-standard-terminal)))
+             ;; 全屏模式：备用屏整帧渲染，内容不随终端滚动
+             (screen (make-alt-screen actual-term))
              (header (make-pi-header))
              (chat (make-container))
              (pending-box (make-container))
@@ -279,13 +313,15 @@
                     '()
                     resume-sessions
                     (and no-session? #t)
+                    (make-scroll-view doc)
                   ) ;%make-pi-app
              ) ;app
              (ed (%make-pi-editor app tl))
             ) ;
+        ;; 对话记录（页眉 + 消息卡片）作为可滚动视口内容；
+        ;; 待发送队列卡片与输入区、页脚一起构成底部 dock
         (container-add! doc header)
         (container-add! doc chat)
-        (container-add! doc pending-box)
         (%pi-app-editor-set! app ed)
         ;; 无自定义 handler 时启动后台 agent worker
         (unless handler

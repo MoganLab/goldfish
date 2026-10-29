@@ -4,10 +4,18 @@
 ;; Licensed under the MIT License
 ;;
 
-;; 渲染层：整体布局上屏（header/chat/pending → editor → footer），
-;; busy 时编辑器上边框替换为 Working 动画行并定位硬件光标
+;; 渲染层：全屏（备用屏）整帧布局。
+;;
+;; 帧结构（自上而下）：
+;;   [对话记录视口]  可滚动，页眉与消息卡片都在其中，follow 末尾
+;;   [待发送队列卡片]
+;;   [输入区]        busy 时上边框替换为 Working 动画行
+;;   [斜杠命令菜单]
+;;   [页脚]
+;; 对齐上游 packages/coding-agent/src/modes/interactive/chat-viewport.ts：
+;; transcript 占据剩余空间（grow），dock 固定在底部。
 (define-library (liii pi code modes interactive render)
-  (export pi-app-render!)
+  (export pi-app-render! pi-app-frame-lines)
   (import (scheme base)
     (liii string)
     (liii list)
@@ -23,27 +31,45 @@
   ) ;import
   (begin
 
-    ;; 编辑器可视行预算：至少 5 行，且不超过终端高度的 1/3；
-    ;; chrome 扣除上下边框与可能出现的上下滚动提示（各 1 行）
-    (define %pi-editor-min-lines 5)
-    (define %pi-editor-chrome-lines 4)
+    ;; 编辑器可视行预算：不超过终端高度的 1/3，
+    ;; 且必须给对话记录视口留出至少 1 行
+    (define %pi-editor-chrome-lines 1)
 
-    (define (%pi-editor-max-lines rows footer-lines menu-lines)
-      (let* ((rows (max 1 rows))
-             (by-ratio (quotient rows 3))
-             (by-space (- rows %pi-editor-chrome-lines footer-lines menu-lines))
+    (define (%pi-editor-max-lines rows footer-lines menu-lines pending-lines)
+      (let* ((rows (max 4 rows))
+             (reserved (+ footer-lines menu-lines pending-lines %pi-editor-chrome-lines))
+             (by-ratio (max 1 (quotient rows 3)))
+             (by-space (max 1 (- rows reserved)))
             ) ;
-        (max %pi-editor-min-lines (min by-ratio by-space))
+        (max 1 (min by-ratio by-space))
       ) ;let*
     ) ;define
 
-    (define (pi-app-render! app)
-      (let* ((screen (pi-app-screen app))
-             (term (%pi-app-term app))
-             (w (car (terminal-size term)))
+    ;; 拆分可能包含 \n 的字符串行，保证帧行与屏幕行一一对应
+    (define (%pi-split-lines items)
+      (append-map (lambda (item)
+                    (if (string-contains? item "\n") (string-split item "\n") (list item))
+                  ) ;lambda
+        items
+      ) ;append-map
+    ) ;define
+
+    ;; 计算整帧内容与光标位置：
+    ;; 返回 (values frame-lines cursor)
+    (define (pi-app-frame-lines app)
+      (let* ((term (%pi-app-term app))
+             (size (terminal-size term))
+             (w (car size))
+             (rows (cadr size))
              ;; pending 容器内容纯由队列状态派生：busy 时展示队首等待消息
              (q (pi-app-queue app))
              (pending-box (%pi-app-pending-box app))
+             (ed (pi-app-editor app))
+             (active-selector (pi-app-active-selector app))
+             (input-component (or active-selector ed))
+             (footer-lines (%pi-split-lines (component-render (%pi-app-footer app) w)))
+             (menu (and (not active-selector) (pi-app-slash-command-menu app)))
+             (menu-lines (if menu (%pi-split-lines (component-render menu w)) '()))
             ) ;
         (container-clear! pending-box)
         (when (pi-queue-busy? q)
@@ -53,49 +79,45 @@
             ) ;unless
           ) ;let
         ) ;when
-        (let* ((raw-doc-lines (component-render (%pi-app-doc app) w))
-               ;; 规范化拆分可能包含 \n 的字符串行，确保 ed-y 计算与 screen-render! 完全对齐
-               (doc-lines
-                 (append-map (lambda (item)
-                               (if (string-contains? item "\n") (string-split item "\n") (list item))
-                             ) ;lambda
-                   raw-doc-lines
-                 ) ;append-map
-               ) ;doc-lines
-               (ed (pi-app-editor app))
-               (active-selector (pi-app-active-selector app))
-               (input-component (or active-selector ed))
-               (footer-lines (component-render (%pi-app-footer app) w))
-               (menu (and (not active-selector) (pi-app-slash-command-menu app)))
-               (menu-lines (if menu (component-render menu w) '()))
-               ;; busy 时编辑器上边框替换为 Working 动画行（行数不变）
+        (let* ((pending-lines (%pi-split-lines (component-render pending-box w)))
                (ed-lines
                  (let* ((_
                           (unless active-selector
                             (editor-set-max-lines! ed
-                              (%pi-editor-max-lines (cadr (terminal-size term))
+                              (%pi-editor-max-lines rows
                                 (length footer-lines)
                                 (length menu-lines)
+                                (length pending-lines)
                               ) ;%pi-editor-max-lines
                             ) ;editor-set-max-lines!
                           ) ;unless
                         ) ;_
-                        (raw (component-render input-component w))
-                        (editor-lines
-                          (if (and (not active-selector) (pi-queue-busy? q) (pair? raw) %pi-editor-top-border)
-                            (cons (working-border-line (pi-app-working app)
-                                    w
-                                    (pi-thinking-border-color (pi-app-thinking-level app))
-                                  ) ;working-border-line
-                              (cdr raw)
-                            ) ;cons
-                            raw
-                          ) ;if
-                        ) ;editor-lines
+                        (raw (%pi-split-lines (component-render input-component w)))
                        ) ;
-                   (append editor-lines menu-lines)
+                   (if (and (not active-selector) (pi-queue-busy? q) (pair? raw) %pi-editor-top-border)
+                     (cons (working-border-line (pi-app-working app)
+                             w
+                             (pi-thinking-border-color (pi-app-thinking-level app))
+                           ) ;working-border-line
+                       (cdr raw)
+                     ) ;cons
+                     raw
+                   ) ;if
                  ) ;let*
                ) ;ed-lines
+               (dock-lines (append pending-lines ed-lines menu-lines footer-lines))
+               ;; 对话记录视口占据剩余空间，至少 1 行
+               (transcript-height (max 1 (- rows (length dock-lines))))
+               (transcript-lines
+                 (let ((visible (scroll-view-render-lines (pi-app-scroll-view app) w transcript-height)
+                       ) ;visible
+                      ) ;
+                   ;; 视口固定高度：内容不足时补空行，dock 始终贴在屏幕底部
+                   (append visible (make-list (max 0 (- transcript-height (length visible))) ""))
+                 ) ;let
+               ) ;transcript-lines
+               (frame (append transcript-lines dock-lines))
+               (input-base (+ transcript-height (length pending-lines)))
                (cur-pos
                  (if active-selector
                    ;; 选择器类型分发：搜索行光标定位（thinking 与 model 同构）
@@ -112,22 +134,29 @@
                               ) ;cond
                          ) ;pos
                         ) ;
-                     (cons (cadr pos) (+ (length doc-lines) (car pos)))
+                     (cons (cadr pos) (+ input-base (car pos)))
                    ) ;let
                    (let* ((vp (editor-viewport ed w))
                           (above (caddr vp))
                           (pos (editor-display-position ed w))
-                          (ed-y (+ (length doc-lines) (if %pi-editor-top-border 1 0) (if (> above 0) 1 0))
-                          ) ;ed-y
+                          (ed-y (+ input-base (if %pi-editor-top-border 1 0) (if (> above 0) 1 0)))
                          ) ;
                      (cons (cadr pos) (+ ed-y (car pos)))
                    ) ;let*
                  ) ;if
                ) ;cur-pos
               ) ;
-          (screen-render! screen (append doc-lines ed-lines footer-lines) cur-pos)
+          (values frame cur-pos)
         ) ;let*
       ) ;let*
+    ) ;define
+
+    (define (pi-app-render! app)
+      (let ((screen (pi-app-screen app)))
+        (let-values (((frame cur-pos) (pi-app-frame-lines app)))
+          (alt-screen-render! screen frame cur-pos)
+        ) ;let-values
+      ) ;let
     ) ;define
 
   ) ;begin

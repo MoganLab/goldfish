@@ -36,19 +36,20 @@
       ) ;
   (pi-app-render! app)
   ;; 初始边框为 thinking off 灰色，不含 bash 绿
-  (check-false (string-contains? (list-ref (screen-lines screen) 6) "38;2;94;178;134"))
+  ;; （全屏布局：对话记录视口 35 行，输入区上边框位于第 35 行）
+  (check-false (string-contains? (list-ref (alt-screen-lines screen) 35) "38;2;94;178;134"))
   ;; 输入 !ls → 边框变绿
   (component-handle-input ed "!")
   (pi-app-render! app)
-  (check-true (string-contains? (list-ref (screen-lines screen) 6) "38;2;94;178;134"))
+  (check-true (string-contains? (list-ref (alt-screen-lines screen) 35) "38;2;94;178;134"))
   ;; 前导空格 + ! 同样进入 bash mode（对齐 pi 的 trimStart 语义）
   (editor-set-text! ed "  !ls")
   (pi-app-render! app)
-  (check-true (string-contains? (list-ref (screen-lines screen) 6) "38;2;94;178;134"))
+  (check-true (string-contains? (list-ref (alt-screen-lines screen) 35) "38;2;94;178;134"))
   ;; 删除全部字符 → 恢复 thinking 色
   (editor-set-text! ed "")
   (pi-app-render! app)
-  (check-false (string-contains? (list-ref (screen-lines screen) 6) "38;2;94;178;134"))
+  (check-false (string-contains? (list-ref (alt-screen-lines screen) 35) "38;2;94;178;134"))
 ) ;let*
 
 ;; 9. 提交 !cmd：执行 bash 卡片入 chat，不进消息队列，边框恢复
@@ -64,14 +65,14 @@
   (component-handle-input ed "!echo hi")
   (component-handle-input ed 'enter)
   (pi-app-render! app)
-  (let ((lines (screen-lines screen)))
+  (let ((lines (alt-screen-lines screen)))
     ;; bash 卡片已上屏：卡片首行为绿色边框，命令头与输出紧随
     (check-true (string-contains? (list-ref lines 6) "38;2;94;178;134"))
     (check-true (string-contains? (list-ref lines 7) "$ echo hi"))
     (check-true (string-contains? (list-ref lines 9) "out-of:echo hi"))
-    ;; 编辑器清空且边框恢复非绿色（卡片 6 行后编辑器上边框在索引 12）
+    ;; 编辑器清空且边框恢复非绿色（输入区固定贴在屏幕底部，上边框在索引 35）
     (check (editor-text ed) => "")
-    (check-false (string-contains? (list-ref lines 12) "38;2;94;178;134"))
+    (check-false (string-contains? (list-ref lines 35) "38;2;94;178;134"))
   ) ;let
   ;; agent handler 未被调用：bash 命令不发给模型
   (check agent-called => '())
@@ -93,7 +94,7 @@
   ;; 不执行 bash，而是作为普通消息进入 agent 队列
   (check agent-called => '("!"))
   (check (editor-text ed) => "")
-  (check-true (not (string-contains? (string-join (screen-lines screen) "\n") "$ !")))
+  (check-true (not (string-contains? (string-join (alt-screen-lines screen) "\n") "$ !")))
 ) ;let*
 
 ;; 11. Ctrl+O 全局切换：折叠卡片展开显示全部行，再按恢复折叠
@@ -108,7 +109,7 @@
   (component-handle-input ed 'enter)
   (pi-app-render! app)
   ;; 折叠态：首输出行为 16，含展开提示
-  (let ((joined (string-join (map strip-ansi (screen-lines screen)) "\n")))
+  (let ((joined (string-join (map strip-ansi (alt-screen-lines screen)) "\n")))
     (check-true (string-contains? joined " 16"))
     (check-false (string-contains? joined " 1\n"))
     (check-true (string-contains? joined "... 15 more lines (ctrl+o to expand)"))
@@ -122,7 +123,7 @@
   (check (length (pi-app-chat app)) => 2)
   (check-true (status-card? (cadr (pi-app-chat app))))
   (pi-app-render! app)
-  (let ((joined (string-join (map strip-ansi (screen-lines screen)) "\n")))
+  (let ((joined (string-join (map strip-ansi (alt-screen-lines screen)) "\n")))
     (check-true (string-contains? joined " 1\n"))
     (check-true (string-contains? joined " 35\n"))
     (check-true (string-contains? joined "(ctrl+o to collapse)"))
@@ -132,7 +133,7 @@
   (check (pi-app-toggle-tool-output! app) => #f)
   (check (length (pi-app-chat app)) => 2)
   (pi-app-render! app)
-  (let ((joined (string-join (map strip-ansi (screen-lines screen)) "\n")))
+  (let ((joined (string-join (map strip-ansi (alt-screen-lines screen)) "\n")))
     (check-true (string-contains? joined "... 15 more lines (ctrl+o to expand)"))
     (check-true (string-contains? joined "Tool output: collapsed"))
     (check-false (string-contains? joined "Tool output: expanded"))
@@ -183,7 +184,7 @@
   (pi-app-render! app)
   ;; 命令仍执行且卡片上屏
   (check bash-calls => '("whoami"))
-  (let ((joined (string-join (screen-lines screen) "\n")))
+  (let ((joined (string-join (alt-screen-lines screen) "\n")))
     (check-true (string-contains? joined "$ whoami"))
     (check-true (string-contains? joined "hidden"))
     ;; 排除卡片用暗色边框而非 bash 绿色（全屏无 bash 绿）

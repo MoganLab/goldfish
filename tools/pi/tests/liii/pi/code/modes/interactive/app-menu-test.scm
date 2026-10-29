@@ -23,18 +23,21 @@
     '("model" "thinking" "name" "session" "resume")
   ) ;check
   (pi-app-render! app)
-  (let ((plain (map strip-ansi (screen-lines (pi-app-screen app)))))
-    (check (length plain) => 16)
-    (check-true (string-contains? (list-ref plain 9) "/model"))
-    (check-true (string-contains? (list-ref plain 9) "Select model"))
-    (check-true (string-contains? (list-ref plain 10) "/thinking"))
-    (check-true (string-contains? (list-ref plain 10) "Set thinking level"))
-    (check-true (string-contains? (list-ref plain 11) "/name"))
-    (check-true (string-contains? (list-ref plain 12) "/session"))
-    (check-true (string-contains? (list-ref plain 13) "/resume"))
-    (check-true (string-contains? (list-ref plain 13) "Select and resume a session")
+  (let ((plain (map strip-ansi (alt-screen-lines (pi-app-screen app)))))
+    ;; 全屏帧固定为终端高度（40 行）：对话记录视口占上方，输入区与菜单贴在底部
+    (check (length plain) => 40)
+    ;; 命令菜单位于输入区下方、页脚上方
+    (check-true (string-contains? (list-ref plain 33) "/model"))
+    (check-true (string-contains? (list-ref plain 33) "Select model"))
+    (check-true (string-contains? (list-ref plain 34) "/thinking"))
+    (check-true (string-contains? (list-ref plain 34) "Set thinking level"))
+    (check-true (string-contains? (list-ref plain 35) "/name"))
+    (check-true (string-contains? (list-ref plain 36) "/session"))
+    (check-true (string-contains? (list-ref plain 37) "/resume"))
+    (check-true (string-contains? (list-ref plain 37) "Select and resume a session")
     ) ;check-true
-    (check (terminal-cursor vterm) => '(1 7))
+    ;; 光标仍在输入行（视口 30 行 + 输入区上边框）
+    (check (terminal-cursor vterm) => '(1 31))
   ) ;let
 ) ;let*
 
