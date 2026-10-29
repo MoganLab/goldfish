@@ -197,4 +197,58 @@
   ) ;let
 ) ;let*
 
+;; 8. 离开跟随位置时，视口底部显示“跳到最新消息”提示（Ctrl+End）
+(let* ((vterm (make-virtual-terminal :width 100 :height 24))
+       (app (make-pi-app :terminal vterm :handler (lambda (a msg) #t)))
+       (screen (pi-app-screen app))
+      ) ;
+  (let loop
+    ((i 0))
+    (when (< i 10)
+      (pi-app-add-user-message! app (string-append "msg-" (number->string i)))
+      (loop (+ i 1))
+    ) ;when
+  ) ;let
+  (define (frame-text)
+    (string-join (map strip-ansi (alt-screen-lines screen)) "\n")
+  ) ;define
+  ;; 跟随末尾时没有提示
+  (pi-app-render! app)
+  (check-false (string-contains? (frame-text) "Jump to latest message"))
+  ;; 向上滚动后出现提示，并指明快捷键
+  (pi-app-scroll-up! app)
+  (pi-app-render! app)
+  (check-true (string-contains? (frame-text) "Jump to latest message"))
+  (check-true (string-contains? (frame-text) "ctrl+end"))
+  ;; 回到末尾后提示消失
+  (pi-app-scroll-bottom! app)
+  (pi-app-render! app)
+  (check-false (string-contains? (frame-text) "Jump to latest message"))
+) ;let*
+
+;; 9. Ctrl+End 跳到最下方（恢复跟随）
+(let* ((vterm (make-virtual-terminal :width 100 :height 24))
+       (app (make-pi-app :terminal vterm :handler (lambda (a msg) #t)))
+       (screen (pi-app-screen app))
+       (sv (pi-app-scroll-view app))
+      ) ;
+  (let loop
+    ((i 0))
+    (when (< i 10)
+      (pi-app-add-user-message! app (string-append "msg-" (number->string i)))
+      (loop (+ i 1))
+    ) ;when
+  ) ;let
+  ;; 先向上翻页离开跟随，再按 Ctrl+End 回到最下方
+  (virtual-terminal-push-key! vterm 'page-up)
+  (virtual-terminal-push-key! vterm 'ctrl-end)
+  (virtual-terminal-push-key! vterm 'ctrl-d)
+  (check (pi-app-run app) => #t)
+  (check (scroll-view-follow? sv) => #t)
+  (let ((plain (map strip-ansi (alt-screen-lines screen))))
+    (check-true (string-contains? (string-join plain "\n") "msg-9"))
+    (check-false (string-contains? (string-join plain "\n") "Jump to latest message"))
+  ) ;let
+) ;let*
+
 (check-report)

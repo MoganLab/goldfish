@@ -23,6 +23,7 @@
     (liii pi agent queue)
     (liii pi code modes interactive state)
     (liii pi code modes interactive views)
+    (liii pi code modes interactive views theme)
     (liii pi code modes interactive working)
     (liii pi code modes interactive thinking)
     (liii pi code modes interactive thinking-selector)
@@ -52,6 +53,14 @@
                   ) ;lambda
         items
       ) ;append-map
+    ) ;define
+
+    ;; 未跟随末尾时，在视口底部叠加“跳到最新消息”提示行
+    ;; （对齐上游 tui-alt-screen.ts 的 scrollToEndIndicator）
+    (define (%pi-scroll-hint-line width)
+      (apply-card-bg " ↓ Jump to latest message · ctrl+end " width
+        %bg-pending %fg-title
+      ) ;apply-card-bg
     ) ;define
 
     ;; 计算整帧内容与光标位置：
@@ -109,12 +118,21 @@
                ;; 对话记录视口占据剩余空间，至少 1 行
                (transcript-height (max 1 (- rows (length dock-lines))))
                (transcript-lines
-                 (let ((visible (scroll-view-render-lines (pi-app-scroll-view app) w transcript-height)
-                       ) ;visible
-                      ) ;
-                   ;; 视口固定高度：内容不足时补空行，dock 始终贴在屏幕底部
-                   (append visible (make-list (max 0 (- transcript-height (length visible))) ""))
-                 ) ;let
+                 (let* ((visible (scroll-view-render-lines (pi-app-scroll-view app) w transcript-height)
+                        ) ;visible
+                        (padded
+                          (append visible (make-list (max 0 (- transcript-height (length visible))) ""))
+                        ) ;padded
+                        (n (length padded))
+                       ) ;
+                   ;; 视口固定高度：内容不足时补空行，dock 始终贴在屏幕底部；
+                   ;; 离开跟随位置时用提示行覆盖视口最后一行
+                   (if
+                     (and (not (scroll-view-follow? (pi-app-scroll-view app))) (> n 0))
+                     (append (take padded (- n 1)) (list (%pi-scroll-hint-line w)))
+                     padded
+                   ) ;if
+                 ) ;let*
                ) ;transcript-lines
                (frame (append transcript-lines dock-lines))
                (input-base (+ transcript-height (length pending-lines)))

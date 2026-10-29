@@ -152,13 +152,23 @@ agent 正在流式输出时结果延迟落盘，下一条消息才可见（对�
 |---|---|
 | `PageUp` / `PageDown` | 对话记录整页上翻/下翻 |
 | `Ctrl+Shift+Up` / `Ctrl+Shift+Down` | 对话记录单行上翻/下翻 |
-| `Ctrl+Shift+Home` / `Ctrl+Shift+End` | 跳到对话记录顶部/末尾（末尾恢复跟随） |
+| `Ctrl+Home` / `Ctrl+End` | 跳到对话记录顶部/末尾（末尾恢复跟随） |
 | `Ctrl+C` | 清空输入框（不退出、不中断任务） |
 | `Ctrl+D` | 输入框为空时退出 TUI |
 | `Esc` | busy 时中断任务；空闲时撤回排队消息到输入框 |
 | `Ctrl+O` | 展开/折叠工具与 bash 输出 |
 | `Shift+Tab` | 循环切换 thinking level |
 | 鼠标滚轮 | 上下滚动对话记录（单次滚轮 1 行，快速连续滚动自动加速，最多 6 行/次） |
+
+### 离开跟随位置时的提示
+
+对话记录未跟随末尾（已向上翻页）时，视口底部会叠加一行提示：
+
+```text
+ ↓ Jump to latest message · ctrl+end
+```
+
+按 `Ctrl+End` 即可回到最新消息。
 
 ### 退出行为
 

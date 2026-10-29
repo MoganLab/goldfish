@@ -116,7 +116,8 @@
                    (loop)
                   ) ;
                   ;; 对话记录滚动：page-up/page-down 整页，
-                  ;; ctrl+shift+up/down 单行，ctrl+shift+home/end 跳到首尾
+                  ;; ctrl+shift+up/down 单行，ctrl+home/ctrl+end 跳到首尾
+                  ;; （对齐上游 tui.altScreen.top / tui.altScreen.bottom）
                   ((and (not (pi-app-active-selector app)) (eq? k 'page-up))
                    (pi-app-scroll-up! app)
                    (pi-app-render! app)
@@ -137,12 +138,12 @@
                    (pi-app-render! app)
                    (loop)
                   ) ;
-                  ((and (not (pi-app-active-selector app)) (eq? k 'shift-ctrl-home))
+                  ((and (not (pi-app-active-selector app)) (eq? k 'ctrl-home))
                    (pi-app-scroll-top! app)
                    (pi-app-render! app)
                    (loop)
                   ) ;
-                  ((and (not (pi-app-active-selector app)) (eq? k 'shift-ctrl-end))
+                  ((and (not (pi-app-active-selector app)) (eq? k 'ctrl-end))
                    (pi-app-scroll-bottom! app)
                    (pi-app-render! app)
                    (loop)
