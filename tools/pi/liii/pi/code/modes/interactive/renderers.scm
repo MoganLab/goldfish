@@ -16,7 +16,6 @@
     (liii pi code utils shell)
   ) ;import
   (begin
-
     ;; 判断键是否匹配 (兼容 string 与 symbol)
     (define (key-matches? entry-key target-key)
       (or (equal? entry-key target-key)
@@ -71,9 +70,8 @@
       ) ;cond
     ) ;define
 
-    ;; 着色分段：角色与文本的 alist，角色为 symbol：
-    ;;   bold=toolTitle 粗体 / accent=路径或模式 / muted=次要信息 / warning=范围
-    ;; 对齐上游各 renderCall 渲染器（bash.ts/read.ts/grep.ts 等）的着色结构。
+    ;; 着色分段：角色与文本的 alist，角色为 symbol：bold=粗体 / accent=路径或模式 /
+    ;; muted=次要信息 / warning=范围（对齐上游各 renderCall 渲染器的着色结构）
 
     ;; bash 格式化：整段 "$ cmd" 粗体，超时后缀 muted
     (define (format-bash-call-segments args)
@@ -397,6 +395,5 @@
         ) ;let*
       ) ;if
     ) ;define*
-
   ) ;begin
 ) ;define-library
