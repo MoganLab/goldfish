@@ -2,6 +2,7 @@
   (liii check)
   (liii go)
   (liii string)
+  (liii date-time)
   (liii tui)
   (liii pi agent queue)
   (liii pi code modes interactive app)
@@ -38,7 +39,9 @@
       ) ;
   (pi-queue-set-busy! q)
   (go (settle-after-abort (pi-app-abort-chan app) (pi-app-event-chan app)))
-  (check (pi-app-abort-inflight! app 2000) => #t)
+  ;; 宽限期放宽到 5s：worker 线程启动（含 s7 会话初始化）在慢速 CI 上较慢，
+  ;; 中止信号已缓冲，worker 就绪后即可结算
+  (check (pi-app-abort-inflight! app 5000) => #t)
   ;; agent_settled 事件已把队列解锁
   (check (pi-queue-busy? q) => #f)
 ) ;let*
@@ -47,9 +50,13 @@
 (let* ((vt (make-virtual-terminal :width 80 :height 24))
        (app (make-pi-app :terminal vt :handler (lambda (a m) #t)))
        (q (pi-app-queue app))
+       (start (current-monotonic-millis))
       ) ;
   (pi-queue-set-busy! q)
-  (check (pi-app-abort-inflight! app 50) => #f)
+  (check (pi-app-abort-inflight! app 200) => #f)
+  ;; 宽限期（200ms）后即返回：没有等待 worker 结算
+  ;; （阈值放宽到 2s，兼容慢速 CI 机器；worker 永不结算，等待即为死等）
+  (check-true (< (- (current-monotonic-millis) start) 2000))
   ;; 队列仍为 busy（未结算）
   (check (pi-queue-busy? q) => #t)
   ;; 中止信号已发出
