@@ -21,6 +21,7 @@
     (liii pi ai types)
     (liii pi code core compaction session)
     (liii pi code core compaction flow)
+    (liii pi code core session-projection)
     (liii pi code modes output)
     (liii pi code core extensions types)
     (liii pi code core extensions registry)
@@ -154,6 +155,44 @@
       ) ;let
     ) ;define
 
+    ;; 恢复场景的上下文由投影入口统一产出（1205）
+    (define (%project-restore-context sfile)
+      (let*-values (((msgs _state diag)
+                     (pi-build-session-projection (pi-read-session-entries sfile))
+                    ) ;
+                   ) ;
+        (%warn-projection-diagnostics diag)
+        msgs
+      ) ;let*-values
+    ) ;define
+
+    ;; 投影诊断非空时写 stderr，与压缩摘要输出通道一致，不吞掉降级原因
+    (define (%warn-projection-diagnostics diag)
+      (for-each
+        (lambda (p)
+          (let ((reason (cdr p)))
+            (cond
+             ((string? reason)
+              (display-stderr (string-append "projection warning: " (symbol->string (car p)) ": " reason)
+              ) ;display-stderr
+             ) ;
+             ((pair? reason)
+              (display-stderr (string-append "projection warning: "
+                                (symbol->string (car p))
+                                ": skipped "
+                                (number->string (length reason))
+                                " unknown-type entries"
+                              ) ;string-append
+              ) ;display-stderr
+             ) ;
+             (else #f)
+            ) ;cond
+          ) ;let
+        ) ;lambda
+        (or diag '())
+      ) ;for-each
+    ) ;define
+
     (define (%session-context parsed sfile sdir session-file-override)
       ;; 会话文件覆盖（TUI worker 复用同一文件）时始终携带既有上下文；
       ;; 否则 --continue / --resume 时恢复历史
@@ -161,7 +200,7 @@
         (and sfile
           (or session-file-override (and sdir (resolve-resume-session-file parsed sdir)))
         ) ;and
-        (pi-project-session-messages (pi-read-session-entries sfile))
+        (%project-restore-context sfile)
         '()
       ) ;if
     ) ;define
@@ -258,7 +297,8 @@
                 (newline)
                 0
               ) ;begin
-              (let* ((projection (pi-project-session-messages (pi-read-session-entries sfile)))
+              ;; 压缩写入条目后重新投影，投影结果之后才追加本次用户消息
+              (let* ((projection (%project-restore-context sfile))
                      (init-msgs (append projection (list (pi-user-message initial-msg))))
                      (state (vector init-msgs (length init-msgs)))
                     ) ;
