@@ -34,6 +34,14 @@
   ) ;make-pi-session-info
 ) ;define
 
+(define (empty-resume-sessions)
+  (values '() (lambda () '()))
+) ;define
+
+(define (make-resume-test-app vterm handler)
+  (make-pi-app :terminal vterm :handler handler :resume-sessions empty-resume-sessions)
+) ;define
+
 ;; 1. 命令识别：仅精确匹配 /resume；/resumes 等前缀不算命令
 (check-true (pi-app-resume-command? "/resume"))
 (check-true (pi-app-resume-command? "/resume now"))
@@ -77,11 +85,7 @@
 (let* ((received '())
        (vterm (make-virtual-terminal :width 100 :height 40))
        (app
-         (make-pi-app
-           :terminal        vterm
-           :handler         (lambda (a msg) (set! received (cons msg received)))
-           :resume-sessions (lambda () (values '() (lambda () '())))
-         ) ;make-pi-app
+         (make-resume-test-app vterm (lambda (a msg) (set! received (cons msg received))))
        ) ;app
        (ed (pi-app-editor app))
       ) ;
@@ -97,13 +101,7 @@
 
 ;; 4. Escape 取消选择器：无副作用（不投任务、不改会话名）
 (let* ((vterm (make-virtual-terminal :width 100 :height 40))
-       (app
-         (make-pi-app
-           :terminal        vterm
-           :handler         (lambda (a msg) #t)
-           :resume-sessions (lambda () (values '() (lambda () '())))
-         ) ;make-pi-app
-       ) ;app
+       (app (make-resume-test-app vterm (lambda (a msg) #t))) ;app
        (ed (pi-app-editor app))
       ) ;
   (%pi-app-session-name-set! app "原会话名")
@@ -118,13 +116,7 @@
 
 ;; 5. Ctrl+C 取消选择器：同样无副作用
 (let* ((vterm (make-virtual-terminal :width 100 :height 40))
-       (app
-         (make-pi-app
-           :terminal        vterm
-           :handler         (lambda (a msg) #t)
-           :resume-sessions (lambda () (values '() (lambda () '())))
-         ) ;make-pi-app
-       ) ;app
+       (app (make-resume-test-app vterm (lambda (a msg) #t))) ;app
        (ed (pi-app-editor app))
       ) ;
   (pi-app-submit! app "/resume")
@@ -174,13 +166,7 @@
 
 ;; 7. busy 时拒绝切换：提示稍后重试，不开选择器、不投任务
 (let* ((vterm (make-virtual-terminal :width 100 :height 40))
-       (app
-         (make-pi-app
-           :terminal        vterm
-           :handler         (lambda (a msg) #t)
-           :resume-sessions (lambda () (values '() (lambda () '())))
-         ) ;make-pi-app
-       ) ;app
+       (app (make-resume-test-app vterm (lambda (a msg) #t))) ;app
        (q (pi-app-queue app))
       ) ;
   (pi-queue-set-busy! q)
@@ -216,13 +202,7 @@
 
 ;; 8. 队列中有排队消息时同样拒绝（避免切换后消息串写）
 (let* ((vterm (make-virtual-terminal :width 100 :height 40))
-       (app
-         (make-pi-app
-           :terminal        vterm
-           :handler         (lambda (a msg) #t)
-           :resume-sessions (lambda () (values '() (lambda () '())))
-         ) ;make-pi-app
-       ) ;app
+       (app (make-resume-test-app vterm (lambda (a msg) #t))) ;app
        (q (pi-app-queue app))
       ) ;
   (pi-queue-enqueue! q "pending message")
@@ -238,7 +218,7 @@
            :terminal        vterm
            :handler         (lambda (a msg) #t)
            :no-session?     #t
-           :resume-sessions (lambda () (values '() (lambda () '())))
+           :resume-sessions empty-resume-sessions
          ) ;make-pi-app
        ) ;app
       ) ;
@@ -262,11 +242,7 @@
 (let* ((received '())
        (vterm (make-virtual-terminal :width 100 :height 40))
        (app
-         (make-pi-app
-           :terminal        vterm
-           :handler         (lambda (a msg) (set! received (cons msg received)))
-           :resume-sessions (lambda () (values '() (lambda () '())))
-         ) ;make-pi-app
+         (make-resume-test-app vterm (lambda (a msg) (set! received (cons msg received))))
        ) ;app
       ) ;
   (pi-app-submit! app "/resume now")
@@ -300,7 +276,7 @@
   ;; 失败事件：错误卡片上屏
   (let ((before (length (pi-app-chat app))))
     (pi-app-handle-resume-event! app (list 'session_resume_error "boom"))
-    (check (= (length (pi-app-chat app)) (+ before 1)) => #t)
+    (check (length (pi-app-chat app)) => (+ before 1))
     (pi-app-render! app)
     (check-true (string-contains? (screen-text app) "boom"))
   ) ;let
@@ -311,11 +287,7 @@
 (let* ((vterm (make-virtual-terminal :width 100 :height 40))
        (received '())
        (app
-         (make-pi-app
-           :terminal        vterm
-           :handler         (lambda (a msg) (set! received (cons msg received)))
-           :resume-sessions (lambda () (values '() (lambda () '())))
-         ) ;make-pi-app
+         (make-resume-test-app vterm (lambda (a msg) (set! received (cons msg received))))
        ) ;app
        (ed (pi-app-editor app))
       ) ;

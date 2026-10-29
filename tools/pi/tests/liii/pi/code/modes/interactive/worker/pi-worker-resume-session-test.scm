@@ -8,6 +8,7 @@
   (liii go)
   (liii time)
   (liii shutil)
+  (liii pi ai message)
   (liii pi code cli args)
   (liii pi code config)
   (liii pi code core session-manager)
@@ -29,14 +30,8 @@
 
 ;; 追加一条用户消息（模拟历史上下文中的“暗号”）
 
-(define (append-user-message! file id text)
-  (append-session-entry! file
-    (string-append "{\"type\":\"message\",\"id\":\"" id
-      "\",\"parentId\":null,\"timestamp\":\"2026-10-21T08:00:00.000Z\","
-      "\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\""
-      text "\"}]}}"
-    ) ;string-append
-  ) ;append-session-entry!
+(define (append-user-message! file text)
+  (persist-new-messages! file '() (list (pi-user-message text)))
 ) ;define
 
 ;; 会话文件投影出的消息文本（拼接全部 role/text）
@@ -60,8 +55,8 @@
   ;; 构造两个历史会话：A（命名会话，暗号菠萝）与 B（暗号西瓜）
   (let-values (((sfile-a _) (setup-session-file parsed cfg cwd)))
     (let-values (((sfile-b _) (setup-session-file parsed cfg cwd)))
-      (append-user-message! sfile-a "m-a" "暗号是菠萝")
-      (append-user-message! sfile-b "m-b" "暗号是西瓜")
+      (append-user-message! sfile-a "暗号是菠萝")
+      (append-user-message! sfile-b "暗号是西瓜")
       (append-session-info! sfile-a "会话甲")
 
       ;; 1. 切换到 A：worker 的会话文件被替换，并回传名称
