@@ -21,13 +21,15 @@
     (liii pi code core tools read)
     (liii pi ai template)
     (liii pi ai types)
+    (liii pi ai message)
   ) ;import
   (export encode-cwd-to-session-dirname get-session-dir get-sessions-root
     make-session-file-path resolve-session-dir read-session-history
     append-session-entry! find-latest-session-file save-session-header!
     save-session-message! setup-session-file setup-initial-messages
     persist-new-messages! find-last-session-message-id pi-normalize-session-msg
-    append-bash-execution! resolve-resume-session-file assoc
+    append-bash-execution! resolve-resume-session-file
+    pi-entry-to-context-messages assoc
   ) ;export
   (begin
 
@@ -361,6 +363,83 @@
           ) ;let
         ) ;if
       ) ;let
+    ) ;define
+
+    ;; 字段访问兜底：同时兼容字符串键（string->json 解析）与符号键
+    ;; （会话内 alist 直接构造）；缺失返回 #f
+    (define (%entry-ref obj key)
+      (let* ((str-key (if (symbol? key) (symbol->string key) key))
+             (sym-key (if (string? key) (string->symbol key) key))
+             (pair (or (assoc str-key obj) (assoc sym-key obj)))
+            ) ;
+        (if pair (cdr pair) #f)
+      ) ;let*
+    ) ;define
+
+    ;; string->json 将 JSON true/null 解析为符号 true/null，
+    ;; 布尔字段需同时兼容符号与 #t 两种表示
+    (define (%json-true? v)
+      (or (eq? #t v) (eq? v 'true))
+    ) ;define
+
+    ;; content 兜底：缺失、为 JSON null 时降级为空内容（user 为空串，
+    ;; assistant/toolResult 为空块列表，对齐上游 content: []），不抛异常
+    (define (%entry-ref-content msg fallback)
+      (let ((c (%entry-ref msg "content")))
+        (if (or (not c) (eq? c 'null)) fallback c)
+      ) ;let
+    ) ;define
+
+    ;; 会话条目到 LLM 上下文消息的单一映射（对齐 pi 的 sessionEntryToContextMessages）：
+    ;; 输入一个已解析的会话条目，输出零条或一条上下文消息；纯函数，不读盘。
+    ;; - message 条目按 role 分派：user 原样转用户消息；assistant 保留
+    ;;   stopReason、errorMessage 与 usage；toolResult 保留 toolCallId、
+    ;;   toolName 与 isError；bashExecution 转为用户文本（命令 + 围栏输出，
+    ;;   非零退出码追加退出码行）
+    ;; - 带 excludeFromContext 的 bashExecution（!! 前缀）返回空列表，
+    ;;   不进入 LLM 上下文
+    ;; - 其他 type（compaction、session、未知类型）返回空列表
+    (define (pi-entry-to-context-messages entry)
+      (cond
+       ((not (equal? (%entry-ref entry "type") "message")) '())
+       (else
+         (let* ((msg (pi-normalize-session-msg (%entry-ref entry "message"))))
+           (cond ((not msg) '())
+                 ((equal? (%entry-ref msg "role") "user")
+                  (list (pi-user-message (%entry-ref-content msg "")))
+                 ) ;
+                 ((equal? (%entry-ref msg "role") "bashExecution")
+                  (if (%json-true? (%entry-ref msg "excludeFromContext"))
+                    '()
+                    (list (pi-user-message (pi-bash-execution->user-text (%entry-ref msg "command")
+                                             (%entry-ref msg "output")
+                                             (%entry-ref msg "exitCode")
+                                           ) ;pi-bash-execution->user-text
+                          ) ;pi-user-message
+                    ) ;list
+                  ) ;if
+                 ) ;
+                 ((equal? (%entry-ref msg "role") "assistant")
+                  (list (pi-assistant-message (%entry-ref-content msg '())
+                          (or (%entry-ref msg "stopReason") "stop")
+                          (%entry-ref msg "errorMessage")
+                          (%entry-ref msg "usage")
+                        ) ;pi-assistant-message
+                  ) ;list
+                 ) ;
+                 ((equal? (%entry-ref msg "role") "toolResult")
+                  (list (pi-tool-result-message (or (%entry-ref msg "toolCallId") "")
+                          (or (%entry-ref msg "toolName") "")
+                          (%entry-ref-content msg '())
+                          (%json-true? (%entry-ref msg "isError"))
+                        ) ;pi-tool-result-message
+                  ) ;list
+                 ) ;
+                 (else '())
+           ) ;cond
+         ) ;let*
+       ) ;else
+      ) ;cond
     ) ;define
 
     (define (find-latest-session-file session-dir)
