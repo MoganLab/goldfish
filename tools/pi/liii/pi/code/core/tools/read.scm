@@ -16,7 +16,7 @@
     (liii pi code core tools truncate)
   ) ;import
   (export pi-read-schema pi-execute-read pi-arg-ref pi-resolve-path
-    pi-keyword-value pi-get-agent-dir
+    pi-keyword-value pi-get-agent-dir pi-int-arg
   ) ;export
   (begin
 
@@ -30,6 +30,29 @@
               (else default-val)
         ) ;cond
       ) ;let
+    ) ;define
+
+    ;; 工具参数中的整数规范化：
+    ;; 模型偶尔用 1.0/90.0 这类浮点形式表示行号（JSON 解析后是 double），
+    ;; 数值上确实是整数的按整数处理；1.5 这类无法安全转换的给出清晰的
+    ;; 参数错误，避免把 list-drop/list-take 的内部类型错误泄露给调用方。
+    (define (pi-int-arg val name)
+      (cond ((exact-integer? val) val)
+            ((not (real? val)) (error 'error (string-append name " must be an integer")))
+            ((not (< (abs val) 9007199254740992))
+             ;; 超出 double 可精确表示的范围，无法安全转换为整数
+             (error 'error (string-append name " must be an integer"))
+            ) ;
+            (else
+              (let ((f (floor val)))
+                ;; 要求数值上恰好是整数
+                (if (= f val)
+                  (inexact->exact f)
+                  (error 'error (string-append name " must be an integer"))
+                ) ;if
+              ) ;let
+            ) ;else
+      ) ;cond
     ) ;define
 
     (define (pi-resolve-path raw-path cwd)
@@ -154,8 +177,11 @@
       (let* ((timed-out? (pi-keyword-value :timed-out? opts #f))
              (cwd (pi-keyword-value :cwd opts (getcwd)))
              (raw-path (pi-arg-ref args "path"))
-             (offset (pi-arg-ref args "offset" #f))
-             (limit (pi-arg-ref args "limit" #f))
+             (raw-offset (pi-arg-ref args "offset" #f))
+             (raw-limit (pi-arg-ref args "limit" #f))
+             ;; 模型偶尔用 1.0/90.0 这类浮点形式表示行号，这里统一规范化为整数
+             (offset (if raw-offset (pi-int-arg raw-offset "offset") #f))
+             (limit (if raw-limit (pi-int-arg raw-limit "limit") #f))
             ) ;
         (when timed-out?
           (error 'error "Command timed out")

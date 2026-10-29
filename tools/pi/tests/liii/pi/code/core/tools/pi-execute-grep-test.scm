@@ -115,6 +115,27 @@
              (list (cons "pattern" "non_existent_symbol_8888") (cons "path" legacy-test-file)))))
   (check out => "No matches found"))
 
+;; 浮点形式的 limit/context：模型偶尔用 1.0 这类浮点表示数量
+(let ((out (pi-execute-grep
+             (list (cons "pattern" "define")
+                   (cons "path" legacy-test-file)
+                   (cons "context" 1.0)
+                   (cons "limit" 1.0)))))
+  (check-true (string? out))
+  (check-true (string-contains? out "- "))
+  (check-true (string-contains? out
+                "[1 matches limit reached. Use limit=2 for more, or refine pattern]")))
+
+;; 非整数值的浮点参数：报清晰的参数错误
+(check-catch 'error
+  (pi-execute-grep (list (cons "pattern" "define")
+                         (cons "path" legacy-test-file)
+                         (cons "limit" 1.5))))
+(check-catch 'error
+  (pi-execute-grep (list (cons "pattern" "define")
+                         (cons "path" legacy-test-file)
+                         (cons "context" 1.5))))
+
 (check-catch 'error
   (pi-execute-grep '(("pattern" . "foo") ("path" . "non_existent_file_999"))))
 (check-catch 'error (pi-execute-grep '(("pattern" . "foo")) :timed-out? #t))
