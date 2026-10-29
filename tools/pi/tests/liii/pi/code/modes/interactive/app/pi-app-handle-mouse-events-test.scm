@@ -90,14 +90,17 @@
          ) => #f)
 ) ;let
 
-;; 6. 滚轮加速语义：同一手势内间隔 30ms 到达的连续滚轮事件，
-;;    按 wheel-scroll 的速度规则应滚动 1 + 3 + 3 = 7 行（上游语义：
-;;    孤立刻度 1 行，快速连打最多 6 行/次）。
-;;    run.scm 的生产路径是「取首个事件 + 排空已到达事件 + 合并处理」，
-;;    合并后各事件在 wheel-scroll-next! 中使用同一个处理时刻，
-;;    事件到达间隔被记为 0（< 突发阈值 5ms），加速因此被抹平：
-;;    同样的 3 个滚轮事件，合并处理只滚动 3 行。
-;;    本用例断言合并路径与逐个处理路径的滚动量一致。
+;; 6. 滚轮加速语义（Issue #1382）：同一手势内间隔 30ms 到达的连续滚轮事件，
+;;    按 wheel-scroll 的速度规则应滚动 1 + 3 + 3 = 7 行（孤立刻度 1 行，
+;;    间隔 30ms 时每事件 3 行）。
+;;    合并处理必须使用各事件自带的到达时刻，而非统一的处理时刻：
+;;    否则批内间隔被记为 0（小于突发阈值 5ms），加速被抹平只剩 3 行。
+;;    本用例对两条路径提供完全相同的到达时刻序列（0/30/60ms），
+;;    断言合并路径与逐个处理路径的滚动量一致。
+(define (wheel-up-at t)
+  (make-mouse-event 'wheel-up 'none 10 5 #f #f #f t)
+) ;define
+
 (let* ((seq-app (%make-test-app))
        (seq-sv (pi-app-scroll-view seq-app))
        (merged-app (%make-test-app))
@@ -107,22 +110,44 @@
   (pi-app-render! seq-app)
   (%fill merged-app 10)
   (pi-app-render! merged-app)
-  ;; 逐个处理：事件之间间隔 30ms，走完整的速度换算
-  (let ((seq-before (scroll-view-offset seq-sv)))
-    (pi-app-handle-mouse! seq-app (wheel-up))
-    (sleep 0.03)
-    (pi-app-handle-mouse! seq-app (wheel-up))
-    (sleep 0.03)
-    (pi-app-handle-mouse! seq-app (wheel-up))
-    ;; 合并处理：生产路径的实际做法
-    (let ((merged-before (scroll-view-offset merged-sv)))
-      (pi-app-handle-mouse-events! merged-app
-        (list (wheel-up) (wheel-up) (wheel-up))
-      ) ;pi-app-handle-mouse-events!
-      (check (= (- seq-before (scroll-view-offset seq-sv))
-                (- merged-before (scroll-view-offset merged-sv))) => #t)
-    ) ;let
+  (let ((seq-before (scroll-view-offset seq-sv))
+        (merged-before (scroll-view-offset merged-sv)))
+    ;; 逐个处理：每个事件携带自己的到达时刻
+    (for-each (lambda (t) (pi-app-handle-mouse! seq-app (wheel-up-at t))) '(0 30 60))
+    ;; 合并处理：生产路径，同样的到达时刻序列
+    (pi-app-handle-mouse-events! merged-app
+      (list (wheel-up-at 0) (wheel-up-at 30) (wheel-up-at 60))
+    ) ;pi-app-handle-mouse-events!
+    ;; 两条路径都应滚动 7 行，且完全一致
+    (check (- seq-before (scroll-view-offset seq-sv)) => 7)
+    (check (- merged-before (scroll-view-offset merged-sv)) => 7)
+    (check (= (- seq-before (scroll-view-offset seq-sv))
+              (- merged-before (scroll-view-offset merged-sv))) => #t)
   ) ;let
 ) ;let*
+
+;; 7. 鼠标事件时间戳：make-mouse-event 的可选 time 参数存取，
+;;    未提供时为 #f（未知，回退到处理时刻）
+(let ((ev (make-mouse-event 'wheel-up 'none 10 5 #f #f #f 12345))
+      (plain (wheel-up)))
+  (check (mouse-event-time ev) => 12345)
+  (check (mouse-event-time plain) => #f)
+  ;; 时间戳不影响事件其他字段
+  (check (mouse-event-type ev) => 'wheel-up)
+  (check (mouse-event-x ev) => 10)
+  (check (mouse-event-y ev) => 5)
+) ;let
+
+;; 8. 虚拟终端 push-key! 为无时间戳的鼠标事件补打到达时刻
+(let ((vt (make-virtual-terminal 40 20)))
+  (virtual-terminal-push-key! vt (wheel-up))
+  (let ((ev (terminal-poll-key vt)))
+    (check-true (mouse-event? ev))
+    (check-true (number? (mouse-event-time ev)))
+  ) ;let
+  ;; 已带时间戳的事件不被改写
+  (virtual-terminal-push-key! vt (wheel-up-at 777))
+  (check (mouse-event-time (terminal-poll-key vt)) => 777)
+) ;let
 
 (check-report)

@@ -33,6 +33,7 @@
     (liii os)
     (liii string)
     (liii unicode)
+    (liii date-time)
     (liii tui terminal protocol)
     (liii tui terminal virtual)
     (liii tui terminal key-map)
@@ -221,6 +222,7 @@
                      (mouse-event-shift? ev)
                      (mouse-event-ctrl? ev)
                      (mouse-event-alt? ev)
+                     (mouse-event-time ev)
                    ) ;make-mouse-event
                    ev
                  ) ;if
@@ -239,7 +241,8 @@
           (let* ((bv (apply bytevector byte-list))
                  (str (utf8->string bv))
                  (k (parse-key str))
-                 (ev (or k (parse-mouse-event str)))
+                 ;; 事件到达时刻：读取到完整序列时打戳，供滚轮加速按真实间隔换算
+                 (ev (or k (parse-mouse-event str (current-monotonic-millis))))
                 ) ;
             (if (mouse-event? ev) (%synthesize-click ev) ev)
           ) ;let*

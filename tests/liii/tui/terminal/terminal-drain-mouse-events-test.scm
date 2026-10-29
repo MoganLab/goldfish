@@ -56,7 +56,14 @@
     (check (mouse-event-type (car events)) => 'wheel-up)
   ) ;let
   (check (terminal-poll-key vt) => 'up)
-  (check (terminal-poll-key vt) => (make-wheel-down))
+  ;; 逐字段断言：虚拟终端会为鼠标事件补打到达时刻，整个 record 不再字面相等
+  (let ((ev (terminal-poll-key vt)))
+    (check-true (mouse-event? ev))
+    (check (mouse-event-type ev) => 'wheel-down)
+    (check (mouse-event-button ev) => 'none)
+    (check (mouse-event-x ev) => 5)
+    (check (mouse-event-y ev) => 5)
+  ) ;let
 ) ;let
 
 ;; 3. 首个按键就是普通按键：不取任何鼠标事件，且按键保留

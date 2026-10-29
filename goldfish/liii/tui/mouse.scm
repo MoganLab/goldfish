@@ -30,13 +30,17 @@
 (define-library (liii tui mouse)
   (export make-mouse-event mouse-event? mouse-event-type mouse-event-button
     mouse-event-x mouse-event-y mouse-event-shift? mouse-event-ctrl?
-    mouse-event-alt? mouse-event-click? parse-mouse-event mouse-sequence?
+    mouse-event-alt? mouse-event-time mouse-event-click? parse-mouse-event
+    mouse-sequence?
   ) ;export
   (import (scheme base) (liii base) (liii error) (liii string))
   (begin
 
+    ;; time：事件到达时刻（单调时钟毫秒），#f 表示未知。
+    ;; 滚轮加速器依赖真实到达间隔换算行数（对齐上游 wheel-scroll.ts），
+    ;; 合并处理连续事件时必须保留各事件自己的时间，而非统一使用处理时刻。
     (define-record-type <mouse-event>
-      (%make-mouse-event type button x y shift? ctrl? alt?)
+      (%make-mouse-event type button x y shift? ctrl? alt? time)
       mouse-event?
       (type mouse-event-type)
       (button mouse-event-button)
@@ -45,14 +49,31 @@
       (shift? mouse-event-shift?)
       (ctrl? mouse-event-ctrl?)
       (alt? mouse-event-alt?)
+      (time mouse-event-time)
     ) ;define-record-type
 
+    ;; 可选参数依次为 shift? ctrl? alt? time，均可省略（time 缺省 #f）
     (define (make-mouse-event type button x y . opt)
       (let ((shift? (and (pair? opt) (car opt)))
             (ctrl? (and (pair? opt) (pair? (cdr opt)) (cadr opt)))
             (alt? (and (pair? opt) (pair? (cdr opt)) (pair? (cddr opt)) (caddr opt)))
+            (time (and (pair? opt)
+                    (pair? (cdr opt))
+                    (pair? (cddr opt))
+                    (pair? (cdddr opt))
+                    (cadddr opt)
+                  ) ;and
+            ) ;time
            ) ;
-        (%make-mouse-event type button x y (and shift? #t) (and ctrl? #t) (and alt? #t))
+        (%make-mouse-event type
+          button
+          x
+          y
+          (and shift? #t)
+          (and ctrl? #t)
+          (and alt? #t)
+          time
+        ) ;%make-mouse-event
       ) ;let
     ) ;define
 
@@ -98,12 +119,13 @@
       ) ;cond
     ) ;define
 
-    ;; 解析 "ESC[<B;X;YM" / "ESC[<B;X;Ym"，坐标转为 0-based
-    (define (parse-mouse-event str)
+    ;; 解析 "ESC[<B;X;YM" / "ESC[<B;X;Ym"，坐标转为 0-based。
+    ;; 可选 now-ms 为事件到达时刻（单调时钟毫秒），由 poll 层在读取时提供
+    (define (parse-mouse-event str . opt-time)
       (unless (string? str)
         (type-error "parse-mouse-event: str must be a string")
       ) ;unless
-      (let ((len (string-length str)))
+      (let ((len (string-length str)) (now-ms (and (pair? opt-time) (car opt-time))))
         (if
           (and (>= len 9)
             (char=? (string-ref str 0) #\x1b)
@@ -127,6 +149,7 @@
                   (= (modulo (quotient b 4) 2) 1)
                   (>= (modulo b 32) 16)
                   (>= (modulo b 16) 8)
+                  now-ms
                 ) ;%make-mouse-event
               ) ;let*
               #f
