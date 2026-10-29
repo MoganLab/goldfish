@@ -7,8 +7,14 @@
 ;; 会话路径回溯：从叶子条目沿 parentId 回溯到根，得到根到叶顺序的路径条目。
 ;; 这是 fork 分支切换与后续投影（1203/1204）的基础。
 (define-library (liii pi code core session-projection)
-  (import (scheme base) (liii string) (liii list) (liii json))
-  (export pi-session-path pi-context-entries)
+  (import (scheme base)
+    (liii string)
+    (liii list)
+    (liii json)
+    (liii pi ai message)
+    (liii pi code core session-manager)
+  ) ;import
+  (export pi-session-path pi-context-entries pi-build-session-projection)
   (begin
 
     ;; 字段访问兼容字符串键与符号键；JSON null 解析为符号 'null，与 #f 区分
@@ -202,6 +208,109 @@
           ) ;let*
         ) ;if
       ) ;let
+    ) ;define
+
+    ;; 头部摘要用户消息的文本（对齐上游 createCompactionSummaryMessage）：
+    ;; 既有前缀 + 摘要 + 后缀，与压缩层 pi-compaction-summary-message 同构
+    (define %projection-summary-prefix
+      "The conversation history before this point was compacted into the following summary:\n\n<summary>\n"
+    ) ;define
+
+    (define %projection-summary-suffix "\n</summary>")
+
+    ;; 条目类型是否在投影入口的已知集合内：
+    ;; message 参与上下文；compaction 贡献头部摘要；session 为文件头
+    (define (%known-entry-type? entry)
+      (let ((t (%ref entry "type")))
+        (and (string? t)
+          (or (equal? t "message") (equal? t "compaction") (equal? t "session"))
+        ) ;and
+      ) ;let
+    ) ;define
+
+    ;; 首个 compaction 条目的 summary；无则 #f
+    (define (%first-compaction-summary context-entries)
+      (let loop
+        ((rest context-entries))
+        (cond ((null? rest) #f)
+              ((equal? (%ref (car rest) "type") "compaction") (%ref (car rest) "summary"))
+              (else (loop (cdr rest)))
+        ) ;cond
+      ) ;let
+    ) ;define
+
+    ;; 摘要文本的字符串化：非字符串降级描述，不抛异常
+    (define (%summary->string summary)
+      (cond ((string? summary) summary)
+            ((not summary) "(no summary)")
+            ((eq? summary 'null) "(no summary)")
+            ((symbol? summary) (symbol->string summary))
+            ((number? summary) (number->string summary))
+            (else "(no summary)")
+      ) ;cond
+    ) ;define
+
+    ;; 未知类型条目计入诊断，不再无声跳过
+    (define (%unknown-types context-entries)
+      (let loop
+        ((rest context-entries) (acc '()))
+        (if (null? rest)
+          (reverse acc)
+          (let ((t (%ref (car rest) "type")))
+            (loop (cdr rest) (if (%known-entry-type? (car rest)) acc (cons t acc)))
+          ) ;let
+        ) ;if
+      ) ;let
+    ) ;define
+
+    ;; pi-build-session-projection：投影入口（对齐上游 buildSessionProjection）
+    ;; 纯组合 1201-1203 的三级能力：
+    ;; 1) pi-session-path：从叶子沿 parentId 回溯路径（1202）
+    ;; 2) pi-context-entries：压缩感知的路径裁剪（1203）
+    ;; 3) pi-entry-to-context-messages：逐条目到消息的映射（1201）
+    ;; 返回三部分（values messages state diagnostics）：
+    ;; - messages：LLM 上下文消息列表；裁剪返回摘要时，头部插入一条用户消息，
+    ;;   文本为既有摘要前缀 + 摘要 + 后缀；其后为保留条目的消息（含压缩点之后）
+    ;; - state：状态字段，当前以 #f 占位（thinkingLevel 与 model 在 1209 填充）
+    ;; - diagnostics：alist，汇总路径断链（path-reason）与裁剪降级（trim-reason）
+    ;;   两类原因，未知 type 的条目计入 skipped-unknown-types，不再无声跳过
+    ;; 纯函数：不读文件、不写日志，所有 I/O 由调用方完成
+    (define (pi-build-session-projection entries . opt-leaf-id)
+      (let* ((leaf-id (and (pair? opt-leaf-id) (car opt-leaf-id)))
+             (call-path (lambda ()
+                          (if leaf-id (pi-session-path entries leaf-id) (pi-session-path entries))
+                        ) ;lambda
+             ) ;call-path
+            ) ;
+        (let*-values (((path path-reason) (call-path)))
+          (let*-values (((context-entries trim-reason) (pi-context-entries path)))
+            (let* ((unknown-types (%unknown-types context-entries))
+                   (msgs (apply append (map pi-entry-to-context-messages context-entries)))
+                   (summary (%first-compaction-summary context-entries))
+                   (msgs
+                     (if summary
+                       (cons (pi-user-message (string-append %projection-summary-prefix
+                                                (%summary->string summary)
+                                                %projection-summary-suffix
+                                              ) ;string-append
+                             ) ;pi-user-message
+                         msgs
+                       ) ;cons
+                       msgs
+                     ) ;if
+                   ) ;msgs
+                   (diagnostics (list (cons 'path-reason path-reason)
+                                  (cons 'trim-reason trim-reason)
+                                  (cons 'skipped-unknown-types unknown-types)
+                                ) ;list
+                   ) ;diagnostics
+                   (state #f)
+                  ) ;
+              (values msgs state diagnostics)
+            ) ;let*
+          ) ;let*-values
+        ) ;let*-values
+      ) ;let*
     ) ;define
 
   ) ;begin
