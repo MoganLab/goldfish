@@ -5,10 +5,11 @@
 ;;
 
 (define-library (liii pi code modes interactive run)
-  (export pi-app-run pi-app-print-transcript!)
+  (export pi-app-run pi-app-print-transcript! pi-app-abort-inflight!)
   (import (scheme base)
     (liii go)
     (liii time)
+    (liii date-time)
     (liii string)
     (liii tui)
     (liii pi agent queue)
@@ -40,7 +41,54 @@
       ) ;let
     ) ;define
 
-    (define* (pi-app-run app (initial-msg "") (rest-msgs '()))
+    ;; 退出宽限期（毫秒）：中止在途任务后等待其结算的时间上限。
+    ;; 上游 pi 退出时直接 process.exit（不等后台任务）；这里给 worker 一个
+    ;; 短暂窗口把会话落盘并上屏 Aborted 提示，超时则强制退出。
+    (define %pi-app-exit-grace-ms 300)
+
+    ;; 退出前中止在途 agent 任务（对齐上游 pi 的 session.dispose() → agent.abort()）：
+    ;; worker 线程此刻正阻塞在 LLM 流式 HTTP 请求上，而进程退出会 join go 线程池
+    ;; （GoThreadPool 析构 → shutdown → join 全部 worker 线程），
+    ;; 若不主动中止，进程会一直等到 provider 超时（默认 300s）才真正退出，
+    ;; 表现为“已退出全屏界面，但终端迟迟不返回提示符”（卡住）。
+    ;;
+    ;; 返回 #t：宽限期内已结算，可走常规 exit 路径
+    ;; 返回 #f：仍未结算，调用方需强制退出（跳过线程池 join）
+    (define* (pi-app-abort-inflight! app (grace-ms %pi-app-exit-grace-ms))
+      (let ((q (pi-app-queue app)))
+        (if (not (pi-queue-busy? q))
+          #t
+          (begin
+            ;; 与 ESC 相同的中止信号：worker 在流式回调检查点返回 #f，
+            ;; C 层随即中止 HTTP 下载
+            (catch #t
+              (lambda () (chan-send! (pi-app-abort-chan app) 'abort 0))
+              (lambda args #f)
+            ) ;catch
+            ;; 宽限期内等待 worker 结算（会话文件落盘 + agent_settled 事件）
+            (let ((deadline (+ (current-monotonic-millis) grace-ms)))
+              (let loop
+                ()
+                (cond ((not (pi-queue-busy? q)) #t)
+                      ((>= (current-monotonic-millis) deadline) #f)
+                      (else (pi-app-poll-events! app) (sleep 0.02) (loop))
+                ) ;cond
+              ) ;let
+            ) ;let
+          ) ;begin
+        ) ;if
+      ) ;let
+    ) ;define*
+
+    ;; force-exit：宽限期后仍未结算时的强制退出钩子。
+    ;; 默认 emergency-exit（s7 的 _exit）：跳过 go 线程池 join 与 C++ 静态析构，
+    ;; 保证后台请求卡住时终端仍能立即回到 shell 提示符（对齐上游 pi 的 process.exit）。
+    ;; 测试可注入空实现以在进程内观察退出路径。
+    (define (pi-app-force-exit)
+      (emergency-exit 0)
+    ) ;define
+
+    (define* (pi-app-run app (initial-msg "") (rest-msgs '()) (force-exit pi-app-force-exit))
       (let* ((term (pi-app-term app))
              (ed (pi-app-editor app))
              (q (pi-app-queue app))
@@ -174,26 +222,40 @@
             ) ;let
           ) ;lambda
           (lambda ()
-            ;; 退出清理：先关闭鼠标事件上报（与进入时对称），
-            ;; 再离开备用屏（主屏内容自动恢复），
-            ;; 最后把对话记录打印回主屏，避免退出后看不到本次会话内容
-            (catch #t (lambda () (terminal-mouse-mode! term #f)) (lambda (tag . args) #f))
-            (catch #t (lambda () (terminal-exit-alt-screen! term)) (lambda (tag . args) #f))
-            (pi-app-print-transcript! app)
-            (terminal-write term "\x1b;[?2004l")
-            (terminal-set-paste-mode! #f)
-            (terminal-show-cursor! term)
-            (terminal-exit-raw-mode! term)
-            (terminal-write term "\r\n")
-            (terminal-flush term)
-            ;; 关闭 bash 任务通道，后台 worker 收到 eof 后退出，
-            ;; 避免进程退出时后台线程仍在阻塞 recv 导致崩溃
-            (catch #t
-              (lambda () (chan-close! (pi-app-bash-jobs-chan app)))
-              (lambda args #f)
-            ) ;catch
-            ;; 停止分支监听：C 层 watcher 撤销，后台泵收到 stopped 后自行退出
-            (stop-branch-watcher! watcher)
+            ;; 退出清理（顺序重要）：
+            ;; 1. 先中止在途 agent 任务：worker 线程阻塞在 LLM HTTP 请求上，
+            ;;    进程退出会 join go 线程池，不中止就会等到 provider 超时才退出
+            (let ((settled (pi-app-abort-inflight! app)))
+              ;; 2. 关闭鼠标事件上报（与进入时对称），
+              ;;    再离开备用屏（主屏内容自动恢复），
+              ;;    最后把对话记录打印回主屏，避免退出后看不到本次会话内容
+              (catch #t (lambda () (terminal-mouse-mode! term #f)) (lambda (tag . args) #f))
+              (catch #t (lambda () (terminal-exit-alt-screen! term)) (lambda (tag . args) #f))
+              (pi-app-print-transcript! app)
+              (terminal-write term "\x1b;[?2004l")
+              (terminal-set-paste-mode! #f)
+              (terminal-show-cursor! term)
+              (terminal-exit-raw-mode! term)
+              (terminal-write term "\r\n")
+              (terminal-flush term)
+              ;; 3. 关闭任务通道，后台 worker 收到 eof 后退出，
+              ;;    避免进程退出时后台线程仍在阻塞 recv 导致崩溃
+              (catch #t
+                (lambda ()
+                  (chan-close! (pi-app-bash-jobs-chan app))
+                  (chan-close! (pi-app-jobs-chan app))
+                ) ;lambda
+                (lambda args #f)
+              ) ;catch
+              ;; 4. 停止分支监听：C 层 watcher 撤销，后台泵收到 stopped 后自行退出
+              (stop-branch-watcher! watcher)
+              ;; 5. 宽限期后仍未结算：强制退出（_exit，不等 go 线程池 join），
+              ;;    对齐上游 pi 退出时 process.exit 的即时返回语义，
+              ;;    保证终端不会因后台请求卡住而收不到 shell 提示符
+              (unless settled
+                (force-exit)
+              ) ;unless
+            ) ;let
           ) ;lambda
         ) ;dynamic-wind
       ) ;let*
