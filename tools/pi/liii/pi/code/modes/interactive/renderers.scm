@@ -112,14 +112,8 @@
     (define (read-range-suffix offset limit)
       (cond
        ((and (number? offset) (number? limit))
-        (let ((start (%range-int offset))
-              (end (%range-int (+ offset limit -1)))
-             ) ;
-          (string-append ":"
-            (number->string start)
-            "-"
-            (number->string end)
-          ) ;string-append
+        (let ((start (%range-int offset)) (end (%range-int (+ offset limit -1))))
+          (string-append ":" (number->string start) "-" (number->string end))
         ) ;let
        ) ;
        ((number? offset) (string-append ":" (number->string (%range-int offset))))
