@@ -2,6 +2,7 @@
         (liii check)
         (liii list)
         (liii string)
+        (liii time)
         (liii tui)
         (liii tui mouse)
         (liii pi code modes interactive)
@@ -88,5 +89,40 @@
            )
          ) => #f)
 ) ;let
+
+;; 6. 滚轮加速语义：同一手势内间隔 30ms 到达的连续滚轮事件，
+;;    按 wheel-scroll 的速度规则应滚动 1 + 3 + 3 = 7 行（上游语义：
+;;    孤立刻度 1 行，快速连打最多 6 行/次）。
+;;    run.scm 的生产路径是「取首个事件 + 排空已到达事件 + 合并处理」，
+;;    合并后各事件在 wheel-scroll-next! 中使用同一个处理时刻，
+;;    事件到达间隔被记为 0（< 突发阈值 5ms），加速因此被抹平：
+;;    同样的 3 个滚轮事件，合并处理只滚动 3 行。
+;;    本用例断言合并路径与逐个处理路径的滚动量一致。
+(let* ((seq-app (%make-test-app))
+       (seq-sv (pi-app-scroll-view seq-app))
+       (merged-app (%make-test-app))
+       (merged-sv (pi-app-scroll-view merged-app))
+      ) ;
+  (%fill seq-app 10)
+  (pi-app-render! seq-app)
+  (%fill merged-app 10)
+  (pi-app-render! merged-app)
+  ;; 逐个处理：事件之间间隔 30ms，走完整的速度换算
+  (let ((seq-before (scroll-view-offset seq-sv)))
+    (pi-app-handle-mouse! seq-app (wheel-up))
+    (sleep 0.03)
+    (pi-app-handle-mouse! seq-app (wheel-up))
+    (sleep 0.03)
+    (pi-app-handle-mouse! seq-app (wheel-up))
+    ;; 合并处理：生产路径的实际做法
+    (let ((merged-before (scroll-view-offset merged-sv)))
+      (pi-app-handle-mouse-events! merged-app
+        (list (wheel-up) (wheel-up) (wheel-up))
+      ) ;pi-app-handle-mouse-events!
+      (check (= (- seq-before (scroll-view-offset seq-sv))
+                (- merged-before (scroll-view-offset merged-sv))) => #t)
+    ) ;let
+  ) ;let
+) ;let*
 
 (check-report)
