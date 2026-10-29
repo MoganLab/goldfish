@@ -31,7 +31,8 @@
 ;; ----
 ;; (values messages state diagnostics)
 ;; messages : list，LLM 上下文消息；有压缩时首条为摘要用户消息，其后为保留条目的消息
-;; state : #f（1209 填充 thinkingLevel 与 model）
+;; state : #f（路径上无状态条目）或 alist：
+;;   thinkingLevel / thinkingLevelEntryId / model / modelEntryId（见 1209）
 ;; diagnostics : alist，键为 path-reason / trim-reason / skipped-unknown-types，
 ;;   值为 #f（无异常）或诊断信息（skipped-unknown-types 为条目类型列表）
 
