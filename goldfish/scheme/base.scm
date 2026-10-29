@@ -229,6 +229,10 @@
   ) ;export
   (begin
 
+    ;; R7RS 6.4: (list? obj) 仅当 obj 是有限完全列表时返回 #t
+    ;; 点对结尾（improper list）和循环列表都不是有限完全列表，返回 #f
+    (define list? proper-list?)
+
     (define-macro (define-values vars expression)
 
       `(if (not (null? (quote ,vars)))
