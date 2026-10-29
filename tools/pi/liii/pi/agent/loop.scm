@@ -17,6 +17,7 @@
     (liii pi agent tools)
     (liii pi agent cost)
     (liii pi agent budget)
+    (liii pi agent loop-queue)
   ) ;import
   (export pi-step-agent-turn pi-notify-turn-end pi-emit-agent-end
     pi-finish-agent-turn pi-emit-agent-error pi-maybe-compact pi-handle-tool-use
@@ -31,7 +32,7 @@
       ) ;let
     ) ;define
 
-    (define (pi-step-agent-turn config msgs system-prompt emit timeout request-fn)
+    (define* (pi-step-agent-turn config msgs system-prompt emit timeout request-fn)
       (let* ((active-tools (cdr (assoc 'tools config)))
              (provider (cdr (or (assoc 'provider config) '(#f . "google"))))
              (on-stream-ev
@@ -62,7 +63,7 @@
           (values new-msgs stop-reason tool-calls resp)
         ) ;let*
       ) ;let*
-    ) ;define
+    ) ;define*
 
     (define (pi-notify-turn-end emit assistant-msg tool-results)
       (when (procedure? emit)
@@ -181,6 +182,78 @@
       ) ;let
     ) ;define*
 
+    ;; 执行单轮：压缩 → steering 轮询注入 → 预算系统提示 → 请求 → 工具执行。
+    ;; 返回决策 alist，由 run-agent-loop 主循环解释：
+    ;;   ((action . continue)  ...) 工具已执行，继续下一轮
+    ;;   ((action . hard-stop) ...) error / aborted 硬退出，直接结算
+    ;;   ((action . stop-check)...) 自然停止，主循环轮询 steering/follow-up 后决定
+    ;; 三种决策统一携带 msgs / stop-reason / tool-calls / resp 四个键
+    (define (%run-agent-turn config msgs compaction emit timeout request-fn
+              system-prompt turn max-turns deadline-sec session-timeout
+              last-tool-calls
+            ) ;%run-agent-turn
+      (let ((ext-emit (%ext-emit config)))
+        (when ext-emit
+          (ext-emit 'turn_start (list (cons 'turn turn)))
+        ) ;when
+        (let* ((msgs (pi-maybe-compact compaction msgs))
+               (msgs (%maybe-inject-steering! msgs config emit))
+               (rem-sec (if deadline-sec (- deadline-sec (pi-current-monotonic-seconds)) #f))
+               (turn-sp (pi-resolve-turn-system-prompt system-prompt
+                          last-tool-calls turn max-turns rem-sec deadline-sec
+                          session-timeout
+                        ) ;pi-resolve-turn-system-prompt
+               ) ;turn-sp
+              ) ;
+          (let*-values (((new-msgs stop-reason tool-calls resp)
+                         (pi-step-agent-turn config msgs turn-sp emit timeout request-fn)
+                        ) ;
+                       ) ;
+            (if (equal? stop-reason "toolUse")
+              (let*-values (((all-msgs terminated?)
+                             (pi-handle-tool-use new-msgs tool-calls emit timeout config resp)
+                            ) ;
+                           ) ;
+                (if terminated?
+                  (list (cons 'action 'stop-check)
+                    (cons 'msgs all-msgs)
+                    (cons 'stop-reason "stop")
+                    (cons 'tool-calls tool-calls)
+                    (cons 'resp resp)
+                  ) ;list
+                  (list (cons 'action 'continue)
+                    (cons 'msgs all-msgs)
+                    (cons 'stop-reason "toolUse")
+                    (cons 'tool-calls tool-calls)
+                    (cons 'resp resp)
+                  ) ;list
+                ) ;if
+              ) ;let*-values
+              (let ((hard-stop? (or (equal? stop-reason "error") (equal? stop-reason "aborted"))))
+                (list (cons 'action (if hard-stop? 'hard-stop 'stop-check))
+                  (cons 'msgs new-msgs)
+                  (cons 'stop-reason stop-reason)
+                  (cons 'tool-calls tool-calls)
+                  (cons 'resp resp)
+                ) ;list
+              ) ;let
+            ) ;if
+          ) ;let*-values
+        ) ;let*
+      ) ;let
+    ) ;define
+
+    ;; 自然停止处理：有注入消息则经 k 续跑（k 接收注入后的消息列表），
+    ;; 无则结算本轮并返回最终消息列表
+    (define (%stop-or-continue msgs stop-reason tool-calls emit config resp k)
+      (let ((next-msgs (%natural-stop-continue msgs config emit)))
+        (if next-msgs
+          (k next-msgs)
+          (pi-finish-agent-turn msgs stop-reason tool-calls emit config resp)
+        ) ;if
+      ) ;let
+    ) ;define
+
     (define* (run-agent-loop config
                initial-messages
                system-prompt
@@ -207,7 +280,6 @@
                              #f
                            ) ;if
              ) ;deadline-sec
-             (ext-emit (%ext-emit config))
             ) ;
         (let loop
           ((msgs initial-messages) (turn 0) (last-tool-calls '()))
@@ -228,40 +300,39 @@
              (pi-emit-agent-error (%make-max-turns-error) msgs emit config)
             ) ;
             (else
-              (when ext-emit
-                (ext-emit 'turn_start (list (cons 'turn turn)))
-              ) ;when
-              (let* ((msgs (pi-maybe-compact compaction msgs))
-                     (now (pi-current-monotonic-seconds))
-                     (rem-sec (if deadline-sec (- deadline-sec now) #f))
-                     (turn-sp (pi-resolve-turn-system-prompt system-prompt
-                                last-tool-calls turn max-turns rem-sec
-                                deadline-sec session-timeout
-                              ) ;pi-resolve-turn-system-prompt
-                     ) ;turn-sp
+              (let* ((decision (%run-agent-turn config msgs compaction emit
+                                 timeout request-fn system-prompt turn max-turns
+                                 deadline-sec session-timeout last-tool-calls
+                               ) ;%run-agent-turn
+                     ) ;decision
+                     (d-msgs (cdr (assq 'msgs decision)))
+                     (d-stop (cdr (assq 'stop-reason decision)))
+                     (d-tc (cdr (assq 'tool-calls decision)))
+                     (d-resp (cdr (assq 'resp decision)))
                     ) ;
-                (let*-values (((new-msgs stop-reason tool-calls resp)
-                               (pi-step-agent-turn config msgs turn-sp emit timeout request-fn)
-                              ) ;
-                             ) ;
-                  (if (equal? stop-reason "toolUse")
-                    (let*-values (((all-msgs terminated?)
-                                   (pi-handle-tool-use new-msgs tool-calls emit timeout config resp)
-                                  ) ;
-                                 ) ;
-                      (if terminated?
-                        (pi-finish-agent-turn all-msgs "stop" '() emit config resp)
-                        (begin
-                          (when (procedure? emit)
-                            (emit 'turn_start)
-                          ) ;when
-                          (loop all-msgs (+ turn 1) tool-calls)
-                        ) ;begin
-                      ) ;if
-                    ) ;let*-values
-                    (pi-finish-agent-turn new-msgs stop-reason tool-calls emit config resp)
-                  ) ;if
-                ) ;let*-values
+                (cond
+                 ((eq? (cdr (assq 'action decision)) 'continue)
+                  (when (procedure? emit)
+                    (emit 'turn_start)
+                  ) ;when
+                  (loop d-msgs (+ turn 1) d-tc)
+                 ) ;
+                 ((eq? (cdr (assq 'action decision)) 'hard-stop)
+                  (pi-finish-agent-turn d-msgs d-stop d-tc emit config d-resp)
+                 ) ;
+                 (else
+                   ;; 自然停止前轮询点：steering 优先，其次 follow-up
+                   ;; （含工具批次 terminate 后的场景，对齐上游不阻断排队消息）
+                   (%stop-or-continue d-msgs
+                     d-stop
+                     d-tc
+                     emit
+                     config
+                     d-resp
+                     (lambda (next) (loop next (+ turn 1) d-tc))
+                   ) ;%stop-or-continue
+                 ) ;else
+                ) ;cond
               ) ;let*
             ) ;else
           ) ;cond

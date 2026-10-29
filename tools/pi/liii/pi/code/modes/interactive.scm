@@ -19,12 +19,17 @@
     status-card? apply-card-bg make-tui-agent-handler pi-app-scroll-view
     pi-app-scroll-up! pi-app-scroll-down! pi-app-scroll-top!
     pi-app-scroll-bottom! pi-app-scroll-line-up! pi-app-scroll-line-down!
-    pi-app-frame-lines pi-app-handle-mouse!
+    pi-app-frame-lines pi-app-handle-mouse! pi-app-steering-chan
+    pi-app-follow-up-chan %pi-app-steering-pending %pi-app-follow-up-pending
+    pi-app-queue-steering! pi-app-queue-follow-up!
+    pi-app-remove-pending-message! pi-app-restore-queues!
   ) ;export
   (import (liii pi code modes interactive header)
     (liii pi code modes interactive footer)
     (liii pi code modes interactive thinking)
+    (liii pi code modes interactive state)
     (liii pi code modes interactive app)
+    (liii pi code modes interactive app-events)
     (liii pi code modes interactive run)
     (liii pi code modes interactive views)
     (liii pi code modes interactive status-card)

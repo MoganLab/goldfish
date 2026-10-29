@@ -8,7 +8,9 @@
 (define-library (liii pi code modes interactive app-events)
   (export pi-app-chat pi-app-add-user-message! pi-app-add-tool-result!
     pi-app-add-assistant-text! pi-app-add-retry-message! pi-app-drain-queue!
-    pi-app-poll-events! %pi-app-job-payload
+    pi-app-poll-events! %pi-app-job-payload pi-app-queue-steering!
+    pi-app-queue-follow-up! pi-app-remove-pending-message!
+    pi-app-restore-queues!
   ) ;export
   (import (scheme base)
     (liii go)
@@ -65,6 +67,87 @@
     ;; 会话内 /model 与 /thinking 切换均对下一条消息生效（对齐上游 per-request 覆盖）
     (define (%pi-app-job-payload app msg)
       (list msg (pi-app-thinking-level app) (pi-app-provider app) (pi-app-model app))
+    ) ;define
+
+    ;; 安全带超时的通道发送：通道异常（已关闭等）时静默降级，仅保留显示列表
+    (define (%chan-offer! ch msg)
+      (catch #t (lambda () (chan-send! ch msg 1000)) (lambda args #f))
+    ) ;define
+
+    ;; 列表移除首个等于 text 的元素（对齐上游 indexOf+splice 的消费同步）
+    (define (%remove-first texts text)
+      (let loop
+        ((rest texts) (acc '()))
+        (cond ((null? rest) (reverse acc))
+              ((equal? (car rest) text) (append (reverse acc) (cdr rest)))
+              (else (loop (cdr rest) (cons (car rest) acc)))
+        ) ;cond
+      ) ;let
+    ) ;define
+
+    ;; steering 注入（busy 时回车）：写入通道 + 追加显示列表
+    (define (pi-app-queue-steering! app text)
+      (%chan-offer! (pi-app-steering-chan app) text)
+      (%pi-app-steering-pending-set! app
+        (append (%pi-app-steering-pending app) (list text))
+      ) ;%pi-app-steering-pending-set!
+    ) ;define
+
+    ;; follow-up 注入（busy 时 alt+enter）：写入通道 + 追加显示列表
+    (define (pi-app-queue-follow-up! app text)
+      (%chan-offer! (pi-app-follow-up-chan app) text)
+      (%pi-app-follow-up-pending-set! app
+        (append (%pi-app-follow-up-pending app) (list text))
+      ) ;%pi-app-follow-up-pending-set!
+    ) ;define
+
+    ;; worker 消费注入消息：优先从 steering 显示移除，其次 follow-up
+    ;; （与 worker 侧 steering 优先的消费顺序一致）
+    (define (pi-app-remove-pending-message! app text)
+      (let ((steering (%pi-app-steering-pending app)))
+        (if (member text steering)
+          (%pi-app-steering-pending-set! app (%remove-first steering text))
+          (%pi-app-follow-up-pending-set! app
+            (%remove-first (%pi-app-follow-up-pending app) text)
+          ) ;%pi-app-follow-up-pending-set!
+        ) ;if
+      ) ;let
+    ) ;define
+
+    ;; 非阻塞排空通道（ESC 撤回时与显示列表对齐后丢弃残余）
+    (define (%drain-chan ch)
+      (let loop
+        ((acc '()))
+        (let ((m (catch #t (lambda () (chan-try-recv! ch #f)) (lambda args #f))))
+          (if (and (string? m) (not (string-null? m))) (loop (cons m acc)) (reverse acc))
+        ) ;let
+      ) ;let
+    ) ;define
+
+    ;; 通道残余中不在显示列表里的部分（防御性兜底，正常恒为空）
+    (define (%chan-leftovers drained shown)
+      (cond ((null? drained) '())
+            ((member (car drained) shown) (%chan-leftovers (cdr drained) shown))
+            (else (cons (car drained) (%chan-leftovers (cdr drained) shown)))
+      ) ;cond
+    ) ;define
+
+    ;; 撤回全部排队消息（ESC）：steering → follow-up → 等待队列，
+    ;; 按上游顺序合并返回；同时排空两个通道并清空显示列表
+    (define (pi-app-restore-queues! app)
+      (let* ((steering (%pi-app-steering-pending app))
+             (follow-up (%pi-app-follow-up-pending app))
+             (items (pi-queue-restore-all! (pi-app-queue app)))
+             (chan-steer (%drain-chan (pi-app-steering-chan app)))
+             (chan-fu (%drain-chan (pi-app-follow-up-chan app)))
+             (leftovers (%chan-leftovers (append chan-steer chan-fu) (append steering follow-up))
+             ) ;leftovers
+             (all (append steering follow-up items leftovers))
+            ) ;
+        (%pi-app-steering-pending-set! app '())
+        (%pi-app-follow-up-pending-set! app '())
+        all
+      ) ;let*
     ) ;define
 
     ;; 队列调度：消费前先上屏深蓝卡片并即时渲染；返回 #t 表示本次消费并渲染
@@ -217,6 +300,12 @@
             ((tool_execution_end) (%pi-app-handle-tool-end! app ev))
             ((assistant_text) (pi-app-add-assistant-text! app (cadr ev)))
             ((retry) (pi-app-add-retry-message! app (cadr ev)))
+            ;; worker 消费了 steering / follow-up 注入消息：
+            ;; 移除待处理显示并上屏正式用户卡片（对齐上游 message_start 双动作）
+            ((user_message)
+             (pi-app-remove-pending-message! app (cadr ev))
+             (pi-app-add-user-message! app (cadr ev))
+            ) ;
             (else #t)
       ) ;case
     ) ;define

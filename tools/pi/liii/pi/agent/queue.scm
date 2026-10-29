@@ -8,9 +8,12 @@
   (export make-pi-message-queue pi-message-queue? pi-queue-empty?
     pi-queue-length pi-queue-idle? pi-queue-busy? pi-queue-items
     pi-queue-enqueue! pi-queue-dequeue-next! pi-queue-finish-task!
-    pi-queue-set-busy! pi-queue-restore-all!
+    pi-queue-set-busy! pi-queue-restore-all! make-pi-pending-queue
+    pi-pending-queue? pi-pending-mode pi-pending-mode-set! pi-pending-empty?
+    pi-pending-length pi-pending-items pi-pending-enqueue! pi-pending-peek
+    pi-pending-drain! pi-pending-clear!
   ) ;export
-  (import (scheme base) (liii queue))
+  (import (scheme base) (liii queue) (liii error))
   (begin
 
     ;; 消息等待队列与调度状态机
@@ -79,6 +82,90 @@
     ;; 快捷键撤回队列：排空所有未被消费的消息并返回
     (define (pi-queue-restore-all! q)
       (list-queue-remove-all! (%pi-queue-items q))
+    ) ;define
+
+    ;; steering / follow-up 待处理队列（对齐上游 pi 的 PendingMessageQueue）
+    ;; mode: 'one-at-a-time（每轮只投递队首一条，默认）
+    ;;    或 'all（一次性投递全部）
+    ;; items: FIFO 消息队列
+    ;; 与 <pi-message-queue> 的分工：后者负责 TUI 主线程的整轮任务调度
+    ;; （idle/busy 状态机），本类型只表达"运行中/运行后注入消息"的投递粒度
+    (define-record-type <pi-pending-queue>
+      (%make-pi-pending-queue mode items)
+      pi-pending-queue?
+      (mode %pi-pending-queue-mode %pi-pending-queue-mode-set!)
+      (items %pi-pending-queue-items)
+    ) ;define-record-type
+
+    (define (%pi-pending-check-mode mode)
+      (if (memq mode '(one-at-a-time all))
+        mode
+        (type-error (string-append "pi-pending-mode-set!: expected 'one-at-a-time or 'all, got "
+                      (object->string mode)
+                    ) ;string-append
+        ) ;type-error
+      ) ;if
+    ) ;define
+
+    (define (make-pi-pending-queue)
+      (%make-pi-pending-queue 'one-at-a-time (make-list-queue '()))
+    ) ;define
+
+    (define (pi-pending-mode q)
+      (%pi-pending-queue-mode q)
+    ) ;define
+
+    (define (pi-pending-mode-set! q mode)
+      (%pi-pending-queue-mode-set! q (%pi-pending-check-mode mode))
+    ) ;define
+
+    (define (pi-pending-empty? q)
+      (list-queue-empty? (%pi-pending-queue-items q))
+    ) ;define
+
+    (define (pi-pending-length q)
+      (length (list-queue-list (%pi-pending-queue-items q)))
+    ) ;define
+
+    (define (pi-pending-items q)
+      (list-queue-list (%pi-pending-queue-items q))
+    ) ;define
+
+    ;; 入队：追加到队尾，返回当前长度
+    (define (pi-pending-enqueue! q msg)
+      (list-queue-add-back! (%pi-pending-queue-items q) msg)
+      (pi-pending-length q)
+    ) ;define
+
+    ;; 预览下次投递将取走的消息，不移除：
+    ;; one-at-a-time 只看队首一条，all 看全部
+    (define (pi-pending-peek q)
+      (if (eq? (%pi-pending-queue-mode q) 'all)
+        (pi-pending-items q)
+        (let ((items (pi-pending-items q)))
+          (if (pair? items) (list (car items)) '())
+        ) ;let
+      ) ;if
+    ) ;define
+
+    ;; 消费：取走 peek 选中部分并从队列移除
+    (define (pi-pending-drain! q)
+      (let ((picked (pi-pending-peek q)))
+        (if (null? picked)
+          '()
+          (let loop
+            ((rest picked))
+            (list-queue-remove-front! (%pi-pending-queue-items q))
+            (if (pair? (cdr rest)) (loop (cdr rest)))
+          ) ;let
+        ) ;if
+        picked
+      ) ;let
+    ) ;define
+
+    ;; 清空并返回全部剩余消息（ESC 撤回回编辑器用）
+    (define (pi-pending-clear! q)
+      (list-queue-remove-all! (%pi-pending-queue-items q))
     ) ;define
 
   ) ;begin

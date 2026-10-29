@@ -15,7 +15,10 @@
 ;; 对齐上游 packages/coding-agent/src/modes/interactive/chat-viewport.ts：
 ;; transcript 占据剩余空间（grow），dock 固定在底部。
 (define-library (liii pi code modes interactive render)
-  (export pi-app-render! pi-app-frame-lines pi-app-transcript-lines)
+  (export pi-app-render! pi-app-frame-lines pi-app-transcript-lines
+    pi-app-scroll-up! pi-app-scroll-down! pi-app-scroll-top!
+    pi-app-scroll-bottom! pi-app-scroll-line-up! pi-app-scroll-line-down!
+  ) ;export
   (import (scheme base)
     (liii string)
     (liii list)
@@ -58,7 +61,7 @@
     ;; 未跟随末尾时，在视口底部叠加“跳到最新消息”提示行
     ;; （对齐上游 tui-alt-screen.ts 的 scrollToEndIndicator）
     (define (%pi-scroll-hint-line width)
-      (apply-card-bg " ↓ Jump to latest message · ctrl+end " width
+      (apply-card-bg " ↓ Jump to latest message · Ctrl+End " width
         %bg-pending %fg-title
       ) ;apply-card-bg
     ) ;define
@@ -82,6 +85,31 @@
             ) ;
         (container-clear! pending-box)
         (when (pi-queue-busy? q)
+          ;; 待处理区分组展示全部排队消息（对齐上游 updatePendingMessagesDisplay）：
+          ;; steering 组 → follow-up 组 → 撤回提示行 → 原等待队列（旧语义兼容）
+          (for-each
+            (lambda (text)
+              (container-add! pending-box
+                (make-queued-card (string-append "Steering: " text))
+              ) ;container-add!
+            ) ;lambda
+            (%pi-app-steering-pending app)
+          ) ;for-each
+          (for-each
+            (lambda (text)
+              (container-add! pending-box
+                (make-queued-card (string-append "Follow-up: " text))
+              ) ;container-add!
+            ) ;lambda
+            (%pi-app-follow-up-pending app)
+          ) ;for-each
+          (when (or (pair? (%pi-app-steering-pending app))
+                  (pair? (%pi-app-follow-up-pending app))
+                ) ;or
+            (container-add! pending-box
+              (make-queued-card "↳ ESC abort · Alt+Up edit queued messages")
+            ) ;container-add!
+          ) ;when
           (let ((items (pi-queue-items q)))
             (unless (null? items)
               (container-add! pending-box (make-queued-card (car items)))
@@ -189,6 +217,33 @@
           (alt-screen-render! screen frame cur-pos)
         ) ;let-values
       ) ;let
+    ) ;define
+
+    ;; 全屏模式下的对话记录滚动：
+    ;; page-up/page-down 整页滚动，ctrl+shift+up/down 单行滚动，
+    ;; ctrl+shift+home/end 跳到记录顶部/末尾（末尾即恢复 follow）
+    (define (pi-app-scroll-up! app)
+      (scroll-view-page-up! (pi-app-scroll-view app))
+    ) ;define
+
+    (define (pi-app-scroll-down! app)
+      (scroll-view-page-down! (pi-app-scroll-view app))
+    ) ;define
+
+    (define (pi-app-scroll-line-up! app)
+      (scroll-view-scroll-by! (pi-app-scroll-view app) -1)
+    ) ;define
+
+    (define (pi-app-scroll-line-down! app)
+      (scroll-view-scroll-by! (pi-app-scroll-view app) 1)
+    ) ;define
+
+    (define (pi-app-scroll-top! app)
+      (scroll-view-to-top! (pi-app-scroll-view app))
+    ) ;define
+
+    (define (pi-app-scroll-bottom! app)
+      (scroll-view-to-bottom! (pi-app-scroll-view app))
     ) ;define
 
   ) ;begin

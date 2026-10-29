@@ -97,7 +97,7 @@ timeout 300 bin/gf pi -c -p "刚才的暗号是什么？"
 timeout 300 bin/gf pi -c -p "继续上一轮的话题"
 
 # 选择并恢复历史会话（--resume / -r）：默认当前目录，Tab 切换全部项目；
-# 输入模糊搜索，Enter 恢复，Esc 取消；Ctrl+N 仅看命名会话，
+# 输入模糊搜索，Enter 恢复，ESC 取消；Ctrl+N 仅看命名会话，
 # Ctrl+P 显示文件路径，Ctrl+S 切换最近时间/相关度排序。
 bin/gf pi --resume
 
@@ -155,17 +155,44 @@ agent 正在流式输出时结果延迟落盘，下一条消息才可见（对�
 | `Ctrl+Home` / `Ctrl+End` | 跳到对话记录顶部/末尾（末尾恢复跟随） |
 | `Ctrl+C` | 清空输入框（不退出、不中断任务） |
 | `Ctrl+D` | 输入框为空时退出 TUI |
-| `Esc` | busy 时中断任务；空闲时撤回排队消息到输入框 |
+| `ESC` | busy 时中断任务并把排队消息撤回到输入框；空闲时撤回排队消息到输入框 |
+| `Alt+Up` | 仅把排队消息（steering / follow-up）撤回到输入框，不中断运行中任务 |
+| `Enter`（busy 时） | steering：插话注入当前运行中的任务（工具批次结束后、下次请求前生效） |
+| `Alt+Enter` | follow-up：排队到当前任务自然结束后再执行；空闲时等同 `Enter` |
 | `Ctrl+O` | 展开/折叠工具与 bash 输出 |
 | `Shift+Tab` | 循环切换 thinking level |
 | 鼠标滚轮 | 上下滚动对话记录（单次滚轮 1 行，快速连续滚动自动加速，最多 6 行/次） |
+
+### steering 与 follow-up（运行中插话/排队，任务 1193）
+
+对齐上游 pi 的两种排队机制（`steer()` / `followUp()`）：
+
+- **steering（busy 时 `Enter`）**：消息经专用通道送到后台 worker，
+  `run-agent-loop` 在**当前 assistant 轮的全部工具调用结束后、下一次 LLM
+  请求前**注入为 user 消息；一次轮询注入一条（one-at-a-time），
+  多条排队消息在后续轮次依次注入。
+- **follow-up（busy 时 `Alt+Enter`）**：消息在任务**自然结束**（无更多
+  工具调用且无 steering）时才注入并驱动新一轮，然后继续。
+- **硬退出不消费**：ESC 中止、请求 error/aborted、max-turns、会话超时
+  结算时不轮询任何队列，消息保留在通道里，由下一个任务继续消费。
+- **待处理区**：busy 时输入区上方分组展示全部排队消息
+  （`Steering: ...` / `Follow-up: ...`）与撤回提示；worker 消费时
+  上屏正式用户卡片并同步移除待处理项。
+- **撤回**：`ESC`（中止 + 撤回）或 `Alt+Up`（仅撤回），
+  按 steering → follow-up 顺序合并回输入框。
+
+实现分层：`(liii pi agent queue)` 提供 `pi-pending-queue` 双粒度队列；
+`(liii pi agent loop)` 的 `run-agent-loop` 经 config 的
+`get-steering-messages` / `get-follow-up-messages` 回调轮询；
+TUI 层由 `app.scm` / `worker.scm` / `app-events.scm` 经 go channel
+跨线程接线。
 
 ### 离开跟随位置时的提示
 
 对话记录未跟随末尾（已向上翻页）时，视口底部会叠加一行提示：
 
 ```text
- ↓ Jump to latest message · ctrl+end
+ ↓ Jump to latest message · Ctrl+End
 ```
 
 按 `Ctrl+End` 即可回到最新消息。
@@ -665,7 +692,8 @@ Sources/Additional Results 拼装、7 类错误路径（401/403/超时/非 JSON/
 | 10 | `KIMI_API_KEY` 环境变量兜底未生效：auth 解析只读 auth.json 的 kimi-coding 条目，env 被忽略——假 key 也返回周配额 403（而非 401），证明请求从未携带 env key；阻塞三把 kimi key 分摊配额 | 实测（2026-10-19）：`KIMI_API_KEY=sk-bogus bin/gf pi --provider kimi-coding --model k3` 返回周配额 403；**对照**：同 hongwei key `KIMI_API_KEY=... pi --provider kimi-coding --model k3` 本尊返回 ok（pi 源码 env-api-keys.ts 同名变量、env 优先） | ✅ 已修复（任务 035：env > auth.json 统一五个 provider；修复后假 key 实测返回 401；验收脚本 035.scm 27/27） |
 | 11 | deepseek 首轮 tool_use 参数解析崩溃：`Error: (value-error (("input") " must be null, pair, or list with at least 2 elements"))`——会话记录仅 2 行（session+user），崩溃发生在首轮 API 响应解析（未执行任何工具）；037 开发两次拉起同点确定性复现（030/033/036 用 deepseek 未触发，疑与 deepseek 某类 tool_use 参数形状相关，如 input 为 JSON 字符串/嵌套形状） | 实测（2026-10-20）：037 开发第 1/2 次拉起均在加载 Agents.md 首轮响应后秒崩，会话 jsonl 取证 | ✅ 已修复（任务 050：根因 C++ json_write_object_entry 对单元素 list 约束 + 空参数 cons 退化；anthropic-normalize-input/parse-tool-arguments 多形态兼容；deepseek 工具调用实测恢复） |
 | 12 | deepseek 流式间歇性 `HTTP 400 stream error`：验收阶段大上下文拉起偶发连续中断（非每次——039 文档/开发、040 文档/开发均 deepseek 成功；039 验收×2 与 040 验收×1 连续遇到）——疑 deepseek 网关对某类大 prompt 流式响应的偶发拒绝；未定位到请求体差异 | 实测（2026-10-20）：三次同错（/tmp/pi-goldfish-run.log 取证），换模型即恢复 | 观察中（复现频繁时登记修复任务；当前以换模型规避） |
-| 13 | goldfish2 快照同步盲区：任务改动**主库 goldfish/liii/** 且未 commit 时，git 同步拿不到工作区改动，执行器（goldfish2 bin/gf）加载工作区 pi 代码报 `unbound variable ~S in ~S`（052 改 date-time 主库两次触发）；修复：同步时 diff 主库并拷贝未提交文件 | 实测（2026-10-20）：052 验收两次秒崩，cp date-time.scm 后恢复；附带发现错误消息 ~S 占位符未替换的 cosmetic bug（观察中） |
+| 13 | goldfish2 快照同步盲区：任务改动**主库 goldfish/liii/** 且未 commit 时，git 同步拿不到工作区改动，执行器（goldfish2 bin/gf）加载工作区 pi 代码报 `unbound variable ~S in ~S`（052 改 date-time 主库两次触发）；修复：同步时 diff 主库并拷贝未提交文件 | 实测（2026-10-20）：052 验收两次秒崩，cp date-time.scm 后恢复；附带发现错误消息 ~S 占位符未替换的 cosmetic bug（观察中） | ✅ 已修复（同步时 diff 主库并拷贝未提交文件） |
+| 14 | working 状态下用户消息只能等整轮结束：无 steering（工具批次后插话）、无 follow-up（排队到自然结束）区分，待处理区也只显示队首一条；pi 本尊两者均有且分组展示全部排队消息 | 实测（2026-10-24）：busy 回车的消息只能等 agent_settled 后作为新任务消费；参考 pi 本尊 agent.steer/followUp + pendingMessagesContainer | ✅ 已修复（任务 1193：pi-pending-queue 双粒度队列 + run-agent-loop 双轮询钩子 + go channel 跨线程接线 + Alt+Enter/Alt+Up 键位与分组展示，详见「steering 与 follow-up」章节） |
 
 ## Provider 支持范围
 

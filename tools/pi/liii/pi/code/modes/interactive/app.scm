@@ -86,51 +86,6 @@
       ) ;let
     ) ;define
 
-    ;; 用户提交：/model 切换模型；/session 展示统计；/name 管理名称；
-    ;; /resume 恢复历史会话；! 前缀执行 bash；其余消息进入队列
-    (define (pi-app-submit! app text)
-      (let ((clean (string-trim text)))
-        (unless (string-null? clean)
-          (cond ((pi-app-model-command? clean) (pi-app-submit-model! app clean))
-                ((pi-app-thinking-command? clean) (pi-app-submit-thinking! app clean))
-                ((pi-app-session-command? clean) (pi-app-submit-session! app))
-                ((pi-app-name-command? clean) (pi-app-submit-name! app clean))
-                ((pi-app-resume-command? clean) (pi-app-submit-resume! app clean))
-                (else
-                  ;; bash 模式：!cmd 直接经 bash 执行（对齐 pi 的 !/!! 前缀行为）；
-                  ;; 命令为空（仅 "!" 或 "!!"）时回退为普通消息提交（对齐 pi 的 fall-through）
-                  (let* ((bang? (%starts-with-char? clean #\!))
-                         (excluded? (and bang? (> (string-length clean) 1) (char=? (string-ref clean 1) #\!))
-                         ) ;excluded?
-                         (cmd-start (if excluded? 2 1))
-                         (command
-                           (and bang?
-                             (not (string-null? (string-trim (substring clean cmd-start))))
-                             (string-trim (substring clean cmd-start))
-                           ) ;and
-                         ) ;command
-                        ) ;
-                    (if command
-                      (pi-app-run-bash! app command :excluded? excluded?)
-                      (let ((q (pi-app-queue app)) (ed (pi-app-editor app)))
-                        (pi-queue-enqueue! q clean)
-                        (editor-set-text! ed "")
-                        ;; 发送新消息时把对话记录拉回末尾（恢复 follow），
-                        ;; 否则用户停留在历史位置会看不到自己的新消息
-                        (pi-app-scroll-bottom! app)
-                        (when (pi-queue-busy? q)
-                          (pi-app-render! app)
-                        ) ;when
-                        (pi-app-drain-queue! app)
-                      ) ;let
-                    ) ;if
-                  ) ;let*
-                ) ;else
-          ) ;cond
-        ) ;unless
-      ) ;let
-    ) ;define
-
     (define (%pi-app-complete-command! app menu ed)
       (let ((item (select-list-selected-item menu)))
         (when item
@@ -152,13 +107,26 @@
     ) ;define
 
     ;; 输入分发：命令菜单激活时处理选择键，其余输入仍交给编辑器；
-    ;; thinking 选择器优先，与既有主循环行为一致。
+    ;; thinking 选择器优先，与既有主循环行为一致；
+    ;; alt+enter：排队 follow-up（busy 时等运行结束，空闲时等同回车），
+    ;; 对齐上游 app.message.followUp 键位
     (define (pi-app-handle-input! app key)
       (let ((selector (pi-app-active-selector app))
             (menu (pi-app-slash-command-menu app))
             (ed (pi-app-editor app))
            ) ;
         (cond (selector (component-handle-input selector key))
+              ((and (eq? key 'alt-enter) (not menu))
+               (let ((text (string-trim (editor-expanded-text ed))))
+                 (unless (string-null? text)
+                   ;; 与编辑器原生提交同步：入历史 + 清空输入框
+                   (history-push! (editor-history ed) text)
+                   (editor-set-text! ed "")
+                   (pi-app-submit! app text 'follow-up)
+                 ) ;unless
+                 #t
+               ) ;let
+              ) ;
               (menu (case key
                      ((escape) (%pi-app-slash-command-menu-set! app #f) #t)
                      ((up down) (component-handle-input menu key))
@@ -170,33 +138,6 @@
               (else (component-handle-input ed key))
         ) ;cond
       ) ;let
-    ) ;define
-
-    ;; 全屏模式下的对话记录滚动：
-    ;; page-up/page-down 整页滚动，ctrl+shift+up/down 单行滚动，
-    ;; ctrl+shift+home/end 跳到记录顶部/末尾（末尾即恢复 follow）
-    (define (pi-app-scroll-up! app)
-      (scroll-view-page-up! (pi-app-scroll-view app))
-    ) ;define
-
-    (define (pi-app-scroll-down! app)
-      (scroll-view-page-down! (pi-app-scroll-view app))
-    ) ;define
-
-    (define (pi-app-scroll-line-up! app)
-      (scroll-view-scroll-by! (pi-app-scroll-view app) -1)
-    ) ;define
-
-    (define (pi-app-scroll-line-down! app)
-      (scroll-view-scroll-by! (pi-app-scroll-view app) 1)
-    ) ;define
-
-    (define (pi-app-scroll-top! app)
-      (scroll-view-to-top! (pi-app-scroll-view app))
-    ) ;define
-
-    (define (pi-app-scroll-bottom! app)
-      (scroll-view-to-bottom! (pi-app-scroll-view app))
     ) ;define
 
     ;; 鼠标事件处理：滚轮上下滚动对话记录；点击派发给 doc 组件树
@@ -319,6 +260,9 @@
              (event-chan (make-chan 32))
              (abort-chan (make-chan 1))
              (bash-jobs-chan (make-chan 16))
+             ;; steering / follow-up 注入通道：容量 16 与 jobs-chan 对齐
+             (steering-chan (make-chan 16))
+             (follow-up-chan (make-chan 16))
              (actual-record-sink (%make-pi-record-sink record-sink jobs-chan))
              (app (%make-pi-app actual-term
                     screen
@@ -357,6 +301,10 @@
                     (and no-session? #t)
                     (make-scroll-view doc)
                     (make-wheel-scroll-accelerator)
+                    steering-chan
+                    follow-up-chan
+                    '()
+                    '()
                   ) ;%make-pi-app
              ) ;app
              (ed (%make-pi-editor app tl))
@@ -368,7 +316,10 @@
         (%pi-app-editor-set! app ed)
         ;; 无自定义 handler 时启动后台 agent worker
         (unless handler
-          (go (pi-tui-agent-worker jobs-chan event-chan abort-chan session-file))
+          (go (pi-tui-agent-worker jobs-chan event-chan abort-chan session-file
+                steering-chan follow-up-chan
+              ) ;pi-tui-agent-worker
+          ) ;go
         ) ;unless
         ;; 无注入执行器时启动后台 bash worker
         (unless bash-handler

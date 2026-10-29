@@ -220,7 +220,7 @@
   (pi-app-scroll-up! app)
   (pi-app-render! app)
   (check-true (string-contains? (frame-text) "Jump to latest message"))
-  (check-true (string-contains? (frame-text) "ctrl+end"))
+  (check-true (string-contains? (frame-text) "Ctrl+End"))
   ;; 回到末尾后提示消失
   (pi-app-scroll-bottom! app)
   (pi-app-render! app)
