@@ -21,7 +21,7 @@
     session-selector-sort-mode session-selector-name-filter
     session-selector-show-path? session-selector-visible-sessions
     session-selector-search session-selector-selected-index
-    session-selector-format-age
+    session-selector-format-age session-selector-cursor-position
   ) ;export
   (begin
 
@@ -81,6 +81,15 @@
     ) ;define
     (define (session-selector-selected-index comp)
       (state-selected (%state comp))
+    ) ;define
+
+    ;; 搜索输入框光标位置：渲染时搜索行位于第 6 行（0 基），
+    ;; 行首为 "> " 前缀，故列偏移为 2 + 搜索文本显示宽度
+    ;; （与 model/thinking 选择器同构，供 TUI 内嵌渲染定位硬件光标）
+    (define (session-selector-cursor-position comp)
+      (let ((search (state-search (%state comp))))
+        (list 6 (+ 2 (editor-display-col search)))
+      ) ;let
     ) ;define
 
     (define (%source state)

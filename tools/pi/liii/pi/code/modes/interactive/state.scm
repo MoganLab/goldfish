@@ -23,7 +23,8 @@
     %pi-app-session-name-set! %pi-editor-top-border pi-app-provider
     %pi-app-provider-set! pi-app-model %pi-app-model-set! pi-app-models
     %pi-app-default-model %pi-app-on-save-model %pi-app-supports-thinking?-set!
-    %pi-app-available-thinking-levels-set!
+    %pi-app-available-thinking-levels-set! pi-app-resume-sessions
+    %pi-app-resume-sessions-set! pi-app-no-session?
   ) ;export
   (import (scheme base))
   (begin
@@ -37,7 +38,8 @@
         working thinking-level supports-thinking available-thinking-levels
         default-thinking-level on-save-thinking-level bash-mode? tools-expanded?
         bash-cards bash-jobs-chan bash-handler record-sink session-name provider
-        model models default-model on-save-model tool-cards
+        model models default-model on-save-model tool-cards resume-sessions
+        no-session?
       ) ;%make-pi-app
       pi-app?
       (term pi-app-term)
@@ -88,6 +90,11 @@
       (default-model %pi-app-default-model)
       ;; Ctrl+S 持久化回调 (lambda (provider model-id))
       (on-save-model %pi-app-on-save-model)
+      ;; /resume 会话数据源：无参调用返回 (values current-sessions all-thunk)，
+      ;; 由 cli.scm 复用 pi-load-resume-sessions 提供；#f 表示不可用
+      (resume-sessions pi-app-resume-sessions %pi-app-resume-sessions-set!)
+      ;; --no-session 模式：会话持久化已禁用，/resume 明确拒绝切换
+      (no-session? pi-app-no-session?)
     ) ;define-record-type
 
     (define %pi-app-term pi-app-term)

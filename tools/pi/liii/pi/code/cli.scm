@@ -178,14 +178,12 @@
       ) ;or
     ) ;define
 
+    (define (%load-resume-sessions parsed cfg)
+      (pi-load-resume-sessions parsed cfg (path->string (path-cwd)))
+    ) ;define
+
     (define (%select-resume-session parsed)
-      (let-values (((current all)
-                    (pi-load-resume-sessions parsed
-                      (%resolved-cfg parsed)
-                      (path->string (path-cwd))
-                    ) ;pi-load-resume-sessions
-                   ) ;
-                  ) ;
+      (let-values (((current all) (%load-resume-sessions parsed (%resolved-cfg parsed))))
         (pi-run-session-selector current all)
       ) ;let-values
     ) ;define
@@ -206,6 +204,17 @@
                  :models        (list-ref info 6)
                  :default-model (list-ref info 7)
                  :session-file  (pi-args-ref parsed 'session-file)
+                 :resume-sessions
+                 ;; 与 --resume 共用枚举逻辑；首次使用时解析并缓存配置
+                 (let ((cfg #f))
+                   (lambda ()
+                     (unless cfg
+                       (set! cfg (%resolved-cfg parsed))
+                     ) ;unless
+                     (%load-resume-sessions parsed cfg)
+                   ) ;lambda
+                 ) ;let
+                 :no-session? (pi-args-ref parsed 'no-session)
                  :on-save-model
                  (lambda (provider model-id)
                    (pi-save-default-model! (list-ref info 5) provider model-id)

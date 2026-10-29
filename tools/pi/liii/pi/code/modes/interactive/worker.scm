@@ -231,6 +231,8 @@
     ;;   请求；agent 忙时在 jobs-chan 排队，结算后才落盘（对齐 pi 流式期间
     ;;   pending、agent_end 冲洗的语义）
     ;; - (session_name 名称)：更新会话显示名并写入 session_info，不触发 LLM
+    ;; - (session_resume 路径)：把 worker 的会话文件切换到所选 JSONL，
+    ;;   后续消息、bash 记录与命名均针对新会话文件
     ;; - (消息 thinking-level)：正常 agent 任务，携带复用的会话文件
     (define (pi-worker-handle-job job parsed cfg sfile-box event-chan abort-chan)
       (cond
@@ -286,6 +288,42 @@
             (pi-tui-send-event! event-chan
               (list 'session_name_error
                 (string-append "Failed to set session name: " (object->string (cons tag args)))
+              ) ;list
+            ) ;pi-tui-send-event!
+          ) ;lambda
+        ) ;catch
+       ) ;
+       ((and (pair? job) (eq? (car job) 'session_resume))
+        (catch #t
+          (lambda ()
+            (let* ((path (cadr job)) (normalized (if (string? path) path (path->string path))))
+              (cond
+                ;; --no-session 模式：会话持久化已禁用，拒绝恢复（不切换、不建文件）
+                ((pi-args-ref parsed 'no-session)
+                 (pi-tui-send-event! event-chan
+                   (list 'session_resume_error "Session persistence is disabled (--no-session)")
+                 ) ;pi-tui-send-event!
+                ) ;
+                ;; 目标文件不存在：保留原会话并报错，不创建任何新文件
+                ((not (file-exists? normalized))
+                 (pi-tui-send-event! event-chan
+                   (list 'session_resume_error
+                     (string-append "Session file not found: " normalized)
+                   ) ;list
+                 ) ;pi-tui-send-event!
+                ) ;
+                (else (vector-set! sfile-box 0 normalized)
+                  (pi-tui-send-event! event-chan
+                    (list 'session_resumed normalized (get-session-name normalized))
+                  ) ;pi-tui-send-event!
+                ) ;else
+              ) ;cond
+            ) ;let*
+          ) ;lambda
+          (lambda (tag . args)
+            (pi-tui-send-event! event-chan
+              (list 'session_resume_error
+                (string-append "Failed to resume session: " (object->string (cons tag args)))
               ) ;list
             ) ;pi-tui-send-event!
           ) ;lambda

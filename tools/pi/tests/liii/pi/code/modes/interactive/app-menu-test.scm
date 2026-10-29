@@ -11,35 +11,54 @@
 ;; 1. 输入 / 打开命令菜单，渲染在编辑器下方，光标仍留在编辑器。
 (let* ((vterm (make-virtual-terminal :width 100 :height 40))
        (app (make-pi-app :terminal vterm :handler (lambda (a msg) #t)))
-       (ed (pi-app-editor app)))
+       (ed (pi-app-editor app))
+      ) ;
   (component-handle-input ed "/")
   (check-true (component? (pi-app-slash-command-menu app)))
-  (check (map (lambda (item) (cdr (assoc 'value item)))
-           (select-list-items (pi-app-slash-command-menu app)))
-    => '("model" "thinking" "name" "session"))
+  (check
+    (map (lambda (item) (cdr (assoc 'value item)))
+      (select-list-items (pi-app-slash-command-menu app))
+    ) ;map
+    =>
+    '("model" "thinking" "name" "session" "resume")
+  ) ;check
   (pi-app-render! app)
   (let ((plain (map strip-ansi (screen-lines (pi-app-screen app)))))
-    (check (length plain) => 15)
+    (check (length plain) => 16)
     (check-true (string-contains? (list-ref plain 9) "/model"))
     (check-true (string-contains? (list-ref plain 9) "Select model"))
     (check-true (string-contains? (list-ref plain 10) "/thinking"))
     (check-true (string-contains? (list-ref plain 10) "Set thinking level"))
     (check-true (string-contains? (list-ref plain 11) "/name"))
     (check-true (string-contains? (list-ref plain 12) "/session"))
-    (check (terminal-cursor vterm) => '(1 7))))
+    (check-true (string-contains? (list-ref plain 13) "/resume"))
+    (check-true (string-contains? (list-ref plain 13) "Select and resume a session")
+    ) ;check-true
+    (check (terminal-cursor vterm) => '(1 7))
+  ) ;let
+) ;let*
 
 ;; 2. 命令名 fuzzy 过滤；普通文本、行内斜杠和无匹配路径不打开菜单。
 (let* ((vterm (make-virtual-terminal :width 100 :height 40))
        (app (make-pi-app :terminal vterm :handler (lambda (a msg) #t)))
-       (ed (pi-app-editor app)))
+       (ed (pi-app-editor app))
+      ) ;
   (editor-set-text! ed "/th")
-  (check (map (lambda (item) (cdr (assoc 'value item)))
-           (select-list-items (pi-app-slash-command-menu app)))
-    => '("thinking"))
+  (check
+    (map (lambda (item) (cdr (assoc 'value item)))
+      (select-list-items (pi-app-slash-command-menu app))
+    ) ;map
+    =>
+    '("thinking")
+  ) ;check
   (editor-set-text! ed "/mo")
-  (check (map (lambda (item) (cdr (assoc 'value item)))
-           (select-list-items (pi-app-slash-command-menu app)))
-    => '("model"))
+  (check
+    (map (lambda (item) (cdr (assoc 'value item)))
+      (select-list-items (pi-app-slash-command-menu app))
+    ) ;map
+    =>
+    '("model")
+  ) ;check
   (editor-set-text! ed "hello /")
   (check (pi-app-slash-command-menu app) => #f)
   (editor-set-text! ed "/tmp")
@@ -51,12 +70,14 @@
   (component-handle-input ed 'backspace)
   (component-handle-input ed 'backspace)
   (check (editor-text ed) => "/")
-  (check-true (component? (pi-app-slash-command-menu app))))
+  (check-true (component? (pi-app-slash-command-menu app)))
+) ;let*
 
 ;; 3. 方向键选择，Tab 仅补全并关闭菜单，Escape 关闭菜单但保留输入。
 (let* ((vterm (make-virtual-terminal :width 100 :height 40))
        (app (make-pi-app :terminal vterm :handler (lambda (a msg) #t)))
-       (ed (pi-app-editor app)))
+       (ed (pi-app-editor app))
+      ) ;
   (component-handle-input ed "/")
   (pi-app-handle-input! app 'down)
   (pi-app-handle-input! app 'down)
@@ -67,20 +88,31 @@
   (editor-set-text! ed "/")
   (pi-app-handle-input! app 'escape)
   (check (pi-app-slash-command-menu app) => #f)
-  (check (editor-text ed) => "/"))
+  (check (editor-text ed) => "/")
+) ;let*
 
 ;; 4. Enter 立即执行当前命令；默认第一项 /model 打开模型选择器。
 (let* ((vterm (make-virtual-terminal :width 100 :height 40))
-       (app (make-pi-app :terminal vterm :handler (lambda (a msg) #t)
-              :models (list (list (cons 'provider "google")
-                                (cons 'id "gemini-2.5-pro")
-                                (cons 'name "Gemini 2.5 Pro")
-                                (cons 'reasoning #t)))))
-       (ed (pi-app-editor app)))
+       (app
+         (make-pi-app
+           :terminal vterm
+           :handler  (lambda (a msg) #t)
+           :models
+           (list (list (cons 'provider "google")
+                   (cons 'id "gemini-2.5-pro")
+                   (cons 'name "Gemini 2.5 Pro")
+                   (cons 'reasoning #t)
+                 ) ;list
+           ) ;list
+         ) ;make-pi-app
+       ) ;app
+       (ed (pi-app-editor app))
+      ) ;
   (component-handle-input ed "/")
   (pi-app-handle-input! app 'enter)
   (check-true (model-selector? (pi-app-active-selector app)))
   (check (pi-app-slash-command-menu app) => #f)
-  (check (editor-text ed) => ""))
+  (check (editor-text ed) => "")
+) ;let*
 
 (check-report)

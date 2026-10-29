@@ -16,7 +16,8 @@
     pi-app-default-thinking-level pi-app-tools-expanded?
     pi-app-toggle-tool-output! pi-app-bash-jobs-chan pi-app-run-bash!
     pi-app-provider pi-app-model pi-app-models %pi-app-job-payload
-    pi-app-available-thinking-levels
+    pi-app-available-thinking-levels pi-app-resume-command?
+    pi-app-submit-resume! pi-app-handle-resume-event!
   ) ;export
   (import (scheme base)
     (liii base)
@@ -39,6 +40,7 @@
     (liii pi code modes interactive app-session)
     (liii pi code modes interactive app-thinking)
     (liii pi code modes interactive app-model)
+    (liii pi code modes interactive app-resume)
     (liii pi code modes interactive app-submit)
     (liii pi code modes interactive common)
     (liii pi code modes interactive header)
@@ -80,7 +82,7 @@
     ) ;define
 
     ;; 用户提交：/model 切换模型；/session 展示统计；/name 管理名称；
-    ;; ! 前缀执行 bash；其余消息进入队列
+    ;; /resume 恢复历史会话；! 前缀执行 bash；其余消息进入队列
     (define (pi-app-submit! app text)
       (let ((clean (string-trim text)))
         (unless (string-null? clean)
@@ -88,6 +90,7 @@
                 ((pi-app-thinking-command? clean) (pi-app-submit-thinking! app clean))
                 ((pi-app-session-command? clean) (pi-app-submit-session! app))
                 ((pi-app-name-command? clean) (pi-app-submit-name! app clean))
+                ((pi-app-resume-command? clean) (pi-app-submit-resume! app clean))
                 (else
                   ;; bash 模式：!cmd 直接经 bash 执行（对齐 pi 的 !/!! 前缀行为）；
                   ;; 命令为空（仅 "!" 或 "!!"）时回退为普通消息提交（对齐 pi 的 fall-through）
@@ -210,6 +213,8 @@
                (default-model #f)
                (on-save-model #f)
                (session-file #f)
+               (resume-sessions #f)
+               (no-session? #f)
              ) ;make-pi-app
       (let* ((actual-term (or terminal (make-standard-terminal :inline #t)))
              (screen (make-main-screen actual-term :auto-hide-cursor #f))
@@ -272,6 +277,8 @@
                     default-model
                     on-save-model
                     '()
+                    resume-sessions
+                    (and no-session? #t)
                   ) ;%make-pi-app
              ) ;app
              (ed (%make-pi-editor app tl))
