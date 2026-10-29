@@ -16,7 +16,7 @@
     pi-app-toggle-tool-output! pi-app-active-selector
     pi-app-default-thinking-level pi-thinking-border-color make-user-card
     make-tool-card make-assistant-card make-queued-card make-retry-card
-    apply-card-bg make-tui-agent-handler
+    status-card? apply-card-bg make-tui-agent-handler
   ) ;export
   (import (liii pi code modes interactive header)
     (liii pi code modes interactive footer)
@@ -24,6 +24,7 @@
     (liii pi code modes interactive app)
     (liii pi code modes interactive run)
     (liii pi code modes interactive views)
+    (liii pi code modes interactive status-card)
     (liii pi code modes interactive handler)
   ) ;import
 ) ;define-library

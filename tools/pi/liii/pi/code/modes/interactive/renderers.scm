@@ -369,27 +369,29 @@
       ) ;cond
     ) ;define
 
-    ;; 格式化工具结果行并折叠 (format-tool-result-lines name result :max-lines 5)
-    ;; max-lines 为 0 或 #f 时表示不折叠（展开态全文输出）
-    (define* (format-tool-result-lines name result (max-lines 5))
+    ;; 格式化工具结果行并折叠
+    ;; (format-tool-result-lines name result :max-lines 5 :expanded? #f)
+    ;; 对齐上游各工具 renderResult：expanded? 为 #t 时全文输出（无截断提示）；
+    ;; 否则按 max-lines 折叠，max-lines 为 0 时折叠态不显示任何输出行
+    (define* (format-tool-result-lines name result (max-lines 5) (expanded? #f))
       (if (or (not result) (and (string? result) (string-null? result)))
         '()
-        (if (or (not max-lines) (and (number? max-lines) (= max-lines 0)))
-          (let* ((res-str (extract-result-text result))
-                 (res-trimmed (string-trim-right res-str #\newline))
-                ) ;
-            (if (string-null? res-trimmed) '() (string-split res-trimmed "\n"))
-          ) ;let*
-          (let* ((res-str (extract-result-text result))
-                 (res-trimmed (string-trim-right res-str #\newline))
-                 (raw-lines (string-split res-trimmed "\n"))
-                ) ;
-            (if (<= (length raw-lines) max-lines)
-              raw-lines
-              (truncate-lines name raw-lines max-lines)
-            ) ;if
-          ) ;let*
-        ) ;if
+        (let* ((res-str (extract-result-text result))
+               (res-trimmed (string-trim-right res-str #\newline))
+              ) ;
+          (cond ((string-null? res-trimmed) '())
+                (expanded? (string-split res-trimmed "\n"))
+                ((= max-lines 0) '())
+                (else
+                  (let ((raw-lines (string-split res-trimmed "\n")))
+                    (if (<= (length raw-lines) max-lines)
+                      raw-lines
+                      (truncate-lines name raw-lines max-lines)
+                    ) ;if
+                  ) ;let
+                ) ;else
+          ) ;cond
+        ) ;let*
       ) ;if
     ) ;define*
 

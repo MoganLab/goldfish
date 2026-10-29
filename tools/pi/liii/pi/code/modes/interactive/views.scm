@@ -253,12 +253,25 @@
       ) ;apply
     ) ;define
 
+    ;; 各工具折叠预览行数，对齐上游 renderers/*.ts：
+    ;; read=0（折叠态不显示输出，仅标题行；错误时例外，见下）、write/edit=10、
+    ;; grep=15、find/ls=20，未知工具兑底=10；bash 走专用渲染不经过此表
+    (define (%tool-preview-lines tool-name status)
+      (cond
+       ((and (string=? tool-name "read") (not (eq? status 'error))) 0)
+       ((or (string=? tool-name "write") (string=? tool-name "edit")) 10)
+       ((string=? tool-name "grep") 15)
+       ((or (string=? tool-name "find") (string=? tool-name "ls")) 20)
+       (else 10)
+      ) ;cond
+    ) ;define
+
     ;; 渲染工具卡片多行行列表的辅助函数（非 bash 工具）
     ;; 对齐 pi ToolExecutionComponent 的 Box(paddingX=1, paddingY=1)：
     ;; 无状态徽标；标题 = 粗体工具名 + accent 路径；输出 = muted、缩进 1；
     ;; 上下各一行背景空行；pending/绿/红背景把命令与输出整个包住；
     ;; 标题超宽时降级为纯文本 wrap 后按 toolTitle 着色；
-    ;; 展开态不限制输出行数（Ctrl+O 全局切换）
+    ;; 展开态不受预览行数限制，折叠态按工具取预览行数（Ctrl+O 全局切换）
     (define (render-tool-card-lines tool-name args status result width . maybe-expanded?)
       (let* ((expanded? (if (pair? maybe-expanded?) (car maybe-expanded?) #f))
              (bg (%tool-bg status))
@@ -273,16 +286,14 @@
                  ) ;map
                ) ;if
              ) ;title-rows
-             (res-lines
-               (if result
-                 (if expanded?
-                   (let ((lines (format-tool-result-lines tool-name result :max-lines 0)))
-                     (if (null? lines) '() lines)
-                   ) ;let
-                   (format-tool-result-lines tool-name result)
-                 ) ;if
-                 '()
-               ) ;if
+             (res-lines (if result
+                          (format-tool-result-lines tool-name
+                            result
+                            :max-lines (%tool-preview-lines tool-name status)
+                            :expanded? expanded?
+                          ) ;format-tool-result-lines
+                          '()
+                        ) ;if
              ) ;res-lines
              (out-rows
                (if (null? res-lines)
