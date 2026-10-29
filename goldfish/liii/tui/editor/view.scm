@@ -64,6 +64,17 @@
       ) ;if
     ) ;define
 
+    ;; 统计 str 前 end 个字符中末尾连续 ASCII 空格的个数
+    (define (%count-tail-spaces str end)
+      (let loop
+        ((i end) (n 0))
+        (if (<= i 0)
+          n
+          (if (string=? (utf8-substring str (- i 1) i) " ") (loop (- i 1) (+ n 1)) n)
+        ) ;if
+      ) ;let
+    ) ;define
+
     ;; 将逻辑光标转换为折行后的视觉行和显示列。
     (define (editor-visual-cursor lines row col width)
       (let loop
@@ -76,16 +87,20 @@
                      (safe-col (max 0 (min col (utf8-string-length line))))
                      (prefix-parts (wrap-text (utf8-substring line 0 safe-col) width))
                      (last-part (car (reverse prefix-parts)))
-                     ;; wrap-text 会去掉行尾空格；未折行时直接计算原始前缀宽度，
-                     ;; 避免光标位于空格之后时显示列少算。
-                     (display-col (if (= (length prefix-parts) 1)
-                                    (display-width-prefix line safe-col)
-                                    (display-width last-part)
-                                  ) ;if
-                     ) ;display-col
+                     ;; wrap-text 会去掉段尾空格：未折行时直接计算原始前缀宽度，
+                     ;; 已折行时把最后一段之后的行尾空格补回，避免光标位于
+                     ;; 空格之后时显示列少算。
+                     (raw-col (if (= (length prefix-parts) 1)
+                                (display-width-prefix line safe-col)
+                                (+ (display-width last-part) (%count-tail-spaces line safe-col))
+                              ) ;if
+                     ) ;raw-col
+                     ;; 补回后可能达到显示宽度：光标贴到当前视觉行最后一列，
+                     ;; 光标后有内容时仍由下方换行惩罚分支移至下一行行首。
+                     (display-col (if (and (> width 0) (>= raw-col width)) (- width 1) raw-col))
                      (prefix-row (+ visual-row (- (length prefix-parts) 1)))
                     ) ;
-                (if (and (> width 0) (< safe-col (utf8-string-length line)) (>= display-col width))
+                (if (and (> width 0) (< safe-col (utf8-string-length line)) (>= raw-col width))
                   (list (+ prefix-row 1) 0)
                   (list prefix-row display-col)
                 ) ;if

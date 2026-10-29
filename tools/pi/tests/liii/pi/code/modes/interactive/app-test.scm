@@ -151,7 +151,23 @@
   (check (terminal-cursor vterm) => '(2 7))
 ) ;let*
 
-;; 5. 测试多轮对话与多行 Markdown 助手回复时，光标精准位于输入框行（不受 \n 干扰）
+;; 5. 折行后行尾输入空格，光标位于第二显示行空格之后，而不是行首
+(let* ((vterm (make-virtual-terminal :width 20 :height 40))
+       (app (make-pi-app :terminal vterm :handler (lambda (a m) #t)))
+       (editor (pi-app-editor app))
+      ) ;
+  (pi-app-render! app)
+  (pi-app-handle-input! app "aaaaaaaaaaaaaaaaaa bbbb") ; 18 个 a 折行，bbbb 位于第二显示行
+  (pi-app-render! app)
+  (check (terminal-cursor vterm) => '(4 8))
+
+  (pi-app-handle-input! app " ")
+  (pi-app-render! app)
+  (check (editor-text editor) => "aaaaaaaaaaaaaaaaaa bbbb ")
+  (check (terminal-cursor vterm) => '(5 8))
+) ;let*
+
+;; 6. 测试多轮对话与多行 Markdown 助手回复时，光标精准位于输入框行（不受 \n 干扰）
 (let* ((vterm (make-virtual-terminal :width 100 :height 40))
        (dummy-handler (lambda (app msg) #t))
        (app (make-pi-app :terminal vterm :handler dummy-handler))
