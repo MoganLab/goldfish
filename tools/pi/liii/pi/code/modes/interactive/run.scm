@@ -89,6 +89,27 @@
       (emergency-exit 0)
     ) ;define
 
+    ;; 撤回排队消息到编辑器：排队内容在前、编辑器当前内容在后，\n\n 连接
+    (define (%pi-app-restore-to-editor! app)
+      (define (join-nonempty parts)
+        (let loop
+          ((rest parts) (acc '()))
+          (cond ((null? rest) (string-join (reverse acc) "\n\n"))
+                ((string-null? (car rest)) (loop (cdr rest) acc))
+                (else (loop (cdr rest) (cons (car rest) acc)))
+          ) ;cond
+        ) ;let
+      ) ;define
+      (let* ((ed (pi-app-editor app))
+             (restored (pi-app-restore-queues! app))
+             (combined (join-nonempty (list (string-join restored "\n\n") (editor-text ed))))
+            ) ;
+        (unless (string-null? combined)
+          (editor-set-text! ed combined)
+        ) ;unless
+      ) ;let*
+    ) ;define
+
     (define* (pi-app-run app (initial-msg "") (rest-msgs '()) (force-exit pi-app-force-exit))
       (let* ((term (pi-app-term app))
              (ed (pi-app-editor app))
@@ -152,12 +173,18 @@
                      (chan-send! (pi-app-abort-chan app) 'abort 0)
                    ) ;when
                    ;; 撤回全部排队消息：steering → follow-up → 等待队列，
-                   ;; 合并回编辑器重新编辑（对齐上游 restoreQueuedMessagesToEditor）
-                   (let ((restored (pi-app-restore-queues! app)))
-                     (when (pair? restored)
-                       (editor-set-text! ed (string-join restored "\n\n"))
-                     ) ;when
-                   ) ;let
+                   ;; 与编辑器当前内容合并回编辑（对齐上游 restoreQueuedMessagesToEditor）
+                   (%pi-app-restore-to-editor! app)
+                   (pi-app-render! app)
+                   (loop)
+                  ) ;
+                  ;; alt+up：仅撤回排队消息到编辑器，不中止运行中任务
+                  ;; （对齐上游 app.message.dequeue 键位）
+                  ((and (not (pi-app-active-selector app))
+                     (not (pi-app-slash-command-menu app))
+                     (eq? k 'alt-up)
+                   ) ;and
+                   (%pi-app-restore-to-editor! app)
                    (pi-app-render! app)
                    (loop)
                   ) ;

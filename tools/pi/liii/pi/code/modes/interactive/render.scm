@@ -83,7 +83,7 @@
         (container-clear! pending-box)
         (when (pi-queue-busy? q)
           ;; 待处理区分组展示全部排队消息（对齐上游 updatePendingMessagesDisplay）：
-          ;; steering 组 → follow-up 组 → 原等待队列（旧语义兼容）
+          ;; steering 组 → follow-up 组 → 撤回提示行 → 原等待队列（旧语义兼容）
           (for-each
             (lambda (text)
               (container-add! pending-box
@@ -100,6 +100,13 @@
             ) ;lambda
             (%pi-app-follow-up-pending app)
           ) ;for-each
+          (when (or (pair? (%pi-app-steering-pending app))
+                  (pair? (%pi-app-follow-up-pending app))
+                ) ;or
+            (container-add! pending-box
+              (make-queued-card "↳ Esc abort · alt+up edit queued messages")
+            ) ;container-add!
+          ) ;when
           (let ((items (pi-queue-items q)))
             (unless (null? items)
               (container-add! pending-box (make-queued-card (car items)))
