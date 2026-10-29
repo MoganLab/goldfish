@@ -35,20 +35,21 @@
     terminal-paste-mode? terminal-set-paste-mode! make-standard-terminal
     standard-terminal? terminal-enter-raw-mode! terminal-exit-raw-mode!
     terminal-max-y terminal-enter-alt-screen! terminal-exit-alt-screen!
-    terminal-mouse-mode! make-alt-screen alt-screen? alt-screen-terminal
-    alt-screen-lines alt-screen-render! alt-screen-clear! alt-screen-invalidate!
-    alt-screen-refresh! make-scroll-view scroll-view? scroll-view-content
-    scroll-view-set-content! scroll-view-offset scroll-view-set-offset!
-    scroll-view-follow? scroll-view-set-follow! scroll-view-render-lines
-    scroll-view-scroll-by! scroll-view-page-up! scroll-view-page-down!
-    scroll-view-to-top! scroll-view-to-bottom! scroll-view-total-lines
-    scroll-view-max-offset make-wheel-scroll-accelerator
+    terminal-mouse-mode! console-cursor-row make-alt-screen alt-screen?
+    alt-screen-terminal alt-screen-lines alt-screen-render! alt-screen-clear!
+    alt-screen-invalidate! alt-screen-refresh! make-scroll-view scroll-view?
+    scroll-view-content scroll-view-set-content! scroll-view-offset
+    scroll-view-set-offset! scroll-view-follow? scroll-view-set-follow!
+    scroll-view-render-lines scroll-view-scroll-by! scroll-view-page-up!
+    scroll-view-page-down! scroll-view-to-top! scroll-view-to-bottom!
+    scroll-view-total-lines scroll-view-max-offset make-wheel-scroll-accelerator
     wheel-scroll-accelerator? wheel-scroll-next! wheel-scroll-reset!
     wheel-scroll-lines wheel-scroll-set-lines! mouse-event? mouse-event-type
     mouse-event-button mouse-event-x mouse-event-y mouse-event-shift?
     mouse-event-ctrl? mouse-event-alt? make-mouse-event parse-mouse-event
-    mouse-sequence? make-box box? make-vstack vstack? make-hstack hstack?
-    make-container container? container-add! container-clear! container-children
+    mouse-sequence? component-handle-mouse! make-box box? make-vstack vstack?
+    make-hstack hstack? make-container container? container-add! container-clear!
+    container-children make-mouse-region mouse-region? mouse-region-child
     make-border-style border-style? border-style-resolve make-spinner spinner?
     make-loader loader? spinner-tick! spinner-reset! spinner-current-frame
     spinner-frame-index spinner-text spinner-set-text! spinner-prefix

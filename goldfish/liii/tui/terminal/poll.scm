@@ -24,7 +24,7 @@
 (define-library (liii tui terminal poll)
   (export terminal-poll-key terminal-paste-mode? terminal-set-paste-mode!
     %poll-console-key %resolve-ansi-bytes %resolve-utf8-bytes %map-extended-key
-    %map-standard-key
+    %map-standard-key %poll-mouse-feed %poll-mouse-reset!
   ) ;export
   (import (scheme base)
     (liii error)
@@ -209,16 +209,65 @@
       ) ;cond
     ) ;define
 
+    ;; click 合成状态：最近一次 press 事件（#f 表示无）
+    (define %mouse-press-state #f)
+
+    ;; press 与同位置同按钮 release 合成 click（对齐上游 pi 的合成机制），
+    ;; 其他事件透传并按需更新 press 状态
+    (define (%synthesize-click ev)
+      (let ((t (mouse-event-type ev)))
+        (cond ((eq? t 'press) (set! %mouse-press-state ev) ev)
+              ((eq? t 'release)
+               (let* ((p %mouse-press-state)
+                      (click? (and p
+                                (eq? (mouse-event-button p) (mouse-event-button ev))
+                                (= (mouse-event-x p) (mouse-event-x ev))
+                                (= (mouse-event-y p) (mouse-event-y ev))
+                              ) ;and
+                      ) ;click?
+                     ) ;
+                 (set! %mouse-press-state #f)
+                 (if click?
+                   (make-mouse-event 'click
+                     (mouse-event-button ev)
+                     (mouse-event-x ev)
+                     (mouse-event-y ev)
+                     (mouse-event-shift? ev)
+                     (mouse-event-ctrl? ev)
+                     (mouse-event-alt? ev)
+                   ) ;make-mouse-event
+                   ev
+                 ) ;if
+               ) ;let*
+              ) ;
+              (else ev)
+        ) ;cond
+      ) ;let
+    ) ;define
+
     (define (%resolve-ansi-bytes byte-list)
       (if (null? byte-list)
         #f
         (if (<= (length byte-list) 1)
           'escape
-          (let* ((bv (apply bytevector byte-list)) (str (utf8->string bv)) (k (parse-key str)))
-            (or k (parse-mouse-event str))
+          (let* ((bv (apply bytevector byte-list))
+                 (str (utf8->string bv))
+                 (k (parse-key str))
+                 (ev (or k (parse-mouse-event str)))
+                ) ;
+            (if (mouse-event? ev) (%synthesize-click ev) ev)
           ) ;let*
         ) ;if
       ) ;if
+    ) ;define
+
+    ;; 测试接缝：直接注入字节流驱动 click 合成；reset 清空 press 状态
+    (define (%poll-mouse-feed byte-list)
+      (%resolve-ansi-bytes byte-list)
+    ) ;define
+
+    (define (%poll-mouse-reset!)
+      (set! %mouse-press-state #f)
     ) ;define
 
     (define (%resolve-utf8-bytes byte-list)

@@ -30,7 +30,7 @@
 (define-library (liii tui mouse)
   (export make-mouse-event mouse-event? mouse-event-type mouse-event-button
     mouse-event-x mouse-event-y mouse-event-shift? mouse-event-ctrl?
-    mouse-event-alt? parse-mouse-event mouse-sequence?
+    mouse-event-alt? mouse-event-click? parse-mouse-event mouse-sequence?
   ) ;export
   (import (scheme base) (liii base) (liii error) (liii string))
   (begin
@@ -140,6 +140,15 @@
     ;; 判断字节串内容是否为完整 SGR 鼠标序列（用于 poll 层分流）
     (define (mouse-sequence? str)
       (and (parse-mouse-event str) #t)
+    ) ;define
+
+    ;; click 是 press 与同位置同按钮 release 的合成事件（由 poll 层产生），
+    ;; 对齐上游 pi tui-alt-screen.ts 的 click 合成机制
+    (define (mouse-event-click? ev)
+      (unless (mouse-event? ev)
+        (type-error "mouse-event-click?: ev must be a mouse-event")
+      ) ;unless
+      (eq? (mouse-event-type ev) 'click)
     ) ;define
 
   ) ;begin

@@ -3,6 +3,7 @@
     pathsep os-call mkdir chdir rmdir remove rename getenv putenv unsetenv
     getcwd listdir access getlogin getpid isdir os-tty? console-kbhit?
     console-getch console-raw-mode! console-raw-mode-state os-terminal-size
+    console-cursor-row
   ) ;export
   (import (scheme base)
     (scheme process-context)
@@ -193,6 +194,12 @@
 
     (define (os-terminal-size)
       (g_terminal_size)
+    ) ;define
+
+    ;; 光标物理行（0-based，相对可视区顶部）；终端不支持时返回 #f。
+    ;; 用于 inline TUI 把鼠标事件物理行换算为内容逻辑行
+    (define (console-cursor-row)
+      (g_console_cursor_row)
     ) ;define
 
   ) ;begin
