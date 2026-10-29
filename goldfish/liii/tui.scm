@@ -35,39 +35,39 @@
     terminal-paste-mode? terminal-set-paste-mode! make-standard-terminal
     standard-terminal? terminal-enter-raw-mode! terminal-exit-raw-mode!
     terminal-max-y terminal-enter-alt-screen! terminal-exit-alt-screen!
-    terminal-mouse-mode! console-cursor-row make-alt-screen alt-screen?
-    alt-screen-terminal alt-screen-lines alt-screen-render! alt-screen-clear!
-    alt-screen-invalidate! alt-screen-refresh! make-scroll-view scroll-view?
-    scroll-view-content scroll-view-set-content! scroll-view-offset
-    scroll-view-set-offset! scroll-view-follow? scroll-view-set-follow!
-    scroll-view-render-lines scroll-view-scroll-by! scroll-view-page-up!
-    scroll-view-page-down! scroll-view-to-top! scroll-view-to-bottom!
-    scroll-view-total-lines scroll-view-max-offset scroll-view-height
-    make-wheel-scroll-accelerator wheel-scroll-accelerator? wheel-scroll-next!
-    wheel-scroll-reset! wheel-scroll-lines wheel-scroll-set-lines! mouse-event?
-    mouse-event-type mouse-event-button mouse-event-x mouse-event-y
-    mouse-event-shift? mouse-event-ctrl? mouse-event-alt? make-mouse-event
-    parse-mouse-event mouse-sequence? component-handle-mouse! make-box box?
-    make-vstack vstack? make-hstack hstack? make-container container?
-    container-add! container-clear! container-children make-mouse-region
-    mouse-region? mouse-region-child make-border-style border-style?
-    border-style-resolve make-spinner spinner? make-loader loader? spinner-tick!
-    spinner-reset! spinner-current-frame spinner-frame-index spinner-text
-    spinner-set-text! spinner-prefix spinner-set-prefix! spinner-suffix
-    spinner-set-suffix! spinner-interval spinner-set-interval! spinner-visible?
-    spinner-set-visible! spinner-show! spinner-hide! spinner-status
-    spinner-set-status! spinner-success! spinner-fail! spinner-error!
-    spinner-warn! spinner-stop! spinner-presets spinner-frames-resolve
-    make-editor editor? make-text-input text-input? make-text-area text-area?
-    editor-text editor-set-text! editor-cursor editor-set-cursor!
-    editor-display-col editor-display-position editor-lines editor-focused?
-    editor-set-focused! editor-placeholder editor-set-placeholder!
-    editor-history-list editor-history editor-set-on-submit! editor-border-color
-    editor-set-border-color! editor-max-lines editor-set-max-lines!
-    editor-top-row editor-viewport editor-expanded-text make-history history?
-    history-entries history-push! history-reset! make-main-screen main-screen?
-    screen-terminal screen-buffer screen-lines screen-render! screen-refresh!
-    screen-invalidate! screen-resize! screen-clear! screen-auto-hide-cursor?
+    terminal-mouse-mode! make-alt-screen alt-screen? alt-screen-terminal
+    alt-screen-lines alt-screen-render! alt-screen-clear! alt-screen-invalidate!
+    alt-screen-refresh! make-scroll-view scroll-view? scroll-view-content
+    scroll-view-set-content! scroll-view-offset scroll-view-set-offset!
+    scroll-view-follow? scroll-view-set-follow! scroll-view-render-lines
+    scroll-view-scroll-by! scroll-view-page-up! scroll-view-page-down!
+    scroll-view-to-top! scroll-view-to-bottom! scroll-view-total-lines
+    scroll-view-max-offset scroll-view-height make-wheel-scroll-accelerator
+    wheel-scroll-accelerator? wheel-scroll-next! wheel-scroll-reset!
+    wheel-scroll-lines wheel-scroll-set-lines! mouse-event? mouse-event-type
+    mouse-event-button mouse-event-x mouse-event-y mouse-event-shift?
+    mouse-event-ctrl? mouse-event-alt? make-mouse-event parse-mouse-event
+    mouse-sequence? component-handle-mouse! make-box box? make-vstack vstack?
+    make-hstack hstack? make-container container? container-add!
+    container-clear! container-children make-mouse-region mouse-region?
+    mouse-region-child make-border-style border-style? border-style-resolve
+    make-spinner spinner? make-loader loader? spinner-tick! spinner-reset!
+    spinner-current-frame spinner-frame-index spinner-text spinner-set-text!
+    spinner-prefix spinner-set-prefix! spinner-suffix spinner-set-suffix!
+    spinner-interval spinner-set-interval! spinner-visible? spinner-set-visible!
+    spinner-show! spinner-hide! spinner-status spinner-set-status!
+    spinner-success! spinner-fail! spinner-error! spinner-warn! spinner-stop!
+    spinner-presets spinner-frames-resolve make-editor editor? make-text-input
+    text-input? make-text-area text-area? editor-text editor-set-text!
+    editor-cursor editor-set-cursor! editor-display-col editor-display-position
+    editor-lines editor-focused? editor-set-focused! editor-placeholder
+    editor-set-placeholder! editor-history-list editor-history
+    editor-set-on-submit! editor-border-color editor-set-border-color!
+    editor-max-lines editor-set-max-lines! editor-top-row editor-viewport
+    editor-expanded-text make-history history? history-entries history-push!
+    history-reset! make-main-screen main-screen? screen-terminal screen-buffer
+    screen-lines screen-render! screen-refresh! screen-invalidate!
+    screen-resize! screen-clear! screen-auto-hide-cursor?
     screen-auto-hide-cursor-set! make-screen-buffer screen-buffer?
     screen-buffer-lines screen-buffer-prev-lines screen-buffer-dirty?
     screen-diff screen-dirty-diff diff-op-type diff-op-index diff-op-text

@@ -32,10 +32,9 @@
     terminal-paste-mode? terminal-set-paste-mode! make-standard-terminal
     standard-terminal? terminal-enter-raw-mode! terminal-exit-raw-mode!
     terminal-max-y terminal-mouse-mode! terminal-enter-alt-screen!
-    terminal-exit-alt-screen! console-cursor-row
+    terminal-exit-alt-screen!
   ) ;export
-  (import (liii os)
-    (liii tui terminal protocol)
+  (import (liii tui terminal protocol)
     (liii tui terminal size)
     (liii tui terminal virtual)
     (liii tui terminal standard)

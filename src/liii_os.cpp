@@ -917,54 +917,6 @@ glue_terminal_size (s7_scheme* sc) {
   glue_define (sc, name, desc, f_terminal_size, 0, 0);
 }
 
-/* 光标物理行查询（0-based，相对可视区顶部）：
- * Windows 用 GetConsoleScreenBufferInfo 的光标坐标减去窗口顶部；
- * POSIX 用 DSR 查询（写 ESC[6n，读回 ESC[row;colR），带超时。
- * 均失败时返回 #f。用于 inline TUI 把鼠标物理行换算为逻辑行。 */
-static s7_pointer
-f_console_cursor_row (s7_scheme* sc, s7_pointer args) {
-#ifdef TB_CONFIG_OS_WINDOWS
-  CONSOLE_SCREEN_BUFFER_INFO csbi;
-  HANDLE                     h= GetStdHandle (STD_OUTPUT_HANDLE);
-  if (GetConsoleScreenBufferInfo (h, &csbi)) {
-    int row= csbi.dwCursorPosition.Y - csbi.srWindow.Top;
-    return s7_make_integer (sc, row);
-  }
-  return s7_make_boolean (sc, false);
-#else
-  (void) args;
-  /* 写 DSR 请求光标位置；终端回复 ESC[<row>;<col>R（row 1-based） */
-  if (write (STDOUT_FILENO, "\x1b[6n", 4) != 4) return s7_make_boolean (sc, false);
-  char buf[33];
-  int  len= 0;
-  /* 限时读回复：逐字节读到 'R' 或超时（poll 100ms） */
-  for (int i= 0; i < 32; i++) {
-    struct pollfd pfd= {STDIN_FILENO, POLLIN, 0};
-    int           pr = poll (&pfd, 1, 100);
-    if (pr <= 0) break;
-    char c;
-    if (read (STDIN_FILENO, &c, 1) != 1) break;
-    buf[len++]= c;
-    if (c == 'R') break;
-  }
-  buf[len]= '\0';
-  /* 解析 ESC[<row>;<col>R */
-  if (len >= 6 && buf[0] == '\x1b' && buf[1] == '[') {
-    char* end= NULL;
-    long  row= strtol (buf + 2, &end, 10);
-    if (end && *end == ';' && row >= 1) return s7_make_integer (sc, (int) row - 1);
-  }
-  return s7_make_boolean (sc, false);
-#endif
-}
-
-static void
-glue_console_cursor_row (s7_scheme* sc) {
-  const char* name= "g_console_cursor_row";
-  const char* desc= "(g_console_cursor_row) => 0-based cursor row in viewport, or #f";
-  glue_define (sc, name, desc, f_console_cursor_row, 0, 0);
-}
-
 static s7_pointer
 f_console_kbhit (s7_scheme* sc, s7_pointer args) {
   int timeout_ms= 0;
@@ -1067,7 +1019,6 @@ glue_liii_os (s7_scheme* sc) {
   glue_console_raw_mode (sc);
   glue_console_raw_mode_state (sc);
   glue_terminal_size (sc);
-  glue_console_cursor_row (sc);
   glue_console_kbhit (sc);
   glue_console_getch (sc);
 }
