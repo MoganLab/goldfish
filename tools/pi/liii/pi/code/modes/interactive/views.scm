@@ -209,16 +209,16 @@
       ) ;apply
     ) ;define
 
-    ;; 各工具折叠预览行数，对齐上游 renderers/*.ts：
-    ;; read=0（折叠态不显示输出，仅标题行；错误时例外，见下）、write/edit=10、
-    ;; grep=15、find/ls=20，未知工具兑底=10；bash 走专用渲染不经过此表
-    (define (%tool-preview-lines tool-name status)
-      (cond
-       ((and (string=? tool-name "read") (not (eq? status 'error))) 0)
-       ((or (string=? tool-name "write") (string=? tool-name "edit")) 10)
-       ((string=? tool-name "grep") 15)
-       ((or (string=? tool-name "find") (string=? tool-name "ls")) 20)
-       (else 10)
+    ;; 各工具折叠预览行数，对齐上游 renderers/*.ts 与
+    ;; tool-execution.ts 的 FALLBACK_PREVIEW_LINES=10：
+    ;; read=10（折叠态展示文件内容预览，超出部分给出 ctrl+o 展开提示）、
+    ;; write/edit=10、grep=15、find/ls=20，未知工具兑底=10；
+    ;; bash 走专用渲染不经过此表
+    (define (%tool-preview-lines tool-name)
+      (cond ((or (string=? tool-name "write") (string=? tool-name "edit")) 10)
+            ((string=? tool-name "grep") 15)
+            ((or (string=? tool-name "find") (string=? tool-name "ls")) 20)
+            (else 10)
       ) ;cond
     ) ;define
 
@@ -245,7 +245,7 @@
              (res-lines (if result
                           (format-tool-result-lines tool-name
                             result
-                            :max-lines (%tool-preview-lines tool-name status)
+                            :max-lines (%tool-preview-lines tool-name)
                             :expanded? expanded?
                           ) ;format-tool-result-lines
                           '()

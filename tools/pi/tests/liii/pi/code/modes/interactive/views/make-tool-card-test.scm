@@ -92,8 +92,8 @@
   (check (string-contains? (list-ref lines 3) "Permission denied") => #t)
 ) ;let*
 
-;; read 成功卡片：绿背景、无成功徽标或绿字；折叠态不显示输出（对齐上游
-;; formatReadResult：未展开且非错误时返回空，仅剩标题行），展开后显示
+;; read 成功卡片：绿背景、无成功徽标或绿字；折叠态展示文件内容预览
+;; （read 折叠预览 10 行），展开后显示全文
 (let* ((success-card (make-tool-card "read" "a.scm" 'success "(content)"))
        (w 50)
        (lines (component-render success-card w))
@@ -106,7 +106,7 @@
   ) ;check
   (check-false (string-contains? joined "38;2;220;245;220"))
   (check-false (string-contains? joined "✔"))
-  (check-false (string-contains? joined "(content)"))
+  (check (string-contains? joined "(content)") => #t)
   (tool-card-set-expanded! success-card #t)
   (let ((expanded-lines (component-render success-card w)))
     (check-false (eq? lines expanded-lines))
@@ -203,9 +203,10 @@
 ;; 非bash工具卡片：折叠/展开渲染对齐上游 per-tool 预览行数与 expanded 语义
 (let* ((card (make-tool-card "read" "a.scm" 'success "l1\nl2\nl3\nl4\nl5\nl6\nl7\nl8"))
       ) ;
-  ;; read 折叠态：不显示任何输出（上游 formatReadResult 折叠且非错误返回空）
+  ;; read 折叠态：展示文件内容预览（8 行 <= 10 行预览上限，全量保留）
   (let ((text (string-join (map strip-ansi (component-render card 80)) "\n")))
-    (check-false (string-contains? text "l1"))
+    (check-true (string-contains? text "l1"))
+    (check-true (string-contains? text "l8"))
     (check-false (string-contains? text "more lines"))
   ) ;let
   ;; 展开态：全文输出
@@ -213,6 +214,28 @@
   (let ((text (string-join (map strip-ansi (component-render card 80)) "\n")))
     (check-true (string-contains? text "l1"))
     (check-true (string-contains? text "l8"))
+  ) ;let
+) ;let*
+
+;; read 折叠预览 10 行：超出部分追加 "... (N more lines, ctrl+o to expand)" 提示
+(let* ((text
+         (string-join
+           (map (lambda (i) (string-append "r" (number->string i))) (iota 12))
+           "\n"
+         ) ;string-join
+       ) ;text
+       (card (make-tool-card "read" "a.scm" 'success text))
+      ) ;
+  (let ((joined (string-join (map strip-ansi (component-render card 80)) "\n")))
+    (check-true (string-contains? joined "r0"))
+    (check-true (string-contains? joined "r9"))
+    (check-false (string-contains? joined "r10"))
+    (check-true (string-contains? joined "... (2 more lines, ctrl+o to expand)"))
+  ) ;let
+  (tool-card-set-expanded! card #t)
+  (let ((joined (string-join (map strip-ansi (component-render card 80)) "\n")))
+    (check-true (string-contains? joined "r11"))
+    (check-false (string-contains? joined "more lines"))
   ) ;let
 ) ;let*
 
