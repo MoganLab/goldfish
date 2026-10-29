@@ -36,6 +36,12 @@
 (check (go-active-worker-count) => 1)
 
 ;; 已有 worker 忙于阻塞式 C 调用时，新任务按需触发扩容，保留并行能力。
+;;
+;; worker 池按“排队任务数超出空闲容量”扩容，扩容时机依赖线程唤醒时序：
+;; 单核机器（或线程调度延迟较大的 Windows CI）上，任务入队时上一个 worker
+;; 尚未回到等待态，池会多建一个 worker（实际并发执行的任务仍只有 2 个，
+;; 额外的 worker 只是等待态）。因此这里不断言 worker 的精确数量，
+;; 只断言：已扩容到可并行执行两个任务的规模，且不超过配置上限。
 
 (define (slow-worker-task ch)
   (sleep 0.5)
@@ -45,7 +51,8 @@
   (let ((slow-ch-1 (make-chan 1)) (slow-ch-2 (make-chan 1)))
     (go (slow-worker-task slow-ch-1))
     (go (slow-worker-task slow-ch-2))
-    (check (go-active-worker-count) => 2)
+    (check (>= (go-active-worker-count) 2) => #t)
+    (check (<= (go-active-worker-count) n) => #t)
     (check (chan-recv! slow-ch-1 3000 'timeout) => 'done)
     (check (chan-recv! slow-ch-2 3000 'timeout) => 'done)
   ) ;let
