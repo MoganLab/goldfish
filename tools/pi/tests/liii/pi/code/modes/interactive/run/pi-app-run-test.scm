@@ -13,11 +13,14 @@
 
 ;; 语义约定：
 ;;   Ctrl+C —— 仅清空输入框，永不退出、不中断任务。
-;;   Ctrl+D —— 输入框为空时退出（EOF 语义）；有内容时无操作。
+;;   Ctrl+D —— 输入框严格为空时退出（EOF 语义）；非空时前向删除
+;;             光标右侧字符（与 Delete 键一致），删除后变空也不退出。
 ;;   Escape —— busy 时发 abort 信号中断任务（对齐上游 pi），并把排队
 ;;             消息撤回至 editor 重新编辑；不退出 TUI。
 ;; 因此所有「需要退出主循环」的测试都必须用 Ctrl+D 触发，
 ;; 且退出前必须保证输入框为空（必要时先按 Ctrl+C 清空）。
+;; Ctrl+D 的删除语义（英文/中文/多行/菜单/撤销等）详见
+;; pi-app-run-ctrl-d-test.scm。
 
 ;; 1. 测试 pi-app-run 过程定义
 (check-true (procedure? pi-app-run))
@@ -100,8 +103,8 @@
   (pi-queue-enqueue! q "queued-2")
   (pi-queue-set-busy! q)
   (virtual-terminal-push-key! vt 'escape)
-  ;; 此时编辑器已恢复 "queued-1\nqueued-2"：先按一次无操作的 Ctrl+D 证明
-  ;; 有内容时不退出，再用 Ctrl+C 清空后 Ctrl+D 退出
+  ;; 此时编辑器已恢复 "queued-1\nqueued-2"：先按一次 Ctrl+D 证明
+  ;; 有内容时不退出（此时删除光标处字符），再用 Ctrl+C 清空后 Ctrl+D 退出
   (virtual-terminal-push-key! vt 'ctrl-d)
   (virtual-terminal-push-key! vt 'ctrl-c)
   (virtual-terminal-push-key! vt 'ctrl-d)
@@ -153,6 +156,7 @@
 ) ;let*
 
 ;; 10. Ctrl+D 在输入框有内容时不退出（避免误触丢草稿）
+;;     光标位于缓冲区末尾，此时没有可删除的内容，Ctrl+D 为无操作
 (let* ((vt (make-virtual-terminal :width 80 :height 24))
        (app (make-pi-app :terminal vt :handler (lambda (a m) #t)))
        (ed (pi-app-editor app))
@@ -160,7 +164,7 @@
   (pi-app-render! app)
   (component-handle-input ed "草稿")
   (virtual-terminal-push-key! vt 'ctrl-d)
-  ;; 有内容时的 Ctrl+D 应无效：再输入 "z" 应追加到草稿后，证明仍在主循环
+  ;; 无可删除内容时 Ctrl+D 应无效：再输入 "z" 应追加到草稿后，证明仍在主循环
   (virtual-terminal-push-key! vt "z")
   (virtual-terminal-push-key! vt 'ctrl-c)
   (virtual-terminal-push-key! vt 'ctrl-d)
@@ -186,12 +190,7 @@
          (plain-lines (map strip-ansi lines))
         ) ;
     (check-true
-      (pair?
-        (filter
-          (lambda (l) (string-contains? l "Aborted"))
-          plain-lines
-        ) ;filter
-      ) ;pair?
+      (pair? (filter (lambda (l) (string-contains? l "Aborted")) plain-lines))
     ) ;check-true
   ) ;let*
 ) ;let*
@@ -221,9 +220,11 @@
 ;; 13. TUI 启动时依次提交 CLI initial-msg 与 rest-msgs，再进入交互主循环
 (let* ((vt (make-virtual-terminal :width 80 :height 24))
        (received '())
-       (app (make-pi-app :terminal vt
-              :handler (lambda (a msg) (set! received (cons msg received)))
-            ) ;make-pi-app
+       (app
+         (make-pi-app
+           :terminal vt
+           :handler  (lambda (a msg) (set! received (cons msg received)))
+         ) ;make-pi-app
        ) ;app
       ) ;
   (virtual-terminal-push-key! vt 'ctrl-d)
@@ -233,20 +234,28 @@
 
 ;; 14. ThinkingSelector 激活时 Ctrl+C 取消选择器而不是清空主编辑器；随后 Ctrl+D 正常退出
 (let* ((vt (make-virtual-terminal :width 100 :height 40))
-       (app (make-pi-app :terminal vt :handler (lambda (a m) #t) :thinking-level "medium")))
+       (app (make-pi-app :terminal vt :handler (lambda (a m) #t) :thinking-level "medium")
+       ) ;app
+      ) ;
   (pi-app-submit! app "/thinking")
   (check-true (component? (pi-app-active-selector app)))
   (virtual-terminal-push-key! vt 'ctrl-c)
   (virtual-terminal-push-key! vt 'ctrl-d)
   (check (pi-app-run app) => #t)
   (check (pi-app-active-selector app) => #f)
-  (check (pi-app-thinking-level app) => "medium"))
+  (check (pi-app-thinking-level app) => "medium")
+) ;let*
 
 ;; 15. 命令菜单激活时 Escape 仅关闭菜单；随后 Enter 把保留的 / 作为普通输入提交。
 (let* ((vt (make-virtual-terminal :width 100 :height 40))
        (received '())
-       (app (make-pi-app :terminal vt
-              :handler (lambda (a msg) (set! received (cons msg received))))))
+       (app
+         (make-pi-app
+           :terminal vt
+           :handler  (lambda (a msg) (set! received (cons msg received)))
+         ) ;make-pi-app
+       ) ;app
+      ) ;
   (virtual-terminal-push-key! vt "/")
   (virtual-terminal-push-key! vt 'escape)
   (virtual-terminal-push-key! vt 'enter)
@@ -254,14 +263,19 @@
   (virtual-terminal-push-key! vt 'ctrl-d)
   (check (pi-app-run app) => #t)
   (check received => '("/"))
-  (check (pi-app-active-selector app) => #f))
+  (check (pi-app-active-selector app) => #f)
+) ;let*
 
 ;; 16. Ctrl+Z 撤销：主循环把未消费按键交给编辑器，撤销后再提交，
 ;;     提交内容不含已被撤销的文本（若撤销失效会提交 "abcd"）
 (let* ((submitted '())
        (vt (make-virtual-terminal :width 80 :height 24))
-       (app (make-pi-app :terminal vt
-              :handler (lambda (a msg) (set! submitted (cons msg submitted)))))
+       (app
+         (make-pi-app
+           :terminal vt
+           :handler  (lambda (a msg) (set! submitted (cons msg submitted)))
+         ) ;make-pi-app
+       ) ;app
        (ed (pi-app-editor app))
       ) ;
   (component-handle-input ed "ab")
