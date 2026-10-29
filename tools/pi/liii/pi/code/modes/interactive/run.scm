@@ -198,11 +198,15 @@
                    (pi-app-render! app)
                    (loop)
                   ) ;
-                  ;; 鼠标事件：滚轮上下滚动对话记录
+                  ;; 鼠标事件：滚轮上下滚动对话记录。
+                  ;; 连续到达的鼠标事件一次取走：滚轮合并为一次滚动、只渲染一帧，
+                  ;; 避免单事件渲染耗时大于事件到达间隔时输入不断积压（越滚越慢）
                   ((and (mouse-event? k) (not (pi-app-active-selector app)))
-                   (when (pi-app-handle-mouse! app k)
-                     (pi-app-render! app)
-                   ) ;when
+                   (let ((events (cons k (terminal-drain-mouse-events term))))
+                     (when (pi-app-handle-mouse-events! app events)
+                       (pi-app-render! app)
+                     ) ;when
+                   ) ;let
                    (loop)
                   ) ;
                   ;; 按 ctrl+o 时：全局切换 bash/工具输出卡片的展开与折叠

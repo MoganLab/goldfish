@@ -24,7 +24,7 @@
 (define-library (liii tui terminal virtual)
   (export make-virtual-terminal virtual-terminal? virtual-terminal-screen
     virtual-terminal-raw virtual-terminal-resize! virtual-terminal-push-key!
-    virtual-terminal-pop-key!
+    virtual-terminal-pop-key! virtual-terminal-unshift-key!
   ) ;export
   (import (liii base)
     (liii error)
@@ -210,6 +210,18 @@
       (let* ((state (terminal-data vt)) (q (vt-keys state)))
         (if (null? q) #f (begin (vt-keys-set! state (cdr q)) (car q)))
       ) ;let*
+    ) ;define
+
+    ;; 把按键插回队列头部：排空输入时遇到非鼠标按键需要原样放回，
+    ;; 保持按键顺序不变（pop 从头部取，push 到尾部会改变顺序）。
+    (define (virtual-terminal-unshift-key! vt key)
+      (unless (virtual-terminal? vt)
+        (type-error "virtual-terminal-unshift-key!: expected virtual-terminal")
+      ) ;unless
+      (let ((state (terminal-data vt)))
+        (vt-keys-set! state (cons key (vt-keys state)))
+      ) ;let
+      key
     ) ;define
 
     (define (virtual-terminal-raw vt)
