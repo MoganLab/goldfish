@@ -52,9 +52,16 @@
                    (pi-app-render! app)
                    (loop)
                   ) ;
-                  ;; Ctrl+D：仅在输入框为空时退出（EOF 语义），有内容时无操作
-                  ((and (not (pi-app-active-selector app)) (eq? k 'ctrl-d))
-                   (if (string-null? (editor-text ed)) #t (loop))
+                  ;; Ctrl+D：输入框严格为空时退出（EOF 语义）；
+                  ;; 非空时不再吞掉按键，落到下方通用分支交给编辑器
+                  ;; 前向删除光标右侧字符（与 Delete 键一致）。
+                  ;; 同一次按键只执行一种语义：删除后恰好变空也不退出，
+                  ;; 下一次独立 Ctrl+D 才按 EOF 语义退出。
+                  ((and (not (pi-app-active-selector app))
+                     (eq? k 'ctrl-d)
+                     (string-null? (editor-text ed))
+                   ) ;and
+                   #t
                   ) ;
                   ;; 按 Escape 时（对齐上游 pi 的 onEscape）：
                   ;; busy：发 abort 信号中断正在进行的任务（worker 检查点
