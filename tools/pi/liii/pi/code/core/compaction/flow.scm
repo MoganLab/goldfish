@@ -13,6 +13,7 @@
     (liii pi code core session-manager)
     (liii pi code core compaction tokens)
     (liii pi code core compaction session)
+    (liii pi code core session-projection)
   ) ;import
   (export pi-format-compaction-summary pi-make-compaction-option)
   (begin
@@ -22,6 +23,32 @@
         (display msg p)
         (newline p)
       ) ;let
+    ) ;define
+    ;; 投影诊断非空时写 stderr，与压缩摘要输出通道一致，不吞掉降级原因
+    (define (%warn-projection-diagnostics diag)
+      (for-each
+        (lambda (p)
+          (let ((reason (cdr p)))
+            (cond
+             ((string? reason)
+              (%display-stderr (string-append "projection warning: " (symbol->string (car p)) ": " reason)
+              ) ;%display-stderr
+             ) ;
+             ((pair? reason)
+              (%display-stderr (string-append "projection warning: "
+                                 (symbol->string (car p))
+                                 ": skipped "
+                                 (number->string (length reason))
+                                 " unknown-type entries"
+                               ) ;string-append
+              ) ;%display-stderr
+             ) ;
+             (else #f)
+            ) ;cond
+          ) ;let
+        ) ;lambda
+        (or diag '())
+      ) ;for-each
     ) ;define
 
     (define (pi-format-compaction-summary result . opt-label)
@@ -61,13 +88,19 @@
             (persist-new-messages! sfile (vector-ref state 0) msgs (vector-ref state 1))
             (vector-set! state 0 msgs)
             (vector-set! state 1 (length msgs))
-            (let* ((result (pi-compact-session! cfg sfile settings timeout "auto"))
-                   (projection (pi-project-session-messages (pi-read-session-entries sfile)))
-                  ) ;
+            (let* ((result (pi-compact-session! cfg sfile settings timeout "auto")))
               (%display-stderr (pi-format-compaction-summary result "Auto-compacted"))
-              (vector-set! state 0 projection)
-              (vector-set! state 1 (length projection))
-              projection
+              ;; 压缩条目已落盘，上下文由投影入口统一重建（1206）
+              (let*-values (((projection _pstate diag)
+                             (pi-build-session-projection (pi-read-session-entries sfile))
+                            ) ;
+                           ) ;
+                ;; 诊断非空只告警，不中断压缩流程
+                (%warn-projection-diagnostics diag)
+                (vector-set! state 0 projection)
+                (vector-set! state 1 (length projection))
+                projection
+              ) ;let*-values
             ) ;let*
           ) ;begin
         ) ;if
