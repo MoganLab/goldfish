@@ -51390,6 +51390,7 @@ s7_pointer splice_in_values(s7_scheme *sc, s7_pointer args)
     case OP_ANY_CLOSURE_NP_1: case OP_ANY_CLOSURE_NP_2:
       {
 	s7_pointer func = pop_op_stack(sc);
+	pop_op_stack(sc); /* original call code, saved below the closure */
 	/* to s7test some rainy day: (fop24 (fop24-1 x) (fop24-1 (+ x 1)) x x (values x x)) (128 128) */
 	error_nr(sc, sc->wrong_number_of_args_symbol,
 		 set_elist_3(sc, too_many_arguments_string, closure_name(sc, func), set_ulist_1(sc, sc->value_symbol, args)));
@@ -68022,7 +68023,7 @@ static void op_any_closure_3p(s7_scheme *sc)     /* sc->code: (g-1 (lambda (b c)
       args = cdr(args);
       if (has_fx(args))
 	{
-	  stack_end_code(sc) = sc->code; /* push_stack_direct(sc, OP_ANY_CLOSURE_3P_3) here but trying to be too clever? */
+	  stack_end_code(sc) = opt1_lambda(sc->code); /* save func before arg evaluation: a recursive call can overwrite opt1 */
 	  stack_end_args(sc) = sc->args; /* stack[args] == arg1 to closure) */
 	  stack_end_op(sc) = (s7_pointer)(opcode_t)(OP_ANY_CLOSURE_3P_3);
 	  sc->stack_end += 4;
@@ -68056,7 +68057,7 @@ static bool closure_3p_end(s7_scheme *sc, s7_pointer args) /* sc->code: (dpb (by
       sc->code = T_Pair(closure_body(func));
       return(true);
     }
-  push_stack_direct(sc, OP_ANY_CLOSURE_3P_3);
+  push_stack(sc, OP_ANY_CLOSURE_3P_3, sc->args, opt1_lambda(sc->code)); /* save func before arg evaluation */
   set_stack_protected3(sc, sc->value, OP_ANY_CLOSURE_3P_3); /* set stack_let, arg2 == curlet stack loc */
   sc->code = car(args);
   return(false);
@@ -68081,7 +68082,7 @@ static bool op_any_closure_3p_2(s7_scheme *sc) {return(closure_3p_end(sc, cdddr(
 static void op_any_closure_3p_3(s7_scheme *sc) /* sc->code: as above */
 {
   /* display(obj) will not work here because sc->curlet is being used as arg2 of the closure3 */
-  const s7_pointer func = opt1_lambda(sc->code);  /* incoming args (from pop_stack): sc->args, sc->curlet, and sc->value from last evaluation */
+  const s7_pointer func = sc->code;  /* saved before arg evaluation; opt1 can be overwritten by a recursive call */
   if (is_safe_closure(func))
     set_curlet(sc, update_let_with_three_slots(sc, closure_let(func), sc->args, sc->curlet, sc->value));
   else make_let_with_three_slots(sc, func, sc->args, sc->curlet, sc->value);
@@ -68103,7 +68104,7 @@ static void op_any_closure_4p(s7_scheme *sc)  /* sc->code: (lpb -1 1 (byte 4 5) 
 	  if (has_fx(args))
 	    {
 	      set_gc_protected3(sc, fx_call(sc, args));
-	      push_stack_no_args_direct(sc, OP_ANY_CLOSURE_4P_4);
+	      push_stack(sc, OP_ANY_CLOSURE_4P_4, sc->unused, opt1_lambda(sc->code)); /* save func before arg evaluation */
 	      sc->code = cadr(args);
 	    }
 	  else
@@ -68137,7 +68138,7 @@ static bool closure_4p_end(s7_scheme *sc, s7_pointer args) /* sc->code: as above
       unstack_gc_protect(sc);
       return(true);
     }
-  push_stack_no_args_direct(sc, OP_ANY_CLOSURE_4P_4);
+  push_stack(sc, OP_ANY_CLOSURE_4P_4, sc->unused, opt1_lambda(sc->code)); /* save func before arg evaluation */
   sc->code = car(args);
   return(false);
 }
@@ -68186,9 +68187,9 @@ static bool op_any_closure_4p_3(s7_scheme *sc)        /* sc->code: as above */
   return(closure_4p_end(sc, cddddr(sc->code)));
 }
 
-static inline void op_any_closure_4p_4(s7_scheme *sc) /* sc->code: as above */
+static inline void op_any_closure_4p_4(s7_scheme *sc) /* sc->code: saved closure */
 {
-  const s7_pointer func = opt1_lambda(sc->code);
+  const s7_pointer func = sc->code;  /* saved before arg evaluation; opt1 can be overwritten by a recursive call */
   if (is_safe_closure(func))
     set_curlet(sc, update_let_with_four_slots(sc, closure_let(func), gc_protected1(sc), gc_protected2(sc), gc_protected3(sc), sc->value));
   else make_let_with_four_slots(sc, func, gc_protected1(sc), gc_protected2(sc), gc_protected3(sc), sc->value);
@@ -71716,9 +71717,10 @@ static void op_any_closure_np(s7_scheme *sc)
 {
   s7_pointer args = cdr(sc->code);
   check_stack_size(sc);
-  if (sc->op_stack_now >= sc->op_stack_end)
+  if (sc->op_stack_end - sc->op_stack_now < 2)
     resize_op_stack(sc);
   push_op_stack(sc, sc->code);
+  push_op_stack(sc, opt1_lambda(sc->code)); /* save func before arg evaluation: a recursive call can overwrite opt1 */
   if (has_fx(args))
     {
       sc->args = fx_call(sc, args);
@@ -71735,8 +71737,8 @@ static void op_any_closure_np_end(s7_scheme *sc)
 {
   s7_pointer args, func;
   sc->args = proper_list_reverse_in_place(sc, sc->args); /* needed in either case -- closure_pars(func) is not reversed */
+  func = pop_op_stack(sc);       /* saved before arg evaluation; opt1 can be overwritten by a recursive call */
   sc->code = pop_op_stack(sc);
-  func = opt1_lambda(sc->code);
   if (is_safe_closure(func))
     {
       s7_pointer slot;
