@@ -21,6 +21,9 @@
     (liii pi code core tools read)
     (liii pi ai template)
     (liii pi ai types)
+    (liii pi ai message)
+    (liii pi code core session-manager normalize)
+    (liii pi code core session-manager messages)
   ) ;import
   (export encode-cwd-to-session-dirname get-session-dir get-sessions-root
     make-session-file-path resolve-session-dir read-session-history
@@ -28,6 +31,7 @@
     save-session-message! setup-session-file setup-initial-messages
     persist-new-messages! find-last-session-message-id pi-normalize-session-msg
     append-bash-execution! resolve-resume-session-file assoc
+    pi-entry-to-context-messages
   ) ;export
   (begin
 
@@ -314,20 +318,7 @@
     ) ;define
 
     ;; JSON 解出的数组是 vector，归一化为 list（键恒为 string，见 save-session-message!）
-    (define (pi-normalize-session-msg msg)
-      (if (pair? msg)
-        (map
-          (lambda (entry)
-            (if (and (equal? (car entry) "content") (vector? (cdr entry)))
-              (cons (car entry) (vector->list (cdr entry)))
-              entry
-            ) ;if
-          ) ;lambda
-          msg
-        ) ;map
-        msg
-      ) ;if
-    ) ;define
+    ;; 实现在 (liii pi code core session-manager normalize)，此处再导出
 
     (define (%extract-msg-from-line line)
       (let ((trimmed (string-trim line)))
