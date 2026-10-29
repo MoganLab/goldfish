@@ -31,17 +31,17 @@
       ) ;let
     ) ;define
 
-    ;; 从 config 取 steering 轮询回调（由上层注入；缺失时返回 #f）。
-    ;; 契约（对齐上游 getSteeringMessages）：不得抛错，无消息时返回空表
-    (define (%get-steering-fn config)
-      (let ((pair (and (pair? config) (assoc 'get-steering-messages config))))
+    ;; 从 config 取轮询回调（由上层注入；缺失时返回 #f）。
+    ;; 契约（对齐上游）：不得抛错，无消息时返回空表
+    (define (%get-poll-fn config key)
+      (let ((pair (and (pair? config) (assoc key config))))
         (and pair (procedure? (cdr pair)) (cdr pair))
       ) ;let
     ) ;define
 
     ;; 轮询一次并防御性兜底：回调缺失/抛错/返回非表都视为无消息
-    (define (%poll-steering config)
-      (let ((fn (%get-steering-fn config)))
+    (define (%poll-config-messages config key)
+      (let ((fn (%get-poll-fn config key)))
         (if fn
           (let ((res (catch #t (lambda () (fn)) (lambda args '()))))
             (if (and (list? res) (pair? res)) res '())
@@ -51,7 +51,11 @@
       ) ;let
     ) ;define
 
-    ;; 注入 steering：文本转 user 消息追加到 msgs 末尾，并 emit 上屏
+    (define (%poll-steering config)
+      (%poll-config-messages config 'get-steering-messages)
+    ) ;define
+
+    ;; 注入排队消息：文本转 user 消息追加到 msgs 末尾，并 emit 上屏
     (define (%inject-steering msgs steering emit)
       (let ((user-msgs (map pi-user-message steering)))
         (when (procedure? emit)
@@ -68,11 +72,20 @@
       ) ;let
     ) ;define
 
-    ;; steering 轮询点 2（自然停止前）：有消息则注入并返回新列表，无则返回 #f
-    (define (%steering-before-stop msgs config emit)
-      (let ((steering (%poll-steering config)))
-        (if (null? steering) #f (%inject-steering msgs steering emit))
+    ;; 单队列自然停止前轮询：有消息则注入并返回新列表，无则返回 #f
+    (define (%queue-before-stop msgs config emit key)
+      (let ((messages (%poll-config-messages config key)))
+        (if (null? messages) #f (%inject-steering msgs messages emit))
       ) ;let
+    ) ;define
+
+    ;; 自然停止前轮询点：steering 优先，其次 follow-up（对齐上游：
+    ;; 无工具调用且无 steering 时才检查 follow-up）；
+    ;; 任一有消息则注入并返回新列表，两者皆空返回 #f
+    (define (%natural-stop-continue msgs config emit)
+      (or (%queue-before-stop msgs config emit 'get-steering-messages)
+        (%queue-before-stop msgs config emit 'get-follow-up-messages)
+      ) ;or
     ) ;define
 
     (define* (pi-step-agent-turn config msgs system-prompt emit timeout request-fn)
@@ -298,7 +311,19 @@
                                   ) ;
                                  ) ;
                       (if terminated?
-                        (pi-finish-agent-turn all-msgs "stop" '() emit config resp)
+                        ;; 工具请求终止续跑：自然停止前仍轮询 steering/follow-up
+                        ;; （对齐上游：terminate 只跳过工具续跑，不阻断排队消息）
+                        (let ((next-msgs (%natural-stop-continue all-msgs config emit)))
+                          (if next-msgs
+                            (begin
+                              (when (procedure? emit)
+                                (emit 'turn_start)
+                              ) ;when
+                              (loop next-msgs (+ turn 1) tool-calls)
+                            ) ;begin
+                            (pi-finish-agent-turn all-msgs "stop" '() emit config resp)
+                          ) ;if
+                        ) ;let
                         (begin
                           (when (procedure? emit)
                             (emit 'turn_start)
@@ -313,15 +338,15 @@
                     (pi-finish-agent-turn new-msgs stop-reason tool-calls emit config resp)
                    ) ;
                    (else
-                     ;; steering 轮询点 2：自然停止前，若期间有 steering 到达则
-                     ;; 注入并继续下一轮（对齐上游内层循环 pendingMessages 续跑）
-                     (let ((steered-msgs (%steering-before-stop new-msgs config emit)))
-                       (if steered-msgs
+                     ;; 自然停止前轮询点：steering 优先，其次 follow-up，
+                     ;; 任一有消息则注入并继续下一轮
+                     (let ((next-msgs (%natural-stop-continue new-msgs config emit)))
+                       (if next-msgs
                          (begin
                            (when (procedure? emit)
                              (emit 'turn_start)
                            ) ;when
-                           (loop steered-msgs (+ turn 1) tool-calls)
+                           (loop next-msgs (+ turn 1) tool-calls)
                          ) ;begin
                          (pi-finish-agent-turn new-msgs stop-reason tool-calls emit config resp)
                        ) ;if
