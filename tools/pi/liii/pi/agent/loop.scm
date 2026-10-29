@@ -31,7 +31,51 @@
       ) ;let
     ) ;define
 
-    (define (pi-step-agent-turn config msgs system-prompt emit timeout request-fn)
+    ;; 从 config 取 steering 轮询回调（由上层注入；缺失时返回 #f）。
+    ;; 契约（对齐上游 getSteeringMessages）：不得抛错，无消息时返回空表
+    (define (%get-steering-fn config)
+      (let ((pair (and (pair? config) (assoc 'get-steering-messages config))))
+        (and pair (procedure? (cdr pair)) (cdr pair))
+      ) ;let
+    ) ;define
+
+    ;; 轮询一次并防御性兜底：回调缺失/抛错/返回非表都视为无消息
+    (define (%poll-steering config)
+      (let ((fn (%get-steering-fn config)))
+        (if fn
+          (let ((res (catch #t (lambda () (fn)) (lambda args '()))))
+            (if (and (list? res) (pair? res)) res '())
+          ) ;let
+          '()
+        ) ;if
+      ) ;let
+    ) ;define
+
+    ;; 注入 steering：文本转 user 消息追加到 msgs 末尾，并 emit 上屏
+    (define (%inject-steering msgs steering emit)
+      (let ((user-msgs (map pi-user-message steering)))
+        (when (procedure? emit)
+          (for-each (lambda (m) (emit 'message_start m) (emit 'message_end m)) user-msgs)
+        ) ;when
+        (append msgs user-msgs)
+      ) ;let
+    ) ;define
+
+    ;; steering 轮询点 1（每轮请求前）：有消息则注入并返回新列表，否则原样返回
+    (define (%maybe-inject-steering! msgs config emit)
+      (let ((steering (%poll-steering config)))
+        (if (null? steering) msgs (%inject-steering msgs steering emit))
+      ) ;let
+    ) ;define
+
+    ;; steering 轮询点 2（自然停止前）：有消息则注入并返回新列表，无则返回 #f
+    (define (%steering-before-stop msgs config emit)
+      (let ((steering (%poll-steering config)))
+        (if (null? steering) #f (%inject-steering msgs steering emit))
+      ) ;let
+    ) ;define
+
+    (define* (pi-step-agent-turn config msgs system-prompt emit timeout request-fn)
       (let* ((active-tools (cdr (assoc 'tools config)))
              (provider (cdr (or (assoc 'provider config) '(#f . "google"))))
              (on-stream-ev
@@ -62,7 +106,7 @@
           (values new-msgs stop-reason tool-calls resp)
         ) ;let*
       ) ;let*
-    ) ;define
+    ) ;define*
 
     (define (pi-notify-turn-end emit assistant-msg tool-results)
       (when (procedure? emit)
@@ -232,6 +276,9 @@
                 (ext-emit 'turn_start (list (cons 'turn turn)))
               ) ;when
               (let* ((msgs (pi-maybe-compact compaction msgs))
+                     ;; steering 轮询点 1：每轮请求前（含 run 启动与工具批次后递归），
+                     ;; 对齐上游"当前 assistant 轮工具全部结束后、下次 LLM 请求前"注入
+                     (msgs (%maybe-inject-steering! msgs config emit))
                      (now (pi-current-monotonic-seconds))
                      (rem-sec (if deadline-sec (- deadline-sec now) #f))
                      (turn-sp (pi-resolve-turn-system-prompt system-prompt
@@ -244,7 +291,8 @@
                                (pi-step-agent-turn config msgs turn-sp emit timeout request-fn)
                               ) ;
                              ) ;
-                  (if (equal? stop-reason "toolUse")
+                  (cond
+                   ((equal? stop-reason "toolUse")
                     (let*-values (((all-msgs terminated?)
                                    (pi-handle-tool-use new-msgs tool-calls emit timeout config resp)
                                   ) ;
@@ -259,8 +307,27 @@
                         ) ;begin
                       ) ;if
                     ) ;let*-values
+                   ) ;
+                   ;; error / aborted 为硬退出：不轮询 steering，直接结算
+                   ((or (equal? stop-reason "error") (equal? stop-reason "aborted"))
                     (pi-finish-agent-turn new-msgs stop-reason tool-calls emit config resp)
-                  ) ;if
+                   ) ;
+                   (else
+                     ;; steering 轮询点 2：自然停止前，若期间有 steering 到达则
+                     ;; 注入并继续下一轮（对齐上游内层循环 pendingMessages 续跑）
+                     (let ((steered-msgs (%steering-before-stop new-msgs config emit)))
+                       (if steered-msgs
+                         (begin
+                           (when (procedure? emit)
+                             (emit 'turn_start)
+                           ) ;when
+                           (loop steered-msgs (+ turn 1) tool-calls)
+                         ) ;begin
+                         (pi-finish-agent-turn new-msgs stop-reason tool-calls emit config resp)
+                       ) ;if
+                     ) ;let
+                   ) ;else
+                  ) ;cond
                 ) ;let*-values
               ) ;let*
             ) ;else
