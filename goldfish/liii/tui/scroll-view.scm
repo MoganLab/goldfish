@@ -32,7 +32,7 @@
     scroll-view-follow? scroll-view-set-follow! scroll-view-render-lines
     scroll-view-scroll-by! scroll-view-page-up! scroll-view-page-down!
     scroll-view-to-top! scroll-view-to-bottom! scroll-view-total-lines
-    scroll-view-max-offset
+    scroll-view-max-offset scroll-view-height
   ) ;export
   (import (scheme base)
     (liii base)
@@ -133,6 +133,12 @@
     ) ;define
 
     ;; 最大滚动偏移：内容总行数减去视口高度，最小为 0
+    ;; 最近一次渲染的视口高度（行）：供鼠标命中判断是否落在视口内
+    (define (scroll-view-height sv)
+      (%check-scroll-view sv "scroll-view-height")
+      (%scroll-view-height sv)
+    ) ;define
+
     (define (scroll-view-max-offset sv)
       (%check-scroll-view sv "scroll-view-max-offset")
       (max 0 (- (scroll-view-total-lines sv) (%scroll-view-height sv)))

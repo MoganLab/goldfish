@@ -81,14 +81,10 @@
                 :render
                 (lambda (self width)
                   (let* ((children (container-children self))
-                         (lines (%vstack-render children 0 width))
-                         (heights
-                           (map (lambda (child) (length (component-render child width))) children)
-                         ) ;heights
+                         (res (%vstack-render-layout children 0 width))
+                         (lines (car res))
                         ) ;
-                    (%container-data-mouse-layout-set! (component-data self)
-                      (cons width (map cons children heights))
-                    ) ;%container-data-mouse-layout-set!
+                    (%container-data-mouse-layout-set! (component-data self) (cons width (cdr res)))
                     lines
                   ) ;let*
                 ) ;lambda
@@ -106,56 +102,15 @@
       ) ;let
     ) ;define
 
-    ;; 鼠标按布局命中：y 落入哪个子组件的行区间就派发给谁（局部坐标），
-    ;; 未命中或子组件未处理时返回 #f；布局缓存与当前渲染宽度不一致时
-    ;; 重新渲染推导，对齐上游 pi Container.handleMouse 的 mouseLayout 机制
+    ;; 鼠标按布局命中：未渲染过（无布局缓存）时不命中；
+    ;; 命中后 y 换算为子组件局部坐标派发（对齐上游 pi Container.handleMouse）
     (define (%container-handle-mouse self ev)
-      (let* ((children (container-children self))
-             (x (mouse-event-x ev))
-             (y (mouse-event-y ev))
-             (heights
-               (map
-                 (lambda (child)
-                   (let ((layout (%container-data-mouse-layout (component-data self))))
-                     (if (and (pair? layout) (assoc child (cdr layout)))
-                       (cdr (assoc child (cdr layout)))
-                       (length (component-render child 40))
-                     ) ;if
-                   ) ;let
-                 ) ;lambda
-                 children
-               ) ;map
-             ) ;heights
-            ) ;
-        (%hit-dispatch children heights x y ev)
-      ) ;let*
-    ) ;define
-
-    ;; 按高度区间顺序命中：命中后把 y 换算为子组件局部坐标派发
-    (define (%hit-dispatch children heights x y ev)
-      (let loop
-        ((rest children) (offsets heights) (base 0))
-        (if (null? rest)
+      (let* ((layout (%container-data-mouse-layout (component-data self))))
+        (if layout
+          (%vstack-dispatch-mouse (container-children self) (cdr layout) 0 ev)
           #f
-          (let ((h (car offsets)))
-            (cond
-             ((and (>= y base) (< y (+ base h)))
-              (component-handle-mouse! (car rest)
-                (make-mouse-event (mouse-event-type ev)
-                  (mouse-event-button ev)
-                  x
-                  (- y base)
-                  (mouse-event-shift? ev)
-                  (mouse-event-ctrl? ev)
-                  (mouse-event-alt? ev)
-                ) ;make-mouse-event
-              ) ;component-handle-mouse!
-             ) ;
-             (else (loop (cdr rest) (cdr offsets) (+ base h)))
-            ) ;cond
-          ) ;let
         ) ;if
-      ) ;let
+      ) ;let*
     ) ;define
 
   ) ;begin

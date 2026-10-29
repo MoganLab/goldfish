@@ -14,6 +14,7 @@
     (scheme time)
     (liii string)
     (liii tui component)
+    (liii tui mouse)
     (liii tui text-width)
     (liii pi code modes interactive renderers)
     (liii pi code modes interactive views cache)
@@ -327,6 +328,21 @@
                (make-component
                  :render
                  (lambda (self width) (%render-tool-card st width (%tool-timer-text st)))
+                 ;; 点击切换展开（对齐上游 createResultRegion）：
+                 ;; click + 左键 + 工具已完成时翻转；pending 不响应
+                 :handle-mouse
+                 (lambda (self ev)
+                   (if (and (mouse-event-click? ev)
+                         (eq? (mouse-event-button ev) 'left)
+                         (eq? (%tool-card-status st) 'success)
+                       ) ;and
+                     (begin
+                       (%tool-card-expanded?-set! st (not (%tool-card-expanded? st)))
+                       #t
+                     ) ;begin
+                     #f
+                   ) ;if
+                 ) ;lambda
                ) ;make-component
              ) ;card
             ) ;

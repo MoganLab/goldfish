@@ -23,7 +23,8 @@
 
 (define-library (liii tui box vstack)
   (export make-vstack vstack? %validate-child %vstack-render
-    %vstack-handle-input %vstack-handle-mouse %vstack-invalidate
+    %vstack-render-layout %vstack-dispatch-mouse %vstack-handle-input
+    %vstack-handle-mouse %vstack-invalidate
   ) ;export
   (import (liii base)
     (liii error)
@@ -34,9 +35,12 @@
   (begin
 
     (define-record-type <vstack-data>
-      (%make-vstack-data children)
+      (%make-vstack-data children mouse-layout spacing)
       %vstack-data?
       (children %vstack-data-children)
+      (spacing %vstack-data-spacing)
+      ;; 鼠标布局缓存：(width . heights)，渲染时登记
+      (mouse-layout %vstack-data-mouse-layout %vstack-data-mouse-layout-set!)
     ) ;define-record-type
 
     (define (%keyword-value key opts default)
@@ -113,17 +117,34 @@
       #t
     ) ;define
 
-    ;; 鼠标按高度区间命中：spacing 行不属于任何子组件；
-    ;; 命中后把 y 换算为子组件局部坐标派发，对齐上游 pi Container.handleMouse
-    (define (%vstack-handle-mouse children spacing ev)
+    ;; 渲染并同时量出每个子组件的行数（子组件只渲染一次）：
+    ;; 返回 (lines . heights)
+    (define (%vstack-render-layout children spacing width)
+      (let ((rendered (map (lambda (child) (component-render child width)) children)))
+        (let ((heights (map length rendered)))
+          (let ((sep (make-list spacing "")))
+            (cons
+              (fold-right (lambda (lines acc) (if (null? acc) lines (append lines sep acc)))
+                '()
+                rendered
+              ) ;fold-right
+              heights
+            ) ;cons
+          ) ;let
+        ) ;let
+      ) ;let
+    ) ;define
+
+    ;; 依高度区间命中子组件并以局部坐标派发（对齐上游 Container.handleMouse）：
+    ;; heights 与 children 一一对应；命中后 y 换算为子组件局部坐标
+    (define (%vstack-dispatch-mouse children heights spacing ev)
       (let ((y (mouse-event-y ev)) (x (mouse-event-x ev)))
         (let loop
-          ((rest children) (base 0))
+          ((rest children) (hs heights) (base 0))
           (if (null? rest)
             #f
-            (let* ((h (length (component-render (car rest) x))) (next (+ base h spacing)))
-              (cond
-               ((and (>= y base) (< y (+ base h)))
+            (let ((h (car hs)))
+              (if (and (>= y base) (< y (+ base h)))
                 (component-handle-mouse! (car rest)
                   (make-mouse-event (mouse-event-type ev)
                     (mouse-event-button ev)
@@ -134,14 +155,26 @@
                     (mouse-event-alt? ev)
                   ) ;make-mouse-event
                 ) ;component-handle-mouse!
-               ) ;
-               ((>= y next) (loop (cdr rest) next))
-               (else #f)
-              ) ;cond
-            ) ;let*
+                (loop (cdr rest) (cdr hs) (+ base h spacing))
+              ) ;if
+            ) ;let
           ) ;if
         ) ;let
       ) ;let
+    ) ;define
+
+    ;; 鼠标按布局命中：未渲染过（无布局缓存）时不命中
+    (define (%vstack-handle-mouse self ev)
+      (let* ((layout (%vstack-data-mouse-layout (component-data self))))
+        (if layout
+          (%vstack-dispatch-mouse (%vstack-data-children (component-data self))
+            (cdr layout)
+            (%vstack-data-spacing (component-data self))
+            ev
+          ) ;%vstack-dispatch-mouse
+          #f
+        ) ;if
+      ) ;let*
     ) ;define
 
     (define (make-vstack . args)
@@ -152,18 +185,24 @@
             ) ;
         (%validate-spacing spacing)
         (let* ((children (map (lambda (ch) (%validate-child ch "make-vstack")) raw-children))
-               (comp (make-component
-                       :render
-                       (lambda (self width) (%vstack-render children spacing width))
-                       :handle-input
-                       (lambda (self key) (%vstack-handle-input children key))
-                       :handle-mouse
-                       (lambda (self ev) (%vstack-handle-mouse children spacing ev))
-                       :invalidate (lambda (self) (%vstack-invalidate children))
-                     ) ;make-component
+               (comp
+                 (make-component
+                   :render
+                   (lambda (self width)
+                     (let* ((res (%vstack-render-layout children spacing width)) (lines (car res)))
+                       (%vstack-data-mouse-layout-set! (component-data self) (cons width (cdr res)))
+                       lines
+                     ) ;let*
+                   ) ;lambda
+                   :handle-input
+                   (lambda (self key) (%vstack-handle-input children key))
+                   :handle-mouse
+                   (lambda (self ev) (%vstack-handle-mouse self ev))
+                   :invalidate (lambda (self) (%vstack-invalidate children))
+                 ) ;make-component
                ) ;comp
               ) ;
-          (component-data-set! comp (%make-vstack-data children))
+          (component-data-set! comp (%make-vstack-data children #f spacing))
           comp
         ) ;let*
       ) ;let*

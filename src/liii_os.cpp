@@ -935,7 +935,7 @@ f_console_cursor_row (s7_scheme* sc, s7_pointer args) {
   (void) args;
   /* 写 DSR 请求光标位置；终端回复 ESC[<row>;<col>R（row 1-based） */
   if (write (STDOUT_FILENO, "\x1b[6n", 4) != 4) return s7_make_boolean (sc, false);
-  char buf[32];
+  char buf[33];
   int  len= 0;
   /* 限时读回复：逐字节读到 'R' 或超时（poll 100ms） */
   for (int i= 0; i < 32; i++) {

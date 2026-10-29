@@ -45,6 +45,7 @@
     (liii pi code modes interactive app-model)
     (liii pi code modes interactive app-resume)
     (liii pi code modes interactive app-submit)
+    (liii pi code modes interactive app-mouse)
     (liii pi code modes interactive common)
     (liii pi code modes interactive header)
     (liii pi code modes interactive footer)
@@ -197,7 +198,8 @@
       (scroll-view-to-bottom! (pi-app-scroll-view app))
     ) ;define
 
-    ;; 鼠标事件处理：滚轮上下滚动对话记录（其余事件暂不处理）
+    ;; 鼠标事件处理：滚轮上下滚动对话记录；点击派发给 doc 组件树
+    ;; （由卡片自身回调完成点击切换展开）
     ;; 返回 #t 表示事件已被消费
     (define (pi-app-handle-mouse! app event)
       (let ((type (mouse-event-type event)))
@@ -221,6 +223,7 @@
           ) ;let
           #t
          ) ;
+         ((click) (pi-app-dispatch-mouse! app event))
          (else #f)
         ) ;case
       ) ;let
