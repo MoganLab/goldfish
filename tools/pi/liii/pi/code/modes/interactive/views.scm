@@ -257,9 +257,11 @@
     ;; 对齐 pi ToolExecutionComponent 的 Box(paddingX=1, paddingY=1)：
     ;; 无状态徽标；标题 = 粗体工具名 + accent 路径；输出 = muted、缩进 1；
     ;; 上下各一行背景空行；pending/绿/红背景把命令与输出整个包住；
-    ;; 标题超宽时降级为纯文本 wrap 后按 toolTitle 着色
-    (define (render-tool-card-lines tool-name args status result width)
-      (let* ((bg (%tool-bg status))
+    ;; 标题超宽时降级为纯文本 wrap 后按 toolTitle 着色；
+    ;; 展开态不限制输出行数（Ctrl+O 全局切换）
+    (define (render-tool-card-lines tool-name args status result width . maybe-expanded?)
+      (let* ((expanded? (if (pair? maybe-expanded?) (car maybe-expanded?) #f))
+             (bg (%tool-bg status))
              (content-width (max 1 (- width 2)))
              (segs (format-tool-call-segments tool-name args))
              (plain (format-tool-call tool-name args))
@@ -271,7 +273,17 @@
                  ) ;map
                ) ;if
              ) ;title-rows
-             (res-lines (if result (format-tool-result-lines tool-name result) '()))
+             (res-lines
+               (if result
+                 (if expanded?
+                   (let ((lines (format-tool-result-lines tool-name result :max-lines 0)))
+                     (if (null? lines) '() lines)
+                   ) ;let
+                   (format-tool-result-lines tool-name result)
+                 ) ;if
+                 '()
+               ) ;if
+             ) ;res-lines
              (out-rows
                (if (null? res-lines)
                  '()
@@ -315,6 +327,7 @@
                                  (%tool-card-status st)
                                  (%tool-card-result st)
                                  width
+                                 (%tool-card-expanded? st)
                                ) ;render-tool-card-lines
                          ) ;else
                    ) ;cond

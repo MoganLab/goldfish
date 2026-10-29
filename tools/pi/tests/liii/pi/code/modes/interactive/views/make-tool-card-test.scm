@@ -135,4 +135,15 @@
   (let ((text (string-join (map strip-ansi (component-render card 80)) "\n")))
     (check-true (string-contains? text "... (3 earlier lines, ctrl+o to expand)"))))
 
+;; 非bash工具卡片：Ctrl+O 展开后渲染应显示全部行（复现无法展开的bug）
+(let* ((card (make-tool-card "read" "a.scm" 'success "l1\nl2\nl3\nl4\nl5\nl6\nl7\nl8")))
+  ;; 折叠态：只显示前5行 + 展开提示
+  (let ((text (string-join (map strip-ansi (component-render card 80)) "\n")))
+    (check-true (string-contains? text "l1"))
+    (check-true (string-contains? text "... (3 more lines, ctrl+o to expand)")))
+  ;; 展开态：应显示全部 8 行
+  (tool-card-set-expanded! card #t)
+  (let ((text (string-join (map strip-ansi (component-render card 80)) "\n")))
+    (check-true (string-contains? text "l8"))))
+
 (check-report)
