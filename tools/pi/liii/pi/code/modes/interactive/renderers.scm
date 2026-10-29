@@ -104,16 +104,25 @@
     ) ;define
 
     ;; read 范围后缀计算（对齐上游 formatReadLineRange：":起-止" / ":起"）
+    ;; offset/limit 可能是模型给出的实数（如 180.0），展示时统一取整
+    (define (%range-int x)
+      (exact (round x))
+    ) ;define
+
     (define (read-range-suffix offset limit)
       (cond
        ((and (number? offset) (number? limit))
-        (string-append ":"
-          (number->string offset)
-          "-"
-          (number->string (+ offset limit -1))
-        ) ;string-append
+        (let ((start (%range-int offset))
+              (end (%range-int (+ offset limit -1)))
+             ) ;
+          (string-append ":"
+            (number->string start)
+            "-"
+            (number->string end)
+          ) ;string-append
+        ) ;let
        ) ;
-       ((number? offset) (string-append ":" (number->string offset)))
+       ((number? offset) (string-append ":" (number->string (%range-int offset))))
        (else "")
       ) ;cond
     ) ;define

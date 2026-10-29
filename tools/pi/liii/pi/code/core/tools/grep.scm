@@ -211,10 +211,10 @@
              (glob-pat (pi-arg-ref args "glob" #f))
              (ignore-case? (pi-arg-ref args "ignoreCase" #f))
              (literal? (pi-arg-ref args "literal" #f))
-             (l (pi-arg-ref args "limit" 100))
-             (effective-limit (if (number? l) l 100))
-             (c (pi-arg-ref args "context" 0))
-             (ctx-val (if (and (number? c) (> c 0)) c 0))
+             (l (pi-int-arg (pi-arg-ref args "limit" 100)))
+             (effective-limit (if l l 100))
+             (c (pi-int-arg (pi-arg-ref args "context" 0)))
+             (ctx-val (if (and c (> c 0)) c 0))
             ) ;
         (when timed-out?
           (error 'error "Command timed out")

@@ -75,6 +75,22 @@
   (delete-file sample-file)
 ) ;let
 
+;; 实数 offset/limit：模型可能给出 180.0 这类实数，需归一化为整数，
+;; 否则 list-drop/list-take 报「second argument must be an integer」
+(let* ((sample-file (%tmp-file "pi-sample-float-range.txt"))
+       ) ;sample-file
+  (pi-execute-write (list (cons "path" sample-file) (cons "content" "line1\nline2\nline3\n")))
+  (check (pi-execute-read (list (cons "path" sample-file) (cons "offset" 2.0) (cons "limit" 2.0)))
+    =>
+    "line2\nline3"
+  ) ;check
+  (check (pi-execute-read (list (cons "path" sample-file) (cons "offset" 2.0)))
+    =>
+    "line2\nline3"
+  ) ;check
+  (delete-file sample-file)
+) ;let
+
 ;; 末尾无换行测试
 (let ((sample-file (%tmp-file "pi-sample-no-eol.txt")))
   (pi-execute-write (list (cons "path" sample-file) (cons "content" "line1\nline2"))

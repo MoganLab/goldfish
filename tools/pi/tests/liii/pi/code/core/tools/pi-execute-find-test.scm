@@ -18,6 +18,10 @@
 (let ((out (pi-execute-find '(("pattern" . "*.scm") ("path" . ".") ("limit" . 1)))))
   (check-true (string-contains? out "[1 results limit reached]")))
 
+;; 实数 limit：模型可能给出 1.0 这类实数，需归一化为整数
+(let ((out (pi-execute-find '(("pattern" . "*.scm") ("path" . ".") ("limit" . 1.0)))))
+  (check-true (string-contains? out "[1 results limit reached]")))
+
 ;; 无匹配文件
 (let ((out (pi-execute-find '(("pattern" . "non_existent_pattern_*.xyz") ("path" . ".")))))
   (check out => "No files found matching pattern"))

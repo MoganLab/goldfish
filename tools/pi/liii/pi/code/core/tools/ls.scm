@@ -85,8 +85,8 @@
       (let* ((timed-out? (%keyword-value :timed-out? opts #f))
              (cwd (%keyword-value :cwd opts (getcwd)))
              (raw-path (pi-arg-ref args "path" "."))
-             (limit (pi-arg-ref args "limit" 500))
-             (effective-limit (if (number? limit) limit 500))
+             (limit (pi-int-arg (pi-arg-ref args "limit" 500)))
+             (effective-limit (if limit limit 500))
             ) ;
         (when timed-out?
           (error 'error "Command timed out")

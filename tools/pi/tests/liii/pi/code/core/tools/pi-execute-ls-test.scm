@@ -13,6 +13,10 @@
 (let ((out (pi-execute-ls '(("path" . ".") ("limit" . 1)))))
   (check-true (string-contains? out "[1 entries limit reached. Use limit=2 for more]")))
 
+;; 实数 limit：模型可能给出 1.0 这类实数，需归一化为整数
+(let ((out (pi-execute-ls '(("path" . ".") ("limit" . 1.0)))))
+  (check-true (string-contains? out "[1 entries limit reached. Use limit=2 for more]")))
+
 (let ((empty-dir "tests/liii/pi-empty-dir"))
   (path-mkdir (path empty-dir) :parents #t :exist-ok #t)
   (let ((out (pi-execute-ls (list (cons "path" empty-dir)))))

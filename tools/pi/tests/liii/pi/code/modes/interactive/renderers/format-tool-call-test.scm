@@ -15,6 +15,10 @@
 (check (format-tool-call "read" '(("file_path" . "src/app.scm") ("offset" . 10) ("limit" . 20)))
   => "read src/app.scm:10-29")
 (check (format-tool-call "read" '(("path" . "a.scm") ("offset" . 10))) => "read a.scm:10")
+;; 实数 offset/limit：展示时取整，避免出现 180.0-299.0 这类浮点范围
+(check (format-tool-call "read" '(("path" . "a.scm") ("offset" . 180.0) ("limit" . 120.0)))
+  => "read a.scm:180-299")
+(check (format-tool-call "read" '(("path" . "a.scm") ("offset" . 180.0))) => "read a.scm:180")
 (check (format-tool-call "read" "main.scm") => "read main.scm")
 
 (check (format-tool-call "write" '(("path" . "README.md") ("content" . "# Hello"))) => "write README.md")

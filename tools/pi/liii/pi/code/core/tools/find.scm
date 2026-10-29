@@ -134,8 +134,8 @@
              (timeout (%keyword-value :timeout opts 600))
              (pattern (pi-arg-ref args "pattern"))
              (raw-path (pi-arg-ref args "path" "."))
-             (limit (pi-arg-ref args "limit" 1000))
-             (effective-limit (if (number? limit) limit 1000))
+             (limit (pi-int-arg (pi-arg-ref args "limit" 1000)))
+             (effective-limit (if limit limit 1000))
             ) ;
         (when timed-out?
           (error 'error "Command timed out")

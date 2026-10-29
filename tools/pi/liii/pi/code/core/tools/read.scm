@@ -16,7 +16,7 @@
     (liii pi code core tools truncate)
   ) ;import
   (export pi-read-schema pi-execute-read pi-arg-ref pi-resolve-path
-    pi-keyword-value pi-get-agent-dir
+    pi-keyword-value pi-get-agent-dir pi-int-arg
   ) ;export
   (begin
 
@@ -30,6 +30,13 @@
               (else default-val)
         ) ;cond
       ) ;let
+    ) ;define
+
+    ;; 数值参数归一化为整数：模型给出的数字可能是实数（如 180.0），
+    ;; 而 list-take/list-drop 只接受整数，否则报「list-drop: second
+    ;; argument must be an integer」。非数值返回 #f（视同缺省）。
+    (define (pi-int-arg x)
+      (if (and (number? x) (real? x)) (exact (round x)) #f)
     ) ;define
 
     (define (pi-resolve-path raw-path cwd)
@@ -154,8 +161,8 @@
       (let* ((timed-out? (pi-keyword-value :timed-out? opts #f))
              (cwd (pi-keyword-value :cwd opts (getcwd)))
              (raw-path (pi-arg-ref args "path"))
-             (offset (pi-arg-ref args "offset" #f))
-             (limit (pi-arg-ref args "limit" #f))
+             (offset (pi-int-arg (pi-arg-ref args "offset" #f)))
+             (limit (pi-int-arg (pi-arg-ref args "limit" #f)))
             ) ;
         (when timed-out?
           (error 'error "Command timed out")

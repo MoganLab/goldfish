@@ -111,6 +111,12 @@
   (check-true (string-contains? out
                 "[1 matches limit reached. Use limit=2 for more, or refine pattern]")))
 
+;; 实数 limit/context：模型可能给出 1.0 这类实数，需归一化为整数
+(let ((out (pi-execute-grep
+             (list (cons "pattern" "define") (cons "path" legacy-test-file) (cons "limit" 1.0)))))
+  (check-true (string-contains? out
+                "[1 matches limit reached. Use limit=2 for more, or refine pattern]")))
+
 (let ((out (pi-execute-grep
              (list (cons "pattern" "non_existent_symbol_8888") (cons "path" legacy-test-file)))))
   (check out => "No matches found"))
