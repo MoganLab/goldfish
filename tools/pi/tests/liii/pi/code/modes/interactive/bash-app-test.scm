@@ -9,9 +9,10 @@
   (liii pi code modes interactive bash)
   (liii pi code modes interactive app)
   (liii pi code modes interactive state)
+  (liii pi code modes interactive status-card)
 ) ;import
 
-(check-set-mode! 'report)
+(check-set-mode! 'report-failed)
 
 ;; 构造 1..n 的多行输出文本
 (define (%nums-text n)
@@ -115,20 +116,26 @@
   ;; Ctrl+O 切换前诊断：chat 内应有一张 bash 卡片组件
   (check (length (pi-app-chat app)) => 1)
   (check-true (bash-card-component? (car (pi-app-chat app))))
-  ;; Ctrl+O 切换 → 展开
+  ;; Ctrl+O 切换 → 展开，chat 底部追加状态卡片
   (check (pi-app-toggle-tool-output! app) => #t)
   (check-true (bash-card-expanded? (car (pi-app-chat app))))
+  (check (length (pi-app-chat app)) => 2)
+  (check-true (status-card? (cadr (pi-app-chat app))))
   (pi-app-render! app)
   (let ((joined (string-join (map strip-ansi (screen-lines screen)) "\n")))
     (check-true (string-contains? joined " 1\n"))
     (check-true (string-contains? joined " 35\n"))
     (check-true (string-contains? joined "(ctrl+o to collapse)"))
+    (check-true (string-contains? joined "Tool output: expanded"))
   ) ;let
-  ;; 再次 Ctrl+O → 恢复折叠
+  ;; 再次 Ctrl+O → 恢复折叠；状态卡片原地更新不叠加
   (check (pi-app-toggle-tool-output! app) => #f)
+  (check (length (pi-app-chat app)) => 2)
   (pi-app-render! app)
   (let ((joined (string-join (map strip-ansi (screen-lines screen)) "\n")))
     (check-true (string-contains? joined "... 15 more lines (ctrl+o to expand)"))
+    (check-true (string-contains? joined "Tool output: collapsed"))
+    (check-false (string-contains? joined "Tool output: expanded"))
   ) ;let
 ) ;let*
 

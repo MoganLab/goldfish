@@ -107,15 +107,18 @@
     (let ((text (string-join (map strip-ansi (screen-lines (pi-app-screen app))) "\n")))
       (check-true (string-contains? text "... (3 earlier lines, ctrl+o to expand)"))
       (check-true (string-contains? text "Elapsed ")))
-    ;; 运行中也可展开；全局 Ctrl+O 同时作用于模型工具卡片
+    ;; 运行中也可展开；全局 Ctrl+O 同时作用于模型工具卡片，
+    ;; 并在 chat 底部追加可原地更新的状态卡片（对齐上游 showStatus）
     (check (pi-app-toggle-tool-output! app) => #t)
+    (check (length (pi-app-chat app)) => 2)
+    (check-true (status-card? (cadr (pi-app-chat app))))
     (pi-app-render! app)
     (let ((lines (map string-trim-both (map strip-ansi (screen-lines (pi-app-screen app))))))
       (check-true (pair? (member "1" lines)))
       (check-true (pair? (member "8" lines))))
     (emit 'tool_execution_end "live-1" "bash" "1\n2\n3\n4\n5\n6\n7\n8" #f 4200)
     (pi-app-poll-events! app)
-    (check (length (pi-app-chat app)) => 1)
+    (check (length (pi-app-chat app)) => 2)
     (check (car (pi-app-chat app)) => card)
     (let ((text (string-join (map strip-ansi (screen-lines (pi-app-screen app))) "\n")))
       (check-true (string-contains? text "Took 4.2s"))

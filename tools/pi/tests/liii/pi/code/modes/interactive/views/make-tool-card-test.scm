@@ -67,7 +67,8 @@
   (check (string-contains? (list-ref lines 3) "38;2;157;165;169") => #t)
   (check (string-contains? (list-ref lines 3) "Permission denied") => #t))
 
-;; read 成功卡片：绿背景、无成功徽标或绿字，输出背景不中断
+;; read 成功卡片：绿背景、无成功徽标或绿字；折叠态不显示输出（对齐上游
+;; formatReadResult：未展开且非错误时返回空，仅剩标题行），展开后显示
 (let* ((success-card (make-tool-card "read" "a.scm" 'success "(content)"))
        (w 50)
        (lines (component-render success-card w))
@@ -76,8 +77,11 @@
   (check (string-contains? (cadr lines) "\x1b;[1m\x1b;[38;2;222;224;225mread") => #t)
   (check-false (string-contains? joined "38;2;220;245;220"))
   (check-false (string-contains? joined "✔"))
-  (check (string-contains? (list-ref lines 3) "38;2;157;165;169") => #t)
-  (check-false (string-contains? (list-ref lines 3) "\x1b;[0m ")))
+  (check-false (string-contains? joined "(content)"))
+  (tool-card-set-expanded! success-card #t)
+  (let ((expanded-joined (string-join (component-render success-card w) "")))
+    (check-true (string-contains? expanded-joined "38;2;157;165;169"))
+    (check-true (string-contains? expanded-joined "(content)"))))
 
 ;; bash 输出内空行的背景铺满整行宽度
 (let* ((blank-card (make-tool-card "bash" "printf a" 'success "a\n\nb"))
@@ -134,5 +138,30 @@
   (tool-card-set-expanded! card #f)
   (let ((text (string-join (map strip-ansi (component-render card 80)) "\n")))
     (check-true (string-contains? text "... (3 earlier lines, ctrl+o to expand)"))))
+
+;; 非bash工具卡片：折叠/展开渲染对齐上游 per-tool 预览行数与 expanded 语义
+(let* ((card (make-tool-card "read" "a.scm" 'success "l1\nl2\nl3\nl4\nl5\nl6\nl7\nl8")))
+  ;; read 折叠态：不显示任何输出（上游 formatReadResult 折叠且非错误返回空）
+  (let ((text (string-join (map strip-ansi (component-render card 80)) "\n")))
+    (check-false (string-contains? text "l1"))
+    (check-false (string-contains? text "more lines")))
+  ;; 展开态：全文输出
+  (tool-card-set-expanded! card #t)
+  (let ((text (string-join (map strip-ansi (component-render card 80)) "\n")))
+    (check-true (string-contains? text "l1"))
+    (check-true (string-contains? text "l8"))))
+
+;; write 工具折叠预览 10 行：11 行输出折叠时前 10 行 + more lines 提示
+(let* ((text (string-join (map (lambda (i) (string-append "w" (number->string i))) (iota 11)) "\n"))
+       (card (make-tool-card "write" "a.txt" 'success text)))
+  (let ((joined (string-join (map strip-ansi (component-render card 80)) "\n")))
+    (check-true (string-contains? joined "w0"))
+    (check-true (string-contains? joined "w9"))
+    (check-false (string-contains? joined "w10"))
+    (check-true (string-contains? joined "... (1 more lines, ctrl+o to expand)")))
+  (tool-card-set-expanded! card #t)
+  (let ((joined (string-join (map strip-ansi (component-render card 80)) "\n")))
+    (check-true (string-contains? joined "w10"))
+    (check-false (string-contains? joined "more lines"))))
 
 (check-report)

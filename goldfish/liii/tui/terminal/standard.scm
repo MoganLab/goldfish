@@ -120,6 +120,9 @@
       (let ((state (terminal-data term)))
         (%st-cursor-x-set! state 0)
         (%st-cursor-y-set! state 0)
+        ;; 清屏后全量重绘，曾经的最大行不再有效：重置 inline 追踪，
+        ;; 否则退出 TUI 时 shell prompt 会落在残留区下方
+        (%st-max-y-set! state 0)
         (display "\x1b;[2J\x1b;[H" (%st-port state))
       ) ;let
     ) ;define

@@ -31,6 +31,7 @@
     (scheme write)
     (liii base)
     (liii error)
+    (liii list)
     (liii string)
     (liii tui text-width)
     (liii tui terminal)
@@ -157,6 +158,20 @@
       ) ;let
     ) ;define
 
+    ;; 超屏收缩检测（对齐上游 tui-main-screen clearOnShrink 场景）：
+    ;; inline 模式下内容行数超过终端高度后，滚动已把旧内容推出视口，
+    ;; 此时若内容收缩，局部清行 + 相对光标移动无法可靠清理残留，
+    ;; 必须清屏全量重绘，否则残留行盖住输入区且光标定位错位
+    (define (%needs-full-redraw? term old-lines new-lines)
+      (let* ((size (terminal-size term)) (rows (and (pair? size) (cadr size))))
+        (and (integer? rows)
+          (> rows 0)
+          (< (length new-lines) (length old-lines))
+          (> (length old-lines) rows)
+        ) ;and
+      ) ;let*
+    ) ;define
+
     (define (screen-render! screen target . opt-cursor)
       (%check-main-screen screen "screen-render!")
       (let* ((term (%screen-terminal screen))
@@ -172,7 +187,16 @@
              ) ;lines
              (is-dirty (screen-buffer-dirty? buf))
              (old-lines (screen-buffer-lines buf))
-             (diff-ops (if is-dirty (screen-dirty-diff old-lines lines) (screen-diff old-lines lines))
+             (shrink-beyond-viewport? (%needs-full-redraw? term old-lines lines))
+             (diff-ops
+               (cond (is-dirty (screen-dirty-diff old-lines lines))
+                     ;; 超屏收缩：清屏后全量重绘新行，不生成旧内容的 clear op
+                     ;; （clear op 会把光标推到旧行数，污染 inline max-y 跟踪）
+                     (shrink-beyond-viewport?
+                       (map (lambda (i) (list 'update i (list-ref lines i))) (iota (length lines)))
+                     ) ;shrink-beyond-viewport?
+                     (else (screen-diff old-lines lines))
+               ) ;cond
              ) ;diff-ops
              (has-changes (or is-dirty (screen-diff-has-changes? diff-ops)))
             ) ;
@@ -181,6 +205,9 @@
         ) ;when
         (when has-changes
           (terminal-begin-sync! term)
+          (when shrink-beyond-viewport?
+            (terminal-clear term)
+          ) ;when
           (for-each (lambda (op) (%render-diff-op! term op old-lines)) diff-ops)
         ) ;when
         (screen-buffer-commit! buf lines)
