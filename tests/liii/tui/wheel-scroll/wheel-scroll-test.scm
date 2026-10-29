@@ -1,5 +1,4 @@
-(import (liii check)
-        (liii tui wheel-scroll))
+(import (liii check) (liii tui wheel-scroll))
 
 (check-set-mode! 'report-failed)
 
@@ -65,6 +64,44 @@
   (check-catch 'type-error (wheel-scroll-next! 123 -1 1000))
   (check-catch 'type-error (wheel-scroll-next! acc "x" 1000))
   (check-catch 'type-error (wheel-scroll-lines "not-an-acc"))
+) ;let
+
+;; 浮点时间戳参与加速计算时，也必须返回精确整数
+(let* ((acc (make-wheel-scroll-accelerator))
+       (first (wheel-scroll-next! acc 1 1000.0))
+       (accelerated (wheel-scroll-next! acc 1 1010.0))
+      ) ;
+  (check first => 1)
+  (check (and (exact? accelerated) (= accelerated 6)) => #t)
+) ;let*
+
+;; 加速路径返回的行数必须始终是精确整数（否则滚动会因 delta 非整数而报错）
+(let ((bad '()))
+  (for-each
+    (lambda (g1)
+      (for-each
+        (lambda (g2)
+          (let* ((acc (make-wheel-scroll-accelerator))
+                 (r1 (wheel-scroll-next! acc 1 1000))
+                 (r2 (wheel-scroll-next! acc 1 (+ 1000 g1)))
+                 (r3 (wheel-scroll-next! acc 1 (+ 1000 g1 g2)))
+                ) ;
+            (for-each
+              (lambda (r)
+                (unless (and (integer? r) (exact? r))
+                  (set! bad (cons (list g1 g2 r) bad))
+                ) ;unless
+              ) ;lambda
+              (list r1 r2 r3)
+            ) ;for-each
+          ) ;let*
+        ) ;lambda
+        (list 1 2 3 5 7 10 13 17 20 25 30 40 50 60 80 100 150 199 200 201)
+      ) ;for-each
+    ) ;lambda
+    (list 1 2 3 5 7 10 13 17 20 25 30 40 50 60 80 100 150 199 200 201)
+  ) ;for-each
+  (check (null? bad) => #t)
 ) ;let
 
 (check-report)

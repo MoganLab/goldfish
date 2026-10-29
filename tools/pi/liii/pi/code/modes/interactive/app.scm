@@ -214,27 +214,20 @@
     ;; 合并后一次滚动处理完所有已到达事件，视图不再滞后。
     ;; 返回 #t 表示需要重绘。
     (define (pi-app-handle-mouse-events! app events)
-      (let ((acc (pi-app-wheel-accelerator app))
-            (delta 0)
-            (handled? #f)
-           ) ;
+      (let ((acc (pi-app-wheel-accelerator app)) (delta 0) (handled? #f))
         (for-each
           (lambda (ev)
             (case (mouse-event-type ev)
-              ((wheel-up)
-               (set! delta (- delta (wheel-scroll-next! acc -1 (current-monotonic-millis))))
-               (set! handled? #t)
-              ) ;
-              ((wheel-down)
-               (set! delta (+ delta (wheel-scroll-next! acc 1 (current-monotonic-millis))))
-               (set! handled? #t)
-              ) ;
-              ((click)
-               (when (pi-app-dispatch-mouse! app ev)
-                 (set! handled? #t)
-               ) ;when
-              ) ;
-              (else #f)
+                  ((wheel-up)
+                   (set! delta (- delta (wheel-scroll-next! acc -1 (current-monotonic-millis))))
+                   (set! handled? #t)
+                  ) ;
+                  ((wheel-down)
+                   (set! delta (+ delta (wheel-scroll-next! acc 1 (current-monotonic-millis))))
+                   (set! handled? #t)
+                  ) ;
+                  ((click) (when (pi-app-dispatch-mouse! app ev) (set! handled? #t)))
+                  (else #f)
             ) ;case
           ) ;lambda
           events

@@ -152,7 +152,7 @@
                        (avg (if prev (/ (+ prev gap) 2) gap))
                        (base (min %max-auto-lines (max 1 (/ %reference-gap-ms avg))))
                        (scaled (+ base (%wheel-scroll-carry acc)))
-                       (whole (floor scaled))
+                       (whole (inexact->exact (floor scaled)))
                       ) ;
                   (%wheel-scroll-average-gap-set! acc avg)
                   (%wheel-scroll-carry-set! acc (- scaled whole))

@@ -32,19 +32,18 @@
     terminal-flush terminal-detect-size make-virtual-terminal virtual-terminal?
     virtual-terminal-screen virtual-terminal-raw virtual-terminal-resize!
     virtual-terminal-push-key! virtual-terminal-pop-key! terminal-poll-key
-    terminal-drain-mouse-events
-    terminal-paste-mode? terminal-set-paste-mode! make-standard-terminal
-    standard-terminal? terminal-enter-raw-mode! terminal-exit-raw-mode!
-    terminal-max-y terminal-enter-alt-screen! terminal-exit-alt-screen!
-    terminal-mouse-mode! make-alt-screen alt-screen? alt-screen-terminal
-    alt-screen-lines alt-screen-render! alt-screen-clear! alt-screen-invalidate!
-    alt-screen-refresh! make-scroll-view scroll-view? scroll-view-content
-    scroll-view-set-content! scroll-view-offset scroll-view-set-offset!
-    scroll-view-follow? scroll-view-set-follow! scroll-view-render-lines
-    scroll-view-scroll-by! scroll-view-page-up! scroll-view-page-down!
-    scroll-view-to-top! scroll-view-to-bottom! scroll-view-total-lines
-    scroll-view-max-offset scroll-view-height make-wheel-scroll-accelerator
-    scroll-view-invalidate!
+    terminal-drain-mouse-events terminal-paste-mode? terminal-set-paste-mode!
+    make-standard-terminal standard-terminal? terminal-enter-raw-mode!
+    terminal-exit-raw-mode! terminal-max-y terminal-enter-alt-screen!
+    terminal-exit-alt-screen! terminal-mouse-mode! make-alt-screen alt-screen?
+    alt-screen-terminal alt-screen-lines alt-screen-render! alt-screen-clear!
+    alt-screen-invalidate! alt-screen-refresh! make-scroll-view scroll-view?
+    scroll-view-content scroll-view-set-content! scroll-view-offset
+    scroll-view-set-offset! scroll-view-follow? scroll-view-set-follow!
+    scroll-view-render-lines scroll-view-scroll-by! scroll-view-page-up!
+    scroll-view-page-down! scroll-view-to-top! scroll-view-to-bottom!
+    scroll-view-total-lines scroll-view-max-offset scroll-view-height
+    make-wheel-scroll-accelerator scroll-view-invalidate!
     wheel-scroll-accelerator? wheel-scroll-next! wheel-scroll-reset!
     wheel-scroll-lines wheel-scroll-set-lines! mouse-event? mouse-event-type
     mouse-event-button mouse-event-x mouse-event-y mouse-event-shift?
