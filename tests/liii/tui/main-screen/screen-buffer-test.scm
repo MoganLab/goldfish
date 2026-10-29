@@ -1,5 +1,4 @@
-(import (liii check)
-        (liii tui main-screen buffer))
+(import (liii check) (liii tui main-screen buffer))
 
 (check-set-mode! 'report-failed)
 
@@ -42,13 +41,33 @@
   ;; clear 重置行并置 dirty 为 #t
   (screen-buffer-clear! buf)
   (check (screen-buffer-lines buf) => '())
-  (check (screen-buffer-dirty? buf) => #t))
+  (check (screen-buffer-dirty? buf) => #t)
+) ;let
 
 ;; 带初始行创建
 (let ((buf2 (make-screen-buffer '("init 1" "init 2"))))
   (check (screen-buffer? buf2) => #t)
   (check (screen-buffer-lines buf2) => '("init 1" "init 2"))
   (check (screen-buffer-prev-lines buf2) => '())
-  (check (screen-buffer-dirty? buf2) => #t))
+  (check (screen-buffer-dirty? buf2) => #t)
+) ;let
+
+;; 无内嵌换行时保持原列表与字符串对象，避免逐帧重建规范化结果。
+(let ((lines (list "first" "第二行" "")))
+  (check (eq? (screen-normalize-lines lines "test") lines) => #t)
+  (check (eq? (screen-normalize-lines lines "test") lines) => #t)
+) ;let
+
+;; 有内嵌换行时仍按原语义逐行展开，并保留尾部空行。
+(let ((lines (list "first" "second\nthird" "fourth\n")))
+  (check (screen-normalize-lines lines "test")
+    =>
+    '("first" "second" "third" "fourth" "")
+  ) ;check
+  (check (screen-normalize-lines "one\ntwo" "test") => '("one" "two"))
+  (check (screen-normalize-lines "unchanged" "test") => '("unchanged"))
+) ;let
+
+(check-catch 'type-error (screen-normalize-lines '("ok" 1) "test"))
 
 (check-report)
