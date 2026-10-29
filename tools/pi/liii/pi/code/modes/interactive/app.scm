@@ -20,7 +20,8 @@
     pi-app-submit-resume! pi-app-handle-resume-event! pi-app-scroll-view
     pi-app-scroll-up! pi-app-scroll-down! pi-app-scroll-top!
     pi-app-scroll-bottom! pi-app-scroll-line-up! pi-app-scroll-line-down!
-    pi-app-frame-lines pi-app-wheel-accelerator pi-app-handle-mouse!
+    pi-app-frame-lines pi-app-transcript-lines pi-app-wheel-accelerator
+    pi-app-handle-mouse!
   ) ;export
   (import (scheme base)
     (liii base)
