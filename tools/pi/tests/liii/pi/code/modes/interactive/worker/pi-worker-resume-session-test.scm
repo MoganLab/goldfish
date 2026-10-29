@@ -14,6 +14,7 @@
   (liii pi code core session-manager)
   (liii pi code core session-name)
   (liii pi code core compaction session)
+  (liii pi code core session-projection)
   (liii pi code modes interactive worker)
 ) ;import
 
@@ -37,11 +38,12 @@
 ;; 会话文件投影出的消息文本（拼接全部 role/text）
 
 (define (projected-text file)
-  (string-join (map (lambda (msg) (object->string msg))
-                 (pi-project-session-messages (pi-read-session-entries file))
-               ) ;map
-    " "
-  ) ;string-join
+  (let*-values (((msgs _state _diag)
+                 (pi-build-session-projection (pi-read-session-entries file))
+                ) ;
+               ) ;
+    (string-join (map (lambda (msg) (object->string msg)) msgs) " ")
+  ) ;let*-values
 ) ;define
 
 (let* ((env (list (cons "PI_CODING_AGENT_DIR" TMP-AGENT-DIR)))

@@ -32,8 +32,8 @@
     PI_SUMMARIZATION_SYSTEM_PROMPT PI_SUMMARIZATION_PROMPT
     PI_UPDATE_SUMMARIZATION_PROMPT pi-compaction-summary-message
     pi-build-summarization-prompt pi-summarization-failure pi-generate-summary
-    pi-read-session-entries pi-project-session-messages
-    pi-last-compaction-summary pi-append-compaction-entry! pi-compact-session!
+    pi-read-session-entries pi-last-compaction-summary
+    pi-append-compaction-entry! pi-compact-session!
   ) ;export
   (begin
   ) ;begin

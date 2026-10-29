@@ -12,6 +12,7 @@
   (liii pi code config)
   (liii pi code core session-manager)
   (liii pi code core compaction session)
+  (liii pi code core session-projection)
   (liii pi code modes interactive worker)
 ) ;import
 
@@ -19,6 +20,13 @@
 
 (define TMP-AGENT-DIR
   (path->string (path-join (path-temp-dir) "pi-worker-bash-record-test"))
+) ;define
+
+;; 上下文消息统一取自投影入口；状态与诊断本用例不关心
+(define (projected-messages entries)
+  (let*-values (((msgs _state _diag) (pi-build-session-projection entries)))
+    msgs
+  ) ;let*-values
 ) ;define
 
 ;; 清理旧运行残留，保证测试可重复
@@ -44,7 +52,7 @@
 
   (let* ((sfile (vector-ref box 0))
          (entries (if (string? sfile) (pi-read-session-entries sfile) '()))
-         (msgs (pi-project-session-messages entries))
+         (msgs (projected-messages entries))
         ) ;
     ;; 1. 会话文件已创建且三次落盘全部成功：header + 3 条 bashExecution
     ;;    （首条为 session header——回归覆盖 Windows 反斜杠 cwd 转义）

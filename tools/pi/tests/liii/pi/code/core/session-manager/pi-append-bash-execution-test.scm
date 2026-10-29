@@ -6,7 +6,8 @@
         (liii path)
         (liii pi ai message)
         (liii pi code core session-manager)
-        (liii pi code core compaction session))
+        (liii pi code core compaction session)
+        (liii pi code core session-projection))
 
 (check-set-mode! 'report-failed)
 
@@ -57,9 +58,9 @@
 ) ;let
 
 ;; 3. 投影：仅未排除的 bashExecution 转为 user 消息
-(let* ((entries (pi-read-session-entries TARGET))
-       (msgs (pi-project-session-messages entries))
-      ) ;
+(let*-values (((entries) (pi-read-session-entries TARGET))
+              ((msgs _state _diag) (pi-build-session-projection entries))
+             ) ;
   (check (length msgs) => 1)
   (check (pi-message-role (car msgs)) => "user")
   (check (pi-user-message-content (car msgs)) => "Ran `echo hi`\n```\nhi\n```")
