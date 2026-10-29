@@ -44,6 +44,7 @@
     (liii tui editor viewport)
     (liii tui editor paste)
     (liii tui editor handle)
+    (liii tui editor render)
     (liii tui editor undo)
   ) ;import
   (begin
@@ -311,7 +312,7 @@
                      #f
                    ) ;%make-editor-data
              ) ;data
-             (comp (make-component %editor-render %editor-handle-input))
+             (comp (make-component editor-render editor-handle-input))
             ) ;
         (unless (or (not max-lines) (and (integer? max-lines) (> max-lines 0)))
           (type-error "make-editor: :max-lines must be #f or a positive integer")
