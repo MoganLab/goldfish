@@ -58,7 +58,7 @@
     ;; 未跟随末尾时，在视口底部叠加“跳到最新消息”提示行
     ;; （对齐上游 tui-alt-screen.ts 的 scrollToEndIndicator）
     (define (%pi-scroll-hint-line width)
-      (apply-card-bg " ↓ Jump to latest message · ctrl+end " width
+      (apply-card-bg " ↓ Jump to latest message · Ctrl+End " width
         %bg-pending %fg-title
       ) ;apply-card-bg
     ) ;define
@@ -104,7 +104,7 @@
                   (pair? (%pi-app-follow-up-pending app))
                 ) ;or
             (container-add! pending-box
-              (make-queued-card "↳ Esc abort · alt+up edit queued messages")
+              (make-queued-card "↳ ESC abort · Alt+Up edit queued messages")
             ) ;container-add!
           ) ;when
           (let ((items (pi-queue-items q)))

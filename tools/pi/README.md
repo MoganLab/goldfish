@@ -97,7 +97,7 @@ timeout 300 bin/gf pi -c -p "刚才的暗号是什么？"
 timeout 300 bin/gf pi -c -p "继续上一轮的话题"
 
 # 选择并恢复历史会话（--resume / -r）：默认当前目录，Tab 切换全部项目；
-# 输入模糊搜索，Enter 恢复，Esc 取消；Ctrl+N 仅看命名会话，
+# 输入模糊搜索，Enter 恢复，ESC 取消；Ctrl+N 仅看命名会话，
 # Ctrl+P 显示文件路径，Ctrl+S 切换最近时间/相关度排序。
 bin/gf pi --resume
 
@@ -155,7 +155,7 @@ agent 正在流式输出时结果延迟落盘，下一条消息才可见（对�
 | `Ctrl+Home` / `Ctrl+End` | 跳到对话记录顶部/末尾（末尾恢复跟随） |
 | `Ctrl+C` | 清空输入框（不退出、不中断任务） |
 | `Ctrl+D` | 输入框为空时退出 TUI |
-| `Esc` | busy 时中断任务并把排队消息撤回到输入框；空闲时撤回排队消息到输入框 |
+| `ESC` | busy 时中断任务并把排队消息撤回到输入框；空闲时撤回排队消息到输入框 |
 | `Alt+Up` | 仅把排队消息（steering / follow-up）撤回到输入框，不中断运行中任务 |
 | `Enter`（busy 时） | steering：插话注入当前运行中的任务（工具批次结束后、下次请求前生效） |
 | `Alt+Enter` | follow-up：排队到当前任务自然结束后再执行；空闲时等同 `Enter` |
@@ -178,7 +178,7 @@ agent 正在流式输出时结果延迟落盘，下一条消息才可见（对�
 - **待处理区**：busy 时输入区上方分组展示全部排队消息
   （`Steering: ...` / `Follow-up: ...`）与撤回提示；worker 消费时
   上屏正式用户卡片并同步移除待处理项。
-- **撤回**：`Esc`（中止 + 撤回）或 `Alt+Up`（仅撤回），
+- **撤回**：`ESC`（中止 + 撤回）或 `Alt+Up`（仅撤回），
   按 steering → follow-up 顺序合并回输入框。
 
 实现分层：`(liii pi agent queue)` 提供 `pi-pending-queue` 双粒度队列；
@@ -192,7 +192,7 @@ TUI 层由 `app.scm` / `worker.scm` / `app-events.scm` 经 go channel
 对话记录未跟随末尾（已向上翻页）时，视口底部会叠加一行提示：
 
 ```text
- ↓ Jump to latest message · ctrl+end
+ ↓ Jump to latest message · Ctrl+End
 ```
 
 按 `Ctrl+End` 即可回到最新消息。
