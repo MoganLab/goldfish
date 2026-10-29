@@ -1,4 +1,9 @@
-(import (scheme base) (liii check) (liii string) (liii tui) (liii pi code modes interactive views))
+(import (scheme base)
+  (liii check)
+  (liii string)
+  (liii tui)
+  (liii pi code modes interactive views)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -14,6 +19,13 @@
   (check (string-contains? (cadr lines) " ls -la") => #t)
   (check-false (string-contains? (cadr lines) ">"))
   (check (string-contains? (list-ref lines 2) "48;2;33;59;73") => #t)
-  (check (list-ref lines 3) => ""))
+  (check (list-ref lines 3) => "")
+  ;; 内容与宽度不变时复用整个渲染结果，避免历史卡片逐帧重算。
+  (check (eq? lines (component-render card w)) => #t)
+  (let ((resized (component-render card 20)))
+    (check-false (eq? lines resized))
+    (check (eq? resized (component-render card 20)) => #t)
+  ) ;let
+) ;let*
 
 (check-report)

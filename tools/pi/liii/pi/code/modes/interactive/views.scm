@@ -16,84 +16,39 @@
     (liii tui component)
     (liii tui text-width)
     (liii pi code modes interactive renderers)
+    (liii pi code modes interactive views cache)
+    (liii pi code modes interactive views theme)
   ) ;import
   (begin
-
-    ;; ANSI 颜色常量（严格对应 pi dark 主题 dark.json 的 okhsl 精确换算值）
-    ;; userMessageBg: 深蓝背景 (#213b49 = okhsl(233 41% 24%))
-    (define %bg-user "\x1b;[48;2;33;59;73m")
-    ;; userMessageText = text (#dee0e1 = okhsl(234 3% 89%))
-    (define %fg-user "\x1b;[38;2;222;224;225m")
-
-    ;; toolPendingBg: 执行中微蓝暗灰背景 (#34383a = okhsl(229 5% 24%))
-    (define %bg-pending "\x1b;[48;2;52;56;58m")
-    ;; toolSuccessBg: 工具执行成功标志性深绿背景 (#254131 = okhsl(158 46% 25%))
-    (define %bg-success "\x1b;[48;2;37;65;49m")
-    ;; toolErrorBg: 工具执行失败警示深红背景 (#5b282a = okhsl(19 54% 25%))
-    (define %bg-error "\x1b;[48;2;91;40;42m")
-
-    ;; toolTitle: 命令标题亮色加粗前景（text，暗色主题 #dee0e1）。
-    ;; 注意：不得使用前导 0 的全重置序列（如 0;1;38;2;...），
-    ;; 0 会清掉行首已设置的背景色；粗体用独立的 1m 开启
-    (define %fg-title "\x1b;[1m\x1b;[38;2;222;224;225m")
-    ;; toolOutput: 输出/计时 muted 前景（#9da5a9）
-    (define %fg-output "\x1b;[38;2;157;165;169m")
-    ;; accent: 路径/模式紫色 (#a798d7 = okhsl(295 50% 67%))
-    (define %fg-accent "\x1b;[38;2;167;152;215m")
-    ;; warning: read 范围后缀黄色 (#cd9a22 = okhsl(83 88% 67%))
-    (define %fg-warning "\x1b;[38;2;205;154;34m")
-
-    ;; 选择性重置（对齐 pi styleTextWithAnsi 的 39/22 语义）：
-    ;; 只关前景/粗体，绝不清背景，保证背景铺满整行（含尾部 padding）
-    (define %fg-reset "\x1b;[39m")
-    (define %bold-reset "\x1b;[22m\x1b;[39m")
-
-    ;; 暗淡排队提示（dim，#7e888e = okhsl(229 8% 56%)）
-    (define %fg-dim "\x1b;[38;2;126;136;142m")
-    (define %ansi-reset "\x1b;[0m")
-
-    ;; 行背景填充函数：计算可见宽度，补足空格并包裹在指定背景/前景 ANSI 码中。
-    ;; padding 空格在背景色范围内：line 内部只允许出现选择性重置（39/22），
-    ;; 不得包含 \x1b[0m 全重置（会清背景，导致空行只剩左侧有色）
-    (define (apply-card-bg line width bg-code fg-code)
-      (let* ((vlen (display-width line))
-             (pad-needed (max 0 (- width vlen)))
-             (padded (string-append line (make-string pad-needed #\space)))
-            ) ;
-        (string-append bg-code fg-code padded %ansi-reset)
-      ) ;let*
-    ) ;define
 
     ;; 用户提问卡片组件 (make-user-card text)
     ;; 对齐 pi UserMessageComponent：Markdown(paddingX=1, paddingY=1) + userMessageBg/userMessageText，
     ;; 上下各一行带背景的空 padding 行，正文 1 空格缩进，无前缀符号
+    (define (%render-user-card text width)
+      (if (<= width 0)
+        '()
+        (let ((rows
+                (map (lambda (line) (apply-card-bg (string-append " " line) width %bg-user %fg-user))
+                  (string-split text "\n")
+                ) ;map
+              ) ;rows
+             ) ;
+          (append (list (apply-card-bg "" width %bg-user %fg-user))
+            rows
+            (list (apply-card-bg "" width %bg-user %fg-user) "")
+          ) ;append
+        ) ;let
+      ) ;if
+    ) ;define
+
     (define (make-user-card text)
-      (make-component
-        :render
-        (lambda (self width)
-          (if (<= width 0)
-            '()
-            (let* ((lines (string-split text "\n"))
-                   (rows
-                     (map (lambda (line) (apply-card-bg (string-append " " line) width %bg-user %fg-user))
-                       lines
-                     ) ;map
-                   ) ;rows
-                  ) ;
-              (append (list (apply-card-bg "" width %bg-user %fg-user))
-                rows
-                (list (apply-card-bg "" width %bg-user %fg-user) "")
-              ) ;append
-            ) ;let*
-          ) ;if
-        ) ;lambda
-      ) ;make-component
+      (%make-cached-component text (lambda (width) (%render-user-card text width)))
     ) ;define
 
     ;; 工具调用卡片的可变状态。pending 卡片在 start/update/end 事件间复用。
     (define-record-type <tool-card>
       (%make-tool-card tool-name args status result expanded? started-at
-        ended-at duration-ms render-cache
+        ended-at duration-ms render-cache card-render-cache
       ) ;%make-tool-card
       tool-card?
       (tool-name %tool-card-name)
@@ -104,8 +59,9 @@
       (started-at %tool-card-started-at)
       (ended-at %tool-card-ended-at %tool-card-ended-at-set!)
       (duration-ms %tool-card-duration-ms %tool-card-duration-ms-set!)
-      ;; bash 输出渲染缓存：(key . lines)，key = (result width expanded?)
+      ;; 原始 bash 输出缓存与完整卡片渲染缓存分别保存，避免互相覆盖。
       (render-cache %tool-card-render-cache %tool-card-render-cache-set!)
+      (card-render-cache %tool-card-card-render-cache)
     ) ;define-record-type
 
     (define (%tool-now-ms)
@@ -311,6 +267,45 @@
       ) ;let*
     ) ;define
 
+    (define (%tool-card-cache-key st width timer)
+      (list (%tool-card-name st)
+        (%tool-card-args st)
+        (%tool-card-status st)
+        (%tool-card-result st)
+        width
+        (%tool-card-expanded? st)
+        timer
+      ) ;list
+    ) ;define
+
+    (define (%render-tool-card st width timer)
+      (let ((cache (%tool-card-card-render-cache st))
+            (key (%tool-card-cache-key st width timer))
+           ) ;
+        ;; bash pending 卡片将按秒变化的计时文本纳入键，其余字段
+        ;; 覆盖状态、流式输出与展开切换，命中时不会残留旧内容。
+        (if (and (render-cache? cache) (equal? (%render-cache-key cache) key))
+          (%render-cache-lines cache)
+          (%cache-set-lines! cache
+            key
+            (let ((tool-name (%tool-card-name st)))
+              (cond ((<= width 0) '())
+                    ((string=? tool-name "bash") (%render-bash-tool-card st width))
+                    (else (render-tool-card-lines tool-name
+                            (%tool-card-args st)
+                            (%tool-card-status st)
+                            (%tool-card-result st)
+                            width
+                            (%tool-card-expanded? st)
+                          ) ;render-tool-card-lines
+                    ) ;else
+              ) ;cond
+            ) ;let
+          ) ;%cache-set-lines!
+        ) ;if
+      ) ;let
+    ) ;define
+
     ;; 工具调用状态卡片组件 (make-tool-card tool-name args status [result])
     ;; status: 'pending / 'success / 'error
     (define (make-tool-card tool-name args status . maybe-result)
@@ -325,24 +320,13 @@
                    #f
                    duration
                    #f
+                   (%make-render-cache #f '())
                  ) ;%make-tool-card
              ) ;st
              (card
                (make-component
                  :render
-                 (lambda (self width)
-                   (cond ((<= width 0) '())
-                         ((string=? tool-name "bash") (%render-bash-tool-card st width))
-                         (else (render-tool-card-lines tool-name
-                                 args
-                                 (%tool-card-status st)
-                                 (%tool-card-result st)
-                                 width
-                                 (%tool-card-expanded? st)
-                               ) ;render-tool-card-lines
-                         ) ;else
-                   ) ;cond
-                 ) ;lambda
+                 (lambda (self width) (%render-tool-card st width (%tool-timer-text st)))
                ) ;make-component
              ) ;card
             ) ;
@@ -352,45 +336,39 @@
     ) ;define
 
     ;; 助手纯文本回复卡片组件 (make-assistant-card text)
+    (define (%render-assistant-card text width)
+      (if (<= width 0) '() (append (string-split text "\n") (list "")))
+    ) ;define
+
     (define (make-assistant-card text)
-      (make-component
-        :render
-        (lambda (self width)
-          (if (<= width 0)
-            '()
-            (let ((lines (string-split text "\n")))
-              (append lines (list ""))
-            ) ;let
-          ) ;if
-        ) ;lambda
-      ) ;make-component
+      (%make-cached-component text
+        (lambda (width) (%render-assistant-card text width))
+      ) ;%make-cached-component
     ) ;define
 
     ;; 等待队列提示卡片组件 (make-queued-card text)
+    (define (%render-queued-card text width)
+      (if (<= width 0)
+        '()
+        (list (string-append %fg-dim "  ↳ [Queued: " text "]" %ansi-reset))
+      ) ;if
+    ) ;define
+
     (define (make-queued-card text)
-      (make-component
-        :render
-        (lambda (self width)
-          (if (<= width 0)
-            '()
-            (list (string-append %fg-dim "  ↳ [Queued: " text "]" %ansi-reset))
-          ) ;if
-        ) ;lambda
-      ) ;make-component
+      (%make-cached-component text (lambda (width) (%render-queued-card text width)))
     ) ;define
 
     ;; 重试提示卡片组件 (make-retry-card msg)
     (define (make-retry-card msg)
       (let ((line (string-append " ↻ " (string-trim-both msg))))
-        (make-component
-          :render
-          (lambda (self width)
+        (%make-cached-component msg
+          (lambda (width)
             (if (<= width 0)
               '()
               (list (apply-card-bg line width %bg-pending %fg-output) "")
             ) ;if
           ) ;lambda
-        ) ;make-component
+        ) ;%make-cached-component
       ) ;let
     ) ;define
 

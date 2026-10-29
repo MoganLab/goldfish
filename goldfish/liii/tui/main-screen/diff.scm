@@ -66,38 +66,55 @@
     (define (screen-diff old-lines new-lines)
       (%check-lines old-lines "screen-diff: old-lines")
       (%check-lines new-lines "screen-diff: new-lines")
-      (let* ((len-old (length old-lines))
-             (len-new (length new-lines))
-             (max-len (max len-old len-new))
-            ) ;
-        (map
-          (lambda (i)
-            (cond
-             ((and (< i len-old) (< i len-new))
-              (let ((old-str (list-ref old-lines i)) (new-str (list-ref new-lines i)))
-                (if (string=? old-str new-str) (list 'keep i) (list 'update i new-str))
-              ) ;let
-             ) ;
-             ((and (>= i len-old) (< i len-new)) (list 'append i (list-ref new-lines i)))
-             (else (list 'clear i))
-            ) ;cond
-          ) ;lambda
-          (iota max-len)
-        ) ;map
-      ) ;let*
+      ;; 两个列表只顺序遍历一次，避免逐下标 list-ref 的平方复杂度。
+      (let loop
+        ((old-rest old-lines) (new-rest new-lines) (index 0) (ops '()))
+        (cond
+         ((and (pair? old-rest) (pair? new-rest))
+          (let ((old-str (car old-rest)) (new-str (car new-rest)))
+            (loop (cdr old-rest)
+              (cdr new-rest)
+              (+ index 1)
+              (cons (if (string=? old-str new-str) (list 'keep index) (list 'update index new-str))
+                ops
+              ) ;cons
+            ) ;loop
+          ) ;let
+         ) ;
+         ((pair? new-rest)
+          (loop old-rest
+            (cdr new-rest)
+            (+ index 1)
+            (cons (list 'append index (car new-rest)) ops)
+          ) ;loop
+         ) ;
+         ((pair? old-rest)
+          (loop (cdr old-rest) new-rest (+ index 1) (cons (list 'clear index) ops))
+         ) ;
+         (else (reverse ops))
+        ) ;cond
+      ) ;let
     ) ;define
 
     (define (screen-dirty-diff old-lines new-lines)
       (%check-lines old-lines "screen-dirty-diff: old-lines")
       (%check-lines new-lines "screen-dirty-diff: new-lines")
-      (let* ((len-new (length new-lines)) (max-len (max (length old-lines) len-new)))
-        (map
-          (lambda (i)
-            (if (< i len-new) (list 'update i (list-ref new-lines i)) (list 'clear i))
-          ) ;lambda
-          (iota max-len)
-        ) ;map
-      ) ;let*
+      (let loop
+        ((old-rest old-lines) (new-rest new-lines) (index 0) (ops '()))
+        (cond
+         ((pair? new-rest)
+          (loop (if (pair? old-rest) (cdr old-rest) old-rest)
+            (cdr new-rest)
+            (+ index 1)
+            (cons (list 'update index (car new-rest)) ops)
+          ) ;loop
+         ) ;
+         ((pair? old-rest)
+          (loop (cdr old-rest) new-rest (+ index 1) (cons (list 'clear index) ops))
+         ) ;
+         (else (reverse ops))
+        ) ;cond
+      ) ;let
     ) ;define
 
   ) ;begin

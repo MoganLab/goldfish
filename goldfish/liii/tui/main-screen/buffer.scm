@@ -126,16 +126,24 @@
              (if (string-contains? target "\n") (string-split target "\n") (list target))
             ) ;
             ((list? target)
-             (append-map
+             ;; 常见路径不做任何分配：全部行均无内嵌换行时复用原列表。
+             (for-each
                (lambda (item)
                  (unless (string? item)
                    (type-error (string-append caller ": line must be string, got " (object->string item))
                    ) ;type-error
                  ) ;unless
-                 (if (string-contains? item "\n") (string-split item "\n") (list item))
                ) ;lambda
                target
-             ) ;append-map
+             ) ;for-each
+             (if (any (lambda (item) (string-contains? item "\n")) target)
+               (append-map (lambda (item)
+                             (if (string-contains? item "\n") (string-split item "\n") (list item))
+                           ) ;lambda
+                 target
+               ) ;append-map
+               target
+             ) ;if
             ) ;
             (else (type-error (string-append caller
                                 ": expected component, string, or list of strings, got "
