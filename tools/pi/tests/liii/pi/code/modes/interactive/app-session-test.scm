@@ -93,18 +93,20 @@
   (check (length (pi-app-chat app)) => 1)
   (let* ((sfile (vector-ref sfile-box 0))
          ;; 统计卡片可能超出视口高度，这里直接检查卡片内容本身
-         (text (string-join
-                 (map strip-ansi
-                   (append-map (lambda (card) (component-render card 120))
-                     (pi-app-chat app)
-                   ) ;append-map
-                 ) ;map
-                 "\n"
-               ))) ;string-join
-           ;text
+         (card-lines
+           (append-map (lambda (card) (component-render card 120))
+             (pi-app-chat app)
+           ) ;append-map
+         ) ;card-lines
+         (text (string-join (map strip-ansi card-lines) "\n"))
+         ;; 卡片正文超宽时按显示宽度折行（长路径会被拆到两行），
+         ;; 去掉换行后再核对路径，避免折行影响断言
+         (flat (string-join (map strip-ansi card-lines) ""))
+        ) ;
     (check-true (string? sfile))
     (check-true (string-contains? text "Session Info"))
-    (check-true (string-contains? text (string-append "File: " sfile)))
+    (check-true (string-contains? flat "File:"))
+    (check-true (string-contains? flat sfile))
     (check-true (string-contains? text "Messages"))
     (check-true (string-contains? text "Total: 0"))
     (check-true (string-contains? text "Tokens"))

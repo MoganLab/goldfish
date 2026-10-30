@@ -11,9 +11,9 @@
   (import (scheme base)
     (liii list)
     (liii tui component)
-    (liii tui text-width)
     (liii pi code modes interactive views cache)
     (liii pi code modes interactive views theme)
+    (liii pi code modes interactive views wrap)
   ) ;import
   (begin
 
@@ -30,7 +30,7 @@
     ;; 隐藏态标签：单行斜体灰字 Thinking...（对齐上游 hiddenThinkingLabel）
     (define %thinking-hidden-label "Thinking...")
 
-    ;; 渲染时对每个逻辑行用 wrap-text 折行（前导空格占 1 列，无背景可填满全宽），
+    ;; 渲染时对每个逻辑行按内容宽度折行（前导空格占 1 列，无背景可填满全宽），
     ;; 避免超宽行被 alt-screen 截断吞掉内容；中文按字符宽度逐字折行。
     ;; 隐藏态只渲染标签行 + 尾部 spacer，hidden 进入缓存键。
     (define (%render-thinking-card st width)
@@ -46,9 +46,12 @@
               (append
                 (append-map
                   (lambda (line)
-                    (map (lambda (seg) (string-append %fg-thinking %italic " " seg %ansi-reset))
-                      (wrap-text line (max 1 (- width 1)))
-                    ) ;map
+                    (%card-body-lines line
+                      width
+                      1
+                      0
+                      (lambda (seg) (list (string-append %fg-thinking %italic " " seg %ansi-reset)))
+                    ) ;%card-body-lines
                   ) ;lambda
                   (%thinking-card-lines st)
                 ) ;append-map
