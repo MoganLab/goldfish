@@ -7,7 +7,9 @@
 (define-library (liii pi code modes interactive views thinking)
   (export make-thinking-card thinking-card-append-line!)
   (import (scheme base)
+    (liii list)
     (liii tui component)
+    (liii tui text-width)
     (liii pi code modes interactive views cache)
     (liii pi code modes interactive views theme)
   ) ;import
@@ -21,15 +23,23 @@
       (render-cache %thinking-card-render-cache)
     ) ;define-record-type
 
+    ;; 渲染时对每个逻辑行用 wrap-text 折行（前导空格占 1 列，无背景可填满全宽），
+    ;; 避免超宽行被 alt-screen 截断吞掉内容；中文按字符宽度逐字折行。
     (define (%render-thinking-card st width)
       (%cached-render (%thinking-card-render-cache st)
         (list (%thinking-card-lines st) width)
         (lambda ()
           (if (<= width 0)
             '()
-            (append (map (lambda (line) (string-append %fg-thinking %italic " " line %ansi-reset))
-                      (%thinking-card-lines st)
-                    ) ;map
+            (append
+              (append-map
+                (lambda (line)
+                  (map (lambda (seg) (string-append %fg-thinking %italic " " seg %ansi-reset))
+                    (wrap-text line (max 1 (- width 1)))
+                  ) ;map
+                ) ;lambda
+                (%thinking-card-lines st)
+              ) ;append-map
               (list "")
             ) ;append
           ) ;if

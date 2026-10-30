@@ -1,5 +1,6 @@
 (import (scheme base)
   (liii check)
+  (liii list)
   (liii string)
   (liii tui)
   (liii pi code modes interactive views)
@@ -44,5 +45,52 @@
   (check (component-render card 0) => '())
   (check (component-render card -1) => '())
 ) ;let
+
+;; 辅助：提取卡片正文行（去掉尾部 spacer 空行）
+(define (%body-lines lines)
+  (if (<= (length lines) 1)
+    '()
+    (reverse (cdr (reverse lines)))
+  ) ;if
+) ;define
+
+;; 超长行折行：18 个 0123456789（180 字符）必须完整显示，不得被 alt-screen 截断吞掉
+(let* ((long-line (string-join (make-list 18 "0123456789") ""))
+       (card (make-thinking-card long-line))
+       (w 40)
+       (lines (component-render card w))
+       (content (%body-lines lines))
+      ) ;
+  ;; 折行后行数必然多于单行（2 行 = 单行正文 + spacer）
+  (check (> (length lines) 2) => #t)
+  ;; 每行去掉 ANSI 后显示宽度不超过终端宽度（前导空格 + 内容），否则会被 alt-screen 截断
+  (check (every (lambda (line) (<= (display-width line) w)) content) => #t)
+  ;; 内容完整：正文中数字字符总数必须等于 180，一个都不能少
+  (check
+    (length
+      (filter (lambda (c) (and (char>=? c #\0) (char<=? c #\9)))
+        (apply append (map string->list (map strip-ansi content)))
+      ) ;filter
+    )
+    => 180
+  )
+  ;; 拼接正文（去掉前导缩进）可还原完整原文
+  (check (string-join (map string-trim-both (map strip-ansi content)) "")
+    => long-line
+  )
+) ;let*
+
+;; 中文长行无空格也可逐字折行
+(let* ((zh-line (string-join (make-list 30 "金鱼") ""))
+       (lines (component-render (make-thinking-card zh-line) 20))
+      ) ;
+  ;; 60 个全角字符（宽 120），20 列终端（前导空格后可容 19，即 9 个全角/行）必然折行
+  (check (> (length lines) 2) => #t)
+  ;; 每行显示宽度不超过终端宽度，且拼接正文可还原完整原文（s7 按字节拆字符，改用拼接验证）
+  (check (every (lambda (line) (<= (display-width line) 20)) (%body-lines lines)) => #t)
+  (check (string-join (map string-trim-both (map strip-ansi (%body-lines lines))) "")
+    => zh-line
+  )
+) ;let*
 
 (check-report)
