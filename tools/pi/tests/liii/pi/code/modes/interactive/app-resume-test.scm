@@ -8,6 +8,7 @@
   (liii pi code modes interactive app)
   (liii pi code modes interactive state)
   (liii pi code modes interactive footer)
+  (liii pi code modes interactive thinking)
   (liii pi code modes interactive session-selector)
   (liii pi code core session-list)
 ) ;import

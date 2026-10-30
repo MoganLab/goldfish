@@ -16,12 +16,15 @@
   (import (scheme base)
     (liii go)
     (liii string)
+    (liii list)
     (liii tui)
     (liii pi agent queue)
     (liii pi code modes interactive state)
     (liii pi code modes interactive render)
     (liii pi code modes interactive views)
     (liii pi code modes interactive footer)
+    (liii pi code modes interactive thinking)
+    (liii pi code modes interactive app-model)
     (liii pi code modes interactive app-thinking)
     (liii pi code modes interactive session-selector)
   ) ;import
@@ -109,21 +112,114 @@
       ) ;cond
     ) ;define
 
-    ;; worker 完成切换（session_resumed path name）/ 失败（session_resume_error）
+    (define (%resume-ref alist key)
+      (cdr (or (assoc key alist) (cons #f #f)))
+    ) ;define
+
+    ;; 目标模型按 provider + id 在可用模型列表中精确匹配
+    (define (%resume-find-model app provider model-id)
+      (find
+        (lambda (model)
+          (and (equal? (%resume-ref model 'provider) provider)
+            (equal? (%resume-ref model 'id) model-id)
+          ) ;and
+        ) ;lambda
+        (or (pi-app-models app) '())
+      ) ;find
+    ) ;define
+
+    ;; 应用目标会话记录的思考等级：仅模型支持且值合法时生效；
+    ;; 不支持或值非法时收敛为 off 并返回提示文案（#f 表示无需提示），
+    ;; 状态未记录思考等级时保留模型默认等级
+    (define (%apply-resume-thinking! app state)
+      (let ((level (%resume-ref state 'thinkingLevel)))
+        (cond ((not (string? level)) #f)
+              ((not (pi-app-supports-thinking? app))
+               (pi-app-apply-thinking-level-ui! app "off")
+               (string-append "thinking level \"" level "\" unsupported; using \"off\"")
+              ) ;
+              ((member level pi-thinking-levels)
+               (pi-app-apply-thinking-level-ui! app level)
+               #f
+              ) ;
+              (else (pi-app-apply-thinking-level-ui! app "off")
+                (string-append "unknown thinking level \"" level "\"; using \"off\"")
+              ) ;else
+        ) ;cond
+      ) ;let
+    ) ;define
+
+    ;; 应用目标会话的投影状态，返回 (values applied? note label)：
+    ;; - state 缺失或未记录模型：保留当前界面值，applied? = #t
+    ;; - 模型不在可用列表：保留当前值，applied? = #f，note 为警告文案
+    ;; - 模型匹配：经 /model 的界面路径更新（不持久化默认模型），label 为
+    ;;   实际生效的 provider/id，思考等级按状态收敛并在 note 中提示
+    (define (%apply-resume-state! app state)
+      (if (not (pair? state))
+        (values #t #f #f)
+        (let* ((state-model (%resume-ref state 'model))
+               (provider (and (pair? state-model) (%resume-ref state-model 'provider)))
+               ;; 1201-09 用 modelId；兼容 TUI 状态条目写入的 model-id
+               (model-id (and (pair? state-model)
+                           (or (%resume-ref state-model 'modelId) (%resume-ref state-model 'model-id))
+                         ) ;and
+               ) ;model-id
+              ) ;
+          (if (not (and (string? provider) (string? model-id)))
+            (values #t #f #f)
+            (let ((model (%resume-find-model app provider model-id)))
+              (if (not model)
+                (values #f
+                  (string-append "model " provider "/" model-id
+                    " is unavailable; keeping current model"
+                  ) ;string-append
+                  #f
+                ) ;values
+                (begin
+                  (pi-app-apply-model-ui! app model)
+                  (values #t
+                    (%apply-resume-thinking! app state)
+                    (string-append provider "/" model-id)
+                  ) ;values
+                ) ;begin
+              ) ;if
+            ) ;let
+          ) ;if
+        ) ;let*
+      ) ;if
+    ) ;define
+
+    ;; worker 完成切换（session_resumed path name state）/ 失败（session_resume_error）
     (define (pi-app-handle-resume-event! app ev)
       (case (car ev)
             ((session_resumed)
-             (let* ((path (cadr ev)) (name (and (> (length ev) 2) (caddr ev))))
+             (let* ((path (cadr ev))
+                    (name (and (> (length ev) 2) (caddr ev)))
+                    (state (and (> (length ev) 3) (list-ref ev 3)))
+                    (base (if name
+                            (string-append "Resumed session: " name)
+                            (string-append "Resumed session: " path)
+                          ) ;if
+                    ) ;base
+                   ) ;
                ;; 未命名会话也要清空旧名称，避免 footer 显示陈旧会话名
                (%pi-app-session-name-set! app name)
                (pi-footer-set-session-name! (%pi-app-footer app) name)
-               (container-add! (%pi-app-chat app)
-                 (make-assistant-card (if name
-                                        (string-append "Resumed session: " name)
-                                        (string-append "Resumed session: " path)
-                                      ) ;if
-                 ) ;make-assistant-card
-               ) ;container-add!
+               (let-values (((applied? note label) (%apply-resume-state! app state)))
+                 ;; 提示卡片只保留一张：以会话名为主，匹配成功时附上实际模型
+                 (if applied?
+                   (container-add! (%pi-app-chat app)
+                     (make-assistant-card (string-append base
+                                            (if label (string-append " (" label ")") "")
+                                            (if note (string-append " (" note ")") "")
+                                          ) ;string-append
+                     ) ;make-assistant-card
+                   ) ;container-add!
+                   (container-add! (%pi-app-chat app)
+                     (make-tool-card "resume" '() 'error (string-append base " (" note ")"))
+                   ) ;container-add!
+                 ) ;if
+               ) ;let-values
                (pi-app-render! app)
              ) ;let*
             ) ;

@@ -8,6 +8,7 @@
 (define-library (liii pi code modes interactive app-thinking)
   (export pi-app-thinking-command? pi-app-submit-thinking!
     pi-app-close-selector! pi-app-cycle-thinking!
+    pi-app-apply-thinking-level-ui!
   ) ;export
   (import (scheme base)
     (scheme char)
@@ -52,13 +53,19 @@
       ) ;catch
     ) ;define
 
+    ;; 只更新界面的思考等级（状态、footer 与编辑器边框）：
+    ;; 不写状态条目、不出提示卡片；供 /thinking 与 /resume 共用
+    (define (pi-app-apply-thinking-level-ui! app level)
+      (%pi-app-thinking-level-set! app level)
+      (pi-footer-set-thinking-level! (%pi-app-footer app) level)
+      (editor-set-border-color! (pi-app-editor app) (pi-thinking-border-color level))
+    ) ;define
+
     ;; 设置思考等级的唯一落点：选择器确认、/thinking 参数与 shift+tab 循环
     ;; 均经此生效；仅在与旧值不同且当前模型支持思考时记录一次（off 照常记录）
     (define (%apply-thinking-level! app level)
       (let ((old (pi-app-thinking-level app)))
-        (%pi-app-thinking-level-set! app level)
-        (pi-footer-set-thinking-level! (%pi-app-footer app) level)
-        (editor-set-border-color! (pi-app-editor app) (pi-thinking-border-color level))
+        (pi-app-apply-thinking-level-ui! app level)
         (when (and (pi-app-supports-thinking? app) (not (equal? old level)))
           (%record-thinking-change! app level)
         ) ;when

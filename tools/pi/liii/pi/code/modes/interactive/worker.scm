@@ -28,6 +28,7 @@
     (liii pi code core session-manager)
     (liii pi code core session-name)
     (liii pi code core session-stats)
+    (liii pi code session-state)
     (liii pi ai retry)
     (liii pi code modes interactive worker-emit)
     (liii pi code modes flow)
@@ -253,8 +254,14 @@
                  ) ;pi-tui-send-event!
                 ) ;
                 (else (vector-set! sfile-box 0 normalized)
+                  ;; 随事件回传目标会话的投影状态（模型/思考等级），
+                  ;; 状态缺失时为 #f，前台据此保留当前值
                   (pi-tui-send-event! event-chan
-                    (list 'session_resumed normalized (get-session-name normalized))
+                    (list 'session_resumed
+                      normalized
+                      (get-session-name normalized)
+                      (pi-session-state-of normalized)
+                    ) ;list
                   ) ;pi-tui-send-event!
                 ) ;else
               ) ;cond
