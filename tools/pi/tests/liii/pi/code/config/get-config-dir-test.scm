@@ -17,6 +17,11 @@
   (if (os-windows?) (string-replace (path->string dir) "\\" "/") (path->string dir))
 ) ;define
 
+;; 用系统临时目录派生绝对路径，避免在 Windows 上把 "/tmp/xxx" 解析成 "D:/tmp/xxx"
+(define (%abs-temp name)
+  (path->string (path-join (path-temp-dir) name))
+) ;define
+
 ;; 1. 无任何覆盖时按 HOME 判断：~/.gf/agent 存在则优先
 (let* ((home (path-join (path-temp-dir) "gf-get-config-dir-home"))
        (saved-home (get-environment-variable "HOME"))
@@ -58,9 +63,11 @@
 ) ;let
 
 ;; 2. GF_CONFIG_DIR 环境变量覆盖
-(let ((saved (get-environment-variable "GF_CONFIG_DIR")))
-  (putenv "GF_CONFIG_DIR" "/tmp/gf-config-dir-override")
-  (check (%normalize (gf-get-config-dir)) => (%normalize "/tmp/gf-config-dir-override"))
+(let* ((saved (get-environment-variable "GF_CONFIG_DIR"))
+       (override (%abs-temp "gf-config-dir-override"))
+      ) ;let*
+  (putenv "GF_CONFIG_DIR" override)
+  (check (%normalize (gf-get-config-dir)) => (%normalize override))
   (if saved
     (putenv "GF_CONFIG_DIR" saved)
     (unsetenv "GF_CONFIG_DIR")
@@ -68,9 +75,11 @@
 ) ;let
 
 ;; 3. PI_CODING_AGENT_DIR 环境变量覆盖（兼容既有约定）
-(let ((saved (get-environment-variable "PI_CODING_AGENT_DIR")))
-  (putenv "PI_CODING_AGENT_DIR" "/tmp/pi-config-dir-override")
-  (check (%normalize (gf-get-config-dir)) => (%normalize "/tmp/pi-config-dir-override"))
+(let* ((saved (get-environment-variable "PI_CODING_AGENT_DIR"))
+       (override (%abs-temp "pi-config-dir-override"))
+      ) ;let*
+  (putenv "PI_CODING_AGENT_DIR" override)
+  (check (%normalize (gf-get-config-dir)) => (%normalize override))
   (if saved
     (putenv "PI_CODING_AGENT_DIR" saved)
     (unsetenv "PI_CODING_AGENT_DIR")
@@ -78,10 +87,12 @@
 ) ;let
 
 ;; 4. 显式目录参数优先于环境变量
-(let ((saved (get-environment-variable "GF_CONFIG_DIR")))
-  (putenv "GF_CONFIG_DIR" "/tmp/gf-config-dir-override")
-  (check (%normalize (gf-get-config-dir "/tmp/explicit-config-dir"))
-    => (%normalize "/tmp/explicit-config-dir"))
+(let* ((saved (get-environment-variable "GF_CONFIG_DIR"))
+       (override (%abs-temp "gf-config-dir-override"))
+       (explicit (%abs-temp "explicit-config-dir"))
+      ) ;let*
+  (putenv "GF_CONFIG_DIR" override)
+  (check (%normalize (gf-get-config-dir explicit)) => (%normalize explicit))
   (if saved
     (putenv "GF_CONFIG_DIR" saved)
     (unsetenv "GF_CONFIG_DIR")
