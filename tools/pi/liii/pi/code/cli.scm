@@ -15,6 +15,8 @@
     (liii pi code cli args)
     (liii pi code config)
     (liii pi code modes)
+    (liii pi code modes flow)
+    (liii pi code session-state)
     (liii pi code core prompt)
     (liii pi code core session-name)
     (liii pi code core session-manager)
@@ -113,33 +115,39 @@
       (catch #t
         (lambda ()
           (let* ((cfg (resolve-pi-config parsed (get-environment-variables)))
-                 (provider (cdr (or (assoc 'provider cfg) (cons #f "google"))))
-                 (model-id (cdr (or (assoc 'model-id cfg) (cons #f "gemini-3.8-flash"))))
-                 (tl (cdr (or (assoc 'thinking-level cfg) (cons #f "off"))))
-                 (supports (cdr (or (assoc 'supports-thinking cfg) (cons #f #t))))
-                 (settings (cdr (or (assoc 'settings cfg) (cons #f #f))))
-                 (default-tl (if settings (pi-settings-default-thinking-level settings) tl))
-                 (agent-dir (cdr (assoc 'agent-dir cfg)))
-                 (models-store (cdr (or (assoc 'models-store cfg) (cons #f '()))))
-                 (auth (pi-load-auth agent-dir))
-                 (models (pi-usable-models models-store auth))
-                 (default-model
-                   (and settings
-                     (list (cons 'provider (pi-settings-default-provider settings))
-                       (cons 'id (pi-settings-default-model settings))
-                     ) ;list
-                   ) ;and
-                 ) ;default-model
+                 (session-state (pi-load-session-state parsed cfg))
                 ) ;
-            (list provider
-              model-id
-              tl
-              (and supports #t)
-              default-tl
-              agent-dir
-              models
-              default-model
-            ) ;list
+            ;; 恢复会话时页脚与后台请求使用同一份合并结果（警告由 flow 在首轮请求前输出）
+            (let-values (((cfg _warnings) (pi-resolve-session-state cfg session-state parsed)))
+              (let* ((provider (cdr (or (assoc 'provider cfg) (cons #f "google"))))
+                     (model-id (cdr (or (assoc 'model-id cfg) (cons #f "gemini-3.8-flash"))))
+                     (tl (cdr (or (assoc 'thinking-level cfg) (cons #f "off"))))
+                     (supports (cdr (or (assoc 'supports-thinking cfg) (cons #f #t))))
+                     (settings (cdr (or (assoc 'settings cfg) (cons #f #f))))
+                     (default-tl (if settings (pi-settings-default-thinking-level settings) tl))
+                     (agent-dir (cdr (assoc 'agent-dir cfg)))
+                     (models-store (cdr (or (assoc 'models-store cfg) (cons #f '()))))
+                     (auth (pi-load-auth agent-dir))
+                     (models (pi-usable-models models-store auth))
+                     (default-model
+                       (and settings
+                         (list (cons 'provider (pi-settings-default-provider settings))
+                           (cons 'id (pi-settings-default-model settings))
+                         ) ;list
+                       ) ;and
+                     ) ;default-model
+                    ) ;
+                (list provider
+                  model-id
+                  tl
+                  (and supports #t)
+                  default-tl
+                  agent-dir
+                  models
+                  default-model
+                ) ;list
+              ) ;let*
+            ) ;let-values
           ) ;let*
         ) ;lambda
         (lambda args
