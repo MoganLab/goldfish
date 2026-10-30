@@ -78,6 +78,29 @@
 (check (%map-extended-key 134) => 'f12)
 (check (%map-extended-key 999) => #f)
 
+;; 6.1 Ctrl 扩展键码回归（任务 1197：新增 Alt 码段不得挤占既有 Ctrl 编码）
+(check (%map-extended-key 141) => 'ctrl-up)
+(check (%map-extended-key 145) => 'ctrl-down)
+(check (%map-extended-key 115) => 'ctrl-left)
+(check (%map-extended-key 116) => 'ctrl-right)
+(check (%map-extended-key 119) => 'ctrl-home)
+(check (%map-extended-key 117) => 'ctrl-end)
+(check (%map-extended-key 147) => 'ctrl-delete)
+
+;; 6.2 Alt 扩展键码（任务 1197：控制台层为 Alt 组合分配的专属扩展码，
+;;     沿用 DOS 101 键扩展码表的 Alt 行，与 Ctrl 行 115/116/117/141/145/147 同源；
+;;     pty 路径基线见 parse-key-test.scm 的 CSI 1;3A 用例）
+(check (%map-extended-key 152) => 'alt-up)
+(check (%map-extended-key 160) => 'alt-down)
+(check (%map-extended-key 155) => 'alt-left)
+(check (%map-extended-key 157) => 'alt-right)
+(check (%map-extended-key 151) => 'alt-home)
+(check (%map-extended-key 163) => 'alt-end)
+(check (%map-extended-key 153) => 'alt-page-up)
+(check (%map-extended-key 161) => 'alt-page-down)
+(check (%map-extended-key 162) => 'alt-insert)
+(check (%map-extended-key 164) => 'alt-delete)
+
 ;; 7. 标准键码映射：裸字节 15 是真正的 Ctrl+O（如 pty/tmux 下），
 ;;    不是 Shift+Tab；C++ 控制台层的 Shift+Tab 编码为 353（curses KEY_BTAB）
 (check (%map-standard-key 15) => 'ctrl-o)

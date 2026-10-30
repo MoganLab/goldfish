@@ -45,6 +45,21 @@
             ((= code 141) 'ctrl-up)
             ((= code 145) 'ctrl-down)
             ((= code 147) 'ctrl-delete)
+            ;; Alt 扩展键码（任务 1197）：沿用 DOS 101 键扩展码表的 Alt 行，
+            ;; 与上方 Ctrl 行（115/116/117/141/145/147）同一张码表；
+            ;; 由 src/liii_os.cpp 的 KEY_EVENT 分支在 Alt 按下时编码，
+            ;; 供 Windows 控制台路径保留 Alt 修饰位（如 Alt+Up 撤回排队消息）。
+            ;; Ctrl+Alt 组合沿用 Ctrl 码，由 %poll-console-key 依修饰状态另行处理
+            ((= code 152) 'alt-up)
+            ((= code 160) 'alt-down)
+            ((= code 155) 'alt-left)
+            ((= code 157) 'alt-right)
+            ((= code 151) 'alt-home)
+            ((= code 163) 'alt-end)
+            ((= code 153) 'alt-page-up)
+            ((= code 161) 'alt-page-down)
+            ((= code 162) 'alt-insert)
+            ((= code 164) 'alt-delete)
             ((and (>= code 59) (<= code 68))
              (string->symbol (string-append "f" (number->string (- code 58))))
             ) ;
