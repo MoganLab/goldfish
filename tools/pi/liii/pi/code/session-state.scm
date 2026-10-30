@@ -22,7 +22,7 @@
     (liii pi code core compaction session)
     (liii pi code core session-projection)
   ) ;import
-  (export pi-load-session-state pi-resolve-session-state)
+  (export pi-load-session-state pi-resolve-session-state pi-session-state-of)
   (begin
     ;; 恢复会话时的投影状态合并（1201-12）：
     ;; 优先级为「CLI 显式参数 > 投影状态 > cfg」，state 结构对齐 1201-09：
@@ -214,6 +214,25 @@
             #f
           ) ;if
         ) ;let*
+      ) ;if
+    ) ;define
+
+    ;; 按会话文件路径读取投影状态（/resume 切换到目标会话后回传其模型与思考等级）；
+    ;; 状态缺失、文件不存在或读取失败时返回 #f，不影响会话切换本身
+    (define (pi-session-state-of sfile)
+      (if (and sfile (file-exists? sfile))
+        (catch #t
+          (lambda ()
+            (let-values (((msgs state diagnostics)
+                          (pi-build-session-projection (pi-read-session-entries sfile))
+                         ) ;
+                        ) ;
+              state
+            ) ;let-values
+          ) ;lambda
+          (lambda (tag . args) #f)
+        ) ;catch
+        #f
       ) ;if
     ) ;define
 

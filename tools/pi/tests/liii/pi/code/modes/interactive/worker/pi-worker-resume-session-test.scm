@@ -67,6 +67,10 @@
         (check (car ev) => 'session_resumed)
         (check (cadr ev) => sfile-a)
         (check (caddr ev) => "会话甲")
+        ;; 事件第 4 个字段为目标会话投影状态：1201-09 未合入时为 #f，
+        ;; 合入后应为 alist；两者都接受，但字段本身必须存在
+        (check (>= (length ev) 4) => #t)
+        (check (if (list-ref ev 3) (pair? (list-ref ev 3)) #t) => #t)
       ) ;let
       (check (vector-ref box 0) => sfile-a)
 
@@ -162,6 +166,7 @@
     (let ((ev (chan-recv! events)))
       (check (car ev) => 'session_resumed)
       (check (cadr ev) => sfile)
+      (check (>= (length ev) 4) => #t)
     ) ;let
     (chan-send! jobs (list 'bash_record "echo bg-marker" "bg-marker" 0) 1000)
     (sleep 0.5)

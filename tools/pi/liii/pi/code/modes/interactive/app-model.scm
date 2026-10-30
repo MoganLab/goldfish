@@ -7,7 +7,7 @@
 ;; /model 命令：选择器交互、精确引用切换、thinking 联动与持久化
 ;; （对齐上游 handleModelCommand + session.setModel）
 (define-library (liii pi code modes interactive app-model)
-  (export pi-app-model-command? pi-app-submit-model!)
+  (export pi-app-model-command? pi-app-submit-model! pi-app-apply-model-ui!)
   (import (scheme base)
     (scheme char)
     (liii go)
@@ -74,6 +74,26 @@
       ) ;catch
     ) ;define
 
+    ;; 只更新界面的模型状态（provider/model/supports/可用等级/思考默认级别、
+    ;; footer 与编辑器边框）：不持久化默认模型、不写状态条目、不出提示卡片；
+    ;; /model 与 /resume 共用，保证显示与实际请求同源
+    (define (pi-app-apply-model-ui! app model)
+      (let* ((provider (%model-ref model 'provider))
+             (model-id (%model-ref model 'id))
+             (supports (and (%model-ref model 'reasoning) #t))
+             (new-tl (if supports (pi-app-default-thinking-level app) "off"))
+            ) ;
+        (%pi-app-provider-set! app provider)
+        (%pi-app-model-set! app model-id)
+        (%pi-app-supports-thinking?-set! app supports)
+        (%pi-app-available-thinking-levels-set! app
+          (if supports pi-thinking-levels '("off"))
+        ) ;%pi-app-available-thinking-levels-set!
+        (pi-footer-set-model! (%pi-app-footer app) provider model-id supports)
+        (pi-app-apply-thinking-level-ui! app new-tl)
+      ) ;let*
+    ) ;define
+
     ;; 应用模型切换（对齐上游 setModel）：
     ;; - 状态与 footer 的 provider/model/supports 联动
     ;; - thinking 回退到默认级别并按模型能力收敛（不支持 reasoning 时为 off）
@@ -83,20 +103,8 @@
              (old-model (pi-app-model app))
              (provider (%model-ref model 'provider))
              (model-id (%model-ref model 'id))
-             (supports (and (%model-ref model 'reasoning) #t))
-             (new-tl (if supports (pi-app-default-thinking-level app) "off"))
-             (footer (%pi-app-footer app))
             ) ;
-        (%pi-app-provider-set! app provider)
-        (%pi-app-model-set! app model-id)
-        (%pi-app-supports-thinking?-set! app supports)
-        (%pi-app-available-thinking-levels-set! app
-          (if supports pi-thinking-levels '("off"))
-        ) ;%pi-app-available-thinking-levels-set!
-        (%pi-app-thinking-level-set! app new-tl)
-        (pi-footer-set-model! footer provider model-id supports)
-        (pi-footer-set-thinking-level! footer new-tl)
-        (editor-set-border-color! (pi-app-editor app) (pi-thinking-border-color new-tl))
+        (pi-app-apply-model-ui! app model)
         (when persist?
           (let ((save (%pi-app-on-save-model app)))
             (when (procedure? save)
