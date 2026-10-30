@@ -13,6 +13,7 @@
     (liii path)
     (liii pi code cli args)
     (liii pi code config)
+    (liii pi code session-state)
     (liii pi code core prompt)
     (liii pi code core session-manager)
     (liii pi code core session-name)
@@ -155,14 +156,15 @@
       ) ;let
     ) ;define
 
-    ;; 恢复场景的上下文由投影入口统一产出（1205）
+    ;; 恢复场景的上下文由投影入口统一产出（1205）；
+    ;; 同时返回投影状态（1201-12），供恢复时合并会话记录的模型与思考等级
     (define (%project-restore-context sfile)
-      (let*-values (((msgs _state diag)
+      (let*-values (((msgs state diag)
                      (pi-build-session-projection (pi-read-session-entries sfile))
                     ) ;
                    ) ;
         (%warn-projection-diagnostics diag)
-        msgs
+        (values msgs state)
       ) ;let*-values
     ) ;define
 
@@ -196,12 +198,13 @@
     (define (%session-context parsed sfile sdir session-file-override)
       ;; 会话文件覆盖（TUI worker 复用同一文件）时始终携带既有上下文；
       ;; 否则 --continue / --resume 时恢复历史
+      ;; 返回 (values messages state)：state 供投影状态合并使用
       (if
         (and sfile
           (or session-file-override (and sdir (resolve-resume-session-file parsed sdir)))
         ) ;and
         (%project-restore-context sfile)
-        '()
+        (values '() #f)
       ) ;if
     ) ;define
 
@@ -223,8 +226,11 @@
                        (setup-session-file-with-name parsed cfg cwd)
                      ) ;if
                     ) ;
-                    ((context) (%session-context parsed sfile sdir session-file))
+                    ((context session-state) (%session-context parsed sfile sdir session-file))
+                    ;; 恢复会话时先合并投影状态，保证首轮系统提示与请求使用同一份 cfg
+                    ((cfg warnings) (pi-resolve-session-state cfg session-state parsed))
                    ) ;
+        (for-each display-stderr warnings)
         (let ((prompts (append (if (string-null? initial-msg) '() (list initial-msg)) rest-msgs)
               ) ;prompts
              ) ;
@@ -298,7 +304,11 @@
                 0
               ) ;begin
               ;; 压缩写入条目后重新投影，投影结果之后才追加本次用户消息
-              (let* ((projection (%project-restore-context sfile))
+              (let* ((projection
+                       (let-values (((p _st) (%project-restore-context sfile)))
+                         p
+                       ) ;let-values
+                     ) ;projection
                      (init-msgs (append projection (list (pi-user-message initial-msg))))
                      (state (vector init-msgs (length init-msgs)))
                     ) ;
