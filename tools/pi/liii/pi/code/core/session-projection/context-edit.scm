@@ -26,10 +26,12 @@
     ) ;define
 
     ;; context_edit 条目（上游 /undo 的存储形式）承载一次撤销或替换：
-    ;; {type:"context_edit", targetId, replacement}
+    ;; {type:"context_edit", targetId, replacement:{content: <字符串|块数组>} | null}
     ;; - replacement 缺失或为 JSON null（(liii json) 解析为符号 'null）表示删除：
     ;;   该目标条目整体不进入上下文
-    ;; - replacement 非 null 表示只替换目标消息的 content，role 与其他元数据保留
+    ;; - replacement 非 null 表示只替换目标消息的 content，role 与其他元数据保留；
+    ;;   content 放在 replacement.content 里（对齐上游 ContextEditEntry），
+    ;;   裸字符串 / 裸数组不是合法形态
     ;; - 多个编辑指向同一目标时，路径上最后一条胜出（后出现的覆盖先出现的）
     ;; - 编辑作用在裁剪之后的条目上，且先于消息构造，三套消息构造无需各自处理替换
     ;; - context_edit 自身不产生消息，但属于已知类型，不计入 skipped-unknown-types
@@ -40,10 +42,37 @@
       (or (not replacement) (json-null? replacement))
     ) ;define
 
-    ;; 可用的替换值：字符串或数组（vector / list）；
-    ;; 其余类型无法规范化，视为不可应用（保留原条目并计入诊断）
+    ;; replacement 的 content 字段：replacement 不是对象（含裸字符串 / 裸数组）时返回 #f
+    (define (%replacement-content replacement)
+      (and (pair? replacement) (%ref replacement "content"))
+    ) ;define
+
+    ;; 块数组：每个元素都是带非空 type 的对象；空数组合法
+    (define (%block-array? content)
+      (and (or (vector? content) (list? content))
+        (let loop
+          ((rest (if (vector? content) (vector->list content) content)))
+          (cond ((null? rest) #t)
+                (else
+                  (let ((block (car rest)))
+                    (and (pair? block)
+                      (let ((t (%ref block "type")))
+                        (and (string? t) (not (string-null? t)) (loop (cdr rest)))
+                      ) ;let
+                    ) ;and
+                  ) ;let
+                ) ;else
+          ) ;cond
+        ) ;let
+      ) ;and
+    ) ;define
+
+    ;; 可用的替换值：content 为字符串或块数组；
+    ;; 其余形态（裸值、对象缺 content、content 类型不对）无法规范化，视为不可应用
     (define (%applicable-replacement? replacement)
-      (or (string? replacement) (vector? replacement) (list? replacement))
+      (let ((content (%replacement-content replacement)))
+        (or (string? content) (%block-array? content))
+      ) ;let
     ) ;define
 
     ;; 收集裁剪结果中的 context_edit，返回 (targetId . replacement) 的前插 alist：
@@ -96,15 +125,18 @@
       ) ;let*
     ) ;define
 
-    ;; 替换内容规范化：user 可直接用字符串；assistant / toolResult 的 content 要求块数组，
-    ;; 字符串规范化为单个 text 块；数组（vector 或 list）统一转为 list 后原样使用
+    ;; 替换内容规范化：取 replacement.content；user 可直接用字符串，
+    ;; assistant / toolResult 的 content 要求块数组，字符串规范化为单个 text 块；
+    ;; 数组（vector 或 list）统一转为 list 后原样使用
     (define (%replacement->content role replacement)
-      (let ((content (if (vector? replacement) (vector->list replacement) replacement)))
+      (let* ((content (%replacement-content replacement))
+             (content (if (vector? content) (vector->list content) content))
+            ) ;
         (if (and (string? content) (not (equal? role "user")))
           (list (list (cons "type" "text") (cons "text" content)))
           content
         ) ;if
-      ) ;let
+      ) ;let*
     ) ;define
 
     ;; 只替换 message 的 content，其余字段（role / stopReason / usage / timestamp）保持不变；

@@ -15,9 +15,10 @@
 (check-set-mode! 'report-failed)
 
 ;; context_edit 投影：删除与替换
-;; 条目形如 {type:"context_edit", targetId, replacement}：
+;; 条目形如 {type:"context_edit", targetId, replacement:{content: <字符串|块数组>} | null}：
 ;; - replacement 为 JSON null（符号 'null）或字段缺失 → 删除目标，目标不进入上下文
 ;; - replacement 非 null → 只替换目标消息的 content，role 与其他元数据保留
+;; - replacement 形态不合法（裸值、缺 content、content 非字符串或块数组）→ 不应用，计入 ignored-edits
 ;; - 同一目标多次编辑时，路径上最后一条胜出
 ;; - 编辑作用在裁剪之后的条目上，先于消息构造
 ;; - 目标不在裁剪结果内时忽略该编辑，计入诊断 ignored-edits
@@ -51,9 +52,24 @@
   ) ;list
 ) ;define
 
-;; 建一个 context_edit 条目：replacement 可传 'null 表示删除
+;; 建一个 context_edit 条目：replacement 可传 'null 表示删除，
+;; 其余值作为 replacement.content（对齐上游 ContextEditEntry 的 {content: ...} 形态）
+;; 其余值作为 replacement.content（对齐上游 ContextEditEntry 的 {content: ...} 形态）
 
-(define (make-edit id parent-id target-id replacement)
+(define (make-edit id parent-id target-id content)
+  (list (cons "type" "context_edit")
+    (cons "id" id)
+    (cons "parentId" parent-id)
+    (cons "targetId" target-id)
+    (cons "replacement"
+      (if (eq? content 'null) 'null (list (cons "content" content)))
+    ) ;cons
+  ) ;list
+) ;define
+
+;; 建一个 replacement 形态自由填写的 context_edit：用于覆盖不合法形态
+
+(define (make-raw-edit id parent-id target-id replacement)
   (list (cons "type" "context_edit")
     (cons "id" id)
     (cons "parentId" parent-id)
@@ -234,7 +250,51 @@
   (check (msg-contents (cdr msgs)) => '("one" "two"))
 ) ;let*-values
 
-;; 10. JSONL 真实落盘往返：message + context_edit 行解析后投影
+;; 10. replacement 形态不合法：裸字符串、对象缺 content、content 非字符串/块数组
+;;     都不应用，目标条目保持原样并计入 ignored-edits
+(let*-values (((entries)
+               (list (make-user "u1" 'null "one")
+                 (make-user "u2" "u1" "two")
+                 (make-assistant "a1" "u2" "before" "end_turn")
+                 ;; 裸字符串：上游 ContextEditEntry 要求 {content: ...}
+                 (make-raw-edit "e1" "a1" "u1" "bare")
+                 ;; 对象缺 content 键
+                 (make-raw-edit "e2" "e1" "u2" (list (cons "text" "no-content")))
+                 ;; content 不是块数组：元素没有 type
+                 (make-raw-edit "e3" "e2" "a1" (list (cons "content" (list 1 2))))
+               ) ;list
+              ) ;
+              ((msgs state diag) (pi-build-session-projection entries))
+             ) ;
+  (check (msg-contents (filter pi-user-message? msgs)) => '("one" "two"))
+  (check (pi-message-role (list-ref msgs 2)) => "assistant")
+  (check (diag-ref diag 'ignored-edits '()) => '("u1" "u2" "a1"))
+) ;let*-values
+
+;; 11. replacement 形态合法：{content: [块数组]} 原样替换 assistant 的 content
+(let*-values (((entries)
+               (list (make-assistant "a1" 'null "before" "end_turn")
+                 (make-edit "e1"
+                   "a1"
+                   "a1"
+                   (list (list (cons "type" "text") (cons "text" "first"))
+                     (list (cons "type" "text") (cons "text" "second"))
+                   ) ;list
+                 ) ;make-edit
+               ) ;list
+              ) ;
+              ((msgs state diag) (pi-build-session-projection entries))
+             ) ;
+  (check (length msgs) => 1)
+  (let ((content (pi-assistant-message-content (car msgs))))
+    (check (length content) => 2)
+    (check (cdr (assoc "text" (car content))) => "first")
+    (check (cdr (assoc "text" (cadr content))) => "second")
+  ) ;let
+  (check (diag-ref diag 'ignored-edits '()) => '())
+) ;let*-values
+
+;; 12. JSONL 真实落盘往返：message + context_edit 行解析后投影
 (let* ((tmp-dir (path->string (path-join (path-temp-dir) "test-pi-context-edit-1208")))
        (session-file (path->string (path-join tmp-dir "roundtrip.jsonl")))
       ) ;
@@ -257,9 +317,9 @@
     "{\"role\":\"user\",\"content\":\"third\"}" "m3" "m2"
     "2026-10-29T09:00:03.000Z"
   ) ;save-session-message!
-  ;; 替换 m1，删除 m2：JSON null 解析为符号 'null
+  ;; 替换 m1，删除 m2：replacement 落盘为 {content:...}，JSON null 解析为符号 'null
   (append-session-entry! session-file
-    "{\"type\":\"context_edit\",\"id\":\"e1\",\"parentId\":\"m3\",\"timestamp\":\"2026-10-29T09:00:04.000Z\",\"targetId\":\"m1\",\"replacement\":\"revised\"}"
+    "{\"type\":\"context_edit\",\"id\":\"e1\",\"parentId\":\"m3\",\"timestamp\":\"2026-10-29T09:00:04.000Z\",\"targetId\":\"m1\",\"replacement\":{\"content\":\"revised\"}}"
   ) ;append-session-entry!
   (append-session-entry! session-file
     "{\"type\":\"context_edit\",\"id\":\"e2\",\"parentId\":\"e1\",\"timestamp\":\"2026-10-29T09:00:05.000Z\",\"targetId\":\"m2\",\"replacement\":null}"
