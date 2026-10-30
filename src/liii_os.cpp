@@ -528,6 +528,11 @@ push_seq (int prefix, int code) {
  * ESC [ < B ; X ; Y M/m，B 为按钮码（bit0-1 按钮 0/1/2，bit3 Alt，
  * bit4 Shift，bit5 Ctrl，bit6 motion，bit7 滚轮），X/Y 为 1-based 坐标。
  * 滚轮：WHEEL_UP=64，WHEEL_DOWN=65。按钮释放统一报 3（无按钮）。
+ * 增量符号语义：正值=向前拨（远离用户，向上滚），负值=向后拨（向下滚）。
+ * 离散滚轮遵守该语义；但精密触摸板在 conhost 中不应用"自然滚动"设置，
+ * 手指上滑上报正值而用户期望向下滚，方向恰好与滚轮相反。
+ * 用增量幅度区分两者：离散滚轮是 WHEEL_DELTA(120) 的整数倍，
+ * 触摸板是连续小步长（|delta| < 120）。触摸板方向取反以匹配自然滚动。
  * Scheme 侧由 (liii tui mouse) 的 parse-mouse-event 解析。 */
 static void
 push_sgr_mouse (DWORD button_code, DWORD x, DWORD y, bool release) {
@@ -606,9 +611,11 @@ pump_console_input (HANDLE hIn, long timeout_ms) {
 
       DWORD button_code= 0;
       if (me.dwEventFlags & MOUSE_WHEELED) {
-        // 高字为有符号滚轮增量，负数表示向上滚；按钮码 64=上，65=下
-        SHORT delta= (SHORT) ((me.dwButtonState >> 16) & 0xFFFF);
-        button_code= delta < 0 ? 64 : 65;
+        // 高字为有符号滚轮增量；离散滚轮取 |delta|>=WHEEL_DELTA，触摸板为小步长
+        SHORT delta         = (SHORT) ((me.dwButtonState >> 16) & 0xFFFF);
+        bool  discrete_wheel= abs (delta) >= WHEEL_DELTA;
+        // 离散滚轮：正值=向上滚(64)；触摸板：正值=手指上滑=向下滚(65)，方向取反
+        button_code= (discrete_wheel ? (delta > 0) : (delta < 0)) ? 64 : 65;
       }
       else if (me.dwEventFlags & MOUSE_MOVED) {
         if (sgr_button < 0 && g_mouse_prev_button < 0) {
