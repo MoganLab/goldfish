@@ -13,8 +13,8 @@
     pi-settings-default-model pi-settings-default-thinking-level
     pi-settings-http-proxy pi-settings-retry pi-settings-default-tools
     pi-settings->alist pi-credential pi-credential? pi-credential-provider
-    pi-settings-session-dir pi-credential-key pi-credential-type
-    pi-credential->alist pi-model-metadata pi-model-metadata?
+    pi-settings-hide-thinking-block pi-settings-session-dir pi-credential-key
+    pi-credential-type pi-credential->alist pi-model-metadata pi-model-metadata?
     pi-model-metadata-id pi-model-metadata-name pi-model-metadata-provider
     pi-model-metadata-base-url pi-model-metadata-context-window
     pi-model-metadata-max-tokens pi-model-metadata-matched?
@@ -55,6 +55,7 @@
                (retry #f)
                (default-tools #f)
                (session-dir #f)
+               (hide-thinking-block #f)
              ) ;pi-settings
       (%make-pi-settings default-provider
         default-model
@@ -63,6 +64,7 @@
         (or retry (pi-retry-config))
         default-tools
         session-dir
+        (and hide-thinking-block #t)
       ) ;%make-pi-settings
     ) ;define*
 
@@ -76,6 +78,7 @@
           (cons 'retry (pi-settings-retry s))
           (cons 'default-tools (pi-settings-default-tools s))
           (cons 'session-dir (pi-settings-session-dir s))
+          (cons 'hide-thinking-block (pi-settings-hide-thinking-block s))
         ) ;list
       ) ;if
     ) ;define

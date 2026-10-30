@@ -28,6 +28,8 @@
     pi-app-scroll-view pi-app-wheel-accelerator pi-app-steering-chan
     pi-app-follow-up-chan %pi-app-steering-pending %pi-app-steering-pending-set!
     %pi-app-follow-up-pending %pi-app-follow-up-pending-set!
+    pi-app-hide-thinking? %pi-app-hide-thinking?-set!
+    %pi-app-on-save-hide-thinking
   ) ;export
   (import (scheme base))
   (begin
@@ -43,7 +45,8 @@
         bash-cards bash-jobs-chan bash-handler record-sink session-name provider
         model models default-model on-save-model tool-cards resume-sessions
         no-session? scroll-view wheel-accelerator steering-chan follow-up-chan
-        steering-pending follow-up-pending thinking-card
+        steering-pending follow-up-pending thinking-card hide-thinking?
+        on-save-hide-thinking
       ) ;%make-pi-app
       pi-app?
       (term pi-app-term)
@@ -112,6 +115,10 @@
       (follow-up-pending %pi-app-follow-up-pending %pi-app-follow-up-pending-set!)
       ;; 当前任务的流式 thinking 卡片；结算或下一任务出队时关闭，旧卡片保留
       (thinking-card pi-app-thinking-card %pi-app-thinking-card-set!)
+      ;; Ctrl+T 思考块全局隐藏标志（对齐上游 hideThinkingBlock）
+      (hide-thinking? pi-app-hide-thinking? %pi-app-hide-thinking?-set!)
+      ;; 切换后持久化回调 (lambda (hide))，由 cli.scm 接 settings.json 落盘
+      (on-save-hide-thinking %pi-app-on-save-hide-thinking)
     ) ;define-record-type
 
     (define %pi-app-term pi-app-term)

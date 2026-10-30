@@ -9,7 +9,8 @@
     make-retry-card apply-card-bg format-tool-call format-tool-result-lines
     tool-card? tool-card-component? tool-card-expanded? tool-card-set-expanded!
     tool-card-set-output! tool-card-set-complete! make-thinking-card
-    thinking-card-append-line!
+    thinking-card-append-line! thinking-card-set-hidden!
+    thinking-card-component?
   ) ;export
   (import (scheme base)
     (scheme time)
@@ -82,6 +83,11 @@
 
     (define (tool-card-component? obj)
       (and (component? obj) (tool-card? (component-data obj)))
+    ) ;define
+
+    ;; 组件级谓词：chat 容器中的子项是 component，其 data 才是 <thinking-card> 状态
+    (define (thinking-card-component? obj)
+      (and (component? obj) (thinking-card? (component-data obj)))
     ) ;define
 
     (define (tool-card-set-output! card result)

@@ -200,6 +200,14 @@
                    (pi-app-render! app)
                    (loop)
                   ) ;
+                  ;; 按 ctrl+t 时：全局切换思考块显示/隐藏（对齐上游
+                  ;; app.thinking.toggle），已上屏卡片折叠为单行 Thinking...，
+                  ;; 状态写入 settings.json 的 hideThinkingBlock 键
+                  ((and (not (pi-app-active-selector app)) (eq? k 'ctrl-t))
+                   (pi-app-toggle-thinking! app)
+                   (pi-app-render! app)
+                   (loop)
+                  ) ;
                   ;; 对话记录滚动：page-up/page-down 整页，
                   ;; ctrl+shift+up/down 单行，ctrl+home/ctrl+end 跳到首尾
                   ;; （对齐上游 tui.altScreen.top / tui.altScreen.bottom）

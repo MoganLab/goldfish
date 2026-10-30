@@ -145,6 +145,8 @@
                   agent-dir
                   models
                   default-model
+                  ;; Ctrl+T 思考块隐藏态：从与上游共用的 settings.json 恢复
+                  (and settings (pi-settings-hide-thinking-block settings) #t)
                 ) ;list
               ) ;let*
             ) ;let-values
@@ -158,6 +160,7 @@
             "off"
             (pi-get-agent-dir)
             '()
+            #f
             #f
           ) ;list
         ) ;lambda
@@ -222,7 +225,10 @@
                      (%load-resume-sessions parsed cfg)
                    ) ;lambda
                  ) ;let
-                 :no-session? (pi-args-ref parsed 'no-session)
+                 :no-session?   (pi-args-ref parsed 'no-session)
+                 :hide-thinking (list-ref info 8)
+                 :on-save-hide-thinking
+                 (lambda (hide) (pi-save-hide-thinking-block! (list-ref info 5) hide))
                  :on-save-model
                  (lambda (provider model-id)
                    (pi-save-default-model! (list-ref info 5) provider model-id)

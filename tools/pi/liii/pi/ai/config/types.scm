@@ -12,8 +12,8 @@
     %make-pi-settings pi-settings? pi-settings-default-provider
     pi-settings-default-model pi-settings-default-thinking-level
     pi-settings-http-proxy pi-settings-retry pi-settings-default-tools
-    pi-settings-session-dir %make-pi-credential pi-credential?
-    pi-credential-provider pi-credential-key pi-credential-type
+    pi-settings-session-dir pi-settings-hide-thinking-block %make-pi-credential
+    pi-credential? pi-credential-provider pi-credential-key pi-credential-type
     %make-pi-model-metadata pi-model-metadata? pi-model-metadata-id
     pi-model-metadata-name pi-model-metadata-provider pi-model-metadata-base-url
     pi-model-metadata-context-window pi-model-metadata-max-tokens
@@ -35,7 +35,7 @@
 
     (define-record-type <pi-settings>
       (%make-pi-settings default-provider default-model default-thinking-level
-        http-proxy retry default-tools session-dir
+        http-proxy retry default-tools session-dir hide-thinking-block
       ) ;%make-pi-settings
       pi-settings?
       (default-provider pi-settings-default-provider)
@@ -45,6 +45,7 @@
       (retry pi-settings-retry)
       (default-tools pi-settings-default-tools)
       (session-dir pi-settings-session-dir)
+      (hide-thinking-block pi-settings-hide-thinking-block)
     ) ;define-record-type
 
     (define-record-type <pi-credential>

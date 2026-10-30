@@ -30,12 +30,12 @@
   ) ;import
   (export pi-resolve-config-value json-dict-ref pi-get-agent-dir
     pi-read-json-file pi-load-settings pi-save-default-thinking-level!
-    pi-save-default-model! pi-model-supports-thinking?
-    pi-load-compaction-settings pi-resolve-proxy-url pi-load-auth
-    pi-resolve-provider-key pi-load-models-store pi-load-models-json
-    pi-merge-models-json-into-store pi-resolve-model-metadata resolve-pi-config
-    resolve-goldpi-config resolve-active-tools pi-missing-credential-msg
-    augment-pi-config
+    pi-save-hide-thinking-block! pi-save-default-model!
+    pi-model-supports-thinking? pi-load-compaction-settings pi-resolve-proxy-url
+    pi-load-auth pi-resolve-provider-key pi-load-models-store
+    pi-load-models-json pi-merge-models-json-into-store
+    pi-resolve-model-metadata resolve-pi-config resolve-goldpi-config
+    resolve-active-tools pi-missing-credential-msg augment-pi-config
   ) ;export
   (begin
 
@@ -106,6 +106,8 @@
           (%build-retry-record (json-dict-ref obj "retry" '()))
           (%parse-tools-list (json-dict-ref obj "defaultTools" #f))
           (json-dict-ref obj "sessionDir" #f)
+          ;; 与上游共用 settings.json：hideThinkingBlock 隔离为单行斜体标签
+          (%normalize-bool (json-dict-ref obj "hideThinkingBlock" #f))
         ) ;%make-pi-settings
       ) ;let*
     ) ;define
@@ -156,6 +158,31 @@
         (path-mkdir agent-dir :parents #t :exist-ok #t)
         (path-write-text filepath (string-append (json->string updated) "\n"))
         (list provider model-id)
+      ) ;let*
+    ) ;define
+
+    ;; Ctrl+T 切换思考块显隐后持久化：只更新 hideThinkingBlock，保留其他设置
+    ;; （对齐上游 setHideThinkingBlock；JSON 布尔值为符号 true/false）
+    (define (pi-save-hide-thinking-block! agent-dir hide)
+      (let* ((filepath (path->string (path-join (path agent-dir) (path "settings.json"))))
+             (settings (or (pi-read-json-file filepath) '()))
+             (updated
+               (cons (cons "hideThinkingBlock" (if hide 'true 'false))
+                 (filter
+                   (lambda (entry)
+                     (not (or (equal? (car entry) "hideThinkingBlock")
+                            (equal? (car entry) 'hideThinkingBlock)
+                          ) ;or
+                     ) ;not
+                   ) ;lambda
+                   settings
+                 ) ;filter
+               ) ;cons
+             ) ;updated
+            ) ;
+        (path-mkdir agent-dir :parents #t :exist-ok #t)
+        (path-write-text filepath (string-append (json->string updated) "\n"))
+        (and hide #t)
       ) ;let*
     ) ;define
 

@@ -23,6 +23,7 @@
     pi-app-follow-up-chan %pi-app-steering-pending %pi-app-follow-up-pending
     pi-app-queue-steering! pi-app-queue-follow-up!
     pi-app-remove-pending-message! pi-app-restore-queues!
+    pi-app-toggle-thinking! pi-app-hide-thinking?
   ) ;export
   (import (liii pi code modes interactive header)
     (liii pi code modes interactive footer)

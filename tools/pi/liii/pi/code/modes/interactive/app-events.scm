@@ -10,7 +10,7 @@
     pi-app-add-assistant-text! pi-app-add-retry-message! pi-app-drain-queue!
     pi-app-poll-events! %pi-app-job-payload pi-app-queue-steering!
     pi-app-queue-follow-up! pi-app-remove-pending-message!
-    pi-app-restore-queues!
+    pi-app-restore-queues! pi-app-toggle-thinking!
   ) ;export
   (import (scheme base)
     (liii go)
@@ -72,11 +72,37 @@
       (let ((card (pi-app-thinking-card app)))
         (if card
           (thinking-card-append-line! card line)
-          (let ((new-card (make-thinking-card line)))
+          ;; 新建卡片继承 Ctrl+T 当前隐藏状态（对齐上游 hideThinkingBlock 传入构造器）
+          (let ((new-card (make-thinking-card line (pi-app-hide-thinking? app))))
             (%pi-app-thinking-card-set! app new-card)
             (container-add! (%pi-app-chat app) new-card)
           ) ;let
         ) ;if
+      ) ;let
+    ) ;define
+
+    ;; Ctrl+T 全局切换思考块显隐（对齐上游 toggleThinkingBlockVisibility）：
+    ;; 翻转标志 → 已有卡片即时折叠/展开 → 状态行提示 → 持久化回调；
+    ;; 新建卡片在 %pi-app-handle-thinking-line! 中继承新状态
+    (define (pi-app-toggle-thinking! app)
+      (let ((next (not (pi-app-hide-thinking? app))))
+        (%pi-app-hide-thinking?-set! app next)
+        (for-each (lambda (child)
+                    (when (thinking-card-component? child)
+                      (thinking-card-set-hidden! child next)
+                    ) ;when
+                  ) ;lambda
+          (container-children (%pi-app-chat app))
+        ) ;for-each
+        (%pi-app-show-status! app
+          (string-append "Thinking blocks: " (if next "hidden" "visible"))
+        ) ;%pi-app-show-status!
+        (let ((save (%pi-app-on-save-hide-thinking app)))
+          (when save
+            (save next)
+          ) ;when
+        ) ;let
+        next
       ) ;let
     ) ;define
 
