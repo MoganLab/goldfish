@@ -46,7 +46,8 @@
 ;; 光标前缀达到显示宽度且后面还有内容时，光标移至下一视觉行行首
 (check (editor-visual-cursor '("ab cd ef gh") 0 9 6) => '(1 3))
 
-;; 行尾空格填满最后显示行时，光标贴当前视觉行最后一列
-(check (editor-visual-cursor '("ab cd ef      ") 0 14 6) => '(2 5))
+;; 行尾空格填满最后显示行时，光标夹到预留列（width 即布局宽度，
+;; 组件最后一列留给光标；旧语义钳到内容末列 width-1）
+(check (editor-visual-cursor '("ab cd ef      ") 0 14 6) => '(2 6))
 
 (check-report)

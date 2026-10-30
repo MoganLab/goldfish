@@ -61,13 +61,16 @@
       ) ;let
     ) ;define
 
+    ;; CR 优先的光标移动：写满整行（末列）后终端处于 autowrap 待换行状态，
+    ;; 必须先用 \r 清除待定状态再做相对移动（对齐上游 \r\n 模式），
+    ;; 否则 Windows conpty 会吞掉最后一列的字符（边框/页脚末字符消失）
     (define (%inline-down-seq state y cur-y max-y)
       (if (<= y max-y)
-        (string-append "\x1b;[" (number->string (- y cur-y)) "B\r")
+        (string-append "\r\x1b;[" (number->string (- y cur-y)) "B")
         (let* ((down-to-max (max 0 (- max-y cur-y)))
                (new-lines (- y (max cur-y max-y)))
                (down-str (if (> down-to-max 0)
-                           (string-append "\x1b;[" (number->string down-to-max) "B\r")
+                           (string-append "\r\x1b;[" (number->string down-to-max) "B")
                            ""
                          ) ;if
                ) ;down-str
@@ -82,9 +85,10 @@
     (define (%st-inline-seq state x y)
       (let* ((cur-y (%st-cursor-y state))
              (max-y (%st-max-y state))
+             ;; CR 前置：先清待换行状态、归零列，再做垂直/水平相对移动
              (y-seq
                (cond
-                ((< y cur-y) (string-append "\x1b;[" (number->string (- cur-y y)) "A\r"))
+                ((< y cur-y) (string-append "\r\x1b;[" (number->string (- cur-y y)) "A"))
                 ((> y cur-y) (%inline-down-seq state y cur-y max-y))
                 (else "\r")
                ) ;cond
@@ -98,10 +102,12 @@
     (define (%st-set-cursor! term x y)
       (let* ((state (terminal-data term))
              ;; 先算序列再更新 state：%st-inline-seq 依赖旧光标位置
+             ;; 非.inline 绝对定位同样 CR 前置：写满末列后的待定单元格
+             ;; 必须先被 CR 清除待定状态，否则 conpty 会丢弃该字符
              (seq
                (if (%st-inline? state)
                  (%st-inline-seq state x y)
-                 (string-append "\x1b;["
+                 (string-append "\r\x1b;["
                    (number->string (+ y 1))
                    ";"
                    (number->string (+ x 1))

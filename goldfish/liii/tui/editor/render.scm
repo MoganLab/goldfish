@@ -72,6 +72,10 @@
              (top-b (%ed-top-border data))
              (bot-b (%ed-bottom-border data))
              (b-col (%ed-border-color data))
+             ;; 内容折行预留最后一列给光标（对齐上游 layoutWidth = width - 1），
+             ;; 避免写满最后一列触发真实终端 autowrap 待换行状态；
+             ;; 视口同步传组件宽度，由 %ed-visual-lines 内部统一转换
+             (layout-w (%editor-layout-width width))
              (vp (%ed-viewport data width))
              (top (car vp))
              (visible (cadr vp))
@@ -79,14 +83,14 @@
              (below (cadddr vp))
              (placeholder? (and (not focused?) (= (length raw-lines) 1) (string=? (car raw-lines) ""))
              ) ;placeholder?
-             (visual-lines (append-map (lambda (line) (wrap-text line width)) raw-lines))
+             (visual-lines (append-map (lambda (line) (wrap-text line layout-w)) raw-lines))
              (visible-lines (if placeholder? raw-lines (take (drop visual-lines top) visible))
              ) ;visible-lines
              (rendered
                (if placeholder?
-                 (render-editor-lines visible-lines 0 0 #f ph width cursor-style)
+                 (render-editor-lines visible-lines 0 0 #f ph layout-w cursor-style)
                  (if (and focused? (not (eq? cursor-style 'hardware)))
-                   (let* ((pos (editor-visual-cursor raw-lines row col width))
+                   (let* ((pos (editor-visual-cursor raw-lines row col layout-w))
                           (cursor-row (- (car pos) top))
                           (cursor-col (cadr pos))
                          ) ;

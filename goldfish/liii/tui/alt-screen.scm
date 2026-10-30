@@ -106,9 +106,11 @@
         (cond ((eq? type 'keep) #t)
               ((or (eq? type 'update) (eq? type 'append))
                (terminal-set-cursor! term 0 idx)
-               (terminal-write term (diff-op-text op))
-               ;; 清掉行尾残留：全屏帧宽固定，行内容变短时必须擦除余下部分
+               ;; 先清行尾残留再写内容（对齐上游 ESC[2K 前置模式）：
+               ;; 写满整行后终端处于 autowrap 待换行状态，其后紧跟清行
+               ;; 序列会让 Windows conpty 丢弃末列字符（边框/页脚末字符消失）
                (terminal-clear-line-to-end term)
+               (terminal-write term (diff-op-text op))
               ) ;
               ((eq? type 'clear) (terminal-set-cursor! term 0 idx) (terminal-clear-line term))
               (else #t)
