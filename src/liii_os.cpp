@@ -653,6 +653,12 @@ pump_console_input (HANDLE hIn, long timeout_ms) {
     uint32_t                chr     = (uint32_t) ke.uChar.UnicodeChar;
     bool                    is_ctrl = (ctrl & (LEFT_CTRL_PRESSED | RIGHT_CTRL_PRESSED)) != 0;
     bool                    is_shift= (ctrl & SHIFT_PRESSED) != 0;
+    /* Alt 修饰位（任务 1197）：LEFT_ALT_PRESSED/RIGHT_ALT_PRESSED 此前被丢弃，
+     * 导致 Alt+Up 等组合被识别为普通方向键；扩展键改用 DOS 101 键码表的
+     * Alt 行专属码（alt-up=152 等），Scheme 侧 %map-extended-key 同步映射。 */
+    bool is_alt= (ctrl & (LEFT_ALT_PRESSED | RIGHT_ALT_PRESSED)) != 0;
+    /* Ctrl+Alt 组合优先按 Ctrl 语义编码（沿用 Ctrl 码段），避免语义被 Alt 覆盖 */
+    bool alt_key= is_alt && !is_ctrl;
 
     // Shift-Tab
     if (virt == VK_TAB && is_shift) {
@@ -666,38 +672,38 @@ pump_console_input (HANDLE hIn, long timeout_ms) {
       return true;
     }
 
-    // 功能键/光标键处理
+    // 功能键/光标键处理（Alt 行扩展码：151/152/153/155/157/160/161/162/163/164）
     if (chr == 0) {
       switch (virt) {
       case VK_UP:
-        push_seq (224, is_ctrl ? 141 : 72);
+        push_seq (224, is_ctrl ? 141 : (alt_key ? 152 : 72));
         return true;
       case VK_DOWN:
-        push_seq (224, is_ctrl ? 145 : 80);
+        push_seq (224, is_ctrl ? 145 : (alt_key ? 160 : 80));
         return true;
       case VK_LEFT:
-        push_seq (224, is_ctrl ? 115 : 75);
+        push_seq (224, is_ctrl ? 115 : (alt_key ? 155 : 75));
         return true;
       case VK_RIGHT:
-        push_seq (224, is_ctrl ? 116 : 77);
+        push_seq (224, is_ctrl ? 116 : (alt_key ? 157 : 77));
         return true;
       case VK_HOME:
-        push_seq (224, is_ctrl ? 119 : 71);
+        push_seq (224, is_ctrl ? 119 : (alt_key ? 151 : 71));
         return true;
       case VK_END:
-        push_seq (224, is_ctrl ? 117 : 79);
+        push_seq (224, is_ctrl ? 117 : (alt_key ? 163 : 79));
         return true;
       case VK_PRIOR:
-        push_seq (224, 73);
+        push_seq (224, alt_key ? 153 : 73);
         return true;
       case VK_NEXT:
-        push_seq (224, 81);
+        push_seq (224, alt_key ? 161 : 81);
         return true;
       case VK_DELETE:
-        push_seq (224, is_ctrl ? 147 : 83);
+        push_seq (224, is_ctrl ? 147 : (alt_key ? 164 : 83));
         return true;
       case VK_INSERT:
-        push_seq (224, 82);
+        push_seq (224, alt_key ? 162 : 82);
         return true;
       case VK_F1:
       case VK_F2:
