@@ -15,15 +15,14 @@
     (liii pi ai time)
     (liii pi ai event)
     (liii pi code core session-manager)
-    (liii pi ai message)
     (liii pi code core compaction tokens)
     (liii pi code core compaction cut)
     (liii pi code core compaction fileops)
     (liii pi code core compaction prompt)
     (liii pi code core compaction summary)
   ) ;import
-  (export pi-read-session-entries pi-project-session-messages
-    pi-last-compaction-summary pi-append-compaction-entry! pi-compact-session!
+  (export pi-read-session-entries pi-last-compaction-summary
+    pi-append-compaction-entry! pi-compact-session!
   ) ;export
   (begin
 
@@ -34,12 +33,6 @@
             ) ;
         (if pair (cdr pair) #f)
       ) ;let*
-    ) ;define
-
-    ;; string->json 将 JSON true 解析为符号 true（对齐 json-ref 的转换语义），
-    ;; 布尔字段需同时兼容符号与 #t 两种表示
-    (define (%json-true? v)
-      (or (eq? #t v) (eq? v 'true))
     ) ;define
 
     (define (%parse-line line)
@@ -60,10 +53,6 @@
       ) ;let
     ) ;define
 
-    (define (%entry-index-by-id entries id)
-      (list-index (lambda (e) (equal? (%ref e "id") id)) entries)
-    ) ;define
-
     (define (%last-compaction-index entries)
       (let ((rev-idx
               (list-index (lambda (e) (equal? (%ref e "type") "compaction"))
@@ -75,81 +64,16 @@
       ) ;let
     ) ;define
 
-    (define (%as-pi-message msg)
-      (let* ((msg (pi-normalize-session-msg msg))
-             (role (%ref msg "role"))
-             (content (%ref msg "content"))
-            ) ;
-        (cond ((equal? role "user") (pi-user-message content))
-              ;; ! 命令结果：转为 user 消息注入上下文（对齐 pi convertToLlm）；
-              ;; !! 前缀（excludeFromContext）不进入 LLM 上下文，返回 #f 被过滤
-              ((equal? role "bashExecution")
-               (and (not (%json-true? (%ref msg "excludeFromContext")))
-                 (pi-user-message (pi-bash-execution->user-text (%ref msg "command")
-                                    (%ref msg "output")
-                                    (%ref msg "exitCode")
-                                  ) ;pi-bash-execution->user-text
-                 ) ;pi-user-message
-               ) ;and
-              ) ;
-              ((equal? role "assistant")
-               (pi-assistant-message content
-                 (or (%ref msg "stopReason") "stop")
-                 (%ref msg "errorMessage")
-                 (%ref msg "usage")
-               ) ;pi-assistant-message
-              ) ;
-              ((equal? role "toolResult")
-               (pi-tool-result-message (or (%ref msg "toolCallId") "")
-                 (or (%ref msg "toolName") "")
-                 content
-                 (%json-true? (%ref msg "isError"))
-               ) ;pi-tool-result-message
-              ) ;
-              (else msg)
-        ) ;cond
-      ) ;let*
-    ) ;define
-
+    ;; 条目到上下文消息的映射统一收敛到 session-manager 的单一实现（1201），
+    ;; 压缩层不再维护第二份映射副本
     (define (%messages-from entries start)
-      (filter (lambda (m) m)
-        (map
-          (lambda (entry idx)
-            (and (>= idx start)
-              (equal? (%ref entry "type") "message")
-              (let ((m (%ref entry "message")))
-                (and m (%as-pi-message m))
-              ) ;let
-            ) ;and
-          ) ;lambda
-          entries
-          (iota (length entries))
-        ) ;map
-      ) ;filter
+      (apply append (map pi-entry-to-context-messages (list-tail entries start)))
     ) ;define
 
     (define (pi-last-compaction-summary entries)
       (let ((idx (%last-compaction-index entries)))
         (and idx (%ref (list-ref entries idx) "summary"))
       ) ;let
-    ) ;define
-
-    (define (pi-project-session-messages entries)
-      (let* ((cidx (%last-compaction-index entries)))
-        (if (not cidx)
-          (%messages-from entries 0)
-          (let* ((compaction (list-ref entries cidx))
-                 (summary (%ref compaction "summary"))
-                 (kept-id (%ref compaction "firstKeptEntryId"))
-                 (start (%entry-index-by-id entries kept-id))
-                 (start (if start start (+ cidx 1)))
-                ) ;
-            (append (list (pi-compaction-summary-message summary))
-              (%messages-from entries start)
-            ) ;append
-          ) ;let*
-        ) ;if
-      ) ;let*
     ) ;define
 
     (define (%last-entry-id entries)

@@ -4,6 +4,7 @@
         (liii list)
         (liii string)
         (liii pi ai message) (liii pi code core compaction session) (liii pi code core session-manager)
+        (liii pi code core session-projection)
         (liii pi code core compaction))
 
 (check-set-mode! 'report-failed)
@@ -52,9 +53,9 @@
   (check (length after) => (+ 1 (length before)))
   (check (length after-msgs) => (length before-msgs))
   ;; 投影回到新 summary
-  (let ((msgs (pi-project-session-messages after)))
+  (let*-values (((msgs _state _diag) (pi-build-session-projection after)))
     (check-true (string-contains? (pi-user-message-content (car msgs)) "new summary"))
-  ) ;let
+  ) ;let*-values
 ) ;let*
 
 (when (file-exists? TARGET) (delete-file TARGET))
