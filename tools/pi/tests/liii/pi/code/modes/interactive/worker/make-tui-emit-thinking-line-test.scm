@@ -27,6 +27,7 @@
   (check (recv-ev! ch) => 'none)
   (emit 'message_update '() (stream-event "thinking_end"))
   (check (recv-ev! ch) => '(assistant_thinking_line "第二"))
+  (check (recv-ev! ch) => '(assistant_thinking_end))
   (check (recv-ev! ch) => 'none)
 ) ;let*
 
@@ -41,6 +42,7 @@
   (check (recv-ev! ch) => 'none)
   (emit 'message_update '() (stream-event "thinking_end"))
   (check (recv-ev! ch) => '(assistant_thinking_line "line 3"))
+  (check (recv-ev! ch) => '(assistant_thinking_end))
   (check (recv-ev! ch) => 'none)
 ) ;let*
 
@@ -52,6 +54,7 @@
   ) ;emit
   (emit 'message_update '() (stream-event "thinking_end"))
   (check (recv-ev! ch) => '(assistant_thinking_line "块一尾行"))
+  (check (recv-ev! ch) => '(assistant_thinking_end))
   (emit 'message_update
     '()
     (stream-event "thinking_delta" '(delta . "块二\n  \n"))
@@ -59,6 +62,26 @@
   (check (recv-ev! ch) => '(assistant_thinking_line "块二"))
   (check (recv-ev! ch) => '(assistant_thinking_line "  "))
   (emit 'message_update '() (stream-event "thinking_end"))
+  (check (recv-ev! ch) => '(assistant_thinking_end))
+  (check (recv-ev! ch) => 'none)
+) ;let*
+
+;; thinking_end 无论有无残余行都投递块结束事件，连续多个块每块一次，
+;; 供 UI 关闭当前卡片（每个 thinking 块一张卡片）。
+(let* ((ch (make-chan 16)) (emit (make-tui-emit ch)))
+  (emit 'message_update '() (stream-event "thinking_delta" '(delta . "块一\n")))
+  (check (recv-ev! ch) => '(assistant_thinking_line "块一"))
+  (emit 'message_update '() (stream-event "thinking_end"))
+  (check (recv-ev! ch) => '(assistant_thinking_end))
+  (emit 'message_update '() (stream-event "thinking_end"))
+  (check (recv-ev! ch) => '(assistant_thinking_end))
+  (emit 'message_update
+    '()
+    (stream-event "thinking_delta" '(delta . "块二\n"))
+  ) ;emit
+  (check (recv-ev! ch) => '(assistant_thinking_line "块二"))
+  (emit 'message_update '() (stream-event "thinking_end"))
+  (check (recv-ev! ch) => '(assistant_thinking_end))
   (check (recv-ev! ch) => 'none)
 ) ;let*
 

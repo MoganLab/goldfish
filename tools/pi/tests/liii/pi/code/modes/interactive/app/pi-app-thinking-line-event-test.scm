@@ -117,4 +117,30 @@
   ) ;let
 ) ;let
 
+;; assistant_thinking_end 关闭当前卡片；下一块（下一 turn 或 interleaved）的
+;; 行落到新卡片，旧卡片内容保留；无活跃卡片时幂等不产生新卡片。
+(let ((app (make-pi-app
+             :terminal (make-virtual-terminal :width 100 :height 40)
+             :handler  (lambda (a m) #t)
+           ) ;make-pi-app
+      ) ;app
+     ) ;
+  (send-event! app '(assistant_thinking_line "块一思考"))
+  (pi-app-poll-events! app)
+  (let ((first-card (pi-app-thinking-card app)))
+    (send-event! app '(assistant_thinking_end))
+    (pi-app-poll-events! app)
+    (check-false (pi-app-thinking-card app))
+    (send-event! app '(assistant_thinking_line "块二思考"))
+    (pi-app-poll-events! app)
+    (check (length (pi-app-chat app)) => 2)
+    (check-false (eq? first-card (pi-app-thinking-card app)))
+    (check-true (string-contains? (chat-text app) " 块一思考"))
+    (check-true (string-contains? (chat-text app) " 块二思考"))
+  ) ;let
+  (send-event! app '(assistant_thinking_end))
+  (pi-app-poll-events! app)
+  (check (length (pi-app-chat app)) => 2)
+) ;let
+
 (check-report)

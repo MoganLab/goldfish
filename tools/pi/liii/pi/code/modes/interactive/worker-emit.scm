@@ -72,6 +72,9 @@
       (unless (string-null? (string-trim-both buffer))
         (%flush-thinking-lines! event-chan (list buffer))
       ) ;unless
+      ;; 无条件投递块结束信号：UI 据此关闭当前卡片，
+      ;; 下一个块（下一 turn 或 interleaved）的行落到新卡片
+      (pi-tui-send-event! event-chan '(assistant_thinking_end))
       ""
     ) ;define
 

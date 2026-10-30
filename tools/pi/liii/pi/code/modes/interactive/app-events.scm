@@ -322,6 +322,7 @@
             ((tool_execution_update) (%pi-app-handle-tool-update! app ev))
             ((tool_execution_end) (%pi-app-handle-tool-end! app ev))
             ((assistant_thinking_line) (%pi-app-handle-thinking-line! app (cadr ev)))
+            ((assistant_thinking_end) (%pi-app-close-thinking-card! app))
             ((assistant_text) (pi-app-add-assistant-text! app (cadr ev)))
             ((retry) (pi-app-add-retry-message! app (cadr ev)))
             ;; worker 消费了 steering / follow-up 注入消息：
