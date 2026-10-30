@@ -10,6 +10,10 @@
 ;; 被撤销的目标条目从上下文中删除，被替换的目标只替换 content 而保留 role 与元数据。
 ;; 编辑的收集与应用在子库 (liii pi code core session-projection context-edit)，
 ;; 本库只负责在裁剪结果与消息构造之间调用它。
+;; 1209 起从完整路径导出会话设置（thinkingLevel 与 model），对应上游
+;; buildSessionContext 的第二步；扫描对象是 pi-session-path 的完整路径，
+;; 不受 pi-context-entries 裁剪影响（压缩只折叠对话内容，不重置会话设置）。
+;; 状态提取在子库 (liii pi code core session-projection state)。
 (define-library (liii pi code core session-projection)
   (import (scheme base)
     (liii string)
@@ -18,6 +22,7 @@
     (liii pi ai message)
     (liii pi code core session-manager)
     (liii pi code core session-projection context-edit)
+    (liii pi code core session-projection state)
   ) ;import
   (export pi-session-path pi-context-entries pi-build-session-projection)
   (begin
@@ -225,7 +230,8 @@
 
     ;; 条目类型是否在投影入口的已知集合内：
     ;; message 参与上下文；compaction 贡献头部摘要；session 为文件头；
-    ;; context_edit 是编辑指令，自身不产生消息（见子库 pi-apply-context-edits）
+    ;; context_edit 是编辑指令，自身不产生消息（见子库 pi-apply-context-edits）；
+    ;; model_change / thinking_level_change 只提供会话设置，同样不产生消息
     (define (%known-entry-type? entry)
       (let ((t (%ref entry "type")))
         (and (string? t)
@@ -233,6 +239,8 @@
             (equal? t "compaction")
             (equal? t "session")
             (equal? t "context_edit")
+            (equal? t "model_change")
+            (equal? t "thinking_level_change")
           ) ;or
         ) ;and
       ) ;let
@@ -274,17 +282,24 @@
     ) ;define
 
     ;; pi-build-session-projection：投影入口（对齐上游 buildSessionProjection）
-    ;; 纯组合 1201-1204 的能力并补齐 context_edit：
+    ;; 纯组合 1201-1204 的能力并补齐 context_edit 与状态导出：
     ;; 1) pi-session-path：从叶子沿 parentId 回溯路径（1202）
-    ;; 2) pi-context-entries：压缩感知的路径裁剪（1203）
-    ;; 3) context_edit 应用：在裁剪结果上删除 / 替换目标（1208），先于消息构造
-    ;; 4) pi-entry-to-context-messages：逐条目到消息的映射（1201）
+    ;; 2) 状态提取：从完整路径取最后的 thinkingLevel 与 model（1209）
+    ;; 3) pi-context-entries：压缩感知的路径裁剪（1203）
+    ;; 4) context_edit 应用：在裁剪结果上删除 / 替换目标（1208），先于消息构造
+    ;; 5) pi-entry-to-context-messages：逐条目到消息的映射（1201）
     ;; 返回三部分（values messages state diagnostics）：
     ;; - messages：LLM 上下文消息列表；裁剪返回摘要时，头部插入一条用户消息，
     ;;   文本为既有摘要前缀 + 摘要 + 后缀；其后为保留条目的消息（含压缩点之后）
-    ;; - state：状态字段，当前以 #f 占位（thinkingLevel 与 model 在 1209 填充）
+    ;; - state：#f（路径上无状态条目）或 alist：
+    ;;   (thinkingLevel . 字符串|#f)
+    ;;   (thinkingLevelEntryId . 条目 id|#f)
+    ;;   (model . ((provider . 字符串) (modelId . 字符串))|#f)
+    ;;   (modelEntryId . 条目 id|#f)
+    ;;   状态扫描作用于完整路径，压缩不会裁掉压缩点之前的设置
     ;; - diagnostics：alist，汇总路径断链（path-reason）与裁剪降级（trim-reason）
-    ;;   两类原因，未知 type 的条目计入 skipped-unknown-types（context_edit 属已知类型），
+    ;;   两类原因，未知 type 的条目计入 skipped-unknown-types（context_edit、
+    ;;   model_change、thinking_level_change 均属已知类型），
     ;;   无法应用的编辑目标 id 计入 ignored-edits（无则 '()）
     ;; 纯函数：不读文件、不写日志、不改写会话文件，所有 I/O 由调用方完成
     (define (pi-build-session-projection entries . opt-leaf-id)
@@ -301,6 +316,8 @@
                      ;; 未知类型在编辑前的条目上统计：应用编辑后会移除 context_edit 条目
                      (summary (%first-compaction-summary edited-entries))
                      (unknown-types (%unknown-types context-entries))
+                     ;; 状态必须基于完整 path 而非裁剪后的 context-entries
+                     (state (pi-collect-projection-state path))
                      (msgs
                        (if summary
                          (cons (pi-user-message (string-append %projection-summary-prefix
@@ -319,7 +336,6 @@
                                     (cons 'ignored-edits ignored-edits)
                                   ) ;list
                      ) ;diagnostics
-                     (state #f)
                     ) ;
                 (values msgs state diagnostics)
               ) ;let*
