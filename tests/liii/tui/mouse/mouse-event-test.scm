@@ -95,4 +95,25 @@
 (check (mouse-event? "not-event") => #f)
 (check (mouse-event? 42) => #f)
 
+;; 10. 事件到达时刻（Issue #1382）：滚轮加速依赖真实到达间隔，
+;;     合并处理连续事件时须保留各事件自己的时间
+(let ((e (make-mouse-event 'wheel-up 'none 5 5 #f #f #f 1000))
+      (no-time (make-mouse-event 'wheel-up 'none 5 5)))
+  (check (mouse-event-time e) => 1000)
+  ;; 未提供时刻时为 #f，调用方回退到处理时刻
+  (check (mouse-event-time no-time) => #f)
+  ;; 时刻不影响其他字段
+  (check (mouse-event-type e) => 'wheel-up)
+  (check (mouse-event-x e) => 5)
+  (check (mouse-event-y e) => 5)
+) ;let
+
+;; 11. parse-mouse-event 的可选时刻参数写入事件，省略时为 #f
+(let ((e (parse-mouse-event "\x1b;[<64;6;3M" 2000))
+      (no-time (parse-mouse-event "\x1b;[<64;6;3M")))
+  (check (mouse-event-time e) => 2000)
+  (check (mouse-event-type e) => 'wheel-up)
+  (check (mouse-event-time no-time) => #f)
+) ;let
+
 (check-report)

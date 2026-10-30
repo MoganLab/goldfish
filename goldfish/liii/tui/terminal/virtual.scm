@@ -29,6 +29,8 @@
   (import (liii base)
     (liii error)
     (liii vector)
+    (liii date-time)
+    (liii tui mouse)
     (liii tui terminal protocol)
     (liii tui terminal size)
     (liii tui terminal virtual state)
@@ -198,7 +200,24 @@
       (unless (virtual-terminal? vt)
         (type-error "virtual-terminal-push-key!: expected virtual-terminal")
       ) ;unless
-      (let ((state (terminal-data vt)))
+      (let ((state (terminal-data vt))
+            ;; 鼠标事件未带到达时刻时补打当前单调时钟（毫秒）。
+            ;; 测试与工具可直接用 make-mouse-event 的可选 time 参数指定到达时刻。
+            (key
+              (if (and (mouse-event? key) (not (mouse-event-time key)))
+                (make-mouse-event (mouse-event-type key)
+                  (mouse-event-button key)
+                  (mouse-event-x key)
+                  (mouse-event-y key)
+                  (mouse-event-shift? key)
+                  (mouse-event-ctrl? key)
+                  (mouse-event-alt? key)
+                  (current-monotonic-millis)
+                ) ;make-mouse-event
+                key
+              ) ;if
+            ) ;key
+           ) ;
         (vt-keys-set! state (append (vt-keys state) (list key)))
       ) ;let
     ) ;define

@@ -158,18 +158,23 @@
       (let ((acc (pi-app-wheel-accelerator app)) (delta 0) (handled? #f))
         (for-each
           (lambda (ev)
-            (case (mouse-event-type ev)
-                  ((wheel-up)
-                   (set! delta (- delta (wheel-scroll-next! acc -1 (current-monotonic-millis))))
-                   (set! handled? #t)
-                  ) ;
-                  ((wheel-down)
-                   (set! delta (+ delta (wheel-scroll-next! acc 1 (current-monotonic-millis))))
-                   (set! handled? #t)
-                  ) ;
-                  ((click) (when (pi-app-dispatch-mouse! app ev) (set! handled? #t)))
-                  (else #f)
-            ) ;case
+            ;; 用事件自带的到达时刻而非处理时刻：合并批次内各事件的间隔
+            ;; 是滚轮加速的唯一依据，统一取处理时刻会把间隔记为 0 而抹平加速
+            ;; （Issue #1382）。无时间戳的旧事件回退到处理时刻，行为不变。
+            (let ((now (or (mouse-event-time ev) (current-monotonic-millis))))
+              (case (mouse-event-type ev)
+                    ((wheel-up)
+                     (set! delta (- delta (wheel-scroll-next! acc -1 now)))
+                     (set! handled? #t)
+                    ) ;
+                    ((wheel-down)
+                     (set! delta (+ delta (wheel-scroll-next! acc 1 now)))
+                     (set! handled? #t)
+                    ) ;
+                    ((click) (when (pi-app-dispatch-mouse! app ev) (set! handled? #t)))
+                    (else #f)
+              ) ;case
+            ) ;let
           ) ;lambda
           events
         ) ;for-each

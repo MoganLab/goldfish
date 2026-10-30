@@ -153,6 +153,7 @@
                     (mouse-event-shift? ev)
                     (mouse-event-ctrl? ev)
                     (mouse-event-alt? ev)
+                    (mouse-event-time ev)
                   ) ;make-mouse-event
                 ) ;component-handle-mouse!
                 (loop (cdr rest) (cdr hs) (+ base h spacing))
