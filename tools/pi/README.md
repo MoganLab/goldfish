@@ -4,6 +4,9 @@
 > JSON 模式）——用户在脚本与管道中原来写 `pi -p "..."`、`pi --mode json "..."`
 > 的地方，直接换成 `bin/gf pi ...` 即可，行为兼容、配置复用（`~/.pi/agent/`）。
 >
+> 配置文件目录（config-dir）：`~/.gf/agent/` 存在时优先使用其中的 JSON 配置文件，
+> 否则回退 `~/.pi/agent/`；会话目录（sessions/）始终在 `~/.pi/agent/sessions/`。
+>
 > 本文档由真实冒烟测试验证整理：标注【可用】的示例均在开发机上实际运行通过；
 > 尚不能运行的用法收入文末 TODO，随迭代更新。
 > 更新方式：探索新的用法并实际验证后，把示例从 TODO 移入正文并注明验证日期。
@@ -14,11 +17,43 @@
 # 构建
 timeout 600 xmake b goldfish
 
-# 配置复用 ~/.pi/agent/（只读）：settings.json（defaultProvider/defaultModel/httpProxy/retry）、
+# 配置复用 JSON 配置文件目录（config-dir）：~/.gf/agent/ 存在时优先，否则 ~/.pi/agent/
+# settings.json（defaultProvider/defaultModel/httpProxy/retry）、
 # auth.json（api_key / ANTHROPIC_AUTH_TOKEN 等环境变量兜底）、models-store.json（模型元数据）
+# 会话目录不受影响：始终 ~/.pi/agent/sessions/
 # 访问 Gemini 需要代理：--proxy > HTTPS_PROXY/ALL_PROXY 环境变量 > settings.json httpProxy > 直连
 # 重试：可重试 provider 错误（429/5xx/408/409/网络错误）使用 retry.provider.maxRetries 预算
 # （本机=12），未配置该嵌套节时回退 retry.maxRetries（缺省 3）
+```
+
+## 配置文件目录（config-dir）
+
+`bin/gf pi` 把目录分为两类：
+
+| 类别 | 目录 | 内容 |
+|---|---|---|
+| 配置文件目录（config-dir） | `~/.gf/agent/`（存在时）否则 `~/.pi/agent/` | `settings.json`、`auth.json`、`models.json`、`models-store.json`、`multikey.json`、`web-search.json` 等 JSON 配置文件 |
+| 会话 / 扩展目录（agent-dir） | `~/.pi/agent/` | `sessions/`（会话记录）、`extensions/`（用户扩展） |
+
+优先级：`GF_CONFIG_DIR` > `PI_CODING_AGENT_DIR` 环境变量（测试与调试用） > `~/.gf/agent/`
+（存在时） > `~/.pi/agent/`。即：只要 `~/.gf/agent/` 目录存在，`bin/gf pi` 就从该目录读取全部
+JSON 配置文件；会话记录仍然写入 `~/.pi/agent/sessions/`。
+
+任意 Scheme 代码可直接导入 `(liii pi code config)` 调用 `(gf-get-config-dir)` 获得该目录（返回 path 对象）：
+
+```scheme
+(import (liii pi code config))
+(gf-get-config-dir)   ; => #<path "/home/user/.gf/agent">（存在时），否则 #<path "/home/user/.pi/agent">
+```
+
+```bash
+# 独立配置目录：把 ~/.pi/agent/ 复制为 ~/.gf/agent/ 后即自动生效
+mkdir -p ~/.gf/agent && cp ~/.pi/agent/settings.json ~/.pi/agent/auth.json ~/.gf/agent/
+
+# 临时用其它目录（覆盖 ~/.gf/agent 与 ~/.pi/agent）
+GF_CONFIG_DIR=/tmp/my-config-dir bin/gf pi -p "hello"
+# PI_CODING_AGENT_DIR 同样可用（兼容 pi 既有约定）
+PI_CODING_AGENT_DIR=/tmp/my-agent-dir bin/gf pi -p "hello"
 ```
 
 ## 基本用法【可用】

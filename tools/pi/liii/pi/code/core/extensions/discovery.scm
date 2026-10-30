@@ -188,11 +188,10 @@
              (cwd-dir (pi-keyword-value :cwd options (getcwd)))
              (explicit (pi-keyword-value :explicit-extensions options '()))
              (include-builtin? (pi-keyword-value :include-builtin? options #t))
-             (global-dir-str
-               (if (string? agent-dir)
-                 (path->string (path-join (path agent-dir) "extensions"))
-                 #f
-               ) ;if
+             (global-dir-str (if (or (string? agent-dir) (path? agent-dir))
+                               (path->string (path-join agent-dir "extensions"))
+                               #f
+                             ) ;if
              ) ;global-dir-str
              (project-dir-str
                (if (string? cwd-dir)

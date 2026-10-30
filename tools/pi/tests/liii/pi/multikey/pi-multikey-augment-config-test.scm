@@ -4,7 +4,7 @@
 (check-set-mode! 'report-failed)
 
 ;; pi-multikey-augment-config
-;; config augmenter：命中 <agent-dir>/multikey.json 中 provider 对应的 pool 时
+;; config augmenter：命中 <config-dir>/multikey.json 中 provider 对应的 pool 时
 ;; 注入 api-key（首个池内 key）/ multikey-pool / request-key / rotate-key；
 ;; 未命中时原样返回 cfg，核心经 (liii pi ai keyring) 钩子消费。
 
@@ -42,6 +42,20 @@
   (check (pi-request-api-key cfg) => "sk-pool-alpha-0001")
   ;; 429 轮换到下一可用 key
   (check (pi-rotate-api-key! cfg "sk-pool-alpha-0001" 429) => "sk-pool-beta-00002")
+) ;let*
+
+;; 1.1 config-dir 优先：JSON 配置文件目录（~/.gf/agent 等）中的 multikey.json 生效
+(let* ((base (list (cons 'config-dir fixture-dir)
+                   (cons 'agent-dir nopool-dir)
+                   (cons 'provider "kimi-coding")
+                   (cons 'api-key "auth-json-key")
+                   (cons 'model-id "kimi-k2")
+              ) ;list
+       ) ;base
+       (cfg (pi-multikey-augment-config base '()))
+      ) ;
+  (check (cdr (assoc 'api-key cfg)) => "sk-pool-alpha-0001")
+  (check-true (pi-key-pool? (cdr (assoc 'multikey-pool cfg))))
 ) ;let*
 
 ;; 2. 无 multikey.json 或 provider 无 pool：cfg 原样返回，不注入钩子

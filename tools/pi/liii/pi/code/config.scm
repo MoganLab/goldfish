@@ -13,7 +13,6 @@
     (liii list)
     (liii path)
     (liii os)
-    (liii json)
     (liii error)
     (liii pi code core tools read)
     (liii pi ai template)
@@ -24,180 +23,61 @@
     (liii pi ai config types)
     (liii pi ai config record)
     (liii pi ai event)
+    (liii pi code config settings)
     (liii pi code core extensions registry)
     (liii pi code core extensions event)
-    (liii pi code core compaction tokens)
   ) ;import
   (export pi-resolve-config-value json-dict-ref pi-get-agent-dir
-    pi-read-json-file pi-load-settings pi-save-default-thinking-level!
-    pi-save-hide-thinking-block! pi-save-default-model!
-    pi-model-supports-thinking? pi-load-compaction-settings pi-resolve-proxy-url
-    pi-load-auth pi-resolve-provider-key pi-load-models-store
-    pi-load-models-json pi-merge-models-json-into-store
-    pi-resolve-model-metadata resolve-pi-config resolve-goldpi-config
-    resolve-active-tools pi-missing-credential-msg augment-pi-config
+    gf-get-config-dir pi-cfg-config-dir pi-read-json-file pi-load-settings
+    pi-save-default-thinking-level! pi-save-hide-thinking-block!
+    pi-save-default-model! pi-model-supports-thinking?
+    pi-load-compaction-settings pi-resolve-proxy-url pi-load-auth
+    pi-resolve-provider-key pi-load-models-store pi-load-models-json
+    pi-merge-models-json-into-store pi-resolve-model-metadata resolve-pi-config
+    resolve-goldpi-config resolve-active-tools pi-missing-credential-msg
+    augment-pi-config
   ) ;export
   (begin
 
-    (define (json-dict-ref obj key default-val)
-      (if (not (pair? obj))
-        default-val
-        (let* ((str-key (if (symbol? key) (symbol->string key) key))
-               (sym-key (if (string? key) (string->symbol key) key))
-               (pair (or (assoc str-key obj) (assoc sym-key obj)))
-              ) ;
-          (if pair (cdr pair) default-val)
-        ) ;let*
-      ) ;if
-    ) ;define
-
     ;; pi-get-agent-dir 已下沉至 (liii pi code core tools read)，此处经 import 再导出
 
-    (define (pi-read-json-file filepath)
-      (and (path-exists? (path filepath))
-        (catch #t
-          (lambda () (string->json (path-read-text (path filepath))))
-          (lambda args #f)
-        ) ;catch
-      ) ;and
-    ) ;define
-
-    (define (%normalize-bool val)
-      (case val
-       ((true) #t)
-       ((false) #f)
-       (else val)
-      ) ;case
-    ) ;define
-
-    (define (%parse-tools-list val)
-      (cond ((vector? val) (vector->list val))
-            ((list? val) val)
-            (else #f)
-      ) ;cond
-    ) ;define
-
-    (define (%build-retry-record retry-obj)
-      (let ((provider-obj (json-dict-ref retry-obj "provider" '())))
-        (%make-pi-retry-config (%normalize-bool (json-dict-ref retry-obj "enabled" #t))
-          (json-dict-ref retry-obj "maxRetries" 3)
-          (json-dict-ref retry-obj "baseDelayMs" 2000)
-          (json-dict-ref retry-obj "maxAgentDelayMs" 60000)
-          (json-dict-ref provider-obj "maxRetries" #f)
-        ) ;%make-pi-retry-config
+    ;; JSON 配置文件目录：settings.json / auth.json / models.json /
+    ;; models-store.json / multikey.json / web-search.json 等所在目录。
+    ;; 优先级：显式目录参数 > GF_CONFIG_DIR > PI_CODING_AGENT_DIR
+    ;;         > ~/.gf/agent（存在时） > ~/.pi/agent
+    ;; 返回绝对路径（path 对象）；会话目录（sessions/）与扩展目录（extensions/）
+    ;; 仍归属 agent 目录（pi-get-agent-dir）。
+    (define (gf-get-config-dir . opt-dir)
+      (let ((custom (and (pair? opt-dir) (car opt-dir)))
+            (env-gf (get-environment-variable "GF_CONFIG_DIR"))
+            (env-pi (get-environment-variable "PI_CODING_AGENT_DIR"))
+           ) ;
+        (cond
+         ((and (string? custom) (not (string-null? (string-trim-both custom))))
+          (pi-abs-path custom)
+         ) ;
+         ((and (string? env-gf) (not (string-null? (string-trim-both env-gf))))
+          (pi-abs-path env-gf)
+         ) ;
+         ((and (string? env-pi) (not (string-null? (string-trim-both env-pi))))
+          (pi-abs-path env-pi)
+         ) ;
+         (else
+           (let ((gf-agent (pi-abs-path "~/.gf/agent")))
+             (if (path-exists? gf-agent) gf-agent (pi-abs-path "~/.pi/agent"))
+           ) ;let
+         ) ;else
+        ) ;cond
       ) ;let
     ) ;define
 
-    (define (pi-load-settings agent-dir)
-      (let* ((filepath (path->string (path-join (path agent-dir) (path "settings.json"))))
-             (obj (or (pi-read-json-file filepath) '()))
-             (raw-proxy (json-dict-ref obj "httpProxy" #f))
-             (clean-proxy
-               (and (string? raw-proxy)
-                 (not (string-null? (string-trim-both raw-proxy)))
-                 raw-proxy
-               ) ;and
-             ) ;clean-proxy
-            ) ;
-        (%make-pi-settings (json-dict-ref obj "defaultProvider" "google")
-          (json-dict-ref obj "defaultModel" "gemini-3.8-flash")
-          (json-dict-ref obj "defaultThinkingLevel" "off")
-          clean-proxy
-          (%build-retry-record (json-dict-ref obj "retry" '()))
-          (%parse-tools-list (json-dict-ref obj "defaultTools" #f))
-          (json-dict-ref obj "sessionDir" #f)
-          ;; 与上游共用 settings.json：hideThinkingBlock 隔离为单行斜体标签
-          (%normalize-bool (json-dict-ref obj "hideThinkingBlock" #f))
-        ) ;%make-pi-settings
-      ) ;let*
-    ) ;define
-
-    (define (pi-save-default-thinking-level! agent-dir level)
-      (let* ((filepath (path->string (path-join (path agent-dir) (path "settings.json"))))
-             (settings (or (pi-read-json-file filepath) '()))
-             (updated
-               (cons (cons "defaultThinkingLevel" level)
-                 (filter
-                   (lambda (entry)
-                     (not (or (equal? (car entry) "defaultThinkingLevel")
-                            (equal? (car entry) 'defaultThinkingLevel)
-                          ) ;or
-                     ) ;not
-                   ) ;lambda
-                   settings
-                 ) ;filter
-               ) ;cons
-             ) ;updated
-            ) ;
-        (path-mkdir agent-dir :parents #t :exist-ok #t)
-        (path-write-text filepath (string-append (json->string updated) "\n"))
-        level
-      ) ;let*
-    ) ;define
-
-    ;; /model Ctrl+S 持久化：只更新 defaultProvider/defaultModel，保留其他设置
-    (define (pi-save-default-model! agent-dir provider model-id)
-      (let* ((filepath (path->string (path-join (path agent-dir) (path "settings.json"))))
-             (settings (or (pi-read-json-file filepath) '()))
-             (updated
-               (append (list (cons "defaultProvider" provider) (cons "defaultModel" model-id))
-                 (filter
-                   (lambda (entry)
-                     (not (or (equal? (car entry) "defaultProvider")
-                            (equal? (car entry) 'defaultProvider)
-                            (equal? (car entry) "defaultModel")
-                            (equal? (car entry) 'defaultModel)
-                          ) ;or
-                     ) ;not
-                   ) ;lambda
-                   settings
-                 ) ;filter
-               ) ;append
-             ) ;updated
-            ) ;
-        (path-mkdir agent-dir :parents #t :exist-ok #t)
-        (path-write-text filepath (string-append (json->string updated) "\n"))
-        (list provider model-id)
-      ) ;let*
-    ) ;define
-
-    ;; Ctrl+T 切换思考块显隐后持久化：只更新 hideThinkingBlock，保留其他设置
-    ;; （对齐上游 setHideThinkingBlock；JSON 布尔值为符号 true/false）
-    (define (pi-save-hide-thinking-block! agent-dir hide)
-      (let* ((filepath (path->string (path-join (path agent-dir) (path "settings.json"))))
-             (settings (or (pi-read-json-file filepath) '()))
-             (updated
-               (cons (cons "hideThinkingBlock" (if hide 'true 'false))
-                 (filter
-                   (lambda (entry)
-                     (not (or (equal? (car entry) "hideThinkingBlock")
-                            (equal? (car entry) 'hideThinkingBlock)
-                          ) ;or
-                     ) ;not
-                   ) ;lambda
-                   settings
-                 ) ;filter
-               ) ;cons
-             ) ;updated
-            ) ;
-        (path-mkdir agent-dir :parents #t :exist-ok #t)
-        (path-write-text filepath (string-append (json->string updated) "\n"))
-        (and hide #t)
-      ) ;let*
-    ) ;define
-
-    (define (pi-load-compaction-settings agent-dir)
-      (let* ((filepath (path->string (path-join (path agent-dir) (path "settings.json"))))
-             (obj (or (pi-read-json-file filepath) '()))
-             (defaults (pi-compaction-default-settings))
-             (node (json-dict-ref obj "compaction" '()))
-             (get (lambda (key default) (json-dict-ref node key default)))
-            ) ;
-        (make-pi-compaction-settings (%normalize-bool (get "enabled" (pi-compaction-settings-enabled defaults)))
-          (get "reserveTokens" (pi-compaction-settings-reserve-tokens defaults))
-          (get "keepRecentTokens" (pi-compaction-settings-keep-recent-tokens defaults))
-        ) ;make-pi-compaction-settings
-      ) ;let*
+    ;; 从 cfg 中取 JSON 配置文件目录（path 对象）：
+    ;; 优先 config-dir，缺失时回退 agent-dir
+    (define (pi-cfg-config-dir cfg)
+      (if (pair? cfg)
+        (cdr (or (assoc 'config-dir cfg) (assoc 'agent-dir cfg) '(#f . #f)))
+        #f
+      ) ;if
     ) ;define
 
     (define (pi-resolve-proxy-url cli-proxy settings . opt-env)
@@ -300,8 +180,10 @@
     (define (resolve-pi-config parsed-args . opt-env)
       (let* ((env-agent-dir (lookup-env-var "PI_CODING_AGENT_DIR" opt-env))
              (agent-dir (pi-get-agent-dir env-agent-dir))
-             (settings (pi-load-settings agent-dir))
-             (models-store (pi-build-models-catalog agent-dir))
+             ;; JSON 配置文件目录：~/.gf/agent 存在时优先，否则回退 ~/.pi/agent
+             (config-dir (gf-get-config-dir env-agent-dir))
+             (settings (pi-load-settings config-dir))
+             (models-store (pi-build-models-catalog config-dir))
              (cli-proxy (pi-args-ref parsed-args 'proxy))
              (proxy-url (if (pair? opt-env)
                           (pi-resolve-proxy-url cli-proxy settings (car opt-env))
@@ -320,8 +202,8 @@
                      ) ;
                     ) ;
           (let* ((auth (if (pair? opt-env)
-                         (pi-load-auth agent-dir (car opt-env))
-                         (pi-load-auth agent-dir)
+                         (pi-load-auth config-dir (car opt-env))
+                         (pi-load-auth config-dir)
                        ) ;if
                  ) ;auth
                  (api-key-raw (if (pair? opt-env)
@@ -356,6 +238,7 @@
                  (supports-thinking (%model-supports-thinking? models-store provider model-id))
                 ) ;
             (list (cons 'agent-dir agent-dir)
+              (cons 'config-dir config-dir)
               (cons 'provider provider)
               (cons 'api-key api-key)
               (cons 'model-id model-id)

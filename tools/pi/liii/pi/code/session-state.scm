@@ -62,9 +62,9 @@
     ;; 应用状态里的模型：重新解析凭证与元数据；
     ;; 无凭证、模型不在目录或元数据缺失时保留 cfg 的模型并返回警告
     (define (%apply-state-model cfg provider model-id)
-      (let* ((agent-dir (%cfg-ref cfg 'agent-dir))
+      (let* ((config-dir (pi-cfg-config-dir cfg))
              (models-store (or (%cfg-ref cfg 'models-store) '()))
-             (auth (pi-load-auth agent-dir))
+             (auth (pi-load-auth config-dir))
              (api-key (pi-resolve-provider-key provider auth))
              (meta (pi-ensure-catalog-meta (pi-resolve-model-metadata provider model-id models-store)
                      provider
