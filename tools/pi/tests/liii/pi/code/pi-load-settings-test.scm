@@ -76,4 +76,22 @@
 (let ((settings (pi-load-settings fixture-dir)))
   (check (pi-settings-session-dir settings) => #f))
 
+;; hideThinkingBlock 设置键（与上游 pi 共用 settings.json）
+;; 无键时默认 #f（显示思考块）
+(let ((settings (pi-load-settings fixture-dir)))
+  (check (pi-settings-hide-thinking-block settings) => #f))
+;; 显式 false 同样为 #f
+(let ((settings (pi-load-settings session-dir-fixture-dir)))
+  (check (pi-settings-hide-thinking-block settings) => #f))
+;; 显式 true 时为 #t（隐藏思考块）
+(let ((hide-dir
+        (if (file-exists? "tests/fixtures/default")
+          "tests/fixtures/hide-thinking"
+          "tools/pi/tests/fixtures/hide-thinking"
+        ) ;if
+      ) ;hide-dir
+     )
+  (let ((settings (pi-load-settings hide-dir)))
+    (check (pi-settings-hide-thinking-block settings) => #t)))
+
 (check-report)

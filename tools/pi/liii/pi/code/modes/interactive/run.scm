@@ -15,6 +15,7 @@
     (liii pi agent queue)
     (liii pi code modes interactive app)
     (liii pi code modes interactive app-events)
+    (liii pi code modes interactive app-thinking)
     (liii pi code modes interactive common)
   ) ;import
   (begin
@@ -197,6 +198,14 @@
                   ;; footer 右下角标签与编辑器边框/Working 颜色同步更新
                   ((and (not (pi-app-active-selector app)) (eq? k 'shift-tab))
                    (pi-app-cycle-thinking! app)
+                   (pi-app-render! app)
+                   (loop)
+                  ) ;
+                  ;; 按 ctrl+t 时：全局切换思考块显示/隐藏（对齐上游
+                  ;; app.thinking.toggle），已上屏卡片折叠为单行 Thinking...，
+                  ;; 状态写入 settings.json 的 hideThinkingBlock 键
+                  ((and (not (pi-app-active-selector app)) (eq? k 'ctrl-t))
+                   (pi-app-toggle-thinking! app)
                    (pi-app-render! app)
                    (loop)
                   ) ;

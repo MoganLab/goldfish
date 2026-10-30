@@ -21,7 +21,8 @@
     pi-app-scroll-up! pi-app-scroll-down! pi-app-scroll-top!
     pi-app-scroll-bottom! pi-app-scroll-line-up! pi-app-scroll-line-down!
     pi-app-frame-lines pi-app-transcript-lines pi-app-wheel-accelerator
-    pi-app-handle-mouse! pi-app-handle-mouse-events!
+    pi-app-handle-mouse! pi-app-handle-mouse-events! pi-app-toggle-thinking!
+    pi-app-hide-thinking?
   ) ;export
   (import (scheme base)
     (liii base)
@@ -236,6 +237,8 @@
                (session-file #f)
                (resume-sessions #f)
                (no-session? #f)
+               (hide-thinking #f)
+               (on-save-hide-thinking #f)
              ) ;make-pi-app
       (let* ((actual-term (or terminal (make-standard-terminal)))
              ;; 全屏模式：备用屏整帧渲染，内容不随终端滚动
@@ -311,6 +314,8 @@
                     '()
                     '()
                     #f
+                    (and hide-thinking #t)
+                    on-save-hide-thinking
                   ) ;%make-pi-app
              ) ;app
              (ed (%make-pi-editor app tl))

@@ -13,6 +13,7 @@
     (liii sys)
     (liii path)
     (liii pi code cli args)
+    (liii pi code cli tui)
     (liii pi code config)
     (liii pi code modes)
     (liii pi code modes flow)
@@ -106,64 +107,6 @@
       ) ;any
     ) ;define
 
-    ;; TUI footer 右下角显示实际生效的供应商与模型：与后台 worker 内的解析同源同输入
-    ;; （纯本地文件读取，无网络开销），配置解析失败时回退到 CLI 原始参数；
-    ;; 返回 (provider model-id thinking-level supports-thinking default-thinking-level
-    ;;         agent-dir models default-model)
-    ;; 供 make-pi-app 使用（models 为有凭证 provider 的模型列表，供 /model 选择器）
-    (define (%tui-footer-info parsed)
-      (catch #t
-        (lambda ()
-          (let* ((cfg (resolve-pi-config parsed (get-environment-variables)))
-                 (session-state (pi-load-session-state parsed cfg))
-                ) ;
-            ;; 恢复会话时页脚与后台请求使用同一份合并结果（警告由 flow 在首轮请求前输出）
-            (let-values (((cfg _warnings) (pi-resolve-session-state cfg session-state parsed)))
-              (let* ((provider (cdr (or (assoc 'provider cfg) (cons #f "google"))))
-                     (model-id (cdr (or (assoc 'model-id cfg) (cons #f "gemini-3.8-flash"))))
-                     (tl (cdr (or (assoc 'thinking-level cfg) (cons #f "off"))))
-                     (supports (cdr (or (assoc 'supports-thinking cfg) (cons #f #t))))
-                     (settings (cdr (or (assoc 'settings cfg) (cons #f #f))))
-                     (default-tl (if settings (pi-settings-default-thinking-level settings) tl))
-                     (agent-dir (cdr (assoc 'agent-dir cfg)))
-                     (models-store (cdr (or (assoc 'models-store cfg) (cons #f '()))))
-                     (auth (pi-load-auth agent-dir))
-                     (models (pi-usable-models models-store auth))
-                     (default-model
-                       (and settings
-                         (list (cons 'provider (pi-settings-default-provider settings))
-                           (cons 'id (pi-settings-default-model settings))
-                         ) ;list
-                       ) ;and
-                     ) ;default-model
-                    ) ;
-                (list provider
-                  model-id
-                  tl
-                  (and supports #t)
-                  default-tl
-                  agent-dir
-                  models
-                  default-model
-                ) ;list
-              ) ;let*
-            ) ;let-values
-          ) ;let*
-        ) ;lambda
-        (lambda args
-          (list (or (pi-args-ref parsed 'provider) "google")
-            (or (pi-args-ref parsed 'model) "gemini-3.8-flash")
-            "off"
-            #t
-            "off"
-            (pi-get-agent-dir)
-            '()
-            #f
-          ) ;list
-        ) ;lambda
-      ) ;catch
-    ) ;define
-
     (define (%resolved-cfg parsed)
       (augment-pi-config (resolve-pi-config parsed (get-environment-variables))
         parsed
@@ -197,7 +140,7 @@
     ) ;define
 
     (define (%run-interactive parsed initial-msg rest-msgs)
-      (let* ((info (%tui-footer-info parsed))
+      (let* ((info (pi-tui-footer-info parsed))
              (session-name (%tui-session-name parsed))
              (app
                (make-pi-app
@@ -222,7 +165,10 @@
                      (%load-resume-sessions parsed cfg)
                    ) ;lambda
                  ) ;let
-                 :no-session? (pi-args-ref parsed 'no-session)
+                 :no-session?   (pi-args-ref parsed 'no-session)
+                 :hide-thinking (list-ref info 8)
+                 :on-save-hide-thinking
+                 (lambda (hide) (pi-save-hide-thinking-block! (list-ref info 5) hide))
                  :on-save-model
                  (lambda (provider model-id)
                    (pi-save-default-model! (list-ref info 5) provider model-id)

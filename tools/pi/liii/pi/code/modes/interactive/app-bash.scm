@@ -7,7 +7,9 @@
 ;; bash 编排层：! 命令的卡片上屏、!! 排除与上下文注入（对齐 pi
 ;; handleBashCommand / recordBashResult），从 app.scm 拆出以控制单文件行数
 (define-library (liii pi code modes interactive app-bash)
-  (export pi-app-run-bash! pi-app-toggle-tool-output! %pi-app-record-bash!)
+  (export pi-app-run-bash! pi-app-toggle-tool-output! %pi-app-record-bash!
+    %pi-app-show-status!
+  ) ;export
   (import (scheme base)
     (liii go)
     (liii tui)

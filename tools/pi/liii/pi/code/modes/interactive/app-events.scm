@@ -72,7 +72,8 @@
       (let ((card (pi-app-thinking-card app)))
         (if card
           (thinking-card-append-line! card line)
-          (let ((new-card (make-thinking-card line)))
+          ;; 新建卡片继承 Ctrl+T 当前隐藏状态（对齐上游 hideThinkingBlock 传入构造器）
+          (let ((new-card (make-thinking-card line (pi-app-hide-thinking? app))))
             (%pi-app-thinking-card-set! app new-card)
             (container-add! (%pi-app-chat app) new-card)
           ) ;let

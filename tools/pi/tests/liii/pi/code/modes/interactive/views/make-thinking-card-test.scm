@@ -93,4 +93,46 @@
   )
 ) ;let*
 
+;; Ctrl+T 隐藏态：整卡折叠为单行斜体灰字 Thinking...（前导空格 + 尾部 spacer）
+(let* ((card (make-thinking-card "第一步推理" :hidden #t))
+       (lines (component-render card 40))
+      ) ;
+  (check (length lines) => 2)
+  (check (car lines)
+    =>
+    "\x1b;[38;2;157;165;169m\x1b;[3m Thinking...\x1b;[0m"
+  ) ;check
+  (check (cadr lines) => "")
+  (check (map strip-ansi lines) => '(" Thinking..." ""))
+  ;; 隐藏态渲染缓存：同宽重复渲染返回同一列表
+  (check-true (eq? lines (component-render card 40)))
+
+  ;; 切回显示：内容行恢复，隐藏态缓存失效
+  (thinking-card-set-hidden! card #f)
+  (let ((visible (component-render card 40)))
+    (check (map strip-ansi visible) => '(" 第一步推理" ""))
+    (check-false (eq? lines visible))
+  ) ;let
+
+  ;; 再次隐藏：与第一次隐藏态渲染一致
+  (thinking-card-set-hidden! card #t)
+  (check (map strip-ansi (component-render card 40)) => '(" Thinking..." ""))
+) ;let*
+
+;; 隐藏态下追加流式行：内容暂存，切回显示后全部可见
+(let* ((card (make-thinking-card "推理一" :hidden #t))
+      ) ;
+  (thinking-card-append-line! card "推理二")
+  (thinking-card-set-hidden! card #f)
+  (check (map strip-ansi (component-render card 40))
+    => '(" 推理一" " 推理二" "")
+  ) ;check
+) ;let*
+
+;; 零宽及负宽终端隐藏态同样不渲染
+(let ((card (make-thinking-card "thinking" :hidden #t)))
+  (check (component-render card 0) => '())
+  (check (component-render card -1) => '())
+) ;let
+
 (check-report)
