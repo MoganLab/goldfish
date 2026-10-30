@@ -35,7 +35,8 @@
 
     (define* (pi-run-session-selector current-sessions all-sessions (terminal #f))
       (let* ((term (or terminal (make-standard-terminal :inline #t)))
-             (screen (make-main-screen term :auto-hide-cursor #f))
+             ;; 软件方块光标由搜索框反显绘制，硬件光标保持隐藏
+             (screen (make-main-screen term :auto-hide-cursor #t))
              (selected #f)
              (done? #f)
              (selector (make-session-selector current-sessions
@@ -46,10 +47,9 @@
              ) ;selector
              (render!
                (lambda ()
-                 (screen-render! screen
-                   (component-render selector (car (terminal-size term)))
-                   '(2 . 6)
-                 ) ;screen-render!
+                 ;; 不传硬件光标位置：auto-hide 保持隐藏，
+                 ;; 软件方块光标由搜索框反显绘制
+                 (screen-render! screen (component-render selector (car (terminal-size term))))
                ) ;lambda
              ) ;render!
             ) ;

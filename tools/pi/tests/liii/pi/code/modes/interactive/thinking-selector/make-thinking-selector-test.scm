@@ -26,7 +26,7 @@
   (check (length lines) => 18)
   (check (list-ref lines 2) => "Thinking Level")
   (check (list-ref lines 4) => "shift+tab cycles thinking levels in-session")
-  (check (list-ref lines 6) => "> ")
+  (check (list-ref lines 6) => ">  ")
   (check-true (string-contains? (list-ref lines 8) "off"))
   (check-true (string-contains? (list-ref lines 8) "No reasoning · default"))
   (check-true (string-contains? (list-ref lines 11) "→ ✓ medium"))

@@ -198,10 +198,9 @@
                     ) ;%make-thinking-selector-state
              ) ;state
              (search (make-text-input ""
-                       :multiline    #f
-                       :focused      #t
-                       :cursor-style 'hardware
-                       :on-change    (lambda (ed text) (%refresh-list! state))
+                       :multiline #f
+                       :focused   #t
+                       :on-change (lambda (ed text) (%refresh-list! state))
                      ) ;make-text-input
              ) ;search
              (comp (make-component :render %render :handle-input %handle-input))

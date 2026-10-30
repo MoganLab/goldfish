@@ -63,7 +63,7 @@
   (check (length lines) => 14)
   (check (list-ref lines 2) => "Model")
   (check (list-ref lines 4) => "Only showing models from configured providers.")
-  (check (list-ref lines 6) => "> ")
+  (check (list-ref lines 6) => ">  ")
   (check-true (string-contains? (list-ref lines 8) "✓ gemini-2.5-pro"))
   (check-true (string-contains? (list-ref lines 8) "[google]"))
   (check-true (string-contains? (list-ref lines 8) "Gemini 2.5 Pro"))
