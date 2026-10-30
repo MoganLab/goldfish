@@ -18,15 +18,15 @@
     %pi-app-default-thinking-level-set! %pi-app-on-save-thinking-level
     pi-app-bash-mode? %pi-app-bash-mode?-set! pi-app-tools-expanded?
     %pi-app-tools-expanded?-set! %pi-app-bash-cards %pi-app-bash-cards-set!
-    %pi-app-tool-cards %pi-app-tool-cards-set! pi-app-bash-jobs-chan
-    %pi-app-bash-handler %pi-app-record-sink pi-app-session-name
-    %pi-app-session-name-set! %pi-editor-top-border pi-app-provider
-    %pi-app-provider-set! pi-app-model %pi-app-model-set! pi-app-models
-    %pi-app-default-model %pi-app-on-save-model %pi-app-supports-thinking?-set!
-    %pi-app-available-thinking-levels-set! pi-app-resume-sessions
-    %pi-app-resume-sessions-set! pi-app-no-session? pi-app-scroll-view
-    pi-app-wheel-accelerator pi-app-steering-chan pi-app-follow-up-chan
-    %pi-app-steering-pending %pi-app-steering-pending-set!
+    %pi-app-tool-cards %pi-app-tool-cards-set! pi-app-thinking-card
+    %pi-app-thinking-card-set! pi-app-bash-jobs-chan %pi-app-bash-handler
+    %pi-app-record-sink pi-app-session-name %pi-app-session-name-set!
+    %pi-editor-top-border pi-app-provider %pi-app-provider-set! pi-app-model
+    %pi-app-model-set! pi-app-models %pi-app-default-model %pi-app-on-save-model
+    %pi-app-supports-thinking?-set! %pi-app-available-thinking-levels-set!
+    pi-app-resume-sessions %pi-app-resume-sessions-set! pi-app-no-session?
+    pi-app-scroll-view pi-app-wheel-accelerator pi-app-steering-chan
+    pi-app-follow-up-chan %pi-app-steering-pending %pi-app-steering-pending-set!
     %pi-app-follow-up-pending %pi-app-follow-up-pending-set!
   ) ;export
   (import (scheme base))
@@ -43,7 +43,7 @@
         bash-cards bash-jobs-chan bash-handler record-sink session-name provider
         model models default-model on-save-model tool-cards resume-sessions
         no-session? scroll-view wheel-accelerator steering-chan follow-up-chan
-        steering-pending follow-up-pending
+        steering-pending follow-up-pending thinking-card
       ) ;%make-pi-app
       pi-app?
       (term pi-app-term)
@@ -110,6 +110,8 @@
       ;; worker 消费时经 user_message 事件逐条移除）
       (steering-pending %pi-app-steering-pending %pi-app-steering-pending-set!)
       (follow-up-pending %pi-app-follow-up-pending %pi-app-follow-up-pending-set!)
+      ;; 当前任务的流式 thinking 卡片；结算或下一任务出队时关闭，旧卡片保留
+      (thinking-card pi-app-thinking-card %pi-app-thinking-card-set!)
     ) ;define-record-type
 
     (define %pi-app-term pi-app-term)

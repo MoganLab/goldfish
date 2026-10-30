@@ -310,6 +310,7 @@
                     follow-up-chan
                     '()
                     '()
+                    #f
                   ) ;%make-pi-app
              ) ;app
              (ed (%make-pi-editor app tl))

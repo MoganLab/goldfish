@@ -34,9 +34,56 @@
 
     ;; 将 agent 会话事件翻译为 TUI 卡片事件并投递到 event-chan（生产与测试共用）
     (define (make-tui-emit event-chan)
-      (let ((call-args-map '()))
+      (let ((call-args-map '()) (thinking-line-buffer ""))
         (lambda (event-type . args)
           (cond
+            ;; provider 流式 thinking：跨增量缓冲，完整行立即投递；块结束冲出残余行
+            ((eq? event-type 'message_update)
+             (when (>= (length args) 2)
+               (let* ((ev (cadr args))
+                      (type-entry (assoc 'type ev))
+                      (stream-type (and type-entry (cdr type-entry)))
+                     ) ;
+                 (cond
+                  ((equal? stream-type "thinking_delta")
+                   (let ((delta-entry (assoc 'delta ev)))
+                     (when (and delta-entry (string? (cdr delta-entry)))
+                       (set! thinking-line-buffer
+                         (string-append thinking-line-buffer (cdr delta-entry))
+                       ) ;set!
+                       (let loop
+                         ()
+                         (let ((newline-at (string-index thinking-line-buffer #\newline)))
+                           (when newline-at
+                             (let ((line (substring thinking-line-buffer 0 newline-at)))
+                               (set! thinking-line-buffer
+                                 (substring thinking-line-buffer
+                                   (+ newline-at 1)
+                                   (string-length thinking-line-buffer)
+                                 ) ;substring
+                               ) ;set!
+                               (pi-tui-send-event! event-chan (list 'assistant_thinking_line line))
+                               (loop)
+                             ) ;let
+                           ) ;when
+                         ) ;let
+                       ) ;let
+                     ) ;when
+                   ) ;let
+                  ) ;
+                  ((equal? stream-type "thinking_end")
+                   (let ((line thinking-line-buffer))
+                     (set! thinking-line-buffer "")
+                     (unless (string-null? (string-trim-both line))
+                       (pi-tui-send-event! event-chan (list 'assistant_thinking_line line))
+                     ) ;unless
+                   ) ;let
+                  ) ;
+                  (else #t)
+                 ) ;cond
+               ) ;let*
+             ) ;when
+            ) ;
             ;; 工具开始：立即创建 pending 卡片，并记录参数供结束事件查找
             ((eq? event-type 'tool_execution_start)
              (when (>= (length args) 3)
