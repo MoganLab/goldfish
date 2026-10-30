@@ -160,16 +160,28 @@
       ) ;when
     ) ;define*
 
+    ;; 对齐 pi 的 getDefaultSessionDirPath（session-manager.ts）:
+    ;;   --${resolvedCwd.replace(/^[/\\]/, "").replace(/[/\\:]/g, "-")}--
+    ;; 先经 (path) 归一（Windows 上 / 与 \ 混写输入归一为同一 path），
+    ;; 再剥前导分隔符一位，并把 /、\、: 全部替换为 -，得到单层扁平目录名。
+    ;; 替换规则与 pi 一致，无平台差异；调用方传入的 cwd 为绝对路径
     (define (encode-cwd-to-session-dirname cwd)
-      (let* ((clean-cwd
-               (if (and (> (string-length cwd) 0) (char=? (string-ref cwd 0) #\/))
-                 (substring cwd 1 (string-length cwd))
-                 cwd
+      (let* ((s (path->string (path cwd)))
+             (stripped
+               (if
+                 (and (> (string-length s) 0)
+                   (let ((c (string-ref s 0)))
+                     (or (char=? c #\/) (char=? c #\\))
+                   ) ;let
+                 ) ;and
+                 (substring s 1 (string-length s))
+                 s
                ) ;if
-             ) ;clean-cwd
-             (replaced (string-replace clean-cwd "/" "-"))
+             ) ;stripped
+             (no-bs (string-replace stripped "\\" "-"))
+             (no-slash (string-replace no-bs "/" "-"))
             ) ;
-        (string-append "--" (string-replace replaced ":" "-") "--")
+        (string-append "--" (string-replace no-slash ":" "-") "--")
       ) ;let*
     ) ;define
 
