@@ -24,13 +24,14 @@
 
     ;; 用户提问卡片组件 (make-user-card text)
     ;; 对齐 pi UserMessageComponent：Markdown(paddingX=1, paddingY=1) + userMessageBg/userMessageText，
-    ;; 上下各一行带背景的空 padding 行，正文 1 空格缩进，无前缀符号
+    ;; 上下各一行带背景的空 padding 行，正文 1 空格缩进，无前缀符号；
+    ;; 超宽行用 wrap-text 折行（左右各留 1 空格），避免 alt-screen 截断吞掉内容
     (define (%render-user-card text width)
       (if (<= width 0)
         '()
         (let ((rows
                 (map (lambda (line) (apply-card-bg (string-append " " line) width %bg-user %fg-user))
-                  (string-split text "\n")
+                  (wrap-text text (max 1 (- width 2)))
                 ) ;map
               ) ;rows
              ) ;
