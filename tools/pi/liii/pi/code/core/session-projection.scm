@@ -6,6 +6,10 @@
 
 ;; 会话路径回溯：从叶子条目沿 parentId 回溯到根，得到根到叶顺序的路径条目。
 ;; 这是 fork 分支切换与后续投影（1203/1204）的基础。
+;; 投影在 1204 的基础上补齐 context_edit（上游 /undo 的存储形式）：
+;; 被撤销的目标条目从上下文中删除，被替换的目标只替换 content 而保留 role 与元数据。
+;; 编辑的收集与应用在子库 (liii pi code core session-projection context-edit)，
+;; 本库只负责在裁剪结果与消息构造之间调用它。
 (define-library (liii pi code core session-projection)
   (import (scheme base)
     (liii string)
@@ -13,6 +17,7 @@
     (liii json)
     (liii pi ai message)
     (liii pi code core session-manager)
+    (liii pi code core session-projection context-edit)
   ) ;import
   (export pi-session-path pi-context-entries pi-build-session-projection)
   (begin
@@ -219,11 +224,16 @@
     (define %projection-summary-suffix "\n</summary>")
 
     ;; 条目类型是否在投影入口的已知集合内：
-    ;; message 参与上下文；compaction 贡献头部摘要；session 为文件头
+    ;; message 参与上下文；compaction 贡献头部摘要；session 为文件头；
+    ;; context_edit 是编辑指令，自身不产生消息（见子库 pi-apply-context-edits）
     (define (%known-entry-type? entry)
       (let ((t (%ref entry "type")))
         (and (string? t)
-          (or (equal? t "message") (equal? t "compaction") (equal? t "session"))
+          (or (equal? t "message")
+            (equal? t "compaction")
+            (equal? t "session")
+            (equal? t "context_edit")
+          ) ;or
         ) ;and
       ) ;let
     ) ;define
@@ -264,17 +274,19 @@
     ) ;define
 
     ;; pi-build-session-projection：投影入口（对齐上游 buildSessionProjection）
-    ;; 纯组合 1201-1203 的三级能力：
+    ;; 纯组合 1201-1204 的能力并补齐 context_edit：
     ;; 1) pi-session-path：从叶子沿 parentId 回溯路径（1202）
     ;; 2) pi-context-entries：压缩感知的路径裁剪（1203）
-    ;; 3) pi-entry-to-context-messages：逐条目到消息的映射（1201）
+    ;; 3) context_edit 应用：在裁剪结果上删除 / 替换目标（1208），先于消息构造
+    ;; 4) pi-entry-to-context-messages：逐条目到消息的映射（1201）
     ;; 返回三部分（values messages state diagnostics）：
     ;; - messages：LLM 上下文消息列表；裁剪返回摘要时，头部插入一条用户消息，
     ;;   文本为既有摘要前缀 + 摘要 + 后缀；其后为保留条目的消息（含压缩点之后）
     ;; - state：状态字段，当前以 #f 占位（thinkingLevel 与 model 在 1209 填充）
     ;; - diagnostics：alist，汇总路径断链（path-reason）与裁剪降级（trim-reason）
-    ;;   两类原因，未知 type 的条目计入 skipped-unknown-types，不再无声跳过
-    ;; 纯函数：不读文件、不写日志，所有 I/O 由调用方完成
+    ;;   两类原因，未知 type 的条目计入 skipped-unknown-types（context_edit 属已知类型），
+    ;;   无法应用的编辑目标 id 计入 ignored-edits（无则 '()）
+    ;; 纯函数：不读文件、不写日志、不改写会话文件，所有 I/O 由调用方完成
     (define (pi-build-session-projection entries . opt-leaf-id)
       (let* ((leaf-id (and (pair? opt-leaf-id) (car opt-leaf-id)))
              (call-path (lambda ()
@@ -284,30 +296,34 @@
             ) ;
         (let*-values (((path path-reason) (call-path)))
           (let*-values (((context-entries trim-reason) (pi-context-entries path)))
-            (let* ((unknown-types (%unknown-types context-entries))
-                   (msgs (apply append (map pi-entry-to-context-messages context-entries)))
-                   (summary (%first-compaction-summary context-entries))
-                   (msgs
-                     (if summary
-                       (cons (pi-user-message (string-append %projection-summary-prefix
-                                                (%summary->string summary)
-                                                %projection-summary-suffix
-                                              ) ;string-append
-                             ) ;pi-user-message
+            (let*-values (((edited-entries ignored-edits) (pi-apply-context-edits context-entries)))
+              (let* ((msgs (apply append (map pi-entry-to-context-messages edited-entries)))
+                     ;; 未知类型在编辑前的条目上统计：应用编辑后会移除 context_edit 条目
+                     (summary (%first-compaction-summary edited-entries))
+                     (unknown-types (%unknown-types context-entries))
+                     (msgs
+                       (if summary
+                         (cons (pi-user-message (string-append %projection-summary-prefix
+                                                  (%summary->string summary)
+                                                  %projection-summary-suffix
+                                                ) ;string-append
+                               ) ;pi-user-message
+                           msgs
+                         ) ;cons
                          msgs
-                       ) ;cons
-                       msgs
-                     ) ;if
-                   ) ;msgs
-                   (diagnostics (list (cons 'path-reason path-reason)
-                                  (cons 'trim-reason trim-reason)
-                                  (cons 'skipped-unknown-types unknown-types)
-                                ) ;list
-                   ) ;diagnostics
-                   (state #f)
-                  ) ;
-              (values msgs state diagnostics)
-            ) ;let*
+                       ) ;if
+                     ) ;msgs
+                     (diagnostics (list (cons 'path-reason path-reason)
+                                    (cons 'trim-reason trim-reason)
+                                    (cons 'skipped-unknown-types unknown-types)
+                                    (cons 'ignored-edits ignored-edits)
+                                  ) ;list
+                     ) ;diagnostics
+                     (state #f)
+                    ) ;
+                (values msgs state diagnostics)
+              ) ;let*
+            ) ;let*-values
           ) ;let*-values
         ) ;let*-values
       ) ;let*
