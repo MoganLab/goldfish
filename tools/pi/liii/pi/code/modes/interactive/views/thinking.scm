@@ -6,7 +6,7 @@
 
 (define-library (liii pi code modes interactive views thinking)
   (export make-thinking-card thinking-card-append-line!
-    thinking-card-set-hidden! thinking-card?
+    thinking-card-set-hidden! thinking-card? thinking-card-component?
   ) ;export
   (import (scheme base)
     (liii list)
@@ -84,6 +84,11 @@
     ;; hidden 在渲染缓存键中，下次渲染自然按新状态输出
     (define (thinking-card-set-hidden! card hidden)
       (%thinking-card-hidden-set! (component-data card) (and hidden #t))
+    ) ;define
+
+    ;; 组件级谓词：chat 容器中的子项是 component，其 data 才是 <thinking-card> 状态
+    (define (thinking-card-component? obj)
+      (and (component? obj) (thinking-card? (component-data obj)))
     ) ;define
 
   ) ;begin

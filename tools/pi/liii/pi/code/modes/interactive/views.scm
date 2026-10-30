@@ -85,11 +85,6 @@
       (and (component? obj) (tool-card? (component-data obj)))
     ) ;define
 
-    ;; 组件级谓词：chat 容器中的子项是 component，其 data 才是 <thinking-card> 状态
-    (define (thinking-card-component? obj)
-      (and (component? obj) (thinking-card? (component-data obj)))
-    ) ;define
-
     (define (tool-card-set-output! card result)
       (%tool-card-result-set! (component-data card) result)
     ) ;define

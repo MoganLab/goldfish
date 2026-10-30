@@ -8,7 +8,7 @@
 (define-library (liii pi code modes interactive app-thinking)
   (export pi-app-thinking-command? pi-app-submit-thinking!
     pi-app-close-selector! pi-app-cycle-thinking!
-    pi-app-apply-thinking-level-ui!
+    pi-app-apply-thinking-level-ui! pi-app-toggle-thinking!
   ) ;export
   (import (scheme base)
     (scheme char)
@@ -22,6 +22,7 @@
     (liii pi code modes interactive footer)
     (liii pi code modes interactive thinking)
     (liii pi code modes interactive thinking-selector)
+    (liii pi code modes interactive app-bash)
   ) ;import
   (begin
 
@@ -168,6 +169,31 @@
           ) ;let*
         ) ;if
       ) ;let*
+    ) ;define
+
+    ;; Ctrl+T 全局切换思考块显隐（对齐上游 toggleThinkingBlockVisibility）：
+    ;; 翻转标志 → 已有卡片即时折叠/展开 → 状态行提示 → 持久化回调；
+    ;; 新建卡片在 app-events 的 %pi-app-handle-thinking-line! 中继承新状态
+    (define (pi-app-toggle-thinking! app)
+      (let ((next (not (pi-app-hide-thinking? app))))
+        (%pi-app-hide-thinking?-set! app next)
+        (for-each (lambda (child)
+                    (when (thinking-card-component? child)
+                      (thinking-card-set-hidden! child next)
+                    ) ;when
+                  ) ;lambda
+          (container-children (%pi-app-chat app))
+        ) ;for-each
+        (%pi-app-show-status! app
+          (string-append "Thinking blocks: " (if next "hidden" "visible"))
+        ) ;%pi-app-show-status!
+        (let ((save (%pi-app-on-save-hide-thinking app)))
+          (when save
+            (save next)
+          ) ;when
+        ) ;let
+        next
+      ) ;let
     ) ;define
 
   ) ;begin

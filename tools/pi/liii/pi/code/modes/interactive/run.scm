@@ -15,6 +15,7 @@
     (liii pi agent queue)
     (liii pi code modes interactive app)
     (liii pi code modes interactive app-events)
+    (liii pi code modes interactive app-thinking)
     (liii pi code modes interactive common)
   ) ;import
   (begin
