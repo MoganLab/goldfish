@@ -294,6 +294,10 @@
             ((session_name_changed session_name_error) (pi-app-handle-name-event! app ev))
             ((session_stats session_stats_error) (pi-app-handle-session-event! app ev))
             ((session_resumed session_resume_error) (pi-app-handle-resume-event! app ev))
+            ;; 状态条目落盘失败：仅以警告卡片上屏，不影响已生效的界面状态
+            ((session_state_error)
+             (pi-app-add-tool-result! app "session" '() 'error (cadr ev))
+            ) ;
             ((branch_changed) (%pi-app-handle-branch-changed! app ev))
             ((tool_execution_start) (%pi-app-handle-tool-start! app ev))
             ((tool_execution_update) (%pi-app-handle-tool-update! app ev))

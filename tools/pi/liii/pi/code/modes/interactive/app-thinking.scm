@@ -11,6 +11,7 @@
   ) ;export
   (import (scheme base)
     (scheme char)
+    (liii go)
     (liii string)
     (liii list)
     (liii tui)
@@ -33,10 +34,35 @@
       (pi-app-render! app)
     ) ;define
 
+    ;; 记录思考等级切换状态到会话文件：与 /model 相同，投递 session_state
+    ;; 任务由后台 worker 落盘；投递失败只提示警告卡片，不回滚界面状态
+    (define (%record-thinking-change! app level)
+      (catch #t
+        (lambda ()
+          (chan-send! (pi-app-jobs-chan app)
+            (list 'session_state "thinking_level_change" (list (cons "level" level)))
+            1000
+          ) ;chan-send!
+        ) ;lambda
+        (lambda (tag . args)
+          (container-add! (%pi-app-chat app)
+            (make-tool-card "thinking" '() 'error "Failed to record thinking level change")
+          ) ;container-add!
+        ) ;lambda
+      ) ;catch
+    ) ;define
+
+    ;; 设置思考等级的唯一落点：选择器确认、/thinking 参数与 shift+tab 循环
+    ;; 均经此生效；仅在与旧值不同且当前模型支持思考时记录一次（off 照常记录）
     (define (%apply-thinking-level! app level)
-      (%pi-app-thinking-level-set! app level)
-      (pi-footer-set-thinking-level! (%pi-app-footer app) level)
-      (editor-set-border-color! (pi-app-editor app) (pi-thinking-border-color level))
+      (let ((old (pi-app-thinking-level app)))
+        (%pi-app-thinking-level-set! app level)
+        (pi-footer-set-thinking-level! (%pi-app-footer app) level)
+        (editor-set-border-color! (pi-app-editor app) (pi-thinking-border-color level))
+        (when (and (pi-app-supports-thinking? app) (not (equal? old level)))
+          (%record-thinking-change! app level)
+        ) ;when
+      ) ;let
     ) ;define
 
     (define (pi-app-cycle-thinking! app)
