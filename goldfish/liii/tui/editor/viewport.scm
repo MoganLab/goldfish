@@ -33,7 +33,7 @@
   (begin
 
     (define (%ed-visual-lines data width)
-      (append-map (lambda (line) (wrap-text line width))
+      (append-map (lambda (line) (wrap-text line (%editor-layout-width width)))
         (buffer-lines (%ed-buffer data))
       ) ;append-map
     ) ;define
@@ -53,14 +53,16 @@
     ) ;define
 
     ;; 让光标保持在视口内：仅在越界时移动 top-row，窗口内移动不抖动
+    ;; width 为组件宽度，内部统一按布局宽度（预留光标列）折行
     (define (%ed-sync-viewport! data width)
-      (let* ((total (%ed-total-rows data width))
+      (let* ((layout-w (%editor-layout-width width))
+             (total (%ed-total-rows data width))
              (visible (%ed-visible-count data width))
              (row
                (car (editor-visual-cursor (buffer-lines (%ed-buffer data))
                       (buffer-row (%ed-buffer data))
                       (buffer-col (%ed-buffer data))
-                      width
+                      layout-w
                     ) ;editor-visual-cursor
                ) ;car
              ) ;row

@@ -66,9 +66,9 @@
   ) ;let
 ) ;let
 
-;; 6. 宽度不足时自动换行
+;; 6. 宽度不足时自动换行（布局宽度 = 组件宽度 - 1，最后一列留给光标）
 (let ((ed (make-editor "abcdef" :cursor-style 'bar)))
-  (check (editor-render ed 3) => '("abc" "de|f"))
+  (check (editor-render ed 3) => '("ab" "cd" "ef|"))
 ) ;let
 
 (check-report)

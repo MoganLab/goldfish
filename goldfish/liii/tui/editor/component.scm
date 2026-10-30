@@ -214,11 +214,12 @@
       ) ;unless
       (let* ((data (component-data ed))
              (buf (%ed-buffer data))
+             (layout-w (%editor-layout-width width))
              (vp (%ed-viewport data width))
              (pos (editor-visual-cursor (buffer-lines buf)
                     (buffer-row buf)
                     (buffer-col buf)
-                    width
+                    layout-w
                   ) ;editor-visual-cursor
              ) ;pos
             ) ;

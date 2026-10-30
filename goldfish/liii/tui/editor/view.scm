@@ -22,7 +22,9 @@
 ;;
 
 (define-library (liii tui editor view)
-  (export render-editor-lines render-line-with-cursor editor-visual-cursor)
+  (export render-editor-lines render-line-with-cursor editor-visual-cursor
+    %editor-layout-width
+  ) ;export
   (import (scheme base)
     (scheme write)
     (liii base)
@@ -32,6 +34,15 @@
     (liii tui text-width)
   ) ;import
   (begin
+
+    ;; 编辑器内容布局宽度：无 padding 时预留最后一列给光标，
+    ;; 对齐上游 pi editor.ts 的 layoutWidth = contentWidth - 1 设计。
+    ;; 内容永不写满整行，避免真实终端写满最后一列后进入 autowrap
+    ;; 待换行状态、随后的清行序列擦掉最后一列字符（Windows 上吞字）。
+    ;; width <= 1 时原样返回：0 是测试与初始化的哨兵宽度。
+    (define (%editor-layout-width width)
+      (if (<= width 1) width (- width 1))
+    ) ;define
 
     ;; 渲染带有光标指示的单行
     ;; focused?: 是否聚焦
@@ -95,9 +106,12 @@
                                 (+ (display-width last-part) (%count-tail-spaces line safe-col))
                               ) ;if
                      ) ;raw-col
-                     ;; 补回后可能达到显示宽度：光标贴到当前视觉行最后一列，
-                     ;; 光标后有内容时仍由下方换行惩罚分支移至下一行行首。
-                     (display-col (if (and (> width 0) (>= raw-col width)) (- width 1) raw-col))
+                     ;; 宽度已是布局宽度（内容最多占 0..width-1）：
+                     ;; 行尾光标 raw-col = width 恰好落在预留列（组件最后一列），
+                     ;; 合法保留；仅 raw-col 超过预留列（尾部空格补回/宽字符越界）
+                     ;; 时夹到预留列。光标后有内容时仍由下方换行惩罚分支
+                     ;; 移至下一行行首。
+                     (display-col (if (and (> width 0) (> raw-col width)) width raw-col))
                      (prefix-row (+ visual-row (- (length prefix-parts) 1)))
                     ) ;
                 (if (and (> width 0) (< safe-col (utf8-string-length line)) (>= raw-col width))

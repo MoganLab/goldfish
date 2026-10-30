@@ -34,28 +34,29 @@
   (terminal-write st "hello")
   (check (get-output-string p) => "hello")
 
-  ;; 设置光标（ANSI 1-indexed: row 3, col 6 -> ESC [ 3 ; 6 H）
+  ;; 设置光标（ANSI 1-indexed: row 3, col 6 -> CR + ESC [ 3 ; 6 H，
+  ;; CR 前置保护满宽行末列的待定单元格）
   (terminal-set-cursor! st 5 2)
   (check (terminal-cursor st) => '(5 2))
-  (check (get-output-string p) => "hello\x1b[3;6H")
+  (check (get-output-string p) => "hello\r\x1b[3;6H")
 
   ;; 清除当前行
   (terminal-clear-line st)
-  (check (get-output-string p) => "hello\x1b[3;6H\x1b[2K\r")
+  (check (get-output-string p) => "hello\r\x1b[3;6H\x1b[2K\r")
 
   ;; 整体清屏与光标复位
   (terminal-clear st)
   (check (terminal-cursor st) => '(0 0))
-  (check (get-output-string p) => "hello\x1b[3;6H\x1b[2K\r\x1b[2J\x1b[H")
+  (check (get-output-string p) => "hello\r\x1b[3;6H\x1b[2K\r\x1b[2J\x1b[H")
 
   ;; 光标显隐控制
   (terminal-hide-cursor! st)
   (check (terminal-cursor-visible? st) => #f)
-  (check (get-output-string p) => "hello\x1b[3;6H\x1b[2K\r\x1b[2J\x1b[H\x1b[?25l")
+  (check (get-output-string p) => "hello\r\x1b[3;6H\x1b[2K\r\x1b[2J\x1b[H\x1b[?25l")
 
   (terminal-show-cursor! st)
   (check (terminal-cursor-visible? st) => #t)
-  (check (get-output-string p) => "hello\x1b[3;6H\x1b[2K\r\x1b[2J\x1b[H\x1b[?25l\x1b[?25h")
+  (check (get-output-string p) => "hello\r\x1b[3;6H\x1b[2K\r\x1b[2J\x1b[H\x1b[?25l\x1b[?25h")
 
   ;; 刷新输出
   (check (terminal-flush st) => #t))
