@@ -10,6 +10,7 @@
   (export pi-app-model-command? pi-app-submit-model!)
   (import (scheme base)
     (scheme char)
+    (liii go)
     (liii string)
     (liii list)
     (liii tui)
@@ -51,12 +52,36 @@
       ) ;let
     ) ;define
 
+    ;; 记录模型切换状态到会话文件：前台不知道真实会话路径，
+    ;; 投递 session_state 任务由后台 worker 惰性解析会话文件后落盘；
+    ;; 投递失败只提示警告卡片，不回滚已生效的界面状态
+    (define (%record-model-change! app provider model-id)
+      (catch #t
+        (lambda ()
+          (chan-send! (pi-app-jobs-chan app)
+            (list 'session_state
+              "model_change"
+              (list (cons "provider" provider) (cons "model-id" model-id))
+            ) ;list
+            1000
+          ) ;chan-send!
+        ) ;lambda
+        (lambda (tag . args)
+          (container-add! (%pi-app-chat app)
+            (make-tool-card "session" '() 'error "Failed to record model change")
+          ) ;container-add!
+        ) ;lambda
+      ) ;catch
+    ) ;define
+
     ;; 应用模型切换（对齐上游 setModel）：
     ;; - 状态与 footer 的 provider/model/supports 联动
     ;; - thinking 回退到默认级别并按模型能力收敛（不支持 reasoning 时为 off）
     ;; - persist? 时触发 on-save-model 持久化 settings 默认模型
     (define (%apply-model! app model persist?)
-      (let* ((provider (%model-ref model 'provider))
+      (let* ((old-provider (pi-app-provider app))
+             (old-model (pi-app-model app))
+             (provider (%model-ref model 'provider))
              (model-id (%model-ref model 'id))
              (supports (and (%model-ref model 'reasoning) #t))
              (new-tl (if supports (pi-app-default-thinking-level app) "off"))
@@ -79,6 +104,11 @@
             ) ;when
           ) ;let
         ) ;when
+        ;; 仅在模型实际变化时记录一次（Ctrl+S 保存同一模型不写）；
+        ;; /model 精确引用、选择器确认与保存默认模型都收敛于此出口
+        (unless (and (equal? old-provider provider) (equal? old-model model-id))
+          (%record-model-change! app provider model-id)
+        ) ;unless
         (%pi-app-active-selector-set! app #f)
         (editor-set-focused! (pi-app-editor app) #t)
         (container-add! (%pi-app-chat app)

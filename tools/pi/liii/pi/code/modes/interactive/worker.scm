@@ -150,6 +150,8 @@
     ;;   请求；agent 忙时在 jobs-chan 排队，结算后才落盘（对齐 pi 流式期间
     ;;   pending、agent_end 冲洗的语义）
     ;; - (session_name 名称)：更新会话显示名并写入 session_info，不触发 LLM
+    ;; - (session_state 类型 字段)：把模型/思考等级等状态条目写入会话文件，
+    ;;   --no-session 时会话文件为 #f，API 静默跳过
     ;; - (session_resume 路径)：把 worker 的会话文件切换到所选 JSONL，
     ;;   后续消息、bash 记录与命名均针对新会话文件
     ;; - (消息 thinking-level)：正常 agent 任务，携带复用的会话文件
@@ -207,6 +209,25 @@
             (pi-tui-send-event! event-chan
               (list 'session_name_error
                 (string-append "Failed to set session name: " (object->string (cons tag args)))
+              ) ;list
+            ) ;pi-tui-send-event!
+          ) ;lambda
+        ) ;catch
+       ) ;
+       ((and (pair? job) (eq? (car job) 'session_state))
+        (catch #t
+          (lambda ()
+            (append-session-state-entry! (pi-worker-ensure-session-file! parsed cfg sfile-box)
+              (cadr job)
+              (caddr job)
+            ) ;append-session-state-entry!
+          ) ;lambda
+          (lambda (tag . args)
+            (pi-tui-send-event! event-chan
+              (list 'session_state_error
+                (string-append "Failed to record session state: "
+                  (object->string (cons tag args))
+                ) ;string-append
               ) ;list
             ) ;pi-tui-send-event!
           ) ;lambda
