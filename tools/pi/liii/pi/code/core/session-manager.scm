@@ -24,14 +24,15 @@
     (liii pi ai message)
     (liii pi code core session-manager normalize)
     (liii pi code core session-manager messages)
+    (liii pi code core session-manager append)
   ) ;import
   (export encode-cwd-to-session-dirname get-session-dir get-sessions-root
     make-session-file-path resolve-session-dir read-session-history
     append-session-entry! find-latest-session-file save-session-header!
     save-session-message! setup-session-file setup-initial-messages
     persist-new-messages! find-last-session-message-id pi-normalize-session-msg
-    append-bash-execution! resolve-resume-session-file assoc
-    pi-entry-to-context-messages
+    append-bash-execution! append-session-state-entry!
+    resolve-resume-session-file assoc pi-entry-to-context-messages
   ) ;export
   (begin
 
@@ -72,38 +73,6 @@
             ) ;
         (if source (append (read-session-history source) user-msg) user-msg)
       ) ;let*
-    ) ;define
-
-    (define (%extract-id-from-line line)
-      (let ((trimmed (string-trim line)))
-        (if (<= (string-length trimmed) 0)
-          #f
-          (let ((parsed (catch #t (lambda () (string->json trimmed)) (lambda _ #f))))
-            (and parsed (assoc "id" parsed) (cdr (assoc "id" parsed)))
-          ) ;let
-        ) ;if
-      ) ;let
-    ) ;define
-
-    (define (find-last-session-message-id file-path)
-      (let ((p-str (if (string? file-path) file-path (path->string file-path))))
-        (if (not (file-exists? p-str))
-          #f
-          (let ((lines (path-read-lines p-str)) (last-id #f))
-            (for-each
-              (lambda (line)
-                (let ((mid (%extract-id-from-line line)))
-                  (when mid
-                    (set! last-id mid)
-                  ) ;when
-                ) ;let
-              ) ;lambda
-              lines
-            ) ;for-each
-            last-id
-          ) ;let
-        ) ;if
-      ) ;let
     ) ;define
 
     ;; 将 ! 命令的执行结果作为 bashExecution 消息追加到会话文件
@@ -249,40 +218,6 @@
       (let ((safe-time (string-replace (string-replace timestamp-iso ":" "-") "." "-")))
         (path->string (path-join session-dir (string-append safe-time "_" session-id ".jsonl"))
         ) ;path->string
-      ) ;let
-    ) ;define
-
-    ;; 追加写入：Windows 下新建文件可能被杀毒/索引短暂锁定导致打开失败，
-    ;; 带退避重试（对齐上游 pi 会话写入的容错语义）
-    (define (%append-entry-safe! p-str entry-json-str)
-      (let loop
-        ((attempt 0))
-        (or
-          (catch #t
-            (lambda ()
-              (let ((port (open-output-file p-str "a")))
-                (display entry-json-str port)
-                (newline port)
-                (close-output-port port)
-                #t
-              ) ;let
-            ) ;lambda
-            (lambda args #f)
-          ) ;catch
-          (if (< attempt 5)
-            (begin
-              (sleep 0.05)
-              (loop (+ attempt 1))
-            ) ;begin
-            (error 'io-error (string-append "cannot append session entry: " p-str))
-          ) ;if
-        ) ;or
-      ) ;let
-    ) ;define
-
-    (define (append-session-entry! file-path entry-json-str)
-      (let ((p-str (if (string? file-path) file-path (path->string file-path))))
-        (%append-entry-safe! p-str entry-json-str)
       ) ;let
     ) ;define
 
