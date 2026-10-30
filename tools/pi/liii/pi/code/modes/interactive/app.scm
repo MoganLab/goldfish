@@ -212,7 +212,6 @@
         :bottom-border    #t
         :border-color     (pi-thinking-border-color thinking-level)
         :focused          #t
-        :cursor-style     'hardware
         :on-submit        (lambda (self txt) (pi-app-submit! app txt))
         :on-change (lambda (ed txt) (%pi-app-editor-on-change app ed txt))
       ) ;make-editor

@@ -32,7 +32,9 @@
   (begin
 
     (define-record-type <standard-terminal-state>
-      (%make-st-state port detect-size-fn cursor-x cursor-y visible? inline? max-y)
+      (%make-st-state port detect-size-fn cursor-x cursor-y visible? inline?
+        max-y cursor-fresh?
+      ) ;%make-st-state
       %st-state?
       (port %st-port)
       (detect-size-fn %st-detect-size-fn)
@@ -41,10 +43,14 @@
       (visible? %st-visible? %st-visible?-set!)
       (inline? %st-inline? %st-inline?-set!)
       (max-y %st-max-y %st-max-y-set!)
+      ;; 光标状态是否与物理光标一致：write 会推进物理光标使 state 失效
+      (cursor-fresh? %st-cursor-fresh? %st-cursor-fresh?-set!)
     ) ;define-record-type
 
     (define (%st-write term text)
       (let ((state (terminal-data term)))
+        ;; write 推进物理光标：跟踪的光标位置失效
+        (%st-cursor-fresh?-set! state #f)
         (display text (%st-port state))
       ) ;let
     ) ;define
@@ -101,6 +107,13 @@
 
     (define (%st-set-cursor! term x y)
       (let* ((state (terminal-data term))
+             ;; 已在同位置且 state 未失效：不重发定位序列，
+             ;; 避免无变化帧仍有输出（同步更新 state 在序列计算之后）
+             (unchanged? (and (%st-cursor-fresh? state)
+                           (= x (%st-cursor-x state))
+                           (= y (%st-cursor-y state))
+                         ) ;and
+             ) ;unchanged?
              ;; 先算序列再更新 state：%st-inline-seq 依赖旧光标位置
              ;; 非.inline 绝对定位同样 CR 前置：写满末列后的待定单元格
              ;; 必须先被 CR 清除待定状态，否则 conpty 会丢弃该字符
@@ -118,7 +131,10 @@
             ) ;
         (%st-cursor-x-set! state x)
         (%st-cursor-y-set! state y)
-        (display seq (%st-port state))
+        (unless unchanged?
+          (%st-cursor-fresh?-set! state #t)
+          (display seq (%st-port state))
+        ) ;unless
       ) ;let*
     ) ;define
 
@@ -126,6 +142,8 @@
       (let ((state (terminal-data term)))
         (%st-cursor-x-set! state 0)
         (%st-cursor-y-set! state 0)
+        ;; 清屏后光标回到原点且无待换行状态：state 重新可信
+        (%st-cursor-fresh?-set! state #t)
         ;; 清屏后全量重绘，曾经的最大行不再有效：重置 inline 追踪，
         ;; 否则退出 TUI 时 shell prompt 会落在残留区下方
         (%st-max-y-set! state 0)
@@ -135,12 +153,14 @@
 
     (define (%st-clear-line! term)
       (let ((state (terminal-data term)))
+        (%st-cursor-fresh?-set! state #f)
         (display "\x1b;[2K\r" (%st-port state))
       ) ;let
     ) ;define
 
     (define (%st-clear-line-to-end! term)
       (let ((state (terminal-data term)))
+        (%st-cursor-fresh?-set! state #f)
         (display "\x1b;[K" (%st-port state))
       ) ;let
     ) ;define
@@ -219,7 +239,7 @@
         (unless (procedure? size-fn)
           (type-error "make-standard-terminal: :detect-size-fn must be a procedure")
         ) ;unless
-        (let ((state (%make-st-state port size-fn 0 0 #t inline 0)))
+        (let ((state (%make-st-state port size-fn 0 0 #t inline 0 #f)))
           (make-terminal-record 'standard
             %st-get-size
             %st-write

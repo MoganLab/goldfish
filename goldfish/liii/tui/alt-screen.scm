@@ -119,6 +119,9 @@
     ) ;define
 
     ;; 渲染一整帧：lines 为按行排列的帧内容，可选光标位置 '(x . y)
+    ;; 光标定位与可见性切换必须纳入 sync 块（对齐上游 tui-alt-screen.ts
+    ;; doRender 的 BEGIN..END 顺序）：行更新会把物理光标推到行首，
+    ;; 定位序列若落在 sync 块外，IME pre-edit（跟随硬件光标）会闪烁。
     (define (alt-screen-render! screen lines . opt-cursor)
       (%check-alt-screen screen "alt-screen-render!")
       (let* ((term (%alt-screen-terminal screen))
@@ -129,21 +132,43 @@
              (diff-ops (if dirty? (screen-dirty-diff old-lines frame) (screen-diff old-lines frame))
              ) ;diff-ops
              (w (car (terminal-size term)))
+             (has-changes? (screen-diff-has-changes? diff-ops))
+             (cur (and (pair? opt-cursor) (car opt-cursor)))
+             ;; 光标定位/可见性是否需要输出：位置变化、可见性翻转或行更新
+             ;; 推过光标时才发序列（行更新会移动物理光标，state 随之失效）
+             (cursor-output?
+               (or has-changes?
+                 (and cur
+                   (or
+                     (not (= (car cur) (car (terminal-cursor term))))
+                     (not (= (cdr cur) (cadr (terminal-cursor term))))
+                   ) ;or
+                 ) ;and
+                 (and (not cur) (terminal-cursor-visible? term))
+               ) ;or
+             ) ;cursor-output?
             ) ;
-        (when (screen-diff-has-changes? diff-ops)
+        (when (or has-changes? cursor-output?)
           (terminal-begin-sync! term)
+        ) ;when
+        (when has-changes?
           (for-each (lambda (op) (%render-op! term op w)) diff-ops)
-          (terminal-end-sync! term)
         ) ;when
         (screen-buffer-commit! buf frame)
-        (let ((cur (and (pair? opt-cursor) (car opt-cursor))))
+        ;; 光标定位但保持隐藏（对齐上游 tui-alt-screen.ts：
+        ;; 硬件光标仅用于 IME 候选窗定位，输入区光标由软件反显方块绘制，
+        ;; 视觉形状不随终端默认光标（Windows beam / Linux block）变化）
+        (when cursor-output?
           (when cur
             (terminal-set-cursor! term (car cur) (cdr cur))
-            (unless (terminal-cursor-visible? term)
-              (terminal-show-cursor! term)
-            ) ;unless
           ) ;when
-        ) ;let
+          (when (terminal-cursor-visible? term)
+            (terminal-hide-cursor! term)
+          ) ;when
+        ) ;when
+        (when (or has-changes? cursor-output?)
+          (terminal-end-sync! term)
+        ) ;when
         (terminal-flush term)
         #t
       ) ;let*
