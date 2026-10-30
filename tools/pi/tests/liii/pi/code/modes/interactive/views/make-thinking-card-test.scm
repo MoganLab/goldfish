@@ -13,7 +13,10 @@
       ) ;
   (check-true (component? card))
   (check (length first-lines) => 2)
-  (check (car first-lines) => "\x1b;[38;2;157;165;169m\x1b;[3m 第一步推理\x1b;[0m")
+  (check (car first-lines)
+    =>
+    "\x1b;[38;2;157;165;169m\x1b;[3m 第一步推理\x1b;[0m"
+  ) ;check
   (check (cadr first-lines) => "")
   (check-false (string-contains? (car first-lines) "\x1b;[48;2;"))
   ;; 未变化的卡片沿用渲染缓存。
@@ -27,7 +30,10 @@
     (check-false (eq? first-lines lines))
     (check (length lines) => 3)
     (check (car lines) => (car first-lines))
-    (check (cadr lines) => "\x1b;[38;2;157;165;169m\x1b;[3m 第二步推理\x1b;[0m")
+    (check (cadr lines)
+      =>
+      "\x1b;[38;2;157;165;169m\x1b;[3m 第二步推理\x1b;[0m"
+    ) ;check
     (check (caddr lines) => "")
     (check (map strip-ansi lines) => '(" 第一步推理" " 第二步推理" ""))
   ) ;let

@@ -25,8 +25,9 @@
 ) ;define
 
 ;; 首行建立 thinking 卡片，后续行原地追加；正文仍使用独立卡片。
-(let* ((app (make-pi-app :terminal (make-virtual-terminal :width 100 :height 40)
-              :handler (lambda (a m) #t)
+(let* ((app (make-pi-app
+              :terminal (make-virtual-terminal :width 100 :height 40)
+              :handler  (lambda (a m) #t)
             ) ;make-pi-app
        ) ;app
        (sv (pi-app-scroll-view app))
@@ -56,8 +57,9 @@
 ) ;let*
 
 ;; 正常结算关闭活跃引用但保留旧内容；下一条消息重新建立卡片。
-(let ((app (make-pi-app :terminal (make-virtual-terminal :width 100 :height 40)
-             :handler (lambda (a m) #t)
+(let ((app (make-pi-app
+             :terminal (make-virtual-terminal :width 100 :height 40)
+             :handler  (lambda (a m) #t)
            ) ;make-pi-app
       ) ;app
      ) ;
@@ -79,8 +81,9 @@
 ) ;let
 
 ;; 错误结算同样关闭活跃卡片。
-(let ((app (make-pi-app :terminal (make-virtual-terminal :width 100 :height 40)
-             :handler (lambda (a m) #t)
+(let ((app (make-pi-app
+             :terminal (make-virtual-terminal :width 100 :height 40)
+             :handler  (lambda (a m) #t)
            ) ;make-pi-app
       ) ;app
      ) ;
@@ -95,8 +98,9 @@
 ) ;let
 
 ;; 自定义 handler 同步接续下一任务时，出队前关闭上一轮 thinking 卡片。
-(let ((app (make-pi-app :terminal (make-virtual-terminal :width 100 :height 40)
-             :handler (lambda (a m) #t)
+(let ((app (make-pi-app
+             :terminal (make-virtual-terminal :width 100 :height 40)
+             :handler  (lambda (a m) #t)
            ) ;make-pi-app
       ) ;app
      ) ;

@@ -32,6 +32,58 @@
       ) ;let*
     ) ;define
 
+    ;; 返回 (剩余缓冲 . 完整行列表)，由事件桥统一投递并更新闭包缓冲。
+    (define (%take-thinking-lines text)
+      (let ((newline-at (string-index text #\newline)))
+        (if (not newline-at)
+          (cons text '())
+          (let ((rest (%take-thinking-lines (substring text (+ newline-at 1) (string-length text)))
+                ) ;rest
+               ) ;
+            (cons (car rest) (cons (substring text 0 newline-at) (cdr rest)))
+          ) ;let
+        ) ;if
+      ) ;let
+    ) ;define
+
+    (define (%flush-thinking-lines! event-chan lines)
+      (for-each (lambda (line)
+                  (pi-tui-send-event! event-chan (list 'assistant_thinking_line line))
+                ) ;lambda
+        lines
+      ) ;for-each
+    ) ;define
+
+    (define (%thinking-delta event-chan buffer ev)
+      (let ((delta-entry (assoc 'delta ev)))
+        (if (and delta-entry (string? (cdr delta-entry)))
+          (let* ((split (%take-thinking-lines (string-append buffer (cdr delta-entry))))
+                 (lines (cdr split))
+                ) ;
+            (%flush-thinking-lines! event-chan lines)
+            (car split)
+          ) ;let*
+          buffer
+        ) ;if
+      ) ;let
+    ) ;define
+
+    (define (%thinking-end event-chan buffer)
+      (unless (string-null? (string-trim-both buffer))
+        (%flush-thinking-lines! event-chan (list buffer))
+      ) ;unless
+      ""
+    ) ;define
+
+    (define (%message-update event-chan buffer ev)
+      (let* ((type-entry (assoc 'type ev)) (stream-type (and type-entry (cdr type-entry))))
+        (cond ((equal? stream-type "thinking_delta") (%thinking-delta event-chan buffer ev))
+              ((equal? stream-type "thinking_end") (%thinking-end event-chan buffer))
+              (else buffer)
+        ) ;cond
+      ) ;let*
+    ) ;define
+
     ;; 将 agent 会话事件翻译为 TUI 卡片事件并投递到 event-chan（生产与测试共用）
     (define (make-tui-emit event-chan)
       (let ((call-args-map '()) (thinking-line-buffer ""))
@@ -40,48 +92,9 @@
             ;; provider 流式 thinking：跨增量缓冲，完整行立即投递；块结束冲出残余行
             ((eq? event-type 'message_update)
              (when (>= (length args) 2)
-               (let* ((ev (cadr args))
-                      (type-entry (assoc 'type ev))
-                      (stream-type (and type-entry (cdr type-entry)))
-                     ) ;
-                 (cond
-                  ((equal? stream-type "thinking_delta")
-                   (let ((delta-entry (assoc 'delta ev)))
-                     (when (and delta-entry (string? (cdr delta-entry)))
-                       (set! thinking-line-buffer
-                         (string-append thinking-line-buffer (cdr delta-entry))
-                       ) ;set!
-                       (let loop
-                         ()
-                         (let ((newline-at (string-index thinking-line-buffer #\newline)))
-                           (when newline-at
-                             (let ((line (substring thinking-line-buffer 0 newline-at)))
-                               (set! thinking-line-buffer
-                                 (substring thinking-line-buffer
-                                   (+ newline-at 1)
-                                   (string-length thinking-line-buffer)
-                                 ) ;substring
-                               ) ;set!
-                               (pi-tui-send-event! event-chan (list 'assistant_thinking_line line))
-                               (loop)
-                             ) ;let
-                           ) ;when
-                         ) ;let
-                       ) ;let
-                     ) ;when
-                   ) ;let
-                  ) ;
-                  ((equal? stream-type "thinking_end")
-                   (let ((line thinking-line-buffer))
-                     (set! thinking-line-buffer "")
-                     (unless (string-null? (string-trim-both line))
-                       (pi-tui-send-event! event-chan (list 'assistant_thinking_line line))
-                     ) ;unless
-                   ) ;let
-                  ) ;
-                  (else #t)
-                 ) ;cond
-               ) ;let*
+               (set! thinking-line-buffer
+                 (%message-update event-chan thinking-line-buffer (cadr args))
+               ) ;set!
              ) ;when
             ) ;
             ;; 工具开始：立即创建 pending 卡片，并记录参数供结束事件查找

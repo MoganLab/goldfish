@@ -20,6 +20,7 @@
     (liii pi code modes interactive renderers)
     (liii pi code modes interactive views cache)
     (liii pi code modes interactive views theme)
+    (liii pi code modes interactive views thinking)
   ) ;import
   (begin
 
@@ -351,46 +352,6 @@
         (component-data-set! card st)
         card
       ) ;let*
-    ) ;define
-
-    ;; thinking 内容按完整行流式追加；缓存键包含行列表，追加后自然失效。
-    (define-record-type <thinking-card>
-      (%make-thinking-card lines render-cache)
-      thinking-card?
-      (lines %thinking-card-lines %thinking-card-lines-set!)
-      (render-cache %thinking-card-render-cache)
-    ) ;define-record-type
-
-    (define (%render-thinking-card st width)
-      (%cached-render (%thinking-card-render-cache st)
-        (list (%thinking-card-lines st) width)
-        (lambda ()
-          (if (<= width 0)
-            '()
-            (append (map (lambda (line) (string-append %fg-thinking %italic " " line %ansi-reset))
-                      (%thinking-card-lines st)
-                    ) ;map
-              (list "")
-            ) ;append
-          ) ;if
-        ) ;lambda
-      ) ;%cached-render
-    ) ;define
-
-    (define (make-thinking-card first-line)
-      (let* ((st (%make-thinking-card (list first-line) (%make-render-cache #f '())))
-             (card (make-component :render (lambda (self width) (%render-thinking-card st width)))
-             ) ;card
-            ) ;
-        (component-data-set! card st)
-        card
-      ) ;let*
-    ) ;define
-
-    (define (thinking-card-append-line! card line)
-      (let ((st (component-data card)))
-        (%thinking-card-lines-set! st (append (%thinking-card-lines st) (list line)))
-      ) ;let
     ) ;define
 
     ;; 助手纯文本回复卡片组件 (make-assistant-card text)
