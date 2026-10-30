@@ -63,8 +63,8 @@
       ) ;and
     ) ;define
 
-    (define (pi-load-auth agent-dir . opt-env)
-      (let* ((filepath (path->string (path-join (path agent-dir) (path "auth.json"))))
+    (define (pi-load-auth config-dir . opt-env)
+      (let* ((filepath (path-join config-dir "auth.json"))
              (data (%read-json-file filepath))
             ) ;
         (if (not (pair? data))

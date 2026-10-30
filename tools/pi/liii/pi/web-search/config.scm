@@ -12,6 +12,7 @@
     (liii json)
     (liii path)
     (liii pi code core tools read)
+    (liii pi code config)
     (liii pi ai auth)
     (liii pi ai template)
   ) ;import
@@ -56,14 +57,8 @@
          (catch #t
            (lambda ()
              (let* ((env-dir (get-environment-variable "PI_CODING_AGENT_DIR"))
-                    (agent-dir
-                      (if
-                        (and (string? env-dir) (not (string-null? (string-trim-both env-dir))))
-                        (pi-resolve-path env-dir (getcwd))
-                        (pi-resolve-path "~/.pi/agent" (getcwd))
-                      ) ;if
-                    ) ;agent-dir
-                    (auth (pi-load-auth agent-dir))
+                    (config-dir (gf-get-config-dir env-dir))
+                    (auth (pi-load-auth config-dir))
                    ) ;
                (pi-resolve-provider-key "google" auth)
              ) ;let*
@@ -191,25 +186,23 @@
       ) ;let
     ) ;define
 
-    (define (%agent-dir-from env)
+    ;; JSON 配置文件目录：~/.gf/agent 存在时优先，否则 ~/.pi/agent
+    (define (%config-dir-from env)
       (catch #t
         (lambda ()
           (let ((env-dir (%env-ref-str "PI_CODING_AGENT_DIR" env)))
-            (if env-dir
-              (pi-resolve-path env-dir (getcwd))
-              (pi-resolve-path "~/.pi/agent" (getcwd))
-            ) ;if
+            (if env-dir (pi-abs-path env-dir) (gf-get-config-dir))
           ) ;let
         ) ;lambda
         (lambda _ #f)
       ) ;catch
     ) ;define
 
-    (define (%read-json-file path-str)
-      (and (string? path-str)
-        (path-exists? (path path-str))
+    (define (%read-json-file filepath)
+      (and (or (string? filepath) (path? filepath))
+        (path-exists? (path filepath))
         (catch #t
-          (lambda () (string->json (path-read-text (path path-str))))
+          (lambda () (string->json (path-read-text (path filepath))))
           (lambda _ #f)
         ) ;catch
       ) ;and
@@ -231,20 +224,17 @@
       ) ;if
     ) ;define
 
-    ;; 加载 ~/.pi/agent/web-search.json（可用 PI_WEB_SEARCH_CONFIG 指定路径）：
+    ;; 加载 <config-dir>/web-search.json（可用 PI_WEB_SEARCH_CONFIG 指定路径）：
     ;; {"provider": "deepseek|google", "model": "..."}
     ;; 存在时是全局覆盖：任何会话 provider/模型的 web_search 都用它。
     ;; 不存在或解析失败返回 #f。opt-env 提供时只查 opt-env（测试可控）。
     (define (pi-load-web-search-config . opt-env)
       (let* ((env (if (pair? opt-env) (car opt-env) #f))
              (explicit (%env-ref-str "PI_WEB_SEARCH_CONFIG" env))
-             (agent-dir (%agent-dir-from env))
+             (config-dir (%config-dir-from env))
              (default-path
-               (and agent-dir
-                 (catch #t
-                   (lambda () (path->string (path-join (path agent-dir) (path "web-search.json"))))
-                   (lambda _ #f)
-                 ) ;catch
+               (and config-dir
+                 (catch #t (lambda () (path-join config-dir "web-search.json")) (lambda _ #f))
                ) ;and
              ) ;default-path
             ) ;
@@ -287,7 +277,7 @@
         (lambda ()
           (if (pair? env)
             (pi-resolve-provider-key "deepseek" '() env)
-            (pi-resolve-provider-key "deepseek" (pi-load-auth (%agent-dir-from env)))
+            (pi-resolve-provider-key "deepseek" (pi-load-auth (%config-dir-from env)))
           ) ;if
         ) ;lambda
         (lambda _ #f)

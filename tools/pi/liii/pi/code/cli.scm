@@ -65,7 +65,7 @@
     ) ;define
 
     (define (%handle-list-models parsed)
-      (let* ((agent-dir (pi-get-agent-dir))
+      (let* ((config-dir (gf-get-config-dir))
              (cli-provider (pi-args-ref parsed 'provider))
              (target-provider
                (if
@@ -76,7 +76,7 @@
                  #f
                ) ;if
              ) ;target-provider
-             (models-store (pi-build-models-catalog agent-dir))
+             (models-store (pi-build-models-catalog config-dir))
              (search-arg (pi-args-ref parsed 'list-models))
              (search-pattern (if (string? search-arg) search-arg #f))
              (rows (pi-list-models models-store target-provider search-pattern))

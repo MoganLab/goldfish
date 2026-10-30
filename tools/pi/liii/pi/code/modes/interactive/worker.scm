@@ -74,9 +74,9 @@
     ;; 覆盖 cfg 的模型相关项（会话内 /model 切换后下一条消息生效，对齐上游 setModel）：
     ;; 重新解析 provider 凭证与 model 元数据，并按新模型重算 supports-thinking
     (define (pi-cfg-with-model cfg provider model-id)
-      (let* ((agent-dir (cdr (or (assoc 'agent-dir cfg) (cons #f #f))))
+      (let* ((config-dir (pi-cfg-config-dir cfg))
              (models-store (cdr (or (assoc 'models-store cfg) (cons #f '()))))
-             (auth (pi-load-auth agent-dir))
+             (auth (pi-load-auth config-dir))
              (api-key (pi-resolve-provider-key provider auth))
              (raw-meta (pi-resolve-model-metadata provider model-id models-store))
              (meta (pi-ensure-catalog-meta raw-meta provider model-id models-store))

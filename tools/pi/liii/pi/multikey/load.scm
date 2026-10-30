@@ -6,7 +6,7 @@
 ;; Licensed under the MIT License
 ;;
 
-;; multikey.json 配置解析：读取 <agent-dir>/multikey.json 并解析出
+;; multikey.json 配置解析：读取 <config-dir>/multikey.json 并解析出
 ;; 与 provider 对应的密钥池 record。
 
 (define-library (liii pi multikey load)
@@ -71,15 +71,12 @@
       ) ;and
     ) ;define
 
-    (define (pi-load-multikey agent-dir provider)
+    (define (pi-load-multikey config-dir provider)
       (let* ((provider-str (if (symbol? provider) (symbol->string provider) provider))
-             (filepath (path->string (path-join (path agent-dir) (path "multikey.json"))))
+             (filepath (path-join config-dir "multikey.json"))
              (data
-               (and (path-exists? (path filepath))
-                 (catch #t
-                   (lambda () (string->json (path-read-text (path filepath))))
-                   (lambda args #f)
-                 ) ;catch
+               (and (path-exists? filepath)
+                 (catch #t (lambda () (string->json (path-read-text filepath))) (lambda args #f))
                ) ;and
              ) ;data
              (pools (and (pair? data) (%dict-ref data "pools" '())))

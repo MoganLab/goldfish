@@ -284,14 +284,14 @@
 
     (define (run-compact-flow parsed cfg initial-msg emit)
       (let* ((cwd (path->string (path-cwd)))
-             (agent-dir (cdr (assoc 'agent-dir cfg)))
+             (config-dir (pi-cfg-config-dir cfg))
              (sdir (resolve-session-dir parsed cfg cwd))
              (sfile (find-latest-session-file sdir))
              (has-prompt? (not (string-null? initial-msg)))
             ) ;
         (if (not sfile)
           (error 'compact-error (string-append "No session found to compact under " sdir))
-          (let* ((settings (pi-load-compaction-settings agent-dir))
+          (let* ((settings (pi-load-compaction-settings config-dir))
                  (timeout (pi-resolve-timeout parsed cfg))
                  (result (pi-compact-session! cfg sfile settings timeout "manual"))
                  (line (pi-format-compaction-summary result "Compacted"))

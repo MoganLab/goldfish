@@ -185,6 +185,8 @@
       ) ;let*
     ) ;define
 
+    ;; agent-dir 为 path 对象：会话根目录 <agent-dir>/sessions/
+    ;; 会话目录仍以字符串返回（会话文件名拼接与比较均按字符串处理）
     (define (get-sessions-root agent-dir)
       (path->string (path-join agent-dir "sessions"))
     ) ;define

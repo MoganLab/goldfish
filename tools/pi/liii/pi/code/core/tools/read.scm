@@ -15,7 +15,7 @@
     (liii os)
     (liii pi code core tools truncate)
   ) ;import
-  (export pi-read-schema pi-execute-read pi-arg-ref pi-resolve-path
+  (export pi-read-schema pi-execute-read pi-arg-ref pi-resolve-path pi-abs-path
     pi-keyword-value pi-get-agent-dir pi-int-arg
   ) ;export
   (begin
@@ -64,18 +64,25 @@
       ) ;let*
     ) ;define
 
+    ;; 绝对化路径（~ 展开 + 相对路径按 cwd 解析），返回 path 对象
+    (define (pi-abs-path raw-path)
+      (path-resolve (path-expanduser (path raw-path)))
+    ) ;define
+
+    ;; agent 目录：会话（sessions/）、扩展（extensions/）等非 JSON 配置的默认位置
+    ;; 返回 path 对象
     (define (pi-get-agent-dir . opt-dir)
       (let ((custom (and (pair? opt-dir) (car opt-dir)))
             (env-dir (get-environment-variable "PI_CODING_AGENT_DIR"))
            ) ;
         (cond
          ((and (string? custom) (not (string-null? (string-trim-both custom))))
-          (pi-resolve-path custom (getcwd))
+          (pi-abs-path custom)
          ) ;
          ((and (string? env-dir) (not (string-null? (string-trim-both env-dir))))
-          (pi-resolve-path env-dir (getcwd))
+          (pi-abs-path env-dir)
          ) ;
-         (else (pi-resolve-path "~/.pi/agent" (getcwd)))
+         (else (pi-abs-path "~/.pi/agent"))
         ) ;cond
       ) ;let
     ) ;define

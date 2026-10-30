@@ -31,11 +31,8 @@
     ) ;define
 
     (define (%read-json-file filepath)
-      (and (path-exists? (path filepath))
-        (catch #t
-          (lambda () (string->json (path-read-text (path filepath))))
-          (lambda args #f)
-        ) ;catch
+      (and (path-exists? filepath)
+        (catch #t (lambda () (string->json (path-read-text filepath))) (lambda args #f))
       ) ;and
     ) ;define
 
@@ -128,10 +125,9 @@
     ) ;define
 
     ;; 构造三层合并模型目录：models.json > models-store.json > 内置目录
-    (define (pi-build-models-catalog agent-dir)
-      (let* ((store-path (path->string (path-join (path agent-dir) (path "models-store.json")))
-             ) ;store-path
-             (models-path (path->string (path-join (path agent-dir) (path "models.json"))))
+    (define (pi-build-models-catalog config-dir)
+      (let* ((store-path (path-join config-dir "models-store.json"))
+             (models-path (path-join config-dir "models.json"))
              (store-data (or (%read-json-file store-path) '()))
              (custom-data (%extract-providers-alist (or (%read-json-file models-path) '())))
              ;; 提取所有出现过的 provider 名称

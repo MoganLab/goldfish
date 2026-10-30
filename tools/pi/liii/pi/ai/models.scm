@@ -47,30 +47,19 @@
     ) ;define
 
     (define (%read-json-file filepath)
-      (and (path-exists? (path filepath))
-        (catch #t
-          (lambda () (string->json (path-read-text (path filepath))))
-          (lambda args #f)
-        ) ;catch
+      (and (path-exists? filepath)
+        (catch #t (lambda () (string->json (path-read-text filepath))) (lambda args #f))
       ) ;and
     ) ;define
 
-    (define (pi-load-models-store agent-dir)
-      (let ((data
-              (%read-json-file (path->string (path-join (path agent-dir) (path "models-store.json")))
-              ) ;%read-json-file
-            ) ;data
-           ) ;
+    (define (pi-load-models-store config-dir)
+      (let ((data (%read-json-file (path-join config-dir "models-store.json"))))
         (if (pair? data) data '())
       ) ;let
     ) ;define
 
-    (define (pi-load-models-json agent-dir)
-      (let ((data
-              (%read-json-file (path->string (path-join (path agent-dir) (path "models.json")))
-              ) ;%read-json-file
-            ) ;data
-           ) ;
+    (define (pi-load-models-json config-dir)
+      (let ((data (%read-json-file (path-join config-dir "models.json"))))
         (if (pair? data) data '())
       ) ;let
     ) ;define

@@ -20,7 +20,7 @@
     ;; TUI footer 右下角显示实际生效的供应商与模型：与后台 worker 内的解析同源同输入
     ;; （纯本地文件读取，无网络开销），配置解析失败时回退到 CLI 原始参数；
     ;; 返回 (provider model-id thinking-level supports-thinking default-thinking-level
-    ;;         agent-dir models default-model hide-thinking)
+    ;;         config-dir models default-model hide-thinking)
     ;; 供 make-pi-app 使用（models 为有凭证 provider 的模型列表，供 /model 选择器）
     (define (pi-tui-footer-info parsed)
       (catch #t
@@ -36,9 +36,9 @@
                      (supports (cdr (or (assoc 'supports-thinking cfg) (cons #f #t))))
                      (settings (cdr (or (assoc 'settings cfg) (cons #f #f))))
                      (default-tl (if settings (pi-settings-default-thinking-level settings) tl))
-                     (agent-dir (cdr (assoc 'agent-dir cfg)))
+                     (config-dir (pi-cfg-config-dir cfg))
                      (models-store (cdr (or (assoc 'models-store cfg) (cons #f '()))))
-                     (auth (pi-load-auth agent-dir))
+                     (auth (pi-load-auth config-dir))
                      (models (pi-usable-models models-store auth))
                      (default-model
                        (and settings
@@ -53,7 +53,7 @@
                   tl
                   (and supports #t)
                   default-tl
-                  agent-dir
+                  config-dir
                   models
                   default-model
                   ;; Ctrl+T 思考块隐藏态：从与上游共用的 settings.json 恢复
@@ -69,7 +69,7 @@
             "off"
             #t
             "off"
-            (pi-get-agent-dir)
+            (gf-get-config-dir)
             '()
             #f
             #f
