@@ -8,7 +8,8 @@
   (export make-user-card make-tool-card make-assistant-card make-queued-card
     make-retry-card apply-card-bg format-tool-call format-tool-result-lines
     tool-card? tool-card-component? tool-card-expanded? tool-card-set-expanded!
-    tool-card-set-output! tool-card-set-complete!
+    tool-card-set-output! tool-card-set-complete! make-thinking-card
+    thinking-card-append-line!
   ) ;export
   (import (scheme base)
     (scheme time)
@@ -19,6 +20,7 @@
     (liii pi code modes interactive renderers)
     (liii pi code modes interactive views cache)
     (liii pi code modes interactive views theme)
+    (liii pi code modes interactive views thinking)
   ) ;import
   (begin
 

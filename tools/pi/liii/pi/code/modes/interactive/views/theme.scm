@@ -6,8 +6,8 @@
 
 (define-library (liii pi code modes interactive views theme)
   (export %bg-user %fg-user %bg-pending %bg-success %bg-error %fg-title
-    %fg-output %fg-accent %fg-warning %fg-reset %bold-reset %fg-dim %ansi-reset
-    apply-card-bg
+    %fg-output %fg-accent %fg-warning %fg-thinking %fg-reset %bold-reset %fg-dim
+    %italic %ansi-reset apply-card-bg
   ) ;export
   (import (scheme base) (liii tui text-width))
   (begin
@@ -22,6 +22,8 @@
     (define %fg-output "\x1b;[38;2;157;165;169m")
     (define %fg-accent "\x1b;[38;2;167;152;215m")
     (define %fg-warning "\x1b;[38;2;205;154;34m")
+    (define %fg-thinking "\x1b;[38;2;157;165;169m")
+    (define %italic "\x1b;[3m")
 
     ;; 只关闭前景/粗体，不清除行背景。
     (define %fg-reset "\x1b;[39m")

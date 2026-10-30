@@ -63,6 +63,23 @@
       (container-add! (%pi-app-chat app) (make-retry-card msg))
     ) ;define
 
+    (define (%pi-app-close-thinking-card! app)
+      (%pi-app-thinking-card-set! app #f)
+    ) ;define
+
+    (define (%pi-app-handle-thinking-line! app line)
+      (%pi-app-invalidate-scroll! app)
+      (let ((card (pi-app-thinking-card app)))
+        (if card
+          (thinking-card-append-line! card line)
+          (let ((new-card (make-thinking-card line)))
+            (%pi-app-thinking-card-set! app new-card)
+            (container-add! (%pi-app-chat app) new-card)
+          ) ;let
+        ) ;if
+      ) ;let
+    ) ;define
+
     ;; job 载荷：(消息 thinking-level provider model-id)，
     ;; 会话内 /model 与 /thinking 切换均对下一条消息生效（对齐上游 per-request 覆盖）
     (define (%pi-app-job-payload app msg)
@@ -164,6 +181,8 @@
               (if (not msg)
                 rendered
                 (begin
+                  ;; 新任务开始：关闭上一轮引用，已显示的 thinking 内容保留
+                  (%pi-app-close-thinking-card! app)
                   ;; 1. 出队并正式上屏为深蓝用户消息卡片
                   (pi-app-add-user-message! app msg)
                   ;; 2. 关键：在进入后台处理前立即渲染上屏，用户按回车瞬间看到消息已发送
@@ -302,6 +321,8 @@
             ((tool_execution_start) (%pi-app-handle-tool-start! app ev))
             ((tool_execution_update) (%pi-app-handle-tool-update! app ev))
             ((tool_execution_end) (%pi-app-handle-tool-end! app ev))
+            ((assistant_thinking_line) (%pi-app-handle-thinking-line! app (cadr ev)))
+            ((assistant_thinking_end) (%pi-app-close-thinking-card! app))
             ((assistant_text) (pi-app-add-assistant-text! app (cadr ev)))
             ((retry) (pi-app-add-retry-message! app (cadr ev)))
             ;; worker 消费了 steering / follow-up 注入消息：
@@ -332,6 +353,7 @@
                     ;; 任务结算：aborted 时先上屏 Aborted 提示卡片（对齐上游
                     ;; pi 的 Aborted 状态显示），再解除 busy 锁定
                     ((agent_settled)
+                     (%pi-app-close-thinking-card! app)
                      (when (and (> (length ev) 1) (cadr ev))
                        (pi-app-add-assistant-text! app "Aborted")
                      ) ;when
@@ -339,6 +361,7 @@
                      (settle!)
                     ) ;
                     ((error)
+                     (%pi-app-close-thinking-card! app)
                      (pi-app-add-tool-result! app "error" '() 'error (cadr ev))
                      (pi-queue-finish-task! q)
                      (settle!)
