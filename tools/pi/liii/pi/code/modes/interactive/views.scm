@@ -19,23 +19,30 @@
     (liii tui mouse)
     (liii tui text-width)
     (liii pi code modes interactive renderers)
+    (liii pi code modes interactive views assistant)
     (liii pi code modes interactive views cache)
     (liii pi code modes interactive views theme)
     (liii pi code modes interactive views thinking)
+    (liii pi code modes interactive views wrap)
   ) ;import
   (begin
 
     ;; 用户提问卡片组件 (make-user-card text)
     ;; 对齐 pi UserMessageComponent：Markdown(paddingX=1, paddingY=1) + userMessageBg/userMessageText，
     ;; 上下各一行带背景的空 padding 行，正文 1 空格缩进，无前缀符号；
-    ;; 超宽行用 wrap-text 折行（左右各留 1 空格），避免 alt-screen 截断吞掉内容
+    ;; 超宽行按内容宽度折行（左右各留 1 空格），避免 alt-screen 截断吞掉内容
     (define (%render-user-card text width)
       (if (<= width 0)
         '()
         (let ((rows
-                (map (lambda (line) (apply-card-bg (string-append " " line) width %bg-user %fg-user))
-                  (wrap-text text (max 1 (- width 2)))
-                ) ;map
+                (%card-body-lines text
+                  width
+                  1
+                  1
+                  (lambda (line)
+                    (list (apply-card-bg (string-append " " line) width %bg-user %fg-user))
+                  ) ;lambda
+                ) ;%card-body-lines
               ) ;rows
              ) ;
           (append (list (apply-card-bg "" width %bg-user %fg-user))
@@ -353,17 +360,6 @@
         (component-data-set! card st)
         card
       ) ;let*
-    ) ;define
-
-    ;; 助手纯文本回复卡片组件 (make-assistant-card text)
-    (define (%render-assistant-card text width)
-      (if (<= width 0) '() (append (string-split text "\n") (list "")))
-    ) ;define
-
-    (define (make-assistant-card text)
-      (%make-cached-component text
-        (lambda (width) (%render-assistant-card text width))
-      ) ;%make-cached-component
     ) ;define
 
     ;; 等待队列提示卡片组件 (make-queued-card text)
