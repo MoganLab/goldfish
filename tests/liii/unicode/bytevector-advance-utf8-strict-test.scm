@@ -13,26 +13,29 @@
 ;;
 ;; 参数
 ;; ----
-;; bv : bytevector
+;; bv : bytevector?
 ;; 输入字节序列。
 ;;
-;; index : integer
+;; index : integer?
 ;; 当前字节位置。
 ;;
-;; end : integer，可选
-;; 结束位置，缺省为字节序列长度。
+;; end : integer? 可选
+;; 结束位置，默认为字节序列长度。
 ;;
 ;; 返回值
 ;; ----
 ;; integer
 ;; 合法序列返回下一个字节位置，非法返回原位置（表示无法推进）。
 ;;
-;; 描述
+;; 注意
 ;; ----
 ;; 与 bytevector-advance-utf8（宽松版）不同，严格版额外拒绝：
-;; - 孤立续字节（0x80-0xBF 不能作为首字节）、0xC0/0xC1 与 0xF5-0xFF
+;; - 孤立续字节（0x80-0xBF 不能作为首字节）、0xC0/0xC1 与 0xF5-0xFF 首字节；
 ;; - 第二字节越界的序列：E0:A0-BF、ED:80-9F、F0:90-BF、F4:80-8F
-;;   （过长编码、代理、超 U+10FFFF）
+;;   （过长编码、代理区、超 U+10FFFF）。
+;; index 大于等于 end 时返回 index 本身，不抛错。
+;; 只做序列推进判断，不分配对象；utf8-replace-invalid 与宽度计算
+;; （display-width 等）均以其为严格性基准。
 
 
 ;; 合法序列正常推进
