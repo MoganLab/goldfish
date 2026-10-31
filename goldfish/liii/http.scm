@@ -49,7 +49,9 @@
              (idle-timeout (http-optional-timeout "http-get" "idle-timeout" idle-timeout))
              (progress (http-optional-procedure "http-get" "progress" progress))
             ) ;
-        (cond ((not stream) (g_http-get url params headers proxy #f timeout idle-timeout progress))
+        (cond ((not stream)
+               (g_http-get url params headers proxy #f timeout idle-timeout progress)
+              ) ;
               ((and (not output-file) (not callback))
                (value-error "http-get: stream mode requires output-file or callback")
               ) ;
@@ -77,7 +79,9 @@
                         (lambda () (close-port port))
                       ) ;dynamic-wind
                     ) ;let
-                    (g_http-get url params headers proxy stream-callback timeout idle-timeout progress)
+                    (g_http-get url params headers proxy stream-callback timeout
+                      idle-timeout progress
+                    ) ;g_http-get
                   ) ;if
                 ) ;let
               ) ;else

@@ -2,6 +2,7 @@ import http.server
 import socketserver
 import sys
 import json
+import time
 import threading
 
 class StubHandler(http.server.BaseHTTPRequestHandler):
@@ -56,6 +57,28 @@ class StubHandler(http.server.BaseHTTPRequestHandler):
                 return
 
             is_stream = req_json.get("stream", False) or "/stream" in path
+
+            # 发 1 个 SSE chunk 后静默挂起 30s：模拟 LLM 首 token 前的
+            # 长思考期，验证 progress 回调在空闲期也能探测中止信号
+            if "/stream-abort-hang" in path and is_stream:
+                self.send_response(200)
+                self.send_header("Content-Type", "text/event-stream")
+                self.send_header("Cache-Control", "no-cache")
+                self.end_headers()
+                # message_start + 首个 text_delta：确保 chunk 检查点在挂起前被执行，
+                # 测试延迟发送 abort 信号（晚于 chunk1），之后 stub 静默挂起 30s，
+                # 仅 progress 节拍能探测到中止
+                evs = [
+                    ("message_start", {"type": "message_start", "message": {"id": "msg_ah", "type": "message", "role": "assistant", "usage": {"input_tokens": 10, "output_tokens": 0}}}),
+                    ("content_block_start", {"type": "content_block_start", "index": 0, "content_block": {"type": "text", "text": ""}}),
+                    ("content_block_delta", {"type": "content_block_delta", "index": 0, "delta": {"type": "text_delta", "text": "Start..."}}),
+                ]
+                for ev_name, ev_data in evs:
+                    self.wfile.write(f"event: {ev_name}\ndata: {json.dumps(ev_data)}\n\n".encode("utf-8"))
+                    self.wfile.flush()
+                time.sleep(30)
+                return
+
             if "/tool-call" in path:
                 has_tool_result = any(
                     any(b.get("type") == "tool_result" for b in m.get("content", []))
@@ -228,6 +251,24 @@ class StubHandler(http.server.BaseHTTPRequestHandler):
             prefix = "PlainOK:" if "/mk-kimi-plain" in path else "RotatedOK:"
             text = prefix + api_key + " seen=" + str(len(server.mk_kimi_keys_seen))
             if is_sse:
+                # 发 1 个 SSE chunk 后静默挂起 30s：模拟 LLM 首 token 前的
+                # 长思考期，验证 progress 回调在空闲期也能探测中止信号
+                if "/chat-abort-hang" in path:
+                    self.send_response(200)
+                    self.send_header("Content-Type", "text/event-stream")
+                    self.send_header("Cache-Control", "no-cache")
+                    self.end_headers()
+                    first = {
+                        "id": "chatcmpl-abort-hang",
+                        "object": "chat.completion.chunk",
+                        "choices": [
+                            {"index": 0, "delta": {"role": "assistant", "content": "Start..."}, "finish_reason": None}
+                        ]
+                    }
+                    self.wfile.write(("data: " + json.dumps(first) + "\n\n").encode("utf-8"))
+                    self.wfile.flush()
+                    time.sleep(30)
+                    return
                 self.send_response(200)
                 self.send_header("Content-Type", "text/event-stream")
                 self.send_header("Cache-Control", "no-cache")
@@ -649,7 +690,6 @@ class StubHandler(http.server.BaseHTTPRequestHandler):
             return
 
         if "/web-search-hang" in path or "/models/web-search-hang" in path:
-            import time
             time.sleep(3)
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
@@ -905,7 +945,6 @@ class StubHandler(http.server.BaseHTTPRequestHandler):
                 chunk1 = {"candidates": [{"content": {"role": "model", "parts": [{"text": "Start..."}]}}]}
                 self.wfile.write(f"data: {json.dumps(chunk1)}\n\n".encode("utf-8"))
                 self.wfile.flush()
-                import time
                 time.sleep(30)
                 return
 

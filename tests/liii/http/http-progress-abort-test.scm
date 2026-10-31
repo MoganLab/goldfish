@@ -35,6 +35,13 @@
   ) ;let
 ) ;define
 
+;; 300ms 后向通道发 abort：模拟用户按 ESC（顶层 define + (go (fn ch)) 传参形式，
+;; 零参 lambda 字面量无法跨 go 会话传输 procedure-source）
+(define (send-abort-later ch)
+  (sleep 0.3)
+  (chan-send! ch 'abort 0)
+) ;define
+
 (define stub-server-file
   (if (file-exists? "tests/stub_slow_stream_server.py")
     "tests/stub_slow_stream_server.py"
@@ -93,7 +100,7 @@
          (aborted-flag (vector #f))
          (t0 (current-second))
          (r (begin
-              (go (lambda () (sleep 0.3) (chan-send! ch 'abort 0)))
+              (go (send-abort-later ch))
               (http-post base-url
                 :stream   #t
                 :callback (lambda (chunk) #t)

@@ -39,20 +39,18 @@ apply_session_progress_callback (s7_scheme* sc, cpr::Session& session, s7_pointe
   if (!s7_is_procedure (progress)) {
     return false;
   }
-  session.SetProgressCallback (cpr::ProgressCallback{[sc, progress] (cpr::cpr_pf_arg_t dlt, cpr::cpr_pf_arg_t dln,
-                                                                      cpr::cpr_pf_arg_t ult, cpr::cpr_pf_arg_t uln,
-                                                                      intptr_t) -> bool {
-    s7_pointer call_args= s7_list (sc, 4,
-                                   s7_make_real (sc, static_cast<double> (dlt)),
-                                   s7_make_real (sc, static_cast<double> (dln)),
-                                   s7_make_real (sc, static_cast<double> (ult)),
-                                   s7_make_real (sc, static_cast<double> (uln)));
-    s7_pointer ret= s7_call (sc, progress, call_args);
-    if (s7_is_boolean (ret)) {
-      return s7_boolean (sc, ret);
-    }
-    return true;
-  }});
+  session.SetProgressCallback (
+      cpr::ProgressCallback{[sc, progress] (cpr::cpr_pf_arg_t dlt, cpr::cpr_pf_arg_t dln, cpr::cpr_pf_arg_t ult,
+                                            cpr::cpr_pf_arg_t uln, intptr_t) -> bool {
+        s7_pointer call_args=
+            s7_list (sc, 4, s7_make_real (sc, static_cast<double> (dlt)), s7_make_real (sc, static_cast<double> (dln)),
+                     s7_make_real (sc, static_cast<double> (ult)), s7_make_real (sc, static_cast<double> (uln)));
+        s7_pointer ret= s7_call (sc, progress, call_args);
+        if (s7_is_boolean (ret)) {
+          return s7_boolean (sc, ret);
+        }
+        return true;
+      }});
   return true;
 }
 
@@ -65,8 +63,11 @@ string_type_error (s7_scheme* sc, const char* msg, s7_pointer arg) {
 static s7_pointer
 parse_progress_arg (s7_scheme* sc, const char* who, s7_pointer progress_arg) {
   if (!s7_is_boolean (progress_arg) && !s7_is_procedure (progress_arg)) {
-    return s7_error (sc, s7_make_symbol (sc, "type-error"),
-                     s7_list (sc, 2, s7_make_string (sc, std::string (who).append (": progress must be a procedure or boolean").c_str ()), progress_arg));
+    return s7_error (
+        sc, s7_make_symbol (sc, "type-error"),
+        s7_list (sc, 2,
+                 s7_make_string (sc, std::string (who).append (": progress must be a procedure or boolean").c_str ()),
+                 progress_arg));
   }
   return nullptr;
 }
