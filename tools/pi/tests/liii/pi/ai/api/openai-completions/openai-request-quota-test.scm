@@ -13,9 +13,12 @@
 (check-set-mode! 'report-failed)
 
 ;; 异常请求（429）写入 ~/.gf/agent/logs，测试重定向到临时目录
+
 (define *log-base* (make-temp-dir "gf-pi-quota-log-" ""))
+
 (define *log-dir* (path-join (path *log-base*) "logs"))
 (pi-log-init! *log-dir*)
+
 (define *log-file* (pi-log-file-path))
 
 ;; 额度耗尽（HTTP 429）端到端测试
@@ -162,6 +165,7 @@
 (check (count-lines five-hour-log) => 1)
 
 ;; 4. 异常请求（429）以 ERROR 级别落盘，响应体原文原样保留
+
 (define log-text (path-read-text *log-file*))
 
 (check-true (string-contains? log-text "[ERROR]"))

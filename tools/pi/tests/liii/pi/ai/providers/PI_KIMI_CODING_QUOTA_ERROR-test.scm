@@ -1,7 +1,8 @@
 (import (liii check)
-        (liii pi ai providers quota)
-        (liii string)
-        (liii pi ai providers kimi-coding))
+  (liii pi ai providers quota)
+  (liii string)
+  (liii pi ai providers kimi-coding)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -19,7 +20,8 @@
   (check (pi-quota-limit-kind limit) => "quota")
   (check (pi-quota-limit-code limit) => "exceeded_current_quota_error")
   (check (pi-quota-limit-message limit)
-    => "You've reached your weekly (7-day) usage limit."
+    =>
+    "You've reached your weekly (7-day) usage limit."
   ) ;check
 ) ;let
 
@@ -27,8 +29,7 @@
 (check-true (and (PI_KIMI_CODING_QUOTA_ERROR 403 kimi-body) #t))
 
 ;; 3. 普通限流（type=rate_limit_error）不是额度耗尽
-(check-false (PI_KIMI_CODING_QUOTA_ERROR
-               429
+(check-false (PI_KIMI_CODING_QUOTA_ERROR 429
                "{\"error\":{\"type\":\"rate_limit_error\",\"message\":\"Rate limit exceeded\"}}"
              ) ;PI_KIMI_CODING_QUOTA_ERROR
 ) ;check-false

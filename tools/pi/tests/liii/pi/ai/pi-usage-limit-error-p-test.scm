@@ -1,6 +1,4 @@
-(import (liii check)
-        (liii string)
-        (liii pi ai limits))
+(import (liii check) (liii string) (liii pi ai limits))
 
 (check-set-mode! 'report-failed)
 
@@ -25,13 +23,12 @@
 (check-true (and (pi-usage-limit-error? 403 five-hour-body zai) #t))
 
 ;; 2b. kimi-coding 用 error.type 判定额度耗尽
-(check-true (and (pi-usage-limit-error?
-                   429
+(check-true (and (pi-usage-limit-error? 429
                    "{\"error\":{\"message\":\"You've reached your weekly (7-day) usage limit.\",\"type\":\"exceeded_current_quota_error\"}}"
                    "kimi-coding"
                  ) ;pi-usage-limit-error?
-                #t
-              ) ;and
+              #t
+            ) ;and
 ) ;check-true
 
 ;; 3. 同一业务码在别的 provider 下不判定为额度耗尽
@@ -42,8 +39,7 @@
 (check-false (pi-usage-limit-error? 429 weekly-body))
 
 ;; 5. 429 + 1302（并发槽满）：不是额度耗尽，应继续重试
-(check-false (pi-usage-limit-error?
-               429
+(check-false (pi-usage-limit-error? 429
                "{\"error\":{\"code\":\"1302\",\"message\":\"当前并发数已达到上限\"}}"
                zai
              ) ;pi-usage-limit-error?
