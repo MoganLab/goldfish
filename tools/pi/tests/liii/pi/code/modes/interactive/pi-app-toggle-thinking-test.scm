@@ -15,7 +15,7 @@
 ;; Ctrl+T 切换思考块显示/隐藏（对齐上游 app.thinking.toggle）：
 ;; 1. 初始状态来自 make-pi-app :hide-thinking（由 settings.json 恢复）
 ;; 2. 切换后 chat 中已有 thinking 卡片即时折叠/展开为单行 Thinking...
-;; 3. 切换后在 chat 底部出现状态卡片 Thinking blocks: hidden/visible
+;; 3. 切换不产生任何状态提示卡片（Thinking blocks: ... 已移除）
 ;; 4. 切换触发 on-save-hide-thinking 持久化回调
 ;; 5. 切换后新建的 thinking 卡片继承当前状态
 (let* ((buf (open-output-string))
@@ -43,24 +43,24 @@
     (check-false (string-contains? text "推理乙"))
   ) ;let
 
-  ;; 第一次 Ctrl+T：显示思考内容，回调收到 #f
+  ;; 第一次 Ctrl+T：显示思考内容，回调收到 #f；不产生状态提示
   (pi-app-toggle-thinking! app)
   (pi-app-render! app)
   (let ((text (string-join (map strip-ansi (alt-screen-lines screen)) "\n")))
     (check-true (string-contains? text "推理甲"))
     (check-true (string-contains? text "推理乙"))
-    (check-true (string-contains? text "Thinking blocks: visible"))
+    (check-false (string-contains? text "Thinking blocks:"))
     (check-false (string-contains? text "Thinking..."))
   ) ;let
   (check (car saved) => #f)
 
-  ;; 第二次 Ctrl+T：重新折叠，回调收到 #t
+  ;; 第二次 Ctrl+T：重新折叠，回调收到 #t；仍无状态提示
   (pi-app-toggle-thinking! app)
   (pi-app-render! app)
   (let ((text (string-join (map strip-ansi (alt-screen-lines screen)) "\n")))
     (check-true (string-contains? text "Thinking..."))
     (check-false (string-contains? text "推理甲"))
-    (check-true (string-contains? text "Thinking blocks: hidden"))
+    (check-false (string-contains? text "Thinking blocks:"))
   ) ;let
   (check saved => '(#t #f))
 
@@ -105,7 +105,8 @@
   (check (pi-app-hide-thinking? app) => #t)
 ) ;let*
 
-;; 状态卡片复用：连续切换原地更新 Thinking blocks: 状态行，不堆积
+;; 无状态提示：多次切换、中间插入新卡片后再切换，
+;; chat 中始终不出现任何状态卡片（Thinking blocks: ... 提示已移除）
 (let* ((buf (open-output-string))
        (term (make-standard-terminal :output-port buf
                :detect-size-fn (lambda () '(80 24))))
@@ -114,14 +115,15 @@
       ) ;
   (pi-app-toggle-thinking! app)
   (pi-app-toggle-thinking! app)
+  (container-add! (%pi-app-chat app) (make-bash-card "ls"))
+  (pi-app-toggle-thinking! app)
   (pi-app-render! app)
-  (let* ((text (string-join (map strip-ansi (alt-screen-lines screen)) "\n")))
-    (check-true (string-contains? text "Thinking blocks: visible"))
-    (check
-      (length (filter (lambda (l) (string-contains? l "Thinking blocks:"))
-              (map strip-ansi (alt-screen-lines screen))))
-      => 1
-    ) ;check
+  (check
+    (length (filter status-card? (container-children (%pi-app-chat app))))
+    => 0
+  ) ;check
+  (let ((text (string-join (map strip-ansi (alt-screen-lines screen)) "\n")))
+    (check-false (string-contains? text "Thinking blocks:"))
   ) ;let
 ) ;let*
 

@@ -172,7 +172,8 @@
     ) ;define
 
     ;; Ctrl+T 全局切换思考块显隐（对齐上游 toggleThinkingBlockVisibility）：
-    ;; 翻转标志 → 已有卡片即时折叠/展开 → 状态行提示 → 持久化回调；
+    ;; 翻转标志 → 已有卡片即时折叠/展开 → 持久化回调；
+    ;; 不产生任何状态提示卡片，折叠/展开的视觉变化即反馈；
     ;; 新建卡片在 app-events 的 %pi-app-handle-thinking-line! 中继承新状态
     (define (pi-app-toggle-thinking! app)
       (let ((next (not (pi-app-hide-thinking? app))))
@@ -184,9 +185,6 @@
                   ) ;lambda
           (container-children (%pi-app-chat app))
         ) ;for-each
-        (%pi-app-show-status! app
-          (string-append "Thinking blocks: " (if next "hidden" "visible"))
-        ) ;%pi-app-show-status!
         (let ((save (%pi-app-on-save-hide-thinking app)))
           (when save
             (save next)

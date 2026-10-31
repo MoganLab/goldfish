@@ -9,6 +9,7 @@
 (define-library (liii pi code config settings)
   (import (scheme base)
     (liii string)
+    (liii list)
     (liii path)
     (liii json)
     (liii pi ai config types)

@@ -285,4 +285,19 @@
   (check (virtual-terminal-pop-key! vt) => #f)
 ) ;let*
 
+;; N+1. Ctrl+T 全局切换思考块显隐（对齐上游 app.thinking.toggle）：
+;;      idle + 空输入框时触发（编辑器 transpose 未消费后上抛），
+;;      TUI 不崩溃，hide-thinking 翻转为 #t，再按一次翻回 #f
+(let* ((vt (make-virtual-terminal :width 80 :height 24))
+       (app (make-pi-app :terminal vt :handler (lambda (a m) #t)))
+       (ed (pi-app-editor app))
+      ) ;
+  (check (pi-app-hide-thinking? app) => #f)
+  (virtual-terminal-push-key! vt 'ctrl-t)
+  (virtual-terminal-push-key! vt 'ctrl-t)
+  (virtual-terminal-push-key! vt 'ctrl-d)
+  (check (pi-app-run app) => #t)
+  (check (pi-app-hide-thinking? app) => #f)
+) ;let*
+
 (check-report)
