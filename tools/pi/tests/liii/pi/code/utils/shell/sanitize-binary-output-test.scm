@@ -33,6 +33,15 @@
   ) ;string-append
 ) ;check
 
+;; 代理区（ED A0 80，CESU-8 编码的 D800）：按 WHATWG 替换为 3 个 U+FFFD
+(check (sanitize-binary-output (byte-vector->string #u8(237 160 128)))
+  =>
+  (string-append (utf8->string #u8(239 191 189))
+    (utf8->string #u8(239 191 189))
+    (utf8->string #u8(239 191 189))
+  ) ;string-append
+) ;check
+
 ;; 普通文本不受影响
 (check (sanitize-binary-output "hello world") => "hello world")
 (check (sanitize-binary-output "你好，世界") => "你好，世界")

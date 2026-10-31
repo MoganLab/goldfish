@@ -71,6 +71,16 @@
 (check (truncate-to-width "\x1b[31mhello world\x1b[0m" 8) => "\x1b[31mhello...\x1b[0m")
 (check (truncate-to-width "\x1b[32m你好世界\x1b[0m" 7) => "\x1b[32m你好...\x1b[0m")
 
+;; 非法 UTF-8 字节：入口替换为 U+FFFD 后再截断，不抛 value-error
+;; 未超宽时返回清理后的文本
+(check (truncate-to-width (string-append "a" (byte-vector->string #u8(255)) "好") 6)
+  =>
+  (string-append "a" (utf8->string #u8(239 191 189)) "好")
+) ;check
+
+;; 超宽时按清理后的宽度截断
+(check (truncate-to-width (string-append "a" (byte-vector->string #u8(255)) "好好") 4) => "a...")
+
 ;; 类型错误检查
 (check-catch 'type-error (truncate-to-width 123 5))
 (check-catch 'type-error (truncate-to-width "hello" "5"))

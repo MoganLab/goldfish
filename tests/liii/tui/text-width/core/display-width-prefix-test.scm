@@ -72,6 +72,9 @@
 (check (display-width-prefix "\x1b[31mred\x1b[0m" 3) => 3)
 (check (display-width-prefix "\x1b[33m金鱼\x1b[0m" 2) => 4)
 
+;; 非法 UTF-8 字节：容错重算（截断的"好"替换为一个 U+FFFD，宽 1）
+(check (display-width-prefix (string-append "你" (byte-vector->string #u8(229 165))) 2) => 3)
+
 ;; 类型错误检查
 (check-catch 'type-error (display-width-prefix 123 1))
 (check-catch 'type-error (display-width-prefix "abc" -1))

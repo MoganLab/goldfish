@@ -67,6 +67,15 @@
 (check (display-width "\x1b]0;title\x07hi") => 2)
 (check (display-width "\x1b]11;?\x1b\\ok") => 2)
 
+;; 非法 UTF-8 字节：容错重算，与清理后文本的渲染宽度一致（U+FFFD 宽 1），
+;; 不再因 string->utf8 校验失败抛 value-error（防御深度：入口未清理也能测宽）
+(check (display-width (string-append "你" (byte-vector->string #u8(229 165)))) => 3)
+(check (display-width (byte-vector->string #u8(224 128 128))) => 3)
+(check (display-width (string-append "ab" (byte-vector->string #u8(128)))) => 3)
+
+;; 非法字节与 ANSI 序列共存
+(check (display-width (string-append "\x1b[31m" (byte-vector->string #u8(255)) "\x1b[0m")) => 1)
+
 ;; 类型错误检查
 (check-catch 'type-error (display-width 123))
 (check-catch 'type-error (display-width 'sym))

@@ -86,6 +86,15 @@
 (check (strip-ansi (string-append "a" (byte-vector->string #u8(128)) "b"))
   => (string-append "a" (utf8->string #u8(239 191 189)) "b"))
 
+;; 过长编码（E0 80 80）与 ANSI 序列共存：按 WHATWG 替换为 3 个 U+FFFD
+(check (strip-ansi (string-append "\x1b[31m" (byte-vector->string #u8(224 128 128)) "\x1b[0m"))
+  =>
+  (string-append (utf8->string #u8(239 191 189))
+    (utf8->string #u8(239 191 189))
+    (utf8->string #u8(239 191 189))
+  ) ;string-append
+) ;check
+
 ;; 类型错误检查
 (check-catch 'type-error (strip-ansi 123))
 (check-catch 'type-error (strip-ansi 'symbol))

@@ -76,6 +76,12 @@
 (check (wrap-text "a\x1b;]0;tb" 80) => '("a]0;tb"))
 (check (wrap-text "x\x1b;" 80) => '("x"))
 
+;; 非法 UTF-8 字节：入口替换为 U+FFFD 后再折行，不抛 value-error
+(check (wrap-text (string-append "好" (byte-vector->string #u8(229 165)) "ab") 5)
+  =>
+  (list (string-append "好" (utf8->string #u8(239 191 189)) "ab"))
+) ;check
+
 ;; 类型错误检查
 (check-catch 'type-error (wrap-text 123 10))
 (check-catch 'type-error (wrap-text "hello" "10"))

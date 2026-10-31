@@ -84,7 +84,9 @@
       (unless (real? width)
         (type-error "truncate-to-width: width must be a number")
       ) ;unless
-      (let ((ellipsis (if (null? args) "..." (car args))))
+      ;; 非法 UTF-8 字节替换为 U+FFFD：宽度计算与截断输出都基于合法文本，
+      ;; 与渲染管线的清理行为一致（合法输入返回原串对象，无额外分配）
+      (let* ((str (utf8-replace-invalid str)) (ellipsis (if (null? args) "..." (car args))))
         (unless (string? ellipsis)
           (type-error "truncate-to-width: ellipsis must be a string")
         ) ;unless
@@ -96,7 +98,7 @@
                   (let ((target-w (- w (display-width ellipsis))))
                     (if (< target-w 0)
                       (%sub-ellipsis ellipsis w)
-                      (let ((bv (string->utf8 str)))
+                      (let ((bv (string->byte-vector str)))
                         (%truncate-loop bv (bytevector-length bv) target-w ellipsis)
                       ) ;let
                     ) ;if
@@ -104,7 +106,7 @@
                 ) ;else
           ) ;cond
         ) ;let
-      ) ;let
+      ) ;let*
     ) ;define
 
   ) ;begin

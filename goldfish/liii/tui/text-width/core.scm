@@ -129,9 +129,18 @@
       ) ;let
     ) ;define
 
+    ;; 从 start 开始查找下一个 ESC(27) 字节的位置，找不到返回 #f
+    (define (%bv-next-esc bv start len)
+      (let loop
+        ((i start))
+        (if (>= i len) #f (if (= (bytevector-u8-ref bv i) 27) i (loop (+ i 1))))
+      ) ;let
+    ) ;define
+
     ;; 剔除 ANSI 转义序列；同时把非法 UTF-8 字节替换为 U+FFFD，
     ;; 避免 utf8->string 对非法字节抛 value-error（子进程输出可能含
-    ;; 被截断的多字节序列或二进制垃圾）
+    ;; 被截断的多字节序列或二进制垃圾）。
+    ;; 单遍扫描：ANSI 序列按段剥除，段间文本整段做一次 utf8-replace-invalid
     (define (strip-ansi str)
       (unless (string? str)
         (type-error "strip-ansi: str must be a string")
@@ -144,16 +153,15 @@
             (let loop
               ((i 0) (acc '()))
               (if (>= i len)
-                (utf8-replace-invalid (apply string-append (reverse acc)))
+                (apply string-append (reverse acc))
                 (let ((ansi-end (%match-ansi bv i len)))
                   (if ansi-end
                     (loop ansi-end acc)
-                    (let* ((next (bytevector-advance-utf8 bv i len))
-                           (step (if (= next i) (+ i 1) next))
-                           ;; 非法字节用原始字节保留，最后统一替换为 U+FFFD
-                           (chunk (byte-vector->string (bytevector-copy bv i step)))
+                    (let* ((esc (%bv-next-esc bv (+ i 1) len))
+                           (end (if esc esc len))
+                           (chunk (utf8-replace-invalid (byte-vector->string (bytevector-copy bv i end))))
                           ) ;
-                      (loop step (cons chunk acc))
+                      (loop end (cons chunk acc))
                     ) ;let*
                   ) ;if
                 ) ;let
@@ -170,7 +178,7 @@
       ) ;unless
       (if (string=? str "")
         0
-        (let* ((bv (string->utf8 str)) (len (bytevector-length bv)))
+        (let* ((bv (string->byte-vector str)) (len (bytevector-length bv)))
           (let loop
             ((i 0) (w 0))
             (if (>= i len)
@@ -178,13 +186,17 @@
               (let ((ansi-end (%match-ansi bv i len)))
                 (if ansi-end
                   (loop ansi-end w)
-                  (let* ((next (bytevector-advance-utf8 bv i len))
-                         (step (if (= next i) (+ i 1) next))
-                         (cp (utf8->codepoint-at bv i))
-                         (cw (%codepoint-width cp))
-                        ) ;
-                    (loop step (+ w cw))
-                  ) ;let*
+                  (let ((next (bytevector-advance-utf8-strict bv i len)))
+                    (if (= next i)
+                      ;; 非法 UTF-8 字节：对替换为 U+FFFD 后的串重算宽度，
+                      ;; 与清理后文本的实际渲染宽度一致（U+FFFD 宽 1）；
+                      ;; 替换结果为严格合法 UTF-8，重入后不会再触发本分支
+                      (display-width (utf8-replace-invalid str))
+                      (let* ((cp (utf8->codepoint-at bv i)) (cw (%codepoint-width cp)))
+                        (loop next (+ w cw))
+                      ) ;let*
+                    ) ;if
+                  ) ;let
                 ) ;if
               ) ;let
             ) ;if
@@ -205,7 +217,7 @@
       ) ;unless
       (if (or (= n 0) (string=? str ""))
         0
-        (let* ((bv (string->utf8 str)) (len (bytevector-length bv)))
+        (let* ((bv (string->byte-vector str)) (len (bytevector-length bv)))
           (let loop
             ((i 0) (count 0) (w 0))
             (if (or (>= count n) (>= i len))
@@ -213,13 +225,15 @@
               (let ((ansi-end (%match-ansi bv i len)))
                 (if ansi-end
                   (loop ansi-end count w)
-                  (let* ((next (bytevector-advance-utf8 bv i len))
-                         (step (if (= next i) (+ i 1) next))
-                         (cp (utf8->codepoint-at bv i))
-                         (cw (%codepoint-width cp))
-                        ) ;
-                    (loop step (+ count 1) (+ w cw))
-                  ) ;let*
+                  (let ((next (bytevector-advance-utf8-strict bv i len)))
+                    (if (= next i)
+                      ;; 非法 UTF-8 字节：对替换为 U+FFFD 后的串重算（同 display-width）
+                      (display-width-prefix (utf8-replace-invalid str) n)
+                      (let* ((cp (utf8->codepoint-at bv i)) (cw (%codepoint-width cp)))
+                        (loop next (+ count 1) (+ w cw))
+                      ) ;let*
+                    ) ;if
+                  ) ;let
                 ) ;if
               ) ;let
             ) ;if
