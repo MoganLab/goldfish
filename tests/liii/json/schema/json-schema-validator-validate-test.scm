@@ -57,4 +57,25 @@
 
 (check-catch 'type-error (json-schema-validator-validate 'not-a-validator 1))
 
+(define person-schema
+  '(("type" . "object")
+    ("properties"
+     ("name" ("type" . "string"))
+     ("age" ("type" . "integer") ("minimum" . 0)))
+    ("required" . #("name" "age"))
+    ("additionalProperties" . #f))
+)
+
+(define person-validator
+  (make-json-schema-validator person-schema '((check-schema? . #t)))
+) ;define
+
+(check (json-schema-validator-validate person-validator '(("name" . "A") ("age" . 1)))
+  =>
+  '(("name" . "A") ("age" . 1))
+) ;check
+(check-catch 'json-schema-validation-error
+  (json-schema-validator-validate person-validator '(("name" . "A")))
+) ;check-catch
+
 (check-report)

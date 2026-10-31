@@ -254,4 +254,157 @@
              ) ;json-schema-valid?
 ) ;check-false
 
+(check-true (json-schema-valid? "hello" '(("type" . "string"))))
+(check-false (json-schema-valid? 42 '(("type" . "string"))))
+(check-true (json-schema-valid? 'true '(("type" . "boolean"))))
+(check-true (json-schema-valid? #f '(("type" . "boolean"))))
+(check-true (json-schema-valid? #(1 "x" null) '(("type" . "array"))))
+(check-false (json-schema-valid? '() '(("type" . "object"))))
+
+(check-true (json-schema-valid? 1 '(("const" . 1.0))))
+(check-false (json-schema-valid? #t '(("const" . 1))))
+(check-false (json-schema-valid? 'true '(("const" . 1))))
+(check-true (json-schema-valid? #(#t 1) '(("uniqueItems" . #t))))
+(check-true (json-schema-valid? #((("a" . #t)) (("a" . 1))) '(("uniqueItems"
+                                                               . #t)))
+)
+(check-true (json-schema-valid? #((("a" . 1) ("b" . 2)) (("b" . 2) ("a" . 1)))
+              '(("uniqueItems" . #f))
+            ) ;json-schema-valid?
+)
+
+(check-true
+  (json-schema-valid? #(1 "x" 3)
+    '(("prefixItems" . #((("type" . "integer")) (("type" . "string"))))
+      ("items" ("minimum" . 2)))
+  ) ;json-schema-valid?
+)
+(check-false
+  (json-schema-valid? #(1 "x" 1)
+    '(("prefixItems" . #((("type" . "integer")) (("type" . "string"))))
+      ("items" ("minimum" . 2)))
+  ) ;json-schema-valid?
+)
+(check-false (json-schema-valid? #(1 2 3)
+               '(("prefixItems" . #((("type" . "integer")))) ("items" . #f))
+             ) ;json-schema-valid?
+)
+(check-false
+  (json-schema-valid? #("x" 1 2) '(("items" ("type" . "integer"))))
+)
+(check-true
+  (json-schema-valid? #(1 "x" 2) '(("contains" ("type" . "integer"))))
+)
+(check-false
+  (json-schema-valid? #(1 "x" 2)
+    '(("contains" ("type" . "integer")) ("minContains" . 3))
+  ) ;json-schema-valid?
+)
+(check-true (json-schema-valid? 9 '(("multipleOf" . 0.3))))
+(check-false (json-schema-valid? 1 '(("multipleOf" . 0.3))))
+(check-true (json-schema-valid? 2 '(("minimum" . 2) ("exclusiveMinimum" . 1))))
+(check-false (json-schema-valid? 2 '(("exclusiveMinimum" . 2))))
+(check-true (json-schema-valid? "😀" '(("minLength" . 1) ("maxLength" . 1))))
+
+(check-true (json-schema-valid? 4 '(("allOf"
+                                     . #((("minimum" . 2)) (("maximum" . 5))))))
+)
+(check-true (json-schema-valid? "x"
+              '(("anyOf" . #((("type" . "integer")) (("type" . "string")))))
+            ) ;json-schema-valid?
+)
+(check-false (json-schema-valid? #t
+               '(("anyOf" . #((("type" . "integer")) (("type" . "string")))))
+             ) ;json-schema-valid?
+)
+(check-true (json-schema-valid? 4 '(("oneOf"
+                                     . #((("minimum" . 2)) (("maximum" . 3))))))
+)
+(check-false (json-schema-valid? 4 '(("oneOf"
+                                      . #((("minimum" . 2)) (("maximum" . 5))))))
+)
+(check-false
+  (json-schema-valid? 4 '(("not" ("type" . "integer"))))
+)
+(check-true
+  (json-schema-valid? 4 '(("if" ("minimum" . 0)) ("then" ("maximum" . 5))))
+)
+(check-false
+  (json-schema-valid? 8 '(("if" ("minimum" . 0)) ("then" ("maximum" . 5))))
+)
+
+(check-true
+  (json-schema-valid? 3
+    '(("$defs" ("positive" ("minimum" . 1))) ("$ref" . "#/$defs/positive"))
+  ) ;json-schema-valid?
+)
+(check-false
+  (json-schema-valid? 0
+    '(("$defs" ("positive" ("minimum" . 1))) ("$ref" . "#/$defs/positive"))
+  ) ;json-schema-valid?
+)
+(check-catch 'json-schema-unresolvable
+  (json-schema-valid? 1 '(("$ref" . "#/missing")))
+)
+
+(check-true
+  (json-schema-valid? 2
+    '(("$defs" ("unused" . #f) ("positive" ("minimum" . 1)))
+      ("$ref" . "#/$defs/positive"))
+  ) ;json-schema-valid?
+)
+
+(define person-schema
+  '(("type" . "object")
+    ("properties"
+     ("name" ("type" . "string"))
+     ("age" ("type" . "integer") ("minimum" . 0)))
+    ("required" . #("name" "age"))
+    ("additionalProperties" . #f))
+)
+
+(define person-schema
+  '(("type" . "object")
+    ("properties"
+     ("name" ("type" . "string"))
+     ("age" ("type" . "integer") ("minimum" . 0)))
+    ("required" . #("name" "age"))
+    ("additionalProperties" . #f))
+)
+(check-true (json-schema-valid? '(("name" . "Alice") ("age" . 18)) person-schema)
+)
+(check-false (json-schema-valid? '(("name" . "Alice")) person-schema))
+(check-false (json-schema-valid? '(("name" . "Alice") ("age" . -1)) person-schema)
+)
+(check-false (json-schema-valid? '(("name" . "Alice") ("age" . 18) ("x" . 1)) person-schema)
+)
+
+(define lazy-calls 0)
+(define lazy-checker (lambda (value) (set! lazy-calls (+ lazy-calls 1)) #t))
+
+(define lazy-options `((formats . #t) (format-checkers (even . ,lazy-checker))))
+(check-false (json-schema-valid? "x"
+               '(("type" . "integer") ("format" . "even"))
+               lazy-options
+             ) ;json-schema-valid?
+)
+(check lazy-calls => 0)
+(check
+  (length
+    (json-schema-errors "x"
+      '(("type" . "integer") ("format" . "even"))
+      `((max-errors . 1) ,@lazy-options)
+    ) ;json-schema-errors
+  ) ;length
+  =>
+  1
+)
+(check lazy-calls => 0)
+(check-true (json-schema-valid? 2
+              '(("anyOf" . #((("minimum" . 0)) (("format" . "even")))))
+              lazy-options
+            ) ;json-schema-valid?
+)
+(check lazy-calls => 0)
+
 (check-report)

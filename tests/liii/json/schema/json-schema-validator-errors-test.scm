@@ -64,4 +64,23 @@
 
 (check-catch 'type-error (json-schema-validator-errors 'not-a-validator 1))
 
+
+;; 错误对象给出 JSONPath 风格的路径。
+
+(check
+  (json-schema-error-json-path
+    (car
+      (json-schema-validator-errors
+        (make-json-schema-validator
+          '(("properties" ("a" ("type" . "string"))))
+          ) ;make-json-schema-validator
+        '((a . 1))
+      ) ;json-schema-validator-errors
+    ) ;car
+  ) ;json-schema-error-json-path
+  =>
+  "$.a"
+) ;check
+
+
 (check-report)

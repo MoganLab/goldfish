@@ -40,4 +40,17 @@
 (check-false (json-schema-validator? #t))
 (check-false (json-schema-validator? '()))
 
+(define person-schema
+  '(("type" . "object")
+    ("properties"
+     ("name" ("type" . "string"))
+     ("age" ("type" . "integer") ("minimum" . 0)))
+    ("required" . #("name" "age"))
+    ("additionalProperties" . #f))
+)
+
+(check-true
+  (json-schema-validator? (make-json-schema-validator person-schema '((check-schema? . #t))))
+) ;check-true
+
 (check-report)

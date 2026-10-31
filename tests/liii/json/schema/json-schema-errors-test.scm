@@ -73,4 +73,48 @@
   (check (json-schema-error-json-path error) => "$.name")
 ) ;let
 
+
+;; 错误对象携带实例路径与 Schema 路径。
+
+(let* ((person-schema
+         '(("type" . "object")
+           ("properties"
+            ("name" ("type" . "string"))
+            ("age" ("type" . "integer") ("minimum" . 0)))
+           ("required" . #("name" "age"))
+           ("additionalProperties" . #f)))
+       (errors (json-schema-errors '(("name" . 7)) person-schema))
+      ) ;errors
+  (check-true (= (length errors) 2))
+  (check (json-schema-error-kind (car errors)) => 'validation)
+  (check (json-schema-error-keyword (car errors)) => "type")
+  (check (json-schema-error-path (car errors)) => '("name"))
+) ;let*
+
+;; 错误对象记录嵌套路径。
+
+(define traversal-schema
+  '(("properties" ("outer" ("items" ("properties" ("inner" . #f))))))
+) ;define
+
+(define traversal-instance '(("outer" . #((("inner" . 1))))))
+(let ((error (car (json-schema-errors traversal-instance traversal-schema))))
+  (check (json-schema-error-path error) => '("outer" 0 "inner"))
+  (check (json-schema-error-schema-path error)
+    =>
+    '("properties" "outer" "items" "properties" "inner")
+  ) ;check
+  (check (json-schema-error-json-path error) => "$.outer[0].inner")
+) ;let
+
+;; 错误对象的字段稳定，包括上下文与原因。
+
+(let* ((err (car (json-schema-errors 0 person-schema)))) ;err
+  (check-true (json-schema-error? err))
+  (check (json-schema-error-kind err) => 'validation)
+  (check (json-schema-error-keyword err) => "type")
+  (check (json-schema-error-path err) => '())
+) ;let*
+
+
 (check-report)
