@@ -67,12 +67,18 @@
 
 ;; 4. 写日志不改变进程退出码（s7 exit-hook 有分配会吞退出码，见 issue #1399）
 
+;; 字符串字面量，\U 之类的组合会被当成非法转义
+
+(define *base-for-script*
+  (string-map (lambda (ch) (if (char=? ch #\\) #\/ ch)) *base*)
+) ;define
+
 (define (run-exit-script body code)
   (path-write-text *script*
     (string-append "(set! *load-path* (append (list \"tools/pi\") *load-path*))\n"
       "(import (liii pi ai log))\n"
       "(pi-log-init! \""
-      *base*
+      *base-for-script*
       "\")\n"
       body
       "(exit "

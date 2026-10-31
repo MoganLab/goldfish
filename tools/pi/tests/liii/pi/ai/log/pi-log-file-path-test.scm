@@ -1,6 +1,5 @@
 (import (liii check)
   (liii string)
-  (liii os)
   (liii path)
   (liii tempfile)
   (liii date-time)
@@ -25,11 +24,8 @@
 ;; ----
 ;; 按日期分文件，跨天自动落到新文件；只返回路径，不创建文件。
 
-;; 1. 默认路径位于 ~/.gf/agent/logs 下
-(check (path->string (path-parent (pi-log-file-path)))
-  =>
-  (path->string (pi-log-dir))
-) ;check
+;; 1. 默认路径位于 ~/.gf/agent/logs 下（路径比较，兼容 Windows 盘符与反斜杠）
+(check-true (path-equals? (path-parent (pi-log-file-path)) (pi-log-dir)))
 
 ;; 2. 文件名形如 pi-YYYY-MM-DD.log
 
@@ -42,8 +38,8 @@
   #t
 ) ;check
 
-;; 3. 跨天时文件名随日期变化（用提前一天的时间无法注入，这里只校验格式三段）
-(check (string-starts? (path->string (pi-log-file-path)) "/") => #t)
+;; 3. 返回值是绝对路径（不用 "/" 前缀判断，Windows 下以盘符开头）
+(check-true (path-absolute? (pi-log-file-path)))
 
 ;; 4. 显式初始化目录后，文件路径跟随初始化目录
 
@@ -51,7 +47,7 @@
 
 (define *dir* (path-join (path *base*) "logs"))
 (pi-log-init! *dir*)
-(check (path->string (path-parent (pi-log-file-path))) => (path->string *dir*))
+(check-true (path-equals? (path-parent (pi-log-file-path)) (path *dir*)))
 (pi-log-reset!)
 (path-rmdir *dir*)
 (path-rmdir *base*)
