@@ -3,6 +3,33 @@
 (check-set-mode! 'report-failed)
 
 ;; openai-is-retriable-error?
+;; 判断 OpenAI 兼容协议的失败是否属于可重试错误。
+;;
+;; 语法
+;; ----
+;; (openai-is-retriable-error? status-code response-body-str)
+;; (openai-is-retriable-error? status-code response-body-str provider)
+;;
+;; 参数
+;; ----
+;; status-code : integer?
+;; HTTP 状态码；0 表示网络错误/连接失败。
+;;
+;; response-body-str : string?
+;; 响应体原文，用于交给 provider 的额度耗尽识别函数。
+;;
+;; provider : string?
+;; 可选，服务商 id；省略时不做额度耗尽判定。
+;;
+;; 返回值
+;; ----
+;; boolean
+;; 可重试返回 #t，否则 #f。
+;;
+;; 注意
+;; ----
+;; 可重试集合是显式列表：0、408、409、429、500、502、503、504、529（501、505 等不在其中）。
+;; 额度耗尽优先判为不可重试；普通 429 限流（如 rate limit）仍可重试。
 (check (openai-is-retriable-error? 429 "") => #t)
 (check (openai-is-retriable-error? 500 "") => #t)
 (check (openai-is-retriable-error? 502 "") => #t)

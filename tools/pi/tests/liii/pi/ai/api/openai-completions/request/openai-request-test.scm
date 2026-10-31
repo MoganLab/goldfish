@@ -12,7 +12,45 @@
 
 (check-set-mode! 'report-failed)
 
-;; openai-request 网络错误或不可达端点处理
+;; openai-request
+;; OpenAI 兼容协议的非流式请求：把消息发到服务商并解析成 assistant 消息。
+;;
+;; 语法
+;; ----
+;; (openai-request config messages)
+;; (openai-request config messages system-instruction tool-names timeout opt-retry)
+;;
+;; 参数
+;; ----
+;; config : list?
+;; 关联表，含 provider、model-id、model-meta（base-url / max-tokens）、api-key、
+;; proxy-url、tools、settings（retry 配置）。
+;;
+;; messages : list?
+;; 会话消息列表（pi-user-message / pi-assistant-message / tool result）。
+;;
+;; system-instruction : string? 或 #f
+;; 可选，系统提示。
+;;
+;; tool-names : list? 或 #f
+;; 可选，启用的工具名。
+;;
+;; timeout : integer?
+;; 可选，单次请求超时秒数，默认 300。
+;;
+;; opt-retry : list? 或 #f
+;; 可选，覆盖 settings 里的 retry 配置。
+;;
+;; 返回值
+;; ----
+;; pi-assistant-message?
+;; 成功时为正常 assistant 消息；网络错误、重试用尽、额度耗尽时 stop-reason 为 "error"，
+;; error-message 为可读提示（额度耗尽时是 provider 前缀加官方原文）。
+;;
+;; 注意
+;; ----
+;; 可重试错误按 retry 配置退避重试；额度耗尽不重试（多账号时先换 key）。
+;; 异常请求（非 200、网络错误）会连同响应体原文写入 ~/.gf/agent/logs。
 (let* ((cfg
          (list (cons 'model-id "kimi-for-coding")
            (cons 'model-meta '(("base-url" . "http://127.0.0.1:1")

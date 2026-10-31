@@ -3,8 +3,33 @@
 (check-set-mode! 'report-failed)
 
 ;; pi-is-retriable-error?
-;; 通用可重试判定：状态码之外还需看错误体，
-;; 额度耗尽（5 小时窗口 / 周额度）属于账户级限额，不应重试。
+;; 通用可重试错误判定（gemini 与 anthropic 的别名都指向它）。
+;;
+;; 语法
+;; ----
+;; (pi-is-retriable-error? status-code response-body-str)
+;; (pi-is-retriable-error? status-code response-body-str provider)
+;;
+;; 参数
+;; ----
+;; status-code : integer?
+;; HTTP 状态码；0 表示网络错误/连接失败。
+;;
+;; response-body-str : string?
+;; 响应体原文，用于额度耗尽判定。
+;;
+;; provider : string?
+;; 可选，服务商 id；省略时不做额度耗尽判定。
+;;
+;; 返回值
+;; ----
+;; boolean
+;; 可重试返回 #t，否则 #f。
+;;
+;; 注意
+;; ----
+;; 可重试集合：0、408、409、429 与所有大于等于 500 的状态码；
+;; 额度耗尽（按 provider 结构化识别）优先判为不可重试。
 
 (check (pi-is-retriable-error? 408 "") => #t)
 (check (pi-is-retriable-error? 409 "") => #t)
