@@ -527,26 +527,6 @@
     (define unicode-max-codepoint 1114111)
     (define unicode-replacement-char 65533)
 
-    ;; ; utf8-replace-invalid: 把字符串中的非法 UTF-8 字节序列替换为 U+FFFD
-    ;;
-    ;; 参数
-    ;; ----
-    ;; str : string
-    ;; 输入字符串，内部可能包含非法 UTF-8 字节（子进程输出、二进制数据、
-    ;; 被截断的多字节序列等）。
-    ;;
-    ;; 返回值
-    ;; ----
-    ;; string
-    ;; 合法 UTF-8 字节原样保留；非法字节序列按 WHATWG Encoding 规范替换为
-    ;; U+FFFD（每个最大非法子序列一个替换字符）。输入已是合法 UTF-8 时
-    ;; 直接返回原串（不重新分配）。
-    ;;
-    ;; 描述
-    ;; ----
-    ;; utf8->string / string->utf8 遇到非法 UTF-8 会抛 value-error，使整段
-    ;; 输出丢失。utf8-replace-invalid 提供容错解码：非法序列替换为 U+FFFD，
-    ;; 与上游 JS TextDecoder 的容错行为一致。
     ;; U+FFFD 替换字符（模块级常量，避免每次替换重新分配）
     (define %utf8-replacement-string (utf8->string #u8(239 191 189)))
 
