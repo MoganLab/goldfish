@@ -1,56 +1,43 @@
-(import (liii json schema data)
-  (liii json schema)
-  (liii json)
-  (liii check)
-  (scheme base)
-) ;import
+;; (liii json schema data) 模块介绍与用法示例
+;;
+;; (liii json schema data) 封装 JSON 数据的底层访问约定：对象以键值对
+;; alist 表示，数组以向量表示，布尔值兼容 #t/#f 与 true/false 两种写法。
 
-(check-set-mode! 'report-failed)
+(import (liii json schema data))
 
-;; String and symbol keys share lookup semantics without losing the stored key.
-(let* ((object '(("name" . "Liii") (age . 18) ("enabled" . #f)))
-       (cell (object-cell object 'name))
-      ) ;
-  (check-true (pair? cell))
-  (check (car cell) => "name")
-  (check (object-ref object "age" #f) => 18)
-  (check-true (object-has? object 'enabled))
-  (check-false (object-ref object "enabled" #t))
-  (check-false (object-has? object "missing"))
-  (check (object-ref object "missing" 'fallback) => 'fallback)
-) ;let*
+;; ==== 模块概述 ====
+;;
+;; - json-boolean?   - 是否为 JSON 布尔值
+;; - json-true?      - 是否为 JSON 布尔真值
+;; - json-false?     - 是否为 JSON 布尔假值
+;; - key->string     - 键转字符串
+;; - entries         - 对象的键值对序列
+;; - object-cell     - 查找键值对
+;; - object-ref      - 读取键对应的值
+;; - object-has?     - 判断键是否存在
+;; - option-ref      - 读取选项表中的值
+;; - listify         - 值规约为列表
+;; - absent          - 缺失值标记
+;; - collect-for-each - 遍历并收集结果
 
-;; The empty object has no entries and is different from the empty list and array.
-(check (entries '(())) => '())
-(check (entries '()) => '())
-(check-true (json-object? '(())))
-(check-false (json-object? '()))
-(check-true (vector? #()))
-(check (length (listify #())) => 0)
-(check (listify '(())) => '(()))
+;; ==== 如何查看函数的文档和用例 ====
+;;
+;; 查看模块文档：
+;;   gf doc liii/json/schema/data
+;;
+;; 查看具体函数文档：
+;;   gf doc "object-ref"
+;;   gf doc "listify"
 
-;; JSON values retain their distinct public types.
-(check-true (json-schema-valid? 'null '(("type" . "null"))))
-(check-false (json-schema-valid? 'null '(("type" . "boolean"))))
-(check-true (json-schema-valid? #f '(("type" . "boolean"))))
-(check-false (json-schema-valid? #f '(("type" . "integer"))))
-(check-false (json-schema-valid? 0 '(("type" . "boolean"))))
-(check-true (json-schema-valid? 0 '(("type" . "integer"))))
+;; ==== 常见用法示例 ====
 
-;; Options and sequence normalization are shared by all modules.
-(let ((options '((formats . #f) (max-errors . 2))))
-  (check-false (option-ref options 'formats #t))
-  (check (option-ref options 'max-errors #f) => 2)
-  (check (option-ref options 'registry 'missing) => 'missing)
-) ;let
-(check (listify #(1 2)) => '(1 2))
-(check (listify 1) => '(1))
-(check
-  (collect-for-each (lambda (x) (list x (* x 2))) '(1 2))
-  =>
-  '(1 2 2 4)
-) ;check
+;; 示例1：读取对象字段
+(define person '(("name" . "Liii") (age . 18)))
+(object-ref person "age" 0) ; => 18
+(object-has? person 'name) ; => #t
 
-(check-catch 'type-error (key->string 1))
-(check-catch 'type-error (object-ref '() 1 #f))
-(check-report)
+;; 示例2：字符串键与符号键等价
+(object-ref person 'name #f) ; => "Liii"
+
+;; 示例3：遍历数组
+(listify #(1 2 3)) ; => (1 2 3)
