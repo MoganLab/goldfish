@@ -19,9 +19,10 @@ timeout 600 xmake b goldfish
 
 # 配置复用 JSON 配置文件目录（config-dir）：~/.gf/agent/ 存在时优先，否则 ~/.pi/agent/
 # settings.json（defaultProvider/defaultModel/httpProxy/retry）、
-# auth.json（api_key / ANTHROPIC_AUTH_TOKEN 等环境变量兜底）、models-store.json（模型元数据）
+# auth.json（api_key / ANTHROPIC_AUTH_TOKEN 等环境变量兜底）、models-store.json（刷新同步快照，不参与合并）
+# providers.json + <provider>.json + <provider>/<model>.json（provider 与模型配置，见下节）
 # 会话目录不受影响：始终 ~/.pi/agent/sessions/
-# 访问 Gemini 需要代理：--proxy > HTTPS_PROXY/ALL_PROXY 环境变量 > settings.json httpProxy > 直连
+# HTTP 代理（per-provider）：--proxy > <provider>.json httpProxy > HTTPS_PROXY/ALL_PROXY 环境变量 > settings.json httpProxy > 直连
 # 重试：可重试 provider 错误（429/5xx/408/409/网络错误）使用 retry.provider.maxRetries 预算
 # （本机=12），未配置该嵌套节时回退 retry.maxRetries（缺省 3）
 ```
@@ -32,7 +33,7 @@ timeout 600 xmake b goldfish
 
 | 类别 | 目录 | 内容 |
 |---|---|---|
-| 配置文件目录（config-dir） | `~/.gf/agent/`（存在时）否则 `~/.pi/agent/` | `settings.json`、`auth.json`、`models.json`、`models-store.json`、`multikey.json`、`web-search.json` 等 JSON 配置文件 |
+| 配置文件目录（config-dir） | `~/.gf/agent/`（存在时）否则 `~/.pi/agent/` | `settings.json`、`auth.json`、`providers.json`、`<provider>.json`、`<provider>/<model>.json`、`models-store.json`、`multikey.json`、`web-search.json` 等 JSON 配置文件 |
 | 会话 / 扩展目录（agent-dir） | `~/.pi/agent/` | `sessions/`（会话记录）、`extensions/`（用户扩展） |
 
 优先级：`GF_CONFIG_DIR` > `PI_CODING_AGENT_DIR` 环境变量（测试与调试用） > `~/.gf/agent/`
@@ -55,6 +56,150 @@ GF_CONFIG_DIR=/tmp/my-config-dir bin/gf pi -p "hello"
 # PI_CODING_AGENT_DIR 同样可用（兼容 pi 既有约定）
 PI_CODING_AGENT_DIR=/tmp/my-agent-dir bin/gf pi -p "hello"
 ```
+
+## Provider 与模型配置
+
+### 设计动机
+
+旧版把全部 provider 与模型塞进一个 `models.json` 大文件：改错一处语法，整个文件静默失效；
+想要覆盖一个模型的两个字段，必须整条重写。新设计把配置拆成三层小文件，**每层都是白名单
+array，文件只负责补充与覆盖**：
+
+```
+~/.gf/agent/
+  providers.json            ← 哪些 provider 启用（json array，顺序即展示顺序）
+  kimi-coding.json          ← provider 层：端点、代理、模型白名单
+  kimi-coding/
+    k3.1-pro.json           ← 模型层：单模型条目，文件名即模型 id（可选）
+    k3.1-pro-highspeed.json
+  auth.json                 ← API key 只在这里（支持 ${VAR} 环境变量模板）
+  models-store.json         ← 上游刷新时同步下来的目录快照（仅供参考/诊断，不参与合并）
+```
+
+### providers.json：provider 白名单
+
+```json
+["google", "kimi-coding"]
+```
+
+| 规则 | 行为 |
+|---|---|
+| 文件为 json array，元素为 provider id 字符串 | array 顺序即 `--list-models` 与模型选择器的展示顺序 |
+| 文件缺失 | 默认全部内置 provider（google / kimi-coding / deepseek / minimax-cn / zai-coding-cn，共 5 个） |
+| 语法错误 / 元素非字符串 / 重复 id | **报错拒启**（白名单是唯一致命文件，其余文件坏一个忽略一个） |
+| id 有同名 `<id>.json` 或 `<id>/` 目录，但不在白名单 | 启动告警，该 provider 忽略（防拼写错位） |
+| id 在白名单，但无内置定义且无配置文件 | 启动告警，该 provider 忽略 |
+
+### <provider>.json：provider 层配置
+
+JSON Schema：仓库内 `tools/pi/liii/pi/code/resources/provider.schema.json`，
+编辑器中在文件首行写 `"$schema": "https://case-lambda.org/agent/provider.schema.json"` 可获得补全与校验（运行时暂不校验）。
+
+```json
+{
+  "name": "Kimi Coding",
+  "baseUrl": "https://api.kimi.com/coding",
+  "api": "anthropic",
+  "httpProxy": "http://127.0.0.1:7890",
+  "models": ["k3.1-pro", "k3.1-pro-highspeed"]
+}
+```
+
+| 字段 | 类型 | 必填 | 缺省 | 说明 |
+|---|---|---|---|---|
+| `name` | string | 否 | provider id | 展示名（模型选择器等 UI） |
+| `baseUrl` | string | 内置可省<br>自定义必填 | 内置默认端点 | 未知 provider（无内置定义）必填 |
+| `api` | string | 内置可省<br>自定义必填 | 内置默认协议 | 协议标识：`anthropic-messages` / `openai-completions` / `google-generative-ai`；简写 `anthropic` / `openai` / `google` 等价 |
+| `httpProxy` | string | 否 | （无） | **per-provider 代理**。优先级：`--proxy` 参数 > 本字段 > `HTTPS_PROXY`/`ALL_PROXY` 环境变量 > settings.json `httpProxy` |
+| `models` | array of string | 否 | 不过滤 | **模型白名单**：只有列出的 id 可用，顺序即展示顺序。缺省 = 内置目录全量可用 |
+
+字段级合并：只覆盖用户写了的字段，未写字段回落内置默认。最小配置一行即可换镜像端点：
+
+```json
+{ "baseUrl": "https://mirror.example.com/coding" }
+```
+
+`models` 白名单语义：
+
+| 情形 | 行为 |
+|---|---|
+| id 在 `models` 中，无同名模型文件 | 启用，元数据走内置目录（有则补齐缺失字段） |
+| id 在 `models` 中，但任何来源查无此模型 | 告警 + 忽略（拼错 id 立刻暴露） |
+| 目录里有 `k3.1-pro.json`，但 id 不在 `models` 中 | 命名告警 + 忽略（对称防呆） |
+| 重复 id / 非字符串元素 | 报错拒启（同 providers.json） |
+
+### <provider>/<model>.json：模型层条目
+
+字段集与旧版 `models.json` 最内层模型条目完全一致（零新语法）：
+
+```json
+{
+  "name": "Kimi K3.1 Pro",
+  "reasoning": true,
+  "input": ["text", "image"],
+  "contextWindow": 1048576,
+  "maxTokens": 131072,
+  "cost": { "input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0 },
+  "thinkingLevelMap": { "off": null, "low": "low", "high": "high", "max": "max" }
+}
+```
+
+- 文件名（去 `.json`）即模型 id；文件内写 `"id"` 可覆盖
+- 全部字段可选，`{}` 合法：模型存在，缺失字段由内置目录同名模型（若有）补齐
+- `compat`、`thinkingLevelMap` 均为模型级字段，落在模型文件里（字段集与上游 models-store 数据结构对齐）
+
+### 合并优先级
+
+单个模型条目的最终字段值，按层取最高优先级：
+
+```
+<provider>/<model>.json  >  内置目录
+```
+
+按字段逐项合并：模型文件写了的字段生效，没写的字段从内置目录同名模型（若有）取默认值。
+
+models-store.json 不参与合并：它只是刷新命令同步下来的远端目录快照，供用户查阅
+（比如想知道远端新增了哪些模型 id，可以打开看，再决定是否加进 `models` 白名单）。
+实际生效的目录永远只有 内置目录 + 用户文件。
+
+### auth.json：API key 唯一存放处
+
+provider 文件不放任何密钥。auth.json 保持原有结构与解析链（环境变量 > auth.json > 特例回退），
+`key` 字段支持 `${VAR}` 环境变量模板：
+
+```json
+{
+  "google": { "type": "api_key", "key": "${GEMINI_API_KEY}" },
+  "kimi-coding": { "type": "api_key", "key": "sk-..." }
+}
+```
+
+### 最小配置示例
+
+```json
+// 零文件：providers.json 不存在 = 全部内置 provider，key 走环境变量/auth.json
+
+// providers.json —— 我只用 kimi 一个 provider
+["kimi-coding"]
+
+// kimi-coding.json —— 换镜像端点，模型全量
+{ "baseUrl": "https://mirror.example.com/coding" }
+
+// google.json —— 只有 google 走代理，其余直连
+{ "httpProxy": "http://127.0.0.1:7890" }
+
+// deepseek.json —— 只启用两个模型
+{ "models": ["deepseek-chat", "deepseek-reasoner"] }
+
+// kimi-coding/k3.1-pro.json —— 只改一个模型的展示名
+{ "name": "Kimi K3.1 Pro" }
+```
+
+### 从旧版迁移
+
+- 旧 `models.json` **已废弃**：其中重复的模型目录信息由内置目录承担；
+  自定义 baseUrl 改写进 `<provider>.json`；自定义模型条目拆成 `<provider>/<model>.json`
+- `models-store.json` 仅作刷新同步的快照，不参与合并；实际目录 = 内置目录 + 用户文件
 
 ## 基本用法【可用】
 
@@ -425,8 +570,7 @@ timeout 180 bin/gf pi install --local https://gitee.com/xxx/my-project-extension
 timeout 300 bin/gf pi -p "hi"
 ```
 
-同一 provider 切换不同模型（均已实测成功；完整模型清单见
-`~/.pi/agent/models-store.json` 的 google.models）：
+同一 provider 切换不同模型（均已实测成功；完整模型清单见内置目录，`bin/gf pi --provider google --list-models`）：
 
 ```bash
 # flash 系列（不同版本）
@@ -435,7 +579,7 @@ timeout 120 bin/gf pi -p --model gemini-3.5-flash "只回复：ok"   # ✅ 实�
 timeout 240 bin/gf pi -p --model gemini-3.1-pro-preview "只回复：ok"  # ✅ pro 系列，实测通过
 
 # 模型元数据解析（任务 034 起）：--model 必须在选定 provider 的目录中命中
-# （models-store + models.json 合并目录），不匹配或查无此模型均报错退出码 1
+# （内置目录 + provider/model 文件合并目录），不匹配或查无此模型均报错退出码 1
 # （不再 warning + fallback 兜底）
 ```
 
@@ -619,8 +763,8 @@ tools/pi/liii/
   bin/gf pi --provider glm --list-models
   ```
 
-  注：glm 模型目录来自 `~/.pi/agent/models.json` 用户自定义目录（任务 029 的合并
-  逻辑零改动覆盖）；验收脚本 `tools/pi/devel/028.scm` 41/41 全绿。
+  注：glm 模型目录的合并逻辑零改动覆盖，用户自定义目录改由
+  `<provider>.json` / `<provider>/<model>.json` 提供；验收脚本 `tools/pi/devel/028.scm` 41/41 全绿。
 - [x] **DeepSeek v4 系列接入【可用】（任务 029 已验收）**：经由 `https://api.deepseek.com/anthropic` 端点接入。推荐模型：`deepseek-v4-flash`（1M 上下文旗舰版，支持深度思考链与代码工具调用）、`deepseek-chat`（通用对话）、`deepseek-reasoner`（强化推理版）。已实测用法：
 
   ```bash
@@ -634,7 +778,7 @@ tools/pi/liii/
   bin/gf pi --provider deepseek --list-models
   ```
 
-  注：模型目录来自 `~/.pi/agent/models.json` 用户自定义目录（任务 029 起合并进 models-store）。
+  注：模型目录来自用户自定义配置（`<provider>.json` 模型白名单 + `<provider>/<model>.json` 模型文件）。
 - [x] **MiniMax 中国大陆版接入【可用】（任务 030 已验收）**：复用 auth.json 中的 `sk-cp-...` 凭据，接入 `https://api.minimaxi.com/anthropic`。模型：`MiniMax-M3.1-Flash`（1M 上下文、524K 最大输出，**轮换池主力**——特别快）、`MiniMax-M3`（1M/512K 多模态旗舰）、`MiniMax-M2.7`（204.8K）与 `MiniMax-M2.7-highspeed`（高速版）。已实测用法：
 
   ```bash

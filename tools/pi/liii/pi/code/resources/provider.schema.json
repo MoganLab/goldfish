@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://case-lambda.org/agent/provider.schema.json",
+  "title": "Goldfish pi provider 配置（<provider>.json）",
+  "description": "provider 层配置文件。文件名即 provider id；未写的字段回落内置默认（内置 provider），未知 provider 必填 baseUrl 与 api。API key 一律存放于 auth.json，本文件不包含任何密钥。",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "本 schema 的 URL，编辑器据此提供补全与校验，可省略"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "展示名（模型选择器等 UI）。缺省为 provider id（文件名）"
+    },
+    "baseUrl": {
+      "type": "string",
+      "minLength": 1,
+      "description": "API 端点。内置 provider 可省（用内置默认端点）；未知 provider 必填"
+    },
+    "api": {
+      "type": "string",
+      "enum": [
+        "anthropic-messages",
+        "openai-completions",
+        "google-generative-ai",
+        "anthropic",
+        "openai",
+        "google"
+      ],
+      "description": "协议标识。简写 anthropic/openai/google 分别等价于 anthropic-messages/openai-completions/google-generative-ai。内置 provider 可省（用内置默认协议）；未知 provider 必填"
+    },
+    "httpProxy": {
+      "type": "string",
+      "minLength": 1,
+      "description": "per-provider HTTP 代理。优先级：--proxy 参数 > 本字段 > HTTPS_PROXY/ALL_PROXY 环境变量 > settings.json httpProxy"
+    },
+    "models": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true,
+      "description": "模型 id 白名单：只有列出的 id 可用，顺序即展示顺序。缺省不过滤（内置目录全量可用）。id 的模型元数据取自 <provider>/<model>.json，缺失字段由内置目录同名模型补齐；任何来源都查无的 id 启动时告警并忽略"
+    }
+  },
+  "additionalProperties": false,
+  "not": {
+    "anyOf": [
+      { "required": ["apiKey"] },
+      { "required": ["compat"] },
+      { "required": ["modelDefaults"] },
+      { "required": ["models-with-metadata"] }
+    ]
+  },
+  "examples": [
+    {
+      "name": "Kimi Coding",
+      "baseUrl": "https://api.kimi.com/coding",
+      "api": "anthropic",
+      "httpProxy": "http://127.0.0.1:7890",
+      "models": ["k3.1-pro", "k3.1-pro-highspeed"]
+    },
+    { "baseUrl": "https://mirror.example.com/coding" },
+    { "models": ["deepseek-chat", "deepseek-reasoner"] }
+  ]
+}
