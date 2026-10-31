@@ -19,7 +19,8 @@
 (define-library (liii pi ai providers quota)
   (import (scheme base) (scheme char) (liii string) (liii json))
   (export pi-quota-json-fields pi-quota-match-codes
-    pi-quota-message-trailing-code %make-pi-quota-limit pi-quota-limit?
+    pi-quota-message-trailing-code pi-quota-error-message
+    set-pi-quota-error-logger! %make-pi-quota-limit pi-quota-limit?
     pi-quota-limit-kind pi-quota-limit-code pi-quota-limit-message
     pi-quota-error-result
   ) ;export
@@ -157,6 +158,51 @@
           ) ;if
         ) ;let*
       ) ;if
+    ) ;define
+
+    ;; 错误响应体解析异常的日志通道：由 (liii pi ai log) 初始化时注入
+    ;; pi-log-error!。quota 层不能反向 import log（log -> limits -> registry
+    ;; -> 各 provider -> quota，反向会循环依赖），故用回调注入；
+    ;; 未注入时静默，不影响判定主流程。
+    (define *quota-error-logger* #f)
+
+    (define (set-pi-quota-error-logger! logger)
+      (set! *quota-error-logger* logger)
+    ) ;define
+
+    ;; 日志用响应体片段：超长截断，避免畸形大 body 刷屏
+    (define (%quota-body-snippet body-str)
+      (if (not (string? body-str))
+        ""
+        (let ((n 120))
+          (if (<= (string-length body-str) n)
+            body-str
+            (string-append (substring body-str 0 n) "...")
+          ) ;if
+        ) ;let
+      ) ;if
+    ) ;define
+
+    ;; 从错误响应体安全提取 error.message：
+    ;;   正常 -> message 字符串（可能为 '() 等其他类型，由调用方 string? 过滤）
+    ;;   解析失败（非 JSON、畸形结构）-> 经注入的 logger 记录后返回 '()。
+    ;; provider 的额度判定函数可直接复用，不必各自内联 catch。
+    (define (pi-quota-error-message body-str)
+      (catch #t
+        (lambda () (json-ref (string->json body-str) "error" "message"))
+        (lambda (tag . args)
+          (if (procedure? *quota-error-logger*)
+            (*quota-error-logger* (string-append "quota-parse-error"
+                                    " tag="
+                                    (if (symbol? tag) (symbol->string tag) "error")
+                                    " body="
+                                    (%quota-body-snippet body-str)
+                                  ) ;string-append
+            ) ;*quota-error-logger*
+          ) ;if
+          '()
+        ) ;lambda
+      ) ;catch
     ) ;define
 
     ;; 默认实现：状态码 ∈ {403, 429} 且业务标识命中码表

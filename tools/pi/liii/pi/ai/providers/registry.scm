@@ -98,6 +98,7 @@
         (cons "zai" PI_ZAI_CODING_CN_QUOTA_ERROR)
         (cons "kimi-coding" PI_KIMI_CODING_QUOTA_ERROR)
         (cons "minimax-cn" PI_MINIMAX_CN_QUOTA_ERROR)
+        (cons "google" PI_GOOGLE_QUOTA_ERROR)
       ) ;list
     ) ;define
 

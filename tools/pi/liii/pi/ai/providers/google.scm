@@ -5,8 +5,8 @@
 ;;
 
 (define-library (liii pi ai providers google)
-  (import (scheme base))
-  (export PI_GOOGLE_PROVIDER PI_GOOGLE_BUILTIN_MODELS)
+  (import (scheme base) (scheme char) (liii string) (liii pi ai providers quota))
+  (export PI_GOOGLE_PROVIDER PI_GOOGLE_BUILTIN_MODELS PI_GOOGLE_QUOTA_ERROR)
   (begin
 
     ;; Provider 配置：api 为协议实现标识（对应 api/ 目录），baseUrl 为默认端点，
@@ -15,6 +15,24 @@
       '((api . "google-generative-ai")
         (baseUrl . "https://generativelanguage.googleapis.com/v1beta")
         (envKeys "GEMINI_API_KEY"))
+    ) ;define
+
+    ;; 「额度耗尽」识别：Google Gemini（generativelanguage.googleapis.com）
+    ;;
+    ;; 只认实测遇到过的形态（2026-10-31 实测 gemini-3.8-flash）：429 且
+    ;; error.message 含 "spending cap"（月消费上限）时判定 monthly 额度
+    ;; 耗尽。其余 429（瞬时限流、文案不认识、无法解析）一律返回 #f 交回
+    ;; 原有重试逻辑。未实测过的错误形态不加入判定，避免误杀瞬时限流。
+    (define (PI_GOOGLE_QUOTA_ERROR status-code body-str)
+      (let ((msg (pi-quota-error-message body-str)))
+        (if (and (= status-code 429)
+              (string? msg)
+              (string-contains? (string-downcase msg) "spending cap")
+            ) ;and
+          (%make-pi-quota-limit "monthly" "spending-cap" msg)
+          #f
+        ) ;if
+      ) ;let
     ) ;define
 
     (define PI_GOOGLE_BUILTIN_MODELS
