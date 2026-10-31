@@ -42,7 +42,7 @@
 
     ;; pi-get-agent-dir 已下沉至 (liii pi code core tools read)，此处经 import 再导出
 
-    ;; JSON 配置文件目录：settings.json / auth.json / providers.json /
+    ;; JSON 配置文件目录：settings.json / auth.json / models/providers.json /
     ;; models/（provider 与模型配置）/ models-store.json / multikey.json /
     ;; web-search.json 等所在目录。
     ;; 优先级：显式目录参数 > GF_CONFIG_DIR > PI_CODING_AGENT_DIR
@@ -231,7 +231,7 @@
              ;; JSON 配置文件目录：~/.gf/agent 存在时优先，否则回退 ~/.pi/agent
              (config-dir (gf-get-config-dir env-agent-dir))
              (settings (pi-load-settings config-dir))
-             ;; 模型目录来自用户配置：providers.json 白名单 + models/ 下的
+             ;; 模型目录来自用户配置：models/providers.json 白名单 + models/ 下的
              ;; provider 与模型文件，白名单外的 provider/模型不可用
              (models-store (pi-build-user-catalog (path->string config-dir)))
              (cli-proxy (pi-args-ref parsed-args 'proxy))

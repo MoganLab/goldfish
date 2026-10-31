@@ -1,11 +1,15 @@
 (import (liii check)
-        (liii pi ai providers registry)
-        (liii pi code config user-catalog))
+        (liii string)
+        (liii path)
+  (liii pi ai providers registry)
+        (liii pi code config user-providers)
+  (liii pi code config user-catalog))
 
 (check-set-mode! 'report-failed)
 
 ;; pi-load-providers-whitelist
-;; 读取 providers.json 白名单：文件缺失返回 #f（回退全部内置 provider），
+;; 读取 models/providers.json 白名单（旧位置 providers.json 兼容）：
+;; 文件缺失返回 #f（回退全部内置 provider），
 ;; 语法错误/元素非字符串/重复 id 抛错（唯一致命文件）。
 (define FIXTURE
   (if (file-exists? "tools/pi/tests/fixtures/user-config")
@@ -65,7 +69,28 @@
   (check (map car catalog)
     => '("deepseek" "google" "kimi-coding" "minimax-cn" "zai-coding-cn")))
 
-;; 9. api 简写归一化：openai -> openai-completions
+;; 9. 白名单路径：models/providers.json 优先，旧位置 providers.json 仍可用
+(let* ((st (pi-load-providers-whitelist (string-append FIXTURE "/full"))))
+  (check st => '("google" "kimi-coding" "custom-kimi")))
+;; 路径分隔符随平台变化（Windows 为反斜杠），断言用 path-join 生成期望后缀
+(check (string-ends? (pi-providers-whitelist-path (string-append FIXTURE "/full"))
+           (path->string (path-join (path "models") (path "providers.json")))
+         ) ;string-ends?
+  => #t
+) ;check
+;; 旧位置：direct 夹具只有顶层 providers.json
+(define FIXTURE-DIRECT
+  (if (file-exists? "tools/pi/tests/fixtures/direct")
+    "tools/pi/tests/fixtures/direct"
+    "tests/fixtures/direct"
+  ) ;if
+) ;define
+(check (string-ends? (pi-providers-whitelist-path FIXTURE-DIRECT) "providers.json") => #t)
+(check (string-ends? (pi-providers-whitelist-path FIXTURE-DIRECT) "models/providers.json")
+  => #f
+) ;check
+
+;; 10. api 简写归一化：openai -> openai-completions
 (let* ((entry (assoc "kimi-coding" catalog-full)))
   (check (cdr (assoc "api" (cdr entry))) => "openai-completions"))
 

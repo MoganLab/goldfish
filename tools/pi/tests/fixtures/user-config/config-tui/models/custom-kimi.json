@@ -1,0 +1,7 @@
+{
+  "name": "Custom Kimi",
+  "baseUrl": "https://mirror.example.com/coding",
+  "api": "anthropic",
+  "httpProxy": "http://provider-proxy:1080",
+  "models": ["m1"]
+}

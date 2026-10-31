@@ -1,0 +1,5 @@
+{
+  "defaultProvider": "kimi-coding",
+  "defaultModel": "k3.1-pro",
+  "httpProxy": "http://global-proxy:8080"
+}
