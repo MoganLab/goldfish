@@ -85,6 +85,12 @@
       ) ;let
     ) ;define
 
+    ;; modelThinkingLevels：per-model 思考级别覆盖表（键为 "provider/modelId"）
+    ;; 非 alist 结构时忽略，避免脏数据影响启动
+    (define (%parse-model-thinking-levels val)
+      (if (and (pair? val) (every pair? val)) val '())
+    ) ;define
+
     (define (pi-load-settings config-dir)
       (let* ((filepath (path-join config-dir "settings.json"))
              (obj (or (pi-read-json-file filepath) '()))
@@ -95,16 +101,21 @@
                  raw-proxy
                ) ;and
              ) ;clean-proxy
+             ;; defaultThinkingLevel 未配置时保持 #f（未设置），
+             ;; 生效默认值由 pi-default-thinking-level 兜底
+             (raw-thinking (json-dict-ref obj "defaultThinkingLevel" #f))
+             (default-thinking (if (string? raw-thinking) raw-thinking #f))
             ) ;
         (%make-pi-settings (json-dict-ref obj "defaultProvider" "google")
           (json-dict-ref obj "defaultModel" "gemini-3.8-flash")
-          (json-dict-ref obj "defaultThinkingLevel" "off")
+          default-thinking
           clean-proxy
           (%build-retry-record (json-dict-ref obj "retry" '()))
           (%parse-tools-list (json-dict-ref obj "defaultTools" #f))
           (json-dict-ref obj "sessionDir" #f)
           ;; 与上游共用 settings.json：hideThinkingBlock 隔离为单行斜体标签
           (%normalize-bool (json-dict-ref obj "hideThinkingBlock" #f))
+          (%parse-model-thinking-levels (json-dict-ref obj "modelThinkingLevels" '()))
         ) ;%make-pi-settings
       ) ;let*
     ) ;define

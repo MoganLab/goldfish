@@ -119,7 +119,7 @@
   (check (cdr (assoc 'provider cfg)) => "google")
   (check (cdr (assoc 'model-id cfg)) => "gemini-3.8-flash")
   (check (cdr (assoc 'api-key cfg)) => #f)
-  (check (cdr (assoc 'thinking-level cfg)) => "off"))
+  (check (cdr (assoc 'thinking-level cfg)) => "medium"))
 
 ;; 6. 污染环境下解析结果不变（防回归：真实进程环境不得影响配置解析）
 (let ((cfg (with-env-vars POLLUTION
@@ -161,6 +161,6 @@
        )) ;
   (check (cdr (assoc 'provider cfg)) => "google")
   (check (cdr (assoc 'api-key cfg)) => #f)
-  (check (cdr (assoc 'thinking-level cfg)) => "off"))
+  (check (cdr (assoc 'thinking-level cfg)) => "medium"))
 
 (check-report)

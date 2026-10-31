@@ -5,7 +5,7 @@
 ;;
 
 (define-library (liii pi ai config record)
-  (import (scheme base) (liii pi ai config types))
+  (import (scheme base) (liii string) (liii pi ai config types))
   (export pi-retry-config pi-retry-config? pi-retry-config-enabled
     pi-retry-config-max-retries pi-retry-config-base-delay-ms
     pi-retry-config-max-agent-delay-ms pi-retry-config-provider-max-retries
@@ -14,6 +14,7 @@
     pi-settings-http-proxy pi-settings-retry pi-settings-default-tools
     pi-settings->alist pi-credential pi-credential? pi-credential-provider
     pi-settings-hide-thinking-block pi-settings-session-dir pi-credential-key
+    pi-settings-model-thinking-level pi-settings-model-thinking-levels
     pi-credential-type pi-credential->alist pi-model-metadata pi-model-metadata?
     pi-model-metadata-id pi-model-metadata-name pi-model-metadata-provider
     pi-model-metadata-base-url pi-model-metadata-context-window
@@ -50,12 +51,13 @@
 
     (define* (pi-settings (default-provider "google")
                (default-model "gemini-3.8-flash")
-               (default-thinking-level "off")
+               (default-thinking-level #f)
                (http-proxy #f)
                (retry #f)
                (default-tools #f)
                (session-dir #f)
                (hide-thinking-block #f)
+               (model-thinking-levels '())
              ) ;pi-settings
       (%make-pi-settings default-provider
         default-model
@@ -65,6 +67,7 @@
         default-tools
         session-dir
         (and hide-thinking-block #t)
+        model-thinking-levels
       ) ;%make-pi-settings
     ) ;define*
 
@@ -79,8 +82,27 @@
           (cons 'default-tools (pi-settings-default-tools s))
           (cons 'session-dir (pi-settings-session-dir s))
           (cons 'hide-thinking-block (pi-settings-hide-thinking-block s))
+          (cons 'model-thinking-levels (pi-settings-model-thinking-levels s))
         ) ;list
       ) ;if
+    ) ;define
+
+    ;; per-model 思考级别覆盖：键为 "provider/modelId"（对齐上游 modelThinkingLevels）
+    ;; 本实现的 assoc 对字符串键不按 equal? 比较，故自行遍历
+    (define (pi-settings-model-thinking-level settings provider model-id)
+      (let* ((provider-str (if (symbol? provider) (symbol->string provider) provider))
+             (wanted (string-append provider-str "/" model-id))
+             (levels (pi-settings-model-thinking-levels settings))
+            ) ;
+        (let loop
+          ((rest levels))
+          (cond ((not (pair? rest)) #f)
+                ((not (pair? (car rest))) (loop (cdr rest)))
+                ((equal? (car (car rest)) wanted) (cdr (car rest)))
+                (else (loop (cdr rest)))
+          ) ;cond
+        ) ;let
+      ) ;let*
     ) ;define
 
     (define* (pi-credential provider key (type "api_key"))

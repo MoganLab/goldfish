@@ -1,0 +1,8 @@
+{
+  "baseUrl": "https://generativelanguage.googleapis.com/v1beta",
+  "api": "google-generative-ai",
+  "models": [
+    "gemini-3.8-flash",
+    "plain-model"
+  ]
+}

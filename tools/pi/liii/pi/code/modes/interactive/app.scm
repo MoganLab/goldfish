@@ -229,6 +229,7 @@
                (available-thinking-levels #f)
                (default-thinking-level #f)
                (on-save-thinking-level #f)
+               (model-thinking-levels '())
                (session-name #f)
                (models '())
                (default-model #f)
@@ -252,7 +253,8 @@
                                  (if supports-thinking pi-thinking-levels '("off"))
                                ) ;or
              ) ;available-levels
-             (default-level (or default-thinking-level tl))
+             ;; 默认级别：settings.json 里的原始值（未配置时为 #f，由 medium 兜底）
+             (default-level default-thinking-level)
              (footer (make-pi-footer
                        :branch            branch
                        :provider          provider
@@ -291,6 +293,7 @@
                     available-levels
                     default-level
                     on-save-thinking-level
+                    model-thinking-levels
                     #f
                     #f
                     '()

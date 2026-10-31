@@ -20,6 +20,7 @@
     (liii pi code core tools)
     (liii pi ai auth)
     (liii pi ai models)
+    (liii pi ai thinking)
     (liii pi ai providers registry)
     (liii pi ai config types)
     (liii pi ai config record)
@@ -33,10 +34,11 @@
     gf-get-config-dir pi-cfg-config-dir pi-read-json-file pi-load-settings
     pi-save-default-thinking-level! pi-save-hide-thinking-block!
     pi-save-default-model! pi-model-supports-thinking? pi-cfg-provider-proxy
-    pi-cfg-provider-api pi-load-compaction-settings pi-resolve-proxy-url
-    pi-load-auth pi-resolve-provider-key pi-resolve-model-metadata
-    resolve-pi-config resolve-goldpi-config resolve-active-tools
-    pi-missing-credential-msg augment-pi-config
+    pi-model-available-thinking-levels pi-cfg-provider-api
+    pi-load-compaction-settings pi-resolve-proxy-url pi-load-auth
+    pi-resolve-provider-key pi-resolve-model-metadata resolve-pi-config
+    resolve-goldpi-config resolve-active-tools pi-missing-credential-msg
+    augment-pi-config
   ) ;export
   (begin
 
@@ -185,7 +187,9 @@
     ) ;define
 
     ;; 从 models-store 原始条目查询模型是否支持 reasoning；
-    ;; 元数据缺失时默认支持（对齐上游：无模型信息时返回全集级别）
+    ;; 元数据缺失时默认支持（对齐上游：无模型信息时返回全集级别）。
+    ;; JSON 布尔为符号 true/false，必须归一化后再判真假，
+    ;; 否则 reasoning: false 会被当成真值。
     (define (%model-supports-thinking? models-store provider model-id)
       (let ((model
               (find (lambda (entry) (equal? (json-dict-ref entry "id" #f) model-id))
@@ -193,13 +197,26 @@
               ) ;find
             ) ;model
            ) ;
-        (if model (and (json-dict-ref model "reasoning" #f) #t) #t)
+        (if model (pi-model-supports-reasoning? model) #t)
       ) ;let
     ) ;define
 
     ;; 公开包装：/model 切换后重算 supports-thinking（worker 与 TUI 共用）
     (define (pi-model-supports-thinking? models-store provider model-id)
       (%model-supports-thinking? models-store provider model-id)
+    ) ;define
+
+    ;; 模型可用思考级别集（对齐上游 getSupportedThinkingLevels）：
+    ;; 目录条目缺失时返回全集（对齐上游：无模型信息时返回全集级别）
+    (define (pi-model-available-thinking-levels models-store provider model-id)
+      (let ((model
+              (find (lambda (entry) (equal? (json-dict-ref entry "id" #f) model-id))
+                (pi-catalog-provider-models models-store provider)
+              ) ;find
+            ) ;model
+           ) ;
+        (if model (pi-model-thinking-levels model) pi-thinking-levels)
+      ) ;let
     ) ;define
 
     ;; 按指定 provider 取协议标识（会话内 /model 切换后调用）。
@@ -276,21 +293,18 @@
                  ) ;raw-meta
                  (meta (pi-ensure-catalog-meta raw-meta provider model-id models-store))
                  (cli-thinking (pi-args-ref parsed-args 'thinking-level))
+                 ;; per-model 覆盖：settings.modelThinkingLevels["provider/modelId"]
+                 (per-model-thinking (and settings (pi-settings-model-thinking-level settings provider model-id))
+                 ) ;per-model-thinking
                  (settings-thinking (and settings (pi-settings-default-thinking-level settings)))
-                 (thinking-level
-                   (cond
-                    ((and (string? cli-thinking)
-                       (not (string-null? (string-trim-both cli-thinking)))
-                     ) ;and
-                     cli-thinking
-                    ) ;
-                    ((and (string? settings-thinking)
-                       (not (string-null? (string-trim-both settings-thinking)))
-                     ) ;and
-                     settings-thinking
-                    ) ;
-                    (else "off")
-                   ) ;cond
+                 ;; 生效级别：CLI > per-model > 全局默认 > 默认级别（medium），
+                 ;; 最后按模型可用级别收敛（对齐上游 resolve 顺序与 clamp）
+                 (available-levels (pi-model-available-thinking-levels models-store provider model-id)
+                 ) ;available-levels
+                 (thinking-level (pi-resolve-thinking-level cli-thinking
+                                   per-model-thinking settings-thinking
+                                   available-levels
+                                 ) ;pi-resolve-thinking-level
                  ) ;thinking-level
                  (supports-thinking (%model-supports-thinking? models-store provider model-id))
                 ) ;

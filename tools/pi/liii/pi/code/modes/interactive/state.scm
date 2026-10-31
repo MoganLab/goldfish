@@ -16,6 +16,7 @@
     %pi-app-thinking-level-set! pi-app-supports-thinking?
     pi-app-available-thinking-levels pi-app-default-thinking-level
     %pi-app-default-thinking-level-set! %pi-app-on-save-thinking-level
+    pi-app-model-thinking-levels %pi-app-model-thinking-levels-set!
     pi-app-bash-mode? %pi-app-bash-mode?-set! pi-app-tools-expanded?
     %pi-app-tools-expanded?-set! %pi-app-bash-cards %pi-app-bash-cards-set!
     %pi-app-tool-cards %pi-app-tool-cards-set! pi-app-thinking-card
@@ -41,12 +42,12 @@
       (%make-pi-app term screen doc chat pending-box editor active-selector
         slash-command-menu footer queue handler jobs-chan event-chan abort-chan
         working thinking-level supports-thinking available-thinking-levels
-        default-thinking-level on-save-thinking-level bash-mode? tools-expanded?
-        bash-cards bash-jobs-chan bash-handler record-sink session-name provider
-        model models default-model on-save-model tool-cards resume-sessions
-        no-session? scroll-view wheel-accelerator steering-chan follow-up-chan
-        steering-pending follow-up-pending thinking-card hide-thinking?
-        on-save-hide-thinking
+        default-thinking-level on-save-thinking-level model-thinking-levels
+        bash-mode? tools-expanded? bash-cards bash-jobs-chan bash-handler
+        record-sink session-name provider model models default-model
+        on-save-model tool-cards resume-sessions no-session? scroll-view
+        wheel-accelerator steering-chan follow-up-chan steering-pending
+        follow-up-pending thinking-card hide-thinking? on-save-hide-thinking
       ) ;%make-pi-app
       pi-app?
       (term pi-app-term)
@@ -74,6 +75,10 @@
         %pi-app-default-thinking-level-set!
       ) ;default-thinking-level
       (on-save-thinking-level %pi-app-on-save-thinking-level)
+      ;; per-model 思考级别覆盖表（键为 "provider/modelId"），/model 切换时优先于全局默认
+      (model-thinking-levels pi-app-model-thinking-levels
+        %pi-app-model-thinking-levels-set!
+      ) ;model-thinking-levels
       ;; bash 模式：编辑器文本以 ! 开头时边框变绿（对齐 pi isBashMode）
       (bash-mode? pi-app-bash-mode? %pi-app-bash-mode?-set!)
       ;; Ctrl+O 全局工具输出展开状态（对齐 pi toolOutputExpanded）

@@ -16,6 +16,7 @@
     (liii string)
     (liii list)
     (liii tui)
+    (liii pi ai thinking)
     (liii pi code modes interactive state)
     (liii pi code modes interactive render)
     (liii pi code modes interactive views)
@@ -125,7 +126,8 @@
       (%pi-app-active-selector-set! app
         (make-thinking-selector (pi-app-thinking-level app)
           (pi-app-available-thinking-levels app)
-          (pi-app-default-thinking-level app)
+          ;; 默认标记：settings.json 未配置时以 medium 为默认（对齐上游）
+          (or (pi-app-default-thinking-level app) pi-default-thinking-level)
           (lambda (level) (%select-thinking-level! app level #f))
           (lambda () (pi-app-close-selector! app))
           (lambda (level) (%select-thinking-level! app level #t))

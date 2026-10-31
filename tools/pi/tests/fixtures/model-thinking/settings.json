@@ -1,0 +1,9 @@
+{
+  "defaultProvider": "google",
+  "defaultModel": "gemini-3.8-flash",
+  "defaultThinkingLevel": "low",
+  "modelThinkingLevels": {
+    "google/gemini-3.8-flash": "high",
+    "google/plain-model": "max"
+  }
+}
