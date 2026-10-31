@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://case-lambda.org/agent/provider.schema.json",
   "title": "Goldfish pi provider 配置（<provider>.json）",
-  "description": "provider 层配置文件。文件名即 provider id；未写的字段回落内置默认（内置 provider），未知 provider 必填 baseUrl 与 api。API key 一律存放于 auth.json，本文件不包含任何密钥。",
+  "description": "provider 层配置。文件名即 provider id；字段级合并——只覆盖用户写了的字段，未写字段回落内置默认（内置 provider），未知 provider（无内置定义）必填 baseUrl 与 api。API key 一律存放于 auth.json，本文件不包含任何密钥。配套：models/<provider>/ 目录下每模型一个 <model>.json（文件名即模型 id，字段集与旧版 models.json 模型条目一致，合并优先级 <model>.json > 内置目录，按字段逐项补缺）。",
   "type": "object",
   "properties": {
     "$schema": {
@@ -17,7 +17,7 @@
     "baseUrl": {
       "type": "string",
       "minLength": 1,
-      "description": "API 端点。内置 provider 可省（用内置默认端点）；未知 provider 必填"
+      "description": "API 端点。内置 provider 可省（用内置默认端点）；未知 provider 必填。最小配置一行即可换镜像端点"
     },
     "api": {
       "type": "string",
@@ -38,18 +38,32 @@
     },
     "models": {
       "type": "array",
-      "items": { "type": "string", "minLength": 1 },
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
       "uniqueItems": true,
-      "description": "模型 id 白名单：只有列出的 id 可用，顺序即展示顺序。缺省不过滤（内置目录全量可用）。id 的模型元数据取自 <provider>/<model>.json，缺失字段由内置目录同名模型补齐；任何来源都查无的 id 启动时告警并忽略"
+      "description": "模型 id 白名单：只有列出的 id 可用，顺序即展示顺序；缺省不过滤（内置目录全量可用）。语义：id 在白名单且无同名模型文件 → 启用，元数据走内置目录（有则补齐缺失字段）；id 在白名单但任何来源查无此模型 → 告警并忽略（拼错 id 立刻暴露）；<provider>/ 目录有模型文件但 id 不在白名单 → 告警并忽略（对称防呆）；元素非字符串或重复 → 报错拒启（同 providers.json）"
     }
   },
   "additionalProperties": false,
   "not": {
     "anyOf": [
-      { "required": ["apiKey"] },
-      { "required": ["compat"] },
-      { "required": ["modelDefaults"] },
-      { "required": ["models-with-metadata"] }
+      {
+        "required": [
+          "apiKey"
+        ]
+      },
+      {
+        "required": [
+          "compat"
+        ]
+      },
+      {
+        "required": [
+          "modelDefaults"
+        ]
+      }
     ]
   },
   "examples": [
@@ -58,9 +72,22 @@
       "baseUrl": "https://api.kimi.com/coding",
       "api": "anthropic",
       "httpProxy": "http://127.0.0.1:7890",
-      "models": ["k3.1-pro", "k3.1-pro-highspeed"]
+      "models": [
+        "k3.1-pro",
+        "k3.1-pro-highspeed"
+      ]
     },
-    { "baseUrl": "https://mirror.example.com/coding" },
-    { "models": ["deepseek-chat", "deepseek-reasoner"] }
+    {
+      "baseUrl": "https://mirror.example.com/coding"
+    },
+    {
+      "httpProxy": "http://127.0.0.1:7890"
+    },
+    {
+      "models": [
+        "deepseek-chat",
+        "deepseek-reasoner"
+      ]
+    }
   ]
 }

@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://case-lambda.org/agent/auth.schema.json",
+  "title": "Goldfish pi 凭据（auth.json）",
+  "description": "API key 的唯一存放处，provider 配置文件不含任何密钥。顶层键为 provider id（任意字符串，值见 additionalProperties 的凭据对象约束）。解析优先级：环境变量 > auth.json > 特例回退（deepseek：~/.claude/settings.json.deepseek / ~/.deepseek.json / ANTHROPIC_AUTH_TOKEN）。key 字段支持 ${VAR} 环境变量模板。凭据缺失时启动报错并列出缺失项。",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "本 schema 的 URL，编辑器据此提供补全与校验，可省略"
+    }
+  },
+  "additionalProperties": {
+    "type": "object",
+    "description": "凭据对象：顶层为 provider id",
+    "properties": {
+      "type": {
+        "const": "api_key",
+        "description": "凭据类型，当前仅支持 api_key"
+      },
+      "key": {
+        "type": "string",
+        "minLength": 1,
+        "description": "API key，支持 ${VAR} 环境变量模板（例：${GEMINI_API_KEY}）"
+      }
+    },
+    "required": ["type", "key"],
+    "additionalProperties": false
+  },
+  "examples": [
+    {
+      "google": { "type": "api_key", "key": "${GEMINI_API_KEY}" },
+      "kimi-coding": { "type": "api_key", "key": "sk-..." }
+    }
+  ]
+}
