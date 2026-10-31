@@ -14,8 +14,8 @@
 
 ;; resolve-pi-config 的配置文件目录（config-dir）与 agent 目录（agent-dir）分离：
 ;;   - JSON 配置文件（settings.json / auth.json / models*.json 等）
-;;     走 config-dir：~/.gf/agent 存在时优先，否则 ~/.pi/agent
-;;   - 会话（sessions/）仍走 agent-dir：~/.pi/agent/sessions/...
+;;     走 config-dir：固定 ~/.gf/agent（不回退 ~/.pi/agent）
+;;   - 会话（sessions/）与扩展（extensions/）仍走 agent-dir：~/.pi/agent/sessions/...
 
 (define (%normalize dir)
   (if (os-windows?) (string-replace (path->string dir) "\\" "/") (path->string dir))
@@ -59,7 +59,7 @@
          (agent-dir (cdr (assoc 'agent-dir cfg)))
          (sdir (resolve-session-dir args cfg cwd))
         ) ;
-    ;; 1. 配置目录取 ~/.gf/agent，agent 目录仍是 ~/.pi/agent
+    ;; 1. 配置目录固定 ~/.gf/agent，agent 目录仍是 ~/.pi/agent
     (check-true (string-ends? (%normalize config-dir) "pi-config-dir-resolve-home/.gf/agent"))
     (check-true (string-ends? (%normalize agent-dir) "pi-config-dir-resolve-home/.pi/agent"))
 
@@ -86,7 +86,7 @@
   ) ;when
 ) ;let
 
-;; 4. ~/.gf/agent 不存在时，配置文件目录回退 ~/.pi/agent
+;; 4. ~/.pi/agent 存在时也不使用：配置目录仍固定 ~/.gf/agent
 (let ((saved-agent (get-environment-variable "PI_CODING_AGENT_DIR"))
       (saved-home (get-environment-variable "HOME"))
       (saved-profile (get-environment-variable "USERPROFILE"))
@@ -103,8 +103,7 @@
   (let* ((cfg (resolve-pi-config args '()))
          (config-dir (cdr (assoc 'config-dir cfg)))
         ) ;
-    (check-true (string-ends? (%normalize config-dir) "pi-config-dir-resolve-home-fallback/.pi/agent"))
-    (check (cdr (assoc 'model-id cfg)) => "gemini-3.8-flash")
+    (check-true (string-ends? (%normalize config-dir) "pi-config-dir-resolve-home-fallback/.gf/agent"))
   ) ;let*
   (if saved-agent
     (putenv "PI_CODING_AGENT_DIR" saved-agent)

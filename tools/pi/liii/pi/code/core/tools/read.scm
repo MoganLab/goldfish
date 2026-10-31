@@ -70,6 +70,8 @@
     ) ;define
 
     ;; agent 目录：会话（sessions/）、扩展（extensions/）等非 JSON 配置的默认位置
+    ;; 默认为 ~/.pi/agent：gf pi 与 node 版 pi 共享会话历史与扩展，
+    ;; 不随 JSON 配置目录（~/.gf/agent）迁移
     ;; 返回 path 对象
     (define (pi-get-agent-dir . opt-dir)
       (let ((custom (and (pair? opt-dir) (car opt-dir)))
