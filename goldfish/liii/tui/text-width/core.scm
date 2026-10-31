@@ -137,6 +137,11 @@
       ) ;let
     ) ;define
 
+    ;; 段内文本：整段复制并把非法 UTF-8 字节替换为 U+FFFD
+    (define (%clean-segment bv start end)
+      (utf8-replace-invalid (byte-vector->string (bytevector-copy bv start end)))
+    ) ;define
+
     ;; 剔除 ANSI 转义序列；同时把非法 UTF-8 字节替换为 U+FFFD，
     ;; 避免 utf8->string 对非法字节抛 value-error（子进程输出可能含
     ;; 被截断的多字节序列或二进制垃圾）。
@@ -159,7 +164,7 @@
                     (loop ansi-end acc)
                     (let* ((esc (%bv-next-esc bv (+ i 1) len))
                            (end (if esc esc len))
-                           (chunk (utf8-replace-invalid (byte-vector->string (bytevector-copy bv i end))))
+                           (chunk (%clean-segment bv i end))
                           ) ;
                       (loop end (cons chunk acc))
                     ) ;let*
