@@ -100,13 +100,26 @@
     ;; job 载荷 → 任务 cfg：
     ;; - (消息 thinking-level) 旧格式：仅覆盖 thinking（向后兼容）
     ;; - (消息 thinking-level provider model-id)：再叠加 /model 切换
-    (define (%worker-job-cfg cfg job)
-      (let ((base (pi-cfg-with-thinking cfg (cadr job))))
-        (if (and (> (length job) 3) (string? (list-ref job 2)) (string? (list-ref job 3)))
-          (pi-cfg-with-model base (list-ref job 2) (list-ref job 3))
+    ;; 跨 provider 切换时重新执行 config augmenter（multikey 等扩展按新
+    ;; provider 重建密钥池与 request-key/rotate-key 钩子）；同 provider 内
+    ;; 切模型不重跑，避免每条消息都重建池而丢失 cooldown/LRU 状态。
+    (define (%worker-job-cfg cfg job . opt-parsed)
+      (let* ((base (pi-cfg-with-thinking cfg (cadr job)))
+             (model-job? (and (> (length job) 3) (string? (list-ref job 2)) (string? (list-ref job 3)))
+             ) ;model-job?
+             (provider (and model-job? (list-ref job 2)))
+             (old-provider (cdr (or (assoc 'provider cfg) '(#f . #f))))
+            ) ;
+        (if (not model-job?)
           base
+          (let ((cfg* (pi-cfg-with-model base provider (list-ref job 3))))
+            (if (equal? provider old-provider)
+              cfg*
+              (augment-pi-config cfg* (if (pair? opt-parsed) (car opt-parsed) #f))
+            ) ;if
+          ) ;let
         ) ;if
-      ) ;let
+      ) ;let*
     ) ;define
 
     ;; 在 (liii go) 的后台独立 worker 线程中运行，完全不阻塞前台终端编辑与打字；
@@ -161,137 +174,143 @@
     ;;   后续消息、bash 记录与命名均针对新会话文件
     ;; - (消息 thinking-level)：正常 agent 任务，携带复用的会话文件
     (define (pi-worker-handle-job job parsed cfg sfile-box event-chan abort-chan)
-      (cond
-       ((and (pair? job) (eq? (car job) 'bash_record))
-        (catch #t
-          (lambda ()
-            (append-bash-execution! (pi-worker-ensure-session-file! parsed cfg sfile-box)
-              (cadr job)
-              (caddr job)
-              (cadddr job)
-            ) ;append-bash-execution!
-          ) ;lambda
-          (lambda (tag . args)
-            (pi-tui-send-event! event-chan
-              (list 'error
-                (string-append "bash record failed: " (object->string (cons tag args)))
-              ) ;list
-            ) ;pi-tui-send-event!
-          ) ;lambda
-        ) ;catch
-       ) ;
-       ((and (pair? job) (eq? (car job) 'session_stats))
-        (catch #t
-          (lambda ()
-            (let* ((sfile (pi-worker-ensure-session-file! parsed cfg sfile-box))
-                   (stats (pi-get-session-stats sfile))
+      (let ((effective-cfg cfg))
+        (cond
+         ((and (pair? job) (eq? (car job) 'bash_record))
+          (catch #t
+            (lambda ()
+              (append-bash-execution! (pi-worker-ensure-session-file! parsed cfg sfile-box)
+                (cadr job)
+                (caddr job)
+                (cadddr job)
+              ) ;append-bash-execution!
+            ) ;lambda
+            (lambda (tag . args)
+              (pi-tui-send-event! event-chan
+                (list 'error
+                  (string-append "bash record failed: " (object->string (cons tag args)))
+                ) ;list
+              ) ;pi-tui-send-event!
+            ) ;lambda
+          ) ;catch
+         ) ;
+         ((and (pair? job) (eq? (car job) 'session_stats))
+          (catch #t
+            (lambda ()
+              (let* ((sfile (pi-worker-ensure-session-file! parsed cfg sfile-box))
+                     (stats (pi-get-session-stats sfile))
+                    ) ;
+                (pi-tui-send-event! event-chan (list 'session_stats stats))
+              ) ;let*
+            ) ;lambda
+            (lambda (tag . args)
+              (pi-tui-send-event! event-chan
+                (list 'session_stats_error
+                  (string-append "Failed to read session stats: "
+                    (object->string (cons tag args))
+                  ) ;string-append
+                ) ;list
+              ) ;pi-tui-send-event!
+            ) ;lambda
+          ) ;catch
+         ) ;
+         ((and (pair? job) (eq? (car job) 'session_name))
+          (catch #t
+            (lambda ()
+              (let ((name (pi-normalize-session-name (cadr job))))
+                (append-session-info! (pi-worker-ensure-session-file! parsed cfg sfile-box)
+                  name
+                ) ;append-session-info!
+                (pi-tui-send-event! event-chan (list 'session_name_changed name))
+              ) ;let
+            ) ;lambda
+            (lambda (tag . args)
+              (pi-tui-send-event! event-chan
+                (list 'session_name_error
+                  (string-append "Failed to set session name: " (object->string (cons tag args)))
+                ) ;list
+              ) ;pi-tui-send-event!
+            ) ;lambda
+          ) ;catch
+         ) ;
+         ((and (pair? job) (eq? (car job) 'session_state))
+          (catch #t
+            (lambda ()
+              (append-session-state-entry! (pi-worker-ensure-session-file! parsed cfg sfile-box)
+                (cadr job)
+                (caddr job)
+              ) ;append-session-state-entry!
+            ) ;lambda
+            (lambda (tag . args)
+              (pi-tui-send-event! event-chan
+                (list 'session_state_error
+                  (string-append "Failed to record session state: "
+                    (object->string (cons tag args))
+                  ) ;string-append
+                ) ;list
+              ) ;pi-tui-send-event!
+            ) ;lambda
+          ) ;catch
+         ) ;
+         ((and (pair? job) (eq? (car job) 'session_resume))
+          (catch #t
+            (lambda ()
+              (let* ((path (cadr job)) (normalized (if (string? path) path (path->string path))))
+                (cond
+                  ;; --no-session 模式：会话持久化已禁用，拒绝恢复（不切换、不建文件）
+                  ((pi-args-ref parsed 'no-session)
+                   (pi-tui-send-event! event-chan
+                     (list 'session_resume_error "Session persistence is disabled (--no-session)")
+                   ) ;pi-tui-send-event!
                   ) ;
-              (pi-tui-send-event! event-chan (list 'session_stats stats))
-            ) ;let*
-          ) ;lambda
-          (lambda (tag . args)
-            (pi-tui-send-event! event-chan
-              (list 'session_stats_error
-                (string-append "Failed to read session stats: "
-                  (object->string (cons tag args))
-                ) ;string-append
-              ) ;list
-            ) ;pi-tui-send-event!
-          ) ;lambda
-        ) ;catch
-       ) ;
-       ((and (pair? job) (eq? (car job) 'session_name))
-        (catch #t
-          (lambda ()
-            (let ((name (pi-normalize-session-name (cadr job))))
-              (append-session-info! (pi-worker-ensure-session-file! parsed cfg sfile-box)
-                name
-              ) ;append-session-info!
-              (pi-tui-send-event! event-chan (list 'session_name_changed name))
-            ) ;let
-          ) ;lambda
-          (lambda (tag . args)
-            (pi-tui-send-event! event-chan
-              (list 'session_name_error
-                (string-append "Failed to set session name: " (object->string (cons tag args)))
-              ) ;list
-            ) ;pi-tui-send-event!
-          ) ;lambda
-        ) ;catch
-       ) ;
-       ((and (pair? job) (eq? (car job) 'session_state))
-        (catch #t
-          (lambda ()
-            (append-session-state-entry! (pi-worker-ensure-session-file! parsed cfg sfile-box)
-              (cadr job)
-              (caddr job)
-            ) ;append-session-state-entry!
-          ) ;lambda
-          (lambda (tag . args)
-            (pi-tui-send-event! event-chan
-              (list 'session_state_error
-                (string-append "Failed to record session state: "
-                  (object->string (cons tag args))
-                ) ;string-append
-              ) ;list
-            ) ;pi-tui-send-event!
-          ) ;lambda
-        ) ;catch
-       ) ;
-       ((and (pair? job) (eq? (car job) 'session_resume))
-        (catch #t
-          (lambda ()
-            (let* ((path (cadr job)) (normalized (if (string? path) path (path->string path))))
-              (cond
-                ;; --no-session 模式：会话持久化已禁用，拒绝恢复（不切换、不建文件）
-                ((pi-args-ref parsed 'no-session)
-                 (pi-tui-send-event! event-chan
-                   (list 'session_resume_error "Session persistence is disabled (--no-session)")
-                 ) ;pi-tui-send-event!
-                ) ;
-                ;; 目标文件不存在：保留原会话并报错，不创建任何新文件
-                ((not (file-exists? normalized))
-                 (pi-tui-send-event! event-chan
-                   (list 'session_resume_error
-                     (string-append "Session file not found: " normalized)
-                   ) ;list
-                 ) ;pi-tui-send-event!
-                ) ;
-                (else (vector-set! sfile-box 0 normalized)
-                  ;; 随事件回传目标会话的投影状态（模型/思考等级），
-                  ;; 状态缺失时为 #f，前台据此保留当前值
-                  (pi-tui-send-event! event-chan
-                    (list 'session_resumed
-                      normalized
-                      (get-session-name normalized)
-                      (pi-session-state-of normalized)
-                    ) ;list
-                  ) ;pi-tui-send-event!
-                ) ;else
-              ) ;cond
-            ) ;let*
-          ) ;lambda
-          (lambda (tag . args)
-            (pi-tui-send-event! event-chan
-              (list 'session_resume_error
-                (string-append "Failed to resume session: " (object->string (cons tag args)))
-              ) ;list
-            ) ;pi-tui-send-event!
-          ) ;lambda
-        ) ;catch
-       ) ;
-       (else
-         ;; 新任务开始前 arm abort 通道：排空上一轮残留信号并复位标志，
-         ;; 本轮任务期间流式回调 / turn 边界 / 工具边界经 pi-aborted? 探测
-         (pi-abort-arm-chan! abort-chan)
-         (pi-tui-run-worker parsed
-           (%worker-job-cfg cfg job)
-           (car job)
-           event-chan
-           (pi-worker-ensure-session-file! parsed cfg sfile-box)
-         ) ;pi-tui-run-worker
-       ) ;else
-      ) ;cond
+                  ;; 目标文件不存在：保留原会话并报错，不创建任何新文件
+                  ((not (file-exists? normalized))
+                   (pi-tui-send-event! event-chan
+                     (list 'session_resume_error
+                       (string-append "Session file not found: " normalized)
+                     ) ;list
+                   ) ;pi-tui-send-event!
+                  ) ;
+                  (else (vector-set! sfile-box 0 normalized)
+                    ;; 随事件回传目标会话的投影状态（模型/思考等级），
+                    ;; 状态缺失时为 #f，前台据此保留当前值
+                    (pi-tui-send-event! event-chan
+                      (list 'session_resumed
+                        normalized
+                        (get-session-name normalized)
+                        (pi-session-state-of normalized)
+                      ) ;list
+                    ) ;pi-tui-send-event!
+                  ) ;else
+                ) ;cond
+              ) ;let*
+            ) ;lambda
+            (lambda (tag . args)
+              (pi-tui-send-event! event-chan
+                (list 'session_resume_error
+                  (string-append "Failed to resume session: " (object->string (cons tag args)))
+                ) ;list
+              ) ;pi-tui-send-event!
+            ) ;lambda
+          ) ;catch
+         ) ;
+         (else
+           ;; 新任务开始前 arm abort 通道：排空上一轮残留信号并复位标志，
+           ;; 本轮任务期间流式回调 / turn 边界 / 工具边界经 pi-aborted? 探测
+           (pi-abort-arm-chan! abort-chan)
+           (let ((job-cfg (%worker-job-cfg cfg job parsed)))
+             (set! effective-cfg job-cfg)
+             (pi-tui-run-worker parsed
+               job-cfg
+               (car job)
+               event-chan
+               (pi-worker-ensure-session-file! parsed cfg sfile-box)
+             ) ;pi-tui-run-worker
+           ) ;let
+         ) ;else
+        ) ;cond
+        effective-cfg
+      ) ;let
     ) ;define
 
     ;; 顶层后台工作协程：并发循环消费 jobs-chan 任务并回传事件到 event-chan；
@@ -335,15 +354,17 @@
         (set-pi-retry-logger! (lambda (msg) (pi-tui-send-event! event-chan (list 'retry msg)))
         ) ;set-pi-retry-logger!
         (let loop
-          ()
+          ((current-cfg cfg))
           ;; job 消息为 (text thinking-level [provider model-id])、bash_record 或 session_name：
-          ;; 会话内切换的 thinking 级别与 /model 模型均对下一条消息生效
+          ;; 会话内切换的 thinking 级别与 /model 模型均对下一条消息生效；
+          ;; 消息任务返回新的生效 cfg（含跨 provider 重增强后的密钥池），
+          ;; 作为下一轮基线，保证池状态跨消息连续。
           ;; 通道关闭（eof）时结束循环：TUI 退出路径会关闭 jobs-chan，
           ;; chan-recv! 此时返回 eof 对象（eof 为真值），必须显式排除
           (let ((job (chan-recv! jobs-chan)))
             (when (and job (not (eof-object? job)))
-              (pi-worker-handle-job job parsed poll-cfg sfile-box event-chan abort-chan)
-              (loop)
+              (loop (pi-worker-handle-job job parsed current-cfg sfile-box event-chan abort-chan)
+              ) ;loop
             ) ;when
           ) ;let
         ) ;let

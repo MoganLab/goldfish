@@ -21,9 +21,25 @@
   (export pi-multikey-augment-config)
   (begin
 
+    ;; 清理本扩展注入的键：切到无 pool 的 provider 时不能残留旧 provider 的
+    ;; 密钥池与轮换钩子，否则会继续用旧池的 key 发请求。
+    ;; 没有可清理的键时返回原 cfg，保持调用方依赖的对象同一性。
+    (define (%strip-managed cfg)
+      (let ((cleaned
+              (filter
+                (lambda (p) (not (memq (car p) '(multikey-pool request-key
+                                                  rotate-key))))
+                cfg
+              ) ;filter
+            ) ;cleaned
+           ) ;
+        (if (= (length cleaned) (length cfg)) cfg cleaned)
+      ) ;let
+    ) ;define
+
     ;; 命中 pool 时替换 api-key 为首个池内 key，并注入 request-key /
     ;; rotate-key 钩子供核心 (liii pi ai keyring) 调用；
-    ;; 未命中（无 multikey.json 或无对应 provider 的 pool）时原样返回。
+    ;; 未命中（无 multikey.json 或无对应 provider 的 pool）时清理旧钩子后返回。
     (define (pi-multikey-augment-config cfg . opt-parsed)
       (let* ((config-dir
                (if (pair? cfg)
@@ -42,11 +58,14 @@
              ) ;pool
             ) ;
         (if (not pool)
-          cfg
+          (if (pair? cfg) (%strip-managed cfg) cfg)
           (let* ((first-key (pi-pool-key-key (car (pi-key-pool-keys pool))))
                  (kept
                    (filter
-                     (lambda (p) (not (memq (car p) '(api-key multikey-pool))))
+                     (lambda (p)
+                       (not (memq (car p) '(api-key multikey-pool request-key
+                                             rotate-key)))
+                     ) ;lambda
                      (if (pair? cfg) cfg '())
                    ) ;filter
                  ) ;kept
