@@ -10,7 +10,7 @@
   (export make-tui-emit pi-tui-agent-worker pi-tui-run-worker pi-tui-send-event!
     pi-cfg-with-thinking pi-cfg-with-model %worker-job-cfg
     pi-worker-ensure-session-file! pi-worker-handle-job %assistant-error-text
-    %poll-one-injected
+    %poll-one-injected %pi-worker-poll-cfg
   ) ;export
   (import (scheme base)
     (scheme write)
@@ -52,6 +52,31 @@
           '()
         ) ;if
       ) ;let
+    ) ;define
+
+    ;; worker 运行期 cfg：注入 steering / follow-up 轮询回调
+    ;;
+    ;; run-agent-loop 只认 config 里的 get-steering-messages /
+    ;; get-follow-up-messages 两个回调：回调缺失时，运行中注入的消息
+    ;; 永远停留在通道里，既不会进入模型上下文，也不会驱动新一轮请求
+    ;; （表现为“busy 时回车只有第一条被真正处理”）。
+    ;; 同名键一律替换：多轮任务后 cfg 不会累积重复回调项。
+    (define %pi-worker-poll-keys '(get-steering-messages get-follow-up-messages))
+
+    (define (%pi-worker-poll-cfg cfg steering-chan follow-up-chan event-chan)
+      (append
+        (list (cons 'get-steering-messages
+                (lambda () (%poll-one-injected steering-chan event-chan))
+              ) ;cons
+          (cons 'get-follow-up-messages
+            (lambda () (%poll-one-injected follow-up-chan event-chan))
+          ) ;cons
+        ) ;list
+        (filter
+          (lambda (p) (not (memq (car p) %pi-worker-poll-keys)))
+          cfg
+        ) ;filter
+      ) ;append
     ) ;define
 
     ;; 覆盖 cfg alist 的 thinking-level 项（会话内 shift+tab 切换后生效）
@@ -173,8 +198,21 @@
     ;; - (session_resume 路径)：把 worker 的会话文件切换到所选 JSONL，
     ;;   后续消息、bash 记录与命名均针对新会话文件
     ;; - (消息 thinking-level)：正常 agent 任务，携带复用的会话文件
-    (define (pi-worker-handle-job job parsed cfg sfile-box event-chan abort-chan)
-      (let ((effective-cfg cfg))
+    ;;
+    ;; opt-chans：(steering-chan follow-up-chan)，可选；用于把运行中注入
+    ;; 消息的轮询回调注入本轮任务的 cfg（见 %pi-worker-poll-cfg）。
+    ;; 每轮任务都在此处注入，保证 agent 上下文一定能消费注入消息。
+    (define (pi-worker-handle-job job parsed cfg sfile-box event-chan abort-chan
+             . opt-chans
+            ) ;
+      (let* ((steering-chan (if (pair? opt-chans) (car opt-chans) #f))
+             (follow-up-chan
+               (if (and (pair? opt-chans) (pair? (cdr opt-chans))) (cadr opt-chans) #f)
+             ) ;follow-up-chan
+             ;; 运行期 cfg：注入 steering / follow-up 轮询回调
+             (cfg (%pi-worker-poll-cfg cfg steering-chan follow-up-chan event-chan))
+             (effective-cfg cfg)
+            ) ;
         (cond
          ((and (pair? job) (eq? (car job) 'bash_record))
           (catch #t
@@ -310,7 +348,7 @@
          ) ;else
         ) ;cond
         effective-cfg
-      ) ;let
+      ) ;let*
     ) ;define
 
     ;; 顶层后台工作协程：并发循环消费 jobs-chan 任务并回传事件到 event-chan；
@@ -334,21 +372,6 @@
              ) ;cfg
              ;; 会话文件盒：全生命周期复用同一文件（TUI 会话连续性）
              (sfile-box (vector initial-session-file))
-             ;; 注入轮询回调：非阻塞拉取一条消息，拉到时回发 user_message
-             ;; 事件（主线程移除待处理显示并上屏用户卡片）；
-             ;; 未提供通道或拉取失败时返回空表（循环按无消息处理）
-             (poll-cfg
-               (append
-                 (list (cons 'get-steering-messages
-                         (lambda () (%poll-one-injected steering-chan event-chan))
-                       ) ;cons
-                   (cons 'get-follow-up-messages
-                     (lambda () (%poll-one-injected follow-up-chan event-chan))
-                   ) ;cons
-                 ) ;list
-                 cfg
-               ) ;append
-             ) ;poll-cfg
             ) ;
         ;; 重试与 multikey 换 key 日志共用 retry logger 通道，转为界面卡片
         (set-pi-retry-logger! (lambda (msg) (pi-tui-send-event! event-chan (list 'retry msg)))
@@ -363,7 +386,9 @@
           ;; chan-recv! 此时返回 eof 对象（eof 为真值），必须显式排除
           (let ((job (chan-recv! jobs-chan)))
             (when (and job (not (eof-object? job)))
-              (loop (pi-worker-handle-job job parsed current-cfg sfile-box event-chan abort-chan)
+              (loop (pi-worker-handle-job job parsed current-cfg sfile-box
+                      event-chan abort-chan steering-chan follow-up-chan
+                    ) ;pi-worker-handle-job
               ) ;loop
             ) ;when
           ) ;let
