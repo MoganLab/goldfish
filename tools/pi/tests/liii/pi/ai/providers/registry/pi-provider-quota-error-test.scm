@@ -6,9 +6,32 @@
 (check-set-mode! 'report-failed)
 
 ;; pi-provider-quota-error
+;; 调用某个 provider 注册的额度耗尽识别函数。
 ;;
-;; 调用各 provider 注册的额度耗尽识别函数；未注册的 provider 不做判定（返回 #f），
-;; 处理函数抛异常时也返回 #f（不影响请求主流程）。
+;; 语法
+;; ----
+;; (pi-provider-quota-error status-code body-str provider)
+;;
+;; 参数
+;; ----
+;; status-code : integer?
+;; HTTP 状态码。
+;;
+;; body-str : string?
+;; 响应体原文。
+;;
+;; provider : string? 或 symbol?
+;; 服务商 id；为 #f 或未注册时不做判定。
+;;
+;; 返回值
+;; ----
+;; pi-quota-limit? 或 #f
+;; 命中时返回判定结果 record，否则 #f。
+;;
+;; 注意
+;; ----
+;; 处理函数抛异常时本函数返回 #f：额度识别失败不应打断请求主流程。
+;; zai 是 zai-coding-cn 的路由别名，两者行为一致。
 
 (define weekly-body
   "{\"error\":{\"code\":\"1310\",\"message\":\"每周额度已用尽\"}}"

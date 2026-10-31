@@ -3,9 +3,32 @@
 (check-set-mode! 'report-failed)
 
 ;; pi-quota-error-result
+;; provider 可复用的默认额度耗尽判定实现。
 ;;
-;; provider 可复用的默认实现：状态码 ∈ {403, 429} 且业务标识命中码表时，
-;; 返回 <pi-quota-limit>，否则 #f。
+;; 语法
+;; ----
+;; (pi-quota-error-result status-code body-str table)
+;;
+;; 参数
+;; ----
+;; status-code : integer?
+;; HTTP 状态码，本实现只认 403 与 429。
+;;
+;; body-str : string?
+;; 响应体原文。
+;;
+;; table : list?
+;; 该 provider 的码表 ((标识 . 额度类型) …)。
+;;
+;; 返回值
+;; ----
+;; pi-quota-limit? 或 #f
+;; 命中时返回判定结果 record，否则 #f。
+;;
+;; 注意
+;; ----
+;; 只是默认实现：provider 若需要别的状态码、别的字段结构或要解析重置时间，
+;; 可在自家模块里自行实现同名签名的处理函数，不必调用它。
 
 (define table '(("1308" . "five-hour") ("1310" . "weekly")))
 

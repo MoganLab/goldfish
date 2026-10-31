@@ -3,8 +3,32 @@
 (check-set-mode! 'report-failed)
 
 ;; pi-usage-limit-error?
+;; 判断响应是否属于「额度耗尽（不可重试）」，是 pi-detect-usage-limit 的真值形式。
 ;;
-;; 判定条件：HTTP 状态码属于 {403, 429}，且响应体业务码在**该 provider 的码表**内。
+;; 语法
+;; ----
+;; (pi-usage-limit-error? status-code body-str provider)
+;;
+;; 参数
+;; ----
+;; status-code : integer?
+;; HTTP 状态码，通常为 403 或 429。
+;;
+;; body-str : string?
+;; 响应体原文。
+;;
+;; provider : string? 或 symbol?
+;; 服务商 id；未注册的 provider 不做判定。
+;;
+;; 返回值
+;; ----
+;; pi-quota-limit? 或 #f
+;; 命中返回 record（可继续用 pi-usage-limit-kind / pi-usage-limit-error-message 取值），
+;; 未命中返回 #f。调用方通常只关心是否为真。
+;;
+;; 注意
+;; ----
+;; 返回 #t/#f 之外还要带上判定结果，所以返回 record 而不是布尔值。
 
 (define zai "zai-coding-cn")
 

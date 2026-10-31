@@ -9,8 +9,21 @@
 (check-set-mode! 'report-failed)
 
 ;; pi-log-dir
+;; 返回 pi 异常请求日志的目录。
 ;;
-;; 日志目录固定为 ~/.gf/agent/logs。
+;; 语法
+;; ----
+;; (pi-log-dir)
+;;
+;; 返回值
+;; ----
+;; path?
+;; 固定为 ~/.gf/agent/logs（路径已展开用户主目录）。
+;;
+;; 注意
+;; ----
+;; 不受 GF_CONFIG_DIR 等配置目录环境变量影响：日志始终落在 ~/.gf/agent/logs。
+;; 目录由 pi-log-init! 负责创建。
 
 ;; 1. 默认日志目录是 ~/.gf/agent/logs
 (check (path->string (pi-log-dir))

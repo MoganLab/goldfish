@@ -7,14 +7,34 @@
 (check-set-mode! 'report-failed)
 
 ;; pi-detect-usage-limit
+;; 按 provider 注册的处理函数识别响应体是否属于「服务商额度耗尽」。
 ;;
-;; 只按结构化业务码判定「额度耗尽」，禁止使用文本匹配；
-;; 业务码是各家私有命名空间，因此必须结合 provider 判定。
+;; 语法
+;; ----
+;; (pi-detect-usage-limit status-code body-str provider)
 ;;
-;; zai-coding-cn（智谱 / Z.AI GLM Coding Plan）：
-;;   1308 -> 5 小时额度窗口耗尽（five-hour）
-;;   1310 -> 每周/每月额度耗尽（weekly）
-;;   1302/1303/1305/1312 都不是额度耗尽
+;; 参数
+;; ----
+;; status-code : integer?
+;; HTTP 状态码，原样交给该 provider 的处理函数判定（通常为 403 或 429）。
+;;
+;; body-str : string?
+;; 响应体原文；非字符串时直接返回 #f。
+;;
+;; provider : string? 或 symbol?
+;; 服务商 id（如 "zai-coding-cn"、"kimi-coding"），用于取该家注册的判定函数；
+;; 未注册的 provider 不做判定。
+;;
+;; 返回值
+;; ----
+;; pi-quota-limit? 或 #f
+;; 命中时返回 record（kind / code / message）；服务商未给消息时以 HTTP 状态码兜底。
+;;
+;; 注意
+;; ----
+;; 不做任何文本匹配：错误消息文案会变、会被本地化，只按结构化标识判定。
+;; 业务码是各家私有命名空间，不会跨 provider 套用（如智谱 1308/1310 只对 zai-coding-cn 生效）。
+;; 智谱 1302（并发槽满）/1303、1305（短时频率）/1312（模型拥堵）不是额度耗尽。
 
 (define zai "zai-coding-cn")
 

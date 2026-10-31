@@ -3,8 +3,28 @@
 (check-set-mode! 'report-failed)
 
 ;; pi-quota-match-codes
+;; 把候选错误标识列表与某个 provider 的码表做匹配。
 ;;
-;; 候选标识列表与 provider 码表匹配，返回 (标识 . 额度类型) 或 #f。
+;; 语法
+;; ----
+;; (pi-quota-match-codes codes table)
+;;
+;; 参数
+;; ----
+;; codes : list?
+;; 候选标识字符串列表，通常来自 pi-quota-json-fields 的 car。
+;;
+;; table : list?
+;; 码表 ((标识 . 额度类型) …)，由 provider 自己定义。
+;;
+;; 返回值
+;; ----
+;; pair 或 #f
+;; 命中返回 (标识 . 额度类型)，都不命中返回 #f。
+;;
+;; 注意
+;; ----
+;; 按精确字符串匹配，不做前缀或数字模糊匹配；码表为空时永不命中。
 
 (define table '(("1308" . "five-hour") ("1310" . "weekly")))
 

@@ -7,9 +7,29 @@
 (check-set-mode! 'report-failed)
 
 ;; PI_KIMI_CODING_QUOTA_ERROR
+;; Kimi Coding Plan 的额度耗尽识别函数。
 ;;
-;; Kimi Coding Plan：HTTP 403/429 + error.type = exceeded_current_quota_error
-;; （该服务商用 type 而不是 code 区分额度耗尽）
+;; 语法
+;; ----
+;; (PI_KIMI_CODING_QUOTA_ERROR status-code body-str)
+;;
+;; 参数
+;; ----
+;; status-code : integer?
+;; HTTP 状态码，只认 403 与 429。
+;;
+;; body-str : string?
+;; 响应体原文。
+;;
+;; 返回值
+;; ----
+;; pi-quota-limit? 或 #f
+;; 命中返回 record：kind 为 "quota"，code 为命中的 error.type，message 为官方消息原文。
+;;
+;; 注意
+;; ----
+;; 该服务商用 error.type 而不是 code 区分额度耗尽：exceeded_current_quota_error。
+;; 普通限流是 rate_limit_error，不是额度耗尽。
 
 (define kimi-body
   "{\"error\":{\"message\":\"You've reached your weekly (7-day) usage limit.\",\"type\":\"exceeded_current_quota_error\"}}"

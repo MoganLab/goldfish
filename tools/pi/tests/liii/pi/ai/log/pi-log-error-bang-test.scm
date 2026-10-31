@@ -11,9 +11,27 @@
 (check-set-mode! 'report-failed)
 
 ;; pi-log-error!
+;; 以 ERROR 级别写一条日志。
 ;;
-;; 以 ERROR 级别写一条日志到 ~/.gf/agent/logs（测试重定向到临时目录），
-;; 并且写入后立即 flush 并关闭文件端口：进程退出码不受日志影响。
+;; 语法
+;; ----
+;; (pi-log-error! message)
+;;
+;; 参数
+;; ----
+;; message : string?
+;; 日志正文，可以包含换行（用于把响应体原文成段写出）。
+;;
+;; 返回值
+;; ----
+;; boolean
+;; 写入成功返回 #t；日志开关关闭或写盘失败返回 #f。
+;;
+;; 注意
+;; ----
+;; 每写一条就 flush 并关闭文件端口：s7 的 exit 在应用退出钩子之后才读退出码，
+;; 钩子里有分配会把退出码吞成 0（goldfish issue 1399），关端口后钩子成为空操作。
+;; 写盘失败一律静默，不影响请求主流程。
 
 (define *base* (make-temp-dir "gf-pi-log-error-" ""))
 

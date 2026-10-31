@@ -3,8 +3,27 @@
 (check-set-mode! 'report-failed)
 
 ;; pi-quota-json-fields
+;; 从错误响应 JSON 中提取候选错误标识列表与服务商官方消息。
 ;;
-;; 从错误响应体提取 (候选标识列表 . 官方消息)，兼容各家不同的字段结构。
+;; 语法
+;; ----
+;; (pi-quota-json-fields body-str)
+;;
+;; 参数
+;; ----
+;; body-str : string?
+;; 错误响应体原文（JSON）。
+;;
+;; 返回值
+;; ----
+;; pair
+;; (候选标识列表 . 官方消息)；标识按优先级收集：error.code、code、error.name、type、
+;; error.type；消息取 message / msg（顶层或 error 内），可能为 #f。
+;;
+;; 注意
+;; ----
+;; 不同服务商字段不一致：智谱用 error.code，Kimi 用 error.type。
+;; 非 JSON 或非对象 JSON 返回空候选列表与 #f 消息，不做文本兜底。
 
 ;; 1. 智谱：error.code + error.message
 (let ((fields (pi-quota-json-fields "{\"error\":{\"code\":\"1310\",\"message\":\"您已达到每周/每月使用上限\"}}"

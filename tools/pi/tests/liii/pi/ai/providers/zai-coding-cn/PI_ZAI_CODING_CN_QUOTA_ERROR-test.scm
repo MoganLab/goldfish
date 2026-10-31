@@ -7,11 +7,31 @@
 (check-set-mode! 'report-failed)
 
 ;; PI_ZAI_CODING_CN_QUOTA_ERROR
+;; 智谱 / Z.AI GLM Coding Plan 的额度耗尽识别函数。
 ;;
-;; 智谱 / Z.AI GLM Coding Plan：HTTP 403/429 + error.code ∈ {1308, 1310}
-;;   1308 -> 5 小时额度窗口耗尽（five-hour）
-;;   1310 -> 每周/每月额度耗尽（weekly）
-;; 1302/1303/1305/1312 是并发/频率/拥堵，不是额度耗尽（返回 #f）。
+;; 语法
+;; ----
+;; (PI_ZAI_CODING_CN_QUOTA_ERROR status-code body-str)
+;;
+;; 参数
+;; ----
+;; status-code : integer?
+;; HTTP 状态码，只认 403 与 429。
+;;
+;; body-str : string?
+;; 响应体原文。
+;;
+;; 返回值
+;; ----
+;; pi-quota-limit? 或 #f
+;; 命中返回 record：kind 为 "five-hour"（1308）或 "weekly"（1310），
+;; code 为业务码，message 为官方消息原文。
+;;
+;; 注意
+;; ----
+;; 判定依据是 error.code：1308 为 5 小时额度窗口耗尽，1310 为每周/每月额度耗尽。
+;; 1302（并发槽满）、1303/1305（短时频率）、1312（模型拥堵）都不是额度耗尽，
+;; 返回 #f 让上层继续重试。
 
 (define (kind limit)
   (pi-quota-limit-kind limit)

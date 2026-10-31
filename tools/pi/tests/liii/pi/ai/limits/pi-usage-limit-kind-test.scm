@@ -3,8 +3,26 @@
 (check-set-mode! 'report-failed)
 
 ;; pi-usage-limit-kind
+;; 取额度耗尽判定结果里的额度窗口类型。
 ;;
-;; 取额度窗口类型（five-hour / weekly / quota，由各 provider 决定）。
+;; 语法
+;; ----
+;; (pi-usage-limit-kind limit)
+;;
+;; 参数
+;; ----
+;; limit : pi-quota-limit?
+;; 额度耗尽判定结果。
+;;
+;; 返回值
+;; ----
+;; string 或 #f
+;; 额度窗口类型由各 provider 定义，如 "five-hour"（5 小时窗口）、"weekly"（每周/每月）、
+;; "quota"（只有额度语义、无窗口细分）；不是 record 时返回 #f。
+;;
+;; 注意
+;; ----
+;; 该值只用于日志与展示（日志里的 limit 字段），不参与重试决策。
 
 ;; 1. 正常取值
 (check (pi-usage-limit-kind (%make-pi-quota-limit "weekly" "1310" "x"))

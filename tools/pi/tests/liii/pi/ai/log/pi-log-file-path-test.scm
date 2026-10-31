@@ -10,8 +10,20 @@
 (check-set-mode! 'report-failed)
 
 ;; pi-log-file-path
+;; 返回当前日期对应的日志文件路径。
 ;;
-;; 日志文件按日期分文件：~/.gf/agent/logs/pi-YYYY-MM-DD.log
+;; 语法
+;; ----
+;; (pi-log-file-path)
+;;
+;; 返回值
+;; ----
+;; path?
+;; 形如 ~/.gf/agent/logs/pi-YYYY-MM-DD.log；调用 pi-log-init! 指定目录后跟随该目录。
+;;
+;; 注意
+;; ----
+;; 按日期分文件，跨天自动落到新文件；只返回路径，不创建文件。
 
 ;; 1. 默认路径位于 ~/.gf/agent/logs 下
 (check (path->string (path-parent (pi-log-file-path)))

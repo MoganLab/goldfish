@@ -3,8 +3,20 @@
 (check-set-mode! 'report-failed)
 
 ;; pi-log-reset!
+;; 关闭日志文件端口并清空状态。
 ;;
-;; 关闭文件端口并清空状态：复位后回到默认日志目录，可重新初始化到别的目录。
+;; 语法
+;; ----
+;; (pi-log-reset!)
+;;
+;; 返回值
+;; ----
+;; unspecified
+;;
+;; 注意
+;; ----
+;; 复位后回到默认目录 ~/.gf/agent/logs，可重新用 pi-log-init! 指向别的目录。
+;; 测试用它隔离用例，避免把日志写到真实目录。
 
 (define *base* (make-temp-dir "gf-pi-log-reset-" ""))
 

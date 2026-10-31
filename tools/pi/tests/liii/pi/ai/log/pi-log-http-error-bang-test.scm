@@ -9,9 +9,33 @@
 (check-set-mode! 'report-failed)
 
 ;; pi-log-http-error!
+;; 记录一次异常 HTTP 请求（含响应体原文）。
 ;;
-;; 异常 HTTP 请求（429/403/5xx/网络错误等）以 ERROR 级别落盘，
-;; 并把响应体原文（不做任何转义或截断）原样写入日志。
+;; 语法
+;; ----
+;; (pi-log-http-error! status body info)
+;;
+;; 参数
+;; ----
+;; status : integer?
+;; HTTP 状态码；网络错误为 0。
+;;
+;; body : string?
+;; 响应体原文（JSON 或 SSE 文本），逐字节写入，不转义、不截断。
+;;
+;; info : list?
+;; 可选元信息关联表，支持 provider、model、url、attempt、max-attempts、
+;; retryable、retry-after；额度耗尽时自动附带 limit 字段。
+;;
+;; 返回值
+;; ----
+;; boolean
+;; 写入成功返回 #t；日志关闭或写盘失败返回 #f。
+;;
+;; 注意
+;; ----
+;; 首行是元信息（http-error status=… provider=… limit=…），随后用
+;; “----- body begin -----” 与 “----- body end -----” 包裹响应体原文，便于 grep。
 
 (define *base* (make-temp-dir "gf-pi-log-http-" ""))
 
