@@ -20,7 +20,7 @@ timeout 600 xmake b goldfish
 # 配置复用 JSON 配置文件目录（config-dir）：~/.gf/agent/ 存在时优先，否则 ~/.pi/agent/
 # settings.json（defaultProvider/defaultModel/httpProxy/retry）、
 # auth.json（api_key / ANTHROPIC_AUTH_TOKEN 等环境变量兜底）、models-store.json（刷新同步快照，运行时不再读取）
-# providers.json + <provider>.json + <provider>/<model>.json（provider 与模型配置，见下节）
+# models/providers.json + <provider>.json + <provider>/<model>.json（provider 与模型配置，见下节）
 # 会话目录不受影响：始终 ~/.pi/agent/sessions/
 # HTTP 代理（per-provider）：--proxy > models/<provider>.json httpProxy > HTTPS_PROXY/ALL_PROXY 环境变量 > settings.json httpProxy > 直连
 # 重试：可重试 provider 错误（429/5xx/408/409/网络错误）使用 retry.provider.maxRetries 预算
@@ -33,7 +33,7 @@ timeout 600 xmake b goldfish
 
 | 类别 | 目录 | 内容 |
 |---|---|---|
-| 配置文件目录（config-dir） | `~/.gf/agent/`（存在时）否则 `~/.pi/agent/` | `settings.json`、`auth.json`、`providers.json`、`models/<provider>.json`、`models/<provider>/<model>.json`、`models-store.json`、`multikey.json`、`web-search.json` 等 JSON 配置文件 |
+| 配置文件目录（config-dir） | `~/.gf/agent/`（存在时）否则 `~/.pi/agent/` | `settings.json`、`auth.json`、`models/providers.json`、`models/<provider>.json`、`models/<provider>/<model>.json`、`models-store.json`、`multikey.json`、`web-search.json` 等 JSON 配置文件 |
 | 会话 / 扩展目录（agent-dir） | `~/.pi/agent/` | `sessions/`（会话记录）、`extensions/`（用户扩展） |
 
 优先级：`GF_CONFIG_DIR` > `PI_CODING_AGENT_DIR` 环境变量（测试与调试用） > `~/.gf/agent/`
@@ -63,9 +63,9 @@ PI_CODING_AGENT_DIR=/tmp/my-agent-dir bin/gf pi -p "hello"
 
 ```
 ~/.gf/agent/
-  providers.json            ← 哪些 provider 启用（json array，顺序即展示顺序）
-                              schema: resources/providers.schema.json
   models/                   ← provider 与模型配置统一放这个子目录
+    providers.json          ← 哪些 provider 启用（json array，顺序即展示顺序）
+                              schema: resources/providers.schema.json
     google.json             ← provider 层：端点、代理、模型白名单（文件名即 provider id）
                               schema: resources/provider.schema.json
     google/
@@ -80,10 +80,11 @@ PI_CODING_AGENT_DIR=/tmp/my-agent-dir bin/gf pi -p "hello"
 
 要点：
 
-- **providers.json**：provider id 白名单 array；缺失 = 全部内置 provider
+- **models/providers.json**：provider id 白名单 array；缺失 = 全部内置 provider
   （google / kimi-coding / deepseek / minimax-cn / zai-coding-cn）；
   语法错 / 非字符串 / 重复 id **报错拒启**（唯一致命文件，其余文件坏一个忽略一个）；
-  白名单 id 需有内置定义或 `models/<id>.json`，否则告警忽略（防拼写错位）
+  白名单 id 需有内置定义或 `models/<id>.json`，否则告警忽略（防拼写错位）；
+  旧位置 `providers.json`（配置目录顶层）仍兼容，`models/providers.json` 优先
 - **models/<provider>.json**：字段级合并，未写字段回落内置默认；`models` 为模型
   id 白名单 array（缺省不过滤）；`httpProxy` 为 per-provider 代理
   （`--proxy` > 本字段 > `HTTPS_PROXY`/`ALL_PROXY` > settings.json `httpProxy`）
@@ -93,7 +94,7 @@ PI_CODING_AGENT_DIR=/tmp/my-agent-dir bin/gf pi -p "hello"
 
 ```json
 // 最小配置示例
-["kimi-coding"]                                        // providers.json：只用 kimi
+["kimi-coding"]                                        // models/providers.json：只用 kimi
 { "baseUrl": "https://mirror.example.com/coding" }     // models/kimi-coding.json：换镜像
 { "httpProxy": "http://127.0.0.1:7890" }               // models/google.json：仅 google 走代理
 { "name": "Kimi K3.1 Pro" }                            // models/kimi-coding/k3.1-pro.json
@@ -101,7 +102,33 @@ PI_CODING_AGENT_DIR=/tmp/my-agent-dir bin/gf pi -p "hello"
 
 旧版 `models.json` 已删除（自定义 baseUrl → `models/<provider>.json`，自定义模型条目 →
 `models/<provider>/<model>.json`）；`models-store.json` 仅作刷新同步快照，运行时不再读取，
-模型可用性完全由 `providers.json` + `models/` + 内置目录决定。
+模型可用性完全由 `models/providers.json` + `models/` + 内置目录决定。
+
+## 配置浏览：`gf pi config`
+
+ranger 风格三列只读 TUI，用来查看当前配置与模型可用性：
+
+```bash
+bin/gf pi config
+```
+
+```
+┌ providers 5/5 on   ┐┌ models · google                ┐┌ preview · gemini-3.8-flash   ┐
+│ ● google           ││ ● gemini-3.8-flash             ││ usable yes                   │
+│ ● kimi-coding      ││ × deep-research-preview-04-... ││ id gemini-3.8-flash          │
+│ ● minimax-cn *     ││ × gemini-2.5-flash             ││ api google-generative-ai     │
+│ ● zai-coding-cn    ││ × gemini-2.5-pro               ││ context 1M                   │
+└────────────────────┘└────────────────────────────────┘└──────────────────────────────┘
+ /home/da/.gf/agent · 5/5 providers · 6/46 models · default minimax-cn/MiniMax-M3.1-Flash
+ ↑↓/jk 移动 · →/Enter 进入 · ←/h 返回 · Tab 切列 · g/G 首尾 · q 退出
+```
+
+- 三列展示**全部** provider 与模型（含内置目录，不只看已配置的）
+- `●` = 可用（provider 在 `models/providers.json` 白名单、模型在 `models` 白名单内）
+- `×` = 不可用（被白名单过滤，或被禁用的 provider 下的模型）
+- `*` = 当前默认模型；右列显示选中模型的 api / baseUrl / 上下文 / 代理 / key 来源 / 配置文件
+- key 只显示来源（`auth.json` 或 `$ENV_NAME`），**不回显密钥**
+- v1 只读：不写任何配置文件
 
 ## 基本用法【可用】
 

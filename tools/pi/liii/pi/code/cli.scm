@@ -27,6 +27,7 @@
     (liii pi ai config record)
     (liii pi code modes interactive)
     (liii pi code modes interactive resume)
+    (liii pi code modes config app)
     (liii pi code core extensions types)
     (liii pi code core extensions registry)
     (liii pi code core extensions discovery)
@@ -318,17 +319,29 @@
       ) ;let
     ) ;define
 
+    ;; gf pi config：ranger 风格三列只读配置浏览
+    (define (%handle-config-command)
+      (pi-config-run (gf-get-config-dir))
+      0
+    ) ;define
+
     (define (run-pi raw-args)
       (catch #t
         (lambda ()
           (let ((stripped (strip-command-prefix raw-args)))
-            (if (and (pair? stripped) (string=? (car stripped) "install"))
+            (cond
+             ((and (pair? stripped) (string=? (car stripped) "install"))
               (%handle-install-command (cdr stripped))
-              (begin
-                (%ensure-extensions-loaded!)
-                (%run-pi-main (parse-pi-args stripped))
-              ) ;begin
-            ) ;if
+             ) ;
+             ((and (pair? stripped) (string=? (car stripped) "config"))
+              (%handle-config-command)
+             ) ;
+             (else (begin
+                     (%ensure-extensions-loaded!)
+                     (%run-pi-main (parse-pi-args stripped))
+                   ) ;begin
+             ) ;else
+            ) ;cond
           ) ;let
         ) ;lambda
         (lambda (err-type . info)

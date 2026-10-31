@@ -4,7 +4,7 @@
 ;; config-dir 缺省 ~/.gf/agent；schema 文件位于 tools/pi/liii/pi/code/resources/
 ;;
 ;; 校验对象：
-;;   providers.json          -> providers.schema.json
+;;   models/providers.json   -> providers.schema.json（旧位置 providers.json 兼容校验）
 ;;   <provider>.json         -> provider.schema.json（排除 providers.json）
 ;;   <provider>/<model>.json -> model.schema.json
 ;;   auth.json               -> auth.schema.json
@@ -132,10 +132,25 @@
 (newline)
 (newline)
 
-;; 1. providers.json
-(let ((f (path-join CONFIG-DIR "providers.json")))
+;; 1. providers.json（新位置 models/providers.json 优先，旧位置兼容）
+(let ((f
+        (let ((primary (path-join CONFIG-DIR "models" "providers.json"))
+              (legacy (path-join CONFIG-DIR "providers.json"))
+             ) ;
+          (if (path-exists? primary) primary legacy)
+        ) ;let
+      ) ;f
+     ) ;
   (if (path-exists? f)
-    (check-one f "providers.json" providers-schema)
+    (check-one f
+      (if (string=? (path->string f)
+            (path->string (path-join CONFIG-DIR "models" "providers.json"))
+          ) ;string=?
+        "models/providers.json"
+        "providers.json"
+      ) ;if
+      providers-schema
+    ) ;check-one
     (display "  [SKIP] providers.json 不存在（默认全部内置 provider）\n")
   ) ;if
 ) ;let

@@ -17,7 +17,7 @@
     (liii pi code config user-fs)
     (liii pi code config user-providers)
   ) ;import
-  (export pi-user-provider-models)
+  (export pi-user-provider-models pi-user-provider-model-list)
   (begin
 
     ;; ---------- 字段级合并 ----------
@@ -206,6 +206,55 @@
              ) ;from-dir
             ) ;
         (append from-builtin from-dir)
+      ) ;let*
+    ) ;define
+
+    ;; 白名单之外但仍存在于内置目录/模型文件中的模型（配置视图里灰显为不可用）
+    (define (%non-whitelist-models config-dir p-id p-fields builtin wl)
+      (let* ((known (append (%builtin-ids builtin) (%directory-model-ids config-dir p-id)))
+             (rest
+               (filter (lambda (m-id) (not (member m-id wl))) known)
+             ) ;rest
+            ) ;
+        (filter (lambda (x) x)
+          (map
+            (lambda (m-id)
+              (let* ((base (or (%find-builtin builtin m-id) '()))
+                     (merged (%compose-model p-fields base (%model-file config-dir p-id m-id)))
+                    ) ;
+                (and merged (%with-id m-id merged))
+              ) ;let*
+            ) ;lambda
+            rest
+          ) ;map
+        ) ;filter
+      ) ;let*
+    ) ;define
+
+    ;; 给模型条目追加可用标记
+    (define (%mark n m)
+      (append m (list (cons "enabled" (and n #t))))
+    ) ;define
+
+    ;; 配置视图用的完整模型列表：
+    ;;   可用（白名单内）在前，不可用（被白名单过滤）在后，各带 "enabled" 标记
+    (define (pi-user-provider-model-list config-dir p-id)
+      (let* ((p-file (or (pi-user-provider-file config-dir p-id) '()))
+             (p-fields (pi-user-provider-fields p-file))
+             (wl-raw (pi-user-dict-ref p-file "models" #f))
+             (wl (and (vector? wl-raw) (vector->list wl-raw)))
+             (builtin (%builtin-table p-id))
+            ) ;
+        (if wl
+          (append (map (lambda (m) (%mark #t m))
+                    (%whitelist-models config-dir p-id p-fields builtin wl)
+                  ) ;map
+            (map (lambda (m) (%mark #f m))
+              (%non-whitelist-models config-dir p-id p-fields builtin wl)
+            ) ;map
+          ) ;append
+          (map (lambda (m) (%mark #t m)) (%full-models config-dir p-id p-fields builtin))
+        ) ;if
       ) ;let*
     ) ;define
 

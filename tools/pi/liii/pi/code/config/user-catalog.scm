@@ -5,7 +5,7 @@
 ;;
 
 ;; 用户配置目录的模型目录装配：
-;;   provider 集与顺序 = providers.json 白名单（缺失时全部内置 provider，字典序）
+;;   provider 集与顺序 = models/providers.json 白名单（缺失时全部内置 provider，字典序）
 ;;   provider 层字段    = models/<provider>.json
 ;;   模型条目           = models/<provider>/<model>.json > 内置目录（字段级）
 ;;
@@ -25,6 +25,7 @@
     (liii pi code config user-models)
   ) ;import
   (export pi-build-user-catalog
+    pi-build-config-catalog
     pi-user-provider-config
     ;; 白名单加载由 (liii pi code config user-providers) 提供，此处再导出保持入口单一
     pi-load-providers-whitelist
@@ -63,7 +64,7 @@
       ) ;let
     ) ;define
 
-    ;; 单个 provider 的目录条目
+    ;; 单个 provider 的目录条目（models 取可用模型；配置视图另用 %config-entry）
     (define (%provider-entry config-dir p-id)
       (let* ((p-file (or (pi-user-provider-file config-dir p-id) '()))
              (base-url (%provider-base-url p-file p-id))
@@ -86,6 +87,46 @@
       (or (pi-load-providers-whitelist config-dir)
         (list-sort string<? (map car PI_PROVIDER_BUILTIN_MODELS))
       ) ;or
+    ) ;define
+
+    ;; 配置浏览视图：全部内置 provider（白名单顺序在前）+ 每个 provider 的全部模型，
+    ;; 各自带 "enabled" 标记，供 `gf pi config` 区分可用/不可用。
+    (define (%config-entry config-dir p-id enabled?)
+      (let* ((p-file (or (pi-user-provider-file config-dir p-id) '()))
+             (base-url (%provider-base-url p-file p-id))
+             (api (%provider-api p-file p-id))
+            ) ;
+        (cons p-id
+          (append (list (cons "name" (%provider-name p-file p-id)))
+            (if base-url (list (cons "baseUrl" base-url)) '())
+            (if api (list (cons "api" api)) '())
+            (%provider-http-proxy p-file)
+            (list (cons "enabled" (and enabled? #t)))
+            (list (cons "models" (pi-user-provider-model-list config-dir p-id)))
+          ) ;append
+        ) ;cons
+      ) ;let*
+    ) ;define
+
+    ;; 白名单外的内置 provider（按 id 排序），用于配置视图灰显
+    (define (%disabled-provider-ids whitelist)
+      (list-sort string<?
+        (filter (lambda (p) (not (member p whitelist)))
+          (map car PI_PROVIDER_BUILTIN_MODELS)
+        ) ;filter
+      ) ;list-sort
+    ) ;define
+
+    (define (pi-build-config-catalog config-dir)
+      (let* ((whitelist (or (pi-load-providers-whitelist config-dir) '()))
+             (enabled (map (lambda (p-id) (%config-entry config-dir p-id #t)) whitelist))
+             (disabled (map (lambda (p-id) (%config-entry config-dir p-id #f))
+                         (%disabled-provider-ids whitelist)
+                       ) ;map
+             ) ;disabled
+            ) ;
+        (append enabled disabled)
+      ) ;let*
     ) ;define
 
     ;; 构造用户 catalog（provider 集与顺序由白名单决定）
