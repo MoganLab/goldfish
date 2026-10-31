@@ -2,7 +2,6 @@
   (scheme file)
   (liii check)
   (liii json)
-  (liii list)
   (liii path)
   (liii shutil)
   (liii pi code config)
@@ -34,10 +33,21 @@
 ) ;let
 
 ;; 显示：替换为 false 而不是添加重复键
+;; 注意：本文件刻意不 import (liii list)，filter 计数用手写循环：
+;; settings.scm 库自身的 import 完整性由本测试进程的干净 rootlet 保证——
+;; 若库内用了未导入的符号（如 filter），调用即在此复现 unbound variable
 (pi-save-hide-thinking-block! AGENT-DIR #f)
 (let ((json (string->json (path-read-text SETTINGS))))
   (check (cdr (assoc "hideThinkingBlock" json)) => 'false)
-  (check (length (filter (lambda (entry) (equal? (car entry) "hideThinkingBlock")) json)) => 1)
+  (let ((n 0))
+    (for-each
+      (lambda (entry)
+        (when (equal? (car entry) "hideThinkingBlock") (set! n (+ n 1)))
+      ) ;lambda
+      json
+    ) ;for-each
+    (check n => 1)
+  ) ;let
   (check (pi-settings-hide-thinking-block (pi-load-settings AGENT-DIR)) => #f)
 ) ;let
 
