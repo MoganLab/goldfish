@@ -13,4 +13,20 @@
 (check (openai-is-retriable-error? 404 "") => #f)
 (check (openai-is-retriable-error? 200 "") => #f)
 
+;; 额度耗尽（5 小时窗口 / 周额度）属于账户级限额，重试无意义
+(check (openai-is-retriable-error?
+         429
+         "{\"error\":{\"code\":\"1310\",\"message\":\"您已达到每周/每月使用上限，您的限额将在 2026-11-05 13:12:35 重置。\"}}")
+       => #f)
+(check (openai-is-retriable-error?
+         429
+         "{\"error\":{\"code\":\"1302\",\"message\":\"您已达到5小时用量上限，请在 5 小时后重试。\"}}")
+       => #f)
+
+;; 瞬时限流仍应重试
+(check (openai-is-retriable-error?
+         429
+         "{\"error\":{\"message\":\"Rate limit exceeded, please retry later\"}}")
+       => #t)
+
 (check-report)

@@ -16,6 +16,7 @@
     (liii pi ai event)
     (liii pi ai config types)
     (liii pi ai retry)
+    (liii pi ai limits)
     (liii pi ai message)
     (liii pi ai keyring)
     (liii pi ai api google-generative-ai core)
@@ -160,6 +161,7 @@
                    ) ;
                   ) ;
         (let* ((settings (cdr (or (%safe-assoc 'settings config) '(#f))))
+               (provider (cdr (or (%safe-assoc 'provider config) '(#f . #f))))
                (effective-idle (or idle-timeout timeout))
                (key-rotation? (pi-key-rotation? config))
               ) ;
@@ -210,7 +212,9 @@
                      ) ;if
                    ) ;let
                   ) ;
-                  ((and (not idle-timed-out?) (gemini-is-retriable-error? status ""))
+                  ((and (not idle-timed-out?)
+                     (gemini-is-retriable-error? status (vector-ref error-body-acc 0))
+                   ) ;and
                    (if (<= attempt provider-max-retries)
                      (let* ((ra-raw (pi-extract-retry-after resp))
                             (ra-sec (pi-parse-retry-after ra-raw))
@@ -221,12 +225,19 @@
                        (sleep delay-sec)
                        (loop (+ attempt 1) api-key)
                      ) ;let*
-                     (list (cons 'role "assistant")
-                       (cons 'content (gemini-stream-state-blocks stream-state))
-                       (cons 'stopReason "error")
-                       (cons 'usage (gemini-stream-state-usage stream-state))
-                       (cons 'errorMessage (format-failed-stream-msg status resp))
-                     ) ;list
+                     (let ((limit (pi-usage-limit-error? status (vector-ref error-body-acc 0))))
+                       (list (cons 'role "assistant")
+                         (cons 'content (gemini-stream-state-blocks stream-state))
+                         (cons 'stopReason "error")
+                         (cons 'usage (gemini-stream-state-usage stream-state))
+                         (cons 'errorMessage
+                           (if limit
+                             (pi-usage-limit-error-message limit provider)
+                             (format-failed-stream-msg status resp)
+                           ) ;if
+                         ) ;cons
+                       ) ;list
+                     ) ;let
                    ) ;if
                   ) ;
                   (else (gemini-classify-stream-result stream-state

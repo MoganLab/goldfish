@@ -15,6 +15,7 @@
     (liii error)
     (liii time)
     (liii pi ai retry)
+    (liii pi ai limits)
     (liii pi ai tools types)
     (liii pi ai message)
     (liii pi ai keyring)
@@ -220,6 +221,7 @@
              (model-meta (cdr (assoc 'model-meta config)))
              (proxy-url (cdr (assoc 'proxy-url config)))
              (settings (cdr (assoc 'settings config)))
+             (provider (cdr (or (assoc 'provider config) '(#f . #f))))
              (key-rotation? (pi-key-rotation? config))
              (base-url (cdr (or (assoc 'base-url model-meta)
                               '(#f
@@ -287,14 +289,26 @@
                 ) ;let*
                ) ;
                ((gemini-is-retriable-error? status body-str)
-                (%make-error-response (format-failed-stream-msg status resp)
-                  (gemini-map-usage '())
-                ) ;%make-error-response
+                (let ((limit (pi-usage-limit-error? status body-str)))
+                  (%make-error-response (if limit
+                                          (pi-usage-limit-error-message limit provider)
+                                          (format-failed-stream-msg status resp)
+                                        ) ;if
+                    (gemini-map-usage '())
+                  ) ;%make-error-response
+                ) ;let
                ) ;
                (else
-                 (let ((pj (catch #t (lambda () (string->json body-str)) (lambda _ #f))))
-                   (gemini-parse-response pj status)
-                 ) ;let
+                 (let* ((pj (catch #t (lambda () (string->json body-str)) (lambda _ #f)))
+                        (limit (pi-usage-limit-error? status body-str))
+                       ) ;
+                   (if limit
+                     (%make-error-response (pi-usage-limit-error-message limit provider)
+                       (gemini-map-usage '())
+                     ) ;%make-error-response
+                     (gemini-parse-response pj status)
+                   ) ;if
+                 ) ;let*
                ) ;else
               ) ;cond
             ) ;let*

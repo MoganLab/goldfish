@@ -15,6 +15,7 @@
     (liii hash-table)
     (liii date-time)
     (liii pi ai time)
+    (liii pi ai limits)
     (liii pi ai config types)
     (liii pi ai event)
   ) ;import
@@ -25,13 +26,17 @@
   ) ;export
   (begin
 
+    ;; 额度耗尽（5 小时窗口 / 周额度等）属于账户级限额，重试无意义
     (define (pi-is-retriable-error? status-code response-body-str)
-      (or (= status-code 408)
-        (= status-code 409)
-        (= status-code 429)
-        (>= status-code 500)
-        (= status-code 0)
-      ) ;or
+      (if (pi-usage-limit-error? status-code response-body-str)
+        #f
+        (or (= status-code 408)
+          (= status-code 409)
+          (= status-code 429)
+          (>= status-code 500)
+          (= status-code 0)
+        ) ;or
+      ) ;if
     ) ;define
 
     (define gemini-is-retriable-error? pi-is-retriable-error?)

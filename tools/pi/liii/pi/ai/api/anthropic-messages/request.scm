@@ -19,6 +19,7 @@
     (liii pi ai api anthropic-messages core)
     (liii pi ai api anthropic-messages thinking)
     (liii pi ai retry)
+    (liii pi ai limits)
   ) ;import
   (export anthropic-build-tool-declarations-from-names
     anthropic-request
@@ -71,19 +72,24 @@
       (pi-resolve-retry-params settings opt-retry)
     ) ;define
 
-    (define (%make-retry-error status attempt body-str)
-      (pi-assistant-message (list (pi-text-block ""))
-        :stop-reason "error"
-        :error-message
-        (string-append "HTTP "
-          (number->string status)
-          " after "
-          (number->string attempt)
-          " attempts: "
-          body-str
-        ) ;string-append
-        :usage (anthropic-map-usage '())
-      ) ;pi-assistant-message
+    (define (%make-retry-error status attempt body-str provider)
+      (let ((limit (pi-usage-limit-error? status body-str)))
+        (pi-assistant-message (list (pi-text-block ""))
+          :stop-reason "error"
+          :error-message
+          (if limit
+            (pi-usage-limit-error-message limit provider)
+            (string-append "HTTP "
+              (number->string status)
+              " after "
+              (number->string attempt)
+              " attempts: "
+              body-str
+            ) ;string-append
+          ) ;if
+          :usage (anthropic-map-usage '())
+        ) ;pi-assistant-message
+      ) ;let
     ) ;define
 
     (define (%post-anthropic url req-json-str headers proxy-alist timeout)
@@ -116,6 +122,7 @@
                     ((api-key) (cdr (assoc 'api-key config)))
                     ((proxy-url) (cdr (assoc 'proxy-url config)))
                     ((settings) (cdr (assoc 'settings config)))
+                    ((provider) (cdr (or (assoc 'provider config) '(#f . #f))))
                     ((max-retries base-delay max-delay provider-max-retries)
                      (%resolve-retry-params settings opt-retry)
                     ) ;
@@ -165,11 +172,20 @@
                   (sleep delay-sec)
                   (loop (+ attempt 1))
                 ) ;let*
-                (%make-retry-error status attempt body-str)
+                (%make-retry-error status attempt body-str provider)
               ) ;if
-              (let ((parsed-json (catch #t (lambda () (string->json body-str)) (lambda args #f))))
-                (anthropic-parse-response parsed-json status)
-              ) ;let
+              (let* ((parsed-json (catch #t (lambda () (string->json body-str)) (lambda args #f)))
+                     (limit (pi-usage-limit-error? status body-str))
+                    ) ;
+                (if limit
+                  (pi-assistant-message (list (pi-text-block ""))
+                    :stop-reason   "error"
+                    :usage         (anthropic-map-usage '())
+                    :error-message (pi-usage-limit-error-message limit provider)
+                  ) ;pi-assistant-message
+                  (anthropic-parse-response parsed-json status)
+                ) ;if
+              ) ;let*
             ) ;if
           ) ;let*
         ) ;let

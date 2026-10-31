@@ -11,6 +11,7 @@
     (liii error)
     (liii pi ai message)
     (liii pi ai event)
+    (liii pi ai limits)
   ) ;import
   (export openai-map-stop-reason openai-map-usage openai-parse-response
     openai-is-retriable-error?
@@ -130,8 +131,13 @@
       ) ;if
     ) ;define
 
+    ;; 额度耗尽（5 小时窗口 / 周额度等）不是瞬时错误，重试无意义，
+    ;; 直接判定为不可重试，由上层给出额度类型与重置时间。
     (define (openai-is-retriable-error? status-code response-body-str)
-      (if (memv status-code '(0 408 409 429 500 502 503 504 529)) #t #f)
+      (if (pi-usage-limit-error? status-code response-body-str)
+        #f
+        (if (memv status-code '(0 408 409 429 500 502 503 504 529)) #t #f)
+      ) ;if
     ) ;define
 
   ) ;begin
