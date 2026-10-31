@@ -40,6 +40,7 @@
 (check (budget-depth budget) => 2)
 
 ;; 超过上限时抛出预算异常
+
 (define tiny (make-resource-budget 1 100 100))
 (enter-budget-depth! tiny)
 (check-catch 'json-schema-budget-exceeded (enter-budget-depth! tiny))

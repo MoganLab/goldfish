@@ -24,7 +24,7 @@
 ;; ==== 常见用法示例 ===;
 
 ;; 示例1：列出内嵌资源
-(length (json-schema-meta-uris)) ; => 9
+(length (json-schema-meta-uris))
 
 ;; 示例2：读取主元 Schema
 (json-schema-meta-resource "https://json-schema.org/draft/2020-12/schema")

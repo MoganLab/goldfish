@@ -42,15 +42,19 @@
 ;; 无。
 
 (define root-a '(("$id" . "https://example.com/a/root")))
+
 (define root-b '(("$id" . "https://example.com/b/root")))
 
 (define key-a (list "child.json" root-a '()))
+
 (define key-b (list "child.json" root-b '()))
+
 (define key-scope (list "child.json" root-a (list root-a)))
 
 (check-true (reference-cache-key-matches? key-a "child.json" root-a '()))
 (check-false (reference-cache-key-matches? key-a "child.json" root-b '()))
-(check-false (reference-cache-key-matches? key-a "child.json" root-a (list root-a)))
+(check-false (reference-cache-key-matches? key-a "child.json" root-a (list root-a))
+) ;check-false
 (check-false (reference-cache-key-matches? key-b "child.json" root-a '()))
 
 ;; 引用不同则不匹配

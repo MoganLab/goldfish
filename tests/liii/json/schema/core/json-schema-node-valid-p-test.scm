@@ -45,22 +45,24 @@
 (define validator (make-json-schema-validator #t))
 
 ;; 对象节点
-(check-true
-  (json-schema-node-valid? validator '(("a" . 1)) '(("type" . "object")) #t)
+(check-true (json-schema-node-valid? validator '(("a" . 1)) '(("type"
+                                                               . "object")) #t)
 ) ;check-true
-(check-false
-  (json-schema-node-valid? validator '("not-an-object") '(("type" . "object")) #t)
+(check-false (json-schema-node-valid? validator '("not-an-object") '(("type"
+                                                                      . "object")) #t)
 ) ;check-false
 
 ;; 属性约束在节点求值时同样生效
 (check-true
-  (json-schema-node-valid? validator '(("a" . 1))
+  (json-schema-node-valid? validator
+    '(("a" . 1))
     '(("type" . "object") ("properties" ("a" ("type" . "integer"))))
     #t
   ) ;json-schema-node-valid?
 ) ;check-true
 (check-false
-  (json-schema-node-valid? validator '(("a" . "x"))
+  (json-schema-node-valid? validator
+    '(("a" . "x"))
     '(("type" . "object") ("properties" ("a" ("type" . "integer"))))
     #t
   ) ;json-schema-node-valid?
@@ -75,17 +77,14 @@
 (check-false (json-schema-node-valid? validator 1.5 '(("type" . "integer")) #t))
 
 ;; 相对引用按根资源解析
+
 (define rooted
   '(("$id" . "https://example.com/root.json")
     ("$defs" ("item" ("type" . "integer")))
     ("type" . "object")
     ("properties" ("n" ("$ref" . "#/$defs/item"))))
 ) ;define
-(check-true
-  (json-schema-node-valid? validator '(("n" . 1)) rooted rooted)
-) ;check-true
-(check-false
-  (json-schema-node-valid? validator '(("n" . "x")) rooted rooted)
-) ;check-false
+(check-true (json-schema-node-valid? validator '(("n" . 1)) rooted rooted))
+(check-false (json-schema-node-valid? validator '(("n" . "x")) rooted rooted))
 
 (check-report)

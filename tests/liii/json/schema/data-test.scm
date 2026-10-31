@@ -32,12 +32,13 @@
 ;; ==== 常见用法示例 ====
 
 ;; 示例1：读取对象字段
+
 (define person '(("name" . "Liii") (age . 18)))
-(object-ref person "age" 0) ; => 18
-(object-has? person 'name) ; => #t
+(object-ref person "age" 0)
+(object-has? person 'name)
 
 ;; 示例2：字符串键与符号键等价
-(object-ref person 'name #f) ; => "Liii"
+(object-ref person 'name #f)
 
 ;; 示例3：遍历数组
-(listify #(1 2 3)) ; => (1 2 3)
+(listify #(1 2 3))

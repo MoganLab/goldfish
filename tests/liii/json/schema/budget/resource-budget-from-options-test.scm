@@ -35,7 +35,8 @@
 (define budget
   (resource-budget-from-options '((max-depth . 10)
                                   (max-steps . 100)
-                                  (max-references . 1000)))
+                                  (max-references . 1000))
+  ) ;resource-budget-from-options
 ) ;define
 
 (check-true (resource-budget? budget))
@@ -45,6 +46,7 @@
 (check (budget-depth budget) => 0)
 
 ;; 缺省上限
+
 (define defaults (resource-budget-from-options '()))
 (check (budget-max-depth defaults) => 1000)
 (check (budget-max-steps defaults) => 1000000)

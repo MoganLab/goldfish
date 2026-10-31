@@ -40,13 +40,23 @@
     '(("type" . "object")
       ("properties" ("name" ("type" . "string")))
       ("required" . #("name")))
-    '((check-schema? . #t)))
+    '((check-schema? . #t))
+  ) ;make-json-schema-validator
 ) ;define
 
-(check (length (json-schema-validator-errors validator '(("name" . 1)))) => 1)
-(check (length (json-schema-validator-errors validator '(("name" . "Liii")))) => 0)
+(check
+  (length (json-schema-validator-errors validator '(("name" . 1))))
+  =>
+  1
+) ;check
+(check
+  (length (json-schema-validator-errors validator '(("name" . "Liii"))))
+  =>
+  0
+) ;check
 
 ;; max-errors 限制错误列表长度
+
 (define limited
   (make-json-schema-validator
     '(("type" . "object")
@@ -54,13 +64,26 @@
        ("name" ("type" . "string"))
        ("age" ("type" . "integer") ("minimum" . 0)))
       ("required" . #("name" "age")))
-    '((max-errors . 1)))
+    '((max-errors . 1))
+  ) ;make-json-schema-validator
 ) ;define
-(check (length (json-schema-validator-errors limited '(("name" . 7)))) => 1)
+(check
+  (length (json-schema-validator-errors limited '(("name" . 7))))
+  =>
+  1
+) ;check
 
 ;; 校验器可被反复复用，错误列表每次重新计算
-(check (length (json-schema-validator-errors validator '(("name" . 1)))) => 1)
-(check (length (json-schema-validator-errors validator '(("name" . "Liii")))) => 0)
+(check
+  (length (json-schema-validator-errors validator '(("name" . 1))))
+  =>
+  1
+) ;check
+(check
+  (length (json-schema-validator-errors validator '(("name" . "Liii"))))
+  =>
+  0
+) ;check
 
 (check-catch 'type-error (json-schema-validator-errors 'not-a-validator 1))
 
@@ -73,7 +96,7 @@
       (json-schema-validator-errors
         (make-json-schema-validator
           '(("properties" ("a" ("type" . "string"))))
-          ) ;make-json-schema-validator
+        ) ;make-json-schema-validator
         '((a . 1))
       ) ;json-schema-validator-errors
     ) ;car

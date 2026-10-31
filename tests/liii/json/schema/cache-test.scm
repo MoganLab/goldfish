@@ -6,11 +6,7 @@
 ;; 下方第 10 组断言（valid? 短路）暂存于此，
 ;; 后续拆分到 keywords 库的按函数测试文件。
 
-(import (liii json schema)
-  (liii json schema cache)
-  (liii check)
-  (scheme base)
-) ;import
+(import (liii json schema) (liii json schema cache) (liii check) (scheme base))
 
 (check-set-mode! 'report-failed)
 
@@ -125,4 +121,3 @@
 (check probe-calls => 0)
 
 (check-report)
-

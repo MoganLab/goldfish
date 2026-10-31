@@ -25,10 +25,10 @@
 ;; ==== 常见用法示例 ===;
 
 ;; 示例1：搜索匹配
-(regex-search? "abc" "xxabcxx") ; => #t
+(regex-search? "abc" "xxabcxx")
 
 ;; 示例2：整串匹配需要锚点
-(regex-search? "^abc$" "xxabcxx") ; => #f
+(regex-search? "^abc$" "xxabcxx")
 
 ;; ==== 暂存的集成断言 ====
 

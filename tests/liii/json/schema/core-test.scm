@@ -27,9 +27,13 @@
 (define validator (make-json-schema-validator #t))
 
 ;; 示例1：判断单个节点是否合法
-(json-schema-node-valid? validator 1 '(("type" . "integer")) #t) ; => #t
+(json-schema-node-valid? validator 1 '(("type" . "integer")) #t)
 
 ;; 示例2：下钻到子 Schema 并收集错误
-(json-schema-descend-errors validator "x" '(("type" . "integer"))
-  '("rows" 0) '("items") #t)
-; => 一个 json-schema-error-kind 为 validation 的错误对象
+(json-schema-descend-errors validator
+  "x"
+  '(("type" . "integer"))
+  '("rows" 0)
+  '("items")
+  #t
+) ;json-schema-descend-errors

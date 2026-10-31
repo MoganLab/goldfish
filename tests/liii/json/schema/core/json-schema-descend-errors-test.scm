@@ -57,10 +57,9 @@
 ) ;check
 
 ;; 非法节点返回错误列表
-(let ((errors
-        (json-schema-descend-errors validator "x" '(("type" . "integer")) '() '() #t)
+(let ((errors (json-schema-descend-errors validator "x" '(("type" . "integer")) '() '() #t)
       ) ;errors
-   ) ;
+     ) ;
   (check (length errors) => 1)
   (check (json-schema-error-kind (car errors)) => 'validation)
   (check (json-schema-error-keyword (car errors)) => "type")
@@ -68,12 +67,15 @@
 ) ;let
 
 ;; 传入的实例路径与 Schema 路径会体现在错误对象中
-(let ((errors
-        (json-schema-descend-errors validator "x" '(("type" . "integer"))
-          '("rows" 0) '("items") #t
-        ) ;json-schema-descend-errors
+(let ((errors (json-schema-descend-errors validator
+                "x"
+                '(("type" . "integer"))
+                '("rows" 0)
+                '("items")
+                #t
+              ) ;json-schema-descend-errors
       ) ;errors
-   ) ;
+     ) ;
   (check (json-schema-error-path (car errors)) => '("rows" 0))
   (check (json-schema-error-schema-path (car errors)) => '("items" "type"))
   (check (json-schema-error-absolute-path (car errors)) => '("rows" 0))
@@ -84,7 +86,7 @@
 ) ;let
 
 ;; 布尔 Schema：false 拒绝一切
-(let ((errors (json-schema-descend-errors validator 1 #f '() '() #t))) ;errors
+(let ((errors (json-schema-descend-errors validator 1 #f '() '() #t)))
   (check (length errors) => 1)
   (check (json-schema-error-instance (car errors)) => 1)
 ) ;let

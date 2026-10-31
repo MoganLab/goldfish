@@ -3,6 +3,7 @@
 (check-set-mode! 'report-failed)
 
 ;; member 返回的是匹配位置的尾部（真值但不严格等于 #t），这里归一化为布尔。
+
 (define (truthy? value)
   (not (eq? value #f))
 ) ;define
@@ -37,41 +38,48 @@
 
 (check (length (json-schema-meta-uris)) => 9)
 
-(check-true
-  (truthy? (member "https://json-schema.org/draft/2020-12/schema"
-                    (json-schema-meta-uris)))
+(check-true (truthy? (member "https://json-schema.org/draft/2020-12/schema" (json-schema-meta-uris))
+            ) ;truthy?
 ) ;check-true
-(check-true
-  (truthy? (member "https://json-schema.org/draft/2020-12/meta/core"
-                    (json-schema-meta-uris)))
+(check-true (truthy? (member "https://json-schema.org/draft/2020-12/meta/core"
+                       (json-schema-meta-uris)
+                     ) ;member
+            ) ;truthy?
 ) ;check-true
-(check-true
-  (truthy? (member "https://json-schema.org/draft/2020-12/meta/applicator"
-                    (json-schema-meta-uris)))
+(check-true (truthy? (member "https://json-schema.org/draft/2020-12/meta/applicator"
+                       (json-schema-meta-uris)
+                     ) ;member
+            ) ;truthy?
 ) ;check-true
-(check-true
-  (truthy? (member "https://json-schema.org/draft/2020-12/meta/validation"
-                    (json-schema-meta-uris)))
+(check-true (truthy? (member "https://json-schema.org/draft/2020-12/meta/validation"
+                       (json-schema-meta-uris)
+                     ) ;member
+            ) ;truthy?
 ) ;check-true
-(check-true
-  (truthy? (member "https://json-schema.org/draft/2020-12/meta/unevaluated"
-                    (json-schema-meta-uris)))
+(check-true (truthy? (member "https://json-schema.org/draft/2020-12/meta/unevaluated"
+                       (json-schema-meta-uris)
+                     ) ;member
+            ) ;truthy?
 ) ;check-true
-(check-true
-  (truthy? (member "https://json-schema.org/draft/2020-12/meta/format-annotation"
-                    (json-schema-meta-uris)))
+(check-true (truthy? (member "https://json-schema.org/draft/2020-12/meta/format-annotation"
+                       (json-schema-meta-uris)
+                     ) ;member
+            ) ;truthy?
 ) ;check-true
-(check-true
-  (truthy? (member "https://json-schema.org/draft/2020-12/meta/format-assertion"
-                    (json-schema-meta-uris)))
+(check-true (truthy? (member "https://json-schema.org/draft/2020-12/meta/format-assertion"
+                       (json-schema-meta-uris)
+                     ) ;member
+            ) ;truthy?
 ) ;check-true
-(check-true
-  (truthy? (member "https://json-schema.org/draft/2020-12/meta/content"
-                    (json-schema-meta-uris)))
+(check-true (truthy? (member "https://json-schema.org/draft/2020-12/meta/content"
+                       (json-schema-meta-uris)
+                     ) ;member
+            ) ;truthy?
 ) ;check-true
-(check-true
-  (truthy? (member "https://json-schema.org/draft/2020-12/meta/meta-data"
-                    (json-schema-meta-uris)))
+(check-true (truthy? (member "https://json-schema.org/draft/2020-12/meta/meta-data"
+                       (json-schema-meta-uris)
+                     ) ;member
+            ) ;truthy?
 ) ;check-true
 
 (check-report)

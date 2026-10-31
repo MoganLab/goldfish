@@ -42,6 +42,7 @@
 ;; 无。
 
 (define root-a '(("$id" . "https://example.com/a/root")))
+
 (define root-b '(("$id" . "https://example.com/b/root")))
 
 (define cache (make-reference-cache))
@@ -51,6 +52,7 @@
 
 ;; 写入后命中
 (reference-cache-put! cache "child.json" root-a '() 'VALUE)
+
 (define entry (reference-cache-lookup cache "child.json" root-a '()))
 (check (if entry #t #f) => #t)
 (check (cadddr entry) => 'VALUE)
@@ -65,9 +67,13 @@
 (check-false (reference-cache-lookup cache "other.json" root-a '()))
 
 ;; 缓存的假 Schema 仍然算命中
+
 (define false-cache (make-reference-cache))
 (reference-cache-put! false-cache "false.json" root-a '() #f)
-(define false-entry (reference-cache-lookup false-cache "false.json" root-a '()))
+
+(define false-entry
+  (reference-cache-lookup false-cache "false.json" root-a '())
+) ;define
 (check (if false-entry #t #f) => #t)
 (check (cadddr false-entry) => #f)
 

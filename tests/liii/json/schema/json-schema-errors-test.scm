@@ -45,10 +45,19 @@
     ("required" . #("name")))
 ) ;define
 
-(check (length (json-schema-errors '(("name" . 1)) schema)) => 1)
-(check (length (json-schema-errors '(("name" . "Liii")) schema)) => 0)
+(check
+  (length (json-schema-errors '(("name" . 1)) schema))
+  =>
+  1
+) ;check
+(check
+  (length (json-schema-errors '(("name" . "Liii")) schema))
+  =>
+  0
+) ;check
 
 ;; max-errors 限制错误列表长度
+
 (define person-schema
   '(("type" . "object")
     ("properties"
@@ -57,8 +66,13 @@
     ("required" . #("name" "age"))
     ("additionalProperties" . #f))
 ) ;define
-(check (length (json-schema-errors '(("name" . 7)) person-schema)) => 2)
-(check (length (json-schema-errors '(("name" . 7)) person-schema '((max-errors . 1))))
+(check
+  (length (json-schema-errors '(("name" . 7)) person-schema))
+  =>
+  2
+) ;check
+(check
+  (length (json-schema-errors '(("name" . 7)) person-schema '((max-errors . 1))))
   =>
   1
 ) ;check
@@ -82,9 +96,10 @@
             ("name" ("type" . "string"))
             ("age" ("type" . "integer") ("minimum" . 0)))
            ("required" . #("name" "age"))
-           ("additionalProperties" . #f)))
+           ("additionalProperties" . #f))
+       ) ;person-schema
        (errors (json-schema-errors '(("name" . 7)) person-schema))
-      ) ;errors
+      ) ;
   (check-true (= (length errors) 2))
   (check (json-schema-error-kind (car errors)) => 'validation)
   (check (json-schema-error-keyword (car errors)) => "type")
@@ -109,7 +124,7 @@
 
 ;; 错误对象的字段稳定，包括上下文与原因。
 
-(let* ((err (car (json-schema-errors 0 person-schema)))) ;err
+(let* ((err (car (json-schema-errors 0 person-schema))))
   (check-true (json-schema-error? err))
   (check (json-schema-error-kind err) => 'validation)
   (check (json-schema-error-keyword err) => "type")

@@ -35,15 +35,16 @@
 ) ;check-catch
 
 (define empty-registry (make-json-schema-registry))
+
 (define registry
   (json-schema-registry-add empty-registry "urn:positive" '(("minimum" . 1)))
-)
+) ;define
 (check-true (json-schema-registry? empty-registry))
 (check-catch 'json-schema-unresolvable
   (json-schema-valid? 0 '(("$ref" . "urn:positive")))
-)
+) ;check-catch
 (check-true
   (json-schema-valid? 3 '(("$ref" . "urn:positive")) `((registry . ,registry)))
-)
+) ;check-true
 
 (check-report)

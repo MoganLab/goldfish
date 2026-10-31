@@ -40,7 +40,8 @@
     '(("type" . "object")
       ("properties" ("name" ("type" . "string")))
       ("required" . #("name")))
-    '((check-schema? . #t)))
+    '((check-schema? . #t))
+  ) ;make-json-schema-validator
 ) ;define
 
 (check (json-schema-validator-validate validator '(("name" . "Liii")))
@@ -64,13 +65,14 @@
      ("age" ("type" . "integer") ("minimum" . 0)))
     ("required" . #("name" "age"))
     ("additionalProperties" . #f))
-)
+) ;define
 
 (define person-validator
   (make-json-schema-validator person-schema '((check-schema? . #t)))
 ) ;define
 
-(check (json-schema-validator-validate person-validator '(("name" . "A") ("age" . 1)))
+(check (json-schema-validator-validate person-validator '(("name" . "A")
+                                                          ("age" . 1)))
   =>
   '(("name" . "A") ("age" . 1))
 ) ;check

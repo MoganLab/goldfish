@@ -41,6 +41,10 @@
 ) ;check
 (check (collect-for-each (lambda (x) (list x)) '()) => '())
 (check (collect-for-each (lambda (x) '()) '(1 2)) => '())
-(check (collect-for-each (lambda (x) (list (car x))) '((1 2) (3 4))) => '(1 3))
+(check
+  (collect-for-each (lambda (x) (list (car x))) '((1 2) (3 4)))
+  =>
+  '(1 3)
+) ;check
 
 (check-report)

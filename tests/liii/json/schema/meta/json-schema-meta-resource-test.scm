@@ -46,8 +46,7 @@
 ) ;for-each
 
 ;; 主元 Schema 声明了词汇表。
-(check-true
-  (pair? (object-ref (json-schema-meta-resource "https://json-schema.org/draft/2020-12/schema")
+(check-true (pair? (object-ref (json-schema-meta-resource "https://json-schema.org/draft/2020-12/schema")
                      "$vocabulary"
                      #f
                    ) ;object-ref

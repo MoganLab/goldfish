@@ -3,6 +3,7 @@
 (check-set-mode! 'report-failed)
 
 ;; 返回值是 member 的结果（真值但不严格等于 #t），这里归一化为布尔。
+
 (define (truthy? value)
   (not (eq? value #f))
 ) ;define

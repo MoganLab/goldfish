@@ -28,13 +28,15 @@
 ;; ==== 常见用法示例 ===;
 
 ;; 示例1：未声明 $schema 时默认 2020-12
-(draft-for '(("type" . "integer"))) ; => 'draft2020-12
+(draft-for '(("type" . "integer")))
 
 ;; 示例2：其他草稿被拒绝
 (catch 'json-schema-unknown-dialect
-  (lambda () (draft-for '(("$schema" . "http://json-schema.org/draft-07/schema#"))))
-  (lambda args 'unknown-dialect))
-; => 'unknown-dialect
+  (lambda ()
+    (draft-for '(("$schema" . "http://json-schema.org/draft-07/schema#")))
+  ) ;lambda
+  (lambda args 'unknown-dialect)
+) ;catch
 
 ;; ==== 暂存的集成断言 ====
 

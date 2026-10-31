@@ -40,7 +40,8 @@
     '(("type" . "object")
       ("properties" ("name" ("type" . "string")))
       ("required" . #("name")))
-    '((check-schema? . #t)))
+    '((check-schema? . #t))
+  ) ;make-json-schema-validator
 ) ;define
 
 (check-true (json-schema-validator-valid? validator '(("name" . "Liii"))))
@@ -48,6 +49,7 @@
 (check-false (json-schema-validator-valid? validator '()))
 
 ;; 校验器可被反复复用
+
 (define reusable (make-json-schema-validator '(("type" . "integer"))))
 (check-true (json-schema-validator-valid? reusable 1))
 (check-true (json-schema-validator-valid? reusable 2))
@@ -62,14 +64,14 @@
      ("age" ("type" . "integer") ("minimum" . 0)))
     ("required" . #("name" "age"))
     ("additionalProperties" . #f))
-)
+) ;define
 
 (define person-validator
   (make-json-schema-validator person-schema '((check-schema? . #t)))
 ) ;define
 
-(check-true
-  (json-schema-validator-valid? person-validator '(("name" . "A") ("age" . 1)))
+(check-true (json-schema-validator-valid? person-validator '(("name" . "A")
+                                                             ("age" . 1)))
 ) ;check-true
 (check-false (json-schema-validator-valid? person-validator '(("name" . "A"))))
 

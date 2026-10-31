@@ -47,10 +47,12 @@
      ("age" ("type" . "integer") ("minimum" . 0)))
     ("required" . #("name" "age"))
     ("additionalProperties" . #f))
-)
+) ;define
 
 (check-true
-  (json-schema-validator? (make-json-schema-validator person-schema '((check-schema? . #t))))
+  (json-schema-validator? (make-json-schema-validator person-schema '((check-schema?
+                                                                        . #t)))
+  ) ;json-schema-validator?
 ) ;check-true
 
 (check-report)

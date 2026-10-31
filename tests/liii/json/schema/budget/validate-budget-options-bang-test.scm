@@ -33,8 +33,14 @@
 
 ;; 缺省或合法取值都通过
 (validate-budget-options! '())
-(validate-budget-options! '((max-depth . 10) (max-steps . 100) (max-references . 1000)))
-(validate-budget-options! '((max-depth . #f) (max-steps . #f) (max-references . #f)))
+(validate-budget-options! '((max-depth . 10)
+                            (max-steps . 100)
+                            (max-references . 1000))
+) ;validate-budget-options!
+(validate-budget-options! '((max-depth . #f)
+                            (max-steps . #f)
+                            (max-references . #f))
+) ;validate-budget-options!
 
 ;; 非正整数被拒绝
 (check-catch 'json-schema-options-error

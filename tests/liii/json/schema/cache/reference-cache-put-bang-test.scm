@@ -48,15 +48,27 @@
 (define cache (make-reference-cache))
 
 (check (reference-cache-put! cache "child.json" root-a '() 'VALUE) => 'VALUE)
-(check (cadddr (reference-cache-lookup cache "child.json" root-a '())) => 'VALUE)
+(check (cadddr (reference-cache-lookup cache "child.json" root-a '()))
+  =>
+  'VALUE
+) ;check
 
 ;; 同一键重复写入时，最新的值生效。
 (reference-cache-put! cache "child.json" root-a '() 'NEWER)
-(check (cadddr (reference-cache-lookup cache "child.json" root-a '())) => 'NEWER)
+(check (cadddr (reference-cache-lookup cache "child.json" root-a '()))
+  =>
+  'NEWER
+) ;check
 
 ;; 不同键互不影响。
 (reference-cache-put! cache "other.json" root-a '() 'OTHER)
-(check (cadddr (reference-cache-lookup cache "child.json" root-a '())) => 'NEWER)
-(check (cadddr (reference-cache-lookup cache "other.json" root-a '())) => 'OTHER)
+(check (cadddr (reference-cache-lookup cache "child.json" root-a '()))
+  =>
+  'NEWER
+) ;check
+(check (cadddr (reference-cache-lookup cache "other.json" root-a '()))
+  =>
+  'OTHER
+) ;check
 
 (check-report)

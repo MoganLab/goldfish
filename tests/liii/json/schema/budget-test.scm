@@ -35,19 +35,19 @@
 ;; ==== 常见用法示例 ===;
 
 ;; 示例1：创建预算并读取上限
+
 (define budget (make-resource-budget 10 100 1000))
-(budget-max-depth budget) ; => 10
-(budget-depth budget) ; => 0
+(budget-max-depth budget)
+(budget-depth budget)
 
 ;; 示例2：超限时抛出 json-schema-budget-exceeded
 (catch 'json-schema-budget-exceeded
-  (lambda ()
-    (enter-budget-depth! (make-resource-budget 0 100 100)))
-  (lambda args 'budget-exceeded))
-; => 'budget-exceeded
+  (lambda () (enter-budget-depth! (make-resource-budget 0 100 100)))
+  (lambda args 'budget-exceeded)
+) ;catch
 
 ;; 示例3：校验预算选项
 (catch 'json-schema-options-error
   (lambda () (validate-budget-options! '((max-depth . 0))))
-  (lambda args 'bad-option))
-; => 'bad-option
+  (lambda args 'bad-option)
+) ;catch
