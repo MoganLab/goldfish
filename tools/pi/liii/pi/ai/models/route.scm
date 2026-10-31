@@ -128,7 +128,6 @@
             ) ;
             ((equal? provider "glm") (%safe-lookup-env "GLM_MODEL" opt-env))
             ((equal? provider "deepseek") (%safe-lookup-env "DEEPSEEK_MODEL" opt-env))
-            ((equal? provider "minimax") (%safe-lookup-env "MINIMAX_MODEL" opt-env))
             ((equal? provider "minimax-cn") (%safe-lookup-env "MINIMAX_CN_MODEL" opt-env))
             (else #f)
       ) ;cond

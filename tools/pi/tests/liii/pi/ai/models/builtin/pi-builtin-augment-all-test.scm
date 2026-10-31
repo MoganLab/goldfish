@@ -9,12 +9,12 @@
 (let* ((empty-store '())
        (augmented (pi-builtin-augment-all empty-store)))
   ;; 应该包含 7 个内置 provider
-  (check (length augmented) => 7)
+  (check (length augmented) => 6)
   (check-true (pair? (assoc "anthropic" augmented)))
   (check-true (pair? (assoc "deepseek" augmented)))
   (check-true (pair? (assoc "google" augmented)))
   (check-true (pair? (assoc "kimi-coding" augmented)))
-  (check-true (pair? (assoc "minimax" augmented)))
+  (check-true (pair? (assoc "minimax-cn" augmented)))
   (check-true (pair? (assoc "minimax-cn" augmented)))
   (check-true (pair? (assoc "zai-coding-cn" augmented))))
 

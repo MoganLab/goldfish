@@ -14,10 +14,8 @@
 (check (pi-provider-env-keys "deepseek") => '("DEEPSEEK_API_KEY"))
 (check (pi-provider-env-keys "google") => '("GEMINI_API_KEY"))
 (check (pi-provider-env-keys "kimi-coding") => '("KIMI_API_KEY"))
-(check (pi-provider-env-keys "minimax")
-  =>
-  '("MINIMAX_API_KEY" "MINIMAX_CN_API_KEY")
-) ;check
+;; minimax 国际版 provider 已移除，未注册返回空表
+(check (pi-provider-env-keys "minimax") => '())
 (check (pi-provider-env-keys "minimax-cn")
   =>
   '("MINIMAX_CN_API_KEY" "MINIMAX_API_KEY")

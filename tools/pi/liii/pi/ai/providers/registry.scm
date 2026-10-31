@@ -13,7 +13,6 @@
     (liii pi ai providers glm)
     (liii pi ai providers google)
     (liii pi ai providers kimi-coding)
-    (liii pi ai providers minimax)
     (liii pi ai providers minimax-cn)
     (liii pi ai providers zai-coding-cn)
     (liii pi ai providers quota)
@@ -33,7 +32,6 @@
         (cons "glm" PI_GLM_PROVIDER)
         (cons "google" PI_GOOGLE_PROVIDER)
         (cons "kimi-coding" PI_KIMI_CODING_PROVIDER)
-        (cons "minimax" PI_MINIMAX_PROVIDER)
         (cons "minimax-cn" PI_MINIMAX_CN_PROVIDER)
         (cons "zai-coding-cn" PI_ZAI_CODING_CN_PROVIDER)
         (cons "zai" PI_ZAI_CODING_CN_PROVIDER)
@@ -41,8 +39,8 @@
     ) ;define
 
     (define PI_SUPPORTED_PROVIDERS
-      '("google" "anthropic" "kimi-coding" "glm" "deepseek" "minimax"
-        "minimax-cn" "zai-coding-cn")
+      '("google" "anthropic" "kimi-coding" "glm" "deepseek" "minimax-cn"
+        "zai-coding-cn")
     ) ;define
 
     ;; 各 provider 的内置模型目录（id -> models），与 PI_PROVIDERS 同源
@@ -51,7 +49,6 @@
         (cons "deepseek" PI_DEEPSEEK_BUILTIN_MODELS)
         (cons "google" PI_GOOGLE_BUILTIN_MODELS)
         (cons "kimi-coding" PI_KIMI_CODING_BUILTIN_MODELS)
-        (cons "minimax" PI_MINIMAX_BUILTIN_MODELS)
         (cons "minimax-cn" PI_MINIMAX_CN_BUILTIN_MODELS)
         (cons "zai-coding-cn" PI_ZAI_CODING_CN_BUILTIN_MODELS)
       ) ;list
@@ -100,6 +97,7 @@
       (list (cons "zai-coding-cn" PI_ZAI_CODING_CN_QUOTA_ERROR)
         (cons "zai" PI_ZAI_CODING_CN_QUOTA_ERROR)
         (cons "kimi-coding" PI_KIMI_CODING_QUOTA_ERROR)
+        (cons "minimax-cn" PI_MINIMAX_CN_QUOTA_ERROR)
       ) ;list
     ) ;define
 

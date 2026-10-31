@@ -56,4 +56,21 @@
 ;; 5. 空响应体不做判定
 (check-false (pi-provider-quota-error 429 "" "zai-coding-cn"))
 
+;; 6. minimax-cn：Token Plan 用量上限（2026-10-31 真实响应，已脱敏）
+(define minimax-quota-body
+  "{\"type\":\"error\",\"error\":{\"type\":\"rate_limit_error\",\"message\":\"当前已达到 Token Plan 用量上限。 (2067)\"},\"request_id\":\"0735...\"}"
+) ;define
+
+(check-true (pi-quota-limit? (pi-provider-quota-error 429 minimax-quota-body "minimax-cn")))
+(check (pi-quota-limit-kind (pi-provider-quota-error 429 minimax-quota-body "minimax-cn"))
+  => "five-hour"
+) ;check
+
+;; 7. minimax 普通瞬时限流不做判定
+(check-false (pi-provider-quota-error 429
+  "{\"type\":\"error\",\"error\":{\"type\":\"rate_limit_error\",\"message\":\"Rate limit exceeded\"}}"
+  "minimax-cn"
+) ;pi-provider-quota-error
+) ;check-false
+
 (check-report)

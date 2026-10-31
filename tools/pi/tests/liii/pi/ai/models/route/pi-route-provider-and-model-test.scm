@@ -50,8 +50,7 @@
   '(("GF_PI_MODEL" . "polluted-model")
     ("ANTHROPIC_DEFAULT_SONNET_MODEL" . "polluted-sonnet-model")
     ("DEEPSEEK_MODEL" . "polluted-deepseek-model")
-    ("GLM_MODEL" . "polluted-glm-model")
-    ("MINIMAX_MODEL" . "polluted-minimax-model"))
+    ("GLM_MODEL" . "polluted-glm-model"))
 ) ;define
 
 (define (with-env-vars vars thunk)
@@ -80,7 +79,7 @@
 (check-route "deepseek" "deepseek-v4-flash" "deepseek" "deepseek-v4-flash"
   fixture-merged
 ) ;check-route
-(check-route "minimax" "MiniMax-M3.1-Flash" "minimax" "MiniMax-M3.1-Flash"
+(check-route "minimax-cn" "MiniMax-M3.1-Flash" "minimax-cn" "MiniMax-M3.1-Flash"
   fixture-merged
 ) ;check-route
 (check-route "minimax-cn" "MiniMax-M2.7" "minimax-cn" "MiniMax-M2.7")
@@ -136,7 +135,7 @@
 (check-route "kimi-coding" "k3" #f "k3")
 (check-route "glm" "glm-4.5-air" #f "glm-4.5-air" fixture-merged)
 (check-route "deepseek" "deepseek-v4-pro" #f "deepseek-v4-pro")
-(check-route "minimax" "MiniMax-M3.1-Flash" #f "MiniMax-M3.1-Flash"
+(check-route "minimax-cn" "MiniMax-M3.1-Flash" #f "MiniMax-M3.1-Flash"
   fixture-merged
 ) ;check-route
 (check-route "glm" "glm-5.3" #f "glm-5.3" fixture-merged)
@@ -250,8 +249,7 @@
   PI_PROVIDER_BUILTIN_MODELS
 ) ;for-each
 
-;; 9.3 验证 minimax 与 minimax-cn 在未指定 model 时正确路由到默认模型 MiniMax-M3.1-Flash（无外部 models.json 纯内置环境）
-(check-route "minimax" "MiniMax-M3.1-Flash" "minimax" #f)
+;; 9.3 验证 minimax-cn 在未指定 model 时正确路由到默认模型 MiniMax-M3.1-Flash（无外部 models.json 纯内置环境）
 (check-route "minimax-cn" "MiniMax-M3.1-Flash" "minimax-cn" #f)
 
 (check-report)

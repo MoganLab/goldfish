@@ -7,7 +7,7 @@
 (check (pi-provider-api "anthropic") => "anthropic-messages")
 (check (pi-provider-api "glm") => "anthropic-messages")
 (check (pi-provider-api "deepseek") => "anthropic-messages")
-(check (pi-provider-api "minimax") => "anthropic-messages")
+(check (pi-provider-api "minimax-cn") => "anthropic-messages")
 (check (pi-provider-api "minimax-cn") => "anthropic-messages")
 (check (pi-provider-api "google") => "google-generative-ai")
 (check (pi-provider-api "kimi-coding") => "openai-completions")

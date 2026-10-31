@@ -68,12 +68,12 @@
 ;; 1. 空 agent-dir 时，退化为纯内置目录 (7 个内置 provider)
 (let* ((empty-catalog (pi-build-models-catalog empty-fixture-dir))
        (names (pi-catalog-provider-names empty-catalog)))
-  (check (length names) => 7)
+  (check (length names) => 6)
   (check-true (if (member "anthropic" names) #t #f))
   (check-true (if (member "google" names) #t #f))
   (check-true (if (member "deepseek" names) #t #f))
   (check-true (if (member "kimi-coding" names) #t #f))
-  (check-true (if (member "minimax" names) #t #f))
+  (check-true (if (member "minimax-cn" names) #t #f))
   (check-true (if (member "minimax-cn" names) #t #f))
   (check-true (if (member "zai-coding-cn" names) #t #f)))
 
@@ -81,7 +81,7 @@
 (let* ((catalog (pi-build-models-catalog fixture-dir))
        (names (pi-catalog-provider-names catalog)))
   ;; default fixture 包含 glm (来自 models.json)，因此共有 8 个 provider
-  (check (length names) => 8)
+  (check (length names) => 7)
   (check-true (if (member "glm" names) #t #f))
 
   ;; 检查 deepseek 模型的优先级覆盖：models.json 中的 maxTokens 覆盖内置值

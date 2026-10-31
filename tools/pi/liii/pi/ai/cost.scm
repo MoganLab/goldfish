@@ -88,7 +88,7 @@
            (output . 2.19)
            (cacheRead . 0.14)
            (cacheWrite . 0.0))))
-        ("minimax"
+        ("minimax-cn"
          (("id" . "MiniMax-M3.1-Flash")
           ("cost"
            (input . 0.3)
@@ -166,19 +166,11 @@
       ) ;let*
     ) ;define
 
-    (define (%minimax-alias provider)
-      (and (string? provider) (string=? provider "minimax-cn") "minimax")
-    ) ;define
-
     (define (pi-model-cost provider model-id models-store)
-      (let ((fallback-p (%minimax-alias provider)))
-        (or (%find-model-cost-in-store models-store provider model-id)
-          (and fallback-p (%find-model-cost-in-store models-store fallback-p model-id))
-          (%find-model-cost-builtin provider model-id)
-          (and fallback-p (%find-model-cost-builtin fallback-p model-id))
-          '((input . 0.0) (output . 0.0) (cacheRead . 0.0) (cacheWrite . 0.0))
-        ) ;or
-      ) ;let
+      (or (%find-model-cost-in-store models-store provider model-id)
+        (%find-model-cost-builtin provider model-id)
+        '((input . 0.0) (output . 0.0) (cacheRead . 0.0) (cacheWrite . 0.0))
+      ) ;or
     ) ;define
 
     (define (%resolve-cost-tier cost-rates total-input-tokens)

@@ -15,7 +15,8 @@
   "https://generativelanguage.googleapis.com/v1beta"
 ) ;check
 (check (pi-provider-base-url "kimi-coding") => "https://api.kimi.com/coding/v1")
-(check (pi-provider-base-url "minimax") => "https://api.minimax.io/anthropic")
+;; minimax 国际版 provider 已移除，未注册返回 #f
+(check-false (pi-provider-base-url "minimax"))
 (check (pi-provider-base-url "minimax-cn")
   =>
   "https://api.minimaxi.com/anthropic"

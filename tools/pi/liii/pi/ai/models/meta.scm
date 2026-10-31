@@ -73,10 +73,8 @@
                    (lookup-env-var "ANTHROPIC_BASE_URL" opt-env)
                  ) ;and
                  (and (string? provider)
-                   (or (string=? provider "minimax") (string=? provider "minimax-cn"))
-                   (or (lookup-env-var (if (string=? provider "minimax-cn") "MINIMAX_CN_BASE_URL" "MINIMAX_BASE_URL")
-                         opt-env
-                       ) ;lookup-env-var
+                   (string=? provider "minimax-cn")
+                   (or (lookup-env-var "MINIMAX_CN_BASE_URL" opt-env)
                      (lookup-env-var "MINIMAX_BASE_URL" opt-env)
                    ) ;or
                  ) ;and
@@ -109,7 +107,7 @@
              (is-kimi? (string=? p-str "kimi-coding"))
              (is-glm? (string=? p-str "glm"))
              (is-ds? (string=? p-str "deepseek"))
-             (is-mm? (or (string=? p-str "minimax") (string=? p-str "minimax-cn")))
+             (is-mm? (string=? p-str "minimax-cn"))
              (is-zai? (or (string=? p-str "zai-coding-cn") (string=? p-str "zai")))
              (def-url (cond (is-ant? "https://api.anthropic.com")
                             (is-kimi? "https://api.kimi.com/coding/v1")
@@ -131,13 +129,6 @@
              (norm-url
                (cond ((and is-kimi? (%url=? raw-url "https://api.kimi.com/coding"))
                       "https://api.kimi.com/coding/v1"
-                     ) ;
-                     ((and is-mm?
-                        (or (%url=? raw-url "https://api.minimax.io")
-                          (%url=? raw-url "https://api.minimax.io/anthropic")
-                        ) ;or
-                      ) ;and
-                      "https://api.minimaxi.com/anthropic"
                      ) ;
                      ((and is-ds? (%url=? raw-url "https://api.deepseek.com"))
                       "https://api.deepseek.com/anthropic"
