@@ -1,9 +1,5 @@
 (import (liii check) (liii unicode) (liii base))
 
-
-(check-set-mode! 'report-failed)
-
-
 ;; utf8-replace-invalid
 ;; 把字符串中的非法 UTF-8 字节序列替换为 U+FFFD（替换字符）。
 ;;
@@ -34,6 +30,7 @@
 ;; ----
 ;; type-error 当参数不是字符串时。
 
+(check-set-mode! 'report-failed)
 
 (define (u+fffd)
   (utf8->string #u8(239 191 189))

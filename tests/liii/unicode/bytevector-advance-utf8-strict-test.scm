@@ -1,8 +1,6 @@
 (import (liii check)
         (liii unicode))
 
-(check-set-mode! 'report-failed)
-
 ;; bytevector-advance-utf8-strict
 ;; 严格 UTF-8 序列推进：返回下一个字节位置；非法时返回原位置。
 ;;
@@ -36,6 +34,8 @@
 ;; index 大于等于 end 时返回 index 本身，不抛错。
 ;; 只做序列推进判断，不分配对象；utf8-replace-invalid 与宽度计算
 ;; （display-width 等）均以其为严格性基准。
+
+(check-set-mode! 'report-failed)
 
 
 ;; 合法序列正常推进
