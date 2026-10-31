@@ -20,6 +20,7 @@
     (liii pi code core tools)
     (liii pi ai auth)
     (liii pi ai models)
+    (liii pi ai providers registry)
     (liii pi ai config types)
     (liii pi ai config record)
     (liii pi ai event)
@@ -32,10 +33,10 @@
     gf-get-config-dir pi-cfg-config-dir pi-read-json-file pi-load-settings
     pi-save-default-thinking-level! pi-save-hide-thinking-block!
     pi-save-default-model! pi-model-supports-thinking? pi-cfg-provider-proxy
-    pi-load-compaction-settings pi-resolve-proxy-url pi-load-auth
-    pi-resolve-provider-key pi-resolve-model-metadata resolve-pi-config
-    resolve-goldpi-config resolve-active-tools pi-missing-credential-msg
-    augment-pi-config
+    pi-cfg-provider-api pi-load-compaction-settings pi-resolve-proxy-url
+    pi-load-auth pi-resolve-provider-key pi-resolve-model-metadata
+    resolve-pi-config resolve-goldpi-config resolve-active-tools
+    pi-missing-credential-msg augment-pi-config
   ) ;export
   (begin
 
@@ -199,6 +200,19 @@
     ;; 公开包装：/model 切换后重算 supports-thinking（worker 与 TUI 共用）
     (define (pi-model-supports-thinking? models-store provider model-id)
       (%model-supports-thinking? models-store provider model-id)
+    ) ;define
+
+    ;; 按指定 provider 取协议标识（会话内 /model 切换后调用）。
+    ;; 缺失时回退注册表内置值，保证分发不沿用旧 provider 的实现。
+    (define (pi-cfg-provider-api cfg provider)
+      (let* ((catalog (cdr (or (assoc 'models-store cfg) (cons #f '()))))
+             (entry (and (pair? catalog) (assoc provider catalog)))
+             (declared
+               (and entry (let ((v (assoc "api" entry))) (and v (cdr v))))
+             ) ;declared
+            ) ;
+        (or declared (pi-provider-api provider))
+      ) ;let*
     ) ;define
 
     ;; 按指定 provider 重算生效代理（会话内 /model 切换后调用）

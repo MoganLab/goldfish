@@ -109,6 +109,8 @@
            (values
              (%cfg-override cfg
                (list (cons 'provider provider)
+                 ;; 协议标识随 provider 变化而更新
+                 (cons 'provider-api (pi-cfg-provider-api cfg provider))
                  (cons 'model-id model-id)
                  (cons 'model-meta meta)
                  (cons 'api-key api-key)
