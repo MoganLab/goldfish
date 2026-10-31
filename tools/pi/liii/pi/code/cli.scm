@@ -151,6 +151,7 @@
                  :thinking-level         (caddr info)
                  :supports-thinking      (cadddr info)
                  :default-thinking-level (list-ref info 4)
+                 :model-thinking-levels  (list-ref info 9)
                  :on-save-thinking-level
                  (lambda (level) (pi-save-default-thinking-level! (list-ref info 5) level))
                  :session-name  session-name

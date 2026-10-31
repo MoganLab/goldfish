@@ -1,0 +1,6 @@
+{
+  "name": "Plain Model (no reasoning)",
+  "contextWindow": 32768,
+  "maxTokens": 4096,
+  "reasoning": false
+}

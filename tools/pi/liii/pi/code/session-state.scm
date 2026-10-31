@@ -17,6 +17,7 @@
     (liii pi code cli args)
     (liii pi code config)
     (liii pi ai models)
+    (liii pi ai thinking)
     (liii pi ai config record)
     (liii pi code core session-manager)
     (liii pi code core compaction session)
@@ -55,10 +56,8 @@
     (define (%cfg-with-thinking-level cfg level)
       (%cfg-override cfg (list (cons 'thinking-level level)))
     ) ;define
-    ;; 级别全集与 interactive 层 pi-thinking-levels 一致（flow 不能反向依赖 interactive）
-    (define %projection-thinking-levels
-      '("off" "minimal" "low" "medium" "high" "xhigh" "max")
-    ) ;define
+    ;; 级别全集与 interactive 层一致（flow 不能反向依赖 interactive）
+    (define %projection-thinking-levels pi-thinking-levels)
     ;; 应用状态里的模型：重新解析凭证与元数据；
     ;; 无凭证、模型不在目录或元数据缺失时保留 cfg 的模型并返回警告
     (define (%apply-state-model cfg provider model-id)
@@ -128,7 +127,8 @@
       ) ;let*
     ) ;define
 
-    ;; 应用状态里的思考等级：非法值或模型不支持思考时收敛为 off 并返回警告（off 恒合法）
+    ;; 应用状态里的思考等级：非法值收敛为 off；合法但模型不支持时
+    ;; 按模型可用级别收敛（对齐上游 clampThinkingLevel：先向高、再向低）
     (define (%apply-state-thinking cfg state)
       (let ((level (%state-ref state 'thinkingLevel)))
         (cond ((not (%non-empty-string? level)) (values cfg '()))
@@ -141,20 +141,25 @@
                  ) ;list
                ) ;values
               ) ;
-              ((not (%cfg-ref cfg 'supports-thinking))
-               (values (%cfg-with-thinking-level cfg "off")
-                 (list (string-append "Session state thinking level \""
-                         level
-                         "\" is not supported by \""
-                         (%cfg-ref cfg 'provider)
-                         "/"
-                         (%cfg-ref cfg 'model-id)
-                         "\"; using \"off\""
-                       ) ;string-append
-                 ) ;list
-               ) ;values
-              ) ;
-              (else (values (%cfg-with-thinking-level cfg level) '()))
+              (else
+                (let* ((provider (%cfg-ref cfg 'provider))
+                       (model-id (%cfg-ref cfg 'model-id))
+                       (models-store (or (%cfg-ref cfg 'models-store) '()))
+                       (available (pi-model-available-thinking-levels models-store provider model-id))
+                       (clamped (pi-clamp-thinking-level level available))
+                      ) ;
+                  (if (equal? clamped level)
+                    (values (%cfg-with-thinking-level cfg level) '())
+                    (values (%cfg-with-thinking-level cfg clamped)
+                      (list (string-append "Session state thinking level \""
+                              level "\" is not supported by \"" provider "/"
+                              model-id "\"; using \"" clamped "\""
+                            ) ;string-append
+                      ) ;list
+                    ) ;values
+                  ) ;if
+                ) ;let*
+              ) ;else
         ) ;cond
       ) ;let
     ) ;define

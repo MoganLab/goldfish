@@ -19,6 +19,12 @@
     "tests/fixtures/config-empty"
     "tools/pi/tests/fixtures/config-empty"))
 
+;; per-model 思考级别覆盖 fixture（settings.modelThinkingLevels）
+(define MODEL_THINKING_DIR
+  (if (file-exists? "tests/fixtures/model-thinking")
+    "tests/fixtures/model-thinking"
+    "tools/pi/tests/fixtures/model-thinking"))
+
 ;; 1. 默认配置解析（基于 default fixture）
 (let* ((args (parse-pi-args '()))
        (env `(("PI_CODING_AGENT_DIR" . ,FIXTURE_DIR)))
@@ -213,10 +219,32 @@
        (cfg (resolve-pi-config args env)))
   (check (cdr (assoc 'thinking-level cfg)) => "off"))
 
+;; 无 settings、无 CLI 时回退默认级别 medium（对齐上游 DEFAULT_THINKING_LEVEL）
 (let* ((args (parse-pi-args '()))
        (env `(("PI_CODING_AGENT_DIR" . ,CONFIG_EMPTY_DIR)
               ("ANTHROPIC_AUTH_TOKEN" . "test-key")))
        (cfg (resolve-pi-config args env)))
+  (check (cdr (assoc 'thinking-level cfg)) => "medium"))
+
+;; 13.1 per-model 覆盖（settings.modelThinkingLevels）优先于全局默认，且被 CLI 压过
+(let* ((args (parse-pi-args '()))
+       (env `(("PI_CODING_AGENT_DIR" . ,MODEL_THINKING_DIR)))
+       (cfg (resolve-pi-config args env)))
+  (check (cdr (assoc 'model-id cfg)) => "gemini-3.8-flash")
+  (check (cdr (assoc 'thinking-level cfg)) => "high"))
+
+(let* ((args (parse-pi-args '("--thinking" "low")))
+       (env `(("PI_CODING_AGENT_DIR" . ,MODEL_THINKING_DIR)))
+       (cfg (resolve-pi-config args env)))
+  (check (cdr (assoc 'thinking-level cfg)) => "low"))
+
+;; 13.2 per-model 覆盖遇到不支持思考的模型时收敛为 off
+(let* ((args (parse-pi-args '("--model" "plain-model")))
+       (env `(("PI_CODING_AGENT_DIR" . ,MODEL_THINKING_DIR)
+              ("GF_PI_MODEL" . "gemini-3.8-flash")))
+       (cfg (resolve-pi-config args env)))
+  (check (cdr (assoc 'model-id cfg)) => "plain-model")
+  (check (cdr (assoc 'supports-thinking cfg)) => #f)
   (check (cdr (assoc 'thinking-level cfg)) => "off"))
 
 ;; 14. 严格匹配下正常命中：内置目录模型不被误判

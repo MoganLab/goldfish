@@ -14,6 +14,7 @@
     (liii pi ai auth)
     (liii pi ai models catalog)
     (liii pi ai models search)
+    (liii pi ai thinking)
   ) ;import
   (export pi-format-token-count pi-list-models pi-format-models-table
     pi-fuzzy-match-model? pi-split-search-tokens pi-usable-models
@@ -73,7 +74,7 @@
       (let* ((mid (%dict-ref m "id" ""))
              (cw (%dict-ref m "contextWindow" 128000))
              (mt (%dict-ref m "maxTokens" 8192))
-             (reasoning (%dict-ref m "reasoning" #f))
+             (reasoning (pi-model-supports-reasoning? m))
              (input (%dict-ref m "input" '()))
             ) ;
         (list (cons 'provider p-name)
@@ -242,7 +243,11 @@
       (list (cons 'provider p-name)
         (cons 'id (%dict-ref m "id" ""))
         (cons 'name (%dict-ref m "name" ""))
-        (cons 'reasoning (and (%dict-ref m "reasoning" #f) #t))
+        ;; JSON 布尔为符号 true/false，必须归一化，否则 reasoning: false 被当真值
+        (cons 'reasoning (pi-model-supports-reasoning? m))
+        ;; 可用思考级别（对齐上游 getSupportedThinkingLevels）：
+        ;; /model 切换后按新模型的可用级别收敛当前思考等级
+        (cons 'thinking-levels (pi-model-thinking-levels m))
       ) ;list
     ) ;define
 

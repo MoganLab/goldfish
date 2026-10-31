@@ -14,6 +14,7 @@
     (liii string)
     (liii list)
     (liii tui)
+    (liii pi ai thinking)
     (liii pi code modes interactive state)
     (liii pi code modes interactive render)
     (liii pi code modes interactive views)
@@ -74,6 +75,23 @@
       ) ;catch
     ) ;define
 
+    ;; per-model 覆盖查找（键为 "provider/modelId"）：
+    ;; 本实现的 assoc 对字符串键不按 equal? 比较，故自行遍历
+    (define (%app-model-thinking-level app provider model-id)
+      (let ((wanted (string-append provider "/" model-id))
+            (levels (pi-app-model-thinking-levels app))
+           ) ;
+        (let loop
+          ((rest levels))
+          (cond ((not (pair? rest)) #f)
+                ((not (pair? (car rest))) (loop (cdr rest)))
+                ((equal? (car (car rest)) wanted) (cdr (car rest)))
+                (else (loop (cdr rest)))
+          ) ;cond
+        ) ;let
+      ) ;let
+    ) ;define
+
     ;; 只更新界面的模型状态（provider/model/supports/可用等级/思考默认级别、
     ;; footer 与编辑器边框）：不持久化默认模型、不写状态条目、不出提示卡片；
     ;; /model 与 /resume 共用，保证显示与实际请求同源
@@ -81,7 +99,20 @@
       (let* ((provider (%model-ref model 'provider))
              (model-id (%model-ref model 'id))
              (supports (and (%model-ref model 'reasoning) #t))
-             (new-tl (if supports (pi-app-default-thinking-level app) "off"))
+             ;; 新模型的可用级别：模型条目自带时以其为准，否则按 reasoning 布尔推导
+             (available (or (%model-ref model 'thinking-levels)
+                          (if supports pi-thinking-levels '("off"))
+                        ) ;or
+             ) ;available
+             ;; 级别解析（对齐上游 _getThinkingLevelForModelSwitch）：
+             ;; per-model 覆盖 > 全局默认 > 当前会话级别 > 默认级别（medium）
+             (requested (or (%app-model-thinking-level app provider model-id)
+                          (pi-app-default-thinking-level app)
+                          (pi-app-thinking-level app)
+                          pi-default-thinking-level
+                        ) ;or
+             ) ;requested
+             (new-tl (pi-clamp-thinking-level requested available))
             ) ;
         (%pi-app-provider-set! app provider)
         (%pi-app-model-set! app model-id)

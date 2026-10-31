@@ -10,13 +10,10 @@
 ;; 编辑器边框与 Working spinner 共用同一颜色，随级别联动
 (define-library (liii pi code modes interactive thinking)
   (export pi-thinking-levels pi-next-thinking-level pi-thinking-border-color)
-  (import (scheme base) (liii string) (liii list))
+  (import (scheme base) (liii string) (liii list) (liii pi ai thinking))
   (begin
 
-    ;; 级别全集：与上游 pi 的 EXTENDED_THINKING_LEVELS 一致
-    (define pi-thinking-levels
-      '("off" "minimal" "low" "medium" "high" "xhigh" "max")
-    ) ;define
+    ;; 级别全集与 (liii pi ai thinking) 共用同一来源（对齐上游 EXTENDED_THINKING_LEVELS）
 
     ;; 循环切换到下一个级别；非法输入容错回 "off"
     (define* (pi-next-thinking-level level (levels pi-thinking-levels))

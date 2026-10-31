@@ -1,0 +1,6 @@
+{
+  "name": "Gemini 3.8 Flash (model-thinking fixture)",
+  "contextWindow": 1048576,
+  "maxTokens": 65536,
+  "reasoning": true
+}
