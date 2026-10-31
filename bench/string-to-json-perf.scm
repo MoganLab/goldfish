@@ -256,11 +256,33 @@
   ) ;let
 ) ;define
 
+;; 布尔密集场景：覆盖 JSON true/false/null 符号的高频构造路径
+;; （liii_json.cpp 的 symbol_true/false/null 缓存即为此路径服务）
+(define (build-bool-string n)
+  (let ((out (open-output-string)))
+    (display "[" out)
+    (do ((i 0 (+ i 1)))
+      ((= i n))
+      (when (> i 0)
+        (display "," out)
+      ) ;when
+      (if (zero? (modulo i 3))
+        (display "null" out)
+        (if (odd? i) (display "true" out) (display "false" out))
+      ) ;if
+    ) ;do
+    (display "]" out)
+    (get-output-string out)
+  ) ;let
+) ;define
+
 (define bench-obj-str (build-json-string 200))
 
 (define bench-arr-str (build-array-string 200))
 
 (define bench-esc-str (build-escape-string 50))
+
+(define bench-bool-str (build-bool-string 2000))
 
 (define bench-nested-str
   "{\"user\":{\"id\":1001,\"name\":\"Alice\",\"active\":true,\"email\":null,\"tags\":[\"dev\",\"scheme\",\"json\"],\"profile\":{\"age\":21,\"height\":168.5,\"hobbies\":[\"music\",\"reading\"]}},\"scores\":[98,87,93]}"
@@ -278,6 +300,9 @@
 ) ;unless
 (unless (equal? (string->json bench-nested-str) (string->json/scheme bench-nested-str))
   (error 'value-error "nested output mismatch")
+) ;unless
+(unless (equal? (string->json bench-bool-str) (string->json/scheme bench-bool-str))
+  (error 'value-error "bool output mismatch")
 ) ;unless
 
 (define iter 200)
@@ -298,6 +323,7 @@
   ((= i 20))
   (string->json bench-obj-str)
   (string->json/scheme bench-obj-str)
+  (string->json bench-bool-str)
 ) ;do
 
 (display "=== string->json C++ vs Scheme 性能对比 ===")
@@ -321,6 +347,12 @@
 ) ;let
 (let ((t (timeit (lambda () (string->json/scheme bench-esc-str)) '() iter)))
   (report "转义/Scheme" t)
+) ;let
+(let ((t (timeit (lambda () (string->json bench-bool-str)) '() iter)))
+  (report "布尔密集/C++" t)
+) ;let
+(let ((t (timeit (lambda () (string->json/scheme bench-bool-str)) '() iter)))
+  (report "布尔密集/Scheme" t)
 ) ;let
 (let ((t (timeit (lambda () (string->json bench-nested-str)) '() (* 10 iter))))
   (display "[嵌套/C++] iterations=")

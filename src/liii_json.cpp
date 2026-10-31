@@ -18,7 +18,10 @@
 #include <cerrno>
 #include <cstdlib>
 #include <cstring>
+#include <mutex>
+#include <shared_mutex>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace goldfish {
@@ -362,35 +365,50 @@ json_parse_error (s7_scheme* sc, const char* msg) {
   return s7_error (sc, s7_make_symbol (sc, "parse-error"), s7_list (sc, 1, s7_make_string (sc, msg)));
 }
 
-// glue 时缓存 string->number 并永久 GC 保护：仅用于超出 int64 范围的大整数回退
-static s7_pointer cached_string_to_number= NULL;
+// [1226] 不缓存 s7 对象的符号/过程引用，一律在调用点现取：
+// (liii go) 的每个 worker 线程持有独立 s7 实例并各自执行 glue，任何
+// 进程级静态缓存都会被最后 glue 的实例覆盖，造成跨实例的对象混用——
+// 符号在别的实例里 equal? 恒为假（multikey enabled 过滤失效即由此
+// 而来），跨实例 s7_call 与 GC 标记遍历是未定义行为。而 s7_make_symbol
+// / s7_name_to_value 本身就是无锁的实例内哈希查找，且 interned 符号与
+// rootlet 过程绑定都是 GC 根可达、永不回收；实测（bench/string-to-json-
+// perf.scm 布尔密集场景，40 万字面量）直接现取比 per-scheme 缓存表快
+// 约 20%，简单且安全。
 
-// [1311] glue 时缓存 (gc) 并永久 GC 保护：string->json/read-json 解析成功后
-// 按累计输入字节数周期性触发完整 GC。解析本身采用 gc_off + C++ 容器暂存
-// 裸指针的模式，循环解析大输入时垃圾要等到 cell 耗尽才被 s7 自动回收，
-// RSS 随循环次数线性增长（issue 1311）；周期 GC 把峰值压回单次解析的量级。
-// 触发时机在 gc_off 已恢复、C++ 容器已析构之后，仅 result 一个裸指针待返回，
-// 用 s7_gc_protect_via_stack 临时保护（与 json_parse_number 的用法一致）。
+// [1311] string->json/read-json 解析成功后按累计输入字节数周期性触发完整 GC。
+// 解析本身采用 gc_off + C++ 容器暂存裸指针的模式，循环解析大输入时垃圾
+// 要等到 cell 耗尽才被 s7 自动回收，RSS 随循环次数线性增长（issue 1311）；
+// 周期 GC 把峰值压回单次解析的量级。触发时机在 gc_off 已恢复、C++ 容器已
+// 析构之后，仅 result 一个裸指针待返回，用 s7_gc_protect_via_stack 临时保护
+// （与 json_parse_number 的用法一致）。
+// 计数器按实例存放（多实例并发解析时各自计数）：读多写少，shared_mutex
+// 保护；unordered_map 节点式存储，元素地址稳定，返回指针安全。
 #define JSON_GC_BYTES_THRESHOLD (128 * 1024)
-static s7_pointer cached_gc          = NULL;
-static s7_int     json_gc_bytes_since= 0;
+static std::unordered_map<s7_scheme*, s7_int> g_gc_bytes;
+static std::shared_mutex                      g_gc_bytes_mutex;
+
+static s7_int*
+json_gc_counter_of (s7_scheme* sc) {
+  {
+    std::shared_lock<std::shared_mutex> lock (g_gc_bytes_mutex);
+    auto                                it= g_gc_bytes.find (sc);
+    if (it != g_gc_bytes.end ()) return &it->second;
+  }
+  std::unique_lock<std::shared_mutex> lock (g_gc_bytes_mutex);
+  return &g_gc_bytes[sc];
+}
 
 static void
 json_maybe_gc (s7_scheme* sc, s7_pointer result, s7_int len) {
-  json_gc_bytes_since+= len;
-  if (json_gc_bytes_since < JSON_GC_BYTES_THRESHOLD) return;
-  json_gc_bytes_since= 0;
-  bool protect       = (result != NULL);
+  s7_int* counter= json_gc_counter_of (sc);
+  *counter+= len;
+  if (*counter < JSON_GC_BYTES_THRESHOLD) return;
+  *counter    = 0;
+  bool protect= (result != NULL);
   if (protect) s7_gc_protect_via_stack (sc, result);
-  s7_call (sc, cached_gc, s7_nil (sc));
+  s7_call (sc, s7_name_to_value (sc, "gc"), s7_nil (sc));
   if (protect) s7_gc_unprotect_via_stack (sc, result);
 }
-
-// glue 时缓存 true/false/null 符号并永久 GC 保护：
-// parser 高频构造这三个符号，缓存避免每次符号 intern 查找（json-ref 转换亦复用）
-static s7_pointer symbol_true = NULL;
-static s7_pointer symbol_false= NULL;
-static s7_pointer symbol_null = NULL;
 
 // 与 (liii unicode) 的 codepoint->utf8 一致：不排斥代理区码点，逐字节编码
 static bool
@@ -622,7 +640,7 @@ json_parse_number (json_parser* p) {
   // 回退：超大整数等罕见情形
   s7_pointer txt= s7_make_string_with_length (sc, num_str.data (), (s7_int) num_str.size ());
   s7_gc_protect_via_stack (sc, txt);
-  s7_pointer num= s7_call (sc, cached_string_to_number, s7_list (sc, 1, txt));
+  s7_pointer num= s7_call (sc, s7_name_to_value (sc, "string->number"), s7_list (sc, 1, txt));
   s7_gc_unprotect_via_stack (sc, txt);
   if (!s7_is_number (num)) return NULL;
   return num;
@@ -784,13 +802,13 @@ json_parse_value (json_parser* p) {
     return json_parse_string_body (p);
   case 't':
     if (!json_parse_literal (p, "true")) return NULL;
-    return symbol_true;
+    return s7_make_symbol (p->sc, "true");
   case 'f':
     if (!json_parse_literal (p, "false")) return NULL;
-    return symbol_false;
+    return s7_make_symbol (p->sc, "false");
   case 'n':
     if (!json_parse_literal (p, "null")) return NULL;
-    return symbol_null;
+    return s7_make_symbol (p->sc, "null");
   case '\'':
     // 单引号字符串不是合法 JSON（RFC 8259）
     return NULL;
@@ -847,10 +865,6 @@ glue_string_to_json (s7_scheme* sc) {
   const char* name= "g_string->json";
   const char* desc= "(g_string->json str) => data, parse a JSON string to Scheme-form JSON data";
   s7_define_function (sc, name, f_string_to_json, 1, 0, false, desc);
-  cached_string_to_number= s7_name_to_value (sc, "string->number");
-  s7_gc_protect (sc, cached_string_to_number);
-  cached_gc= s7_name_to_value (sc, "gc");
-  s7_gc_protect (sc, cached_gc);
 }
 
 // 基于 s7 端口的流式 JSON 解析器
@@ -1069,7 +1083,7 @@ json_port_parse_number (json_port_parser* p) {
   // 回退：超大整数等罕见情形
   s7_pointer txt= s7_make_string_with_length (sc, num_str.data (), (s7_int) num_str.size ());
   s7_gc_protect_via_stack (sc, txt);
-  s7_pointer num= s7_call (sc, cached_string_to_number, s7_list (sc, 1, txt));
+  s7_pointer num= s7_call (sc, s7_name_to_value (sc, "string->number"), s7_list (sc, 1, txt));
   s7_gc_unprotect_via_stack (sc, txt);
   if (!s7_is_number (num)) return NULL;
   return num;
@@ -1222,13 +1236,13 @@ json_port_parse_value (json_port_parser* p) {
     return json_port_parse_string_body (p);
   case 't':
     if (!json_port_parse_literal (p, "true")) return NULL;
-    return symbol_true;
+    return s7_make_symbol (p->sc, "true");
   case 'f':
     if (!json_port_parse_literal (p, "false")) return NULL;
-    return symbol_false;
+    return s7_make_symbol (p->sc, "false");
   case 'n':
     if (!json_port_parse_literal (p, "null")) return NULL;
-    return symbol_null;
+    return s7_make_symbol (p->sc, "null");
   case '\'':
     return NULL;
   default:
@@ -1348,16 +1362,13 @@ json_is_object (s7_scheme* sc, s7_pointer x, s7_int& len) {
 
 // glue 时缓存 vector-ref / list->vector 并永久 GC 保护：
 // 仅在报错路径上调用，保证错误类型和消息与 Scheme 实现逐字节一致
-static s7_pointer cached_vector_ref    = NULL;
-static s7_pointer cached_list_to_vector= NULL;
-
 // guenchi json-ref 的 return 包装：'true -> #t，'false -> #f
 
 static s7_pointer
 json_ref_convert (s7_scheme* sc, s7_pointer x) {
   if (s7_is_symbol (x)) {
-    if (x == symbol_true) return s7_t (sc);
-    if (x == symbol_false) return s7_f (sc);
+    if (x == s7_make_symbol (sc, "true")) return s7_t (sc);
+    if (x == s7_make_symbol (sc, "false")) return s7_f (sc);
   }
   return x;
 }
@@ -1380,12 +1391,12 @@ f_json_ref (s7_scheme* sc, s7_pointer args) {
         }
         else {
           // 抛出与 vector-ref 一致的 out-of-range 错误
-          return s7_call (sc, cached_vector_ref, s7_list (sc, 2, cur, key));
+          return s7_call (sc, s7_name_to_value (sc, "vector-ref"), s7_list (sc, 2, cur, key));
         }
       }
       else {
         // 抛出与 vector-ref 一致的 wrong-type-arg 错误
-        return s7_call (sc, cached_vector_ref, s7_list (sc, 2, cur, key));
+        return s7_call (sc, s7_name_to_value (sc, "vector-ref"), s7_list (sc, 2, cur, key));
       }
     }
     else if (s7_is_pair (cur)) {
@@ -1422,14 +1433,6 @@ glue_json_ref (s7_scheme* sc) {
   const char* name= "g_json_ref";
   const char* desc= "(g_json_ref json key . keys) => value, ref a value from Scheme-form JSON data by key path";
   s7_define_function (sc, name, f_json_ref, 2, 0, true, desc);
-  cached_vector_ref= s7_name_to_value (sc, "vector-ref");
-  s7_gc_protect (sc, cached_vector_ref);
-  symbol_true= s7_make_symbol (sc, "true");
-  s7_gc_protect (sc, symbol_true);
-  symbol_false= s7_make_symbol (sc, "false");
-  s7_gc_protect (sc, symbol_false);
-  symbol_null= s7_make_symbol (sc, "null");
-  s7_gc_protect (sc, symbol_null);
 }
 
 // json-set 的叶层写入器：rest 非空表示多键路径（对旧值递归 json-set），
@@ -1467,7 +1470,7 @@ json_guenchi_set (s7_scheme* sc, s7_pointer x, s7_pointer v, s7_int len, const j
     s7_pointer* elems= s7_vector_elements (x);
     if (s7_is_boolean (v) && !s7_boolean (sc, v)) {
       // guenchi 的 (if v ...) 无 else 分支：(list->vector #<unspecified>) 抛 wrong-type-arg
-      return s7_call (sc, cached_list_to_vector, s7_list (sc, 1, s7_unspecified (sc)));
+      return s7_call (sc, s7_name_to_value (sc, "list->vector"), s7_list (sc, 1, s7_unspecified (sc)));
     }
     s7_pointer result= s7_make_vector (sc, n);
     s7_gc_protect_via_stack (sc, result);
@@ -1574,8 +1577,6 @@ glue_json_set (s7_scheme* sc) {
   const char* desc=
       "(g_json_set json key val . keys-and-val) => data, set a value in Scheme-form JSON data by key path";
   s7_define_function (sc, name, f_json_set, 3, 0, true, desc);
-  cached_list_to_vector= s7_name_to_value (sc, "list->vector");
-  s7_gc_protect (sc, cached_list_to_vector);
 }
 
 // json-push / json-push* 的 C++ 实现，语义与历史上 (liii json) 包装 (guenchi json)
@@ -1800,7 +1801,7 @@ json_guenchi_reduce (s7_scheme* sc, s7_pointer x, s7_pointer v, const json_reduc
   if (s7_is_vector (x)) {
     if (is_bool && !truthy) {
       // guenchi 的 (if v ...) 无 else 分支：(list->vector x) 对 vector 抛 wrong-type-arg
-      return s7_call (sc, cached_list_to_vector, s7_list (sc, 1, x));
+      return s7_call (sc, s7_name_to_value (sc, "list->vector"), s7_list (sc, 1, x));
     }
     s7_int      n     = s7_vector_length (x);
     s7_pointer* elems = s7_vector_elements (x);
