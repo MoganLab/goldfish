@@ -33,8 +33,7 @@
     pi-save-default-thinking-level! pi-save-hide-thinking-block!
     pi-save-default-model! pi-model-supports-thinking?
     pi-load-compaction-settings pi-resolve-proxy-url pi-load-auth
-    pi-resolve-provider-key pi-load-models-store pi-load-models-json
-    pi-merge-models-json-into-store pi-resolve-model-metadata resolve-pi-config
+    pi-resolve-provider-key pi-resolve-model-metadata resolve-pi-config
     resolve-goldpi-config resolve-active-tools pi-missing-credential-msg
     augment-pi-config
   ) ;export
@@ -42,8 +41,9 @@
 
     ;; pi-get-agent-dir 已下沉至 (liii pi code core tools read)，此处经 import 再导出
 
-    ;; JSON 配置文件目录：settings.json / auth.json / models.json /
-    ;; models-store.json / multikey.json / web-search.json 等所在目录。
+    ;; JSON 配置文件目录：settings.json / auth.json / providers.json /
+    ;; models/（provider 与模型配置）/ models-store.json / multikey.json /
+    ;; web-search.json 等所在目录。
     ;; 优先级：显式目录参数 > GF_CONFIG_DIR > PI_CODING_AGENT_DIR
     ;;         > ~/.gf/agent
     ;; 返回绝对路径（path 对象）；会话目录（sessions/）与扩展目录（extensions/）

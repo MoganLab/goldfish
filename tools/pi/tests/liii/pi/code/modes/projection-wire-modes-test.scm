@@ -255,7 +255,7 @@
       (path-join (path E2E-AGENT-DIR) (path name))
     ) ;path-copy
   ) ;lambda
-  '("settings.json" "auth.json" "models-store.json")
+  '("settings.json" "auth.json" "providers.json")
 ) ;for-each
 
 (let* ((proc (process-spawn (list "python3" STUB)

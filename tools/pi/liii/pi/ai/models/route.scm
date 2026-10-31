@@ -179,7 +179,7 @@
       (error 'pi-config-error
         (string-append "Unknown model \""
           model-id
-          "\": not found in any configured provider model catalog. Use --list-models to see available models, or add the model to models.json in the agent dir."
+          "\": not found in any configured provider model catalog. Use --list-models to see available models, or add a model file under models/<provider>/ in the agent dir."
         ) ;string-append
       ) ;error
     ) ;define
@@ -188,7 +188,7 @@
       (error 'pi-config-error
         (string-append "Model \"" model-id "\" is not available for provider \""
           provider
-          "\". Use --list-models to see available models, or add the model to models.json in the agent dir."
+          "\". Use --list-models to see available models, or add a model file under models/<provider>/ in the agent dir."
         ) ;string-append
       ) ;error
     ) ;define

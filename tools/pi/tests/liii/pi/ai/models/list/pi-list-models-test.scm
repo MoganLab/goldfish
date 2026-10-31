@@ -5,12 +5,29 @@
 
 (check-set-mode! 'report-failed)
 
-(define fixture-dir
-  (if (file-exists? "tests/fixtures/default")
-    "tests/fixtures/default"
-    "tools/pi/tests/fixtures/default"))
-
-(define sample-store (pi-load-models-store fixture-dir))
+;; 固定样本目录（不再依赖 models-store.json / models.json 读取）
+(define sample-store
+  (list
+    (cons "google"
+      (list (cons "models"
+              (list (list (cons "id" "gemini-3.8-flash")
+                          (cons "name" "Gemini 3.8 Flash")
+                          (cons "contextWindow" 1048576)
+                          (cons "maxTokens" 65536))
+                    (list (cons "id" "gemini-2.5-pro")
+                          (cons "name" "Gemini 2.5 Pro")
+                          (cons "contextWindow" 2097152)
+                          (cons "maxTokens" 65536))))))
+    (cons "deepseek"
+      (list (cons "models"
+              (list (list (cons "id" "deepseek-v4-flash")
+                          (cons "contextWindow" 1000000)
+                          (cons "maxTokens" 131072))))))
+    (cons "kimi-coding"
+      (list (cons "models"
+              (list (list (cons "id" "kimi-for-coding")
+                          (cons "contextWindow" 262144)
+                          (cons "maxTokens" 32768))))))))
 
 ;; pi-list-models 过滤特定 provider
 (let ((google-models (pi-list-models sample-store "google")))
@@ -30,15 +47,15 @@
   (check (length all-models-str) => 4)
   (check (length all-models-false) => 4)
   (check (length all-models-default) => 4)
-  ;; 排序：provider 名字典序 anthropic < deepseek < google
-  (check (cdr (assoc 'provider (car all-models-str))) => "anthropic")
-  (check (cdr (assoc 'provider (cadr all-models-str))) => "deepseek")
-  (check (cdr (assoc 'provider (cadddr all-models-str))) => "google"))
+  ;; 排序：provider 名字典序 deepseek < google < kimi-coding
+  (check (cdr (assoc 'provider (car all-models-str))) => "deepseek")
+  (check (cdr (assoc 'provider (cadr all-models-str))) => "google")
+  (check (cdr (assoc 'provider (cadddr all-models-str))) => "kimi-coding"))
 
 ;; pi-list-models 子序列模糊搜索（跨 provider）
 (let ((filtered (pi-list-models sample-store #f "flash")))
   (check (length filtered) => 2)
-  (check (cdr (assoc 'model (car filtered))) => "deepseek-flash")
+  (check (cdr (assoc 'model (car filtered))) => "deepseek-v4-flash")
   (check (cdr (assoc 'model (cadr filtered))) => "gemini-3.8-flash"))
 
 ;; pi-list-models 未知 provider 明确报错

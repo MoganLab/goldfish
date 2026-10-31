@@ -9,6 +9,8 @@
   (liii pi ai auth)
   (liii pi ai models catalog)
   (liii pi ai models list)
+  (liii pi ai models)
+  (liii pi code config user-catalog)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -24,7 +26,7 @@
   "{\"google\":{\"type\":\"api_key\",\"key\":\"fixture-google-key\"},\"deepseek\":{\"type\":\"api_key\",\"key\":\"fixture-deepseek-key\"}}"
 ) ;path-write-text
 
-(let* ((store (pi-build-models-catalog AGENT-DIR))
+(let* ((store (pi-build-user-catalog (path->string AGENT-DIR)))
        (auth (pi-load-auth AGENT-DIR))
        ;; 传入非空 env 表以隔离真实环境变量，避免开发机上的密钥影响结果
        (env (list (cons "HOME" AGENT-DIR)))

@@ -19,7 +19,7 @@ timeout 600 xmake b goldfish
 
 # 配置复用 JSON 配置文件目录（config-dir）：~/.gf/agent/ 存在时优先，否则 ~/.pi/agent/
 # settings.json（defaultProvider/defaultModel/httpProxy/retry）、
-# auth.json（api_key / ANTHROPIC_AUTH_TOKEN 等环境变量兜底）、models-store.json（刷新同步快照，不参与合并）
+# auth.json（api_key / ANTHROPIC_AUTH_TOKEN 等环境变量兜底）、models-store.json（刷新同步快照，运行时不再读取）
 # providers.json + <provider>.json + <provider>/<model>.json（provider 与模型配置，见下节）
 # 会话目录不受影响：始终 ~/.pi/agent/sessions/
 # HTTP 代理（per-provider）：--proxy > <provider>.json httpProxy > HTTPS_PROXY/ALL_PROXY 环境变量 > settings.json httpProxy > 直连
@@ -33,7 +33,7 @@ timeout 600 xmake b goldfish
 
 | 类别 | 目录 | 内容 |
 |---|---|---|
-| 配置文件目录（config-dir） | `~/.gf/agent/`（存在时）否则 `~/.pi/agent/` | `settings.json`、`auth.json`、`providers.json`、`<provider>.json`、`<provider>/<model>.json`、`models-store.json`、`multikey.json`、`web-search.json` 等 JSON 配置文件 |
+| 配置文件目录（config-dir） | `~/.gf/agent/`（存在时）否则 `~/.pi/agent/` | `settings.json`、`auth.json`、`providers.json`、`models/<provider>.json`、`models/<provider>/<model>.json`、`models-store.json`、`multikey.json`、`web-search.json` 等 JSON 配置文件 |
 | 会话 / 扩展目录（agent-dir） | `~/.pi/agent/` | `sessions/`（会话记录）、`extensions/`（用户扩展） |
 
 优先级：`GF_CONFIG_DIR` > `PI_CODING_AGENT_DIR` 环境变量（测试与调试用） > `~/.gf/agent/`
@@ -73,7 +73,7 @@ PI_CODING_AGENT_DIR=/tmp/my-agent-dir bin/gf pi -p "hello"
                               schema: resources/model.schema.json
   auth.json                 ← API key 只在这里（支持 ${VAR} 环境变量模板）
                               schema: resources/auth.schema.json
-  models-store.json         ← 刷新同步的目录快照，不参与合并
+  models-store.json         ← 刷新同步的目录快照（仅供参考，运行时不再读取）
 ```
 
 详细字段定义、缺省值、校验规则与示例见各 schema 文件（`tools/pi/liii/pi/code/resources/`）。
@@ -99,8 +99,9 @@ PI_CODING_AGENT_DIR=/tmp/my-agent-dir bin/gf pi -p "hello"
 { "name": "Kimi K3.1 Pro" }                            // models/kimi-coding/k3.1-pro.json
 ```
 
-旧版 `models.json` 已废弃（自定义 baseUrl → `models/<provider>.json`，自定义模型条目 →
-`models/<provider>/<model>.json`）；`models-store.json` 仅作刷新同步快照，不参与合并。
+旧版 `models.json` 已删除（自定义 baseUrl → `models/<provider>.json`，自定义模型条目 →
+`models/<provider>/<model>.json`）；`models-store.json` 仅作刷新同步快照，运行时不再读取，
+模型可用性完全由 `providers.json` + `models/` + 内置目录决定。
 
 ## 基本用法【可用】
 

@@ -6,27 +6,25 @@
 (define BUILTIN-CATALOG (pi-builtin-augment-all '()))
 
 ;; pi-provider-has-model?
-;; 判断指定 provider 的模型目录（models-store 或内置模型）是否包含该模型
+;; 判断指定 provider 的模型目录是否包含该模型（可用性以目录为准）
 
-(define FIXTURE_DIR
-  (if (file-exists? "tests/fixtures/default")
-    "tests/fixtures/default"
-    "tools/pi/tests/fixtures/default"
-  ) ;if
-) ;define
+;; 样本目录：自定义模型 + 内置目录
+(define custom-catalog
+  (list
+    (cons "google" (list (cons "models" (list (list (cons "id" "gemini-3.8-flash"))
+                                              (list (cons "id" "gemini-2.5-pro"))))))
+    (cons "zai-coding-cn"
+      (list (cons "models" (list (list (cons "id" "glm-5.3"))
+                                 (list (cons "id" "glm-5.3-flash"))
+                                 (list (cons "id" "glm-5-turbo"))
+                                 (list (cons "id" "glm-4.5-air"))))))))
 
-(define fixture-store (pi-load-models-store FIXTURE_DIR))
+(define fixture-merged (pi-builtin-augment-all custom-catalog))
 
-(define fixture-models-json (pi-load-models-json FIXTURE_DIR))
-
-(define fixture-merged
-  (pi-merge-models-json-into-store fixture-store fixture-models-json)
-) ;define
-
-;; 1. 从 models-store 中命中
-(check-true (pi-provider-has-model? "google" "gemini-3.8-flash" fixture-store))
-(check-true (pi-provider-has-model? "google" "gemini-2.5-pro" fixture-store))
-(check-true (pi-provider-has-model? "deepseek" "deepseek-flash" fixture-store)
+;; 1. 自定义目录命中
+(check-true (pi-provider-has-model? "google" "gemini-3.8-flash" custom-catalog))
+(check-true (pi-provider-has-model? "google" "gemini-2.5-pro" custom-catalog))
+(check-true (pi-provider-has-model? "deepseek" "deepseek-v4-pro" BUILTIN-CATALOG)
 ) ;check-true
 
 ;; 2. 从内置模型列表中命中（即使 models-store 为空）
@@ -49,12 +47,12 @@
 (check-true (pi-provider-has-model? "zai-coding-cn" "glm-5.3" BUILTIN-CATALOG))
 
 ;; 3. 不存在于该 provider 的模型返回 #f
-(check-false (pi-provider-has-model? "google" "k3" fixture-store))
+(check-false (pi-provider-has-model? "google" "k3" custom-catalog))
 (check-false (pi-provider-has-model? "kimi-coding" "gemini-3.8-flash" BUILTIN-CATALOG))
 (check-false (pi-provider-has-model? "minimax-cn" "gemini-3.8-flash" BUILTIN-CATALOG))
-(check-false (pi-provider-has-model? "google" "unknown-xyz" fixture-store))
+(check-false (pi-provider-has-model? "google" "unknown-xyz" custom-catalog))
 
-;; 4. models.json 合并后 glm-5.3 系列命中（provider 键为 zai-coding-cn）
+;; 4. 自定义目录中的 glm 系列命中（provider 键为 zai-coding-cn）
 (check-true (pi-provider-has-model? "zai-coding-cn" "glm-5.3" fixture-merged))
 (check-true (pi-provider-has-model? "zai-coding-cn" "glm-5.3-flash" fixture-merged))
 (check-true (pi-provider-has-model? "zai-coding-cn" "glm-5-turbo" fixture-merged))

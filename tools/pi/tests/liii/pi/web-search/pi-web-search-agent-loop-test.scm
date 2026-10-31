@@ -64,7 +64,7 @@
         ) ;when
       ) ;let
     ) ;lambda
-    '("auth.json" "models-store.json" "models.json" "providers.json" "settings.json")
+    '("auth.json" "providers.json" "settings.json")
   ) ;for-each
   ;; 模型目录（models/<provider>.json 与 models/<provider>/<model>.json）
   (let ((src (path-join (path FIXTURE_DIR) (path "models")))

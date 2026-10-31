@@ -10,20 +10,20 @@
 ;; pi-route-provider-and-model
 ;; 统一解析 CLI 参数、环境变量与配置，确定生效的 provider 与 model-id
 
-(define FIXTURE_DIR
-  (if (file-exists? "tests/fixtures/default")
-    "tests/fixtures/default"
-    "tools/pi/tests/fixtures/default"
-  ) ;if
-) ;define
+;; 样本目录：自定义模型（deepseek / zai / google）+ 内置目录
+(define custom-catalog
+  (list
+    (cons "google" (list (cons "models" (list (list (cons "id" "gemini-3.8-flash"))
+                                              (list (cons "id" "gemini-2.5-pro"))))))
+    (cons "deepseek" (list (cons "models" (list (list (cons "id" "deepseek-v4-pro"))
+                                                (list (cons "id" "deepseek-v4-flash"))))))
+    (cons "zai-coding-cn"
+      (list (cons "models" (list (list (cons "id" "glm-5.3"))
+                                 (list (cons "id" "glm-5.3-flash"))
+                                 (list (cons "id" "glm-4.5-air"))))))))
 
-(define fixture-store (pi-load-models-store FIXTURE_DIR))
-
-(define fixture-merged
-  (pi-merge-models-json-into-store fixture-store
-    (pi-load-models-json FIXTURE_DIR)
-  ) ;pi-merge-models-json-into-store
-) ;define
+(define fixture-store custom-catalog)
+(define fixture-merged custom-catalog)
 
 (define default-settings
   '(("default-provider" . "google") ("default-model" . "gemini-3.8-flash"))
@@ -80,10 +80,10 @@
 (check-route "google" "gemini-3.8-flash" "google" "gemini-3.8-flash")
 (check-route "kimi-coding" "k3" "kimi-coding" "k3")
 (check-route "deepseek" "deepseek-v4-flash" "deepseek" "deepseek-v4-flash"
-  fixture-merged
+  default-catalog
 ) ;check-route
 (check-route "minimax-cn" "MiniMax-M3.1-Flash" "minimax-cn" "MiniMax-M3.1-Flash"
-  fixture-merged
+  default-catalog
 ) ;check-route
 (check-route "minimax-cn" "MiniMax-M2.7" "minimax-cn" "MiniMax-M2.7")
 
