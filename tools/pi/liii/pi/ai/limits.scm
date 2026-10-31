@@ -8,7 +8,7 @@
 ;;
 ;; 分层约定：
 ;;   - 拿到 HTTP 状态码与响应 JSON 之后，**具体解析由各 provider 注册的函数完成**
-;;     （见 providers/<id>.scm 的 PI_*_QUOTA-ERROR，经 (liii pi ai providers registry)
+;;     （见 providers/<id>.scm 的 PI_*_QUOTA_ERROR，经 (liii pi ai providers registry)
 ;;     取用）。各家字段结构不同：智谱看 error.code，kimi 看 error.type …
 ;;   - 本模块只做调度与面向用户的消息拼装，不做任何 JSON 解析，也不做文本匹配
 ;;     （错误消息文案会变、会被本地化，不能用来判定）。

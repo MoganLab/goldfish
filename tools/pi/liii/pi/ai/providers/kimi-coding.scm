@@ -8,7 +8,7 @@
   (import (scheme base) (liii pi ai providers quota))
   (export PI_KIMI_CODING_PROVIDER
     PI_KIMI_CODING_BUILTIN_MODELS
-    PI_KIMI_CODING_QUOTA-ERROR
+    PI_KIMI_CODING_QUOTA_ERROR
   ) ;export
   (begin
 
@@ -28,7 +28,7 @@
     ;;    "message":"You've reached your weekly (7-day) usage limit. ..."}}
     ;;
     ;; 返回值：((kind . quota) (code . exceeded_current_quota_error) (message . ...)) 或 #f
-    (define (PI_KIMI_CODING_QUOTA-ERROR status-code body-str)
+    (define (PI_KIMI_CODING_QUOTA_ERROR status-code body-str)
       (pi-quota-error-result status-code
         body-str
         '(("exceeded_current_quota_error" . "quota"))

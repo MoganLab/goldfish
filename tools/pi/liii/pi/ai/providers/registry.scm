@@ -96,10 +96,10 @@
 
     ;; 各 provider 注册的「额度耗尽」识别函数（解析错误码与响应 JSON）
     ;; 函数签名：(handler status-code body-str) -> 结果 alist 或 #f
-    (define PI_PROVIDER_QUOTA-ERROR-HANDLERS
-      (list (cons "zai-coding-cn" PI_ZAI_CODING_CN_QUOTA-ERROR)
-        (cons "zai" PI_ZAI_CODING_CN_QUOTA-ERROR)
-        (cons "kimi-coding" PI_KIMI_CODING_QUOTA-ERROR)
+    (define PI_PROVIDER_QUOTA_ERROR_HANDLERS
+      (list (cons "zai-coding-cn" PI_ZAI_CODING_CN_QUOTA_ERROR)
+        (cons "zai" PI_ZAI_CODING_CN_QUOTA_ERROR)
+        (cons "kimi-coding" PI_KIMI_CODING_QUOTA_ERROR)
       ) ;list
     ) ;define
 
@@ -111,7 +111,7 @@
                      (else #f)
                ) ;cond
              ) ;key
-             (pair (and key (assoc key PI_PROVIDER_QUOTA-ERROR-HANDLERS)))
+             (pair (and key (assoc key PI_PROVIDER_QUOTA_ERROR_HANDLERS)))
             ) ;
         (and pair (cdr pair))
       ) ;let*

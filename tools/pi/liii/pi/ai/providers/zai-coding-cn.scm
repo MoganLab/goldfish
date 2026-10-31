@@ -8,7 +8,7 @@
   (import (scheme base) (liii pi ai providers quota))
   (export PI_ZAI_CODING_CN_PROVIDER
     PI_ZAI_CODING_CN_BUILTIN_MODELS
-    PI_ZAI_CODING_CN_QUOTA-ERROR
+    PI_ZAI_CODING_CN_QUOTA_ERROR
   ) ;export
   (begin
 
@@ -30,7 +30,7 @@
     ;;   分别返回 #f 让上层继续重试。
     ;;
     ;; 返回值：((kind . ...) (code . ...) (message . 官方原文)) 或 #f
-    (define (PI_ZAI_CODING_CN_QUOTA-ERROR status-code body-str)
+    (define (PI_ZAI_CODING_CN_QUOTA_ERROR status-code body-str)
       (pi-quota-error-result status-code
         body-str
         '(("1308" . "five-hour") ("1310" . "weekly"))
