@@ -89,6 +89,7 @@
             "liii http-common",
             "liii iset",
             "liii json",
+            "liii json schema",
             "liii list",
             "liii logging",
             "liii match",

@@ -1,0 +1,22 @@
+(import (liii json schema) (liii check) (scheme base))
+(check-set-mode! 'report-failed)
+
+(check-true (json-schema-valid? 'null '(("type" . "null"))))
+(check-true (json-schema-valid? #t '(("type" . "boolean"))))
+(check-true (json-schema-valid? '(()) '(("type" . "object"))))
+(check-true (json-schema-valid? #() '(("type" . "array"))))
+(check-true (json-schema-valid? "x" '(("type" . "string"))))
+(check-true (json-schema-valid? 1.5 '(("type" . "number"))))
+(check-true (json-schema-valid? 1 '(("type" . "integer"))))
+(check-true (json-schema-valid? 1.0 '(("type" . "integer"))))
+(check-false (json-schema-valid? 1.5 '(("type" . "integer"))))
+(check-false (json-schema-valid? #t '(("type" . "number"))))
+(check-false (json-schema-valid? #f '(("type" . "integer"))))
+(check-false (json-schema-valid? 'null '(("type" . "string"))))
+(check-true (json-schema-valid? "1" '(("type" . #("integer" "string")))))
+(check-true (json-schema-valid? 1 '(("type" . #("integer" "string")))))
+(check-false (json-schema-valid? #t '(("type" . #("integer" "string")))))
+(check-catch 'json-schema-schema-error
+  (json-schema-valid? 1 '(("type" . "unknown")))
+) ;check-catch
+(check-report)
