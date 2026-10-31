@@ -82,6 +82,59 @@
   (string-append "ok" (u+fffd))
 ) ;check
 
+;; 过长编码（overlong，E0 后第二字节须为 A0-BF）：按 WHATWG 语义，
+;; 越界的第二字节"退回"重新处理，因此 E0、80、80 各产生一个 U+FFFD
+(check (utf8-replace-invalid (byte-vector->string #u8(224 128 128)))
+  =>
+  (string-append (u+fffd) (u+fffd) (u+fffd))
+) ;check
+
+;; 过长编码边界：E0 9F 80（9F < A0）
+(check (utf8-replace-invalid (byte-vector->string #u8(224 159 128)))
+  =>
+  (string-append (u+fffd) (u+fffd) (u+fffd))
+) ;check
+
+;; 代理区（ED 后第二字节须为 80-9F，拒绝 CESU-8 编码的 D800-DFFF）
+(check (utf8-replace-invalid (byte-vector->string #u8(237 160 128)))
+  =>
+  (string-append (u+fffd) (u+fffd) (u+fffd))
+) ;check
+
+;; 过长 4 字节（F0 后第二字节须为 90-BF）
+(check (utf8-replace-invalid (byte-vector->string #u8(240 143 191 191)))
+  =>
+  (string-append (u+fffd) (u+fffd) (u+fffd) (u+fffd))
+) ;check
+
+;; 超 U+10FFFF（F4 后第二字节须为 80-8F）
+(check (utf8-replace-invalid (byte-vector->string #u8(244 144 128 128)))
+  =>
+  (string-append (u+fffd) (u+fffd) (u+fffd) (u+fffd))
+) ;check
+
+;; 越界序列混在正常文本中
+(check (utf8-replace-invalid (string-append "a" (byte-vector->string #u8(237 160 128)) "b"))
+  =>
+  (string-append "a" (u+fffd) (u+fffd) (u+fffd) "b")
+) ;check
+
+;; 第二字节合法但第三字节非法：E0 A0 是最大非法子序列，41 "退回"
+(check (utf8-replace-invalid (byte-vector->string #u8(224 160 65)))
+ =>
+  (string-append (u+fffd) "A")
+) ;check
+
+;; 合法边界不受影响：U+0800 / U+D7FF / U+10000 / U+10FFFF
+(check (utf8-replace-invalid (byte-vector->string #u8(224 160 128)))
+  => (byte-vector->string #u8(224 160 128)))
+(check (utf8-replace-invalid (byte-vector->string #u8(237 159 191)))
+  => (byte-vector->string #u8(237 159 191)))
+(check (utf8-replace-invalid (byte-vector->string #u8(240 144 128 128)))
+  => (byte-vector->string #u8(240 144 128 128)))
+(check (utf8-replace-invalid (byte-vector->string #u8(244 143 191 191)))
+  => (byte-vector->string #u8(244 143 191 191)))
+
 ;; 类型错误检查
 (check-catch 'type-error (utf8-replace-invalid 123))
 (check-catch 'type-error (utf8-replace-invalid 'symbol))
