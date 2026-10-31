@@ -38,6 +38,9 @@
     ;; Unicode 常量
     unicode-max-codepoint
     unicode-replacement-char
+
+    ;; UTF-8 容错
+    utf8-replace-invalid
   ) ;export
 
   (import (scheme base) (liii base) (liii ascii) (liii bitwise) (liii error))
@@ -522,6 +525,138 @@
 
     (define unicode-max-codepoint 1114111)
     (define unicode-replacement-char 65533)
+
+    ;; ; utf8-replace-invalid: 把字符串中的非法 UTF-8 字节序列替换为 U+FFFD
+    ;;
+    ;; 参数
+    ;; ----
+    ;; str : string
+    ;; 输入字符串，内部可能包含非法 UTF-8 字节（子进程输出、二进制数据、
+    ;; 被截断的多字节序列等）。
+    ;;
+    ;; 返回值
+    ;; ----
+    ;; string
+    ;; 合法 UTF-8 字节原样保留；非法字节序列按 WHATWG Encoding 规范替换为
+    ;; U+FFFD（每个最大非法子序列一个替换字符）。输入已是合法 UTF-8 时
+    ;; 直接返回原串（不重新分配）。
+    ;;
+    ;; 描述
+    ;; ----
+    ;; utf8->string / string->utf8 遇到非法 UTF-8 会抛 value-error，使整段
+    ;; 输出丢失。utf8-replace-invalid 提供容错解码：非法序列替换为 U+FFFD，
+    ;; 与上游 JS TextDecoder 的容错行为一致。
+    (define (utf8-replace-invalid str)
+      (unless (string? str)
+        (error 'type-error "utf8-replace-invalid: expected string")
+      ) ;unless
+      (let* ((bv (string->byte-vector str)) (len (bytevector-length bv)))
+        (if (zero? len)
+          str
+          (if (%utf8-all-valid? bv len)
+            str
+            (let loop
+              ((i 0) (acc '()))
+              (if (>= i len)
+                (apply string-append (reverse acc))
+                (let ((next (%utf8-advance bv i len)))
+                  (if (= next i)
+                    ;; 非法字节：按最大非法子序列长度跳过，只产生一个 U+FFFD
+                    (loop (+ i (%utf8-invalid-run bv i len))
+                      (cons (utf8->string #u8(239 191 189)) acc)
+                    ) ;loop
+                    (loop next (cons (byte-vector->string (bytevector-copy bv i next)) acc))
+                  ) ;if
+                ) ;let
+              ) ;if
+            ) ;let
+          ) ;if
+        ) ;if
+      ) ;let*
+    ) ;define
+
+    ;; 字节序列是否全部为合法 UTF-8（只扫描，不分配）
+    (define (%utf8-all-valid? bv len)
+      (let loop
+        ((i 0))
+        (if (>= i len)
+          #t
+          (let ((next (%utf8-advance bv i len)))
+            (if (= next i) #f (loop next))
+          ) ;let
+        ) ;if
+      ) ;let
+    ) ;define
+
+    ;; 严格 UTF-8 序列推进：与 bytevector-advance-utf8 不同，拒绝孤立续字节
+    ;; （0x80-0xBF 不能作为首字节）、0xC0/0xC1 与 0xF5-0xFF 等非法首字节。
+    ;; 合法时返回下一个字节位置，非法时返回原位置（表示无法推进）。
+    (define (%utf8-advance bv i len)
+      (if (>= i len)
+        i
+        (let ((b (bytevector-u8-ref bv i)))
+          (cond ((< b 128) (+ i 1))
+                ((and (>= b 194) (<= b 223))
+                 (if (and (< (+ i 1) len) (%utf8-continuation? bv (+ i 1))) (+ i 2) i)
+                ) ;
+                ((and (>= b 224) (<= b 239))
+                 (if (and (< (+ i 2) len)
+                       (%utf8-continuation? bv (+ i 1))
+                       (%utf8-continuation? bv (+ i 2))
+                     ) ;and
+                   (+ i 3)
+                   i
+                 ) ;if
+                ) ;
+                ((and (>= b 240) (<= b 244))
+                 (if (and (< (+ i 3) len)
+                       (%utf8-continuation? bv (+ i 1))
+                       (%utf8-continuation? bv (+ i 2))
+                       (%utf8-continuation? bv (+ i 3))
+                     ) ;and
+                   (+ i 4)
+                   i
+                 ) ;if
+                ) ;
+                (else i)
+          ) ;cond
+        ) ;let
+      ) ;if
+    ) ;define
+
+    ;; 是否为 UTF-8 续字节（0x80-0xBF）
+    (define (%utf8-continuation? bv i)
+      (let ((c (bytevector-u8-ref bv i)))
+        (and (>= c 128) (<= c 191))
+      ) ;let
+    ) ;define
+
+    ;; 非法 UTF-8 字节序列的最大子序列长度：
+    ;; - 合法首字节：1 + 后续连续字节（最多达到该首字节期望的续字节数）
+    ;; - 非法首字节（0x80-0xC1、0xF5-0xFF）：1
+    (define (%utf8-invalid-run bv i len)
+      (let ((b (bytevector-u8-ref bv i)))
+        (let ((expect
+                (cond ((and (>= b 194) (<= b 223)) 1)
+                      ((and (>= b 224) (<= b 239)) 2)
+                      ((and (>= b 240) (<= b 244)) 3)
+                      (else 0)
+                ) ;cond
+              ) ;expect
+             ) ;
+          (if (= expect 0)
+            1
+            (let loop
+              ((j (+ i 1)) (n 0))
+              (if (and (< n expect) (< j len) (%utf8-continuation? bv j))
+                (loop (+ j 1) (+ n 1))
+                (+ 1 n)
+              ) ;if
+            ) ;let
+          ) ;if
+        ) ;let
+      ) ;let
+    ) ;define
 
     (define (hexstr->codepoint hex-string)
       (unless (string? hex-string)

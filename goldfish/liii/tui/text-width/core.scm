@@ -129,25 +129,29 @@
       ) ;let
     ) ;define
 
+    ;; 剔除 ANSI 转义序列；同时把非法 UTF-8 字节替换为 U+FFFD，
+    ;; 避免 utf8->string 对非法字节抛 value-error（子进程输出可能含
+    ;; 被截断的多字节序列或二进制垃圾）
     (define (strip-ansi str)
       (unless (string? str)
         (type-error "strip-ansi: str must be a string")
       ) ;unless
       (if (string=? str "")
         ""
-        (let* ((bv (string->utf8 str)) (len (bytevector-length bv)))
+        (let* ((bv (string->byte-vector str)) (len (bytevector-length bv)))
           (if (not (%bv-contains-esc? bv len))
-            str
+            (utf8-replace-invalid str)
             (let loop
               ((i 0) (acc '()))
               (if (>= i len)
-                (apply string-append (reverse acc))
+                (utf8-replace-invalid (apply string-append (reverse acc)))
                 (let ((ansi-end (%match-ansi bv i len)))
                   (if ansi-end
                     (loop ansi-end acc)
                     (let* ((next (bytevector-advance-utf8 bv i len))
                            (step (if (= next i) (+ i 1) next))
-                           (chunk (utf8->string (bytevector-copy bv i step)))
+                           ;; 非法字节用原始字节保留，最后统一替换为 U+FFFD
+                           (chunk (byte-vector->string (bytevector-copy bv i step)))
                           ) ;
                       (loop step (cons chunk acc))
                     ) ;let*

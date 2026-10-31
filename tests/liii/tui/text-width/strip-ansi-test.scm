@@ -71,6 +71,21 @@
 (check (strip-ansi "\x1b[0m") => "")
 (check (strip-ansi "\x1b[31m\x1b[0m") => "")
 
+;; 非法 UTF-8 字节：bash 命令输出可能含被截断的多字节序列（如被截断的
+;; “好”只剩 e5 a5）或二进制垃圾；与上游 JS 字符串层一致，替换为 U+FFFD
+;; 而不是抛 value-error 使整个输出丢失
+;; （用 byte-vector->string 构造含非法字节的原始字符串）
+(check (strip-ansi (string-append "你好" (byte-vector->string #u8(229 165)) "..."))
+  => (string-append "你好" (utf8->string #u8(239 191 189)) "..."))
+
+;; 非法首字节（0xFF 孤立字节）与 ANSI 序列共存
+(check (strip-ansi (string-append "\x1b[31ma" (byte-vector->string #u8(255)) "b\x1b[0m"))
+  => (string-append "a" (utf8->string #u8(239 191 189)) "b"))
+
+;; 非法尾字节：合法序列后跟孤立续字节
+(check (strip-ansi (string-append "a" (byte-vector->string #u8(128)) "b"))
+  => (string-append "a" (utf8->string #u8(239 191 189)) "b"))
+
 ;; 类型错误检查
 (check-catch 'type-error (strip-ansi 123))
 (check-catch 'type-error (strip-ansi 'symbol))

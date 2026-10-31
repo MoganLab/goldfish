@@ -9,7 +9,7 @@
 ;; 注意：本实现工作在字节层（与 (liii tui text-width core) 一致）。
 (define-library (liii pi code utils shell)
   (export sanitize-binary-output)
-  (import (scheme base) (liii error))
+  (import (scheme base) (liii error) (liii unicode))
   (begin
 
     ;; 是否存在需要删除的字节：
@@ -69,16 +69,22 @@
 
     ;; 快速路径：无字节需要删除时直接返回原串，避免分配重建
     ;; （渲染层每帧都会调用，纯文本输出不能付出重建代价）
+    ;;
+    ;; 注：子进程输出可能含非法 UTF-8 字节（被截断的多字节序列、二进制垃圾），
+    ;; string->utf8 / utf8->string 遇非法字节会抛 value-error 使整段输出丢失；
+    ;; 因此这里走字节层（string->byte-vector）并用 utf8-replace-invalid
+    ;; 把非法序列替换为 U+FFFD（对齐上游 JS TextDecoder 容错行为）。
     (define (sanitize-binary-output str)
       (unless (string? str)
         (type-error "sanitize-binary-output: str must be a string")
       ) ;unless
-      (let* ((bv (string->utf8 str)) (len (bytevector-length bv)))
+      (let* ((bv (string->byte-vector str)) (len (bytevector-length bv)))
         (if (%bv-needs-clean? bv len)
           (let* ((keep (make-bytevector len 0)) (j (%copy-clean-bytes! bv len keep)))
-            (utf8->string (if (= j len) keep (bytevector-copy keep 0 j)))
+            (utf8-replace-invalid (byte-vector->string (if (= j len) keep (bytevector-copy keep 0 j)))
+            ) ;utf8-replace-invalid
           ) ;let*
-          str
+          (utf8-replace-invalid str)
         ) ;if
       ) ;let*
     ) ;define

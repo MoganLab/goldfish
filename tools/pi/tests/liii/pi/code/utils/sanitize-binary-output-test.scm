@@ -9,6 +9,30 @@
 ;; - 删除控制字符 \x00-\x08、\x0B、\x0C、\x0E-\x1F（保留 \t \n \r）
 ;; - 删除 U+FFF9..U+FFFB（interlinear annotation，会使宽度计算崩溃）
 
+;; 非法 UTF-8 序列：bash 命令输出可能含截断的多字节序列（如被截断的“好”
+;; 只剩 e5 a5）或二进制垃圾；与上游 JS TextDecoder 一致，替换为 U+FFFD
+;; 而不是抛错（否则整个工具输出丢失，消息卡片显示 value-error）
+;; （用 byte-vector->string 构造含非法字节的原始字符串）
+(check (sanitize-binary-output (string-append "你好" (byte-vector->string #u8(229 165)) "..."))
+  =>
+  (string-append "你好" (utf8->string #u8(239 191 189)) "...")
+) ;check
+
+;; 非法首字节（0xFF 孤立字节）
+(check (sanitize-binary-output (string-append "a" (byte-vector->string #u8(255)) "b"))
+  =>
+  (string-append "a" (utf8->string #u8(239 191 189)) "b")
+) ;check
+
+;; 多个非法字节各替换为一个 U+FFFD
+(check (sanitize-binary-output (byte-vector->string #u8(254 128 129)))
+  =>
+  (string-append (utf8->string #u8(239 191 189))
+    (utf8->string #u8(239 191 189))
+    (utf8->string #u8(239 191 189))
+  ) ;string-append
+) ;check
+
 ;; 普通文本不受影响
 (check (sanitize-binary-output "hello world") => "hello world")
 (check (sanitize-binary-output "你好，世界") => "你好，世界")
