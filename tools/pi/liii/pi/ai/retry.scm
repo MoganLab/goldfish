@@ -26,9 +26,10 @@
   ) ;export
   (begin
 
-    ;; 额度耗尽（5 小时窗口 / 周额度等）属于账户级限额，重试无意义
-    (define (pi-is-retriable-error? status-code response-body-str)
-      (if (pi-usage-limit-error? status-code response-body-str)
+    ;; 额度耗尽（5 小时窗口 / 周额度等）属于账户级限额，重试无意义。
+    ;; 业务码按 provider 命名空间判定，未提供 provider 时不做额度判定。
+    (define* (pi-is-retriable-error? status-code response-body-str (provider #f))
+      (if (pi-usage-limit-error? status-code response-body-str provider)
         #f
         (or (= status-code 408)
           (= status-code 409)
@@ -37,7 +38,7 @@
           (= status-code 0)
         ) ;or
       ) ;if
-    ) ;define
+    ) ;define*
 
     (define gemini-is-retriable-error? pi-is-retriable-error?)
     (define anthropic-is-retriable-error? pi-is-retriable-error?)

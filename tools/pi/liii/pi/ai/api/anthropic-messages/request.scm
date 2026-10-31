@@ -74,7 +74,7 @@
     ) ;define
 
     (define (%make-retry-error status attempt body-str provider)
-      (let ((limit (pi-usage-limit-error? status body-str)))
+      (let ((limit (pi-usage-limit-error? status body-str provider)))
         (pi-assistant-message (list (pi-text-block ""))
           :stop-reason "error"
           :error-message
@@ -172,11 +172,11 @@
                   (cons 'url (string-append "POST " url))
                   (cons 'attempt attempt)
                   (cons 'max-attempts provider-max-retries)
-                  (cons 'retryable (anthropic-is-retriable-error? status body-str))
+                  (cons 'retryable (anthropic-is-retriable-error? status body-str provider))
                 ) ;list
               ) ;pi-log-http-error!
             ) ;when
-            (if (anthropic-is-retriable-error? status body-str)
+            (if (anthropic-is-retriable-error? status body-str provider)
               (if (<= attempt provider-max-retries)
                 (let* ((ra-raw (pi-extract-retry-after resp))
                        (ra-sec (pi-parse-retry-after ra-raw))
@@ -189,7 +189,7 @@
                 (%make-retry-error status attempt body-str provider)
               ) ;if
               (let* ((parsed-json (catch #t (lambda () (string->json body-str)) (lambda args #f)))
-                     (limit (pi-usage-limit-error? status body-str))
+                     (limit (pi-usage-limit-error? status body-str provider))
                     ) ;
                 (if limit
                   (pi-assistant-message (list (pi-text-block ""))

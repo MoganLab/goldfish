@@ -213,7 +213,7 @@
                       (cons 'attempt attempt)
                       (cons 'max-attempts provider-max-retries)
                       (cons 'retryable
-                        (gemini-is-retriable-error? status (vector-ref error-body-acc 0))
+                        (gemini-is-retriable-error? status (vector-ref error-body-acc 0) provider)
                       ) ;cons
                     ) ;list
                   ) ;pi-log-http-error!
@@ -234,7 +234,7 @@
                    ) ;let
                   ) ;
                   ((and (not idle-timed-out?)
-                     (gemini-is-retriable-error? status (vector-ref error-body-acc 0))
+                     (gemini-is-retriable-error? status (vector-ref error-body-acc 0) provider)
                    ) ;and
                    (if (<= attempt provider-max-retries)
                      (let* ((ra-raw (pi-extract-retry-after resp))
@@ -246,7 +246,7 @@
                        (sleep delay-sec)
                        (loop (+ attempt 1) api-key)
                      ) ;let*
-                     (let ((limit (pi-usage-limit-error? status (vector-ref error-body-acc 0))))
+                     (let ((limit (pi-usage-limit-error? status (vector-ref error-body-acc 0) provider)))
                        (list (cons 'role "assistant")
                          (cons 'content (gemini-stream-state-blocks stream-state))
                          (cons 'stopReason "error")

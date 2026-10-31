@@ -193,7 +193,8 @@
     (define* (pi-log-http-error! status body (info '()))
       (let* ((status-str (%as-string (or status 0)))
              (body-str (if (string? body) body ""))
-             (limit (pi-usage-limit-error? (or status 0) body-str))
+             (limit (pi-usage-limit-error? (or status 0) body-str (%alist-ref 'provider info #f))
+             ) ;limit
              (kind (pi-usage-limit-kind limit))
              (attempt (%as-string (%alist-ref 'attempt info #f)))
              (max-attempts (%as-string (%alist-ref 'max-attempts info #f)))

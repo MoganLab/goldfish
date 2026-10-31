@@ -132,13 +132,13 @@
     ) ;define
 
     ;; 额度耗尽（5 小时窗口 / 周额度等）不是瞬时错误，重试无意义，
-    ;; 直接判定为不可重试，由上层给出额度类型与重置时间。
-    (define (openai-is-retriable-error? status-code response-body-str)
-      (if (pi-usage-limit-error? status-code response-body-str)
+    ;; 直接判定为不可重试，由上层给出服务商官方消息。
+    (define* (openai-is-retriable-error? status-code response-body-str (provider #f))
+      (if (pi-usage-limit-error? status-code response-body-str provider)
         #f
         (if (memv status-code '(0 408 409 429 500 502 503 504 529)) #t #f)
       ) ;if
-    ) ;define
+    ) ;define*
 
   ) ;begin
 ) ;define-library

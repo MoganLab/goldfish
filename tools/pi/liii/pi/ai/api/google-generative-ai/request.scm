@@ -274,7 +274,7 @@
                     (cons 'url (string-append "POST " url))
                     (cons 'attempt attempt)
                     (cons 'max-attempts provider-max-retries)
-                    (cons 'retryable (gemini-is-retriable-error? status body-str))
+                    (cons 'retryable (gemini-is-retriable-error? status body-str provider))
                   ) ;list
                 ) ;pi-log-http-error!
               ) ;when
@@ -289,7 +289,7 @@
                   ) ;if
                 ) ;let
                ) ;
-               ((and (gemini-is-retriable-error? status body-str)
+               ((and (gemini-is-retriable-error? status body-str provider)
                   (<= attempt provider-max-retries)
                 ) ;and
                 (let* ((ra-raw (pi-extract-retry-after resp))
@@ -302,8 +302,8 @@
                   (loop (+ attempt 1) api-key)
                 ) ;let*
                ) ;
-               ((gemini-is-retriable-error? status body-str)
-                (let ((limit (pi-usage-limit-error? status body-str)))
+               ((gemini-is-retriable-error? status body-str provider)
+                (let ((limit (pi-usage-limit-error? status body-str provider)))
                   (%make-error-response (if limit
                                           (pi-usage-limit-error-message limit provider)
                                           (format-failed-stream-msg status resp)
@@ -314,7 +314,7 @@
                ) ;
                (else
                  (let* ((pj (catch #t (lambda () (string->json body-str)) (lambda _ #f)))
-                        (limit (pi-usage-limit-error? status body-str))
+                        (limit (pi-usage-limit-error? status body-str provider))
                        ) ;
                    (if limit
                      (%make-error-response (pi-usage-limit-error-message limit provider)

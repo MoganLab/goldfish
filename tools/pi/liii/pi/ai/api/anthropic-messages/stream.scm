@@ -170,7 +170,7 @@
                  (if (and (string? resp-body) (not (string-null? resp-body))) resp-body "")
                ) ;if
              ) ;body
-             (limit (pi-usage-limit-error? status body))
+             (limit (pi-usage-limit-error? status body provider))
              (err-msg
                (cond
                 ((and limit (string? (pi-usage-limit-error-message limit provider)))
@@ -261,7 +261,9 @@
                   (cons 'url (string-append "POST " url))
                   (cons 'attempt attempt)
                   (cons 'max-attempts provider-r)
-                  (cons 'retryable (anthropic-is-retriable-error? status (vector-ref err-acc 0)))
+                  (cons 'retryable
+                    (anthropic-is-retriable-error? status (vector-ref err-acc 0) provider)
+                  ) ;cons
                 ) ;list
               ) ;pi-log-http-error!
             ) ;when
@@ -269,7 +271,7 @@
             ;; 无后续 chunk 检查点，此处探测保证确定性结算为 aborted
             (cond ((or aborted? (pi-aborted?)) (%finalize-aborted-stream stream-state))
                   (idle-timed-out? (%make-idle-timeout-error eff-idle))
-                  ((anthropic-is-retriable-error? status (vector-ref err-acc 0))
+                  ((anthropic-is-retriable-error? status (vector-ref err-acc 0) provider)
                    (if (<= attempt provider-r)
                      (let* ((ra-raw (pi-extract-retry-after resp))
                             (ra-sec (pi-parse-retry-after ra-raw))

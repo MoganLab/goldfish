@@ -126,7 +126,7 @@
              (err-text (if (string? resp-err) (string-trim resp-err) ""))
              (acc-body (vector-ref err-acc 0))
              (body (%stream-error-body resp err-acc))
-             (limit (pi-usage-limit-error? status body))
+             (limit (pi-usage-limit-error? status body provider))
              (err-msg
                (cond
                 ((and limit (string? (pi-usage-limit-error-message limit provider)))
@@ -219,7 +219,7 @@
                     (cons 'attempt attempt)
                     (cons 'max-attempts provider-r)
                     (cons 'retryable
-                      (openai-is-retriable-error? status (%stream-error-body resp err-acc))
+                      (openai-is-retriable-error? status (%stream-error-body resp err-acc) provider)
                     ) ;cons
                   ) ;list
                 ) ;pi-log-http-error!
@@ -230,7 +230,7 @@
                     (idle-timed-out? (%make-idle-timeout-error eff-idle))
                     ;; 额度耗尽（5 小时/周额度）属于账户级限额，换 key 也无济于事，
                     ;; 直接给出可读提示，不再重试。
-                    ((and (pi-usage-limit-error? status (%stream-error-body resp err-acc))
+                    ((and (pi-usage-limit-error? status (%stream-error-body resp err-acc) provider)
                        (not key-rotation?)
                      ) ;and
                      (%make-stream-error status resp err-acc provider)
@@ -243,7 +243,7 @@
                        ) ;if
                      ) ;let
                     ) ;
-                    ((openai-is-retriable-error? status (%stream-error-body resp err-acc))
+                    ((openai-is-retriable-error? status (%stream-error-body resp err-acc) provider)
                      (if (<= attempt provider-r)
                        (let* ((ra-raw (pi-extract-retry-after resp))
                               (ra-sec (pi-parse-retry-after ra-raw))

@@ -264,8 +264,8 @@
     ) ;define
 
     ;; 额度耗尽（5 小时窗口 / 周额度等）不是瞬时错误，重试无意义
-    (define (anthropic-is-retriable-error? status-code response-body-str)
-      (if (pi-usage-limit-error? status-code response-body-str)
+    (define* (anthropic-is-retriable-error? status-code response-body-str (provider #f))
+      (if (pi-usage-limit-error? status-code response-body-str provider)
         #f
         (or (= status-code 408)
           (= status-code 409)
@@ -275,7 +275,7 @@
           (zero? status-code)
         ) ;or
       ) ;if
-    ) ;define
+    ) ;define*
 
   ) ;begin
 ) ;define-library

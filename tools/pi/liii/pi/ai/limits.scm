@@ -9,7 +9,10 @@
 ;; 判定只看结构化字段（HTTP 状态码 + 响应体业务码），不做任何文本匹配：
 ;; 错误消息会随服务商文案调整、也会被本地化，用它做判定既不可靠也容易误判。
 ;;
-;; Z.AI / 智谱（GLM Coding Plan）的业务码语义：
+;; 业务码是各家服务商的私有命名空间，因此在码表里按 provider 分组，
+;; 只在对应 provider 下生效，不会跨服务商套用。
+;;
+;; zai-coding-cn（智谱 / Z.AI GLM Coding Plan）的业务码语义：
 ;;   1302        并发槽满              -> 可重试，不是额度耗尽
 ;;   1303 / 1305 短时频率压力          -> 可重试，不是额度耗尽
 ;;   1308        5 小时额度窗口耗尽     -> 额度耗尽（不重试）
@@ -23,8 +26,25 @@
   ) ;export
   (begin
 
-    ;; 额度耗尽业务码表：code -> 额度窗口类型
-    (define %quota-codes '(("1308" . "five-hour") ("1310" . "weekly")))
+    ;; 额度耗尽业务码表：provider -> (code -> 额度窗口类型)
+    ;; 业务码是各家的私有命名空间，只在其所属 provider 下生效；未列出的 provider
+    ;; 不做额度判定，仍按状态码走原有可重试逻辑。
+    (define %quota-codes-by-provider
+      '(("zai-coding-cn" ("1308" . "five-hour") ("1310" . "weekly")))
+    ) ;define
+
+    (define (%provider-key provider)
+      (and (string? provider) (string-downcase (string-trim-both provider)))
+    ) ;define
+
+    ;; 取某个 provider 的额度耗尽码表（未配置时为空表）
+    (define (%quota-codes provider)
+      (let* ((key (%provider-key provider))
+             (entry (and key (assoc key %quota-codes-by-provider)))
+            ) ;
+        (if (pair? entry) (cdr entry) '())
+      ) ;let*
+    ) ;define
 
     ;; 判断是否为形如 ((k . v) ...) 的关联表
     (define (%alist? obj)
@@ -99,13 +119,13 @@
     ;;   kind    —— five-hour / weekly
     ;;   code    —— 服务商业务码（如 "1310"）
     ;;   message —— 服务商官方消息原文（可能 #f）
-    (define (pi-detect-usage-limit body-str)
+    (define* (pi-detect-usage-limit body-str (provider #f))
       (if (not (string? body-str))
         #f
         (let* ((fields (%parse-error-fields body-str))
                (code (car fields))
                (msg (cdr fields))
-               (entry (and code (assoc code %quota-codes)))
+               (entry (and code (assoc code (%quota-codes provider))))
               ) ;
           (if (pair? entry)
             (list (cons "kind" (cdr entry)) (cons "code" code) (cons "message" msg))
@@ -113,17 +133,17 @@
           ) ;if
         ) ;let*
       ) ;if
-    ) ;define
+    ) ;define*
 
     ;; HTTP 状态码 + 响应体判定是否属于「额度耗尽」（不可重试）
-    (define (pi-usage-limit-error? status-code body-str)
+    (define* (pi-usage-limit-error? status-code body-str (provider #f))
       (if (or (= status-code 429) (= status-code 403))
-        (let ((limit (pi-detect-usage-limit body-str)))
+        (let ((limit (pi-detect-usage-limit body-str provider)))
           (and limit (cons (cons "status" status-code) limit))
         ) ;let
         #f
       ) ;if
-    ) ;define
+    ) ;define*
 
     (define (pi-usage-limit-kind limit)
       (and (pair? limit) (%val "kind" limit #f))
