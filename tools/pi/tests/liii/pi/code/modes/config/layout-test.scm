@@ -72,6 +72,11 @@
   (check (equal? a b) => #f)
 ) ;let
 
+;; 9a. 选中行用紫色底整行高亮（ranger 风格），底色覆盖整列宽度
+(let ((raw (string-join (pi-config-render st (pi-config-cursor 1 0) 0 120 20) "\n")))
+  (check (string-contains raw "48;2;74;44;122") => #t)
+) ;let
+
 ;; 9. 状态栏显示配置目录与计数
 (let ((text (plain (string-join (pi-config-render st (pi-config-cursor 1 0) 0 120 20) "\n"))))
   (check (string-contains text DIR) => #t)

@@ -22,7 +22,8 @@
     (define %accent "\x1b;[35m")
     (define %muted "\x1b;[38;2;120;130;140m")
     (define %reset "\x1b;[0m")
-    (define %reverse "\x1b;[7m")
+    ;; 选中行：紫色底 + 近白前景（ranger 风格整行高亮）
+    (define %selected-style "\x1b;[48;2;74;44;122m\x1b;[38;2;244;240;255m")
     (define %dim "\x1b;[2m")
     (define %on "\x1b;[32m")
 
@@ -94,7 +95,9 @@
                           (cell (string-append " " (%fit (%strip-marker line) inner) " "))
                          ) ;
                      (if sel?
-                       (string-append color "│" %reset %reverse cell %reset color "│" %reset)
+                       (string-append color "│" %reset %selected-style cell
+                         %reset color "│" %reset
+                       ) ;string-append
                        (string-append color "│" %reset cell color "│" %reset)
                      ) ;if
                    ) ;let*
