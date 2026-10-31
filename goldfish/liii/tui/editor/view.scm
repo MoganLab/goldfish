@@ -48,27 +48,55 @@
     ;; focused?: 是否聚焦
     ;; cursor-style: 'inverse (反显), 'bar (竖线 |), 'block (方块或反显),
     ;; 'hardware (不画软件光标，由硬件光标指示)
+    ;; col 是显示列（宽字符占多列）：按显示宽度扫描定位光标字符，
+    ;; 与 editor-visual-cursor 产出的显示列语义一致；
+    ;; 折行会去掉行尾空格，渲染行可能短于光标列：col 超出行尾时
+    ;; 先补空格到光标列，再画反显方块/竖线（Issue 1218：
+    ;; 输入空格后软件方块光标必须随后移，而不是钉在 trim 后的文本末尾）
+    (define (%cursor-split line col)
+      ;; 返回 (before cursor-char after)，cursor-char 为 #f 表示 col 超出行尾；
+      ;; 按显示宽度逐字符扫描，col 落在宽字符中间时对该字符生效（防御）
+      (let ((len (utf8-string-length line)))
+        (let loop
+          ((i 0))
+          (cond ((>= i len) (list (utf8-substring line 0 i) #f ""))
+                ((>= (display-width-prefix line i) col)
+                 (list (utf8-substring line 0 i)
+                   (utf8-substring line i (+ i 1))
+                   (utf8-substring line (+ i 1) len)
+                 ) ;list
+                )
+                (else (loop (+ i 1)))
+          ) ;cond
+        ) ;let
+      ) ;let
+    ) ;define
+
     (define (render-line-with-cursor line col focused? cursor-style)
       (if (or (not focused?) (eq? cursor-style 'hardware))
         ;; 未聚焦或由硬件光标指示时原样返回，无需切分字符串
         line
-        (let* ((len (utf8-string-length line)) (safe-col (max 0 (min col len))))
+        (let* ((split (%cursor-split line (max 0 col)))
+               (before (car split))
+               (cursor-char (cadr split))
+               (after (caddr split))
+               ;; col 超出渲染行行尾（折行 trim 掉的行尾空格）：补空格到光标列，
+               ;; 补齐宽度按 before 的显示宽度差计算（不依赖字符数）
+               (pad (- (max 0 col) (display-width before)))
+               (padded (if (> pad 0) (string-append before (make-string pad #\space)) before))
+              ) ;let*
           (case cursor-style
            ((bar)
-            (string-append (utf8-substring line 0 safe-col)
-              "|"
-              (if (>= safe-col len) "" (utf8-substring line safe-col len))
-            ) ;string-append
+            (string-append padded "|" (if cursor-char (string-append cursor-char after) ""))
            ) ;
            (else
              ;; 默认为反显样式 \x1b[7m ... \x1b[0m
-             (let ((before (utf8-substring line 0 safe-col))
-                   (after (if (>= (+ safe-col 1) len) "" (utf8-substring line (+ safe-col 1) len)))
-                   (cursor-char (if (< safe-col len) (utf8-substring line safe-col (+ safe-col 1)) " ")
-                   ) ;cursor-char
-                  ) ;
-               (string-append before "\x1b;[7m" cursor-char "\x1b;[0m" after)
-             ) ;let
+             (string-append padded
+               "\x1b;[7m"
+               (if cursor-char cursor-char " ")
+               "\x1b;[0m"
+               after
+             ) ;string-append
            ) ;else
           ) ;case
         ) ;let*
