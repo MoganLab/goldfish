@@ -161,6 +161,43 @@
   (check (string-contains? (list-ref rendered 3) "48;2;91;40;42") => #t)
 ) ;let*
 
+;; error 卡片超宽输出按内容宽度折行，不再被 alt-screen 截断吞字（对齐 [1221] 口径）
+(let* ((digits (string-join (make-list 18 "0123456789") ""))
+       (card (make-tool-card "resume" '() 'error digits))
+       (w 30)
+       (lines (component-render card w))
+       (plain (map strip-ansi lines))
+      ) ;
+  ;; 超宽错误信息必然折为多行输出（pad+标题+空行+多行输出+pad+间隔空行）
+  (check (> (length lines) 6) => #t)
+  ;; 每行显示宽度不超过终端宽度，否则会被 alt-screen 截断
+  (check (every (lambda (line) (<= (display-width line) w)) lines) => #t)
+  ;; 内容完整：数字字符总数必须等于 180，一个都不能少
+  (check
+    (length
+      (filter (lambda (c) (and (char>=? c #\0) (char<=? c #\9)))
+        (apply append (map string->list plain))
+      ) ;filter
+    )
+    => 180
+  )
+  ;; 折行后正文可以完整还原
+  (check (string-contains? (string-join (map string-trim-both plain) "") digits) => #t)
+  ;; 输出行背景仍是 error 红
+  (check (string-contains? (list-ref lines 3) "48;2;91;40;42") => #t)
+) ;let*
+
+;; error 卡片中文长信息逐字折行，完整还原
+(let* ((zh-msg (string-join (make-list 20 "金鱼方案超时") ""))
+       (card (make-tool-card "session" '() 'error zh-msg))
+       (w 30)
+       (lines (component-render card w))
+       (plain (map strip-ansi lines))
+      ) ;
+  (check (every (lambda (line) (<= (display-width line) w)) lines) => #t)
+  (check (string-contains? (string-join (map string-trim-both plain) "") zh-msg) => #t)
+) ;let*
+
 ;; 运行中显示 Elapsed；结束后使用执行层耗时且不再滚动
 (let* ((card (make-tool-card "bash" '(("command" . "sleep 5")) 'pending))
        (pending-text (string-join (map strip-ansi (component-render card 80)) "\n"))
