@@ -25,7 +25,7 @@
     ;; 选中行：紫色底 + 近白前景（ranger 风格整行高亮）。
     ;; 焦点列用浓紫，非焦点列用浅紫，保持"选中但未聚焦"的层次。
     (define %selected-style "\x1b;[48;2;74;44;122m\x1b;[38;2;244;240;255m")
-    (define %selected-style-idle "\x1b;[48;2;116;90;158m\x1b;[38;2;238;233;250m")
+    (define %selected-style-idle "\x1b;[48;2;56;46;78m\x1b;[38;2;205;198;220m")
     (define %dim "\x1b;[2m")
     (define %on "\x1b;[32m")
 
