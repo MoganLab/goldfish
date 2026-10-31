@@ -70,9 +70,9 @@
 (pi-log-http-error! 0 "" '())
 (check-true (string-contains? (log-content) "status=0"))
 
-;; 6. 额度耗尽类错误附带额度类型
+;; 6. 额度耗尽类错误附带额度类型（按业务码判定，不看消息文本）
 (pi-log-http-error! 429
-  "{\"error\":{\"message\":\"您已达到5小时用量上限\"}}"
+  "{\"error\":{\"code\":\"1308\",\"message\":\"您已达到5小时用量上限\"}}"
   (list (cons 'provider "zai-coding-cn"))
 ) ;pi-log-http-error!
 (check-true (string-contains? (log-content) "limit=five-hour"))

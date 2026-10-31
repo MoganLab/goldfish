@@ -110,7 +110,7 @@
 ) ;define
 
 (define five-hour-body
-  "{\"error\":{\"code\":\"1302\",\"message\":\"您已达到5小时使用上限，请在 5 小时后重试。\"}}"
+  "{\"error\":{\"code\":\"1308\",\"message\":\"您已达到5小时使用上限，请在 5 小时后重试。\"}}"
 ) ;define
 
 ;; 1. 流式请求：周额度耗尽 → 立即失败，提示额度类型与重置时间
@@ -125,7 +125,7 @@
          ) ;
       (check (pi-assistant-message-stop-reason resp) => "error")
       (let ((msg (pi-assistant-message-error-message resp)))
-        (check-true (string-contains? msg "每周/每月额度已用尽"))
+        (check-true (string-contains? msg "您已达到每周/每月使用上限"))
         (check-true (string-contains? msg "2026-11-05 13:12:35"))
       ) ;let
       resp
@@ -150,7 +150,7 @@
          ) ;
       (check (pi-assistant-message-stop-reason resp) => "error")
       (let ((msg (pi-assistant-message-error-message resp)))
-        (check-true (string-contains? msg "5 小时额度已用尽"))
+        (check-true (string-contains? msg "您已达到5小时使用上限"))
       ) ;let
       resp
     ) ;let

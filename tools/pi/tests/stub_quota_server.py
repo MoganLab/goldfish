@@ -12,7 +12,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 BODY = (
     sys.argv[1]
     if len(sys.argv) > 1
-    else '{"error":{"code":"1302","message":"您已达到5小时使用上限，请在 5 小时后重试。"}}'
+    else '{"error":{"code":"1308","message":"您已达到5小时使用上限，请在 5 小时后重试。"}}'
 )
 LOGFILE = sys.argv[2] if len(sys.argv) > 2 else ""
 

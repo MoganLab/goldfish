@@ -20,8 +20,22 @@
        => #f)
 (check (openai-is-retriable-error?
          429
-         "{\"error\":{\"code\":\"1302\",\"message\":\"您已达到5小时用量上限，请在 5 小时后重试。\"}}")
+         "{\"error\":{\"code\":\"1308\",\"message\":\"您已达到5小时用量上限，请在 5 小时后重试。\"}}")
        => #f)
+
+;; 并发槽满（1302）/ 短时频率压力（1303、1305）/ 模型拥堵（1312）都不是额度耗尽，应继续重试
+(check (openai-is-retriable-error?
+         429
+         "{\"error\":{\"code\":\"1302\",\"message\":\"当前并发数已达到上限，请稍后重试\"}}")
+       => #t)
+(check (openai-is-retriable-error?
+         429
+         "{\"error\":{\"code\":\"1303\",\"message\":\"您当前使用过于频繁\"}}")
+       => #t)
+(check (openai-is-retriable-error?
+         429
+         "{\"error\":{\"code\":\"1312\",\"message\":\"当前模型访问人数过多\"}}")
+       => #t)
 
 ;; 瞬时限流仍应重试
 (check (openai-is-retriable-error?
