@@ -30,9 +30,46 @@ namespace goldfish {
 using std::string;
 using std::vector;
 
+// progress 回调包装：s7 过程 (dl-total dl-now ul-total ul-now) -> boolean，
+// 返回 #f 时中止传输（CURLE_ABORTED_BY_CALLBACK，error-code 25）。
+// libcurl 在无数据到达时也按节拍调用 progress（easy_transfer 的 poll 上限 1s），
+// 借此实现流式请求空闲期的中止探测。
+inline bool
+apply_session_progress_callback (s7_scheme* sc, cpr::Session& session, s7_pointer progress) {
+  if (!s7_is_procedure (progress)) {
+    return false;
+  }
+  session.SetProgressCallback (
+      cpr::ProgressCallback{[sc, progress] (cpr::cpr_pf_arg_t dlt, cpr::cpr_pf_arg_t dln, cpr::cpr_pf_arg_t ult,
+                                            cpr::cpr_pf_arg_t uln, intptr_t) -> bool {
+        s7_pointer call_args=
+            s7_list (sc, 4, s7_make_real (sc, static_cast<double> (dlt)), s7_make_real (sc, static_cast<double> (dln)),
+                     s7_make_real (sc, static_cast<double> (ult)), s7_make_real (sc, static_cast<double> (uln)));
+        s7_pointer ret= s7_call (sc, progress, call_args);
+        if (s7_is_boolean (ret)) {
+          return s7_boolean (sc, ret);
+        }
+        return true;
+      }});
+  return true;
+}
+
 inline s7_pointer
 string_type_error (s7_scheme* sc, const char* msg, s7_pointer arg) {
   return s7_error (sc, s7_make_symbol (sc, "type-error"), s7_list (sc, 2, s7_make_string (sc, msg), arg));
+}
+
+// progress 参数类型检查：#f 或 procedure
+static s7_pointer
+parse_progress_arg (s7_scheme* sc, const char* who, s7_pointer progress_arg) {
+  if (!s7_is_boolean (progress_arg) && !s7_is_procedure (progress_arg)) {
+    return s7_error (
+        sc, s7_make_symbol (sc, "type-error"),
+        s7_list (sc, 2,
+                 s7_make_string (sc, std::string (who).append (": progress must be a procedure or boolean").c_str ()),
+                 progress_arg));
+  }
+  return nullptr;
 }
 
 static bool
@@ -360,6 +397,11 @@ f_http_get (s7_scheme* sc, s7_pointer args) {
   if (err) {
     return err;
   }
+  s7_pointer progress= optional_arg (sc, args, 7);
+  err                = parse_progress_arg (sc, "http-get", progress);
+  if (err) {
+    return err;
+  }
 
   const char*     url        = s7_string (url_arg);
   cpr::Parameters cpr_params = to_cpr_parameters (sc, params);
@@ -375,6 +417,7 @@ f_http_get (s7_scheme* sc, s7_pointer args) {
   }
   apply_session_timeout (session, timeout_ms);
   apply_session_idle_timeout (session, idle_timeout_sec);
+  apply_session_progress_callback (sc, session, progress);
 
   if (s7_is_procedure (callback)) {
     session.SetWriteCallback (cpr::WriteCallback{[sc, callback] (const std::string_view& data, intptr_t) -> bool {
@@ -397,8 +440,12 @@ f_http_get (s7_scheme* sc, s7_pointer args) {
     }
   }
 
-  cpr::Response r= session.Get ();
-  return response2hashtable (sc, r);
+  try {
+    cpr::Response r= session.Get ();
+    return response2hashtable (sc, r);
+  } catch (const std::exception& e) {
+    return error2hashtable (sc, 0, url, e.what ());
+  }
 }
 
 inline void
@@ -406,8 +453,8 @@ glue_http_get (s7_scheme* sc) {
   s7_pointer  cur_env   = s7_curlet (sc);
   const char* s_http_get= "g_http-get";
   const char* d_http_get=
-      "(g_http-get url params headers proxy callback [timeout] [idle-timeout]) => hash-table? | undefined";
-  auto func_http_get= s7_make_typed_function (sc, s_http_get, f_http_get, 5, 2, false, d_http_get, NULL);
+      "(g_http-get url params headers proxy callback [timeout] [idle-timeout] [progress]) => hash-table? | undefined";
+  auto func_http_get= s7_make_typed_function (sc, s_http_get, f_http_get, 5, 3, false, d_http_get, NULL);
   s7_define (sc, cur_env, s7_make_symbol (sc, s_http_get), func_http_get);
 }
 
@@ -448,6 +495,11 @@ f_http_post (s7_scheme* sc, s7_pointer args) {
   if (err) {
     return err;
   }
+  s7_pointer progress= optional_arg (sc, args, 9);
+  err                = parse_progress_arg (sc, "http-post", progress);
+  if (err) {
+    return err;
+  }
 
   if (!s7_is_null (sc, files)) {
     if (!check_multipart_files (sc, files)) {
@@ -479,6 +531,7 @@ f_http_post (s7_scheme* sc, s7_pointer args) {
   }
   apply_session_timeout (session, timeout_ms);
   apply_session_idle_timeout (session, idle_timeout_sec);
+  apply_session_progress_callback (sc, session, progress);
 
   if (!s7_is_null (sc, files)) {
     session.SetMultipart (to_cpr_post_multipart (sc, body_or_data, files));
@@ -501,26 +554,23 @@ f_http_post (s7_scheme* sc, s7_pointer args) {
 
       return true;
     }});
-
-    try {
-      cpr::Response response= session.Post ();
-      return response2hashtable (sc, response);
-    } catch (const std::exception& e) {
-      return error2hashtable (sc, 0, url, e.what ());
-    }
   }
 
-  cpr::Response r= session.Post ();
-  return response2hashtable (sc, r);
+  try {
+    cpr::Response response= session.Post ();
+    return response2hashtable (sc, response);
+  } catch (const std::exception& e) {
+    return error2hashtable (sc, 0, url, e.what ());
+  }
 }
 
 inline void
 glue_http_post (s7_scheme* sc) {
   s7_pointer  cur_env= s7_curlet (sc);
   const char* name   = "g_http-post";
-  const char* doc    = "(g_http-post url params body-or-data headers proxy files callback [timeout] [idle-timeout]) => "
-                       "hash-table? | undefined";
-  auto        func_http_post= s7_make_typed_function (sc, name, f_http_post, 7, 2, false, doc, NULL);
+  const char* doc    = "(g_http-post url params body-or-data headers proxy files callback [timeout] [idle-timeout] "
+                       "[progress]) => hash-table? | undefined";
+  auto        func_http_post= s7_make_typed_function (sc, name, f_http_post, 7, 3, false, doc, NULL);
   s7_define (sc, cur_env, s7_make_symbol (sc, name), func_http_post);
 }
 

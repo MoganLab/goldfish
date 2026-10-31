@@ -126,7 +126,7 @@
     ) ;define
 
     (define (%perform-http-stream url req-json-str headers proxy-alist stream-cb
-              timeout eff-idle
+              progress timeout eff-idle
             ) ;%perform-http-stream
       (catch #t
         (lambda ()
@@ -138,6 +138,7 @@
             :callback     stream-cb
             :timeout      timeout
             :idle-timeout eff-idle
+            :progress     progress
           ) ;http-post
         ) ;lambda
         (lambda (tag . args)
@@ -224,8 +225,15 @@
                                   error-body-acc
                                 ) ;%make-stream-callback
                      ) ;stream-cb
+                     ;; 空闲期中止探测：libcurl 无数据时也按节拍（≤1s）调用 progress，
+                     ;; 探测到用户中止即返回 #f 令 libcurl 中止传输（CURLE_ABORTED_BY_CALLBACK）；
+                     ;; 同时置位本地 aborted?，结算时优先走 aborted 分支，不进重试/换 key
+                     (progress
+                       (lambda (dlt dln ult uln) (if (pi-aborted?) (begin (set! aborted? #t) #f) #t))
+                     ) ;progress
                      (resp (%perform-http-stream url req-json-str eff-headers
-                             proxy-alist stream-cb timeout effective-idle
+                             proxy-alist stream-cb progress timeout
+                             effective-idle
                            ) ;%perform-http-stream
                      ) ;resp
                      (status (or (%resp-field resp 'status-code) 0))

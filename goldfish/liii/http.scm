@@ -36,6 +36,7 @@
                (callback #f)
                (timeout #f)
                (idle-timeout #f)
+               (progress #f)
              ) ;http-get
       (let* ((url (http-require-string "http-get" "url" url))
              (params (http-normalize-string-alist "http-get" "params" params))
@@ -46,8 +47,11 @@
              (callback (http-optional-procedure "http-get" "callback" callback))
              (timeout (http-optional-timeout "http-get" "timeout" timeout))
              (idle-timeout (http-optional-timeout "http-get" "idle-timeout" idle-timeout))
+             (progress (http-optional-procedure "http-get" "progress" progress))
             ) ;
-        (cond ((not stream) (g_http-get url params headers proxy #f timeout idle-timeout))
+        (cond ((not stream)
+               (g_http-get url params headers proxy #f timeout idle-timeout progress)
+              ) ;
               ((and (not output-file) (not callback))
                (value-error "http-get: stream mode requires output-file or callback")
               ) ;
@@ -69,12 +73,15 @@
                             (lambda (chunk) (write-string chunk port) (stream-callback chunk))
                             timeout
                             idle-timeout
+                            progress
                           ) ;g_http-get
                         ) ;lambda
                         (lambda () (close-port port))
                       ) ;dynamic-wind
                     ) ;let
-                    (g_http-get url params headers proxy stream-callback timeout idle-timeout)
+                    (g_http-get url params headers proxy stream-callback timeout
+                      idle-timeout progress
+                    ) ;g_http-get
                   ) ;if
                 ) ;let
               ) ;else
@@ -93,6 +100,7 @@
                (callback #f)
                (timeout #f)
                (idle-timeout #f)
+               (progress #f)
              ) ;http-post
       (let* ((url (http-require-string "http-post" "url" url))
              (params (http-normalize-string-alist "http-post" "params" params))
@@ -104,6 +112,7 @@
              (callback (http-optional-procedure "http-post" "callback" callback))
              (timeout (http-optional-timeout "http-post" "timeout" timeout))
              (idle-timeout (http-optional-timeout "http-post" "idle-timeout" idle-timeout))
+             (progress (http-optional-procedure "http-post" "progress" progress))
             ) ;
         (let* ((body-or-data (if (null? files)
                                (http-require-string "http-post" "data" data)
@@ -119,7 +128,7 @@
               ) ;
           (cond ((not stream)
                  (g_http-post url params body-or-data headers proxy files #f
-                   timeout idle-timeout
+                   timeout idle-timeout progress
                  ) ;g_http-post
                 ) ;
                 ((and (not output-file) (not callback))
@@ -145,13 +154,14 @@
                               (lambda (chunk) (write-string chunk port) (stream-callback chunk))
                               timeout
                               idle-timeout
+                              progress
                             ) ;g_http-post
                           ) ;lambda
                           (lambda () (close-port port))
                         ) ;dynamic-wind
                       ) ;let
                       (g_http-post url params body-or-data headers proxy files
-                        stream-callback timeout idle-timeout
+                        stream-callback timeout idle-timeout progress
                       ) ;g_http-post
                     ) ;if
                   ) ;let
