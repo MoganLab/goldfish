@@ -66,20 +66,20 @@
   ) ;let
 ) ;define
 
-;; 1. q 立即退出
+;; 1. q 退出配置并进入聊天（返回 'chat）
 (let ((vt (make-virtual-terminal :width 120 :height 24)))
   (virtual-terminal-push-key! vt 'q)
-  (check (pi-config-run (make-dir "quit") :terminal vt :env '()) => 0)
+  (check (pi-config-run (make-dir "quit") :terminal vt :env '()) => 'chat)
 ) ;let
 
-;; 2. Escape 也能退出
+;; 2. Escape 直接退出（返回 'quit）
 (let ((vt (make-virtual-terminal :width 120 :height 24)))
   (virtual-terminal-push-key! vt 'escape)
-  (check (pi-config-run (make-dir "escape") :terminal vt :env '()) => 0)
+  (check (pi-config-run (make-dir "escape") :terminal vt :env '()) => 'quit)
 ) ;let
 
 ;; 3. 上下移动、进入模型列后退出（不应抛错）
-(check (run (make-dir "nav") (list 'down 'right 'down 'q)) => 0)
+(check (run (make-dir "nav") (list 'down 'right 'down 'q)) => 'chat)
 
 ;; 4. 渲染后屏幕包含三列关键内容
 (let ((dir (make-dir "render"))
@@ -97,12 +97,12 @@
 (let* ((dir (make-dir "view"))
        (before (read-file dir "models/kimi-coding.json"))
       ) ;
-  (check (run dir (list 'right 'v 'q 'q)) => 0)
+  (check (run dir (list 'right 'v 'q 'q)) => 'chat)
   (check (read-file dir "models/kimi-coding.json") => before)
 ) ;let*
 
 ;; 5b. 覆盖层内滚动（j/k/g/G）后再关闭并退出：不应崩溃
-(check (run (make-dir "view-scroll") (list 'v "j" "j" 'down "G" "g" 'up 'q 'q)) => 0)
+(check (run (make-dir "view-scroll") (list 'v "j" "j" 'down "G" "g" 'up 'q 'q)) => 'chat)
 
 ;; 6. 空格禁用默认 provider：providers.json 移除该 id，并级联默认模型
 (let* ((dir (make-dir "toggle-provider"))
@@ -110,7 +110,7 @@
       ) ;
   (check (string-contains providers "kimi-coding") => #t)
   ;; 光标初始落在默认 provider（kimi-coding）上
-  (check (run dir (list " " 'q)) => 0)
+  (check (run dir (list " " 'q)) => 'chat)
   (let ((after (read-file dir "models/providers.json")))
     (check (string-contains after "kimi-coding") => #f)
     (check (string-contains after "google") => #t)
@@ -125,7 +125,7 @@
       ) ;
   (check (string-contains settings "\"defaultProvider\": \"kimi-coding\"") => #t)
   ;; 光标移到 custom-kimi（第 3 个 provider），进入模型列，Enter
-  (check (run dir (list 'down 'down 'right 'enter 'q)) => 0)
+  (check (run dir (list 'down 'down 'right 'enter 'q)) => 'chat)
   (let ((after (read-file dir "settings.json")))
     (check (string-contains after "\"defaultProvider\": \"custom-kimi\"") => #t)
     (check (string-contains after "\"defaultModel\": \"m1\"") => #t)
@@ -138,7 +138,7 @@
 (let* ((dir (make-dir "enter-provider"))
        (settings (read-file dir "settings.json"))
       ) ;
-  (check (run dir (list 'enter 'q)) => 0)
+  (check (run dir (list 'enter 'q)) => 'chat)
   (check (read-file dir "settings.json") => settings)
 ) ;let*
 
@@ -151,7 +151,7 @@
   (for-each (lambda (k) (virtual-terminal-push-key! vt k))
     (list 'down 'down 'down 'right " " 'q)
   ) ;for-each
-  (check (pi-config-run dir :terminal vt :env '()) => 0)
+  (check (pi-config-run dir :terminal vt :env '()) => 'chat)
   (check (read-file dir "models/providers.json") => providers)
 ) ;let*
 

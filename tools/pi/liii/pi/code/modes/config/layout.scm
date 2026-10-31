@@ -323,7 +323,7 @@
                  ) ;%fit
                ) ;status
                (hint (%fit (if (string=? message "")
-                             " ↑↓/jk move · → enter column · Enter set default · space toggle · v view · q quit"
+                             " ↑↓/jk move · → enter column · Enter set default · space toggle · v view · q chat"
                              (string-append " " message)
                            ) ;if
                        width

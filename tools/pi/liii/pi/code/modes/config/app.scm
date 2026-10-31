@@ -246,7 +246,9 @@
 
     ;; ---------- 主循环 ----------
 
-    (define* (pi-config-run config-dir (terminal #f) (env #f))
+    ;; nested = #t：由外层 TUI（如 `gf pi` 的 /config）调用，此时不进/退备用屏与
+    ;; raw 模式（外层已开启），退出时只清屏并把控制权交回外层。
+    (define* (pi-config-run config-dir (terminal #f) (env #f) (nested #f))
       (let* ((term (or terminal (make-standard-terminal)))
              (screen (make-main-screen term :auto-hide-cursor #t))
              (st (pi-config-state config-dir :env env))
@@ -255,6 +257,7 @@
              (overlay #f)
              (overlay-offset 0)
              (message "")
+             (exit-mode 'quit)
              (done? #f)
             ) ;
         (define (reload!)
@@ -326,6 +329,9 @@
                    (reload!)
                   ) ;
                   (else
+                    (when (or (equal? c "q") (eq? key 'escape) (eq? key 'ctrl-c))
+                      (set! exit-mode (if (equal? c "q") 'chat 'quit))
+                    ) ;when
                     (let ((r (pi-config-key-handler st cursor active key)))
                       (set! cursor (%normalize-cursor st (car r)))
                       (set! active (cadr r))
@@ -338,9 +344,12 @@
           ) ;let*
         ) ;define
         (dynamic-wind (lambda ()
-                        (terminal-enter-raw-mode! term)
+                        (unless nested
+                          (terminal-enter-raw-mode! term)
+                          (terminal-hide-cursor! term)
+                          (terminal-enter-alt-screen! term)
+                        ) ;unless
                         (terminal-hide-cursor! term)
-                        (terminal-enter-alt-screen! term)
                         (render!)
                       ) ;lambda
           (lambda ()
@@ -367,13 +376,21 @@
             ) ;let
           ) ;lambda
           (lambda ()
-            (catch #t (lambda () (terminal-exit-alt-screen! term)) (lambda args #f))
-            (terminal-show-cursor! term)
-            (catch #t (lambda () (terminal-exit-raw-mode! term)) (lambda args #f))
+            (if nested
+              (begin
+                (catch #t (lambda () (screen-clear! screen)) (lambda args #f))
+                (terminal-show-cursor! term)
+              ) ;begin
+              (begin
+                (catch #t (lambda () (terminal-exit-alt-screen! term)) (lambda args #f))
+                (terminal-show-cursor! term)
+                (catch #t (lambda () (terminal-exit-raw-mode! term)) (lambda args #f))
+              ) ;begin
+            ) ;if
             (terminal-flush term)
           ) ;lambda
         ) ;dynamic-wind
-        0
+        exit-mode
       ) ;let*
     ) ;define*
 

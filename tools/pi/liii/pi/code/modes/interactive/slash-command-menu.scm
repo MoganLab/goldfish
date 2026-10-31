@@ -20,6 +20,7 @@
         (list (cons 'name "name") (cons 'description "Get or set session name"))
         (list (cons 'name "session") (cons 'description "Show session statistics"))
         (list (cons 'name "resume") (cons 'description "Select and resume a session"))
+        (list (cons 'name "config") (cons 'description "Edit providers and models"))
       ) ;list
     ) ;define
 
