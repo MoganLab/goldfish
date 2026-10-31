@@ -22,8 +22,10 @@
     (define %accent "\x1b;[35m")
     (define %muted "\x1b;[38;2;120;130;140m")
     (define %reset "\x1b;[0m")
-    ;; 选中行：紫色底 + 近白前景（ranger 风格整行高亮）
+    ;; 选中行：紫色底 + 近白前景（ranger 风格整行高亮）。
+    ;; 焦点列用浓紫，非焦点列用浅紫，保持"选中但未聚焦"的层次。
     (define %selected-style "\x1b;[48;2;74;44;122m\x1b;[38;2;244;240;255m")
+    (define %selected-style-idle "\x1b;[48;2;116;90;158m\x1b;[38;2;238;233;250m")
     (define %dim "\x1b;[2m")
     (define %on "\x1b;[32m")
 
@@ -83,6 +85,7 @@
     ;; 每行已按 width 补齐
     (define (%box title lines width active? rows)
       (let* ((color (if active? %accent %muted))
+             (sel-style (if active? %selected-style %selected-style-idle))
              (inner (- width 4))
              (title-text (string-append " " title " "))
              (span (+ inner 2))
@@ -95,9 +98,7 @@
                           (cell (string-append " " (%fit (%strip-marker line) inner) " "))
                          ) ;
                      (if sel?
-                       (string-append color "│" %reset %selected-style cell
-                         %reset color "│" %reset
-                       ) ;string-append
+                       (string-append color "│" %reset sel-style cell %reset color "│" %reset)
                        (string-append color "│" %reset cell color "│" %reset)
                      ) ;if
                    ) ;let*
