@@ -39,7 +39,7 @@
 ;; 支持的 provider 列表
 (check PI_SUPPORTED_PROVIDERS
   =>
-  '("google" "anthropic" "kimi-coding" "glm" "deepseek" "minimax" "minimax-cn"
+  '("google" "anthropic" "kimi-coding" "glm" "deepseek" "minimax-cn"
     "zai-coding-cn")
 ) ;check
 

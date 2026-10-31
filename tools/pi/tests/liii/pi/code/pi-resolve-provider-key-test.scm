@@ -199,34 +199,28 @@
   (check (pi-resolve-provider-key "google" (list cred-google) '())
     => "record-key-google"))
 
-;; minimax / minimax-cn 测试
-(let ((auth-with-minimax '(("minimax" . "mm-auth-key-111")))
-      (auth-with-minimax-cn '(("minimax-cn" . "mm-cn-auth-key-222")))
+;; minimax-cn 测试（minimax 国际版 provider 已移除）
+(let ((auth-with-minimax-cn '(("minimax-cn" . "mm-cn-auth-key-222")))
       (auth-empty '())
       (env-with-minimax '(("MINIMAX_API_KEY" . "mm-env-key-333")))
       (env-with-minimax-cn '(("MINIMAX_CN_API_KEY" . "mm-cn-env-key-444"))))
   ;; 环境变量优先于存储条目
-  (check (pi-resolve-provider-key "minimax" auth-with-minimax env-with-minimax)
-    => "mm-env-key-333")
   (check (pi-resolve-provider-key "minimax-cn" auth-with-minimax-cn env-with-minimax-cn)
     => "mm-cn-env-key-444")
+  ;; MINIMAX_API_KEY 作为回退环境变量仍生效
+  (check (pi-resolve-provider-key "minimax-cn" auth-with-minimax-cn env-with-minimax)
+    => "mm-env-key-333")
   ;; 环境变量为空时回退到存储条目
-  (check (pi-resolve-provider-key "minimax" auth-with-minimax '(("MINIMAX_API_KEY" . "")))
-    => "mm-auth-key-111")
-  ;; minimax 与 minimax-cn 互为别名回退（auth.json / 环境变量）
-  (check (pi-resolve-provider-key "minimax" auth-with-minimax-cn '())
+  (check (pi-resolve-provider-key "minimax-cn" auth-with-minimax-cn '(("MINIMAX_API_KEY" . "")))
     => "mm-cn-auth-key-222")
-  (check (pi-resolve-provider-key "minimax-cn" auth-with-minimax '())
-    => "mm-auth-key-111")
-  (check (pi-resolve-provider-key "minimax" auth-empty env-with-minimax-cn)
-    => "mm-cn-env-key-444")
-  (check (pi-resolve-provider-key "minimax-cn" auth-empty env-with-minimax)
-    => "mm-env-key-333")
   ;; 符号 provider 支持
-  (check (pi-resolve-provider-key 'minimax auth-with-minimax env-with-minimax)
-    => "mm-env-key-333")
+  (check (pi-resolve-provider-key 'minimax-cn auth-with-minimax-cn env-with-minimax-cn)
+    => "mm-cn-env-key-444")
   ;; 均无配置返回 #f
-  (check (pi-resolve-provider-key "minimax" auth-empty '())
-    => #f))
-
+  (check (pi-resolve-provider-key "minimax-cn" auth-empty '())
+    => #f)
+  ;; 已移除的 minimax 国际版不再解析专属环境变量，仅按 auth.json 通用查找
+  (check (pi-resolve-provider-key "minimax"
+           '(("minimax" . "intl-key")) env-with-minimax)
+    => "intl-key"))
 (check-report)

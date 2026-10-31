@@ -12,8 +12,9 @@
 (check (if (member "anthropic" PI_SUPPORTED_PROVIDERS) #t #f) => #t)
 (check (if (member "glm" PI_SUPPORTED_PROVIDERS) #t #f) => #t)
 (check (if (member "deepseek" PI_SUPPORTED_PROVIDERS) #t #f) => #t)
-(check (if (member "minimax" PI_SUPPORTED_PROVIDERS) #t #f) => #t)
 (check (if (member "minimax-cn" PI_SUPPORTED_PROVIDERS) #t #f) => #t)
+;; minimax 国际版 provider 已移除
+(check (if (member "minimax" PI_SUPPORTED_PROVIDERS) #t #f) => #f)
 (check (if (member "zai-coding-cn" PI_SUPPORTED_PROVIDERS) #t #f) => #t)
 
 (check-report)

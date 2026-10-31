@@ -18,9 +18,10 @@
 
 (define-library (liii pi ai providers quota)
   (import (scheme base) (scheme char) (liii string) (liii json))
-  (export pi-quota-json-fields pi-quota-match-codes %make-pi-quota-limit
-    pi-quota-limit? pi-quota-limit-kind pi-quota-limit-code
-    pi-quota-limit-message pi-quota-error-result
+  (export pi-quota-json-fields pi-quota-match-codes
+    pi-quota-message-trailing-code %make-pi-quota-limit pi-quota-limit?
+    pi-quota-limit-kind pi-quota-limit-code pi-quota-limit-message
+    pi-quota-error-result
   ) ;export
   (begin
 
@@ -127,6 +128,35 @@
               (else (loop (cdr rest)))
         ) ;cond
       ) ;let
+    ) ;define
+
+    ;; 从官方消息尾部提取形如 "(2067)" 的业务码（MiniMax 等把业务码附在
+    ;; 消息末尾，没有独立的 code 字段）。数字码是稳定标识，不受文案改写与
+    ;; 本地化影响；判定依据是码本身而不是文案，符合本模块的约定。
+    (define (%ascii-digit? ch)
+      (and (char>=? ch #\0) (char<=? ch #\9))
+    ) ;define
+
+    (define (pi-quota-message-trailing-code message)
+      (if (not (string? message))
+        #f
+        (let* ((trimmed (string-trim-both message)) (len (string-length trimmed)))
+          (if
+            (or (= len 0) (not (char=? (string-ref trimmed (- len 1)) #\))))
+            #f
+            (let loop
+              ((i (- len 2)) (acc '()))
+              (cond ((< i 0) #f)
+                    ((%ascii-digit? (string-ref trimmed i))
+                     (loop (- i 1) (cons (string-ref trimmed i) acc))
+                    ) ;
+                    ((and (char=? (string-ref trimmed i) #\() (pair? acc)) (list->string acc))
+                    (else #f)
+              ) ;cond
+            ) ;let
+          ) ;if
+        ) ;let*
+      ) ;if
     ) ;define
 
     ;; 默认实现：状态码 ∈ {403, 429} 且业务标识命中码表

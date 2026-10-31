@@ -40,7 +40,7 @@
 ) ;let
 
 ;; 5. MiniMax 系列定价（minimax-cn 回退到 minimax）
-(let ((c (pi-model-cost "minimax" "MiniMax-M3.1-Flash" '())))
+(let ((c (pi-model-cost "minimax-cn" "MiniMax-M3.1-Flash" '())))
   (check-true (pair? c))
   (check (cdr (assoc 'input c)) => 0.3)
   (check (cdr (assoc 'output c)) => 1.2)
@@ -54,7 +54,7 @@
   (check (cdr (assoc 'cacheWrite c)) => 0.375)
 ) ;let
 
-(let ((c (pi-model-cost "minimax" "MiniMax-M3" '())))
+(let ((c (pi-model-cost "minimax-cn" "MiniMax-M3" '())))
   (check-true (pair? c))
   (check-true (pair? (cdr (assoc 'tiers c))))
 ) ;let

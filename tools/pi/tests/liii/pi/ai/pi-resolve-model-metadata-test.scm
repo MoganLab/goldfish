@@ -178,22 +178,22 @@
     (check (cdr (assoc 'context-window meta)) => 128000)
     (check (cdr (assoc 'max-tokens meta)) => 16384)))
 
-;; minimax 内置模型兜底元数据（任务 030）
-(let ((meta (pi-resolve-model-metadata "minimax" "MiniMax-M3.1-Flash" '() (list NO-ENV))))
+;; minimax-cn 内置模型兜底元数据（任务 030）
+(let ((meta (pi-resolve-model-metadata "minimax-cn" "MiniMax-M3.1-Flash" '() (list NO-ENV))))
   (check (cdr (assoc 'matched? meta)) => #t)
   (check (cdr (assoc 'id meta)) => "MiniMax-M3.1-Flash")
   (check (cdr (assoc 'base-url meta)) => "https://api.minimaxi.com/anthropic")
   (check (cdr (assoc 'context-window meta)) => 1000000)
   (check (cdr (assoc 'max-tokens meta)) => 524288))
 
-(let ((meta (pi-resolve-model-metadata "minimax" "MiniMax-M3" '() (list NO-ENV))))
+(let ((meta (pi-resolve-model-metadata "minimax-cn" "MiniMax-M3" '() (list NO-ENV))))
   (check (cdr (assoc 'matched? meta)) => #t)
   (check (cdr (assoc 'id meta)) => "MiniMax-M3")
   (check (cdr (assoc 'base-url meta)) => "https://api.minimaxi.com/anthropic")
   (check (cdr (assoc 'context-window meta)) => 1048576)
   (check (cdr (assoc 'max-tokens meta)) => 512000))
 
-(let ((meta (pi-resolve-model-metadata "minimax" "MiniMax-M2.7" '() (list NO-ENV))))
+(let ((meta (pi-resolve-model-metadata "minimax-cn" "MiniMax-M2.7" '() (list NO-ENV))))
   (check (cdr (assoc 'matched? meta)) => #t)
   (check (cdr (assoc 'base-url meta)) => "https://api.minimaxi.com/anthropic")
   (check (cdr (assoc 'context-window meta)) => 204800)
@@ -205,28 +205,7 @@
   (check (cdr (assoc 'context-window meta)) => 204800)
   (check (cdr (assoc 'max-tokens meta)) => 131072))
 
-;; minimax models-store 中的国际站 baseUrl 归一为大陆站
-(let* ((mm-store
-         '(("minimax" . (("models" . #((("id" . "MiniMax-M3")
-                                         ("baseUrl" . "https://api.minimax.io/anthropic")
-                                         ("contextWindow" . 1000000)
-                                         ("maxTokens" . 512000))))))))
-       (meta (pi-resolve-model-metadata "minimax" "MiniMax-M3" mm-store (list NO-ENV))))
-  (check (cdr (assoc 'matched? meta)) => #t)
-  (check (cdr (assoc 'base-url meta)) => "https://api.minimaxi.com/anthropic")
-  (check (cdr (assoc 'context-window meta)) => 1000000)
-  (check (cdr (assoc 'max-tokens meta)) => 512000))
-
-;; 旧 baseUrl 带尾斜杠时也能归一（URI 层面比较）
-(let* ((mm-store
-         '(("minimax" . (("models" . #((("id" . "MiniMax-M3")
-                                        ("baseUrl" . "https://api.minimax.io/")
-                                        ("contextWindow" . 1000000)
-                                        ("maxTokens" . 512000))))))))
-       (meta (pi-resolve-model-metadata "minimax" "MiniMax-M3" mm-store (list NO-ENV))))
-  (check (cdr (assoc 'base-url meta)) => "https://api.minimaxi.com/anthropic"))
-
-;; kimi 旧 baseUrl 带尾斜杠时也能归一
+;; kimi 旧 baseUrl 带尾斜杠时也能归一（URI 层面比较）
 (let* ((k-store
          '(("kimi-coding" . (("models" . #((("id" . "kimi-for-coding")
                                           ("baseUrl" . "https://api.kimi.com/coding/")
@@ -244,9 +223,9 @@
        (meta (pi-resolve-model-metadata "deepseek" "deepseek-chat" ds-store (list NO-ENV))))
   (check (cdr (assoc 'base-url meta)) => "https://api.deepseek.com/anthropic"))
 
-;; minimax 端点环境变量覆盖
+;; minimax-cn 端点环境变量覆盖（MINIMAX_BASE_URL 作为回退变量仍生效）
 (let* ((env '(("MINIMAX_BASE_URL" . "https://proxy.example.com/minimax")))
-       (meta (pi-resolve-model-metadata "minimax" "MiniMax-M3.1-Flash" '() env)))
+       (meta (pi-resolve-model-metadata "minimax-cn" "MiniMax-M3.1-Flash" '() env)))
   (check (cdr (assoc 'base-url meta)) => "https://proxy.example.com/minimax"))
 
 (let* ((env '(("MINIMAX_CN_BASE_URL" . "https://proxy.example.com/minimax-cn")))
@@ -254,7 +233,7 @@
   (check (cdr (assoc 'base-url meta)) => "https://proxy.example.com/minimax-cn"))
 
 (let* ((env '(("GF_PI_BASE_URL" . "https://proxy.example.com/mm")))
-       (meta (pi-resolve-model-metadata "minimax" "MiniMax-M3.1-Flash" '() env)))
+       (meta (pi-resolve-model-metadata "minimax-cn" "MiniMax-M3.1-Flash" '() env)))
   (check (cdr (assoc 'base-url meta)) => "https://proxy.example.com/mm"))
 
 ;; 污染环境下解析结果不变（防回归：真实进程环境不得影响模型元数据解析）

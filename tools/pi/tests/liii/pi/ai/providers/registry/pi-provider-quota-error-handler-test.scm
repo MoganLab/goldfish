@@ -28,9 +28,11 @@
 (check-true (procedure? (pi-provider-quota-error-handler "zai-coding-cn")))
 (check-true (procedure? (pi-provider-quota-error-handler "zai")))
 (check-true (procedure? (pi-provider-quota-error-handler "kimi-coding")))
+(check-true (procedure? (pi-provider-quota-error-handler "minimax-cn")))
 
 ;; 2. 未注册 provider 返回 #f
 (check-false (pi-provider-quota-error-handler "google"))
+(check-false (pi-provider-quota-error-handler "minimax"))
 (check-false (pi-provider-quota-error-handler "openai"))
 (check-false (pi-provider-quota-error-handler "no-such-provider"))
 

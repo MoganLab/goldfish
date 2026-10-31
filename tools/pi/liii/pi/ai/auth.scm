@@ -148,11 +148,6 @@
              ) ;or
             ) ;
             ((string=? p-str "deepseek") (%env-var-non-empty "DEEPSEEK_API_KEY" opt-env))
-            ((string=? p-str "minimax")
-             (or (%env-var-non-empty "MINIMAX_API_KEY" opt-env)
-               (%env-var-non-empty "MINIMAX_CN_API_KEY" opt-env)
-             ) ;or
-            ) ;
             ((string=? p-str "minimax-cn")
              (or (%env-var-non-empty "MINIMAX_CN_API_KEY" opt-env)
                (%env-var-non-empty "MINIMAX_API_KEY" opt-env)
@@ -170,9 +165,7 @@
     ) ;define
 
     (define (%provider-alias p-str)
-      (cond ((string=? p-str "minimax") "minimax-cn")
-            ((string=? p-str "minimax-cn") "minimax")
-            ((string=? p-str "zai-coding-cn") "zai")
+      (cond ((string=? p-str "zai-coding-cn") "zai")
             ((string=? p-str "zai") "zai-coding-cn")
             (else #f)
       ) ;cond
