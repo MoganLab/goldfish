@@ -24,6 +24,7 @@
     (liii pi ai config record)
     (liii pi ai event)
     (liii pi code config settings)
+    (liii pi code config user-catalog)
     (liii pi code core extensions registry)
     (liii pi code core extensions event)
   ) ;import
@@ -179,7 +180,9 @@
              ;; JSON 配置文件目录：~/.gf/agent 存在时优先，否则回退 ~/.pi/agent
              (config-dir (gf-get-config-dir env-agent-dir))
              (settings (pi-load-settings config-dir))
-             (models-store (pi-build-models-catalog config-dir))
+             ;; 模型目录来自用户配置：providers.json 白名单 + models/ 下的
+             ;; provider 与模型文件，白名单外的 provider/模型不可用
+             (models-store (pi-build-user-catalog (path->string config-dir)))
              (cli-proxy (pi-args-ref parsed-args 'proxy))
              (proxy-url (if (pair? opt-env)
                           (pi-resolve-proxy-url cli-proxy settings (car opt-env))
@@ -236,6 +239,11 @@
             (list (cons 'agent-dir agent-dir)
               (cons 'config-dir config-dir)
               (cons 'provider provider)
+              (cons 'provider-api
+                (let ((p-entry (pi-user-provider-config models-store provider)))
+                  (and p-entry (let ((v (assoc "api" p-entry))) (and v (cdr v))))
+                ) ;let
+              ) ;cons
               (cons 'api-key api-key)
               (cons 'model-id model-id)
               (cons 'model-meta meta)

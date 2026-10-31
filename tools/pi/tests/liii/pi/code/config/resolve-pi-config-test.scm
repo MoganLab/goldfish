@@ -41,7 +41,8 @@
   (check (cdr (assoc 'model-id cfg)) => "gemini-2.5-pro")
   (let ((meta (cdr (assoc 'model-meta cfg))))
     (check (cdr (assoc 'matched? meta)) => #t)
-    (check (cdr (assoc 'context-window meta)) => 2097152)))
+    ;; models-store.json 不再参与合并，取内置目录值
+    (check (cdr (assoc 'context-window meta)) => 1048576)))
 
 ;; 3. GF_PI_MODEL 环境变量覆盖 settings.defaultModel
 (let* ((args (parse-pi-args '()))

@@ -4,6 +4,8 @@
   (liii check)
   (liii string)
   (liii path)
+  (liii path stat)
+  (liii os)
   (liii subprocess)
   (liii sys)
   (liii shutil)

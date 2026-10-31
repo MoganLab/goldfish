@@ -1,0 +1,7 @@
+{
+  "baseUrl": "https://open.bigmodel.cn/api/anthropic",
+  "api": "anthropic",
+  "models": [
+    "glm-5.3"
+  ]
+}

@@ -214,8 +214,29 @@
     ;; 单个 provider 的模型列表：
     ;; 有 models 白名单 -> 白名单顺序，逐 id 合并（模型文件 > 内置）
     ;; 无白名单 -> 内置全量 + 目录中不在内置的模型文件
+    ;; 把 provider 级的 baseUrl/api 注入模型条目（模型条目未自带时），
+    ;; 使下游 meta 解析与协议分发对自定义 provider 同样生效
+    ;; provider 层的 baseUrl/api（字段级覆盖内置值）
+    (define (%provider-fields p-entry)
+      (let ((p-url (%dict-ref p-entry "baseUrl" #f)) (p-api (%dict-ref p-entry "api" #f)))
+        (append (if p-url (list (cons "baseUrl" p-url)) '())
+          (if p-api (list (cons "api" p-api)) '())
+        ) ;append
+      ) ;let
+    ) ;define
+
+    ;; 单模型条目合成：内置 < provider 文件（models/<p>.json）< 模型文件
+    (define (%compose-model p-fields base file-entry)
+      (let* ((with-provider (if (pair? base) (%merge-fields base p-fields) p-fields))
+             (merged (if file-entry (%merge-fields with-provider file-entry) with-provider))
+            ) ;
+        (if (pair? merged) merged #f)
+      ) ;let*
+    ) ;define
+
     (define (%provider-models config-dir p-id)
       (let* ((p-file (or (%load-provider-file config-dir p-id) '()))
+             (p-fields (%provider-fields p-file))
              (wl-raw (%dict-ref p-file "models" #f))
              (wl (and (vector? wl-raw) (vector->list wl-raw)))
             ) ;
@@ -234,7 +255,7 @@
                            ) ;builtin
                            (base
                              (or builtin
-                               file-entry
+                               (and file-entry '())
                                (begin
                                  (%warn (string-append "models/" p-id
                                           ".json: 模型 \"" m-id
@@ -245,11 +266,10 @@
                                ) ;begin
                              ) ;or
                            ) ;base
+                           (merged (%compose-model p-fields base file-entry))
                           ) ;
-                      (and base
-                        (let ((merged (if file-entry (%merge-fields base file-entry) base)))
-                          (cons (cons "id" m-id) (filter (lambda (f) (not (equal? (car f) "id"))) merged))
-                        ) ;let
+                      (and merged
+                        (cons (cons "id" m-id) (filter (lambda (f) (not (equal? (car f) "id"))) merged))
                       ) ;and
                     ) ;let*
                     (begin
@@ -276,20 +296,28 @@
                      (filter (lambda (m) (not (member m builtin-ids))) dir-models)
                    ) ;extra
                   ) ;
-              (append builtin
+              (append
+                (map
+                  (lambda (m)
+                    (let* ((m-id (%dict-ref m "id" ""))
+                           (file-entry (%load-model-entry config-dir p-id m-id))
+                           (merged (%compose-model p-fields m file-entry))
+                          ) ;
+                      (cons (cons "id" m-id) (filter (lambda (f) (not (equal? (car f) "id"))) merged))
+                    ) ;let*
+                  ) ;lambda
+                  builtin
+                ) ;map
                 (filter (lambda (x) x)
                   (map
                     (lambda (m-id)
-                      (let ((file-entry (%load-model-entry config-dir p-id m-id)))
-                        (and file-entry
-                          (cons (cons "id" m-id)
-                            (filter
-                              (lambda (f) (not (equal? (car f) "id")))
-                              file-entry
-                            ) ;filter
-                          ) ;cons
+                      (let* ((file-entry (%load-model-entry config-dir p-id m-id))
+                             (merged (%compose-model p-fields '() file-entry))
+                            ) ;
+                        (and merged
+                          (cons (cons "id" m-id) (filter (lambda (f) (not (equal? (car f) "id"))) merged))
                         ) ;and
-                      ) ;let
+                      ) ;let*
                     ) ;lambda
                     extra
                   ) ;map

@@ -1,0 +1,6 @@
+{
+  "name": "Stub multikey-stream-403",
+  "baseUrl": "https://generativelanguage.googleapis.com/v1beta",
+  "contextWindow": 1048576,
+  "maxTokens": 65536
+}

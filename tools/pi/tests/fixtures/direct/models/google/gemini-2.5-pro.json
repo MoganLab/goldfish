@@ -1,0 +1,6 @@
+{
+  "name": "Gemini 2.5 Pro",
+  "baseUrl": "https://generativelanguage.googleapis.com/v1beta",
+  "contextWindow": 2097152,
+  "maxTokens": 65536
+}

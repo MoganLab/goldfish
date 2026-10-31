@@ -1,0 +1,5 @@
+{
+  "name": "DeepSeek V4 Pro (fixture)",
+  "contextWindow": 1000000,
+  "maxTokens": 384000
+}

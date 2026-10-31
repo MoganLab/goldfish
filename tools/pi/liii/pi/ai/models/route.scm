@@ -58,13 +58,13 @@
       ) ;let
     ) ;define
 
+    ;; 模型可用性判定：以传入的模型目录为准（内置目录已由上层合并进目录）。
+    ;; 不再回退到内置目录，否则 providers.json / models 白名单会形同虚设。
     (define (pi-provider-has-model? provider model-id models-store)
       (let* ((p-str (if (symbol? provider) (symbol->string provider) provider))
              (store-models (%get-provider-models models-store p-str))
-             (store-match (%find-model-in-list store-models model-id))
-             (builtin (%dict-ref PI_PROVIDER_BUILTIN_MODELS p-str '()))
             ) ;
-        (and (or store-match (%find-model-in-list builtin model-id)) #t)
+        (and (%find-model-in-list store-models model-id) #t)
       ) ;let*
     ) ;define
 
@@ -81,17 +81,41 @@
       ) ;let*
     ) ;define
 
+    ;; catalog 中出现的 provider 名称（保持目录顺序），供自动路由使用；
+    ;; 目录为空时回退内置优先级列表
+    (define (%catalog-provider-names models-store)
+      (if (pair? models-store)
+        (map
+          (lambda (e) (let ((k (car e))) (if (symbol? k) (symbol->string k) k)))
+          models-store
+        ) ;map
+        PI_SUPPORTED_PROVIDERS
+      ) ;if
+    ) ;define
+
+    ;; 目录中显式包含该模型（不因 openModels 放宽）
+    (define (%provider-contains-model? provider model-id models-store)
+      (let ((p-str (if (symbol? provider) (symbol->string provider) provider)))
+        (and (%find-model-in-list (%get-provider-models models-store p-str) model-id)
+          #t
+        ) ;and
+      ) ;let
+    ) ;define
+
     (define (pi-find-model-provider model-id models-store . opt-pref)
       (let* ((pref (and (pair? opt-pref) (car opt-pref)))
              (pref-str (and (string? pref) (not (string-null? pref)) pref))
+             (names (%catalog-provider-names models-store))
+             (exact (find (lambda (p) (%provider-contains-model? p model-id models-store)) names)
+             ) ;exact
             ) ;
-        (cond ((and pref-str (pi-provider-has-model? pref-str model-id models-store))
-               pref-str
-              ) ;
-              (else (find (lambda (p) (pi-provider-has-model? p model-id models-store))
-                      PI_SUPPORTED_PROVIDERS
-                    ) ;find
-              ) ;else
+        (cond
+          ;; 1. preferred-provider 命中优先
+          ((and pref-str (%provider-contains-model? pref-str model-id models-store))
+           pref-str
+          ) ;
+          ;; 2. 否则按目录顺序取首个显式包含该模型的 provider
+          (else exact)
         ) ;cond
       ) ;let*
     ) ;define
