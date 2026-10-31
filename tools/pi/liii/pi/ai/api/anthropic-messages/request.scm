@@ -19,6 +19,8 @@
     (liii pi ai api anthropic-messages core)
     (liii pi ai api anthropic-messages thinking)
     (liii pi ai retry)
+    (liii pi ai limits)
+    (liii pi ai log)
   ) ;import
   (export anthropic-build-tool-declarations-from-names
     anthropic-request
@@ -71,19 +73,24 @@
       (pi-resolve-retry-params settings opt-retry)
     ) ;define
 
-    (define (%make-retry-error status attempt body-str)
-      (pi-assistant-message (list (pi-text-block ""))
-        :stop-reason "error"
-        :error-message
-        (string-append "HTTP "
-          (number->string status)
-          " after "
-          (number->string attempt)
-          " attempts: "
-          body-str
-        ) ;string-append
-        :usage (anthropic-map-usage '())
-      ) ;pi-assistant-message
+    (define (%make-retry-error status attempt body-str provider)
+      (let ((limit (pi-usage-limit-error? status body-str provider)))
+        (pi-assistant-message (list (pi-text-block ""))
+          :stop-reason "error"
+          :error-message
+          (if limit
+            (pi-usage-limit-error-message limit provider)
+            (string-append "HTTP "
+              (number->string status)
+              " after "
+              (number->string attempt)
+              " attempts: "
+              body-str
+            ) ;string-append
+          ) ;if
+          :usage (anthropic-map-usage '())
+        ) ;pi-assistant-message
+      ) ;let
     ) ;define
 
     (define (%post-anthropic url req-json-str headers proxy-alist timeout)
@@ -116,6 +123,7 @@
                     ((api-key) (cdr (assoc 'api-key config)))
                     ((proxy-url) (cdr (assoc 'proxy-url config)))
                     ((settings) (cdr (assoc 'settings config)))
+                    ((provider) (cdr (or (assoc 'provider config) '(#f . #f))))
                     ((max-retries base-delay max-delay provider-max-retries)
                      (%resolve-retry-params settings opt-retry)
                     ) ;
@@ -155,7 +163,20 @@
                  (status (or (%resp-field resp 'status-code) 0))
                  (body-str (or (%resp-field resp 'text) ""))
                 ) ;
-            (if (anthropic-is-retriable-error? status body-str)
+            ;; 异常请求（非 200）连同响应体原文落盘，便于事后排障
+            (when (not (= status 200))
+              (pi-log-http-error! status
+                body-str
+                (list (cons 'provider provider)
+                  (cons 'model model-id)
+                  (cons 'url (string-append "POST " url))
+                  (cons 'attempt attempt)
+                  (cons 'max-attempts provider-max-retries)
+                  (cons 'retryable (anthropic-is-retriable-error? status body-str provider))
+                ) ;list
+              ) ;pi-log-http-error!
+            ) ;when
+            (if (anthropic-is-retriable-error? status body-str provider)
               (if (<= attempt provider-max-retries)
                 (let* ((ra-raw (pi-extract-retry-after resp))
                        (ra-sec (pi-parse-retry-after ra-raw))
@@ -165,11 +186,20 @@
                   (sleep delay-sec)
                   (loop (+ attempt 1))
                 ) ;let*
-                (%make-retry-error status attempt body-str)
+                (%make-retry-error status attempt body-str provider)
               ) ;if
-              (let ((parsed-json (catch #t (lambda () (string->json body-str)) (lambda args #f))))
-                (anthropic-parse-response parsed-json status)
-              ) ;let
+              (let* ((parsed-json (catch #t (lambda () (string->json body-str)) (lambda args #f)))
+                     (limit (pi-usage-limit-error? status body-str provider))
+                    ) ;
+                (if limit
+                  (pi-assistant-message (list (pi-text-block ""))
+                    :stop-reason   "error"
+                    :usage         (anthropic-map-usage '())
+                    :error-message (pi-usage-limit-error-message limit provider)
+                  ) ;pi-assistant-message
+                  (anthropic-parse-response parsed-json status)
+                ) ;if
+              ) ;let*
             ) ;if
           ) ;let*
         ) ;let

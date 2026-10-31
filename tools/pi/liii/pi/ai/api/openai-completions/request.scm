@@ -19,6 +19,8 @@
     (liii pi ai api openai-completions core)
     (liii pi ai api openai-completions msg)
     (liii pi ai retry)
+    (liii pi ai limits)
+    (liii pi ai log)
     (liii pi ai keyring)
   ) ;import
   (export openai-build-tool-declarations-from-names openai-request
@@ -79,19 +81,24 @@
       (pi-resolve-retry-params settings opt-retry)
     ) ;define
 
-    (define (%make-retry-error status attempt body-str)
-      (pi-assistant-message (list (pi-text-block ""))
-        :stop-reason "error"
-        :error-message
-        (string-append "HTTP "
-          (number->string status)
-          " after "
-          (number->string attempt)
-          " attempts: "
-          body-str
-        ) ;string-append
-        :usage (openai-map-usage '())
-      ) ;pi-assistant-message
+    (define (%make-retry-error status attempt body-str provider)
+      (let ((limit (pi-usage-limit-error? status body-str provider)))
+        (pi-assistant-message (list (pi-text-block ""))
+          :stop-reason "error"
+          :error-message
+          (if limit
+            (pi-usage-limit-error-message limit provider)
+            (string-append "HTTP "
+              (number->string status)
+              " after "
+              (number->string attempt)
+              " attempts: "
+              body-str
+            ) ;string-append
+          ) ;if
+          :usage (openai-map-usage '())
+        ) ;pi-assistant-message
+      ) ;let
     ) ;define
 
     (define (%post-openai url req-json-str headers proxy-alist timeout)
@@ -123,6 +130,7 @@
                     ((model-meta) (cdr (assoc 'model-meta config)))
                     ((proxy-url) (cdr (assoc 'proxy-url config)))
                     ((settings) (cdr (assoc 'settings config)))
+                    ((provider) (cdr (or (assoc 'provider config) '(#f . #f))))
                     ((max-retries base-delay max-delay provider-max-retries)
                      (%resolve-retry-params settings opt-retry)
                     ) ;
@@ -158,13 +166,29 @@
                    (status (or (%resp-field resp 'status-code) 0))
                    (body-str (or (%resp-field resp 'text) ""))
                   ) ;
+              ;; 异常请求（非 200）连同响应体原文落盘，便于事后排障
+              (when (not (= status 200))
+                (pi-log-http-error! status
+                  body-str
+                  (list (cons 'provider provider)
+                    (cons 'model model-id)
+                    (cons 'url (string-append "POST " url))
+                    (cons 'attempt attempt)
+                    (cons 'max-attempts provider-max-retries)
+                    (cons 'retryable (openai-is-retriable-error? status body-str provider))
+                  ) ;list
+                ) ;pi-log-http-error!
+              ) ;when
               (cond
                ((and key-rotation? (or (= status 429) (= status 403)))
                 (let ((next (pi-rotate-api-key! config api-key status)))
-                  (if (eq? next 'exhausted) (%make-retry-error status 1 body-str) (loop 1 next))
+                  (if (eq? next 'exhausted)
+                    (%make-retry-error status 1 body-str provider)
+                    (loop 1 next)
+                  ) ;if
                 ) ;let
                ) ;
-               ((openai-is-retriable-error? status body-str)
+               ((openai-is-retriable-error? status body-str provider)
                 (if (<= attempt provider-max-retries)
                   (let* ((ra-raw (pi-extract-retry-after resp))
                          (ra-sec (pi-parse-retry-after ra-raw))
@@ -174,13 +198,23 @@
                     (sleep delay-sec)
                     (loop (+ attempt 1) api-key)
                   ) ;let*
-                  (%make-retry-error status attempt body-str)
+                  (%make-retry-error status attempt body-str provider)
                 ) ;if
                ) ;
                (else
-                 (let ((parsed-json (catch #t (lambda () (string->json body-str)) (lambda args #f))))
-                   (openai-parse-response parsed-json status)
-                 ) ;let
+                 (let* ((parsed-json (catch #t (lambda () (string->json body-str)) (lambda args #f)))
+                        (limit (pi-usage-limit-error? status body-str provider))
+                       ) ;
+                   (if limit
+                     (pi-assistant-message (list (pi-text-block ""))
+                       :stop-reason "error"
+                       :usage       (openai-map-usage '())
+                       :error-message
+                       (pi-usage-limit-error-message limit provider)
+                     ) ;pi-assistant-message
+                     (openai-parse-response parsed-json status)
+                   ) ;if
+                 ) ;let*
                ) ;else
               ) ;cond
             ) ;let*

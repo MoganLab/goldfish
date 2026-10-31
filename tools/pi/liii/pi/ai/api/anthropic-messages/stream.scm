@@ -15,6 +15,8 @@
     (liii pi ai time)
     (liii pi ai event)
     (liii pi ai retry)
+    (liii pi ai limits)
+    (liii pi ai log)
     (liii pi ai message)
     (liii pi ai api anthropic-messages core)
     (liii pi ai api anthropic-messages request)
@@ -157,12 +159,23 @@
       ) ;let
     ) ;define
 
-    (define (%make-stream-error status resp err-acc)
+    (define (%make-stream-error status resp err-acc provider)
       (let* ((resp-err (or (%resp-field resp 'reason) (%resp-field resp 'error) ""))
              (err-text (if (string? resp-err) (string-trim resp-err) ""))
              (acc-body (vector-ref err-acc 0))
+             (resp-body (or (%resp-field resp 'text) ""))
+             (body
+               (if (and (string? acc-body) (not (string-null? acc-body)))
+                 acc-body
+                 (if (and (string? resp-body) (not (string-null? resp-body))) resp-body "")
+               ) ;if
+             ) ;body
+             (limit (pi-usage-limit-error? status body provider))
              (err-msg
                (cond
+                ((and limit (string? (pi-usage-limit-error-message limit provider)))
+                 (pi-usage-limit-error-message limit provider)
+                ) ;
                 ((and (zero? status) (not (string-null? err-text)))
                  (string-append "Request failed: " err-text)
                 ) ;
@@ -212,7 +225,7 @@
     ) ;define
 
     (define (%run-stream-loop settings url req-json-str headers proxy-alist
-              on-ev timeout opt-retry eff-idle
+              on-ev timeout opt-retry eff-idle provider model-id
             ) ;%run-stream-loop
       (let-values (((max-r base-delay max-delay provider-r)
                     (pi-resolve-retry-params settings opt-retry)
@@ -235,11 +248,30 @@
                  (resp (%post-stream url req-json-str headers proxy-alist cb timeout eff-idle))
                  (status (or (%resp-field resp 'status-code) 0))
                 ) ;
+            ;; 异常请求（非 200 / 空闲超时）连同原始响应落盘，便于事后排障
+            (when
+              (and (not aborted?)
+                (not (pi-aborted?))
+                (or idle-timed-out? (not (= status 200)))
+              ) ;and
+              (pi-log-http-error! status
+                (vector-ref err-acc 0)
+                (list (cons 'provider provider)
+                  (cons 'model model-id)
+                  (cons 'url (string-append "POST " url))
+                  (cons 'attempt attempt)
+                  (cons 'max-attempts provider-r)
+                  (cons 'retryable
+                    (anthropic-is-retriable-error? status (vector-ref err-acc 0) provider)
+                  ) ;cons
+                ) ;list
+              ) ;pi-log-http-error!
+            ) ;when
             ;; 流尾补探测一次中止信号：单 chunk 交付时 on-event 发出的 abort
             ;; 无后续 chunk 检查点，此处探测保证确定性结算为 aborted
             (cond ((or aborted? (pi-aborted?)) (%finalize-aborted-stream stream-state))
                   (idle-timed-out? (%make-idle-timeout-error eff-idle))
-                  ((anthropic-is-retriable-error? status "")
+                  ((anthropic-is-retriable-error? status (vector-ref err-acc 0) provider)
                    (if (<= attempt provider-r)
                      (let* ((ra-raw (pi-extract-retry-after resp))
                             (ra-sec (pi-parse-retry-after ra-raw))
@@ -249,11 +281,11 @@
                        (sleep delay-sec)
                        (loop (+ attempt 1))
                      ) ;let*
-                     (%make-stream-error status resp err-acc)
+                     (%make-stream-error status resp err-acc provider)
                    ) ;if
                   ) ;
                   ((or (zero? status) (not (= status 200)))
-                   (%make-stream-error status resp err-acc)
+                   (%make-stream-error status resp err-acc provider)
                   ) ;
                   (else (%finalize-stream stream-state))
             ) ;cond
@@ -297,10 +329,11 @@
              (headers (%build-headers api-key))
              (proxy-alist (%build-proxy proxy-url))
              (settings (cdr (or (assoc 'settings config) '(#f))))
+             (provider (cdr (or (assoc 'provider config) '(#f . #f))))
              (eff-idle (or idle-timeout timeout))
             ) ;
         (%run-stream-loop settings url req-json-str headers proxy-alist on-event
-          timeout opt-retry eff-idle
+          timeout opt-retry eff-idle provider model-id
         ) ;%run-stream-loop
       ) ;let*
     ) ;define*

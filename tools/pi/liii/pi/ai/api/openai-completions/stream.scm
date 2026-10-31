@@ -15,6 +15,8 @@
     (liii pi ai time)
     (liii pi ai event)
     (liii pi ai retry)
+    (liii pi ai limits)
+    (liii pi ai log)
     (liii pi ai keyring)
     (liii pi ai message)
     (liii pi ai api openai-completions core)
@@ -108,12 +110,28 @@
       ) ;let
     ) ;define
 
-    (define (%make-stream-error status resp err-acc)
+    ;; 流式响应中的错误正文：优先取回调累积的 chunk，其次取 http 响应体
+    (define (%stream-error-body resp err-acc)
+      (let ((acc-body (vector-ref err-acc 0)) (resp-body (or (%resp-field resp 'text) "")))
+        (cond
+         ((and (string? acc-body) (not (string-null? acc-body))) acc-body)
+         ((and (string? resp-body) (not (string-null? resp-body))) resp-body)
+         (else "")
+        ) ;cond
+      ) ;let
+    ) ;define
+
+    (define (%make-stream-error status resp err-acc provider)
       (let* ((resp-err (or (%resp-field resp 'reason) (%resp-field resp 'error) ""))
              (err-text (if (string? resp-err) (string-trim resp-err) ""))
              (acc-body (vector-ref err-acc 0))
+             (body (%stream-error-body resp err-acc))
+             (limit (pi-usage-limit-error? status body provider))
              (err-msg
                (cond
+                ((and limit (string? (pi-usage-limit-error-message limit provider)))
+                 (pi-usage-limit-error-message limit provider)
+                ) ;
                 ((and (zero? status) (not (string-null? err-text)))
                  (string-append "Request failed: " err-text)
                 ) ;
@@ -160,6 +178,7 @@
             ) ;%run-stream-loop
       (let* ((settings (cdr (or (assoc 'settings config) '(#f))))
              (key-rotation? (pi-key-rotation? config))
+             (provider (cdr (or (assoc 'provider config) '(#f . #f))))
             ) ;
         (let-values (((max-r base-delay max-delay provider-r)
                       (pi-resolve-retry-params settings opt-retry)
@@ -186,19 +205,45 @@
                    (resp (%post-stream url req-json-str headers proxy-alist cb timeout eff-idle))
                    (status (or (%resp-field resp 'status-code) 0))
                   ) ;
+              ;; 异常请求（非 200 / 空闲超时）连同原始响应落盘，便于事后排障
+              (when
+                (and (not aborted?)
+                  (not (pi-aborted?))
+                  (or idle-timed-out? (not (= status 200)))
+                ) ;and
+                (pi-log-http-error! status
+                  (%stream-error-body resp err-acc)
+                  (list (cons 'provider provider)
+                    (cons 'model (cdr (assoc 'model-id config)))
+                    (cons 'url (string-append "POST " url))
+                    (cons 'attempt attempt)
+                    (cons 'max-attempts provider-r)
+                    (cons 'retryable
+                      (openai-is-retriable-error? status (%stream-error-body resp err-acc) provider)
+                    ) ;cons
+                  ) ;list
+                ) ;pi-log-http-error!
+              ) ;when
               ;; 流尾补探测一次中止信号：单 chunk 交付时 on-event 发出的 abort
               ;; 无后续 chunk 检查点，此处探测保证确定性结算为 aborted
               (cond ((or aborted? (pi-aborted?)) (%finalize-aborted-stream stream-state))
                     (idle-timed-out? (%make-idle-timeout-error eff-idle))
+                    ;; 额度耗尽（5 小时/周额度）属于账户级限额，换 key 也无济于事，
+                    ;; 直接给出可读提示，不再重试。
+                    ((and (pi-usage-limit-error? status (%stream-error-body resp err-acc) provider)
+                       (not key-rotation?)
+                     ) ;and
+                     (%make-stream-error status resp err-acc provider)
+                    ) ;
                     ((and key-rotation? (not emitted?) (or (= status 429) (= status 403)))
                      (let ((next (pi-rotate-api-key! config api-key status)))
                        (if (eq? next 'exhausted)
-                         (%make-stream-error status resp err-acc)
+                         (%make-stream-error status resp err-acc provider)
                          (loop 1 next)
                        ) ;if
                      ) ;let
                     ) ;
-                    ((openai-is-retriable-error? status "")
+                    ((openai-is-retriable-error? status (%stream-error-body resp err-acc) provider)
                      (if (<= attempt provider-r)
                        (let* ((ra-raw (pi-extract-retry-after resp))
                               (ra-sec (pi-parse-retry-after ra-raw))
@@ -208,11 +253,11 @@
                          (sleep delay-sec)
                          (loop (+ attempt 1) api-key)
                        ) ;let*
-                       (%make-stream-error status resp err-acc)
+                       (%make-stream-error status resp err-acc provider)
                      ) ;if
                     ) ;
                     ((or (zero? status) (not (= status 200)))
-                     (%make-stream-error status resp err-acc)
+                     (%make-stream-error status resp err-acc provider)
                     ) ;
                     (else (%finalize-stream stream-state))
               ) ;cond

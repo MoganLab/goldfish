@@ -15,6 +15,8 @@
     (liii error)
     (liii time)
     (liii pi ai retry)
+    (liii pi ai limits)
+    (liii pi ai log)
     (liii pi ai tools types)
     (liii pi ai message)
     (liii pi ai keyring)
@@ -220,6 +222,7 @@
              (model-meta (cdr (assoc 'model-meta config)))
              (proxy-url (cdr (assoc 'proxy-url config)))
              (settings (cdr (assoc 'settings config)))
+             (provider (cdr (or (assoc 'provider config) '(#f . #f))))
              (key-rotation? (pi-key-rotation? config))
              (base-url (cdr (or (assoc 'base-url model-meta)
                               '(#f
@@ -262,6 +265,19 @@
                    (status (or (%resp-field resp 'status-code) 0))
                    (body-str (or (%resp-field resp 'text) ""))
                   ) ;
+              ;; 异常请求（非 200）连同响应体原文落盘，便于事后排障
+              (when (not (= status 200))
+                (pi-log-http-error! status
+                  body-str
+                  (list (cons 'provider provider)
+                    (cons 'model model-id)
+                    (cons 'url (string-append "POST " url))
+                    (cons 'attempt attempt)
+                    (cons 'max-attempts provider-max-retries)
+                    (cons 'retryable (gemini-is-retriable-error? status body-str provider))
+                  ) ;list
+                ) ;pi-log-http-error!
+              ) ;when
               (cond
                ((and key-rotation? (or (= status 429) (= status 403)))
                 (let ((next (pi-rotate-api-key! config api-key status)))
@@ -273,7 +289,7 @@
                   ) ;if
                 ) ;let
                ) ;
-               ((and (gemini-is-retriable-error? status body-str)
+               ((and (gemini-is-retriable-error? status body-str provider)
                   (<= attempt provider-max-retries)
                 ) ;and
                 (let* ((ra-raw (pi-extract-retry-after resp))
@@ -286,15 +302,27 @@
                   (loop (+ attempt 1) api-key)
                 ) ;let*
                ) ;
-               ((gemini-is-retriable-error? status body-str)
-                (%make-error-response (format-failed-stream-msg status resp)
-                  (gemini-map-usage '())
-                ) ;%make-error-response
+               ((gemini-is-retriable-error? status body-str provider)
+                (let ((limit (pi-usage-limit-error? status body-str provider)))
+                  (%make-error-response (if limit
+                                          (pi-usage-limit-error-message limit provider)
+                                          (format-failed-stream-msg status resp)
+                                        ) ;if
+                    (gemini-map-usage '())
+                  ) ;%make-error-response
+                ) ;let
                ) ;
                (else
-                 (let ((pj (catch #t (lambda () (string->json body-str)) (lambda _ #f))))
-                   (gemini-parse-response pj status)
-                 ) ;let
+                 (let* ((pj (catch #t (lambda () (string->json body-str)) (lambda _ #f)))
+                        (limit (pi-usage-limit-error? status body-str provider))
+                       ) ;
+                   (if limit
+                     (%make-error-response (pi-usage-limit-error-message limit provider)
+                       (gemini-map-usage '())
+                     ) ;%make-error-response
+                     (gemini-parse-response pj status)
+                   ) ;if
+                 ) ;let*
                ) ;else
               ) ;cond
             ) ;let*

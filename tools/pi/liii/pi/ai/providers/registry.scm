@@ -6,6 +6,8 @@
 
 (define-library (liii pi ai providers registry)
   (import (scheme base)
+    (scheme char)
+    (liii string)
     (liii pi ai providers anthropic)
     (liii pi ai providers deepseek)
     (liii pi ai providers glm)
@@ -14,10 +16,12 @@
     (liii pi ai providers minimax)
     (liii pi ai providers minimax-cn)
     (liii pi ai providers zai-coding-cn)
+    (liii pi ai providers quota)
   ) ;import
   (export PI_PROVIDERS PI_SUPPORTED_PROVIDERS PI_PROVIDER_BUILTIN_MODELS
     pi-provider-record pi-provider-api pi-provider-base-url pi-provider-env-keys
-    pi-provider-builtin-models
+    pi-provider-builtin-models pi-provider-quota-error-handler
+    pi-provider-quota-error
   ) ;export
   (begin
 
@@ -89,6 +93,39 @@
         (if record (%field record 'envKeys '()) '())
       ) ;let
     ) ;define
+
+    ;; 各 provider 注册的「额度耗尽」识别函数（解析错误码与响应 JSON）
+    ;; 函数签名：(handler status-code body-str) -> 结果 alist 或 #f
+    (define PI_PROVIDER_QUOTA_ERROR_HANDLERS
+      (list (cons "zai-coding-cn" PI_ZAI_CODING_CN_QUOTA_ERROR)
+        (cons "zai" PI_ZAI_CODING_CN_QUOTA_ERROR)
+        (cons "kimi-coding" PI_KIMI_CODING_QUOTA_ERROR)
+      ) ;list
+    ) ;define
+
+    ;; 取某个 provider 注册的额度耗尽识别函数；未注册返回 #f
+    (define (pi-provider-quota-error-handler provider)
+      (let* ((key
+               (cond ((string? provider) (string-downcase (string-trim-both provider)))
+                     ((symbol? provider) (string-downcase (symbol->string provider)))
+                     (else #f)
+               ) ;cond
+             ) ;key
+             (pair (and key (assoc key PI_PROVIDER_QUOTA_ERROR_HANDLERS)))
+            ) ;
+        (and pair (cdr pair))
+      ) ;let*
+    ) ;define
+
+    ;; 调用某个 provider 的额度耗尽识别函数；未注册或出错时返回 #f
+    (define* (pi-provider-quota-error status-code body-str (provider #f))
+      (let ((handler (pi-provider-quota-error-handler provider)))
+        (if (procedure? handler)
+          (catch #t (lambda () (handler status-code body-str)) (lambda args #f))
+          #f
+        ) ;if
+      ) ;let
+    ) ;define*
 
     (define (pi-provider-builtin-models provider)
       (let ((pair (assoc (%p-str provider) PI_PROVIDER_BUILTIN_MODELS)))

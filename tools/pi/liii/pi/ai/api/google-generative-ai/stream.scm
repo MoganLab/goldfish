@@ -16,6 +16,8 @@
     (liii pi ai event)
     (liii pi ai config types)
     (liii pi ai retry)
+    (liii pi ai limits)
+    (liii pi ai log)
     (liii pi ai message)
     (liii pi ai keyring)
     (liii pi ai api google-generative-ai core)
@@ -146,6 +148,38 @@
       ) ;catch
     ) ;define
 
+    ;; 重试用尽后的错误结果：额度耗尽时给出 provider 官方消息，否则用状态码描述
+    (define (%retry-exhausted-result stream-state status resp provider err-body)
+      (let ((limit (pi-usage-limit-error? status err-body provider)))
+        (list (cons 'role "assistant")
+          (cons 'content (gemini-stream-state-blocks stream-state))
+          (cons 'stopReason "error")
+          (cons 'usage (gemini-stream-state-usage stream-state))
+          (cons 'errorMessage
+            (if limit
+              (pi-usage-limit-error-message limit provider)
+              (format-failed-stream-msg status resp)
+            ) ;if
+          ) ;cons
+        ) ;list
+      ) ;let
+    ) ;define
+
+    ;; 把异常流式请求连同原始响应落盘（嵌套过深会触发 max-tree-depth 检查，
+    ;; 因此单独抽过程：调用点只留一层 when）
+    (define (%log-http-error status body provider config attempt max-attempts url)
+      (pi-log-http-error! status
+        body
+        (list (cons 'provider provider)
+          (cons 'model (cdr (or (%safe-assoc 'model-id config) '(#f . #f))))
+          (cons 'url (string-append "POST " url))
+          (cons 'attempt attempt)
+          (cons 'max-attempts max-attempts)
+          (cons 'retryable (gemini-is-retriable-error? status body provider))
+        ) ;list
+      ) ;pi-log-http-error!
+    ) ;define
+
     (define* (gemini-request-stream config
                messages
                (system-instruction #f)
@@ -160,6 +194,7 @@
                    ) ;
                   ) ;
         (let* ((settings (cdr (or (%safe-assoc 'settings config) '(#f))))
+               (provider (cdr (or (%safe-assoc 'provider config) '(#f . #f))))
                (effective-idle (or idle-timeout timeout))
                (key-rotation? (pi-key-rotation? config))
               ) ;
@@ -194,7 +229,18 @@
                            ) ;%perform-http-stream
                      ) ;resp
                      (status (or (%resp-field resp 'status-code) 0))
+                     (err-body (vector-ref error-body-acc 0))
                     ) ;
+                ;; 异常请求（非 200 / 空闲超时）连同原始响应落盘，便于事后排障
+                (when
+                  (and (not aborted?)
+                    (not (pi-aborted?))
+                    (or idle-timed-out? (not (= status 200)))
+                  ) ;and
+                  (%log-http-error status err-body provider config attempt
+                    provider-max-retries url
+                  ) ;%log-http-error
+                ) ;when
                 (cond
                   ;; 用户中止优先：不进入 multikey 轮换 / 重试，直接结算 aborted；
                   ;; 流尾补探测 pi-aborted? 覆盖单 chunk 交付时信号无后续检查点的场景
@@ -210,7 +256,9 @@
                      ) ;if
                    ) ;let
                   ) ;
-                  ((and (not idle-timed-out?) (gemini-is-retriable-error? status ""))
+                  ((and (not idle-timed-out?)
+                     (gemini-is-retriable-error? status err-body provider)
+                   ) ;and
                    (if (<= attempt provider-max-retries)
                      (let* ((ra-raw (pi-extract-retry-after resp))
                             (ra-sec (pi-parse-retry-after ra-raw))
@@ -221,12 +269,7 @@
                        (sleep delay-sec)
                        (loop (+ attempt 1) api-key)
                      ) ;let*
-                     (list (cons 'role "assistant")
-                       (cons 'content (gemini-stream-state-blocks stream-state))
-                       (cons 'stopReason "error")
-                       (cons 'usage (gemini-stream-state-usage stream-state))
-                       (cons 'errorMessage (format-failed-stream-msg status resp))
-                     ) ;list
+                     (%retry-exhausted-result stream-state status resp provider err-body)
                    ) ;if
                   ) ;
                   (else (gemini-classify-stream-result stream-state

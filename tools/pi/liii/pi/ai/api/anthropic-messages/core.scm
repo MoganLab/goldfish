@@ -15,6 +15,7 @@
     (liii pi ai event)
     (liii pi ai tools types)
     (liii pi ai tools record)
+    (liii pi ai limits)
     (liii pi ai api anthropic-messages input)
   ) ;import
   (export anthropic-map-stop-reason anthropic-map-usage
@@ -262,15 +263,19 @@
       ) ;if
     ) ;define
 
-    (define (anthropic-is-retriable-error? status-code response-body-str)
-      (or (= status-code 408)
-        (= status-code 409)
-        (= status-code 429)
-        (= status-code 529)
-        (>= status-code 500)
-        (zero? status-code)
-      ) ;or
-    ) ;define
+    ;; 额度耗尽（5 小时窗口 / 周额度等）不是瞬时错误，重试无意义
+    (define* (anthropic-is-retriable-error? status-code response-body-str (provider #f))
+      (if (pi-usage-limit-error? status-code response-body-str provider)
+        #f
+        (or (= status-code 408)
+          (= status-code 409)
+          (= status-code 429)
+          (= status-code 529)
+          (>= status-code 500)
+          (zero? status-code)
+        ) ;or
+      ) ;if
+    ) ;define*
 
   ) ;begin
 ) ;define-library
