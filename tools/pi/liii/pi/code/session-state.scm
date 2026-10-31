@@ -115,6 +115,8 @@
                  (cons 'supports-thinking
                    (pi-model-supports-thinking? models-store provider model-id)
                  ) ;cons
+                 ;; provider 级代理随 provider 变化而重算
+                 (cons 'proxy-url (pi-cfg-provider-proxy cfg provider))
                ) ;list
              ) ;%cfg-override
              '()

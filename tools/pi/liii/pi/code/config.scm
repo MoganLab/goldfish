@@ -31,7 +31,7 @@
   (export pi-resolve-config-value json-dict-ref pi-get-agent-dir
     gf-get-config-dir pi-cfg-config-dir pi-read-json-file pi-load-settings
     pi-save-default-thinking-level! pi-save-hide-thinking-block!
-    pi-save-default-model! pi-model-supports-thinking?
+    pi-save-default-model! pi-model-supports-thinking? pi-cfg-provider-proxy
     pi-load-compaction-settings pi-resolve-proxy-url pi-load-auth
     pi-resolve-provider-key pi-resolve-model-metadata resolve-pi-config
     resolve-goldpi-config resolve-active-tools pi-missing-credential-msg
@@ -77,6 +77,33 @@
       ) ;if
     ) ;define
 
+    ;; 从用户配置目录取 provider 层声明的 httpProxy（models/<provider>.json）
+    (define (pi-provider-proxy models-store provider)
+      (let ((entry (and (pair? models-store) (assoc provider models-store))))
+        (and entry (let ((pair (assoc "httpProxy" (cdr entry)))) (and pair (cdr pair))))
+      ) ;let
+    ) ;define
+
+    ;; 生效代理：--proxy > provider 文件 httpProxy > HTTPS_PROXY/ALL_PROXY > settings.json
+    (define (pi-resolve-effective-proxy cli-proxy models-store provider settings . opt-env)
+      (let ((cli
+              (and (string? cli-proxy)
+                (not (string-null? (string-trim-both cli-proxy)))
+                cli-proxy
+              ) ;and
+            ) ;cli
+           ) ;
+        (or cli
+          (pi-provider-proxy models-store provider)
+          (if (pair? opt-env)
+            (pi-resolve-proxy-url #f settings (car opt-env))
+            (pi-resolve-proxy-url #f settings)
+          ) ;if
+        ) ;or
+      ) ;let
+    ) ;define
+
+    ;; 全局代理链：--proxy > HTTPS_PROXY > ALL_PROXY > settings.json httpProxy
     (define (pi-resolve-proxy-url cli-proxy settings . opt-env)
       (let ((env-https (lookup-env-var "HTTPS_PROXY" opt-env))
             (env-all (lookup-env-var "ALL_PROXY" opt-env))
@@ -174,6 +201,16 @@
       (%model-supports-thinking? models-store provider model-id)
     ) ;define
 
+    ;; 按指定 provider 重算生效代理（会话内 /model 切换后调用）
+    (define (pi-cfg-provider-proxy cfg provider)
+      (let ((catalog (cdr (or (assoc 'models-store cfg) (cons #f '()))))
+            (settings (cdr (or (assoc 'settings cfg) (cons #f '()))))
+            (cli (cdr (or (assoc 'cli-proxy cfg) (cons #f '()))))
+           ) ;
+        (pi-resolve-effective-proxy cli catalog provider settings)
+      ) ;let
+    ) ;define
+
     (define (resolve-pi-config parsed-args . opt-env)
       (let* ((env-agent-dir (lookup-env-var "PI_CODING_AGENT_DIR" opt-env))
              (agent-dir (pi-get-agent-dir env-agent-dir))
@@ -184,11 +221,6 @@
              ;; provider 与模型文件，白名单外的 provider/模型不可用
              (models-store (pi-build-user-catalog (path->string config-dir)))
              (cli-proxy (pi-args-ref parsed-args 'proxy))
-             (proxy-url (if (pair? opt-env)
-                          (pi-resolve-proxy-url cli-proxy settings (car opt-env))
-                          (pi-resolve-proxy-url cli-proxy settings)
-                        ) ;if
-             ) ;proxy-url
              (tools (resolve-active-tools parsed-args settings))
             ) ;
         (let-values (((provider model-id)
@@ -200,7 +232,19 @@
                       ) ;pi-route-provider-and-model
                      ) ;
                     ) ;
-          (let* ((auth (if (pair? opt-env)
+          ;; provider 级代理：--proxy > models/<provider>.json httpProxy
+          ;; > HTTPS_PROXY/ALL_PROXY > settings.json httpProxy
+          (let* ((proxy-url (if (pair? opt-env)
+                              (pi-resolve-effective-proxy cli-proxy
+                                models-store
+                                provider
+                                settings
+                                (car opt-env)
+                              ) ;pi-resolve-effective-proxy
+                              (pi-resolve-effective-proxy cli-proxy models-store provider settings)
+                            ) ;if
+                 ) ;proxy-url
+                 (auth (if (pair? opt-env)
                          (pi-load-auth config-dir (car opt-env))
                          (pi-load-auth config-dir)
                        ) ;if
@@ -250,6 +294,7 @@
               (cons 'models-store models-store)
               (cons 'thinking-level thinking-level)
               (cons 'supports-thinking supports-thinking)
+              (cons 'cli-proxy cli-proxy)
               (cons 'proxy-url proxy-url)
               (cons 'tools tools)
               (cons 'tool-resolver get-tool-definition)

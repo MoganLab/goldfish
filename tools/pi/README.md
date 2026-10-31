@@ -22,7 +22,7 @@ timeout 600 xmake b goldfish
 # auth.json（api_key / ANTHROPIC_AUTH_TOKEN 等环境变量兜底）、models-store.json（刷新同步快照，运行时不再读取）
 # providers.json + <provider>.json + <provider>/<model>.json（provider 与模型配置，见下节）
 # 会话目录不受影响：始终 ~/.pi/agent/sessions/
-# HTTP 代理（per-provider）：--proxy > <provider>.json httpProxy > HTTPS_PROXY/ALL_PROXY 环境变量 > settings.json httpProxy > 直连
+# HTTP 代理（per-provider）：--proxy > models/<provider>.json httpProxy > HTTPS_PROXY/ALL_PROXY 环境变量 > settings.json httpProxy > 直连
 # 重试：可重试 provider 错误（429/5xx/408/409/网络错误）使用 retry.provider.maxRetries 预算
 # （本机=12），未配置该嵌套节时回退 retry.maxRetries（缺省 3）
 ```

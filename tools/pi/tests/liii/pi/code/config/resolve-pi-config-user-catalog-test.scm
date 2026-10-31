@@ -83,4 +83,41 @@
   ) ;resolve-pi-config
 ) ;check-catch
 
+
+;; --- provider 级 httpProxy ---
+
+;; 7. provider 文件的 httpProxy 生效（覆盖 settings.json 的全局 httpProxy）
+(let* ((args (parse-pi-args '("--model" "k3.1-pro")))
+       (env `(("PI_CODING_AGENT_DIR" . ,FULL-DIR)
+              ("KIMI_API_KEY" . "kimi-key-test")
+              ("HTTPS_PROXY" . "")
+              ("ALL_PROXY" . "")))
+       (cfg (resolve-pi-config args env)))
+  (check (cdr (assoc 'proxy-url cfg)) => "http://127.0.0.1:7890"))
+
+;; 8. CLI --proxy 覆盖 provider 文件的 httpProxy
+(let* ((args (parse-pi-args '("--proxy" "socks5h://127.0.0.1:1080"
+                              "--provider" "kimi-coding" "--model" "k3.1-pro")))
+       (env `(("PI_CODING_AGENT_DIR" . ,FULL-DIR)
+              ("KIMI_API_KEY" . "kimi-key-test")))
+       (cfg (resolve-pi-config args env)))
+  (check (cdr (assoc 'provider cfg)) => "kimi-coding")
+  (check (cdr (assoc 'proxy-url cfg)) => "socks5h://127.0.0.1:1080"))
+
+;; 9. provider 未声明 httpProxy 时回退 settings.json 全局值
+(let* ((args (parse-pi-args '("--provider" "custom-kimi" "--model" "m1")))
+       (env `(("PI_CODING_AGENT_DIR" . ,FULL-DIR)
+              ("HTTPS_PROXY" . "")
+              ("ALL_PROXY" . "")))
+       (cfg (resolve-pi-config args env)))
+  (check (cdr (assoc 'provider cfg)) => "custom-kimi")
+  (check (cdr (assoc 'proxy-url cfg)) => "http://global-proxy:8080"))
+
+;; 10. 环境变量优先于 settings.json 全局值（provider 未声明时）
+(let* ((args (parse-pi-args '("--provider" "custom-kimi" "--model" "m1")))
+       (env `(("PI_CODING_AGENT_DIR" . ,FULL-DIR)
+              ("HTTPS_PROXY" . "http://env-proxy:3128")))
+       (cfg (resolve-pi-config args env)))
+  (check (cdr (assoc 'proxy-url cfg)) => "http://env-proxy:3128"))
+
 (check-report)

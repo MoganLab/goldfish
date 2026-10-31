@@ -88,6 +88,8 @@
             (cons 'model-meta meta)
             (cons 'api-key api-key)
             (cons 'supports-thinking supports)
+            ;; provider 级代理随 provider 变化而重算
+            (cons 'proxy-url (pi-cfg-provider-proxy cfg provider))
           ) ;list
         ) ;%cfg-override
       ) ;let*

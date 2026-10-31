@@ -380,6 +380,13 @@
                 (append (if name (list (cons "name" name)) '())
                   (if base-url (list (cons "baseUrl" base-url)) '())
                   (if api (list (cons "api" api)) '())
+                  (let ((proxy (%dict-ref p-file "httpProxy" #f)))
+                    (if
+                      (and (string? proxy) (not (string-null? (string-trim-both proxy))))
+                      (list (cons "httpProxy" proxy))
+                      '()
+                    ) ;if
+                  ) ;let
                   (list (cons "models" models))
                 ) ;append
               ) ;cons
