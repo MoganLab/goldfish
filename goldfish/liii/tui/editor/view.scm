@@ -59,13 +59,17 @@
       (let ((len (utf8-string-length line)))
         (let loop
           ((i 0))
-          (cond ((>= i len) (list (utf8-substring line 0 i) #f ""))
-                ((>= (display-width-prefix line i) col)
+          (cond ((>= i len) (list (utf8-substring line 0 len) #f ""))
+                ;; 第 i 个字符的显示区间为 [prefix(i), prefix(i+1))：
+                ;; col 落在区间内说明光标压在该字符上（宽字符取其左边界）
+                ((> (display-width-prefix line (+ i 1)) col)
                  (list (utf8-substring line 0 i)
                    (utf8-substring line i (+ i 1))
-                   (utf8-substring line (+ i 1) len)
+                   ;; 末字符之后没有内容：utf8-substring 的 start 必须小于
+                   ;; 字符数，越界取空串会抛 out-of-range
+                   (if (>= (+ i 1) len) "" (utf8-substring line (+ i 1) len))
                  ) ;list
-                )
+                ) ;
                 (else (loop (+ i 1)))
           ) ;cond
         ) ;let
@@ -81,10 +85,12 @@
                (cursor-char (cadr split))
                (after (caddr split))
                ;; col 超出渲染行行尾（折行 trim 掉的行尾空格）：补空格到光标列，
-               ;; 补齐宽度按 before 的显示宽度差计算（不依赖字符数）
-               (pad (- (max 0 col) (display-width before)))
+               ;; 补齐宽度按 before 的显示宽度差计算（不依赖字符数）；
+               ;; 光标压在某个字符上时（宽字符可能跨过 col）不再补空格，
+               ;; 否则光标块会被推到宽字符之后
+               (pad (if cursor-char 0 (- (max 0 col) (display-width before))))
                (padded (if (> pad 0) (string-append before (make-string pad #\space)) before))
-              ) ;let*
+              ) ;
           (case cursor-style
            ((bar)
             (string-append padded "|" (if cursor-char (string-append cursor-char after) ""))

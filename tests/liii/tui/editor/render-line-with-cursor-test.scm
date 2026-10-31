@@ -72,10 +72,16 @@
   =>
   "a b\x1b;[7m \x1b;[0m"
 ) ;check
-;; 中文后接行尾空格列：显示列 6 超出“你好 ”的显示宽 5 → 补 1 空格
-(check (render-line-with-cursor "你好" 6 #t 'inverse)
+;; 中文后接行尾空格列：显示列 5 超出“你好”的显示宽 4 → 补 1 空格
+;; （补位规则与 ASCII 一致：行内容宽度补到光标列，光标块落在该列）
+(check (render-line-with-cursor "你好" 5 #t 'inverse)
   =>
   "你好 \x1b;[7m \x1b;[0m"
+) ;check
+;; 显示列 6 超出“你好”的显示宽 4 → 补 2 空格
+(check (render-line-with-cursor "你好" 6 #t 'inverse)
+  =>
+  "你好  \x1b;[7m \x1b;[0m"
 ) ;check
 
 ;; 硬件光标样式原样返回行内容
