@@ -48,7 +48,7 @@
 ) ;check-true
 
 ;; 3. 未注册 provider 不做判定
-(check-false (pi-provider-quota-error 429 weekly-body "google"))
+(check-false (pi-provider-quota-error 429 weekly-body "openrouter"))
 
 ;; 4. provider 为 #f 时不做判定
 (check-false (pi-provider-quota-error 429 weekly-body))
@@ -70,6 +70,23 @@
 (check-false (pi-provider-quota-error 429
   "{\"type\":\"error\",\"error\":{\"type\":\"rate_limit_error\",\"message\":\"Rate limit exceeded\"}}"
   "minimax-cn"
+) ;pi-provider-quota-error
+) ;check-false
+
+;; 3. google：月消费上限（spending cap，2026-10-31 实测）注册判定
+(define google-spending-cap-body
+  "{\"error\":{\"code\":429,\"message\":\"Your billing account has exceeded its monthly spending cap. Please go to AI Studio at https://ai.studio/billing to manage your billing.\",\"status\":\"RESOURCE_EXHAUSTED\"}}"
+) ;define
+
+(check-true (pi-quota-limit? (pi-provider-quota-error 429 google-spending-cap-body "google")))
+(check (pi-quota-limit-kind (pi-provider-quota-error 429 google-spending-cap-body "google"))
+  => "monthly"
+) ;check
+
+;; 8. google 瞬时限流文案不判定（应继续重试）
+(check-false (pi-provider-quota-error 429
+  "{\"error\":{\"code\":429,\"message\":\"You exceeded your current quota, please check your plan and billing details.\",\"status\":\"RESOURCE_EXHAUSTED\"}}"
+  "google"
 ) ;pi-provider-quota-error
 ) ;check-false
 

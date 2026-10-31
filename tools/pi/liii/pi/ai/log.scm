@@ -28,6 +28,7 @@
     (liii date-time)
     (liii logging)
     (liii pi ai limits)
+    (liii pi ai providers quota)
   ) ;import
   (export pi-log-dir pi-log-file-path pi-log-init! pi-log-reset! pi-log-enabled?
     pi-log-error! pi-log-http-error!
@@ -115,6 +116,9 @@
           (lambda args (set! *log-dir-failed?* #t))
         ) ;catch
       ) ;unless
+      ;; 把落盘通道注入 quota 判定层：quota 不能反向 import 本库（循环依赖），
+      ;; 改为回调注入，解析异常会与本库其他错误写入同一份日志文件
+      (set-pi-quota-error-logger! pi-log-error!)
       (and *log-dir-ready?* (pi-log-enabled?))
     ) ;define*
 
