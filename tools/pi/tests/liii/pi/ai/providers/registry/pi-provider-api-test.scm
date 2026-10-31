@@ -4,8 +4,6 @@
 
 ;; pi-provider-api
 ;; provider 注册表声明的协议实现标识，dispatch 据此路由请求。
-(check (pi-provider-api "anthropic") => "anthropic-messages")
-(check (pi-provider-api "glm") => "anthropic-messages")
 (check (pi-provider-api "deepseek") => "anthropic-messages")
 (check (pi-provider-api "minimax-cn") => "anthropic-messages")
 (check (pi-provider-api "minimax-cn") => "anthropic-messages")

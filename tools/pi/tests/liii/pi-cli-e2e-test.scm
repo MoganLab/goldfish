@@ -139,17 +139,17 @@
             ) ;check-true
           ) ;let*
 
-          ;; 7. CLI --provider anthropic print 模式端到端测试
+          ;; 7. CLI --provider minimax-cn print 模式端到端测试（anthropic-messages 协议）
           ;; GF_PI_MODEL 显式指定模型，避免与 provider 不匹配（任务 034 严格校验）
           (let* ((ant-env (append test-env
-                            (list (cons "ANTHROPIC_API_KEY" "sk-ant-test-e2e")
-                              (cons "ANTHROPIC_BASE_URL" base-url)
-                              (cons "GF_PI_MODEL" "claude-sonnet-4-5")
+                            (list (cons "MINIMAX_CN_API_KEY" "sk-ant-test-e2e")
+                              (cons "MINIMAX_CN_BASE_URL" base-url)
+                              (cons "GF_PI_MODEL" "MiniMax-M2.7")
                             ) ;list
                           ) ;append
                  ) ;ant-env
-                 (cmd (list GF_BIN "pi" "--provider" "anthropic" "--model"
-                        "claude-sonnet-4-5" "--print" "Hello Anthropic CLI"
+                 (cmd (list GF_BIN "pi" "--provider" "minimax-cn" "--model"
+                        "MiniMax-M2.7" "--print" "Hello Anthropic CLI"
                       ) ;list
                  ) ;cmd
                  (res (safe-exec cmd ant-env 10000))
@@ -166,14 +166,14 @@
           ;; 8. 错误路径退出码测试：模型错误时退出码必须为 1（§8 / 缺陷7）
           (let* ((ant-env
                    (append test-env
-                     (list (cons "ANTHROPIC_API_KEY" "sk-ant-test-e2e")
-                       (cons "ANTHROPIC_BASE_URL" (string-append base-url "/error-400"))
+                     (list (cons "MINIMAX_CN_API_KEY" "sk-ant-test-e2e")
+                       (cons "MINIMAX_CN_BASE_URL" (string-append base-url "/error-400"))
                        (cons "GF_PI_BASE_URL" (string-append base-url "/error-400"))
                      ) ;list
                    ) ;append
                  ) ;ant-env
-                 (cmd (list GF_BIN "pi" "--provider" "anthropic" "--model"
-                        "fake-model" "--print" "Hello Anthropic error"
+                 (cmd (list GF_BIN "pi" "--provider" "minimax-cn" "--model"
+                        "MiniMax-M2.7" "--print" "Hello Anthropic error"
                       ) ;list
                  ) ;cmd
                  (res (safe-exec cmd ant-env 10000))
@@ -229,7 +229,7 @@
           (let* ((ds-env (append test-env
                            (list (cons "DEEPSEEK_API_KEY" "ds-test-key-e2e")
                              (cons "DEEPSEEK_BASE_URL" base-url)
-                             (cons "ANTHROPIC_BASE_URL" base-url)
+                             (cons "MINIMAX_CN_BASE_URL" base-url)
                              (cons "GF_PI_MODEL" "deepseek-v4-pro")
                              (cons "GF_PI_BASE_URL" base-url)
                            ) ;list

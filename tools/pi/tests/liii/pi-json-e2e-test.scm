@@ -196,17 +196,17 @@
     (process-close p)
   ) ;let*
 
-  ;; 4. Anthropic provider JSON 模式事件流验证
+  ;; 4. minimax-cn provider JSON 模式事件流验证（anthropic-messages 协议）
   ;; GF_PI_MODEL 显式指定模型，避免与 provider 不匹配（任务 034 严格校验）
   (let* ((ant-env (append test-env
-                    (list (cons "ANTHROPIC_API_KEY" "sk-ant-test-json")
-                      (cons "ANTHROPIC_BASE_URL" base-url)
-                      (cons "GF_PI_MODEL" "claude-sonnet-4-5")
+                    (list (cons "MINIMAX_CN_API_KEY" "sk-ant-test-json")
+                      (cons "MINIMAX_CN_BASE_URL" base-url)
+                      (cons "GF_PI_MODEL" "MiniMax-M2.7")
                     ) ;list
                   ) ;append
          ) ;ant-env
-         (cmd (list GF_BIN "pi" "--provider" "anthropic" "--model"
-                "claude-sonnet-4-5" "--mode" "json" "Hello anthropic json"
+         (cmd (list GF_BIN "pi" "--provider" "minimax-cn" "--model"
+                "MiniMax-M2.7" "--mode" "json" "Hello anthropic json"
               ) ;list
          ) ;cmd
          (p (process-spawn cmd :env ant-env :stdout 'pipe :stderr 'pipe))

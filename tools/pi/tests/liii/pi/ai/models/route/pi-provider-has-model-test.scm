@@ -51,10 +51,10 @@
 (check-false (pi-provider-has-model? "minimax-cn" "gemini-3.8-flash" '()))
 (check-false (pi-provider-has-model? "google" "unknown-xyz" fixture-store))
 
-;; 4. models.json 合并后 glm-5.3 系列命中
-(check-true (pi-provider-has-model? "glm" "glm-5.3" fixture-merged))
-(check-true (pi-provider-has-model? "glm" "glm-5.3-flash" fixture-merged))
-(check-true (pi-provider-has-model? "glm" "glm-5-turbo" fixture-merged))
-(check-true (pi-provider-has-model? "glm" "glm-4.5-air" fixture-merged))
+;; 4. models.json 合并后 glm-5.3 系列命中（provider 键为 zai-coding-cn）
+(check-true (pi-provider-has-model? "zai-coding-cn" "glm-5.3" fixture-merged))
+(check-true (pi-provider-has-model? "zai-coding-cn" "glm-5.3-flash" fixture-merged))
+(check-true (pi-provider-has-model? "zai-coding-cn" "glm-5-turbo" fixture-merged))
+(check-true (pi-provider-has-model? "zai-coding-cn" "glm-4.5-air" fixture-merged))
 
 (check-report)

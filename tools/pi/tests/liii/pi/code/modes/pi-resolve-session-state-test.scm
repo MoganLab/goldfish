@@ -37,7 +37,7 @@
 
 (path-mkdir TMP-AGENT-DIR :parents #t :exist-ok #t)
 (path-write-text (path->string (path-join (path TMP-AGENT-DIR) (path "auth.json")))
-  "{\"google\":{\"type\":\"api_key\",\"key\":\"fixture-google-key\"},\"anthropic\":{\"type\":\"api_key\",\"key\":\"fixture-anthropic-key\"}}")
+  "{\"google\":{\"type\":\"api_key\",\"key\":\"fixture-google-key\"},\"minimax-cn\":{\"type\":\"api_key\",\"key\":\"fixture-minimax-key\"}}")
 
 (define ENV (list (cons "PI_CODING_AGENT_DIR" TMP-AGENT-DIR)))
 
@@ -54,14 +54,14 @@
 ;; ------------------------------------------------------------
 (let* ((cfg (base-cfg))
        (state (list (cons 'thinkingLevel "high")
-                (cons 'model (state-model "anthropic" "claude-haiku-4-5"))
+                (cons 'model (state-model "minimax-cn" "MiniMax-M3.1-Flash"))
               ) ;list
        ) ;
       ) ;
   (let-values (((merged warnings) (pi-resolve-session-state cfg state (parse-pi-args '()))))
-    (check (cdr (assoc 'provider merged)) => "anthropic")
-    (check (cdr (assoc 'model-id merged)) => "claude-haiku-4-5")
-    (check (cdr (assoc 'api-key merged)) => "fixture-anthropic-key")
+    (check (cdr (assoc 'provider merged)) => "minimax-cn")
+    (check (cdr (assoc 'model-id merged)) => "MiniMax-M3.1-Flash")
+    (check (cdr (assoc 'api-key merged)) => "fixture-minimax-key")
     (check (cdr (assoc 'thinking-level merged)) => "high")
     (check warnings => '())
     ;; 原 cfg 不被破坏
@@ -73,7 +73,7 @@
 ;; 二、显式 --provider/--model 覆盖状态模型；显式 --thinking 覆盖状态等级
 ;; ------------------------------------------------------------
 ;; cfg 由同一份 parsed 解析而来，显式参数已体现在 cfg 中，状态不得再改写
-(let* ((parsed (parse-pi-args '("--provider" "anthropic" "--model" "claude-haiku-4-5")))
+(let* ((parsed (parse-pi-args '("--provider" "minimax-cn" "--model" "MiniMax-M3.1-Flash")))
        (cfg (resolve-pi-config parsed ENV))
        (state (list (cons 'thinkingLevel "high")
                 (cons 'model (state-model "google" "gemini-2.5-pro"))
@@ -81,8 +81,8 @@
        ) ;
       ) ;
   (let-values (((merged warnings) (pi-resolve-session-state cfg state parsed)))
-    (check (cdr (assoc 'provider merged)) => "anthropic")
-    (check (cdr (assoc 'model-id merged)) => "claude-haiku-4-5")
+    (check (cdr (assoc 'provider merged)) => "minimax-cn")
+    (check (cdr (assoc 'model-id merged)) => "MiniMax-M3.1-Flash")
     ;; 模型被显式参数锁定，但 thinking 仍按状态应用
     (check (cdr (assoc 'thinking-level merged)) => "high")
     (check warnings => '())
@@ -90,12 +90,12 @@
 ) ;let*
 
 ;; 只显式 --provider 也视为锁定模型维度（不混搭 provider/model）
-(let* ((parsed (parse-pi-args '("--provider" "anthropic")))
+(let* ((parsed (parse-pi-args '("--provider" "minimax-cn")))
        (cfg (resolve-pi-config parsed ENV))
        (state (list (cons 'model (state-model "google" "gemini-2.5-pro"))))
       ) ;
   (let-values (((merged warnings) (pi-resolve-session-state cfg state parsed)))
-    (check (cdr (assoc 'provider merged)) => "anthropic")
+    (check (cdr (assoc 'provider merged)) => "minimax-cn")
     (check (cdr (assoc 'model-id merged)) => (cdr (assoc 'model-id cfg)))
     (check warnings => '())
   ) ;let-values
@@ -132,12 +132,12 @@
   ;; 只有 model，思考等级保持 cfg
   (let-values (((merged warnings)
                 (pi-resolve-session-state cfg
-                  (list (cons 'model (state-model "anthropic" "claude-haiku-4-5")))
+                  (list (cons 'model (state-model "minimax-cn" "MiniMax-M3.1-Flash")))
                   (parse-pi-args '())
                 ) ;pi-resolve-session-state
                ) ;
               ) ;
-    (check (cdr (assoc 'provider merged)) => "anthropic")
+    (check (cdr (assoc 'provider merged)) => "minimax-cn")
     (check (cdr (assoc 'thinking-level merged)) => (cdr (assoc 'thinking-level cfg)))
     (check warnings => '())
   ) ;let-values

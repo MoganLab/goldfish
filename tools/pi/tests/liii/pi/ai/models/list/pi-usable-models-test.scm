@@ -21,7 +21,7 @@
 
 (path-mkdir AGENT-DIR :parents #t :exist-ok #t)
 (path-write-text (path->string (path-join (path AGENT-DIR) (path "auth.json")))
-  "{\"google\":{\"type\":\"api_key\",\"key\":\"fixture-google-key\"},\"anthropic\":{\"type\":\"api_key\",\"key\":\"fixture-anthropic-key\"}}"
+  "{\"google\":{\"type\":\"api_key\",\"key\":\"fixture-google-key\"},\"deepseek\":{\"type\":\"api_key\",\"key\":\"fixture-deepseek-key\"}}"
 ) ;path-write-text
 
 (let* ((store (pi-build-models-catalog AGENT-DIR))
@@ -37,10 +37,10 @@
        (gemini-pro (find (lambda (m) (equal? (cdr (assoc 'id m)) "gemini-2.5-pro")) models))
       ) ;
 
-  ;; 1. 只包含有凭证 provider（google/anthropic）的模型
+  ;; 1. 只包含有凭证 provider（google/deepseek）的模型
   (check-true (pair? models))
   (check-true (and (member "google" providers) #t))
-  (check-true (and (member "anthropic" providers) #t))
+  (check-true (and (member "deepseek" providers) #t))
   (check-false (member "minimax" providers))
 
   ;; 2. 条目字段完整：provider/id/name/reasoning 齐备

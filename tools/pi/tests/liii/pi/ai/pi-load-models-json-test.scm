@@ -21,7 +21,7 @@
   (let ((providers (cdr (assoc "providers" models-json))))
     (check-true (pair? providers))
     (check-true (pair? (assoc "deepseek" providers)))
-    (check-true (pair? (assoc "glm" providers)))
+    (check-true (pair? (assoc "zai-coding-cn" providers)))
     ;; provider 级配置含 baseUrl 与 models 列表
     (let* ((ds (cdr (assoc "deepseek" providers)))
            (models (%to-list (cdr (assoc "models" ds)))))

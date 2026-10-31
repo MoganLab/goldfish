@@ -115,22 +115,22 @@
     (check (cdr (assoc 'context-window meta)) => 262144)
     (check (cdr (assoc 'max-tokens meta)) => 8192))
 
-  ;; glm 默认配置兜底
-  (let ((meta (pi-resolve-model-metadata "glm" "glm-4-plus" '() (list NO-ENV))))
+  ;; zai-coding-cn 默认配置兜底
+  (let ((meta (pi-resolve-model-metadata "zai-coding-cn" "glm-4-plus" '() (list NO-ENV))))
     (check (cdr (assoc 'matched? meta)) => #f)
     (check (cdr (assoc 'id meta)) => "glm-4-plus")
-    (check (cdr (assoc 'base-url meta)) => "https://open.bigmodel.cn/api/anthropic")
-    (check (cdr (assoc 'context-window meta)) => 128000)
-    (check (cdr (assoc 'max-tokens meta)) => 8192))
+    (check (cdr (assoc 'base-url meta)) => "https://open.bigmodel.cn/api/coding/paas/v4")
+    (check (cdr (assoc 'context-window meta)) => 1000000)
+    (check (cdr (assoc 'max-tokens meta)) => 131072))
 
   ;; glm 通过 ANTHROPIC_BASE_URL 覆盖端点
   (let* ((env '(("ANTHROPIC_BASE_URL" . "https://custom.bigmodel.cn/api/anthropic")))
-         (meta (pi-resolve-model-metadata "glm" "glm-4-plus" '() env)))
+         (meta (pi-resolve-model-metadata "zai-coding-cn" "glm-4-plus" '() env)))
     (check (cdr (assoc 'base-url meta)) => "https://custom.bigmodel.cn/api/anthropic"))
 
   ;; glm 通过 GF_PI_BASE_URL 覆盖端点
   (let* ((env '(("GF_PI_BASE_URL" . "https://proxy.example.com/api/anthropic")))
-         (meta (pi-resolve-model-metadata "glm" "glm-4-plus" '() env)))
+         (meta (pi-resolve-model-metadata "zai-coding-cn" "glm-4-plus" '() env)))
     (check (cdr (assoc 'base-url meta)) => "https://proxy.example.com/api/anthropic"))
 
   ;; deepseek 默认配置兜底
@@ -159,21 +159,21 @@
 ;; models.json 合并目录后 glm-5.3 系列命中正确元数据（任务 028）
 (let ((merged (pi-merge-models-json-into-store (pi-load-models-store fixture-dir)
                 (pi-load-models-json fixture-dir))))
-  (let ((meta (pi-resolve-model-metadata "glm" "glm-5.3" merged (list NO-ENV))))
+  (let ((meta (pi-resolve-model-metadata "zai-coding-cn" "glm-5.3" merged (list NO-ENV))))
     (check (cdr (assoc 'matched? meta)) => #t)
     (check (cdr (assoc 'id meta)) => "glm-5.3")
-    (check (cdr (assoc 'base-url meta)) => "https://open.bigmodel.cn/api/anthropic")
+    (check (cdr (assoc 'base-url meta)) => "https://open.bigmodel.cn/api/coding/paas/v4")
     (check (cdr (assoc 'context-window meta)) => 1000000)
     (check (cdr (assoc 'max-tokens meta)) => 131072))
-  (let ((meta (pi-resolve-model-metadata "glm" "glm-5.3-flash" merged (list NO-ENV))))
+  (let ((meta (pi-resolve-model-metadata "zai-coding-cn" "glm-5.3-flash" merged (list NO-ENV))))
     (check (cdr (assoc 'matched? meta)) => #t)
     (check (cdr (assoc 'context-window meta)) => 1000000)
     (check (cdr (assoc 'max-tokens meta)) => 131072))
-  (let ((meta (pi-resolve-model-metadata "glm" "glm-5-turbo" merged (list NO-ENV))))
+  (let ((meta (pi-resolve-model-metadata "zai-coding-cn" "glm-5-turbo" merged (list NO-ENV))))
     (check (cdr (assoc 'matched? meta)) => #t)
     (check (cdr (assoc 'context-window meta)) => 200000)
     (check (cdr (assoc 'max-tokens meta)) => 131072))
-  (let ((meta (pi-resolve-model-metadata "glm" "glm-4.5-air" merged (list NO-ENV))))
+  (let ((meta (pi-resolve-model-metadata "zai-coding-cn" "glm-4.5-air" merged (list NO-ENV))))
     (check (cdr (assoc 'matched? meta)) => #t)
     (check (cdr (assoc 'context-window meta)) => 128000)
     (check (cdr (assoc 'max-tokens meta)) => 16384)))
@@ -250,15 +250,15 @@
   (check (cdr (assoc 'context-window meta)) => 1000000)
   (check (cdr (assoc 'max-tokens meta)) => 131072))
 
-;; 污染环境下 glm 兜底端点不被真实环境的 ANTHROPIC_BASE_URL 覆盖
+;; 污染环境下 zai-coding-cn 兜底端点不被真实环境的 ANTHROPIC_BASE_URL 覆盖
 (let ((meta (with-env-vars POLLUTION
               (lambda ()
-                (pi-resolve-model-metadata "glm" "glm-4-plus" '() (list NO-ENV))
+                (pi-resolve-model-metadata "zai-coding-cn" "glm-4-plus" '() (list NO-ENV))
               ) ;lambda
             ) ;with-env-vars
             )) ;
-  (check (cdr (assoc 'base-url meta)) => "https://open.bigmodel.cn/api/anthropic")
-  (check (cdr (assoc 'context-window meta)) => 128000)
-  (check (cdr (assoc 'max-tokens meta)) => 8192))
+  (check (cdr (assoc 'base-url meta)) => "https://open.bigmodel.cn/api/coding/paas/v4")
+  (check (cdr (assoc 'context-window meta)) => 1000000)
+  (check (cdr (assoc 'max-tokens meta)) => 131072))
 
 (check-report)

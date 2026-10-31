@@ -4,8 +4,6 @@
 
 ;; pi-provider-base-url
 ;; 各 provider 的默认端点，与 models 目录解析出的默认 baseUrl 一致。
-(check (pi-provider-base-url "anthropic") => "https://api.anthropic.com")
-(check (pi-provider-base-url "glm") => "https://open.bigmodel.cn/api/anthropic")
 (check (pi-provider-base-url "deepseek")
   =>
   "https://api.deepseek.com/anthropic"

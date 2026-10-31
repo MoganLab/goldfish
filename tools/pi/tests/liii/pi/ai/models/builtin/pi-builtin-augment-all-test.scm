@@ -8,9 +8,9 @@
 
 (let* ((empty-store '())
        (augmented (pi-builtin-augment-all empty-store)))
-  ;; 应该包含 7 个内置 provider
-  (check (length augmented) => 6)
-  (check-true (pair? (assoc "anthropic" augmented)))
+  ;; 应该包含 6 个内置 provider（anthropic 已移除）
+  (check (length augmented) => 5)
+  (check-false (pair? (assoc "anthropic" augmented)))
   (check-true (pair? (assoc "deepseek" augmented)))
   (check-true (pair? (assoc "google" augmented)))
   (check-true (pair? (assoc "kimi-coding" augmented)))

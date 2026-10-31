@@ -65,11 +65,10 @@
   ) ;let
 ) ;define
 
-;; 1. 空 agent-dir 时，退化为纯内置目录 (7 个内置 provider)
+;; 1. 空 agent-dir 时，退化为纯内置目录 (5 个内置 provider)
 (let* ((empty-catalog (pi-build-models-catalog empty-fixture-dir))
        (names (pi-catalog-provider-names empty-catalog)))
-  (check (length names) => 6)
-  (check-true (if (member "anthropic" names) #t #f))
+  (check (length names) => 5)
   (check-true (if (member "google" names) #t #f))
   (check-true (if (member "deepseek" names) #t #f))
   (check-true (if (member "kimi-coding" names) #t #f))
@@ -80,9 +79,9 @@
 ;; 2. 使用 default fixture，验证三层合并与优先级覆盖
 (let* ((catalog (pi-build-models-catalog fixture-dir))
        (names (pi-catalog-provider-names catalog)))
-  ;; default fixture 包含 glm (来自 models.json)，因此共有 8 个 provider
-  (check (length names) => 7)
-  (check-true (if (member "glm" names) #t #f))
+  ;; default fixture 的 models.json 含 zai-coding-cn；内置 5 个 + fixture 独有的 provider
+  (check (length names) => 6)
+  (check-true (if (member "zai-coding-cn" names) #t #f))
 
   ;; 检查 deepseek 模型的优先级覆盖：models.json 中的 maxTokens 覆盖内置值
   (let* ((ds-models (pi-catalog-provider-models catalog "deepseek"))
@@ -97,8 +96,8 @@
                     #t
                     #f)))
 
-  ;; 检查 glm 模型 (只在 models.json 中存在)
-  (let ((glm-models (pi-catalog-provider-models catalog "glm")))
+  ;; 检查 glm 模型 (只在 models.json 中存在，provider 键为 zai-coding-cn)
+  (let ((glm-models (pi-catalog-provider-models catalog "zai-coding-cn")))
     (check-true (pair? glm-models))))
 
 ;; 3. 自建 fixture 目录覆盖内置模型（断言值由仓库内 fixture 钉死）

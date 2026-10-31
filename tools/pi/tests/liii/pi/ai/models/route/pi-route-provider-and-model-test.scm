@@ -133,12 +133,12 @@
 
 ;; 2. 未指定 --provider 时，按 --model 跨 provider 自动路由
 (check-route "kimi-coding" "k3" #f "k3")
-(check-route "glm" "glm-4.5-air" #f "glm-4.5-air" fixture-merged)
+(check-route "zai-coding-cn" "glm-4.5-air" #f "glm-4.5-air" fixture-merged)
 (check-route "deepseek" "deepseek-v4-pro" #f "deepseek-v4-pro")
 (check-route "minimax-cn" "MiniMax-M3.1-Flash" #f "MiniMax-M3.1-Flash"
   fixture-merged
 ) ;check-route
-(check-route "glm" "glm-5.3" #f "glm-5.3" fixture-merged)
+(check-route "zai-coding-cn" "glm-5.3" #f "glm-5.3" fixture-merged)
 (check-route "google" "gemini-2.5-flash" #f "gemini-2.5-flash")
 
 ;; 2.4 未指定 provider 且模型未命中任何 provider 时报 pi-config-error
@@ -227,7 +227,7 @@
 
 ;; 8. provider/model 斜杠语法路由解析
 (check-route "zai-coding-cn" "glm-5.3-flash" #f "zai-coding-cn/glm-5.3-flash")
-(check-route "anthropic" "claude-opus-4-8" #f "anthropic/claude-opus-4-8")
+(check-route "minimax-cn" "MiniMax-M3.1-Flash" #f "minimax-cn/MiniMax-M3.1-Flash")
 
 ;; 9. 守卫断言：遍历所有已知 provider，验证每个 provider 的默认模型均真实存在于其目录中
 ;; 9.1 针对完整目录（fixture-merged，包含 GLM 等外部定义模型），验证所有 PI_SUPPORTED_PROVIDERS

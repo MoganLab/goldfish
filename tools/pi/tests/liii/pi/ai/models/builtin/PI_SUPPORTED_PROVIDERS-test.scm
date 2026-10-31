@@ -9,8 +9,9 @@
 (check-true (list? PI_SUPPORTED_PROVIDERS))
 (check (car PI_SUPPORTED_PROVIDERS) => "google")
 (check (if (member "kimi-coding" PI_SUPPORTED_PROVIDERS) #t #f) => #t)
-(check (if (member "anthropic" PI_SUPPORTED_PROVIDERS) #t #f) => #t)
-(check (if (member "glm" PI_SUPPORTED_PROVIDERS) #t #f) => #t)
+; anthropic / glm provider 已移除
+(check (if (member "anthropic" PI_SUPPORTED_PROVIDERS) #t #f) => #f)
+(check (if (member "glm" PI_SUPPORTED_PROVIDERS) #t #f) => #f)
 (check (if (member "deepseek" PI_SUPPORTED_PROVIDERS) #t #f) => #t)
 (check (if (member "minimax-cn" PI_SUPPORTED_PROVIDERS) #t #f) => #t)
 ;; minimax 国际版 provider 已移除

@@ -27,7 +27,7 @@
         }
       ]
     },
-    "glm": {
+    "zai-coding-cn": {
       "baseUrl": "https://open.bigmodel.cn/api/anthropic",
       "apiKey": "sk-fixture-not-a-real-key",
       "api": "anthropic-messages",
