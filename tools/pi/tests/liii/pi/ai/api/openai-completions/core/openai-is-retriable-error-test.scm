@@ -42,6 +42,13 @@
          "zai-coding-cn")
        => #t)
 
+;; kimi-coding 的额度耗尽（error.type = exceeded_current_quota_error）不可重试
+(check (openai-is-retriable-error?
+         429
+         "{\"error\":{\"message\":\"You've reached your weekly (7-day) usage limit.\",\"type\":\"exceeded_current_quota_error\"}}"
+         "kimi-coding")
+       => #f)
+
 ;; 同一业务码在别的 provider 下不判定为额度耗尽，仍按状态码可重试
 (check (openai-is-retriable-error?
          429

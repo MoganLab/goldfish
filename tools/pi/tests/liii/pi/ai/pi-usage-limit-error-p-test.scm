@@ -24,6 +24,16 @@
 ;; 2. 403 + 1308：额度耗尽（部分入口用 403）
 (check-true (and (pi-usage-limit-error? 403 five-hour-body zai) #t))
 
+;; 2b. kimi-coding 用 error.type 判定额度耗尽
+(check-true (and (pi-usage-limit-error?
+                   429
+                   "{\"error\":{\"message\":\"You've reached your weekly (7-day) usage limit.\",\"type\":\"exceeded_current_quota_error\"}}"
+                   "kimi-coding"
+                 ) ;pi-usage-limit-error?
+                #t
+              ) ;and
+) ;check-true
+
 ;; 3. 同一业务码在别的 provider 下不判定为额度耗尽
 (check-false (pi-usage-limit-error? 429 weekly-body "kimi-coding"))
 (check-false (pi-usage-limit-error? 429 weekly-body "openai"))

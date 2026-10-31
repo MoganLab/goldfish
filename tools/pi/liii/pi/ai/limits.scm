@@ -86,19 +86,35 @@
       ) ;cond
     ) ;define
 
-    ;; 从响应体提取 (code . message)，兼容三种观测到的 envelope：
-    ;;   {"error":{"code":"1310","message":"..."}}
-    ;;   {"code":1310,"msg":"..."}
-    ;;   {"type":"error","error":{"type":"rate_limit_error","code":"1303",...}}
+    ;; 从响应体提取 ((候选标识 ...) . message)
+    ;;
+    ;; 服务商用来区分错误的字段不一致，按命中优先级收集候选标识：
+    ;;   {"error":{"code":"1310","message":"..."}}                    -> error.code（智谱）
+    ;;   {"code":1310,"msg":"..."}                                    -> code
+    ;;   {"error":{...,"type":"exceeded_current_quota_error",...}}    -> error.type（kimi）
+    ;;   {"type":"error","error":{"type":"rate_limit_error",...}}     -> type
     (define (%parse-error-fields body-str)
       (let ((parsed (catch #t (lambda () (string->json body-str)) (lambda args #f))))
         (if (not (%alist? parsed))
-          (cons #f #f)
+          (cons '() #f)
           (let* ((err (%val "error" parsed #f))
                  (err-obj (if (%alist? err) err #f))
-                 (code (%as-code (or (%val "code" parsed #f) (%val "code" err-obj #f) (%val "name" err-obj #f))
-                       ) ;%as-code
-                 ) ;code
+                 (raw-candidates (list (%val "code" parsed #f)
+                                   (%val "code" err-obj #f)
+                                   (%val "name" err-obj #f)
+                                   (%val "type" parsed #f)
+                                   (%val "type" err-obj #f)
+                                 ) ;list
+                 ) ;raw-candidates
+                 (codes
+                   (let loop
+                     ((rest raw-candidates) (acc '()))
+                     (cond ((null? rest) (reverse acc))
+                           ((%as-code (car rest)) (loop (cdr rest) (cons (%as-code (car rest)) acc)))
+                           (else (loop (cdr rest) acc))
+                     ) ;cond
+                   ) ;let
+                 ) ;codes
                  (msg
                    (%as-message (or (%val "message" parsed #f)
                                   (%val "msg" parsed #f)
@@ -109,7 +125,7 @@
                    ) ;%as-message
                  ) ;msg
                 ) ;
-            (cons code msg)
+            (cons codes msg)
           ) ;let*
         ) ;if
       ) ;let
@@ -118,19 +134,31 @@
     ;; 从响应体识别「服务商额度耗尽」，命中返回描述 alist，否则 #f
     ;;
     ;; 返回 alist 字段（字符串键）：kind / code / message
-    ;;   kind    —— five-hour / weekly
-    ;;   code    —— 服务商业务码（如 "1310"）
+    ;;   kind    —— five-hour / weekly / quota（由 provider 码表决定）
+    ;;   code    —— 命中的服务商业务码/类型（如 "1310"、"exceeded_current_quota_error"）
     ;;   message —— 服务商官方消息原文（可能 #f）
     (define* (pi-detect-usage-limit body-str (provider #f))
       (if (not (string? body-str))
         #f
         (let* ((fields (%parse-error-fields body-str))
-               (code (car fields))
+               (codes (car fields))
                (msg (cdr fields))
-               (entry (and code (assoc code (%quota-codes provider))))
+               (table (%quota-codes provider))
+               (hit
+                 (let loop
+                   ((rest codes))
+                   (cond ((null? rest) #f)
+                         ((assoc (car rest) table) => (lambda (entry) (cons (car rest) entry)))
+                         (else (loop (cdr rest)))
+                   ) ;cond
+                 ) ;let
+               ) ;hit
               ) ;
-          (if (pair? entry)
-            (list (cons "kind" (cdr entry)) (cons "code" code) (cons "message" msg))
+          (if (pair? hit)
+            (list (cons "kind" (cdr (cdr hit)))
+              (cons "code" (car hit))
+              (cons "message" msg)
+            ) ;list
             #f
           ) ;if
         ) ;let*

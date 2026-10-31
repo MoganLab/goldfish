@@ -101,18 +101,34 @@
   (check (cdr (assoc "message" limit)) => "5小时额度已用尽")
 ) ;let
 
-;; 11. 纯文本响应不再按关键词判定（没有业务码就不是额度耗尽）
+(define kimi-weekly-body
+  "{\"error\":{\"message\":\"You've reached your weekly (7-day) usage limit.\",\"type\":\"exceeded_current_quota_error\"}}"
+) ;define
+
+;; 11. kimi-coding 用 error.type 区分额度耗尽（没有 code 字段）
+(let ((limit (pi-detect-usage-limit kimi-weekly-body "kimi-coding")))
+  (check (pi-usage-limit-kind limit) => "quota")
+  (check (cdr (assoc "code" limit)) => "exceeded_current_quota_error")
+  (check (cdr (assoc "message" limit))
+    => "You've reached your weekly (7-day) usage limit."
+  ) ;check
+) ;let
+
+;; 12. kimi 的 type 在别的 provider 下不生效
+(check (pi-detect-usage-limit kimi-weekly-body "zai-coding-cn") => #f)
+
+;; 13. 纯文本响应不再按关键词判定（没有业务码就不是额度耗尽）
 (check (pi-detect-usage-limit "You have exceeded your quota" zai) => #f)
 (check (pi-detect-usage-limit "您已达到5小时使用限制，请稍后再试" zai) => #f)
 (check (pi-detect-usage-limit "usage limit reached" zai) => #f)
 
-;; 12. 空响应体 / 空 JSON / 非对象 JSON
+;; 14. 空响应体 / 空 JSON / 非对象 JSON
 (check (pi-detect-usage-limit "" zai) => #f)
 (check (pi-detect-usage-limit "{}" zai) => #f)
 (check (pi-detect-usage-limit "[]" zai) => #f)
 (check (pi-detect-usage-limit #f zai) => #f)
 
-;; 13. 未知业务码不是额度耗尽
+;; 15. 未知业务码不是额度耗尽
 (check (pi-detect-usage-limit "{\"error\":{\"code\":\"9999\",\"message\":\"x\"}}" zai)
   => #f
 ) ;check

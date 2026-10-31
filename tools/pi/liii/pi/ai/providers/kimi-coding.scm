@@ -10,11 +10,17 @@
   (begin
 
     ;; Provider 配置：api 为协议实现标识（对应 api/ 目录），baseUrl 为默认端点，
-    ;; envKeys 为依次尝试的 API key 环境变量（对应上游 pi providers/<id>.ts 的角色）
+    ;; envKeys 为依次尝试的 API key 环境变量（对应上游 pi providers/<id>.ts 的角色），
+    ;; quotaErrorCodes 为「额度耗尽」标识表。
+    ;;
+    ;; Kimi Coding Plan 用 error.type（而不是 code）区分额度耗尽：
+    ;;   {"error":{"type":"exceeded_current_quota_error","message":"You've reached
+    ;;    your weekly (7-day) usage limit. ..."}}
     (define PI_KIMI_CODING_PROVIDER
       '((api . "openai-completions")
         (baseUrl . "https://api.kimi.com/coding/v1")
-        (envKeys "KIMI_API_KEY"))
+        (envKeys "KIMI_API_KEY")
+        (quotaErrorCodes ("exceeded_current_quota_error" . "quota")))
     ) ;define
 
     (define PI_KIMI_CODING_BUILTIN_MODELS
