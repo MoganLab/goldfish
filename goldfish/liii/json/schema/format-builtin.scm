@@ -39,7 +39,6 @@
         (cons 'uri-reference uri-reference?)
         (cons 'json-pointer json-pointer?)
         (cons 'relative-json-pointer relative-json-pointer?)
-        (cons 'regex regex?)
       ) ;list
     ) ;define
   ) ;begin

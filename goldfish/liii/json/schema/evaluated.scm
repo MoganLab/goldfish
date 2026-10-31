@@ -18,7 +18,6 @@
   (import (scheme base)
     (liii json)
     (liii json schema data)
-    (liii json schema regex)
     (liii json schema reference)
   ) ;import
   (export evaluated-properties evaluated-items)
@@ -56,15 +55,10 @@
         target
       ) ;if
     ) ;define
+    ;; pattern 类关键字按注解忽略：patternProperties 匹配的属性不算已求值，
+    ;; 因此 unevaluatedProperties 会把它们视为未求值（已记录偏差）。
     (define (pattern-match? patterns key)
-      (and (pair? (entries patterns))
-        (let loop
-          ((rest (entries patterns)))
-          (and (pair? rest)
-            (or (regex-search? (caar rest) (key->string key)) (loop (cdr rest)))
-          ) ;and
-        ) ;let
-      ) ;and
+      #f
     ) ;define
     (define (direct-properties instance schema)
       (if (not (json-object? instance))

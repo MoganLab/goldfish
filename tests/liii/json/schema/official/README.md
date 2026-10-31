@@ -15,10 +15,19 @@ gf test tests/liii/json/schema/official/run.scm
 
 运行器输出 passed、failed、skipped 计数。尚未接入的分组属于 skipped，不计入 passed；缺失文件或执行异常属于失败。
 
-## 当前基线（任务 042，发布验收）
+## 当前基线（合并入 goldfish 后，正则后端移除）
 
-- passed=1774，failed=0，skipped=271。
-- 核心分组全部启用并通过（vocabulary 除外）。
+- passed=1678，failed=0，skipped=367。
+- Goldfish 无原生正则实现，子进程 `grep -P` 后端慢且不可移植
+  （macOS BSD grep 不支持 `-P`），因此 pattern 类关键字按注解忽略：
+  - 分组级 skipped：pattern（12）、patternProperties、propertyNames、
+    optional/format/regex（8）。
+  - 用例级 skipped（regex-dependent-cases 黑名单，15 例）：分组整体可过、
+    但个别用例依赖正则语义的 additionalProperties/properties/
+    unevaluatedProperties/non-bmp-regex 用例。
+  - 语义偏差：patternProperties 匹配的属性不算已求值，
+    unevaluatedProperties 会将其视为未求值。
+- 核心分组全部启用并通过（vocabulary 与 pattern 类除外）。
 - optional 分组启用并通过：anchor、bignum、dynamicRef、float-overflow、id、no-schema、non-bmp-regex、refOfUnknownKeyword、unknownKeyword。
 - 格式分组启用并通过 12 个：date、date-time、duration、email、idn-email、ipv4、ipv6、json-pointer、regex、relative-json-pointer、time、uri、uri-reference。
 - 保持 skipped（共 271 例，均为已文档化偏差，见 docs/deviations.md）：vocabulary（5，$vocabulary 动态方言未实现）、cross-draft（1）与 dependencies-compatibility（36，跨草稿按设计不支持）、ecmascript-regex（74，PCRE 后端方言差异）、format-assertion（4，格式默认不断言）、hostname（61）与 idn-hostname（90，IDNA2008 未实现）。

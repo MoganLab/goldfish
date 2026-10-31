@@ -19,7 +19,6 @@
     (liii json)
     (liii json schema data)
     (liii json schema error)
-    (liii json schema regex)
     (liii json schema evaluated)
   ) ;import
   (export object-keyword? validate-object)
@@ -31,13 +30,10 @@
           "unevaluatedProperties" "patternProperties")
       ) ;member
     ) ;define
+    ;; pattern 类关键字按注解忽略（无原生正则后端）：
+    ;; patternProperties 不再匹配任何键，见 evaluator 的 skipped-keyword?。
     (define (pattern-key? patterns key)
-      (let loop
-        ((rest (entries patterns)))
-        (and (pair? rest)
-          (or (regex-search? (caar rest) (key->string key)) (loop (cdr rest)))
-        ) ;and
-      ) ;let
+      #f
     ) ;define
     (define (additional-keys instance schema)
       (let ((properties (object-ref schema "properties" '(())))
@@ -136,19 +132,6 @@
             (additional-keys instance schema)
           ) ;collect-for-each
          ) ;
-         ((string=? keyword "propertyNames")
-          (collect-for-each
-            (lambda (property)
-              (descend (key->string (car property))
-                value
-                path
-                (append schema-path (list keyword))
-                root
-              ) ;descend
-            ) ;lambda
-            (entries instance)
-          ) ;collect-for-each
-         ) ;
          ((string=? keyword "minProperties")
           (if (< (length (entries instance)) value)
             (fail "Too few properties" keyword value instance schema path schema-path)
@@ -225,27 +208,6 @@
               (entries instance)
             ) ;collect-for-each
           ) ;let
-         ) ;
-         ((string=? keyword "patternProperties")
-          (collect-for-each
-            (lambda (pattern)
-              (collect-for-each
-                (lambda (property)
-                  (if (regex-search? (car pattern) (key->string (car property)))
-                    (descend (cdr property)
-                      (cdr pattern)
-                      (append path (list (car property)))
-                      (append schema-path (list keyword (car pattern)))
-                      root
-                    ) ;descend
-                    '()
-                  ) ;if
-                ) ;lambda
-                (entries instance)
-              ) ;collect-for-each
-            ) ;lambda
-            (entries value)
-          ) ;collect-for-each
          ) ;
          (else '())
         ) ;cond

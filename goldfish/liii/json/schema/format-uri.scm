@@ -18,10 +18,9 @@
   (import (scheme base)
     (scheme char)
     (liii json schema format-helpers)
-    (liii json schema regex)
     (liii string)
   ) ;import
-  (export uri? uri-reference? json-pointer? relative-json-pointer? regex?)
+  (export uri? uri-reference? json-pointer? relative-json-pointer?)
   (begin
     ;; ---- RFC 3986 character classes ---------------------------------------
 
@@ -379,10 +378,5 @@
       ) ;let
     ) ;define
 
-    ;; ---- regex ------------------------------------------------------------
-
-    (define (regex? value)
-      (regex-valid? value)
-    ) ;define
   ) ;begin
 ) ;define-library

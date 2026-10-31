@@ -83,7 +83,13 @@
     ) ;define
     (define (skipped-keyword? keyword)
       (or (not (known-keyword? keyword))
-        (member keyword '("then" "else" "minContains" "maxContains"))
+        ;; pattern 类关键字依赖正则引擎；Goldfish 无原生正则实现，
+        ;; 子进程 grep -P 后端慢且不可移植（macOS BSD grep 无 -P），
+        ;; 因此按注解处理：合法 Schema，断言不生效（见偏差清单）。
+        (member keyword
+          '("then" "else" "minContains" "maxContains" "pattern"
+            "patternProperties" "propertyNames")
+        ) ;member
       ) ;or
     ) ;define
     (define (validate-schema-entries validator schema instance path schema-path

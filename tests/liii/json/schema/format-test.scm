@@ -339,9 +339,6 @@
 (assert-format 'relative-json-pointer "0##" #f)
 (assert-format 'relative-json-pointer "" #f)
 
-;; regex: the pattern must compile with the backend.
-(assert-format 'regex "([abc])+\\s+$" #t)
-(assert-format 'regex "^(abc]" #f)
 
 ;; The URI checkers are reachable through the formats option.
 (check-true (json-schema-valid? "http://foo.bar/?baz=qux#quux"

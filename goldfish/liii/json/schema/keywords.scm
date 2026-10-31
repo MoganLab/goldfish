@@ -22,7 +22,6 @@
     (liii json schema keywords-combo)
     (liii json schema reference)
     (liii json schema format)
-    (liii json schema regex)
     (liii json schema error)
     (liii json schema model)
   ) ;import
@@ -69,22 +68,6 @@
              (validate-combo keyword value instance schema path schema-path root
                descend valid?
              ) ;validate-combo
-            ) ;
-            ((string=? keyword "pattern")
-             (if (and (string? instance) (not (regex-search? value instance)))
-               (list (validation-error "String does not match pattern"
-                       keyword
-                       value
-                       instance
-                       schema
-                       path
-                       schema-path
-                       '()
-                       #f
-                     ) ;validation-error
-               ) ;list
-               '()
-             ) ;if
             ) ;
             ((string=? keyword "$ref")
              (let-values (((target target-root) (resolve-reference-with-root validator value root)))

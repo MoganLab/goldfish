@@ -69,12 +69,14 @@
   =>
   '("a" "b")
 ) ;check
+;; pattern 类关键字按注解忽略（无原生正则后端）：
+;; patternProperties 不产生已求值属性。
 (check
   (sorted-strings
     (props '(("ax" . 1)) '(("patternProperties" ("^a" . #t))))
   ) ;sorted-strings
   =>
-  '("ax")
+  '()
 ) ;check
 
 ;; Failed anyOf/oneOf/if branches do not contribute their properties.
