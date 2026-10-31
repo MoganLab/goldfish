@@ -44,7 +44,7 @@
     ;; JSON 配置文件目录：settings.json / auth.json / models.json /
     ;; models-store.json / multikey.json / web-search.json 等所在目录。
     ;; 优先级：显式目录参数 > GF_CONFIG_DIR > PI_CODING_AGENT_DIR
-    ;;         > ~/.gf/agent（存在时） > ~/.pi/agent
+    ;;         > ~/.gf/agent
     ;; 返回绝对路径（path 对象）；会话目录（sessions/）与扩展目录（extensions/）
     ;; 仍归属 agent 目录（pi-get-agent-dir）。
     (define (gf-get-config-dir . opt-dir)
@@ -62,11 +62,7 @@
          ((and (string? env-pi) (not (string-null? (string-trim-both env-pi))))
           (pi-abs-path env-pi)
          ) ;
-         (else
-           (let ((gf-agent (pi-abs-path "~/.gf/agent")))
-             (if (path-exists? gf-agent) gf-agent (pi-abs-path "~/.pi/agent"))
-           ) ;let
-         ) ;else
+         (else (pi-abs-path "~/.gf/agent"))
         ) ;cond
       ) ;let
     ) ;define

@@ -29,8 +29,7 @@
 ;; 1. 显式参数 dir
 ;; 2. 环境变量 GF_CONFIG_DIR
 ;; 3. 环境变量 PI_CODING_AGENT_DIR
-;; 4. ~/.gf/agent（该目录存在时）
-;; 5. ~/.pi/agent（兜底）
+;; 4. ~/.gf/agent（默认，不再回退 ~/.pi/agent）
 ;;
 ;; 注意
 ;; ----
@@ -57,7 +56,7 @@
   (path->string (path-join (path-temp-dir) name))
 ) ;define
 
-;; 1. 无任何覆盖时按 HOME 判断：~/.gf/agent 存在则优先
+;; 1. 无任何覆盖时始终返回 ~/.gf/agent（无论目录是否存在）
 (let* ((home (path-join (path-temp-dir) "gf-get-config-dir-home"))
        (saved-home (get-environment-variable "HOME"))
        (saved-profile (get-environment-variable "USERPROFILE"))
@@ -76,11 +75,11 @@
     =>
     (string-append (%normalize (path-join home ".gf" "agent")))
   ) ;check
-  ;; 1b. ~/.gf/agent 不存在：回退 ~/.pi/agent
+  ;; 1b. ~/.gf/agent 不存在：仍返回 ~/.gf/agent（不回退 ~/.pi/agent）
   (path-rmdir (path-join home ".gf" "agent"))
   (check (%normalize (gf-get-config-dir))
     =>
-    (string-append (%normalize (path-join home ".pi" "agent")))
+    (string-append (%normalize (path-join home ".gf" "agent")))
   ) ;check
   (if saved-home (putenv "HOME" saved-home) (unsetenv "HOME"))
   (when (os-windows?)
