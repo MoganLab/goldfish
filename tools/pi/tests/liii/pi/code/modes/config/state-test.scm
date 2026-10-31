@@ -1,6 +1,7 @@
 (import (scheme base)
   (liii check)
   (liii list)
+  (liii path)
   (liii pi code modes config state)
 ) ;import
 
@@ -99,7 +100,7 @@
 ;; 可用模型数 = google 全部（无 models 白名单）+ kimi 1 + custom 1
 (check (pi-config-state-enabled-model-count st)
   => (+ 2 (length (pi-config-provider-models (prov "google")))))
-(check (pi-config-state-dir st) => DIR)
+(check (pi-config-state-dir st) => (path->string (path DIR)))
 
 ;; 12. 第三列详情行：标签 + 值成对，不含密钥值
 (let ((m (car (pi-config-provider-models (prov "kimi-coding")))))

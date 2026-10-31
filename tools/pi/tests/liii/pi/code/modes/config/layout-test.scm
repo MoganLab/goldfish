@@ -81,7 +81,8 @@
 
 ;; 9. 状态栏显示配置目录与计数
 (let ((text (plain (string-join (pi-config-render st (pi-config-cursor 1 0) 0 120 20) "\n"))))
-  (check (string-contains text DIR) => #t)
+  ;; 目录分隔符随平台变化，与 state 里的目录字符串对齐比较
+  (check (string-contains text (pi-config-state-dir st)) => #t)
 ) ;let
 
 ;; 10. 光标夹紧：越界索引被夹到有效范围，不抛错

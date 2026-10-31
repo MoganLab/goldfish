@@ -1,5 +1,6 @@
 (import (liii check)
         (liii string)
+        (liii path)
   (liii pi ai providers registry)
         (liii pi code config user-providers)
   (liii pi code config user-catalog))
@@ -71,8 +72,9 @@
 ;; 9. 白名单路径：models/providers.json 优先，旧位置 providers.json 仍可用
 (let* ((st (pi-load-providers-whitelist (string-append FIXTURE "/full"))))
   (check st => '("google" "kimi-coding" "custom-kimi")))
+;; 路径分隔符随平台变化（Windows 为反斜杠），断言用 path-join 生成期望后缀
 (check (string-ends? (pi-providers-whitelist-path (string-append FIXTURE "/full"))
-           "models/providers.json"
+           (path->string (path-join (path "models") (path "providers.json")))
          ) ;string-ends?
   => #t
 ) ;check
