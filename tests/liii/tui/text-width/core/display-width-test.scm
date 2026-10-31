@@ -12,7 +12,7 @@
 ;;
 ;; 参数
 ;; ----
-;; str : string
+;; str : string?
 ;; 输入字符串。
 ;;
 ;; 返回值
@@ -20,13 +20,15 @@
 ;; integer
 ;; 视觉显示占用的终端列数。
 ;;
-;; 描述
+;; 注意
 ;; ----
 ;; display-width 是纯函数：
 ;; - ANSI CSI/SGR 控制序列显示宽度计为 0；
 ;; - ASCII 可见字符显示宽度计为 1；
 ;; - CJK 表意字符、全角标点、常见 Emoji 字符显示宽度计为 2；
-;; - 零宽字符与组合标音字符显示宽度计为 0。
+;; - 零宽字符与组合标音字符显示宽度计为 0；
+;; - 含非法 UTF-8 字节时按替换为 U+FFFD 后的文本计算宽度
+;;   （每个最大非法子序列计 1 列），不抛 value-error。
 ;;
 ;; 错误处理
 ;; ----
@@ -66,6 +68,15 @@
 ;; OSC 序列计 0 宽（终端标题、背景色查询）
 (check (display-width "\x1b]0;title\x07hi") => 2)
 (check (display-width "\x1b]11;?\x1b\\ok") => 2)
+
+;; 非法 UTF-8 字节：容错重算，与清理后文本的渲染宽度一致（U+FFFD 宽 1），
+;; 不再因 string->utf8 校验失败抛 value-error（防御深度：入口未清理也能测宽）
+(check (display-width (string-append "你" (byte-vector->string #u8(229 165)))) => 3)
+(check (display-width (byte-vector->string #u8(224 128 128))) => 3)
+(check (display-width (string-append "ab" (byte-vector->string #u8(128)))) => 3)
+
+;; 非法字节与 ANSI 序列共存
+(check (display-width (string-append "\x1b[31m" (byte-vector->string #u8(255)) "\x1b[0m")) => 1)
 
 ;; 类型错误检查
 (check-catch 'type-error (display-width 123))

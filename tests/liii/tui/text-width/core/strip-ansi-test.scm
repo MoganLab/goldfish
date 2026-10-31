@@ -12,7 +12,7 @@
 ;;
 ;; 参数
 ;; ----
-;; str : string
+;; str : string?
 ;; 输入字符串。
 ;;
 ;; 返回值
@@ -20,10 +20,13 @@
 ;; string
 ;; 移除了所有 ANSI 转义序列的纯文本字符串。
 ;;
-;; 描述
+;; 注意
 ;; ----
-;; strip-ansi 是纯函数，扫描输入字符串并去除形如 ESC [ ... <final-char> 的
-;; CSI/SGR 控制序列，例如颜色代码 \x1b[31;1m 与重置代码 \x1b[0m。
+;; strip-ansi 是纯函数，去除 CSI/SGR 控制序列（如颜色代码 \x1b[31;1m 与
+;; 重置代码 \x1b[0m）和 OSC 序列（ESC ] ... BEL/ESC \）。
+;; 不完整的 OSC（无终结符）保守保留，等待流式后续块补全。
+;; 同时把非法 UTF-8 字节序列替换为 U+FFFD（规则同 utf8-replace-invalid），
+;; 避免子进程输出因非法字节抛 value-error 而整段丢失。
 ;; 普通文本和空字符串不受影响。
 ;;
 ;; 错误处理
@@ -70,6 +73,30 @@
 ;; 纯转义序列
 (check (strip-ansi "\x1b[0m") => "")
 (check (strip-ansi "\x1b[31m\x1b[0m") => "")
+
+;; 非法 UTF-8 字节：bash 命令输出可能含被截断的多字节序列（如被截断的
+;; “好”只剩 e5 a5）或二进制垃圾；与上游 JS 字符串层一致，替换为 U+FFFD
+;; 而不是抛 value-error 使整个输出丢失
+;; （用 byte-vector->string 构造含非法字节的原始字符串）
+(check (strip-ansi (string-append "你好" (byte-vector->string #u8(229 165)) "..."))
+  => (string-append "你好" (utf8->string #u8(239 191 189)) "..."))
+
+;; 非法首字节（0xFF 孤立字节）与 ANSI 序列共存
+(check (strip-ansi (string-append "\x1b[31ma" (byte-vector->string #u8(255)) "b\x1b[0m"))
+  => (string-append "a" (utf8->string #u8(239 191 189)) "b"))
+
+;; 非法尾字节：合法序列后跟孤立续字节
+(check (strip-ansi (string-append "a" (byte-vector->string #u8(128)) "b"))
+  => (string-append "a" (utf8->string #u8(239 191 189)) "b"))
+
+;; 过长编码（E0 80 80）与 ANSI 序列共存：按 WHATWG 替换为 3 个 U+FFFD
+(check (strip-ansi (string-append "\x1b[31m" (byte-vector->string #u8(224 128 128)) "\x1b[0m"))
+  =>
+  (string-append (utf8->string #u8(239 191 189))
+    (utf8->string #u8(239 191 189))
+    (utf8->string #u8(239 191 189))
+  ) ;string-append
+) ;check
 
 ;; 类型错误检查
 (check-catch 'type-error (strip-ansi 123))

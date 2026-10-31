@@ -11,23 +11,25 @@
 ;;
 ;; 参数
 ;; ----
-;; str : string
+;; str : string?
 ;; 待折行文本，可包含换行符 \n。
-;; width : real
-;; 目标视觉显示宽度（列数）。若 <= 0 则返回 '("")。
+;;
+;; width : real?
+;; 目标视觉显示宽度（列数）。若 <= 0 则返回 '（"")。
 ;;
 ;; 返回值
 ;; ----
 ;; (list string ...)
 ;; 折行后的行文本列表。
 ;;
-;; 描述
+;; 注意
 ;; ----
 ;; - 支持原文本中的 \n 分段；
 ;; - 英文词语优先在空格处断行（word wrap）；
 ;; - 遇到超长单词或无空格长文本（如 CJK 表意字符），按显示宽度硬折行；
 ;; - CJK 双宽字符绝不劈半跨行；
-;; - ANSI 转义序列不计宽度，折行绝不切断转义码。
+;; - ANSI 转义序列不计宽度，折行绝不切断转义码；
+;; - 输入含非法 UTF-8 字节时先替换为 U+FFFD 再折行（合法输入返回原串对象）。
 ;;
 ;; 错误处理
 ;; ----
@@ -75,6 +77,12 @@
 ;; 裸 ESC（非 CSI 开头，如 OSC 的 ESC]）不导致死循环，计 0 宽丢弃
 (check (wrap-text "a\x1b;]0;tb" 80) => '("a]0;tb"))
 (check (wrap-text "x\x1b;" 80) => '("x"))
+
+;; 非法 UTF-8 字节：入口替换为 U+FFFD 后再折行，不抛 value-error
+(check (wrap-text (string-append "好" (byte-vector->string #u8(229 165)) "ab") 5)
+  =>
+  (list (string-append "好" (utf8->string #u8(239 191 189)) "ab"))
+) ;check
 
 ;; 类型错误检查
 (check-catch 'type-error (wrap-text 123 10))

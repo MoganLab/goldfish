@@ -12,25 +12,28 @@
 ;;
 ;; 参数
 ;; ----
-;; str : string
+;; str : string?
 ;; 待截断的单行文本。
-;; width : real
+;;
+;; width : real?
 ;; 目标视觉显示宽度（列数）。若 <= 0 则返回空字符串。
-;; ellipsis : string (可选，默认 "...")
-;; 超出宽度时附加的省略指示串。
+;;
+;; ellipsis : string? 可选
+;; 超出宽度时附加的省略指示串，默认为 "..."。
 ;;
 ;; 返回值
 ;; ----
 ;; string
 ;; 截断后的安全字符串，其 display-width <= width。
 ;;
-;; 描述
+;; 注意
 ;; ----
 ;; - 若 str 的 display-width <= width，原样返回 str；
 ;; - 若截断发生，保留前半部分字符并在尾部附加 ellipsis；
 ;; - 不劈裂 CJK 双宽字符：若剩余可用宽度为 1 且下个字符为双宽字符，则提前截断；
 ;; - ANSI 安全闭合：若原文本包含 ANSI 转义样式且发生截断，尾部自动补充 \x1b[0m；
-;; - 极小宽度处理：当 width 小于省略号宽度时，安全截取省略号本身。
+;; - 极小宽度处理：当 width 小于省略号宽度时，安全截取省略号本身；
+;; - 输入含非法 UTF-8 字节时先替换为 U+FFFD 再截断（合法输入返回原串对象）。
 ;;
 ;; 错误处理
 ;; ----
@@ -70,6 +73,16 @@
 ;; 包含颜色的文本截断后必须在尾部复位 \x1b[0m 防止颜色泄漏
 (check (truncate-to-width "\x1b[31mhello world\x1b[0m" 8) => "\x1b[31mhello...\x1b[0m")
 (check (truncate-to-width "\x1b[32m你好世界\x1b[0m" 7) => "\x1b[32m你好...\x1b[0m")
+
+;; 非法 UTF-8 字节：入口替换为 U+FFFD 后再截断，不抛 value-error
+;; 未超宽时返回清理后的文本
+(check (truncate-to-width (string-append "a" (byte-vector->string #u8(255)) "好") 6)
+  =>
+  (string-append "a" (utf8->string #u8(239 191 189)) "好")
+) ;check
+
+;; 超宽时按清理后的宽度截断
+(check (truncate-to-width (string-append "a" (byte-vector->string #u8(255)) "好好") 4) => "a...")
 
 ;; 类型错误检查
 (check-catch 'type-error (truncate-to-width 123 5))

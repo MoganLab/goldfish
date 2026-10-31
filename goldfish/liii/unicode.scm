@@ -38,6 +38,10 @@
     ;; Unicode 常量
     unicode-max-codepoint
     unicode-replacement-char
+
+    ;; UTF-8 容错
+    utf8-replace-invalid
+    bytevector-advance-utf8-strict
   ) ;export
 
   (import (scheme base) (liii base) (liii ascii) (liii bitwise) (liii error))
@@ -522,6 +526,158 @@
 
     (define unicode-max-codepoint 1114111)
     (define unicode-replacement-char 65533)
+
+    ;; U+FFFD 替换字符（模块级常量，避免每次替换重新分配）
+    (define %utf8-replacement-string (utf8->string #u8(239 191 189)))
+
+    (define (utf8-replace-invalid str)
+      (unless (string? str)
+        (type-error "utf8-replace-invalid: expected string")
+      ) ;unless
+      (let* ((bv (string->byte-vector str)) (len (bytevector-length bv)))
+        (if (zero? len)
+          str
+          (if (%utf8-all-valid? bv len)
+            str
+            ;; 分段重建：连续合法序列整段复制，非法子序列替换为 U+FFFD
+            (let loop
+              ((i 0) (seg 0) (acc '()))
+              (if (>= i len)
+                (apply string-append
+                  (reverse
+                    (if (= seg i) acc (cons (byte-vector->string (bytevector-copy bv seg i)) acc))
+                  ) ;reverse
+                ) ;apply
+                (let ((next (bytevector-advance-utf8-strict bv i len)))
+                  (if (= next i)
+                    ;; 非法字节：按最大非法子序列长度跳过，只产生一个 U+FFFD
+                    (let ((end (+ i (%utf8-invalid-run bv i len))))
+                      (loop end
+                        end
+                        (cons %utf8-replacement-string
+                          (if (= seg i) acc (cons (byte-vector->string (bytevector-copy bv seg i)) acc))
+                        ) ;cons
+                      ) ;loop
+                    ) ;let
+                    (loop next seg acc)
+                  ) ;if
+                ) ;let
+              ) ;if
+            ) ;let
+          ) ;if
+        ) ;if
+      ) ;let*
+    ) ;define
+
+    ;; 字节序列是否全部为合法 UTF-8（只扫描，不分配）
+    (define (%utf8-all-valid? bv len)
+      (let loop
+        ((i 0))
+        (if (>= i len)
+          #t
+          (let ((next (bytevector-advance-utf8-strict bv i len)))
+            (if (= next i) #f (loop next))
+          ) ;let
+        ) ;if
+      ) ;let
+    ) ;define
+
+    ;; 严格 UTF-8 序列推进：与 bytevector-advance-utf8 不同，拒绝孤立续字节
+    ;; （0x80-0xBF 不能作为首字节）、0xC0/0xC1 与 0xF5-0xFF 等非法首字节，
+    ;; 以及第二字节越界的过长编码、代理和超 U+10FFFF 序列。
+    ;; 合法时返回下一个字节位置，非法时返回原位置（表示无法推进）。
+    (define* (bytevector-advance-utf8-strict bv index (end (length bv)))
+      (if (>= index end)
+        index
+        (let ((b (bytevector-u8-ref bv index)))
+          (cond ((< b 128) (+ index 1))
+                ((and (>= b 194) (<= b 223))
+                 (if (and (< (+ index 1) end) (%utf8-continuation? bv (+ index 1)))
+                   (+ index 2)
+                   index
+                 ) ;if
+                ) ;
+                ((and (>= b 224) (<= b 239))
+                 (if (and (< (+ index 2) end)
+                       (%utf8-second-byte-valid? bv (+ index 1) b)
+                       (%utf8-continuation? bv (+ index 2))
+                     ) ;and
+                   (+ index 3)
+                   index
+                 ) ;if
+                ) ;
+                ((and (>= b 240) (<= b 244))
+                 (if (and (< (+ index 3) end)
+                       (%utf8-second-byte-valid? bv (+ index 1) b)
+                       (%utf8-continuation? bv (+ index 2))
+                       (%utf8-continuation? bv (+ index 3))
+                     ) ;and
+                   (+ index 4)
+                   index
+                 ) ;if
+                ) ;
+                (else index)
+          ) ;cond
+        ) ;let
+      ) ;if
+    ) ;define*
+
+    ;; 是否为 UTF-8 续字节（0x80-0xBF）
+    (define (%utf8-continuation? bv i)
+      (let ((c (bytevector-u8-ref bv i)))
+        (and (>= c 128) (<= c 191))
+      ) ;let
+    ) ;define
+
+    ;; 序列第二字节是否落在首字节要求的范围内（WHATWG UTF-8 decoder）：
+    ;; E0:A0-BF（拒 overlong）、ED:80-9F（拒代理）、F0:90-BF（拒 overlong）、
+    ;; F4:80-8F（拒超 U+10FFFF），其余首字节为通用续字节范围 0x80-0xBF
+    (define (%utf8-second-byte-valid? bv i lead)
+      (let ((c (bytevector-u8-ref bv i)))
+        (cond ((= lead 224) (and (>= c 160) (<= c 191)))
+              ((= lead 237) (and (>= c 128) (<= c 159)))
+              ((= lead 240) (and (>= c 144) (<= c 191)))
+              ((= lead 244) (and (>= c 128) (<= c 143)))
+              (else (and (>= c 128) (<= c 191)))
+        ) ;cond
+      ) ;let
+    ) ;define
+
+    ;; 非法 UTF-8 字节序列的最大子序列长度：
+    ;; - 非法首字节（0x80-0xC1、0xF5-0xFF）：1
+    ;; - 首字节合法但第二字节越界（E0/ED/F0/F4 的特殊边界）：1，
+    ;;   按 WHATWG 语义越界的第二字节"退回"，作为新首字节重新处理
+    ;; - 其余：1 + 后续连续续字节（最多达到该首字节期望的续字节数）
+    (define (%utf8-invalid-run bv i len)
+      (let ((b (bytevector-u8-ref bv i)))
+        (if
+          (and (< (+ i 1) len)
+            (%utf8-continuation? bv (+ i 1))
+            (not (%utf8-second-byte-valid? bv (+ i 1) b))
+          ) ;and
+          1
+          (let ((expect
+                  (cond ((and (>= b 194) (<= b 223)) 1)
+                        ((and (>= b 224) (<= b 239)) 2)
+                        ((and (>= b 240) (<= b 244)) 3)
+                        (else 0)
+                  ) ;cond
+                ) ;expect
+               ) ;
+            (if (= expect 0)
+              1
+              (let loop
+                ((j (+ i 1)) (n 0))
+                (if (and (< n expect) (< j len) (%utf8-continuation? bv j))
+                  (loop (+ j 1) (+ n 1))
+                  (+ 1 n)
+                ) ;if
+              ) ;let
+            ) ;if
+          ) ;let
+        ) ;if
+      ) ;let
+    ) ;define
 
     (define (hexstr->codepoint hex-string)
       (unless (string? hex-string)

@@ -95,7 +95,7 @@
     ) ;define
 
     (define (%tokenize-line line)
-      (let* ((bv (string->utf8 line)) (len (bytevector-length bv)))
+      (let* ((bv (string->byte-vector line)) (len (bytevector-length bv)))
         (let loop
           ((i 0) (acc '()))
           (cond ((>= i len) (reverse acc))
@@ -239,7 +239,9 @@
       (unless (real? width)
         (type-error "wrap-text: width must be a number")
       ) ;unless
-      (let ((w (inexact->exact (floor width))))
+      ;; 非法 UTF-8 字节替换为 U+FFFD：宽度计算与折行输出都基于合法文本，
+      ;; 与渲染管线的清理行为一致（合法输入返回原串对象，无额外分配）
+      (let* ((str (utf8-replace-invalid str)) (w (inexact->exact (floor width))))
         (cond ((<= w 0) (list ""))
               ((string=? str "") (list ""))
               (else
@@ -250,7 +252,7 @@
                 ) ;let
               ) ;else
         ) ;cond
-      ) ;let
+      ) ;let*
     ) ;define
 
   ) ;begin
