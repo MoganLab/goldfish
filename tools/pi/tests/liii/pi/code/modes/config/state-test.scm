@@ -24,9 +24,9 @@
 
 (define (prov id) (pi-config-provider st id))
 
-;; 1. provider 全量视图：白名单顺序在前，其余内置 provider 灰显在后
+;; 1. provider 全量视图：默认 provider 置顶，其余按白名单顺序，最后是灰显的内置 provider
 (check (map pi-config-provider-id (pi-config-state-providers st))
-  => '("google" "kimi-coding" "custom-kimi" "deepseek" "minimax-cn" "zai-coding-cn"))
+  => '("kimi-coding" "google" "custom-kimi" "deepseek" "minimax-cn" "zai-coding-cn"))
 
 ;; 1b. 可用标记：白名单内 #t，否则 #f
 (check (pi-config-provider-enabled? (prov "google")) => #t)

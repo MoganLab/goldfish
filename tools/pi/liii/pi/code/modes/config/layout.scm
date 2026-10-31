@@ -225,7 +225,8 @@
 
     ;; ---------- 主渲染 ----------
 
-    (define (pi-config-render st cursor active width height)
+    ;; message 非空时覆盖提示行（用于显示启停/设默认的结果）
+    (define* (pi-config-render st cursor active width height (message ""))
       (let* ((widths (pi-config-column-widths width))
              (w1 (car widths))
              (w2 (cadr widths))
@@ -321,7 +322,10 @@
                    width
                  ) ;%fit
                ) ;status
-               (hint (%fit " ↑↓/jk move · →/Enter enter · ←/h back · Tab column · g/G top/bottom · q quit"
+               (hint (%fit (if (string=? message "")
+                             " ↑↓/jk move · → enter column · Enter set default · space toggle · v view · q quit"
+                             (string-append " " message)
+                           ) ;if
                        width
                      ) ;%fit
                ) ;hint
@@ -329,7 +333,7 @@
           (append body (list status hint))
         ) ;let*
       ) ;let*
-    ) ;define
+    ) ;define*
 
   ) ;begin
 ) ;define-library

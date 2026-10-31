@@ -1,6 +1,7 @@
 (import (scheme base)
   (liii check)
   (liii string)
+  (liii list)
   (liii tui)
   (liii pi code modes config state)
   (liii pi code modes config layout)
@@ -21,6 +22,12 @@
 (define st (pi-config-state DIR :env '()))
 
 (define (plain s) (strip-ansi s))
+
+(define (p-index id)
+  (list-index (lambda (p) (string=? (pi-config-provider-id p) id))
+    (pi-config-state-providers st)
+  ) ;list-index
+) ;define
 (define (line-width s) (display-width (plain s)))
 
 ;; 1. 列宽：宽屏三等分（第一列 22，第二列 34，其余给预览）
@@ -32,13 +39,13 @@
 (check (pi-config-column-widths 40) => '(20 20 0))
 
 ;; 4. 行数与宽度约束
-(let ((lines (pi-config-render st (pi-config-cursor 1 0) 0 120 20)))
+(let ((lines (pi-config-render st (pi-config-cursor (p-index "kimi-coding") 0) 0 120 20)))
   (check (length lines) => 20)
   (check (every (lambda (l) (<= (line-width l) 120)) lines) => #t)
 ) ;let
 
 ;; 5. 三列内容：providers 标题 + 选中 provider 的模型 + 详情
-(let ((text (plain (string-join (pi-config-render st (pi-config-cursor 1 0) 0 120 20) "\n"))))
+(let ((text (plain (string-join (pi-config-render st (pi-config-cursor (p-index "kimi-coding") 0) 0 120 20) "\n"))))
   (check (string-contains text "providers 3/6 on") => #t)
   (check (string-contains text "kimi-coding") => #t)
   (check (string-contains text "k3.1-pro") => #t)
@@ -52,7 +59,7 @@
 ) ;let
 
 ;; 6. 光标移动改变预览内容：provider 索引 0（google）时不显示 k3.1-pro
-(let ((text (plain (string-join (pi-config-render st (pi-config-cursor 0 0) 0 120 20) "\n"))))
+(let ((text (plain (string-join (pi-config-render st (pi-config-cursor (p-index "google") 0) 0 120 20) "\n"))))
   (check (string-contains text "custom-kimi") => #t)
   ;; 中列切到 google，右列标题不应再是 k3.1-pro（状态栏仍会显示默认模型）
   (check (string-contains text "models · google") => #t)
@@ -60,27 +67,27 @@
 ) ;let
 
 ;; 7. 窄屏隐藏第三列：不出现 baseUrl 详情
-(let ((text (plain (string-join (pi-config-render st (pi-config-cursor 1 0) 0 56 20) "\n"))))
+(let ((text (plain (string-join (pi-config-render st (pi-config-cursor (p-index "kimi-coding") 0) 0 56 20) "\n"))))
   (check (string-contains text "k3.1-pro") => #t)
   (check (string-contains text "baseUrl") => #f)
 ) ;let
 
 ;; 8. 激活列不同 → 渲染结果不同（高亮差异）
-(let ((a (pi-config-render st (pi-config-cursor 1 0) 0 120 20))
-      (b (pi-config-render st (pi-config-cursor 1 0) 1 120 20))
+(let ((a (pi-config-render st (pi-config-cursor (p-index "kimi-coding") 0) 0 120 20))
+      (b (pi-config-render st (pi-config-cursor (p-index "kimi-coding") 0) 1 120 20))
      ) ;
   (check (equal? a b) => #f)
 ) ;let
 
 ;; 9a. 选中行用紫色底整行高亮（ranger 风格），底色覆盖整列宽度
-(let ((raw (string-join (pi-config-render st (pi-config-cursor 1 0) 0 120 20) "\n")))
+(let ((raw (string-join (pi-config-render st (pi-config-cursor (p-index "kimi-coding") 0) 0 120 20) "\n")))
   ;; 焦点列浓紫、非焦点列浅紫
   (check (string-contains raw "48;2;74;44;122") => #t)
   (check (string-contains raw "48;2;56;46;78") => #t)
 ) ;let
 
 ;; 9. 状态栏显示配置目录与计数
-(let ((text (plain (string-join (pi-config-render st (pi-config-cursor 1 0) 0 120 20) "\n"))))
+(let ((text (plain (string-join (pi-config-render st (pi-config-cursor (p-index "kimi-coding") 0) 0 120 20) "\n"))))
   ;; 目录分隔符随平台变化，与 state 里的目录字符串对齐比较
   (check (string-contains text (pi-config-state-dir st)) => #t)
 ) ;let
