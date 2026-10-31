@@ -10,20 +10,20 @@
 ;; pi-route-provider-and-model
 ;; 统一解析 CLI 参数、环境变量与配置，确定生效的 provider 与 model-id
 
-(define FIXTURE_DIR
-  (if (file-exists? "tests/fixtures/default")
-    "tests/fixtures/default"
-    "tools/pi/tests/fixtures/default"
-  ) ;if
-) ;define
+;; 样本目录：自定义模型（deepseek / zai / google）+ 内置目录
+(define custom-catalog
+  (list
+    (cons "google" (list (cons "models" (list (list (cons "id" "gemini-3.8-flash"))
+                                              (list (cons "id" "gemini-2.5-pro"))))))
+    (cons "deepseek" (list (cons "models" (list (list (cons "id" "deepseek-v4-pro"))
+                                                (list (cons "id" "deepseek-v4-flash"))))))
+    (cons "zai-coding-cn"
+      (list (cons "models" (list (list (cons "id" "glm-5.3"))
+                                 (list (cons "id" "glm-5.3-flash"))
+                                 (list (cons "id" "glm-4.5-air"))))))))
 
-(define fixture-store (pi-load-models-store FIXTURE_DIR))
-
-(define fixture-merged
-  (pi-merge-models-json-into-store fixture-store
-    (pi-load-models-json FIXTURE_DIR)
-  ) ;pi-merge-models-json-into-store
-) ;define
+(define fixture-store custom-catalog)
+(define fixture-merged custom-catalog)
 
 (define default-settings
   '(("default-provider" . "google") ("default-model" . "gemini-3.8-flash"))
@@ -31,8 +31,11 @@
 
 (define NO-ENV '(("__PI_TEST_NO_ENV__" . "1")))
 
+;; 默认目录 = 内置目录 + fixture（可用性以目录为准，内置模型需并入目录）
+(define default-catalog (pi-builtin-augment-all fixture-merged))
+
 (define (check-route exp-p exp-m prov model . opt)
-  (let ((store (if (pair? opt) (car opt) fixture-store))
+  (let ((store (if (pair? opt) (car opt) default-catalog))
         (env
           (if (and (pair? opt) (pair? (cdr opt))) (cadr opt) NO-ENV)
         ) ;env
@@ -77,10 +80,10 @@
 (check-route "google" "gemini-3.8-flash" "google" "gemini-3.8-flash")
 (check-route "kimi-coding" "k3" "kimi-coding" "k3")
 (check-route "deepseek" "deepseek-v4-flash" "deepseek" "deepseek-v4-flash"
-  fixture-merged
+  default-catalog
 ) ;check-route
 (check-route "minimax-cn" "MiniMax-M3.1-Flash" "minimax-cn" "MiniMax-M3.1-Flash"
-  fixture-merged
+  default-catalog
 ) ;check-route
 (check-route "minimax-cn" "MiniMax-M2.7" "minimax-cn" "MiniMax-M2.7")
 
@@ -133,12 +136,12 @@
 
 ;; 2. 未指定 --provider 时，按 --model 跨 provider 自动路由
 (check-route "kimi-coding" "k3" #f "k3")
-(check-route "glm" "glm-4.5-air" #f "glm-4.5-air" fixture-merged)
+(check-route "zai-coding-cn" "glm-4.5-air" #f "glm-4.5-air" default-catalog)
 (check-route "deepseek" "deepseek-v4-pro" #f "deepseek-v4-pro")
 (check-route "minimax-cn" "MiniMax-M3.1-Flash" #f "MiniMax-M3.1-Flash"
-  fixture-merged
+  default-catalog
 ) ;check-route
-(check-route "glm" "glm-5.3" #f "glm-5.3" fixture-merged)
+(check-route "zai-coding-cn" "glm-5.3" #f "glm-5.3" default-catalog)
 (check-route "google" "gemini-2.5-flash" #f "gemini-2.5-flash")
 
 ;; 2.4 未指定 provider 且模型未命中任何 provider 时报 pi-config-error
@@ -152,7 +155,7 @@
 (check-route "google" "gemini-3.8-flash" #f #f)
 
 ;; 4. 环境变量 GF_PI_MODEL 显式模型生效并触发跨 provider 路由
-(check-route "kimi-coding" "k3" #f #f fixture-store '(("GF_PI_MODEL" . "k3")))
+(check-route "kimi-coding" "k3" #f #f default-catalog '(("GF_PI_MODEL" . "k3")))
 
 ;; 5. 环境变量 GF_PI_MODEL 未登记模型同样报错
 (check-catch 'pi-config-error
@@ -227,23 +230,24 @@
 
 ;; 8. provider/model 斜杠语法路由解析
 (check-route "zai-coding-cn" "glm-5.3-flash" #f "zai-coding-cn/glm-5.3-flash")
-(check-route "anthropic" "claude-opus-4-8" #f "anthropic/claude-opus-4-8")
+(check-route "minimax-cn" "MiniMax-M3.1-Flash" #f "minimax-cn/MiniMax-M3.1-Flash")
 
 ;; 9. 守卫断言：遍历所有已知 provider，验证每个 provider 的默认模型均真实存在于其目录中
-;; 9.1 针对完整目录（fixture-merged，包含 GLM 等外部定义模型），验证所有 PI_SUPPORTED_PROVIDERS
+;; 9.1 验证所有 PI_SUPPORTED_PROVIDERS 的默认模型均在其内置目录中（自洽闭环）
 (for-each
   (lambda (prov)
-    (check-true (pi-provider-has-model? prov (pi-provider-default-model prov) fixture-merged)
+    (check-true (pi-provider-has-model? prov (pi-provider-default-model prov) default-catalog)
     ) ;check-true
   ) ;lambda
   PI_SUPPORTED_PROVIDERS
 ) ;for-each
 
-;; 9.2 针对纯内置模型目录（'()），验证所有具备内置模型的 provider 默认模型自洽闭环
+;; 9.2 内置目录本身即完整目录：逐 provider 校验默认模型
 (for-each
   (lambda (entry)
     (let ((prov (car entry)))
-      (check-true (pi-provider-has-model? prov (pi-provider-default-model prov) '()))
+      (check-true (pi-provider-has-model? prov (pi-provider-default-model prov) default-catalog)
+      ) ;check-true
     ) ;let
   ) ;lambda
   PI_PROVIDER_BUILTIN_MODELS

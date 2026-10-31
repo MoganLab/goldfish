@@ -42,6 +42,38 @@
     (check (cdr (assoc 'model-id cfg*)) => "gemini-2.5-pro")
     (check (cdr (assoc 'api-key cfg*)) => "fixture-google-key")))
 
+;; 跨协议 provider 切换：provider-api 必须同步更新，
+;; 否则协议分发沿用旧 provider 的实现，请求会打到错误端点（404）
+(let* ((agent-dir (path->string (path-join (path-temp-dir) "pi-cfg-with-model-api-test")))
+       (env (list (cons "PI_CODING_AGENT_DIR" agent-dir)))
+      ) ;
+  (when (file-exists? agent-dir)
+    (rmtree agent-dir)
+  ) ;when
+  (path-mkdir (path agent-dir) :parents #t :exist-ok #t)
+  (path-write-text (path->string (path-join (path agent-dir) (path "providers.json")))
+    "[\"google\", \"zai-coding-cn\"]")
+  (let* ((cfg (resolve-pi-config (parse-pi-args '()) env))
+         (api-before (cdr (assoc 'provider-api cfg)))
+        ) ;
+    ;; 默认 provider 为 google
+    (check (cdr (assoc 'provider cfg)) => "google")
+    (check api-before => "google-generative-ai")
+    ;; 切到 openai-completions 协议的 provider
+    (let ((cfg* (pi-cfg-with-model cfg "zai-coding-cn" "glm-5.3")))
+      (check (cdr (assoc 'provider cfg*)) => "zai-coding-cn")
+      (check (cdr (assoc 'provider-api cfg*)) => "openai-completions")
+      (check (pi-model-metadata-base-url (cdr (assoc 'model-meta cfg*)))
+        => "https://open.bigmodel.cn/api/coding/paas/v4"
+      ) ;check
+      ;; 原 cfg 的 provider-api 不被破坏
+      (check (cdr (assoc 'provider-api cfg)) => "google-generative-ai"))
+    ;; 再切回 google：api 回到 google-generative-ai
+    (let ((cfg* (pi-cfg-with-model cfg "google" "gemini-3.8-flash")))
+      (check (cdr (assoc 'provider-api cfg*)) => "google-generative-ai")))
+  (rmtree agent-dir)
+) ;let*
+
 (rmtree TMP-AGENT-DIR)
 
 (check-report)

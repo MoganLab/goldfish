@@ -36,12 +36,44 @@
 ;; 示例
 ;; ----
 ;; (pi-model-metadata-id (pi-resolve-model-metadata "google" "gemini" store)) => "gemini"
-(define fixture-dir
-  (if (file-exists? "tests/fixtures/default")
-    "tests/fixtures/default"
-    "tools/pi/tests/fixtures/default"
-  ) ;if
-) ;define
+; 模型目录样本（不再读取 models-store.json / models.json）
+(define sample-catalog
+  (list
+    (cons "google"
+      (list (cons "models"
+              (list (list (cons "id" "gemini-3.8-flash")
+                          (cons "name" "Gemini 3.8 Flash")
+                          (cons "baseUrl" "https://generativelanguage.googleapis.com/v1beta")
+                          (cons "contextWindow" 1048576)
+                          (cons "maxTokens" 65536))
+                    (list (cons "id" "gemini-2.5-pro")
+                          (cons "name" "Gemini 2.5 Pro")
+                          (cons "contextWindow" 2097152)
+                          (cons "maxTokens" 65536))))))
+    (cons "deepseek"
+      (list (cons "models"
+              (list (list (cons "id" "deepseek-v4-pro")
+                          (cons "name" "DeepSeek V4 Pro (fixture)")
+                          (cons "baseUrl" "https://api.deepseek.com")
+                          (cons "contextWindow" 1000000)
+                          (cons "maxTokens" 384000))))))
+    (cons "kimi-coding"
+      (list (cons "models"
+              (list (list (cons "id" "kimi-for-coding")
+                          (cons "name" "Kimi K2.7 Code (fixture)")
+                          (cons "baseUrl" "https://api.kimi.com/coding")
+                          (cons "contextWindow" 262144)
+                          (cons "maxTokens" 32768))))))
+    (cons "zai-coding-cn"
+      (list (cons "models"
+              (list (list (cons "id" "glm-5.3") (cons "name" "GLM 5.3 (fixture)")
+                          (cons "contextWindow" 1000000) (cons "maxTokens" 131072))
+                    (list (cons "id" "glm-5.3-flash") (cons "contextWindow" 1000000)
+                          (cons "maxTokens" 131072))
+                    (list (cons "id" "glm-5-turbo") (cons "contextWindow" 200000)
+                          (cons "maxTokens" 131072))
+                    (list (cons "id" "glm-4.5-air") (cons "contextWindow" 128000)
+                          (cons "maxTokens" 16384))))))))
 
 ;; 哨兵 env 表：非空但不含任何目标键。
 ;; lookup-env-var 以 (pair? custom-env) 判定是否回落真实进程环境：
@@ -74,7 +106,7 @@
   ) ;let
 ) ;define
 
-(let ((models-store (pi-load-models-store fixture-dir)))
+(let ((models-store sample-catalog))
   ;; 精确匹配已缓存模型
   (let ((meta (pi-resolve-model-metadata "google" "gemini-3.8-flash" models-store (list NO-ENV))))
     (check-true (pi-model-metadata? meta))
@@ -115,22 +147,22 @@
     (check (cdr (assoc 'context-window meta)) => 262144)
     (check (cdr (assoc 'max-tokens meta)) => 8192))
 
-  ;; glm 默认配置兜底
-  (let ((meta (pi-resolve-model-metadata "glm" "glm-4-plus" '() (list NO-ENV))))
+  ;; zai-coding-cn 默认配置兜底
+  (let ((meta (pi-resolve-model-metadata "zai-coding-cn" "glm-4-plus" '() (list NO-ENV))))
     (check (cdr (assoc 'matched? meta)) => #f)
     (check (cdr (assoc 'id meta)) => "glm-4-plus")
-    (check (cdr (assoc 'base-url meta)) => "https://open.bigmodel.cn/api/anthropic")
-    (check (cdr (assoc 'context-window meta)) => 128000)
-    (check (cdr (assoc 'max-tokens meta)) => 8192))
+    (check (cdr (assoc 'base-url meta)) => "https://open.bigmodel.cn/api/coding/paas/v4")
+    (check (cdr (assoc 'context-window meta)) => 1000000)
+    (check (cdr (assoc 'max-tokens meta)) => 131072))
 
   ;; glm 通过 ANTHROPIC_BASE_URL 覆盖端点
   (let* ((env '(("ANTHROPIC_BASE_URL" . "https://custom.bigmodel.cn/api/anthropic")))
-         (meta (pi-resolve-model-metadata "glm" "glm-4-plus" '() env)))
+         (meta (pi-resolve-model-metadata "zai-coding-cn" "glm-4-plus" '() env)))
     (check (cdr (assoc 'base-url meta)) => "https://custom.bigmodel.cn/api/anthropic"))
 
   ;; glm 通过 GF_PI_BASE_URL 覆盖端点
   (let* ((env '(("GF_PI_BASE_URL" . "https://proxy.example.com/api/anthropic")))
-         (meta (pi-resolve-model-metadata "glm" "glm-4-plus" '() env)))
+         (meta (pi-resolve-model-metadata "zai-coding-cn" "glm-4-plus" '() env)))
     (check (cdr (assoc 'base-url meta)) => "https://proxy.example.com/api/anthropic"))
 
   ;; deepseek 默认配置兜底
@@ -156,24 +188,23 @@
          (meta (pi-resolve-model-metadata "deepseek" "deepseek-chat" '() env)))
     (check (cdr (assoc 'base-url meta)) => "https://proxy.example.com/anthropic")))
 
-;; models.json 合并目录后 glm-5.3 系列命中正确元数据（任务 028）
-(let ((merged (pi-merge-models-json-into-store (pi-load-models-store fixture-dir)
-                (pi-load-models-json fixture-dir))))
-  (let ((meta (pi-resolve-model-metadata "glm" "glm-5.3" merged (list NO-ENV))))
+;; 自定义目录中的 glm-5.3 系列命中正确元数据
+(let ((merged sample-catalog))
+  (let ((meta (pi-resolve-model-metadata "zai-coding-cn" "glm-5.3" merged (list NO-ENV))))
     (check (cdr (assoc 'matched? meta)) => #t)
     (check (cdr (assoc 'id meta)) => "glm-5.3")
-    (check (cdr (assoc 'base-url meta)) => "https://open.bigmodel.cn/api/anthropic")
+    (check (cdr (assoc 'base-url meta)) => "https://open.bigmodel.cn/api/coding/paas/v4")
     (check (cdr (assoc 'context-window meta)) => 1000000)
     (check (cdr (assoc 'max-tokens meta)) => 131072))
-  (let ((meta (pi-resolve-model-metadata "glm" "glm-5.3-flash" merged (list NO-ENV))))
+  (let ((meta (pi-resolve-model-metadata "zai-coding-cn" "glm-5.3-flash" merged (list NO-ENV))))
     (check (cdr (assoc 'matched? meta)) => #t)
     (check (cdr (assoc 'context-window meta)) => 1000000)
     (check (cdr (assoc 'max-tokens meta)) => 131072))
-  (let ((meta (pi-resolve-model-metadata "glm" "glm-5-turbo" merged (list NO-ENV))))
+  (let ((meta (pi-resolve-model-metadata "zai-coding-cn" "glm-5-turbo" merged (list NO-ENV))))
     (check (cdr (assoc 'matched? meta)) => #t)
     (check (cdr (assoc 'context-window meta)) => 200000)
     (check (cdr (assoc 'max-tokens meta)) => 131072))
-  (let ((meta (pi-resolve-model-metadata "glm" "glm-4.5-air" merged (list NO-ENV))))
+  (let ((meta (pi-resolve-model-metadata "zai-coding-cn" "glm-4.5-air" merged (list NO-ENV))))
     (check (cdr (assoc 'matched? meta)) => #t)
     (check (cdr (assoc 'context-window meta)) => 128000)
     (check (cdr (assoc 'max-tokens meta)) => 16384)))
@@ -237,8 +268,7 @@
   (check (cdr (assoc 'base-url meta)) => "https://proxy.example.com/mm"))
 
 ;; 污染环境下解析结果不变（防回归：真实进程环境不得影响模型元数据解析）
-(let* ((merged (pi-merge-models-json-into-store (pi-load-models-store fixture-dir)
-                (pi-load-models-json fixture-dir)))
+(let* ((merged sample-catalog)
        (meta (with-env-vars POLLUTION
                 (lambda ()
                   (pi-resolve-model-metadata "deepseek" "deepseek-v4-pro" merged (list NO-ENV))
@@ -248,17 +278,17 @@
   (check (cdr (assoc 'matched? meta)) => #t)
   (check (cdr (assoc 'base-url meta)) => "https://api.deepseek.com/anthropic")
   (check (cdr (assoc 'context-window meta)) => 1000000)
-  (check (cdr (assoc 'max-tokens meta)) => 131072))
+  (check (cdr (assoc 'max-tokens meta)) => 384000))
 
-;; 污染环境下 glm 兜底端点不被真实环境的 ANTHROPIC_BASE_URL 覆盖
+;; 污染环境下 zai-coding-cn 兜底端点不被真实环境的 ANTHROPIC_BASE_URL 覆盖
 (let ((meta (with-env-vars POLLUTION
               (lambda ()
-                (pi-resolve-model-metadata "glm" "glm-4-plus" '() (list NO-ENV))
+                (pi-resolve-model-metadata "zai-coding-cn" "glm-4-plus" '() (list NO-ENV))
               ) ;lambda
             ) ;with-env-vars
             )) ;
-  (check (cdr (assoc 'base-url meta)) => "https://open.bigmodel.cn/api/anthropic")
-  (check (cdr (assoc 'context-window meta)) => 128000)
-  (check (cdr (assoc 'max-tokens meta)) => 8192))
+  (check (cdr (assoc 'base-url meta)) => "https://open.bigmodel.cn/api/coding/paas/v4")
+  (check (cdr (assoc 'context-window meta)) => 1000000)
+  (check (cdr (assoc 'max-tokens meta)) => 131072))
 
 (check-report)

@@ -24,8 +24,6 @@
 (check-true (has-model? (pi-provider-builtin-models "zai-coding-cn") "glm-4.7"))
 (check-true (has-model? (pi-provider-builtin-models "deepseek") "deepseek-v4-pro")
 ) ;check-true
-(check-true (has-model? (pi-provider-builtin-models "anthropic") "claude-fable-5")
-) ;check-true
 
 ;; PI_PROVIDER_BUILTIN_MODELS 两处导出一致（均为 id -> models 的 alist）
 (check-true (pair? (assoc "kimi-coding" PI_PROVIDER_BUILTIN_MODELS)))
@@ -33,13 +31,14 @@
 ;; "zai" 别名条目不在内置模型目录中（目录按正式 id 组织）
 (check (pi-provider-builtin-models "zai") => '())
 
-;; glm 无内置模型目录
+;; anthropic / glm provider 已移除，无内置模型目录
 (check (pi-provider-builtin-models "glm") => '())
+(check (pi-provider-builtin-models "anthropic") => '())
 
 ;; 支持的 provider 列表
 (check PI_SUPPORTED_PROVIDERS
   =>
-  '("google" "anthropic" "kimi-coding" "glm" "deepseek" "minimax-cn"
+  '("google" "kimi-coding" "deepseek" "minimax-cn"
     "zai-coding-cn")
 ) ;check
 

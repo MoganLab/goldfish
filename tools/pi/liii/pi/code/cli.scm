@@ -15,6 +15,7 @@
     (liii pi code cli args)
     (liii pi code cli tui)
     (liii pi code config)
+    (liii pi code config user-catalog)
     (liii pi code modes)
     (liii pi code modes flow)
     (liii pi code session-state)
@@ -76,7 +77,7 @@
                  #f
                ) ;if
              ) ;target-provider
-             (models-store (pi-build-models-catalog config-dir))
+             (models-store (pi-build-user-catalog (path->string config-dir)))
              (search-arg (pi-args-ref parsed 'list-models))
              (search-pattern (if (string? search-arg) search-arg #f))
              (rows (pi-list-models models-store target-provider search-pattern))

@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://case-lambda.org/agent/providers.schema.json",
+  "title": "Goldfish pi provider 白名单（providers.json）",
+  "description": "启用哪些 provider：json array，元素为 provider id 字符串，顺序即展示顺序（--list-models 与模型选择器）。文件缺失 = 默认全部内置 provider（google / kimi-coding / deepseek / minimax-cn / zai-coding-cn）。语法错误、元素非字符串或重复 id 时拒绝启动（唯一致命配置文件，其余文件坏一个忽略一个）。models/ 下存在同名 <id>.json 或 <id>/ 目录但不在白名单：启动告警并忽略（防拼写错位）；白名单 id 无内置定义且无 models/<id>.json：告警并忽略。",
+  "type": "array",
+  "items": {
+    "type": "string",
+    "minLength": 1,
+    "description": "provider id。内置：google / kimi-coding / deepseek / minimax-cn / zai-coding-cn；自定义 provider 需有 models/<provider>.json（未注册的 id 会告警忽略）"
+  },
+  "uniqueItems": true,
+  "minItems": 1,
+  "examples": [
+    [
+      "google",
+      "kimi-coding"
+    ],
+    [
+      "kimi-coding"
+    ]
+  ]
+}

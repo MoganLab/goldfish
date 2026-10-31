@@ -1,0 +1,5 @@
+{
+  "name": "GLM 5.3 (fixture)",
+  "contextWindow": 1000000,
+  "maxTokens": 131072
+}

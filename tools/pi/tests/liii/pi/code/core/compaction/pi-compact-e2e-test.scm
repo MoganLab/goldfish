@@ -52,7 +52,7 @@
         (path-join (path AGENT_DIR) (path name))
       ) ;path-copy
     ) ;lambda
-    '("settings.json" "auth.json" "models-store.json")
+    '("settings.json" "auth.json" "providers.json")
   ) ;for-each
 ) ;define
 

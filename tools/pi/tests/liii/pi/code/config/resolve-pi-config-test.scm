@@ -41,7 +41,8 @@
   (check (cdr (assoc 'model-id cfg)) => "gemini-2.5-pro")
   (let ((meta (cdr (assoc 'model-meta cfg))))
     (check (cdr (assoc 'matched? meta)) => #t)
-    (check (cdr (assoc 'context-window meta)) => 2097152)))
+    ;; models-store.json 不再参与合并，取内置目录值
+    (check (cdr (assoc 'context-window meta)) => 1048576)))
 
 ;; 3. GF_PI_MODEL 环境变量覆盖 settings.defaultModel
 (let* ((args (parse-pi-args '()))
@@ -56,26 +57,27 @@
        (cfg (resolve-pi-config args env)))
   (check (cdr (assoc 'proxy-url cfg)) => "socks5h://127.0.0.1:1080"))
 
-;; 5. CLI --provider "anthropic" 配合 $TEST_ANTHROPIC_KEY 插值与 ANTHROPIC_AUTH_TOKEN
-(let* ((args (parse-pi-args '("--provider" "anthropic")))
+;; 5. CLI --provider "zai-coding-cn" 默认模型、端点与凭据解析（anthropic provider 已移除）
+(let* ((args (parse-pi-args '("--provider" "zai-coding-cn")))
        (env `(("PI_CODING_AGENT_DIR" . ,FIXTURE_DIR)
-              ("TEST_ANTHROPIC_KEY" . "sk-ant-api-987654321")))
+              ("ZAI_CODING_CN_API_KEY" . "zai-key-987654321")))
        (cfg (resolve-pi-config args env)))
-  (check (cdr (assoc 'provider cfg)) => "anthropic")
-  (check (cdr (assoc 'model-id cfg)) => "claude-opus-4-8")
-  (check (cdr (assoc 'api-key cfg)) => "sk-ant-api-987654321")
+  (check (cdr (assoc 'provider cfg)) => "zai-coding-cn")
+  (check (cdr (assoc 'model-id cfg)) => "glm-5.3")
+  (check (cdr (assoc 'api-key cfg)) => "zai-key-987654321")
   (let ((meta (cdr (assoc 'model-meta cfg))))
     (check (cdr (assoc 'matched? meta)) => #t)
-    (check (cdr (assoc 'base-url meta)) => "https://api.anthropic.com")
+    (check (cdr (assoc 'base-url meta)) => "https://open.bigmodel.cn/api/coding/paas/v4")
     (check (cdr (assoc 'context-window meta)) => 1000000)
-    (check (cdr (assoc 'max-tokens meta)) => 128000)))
+    (check (cdr (assoc 'max-tokens meta)) => 131072)))
 
-(let* ((args (parse-pi-args '("--provider" "anthropic")))
+;; 5.1 无任何凭据时 api-key 为 #f
+(let* ((args (parse-pi-args '("--provider" "deepseek")))
        (env `(("PI_CODING_AGENT_DIR" . ,CONFIG_EMPTY_DIR)
-              ("ANTHROPIC_AUTH_TOKEN" . "auth-token-bearer-123")))
+              ("HOME" . "/non-existent")))
        (cfg (resolve-pi-config args env)))
-  (check (cdr (assoc 'provider cfg)) => "anthropic")
-  (check (cdr (assoc 'api-key cfg)) => "auth-token-bearer-123"))
+  (check (cdr (assoc 'provider cfg)) => "deepseek")
+  (check (cdr (assoc 'api-key cfg)) => #f))
 
 ;; 6. 未知模型：直接报 pi-config-error
 (let ((args (parse-pi-args '("--model" "custom-experimental-model")))
@@ -110,44 +112,23 @@
        (cfg (resolve-pi-config args env)))
   (check (cdr (assoc 'tools cfg)) => '()))
 
-;; 9. CLI --provider "glm" 默认模型、端点与凭据解析
-(let* ((args (parse-pi-args '("--provider" "glm")))
+;; 9. CLI --provider "zai-coding-cn" 凭据环境变量链
+(let* ((args (parse-pi-args '("--provider" "zai-coding-cn")))
        (env `(("PI_CODING_AGENT_DIR" . ,FIXTURE_DIR)
-              ("ANTHROPIC_AUTH_TOKEN" . "glm-token-xyz-123")))
-       (cfg (resolve-pi-config args env)))
-  (check (cdr (assoc 'provider cfg)) => "glm")
-  (check (cdr (assoc 'model-id cfg)) => "glm-5.3")
-  (check (cdr (assoc 'api-key cfg)) => "glm-token-xyz-123")
-  (let ((meta (cdr (assoc 'model-meta cfg))))
-    (check (cdr (assoc 'base-url meta)) => "https://open.bigmodel.cn/api/anthropic")
-    (check (cdr (assoc 'context-window meta)) => 1000000)
-    (check (cdr (assoc 'max-tokens meta)) => 131072)))
-
-;; 9.1 GLM_MODEL 环境变量指定已登记模型
-(let* ((args (parse-pi-args '("--provider" "glm")))
-       (env `(("PI_CODING_AGENT_DIR" . ,FIXTURE_DIR)
-              ("GLM_MODEL" . "glm-5.3")
               ("GLM_API_KEY" . "glm-key-456")))
        (cfg (resolve-pi-config args env)))
-  (check (cdr (assoc 'provider cfg)) => "glm")
+  (check (cdr (assoc 'provider cfg)) => "zai-coding-cn")
   (check (cdr (assoc 'model-id cfg)) => "glm-5.3")
   (check (cdr (assoc 'api-key cfg)) => "glm-key-456")
   (let ((meta (cdr (assoc 'model-meta cfg))))
     (check (cdr (assoc 'matched? meta)) => #t)
     (check (cdr (assoc 'context-window meta)) => 1000000)))
 
-;; 9.2 GLM_MODEL 环境变量指向未登记模型时报 pi-config-error
-(let ((args (parse-pi-args '("--provider" "glm")))
+;; 9.2 未登记模型时报 pi-config-error
+(let ((args (parse-pi-args '("--provider" "zai-coding-cn" "--model" "glm-4-air")))
       (env `(("PI_CODING_AGENT_DIR" . ,FIXTURE_DIR)
-             ("GLM_MODEL" . "glm-4-air")
              ("GLM_API_KEY" . "glm-key-456"))))
   (check-catch 'pi-config-error (resolve-pi-config args env)))
-
-(let* ((args (parse-pi-args '("--provider" "glm")))
-       (env `(("PI_CODING_AGENT_DIR" . ,FIXTURE_DIR))))
-  (let ((cfg (resolve-pi-config args env)))
-    (check (cdr (assoc 'provider cfg)) => "glm")
-    (check (cdr (assoc 'api-key cfg)) => #f)))
 
 ;; 10. CLI --provider "deepseek" 默认模型、端点与凭据解析
 (let* ((args (parse-pi-args '("--provider" "deepseek")))
@@ -197,7 +178,7 @@
 (let* ((args (parse-pi-args '("--model" "glm-5.3")))
        (env `(("PI_CODING_AGENT_DIR" . ,FIXTURE_DIR)))
        (cfg (resolve-pi-config args env)))
-  (check (cdr (assoc 'provider cfg)) => "glm")
+  (check (cdr (assoc 'provider cfg)) => "zai-coding-cn")
   (check (cdr (assoc 'model-id cfg)) => "glm-5.3"))
 
 (let* ((args (parse-pi-args '("--model" "deepseek-v4-flash")))

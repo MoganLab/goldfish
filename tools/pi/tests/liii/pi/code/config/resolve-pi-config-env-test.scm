@@ -77,12 +77,12 @@
     (check (cdr (assoc 'context-window meta)) => 1000000)
     (check (cdr (assoc 'max-tokens meta)) => 384000)))
 
-;; 2. glm 端点由自建 fixture 钉死（models.json 提供 glm provider）
-(let* ((args (parse-pi-args '("--provider" "glm")))
+;; 2. zai-coding-cn 端点由自建 fixture 钉死（models/zai-coding-cn.json）
+(let* ((args (parse-pi-args '("--provider" "zai-coding-cn")))
        (env `(("PI_CODING_AGENT_DIR" . ,CONFIG_DIR)
-              ("ANTHROPIC_AUTH_TOKEN" . "glm-token-xyz-123")))
+              ("GLM_API_KEY" . "glm-token-xyz-123")))
        (cfg (resolve-pi-config args env)))
-  (check (cdr (assoc 'provider cfg)) => "glm")
+  (check (cdr (assoc 'provider cfg)) => "zai-coding-cn")
   (check (cdr (assoc 'model-id cfg)) => "glm-5.3")
   (check (cdr (assoc 'api-key cfg)) => "glm-token-xyz-123")
   (let ((meta (cdr (assoc 'model-meta cfg))))

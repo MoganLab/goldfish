@@ -84,10 +84,14 @@
             ) ;
         (%cfg-override cfg
           (list (cons 'provider provider)
+            ;; 协议标识随 provider 变化而更新，避免沿用旧 provider 的分发实现
+            (cons 'provider-api (pi-cfg-provider-api cfg provider))
             (cons 'model-id model-id)
             (cons 'model-meta meta)
             (cons 'api-key api-key)
             (cons 'supports-thinking supports)
+            ;; provider 级代理随 provider 变化而重算
+            (cons 'proxy-url (pi-cfg-provider-proxy cfg provider))
           ) ;list
         ) ;%cfg-override
       ) ;let*

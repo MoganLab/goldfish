@@ -17,8 +17,14 @@
     ;; 按 provider 注册表声明的协议（api 字段）把请求路由到对应协议实现
     ;; （对应上游 pi-ai 中 provider.api 的路由职责；agent 层经 request-fn
     ;; 参数引用本函数，自身不依赖具体 provider）
+    ;; 协议选择：优先用 config 中已解析的 provider-api（支持自定义 provider 的
+    ;; models/<id>.json 声明），缺失时回退注册表内置值
     (define (pi-request-provider-stream provider config msgs sys-prompt tools on-ev timeout)
-      (let ((api (pi-provider-api provider)))
+      (let* ((cfg-api
+               (and (pair? config) (let ((v (assoc 'provider-api config))) (and v (cdr v))))
+             ) ;cfg-api
+             (api (or cfg-api (pi-provider-api provider)))
+            ) ;
         (cond ((string=? api "anthropic-messages")
                (anthropic-request-stream config msgs sys-prompt tools on-ev timeout)
               ) ;
@@ -27,7 +33,7 @@
               ) ;
               (else (gemini-request-stream config msgs sys-prompt tools on-ev timeout))
         ) ;cond
-      ) ;let
+      ) ;let*
     ) ;define
 
   ) ;begin

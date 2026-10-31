@@ -1,0 +1,7 @@
+{
+  "baseUrl": "https://api.kimi.com/coding",
+  "api": "openai",
+  "models": [
+    "kimi-for-coding"
+  ]
+}

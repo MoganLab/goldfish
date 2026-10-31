@@ -63,15 +63,14 @@
     (check-true (string-contains? out "model"))
     (check-true (string-contains? out "context"))
     (check-true (string-contains? out "max-out"))
-    ;; 跨 provider 全部出现
-    (check-true (string-contains? out "anthropic"))
+    ;; 跨 provider 全部出现（anthropic / glm provider 已移除）
     (check-true (string-contains? out "deepseek"))
     (check-true (string-contains? out "glm"))
     (check-true (string-contains? out "google"))
     (check-true (string-contains? out "kimi-coding"))
-    (check-true (string-contains? out "minimax"))
     (check-true (string-contains? out "minimax-cn"))
     (check-true (string-contains? out "zai-coding-cn"))
+    (check-false (string-contains? out "anthropic"))
   ) ;let
 ) ;let
 
@@ -89,16 +88,16 @@
 (let ((res (exec-gf-pi '("--list-models" "flash"))))
   (check (car res) => 0)
   (let ((out (cadr res)))
-    (check-true (string-contains? out "deepseek-flash"))
+    (check-true (string-contains? out "deepseek-v4-flash"))
     (check-true (string-contains? out "gemini-3.8-flash"))
   ) ;let
 ) ;let
 
-;; 4. 子序列模糊搜索 (g25f -> gemini-2.5-flash)
-(let ((res (exec-gf-pi '("--list-models" "g25f"))))
+;; 4. 子序列模糊搜索 (g38f -> gemini-3.8-flash)
+(let ((res (exec-gf-pi '("--list-models" "g38f"))))
   (check (car res) => 0)
   (let ((out (cadr res)))
-    (check-true (string-contains? out "gemini-2.5-flash"))
+    (check-true (string-contains? out "gemini-3.8-flash"))
   ) ;let
 ) ;let
 

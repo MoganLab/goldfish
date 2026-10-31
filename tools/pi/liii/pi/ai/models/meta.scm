@@ -69,7 +69,7 @@
                    ) ;or
                  ) ;and
                  (and (string? provider)
-                   (or (string=? provider "anthropic") (string=? provider "glm"))
+                   (or (string=? provider "zai-coding-cn") (string=? provider "zai"))
                    (lookup-env-var "ANTHROPIC_BASE_URL" opt-env)
                  ) ;and
                  (and (string? provider)
@@ -103,9 +103,9 @@
 
     (define (pi-resolve-model-metadata provider model-id models-store . opt-env)
       (let* ((p-str (if (symbol? provider) (symbol->string provider) provider))
-             (is-ant? (string=? p-str "anthropic"))
+             (is-ant? #f)
              (is-kimi? (string=? p-str "kimi-coding"))
-             (is-glm? (string=? p-str "glm"))
+             (is-glm? #f)
              (is-ds? (string=? p-str "deepseek"))
              (is-mm? (string=? p-str "minimax-cn"))
              (is-zai? (or (string=? p-str "zai-coding-cn") (string=? p-str "zai")))

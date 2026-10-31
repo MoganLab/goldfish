@@ -29,9 +29,9 @@
   (rmtree TMP-DIR))
 
 (path-mkdir TMP-DIR :parents #t :exist-ok #t)
-;; agent dir 的凭证：状态里的 anthropic 模型需要它才会被应用
+;; agent dir 的凭证：状态里的 minimax-cn 模型需要它才会被应用
 (path-write-text (path->string (path-join (path TMP-DIR) (path "auth.json")))
-  "{\"anthropic\":{\"type\":\"api_key\",\"key\":\"fixture-anthropic-key\"}}")
+  "{\"minimax-cn\":{\"type\":\"api_key\",\"key\":\"fixture-minimax-key\"}}")
 (save-session-header! SESSION-FILE "sess-resume" "2026-10-30T08:00:00.000Z" TMP-DIR)
 (append-session-entry! SESSION-FILE
   (json->string
@@ -44,7 +44,7 @@
 ) ;append-session-entry!
 (append-session-state-entry! SESSION-FILE
   "model_change"
-  (list (cons "provider" "anthropic") (cons "model-id" "claude-haiku-4-5"))
+  (list (cons "provider" "minimax-cn") (cons "model-id" "MiniMax-M3.1-Flash"))
 ) ;append-session-state-entry!
 (append-session-state-entry! SESSION-FILE
   "thinking_level_change"
@@ -62,15 +62,15 @@
     ;; 投影从状态条目导出思考等级与模型
     (check (cdr (assoc 'thinkingLevel state)) => "high")
     (let ((model (cdr (assoc 'model state))))
-      (check (cdr (assoc 'provider model)) => "anthropic")
-      (check (cdr (assoc 'modelId model)) => "claude-haiku-4-5")
+      (check (cdr (assoc 'provider model)) => "minimax-cn")
+      (check (cdr (assoc 'modelId model)) => "MiniMax-M3.1-Flash")
     ) ;let
     (let-values (((merged warnings) (pi-resolve-session-state cfg state parsed)))
       ;; 未显式指定 --provider/--model/--thinking 时，状态覆盖 cfg 默认值
-      (check (cdr (assoc 'provider merged)) => "anthropic")
-      (check (cdr (assoc 'model-id merged)) => "claude-haiku-4-5")
+      (check (cdr (assoc 'provider merged)) => "minimax-cn")
+      (check (cdr (assoc 'model-id merged)) => "MiniMax-M3.1-Flash")
       (check (cdr (assoc 'thinking-level merged)) => "high")
-      (check (cdr (assoc 'api-key merged)) => "fixture-anthropic-key")
+      (check (cdr (assoc 'api-key merged)) => "fixture-minimax-key")
       (check warnings => '())
     ) ;let-values
   ) ;let-values
@@ -78,7 +78,7 @@
   (let ((state (pi-load-session-state parsed cfg)))
     (check (if state #t #f) => #t)
     (check (cdr (assoc 'thinkingLevel state)) => "high")
-    (check (cdr (assoc 'provider (cdr (assoc 'model state)))) => "anthropic")
+    (check (cdr (assoc 'provider (cdr (assoc 'model state)))) => "minimax-cn")
   ) ;let
   ;; --no-session 时不做状态读取
   (check (pi-load-session-state (parse-pi-args '("--no-session")) cfg) => #f)

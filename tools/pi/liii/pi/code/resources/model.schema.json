@@ -1,0 +1,251 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://case-lambda.org/agent/model.schema.json",
+  "title": "Goldfish pi 模型条目（<provider>/<model>.json）",
+  "description": "模型层配置：一个模型一个文件，文件名（去 .json）即模型 id，文件内写 \"id\" 可覆盖。字段集与旧版 models.json 最内层模型条目一致。合并优先级：<model>.json > 内置目录，按字段逐项合并——文件写了的字段生效，没写的字段从内置目录同名模型（若有）补齐。全部字段可选，{} 合法（模型存在，缺失字段全由内置目录补齐；内置目录无此模型时为纯自定义模型，contextWindow 与 maxTokens 建议必写）。",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "本 schema 的 URL，编辑器据此提供补全与校验，可省略"
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "模型 id。缺省为文件名（去 .json）"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "展示名。缺省为模型 id"
+    },
+    "baseUrl": {
+      "type": "string",
+      "minLength": 1,
+      "description": "该模型专属 API 端点，缺省用 provider 的 baseUrl"
+    },
+    "api": {
+      "type": "string",
+      "description": "该模型专属协议标识，缺省用 provider 的 api"
+    },
+    "reasoning": {
+      "type": "boolean",
+      "description": "是否为推理模型（支持思考链），缺省 false"
+    },
+    "input": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "text",
+          "image"
+        ]
+      },
+      "description": "支持的输入类型，缺省 [\"text\"]"
+    },
+    "contextWindow": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "description": "上下文窗口（token 数），如 1048576"
+    },
+    "maxTokens": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "description": "单次最大输出（token 数），如 131072"
+    },
+    "cost": {
+      "type": "object",
+      "description": "计费（USD / 每百万 token）",
+      "properties": {
+        "input": {
+          "type": "number",
+          "minimum": 0
+        },
+        "output": {
+          "type": "number",
+          "minimum": 0
+        },
+        "cacheRead": {
+          "type": "number",
+          "minimum": 0
+        },
+        "cacheWrite": {
+          "type": "number",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "input",
+        "output",
+        "cacheRead",
+        "cacheWrite"
+      ],
+      "additionalProperties": false
+    },
+    "thinkingLevelMap": {
+      "type": "object",
+      "description": "思考档位映射：内部档位（off/minimal/low/medium/high/xhigh/max）到该模型实际档位名的映射；null 表示该档位不可用",
+      "properties": {
+        "off": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "minimal": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "low": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "medium": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "high": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "xhigh": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "max": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "compat": {
+      "type": "object",
+      "description": "兼容性开关（模型级）。常用键：forceAdaptiveThinking（强制自适应思考）、thinkingFormat（openai/deepseek/zai 等）、maxTokensField（max_tokens/max_completion_tokens）、supportsStore、supportsStrictMode 等完整键集见上游 models.schema.json 的 ProviderCompat",
+      "additionalProperties": true
+    },
+    "inputLimits": {
+      "type": "object",
+      "description": "输入限制（图片尺寸/请求数等，与上游 ModelInputLimits 对齐）",
+      "properties": {
+        "maxRequestBytes": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "单次请求最大序列化字节数"
+        },
+        "images": {
+          "type": "object",
+          "properties": {
+            "resize": {
+              "type": "object",
+              "properties": {
+                "maxWidth": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "maxHeight": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "maxBytes": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "base64 编码后最大字节数"
+                },
+                "jpegQuality": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 100
+                }
+              }
+            },
+            "maxPerMessage": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "单条消息最多图片数"
+            },
+            "maxPerRequest": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "单次请求最多图片数"
+            }
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "name": "Kimi K3.1 Pro",
+      "reasoning": true,
+      "input": [
+        "text",
+        "image"
+      ],
+      "contextWindow": 1048576,
+      "maxTokens": 131072,
+      "cost": {
+        "input": 0,
+        "output": 0,
+        "cacheRead": 0,
+        "cacheWrite": 0
+      },
+      "thinkingLevelMap": {
+        "off": null,
+        "low": "low",
+        "high": "high",
+        "max": "max"
+      }
+    },
+    {
+      "name": "Kimi K3.1 Pro Highspeed"
+    },
+    {},
+    {
+      "name": "自定义模型",
+      "contextWindow": 128000,
+      "maxTokens": 8192
+    }
+  ]
+}

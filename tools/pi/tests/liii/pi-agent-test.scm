@@ -105,8 +105,8 @@
         (check-true (pair? usage))
         (check-true (if (member (cdr (assoc 'type a-ev)) '("text_start" "text_delta")) #t #f)))))
 
-  ;; 7. Anthropic provider 单轮应答与流式事件发射
-  (let* ((cfg (make-test-cfg "anthropic" "sk-ant-test" "claude-3-7-sonnet-20250219"
+  ;; 7. anthropic-messages 协议 provider 单轮应答与流式事件发射
+  (let* ((cfg (make-test-cfg "minimax-cn" "sk-ant-test" "MiniMax-M2.7"
                              (string-append base-url "/stream") 10))
          (init-msgs (list '((role . "user") (content . "Hello anthropic"))))
          (emitted '())
@@ -119,8 +119,8 @@
     (let ((updates (filter (lambda (ev) (eq? (car ev) 'message_update)) emitted)))
       (check-true (> (length updates) 0))))
 
-  ;; 8. Anthropic provider 多轮工具调用端到端
-  (let* ((cfg (make-test-cfg "anthropic" "sk-ant-test" "claude-3-7-sonnet-20250219"
+  ;; 8. anthropic-messages 协议 provider 多轮工具调用端到端
+  (let* ((cfg (make-test-cfg "minimax-cn" "sk-ant-test" "MiniMax-M2.7"
                              (string-append base-url "/tool-call") 10 '("bash")))
          (init-msgs (list '((role . "user") (content . "Run echo test"))))
          (res-msgs (run-agent-loop cfg init-msgs "SysPrompt" #f 10 10))
@@ -131,8 +131,8 @@
     (let ((tool-results (filter (lambda (m) (equal? (cdr (assoc 'role m)) "toolResult")) res-msgs)))
       (check (= (length tool-results) 1) => #t)))
 
-  ;; 9. GLM provider 单轮应答与流式事件发射（复用 Anthropic 链路）
-  (let* ((cfg (make-test-cfg "glm" "glm-token-test" "glm-4-plus"
+  ;; 9. minimax-cn 单轮应答与流式事件发射（复用 Anthropic 链路）
+  (let* ((cfg (make-test-cfg "minimax-cn" "glm-token-test" "MiniMax-M2.7"
                              (string-append base-url "/stream") 10))
          (init-msgs (list '((role . "user") (content . "Hello glm"))))
          (emitted '())
@@ -145,8 +145,8 @@
     (let ((updates (filter (lambda (ev) (eq? (car ev) 'message_update)) emitted)))
       (check-true (> (length updates) 0))))
 
-  ;; 10. GLM provider 多轮工具调用端到端
-  (let* ((cfg (make-test-cfg "glm" "glm-token-test" "glm-4-plus"
+  ;; 10. minimax-cn 多轮工具调用端到端
+  (let* ((cfg (make-test-cfg "minimax-cn" "glm-token-test" "MiniMax-M2.7"
                              (string-append base-url "/tool-call") 10 '("bash")))
          (init-msgs (list '((role . "user") (content . "Run echo glm test"))))
          (res-msgs (run-agent-loop cfg init-msgs "SysPrompt" #f 10 10))

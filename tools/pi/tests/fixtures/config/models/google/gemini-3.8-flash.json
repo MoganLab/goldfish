@@ -1,0 +1,5 @@
+{
+  "name": "Gemini 3.8 Flash (fixture)",
+  "contextWindow": 1048576,
+  "maxTokens": 65536
+}

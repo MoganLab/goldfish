@@ -5,6 +5,8 @@
   (liii string)
   (liii list)
   (liii path)
+  (liii path stat)
+  (liii os)
   (liii subprocess)
   (liii sys)
   (liii json)
@@ -82,8 +84,33 @@
         ) ;when
       ) ;let
     ) ;lambda
-    '("auth.json" "models-store.json" "models.json" "settings.json")
+    '("auth.json" "providers.json" "settings.json")
   ) ;for-each
+  ;; 模型目录（models/<provider>.json 与 models/<provider>/<model>.json）
+  (let ((src (path-join (path FIXTURE_DIR) (path "models")))
+        (dst (path-join (path %tmp-agent-dir) (path "models")))
+       ) ;
+    (define (copy-tree s d)
+      (unless (path-exists? d)
+        (path-mkdir d :parents #t :exist-ok #t)
+      ) ;unless
+      (for-each (lambda (name)
+                  (let ((sp (path-join s (path name)))
+                        (dp (path-join d (path name)))
+                       ) ;
+                    (if (path-stat-dir? (path-stat (path->string sp)))
+                      (copy-tree sp dp)
+                      (path-copy sp dp)
+                    ) ;if
+                  ) ;let
+                ) ;lambda
+        (vector->list (listdir (path->string s)))
+      ) ;for-each
+    ) ;define
+    (when (path-exists? src)
+      (copy-tree src dst)
+    ) ;when
+  ) ;let
 ) ;define
 
 (define (cleanup-fixtures!)
@@ -196,17 +223,17 @@
     (process-close p)
   ) ;let*
 
-  ;; 4. Anthropic provider JSON 模式事件流验证
+  ;; 4. minimax-cn provider JSON 模式事件流验证（anthropic-messages 协议）
   ;; GF_PI_MODEL 显式指定模型，避免与 provider 不匹配（任务 034 严格校验）
   (let* ((ant-env (append test-env
-                    (list (cons "ANTHROPIC_API_KEY" "sk-ant-test-json")
-                      (cons "ANTHROPIC_BASE_URL" base-url)
-                      (cons "GF_PI_MODEL" "claude-sonnet-4-5")
+                    (list (cons "MINIMAX_CN_API_KEY" "sk-ant-test-json")
+                      (cons "MINIMAX_CN_BASE_URL" base-url)
+                      (cons "GF_PI_MODEL" "MiniMax-M2.7")
                     ) ;list
                   ) ;append
          ) ;ant-env
-         (cmd (list GF_BIN "pi" "--provider" "anthropic" "--model"
-                "claude-sonnet-4-5" "--mode" "json" "Hello anthropic json"
+         (cmd (list GF_BIN "pi" "--provider" "minimax-cn" "--model"
+                "MiniMax-M2.7" "--mode" "json" "Hello anthropic json"
               ) ;list
          ) ;cmd
          (p (process-spawn cmd :env ant-env :stdout 'pipe :stderr 'pipe))

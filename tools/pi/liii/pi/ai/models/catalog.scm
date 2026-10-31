@@ -13,8 +13,9 @@
     (liii sort)
     (liii pi ai models builtin)
   ) ;import
-  (export pi-build-models-catalog pi-catalog-provider-names
-    pi-catalog-provider-models pi-catalog-merge-provider-models
+  (export pi-catalog-provider-names
+    pi-catalog-provider-models
+    pi-catalog-merge-provider-models
   ) ;export
   (begin
 
@@ -122,48 +123,6 @@
               ) ;let
             ) ;else
       ) ;cond
-    ) ;define
-
-    ;; 构造三层合并模型目录：models.json > models-store.json > 内置目录
-    (define (pi-build-models-catalog config-dir)
-      (let* ((store-path (path-join config-dir "models-store.json"))
-             (models-path (path-join config-dir "models.json"))
-             (store-data (or (%read-json-file store-path) '()))
-             (custom-data (%extract-providers-alist (or (%read-json-file models-path) '())))
-             ;; 提取所有出现过的 provider 名称
-             (all-names (%unique-sorted-names (append PI_PROVIDER_BUILTIN_MODELS store-data custom-data)
-                        ) ;%unique-sorted-names
-             ) ;all-names
-            ) ;
-        (map
-          (lambda (p-name)
-            (let* ((builtin-m (%models-as-list (%dict-ref PI_PROVIDER_BUILTIN_MODELS p-name '())))
-                   (store-entry (%find-entry store-data p-name))
-                   (store-m
-                     (if store-entry
-                       (%models-as-list (%dict-ref (cdr store-entry) "models" '()))
-                       '()
-                     ) ;if
-                   ) ;store-m
-                   (custom-entry (%find-entry custom-data p-name))
-                   (custom-m
-                     (if custom-entry
-                       (%models-as-list (%dict-ref (cdr custom-entry) "models" '()))
-                       '()
-                     ) ;if
-                   ) ;custom-m
-                   ;; 优先级: custom > store > builtin
-                   (merged (pi-catalog-merge-provider-models (pi-catalog-merge-provider-models builtin-m store-m)
-                             custom-m
-                           ) ;pi-catalog-merge-provider-models
-                   ) ;merged
-                  ) ;
-              (cons p-name (list (cons "models" merged)))
-            ) ;let*
-          ) ;lambda
-          all-names
-        ) ;map
-      ) ;let*
     ) ;define
 
   ) ;begin
