@@ -9,8 +9,9 @@
 ;; 判定只看结构化字段（HTTP 状态码 + 响应体业务码），不做任何文本匹配：
 ;; 错误消息会随服务商文案调整、也会被本地化，用它做判定既不可靠也容易误判。
 ;;
-;; 业务码是各家服务商的私有命名空间，因此在码表里按 provider 分组，
-;; 只在对应 provider 下生效，不会跨服务商套用。
+;; 业务码是各家服务商的私有命名空间，因此码表定义在 providers/<provider>.scm 的
+;; quotaErrorCodes 字段里，经 (liii pi ai providers registry) 查询；
+;; 未配置该字段的 provider 不做额度判定，仍按状态码走原有可重试逻辑。
 ;;
 ;; zai-coding-cn（智谱 / Z.AI GLM Coding Plan）的业务码语义：
 ;;   1302        并发槽满              -> 可重试，不是额度耗尽
@@ -20,30 +21,31 @@
 ;;   1312        模型临时拥堵          -> 可重试，不是额度耗尽
 
 (define-library (liii pi ai limits)
-  (import (scheme base) (scheme char) (liii string) (liii json))
+  (import (scheme base)
+    (scheme char)
+    (liii string)
+    (liii json)
+    (liii pi ai providers registry)
+  ) ;import
   (export pi-detect-usage-limit pi-usage-limit-error?
     pi-usage-limit-error-message pi-usage-limit-kind
   ) ;export
   (begin
 
-    ;; 额度耗尽业务码表：provider -> (code -> 额度窗口类型)
-    ;; 业务码是各家的私有命名空间，只在其所属 provider 下生效；未列出的 provider
-    ;; 不做额度判定，仍按状态码走原有可重试逻辑。
-    (define %quota-codes-by-provider
-      '(("zai-coding-cn" ("1308" . "five-hour") ("1310" . "weekly")))
-    ) ;define
-
+    ;; provider id 归一化：大小写与首尾空白不敏感
     (define (%provider-key provider)
-      (and (string? provider) (string-downcase (string-trim-both provider)))
+      (cond ((string? provider) (string-downcase (string-trim-both provider)))
+            ((symbol? provider) (string-downcase (symbol->string provider)))
+            (else #f)
+      ) ;cond
     ) ;define
 
-    ;; 取某个 provider 的额度耗尽码表（未配置时为空表）
+    ;; 取某个 provider 的额度耗尽码表（来自 providers/<provider>.scm 的
+    ;; quotaErrorCodes 字段；未配置时为空表）
     (define (%quota-codes provider)
-      (let* ((key (%provider-key provider))
-             (entry (and key (assoc key %quota-codes-by-provider)))
-            ) ;
-        (if (pair? entry) (cdr entry) '())
-      ) ;let*
+      (let ((key (%provider-key provider)))
+        (if key (pi-provider-quota-codes key) '())
+      ) ;let
     ) ;define
 
     ;; 判断是否为形如 ((k . v) ...) 的关联表

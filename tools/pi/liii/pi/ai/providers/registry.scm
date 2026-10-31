@@ -17,7 +17,7 @@
   ) ;import
   (export PI_PROVIDERS PI_SUPPORTED_PROVIDERS PI_PROVIDER_BUILTIN_MODELS
     pi-provider-record pi-provider-api pi-provider-base-url pi-provider-env-keys
-    pi-provider-builtin-models
+    pi-provider-builtin-models pi-provider-quota-codes
   ) ;export
   (begin
 
@@ -87,6 +87,13 @@
     (define (pi-provider-env-keys provider)
       (let ((record (pi-provider-record provider)))
         (if record (%field record 'envKeys '()) '())
+      ) ;let
+    ) ;define
+
+    ;; provider 的「额度耗尽」业务码表：((code . kind) ...)，未配置返回空表
+    (define (pi-provider-quota-codes provider)
+      (let ((record (pi-provider-record provider)))
+        (if record (%field record 'quotaErrorCodes '()) '())
       ) ;let
     ) ;define
 
