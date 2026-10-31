@@ -1,61 +1,33 @@
+;; (liii json schema cache) 模块介绍与用法示例
+;;
+;; (liii json schema cache) 实现引用解析缓存：按“引用 + 根资源 + 动态作用域”
+;; 三元组命中，避免重复解析同一引用，同时保证不同资源互不污染。
+;;
+;; 下方第 10 组断言（valid? 短路）暂存于此，
+;; 后续拆分到 keywords 库的按函数测试文件。
+
 (import (liii json schema)
   (liii json schema cache)
-  (liii json schema reference)
   (liii check)
   (scheme base)
 ) ;import
+
 (check-set-mode! 'report-failed)
 
-(define root-a '(("$id" . "https://example.com/a/root")))
-
-(define root-b '(("$id" . "https://example.com/b/root")))
-
-;; 1. A key matches only when reference, root and scope all match.
-
-(define key-a (list "child.json" root-a '()))
-
-(define key-b (list "child.json" root-b '()))
-
-(define key-scope (list "child.json" root-a (list root-a)))
-
-(define (matches? entry key)
-  (reference-cache-key-matches? entry (car key) (cadr key) (caddr key))
-) ;define
-
-(check-true (matches? key-a key-a))
-(check-false (matches? key-a key-b))
-(check-false (matches? key-a key-scope))
-(check-false (matches? key-b key-a))
-
-;; 2. The cache stores and returns the value of a matching key.
-
-(define cache (make-reference-cache))
-(check-false (reference-cache-lookup cache "child.json" root-a '()))
-(reference-cache-put! cache "child.json" root-a '() 'VALUE)
-
-(define entry (reference-cache-lookup cache "child.json" root-a '()))
-(check (if entry #t #f) => #t)
-(check (cadddr entry) => 'VALUE)
-
-;; 3. A different root or a different scope does not hit the entry.
-(check-false (reference-cache-lookup cache "child.json" root-b '()))
-(check-false (reference-cache-lookup cache "child.json" root-a (list root-a)))
-(check (if (reference-cache-lookup cache "child.json" root-a '()) #t #f) => #t)
-
-;; 4. A different reference does not hit the entry.
-(check-false (reference-cache-lookup cache "other.json" root-a '()))
-
-;; 5. A cached false schema is still a hit.
-
-(define false-cache (make-reference-cache))
-(reference-cache-put! false-cache "false.json" root-a '() #f)
-
-(define false-entry
-  (reference-cache-lookup false-cache "false.json" root-a '())
-) ;define
-(check (if false-entry #t #f) => #t)
-(check (cadddr false-entry) => #f)
-
+;; ==== 模块概述 ====
+;;
+;; - make-reference-cache            - 创建引用缓存
+;; - reference-cache-key-matches?    - 条目是否与引用/根资源/作用域匹配
+;; - reference-cache-lookup          - 查找缓存条目
+;; - reference-cache-put!             - 写入缓存条目
+;;
+;; ==== 如何查看函数的文档和用例 ====
+;;
+;; 查看模块文档：
+;;   gf doc liii/json/schema/cache
+;;
+;; 查看具体函数文档：
+;;   gf doc "reference-cache-lookup"
 ;; 6. A resource obtained through retrieve is never cached, so the
 ;;    retrieve function keeps being called for every resolution.
 
@@ -153,3 +125,4 @@
 (check probe-calls => 0)
 
 (check-report)
+
