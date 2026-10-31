@@ -17,6 +17,7 @@
     (liii pi ai config types)
     (liii pi ai retry)
     (liii pi ai limits)
+    (liii pi ai log)
     (liii pi ai message)
     (liii pi ai keyring)
     (liii pi ai api google-generative-ai core)
@@ -197,6 +198,26 @@
                      ) ;resp
                      (status (or (%resp-field resp 'status-code) 0))
                     ) ;
+                ;; 异常请求（非 200 / 空闲超时）连同原始响应落盘，便于事后排障
+                (when
+                  (and (not aborted?)
+                    (not (pi-aborted?))
+                    (or idle-timed-out? (not (= status 200)))
+                  ) ;and
+                  (pi-log-http-error! status
+                    (vector-ref error-body-acc 0)
+                    (list (cons 'provider provider)
+                      (cons 'model (cdr (or (%safe-assoc 'model-id config) '(#f
+                                                                             . #f))))
+                      (cons 'url (string-append "POST " url))
+                      (cons 'attempt attempt)
+                      (cons 'max-attempts provider-max-retries)
+                      (cons 'retryable
+                        (gemini-is-retriable-error? status (vector-ref error-body-acc 0))
+                      ) ;cons
+                    ) ;list
+                  ) ;pi-log-http-error!
+                ) ;when
                 (cond
                   ;; 用户中止优先：不进入 multikey 轮换 / 重试，直接结算 aborted；
                   ;; 流尾补探测 pi-aborted? 覆盖单 chunk 交付时信号无后续检查点的场景

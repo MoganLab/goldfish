@@ -20,6 +20,7 @@
     (liii pi ai api anthropic-messages thinking)
     (liii pi ai retry)
     (liii pi ai limits)
+    (liii pi ai log)
   ) ;import
   (export anthropic-build-tool-declarations-from-names
     anthropic-request
@@ -162,6 +163,19 @@
                  (status (or (%resp-field resp 'status-code) 0))
                  (body-str (or (%resp-field resp 'text) ""))
                 ) ;
+            ;; 异常请求（非 200）连同响应体原文落盘，便于事后排障
+            (when (not (= status 200))
+              (pi-log-http-error! status
+                body-str
+                (list (cons 'provider provider)
+                  (cons 'model model-id)
+                  (cons 'url (string-append "POST " url))
+                  (cons 'attempt attempt)
+                  (cons 'max-attempts provider-max-retries)
+                  (cons 'retryable (anthropic-is-retriable-error? status body-str))
+                ) ;list
+              ) ;pi-log-http-error!
+            ) ;when
             (if (anthropic-is-retriable-error? status body-str)
               (if (<= attempt provider-max-retries)
                 (let* ((ra-raw (pi-extract-retry-after resp))

@@ -16,6 +16,7 @@
     (liii pi ai event)
     (liii pi ai retry)
     (liii pi ai limits)
+    (liii pi ai log)
     (liii pi ai keyring)
     (liii pi ai message)
     (liii pi ai api openai-completions core)
@@ -204,6 +205,25 @@
                    (resp (%post-stream url req-json-str headers proxy-alist cb timeout eff-idle))
                    (status (or (%resp-field resp 'status-code) 0))
                   ) ;
+              ;; 异常请求（非 200 / 空闲超时）连同原始响应落盘，便于事后排障
+              (when
+                (and (not aborted?)
+                  (not (pi-aborted?))
+                  (or idle-timed-out? (not (= status 200)))
+                ) ;and
+                (pi-log-http-error! status
+                  (%stream-error-body resp err-acc)
+                  (list (cons 'provider provider)
+                    (cons 'model (cdr (assoc 'model-id config)))
+                    (cons 'url (string-append "POST " url))
+                    (cons 'attempt attempt)
+                    (cons 'max-attempts provider-r)
+                    (cons 'retryable
+                      (openai-is-retriable-error? status (%stream-error-body resp err-acc))
+                    ) ;cons
+                  ) ;list
+                ) ;pi-log-http-error!
+              ) ;when
               ;; 流尾补探测一次中止信号：单 chunk 交付时 on-event 发出的 abort
               ;; 无后续 chunk 检查点，此处探测保证确定性结算为 aborted
               (cond ((or aborted? (pi-aborted?)) (%finalize-aborted-stream stream-state))

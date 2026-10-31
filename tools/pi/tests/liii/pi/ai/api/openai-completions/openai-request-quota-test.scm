@@ -3,12 +3,20 @@
   (liii string)
   (liii subprocess)
   (liii os)
+  (liii path)
   (liii tempfile)
   (liii pi ai message)
+  (liii pi ai log)
   (liii pi ai api openai-completions)
 ) ;import
 
 (check-set-mode! 'report-failed)
+
+;; 异常请求（429）写入 ~/.gf/agent/logs，测试重定向到临时目录
+(define *log-base* (make-temp-dir "gf-pi-quota-log-" ""))
+(define *log-dir* (path-join (path *log-base*) "logs"))
+(pi-log-init! *log-dir*)
+(define *log-file* (pi-log-file-path))
 
 ;; 额度耗尽（HTTP 429）端到端测试
 ;;
@@ -153,7 +161,25 @@
 (check (count-lines weekly-log) => 1)
 (check (count-lines five-hour-log) => 1)
 
+;; 4. 异常请求（429）以 ERROR 级别落盘，响应体原文原样保留
+(define log-text (path-read-text *log-file*))
+
+(check-true (string-contains? log-text "[ERROR]"))
+(check-true (string-contains? log-text "status=429"))
+(check-true (string-contains? log-text "provider=zai-coding-cn"))
+(check-true (string-contains? log-text "model=glm-5.3"))
+(check-true (string-contains? log-text "limit=weekly"))
+(check-true (string-contains? log-text "您已达到每周/每月使用上限"))
+(check-true (string-contains? log-text "您已达到5小时使用上限"))
+(check-true (string-contains? log-text "retryable=no"))
+
 (catch #t (lambda () (remove weekly-log)) (lambda args #f))
 (catch #t (lambda () (remove five-hour-log)) (lambda args #f))
+
+;; 清理日志临时目录
+(pi-log-reset!)
+(path-unlink *log-file*)
+(path-rmdir *log-dir*)
+(path-rmdir *log-base*)
 
 (check-report)

@@ -20,6 +20,7 @@
     (liii pi ai api openai-completions msg)
     (liii pi ai retry)
     (liii pi ai limits)
+    (liii pi ai log)
     (liii pi ai keyring)
   ) ;import
   (export openai-build-tool-declarations-from-names openai-request
@@ -165,6 +166,19 @@
                    (status (or (%resp-field resp 'status-code) 0))
                    (body-str (or (%resp-field resp 'text) ""))
                   ) ;
+              ;; 异常请求（非 200）连同响应体原文落盘，便于事后排障
+              (when (not (= status 200))
+                (pi-log-http-error! status
+                  body-str
+                  (list (cons 'provider provider)
+                    (cons 'model model-id)
+                    (cons 'url (string-append "POST " url))
+                    (cons 'attempt attempt)
+                    (cons 'max-attempts provider-max-retries)
+                    (cons 'retryable (openai-is-retriable-error? status body-str))
+                  ) ;list
+                ) ;pi-log-http-error!
+              ) ;when
               (cond
                ((and key-rotation? (or (= status 429) (= status 403)))
                 (let ((next (pi-rotate-api-key! config api-key status)))
