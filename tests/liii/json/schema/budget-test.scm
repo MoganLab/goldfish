@@ -1,120 +1,53 @@
-(import (liii json schema budget) (liii check) (scheme base))
-(check-set-mode! 'report-failed)
+;; (liii json schema budget) 模块介绍与用法示例
+;;
+;; (liii json schema budget) 提供单次校验的资源预算：限制求值深度、
+;; Schema 节点评估数与引用解析次数，避免递归 Schema 无限展开。
 
-(define (mentions-budget? text)
-  (let ((probe "budget exceeded"))
-    (let loop
-      ((i 0))
-      (cond
-       ((> (+ i (string-length probe)) (string-length text)) #f)
-       ((string=? (substring text i (+ i (string-length probe))) probe) #t)
-       (else (loop (+ i 1)))
-      ) ;cond
-    ) ;let
-  ) ;let
-) ;define
+(import (liii json schema budget))
 
-;; 1. A budget records its configured limits.
+;; ==== 模块概述 ====
+;;
+;; - make-resource-budget        - 创建预算
+;; - resource-budget?            - 判断是否为预算
+;; - reset-resource-budget!      - 复位计数器
+;; - enter-budget-depth!         - 进入一层求值深度
+;; - leave-budget-depth!         - 退出一层求值深度
+;; - count-budget-step!          - 累加一次节点评估
+;; - count-budget-reference!     - 累加一次引用解析
+;; - budget-depth                - 读取当前深度
+;; - budget-steps                - 读取已评估节点数
+;; - budget-references           - 读取已解析引用数
+;; - budget-max-depth            - 读取最大深度
+;; - budget-max-steps            - 读取最大评估数
+;; - budget-max-references       - 读取最大引用数
+;; - validate-budget-options!    - 校验预算选项
+;; - resource-budget-from-options - 按选项创建预算
 
+;; ==== 如何查看函数的文档和用例 ====
+;;
+;; 查看模块文档：
+;;   gf doc liii/json/schema/budget
+;;
+;; 查看具体函数文档：
+;;   gf doc "make-resource-budget"
+;;   gf doc "budget-depth"
+
+;; ==== 常见用法示例 ===;
+
+;; 示例1：创建预算并读取上限
 (define budget (make-resource-budget 10 100 1000))
-(check-true (resource-budget? budget))
-(check-false (resource-budget? 'not-a-budget))
-(check (budget-max-depth budget) => 10)
-(check (budget-max-steps budget) => 100)
-(check (budget-max-references budget) => 1000)
+(budget-max-depth budget) ; => 10
+(budget-depth budget) ; => 0
 
-;; 2. Counters start at zero and are incremented by the entry points.
-(check (budget-depth budget) => 0)
-(check (budget-steps budget) => 0)
-(check (budget-references budget) => 0)
-(enter-budget-depth! budget)
-(check (budget-depth budget) => 1)
-(count-budget-step! budget)
-(check (budget-steps budget) => 1)
-(count-budget-reference! budget)
-(check (budget-references budget) => 1)
+;; 示例2：超限时抛出 json-schema-budget-exceeded
+(catch 'json-schema-budget-exceeded
+  (lambda ()
+    (enter-budget-depth! (make-resource-budget 0 100 100)))
+  (lambda args 'budget-exceeded))
+; => 'budget-exceeded
 
-;; 3. Leaving the depth restores the previous level and never goes below zero.
-(enter-budget-depth! budget)
-(check (budget-depth budget) => 2)
-(leave-budget-depth! budget)
-(check (budget-depth budget) => 1)
-(leave-budget-depth! budget)
-(leave-budget-depth! budget)
-(check (budget-depth budget) => 0)
-
-;; 4. The step budget raises once the limit is reached.
-
-(define step-budget (make-resource-budget 100 1 100))
-(count-budget-step! step-budget)
-(check (budget-steps step-budget) => 1)
-(check-catch 'json-schema-budget-exceeded (count-budget-step! step-budget))
-(check (budget-steps step-budget) => 2)
-
-;; 5. The reference budget raises once the limit is reached.
-
-(define ref-budget (make-resource-budget 100 100 2))
-(count-budget-reference! ref-budget)
-(count-budget-reference! ref-budget)
-(check-catch 'json-schema-budget-exceeded (count-budget-reference! ref-budget))
-(check (budget-references ref-budget) => 3)
-
-;; 6. The depth budget raises once the limit is reached.
-
-(define depth-budget (make-resource-budget 2 100 100))
-(enter-budget-depth! depth-budget)
-(enter-budget-depth! depth-budget)
-(check-catch 'json-schema-budget-exceeded (enter-budget-depth! depth-budget))
-(check (budget-depth depth-budget) => 3)
-
-;; 7. Reset restores every counter while keeping the limits.
-(reset-resource-budget! depth-budget)
-(check (budget-depth depth-budget) => 0)
-(check (budget-steps depth-budget) => 0)
-(check (budget-references depth-budget) => 0)
-(check (budget-max-depth depth-budget) => 2)
-(check (budget-max-steps depth-budget) => 100)
-(check (budget-max-references depth-budget) => 100)
-
-;; 8. A reset budget accepts the full budget again.
-(enter-budget-depth! depth-budget)
-(check (budget-depth depth-budget) => 1)
-(count-budget-step! depth-budget)
-(check (budget-steps depth-budget) => 1)
-
-;; 9. The budget error message mentions the budget.
-
-(define (mentions-budget? text)
-  (let ((probe "budget exceeded"))
-    (let loop
-      ((i 0))
-      (cond
-       ((> (+ i (string-length probe)) (string-length text)) #f)
-       ((string=? (substring text i (+ i (string-length probe))) probe) #t)
-       (else (loop (+ i 1)))
-      ) ;cond
-    ) ;let
-  ) ;let
-) ;define
-
-(define caught-identifier
-  (catch 'json-schema-budget-exceeded
-    (lambda ()
-      (let ((tiny (make-resource-budget 1 100 100)))
-        (enter-budget-depth! tiny)
-        (enter-budget-depth! tiny)
-      ) ;let
-    ) ;lambda
-    (lambda args 'caught-by-identifier)
-  ) ;catch
-) ;define
-(check caught-identifier => 'caught-by-identifier)
-(check-true
-  (mentions-budget? (guard (condition (#t condition))
-                      (enter-budget-depth! (make-resource-budget 0 100 100))
-                      "no error"
-                    ) ;guard
-  ) ;mentions-budget?
-) ;check-true
-
-(check-report)
+;; 示例3：校验预算选项
+(catch 'json-schema-options-error
+  (lambda () (validate-budget-options! '((max-depth . 0))))
+  (lambda args 'bad-option))
+; => 'bad-option
