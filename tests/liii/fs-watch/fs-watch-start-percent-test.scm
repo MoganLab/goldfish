@@ -1,4 +1,10 @@
-(import (scheme base) (liii check) (liii fs-watch))
+(import (scheme base)
+  (scheme time)
+  (liii check)
+  (liii fs-watch)
+  (liii shutil)
+  (liii tempfile)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -39,5 +45,19 @@
 (check-catch 'type-error (fs-watch-start% "/tmp" "yes"))
 (check-catch 'value-error (fs-watch-start% "/tmp" #t))
 (check-catch 'value-error (fs-watch-start% "/no/such/dir/gf-fswatch" #f))
+
+;; start 必须在毫秒级返回：Windows 上若句柄没有 FILE_FLAG_OVERLAPPED，
+;; ReadDirectoryChangesW 会同步阻塞到目录首次变化，C 层“等待监听就位”
+;; 的 2s 超时就会变成固定启动延迟（gf pi 启动即受此影响）。
+(let* ((dir (make-temp-dir "gf-fswatch-start-"))
+       (t0 (current-second))
+       (handle (fs-watch-start% dir #f))
+       (elapsed (- (current-second) t0))
+      ) ;
+  (check-true (integer? handle))
+  (check-true (< elapsed 1.0))
+  (g_fs_watch_stop handle)
+  (rmtree dir #t)
+) ;let*
 
 (check-report)

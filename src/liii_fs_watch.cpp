@@ -137,6 +137,10 @@ fs_watch_loop_win (FsWatcher* w) {
     // OVERLAPPED 异步模式：立即返回，完成（含取消）由事件通知。
     // GetOverlappedResult 返回后内核保证不再访问 buffer/ovl，
     // 避免取消竞态下内核晚写已析构内存的堆破坏。
+    // 每次发起新的异步读取前重置完成事件：done_event 是 manual-reset，
+    // 上一次完成后会保持有信号，不重置会让下一次 WaitForSingleObject 立即
+    // 返回并误判为读取已完成。
+    ResetEvent (done_event);
     BOOL pending=
         ReadDirectoryChangesW (w->dir_handle, w->buf.data (), (DWORD) w->buf.size (), FALSE, // v1 统一不支持 recursive
                                filter, NULL, &ovl, NULL);
@@ -314,7 +318,7 @@ f_fs_watch_start (s7_scheme* sc, s7_pointer args) {
   std::wstring wide= fs_utf8_to_wide (abs);
   w->dir_handle=
       CreateFileW (wide.c_str (), FILE_LIST_DIRECTORY, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL,
-                   OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, NULL);
+                   OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED, NULL);
   if (w->dir_handle == INVALID_HANDLE_VALUE) {
     return s7_f (sc);
   }
