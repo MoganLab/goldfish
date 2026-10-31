@@ -61,7 +61,7 @@
       (select-list-items (pi-app-slash-command-menu app))
     ) ;map
     =>
-    '("model" "thinking" "name" "session" "resume")
+    '("model" "thinking" "name" "session" "resume" "config")
   ) ;check
   (check
     (map (lambda (item) (cdr (assoc 'description item)))
@@ -69,7 +69,8 @@
     ) ;map
     =>
     '("Select model" "Set thinking level" "Get or set session name"
-      "Show session statistics" "Select and resume a session")
+      "Show session statistics" "Select and resume a session"
+      "Edit providers and models")
   ) ;check
   (editor-set-text! ed "/res")
   (check

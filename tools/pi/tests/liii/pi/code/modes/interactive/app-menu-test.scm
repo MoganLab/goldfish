@@ -20,24 +20,28 @@
       (select-list-items (pi-app-slash-command-menu app))
     ) ;map
     =>
-    '("model" "thinking" "name" "session" "resume")
+    '("model" "thinking" "name" "session" "resume" "config")
   ) ;check
   (pi-app-render! app)
   (let ((plain (map strip-ansi (alt-screen-lines (pi-app-screen app)))))
     ;; 全屏帧固定为终端高度（40 行）：对话记录视口占上方，输入区与菜单贴在底部
     (check (length plain) => 40)
-    ;; 命令菜单位于输入区下方、页脚上方
-    (check-true (string-contains? (list-ref plain 33) "/model"))
-    (check-true (string-contains? (list-ref plain 33) "Select model"))
-    (check-true (string-contains? (list-ref plain 34) "/thinking"))
-    (check-true (string-contains? (list-ref plain 34) "Set thinking level"))
-    (check-true (string-contains? (list-ref plain 35) "/name"))
-    (check-true (string-contains? (list-ref plain 36) "/session"))
-    (check-true (string-contains? (list-ref plain 37) "/resume"))
-    (check-true (string-contains? (list-ref plain 37) "Select and resume a session")
-    ) ;check-true
-    ;; 光标仍在输入行（视口 30 行 + 输入区上边框）
-    (check (terminal-cursor vterm) => '(1 31))
+    ;; 命令菜单位于输入区下方、页脚上方（顺序即菜单顺序，行号随菜单项数变化）
+    (let ((rows (list 32 33 34 35 36)))
+      (check-true (string-contains? (list-ref plain (list-ref rows 0)) "/model"))
+      (check-true (string-contains? (list-ref plain (list-ref rows 0)) "Select model"))
+      (check-true (string-contains? (list-ref plain (list-ref rows 1)) "/thinking"))
+      (check-true (string-contains? (list-ref plain (list-ref rows 1)) "Set thinking level"))
+      (check-true (string-contains? (list-ref plain (list-ref rows 2)) "/name"))
+      (check-true (string-contains? (list-ref plain (list-ref rows 3)) "/session"))
+      (check-true (string-contains? (list-ref plain (list-ref rows 4)) "/resume"))
+      (check-true (string-contains? (list-ref plain (list-ref rows 4)) "Select and resume a session")
+      ) ;check-true
+      ;; 菜单最多显示 5 项，第 6 项 /config 需要滚动（此处用计数行体现）
+      (check-true (string-contains? (list-ref plain 37) "(1/6)"))
+    ) ;let
+    ;; 光标仍在输入行（菜单增高一行，输入区随之上移一行）
+    (check (terminal-cursor vterm) => '(1 30))
   ) ;let
 ) ;let*
 

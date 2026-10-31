@@ -113,6 +113,13 @@
       ) ;let
     ) ;define
 
+    ;; 把满足谓词的第一项提到最前（默认 provider / 默认模型都在首行）
+    (define (%pin-front items pred?)
+      (let ((hit (find pred? items)) (rest (filter (lambda (x) (not (pred? x))) items)))
+        (if hit (cons hit rest) items)
+      ) ;let
+    ) ;define
+
     ;; ---------- 模型条目 ----------
 
     (define (%model-entry dir p-id m default-provider default-model)
@@ -156,9 +163,11 @@
           (cons "enabled" (if (pi-user-dict-ref fields "enabled" #f) #t #f))
           (cons "file" (%provider-file-rel config-dir p-id))
           (cons "models"
-            (map (lambda (m) (%model-entry config-dir p-id m default-provider default-model))
-              models-raw
-            ) ;map
+            (%pin-front (map (lambda (m) (%model-entry config-dir p-id m default-provider default-model))
+                          models-raw
+                        ) ;map
+              pi-config-model-default?
+            ) ;%pin-front
           ) ;cons
         ) ;list
       ) ;let*
@@ -190,7 +199,11 @@
                ) ;map
              ) ;providers
             ) ;
-        (%make-config-state dir providers default-provider default-model)
+        (%make-config-state dir
+          (%pin-front providers pi-config-provider-default?)
+          default-provider
+          default-model
+        ) ;%make-config-state
       ) ;let*
     ) ;define*
 

@@ -319,10 +319,18 @@
       ) ;let
     ) ;define
 
-    ;; gf pi config：ranger 风格三列只读配置浏览
+    ;; gf pi config：ranger 风格三列配置 TUI。
+    ;; 按 q 退出 = 配置完成，直接进入 pi 交互界面；Esc/Ctrl+C = 直接退出。
     (define (%handle-config-command)
-      (pi-config-run (gf-get-config-dir))
-      0
+      (let ((result (pi-config-run (gf-get-config-dir))))
+        (if (and (eq? result 'chat) (stdin-tty?) (stdout-tty?))
+          (begin
+            (%ensure-extensions-loaded!)
+            (%run-pi-main (parse-pi-args '()))
+          ) ;begin
+          0
+        ) ;if
+      ) ;let
     ) ;define
 
     (define (run-pi raw-args)
