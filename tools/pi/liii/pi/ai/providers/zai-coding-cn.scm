@@ -5,23 +5,36 @@
 ;;
 
 (define-library (liii pi ai providers zai-coding-cn)
-  (import (scheme base))
-  (export PI_ZAI_CODING_CN_PROVIDER PI_ZAI_CODING_CN_BUILTIN_MODELS)
+  (import (scheme base) (liii pi ai providers quota))
+  (export PI_ZAI_CODING_CN_PROVIDER
+    PI_ZAI_CODING_CN_BUILTIN_MODELS
+    PI_ZAI_CODING_CN_QUOTA-ERROR
+  ) ;export
   (begin
 
     ;; Provider 配置：api 为协议实现标识（对应 api/ 目录），baseUrl 为默认端点，
-    ;; envKeys 为依次尝试的 API key 环境变量（对应上游 pi providers/<id>.ts 的角色），
-    ;; quotaErrorCodes 为「额度耗尽」业务码表（业务码是服务商私有命名空间，
-    ;; 因此只在本 provider 下生效）：
-    ;;   1308 -> 5 小时额度窗口耗尽（five-hour）
-    ;;   1310 -> 每周/每月额度耗尽（weekly）
-    ;; 1302（并发槽满）/1303、1305（短时频率）/1312（模型拥堵）都不是额度耗尽，可重试。
+    ;; envKeys 为依次尝试的 API key 环境变量（对应上游 pi providers/<id>.ts 的角色）
     (define PI_ZAI_CODING_CN_PROVIDER
       '((api . "openai-completions")
         (baseUrl . "https://open.bigmodel.cn/api/coding/paas/v4")
         (envKeys "ZAI_CODING_CN_API_KEY" "ZAI_API_KEY" "GLM_API_KEY"
-          "ZHIPU_API_KEY")
-        (quotaErrorCodes ("1308" . "five-hour") ("1310" . "weekly")))
+          "ZHIPU_API_KEY"))
+    ) ;define
+
+    ;; 「额度耗尽」识别：智谱 / Z.AI GLM Coding Plan
+    ;;
+    ;;   HTTP 403/429 且 error.code ∈ {1308, 1310}
+    ;;     1308 -> 5 小时额度窗口耗尽（five-hour）
+    ;;     1310 -> 每周/每月额度耗尽（weekly）
+    ;;   1302（并发槽满）/1303、1305（短时频率）/1312（模型拥堵）不是额度耗尽，
+    ;;   分别返回 #f 让上层继续重试。
+    ;;
+    ;; 返回值：((kind . ...) (code . ...) (message . 官方原文)) 或 #f
+    (define (PI_ZAI_CODING_CN_QUOTA-ERROR status-code body-str)
+      (pi-quota-error-result status-code
+        body-str
+        '(("1308" . "five-hour") ("1310" . "weekly"))
+      ) ;pi-quota-error-result
     ) ;define
 
     (define PI_ZAI_CODING_CN_BUILTIN_MODELS

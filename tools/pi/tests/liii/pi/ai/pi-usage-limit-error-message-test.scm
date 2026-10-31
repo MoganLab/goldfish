@@ -17,19 +17,19 @@
 ) ;define
 
 ;; 1. 带 provider：前缀 + 官方消息原文
-(let ((limit (pi-detect-usage-limit weekly-body "zai-coding-cn")))
+(let ((limit (pi-detect-usage-limit 429 weekly-body "zai-coding-cn")))
   (check (pi-usage-limit-error-message limit "zai-coding-cn")
     => "zai-coding-cn: 您已达到每周/每月使用上限，您的限额将在 2026-11-05 13:12:35 重置。"
   ) ;check
 ) ;let
 
 ;; 2. 不带 provider：只有官方消息原文
-(check (pi-usage-limit-error-message (pi-detect-usage-limit five-hour-body "zai-coding-cn"))
+(check (pi-usage-limit-error-message (pi-detect-usage-limit 429 five-hour-body "zai-coding-cn"))
   => "您已达到5小时使用上限，请在 5 小时后重试。"
 ) ;check
 
 ;; 3. provider 为空串或 #f 时不加前缀
-(let ((limit (pi-detect-usage-limit five-hour-body "zai-coding-cn")))
+(let ((limit (pi-detect-usage-limit 429 five-hour-body "zai-coding-cn")))
   (check (pi-usage-limit-error-message limit "")
     => "您已达到5小时使用上限，请在 5 小时后重试。"
   ) ;check
