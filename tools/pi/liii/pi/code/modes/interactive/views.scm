@@ -267,9 +267,17 @@
                (if (null? res-lines)
                  '()
                  (cons (apply-card-bg "" width bg %fg-output)
-                   (map (lambda (line) (apply-card-bg (string-append " " %fg-output line) width bg ""))
-                     res-lines
-                   ) ;map
+                   ;; 超宽输出按内容宽度折行（左右各留 1 列），
+                   ;; 避免 alt-screen 截断吞掉错误详情；折叠态的
+                   ;; max-lines 限制作用于逻辑行，折行发生在渲染层
+                   (%card-body-lines (string-join res-lines "\n")
+                     width
+                     1
+                     1
+                     (lambda (line)
+                       (list (apply-card-bg (string-append " " %fg-output line) width bg ""))
+                     ) ;lambda
+                   ) ;%card-body-lines
                  ) ;cons
                ) ;if
              ) ;out-rows
