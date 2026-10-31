@@ -8,32 +8,57 @@
   (export %keyword-value detect-git-branch detect-git-dir make-branch-watcher
     stop-branch-watcher! git-branch-from-head-file
   ) ;export
-  (import (scheme base)
-    (liii either)
-    (liii string)
-    (liii path)
-    (liii subprocess)
-    (liii fs-watch)
-  ) ;import
+  (import (scheme base) (liii string) (liii path) (liii fs-watch))
   (begin
 
-    ;; 检测当前工作区所在的 git 分支名称，探测失败时返回 #f
+    ;; 在 dir 下找 .git：目录 → 普通仓库；文件 → 读首行 "gitdir: <path>"
+    ;; 解析 worktree/submodule 的 gitdir（相对路径相对 dir 解析）。
+    ;; 返回 gitdir 字符串路径，无法识别时返回 #f
+    (define (%git-dir-at dir)
+      (let ((dot-git (path-join dir ".git")))
+        (cond ((path-dir? dot-git) (path->string dot-git))
+              ((path-file? dot-git)
+               (let* ((text (path-read-text (path->string dot-git)))
+                      (first-line
+                        (if (string? text) (string-trim-both (car (string-split text "\n"))) "")
+                      ) ;first-line
+                     ) ;
+                 (if (string-starts? first-line "gitdir:")
+                   (let ((p (string-trim-both (substring first-line 7 (string-length first-line)))))
+                     (if (string-null? p)
+                       #f
+                       (path->string (if (path-absolute? (path p)) (path p) (path-join dir p)))
+                     ) ;if
+                   ) ;let
+                   #f
+                 ) ;if
+               ) ;let*
+              ) ;
+              (else #f)
+        ) ;cond
+      ) ;let
+    ) ;define
+
+    ;; 从 cwd 向上逐级查找 .git，到根仍未找到返回 #f
+    (define (%find-git-dir-upward)
+      (let loop
+        ((dir (path-cwd)))
+        (or (%git-dir-at dir)
+          (let ((parent (path-parent dir)))
+            (if (string=? (path->string parent) (path->string dir)) #f (loop parent))
+          ) ;let
+        ) ;or
+      ) ;let
+    ) ;define
+
+    ;; 检测当前工作区所在的 git 分支名称，探测失败时返回 #f。
+    ;; 纯文件读取（detect-git-dir + 读 HEAD），零子进程，毫秒级：
+    ;; 启动首帧 footer 与 branch_changed 事件路径同一套解析逻辑
     (define (detect-git-branch)
       (catch #t
         (lambda ()
-          (let ((res (run-either '("git" "branch" "--show-current")
-                       :stdout  'capture
-                       :stderr  'discard
-                       :timeout 2
-                     ) ;run-either
-                ) ;res
-               ) ;
-            (if (either-right? res)
-              (let ((b (string-trim-both (to-right res))))
-                (if (string-null? b) #f b)
-              ) ;let
-              #f
-            ) ;if
+          (let ((git-dir (%find-git-dir-upward)))
+            (and git-dir (git-branch-from-head-file git-dir))
           ) ;let
         ) ;lambda
         (lambda args #f)
@@ -41,27 +66,11 @@
     ) ;define
 
     ;; 检测当前工作区 .git 目录的绝对路径（含 worktree 等非 .git 子目录场景），
-    ;; 探测失败（非 git 仓库 / git 缺失）时返回 #f
+    ;; 探测失败（非 git 仓库 / .git 文件无法解析）时返回 #f。
+    ;; 与 git rev-parse --absolute-git-dir 的差异：不支持 GIT_DIR 环境
+    ;; 变量与 bare repo（返回 #f，纯装饰性降级）
     (define (detect-git-dir)
-      (catch #t
-        (lambda ()
-          (let ((res (run-either '("git" "rev-parse" "--absolute-git-dir")
-                       :stdout  'capture
-                       :stderr  'discard
-                       :timeout 2
-                     ) ;run-either
-                ) ;res
-               ) ;
-            (if (either-right? res)
-              (let ((d (string-trim-both (to-right res))))
-                (if (string-null? d) #f d)
-              ) ;let
-              #f
-            ) ;if
-          ) ;let
-        ) ;lambda
-        (lambda args #f)
-      ) ;catch
+      (catch #t (lambda () (%find-git-dir-upward)) (lambda args #f))
     ) ;define
 
     ;; 直接读 <git-dir>/HEAD 文件解析当前分支（零子进程）：
