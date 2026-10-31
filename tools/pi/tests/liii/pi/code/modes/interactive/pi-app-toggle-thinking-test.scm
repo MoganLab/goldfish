@@ -105,7 +105,8 @@
   (check (pi-app-hide-thinking? app) => #t)
 ) ;let*
 
-;; 状态卡片复用：连续切换原地更新 Thinking blocks: 状态行，不堆积
+;; 状态卡片复用：连续切换原地更新 Thinking blocks: 状态行，不堆积；
+;; 中间插入新卡片后再切换也复用已有状态卡，从始至终只有一条
 (let* ((buf (open-output-string))
        (term (make-standard-terminal :output-port buf
                :detect-size-fn (lambda () '(80 24))))
@@ -120,6 +121,23 @@
     (check
       (length (filter (lambda (l) (string-contains? l "Thinking blocks:"))
               (map strip-ansi (alt-screen-lines screen))))
+      => 1
+    ) ;check
+  ) ;let
+  ;; 中间插入新卡片后再切换：复用已有状态卡，不新增第二条
+  (container-add! (%pi-app-chat app) (make-bash-card "ls"))
+  (pi-app-toggle-thinking! app)
+  (check
+    (length (filter status-card? (container-children (%pi-app-chat app))))
+    => 1
+  ) ;check
+  (pi-app-render! app)
+  (let* ((lines (map strip-ansi (alt-screen-lines screen))))
+    (check-true
+      (string-contains? (string-join lines "\n") "Thinking blocks: hidden")
+    ) ;check-true
+    (check
+      (length (filter (lambda (l) (string-contains? l "Thinking blocks:")) lines))
       => 1
     ) ;check
   ) ;let

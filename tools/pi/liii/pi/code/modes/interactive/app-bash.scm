@@ -12,6 +12,7 @@
   ) ;export
   (import (scheme base)
     (liii go)
+    (liii list)
     (liii tui)
     (liii pi code modes interactive state)
     (liii pi code modes interactive render)
@@ -76,19 +77,18 @@
     ) ;define
 
     ;; Ctrl+O 全局切换 bash 卡片展开/折叠（对齐 pi toggleToolOutputExpansion）
-    ;; 同时覆盖 ! 命令卡片与模型工具调用卡片；切换后在 chat 底部显示
+    ;; 同时覆盖 ! 命令卡片与模型工具调用卡片；切换后显示
     ;; "Tool output: expanded/collapsed" 状态行（对齐上游 showStatus，
-    ;; 已有状态卡片时原地更新消息，连续切换不堆积）。
+    ;; 已改进：不依赖末尾位置）：chat 中已有状态卡片时原地更新消息，
+    ;; 连续切换与中间插入新卡片后再切换均复用同一条，从始至终只有一条。
     ;; 返回切换后的展开状态
     (define (%pi-app-show-status! app message)
-      (let* ((children (container-children (%pi-app-chat app)))
-             (last (and (pair? children) (car (reverse children))))
-            ) ;
-        (if (status-card? last)
-          (status-card-set-message! last message)
+      (let ((existing (find status-card? (container-children (%pi-app-chat app)))))
+        (if existing
+          (status-card-set-message! existing message)
           (container-add! (%pi-app-chat app) (make-status-card message))
         ) ;if
-      ) ;let*
+      ) ;let
     ) ;define
 
     (define (pi-app-toggle-tool-output! app)
