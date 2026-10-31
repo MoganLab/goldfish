@@ -1,4 +1,5 @@
 (import (liii check)
+        (liii pi ai providers quota)
         (liii string)
         (liii pi ai providers zai-coding-cn))
 
@@ -11,9 +12,9 @@
 ;;   1310 -> 每周/每月额度耗尽（weekly）
 ;; 1302/1303/1305/1312 是并发/频率/拥堵，不是额度耗尽（返回 #f）。
 
-(define (kind limit) (cdr (assoc "kind" limit)))
-(define (code limit) (cdr (assoc "code" limit)))
-(define (msg limit) (cdr (assoc "message" limit)))
+(define (kind limit) (pi-quota-limit-kind limit))
+(define (code limit) (pi-quota-limit-code limit))
+(define (msg limit) (pi-quota-limit-message limit))
 
 ;; 1. 1310 -> weekly
 (let ((limit (PI_ZAI_CODING_CN_QUOTA_ERROR

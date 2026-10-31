@@ -1,4 +1,5 @@
 (import (liii check)
+        (liii pi ai providers quota)
         (liii string)
         (liii pi ai providers kimi-coding))
 
@@ -15,9 +16,9 @@
 
 ;; 1. 命中：kind=quota，code 记录 type 值，消息为官方原文
 (let ((limit (PI_KIMI_CODING_QUOTA_ERROR 429 kimi-body)))
-  (check (cdr (assoc "kind" limit)) => "quota")
-  (check (cdr (assoc "code" limit)) => "exceeded_current_quota_error")
-  (check (cdr (assoc "message" limit))
+  (check (pi-quota-limit-kind limit) => "quota")
+  (check (pi-quota-limit-code limit) => "exceeded_current_quota_error")
+  (check (pi-quota-limit-message limit)
     => "You've reached your weekly (7-day) usage limit."
   ) ;check
 ) ;let

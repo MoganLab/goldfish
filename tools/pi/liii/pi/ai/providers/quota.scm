@@ -10,6 +10,7 @@
 ;; 这里只提供它们可以复用的结构化解析工具：
 ;;   - 从错误响应 JSON 中提取候选错误标识与官方消息
 ;;   - 候选标识与码表匹配
+;;   - 结果结构 <pi-quota-limit>
 ;;   - 默认实现：状态码 {403,429} + 码表命中
 ;;
 ;; 业务标识字段在各家并不统一，候选顺序为：
@@ -17,10 +18,23 @@
 
 (define-library (liii pi ai providers quota)
   (import (scheme base) (scheme char) (liii string) (liii json))
-  (export pi-quota-json-fields pi-quota-match-codes pi-quota-limit-result
-    pi-quota-error-result
+  (export pi-quota-json-fields pi-quota-match-codes %make-pi-quota-limit
+    pi-quota-limit? pi-quota-limit-kind pi-quota-limit-code
+    pi-quota-limit-message pi-quota-error-result
   ) ;export
   (begin
+
+    ;; 「额度耗尽」判定结果
+    ;;   kind    —— 额度窗口类型（five-hour / weekly / quota，由 provider 定义）
+    ;;   code    —— 命中的错误标识（如 "1310"、"exceeded_current_quota_error"）
+    ;;   message —— 服务商官方消息原文（可能 #f）
+    (define-record-type <pi-quota-limit>
+      (%make-pi-quota-limit kind code message)
+      pi-quota-limit?
+      (kind pi-quota-limit-kind)
+      (code pi-quota-limit-code)
+      (message pi-quota-limit-message)
+    ) ;define-record-type
 
     ;; 判断是否为形如 ((k . v) ...) 的关联表
     (define (%alist? obj)
@@ -115,11 +129,6 @@
       ) ;let
     ) ;define
 
-    ;; 组装统一的额度耗尽结果 alist（字符串键：kind / code / message）
-    (define (pi-quota-limit-result code kind message)
-      (list (cons "kind" kind) (cons "code" code) (cons "message" message))
-    ) ;define
-
     ;; 默认实现：状态码 ∈ {403, 429} 且业务标识命中码表
     ;;
     ;; provider 也可以不调用本函数，自行实现更复杂的判定（例如别的状态码、
@@ -129,7 +138,7 @@
         (let* ((fields (pi-quota-json-fields body-str))
                (hit (pi-quota-match-codes (car fields) table))
               ) ;
-          (if (pair? hit) (pi-quota-limit-result (car hit) (cdr hit) (cdr fields)) #f)
+          (if (pair? hit) (%make-pi-quota-limit (cdr hit) (car hit) (cdr fields)) #f)
         ) ;let*
         #f
       ) ;if

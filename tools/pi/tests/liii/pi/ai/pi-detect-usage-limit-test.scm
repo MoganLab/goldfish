@@ -1,4 +1,5 @@
 (import (liii check)
+        (liii pi ai providers quota)
         (liii string)
         (liii pi ai limits))
 
@@ -27,9 +28,9 @@
 ;; 1. 1310：每周/每月额度耗尽
 (let ((limit (pi-detect-usage-limit 429 weekly-body zai)))
   (check (pi-usage-limit-kind limit) => "weekly")
-  (check (cdr (assoc "code" limit)) => "1310")
+  (check (pi-quota-limit-code limit) => "1310")
   ;; 官方消息原样保留
-  (check (cdr (assoc "message" limit))
+  (check (pi-quota-limit-message limit)
     => "您已达到每周/每月使用上限，您的限额将在 2026-11-05 13:12:35 重置。"
   ) ;check
 ) ;let
@@ -37,7 +38,7 @@
 ;; 2. 1308：5 小时额度窗口耗尽
 (let ((limit (pi-detect-usage-limit 429 five-hour-body zai)))
   (check (pi-usage-limit-kind limit) => "five-hour")
-  (check (cdr (assoc "code" limit)) => "1308")
+  (check (pi-quota-limit-code limit) => "1308")
 ) ;let
 
 ;; 3. provider 大小写/空白不敏感
@@ -86,8 +87,8 @@
 ;; 9. 兼容 code 在顶层的 envelope：{"code":1310,"msg":"..."}
 (let ((limit (pi-detect-usage-limit 429 "{\"code\":1310,\"msg\":\"每周额度已用尽\"}" zai)))
   (check (pi-usage-limit-kind limit) => "weekly")
-  (check (cdr (assoc "code" limit)) => "1310")
-  (check (cdr (assoc "message" limit)) => "每周额度已用尽")
+  (check (pi-quota-limit-code limit) => "1310")
+  (check (pi-quota-limit-message limit) => "每周额度已用尽")
 ) ;let
 
 ;; 10. 兼容 Anthropic 风格 envelope：{"type":"error","error":{...,"code":"1308"}}
@@ -98,7 +99,7 @@
        ) ;limit
       ) ;
   (check (pi-usage-limit-kind limit) => "five-hour")
-  (check (cdr (assoc "message" limit)) => "5小时额度已用尽")
+  (check (pi-quota-limit-message limit) => "5小时额度已用尽")
 ) ;let
 
 (define kimi-weekly-body
@@ -108,8 +109,8 @@
 ;; 11. kimi-coding 用 error.type 区分额度耗尽（没有 code 字段）
 (let ((limit (pi-detect-usage-limit 429 kimi-weekly-body "kimi-coding")))
   (check (pi-usage-limit-kind limit) => "quota")
-  (check (cdr (assoc "code" limit)) => "exceeded_current_quota_error")
-  (check (cdr (assoc "message" limit))
+  (check (pi-quota-limit-code limit) => "exceeded_current_quota_error")
+  (check (pi-quota-limit-message limit)
     => "You've reached your weekly (7-day) usage limit."
   ) ;check
 ) ;let
