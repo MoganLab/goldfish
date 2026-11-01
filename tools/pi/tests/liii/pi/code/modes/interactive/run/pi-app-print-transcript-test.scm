@@ -12,7 +12,7 @@
 ;; 回归点：曾对消息列表调用 component-render，触发 type-error 并被静默 catch，
 ;; 结果退出全屏界面后终端里看不到任何会话内容。
 
-;; 1. 标准终端：对话记录被写到输出端口
+;; 1. 标准终端：对话记录被写到输出端口，且包裹在 synchronized output 中批量输出
 (let* ((buf (open-output-string))
        (term (make-standard-terminal :output-port buf))
        (app (make-pi-app :terminal term :handler (lambda (a msg) #t)))
@@ -23,6 +23,12 @@
   (let ((out (get-output-string buf)))
     (check-true (string-contains? out "hello transcript"))
     (check-true (string-contains? out "hi there"))
+    ;; 对齐上游 TuiAltScreen.stop 行为：同步输出与 autowrap 控制保护
+    (check-true (string-contains? out "\x1b;[?2026h"))
+    (check-true (string-contains? out "\x1b;[?2026l"))
+    (check-true (string-contains? out "\x1b;[?7l"))
+    (check-true (string-contains? out "\x1b;[?7h"))
+    (check-true (string-contains? out "\r\x1b;[2K"))
   ) ;let
 ) ;let*
 

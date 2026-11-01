@@ -20,21 +20,36 @@
   ) ;import
   (begin
 
+    (define (%prefix-line line)
+      (string-append "\r\x1b;[2K" line)
+    ) ;define
+
+    (define (%format-transcript lines)
+      (let ((body (string-join (map %prefix-line lines) "\r\n")))
+        (string-append "\x1b;[?2026h" "\x1b;[?7l" body "\x1b;[0m\x1b;[?7h\r\n"
+          "\x1b;[?2026l"
+        ) ;string-append
+      ) ;let
+    ) ;define
+
     ;; 退出备用屏后把对话记录打印回主屏，
     ;; 对齐上游 fullscreenExitOutput=transcript 的行为。
     ;; 仅标准终端执行：虚拟终端（测试用）没有真实输出端口。
     ;; 历史内容由 pi-app-transcript-lines 提供（完整消息列表，
     ;; 不含页眉横幅与输入区）；任何异常都不得影响退出流程。
+    ;;
+    ;; 性能关键：整个输出包裹在同步输出协议（\x1b[?2026h / \x1b[?2026l）中，
+    ;; 并禁用自动换行（\x1b[?7l），一次性原子写入终端，避免终端逐行触发滚屏重绘。
     (define (pi-app-print-transcript! app)
       (let ((term (pi-app-term app)))
         (when (standard-terminal? term)
           (catch #t
             (lambda ()
               (let ((lines (pi-app-transcript-lines app)))
-                (for-each (lambda (line) (terminal-write term line) (terminal-write term "\r\n"))
-                  lines
-                ) ;for-each
-                (terminal-flush term)
+                (unless (null? lines)
+                  (terminal-write term (%format-transcript lines))
+                  (terminal-flush term)
+                ) ;unless
               ) ;let
             ) ;lambda
             (lambda args #f)
