@@ -74,6 +74,7 @@
             ((= char-byte 69) 'clear)
             ((= char-byte 70) 'end)
             ((= char-byte 72) 'home)
+            ((= char-byte 77) 'shift-enter)
             ((= char-byte 80) 'f1)
             ((= char-byte 81) 'f2)
             ((= char-byte 82) 'f3)

@@ -768,6 +768,10 @@ static bool           g_has_orig_termios= false;
 static void
 restore_terminal_mode_at_exit () {
   if (g_raw_mode_enabled && g_has_orig_termios) {
+    if (isatty (STDIN_FILENO) && isatty (STDOUT_FILENO)) {
+      const char* seq= "\x1b[>4;0m\x1b[<u";
+      (void) write (STDOUT_FILENO, seq, sizeof ("\x1b[>4;0m\x1b[<u") - 1);
+    }
     tcsetattr (STDIN_FILENO, TCSANOW, &g_orig_termios);
     g_raw_mode_enabled= false;
   }
@@ -839,10 +843,18 @@ f_console_raw_mode (s7_scheme* sc, s7_pointer args) {
       return s7_make_boolean (sc, false);
     }
     g_raw_mode_enabled= true;
+    if (isatty (STDIN_FILENO) && isatty (STDOUT_FILENO)) {
+      const char* seq= "\x1b[>4;2m\x1b[>1u";
+      (void) write (STDOUT_FILENO, seq, sizeof ("\x1b[>4;2m\x1b[>1u") - 1);
+    }
     return s7_make_boolean (sc, true);
   }
   else {
     if (g_raw_mode_enabled && g_has_orig_termios) {
+      if (isatty (STDIN_FILENO) && isatty (STDOUT_FILENO)) {
+        const char* seq= "\x1b[>4;0m\x1b[<u";
+        (void) write (STDOUT_FILENO, seq, sizeof ("\x1b[>4;0m\x1b[<u") - 1);
+      }
       tcsetattr (STDIN_FILENO, TCSANOW, &g_orig_termios);
       g_raw_mode_enabled= false;
     }

@@ -57,6 +57,9 @@
 (check (%resolve-ansi-bytes '(27 79 70)) => 'end)
 (check (%resolve-ansi-bytes '(27 79 80)) => 'f1)
 (check (%resolve-ansi-bytes '(27 79 81)) => 'f2)
+(check (%resolve-ansi-bytes '(27 79 77)) => 'shift-enter)
+(check (%resolve-ansi-bytes '(27 91 49 51 59 50 117)) => 'shift-enter)
+(check (%resolve-ansi-bytes '(27 91 50 55 59 50 59 49 51 126)) => 'shift-enter)
 
 ;; 6. 测试 UTF-8 多字节解析
 (check (%resolve-utf8-bytes '(228 189 160)) => "你")
