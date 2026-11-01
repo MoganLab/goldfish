@@ -22,6 +22,7 @@
     (liii path)
     (liii string)
     (liii list)
+    (liii gfproject config)
     (liii goldcheck path)
   ) ;import
   (export check-unit-test check-unit-test-dirs %standard-sections)
@@ -282,8 +283,174 @@
       ) ;let*
     ) ;define
 
+    (define (pure-operator->stem name)
+      (cond ((string=? name "+") "plus")
+            ((string=? name "-") "minus")
+            ((string=? name "*") "star")
+            ((string=? name "/") "slash")
+            ((string=? name "=") "eq")
+            ((string=? name "<") "lt")
+            ((string=? name "<=") "le")
+            ((string=? name ">") "gt")
+            ((string=? name ">=") "ge")
+            (else #f)
+      ) ;cond
+    ) ;define
+
+    (define (string-starts-at? str index fragment)
+      (let ((fragment-length (string-length fragment))
+            (string-length* (string-length str))
+           ) ;
+        (and (<= (+ index fragment-length) string-length*)
+          (string=? (substring str index (+ index fragment-length)) fragment)
+        ) ;and
+      ) ;let
+    ) ;define
+
+    (define (exported-name->test-stem name)
+      (let ((pure-operator (pure-operator->stem name)))
+        (if pure-operator
+          pure-operator
+          (let ((name-length (string-length name)))
+            (let loop
+              ((index 0) (parts '()))
+              (if (>= index name-length)
+                (apply string-append (reverse parts))
+                (cond
+                 ((string-starts-at? name index "->")
+                  (loop (+ index 2) (cons (if (= (+ index 2) name-length) "-to" "-to-") parts))
+                 ) ;
+                 ((string-starts-at? name index ">=") (loop (+ index 2) (cons "-ge" parts)))
+                 ((string-starts-at? name index "<=") (loop (+ index 2) (cons "-le" parts)))
+                 ((char=? (string-ref name index) #\?) (loop (+ index 1) (cons "-p" parts)))
+                 ((char=? (string-ref name index) #\!) (loop (+ index 1) (cons "-bang" parts)))
+                 ((char=? (string-ref name index) #\/)
+                  (loop (+ index 1)
+                    (cons (if (= (+ index 1) name-length) "-slash" "-slash-") parts)
+                  ) ;loop
+                 ) ;
+                 ((char=? (string-ref name index) #\*) (loop (+ index 1) (cons "-star" parts)))
+                 ((char=? (string-ref name index) #\=) (loop (+ index 1) (cons "-eq" parts)))
+                 ((char=? (string-ref name index) #\<) (loop (+ index 1) (cons "-lt" parts)))
+                 ((char=? (string-ref name index) #\>) (loop (+ index 1) (cons "-gt" parts)))
+                 (else
+                   (loop (+ index 1) (cons (string (string-ref name index)) parts))
+                 ) ;else
+                ) ;cond
+              ) ;if
+            ) ;let
+          ) ;let
+        ) ;if
+      ) ;let
+    ) ;define
+
+    (define (resolve-repo-file rel)
+      (let ((root (gfproject-root)))
+        (if (and root (string? root) (not (string=? root "")))
+          (path->string (path-join root rel))
+          rel
+        ) ;if
+      ) ;let
+    ) ;define
+
+    (define (find-library-source-for-test-dir parent)
+      (let* ((rel-parent (relativize-path parent)) (norm (normalize-sep rel-parent)))
+        (cond
+         ((string-starts-with? norm "tools/")
+          (let ((parts (string-split norm "/")))
+            (if (and (>= (length parts) 4) (string=? (list-ref parts 2) "tests"))
+              (let* ((tool (cadr parts))
+                     (subpath (string-join (list-tail parts 3) "/"))
+                     (candidate (resolve-repo-file (string-append "tools/" tool "/" subpath ".scm")))
+                    ) ;
+                (if (path-file? (path candidate)) candidate #f)
+              ) ;let*
+              #f
+            ) ;if
+          ) ;let
+         ) ;
+         ((string-starts-with? norm "tests/")
+          (let* ((parts (string-split norm "/"))
+                 (subpath (string-join (cdr parts) "/"))
+                 (candidate (resolve-repo-file (string-append "goldfish/" subpath ".scm")))
+                ) ;
+            (if (path-file? (path candidate)) candidate #f)
+          ) ;let*
+         ) ;
+         (else
+           (let ((norm-abs (normalize-sep (path->string (path parent)))))
+             (if (string-contains? norm-abs "/tests/")
+               (let* ((idx (string-index-of norm-abs "/tests/" 0))
+                      (left (substring norm-abs 0 idx))
+                      (right (substring norm-abs (+ idx 7) (string-length norm-abs)))
+                      (cand1 (string-append left "/goldfish/" right ".scm"))
+                      (cand2 (string-append left "/" right ".scm"))
+                     ) ;
+                 (cond ((path-file? (path cand1)) cand1)
+                       ((path-file? (path cand2)) cand2)
+                       (else #f)
+                 ) ;cond
+               ) ;let*
+               #f
+             ) ;if
+           ) ;let
+         ) ;else
+        ) ;cond
+      ) ;let*
+    ) ;define
+
+    (define (extract-library-exports source-path)
+      (let ((port (open-input-file source-path)))
+        (dynamic-wind (lambda () #f)
+          (lambda ()
+            (let loop
+              ()
+              (let ((expr (catch #t (lambda () (read port)) (lambda (k e) (eof-object)))))
+                (cond ((eof-object? expr) '())
+                      ((and (pair? expr) (eq? (car expr) 'define-library))
+                       (let ((decls (cddr expr)))
+                         (let export-loop
+                           ((rem decls) (exports '()))
+                           (if (null? rem)
+                             (reverse exports)
+                             (let ((decl (car rem)))
+                               (if (and (pair? decl) (eq? (car decl) 'export))
+                                 (let item-loop
+                                   ((items (cdr decl)) (acc exports))
+                                   (if (null? items)
+                                     (export-loop (cdr rem) acc)
+                                     (let ((item (car items)))
+                                       (cond
+                                        ((symbol? item) (item-loop (cdr items) (cons (symbol->string item) acc)))
+                                        ((and (pair? item) (eq? (car item) 'rename) (= (length item) 3))
+                                         (let ((ext (caddr item)))
+                                           (item-loop (cdr items) (cons (symbol->string ext) acc))
+                                         ) ;let
+                                        ) ;
+                                        (else (item-loop (cdr items) acc))
+                                       ) ;cond
+                                     ) ;let
+                                   ) ;if
+                                 ) ;let
+                                 (export-loop (cdr rem) exports)
+                               ) ;if
+                             ) ;let
+                           ) ;if
+                         ) ;let
+                       ) ;let
+                      ) ;
+                      (else (loop))
+                ) ;cond
+              ) ;let
+            ) ;let
+          ) ;lambda
+          (lambda () (close-port port))
+        ) ;dynamic-wind
+      ) ;let
+    ) ;define
+
     (define (check-unit-test-dirs files)
-      "检查所有测试文件所属的目录是否包含 README.md，以及同级是否存在废弃的同名测试文件。"
+      "检查所有测试文件所属的目录是否包含 README.md，同级是否存在废弃单测试文件，以及导出函数是否均有测试文件。"
       (let loop
         ((rem files) (seen '()) (viols '()))
         (if (null? rem)
@@ -329,6 +496,34 @@
                     ) ;cons
                   ) ;set!
                 ) ;unless
+                (let ((source-path (find-library-source-for-test-dir parent)))
+                  (when source-path
+                    (let ((exported-names (extract-library-exports source-path)))
+                      (for-each
+                        (lambda (name)
+                          (let* ((stem (exported-name->test-stem name))
+                                 (test-filename (string-append stem "-test.scm"))
+                                 (test-file-path (path-join parent test-filename))
+                                 (expected-rel (string-append rel-parent "/" test-filename))
+                                ) ;
+                            (unless (path-file? (path (path->string test-file-path)))
+                              (set! cur-viols
+                                (cons (list 'unit-test
+                                        expected-rel
+                                        1
+                                        (string-append "缺少导出函数 " name " 的单元测试")
+                                      ) ;list
+                                  cur-viols
+                                ) ;cons
+                              ) ;set!
+                            ) ;unless
+                          ) ;let*
+                        ) ;lambda
+                        exported-names
+                      ) ;for-each
+                    ) ;let
+                  ) ;when
+                ) ;let
                 (loop (cdr rem) (cons parent seen) (append cur-viols viols))
               ) ;let*
             ) ;if
