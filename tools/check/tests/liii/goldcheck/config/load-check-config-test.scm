@@ -1,12 +1,3 @@
-(import (scheme base)
-  (scheme file)
-  (liii check)
-  (liii path)
-  (liii os)
-  (liii json)
-  (liii goldcheck config)
-) ;import
-
 ;; load-check-config
 ;; 读取并解析 gf_check.json 配置文件，并严格校验字段类型与取值范围。
 ;;
@@ -20,14 +11,23 @@
 ;; 配置文件路径或其所在目录。缺省时自动使用工程根目录下的 gf_check.json。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; json-object 或 #f
 ;; 校验通过时返回解析后的 JSON 配置对象；文件不存在时返回 #f。
 ;;
-;; 错误
-;; ----
+;; 错误处理
+;; --------
 ;; type-error: 当字段类型不符合规范时抛出（如 limit 非整数、excludes 非对象）。
 ;; value-error: 当字段取值不合法时抛出（如 limit <= 0、未知规则名）。
+
+(import (scheme base)
+  (scheme file)
+  (liii check)
+  (liii path)
+  (liii os)
+  (liii json)
+  (liii goldcheck config)
+) ;import
 
 (check-set-mode! 'report-failed)
 
