@@ -1,3 +1,28 @@
+;; with-output-to-file
+;; 将当前输出端口重定向到指定文件并调用过程。
+;;
+;; 语法
+;; ----
+;; (with-output-to-file string thunk)
+;;
+;; 参数
+;; ----
+;; string : string?
+;; 要打开或创建的文件路径。
+;;
+;; thunk : procedure?
+;; 接受零个参数的过程。
+;;
+;; 返回值
+;; ----
+;; 过程 thunk 的返回值。
+;;
+;; 说明
+;; ----
+;; 1. 打开指定文件并将其设为当前输出端口。
+;; 2. 调用过程 thunk。
+;; 3. 在 thunk 返回时恢复原来的输出端口并关闭打开的文件端口。
+
 (import (liii check) (scheme file))
 (check-set-mode! 'report-failed)
 
@@ -30,4 +55,5 @@
 (delete-file chinese-file)
 ;; 清理
 (delete-file test-file)
+
 (check-report)

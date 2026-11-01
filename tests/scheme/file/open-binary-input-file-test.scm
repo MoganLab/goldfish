@@ -1,3 +1,25 @@
+;; open-binary-input-file
+;; 打开文件作为二进制输入端口。
+;;
+;; 语法
+;; ----
+;; (open-binary-input-file string)
+;;
+;; 参数
+;; ----
+;; string : string?
+;; 要打开的文件路径。
+;;
+;; 返回值
+;; ----
+;; binary-port?
+;; 打开的二进制输入端口。
+;;
+;; 说明
+;; ----
+;; 1. 文件必须存在且可读。
+;; 2. 使用完毕后应调用 close-port 关闭端口。
+
 (import (liii check) (scheme file))
 (check-set-mode! 'report-failed)
 
@@ -24,4 +46,5 @@
 (delete-file chinese-file)
 ;; 清理
 (delete-file test-file)
+
 (check-report)
