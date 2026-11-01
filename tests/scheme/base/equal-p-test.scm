@@ -1,6 +1,7 @@
 ;; equal?
 ;; 判断两个对象结构是否相等，根据R7RS规范，equal?对复杂数据结构进行深比较。
 ;;
+;;
 ;; 语法
 ;; ----
 ;; (equal? obj1 obj2)
@@ -11,7 +12,7 @@
 ;; 任意类型的对象
 ;;
 ;; 返回值
-;; -----
+;; ----
 ;; boolean?
 ;; 如果两个对象结构相等则返回 #t，否则返回 #f。
 
@@ -49,4 +50,5 @@
 ;; Test equal? for different types
 (check-false (equal? 42 "hello"))
 (check-false (equal? #\a "a"))
+
 (check-report)

@@ -1,12 +1,17 @@
 ;; open-output-string
 ;; 创建一个字符串输出端口用于累积字符
 ;;
+;;
 ;; 语法
 ;; ----
 ;; (open-output-string)
 ;;
+;; 参数
+;; ----
+;; 无
+;;
 ;; 返回值
-;; -----
+;; ----
 ;; port
 ;; 返回一个新的文本输出端口，所有写入该端口的字符会被累积，
 ;; 可通过 get-output-string 函数获取累积的字符串。
@@ -28,4 +33,5 @@
   (display "λμ" port)
   (check (get-output-string port) => "λμ")
 ) ;let
+
 (check-report)

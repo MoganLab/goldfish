@@ -1,6 +1,7 @@
 ;; inexact
 ;; 将数字转换为不精确表示形式。
 ;;
+;;
 ;; 语法
 ;; ----
 ;; (inexact num)
@@ -11,7 +12,7 @@
 ;; 待转换的数字。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; inexact?
 ;; 输入数字的不精确表示。
 ;;
@@ -21,7 +22,7 @@
 ;; 2. 对于精确数，返回最接近的不精确浮点数
 ;;
 ;; 错误处理
-;; --------
+;; ----
 ;; wrong-number-of-args
 ;; 参数数量不为1时抛出。
 ;; type-error
@@ -44,4 +45,5 @@
 (check-catch 'wrong-number-of-args (inexact 1 2))
 (check-catch 'type-error (inexact 'a))
 (check-catch 'type-error (inexact "hello"))
+
 (check-report)

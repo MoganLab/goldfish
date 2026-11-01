@@ -1,6 +1,7 @@
 ;; vector-length
 ;; 返回向量的元素个数。
 ;;
+;;
 ;; 语法
 ;; ----
 ;; (vector-length vector)
@@ -11,7 +12,7 @@
 ;; 待查询的向量。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; exact-nonnegative-integer?
 ;; 向量的长度。
 ;;

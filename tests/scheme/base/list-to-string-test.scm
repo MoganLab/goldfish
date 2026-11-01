@@ -1,6 +1,7 @@
 ;; list->string
 ;; 将字符列表转换为字符串。
 ;;
+;;
 ;; 语法
 ;; ----
 ;; (list->string list)
@@ -11,7 +12,7 @@
 ;; 由字符组成的列表。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; string?
 ;; 由列表中字符按顺序组成的新字符串。
 ;;
@@ -35,4 +36,5 @@
 (check-catch 'type-error (list->string '(#\a 1)))
 (check-catch 'wrong-number-of-args (list->string))
 (check-catch 'wrong-number-of-args (list->string '(#\a) '(#\b)))
+
 (check-report)

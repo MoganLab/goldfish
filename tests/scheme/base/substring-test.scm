@@ -1,6 +1,7 @@
 ;; substring
 ;; 提取字符串的子串。
 ;;
+;;
 ;; 语法
 ;; ----
 ;; (substring string start end)

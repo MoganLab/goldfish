@@ -1,6 +1,7 @@
 ;; bytevector-advance-utf8
 ;; 将字节向量中的索引向前推进一个 UTF-8 字符。
 ;;
+;;
 ;; 语法
 ;; ----
 ;; (bytevector-advance-utf8 bytevector index)
@@ -16,7 +17,7 @@
 ;; 可选，结束索引，默认为字节向量长度。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; exact-nonnegative-integer?
 ;; 下一个字符的起始字节索引；如果序列不完整或无效，则返回当前索引。
 ;;

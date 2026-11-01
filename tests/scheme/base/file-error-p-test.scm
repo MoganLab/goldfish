@@ -1,6 +1,7 @@
 ;; file-error?
 ;; 检查对象是否为文件错误。
 ;;
+;;
 ;; 语法
 ;; ----
 ;; (file-error? obj)
@@ -11,7 +12,7 @@
 ;; 要检查的对象。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; boolean?
 ;; 如果对象是文件错误，返回 #t；否则返回 #f。
 
@@ -32,4 +33,5 @@
 ;; 测试 read-error? 与 file-error? 的区别
 (check (read-error? '(read-error)) => #t)
 (check (file-error? '(read-error)) => #f)
+
 (check-report)

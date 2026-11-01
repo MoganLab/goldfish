@@ -1,6 +1,7 @@
 ;; even?
 ;; 判断一个整数是否是偶数。
 ;;
+;;
 ;; 语法
 ;; ----
 ;; (even? obj)
@@ -11,11 +12,11 @@
 ;; 整数。
 ;;
 ;; 返回值
-;; -----
+;; ----
 ;; boolean?
 ;; 如果 obj 是整数类型，当其为偶数时返回 #t，否则返回 #f。
 ;;
-;; 错误
+;; 错误处理
 ;; ----
 ;; type-error
 ;; 如果参数不是整数类型
@@ -33,4 +34,5 @@
 (check-catch 'type-error (even? #\A))
 (check-catch 'type-error (even? #t))
 (check-catch 'type-error (even? #f))
+
 (check-report)

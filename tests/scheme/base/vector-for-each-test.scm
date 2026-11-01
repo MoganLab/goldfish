@@ -1,6 +1,7 @@
 ;; vector-for-each
 ;; 对向量中的每个元素依次应用过程。
 ;;
+;;
 ;; 语法
 ;; ----
 ;; (vector-for-each proc vector1 vector2 ...)
@@ -13,7 +14,7 @@
 ;; 至少一个向量。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; 未指定（unspecified）。
 ;;
 ;; 说明

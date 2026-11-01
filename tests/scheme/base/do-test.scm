@@ -1,6 +1,7 @@
 ;; do
 ;; 迭代循环构造。
 ;;
+;;
 ;; 语法
 ;; ----
 ;; (do ((var init step) ...) (test-expr result) body ...)
@@ -26,7 +27,7 @@
 ;; 循环体，每次迭代执行（除非 test-expr 为真）。
 ;;
 ;; 返回值
-;; -----
+;; ----
 ;; any
 ;; 返回 result 表达式的结果。
 
@@ -91,4 +92,5 @@
   =>
   'done
 ) ;check
+
 (check-report)

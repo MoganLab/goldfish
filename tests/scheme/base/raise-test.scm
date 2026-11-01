@@ -1,6 +1,7 @@
 ;; raise
 ;; 抛出异常。
 ;;
+;;
 ;; 语法
 ;; ----
 ;; (raise obj)
@@ -11,7 +12,7 @@
 ;; 要抛出的异常对象。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; 不返回，直接抛出异常。
 
 (import (liii check))
@@ -34,4 +35,5 @@
   (catch #t (lambda () (raise 'error) (set! executed #t)) (lambda args 'caught))
   (check executed => #f)
 ) ;let
+
 (check-report)

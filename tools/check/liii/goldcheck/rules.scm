@@ -25,9 +25,10 @@
     (liii os)
     (liii gfproject config)
     (liii goldcheck path)
+    (liii goldcheck unit-test)
   ) ;import
-  (export check-file-lines check-tree-depth check-no-crlf format-violation
-    display-help
+  (export check-file-lines check-tree-depth check-no-crlf check-unit-test
+    format-violation display-help
   ) ;export
   (begin
 
@@ -70,6 +71,9 @@
       ) ;display
       (newline)
       (display "  type-hint              hint 库结构与签名校验（仅检查 goldfish/hint/ 下的库）"
+      ) ;display
+      (newline)
+      (display "  unit-test              单元测试规范（文档置顶、函数名/描述/小节、结尾check-report）"
       ) ;display
       (newline)
       (newline)
@@ -335,6 +339,11 @@
               msg
               (type-hint-snippet file line expr)
             ) ;string-append
+          ) ;let
+         ) ;
+         ((eq? rule 'unit-test)
+          (let ((file (cadr viol)) (line (caddr viol)) (msg (cadddr viol)))
+            (string-append "  " file ":" (number->string line) ": unit-test: " msg)
           ) ;let
          ) ;
          ((eq? rule 'no-glue)

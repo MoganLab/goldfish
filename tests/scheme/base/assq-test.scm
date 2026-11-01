@@ -1,6 +1,7 @@
 ;; assq
 ;; 在关联列表中查找键，使用 eq? 进行比较。
 ;;
+;;
 ;; 语法
 ;; ----
 ;; (assq key alist)
@@ -138,4 +139,5 @@
   (check (assq '(a) l) => #f)
   (check (assv '(a) l) => #f)
 ) ;let
+
 (check-report)

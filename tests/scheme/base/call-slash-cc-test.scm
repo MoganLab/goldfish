@@ -1,6 +1,7 @@
 ;; call-with-current-continuation
 ;; 捕获当前续延，允许过程在之后恢复执行。
 ;;
+;;
 ;; 语法
 ;; ----
 ;; (call-with-current-continuation proc)
@@ -12,7 +13,7 @@
 ;; 接收一个续延对象作为参数的过程。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; 任意类型
 ;; proc 的返回值，或续延被调用时传入的值。
 ;;
@@ -23,10 +24,6 @@
 ;; 3. call/cc 是 call-with-current-continuation 的简写
 ;; 4. 续延可以作为第一类值传递和存储
 ;; 5. 调用续延时传入的值成为 call/cc 的返回值
-;;
-;; 示例
-;; ----
-;; 基本用法：过程正常返回
 
 (import (liii check))
 (import (scheme base))

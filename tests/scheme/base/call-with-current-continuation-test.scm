@@ -4,6 +4,7 @@
 ;; call-with-current-continuation 与 call/cc 是同一个过程的不同名称，
 ;; 两者行为完全相同。详细测试用例和更多示例请参考 gf doc "call/cc"。
 ;;
+;;
 ;; 语法
 ;; ----
 ;; (call-with-current-continuation proc)
@@ -14,7 +15,7 @@
 ;; 接收一个续延对象作为参数的过程。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; 任意类型
 ;; proc 的返回值，或续延被调用时传入的值。
 ;;

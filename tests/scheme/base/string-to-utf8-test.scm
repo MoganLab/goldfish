@@ -1,6 +1,7 @@
 ;; string->utf8
 ;; 将字符串按 UTF-8 编码转换为字节向量。
 ;;
+;;
 ;; 语法
 ;; ----
 ;; (string->utf8 string [start [end]])
@@ -17,12 +18,12 @@
 ;; 结束字符索引，可取到字符串长度（含尾）。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; bytevector?
 ;; UTF-8 编码的字节向量。
 ;;
 ;; 错误处理
-;; --------
+;; ----
 ;; - string 非 string?               -> type-error
 ;; - start/end 为负或超出 [0, N]      -> out-of-range
 ;; - start > end                       -> out-of-range

@@ -1,6 +1,7 @@
 ;; newline
 ;; 向输出端口写入一个换行符。
 ;;
+;;
 ;; 语法
 ;; ----
 ;; (newline)
@@ -37,4 +38,5 @@
   =>
   "a\nb"
 ) ;check
+
 (check-report)

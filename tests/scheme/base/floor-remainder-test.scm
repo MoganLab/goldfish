@@ -1,6 +1,7 @@
 ;; floor-remainder
 ;; 计算地板除法的余数（与 modulo 相同）。
 ;;
+;;
 ;; 语法
 ;; ----
 ;; (floor-remainder dividend divisor)
@@ -14,7 +15,7 @@
 ;; 除数，不能为零。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; real?
 ;; 返回余数，与 modulo 结果相同。
 
@@ -43,4 +44,5 @@
 ;; 错误测试
 (check-catch 'division-by-zero (floor-remainder 10 0))
 (check-catch 'type-error (floor-remainder "10" 5))
+
 (check-report)

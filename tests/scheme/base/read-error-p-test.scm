@@ -1,6 +1,7 @@
 ;; read-error?
 ;; 检查对象是否为读取错误。
 ;;
+;;
 ;; 语法
 ;; ----
 ;; (read-error? obj)
@@ -11,7 +12,7 @@
 ;; 要检查的对象。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; boolean?
 ;; 如果对象是读取错误，返回 #t；否则返回 #f。
 
@@ -34,4 +35,5 @@
 (check (file-error? '(read-error)) => #f)
 (check (read-error? '(io-error)) => #f)
 (check (file-error? '(io-error)) => #t)
+
 (check-report)

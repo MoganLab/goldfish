@@ -1,6 +1,7 @@
 ;; symbol->string
 ;; 将符号转换为字符串形式
 ;;
+;;
 ;; 语法
 ;; ----
 ;; (symbol->string symbol)
@@ -11,11 +12,11 @@
 ;; 要转换的符号
 ;;
 ;; 返回值
-;; -----
+;; ----
 ;; string?
 ;; 符号对应的字符串表示
 ;;
-;; 错误
+;; 错误处理
 ;; ----
 ;; type-error
 ;; 如果参数不是符号类型，抛出错误。
@@ -81,4 +82,5 @@
     test-symbols
   ) ;for-each
 ) ;let
+
 (check-report)

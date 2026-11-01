@@ -1,6 +1,7 @@
 ;; define-values
 ;; 定义多个变量，绑定到一个返回多个值的表达式的结果。
 ;;
+;;
 ;; 语法
 ;; ----
 ;; (define-values (var ...) expr)
@@ -12,6 +13,11 @@
 ;;
 ;; expr : expression returning multiple values
 ;; 返回多个值的表达式，通常使用 (values ...)。
+;;
+;; 返回值
+;; ------
+;; any
+;; 返回值。
 ;;
 ;; 说明
 ;; ----
@@ -63,4 +69,5 @@
   =>
   6
 ) ;check
+
 (check-report)

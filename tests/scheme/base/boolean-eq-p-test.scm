@@ -1,6 +1,7 @@
 ;; boolean=?
 ;; 比较两个或多个布尔值是否相等。
 ;;
+;;
 ;; 语法
 ;; ----
 ;; (boolean=? bool1 bool2 . more-bools)
@@ -11,7 +12,7 @@
 ;; 布尔值，可以是 #t (真) 或 #f (假)。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; boolean?
 ;; 如果所有给定的布尔值都相等，则返回 #t (真)，否则返回 #f (假)。
 ;;
@@ -23,7 +24,7 @@
 ;; 4. 支持比较两个或多个布尔值
 ;;
 ;; 错误处理
-;; --------
+;; ----
 ;; wrong-number-of-args
 ;; 当参数数量少于2个时抛出错误。
 
@@ -100,4 +101,5 @@
 (define add3 (typed-lambda ((i integer?) (x real?) z) (+ i x z)))
 (check (add3 1 2 3) => 6)
 (check-catch 'type-error (add3 1.2 2 3))
+
 (check-report)

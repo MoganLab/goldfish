@@ -1,6 +1,7 @@
 ;; let-values
 ;; 并行绑定多值表达式的返回结果到变量。
 ;;
+;;
 ;; 语法
 ;; ----
 ;; (let-values ((<formals> <expression>) ...) <body> ...)
@@ -17,7 +18,7 @@
 ;; 表达式体。
 ;;
 ;; 返回值
-;; -----
+;; ----
 ;; any
 ;; 返回最后一个 body 表达式的求值结果。
 ;;
@@ -25,18 +26,6 @@
 ;; ----
 ;; let-values 来源于 SRFI-11 与 R7RS (scheme base)。
 ;; 所有 <expression> 先在当前环境中求值，然后并行绑定到各 <formals> 变量上。
-;;
-;; 示例
-;; ----
-;; (let-values (((a b . c) (values 1 2 3 4)))
-;;   (list a b c))
-;; => (1 2 (3 4))
-;;
-;; (let ((a 'a) (b 'b) (x 'x) (y 'y))
-;;   (let-values (((a b) (values x y))
-;;                ((x y) (values a b)))
-;;     (list a b x y)))
-;; => (x y a b)
 
 (import (liii check))
 (import (scheme base))

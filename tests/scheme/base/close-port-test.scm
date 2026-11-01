@@ -1,6 +1,7 @@
 ;; close-port
 ;; 关闭输入或输出端口。
 ;;
+;;
 ;; 语法
 ;; ----
 ;; (close-port port)
@@ -11,11 +12,11 @@
 ;; 要关闭的端口。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; 未指定。
 ;;
-;; 副作用
-;; ------
+;; 说明
+;; ----
 ;; 关闭端口。
 
 (import (liii check))
@@ -41,4 +42,5 @@
   (check (textual-port? p) => #t)
   (close-port p)
 ) ;let
+
 (check-report)

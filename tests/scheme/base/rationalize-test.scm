@@ -1,6 +1,7 @@
 ;; rationalize
 ;; 将给定的实数简化为一个具有较小分母的近似有理数。
 ;;
+;;
 ;; 语法
 ;; ----
 ;; (rationalize x [within])
@@ -14,12 +15,12 @@
 ;; 容差范围，表示结果与原始值之间的最大允许误差，输入0或仅有一个参数时within默认为0.000000000001。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; real?
 ;; 返回满足|(result - x)| <= within且分母最小的有理数
 ;;
 ;; 错误处理
-;; --------
+;; ----
 ;; type-error
 ;; 当参数不是实数时抛出错误。
 ;; wrong-number-of-args
@@ -44,4 +45,5 @@
 (check (rationalize 2/3 0.05) => 2/3)
 (check-catch 'type-error (rationalize "hello" 0.1))
 (check-catch 'wrong-number-of-args (rationalize 3.14 0.01 0.02))
+
 (check-report)

@@ -1,6 +1,7 @@
 ;; utf8-string-length
 ;; 返回 UTF-8 字符串的字符数（不是字节数）。
 ;;
+;;
 ;; 语法
 ;; ----
 ;; (utf8-string-length str)
@@ -11,7 +12,7 @@
 ;; UTF-8 编码的字符串。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; integer?
 ;; 返回字符串的字符数。
 
@@ -39,4 +40,5 @@
 ;; 错误测试
 (check-catch 'type-error (utf8-string-length 123))
 (check-catch 'type-error (utf8-string-length 'symbol))
+
 (check-report)

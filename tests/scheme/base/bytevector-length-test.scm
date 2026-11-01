@@ -1,6 +1,7 @@
 ;; bytevector-length
 ;; 返回字节向量中的元素个数。
 ;;
+;;
 ;; 语法
 ;; ----
 ;; (bytevector-length bv)
@@ -11,7 +12,7 @@
 ;; 字节向量。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; integer?
 ;; 字节向量中的元素数量。
 ;;
@@ -22,7 +23,7 @@
 ;; 3. 结果是非负的精确整数
 ;;
 ;; 错误处理
-;; --------
+;; ----
 ;; type-error
 ;; 当参数不是字节向量时抛出错误。
 ;; wrong-number-of-args
@@ -51,4 +52,5 @@
 ;; 错误处理测试
 (check-catch 'wrong-number-of-args (bytevector-length))
 (check-catch 'wrong-number-of-args (bytevector-length #u8(1 2 3) #u8(4 5)))
+
 (check-report)

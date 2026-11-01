@@ -1,6 +1,7 @@
 ;; define-record-type
 ;; 定义一个新的记录类型，类似于其他语言中的结构体或类。
 ;;
+;;
 ;; 语法
 ;; ----
 ;; (define-record-type type-name
@@ -29,7 +30,7 @@
 ;; 字段修改函数名。
 ;;
 ;; 返回值
-;; -----
+;; ----
 ;; 无（定义多个函数）。
 ;;
 ;; 说明
@@ -184,4 +185,5 @@
   (check (dup1? (make-dup2 1)) => #f)
   (check (dup2? (make-dup2 1)) => #t)
 ) ;let
+
 (check-report)

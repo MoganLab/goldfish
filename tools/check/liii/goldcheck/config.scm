@@ -42,6 +42,7 @@
                 (string=? name "no-crlf")
                 (string=? name "no-glue")
                 (string=? name "type-hint")
+                (string=? name "unit-test")
               ) ;or
         (value-error "unknown rule: ~A" name)
       ) ;unless

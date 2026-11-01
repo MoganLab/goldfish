@@ -1,6 +1,7 @@
 ;; symbol?
 ;; 判断给定的对象是否为符号(symbol)类型
 ;;
+;;
 ;; 语法
 ;; ----
 ;; (symbol? obj)
@@ -11,7 +12,7 @@
 ;; 任意类型的对象
 ;;
 ;; 返回值
-;; -----
+;; ----
 ;; boolean?
 ;; 如果obj是符号类型则返回#t，否则返回#f
 ;;
@@ -64,4 +65,5 @@
 ;; 字符串转换测试
 (check-true (symbol? (string->symbol "test")))
 (check-true (symbol? (string->symbol "complex-symbol-with-numbers")))
+
 (check-report)

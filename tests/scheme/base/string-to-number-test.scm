@@ -1,6 +1,7 @@
 ;; string->number
 ;; 将字符串解析为数值。根据R7RS规范，支持多种数值格式的解析。
 ;;
+;;
 ;; 语法
 ;; ----
 ;; (string->number str)
@@ -15,7 +16,7 @@
 ;; 当不指定时，默认为10进制。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; number? | #f
 ;; 如果字符串可以成功解析为数值，则返回对应的数值，否则返回#f。
 ;;
@@ -29,8 +30,8 @@
 ;; - 复数："1+2i", "3.14-2.71i"
 ;; - 不同进制：二进制"1010", 八进制"755", 十六进制"FF"
 ;;
-;; 错误情况
-;; -------
+;; 错误处理
+;; ----
 ;; 当radix参数超出有效范围（2-16）时，行为未定义（S7中返回#f）。
 
 (import (liii check))
@@ -127,4 +128,5 @@
 (check-catch 'type-error (string->number "123" 3.5))
 (check-catch 'wrong-number-of-args (string->number))
 (check-catch 'wrong-number-of-args (string->number "123" 2 3))
+
 (check-report)

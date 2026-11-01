@@ -1,6 +1,7 @@
 ;; <=
 ;; 比较数字是否按非降序排列。
 ;;
+;;
 ;; 语法
 ;; ----
 ;; (<= num1 num2 ...)
@@ -11,7 +12,7 @@
 ;; 待比较的数字。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; boolean?
 ;; 如果每个参数都小于或等于后面的参数，返回 #t，否则返回 #f。
 ;;
@@ -22,7 +23,7 @@
 ;; 3. 不支持复数比较
 ;;
 ;; 错误处理
-;; --------
+;; ----
 ;; wrong-number-of-args
 ;; 参数数量不足两个时抛出。
 ;; type-error
@@ -53,4 +54,5 @@
 (check-catch 'wrong-number-of-args (<= 1))
 (check-catch 'type-error (<= 1 'a))
 (check-catch 'type-error (<= "hello" 2))
+
 (check-report)

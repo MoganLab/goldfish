@@ -1,6 +1,7 @@
 ;; cddadr
 ;; cddadr 是 Scheme 内置函数，等价于 (cdr (cdr (car (cdr pair))))。
 ;;
+;;
 ;; 语法
 ;; ----
 ;; (cddadr pair)
@@ -11,12 +12,12 @@
 ;; 嵌套的序对或列表，如 (1 (a b c d))。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; 任意类型
 ;; 返回 (cdr (cdr (car (cdr pair))))。
 ;;
 ;; 错误处理
-;; --------
+;; ----
 ;; type-error
 ;; 参数不是序对，或者 cdr/car 链上的某一层不是序对时抛出错误。
 
@@ -38,4 +39,5 @@
 (check-catch 'type-error (cddadr '(1 2)))
 (check-catch 'type-error (cddadr 'a))
 (check-catch 'type-error (cddadr '()))
+
 (check-report)

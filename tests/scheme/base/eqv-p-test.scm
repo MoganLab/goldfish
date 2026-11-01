@@ -1,6 +1,7 @@
 ;; eqv?
 ;; 判断两个对象是否值相等，根据R7RS规范，eqv?在不同类型的数据上表现不同。
 ;;
+;;
 ;; 语法
 ;; ----
 ;; (eqv? obj1 obj2)
@@ -11,7 +12,7 @@
 ;; 任意类型的对象
 ;;
 ;; 返回值
-;; -----
+;; ----
 ;; boolean?
 ;; 如果两个对象值相等则返回 #t，否则返回 #f。
 
@@ -51,4 +52,5 @@
 (check-true (eqv? car car))
 (check-false (eqv? car cdr))
 ;; ; eq?
+
 (check-report)

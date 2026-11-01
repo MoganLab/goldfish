@@ -1,6 +1,7 @@
 ;; caddar
 ;; caddar 是 Scheme 内置函数，等价于 (car (cdr (cdr (car pair))))。
 ;;
+;;
 ;; 语法
 ;; ----
 ;; (caddar pair)
@@ -11,12 +12,12 @@
 ;; 嵌套的序对或列表，如 ((a b c d))。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; 任意类型
 ;; 返回 (car (cdr (cdr (car pair))))。
 ;;
 ;; 错误处理
-;; --------
+;; ----
 ;; type-error
 ;; 参数不是序对，或者 car/cdr 链上的某一层不是序对时抛出错误。
 
@@ -38,4 +39,5 @@
 (check-catch 'type-error (caddar '(1 2 3)))
 (check-catch 'type-error (caddar 'a))
 (check-catch 'type-error (caddar '()))
+
 (check-report)

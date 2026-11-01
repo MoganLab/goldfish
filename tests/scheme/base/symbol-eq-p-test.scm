@@ -1,6 +1,7 @@
 ;; symbol=?
 ;; 判断给定符号是否相等
 ;;
+;;
 ;; 语法
 ;; ----
 ;; (symbol=? symbol1 symbol2 ...)
@@ -11,7 +12,7 @@
 ;; 一个或多个符号参数
 ;;
 ;; 返回值
-;; -----
+;; ----
 ;; boolean?
 ;; 如果所有符号相等则返回#t，否则返回#f
 ;;
@@ -44,4 +45,5 @@
 (check-false (symbol=? 'a 1))
 (check-false (symbol=? (string->symbol "foo") 1))
 (check-false (symbol=? 'a 'b '()))
+
 (check-report)

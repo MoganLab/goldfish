@@ -1,6 +1,7 @@
 ;; truncate/
 ;; 执行截断除法，返回商和余数。
 ;;
+;;
 ;; 语法
 ;; ----
 ;; (truncate/ dividend divisor)
@@ -14,13 +15,13 @@
 ;; 除数，不能为零。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; 返回两个值：
 ;; 1. 向靠近零方向取整的商
 ;; 2. 余数，满足 dividend = quotient * divisor + remainder
 ;;
 ;; 错误处理
-;; --------
+;; ----
 ;; division-by-zero
 ;; 当除数为 0 时抛出错误。
 ;; type-error
@@ -65,4 +66,5 @@
 (check-catch 'division-by-zero (truncate/ 0 0))
 (check-catch 'type-error (truncate/ 1.0+1.0i 2))
 (check-catch 'type-error (truncate/ 5 #t))
+
 (check-report)

@@ -18,6 +18,9 @@
     "type-hint": {
       "enabled": true
     },
+    "unit-test": {
+      "enabled": false
+    },
     "no-crlf": {
       "enabled": true,
       "suffix": [

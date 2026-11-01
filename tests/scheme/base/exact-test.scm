@@ -1,6 +1,7 @@
 ;; exact
 ;; 将数字转换为精确表示形式。
 ;;
+;;
 ;; 语法
 ;; ----
 ;; (exact num)
@@ -11,7 +12,7 @@
 ;; 待转换的数字，必须是实数。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; exact?
 ;; 输入数字的精确表示。
 ;;
@@ -22,7 +23,7 @@
 ;; 3. 不支持复数转换
 ;;
 ;; 错误处理
-;; --------
+;; ----
 ;; wrong-number-of-args
 ;; 参数数量不为1时抛出。
 ;; type-error
@@ -47,4 +48,5 @@
 (check-catch 'type-error (exact 'a))
 (check-catch 'type-error (exact "hello"))
 (check-catch 'type-error (exact 1.0+2.0i))
+
 (check-report)

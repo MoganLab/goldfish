@@ -1,6 +1,7 @@
 ;; char->integer
 ;; 将字符转换为其对应的码点值。
 ;;
+;;
 ;; 语法
 ;; ----
 ;; (char->integer char)
@@ -11,7 +12,7 @@
 ;; 字符。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; integer?
 ;; 字符对应的码点值
 ;;
@@ -20,7 +21,7 @@
 ;; 将字符转换为对应的整数值
 ;;
 ;; 错误处理
-;; --------
+;; ----
 ;; type-error
 ;; 当参数不是字符时抛出错误。
 ;; wrong-number-of-args
@@ -62,4 +63,5 @@
 ;; Unicode 字符测试
 (check (char->integer #\中) => 20013)
 (check (char->integer #\🐟) => 128031)
+
 (check-report)

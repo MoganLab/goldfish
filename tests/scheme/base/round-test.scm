@@ -1,6 +1,7 @@
 ;; round
 ;; round用于返回最接近给定数的整数。
 ;;
+;;
 ;; 语法
 ;; ----
 ;; (round num)
@@ -11,7 +12,7 @@
 ;; 实数值，精确的或非精确的
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; 实数? -> (or (integer? integer)
 ;;              (real? real-with-trailing-decimal))
 ;; 返回最接近给定数的整数，如果两个整数同样接近，则取往远离零的方向取整。
@@ -28,7 +29,7 @@
 ;; 4. 对于实部为复数的数值，round会分别对实部和虚部四舍五入
 ;;
 ;; 错误处理
-;; --------
+;; ----
 ;; type-error
 ;; 如果参数不是实数，抛出错误。
 ;; wrong-number-of-args
@@ -81,4 +82,5 @@
 (check-catch 'type-error (round 1.0+2.0i))
 (check-catch 'wrong-number-of-args (round))
 (check-catch 'wrong-number-of-args (round 1 2))
+
 (check-report)

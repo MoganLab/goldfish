@@ -1,6 +1,7 @@
 ;; complex?
 ;; 判断一个对象是否是复数（包括整数、浮点数、有理数、复数）。
 ;;
+;;
 ;; 语法
 ;; ----
 ;; (complex? obj)
@@ -11,11 +12,11 @@
 ;; 任意类型的对象。
 ;;
 ;; 返回值
-;; -----
+;; ----
 ;; boolean?
 ;; 如果 obj 是数值类型（整数、浮点数、有理数、复数）返回 #t，否则返回 #f。
 ;;
-;; 错误
+;; 错误处理
 ;; ----
 ;; 无错误情况。
 
@@ -32,4 +33,5 @@
 (check-false (complex? #t))
 (check-false (complex? 'symbol))
 (check-false (complex? '(1 2 3)))
+
 (check-report)

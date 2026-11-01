@@ -67,6 +67,12 @@
   (check (path-name doc-path) => "compare-test.scm")
 ) ;let
 
+(let ((doc-path (library-doc-path "scheme/base")))
+  (check-true (string? doc-path))
+  (check-true (path-file? doc-path))
+  (check (path-name doc-path) => "README.md")
+) ;let
+
 (check (library-doc-path "liii/uri/not-a-real-sublibrary") => #f)
 
 (check-report)

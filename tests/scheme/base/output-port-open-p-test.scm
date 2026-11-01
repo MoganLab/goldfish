@@ -1,6 +1,7 @@
 ;; output-port-open?
 ;; 检查输出端口是否处于打开状态。
 ;;
+;;
 ;; 语法
 ;; ----
 ;; (output-port-open? port)
@@ -11,7 +12,7 @@
 ;; 要检查的端口。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; boolean?
 ;; 如果端口是打开的返回 #t，否则返回 #f。
 
@@ -39,4 +40,5 @@
   (close-port p)
   (check (input-port-open? p) => #f)
 ) ;let
+
 (check-report)

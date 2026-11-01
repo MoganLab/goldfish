@@ -1,6 +1,7 @@
 ;; exact-integer?
 ;; 判断一个数值是否为精确整数。
 ;;
+;;
 ;; 语法
 ;; ----
 ;; (exact-integer? obj)
@@ -11,7 +12,7 @@
 ;; 任意类型的对象。
 ;;
 ;; 返回值
-;; -----
+;; ----
 ;; boolean?
 ;; 如果 obj 是精确数值且为整数返回 #t，否则返回 #f。
 
@@ -30,4 +31,5 @@
 (check-false (exact-integer? "42"))
 (check-false (exact-integer? #t))
 (check-false (exact-integer? 'symbol))
+
 (check-report)

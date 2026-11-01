@@ -1,6 +1,7 @@
 ;; call-with-values
 ;; 调用产生多值的过程，并将值传递给消费过程。
 ;;
+;;
 ;; 语法
 ;; ----
 ;; (call-with-values producer consumer)
@@ -13,7 +14,7 @@
 ;; 接收 producer 返回值的过程。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; 任意类型
 ;; consumer 的返回值。
 ;;

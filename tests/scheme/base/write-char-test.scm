@@ -1,6 +1,7 @@
 ;; write-char
 ;; 向输出端口写入一个字符。
 ;;
+;;
 ;; 语法
 ;; ----
 ;; (write-char char)
@@ -47,4 +48,5 @@
 ) ;check-catch
 (check (capture-output (lambda (port) (write-char #\中 port))) => "中")
 (check (capture-output (lambda (port) (display #\中 port))) => "中")
+
 (check-report)

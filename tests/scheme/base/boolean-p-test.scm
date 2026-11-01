@@ -1,6 +1,7 @@
 ;; boolean?
 ;; 判断一个对象是否为布尔值。
 ;;
+;;
 ;; 语法
 ;; ----
 ;; (boolean? obj)
@@ -11,7 +12,7 @@
 ;; 任意类型的对象。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; boolean?
 ;; 如果obj是布尔值（即#t或#f）则返回#t，否则返回#f。
 ;;
@@ -22,22 +23,14 @@
 ;; 3. 返回布尔值，便于在类型判断中使用
 ;; 4. 对所有非布尔对象均返回#f
 ;;
-;; 示例
+;; 说明
 ;; ----
-;; (boolean? #t) => #t
-;; (boolean? #f) => #t
-;; (boolean? 123) => #f
-;; (boolean? "true") => #f
-;; (boolean? 'symbol) => #f
-;;
-;; 边界情况
-;; --------
 ;; - 只识别 #t 和 #f
 ;; - 所有非布尔类型的参数都返回 #f
 ;; - 可以识别由其他表达式返回的布尔值
 ;;
 ;; 错误处理
-;; --------
+;; ----
 ;; wrong-number-of-args
 ;; 当参数数量不为1时抛出错误。
 
@@ -107,4 +100,5 @@
 (check-catch 'wrong-number-of-args (boolean?))
 (check-catch 'wrong-number-of-args (boolean? #t #f))
 (check-catch 'wrong-number-of-args (boolean? 1 2 3))
+
 (check-report)

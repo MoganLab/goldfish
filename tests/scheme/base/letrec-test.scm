@@ -1,6 +1,7 @@
 ;; letrec
 ;; 创建递归绑定的局部变量，允许相互递归的函数定义。
 ;;
+;;
 ;; 语法
 ;; ----
 ;; (letrec ((var init) ...) body ...)
@@ -17,7 +18,7 @@
 ;; 表达式体。
 ;;
 ;; 返回值
-;; -----
+;; ----
 ;; any
 ;; 返回最后一个 body 表达式的结果。
 ;;
@@ -46,4 +47,5 @@
 (check (test-letrec) => (list #t #f))
 ;; letrec 限制：init 表达式不能立即使用其他绑定值
 (check-catch 'type-error (letrec ((a 1) (b (+ a 1))) (list a b)))
+
 (check-report)

@@ -1,6 +1,7 @@
 ;; floor/
 ;; 执行地板除法，返回商和余数。
 ;;
+;;
 ;; 语法
 ;; ----
 ;; (floor/ dividend divisor)
@@ -14,7 +15,7 @@
 ;; 除数，不能为零。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; 返回两个值：
 ;; 1. 向下取整的商
 ;; 2. 余数
@@ -43,4 +44,5 @@
 (check-catch 'division-by-zero (floor/ 10 0))
 (check-catch 'type-error (floor/ "10" 5))
 (check-catch 'type-error (floor/ 10 "5"))
+
 (check-report)

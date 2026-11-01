@@ -1,6 +1,7 @@
 ;; bytevector-u8-set!
 ;; 修改字节向量中指定位置的字节值。
 ;;
+;;
 ;; 语法
 ;; ----
 ;; (bytevector-u8-set! bv k byte)
@@ -17,12 +18,12 @@
 ;; 0到255之间的整数，表示要设置的新的字节值。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; unspecified
 ;; 过程修改字节向量后立即返回，没有特定的返回值。
 ;;
 ;; 错误处理
-;; --------
+;; ----
 ;; out-of-range
 ;; 当k小于0或大于等于字节向量长度时抛出错误。
 ;; type-error
@@ -70,4 +71,5 @@
 (check-catch 'type-error (bytevector-u8-set! "hello" 0 5))
 (check-catch 'type-error (bytevector-u8-set! #u8(1 2 3) 1 256))
 (check-catch 'type-error (bytevector-u8-set! #u8(1 2 3) 1 -1))
+
 (check-report)

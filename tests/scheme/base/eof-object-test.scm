@@ -1,12 +1,17 @@
 ;; eof-object
 ;; 返回文件结束对象。
 ;;
+;;
 ;; 语法
 ;; ----
 ;; (eof-object)
 ;;
+;; 参数
+;; ----
+;; 无
+;;
 ;; 返回值
-;; ------
+;; ----
 ;; 文件结束对象（end-of-file object）。
 
 (import (liii check))
@@ -27,4 +32,5 @@
   (check (read p) => #<eof>)
   (close-port p)
 ) ;let
+
 (check-report)

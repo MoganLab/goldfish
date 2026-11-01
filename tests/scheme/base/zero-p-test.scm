@@ -1,6 +1,7 @@
 ;; zero?
 ;; 判断一个数值是否为零。
 ;;
+;;
 ;; 语法
 ;; ----
 ;; (zero? obj)
@@ -11,11 +12,11 @@
 ;; 任意数值类型。
 ;;
 ;; 返回值
-;; -----
+;; ----
 ;; boolean?
 ;; 如果 obj 是数值，当其为零时返回 #t，否则返回 #f。
 ;;
-;; 错误
+;; 错误处理
 ;; ----
 ;; type-error
 ;; 如果参数不是数值类型
@@ -43,4 +44,5 @@
 (check-catch 'type-error (zero? "not-a-number"))
 (check-catch 'type-error (zero? 'symbol))
 (check-catch 'type-error (zero? '(1 2 3)))
+
 (check-report)

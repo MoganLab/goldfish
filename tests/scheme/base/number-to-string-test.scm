@@ -1,6 +1,7 @@
 ;; number->string
 ;; 将数值转换为字符串表示。
 ;;
+;;
 ;; 语法
 ;; ----
 ;; (number->string num)
@@ -16,7 +17,7 @@
 ;; 当不指定时，默认为10进制。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; string?
 ;; 返回给定数值的字符串表示形式。
 ;;
@@ -29,7 +30,7 @@
 ;; 5. 指定进制时，返回指定进制的字符串表示（仅适用于有理的实数部分）
 ;;
 ;; 错误处理
-;; --------
+;; ----
 ;; type-error
 ;; 当参数不是数值或进制不是精确的整数时抛出错误。
 ;; out-of-range
@@ -99,4 +100,5 @@
 (check-catch 'type-error (number->string 123 3.5))
 (check-catch 'wrong-number-of-args (number->string))
 (check-catch 'wrong-number-of-args (number->string 123 2 3))
+
 (check-report)

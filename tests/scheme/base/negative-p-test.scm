@@ -1,6 +1,7 @@
 ;; negative?
 ;; 判断一个对象是否是负数。
 ;;
+;;
 ;; 语法
 ;; ----
 ;; (negative? obj)
@@ -11,11 +12,11 @@
 ;; 实数。
 ;;
 ;; 返回值
-;; -----
+;; ----
 ;; boolean?
 ;; 如果 obj 是实数类型，当其为负数时返回 #t，否则返回 #f。
 ;;
-;; 错误
+;; 错误处理
 ;; ----
 ;; type-error
 ;; 如果参数不是实数类型（包括复数和非数值类型）
@@ -42,4 +43,5 @@
 (check-catch 'type-error (negative? "not-a-number"))
 (check-catch 'type-error (negative? 'symbol))
 (check-catch 'type-error (negative? '(1 2 3)))
+
 (check-report)

@@ -1,6 +1,7 @@
 ;; string
 ;; 从给定字符构造字符串。
 ;;
+;;
 ;; 语法
 ;; ----
 ;; (string char ...)
@@ -11,7 +12,7 @@
 ;; 任意数量的字符。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; string?
 ;; 由给定字符组成的新字符串。
 ;;
@@ -37,4 +38,5 @@
 (check-catch 'out-of-range (string #\x100))
 (check-catch 'out-of-range (string #\中))
 (check-catch 'out-of-range (string #\a #\中))
+
 (check-report)

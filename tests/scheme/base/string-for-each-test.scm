@@ -1,6 +1,7 @@
 ;; string-for-each
 ;; 对字符串中的每个字符依次应用过程。
 ;;
+;;
 ;; 语法
 ;; ----
 ;; (string-for-each proc string1 string2 ...)
@@ -13,7 +14,7 @@
 ;; 至少一个字符串。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; 未指定（unspecified）。
 ;;
 ;; 说明
