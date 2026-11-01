@@ -29,8 +29,7 @@
   ) ;import
   (export load-check-config check-config-exists? check-config-goldfish-version
     check-config-rules check-rule-enabled? check-rule-limit check-rule-excludes
-    check-rule-suffixes check-rule-paths exclude-entry->path
-    path-matches-exclude? file-excluded? validate-check-config!
+    check-rule-suffixes check-rule-paths validate-check-config!
   ) ;export
   (begin
 
@@ -296,9 +295,12 @@
     ) ;define
 
     (define (check-config-exists? . maybe-root)
-      (let ((root (if (null? maybe-root) (or (gfproject-root) ".") (car maybe-root))))
-        (and root (string? root) (file-exists? (string-append root "/gf_check.json")))
-      ) ;let
+      (if (null? maybe-root)
+        (not (not (find-check-config-file)))
+        (let ((root (car maybe-root)))
+          (and root (string? root) (file-exists? (string-append root "/gf_check.json")))
+        ) ;let
+      ) ;if
     ) ;define
 
     (define (find-check-config-file)
