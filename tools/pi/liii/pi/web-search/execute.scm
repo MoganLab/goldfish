@@ -286,7 +286,11 @@
                (opt-key (pi-keyword-value :api-key opts #f))
                (opt-url (pi-keyword-value :base-url opts #f))
                (opt-proxy (pi-keyword-value :proxy-url opts #f))
-               (proxy-url (pi-resolve-search-proxy-url config opt-proxy))
+               (proxy-url (if (pair? opt-env)
+                            (pi-resolve-search-proxy-url config opt-proxy ws-config provider opt-env)
+                            (pi-resolve-search-proxy-url config opt-proxy ws-config provider)
+                          ) ;if
+               ) ;proxy-url
                (proxy-alist (pi-resolve-search-proxy-alist proxy-url))
                (timeout (pi-keyword-value :timeout opts 600))
                (query (pi-arg-ref args "query"))

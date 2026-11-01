@@ -395,7 +395,7 @@ GF_PI_WEB_SEARCH_PROVIDER=deepseek timeout 280 bin/gf pi -p "搜索 DeepSeek V4 
 ```
 
 工具参数：`query`（必填，搜索词）与 `urls`（可选，随搜索一并分析的 URL，最多 20 个）。
-代理复用 `--proxy > HTTPS_PROXY/ALL_PROXY`；访问 Gemini 官方端点通常需要代理。
+代理优先级：显式 `--proxy` > `web-search.json` `httpProxy` > 对应 provider（如 `models/google.json`）`httpProxy` > `HTTPS_PROXY`/`ALL_PROXY` > `settings.json` `httpProxy`；Gemini 搜索会自动复用 google provider 已配置的代理。
 
 #### simplify：代码简化审查【可用】
 
