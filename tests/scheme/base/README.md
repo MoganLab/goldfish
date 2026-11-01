@@ -13,20 +13,24 @@ Goldfish 提供了 `(liii base)` 作为 `scheme base` 的扩展，包含额外�
 
 查看扩展库的完整文档：
 ```bash
-bin/gf doc liii/base
+gf doc liii/base
 ```
 
 ## 查看函数文档
 
 使用以下命令查看函数文档和测试用例：
 ```bash
-bin/gf doc scheme/base "函数名"
+gf doc "函数名"
+```
+或者指定库名：
+```bash
+gf doc scheme/base "函数名"
 ```
 
 特殊说明：
 - 函数 `/` 在 Windows/Git Bash 中需使用 `//`：
   ```bash
-  bin/gf doc "//"
+  gf doc "//"
   ```
 
 ## 函数分类索引
