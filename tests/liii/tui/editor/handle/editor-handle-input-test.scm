@@ -29,7 +29,7 @@
 ;; 该函数是编辑器组件的输入回调，由组件框架收到按键时调用，
 ;; 也可以直接调用它来检查按键处理行为。
 ;; 支持的控制键包括：左右移动、home/end、按词移动、上下键（历史回溯）、
-;; backspace/delete、ctrl-k/ctrl-u/ctrl-w/ctrl-t/ctrl-j、ctrl-z 撤销与 enter 提交。
+;; backspace/delete、ctrl-k/ctrl-u/ctrl-w/ctrl-t、shift-enter/ctrl-enter/ctrl-j（换行）、ctrl-z 撤销与 enter 提交。
 ;; 字符串按键若为括号粘贴标记，则按粘贴处理，大段内容折叠为 [paste #N ...] 占位。
 ;;
 ;; 错误处理
@@ -81,11 +81,15 @@
   (check (editor-text ed) => "")
 ) ;let
 
-;; 6. enter 触发提交回调
+;; 6. enter 触发提交回调，shift-enter 触发多行换行
 (let* ((submitted #f)
-       (ed (make-editor "hi" :on-submit (lambda (c text) (set! submitted text)))))
+       (ed (make-editor "hi" :multiline #t :submit-on-enter? #t
+             :on-submit (lambda (c text) (set! submitted text)))))
+  (check (editor-handle-input ed 'shift-enter) => #t)
+  (check (editor-text ed) => "hi\n")
+  (check submitted => #f)
   (check (editor-handle-input ed 'enter) => #t)
-  (check submitted => "hi")
+  (check submitted => "hi\n")
 ) ;let
 
 ;; 7. 括号粘贴标记按粘贴处理

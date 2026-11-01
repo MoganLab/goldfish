@@ -309,7 +309,7 @@
                       ((eq? key 'ctrl-t)
                        (%apply-edit! data comp buf on-ch (lambda () (buffer-transpose-chars! buf)))
                       ) ;
-                      ((eq? key 'ctrl-j)
+                      ((or (eq? key 'shift-enter) (eq? key 'ctrl-enter) (eq? key 'ctrl-j))
                        ;; 多行模式下的显式换行键（Enter 已被提交占用）
                        (if multi?
                          (%apply-edit! data comp buf on-ch (lambda () (buffer-newline! buf)))

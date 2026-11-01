@@ -102,9 +102,13 @@
 (check (%map-extended-key 164) => 'alt-delete)
 
 ;; 7. 标准键码映射：裸字节 15 是真正的 Ctrl+O（如 pty/tmux 下），
-;;    不是 Shift+Tab；C++ 控制台层的 Shift+Tab 编码为 353（curses KEY_BTAB）
+;;    不是 Shift+Tab；C++ 控制台层的 Shift+Tab 编码为 353（curses KEY_BTAB），
+;;    Shift+Enter 编码为 354，Alt+Enter 编码为 355，Ctrl+Enter 编码为 356
 (check (%map-standard-key 15) => 'ctrl-o)
 (check (%map-standard-key 353) => 'shift-tab)
+(check (%map-standard-key 354) => 'shift-enter)
+(check (%map-standard-key 355) => 'alt-enter)
+(check (%map-standard-key 356) => 'ctrl-enter)
 (check (%map-standard-key 9) => 'tab)
 (check (%map-standard-key 13) => 'enter)
 

@@ -672,6 +672,18 @@ pump_console_input (HANDLE hIn, long timeout_ms) {
       return true;
     }
 
+    // Shift-Enter
+    if (virt == VK_RETURN && is_shift) {
+      g_console_key_queue.push_back (354);
+      return true;
+    }
+
+    // Alt-Enter
+    if (virt == VK_RETURN && alt_key) {
+      g_console_key_queue.push_back (355);
+      return true;
+    }
+
     // 功能键/光标键处理（Alt 行扩展码：151/152/153/155/157/160/161/162/163/164）
     if (chr == 0) {
       switch (virt) {

@@ -35,12 +35,13 @@
     (define (%split-semicolon str)
       (let ((len (string-length str)))
         (let loop
-          ((k 0))
-          (cond ((>= k len) (list str))
-                ((char=? (string-ref str k) #\;)
-                 (list (substring str 0 k) (substring str (+ k 1) len))
-                ) ;
-                (else (loop (+ k 1)))
+          ((k 0) (start 0) (acc '()))
+          (cond
+           ((= k len) (reverse (cons (substring str start len) acc)))
+           ((char=? (string-ref str k) #\;)
+            (loop (+ k 1) (+ k 1) (cons (substring str start k) acc))
+           ) ;
+           (else (loop (+ k 1) start acc))
           ) ;cond
         ) ;let
       ) ;let
@@ -60,17 +61,42 @@
 
     (define (%resolve-csi-tilde param-str next-i)
       (let ((parts (%split-semicolon param-str)))
-        (if (= (length parts) 1)
+        (cond
+         ((= (length parts) 1)
           (let ((k (%tilde-key (car parts))))
             (values (or k 'escape) next-i)
           ) ;let
-          (let* ((code-str (car parts))
-                 (mod-code (string->number (cadr parts)))
-                 (base-k (%tilde-key code-str))
-                ) ;
-            (values (%combine-mod-key base-k mod-code) next-i)
-          ) ;let*
-        ) ;if
+         ) ;
+         ((and (= (length parts) 3) (string=? (car parts) "27"))
+          (let ((mod-code (string->number (cadr parts))) (code (string->number (caddr parts))))
+            (cond ((and code (= code 13) mod-code (= mod-code 2)) (values 'shift-enter next-i))
+                  ((and code (= code 13) mod-code (= mod-code 5)) (values 'ctrl-enter next-i))
+                  ((and code (= code 13) mod-code (= mod-code 3)) (values 'alt-enter next-i))
+                  ((and code (= code 9) mod-code (= mod-code 2)) (values 'shift-tab next-i))
+                  (else (values 'escape next-i))
+            ) ;cond
+          ) ;let
+         ) ;
+         (else
+           (let* ((code-str (car parts)) (mod-code (string->number (cadr parts))))
+             (cond ((and (string=? code-str "13") mod-code (= mod-code 2))
+                    (values 'shift-enter next-i)
+                   ) ;
+                   ((and (string=? code-str "13") mod-code (= mod-code 5))
+                    (values 'ctrl-enter next-i)
+                   ) ;
+                   ((and (string=? code-str "13") mod-code (= mod-code 3))
+                    (values 'alt-enter next-i)
+                   ) ;
+                   (else
+                     (let ((base-k (%tilde-key code-str)))
+                       (values (%combine-mod-key base-k mod-code) next-i)
+                     ) ;let
+                   ) ;else
+             ) ;cond
+           ) ;let*
+         ) ;else
+        ) ;cond
       ) ;let
     ) ;define
 
