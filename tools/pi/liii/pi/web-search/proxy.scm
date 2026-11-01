@@ -97,7 +97,11 @@
           (let ((entry (assoc provider models-store)))
             (and entry
               (let ((p (or (assoc "httpProxy" (cdr entry)) (assoc 'httpProxy (cdr entry)))))
-                (and p (string? (cdr p)) (not (string-null? (string-trim-both (cdr p)))) (cdr p))
+                (and p
+                  (string? (cdr p))
+                  (not (string-null? (string-trim-both (cdr p))))
+                  (cdr p)
+                ) ;and
               ) ;let
             ) ;and
           ) ;let
@@ -106,8 +110,10 @@
     ) ;define
 
     (define (%provider-proxy-from-file config-dir provider)
-      (and (or (string? config-dir) (path? config-dir)) (string? provider)
-        (let ((p-file (path-join (path config-dir) "models" (string-append provider ".json"))))
+      (and (or (string? config-dir) (path? config-dir))
+        (string? provider)
+        (let ((p-file (path-join (path config-dir) "models" (string-append provider ".json")))
+             ) ;
           (and (path-exists? p-file)
             (catch #t
               (lambda ()
@@ -144,13 +150,11 @@
     (define (pi-resolve-search-proxy-url config opt-proxy . rest)
       (let* ((ws-config (if (pair? rest) (car rest) #f))
              (explicit-provider? (and (pair? rest) (pair? (cdr rest))))
-             (provider
-               (if explicit-provider?
-                 (cadr rest)
-                 (or (%cfg-str config 'provider) "google")
-               ) ;if
+             (provider (if explicit-provider? (cadr rest) (or (%cfg-str config 'provider) "google"))
              ) ;provider
-             (opt-env (if (and (pair? rest) (pair? (cdr rest)) (pair? (cddr rest))) (caddr rest) #f))
+             (opt-env
+               (if (and (pair? rest) (pair? (cdr rest)) (pair? (cddr rest))) (caddr rest) #f)
+             ) ;opt-env
              (config-dir (%config-dir-from opt-env))
             ) ;
         (cond
@@ -162,7 +166,9 @@
           (%cfg-str config 'proxy-url)
          ) ;
          ((and (pair? config)
-            (equal? (%norm-provider (or (%cfg-str config 'provider) "")) (%norm-provider provider))
+            (equal? (%norm-provider (or (%cfg-str config 'provider) ""))
+              (%norm-provider provider)
+            ) ;equal?
             (%cfg-str config 'proxy-url)
           ) ;and
           (%cfg-str config 'proxy-url)

@@ -21,8 +21,8 @@
     pi-resolve-search-proxy-url pi-resolve-search-proxy-alist
     pi-resolve-search-model-id pi-load-web-search-config
     pi-web-search-config-model pi-web-search-config-proxy
-    pi-resolve-web-search-provider
-    pi-resolve-deepseek-api-key pi-resolve-deepseek-search-base-url
+    pi-resolve-web-search-provider pi-resolve-deepseek-api-key
+    pi-resolve-deepseek-search-base-url
   ) ;export
   (begin
 
@@ -107,7 +107,6 @@
        (else "https://generativelanguage.googleapis.com/v1beta")
       ) ;cond
     ) ;define
-
 
     (define (pi-resolve-search-model-id config opt-model)
       (cond
