@@ -1,7 +1,3 @@
-(import (liii check))
-(import (liii base))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; floor-quotient
 ;; 用于计算两个数的地板除法，返回向负无穷取整的商。
 ;;
@@ -25,6 +21,13 @@
 ;; 当除数为零时抛出错误。
 ;; type-error
 ;; 当参数不是数字时抛出错误。
+
+(import (liii check))
+(import (liii base))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check (floor-quotient 11 2) => 5)
 (check (floor-quotient 11 -2) => -6)
 (check (floor-quotient -11 2) => -6)

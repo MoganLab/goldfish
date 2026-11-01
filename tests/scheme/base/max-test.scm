@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; max
 ;; 返回所有给定实数的最大值。
 ;;
@@ -26,6 +23,12 @@
 ;; 如果存在任何参数不是实数，抛出错误。
 ;; wrong-number-of-args
 ;; 如果没有提供参数，抛出错误。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check (max 7) => 7)
 (check (max 3.5) => 3.5)
 (check (max 1/3) => 1/3)

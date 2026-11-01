@@ -1,5 +1,3 @@
-(import (liii check) (scheme base))
-(check-set-mode! 'report-failed)
 ;; write-char
 ;; 向输出端口写入一个字符。
 ;;
@@ -25,6 +23,10 @@
 ;; ----
 ;; type-error
 ;; 当第一个参数不是字符时抛出。
+
+(import (liii check) (scheme base))
+
+(check-set-mode! 'report-failed)
 
 (define (capture-output thunk)
   (let ((port (open-output-string)))

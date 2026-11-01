@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; string=?
 ;; 比较两个字符串是否相等。
 ;;
@@ -36,6 +33,12 @@
 ;; --------
 ;; wrong-number-of-args
 ;; 当参数数量少于2个时抛出错误。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 ;; string=? 基本测试
 (check-true (string=? "hello" "hello"))
 (check-true (string=? "" ""))

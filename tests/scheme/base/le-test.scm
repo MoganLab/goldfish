@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; <=
 ;; 比较数字是否按非降序排列。
 ;;
@@ -30,6 +27,12 @@
 ;; 参数数量不足两个时抛出。
 ;; type-error
 ;; 任一参数不是实数时抛出。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check (<= 1 2) => #t)
 (check (<= 2 1) => #f)
 (check (<= 1 1) => #t)

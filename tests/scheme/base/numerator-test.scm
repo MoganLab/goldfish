@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; numerator
 ;; 返回有理数的分子部分。
 ;;
@@ -23,6 +20,12 @@
 ;; --------
 ;; type-error
 ;; 当参数不是有理数时抛出错误。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 ;; numerator测试
 (check (numerator 1/2) => 1)
 (check (numerator 4/5) => 4)

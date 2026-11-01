@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; bytevector-copy
 ;; 创建一个新的字节向量，它是现有字节向量的完整或部分副本。
 ;;
@@ -34,6 +31,12 @@
 ;;
 ;; wrong-number-of-args
 ;; 参数数量不正确时抛出错误。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 ;; bytevector-copy 基本测试
 (check (bytevector-copy #u8()) => #u8())
 (check (bytevector-copy #u8(1 2 3)) => #u8(1 2 3))

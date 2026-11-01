@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; rational?
 ;; 判断一个对象是否是有理数（包括整数、有理数）。
 ;;
@@ -21,6 +18,12 @@
 ;; 错误
 ;; ----
 ;; 无错误情况。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check-true (rational? 123))
 (check-true (rational? 1/2))
 (check-false (rational? 123.456))

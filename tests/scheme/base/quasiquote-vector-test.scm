@@ -1,3 +1,15 @@
+;; quasiquote (vector)
+;; 验证反引号 quasiquote 对向量（vector）字面量的模板求值支持。
+;;
+;; 语法
+;; ----
+;; `#(template ...)
+;; (quasiquote #(template ...))
+;;
+;; 说明
+;; ----
+;; 遵循 R7RS 4.2.8 节规范，支持在向量模板中使用 unquote (,) 与 unquote-splicing (,@)。
+
 (import (liii check) (scheme base) (liii json))
 
 (check-set-mode! 'report-failed)
@@ -28,9 +40,9 @@
 ) ;let
 
 ;; 显式宏调用 (quasiquote #( ... ))
-(check (quasiquote #(10 5 (unquote (sqrt 4)))) => #(10 5 2))
-(check (quasiquote #()) => #())
-(check (quasiquote #(1 2 3)) => #(1 2 3))
+(check `#(10 5 ,(sqrt 4)) => #(10 5 2))
+(check `#() => #())
+(check `#(1 2 3) => #(1 2 3))
 
 ;; 向量嵌套向量
 (let ((x 99))

@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; negative?
 ;; 判断一个对象是否是负数。
 ;;
@@ -22,6 +19,12 @@
 ;; ----
 ;; type-error
 ;; 如果参数不是实数类型（包括复数和非数值类型）
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check-true (negative? -1))
 (check-true (negative? -0.1))
 (check-true (negative? -1/2))

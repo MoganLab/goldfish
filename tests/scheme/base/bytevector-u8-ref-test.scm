@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; bytevector-u8-ref
 ;; 返回字节向量中指定索引位置的字节值。
 ;;
@@ -33,6 +30,12 @@
 ;; 当bv不是字节向量时或k不是整数时抛出错误。
 ;; out-of-range
 ;; 当k小于0或大于等于字节向量长度时抛出错误。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 ;; bytevector-u8-ref 基本测试
 (check (bytevector-u8-ref #u8(5 15 25) 0) => 5)
 (check (bytevector-u8-ref #u8(5 15 25) 1) => 15)

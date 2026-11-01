@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; denominator
 ;; 返回有理数的分母部分。
 ;;
@@ -23,6 +20,12 @@
 ;; --------
 ;; type-error
 ;; 当参数不是有理数时抛出错误。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 ;; denominator测试
 (check (denominator 1/2) => 2)
 (check (denominator 4/5) => 5)

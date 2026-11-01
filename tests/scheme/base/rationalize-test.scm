@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; rationalize
 ;; 将给定的实数简化为一个具有较小分母的近似有理数。
 ;;
@@ -27,6 +24,12 @@
 ;; 当参数不是实数时抛出错误。
 ;; wrong-number-of-args
 ;; 当参数数量不为2个时抛出错误。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check (rationalize 0.5 0.1) => 1/2)
 (check (rationalize 0.33 0.01) => 1/3)
 (check (rationalize 0.333 0.02) => 1/3)

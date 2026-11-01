@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; flush-output-port
 ;; 刷新输出端口缓冲区。
 ;;
@@ -22,6 +19,12 @@
 ;; ----
 ;; 1. 确保缓冲区内容已输出
 ;; 2. 对字符串输出端口通常无实际效果
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (let ((p (open-output-string)))
   (display "test" p)
   (flush-output-port p)

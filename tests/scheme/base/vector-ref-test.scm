@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; vector-ref
 ;; 返回向量指定位置的元素。
 ;;
@@ -24,6 +21,12 @@
 ;; ----
 ;; 1. k 必须满足 0 <= k < (vector-length vector)
 ;; 2. 索引从 0 开始
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check (vector-ref #(a b c) 0) => 'a)
 (check (vector-ref #(a b c) 1) => 'b)
 (check (vector-ref #(a b c) 2) => 'c)

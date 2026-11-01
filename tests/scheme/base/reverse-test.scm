@@ -1,24 +1,20 @@
-(import (liii check))
-(import (liii list))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; reverse
 ;; 返回一个新列表，包含原始列表中的元素但顺序相反。
-;; 
+;;
 ;; 语法
 ;; ----
 ;; (reverse list)
-;; 
+;;
 ;; 参数
 ;; ----
 ;; list : list?
 ;;     要反转的列表。
-;; 
+;;
 ;; 返回值
 ;; ------
 ;; list?
 ;;     包含原始列表元素的反转顺序新列表。
-;; 
+;;
 ;; 说明
 ;; ----
 ;; 1. 返回一个新的列表，元素顺序与原始列表相反
@@ -26,7 +22,7 @@
 ;; 3. 不会改变原始列表的内容
 ;; 4. 对列表中的元素类型没有限制
 ;; 5. 当参数是非列表时，行为依赖于具体实现
-;; 
+;;
 ;; 相关函数
 ;; --------
 ;; reverse! - 原地反转列表或向量
@@ -34,6 +30,12 @@
 ;; 错误处理
 ;; --------
 ;; 依赖具体实现行为
+
+(import (liii check))
+(import (liii list))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
 
 (check (reverse '()) => '())
 (check (reverse '(a)) => '(a))
@@ -63,7 +65,11 @@
 (check (reverse '(a b c d e f g h i j)) => '(j i h g f e d c b a))
 ;; 测试嵌套列表
 (check (reverse '((a b) (c d) (e f))) => '((e f) (c d) (a b)))
-(check (reverse '((1 (2 3)) 4 (5 6))) => '((5 6) 4 (1 (2 3))))
+(check
+  (reverse '((1 (2 3)) 4 (5 6)))
+  =>
+  '((5 6) 4 (1 (2 3)))
+) ;check
 (check (reverse '("apple" ("banana" "cherry") "date"))
   =>
   '("date" ("banana" "cherry") "apple")
@@ -75,10 +81,18 @@
 (check (reverse '(#\tab #\newline #\space)) => '(#\space #\newline #\tab))
 ;; 测试由构造函数创建的列表
 (check (reverse (list 1 2 3 4 5)) => '(5 4 3 2 1))
-(check (reverse (cons 'a (cons 'b (cons 'c '())))) => '(c b a))
+(check
+  (reverse (cons 'a (cons 'b (cons 'c '()))))
+  =>
+  '(c b a)
+) ;check
 ;; 测试复杂嵌套结构
 (check (reverse '((a . b) (c . d) (e . f))) => '((e . f) (c . d) (a . b)))
-(check (reverse '(a (b) (c (d)))) => '((c (d)) (b) a))
+(check
+  (reverse '(a (b) (c (d))))
+  =>
+  '((c (d)) (b) a)
+) ;check
 ;; 测试列表操作结果
 (let ((lst (list 1 2 3 4 5)))
   (check (reverse (reverse lst)) => lst)
@@ -100,7 +114,11 @@
 ) ;check
 (check (reverse '("foo" "bar" "baz" "" "qux")) => '("qux" "" "baz" "bar" "foo"))
 ;; 长列表测试
-(check (reverse (map (lambda (x) (* x x)) '(1 2 3 4 5))) => '(25 16 9 4 1))
+(check
+  (reverse (map (lambda (x) (* x x)) '(1 2 3 4 5)))
+  =>
+  '(25 16 9 4 1)
+) ;check
 (check (reverse (filter even? '(1 2 3 4 5 6 7 8))) => '(8 6 4 2))
 ;; 异常与点对结构测试
 (check (reverse '(1 . 2)) => '(2 . 1))

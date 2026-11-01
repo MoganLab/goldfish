@@ -1,7 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
-
 ;; string->utf8
 ;; 将字符串按 UTF-8 编码转换为字节向量。
 ;;
@@ -35,6 +31,12 @@
 ;; ============================================================
 ;; 1. 空串与纯 ASCII
 ;; ============================================================
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check (string->utf8 "") => #u8())
 (check (string->utf8 "a") => #u8(97))
 (check (string->utf8 "Hello") => #u8(72 101 108 108 111))

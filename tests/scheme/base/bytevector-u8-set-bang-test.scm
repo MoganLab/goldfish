@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; bytevector-u8-set!
 ;; 修改字节向量中指定位置的字节值。
 ;;
@@ -30,6 +27,12 @@
 ;; 当k小于0或大于等于字节向量长度时抛出错误。
 ;; type-error
 ;; 当byte不是0-255之间的整数时抛出错误。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (let ((bv (bytevector 1 2 3 4 5)))
   (bytevector-u8-set! bv 1 4)
   (check bv => #u8(1 4 3 4 5))

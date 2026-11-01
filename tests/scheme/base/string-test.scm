@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; string
 ;; 从给定字符构造字符串。
 ;;
@@ -22,6 +19,12 @@
 ;; ----
 ;; 1. 无参数时返回空字符串
 ;; 2. 参数顺序决定结果字符串中的字符顺序
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check (string) => "")
 (check (string #\a) => "a")
 (check (string #\a #\b #\c) => "abc")

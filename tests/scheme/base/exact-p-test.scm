@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; exact?
 ;; 判断一个数是否是精确数。
 ;;
@@ -21,6 +18,12 @@
 ;; 错误
 ;; ----
 ;; 无错误情况。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check-true (exact? 1))
 (check-true (exact? 1/2))
 (check-false (exact? 0.3))

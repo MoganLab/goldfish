@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; char=?
 ;; 比较两个或多个字符是否相等。
 ;;
@@ -32,6 +29,12 @@
 ;; 当参数不是字符时抛出错误。
 ;; wrong-number-of-args
 ;; 当参数数量少于2个时抛出错误。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 ;; char=? 基本测试
 (check (char=? #\A #\A) => #t)
 (check (char=? #\a #\a) => #t)

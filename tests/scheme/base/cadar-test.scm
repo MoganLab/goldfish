@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; cadar
 ;; cadar 是 Scheme 内置函数，等价于 (car (cdr (car pair)))。
 ;;
@@ -22,9 +19,19 @@
 ;; --------
 ;; type-error
 ;; 参数不是序对，或者 car/cdr 链上的某一层不是序对时抛出错误。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check (cadar '((1 2 3))) => 2)
 (check (cadar '((a b c) d)) => 'b)
-(check (cadar (cons (cons 1 (cons 2 3)) 4)) => 2)
+(check
+  (cadar (cons (cons 1 (cons 2 3)) 4))
+  =>
+  2
+) ;check
 (check-catch 'type-error (cadar '((1))))
 (check-catch 'type-error (cadar '(1 2 3)))
 (check-catch 'type-error (cadar 'a))

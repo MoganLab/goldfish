@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; utf8->string
 ;; 将 UTF-8 字节向量转换为字符串。
 ;;
@@ -27,6 +24,12 @@
 ;; 1. 输入必须是有效的 UTF-8 序列
 ;; 2. 无效的 UTF-8 序列会引发错误
 ;; 3. 空字节向量返回空字符串
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check (utf8->string #u8()) => "")
 (check (utf8->string #u8(97)) => "a")
 (check (utf8->string #u8(72 101 108 108 111)) => "Hello")

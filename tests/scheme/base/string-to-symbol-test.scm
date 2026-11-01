@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; string->symbol
 ;; 将字符串转换为对应的符号
 ;;
@@ -30,6 +27,12 @@
 ;; 1. 名称转换：字符串内容会原样转换为符号标识符，保持大小写敏感
 ;; 2. 数字处理：数字字符串（如"123"）转换为数字名称符号，而非数值123
 ;; 3. 重入一致性：相同字符串多次转换返回同一个符号对象
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 ;; 基本转换测试
 (check (string->symbol "MathAgape") => 'MathAgape)
 (check (string->symbol "hello") => 'hello)

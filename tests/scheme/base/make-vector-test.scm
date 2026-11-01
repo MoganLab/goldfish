@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; make-vector
 ;; 创建指定长度的新向量，可选填充值。
 ;;
@@ -24,6 +21,12 @@
 ;; ----
 ;; 1. k 必须是非负整数
 ;; 2. 不提供 fill 时，各元素的初始值由实现决定
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check (make-vector 0) => #())
 (check (vector-length (make-vector 3)) => 3)
 (check (make-vector 3 #\a) => #(#\a #\a #\a))

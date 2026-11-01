@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; vector-fill!
 ;; 将向量的所有元素替换为指定值。
 ;;
@@ -27,6 +24,12 @@
 ;; ----
 ;; 1. 直接修改原向量
 ;; 2. 空向量调用无效果
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (let ((v (vector 'a 'b 'c)))
   (vector-fill! v 'x)
   (check v => #(x x x))

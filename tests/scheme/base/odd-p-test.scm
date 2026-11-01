@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; odd?
 ;; 判断一个整数是否是奇数。
 ;;
@@ -22,6 +19,12 @@
 ;; ----
 ;; type-error
 ;; 如果参数不是整数类型
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check-true (odd? 1))
 (check-false (odd? 0))
 (check-catch 'type-error (odd? 1.0+1.0i))

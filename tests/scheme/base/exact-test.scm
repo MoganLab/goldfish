@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; exact
 ;; 将数字转换为精确表示形式。
 ;;
@@ -30,6 +27,12 @@
 ;; 参数数量不为1时抛出。
 ;; type-error
 ;; 参数不是实数时抛出。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check (exact 1) => 1)
 (check (exact 0) => 0)
 (check (exact -5) => -5)

@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; define-record-type
 ;; 定义一个新的记录类型，类似于其他语言中的结构体或类。
 ;;
@@ -42,6 +39,12 @@
 ;; - 类型判断函数：用于判断是否为该类型的实例
 ;; - 访问函数：用于读取字段值
 ;; - 修改函数（可选）：用于修改字段值
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 ;; 基础记录类型定义
 (define-record-type <pare>
   (kons x y)

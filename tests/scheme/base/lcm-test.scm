@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; lcm
 ;; 计算给定有理数的最小公倍数。
 ;;
@@ -23,6 +20,12 @@
 ;; --------
 ;; type-error
 ;; 当参数不是实数时抛出错误。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 ;; 基本测试
 (check (lcm) => 1)
 (check (lcm 1) => 1)

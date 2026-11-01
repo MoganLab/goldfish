@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; real?
 ;; 判断一个对象是否实数（包括整数、浮点数、有理数）。
 ;;
@@ -21,6 +18,12 @@
 ;; 错误
 ;; ----
 ;; 无错误情况。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check-true (real? 123))
 (check-true (real? 123.456))
 (check-true (real? 1/2))

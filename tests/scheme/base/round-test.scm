@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; round
 ;; round用于返回最接近给定数的整数。
 ;;
@@ -36,6 +33,12 @@
 ;; 如果参数不是实数，抛出错误。
 ;; wrong-number-of-args
 ;; 如果参数数量不为一，抛出错误。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check (round 1.1) => 1.0)
 (check (round 1.5) => 2.0)
 (check (round 1) => 1)

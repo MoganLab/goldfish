@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; read-string
 ;; 从输入端口读取指定数量的字符。
 ;;
@@ -25,6 +22,12 @@
 ;; ----
 ;; 1. 读取 k 个字符或到达 EOF
 ;; 2. 返回的字符串长度可能小于 k
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (let ((p (open-input-string "hello world")))
   (check (read-string 5 p) => "hello")
   (check (read-string 1 p) => " ")

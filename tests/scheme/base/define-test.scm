@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; define
 ;; 定义变量或过程。
 ;;
@@ -29,6 +26,11 @@
 ;; 1. 第一种形式定义变量
 ;; 2. 第二种形式是 lambda 的语法糖
 ;; 3. 在顶层或函数体内使用
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
 
 (define test-var 42)
 (check test-var => 42)

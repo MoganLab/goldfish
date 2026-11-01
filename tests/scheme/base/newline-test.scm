@@ -1,5 +1,3 @@
-(import (liii check) (scheme base))
-(check-set-mode! 'report-failed)
 ;; newline
 ;; 向输出端口写入一个换行符。
 ;;
@@ -21,6 +19,10 @@
 ;; 描述
 ;; ----
 ;; `newline` 常用于组织多行输出，与 `display` 或 `write` 搭配使用。
+
+(import (liii check) (scheme base))
+
+(check-set-mode! 'report-failed)
 
 (define (capture-output thunk)
   (let ((port (open-output-string)))

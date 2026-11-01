@@ -1,7 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(import (scheme char))
-(check-set-mode! 'report-failed)
 ;; string-ci=?
 ;; 按大小写不敏感的方式比较多个字符串是否相等。
 ;;
@@ -37,6 +33,13 @@
 ;; --------
 ;; wrong-number-of-args
 ;; 当参数数量少于2个时抛出错误。
+
+(import (liii check))
+(import (scheme base))
+(import (scheme char))
+
+(check-set-mode! 'report-failed)
+
 ;; string-ci=? 基本测试
 (check-true (string-ci=? "hello" "hello"))
 (check-true (string-ci=? "hello" "HELLO"))

@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; open-input-string
 ;; 将一个字符串转换为输入端口
 ;;
@@ -19,6 +16,12 @@
 ;; 一个文本输入端口，该端口会从给定的字符串中读取字符。
 ;; 注意：如果在端口使用期间修改了原始字符串，其行为是未定义的。
 ;; eof on empty
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (let ((port (open-input-string "")))
   (check (eof-object? (read-char port)) => #t)
 ) ;let

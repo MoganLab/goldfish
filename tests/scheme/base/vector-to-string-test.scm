@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; vector->string
 ;; 将字符向量转换为字符串。
 ;;
@@ -22,6 +19,12 @@
 ;; ----
 ;; 1. 空向量返回空字符串
 ;; 2. 向量中每个元素必须是字符
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check (vector->string #()) => "")
 (check (vector->string #(#\a)) => "a")
 (check (vector->string #(#\a #\b #\c)) => "abc")

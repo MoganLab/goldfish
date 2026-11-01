@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; or
 ;; 对任意数量的参数执行逻辑或操作，支持短路求值。
 ;;
@@ -23,6 +20,12 @@
 ;; 短路求值
 ;; -------
 ;; 从左到右依次求值，一旦遇到真值就立即停止求值并返回该值
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 ;; 基础测试用例
 (check-false (or))
 (check-true (or #t))

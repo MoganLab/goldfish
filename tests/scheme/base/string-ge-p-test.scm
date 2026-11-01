@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; string>=?
 ;; 按字典序比较字符串是否非递增。
 ;;
@@ -23,6 +20,12 @@
 ;; 1. 基于字符的 Unicode 码点进行字典序比较
 ;; 2. 区分大小写
 ;; 3. 允许相等关系
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check (string>=? "b" "a") => #t)
 (check (string>=? "a" "b") => #f)
 (check (string>=? "a" "a") => #t)

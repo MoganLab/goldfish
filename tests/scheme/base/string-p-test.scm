@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; string?
 ;; 判断给定的对象是否为字符串类型。
 ;;
@@ -28,6 +25,12 @@
 ;; --------
 ;; wrong-number-of-args
 ;; 当参数数量不为1时抛出错误。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 ;; string? 基本测试
 (check (string? "hello") => #t)
 (check (string? "") => #t)

@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; vector-set!
 ;; 修改向量指定位置的元素。
 ;;
@@ -26,6 +23,12 @@
 ;; 1. k 必须满足 0 <= k < (vector-length vector)
 ;; 2. 直接修改原向量
 ;; 3. 索引从 0 开始
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (let ((v (vector 'a 'b 'c)))
   (vector-set! v 0 'x)
   (check v => #(x b c))

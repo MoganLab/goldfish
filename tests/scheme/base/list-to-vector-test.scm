@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; list->vector
 ;; 将列表转换为向量。
 ;;
@@ -22,6 +19,12 @@
 ;; ----
 ;; 1. 空列表返回空向量
 ;; 2. 返回新向量，不修改原列表
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check (list->vector '()) => #())
 (check (list->vector '(a)) => #(a))
 (check (list->vector '(1 2 3)) => #(1 2 3))

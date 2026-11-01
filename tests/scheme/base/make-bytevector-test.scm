@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; make-bytevector
 ;; 创建一个新的字节向量，指定长度和初始值为所有组成字节。
 ;;
@@ -35,6 +32,12 @@
 ;; 当任何参数不正确时抛出错误。
 ;; wrong-number-of-args
 ;; 当参数数量不为1或2个时抛出错误。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 ;; make-bytevector 基本测试
 (check (make-bytevector 0) => #u8())
 (check (make-bytevector 1) => #u8(0))

@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; integer?
 ;; 判断一个对象是否是整数（包括整数）。
 ;;
@@ -21,6 +18,12 @@
 ;; 错误
 ;; ----
 ;; 无错误情况。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check-true (integer? 123))
 (check-false (integer? 123.456))
 (check-false (integer? 1/2))

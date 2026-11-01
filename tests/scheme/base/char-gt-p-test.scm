@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; char>?
 ;; 按字典序比较字符的大小，判断字符是否按降序排列。
 ;;
@@ -32,6 +29,12 @@
 ;; 当参数不是字符时抛出错误。
 ;; wrong-number-of-args
 ;; 当参数数量少于2个时抛出错误。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 ;; char>? 基本测试
 (check (char>? #\B #\A) => #t)
 (check (char>? #\b #\a) => #t)

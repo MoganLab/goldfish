@@ -1,7 +1,3 @@
-(import (liii check))
-(import (liii error))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; exact-integer-sqrt
 ;; 计算给定非负精确整数的精确平方根。
 ;;
@@ -32,6 +28,13 @@
 ;; 当参数不是准确的整数时抛出错误。
 ;; value-error
 ;; 当参数是负数时抛出错误。
+
+(import (liii check))
+(import (liii error))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check (list (exact-integer-sqrt 9)) => (list 3 0))
 (check (list (exact-integer-sqrt 5)) => (list 2 1))
 (check (list (exact-integer-sqrt 0)) => (list 0 0))

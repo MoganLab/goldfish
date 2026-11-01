@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; port?
 ;; 检查对象是否为端口（输入或输出端口）。
 ;;
@@ -17,6 +14,12 @@
 ;; ------
 ;; boolean?
 ;; 如果对象是端口返回 #t，否则返回 #f。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 ;; 测试输入端口
 (let ((p (open-input-string "hello")))
   (check (port? p) => #t)

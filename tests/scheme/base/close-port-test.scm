@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; close-port
 ;; 关闭输入或输出端口。
 ;;
@@ -20,6 +17,12 @@
 ;; 副作用
 ;; ------
 ;; 关闭端口。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 ;; 测试关闭输入端口
 (let ((p (open-input-string "hello")))
   (check (input-port-open? p) => #t)

@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; quotient
 ;; 用于计算两个数的精确除法商（向零取整）。
 ;;
@@ -30,6 +27,12 @@
 ;; 当除数为零时抛出错误。
 ;; type-error
 ;; 当参数不是数字时抛出错误。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check (quotient 11 2) => 5)
 (check (quotient 11 -2) => -5)
 (check (quotient -11 2) => -5)

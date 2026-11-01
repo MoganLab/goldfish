@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; values
 ;; 返回多个值。
 ;;
@@ -22,6 +19,12 @@
 ;; ----
 ;; 1. 需要配合 call-with-values 使用
 ;; 2. 单值时行为与直接返回相同
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check (values 1) => 1)
 (check (call-with-values (lambda () (values 1 2)) (lambda (a b) (+ a b))) => 3)
 (check (call-with-values (lambda () (values)) (lambda args (length args))) => 1)

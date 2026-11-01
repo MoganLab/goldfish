@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; procedure?
 ;; 判断对象是否为过程。
 ;;
@@ -22,6 +19,12 @@
 ;; ----
 ;; 1. 内置过程和 lambda 表达式都返回 #t
 ;; 2. 宏返回 #f
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check (procedure? +) => #t)
 (check (procedure? (lambda (x) x)) => #t)
 (check (procedure? 1) => #f)

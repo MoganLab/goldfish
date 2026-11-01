@@ -1,11 +1,37 @@
+;; read-line
+;; 从输入端口读取一行文本，返回不包含换行符（或包含换行符）的字符串。
+;;
+;; 语法
+;; ----
+;; (read-line)
+;; (read-line port)
+;; (read-line port with-eol)
+;;
+;; 参数
+;; ----
+;; port : input-port? (可选)
+;; 输入端口，默认为当前输入端口。
+;;
+;; with-eol : boolean? (可选)
+;; 是否保留行末换行符，默认为 #f。若为 #t，返回的字符串包含换行符。
+;;
+;; 返回值
+;; ------
+;; string? 或 eof-object?
+;; 读取到的行字符串。如果已到达文件末尾且未读取到任何字符，则返回 EOF 对象。
+;;
+;; 说明
+;; ----
+;; 1. read-line 函数从输入端口读取一行文本，默认返回不包含换行符的字符串
+;; 2. 当到达文件末尾时，返回 eof 对象
+;; 3. 可选的 with-eol 参数为 #t 时，返回的字符串包含行末的换行符
+
 (import (liii check))
 (import (scheme file))
 (import (scheme base))
-;; 测试 read-line 基本功能
-;; read-line 函数从输入端口读取一行文本，返回不包含换行符的字符串
-;; 当到达文件末尾时，返回 eof 对象
-;; 可选的 with-eol 参数为 #t 时，返回的字符串包含行末的换行符
+
 (check-set-mode! 'report-failed)
+
 ;; 测试1: 从字符串端口读取多行
 (let ((port (open-input-string "line1\nline2\nline3")))
   (check (read-line port) => "line1")

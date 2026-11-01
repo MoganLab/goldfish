@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; modulo
 ;; 计算实数的取模运算。
 ;;
@@ -28,6 +25,12 @@
 ;;
 ;; wrong-number-of-args
 ;; 当参数数量不为两个时抛出错误。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check (modulo 13 4) => 1)
 (check (modulo -13 4) => 3)
 (check (modulo 13 -4) => -3)

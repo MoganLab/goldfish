@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; map
 ;; 测试 map 的基础高阶用法。
 ;;
@@ -29,6 +26,11 @@
 ;; 错误处理
 ;; ----
 ;; type-error 当过程应用到不兼容参数时
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
 
 (define (filter pred lst)
   (cond ((null? lst) '())

@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; case
 ;; case 是 R7RS 定义的多分支条件选择表达式，根据 key 值匹配不同的子句执行。
 ;;
@@ -39,6 +36,12 @@
 ;; 错误处理
 ;; ----
 ;; 按命中子句中表达式自身规则处理
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check (case '+ ((+ -) 'p0) ((* /) 'p1)) => 'p0)
 (check (case '- ((+ -) 'p0) ((* /) 'p1)) => 'p0)
 (check (case '* ((+ -) 'p0) ((* /) 'p1)) => 'p1)

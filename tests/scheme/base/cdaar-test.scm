@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; cdaar
 ;; cdaar 是 Scheme 内置函数，等价于 (cdr (car (car pair)))。
 ;;
@@ -22,9 +19,27 @@
 ;; --------
 ;; type-error
 ;; 参数不是序对，或者 car 链上的某一层不是序对时抛出错误。
-(check (cdaar '(((1 2 3)))) => '(2 3))
-(check (cdaar '(((a b c) d) e)) => '(b c))
-(check (cdaar (cons (cons (cons 1 2) 3) 4)) => 2)
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
+(check
+  (cdaar '(((1 2 3))))
+  =>
+  '(2 3)
+) ;check
+(check
+  (cdaar '(((a b c) d) e))
+  =>
+  '(b c)
+) ;check
+(check
+  (cdaar (cons (cons (cons 1 2) 3) 4))
+  =>
+  2
+) ;check
 (check-catch 'type-error (cdaar '((1 2))))
 (check-catch 'type-error (cdaar '(1 2 3)))
 (check-catch 'type-error (cdaar 'a))

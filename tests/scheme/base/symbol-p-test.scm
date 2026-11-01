@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; symbol?
 ;; 判断给定的对象是否为符号(symbol)类型
 ;;
@@ -22,6 +19,12 @@
 ;; ----
 ;; 符号是Scheme中的基本数据类型之一，用单引号(')前缀表示。
 ;; 符号在Scheme中通常用作标识符、关键字或枚举值。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check-true (symbol? 'foo))
 (check-true (symbol? (car '(foo bar))))
 (check-true (symbol? 'nil))

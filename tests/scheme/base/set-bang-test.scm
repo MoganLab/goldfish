@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; set!
 ;; 为变量赋新值。
 ;;
@@ -23,6 +20,12 @@
 ;; ----
 ;; 1. 变量必须先定义
 ;; 2. 用于修改变量状态
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (let ((x 10))
   (set! x 20)
   (check x => 20)

@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; string->number
 ;; 将字符串解析为数值。根据R7RS规范，支持多种数值格式的解析。
 ;;
@@ -35,6 +32,12 @@
 ;; 错误情况
 ;; -------
 ;; 当radix参数超出有效范围（2-16）时，行为未定义（S7中返回#f）。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 ;; 基本整数解析测试
 (check (string->number "123") => 123)
 (check (string->number "0") => 0)
@@ -65,7 +68,9 @@
 ) ;check
 (check (string->number "12345678901234567890") => -6101065172474983726)
 (check (string->number "-9223372036854775809") => 9223372036854775807)
-(check-true (< (abs (- (string->number "1.23e-3") 0.00123)) 1e-10))
+(check-true
+  (< (abs (- (string->number "1.23e-3") 0.00123)) 1e-10)
+) ;check-true
 (check (string->number "1e5") => 100000.0)
 (check (string->number "1e-5") => 0.00001)
 (check (string->number "-1e-5") => -0.00001)

@@ -1,7 +1,3 @@
-(import (liii check))
-(import (liii base))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; boolean=?
 ;; 比较两个或多个布尔值是否相等。
 ;;
@@ -30,6 +26,13 @@
 ;; --------
 ;; wrong-number-of-args
 ;; 当参数数量少于2个时抛出错误。
+
+(import (liii check))
+(import (liii base))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 ;; boolean=? 基本测试
 (check (boolean=? #t #t) => #t)
 (check (boolean=? #f #f) => #t)
@@ -54,8 +57,16 @@
 (check (values 4) => 4)
 (check (values) => #<unspecified>)
 (check (+ (values 1 2 3) 4) => 10)
-(check (string-ref ((lambda () (values "abcd" 2)))) => #\c)
-(check (+ (call/cc (lambda (ret) (ret 1 2 3))) 4) => 10)
+(check
+  (string-ref ((lambda () (values "abcd" 2))))
+  =>
+  #\c
+) ;check
+(check
+  (+ (call/cc (lambda (ret) (ret 1 2 3))) 4)
+  =>
+  10
+) ;check
 (check (call-with-values (lambda () (values 4 5)) (lambda (x y) x)) => 4)
 (check (*) => 1)
 (check (call-with-values * -) => -1)

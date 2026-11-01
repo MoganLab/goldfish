@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; *
 ;; 乘法函数，支持整数、浮点数、有理数和复数的乘法运算。
 ;;
@@ -33,6 +30,12 @@
 ;; ----
 ;; type-error
 ;; 如果存在任何参数不是数字类型，则抛出此错误
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check (* 0 0) => 0)
 (check (* 0 -1) => 0)
 (check (* 0 1) => 0)

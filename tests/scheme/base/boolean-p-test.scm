@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; boolean?
 ;; 判断一个对象是否为布尔值。
 ;;
@@ -43,6 +40,12 @@
 ;; --------
 ;; wrong-number-of-args
 ;; 当参数数量不为1时抛出错误。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 ;; boolean? 基础测试
 (check (boolean? #t) => #t)
 (check (boolean? #f) => #t)

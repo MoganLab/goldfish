@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; floor/
 ;; 执行地板除法，返回商和余数。
 ;;
@@ -21,6 +18,12 @@
 ;; 返回两个值：
 ;; 1. 向下取整的商
 ;; 2. 余数
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 ;; 基本测试
 (check (list (floor/ 17 5)) => (list 3 2))
 (check (list (floor/ 10 3)) => (list 3 1))

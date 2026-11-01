@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; cddar
 ;; cddar 是 Scheme 内置函数，等价于 (cdr (cdr (car pair)))。
 ;;
@@ -22,9 +19,19 @@
 ;; --------
 ;; type-error
 ;; 参数不是序对，或者 car/cdr 链上的某一层不是序对时抛出错误。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check (cddar '((1 2 3 4))) => '(3 4))
 (check (cddar '((a b c) d)) => '(c))
-(check (cddar (cons (cons 1 (cons 2 3)) 4)) => 3)
+(check
+  (cddar (cons (cons 1 (cons 2 3)) 4))
+  =>
+  3
+) ;check
 (check (cddar '((1 2))) => '())
 (check-catch 'type-error (cddar '(1 2 3)))
 (check-catch 'type-error (cddar 'a))

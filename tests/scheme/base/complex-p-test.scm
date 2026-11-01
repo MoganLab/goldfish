@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; complex?
 ;; 判断一个对象是否是复数（包括整数、浮点数、有理数、复数）。
 ;;
@@ -21,6 +18,12 @@
 ;; 错误
 ;; ----
 ;; 无错误情况。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check-true (complex? 1.0+2.0i))
 (check-true (complex? 123))
 (check-true (complex? 123.456))

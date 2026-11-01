@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; abs
 ;; 返回给定数值的绝对值。
 ;;
@@ -32,6 +29,12 @@
 ;; 当参数不是实数时抛出错误。
 ;; wrong-number-of-args
 ;; 当参数数量不为1时抛出错误。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 ;; abs 基本测试
 (check (abs 0) => 0)
 (check (abs 1) => 1)

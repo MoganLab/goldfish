@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; read
 ;; 从输入端口读取一个S表达式，根据R7RS规范，read函数用于从给定的输入端口读取Scheme数据。
 ;;
@@ -49,6 +46,12 @@
 ;; - 字符编码：支持UTF-8编码的文本输入
 ;; - 数字格式：支持各种数字字面量格式
 ;; - 字符串转义：正确处理转义字符
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 ;; 基本数据类型读取测试
 (let ((port (open-input-string "123")))
   (check (read port) => 123)

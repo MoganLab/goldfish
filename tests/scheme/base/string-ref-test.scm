@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; string-ref
 ;; 按索引访问字符串中的字符。
 ;;
@@ -38,6 +35,12 @@
 ;; 错误
 ;; ----
 ;; 当索引超出范围时，会抛出out-of-range异常。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check (string-ref "MathAgape" 0) => #\M)
 (check (string-ref "MathAgape" 2) => #\t)
 (check (string-ref "hello" 0) => #\h)

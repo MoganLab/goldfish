@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; +
 ;; 计算所有给定数字的和。
 ;;
@@ -23,6 +20,12 @@
 ;; ----
 ;; type-error
 ;; 如果存在任何参数不是数字，抛出错误。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check (+) => 0)
 (check (+ 1) => 1)
 (check (+ 1 2) => 3)
@@ -30,7 +33,11 @@
 (check (+ 1 2 3 4) => 10)
 (check (+ 1.5 2.5) => 4.0)
 (check (+ 0.1 0.2) => 0.30000000000000004)
-(check (< (abs (- 3.3 (+ 1.1 2.2))) 1e-15) => #t)
+(check
+  (< (abs (- 3.3 (+ 1.1 2.2))) 1e-15)
+  =>
+  #t
+) ;check
 (check (+ 1/2 1/2) => 1)
 (check (+ 1/3 1/2) => 5/6)
 (check (+ 1/3 1/4 1/5) => 47/60)

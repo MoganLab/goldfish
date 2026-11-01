@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; min
 ;; 返回所有给定实数的最小值。
 ;;
@@ -26,6 +23,12 @@
 ;; 如果存在任何参数不是实数，抛出错误。
 ;; wrong-number-of-args
 ;; 如果没有提供参数，抛出错误。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check (min 7) => 7)
 (check (min 3.5) => 3.5)
 (check (min 1/3) => 1/3)

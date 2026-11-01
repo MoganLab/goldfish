@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; bytevector?
 ;; 判断一个对象是否为字节向量类型的谓词。
 ;;
@@ -28,6 +25,12 @@
 ;; --------
 ;; wrong-number-of-args
 ;; 当参数数量不为1时抛出错误。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 ;; bytevector? 基本测试
 (check-true (bytevector? #u8()))
 (check-true (bytevector? #u8(0)))

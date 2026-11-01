@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; vector-map
 ;; 对向量中的每个元素应用过程，返回结果向量。
 ;;
@@ -20,6 +17,12 @@
 ;; ------
 ;; vector?
 ;; 返回包含结果的向量。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 ;; 基本测试
 (check (vector-map (lambda (x) (* x 2)) #(1 2 3)) => #(2 4 6))
 (check (vector-map (lambda (x) (+ x 1)) #(0 1 2)) => #(1 2 3))

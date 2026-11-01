@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; list->string
 ;; 将字符列表转换为字符串。
 ;;
@@ -22,6 +19,12 @@
 ;; ----
 ;; 1. 空列表返回空字符串
 ;; 2. 列表中每个元素必须是字符
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check (list->string '()) => "")
 (check (list->string '(#\a)) => "a")
 (check (list->string '(#\a #\b #\c)) => "abc")

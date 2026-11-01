@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; read-char
 ;; 从输入端口读取一个字符。
 ;;
@@ -23,6 +20,12 @@
 ;; ----
 ;; 1. 读取后端口位置前进一个字符
 ;; 2. 到达末尾返回 EOF 对象
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (let ((p (open-input-string "abc")))
   (check (read-char p) => #\a)
   (check (read-char p) => #\b)

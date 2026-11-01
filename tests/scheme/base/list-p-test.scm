@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; list?
 ;; 判断给定的对象是否为有限完全列表（proper list）。
 ;;
@@ -37,6 +34,12 @@
 ;; ---------
 ;; wrong-number-of-args
 ;; 当参数数量不为1时抛出错误。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 ;; list? 基本测试：空列表和各种简单列表
 (check-true (list? '()))
 (check-true (list? '(a)))
@@ -46,7 +49,11 @@
 (check-true (list? '(a (b) c)))
 (check-true (list? '((a) (b) (c))))
 (check-true (list? '((a b) (c d))))
-(check-true (list? '(1 (2 (3 (4))))))
+(check-true
+  (list?
+    '(1 (2 (3 (4))))
+  ) ;list?
+) ;check-true
 ;; list? 混合类型元素测试
 (check-true (list? '(a 1 "string" #t)))
 (check-true (list? '((list 1 2) (vector 3 4))))
@@ -57,12 +64,19 @@
 ;; list? 点对结尾（improper list）返回 #f
 (check-false (list? '(1 . 2)))
 (check-false (list? '(a b . c)))
-(check-false (list? '(a . (b . c))))
+(check-false (list? '(a b . c)))
 (check-false (list? '((1 . 2) . 3)))
 (check-false (list? '(1 2 . 3)))
 (check-false (list? (cons 1 2)))
 ;; list? 特殊结构测试
-(check-false (list? (let ((x '(1 2 3))) (set-cdr! (cddr x) x) x)))
+(check-false
+  (list?
+    (let ((x '(1 2 3)))
+      (set-cdr! (cddr x) x)
+      x
+    ) ;let
+  ) ;list?
+) ;check-false
 ;; list? 非列表类型测试 - 全面覆盖
 (check-false (list? #t))
 (check-false (list? #f))

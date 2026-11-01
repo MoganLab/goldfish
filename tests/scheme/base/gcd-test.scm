@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; gcd
 ;; 用于计算给定整数的最大公约数。
 ;;
@@ -28,6 +25,12 @@
 ;; ----
 ;; type-error
 ;; 当参数不是整数时抛出错误。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check (gcd) => 0)
 (check (gcd 0) => 0)
 (check (gcd 1) => 1)

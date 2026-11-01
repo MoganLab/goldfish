@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; substring-uncopied
 ;; 返回与原字符串共享存储的子串（不可变，供短暂使用）。
 ;;
@@ -26,6 +23,12 @@
 ;; 返回共享存储的子串。
 
 ;; 基础：省略 end
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check (substring-uncopied "01234" 1) => "1234")
 ;; 基础：指定 end
 (check (substring-uncopied "01234" 1 3) => "12")

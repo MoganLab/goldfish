@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; cons
 ;; 构造一个点对（pair）。
 ;;
@@ -24,6 +21,12 @@
 ;; ----
 ;; 1. 如果 obj2 是列表，则返回一个扩展后的列表
 ;; 2. 如果 obj2 不是列表，则返回一个非列表的点对
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check (cons 'a '()) => '(a))
 (check (cons '(a) '(b c d)) => '((a) b c d))
 (check (cons "a" '(b c)) => '("a" b c))

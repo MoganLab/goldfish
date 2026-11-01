@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; binary-port?
 ;; 判断端口是否为二进制端口。
 ;;
@@ -22,6 +19,12 @@
 ;; ----
 ;; 1. 在 S7 Scheme 中，所有端口同时被视为二进制端口和文本端口
 ;; 2. 非端口对象返回 #f
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check (binary-port? (current-input-port)) => #t)
 (check (binary-port? (current-output-port)) => #t)
 (check (binary-port? '()) => #f)

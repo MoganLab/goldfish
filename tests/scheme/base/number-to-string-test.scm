@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; number->string
 ;; 将数值转换为字符串表示。
 ;;
@@ -39,6 +36,12 @@
 ;; 当进制不在2到16范围内时抛出错误。
 ;; wrong-number-of-args
 ;; 当参数数量不为1或2时抛出错误。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 ;; 基本整数转换测试
 (check (number->string 123) => "123")
 (check (number->string 0) => "0")

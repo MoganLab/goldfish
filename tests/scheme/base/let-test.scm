@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; let
 ;; 创建局部变量绑定。
 ;;
@@ -27,6 +24,12 @@
 ;; -----
 ;; any
 ;; 返回最后一个 body 表达式的结果。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 ;; 基础测试 - 单变量绑定
 (check (let ((x 1)) x) => 1)
 ;; 多变量绑定

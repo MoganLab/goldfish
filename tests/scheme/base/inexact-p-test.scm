@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; inexact?
 ;; 用于判断一个数值是否为不精确值。
 ;;
@@ -30,6 +27,12 @@
 ;; --------
 ;; type-error
 ;; 如果参数不是数字类型，抛出错误。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 ;; 基本测试
 (check-false (inexact? 42))
 (check-false (inexact? 3/4))

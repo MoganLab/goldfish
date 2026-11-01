@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; floor-remainder
 ;; 计算地板除法的余数（与 modulo 相同）。
 ;;
@@ -20,6 +17,12 @@
 ;; ------
 ;; real?
 ;; 返回余数，与 modulo 结果相同。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 ;; 基本测试
 (check (floor-remainder 17 5) => 2)
 (check (floor-remainder 10 3) => 1)

@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; vector-copy!
 ;; 将源向量的元素复制到目标向量的指定位置。
 ;;
@@ -29,6 +26,12 @@
 ;; ----
 ;; 1. 直接修改目标向量
 ;; 2. 源向量和目标向量可以是同一个向量
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (let ((to (vector 'a 'b 'c 'd 'e)))
   (vector-copy! to 1 #(x y))
   (check to => #(a x y d e))

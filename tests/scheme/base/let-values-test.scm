@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; let-values
 ;; 并行绑定多值表达式的返回结果到变量。
 ;;
@@ -41,45 +38,90 @@
 ;;     (list a b x y)))
 ;; => (x y a b)
 
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 ;; 空绑定测试
 (check (let-values () 42) => 42)
 
 ;; 单值绑定
-(check (let-values (((ret) (+ 1 2))) (+ ret 4)) => 7)
+(check
+  (let-values (((ret) (+ 1 2)))
+    (+ ret 4)
+  ) ;let-values
+  =>
+  7
+) ;check
 
 ;; 多值绑定
-(check (let-values (((a b) (values 3 4))) (+ a b)) => 7)
+(check
+  (let-values (((a b) (values 3 4)))
+    (+ a b)
+  ) ;let-values
+  =>
+  7
+) ;check
 
 ;; SRFI-11 官方用例：点对可变参数多值绑定
-(check (let-values (((a b . c) (values 1 2 3 4)))
-         (list a b c))
-  => '(1 2 (3 4)))
+(check
+  (let-values (((a b . c) (values 1 2 3 4)))
+    (list a b c)
+  ) ;let-values
+  =>
+  '(1 2 (3 4))
+) ;check
 
 ;; SRFI-11 官方用例：并行求值与并行绑定语义验证
-(check (let ((a 'a) (b 'b) (x 'x) (y 'y))
-         (let-values (((a b) (values x y))
-                      ((x y) (values a b)))
-           (list a b x y)))
-  => '(x y a b))
+(check
+  (let ((a 'a) (b 'b) (x 'x) (y 'y))
+    (let-values (((a b) (values x y)) ((x y) (values a b)))
+      (list a b x y)
+    ) ;let-values
+  ) ;let
+  =>
+  '(x y a b)
+) ;check
 
 ;; 单一变量捕获全部多值列表
-(check (let-values ((args (values 1 2 3)))
-         args)
-  => '(1 2 3))
+(check
+  (let-values ((args (values 1 2 3)))
+    args
+  ) ;let-values
+  =>
+  '(1 2 3)
+) ;check
 
 ;; 多组绑定
-(check (let-values (((x y) (values 1 2)) ((z w) (values 3 4)))
-         (+ x y z w))
-  => 10)
+(check
+  (let-values (((x y) (values 1 2)) ((z w) (values 3 4)))
+    (+ x y z w)
+  ) ;let-values
+  =>
+  10
+) ;check
 
 ;; 嵌套使用
-(check (let-values (((a b) (values 1 2)))
-         (let-values (((c d) (values (+ a b) (* a b))))
-           (+ c d)))
-  => 5)
+(check
+  (let-values (((a b) (values 1 2)))
+    (let-values (((c d) (values (+ a b) (* a b))))
+      (+ c d)
+    ) ;let-values
+  ) ;let-values
+  =>
+  5
+) ;check
 
 ;; 防变量捕获测试：环境中定义同名变量 x 时，多值绑定依然正常
+
 (define x 10)
-(check (let-values (((a b) (values 1 2))) (+ a b)) => 3)
+(check
+  (let-values (((a b) (values 1 2)))
+    (+ a b)
+  ) ;let-values
+  =>
+  3
+) ;check
 
 (check-report)

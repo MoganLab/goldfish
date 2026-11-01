@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; zero?
 ;; 判断一个数值是否为零。
 ;;
@@ -22,6 +19,12 @@
 ;; ----
 ;; type-error
 ;; 如果参数不是数值类型
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check-true (zero? 0))
 (check-true (zero? 0.0))
 (check-true (zero? 0.0))

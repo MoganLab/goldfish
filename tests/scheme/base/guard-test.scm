@@ -1,7 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
-
 ;; guard
 ;; 捕获异常并进行条件处理。
 ;;
@@ -34,6 +30,12 @@
 ;; 5. body 正常返回多值（values）时会被完整透传
 
 ;; 1. body 正常求值返回其值（不进入 else 或 cond 子句）
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check (guard (ex (else 'caught)) 'normal) => 'normal)
 (check (guard (ex (else "error!")) (+ 1 2)) => 3)
 (check

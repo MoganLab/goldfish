@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; bytevector-length
 ;; 返回字节向量中的元素个数。
 ;;
@@ -30,6 +27,12 @@
 ;; 当参数不是字节向量时抛出错误。
 ;; wrong-number-of-args
 ;; 当参数数量不为1时抛出错误。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 ;; bytevector-length 基本测试
 (check (bytevector-length #u8()) => 0)
 (check (bytevector-length #u8(1)) => 1)

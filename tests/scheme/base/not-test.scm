@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; not
 ;; 对单个参数执行逻辑非操作，否定其布尔值。
 ;;
@@ -35,6 +32,12 @@
 ;; 错误处理
 ;; --------
 ;; 无错误情况。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 ;; not 基础测试
 (check-false (not #t))
 (check-true (not #f))

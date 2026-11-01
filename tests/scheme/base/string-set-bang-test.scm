@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; string-set!
 ;; 修改字符串中指定位置的字符，返回修改后的字符串。在R7RS标准中，string-set!是一个立即执行的变异操作，不会创建新的字符串对象。
 ;;
@@ -39,6 +36,12 @@
 ;;
 ;; type-error
 ;; 当string不是字符串、k不是精确整数、char不是字符时抛出错误。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 ;; string-set! 基础测试
 (let ((str (string-copy "hello")))
   (string-set! str 1 #\A)

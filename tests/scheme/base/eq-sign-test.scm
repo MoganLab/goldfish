@@ -1,7 +1,3 @@
-(import (liii check))
-(import (liii os))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; =
 ;; 比较多个数字是否数值相等。
 ;;
@@ -33,6 +29,13 @@
 ;; 任一参数不是数字时抛出。
 
 ;; 基础整数比较
+
+(import (liii check))
+(import (liii os))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check (= 1 1) => #t)
 (check (= 0 0) => #t)
 (check (= 1 2) => #f)

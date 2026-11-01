@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; truncate
 ;; 返回在靠近零的方向上最靠近给定数的整数。
 ;;
@@ -24,6 +21,12 @@
 ;; 如果参数不是实数，抛出错误。
 ;; wrong-number-of-args
 ;; 如果参数数量不为一，抛出错误。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check (truncate 1.1) => 1.0)
 (check (truncate 1) => 1)
 (check (truncate 1/2) => 0)

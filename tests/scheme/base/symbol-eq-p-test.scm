@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; symbol=?
 ;; 判断给定符号是否相等
 ;;
@@ -22,6 +19,12 @@
 ;; ----
 ;; 符号比较是基于符号的标识符名称进行的。
 ;; R7RS中规定symbol=?需要至少两个参数。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 ;; 基本测试
 (check-catch 'wrong-number-of-args (symbol=? 'a))
 (check-catch 'wrong-number-of-args (symbol=? 1))

@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; number?
 ;; 判断一个对象是否是数（包括整数、浮点数、有理数、复数）。
 ;;
@@ -21,6 +18,12 @@
 ;; 错误
 ;; ----
 ;; 无错误情况。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check-true (number? 123))
 (check-true (number? 123.456))
 (check-true (number? 1/2))

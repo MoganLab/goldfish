@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; vector-for-each
 ;; 对向量中的每个元素依次应用过程。
 ;;
@@ -24,12 +21,19 @@
 ;; 1. 按索引顺序依次调用 proc
 ;; 2. 多个向量时，proc 接收对应位置的元素
 ;; 3. 遍历到最短向量的长度为止
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (let ((result '()))
   (vector-for-each (lambda (x) (set! result (cons x result))) #(a b c))
   (check result => '(c b a))
 ) ;let
 (let ((result '()))
-  (vector-for-each (lambda (x y) (set! result (cons (list x y) result)))
+  (vector-for-each
+    (lambda (x y) (set! result (cons (list x y) result)))
     #(1 2)
     #(10 20)
   ) ;vector-for-each

@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; string-length
 ;; 返回给定字符串在UTF-8编码下的字节长度。
 ;;
@@ -39,6 +36,12 @@
 ;; 当参数不是字符串类型时抛出错误。
 ;; wrong-number-of-args
 ;; 当参数数量不为1个时抛出错误。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 ;; string-length 基础测试
 (check (string-length "") => 0)
 (check (string-length "a") => 1)

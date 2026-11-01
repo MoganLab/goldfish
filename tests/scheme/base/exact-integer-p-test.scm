@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; exact-integer?
 ;; 判断一个数值是否为精确整数。
 ;;
@@ -17,6 +14,12 @@
 ;; -----
 ;; boolean?
 ;; 如果 obj 是精确数值且为整数返回 #t，否则返回 #f。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check-true (exact-integer? 42))
 (check-true (exact-integer? -42))
 (check-true (exact-integer? 0))

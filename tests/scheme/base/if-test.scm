@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; if
 ;; 测试 if 条件分支表达式。
 ;;
@@ -29,6 +26,12 @@
 ;; 错误处理
 ;; ----
 ;; 按分支中表达式自身规则处理
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check (if (> 3 2) ((lambda () 3)) ((lambda () 2))) => 3)
 (check (if (< 3 2) ((lambda () 3)) ((lambda () 2))) => 2)
 (check (if (> 3 2) 3 2) => 3)

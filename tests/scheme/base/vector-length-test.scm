@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; vector-length
 ;; 返回向量的元素个数。
 ;;
@@ -22,6 +19,12 @@
 ;; ----
 ;; 1. 空向量的长度为 0
 ;; 2. 不修改原向量
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check (vector-length #()) => 0)
 (check (vector-length #(a)) => 1)
 (check (vector-length #(1 2 3)) => 3)

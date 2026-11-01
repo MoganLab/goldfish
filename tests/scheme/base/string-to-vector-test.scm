@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; string->vector
 ;; 将字符串转换为字符向量。
 ;;
@@ -22,6 +19,12 @@
 ;; ----
 ;; 1. 空字符串返回空向量
 ;; 2. 返回新向量，不修改原字符串
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check (string->vector "") => #())
 (check (string->vector "a") => #(#\a))
 (check (string->vector "abc") => #(#\a #\b #\c))

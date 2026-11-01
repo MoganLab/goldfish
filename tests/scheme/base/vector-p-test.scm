@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; vector?
 ;; 判断对象是否为向量。
 ;;
@@ -22,6 +19,12 @@
 ;; ----
 ;; 1. 空向量也是向量
 ;; 2. 列表不是向量
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check (vector? #(1 2 3)) => #t)
 (check (vector? #()) => #t)
 (check (vector? '(1 2 3)) => #f)

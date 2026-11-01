@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; open-output-string
 ;; 创建一个字符串输出端口用于累积字符
 ;;
@@ -14,6 +11,12 @@
 ;; 返回一个新的文本输出端口，所有写入该端口的字符会被累积，
 ;; 可通过 get-output-string 函数获取累积的字符串。
 ;; empty
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (let ((port (open-output-string)))
   (check (get-output-string port) => "")
 ) ;let

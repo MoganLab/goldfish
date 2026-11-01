@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; cadddr
 ;; cadddr 是 Scheme 内置函数，等价于 (car (cdr (cdr (cdr pair))))。
 ;;
@@ -22,9 +19,21 @@
 ;; --------
 ;; type-error
 ;; 参数不是序对，或者 cdr 链上的某一层不是序对时抛出错误。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check (cadddr '(1 2 3 4 5)) => 4)
 (check (cadddr '(a b c d)) => 'd)
-(check (cadddr (cons 1 (cons 2 (cons 3 (cons 'x 'y))))) => 'x)
+(check
+  (cadddr
+    (cons 1 (cons 2 (cons 3 (cons 'x 'y))))
+  ) ;cadddr
+  =>
+  'x
+) ;check
 (check-catch 'type-error (cadddr '(1 2 3)))
 (check-catch 'type-error (cadddr '(1 2)))
 (check-catch 'type-error (cadddr 'a))

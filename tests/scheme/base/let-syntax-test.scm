@@ -1,8 +1,3 @@
-(import (scheme base)
-        (srfi 78))
-
-(check-set-mode! 'report-failed)
-
 ;; let-syntax
 ;; 在局部词法作用域中引入语法关键字绑定。
 ;;
@@ -26,18 +21,28 @@
 ;; any
 ;; 返回最后一个 body 表达式的求值结果。
 
+(import (scheme base) (srfi 78))
+
+(check-set-mode! 'report-failed)
+
 ;; 测试1：基础局部宏绑定
 (check
-  (let-syntax ((add1 (syntax-rules ()
-                       ((add1 x) (+ x 1)))))
-    (add1 5))
-  => 6)
+  (let-syntax
+    ((add1 (syntax-rules () ((add1 x) (+ x 1)))))
+    (add1 5)
+  ) ;let-syntax
+  =>
+  6
+) ;check
 
 ;; 测试2：多个局部宏互不相干展开
 (check
-  (let-syntax ((one (syntax-rules () ((one) 1)))
-               (two (syntax-rules () ((two) 2))))
-    (+ (one) (two)))
-  => 3)
+  (let-syntax
+    ((one (syntax-rules () ((one) 1))) (two (syntax-rules () ((two) 2))))
+    (+ (one) (two))
+  ) ;let-syntax
+  =>
+  3
+) ;check
 
 (check-report)

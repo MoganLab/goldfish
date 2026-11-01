@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; define-values
 ;; 定义多个变量，绑定到一个返回多个值的表达式的结果。
 ;;
@@ -20,6 +17,12 @@
 ;; ----
 ;; define-values 用于解构多值表达式，将多个返回值绑定到多个变量。
 ;; 它是 let-values 的顶层定义版本。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 ;; 基础测试 - 单值
 (let ()
   (define-values (value1)
@@ -53,9 +56,10 @@
   (check (+ a b c d) => 10)
 ) ;let
 ;; 嵌套在 let 中
-(check (let ((result (let () (define-values (x y z) (values 1 2 3)) (+ x y z))))
-         result
-       ) ;let
+(check
+  (let ((result (let () (define-values (x y z) (values 1 2 3)) (+ x y z))))
+    result
+  ) ;let
   =>
   6
 ) ;check

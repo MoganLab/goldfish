@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; -
 ;; 计算所有给定数字的差。
 ;;
@@ -25,12 +22,22 @@
 ;; 如果存在任何参数不是数字，抛出错误。
 ;; wrong-number-of-args
 ;; 如果没有提供参数，抛出错误。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check (- 5) => -5)
 (check (- 2 1) => 1)
 (check (- 7 2 1) => 4)
 (check (- 10 1 2 3) => 4)
 (check (- 1.5 0.5) => 1.0)
-(check (< (abs (- 2.7 (- 6.98 2.5 1.78))) 1e-15) => #t)
+(check
+  (< (abs (- 2.7 (- 6.98 2.5 1.78))) 1e-15)
+  =>
+  #t
+) ;check
 (check (- 2/3 1/3) => 1/3)
 (check (- 1/2 1/5 1/7) => 11/70)
 (check (- 1 1/3) => 2/3)

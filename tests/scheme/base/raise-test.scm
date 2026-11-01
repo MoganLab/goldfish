@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; raise
 ;; 抛出异常。
 ;;
@@ -16,6 +13,12 @@
 ;; 返回值
 ;; ------
 ;; 不返回，直接抛出异常。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 ;; 测试抛出符号
 (check-catch #t (raise 'my-error))
 ;; 测试抛出字符串

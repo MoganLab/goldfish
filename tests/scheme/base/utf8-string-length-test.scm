@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; utf8-string-length
 ;; 返回 UTF-8 字符串的字符数（不是字节数）。
 ;;
@@ -17,6 +14,12 @@
 ;; ------
 ;; integer?
 ;; 返回字符串的字符数。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 ;; ASCII 字符串测试
 (check (utf8-string-length "") => 0)
 (check (utf8-string-length "hello") => 5)

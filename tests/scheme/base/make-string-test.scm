@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; make-string
 ;; 创建一个由指定字符重复填充的新字符串。
 ;;
@@ -35,6 +32,12 @@
 ;; 当 k 不是精确整数或 char 不是字符时抛出错误。
 ;; wrong-number-of-args
 ;; 当参数数量不为 1 或 2 个时抛出错误。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check (string-length (make-string 0)) => 0)
 (check (string-length (make-string 1)) => 1)
 (check (string-length (make-string 1000)) => 1000)
@@ -60,10 +63,7 @@
 (check (list->string '()) => "")
 (check (string-length "MathAgape") => 9)
 (check (string-length "") => 0)
-(check (catch 'type-error
-         (lambda () (string-length 'not-a-string))
-         (lambda args #t)
-       ) ;catch
+(check (catch 'type-error (lambda () (string-length 'not-a-string)) (lambda args #t))
   =>
   #t
 ) ;check

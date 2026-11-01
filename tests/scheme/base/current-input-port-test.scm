@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; current-input-port
 ;; 返回当前的输入端口。
 ;;
@@ -17,6 +14,12 @@
 ;; ----
 ;; 1. 通常是标准输入
 ;; 2. 可被 with-input-from-file 临时改变
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check (input-port? (current-input-port)) => #t)
 (check (eq? (current-input-port) *stdin*) => #t)
 
@@ -30,7 +33,7 @@
     ) ;lambda
   ) ;with-input-from-file
   =>
-  '(#t #t #\()
+  '(#t #t #\;)
 ) ;check
 
 (check (eq? (current-input-port) *stdin*) => #t)

@@ -1,9 +1,38 @@
+;; truncate/
+;; 执行截断除法，返回商和余数。
+;;
+;; 语法
+;; ----
+;; (truncate/ dividend divisor)
+;;
+;; 参数
+;; ----
+;; dividend : real?
+;; 被除数。
+;;
+;; divisor : real?
+;; 除数，不能为零。
+;;
+;; 返回值
+;; ------
+;; 返回两个值：
+;; 1. 向靠近零方向取整的商
+;; 2. 余数，满足 dividend = quotient * divisor + remainder
+;;
+;; 错误处理
+;; --------
+;; division-by-zero
+;; 当除数为 0 时抛出错误。
+;; type-error
+;; 当参数不是实数时抛出错误。
+
 (import (liii check))
 (import (liii base))
 (import (scheme base))
+
 (check-set-mode! 'report-failed)
-;; truncate/
-;; 测试截断除法函数的各种情况
+
+;; truncate/ 基本测试
 (check (receive (q r) (truncate/ 11 3) q) => 3)
 (check (receive (q r) (truncate/ 11 3) r) => 2)
 (check (receive (q r) (truncate/ 11 -3) q) => -3)

@@ -1,6 +1,3 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; output-port?
 ;; 判断对象是否为输出端口。
 ;;
@@ -22,6 +19,12 @@
 ;; ----
 ;; 1. 包括文件输出端口和字符串输出端口
 ;; 2. 关闭的端口仍然返回 #t
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check (output-port? (current-output-port)) => #t)
 (check (output-port? (open-output-string)) => #t)
 (check (output-port? (current-input-port)) => #f)
