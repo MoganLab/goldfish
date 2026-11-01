@@ -1,8 +1,6 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; square
 ;; 计算给定数值的平方。
+;;
 ;;
 ;; 语法
 ;; ----
@@ -14,14 +12,20 @@
 ;; 数值。支持整数、有理数、浮点数等各种数值类型。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; 返回x的平方值，保持与输入相同的数值类型精度。
 ;; 对于整数，返回精确的平方值；对于浮点数，返回浮点数平方值。
 ;;
 ;; 错误处理
-;; --------
+;; ----
 ;; type-error
 ;; 当参数不是数值时抛出错误。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 ;; square测试
 (check (square 2) => 4)
 (check (square 0) => 0)
@@ -41,4 +45,5 @@
 (check (square 1000) => 1000000)
 (check (square 1/100) => 1/10000)
 (check (square 0.001) => 0.000001)
+
 (check-report)

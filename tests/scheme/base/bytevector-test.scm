@@ -1,8 +1,6 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; bytevector
 ;; 返回一个新分配的字节向量，其元素包含传递给过程的所有参数。每个参数都必须是一个介于0到255之间的整数，表示字节向量中的一个字节。如果没有提供任何参数，将创建一个空的字节向量。
+;;
 ;;
 ;; 语法
 ;; ----
@@ -14,7 +12,7 @@
 ;; 零个或多个介于0到255之间的整数（包含边界），表示字节值。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; bytevector?
 ;; 新创建的字节向量，包含所有参数指定的字节值。
 ;;
@@ -26,9 +24,15 @@
 ;; 4. 参数顺序就是字节向量中元素的顺序
 ;;
 ;; 错误处理
-;; --------
+;; ----
 ;; type-error
 ;; 当任何参数不是在0-255范围内的整数时抛出错误。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 ;; bytevector 基本测试
 (check (bytevector) => #u8())
 (check (bytevector 255) => #u8(255))
@@ -48,4 +52,5 @@
 (check-catch 'type-error (bytevector -1))
 (check-catch 'type-error (bytevector 123.0))
 (check-catch 'type-error (bytevector 123 #u8(1 2 3)))
+
 (check-report)

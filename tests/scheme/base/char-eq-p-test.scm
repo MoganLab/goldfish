@@ -1,8 +1,6 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; char=?
 ;; 比较两个或多个字符是否相等。
+;;
 ;;
 ;; 语法
 ;; ----
@@ -14,7 +12,7 @@
 ;; 字符值。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; boolean?
 ;; 如果所有给定的字符都相等，则返回 #t (真)，否则返回 #f (假)。
 ;;
@@ -27,11 +25,17 @@
 ;; 5. 区分大小写
 ;;
 ;; 错误处理
-;; --------
+;; ----
 ;; type-error
 ;; 当参数不是字符时抛出错误。
 ;; wrong-number-of-args
 ;; 当参数数量少于2个时抛出错误。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 ;; char=? 基本测试
 (check (char=? #\A #\A) => #t)
 (check (char=? #\a #\a) => #t)
@@ -91,4 +95,5 @@
 (check (char=? #\x80 #\x81) => #f)
 (check (char=? #\x7FF #\x800) => #f)
 (check (char=? #\xFFFF #\x10000) => #f)
+
 (check-report)

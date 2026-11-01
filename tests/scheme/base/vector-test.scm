@@ -1,8 +1,6 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; vector
 ;; 从给定元素构造向量。
+;;
 ;;
 ;; 语法
 ;; ----
@@ -14,7 +12,7 @@
 ;; 任意数量的元素。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; vector?
 ;; 由给定元素组成的新向量。
 ;;
@@ -22,6 +20,12 @@
 ;; ----
 ;; 1. 无参数时返回空向量
 ;; 2. 参数顺序决定结果向量中的元素顺序
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check (vector) => #())
 (check (vector 'a) => #(a))
 (check (vector 1 2 3) => #(1 2 3))

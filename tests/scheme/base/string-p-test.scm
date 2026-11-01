@@ -1,8 +1,6 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; string?
 ;; 判断给定的对象是否为字符串类型。
+;;
 ;;
 ;; 语法
 ;; ----
@@ -14,7 +12,7 @@
 ;; 任意类型的对象
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; boolean?
 ;; 如果obj是字符串类型则返回#t，否则返回#f
 ;;
@@ -25,9 +23,15 @@
 ;; 3. 返回布尔值，便于在条件判断中使用
 ;;
 ;; 错误处理
-;; --------
+;; ----
 ;; wrong-number-of-args
 ;; 当参数数量不为1时抛出错误。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 ;; string? 基本测试
 (check (string? "hello") => #t)
 (check (string? "") => #t)
@@ -50,4 +54,5 @@
 ;; 特殊字符测试
 (check (string? "$$$") => #t)
 (check (string? "中国") => #t)
+
 (check-report)

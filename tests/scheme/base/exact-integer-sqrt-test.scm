@@ -1,9 +1,6 @@
-(import (liii check))
-(import (liii error))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; exact-integer-sqrt
 ;; 计算给定非负精确整数的精确平方根。
+;;
 ;;
 ;; 语法
 ;; ----
@@ -15,7 +12,7 @@
 ;; n是确切的非负整数。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; values
 ;; 返回两个值：
 ;; 1. 整数r：满足r² ≤ n的最大整数
@@ -27,11 +24,18 @@
 ;; 对于完全平方数，remainder将为0；非完全平方数返回最大的整数根和余量。
 ;;
 ;; 错误处理
-;; --------
+;; ----
 ;; type-error
 ;; 当参数不是准确的整数时抛出错误。
 ;; value-error
 ;; 当参数是负数时抛出错误。
+
+(import (liii check))
+(import (liii error))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check (list (exact-integer-sqrt 9)) => (list 3 0))
 (check (list (exact-integer-sqrt 5)) => (list 2 1))
 (check (list (exact-integer-sqrt 0)) => (list 0 0))
@@ -49,4 +53,5 @@
 (check-catch 'value-error (exact-integer-sqrt -1))
 (check-catch 'type-error (exact-integer-sqrt 1.1))
 (check-catch 'type-error (exact-integer-sqrt 1.0+1.0i))
+
 (check-report)

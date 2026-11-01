@@ -1,8 +1,6 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; <
 ;; 比较数字是否按升序排列。
+;;
 ;;
 ;; 语法
 ;; ----
@@ -14,7 +12,7 @@
 ;; 待比较的数字。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; boolean?
 ;; 如果每个参数都严格小于后面的参数，返回 #t，否则返回 #f。
 ;;
@@ -25,11 +23,17 @@
 ;; 3. 不支持复数比较
 ;;
 ;; 错误处理
-;; --------
+;; ----
 ;; wrong-number-of-args
 ;; 参数数量不足两个时抛出。
 ;; type-error
 ;; 任一参数不是实数时抛出。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check (< 1 2) => #t)
 (check (< 2 1) => #f)
 (check (< 1 1) => #f)
@@ -49,4 +53,5 @@
 (check-catch 'wrong-number-of-args (< 1))
 (check-catch 'type-error (< 1 'a))
 (check-catch 'type-error (< "hello" 2))
+
 (check-report)

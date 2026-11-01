@@ -1,9 +1,6 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
-
 ;; list-tail
 ;; 返回列表从指定索引位置开始的子列表（尾部）。该函数是 R7RS 标准的基本列表操作函数之一。
+;;
 ;;
 ;; 语法
 ;; ----
@@ -18,7 +15,7 @@
 ;; 非负的精确整数，表示要删除的元素个数（从列表头部开始）。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; list?
 ;; 从列表第 k 个位置开始直到列表末尾的子列表。当 k=0 时返回原列表本身，
 ;; 当 k=length(list) 时返回空列表 '()。
@@ -30,13 +27,18 @@
 ;; 3. 索引从 0 开始计数，与 list-ref 等其他列表函数保持一致
 ;;
 ;; 错误处理
-;; --------
+;; ----
 ;; out-of-range
 ;; 当索引 k 为负数或超出列表长度时抛出错误。
 ;; type-error
 ;; 当 list 参数不是列表类型时抛出错误。
 ;; wrong-number-of-args
 ;; 当参数数量不等于 2 时抛出错误。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
 
 ;; list-tail 基本功能测试
 (check (list-tail '(a b c d) 0) => '(a b c d))
@@ -143,7 +145,11 @@
 (check (list-tail '(42 3.14 1/2 1.0+2.0i) 1) => '(3.14 1/2 1.0+2.0i))
 (check (list-tail '(#t #f #\a "hello" 'symbol) 2) => '(#\a "hello" 'symbol))
 (check (list-tail '(#(1 2) #(255) (a b) car) 1) => '(#(255) (a b) car))
-(check (list-tail '(() (()) ((()))) 1) => '((()) ((()))))
+(check
+  (list-tail '(() (()) ((()))) 1)
+  =>
+  '((()) ((())))
+) ;check
 ;; 边界测试集4：Unicode和特殊字符边界
 (check (list-tail '("中文" "测试" "🚀" "字符串") 2)
   =>
@@ -160,7 +166,11 @@
 (check (list-tail (list 1 2 3 4 5) 3) => '(4 5))
 (check (list-tail (append '(a b) '(c d) '(e f)) 4) => '(e f))
 (check (list-tail (reverse '(e d c b a)) 2) => '(c d e))
-(check (list-tail (cons 'head (cons 'mid (cons 'tail '()))) 1) => '(mid tail))
+(check
+  (list-tail (cons 'head (cons 'mid (cons 'tail '()))) 1)
+  =>
+  '(mid tail)
+) ;check
 ;; 边界测试集7：过程对象和特殊值边界
 (check (list-tail (list car cdr cons list) 2) => (list cons list))
 (check (list-tail '(#t #f #t #f #t) 3) => '(#f #t))
@@ -182,7 +192,29 @@
 (check-catch 'type-error (list-tail #t 0))
 (check-catch 'type-error (list-tail #(a b c) 1))
 ;; 补充边界测试：复杂嵌套和深度结构
-(check (list-tail '((a (b (c))) d (e (f))) 1) => '(d (e (f))))
-(check (list-tail '(1 2 (3 (4 (5))) 6 7) 2) => '((3 (4 (5))) 6 7))
-(check (list-tail '((() (()) ((()))) ((((()))))) 2) => '())
+(check
+  (list-tail
+    '((a (b (c))) d (e (f)))
+    1
+  ) ;list-tail
+  =>
+  '(d (e (f)))
+) ;check
+(check
+  (list-tail
+    '(1 2 (3 (4 (5))) 6 7)
+    2
+  ) ;list-tail
+  =>
+  '((3 (4 (5))) 6 7)
+) ;check
+(check
+  (list-tail
+    '((() (()) ((()))) ((((())))))
+    2
+  ) ;list-tail
+  =>
+  '()
+) ;check
+
 (check-report)

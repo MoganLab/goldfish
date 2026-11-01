@@ -1,8 +1,6 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; or
 ;; 对任意数量的参数执行逻辑或操作，支持短路求值。
+;;
 ;;
 ;; 语法
 ;; ----
@@ -14,15 +12,21 @@
 ;; 任意类型的表达式。在 Scheme 中，除了 #f 之外的所有值都被视为真值。
 ;;
 ;; 返回值
-;; -----
+;; ----
 ;; any
 ;; 如果没有任何表达式，返回 #f
 ;; 如果只有一个表达式，返回该表达式的结果
 ;; 对于多个表达式，返回第一个真值表达式的结果，如果都为假则返回最后一个值
 ;;
-;; 短路求值
-;; -------
+;; 说明
+;; ----
 ;; 从左到右依次求值，一旦遇到真值就立即停止求值并返回该值
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 ;; 基础测试用例
 (check-false (or))
 (check-true (or #t))
@@ -47,4 +51,5 @@
 (check (or #f 1) => 1)
 (check (or #f #f 2) => 2)
 (check (or #f #f #f) => #f)
+
 (check-report)

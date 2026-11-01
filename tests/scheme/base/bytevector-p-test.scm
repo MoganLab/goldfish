@@ -1,8 +1,6 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; bytevector?
 ;; 判断一个对象是否为字节向量类型的谓词。
+;;
 ;;
 ;; 语法
 ;; ----
@@ -14,7 +12,7 @@
 ;; 任意对象。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; boolean?
 ;; 如果对象是一个字节向量，返回#t；否则返回#f。
 ;;
@@ -25,9 +23,15 @@
 ;; 3. 能够正确识别所有类型的字节向量实例
 ;;
 ;; 错误处理
-;; --------
+;; ----
 ;; wrong-number-of-args
 ;; 当参数数量不为1时抛出错误。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 ;; bytevector? 基本测试
 (check-true (bytevector? #u8()))
 (check-true (bytevector? #u8(0)))
@@ -44,4 +48,5 @@
 ;; 错误处理测试
 (check-catch 'wrong-number-of-args (bytevector?))
 (check-catch 'wrong-number-of-args (bytevector? #u8(1 2 3) #u8(4 5 6)))
+
 (check-report)

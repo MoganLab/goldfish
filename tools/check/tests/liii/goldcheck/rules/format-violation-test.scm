@@ -74,4 +74,11 @@
   (check-true (string-contains? msg "^^^^^^^^^"))
 ) ;let*
 
+;; 8. 格式化 unit-test 违规（含行号与原因）
+(let* ((viol (list 'unit-test "tests/demo-test.scm" 1 "文档必须置于文件最顶部（在 import 之前）"))
+       (msg (format-violation viol)))
+  (check-true
+    (string-contains? msg "tests/demo-test.scm:1: unit-test: 文档必须置于文件最顶部（在 import 之前）"))
+) ;let*
+
 (check-report)

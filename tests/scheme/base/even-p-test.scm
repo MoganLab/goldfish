@@ -1,8 +1,6 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; even?
 ;; 判断一个整数是否是偶数。
+;;
 ;;
 ;; 语法
 ;; ----
@@ -14,14 +12,20 @@
 ;; 整数。
 ;;
 ;; 返回值
-;; -----
+;; ----
 ;; boolean?
 ;; 如果 obj 是整数类型，当其为偶数时返回 #t，否则返回 #f。
 ;;
-;; 错误
+;; 错误处理
 ;; ----
 ;; type-error
 ;; 如果参数不是整数类型
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check-true (even? 0))
 (check-false (even? 1))
 (check-catch 'type-error (even? 0.0))
@@ -30,4 +34,5 @@
 (check-catch 'type-error (even? #\A))
 (check-catch 'type-error (even? #t))
 (check-catch 'type-error (even? #f))
+
 (check-report)

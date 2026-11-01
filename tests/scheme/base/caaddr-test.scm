@@ -1,8 +1,6 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; caaddr
 ;; caaddr 是 Scheme 内置函数，等价于 (car (car (cdr (cdr pair))))。
+;;
 ;;
 ;; 语法
 ;; ----
@@ -14,20 +12,33 @@
 ;; 嵌套的序对或列表，如 (1 2 (a b))。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; 任意类型
 ;; 返回 (car (car (cdr (cdr pair))))。
 ;;
 ;; 错误处理
-;; --------
+;; ----
 ;; type-error
 ;; 参数不是序对，或者 cdr/car 链上的某一层不是序对时抛出错误。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check (caaddr '(1 2 (3 4))) => 3)
 (check (caaddr '(a b (c d) e)) => 'c)
-(check (caaddr (cons 1 (cons 2 (cons (cons 'x 'y) 3)))) => 'x)
+(check
+  (caaddr
+    (cons 1 (cons 2 (cons (cons 'x 'y) 3)))
+  ) ;caaddr
+  =>
+  'x
+) ;check
 (check-catch 'type-error (caaddr '(1 2 3)))
 (check-catch 'type-error (caaddr '(1 2 ())))
 (check-catch 'type-error (caaddr '(1 2)))
 (check-catch 'type-error (caaddr 'a))
 (check-catch 'type-error (caaddr '()))
+
 (check-report)

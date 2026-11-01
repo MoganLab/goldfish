@@ -1,9 +1,7 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; string-copy
 ;; 创建字符串的副本，可以选择复制部分子串。
 ;; 注意：本实现使用字节索引而非字符索引。
+;;
 ;;
 ;; 语法
 ;; ----
@@ -23,10 +21,16 @@
 ;; 结束索引（不包含，字节位置），默认为字符串长度（字节）。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; string?
 ;; 返回一个新的字符串副本。
 ;; 完整复制
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check (string-copy "hello") => "hello")
 (check (string-copy "") => "")
 (check (string-copy "abc") => "abc")
@@ -50,4 +54,5 @@
 (check (string-copy "你好世界" 0 3) => "你")
 (check (string-copy "你好世界" 3 6) => "好")
 (check (string-copy "你好世界" 0 6) => "你好")
+
 (check-report)

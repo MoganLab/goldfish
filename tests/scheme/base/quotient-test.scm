@@ -1,8 +1,6 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; quotient
 ;; 用于计算两个数的精确除法商（向零取整）。
+;;
 ;;
 ;; 语法
 ;; ----
@@ -14,22 +12,28 @@
 ;; divisor : real? - 除数，不能为零
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; integer?
 ;; 返回一个整数，表示向零方向取整的商。
 ;;
-;; 与floor-quotient的区别
-;; -------------
+;; 说明
+;; ----
 ;; quotient与floor-quotient的主要区别在于对负数除法的处理：
 ;; - quotient：向零取整（截断除法），如(quotient -11 2) => -5
 ;; - floor-quotient：向负无穷取整，如(floor-quotient -11 2) => -6
 ;;
-;; 错误
+;; 错误处理
 ;; ----
 ;; division-by-zero
 ;; 当除数为零时抛出错误。
 ;; type-error
 ;; 当参数不是数字时抛出错误。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check (quotient 11 2) => 5)
 (check (quotient 11 -2) => -5)
 (check (quotient -11 2) => -5)
@@ -60,4 +64,5 @@
 (check-catch 'type-error (quotient 'hello 2))
 (check-catch 'wrong-number-of-args (quotient 10))
 (check-catch 'wrong-number-of-args (quotient 5 3 2))
+
 (check-report)

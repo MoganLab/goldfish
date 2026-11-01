@@ -1,8 +1,6 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; inexact?
 ;; 用于判断一个数值是否为不精确值。
+;;
 ;;
 ;; 语法
 ;; ----
@@ -14,7 +12,7 @@
 ;; 任何数值类型的对象
 ;;
 ;; 返回值
-;; -----
+;; ----
 ;; boolean?
 ;; 如果 obj 是不精确数（不精确的浮点数、运算结果中的不精确部分、复数的任何部分是不精确的等）返回 #t，否则返回 #f。
 ;;
@@ -27,9 +25,15 @@
 ;; 5. 精确浮点数（使用精确前缀）返回 #f
 ;;
 ;; 错误处理
-;; --------
+;; ----
 ;; type-error
 ;; 如果参数不是数字类型，抛出错误。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 ;; 基本测试
 (check-false (inexact? 42))
 (check-false (inexact? 3/4))
@@ -85,4 +89,5 @@
 (check-catch 'type-error (zero? #\A))
 (check-catch 'type-error (zero? #t))
 (check-catch 'type-error (zero? #f))
+
 (check-report)

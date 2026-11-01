@@ -1,8 +1,6 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; dynamic-wind
 ;; 在过程执行前后执行清理和初始化操作。
+;;
 ;;
 ;; 语法
 ;; ----
@@ -18,7 +16,7 @@
 ;; 无参数过程，在 thunk 后执行（包括异常退出）。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; 任意类型
 ;; thunk 的返回值。
 ;;
@@ -29,6 +27,12 @@
 ;; 3. 常用于资源管理
 ;; 4. 与 call/cc 协同：重新进入由 dynamic-wind 保护的动态范围时，
 ;;    会再次执行同一个 before 过程，离开该范围时再次执行同一个 after 过程。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (let ((log '()))
   (dynamic-wind (lambda () (set! log (cons 'before log)))
     (lambda () (set! log (cons 'thunk log)) 'result)

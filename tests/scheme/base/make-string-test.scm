@@ -1,8 +1,6 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; make-string
 ;; 创建一个由指定字符重复填充的新字符串。
+;;
 ;;
 ;; 语法
 ;; ----
@@ -17,7 +15,7 @@
 ;; 用于填充字符串的字符。如果未提供，**默认字符由实现定义**。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; string?
 ;; 新创建的字符串，长度为 k，所有字符均为 char（或实现定义的默认字符）。
 ;;
@@ -28,13 +26,19 @@
 ;; 3. 当 k 为 0 时返回空字符串 ""
 ;;
 ;; 错误处理
-;; --------
+;; ----
 ;; out-of-range
 ;; 当 k 为负数时抛出错误。
 ;; type-error
 ;; 当 k 不是精确整数或 char 不是字符时抛出错误。
 ;; wrong-number-of-args
 ;; 当参数数量不为 1 或 2 个时抛出错误。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check (string-length (make-string 0)) => 0)
 (check (string-length (make-string 1)) => 1)
 (check (string-length (make-string 1000)) => 1000)
@@ -60,11 +64,9 @@
 (check (list->string '()) => "")
 (check (string-length "MathAgape") => 9)
 (check (string-length "") => 0)
-(check (catch 'type-error
-         (lambda () (string-length 'not-a-string))
-         (lambda args #t)
-       ) ;catch
+(check (catch 'type-error (lambda () (string-length 'not-a-string)) (lambda args #t))
   =>
   #t
 ) ;check
+
 (check-report)

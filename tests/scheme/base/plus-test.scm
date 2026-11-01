@@ -1,8 +1,6 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; +
 ;; 计算所有给定数字的和。
+;;
 ;;
 ;; 语法
 ;; ----
@@ -14,15 +12,21 @@
 ;; 任意个数字。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; number?
 ;; 如果没有参数，返回加法单位元 0
 ;; 否则，返回其所有参数的和
 ;;
-;; 错误
+;; 错误处理
 ;; ----
 ;; type-error
 ;; 如果存在任何参数不是数字，抛出错误。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check (+) => 0)
 (check (+ 1) => 1)
 (check (+ 1 2) => 3)
@@ -30,7 +34,11 @@
 (check (+ 1 2 3 4) => 10)
 (check (+ 1.5 2.5) => 4.0)
 (check (+ 0.1 0.2) => 0.30000000000000004)
-(check (< (abs (- 3.3 (+ 1.1 2.2))) 1e-15) => #t)
+(check
+  (< (abs (- 3.3 (+ 1.1 2.2))) 1e-15)
+  =>
+  #t
+) ;check
 (check (+ 1/2 1/2) => 1)
 (check (+ 1/3 1/2) => 5/6)
 (check (+ 1/3 1/4 1/5) => 47/60)
@@ -51,4 +59,5 @@
 (check-catch 'type-error (+ #t 7))
 (check-catch 'type-error (+ '(1 3 5) 7))
 (check-catch 'unbound-variable (+ 1.0+1.0i 2i))
+
 (check-report)

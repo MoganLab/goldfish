@@ -1,8 +1,6 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; abs
 ;; 返回给定数值的绝对值。
+;;
 ;;
 ;; 语法
 ;; ----
@@ -14,7 +12,7 @@
 ;; 任意实数，包括整数、有理数或浮点数。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; real?
 ;; 输入数值的绝对值，保持输入值的类型精度。
 ;;
@@ -27,11 +25,17 @@
 ;; 5. 零的绝对值是0
 ;;
 ;; 错误处理
-;; --------
+;; ----
 ;; type-error
 ;; 当参数不是实数时抛出错误。
 ;; wrong-number-of-args
 ;; 当参数数量不为1时抛出错误。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 ;; abs 基本测试
 (check (abs 0) => 0)
 (check (abs 1) => 1)
@@ -59,4 +63,5 @@
 (check-catch 'type-error (abs 'symbol))
 (check-catch 'wrong-number-of-args (abs))
 (check-catch 'wrong-number-of-args (abs 1 2 3))
+
 (check-report)

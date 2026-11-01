@@ -1,8 +1,6 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; string-ref
 ;; 按索引访问字符串中的字符。
+;;
 ;;
 ;; 语法
 ;; ----
@@ -17,7 +15,7 @@
 ;; 必须是精确的整数索引，从0开始。必须满足 0 <= k < (string-length string)
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; char?
 ;; 字符串中位置k处的字符
 ;;
@@ -28,16 +26,22 @@
 ;; 3. 返回k位置处的字符
 ;;
 ;; 错误处理
-;; --------
+;; ----
 ;; out-of-range
 ;; 当k为负数或大于等于字符串长度时抛出错误。
 ;;
 ;; type-error
 ;; 当string不是字符串或k不是精确整数时抛出错误。
 ;;
-;; 错误
+;; 错误处理
 ;; ----
 ;; 当索引超出范围时，会抛出out-of-range异常。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check (string-ref "MathAgape" 0) => #\M)
 (check (string-ref "MathAgape" 2) => #\t)
 (check (string-ref "hello" 0) => #\h)
@@ -102,4 +106,5 @@
 (check (vector->list #(0 1 2 3) 1 2) => '(1))
 (check (list->vector '(0 1 2 3)) => #(0 1 2 3))
 (check (list->vector '()) => #())
+
 (check-report)

@@ -1,8 +1,6 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; modulo
 ;; 计算实数的取模运算。
+;;
 ;;
 ;; 语法
 ;; ----
@@ -14,11 +12,11 @@
 ;; divisor : real? - 除数，不能为零
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; real?
 ;; 返回 dividend 除以 divisor 的余数。
 ;;
-;; 错误
+;; 错误处理
 ;; ----
 ;; type-error
 ;; 当任一参数不是实数类型时抛出错误。包括复数（如 1+2i）、字符串、符号等其他类型。
@@ -28,6 +26,12 @@
 ;;
 ;; wrong-number-of-args
 ;; 当参数数量不为两个时抛出错误。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check (modulo 13 4) => 1)
 (check (modulo -13 4) => 3)
 (check (modulo 13 -4) => -3)
@@ -72,4 +76,5 @@
 (check-catch 'wrong-number-of-args (floor-remainder 5))
 (check-catch 'wrong-number-of-args (floor-remainder 5 3 2))
 (check-catch 'division-by-zero (floor-remainder 1 0))
+
 (check-report)

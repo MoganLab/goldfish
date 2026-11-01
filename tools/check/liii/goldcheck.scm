@@ -65,11 +65,12 @@
     (liii goldcheck only)
     (liii goldcheck cache)
     (liii goldcheck report)
+    (liii goldcheck unit-test)
   ) ;import
   (export main check-file-lines check-tree-depth check-no-glue check-file
     check-files make-check-arg-parser format-violation display-help
     violation-report-lines violation-display-hint scan-hint-libs check-type-hint
-    check-type-hint-all
+    check-type-hint-all check-unit-test
   ) ;export
   (begin
 
@@ -93,90 +94,101 @@
     ) ;define
 
     (define (check-file-rule-lines file-path cfg acc)
-      (if (check-rule-enabled? cfg "max-file-lines")
-        (if (file-excluded? file-path (check-rule-excludes cfg "max-file-lines"))
-          acc
-          (let ((lines-limit (check-rule-limit cfg "max-file-lines")))
-            (call-with-values (lambda () (check-file-lines file-path lines-limit))
-              (lambda (lines viol)
-                (unless viol
-                  (rule-cache-touch "max-file-lines" lines-limit file-path)
-                ) ;unless
-                (if viol (cons viol acc) acc)
-              ) ;lambda
-            ) ;call-with-values
-          ) ;let
-        ) ;if
+      (if
+        (and (check-rule-enabled? cfg "max-file-lines")
+          (not (file-excluded? file-path (check-rule-excludes cfg "max-file-lines")))
+        ) ;and
+        (let ((lines-limit (check-rule-limit cfg "max-file-lines")))
+          (call-with-values (lambda () (check-file-lines file-path lines-limit))
+            (lambda (lines viol)
+              (unless viol
+                (rule-cache-touch "max-file-lines" lines-limit file-path)
+              ) ;unless
+              (if viol (cons viol acc) acc)
+            ) ;lambda
+          ) ;call-with-values
+        ) ;let
         acc
       ) ;if
     ) ;define
 
     (define (check-file-rule-depth file-path cfg acc)
-      (if (check-rule-enabled? cfg "max-tree-depth")
-        (if (file-excluded? file-path (check-rule-excludes cfg "max-tree-depth"))
-          acc
-          (let ((depth-limit (check-rule-limit cfg "max-tree-depth")))
-            (call-with-values (lambda () (check-tree-depth file-path depth-limit))
-              (lambda (max-d max-l viol)
-                (unless viol
-                  (rule-cache-touch "max-tree-depth" depth-limit file-path)
-                ) ;unless
-                (if viol (cons viol acc) acc)
-              ) ;lambda
-            ) ;call-with-values
-          ) ;let
-        ) ;if
+      (if
+        (and (check-rule-enabled? cfg "max-tree-depth")
+          (not (file-excluded? file-path (check-rule-excludes cfg "max-tree-depth")))
+        ) ;and
+        (let ((depth-limit (check-rule-limit cfg "max-tree-depth")))
+          (call-with-values (lambda () (check-tree-depth file-path depth-limit))
+            (lambda (max-d max-l viol)
+              (unless viol
+                (rule-cache-touch "max-tree-depth" depth-limit file-path)
+              ) ;unless
+              (if viol (cons viol acc) acc)
+            ) ;lambda
+          ) ;call-with-values
+        ) ;let
         acc
       ) ;if
     ) ;define
 
     (define %record-type-check-version 1)
     (define (check-file-rule-record-export file-path cfg acc)
-      (if (check-rule-enabled? cfg "define-record-type")
-        (if (file-excluded? file-path (check-rule-excludes cfg "define-record-type"))
-          acc
-          (let ((viols (check-record-export file-path)))
-            (if (null? viols)
-              (rule-cache-touch "define-record-type" %record-type-check-version file-path)
-            ) ;if
-            (append acc viols)
-          ) ;let
-        ) ;if
+      (if
+        (and (check-rule-enabled? cfg "define-record-type")
+          (not (file-excluded? file-path (check-rule-excludes cfg "define-record-type")))
+        ) ;and
+        (let ((viols (check-record-export file-path)))
+          (when (null? viols)
+            (rule-cache-touch "define-record-type" %record-type-check-version file-path)
+          ) ;when
+          (append acc viols)
+        ) ;let
         acc
       ) ;if
     ) ;define
 
     (define (check-file-rule-layer file-path cfg acc)
-      (if (check-rule-enabled? cfg "layer-order")
-        (if (file-excluded? file-path (check-rule-excludes cfg "layer-order"))
-          acc
-          (append acc (check-layer-order file-path cfg))
-        ) ;if
+      (if
+        (and (check-rule-enabled? cfg "layer-order")
+          (not (file-excluded? file-path (check-rule-excludes cfg "layer-order")))
+        ) ;and
+        (append acc (check-layer-order file-path cfg))
         acc
       ) ;if
     ) ;define
 
     (define (check-file-rule-no-crlf file-path cfg acc)
-      (if (check-rule-enabled? cfg "no-crlf")
-        (if (file-excluded? file-path (check-rule-excludes cfg "no-crlf"))
-          acc
-          (let ((viol (check-no-crlf file-path)))
-            (unless viol
-              (rule-cache-touch "no-crlf" 0 file-path)
-            ) ;unless
-            (if viol (cons viol acc) acc)
-          ) ;let
-        ) ;if
+      (if
+        (and (check-rule-enabled? cfg "no-crlf")
+          (not (file-excluded? file-path (check-rule-excludes cfg "no-crlf")))
+        ) ;and
+        (let ((viol (check-no-crlf file-path)))
+          (unless viol
+            (rule-cache-touch "no-crlf" 0 file-path)
+          ) ;unless
+          (if viol (cons viol acc) acc)
+        ) ;let
         acc
       ) ;if
     ) ;define
 
     (define (check-file-rule-no-glue file-path cfg acc)
-      (if (check-rule-enabled? cfg "no-glue")
-        (if (file-excluded? file-path (check-rule-excludes cfg "no-glue"))
-          acc
-          (append acc (check-no-glue file-path))
-        ) ;if
+      (if
+        (and (check-rule-enabled? cfg "no-glue")
+          (not (file-excluded? file-path (check-rule-excludes cfg "no-glue")))
+        ) ;and
+        (append acc (check-no-glue file-path))
+        acc
+      ) ;if
+    ) ;define
+
+    (define (check-file-rule-unit-test file-path cfg acc)
+      (if
+        (and (check-rule-enabled? cfg "unit-test")
+          (not (file-excluded? file-path (check-rule-excludes cfg "unit-test")))
+          (string-ends? file-path "-test.scm")
+        ) ;and
+        (append acc (check-unit-test file-path))
         acc
       ) ;if
     ) ;define
@@ -189,8 +201,9 @@
              (acc4 (check-file-rule-layer file-path cfg acc3))
              (acc5 (check-file-rule-no-crlf file-path cfg acc4))
              (acc6 (check-file-rule-no-glue file-path cfg acc5))
+             (acc7 (check-file-rule-unit-test file-path cfg acc6))
             ) ;
-        (reverse acc6)
+        (reverse acc7)
       ) ;let*
     ) ;define
 
@@ -237,6 +250,20 @@
                  violations
                ) ;if
              ) ;violations
+             (violations
+               (if (check-rule-enabled? cfg "unit-test")
+                 (let ((files
+                         (filter
+                           (lambda (f) (not (file-excluded? f (check-rule-excludes cfg "unit-test"))))
+                           (vector->list file-vector)
+                         ) ;filter
+                       ) ;files
+                      ) ;
+                   (vector-append violations (list->vector (check-unit-test-dirs files)))
+                 ) ;let
+                 violations
+               ) ;if
+             ) ;violations
             ) ;
         violations
       ) ;let*
@@ -244,43 +271,7 @@
 
     (define %all-rule-names
       '("max-file-lines" "max-tree-depth" "define-record-type" "layer-order"
-        "no-crlf" "no-glue" "type-hint")
-    ) ;define
-
-    (define (%rule-with-enabled rule enabled)
-      (cons (cons "enabled" enabled)
-        (filter
-          (lambda (kv) (not (string=? (car kv) "enabled")))
-          rule
-        ) ;filter
-      ) ;cons
-    ) ;define
-
-    (define (single-rule-config cfg rule-name)
-      "构造仅启用指定规则的新配置，保留该规则自身的 exclude 等字段。"
-      (let ((rules (if cfg (json-ref cfg "rules") '())))
-        (let ((new-rules
-                (map
-                  (lambda (name)
-                    (let ((rule (if (json-object? rules) (json-ref rules name) '())))
-                      (cons name (%rule-with-enabled rule (string=? name rule-name)))
-                    ) ;let
-                  ) ;lambda
-                  %all-rule-names
-                ) ;map
-              ) ;new-rules
-             ) ;
-          (if cfg
-            (cons (cons "rules" new-rules)
-              (filter
-                (lambda (kv) (not (string=? (car kv) "rules")))
-                cfg
-              ) ;filter
-            ) ;cons
-            (list (cons "rules" new-rules))
-          ) ;if
-        ) ;let
-      ) ;let
+        "no-crlf" "no-glue" "type-hint" "unit-test")
     ) ;define
 
     (define (enabled-rule-names cfg)
@@ -289,7 +280,7 @@
 
     (define (run-rule-check files cfg rule-name)
       "执行单个规则检查，返回 (rule-name ok? elapsed violations)。"
-      (let ((single-cfg (single-rule-config cfg rule-name))
+      (let ((single-cfg (single-rule-config cfg rule-name %all-rule-names))
             (limit (cond ((string=? rule-name "max-file-lines") (check-rule-limit cfg rule-name))
                          ((string=? rule-name "max-tree-depth") (check-rule-limit cfg rule-name))
                          ;; 内容哈希缓存键段：无阈值规则用 0 占位

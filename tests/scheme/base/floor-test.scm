@@ -1,8 +1,6 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; floor
 ;; 返回不大于给定数的最大整数。
+;;
 ;;
 ;; 语法
 ;; ----
@@ -14,16 +12,22 @@
 ;; 实数
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; 返回不大于给定数的最大整数
 ;; 如果参数中存在不精确值，返回值也是不精确的，否则返回值是精确的
 ;;
-;; 错误
+;; 错误处理
 ;; ----
 ;; type-error
 ;; 如果参数不是实数，抛出错误。
 ;; wrong-number-of-args
 ;; 如果参数数量不为一，抛出错误。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check (floor 1.1) => 1.0)
 (check (floor 1) => 1)
 (check (floor 1/2) => 0)

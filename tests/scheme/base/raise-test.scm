@@ -1,8 +1,6 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; raise
 ;; 抛出异常。
+;;
 ;;
 ;; 语法
 ;; ----
@@ -14,8 +12,14 @@
 ;; 要抛出的异常对象。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; 不返回，直接抛出异常。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 ;; 测试抛出符号
 (check-catch #t (raise 'my-error))
 ;; 测试抛出字符串
@@ -31,4 +35,5 @@
   (catch #t (lambda () (raise 'error) (set! executed #t)) (lambda args 'caught))
   (check executed => #f)
 ) ;let
+
 (check-report)

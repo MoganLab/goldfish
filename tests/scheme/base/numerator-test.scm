@@ -1,8 +1,6 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; numerator
 ;; 返回有理数的分子部分。
+;;
 ;;
 ;; 语法
 ;; ----
@@ -14,15 +12,21 @@
 ;; 有理数。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; integer?
 ;; 返回有理数的分子部分。
 ;; 对于整数，分子是整数本身；对于有理数a/b，返回a。
 ;;
 ;; 错误处理
-;; --------
+;; ----
 ;; type-error
 ;; 当参数不是有理数时抛出错误。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 ;; numerator测试
 (check (numerator 1/2) => 1)
 (check (numerator 4/5) => 4)
@@ -37,4 +41,5 @@
 (check (numerator 2) => 2)
 (check (numerator -1/2) => -1)
 (check (numerator 0) => 0)
+
 (check-report)

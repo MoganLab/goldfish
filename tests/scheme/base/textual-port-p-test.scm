@@ -1,8 +1,6 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; textual-port?
 ;; 判断端口是否为文本端口。
+;;
 ;;
 ;; 语法
 ;; ----
@@ -14,7 +12,7 @@
 ;; 待判断的对象。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; boolean?
 ;; 如果对象是文本端口则返回 #t，否则返回 #f。
 ;;
@@ -22,6 +20,12 @@
 ;; ----
 ;; 1. 在 S7 Scheme 中，所有端口同时被视为二进制端口和文本端口
 ;; 2. 非端口对象返回 #f
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check (textual-port? (current-input-port)) => #t)
 (check (textual-port? (current-output-port)) => #t)
 (check (textual-port? '()) => #f)

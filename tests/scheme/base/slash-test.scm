@@ -1,8 +1,6 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; /
 ;; 除法函数，支持整数、浮点数、有理数和复数的除法运算。
+;;
 ;;
 ;; 语法
 ;; ----
@@ -14,7 +12,7 @@
 ;; 任意个数字作为除数。如果没有参数，抛出错误；如果只有一个参数，则返回其倒数；如果有多个参数，则从第二个参数开始依次除第一个参数。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; number?
 ;; 如果没有参数，抛出错误；如果只有一个参数，返回其倒数；如果有多个参数，返回其左结合的商。
 ;;
@@ -26,7 +24,7 @@
 ;; - 有理数除法：保持精确分数
 ;; - 复数除法：按复数除法规则计算
 ;;
-;; 错误
+;; 错误处理
 ;; ----
 ;; type-error
 ;; 如果存在任何参数不是数字类型，则抛出此错误
@@ -34,6 +32,12 @@
 ;; 除数为零时抛出此错误
 ;; wrong-number-of-args
 ;; 提供的参数个数与函数定义时所需的参数个数不匹配
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check (/ 5) => 1/5)
 (check (/ 1) => 1)
 (check (/ -1) => -1)
@@ -43,7 +47,11 @@
 (check (/ 4/3) => 3/4)
 (check (/ 10 2) => 5)
 (check (/ 3 4) => 3/4)
-(check (< (abs (- (/ 1.2 0.3) 4.0)) 1e-15) => #t)
+(check
+  (< (abs (- (/ 1.2 0.3) 4.0)) 1e-15)
+  =>
+  #t
+) ;check
 (check (/ 2/3 1/3) => 2)
 (check (/ 6 4 2) => 3/4)
 (check (/ 6 2 3) => 1)
@@ -67,4 +75,5 @@
 (check-catch 'type-error (/ "world" 7))
 (check-catch 'type-error (/ 5 #t))
 (check-catch 'wrong-number-of-args (/))
+
 (check-report)

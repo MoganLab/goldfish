@@ -1,9 +1,6 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
-
 ;; substring
 ;; 提取字符串的子串。
+;;
 ;;
 ;; 语法
 ;; ----
@@ -40,6 +37,11 @@
 ;; ----
 ;; type-error 当参数类型不正确时。
 ;; out-of-range 当 start 或 end 超出字符串范围时。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
 
 ;; 基本 ASCII 测试
 (check (substring "Hello" 0 5) => "Hello")

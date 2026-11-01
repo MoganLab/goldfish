@@ -1,9 +1,6 @@
-(import (liii check))
-(import (scheme base))
-(import (scheme char))
-(check-set-mode! 'report-failed)
 ;; string-ci=?
 ;; 按大小写不敏感的方式比较多个字符串是否相等。
+;;
 ;;
 ;; 语法
 ;; ----
@@ -15,7 +12,7 @@
 ;; 至少两个字符串参数。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; boolean?
 ;; 如果所有字符串在大小写不敏感情况下相等则返回 #t，否则返回 #f。
 ;;
@@ -27,16 +24,23 @@
 ;; 4. 当所有字符串内容在不区分大小写情况下相同返回 #t
 ;; 5. 返回布尔值结果
 ;;
-;; 边界情况
-;; --------
+;; 说明
+;; ----
 ;; - 大小写不敏感：大写和小写字母被视为相同
 ;; - 空字符串比较：空字符串只与空字符串相等
 ;; - 特殊字符：所有字符需要内容相同，大小写不影响字母字符
 ;;
 ;; 错误处理
-;; --------
+;; ----
 ;; wrong-number-of-args
 ;; 当参数数量少于2个时抛出错误。
+
+(import (liii check))
+(import (scheme base))
+(import (scheme char))
+
+(check-set-mode! 'report-failed)
+
 ;; string-ci=? 基本测试
 (check-true (string-ci=? "hello" "hello"))
 (check-true (string-ci=? "hello" "HELLO"))
@@ -84,4 +88,5 @@
 ;; 错误处理测试
 (check-catch 'wrong-number-of-args (string-ci=?))
 (check-catch 'wrong-number-of-args (string-ci=? "hello"))
+
 (check-report)

@@ -1,8 +1,6 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; gcd
 ;; 用于计算给定整数的最大公约数。
+;;
 ;;
 ;; 语法
 ;; ----
@@ -13,12 +11,12 @@
 ;; integer : integer? - 整数。接受零个、一个或多个参数。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; integer?
 ;; 返回所有参数的最大公约数。无参数时返回0，单参数时返回该参数的绝对值。
 ;;
-;; 特殊规则
-;; --------
+;; 说明
+;; ----
 ;; - 无参数时返回0
 ;; - 参数中包含0时，忽略0值
 ;; - 负数会被取绝对值处理
@@ -28,6 +26,12 @@
 ;; ----
 ;; type-error
 ;; 当参数不是整数时抛出错误。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check (gcd) => 0)
 (check (gcd 0) => 0)
 (check (gcd 1) => 1)
@@ -59,4 +63,5 @@
 (check-catch 'type-error (gcd 'hello))
 (check-catch 'type-error (gcd 1 2.0+1.0i 3))
 (check-catch 'type-error (gcd 1.5 2.5))
+
 (check-report)

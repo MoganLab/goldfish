@@ -1,9 +1,6 @@
-(import (liii check))
-(import (liii os))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; =
 ;; 比较多个数字是否数值相等。
+;;
 ;;
 ;; 语法
 ;; ----
@@ -15,7 +12,7 @@
 ;; 待比较的数字。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; boolean?
 ;; 如果所有参数数值相等则返回 #t，否则返回 #f。
 ;;
@@ -26,13 +23,20 @@
 ;; 3. 精确数与不精确数比较时会考虑数值相等性
 ;;
 ;; 错误处理
-;; --------
+;; ----
 ;; wrong-number-of-args
 ;; 参数数量不足两个时抛出。
 ;; type-error
 ;; 任一参数不是数字时抛出。
 
 ;; 基础整数比较
+
+(import (liii check))
+(import (liii os))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check (= 1 1) => #t)
 (check (= 0 0) => #t)
 (check (= 1 2) => #f)

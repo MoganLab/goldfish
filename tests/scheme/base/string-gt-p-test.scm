@@ -1,8 +1,6 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; string>?
 ;; 按字典序比较字符串是否严格递减。
+;;
 ;;
 ;; 语法
 ;; ----
@@ -14,7 +12,7 @@
 ;; 至少两个字符串参数。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; boolean?
 ;; 如果每个字符串都严格大于后面的字符串，返回 #t，否则返回 #f。
 ;;
@@ -23,6 +21,12 @@
 ;; 1. 基于字符的 Unicode 码点进行字典序比较
 ;; 2. 区分大小写
 ;; 3. 至少需要两个参数
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check (string>? "b" "a") => #t)
 (check (string>? "a" "b") => #f)
 (check (string>? "a" "a") => #f)

@@ -1,8 +1,6 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; char>?
 ;; 按字典序比较字符的大小，判断字符是否按降序排列。
+;;
 ;;
 ;; 语法
 ;; ----
@@ -14,7 +12,7 @@
 ;; 要比较的字符，至少需要两个。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; boolean?
 ;; 如果所有字符按降序排列（即每个字符都大于下一个字符）则返回 #t，否则返回 #f。
 ;;
@@ -27,11 +25,17 @@
 ;; 5. 区分大小写，大写字符码点值小于小写字符（如 #\A < #\a）
 ;;
 ;; 错误处理
-;; --------
+;; ----
 ;; type-error
 ;; 当参数不是字符时抛出错误。
 ;; wrong-number-of-args
 ;; 当参数数量少于2个时抛出错误。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 ;; char>? 基本测试
 (check (char>? #\B #\A) => #t)
 (check (char>? #\b #\a) => #t)
@@ -78,4 +82,5 @@
 (check (char>? #\中 #\A) => #t)
 (check (char>? #\文 #\中) => #t)
 (check (char>? #\中 #\中) => #f)
+
 (check-report)

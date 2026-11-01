@@ -1,8 +1,6 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; quasiquote
 ;; 创建带有可求值部分的列表或向量模板。
+;;
 ;;
 ;; 语法
 ;; ----
@@ -15,7 +13,7 @@
 ;; 模板表达式。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; 任意类型
 ;; 构建的数据结构。
 ;;
@@ -25,6 +23,12 @@
 ;; 2. 使用 unquote (,) 求值部分表达式
 ;; 3. 使用 unquote-splicing (,@) 将列表展开插入
 ;; 4. 反引号 ` 是 quasiquote 的简写
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (let ((x 2) (y 3))
   (check `(list ,x ,y) => '(list 2 3))
 ) ;let

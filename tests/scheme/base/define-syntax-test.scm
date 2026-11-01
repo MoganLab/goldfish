@@ -1,9 +1,6 @@
-(import (scheme base) (srfi 78))
-
-(check-set-mode! 'report-failed)
-
 ;; define-syntax
 ;; 在当前词法作用域中定义顶层语法关键字并绑定宏转换器。
+;;
 ;;
 ;; 语法
 ;; ----
@@ -18,8 +15,12 @@
 ;; 宏转换器规格说明，通常为 (syntax-rules ...) 表达式。
 ;;
 ;; 返回值
-;; -----
+;; ----
 ;; 未指定值。
+
+(import (scheme base) (srfi 78))
+
+(check-set-mode! 'report-failed)
 
 ;; 测试1：基础常量宏
 (define-syntax test-const

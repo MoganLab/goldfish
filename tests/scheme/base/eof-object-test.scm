@@ -1,16 +1,24 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; eof-object
 ;; 返回文件结束对象。
+;;
 ;;
 ;; 语法
 ;; ----
 ;; (eof-object)
 ;;
+;; 参数
+;; ----
+;; 无
+;;
 ;; 返回值
-;; ------
+;; ----
 ;; 文件结束对象（end-of-file object）。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 ;; 测试 eof-object 返回值
 (check (eof-object) => #<eof>)
 ;; 测试从空输入读取返回 eof-object
@@ -24,4 +32,5 @@
   (check (read p) => #<eof>)
   (close-port p)
 ) ;let
+
 (check-report)

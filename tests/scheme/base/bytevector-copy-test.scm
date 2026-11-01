@@ -1,8 +1,6 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; bytevector-copy
 ;; 创建一个新的字节向量，它是现有字节向量的完整或部分副本。
+;;
 ;;
 ;; 语法
 ;; ----
@@ -20,12 +18,12 @@
 ;; 非负的精确整数，表示复制结束的索引位置（不包括该位置），必须大于等于start且小于等于bv的长度。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; bytevector?
 ;; 新的字节向量，包含从start到end-1位置的元素副本。
 ;;
 ;; 错误处理
-;; --------
+;; ----
 ;; type-error
 ;; 当bv不是字节向量抛出错误。
 ;;
@@ -34,6 +32,12 @@
 ;;
 ;; wrong-number-of-args
 ;; 参数数量不正确时抛出错误。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 ;; bytevector-copy 基本测试
 (check (bytevector-copy #u8()) => #u8())
 (check (bytevector-copy #u8(1 2 3)) => #u8(1 2 3))
@@ -62,4 +66,5 @@
 (check (bytevector-append #u8() #u8()) => #u8())
 (check (bytevector-append #u8() #u8(1)) => #u8(1))
 (check (bytevector-append #u8(1) #u8()) => #u8(1))
+
 (check-report)

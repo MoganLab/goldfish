@@ -16,7 +16,7 @@
 
 (define-library (liii goldcheck only)
   (import (scheme base) (liii base) (liii list) (liii json))
-  (export restrict-check-config)
+  (export restrict-check-config single-rule-config)
   (begin
 
     ;; 规则对象改写 enabled
@@ -70,6 +70,33 @@
           (if (null? excludes) top (cons (cons "excludes" excludes) top))
         ) ;cons
       ) ;let*
+    ) ;define
+
+    (define (single-rule-config cfg rule-name all-rule-names)
+      "构造仅启用指定规则的新配置，保留该规则自身的 exclude 等字段。"
+      (let ((rules (if cfg (json-ref cfg "rules") '())))
+        (let ((new-rules
+                (map
+                  (lambda (name)
+                    (let ((rule (if (json-object? rules) (json-ref rules name) '())))
+                      (cons name (%with-enabled rule (string=? name rule-name)))
+                    ) ;let
+                  ) ;lambda
+                  all-rule-names
+                ) ;map
+              ) ;new-rules
+             ) ;
+          (if cfg
+            (cons (cons "rules" new-rules)
+              (filter
+                (lambda (kv) (not (string=? (car kv) "rules")))
+                cfg
+              ) ;filter
+            ) ;cons
+            (list (cons "rules" new-rules))
+          ) ;if
+        ) ;let
+      ) ;let
     ) ;define
 
   ) ;begin

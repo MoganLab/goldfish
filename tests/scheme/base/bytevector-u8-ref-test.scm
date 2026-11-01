@@ -1,8 +1,6 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; bytevector-u8-ref
 ;; 返回字节向量中指定索引位置的字节值。
+;;
 ;;
 ;; 语法
 ;; ----
@@ -17,7 +15,7 @@
 ;; 非负的精确整数，表示字节索引位置，必须小于字节向量的长度。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; integer?
 ;; 位置k处的字节值，是一个0到255之间的整数。
 ;;
@@ -28,11 +26,17 @@
 ;; 3. 返回对应位置的字节值
 ;;
 ;; 错误处理
-;; --------
+;; ----
 ;; type-error
 ;; 当bv不是字节向量时或k不是整数时抛出错误。
 ;; out-of-range
 ;; 当k小于0或大于等于字节向量长度时抛出错误。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 ;; bytevector-u8-ref 基本测试
 (check (bytevector-u8-ref #u8(5 15 25) 0) => 5)
 (check (bytevector-u8-ref #u8(5 15 25) 1) => 15)
@@ -76,4 +80,5 @@
 (check-catch 'out-of-range (bytevector-u8-ref #u8(1 2 3) 1 3))
 (check-catch 'out-of-range (bytevector-u8-ref #u8() 0))
 (check-catch 'wrong-number-of-args (bytevector-u8-ref #u8(1 2 3)))
+
 (check-report)

@@ -1,9 +1,6 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
-
 ;; cdr
 ;; cdr 是 Scheme 内置函数，用于获取序对的第二个元素。该函数与 car 配合使用，是 R7RS 标准的基本列表操作函数之一。
+;;
 ;;
 ;; 语法
 ;; ----
@@ -15,7 +12,7 @@
 ;; 可以是序对（即非空列表或显式点对），不能是空列表或其他对象。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; 任意类型
 ;; 返回序对的第二个元素（cdr 部分）。
 ;;
@@ -25,9 +22,14 @@
 ;; 2. 适用于所有序对数据：不论是点对 (a . b) 还是非空列表 (a b c ...)
 ;;
 ;; 错误处理
-;; --------
+;; ----
 ;; type-error
 ;; 当参数不是序对时抛出错误。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
 
 (check (cdr '(a b c . d)) => '(b c . d))
 (check (cdr '(a b c)) => '(b c))
@@ -48,7 +50,13 @@
 (check (cdr '("hello")) => '())
 (check (cdr '(() b c)) => '(b c))
 (check (cdr '((a b))) => '())
-(check (cdr '((((a))))) => '())
+(check
+  (cdr
+    '((((a))))
+  ) ;cdr
+  =>
+  '()
+) ;check
 ;; 各种数据类型cdr边界测试
 (check (cdr '(123 "text" symbol)) => '("text" symbol))
 (check (cdr '(#\newline #	ab #\space)) => '(#	ab #\space))
@@ -59,8 +67,13 @@
 (check (cdr '('(a b) '(c d))) => '('(c d)))
 
 ;; 极端边界条件测试
-(check (cdr '((lambda (x) x) (lambda (y) y))) => '((lambda (y) y)))
+(check
+  (cdr '((lambda (x) x) (lambda (y) y)))
+  =>
+  '((lambda (y) y))
+) ;check
 (check (cdr '((begin 1 2 3) (begin 4 5))) => '((begin 4 5)))
 (check (cdr '(a b.c d)) => '(b.c d))
 (check (cdr '("中文" "测试")) => '("测试"))
+
 (check-report)

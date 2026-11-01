@@ -1,8 +1,6 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; eof-object?
 ;; 判断对象是否为文件结束对象。
+;;
 ;;
 ;; 语法
 ;; ----
@@ -14,7 +12,7 @@
 ;; 待判断的对象。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; boolean?
 ;; 如果 obj 是 EOF 对象则返回 #t，否则返回 #f。
 ;;
@@ -22,6 +20,12 @@
 ;; ----
 ;; 1. EOF 对象表示输入流已到达末尾
 ;; 2. 同一个 Scheme 系统中所有 EOF 对象都是相同的
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check (eof-object? (eof-object)) => #t)
 (check (eof-object? '()) => #f)
 (check (eof-object? 0) => #f)

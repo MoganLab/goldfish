@@ -1,8 +1,6 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; string->list
 ;; 将字符串转换为字符列表。
+;;
 ;;
 ;; 语法
 ;; ----
@@ -14,7 +12,7 @@
 ;; 待转换的字符串。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; list?
 ;; 字符串中字符按顺序组成的列表。
 ;;
@@ -22,6 +20,12 @@
 ;; ----
 ;; 1. 空字符串返回空列表
 ;; 2. 返回的列表中每个元素都是字符
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check (string->list "") => '())
 (check (string->list "a") => '(#\a))
 (check (string->list "abc") => '(#\a #\b #\c))

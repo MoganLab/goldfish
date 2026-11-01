@@ -1,8 +1,6 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; string->number
 ;; 将字符串解析为数值。根据R7RS规范，支持多种数值格式的解析。
+;;
 ;;
 ;; 语法
 ;; ----
@@ -18,7 +16,7 @@
 ;; 当不指定时，默认为10进制。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; number? | #f
 ;; 如果字符串可以成功解析为数值，则返回对应的数值，否则返回#f。
 ;;
@@ -32,9 +30,15 @@
 ;; - 复数："1+2i", "3.14-2.71i"
 ;; - 不同进制：二进制"1010", 八进制"755", 十六进制"FF"
 ;;
-;; 错误情况
-;; -------
+;; 错误处理
+;; ----
 ;; 当radix参数超出有效范围（2-16）时，行为未定义（S7中返回#f）。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 ;; 基本整数解析测试
 (check (string->number "123") => 123)
 (check (string->number "0") => 0)
@@ -65,7 +69,9 @@
 ) ;check
 (check (string->number "12345678901234567890") => -6101065172474983726)
 (check (string->number "-9223372036854775809") => 9223372036854775807)
-(check-true (< (abs (- (string->number "1.23e-3") 0.00123)) 1e-10))
+(check-true
+  (< (abs (- (string->number "1.23e-3") 0.00123)) 1e-10)
+) ;check-true
 (check (string->number "1e5") => 100000.0)
 (check (string->number "1e-5") => 0.00001)
 (check (string->number "-1e-5") => -0.00001)
@@ -122,4 +128,5 @@
 (check-catch 'type-error (string->number "123" 3.5))
 (check-catch 'wrong-number-of-args (string->number))
 (check-catch 'wrong-number-of-args (string->number "123" 2 3))
+
 (check-report)

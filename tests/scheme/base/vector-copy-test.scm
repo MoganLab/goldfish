@@ -1,8 +1,6 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; vector-copy
 ;; 复制向量或其中一部分。
+;;
 ;;
 ;; 语法
 ;; ----
@@ -18,7 +16,7 @@
 ;; 可选，结束索引，默认为向量长度。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; vector?
 ;; 新向量，包含指定范围内的元素。
 ;;
@@ -26,6 +24,12 @@
 ;; ----
 ;; 1. 返回新向量，不修改原向量
 ;; 2. 复制范围为 [start, end)
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check (vector-copy #(a b c)) => #(a b c))
 (check (vector-copy #(a b c) 0) => #(a b c))
 (check (vector-copy #(a b c) 1) => #(b c))

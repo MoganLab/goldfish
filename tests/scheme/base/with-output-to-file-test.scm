@@ -1,9 +1,6 @@
-(import (liii check))
-(import (liii path))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; with-output-to-file
 ;; 临时将输出重定向到文件。
+;;
 ;;
 ;; 语法
 ;; ----
@@ -17,7 +14,7 @@
 ;; 无参数过程，在重定向环境中执行。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; 任意类型
 ;; thunk 的返回值。
 ;;
@@ -26,6 +23,13 @@
 ;; 1. thunk 执行期间当前输出端口指向该文件
 ;; 2. 执行结束后恢复原来的输出端口
 ;; 3. 文件会被覆盖
+
+(import (liii check))
+(import (liii path))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (let ((tmp (path->string (path-join (path-temp-dir) "with-output-to-file-tmp.txt"))))
   (let ((result (with-output-to-file tmp (lambda () (display "hello") 'done))))
     (check result => 'done)

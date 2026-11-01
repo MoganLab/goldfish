@@ -1,8 +1,6 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; read-error?
 ;; 检查对象是否为读取错误。
+;;
 ;;
 ;; 语法
 ;; ----
@@ -14,9 +12,15 @@
 ;; 要检查的对象。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; boolean?
 ;; 如果对象是读取错误，返回 #t；否则返回 #f。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 ;; 测试错误对象（pair/list 格式）
 (check (read-error? '(read-error)) => #t)
 (check (read-error? '(read-error "message")) => #t)
@@ -31,4 +35,5 @@
 (check (file-error? '(read-error)) => #f)
 (check (read-error? '(io-error)) => #f)
 (check (file-error? '(io-error)) => #t)
+
 (check-report)

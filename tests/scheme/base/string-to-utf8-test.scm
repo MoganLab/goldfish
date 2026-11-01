@@ -1,9 +1,6 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
-
 ;; string->utf8
 ;; 将字符串按 UTF-8 编码转换为字节向量。
+;;
 ;;
 ;; 语法
 ;; ----
@@ -21,12 +18,12 @@
 ;; 结束字符索引，可取到字符串长度（含尾）。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; bytevector?
 ;; UTF-8 编码的字节向量。
 ;;
 ;; 错误处理
-;; --------
+;; ----
 ;; - string 非 string?               -> type-error
 ;; - start/end 为负或超出 [0, N]      -> out-of-range
 ;; - start > end                       -> out-of-range
@@ -35,6 +32,12 @@
 ;; ============================================================
 ;; 1. 空串与纯 ASCII
 ;; ============================================================
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check (string->utf8 "") => #u8())
 (check (string->utf8 "a") => #u8(97))
 (check (string->utf8 "Hello") => #u8(72 101 108 108 111))

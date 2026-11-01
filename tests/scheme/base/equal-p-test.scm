@@ -1,8 +1,6 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; equal?
 ;; 判断两个对象结构是否相等，根据R7RS规范，equal?对复杂数据结构进行深比较。
+;;
 ;;
 ;; 语法
 ;; ----
@@ -14,9 +12,15 @@
 ;; 任意类型的对象
 ;;
 ;; 返回值
-;; -----
+;; ----
 ;; boolean?
 ;; 如果两个对象结构相等则返回 #t，否则返回 #f。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 ;; Test equal? for simple types
 (check-true (equal? #t #t))
 (check-true (equal? 42 42))
@@ -46,4 +50,5 @@
 ;; Test equal? for different types
 (check-false (equal? 42 "hello"))
 (check-false (equal? #\a "a"))
+
 (check-report)

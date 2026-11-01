@@ -1,8 +1,6 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; make-bytevector
 ;; 创建一个新的字节向量，指定长度和初始值为所有组成字节。
+;;
 ;;
 ;; 语法
 ;; ----
@@ -17,7 +15,7 @@
 ;; 0到255之间的整数，作为所有字节的初始值。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; bytevector?
 ;; 创建的字节向量，所有元素都设为指定的fill值。
 ;;
@@ -28,13 +26,19 @@
 ;; 3. 特殊字符如#等会被转换为对应的字节值
 ;;
 ;; 错误处理
-;; --------
+;; ----
 ;; out-of-range
 ;; 当k小于0时抛出错误。
 ;; type-error
 ;; 当任何参数不正确时抛出错误。
 ;; wrong-number-of-args
 ;; 当参数数量不为1或2个时抛出错误。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 ;; make-bytevector 基本测试
 (check (make-bytevector 0) => #u8())
 (check (make-bytevector 1) => #u8(0))
@@ -65,4 +69,5 @@
 (check-catch 'type-error (make-bytevector "hello"))
 (check-catch 'wrong-number-of-args (make-bytevector))
 (check-catch 'wrong-number-of-args (make-bytevector 1 2 3))
+
 (check-report)

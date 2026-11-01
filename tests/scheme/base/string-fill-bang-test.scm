@@ -1,8 +1,6 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; string-fill!
 ;; 将字符串的所有字符替换为指定字符。
+;;
 ;;
 ;; 语法
 ;; ----
@@ -16,7 +14,7 @@
 ;; 用于填充的字符。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; 未指定（unspecified）。
 ;;
 ;; 说明
@@ -24,6 +22,12 @@
 ;; 1. 修改原字符串的所有位置
 ;; 2. 空字符串调用无效果
 ;; 3. 返回值为未指定
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (let ((s (make-string 3 #\a)))
   (string-fill! s #\b)
   (check s => "bbb")

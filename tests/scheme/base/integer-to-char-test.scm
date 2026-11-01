@@ -1,8 +1,6 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; integer->char
 ;; 将整数码点转换为对应的字符。
+;;
 ;;
 ;; 语法
 ;; ----
@@ -12,8 +10,9 @@
 ;; ----
 ;; n : integer?
 ;; 整数值，必须是有效的码点值，通常范围在0到255之间。
+;;
 ;; 返回值
-;; ------
+;; ----
 ;; char?
 ;; 对应的字符
 ;;
@@ -22,15 +21,20 @@
 ;; 1. 将整数转换为对应的字符
 ;; 4. 与char->integer互逆操作
 ;;
-;;
 ;; 错误处理
-;; --------
+;; ----
 ;; out-of-range
 ;; 当码点超出有效范围时抛出错误。
 ;; type-error
 ;; 当参数不是整数时抛出错误。
 ;; wrong-number-of-args
 ;; 当参数数量不为1时抛出错误。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 ;; integer->char 基本测试
 (check (integer->char 65) => #\A)
 (check (integer->char 97) => #\a)
@@ -76,4 +80,5 @@
 (check-catch 'type-error (integer->char 65.0))
 (check-catch 'wrong-number-of-args (integer->char))
 (check-catch 'wrong-number-of-args (integer->char 65 66))
+
 (check-report)

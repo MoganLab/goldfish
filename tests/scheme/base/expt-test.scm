@@ -1,8 +1,6 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; expt
 ;; 计算幂运算。
+;;
 ;;
 ;; 语法
 ;; ----
@@ -16,7 +14,7 @@
 ;; 指数。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; number?
 ;; z1 的 z2 次幂。
 ;;
@@ -24,6 +22,12 @@
 ;; ----
 ;; 1. 支持整数和浮点数
 ;; 2. 0 的负数次幂可能引发错误
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check (expt 2 3) => 8)
 (check (expt 2 0) => 1)
 (check (expt 2 -1) => 1/2)

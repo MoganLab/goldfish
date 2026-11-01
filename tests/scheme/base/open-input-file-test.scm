@@ -1,8 +1,6 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; open-input-file
 ;; 打开文件作为输入端口。
+;;
 ;;
 ;; 语法
 ;; ----
@@ -14,7 +12,7 @@
 ;; 要打开的文件名。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; input-port?
 ;; 文件输入端口。
 ;;
@@ -23,6 +21,12 @@
 ;; 1. 文件必须存在且可读
 ;; 2. 使用后应关闭端口
 ;; 3. 返回二进制端口
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (let ((p (open-input-file "tests/scheme/base/apply-test.scm")))
   (check (input-port? p) => #t)
   (close-input-port p)

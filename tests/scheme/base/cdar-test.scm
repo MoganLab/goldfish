@@ -1,8 +1,6 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; cdar
 ;; 返回列表首元素的尾元素。
+;;
 ;;
 ;; 语法
 ;; ----
@@ -14,17 +12,27 @@
 ;; 一个点对，其 car 必须也是一个点对。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; any
 ;; (car pair) 的 cdr。
 ;;
 ;; 说明
 ;; ----
 ;; (cdar x) 等价于 (cdr (car x))。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check (cdar '((a b) c)) => '(b))
 (check (cdar '((a b c) d)) => '(b c))
 (check (cdar '((a) b)) => '())
-(check (cdar '(((a) b) c)) => '(b))
+(check
+  (cdar '(((a) b) c))
+  =>
+  '(b)
+) ;check
 (check-catch 'type-error (cdar '()))
 (check-catch 'type-error (cdar 'a))
 (check-catch 'wrong-number-of-args (cdar))

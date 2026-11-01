@@ -1,8 +1,6 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; unless
 ;; 当条件为假时执行表达式。
+;;
 ;;
 ;; 语法
 ;; ----
@@ -16,7 +14,7 @@
 ;; 条件为假时执行的表达式。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; 任意类型
 ;; 最后一个 expr 的值，或如果条件为真则返回未指定值。
 ;;
@@ -24,6 +22,12 @@
 ;; ----
 ;; 1. 是 when 的反向逻辑
 ;; 2. 条件为真时不执行任何操作
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check (unless #f 'no) => 'no)
 (check (unless #t 'yes) => #<unspecified>)
 (let ((x 0))

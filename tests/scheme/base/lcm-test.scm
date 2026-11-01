@@ -1,8 +1,6 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; lcm
 ;; 计算给定有理数的最小公倍数。
+;;
 ;;
 ;; 语法
 ;; ----
@@ -14,15 +12,21 @@
 ;; 实数。接受零个、一个或多个参数。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; 返回最小公倍数。
 ;; 无参数时返回1，单参数时返回该参数本身的绝对值，参数中包含0时返回0。
 ;; 如果参数中含有不精确值，返回值也是不精确的。
 ;;
 ;; 错误处理
-;; --------
+;; ----
 ;; type-error
 ;; 当参数不是实数时抛出错误。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 ;; 基本测试
 (check (lcm) => 1)
 (check (lcm 1) => 1)
@@ -39,4 +43,5 @@
 (check (lcm 32.0 -36.0) => 288.0)
 (check (lcm 32.0 -36) => 288.0)
 (check-catch 'type-error (lcm 1.0+2.0i))
+
 (check-report)

@@ -1,8 +1,6 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; let
 ;; 创建局部变量绑定。
+;;
 ;;
 ;; 语法
 ;; ----
@@ -24,9 +22,15 @@
 ;; 可选的循环名，用于创建命名 let。
 ;;
 ;; 返回值
-;; -----
+;; ----
 ;; any
 ;; 返回最后一个 body 表达式的结果。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 ;; 基础测试 - 单变量绑定
 (check (let ((x 1)) x) => 1)
 ;; 多变量绑定
@@ -146,4 +150,5 @@
 (check (issue-1337-named-let-3 'OUTER 0) => issue-1337-expected)
 (check (issue-1337-named-let-4 'OUTER 0) => issue-1337-expected)
 (check (issue-1337-named-let-5 'OUTER 0) => issue-1337-expected)
+
 (check-report)

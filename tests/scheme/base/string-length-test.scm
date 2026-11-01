@@ -1,8 +1,6 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; string-length
 ;; 返回给定字符串在UTF-8编码下的字节长度。
+;;
 ;;
 ;; 语法
 ;; ----
@@ -14,7 +12,7 @@
 ;; 要测量长度的字符串，可以是空字符串、单字符字符串或多字符字符串。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; integer?
 ;; 返回一个非负整数，表示字符串在UTF-8编码下的字节长度。
 ;;
@@ -26,19 +24,25 @@
 ;; 4. 对于非ASCII字符，每个字符可能占用2-4字节UTF-8编码单元
 ;; 5. 字符串不会改变原始数据，只是返回长度信息
 ;;
-;; 边界情况
-;; --------
+;; 说明
+;; ----
 ;; - 空字符串长度：0
 ;; - ASCII字符长度：1字节/字符
 ;; - UTF-8非ASCII字符：2-4字节/字符
 ;; - 多字节编码字符串：总字节长度
 ;;
 ;; 错误处理
-;; --------
+;; ----
 ;; type-error
 ;; 当参数不是字符串类型时抛出错误。
 ;; wrong-number-of-args
 ;; 当参数数量不为1个时抛出错误。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 ;; string-length 基础测试
 (check (string-length "") => 0)
 (check (string-length "a") => 1)
@@ -95,4 +99,5 @@
 (check-catch 'wrong-number-of-args (string-length))
 (check-catch 'wrong-number-of-args (string-length "hello" "world"))
 (check-catch 'wrong-number-of-args (string-length "hello" 1))
+
 (check-report)

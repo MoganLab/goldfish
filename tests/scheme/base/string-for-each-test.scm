@@ -1,8 +1,6 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; string-for-each
 ;; 对字符串中的每个字符依次应用过程。
+;;
 ;;
 ;; 语法
 ;; ----
@@ -16,7 +14,7 @@
 ;; 至少一个字符串。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; 未指定（unspecified）。
 ;;
 ;; 说明
@@ -24,12 +22,19 @@
 ;; 1. 按索引顺序依次调用 proc
 ;; 2. 多个字符串时，proc 接收对应位置的字符
 ;; 3. 遍历到最短字符串的长度为止
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (let ((result '()))
   (string-for-each (lambda (c) (set! result (cons c result))) "abc")
   (check result => '(#\c #\b #\a))
 ) ;let
 (let ((result '()))
-  (string-for-each (lambda (c1 c2) (set! result (cons (list c1 c2) result)))
+  (string-for-each
+    (lambda (c1 c2) (set! result (cons (list c1 c2) result)))
     "ab"
     "xy"
   ) ;string-for-each

@@ -1,8 +1,6 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; error
 ;; 抛出错误并中断执行。
+;;
 ;;
 ;; 语法
 ;; ----
@@ -17,7 +15,7 @@
 ;; 额外的错误相关对象。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; 不返回
 ;; 抛出错误，不返回正常值。
 ;;
@@ -26,6 +24,12 @@
 ;; 1. 抛出可捕获的错误
 ;; 2. 通常用于表示程序遇到无法恢复的情况
 ;; 3. 可用 catch 或 guard 捕获处理
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check (catch #t (lambda () (error 'test-err) 'unreachable) (lambda args 'caught))
   =>
   'caught

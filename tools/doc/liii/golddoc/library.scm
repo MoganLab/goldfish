@@ -106,13 +106,23 @@
              (load-root (and parts (not (excluded-test-group? group)) (find-visible-library-root query))
              ) ;load-root
              (tests-root (and load-root (find-tests-root-for-load-root load-root)))
-             (candidate
+             (readme-candidate
+               (and tests-root
+                 (path->string
+                   (apply path-join (cons tests-root (append parts (list "README.md"))))
+                 ) ;path->string
+               ) ;and
+             ) ;readme-candidate
+             (test-file-candidate
                (and tests-root
                  (path->string (apply path-join tests-root (parts->test-file-segments parts)))
                ) ;and
-             ) ;candidate
+             ) ;test-file-candidate
             ) ;
-        (if (and candidate (path-file? candidate)) candidate #f)
+        (cond ((and readme-candidate (path-file? readme-candidate)) readme-candidate)
+              ((and test-file-candidate (path-file? test-file-candidate)) test-file-candidate)
+              (else #f)
+        ) ;cond
       ) ;let*
     ) ;define
 

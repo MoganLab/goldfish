@@ -1,9 +1,6 @@
-(import (liii check))
-(import (liii base))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; floor-quotient
 ;; 用于计算两个数的地板除法，返回向负无穷取整的商。
+;;
 ;;
 ;; 语法
 ;; ----
@@ -15,16 +12,23 @@
 ;; divisor : number? - 除数，不能为零
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; number?
 ;; 返回一个整数，表示向负无穷方向取整的商。
 ;;
-;; 错误
+;; 错误处理
 ;; ----
 ;; division-by-zero
 ;; 当除数为零时抛出错误。
 ;; type-error
 ;; 当参数不是数字时抛出错误。
+
+(import (liii check))
+(import (liii base))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check (floor-quotient 11 2) => 5)
 (check (floor-quotient 11 -2) => -6)
 (check (floor-quotient -11 2) => -6)
@@ -70,4 +74,5 @@
 (check-catch 'division-by-zero (floor/ 0 0))
 (check-catch 'type-error (floor/ 1.0+1.0i 2))
 (check-catch 'type-error (floor/ 5 #t))
+
 (check-report)

@@ -1,8 +1,6 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; string
 ;; 从给定字符构造字符串。
+;;
 ;;
 ;; 语法
 ;; ----
@@ -14,7 +12,7 @@
 ;; 任意数量的字符。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; string?
 ;; 由给定字符组成的新字符串。
 ;;
@@ -22,6 +20,12 @@
 ;; ----
 ;; 1. 无参数时返回空字符串
 ;; 2. 参数顺序决定结果字符串中的字符顺序
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check (string) => "")
 (check (string #\a) => "a")
 (check (string #\a #\b #\c) => "abc")
@@ -34,4 +38,5 @@
 (check-catch 'out-of-range (string #\x100))
 (check-catch 'out-of-range (string #\中))
 (check-catch 'out-of-range (string #\a #\中))
+
 (check-report)

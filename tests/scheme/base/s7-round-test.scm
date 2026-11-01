@@ -1,8 +1,6 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; s7-round
 ;; S7 内置的四舍五入函数，与 round 行为相同。
+;;
 ;;
 ;; 语法
 ;; ----
@@ -14,7 +12,7 @@
 ;; 待四舍五入的实数。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; real?
 ;; 最接近 x 的整数，半数时向偶数舍入。
 ;;
@@ -22,6 +20,12 @@
 ;; ----
 ;; 1. 与 round 行为一致
 ;; 2. 半数时采用银行家舍入（向偶数靠近）
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 (check (s7-round 3.5) => 4)
 (check (s7-round 2.5) => 2)
 (check (s7-round -3.5) => -4)

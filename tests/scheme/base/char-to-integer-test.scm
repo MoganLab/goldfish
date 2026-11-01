@@ -1,8 +1,6 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; char->integer
 ;; 将字符转换为其对应的码点值。
+;;
 ;;
 ;; 语法
 ;; ----
@@ -14,7 +12,7 @@
 ;; 字符。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; integer?
 ;; 字符对应的码点值
 ;;
@@ -23,11 +21,17 @@
 ;; 将字符转换为对应的整数值
 ;;
 ;; 错误处理
-;; --------
+;; ----
 ;; type-error
 ;; 当参数不是字符时抛出错误。
 ;; wrong-number-of-args
 ;; 当参数数量不为1时抛出错误。
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
+
 ;; char->integer 基本测试
 (check (char->integer #\0) => 48)
 (check (char->integer #\9) => 57)
@@ -59,4 +63,5 @@
 ;; Unicode 字符测试
 (check (char->integer #\中) => 20013)
 (check (char->integer #\🐟) => 128031)
+
 (check-report)

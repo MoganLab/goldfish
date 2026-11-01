@@ -1,8 +1,6 @@
-(import (liii check))
-(import (scheme base))
-(check-set-mode! 'report-failed)
 ;; map
 ;; 测试 map 的基础高阶用法。
+;;
 ;;
 ;; 语法
 ;; ----
@@ -22,13 +20,14 @@
 ;; ----
 ;; 本文件还保留了原聚合测试中配套的局部 filter 辅助定义与断言。
 ;;
-;; 示例
-;; ----
-;; (map (lambda (x) (* x 2)) '(1 2 3)) => '(2 4 6)
-;;
 ;; 错误处理
 ;; ----
 ;; type-error 当过程应用到不兼容参数时
+
+(import (liii check))
+(import (scheme base))
+
+(check-set-mode! 'report-failed)
 
 (define (filter pred lst)
   (cond ((null? lst) '())
@@ -40,4 +39,5 @@
 (check (map (lambda (x) (+ x 1)) '(0 1 2 3)) => '(1 2 3 4))
 (check (filter (lambda (x) (> x 2)) '(1 2 3 4 5)) => '(3 4 5))
 (check-catch 'type-error (map (lambda (x) (+ x 1)) '(1 2 a 4)))
+
 (check-report)
