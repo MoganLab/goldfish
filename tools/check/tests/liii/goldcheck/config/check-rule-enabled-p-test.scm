@@ -1,5 +1,3 @@
-(import (scheme base) (liii check) (liii json) (liii goldcheck config))
-
 ;; check-rule-enabled?
 ;; 查询指定规则是否在配置中处于启用状态（enabled 为 #t 或未声明时默认为 #t）。
 ;;
@@ -15,9 +13,11 @@
 ;; 规则名称，如 "max-file-lines"、"max-tree-depth"。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; boolean
 ;; #t 表示规则启用，#f 表示规则已禁用。
+
+(import (scheme base) (liii check) (liii json) (liii goldcheck config))
 
 (check-set-mode! 'report-failed)
 

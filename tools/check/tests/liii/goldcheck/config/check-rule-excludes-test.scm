@@ -1,5 +1,3 @@
-(import (scheme base) (liii check) (liii json) (liii goldcheck config))
-
 ;; check-rule-excludes
 ;; 从检查配置中解析指定规则的 exclude 路径模式列表（支持纯字符串与带 reason 对象两种形态）。
 ;;
@@ -15,9 +13,11 @@
 ;; 规则名称，如 "max-file-lines"、"max-tree-depth"。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; list of string
 ;; 该规则豁免的路径或模式字符串列表。未配置 excludes 或该规则无豁免时返回空列表 '()。
+
+(import (scheme base) (liii check) (liii json) (liii goldcheck config))
 
 (check-set-mode! 'report-failed)
 

@@ -1,5 +1,3 @@
-(import (scheme base) (liii check) (liii json) (liii goldcheck config))
-
 ;; check-rule-limit
 ;; 查询指定规则在配置中的数值阈值上限。未配置时回退默认内置上限。
 ;;
@@ -15,9 +13,11 @@
 ;; 规则名称，如 "max-file-lines"、"max-tree-depth"。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; integer
-;; 规则的上限值（默认 max-file-lines 为 300，max-tree-depth 为 15）。
+;; 规则的上限值（默认 max-file-lines 为 400，max-tree-depth 为 15）。
+
+(import (scheme base) (liii check) (liii json) (liii goldcheck config))
 
 (check-set-mode! 'report-failed)
 
