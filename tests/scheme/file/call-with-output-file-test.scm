@@ -1,3 +1,27 @@
+;; call-with-output-file
+;; 打开文件供输出，并以打开的端口调用过程，过程返回后自动关闭端口。
+;;
+;; 语法
+;; ----
+;; (call-with-output-file string proc)
+;;
+;; 参数
+;; ----
+;; string : string?
+;; 要打开或创建的文件路径。
+;;
+;; proc : procedure?
+;; 接受一个输出端口作为参数的过程。
+;;
+;; 返回值
+;; ----
+;; 过程 proc 的返回值。
+;;
+;; 说明
+;; ----
+;; 1. 打开指定文件并将其作为参数传递给 proc。
+;; 2. 当 proc 返回时，自动关闭该端口。
+
 (import (liii check) (scheme file))
 (check-set-mode! 'report-failed)
 
@@ -28,4 +52,5 @@
 (delete-file chinese-file)
 ;; 清理
 (delete-file test-file)
+
 (check-report)

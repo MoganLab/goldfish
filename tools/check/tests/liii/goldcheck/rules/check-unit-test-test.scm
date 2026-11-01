@@ -337,4 +337,43 @@
   (path-rmdir tmp-dir)
 ) ;let*
 
+;; 15. 违规用例：已拆分测试目录但仍保留同名测试文件（废弃方案）
+(let* ((base-dir (path->string (path-join (path-temp-dir) "gf-check-test-legacy")))
+       (sub-dir (path->string (path-join base-dir "foo")))
+       (_ (path-mkdir (path sub-dir) :parents #t :exist-ok #t))
+       (sub-test (path->string (path-join sub-dir "bar-test.scm")))
+       (readme (path->string (path-join sub-dir "README.md")))
+       (legacy-file (path->string (path-join base-dir "foo-test.scm")))
+       (_ (path-write-bytes (path sub-test) (string->utf8 "(check 1 => 1)\n")))
+       (_ (path-write-bytes (path readme) (string->utf8 "# Readme\n")))
+       (_ (path-write-bytes (path legacy-file) (string->utf8 ";; legacy\n")))
+       (viols (check-unit-test-dirs (list sub-test)))
+      ) ;let*
+  (check-true (not (null? viols)))
+  (check (car (car viols)) => 'unit-test)
+  (check-true (string-contains? (list-ref (car viols) 3) "这个方案已经废弃"))
+  (check-true (string-contains? (list-ref (car viols) 3) "README.md"))
+  (path-unlink legacy-file #t)
+  (path-unlink sub-test #t)
+  (path-unlink readme #t)
+  (path-rmdir sub-dir)
+  (path-rmdir base-dir)
+) ;let*
+
+;; 16. 违规用例：直接检查已废弃的单文件测试
+(let* ((base-dir (path->string (path-join (path-temp-dir) "gf-check-test-legacy2")))
+       (sub-dir (path->string (path-join base-dir "foo")))
+       (_ (path-mkdir (path sub-dir) :parents #t :exist-ok #t))
+       (legacy-file (path->string (path-join base-dir "foo-test.scm")))
+       (_ (path-write-bytes (path legacy-file) (string->utf8 ";; legacy\n")))
+       (viols (check-unit-test legacy-file))
+      ) ;let*
+  (check-true (not (null? viols)))
+  (check (car (car viols)) => 'unit-test)
+  (check-true (string-contains? (list-ref (car viols) 3) "这个方案已经废弃"))
+  (path-unlink legacy-file #t)
+  (path-rmdir sub-dir)
+  (path-rmdir base-dir)
+) ;let*
+
 (check-report)

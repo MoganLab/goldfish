@@ -1,3 +1,25 @@
+;; delete-file
+;; 删除指定路径的文件。
+;;
+;; 语法
+;; ----
+;; (delete-file string)
+;;
+;; 参数
+;; ----
+;; string : string?
+;; 要删除的文件路径。
+;;
+;; 返回值
+;; ----
+;; boolean?
+;; 删除成功返回 #t。
+;;
+;; 错误处理
+;; ----
+;; 当文件不存在或无法删除时抛出 read-error 或对应错误。
+;; 当参数类型不为字符串时抛出 type-error。
+
 (import (liii check) (scheme file))
 (check-set-mode! 'report-failed)
 
@@ -25,4 +47,5 @@
 (check-true (file-exists? chinese-file))
 (check (delete-file chinese-file) => #t)
 (check-false (file-exists? chinese-file))
+
 (check-report)

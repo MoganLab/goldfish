@@ -1,3 +1,25 @@
+;; open-output-file
+;; 打开文件作为文本输出端口。
+;;
+;; 语法
+;; ----
+;; (open-output-file string)
+;;
+;; 参数
+;; ----
+;; string : string?
+;; 要打开或创建的文件路径。
+;;
+;; 返回值
+;; ----
+;; output-port?
+;; 打开的输出端口。
+;;
+;; 说明
+;; ----
+;; 1. 若文件已存在则覆盖原内容。
+;; 2. 使用完毕后应调用 close-port 或 close-output-port 关闭端口。
+
 (import (liii check) (scheme file))
 (check-set-mode! 'report-failed)
 
@@ -37,4 +59,5 @@
 (delete-file chinese-file)
 ;; 清理
 (delete-file test-file)
+
 (check-report)

@@ -1,3 +1,24 @@
+;; file-exists?
+;; 检查指定路径的文件或目录是否存在。
+;;
+;; 语法
+;; ----
+;; (file-exists? string)
+;;
+;; 参数
+;; ----
+;; string : string?
+;; 文件或目录的路径。
+;;
+;; 返回值
+;; ----
+;; boolean?
+;; 若文件或目录存在返回 #t，否则返回 #f。
+;;
+;; 错误处理
+;; ----
+;; 当参数类型不为字符串时抛出 type-error。
+
 (import (liii check) (scheme file))
 (check-set-mode! 'report-failed)
 
@@ -31,4 +52,5 @@
 (check-true (file-exists? chinese-file))
 (delete-file chinese-file)
 (check-false (file-exists? chinese-file))
+
 (check-report)

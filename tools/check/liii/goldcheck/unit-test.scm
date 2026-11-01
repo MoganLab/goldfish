@@ -270,8 +270,20 @@
       ) ;let
     ) ;define
 
+    (define (parent->lib-name rel-parent)
+      (let* ((norm (normalize-sep rel-parent))
+             (clean (if (string-starts-with? norm "tests/")
+                      (substring norm 6 (string-length norm))
+                      norm
+                    ) ;if
+             ) ;clean
+            ) ;
+        (string-append "(" (string-join (string-split clean "/") " ") ")")
+      ) ;let*
+    ) ;define
+
     (define (check-unit-test-dirs files)
-      "检查所有测试文件所属的目录是否包含 README.md。"
+      "检查所有测试文件所属的目录是否包含 README.md，以及同级是否存在废弃的同名测试文件。"
       (let loop
         ((rem files) (seen '()) (viols '()))
         (if (null? rem)
@@ -282,29 +294,51 @@
                 ) ;
             (if (or (not is-test) (member parent seen string=?))
               (loop (cdr rem) seen viols)
-              (let ((readme (path-join parent "README.md")))
-                (if (path-file? readme)
-                  (loop (cdr rem) (cons parent seen) viols)
-                  (let ((viol (list 'unit-test
-                                (relativize-path (path->string readme))
-                                1
-                                "缺少库导览文档 README.md"
-                              ) ;list
-                        ) ;viol
-                       ) ;
-                    (loop (cdr rem) (cons parent seen) (cons viol viols))
+              (let* ((norm-parent (normalize-sep parent))
+                     (rel-parent (relativize-path parent))
+                     (readme (path-join parent "README.md"))
+                     (legacy-path-str (string-append norm-parent "-test.scm"))
+                     (legacy-rel (string-append rel-parent "-test.scm"))
+                     (readme-rel (string-append rel-parent "/README.md"))
+                     (cur-viols '())
+                    ) ;
+                (when (path-file? (path legacy-path-str))
+                  (let ((lib-name (parent->lib-name rel-parent)))
+                    (set! cur-viols
+                      (cons (list 'unit-test
+                              legacy-rel
+                              1
+                              (string-append lib-name " 的文档，现在是 "
+                                readme-rel " ，" legacy-rel
+                                " 这个方案已经废弃"
+                              ) ;string-append
+                            ) ;list
+                        cur-viols
+                      ) ;cons
+                    ) ;set!
                   ) ;let
-                ) ;if
-              ) ;let
+                ) ;when
+                (unless (path-file? readme)
+                  (set! cur-viols
+                    (cons (list 'unit-test
+                            (relativize-path (path->string readme))
+                            1
+                            "缺少库导览文档 README.md"
+                          ) ;list
+                      cur-viols
+                    ) ;cons
+                  ) ;set!
+                ) ;unless
+                (loop (cdr rem) (cons parent seen) (append cur-viols viols))
+              ) ;let*
             ) ;if
           ) ;let*
         ) ;if
       ) ;let
     ) ;define
 
-    (define (check-unit-test file-path)
-      "检查单元测试文件结构规范：文档置顶、包含函数名/描述/语法/参数/返回值、末尾为(check-report)且上方有空行。"
-      (let* ((rel-path (relativize-path file-path)) (lines (read-all-lines file-path)))
+    (define (check-unit-test-file-content file-path rel-path)
+      (let ((lines (read-all-lines file-path)))
         (if (null? lines)
           (list (list 'unit-test rel-path 1 "空测试文件"))
           (let ((first-idx (find-first-non-empty-index lines)))
@@ -323,6 +357,34 @@
               ) ;append
             ) ;if
           ) ;let
+        ) ;if
+      ) ;let
+    ) ;define
+
+    (define (check-unit-test file-path)
+      "检查单元测试文件结构规范：文档置顶、包含函数名/描述/语法/参数/返回值、末尾为(check-report)且上方有空行。"
+      (let* ((rel-path (relativize-path file-path)) (norm-path (normalize-sep file-path)))
+        (if (string-ends? norm-path "-test.scm")
+          (let* ((dir-path (substring norm-path 0 (- (string-length norm-path) 9)))
+                 (dir-rel (substring rel-path 0 (- (string-length rel-path) 9)))
+                ) ;
+            (if (path-dir? (path dir-path))
+              (let* ((lib-name (parent->lib-name dir-rel))
+                     (readme-rel (string-append dir-rel "/README.md"))
+                    ) ;
+                (list (list 'unit-test
+                        rel-path
+                        1
+                        (string-append lib-name " 的文档，现在是 "
+                          readme-rel " ，" rel-path " 这个方案已经废弃"
+                        ) ;string-append
+                      ) ;list
+                ) ;list
+              ) ;let*
+              (check-unit-test-file-content file-path rel-path)
+            ) ;if
+          ) ;let*
+          (check-unit-test-file-content file-path rel-path)
         ) ;if
       ) ;let*
     ) ;define

@@ -1,3 +1,28 @@
+;; with-input-from-file
+;; 将当前输入端口重定向到指定文件并调用过程。
+;;
+;; 语法
+;; ----
+;; (with-input-from-file string thunk)
+;;
+;; 参数
+;; ----
+;; string : string?
+;; 要打开的文件路径。
+;;
+;; thunk : procedure?
+;; 接受零个参数的过程。
+;;
+;; 返回值
+;; ----
+;; 过程 thunk 的返回值。
+;;
+;; 说明
+;; ----
+;; 1. 打开指定文件并将其设为当前输入端口。
+;; 2. 调用过程 thunk。
+;; 3. 在 thunk 返回时恢复原来的输入端口并关闭打开的文件端口。
+
 (import (liii check) (scheme file))
 (check-set-mode! 'report-failed)
 
@@ -5,9 +30,10 @@
 ;; 创建测试文件
 (with-output-to-file test-file (lambda () (display "input from file")))
 ;; 测试 with-input-from-file
-(check (with-input-from-file test-file
-         (lambda () (read-string 100 (current-input-port)))
-       ) ;with-input-from-file
+(check
+  (with-input-from-file test-file
+    (lambda () (read-string 100 (current-input-port)))
+  ) ;with-input-from-file
   =>
   "input from file"
 ) ;check
@@ -15,11 +41,12 @@
 (with-output-to-file test-file
   (lambda () (display "first\n") (display "second"))
 ) ;with-output-to-file
-(check (with-input-from-file test-file
-         (lambda ()
-           (list (read-line (current-input-port)) (read-line (current-input-port)))
-         ) ;lambda
-       ) ;with-input-from-file
+(check
+  (with-input-from-file test-file
+    (lambda ()
+      (list (read-line (current-input-port)) (read-line (current-input-port)))
+    ) ;lambda
+  ) ;with-input-from-file
   =>
   '("first" "second")
 ) ;check
@@ -27,13 +54,15 @@
 
 (define chinese-file "tests/scheme/file/中文输入重定向.txt")
 (with-output-to-file chinese-file (lambda () (display "中文输入内容")))
-(check (with-input-from-file chinese-file
-         (lambda () (read-string 100 (current-input-port)))
-       ) ;with-input-from-file
+(check
+  (with-input-from-file chinese-file
+    (lambda () (read-string 100 (current-input-port)))
+  ) ;with-input-from-file
   =>
   "中文输入内容"
 ) ;check
 (delete-file chinese-file)
 ;; 清理
 (delete-file test-file)
+
 (check-report)
