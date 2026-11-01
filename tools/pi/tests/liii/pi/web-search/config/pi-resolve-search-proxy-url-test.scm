@@ -6,10 +6,57 @@
 (check-set-mode! 'report-failed)
 
 ;; pi-resolve-search-proxy-url
-;; 签名：(pi-resolve-search-proxy-url config opt-proxy [ws-config [provider [opt-env]]])
-;; 优先级：显式 opt-proxy > ws-config (web-search.json) > 同 provider 会话 proxy-url
-;;       > provider (models-store) > provider (models/<provider>.json)
-;;       > HTTPS_PROXY/ALL_PROXY > settings.json > 会话 fallback > #f
+;; 解析用于 web_search 联网搜索的 HTTP/HTTPS 代理 URL。
+;;
+;; 语法
+;; ----
+;; (pi-resolve-search-proxy-url config opt-proxy)
+;; (pi-resolve-search-proxy-url config opt-proxy ws-config)
+;; (pi-resolve-search-proxy-url config opt-proxy ws-config provider)
+;; (pi-resolve-search-proxy-url config opt-proxy ws-config provider opt-env)
+;;
+;; 参数
+;; ----
+;; config : list?
+;; 当前主会话的配置 alist，可包含 provider、proxy-url、models-store 等字段。
+;;
+;; opt-proxy : (or string? boolean?)
+;; 显式传入的代理 URL，例如 CLI 参数 "--proxy" 或调用选项 ":proxy-url"。传入非空字符串时优先级最高。
+;;
+;; ws-config : (or list? boolean?)（可选）
+;; web-search.json 解析后的配置 alist，可包含 httpProxy、proxy 或 http-proxy 字段。
+;;
+;; provider : (or string? boolean?)（可选）
+;; 当前 web_search 使用的目标后端（如 "google" 或 "deepseek"），缺省时优先取会话 provider，回退 "google"。
+;;
+;; opt-env : (or list? boolean?)（可选）
+;; 环境变量 alist（测试可控）；为 #f 或未提供时直接查询系统环境变量。
+;;
+;; 返回值
+;; ----
+;; (or string? #f)
+;; 生效的代理 URL 字符串（如 "http://127.0.0.1:7890"）；若无需代理或无配置则返回 #f。
+;;
+;; 决策优先级
+;; ----
+;; 1. 显式 opt-proxy 字符串
+;; 2. web-search.json 中的 httpProxy / proxy 字段
+;; 3. 会话自身配置（若未显式指定 provider 且会话带 proxy-url，或会话 provider 与搜索一致）
+;; 4. 搜索 provider 本地的代理配置：
+;;    a. 会话 models-store 中对应 provider 的 httpProxy
+;;    b. <config-dir>/models/<provider>.json 文件中的 httpProxy
+;; 5. 环境变量 HTTPS_PROXY
+;; 6. 环境变量 ALL_PROXY
+;; 7. 全局 settings.json 中的 httpProxy
+;; 8. 直连（返回 #f）
+;;
+;; 示例
+;; ----
+;; (pi-resolve-search-proxy-url '() "http://127.0.0.1:7890")
+;; ;=> "http://127.0.0.1:7890"
+;;
+;; (pi-resolve-search-proxy-url '() #f '(("httpProxy" . "http://127.0.0.1:7890")))
+;; ;=> "http://127.0.0.1:7890"
 
 (let* ((empty-dir (path-join (path-temp-dir) "pi-web-search-empty-dir"))
        (clean-env `(("HTTPS_PROXY" . "")
