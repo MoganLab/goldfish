@@ -10,4 +10,33 @@ if [ "$current_branch" = "main" ]; then
     exit 1
 fi
 
+# 检查 bin/gf 是否存在
+REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
+cd "$REPO_ROOT" || exit 1
+
+if [ -f "bin/gf" ] || [ -f "bin/gf.exe" ]; then
+    GF_BIN="bin/gf"
+else
+    echo "错误：未找到 bin/gf 可执行文件，请先构建 goldfish！"
+    echo "提示：运行 xmake b goldfish 进行构建。"
+    exit 1
+fi
+
+echo "正在执行代码格式化 (bin/gf fmt)..."
+"$GF_BIN" fmt
+if [ $? -ne 0 ]; then
+    echo "错误：代码格式化失败！"
+    exit 1
+fi
+
+# 若 fmt 调整了已暂存的文件格式，将其重新同步到暂存区
+git update-index --again
+
+echo "正在执行代码规范检查 (bin/gf check)..."
+"$GF_BIN" check
+if [ $? -ne 0 ]; then
+    echo "错误：代码规范检查失败，请修复上述问题后再提交！"
+    exit 1
+fi
+
 exit 0

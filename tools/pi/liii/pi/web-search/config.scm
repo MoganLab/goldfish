@@ -15,12 +15,14 @@
     (liii pi code config)
     (liii pi ai auth)
     (liii pi ai template)
+    (liii pi web-search proxy)
   ) ;import
   (export pi-resolve-google-api-key pi-resolve-search-base-url
     pi-resolve-search-proxy-url pi-resolve-search-proxy-alist
     pi-resolve-search-model-id pi-load-web-search-config
-    pi-web-search-config-model pi-resolve-web-search-provider
-    pi-resolve-deepseek-api-key pi-resolve-deepseek-search-base-url
+    pi-web-search-config-model pi-web-search-config-proxy
+    pi-resolve-web-search-provider pi-resolve-deepseek-api-key
+    pi-resolve-deepseek-search-base-url
   ) ;export
   (begin
 
@@ -104,32 +106,6 @@
        ) ;
        (else "https://generativelanguage.googleapis.com/v1beta")
       ) ;cond
-    ) ;define
-
-    (define (pi-resolve-search-proxy-url config opt-proxy)
-      (cond
-       ((and (string? opt-proxy) (not (string-null? (string-trim-both opt-proxy))))
-        opt-proxy
-       ) ;
-       ((and (pair? config) (assoc 'proxy-url config)) (cdr (assoc 'proxy-url config)))
-       ((get-environment-variable "HTTPS_PROXY")
-        =>
-        (lambda (v) (if (not (string-null? (string-trim-both v))) v #f))
-       ) ;
-       ((get-environment-variable "ALL_PROXY")
-        =>
-        (lambda (v) (if (not (string-null? (string-trim-both v))) v #f))
-       ) ;
-       (else #f)
-      ) ;cond
-    ) ;define
-
-    (define (pi-resolve-search-proxy-alist proxy-url)
-      (if
-        (and (string? proxy-url) (not (string-null? (string-trim-both proxy-url))))
-        (list (cons "http" proxy-url) (cons "https" proxy-url))
-        '()
-      ) ;if
     ) ;define
 
     (define (pi-resolve-search-model-id config opt-model)
