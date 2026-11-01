@@ -672,6 +672,18 @@ pump_console_input (HANDLE hIn, long timeout_ms) {
       return true;
     }
 
+    // Shift-Enter
+    if (virt == VK_RETURN && is_shift) {
+      g_console_key_queue.push_back (354);
+      return true;
+    }
+
+    // Alt-Enter
+    if (virt == VK_RETURN && alt_key) {
+      g_console_key_queue.push_back (355);
+      return true;
+    }
+
     // 功能键/光标键处理（Alt 行扩展码：151/152/153/155/157/160/161/162/163/164）
     if (chr == 0) {
       switch (virt) {
@@ -756,6 +768,10 @@ static bool           g_has_orig_termios= false;
 static void
 restore_terminal_mode_at_exit () {
   if (g_raw_mode_enabled && g_has_orig_termios) {
+    if (isatty (STDIN_FILENO) && isatty (STDOUT_FILENO)) {
+      const char* seq= "\x1b[>4;0m\x1b[<u";
+      (void) write (STDOUT_FILENO, seq, sizeof ("\x1b[>4;0m\x1b[<u") - 1);
+    }
     tcsetattr (STDIN_FILENO, TCSANOW, &g_orig_termios);
     g_raw_mode_enabled= false;
   }
@@ -827,10 +843,18 @@ f_console_raw_mode (s7_scheme* sc, s7_pointer args) {
       return s7_make_boolean (sc, false);
     }
     g_raw_mode_enabled= true;
+    if (isatty (STDIN_FILENO) && isatty (STDOUT_FILENO)) {
+      const char* seq= "\x1b[>4;2m\x1b[>1u";
+      (void) write (STDOUT_FILENO, seq, sizeof ("\x1b[>4;2m\x1b[>1u") - 1);
+    }
     return s7_make_boolean (sc, true);
   }
   else {
     if (g_raw_mode_enabled && g_has_orig_termios) {
+      if (isatty (STDIN_FILENO) && isatty (STDOUT_FILENO)) {
+        const char* seq= "\x1b[>4;0m\x1b[<u";
+        (void) write (STDOUT_FILENO, seq, sizeof ("\x1b[>4;0m\x1b[<u") - 1);
+      }
       tcsetattr (STDIN_FILENO, TCSANOW, &g_orig_termios);
       g_raw_mode_enabled= false;
     }

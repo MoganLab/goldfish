@@ -57,6 +57,9 @@
 (check (%resolve-ansi-bytes '(27 79 70)) => 'end)
 (check (%resolve-ansi-bytes '(27 79 80)) => 'f1)
 (check (%resolve-ansi-bytes '(27 79 81)) => 'f2)
+(check (%resolve-ansi-bytes '(27 79 77)) => 'shift-enter)
+(check (%resolve-ansi-bytes '(27 91 49 51 59 50 117)) => 'shift-enter)
+(check (%resolve-ansi-bytes '(27 91 50 55 59 50 59 49 51 126)) => 'shift-enter)
 
 ;; 6. 测试 UTF-8 多字节解析
 (check (%resolve-utf8-bytes '(228 189 160)) => "你")
@@ -102,9 +105,13 @@
 (check (%map-extended-key 164) => 'alt-delete)
 
 ;; 7. 标准键码映射：裸字节 15 是真正的 Ctrl+O（如 pty/tmux 下），
-;;    不是 Shift+Tab；C++ 控制台层的 Shift+Tab 编码为 353（curses KEY_BTAB）
+;;    不是 Shift+Tab；C++ 控制台层的 Shift+Tab 编码为 353（curses KEY_BTAB），
+;;    Shift+Enter 编码为 354，Alt+Enter 编码为 355，Ctrl+Enter 编码为 356
 (check (%map-standard-key 15) => 'ctrl-o)
 (check (%map-standard-key 353) => 'shift-tab)
+(check (%map-standard-key 354) => 'shift-enter)
+(check (%map-standard-key 355) => 'alt-enter)
+(check (%map-standard-key 356) => 'ctrl-enter)
 (check (%map-standard-key 9) => 'tab)
 (check (%map-standard-key 13) => 'enter)
 

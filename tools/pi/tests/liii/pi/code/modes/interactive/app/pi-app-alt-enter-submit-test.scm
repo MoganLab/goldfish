@@ -130,4 +130,24 @@
   (pi-queue-finish-task! q)
 ) ;let*
 
+;; -----------------------------------------------------------------------------
+;; 测试项 7: shift+enter 在 pi 输入框中插入换行，不触发提交
+;; -----------------------------------------------------------------------------
+(let* ((vt (make-virtual-terminal :width 80 :height 24))
+       (submitted #f)
+       (app
+         (make-pi-app
+           :terminal vt
+           :handler (lambda (a m) (set! submitted m))
+         ) ;make-pi-app
+       ) ;app
+       (ed (pi-app-editor app))
+      ) ;
+  (editor-set-text! ed "第一行")
+  (check (pi-app-handle-input! app 'shift-enter) => #t)
+  (check (editor-text ed) => "第一行\n")
+  (check (editor-cursor ed) => '(1 0))
+  (check submitted => #f)
+) ;let*
+
 (check-report)
