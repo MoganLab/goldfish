@@ -28,7 +28,7 @@
     (liii goldcheck unit-test)
   ) ;import
   (export check-file-lines check-tree-depth check-no-crlf check-unit-test
-    format-violation display-help
+    check-unit-test-dirs format-violation display-help
   ) ;export
   (begin
 

@@ -250,6 +250,20 @@
                  violations
                ) ;if
              ) ;violations
+             (violations
+               (if (check-rule-enabled? cfg "unit-test")
+                 (let ((files
+                         (filter
+                           (lambda (f) (not (file-excluded? f (check-rule-excludes cfg "unit-test"))))
+                           (vector->list file-vector)
+                         ) ;filter
+                       ) ;files
+                      ) ;
+                   (vector-append violations (list->vector (check-unit-test-dirs files)))
+                 ) ;let
+                 violations
+               ) ;if
+             ) ;violations
             ) ;
         violations
       ) ;let*

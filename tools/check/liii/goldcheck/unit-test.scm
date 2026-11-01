@@ -24,7 +24,7 @@
     (liii list)
     (liii goldcheck path)
   ) ;import
-  (export check-unit-test %standard-sections)
+  (export check-unit-test check-unit-test-dirs %standard-sections)
   (begin
 
     (define %standard-sections
@@ -267,6 +267,38 @@
          ) ;
          (else '())
         ) ;cond
+      ) ;let
+    ) ;define
+
+    (define (check-unit-test-dirs files)
+      "检查所有测试文件所属的目录是否包含 README.md。"
+      (let loop
+        ((rem files) (seen '()) (viols '()))
+        (if (null? rem)
+          (reverse viols)
+          (let* ((f (car rem))
+                 (is-test (string-ends? f "-test.scm"))
+                 (parent (if is-test (path->string (path-parent f)) #f))
+                ) ;
+            (if (or (not is-test) (member parent seen string=?))
+              (loop (cdr rem) seen viols)
+              (let ((readme (path-join parent "README.md")))
+                (if (path-file? readme)
+                  (loop (cdr rem) (cons parent seen) viols)
+                  (let ((viol (list 'unit-test
+                                (relativize-path (path->string readme))
+                                1
+                                "缺少库导览文档 README.md"
+                              ) ;list
+                        ) ;viol
+                       ) ;
+                    (loop (cdr rem) (cons parent seen) (cons viol viols))
+                  ) ;let
+                ) ;if
+              ) ;let
+            ) ;if
+          ) ;let*
+        ) ;if
       ) ;let
     ) ;define
 

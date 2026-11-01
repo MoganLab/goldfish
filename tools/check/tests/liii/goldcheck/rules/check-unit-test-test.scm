@@ -308,4 +308,33 @@
   (path-unlink tmp-file #t)
 ) ;let*
 
+;; 13. 违规用例：测试目录下缺少库导览文档 README.md
+(let* ((tmp-dir (path->string (path-join (path-temp-dir) "gf-check-test-dir-no-readme")))
+       (_ (path-mkdir (path tmp-dir) :parents #t :exist-ok #t))
+       (test-file (path->string (path-join tmp-dir "foo-test.scm")))
+       (_ (path-write-bytes (path test-file) (string->utf8 "(check 1 => 1)\n")))
+       (viols (check-unit-test-dirs (list test-file)))
+      ) ;let*
+  (check-true (not (null? viols)))
+  (check (car (car viols)) => 'unit-test)
+  (check-true (string-contains? (list-ref (car viols) 3) "缺少库导览文档 README.md"))
+  (path-unlink test-file #t)
+  (path-rmdir tmp-dir)
+) ;let*
+
+;; 14. 合规用例：测试目录下包含 README.md
+(let* ((tmp-dir (path->string (path-join (path-temp-dir) "gf-check-test-dir-has-readme")))
+       (_ (path-mkdir (path tmp-dir) :parents #t :exist-ok #t))
+       (test-file (path->string (path-join tmp-dir "foo-test.scm")))
+       (readme-file (path->string (path-join tmp-dir "README.md")))
+       (_ (path-write-bytes (path test-file) (string->utf8 "(check 1 => 1)\n")))
+       (_ (path-write-bytes (path readme-file) (string->utf8 "# Readme\n")))
+       (viols (check-unit-test-dirs (list test-file)))
+      ) ;let*
+  (check viols => '())
+  (path-unlink test-file #t)
+  (path-unlink readme-file #t)
+  (path-rmdir tmp-dir)
+) ;let*
+
 (check-report)
