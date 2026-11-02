@@ -16,6 +16,10 @@
 ;; - 如果只有一个参数obj，返回该obj本身
 ;; - 如果有两个参数obj1 obj2，返回 (obj1 . obj2)
 ;; - 如果有三个或以上参数，返回一个列表，其中最后一个参数作为cdr
+;;
+;; 错误处理
+;; --------
+;; - wrong-number-of-args：当未提供任何参数时抛出。
 
 (import (srfi srfi-1) (liii check))
 

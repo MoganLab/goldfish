@@ -16,6 +16,10 @@
 ;; ------
 ;; pair
 ;; 返回 (obj2 . obj1) 组成的对。
+;;
+;; 错误处理
+;; --------
+;; - wrong-number-of-args：当参数数量不为 2 时抛出。
 
 (import (srfi srfi-1) (liii check))
 
