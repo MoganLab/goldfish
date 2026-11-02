@@ -1,9 +1,26 @@
+;; make-status-card
+;; 构造并返回新的 make-status-card 实例组件。
+;;
+;; 语法
+;; ----
+;; (make-status-card ...)
+;;
+;; 参数
+;; ----
+;; 详见语法说明。
+;;
+;; 返回值
+;; ----
+;; component?
+;; 返回构造的实例。
+
 (import (scheme base)
   (liii check)
   (liii string)
   (liii tui)
   (liii tui component)
-  (liii pi code modes interactive status-card))
+  (liii pi code modes interactive status-card)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -15,18 +32,22 @@
     (check (length lines) => 2)
     (check (car lines) => "")
     (check (string-contains? (cadr lines) "38;2;126;136;142m") => #t)
-    (check (strip-ansi (cadr lines)) => " Tool output: expanded"))
+    (check (strip-ansi (cadr lines)) => " Tool output: expanded")
+  ) ;let
   ;; 非组件对象不是状态卡片
   (check-false (status-card? "Tool output"))
-  (check-false (status-card? (list "Tool output"))))
+  (check-false (status-card? (list "Tool output")))
+) ;let
 
 ;; 消息原地更新：不换卡片、渲染内容随 set-message! 变化
 (let ((card (make-status-card "Tool output: expanded")))
   (status-card-set-message! card "Tool output: collapsed")
   (let ((lines (component-render card 50)))
-    (check (strip-ansi (cadr lines)) => " Tool output: collapsed"))
+    (check (strip-ansi (cadr lines)) => " Tool output: collapsed")
+  ) ;let
   ;; 更新后仍是同一张状态卡片
-  (check (status-card? card) => #t))
+  (check (status-card? card) => #t)
+) ;let
 
 ;; 宽度 <= 0 时不渲染（对齐其他卡片组件的防御行为）
 (check (component-render (make-status-card "x") 0) => '())

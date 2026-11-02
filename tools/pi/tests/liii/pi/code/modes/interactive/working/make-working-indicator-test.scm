@@ -1,9 +1,26 @@
+;; make-working-indicator
+;; 构造工作状态动画指示器实例。
+;;
+;; 语法
+;; ----
+;; (make-working-indicator)
+;;
+;; 参数
+;; ----
+;; 无
+;;
+;; 返回值
+;; ----
+;; working-indicator?
+;; 新构造的工作指示器实例。
+
 (import (scheme base)
   (liii check)
   (liii string)
   (liii unicode)
   (liii tui)
-  (liii pi code modes interactive working))
+  (liii pi code modes interactive working)
+) ;import
 
 (check-set-mode! 'report)
 
@@ -17,6 +34,7 @@
   (check (working-frame ind) => "⠙")
   ;; 再推进 9 帧共 10 帧，回到 ⠋
   (for-each (lambda (_) (working-advance! ind)) '(1 2 3 4 5 6 7 8 9))
-  (check (working-frame ind) => "⠋"))
+  (check (working-frame ind) => "⠋")
+) ;let
 
 (check-report)

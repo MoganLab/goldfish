@@ -1,3 +1,19 @@
+;; pi-cfg-with-model-multikey
+;; pi-cfg-with-model-multikey 的相关操作与逻辑实现。
+;;
+;; 语法
+;; ----
+;; (pi-cfg-with-model-multikey)
+;;
+;; 参数
+;; ----
+;; 详见语法形参说明。
+;;
+;; 返回值
+;; ----
+;; any
+;; 视具体调用结果而定。
+
 (import (scheme base)
   (scheme file)
   (liii check)

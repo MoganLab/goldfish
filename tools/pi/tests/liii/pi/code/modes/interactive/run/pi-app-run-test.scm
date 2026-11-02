@@ -1,3 +1,19 @@
+;; pi-app-run
+;; pi-app-run 的相关操作与逻辑实现。
+;;
+;; 语法
+;; ----
+;; (pi-app-run ...)
+;;
+;; 参数
+;; ----
+;; 详见语法说明。
+;;
+;; 返回值
+;; ----
+;; any
+;; 视具体调用结果而定。
+
 (import (scheme base)
   (liii list)
   (liii string)
@@ -205,7 +221,8 @@
   (virtual-terminal-push-key! vt 'ctrl-d)
   (pi-app-run app)
   (let* ((raw (string-join (virtual-terminal-raw vt) ""))
-         (lines (alt-screen-lines screen)))
+         (lines (alt-screen-lines screen))
+        ) ;
     (check (> (length lines) 0) => #t)
     ;; 进入与退出备用屏的序列都已下发
     (check-true (string-contains? raw "\x1b;[?1049h"))

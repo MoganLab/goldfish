@@ -1,3 +1,19 @@
+;; bash-worker-e2e
+;; 交互模式异步 Bash worker 与主循环端到端回归测试。
+;;
+;; 语法
+;; ----
+;; (bash-worker-e2e ...)
+;;
+;; 参数
+;; ----
+;; 详见语法说明。
+;;
+;; 返回值
+;; ----
+;; any
+;; 视具体调用结果而定。
+
 (import (scheme base)
   (scheme write)
   (liii check)

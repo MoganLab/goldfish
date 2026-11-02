@@ -1,12 +1,29 @@
+;; pi-app-run-wheel-merge
+;; pi-app-run-wheel-merge 的相关操作与逻辑实现。
+;;
+;; 语法
+;; ----
+;; (pi-app-run-wheel-merge ...)
+;;
+;; 参数
+;; ----
+;; 详见语法说明。
+;;
+;; 返回值
+;; ----
+;; any
+;; 视具体调用结果而定。
+
 (import (scheme base)
-        (liii check)
-        (liii list)
-        (liii string)
-        (liii tui)
-        (liii tui mouse)
-        (liii pi code modes interactive)
-        (liii pi code modes interactive app)
-        (liii pi code modes interactive run))
+  (liii check)
+  (liii list)
+  (liii string)
+  (liii tui)
+  (liii tui mouse)
+  (liii pi code modes interactive)
+  (liii pi code modes interactive app)
+  (liii pi code modes interactive run)
+) ;import
 
 (check-set-mode! 'report)
 

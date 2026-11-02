@@ -1,3 +1,19 @@
+;; detect-git-dir
+;; detect-git-dir 的相关操作与逻辑实现。
+;;
+;; 语法
+;; ----
+;; (detect-git-dir ...)
+;;
+;; 参数
+;; ----
+;; 详见语法说明。
+;;
+;; 返回值
+;; ----
+;; any
+;; 视具体调用结果而定。
+
 (import (scheme base)
   (scheme time)
   (liii check)
@@ -6,7 +22,8 @@
   (liii os)
   (liii tempfile)
   (liii shutil)
-  (liii pi code modes interactive common))
+  (liii pi code modes interactive common)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -42,11 +59,7 @@
 (define %orig-cwd (getcwd))
 
 (define (%with-cwd dir thunk)
-  (dynamic-wind
-    (lambda () (chdir dir))
-    thunk
-    (lambda () (chdir %orig-cwd))
-  ) ;dynamic-wind
+  (dynamic-wind (lambda () (chdir dir)) thunk (lambda () (chdir %orig-cwd)))
 ) ;define
 
 ;; 普通仓库：cwd 自身有 .git 目录
@@ -58,7 +71,9 @@
         (let ((d (detect-git-dir)))
           (check-true (string? d))
           (check-true (path-dir? (path d)))
-          (check-true (string=? (path->string (path-name (path d))) ".git"))
+          (check-true
+            (string=? (path->string (path-name (path d))) ".git")
+          ) ;check-true
         ) ;let
       ) ;lambda
     ) ;%with-cwd
@@ -68,16 +83,16 @@
 
 ;; 子目录：向上查找父目录的 .git
 (let ((tmp (make-temp-dir "gf-gitdir-parent-")))
-  (let* ((git-dir (path-join tmp ".git"))
-         (sub (path-join (path-join tmp "a") "b"))
-        ) ;
+  (let* ((git-dir (path-join tmp ".git")) (sub (path-join (path-join tmp "a") "b")))
     (%write-git-head! git-dir "ref: refs/heads/main\n")
     (path-mkdir sub #t)
     (%with-cwd (path->string sub)
       (lambda ()
         (let ((d (detect-git-dir)))
           (check-true (string? d))
-          (check-true (string=? (path->string (path-name (path d))) ".git"))
+          (check-true
+            (string=? (path->string (path-name (path d))) ".git")
+          ) ;check-true
         ) ;let
       ) ;lambda
     ) ;%with-cwd
@@ -87,9 +102,7 @@
 
 ;; worktree：.git 是文件，内容 "gitdir: <绝对路径>"
 (let ((tmp (make-temp-dir "gf-gitdir-worktree-")))
-  (let* ((real-gitdir (path-join tmp "real-git"))
-         (wt (path-join tmp "wt"))
-        ) ;
+  (let* ((real-gitdir (path-join tmp "real-git")) (wt (path-join tmp "wt")))
     (path-mkdir real-gitdir #t)
     (path-mkdir wt #t)
     (path-write-text (path->string (path-join wt ".git"))
@@ -99,9 +112,10 @@
       (lambda ()
         (let ((d (detect-git-dir)))
           (check-true (string? d))
-          (check-true (string=? (path->string (path-resolve (path d)))
-                        (path->string (path-resolve real-gitdir))
-                      ) ;string=?
+          (check-true
+            (string=? (path->string (path-resolve (path d)))
+              (path->string (path-resolve real-gitdir))
+            ) ;string=?
           ) ;check-true
         ) ;let
       ) ;lambda
@@ -126,11 +140,7 @@
 ;; .git 文件内容不合法（无 gitdir: 前缀）→ #f
 (let ((tmp (make-temp-dir "gf-gitdir-badfile-")))
   (path-write-text (path->string (path-join tmp ".git")) "garbage\n")
-  (%with-cwd tmp
-    (lambda ()
-      (check (detect-git-dir) => #f)
-    ) ;lambda
-  ) ;%with-cwd
+  (%with-cwd tmp (lambda () (check (detect-git-dir) => #f)))
   (rmtree tmp #t)
 ) ;let
 

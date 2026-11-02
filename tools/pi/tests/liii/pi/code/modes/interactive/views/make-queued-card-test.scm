@@ -1,3 +1,19 @@
+;; make-queued-card
+;; 构造并返回新的 make-queued-card 实例组件。
+;;
+;; 语法
+;; ----
+;; (make-queued-card ...)
+;;
+;; 参数
+;; ----
+;; 详见语法说明。
+;;
+;; 返回值
+;; ----
+;; component?
+;; 返回构造的实例。
+
 (import (scheme base)
   (liii check)
   (liii string)

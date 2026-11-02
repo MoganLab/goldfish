@@ -1,3 +1,19 @@
+;; pi-worker-steering-wiring
+;; pi-worker-steering-wiring 的相关操作与逻辑实现。
+;;
+;; 语法
+;; ----
+;; (pi-worker-steering-wiring ...)
+;;
+;; 参数
+;; ----
+;; 详见语法说明。
+;;
+;; 返回值
+;; ----
+;; any
+;; 视具体调用结果而定。
+
 (import (scheme base)
   (liii check)
   (liii list)
@@ -30,26 +46,23 @@
 ;; -----------------------------------------------------------------------------
 
 (define (make-text-response text)
-  (pi-assistant-message
-    (list (list (cons 'type "text") (cons 'text text)))
+  (pi-assistant-message (list (list (cons 'type "text") (cons 'text text)))
     :stop-reason "stop"
-    :usage '((input . 1) (output . 1) (total . 2))
+    :usage       '((input . 1) (output . 1) (total . 2))
   ) ;pi-assistant-message
 ) ;define
 
 (define (user-texts-of msgs)
-  (map pi-user-message-content
-    (filter pi-user-message? msgs)
-  ) ;map
+  (map pi-user-message-content (filter pi-user-message? msgs))
 ) ;define
 
 ;; worker 任务 cfg（经生产路径 pi-worker-handle-job 取得）：
 ;; bash_record 任务不触发 LLM 请求，用 --no-session 避免任何落盘副作用
+
 (define (make-worker-runtime-cfg events steer fu)
-  (pi-worker-handle-job
-    (list 'bash_record "echo hi" "hi" 0)
+  (pi-worker-handle-job (list 'bash_record "echo hi" "hi" 0)
     (parse-pi-args '("--no-session"))
-    '((provider . "test") (tools . ()))
+    '((provider . "test") (tools))
     (vector #f)
     events
     #f
@@ -96,8 +109,20 @@
        (cfg1 (make-worker-runtime-cfg events steer fu))
        (cfg2 (make-worker-runtime-cfg events steer fu))
       ) ;
-  (check (length (filter (lambda (p) (eq? (car p) 'get-steering-messages)) cfg2)) => 1)
-  (check (length (filter (lambda (p) (eq? (car p) 'get-follow-up-messages)) cfg2)) => 1)
+  (check
+    (length
+      (filter (lambda (p) (eq? (car p) 'get-steering-messages)) cfg2)
+    ) ;length
+    =>
+    1
+  ) ;check
+  (check
+    (length
+      (filter (lambda (p) (eq? (car p) 'get-follow-up-messages)) cfg2)
+    ) ;length
+    =>
+    1
+  ) ;check
   ;; 原有 cfg 项不受影响
   (check (cdr (assoc 'provider cfg2)) => "test")
   (check-true (pair? cfg1))
@@ -116,10 +141,9 @@
        (request-fn
          (lambda (provider config msgs sys-prompt tools on-ev timeout)
            (vector-set! req-count 0 (+ 1 (vector-ref req-count 0)))
-           (vector-set! req-users 0
-             (append (vector-ref req-users 0)
-               (list (user-texts-of msgs))
-             ) ;list
+           (vector-set! req-users
+             0
+             (append (vector-ref req-users 0) (list (user-texts-of msgs)))
            ) ;vector-set!
            ;; 第 1 轮请求发出后模拟用户继续输入（steering 插话）
            (when (= (vector-ref req-count 0) 1)
@@ -128,25 +152,26 @@
            ) ;when
            (make-text-response "ok")
          ) ;lambda
-        )
+       ) ;request-fn
       ) ;
   (let ((res-msgs (run-agent-loop runtime-cfg
-                   (list (pi-user-message "第一条"))
-                   "sys"
-                   #f
-                   10
-                   5
-                   600
-                   #f
-                   request-fn
-                 ) ;run-agent-loop
-               ) ;res-msgs
-         ) ;
+                    (list (pi-user-message "第一条"))
+                    "sys"
+                    #f
+                    10
+                    5
+                    600
+                    #f
+                    request-fn
+                  ) ;run-agent-loop
+        ) ;res-msgs
+       ) ;
     ;; 三条消息全部进入模型上下文（此前只有第一条能进）
     (check (user-texts-of res-msgs) => '("第一条" "第二条" "第三条"))
     ;; 最后一次请求的上下文包含全部三条
     (check (car (reverse (vector-ref req-users 0)))
-      => '("第一条" "第二条" "第三条")
+      =>
+      '("第一条" "第二条" "第三条")
     ) ;check
     ;; 两条插话都回发了 user_message 事件（主线程据此上屏用户卡片）
     (check (chan-try-recv! events #f) => '(user_message "第二条"))
@@ -170,21 +195,21 @@
            (vector-set! req-count 0 (+ 1 (vector-ref req-count 0)))
            (make-text-response "ok")
          ) ;lambda
-        )
+       ) ;request-fn
       ) ;
   (chan-send! fu "结束后总结" 1000)
   (let ((res-msgs (run-agent-loop runtime-cfg
-                   (list (pi-user-message "第一条"))
-                   "sys"
-                   #f
-                   10
-                   5
-                   600
-                   #f
-                   request-fn
-                 ) ;run-agent-loop
-               ) ;res-msgs
-         ) ;
+                    (list (pi-user-message "第一条"))
+                    "sys"
+                    #f
+                    10
+                    5
+                    600
+                    #f
+                    request-fn
+                  ) ;run-agent-loop
+        ) ;res-msgs
+       ) ;
     (check (vector-ref req-count 0) => 2)
     (check (user-texts-of res-msgs) => '("第一条" "结束后总结"))
     (check (chan-try-recv! events #f) => '(user_message "结束后总结"))

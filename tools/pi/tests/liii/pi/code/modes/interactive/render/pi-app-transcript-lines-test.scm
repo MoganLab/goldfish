@@ -1,3 +1,20 @@
+;; pi-app-transcript-lines
+;; 导出交互式应用当前的完整历史对话卡片渲染文本行列表。
+;;
+;; 语法
+;; ----
+;; (pi-app-transcript-lines app)
+;;
+;; 参数
+;; ----
+;; app : pi-app?
+;; 交互式应用实例。
+;;
+;; 返回值
+;; ------
+;; list of string
+;; 会话历史中全部消息卡片按终端宽度渲染后的纯文本行列表。
+
 (import (scheme base)
   (liii check)
   (liii string)
@@ -26,14 +43,14 @@
 ) ;let*
 
 ;; 2. 历史按消息顺序排列（用户消息在助手回复之前）
+
 (define (index-of haystack needle)
   (let ((n (string-length needle)))
     (let loop
       ((i 0))
-      (cond
-       ((> (+ i n) (string-length haystack)) #f)
-       ((string-contains? (substring haystack i (+ i n)) needle) i)
-       (else (loop (+ i 1)))
+      (cond ((> (+ i n) (string-length haystack)) #f)
+            ((string-contains? (substring haystack i (+ i n)) needle) i)
+            (else (loop (+ i 1)))
       ) ;cond
     ) ;let
   ) ;let

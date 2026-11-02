@@ -1,9 +1,26 @@
+;; pi-bash-worker
+;; pi-bash-worker 的相关操作与逻辑实现。
+;;
+;; 语法
+;; ----
+;; (pi-bash-worker ...)
+;;
+;; 参数
+;; ----
+;; 详见语法说明。
+;;
+;; 返回值
+;; ----
+;; any
+;; 视具体调用结果而定。
+
 (import (scheme base)
   (scheme write)
   (liii check)
   (liii string)
   (liii go)
-  (liii pi code modes interactive bash))
+  (liii pi code modes interactive bash)
+) ;import
 
 (check-set-mode! 'report)
 
@@ -18,7 +35,8 @@
        (ev-ch (make-chan 4))
        (_ (go (pi-bash-worker jobs-ch ev-ch)))
        (_2 (chan-send! jobs-ch (list 1 "echo hello" #f) 1000))
-       (ev (chan-recv! ev-ch 10000 #f)))
+       (ev (chan-recv! ev-ch 10000 #f))
+      ) ;
   (check-true (pair? ev))
   (when (pair? ev)
     (check (car ev) => 'bash_complete)

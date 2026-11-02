@@ -1,18 +1,37 @@
+;; pi-app-run-mouse
+;; pi-app-run-mouse 的相关操作与逻辑实现。
+;;
+;; 语法
+;; ----
+;; (pi-app-run-mouse ...)
+;;
+;; 参数
+;; ----
+;; 详见语法说明。
+;;
+;; 返回值
+;; ----
+;; any
+;; 视具体调用结果而定。
+
 (import (scheme base)
-        (liii check)
-        (liii list)
-        (liii tui)
-        (liii tui mouse)
-        (liii pi code modes interactive app)
-        (liii pi code modes interactive run)
-        (liii pi code modes interactive views))
+  (liii check)
+  (liii list)
+  (liii tui)
+  (liii tui mouse)
+  (liii pi code modes interactive app)
+  (liii pi code modes interactive run)
+  (liii pi code modes interactive views)
+) ;import
 
 (check-set-mode! 'report-failed)
 
 ;; 辅助：构造带虚拟终端的 app（handler 恒成功）
+
 (define (%make-test-app)
-  (make-pi-app :terminal (make-virtual-terminal :width 80 :height 24)
-    :handler (lambda (a m) #t)
+  (make-pi-app
+    :terminal (make-virtual-terminal :width 80 :height 24)
+    :handler  (lambda (a m) #t)
   ) ;make-pi-app
 ) ;define
 
@@ -22,16 +41,16 @@
       ) ;
   (pi-app-add-tool-result! app "read" '(("path" . "a.scm")) 'success "l1\nl2\nl3")
   (pi-app-render! app)
-  (let* ((card (car (filter tool-card-component? (pi-app-chat app))))
-         (hit #f)
-        ) ;
+  (let* ((card (car (filter tool-card-component? (pi-app-chat app)))) (hit #f))
     (check (tool-card-expanded? card) => #f)
     ;; 逐行试探点击，找到能翻转卡片展开状态的物理行
     (for-each
       (lambda (y)
         (when (not hit)
           (pi-app-handle-mouse! app (make-mouse-event 'click 'left 5 y))
-          (when (tool-card-expanded? card) (set! hit y))
+          (when (tool-card-expanded? card)
+            (set! hit y)
+          ) ;when
         ) ;when
       ) ;lambda
       (iota 12)
@@ -44,18 +63,22 @@
 ) ;let*
 
 ;; 2. 主循环消费 click 事件：预注入点击后卡片展开，键盘语义不受影响
-(let* ((probe (%make-test-app))
-       (probe-card #f)
-       (hit #f)
-      ) ;
-  (pi-app-add-tool-result! probe "read" '(("path" . "a.scm")) 'success "l1\nl2\nl3")
+(let* ((probe (%make-test-app)) (probe-card #f) (hit #f))
+  (pi-app-add-tool-result! probe
+    "read"
+    '(("path" . "a.scm"))
+    'success
+    "l1\nl2\nl3"
+  ) ;pi-app-add-tool-result!
   (pi-app-render! probe)
   (set! probe-card (car (filter tool-card-component? (pi-app-chat probe))))
   (for-each
     (lambda (y)
       (when (not hit)
         (pi-app-handle-mouse! probe (make-mouse-event 'click 'left 5 y))
-        (when (tool-card-expanded? probe-card) (set! hit y))
+        (when (tool-card-expanded? probe-card)
+          (set! hit y)
+        ) ;when
       ) ;when
     ) ;lambda
     (iota 12)
@@ -77,21 +100,26 @@
       ;; 鼠标事件未被当成字符写入编辑器
       (check (editor-text ed) => "")
     ) ;let
-  ) ;let
-) ;let
+  ) ;let*
+) ;let*
 
 ;; 3. 连续两次点击回到折叠态
-(let* ((probe (%make-test-app))
-       (hit #f)
-      ) ;
-  (pi-app-add-tool-result! probe "read" '(("path" . "a.scm")) 'success "l1\nl2\nl3")
+(let* ((probe (%make-test-app)) (hit #f))
+  (pi-app-add-tool-result! probe
+    "read"
+    '(("path" . "a.scm"))
+    'success
+    "l1\nl2\nl3"
+  ) ;pi-app-add-tool-result!
   (pi-app-render! probe)
   (let ((probe-card (car (filter tool-card-component? (pi-app-chat probe)))))
     (for-each
       (lambda (y)
         (when (not hit)
           (pi-app-handle-mouse! probe (make-mouse-event 'click 'left 5 y))
-          (when (tool-card-expanded? probe-card) (set! hit y))
+          (when (tool-card-expanded? probe-card)
+            (set! hit y)
+          ) ;when
         ) ;when
       ) ;lambda
       (iota 12)
@@ -109,7 +137,7 @@
       (check (pi-app-run app) => #t)
       (check (tool-card-expanded? card) => #f)
     ) ;let
-  ) ;let
-) ;let
+  ) ;let*
+) ;let*
 
 (check-report)

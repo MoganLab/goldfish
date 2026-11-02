@@ -1,3 +1,19 @@
+;; pi-run-session-selector
+;; pi-run-session-selector 的相关操作与逻辑实现。
+;;
+;; 语法
+;; ----
+;; (pi-run-session-selector ...)
+;;
+;; 参数
+;; ----
+;; 详见语法说明。
+;;
+;; 返回值
+;; ----
+;; any
+;; 视具体调用结果而定。
+
 (import (scheme base)
   (liii check)
   (liii path)

@@ -1,3 +1,19 @@
+;; make-user-card
+;; 构造并返回新的 make-user-card 实例组件。
+;;
+;; 语法
+;; ----
+;; (make-user-card ...)
+;;
+;; 参数
+;; ----
+;; 详见语法说明。
+;;
+;; 返回值
+;; ----
+;; component?
+;; 返回构造的实例。
+
 (import (scheme base)
   (liii check)
   (liii list)
@@ -30,11 +46,9 @@
 ) ;let*
 
 ;; 辅助：提取卡片正文行（去掉首尾 padding 空行与尾部 spacer）
+
 (define (%body-lines lines)
-  (if (<= (length lines) 3)
-    '()
-    (cdr (reverse (list-tail (reverse lines) 2)))
-  ) ;if
+  (if (<= (length lines) 3) '() (cdr (reverse (list-tail (reverse lines) 2))))
 ) ;define
 
 ;; 超长行折行：18 个 0123456789（180 字符）必须完整显示，不得被截断吞掉
@@ -46,20 +60,26 @@
   ;; 折行后行数必然多于单行（4 行 = 上下 padding + 单行正文 + spacer）
   (check (> (length lines) 4) => #t)
   ;; 每行去掉 ANSI 后显示宽度不超过终端宽度，否则会被 alt-screen 截断
-  (check (every (lambda (line) (<= (display-width line) w)) content) => #t)
+  (check
+    (every (lambda (line) (<= (display-width line) w)) content)
+    =>
+    #t
+  ) ;check
   ;; 内容完整：正文中数字字符总数必须等于 180，一个都不能少
   (check
     (length
       (filter (lambda (c) (and (char>=? c #\0) (char<=? c #\9)))
         (apply append (map string->list (map strip-ansi content)))
       ) ;filter
-    )
-    => 180
-  )
+    ) ;length
+    =>
+    180
+  ) ;check
   ;; 拼接正文（去掉前导缩进与尾部填充空格）可还原完整原文
   (check (string-join (map string-trim-both (map strip-ansi content)) "")
-    => long-text
-  )
+    =>
+    long-text
+  ) ;check
 ) ;let*
 
 ;; 显式换行的多段落文本折行后仍保持段落结构

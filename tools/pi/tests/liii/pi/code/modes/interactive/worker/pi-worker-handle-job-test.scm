@@ -1,3 +1,19 @@
+;; pi-worker-handle-job
+;; pi-worker-handle-job 的相关操作与逻辑实现。
+;;
+;; 语法
+;; ----
+;; (pi-worker-handle-job ...)
+;;
+;; 参数
+;; ----
+;; 详见语法说明。
+;;
+;; 返回值
+;; ----
+;; any
+;; 视具体调用结果而定。
+
 (import (scheme base)
   (scheme file)
   (scheme write)
@@ -23,6 +39,7 @@
 ) ;define
 
 ;; 上下文消息统一取自投影入口；状态与诊断本用例不关心
+
 (define (projected-messages entries)
   (let*-values (((msgs _state _diag) (pi-build-session-projection entries)))
     msgs

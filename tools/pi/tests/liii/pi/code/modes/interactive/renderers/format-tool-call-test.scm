@@ -1,41 +1,92 @@
-(import (scheme base)
-  (liii check)
-  (liii pi code modes interactive renderers))
+;; format-tool-call
+;; format-tool-call 的相关操作与逻辑实现。
+;;
+;; 语法
+;; ----
+;; (format-tool-call ...)
+;;
+;; 参数
+;; ----
+;; 详见语法说明。
+;;
+;; 返回值
+;; ----
+;; any
+;; 视具体调用结果而定。
+
+(import (scheme base) (liii check) (liii pi code modes interactive renderers))
 
 (check-set-mode! 'report-failed)
 
 ;; 各内置工具的命令调用行格式化
 (check (format-tool-call "bash" '(("command" . "ls -la"))) => "$ ls -la")
-(check (format-tool-call "bash" '((command . "npm test") (timeout . 30))) => "$ npm test (timeout 30s)")
+(check (format-tool-call "bash" '((command . "npm test") (timeout . 30)))
+  =>
+  "$ npm test (timeout 30s)"
+) ;check
 (check (format-tool-call "bash" "echo hello") => "$ echo hello")
 (check (format-tool-call "bash" '()) => "$ ...")
 
 ;; 范围后缀对齐上游 formatReadLineRange："路径:起-止"
-(check (format-tool-call "read" '(("path" . "src/app.scm"))) => "read src/app.scm")
-(check (format-tool-call "read" '(("file_path" . "src/app.scm") ("offset" . 10) ("limit" . 20)))
-  => "read src/app.scm:10-29")
-(check (format-tool-call "read" '(("path" . "a.scm") ("offset" . 10))) => "read a.scm:10")
+(check (format-tool-call "read" '(("path" . "src/app.scm")))
+  =>
+  "read src/app.scm"
+) ;check
+(check (format-tool-call "read"
+         '(("file_path" . "src/app.scm") ("offset" . 10) ("limit" . 20))
+       ) ;format-tool-call
+  =>
+  "read src/app.scm:10-29"
+) ;check
+(check (format-tool-call "read" '(("path" . "a.scm") ("offset" . 10)))
+  =>
+  "read a.scm:10"
+) ;check
 (check (format-tool-call "read" "main.scm") => "read main.scm")
 
-(check (format-tool-call "write" '(("path" . "README.md") ("content" . "# Hello"))) => "write README.md")
-(check (format-tool-call "write" '(("file_path" . "out.txt"))) => "write out.txt")
+(check (format-tool-call "write" '(("path" . "README.md")
+                                   ("content" . "# Hello")))
+  =>
+  "write README.md"
+) ;check
+(check (format-tool-call "write" '(("file_path" . "out.txt")))
+  =>
+  "write out.txt"
+) ;check
 (check (format-tool-call "write" "out.txt") => "write out.txt")
 
-(check (format-tool-call "edit" '(("path" . "main.scm") ("edits" . ()))) => "edit main.scm")
+(check (format-tool-call "edit" '(("path" . "main.scm") ("edits")))
+  =>
+  "edit main.scm"
+) ;check
 (check (format-tool-call "edit" "main.scm") => "edit main.scm")
 
-(check (format-tool-call "grep" '(("pattern" . "define") ("path" . "src/"))) => "grep /define/ in src/")
-(check (format-tool-call "grep" '(("pattern" . "define"))) => "grep /define/ in .")
+(check (format-tool-call "grep" '(("pattern" . "define") ("path" . "src/")))
+  =>
+  "grep /define/ in src/"
+) ;check
+(check (format-tool-call "grep" '(("pattern" . "define")))
+  =>
+  "grep /define/ in ."
+) ;check
 
-(check (format-tool-call "find" '(("pattern" . "*.scm") ("path" . "tools/"))) => "find *.scm in tools/")
+(check (format-tool-call "find" '(("pattern" . "*.scm") ("path" . "tools/")))
+  =>
+  "find *.scm in tools/"
+) ;check
 (check (format-tool-call "find" '(("pattern" . "*.scm"))) => "find *.scm in .")
 
 (check (format-tool-call "ls" '(("path" . "src/"))) => "ls src/")
 (check (format-tool-call "ls" '()) => "ls .")
 
 (check (format-tool-call "web_search" '(("query" . "Goldfish Scheme")))
-  => "web_search \"Goldfish Scheme\"")
+  =>
+  "web_search \"Goldfish Scheme\""
+) ;check
 
-(check (format-tool-call "custom_tool" '(("key" . "value"))) => "custom_tool key=value")
+(check (format-tool-call "custom_tool" '(("key" . "value")))
+  =>
+  "custom_tool key=value"
+) ;check
 
 (check-report)

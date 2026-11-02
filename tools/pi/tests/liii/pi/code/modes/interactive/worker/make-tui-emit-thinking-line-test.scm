@@ -1,3 +1,19 @@
+;; make-tui-emit-thinking-line
+;; 构造并返回新的 make-tui-emit-thinking-line 实例组件。
+;;
+;; 语法
+;; ----
+;; (make-tui-emit-thinking-line)
+;;
+;; 参数
+;; ----
+;; 详见语法形参说明。
+;;
+;; 返回值
+;; ----
+;; component?
+;; 返回构造的实例。
+
 (import (scheme base)
   (liii check)
   (liii string)
@@ -75,10 +91,7 @@
   (check (recv-ev! ch) => '(assistant_thinking_end))
   (emit 'message_update '() (stream-event "thinking_end"))
   (check (recv-ev! ch) => '(assistant_thinking_end))
-  (emit 'message_update
-    '()
-    (stream-event "thinking_delta" '(delta . "块二\n"))
-  ) ;emit
+  (emit 'message_update '() (stream-event "thinking_delta" '(delta . "块二\n")))
   (check (recv-ev! ch) => '(assistant_thinking_line "块二"))
   (emit 'message_update '() (stream-event "thinking_end"))
   (check (recv-ev! ch) => '(assistant_thinking_end))

@@ -1,3 +1,19 @@
+;; pi-worker-resume-session
+;; pi-worker-resume-session 的相关操作与逻辑实现。
+;;
+;; 语法
+;; ----
+;; (pi-worker-resume-session ...)
+;;
+;; 参数
+;; ----
+;; 详见语法说明。
+;;
+;; 返回值
+;; ----
+;; any
+;; 视具体调用结果而定。
+
 (import (scheme base)
   (scheme file)
   (scheme write)

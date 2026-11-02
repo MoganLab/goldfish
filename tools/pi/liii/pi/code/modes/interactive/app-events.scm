@@ -14,6 +14,7 @@
   ) ;export
   (import (scheme base)
     (liii go)
+    (liii string)
     (liii tui)
     (liii pi agent queue)
     (liii pi code modes interactive state)

@@ -1,3 +1,19 @@
+;; make-model-selector
+;; 构造并返回新的 make-model-selector 实例组件。
+;;
+;; 语法
+;; ----
+;; (make-model-selector ...)
+;;
+;; 参数
+;; ----
+;; 详见语法说明。
+;;
+;; 返回值
+;; ----
+;; component?
+;; 返回构造的实例。
+
 (import (scheme base)
   (liii check)
   (liii string)
@@ -8,21 +24,33 @@
 (check-set-mode! 'report-failed)
 
 (define %models
-  (list (list (cons 'provider "google") (cons 'id "gemini-2.5-pro")
-         (cons 'name "Gemini 2.5 Pro") (cons 'reasoning #t))
-    (list (cons 'provider "google") (cons 'id "gemini-3-flash-preview")
-      (cons 'name "Gemini 3 Flash Preview") (cons 'reasoning #t))
-    (list (cons 'provider "zai") (cons 'id "glm-5")
-      (cons 'name "GLM 5") (cons 'reasoning #t))
+  (list (list (cons 'provider "google")
+          (cons 'id "gemini-2.5-pro")
+          (cons 'name "Gemini 2.5 Pro")
+          (cons 'reasoning #t)
+        ) ;list
+    (list (cons 'provider "google")
+      (cons 'id "gemini-3-flash-preview")
+      (cons 'name "Gemini 3 Flash Preview")
+      (cons 'reasoning #t)
+    ) ;list
+    (list (cons 'provider "zai")
+      (cons 'id "glm-5")
+      (cons 'name "GLM 5")
+      (cons 'reasoning #t)
+    ) ;list
   ) ;list
 ) ;define
 
 (define selected '())
+
 (define saved '())
+
 (define cancel-count 0)
 
 ;; 辅助函数：无参数用默认 6 参；字符串参数为初始搜索词；
 ;; 其余情况（≥6 个参数）直接透传给 make-model-selector
+
 (define (make-selector . opt-args)
   (cond
    ((null? opt-args)
@@ -35,7 +63,7 @@
         (lambda (model) (set! saved (cons model saved)))
       ) ;list
     ) ;apply
-   ) ;null?
+   ) ;
    ((string? (car opt-args))
     (apply make-model-selector
       (append
@@ -49,7 +77,7 @@
         opt-args
       ) ;append
     ) ;apply
-   ) ;string?
+   ) ;
    (else (apply make-model-selector opt-args))
   ) ;cond
 ) ;define
@@ -58,7 +86,8 @@
 ;;    当前模型置顶并标 ✓，行格式 id [provider]，描述列显示模型名；
 ;;    header 提示只显示已配置 provider 的模型。
 (let* ((selector (make-selector))
-       (lines (map strip-ansi (component-render selector 100))))
+       (lines (map strip-ansi (component-render selector 100)))
+      ) ;
   (check-true (model-selector? selector))
   (check (length lines) => 14)
   (check (list-ref lines 2) => "Model")
@@ -70,7 +99,10 @@
   (check-true (string-contains? (list-ref lines 9) "gemini-3-flash-preview"))
   (check-true (string-contains? (list-ref lines 10) "glm-5"))
   (check-true (string-contains? (list-ref lines 10) "[zai]"))
-  (check (list-ref lines 12) => "  enter to select · ctrl+s to set as default · esc to cancel")
+  (check (list-ref lines 12)
+    =>
+    "  enter to select · ctrl+s to set as default · esc to cancel"
+  ) ;check
   (check (select-list-selected-index (model-selector-list selector)) => 0)
   (check (model-selector-cursor-position selector) => '(6 2))
 ) ;let*
@@ -81,7 +113,13 @@
   (component-handle-input selector "glm")
   (let ((items (select-list-items (model-selector-list selector))))
     (check-true (>= (length items) 1))
-    (check (cdr (assoc 'id (cdr (assoc 'value (car items))))) => "glm-5")
+    (check
+      (cdr
+        (assoc 'id (cdr (assoc 'value (car items))))
+      ) ;cdr
+      =>
+      "glm-5"
+    ) ;check
   ) ;let
   (check (model-selector-cursor-position selector) => '(6 5))
   (component-handle-input selector 'enter)
@@ -101,7 +139,13 @@
   (component-handle-input selector "GLM")
   (let ((items (select-list-items (model-selector-list selector))))
     (check-true (>= (length items) 1))
-    (check (cdr (assoc 'id (cdr (assoc 'value (car items))))) => "glm-5")
+    (check
+      (cdr
+        (assoc 'id (cdr (assoc 'value (car items))))
+      ) ;cdr
+      =>
+      "glm-5"
+    ) ;check
   ) ;let
 ) ;let
 
@@ -120,20 +164,23 @@
 (let ((selector (make-selector)))
   (component-handle-input selector "zzz")
   (check-true
-    (string-contains?
-      (string-join (map strip-ansi (component-render selector 100)) "\n")
-      "No matching commands"))
+    (string-contains? (string-join (map strip-ansi (component-render selector 100)) "\n")
+      "No matching commands"
+    ) ;string-contains?
+  ) ;check-true
 ) ;let
 
 ;; 5. 默认模型在描述列标记 · default（对齐上游 defaultBadge：当前第一、默认第二）。
-(let* ((selector (make-selector
-                   (list (cons 'provider "google") (cons 'id "gemini-2.5-pro"))
+(let* ((selector (make-selector (list (cons 'provider "google") (cons 'id "gemini-2.5-pro"))
                    (list (cons 'provider "zai") (cons 'id "glm-5"))
                    %models
                    (lambda (model) #f)
                    (lambda () #f)
-                   (lambda (model) #f)))
-       (lines (map strip-ansi (component-render selector 100))))
+                   (lambda (model) #f)
+                 ) ;make-selector
+       ) ;selector
+       (lines (map strip-ansi (component-render selector 100)))
+      ) ;
   (check-true (string-contains? (list-ref lines 9) "glm-5"))
   (check-true (string-contains? (list-ref lines 9) "GLM 5 · default"))
 ) ;let*
