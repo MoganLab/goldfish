@@ -1,8 +1,3 @@
-(import (liii check)
-  (liii pi ai message)
-  (liii pi ai api anthropic-messages thinking)
-) ;import
-
 ;; anthropic-finish-thinking-block
 ;; 结束当前 Anthropic thinking 块，将累积内容写入消息块列表。
 ;;
@@ -25,10 +20,11 @@
 ;; 说明
 ;; ----
 ;; 空签名转换为 #f；没有活动 thinking 块时不执行任何操作。
-;;
-;; 示例
-;; ----
-;; (anthropic-finish-thinking-block stream-state on-ev)
+
+(import (liii check)
+  (liii pi ai message)
+  (liii pi ai api anthropic-messages thinking)
+) ;import
 
 (check-set-mode! 'report-failed)
 
