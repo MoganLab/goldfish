@@ -57,37 +57,46 @@
 (check-false (pi-provider-quota-error 429 "" "zai-coding-cn"))
 
 ;; 6. minimax-cn：Token Plan 用量上限（2026-10-31 真实响应，已脱敏）
+
 (define minimax-quota-body
   "{\"type\":\"error\",\"error\":{\"type\":\"rate_limit_error\",\"message\":\"当前已达到 Token Plan 用量上限。 (2067)\"},\"request_id\":\"0735...\"}"
 ) ;define
 
-(check-true (pi-quota-limit? (pi-provider-quota-error 429 minimax-quota-body "minimax-cn")))
-(check (pi-quota-limit-kind (pi-provider-quota-error 429 minimax-quota-body "minimax-cn"))
-  => "five-hour"
+(check-true (pi-quota-limit? (pi-provider-quota-error 429 minimax-quota-body "minimax-cn"))
+) ;check-true
+(check (pi-quota-limit-kind (pi-provider-quota-error 429 minimax-quota-body "minimax-cn")
+       ) ;pi-quota-limit-kind
+  =>
+  "five-hour"
 ) ;check
 
 ;; 7. minimax 普通瞬时限流不做判定
 (check-false (pi-provider-quota-error 429
-  "{\"type\":\"error\",\"error\":{\"type\":\"rate_limit_error\",\"message\":\"Rate limit exceeded\"}}"
-  "minimax-cn"
-) ;pi-provider-quota-error
+               "{\"type\":\"error\",\"error\":{\"type\":\"rate_limit_error\",\"message\":\"Rate limit exceeded\"}}"
+               "minimax-cn"
+             ) ;pi-provider-quota-error
 ) ;check-false
 
 ;; 3. google：月消费上限（spending cap，2026-10-31 实测）注册判定
+
 (define google-spending-cap-body
   "{\"error\":{\"code\":429,\"message\":\"Your billing account has exceeded its monthly spending cap. Please go to AI Studio at https://ai.studio/billing to manage your billing.\",\"status\":\"RESOURCE_EXHAUSTED\"}}"
 ) ;define
 
-(check-true (pi-quota-limit? (pi-provider-quota-error 429 google-spending-cap-body "google")))
-(check (pi-quota-limit-kind (pi-provider-quota-error 429 google-spending-cap-body "google"))
-  => "monthly"
+(check-true (pi-quota-limit? (pi-provider-quota-error 429 google-spending-cap-body "google")
+            ) ;pi-quota-limit?
+) ;check-true
+(check (pi-quota-limit-kind (pi-provider-quota-error 429 google-spending-cap-body "google")
+       ) ;pi-quota-limit-kind
+  =>
+  "monthly"
 ) ;check
 
 ;; 8. google 瞬时限流文案不判定（应继续重试）
 (check-false (pi-provider-quota-error 429
-  "{\"error\":{\"code\":429,\"message\":\"You exceeded your current quota, please check your plan and billing details.\",\"status\":\"RESOURCE_EXHAUSTED\"}}"
-  "google"
-) ;pi-provider-quota-error
+               "{\"error\":{\"code\":429,\"message\":\"You exceeded your current quota, please check your plan and billing details.\",\"status\":\"RESOURCE_EXHAUSTED\"}}"
+               "google"
+             ) ;pi-provider-quota-error
 ) ;check-false
 
 (check-report)

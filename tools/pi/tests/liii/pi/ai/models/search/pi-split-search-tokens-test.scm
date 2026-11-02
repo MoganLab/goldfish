@@ -7,19 +7,19 @@
 ;;
 ;; 参数
 ;; ----
-;; str : string
+;; str : any?
 ;; 以空白或 / 分隔的搜索字符串。
 ;;
 ;; 返回值
 ;; ----
-;; list
+;; list?
 ;; 非空 token 字符串列表；非字符串输入返回空列表。
 ;;
 ;; 说明
 ;; ----
 ;; 连续分隔符和首尾分隔符不产生空 token。
 
-(import (liii check) (liii pi ai models list))
+(import (liii check) (liii pi ai models search))
 
 (check-set-mode! 'report-failed)
 

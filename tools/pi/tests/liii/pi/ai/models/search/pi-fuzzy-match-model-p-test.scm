@@ -7,9 +7,10 @@
 ;;
 ;; 参数
 ;; ----
-;; search-query : string | #f
+;; search-query : any?
 ;; 以空白或 / 分隔的搜索词。
-;; text : string
+;;
+;; text : string?
 ;; 待匹配的 provider 和模型文本。
 ;;
 ;; 返回值
@@ -21,7 +22,7 @@
 ;; ----
 ;; 匹配忽略大小写；空 query 或非字符串 query 默认全匹配。
 
-(import (liii check) (liii pi ai models list))
+(import (liii check) (liii pi ai models search))
 
 (check-set-mode! 'report-failed)
 
