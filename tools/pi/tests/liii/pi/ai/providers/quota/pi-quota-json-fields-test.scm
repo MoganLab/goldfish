@@ -1,7 +1,3 @@
-(import (liii check) (liii string) (liii pi ai providers quota))
-
-(check-set-mode! 'report-failed)
-
 ;; pi-quota-json-fields
 ;; 从错误响应 JSON 中提取候选错误标识列表与服务商官方消息。
 ;;
@@ -24,6 +20,10 @@
 ;; ----
 ;; 不同服务商字段不一致：智谱用 error.code，Kimi 用 error.type。
 ;; 非 JSON 或非对象 JSON 返回空候选列表与 #f 消息，不做文本兜底。
+
+(import (liii check) (liii string) (liii pi ai providers quota))
+
+(check-set-mode! 'report-failed)
 
 ;; 1. 智谱：error.code + error.message
 (let ((fields (pi-quota-json-fields "{\"error\":{\"code\":\"1310\",\"message\":\"您已达到每周/每月使用上限\"}}"

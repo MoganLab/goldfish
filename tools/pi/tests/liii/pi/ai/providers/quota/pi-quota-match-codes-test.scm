@@ -1,7 +1,3 @@
-(import (liii check) (liii pi ai providers quota))
-
-(check-set-mode! 'report-failed)
-
 ;; pi-quota-match-codes
 ;; 把候选错误标识列表与某个 provider 的码表做匹配。
 ;;
@@ -25,6 +21,10 @@
 ;; 注意
 ;; ----
 ;; 按精确字符串匹配，不做前缀或数字模糊匹配；码表为空时永不命中。
+
+(import (liii check) (liii pi ai providers quota))
+
+(check-set-mode! 'report-failed)
 
 (define table '(("1308" . "five-hour") ("1310" . "weekly")))
 
