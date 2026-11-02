@@ -251,7 +251,9 @@
                ) ;if
              ) ;violations
              (violations
-               (if (check-rule-enabled? cfg "unit-test")
+               (if (and (check-rule-enabled? cfg "unit-test")
+                     (not (check-skip-unit-test-dirs? cfg))
+                   ) ;and
                  (let ((files
                          (filter
                            (lambda (f) (not (file-excluded? f (check-rule-excludes cfg "unit-test"))))
@@ -358,7 +360,10 @@
           ) ;begin
           (let* ((cfg0 (load-check-config))
                  (only (parser 'only))
-                 (cfg (if only (restrict-check-config cfg0 only) cfg0))
+                 (cfg1 (if only (restrict-check-config cfg0 only) cfg0))
+                 (pos (parser :positionals))
+                 (skip-dirs? (positionals-only-unit-test-files? pos))
+                 (cfg (if skip-dirs? (cfg-with-skip-unit-test-dirs cfg1 #t) cfg1))
                  (files (resolve-target-files parser))
                 ) ;
             (if only
