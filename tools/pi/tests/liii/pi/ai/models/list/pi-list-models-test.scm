@@ -1,3 +1,28 @@
+;; pi-list-models
+;; 罗列并过滤模型仓库中的 AI 模型列表。
+;;
+;; 语法
+;; ----
+;; (pi-list-models models-store)
+;; (pi-list-models models-store provider)
+;; (pi-list-models models-store provider query)
+;;
+;; 参数
+;; ----
+;; models-store : list?
+;; 模型配置存储表。
+;;
+;; provider : string? | boolean?
+;; 可选的供应商名称，传 "all"、#f 或缺省表示不限定供应商。
+;;
+;; query : string?
+;; 可选的搜索关键词，用于按子序列模糊过滤模型名称。
+;;
+;; 返回值
+;; ----
+;; list?
+;; 返回过滤并排序后的模型信息列表。
+
 (import (scheme base) (liii check) (liii pi ai models list) (liii pi ai models))
 
 (check-set-mode! 'report-failed)
