@@ -1,9 +1,24 @@
+;; anthropic-map-stop-reason
+;; 将 Anthropic 响应 stop_reason 映射到 pi agent 标准 stopReason。
+;;
+;; 语法
+;; ----
+;; (anthropic-map-stop-reason reason)
+;;
+;; 参数
+;; ----
+;; reason : string | symbol
+;; Anthropic 返回的 stop_reason，例如 end_turn、max_tokens、tool_use。
+;;
+;; 返回值
+;; ----
+;; string
+;; 标准 stopReason，可取 stop、length、toolUse 或 error。
+
 (import (liii check) (liii pi ai api anthropic-messages))
 
 (check-set-mode! 'report-failed)
 
-;; anthropic-map-stop-reason
-;; 将 Anthropic 响应 stop_reason 映射到 pi agent 标准 stopReason。
 (check (anthropic-map-stop-reason "end_turn") => "stop")
 (check (anthropic-map-stop-reason "max_tokens") => "length")
 (check (anthropic-map-stop-reason "tool_use") => "toolUse")
