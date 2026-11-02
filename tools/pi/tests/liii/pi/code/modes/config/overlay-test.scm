@@ -103,4 +103,17 @@
   (check (length (pi-config-render-overlay view 80 0)) => 0)
 ) ;let
 
+;; 5. 覆盖层按键交互（滚动与退出）
+(let ((view (pi-config-file-view st (pi-config-cursor (p-index "kimi-coding") 0) 0)))
+  (check (pi-config-overlay-step view 0 20 'down) => (list view 1))
+  (check (pi-config-overlay-step view 1 20 'up) => (list view 0))
+  (check (pi-config-overlay-step view 0 20 'up) => (list view 0))
+  (check (pi-config-overlay-step view 0 20 "j") => (list view 1))
+  (check (pi-config-overlay-step view 1 20 "k") => (list view 0))
+  (check (pi-config-overlay-step view 5 20 "g") => (list view 0))
+  (check (cadr (pi-config-overlay-step view 0 20 "G")) => (cadr (pi-config-overlay-step view 0 20 'G)))
+  (check (pi-config-overlay-step view 2 20 'escape) => (list #f 0))
+  (check (pi-config-overlay-step view 2 20 "q") => (list #f 0))
+) ;let
+
 (check-report)
