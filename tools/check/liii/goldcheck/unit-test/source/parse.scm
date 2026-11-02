@@ -74,13 +74,65 @@
       ) ;cond
     ) ;define
 
+    (define (extract-record-field-defs field-spec)
+      (if (pair? field-spec)
+        (let ((f-rest (cdr field-spec)))
+          (if (pair? f-rest)
+            (let* ((acc-sym (car f-rest))
+                   (f-rest2 (cdr f-rest))
+                   (mod-sym (if (pair? f-rest2) (car f-rest2) #f))
+                   (acc-list (if (symbol? acc-sym) (list (symbol->string acc-sym)) '()))
+                   (mod-list (if (symbol? mod-sym) (list (symbol->string mod-sym)) '()))
+                  ) ;
+              (append acc-list mod-list)
+            ) ;let*
+            '()
+          ) ;if
+        ) ;let
+        '()
+      ) ;if
+    ) ;define
+
+    (define (extract-record-type-definitions form)
+      (let ((args (cdr form)))
+        (if (and (pair? args) (pair? (cdr args)))
+          (let* ((ctor-spec (cadr args))
+                 (rest1 (cddr args))
+                 (pred-sym (if (pair? rest1) (car rest1) #f))
+                 (field-specs (if (pair? rest1) (cdr rest1) '()))
+                 (ctor-list
+                   (cond
+                    ((and (pair? ctor-spec) (symbol? (car ctor-spec)))
+                     (list (symbol->string (car ctor-spec)))
+                    ) ;
+                    ((symbol? ctor-spec) (list (symbol->string ctor-spec)))
+                    (else '())
+                   ) ;cond
+                 ) ;ctor-list
+                 (pred-list (if (symbol? pred-sym) (list (symbol->string pred-sym)) '()))
+                 (fields-list
+                   (let loop
+                     ((rem field-specs) (acc '()))
+                     (if (null? rem)
+                       acc
+                       (loop (cdr rem) (append acc (extract-record-field-defs (car rem))))
+                     ) ;if
+                   ) ;let
+                 ) ;fields-list
+                ) ;
+            (append ctor-list pred-list fields-list)
+          ) ;let*
+          '()
+        ) ;if
+      ) ;let
+    ) ;define
+
     (define (extract-form-definitions form)
       (cond ((not (pair? form)) '())
-            ((memq (car form)
-               '(define define* define-syntax define-macro define-record-type)
-             ) ;memq
+            ((memq (car form) '(define define* define-syntax define-macro))
              (if (pair? (cdr form)) (extract-target-name (cadr form)) '())
             ) ;
+            ((eq? (car form) 'define-record-type) (extract-record-type-definitions form))
             ((eq? (car form) 'begin)
              (let loop
                ((rest (cdr form)) (acc '()))
