@@ -3,6 +3,7 @@
 ;; 修复: f_string_to_json 按累计输入字节数周期性触发 GC
 ;; 运行: bin/gf tests/liii/json/e2e-string-to-json-memory-leak-test.scm
 (import (liii json) (liii psutil) (liii check)
+  (liii list)
   (scheme base) (scheme process-context) (scheme write))
 
 (check-set-mode! 'report)

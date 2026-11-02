@@ -1,4 +1,4 @@
-(import (liii check) (liii iset))
+(import (liii check) (liii iset) (liii list))
 
 
 (check-set-mode! 'report-failed)

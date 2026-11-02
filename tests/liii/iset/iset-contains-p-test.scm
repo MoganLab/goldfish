@@ -1,4 +1,4 @@
-(import (liii check) (liii iset) (only (srfi srfi-1) every any))
+(import (liii check) (liii iset) (liii list))
 
 
 (check-set-mode! 'report-failed)
