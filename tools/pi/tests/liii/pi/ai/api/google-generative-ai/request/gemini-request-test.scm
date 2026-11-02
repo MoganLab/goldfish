@@ -1,9 +1,40 @@
+;; gemini-request
+;; 向 Gemini generateContent API 发起非流式请求，并将响应转换为内部 assistant 消息。
+;;
+;; 语法
+;; ----
+;; (gemini-request config messages [system-instruction [tool-names [timeout [opt-retry]]]])
+;;
+;; 参数
+;; ----
+;; config : alist
+;; 包含 provider、model-id、api-key、model-meta 和重试配置等请求参数。
+;; messages : list
+;; 内部会话消息列表。
+;; system-instruction : string | #f，可选
+;; 系统提示词。
+;; tool-names : list | #f，可选
+;; 允许模型调用的工具名列表。
+;; timeout : number，可选，默认为 300
+;; 请求超时秒数。
+;; opt-retry : alist | #f，可选
+;; 本次请求的重试覆盖配置。
+;;
+;; 返回值
+;; ----
+;; pi-assistant-message
+;; 包含 content、stopReason、usage 和可选 errorMessage 的消息 record。
+;;
+;; 说明
+;; ----
+;; 端点构造与响应解析均在本库完成；可重试错误按重试配置退避后重试。
+
 (import (liii check)
   (liii string)
   (liii path)
   (liii subprocess)
   (liii pi ai event)
-  (liii pi ai api google-generative-ai)
+  (liii pi ai api google-generative-ai request)
 ) ;import
 
 (check-set-mode! 'report-failed)
