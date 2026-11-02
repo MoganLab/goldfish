@@ -1,10 +1,5 @@
-(import (liii list) (liii check))
-
-
-(check-set-mode! 'report-failed)
-
-
-;; list-index 函数测试
+;; list-index
+;; 返回第一个满足谓词条件的元素元组的索引。
 ;;
 ;; 语法
 ;; ----
@@ -21,19 +16,11 @@
 ;; 返回值
 ;; ------
 ;; integer? 或 #f
-;; 返回第一个使 (pred e1 e2 ...) 为非 #f 的元素元组索引（从 0 开始）；
-;; 没有找到则返回 #f；多列表形式在 最短 的列表结束时停止查找。
-;;
-;; 实现说明
-;; --------
-;; C 实现（src/s7_liii_list.c 的 g_list_index），多列表形式按 SRFI-1
-;; 语义逐个列表同步取元素。
-;;
-;; 示例
-;; ----
-;; (list-index even? '(3 1 4 1 5 9)) => 2
-;; (list-index = '(1 2 4 4 4) '(3 4 4 4 3)) => 2
+;; 返回第一个使 (pred e1 e2 ...) 为非 #f 的元素元组索引（从 0 开始）；没有找到则返回 #f；多列表形式在最短的列表结束时停止查找。
 
+(import (srfi srfi-1) (liii check))
+
+(check-set-mode! 'report-failed)
 
 ;; 单列表
 
@@ -46,12 +33,10 @@
 (check (list-index (lambda (x) (> x 2)) '(1 2 3)) => 2)
 (check (integer? (list-index even? '(2))) => #t)
 
-
 ;; 谓词返回任意非 #f 值都算命中，并非只认 #t
 
 (check (list-index (lambda (x) (and (even? x) x)) '(1 2 3 4)) => 1)
 (check (list-index (lambda (x) (if (odd? x) 'yes #f)) '(2 4 5)) => 2)
-
 
 ;; 多列表：pred 每次取各列表同位置的元素，以最短列表为准
 
@@ -64,10 +49,8 @@
 (check (list-index > '(1 2 3 4) '(2 3 4 5)) => #f)
 (check (list-index (lambda (a b c) (= (+ a b) c)) '(1 2 3) '(1 2 3) '(1 4 6))
   =>
-  1
-) ;check
+  1)
 (check (list-index (lambda (a b) #f) '(a b) '(x y)) => #f)
-
 
 ;; 谓词执行期间分配内存（GC 压力下 anchor 保护 pred 和列表）
 
@@ -75,7 +58,6 @@
 
 (define %li-pred2 (lambda (a b) (= (length (list a b)) (+ a b) 2)))
 (check (list-index %li-pred2 '(1 2 3) '(1 2 3)) => 0)
-
 
 ;; 非法参数
 
@@ -96,6 +78,5 @@
 ;; 多列表形式中的点列表和非列表参数（预先做正规性检查）
 (check-catch 'type-error (list-index = '(1 2 3) '(1 2 . 3)))
 (check-catch 'type-error (list-index = '(1 2 3) 3))
-
 
 (check-report)
