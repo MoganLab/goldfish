@@ -1,5 +1,3 @@
-(import (scheme base) (liii check) (liii goldcheck))
-
 ;; make-check-arg-parser
 ;; 构造 gf check 子命令专用的命令行参数解析器。
 ;;
@@ -7,9 +5,15 @@
 ;; ----
 ;; (make-check-arg-parser)
 ;;
+;; 参数
+;; ----
+;; 无
+;;
 ;; 返回值
 ;; ------
 ;; argument-parser 实例。
+
+(import (scheme base) (liii check) (liii goldcheck))
 
 (check-set-mode! 'report-failed)
 
@@ -35,16 +39,16 @@
   ) ;let
 ) ;let
 
-(check-report)
-
-;; --only 参数：指定只检查的规则名
+;; 4. --only 参数：指定只检查的规则名
 (let ((parser (make-check-arg-parser)))
   (parser :parse-argv '("check" "--only" "layer-order"))
   (check (parser 'only) => "layer-order")
-)
+) ;let
 
-;; 未传 --only 时为 #f
+;; 5. 未传 --only 时为 #f
 (let ((parser (make-check-arg-parser)))
   (parser :parse-argv '("check"))
   (check-false (parser 'only))
-)
+) ;let
+
+(check-report)
