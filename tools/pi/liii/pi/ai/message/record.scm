@@ -5,7 +5,12 @@
 ;;
 
 (define-library (liii pi ai message record)
-  (import (scheme base) (liii base) (liii pi ai time) (liii pi ai message types))
+  (import (scheme base)
+    (liii base)
+    (liii string)
+    (liii pi ai time)
+    (liii pi ai message types)
+  ) ;import
   (export pi-message? pi-message-role pi-message->alist pi-block? pi-block-type
     pi-block->alist pi-user-message pi-user-message? pi-user-message-role
     pi-user-message-content pi-user-message-timestamp pi-assistant-message

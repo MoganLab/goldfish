@@ -1,8 +1,23 @@
+;; pi-provider-env-keys
+;; 获取服务商依次尝试的 API Key 环境变量名称列表。
+;;
+;; 语法
+;; ----
+;; (pi-provider-env-keys provider)
+;;
+;; 参数
+;; ----
+;; provider : string? 或 symbol?
+;; 服务商标识符。
+;;
+;; 返回值
+;; ----
+;; list?
+;; 环境变量名字符串列表；若未注册则返回空列表。
+
 (import (liii check) (liii pi ai providers registry))
 
 (check-set-mode! 'report-failed)
-
-;; 各 provider 依次尝试的 API key 环境变量
 ;; anthropic / glm provider 已移除，未注册返回空表
 (check (pi-provider-env-keys "anthropic") => '())
 (check (pi-provider-env-keys "glm") => '())

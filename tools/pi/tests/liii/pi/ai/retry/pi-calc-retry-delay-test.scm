@@ -1,7 +1,31 @@
-(import (scheme base)
-  (liii check)
-  (liii pi ai retry)
-)
+;; pi-calc-retry-delay
+;; 计算指数退避重试延迟时间（支持服务端 Retry-After 指示）。
+;;
+;; 语法
+;; ----
+;; (pi-calc-retry-delay attempt base-delay-ms max-delay-ms)
+;; (pi-calc-retry-delay attempt base-delay-ms max-delay-ms retry-after-sec)
+;;
+;; 参数
+;; ----
+;; attempt : integer?
+;; 当前重试次数（从 1 开始）。
+;;
+;; base-delay-ms : number?
+;; 基础延迟毫秒数。
+;;
+;; max-delay-ms : number?
+;; 最大延迟毫秒数。
+;;
+;; retry-after-sec : number?
+;; 可选，服务端指示的重试等待秒数。
+;;
+;; 返回值
+;; ----
+;; real?
+;; 退避等待时间（秒）。
+
+(import (scheme base) (liii check) (liii pi ai retry))
 
 (check-set-mode! 'report-failed)
 

@@ -1,7 +1,3 @@
-(import (liii check) (liii string) (liii pi ai limits))
-
-(check-set-mode! 'report-failed)
-
 ;; pi-usage-limit-error?
 ;; 判断响应是否属于「额度耗尽（不可重试）」，是 pi-detect-usage-limit 的真值形式。
 ;;
@@ -29,6 +25,10 @@
 ;; 注意
 ;; ----
 ;; 返回 #t/#f 之外还要带上判定结果，所以返回 record 而不是布尔值。
+
+(import (liii check) (liii string) (liii pi ai limits))
+
+(check-set-mode! 'report-failed)
 
 (define zai "zai-coding-cn")
 

@@ -1,3 +1,26 @@
+;; pi-model-cost
+;; 获取指定模型在特定服务商下的定价费率表。
+;;
+;; 语法
+;; ----
+;; (pi-model-cost provider model-id custom-models)
+;;
+;; 参数
+;; ----
+;; provider : string?
+;; 服务商标识符。
+;;
+;; model-id : string?
+;; 模型标识符。
+;;
+;; custom-models : list?
+;; 自定义模型配置列表。
+;;
+;; 返回值
+;; ----
+;; alist
+;; 包含 input、output、cacheRead、cacheWrite 等费率的关联列表。
+
 (import (scheme base) (liii check) (liii pi ai cost))
 
 (check-set-mode! 'report-failed)

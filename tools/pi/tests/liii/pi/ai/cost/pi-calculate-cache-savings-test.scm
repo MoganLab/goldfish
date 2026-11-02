@@ -1,7 +1,3 @@
-(import (scheme base) (liii check) (liii pi ai cost))
-
-(check-set-mode! 'report-failed)
-
 ;; pi-calculate-cache-savings
 ;; 计算 cacheRead 相比普通 input 费率节省的费用。
 ;;
@@ -25,10 +21,10 @@
 ;; ----
 ;; 节省为 max(0, input费率-cacheRead费率) × cacheRead tokens / 1000000。
 ;; 无 cacheRead 时返回 0，阶梯费率选择与 pi-calculate-cost 一致。
-;;
-;; 示例
-;; ----
-;; (pi-calculate-cache-savings cost-rates usage) => 1.35
+
+(import (scheme base) (liii check) (liii pi ai cost))
+
+(check-set-mode! 'report-failed)
 
 ;; 命中 cacheRead 产生节省
 (let* ((cost-rates '((input . 3.0)

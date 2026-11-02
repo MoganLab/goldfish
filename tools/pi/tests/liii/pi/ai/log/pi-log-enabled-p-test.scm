@@ -1,13 +1,13 @@
-(import (liii check) (liii os) (liii pi ai log))
-
-(check-set-mode! 'report-failed)
-
 ;; pi-log-enabled?
 ;; 判断文件日志是否开启。
 ;;
 ;; 语法
 ;; ----
 ;; (pi-log-enabled?)
+;;
+;; 参数
+;; ----
+;; 无
 ;;
 ;; 返回值
 ;; ----
@@ -17,6 +17,10 @@
 ;; 注意
 ;; ----
 ;; 关闭后 pi-log-error! 与 pi-log-http-error! 都不写盘，也不影响请求本身。
+
+(import (liii check) (liii os) (liii pi ai log))
+
+(check-set-mode! 'report-failed)
 
 ;; 1. 未设置环境变量：开启
 (unsetenv "PI_LOG")

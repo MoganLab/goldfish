@@ -1,7 +1,3 @@
-(import (liii check) (liii pi ai providers registry))
-
-(check-set-mode! 'report-failed)
-
 ;; pi-provider-quota-error-handler
 ;; 取某个 provider 注册的额度耗尽识别函数。
 ;;
@@ -23,6 +19,10 @@
 ;; ----
 ;; 处理函数由各 provider 模块导出（PI_ZAI_CODING_CN_QUOTA_ERROR、
 ;; PI_KIMI_CODING_QUOTA_ERROR 等），registry 只做按 id 查找。
+
+(import (liii check) (liii pi ai providers registry))
+
+(check-set-mode! 'report-failed)
 
 ;; 1. 已注册 provider 返回过程
 (check-true (procedure? (pi-provider-quota-error-handler "zai-coding-cn")))

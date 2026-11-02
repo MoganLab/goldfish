@@ -1,10 +1,3 @@
-(import (liii check)
-  (liii pi ai providers quota)
-  (liii string)
-) ;import
-
-(check-set-mode! 'report-failed)
-
 ;; pi-quota-message-trailing-code
 ;; 从官方错误消息尾部提取形如 "(2067)" 的业务码。
 ;;
@@ -19,7 +12,7 @@
 ;;
 ;; 返回值
 ;; ----
-;; 字符串（纯数字，如 "2067"）或 #f
+;; string? 或 #f
 ;; 消息以 "(数字)" 结尾时返回括号内的数字串，否则 #f。
 ;;
 ;; 注意
@@ -28,12 +21,15 @@
 ;; code 字段。数字码是稳定标识，不受文案改写与本地化影响；判定依据
 ;; 是码本身而不是文案，符合本模块「不用文案判定」的约定。
 
+(import (liii check) (liii pi ai providers quota) (liii string))
+
+(check-set-mode! 'report-failed)
+
 ;; 1. 真实响应：Token Plan 用量上限，尾码 2067
-(check
-  (pi-quota-message-trailing-code
-    "当前已达到 Token Plan 用量上限。为避免调用中断，请升级 Token Plan 套餐，或购买积分补充用量并开启积分自动消耗。 (2067)"
-  ) ;pi-quota-message-trailing-code
-  => "2067"
+(check (pi-quota-message-trailing-code "当前已达到 Token Plan 用量上限。为避免调用中断，请升级 Token Plan 套餐，或购买积分补充用量并开启积分自动消耗。 (2067)"
+       ) ;pi-quota-message-trailing-code
+  =>
+  "2067"
 ) ;check
 
 ;; 2. 普通括号数字

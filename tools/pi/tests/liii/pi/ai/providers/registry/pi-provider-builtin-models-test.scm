@@ -1,12 +1,26 @@
+;; pi-provider-builtin-models
+;; 获取服务商的内置模型目录列表。
+;;
+;; 语法
+;; ----
+;; (pi-provider-builtin-models provider)
+;;
+;; 参数
+;; ----
+;; provider : string? 或 symbol?
+;; 服务商标识符。
+;;
+;; 返回值
+;; ----
+;; list?
+;; 该服务商支持的内置模型配置列表。
+
 (import (liii check)
   (liii pi ai providers registry)
   (liii pi ai models builtin)
 ) ;import
 
 (check-set-mode! 'report-failed)
-
-;; pi-provider-builtin-models
-;; registry 提供的内置模型目录与 models/builtin 聚合接口同源。
 
 (define (has-model? models id)
   (if (null? models)
@@ -38,8 +52,7 @@
 ;; 支持的 provider 列表
 (check PI_SUPPORTED_PROVIDERS
   =>
-  '("google" "kimi-coding" "deepseek" "minimax-cn"
-    "zai-coding-cn")
+  '("google" "kimi-coding" "deepseek" "minimax-cn" "zai-coding-cn")
 ) ;check
 
 (check-report)

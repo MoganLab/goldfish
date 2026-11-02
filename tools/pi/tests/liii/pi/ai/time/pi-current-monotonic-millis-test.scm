@@ -1,0 +1,42 @@
+;; pi-current-monotonic-millis
+;; 获取系统自开机以来的单调毫秒数（精确整数）。
+;;
+;; 语法
+;; ----
+;; (pi-current-monotonic-millis)
+;;
+;; 参数
+;; ----
+;; 无
+;;
+;; 返回值
+;; ----
+;; integer?
+;; 单调递增的毫秒时间戳整数。
+
+(import (liii check) (liii pi ai time))
+
+(check-set-mode! 'report-failed)
+
+(let ((ms (pi-current-monotonic-millis)))
+  (check-true (number? ms))
+  (check-true (exact? ms))
+  (check-true (integer? ms))
+  (check-true (> ms 0))
+  (check-true (< ms 1000000000000))
+  (let ((ms2 (pi-current-monotonic-millis)))
+    (check-true (exact? ms2))
+    (check-true (>= ms2 ms))
+  ) ;let
+) ;let
+
+;; 与单调秒接口的换算关系
+(let* ((sec-before (pi-current-monotonic-seconds))
+       (ms (pi-current-monotonic-millis))
+       (sec-after (pi-current-monotonic-seconds))
+      ) ;
+  (check-true (<= (* sec-before 1000) ms))
+  (check-true (< ms (* (+ sec-after 1) 1000)))
+) ;let*
+
+(check-report)

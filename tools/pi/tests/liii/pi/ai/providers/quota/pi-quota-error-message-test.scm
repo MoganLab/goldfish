@@ -1,9 +1,3 @@
-(import (liii check)
-  (liii string)
-  (liii pi ai providers quota))
-
-(check-set-mode! 'report-failed)
-
 ;; pi-quota-error-message
 ;; 从错误响应体安全提取 error.message。
 ;;
@@ -11,20 +5,30 @@
 ;; ----
 ;; (pi-quota-error-message body-str)
 ;;
+;; 参数
+;; ----
+;; body-str : string?
+;; 响应体原文。
+;;
 ;; 返回值
 ;; ----
-;; 正常返回 message 字段值（可能为 '() 等非字符串，由调用方过滤）；
-;; 解析失败（非 JSON、畸形结构）返回 '()，并经注入的 logger 记录。
+;; any?
+;; 正常返回 message 字段值；解析失败（非 JSON、畸形结构）返回 '()。
 ;;
 ;; 注意
 ;; ----
 ;; logger 由 (liii pi ai log) 初始化时注入（quota 不能反向 import log，
 ;; 循环依赖），未注入时静默。本文件用手动注入验证。
 
+(import (liii check) (liii string) (liii pi ai providers quota))
+
+(check-set-mode! 'report-failed)
+
 ;; 1. 正常提取（嵌套 error.message，pretty JSON）
-(check (pi-quota-error-message
-         "{\n  \"error\": {\n    \"message\": \"quota exceeded\"\n  }\n}")
-  => "quota exceeded"
+(check (pi-quota-error-message "{\n  \"error\": {\n    \"message\": \"quota exceeded\"\n  }\n}"
+       ) ;pi-quota-error-message
+  =>
+  "quota exceeded"
 ) ;check
 
 ;; 2. 无 error 字段 -> '()（json-ref 安全路径，不触发 logger）
@@ -43,7 +47,7 @@
   (check-true (and (pair? logged)
                 (string-contains? (car logged) "quota-parse-error")
                 (string-contains? (car logged) "<html>429</html>")
-          ) ;and
+              ) ;and
   ) ;check-true
   (set-pi-quota-error-logger! #f)
 ) ;let

@@ -1,7 +1,3 @@
-(import (liii check) (liii pi ai providers quota))
-
-(check-set-mode! 'report-failed)
-
 ;; pi-quota-error-result
 ;; provider 可复用的默认额度耗尽判定实现。
 ;;
@@ -29,6 +25,10 @@
 ;; ----
 ;; 只是默认实现：provider 若需要别的状态码、别的字段结构或要解析重置时间，
 ;; 可在自家模块里自行实现同名签名的处理函数，不必调用它。
+
+(import (liii check) (liii pi ai providers quota))
+
+(check-set-mode! 'report-failed)
 
 (define table '(("1308" . "five-hour") ("1310" . "weekly")))
 

@@ -1,10 +1,3 @@
-(import (liii check)
-  (liii pi ai providers quota)
-  (liii pi ai providers google)
-) ;import
-
-(check-set-mode! 'report-failed)
-
 ;; PI_GOOGLE_QUOTA_ERROR
 ;; Google Gemini 的额度耗尽识别函数。
 ;;
@@ -12,11 +5,20 @@
 ;; ----
 ;; (PI_GOOGLE_QUOTA_ERROR status-code body-str)
 ;;
+;; 参数
+;; ----
+;; status-code : integer?
+;; HTTP 状态码。
+;;
+;; body-str : string?
+;; 响应体原文。
+;;
 ;; 返回值
 ;; ----
-;; pi-quota-limit? 或 #f。
+;; pi-quota-limit? 或 #f
+;; 命中返回 record，未命中返回 #f。
 ;;
-;; 判定策略
+;; 说明
 ;; ----
 ;; 只认实测遇到过的形态（2026-10-31 gemini-3.8-flash 月消费上限）：
 ;;   1. HTTP 429
@@ -25,7 +27,12 @@
 ;; 让上层继续按原有逻辑重试；403 不参与判定。
 ;; 未实测过的错误形态不入表，避免先验知识误杀瞬时限流。
 
+(import (liii check) (liii pi ai providers quota) (liii pi ai providers google))
+
+(check-set-mode! 'report-failed)
+
 ;; 真实形态：月消费上限（2026-10-31 实测 gemini-3.8-flash，pretty JSON 原样）
+
 (define spending-cap-body
   "{\n  \"error\": {\n    \"code\": 429,\n    \"message\": \"Your billing account has exceeded its monthly spending cap. Please go to AI Studio at https://ai.studio/billing to manage your billing. Learn more at https://ai.google.dev/gemini-api/docs/billing#tier-spend-caps. \",\n    \"status\": \"RESOURCE_EXHAUSTED\"\n  }\n}"
 ) ;define

@@ -21,10 +21,10 @@
   (begin
 
     (define-record-type <gemini-stream-state>
-      (make-gemini-stream-state blocks last-text usage tool-calls finish-reason
+      (%make-gemini-stream-state blocks last-text usage tool-calls finish-reason
         active-type thinking-text thinking-signature
-      ) ;make-gemini-stream-state
-      gemini-stream-state?
+      ) ;%make-gemini-stream-state
+      %gemini-stream-state?
       (blocks gemini-stream-state-record-blocks
         gemini-stream-state-record-blocks-set!
       ) ;blocks
@@ -48,6 +48,18 @@
         gemini-stream-state-record-thinking-signature-set!
       ) ;thinking-signature
     ) ;define-record-type
+
+    (define (make-gemini-stream-state blocks last-text usage tool-calls
+              finish-reason active-type thinking-text thinking-signature
+            ) ;make-gemini-stream-state
+      (%make-gemini-stream-state blocks last-text usage tool-calls finish-reason
+        active-type thinking-text thinking-signature
+      ) ;%make-gemini-stream-state
+    ) ;define
+
+    (define (gemini-stream-state? state)
+      (%gemini-stream-state? state)
+    ) ;define
 
     (define (gemini-stream-state-blocks state)
       (if (gemini-stream-state? state)

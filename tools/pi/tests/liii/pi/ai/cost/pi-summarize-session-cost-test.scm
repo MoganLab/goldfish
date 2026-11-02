@@ -1,3 +1,23 @@
+;; pi-summarize-session-cost
+;; 统计整个会话中所有请求的总费用与节省费用。
+;;
+;; 语法
+;; ----
+;; (pi-summarize-session-cost cost-rates usages)
+;;
+;; 参数
+;; ----
+;; cost-rates : alist
+;; 模型的定价费率表。
+;;
+;; usages : list?
+;; 各轮请求的用量记录列表。
+;;
+;; 返回值
+;; ----
+;; alist
+;; 包含 totalCost 与 totalSavings 的统计结果关联列表。
+
 (import (scheme base) (liii check) (liii pi ai cost))
 
 (check-set-mode! 'report-failed)
