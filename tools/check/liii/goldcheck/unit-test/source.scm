@@ -312,7 +312,7 @@
     ) ;define
 
     (define (extract-library-exports source-path)
-      (call-with-input-file source-path extract-exports-from-port)
+      (call-with-input-file (resolve-repo-file source-path) extract-exports-from-port)
     ) ;define
 
     (define (make-missing-test-violation expected-rel name)
