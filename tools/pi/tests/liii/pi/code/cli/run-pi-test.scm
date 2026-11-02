@@ -1,31 +1,25 @@
-;; 先导入 (liii pi code cli)：若 (liii check) 先于它导入，编译器在宏展开期
-;; 会拿到已回收的常量（报 "lambda parameter is a constant: <free cell!>"）。
-(import (liii pi code cli) (liii check) (liii string))
-
-(check-set-mode! 'report-failed)
-
 ;; run-pi
 ;; 剥离命令行中的 gf/pi 前缀，加载扩展并执行 Pi 命令。
 ;;
 ;; 语法
 ;; ----
-;; (run-pi raw-args) -> integer
+;; (run-pi raw-args)
 ;;
 ;; 参数
 ;; ----
-;; raw-args : list
+;; raw-args : list?
 ;; 原始命令行字符串列表，可包含可执行文件路径及 pi 子命令前缀。
 ;;
 ;; 返回值
 ;; ----
-;; integer
+;; integer?
 ;; 进程风格退出码：成功为 0，参数、安装或运行错误为 1。
-;; 函数会捕获命令执行错误并输出简短诊断。
-;;
-;; 示例
-;; ----
-;; (run-pi '("gf" "pi" "--help")) => 0
-;; (run-pi '("/usr/bin/gf" "--help")) => 0
+
+;; 先导入 (liii pi code cli)：若 (liii check) 先于它导入，编译器在宏展开期
+;; 会拿到已回收的常量（报 "lambda parameter is a constant: <free cell!>"）。
+(import (liii pi code cli) (liii check) (liii string))
+
+(check-set-mode! 'report-failed)
 
 (define (check-help-command raw-args)
   (let ((status #f))
@@ -39,5 +33,6 @@
 ;; gf pi 与可执行文件路径两种前缀都应正确剥离
 (check-help-command '("gf" "pi" "--help"))
 (check-help-command '("/usr/bin/gf" "--help"))
+
 
 (check-report)
