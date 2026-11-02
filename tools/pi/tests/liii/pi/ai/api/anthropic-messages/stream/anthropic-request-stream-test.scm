@@ -3,6 +3,10 @@
   (liii list)
   (liii path)
   (liii subprocess)
+  (liii go)
+  (liii time)
+  (scheme time)
+  (liii pi abort)
   (liii pi ai event)
   (liii pi ai api anthropic-messages)
 ) ;import
@@ -62,6 +66,13 @@
     "tools/pi/tests/stub_gemini_server.py"
     "tests/stub_gemini_server.py"
   ) ;if
+) ;define
+
+;; 延迟发送 abort 信号的 worker：0.5s 后向通道发中止信号。
+;; 顶层 define + (go (fn ch)) 传参形式（闭包变量无法跨 go 会话传输）
+(define (delay-abort-signal ch)
+  (sleep 0.5)
+  (chan-send! ch 'abort 0)
 ) ;define
 
 (let* ((proc (process-spawn (list "python3" stub-server-file) :stdout 'pipe))
@@ -193,6 +204,43 @@
       (check (cdr (assoc 'stopReason resp)) => "error")
       (check-true (string-contains? (cdr (assoc 'errorMessage resp)) "model not found")
       ) ;check-true
+    ) ;let*
+
+    ;; 空闲期中止：stub 发 1 个 chunk 后静默挂起 30s，模拟 LLM 思考期。
+    ;; 首个流事件到达时同步发送 abort 信号，之后无新 chunk，
+    ;; 无 progress 节拍探测时只能等到 timeout（红灯）；
+    ;; 接入 :progress 后约 1s 节拍内中止并结算 aborted（绿灯）
+    (let* ((ch (make-chan 1))
+           (t0 (current-second))
+           (hang-cfg
+             `((provider . "anthropic")
+               (model-id . "claude-3-7-sonnet-20250219")
+               (api-key . "sk-ant-test-key")
+               (model-meta (base-url . ,(string-append base-url "/stream-abort-hang"))
+                 (max-tokens . 4096))
+               (proxy-url . #f)
+               (tools "bash")
+               (settings))
+           ) ;hang-cfg
+           (resp
+             (begin
+               (pi-abort-arm-chan! ch)
+               ;; 信号晚于 chunk1 到达：chunk 检查点探不到，只能靠 progress 节拍探测
+               (go (delay-abort-signal ch))
+               (anthropic-request-stream hang-cfg
+                 '(((role . "user") (content . "hang then abort")))
+                 #f
+                 '("bash")
+                 #f
+                 60
+               ) ;anthropic-request-stream
+             ) ;begin
+           ) ;resp
+           (dt (- (current-second) t0))
+          ) ;
+      (check-true (< dt 10))
+      (check (cdr (assoc 'stopReason resp)) => "aborted")
+      (pi-abort-reset!)
     ) ;let*
   ) ;let
 

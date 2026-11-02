@@ -2,6 +2,10 @@
   (liii string)
   (liii path)
   (liii subprocess)
+  (liii go)
+  (liii time)
+  (scheme time)
+  (liii pi abort)
   (liii pi ai event)
   (liii pi ai api google-generative-ai)
 ) ;import
@@ -64,6 +68,13 @@
       "../../tools/pi/tests/stub_gemini_server.py"
     ) ;if
   ) ;if
+) ;define
+
+;; 延迟发送 abort 信号的 worker：0.5s 后向通道发中止信号。
+;; 顶层 define + (go (fn ch)) 传参形式（闭包变量无法跨 go 会话传输）
+(define (delay-abort-signal ch)
+  (sleep 0.5)
+  (chan-send! ch 'abort 0)
 ) ;define
 
 (let* ((proc (process-spawn (list "python3" stub-server-file) :stdout 'pipe))
@@ -217,6 +228,42 @@
       ) ;check-true
       (check-false (string=? (cdr (assoc 'errorMessage resp-proxy)) "HTTP 0 stream error")
       ) ;check-false
+    ) ;let*
+
+    ;; 空闲期中止：stub 发 1 个 chunk 后静默挂起 30s，模拟 LLM 思考期。
+    ;; abort 信号晚于 chunk1 到达（0.5s 延迟），之后无新 chunk，
+    ;; 无 progress 节拍探测时只能等到 timeout（红灯）；
+    ;; 接入 :progress 后约 1s 节拍内中止并结算 aborted（绿灯）
+    (let* ((ch (make-chan 1))
+           (t0 (current-second))
+           (hang-cfg
+             (list (cons 'provider "google")
+               (cons 'api-key "test-key-stub-123")
+               (cons 'model-id "stream-idle-hang")
+               (cons 'model-meta (list (cons 'base-url base-url)))
+               (cons 'proxy-url #f)
+               (cons 'tools '())
+               (cons 'settings '((retry (enabled . #f))))
+             ) ;list
+           ) ;hang-cfg
+           (resp
+             (begin
+               (pi-abort-arm-chan! ch)
+               (go (delay-abort-signal ch))
+               (gemini-request-stream hang-cfg
+                 (list '((role . "user") (content . "hang then abort")))
+                 #f
+                 '()
+                 (lambda (ev) #f)
+                 60
+               ) ;gemini-request-stream
+             ) ;begin
+           ) ;resp
+           (dt (- (current-second) t0))
+          ) ;
+      (check-true (< dt 10))
+      (check (cdr (assoc 'stopReason resp)) => "aborted")
+      (pi-abort-reset!)
     ) ;let*
   ) ;let*
 

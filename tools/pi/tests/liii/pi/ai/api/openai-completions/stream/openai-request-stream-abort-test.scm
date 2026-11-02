@@ -5,6 +5,8 @@
   (liii go)
   (liii check)
   (liii string)
+  (liii time)
+  (scheme time)
   (liii subprocess)
   (liii pi abort)
   (liii pi ai message)
@@ -41,9 +43,16 @@
   ) ;if
 ) ;define
 
+;; 延迟发送 abort 信号的 worker：0.5s 后向通道发中止信号。
+;; 顶层 define + (go (fn ch)) 传参形式（闭包变量无法跨 go 会话传输）
+(define (delay-abort-signal ch)
+  (sleep 0.5)
+  (chan-send! ch 'abort 0)
+) ;define
+
 (let* ((proc (process-spawn (list "python3" stub-server-file) :stdout 'pipe))
        (port (read-stub-port proc))
-       (base-url (string-append "http://127.0.0.1:" (number->string port) "/mk-kimi-plain"))
+       (base-url (string-append "http://127.0.0.1:" (number->string port) "/chat-abort-hang"))
       ) ;
   (check-true (number? port))
 
@@ -112,6 +121,34 @@
       (check (pi-assistant-message? resp) => #t)
       (check (pi-assistant-message-stop-reason resp) => "stop")
     ) ;let
+  ) ;let*
+
+  ;; 4. 空闲期中止：stub 发 1 个 chunk 后静默挂起 30s，模拟 LLM 思考期。
+  ;;    abort 信号晚于 chunk1 到达（0.5s 延迟），之后无新 chunk，
+  ;;    无 progress 节拍探测时只能等到 timeout（红灯）；
+  ;;    接入 :progress 后约 1s 节拍内中止并结算 aborted（绿灯）
+  (let* ((ch (make-chan 1))
+         (t0 (current-second))
+         (cfg (list (cons 'model-id "chat-abort-hang")
+                (cons 'model-meta
+                  (list (cons 'base-url base-url) (cons 'max-tokens 1024))
+                ) ;list
+                (cons 'api-key "mk-kimi-key-1-x")
+                (cons 'proxy-url #f)
+                (cons 'tools '())
+                (cons 'settings '((retry . ((enabled . #f)))))
+              ) ;list
+             )
+         (msgs (list (pi-user-message "ping")))
+        ) ;
+    (pi-abort-arm-chan! ch)
+    (go (delay-abort-signal ch))
+    (let ((resp (openai-request-stream cfg msgs #f '() #f 60)))
+      (check (pi-assistant-message? resp) => #t)
+      (check (pi-assistant-message-stop-reason resp) => "aborted")
+    ) ;let
+    (check-true (< (- (current-second) t0) 10))
+    (pi-abort-reset!)
   ) ;let*
 
   (pi-abort-reset!)

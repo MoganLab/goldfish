@@ -148,7 +148,7 @@
       ) ;let*
     ) ;define
 
-    (define (%post-stream url req-json-str headers proxy-alist cb timeout eff-idle)
+    (define (%post-stream url req-json-str headers proxy-alist cb progress timeout eff-idle)
       (catch #t
         (lambda ()
           (http-post url
@@ -159,6 +159,7 @@
             :callback     cb
             :timeout      timeout
             :idle-timeout eff-idle
+            :progress     progress
           ) ;http-post
         ) ;lambda
         (lambda (tag . args)
@@ -202,7 +203,14 @@
                          err-acc
                        ) ;%build-stream-cb
                    ) ;cb
-                   (resp (%post-stream url req-json-str headers proxy-alist cb timeout eff-idle))
+                   ;; 空闲期中止探测：libcurl 无数据时也按节拍（≤1s）调用 progress，
+                   ;; 探测到用户中止即返回 #f 令 libcurl 中止传输（CURLE_ABORTED_BY_CALLBACK）；
+                   ;; 同时置位本地 aborted?，结算时优先走 aborted 分支，不进重试/换 key
+                   (progress
+                     (lambda (dlt dln ult uln) (if (pi-aborted?) (begin (set! aborted? #t) #f) #t))
+                   ) ;progress
+                   (resp (%post-stream url req-json-str headers proxy-alist cb progress timeout eff-idle)
+                   ) ;resp
                    (status (or (%resp-field resp 'status-code) 0))
                   ) ;
               ;; 异常请求（非 200 / 空闲超时）连同原始响应落盘，便于事后排障
