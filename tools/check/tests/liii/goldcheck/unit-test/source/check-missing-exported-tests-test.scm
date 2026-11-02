@@ -31,7 +31,12 @@
 (check-set-mode! 'report-failed)
 
 ;; 1. 测试全部覆盖的已有核心库
-(check (check-missing-exported-tests "tests/scheme/case-lambda" "tests/scheme/case-lambda") => '())
+(check (check-missing-exported-tests "tests/scheme/case-lambda"
+         "tests/scheme/case-lambda"
+       ) ;check-missing-exported-tests
+  =>
+  '()
+) ;check
 
 ;; 2. 临时测试夹具：缺失导出函数单测
 (let* ((base-dir (path->string (path-join (path-temp-dir) "gf-missing-tests-fixture")))
@@ -41,14 +46,42 @@
        (_ (path-mkdir (path src-dir) :parents #t :exist-ok #t))
        (src-file (path->string (path-join src-dir "my-lib.scm")))
        (foo-test (path->string (path-join test-dir "foo-test.scm")))
-       (src-content "(define-library (my-lib)\n  (export foo bar)\n  (import (scheme base))\n  (begin (define foo 1) (define bar 2)))\n")
+       (src-content "(define-library (my-lib)\n  (export foo bar)\n  (import (scheme base))\n  (begin (define foo 1) (define bar 2)))\n"
+       ) ;src-content
        (_ (path-write-bytes (path src-file) (string->utf8 src-content)))
        (_ (path-write-bytes (path foo-test) (string->utf8 "(check 1 => 1)\n")))
        (viols (check-missing-exported-tests test-dir "tests/my-lib"))
-      ) ;let*
+      ) ;
   (check-true (not (null? viols)))
   (check (car (car viols)) => 'unit-test)
-  (check-true (string-contains? (list-ref (car viols) 3) "缺少导出函数 bar 的单元测试"))
+  (check-true (string-contains? (list-ref (car viols) 3)
+                "缺少导出函数 bar 的单元测试"
+              ) ;string-contains?
+  ) ;check-true
+  (path-unlink foo-test #t)
+  (path-unlink src-file #t)
+  (path-rmdir test-dir)
+  (path-rmdir (path->string (path-parent (path test-dir))))
+  (path-rmdir src-dir)
+  (path-rmdir base-dir)
+) ;let*
+
+;; 3. 临时测试夹具：导出的符号包含 re-export 符号时，缺少该 re-export 符号单测不报违规
+(let* ((base-dir (path->string (path-join (path-temp-dir) "gf-missing-reexport-fixture"))
+       ) ;base-dir
+       (test-dir (path->string (path-join base-dir "tests" "my-lib2")))
+       (src-dir (path->string (path-join base-dir "goldfish")))
+       (_ (path-mkdir (path test-dir) :parents #t :exist-ok #t))
+       (_ (path-mkdir (path src-dir) :parents #t :exist-ok #t))
+       (src-file (path->string (path-join src-dir "my-lib2.scm")))
+       (foo-test (path->string (path-join test-dir "foo-test.scm")))
+       (src-content "(define-library (my-lib2)\n  (export foo reexported-bar)\n  (import (scheme base))\n  (begin (define foo 1)))\n"
+       ) ;src-content
+       (_ (path-write-bytes (path src-file) (string->utf8 src-content)))
+       (_ (path-write-bytes (path foo-test) (string->utf8 "(check 1 => 1)\n")))
+       (viols (check-missing-exported-tests test-dir "tests/my-lib2"))
+      ) ;
+  (check viols => '())
   (path-unlink foo-test #t)
   (path-unlink src-file #t)
   (path-rmdir test-dir)

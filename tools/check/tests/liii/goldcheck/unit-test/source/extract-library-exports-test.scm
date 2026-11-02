@@ -28,17 +28,19 @@
 (check-set-mode! 'report-failed)
 
 ;; 1. 提取核心库导出标识符
-(check (extract-library-exports "goldfish/scheme/case-lambda.scm") => '("case-lambda"))
+(check (extract-library-exports "goldfish/scheme/case-lambda.scm")
+  =>
+  '("case-lambda")
+) ;check
 
 ;; 2. 临时库文件导出解析（含普通符号与 rename）
 (let* ((tmp-file (path->string (path-join (path-temp-dir) "gf-test-exports.scm")))
-       (content (string-append
-                  "(define-library (test lib)\n"
+       (content (string-append "(define-library (test lib)\n"
                   "  (export a (rename b c) d)\n"
                   "  (import (scheme base)))\n"
                 ) ;string-append
        ) ;content
-      ) ;let*
+      ) ;
   (path-write-bytes (path tmp-file) (string->utf8 content))
   (check (extract-library-exports tmp-file) => '("a" "c" "d"))
   (path-unlink tmp-file #t)

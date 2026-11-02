@@ -24,9 +24,13 @@
     (liii list)
     (liii gfproject config)
     (liii goldcheck path)
+    (liii goldcheck unit-test source parse)
+    (liii goldcheck unit-test source reexport)
   ) ;import
   (export exported-name->test-stem find-library-source-for-test-dir
-    extract-library-exports check-missing-exported-tests file-defines-library?
+    extract-library-exports extract-library-defined-exports
+    extract-library-reexported-entries check-missing-exported-tests
+    check-reexported-tests check-reexported-test-file file-defines-library?
     find-test-dir-for-library-source
   ) ;export
   (begin
@@ -90,35 +94,6 @@
               ) ;if
             ) ;let
           ) ;let
-        ) ;if
-      ) ;let
-    ) ;define
-
-    (define (find-repo-root)
-      (let ((root (gfproject-root)))
-        (if (and root (string? root) (not (string=? root "")))
-          root
-          (let loop
-            ((dir (getcwd)))
-            (if
-              (and (path-dir? (path (path-join dir "goldfish")))
-                (path-file? (path (path-join dir "gf_check.json")))
-              ) ;and
-              dir
-              (let ((parent (path->string (path-parent (path dir)))))
-                (if (or (string=? parent dir) (string=? parent "/")) #f (loop parent))
-              ) ;let
-            ) ;if
-          ) ;let
-        ) ;if
-      ) ;let
-    ) ;define
-
-    (define (resolve-repo-file rel)
-      (let ((root (find-repo-root)))
-        (if (and root (string? root) (not (string=? root "")))
-          (path->string (path-join root rel))
-          rel
         ) ;if
       ) ;let
     ) ;define
@@ -269,53 +244,6 @@
       ) ;if
     ) ;define
 
-    (define (extract-decl-exports decl exports)
-      (if (and (pair? decl) (eq? (car decl) 'export))
-        (let loop
-          ((items (cdr decl)) (acc exports))
-          (if (null? items)
-            acc
-            (let ((item (car items)))
-              (cond
-               ((symbol? item) (loop (cdr items) (cons (symbol->string item) acc)))
-               ((and (pair? item) (eq? (car item) 'rename) (= (length item) 3))
-                (let ((ext (caddr item)))
-                  (loop (cdr items) (cons (symbol->string ext) acc))
-                ) ;let
-               ) ;
-               (else (loop (cdr items) acc))
-              ) ;cond
-            ) ;let
-          ) ;if
-        ) ;let
-        exports
-      ) ;if
-    ) ;define
-
-    (define (extract-exports-from-port port)
-      (let loop
-        ()
-        (let ((expr (catch #t (lambda () (read port)) (lambda (k e) (eof-object)))))
-          (cond ((eof-object? expr) '())
-                ((and (pair? expr) (eq? (car expr) 'define-library))
-                 (let decl-loop
-                   ((rem (cddr expr)) (exports '()))
-                   (if (null? rem)
-                     (reverse exports)
-                     (decl-loop (cdr rem) (extract-decl-exports (car rem) exports))
-                   ) ;if
-                 ) ;let
-                ) ;
-                (else (loop))
-          ) ;cond
-        ) ;let
-      ) ;let
-    ) ;define
-
-    (define (extract-library-exports source-path)
-      (call-with-input-file (resolve-repo-file source-path) extract-exports-from-port)
-    ) ;define
-
     (define (make-missing-test-violation expected-rel name)
       (list 'unit-test
         expected-rel
@@ -349,10 +277,16 @@
       (let ((source-path (find-library-source-for-test-dir parent)))
         (if (not source-path)
           '()
-          (missing-tests-in-names (extract-library-exports source-path) parent rel-parent)
+          (missing-tests-in-names (extract-library-defined-exports source-path)
+            parent
+            rel-parent
+          ) ;missing-tests-in-names
         ) ;if
       ) ;let
     ) ;define
+
+    (set-exported-name-to-test-stem-fn! exported-name->test-stem)
+    (set-find-library-source-fn! find-library-source-for-test-dir)
 
   ) ;begin
 ) ;define-library
