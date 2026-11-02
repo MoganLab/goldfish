@@ -205,11 +205,11 @@
 
     ;; 白名单文本（每行一个 id 的 json array + 换行）
     (define (%providers-json ids)
-      (string-append (pi-config-json-pretty (list->vector ids)) "\n")
+      (pi-providers-json ids)
     ) ;define
 
     (define (%providers-write-writes ids)
-      (list (cons "models/providers.json" (%providers-json ids)))
+      (pi-providers-write-writes ids)
     ) ;define
 
     ;; provider 禁用：从白名单移除，必要时级联默认模型
@@ -280,23 +280,10 @@
 
     ;; 白名单数组重写：保留其它键的顺序，models 就地替换（原本没有则追加）
     (define (%provider-file-with-models st provider ids)
-      (let* ((p-id (pi-config-provider-id provider))
-             (rel (pi-config-rel-provider p-id))
-             (raw (or (pi-user-read-json (pi-config-abs st rel)) '()))
-             (has-models? (and (assoc "models" raw) #t))
-             (stripped
-               (filter
-                 (lambda (e) (not (equal? (car e) "models")))
-                 raw
-               ) ;filter
-             ) ;stripped
-             (base (if (pair? stripped) stripped (list (cons "$schema" %provider-schema))))
-             (new
-               (append base (list (cons "models" (list->vector ids))))
-             ) ;new
-            ) ;
-        (cons rel (string-append (pi-config-json-pretty new) "\n"))
-      ) ;let*
+      (pi-provider-file-with-models (pi-config-state-dir st)
+        (pi-config-provider-id provider)
+        ids
+      ) ;pi-provider-file-with-models
     ) ;define
 
     ;; 模型启停（禁用分支）：从白名单移除，必要时级联默认模型

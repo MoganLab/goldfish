@@ -247,10 +247,36 @@
              (agent-dir (pi-get-agent-dir env-agent-dir))
              ;; JSON 配置文件目录：~/.gf/agent 存在时优先，否则回退 ~/.pi/agent
              (config-dir (gf-get-config-dir env-agent-dir))
+             (config-dir-str (path->string config-dir))
              (settings (pi-load-settings config-dir))
+             (cli-p (pi-args-ref parsed-args 'provider))
+             (cli-m (pi-args-ref parsed-args 'model))
+             (env-gf-m (lookup-env-var "GF_PI_MODEL" opt-env))
+             (explicit?
+               (or
+                 (and (string? cli-p) (not (string-null? (string-trim-both cli-p))))
+                 (and (string? cli-m) (not (string-null? (string-trim-both cli-m))))
+                 (and (string? env-gf-m) (not (string-null? (string-trim-both env-gf-m))))
+               ) ;or
+             ) ;explicit?
+             (_
+               (unless explicit?
+                 (let-values (((p-id m-id) (pi-resolve-default-target settings)))
+                   (if (not (pi-user-model-exists? config-dir-str p-id m-id))
+                     (error 'pi-config-error
+                       (string-append "Model \"" m-id
+                         "\" is not available for provider \"" p-id
+                         "\". Use --list-models to see available models, or add a model file under models/<provider>/ in the agent dir."
+                       ) ;string-append
+                     ) ;error
+                     (pi-auto-activate-default-model! config-dir-str settings)
+                   ) ;if
+                 ) ;let-values
+               ) ;unless
+             ) ;_
              ;; 模型目录来自用户配置：models/providers.json 白名单 + models/ 下的
              ;; provider 与模型文件，白名单外的 provider/模型不可用
-             (models-store (pi-build-user-catalog (path->string config-dir)))
+             (models-store (pi-build-user-catalog config-dir-str))
              (cli-proxy (pi-args-ref parsed-args 'proxy))
              (tools (resolve-active-tools parsed-args settings))
             ) ;
