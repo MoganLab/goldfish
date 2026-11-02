@@ -1,5 +1,3 @@
-(import (scheme base) (liii check) (liii goldcheck layer-config))
-
 ;; find-domain-by-name
 ;; 按域名查找域对象。配置用 JSON 的 Scheme 表示。
 ;;
@@ -16,6 +14,8 @@
 ;; ------
 ;; domain 或 #f
 
+(import (scheme base) (liii check) (liii goldcheck layer-config))
+
 (check-set-mode! 'report-failed)
 
 (define (%dom name root deps . layers)
@@ -25,26 +25,34 @@
     (cons "layers"
       (list->vector
         (map
-          (lambda (l)
-            (list (cons "name" (car l))
-              (cons "libs" (list->vector (cdr l)))))
-          layers))))
+          (lambda (l) (list (cons "name" (car l)) (cons "libs" (list->vector (cdr l)))))
+          layers
+        ) ;map
+      ) ;list->vector
+    ) ;cons
+  ) ;list
 ) ;define
 
 (define (%cfg . domains)
-  (list (cons "rules"
-    (list (cons "layer-order"
-      (list (cons "domains" (list->vector domains))))))
-) ;list
+  (list
+    (cons "rules"
+      (list
+        (cons "layer-order" (list (cons "domains" (list->vector domains))))
+      ) ;list
+    ) ;cons
+  ) ;list
 ) ;define
 
 (define %domains
-  (layer-domains-parse
-    (%cfg (%dom "goldfish" "goldfish/" '() (list "app" "liii *"))
-      (%dom "common" "tools/common/" '("goldfish")
-        (list "shared" "liii goldtool changed")))
+  (layer-domains-parse (%cfg (%dom "goldfish" "goldfish/" '() (list "app" "liii *"))
+                         (%dom "common"
+                           "tools/common/"
+                           '("goldfish")
+                           (list "shared" "liii goldtool changed")
+                         ) ;%dom
+                       ) ;%cfg
   ) ;layer-domains-parse
-)
+) ;define
 
 ;; 1. 找到存在的域
 (check-true (and (find-domain-by-name %domains "common") #t))
