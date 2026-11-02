@@ -22,7 +22,8 @@
     pi-app-scroll-bottom! pi-app-scroll-line-up! pi-app-scroll-line-down!
     pi-app-frame-lines pi-app-transcript-lines pi-app-wheel-accelerator
     pi-app-handle-mouse! pi-app-handle-mouse-events! pi-app-toggle-thinking!
-    pi-app-hide-thinking?
+    pi-app-hide-thinking? pi-app-selection pi-app-selection-set!
+    pi-app-selection-clear! pi-app-selection-active?
   ) ;export
   (import (scheme base)
     (liii base)
@@ -172,7 +173,19 @@
                      (set! delta (+ delta (wheel-scroll-next! acc 1 now)))
                      (set! handled? #t)
                     ) ;
-                    ((click) (when (pi-app-dispatch-mouse! app ev) (set! handled? #t)))
+                    ((press drag release)
+                     (when (pi-app-handle-selection-mouse! app ev)
+                       (set! handled? #t)
+                     ) ;when
+                    ) ;
+                    ((click)
+                     (when (pi-app-handle-selection-mouse! app ev)
+                       (set! handled? #t)
+                     ) ;when
+                     (when (pi-app-dispatch-mouse! app ev)
+                       (set! handled? #t)
+                     ) ;when
+                    ) ;
                     (else #f)
               ) ;case
             ) ;let
@@ -318,6 +331,7 @@
                     #f
                     (and hide-thinking #t)
                     on-save-hide-thinking
+                    #f
                   ) ;%make-pi-app
              ) ;app
              (ed (%make-pi-editor app tl))

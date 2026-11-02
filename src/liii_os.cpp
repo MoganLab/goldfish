@@ -660,6 +660,15 @@ pump_console_input (HANDLE hIn, long timeout_ms) {
     /* Ctrl+Alt 组合优先按 Ctrl 语义编码（沿用 Ctrl 码段），避免语义被 Alt 覆盖 */
     bool alt_key= is_alt && !is_ctrl;
 
+    // Ctrl+Shift+C -> Kitty / CSI u "\x1b[99;6u"
+    if ((virt == 'C' || virt == 'c') && is_ctrl && is_shift) {
+      const char* seq= "\x1b[99;6u";
+      for (const char* p= seq; *p; ++p) {
+        g_console_key_queue.push_back ((int) (unsigned char) *p);
+      }
+      return true;
+    }
+
     // Shift-Tab
     if (virt == VK_TAB && is_shift) {
       g_console_key_queue.push_back (353); // curses KEY_BTAB

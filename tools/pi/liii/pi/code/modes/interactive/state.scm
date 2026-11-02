@@ -30,9 +30,10 @@
     pi-app-follow-up-chan %pi-app-steering-pending %pi-app-steering-pending-set!
     %pi-app-follow-up-pending %pi-app-follow-up-pending-set!
     pi-app-hide-thinking? %pi-app-hide-thinking?-set!
-    %pi-app-on-save-hide-thinking
+    %pi-app-on-save-hide-thinking pi-app-selection %pi-app-selection-set!
+    pi-app-selection-set! pi-app-selection-clear! pi-app-selection-active?
   ) ;export
-  (import (scheme base))
+  (import (scheme base) (liii pi code modes interactive selection))
   (begin
 
     ;; 编辑器顶边框：开启时占 1 行，渲染时光标行需跳过该行
@@ -48,6 +49,7 @@
         on-save-model tool-cards resume-sessions no-session? scroll-view
         wheel-accelerator steering-chan follow-up-chan steering-pending
         follow-up-pending thinking-card hide-thinking? on-save-hide-thinking
+        selection
       ) ;%make-pi-app
       pi-app?
       (term pi-app-term)
@@ -124,9 +126,23 @@
       (hide-thinking? pi-app-hide-thinking? %pi-app-hide-thinking?-set!)
       ;; 切换后持久化回调 (lambda (hide))，由 cli.scm 接 settings.json 落盘
       (on-save-hide-thinking %pi-app-on-save-hide-thinking)
+      ;; 选区状态：包含起始锚点、当前焦点与激活标志（或 #f）
+      (selection pi-app-selection %pi-app-selection-set!)
     ) ;define-record-type
 
     (define %pi-app-term pi-app-term)
+
+    (define (pi-app-selection-set! app sel)
+      (%pi-app-selection-set! app sel)
+    ) ;define
+
+    (define (pi-app-selection-clear! app)
+      (%pi-app-selection-set! app #f)
+    ) ;define
+
+    (define (pi-app-selection-active? app)
+      (and (pi-app-selection app) (selection-active? (pi-app-selection app)))
+    ) ;define
 
   ) ;begin
 ) ;define-library

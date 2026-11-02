@@ -74,7 +74,8 @@
     screen-diff screen-dirty-diff diff-op-type diff-op-index diff-op-text
     screen-diff-has-changes? fuzzy-match fuzzy-filter make-select-list
     select-list? select-list-items select-list-selected-item
-    select-list-selected-index select-list-set-selected-index!
+    select-list-selected-index select-list-set-selected-index! osc52-sequence
+    osc52-copy-sequence clipboard-copy! native-clipboard-copy!
   ) ;export
   (import (liii tui component)
     (liii tui text-width)
@@ -90,5 +91,6 @@
     (liii tui mouse)
     (liii tui fuzzy)
     (liii tui select-list)
+    (liii tui clipboard)
   ) ;import
 ) ;define-library

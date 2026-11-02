@@ -18,6 +18,7 @@
   (export pi-app-render! pi-app-frame-lines pi-app-transcript-lines
     pi-app-scroll-up! pi-app-scroll-down! pi-app-scroll-top!
     pi-app-scroll-bottom! pi-app-scroll-line-up! pi-app-scroll-line-down!
+    highlight-selection-line highlight-selection-lines
   ) ;export
   (import (scheme base)
     (liii string)
@@ -25,6 +26,7 @@
     (liii tui)
     (liii pi agent queue)
     (liii pi code modes interactive state)
+    (liii pi code modes interactive selection)
     (liii pi code modes interactive views)
     (liii pi code modes interactive views theme)
     (liii pi code modes interactive working)
@@ -163,6 +165,11 @@
                  ) ;let*
                ) ;transcript-lines
                (frame (append transcript-lines dock-lines))
+               (rendered-frame (if (pi-app-selection-active? app)
+                                 (highlight-selection-lines frame (pi-app-selection app))
+                                 frame
+                               ) ;if
+               ) ;rendered-frame
                (input-base (+ transcript-height (length pending-lines)))
                (cur-pos
                  (if active-selector
@@ -192,7 +199,7 @@
                  ) ;if
                ) ;cur-pos
               ) ;
-          (values frame cur-pos)
+          (values rendered-frame cur-pos)
         ) ;let*
       ) ;let*
     ) ;define

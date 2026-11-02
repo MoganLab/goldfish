@@ -5,14 +5,21 @@
 ;;
 
 (define-library (liii pi code modes interactive run)
-  (export pi-app-run pi-app-print-transcript! pi-app-abort-inflight!)
+  (export pi-app-run pi-app-print-transcript! pi-app-abort-inflight!
+    pi-app-copy-selection!
+  ) ;export
   (import (scheme base)
     (liii go)
     (liii time)
     (liii date-time)
     (liii string)
     (liii tui)
+    (liii tui clipboard)
     (liii pi agent queue)
+    (liii pi code modes interactive state)
+    (liii pi code modes interactive selection)
+    (liii pi code modes interactive status-card)
+    (liii pi code modes interactive footer)
     (liii pi code modes interactive app)
     (liii pi code modes interactive app-events)
     (liii pi code modes interactive app-thinking)
@@ -102,6 +109,32 @@
       ) ;let
     ) ;define*
 
+    (define (pi-app-copy-selection! app)
+      (if (pi-app-selection-active? app)
+        (let-values (((frame _) (pi-app-frame-lines app)))
+          (let ((text (selection-extract-text frame (pi-app-selection app))))
+            (if (and (string? text) (> (string-length text) 0))
+              (begin
+                (clipboard-copy! (pi-app-term app) text)
+                (let ((msg (string-append "Copied "
+                             (number->string (string-length text))
+                             " characters to clipboard"
+                           ) ;string-append
+                      ) ;msg
+                     ) ;
+                  (pi-footer-set-message! (%pi-app-footer app) msg)
+                  (container-add! (%pi-app-chat app) (make-status-card msg))
+                ) ;let
+                #t
+              ) ;begin
+              #f
+            ) ;if
+          ) ;let
+        ) ;let-values
+        #f
+      ) ;if
+    ) ;define
+
     ;; force-exit：宽限期后仍未结算时的强制退出钩子。
     ;; 默认 emergency-exit（s7 的 _exit）：跳过 go 线程池 join 与 C++ 静态析构，
     ;; 保证后台请求卡住时终端仍能立即回到 shell 提示符（对齐上游 pi 的 process.exit）。
@@ -189,15 +222,24 @@
                      (not (pi-app-slash-command-menu app))
                      (eq? k 'escape)
                    ) ;and
-                   (when (pi-queue-busy? q)
-                     ;; 非阻塞发送：容量 1，丢弃旧信号也无所谓（语义同为中止）
-                     (chan-send! (pi-app-abort-chan app) 'abort 0)
-                   ) ;when
-                   ;; 撤回全部排队消息：steering → follow-up → 等待队列，
-                   ;; 与编辑器当前内容合并回编辑（对齐上游 restoreQueuedMessagesToEditor）
-                   (%pi-app-restore-to-editor! app)
-                   (pi-app-render! app)
-                   (loop)
+                   (if (pi-app-selection-active? app)
+                     (begin
+                       (pi-app-selection-clear! app)
+                       (pi-app-render! app)
+                       (loop)
+                     ) ;begin
+                     (begin
+                       (when (pi-queue-busy? q)
+                         ;; 非阻塞发送：容量 1，丢弃旧信号也无所谓（语义同为中止）
+                         (chan-send! (pi-app-abort-chan app) 'abort 0)
+                       ) ;when
+                       ;; 撤回全部排队消息：steering → follow-up → 等待队列，
+                       ;; 与编辑器当前内容合并回编辑（对齐上游 restoreQueuedMessagesToEditor）
+                       (%pi-app-restore-to-editor! app)
+                       (pi-app-render! app)
+                       (loop)
+                     ) ;begin
+                   ) ;if
                   ) ;
                   ;; alt+up：仅撤回排队消息到编辑器，不中止运行中任务
                   ;; （对齐上游 app.message.dequeue 键位）
@@ -270,6 +312,13 @@
                   ) ;
                   ;; 按 ctrl+o 时：全局切换 bash/工具输出卡片的展开与折叠
                   ((eq? k 'ctrl-o) (pi-app-toggle-tool-output! app) (pi-app-render! app) (loop))
+                  ;; 复制选区：Ctrl+Shift+C 快捷键响应
+                  ((or (eq? k 'shift-ctrl-c) (eq? k 'ctrl-shift-c) (eq? k 'shift-ctrl-C))
+                   (when (pi-app-copy-selection! app)
+                     (pi-app-render! app)
+                   ) ;when
+                   (loop)
+                  ) ;
                   ((not k)
                    ;; 空闲轮询：busy 时推进 Working spinner 动画（内部自带 80ms 节拍）。
                    ;; 自适应休眠：busy 保持 10ms 保证流式上屏与动画顺滑；
