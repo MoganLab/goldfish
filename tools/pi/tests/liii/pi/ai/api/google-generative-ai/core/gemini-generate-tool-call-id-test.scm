@@ -35,4 +35,9 @@
 (check (gemini-generate-tool-call-id "bash" 1 1) => "bash_1_1")
 (check (gemini-generate-tool-call-id "bash" 1 2) => "bash_1_2")
 
+;; 缺省参数支持（零参或缺省部分参数）
+(check (gemini-generate-tool-call-id) => "call_0_1")
+(check (gemini-generate-tool-call-id "bash") => "bash_0_1")
+(check (gemini-generate-tool-call-id "bash" 100) => "bash_100_1")
+
 (check-report)

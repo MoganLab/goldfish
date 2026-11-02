@@ -142,4 +142,25 @@
   ) ;let
 ) ;let*
 
+;; functionCall 缺少 id 时自动生成合规 id（防回归）
+(let* ((resp-json '(("candidates"
+                     . #((("content"
+                           ("parts"
+                            . #((("functionCall"
+                                  ("name" . "bash")
+                                  ("args" ("command" . "ls")))))))
+                          ("finishReason" . "STOP"))))))
+       (parsed (gemini-parse-response resp-json 200)))
+  (check (cdr (assoc 'stopReason parsed)) => "toolUse")
+  (let ((content (cdr (assoc 'content parsed))))
+    (check (length content) => 1)
+    (let ((blk (car content)))
+      (check (cdr (assoc 'type blk)) => "toolCall")
+      (check (cdr (assoc 'name blk)) => "bash")
+      (check-true (string? (cdr (assoc 'id blk))))
+      (check-true (> (string-length (cdr (assoc 'id blk))) 0))
+    ) ;let
+  ) ;let
+) ;let*
+
 (check-report)

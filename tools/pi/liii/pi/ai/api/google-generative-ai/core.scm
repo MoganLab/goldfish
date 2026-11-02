@@ -77,10 +77,10 @@
       ) ;if
     ) ;define
 
-    (define (gemini-generate-tool-call-id name timestamp counter)
+    (define* (gemini-generate-tool-call-id (name "call") (timestamp 0) (counter 1))
       (gemini-normalize-tool-call-id (string-append name "_" (number->string timestamp) "_" (number->string counter))
       ) ;gemini-normalize-tool-call-id
-    ) ;define
+    ) ;define*
 
     (define* (%val key obj (default-val #f))
       (let ((p
