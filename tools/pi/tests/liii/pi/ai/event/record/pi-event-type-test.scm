@@ -1,4 +1,21 @@
-(import (liii check) (liii pi ai event))
+;; pi-event-type
+;; 获取事件对象的类型字符串。
+;;
+;; 语法
+;; ----
+;; (pi-event-type ev)
+;;
+;; 参数
+;; ----
+;; ev : any?
+;; 事件对象。
+;;
+;; 返回值
+;; ----
+;; string? 或 #f
+;; 事件的类型字符串（如 "session"、"agent_start" 等）。
+
+(import (liii check) (liii pi ai event record))
 
 (check-set-mode! 'report-failed)
 

@@ -1,4 +1,21 @@
-(import (liii check) (liii pi ai event))
+;; pi-event?
+;; 判断对象是否为合法的事件 record 实例。
+;;
+;; 语法
+;; ----
+;; (pi-event? obj)
+;;
+;; 参数
+;; ----
+;; obj : any?
+;; 待检验的对象。
+;;
+;; 返回值
+;; ----
+;; boolean
+;; 若属于任意一种事件 record 则返回 #t，否则返回 #f。
+
+(import (liii check) (liii pi ai event record))
 
 (check-set-mode! 'report-failed)
 
