@@ -1,3 +1,24 @@
+;; pi-app-working-tick!
+;; 交互式应用工作状态下 Working 动画节拍推进与渲染触发。
+;;
+;; 语法
+;; ----
+;; (pi-app-working-tick! app)
+;;
+;; 参数
+;; ----
+;; app : pi-app?
+;; 交互式应用实例。
+;;
+;; 返回值
+;; ------
+;; boolean
+;; 状态发生变更并执行了界面重绘时返回 #t，处于空闲或节拍未到无需重绘时返回 #f。
+;;
+;; 说明
+;; ----
+;; idle 时 tick 不渲染并复位 spinner；busy 时首拍立即渲染并随时间推进 spinner 动画。
+
 (import (scheme base)
   (liii check)
   (liii unicode)
@@ -5,7 +26,8 @@
   (liii tui)
   (liii pi agent queue)
   (liii pi code modes interactive working)
-  (liii pi code modes interactive app))
+  (liii pi code modes interactive app)
+) ;import
 
 (check-set-mode! 'report)
 
@@ -13,13 +35,15 @@
 (let* ((vterm (make-virtual-terminal :width 100 :height 40))
        (app (make-pi-app :terminal vterm :handler (lambda (app msg) #t)))
        (screen (pi-app-screen app))
-       (q (pi-app-queue app)))
+       (q (pi-app-queue app))
+      ) ;
   ;; idle 首屏：上边框为纯横线，无 Working 字样
   (pi-app-render! app)
   (let ((plain (map strip-ansi (alt-screen-lines screen))))
     ;; 全屏帧固定 40 行：对话记录视口 35 行 + 输入区 3 行 + 页脚 2 行
     (check (length plain) => 40)
-    (check (list-ref plain 35) => (utf8-make-string 100 #\─)))
+    (check (list-ref plain 35) => (utf8-make-string 100 #\─))
+  ) ;let
 
   ;; 置为 busy：上边框替换为 Working 边框行，总行数不变
   (pi-queue-set-busy! q)
@@ -29,39 +53,52 @@
     (check-true (string-contains? (list-ref plain 35) "⠋ Working"))
     (check (display-width (list-ref plain 35)) => 100)
     ;; 光标仍定位在输入行
-    (check (terminal-cursor vterm) => '(0 36)))
+    (check (terminal-cursor vterm) => '(0 36))
+  ) ;let
 
   ;; 帧推进后 spinner 变化
   (working-advance! (pi-app-working app))
   (pi-app-render! app)
-  (check-true (string-contains?
-    (list-ref (map strip-ansi (alt-screen-lines screen)) 35) "⠙ Working"))
+  (check-true
+    (string-contains? (list-ref (map strip-ansi (alt-screen-lines screen)) 35)
+      "⠙ Working"
+    ) ;string-contains?
+  ) ;check-true
 
   ;; 任务完成恢复 idle：上边框回到纯横线
   (pi-queue-finish-task! q)
   (pi-app-render! app)
   (let ((plain (map strip-ansi (alt-screen-lines screen))))
     (check (length plain) => 40)
-    (check (list-ref plain 35) => (utf8-make-string 100 #\─))))
+    (check (list-ref plain 35) => (utf8-make-string 100 #\─))
+  ) ;let
+) ;let*
 
 ;; working tick 节拍：idle 时不渲染并复位；busy 时首拍立即渲染
 (let* ((vterm (make-virtual-terminal :width 100 :height 40))
        (app (make-pi-app :terminal vterm :handler (lambda (app msg) #t)))
        (screen (pi-app-screen app))
-       (q (pi-app-queue app)))
+       (q (pi-app-queue app))
+      ) ;
   ;; idle：tick 返回 #f 且不产生渲染副作用
   (check (pi-app-working-tick! app) => #f)
 
   ;; busy：首拍立即渲染（从 ⠋ 起始）
   (pi-queue-set-busy! q)
   (check (pi-app-working-tick! app) => #t)
-  (check-true (string-contains?
-    (list-ref (map strip-ansi (alt-screen-lines screen)) 35) "⠋ Working"))
+  (check-true
+    (string-contains? (list-ref (map strip-ansi (alt-screen-lines screen)) 35)
+      "⠋ Working"
+    ) ;string-contains?
+  ) ;check-true
 
   ;; 80ms 内重复 tick：不推进帧不渲染
   (check (pi-app-working-tick! app) => #f)
-  (check-true (string-contains?
-    (list-ref (map strip-ansi (alt-screen-lines screen)) 35) "⠋ Working"))
+  (check-true
+    (string-contains? (list-ref (map strip-ansi (alt-screen-lines screen)) 35)
+      "⠋ Working"
+    ) ;string-contains?
+  ) ;check-true
 
   ;; idle 复位：再次 busy 首拍仍从 ⠋ 开始
   (pi-queue-finish-task! q)
@@ -69,7 +106,11 @@
   (working-advance! (pi-app-working app))
   (pi-queue-set-busy! q)
   (check (pi-app-working-tick! app) => #t)
-  (check-true (string-contains?
-    (list-ref (map strip-ansi (alt-screen-lines screen)) 35) "⠋ Working")))
+  (check-true
+    (string-contains? (list-ref (map strip-ansi (alt-screen-lines screen)) 35)
+      "⠋ Working"
+    ) ;string-contains?
+  ) ;check-true
+) ;let*
 
 (check-report)
