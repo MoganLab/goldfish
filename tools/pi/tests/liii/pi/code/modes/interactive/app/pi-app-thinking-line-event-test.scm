@@ -1,3 +1,22 @@
+;; pi-app-thinking-line-event
+;; 助手思考流式行事件（assistant_thinking_line）渲染与卡片归集测试。
+;;
+;; 语法
+;; ----
+;; (pi-app-thinking-line-event)
+;;
+;; 参数
+;; ----
+;; 无
+;;
+;; 返回值
+;; ------
+;; any
+;;
+;; 说明
+;; ----
+;; 首行建立 thinking 卡片，后续行原地追加；正文仍使用独立卡片。
+
 (import (scheme base)
   (liii check)
   (liii string)

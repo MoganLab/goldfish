@@ -1,11 +1,3 @@
-(import (liii check)
-  (liii string)
-  (liii path)
-  (liii subprocess)
-  (liii pi ai event)
-  (liii pi ai api google-generative-ai)
-) ;import
-
 ;; gemini-request-stream
 ;; 向 Gemini generateContent 流式端点发起请求，并返回内部 assistant 消息。
 ;;
@@ -40,10 +32,14 @@
 ;; 说明
 ;; ----
 ;; 支持文本、工具调用和 thinking 流式块，以及重试、API key 轮换、超时和中止。
-;;
-;; 示例
-;; ----
-;; (gemini-request-stream config messages #f '("bash") on-event 10)
+
+(import (liii check)
+  (liii string)
+  (liii path)
+  (liii subprocess)
+  (liii pi ai event)
+  (liii pi ai api google-generative-ai stream)
+) ;import
 
 (check-set-mode! 'report-failed)
 

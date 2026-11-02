@@ -1,3 +1,38 @@
+;; openai-request-stream
+;; 向 OpenAI Chat Completions API 发起流式请求，并支持用户中止（ESC/abort）。
+;;
+;; 语法
+;; ----
+;; (openai-request-stream config messages [system-instruction [tool-names [on-event [timeout [opt-retry [idle-timeout]]]]]])
+;;
+;; 参数
+;; ----
+;; config : alist
+;; 包含 model-id、model-meta、api-key 和重试配置等请求参数。
+;; messages : list
+;; 内部会话消息列表。
+;; system-instruction : string | #f，可选
+;; 系统提示词。
+;; tool-names : list | #f，可选
+;; 允许模型调用的工具名列表。
+;; on-event : procedure | #f，可选
+;; 接收流式事件的回调。
+;; timeout : number，可选，默认为 300
+;; 请求超时秒数。
+;; opt-retry : alist | #f，可选
+;; 本次请求的重试覆盖配置。
+;; idle-timeout : number | #f，可选
+;; 流空闲超时秒数；为 #f 时使用 timeout。
+;;
+;; 返回值
+;; ----
+;; pi-assistant-message
+;; 包含 content、stopReason 和 usage；用户中止时 stopReason 为 aborted。
+;;
+;; 说明
+;; ----
+;; 用户中止信号触发后，HTTP 下载被立即截断，已到达的部分内容被保留。
+
 (set! *load-path*
   (append (list "tools/pi" ".") *load-path*))
 

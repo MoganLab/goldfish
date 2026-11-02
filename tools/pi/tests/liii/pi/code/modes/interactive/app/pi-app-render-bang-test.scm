@@ -1,14 +1,3 @@
-(import (scheme base)
-  (srfi srfi-1)
-  (liii check)
-  (liii unicode)
-  (liii string)
-  (liii tui)
-  (liii pi code modes interactive app)
-) ;import
-
-(check-set-mode! 'report)
-
 ;; pi-app-render!
 ;; 渲染交互式应用的完整界面，并更新编辑器视口与硬件光标位置。
 ;;
@@ -30,6 +19,16 @@
 ;; ----
 ;; 编辑器内容按终端宽度折行。长输入使用视觉行滚动，硬件光标跟随
 ;; 光标所在的视觉行，编辑器下边框不会被内容覆盖。
+
+(import (scheme base)
+  (liii check)
+  (liii unicode)
+  (liii string)
+  (liii tui)
+  (liii pi code modes interactive app)
+) ;import
+
+(check-set-mode! 'report)
 
 ;; 编辑器可视行随终端高度（1/3）与滚动提示
 (let* ((vterm (make-virtual-terminal :width 100 :height 40))

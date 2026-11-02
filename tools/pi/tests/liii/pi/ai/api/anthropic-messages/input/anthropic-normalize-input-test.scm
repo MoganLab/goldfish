@@ -1,13 +1,27 @@
+;; anthropic-normalize-input
+;; 归一化 toolCall 的 arguments/input，确保组装进 Anthropic API 请求时
+;; 不会产生 ("input") 这类单元素 list 导致 json_write 抛出 value-error。
+;;
+;; 语法
+;; ----
+;; (anthropic-normalize-input raw)
+;;
+;; 参数
+;; ----
+;; raw : alist | string? | #f | null
+;; 原始 arguments 值，支持 alist、JSON 字符串与空值。
+;;
+;; 返回值
+;; ----
+;; alist
+;; 归一化后的参数 alist；空值统一返回 (())，可安全序列化为 {}。
+
 (import (liii check)
   (liii json)
   (liii pi ai api anthropic-messages input)
 ) ;import
 
 (check-set-mode! 'report-failed)
-
-;; anthropic-normalize-input
-;; 归一化 toolCall 的 arguments/input，确保组装进 Anthropic API 请求时
-;; 不会产生 ("input") 这类单元素 list 导致 json_write 抛出 value-error。
 
 ;; 1. 空值形态归一化为 (quote (()))，且序列化为 {}
 (check (anthropic-normalize-input '()) => '(()))

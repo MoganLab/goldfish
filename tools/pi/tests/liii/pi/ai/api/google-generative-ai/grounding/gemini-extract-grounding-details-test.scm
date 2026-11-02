@@ -1,24 +1,3 @@
-(import (scheme base)
-        (scheme file)
-        (liii check)
-        (liii json)
-        (liii pi ai api google-generative-ai grounding))
-
-(check-set-mode! 'report-failed)
-
-(define (%fixture-path file)
-  (cond ((file-exists? (string-append "tests/fixtures/" file))
-         (string-append "tests/fixtures/" file))
-        ((file-exists? (string-append "tools/pi/tests/fixtures/" file))
-         (string-append "tools/pi/tests/fixtures/" file))
-        (else (string-append "../../tools/pi/tests/fixtures/" file))))
-
-(define (%read-fixture-json file)
-  (let* ((p (open-input-file (%fixture-path file)))
-         (obj (read-json p)))
-    (close-port p)
-    obj))
-
 ;; gemini-extract-grounding-details
 ;; 从 Gemini 响应中提取搜索查询、搜索结果和引用信息。
 ;;
@@ -40,10 +19,27 @@
 ;; ----
 ;; 残缺结构和无效索引被安全忽略，重复查询、结果和引用被去重。
 ;; 查询和结果保持首次出现的顺序。
-;;
-;; 示例
-;; ----
-;; (gemini-grounding-search-queries (gemini-extract-grounding-details response)) => '("goldfish scheme")
+
+(import (scheme base)
+        (scheme file)
+        (liii check)
+        (liii json)
+        (liii pi ai api google-generative-ai grounding))
+
+(check-set-mode! 'report-failed)
+
+(define (%fixture-path file)
+  (cond ((file-exists? (string-append "tests/fixtures/" file))
+         (string-append "tests/fixtures/" file))
+        ((file-exists? (string-append "tools/pi/tests/fixtures/" file))
+         (string-append "tools/pi/tests/fixtures/" file))
+        (else (string-append "../../tools/pi/tests/fixtures/" file))))
+
+(define (%read-fixture-json file)
+  (let* ((p (open-input-file (%fixture-path file)))
+         (obj (read-json p)))
+    (close-port p)
+    obj))
 
 ;; 1. 从真实 fixture 文件解析非流式完整响应 JSON
 (let* ((resp (%read-fixture-json "gemini/grounding-response.json"))

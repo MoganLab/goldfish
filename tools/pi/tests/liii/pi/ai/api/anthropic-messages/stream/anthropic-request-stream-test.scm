@@ -1,12 +1,3 @@
-(import (liii check)
-  (liii string)
-  (liii list)
-  (liii path)
-  (liii subprocess)
-  (liii pi ai event)
-  (liii pi ai api anthropic-messages)
-) ;import
-
 ;; anthropic-request-stream
 ;; 向 Anthropic Messages API 发起流式请求，并将响应转换为内部 assistant 消息。
 ;;
@@ -41,10 +32,15 @@
 ;; 说明
 ;; ----
 ;; 支持文本、工具调用和 thinking 流式块，以及重试、空闲超时和用户中止。
-;;
-;; 示例
-;; ----
-;; (anthropic-request-stream config messages #f '("bash") on-event 10)
+
+(import (liii check)
+  (liii string)
+  (liii list)
+  (liii path)
+  (liii subprocess)
+  (liii pi ai event)
+  (liii pi ai api anthropic-messages)
+) ;import
 
 (check-set-mode! 'report-failed)
 

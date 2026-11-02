@@ -1,9 +1,28 @@
+;; gemini-build-request-body
+;; 构建发送到 Gemini API 的最终 JSON 请求体。
+;;
+;; 语法
+;; ----
+;; (gemini-build-request-body contents sys-inst tool-decls)
+;;
+;; 参数
+;; ----
+;; contents : vector
+;; 已转换的 Gemini contents 向量。
+;; sys-inst : string | #f
+;; 系统提示词；为 #f 或空白字符串时省略 systemInstruction。
+;; tool-decls : list | vector
+;; 工具声明列表；为空时省略 tools 与 toolConfig。
+;;
+;; 返回值
+;; ----
+;; alist
+;; Gemini API 请求体 alist，包含 contents 字段。
+
 (import (liii check) (liii pi ai event) (liii pi ai api google-generative-ai) (liii pi code core tools))
 
 (check-set-mode! 'report-failed)
 
-;; gemini-build-request-body
-;; 构建发送到 Gemini API 的最终 JSON 请求体。
 (let* ((contents #((("role" . "user") ("parts" . #((("text" . "hi")))))))
        (body (gemini-build-request-body contents "system" '())))
   (check (cdr (assoc "systemInstruction" body))

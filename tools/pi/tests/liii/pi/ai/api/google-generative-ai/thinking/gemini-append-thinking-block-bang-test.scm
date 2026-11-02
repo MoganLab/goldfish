@@ -1,5 +1,3 @@
-(import (liii check) (liii pi ai api google-generative-ai thinking))
-
 ;; gemini-append-thinking-block!
 ;; 向 Gemini 流状态追加 thinking 文本和可选签名。
 ;;
@@ -26,10 +24,8 @@
 ;; 说明
 ;; ----
 ;; 空文本被忽略；开始 thinking 前会结束当前活动的文本块。
-;;
-;; 示例
-;; ----
-;; (gemini-append-thinking-block! stream-state "Thinking" "sig-1" on-event)
+
+(import (liii check) (liii pi ai api google-generative-ai thinking))
 
 (check-set-mode! 'report-failed)
 

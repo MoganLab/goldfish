@@ -1,5 +1,3 @@
-(import (liii check) (liii pi ai api anthropic-messages thinking))
-
 ;; anthropic-handle-thinking-delta
 ;; 处理 Anthropic thinking 或 signature 增量，并更新当前 thinking 状态。
 ;;
@@ -26,10 +24,8 @@
 ;; 说明
 ;; ----
 ;; 没有活动 thinking 块时忽略增量，签名增量本身不产生 thinking_delta 事件。
-;;
-;; 示例
-;; ----
-;; (anthropic-handle-thinking-delta '(("thinking" . "Step 1")) 0 stream-state on-ev)
+
+(import (liii check) (liii pi ai api anthropic-messages thinking))
 
 (check-set-mode! 'report-failed)
 

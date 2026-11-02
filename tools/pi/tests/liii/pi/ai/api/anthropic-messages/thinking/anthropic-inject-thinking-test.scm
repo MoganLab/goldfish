@@ -1,7 +1,3 @@
-(import (liii check) (liii pi ai api anthropic-messages thinking))
-
-(check-set-mode! 'report-failed)
-
 ;; anthropic-inject-thinking
 ;; 按思考级别向 Anthropic 请求体注入 thinking 配置。
 ;;
@@ -25,10 +21,10 @@
 ;; ----
 ;; max_tokens 小于或等于预算时提升为 budget_tokens + 4096。
 ;; 其他字段及其相对顺序保持不变。
-;;
-;; 示例
-;; ----
-;; (anthropic-inject-thinking '(("max_tokens" . 1024)) "low") => (("thinking" ...) ("max_tokens" . 6144))
+
+(import (liii check) (liii pi ai api anthropic-messages thinking))
+
+(check-set-mode! 'report-failed)
 
 ;; off 时不注入
 (let* ((body '(("model" . "claude-3-7-sonnet") ("max_tokens" . 8192)))

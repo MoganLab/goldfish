@@ -1,11 +1,28 @@
+;; gemini-inject-google-search
+;; 向 Gemini 请求体或已有的 tools 列表中注入 googleSearch 节。
+;;
+;; 语法
+;; ----
+;; (gemini-inject-google-search target)
+;;
+;; 参数
+;; ----
+;; target : alist | vector
+;; Gemini 请求体 alist 或已有的 tools 向量。
+;;
+;; 返回值
+;; ----
+;; alist | vector
+;; 注入 googleSearch 后的请求体或 tools 向量。
+;;
+;; 说明
+;; ----
+;; 纯函数无副作用；若已存在 googleSearch 或 google_search 则保持幂等。
+
 (import (scheme base)
         (liii check)
         (liii json)
         (liii pi ai api google-generative-ai grounding))
-
-(check-set-mode! 'report-failed)
-
-;; gemini-inject-google-search
 ;; 1. 空请求体或空 alist 注入 googleSearch
 (let* ((req-empty (gemini-inject-google-search '()))
        (tools-empty (cdr (assoc "tools" req-empty))))

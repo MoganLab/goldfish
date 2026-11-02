@@ -1,9 +1,26 @@
+;; anthropic-parse-response
+;; 解析 Anthropic API 返回的 JSON 响应。
+;;
+;; 语法
+;; ----
+;; (anthropic-parse-response json-data status-code)
+;;
+;; 参数
+;; ----
+;; json-data : alist
+;; 已解析的 Anthropic 响应 JSON 对象。
+;; status-code : integer
+;; HTTP 状态码，用于错误提示。
+;;
+;; 返回值
+;; ----
+;; pi-assistant-message
+;; 内部 assistant 消息，包含 content、stopReason、usage 与 errorMessage。
+
 (import (liii check) (liii pi ai api anthropic-messages) (liii pi ai event) (liii pi ai message))
 
 (check-set-mode! 'report-failed)
 
-;; anthropic-parse-response
-;; 解析 Anthropic API 返回的 JSON 响应。
 (let* ((json-resp '(("id" . "msg_123")
                     ("type" . "message")
                     ("role" . "assistant")

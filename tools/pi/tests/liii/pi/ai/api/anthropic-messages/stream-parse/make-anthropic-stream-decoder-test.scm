@@ -1,9 +1,3 @@
-(import (liii check)
-  (liii pi ai api anthropic-messages core)
-  (liii pi ai api anthropic-messages stream-parse)
-  (liii pi ai message)
-) ;import
-
 ;; make-anthropic-stream-decoder
 ;; 创建 Anthropic SSE 流解码器，将文本、工具调用和 thinking 增量写入流状态。
 ;;
@@ -27,11 +21,12 @@
 ;; ----
 ;; 文本增量会合并到当前文本块，工具参数 JSON 增量会按块拼接。
 ;; content_block_stop 会结束当前块，空工具参数归一化为空 alist。
-;;
-;; 示例
-;; ----
-;; (define decoder (make-anthropic-stream-decoder stream-state on-ev))
-;; (decoder "data: {\"type\":\"content_block_stop\",\"index\":0}\n\n")
+
+(import (liii check)
+  (liii pi ai api anthropic-messages core)
+  (liii pi ai api anthropic-messages stream-parse)
+  (liii pi ai message)
+) ;import
 
 (check-set-mode! 'report-failed)
 

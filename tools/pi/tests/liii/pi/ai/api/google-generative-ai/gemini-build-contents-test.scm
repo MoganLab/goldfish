@@ -1,7 +1,3 @@
-(import (liii check) (liii pi ai event) (liii pi ai api google-generative-ai) (liii pi ai message))
-
-(check-set-mode! 'report-failed)
-
 ;; gemini-build-contents
 ;; 将内部消息历史转换为 Gemini API contents。
 ;;
@@ -25,10 +21,11 @@
 ;; （如 ESC abort 后 stopReason=aborted 的残留）被整体跳过，
 ;; 跳过后允许产生连续 user 消息。
 ;; 连续 toolResult 合并为一个 user turn，parts 顺序保持不变。
-;;
-;; 示例
-;; ----
-;; (gemini-build-contents (list (pi-user-message "hello"))) => #((("role" . "user") ...))
+
+(import (liii check) (liii pi ai event) (liii pi ai api google-generative-ai) (liii pi ai message))
+
+(check-set-mode! 'report-failed)
+
 (let* ((msgs (list '((role . "user") (content . "List"))
                    '((role . "assistant") (content . (((type . "toolCall") (id . "c1") (name . "ls") (arguments . (("path" . ".")))))))
                    '((role . "toolResult") (toolCallId . "c1") (toolName . "ls") (isError . #f) (content . (((type . "text") (text . "ok")))))))

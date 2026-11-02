@@ -1,9 +1,24 @@
+;; anthropic-build-endpoint
+;; 构造发往 Anthropic Messages API 端的完整 URL。
+;;
+;; 语法
+;; ----
+;; (anthropic-build-endpoint base-url)
+;;
+;; 参数
+;; ----
+;; base-url : string? | #f
+;; 服务商基础地址；缺省或 #f 时使用官方地址 https://api.anthropic.com。
+;;
+;; 返回值
+;; ----
+;; string
+;; 形如 <base-url>/v1/messages 的请求 URL。
+
 (import (liii check) (liii pi ai api anthropic-messages))
 
 (check-set-mode! 'report-failed)
 
-;; anthropic-build-endpoint
-;; 构造发往 Anthropic Messages API 端的完整 URL。
 (check (anthropic-build-endpoint "https://api.anthropic.com")
   => "https://api.anthropic.com/v1/messages")
 

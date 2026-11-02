@@ -61,7 +61,7 @@
       (let ((eff-id
               (if (and (string? id) (not (string-null? id)))
                 id
-                (gemini-generate-tool-call-id)
+                (gemini-generate-tool-call-id name 0 (+ i 1))
               ) ;if
             ) ;eff-id
            ) ;

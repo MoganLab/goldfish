@@ -1,3 +1,24 @@
+;; pi-app-software-cursor
+;; 交互式应用输入区软件光标（反显方块光标）与硬件光标隐藏行为测试。
+;;
+;; 语法
+;; ----
+;; (pi-app-software-cursor)
+;;
+;; 参数
+;; ----
+;; 无
+;;
+;; 返回值
+;; ------
+;; any
+;;
+;; 说明
+;; ----
+;; 输入区软件方块光标（对齐上游 fake cursor 设计）：
+;; 编辑器在光标处绘制反显软件光标（视觉为方块），
+;; 硬件光标定位到插入点但保持隐藏（IME 候选窗定位用）。
+
 (import (scheme base)
   (liii check)
   (liii string)
@@ -6,11 +27,6 @@
 ) ;import
 
 (check-set-mode! 'report-failed)
-
-;; 输入区软件方块光标（对齐上游 fake cursor 设计）：
-;; 编辑器在光标处绘制反显软件光标（视觉为方块），
-;; 硬件光标定位到插入点但保持隐藏（IME 候选窗定位用），
-;; 与终端默认光标形状（Windows beam / Linux block）无关。
 
 ;; 输入区光标处出现反显软件光标，硬件光标隐藏
 (let* ((vterm (make-virtual-terminal :width 40 :height 20))

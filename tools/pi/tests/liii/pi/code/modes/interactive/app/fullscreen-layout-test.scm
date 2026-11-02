@@ -1,3 +1,26 @@
+;; fullscreen-layout
+;; 全屏（备用屏）模式组件布局测试。
+;;
+;; 语法
+;; ----
+;; (fullscreen-layout)
+;;
+;; 参数
+;; ----
+;; 无
+;;
+;; 返回值
+;; ------
+;; any
+;;
+;; 说明
+;; ----
+;; 全屏（备用屏）模式布局：
+;;   [对话记录视口]  可滚动，follow 末尾
+;;   [输入区]
+;;   [页脚]
+;; 对齐上游 packages/coding-agent/src/modes/interactive/chat-viewport.ts
+
 (import (scheme base)
   (liii check)
   (liii string)
@@ -7,12 +30,6 @@
 ) ;import
 
 (check-set-mode! 'report-failed)
-
-;; 全屏（备用屏）模式布局：
-;;   [对话记录视口]  可滚动，follow 末尾
-;;   [输入区]
-;;   [页脚]
-;; 对齐上游 packages/coding-agent/src/modes/interactive/chat-viewport.ts
 
 ;; 1. 帧高度固定为终端高度，输入区与页脚贴在屏幕底部
 (let* ((vterm (make-virtual-terminal :width 100 :height 24))
