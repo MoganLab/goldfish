@@ -59,6 +59,33 @@
       ) ;if
     ) ;define
 
+    ;; kitty CSI-u / xterm modifyOtherKeys 的通用合成：
+    ;; code 是未修饰键的 Unicode codepoint（可打印键 32..126），
+    ;; mod-code 与 %modifier-prefix 同表（3=alt、5=ctrl、6=shift+ctrl ...）。
+    ;; 无修饰或仅 shift 的可打印键不合成（可打印键的 shift 由终端
+    ;; 直接上报字符本身）；code 或修饰码超出范围的维持 'escape 回落，
+    ;; 不建功能键全量码表。
+    ;; 可打印 code 到键名的映射：空格的键名是 space，
+    ;; 其余可打印键直接用字符本身
+    (define (%printable-key-name code)
+      (if (= code 32) "space" (string (integer->char code)))
+    ) ;define
+
+    (define (%combine-csi-u-key code mod-code)
+      (let ((prefix (and mod-code (%modifier-prefix mod-code))))
+        (if (and code
+              (>= code 32)
+              (<= code 126)
+              prefix
+              (> (string-length prefix) 0)
+              (not (string=? prefix "shift-"))
+            ) ;and
+          (string->symbol (string-append prefix (%printable-key-name code)))
+          'escape
+        ) ;if
+      ) ;let
+    ) ;define
+
     (define (%strip-subparam str)
       (let ((len (string-length str)))
         (let loop
@@ -99,7 +126,7 @@
                   ((and code (= code 13) mod-code (= mod-code 5)) (values 'ctrl-enter next-i))
                   ((and code (= code 13) mod-code (= mod-code 3)) (values 'alt-enter next-i))
                   ((and code (= code 9) mod-code (= mod-code 2)) (values 'shift-tab next-i))
-                  (else (values 'escape next-i))
+                  (else (values (%combine-csi-u-key code mod-code) next-i))
             ) ;cond
           ) ;let
          ) ;
@@ -166,7 +193,7 @@
                     ((and code (= code 57414) mod-code (= mod-code 3)) (values 'alt-enter next-i))
                     ((and code (= code 57414)) (values 'enter next-i))
                     ((and code (= code 10)) (values 'ctrl-j next-i))
-                    (else (values 'escape next-i))
+                    (else (values (%combine-csi-u-key code mod-code) next-i))
               ) ;cond
             ) ;if
           ) ;let*
