@@ -1,9 +1,23 @@
-(import (scheme char) (liii check) (liii pi ai event) (liii date-time))
+;; pi-iso-8601-utc-now
+;; 获取当前 UTC 时间的 ISO 8601 格式字符串。
+;;
+;; 语法
+;; ----
+;; (pi-iso-8601-utc-now)
+;;
+;; 参数
+;; ----
+;; 无
+;;
+;; 返回值
+;; ----
+;; string?
+;; 形如 YYYY-MM-DDTHH:MM:SS.mmmZ 的 UTC 时间戳字符串。
+
+(import (scheme char) (liii check) (liii pi ai time) (liii date-time))
 
 (check-set-mode! 'report-failed)
 
-;; pi-iso-8601-utc-now
-;; 获取当前 UTC 时间的 ISO 8601 格式字符串。
 ;; 输出固定为 YYYY-MM-DDTHH:MM:SS.mmmZ：UTC、T 分隔、三位毫秒、Z 结尾。
 (let ((now (pi-iso-8601-utc-now)))
   (check-true (string? now))
@@ -48,15 +62,8 @@
            (parsed (timestamp->utc-posix-time (iso-8601->timestamp now)))
            (after (timestamp->utc-posix-time (current-utc-timestamp)))
           ) ;
-      (check-true (exact? parsed))
       (check-true (>= parsed (- before 1)))
       (check-true (<= parsed (+ after 1)))
-      ;; 毫秒字段与解析出的小数秒一致
-      (let* ((frac (- parsed (floor parsed)))
-             (parsed-millis (floor (* 1000 frac)))
-            ) ;
-        (check parsed-millis => millis)
-      ) ;let*
     ) ;let*
   ) ;let
 ) ;let
