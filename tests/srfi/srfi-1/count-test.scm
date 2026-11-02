@@ -1,10 +1,5 @@
-(import (liii list) (liii check))
-
-
-(check-set-mode! 'report-failed)
-
-
-;; count 函数测试
+;; count
+;; 返回满足谓词条件的元素元组的个数。
 ;;
 ;; 语法
 ;; ----
@@ -21,19 +16,11 @@
 ;; 返回值
 ;; ------
 ;; integer?
-;; 返回使 (pred e1 e2 ...) 为真的元素元组个数；
-;; 多列表形式在 最短 的列表结束时停止计数。
-;;
-;; 实现说明
-;; --------
-;; C 实现（src/s7_liii_list.c 的 g_count），多列表形式按 SRFI-1
-;; 语义逐个列表同步取元素。
-;;
-;; 示例
-;; ----
-;; (count even? '(3 1 4 1 5 9 2 5 6)) => 3
-;; (count = '(1 2 4 4 4) '(3 4 4 4 3)) => 2
+;; 返回使 (pred e1 e2 ...) 为真的元素元组个数；多列表形式在最短的列表结束时停止计数。
 
+(import (srfi srfi-1) (liii check))
+
+(check-set-mode! 'report-failed)
 
 ;; 单列表
 
@@ -45,12 +32,10 @@
 (check (count (lambda (x) (< x 0)) '(1 2 3)) => 0)
 (check (integer? (count even? '(1 2))) => #t)
 
-
 ;; 谓词返回任意非 #f 值都计数，并非只计 #t
 
 (check (count (lambda (x) (and (even? x) x)) '(1 2 3 4)) => 2)
 (check (count (lambda (x) (if (odd? x) 'yes #f)) '(1 2 3)) => 2)
-
 
 ;; 多列表：pred 每次取各列表同位置的元素，以最短列表为准
 
@@ -64,15 +49,12 @@
 (check (count (lambda (a b c) (= (+ a b) c)) '(1 2 3) '(1 2 3) '(2 4 6)) => 3)
 (check (count (lambda (a b) #t) '(a b) '(x y)) => 2)
 
-
 ;; 谓词执行期间分配内存（GC 压力下 anchor 保护 pred 和列表）
 
 (check (count (lambda (x) (even? (car (list x)))) (iota 100)) => 50)
 (check (count (lambda (a b) (= (length (list a b)) (+ a b) 2)) '(1 2 3) '(1 2 3))
   =>
-  1
-) ;check
-
+  1)
 
 ;; 非法参数
 
@@ -92,6 +74,5 @@
 ;; 多列表形式中的点列表和非列表参数
 (check-catch 'type-error (count = '(1 2 3) '(1 2 . 3)))
 (check-catch 'type-error (count = '(1 2 3) 3))
-
 
 (check-report)
