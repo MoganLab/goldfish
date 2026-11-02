@@ -1,7 +1,3 @@
-(import (liii check) (liii pi ai api anthropic-messages))
-
-(check-set-mode! 'report-failed)
-
 ;; anthropic-is-retriable-error?
 ;; 判断 Anthropic 协议的失败是否属于可重试错误。
 ;;
@@ -31,6 +27,11 @@
 ;; 可重试集合：0、408、409、429、529 与所有大于等于 500 的状态码。
 ;; 额度耗尽（403/429 且该 provider 业务标识命中）优先判为不可重试，
 ;; 其余 4xx 一律不可重试。
+
+(import (liii check) (liii pi ai api anthropic-messages core))
+
+(check-set-mode! 'report-failed)
+
 (check (anthropic-is-retriable-error? 200 "{}") => #f)
 (check (anthropic-is-retriable-error? 400 "{}") => #f)
 (check (anthropic-is-retriable-error? 408 "{}") => #t)
