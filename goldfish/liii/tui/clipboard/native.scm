@@ -23,58 +23,54 @@
 
 (define-library (liii tui clipboard native)
   (export native-clipboard-copy!)
-  (import (scheme base)
-    (scheme process-context)
-    (liii os)
-    (liii subprocess)
-  ) ;import
+  (import (scheme base) (scheme process-context) (liii os) (liii subprocess))
   (begin
 
     (define (native-clipboard-copy! text)
       (catch #t
         (lambda ()
-          (cond
-            ((os-windows?)
-             (zero? (run "clip" :input text :stdout 'discard :stderr 'discard))
-            ) ;
-            ((os-macos?)
-             (zero? (run "pbcopy" :input text :stdout 'discard :stderr 'discard))
-            ) ;
-            ((os-linux?)
-             (or (and (getenv "WAYLAND_DISPLAY")
+          (cond ((os-windows?)
+                 (zero? (run "clip" :input text :stdout 'discard :stderr 'discard))
+                ) ;
+                ((os-macos?)
+                 (zero? (run "pbcopy" :input text :stdout 'discard :stderr 'discard))
+                ) ;
+                ((os-linux?)
+                 (or
+                   (and (getenv "WAYLAND_DISPLAY")
+                     (catch #t
+                       (lambda ()
+                         (zero? (run "wl-copy" :input text :stdout 'discard :stderr 'discard))
+                       ) ;lambda
+                       (lambda _ #f)
+                     ) ;catch
+                   ) ;and
                    (catch #t
                      (lambda ()
-                       (zero? (run "wl-copy" :input text :stdout 'discard :stderr 'discard))
+                       (zero? (run '("xclip" "-selection" "clipboard")
+                                :input  text
+                                :stdout 'discard
+                                :stderr 'discard
+                              ) ;run
+                       ) ;zero?
                      ) ;lambda
                      (lambda _ #f)
                    ) ;catch
-                 ) ;and
-               (catch #t
-                 (lambda ()
-                   (zero? (run '("xclip" "-selection" "clipboard")
-                            :input  text
-                            :stdout 'discard
-                            :stderr 'discard
-                          ) ;run
-                   ) ;zero?
-                 ) ;lambda
-                 (lambda _ #f)
-               ) ;catch
-               (catch #t
-                 (lambda ()
-                   (zero? (run '("xsel" "--clipboard" "--input")
-                            :input  text
-                            :stdout 'discard
-                            :stderr 'discard
-                          ) ;run
-                   ) ;zero?
-                 ) ;lambda
-                 (lambda _ #f)
-               ) ;catch
-               #f
-             ) ;or
-            ) ;
-            (else #f)
+                   (catch #t
+                     (lambda ()
+                       (zero? (run '("xsel" "--clipboard" "--input")
+                                :input  text
+                                :stdout 'discard
+                                :stderr 'discard
+                              ) ;run
+                       ) ;zero?
+                     ) ;lambda
+                     (lambda _ #f)
+                   ) ;catch
+                   #f
+                 ) ;or
+                ) ;
+                (else #f)
           ) ;cond
         ) ;lambda
         (lambda _ #f)

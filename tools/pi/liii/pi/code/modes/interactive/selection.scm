@@ -41,10 +41,7 @@
              (fx (car f))
              (fy (cdr f))
             ) ;
-        (if (or (< ay fy) (and (= ay fy) (<= ax fx)))
-          (values a f)
-          (values f a)
-        ) ;if
+        (if (or (< ay fy) (and (= ay fy) (<= ax fx))) (values a f) (values f a))
       ) ;let*
     ) ;define
 
@@ -83,10 +80,7 @@
 
     (define (%highlight-ansi-step ansi-end chunk in-sel? cur-w acc loop-fn)
       (let* ((is-reset? (%is-sgr-reset? chunk))
-             (next-acc (if (and in-sel? is-reset?)
-                         (cons "\x1b;[7m" (cons chunk acc))
-                         (cons chunk acc)
-                       ) ;if
+             (next-acc (if (and in-sel? is-reset?) (cons "\x1b;[7m" (cons chunk acc)) (cons chunk acc))
              ) ;next-acc
             ) ;
         (loop-fn ansi-end cur-w in-sel? next-acc)
@@ -137,12 +131,11 @@
     ) ;define
 
     (define (%highlight-line-at-row line y sy ey sx ex)
-      (cond
-       ((or (< y sy) (> y ey)) line)
-       ((= sy ey) (highlight-selection-line line sx ex))
-       ((= y sy) (highlight-selection-line line sx #f))
-       ((= y ey) (highlight-selection-line line 0 ex))
-       (else (highlight-selection-line line 0 #f))
+      (cond ((or (< y sy) (> y ey)) line)
+            ((= sy ey) (highlight-selection-line line sx ex))
+            ((= y sy) (highlight-selection-line line sx #f))
+            ((= y ey) (highlight-selection-line line 0 ex))
+            (else (highlight-selection-line line 0 #f))
       ) ;cond
     ) ;define
 
@@ -180,10 +173,7 @@
             (if (zero? cw)
               (loop step cur-w (cons char-str acc))
               (let ((char-sel? (%char-in-sel? cur-w cw max-c2 c1)))
-                (loop step
-                  (+ cur-w cw)
-                  (if char-sel? (cons char-str acc) acc)
-                ) ;loop
+                (loop step (+ cur-w cw) (if char-sel? (cons char-str acc) acc))
               ) ;let
             ) ;if
           ) ;let*
@@ -197,10 +187,7 @@
              (max-c2 (if (and c2 (number? c2)) c2 99999999))
              (bv (string->byte-vector clean))
             ) ;
-        (if (> c1 max-c2)
-          ""
-          (%slice-loop bv (bytevector-length bv) c1 max-c2)
-        ) ;if
+        (if (> c1 max-c2) "" (%slice-loop bv (bytevector-length bv) c1 max-c2))
       ) ;let*
     ) ;define
 
