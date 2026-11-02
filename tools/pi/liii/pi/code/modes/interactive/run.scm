@@ -18,8 +18,6 @@
     (liii pi agent queue)
     (liii pi code modes interactive state)
     (liii pi code modes interactive selection)
-    (liii pi code modes interactive status-card)
-    (liii pi code modes interactive footer)
     (liii pi code modes interactive app)
     (liii pi code modes interactive app-events)
     (liii pi code modes interactive app-thinking)
@@ -116,15 +114,6 @@
             (if (and (string? text) (> (string-length text) 0))
               (begin
                 (clipboard-copy! (pi-app-term app) text)
-                (let ((msg (string-append "Copied "
-                             (number->string (string-length text))
-                             " characters to clipboard"
-                           ) ;string-append
-                      ) ;msg
-                     ) ;
-                  (pi-footer-set-message! (%pi-app-footer app) msg)
-                  (container-add! (%pi-app-chat app) (make-status-card msg))
-                ) ;let
                 #t
               ) ;begin
               #f
