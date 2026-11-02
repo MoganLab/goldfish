@@ -1,7 +1,3 @@
-(import (liii check) (liii pi ai config record) (liii pi code config) (liii pi code core session-manager))
-
-(check-set-mode! 'report-failed)
-
 ;; pi-load-auth
 ;; 从 agent 配置目录的 auth.json 加载 API 凭据。
 ;;
@@ -25,10 +21,10 @@
 ;; ----
 ;; 仅加载 type=api_key 且成功解析 key 的条目。
 ;; 可通过 assoc 按 provider 查询凭据，无效命令插值会抛出 pi-config-error。
-;;
-;; 示例
-;; ----
-;; (pi-credential-key (car (pi-load-auth "~/.pi/agent"))) => "secret"
+
+(import (liii check) (liii pi ai config record) (liii pi code config) (liii pi code core session-manager))
+
+(check-set-mode! 'report-failed)
 (define fixture-dir
   (if (file-exists? "tests/fixtures/default")
     "tests/fixtures/default"

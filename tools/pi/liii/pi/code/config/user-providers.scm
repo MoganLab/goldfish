@@ -50,6 +50,7 @@
       (cond ((not (vector? data))
              (error 'value-error "models/providers.json: 顶层必须是 json array")
             ) ;
+            ((zero? (vector-length data)) #f)
             (else (%ensure-unique (map %whitelist-entry (vector->list data))))
       ) ;cond
     ) ;define
@@ -66,7 +67,7 @@
       ) ;let
     ) ;define
 
-    ;; 读取白名单；文件缺失返回 #f（回退全部内置 provider）。
+    ;; 读取白名单；文件缺失或内容为空数组返回 #f（视为未配置，回退全部内置 provider）。
     ;; 语法错（string->json 抛 parse-error）、元素非字符串、重复 id 均抛错拒启。
     (define (pi-load-providers-whitelist config-dir)
       (let* ((path-str (pi-providers-whitelist-path config-dir))

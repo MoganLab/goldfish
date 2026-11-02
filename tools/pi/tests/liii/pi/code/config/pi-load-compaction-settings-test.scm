@@ -1,3 +1,20 @@
+;; pi-load-compaction-settings
+;; 从 settings.json 的 compaction 节加载上下文压缩设置。
+;;
+;; 语法
+;; ----
+;; (pi-load-compaction-settings config-dir) -> compaction-settings
+;;
+;; 参数
+;; ----
+;; config-dir : string
+;; JSON 配置目录。
+;;
+;; 返回值
+;; ----
+;; compaction-settings
+;; 压缩设置 record；文件或字段缺失时回退默认值。
+
 (import (liii check)
         (liii pi code config) (liii pi code core session-manager)
         (liii pi code core compaction))
