@@ -27,6 +27,7 @@
   (liii path)
   (liii string)
   (liii goldcheck unit-test source)
+  (liii goldcheck unit-test source reexport)
 ) ;import
 
 (check-set-mode! 'report-failed)
