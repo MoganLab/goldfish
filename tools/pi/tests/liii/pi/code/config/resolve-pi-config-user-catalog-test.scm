@@ -13,16 +13,22 @@
 (define FIXTURE
   (if (file-exists? "tools/pi/tests/fixtures/user-config")
     "tools/pi/tests/fixtures/user-config"
-    "tests/fixtures/user-config"))
+    "tests/fixtures/user-config"
+  ) ;if
+) ;define
 
 (define FULL-DIR (string-append FIXTURE "/full"))
+
 (define EMPTY-DIR (string-append FIXTURE "/no-providers"))
+
+(define EMPTY-ARRAY-DIR (string-append FIXTURE "/empty-providers"))
 
 ;; 1. 白名单内的模型可路由；provider 文件的 baseUrl 生效
 (let* ((args (parse-pi-args '("--model" "k3.1-pro")))
        (env `(("PI_CODING_AGENT_DIR" . ,FULL-DIR)
               ("KIMI_API_KEY" . "kimi-key-test")))
-       (cfg (resolve-pi-config args env)))
+       (cfg (resolve-pi-config args env))
+      ) ;
   (check (cdr (assoc 'provider cfg)) => "kimi-coding")
   (check (cdr (assoc 'model-id cfg)) => "k3.1-pro")
   (check (cdr (assoc 'api-key cfg)) => "kimi-key-test")
@@ -32,7 +38,9 @@
     (check (pi-model-metadata-base-url meta) => "https://api.kimi.com/coding/v1")
     ;; 模型文件（models/kimi-coding/k3.1-pro.json）字段
     (check (pi-model-metadata-context-window meta) => 1048576)
-    (check (pi-model-metadata-max-tokens meta) => 131072)))
+    (check (pi-model-metadata-max-tokens meta) => 131072)
+  ) ;let
+) ;let*
 
 ;; 2. 白名单外的模型不可路由（kimi-coding 的 models 白名单只含 k3.1-pro，
 ;;    内置目录中的 k3 不可用）
@@ -45,8 +53,10 @@
 ;; 2.1 无 models 白名单的 provider 也可用其内置目录模型（google）
 (let* ((args (parse-pi-args '("--provider" "google" "--model" "gemini-3.8-flash")))
        (env `(("PI_CODING_AGENT_DIR" . ,FULL-DIR)))
-       (cfg (resolve-pi-config args env)))
-  (check (cdr (assoc 'provider cfg)) => "google"))
+       (cfg (resolve-pi-config args env))
+      ) ;
+  (check (cdr (assoc 'provider cfg)) => "google")
+) ;let*
 
 ;; 3. 白名单外的 provider 不可路由（deepseek 有内置定义，但不在 providers.json）
 (check-catch 'pi-config-error
@@ -58,23 +68,41 @@
 ;; 4. 纯自定义 provider（无内置定义）可路由到其目录中的模型
 (let* ((args (parse-pi-args '("--model" "m1")))
        (env `(("PI_CODING_AGENT_DIR" . ,FULL-DIR)))
-       (cfg (resolve-pi-config args env)))
+       (cfg (resolve-pi-config args env))
+      ) ;
   (check (cdr (assoc 'provider cfg)) => "custom-kimi")
   (check (cdr (assoc 'model-id cfg)) => "m1")
   (let ((meta (cdr (assoc 'model-meta cfg))))
     (check (pi-model-metadata-matched? meta) => #t)
     (check (pi-model-metadata-base-url meta) => "https://mirror.example.com/coding")
     (check (pi-model-metadata-context-window meta) => 262144)
-    (check (pi-model-metadata-max-tokens meta) => 32768)))
+    (check (pi-model-metadata-max-tokens meta) => 32768)
+  ) ;let
+) ;let*
 
 ;; 5. 无 providers.json：全部内置 provider 可用
 (let* ((args (parse-pi-args '("--provider" "google" "--model" "gemini-2.5-pro")))
        (env `(("PI_CODING_AGENT_DIR" . ,EMPTY-DIR)))
-       (cfg (resolve-pi-config args env)))
+       (cfg (resolve-pi-config args env))
+      ) ;
   (check (cdr (assoc 'provider cfg)) => "google")
   (check (cdr (assoc 'model-id cfg)) => "gemini-2.5-pro")
   (let ((meta (cdr (assoc 'model-meta cfg))))
-    (check (pi-model-metadata-matched? meta) => #t)))
+    (check (pi-model-metadata-matched? meta) => #t)
+  ) ;let
+) ;let*
+
+;; 5b. providers.json 为空数组 []：全部内置 provider 可路由
+(let* ((args (parse-pi-args '("--provider" "google" "--model" "gemini-2.5-pro")))
+       (env `(("PI_CODING_AGENT_DIR" . ,EMPTY-ARRAY-DIR)))
+       (cfg (resolve-pi-config args env))
+      ) ;
+  (check (cdr (assoc 'provider cfg)) => "google")
+  (check (cdr (assoc 'model-id cfg)) => "gemini-2.5-pro")
+  (let ((meta (cdr (assoc 'model-meta cfg))))
+    (check (pi-model-metadata-matched? meta) => #t)
+  ) ;let
+) ;let*
 
 ;; 6. providers.json 语法错误时拒绝启动
 (check-catch 'parse-error
@@ -91,33 +119,46 @@
        (env `(("PI_CODING_AGENT_DIR" . ,FULL-DIR)
               ("KIMI_API_KEY" . "kimi-key-test")
               ("HTTPS_PROXY" . "")
-              ("ALL_PROXY" . "")))
-       (cfg (resolve-pi-config args env)))
-  (check (cdr (assoc 'proxy-url cfg)) => "http://127.0.0.1:7890"))
+              ("ALL_PROXY" . ""))
+       ) ;env
+       (cfg (resolve-pi-config args env))
+      ) ;
+  (check (cdr (assoc 'proxy-url cfg)) => "http://127.0.0.1:7890")
+) ;let*
 
 ;; 8. CLI --proxy 覆盖 provider 文件的 httpProxy
-(let* ((args (parse-pi-args '("--proxy" "socks5h://127.0.0.1:1080"
-                              "--provider" "kimi-coding" "--model" "k3.1-pro")))
+(let* ((args (parse-pi-args '("--proxy" "socks5h://127.0.0.1:1080" "--provider"
+                              "kimi-coding" "--model" "k3.1-pro")
+             ) ;parse-pi-args
+       ) ;args
        (env `(("PI_CODING_AGENT_DIR" . ,FULL-DIR)
               ("KIMI_API_KEY" . "kimi-key-test")))
-       (cfg (resolve-pi-config args env)))
+       (cfg (resolve-pi-config args env))
+      ) ;
   (check (cdr (assoc 'provider cfg)) => "kimi-coding")
-  (check (cdr (assoc 'proxy-url cfg)) => "socks5h://127.0.0.1:1080"))
+  (check (cdr (assoc 'proxy-url cfg)) => "socks5h://127.0.0.1:1080")
+) ;let*
 
 ;; 9. provider 未声明 httpProxy 时回退 settings.json 全局值
 (let* ((args (parse-pi-args '("--provider" "custom-kimi" "--model" "m1")))
        (env `(("PI_CODING_AGENT_DIR" . ,FULL-DIR)
               ("HTTPS_PROXY" . "")
-              ("ALL_PROXY" . "")))
-       (cfg (resolve-pi-config args env)))
+              ("ALL_PROXY" . ""))
+       ) ;env
+       (cfg (resolve-pi-config args env))
+      ) ;
   (check (cdr (assoc 'provider cfg)) => "custom-kimi")
-  (check (cdr (assoc 'proxy-url cfg)) => "http://global-proxy:8080"))
+  (check (cdr (assoc 'proxy-url cfg)) => "http://global-proxy:8080")
+) ;let*
 
 ;; 10. 环境变量优先于 settings.json 全局值（provider 未声明时）
 (let* ((args (parse-pi-args '("--provider" "custom-kimi" "--model" "m1")))
        (env `(("PI_CODING_AGENT_DIR" . ,FULL-DIR)
-              ("HTTPS_PROXY" . "http://env-proxy:3128")))
-       (cfg (resolve-pi-config args env)))
-  (check (cdr (assoc 'proxy-url cfg)) => "http://env-proxy:3128"))
+              ("HTTPS_PROXY" . "http://env-proxy:3128"))
+       ) ;env
+       (cfg (resolve-pi-config args env))
+      ) ;
+  (check (cdr (assoc 'proxy-url cfg)) => "http://env-proxy:3128")
+) ;let*
 
 (check-report)

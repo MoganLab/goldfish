@@ -6,7 +6,7 @@
 
 ;; `gf pi config` 只读视图模型：把用户配置目录装配成 ranger 三列所需的数据。
 ;;
-;;   provider 集与顺序 = models/providers.json 白名单顺序
+;;   provider 集与顺序 = models/providers.json 白名单顺序（缺失或空数组时全部内置 provider，字典序）
 ;;   provider 字段     = 内置注册表 < models/<provider>.json
 ;;   模型字段          = 内置目录 < provider 文件 < models/<provider>/<model>.json
 ;;   默认标记          = settings.json 的 defaultProvider / defaultModel

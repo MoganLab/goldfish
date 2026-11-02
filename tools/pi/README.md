@@ -80,7 +80,7 @@ PI_CODING_AGENT_DIR=/tmp/my-agent-dir bin/gf pi -p "hello"
 
 要点：
 
-- **models/providers.json**：provider id 白名单 array；缺失 = 全部内置 provider
+- **models/providers.json**：provider id 白名单 array；缺失或空数组 = 全部内置 provider（供应商与模型全部激活）
   （google / kimi-coding / deepseek / minimax-cn / zai-coding-cn）；
   语法错 / 非字符串 / 重复 id **报错拒启**（唯一致命文件，其余文件坏一个忽略一个）；
   白名单 id 需有内置定义或 `models/<id>.json`，否则告警忽略（防拼写错位）；

@@ -15,18 +15,25 @@
 (define FIXTURE
   (if (file-exists? "tools/pi/tests/fixtures/user-config")
     "tools/pi/tests/fixtures/user-config"
-    "tests/fixtures/user-config"))
+    "tests/fixtures/user-config"
+  ) ;if
+) ;define
 
 (define DIR (string-append FIXTURE "/config-tui"))
 
 ;; 空环境变量：key 只可能来自 auth.json
+
 (define st (pi-config-state DIR :env '()))
 
-(define (prov id) (pi-config-provider st id))
+(define (prov id)
+  (pi-config-provider st id)
+) ;define
 
 ;; 1. provider 全量视图：默认 provider 置顶，其余按白名单顺序，最后是灰显的内置 provider
 (check (map pi-config-provider-id (pi-config-state-providers st))
-  => '("kimi-coding" "google" "custom-kimi" "deepseek" "minimax-cn" "zai-coding-cn"))
+  =>
+  '("kimi-coding" "google" "custom-kimi" "deepseek" "minimax-cn" "zai-coding-cn")
+) ;check
 
 ;; 1b. 可用标记：白名单内 #t，否则 #f
 (check (pi-config-provider-enabled? (prov "google")) => #t)
@@ -35,11 +42,15 @@
 
 ;; 2. provider 层字段：内置注册表兜底 + provider 文件覆盖
 (check (pi-config-provider-base-url (prov "kimi-coding"))
-  => "https://api.kimi.com/coding/v1")
+  =>
+  "https://api.kimi.com/coding/v1"
+) ;check
 (check (pi-config-provider-api (prov "kimi-coding")) => "openai-completions")
 (check (pi-config-provider-name (prov "kimi-coding")) => "Kimi Coding")
 (check (pi-config-provider-base-url (prov "custom-kimi"))
-  => "https://mirror.example.com/coding")
+  =>
+  "https://mirror.example.com/coding"
+) ;check
 ;; api 简写归一化：anthropic -> anthropic-messages
 (check (pi-config-provider-api (prov "custom-kimi")) => "anthropic-messages")
 
@@ -48,8 +59,14 @@
 (check (pi-config-provider-key-source (prov "google")) => #f)
 
 ;; 4. 代理优先级：provider 文件 > settings.json 全局
-(check (pi-config-provider-proxy (prov "custom-kimi")) => "http://provider-proxy:1080")
-(check (pi-config-provider-proxy (prov "kimi-coding")) => "http://global-proxy:8080")
+(check (pi-config-provider-proxy (prov "custom-kimi"))
+  =>
+  "http://provider-proxy:1080"
+) ;check
+(check (pi-config-provider-proxy (prov "kimi-coding"))
+  =>
+  "http://global-proxy:8080"
+) ;check
 
 ;; 5. 默认模型标记
 (check (pi-config-state-default-provider st) => "kimi-coding")
@@ -63,7 +80,11 @@
   (check (pi-config-model-enabled? (car ms)) => #t)
   ;; 白名单外仍在内置目录里的模型保留但标记为不可用
   (check (length ms) => 5)
-  (check (length (filter (lambda (m) (pi-config-model-enabled? m)) ms)) => 1)
+  (check
+    (length (filter (lambda (m) (pi-config-model-enabled? m)) ms))
+    =>
+    1
+  ) ;check
 ) ;let
 
 ;; 7. 模型文件覆盖内置/默认，file 记录来源
@@ -72,26 +93,29 @@
   (check (pi-config-model-context m) => 1048576)
   (check (pi-config-model-max-tokens m) => 131072)
   (check (pi-config-model-file m) => "models/kimi-coding/k3.1-pro.json")
-  (check (pi-config-model-default? m) => #t))
+  (check (pi-config-model-default? m) => #t)
+) ;let
 
 ;; 8. 无模型文件的 provider（google）：内置目录全量，file 为 #f
 (let ((ms (pi-config-provider-models (prov "google"))))
   (check (> (length ms) 0) => #t)
   (check (pi-config-model-file (car ms)) => #f)
-  (check (pi-config-model-default? (car ms)) => #f))
+  (check (pi-config-model-default? (car ms)) => #f)
+) ;let
 
 ;; 9. 自定义 provider（无内置定义）：目录模型来自模型文件
 (let ((m (car (pi-config-provider-models (prov "custom-kimi")))))
   (check (pi-config-model-id m) => "m1")
   (check (pi-config-model-name m) => "Mirror One")
-  (check (pi-config-model-reasoning? m) => #t))
+  (check (pi-config-model-reasoning? m) => #t)
+) ;let
 
 ;; 10. 环境变量 key 优先于 auth.json，来源显示变量名
 (let* ((st-env (pi-config-state DIR :env '(("KIMI_API_KEY" . "sk-from-env"))))
        (p (pi-config-provider st-env "kimi-coding"))
       ) ;
   (check (pi-config-provider-key-source p) => "$KIMI_API_KEY")
-)
+) ;let*
 
 ;; 11. 计数与目录
 (check (pi-config-state-provider-count st) => 6)
@@ -99,7 +123,9 @@
 (check (> (pi-config-state-model-count st) 40) => #t)
 ;; 可用模型数 = google 全部（无 models 白名单）+ kimi 1 + custom 1
 (check (pi-config-state-enabled-model-count st)
-  => (+ 2 (length (pi-config-provider-models (prov "google")))))
+  =>
+  (+ 2 (length (pi-config-provider-models (prov "google"))))
+) ;check
 (check (pi-config-state-dir st) => (path->string (path DIR)))
 
 ;; 12. 第三列详情行：标签 + 值成对，不含密钥值
@@ -111,13 +137,42 @@
     (check (and (member "api" flat) #t) => #t)
     (check (and (member "key" flat) #t) => #t)
     ;; 详情里不能出现 key 原文
-    (check (any (lambda (row) (string=? (cadr row) "sk-kimi-test")) rows) => #f)
+    (check
+      (any (lambda (row) (string=? (cadr row) "sk-kimi-test")) rows)
+      =>
+      #f
+    ) ;check
   ) ;let*
 ) ;let
 
-;; 13. 配置目录缺失时不抛错，返回空 provider 列表
-(let ((empty (pi-config-state (string-append FIXTURE "/no-providers") :env '())))
-  (check (pair? (pi-config-state-providers empty)) => #t)
+;; 13. 未配置目录（文件缺失）：全部 provider 与模型可用，可用计数非零且与总数一致
+(let ((st-empty (pi-config-state (string-append FIXTURE "/no-providers") :env '())))
+  (check (pi-config-state-provider-count st-empty) => 5)
+  (check (pi-config-state-enabled-provider-count st-empty) => 5)
+  (check (> (pi-config-state-model-count st-empty) 0) => #t)
+  (check (pi-config-state-enabled-model-count st-empty)
+    =>
+    (pi-config-state-model-count st-empty)
+  ) ;check
+  (check (every pi-config-provider-enabled? (pi-config-state-providers st-empty))
+    =>
+    #t
+  ) ;check
+) ;let
+
+;; 14. 空数组配置目录：同样全部 provider 与模型可用
+(let ((st-arr (pi-config-state (string-append FIXTURE "/empty-providers") :env '())))
+  (check (pi-config-state-provider-count st-arr) => 5)
+  (check (pi-config-state-enabled-provider-count st-arr) => 5)
+  (check (> (pi-config-state-model-count st-arr) 0) => #t)
+  (check (pi-config-state-enabled-model-count st-arr)
+    =>
+    (pi-config-state-model-count st-arr)
+  ) ;check
+  (check (every pi-config-provider-enabled? (pi-config-state-providers st-arr))
+    =>
+    #t
+  ) ;check
 ) ;let
 
 (check-report)
