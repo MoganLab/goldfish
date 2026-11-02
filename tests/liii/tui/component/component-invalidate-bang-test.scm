@@ -1,6 +1,3 @@
-(import (liii check)
-        (liii tui component))
-
 ;; component-invalidate!
 ;; 标记组件脏区或刷新内部状态。
 ;;
@@ -10,7 +7,7 @@
 ;;
 ;; 参数
 ;; ----
-;; comp : component
+;; comp : component?
 ;; 要标记或刷新的组件。
 ;;
 ;; 返回值
@@ -23,19 +20,25 @@
 ;; 当组件状态改变、需要重新渲染或通知上层刷新时调用。
 ;; 若 comp 不是合法组件，抛出 type-error。
 
+(import (liii check) (liii tui component))
+
+(check-set-mode! 'report-failed)
+
 (let ((c (make-text "hello")))
-  (check (component-invalidate! c) => #t))
+  (check (component-invalidate! c) => #t)
+) ;let
 
 (let* ((dirty #f)
-       (c (make-component
-            (lambda (comp w) '())
+       (c (make-component (lambda (comp w) '())
             (lambda (comp k) #f)
-            (lambda (comp)
-              (set! dirty #t)
-              'dirty-marked))))
+            (lambda (comp) (set! dirty #t) 'dirty-marked)
+          ) ;make-component
+       ) ;c
+      ) ;
   (check dirty => #f)
   (check (component-invalidate! c) => 'dirty-marked)
-  (check dirty => #t))
+  (check dirty => #t)
+) ;let*
 
 ;; 错误处理
 (check-catch 'type-error (component-invalidate! "string"))
