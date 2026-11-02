@@ -1,6 +1,3 @@
-(import (liii check)
-        (liii tui component))
-
 ;; make-spacer
 ;; 创建指定高度的空白占位组件。
 ;;
@@ -23,18 +20,25 @@
 ;; 渲染时返回由 height 个空字符串 "" 组成的行列表。
 ;; 若 height 类型非法或为负数，抛出相应错误。
 
+(import (liii check) (liii tui component))
+
+(check-set-mode! 'report-failed)
+
 ;; 默认高度 1
 (let ((c (make-spacer)))
-  (check (component-render c 80) => '("")))
+  (check (component-render c 80) => '(""))
+) ;let
 
 ;; 指定高度
 (let ((c (make-spacer 3)))
   (check (component-render c 80) => '("" "" ""))
-  (check (component-render c 20) => '("" "" "")))
+  (check (component-render c 20) => '("" "" ""))
+) ;let
 
 ;; 高度为 0
 (let ((c (make-spacer 0)))
-  (check (component-render c 80) => '()))
+  (check (component-render c 80) => '())
+) ;let
 
 ;; 非法高度
 (check-catch 'type-error (make-spacer "1"))

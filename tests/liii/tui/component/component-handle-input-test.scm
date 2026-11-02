@@ -1,6 +1,3 @@
-(import (liii check)
-        (liii tui component))
-
 ;; component-handle-input
 ;; 向组件分发键盘或事件输入。
 ;;
@@ -12,6 +9,7 @@
 ;; ----
 ;; comp : component
 ;; 要接收输入的组件对象。
+;;
 ;; key : any
 ;; 输入事件或按键符号，如 'up、'down、'enter、#\a、"text" 等。
 ;;
@@ -24,17 +22,25 @@
 ;; ----
 ;; 若 comp 不是合法组件，抛出 type-error。
 
+(import (liii check) (liii tui component))
+
+(check-set-mode! 'report-failed)
+
 (let ((c (make-text "static text")))
   ;; make-text 默认不消费任何输入
   (check (component-handle-input c 'up) => #f)
-  (check (component-handle-input c 'enter) => #f))
+  (check (component-handle-input c 'enter) => #f)
+) ;let
 
-(let ((c (make-component
-           (lambda (comp w) '())
-           (lambda (comp key)
-             (if (eq? key 'enter) 'submitted #f)))))
+(let ((c
+        (make-component (lambda (comp w) '())
+          (lambda (comp key) (if (eq? key 'enter) 'submitted #f))
+        ) ;make-component
+      ) ;c
+     ) ;
   (check (component-handle-input c 'up) => #f)
-  (check (component-handle-input c 'enter) => 'submitted))
+  (check (component-handle-input c 'enter) => 'submitted)
+) ;let
 
 ;; 错误处理
 (check-catch 'type-error (component-handle-input "invalid-comp" 'up))

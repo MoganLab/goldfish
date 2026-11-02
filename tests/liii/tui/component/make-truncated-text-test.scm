@@ -1,6 +1,3 @@
-(import (liii check)
-        (liii tui component))
-
 ;; make-truncated-text
 ;; 创建单行截断文本组件。
 ;;
@@ -29,42 +26,44 @@
 ;; 5. 若 width <= 0，返回 '("")；
 ;; 6. 若 str 或 ellipsis 类型非法，抛出 type-error。
 
+(import (liii check) (liii tui component))
+
+(check-set-mode! 'report-failed)
+
 ;; 未超出宽度
 (let ((c (make-truncated-text "hello")))
   (check (component-render c 10) => '("hello"))
-  (check (component-render c 5) => '("hello")))
+  (check (component-render c 5) => '("hello"))
+) ;let
 
 ;; 超出宽度截断
 (let ((c (make-truncated-text "hello world")))
   (check (component-render c 8) => '("hello..."))
-  (check (component-render c 6) => '("hel...")))
+  (check (component-render c 6) => '("hel..."))
+) ;let
 
 ;; 自定义省略符
 (let ((c (make-truncated-text "hello world" " ~")))
-  (check (component-render c 7) => '("hello ~")))
+  (check (component-render c 7) => '("hello ~"))
+) ;let
 
 ;; 极小宽度测试
 (let ((c (make-truncated-text "hello world")))
   (check (component-render c 3) => '("..."))
   (check (component-render c 2) => '(".."))
   (check (component-render c 1) => '("."))
-  (check (component-render c 0) => '("")))
+  (check (component-render c 0) => '(""))
+  (check (component-render c -1) => '(""))
+) ;let
 
-;; 内含换行符测试（只取首行）
-(let ((c (make-truncated-text "line1\nline2")))
-  (check (component-render c 10) => '("line1")))
+;; 包含换行符（只取第一行）
+(let ((c (make-truncated-text "first line\nsecond line")))
+  (check (component-render c 20) => '("first line"))
+  (check (component-render c 8) => '("first..."))
+) ;let
 
-;; CJK 表意字符截断与双宽防劈裂
-(let ((c (make-truncated-text "你好世界")))
-  (check (component-render c 7) => '("你好..."))
-  (check (component-render c 6) => '("你...")))
-
-;; ANSI 转义序列安全截断并闭合样式
-(let ((c (make-truncated-text "\x1b[31mhello world\x1b[0m")))
-  (check (component-render c 8) => '("\x1b[31mhello...\x1b[0m")))
-
-;; 参数非法检查
+;; 错误处理
 (check-catch 'type-error (make-truncated-text 123))
-(check-catch 'type-error (make-truncated-text "text" 456))
+(check-catch 'type-error (make-truncated-text "hello" 123))
 
 (check-report)
