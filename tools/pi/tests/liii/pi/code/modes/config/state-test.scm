@@ -1,3 +1,24 @@
+;; pi-config-state
+;; 把用户配置目录装配成只读视图模型：provider 顺序 = providers.json
+;; 白名单顺序；每个 provider 带 name/baseUrl/api/proxy/key-source/default?/models；
+;; 每个 model 带 id/name/contextWindow/maxTokens/reasoning/file/default?。
+;;
+;; 语法
+;; ----
+;; (pi-config-state dir :env env) -> pi-config-state
+;;
+;; 参数
+;; ----
+;; dir : string
+;; 用户配置目录。
+;; env : alist
+;; 用于解析 API key 的环境变量表。
+;;
+;; 返回值
+;; ----
+;; pi-config-state
+;; 包含 providers 与 models 的只读视图。
+
 (import (scheme base)
   (liii check)
   (liii list)
@@ -6,11 +27,6 @@
 ) ;import
 
 (check-set-mode! 'report-failed)
-
-;; pi-config-state：把用户配置目录装配成只读视图模型。
-;; provider 顺序 = providers.json 白名单顺序；
-;; 每个 provider 带 name/baseUrl/api/proxy/key-source/default?/models；
-;; 每个 model 带 id/name/contextWindow/maxTokens/reasoning/file/default?。
 
 (define FIXTURE
   (if (file-exists? "tools/pi/tests/fixtures/user-config")

@@ -1,3 +1,24 @@
+;; pi-save-default-model!
+;; 将默认 provider 与模型写回 settings.json，保留其他设置。
+;;
+;; 语法
+;; ----
+;; (pi-save-default-model! config-dir provider model-id) -> unspecified
+;;
+;; 参数
+;; ----
+;; config-dir : string
+;; JSON 配置目录。
+;; provider : string
+;; 默认 provider id。
+;; model-id : string
+;; 默认模型 id。
+;;
+;; 返回值
+;; ----
+;; unspecified
+;; 写入成功后的返回值未指定。
+
 (import (scheme base)
   (scheme file)
   (liii check)

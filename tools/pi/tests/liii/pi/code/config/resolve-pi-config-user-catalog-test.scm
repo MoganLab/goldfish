@@ -1,3 +1,24 @@
+;; resolve-pi-config
+;; 读取用户配置目录（providers.json + models/）：白名单外的 provider/模型
+;; 不可路由；provider 文件的 baseUrl/api 对实际请求生效；模型文件字段
+;; 覆盖内置目录。本测试聚焦于用户目录驱动下的目录构建与路由。
+;;
+;; 语法
+;; ----
+;; (resolve-pi-config parsed-args [env]) -> alist
+;;
+;; 参数
+;; ----
+;; parsed-args : alist
+;; parse-pi-args 解析后的命令行参数。
+;; env : alist
+;; 可选环境变量表，用于解析 API key 与代理。
+;;
+;; 返回值
+;; ----
+;; alist
+;; 包含 provider/model-id/api-key/proxy-url/model-meta 等配置项。
+
 (import (liii check)
   (liii pi code cli args)
   (liii pi code config)

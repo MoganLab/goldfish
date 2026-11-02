@@ -1,9 +1,23 @@
+;; pi-load-settings
+;; 从 settings.json 文件加载全局设置。
+;;
+;; 语法
+;; ----
+;; (pi-load-settings config-dir) -> pi-settings
+;;
+;; 参数
+;; ----
+;; config-dir : string
+;; 包含 settings.json 的配置目录。
+;;
+;; 返回值
+;; ----
+;; pi-settings
+;; 全局设置 record；文件缺失或字段缺省时回退默认值。
+
 (import (liii check) (liii pi ai config record) (liii pi ai retry) (liii pi code config) (liii pi code core session-manager))
 
 (check-set-mode! 'report-failed)
-
-;; pi-load-settings
-;; 从 settings.json 文件加载全局设置。
 (define fixture-dir
   (if (file-exists? "tests/fixtures/default")
     "tests/fixtures/default"

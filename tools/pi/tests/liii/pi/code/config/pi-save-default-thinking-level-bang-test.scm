@@ -1,3 +1,22 @@
+;; pi-save-default-thinking-level!
+;; 将默认思考级别写回 settings.json，保留其他设置。
+;;
+;; 语法
+;; ----
+;; (pi-save-default-thinking-level! config-dir level) -> unspecified
+;;
+;; 参数
+;; ----
+;; config-dir : string
+;; JSON 配置目录。
+;; level : string
+;; 思考级别（off/minimal/low/medium/high/xhigh/max）。
+;;
+;; 返回值
+;; ----
+;; unspecified
+;; 写入成功后的返回值未指定。
+
 (import (scheme base)
   (scheme file)
   (liii check)

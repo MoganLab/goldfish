@@ -1,3 +1,23 @@
+;; pi-load-providers-whitelist / pi-build-user-catalog
+;; 读取 models/providers.json 白名单并构建白名单驱动的用户模型目录：
+;; 白名单文件缺失或为空数组时回退全部内置 provider；
+;; 每个模型的元数据 = models/<provider>/<model>.json > 内置目录（字段级补缺）。
+;;
+;; 语法
+;; ----
+;; (pi-load-providers-whitelist dir) -> list | #f
+;; (pi-build-user-catalog dir) -> alist
+;;
+;; 参数
+;; ----
+;; dir : string
+;; 用户配置目录，包含 models/providers.json 与 models/ 目录。
+;;
+;; 返回值
+;; ----
+;; list | alist
+;; 白名单为字符串列表（未配置时 #f）；目录为 provider 到模型列表的 alist。
+
 (import (liii check)
   (liii string)
   (liii path)
