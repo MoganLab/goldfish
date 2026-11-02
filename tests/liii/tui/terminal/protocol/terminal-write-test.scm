@@ -1,8 +1,3 @@
-(import (liii check)
-        (liii tui terminal))
-
-(check-set-mode! 'report-failed)
-
 ;; terminal-write
 ;; 向终端当前光标位置写入文本。
 ;;
@@ -12,14 +7,20 @@
 ;;
 ;; 参数
 ;; ----
-;; term : terminal
+;; term : terminal?
 ;; 终端实例。
-;; text : string
+;;
+;; text : string?
 ;; 待写入的文本。
 ;;
 ;; 返回值
 ;; ----
 ;; unspecified
+;; 未指定具体返回值。
+
+(import (scheme base) (liii check) (liii tui terminal))
+
+(check-set-mode! 'report-failed)
 
 ;; 写入普通文本
 (let ((vt (make-virtual-terminal :width 10 :height 3)))
@@ -28,11 +29,13 @@
   (let ((screen (virtual-terminal-screen vt)))
     (check (car screen) => "hello     ")
     (check (cadr screen) => "          ")
-    (check (caddr screen) => "          "))
+    (check (caddr screen) => "          ")
+  ) ;let
   ;; 追加写入
   (terminal-write vt "123")
   (check (terminal-cursor vt) => '(8 0))
-  (check (car (virtual-terminal-screen vt)) => "hello123  "))
+  (check (car (virtual-terminal-screen vt)) => "hello123  ")
+) ;let
 
 ;; 写入换行符 \n
 (let ((vt (make-virtual-terminal :width 10 :height 3)))
@@ -41,13 +44,16 @@
   (let ((screen (virtual-terminal-screen vt)))
     (check (car screen) => "foo       ")
     (check (cadr screen) => "bar       ")
-    (check (caddr screen) => "          ")))
+    (check (caddr screen) => "          ")
+  ) ;let
+) ;let
 
 ;; 写入回车符 \r 覆盖
 (let ((vt (make-virtual-terminal :width 10 :height 3)))
   (terminal-write vt "hello\rabc")
   (check (terminal-cursor vt) => '(3 0))
-  (check (car (virtual-terminal-screen vt)) => "abclo     "))
+  (check (car (virtual-terminal-screen vt)) => "abclo     ")
+) ;let
 
 ;; 超出屏幕高度自动向上滚动
 (let ((vt (make-virtual-terminal :width 8 :height 2)))
@@ -55,17 +61,22 @@
   (check (terminal-cursor vt) => '(5 1))
   (let ((screen (virtual-terminal-screen vt)))
     (check (car screen) => "line2   ")
-    (check (cadr screen) => "line3   ")))
+    (check (cadr screen) => "line3   ")
+  ) ;let
+) ;let
 
 ;; 原始日志记录与 flush
 (let ((vt (make-virtual-terminal :width 10 :height 3)))
   (terminal-write vt "one")
   (terminal-write vt "two")
   (check (virtual-terminal-raw vt) => '("one" "two"))
-  (check (terminal-flush vt) => #t))
+  (check (terminal-flush vt) => #t)
+) ;let
 
 ;; 类型检查
 (check-catch 'type-error (terminal-write "not-term" "text"))
-(check-catch 'type-error (terminal-write (make-virtual-terminal :width 10 :height 3) 123))
+(check-catch 'type-error
+  (terminal-write (make-virtual-terminal :width 10 :height 3) 123)
+) ;check-catch
 
 (check-report)

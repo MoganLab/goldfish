@@ -1,10 +1,3 @@
-(import (liii check)
-        (liii tui mouse)
-        (liii tui terminal)
-        (liii tui terminal poll))
-
-(check-set-mode! 'report-failed)
-
 ;; terminal-drain-mouse-events
 ;; 一次性取走当前已到达的所有鼠标事件（非阻塞）。
 ;;
@@ -14,7 +7,7 @@
 ;;
 ;; 参数
 ;; ----
-;; term : terminal?
+;; term : terminal? (可选)
 ;; 目标终端，缺省为当前标准终端。
 ;;
 ;; 返回值
@@ -29,8 +22,22 @@
 ;; 典型用法：滚轮事件连续到达时一次性取走、合并成一次滚动，
 ;; 避免渲染耗时大于事件到达间隔时输入不断积压。
 
-(define (make-wheel-up) (make-mouse-event 'wheel-up 'none 5 5))
-(define (make-wheel-down) (make-mouse-event 'wheel-down 'none 5 5))
+(import (scheme base)
+  (liii check)
+  (liii tui mouse)
+  (liii tui terminal)
+  (liii tui terminal poll)
+) ;import
+
+(check-set-mode! 'report-failed)
+
+(define (make-wheel-up)
+  (make-mouse-event 'wheel-up 'none 5 5)
+) ;define
+
+(define (make-wheel-down)
+  (make-mouse-event 'wheel-down 'none 5 5)
+) ;define
 
 ;; 1. 连续鼠标事件被一次取走
 (let ((vt (make-virtual-terminal 40 20)))
