@@ -1,3 +1,20 @@
+;; pi-request-api-key
+;; 获取本次请求使用的 API 密钥（优先委托 request-key 钩子，回退单 key）。
+;;
+;; 语法
+;; ----
+;; (pi-request-api-key config)
+;;
+;; 参数
+;; ----
+;; config : alist?
+;; 请求配置关联表。
+;;
+;; 返回值
+;; ----
+;; string? 或 #f
+;; 本次请求使用的 API 密钥，若未配置则返回 #f。
+
 (import (liii check) (liii pi ai keyring))
 
 (check-set-mode! 'report-failed)
