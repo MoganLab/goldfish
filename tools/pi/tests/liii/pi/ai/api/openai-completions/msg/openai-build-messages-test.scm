@@ -1,7 +1,3 @@
-(import (liii check) (liii pi ai event) (liii pi ai api openai-completions) (liii pi ai message))
-
-(check-set-mode! 'report-failed)
-
 ;; openai-build-messages
 ;; 将内部消息历史转换为 OpenAI Chat Completions messages。
 ;;
@@ -28,10 +24,11 @@
 ;; 空 content 的 assistant 消息（如 ESC abort 后 stopReason=aborted 的残留）
 ;; 被整体跳过，不产生空 assistant API 消息（对齐上游 blocks 为空时 continue），
 ;; 跳过后允许产生连续 user 消息。
-;;
-;; 示例
-;; ----
-;; (openai-build-messages (list (pi-user-message "hi")) #f) => #((("role" . "user") ...))
+
+(import (liii check) (liii pi ai event) (liii pi ai api openai-completions) (liii pi ai message))
+
+(check-set-mode! 'report-failed)
+
 (let* ((messages (list (pi-user-message "echo hello")
                        (pi-assistant-message
                          (list (pi-tool-call-block "call_1" "bash" '(("command" . "echo hello")))))
