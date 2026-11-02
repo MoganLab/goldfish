@@ -1,10 +1,5 @@
-(import (liii list) (liii check))
-
-
-(check-set-mode! 'report-failed)
-
-
-;; delete 函数测试
+;; delete
+;; 从列表中删除所有等于指定对象的元素。
 ;;
 ;; 语法
 ;; ----
@@ -25,30 +20,17 @@
 ;; ------
 ;; list
 ;; 返回删除所有等于obj的元素后的新列表。
-;;
-;; 示例
-;; ----
-;; (delete 1 (list 1 2 3 4)) => (list 2 3 4)
-;; (delete 0 (list 1 2 3 4)) => (list 1 2 3 4)
-;; (delete #\a (list #\a #\b #\c) char=?) => (list #\b #\c)
 
+(import (srfi srfi-1) (liii check))
+
+(check-set-mode! 'report-failed)
 
 (check (delete 1 (list 1 2 3 4)) => (list 2 3 4))
-
-
 (check (delete 0 (list 1 2 3 4)) => (list 1 2 3 4))
-
-
 (check (delete #\a (list #\a #\b #\c) char=?) => (list #\b #\c))
-
-
 (check (delete #\a (list #\a #\b #\c) (lambda (x y) #f)) => (list #\a #\b #\c))
-
-
 (check (delete 1 (list)) => (list))
 
-
 (check-catch 'type-error (delete 1 (list 1 2 3 4) 'not-pred))
-
 
 (check-report)
