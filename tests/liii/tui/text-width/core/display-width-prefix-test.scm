@@ -1,8 +1,3 @@
-(import (liii check)
-        (liii tui text-width))
-
-(check-set-mode! 'report-failed)
-
 ;; display-width-prefix
 ;; 计算字符串前 n 个 Unicode 字符在终端中占用的视觉列宽。
 ;;
@@ -39,6 +34,10 @@
 ;; ----
 ;; type-error 当 str 不是字符串，或 n 不是非负整数时。
 
+(import (liii check) (liii tui text-width))
+
+(check-set-mode! 'report-failed)
+
 ;; 空字符串与零字符
 (check (display-width-prefix "" 0) => 0)
 (check (display-width-prefix "hello" 0) => 0)
@@ -62,7 +61,10 @@
 (check (display-width-prefix "Hi金鱼" 4) => 6)
 
 ;; 与 display-width 的一致性：前缀宽度 + 剩余宽度 = 整体宽度
-(check (display-width-prefix "Hi金鱼" 3) => (+ (display-width-prefix "Hi金鱼" 2) 2))
+(check (display-width-prefix "Hi金鱼" 3)
+  =>
+  (+ (display-width-prefix "Hi金鱼" 2) 2)
+) ;check
 (check (display-width-prefix "你好" 1) => (+ 0 (display-width "你")))
 
 ;; 常见 Emoji 字符（每个 2 列）
@@ -70,11 +72,16 @@
 (check (display-width-prefix "😊ab" 2) => 3)
 
 ;; ANSI 序列不占用显示列宽，也不消耗字符配额
-(check (display-width-prefix "\x1b[31mred\x1b[0m" 3) => 3)
-(check (display-width-prefix "\x1b[33m金鱼\x1b[0m" 2) => 4)
+(check (display-width-prefix "\x1b;[31mred\x1b;[0m" 3) => 3)
+(check (display-width-prefix "\x1b;[33m金鱼\x1b;[0m" 2) => 4)
 
 ;; 非法 UTF-8 字节：容错重算（截断的"好"替换为一个 U+FFFD，宽 1）
-(check (display-width-prefix (string-append "你" (byte-vector->string #u8(229 165))) 2) => 3)
+(check (display-width-prefix (string-append "你" (byte-vector->string #u8(229 165)))
+         2
+       ) ;display-width-prefix
+  =>
+  3
+) ;check
 
 ;; 类型错误检查
 (check-catch 'type-error (display-width-prefix 123 1))
