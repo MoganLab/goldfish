@@ -187,18 +187,26 @@
   ;; 超宽错误信息必然折为多行输出（pad+标题+空行+多行输出+pad+间隔空行）
   (check (> (length lines) 6) => #t)
   ;; 每行显示宽度不超过终端宽度，否则会被 alt-screen 截断
-  (check (every (lambda (line) (<= (display-width line) w)) lines) => #t)
+  (check
+    (every (lambda (line) (<= (display-width line) w)) lines)
+    =>
+    #t
+  ) ;check
   ;; 内容完整：数字字符总数必须等于 180，一个都不能少
   (check
     (length
       (filter (lambda (c) (and (char>=? c #\0) (char<=? c #\9)))
         (apply append (map string->list plain))
       ) ;filter
-    )
-    => 180
-  )
+    ) ;length
+    =>
+    180
+  ) ;check
   ;; 折行后正文可以完整还原
-  (check (string-contains? (string-join (map string-trim-both plain) "") digits) => #t)
+  (check (string-contains? (string-join (map string-trim-both plain) "") digits)
+    =>
+    #t
+  ) ;check
   ;; 输出行背景仍是 error 红
   (check (string-contains? (list-ref lines 3) "48;2;91;40;42") => #t)
 ) ;let*
@@ -210,8 +218,15 @@
        (lines (component-render card w))
        (plain (map strip-ansi lines))
       ) ;
-  (check (every (lambda (line) (<= (display-width line) w)) lines) => #t)
-  (check (string-contains? (string-join (map string-trim-both plain) "") zh-msg) => #t)
+  (check
+    (every (lambda (line) (<= (display-width line) w)) lines)
+    =>
+    #t
+  ) ;check
+  (check (string-contains? (string-join (map string-trim-both plain) "") zh-msg)
+    =>
+    #t
+  ) ;check
 ) ;let*
 
 ;; 运行中显示 Elapsed；结束后使用执行层耗时且不再滚动
