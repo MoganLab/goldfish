@@ -20,15 +20,20 @@
     (liii sort)
     (liii pi ai models builtin)
     (liii pi ai providers registry)
+    (liii pi ai config record)
     (liii pi code config user-fs)
     (liii pi code config user-providers)
     (liii pi code config user-models)
+    (liii pi code config json-write)
   ) ;import
   (export pi-build-user-catalog
     pi-build-config-catalog
     pi-user-provider-config
     ;; 白名单加载由 (liii pi code config user-providers) 提供，此处再导出保持入口单一
     pi-load-providers-whitelist
+    pi-resolve-default-target
+    pi-auto-activate-default-model!
+    pi-user-model-exists?
   ) ;export
   (begin
 
@@ -147,6 +152,63 @@
       (let ((entry (and (pair? catalog) (assoc p-id catalog))))
         (and entry (cdr entry))
       ) ;let
+    ) ;define
+
+    ;; 解析 settings 中的默认 provider 与 model（支持 provider/model 斜杠语法）
+    (define (pi-resolve-default-target settings)
+      (let* ((p (pi-settings-default-provider settings))
+             (m (pi-settings-default-model settings))
+             (slash? (and (string? m) (string-contains? m "/")))
+             (parts (if slash? (string-split m "/") '()))
+             (eff-p (if (and slash? (pair? parts)) (car parts) (or p "google")))
+             (eff-m
+               (if (and slash? (pair? (cdr parts))) (cadr parts) (or m "gemini-3.8-flash"))
+             ) ;eff-m
+            ) ;
+        (values eff-p eff-m)
+      ) ;let*
+    ) ;define
+
+    (define (%provider-models-whitelist config-dir p-id)
+      (let* ((p-file (pi-user-provider-file config-dir p-id))
+             (wl-raw (and p-file (pi-user-dict-ref p-file "models" #f)))
+            ) ;
+        (and (vector? wl-raw) (vector->list wl-raw))
+      ) ;let*
+    ) ;define
+
+    (define (%build-activation-writes config-dir p-id m-id)
+      (let* ((wl-p (pi-load-providers-whitelist config-dir))
+             (need-p? (and wl-p (not (member p-id wl-p))))
+             (wl-m (%provider-models-whitelist config-dir p-id))
+             (need-m? (and wl-m (not (member m-id wl-m))))
+             (p-writes
+               (if need-p? (pi-providers-write-writes (append wl-p (list p-id))) '())
+             ) ;p-writes
+             (m-writes
+               (if need-m?
+                 (list (pi-provider-file-with-models config-dir p-id (append wl-m (list m-id))))
+                 '()
+               ) ;if
+             ) ;m-writes
+            ) ;
+        (append p-writes m-writes)
+      ) ;let*
+    ) ;define
+
+    ;; 自动激活检测与写盘：
+    ;;   若默认 provider / 模型处于未激活状态，且该模型在内置目录或模型文件中真实存在，
+    ;;   将其追加进对应白名单（原子落盘并保持文件其余键及顺序不变）。
+    ;;   返回 #t 表示执行了写入，#f 表示无需激活或无法激活。
+    (define (pi-auto-activate-default-model! config-dir settings)
+      (let-values (((p-id m-id) (pi-resolve-default-target settings)))
+        (if (not (pi-user-model-exists? config-dir p-id m-id))
+          #f
+          (let ((writes (%build-activation-writes config-dir p-id m-id)))
+            (and (pair? writes) (begin (pi-apply-writes config-dir writes) #t))
+          ) ;let
+        ) ;if
+      ) ;let-values
     ) ;define
 
   ) ;begin

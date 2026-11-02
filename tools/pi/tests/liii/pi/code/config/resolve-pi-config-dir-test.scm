@@ -1,3 +1,22 @@
+;; resolve-pi-config
+;; 解析运行配置时区分 JSON 配置文件目录（config-dir）与 agent 目录（agent-dir）。
+;;
+;; 语法
+;; ----
+;; (resolve-pi-config parsed-args . opt-env)
+;;
+;; 参数
+;; ----
+;; parsed-args : alist
+;; parse-pi-args 生成的命令行参数。
+;; opt-env : alist
+;; 可选的环境变量表。
+;;
+;; 返回值
+;; ----
+;; alist
+;; 解析后的运行配置，其中 config-dir 与 agent-dir 分离。
+
 (import (scheme process-context)
         (scheme file)
         (liii check)

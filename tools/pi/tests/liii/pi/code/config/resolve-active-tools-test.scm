@@ -1,3 +1,24 @@
+;; resolve-active-tools
+;; 综合默认工具、扩展声明、配置文件和命令行参数，计算实际启用的工具列表。
+;;
+;; 语法
+;; ----
+;; (resolve-active-tools parsed-args settings . opt-registry)
+;;
+;; 参数
+;; ----
+;; parsed-args : alist
+;; parse-pi-args 生成的命令行参数。
+;; settings : alist
+;; 包含 default-tools 的配置。
+;; opt-registry : extension-registry | extension-api | #f
+;; 可选扩展注册表；缺省时使用当前或默认注册表。
+;;
+;; 返回值
+;; ----
+;; list
+;; 去重且保持顺序的工具名列表。
+
 (import (liii check)
   (liii pi code cli args)
   (liii pi code config)

@@ -1,3 +1,23 @@
+;; pi-route-provider-and-model
+;;
+;; 统一解析 CLI 参数、环境变量与配置，确定生效的 provider 与 model-id
+;;
+;; 语法
+;; ----
+;; (pi-route-provider-and-model cli-p cli-m settings models-store opt-env)
+;;
+;; 参数
+;; ----
+;; cli-p        : CLI 传入的 provider 或 #f
+;; cli-m        : CLI 传入的 model 或 #f
+;; settings     : 用户配置 record
+;; models-store : 运行时模型目录 alist
+;; opt-env      : 可选环境变量 alist
+;;
+;; 返回值
+;; ----
+;; 多值 (values provider-id model-id)
+
 (import (scheme process-context)
   (liii check)
   (liii string)
@@ -7,22 +27,41 @@
 
 (check-set-mode! 'report-failed)
 
-;; pi-route-provider-and-model
-;; 统一解析 CLI 参数、环境变量与配置，确定生效的 provider 与 model-id
-
 ;; 样本目录：自定义模型（deepseek / zai / google）+ 内置目录
+
 (define custom-catalog
   (list
-    (cons "google" (list (cons "models" (list (list (cons "id" "gemini-3.8-flash"))
-                                              (list (cons "id" "gemini-2.5-pro"))))))
-    (cons "deepseek" (list (cons "models" (list (list (cons "id" "deepseek-v4-pro"))
-                                                (list (cons "id" "deepseek-v4-flash"))))))
+    (cons "google"
+      (list
+        (cons "models"
+          (list (list (cons "id" "gemini-3.8-flash")) (list (cons "id" "gemini-2.5-pro")))
+        ) ;cons
+      ) ;list
+    ) ;cons
+    (cons "deepseek"
+      (list
+        (cons "models"
+          (list (list (cons "id" "deepseek-v4-pro"))
+            (list (cons "id" "deepseek-v4-flash"))
+          ) ;list
+        ) ;cons
+      ) ;list
+    ) ;cons
     (cons "zai-coding-cn"
-      (list (cons "models" (list (list (cons "id" "glm-5.3"))
-                                 (list (cons "id" "glm-5.3-flash"))
-                                 (list (cons "id" "glm-4.5-air"))))))))
+      (list
+        (cons "models"
+          (list (list (cons "id" "glm-5.3"))
+            (list (cons "id" "glm-5.3-flash"))
+            (list (cons "id" "glm-4.5-air"))
+          ) ;list
+        ) ;cons
+      ) ;list
+    ) ;cons
+  ) ;list
+) ;define
 
 (define fixture-store custom-catalog)
+
 (define fixture-merged custom-catalog)
 
 (define default-settings
@@ -32,6 +71,7 @@
 (define NO-ENV '(("__PI_TEST_NO_ENV__" . "1")))
 
 ;; 默认目录 = 内置目录 + fixture（可用性以目录为准，内置模型需并入目录）
+
 (define default-catalog (pi-builtin-augment-all fixture-merged))
 
 (define (check-route exp-p exp-m prov model . opt)
@@ -168,6 +208,8 @@
 ) ;check-catch
 
 ;; 6. 默认模型兜底回退：当 provider 的默认模型不在目录中时，回退到该 provider 目录的第一个模型
+;; 注：正常启动路径下 resolve-pi-config 会在启动装配阶段自动激活未激活的默认模型；
+;; 此处保留 route 层的纯函数兜底逻辑，作为自动激活失败（如只读配置目录）时的最后防线。
 (let* ((custom-store
          (list
            (cons "custom-prov"
@@ -230,7 +272,9 @@
 
 ;; 8. provider/model 斜杠语法路由解析
 (check-route "zai-coding-cn" "glm-5.3-flash" #f "zai-coding-cn/glm-5.3-flash")
-(check-route "minimax-cn" "MiniMax-M3.1-Flash" #f "minimax-cn/MiniMax-M3.1-Flash")
+(check-route "minimax-cn" "MiniMax-M3.1-Flash" #f
+  "minimax-cn/MiniMax-M3.1-Flash"
+) ;check-route
 
 ;; 9. 守卫断言：遍历所有已知 provider，验证每个 provider 的默认模型均真实存在于其目录中
 ;; 9.1 验证所有 PI_SUPPORTED_PROVIDERS 的默认模型均在其内置目录中（自洽闭环）

@@ -1,24 +1,23 @@
-;; pi-config-file-view
-;; 配置 TUI 文件层：根据光标所在条目生成只读视图（路径/是否存在/原文），
-;; 算出空格启停与设默认的写入计划并原子落盘。
+;; pi-config-plan-toggle
+;; 计算空格启停 provider 或模型时需要写入的文件与新内容（纯函数，不落盘）。
 ;;
 ;; 语法
 ;; ----
-;; (pi-config-file-view st cursor active)
+;; (pi-config-plan-toggle st cursor . opt-column)
 ;;
 ;; 参数
 ;; ----
 ;; st : pi-config-state
-;; 配置视图模型。
-;; cursor : list
-;; 光标 ((provider . i) (model . j))。
-;; active : integer
-;; 激活列编号 0/1/2。
+;; 配置 TUI 的只读视图模型。
+;; cursor : alist
+;; provider 与模型光标位置。
+;; opt-column : integer
+;; 0 表示 provider 列，1 表示模型列。
 ;;
 ;; 返回值
-;; ------
+;; ----
 ;; alist
-;; 包含 path/exists/content 等字段的文件视图。
+;; 包含 ok、message 与 writes 的写入计划。
 
 (import (scheme base)
   (liii check)
@@ -36,6 +35,11 @@
 ) ;import
 
 (check-set-mode! 'report-failed)
+
+;; 配置 TUI 的文件层：
+;;   pi-config-file-view    只读视图（路径/是否存在/原文）
+;;   pi-config-plan-toggle  空格启停的写入计划（纯函数）
+;;   pi-config-apply-writes 原子落盘
 
 (define FIXTURE
   (if (file-exists? "tools/pi/tests/fixtures/user-config")
