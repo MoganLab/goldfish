@@ -40,6 +40,7 @@
 ;; 记录编辑器每次 on-change 之后的文本与光标：
 ;; probes 为可选探针列表，每个探针接收 app 并返回附加记录值。
 ;; 返回读取器：调用后得到当前编辑日志（按发生顺序排列）。
+
 (define (track-editor-changes app . probes)
   (let* ((ed (pi-app-editor app))
          (data (component-data ed))
@@ -228,24 +229,29 @@
 ;;     不触发命令、不发送消息
 (let* ((vt (make-virtual-terminal :width 100 :height 40))
        (received '())
-       (app (make-pi-app :terminal vt
-              :handler (lambda (a msg) (set! received (cons msg received)))))
+       (app
+         (make-pi-app
+           :terminal vt
+           :handler  (lambda (a msg) (set! received (cons msg received)))
+         ) ;make-pi-app
+       ) ;app
        (ed (pi-app-editor app))
       ) ;
   (editor-set-text! ed "/mo")
   (editor-set-cursor! ed 0 2)
-  (let ((changes (track-editor-changes app
-                  (lambda (a)
-                    (let ((menu (pi-app-slash-command-menu a)))
-                      (if menu
-                        (map (lambda (item) (cdr (assoc 'value item)))
-                          (select-list-items menu)
-                        ) ;map
-                        #f
-                      ) ;if
-                    ) ;let
-                  ) ;lambda
-                )))
+  (let ((changes
+          (track-editor-changes app
+            (lambda (a)
+              (let ((menu (pi-app-slash-command-menu a)))
+                (if menu
+                  (map (lambda (item) (cdr (assoc 'value item))) (select-list-items menu))
+                  #f
+                ) ;if
+              ) ;let
+            ) ;lambda
+          ) ;track-editor-changes
+        ) ;changes
+       ) ;
     (virtual-terminal-push-key! vt 'ctrl-d)
     (virtual-terminal-push-key! vt 'ctrl-c)
     (virtual-terminal-push-key! vt 'ctrl-d)
@@ -260,7 +266,8 @@
 
 ;; 11. 选择器激活时 Ctrl+D 仍由选择器处理，不得因主编辑器为空而退出
 (let* ((vt (make-virtual-terminal :width 100 :height 40))
-       (app (make-pi-app :terminal vt :handler (lambda (a m) #t) :thinking-level "medium"))
+       (app (make-pi-app :terminal vt :handler (lambda (a m) #t) :thinking-level "medium")
+       ) ;app
        (ed (pi-app-editor app))
       ) ;
   (pi-app-submit! app "/thinking")

@@ -1,5 +1,5 @@
-;; pi-app-print-transcript
-;; pi-app-print-transcript 的相关操作与逻辑实现。
+;; pi-app-print-transcript!
+;; 交互模式退出后打印完整历史记录到终端。
 ;;
 ;; 语法
 ;; ----

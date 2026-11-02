@@ -221,7 +221,8 @@
   (virtual-terminal-push-key! vt 'ctrl-d)
   (pi-app-run app)
   (let* ((raw (string-join (virtual-terminal-raw vt) ""))
-         (lines (alt-screen-lines screen)))
+         (lines (alt-screen-lines screen))
+        ) ;
     (check (> (length lines) 0) => #t)
     ;; 进入与退出备用屏的序列都已下发
     (check-true (string-contains? raw "\x1b;[?1049h"))

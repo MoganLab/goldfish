@@ -1,5 +1,5 @@
-;; pi-app-abort-inflight
-;; pi-app-abort-inflight 的相关操作与逻辑实现。
+;; pi-app-abort-inflight!
+;; 中止在途的 LLM 或后台任务并等待宽限期。
 ;;
 ;; 语法
 ;; ----
@@ -34,6 +34,7 @@
 ;;   这里验证中止信号的发送与结算等待：已结算 → #t，超时未结算 → #f。
 
 ;; 模拟 worker：收到 abort 信号后回送 agent_settled 事件
+
 (define (settle-after-abort abort-ch event-ch)
   (chan-recv! abort-ch 2000)
   (chan-send! event-ch (list 'agent_settled #t) 1000)
@@ -87,8 +88,12 @@
 ;;    正确行为：退出期间只中止、不派发；排队消息随进程退出而丢弃。
 (let* ((vt (make-virtual-terminal :width 80 :height 24))
        (calls '())
-       (app (make-pi-app :terminal vt
-                :handler (lambda (a m) (set! calls (cons m calls)) #t)))
+       (app
+         (make-pi-app
+           :terminal vt
+           :handler  (lambda (a m) (set! calls (cons m calls)) #t)
+         ) ;make-pi-app
+       ) ;app
        (q (pi-app-queue app))
       ) ;
   (pi-queue-set-busy! q)

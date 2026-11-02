@@ -43,6 +43,7 @@
 ;; pi-app-abort-inflight-test.scm 中对纯中止等待做隔离测量。
 
 ;; 模拟在途 LLM 请求：阻塞在 recv 上，直到通道关闭才返回
+
 (define (stuck-worker ch)
   (chan-recv! ch 10000)
   #t
