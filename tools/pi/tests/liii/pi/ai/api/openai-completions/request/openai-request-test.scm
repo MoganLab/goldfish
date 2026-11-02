@@ -1,17 +1,3 @@
-(import (scheme base)
-  (liii check)
-  (liii string)
-  (liii subprocess)
-  (liii os)
-  (liii path)
-  (liii tempfile)
-  (liii pi ai message)
-  (liii pi ai log)
-  (liii pi ai api openai-completions)
-) ;import
-
-(check-set-mode! 'report-failed)
-
 ;; openai-request
 ;; OpenAI 兼容协议的非流式请求：把消息发到服务商并解析成 assistant 消息。
 ;;
@@ -51,6 +37,21 @@
 ;; ----
 ;; 可重试错误按 retry 配置退避重试；额度耗尽不重试（多账号时先换 key）。
 ;; 异常请求（非 200、网络错误）会连同响应体原文写入 ~/.gf/agent/logs。
+
+(import (scheme base)
+  (liii check)
+  (liii string)
+  (liii subprocess)
+  (liii os)
+  (liii path)
+  (liii tempfile)
+  (liii pi ai message)
+  (liii pi ai log)
+  (liii pi ai api openai-completions)
+) ;import
+
+(check-set-mode! 'report-failed)
+
 (let* ((cfg
          (list (cons 'model-id "kimi-for-coding")
            (cons 'model-meta '(("base-url" . "http://127.0.0.1:1")
