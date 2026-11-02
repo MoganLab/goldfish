@@ -1,5 +1,6 @@
 (import (scheme base)
   (liii check)
+  (liii list)
   (liii string)
   (liii tui terminal)
   (liii tui editor)
