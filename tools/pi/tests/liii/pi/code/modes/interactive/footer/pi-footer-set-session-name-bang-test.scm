@@ -1,3 +1,19 @@
+;; pi-footer-set-session-name!
+;; 执行 pi-footer-set-session-name! 操作并更新状态。
+;;
+;; 语法
+;; ----
+;; (pi-footer-set-session-name! ...)
+;;
+;; 参数
+;; ----
+;; 详见语法说明。
+;;
+;; 返回值
+;; ----
+;; unspecified
+;; 返回值未指定。
+
 (import (scheme base)
   (liii check)
   (liii string)

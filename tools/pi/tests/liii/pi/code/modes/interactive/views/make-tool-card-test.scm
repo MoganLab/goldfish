@@ -1,3 +1,19 @@
+;; make-tool-card
+;; 构造并返回新的 make-tool-card 实例组件。
+;;
+;; 语法
+;; ----
+;; (make-tool-card ...)
+;;
+;; 参数
+;; ----
+;; 详见语法说明。
+;;
+;; 返回值
+;; ----
+;; component?
+;; 返回构造的实例。
+
 (import (scheme base)
   (liii time)
   (liii check)

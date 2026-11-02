@@ -1,3 +1,19 @@
+;; pi-bash-run-command
+;; pi-bash-run-command 的相关操作与逻辑实现。
+;;
+;; 语法
+;; ----
+;; (pi-bash-run-command ...)
+;;
+;; 参数
+;; ----
+;; 详见语法说明。
+;;
+;; 返回值
+;; ----
+;; any
+;; 视具体调用结果而定。
+
 (import (scheme base)
   (liii check)
   (liii pi code modes interactive bash))

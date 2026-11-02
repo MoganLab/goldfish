@@ -1,3 +1,24 @@
+;; working-border-line
+;; 渲染包含当前动画帧与 Working 文本的边框分割线。
+;;
+;; 语法
+;; ----
+;; (working-border-line ind width color)
+;;
+;; 参数
+;; ----
+;; ind : working-indicator?
+;; 工作指示器实例。
+;; width : integer?
+;; 边框行目标总显示宽度。
+;; color : string?
+;; ANSI 颜色控制码字符串。
+;;
+;; 返回值
+;; ----
+;; string?
+;; 格式化后的彩色边框行字符串。
+
 (import (scheme base)
   (liii check)
   (liii string)

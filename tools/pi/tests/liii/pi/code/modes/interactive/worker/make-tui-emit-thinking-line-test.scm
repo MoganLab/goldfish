@@ -1,3 +1,19 @@
+;; make-tui-emit-thinking-line
+;; 构造并返回新的 make-tui-emit-thinking-line 实例组件。
+;;
+;; 语法
+;; ----
+;; (make-tui-emit-thinking-line)
+;;
+;; 参数
+;; ----
+;; 详见语法形参说明。
+;;
+;; 返回值
+;; ----
+;; component?
+;; 返回构造的实例。
+
 (import (scheme base)
   (liii check)
   (liii string)

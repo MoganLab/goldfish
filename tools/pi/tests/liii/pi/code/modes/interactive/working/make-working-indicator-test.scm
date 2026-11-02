@@ -1,3 +1,19 @@
+;; make-working-indicator
+;; 构造工作状态动画指示器实例。
+;;
+;; 语法
+;; ----
+;; (make-working-indicator)
+;;
+;; 参数
+;; ----
+;; 无
+;;
+;; 返回值
+;; ----
+;; working-indicator?
+;; 新构造的工作指示器实例。
+
 (import (scheme base)
   (liii check)
   (liii string)

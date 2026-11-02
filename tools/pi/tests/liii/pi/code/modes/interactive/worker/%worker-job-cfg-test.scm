@@ -1,3 +1,25 @@
+;; %worker-job-cfg
+;; 根据当前工作任务动态派生与覆盖 Worker 配置。
+;;
+;; 语法
+;; ----
+;; (%worker-job-cfg cfg job)
+;; (%worker-job-cfg cfg job parsed)
+;;
+;; 参数
+;; ----
+;; cfg : list?
+;; 当前基础配置列表。
+;; job : list?
+;; 包含提示词、思考等级以及可选 provider 与 model 的任务元组。
+;; parsed : list?
+;; 可选的已解析命令行参数。
+;;
+;; 返回值
+;; ----
+;; list?
+;; 覆盖了相应配置项的新配置列表。
+
 (import (scheme base)
   (scheme file)
   (liii check)

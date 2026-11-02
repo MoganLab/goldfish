@@ -1,3 +1,19 @@
+;; bash-card-set-output!
+;; 执行 bash-card-set-output! 操作并更新状态。
+;;
+;; 语法
+;; ----
+;; (bash-card-set-output! ...)
+;;
+;; 参数
+;; ----
+;; 详见语法说明。
+;;
+;; 返回值
+;; ----
+;; unspecified
+;; 返回值未指定。
+
 (import (scheme base)
   (liii check)
   (liii string)
