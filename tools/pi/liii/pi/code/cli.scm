@@ -66,6 +66,16 @@
       ) ;if
     ) ;define
 
+    (define (%cli-stdout-use-color?)
+      (let ((force-color (get-environment-variable "FORCE_COLOR")))
+        (cond
+         ((and force-color (not (string=? force-color "0"))) #t)
+         ((get-environment-variable "NO_COLOR") #f)
+         (else (stdout-tty?))
+        ) ;cond
+      ) ;let
+    ) ;define
+
     (define (%handle-list-models parsed)
       (let* ((config-dir (gf-get-config-dir))
              (cli-provider (pi-args-ref parsed 'provider))
@@ -78,11 +88,12 @@
                  #f
                ) ;if
              ) ;target-provider
-             (models-store (pi-build-user-catalog (path->string config-dir)))
+             (models-store (pi-build-config-catalog (path->string config-dir)))
              (search-arg (pi-args-ref parsed 'list-models))
              (search-pattern (if (string? search-arg) search-arg #f))
              (rows (pi-list-models models-store target-provider search-pattern))
-             (table-text (pi-format-models-table rows search-pattern))
+             (use-color? (%cli-stdout-use-color?))
+             (table-text (pi-format-models-table rows search-pattern use-color?))
             ) ;
         (display table-text)
         0
