@@ -18,6 +18,7 @@
   (import (scheme base)
     (scheme file)
     (liii base)
+    (liii os)
     (liii path)
     (liii string)
     (liii list)
@@ -93,8 +94,28 @@
       ) ;let
     ) ;define
 
-    (define (resolve-repo-file rel)
+    (define (find-repo-root)
       (let ((root (gfproject-root)))
+        (if (and root (string? root) (not (string=? root "")))
+          root
+          (let loop
+            ((dir (getcwd)))
+            (if
+              (and (path-dir? (path (path-join dir "goldfish")))
+                (path-file? (path (path-join dir "gf_check.json")))
+              ) ;and
+              dir
+              (let ((parent (path->string (path-parent (path dir)))))
+                (if (or (string=? parent dir) (string=? parent "/")) #f (loop parent))
+              ) ;let
+            ) ;if
+          ) ;let
+        ) ;if
+      ) ;let
+    ) ;define
+
+    (define (resolve-repo-file rel)
+      (let ((root (find-repo-root)))
         (if (and root (string? root) (not (string=? root "")))
           (path->string (path-join root rel))
           rel
@@ -159,28 +180,27 @@
       ) ;let*
     ) ;define
 
+    (define (port-defines-library? port)
+      (let loop
+        ()
+        (let ((expr (catch #t (lambda () (read port)) (lambda (k e) (eof-object)))))
+          (cond ((eof-object? expr) #f)
+                ((and (pair? expr) (eq? (car expr) 'define-library)) #t)
+                (else (loop))
+          ) ;cond
+        ) ;let
+      ) ;let
+    ) ;define
+
     (define (file-defines-library? file-path)
-      (catch #t
-        (lambda ()
-          (if (not (path-file? (path file-path)))
-            #f
-            (call-with-input-file file-path
-              (lambda (port)
-                (let loop
-                  ()
-                  (let ((expr (catch #t (lambda () (read port)) (lambda (k e) (eof-object)))))
-                    (cond ((eof-object? expr) #f)
-                          ((and (pair? expr) (eq? (car expr) 'define-library)) #t)
-                          (else (loop))
-                    ) ;cond
-                  ) ;let
-                ) ;let
-              ) ;lambda
-            ) ;call-with-input-file
-          ) ;if
-        ) ;lambda
-        (lambda (k e) #f)
-      ) ;catch
+      (let ((actual-path (resolve-repo-file file-path)))
+        (and (path-file? (path actual-path))
+          (catch #t
+            (lambda () (call-with-input-file actual-path port-defines-library?))
+            (lambda (k e) #f)
+          ) ;catch
+        ) ;and
+      ) ;let
     ) ;define
 
     (define (find-tools-test-dir norm)
