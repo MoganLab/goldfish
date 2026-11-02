@@ -206,12 +206,6 @@
         "path": "goldfish/scheme/boot.scm",
         "reason": "Goldfish 系统自举入口与环境初始化"
       }
-    ],
-    "unit-test": [
-      {
-        "path": "tests/liii/tui/terminal/poll-test.scm",
-        "reason": "该文件触发的目录级按导出函数拆分测试文件检查属存量整改，不随单个修复 PR 补齐"
-      }
     ]
   }
 }

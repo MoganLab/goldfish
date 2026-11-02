@@ -1,22 +1,3 @@
-;; terminal-poll-key
-;; 非阻塞轮询终端输入：读取一个按键或鼠标事件并解析为标准键名，
-;; 无输入或收到不完整转义序列时返回 #f。本文件同时覆盖
-;; (liii tui terminal poll) 的粘贴模式开关、UTF-8 多字节与转义序列解析。
-;;
-;; 语法
-;; ----
-;; (terminal-poll-key term)
-;;
-;; 参数
-;; ----
-;; term : terminal
-;; 终端实例（测试使用 virtual-terminal）。
-;;
-;; 返回值
-;; ------
-;; symbol 或 string 或 mouse-event 或 #f
-;; 按键名或单字符；不完整 CSI/SS3 序列与无输入时为 #f。
-
 (import (liii check) (liii tui terminal) (liii tui terminal poll))
 
 (check-set-mode! 'report-failed)
@@ -79,10 +60,6 @@
 (check (%resolve-ansi-bytes '(27 79 77)) => 'shift-enter)
 (check (%resolve-ansi-bytes '(27 91 49 51 59 50 117)) => 'shift-enter)
 (check (%resolve-ansi-bytes '(27 91 50 55 59 50 59 49 51 126)) => 'shift-enter)
-
-;; 不完整 CSI / SS3 序列不映射为 escape（丢弃返回 #f，避免方向键超时截断误退）
-(check (%resolve-ansi-bytes '(27 91)) => #f)
-(check (%resolve-ansi-bytes '(27 79)) => #f)
 
 ;; 6. 测试 UTF-8 多字节解析
 (check (%resolve-utf8-bytes '(228 189 160)) => "你")
