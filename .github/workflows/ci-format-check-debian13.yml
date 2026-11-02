@@ -88,3 +88,8 @@ jobs:
 
       - name: Run gf check (code metrics check)
         run: bin/gf check
+
+      - name: Run gf check unit-test
+        run: |
+          git fetch origin main
+          bin/gf check --only unit-test --changed-since=origin/main

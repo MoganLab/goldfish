@@ -21,7 +21,7 @@
                 --model <id>               Model ID to use
                 --provider <name>          Provider to search for --model (requires --model)
                 --thinking <level>         Thinking level: off, minimal, low, medium, high, xhigh, max
-                --list-models [search]     List available models (with optional search)
+                --list-models [search]     List all models with activation status (with optional search)
                 --proxy <url>              Proxy URL (e.g. socks5h://127.0.0.1:1080)
                 --tools <list>             Comma-separated list of tools
                 --exclude-tools <list>     Comma-separated list of tools to exclude

@@ -568,17 +568,21 @@ bin/gf pi --help
 ## 模型列表【可用】（2026-10-19 验证）
 
 ```bash
-# 列出当前 provider（默认）的可用模型（包含 provider、model、context、max-out、thinking、images 列）
+# 罗列全部模型并标注激活状态（包含 on、provider、model、context、max-out、thinking、images 列）
+# - on 列：已激活为 ●，未激活为 ×
+# - 排序：已激活行全部置顶在未激活行之前，各组内部按 provider、model 字典序排序
+# - 终端有色渲染：● 绿色前景（SGR 32），× 及未激活行整行暗显前景（SGR 2）
+# - 颜色降级：stdout 非 tty 或设置 NO_COLOR=1 时输出纯文本无转义序列；FORCE_COLOR=1 强制有色
 timeout 30 bin/gf pi --list-models
 
-# 指定 provider 过滤
+# 指定 provider 过滤（支持内置未激活 provider，罗列全部模型并标记 ×；未知 provider 报错退出码 1）
 timeout 30 bin/gf pi --provider google --list-models
-timeout 30 bin/gf pi --provider kimi-coding --list-models
+timeout 30 bin/gf pi --provider minimax-cn --list-models
 
-# 可选搜索过滤词（模糊/子串匹配）
+# 可选搜索过滤词（在全量行集上进行模糊/子串匹配）
 timeout 30 bin/gf pi --list-models flash
 
-# 列出全部已配置 provider 的可用模型
+# 列出全部 provider 的模型（--provider all 与缺省语义一致）
 timeout 30 bin/gf pi --provider all --list-models
 ```
 
