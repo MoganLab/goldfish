@@ -25,7 +25,7 @@
   ) ;import
   (export read-all-lines find-first-non-empty-index find-last-non-empty-index
     check-report-tail parent->lib-name check-unit-test-file-content
-    check-unit-test
+    check-unit-test unit-test-file?
   ) ;export
   (begin
 
@@ -162,6 +162,22 @@
           ) ;let*
           (check-unit-test-file-content file-path rel-path)
         ) ;if
+      ) ;let*
+    ) ;define
+
+    (define (unit-test-file? file-path)
+      "判断文件是否为应遵循单元测试规范的测试文件（以 -test.scm 结尾，排除源码文件与测试夹具）。"
+      (let* ((rel (relativize-path file-path)) (norm (normalize-sep rel)))
+        (and (string-ends? norm "-test.scm")
+          (not (string-starts-with? norm "goldfish/"))
+          (not (string-contains? norm "/goldfish/"))
+          (not (and (or (string-starts-with? norm "tools/") (string-contains? norm "/tools/"))
+                 (not (string-contains? norm "/tests/"))
+               ) ;and
+          ) ;not
+          (not (string-starts-with? norm "tests/resources/"))
+          (not (string-contains? norm "/tests/resources/"))
+        ) ;and
       ) ;let*
     ) ;define
 

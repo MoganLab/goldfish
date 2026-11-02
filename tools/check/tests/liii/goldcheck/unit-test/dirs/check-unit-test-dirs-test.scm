@@ -224,4 +224,35 @@
   (path-rmdir base-dir)
 ) ;let*
 
+;; 9. 源码文件名为 unit-test.scm 时按源码处理，而不误当作测试文件
+(let* ((base-dir (path->string (path-join (path-temp-dir) "gf-check-test-unit-test-src")))
+       (test-dir (path->string (path-join base-dir "tests" "foo" "unit-test")))
+       (src-dir (path->string (path-join base-dir "goldfish" "foo")))
+       (_ (path-mkdir (path test-dir) :parents #t :exist-ok #t))
+       (_ (path-mkdir (path src-dir) :parents #t :exist-ok #t))
+       (src-file (path->string (path-join src-dir "unit-test.scm")))
+       (readme (path->string (path-join test-dir "README.md")))
+       (bar-test (path->string (path-join test-dir "bar-test.scm")))
+       (src-content "(define-library (foo unit-test)\n  (export bar)\n  (import (scheme base))\n  (begin (define bar 1)))\n")
+       (good-test-content (string-append
+                            ";; bar\n;; 这是 bar 函数的简要描述。\n;;\n;; 语法\n;; ----\n;; (bar)\n;;\n"
+                            ";; 参数\n;; ----\n;; 无\n;;\n;; 返回值\n;; ------\n;; any\n\n"
+                            "(import (scheme base) (liii check))\n\n"
+                            "(check 1 => 1)\n\n"
+                            "(check-report)\n"))
+       (_ (path-write-bytes (path src-file) (string->utf8 src-content)))
+       (_ (path-write-bytes (path readme) (string->utf8 "# unit-test\n")))
+       (_ (path-write-bytes (path bar-test) (string->utf8 good-test-content)))
+       (viols (check-unit-test-dirs (list src-file))))
+  (check viols => '())
+  (path-unlink bar-test #t)
+  (path-unlink readme #t)
+  (path-unlink src-file #t)
+  (path-rmdir test-dir)
+  (path-rmdir (path->string (path-parent (path test-dir))))
+  (path-rmdir (path->string (path-parent (path (path-parent (path test-dir))))))
+  (path-rmdir src-dir)
+  (path-rmdir (path->string (path-parent (path src-dir))))
+  (path-rmdir base-dir))
+
 (check-report)

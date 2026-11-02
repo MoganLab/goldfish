@@ -20,7 +20,7 @@
     (liii goldcheck unit-test file)
     (liii goldcheck unit-test dirs)
   ) ;import
-  (export check-unit-test check-unit-test-dirs %standard-sections)
+  (export check-unit-test check-unit-test-dirs %standard-sections unit-test-file?)
   (begin
     #f
   ) ;begin
