@@ -1,22 +1,3 @@
-(import (scheme base)
-  (liii check)
-  (liii list)
-  (liii string)
-  (liii os)
-  (liii path)
-  (liii goldcheck type-hint)
-  (hint scheme base)
-  (hint scheme file)
-  (hint srfi srfi-1)
-  (hint srfi srfi-13)
-  (hint liii error)
-  (hint liii string)
-  (hint liii path)
-  (hint liii json)
-  (hint liii goldcheck path)
-  (hint liii goldfmt format writer)
-) ;import
-
 ;; check-type-hint
 ;; 校验 hint 库的结构合法性，并与原库交叉校验（逐函数粒度）。
 ;;
@@ -51,6 +32,25 @@
 ;;
 ;; fixture 位于 tools/check/tests/resources/type-hint/ 下，
 ;; 其中 goldfish/hint/ 与 goldfish/ 的目录结构对应原库推导规则。
+
+(import (scheme base)
+  (liii check)
+  (liii list)
+  (liii string)
+  (liii os)
+  (liii path)
+  (liii goldcheck type-hint)
+  (hint scheme base)
+  (hint scheme file)
+  (hint srfi srfi-1)
+  (hint srfi srfi-13)
+  (hint liii error)
+  (hint liii string)
+  (hint liii path)
+  (hint liii json)
+  (hint liii goldcheck path)
+  (hint liii goldfmt format writer)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -123,8 +123,7 @@
     "goldfish/hint/liii/string.scm" "goldfish/hint/liii/path.scm"
     "goldfish/hint/liii/json.scm" "goldfish/hint/srfi/srfi-13.scm"
     "goldfish/hint/liii/goldfmt/format.scm"
-    "goldfish/hint/liii/goldfmt/format/writer.scm"
-    "goldfish/hint/liii/base.scm")
+    "goldfish/hint/liii/goldfmt/format/writer.scm" "goldfish/hint/liii/base.scm")
 ) ;for-each
 
 ;; timestamp-iso 已修复：string->number 的结果先校验再参与乘法。
