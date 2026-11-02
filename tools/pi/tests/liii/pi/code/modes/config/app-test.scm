@@ -250,4 +250,45 @@
   ) ;let
 ) ;let
 
+;; 12. 回归：空格启用末行 provider 后选中项跟随（不在列表重排后跳到倒数第二个）。
+;;     修复前 reload! 错把光标下标当 count-1 夹取，末行 zai-coding-cn 被错读为
+;;     倒数第二个 minimax-cn，启用后光标跳到 minimax-cn；修复后光标停在
+;;     上移后的 zai-coding-cn，中列标题为 models · zai-coding-cn。
+(let ((dir (make-dir "toggle-last-follow"))
+      (vt (make-virtual-terminal :width 120 :height 24))
+     ) ;
+  (for-each (lambda (k) (virtual-terminal-push-key! vt k)) (list "G" " " 'q))
+  (check (pi-config-run dir :terminal vt :env '()) => 'chat)
+  (let ((providers (read-file dir "models/providers.json"))
+        (screen (string-join (virtual-terminal-screen vt) "\n"))
+       ) ;
+    (check (string-contains providers "zai-coding-cn") => #t)
+    (check (string-contains screen "models · zai-coding-cn") => #t)
+    (check (string-contains screen "models · minimax-cn") => #f)
+  ) ;let
+) ;let
+
+;; 13. 回归：末行 provider 设默认后置顶跟随且 settings.json 写入正确。
+;;     修复前光标错位连锁导致 settings.json 写错为倒数第二个 provider
+;;     （minimax-cn）；修复后写对 zai-coding-cn，且置顶后 providers 列首行为
+;;     zai-coding-cn 且带 * 标记。
+(let ((dir (make-dir "set-default-last-follow"))
+      (vt (make-virtual-terminal :width 120 :height 24))
+     ) ;
+  (for-each (lambda (k) (virtual-terminal-push-key! vt k))
+    (list "G" " " 'right 'enter 'q)
+  ) ;for-each
+  (check (pi-config-run dir :terminal vt :env '()) => 'chat)
+  (let ((settings (read-file dir "settings.json"))
+        (lines (virtual-terminal-screen vt))
+       ) ;
+    (check (string-contains settings "\"defaultProvider\": \"zai-coding-cn\"")
+      =>
+      #t
+    ) ;check
+    (check (string-contains settings "\"defaultProvider\": \"minimax-cn\"") => #f)
+    (check (string-contains (list-ref lines 1) "zai-coding-cn *") => #t)
+  ) ;let
+) ;let
+
 (check-report)
