@@ -1,3 +1,20 @@
+;; anthropic-assistant-blk->anthropic-blk
+;; 将 assistant message 中的 block 转换为 Anthropic API 所需的 tool_use / text / thinking 格式。
+;;
+;; 语法
+;; ----
+;; (anthropic-assistant-blk->anthropic-blk blk)
+;;
+;; 参数
+;; ----
+;; blk : alist
+;; 内部 assistant block，支持 text、toolCall 与 thinking 三种类型。
+;;
+;; 返回值
+;; ----
+;; alist
+;; Anthropic API 的 block alist，type 字段为 text、tool_use 或 thinking。
+
 (import (liii check)
   (liii json)
   (liii pi ai api anthropic-messages input)
@@ -5,9 +22,6 @@
 ) ;import
 
 (check-set-mode! 'report-failed)
-
-;; anthropic-assistant-blk->anthropic-blk
-;; 将 assistant message 中的 block 转换为 Anthropic API 所需的 tool_use / text / thinking 格式。
 
 ;; 1. text 块转换
 (let* ((blk (pi-text-block "hello world"))
