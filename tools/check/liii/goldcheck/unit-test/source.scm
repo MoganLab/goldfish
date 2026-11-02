@@ -25,7 +25,8 @@
     (liii goldcheck path)
   ) ;import
   (export exported-name->test-stem find-library-source-for-test-dir
-    extract-library-exports check-missing-exported-tests
+    extract-library-exports check-missing-exported-tests file-defines-library?
+    find-test-dir-for-library-source
   ) ;export
   (begin
 
@@ -156,6 +157,95 @@
           (find-fixture-library-source parent)
         ) ;or
       ) ;let*
+    ) ;define
+
+    (define (file-defines-library? file-path)
+      (catch #t
+        (lambda ()
+          (if (not (path-file? (path file-path)))
+            #f
+            (call-with-input-file file-path
+              (lambda (port)
+                (let loop
+                  ()
+                  (let ((expr (catch #t (lambda () (read port)) (lambda (k e) (eof-object)))))
+                    (cond ((eof-object? expr) #f)
+                          ((and (pair? expr) (eq? (car expr) 'define-library)) #t)
+                          (else (loop))
+                    ) ;cond
+                  ) ;let
+                ) ;let
+              ) ;lambda
+            ) ;call-with-input-file
+          ) ;if
+        ) ;lambda
+        (lambda (k e) #f)
+      ) ;catch
+    ) ;define
+
+    (define (find-tools-test-dir norm)
+      (if (string-starts-with? norm "tools/")
+        (let ((parts (string-split norm "/")))
+          (if (and (>= (length parts) 3)
+                (not (member "tests" parts string=?))
+                (string-ends? norm ".scm")
+              ) ;and
+            (let* ((tool (cadr parts))
+                   (subparts (cddr parts))
+                   (subpath-ext (string-join subparts "/"))
+                   (subpath (substring subpath-ext 0 (- (string-length subpath-ext) 4)))
+                  ) ;
+              (resolve-repo-file (string-append "tools/" tool "/tests/" subpath))
+            ) ;let*
+            #f
+          ) ;if
+        ) ;let
+        #f
+      ) ;if
+    ) ;define
+
+    (define (find-tests-test-dir norm)
+      (if (and (string-starts-with? norm "goldfish/")
+            (not (string-starts-with? norm "goldfish/hint/"))
+            (string-ends? norm ".scm")
+          ) ;and
+        (let ((subpath (substring norm 9 (- (string-length norm) 4))))
+          (resolve-repo-file (string-append "tests/" subpath))
+        ) ;let
+        #f
+      ) ;if
+    ) ;define
+
+    (define (find-fixture-test-dir src-path)
+      (let ((norm-abs (normalize-sep (path->string (path src-path)))))
+        (if (and (string-contains? norm-abs "/goldfish/") (string-ends? norm-abs ".scm"))
+          (let* ((idx (string-index-of norm-abs "/goldfish/" 0))
+                 (left (substring norm-abs 0 idx))
+                 (right (substring norm-abs (+ idx 10) (string-length norm-abs)))
+                 (subpath (substring right 0 (- (string-length right) 4)))
+                ) ;
+            (string-append left "/tests/" subpath)
+          ) ;let*
+          #f
+        ) ;if
+      ) ;let
+    ) ;define
+
+    (define (find-test-dir-for-library-source src-path)
+      (if (not (file-defines-library? src-path))
+        #f
+        (let* ((norm-abs (normalize-sep (path->string (path src-path))))
+               (rel (relativize-path src-path))
+               (norm (normalize-sep rel))
+              ) ;
+          (cond ((string-contains? norm-abs "/tests/") #f)
+                ((find-tools-test-dir norm) => (lambda (p) p))
+                ((find-tests-test-dir norm) => (lambda (p) p))
+                ((find-fixture-test-dir src-path) => (lambda (p) p))
+                (else #f)
+          ) ;cond
+        ) ;let*
+      ) ;if
     ) ;define
 
     (define (extract-decl-exports decl exports)

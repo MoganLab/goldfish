@@ -24,7 +24,7 @@
     (liii goldcheck unit-test file)
     (liii goldcheck unit-test source)
   ) ;import
-  (export check-unit-test-dirs)
+  (export check-unit-test-dirs resolve-file-test-dir)
   (begin
 
     (define (check-dir-legacy-file parent rel-parent readme-rel)
@@ -72,21 +72,63 @@
       ) ;let*
     ) ;define
 
+    (define (resolve-file-test-dir f)
+      (cond
+       ((string-ends? f "-test.scm") (path->string (path-parent (path f))))
+       (else (find-test-dir-for-library-source f))
+      ) ;cond
+    ) ;define
+
+    (define (file-in-list? target files)
+      (let ((norm-target (normalize-sep (relativize-path target))))
+        (let loop
+          ((rem files))
+          (cond ((null? rem) #f)
+                ((string=? norm-target (normalize-sep (relativize-path (car rem)))) #t)
+                (else (loop (cdr rem)))
+          ) ;cond
+        ) ;let
+      ) ;let
+    ) ;define
+
+    (define (check-dir-test-files parent files)
+      (if (not (path-dir? (path parent)))
+        '()
+        (let ((entries (path-list (path parent))))
+          (let loop
+            ((i 0) (acc '()))
+            (if (>= i (vector-length entries))
+              acc
+              (let* ((entry (vector-ref entries i)) (full (path->string (path-join parent entry))))
+                (if (and (string-ends? entry "-test.scm") (not (file-in-list? full files)))
+                  (loop (+ i 1) (append (check-unit-test full) acc))
+                  (loop (+ i 1) acc)
+                ) ;if
+              ) ;let*
+            ) ;if
+          ) ;let
+        ) ;let
+      ) ;if
+    ) ;define
+
     (define (check-unit-test-dirs files)
-      "检查所有测试文件所属的目录是否包含 README.md，同级是否存在废弃单测试文件，以及导出函数是否均有测试文件。"
+      "检查所有测试文件或源码文件所属的测试目录：包含 README.md，无废弃单测试文件，导出函数均有单测，且目录下单测文件合规。"
       (let loop
         ((rem files) (seen '()) (viols '()))
         (if (null? rem)
           (reverse viols)
           (let* ((f (car rem))
-                 (is-test (string-ends? f "-test.scm"))
-                 (parent (if is-test (path->string (path-parent f)) #f))
+                 (parent (resolve-file-test-dir f))
+                 (norm-parent (if parent (normalize-sep (relativize-path parent)) #f))
                 ) ;
-            (if (or (not is-test) (member parent seen string=?))
+            (if (or (not parent) (member norm-parent seen string=?))
               (loop (cdr rem) seen viols)
-              (let ((dir-viols (check-single-test-dir parent)))
-                (loop (cdr rem) (cons parent seen) (append dir-viols viols))
-              ) ;let
+              (let* ((dir-viols (check-single-test-dir parent))
+                     (file-viols (check-dir-test-files parent files))
+                     (all-dir-viols (append file-viols dir-viols))
+                    ) ;
+                (loop (cdr rem) (cons norm-parent seen) (append all-dir-viols viols))
+              ) ;let*
             ) ;if
           ) ;let*
         ) ;if
