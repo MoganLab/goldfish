@@ -122,4 +122,45 @@
   ) ;let
 ) ;check-catch
 
+;; 9. 扩展选项测试 [1244]
+;; 9.1 带端口与 :indent
+(let ((p (open-output-string)))
+  (write-json '(("a" . 1) ("b" . 2)) p :indent 2)
+  (check (get-output-string p) => "{\n  \"a\": 1,\n  \"b\": 2\n}")
+) ;let
+
+;; 9.2 带端口与 :sort-keys
+(let ((p (open-output-string)))
+  (write-json '(("z" . 1) ("a" . 2)) p :sort-keys #t)
+  (check (get-output-string p) => "{\"a\":2,\"z\":1}")
+) ;let
+
+;; 9.3 带端口与 :ensure-ascii
+(let ((p (open-output-string)))
+  (write-json '(("name" . "小明")) p :ensure-ascii #t)
+  (check (get-output-string p) => "{\"name\":\"\\u5c0f\\u660e\"}")
+) ;let
+
+;; 9.4 默认端口与选项组合（不传 port）
+(let ((orig (current-output-port)) (p (open-output-string)))
+  (set-current-output-port p)
+  (write-json '(("z" . 1) ("a" . 2)) :sort-keys #t)
+  (set-current-output-port orig)
+  (check (get-output-string p) => "{\"a\":2,\"z\":1}")
+) ;let
+
+;; 9.5 默认端口与 :indent
+(let ((orig (current-output-port)) (p (open-output-string)))
+  (set-current-output-port p)
+  (write-json '(("a" . 1)) :indent 2)
+  (set-current-output-port orig)
+  (check (get-output-string p) => "{\n  \"a\": 1\n}")
+) ;let
+
+;; 9.6 选项错误检查
+(check-catch 'value-error (write-json '(()) :indent -1))
+(check-catch 'type-error (write-json '(()) :sort-keys "no"))
+(check-catch 'type-error (write-json '(()) :ensure-ascii 1))
+(check-catch 'value-error (write-json '(()) :bad-opt #t))
+
 (check-report)

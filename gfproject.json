@@ -56,6 +56,14 @@
         "zh_CN": "静态度量检查（行数限制与树深度限制）"
       }
     },
+    "json": {
+      "organization": "liii",
+      "module": "goldjson",
+      "description": {
+        "en_US": "Validate, format, or process JSON",
+        "zh_CN": "JSON 校验、格式化与处理工具"
+      }
+    },
     "test": {
       "organization": "liii",
       "module": "goldtest",

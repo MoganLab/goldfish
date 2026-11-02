@@ -43,60 +43,207 @@ json_type_error (s7_scheme* sc, const char* msg, s7_pointer arg) {
   return s7_error (sc, s7_make_symbol (sc, "type-error"), s7_list (sc, 2, s7_make_string (sc, msg), arg));
 }
 
+struct json_dump_options {
+  int         indent_spaces = -1;
+  std::string indent_str    = "";
+  bool        sort_keys     = false;
+  bool        ensure_ascii  = false;
+
+  bool has_indent () const {
+    return indent_spaces >= 0 || !indent_str.empty ();
+  }
+};
+
 static void
-json_write_escaped_string (std::string& out, const char* s, s7_int len) {
-  // [0125] 快路径：成段追加无特殊字符的区间，遇 '"' '\\' '/' 或控制字符才特殊处理
+json_write_indent (std::string& out, int depth, const json_dump_options& opts) {
+  if (opts.indent_spaces > 0) {
+    out.append ((size_t) (depth * opts.indent_spaces), ' ');
+  }
+  else if (!opts.indent_str.empty ()) {
+    for (int i= 0; i < depth; i++) {
+      out.append (opts.indent_str);
+    }
+  }
+}
+
+static std::string
+json_key_to_string (s7_scheme* sc, s7_pointer k) {
+  if (s7_is_string (k)) {
+    return std::string (s7_string (k), (size_t) s7_string_length (k));
+  }
+  if (s7_is_symbol (k)) {
+    return s7_symbol_name (k);
+  }
+  if (s7_is_number (k)) {
+    char* s= s7_number_to_string (sc, k, 10);
+    std::string res (s);
+    free (s);
+    return res;
+  }
+  return "";
+}
+
+static void
+json_write_escaped_string (std::string& out, const char* s, s7_int len, bool ensure_ascii) {
   out.push_back ('"');
-  s7_int bgn= 0;
-  for (s7_int i= 0; i < len; i++) {
-    unsigned char c= (unsigned char) s[i];
-    if (c >= 0x20 && c != '"' && c != '\\' && c != '/') continue;
-    out.append (s + bgn, (size_t) (i - bgn));
-    switch (c) {
-    case '"':
-      out+= "\\\"";
-      break;
-    case '\\':
-      out+= "\\\\";
-      break;
-    case '/':
-      out+= "\\/";
-      break;
-    case '\b':
-      out+= "\\b";
-      break;
-    case '\f':
-      out+= "\\f";
-      break;
-    case '\n':
-      out+= "\\n";
-      break;
-    case '\r':
-      out+= "\\r";
-      break;
-    case '\t':
-      out+= "\\t";
-      break;
-    default:
-      if (c < 0x20) {
-        // [0125] 控制字符（含 NUL）转义为 \uXXXX，保证输出可再解析
-        char buf[8];
-        snprintf (buf, sizeof (buf), "\\u%04x", (unsigned) c);
-        out+= buf;
+  if (!ensure_ascii) {
+    s7_int bgn= 0;
+    for (s7_int i= 0; i < len; i++) {
+      unsigned char c= (unsigned char) s[i];
+      if (c >= 0x20 && c != '"' && c != '\\' && c != '/') continue;
+      out.append (s + bgn, (size_t) (i - bgn));
+      switch (c) {
+      case '"':
+        out+= "\\\"";
+        break;
+      case '\\':
+        out+= "\\\\";
+        break;
+      case '/':
+        out+= "\\/";
+        break;
+      case '\b':
+        out+= "\\b";
+        break;
+      case '\f':
+        out+= "\\f";
+        break;
+      case '\n':
+        out+= "\\n";
+        break;
+      case '\r':
+        out+= "\\r";
+        break;
+      case '\t':
+        out+= "\\t";
+        break;
+      default:
+        if (c < 0x20) {
+          char buf[8];
+          snprintf (buf, sizeof (buf), "\\u%04x", (unsigned) c);
+          out+= buf;
+        }
+        else {
+          out.push_back ((char) c);
+        }
+        break;
+      }
+      bgn= i + 1;
+    }
+    out.append (s + bgn, (size_t) (len - bgn));
+  }
+  else {
+    s7_int i= 0;
+    while (i < len) {
+      unsigned char c= (unsigned char) s[i];
+      if (c < 0x80) {
+        switch (c) {
+        case '"':
+          out+= "\\\"";
+          break;
+        case '\\':
+          out+= "\\\\";
+          break;
+        case '/':
+          out+= "\\/";
+          break;
+        case '\b':
+          out+= "\\b";
+          break;
+        case '\f':
+          out+= "\\f";
+          break;
+        case '\n':
+          out+= "\\n";
+          break;
+        case '\r':
+          out+= "\\r";
+          break;
+        case '\t':
+          out+= "\\t";
+          break;
+        default:
+          if (c < 0x20) {
+            char buf[8];
+            snprintf (buf, sizeof (buf), "\\u%04x", (unsigned) c);
+            out+= buf;
+          }
+          else {
+            out.push_back ((char) c);
+          }
+          break;
+        }
+        i++;
       }
       else {
-        // 多字节 UTF-8 字符，直接输出原始字节
-        out.push_back ((char) c);
+        uint32_t cp     = 0;
+        int      seq_len= 0;
+        if ((c & 0xE0) == 0xC0) {
+          if (i + 1 < len) {
+            unsigned char c1= (unsigned char) s[i + 1];
+            if ((c1 & 0xC0) == 0x80) {
+              seq_len= 2;
+              cp     = ((c & 0x1F) << 6) | (c1 & 0x3F);
+            }
+          }
+        }
+        else if ((c & 0xF0) == 0xE0) {
+          if (i + 2 < len) {
+            unsigned char c1= (unsigned char) s[i + 1];
+            unsigned char c2= (unsigned char) s[i + 2];
+            if ((c1 & 0xC0) == 0x80 && (c2 & 0xC0) == 0x80) {
+              seq_len= 3;
+              cp     = ((c & 0x0F) << 12) | ((c1 & 0x3F) << 6) | (c2 & 0x3F);
+            }
+          }
+        }
+        else if ((c & 0xF8) == 0xF0) {
+          if (i + 3 < len) {
+            unsigned char c1= (unsigned char) s[i + 1];
+            unsigned char c2= (unsigned char) s[i + 2];
+            unsigned char c3= (unsigned char) s[i + 3];
+            if ((c1 & 0xC0) == 0x80 && (c2 & 0xC0) == 0x80 && (c3 & 0xC0) == 0x80) {
+              seq_len= 4;
+              cp     = ((c & 0x07) << 18) | ((c1 & 0x3F) << 12) | ((c2 & 0x3F) << 6) | (c3 & 0x3F);
+            }
+          }
+        }
+
+        if (seq_len > 0) {
+          if (cp <= 0xFFFF) {
+            char buf[8];
+            snprintf (buf, sizeof (buf), "\\u%04x", (unsigned) cp);
+            out+= buf;
+          }
+          else if (cp <= 0x10FFFF) {
+            uint32_t v   = cp - 0x10000;
+            uint16_t high= 0xD800 + (v >> 10);
+            uint16_t low = 0xDC00 + (v & 0x3FF);
+            char     buf[16];
+            snprintf (buf, sizeof (buf), "\\u%04x\\u%04x", (unsigned) high, (unsigned) low);
+            out+= buf;
+          }
+          else {
+            char buf[8];
+            snprintf (buf, sizeof (buf), "\\u%04x", (unsigned) c);
+            out+= buf;
+          }
+          i+= seq_len;
+        }
+        else {
+          char buf[8];
+          snprintf (buf, sizeof (buf), "\\u%04x", (unsigned) c);
+          out+= buf;
+          i++;
+        }
       }
-      break;
     }
-    bgn= i + 1;
   }
-  out.append (s + bgn, (size_t) (len - bgn));
   out.push_back ('"');
 }
 
-static void json_write_value (s7_scheme* sc, s7_pointer x, std::string& out);
+static void json_write_value_rec (s7_scheme* sc, s7_pointer x, std::string& out, std::vector<s7_pointer>& ancestors,
+                                  const json_dump_options& opts, int depth);
 
 // [0125] 空对象 '(()) 在顶层与嵌套位置都应输出 {}（此前顶层输出 {{}}）
 static bool json_is_null_object (s7_scheme* sc, s7_pointer x);
@@ -113,9 +260,9 @@ struct json_write_exception {
 };
 
 static void
-json_write_scalar (s7_scheme* sc, s7_pointer x, std::string& out) {
+json_write_scalar (s7_scheme* sc, s7_pointer x, std::string& out, const json_dump_options& opts) {
   if (s7_is_string (x)) {
-    json_write_escaped_string (out, s7_string (x), s7_string_length (x));
+    json_write_escaped_string (out, s7_string (x), s7_string_length (x), opts.ensure_ascii);
   }
   else if (s7_is_number (x)) {
     char* s= s7_number_to_string (sc, x, 10);
@@ -157,10 +304,9 @@ json_pair_chain_length (s7_scheme* sc, s7_pointer x) {
 
 static s7_int json_proper_list_length (s7_scheme* sc, s7_pointer x);
 
-static void json_write_value_rec (s7_scheme* sc, s7_pointer x, std::string& out, std::vector<s7_pointer>& ancestors);
-
 static void
-json_write_object_entry (s7_scheme* sc, s7_pointer d, std::string& out, std::vector<s7_pointer>& ancestors) {
+json_write_object_entry (s7_scheme* sc, s7_pointer d, std::string& out, std::vector<s7_pointer>& ancestors,
+                         const json_dump_options& opts, int depth) {
   if (s7_is_null (sc, d)) {
     out+= "{}";
     return;
@@ -174,21 +320,27 @@ json_write_object_entry (s7_scheme* sc, s7_pointer d, std::string& out, std::vec
   }
   s7_pointer k= s7_car (d);
   s7_pointer v= s7_cdr (d);
-  json_write_scalar (sc, k, out);
-  out.push_back (':');
+  json_write_scalar (sc, k, out, opts);
+  if (opts.has_indent ()) {
+    out+= ": ";
+  }
+  else {
+    out.push_back (':');
+  }
   if (s7_is_null (sc, v)) {
     out+= "{}";
   }
   else if ((s7_is_pair (v) && json_pair_chain_length (sc, v) != -1) || s7_is_vector (v)) {
-    json_write_value_rec (sc, v, out, ancestors);
+    json_write_value_rec (sc, v, out, ancestors, opts, depth);
   }
   else {
-    json_write_scalar (sc, v, out);
+    json_write_scalar (sc, v, out, opts);
   }
 }
 
 static void
-json_write_value_rec (s7_scheme* sc, s7_pointer x, std::string& out, std::vector<s7_pointer>& ancestors) {
+json_write_value_rec (s7_scheme* sc, s7_pointer x, std::string& out, std::vector<s7_pointer>& ancestors,
+                      const json_dump_options& opts, int depth) {
   if (json_is_null_object (sc, x)) {
     out+= "{}";
     return;
@@ -205,19 +357,37 @@ json_write_value_rec (s7_scheme* sc, s7_pointer x, std::string& out, std::vector
   }
 
   if (s7_is_vector (x)) {
+    s7_int len= s7_vector_length (x);
+    if (len == 0) {
+      out+= "[]";
+      return;
+    }
     ancestors.push_back (x);
     out.push_back ('[');
-    s7_int      len  = s7_vector_length (x);
+    bool indent= opts.has_indent ();
+    if (indent) {
+      out.push_back ('\n');
+    }
     s7_pointer* elems= s7_vector_elements (x);
     for (s7_int i= 0; i < len; i++) {
-      if (i > 0) out.push_back (',');
+      if (i > 0) {
+        out.push_back (',');
+        if (indent) out.push_back ('\n');
+      }
+      if (indent) {
+        json_write_indent (out, depth + 1, opts);
+      }
       s7_pointer k= elems[i];
       if (s7_is_vector (k) || s7_is_pair (k)) {
-        json_write_value_rec (sc, k, out, ancestors);
+        json_write_value_rec (sc, k, out, ancestors, opts, depth + 1);
       }
       else {
-        json_write_scalar (sc, k, out);
+        json_write_scalar (sc, k, out, opts);
       }
+    }
+    if (indent) {
+      out.push_back ('\n');
+      json_write_indent (out, depth, opts);
     }
     out.push_back (']');
     ancestors.pop_back ();
@@ -228,39 +398,82 @@ json_write_value_rec (s7_scheme* sc, s7_pointer x, std::string& out, std::vector
     }
     ancestors.push_back (x);
     out.push_back ('{');
-    s7_pointer lst= x;
-    s7_int     i  = 0;
-    while (s7_is_pair (lst)) {
-      if (i > 0) out.push_back (',');
-      json_write_object_entry (sc, s7_car (lst), out, ancestors);
-      lst= s7_cdr (lst);
-      i++;
+    bool indent= opts.has_indent ();
+
+    if (opts.sort_keys) {
+      std::vector<s7_pointer> entries;
+      s7_pointer lst= x;
+      while (s7_is_pair (lst)) {
+        entries.push_back (s7_car (lst));
+        lst= s7_cdr (lst);
+      }
+      std::stable_sort (entries.begin (), entries.end (), [&](s7_pointer a, s7_pointer b) {
+        s7_pointer ka= s7_is_pair (a) ? s7_car (a) : a;
+        s7_pointer kb= s7_is_pair (b) ? s7_car (b) : b;
+        return json_key_to_string (sc, ka) < json_key_to_string (sc, kb);
+      });
+      if (indent && !entries.empty ()) {
+        out.push_back ('\n');
+      }
+      for (size_t i= 0; i < entries.size (); i++) {
+        if (i > 0) {
+          out.push_back (',');
+          if (indent) out.push_back ('\n');
+        }
+        if (indent) {
+          json_write_indent (out, depth + 1, opts);
+        }
+        json_write_object_entry (sc, entries[i], out, ancestors, opts, depth + 1);
+      }
+      if (indent && !entries.empty ()) {
+        out.push_back ('\n');
+        json_write_indent (out, depth, opts);
+      }
+    }
+    else {
+      if (indent) {
+        out.push_back ('\n');
+      }
+      s7_pointer lst= x;
+      s7_int     i  = 0;
+      while (s7_is_pair (lst)) {
+        if (i > 0) {
+          out.push_back (',');
+          if (indent) out.push_back ('\n');
+        }
+        if (indent) {
+          json_write_indent (out, depth + 1, opts);
+        }
+        json_write_object_entry (sc, s7_car (lst), out, ancestors, opts, depth + 1);
+        lst= s7_cdr (lst);
+        i++;
+      }
+      if (indent && i > 0) {
+        out.push_back ('\n');
+        json_write_indent (out, depth, opts);
+      }
     }
     out.push_back ('}');
     ancestors.pop_back ();
   }
   else {
-    json_write_scalar (sc, x, out);
+    json_write_scalar (sc, x, out, opts);
   }
-}
-
-static void
-json_write_value (s7_scheme* sc, s7_pointer x, std::string& out) {
-  std::vector<s7_pointer> ancestors;
-  ancestors.reserve (16);
-  json_write_value_rec (sc, x, out, ancestors);
 }
 
 // 写入器调用 + 异常捕获收进独立函数：s7_error 是裸 longjmp，MSVC 下从
 // "函数体内含 try/catch（带 SEH 展开信息）的帧" raise 会损坏 EH 状态（堆损坏），
 // 因此 f_json_to_string 本体不得直接含 try/catch，raise 也放进无 EH 的独立函数
 static s7_pointer
-json_write_to_s7_string (s7_scheme* sc, s7_pointer x, json_write_exception& err) {
+json_write_to_s7_string (s7_scheme* sc, s7_pointer x, const json_dump_options& opts, json_write_exception& err) {
   std::string out;
   out.reserve (256);
   try {
-    json_write_value (sc, x, out);
-  } catch (const json_write_exception& e) {
+    std::vector<s7_pointer> ancestors;
+    ancestors.reserve (16);
+    json_write_value_rec (sc, x, out, ancestors, opts, 0);
+  }
+  catch (const json_write_exception& e) {
     err= e;
     return NULL;
   }
@@ -281,28 +494,136 @@ f_json_to_string (s7_scheme* sc, s7_pointer args) {
     return s7_error (sc, s7_make_symbol (sc, "type-error"),
                      s7_list (sc, 1, s7_make_string (sc, "json->string: input must not be a procedure")));
   }
+
+  json_dump_options opts;
+  s7_pointer        rest= s7_cdr (args);
+  if (s7_is_pair (rest)) {
+    s7_pointer indent_arg= s7_car (rest);
+    if (indent_arg != s7_f (sc) && indent_arg != s7_unspecified (sc)) {
+      if (s7_is_integer (indent_arg)) {
+        s7_int n= s7_integer (indent_arg);
+        if (n < 0) {
+          return s7_error (sc, s7_make_symbol (sc, "value-error"),
+                           s7_list (sc, 1, s7_make_string (sc, "json->string: :indent must be non-negative")));
+        }
+        opts.indent_spaces= (int) n;
+      }
+      else if (s7_is_string (indent_arg)) {
+        opts.indent_str= s7_string (indent_arg);
+      }
+      else {
+        return s7_error (
+            sc, s7_make_symbol (sc, "type-error"),
+            s7_list (sc, 2,
+                     s7_make_string (sc, "json->string: :indent must be a non-negative integer, string, or #f"),
+                     indent_arg));
+      }
+    }
+    rest= s7_cdr (rest);
+    if (s7_is_pair (rest)) {
+      s7_pointer sort_keys_arg= s7_car (rest);
+      if (sort_keys_arg != s7_unspecified (sc)) {
+        if (!s7_is_boolean (sort_keys_arg)) {
+          return s7_error (sc, s7_make_symbol (sc, "type-error"),
+                           s7_list (sc, 2, s7_make_string (sc, "json->string: :sort-keys must be a boolean"),
+                                    sort_keys_arg));
+        }
+        opts.sort_keys= s7_boolean (sc, sort_keys_arg);
+      }
+      rest= s7_cdr (rest);
+      if (s7_is_pair (rest)) {
+        s7_pointer ensure_ascii_arg= s7_car (rest);
+        if (ensure_ascii_arg != s7_unspecified (sc)) {
+          if (!s7_is_boolean (ensure_ascii_arg)) {
+            return s7_error (sc, s7_make_symbol (sc, "type-error"),
+                             s7_list (sc, 2, s7_make_string (sc, "json->string: :ensure-ascii must be a boolean"),
+                                      ensure_ascii_arg));
+          }
+          opts.ensure_ascii= s7_boolean (sc, ensure_ascii_arg);
+        }
+      }
+    }
+  }
+
   // 帧内只有平凡局部变量：RAII（out/ancestors）与 EH 帧都在 json_write_to_s7_string 内，
   // raise 经由 json_raise_write_error，两条路径均 longjmp 安全
   json_write_exception err{};
-  s7_pointer           result= json_write_to_s7_string (sc, x, err);
+  s7_pointer           result= json_write_to_s7_string (sc, x, opts, err);
   if (result) return result;
   return json_raise_write_error (sc, err);
 }
 
 static s7_pointer
 f_write_json (s7_scheme* sc, s7_pointer args) {
-  s7_pointer x   = s7_car (args);
-  s7_pointer port= s7_is_pair (s7_cdr (args)) ? s7_cadr (args) : s7_current_output_port (sc);
-  if (!s7_is_output_port (sc, port)) {
-    return s7_error (sc, s7_make_symbol (sc, "type-error"),
-                     s7_list (sc, 2, s7_make_string (sc, "write-json: port must be an output port"), port));
-  }
+  s7_pointer x= s7_car (args);
   if (s7_is_procedure (x)) {
     return s7_error (sc, s7_make_symbol (sc, "type-error"),
                      s7_list (sc, 1, s7_make_string (sc, "write-json: input must not be a procedure")));
   }
+  s7_pointer rest= s7_cdr (args);
+  s7_pointer port= s7_is_pair (rest) ? s7_car (rest) : s7_current_output_port (sc);
+  if (port == s7_unspecified (sc)) {
+    port= s7_current_output_port (sc);
+  }
+  if (!s7_is_output_port (sc, port)) {
+    return s7_error (sc, s7_make_symbol (sc, "type-error"),
+                     s7_list (sc, 2, s7_make_string (sc, "write-json: port must be an output port"), port));
+  }
+
+  json_dump_options opts;
+  if (s7_is_pair (rest)) {
+    rest= s7_cdr (rest);
+    if (s7_is_pair (rest)) {
+      s7_pointer indent_arg= s7_car (rest);
+      if (indent_arg != s7_f (sc) && indent_arg != s7_unspecified (sc)) {
+        if (s7_is_integer (indent_arg)) {
+          s7_int n= s7_integer (indent_arg);
+          if (n < 0) {
+            return s7_error (sc, s7_make_symbol (sc, "value-error"),
+                             s7_list (sc, 1, s7_make_string (sc, "write-json: :indent must be non-negative")));
+          }
+          opts.indent_spaces= (int) n;
+        }
+        else if (s7_is_string (indent_arg)) {
+          opts.indent_str= s7_string (indent_arg);
+        }
+        else {
+          return s7_error (
+              sc, s7_make_symbol (sc, "type-error"),
+              s7_list (sc, 2,
+                       s7_make_string (sc, "write-json: :indent must be a non-negative integer, string, or #f"),
+                       indent_arg));
+        }
+      }
+      rest= s7_cdr (rest);
+      if (s7_is_pair (rest)) {
+        s7_pointer sort_keys_arg= s7_car (rest);
+        if (sort_keys_arg != s7_unspecified (sc)) {
+          if (!s7_is_boolean (sort_keys_arg)) {
+            return s7_error (sc, s7_make_symbol (sc, "type-error"),
+                             s7_list (sc, 2, s7_make_string (sc, "write-json: :sort-keys must be a boolean"),
+                                      sort_keys_arg));
+          }
+          opts.sort_keys= s7_boolean (sc, sort_keys_arg);
+        }
+        rest= s7_cdr (rest);
+        if (s7_is_pair (rest)) {
+          s7_pointer ensure_ascii_arg= s7_car (rest);
+          if (ensure_ascii_arg != s7_unspecified (sc)) {
+            if (!s7_is_boolean (ensure_ascii_arg)) {
+              return s7_error (sc, s7_make_symbol (sc, "type-error"),
+                               s7_list (sc, 2, s7_make_string (sc, "write-json: :ensure-ascii must be a boolean"),
+                                        ensure_ascii_arg));
+            }
+            opts.ensure_ascii= s7_boolean (sc, ensure_ascii_arg);
+          }
+        }
+      }
+    }
+  }
+
   json_write_exception err{};
-  s7_pointer           str= json_write_to_s7_string (sc, x, err);
+  s7_pointer           str= json_write_to_s7_string (sc, x, opts, err);
   if (!str) return json_raise_write_error (sc, err);
   s7_display (sc, str, port);
   return s7_unspecified (sc);
@@ -311,15 +632,17 @@ f_write_json (s7_scheme* sc, s7_pointer args) {
 static void
 glue_json_to_string (s7_scheme* sc) {
   const char* name= "g_json->string";
-  const char* desc= "(g_json->string data) => string, encode Scheme-form JSON data to a JSON string";
-  s7_define_function (sc, name, f_json_to_string, 1, 0, false, desc);
+  const char* desc=
+      "(g_json->string data [indent] [sort-keys] [ensure-ascii]) => string, encode Scheme-form JSON data to a JSON string";
+  s7_define_function (sc, name, f_json_to_string, 1, 3, false, desc);
 }
 
 static void
 glue_write_json (s7_scheme* sc) {
   const char* name= "g_write_json";
-  const char* desc= "(g_write_json data [port]) => unspecified, serialize JSON data to an output port";
-  s7_define_function (sc, name, f_write_json, 1, 1, false, desc);
+  const char* desc=
+      "(g_write_json data [port] [indent] [sort-keys] [ensure-ascii]) => unspecified, serialize JSON data to an output port";
+  s7_define_function (sc, name, f_write_json, 1, 4, false, desc);
 }
 
 // json-string-escape 的 C++ 实现，复用 json_write_escaped_string（与 json->string 的
@@ -334,7 +657,7 @@ f_json_string_escape (s7_scheme* sc, s7_pointer args) {
   }
   std::string out;
   out.reserve ((size_t) s7_string_length (arg) + 2);
-  json_write_escaped_string (out, s7_string (arg), s7_string_length (arg));
+  json_write_escaped_string (out, s7_string (arg), s7_string_length (arg), false);
   return s7_make_string_with_length (sc, out.data (), (s7_int) out.size ());
 }
 
