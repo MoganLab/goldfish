@@ -1,8 +1,3 @@
-(import (liii check)
-        (liii tui text-width))
-
-(check-set-mode! 'report-failed)
-
 ;; truncate-to-width
 ;; 按终端视觉列宽截断单行文本，可选自定义省略符号，且保证 ANSI 序列与双宽字符安全。
 ;;
@@ -39,6 +34,10 @@
 ;; ----
 ;; type-error 当 str 或 ellipsis 不是字符串，或 width 不是数字时。
 
+(import (liii check) (liii tui text-width))
+
+(check-set-mode! 'report-failed)
+
 ;; 空字符串与零宽度/负宽度
 (check (truncate-to-width "" 10) => "")
 (check (truncate-to-width "hello" 0) => "")
@@ -71,8 +70,14 @@
 
 ;; ANSI 转义序列安全截断与尾部闭合
 ;; 包含颜色的文本截断后必须在尾部复位 \x1b[0m 防止颜色泄漏
-(check (truncate-to-width "\x1b[31mhello world\x1b[0m" 8) => "\x1b[31mhello...\x1b[0m")
-(check (truncate-to-width "\x1b[32m你好世界\x1b[0m" 7) => "\x1b[32m你好...\x1b[0m")
+(check (truncate-to-width "\x1b;[31mhello world\x1b;[0m" 8)
+  =>
+  "\x1b;[31mhello...\x1b;[0m"
+) ;check
+(check (truncate-to-width "\x1b;[32m你好世界\x1b;[0m" 7)
+  =>
+  "\x1b;[32m你好...\x1b;[0m"
+) ;check
 
 ;; 非法 UTF-8 字节：入口替换为 U+FFFD 后再截断，不抛 value-error
 ;; 未超宽时返回清理后的文本
@@ -82,7 +87,12 @@
 ) ;check
 
 ;; 超宽时按清理后的宽度截断
-(check (truncate-to-width (string-append "a" (byte-vector->string #u8(255)) "好好") 4) => "a...")
+(check (truncate-to-width (string-append "a" (byte-vector->string #u8(255)) "好好")
+         4
+       ) ;truncate-to-width
+  =>
+  "a..."
+) ;check
 
 ;; 类型错误检查
 (check-catch 'type-error (truncate-to-width 123 5))
