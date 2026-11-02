@@ -1,10 +1,5 @@
-(import (liii list) (liii check))
-
-
-(check-set-mode! 'report-failed)
-
-
-;; not-null-list? 函数测试
+;; not-null-list?
+;; 检查对象是否为非空列表。
 ;;
 ;; 语法
 ;; ----
@@ -19,19 +14,10 @@
 ;; ------
 ;; boolean?
 ;; 如果obj是非空列表，返回#t，否则返回#f。
-;;
-;; 说明
-;; ----
-;; not-null-list?检查对象是否为非空列表。
-;;
-;; 示例
-;; ----
-;; (not-null-list? (list 1)) => #t
-;; (not-null-list? (list 1 2 3)) => #t
-;; (not-null-list? ()) => #f
-;; (not-null-list? '(a . b)) => #f
-;; (not-null-list? 1) 抛出 type-error
 
+(import (liii list) (liii check))
+
+(check-set-mode! 'report-failed)
 
 (check (not-null-list? (list 1)) => #t)
 (check (not-null-list? (list 1 2 3)) => #t)
@@ -39,13 +25,10 @@
 (check (not-null-list? '(a b c)) => #t)
 (check (not-null-list? ()) => #f)
 
-
 (check (not-null-list? '(a . b)) => #f)
 (check (not-null-list? '(a b . c)) => #f)
 (check (not-null-list? '(1 2 3 . 4)) => #f)
 
-
 (check-catch 'type-error (not-null-list? 1))
-
 
 (check-report)
