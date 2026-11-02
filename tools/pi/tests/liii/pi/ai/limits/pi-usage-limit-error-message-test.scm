@@ -1,11 +1,3 @@
-(import (liii check)
-  (liii pi ai providers quota)
-  (liii string)
-  (liii pi ai limits)
-) ;import
-
-(check-set-mode! 'report-failed)
-
 ;; pi-usage-limit-error-message
 ;; 生成面向用户的额度耗尽提示。
 ;;
@@ -30,6 +22,14 @@
 ;; ----
 ;; 只做前缀拼接：官方消息原样返回，不改写、不追加建议、不解析重置时间。
 ;; record 里的消息为空时由 pi-detect-usage-limit 以 HTTP 状态码兜底。
+
+(import (liii check)
+  (liii pi ai providers quota)
+  (liii string)
+  (liii pi ai limits)
+) ;import
+
+(check-set-mode! 'report-failed)
 
 (define weekly-body
   "{\"error\":{\"code\":\"1310\",\"message\":\"您已达到每周/每月使用上限，您的限额将在 2026-11-05 13:12:35 重置。\"}}"

@@ -1,11 +1,3 @@
-(import (liii check)
-  (liii pi ai providers quota)
-  (liii string)
-  (liii pi ai limits)
-) ;import
-
-(check-set-mode! 'report-failed)
-
 ;; pi-detect-usage-limit
 ;; 按 provider 注册的处理函数识别响应体是否属于「服务商额度耗尽」。
 ;;
@@ -35,6 +27,14 @@
 ;; 不做任何文本匹配：错误消息文案会变、会被本地化，只按结构化标识判定。
 ;; 业务码是各家私有命名空间，不会跨 provider 套用（如智谱 1308/1310 只对 zai-coding-cn 生效）。
 ;; 智谱 1302（并发槽满）/1303、1305（短时频率）/1312（模型拥堵）不是额度耗尽。
+
+(import (liii check)
+  (liii pi ai providers quota)
+  (liii string)
+  (liii pi ai limits)
+) ;import
+
+(check-set-mode! 'report-failed)
 
 (define zai "zai-coding-cn")
 
