@@ -19,10 +19,10 @@
   (begin
 
     (define-record-type <anthropic-stream-state>
-      (make-anthropic-stream-state blocks last-text usage tool-calls stop-reason
-        current-tool current-thinking
-      ) ;make-anthropic-stream-state
-      anthropic-stream-state?
+      (%make-anthropic-stream-state blocks last-text usage tool-calls
+        stop-reason current-tool current-thinking
+      ) ;%make-anthropic-stream-state
+      %anthropic-stream-state?
       (blocks anthropic-stream-state-record-blocks
         anthropic-stream-state-record-blocks-set!
       ) ;blocks
@@ -45,6 +45,18 @@
         anthropic-stream-state-record-current-thinking-set!
       ) ;current-thinking
     ) ;define-record-type
+
+    (define (make-anthropic-stream-state blocks last-text usage tool-calls
+              stop-reason current-tool current-thinking
+            ) ;make-anthropic-stream-state
+      (%make-anthropic-stream-state blocks last-text usage tool-calls
+        stop-reason current-tool current-thinking
+      ) ;%make-anthropic-stream-state
+    ) ;define
+
+    (define (anthropic-stream-state? state)
+      (%anthropic-stream-state? state)
+    ) ;define
 
     (define (anthropic-stream-state-blocks state)
       (if (anthropic-stream-state? state)

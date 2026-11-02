@@ -17,10 +17,10 @@
   (begin
 
     (define-record-type <openai-stream-state>
-      (make-openai-stream-state blocks last-text usage stop-reason error-message
-        tools
-      ) ;make-openai-stream-state
-      openai-stream-state?
+      (%make-openai-stream-state blocks last-text usage stop-reason
+        error-message tools
+      ) ;%make-openai-stream-state
+      %openai-stream-state?
       (blocks openai-stream-state-record-blocks
         openai-stream-state-record-blocks-set!
       ) ;blocks
@@ -36,6 +36,18 @@
       ) ;error-message
       (tools openai-stream-state-record-tools openai-stream-state-record-tools-set!)
     ) ;define-record-type
+
+    (define (make-openai-stream-state blocks last-text usage stop-reason
+              error-message tools
+            ) ;make-openai-stream-state
+      (%make-openai-stream-state blocks last-text usage stop-reason
+        error-message tools
+      ) ;%make-openai-stream-state
+    ) ;define
+
+    (define (openai-stream-state? state)
+      (%openai-stream-state? state)
+    ) ;define
 
     (define (openai-stream-state-blocks state)
       (if (openai-stream-state? state)
