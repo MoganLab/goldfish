@@ -1,11 +1,3 @@
-(import (scheme base)
-  (scheme file)
-  (liii check)
-  (liii path)
-  (liii os)
-  (liii goldcheck rules)
-) ;import
-
 ;; check-tree-depth
 ;; 逐顶级表达式度量语法树嵌套深度，并判断是否超出给定深度阈值。
 ;;
@@ -26,6 +18,14 @@
 ;; 第一个值为文件内各顶级表达式深度的最大值；
 ;; 第二个值为最深顶级表达式在文件中的起始行号；
 ;; 第三个值为违规结构 (list 'max-tree-depth file-path max-line max-depth limit)，未超限时为 #f。
+
+(import (scheme base)
+  (scheme file)
+  (liii check)
+  (liii path)
+  (liii os)
+  (liii goldcheck rules)
+) ;import
 
 (check-set-mode! 'report-failed)
 

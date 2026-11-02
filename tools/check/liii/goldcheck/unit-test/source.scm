@@ -18,6 +18,7 @@
   (import (scheme base)
     (scheme file)
     (liii base)
+    (liii os)
     (liii path)
     (liii string)
     (liii list)
@@ -25,7 +26,8 @@
     (liii goldcheck path)
   ) ;import
   (export exported-name->test-stem find-library-source-for-test-dir
-    extract-library-exports check-missing-exported-tests
+    extract-library-exports check-missing-exported-tests file-defines-library?
+    find-test-dir-for-library-source
   ) ;export
   (begin
 
@@ -92,8 +94,28 @@
       ) ;let
     ) ;define
 
-    (define (resolve-repo-file rel)
+    (define (find-repo-root)
       (let ((root (gfproject-root)))
+        (if (and root (string? root) (not (string=? root "")))
+          root
+          (let loop
+            ((dir (getcwd)))
+            (if
+              (and (path-dir? (path (path-join dir "goldfish")))
+                (path-file? (path (path-join dir "gf_check.json")))
+              ) ;and
+              dir
+              (let ((parent (path->string (path-parent (path dir)))))
+                (if (or (string=? parent dir) (string=? parent "/")) #f (loop parent))
+              ) ;let
+            ) ;if
+          ) ;let
+        ) ;if
+      ) ;let
+    ) ;define
+
+    (define (resolve-repo-file rel)
+      (let ((root (find-repo-root)))
         (if (and root (string? root) (not (string=? root "")))
           (path->string (path-join root rel))
           rel
@@ -158,6 +180,94 @@
       ) ;let*
     ) ;define
 
+    (define (port-defines-library? port)
+      (let loop
+        ()
+        (let ((expr (catch #t (lambda () (read port)) (lambda (k e) (eof-object)))))
+          (cond ((eof-object? expr) #f)
+                ((and (pair? expr) (eq? (car expr) 'define-library)) #t)
+                (else (loop))
+          ) ;cond
+        ) ;let
+      ) ;let
+    ) ;define
+
+    (define (file-defines-library? file-path)
+      (let ((actual-path (resolve-repo-file file-path)))
+        (and (path-file? (path actual-path))
+          (catch #t
+            (lambda () (call-with-input-file actual-path port-defines-library?))
+            (lambda (k e) #f)
+          ) ;catch
+        ) ;and
+      ) ;let
+    ) ;define
+
+    (define (find-tools-test-dir norm)
+      (if (string-starts-with? norm "tools/")
+        (let ((parts (string-split norm "/")))
+          (if (and (>= (length parts) 3)
+                (not (member "tests" parts string=?))
+                (string-ends? norm ".scm")
+              ) ;and
+            (let* ((tool (cadr parts))
+                   (subparts (cddr parts))
+                   (subpath-ext (string-join subparts "/"))
+                   (subpath (substring subpath-ext 0 (- (string-length subpath-ext) 4)))
+                  ) ;
+              (resolve-repo-file (string-append "tools/" tool "/tests/" subpath))
+            ) ;let*
+            #f
+          ) ;if
+        ) ;let
+        #f
+      ) ;if
+    ) ;define
+
+    (define (find-tests-test-dir norm)
+      (if (and (string-starts-with? norm "goldfish/")
+            (not (string-starts-with? norm "goldfish/hint/"))
+            (string-ends? norm ".scm")
+          ) ;and
+        (let ((subpath (substring norm 9 (- (string-length norm) 4))))
+          (resolve-repo-file (string-append "tests/" subpath))
+        ) ;let
+        #f
+      ) ;if
+    ) ;define
+
+    (define (find-fixture-test-dir src-path)
+      (let ((norm-abs (normalize-sep (path->string (path src-path)))))
+        (if (and (string-contains? norm-abs "/goldfish/") (string-ends? norm-abs ".scm"))
+          (let* ((idx (string-index-of norm-abs "/goldfish/" 0))
+                 (left (substring norm-abs 0 idx))
+                 (right (substring norm-abs (+ idx 10) (string-length norm-abs)))
+                 (subpath (substring right 0 (- (string-length right) 4)))
+                ) ;
+            (string-append left "/tests/" subpath)
+          ) ;let*
+          #f
+        ) ;if
+      ) ;let
+    ) ;define
+
+    (define (find-test-dir-for-library-source src-path)
+      (if (not (file-defines-library? src-path))
+        #f
+        (let* ((norm-abs (normalize-sep (path->string (path src-path))))
+               (rel (relativize-path src-path))
+               (norm (normalize-sep rel))
+              ) ;
+          (cond ((string-contains? norm-abs "/tests/") #f)
+                ((find-tools-test-dir norm) => (lambda (p) p))
+                ((find-tests-test-dir norm) => (lambda (p) p))
+                ((find-fixture-test-dir src-path) => (lambda (p) p))
+                (else #f)
+          ) ;cond
+        ) ;let*
+      ) ;if
+    ) ;define
+
     (define (extract-decl-exports decl exports)
       (if (and (pair? decl) (eq? (car decl) 'export))
         (let loop
@@ -202,7 +312,7 @@
     ) ;define
 
     (define (extract-library-exports source-path)
-      (call-with-input-file source-path extract-exports-from-port)
+      (call-with-input-file (resolve-repo-file source-path) extract-exports-from-port)
     ) ;define
 
     (define (make-missing-test-violation expected-rel name)
@@ -224,7 +334,8 @@
                  (test-path (path-join parent test-filename))
                  (expected-rel (string-append rel-parent "/" test-filename))
                 ) ;
-            (if (path-file? (path (path->string test-path)))
+            (if
+              (path-file? (path (resolve-repo-file (path->string test-path))))
               (loop (cdr rem) acc)
               (loop (cdr rem) (cons (make-missing-test-violation expected-rel name) acc))
             ) ;if
