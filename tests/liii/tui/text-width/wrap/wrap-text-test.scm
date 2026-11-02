@@ -1,7 +1,3 @@
-(import (liii check) (liii tui text-width))
-
-(check-set-mode! 'report-failed)
-
 ;; wrap-text
 ;; 按终端视觉显示宽度对文本进行安全折行，返回行字符串列表。
 ;;
@@ -15,7 +11,7 @@
 ;; 待折行文本，可包含换行符 \n。
 ;;
 ;; width : real?
-;; 目标视觉显示宽度（列数）。若 <= 0 则返回 '（"")。
+;; 目标视觉显示宽度（列数）。若 <= 0 则返回 '(")。
 ;;
 ;; 返回值
 ;; ----
@@ -34,6 +30,10 @@
 ;; 错误处理
 ;; ----
 ;; type-error 当 str 不是字符串或 width 不是数字时。
+
+(import (liii check) (liii tui text-width))
+
+(check-set-mode! 'report-failed)
 
 ;; 空字符串与零/负宽度
 (check (wrap-text "" 10) => '(""))
