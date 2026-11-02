@@ -3,19 +3,19 @@
 ;;
 ;; 语法
 ;; ----
-;; (pi-save-hide-thinking-block! config-dir hide)
+;; (pi-save-hide-thinking-block! config-dir hide?) -> unspecified
 ;;
 ;; 参数
 ;; ----
 ;; config-dir : string
-;; 包含 settings.json 的配置目录。
-;; hide : boolean
-;; 是否隐藏思考块。#t 写入 true，#f 写入 false。
+;; JSON 配置目录。
+;; hide? : boolean
+;; #t 隐藏思考块，#f 显示。
 ;;
 ;; 返回值
 ;; ----
-;; undefined
-;; 写入完成后返回未定义值。
+;; unspecified
+;; 写入成功后的返回值未指定。
 
 (import (scheme base)
   (scheme file)
@@ -29,8 +29,8 @@
 
 (check-set-mode! 'report-failed)
 
-;; pi-save-hide-thinking-block!：Ctrl+T 切换后持久化 hideThinkingBlock，
-;; 只更新该键，保留其他设置（对齐 pi-save-default-thinking-level! 模式）
+;; Ctrl+T 切换后持久化 hideThinkingBlock，只更新该键，保留其他设置
+;; （对齐 pi-save-default-thinking-level! 模式）。
 (define AGENT-DIR (path->string (path-join (path-temp-dir) "pi-save-hide-thinking-test")))
 (define SETTINGS (path->string (path-join AGENT-DIR "settings.json")))
 

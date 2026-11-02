@@ -1,30 +1,27 @@
 ;; pi-resolve-provider-key
-;; 解析指定 provider 的有效 API 密钥，环境变量优先于 auth.json 存储条目。
+;; 解析指定 provider 的有效 API 密钥。环境变量优先于 auth.json 存储条目。
 ;;
 ;; 语法
 ;; ----
-;; (pi-resolve-provider-key provider auth-alist . opt-env)
+;; (pi-resolve-provider-key provider auth env) -> string | #f
 ;;
 ;; 参数
 ;; ----
 ;; provider : string | symbol
-;; 供应商名称。
-;; auth-alist : alist
-;; auth.json 或凭据 record 组成的存储条目。
-;; opt-env : alist
-;; 可选环境变量表，按 provider 声明的变量顺序探测。
+;; provider id。
+;; auth : alist
+;; auth.json 加载的 provider 到 key 的映射。
+;; env : alist
+;; 环境变量表。
 ;;
 ;; 返回值
 ;; ----
 ;; string | #f
-;; 找到的 API 密钥；均未配置时返回 #f。
+;; 解析到的 API key；未配置时返回 #f。
 
 (import (liii check) (liii pi ai config record) (liii pi code config) (liii path))
 
 (check-set-mode! 'report-failed)
-
-;; pi-resolve-provider-key
-;; 解析指定 provider 的有效 API 密钥。环境变量优先于 auth.json 存储条目。
 
 ;; google 测试
 (let ((auth-with-google '(("google" . "key-from-auth")))

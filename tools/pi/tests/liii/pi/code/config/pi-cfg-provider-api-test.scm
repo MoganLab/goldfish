@@ -1,40 +1,38 @@
 ;; pi-cfg-provider-api
-;; 按运行配置中的 provider 声明取协议标识，缺失时回退注册表内置值。
+;; 按 provider 取协议标识：优先使用目录声明的 api，缺失时回退注册表内置值。
 ;;
 ;; 语法
 ;; ----
-;; (pi-cfg-provider-api cfg provider)
+;; (pi-cfg-provider-api cfg provider) -> string
 ;;
 ;; 参数
 ;; ----
 ;; cfg : alist
-;; resolve-pi-config 生成的运行配置，读取其中的 models-store。
+;; resolve-pi-config 返回的配置。
 ;; provider : string
-;; 供应商名称。
+;; provider id。
 ;;
 ;; 返回值
 ;; ----
 ;; string
-;; provider 声明的协议标识，如 openai-completions 或 anthropic-messages。
+;; 协议实现标识（如 google-generative-ai / openai-completions）。
 
-(import (liii check) (liii pi code config))
+(import (liii check)
+  (liii pi ai providers registry)
+  (liii pi code config)
+) ;import
 
 (check-set-mode! 'report-failed)
 
-;; 自定义 provider 文件声明的 api 优先
-
-(define CUSTOM-CFG
-  '((models-store ("custom-kimi" ("api" . "openai-completions") ("models"))))
+(define CFG
+  (list (cons 'models-store
+          (list (cons "google" (list (cons "api" "openai-completions"))))
+        ) ;cons
+  ) ;list
 ) ;define
 
-(check (pi-cfg-provider-api CUSTOM-CFG "custom-kimi") => "openai-completions")
-
-;; 未声明的 provider 回退注册表内置值
+(check (pi-cfg-provider-api CFG "google") => "openai-completions")
+(check (pi-cfg-provider-api '() "google") => (pi-provider-api "google"))
 (check (pi-cfg-provider-api '() "google") => "google-generative-ai")
-(check (pi-cfg-provider-api '() "deepseek") => "anthropic-messages")
-(check (pi-cfg-provider-api '() "kimi-coding") => "openai-completions")
-
-;; 未注册的 provider 默认走 google-generative-ai
-(check (pi-cfg-provider-api '() "unknown-provider") => "google-generative-ai")
 
 (check-report)

@@ -123,11 +123,17 @@
     ) ;define
 
     (define (pi-build-config-catalog config-dir)
-      (let* ((whitelist (or (pi-load-providers-whitelist config-dir) '()))
+      (let* ((raw-whitelist (pi-load-providers-whitelist config-dir))
+             (whitelist (or raw-whitelist (list-sort string<? (map car PI_PROVIDER_BUILTIN_MODELS)))
+             ) ;whitelist
              (enabled (map (lambda (p-id) (%config-entry config-dir p-id #t)) whitelist))
-             (disabled (map (lambda (p-id) (%config-entry config-dir p-id #f))
-                         (%disabled-provider-ids whitelist)
-                       ) ;map
+             (disabled
+               (if raw-whitelist
+                 (map (lambda (p-id) (%config-entry config-dir p-id #f))
+                   (%disabled-provider-ids whitelist)
+                 ) ;map
+                 '()
+               ) ;if
              ) ;disabled
             ) ;
         (append enabled disabled)

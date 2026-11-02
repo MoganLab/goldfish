@@ -3,21 +3,21 @@
 ;;
 ;; 语法
 ;; ----
-;; (pi-save-default-model! config-dir provider model-id)
+;; (pi-save-default-model! config-dir provider model-id) -> unspecified
 ;;
 ;; 参数
 ;; ----
 ;; config-dir : string
-;; 包含 settings.json 的配置目录。
+;; JSON 配置目录。
 ;; provider : string
-;; 默认 provider 名称。
+;; 默认 provider id。
 ;; model-id : string
-;; 默认模型标识。
+;; 默认模型 id。
 ;;
 ;; 返回值
 ;; ----
-;; undefined
-;; 写入完成后返回未定义值。
+;; unspecified
+;; 写入成功后的返回值未指定。
 
 (import (scheme base)
   (scheme file)

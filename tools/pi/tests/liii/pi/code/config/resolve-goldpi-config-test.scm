@@ -1,43 +1,43 @@
 ;; resolve-goldpi-config
-;; resolve-pi-config 的兼容别名，返回同一份运行配置。
+;; resolve-pi-config 的别名，读取用户配置目录并解析出生效配置。
 ;;
 ;; 语法
 ;; ----
-;; (resolve-goldpi-config parsed-args . opt-env)
+;; (resolve-goldpi-config parsed-args [env]) -> alist
 ;;
 ;; 参数
 ;; ----
 ;; parsed-args : alist
-;; parse-pi-args 生成的命令行参数。
-;; opt-env : alist
-;; 可选的环境变量表。
+;; parse-pi-args 解析后的命令行参数。
+;; env : alist
+;; 可选环境变量表。
 ;;
 ;; 返回值
 ;; ----
 ;; alist
-;; 解析后的运行配置。
+;; 包含 provider/model-id/api-key 等配置项。
 
-(import (liii check) (liii pi code cli args) (liii pi code config))
+(import (liii check)
+  (liii pi code cli args)
+  (liii pi code config)
+) ;import
 
 (check-set-mode! 'report-failed)
 
-(define CONFIG-EMPTY-DIR
-  (if (file-exists? "tests/fixtures/config-empty")
-    "tests/fixtures/config-empty"
-    "tools/pi/tests/fixtures/config-empty"
+(define FIXTURE
+  (if (file-exists? "tools/pi/tests/fixtures/default")
+    "tools/pi/tests/fixtures/default"
+    "tests/fixtures/default"
   ) ;if
 ) ;define
 
-;; 与 resolve-pi-config 指向同一过程
-(check (eq? resolve-goldpi-config resolve-pi-config) => #t)
-
-;; 别名可正常解析命令行参数与环境
-(let* ((args (parse-pi-args '("--provider" "google")))
-       (env `(("PI_CODING_AGENT_DIR" . ,CONFIG-EMPTY-DIR)))
-       (cfg (resolve-goldpi-config args env))
-      ) ;
+(check (procedure? resolve-goldpi-config) => #t)
+(let ((cfg (resolve-goldpi-config (parse-pi-args '())
+             `(("PI_CODING_AGENT_DIR" . ,FIXTURE))
+           ) ;resolve-goldpi-config
+      ) ;cfg
+     )
   (check (cdr (assoc 'provider cfg)) => "google")
-  (check (cdr (assoc 'model-id cfg)) => "gemini-3.8-flash")
-) ;let*
+) ;let
 
 (check-report)

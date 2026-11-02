@@ -3,29 +3,6 @@
 ;;
 ;; 语法
 ;; ----
-;; (pi-load-auth config-dir . opt-env)
-;;
-;; 参数
-;; ----
-;; config-dir : string
-;; 包含 auth.json 的配置目录。
-;; opt-env : alist
-;; 可选环境变量表，用于解析凭据中的环境变量或命令插值。
-;;
-;; 返回值
-;; ----
-;; list
-;; pi-credential record 列表；文件不存在或无有效凭据时返回空列表。
-
-(import (liii check) (liii pi ai config record) (liii pi code config) (liii pi code core session-manager))
-
-(check-set-mode! 'report-failed)
-
-;; pi-load-auth
-;; 从 agent 配置目录的 auth.json 加载 API 凭据。
-;;
-;; 语法
-;; ----
 ;; (pi-load-auth agent-dir . opt-env)
 ;;
 ;; 参数
@@ -44,10 +21,10 @@
 ;; ----
 ;; 仅加载 type=api_key 且成功解析 key 的条目。
 ;; 可通过 assoc 按 provider 查询凭据，无效命令插值会抛出 pi-config-error。
-;;
-;; 示例
-;; ----
-;; (pi-credential-key (car (pi-load-auth "~/.pi/agent"))) => "secret"
+
+(import (liii check) (liii pi ai config record) (liii pi code config) (liii pi code core session-manager))
+
+(check-set-mode! 'report-failed)
 (define fixture-dir
   (if (file-exists? "tests/fixtures/default")
     "tests/fixtures/default"
