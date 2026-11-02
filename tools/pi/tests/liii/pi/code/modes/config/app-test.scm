@@ -186,6 +186,27 @@
   ) ;for-each
   (check (pi-config-run dir :terminal vt :env '()) => 'chat)
   (check (read-file dir "models/providers.json") => providers)
+  ;; 提示行给出拒绝原因（修复前消息只在函数内部 set!，永远不显示）
+  (let ((screen (string-join (virtual-terminal-screen vt) "\n")))
+    (check (string-contains screen "is disabled") => #t)
+  ) ;let
+) ;let*
+
+;; 9b. 唯一可用 provider 按空格：拒绝禁用并在提示行给出原因，白名单不被改写
+(let* ((dir (make-dir "toggle-last-provider")))
+  (path-write-text (path (string-append dir "/models/providers.json")) "[\"google\"]")
+  (path-write-text (path (string-append dir "/settings.json"))
+    "{\n  \"defaultProvider\": \"google\"\n}\n"
+  ) ;path-write-text
+  (let ((vt (make-virtual-terminal :width 120 :height 24)))
+    (virtual-terminal-push-key! vt " ")
+    (virtual-terminal-push-key! vt 'q)
+    (check (pi-config-run dir :terminal vt :env '()) => 'chat)
+    (check (read-file dir "models/providers.json") => "[\"google\"]")
+    (let ((screen (string-join (virtual-terminal-screen vt) "\n")))
+      (check (string-contains screen "at least one provider must stay enabled") => #t)
+    ) ;let
+  ) ;let
 ) ;let*
 
 ;; 10. 缩窗自适应：窗口高度变化后重绘帧高自动收缩且方向键正常

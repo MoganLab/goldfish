@@ -187,41 +187,42 @@
 
     ;; provider 列：等同右方向键（进入模型列）
     ;; 模型列/详情列：把选中模型设为默认模型（写 settings.json）
-    (define (%handle-enter! st cursor active message-box)
+    (define (%handle-enter! st cursor active)
       (if (= active 0)
         (pi-config-key-handler st cursor active 'right)
         (let* ((plan (pi-config-plan-set-default st cursor 1))
                (msg (pi-user-dict-ref plan "message" ""))
+               (shown
+                 (if (not (pi-user-dict-ref plan "ok" #f))
+                   msg
+                   (let ((res (pi-config-apply-writes st (pi-user-dict-ref plan "writes" '()))))
+                     (if (pi-user-dict-ref res "ok" #f)
+                       msg
+                       (pi-user-dict-ref res "message" "save failed")
+                     ) ;if
+                   ) ;let
+                 ) ;if
+               ) ;shown
               ) ;
-          (if (not (pi-user-dict-ref plan "ok" #f))
-            (set! message-box msg)
-            (let ((res (pi-config-apply-writes st (pi-user-dict-ref plan "writes" '()))))
-              (set! message-box
-                (if (pi-user-dict-ref res "ok" #f)
-                  msg
-                  (pi-user-dict-ref res "message" "save failed")
-                ) ;if
-              ) ;set!
-            ) ;let
-          ) ;if
-          (list cursor active #f)
+          (list cursor active #f shown)
         ) ;let*
       ) ;if
     ) ;define
 
     ;; ---------- 启停（空格） ----------
 
-    (define (%apply-toggle st cursor active message-box)
+    ;; 返回需在提示行展示的消息（空串表示保持默认提示）
+    (define (%apply-toggle st cursor active)
       (let* ((column (if (= active 0) 0 1))
              (plan (pi-config-plan-toggle st cursor column))
              (msg (pi-user-dict-ref plan "message" ""))
             ) ;
         (if (not (pi-user-dict-ref plan "ok" #f))
-          (set! message-box msg)
+          msg
           (let ((res (pi-config-apply-writes st (pi-user-dict-ref plan "writes" '()))))
             (if (pi-user-dict-ref res "ok" #f)
-              (set! message-box msg)
-              (set! message-box (pi-user-dict-ref res "message" "save failed"))
+              msg
+              (pi-user-dict-ref res "message" "save failed")
             ) ;if
           ) ;let
         ) ;if
@@ -292,14 +293,15 @@
                    (set! overlay-offset 0)
                   ) ;
                   ((eq? key 'enter)
-                   (let ((r (%handle-enter! st cursor active message)))
+                   (let ((r (%handle-enter! st cursor active)))
                      (set! cursor (%normalize-cursor st (car r)))
                      (set! active (cadr r))
+                     (set! message (if (>= (length r) 4) (list-ref r 3) ""))
                      (reload!)
                    ) ;let
                   ) ;
                   ((or (equal? c " ") (eq? key 'space))
-                   (%apply-toggle st cursor active message)
+                   (set! message (%apply-toggle st cursor active))
                    (reload!)
                   ) ;
                   (else
