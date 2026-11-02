@@ -24,7 +24,7 @@
     (liii goldcheck unit-test file)
     (liii goldcheck unit-test source)
   ) ;import
-  (export check-unit-test-dirs resolve-file-test-dir)
+  (export check-unit-test-dirs)
   (begin
 
     (define (check-dir-legacy-file parent rel-parent readme-rel)
