@@ -20,16 +20,17 @@
   ) ;import
   (begin
 
-    (define (%prefix-line line)
-      (string-append "\r\x1b;[2K" line)
-    ) ;define
-
     (define (%format-transcript lines)
-      (let ((body (string-join (map %prefix-line lines) "\r\n")))
-        (string-append "\x1b;[?2026h" "\x1b;[?7l" body "\x1b;[0m\x1b;[?7h\r\n"
-          "\x1b;[?2026l"
+      (if (null? lines)
+        (string-append "\x1b;[?2026h" "\x1b;[?1049l"
+          "\x1b;[0m\x1b;[?7h\x1b;[?25h" "\x1b;[?2026l"
         ) ;string-append
-      ) ;let
+        (let ((body (string-join lines "\r\n")))
+          (string-append "\x1b;[?2026h" "\x1b;[?1049l" "\x1b;[?7l" body
+            "\x1b;[0m\x1b;[?7h\r\n\x1b;[?25h" "\x1b;[?2026l"
+          ) ;string-append
+        ) ;let
+      ) ;if
     ) ;define
 
     ;; 退出备用屏后把对话记录打印回主屏，
@@ -38,18 +39,18 @@
     ;; 历史内容由 pi-app-transcript-lines 提供（完整消息列表，
     ;; 不含页眉横幅与输入区）；任何异常都不得影响退出流程。
     ;;
-    ;; 性能关键：整个输出包裹在同步输出协议（\x1b[?2026h / \x1b[?2026l）中，
-    ;; 并禁用自动换行（\x1b[?7l），一次性原子写入终端，避免终端逐行触发滚屏重绘。
+    ;; 性能关键：退出备用屏（\x1b[?1049l）必须置于 Mode 2026 同步输出保护区
+    ;; （\x1b[?2026h / \x1b[?2026l）内发射，单次原子批处理写入终端并刷新，
+    ;; 从根本上杜绝先切回主屏再向下滚屏的中间态动画与视觉撕裂。
+    ;; 当 lines 为空时仅输出切回主屏与复位序列，不产生多余换行。
     (define (pi-app-print-transcript! app)
       (let ((term (pi-app-term app)))
         (when (standard-terminal? term)
           (catch #t
             (lambda ()
               (let ((lines (pi-app-transcript-lines app)))
-                (unless (null? lines)
-                  (terminal-write term (%format-transcript lines))
-                  (terminal-flush term)
-                ) ;unless
+                (terminal-write term (%format-transcript lines))
+                (terminal-flush term)
               ) ;let
             ) ;lambda
             (lambda args #f)
@@ -289,19 +290,23 @@
             ;; 1. 先中止在途 agent 任务：worker 线程阻塞在 LLM HTTP 请求上，
             ;;    进程退出会 join go 线程池，不中止就会等到 provider 超时才退出
             (let ((settled (pi-app-abort-inflight! app)))
-              ;; 2. 关闭鼠标事件上报（与进入时对称），
-              ;;    再离开备用屏（主屏内容自动恢复），
-              ;;    最后把对话记录打印回主屏，避免退出后看不到本次会话内容
+              ;; 2. 关闭鼠标与括号粘贴模式
               (catch #t (lambda () (terminal-mouse-mode! term #f)) (lambda (tag . args) #f))
-              (catch #t (lambda () (terminal-exit-alt-screen! term)) (lambda (tag . args) #f))
+              (catch #t (lambda () (terminal-set-paste-mode! #f)) (lambda (tag . args) #f))
+              (catch #t
+                (lambda () (terminal-write term "\x1b;[?2004l"))
+                (lambda (tag . args) #f)
+              ) ;catch
+              ;; 3. 切出备用屏与写回历史（标准终端单次原子刷新）：
+              ;;    离开备用屏移入 Mode 2026 同步保护区内单帧完成
               (pi-app-print-transcript! app)
-              (terminal-write term "\x1b;[?2004l")
-              (terminal-set-paste-mode! #f)
-              (terminal-show-cursor! term)
+              ;; 4. 非标准终端（测试虚拟终端）兜底退出备用屏与显示光标
+              (unless (standard-terminal? term)
+                (catch #t (lambda () (terminal-exit-alt-screen! term)) (lambda (tag . args) #f))
+                (catch #t (lambda () (terminal-show-cursor! term)) (lambda (tag . args) #f))
+              ) ;unless
               (terminal-exit-raw-mode! term)
-              (terminal-write term "\r\n")
-              (terminal-flush term)
-              ;; 3. 关闭任务通道，后台 worker 收到 eof 后退出，
+              ;; 5. 关闭任务通道，后台 worker 收到 eof 后退出，
               ;;    避免进程退出时后台线程仍在阻塞 recv 导致崩溃
               (catch #t
                 (lambda ()

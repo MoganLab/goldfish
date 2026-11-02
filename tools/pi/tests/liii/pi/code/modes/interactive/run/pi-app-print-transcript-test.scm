@@ -12,7 +12,7 @@
 ;; 回归点：曾对消息列表调用 component-render，触发 type-error 并被静默 catch，
 ;; 结果退出全屏界面后终端里看不到任何会话内容。
 
-;; 1. 标准终端：对话记录被写到输出端口，且包裹在 synchronized output 中批量输出
+;; 1. 标准终端：对话记录被写到输出端口，且离开备用屏移入 synchronized output 中原子刷新
 (let* ((buf (open-output-string))
        (term (make-standard-terminal :output-port buf))
        (app (make-pi-app :terminal term :handler (lambda (a msg) #t)))
@@ -23,22 +23,36 @@
   (let ((out (get-output-string buf)))
     (check-true (string-contains? out "hello transcript"))
     (check-true (string-contains? out "hi there"))
-    ;; 对齐上游 TuiAltScreen.stop 行为：同步输出与 autowrap 控制保护
-    (check-true (string-contains? out "\x1b;[?2026h"))
+    ;; 子任务 1：同步输出协议严格包裹切出备用屏序列，且 \\x1b;[?2026h 先于 \\x1b;[?1049l
+    (let ((idx-sync (string-position "\x1b;[?2026h" out))
+          (idx-exit (string-position "\x1b;[?1049l" out))
+         ) ;
+      (check-true (and idx-sync idx-exit (< idx-sync idx-exit)))
+    ) ;let
     (check-true (string-contains? out "\x1b;[?2026l"))
     (check-true (string-contains? out "\x1b;[?7l"))
     (check-true (string-contains? out "\x1b;[?7h"))
-    (check-true (string-contains? out "\r\x1b;[2K"))
+    (check-true (string-contains? out "\x1b;[?25h"))
+    (check-true (string-contains? out "\x1b;[0m"))
+    ;; 子任务 2：去除冗余的清行前缀，纯净换行流
+    (check-false (string-contains? out "\r\x1b;[2K"))
+    ;; 子任务 3：整块原子输出首尾控制序列
+    (check-true (string-starts? out "\x1b;[?2026h\x1b;[?1049l\x1b;[?7l"))
+    (check-true (string-ends? out "\x1b;[0m\x1b;[?7h\r\n\x1b;[?25h\x1b;[?2026l"))
   ) ;let
 ) ;let*
 
-;; 2. 没有消息时不输出任何内容
+;; 2. 空历史会话场景：仅输出切回主屏与复位序列，不输出多余换行
 (let* ((buf (open-output-string))
        (term (make-standard-terminal :output-port buf))
        (app (make-pi-app :terminal term :handler (lambda (a msg) #t)))
       ) ;
   (pi-app-print-transcript! app)
-  (check (get-output-string buf) => "")
+  (let ((out (get-output-string buf)))
+    (check out => "\x1b;[?2026h\x1b;[?1049l\x1b;[0m\x1b;[?7h\x1b;[?25h\x1b;[?2026l")
+    (check-false (string-contains? out "\r\n"))
+    (check-false (string-contains? out "\x1b;[?7l"))
+  ) ;let
 ) ;let*
 
 (check-report)
