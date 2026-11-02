@@ -1,10 +1,5 @@
-(import (liii list) (liii check))
-
-
-(check-set-mode! 'report-failed)
-
-
-;; flat-map 函数测试
+;; flat-map
+;; 将所有映射结果连接并展平成一个列表。
 ;;
 ;; 语法
 ;; ----
@@ -22,20 +17,13 @@
 ;; ------
 ;; list
 ;; 将所有映射结果连接并展平成一个列表。
-;;
-;; 说明
-;; ----
-;; flat-map函数类似于append-map，将映射结果展平。
-;;
-;; 示例
-;; ----
-;; (flat-map (lambda (x) (list x x)) (list 1 2 3)) => (list 1 1 2 2 3 3)
 
+(import (liii list) (liii check))
+
+(check-set-mode! 'report-failed)
 
 (check (flat-map (lambda (x) (list x x)) (list 1 2 3)) => (list 1 1 2 2 3 3))
 
-
 (check-catch 'type-error (flat-map 1 (list 1 2 3)))
-
 
 (check-report)

@@ -26,6 +26,7 @@
   (liii string)
   (liii tui)
   (liii pi code modes interactive app)
+  (liii list)
 ) ;import
 
 (check-set-mode! 'report)

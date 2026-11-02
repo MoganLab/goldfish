@@ -22,6 +22,7 @@
     (liii path)
     (liii goldcheck path)
     (liii goldcheck unit-test doc)
+    (liii goldcheck unit-test source)
   ) ;import
   (export read-all-lines find-first-non-empty-index find-last-non-empty-index
     check-report-tail parent->lib-name check-unit-test-file-content
@@ -154,7 +155,12 @@
                       ) ;list
                 ) ;list
               ) ;let*
-              (check-unit-test-file-content file-path rel-path)
+              (let ((reexported-viols (check-reexported-test-file file-path)))
+                (if (not (null? reexported-viols))
+                  reexported-viols
+                  (check-unit-test-file-content file-path rel-path)
+                ) ;if
+              ) ;let
             ) ;if
           ) ;let*
           (check-unit-test-file-content file-path rel-path)

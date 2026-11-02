@@ -129,4 +129,18 @@
   (path-unlink f2 #t)
 ) ;let*
 
+;; 6. skip-unit-test-dirs：跳过目录级规范检查，仅对单文件执行规则检查
+(let* ((tmp (path->string (path-join (path-temp-dir) "gf-test-skip-dirs-test.scm")))
+       (content (string-append
+                  ";; foo\n;; foo 说明\n;;\n;; 语法\n;; ----\n;; (foo)\n;;\n"
+                  ";; 参数\n;; ----\n;; 无\n;;\n;; 返回值\n;; ------\n;; any\n\n"
+                  "(import (scheme base) (liii check))\n\n(check 1 => 1)\n\n(check-report)\n"))
+       (cfg '((skip-unit-test-dirs . #t)
+              ("rules" ("unit-test" ("enabled" . #t)))))
+      ) ;
+  (path-write-bytes (path tmp) (string->utf8 content))
+  (check (check-files (vector tmp) cfg) => #())
+  (path-unlink tmp #t)
+) ;let*
+
 (check-report)

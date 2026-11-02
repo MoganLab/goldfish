@@ -25,4 +25,7 @@ gf doc liii/goldcheck/unit-test/source "函数名"
 
 ### 三、导出符号提取与单测覆盖校验
 - `extract-library-exports` - 从库源码文件中解析提取全部导出标识符
-- `check-missing-exported-tests` - 检查测试目录下是否缺失对应库导出函数的单元测试
+- `extract-library-defined-exports` - 从库源码文件中解析提取本地实现且导出的标识符
+- `check-missing-exported-tests` - 检查测试目录下是否缺失对应库本地实现导出函数的单元测试
+- `check-reexported-tests` - 检查测试目录下是否存在重导出函数的单元测试并提示移动目录
+- `check-reexported-test-file` - 检查单个单元测试文件是否属于非本库实现的重导出函数

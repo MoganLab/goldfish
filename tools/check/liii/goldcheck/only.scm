@@ -15,8 +15,16 @@
 ;;
 
 (define-library (liii goldcheck only)
-  (import (scheme base) (liii base) (liii list) (liii json))
-  (export restrict-check-config single-rule-config)
+  (import (scheme base)
+    (liii base)
+    (liii list)
+    (liii path)
+    (liii json)
+    (liii goldcheck unit-test)
+  ) ;import
+  (export restrict-check-config single-rule-config check-skip-unit-test-dirs?
+    cfg-with-skip-unit-test-dirs positionals-only-unit-test-files?
+  ) ;export
   (begin
 
     ;; 规则对象改写 enabled
@@ -97,6 +105,49 @@
           ) ;if
         ) ;let
       ) ;let
+    ) ;define
+
+    (define (check-skip-unit-test-dirs? cfg)
+      (cond ((not cfg) #f)
+            ((pair? cfg)
+             (let ((p (or (assoc "skip-unit-test-dirs" cfg) (assq 'skip-unit-test-dirs cfg))))
+               (and p (cdr p))
+             ) ;let
+            ) ;
+            ((json-object? cfg)
+             (and (json-contains-key? cfg "skip-unit-test-dirs")
+               (let ((v (json-ref cfg "skip-unit-test-dirs")))
+                 (and (boolean? v) v)
+               ) ;let
+             ) ;and
+            ) ;
+            (else #f)
+      ) ;cond
+    ) ;define
+
+    (define (cfg-with-skip-unit-test-dirs cfg val)
+      (cons (cons "skip-unit-test-dirs" val)
+        (if (pair? cfg)
+          (filter
+            (lambda (kv) (and (pair? kv) (not (string=? (car kv) "skip-unit-test-dirs"))))
+            cfg
+          ) ;filter
+          '()
+        ) ;if
+      ) ;cons
+    ) ;define
+
+    (define (positionals-only-unit-test-files? positionals)
+      (and (pair? positionals)
+        (let loop
+          ((rem positionals))
+          (cond ((null? rem) #t)
+                ((path-dir? (path (car rem))) #f)
+                ((not (unit-test-file? (car rem))) #f)
+                (else (loop (cdr rem)))
+          ) ;cond
+        ) ;let
+      ) ;and
     ) ;define
 
   ) ;begin

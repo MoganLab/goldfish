@@ -625,8 +625,8 @@ g_iota_list (s7_scheme* sc, s7_pointer args) {
 
 inline void
 glue_iota_list (s7_scheme* sc) {
-  const char* name= "iota";
-  const char* desc= "(iota count [start [step]]) => list, returns a list of count elements starting from start "
+  const char* name= "g_iota";
+  const char* desc= "(g_iota count [start [step]]) => list, returns a list of count elements starting from start "
                     "(default 0) with step (default 1)";
   s7_define_function (sc, name, g_iota_list, 1, 2, false, desc);
 }

@@ -1,0 +1,97 @@
+;; drop-right
+;; 从列表末尾删除指定数量的元素。
+;;
+;; 语法
+;; ----
+;; (drop-right list k)
+;;
+;; 参数
+;; ----
+;; list : list?
+;; 源列表，从中从末尾删除元素。
+;;
+;; k : integer?
+;; 要从末尾删除的元素数量，必须是非负整数且不超过列表长度。
+;;
+;; 返回值
+;; ------
+;; list
+;; 删除k个尾部元素后的新列表。当k等于列表长度时，返回空列表。
+
+(import (srfi srfi-1) (liii check))
+
+(check-set-mode! 'report-failed)
+
+(check (drop-right '(1 2 3 4) 2) => '(1 2))
+(check (drop-right '(1 2 3 4) 4) => '())
+(check (drop-right '(1 2 3 . 4) 3) => '())
+
+(check (drop-right '(1 2 3 4 5) 0) => '(1 2 3 4 5))
+(check (drop-right '(1 2 3 4 5) 1) => '(1 2 3 4))
+(check (drop-right '(1 2 3 4 5) 3) => '(1 2))
+(check (drop-right '(1 2 3 4 5) 5) => '())
+
+(check (drop-right '() 0) => '())
+
+(check (drop-right '(a) 0) => '(a))
+(check (drop-right '(a) 1) => '())
+
+(check (drop-right '((a b) (c d) (e f)) 1) => '((a b) (c d)))
+(check (drop-right '((a b) (c d) (e f)) 2) => '((a b)))
+(check (drop-right '((a b) (c d) (e f)) 3) => '())
+
+(check (drop-right '(1 2 . 3) 0) => '(1 2))
+(check (drop-right '(1 2 . 3) 1) => '(1))
+(check (drop-right '(1 2 . 3) 2) => '())
+(check (drop-right '(a b c . d) 1) => '(a b))
+(check (drop-right '(a b c . d) 2) => '(a))
+(check (drop-right '(a b c . d) 3) => '())
+
+(check (drop-right (drop-right '(1 2 3 4 5) 1) 1) => '(1 2 3))
+(check (drop-right (take-right '(1 2 3 4 5) 4) 2) => '(2 3))
+(check (take-right (drop-right '(1 2 3 4 5) 2) 2) => '(2 3))
+
+(check (drop-right (iota 10) 5) => '(0 1 2 3 4))
+(check (drop-right (iota 10) 0) => '(0 1 2 3 4 5 6 7 8 9))
+(check (drop-right (iota 10) 10) => '())
+
+(let ((lst '(1 2 3 4 5 6 7 8 9 10)))
+  (define (symmetry-test lst k)
+    (append (drop-right lst k) (take-right lst k)))
+
+  (check (symmetry-test lst 0) => lst)
+  (check (symmetry-test lst 3) => lst)
+  (check (symmetry-test lst 10) => lst)
+  (check (symmetry-test lst 5) => lst))
+
+(check (drop-right '("a" "b" "c" "d") 2) => '("a" "b"))
+(check (drop-right '(42 43 44 45) 2) => '(42 43))
+(check (drop-right '(#t #f #t #f) 2) => '(#t #f))
+(check (drop-right '(a 1 "hello") 1) => '(a 1))
+
+(check-catch 'out-of-range (drop-right '(1 2 3 4) 5))
+(check-catch 'out-of-range (drop-right '(1 2 3 4) -1))
+(check-catch 'out-of-range (drop-right '(1 2 3 . 4) 4))
+(check-catch 'type-error (drop-right "not a list" 2))
+(check-catch 'type-error (drop-right '(1 2 3) "not a number"))
+
+;; drop-right 总是创建新的列表结构，即使 k 为 0 也不共享节点
+(let ((l (list 1 2 3)))
+  (check (eq? (drop-right l 0) l) => #f)
+  (check (drop-right l 0) => '(1 2 3))
+  ;; 修改结果不影响原列表
+  (let ((r (drop-right l 1)))
+    (set-car! r 99)
+    (check l => '(1 2 3))))
+
+;; 大列表 + GC 压力回归测试
+(let ((l (iota 10000)))
+  (check (drop-right l 5000) => (iota 5000))
+  (check (length (drop-right l 0)) => 10000)
+  (check l => (iota 10000)))
+
+(do ((i 0 (+ i 1)))
+  ((= i 1000))
+  (drop-right (iota 100) 50))
+
+(check-report)

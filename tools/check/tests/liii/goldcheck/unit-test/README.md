@@ -12,9 +12,9 @@ bin/gf doc "函数名"
 ## 函数分类索引
 
 ### 一、单文件与目录规范检查
-- `check-unit-test` - 检查单个单元测试文件内容格式规范
-- `check-unit-test-dirs` - 检查测试或源码文件所属测试目录规范
-- `unit-test-file?` - 判断文件是否为应遵循单元测试规范的文件
+- `check-unit-test` - 检查单个单元测试文件内容格式规范（由 file 子模块实现）
+- `check-unit-test-dirs` - 检查测试或源码文件所属测试目录规范（由 dirs 子模块实现）
+- `unit-test-file?` - 判断文件是否为应遵循单元测试规范的文件（由 file 子模块实现）
 
 ### 二、文档标准段落定义
-- `%standard-sections` - 单元测试文件文档注释标准小节标题列表
+- `%standard-sections` - 单元测试文件文档注释标准小节标题列表（由 doc 子模块实现）

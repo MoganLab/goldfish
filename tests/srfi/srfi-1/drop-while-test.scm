@@ -1,0 +1,33 @@
+;; drop-while
+;; 删除列表开头连续满足谓词条件的元素。
+;;
+;; 语法
+;; ----
+;; (drop-while pred clist)
+;;
+;; 参数
+;; ----
+;; pred : procedure?
+;; 谓词函数，接受单个参数并返回布尔值。
+;;
+;; clist : list?
+;; 要处理的列表。
+;;
+;; 返回值
+;; ------
+;; list
+;; 返回从列表开头连续满足谓词条件的元素被删除后的剩余列表。
+
+(import (srfi srfi-1) (liii check))
+
+(check-set-mode! 'report-failed)
+
+(check (drop-while even? '()) => '())
+(check (drop-while (lambda (x) #t) '(1 2 3)) => '())
+(check (drop-while (lambda (x) #f) '(1 2 3)) => '(1 2 3))
+(check (drop-while (lambda (x) (not (= x 1))) '(1 2 3)) => '(1 2 3))
+
+(check-catch 'type-error (drop-while 1 '(1 2 3)))
+(check-catch 'type-error (drop-while even? 1))
+
+(check-report)

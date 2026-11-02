@@ -25,6 +25,8 @@
   ) ;export
   (begin
 
+    (define iota g_iota)
+
     (define (xcons a b)
       (cons b a)
     ) ;define

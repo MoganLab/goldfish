@@ -1,10 +1,5 @@
-(import (liii list) (liii check))
-
-
-(check-set-mode! 'report-failed)
-
-
-;; length>? 函数测试
+;; length>?
+;; 判断列表长度是否大于给定整数。
 ;;
 ;; 语法
 ;; ----
@@ -22,28 +17,19 @@
 ;; ------
 ;; boolean?
 ;; 如果列表长度大于n，返回#t，否则返回#f。
-;;
-;; 示例
-;; ----
-;; (length>? '(1 2 3 4 5) 3) => #t
-;; (length>? '(1 2) 3) => #f
-;; (length>? '() 0) => #f
-;; (length>? '(1) 0) => #t
-;; (length>? '(1 2 . 3) 2) => #f
-;; (length>? '(1 2 . 3) 1) => #t
 
+(import (liii list) (liii check))
+
+(check-set-mode! 'report-failed)
 
 (check-true (length>? '(1 2 3 4 5) 3))
 (check-false (length>? '(1 2) 3))
 (check-false (length>? '() 0))
 
-
 (check-true (length>? '(1) 0))
 (check-false (length>? '() 1))
 
-
 (check-false (length>? '(1 2 . 3) 2))
 (check-true (length>? '(1 2 . 3) 1))
-
 
 (check-report)
