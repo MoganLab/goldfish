@@ -39,13 +39,25 @@
 ) ;check
 (check (extract-form-definitions '(define-macro (my-mac x) x)) => '("my-mac"))
 
-;; 4. 提取记录类型定义
+;; 4. 提取记录类型定义（包含构造器、谓词、访问器和修改器，不包含类型名）
 (check
   (extract-form-definitions
     '(define-record-type point (make-point x y) point? (x point-x))
   ) ;extract-form-definitions
   =>
-  '("point")
+  '("make-point" "point?" "point-x")
+) ;check
+(check
+  (extract-form-definitions
+    '(define-record-type <point>
+       (make-point x y)
+       point?
+       (x point-x set-point-x!)
+       (y point-y)
+     )
+  ) ;extract-form-definitions
+  =>
+  '("make-point" "point?" "point-x" "set-point-x!" "point-y")
 ) ;check
 
 ;; 5. 递归提取 begin 结构中的嵌套定义

@@ -74,13 +74,58 @@
       ) ;cond
     ) ;define
 
+    (define (extract-record-field-defs field-spec)
+      (if (pair? field-spec)
+        (let loop
+          ((rem (cdr field-spec)) (acc '()))
+          (cond ((null? rem) (reverse acc))
+                ((symbol? (car rem)) (loop (cdr rem) (cons (symbol->string (car rem)) acc)))
+                (else (loop (cdr rem) acc))
+          ) ;cond
+        ) ;let
+        '()
+      ) ;if
+    ) ;define
+
+    (define (extract-record-type-definitions form)
+      (let ((args (cdr form)))
+        (if (and (pair? args) (pair? (cdr args)))
+          (let* ((ctor-spec (cadr args))
+                 (rest1 (cddr args))
+                 (ctor-name
+                   (cond
+                    ((and (pair? ctor-spec) (symbol? (car ctor-spec)))
+                     (symbol->string (car ctor-spec))
+                    ) ;
+                    ((symbol? ctor-spec) (symbol->string ctor-spec))
+                    (else #f)
+                   ) ;cond
+                 ) ;ctor-name
+                 (pred-name (and (pair? rest1) (symbol? (car rest1)) (symbol->string (car rest1)))
+                 ) ;pred-name
+                 (base-names (append (if ctor-name (list ctor-name) '()) (if pred-name (list pred-name) '()))
+                 ) ;base-names
+                 (field-specs (if (pair? rest1) (cdr rest1) '()))
+                ) ;
+            (let loop
+              ((rem field-specs) (acc base-names))
+              (if (null? rem)
+                acc
+                (loop (cdr rem) (append acc (extract-record-field-defs (car rem))))
+              ) ;if
+            ) ;let
+          ) ;let*
+          '()
+        ) ;if
+      ) ;let
+    ) ;define
+
     (define (extract-form-definitions form)
       (cond ((not (pair? form)) '())
-            ((memq (car form)
-               '(define define* define-syntax define-macro define-record-type)
-             ) ;memq
+            ((memq (car form) '(define define* define-syntax define-macro))
              (if (pair? (cdr form)) (extract-target-name (cadr form)) '())
             ) ;
+            ((eq? (car form) 'define-record-type) (extract-record-type-definitions form))
             ((eq? (car form) 'begin)
              (let loop
                ((rest (cdr form)) (acc '()))
@@ -305,7 +350,7 @@
       (call-with-input-file (resolve-repo-file source-path) extract-exports-from-port)
     ) ;define
 
-    (define (extract-library-defined-exports source-path)
+    (define (filter-library-exports source-path keep-defined?)
       (let ((struct (parse-library-structure source-path)))
         (if (not struct)
           '()
@@ -314,11 +359,15 @@
               ((rem exports) (acc '()))
               (if (null? rem)
                 (reverse acc)
-                (let* ((entry (car rem)) (ext-name (car entry)) (int-name (cdr entry)))
-                  (if (member int-name defs string=?)
-                    (loop (cdr rem) (cons ext-name acc))
-                    (loop (cdr rem) acc)
-                  ) ;if
+                (let* ((entry (car rem))
+                       (ext-name (car entry))
+                       (int-name (cdr entry))
+                       (defined? (member int-name defs string=?))
+                      ) ;
+                  (cond ((and keep-defined? defined?) (loop (cdr rem) (cons ext-name acc)))
+                        ((and (not keep-defined?) (not defined?)) (loop (cdr rem) (cons entry acc)))
+                        (else (loop (cdr rem) acc))
+                  ) ;cond
                 ) ;let*
               ) ;if
             ) ;let
@@ -327,26 +376,12 @@
       ) ;let
     ) ;define
 
+    (define (extract-library-defined-exports source-path)
+      (filter-library-exports source-path #t)
+    ) ;define
+
     (define (extract-library-reexported-entries source-path)
-      (let ((struct (parse-library-structure source-path)))
-        (if (not struct)
-          '()
-          (let ((exports (cdr (assq 'exports struct))) (defs (cdr (assq 'defs struct))))
-            (let loop
-              ((rem exports) (acc '()))
-              (if (null? rem)
-                (reverse acc)
-                (let* ((entry (car rem)) (ext-name (car entry)) (int-name (cdr entry)))
-                  (if (not (member int-name defs string=?))
-                    (loop (cdr rem) (cons entry acc))
-                    (loop (cdr rem) acc)
-                  ) ;if
-                ) ;let*
-              ) ;if
-            ) ;let
-          ) ;let
-        ) ;if
-      ) ;let
+      (filter-library-exports source-path #f)
     ) ;define
 
     (define (lib-spec->relative-source-path spec)
