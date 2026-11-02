@@ -1,5 +1,3 @@
-(import (scheme base) (liii check) (liii goldcheck layer))
-
 ;; path->lib-name
 ;; 按目录约定推导库名：goldfish/liii/a/b.scm -> "liii a b"；
 ;; tools/T/liii/a.scm -> "liii a"；非约定结构返回 #f。
@@ -17,6 +15,8 @@
 ;; ------
 ;; string 或 #f
 ;; 库名（段间以空格连接）或非库文件路径的 #f。
+
+(import (scheme base) (liii check) (liii goldcheck layer))
 
 (check-set-mode! 'report-failed)
 
@@ -40,12 +40,14 @@
 (check (path->lib-name "goldfish/liii/string.txt") => #f)
 
 ;; 6. 绝对路径下同样定位结构锚点（临时目录模拟仓库结构）
-(check
-  (path->lib-name "C:/Users/u/AppData/Temp/gf/goldfish/srfi/srfi-1.scm")
-  => "srfi srfi-1")
-(check
-  (path->lib-name "/tmp/gf/tools/check/liii/goldcheck.scm")
-  => "liii goldcheck")
+(check (path->lib-name "C:/Users/u/AppData/Temp/gf/goldfish/srfi/srfi-1.scm")
+  =>
+  "srfi srfi-1"
+) ;check
+(check (path->lib-name "/tmp/gf/tools/check/liii/goldcheck.scm")
+  =>
+  "liii goldcheck"
+) ;check
 
 ;; 7. liii 前一段不是 goldfish 且前两段不是 tools/T -> #f
 (check (path->lib-name "foo/liii/bar.scm") => #f)
