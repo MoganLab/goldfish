@@ -1,11 +1,3 @@
-(import (liii check)
-  (liii pi ai api google-generative-ai)
-  (liii pi ai event)
-  (liii pi ai message)
-) ;import
-
-(check-set-mode! 'report-failed)
-
 ;; gemini-parse-response
 ;; 将 Gemini generateContent JSON 响应解析为内部 assistant message。
 ;;
@@ -29,10 +21,14 @@
 ;; ----
 ;; text、thinking 和 functionCall 按原始顺序转换为内部 content block。
 ;; finishReason 映射为 stop、length、toolUse 或 error。
-;;
-;; 示例
-;; ----
-;; (pi-assistant-message-stop-reason (gemini-parse-response response 200)) => "stop"
+
+(import (liii check)
+  (liii pi ai api google-generative-ai)
+  (liii pi ai event)
+  (liii pi ai message)
+) ;import
+
+(check-set-mode! 'report-failed)
 
 ;; 正常普通回复
 (let* ((resp-json '(("candidates"
