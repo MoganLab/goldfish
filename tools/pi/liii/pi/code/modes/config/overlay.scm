@@ -143,11 +143,19 @@
              ) ;body
              (box (append (list head) body (list foot (%fit hint ow))))
              (blank (%fit "" width))
+             (raw-lines
+               (append (map (lambda (i) blank) (iota pad-y))
+                 (map (lambda (line) (string-append (%fit "" pad-x) line (%fit "" pad-x))) box)
+                 (map (lambda (i) blank) (iota (max 0 (- height pad-y oh))))
+               ) ;append
+             ) ;raw-lines
+             (len (length raw-lines))
             ) ;
-        (append (map (lambda (i) blank) (iota pad-y))
-          (map (lambda (line) (string-append (%fit "" pad-x) line (%fit "" pad-x))) box)
-          (map (lambda (i) blank) (iota (max 0 (- height pad-y oh))))
-        ) ;append
+        (cond ((<= height 0) '())
+              ((> len height) (take raw-lines height))
+              ((< len height) (append raw-lines (make-list (- height len) blank)))
+              (else raw-lines)
+        ) ;cond
       ) ;let*
     ) ;define*
 
