@@ -334,7 +334,8 @@
                  (test-path (path-join parent test-filename))
                  (expected-rel (string-append rel-parent "/" test-filename))
                 ) ;
-            (if (path-file? (path (path->string test-path)))
+            (if
+              (path-file? (path (resolve-repo-file (path->string test-path))))
               (loop (cdr rem) acc)
               (loop (cdr rem) (cons (make-missing-test-violation expected-rel name) acc))
             ) ;if
