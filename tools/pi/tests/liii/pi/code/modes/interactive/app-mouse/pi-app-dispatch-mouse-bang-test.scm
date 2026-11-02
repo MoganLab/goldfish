@@ -17,36 +17,38 @@
 ;; unspecified
 
 (import (scheme base)
-        (liii check)
-        (liii list)
-        (liii tui)
-        (liii tui mouse)
-        (liii pi code modes interactive)
-        (liii pi code modes interactive app)
-        (liii pi code modes interactive app-mouse)
-        (liii pi code modes interactive views)
-        (liii pi code modes interactive bash))
+  (liii check)
+  (liii list)
+  (liii tui)
+  (liii tui mouse)
+  (liii pi code modes interactive)
+  (liii pi code modes interactive app)
+  (liii pi code modes interactive app-mouse)
+  (liii pi code modes interactive views)
+  (liii pi code modes interactive bash)
+) ;import
 
 (check-set-mode! 'report-failed)
 
 ;; 辅助：构造带虚拟终端的 app（handler 恒成功，bash-handler 固定输出）
+
 (define (%make-test-app . opts)
   (let* ((bash-fn (if (null? opts) #f (car opts)))
          (term (make-virtual-terminal :width 80 :height 40))
         ) ;
-    (make-pi-app :terminal term
-      :handler (lambda (a m) #t)
+    (make-pi-app
+      :terminal     term
+      :handler      (lambda (a m) #t)
       :bash-handler (or bash-fn (lambda (cmd) (values "out1\nout2" 0)))
     ) ;make-pi-app
   ) ;let*
 ) ;define
 
 ;; 辅助：第 n 张（0-based）工具/bash 卡片的展开状态
+
 (define (%card-expanded? chat idx)
-  (let ((cards (append (filter tool-card-component? chat)
-                 (filter bash-card-component? chat)
-               ) ;append
-         ) ;cards
+  (let ((cards (append (filter tool-card-component? chat) (filter bash-card-component? chat))
+        ) ;cards
        ) ;
     (if (tool-card-component? (list-ref cards idx))
       (tool-card-expanded? (list-ref cards idx))
@@ -68,7 +70,9 @@
       (lambda (y)
         (when (not hit-y)
           (pi-app-handle-mouse! app (make-mouse-event 'click 'left 5 y))
-          (when (%card-expanded? chat 0) (set! hit-y y))
+          (when (%card-expanded? chat 0)
+            (set! hit-y y)
+          ) ;when
         ) ;when
       ) ;lambda
       (iota 12)
@@ -102,9 +106,9 @@
     ) ;for-each
     (check-true (and hit-y (< hit-y 16)))
     ;; 点击区域外（远超内容）不改变状态
-    (pi-app-handle-mouse! app (make-mouse-event 'click 'left 5 hit-y))  ; 折回
+    (pi-app-handle-mouse! app (make-mouse-event 'click 'left 5 hit-y))
     (check (%card-expanded? chat 0) => #f)
-    (pi-app-handle-mouse! app (make-mouse-event 'click 'left 5 39))     ; 末行之外
+    (pi-app-handle-mouse! app (make-mouse-event 'click 'left 5 39))
     (check (%card-expanded? chat 0) => #f)
     (check (%card-expanded? chat 1) => #f)
   ) ;let
@@ -115,8 +119,7 @@
   (pi-app-add-tool-result! app "read" '(("path" . "a.scm")) 'pending)
   (pi-app-render! app)
   (let ((chat (pi-app-chat app)))
-    (for-each
-      (lambda (y) (pi-app-handle-mouse! app (make-mouse-event 'click 'left 5 y)))
+    (for-each (lambda (y) (pi-app-handle-mouse! app (make-mouse-event 'click 'left 5 y)))
       (iota 12)
     ) ;for-each
     (check (%card-expanded? chat 0) => #f)
@@ -128,11 +131,10 @@
   (pi-app-add-tool-result! app "read" '(("path" . "a.scm")) 'success "l1")
   (pi-app-render! app)
   (let ((chat (pi-app-chat app)))
-    (for-each
-      (lambda (ev)
-        (pi-app-handle-mouse! app ev)
-        (check (%card-expanded? chat 0) => #f)
-      ) ;lambda
+    (for-each (lambda (ev)
+                (pi-app-handle-mouse! app ev)
+                (check (%card-expanded? chat 0) => #f)
+              ) ;lambda
       (list (make-mouse-event 'click 'middle 5 4)
         (make-mouse-event 'click 'right 5 4)
         (make-mouse-event 'wheel-up 'none 5 4)
@@ -154,7 +156,9 @@
       (lambda (y)
         (when (not hit-y)
           (pi-app-handle-mouse! app (make-mouse-event 'click 'left 5 y))
-          (when (%card-expanded? chat 0) (set! hit-y y))
+          (when (%card-expanded? chat 0)
+            (set! hit-y y)
+          ) ;when
         ) ;when
       ) ;lambda
       (iota 16)

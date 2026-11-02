@@ -29,7 +29,7 @@
     (define (native-clipboard-copy! text)
       (catch #t
         (lambda ()
-          (cond ((os-windows?) (os-set-clipboard-text! text))
+          (cond ((os-windows?) (g_os_set_clipboard_text text))
                 ((os-macos?)
                  (zero? (run "pbcopy" :input text :stdout 'discard :stderr 'discard))
                 ) ;
