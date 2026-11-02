@@ -1,5 +1,6 @@
 (import (scheme process-context)
   (liii check)
+  (liii list)
   (liii string)
   (liii path)
   (liii sys)
@@ -23,6 +24,20 @@
   ) ;cond
 ) ;define
 
+(define PARTIAL_FIXTURE_DIR
+  (cond
+   ((file-exists? "tests/fixtures/user-config/full")
+    (path->string (path-resolve (path "tests/fixtures/user-config/full")))
+   ) ;
+   ((file-exists? "tools/pi/tests/fixtures/user-config/full")
+    (path->string (path-resolve (path "tools/pi/tests/fixtures/user-config/full")))
+   ) ;
+   (else (path->string (path-resolve (path "../../tools/pi/tests/fixtures/user-config/full"))
+         ) ;path->string
+   ) ;else
+  ) ;cond
+) ;define
+
 (define (read-all p . maybe-stream)
   (let ((stream (if (null? maybe-stream) 'stdout (car maybe-stream))))
     (let loop
@@ -34,12 +49,29 @@
   ) ;let
 ) ;define
 
-(define (exec-gf-pi args)
-  (let* ((cmd (cons GF_BIN (cons "pi" args)))
-         (env (append (get-environment-variables)
-                (list (cons "PI_CODING_AGENT_DIR" FIXTURE_DIR))
-              ) ;append
-         ) ;env
+(define (%merge-env base overrides)
+  (let ((override-keys (map car overrides)))
+    (append overrides
+      (filter
+        (lambda (pair) (not (member (car pair) override-keys)))
+        base
+      ) ;filter
+    ) ;append
+  ) ;let
+) ;define
+
+(define (%find-sub-pos str sub)
+  (string-position sub str)
+) ;define
+
+(define (exec-gf-pi args . opt-env-extra)
+  (let* ((extra-env (apply append opt-env-extra))
+         (cmd (cons GF_BIN (cons "pi" args)))
+         (base-env (append (list (cons "PI_CODING_AGENT_DIR" FIXTURE_DIR))
+                     (get-environment-variables)
+                   ) ;append
+         ) ;base-env
+         (env (%merge-env base-env extra-env))
          (p (process-spawn cmd :env env :stdout 'pipe :stderr 'pipe))
          (out (read-all p 'stdout))
          (err (read-all p 'stderr))
@@ -117,5 +149,85 @@
     (check-true (string-contains? err "unknown-prov-xyz-037"))
   ) ;let
 ) ;let
+
+;; 7. 子进程管道输出（非 tty）默认无色
+(let ((res (exec-gf-pi '("--list-models")
+             (list (cons "PI_CODING_AGENT_DIR" PARTIAL_FIXTURE_DIR))
+           ) ;exec-gf-pi
+      ) ;res
+     ) ;
+  (check (car res) => 0)
+  (let ((out (cadr res)))
+    (check-false (string-contains? out "\x1b;"))
+    (check-true (string-contains? out "●"))
+    (check-true (string-contains? out "×"))
+  ) ;let
+) ;let
+
+;; 8. NO_COLOR=1：无转义序列，且 ●/× 标记保留
+(let ((res (exec-gf-pi '("--list-models")
+             (list (cons "NO_COLOR" "1") (cons "PI_CODING_AGENT_DIR" PARTIAL_FIXTURE_DIR))
+           ) ;exec-gf-pi
+      ) ;res
+     ) ;
+  (check (car res) => 0)
+  (let ((out (cadr res)))
+    (check-false (string-contains? out "\x1b;"))
+    (check-true (string-contains? out "●"))
+    (check-true (string-contains? out "×"))
+  ) ;let
+) ;let
+
+;; 9. FORCE_COLOR=1：包含 SGR 32（绿色）与 SGR 2（暗显）转义序列
+(let ((res (exec-gf-pi '("--list-models")
+             (list (cons "FORCE_COLOR" "1") (cons "PI_CODING_AGENT_DIR" PARTIAL_FIXTURE_DIR))
+           ) ;exec-gf-pi
+      ) ;res
+     ) ;
+  (check (car res) => 0)
+  (let ((out (cadr res)))
+    (check-true (string-contains? out "\x1b;[32m"))
+    (check-true (string-contains? out "\x1b;[2m"))
+    ;; 已激活行（●）排在未激活行（×）之前（置顶）
+    (let ((pos-dot (%find-sub-pos out "●")) (pos-cross (%find-sub-pos out "×")))
+      (check-true (and pos-dot pos-cross (< pos-dot pos-cross)))
+    ) ;let
+  ) ;let
+) ;let
+
+;; 10. 部分白名单沙箱目录：白名单外 provider 出现且排在白名单内之后
+(let ((res (exec-gf-pi '("--list-models")
+             (list (cons "PI_CODING_AGENT_DIR" PARTIAL_FIXTURE_DIR))
+           ) ;exec-gf-pi
+      ) ;res
+     ) ;
+  (check (car res) => 0)
+  (let ((out (cadr res)))
+    ;; 白名单外 provider（minimax-cn、deepseek）依然出现在全量输出中
+    (check-true (string-contains? out "minimax-cn"))
+    (check-true (string-contains? out "deepseek"))
+    ;; 白名单内 provider（google）排在白名单外 provider（minimax-cn）之前
+    (let ((pos-google (%find-sub-pos out "google"))
+          (pos-minimax (%find-sub-pos out "minimax-cn"))
+         ) ;
+      (check-true (and pos-google pos-minimax (< pos-google pos-minimax)))
+    ) ;let
+  ) ;let
+) ;let
+
+;; 11. 白名单外内置 provider 通过 --provider 罗列（全量未激活 ×，不报 Unknown provider）
+(let ((res (exec-gf-pi '("--provider" "minimax-cn" "--list-models")
+             (list (cons "PI_CODING_AGENT_DIR" PARTIAL_FIXTURE_DIR))
+           ) ;exec-gf-pi
+      ) ;res
+     ) ;
+  (check (car res) => 0)
+  (let ((out (cadr res)))
+    (check-true (string-contains? out "minimax-cn"))
+    (check-true (string-contains? out "×"))
+    (check-false (string-contains? out "●"))
+  ) ;let
+) ;let
+
 
 (check-report)

@@ -11,6 +11,7 @@
     (liii list)
     (liii vector)
     (liii sort)
+    (liii tui)
     (liii pi ai auth)
     (liii pi ai models catalog)
     (liii pi ai models search)
@@ -20,6 +21,10 @@
     pi-fuzzy-match-model? pi-split-search-tokens pi-usable-models
   ) ;export
   (begin
+
+    (define %dim "\x1b;[2m")
+    (define %on "\x1b;[32m")
+    (define %reset "\x1b;[0m")
 
     (define (%dict-ref obj key default-val)
       (if (not (pair? obj))
@@ -70,8 +75,15 @@
       ) ;cond
     ) ;define
 
-    (define (%build-model-row p-name m)
-      (let* ((mid (%dict-ref m "id" ""))
+    (define (%build-model-row p-name m . opt-p-enabled)
+      (let* ((p-enabled (if (pair? opt-p-enabled) (car opt-p-enabled) #t))
+             (m-enabled
+               (let ((val (%dict-ref m "enabled" (%dict-ref m 'enabled #t))))
+                 (if (boolean? val) val #t)
+               ) ;let
+             ) ;m-enabled
+             (row-enabled (and p-enabled m-enabled))
+             (mid (%dict-ref m "id" ""))
              (cw (%dict-ref m "contextWindow" 128000))
              (mt (%dict-ref m "maxTokens" 8192))
              (reasoning (pi-model-supports-reasoning? m))
@@ -83,6 +95,7 @@
           (cons 'max-out (pi-format-token-count mt))
           (cons 'thinking (if reasoning "yes" "no"))
           (cons 'images (if (%has-image? input) "yes" "no"))
+          (cons 'enabled (if row-enabled #t #f))
         ) ;list
       ) ;let*
     ) ;define
@@ -90,24 +103,41 @@
     (define (%collect-provider-rows p-entry)
       (let* ((p-name (if (string? (car p-entry)) (car p-entry) (symbol->string (car p-entry)))
              ) ;p-name
-             (raw-models (%dict-ref (cdr p-entry) "models" '()))
+             (p-fields (cdr p-entry))
+             (p-enabled
+               (let ((val (%dict-ref p-fields "enabled" (%dict-ref p-fields 'enabled #t))))
+                 (if (boolean? val) val #t)
+               ) ;let
+             ) ;p-enabled
+             (raw-models (%dict-ref p-fields "models" '()))
              (m-list (cond ((vector? raw-models) (vector->list raw-models))
                            ((list? raw-models) raw-models)
                            (else '())
                      ) ;cond
              ) ;m-list
             ) ;
-        (map (lambda (m) (%build-model-row p-name m)) m-list)
+        (map (lambda (m) (%build-model-row p-name m p-enabled)) m-list)
       ) ;let*
     ) ;define
 
     (define (%row-less-p a b)
-      (let ((pa (cdr (assoc 'provider a))) (pb (cdr (assoc 'provider b))))
-        (if (string=? pa pb)
-          (string<? (cdr (assoc 'model a)) (cdr (assoc 'model b)))
-          (string<? pa pb)
-        ) ;if
-      ) ;let
+      (let* ((ea-pair (assoc 'enabled a))
+             (eb-pair (assoc 'enabled b))
+             (ea (if ea-pair (cdr ea-pair) #t))
+             (eb (if eb-pair (cdr eb-pair) #t))
+            ) ;
+        (cond ((and ea (not eb)) #t)
+              ((and (not ea) eb) #f)
+              (else
+                (let ((pa (cdr (assoc 'provider a))) (pb (cdr (assoc 'provider b))))
+                  (if (string=? pa pb)
+                    (string<? (cdr (assoc 'model a)) (cdr (assoc 'model b)))
+                    (string<? pa pb)
+                  ) ;if
+                ) ;let
+              ) ;else
+        ) ;cond
+      ) ;let*
     ) ;define
 
     (define (%row-match-search? item search-pattern)
@@ -179,64 +209,94 @@
       ) ;apply
     ) ;define
 
-    (define (%format-table-line p m c mo th im w-p w-m w-c w-mo w-th w-im)
-      (string-append (string-pad-right p w-p)
+    (define (%pad-cell text width)
+      (let* ((plain (strip-ansi text)) (len (display-width plain)))
+        (if (<= len width)
+          (string-append text (make-string (- width len) #\space))
+          text
+        ) ;if
+      ) ;let*
+    ) ;define
+
+    (define (%format-header w-on w-p w-m w-c w-mo w-th w-im)
+      (string-append (%pad-cell "on" w-on)
         "  "
-        (string-pad-right m w-m)
+        (%pad-cell "provider" w-p)
         "  "
-        (string-pad-right c w-c)
+        (%pad-cell "model" w-m)
         "  "
-        (string-pad-right mo w-mo)
+        (%pad-cell "context" w-c)
         "  "
-        (string-pad-right th w-th)
+        (%pad-cell "max-out" w-mo)
         "  "
-        (string-pad-right im w-im)
+        (%pad-cell "thinking" w-th)
+        "  "
+        (%pad-cell "images" w-im)
         "\n"
       ) ;string-append
     ) ;define
 
-    (define (pi-format-models-table rows . opt-search)
-      (let ((search-pattern (if (pair? opt-search) (car opt-search) #f)))
+    (define (%format-data-row r color? w-on w-p w-m w-c w-mo w-th w-im)
+      (let* ((enabled-pair (assoc 'enabled r))
+             (enabled? (if enabled-pair (cdr enabled-pair) #t))
+             (mark (if enabled? "●" "×"))
+             (mark-cell (if color?
+                          (if enabled? (string-append %on mark %reset) (string-append %dim mark %reset))
+                          mark
+                        ) ;if
+             ) ;mark-cell
+             (p (%pad-cell (%row-val 'provider r) w-p))
+             (m (%pad-cell (%row-val 'model r) w-m))
+             (c (%pad-cell (%row-val 'context r) w-c))
+             (mo (%pad-cell (%row-val 'max-out r) w-mo))
+             (th (%pad-cell (%row-val 'thinking r) w-th))
+             (im (%pad-cell (%row-val 'images r) w-im))
+             (rest-cols (string-append "  " p "  " m "  " c "  " mo "  " th "  " im))
+            ) ;
+        (if (and color? (not enabled?))
+          (string-append (%pad-cell mark-cell w-on) %dim rest-cols %reset "\n")
+          (string-append (%pad-cell mark-cell w-on) rest-cols "\n")
+        ) ;if
+      ) ;let*
+    ) ;define
+
+    (define (pi-format-models-table rows . opt-args)
+      (let* ((n (length opt-args))
+             (search-pattern
+               (cond ((= n 0) #f)
+                     ((= n 1) (if (string? (car opt-args)) (car opt-args) #f))
+                     (else (if (string? (car opt-args)) (car opt-args) #f))
+               ) ;cond
+             ) ;search-pattern
+             (color?
+               (cond ((= n 0) #f)
+                     ((= n 1) (if (boolean? (car opt-args)) (car opt-args) #f))
+                     (else (if (boolean? (cadr opt-args)) (cadr opt-args) #f))
+               ) ;cond
+             ) ;color?
+            ) ;
         (if (null? rows)
           (if (and (string? search-pattern) (not (string-null? search-pattern)))
             (string-append "No models matching \"" search-pattern "\"\n")
             ""
           ) ;if
-          (let* ((w-p (%max-col-width 'provider "provider" rows))
+          (let* ((w-on 2)
+                 (w-p (%max-col-width 'provider "provider" rows))
                  (w-m (%max-col-width 'model "model" rows))
                  (w-c (%max-col-width 'context "context" rows))
                  (w-mo (%max-col-width 'max-out "max-out" rows))
                  (w-th (%max-col-width 'thinking "thinking" rows))
                  (w-im (%max-col-width 'images "images" rows))
-                 (header (%format-table-line "provider" "model" "context"
-                           "max-out" "thinking" "images" w-p w-m w-c w-mo w-th
-                           w-im
-                         ) ;%format-table-line
-                 ) ;header
-                 (body
-                   (map (lambda (r)
-                          (%format-table-line (%row-val 'provider r)
-                            (%row-val 'model r)
-                            (%row-val 'context r)
-                            (%row-val 'max-out r)
-                            (%row-val 'thinking r)
-                            (%row-val 'images r)
-                            w-p
-                            w-m
-                            w-c
-                            w-mo
-                            w-th
-                            w-im
-                          ) ;%format-table-line
-                        ) ;lambda
-                     rows
-                   ) ;map
+                 (header (%format-header w-on w-p w-m w-c w-mo w-th w-im))
+                 (body (map (lambda (r) (%format-data-row r color? w-on w-p w-m w-c w-mo w-th w-im))
+                         rows
+                       ) ;map
                  ) ;body
                 ) ;
             (apply string-append header body)
           ) ;let*
         ) ;if
-      ) ;let
+      ) ;let*
     ) ;define
 
     (define (%usable-model-item p-name m)
