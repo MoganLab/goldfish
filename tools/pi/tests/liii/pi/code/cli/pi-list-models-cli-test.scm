@@ -1,3 +1,23 @@
+;; pi-list-models-cli
+;; 验证 gf pi --list-models 命令行选项的输出格式、颜色控制与退出行为。
+;;
+;; 语法
+;; ----
+;; (exec-gf-pi args . opt-env-extra)
+;;
+;; 参数
+;; ----
+;; args : list?
+;; 传递给 gf pi 的命令行参数列表。
+;;
+;; opt-env-extra : list?
+;; 可选的环境变量覆盖列表。
+;;
+;; 返回值
+;; ----
+;; list?
+;; 包含进程退出码、标准输出和标准错误的列表。
+
 (import (scheme process-context)
   (liii check)
   (liii list)
