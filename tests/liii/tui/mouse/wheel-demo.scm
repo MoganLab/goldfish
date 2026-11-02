@@ -6,43 +6,48 @@
 ;; 然后滚动鼠标滚轮（或 tmux send-keys -t <session> -M WheelUpPane），
 ;; 屏幕实时打印事件：wheel-up=向上翻，wheel-down=向下翻。
 ;; 按 q 或 Ctrl+C 退出。
-(import (scheme base)
-        (scheme write)
-        (liii tui terminal)
-        (liii tui mouse))
+(import (scheme base) (scheme write) (liii tui terminal) (liii tui mouse))
 
 (define term (make-standard-terminal))
+
 (define n 0)
+
 (define row 0)
 
 (define (show! text)
   ;; raw 模式下手动回到行首并补 \r\n；限制在屏幕前 20 行内滚动打印
   (terminal-write term "\r\n")
   (terminal-write term text)
-  (terminal-flush term))
+  (terminal-flush term)
+) ;define
 
-(dynamic-wind
+(dynamic-wind (lambda ()
+                (terminal-enter-raw-mode! term)
+                (terminal-mouse-mode! term #t)
+                (terminal-write term "\r\nwheel demo: scroll mouse wheel, q to quit\r\n")
+                (terminal-flush term)
+              ) ;lambda
   (lambda ()
-    (terminal-enter-raw-mode! term)
-    (terminal-mouse-mode! term #t)
-    (terminal-write term "\r\nwheel demo: scroll mouse wheel, q to quit\r\n")
-    (terminal-flush term))
-  (lambda ()
-    (let loop ()
+    (let loop
+      ()
       (let ((ev (terminal-poll-key term)))
-        (cond
-         ((eq? ev 'ctrl-c)
-          'exit)
-         ((and (string? ev) (string=? ev "q"))
-          'exit)
-         ((mouse-event? ev)
-          (set! n (+ n 1))
-          (show! (string-append
-                   (number->string n) ": "
-                   (symbol->string (mouse-event-type ev)) " y="
-                   (number->string (mouse-event-y ev))))
-          (loop))
-         (else (loop))))))
-  (lambda ()
-    (terminal-mouse-mode! term #f)
-    (terminal-exit-raw-mode! term)))
+        (cond ((eq? ev 'ctrl-c) 'exit)
+              ((and (string? ev) (string=? ev "q")) 'exit)
+              ((mouse-event? ev)
+               (set! n (+ n 1))
+               (show! (string-append (number->string n)
+                        ": "
+                        (symbol->string (mouse-event-type ev))
+                        " y="
+                        (number->string (mouse-event-y ev))
+                      ) ;string-append
+               ) ;show!
+               (loop)
+              ) ;
+              (else (loop))
+        ) ;cond
+      ) ;let
+    ) ;let
+  ) ;lambda
+  (lambda () (terminal-mouse-mode! term #f) (terminal-exit-raw-mode! term))
+) ;dynamic-wind
