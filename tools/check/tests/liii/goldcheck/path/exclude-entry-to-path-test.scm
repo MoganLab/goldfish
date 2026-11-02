@@ -15,8 +15,8 @@
 ;; string
 ;; 转换得到的路径字符串。
 ;;
-;; 错误
-;; ----
+;; 错误处理
+;; --------
 ;; type-error: 当 entry 既非字符串也非对象，或对象的 path 字段非字符串时抛出。
 
 (import (scheme base) (liii check) (liii json) (liii goldcheck path))
