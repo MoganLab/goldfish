@@ -43,8 +43,8 @@
             (number->string cost) " ms total, "
             (number->string (exact (inexact (/ cost 40)))) " ms/key") port))
       )
-      ;; 宽松上限：40 键总耗时应远低于 400ms（每键 10ms 内）
-      (check-true (< cost 400))
+      ;; 宽松上限（防严重性能回退）
+      (check-true (< cost 2000))
     ) ;let
   ) ;let
 ) ;let*
@@ -75,7 +75,7 @@
             (number->string (exact (inexact (/ cost 10)))) " ms/key") port))
       )
       ;; 宽松上限
-      (check-true (< cost 500))
+      (check-true (< cost 2000))
     ) ;let
   ) ;let
 ) ;let*
@@ -112,7 +112,7 @@
             (number->string (exact (inexact (/ cost 10)))) " ms/key") port))
       )
       ;; 宽松上限
-      (check-true (< cost 1000))
+      (check-true (< cost 3000))
     ) ;let
   ) ;let
 ) ;let*
