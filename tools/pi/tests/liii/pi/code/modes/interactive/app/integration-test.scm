@@ -1,3 +1,22 @@
+;; integration
+;; 交互式应用首屏组件布局、输入光标定位、分支监听与初始 prompt 端到端集成测试。
+;;
+;; 语法
+;; ----
+;; (integration)
+;;
+;; 参数
+;; ----
+;; 无
+;;
+;; 返回值
+;; ------
+;; any
+;;
+;; 说明
+;; ----
+;; 覆盖首屏渲染布局、输入与响应追加、中英混排光标定位、多轮对话、Git 分支更新监听等端到端场景。
+
 (import (scheme base)
   (scheme time)
   (liii check)
@@ -43,10 +62,9 @@
 
 ;; 2. 测试消息提交与响应追加（注入 echo handler，与生产后台 worker 路径隔离）
 (let* ((vterm (make-virtual-terminal :width 100 :height 40))
-       (echo-handler
-         (lambda (app msg)
-           (pi-app-add-assistant-text! app (string-append "处理完成: " msg))
-         ) ;lambda
+       (echo-handler (lambda (app msg)
+                       (pi-app-add-assistant-text! app (string-append "处理完成: " msg))
+                     ) ;lambda
        ) ;echo-handler
        (app (make-pi-app :terminal vterm :handler echo-handler))
        (screen (pi-app-screen app))
@@ -159,7 +177,7 @@
        (editor (pi-app-editor app))
       ) ;
   (pi-app-render! app)
-  (pi-app-handle-input! app "aaaaaaaaaaaaaaaaaa bbbb") ; 18 个 a 折行，bbbb 位于第二显示行
+  (pi-app-handle-input! app "aaaaaaaaaaaaaaaaaa bbbb")
   (pi-app-render! app)
   (check (terminal-cursor vterm) => '(4 36))
 
@@ -177,7 +195,9 @@
       ) ;
   ;; 模拟第一轮对话完成：助手回复包含多行文本（含多个 \n）
   (pi-app-add-user-message! app "第一轮提问")
-  (pi-app-add-assistant-text! app "第一行回答\n\n第二行关键回答\n第三行总结")
+  (pi-app-add-assistant-text! app
+    "第一行回答\n\n第二行关键回答\n第三行总结"
+  ) ;pi-app-add-assistant-text!
   (pi-app-render! app)
 
   ;; Header: 6行 (0..5)
@@ -226,17 +246,22 @@
 ;; 5. 测试 make-pi-app 透传 provider/model 至 footer，右下角显示实际使用的供应商与模型
 (let* ((vterm (make-virtual-terminal :width 100 :height 40))
        (dummy-handler (lambda (app msg) #t))
-       (app (make-pi-app :terminal vterm :handler dummy-handler
+       (app (make-pi-app
+              :terminal vterm
+              :handler  dummy-handler
               :provider "kimi-coding"
-              :model "kimi-for-coding • medium"
+              :model    "kimi-for-coding • medium"
             ) ;make-pi-app
        ) ;app
        (screen (pi-app-screen app))
-      ) ;let*
+      ) ;
   (pi-app-render! app)
   (let* ((lines (alt-screen-lines screen)) (plain-lines (map strip-ansi lines)))
     ;; Footer 第二行应包含透传的 provider 与 model（全屏布局下页脚位于底部）
-    (check-true (string-contains? (list-ref plain-lines 39) "(kimi-coding) kimi-for-coding • medium"))
+    (check-true (string-contains? (list-ref plain-lines 39)
+                  "(kimi-coding) kimi-for-coding • medium"
+                ) ;string-contains?
+    ) ;check-true
   ) ;let*
 ) ;let*
 
@@ -245,12 +270,15 @@
 (let* ((vterm (make-virtual-terminal :width 100 :height 40))
        (app (make-pi-app :terminal vterm :handler (lambda (a m) #t)))
        (footer (%pi-app-footer app))
-      ) ;let*
+      ) ;
   (pi-footer-set-branch! footer "zzz-stale-branch")
   (pi-app-render! app)
-  (check-true (string-contains?
-                (string-join (map strip-ansi (alt-screen-lines (pi-app-screen app))) "\n")
-                "(zzz-stale-branch)"))
+  (check-true
+    (string-contains?
+      (string-join (map strip-ansi (alt-screen-lines (pi-app-screen app))) "\n")
+      "(zzz-stale-branch)"
+    ) ;string-contains?
+  ) ;check-true
   ;; 投递 branch_changed 事件并轮询，footer 应刷新为当前真实分支
   (chan-send! (pi-app-event-chan app) '(branch_changed) 1000)
   (pi-app-poll-events! app)
@@ -261,37 +289,46 @@
 ;;    footer 左下角应实时更新为切换后的分支名
 ;; %dbg 显式 flush：子进程 stdout 在捕获管道下全缓冲，
 ;; 必须强制刷新才能在 CI 上定位真实卡点
+
 (define (%dbg msg)
   (display msg)
   (newline)
   (flush-output-port (current-output-port))
 ) ;define
 
-(let ((git? (either-right? (run-either '("git" "--version")
-                            :stdout 'discard :stderr 'discard :timeout 10))))
+(let ((git? (either-right? (run-either '("git" "--version") :stdout 'discard :stderr 'discard :timeout 10)
+            ) ;either-right?
+      ) ;git?
+     ) ;
   (when git?
     (%dbg "[dbg7] begin")
     (let* ((dir (make-temp-dir "gf-pi-appwatch-"))
            (vterm (make-virtual-terminal :width 120 :height 40))
            (app (make-pi-app :terminal vterm :handler (lambda (a m) #t)))
            (footer (%pi-app-footer app))
-          ) ;let*
+          ) ;
       (%dbg "[dbg7] app created")
-      (check-true
-        (either-right?
-          (run-either (list "git" "init" dir)
-            :stdout 'discard :stderr 'discard :timeout 30)))
+      (check-true (either-right? (run-either (list "git" "init" dir)
+                                   :stdout  'discard
+                                   :stderr  'discard
+                                   :timeout 30
+                                 ) ;run-either
+                  ) ;either-right?
+      ) ;check-true
       (%dbg "[dbg7] git init done")
       ;; 监听临时仓库（cwd 仍是当前仓库，故直接指定 git-dir）
-      (let ((obs (make-branch-watcher (pi-app-event-chan app)
-                   (string-append dir "/.git"))))
+      (let ((obs (make-branch-watcher (pi-app-event-chan app) (string-append dir "/.git")))
+           ) ;
         (check-true (fs-observer? obs))
         (%dbg "[dbg7] watcher started")
         (pi-footer-set-branch! footer "before-switch")
-        (check-true
-          (either-right?
-            (run-either (list "git" "-C" dir "checkout" "-b" "feature-y")
-              :stdout 'discard :stderr 'discard :timeout 30)))
+        (check-true (either-right? (run-either (list "git" "-C" dir "checkout" "-b" "feature-y")
+                                     :stdout  'discard
+                                     :stderr  'discard
+                                     :timeout 30
+                                   ) ;run-either
+                    ) ;either-right?
+        ) ;check-true
         (%dbg "[dbg7] checkout done")
         ;; 限时轮询事件循环，等待 footer 更新（branch_changed 事件携带临时
         ;; 仓库的 git-dir，主会话直接读其 HEAD 文件解析分支）
@@ -300,19 +337,17 @@
                   (let loop
                     ((n 0))
                     (when (zero? (modulo n 20))
-                      (%dbg (string-append "[dbg7]   poll iter=" (object->string n))))
+                      (%dbg (string-append "[dbg7]   poll iter=" (object->string n)))
+                    ) ;when
                     (pi-app-poll-events! app)
                     (if (not (string=? (pi-footer-branch footer) "before-switch"))
                       #t
-                      (if (> (current-second) deadline)
-                        #f
-                        (begin (sleep 0.05) (loop (+ n 1)))
-                      ) ;if
+                      (if (> (current-second) deadline) #f (begin (sleep 0.05) (loop (+ n 1))))
                     ) ;if
-                  ) ;let loop
+                  ) ;let
                 ) ;let
               ) ;updated
-           ) ;
+             ) ;
           (%dbg "[dbg7] poll loop done")
           (check-true updated)
           (check (pi-footer-branch footer) => "feature-y")
@@ -322,7 +357,9 @@
               (check-true
                 (string-contains?
                   (string-join (map strip-ansi (alt-screen-lines (pi-app-screen app))) "\n")
-                  (string-append "(" b ")")))
+                  (string-append "(" b ")")
+                ) ;string-contains?
+              ) ;check-true
             ) ;when
           ) ;let
         ) ;let
@@ -338,9 +375,11 @@
 ;; 8. CLI 初始 prompt 应按参数顺序依次进入同一个 TUI 会话
 (let* ((vterm (make-virtual-terminal :width 100 :height 40))
        (received '())
-       (app (make-pi-app :terminal vterm
-              :handler (lambda (a msg) (set! received (cons msg received)))
-            ) ;make-pi-app
+       (app
+         (make-pi-app
+           :terminal vterm
+           :handler  (lambda (a msg) (set! received (cons msg received)))
+         ) ;make-pi-app
        ) ;app
       ) ;
   (pi-app-submit-initial! app "I am a frog" '("who am I"))
