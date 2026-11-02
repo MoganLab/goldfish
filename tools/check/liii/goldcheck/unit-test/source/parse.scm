@@ -76,18 +76,12 @@
 
     (define (extract-record-field-defs field-spec)
       (if (pair? field-spec)
-        (let ((f-rest (cdr field-spec)))
-          (if (pair? f-rest)
-            (let* ((acc-sym (car f-rest))
-                   (f-rest2 (cdr f-rest))
-                   (mod-sym (if (pair? f-rest2) (car f-rest2) #f))
-                   (acc-list (if (symbol? acc-sym) (list (symbol->string acc-sym)) '()))
-                   (mod-list (if (symbol? mod-sym) (list (symbol->string mod-sym)) '()))
-                  ) ;
-              (append acc-list mod-list)
-            ) ;let*
-            '()
-          ) ;if
+        (let loop
+          ((rem (cdr field-spec)) (acc '()))
+          (cond ((null? rem) (reverse acc))
+                ((symbol? (car rem)) (loop (cdr rem) (cons (symbol->string (car rem)) acc)))
+                (else (loop (cdr rem) acc))
+          ) ;cond
         ) ;let
         '()
       ) ;if
@@ -98,29 +92,28 @@
         (if (and (pair? args) (pair? (cdr args)))
           (let* ((ctor-spec (cadr args))
                  (rest1 (cddr args))
-                 (pred-sym (if (pair? rest1) (car rest1) #f))
-                 (field-specs (if (pair? rest1) (cdr rest1) '()))
-                 (ctor-list
+                 (ctor-name
                    (cond
                     ((and (pair? ctor-spec) (symbol? (car ctor-spec)))
-                     (list (symbol->string (car ctor-spec)))
+                     (symbol->string (car ctor-spec))
                     ) ;
-                    ((symbol? ctor-spec) (list (symbol->string ctor-spec)))
-                    (else '())
+                    ((symbol? ctor-spec) (symbol->string ctor-spec))
+                    (else #f)
                    ) ;cond
-                 ) ;ctor-list
-                 (pred-list (if (symbol? pred-sym) (list (symbol->string pred-sym)) '()))
-                 (fields-list
-                   (let loop
-                     ((rem field-specs) (acc '()))
-                     (if (null? rem)
-                       acc
-                       (loop (cdr rem) (append acc (extract-record-field-defs (car rem))))
-                     ) ;if
-                   ) ;let
-                 ) ;fields-list
+                 ) ;ctor-name
+                 (pred-name (and (pair? rest1) (symbol? (car rest1)) (symbol->string (car rest1)))
+                 ) ;pred-name
+                 (base-names (append (if ctor-name (list ctor-name) '()) (if pred-name (list pred-name) '()))
+                 ) ;base-names
+                 (field-specs (if (pair? rest1) (cdr rest1) '()))
                 ) ;
-            (append ctor-list pred-list fields-list)
+            (let loop
+              ((rem field-specs) (acc base-names))
+              (if (null? rem)
+                acc
+                (loop (cdr rem) (append acc (extract-record-field-defs (car rem))))
+              ) ;if
+            ) ;let
           ) ;let*
           '()
         ) ;if
@@ -357,7 +350,7 @@
       (call-with-input-file (resolve-repo-file source-path) extract-exports-from-port)
     ) ;define
 
-    (define (extract-library-defined-exports source-path)
+    (define (filter-library-exports source-path keep-defined?)
       (let ((struct (parse-library-structure source-path)))
         (if (not struct)
           '()
@@ -366,11 +359,15 @@
               ((rem exports) (acc '()))
               (if (null? rem)
                 (reverse acc)
-                (let* ((entry (car rem)) (ext-name (car entry)) (int-name (cdr entry)))
-                  (if (member int-name defs string=?)
-                    (loop (cdr rem) (cons ext-name acc))
-                    (loop (cdr rem) acc)
-                  ) ;if
+                (let* ((entry (car rem))
+                       (ext-name (car entry))
+                       (int-name (cdr entry))
+                       (defined? (member int-name defs string=?))
+                      ) ;
+                  (cond ((and keep-defined? defined?) (loop (cdr rem) (cons ext-name acc)))
+                        ((and (not keep-defined?) (not defined?)) (loop (cdr rem) (cons entry acc)))
+                        (else (loop (cdr rem) acc))
+                  ) ;cond
                 ) ;let*
               ) ;if
             ) ;let
@@ -379,26 +376,12 @@
       ) ;let
     ) ;define
 
+    (define (extract-library-defined-exports source-path)
+      (filter-library-exports source-path #t)
+    ) ;define
+
     (define (extract-library-reexported-entries source-path)
-      (let ((struct (parse-library-structure source-path)))
-        (if (not struct)
-          '()
-          (let ((exports (cdr (assq 'exports struct))) (defs (cdr (assq 'defs struct))))
-            (let loop
-              ((rem exports) (acc '()))
-              (if (null? rem)
-                (reverse acc)
-                (let* ((entry (car rem)) (ext-name (car entry)) (int-name (cdr entry)))
-                  (if (not (member int-name defs string=?))
-                    (loop (cdr rem) (cons entry acc))
-                    (loop (cdr rem) acc)
-                  ) ;if
-                ) ;let*
-              ) ;if
-            ) ;let
-          ) ;let
-        ) ;if
-      ) ;let
+      (filter-library-exports source-path #f)
     ) ;define
 
     (define (lib-spec->relative-source-path spec)
