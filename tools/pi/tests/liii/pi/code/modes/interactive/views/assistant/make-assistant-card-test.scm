@@ -1,9 +1,26 @@
+;; make-assistant-card
+;; 构造助手消息卡片组件，渲染助手回复文本。
+;;
+;; 语法
+;; ----
+;; (make-assistant-card text)
+;;
+;; 参数
+;; ----
+;; text : string?
+;; 助手回复的文本内容。
+;;
+;; 返回值
+;; ----
+;; component?
+;; 助手消息组件。
+
 (import (scheme base)
   (liii check)
   (liii list)
   (liii string)
   (liii tui)
-  (liii pi code modes interactive views)
+  (liii pi code modes interactive views assistant)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -22,11 +39,9 @@
 ) ;let*
 
 ;; 辅助：提取卡片正文行（去掉尾部 spacer 空行）
+
 (define (%body-lines lines)
-  (if (<= (length lines) 1)
-    '()
-    (reverse (cdr (reverse lines)))
-  ) ;if
+  (if (<= (length lines) 1) '() (reverse (cdr (reverse lines))))
 ) ;define
 
 ;; 超长行折行：18 个 0123456789（180 字符）必须完整显示，不得被 alt-screen 截断吞掉
@@ -38,16 +53,21 @@
   ;; 折行后行数必然多于单行（单行正文 + spacer）
   (check (> (length lines) 2) => #t)
   ;; 每行显示宽度不超过终端宽度，否则会被 alt-screen 截断
-  (check (every (lambda (line) (<= (display-width line) w)) content) => #t)
+  (check
+    (every (lambda (line) (<= (display-width line) w)) content)
+    =>
+    #t
+  ) ;check
   ;; 内容完整：正文中数字字符总数必须等于 180，一个都不能少
   (check
     (length
       (filter (lambda (c) (and (char>=? c #\0) (char<=? c #\9)))
         (apply append (map string->list content))
       ) ;filter
-    )
-    => 180
-  )
+    ) ;length
+    =>
+    180
+  ) ;check
   ;; 拼接正文可还原完整原文
   (check (string-join (map string-trim-both content) "") => long-text)
 ) ;let*
@@ -60,7 +80,11 @@
   ;; 60 个全角字符（宽 120）在 20 列终端必然折行
   (check (> (length lines) 2) => #t)
   ;; 每行显示宽度不超过终端宽度，且拼接正文可还原完整原文
-  (check (every (lambda (line) (<= (display-width line) 20)) content) => #t)
+  (check
+    (every (lambda (line) (<= (display-width line) 20)) content)
+    =>
+    #t
+  ) ;check
   (check (string-join (map string-trim-both content) "") => zh-line)
 ) ;let*
 
@@ -75,8 +99,7 @@
 ) ;let*
 
 ;; 短文本渲染结果保持原样（不折行、不加前缀、末尾保留 spacer）
-(let* ((lines (component-render (make-assistant-card "hi") 40))
-      ) ;
+(let* ((lines (component-render (make-assistant-card "hi") 40)))
   (check lines => '("hi" ""))
 ) ;let*
 
