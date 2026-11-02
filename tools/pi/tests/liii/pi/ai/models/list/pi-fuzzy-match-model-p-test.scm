@@ -1,8 +1,3 @@
-(import (liii check)
-        (liii pi ai models list))
-
-(check-set-mode! 'report-failed)
-
 ;; pi-fuzzy-match-model?
 ;; 判断搜索词是否与模型文本进行子序列模糊匹配。
 ;;
@@ -25,10 +20,10 @@
 ;; 说明
 ;; ----
 ;; 匹配忽略大小写；空 query 或非字符串 query 默认全匹配。
-;;
-;; 示例
-;; ----
-;; (pi-fuzzy-match-model? "google/flash" "google gemini-2.5-flash") => #t
+
+(import (liii check) (liii pi ai models list))
+
+(check-set-mode! 'report-failed)
 
 (check-true (pi-fuzzy-match-model? "g25f" "google gemini-2.5-flash"))
 (check-true (pi-fuzzy-match-model? "flash" "google gemini-2.5-flash"))
@@ -37,7 +32,8 @@
 (check-true (pi-fuzzy-match-model? "sonnet" "anthropic claude-sonnet-5"))
 
 ;; 负例
-(check-false (pi-fuzzy-match-model? "anthropic flash" "google gemini-2.5-flash"))
+(check-false (pi-fuzzy-match-model? "anthropic flash" "google gemini-2.5-flash")
+) ;check-false
 (check-false (pi-fuzzy-match-model? "g25f" "google gemini-3.8-flash"))
 (check-false (pi-fuzzy-match-model? "xyz" "google gemini-2.5-flash"))
 

@@ -1,10 +1,23 @@
-(import (liii check)
-        (liii pi ai models list))
-
-(check-set-mode! 'report-failed)
-
 ;; pi-format-token-count
 ;; 与 pi formatTokenCount() 逐条等价（整除无小数位，不整除保留1位小数，四舍五入远离零）
+;;
+;; 语法
+;; ----
+;; (pi-format-token-count count) -> string
+;;
+;; 参数
+;; ----
+;; count : integer
+;; token 数量。
+;;
+;; 返回值
+;; ----
+;; string
+;; 人类可读的缩写字符串（如 "1M"、"65.5K"、"500"）。
+
+(import (liii check) (liii pi ai models list))
+
+(check-set-mode! 'report-failed)
 
 (check (pi-format-token-count 1000000) => "1M")
 (check (pi-format-token-count 1048576) => "1.0M")

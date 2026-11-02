@@ -17,7 +17,7 @@ gf doc liii/pi/ai/models/list "函数名"
 
 ### 一、模型查询与过滤
 - `pi-list-models` - 查询并排序全部或指定 provider 的可用及未激活模型行列表
-- `pi-usable-models` - 收集当前配置或授权下可供调用的模型列表
+- `pi-usable-models` - 已激活模型列表（与 config TUI、--list-models 的 ● 判定一致，供 /model 选择器）
 - `pi-split-search-tokens` - 将搜索关键词字符串按空格拆分为 token 列表
 - `pi-fuzzy-match-model?` - 判断搜索词是否与模型名称或 provider 进行子序列模糊匹配
 

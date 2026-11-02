@@ -12,7 +12,6 @@
     (liii vector)
     (liii sort)
     (liii tui)
-    (liii pi ai auth)
     (liii pi ai models catalog)
     (liii pi ai models search)
     (liii pi ai thinking)
@@ -311,16 +310,14 @@
       ) ;list
     ) ;define
 
-    ;; 可用模型列表（对齐上游 getAvailableSnapshot）：
-    ;; 只收求有凭证 provider 的模型，条目为 (provider id name reasoning) alist，
+    ;; 已激活模型列表：与 gf pi config、--list-models 的 ● 判定一致
+    ;; （gf pi 的可用 = 白名单激活）。provider 集直接取 user catalog 的全部
+    ;; provider，不再叠加凭证过滤；缺凭证报错留在请求期（config.scm 的
+    ;; api-key 解析）。与上游 getAvailableSnapshot 的凭证语义为有意分歧。
+    ;; 条目为 (provider id name reasoning thinking-levels) alist，
     ;; 按 provider/id 排序，供 TUI /model 选择器使用
-    (define (pi-usable-models models-store auth . opt-env)
+    (define (pi-usable-models models-store)
       (let* ((provider-names (pi-catalog-provider-names models-store))
-             (usable
-               (filter (lambda (p-name) (and (apply pi-resolve-provider-key p-name auth opt-env) #t))
-                 provider-names
-               ) ;filter
-             ) ;usable
              (rows
                (apply append
                  (map
@@ -329,7 +326,7 @@
                        (pi-catalog-provider-models models-store p-name)
                      ) ;map
                    ) ;lambda
-                   usable
+                   provider-names
                  ) ;map
                ) ;apply
              ) ;rows
