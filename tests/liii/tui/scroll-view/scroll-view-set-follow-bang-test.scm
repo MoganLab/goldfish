@@ -15,15 +15,19 @@
 ;;
 ;; 返回值
 ;; ----
-;; boolean?
-;; 设置后的跟随状态。
+;; #t
+;; 设置成功返回 #t。
 
-(import (scheme base) (liii check) (liii tui component) (liii tui scroll-view))
+(import (scheme base)
+  (liii check)
+  (liii tui component)
+  (liii tui scroll-view)
+) ;import
 
 (check-set-mode! 'report-failed)
 
 (let ((sv (make-scroll-view (make-text "test"))))
-  (check (scroll-view-set-follow! sv #f) => #f)
+  (check (scroll-view-set-follow! sv #f) => #t)
   (check-false (scroll-view-follow? sv))
   (check (scroll-view-set-follow! sv #t) => #t)
   (check-true (scroll-view-follow? sv))

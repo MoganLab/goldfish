@@ -15,13 +15,17 @@
 ;; any
 ;; 组件的内部数据。
 
-(import (scheme base) (liii check) (liii tui component))
+(import (scheme base)
+  (liii check)
+  (liii tui component)
+) ;import
 
 (check-set-mode! 'report-failed)
 
 (let ((c (make-text "hello")))
-  ;; make-text 的 component-data 为其内部记录
-  (check-true (not (not (component-data c))))
+  (check-false (component-data c))
+  (component-data-set! c 'custom-state)
+  (check (component-data c) => 'custom-state)
 ) ;let
 
 ;; 类型错误

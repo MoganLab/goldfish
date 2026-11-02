@@ -12,10 +12,14 @@
 ;;
 ;; 返回值
 ;; ----
-;; integer? 或 #f
-;; 视口高度；若尚未渲染则返回 #f。
+;; integer?
+;; 视口高度。
 
-(import (scheme base) (liii check) (liii tui component) (liii tui scroll-view))
+(import (scheme base)
+  (liii check)
+  (liii tui component)
+  (liii tui scroll-view)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -24,7 +28,7 @@
 ) ;define
 
 (let ((sv (make-scroll-view (make-lines-component '("l0" "l1")))))
-  (check (scroll-view-height sv) => #f)
+  (check (scroll-view-height sv) => 24)
   (scroll-view-render-lines sv 20 5)
   (check (scroll-view-height sv) => 5)
 ) ;let

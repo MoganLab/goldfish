@@ -15,16 +15,23 @@
 ;;
 ;; 返回值
 ;; ----
-;; component?
-;; 设置成功返回新的内容组件。
+;; #t
+;; 设置成功返回 #t。
 
-(import (scheme base) (liii check) (liii tui component) (liii tui scroll-view))
+(import (scheme base)
+  (liii check)
+  (liii tui component)
+  (liii tui scroll-view)
+) ;import
 
 (check-set-mode! 'report-failed)
 
-(let* ((c1 (make-text "c1")) (c2 (make-text "c2")) (sv (make-scroll-view c1)))
+(let* ((c1 (make-text "c1"))
+       (c2 (make-text "c2"))
+       (sv (make-scroll-view c1))
+      ) ;let*
   (check (scroll-view-content sv) => c1)
-  (check (scroll-view-set-content! sv c2) => c2)
+  (check (scroll-view-set-content! sv c2) => #t)
   (check (scroll-view-content sv) => c2)
 ) ;let*
 

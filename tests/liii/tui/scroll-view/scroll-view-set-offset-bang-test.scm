@@ -15,15 +15,19 @@
 ;;
 ;; 返回值
 ;; ----
-;; integer?
-;; 设置后的偏移量。
+;; #t
+;; 设置成功返回 #t。
 
-(import (scheme base) (liii check) (liii tui component) (liii tui scroll-view))
+(import (scheme base)
+  (liii check)
+  (liii tui component)
+  (liii tui scroll-view)
+) ;import
 
 (check-set-mode! 'report-failed)
 
 (let ((sv (make-scroll-view (make-text "hello"))))
-  (check (scroll-view-set-offset! sv 2) => 2)
+  (check (scroll-view-set-offset! sv 2) => #t)
   (check (scroll-view-offset sv) => 2)
 ) ;let
 
