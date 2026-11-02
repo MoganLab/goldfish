@@ -14,6 +14,10 @@
 ;; ------
 ;; pair
 ;; 返回一个循环列表（circular list）。循环列表的最后一个元素的cdr指向列表的第一个元素，形成一个无限循环。
+;;
+;; 错误处理
+;; --------
+;; - wrong-number-of-args：当未提供参数时抛出。
 
 (import (srfi srfi-1) (liii check))
 

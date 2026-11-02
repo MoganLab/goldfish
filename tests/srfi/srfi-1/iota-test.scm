@@ -20,6 +20,10 @@
 ;; ------
 ;; list?
 ;; 返回一个由连续整数组成的列表。
+;;
+;; 错误处理
+;; --------
+;; - value-error：当 count 为负数时抛出。
 
 (import (srfi srfi-1) (liii check))
 
