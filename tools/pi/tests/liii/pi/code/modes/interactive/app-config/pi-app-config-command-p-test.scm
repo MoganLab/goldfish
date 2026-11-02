@@ -1,3 +1,20 @@
+;; pi-app-config-command?
+;; 判定输入文本是否为 /config 斜杠命令。
+;;
+;; 语法
+;; ----
+;; (pi-app-config-command? text)
+;;
+;; 参数
+;; ----
+;; text : string?
+;; 用户输入的命令文本。
+;;
+;; 返回值
+;; ----
+;; boolean?
+;; 当且仅当文本精确匹配 "/config" 时返回 #t，否则返回 #f。
+
 (import (scheme base)
   (liii check)
   (liii string)

@@ -1,3 +1,21 @@
+;; pi-app-dispatch-mouse!
+;; 将单次终端鼠标事件派发给应用中的组件（卡片展开/折叠、滚动等）。
+;;
+;; 语法
+;; ----
+;; (pi-app-dispatch-mouse! app ev)
+;;
+;; 参数
+;; ----
+;; app : pi-app?
+;; 交互式应用实例。
+;; ev : mouse-event?
+;; 鼠标事件对象。
+;;
+;; 返回值
+;; ----
+;; unspecified
+
 (import (scheme base)
         (liii check)
         (liii list)
@@ -5,6 +23,7 @@
         (liii tui mouse)
         (liii pi code modes interactive)
         (liii pi code modes interactive app)
+        (liii pi code modes interactive app-mouse)
         (liii pi code modes interactive views)
         (liii pi code modes interactive bash))
 
