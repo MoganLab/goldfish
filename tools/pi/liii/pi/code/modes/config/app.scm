@@ -49,9 +49,7 @@
 
     (define (%provider-at st index)
       (let ((providers (pi-config-state-providers st)))
-        (and (pair? providers)
-          (list-ref providers (%clamp index (- (length providers) 1)))
-        ) ;and
+        (and (pair? providers) (list-ref providers (%clamp index (length providers))))
       ) ;let
     ) ;define
 
@@ -185,20 +183,6 @@
       ) ;let*
     ) ;define
 
-    ;; ---------- 覆盖层 ----------
-
-    (define (%overlay-scroll-lines content-lines height)
-      (max 1 (- (min (+ content-lines 2) (- height 4)) 2))
-    ) ;define
-
-    ;; 覆盖层的文本行（有文件看原文，虚拟条目看缺省说明；这里只需行数用于滚动）
-    (define (%overlay-lines view)
-      (if (pi-user-dict-ref view "exists" #f)
-        (string-split (or (pi-user-dict-ref view "content" #f) "") "\n")
-        '("not found" "" "")
-      ) ;if
-    ) ;define
-
     ;; ---------- Enter ----------
 
     ;; provider 列：等同右方向键（进入模型列）
@@ -259,6 +243,7 @@
              (message "")
              (exit-mode 'quit)
              (done? #f)
+             (last-size #f)
             ) ;
         (define (reload!)
           (let* ((provider (%provider-at st (%ref cursor 'provider)))
@@ -275,6 +260,10 @@
         ) ;define
         (define (render!)
           (let* ((s (size)) (w (car s)) (h (cadr s)))
+            (unless (equal? s last-size)
+              (set! last-size s)
+              (screen-clear! screen)
+            ) ;unless
             (if overlay
               (screen-render! screen
                 (pi-config-render-overlay overlay w h overlay-offset message)
@@ -285,25 +274,10 @@
         ) ;define
         ;; 覆盖层的按键：滚动与关闭
         (define (overlay-key! key)
-          (let* ((c (cond ((char? key) (string key))
-                          ((symbol? key) (symbol->string key))
-                          (else key)
-                    ) ;cond
-                 ) ;c
-                 (h (cadr (size)))
-                 (lines (%overlay-lines overlay))
-                 (rows (%overlay-scroll-lines (length lines) h))
-                ) ;
-            (cond ((or (eq? key 'escape) (equal? c "q")) (set! overlay #f))
-                  ((or (eq? key 'down) (equal? c "j")) (set! overlay-offset (+ overlay-offset 1)))
-                  ((or (eq? key 'up) (equal? c "k"))
-                   (set! overlay-offset (max 0 (- overlay-offset 1)))
-                  ) ;
-                  ((equal? c "g") (set! overlay-offset 0))
-                  ((equal? c "G") (set! overlay-offset (max 0 (- (length lines) rows))))
-                  (else #f)
-            ) ;cond
-          ) ;let*
+          (let ((res (pi-config-overlay-step overlay overlay-offset (cadr (size)) key)))
+            (set! overlay (car res))
+            (set! overlay-offset (cadr res))
+          ) ;let
         ) ;define
         (define (handle-key! key)
           (let* ((c (cond ((char? key) (string key))
@@ -367,6 +341,11 @@
                       ) ;unless
                     ) ;begin
                     (begin
+                      (let ((s (size)))
+                        (unless (equal? s last-size)
+                          (render!)
+                        ) ;unless
+                      ) ;let
                       (sleep 0.02)
                       (loop)
                     ) ;begin
