@@ -19,7 +19,8 @@
   (liii string)
   (liii unicode)
   (liii tui)
-  (liii pi code modes interactive working))
+  (liii pi code modes interactive working)
+) ;import
 
 (check-set-mode! 'report)
 
@@ -33,6 +34,7 @@
   (check (working-frame ind) => "⠙")
   ;; 再推进 9 帧共 10 帧，回到 ⠋
   (for-each (lambda (_) (working-advance! ind)) '(1 2 3 4 5 6 7 8 9))
-  (check (working-frame ind) => "⠋"))
+  (check (working-frame ind) => "⠋")
+) ;let
 
 (check-report)
