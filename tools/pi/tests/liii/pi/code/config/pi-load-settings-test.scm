@@ -1,3 +1,20 @@
+;; pi-load-settings
+;; 从 settings.json 文件加载全局设置，文件或字段缺失时回退默认值。
+;;
+;; 语法
+;; ----
+;; (pi-load-settings config-dir)
+;;
+;; 参数
+;; ----
+;; config-dir : string
+;; 包含 settings.json 的配置目录。
+;;
+;; 返回值
+;; ----
+;; pi-settings?
+;; 解析后的全局设置 record。
+
 (import (liii check) (liii pi ai config record) (liii pi ai retry) (liii pi code config) (liii pi code core session-manager))
 
 (check-set-mode! 'report-failed)

@@ -1,3 +1,24 @@
+;; pi-resolve-proxy-url
+;; 按照命令行参数 > 环境变量 > settings 顺序解析代理 URL。
+;;
+;; 语法
+;; ----
+;; (pi-resolve-proxy-url cli-proxy settings . opt-env)
+;;
+;; 参数
+;; ----
+;; cli-proxy : string | #f
+;; 命令行显式指定的代理地址。
+;; settings : alist
+;; 全局设置，读取其中的 http-proxy 字段。
+;; opt-env : alist
+;; 可选环境变量表，用于读取 HTTPS_PROXY / ALL_PROXY。
+;;
+;; 返回值
+;; ----
+;; string | #f
+;; 生效的代理 URL；没有任何代理时返回 #f。
+
 (import (liii check) (liii pi code config))
 
 (check-set-mode! 'report-failed)

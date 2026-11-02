@@ -1,3 +1,20 @@
+;; pi-read-json-file
+;; 读取并解析 JSON 配置文件。
+;;
+;; 语法
+;; ----
+;; (pi-read-json-file filepath)
+;;
+;; 参数
+;; ----
+;; filepath : string
+;; 要读取的 JSON 文件路径。
+;;
+;; 返回值
+;; ----
+;; alist | #f
+;; 解析后的 JSON 对象；文件不存在时返回 #f。
+
 (import (liii check) (liii pi code config))
 
 (check-set-mode! 'report-failed)

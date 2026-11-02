@@ -1,3 +1,20 @@
+;; pi-get-agent-dir
+;; 获取 agent 配置基准目录路径。
+;;
+;; 语法
+;; ----
+;; (pi-get-agent-dir . opt-dir)
+;;
+;; 参数
+;; ----
+;; opt-dir : string
+;; 可选的显式目录，优先级最高。
+;;
+;; 返回值
+;; ----
+;; path?
+;; agent 配置基准目录的绝对路径；未指定时回退 ~/.pi/agent。
+
 (import (scheme process-context)
         (liii check)
         (liii string)

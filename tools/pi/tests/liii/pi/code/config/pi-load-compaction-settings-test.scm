@@ -1,3 +1,20 @@
+;; pi-load-compaction-settings
+;; 从配置目录的 settings.json 读取 compaction 节，缺省字段回退默认值。
+;;
+;; 语法
+;; ----
+;; (pi-load-compaction-settings config-dir)
+;;
+;; 参数
+;; ----
+;; config-dir : string
+;; 包含 settings.json 的配置目录。
+;;
+;; 返回值
+;; ----
+;; pi-compaction-settings?
+;; 包含 enabled、reserve-tokens 与 keep-recent-tokens 的设置 record。
+
 (import (liii check)
         (liii pi code config) (liii pi code core session-manager)
         (liii pi code core compaction))

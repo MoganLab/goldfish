@@ -1,3 +1,22 @@
+;; pi-save-hide-thinking-block!
+;; 将 hideThinkingBlock 写回 settings.json，保留其他设置。
+;;
+;; 语法
+;; ----
+;; (pi-save-hide-thinking-block! config-dir hide)
+;;
+;; 参数
+;; ----
+;; config-dir : string
+;; 包含 settings.json 的配置目录。
+;; hide : boolean
+;; 是否隐藏思考块。#t 写入 true，#f 写入 false。
+;;
+;; 返回值
+;; ----
+;; undefined
+;; 写入完成后返回未定义值。
+
 (import (scheme base)
   (scheme file)
   (liii check)

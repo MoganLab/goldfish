@@ -1,3 +1,24 @@
+;; pi-provider-has-model?
+;; 判断 provider 的模型目录中是否存在指定模型。
+;;
+;; 语法
+;; ----
+;; (pi-provider-has-model? provider model-id models-store)
+;;
+;; 参数
+;; ----
+;; provider : string | symbol
+;; 供应商名称。
+;; model-id : string
+;; 模型标识。
+;; models-store : alist
+;; provider 到模型条目的模型目录。
+;;
+;; 返回值
+;; ----
+;; boolean
+;; 模型存在时返回 #t，否则返回 #f。
+
 (import (liii check) (liii pi ai models))
 
 (check-set-mode! 'report-failed)

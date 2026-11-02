@@ -1,4 +1,23 @@
-(import (liii check) (liii pi ai template))
+;; pi-resolve-config-value
+;; 解析配置中的环境变量插值语法（$VAR / ${VAR}）。
+;;
+;; 语法
+;; ----
+;; (pi-resolve-config-value str . custom-env)
+;;
+;; 参数
+;; ----
+;; str : string
+;; 待解析的配置值。
+;; custom-env : alist
+;; 可选环境变量表。
+;;
+;; 返回值
+;; ----
+;; string | #f
+;; 插值后的字符串；引用的变量不存在时返回 #f。
+
+(import (liii check) (liii pi code config))
 
 (check-set-mode! 'report-failed)
 

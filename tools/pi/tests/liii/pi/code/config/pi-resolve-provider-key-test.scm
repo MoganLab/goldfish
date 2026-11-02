@@ -1,3 +1,24 @@
+;; pi-resolve-provider-key
+;; 解析指定 provider 的有效 API 密钥，环境变量优先于 auth.json 存储条目。
+;;
+;; 语法
+;; ----
+;; (pi-resolve-provider-key provider auth-alist . opt-env)
+;;
+;; 参数
+;; ----
+;; provider : string | symbol
+;; 供应商名称。
+;; auth-alist : alist
+;; auth.json 或凭据 record 组成的存储条目。
+;; opt-env : alist
+;; 可选环境变量表，按 provider 声明的变量顺序探测。
+;;
+;; 返回值
+;; ----
+;; string | #f
+;; 找到的 API 密钥；均未配置时返回 #f。
+
 (import (liii check) (liii pi ai config record) (liii pi code config) (liii path))
 
 (check-set-mode! 'report-failed)
@@ -223,4 +244,5 @@
   (check (pi-resolve-provider-key "minimax"
            '(("minimax" . "intl-key")) env-with-minimax)
     => "intl-key"))
+
 (check-report)

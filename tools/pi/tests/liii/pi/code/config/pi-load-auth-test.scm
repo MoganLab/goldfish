@@ -1,3 +1,22 @@
+;; pi-load-auth
+;; 从 agent 配置目录的 auth.json 加载 API 凭据。
+;;
+;; 语法
+;; ----
+;; (pi-load-auth config-dir . opt-env)
+;;
+;; 参数
+;; ----
+;; config-dir : string
+;; 包含 auth.json 的配置目录。
+;; opt-env : alist
+;; 可选环境变量表，用于解析凭据中的环境变量或命令插值。
+;;
+;; 返回值
+;; ----
+;; list
+;; pi-credential record 列表；文件不存在或无有效凭据时返回空列表。
+
 (import (liii check) (liii pi ai config record) (liii pi code config) (liii pi code core session-manager))
 
 (check-set-mode! 'report-failed)
