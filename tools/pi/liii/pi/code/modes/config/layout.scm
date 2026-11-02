@@ -330,7 +330,13 @@
                      ) ;%fit
                ) ;hint
               ) ;
-          (append body (list status hint))
+          (let* ((lines (append body (list status hint))) (len (length lines)))
+            (cond ((<= height 0) '())
+                  ((> len height) (take lines height))
+                  ((< len height) (append lines (make-list (- height len) (%fit "" width))))
+                  (else lines)
+            ) ;cond
+          ) ;let*
         ) ;let*
       ) ;let*
     ) ;define*

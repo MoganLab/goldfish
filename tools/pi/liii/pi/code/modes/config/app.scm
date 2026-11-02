@@ -259,6 +259,7 @@
              (message "")
              (exit-mode 'quit)
              (done? #f)
+             (last-size #f)
             ) ;
         (define (reload!)
           (let* ((provider (%provider-at st (%ref cursor 'provider)))
@@ -275,6 +276,10 @@
         ) ;define
         (define (render!)
           (let* ((s (size)) (w (car s)) (h (cadr s)))
+            (unless (equal? s last-size)
+              (set! last-size s)
+              (screen-clear! screen)
+            ) ;unless
             (if overlay
               (screen-render! screen
                 (pi-config-render-overlay overlay w h overlay-offset message)
@@ -367,6 +372,11 @@
                       ) ;unless
                     ) ;begin
                     (begin
+                      (let ((s (size)))
+                        (unless (equal? s last-size)
+                          (render!)
+                        ) ;unless
+                      ) ;let
                       (sleep 0.02)
                       (loop)
                     ) ;begin

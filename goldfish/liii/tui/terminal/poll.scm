@@ -112,7 +112,7 @@
     (define (%read-escape-bytes)
       (let loop
         ((bytes (list 27)))
-        (if (console-kbhit? 10)
+        (if (console-kbhit? 25)
           (let ((b (console-getch)))
             (if (and b (exact-integer? b))
               (let ((bytes (append bytes (list b))))
@@ -238,14 +238,17 @@
         #f
         (if (<= (length byte-list) 1)
           'escape
-          (let* ((bv (apply bytevector byte-list))
-                 (str (utf8->string bv))
-                 (k (parse-key str))
-                 ;; 事件到达时刻：读取到完整序列时打戳，供滚轮加速按真实间隔换算
-                 (ev (or k (parse-mouse-event str (current-monotonic-millis))))
-                ) ;
-            (if (mouse-event? ev) (%synthesize-click ev) ev)
-          ) ;let*
+          (if (not (%escape-bytes-complete? byte-list))
+            #f
+            (let* ((bv (apply bytevector byte-list))
+                   (str (utf8->string bv))
+                   (k (parse-key str))
+                   ;; 事件到达时刻：读取到完整序列时打戳，供滚轮加速按真实间隔换算
+                   (ev (or k (parse-mouse-event str (current-monotonic-millis))))
+                  ) ;
+              (if (mouse-event? ev) (%synthesize-click ev) ev)
+            ) ;let*
+          ) ;if
         ) ;if
       ) ;if
     ) ;define

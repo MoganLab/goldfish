@@ -61,6 +61,10 @@
 (check (%resolve-ansi-bytes '(27 91 49 51 59 50 117)) => 'shift-enter)
 (check (%resolve-ansi-bytes '(27 91 50 55 59 50 59 49 51 126)) => 'shift-enter)
 
+;; 不完整 CSI / SS3 序列不映射为 escape（丢弃返回 #f，避免方向键超时截断误退）
+(check (%resolve-ansi-bytes '(27 91)) => #f)
+(check (%resolve-ansi-bytes '(27 79)) => #f)
+
 ;; 6. 测试 UTF-8 多字节解析
 (check (%resolve-utf8-bytes '(228 189 160)) => "你")
 (check (%resolve-utf8-bytes '(229 165 189)) => "好")
