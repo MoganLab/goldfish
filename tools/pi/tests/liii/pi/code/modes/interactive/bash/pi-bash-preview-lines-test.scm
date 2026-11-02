@@ -14,9 +14,7 @@
 ;; any
 ;; 视具体调用结果而定。
 
-(import (scheme base)
-  (liii check)
-  (liii pi code modes interactive bash))
+(import (scheme base) (liii check) (liii pi code modes interactive bash))
 
 (check-set-mode! 'report)
 

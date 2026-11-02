@@ -19,7 +19,8 @@
   (liii check)
   (liii string)
   (liii go)
-  (liii pi code modes interactive bash))
+  (liii pi code modes interactive bash)
+) ;import
 
 (check-set-mode! 'report)
 
@@ -34,7 +35,8 @@
        (ev-ch (make-chan 4))
        (_ (go (pi-bash-worker jobs-ch ev-ch)))
        (_2 (chan-send! jobs-ch (list 1 "echo hello" #f) 1000))
-       (ev (chan-recv! ev-ch 10000 #f)))
+       (ev (chan-recv! ev-ch 10000 #f))
+      ) ;
   (check-true (pair? ev))
   (when (pair? ev)
     (check (car ev) => 'bash_complete)
