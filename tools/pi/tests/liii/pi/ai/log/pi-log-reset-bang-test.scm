@@ -1,13 +1,13 @@
-(import (liii check) (liii path) (liii tempfile) (liii pi ai log))
-
-(check-set-mode! 'report-failed)
-
 ;; pi-log-reset!
 ;; 关闭日志文件端口并清空状态。
 ;;
 ;; 语法
 ;; ----
 ;; (pi-log-reset!)
+;;
+;; 参数
+;; ----
+;; 无
 ;;
 ;; 返回值
 ;; ----
@@ -17,6 +17,10 @@
 ;; ----
 ;; 复位后回到默认目录 ~/.gf/agent/logs，可重新用 pi-log-init! 指向别的目录。
 ;; 测试用它隔离用例，避免把日志写到真实目录。
+
+(import (liii check) (liii path) (liii tempfile) (liii pi ai log))
+
+(check-set-mode! 'report-failed)
 
 (define *base* (make-temp-dir "gf-pi-log-reset-" ""))
 

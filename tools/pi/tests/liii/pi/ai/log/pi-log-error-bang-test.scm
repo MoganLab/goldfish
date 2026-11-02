@@ -1,15 +1,3 @@
-(import (liii check)
-  (liii string)
-  (liii os)
-  (liii path)
-  (liii subprocess)
-  (liii tempfile)
-  (liii sys)
-  (liii pi ai log)
-) ;import
-
-(check-set-mode! 'report-failed)
-
 ;; pi-log-error!
 ;; 以 ERROR 级别写一条日志。
 ;;
@@ -32,6 +20,18 @@
 ;; 每写一条就 flush 并关闭文件端口：s7 的 exit 在应用退出钩子之后才读退出码，
 ;; 钩子里有分配会把退出码吞成 0（goldfish issue 1399），关端口后钩子成为空操作。
 ;; 写盘失败一律静默，不影响请求主流程。
+
+(import (liii check)
+  (liii string)
+  (liii os)
+  (liii path)
+  (liii subprocess)
+  (liii tempfile)
+  (liii sys)
+  (liii pi ai log)
+) ;import
+
+(check-set-mode! 'report-failed)
 
 (define *base* (make-temp-dir "gf-pi-log-error-" ""))
 

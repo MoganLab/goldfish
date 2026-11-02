@@ -1,19 +1,13 @@
-(import (liii check)
-  (liii string)
-  (liii path)
-  (liii tempfile)
-  (liii date-time)
-  (liii pi ai log)
-) ;import
-
-(check-set-mode! 'report-failed)
-
 ;; pi-log-file-path
 ;; 返回当前日期对应的日志文件路径。
 ;;
 ;; 语法
 ;; ----
 ;; (pi-log-file-path)
+;;
+;; 参数
+;; ----
+;; 无
 ;;
 ;; 返回值
 ;; ----
@@ -23,6 +17,16 @@
 ;; 注意
 ;; ----
 ;; 按日期分文件，跨天自动落到新文件；只返回路径，不创建文件。
+
+(import (liii check)
+  (liii string)
+  (liii path)
+  (liii tempfile)
+  (liii date-time)
+  (liii pi ai log)
+) ;import
+
+(check-set-mode! 'report-failed)
 
 ;; 1. 默认路径位于 ~/.gf/agent/logs 下（路径比较，兼容 Windows 盘符与反斜杠）
 (check-true (path-equals? (path-parent (pi-log-file-path)) (pi-log-dir)))

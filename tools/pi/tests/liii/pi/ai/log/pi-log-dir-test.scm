@@ -1,19 +1,13 @@
-(import (liii check)
-  (liii string)
-  (liii os)
-  (liii path)
-  (liii tempfile)
-  (liii pi ai log)
-) ;import
-
-(check-set-mode! 'report-failed)
-
 ;; pi-log-dir
 ;; 返回 pi 异常请求日志的目录。
 ;;
 ;; 语法
 ;; ----
 ;; (pi-log-dir)
+;;
+;; 参数
+;; ----
+;; 无
 ;;
 ;; 返回值
 ;; ----
@@ -24,6 +18,16 @@
 ;; ----
 ;; 不受 GF_CONFIG_DIR 等配置目录环境变量影响：日志始终落在 ~/.gf/agent/logs。
 ;; 目录由 pi-log-init! 负责创建。
+
+(import (liii check)
+  (liii string)
+  (liii os)
+  (liii path)
+  (liii tempfile)
+  (liii pi ai log)
+) ;import
+
+(check-set-mode! 'report-failed)
 
 ;; 期望的默认目录：用 path 拼接而不是字符串比较，避免 Windows 盘符与反斜杠差异
 

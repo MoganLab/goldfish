@@ -1,13 +1,3 @@
-(import (liii check)
-  (liii string)
-  (liii os)
-  (liii path)
-  (liii tempfile)
-  (liii pi ai log)
-) ;import
-
-(check-set-mode! 'report-failed)
-
 ;; pi-log-http-error!
 ;; 记录一次异常 HTTP 请求（含响应体原文）。
 ;;
@@ -36,6 +26,16 @@
 ;; ----
 ;; 首行是元信息（http-error status=… provider=… limit=…），随后用
 ;; “----- body begin -----” 与 “----- body end -----” 包裹响应体原文，便于 grep。
+
+(import (liii check)
+  (liii string)
+  (liii os)
+  (liii path)
+  (liii tempfile)
+  (liii pi ai log)
+) ;import
+
+(check-set-mode! 'report-failed)
 
 (define *base* (make-temp-dir "gf-pi-log-http-" ""))
 

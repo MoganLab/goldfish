@@ -1,7 +1,3 @@
-(import (liii check) (liii path) (liii tempfile) (liii pi ai log))
-
-(check-set-mode! 'report-failed)
-
 ;; pi-log-init!
 ;; 初始化日志目录（幂等）。
 ;;
@@ -23,6 +19,10 @@
 ;; 注意
 ;; ----
 ;; 会递归创建目录（含多级父目录）；重复调用不报错、不改变已确定的目录。
+
+(import (liii check) (liii path) (liii tempfile) (liii pi ai log))
+
+(check-set-mode! 'report-failed)
 
 ;; 用系统临时目录派生路径，避免在 Windows 上把 /tmp 解析成当前盘符下的绝对路径
 
