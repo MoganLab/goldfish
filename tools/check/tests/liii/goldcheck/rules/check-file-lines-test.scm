@@ -1,11 +1,3 @@
-(import (scheme base)
-  (scheme file)
-  (liii check)
-  (liii path)
-  (liii os)
-  (liii goldcheck rules)
-) ;import
-
 ;; check-file-lines
 ;; 统计单个文件的物理代码行数，并判断是否超出给定行数阈值。
 ;;
@@ -25,6 +17,14 @@
 ;; (values count violation-or-#f)
 ;; 第一个值为实际物理行数（含空行与注释）；
 ;; 第二个值为违规结构 (list 'max-file-lines file-path count limit)，未超限时为 #f。
+
+(import (scheme base)
+  (scheme file)
+  (liii check)
+  (liii path)
+  (liii os)
+  (liii goldcheck rules)
+) ;import
 
 (check-set-mode! 'report-failed)
 

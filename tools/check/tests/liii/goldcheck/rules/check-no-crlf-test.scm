@@ -1,11 +1,3 @@
-(import (scheme base)
-  (scheme file)
-  (liii check)
-  (liii path)
-  (liii os)
-  (liii goldcheck rules)
-) ;import
-
 ;; check-no-crlf
 ;; 检查文件换行符是否统一为 LF，发现 CRLF 则报错。
 ;;
@@ -29,6 +21,14 @@
 ;; 测试用 path-write-bytes 二进制写入以精确控制行尾字节，
 ;; 避免文本端口在 Windows 上把 \n 转写为 \r\n。
 
+(import (scheme base)
+  (scheme file)
+  (liii check)
+  (liii path)
+  (liii os)
+  (liii goldcheck rules)
+) ;import
+
 (check-set-mode! 'report-failed)
 
 (define (write-test-file name content)
@@ -39,13 +39,17 @@
 ) ;define
 
 ;; 1. 纯 LF 文件：通过
-(let* ((tmp-file (write-test-file "gf-check-crlf-lf.scm" "(define a 1)\n(define b 2)\n")))
+(let* ((tmp-file (write-test-file "gf-check-crlf-lf.scm" "(define a 1)\n(define b 2)\n")
+       ) ;tmp-file
+      ) ;
   (check (check-no-crlf tmp-file) => #f)
   (path-unlink tmp-file #t)
 ) ;let*
 
 ;; 2. 纯 CRLF 文件：报错，首个 CRLF 位于第 1 行
-(let* ((tmp-file (write-test-file "gf-check-crlf-all.scm" "(define a 1)\r\n(define b 2)\r\n")))
+(let* ((tmp-file (write-test-file "gf-check-crlf-all.scm" "(define a 1)\r\n(define b 2)\r\n")
+       ) ;tmp-file
+      ) ;
   (let ((viol (check-no-crlf tmp-file)))
     (check (car viol) => 'no-crlf)
     (check (caddr viol) => 1)
