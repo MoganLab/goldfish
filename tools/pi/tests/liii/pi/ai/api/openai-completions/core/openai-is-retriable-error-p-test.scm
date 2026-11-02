@@ -1,7 +1,3 @@
-(import (liii check) (liii pi ai api openai-completions))
-
-(check-set-mode! 'report-failed)
-
 ;; openai-is-retriable-error?
 ;; 判断 OpenAI 兼容协议的失败是否属于可重试错误。
 ;;
@@ -30,6 +26,11 @@
 ;; ----
 ;; 可重试集合是显式列表：0、408、409、429、500、502、503、504、529（501、505 等不在其中）。
 ;; 额度耗尽优先判为不可重试；普通 429 限流（如 rate limit）仍可重试。
+
+(import (liii check) (liii pi ai api openai-completions))
+
+(check-set-mode! 'report-failed)
+
 (check (openai-is-retriable-error? 429 "") => #t)
 (check (openai-is-retriable-error? 500 "") => #t)
 (check (openai-is-retriable-error? 502 "") => #t)

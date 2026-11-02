@@ -1,7 +1,3 @@
-(import (liii check) (liii pi ai event) (liii pi ai api openai-completions) (liii pi ai message))
-
-(check-set-mode! 'report-failed)
-
 ;; openai-parse-response
 ;; 将 OpenAI Chat Completions JSON 响应解析为内部 assistant message。
 ;;
@@ -25,10 +21,10 @@
 ;; ----
 ;; 文本和工具调用转换为内部 content block，并保持原始顺序。
 ;; API 错误响应映射为 stopReason=error。
-;;
-;; 示例
-;; ----
-;; (pi-assistant-message-stop-reason (openai-parse-response response 200)) => "stop"
+
+(import (liii check) (liii pi ai event) (liii pi ai api openai-completions) (liii pi ai message))
+
+(check-set-mode! 'report-failed)
 
 ;; 正常文本响应解析
 (let* ((json-data '(("id" . "chatcmpl-1")
