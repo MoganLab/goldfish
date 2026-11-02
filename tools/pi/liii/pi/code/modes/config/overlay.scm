@@ -15,7 +15,7 @@
     (liii tui)
     (liii pi code config user-fs)
   ) ;import
-  (export pi-config-render-overlay)
+  (export pi-config-render-overlay pi-config-overlay-step)
   (begin
 
     (define %accent "\x1b;[35m")
@@ -143,13 +143,44 @@
              ) ;body
              (box (append (list head) body (list foot (%fit hint ow))))
              (blank (%fit "" width))
+             (raw-lines
+               (append (map (lambda (i) blank) (iota pad-y))
+                 (map (lambda (line) (string-append (%fit "" pad-x) line (%fit "" pad-x))) box)
+                 (map (lambda (i) blank) (iota (max 0 (- height pad-y oh))))
+               ) ;append
+             ) ;raw-lines
+             (len (length raw-lines))
             ) ;
-        (append (map (lambda (i) blank) (iota pad-y))
-          (map (lambda (line) (string-append (%fit "" pad-x) line (%fit "" pad-x))) box)
-          (map (lambda (i) blank) (iota (max 0 (- height pad-y oh))))
-        ) ;append
+        (cond ((<= height 0) '())
+              ((> len height) (take raw-lines height))
+              ((< len height) (append raw-lines (make-list (- height len) blank)))
+              (else raw-lines)
+        ) ;cond
       ) ;let*
     ) ;define*
+
+    ;; ---------- 键盘交互 ----------
+
+    ;; 返回 (list 新view 新offset)；按 q/escape 返回 (list #f 0)
+    (define (pi-config-overlay-step view offset height key)
+      (let* ((c (cond ((char? key) (string key))
+                      ((symbol? key) (symbol->string key))
+                      (else key)
+                ) ;cond
+             ) ;c
+             (content (%content-lines view))
+             (oh (%overlay-height (length content) height))
+             (rows (max 1 (- oh 3)))
+            ) ;
+        (cond ((or (eq? key 'escape) (equal? c "q")) (list #f 0))
+              ((or (eq? key 'down) (equal? c "j")) (list view (+ offset 1)))
+              ((or (eq? key 'up) (equal? c "k")) (list view (max 0 (- offset 1))))
+              ((equal? c "g") (list view 0))
+              ((equal? c "G") (list view (max 0 (- (length content) rows))))
+              (else (list view offset))
+        ) ;cond
+      ) ;let*
+    ) ;define
 
   ) ;begin
 ) ;define-library

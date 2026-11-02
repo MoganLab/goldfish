@@ -18,12 +18,17 @@
 (define FIXTURE
   (if (file-exists? "tools/pi/tests/fixtures/user-config")
     "tools/pi/tests/fixtures/user-config"
-    "tests/fixtures/user-config"))
+    "tests/fixtures/user-config"
+  ) ;if
+) ;define
 
 (define DIR (string-append FIXTURE "/config-tui"))
+
 (define st (pi-config-state DIR :env '()))
 
-(define (plain s) (strip-ansi s))
+(define (plain s)
+  (strip-ansi s)
+) ;define
 
 (define (p-index id)
   (list-index (lambda (p) (string=? (pi-config-provider-id p) id))
@@ -37,7 +42,14 @@
        (text (plain (string-join lines "\n")))
       ) ;
   (check (length lines) => 20)
-  (check (every (lambda (l) (<= (display-width (strip-ansi l)) 120)) lines) => #t)
+  (check
+    (every
+      (lambda (l) (<= (display-width (strip-ansi l)) 120))
+      lines
+    ) ;every
+    =>
+    #t
+  ) ;check
   (check (string-contains text "models/kimi-coding.json") => #t)
   (check (string-contains text "read-only") => #t)
   (check (string-contains text "Kimi Coding") => #t)
@@ -66,9 +78,42 @@
 ) ;let
 
 ;; 4. 窄终端：行数固定、宽度受限
-(let ((lines (pi-config-render-overlay (pi-config-file-view st (pi-config-cursor (p-index "kimi-coding") 0) 0) 60 16)))
+(let ((lines
+        (pi-config-render-overlay (pi-config-file-view st (pi-config-cursor (p-index "kimi-coding") 0) 0)
+          60
+          16
+        ) ;pi-config-render-overlay
+      ) ;lines
+     ) ;
   (check (length lines) => 16)
-  (check (every (lambda (l) (<= (display-width (strip-ansi l)) 60)) lines) => #t)
+  (check
+    (every
+      (lambda (l) (<= (display-width (strip-ansi l)) 60))
+      lines
+    ) ;every
+    =>
+    #t
+  ) ;check
+) ;let
+
+;; 4.1 极端高度行数守恒
+(let ((view (pi-config-file-view st (pi-config-cursor (p-index "kimi-coding") 0) 0)))
+  (check (length (pi-config-render-overlay view 80 3)) => 3)
+  (check (length (pi-config-render-overlay view 80 1)) => 1)
+  (check (length (pi-config-render-overlay view 80 0)) => 0)
+) ;let
+
+;; 5. 覆盖层按键交互（滚动与退出）
+(let ((view (pi-config-file-view st (pi-config-cursor (p-index "kimi-coding") 0) 0)))
+  (check (pi-config-overlay-step view 0 20 'down) => (list view 1))
+  (check (pi-config-overlay-step view 1 20 'up) => (list view 0))
+  (check (pi-config-overlay-step view 0 20 'up) => (list view 0))
+  (check (pi-config-overlay-step view 0 20 "j") => (list view 1))
+  (check (pi-config-overlay-step view 1 20 "k") => (list view 0))
+  (check (pi-config-overlay-step view 5 20 "g") => (list view 0))
+  (check (cadr (pi-config-overlay-step view 0 20 "G")) => (cadr (pi-config-overlay-step view 0 20 'G)))
+  (check (pi-config-overlay-step view 2 20 'escape) => (list #f 0))
+  (check (pi-config-overlay-step view 2 20 "q") => (list #f 0))
 ) ;let
 
 (check-report)
