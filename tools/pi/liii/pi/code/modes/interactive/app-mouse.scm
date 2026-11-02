@@ -4,28 +4,79 @@
 ;; Licensed under the MIT License.
 ;;
 
-;; 鼠标事件接入：把屏幕坐标的鼠标事件换算为 doc 逻辑行后派发给 doc 组件树，
-;; 由各卡片自带的 mouse-region 回调完成点击切换展开（对齐上游 pi
-;; tool-execution.ts 的 createResultRegion：click + left 且已完成时翻转）。
-;;
-;; 全屏（备用屏）布局下，帧自上而下为：
-;;   [对话记录视口]  占据帧顶部，内部按 scroll-view 偏移滚动
-;;   [待发送队列卡片]
-;;   [输入区]
-;;   [斜杠命令菜单]
-;;   [页脚]
-;; 因此屏幕行 y 必须落在视口高度内才可能命中卡片，
-;; doc 逻辑行 = y + 视口滚动偏移（scroll-view-offset）。
+;; 鼠标事件接入：
+;; 1. 选区状态机：对 press, drag, release 进行分流，管理全屏视口选区
+;; 2. 卡片点击派发：把屏幕坐标的鼠标事件换算为 doc 逻辑行后派发给 doc 组件树，
+;;    由各卡片自带的 mouse-region 回调完成点击切换展开（对齐上游 pi
+;;    tool-execution.ts 的 createResultRegion：click + left 且已完成时翻转）。
 
 (define-library (liii pi code modes interactive app-mouse)
-  (export pi-app-dispatch-mouse!)
+  (export pi-app-dispatch-mouse! pi-app-handle-selection-mouse!)
   (import (scheme base)
     (liii tui)
     (liii tui mouse)
     (liii tui scroll-view)
     (liii pi code modes interactive state)
+    (liii pi code modes interactive selection)
   ) ;import
   (begin
+
+    ;; 处理选区相关的鼠标事件流：
+    ;; - press: 记录起始锚点
+    ;; - drag: 产生位移时激活选区并更新焦点坐标
+    ;; - release: 结束拖拽并固化选区
+    ;; - click: 若存在旧选区则清除
+    ;; 返回 #t 表示选区状态改变，需重绘
+    (define (pi-app-handle-selection-mouse! app ev)
+      (case (mouse-event-type ev)
+            ((press)
+             (if (eq? (mouse-event-button ev) 'left)
+               (let* ((x (mouse-event-x ev))
+                      (y (mouse-event-y ev))
+                      (was-active? (pi-app-selection-active? app))
+                     ) ;
+                 (pi-app-selection-set! app (make-selection-range (cons x y) (cons x y) #f))
+                 was-active?
+               ) ;let*
+               #f
+             ) ;if
+            ) ;
+            ((drag)
+             (let ((sel (pi-app-selection app)))
+               (if
+                 (and sel
+                   (or (eq? (mouse-event-button ev) 'left) (eq? (mouse-event-button ev) 'none))
+                 ) ;and
+                 (let* ((x (mouse-event-x ev))
+                        (y (mouse-event-y ev))
+                        (a (selection-anchor sel))
+                        (moved?
+                          (or (not (= x (car a))) (not (= y (cdr a))))
+                        ) ;moved?
+                       ) ;
+                   (if moved?
+                     (begin
+                       (pi-app-selection-set! app (make-selection-range a (cons x y) #t))
+                       #t
+                     ) ;begin
+                     #f
+                   ) ;if
+                 ) ;let*
+                 #f
+               ) ;if
+             ) ;let
+            ) ;
+            ((release)
+             (let ((sel (pi-app-selection app)))
+               (if (and sel (selection-active? sel)) #t #f)
+             ) ;let
+            ) ;
+            ((click)
+             (if (pi-app-selection-active? app) (begin (pi-app-selection-clear! app) #t) #f)
+            ) ;
+            (else #f)
+      ) ;case
+    ) ;define
 
     ;; 派发鼠标事件到 doc 组件树：命中返回 #t，未命中返回 #f
     (define (pi-app-dispatch-mouse! app ev)

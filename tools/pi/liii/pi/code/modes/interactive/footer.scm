@@ -7,7 +7,8 @@
 (define-library (liii pi code modes interactive footer)
   (export make-pi-footer pi-footer? format-cwd-for-footer pi-footer-model-label
     pi-footer-set-thinking-level! pi-footer-branch pi-footer-set-branch!
-    pi-footer-set-session-name! pi-footer-set-model!
+    pi-footer-set-session-name! pi-footer-set-model! pi-footer-set-message!
+    pi-footer-message
   ) ;export
   (import (scheme base)
     (liii string)
@@ -50,7 +51,7 @@
 
     (define-record-type <pi-footer-state>
       (%make-pi-footer-state cwd branch provider model stats thinking-level
-        supports-thinking? session-name
+        supports-thinking? session-name message
       ) ;%make-pi-footer-state
       pi-footer-state?
       (cwd pi-footer-state-cwd)
@@ -65,13 +66,14 @@
         pi-footer-state-supports-thinking?-set!
       ) ;supports-thinking?
       (session-name pi-footer-state-session-name pi-footer-state-session-name-set!)
+      (message pi-footer-state-message pi-footer-state-message-set!)
     ) ;define-record-type
 
     (define (pi-footer? obj)
       (and (component? obj) (pi-footer-state? (component-data obj)))
     ) ;define
 
-    (define (%render-footer cwd home branch provider model stats session-name width)
+    (define (%render-footer cwd home branch provider model stats session-name message width)
       (let* ((formatted-cwd (format-cwd-for-footer cwd home))
              (base-line1
                (if (and branch (not (string-null? branch)))
@@ -91,7 +93,9 @@
                  model
                ) ;if
              ) ;right-part
-             (left-part stats)
+             (left-part
+               (if (and message (not (string-null? message))) message stats)
+             ) ;left-part
              (left-w (display-width left-part))
              (right-w (display-width right-part))
              (min-padding 2)
@@ -161,6 +165,7 @@
                        ) ;pi-footer-model-label
                        (pi-footer-state-stats st)
                        (pi-footer-state-session-name st)
+                       (pi-footer-state-message st)
                        width
                      ) ;%render-footer
                    ) ;let
@@ -170,7 +175,7 @@
             ) ;
         (component-data-set! comp
           (%make-pi-footer-state cwd branch provider model stats tl supports?
-            session-name
+            session-name #f
           ) ;%make-pi-footer-state
         ) ;component-data-set!
         comp
@@ -203,6 +208,14 @@
 
     (define (pi-footer-set-session-name! comp session-name)
       (pi-footer-state-session-name-set! (%footer-state comp) session-name)
+    ) ;define
+
+    (define (pi-footer-set-message! comp msg)
+      (pi-footer-state-message-set! (%footer-state comp) msg)
+    ) ;define
+
+    (define (pi-footer-message comp)
+      (pi-footer-state-message (%footer-state comp))
     ) ;define
 
   ) ;begin

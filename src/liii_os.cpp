@@ -660,6 +660,15 @@ pump_console_input (HANDLE hIn, long timeout_ms) {
     /* Ctrl+Alt 组合优先按 Ctrl 语义编码（沿用 Ctrl 码段），避免语义被 Alt 覆盖 */
     bool alt_key= is_alt && !is_ctrl;
 
+    // Ctrl+Shift+C -> Kitty / CSI u "\x1b[99;6u"
+    if ((virt == 'C' || virt == 'c') && is_ctrl && is_shift) {
+      const char* seq= "\x1b[99;6u";
+      for (const char* p= seq; *p; ++p) {
+        g_console_key_queue.push_back ((int) (unsigned char) *p);
+      }
+      return true;
+    }
+
     // Shift-Tab
     if (virt == VK_TAB && is_shift) {
       g_console_key_queue.push_back (353); // curses KEY_BTAB
@@ -1033,6 +1042,90 @@ glue_os_tty_p (s7_scheme* sc) {
   glue_define (sc, name, desc, f_os_tty_p, 1, 0);
 }
 
+#ifdef TB_CONFIG_OS_WINDOWS
+static bool
+win32_open_clipboard (HWND owner) {
+  for (int attempt= 0; attempt < 5; ++attempt) {
+    if (OpenClipboard (owner)) {
+      return true;
+    }
+    Sleep (10);
+  }
+  return false;
+}
+
+static bool
+win32_set_clipboard_text (const char* utf8_text) {
+  if (!utf8_text) {
+    return false;
+  }
+
+  int wlen= MultiByteToWideChar (CP_UTF8, 0, utf8_text, -1, NULL, 0);
+  if (wlen <= 0) {
+    wlen= 1;
+  }
+
+  HWND owner= CreateWindowExW (0, L"STATIC", NULL, 0, 0, 0, 0, 0, HWND_MESSAGE, NULL, GetModuleHandleA (NULL), NULL);
+
+  if (!win32_open_clipboard (owner)) {
+    if (owner) {
+      DestroyWindow (owner);
+    }
+    return false;
+  }
+
+  bool    success= false;
+  size_t  bytes  = (size_t) wlen * sizeof (wchar_t);
+  HGLOBAL hMem   = GlobalAlloc (GMEM_MOVEABLE, bytes);
+  if (hMem) {
+    wchar_t* wstr= (wchar_t*) GlobalLock (hMem);
+    if (wstr) {
+      if (MultiByteToWideChar (CP_UTF8, 0, utf8_text, -1, wstr, wlen) > 0) {
+        wstr[wlen - 1]= L'\0';
+      }
+      else {
+        wstr[0]= L'\0';
+      }
+      GlobalUnlock (hMem);
+      if (EmptyClipboard () && SetClipboardData (CF_UNICODETEXT, hMem) != NULL) {
+        success= true;
+      }
+    }
+    if (!success) {
+      GlobalFree (hMem);
+    }
+  }
+
+  CloseClipboard ();
+  if (owner) {
+    DestroyWindow (owner);
+  }
+  return success;
+}
+#endif
+
+static s7_pointer
+f_os_set_clipboard_text (s7_scheme* sc, s7_pointer args) {
+  s7_pointer text_arg= s7_car (args);
+  if (!s7_is_string (text_arg)) {
+    return string_type_error (sc, "os-set-clipboard-text!: expected string", text_arg);
+  }
+#ifdef TB_CONFIG_OS_WINDOWS
+  const char* str= s7_string (text_arg);
+  bool        ok = win32_set_clipboard_text (str);
+  return s7_make_boolean (sc, ok);
+#else
+  return s7_make_boolean (sc, false);
+#endif
+}
+
+static void
+glue_os_set_clipboard_text (s7_scheme* sc) {
+  const char* name= "g_os_set_clipboard_text";
+  const char* desc= "(g_os_set_clipboard_text str) => boolean, set system clipboard text";
+  glue_define (sc, name, desc, f_os_set_clipboard_text, 1, 0);
+}
+
 void
 glue_liii_os (s7_scheme* sc) {
   glue_os_arch (sc);
@@ -1058,6 +1151,7 @@ glue_liii_os (s7_scheme* sc) {
   glue_terminal_size (sc);
   glue_console_kbhit (sc);
   glue_console_getch (sc);
+  glue_os_set_clipboard_text (sc);
 }
 
 } // namespace goldfish
