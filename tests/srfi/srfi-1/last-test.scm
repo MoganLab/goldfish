@@ -1,10 +1,5 @@
-(import (liii list) (liii check))
-
-
-(check-set-mode! 'report-failed)
-
-
-;; last 函数测试
+;; last
+;; 获取列表的最后一个元素。
 ;;
 ;; 语法
 ;; ----
@@ -19,24 +14,17 @@
 ;; ------
 ;; any
 ;; 返回列表的最后一个元素。
-;;
-;; 示例
-;; ----
-;; (last '(a b c)) => 'c
-;; (last '(c)) => 'c
-;; (last '(a b . c)) => 'b
-;; (last '(b . c)) => 'b
 
+(import (srfi srfi-1) (liii check))
+
+(check-set-mode! 'report-failed)
 
 (check (last '(a b c)) => 'c)
 (check (last '(c)) => 'c)
 
-
 (check (last '(a b . c)) => 'b)
 (check (last '(b . c)) => 'b)
 
-
 (check-catch 'type-error (last '()))
-
 
 (check-report)
