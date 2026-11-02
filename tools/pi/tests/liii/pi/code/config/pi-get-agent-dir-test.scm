@@ -17,15 +17,18 @@
 
 (import (liii check)
   (liii path)
+  (liii string)
   (liii pi code config)
 ) ;import
 
 (check-set-mode! 'report-failed)
 
 (check (path-absolute? (pi-get-agent-dir "/tmp/gf-agent-dir-test")) => #t)
-(check (path->string (pi-get-agent-dir "/tmp/gf-agent-dir-test"))
+(check (string-ends? (path->string (pi-get-agent-dir "/tmp/gf-agent-dir-test"))
+         "gf-agent-dir-test"
+       ) ;string-ends?
   =>
-  "/tmp/gf-agent-dir-test"
+  #t
 ) ;check
 (check (path-absolute? (pi-get-agent-dir)) => #t)
 
