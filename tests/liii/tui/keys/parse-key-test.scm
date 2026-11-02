@@ -1,3 +1,19 @@
+;; parse-key
+;; 解析单次按键输入，将按键字符串转换为按键名。
+;;
+;; 语法
+;; ----
+;; (parse-key input)
+;;
+;; 参数
+;; ----
+;; input : string?，待解析的按键输入
+;;
+;; 返回值
+;; ----
+;; 普通字符返回该字符的字符串，控制键与转义序列返回按键符号
+;; （如 enter、ctrl-d、up），空输入返回 #f。
+
 (import (liii check) (liii tui keys))
 
 (check-set-mode! 'report-failed)
