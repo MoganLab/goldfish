@@ -30,24 +30,23 @@
 ;; 与终端默认光标形状（Windows beam / Linux block）无关。
 
 ;; 光标处字符被反显包裹
-(let ((selector (make-model-selector
-                  (list (cons 'provider "google") (cons 'id "gemini-2.5-pro"))
+(let ((selector (make-model-selector (list (cons 'provider "google") (cons 'id "gemini-2.5-pro"))
                   #f
                   '()
                   (lambda (m) #f)
                   (lambda () #f)
                   (lambda (m) #f)
                 ) ;make-model-selector
-     ) ;selector
-    ) ;
+      ) ;selector
+     ) ;
   (component-handle-input selector "g")
   (component-handle-input selector "m")
   ;; 光标在行尾（"m" 之后）：反显空格作方块光标
   (let* ((lines (component-render selector 100))
          (line (find (lambda (l) (string-contains? l "gm\x1b;[7m \x1b;[0m")) lines))
-        ) ;let
+        ) ;
     (check-true (string? line))
-  ) ;let
-) ;let*
+  ) ;let*
+) ;let
 
 (check-report)
