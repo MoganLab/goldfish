@@ -1,3 +1,24 @@
+;; pi-model-supports-thinking?
+;; 查询模型目录中的 reasoning 元数据，判断模型是否支持思考级别设置。
+;;
+;; 语法
+;; ----
+;; (pi-model-supports-thinking? models-store provider model-id)
+;;
+;; 参数
+;; ----
+;; models-store : alist
+;; provider 到模型条目的模型目录。
+;; provider : string | symbol
+;; 供应商名称。
+;; model-id : string
+;; 要查询的模型标识。
+;;
+;; 返回值
+;; ----
+;; boolean
+;; 找到模型时返回其 reasoning 字段的布尔值；模型或元数据不存在时返回 #t。
+
 (import (liii check) (liii pi code config))
 
 (check-set-mode! 'report-failed)

@@ -1,3 +1,20 @@
+;; pi-build-user-catalog
+;; 按白名单顺序装配用户 provider 与模型目录，并保留白名单与 provider 文件语义。
+;;
+;; 语法
+;; ----
+;; (pi-build-user-catalog config-dir)
+;;
+;; 参数
+;; ----
+;; config-dir : string
+;; 用户配置目录。
+;;
+;; 返回值
+;; ----
+;; alist
+;; provider 到 provider 字段与 models 列表的目录。
+
 (import (liii check)
         (liii string)
         (liii path)
