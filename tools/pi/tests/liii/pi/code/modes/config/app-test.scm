@@ -1,3 +1,28 @@
+;; pi-config-run
+;; gf pi config 三列配置 TUI 主循环：进入备用屏与 raw 模式后循环轮询按键、
+;; 分发处理并渲染，q/Esc/Ctrl+C 退出；空闲分支检测终端尺寸变化并自动
+;; 清屏重绘。本文件覆盖导航、启停、设默认模型、只读覆盖层与缩窗自适应。
+;;
+;; 语法
+;; ----
+;; (pi-config-run config-dir :terminal term :env env :nested nested)
+;;
+;; 参数
+;; ----
+;; config-dir : string
+;; 用户配置目录。
+;; :terminal : terminal（可选）
+;; 终端实例，缺省为标准终端；测试传入 virtual-terminal。
+;; :env : alist 或 #f（可选）
+;; 环境变量表；#f 时读进程环境。
+;; :nested : boolean（可选）
+;; 由外层 TUI（如 gf pi 的 /config）调用时为 #t，不进/退备用屏。
+;;
+;; 返回值
+;; ------
+;; symbol
+;; 退出方式：q 返回 'chat，Esc/Ctrl+C 返回 'quit。
+
 (import (scheme base)
   (liii check)
   (liii list)

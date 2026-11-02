@@ -1,3 +1,29 @@
+;; pi-config-render-overlay
+;; v 只读覆盖层渲染：居中盒子展示光标条目对应配置文件的原文，
+;; 生成行数在任何高度下严格等于终端高度。
+;;
+;; 语法
+;; ----
+;; (pi-config-render-overlay view width height offset message)
+;;
+;; 参数
+;; ----
+;; view : 覆盖层视图
+;; pi-config-file-view 生成的文件视图。
+;; width : integer
+;; 终端宽度。
+;; height : integer
+;; 终端高度。
+;; offset : integer
+;; 滚动偏移。
+;; message : string
+;; 提示行消息。
+;;
+;; 返回值
+;; ------
+;; list of string
+;; 恰好 height 行的渲染帧。
+
 (import (scheme base)
   (liii check)
   (liii list)

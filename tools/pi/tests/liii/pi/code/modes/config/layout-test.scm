@@ -1,3 +1,32 @@
+;; pi-config-render
+;; ranger 风格三列纯文本渲染：输入 state、光标与激活列、终端宽高，
+;; 输出恰好 height 行、每行可见宽度不超过 width 的字符串列表；
+;; 列宽不足时隐藏第三列，任何高度下行数严格守恒。
+;;
+;; 语法
+;; ----
+;; (pi-config-render st cursor active width height message)
+;;
+;; 参数
+;; ----
+;; st : pi-config-state
+;; 配置视图模型。
+;; cursor : list
+;; 光标 ((provider . i) (model . j))。
+;; active : integer
+;; 激活列编号 0/1/2。
+;; width : integer
+;; 终端宽度。
+;; height : integer
+;; 终端高度。
+;; message : string（可选）
+;; 提示行消息，空串时显示键位提示。
+;;
+;; 返回值
+;; ------
+;; list of string
+;; 恰好 height 行的渲染帧。
+
 (import (scheme base)
   (liii check)
   (liii string)

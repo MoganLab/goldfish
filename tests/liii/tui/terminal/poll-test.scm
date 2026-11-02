@@ -1,3 +1,22 @@
+;; terminal-poll-key
+;; 非阻塞轮询终端输入：读取一个按键或鼠标事件并解析为标准键名，
+;; 无输入或收到不完整转义序列时返回 #f。本文件同时覆盖
+;; (liii tui terminal poll) 的粘贴模式开关、UTF-8 多字节与转义序列解析。
+;;
+;; 语法
+;; ----
+;; (terminal-poll-key term)
+;;
+;; 参数
+;; ----
+;; term : terminal
+;; 终端实例（测试使用 virtual-terminal）。
+;;
+;; 返回值
+;; ------
+;; symbol 或 string 或 mouse-event 或 #f
+;; 按键名或单字符；不完整 CSI/SS3 序列与无输入时为 #f。
+
 (import (liii check) (liii tui terminal) (liii tui terminal poll))
 
 (check-set-mode! 'report-failed)
