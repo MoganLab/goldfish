@@ -1,8 +1,24 @@
+;; openai-build-endpoint
+;; 构造发往 OpenAI Chat Completions 端点的完整 URL。
+;;
+;; 语法
+;; ----
+;; (openai-build-endpoint base-url)
+;;
+;; 参数
+;; ----
+;; base-url : string? | #f
+;; 服务商基础地址；缺省或 #f 时使用官方地址 https://api.openai.com/v1。
+;;
+;; 返回值
+;; ----
+;; string
+;; 完整的 chat/completions 请求 URL。
+
 (import (liii check) (liii pi ai api openai-completions))
 
 (check-set-mode! 'report-failed)
 
-;; openai-build-endpoint
 (check (openai-build-endpoint "https://api.kimi.com/coding/v1")
   => "https://api.kimi.com/coding/v1/chat/completions")
 (check (openai-build-endpoint "https://api.kimi.com/coding")

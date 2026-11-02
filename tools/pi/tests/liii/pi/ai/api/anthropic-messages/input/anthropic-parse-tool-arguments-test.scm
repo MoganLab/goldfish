@@ -1,11 +1,25 @@
+;; anthropic-parse-tool-arguments
+;; 解析响应中的 tool_use input，统一转换为 Scheme 内部使用的 arguments alist。
+;;
+;; 语法
+;; ----
+;; (anthropic-parse-tool-arguments raw)
+;;
+;; 参数
+;; ----
+;; raw : alist | string? | #f | null
+;; 响应中的 tool_use input，支持 alist、JSON 字符串与空值。
+;;
+;; 返回值
+;; ----
+;; alist
+;; 内部 arguments alist；空值或无法解析时返回空列表。
+
 (import (liii check)
   (liii pi ai api anthropic-messages input)
 ) ;import
 
 (check-set-mode! 'report-failed)
-
-;; anthropic-parse-tool-arguments
-;; 解析响应中的 tool_use input，统一转换为 Scheme 内部使用的 arguments alist。
 
 ;; 1. 空对象/空值返回 '()
 (check (anthropic-parse-tool-arguments '()) => '())

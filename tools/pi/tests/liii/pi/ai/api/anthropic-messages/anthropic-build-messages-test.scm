@@ -1,7 +1,3 @@
-(import (liii check) (liii json) (liii string) (liii pi ai api anthropic-messages) (liii pi ai event) (liii pi ai message))
-
-(check-set-mode! 'report-failed)
-
 ;; anthropic-build-messages
 ;; 将内部会话消息历史转换为 Anthropic Messages API 消息。
 ;;
@@ -26,10 +22,11 @@
 ;; 空 content 的 assistant 消息（如 ESC abort 后 stopReason=aborted 的残留）
 ;; 被整体跳过，不进入 API 请求（对齐上游 blocks 为空时 continue），
 ;; 跳过后允许产生连续 user 消息。
-;;
-;; 示例
-;; ----
-;; (anthropic-build-messages (list (pi-user-message "hello"))) => #((("role" . "user") ...))
+
+(import (liii check) (liii json) (liii string) (liii pi ai api anthropic-messages) (liii pi ai event) (liii pi ai message))
+
+(check-set-mode! 'report-failed)
+
 (let* ((messages (list (list (cons 'role "user") (cons 'content "hello"))
                        (list (cons 'role "assistant")
                              (cons 'content (list (list (cons 'type "text") (cons 'text "Let me check"))

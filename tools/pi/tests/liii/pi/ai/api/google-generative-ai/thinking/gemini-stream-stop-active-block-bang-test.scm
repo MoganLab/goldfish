@@ -1,5 +1,3 @@
-(import (liii check) (liii pi ai api google-generative-ai thinking))
-
 ;; gemini-stream-stop-active-block!
 ;; 结束 Gemini 流中当前活动的文本或 thinking 块。
 ;;
@@ -22,10 +20,8 @@
 ;; 说明
 ;; ----
 ;; 没有活动块时不执行任何操作；结束事件包含块索引、完整内容和 usage。
-;;
-;; 示例
-;; ----
-;; (gemini-stream-stop-active-block! stream-state on-event)
+
+(import (liii check) (liii pi ai api google-generative-ai thinking))
 
 (check-set-mode! 'report-failed)
 

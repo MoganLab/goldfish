@@ -1,11 +1,30 @@
+;; gemini-build-search-tools
+;; 构造包含 googleSearch 节的 Gemini tools 配置向量。
+;;
+;; 语法
+;; ----
+;; (gemini-build-search-tools)
+;; (gemini-build-search-tools tool-decls)
+;;
+;; 参数
+;; ----
+;; tool-decls : list | vector | #f，可选
+;; 已有的函数声明列表或 tools 向量；缺省为空列表。
+;;
+;; 返回值
+;; ----
+;; vector
+;; 包含 googleSearch 声明的 tools 向量。
+;;
+;; 说明
+;; ----
+;; 传入空声明时仅包含 googleSearch；传入函数声明时先包含 functionDeclarations
+;; 再追加 googleSearch；已包含时保持幂等。
+
 (import (scheme base)
         (liii check)
         (liii json)
         (liii pi ai api google-generative-ai grounding))
-
-(check-set-mode! 'report-failed)
-
-;; gemini-build-search-tools
 ;; 1. 无参数或传入空列表，仅生成包含 googleSearch 节的 tools vector
 (let ((tools (gemini-build-search-tools)))
   (check-true (vector? tools))

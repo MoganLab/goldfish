@@ -1,3 +1,30 @@
+;; anthropic-request
+;; 向 Anthropic Messages API 发起非流式请求，并将响应转换为内部 assistant 消息。
+;;
+;; 语法
+;; ----
+;; (anthropic-request config messages [system-instruction [tool-names [timeout [opt-retry]]]])
+;;
+;; 参数
+;; ----
+;; config : alist
+;; 包含 provider、model-id、api-key、model-meta 和重试配置等请求参数。
+;; messages : list
+;; 内部会话消息列表。
+;; system-instruction : string | #f，可选
+;; 系统提示词。
+;; tool-names : list | #f，可选
+;; 允许模型调用的工具名列表。
+;; timeout : number，可选，默认为 300
+;; 请求超时秒数。
+;; opt-retry : alist | #f，可选
+;; 本次请求的重试覆盖配置。
+;;
+;; 返回值
+;; ----
+;; alist
+;; 包含 content、stopReason 和 usage 的 assistant 消息；失败时包含 errorMessage。
+
 (import (liii check)
   (liii string)
   (liii path)

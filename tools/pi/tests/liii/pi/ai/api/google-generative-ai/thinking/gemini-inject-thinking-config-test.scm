@@ -1,3 +1,22 @@
+;; gemini-inject-thinking-config
+;; 按思考级别向 Gemini 请求体注入 generationConfig.thinkingConfig。
+;;
+;; 语法
+;; ----
+;; (gemini-inject-thinking-config req-body level)
+;;
+;; 参数
+;; ----
+;; req-body : alist
+;; Gemini 请求体 alist。
+;; level : string? | #f
+;; 思考级别；不受支持时保持请求体不变。
+;;
+;; 返回值
+;; ----
+;; alist
+;; 注入 thinkingConfig 后的请求体。
+
 (import (liii check) (liii pi ai api google-generative-ai thinking))
 
 (check-set-mode! 'report-failed)

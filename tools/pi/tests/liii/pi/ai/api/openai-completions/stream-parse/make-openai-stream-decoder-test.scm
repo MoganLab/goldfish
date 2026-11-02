@@ -1,9 +1,3 @@
-(import (liii check)
-  (liii pi ai event)
-  (liii pi ai api openai-completions)
-  (liii pi ai message)
-) ;import
-
 ;; make-openai-stream-decoder
 ;; 创建 OpenAI Chat Completions SSE 流解码器，累积文本和工具调用增量。
 ;;
@@ -27,11 +21,12 @@
 ;; ----
 ;; 同一文本块的增量会合并，工具调用按 index 聚合 id、name 和 arguments。
 ;; 收到 [DONE] 时完成所有未结束的工具调用。
-;;
-;; 示例
-;; ----
-;; (define decoder (make-openai-stream-decoder stream-state on-ev))
-;; (decoder "data: [DONE]\n\n")
+
+(import (liii check)
+  (liii pi ai event)
+  (liii pi ai api openai-completions)
+  (liii pi ai message)
+) ;import
 
 (check-set-mode! 'report-failed)
 

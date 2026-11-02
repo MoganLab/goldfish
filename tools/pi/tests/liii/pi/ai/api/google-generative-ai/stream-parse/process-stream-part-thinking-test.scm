@@ -1,11 +1,3 @@
-(import (liii check)
-  (liii pi ai message)
-  (liii pi ai api google-generative-ai stream-parse)
-  (liii pi ai api google-generative-ai thinking)
-) ;import
-
-(check-set-mode! 'report-failed)
-
 ;; process-stream-part
 ;; 处理 Gemini 流式响应中的单个 part，并更新文本、thinking 或工具调用状态。
 ;;
@@ -30,10 +22,14 @@
 ;; 说明
 ;; ----
 ;; 从 thinking 切换到普通文本时，会先结束 thinking 块再开始文本块。
-;;
-;; 示例
-;; ----
-;; (process-stream-part '(("text" . "Hello")) stream-state on-event)
+
+(import (liii check)
+  (liii pi ai message)
+  (liii pi ai api google-generative-ai stream-parse)
+  (liii pi ai api google-generative-ai thinking)
+) ;import
+
+(check-set-mode! 'report-failed)
 
 ;; 测试 process-stream-part 在流式接收 thinking 块并过渡到普通 text 块时的事件和结构
 (let* ((stream-state (vector '() #f '((input . 10) (output . 5)) '() #f #f #f #f))

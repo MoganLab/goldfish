@@ -1,5 +1,3 @@
-(import (liii check) (liii pi ai api openai-completions) (liii pi ai message))
-
 ;; openai-request-stream
 ;; 向 OpenAI Chat Completions API 发起流式请求，并返回内部 assistant 消息。
 ;;
@@ -34,10 +32,8 @@
 ;; 说明
 ;; ----
 ;; 支持文本与工具调用增量、自动重试、API key 轮换、空闲超时和用户中止。
-;;
-;; 示例
-;; ----
-;; (openai-request-stream config messages #f '("bash") on-event 10)
+
+(import (liii check) (liii pi ai api openai-completions) (liii pi ai message))
 
 (check-set-mode! 'report-failed)
 
