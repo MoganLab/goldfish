@@ -1,5 +1,3 @@
-(import (scheme base) (liii check) (liii json) (liii goldcheck path))
-
 ;; exclude-entry->path
 ;; 将 exclude 配置项统一转换为路径模式字符串。
 ;;
@@ -20,6 +18,8 @@
 ;; 错误
 ;; ----
 ;; type-error: 当 entry 既非字符串也非对象，或对象的 path 字段非字符串时抛出。
+
+(import (scheme base) (liii check) (liii json) (liii goldcheck path))
 
 (check-set-mode! 'report-failed)
 
