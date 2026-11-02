@@ -49,9 +49,7 @@
 
     (define (%provider-at st index)
       (let ((providers (pi-config-state-providers st)))
-        (and (pair? providers)
-          (list-ref providers (%clamp index (- (length providers) 1)))
-        ) ;and
+        (and (pair? providers) (list-ref providers (%clamp index (length providers))))
       ) ;let
     ) ;define
 

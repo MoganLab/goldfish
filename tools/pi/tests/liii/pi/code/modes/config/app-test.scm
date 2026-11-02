@@ -7,6 +7,8 @@
   (liii path stat)
   (scheme time)
   (liii tui)
+  (liii pi code modes config state)
+  (liii pi code modes config layout)
   (liii pi code modes config app)
 ) ;import
 
@@ -172,5 +174,55 @@
     (check (length screen) => 18)
   ) ;let
 ) ;let*
+
+;; 11. 回归：最后一个 provider 的模型列可完整向下导航。
+;;     修复前 %provider-at 把 provider 下标错夹到倒数第二个 provider，
+;;     m-count 错用其模型数（夹具中 minimax-cn 为 4），光标卡在索引 3
+;;     （zai-coding-cn 的 glm-5-turbo），无法继续下移。
+(let* ((dir (string-append FIXTURE "/config-tui"))
+       (st (pi-config-state dir :env '()))
+       (providers (pi-config-state-providers st))
+       (n (length providers))
+       (last-p (list-ref providers (- n 1)))
+       (prev-p (list-ref providers (- n 2)))
+      ) ;
+  ;; 夹具形状：最后一个 provider 是 zai-coding-cn，模型数多于倒数第二个（minimax-cn）
+  (check (pi-config-provider-id last-p) => "zai-coding-cn")
+  (check (< (length (pi-config-provider-models prev-p))
+           (length (pi-config-provider-models last-p))
+         ) ;<
+    =>
+    #t
+  ) ;check
+  ;; 模型列 ↓ 越过倒数第二个 provider 的模型数边界（3 → 4）
+  (let ((r (pi-config-key-handler st (pi-config-cursor (- n 1) 3) 1 'down)))
+    (check (cdr (assoc 'model (car r))) => 4)
+    (check (cdr (assoc 'provider (car r))) => (- n 1))
+  ) ;let
+  ;; G 直达最后一个 provider 的最后一个模型
+  (let ((r (pi-config-key-handler st (pi-config-cursor (- n 1) 0) 1 "G")))
+    (check (cdr (assoc 'model (car r)))
+      =>
+      (- (length (pi-config-provider-models last-p)) 1)
+    ) ;check
+  ) ;let
+) ;let*
+
+;; 11b. 端到端：导航到最后一个 provider 的模型列，↓ 连续下移不卡在索引 3。
+;;      夹具 zai 列表：glm-4.6v(0)…glm-5.1(3) glm-5.2(4) glm-5.2-highspeed(5)…
+;;      修复前光标卡在索引 3（preview 停在 glm-5.1）；修复后 5 次 ↓ 到索引 5。
+(let ((dir (make-dir "last-provider-nav"))
+      (vt (make-virtual-terminal :width 120 :height 24))
+     ) ;
+  ;; 5 次 ↓ 到最后一个 provider（zai-coding-cn），→ 进模型列，5 次 ↓
+  (for-each (lambda (k) (virtual-terminal-push-key! vt k))
+    (list 'down 'down 'down 'down 'down 'right 'down 'down 'down 'down 'down 'q)
+  ) ;for-each
+  (check (pi-config-run dir :terminal vt :env '()) => 'chat)
+  (let ((screen (string-join (virtual-terminal-screen vt) "\n")))
+    (check (string-contains screen "preview · glm-5.2-highspeed") => #t)
+    (check (string-contains screen "preview · glm-5.1") => #f)
+  ) ;let
+) ;let
 
 (check-report)
