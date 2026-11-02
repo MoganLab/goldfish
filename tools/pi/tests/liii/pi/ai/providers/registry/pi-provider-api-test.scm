@@ -1,9 +1,23 @@
+;; pi-provider-api
+;; 获取服务商注册表声明的协议实现标识。
+;;
+;; 语法
+;; ----
+;; (pi-provider-api provider)
+;;
+;; 参数
+;; ----
+;; provider : string? 或 symbol?
+;; 服务商标识符。
+;;
+;; 返回值
+;; ----
+;; string?
+;; 协议实现标识（如 "openai-completions"、"anthropic-messages" 等）。
+
 (import (liii check) (liii pi ai providers registry))
 
 (check-set-mode! 'report-failed)
-
-;; pi-provider-api
-;; provider 注册表声明的协议实现标识，dispatch 据此路由请求。
 (check (pi-provider-api "deepseek") => "anthropic-messages")
 (check (pi-provider-api "minimax-cn") => "anthropic-messages")
 (check (pi-provider-api "minimax-cn") => "anthropic-messages")

@@ -1,9 +1,23 @@
+;; pi-provider-base-url
+;; 获取服务商的默认端点基础地址。
+;;
+;; 语法
+;; ----
+;; (pi-provider-base-url provider)
+;;
+;; 参数
+;; ----
+;; provider : string? 或 symbol?
+;; 服务商标识符。
+;;
+;; 返回值
+;; ----
+;; string? 或 #f
+;; 服务商默认 baseUrl 字符串；若未注册则返回 #f。
+
 (import (liii check) (liii pi ai providers registry))
 
 (check-set-mode! 'report-failed)
-
-;; pi-provider-base-url
-;; 各 provider 的默认端点，与 models 目录解析出的默认 baseUrl 一致。
 (check (pi-provider-base-url "deepseek")
   =>
   "https://api.deepseek.com/anthropic"

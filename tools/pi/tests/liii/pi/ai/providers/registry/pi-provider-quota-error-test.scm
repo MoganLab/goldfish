@@ -1,10 +1,3 @@
-(import (liii check)
-  (liii pi ai providers quota)
-  (liii pi ai providers registry)
-) ;import
-
-(check-set-mode! 'report-failed)
-
 ;; pi-provider-quota-error
 ;; 调用某个 provider 注册的额度耗尽识别函数。
 ;;
@@ -32,6 +25,13 @@
 ;; ----
 ;; 处理函数抛异常时本函数返回 #f：额度识别失败不应打断请求主流程。
 ;; zai 是 zai-coding-cn 的路由别名，两者行为一致。
+
+(import (liii check)
+  (liii pi ai providers quota)
+  (liii pi ai providers registry)
+) ;import
+
+(check-set-mode! 'report-failed)
 
 (define weekly-body
   "{\"error\":{\"code\":\"1310\",\"message\":\"每周额度已用尽\"}}"
