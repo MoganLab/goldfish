@@ -1,10 +1,5 @@
-(import (liii list) (liii check))
-
-
-(check-set-mode! 'report-failed)
-
-
-;; eighth 函数测试
+;; eighth
+;; 获取列表的第八个元素。
 ;;
 ;; 语法
 ;; ----
@@ -12,24 +7,21 @@
 ;;
 ;; 参数
 ;; ----
-;; list : list?
+;; list : pair?
 ;; 至少包含八个元素的列表。
 ;;
 ;; 返回值
-;; ----
+;; ------
 ;; any
 ;; 返回列表的第八个元素。
-;;
-;; 示例
-;; ----
-;; (eighth '(1 2 3 4 5 6 7 8 9 10)) => 8
 
+(import (srfi srfi-1) (liii check))
+
+(check-set-mode! 'report-failed)
 
 (check (eighth '(1 2 3 4 5 6 7 8 9 10)) => 8)
 
-
 (check-catch 'type-error (eighth '(1 2 3 4 5 6 7)))
 (check-catch 'type-error (eighth 'not-a-list))
-
 
 (check-report)
