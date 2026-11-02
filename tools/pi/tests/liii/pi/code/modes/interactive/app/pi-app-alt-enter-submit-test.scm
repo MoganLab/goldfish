@@ -1,3 +1,25 @@
+;; pi-app-alt-enter-submit
+;; 应用繁忙时 Alt+Enter 注入 follow-up 提交与 Shift+Enter 换行测试。
+;;
+;; 语法
+;; ----
+;; (pi-app-alt-enter-submit)
+;;
+;; 参数
+;; ----
+;; 无
+;;
+;; 返回值
+;; ------
+;; any
+;;
+;; 说明
+;; ----
+;; 验证在 pi-queue 繁忙状态下：
+;; 1. Alt+Enter 将消息作为 follow-up 提交并清空编辑器；
+;; 2. 普通 Enter 仍然作为 steering 提交；
+;; 3. Shift+Enter 仅插入换行而不提交。
+
 (import (scheme base)
   (liii list)
   (liii string)
