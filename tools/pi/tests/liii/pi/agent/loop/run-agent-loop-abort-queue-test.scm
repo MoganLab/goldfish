@@ -1,3 +1,23 @@
+;; run-agent-loop-abort-queue
+;; 测试 run-agent-loop 遇到中止时与 steering 及 follow-up 消息队列的交互与重置行为。
+;;
+;; 语法
+;; ----
+;; (run-agent-loop config msgs (system-prompt "") (emit #f) (timeout 30) (request-fn #f))
+;;
+;; 参数
+;; ----
+;; config : list?，包含队列轮询回调与执行器的 Agent 配置 alist。
+;; msgs : list?，初始消息列表。
+;; system-prompt : (or string? procedure?)，系统提示词。
+;; emit : (or procedure? #f)，事件派发回调。
+;; timeout : real?，单轮超时时间（秒）。
+;; request-fn : (or procedure? #f)，模型请求回调。
+;;
+;; 返回值
+;; ----
+;; list?，执行完成或中止后的消息列表。
+
 (import (scheme base)
   (liii go)
   (liii list)

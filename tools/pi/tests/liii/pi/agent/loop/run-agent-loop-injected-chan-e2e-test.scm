@@ -1,3 +1,23 @@
+;; run-agent-loop-injected-chan-e2e
+;; 端到端测试通过 channel 注入队列消息驱动 run-agent-loop 的完整流程。
+;;
+;; 语法
+;; ----
+;; (run-agent-loop config msgs (system-prompt "") (emit #f) (timeout 30) (request-fn #f))
+;;
+;; 参数
+;; ----
+;; config : list?，包含 worker 通道轮询回调的 Agent 配置 alist。
+;; msgs : list?，初始消息列表。
+;; system-prompt : (or string? procedure?)，系统提示词。
+;; emit : (or procedure? #f)，事件派发回调。
+;; timeout : real?，单轮超时时间（秒）。
+;; request-fn : (or procedure? #f)，模型请求回调。
+;;
+;; 返回值
+;; ----
+;; list?，执行完成后的消息列表。
+
 (import (scheme base)
   (liii go)
   (liii list)
@@ -14,10 +34,9 @@
 ;; 验证跨线程通道与循环钩子的完整集成链路
 
 (define (make-text-response text)
-  (pi-assistant-message
-    (list (list (cons 'type "text") (cons 'text text)))
+  (pi-assistant-message (list (list (cons 'type "text") (cons 'text text)))
     :stop-reason "stop"
-    :usage '((input . 1) (output . 1) (total . 2))
+    :usage       '((input . 1) (output . 1) (total . 2))
   ) ;pi-assistant-message
 ) ;define
 
@@ -31,20 +50,21 @@
       ) ;list
     ) ;list
     :stop-reason "toolUse"
-    :usage '((input . 1) (output . 1) (total . 2))
+    :usage       '((input . 1) (output . 1) (total . 2))
   ) ;pi-assistant-message
 ) ;define
 
 (define (ok-exec name . args)
-  (list (cons 'content
-         (list (list (cons 'type "text") (cons 'text "tool output")))
-       ) ;list
+  (list
+    (cons 'content (list (list (cons 'type "text") (cons 'text "tool output"))))
     (cons 'isError #f)
   ) ;list
 ) ;define
 
 ;; 测试项 1 的执行器：第 1 轮工具执行期间投递两条 steering（模拟主线程）
+
 (define *steer-ch* #f)
+
 (define (exec-and-steer name . args)
   (when *steer-ch*
     (chan-send! *steer-ch* "先看这个" 10)
@@ -58,9 +78,7 @@
 ) ;define
 
 (define (user-texts-of msgs)
-  (map pi-user-message-content
-    (filter pi-user-message? msgs)
-  ) ;map
+  (map pi-user-message-content (filter pi-user-message? msgs))
 ) ;define
 
 ;; -----------------------------------------------------------------------------
@@ -82,33 +100,41 @@
              (make-text-response "done")
            ) ;if
          ) ;lambda
-        )
+       ) ;request-fn
        (emit #f)
-       (cfg (list (cons 'provider "test")
-              (cons 'tools '("bash"))
-              (cons 'settings '())
-              (cons 'execute-tool-call exec-and-steer)
-              (cons 'get-steering-messages
-                (lambda () (%poll-one-injected steer-ch event-ch))
-              )
-            ) ;list
-           )
-        ) ;
+       (cfg
+         (list (cons 'provider "test")
+           (cons 'tools '("bash"))
+           (cons 'settings '())
+           (cons 'execute-tool-call exec-and-steer)
+           (cons 'get-steering-messages (lambda () (%poll-one-injected steer-ch event-ch)))
+         ) ;list
+       ) ;cfg
+      ) ;
   ;; 模拟主线程：第 1 轮工具执行期间投递两条 steering（见 exec-and-steer）
   (set! *steer-ch* steer-ch)
-  (let ((res-msgs (run-agent-loop cfg (list (pi-user-message "hi")) "sys" emit 10 5
-                    600 #f request-fn
+  (let ((res-msgs (run-agent-loop cfg
+                    (list (pi-user-message "hi"))
+                    "sys"
+                    emit
+                    10
+                    5
+                    600
+                    #f
+                    request-fn
                   ) ;run-agent-loop
-               ) ;res-msgs
-           ) ;let
+        ) ;res-msgs
+       ) ;
     ;; 3 轮请求：工具轮 + 2 条 steering 各驱动一轮（one-at-a-time 语义）
     (check (vector-ref req-count 0) => 3)
     ;; 第 2 轮上下文：toolResult 之后紧跟第 1 条 steering（one-at-a-time：
     ;; 第 2 条在后续轮次注入）
     (check (roles-of (vector-ref second-req-msgs 0))
-      => '("user" "assistant" "toolResult" "user")
+      =>
+      '("user" "assistant" "toolResult" "user")
     ) ;check
-    (check (user-texts-of (vector-ref second-req-msgs 0)) => '("hi" "先看这个"))
+    (check (user-texts-of (vector-ref second-req-msgs 0)) => '("hi"
+                                                               "先看这个"))
     ;; 最终消息包含两条注入消息
     (check (user-texts-of res-msgs) => '("hi" "先看这个" "再看那个"))
     ;; event-chan 依次收到两条 user_message 事件（主线程据此同步显示）
@@ -131,23 +157,29 @@
            (vector-set! req-count 0 (+ 1 (vector-ref req-count 0)))
            (make-text-response "done")
          ) ;lambda
-        )
+       ) ;request-fn
        (emit #f)
-       (cfg (list (cons 'provider "test")
-              (cons 'tools '())
-              (cons 'settings '())
-              (cons 'get-follow-up-messages
-                (lambda () (%poll-one-injected fu-ch event-ch))
-              )
-            ) ;list
-           )
-        ) ;
+       (cfg
+         (list (cons 'provider "test")
+           (cons 'tools '())
+           (cons 'settings '())
+           (cons 'get-follow-up-messages (lambda () (%poll-one-injected fu-ch event-ch)))
+         ) ;list
+       ) ;cfg
+      ) ;
   (chan-send! fu-ch "结束后总结" 10)
-  (let ((res-msgs (run-agent-loop cfg (list (pi-user-message "hi")) "sys" emit 10 5
-                    600 #f request-fn
+  (let ((res-msgs (run-agent-loop cfg
+                    (list (pi-user-message "hi"))
+                    "sys"
+                    emit
+                    10
+                    5
+                    600
+                    #f
+                    request-fn
                   ) ;run-agent-loop
-               ) ;res-msgs
-           ) ;let
+        ) ;res-msgs
+       ) ;
     (check (vector-ref req-count 0) => 2)
     (check (user-texts-of res-msgs) => '("hi" "结束后总结"))
     (check (chan-try-recv! event-ch #f) => '(user_message "结束后总结"))
@@ -166,24 +198,30 @@
            (vector-set! req-count 0 (+ 1 (vector-ref req-count 0)))
            (make-text-response "done")
          ) ;lambda
-        )
+       ) ;request-fn
        (emit #f)
-       (cfg (list (cons 'provider "test")
-              (cons 'tools '())
-              (cons 'settings '())
-              (cons 'get-follow-up-messages
-                (lambda () (%poll-one-injected fu-ch event-ch))
-              )
-            ) ;list
-           )
-        ) ;
+       (cfg
+         (list (cons 'provider "test")
+           (cons 'tools '())
+           (cons 'settings '())
+           (cons 'get-follow-up-messages (lambda () (%poll-one-injected fu-ch event-ch)))
+         ) ;list
+       ) ;cfg
+      ) ;
   ;; 关闭通道后轮询应安全返回空表
   (chan-close! fu-ch)
-  (let ((res-msgs (run-agent-loop cfg (list (pi-user-message "hi")) "sys" emit 10 5
-                    600 #f request-fn
+  (let ((res-msgs (run-agent-loop cfg
+                    (list (pi-user-message "hi"))
+                    "sys"
+                    emit
+                    10
+                    5
+                    600
+                    #f
+                    request-fn
                   ) ;run-agent-loop
-               ) ;res-msgs
-           ) ;let
+        ) ;res-msgs
+       ) ;
     (check (vector-ref req-count 0) => 1)
     (check (user-texts-of res-msgs) => '("hi"))
   ) ;let

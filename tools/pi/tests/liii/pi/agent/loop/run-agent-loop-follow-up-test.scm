@@ -1,3 +1,23 @@
+;; run-agent-loop-follow-up
+;; 测试 run-agent-loop 在工具调用结束后自然停止前轮询与注入 follow-up 跟进消息的控制流程。
+;;
+;; 语法
+;; ----
+;; (run-agent-loop config msgs (system-prompt "") (emit #f) (timeout 30) (request-fn #f))
+;;
+;; 参数
+;; ----
+;; config : list?，包含 get-follow-up-messages 回调的 Agent 配置。
+;; msgs : list?，初始消息列表。
+;; system-prompt : (or string? procedure?)，系统提示词。
+;; emit : (or procedure? #f)，事件派发回调。
+;; timeout : real?，单轮超时时间（秒）。
+;; request-fn : (or procedure? #f)，模型请求回调。
+;;
+;; 返回值
+;; ----
+;; list?，执行完成后的完整消息历史列表。
+
 (import (scheme base)
   (liii go)
   (liii list)
@@ -9,18 +29,17 @@
 (check-set-mode! 'report-failed)
 
 (define (make-text-response text)
-  (pi-assistant-message
-    (list (list (cons 'type "text") (cons 'text text)))
+  (pi-assistant-message (list (list (cons 'type "text") (cons 'text text)))
     :stop-reason "stop"
-    :usage '((input . 1) (output . 1) (total . 2))
+    :usage       '((input . 1) (output . 1) (total . 2))
   ) ;pi-assistant-message
 ) ;define
 
 (define (make-error-response)
   (pi-assistant-message '()
-    :stop-reason "error"
+    :stop-reason   "error"
     :error-message "provider exploded"
-    :usage '((input . 1) (output . 1) (total . 2))
+    :usage         '((input . 1) (output . 1) (total . 2))
   ) ;pi-assistant-message
 ) ;define
 
@@ -34,7 +53,7 @@
       ) ;list
     ) ;list
     :stop-reason "toolUse"
-    :usage '((input . 1) (output . 1) (total . 2))
+    :usage       '((input . 1) (output . 1) (total . 2))
   ) ;pi-assistant-message
 ) ;define
 
@@ -57,9 +76,7 @@
 ) ;define
 
 (define (user-texts-of msgs)
-  (map pi-user-message-content
-    (filter pi-user-message? msgs)
-  ) ;map
+  (map pi-user-message-content (filter pi-user-message? msgs))
 ) ;define
 
 ;; -----------------------------------------------------------------------------
@@ -72,9 +89,10 @@
          (lambda (provider config msgs sys-prompt tools on-ev timeout)
            (vector-set! req-count 0 (+ 1 (vector-ref req-count 0)))
            (vector-set! last-req-msgs 0 msgs)
-           (make-text-response (string-append "reply-" (number->string (vector-ref req-count 0))))
+           (make-text-response (string-append "reply-" (number->string (vector-ref req-count 0)))
+           ) ;make-text-response
          ) ;lambda
-        )
+       ) ;request-fn
        ;; follow-up 第 1 次轮询返回一条，之后恒空
        (fu-count (vector 0))
        (get-follow-up
@@ -82,24 +100,36 @@
            (vector-set! fu-count 0 (+ 1 (vector-ref fu-count 0)))
            (if (= (vector-ref fu-count 0) 1) '("再总结一下") '())
          ) ;lambda
-        )
+       ) ;get-follow-up
        (emit (make-emit-collector))
        (cfg (list (cons 'provider "test")
               (cons 'tools '())
               (cons 'settings '())
               (cons 'get-follow-up-messages get-follow-up)
             ) ;list
-           )
-        ) ;
-  (let ((res-msgs (run-agent-loop cfg (list (pi-user-message "hi")) "sys" emit 10 5
-                    600 #f request-fn
+       ) ;cfg
+      ) ;
+  (let ((res-msgs (run-agent-loop cfg
+                    (list (pi-user-message "hi"))
+                    "sys"
+                    emit
+                    10
+                    5
+                    600
+                    #f
+                    request-fn
                   ) ;run-agent-loop
-               ) ;res-msgs
-           ) ;let
+        ) ;res-msgs
+       ) ;
     (check (vector-ref req-count 0) => 2)
     ;; 第 2 轮请求上下文：user → assistant → user(follow-up)
-    (check (roles-of (vector-ref last-req-msgs 0)) => '("user" "assistant" "user"))
-    (check (user-texts-of (vector-ref last-req-msgs 0)) => '("hi" "再总结一下"))
+    (check (roles-of (vector-ref last-req-msgs 0)) => '("user"
+                                                        "assistant"
+                                                        "user"))
+    (check (user-texts-of (vector-ref last-req-msgs 0))
+      =>
+      '("hi" "再总结一下")
+    ) ;check
     ;; 最终消息列表：hi + 回复1 + follow-up + 回复2 共 4 条
     (check (length res-msgs) => 4)
     (check (user-texts-of res-msgs) => '("hi" "再总结一下"))
@@ -130,7 +160,7 @@
            (vector-set! req-count 0 (+ 1 (vector-ref req-count 0)))
            (make-text-response "done")
          ) ;lambda
-        )
+       ) ;request-fn
        (steer-count (vector 0))
        (get-steering
          (lambda ()
@@ -138,7 +168,7 @@
            ;; 轮询#2（文本轮停止前）返回一条，其余恒空
            (if (= (vector-ref steer-count 0) 2) '("改这里") '())
          ) ;lambda
-        )
+       ) ;get-steering
        (fu-count (vector 0))
        (get-follow-up
          (lambda ()
@@ -146,7 +176,7 @@
            ;; 第 1 次轮询返回一条，之后恒空
            (if (= (vector-ref fu-count 0) 1) '("follow-up 后到") '())
          ) ;lambda
-        )
+       ) ;get-follow-up
        (emit (make-emit-collector))
        (cfg (list (cons 'provider "test")
               (cons 'tools '())
@@ -154,13 +184,20 @@
               (cons 'get-steering-messages get-steering)
               (cons 'get-follow-up-messages get-follow-up)
             ) ;list
-           )
-        ) ;
-  (let ((res-msgs (run-agent-loop cfg (list (pi-user-message "hi")) "sys" emit 10 5
-                    600 #f request-fn
+       ) ;cfg
+      ) ;
+  (let ((res-msgs (run-agent-loop cfg
+                    (list (pi-user-message "hi"))
+                    "sys"
+                    emit
+                    10
+                    5
+                    600
+                    #f
+                    request-fn
                   ) ;run-agent-loop
-               ) ;res-msgs
-           ) ;let
+        ) ;res-msgs
+       ) ;
     ;; 第 2 轮由 steering 驱动；第 3 轮由 follow-up 驱动：
     ;; 第 1 次停止检查时 steering 非空，follow-up 未被轮询（优先级）
     (check (vector-ref req-count 0) => 3)
@@ -179,27 +216,34 @@
            (vector-set! req-count 0 (+ 1 (vector-ref req-count 0)))
            (make-error-response)
          ) ;lambda
-        )
+       ) ;request-fn
        (fu-count (vector 0))
        (get-follow-up
          (lambda ()
            (vector-set! fu-count 0 (+ 1 (vector-ref fu-count 0)))
            '("不该被消费")
          ) ;lambda
-        )
+       ) ;get-follow-up
        (emit (make-emit-collector))
        (cfg (list (cons 'provider "test")
               (cons 'tools '())
               (cons 'settings '())
               (cons 'get-follow-up-messages get-follow-up)
             ) ;list
-           )
-        ) ;
-  (let ((res-msgs (run-agent-loop cfg (list (pi-user-message "hi")) "sys" emit 10 5
-                    600 #f request-fn
+       ) ;cfg
+      ) ;
+  (let ((res-msgs (run-agent-loop cfg
+                    (list (pi-user-message "hi"))
+                    "sys"
+                    emit
+                    10
+                    5
+                    600
+                    #f
+                    request-fn
                   ) ;run-agent-loop
-               ) ;res-msgs
-           ) ;let
+        ) ;res-msgs
+       ) ;
     (check (vector-ref req-count 0) => 1)
     (check (vector-ref fu-count 0) => 0)
     (check (length res-msgs) => 2)
@@ -221,16 +265,15 @@
              (make-text-response "done")
            ) ;if
          ) ;lambda
-        )
+       ) ;request-fn
        (exec
          (lambda (name . args)
-           (list (cons 'content
-                  (list (list (cons 'type "text") (cons 'text "done working")))
-                ) ;list
+           (list
+             (cons 'content (list (list (cons 'type "text") (cons 'text "done working"))))
              (cons 'isError #f)
            ) ;list
          ) ;lambda
-        )
+       ) ;exec
        ;; 经扩展事件阻断并 terminate：正常工具结果不携带 terminate，
        ;; 唯一触发途径是 emit-extension-event 返回 block+terminate
        (ext-emit
@@ -240,14 +283,14 @@
              '((action . continue))
            ) ;if
          ) ;lambda
-        )
+       ) ;ext-emit
        (fu-count (vector 0))
        (get-follow-up
          (lambda ()
            (vector-set! fu-count 0 (+ 1 (vector-ref fu-count 0)))
            (if (= (vector-ref fu-count 0) 1) '("收尾说明") '())
          ) ;lambda
-        )
+       ) ;get-follow-up
        (emit (make-emit-collector))
        (cfg (list (cons 'provider "test")
               (cons 'tools '("bash"))
@@ -256,17 +299,25 @@
               (cons 'emit-extension-event ext-emit)
               (cons 'get-follow-up-messages get-follow-up)
             ) ;list
-           )
-        ) ;
-  (let ((res-msgs (run-agent-loop cfg (list (pi-user-message "hi")) "sys" emit 10 5
-                    600 #f request-fn
+       ) ;cfg
+      ) ;
+  (let ((res-msgs (run-agent-loop cfg
+                    (list (pi-user-message "hi"))
+                    "sys"
+                    emit
+                    10
+                    5
+                    600
+                    #f
+                    request-fn
                   ) ;run-agent-loop
-               ) ;res-msgs
-           ) ;let
+        ) ;res-msgs
+       ) ;
     (check (vector-ref req-count 0) => 2)
     ;; 第 2 轮上下文：user → assistant → toolResult → user(follow-up)
     (check (roles-of (vector-ref last-req-msgs 0))
-      => '("user" "assistant" "toolResult" "user")
+      =>
+      '("user" "assistant" "toolResult" "user")
     ) ;check
     (check (user-texts-of res-msgs) => '("hi" "收尾说明"))
   ) ;let
@@ -281,20 +332,28 @@
            (vector-set! req-count 0 (+ 1 (vector-ref req-count 0)))
            (make-text-response "done")
          ) ;lambda
-        )
+       ) ;request-fn
        (emit (make-emit-collector))
-       (cfg (list (cons 'provider "test")
-              (cons 'tools '())
-              (cons 'settings '())
-              (cons 'get-follow-up-messages (lambda () (error 'boom "fu failed")))
-            ) ;list
-           )
-        ) ;
-  (let ((res-msgs (run-agent-loop cfg (list (pi-user-message "hi")) "sys" emit 10 5
-                    600 #f request-fn
+       (cfg
+         (list (cons 'provider "test")
+           (cons 'tools '())
+           (cons 'settings '())
+           (cons 'get-follow-up-messages (lambda () (error 'boom "fu failed")))
+         ) ;list
+       ) ;cfg
+      ) ;
+  (let ((res-msgs (run-agent-loop cfg
+                    (list (pi-user-message "hi"))
+                    "sys"
+                    emit
+                    10
+                    5
+                    600
+                    #f
+                    request-fn
                   ) ;run-agent-loop
-               ) ;res-msgs
-           ) ;let
+        ) ;res-msgs
+       ) ;
     (check (vector-ref req-count 0) => 1)
     (check (length res-msgs) => 2)
   ) ;let
