@@ -25,7 +25,7 @@
 
 (let ((msg (pi-user-message "hello" 1234567890)))
   (check-true (pi-user-message? msg))
-  (check (pi-user-message-content msg) => '#(((type . "text") (text . "hello"))))
+  (check (pi-user-message-content msg) => "hello")
   (check (pi-user-message-timestamp msg) => 1234567890)
 ) ;let
 

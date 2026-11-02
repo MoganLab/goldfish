@@ -21,8 +21,8 @@
 
 (let* ((b (pi-text-block "txt")) (al (pi-block->alist b)))
   (check-true (pair? al))
-  (check (cdr (assoc 'type al)) => "text")
-  (check (cdr (assoc 'text al)) => "txt")
+  (check (cdr (assoc "type" al)) => "text")
+  (check (cdr (assoc "text" al)) => "txt")
 ) ;let*
 
 (check-report)

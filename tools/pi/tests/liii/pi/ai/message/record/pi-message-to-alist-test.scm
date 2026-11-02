@@ -21,7 +21,7 @@
 
 (let* ((msg (pi-user-message "hi")) (al (pi-message->alist msg)))
   (check-true (pair? al))
-  (check (cdr (assoc 'role al)) => "user")
+  (check (cdr (assoc "role" al)) => "user")
 ) ;let*
 
 (check-report)
