@@ -1,3 +1,30 @@
+;; pi-app-abort-inflight!
+;; 退出或中断时中止在途后台任务并等待结算。
+;;
+;; 语法
+;; ----
+;; (pi-app-abort-inflight! app)
+;; (pi-app-abort-inflight! app timeout-ms)
+;;
+;; 参数
+;; ----
+;; app : pi-app
+;; pi 交互应用实例。
+;; timeout-ms : integer
+;; 可选参数，等待任务结算的超时毫秒数，默认为 3000ms。
+;;
+;; 返回值
+;; ----
+;; boolean
+;; 任务已成功结算时返回 #t；若等待超时仍未结算返回 #f。
+;;
+;; 说明
+;; ----
+;; 退出前中止在途任务（修复 working 状态下 Ctrl+D 退出全屏后卡住）：
+;; worker 线程正阻塞在 LLM 流式 HTTP 请求上，而进程退出会 join go 线程池，
+;; 不主动中止就会等到 provider 超时才返回 shell 提示符。
+;; 当队列处于 busy 状态时发出中止信号并等待结算；退出期间丢弃排队消息。
+
 (import (scheme base)
   (liii check)
   (liii go)
@@ -10,12 +37,6 @@
 ) ;import
 
 (check-set-mode! 'report)
-
-;; 退出前中止在途任务（修复 working 状态下 Ctrl+D 退出全屏后卡住）：
-;;   worker 线程正阻塞在 LLM 流式 HTTP 请求上，而进程退出会 join go 线程池
-;;   （GoThreadPool 析构 → shutdown → join），不主动中止就会等到 provider
-;;   超时（默认 300s）才返回 shell 提示符。
-;;   这里验证中止信号的发送与结算等待：已结算 → #t，超时未结算 → #f。
 
 ;; 模拟 worker：收到 abort 信号后回送 agent_settled 事件
 (define (settle-after-abort abort-ch event-ch)

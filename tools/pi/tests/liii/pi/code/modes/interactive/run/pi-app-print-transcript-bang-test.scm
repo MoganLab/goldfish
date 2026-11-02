@@ -1,3 +1,26 @@
+;; pi-app-print-transcript!
+;; 退出全屏备用屏后原子打印对话历史记录到主屏。
+;;
+;; 语法
+;; ----
+;; (pi-app-print-transcript! app)
+;;
+;; 参数
+;; ----
+;; app : pi-app
+;; pi 交互应用实例。
+;;
+;; 返回值
+;; ----
+;; unspecified
+;;
+;; 说明
+;; ----
+;; 退出 TUI 后把对话记录打印回主屏（fullscreenExitOutput=transcript）。
+;; 回归点：曾对消息列表调用 component-render，触发 type-error 并被静默 catch，
+;; 结果退出全屏界面后终端里看不到任何会话内容。
+;; 性能关键：退出备用屏序列包裹在 Mode 2026 同步输出保护区内，单次原子批处理写入终端并刷新。
+
 (import (scheme base)
   (liii check)
   (liii string)
@@ -7,10 +30,6 @@
 ) ;import
 
 (check-set-mode! 'report)
-
-;; 退出 TUI 后把对话记录打印回主屏（fullscreenExitOutput=transcript）。
-;; 回归点：曾对消息列表调用 component-render，触发 type-error 并被静默 catch，
-;; 结果退出全屏界面后终端里看不到任何会话内容。
 
 ;; 1. 标准终端：对话记录被写到输出端口，且离开备用屏移入 synchronized output 中原子刷新
 (let* ((buf (open-output-string))
