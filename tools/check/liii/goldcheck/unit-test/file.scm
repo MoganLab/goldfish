@@ -103,10 +103,7 @@
 
     (define (parent->lib-name rel-parent)
       (let* ((norm (normalize-sep rel-parent))
-             (clean (if (string-starts-with? norm "tests/")
-                      (substring norm 6 (string-length norm))
-                      norm
-                    ) ;if
+             (clean (if (string-starts? norm "tests/") (substring norm 6 (string-length norm)) norm)
              ) ;clean
             ) ;
         (string-append "(" (string-join (string-split clean "/") " ") ")")
@@ -169,13 +166,13 @@
       "判断文件是否为应遵循单元测试规范的测试文件（以 -test.scm 结尾，排除源码文件与测试夹具）。"
       (let* ((rel (relativize-path file-path)) (norm (normalize-sep rel)))
         (and (string-ends? norm "-test.scm")
-          (not (string-starts-with? norm "goldfish/"))
+          (not (string-starts? norm "goldfish/"))
           (not (string-contains? norm "/goldfish/"))
-          (not (and (or (string-starts-with? norm "tools/") (string-contains? norm "/tools/"))
+          (not (and (or (string-starts? norm "tools/") (string-contains? norm "/tools/"))
                  (not (string-contains? norm "/tests/"))
                ) ;and
           ) ;not
-          (not (string-starts-with? norm "tests/resources/"))
+          (not (string-starts? norm "tests/resources/"))
           (not (string-contains? norm "/tests/resources/"))
         ) ;and
       ) ;let*

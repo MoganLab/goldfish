@@ -28,16 +28,16 @@
 
     ;; 家族前缀继承："liii goldfmt" 登记则 "liii goldfmt xxx" 同层
     (define (%lib-under? name lib)
-      (or (string=? name lib) (string-starts-with? lib (string-append name " ")))
+      (or (string=? name lib) (string-starts? lib (string-append name " ")))
     ) ;define
 
     ;; pattern 匹配特异性：3 = 精确，2 = 家族前缀，1 = 尾通配（"liii *"），#f = 不匹配
     (define (%pattern-rank pattern lib)
       (cond ((string=? pattern lib) 3)
-            ((string-starts-with? lib (string-append pattern " ")) 2)
+            ((string-starts? lib (string-append pattern " ")) 2)
             ((and (string-ends? pattern " *")
                (> (string-length lib) (- (string-length pattern) 1))
-               (string-starts-with? lib (substring pattern 0 (- (string-length pattern) 1)))
+               (string-starts? lib (substring pattern 0 (- (string-length pattern) 1)))
              ) ;and
              1
             ) ;

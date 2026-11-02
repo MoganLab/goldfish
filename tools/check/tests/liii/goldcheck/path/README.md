@@ -18,7 +18,6 @@ bin/gf doc "函数名"
 ### 二、字符串与模式匹配
 - `has-wildcard?` - 判断模式字符串中是否包含通配符 `*`
 - `string-index-of` - 在字符串中查找子串首次出现的索引位置
-- `string-starts-with?` - 判断字符串是否以指定前缀开头
 - `glob-match?` - 通配符模式匹配判定
 
 ### 三、排除项规则匹配

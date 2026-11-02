@@ -81,7 +81,7 @@
       (filter
         (lambda (d)
           (and (eq? (def-kind d) 'value)
-            (string-starts-with? (symbol->string (def-name d)) "hint")
+            (string-starts? (symbol->string (def-name d)) "hint")
           ) ;and
         ) ;lambda
         (lib-defines info)

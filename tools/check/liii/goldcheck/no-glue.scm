@@ -38,7 +38,7 @@
     ) ;define
 
     (define (glue-symbol? x)
-      (and (symbol? x) (string-starts-with? (symbol->string x) "g_"))
+      (and (symbol? x) (string-starts? (symbol->string x) "g_"))
     ) ;define
 
     (define (tagged? form tag)

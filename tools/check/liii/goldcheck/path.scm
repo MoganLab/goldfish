@@ -23,9 +23,8 @@
     (liii error)
     (liii gfproject config)
   ) ;import
-  (export normalize-sep has-wildcard? string-index-of string-starts-with?
-    glob-match? path-matches-exclude? exclude-entry->path file-excluded?
-    relativize-path
+  (export normalize-sep has-wildcard? string-index-of glob-match?
+    path-matches-exclude? exclude-entry->path file-excluded? relativize-path
   ) ;export
   (begin
 
@@ -50,7 +49,7 @@
                  (prefix (if (string-ends? norm-root "/") norm-root (string-append norm-root "/"))
                  ) ;prefix
                 ) ;
-            (if (string-starts-with? norm-path prefix)
+            (if (string-starts? norm-path prefix)
               (substring norm-path (string-length prefix) (string-length norm-path))
               norm-path
             ) ;if
@@ -79,18 +78,12 @@
       ) ;let
     ) ;define
 
-    (define (string-starts-with? str prefix)
-      (and (>= (string-length str) (string-length prefix))
-        (string=? (substring str 0 (string-length prefix)) prefix)
-      ) ;and
-    ) ;define
-
     (define (match-segments ps str pos first?)
       (if (null? ps)
         pos
         (let ((seg (car ps)))
           (cond ((string=? seg "") (match-segments (cdr ps) str pos #f))
-                (first? (and (string-starts-with? str seg)
+                (first? (and (string-starts? str seg)
                           (match-segments (cdr ps) str (string-length seg) #f)
                         ) ;and
                 ) ;first?
@@ -119,7 +112,7 @@
     (define (exact-or-subpath? entry-norm p)
       (let ((plen (string-length p)) (elen (string-length entry-norm)))
         (or (string=? entry-norm p)
-          (string-starts-with? entry-norm (string-append p "/"))
+          (string-starts? entry-norm (string-append p "/"))
           (string-contains? entry-norm (string-append "/" p "/"))
           (and (>= elen (+ plen 1))
             (char=? (string-ref entry-norm (- elen plen 1)) #\/)
@@ -139,7 +132,7 @@
           ) ;if
          ) ;
          ((string-ends? p "/")
-          (or (string-starts-with? entry-norm p)
+          (or (string-starts? entry-norm p)
             (string-contains? entry-norm (string-append "/" p))
           ) ;or
          ) ;

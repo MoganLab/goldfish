@@ -29,7 +29,7 @@
     (define (angle-name? x)
       (and (symbol? x)
         (let ((s (symbol->string x)))
-          (and (> (string-length s) 2) (string-starts-with? s "<") (string-ends? s ">"))
+          (and (> (string-length s) 2) (string-starts? s "<") (string-ends? s ">"))
         ) ;let
       ) ;and
     ) ;define

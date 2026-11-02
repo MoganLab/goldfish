@@ -124,7 +124,7 @@
     ) ;define
 
     (define (find-tools-library-source norm)
-      (if (string-starts-with? norm "tools/")
+      (if (string-starts? norm "tools/")
         (let ((parts (string-split norm "/")))
           (if (and (>= (length parts) 4) (string=? (list-ref parts 2) "tests"))
             (let* ((tool (cadr parts))
@@ -141,7 +141,7 @@
     ) ;define
 
     (define (find-tests-library-source norm)
-      (if (string-starts-with? norm "tests/")
+      (if (string-starts? norm "tests/")
         (let* ((parts (string-split norm "/"))
                (subpath (string-join (cdr parts) "/"))
                (candidate (resolve-repo-file (string-append "goldfish/" subpath ".scm")))
@@ -204,10 +204,11 @@
     ) ;define
 
     (define (find-tools-test-dir norm)
-      (if (string-starts-with? norm "tools/")
+      (if (string-starts? norm "tools/")
         (let ((parts (string-split norm "/")))
           (if (and (>= (length parts) 3)
                 (not (member "tests" parts string=?))
+                (not (member "hint" parts string=?))
                 (string-ends? norm ".scm")
               ) ;and
             (let* ((tool (cadr parts))
@@ -225,8 +226,8 @@
     ) ;define
 
     (define (find-tests-test-dir norm)
-      (if (and (string-starts-with? norm "goldfish/")
-            (not (string-starts-with? norm "goldfish/hint/"))
+      (if (and (string-starts? norm "goldfish/")
+            (not (string-starts? norm "goldfish/hint/"))
             (string-ends? norm ".scm")
           ) ;and
         (let ((subpath (substring norm 9 (- (string-length norm) 4))))
