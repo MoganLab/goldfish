@@ -1,3 +1,19 @@
+;; app-resume-integration
+;; 交互模式恢复历史会话流程与状态迁移集成测试。
+;;
+;; 语法
+;; ----
+;; (app-resume-integration ...)
+;;
+;; 参数
+;; ----
+;; 详见语法说明。
+;;
+;; 返回值
+;; ----
+;; any
+;; 视具体调用结果而定。
+
 (import (scheme base)
   (liii check)
   (liii string)

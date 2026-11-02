@@ -1,3 +1,19 @@
+;; app-resume-state
+;; 交互模式恢复会话后的模型与思维链状态维护测试。
+;;
+;; 语法
+;; ----
+;; (app-resume-state ...)
+;;
+;; 参数
+;; ----
+;; 详见语法说明。
+;;
+;; 返回值
+;; ----
+;; any
+;; 视具体调用结果而定。
+
 (import (scheme base)
   (liii check)
   (liii string)

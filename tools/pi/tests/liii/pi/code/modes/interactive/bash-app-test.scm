@@ -1,3 +1,19 @@
+;; bash-app
+;; 交互模式 Bash 卡片组件与输出流处理测试。
+;;
+;; 语法
+;; ----
+;; (bash-app ...)
+;;
+;; 参数
+;; ----
+;; 详见语法说明。
+;;
+;; 返回值
+;; ----
+;; any
+;; 视具体调用结果而定。
+
 (import (scheme base)
   (liii check)
   (liii string)

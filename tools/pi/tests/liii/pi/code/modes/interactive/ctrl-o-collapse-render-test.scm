@@ -1,3 +1,19 @@
+;; ctrl-o-collapse-render
+;; 交互模式 Ctrl+O 展开与折叠卡片渲染测试。
+;;
+;; 语法
+;; ----
+;; (ctrl-o-collapse-render ...)
+;;
+;; 参数
+;; ----
+;; 详见语法说明。
+;;
+;; 返回值
+;; ----
+;; any
+;; 视具体调用结果而定。
+
 (import (scheme base)
   (liii check)
   (liii string)

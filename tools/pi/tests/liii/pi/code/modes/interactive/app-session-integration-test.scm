@@ -1,3 +1,19 @@
+;; app-session-integration
+;; 交互模式会话切换与会话统计集成测试。
+;;
+;; 语法
+;; ----
+;; (app-session-integration ...)
+;;
+;; 参数
+;; ----
+;; 详见语法说明。
+;;
+;; 返回值
+;; ----
+;; any
+;; 视具体调用结果而定。
+
 (import (scheme base)
   (scheme file)
   (liii check)

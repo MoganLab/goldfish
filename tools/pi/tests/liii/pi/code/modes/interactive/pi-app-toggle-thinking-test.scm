@@ -1,3 +1,19 @@
+;; pi-app-toggle-thinking
+;; 交互模式 Ctrl+T 切换思考块折叠与展开测试。
+;;
+;; 语法
+;; ----
+;; (pi-app-toggle-thinking ...)
+;;
+;; 参数
+;; ----
+;; 详见语法说明。
+;;
+;; 返回值
+;; ----
+;; any
+;; 视具体调用结果而定。
+
 (import (scheme base)
   (liii check)
   (liii go)
