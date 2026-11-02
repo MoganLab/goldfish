@@ -1,11 +1,3 @@
-(import (liii check)
-  (liii pi ai providers quota)
-  (liii string)
-  (liii pi ai providers zai-coding-cn)
-) ;import
-
-(check-set-mode! 'report-failed)
-
 ;; PI_ZAI_CODING_CN_QUOTA_ERROR
 ;; 智谱 / Z.AI GLM Coding Plan 的额度耗尽识别函数。
 ;;
@@ -32,6 +24,14 @@
 ;; 判定依据是 error.code：1308 为 5 小时额度窗口耗尽，1310 为每周/每月额度耗尽。
 ;; 1302（并发槽满）、1303/1305（短时频率）、1312（模型拥堵）都不是额度耗尽，
 ;; 返回 #f 让上层继续重试。
+
+(import (liii check)
+  (liii pi ai providers quota)
+  (liii string)
+  (liii pi ai providers zai-coding-cn)
+) ;import
+
+(check-set-mode! 'report-failed)
 
 (define (kind limit)
   (pi-quota-limit-kind limit)

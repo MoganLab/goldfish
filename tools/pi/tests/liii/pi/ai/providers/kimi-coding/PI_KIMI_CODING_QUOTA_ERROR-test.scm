@@ -1,11 +1,3 @@
-(import (liii check)
-  (liii pi ai providers quota)
-  (liii string)
-  (liii pi ai providers kimi-coding)
-) ;import
-
-(check-set-mode! 'report-failed)
-
 ;; PI_KIMI_CODING_QUOTA_ERROR
 ;; Kimi Coding Plan 的额度耗尽识别函数。
 ;;
@@ -30,6 +22,14 @@
 ;; ----
 ;; 该服务商用 error.type 而不是 code 区分额度耗尽：exceeded_current_quota_error。
 ;; 普通限流是 rate_limit_error，不是额度耗尽。
+
+(import (liii check)
+  (liii pi ai providers quota)
+  (liii string)
+  (liii pi ai providers kimi-coding)
+) ;import
+
+(check-set-mode! 'report-failed)
 
 (define kimi-body
   "{\"error\":{\"message\":\"You've reached your weekly (7-day) usage limit.\",\"type\":\"exceeded_current_quota_error\"}}"

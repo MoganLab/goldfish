@@ -1,3 +1,23 @@
+;; PI_MINIMAX_CN_QUOTA_ERROR
+;; MiniMax 国内版的额度耗尽识别函数。
+;;
+;; 语法
+;; ----
+;; (PI_MINIMAX_CN_QUOTA_ERROR status-code body-str)
+;;
+;; 参数
+;; ----
+;; status-code : integer?
+;; HTTP 状态码。
+;;
+;; body-str : string?
+;; 响应体原文。
+;;
+;; 返回值
+;; ----
+;; pi-quota-limit? 或 #f
+;; 行为与 PI_MINIMAX_QUOTA_ERROR 完全一致。
+
 (import (liii check)
   (liii pi ai providers quota)
   (liii string)
@@ -6,18 +26,8 @@
 
 (check-set-mode! 'report-failed)
 
-;; PI_MINIMAX_CN_QUOTA_ERROR
-;; MiniMax 国内版的额度耗尽识别函数。
-;;
-;; 语法
-;; ----
-;; (PI_MINIMAX_CN_QUOTA_ERROR status-code body-str)
-;;
-;; 返回值
-;; ----
-;; pi-quota-limit? 或 #f，行为与 PI_MINIMAX_QUOTA_ERROR 完全一致。
-
 ;; 2026-10-31 真实响应（api.minimaxi.com，已脱敏 request_id）
+
 (define minimax-cn-quota-body
   "{\"type\":\"error\",\"error\":{\"type\":\"rate_limit_error\",\"message\":\"当前已达到 Token Plan 用量上限。为避免调用中断，请升级 Token Plan 套餐，或购买积分补充用量并开启积分自动消耗。 (2067)\"},\"request_id\":\"0735...\"}"
 ) ;define
