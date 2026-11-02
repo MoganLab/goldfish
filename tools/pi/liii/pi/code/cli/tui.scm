@@ -23,7 +23,7 @@
     ;;         config-dir models default-model hide-thinking model-thinking-levels)
     ;; default-thinking-level 为 settings.json 里的原始值（未配置时为 #f，
     ;; 由默认级别 medium 兜底）；model-thinking-levels 为 per-model 覆盖表
-    ;; 供 make-pi-app 使用（models 为有凭证 provider 的模型列表，供 /model 选择器）
+    ;; 供 make-pi-app 使用（models 为已激活模型列表，供 /model 选择器）
     (define (pi-tui-footer-info parsed)
       (catch #t
         (lambda ()
@@ -42,8 +42,7 @@
                      ) ;model-thinking-levels
                      (config-dir (pi-cfg-config-dir cfg))
                      (models-store (cdr (or (assoc 'models-store cfg) (cons #f '()))))
-                     (auth (pi-load-auth config-dir))
-                     (models (pi-usable-models models-store auth))
+                     (models (pi-usable-models models-store))
                      (default-model
                        (and settings
                          (list (cons 'provider (pi-settings-default-provider settings))
