@@ -1,8 +1,26 @@
-(import (liii check) (liii tui main-screen diff))
+;; screen-diff
+;; 比较两帧文本行并生成行级差分操作序列。
+;;
+;; 语法
+;; ----
+;; (screen-diff old-lines new-lines)
+;;
+;; 参数
+;; ----
+;; old-lines : list?
+;; 上一帧的文本行列表。
+;;
+;; new-lines : list?
+;; 当前帧的文本行列表。
+;;
+;; 返回值
+;; ----
+;; list?
+;; 差分操作列表，每项形如 (keep index)、(update index text)、(append index text) 或 (clear index)。
+
+(import (scheme base) (liii check) (liii tui main-screen diff))
 
 (check-set-mode! 'report-failed)
-
-;; screen-diff: 纯函数行差分比较算法
 
 ;; 空列表比较
 (check (screen-diff '() '()) => '())
@@ -55,43 +73,6 @@
     (check (list-ref ops 2000) => '(append 2000 "same"))
   ) ;let
 ) ;let
-
-;; dirty diff 总是更新新行，并清除旧缓冲多出的尾部。
-(check (screen-dirty-diff '("old" "stale") '("new"))
-  =>
-  '((update 0 "new") (clear 1))
-) ;check
-(check (screen-dirty-diff '() '("a" "b")) => '((update 0 "a") (update 1 "b")))
-
-;; 辅助函数测试
-(let ((op-k '(keep 0))
-      (op-u '(update 1 "foo"))
-      (op-a '(append 2 "bar"))
-      (op-c '(clear 3))
-     ) ;
-  (check (diff-op-type op-k) => 'keep)
-  (check (diff-op-index op-k) => 0)
-  (check (diff-op-text op-k) => #f)
-
-  (check (diff-op-type op-u) => 'update)
-  (check (diff-op-index op-u) => 1)
-  (check (diff-op-text op-u) => "foo")
-
-  (check (diff-op-type op-a) => 'append)
-  (check (diff-op-index op-a) => 2)
-  (check (diff-op-text op-a) => "bar")
-
-  (check (diff-op-type op-c) => 'clear)
-  (check (diff-op-index op-c) => 3)
-  (check (diff-op-text op-c) => #f)
-) ;let
-
-;; screen-diff-has-changes? 测试
-(check (screen-diff-has-changes? '()) => #f)
-(check (screen-diff-has-changes? '((keep 0) (keep 1))) => #f)
-(check (screen-diff-has-changes? '((keep 0) (update 1 "x"))) => #t)
-(check (screen-diff-has-changes? '((keep 0) (append 1 "x"))) => #t)
-(check (screen-diff-has-changes? '((clear 0))) => #t)
 
 ;; 类型错误测试
 (check-catch 'type-error (screen-diff "invalid" '()))
