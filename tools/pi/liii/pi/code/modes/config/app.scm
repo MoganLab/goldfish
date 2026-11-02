@@ -185,20 +185,6 @@
       ) ;let*
     ) ;define
 
-    ;; ---------- 覆盖层 ----------
-
-    (define (%overlay-scroll-lines content-lines height)
-      (max 1 (- (min (+ content-lines 2) (- height 4)) 2))
-    ) ;define
-
-    ;; 覆盖层的文本行（有文件看原文，虚拟条目看缺省说明；这里只需行数用于滚动）
-    (define (%overlay-lines view)
-      (if (pi-user-dict-ref view "exists" #f)
-        (string-split (or (pi-user-dict-ref view "content" #f) "") "\n")
-        '("not found" "" "")
-      ) ;if
-    ) ;define
-
     ;; ---------- Enter ----------
 
     ;; provider 列：等同右方向键（进入模型列）
@@ -290,25 +276,10 @@
         ) ;define
         ;; 覆盖层的按键：滚动与关闭
         (define (overlay-key! key)
-          (let* ((c (cond ((char? key) (string key))
-                          ((symbol? key) (symbol->string key))
-                          (else key)
-                    ) ;cond
-                 ) ;c
-                 (h (cadr (size)))
-                 (lines (%overlay-lines overlay))
-                 (rows (%overlay-scroll-lines (length lines) h))
-                ) ;
-            (cond ((or (eq? key 'escape) (equal? c "q")) (set! overlay #f))
-                  ((or (eq? key 'down) (equal? c "j")) (set! overlay-offset (+ overlay-offset 1)))
-                  ((or (eq? key 'up) (equal? c "k"))
-                   (set! overlay-offset (max 0 (- overlay-offset 1)))
-                  ) ;
-                  ((equal? c "g") (set! overlay-offset 0))
-                  ((equal? c "G") (set! overlay-offset (max 0 (- (length lines) rows))))
-                  (else #f)
-            ) ;cond
-          ) ;let*
+          (let ((res (pi-config-overlay-step overlay overlay-offset (cadr (size)) key)))
+            (set! overlay (car res))
+            (set! overlay-offset (cadr res))
+          ) ;let
         ) ;define
         (define (handle-key! key)
           (let* ((c (cond ((char? key) (string key))
