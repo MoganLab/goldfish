@@ -1,10 +1,5 @@
-(import (liii list) (liii check))
-
-
-(check-set-mode! 'report-failed)
-
-
-;; list-null? 函数测试
+;; list-null?
+;; 判断对象是否为空列表。
 ;;
 ;; 语法
 ;; ----
@@ -19,15 +14,10 @@
 ;; ------
 ;; boolean?
 ;; 如果obj是空列表，返回#t，否则返回#f。
-;;
-;; 示例
-;; ----
-;; (list-null? (list 1)) => #f
-;; (list-null? (list 1 2 3)) => #f
-;; (list-null? ()) => #t
-;; (list-null? '(a . b)) => #f
-;; (list-null? 1) => #f
 
+(import (liii list) (liii check))
+
+(check-set-mode! 'report-failed)
 
 (check (list-null? (list 1)) => #f)
 (check (list-null? (list 1 2 3)) => #f)
@@ -36,6 +26,5 @@
 (check (list-null? ()) => #t)
 (check (list-null? '(a . b)) => #f)
 (check (list-null? 1) => #f)
-
 
 (check-report)
