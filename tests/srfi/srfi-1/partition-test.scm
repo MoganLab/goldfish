@@ -1,10 +1,5 @@
-(import (liii list) (liii check))
-
-
-(check-set-mode! 'report-failed)
-
-
-;; partition 函数测试
+;; partition
+;; 根据谓词将列表元素分成两个列表。
 ;;
 ;; 语法
 ;; ----
@@ -22,20 +17,16 @@
 ;; ------
 ;; pair
 ;; 返回一个点对，car是满足谓词的元素列表，cdr是不满足谓词的元素列表。
-;;
-;; 示例
-;; ----
-;; (partition symbol? '(one 2 3 four five 6)) => (cons '(five four one) '(6 3 2))
 
+(import (srfi srfi-1) (liii check))
+
+(check-set-mode! 'report-failed)
 
 (check (partition symbol? '(one 2 3 four five 6))
   =>
-  (cons '(five four one) '(6 3 2))
-) ;check
-
+  (cons '(five four one) '(6 3 2)))
 
 (check-catch 'type-error (partition 1 '(1 2 3)))
 (check-catch 'type-error (partition even? 1))
-
 
 (check-report)
