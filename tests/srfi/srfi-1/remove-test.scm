@@ -1,10 +1,5 @@
-(import (liii list) (liii check))
-
-
-(check-set-mode! 'report-failed)
-
-
-;; remove 函数测试
+;; remove
+;; 从列表中删除满足谓词条件的元素。
 ;;
 ;; 语法
 ;; ----
@@ -22,21 +17,14 @@
 ;; ------
 ;; list
 ;; 返回不满足谓词条件的元素组成的新列表。
-;;
-;; 说明
-;; ----
-;; remove函数与filter函数功能相反，返回不满足谓词条件的元素。
-;;
-;; 示例
-;; ----
-;; (remove even? '(-2 -1 0 1 2)) => '(-1 1)
 
+(import (srfi srfi-1) (liii check))
+
+(check-set-mode! 'report-failed)
 
 (check (remove even? '(-2 -1 0 1 2)) => '(-1 1))
 
-
 (check-catch 'type-error (remove 1 '(1 2 3)))
 (check-catch 'type-error (remove even? 1))
-
 
 (check-report)
