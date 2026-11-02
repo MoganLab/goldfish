@@ -1,12 +1,5 @@
-(import (scheme base)
-  (liii check)
-  (liii string)
-  (liii os)
-  (liii path)
-  (liii goldcheck type-hint)
-) ;import
-
-;; A7 校验：hint 库中签名声明的归属唯一性
+;; check-a7
+;; A7 校验：hint 库中签名声明的归属唯一性。
 ;;
 ;; 语法
 ;; ----
@@ -32,6 +25,14 @@
 ;; A7c 跨库重复声明：同一函数名在多个 hint 库中被声明。
 ;;
 ;; fixture 位于 tools/check/tests/resources/type-hint/ 下。
+
+(import (scheme base)
+  (liii check)
+  (liii string)
+  (liii os)
+  (liii path)
+  (liii goldcheck type-hint)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -87,21 +88,19 @@
 ;; --------------------------------------------------------------------
 ;; 3. A7c 跨库重复声明
 ;; --------------------------------------------------------------------
-(let ((viol (check-type-hint-duplicates
-               (list (resource-file "goldfish/hint/liii/a7dupx.scm")
-                     (resource-file "goldfish/hint/liii/a7dupy.scm")
-               ) ;list
-             ) ;viol
-           ) ;
-      ) ;
+(let ((viol (check-type-hint-duplicates (list (resource-file "goldfish/hint/liii/a7dupx.scm")
+                                          (resource-file "goldfish/hint/liii/a7dupy.scm")
+                                        ) ;list
+            ) ;check-type-hint-duplicates
+      ) ;viol
+     ) ;
   (check (length viol) => 2)
   (check-true (string-contains? (cadddr (car viol)) "dup-fn"))
 ) ;let
 
 ;; 同一库内的重复不计入跨库重复
-(check (check-type-hint-duplicates
-         (list (resource-file "goldfish/hint/liii/a7dupdef.scm"))
-       )
+(check (check-type-hint-duplicates (list (resource-file "goldfish/hint/liii/a7dupdef.scm"))
+       ) ;check-type-hint-duplicates
   =>
   '()
 ) ;check

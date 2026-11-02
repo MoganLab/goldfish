@@ -54,13 +54,17 @@
         locals
         (let loop
           ((ls locals))
-          (cond ((null? ls) locals)
+          (cond ((null? ls) '())
                 ((eq? (caar ls) name)
                  (let ((nt (narrow-type (cdar ls) pred)))
                    (if (eq? nt (cdar ls)) ls (cons (cons name nt) (cdr ls)))
                  ) ;let
                 ) ;
-                (else (loop (cdr ls)))
+                (else
+                  (let ((tail (loop (cdr ls))))
+                    (if (eq? tail (cdr ls)) ls (cons (car ls) tail))
+                  ) ;let
+                ) ;else
           ) ;cond
         ) ;let
       ) ;if

@@ -14,6 +14,27 @@
 ;; under the License.
 ;;
 
+(define (%goldcheck-common-dirname path-str)
+  (let loop
+    ((i (- (string-length path-str) 1)))
+    (cond ((< i 0) ".")
+          ((or (char=? (string-ref path-str i) #\/) (char=? (string-ref path-str i) #\\))
+           (if (= i 0) "." (substring path-str 0 i))
+          ) ;
+          (else (loop (- i 1)))
+    ) ;cond
+  ) ;let
+) ;define
+
+(set! *load-path*
+  (append (list "../common" "tools/common")
+    (map (lambda (root) (string-append (%goldcheck-common-dirname root) "/common"))
+      *load-path*
+    ) ;map
+    *load-path*
+  ) ;append
+) ;set!
+
 (define-library (liii goldcheck collect)
   (import (scheme base)
     (liii base)
