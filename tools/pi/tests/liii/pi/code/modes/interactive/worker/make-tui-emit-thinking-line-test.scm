@@ -91,10 +91,7 @@
   (check (recv-ev! ch) => '(assistant_thinking_end))
   (emit 'message_update '() (stream-event "thinking_end"))
   (check (recv-ev! ch) => '(assistant_thinking_end))
-  (emit 'message_update
-    '()
-    (stream-event "thinking_delta" '(delta . "块二\n"))
-  ) ;emit
+  (emit 'message_update '() (stream-event "thinking_delta" '(delta . "块二\n")))
   (check (recv-ev! ch) => '(assistant_thinking_line "块二"))
   (emit 'message_update '() (stream-event "thinking_end"))
   (check (recv-ev! ch) => '(assistant_thinking_end))

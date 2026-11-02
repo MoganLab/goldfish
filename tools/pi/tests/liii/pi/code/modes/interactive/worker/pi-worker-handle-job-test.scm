@@ -39,6 +39,7 @@
 ) ;define
 
 ;; 上下文消息统一取自投影入口；状态与诊断本用例不关心
+
 (define (projected-messages entries)
   (let*-values (((msgs _state _diag) (pi-build-session-projection entries)))
     msgs

@@ -41,7 +41,10 @@
 ) ;when
 
 (define (find-entry entries type)
-  (find (lambda (e) (equal? (cdr (assoc "type" e)) type)) entries)
+  (find
+    (lambda (e) (equal? (cdr (assoc "type" e)) type))
+    entries
+  ) ;find
 ) ;define
 
 (let* ((env (list (cons "PI_CODING_AGENT_DIR" TMP-AGENT-DIR)))
@@ -56,13 +59,18 @@
                           "model_change"
                           (list (cons "provider" "zai") (cons "model-id" "glm-5"))
                         ) ;list
-    parsed cfg box ev-chan #f
+    parsed
+    cfg
+    box
+    ev-chan
+    #f
   ) ;pi-worker-handle-job
-  (pi-worker-handle-job (list 'session_state
-                          "thinking_level_change"
-                          (list (cons "level" "off"))
-                        ) ;list
-    parsed cfg box ev-chan #f
+  (pi-worker-handle-job (list 'session_state "thinking_level_change" (list (cons "level" "off")))
+    parsed
+    cfg
+    box
+    ev-chan
+    #f
   ) ;pi-worker-handle-job
   (let* ((sfile (vector-ref box 0))
          (entries (pi-read-session-entries sfile))
@@ -91,7 +99,11 @@
                           "model_change"
                           (list (cons "provider" "zai") (cons "model-id" "glm-5"))
                         ) ;list
-    parsed cfg box ev-chan #f
+    parsed
+    cfg
+    box
+    ev-chan
+    #f
   ) ;pi-worker-handle-job
   (check (vector-ref box 0) => #f)
   (check (chan-try-recv! ev-chan #f) => #f)
@@ -105,11 +117,12 @@
        (box (vector (path->string (path-temp-dir))))
        (ev-chan (make-chan 16))
       ) ;
-  (pi-worker-handle-job (list 'session_state
-                          "thinking_level_change"
-                          (list (cons "level" "high"))
-                        ) ;list
-    parsed cfg box ev-chan #f
+  (pi-worker-handle-job (list 'session_state "thinking_level_change" (list (cons "level" "high")))
+    parsed
+    cfg
+    box
+    ev-chan
+    #f
   ) ;pi-worker-handle-job
   (let ((ev (chan-try-recv! ev-chan #f)))
     (check (car ev) => 'session_state_error)
