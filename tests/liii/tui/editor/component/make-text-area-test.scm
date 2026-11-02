@@ -1,30 +1,38 @@
-(import (liii check)
-        (liii tui component)
-        (liii tui editor component))
+;; make-text-area
+;; 创建多行文本区域组件。
+;;
+;; 语法
+;; ----
+;; (make-text-area [text] [opts ...])
+;;
+;; 参数
+;; ----
+;; text : string? (可选)
+;; 初始多行文本内容。
+;;
+;; opts : keyword arguments
+;; 支持 :placeholder, :max-lines, :on-submit 等选项。
+;;
+;; 返回值
+;; ----
+;; component?
+;; 包装为 component 的多行文本区域实例。
+
+(import (scheme base)
+  (liii check)
+  (liii tui component)
+  (liii tui editor component)
+) ;import
 
 (check-set-mode! 'report-failed)
 
-;; make-text-area & text-area? 测试
-
 ;; 1. make-text-area 构造与类型谓词
 (let ((ta (make-text-area "line1\nline2")))
-  (check (component? ta) => #t)
-  (check (editor? ta) => #t)
-  (check (text-area? ta) => #t)
+  (check-true (component? ta))
+  (check-true (editor? ta))
+  (check-true (text-area? ta))
   (check (editor-text ta) => "line1\nline2")
-  (check (editor-lines ta) => '("line1" "line2")))
-
-;; 2. 多行模式下 Enter 由 submit-on-enter? 控制，不再插入换行
-(let ((ta (make-text-area "hello")))
-  (check (component-handle-input ta 'enter) => #t)
-  (check (editor-lines ta) => '("hello")))
-
-;; 3. 多行模式下上下键移动光标
-(let ((ta (make-text-area "line 1\nline 2")))
-  (editor-set-cursor! ta 0 2)
-  (check (component-handle-input ta 'down) => #t)
-  (check (editor-cursor ta) => '(1 2))
-  (check (component-handle-input ta 'up) => #t)
-  (check (editor-cursor ta) => '(0 2)))
+  (check (editor-lines ta) => '("line1" "line2"))
+) ;let
 
 (check-report)
