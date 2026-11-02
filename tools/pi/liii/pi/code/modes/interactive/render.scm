@@ -18,7 +18,6 @@
   (export pi-app-render! pi-app-frame-lines pi-app-transcript-lines
     pi-app-scroll-up! pi-app-scroll-down! pi-app-scroll-top!
     pi-app-scroll-bottom! pi-app-scroll-line-up! pi-app-scroll-line-down!
-    highlight-selection-line highlight-selection-lines
   ) ;export
   (import (scheme base)
     (liii string)
