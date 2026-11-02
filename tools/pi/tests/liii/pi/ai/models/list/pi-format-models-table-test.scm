@@ -1,3 +1,26 @@
+;; pi-format-models-table
+;; 将模型行列表格式化为对齐的终端文本表格，支持搜索过滤提示与可选的 ANSI 色彩渲染。
+;;
+;; 语法
+;; ----
+;; (pi-format-models-table rows)
+;; (pi-format-models-table rows search-pattern)
+;; (pi-format-models-table rows search-pattern color?)
+;;
+;; 参数
+;; ----
+;; rows : list
+;; 模型行 alist 列表。
+;; search-pattern : string 或 #f
+;; 搜索过滤字符串（可选，缺省为 #f）。
+;; color? : boolean
+;; 是否启用终端 ANSI 彩色渲染（可选，缺省为 #f）。
+;;
+;; 返回值
+;; ------
+;; string
+;; 格式化后的表格字符串。
+
 (import (scheme base)
   (liii check)
   (liii string)
