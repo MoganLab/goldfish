@@ -1,3 +1,20 @@
+;; pi-provider-default-model
+;; 返回指定 provider 的默认模型标识。
+;;
+;; 语法
+;; ----
+;; (pi-provider-default-model provider)
+;;
+;; 参数
+;; ----
+;; provider : string | symbol
+;; 供应商名称。
+;;
+;; 返回值
+;; ----
+;; string
+;; provider 的默认模型标识；未知 provider 回退到通用默认模型。
+
 (import (liii check) (liii pi ai models))
 
 (check-set-mode! 'report-failed)

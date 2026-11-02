@@ -1,8 +1,21 @@
-;; pi-config-env 测试：配置解析的环境隔离
+;; resolve-pi-config
+;; 验证配置解析只依赖显式环境表与仓库 fixture，不受真实进程环境或本机 ~/.pi/agent 影响。
 ;;
-;; 目标：resolve-pi-config 的解析结果只由「显式 env 表 + 仓库内 fixture」决定，
-;; 不受开发者真实进程环境（PI_CODING_AGENT_DIR / ANTHROPIC_BASE_URL /
-;; GF_PI_BASE_URL / DEEPSEEK_BASE_URL 等）污染，也不依赖本机 ~/.pi/agent/。
+;; 语法
+;; ----
+;; (resolve-pi-config parsed-args . opt-env)
+;;
+;; 参数
+;; ----
+;; parsed-args : alist
+;; parse-pi-args 生成的命令行参数。
+;; opt-env : alist
+;; 显式环境变量表，测试中用于隔离真实进程环境。
+;;
+;; 返回值
+;; ----
+;; alist
+;; 解析后的运行配置。
 
 (set! *load-path*
   (append (list "tools/pi" ".") *load-path*))

@@ -17,9 +17,11 @@
     (liii path)
     (liii json)
     (liii pi code config user-fs)
+    (liii pi code config json-write)
   ) ;import
   (export pi-load-providers-whitelist pi-providers-whitelist-path
-    pi-user-provider-file pi-user-normalize-api
+    pi-user-provider-file pi-user-normalize-api pi-alist-set-key
+    pi-providers-json pi-providers-write-writes pi-provider-file-with-models
   ) ;export
   (begin
 
@@ -102,6 +104,40 @@
               ) ;exists
               (else #f)
         ) ;cond
+      ) ;let*
+    ) ;define
+
+    (define %provider-schema "https://case-lambda.org/agent/provider.schema.json")
+
+    ;; 就地替换 alist 里的某个键（不存在则追加），保持其余键顺序不变
+    (define (pi-alist-set-key alist key value)
+      (let loop
+        ((rest alist) (acc '()) (seen? #f))
+        (cond
+         ((null? rest) (reverse (if seen? acc (cons (cons key value) acc))))
+         ((equal? (car (car rest)) key) (loop (cdr rest) (cons (cons key value) acc) #t))
+         (else (loop (cdr rest) (cons (car rest) acc) seen?))
+        ) ;cond
+      ) ;let
+    ) ;define
+
+    ;; 白名单文本（每行一个 id 的 json array + 换行）
+    (define (pi-providers-json ids)
+      (string-append (pi-config-json-pretty (list->vector ids)) "\n")
+    ) ;define
+
+    (define (pi-providers-write-writes ids)
+      (list (cons "models/providers.json" (pi-providers-json ids)))
+    ) ;define
+
+    ;; 白名单数组重写：保留其它键的顺序，models 就地替换（原本没有则追加）
+    (define (pi-provider-file-with-models config-dir p-id ids)
+      (let* ((rel (string-append "models/" p-id ".json"))
+             (raw (or (pi-user-read-json (pi-user-config-path config-dir rel)) '()))
+             (base (if (pair? raw) raw (list (cons "$schema" %provider-schema))))
+             (new (pi-alist-set-key base "models" (list->vector ids)))
+            ) ;
+        (cons rel (string-append (pi-config-json-pretty new) "\n"))
       ) ;let*
     ) ;define
 

@@ -1,3 +1,20 @@
+;; gf-get-config-dir
+;; 返回 Goldfish/pi 的 JSON 配置文件目录。
+;;
+;; 语法
+;; ----
+;; (gf-get-config-dir . opt-dir)
+;;
+;; 参数
+;; ----
+;; opt-dir : string
+;; 可选的显式配置目录，优先级最高。
+;;
+;; 返回值
+;; ----
+;; path?
+;; 配置文件目录的绝对路径；未指定时回退 ~/.gf/agent。
+
 (import (scheme process-context)
   (liii check)
   (liii string)

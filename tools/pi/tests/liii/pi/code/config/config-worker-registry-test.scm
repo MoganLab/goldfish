@@ -1,3 +1,20 @@
+;; extension-registry-default-tool-names
+;; 返回扩展注册表中声明 default-active? 的工具名列表，并验证 worker 会话中的可用性。
+;;
+;; 语法
+;; ----
+;; (extension-registry-default-tool-names registry)
+;;
+;; 参数
+;; ----
+;; registry : extension-registry
+;; 扩展注册表对象。
+;;
+;; 返回值
+;; ----
+;; list
+;; 默认激活的扩展工具名列表。
+
 (import (liii check)
   (liii os)
   (liii go)

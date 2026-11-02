@@ -1,3 +1,22 @@
+;; resolve-pi-config
+;; 根据命令行参数、环境变量与配置文件解析完整的运行配置。
+;;
+;; 语法
+;; ----
+;; (resolve-pi-config parsed-args . opt-env)
+;;
+;; 参数
+;; ----
+;; parsed-args : alist
+;; parse-pi-args 生成的命令行参数。
+;; opt-env : alist
+;; 可选的环境变量表。
+;;
+;; 返回值
+;; ----
+;; alist
+;; 解析后的运行配置。
+
 (import (liii check)
   (liii pi code cli args)
   (liii pi code config)

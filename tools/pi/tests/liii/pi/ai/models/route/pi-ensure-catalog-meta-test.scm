@@ -1,3 +1,26 @@
+;; pi-ensure-catalog-meta
+;; 当模型属于内置目录时，把元数据的 matched? 字段补正为 #t。
+;;
+;; 语法
+;; ----
+;; (pi-ensure-catalog-meta meta provider model-id catalog)
+;;
+;; 参数
+;; ----
+;; meta : pi-model-metadata
+;; 已解析的模型元数据。
+;; provider : string
+;; 供应商名称。
+;; model-id : string
+;; 模型标识。
+;; catalog : alist
+;; provider 到模型条目的模型目录。
+;;
+;; 返回值
+;; ----
+;; pi-model-metadata
+;; 修正 matched? 后的模型元数据。
+
 (import (liii check)
         (liii pi ai models)
         (liii pi ai config record))

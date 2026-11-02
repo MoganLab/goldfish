@@ -1,3 +1,24 @@
+;; pi-find-model-provider
+;; 根据模型标识和模型目录检索所属 provider。
+;;
+;; 语法
+;; ----
+;; (pi-find-model-provider model-id catalog . opt-preferred-provider)
+;;
+;; 参数
+;; ----
+;; model-id : string
+;; 模型标识。
+;; catalog : alist
+;; provider 到模型条目的模型目录。
+;; opt-preferred-provider : string
+;; 可选的优先 provider。
+;;
+;; 返回值
+;; ----
+;; string | #f
+;; 命中的 provider 名称；未命中时返回 #f。
+
 (import (liii check)
         (liii pi ai models))
 

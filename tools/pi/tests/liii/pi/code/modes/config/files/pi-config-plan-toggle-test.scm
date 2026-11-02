@@ -1,3 +1,24 @@
+;; pi-config-plan-toggle
+;; 计算空格启停 provider 或模型时需要写入的文件与新内容（纯函数，不落盘）。
+;;
+;; 语法
+;; ----
+;; (pi-config-plan-toggle st cursor . opt-column)
+;;
+;; 参数
+;; ----
+;; st : pi-config-state
+;; 配置 TUI 的只读视图模型。
+;; cursor : alist
+;; provider 与模型光标位置。
+;; opt-column : integer
+;; 0 表示 provider 列，1 表示模型列。
+;;
+;; 返回值
+;; ----
+;; alist
+;; 包含 ok、message 与 writes 的写入计划。
+
 (import (scheme base)
   (liii check)
   (liii list)

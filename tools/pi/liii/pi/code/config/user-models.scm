@@ -17,7 +17,10 @@
     (liii pi code config user-fs)
     (liii pi code config user-providers)
   ) ;import
-  (export pi-user-provider-models pi-user-provider-model-list)
+  (export pi-user-provider-models
+    pi-user-provider-model-list
+    pi-user-model-exists?
+  ) ;export
   (begin
 
     ;; ---------- 字段级合并 ----------
@@ -78,6 +81,20 @@
     ) ;define
 
     ;; ---------- 模型文件 ----------
+
+    ;; 判断模型是否存在于内置目录或模型文件中
+    (define (pi-user-model-exists? config-dir p-id m-id)
+      (and (string? p-id)
+        (string? m-id)
+        (or (and (%find-builtin (%builtin-table p-id) m-id) #t)
+          (let* ((path-str (pi-user-config-path config-dir "models" p-id (string-append m-id ".json"))
+                 ) ;path-str
+                ) ;
+            (and (file-exists? path-str) (pair? (pi-user-read-json path-str)))
+          ) ;let*
+        ) ;or
+      ) ;and
+    ) ;define
 
     ;; 读 models/<p>/<m>.json；缺失返回 #f，语法错告警后返回 #f
     (define (%model-file config-dir p-id m-id)
