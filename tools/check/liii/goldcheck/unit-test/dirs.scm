@@ -74,7 +74,7 @@
 
     (define (resolve-file-test-dir f)
       (cond
-       ((string-ends? f "-test.scm") (path->string (path-parent (path f))))
+       ((unit-test-file? f) (path->string (path-parent (path f))))
        (else (find-test-dir-for-library-source f))
       ) ;cond
     ) ;define

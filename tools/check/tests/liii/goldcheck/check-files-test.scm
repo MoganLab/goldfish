@@ -1,12 +1,3 @@
-(import (scheme base)
-  (scheme file)
-  (liii check)
-  (liii path)
-  (liii os)
-  (liii json)
-  (liii goldcheck)
-) ;import
-
 ;; check-files
 ;; 对文件向量并行执行所有启用的规则检查，按输入文件顺序收集违规项，返回违规项向量。
 ;;
@@ -26,10 +17,20 @@
 ;; vector of violations
 ;; 违规项向量。无违规时返回 #()。
 
+(import (scheme base)
+  (scheme file)
+  (liii check)
+  (liii path)
+  (liii os)
+  (liii json)
+  (liii goldcheck)
+) ;import
+
 (check-set-mode! 'report-failed)
 
 ;; 临时文件一律用 path-write-bytes 二进制写入，精确控制 LF 行尾，
 ;; 避免文本端口在 Windows 上把 \n 转写为 \r\n。
+
 (define (make-tmp-file name lines)
   (let* ((tmp (path->string (path-join (path-temp-dir) name)))
          (content
@@ -56,7 +57,9 @@
        (f2 (make-tmp-file "gf-test-files-b.scm" 3))
        (f3 (make-tmp-file "gf-test-files-c.scm" 405))
        (viols (check-files (vector f1 f2 f3) #f))
-       (posix (lambda (s) (path->string (path-as-posix (path s)))))
+       (posix
+         (lambda (s) (path->string (path-as-posix (path s))))
+       ) ;posix
       ) ;
   (check (vector-length viols) => 2)
   (check (car (vector-ref viols 0)) => 'max-file-lines)
@@ -75,7 +78,9 @@
             ) ;string->json
        ) ;cfg
        (viols (check-files (vector f1 f2) cfg))
-       (posix (lambda (s) (path->string (path-as-posix (path s)))))
+       (posix
+         (lambda (s) (path->string (path-as-posix (path s))))
+       ) ;posix
       ) ;
   (check (vector-length viols) => 1)
   (check (cadr (vector-ref viols 0)) => (posix f2))
@@ -86,31 +91,39 @@
 ;; 4. no-glue：不同 define-library 不得重复封装同一个 glue
 (let* ((f1 (make-tmp-file "gf-test-no-glue-owner-a.scm" 0))
        (f2 (make-tmp-file "gf-test-no-glue-owner-b.scm" 0))
-       (library
-         (lambda (name)
-           (string-append "(define-library (demo " name ")\n"
-             "  (export md5)\n"
-             "  (import (scheme base))\n"
-             "  (begin (define md5 g_md5))\n"
-             ") ;define-library\n"))))
+       (library (lambda (name)
+                  (string-append "(define-library (demo " name ")\n"
+                    "  (export md5)\n" "  (import (scheme base))\n"
+                    "  (begin (define md5 g_md5))\n" ") ;define-library\n"
+                  ) ;string-append
+                ) ;lambda
+       ) ;library
+      ) ;
   (path-write-bytes (path f1) (string->utf8 (library "one")))
   (path-write-bytes (path f2) (string->utf8 (library "two")))
-  (check (map (lambda (v) (list (car v) (list-ref v 4)))
-           (vector->list (check-files (vector f1 f2) #f)))
-    => '((no-glue multiple-libraries) (no-glue multiple-libraries)))
+  (check
+    (map (lambda (v) (list (car v) (list-ref v 4)))
+      (vector->list (check-files (vector f1 f2) #f))
+    ) ;map
+    =>
+    '((no-glue multiple-libraries) (no-glue multiple-libraries))
+  ) ;check
   (path-unlink f1 #t)
   (path-unlink f2 #t)
 ) ;let*
 
 ;; 5. no-glue：不同库分别封装不同 glue 时通过
 (let* ((f1 (make-tmp-file "gf-test-no-glue-distinct-a.scm" 0))
-       (f2 (make-tmp-file "gf-test-no-glue-distinct-b.scm" 0)))
+       (f2 (make-tmp-file "gf-test-no-glue-distinct-b.scm" 0))
+      ) ;
   (path-write-bytes (path f1)
-    (string->utf8
-      "(define-library (demo md5) (export md5) (import (scheme base)) (begin (define md5 g_md5)))\n"))
+    (string->utf8 "(define-library (demo md5) (export md5) (import (scheme base)) (begin (define md5 g_md5)))\n"
+    ) ;string->utf8
+  ) ;path-write-bytes
   (path-write-bytes (path f2)
-    (string->utf8
-      "(define-library (demo sha1) (export sha1) (import (scheme base)) (begin (define sha1 g_sha1)))\n"))
+    (string->utf8 "(define-library (demo sha1) (export sha1) (import (scheme base)) (begin (define sha1 g_sha1)))\n"
+    ) ;string->utf8
+  ) ;path-write-bytes
   (check (check-files (vector f1 f2) #f) => #())
   (path-unlink f1 #t)
   (path-unlink f2 #t)

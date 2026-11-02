@@ -32,9 +32,6 @@
                                      ->
                                      (or #f integer?))))
 
-    ;; string-starts-with? : (string? string? -> boolean?)
-    (define hint-string-starts-with? '((string? string? -> boolean?)))
-
     ;; glob-match? : (string? string? -> boolean?)
     (define hint-glob-match? '((string? string? -> boolean?)))
 
@@ -55,7 +52,6 @@
        ((normalize-sep) hint-normalize-sep)
        ((has-wildcard?) hint-has-wildcard?)
        ((string-index-of) hint-string-index-of)
-       ((string-starts-with?) hint-string-starts-with?)
        ((glob-match?) hint-glob-match?)
        ((path-matches-exclude?) hint-path-matches-exclude?)
        ((exclude-entry->path) hint-exclude-entry->path)

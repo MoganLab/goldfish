@@ -1,13 +1,3 @@
-(import (scheme base)
-  (scheme file)
-  (liii check)
-  (liii string)
-  (liii path)
-  (liii os)
-  (liii json)
-  (liii goldcheck)
-) ;import
-
 ;; check-file
 ;; 对单个文件执行所有启用的规则检查，收集违规项。若文件命中 exclude 白名单则跳过并返回空列表。
 ;;
@@ -26,6 +16,16 @@
 ;; ------
 ;; list of violations
 ;; 违规项列表。无违规或被排除时返回 '()。
+
+(import (scheme base)
+  (scheme file)
+  (liii check)
+  (liii string)
+  (liii path)
+  (liii os)
+  (liii json)
+  (liii goldcheck)
+) ;import
 
 (check-set-mode! 'report-failed)
 

@@ -186,7 +186,7 @@
       (if
         (and (check-rule-enabled? cfg "unit-test")
           (not (file-excluded? file-path (check-rule-excludes cfg "unit-test")))
-          (string-ends? file-path "-test.scm")
+          (unit-test-file? file-path)
         ) ;and
         (append acc (check-unit-test file-path))
         acc

@@ -220,7 +220,7 @@
                 (let ((loc (%locate-layer-in domains self-domain self)))
                   (let ((self-layer (car loc)) (self-idx (cdr loc)))
                     (let ((imports
-                            (filter (lambda (l) (not (string-starts-with? l "scheme ")))
+                            (filter (lambda (l) (not (string-starts? l "scheme ")))
                               (file-imports file-path)
                             ) ;filter
                           ) ;imports
@@ -238,7 +238,7 @@
       "对单文件执行 layer-order 检查，返回违规列表。\n三步判定：同域向下 / 跨域声明 / 其余 unknown-lib。"
       (cond ((not (layer-order-enabled? cfg)) '())
             ((not (path->lib-name file-path)) '())
-            ((string-starts-with? (path->lib-name file-path) "scheme ") '())
+            ((string-starts? (path->lib-name file-path) "scheme ") '())
             (else
               (let* ((self (path->lib-name file-path)) (domains (layer-domains-parse cfg)))
                 (if (null? domains) '() (%check-file-in-domain file-path cfg domains self))

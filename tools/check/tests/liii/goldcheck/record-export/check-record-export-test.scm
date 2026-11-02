@@ -1,10 +1,3 @@
-(import (scheme base)
-  (liii check)
-  (liii string)
-  (liii path)
-  (liii goldcheck record-export)
-) ;import
-
 ;; check-record-export
 ;; 检查 define-record-type 类型名、错误导出与占位定义。
 ;; 规则一：记录类型名必须采用 <xxx> 形状；
@@ -24,6 +17,13 @@
 ;; ------
 ;; list of violation
 ;; 每项形如 (list 'define-record-type rel-path line msg)。
+
+(import (scheme base)
+  (liii check)
+  (liii string)
+  (liii path)
+  (liii goldcheck record-export)
+) ;import
 
 (check-set-mode! 'report-failed)
 

@@ -1,7 +1,3 @@
-(import (scheme base) (liii check) (liii goldcheck layer)
-  (liii goldcheck layer-locate)
-  (liii goldcheck layer-config))
-
 ;; layer-name-of-lib
 ;; 查询库名在域表中命中的层名。多域命中时取最特异 pattern。
 ;; 配置用 JSON 的 Scheme 表示（对象 = alist，数组 = vector）。
@@ -20,6 +16,13 @@
 ;; string 或 #f
 ;; 层名；未登记返回 #f。
 
+(import (scheme base)
+  (liii check)
+  (liii goldcheck layer)
+  (liii goldcheck layer-locate)
+  (liii goldcheck layer-config)
+) ;import
+
 (check-set-mode! 'report-failed)
 
 (define (%dom name root deps . layers)
@@ -29,31 +32,45 @@
     (cons "layers"
       (list->vector
         (map
-          (lambda (l)
-            (list (cons "name" (car l))
-              (cons "libs" (list->vector (cdr l)))))
-          layers))))
+          (lambda (l) (list (cons "name" (car l)) (cons "libs" (list->vector (cdr l)))))
+          layers
+        ) ;map
+      ) ;list->vector
+    ) ;cons
+  ) ;list
 ) ;define
 
 (define (%cfg . domains)
-  (list (cons "rules"
-    (list (cons "layer-order"
-      (list (cons "domains" (list->vector domains))))))
-) ;list
+  (list
+    (cons "rules"
+      (list
+        (cons "layer-order" (list (cons "domains" (list->vector domains))))
+      ) ;list
+    ) ;cons
+  ) ;list
 ) ;define
 
 (define %domains
-  (layer-domains-parse
-    (%cfg (%dom "goldfish" "goldfish/" '()
-            (list "kernel" "liii base" "liii error")
-            (list "std" "srfi srfi-1" "liii goldcheck" "srfi srfi-113")
-            (list "app" "liii string"))
-      (%dom "common" "tools/common/" '("goldfish")
-        (list "shared" "liii goldtool changed"))
-      (%dom "check" "tools/check/" '("goldfish" "common")
-        (list "tool" "liii goldcheck base")))
+  (layer-domains-parse (%cfg (%dom "goldfish"
+                               "goldfish/"
+                               '()
+                               (list "kernel" "liii base" "liii error")
+                               (list "std" "srfi srfi-1" "liii goldcheck" "srfi srfi-113")
+                               (list "app" "liii string")
+                             ) ;%dom
+                         (%dom "common"
+                           "tools/common/"
+                           '("goldfish")
+                           (list "shared" "liii goldtool changed")
+                         ) ;%dom
+                         (%dom "check"
+                           "tools/check/"
+                           '("goldfish" "common")
+                           (list "tool" "liii goldcheck base")
+                         ) ;%dom
+                       ) ;%cfg
   ) ;layer-domains-parse
-)
+) ;define
 
 
 
@@ -75,11 +92,11 @@
 (check (layer-name-of-lib %domains "liii csv") => #f)
 
 ;; 5. 尾通配符 "liii *"：兜底匹配任意 liii 库（rank 1）
+
 (define %wild-domains
-  (layer-domains-parse
-    (%cfg (%dom "goldfish" "goldfish/" '()
-            (list "app" "liii *"))))
-)
+  (layer-domains-parse (%cfg (%dom "goldfish" "goldfish/" '() (list "app" "liii *")))
+  ) ;layer-domains-parse
+) ;define
 
 (check (layer-name-of-lib %wild-domains "liii anything") => "app")
 (check (layer-name-of-lib %wild-domains "srfi srfi-1") => #f)

@@ -1,5 +1,3 @@
-(import (scheme base) (liii check) (liii goldcheck path))
-
 ;; file-excluded?
 ;; 判断待测文件路径是否命中 exclude 列表中的任一条规则。
 ;;
@@ -18,6 +16,8 @@
 ;; ------
 ;; boolean
 ;; 命中任意一条规则返回 #t，全部未命中返回 #f。
+
+(import (scheme base) (liii check) (liii goldcheck path))
 
 (check-set-mode! 'report-failed)
 

@@ -1,12 +1,3 @@
-(import (scheme base)
-  (liii check)
-  (liii string)
-  (liii path)
-  (liii goldcheck layer)
-  (liii goldcheck layer-config)
-  (liii goldcheck layer-locate)
-) ;import
-
 ;; check-layer-order
 ;; 对单文件执行 layer-order 检查。三步判定：
 ;; 同域只许向下依赖；跨域须经 depends-on 声明（闭包）；
@@ -26,6 +17,15 @@
 ;; ------
 ;; list of violation
 ;; 每项形如 (list 'layer-order rel-path detail)。
+
+(import (scheme base)
+  (liii check)
+  (liii string)
+  (liii path)
+  (liii goldcheck layer)
+  (liii goldcheck layer-config)
+  (liii goldcheck layer-locate)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -79,7 +79,9 @@
       '("goldfish")
       (list "ai" "liii pi ai")
       (list "code" "liii pi code")
-      (list "extensions" "liii pi multikey" "liii pi review" "liii pi simplify" "liii pi web-search")
+      (list "extensions" "liii pi multikey" "liii pi review" "liii pi simplify"
+        "liii pi web-search"
+      ) ;list
     ) ;%dom
   ) ;%cfg-on
 ) ;define
@@ -112,7 +114,9 @@
         (cons "layer-order"
           (list (cons "enabled" #f)
             (cons "domains"
-              (list->vector (list (%dom "goldfish" "goldfish/" '() (list "app" "liii string" "liii hash-table"))))
+              (list->vector (list (%dom "goldfish" "goldfish/" '() (list "app" "liii string" "liii hash-table"))
+                            ) ;list
+              ) ;list->vector
             ) ;cons
           ) ;list
         ) ;cons
@@ -155,9 +159,12 @@
 
 ;; 1b. 同层互依放行（app -> app），向上才违规
 (let ((f (%mk "tools/check/liii/goldcheck/config.scm"
-          (%lib-header "scheme base" "liii json" "liii goldcheck path"))))
+           (%lib-header "scheme base" "liii json" "liii goldcheck path")
+         ) ;%mk
+      ) ;f
+     ) ;
   (check (check-layer-order f %cfg) => '())
-)
+) ;let
 
 ;; 2. 同域向上依赖：std 层的 srfi 库 import app 层 -> 抓到倒挂
 (let* ((f (%mk "goldfish/srfi/srfi-113.scm"
@@ -174,11 +181,15 @@
 ;; 2b. 裸顶层 import（无 define-library 的扩展插件式文件）同样受检：
 ;; std 层裸文件 import app 层 -> 抓到倒挂
 (let* ((f (%mk "goldfish/srfi/srfi-113.scm"
-            "(import (scheme base) (liii hash-table))\n\n(define (x) 1)\n"))
+            "(import (scheme base) (liii hash-table))\n\n(define (x) 1)\n"
+          ) ;%mk
+       ) ;f
        (viol (check-layer-order f %cfg))
       ) ;
   (check (length viol) => 1)
-  (check-true (and (string-contains? (caddr (car viol)) "hash-table") #t))
+  (check-true
+    (and (string-contains? (caddr (car viol)) "hash-table") #t)
+  ) ;check-true
 ) ;let*
 
 ;; 3. 跨域已声明 -> 零违规；未声明 -> 1 条 cross-domain 违规
@@ -210,10 +221,9 @@
 ) ;let
 
 ;; 4b. 域外文件（不在任何域 root 下）-> 跳过
-(let ((f (%mk "demo/not-in-domain.scm"
-          (%lib-header "scheme base" "liii string"))))
+(let ((f (%mk "demo/not-in-domain.scm" (%lib-header "scheme base" "liii string"))))
   (check (check-layer-order f %cfg) => '())
-)
+) ;let
 
 ;; 5. scheme 基座文件跳过
 (let ((f (%mk "goldfish/scheme/base.scm" (%lib-header "scheme base"))))
@@ -265,7 +275,9 @@
 ;; 9b. pi 域 extensions 层向下依赖（ai/code 层）与同层互依 -> 零违规
 (let ((f (%mk "tools/pi/liii/pi/web-search/execute.scm"
            (%lib-header "scheme base" "liii pi code tools read"
-             "liii pi ai api google-generative-ai grounding" "liii pi web-search schema")
+             "liii pi ai api google-generative-ai grounding"
+             "liii pi web-search schema"
+           ) ;%lib-header
          ) ;%mk
       ) ;f
      ) ;
@@ -304,9 +316,9 @@
     '("tools/check/liii/goldcheck" "tools/check/tests/liii/goldcheck"
       "tools/check/tests/liii" "tools/check/tests" "tools/check/liii"
       "tools/check" "goldfish/srfi" "goldfish/scheme" "goldfish"
-      "tools/common/liii" "tools/common"
-      "tools/pi/liii/pi/code" "tools/pi/liii/pi/web-search" "tools/pi/liii/pi/ai"
-      "tools/pi/liii/pi" "tools/pi/liii" "tools/pi" "tools")
+      "tools/common/liii" "tools/common" "tools/pi/liii/pi/code"
+      "tools/pi/liii/pi/web-search" "tools/pi/liii/pi/ai" "tools/pi/liii/pi"
+      "tools/pi/liii" "tools/pi" "tools")
   ) ;for-each
   (path-rmdir (path %tmp-root))
 ) ;let
