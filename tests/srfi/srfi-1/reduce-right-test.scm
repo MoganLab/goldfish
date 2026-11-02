@@ -1,10 +1,5 @@
-(import (liii list) (liii check))
-
-
-(check-set-mode! 'report-failed)
-
-
-;; reduce-right 函数测试
+;; reduce-right
+;; 从右向左对列表元素进行归约。
 ;;
 ;; 语法
 ;; ----
@@ -25,38 +20,23 @@
 ;; ------
 ;; any
 ;; 返回从右向左归约后的结果。
-;;
-;; 说明
-;; ----
-;; reduce-right函数与reduce类似，但从右向左进行归约。
-;;
-;; 示例
-;; ----
-;; (reduce-right + 0 '(1 2 3 4)) => 10
-;; (reduce-right + 0 '()) => 0
-;; (reduce-right cons () '(1 2 3 4)) => '(1 2 3 . 4)
 
+(import (srfi srfi-1) (liii check))
+
+(check-set-mode! 'report-failed)
 
 (check (reduce-right + 0 '(1 2 3 4)) => 10)
-
-
 (check (reduce-right + 0 '()) => 0)
-
 
 (check (reduce-right cons () '(1 2 3 4)) => '(1 2 3 . 4))
 
-
 (check (reduce-right (lambda (x count) (if (symbol? x) (+ count 1) count))
          0
-         '(a b 1 2 3 4)
-       ) ;reduce-right
+         '(a b 1 2 3 4))
   =>
-  6
-) ;check
-
+  6)
 
 (check-catch 'type-error (reduce-right 1 0 '(1 2 3)))
 (check-catch 'type-error (reduce-right + 0 1))
-
 
 (check-report)
