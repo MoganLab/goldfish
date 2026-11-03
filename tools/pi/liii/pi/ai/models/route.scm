@@ -53,6 +53,7 @@
               ((equal? p "deepseek") "deepseek-v4-pro")
               ((or (equal? p "zai-coding-cn") (equal? p "zai")) "glm-5.3")
               ((or (equal? p "minimax") (equal? p "minimax-cn")) "MiniMax-M3.1-Flash")
+              ((equal? p "ollama") "qwen2.5-coder:latest")
               (else "gemini-3.8-flash")
         ) ;cond
       ) ;let
@@ -152,6 +153,7 @@
             ) ;
             ((equal? provider "glm") (%safe-lookup-env "GLM_MODEL" opt-env))
             ((equal? provider "deepseek") (%safe-lookup-env "DEEPSEEK_MODEL" opt-env))
+            ((equal? provider "ollama") (%safe-lookup-env "OLLAMA_MODEL" opt-env))
             ((equal? provider "minimax-cn") (%safe-lookup-env "MINIMAX_CN_MODEL" opt-env))
             (else #f)
       ) ;cond
@@ -211,9 +213,25 @@
              ) ;raw-m
              (slash? (and (string? raw-m) (string-contains? raw-m "/")))
              (parts (if slash? (string-split raw-m "/") '()))
-             (slash-p (and slash? (pair? parts) (car parts)))
+             (first-part (and slash? (pair? parts) (car parts)))
+             (slash-p
+               (and slash?
+                 (not has-cli-p?)
+                 (or (member first-part (%catalog-provider-names models-store))
+                   (assoc first-part PI_PROVIDERS)
+                   (member first-part PI_SUPPORTED_PROVIDERS)
+                 ) ;or
+                 first-part
+               ) ;and
+             ) ;slash-p
              (explicit-m
-               (if (and slash? (pair? (cdr parts))) (cadr parts) raw-m)
+               (cond ((not raw-m) #f)
+                     ((and has-cli-p? (string-starts? raw-m (string-append cli-p "/")))
+                      (substring raw-m (+ (string-length cli-p) 1) (string-length raw-m))
+                     ) ;
+                     (slash-p (substring raw-m (+ (string-length slash-p) 1) (string-length raw-m)))
+                     (else raw-m)
+               ) ;cond
              ) ;explicit-m
              (effective-p (or (and has-cli-p? cli-p) slash-p))
              (has-effective-p?

@@ -239,9 +239,9 @@
 (let ((dir (make-dir "last-provider-nav"))
       (vt (make-virtual-terminal :width 120 :height 24))
      ) ;
-  ;; 5 次 ↓ 到最后一个 provider（zai-coding-cn），→ 进模型列，5 次 ↓
+  ;; 6 次 ↓ 到最后一个 provider（zai-coding-cn），→ 进模型列，5 次 ↓
   (for-each (lambda (k) (virtual-terminal-push-key! vt k))
-    (list 'down 'down 'down 'down 'down 'right 'down 'down 'down 'down 'down 'q)
+    (list 'down 'down 'down 'down 'down 'down 'right 'down 'down 'down 'down 'down 'q)
   ) ;for-each
   (check (pi-config-run dir :terminal vt :env '()) => 'chat)
   (let ((screen (string-join (virtual-terminal-screen vt) "\n")))

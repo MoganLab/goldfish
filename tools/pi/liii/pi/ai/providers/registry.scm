@@ -13,6 +13,7 @@
     (liii pi ai providers kimi-coding)
     (liii pi ai providers minimax-cn)
     (liii pi ai providers zai-coding-cn)
+    (liii pi ai providers ollama)
     (liii pi ai providers quota)
   ) ;import
   (export PI_PROVIDERS PI_SUPPORTED_PROVIDERS PI_PROVIDER_BUILTIN_MODELS
@@ -31,6 +32,7 @@
         (cons "minimax-cn" PI_MINIMAX_CN_PROVIDER)
         (cons "zai-coding-cn" PI_ZAI_CODING_CN_PROVIDER)
         (cons "zai" PI_ZAI_CODING_CN_PROVIDER)
+        (cons "ollama" PI_OLLAMA_PROVIDER)
       ) ;list
     ) ;define
 
@@ -38,7 +40,7 @@
     ;; Anthropic 兼容端点，由 zai-coding-cn / minimax-cn / deepseek 覆盖；
     ;; 需要其它端点时用自定义 provider：models/<id>.json）
     (define PI_SUPPORTED_PROVIDERS
-      '("google" "kimi-coding" "deepseek" "minimax-cn" "zai-coding-cn")
+      '("google" "kimi-coding" "deepseek" "minimax-cn" "zai-coding-cn" "ollama")
     ) ;define
 
     ;; 各 provider 的内置模型目录（id -> models），与 PI_PROVIDERS 同源
@@ -48,6 +50,7 @@
         (cons "kimi-coding" PI_KIMI_CODING_BUILTIN_MODELS)
         (cons "minimax-cn" PI_MINIMAX_CN_BUILTIN_MODELS)
         (cons "zai-coding-cn" PI_ZAI_CODING_CN_BUILTIN_MODELS)
+        (cons "ollama" PI_OLLAMA_BUILTIN_MODELS)
       ) ;list
     ) ;define
 

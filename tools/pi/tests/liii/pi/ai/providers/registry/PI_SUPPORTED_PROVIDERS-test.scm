@@ -26,6 +26,7 @@
 (check (if (member "deepseek" PI_SUPPORTED_PROVIDERS) #t #f) => #t)
 (check (if (member "minimax-cn" PI_SUPPORTED_PROVIDERS) #t #f) => #t)
 (check (if (member "minimax" PI_SUPPORTED_PROVIDERS) #t #f) => #f)
+(check (if (member "ollama" PI_SUPPORTED_PROVIDERS) #t #f) => #t)
 (check (if (member "zai-coding-cn" PI_SUPPORTED_PROVIDERS) #t #f) => #t)
 
 (check-report)

@@ -13,12 +13,13 @@
     openai-stream-state-stop-reason openai-stream-state-stop-reason-set!
     openai-stream-state-error-message openai-stream-state-error-message-set!
     openai-stream-state-tools openai-stream-state-tools-set!
+    openai-stream-state-last-reasoning openai-stream-state-last-reasoning-set!
   ) ;export
   (begin
 
     (define-record-type <openai-stream-state>
       (%make-openai-stream-state blocks last-text usage stop-reason
-        error-message tools
+        error-message tools last-reasoning
       ) ;%make-openai-stream-state
       %openai-stream-state?
       (blocks openai-stream-state-record-blocks
@@ -35,15 +36,23 @@
         openai-stream-state-record-error-message-set!
       ) ;error-message
       (tools openai-stream-state-record-tools openai-stream-state-record-tools-set!)
+      (last-reasoning openai-stream-state-record-last-reasoning
+        openai-stream-state-record-last-reasoning-set!
+      ) ;last-reasoning
     ) ;define-record-type
 
-    (define (make-openai-stream-state blocks last-text usage stop-reason
-              error-message tools
-            ) ;make-openai-stream-state
+    (define* (make-openai-stream-state blocks
+               last-text
+               usage
+               stop-reason
+               error-message
+               tools
+               (last-reasoning #f)
+             ) ;make-openai-stream-state
       (%make-openai-stream-state blocks last-text usage stop-reason
-        error-message tools
+        error-message tools last-reasoning
       ) ;%make-openai-stream-state
-    ) ;define
+    ) ;define*
 
     (define (openai-stream-state? state)
       (%openai-stream-state? state)
@@ -130,6 +139,22 @@
       (if (openai-stream-state? state)
         (openai-stream-state-record-tools-set! state value)
         (vector-set! state 5 value)
+      ) ;if
+    ) ;define
+
+    (define (openai-stream-state-last-reasoning state)
+      (if (openai-stream-state? state)
+        (openai-stream-state-record-last-reasoning state)
+        (if (> (vector-length state) 6) (vector-ref state 6) #f)
+      ) ;if
+    ) ;define
+
+    (define (openai-stream-state-last-reasoning-set! state value)
+      (if (openai-stream-state? state)
+        (openai-stream-state-record-last-reasoning-set! state value)
+        (when (> (vector-length state) 6)
+          (vector-set! state 6 value)
+        ) ;when
       ) ;if
     ) ;define
 

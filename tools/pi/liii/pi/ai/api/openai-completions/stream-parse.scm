@@ -57,6 +57,17 @@
       ) ;catch
     ) ;define
 
+    (define (append-openai-stream-reasoning stream-state reasoning on-event)
+      (when (and (string? reasoning) (not (string-null? reasoning)))
+        (let* ((last-reasoning (openai-stream-state-last-reasoning stream-state))
+               (new-reasoning (if last-reasoning (string-append last-reasoning reasoning) reasoning)
+               ) ;new-reasoning
+              ) ;
+          (openai-stream-state-last-reasoning-set! stream-state new-reasoning)
+        ) ;let*
+      ) ;when
+    ) ;define
+
     (define (append-openai-stream-text stream-state text on-event)
       (when (and (string? text) (not (string-null? text)))
         (let* ((blocks (openai-stream-state-blocks stream-state))
@@ -168,46 +179,253 @@
       ) ;let*
     ) ;define
 
+    (define (%extract-json-snippet text)
+      (let* ((trimmed (string-trim-both text))
+             (tc-start (string-contains trimmed "<tool_call>"))
+             (tc-end (string-contains trimmed "</tool_call>"))
+            ) ;
+        (cond
+         ((and tc-start tc-end (< tc-start tc-end))
+          (string-trim-both (substring trimmed (+ tc-start 11) tc-end))
+         ) ;
+         ((string-starts? trimmed "```json")
+          (let* ((rest (string-trim-both (substring trimmed 7 (string-length trimmed))))
+                 (end (string-contains rest "```"))
+                ) ;
+            (if end (string-trim-both (substring rest 0 end)) rest)
+          ) ;let*
+         ) ;
+         ((string-starts? trimmed "```")
+          (let* ((rest (string-trim-both (substring trimmed 3 (string-length trimmed))))
+                 (end (string-contains rest "```"))
+                ) ;
+            (if end (string-trim-both (substring rest 0 end)) rest)
+          ) ;let*
+         ) ;
+         (else
+           (let ((b-start (or (string-contains trimmed "{\"name\":")
+                            (string-contains trimmed "{\"name\" :")
+                            (string-contains trimmed "{\"name\"  :")
+                          ) ;or
+                 ) ;b-start
+                ) ;
+             (if b-start
+               (let ((r-idx (string-index-right trimmed #\})))
+                 (if (and r-idx (>= r-idx b-start))
+                   (substring trimmed b-start (+ r-idx 1))
+                   trimmed
+                 ) ;if
+               ) ;let
+               trimmed
+             ) ;if
+           ) ;let
+         ) ;else
+        ) ;cond
+      ) ;let*
+    ) ;define
+
+    (define (%parse-xml-tool-call text)
+      (let* ((tc-start (string-contains text "<tool_call>"))
+             (tc-end (string-contains text "</tool_call>"))
+            ) ;
+        (if (and tc-start tc-end (< tc-start tc-end))
+          (let* ((inner (substring text (+ tc-start 11) tc-end))
+                 (json-parsed
+                   (catch #t (lambda () (string->json (string-trim-both inner))) (lambda _ #f))
+                 ) ;json-parsed
+                ) ;
+            (if (and (pair? json-parsed) (assoc "name" json-parsed))
+              (let* ((name (cdr (assoc "name" json-parsed)))
+                     (raw-args (or (pi-user-dict-ref json-parsed "arguments" #f)
+                                 (pi-user-dict-ref json-parsed "parameters" '())
+                               ) ;or
+                     ) ;raw-args
+                    ) ;
+                (cons name raw-args)
+              ) ;let*
+              (let ((fn-start (string-contains inner "<function=")))
+                (if fn-start
+                  (let* ((after-fn (+ fn-start 10)) (fn-end (string-contains inner ">" after-fn)))
+                    (if fn-end
+                      (let* ((fn-name (string-trim-both (substring inner after-fn fn-end)))
+                             (args
+                               (let loop
+                                 ((pos fn-end) (params '()))
+                                 (let ((p-start (string-contains inner "<parameter=" pos)))
+                                   (if (not p-start)
+                                     (reverse params)
+                                     (let* ((p-name-start (+ p-start 11))
+                                            (p-name-end (string-contains inner ">" p-name-start))
+                                           ) ;
+                                       (if (not p-name-end)
+                                         (reverse params)
+                                         (let* ((p-name (string-trim-both (substring inner p-name-start p-name-end)))
+                                                (val-start (+ p-name-end 1))
+                                                (val-end (string-contains inner "</parameter>" val-start))
+                                               ) ;
+                                           (if (not val-end)
+                                             (reverse params)
+                                             (let* ((val-raw (string-trim-both (substring inner val-start val-end)))
+                                                    (num-val (string->number val-raw))
+                                                    (val (if (number? num-val) num-val val-raw))
+                                                   ) ;
+                                               (loop (+ val-end 12) (cons (cons p-name val) params))
+                                             ) ;let*
+                                           ) ;if
+                                         ) ;let*
+                                       ) ;if
+                                     ) ;let*
+                                   ) ;if
+                                 ) ;let
+                               ) ;let
+                             ) ;args
+                            ) ;
+                        (cons fn-name args)
+                      ) ;let*
+                      #f
+                    ) ;if
+                  ) ;let*
+                  #f
+                ) ;if
+              ) ;let
+            ) ;if
+          ) ;let*
+          #f
+        ) ;if
+      ) ;let*
+    ) ;define
+
+    (define (%parse-any-tool-call text)
+      (and (string? text)
+        (or (%parse-xml-tool-call text)
+          (let* ((snippet (%extract-json-snippet text))
+                 (parsed (catch #t (lambda () (string->json snippet)) (lambda args #f)))
+                ) ;
+            (and (pair? parsed)
+              (assoc "name" parsed)
+              (let* ((name (cdr (assoc "name" parsed)))
+                     (raw-args
+                       (let ((p (or (assoc "arguments" parsed) (assoc "parameters" parsed))))
+                         (if p (cdr p) '())
+                       ) ;let
+                     ) ;raw-args
+                     (args
+                       (cond ((pair? raw-args) raw-args)
+                             ((string? raw-args)
+                              (let ((sub (catch #t (lambda () (string->json raw-args)) (lambda _ #f))))
+                                (cond ((pair? sub) sub)
+                                      ((equal? name "bash") (list (cons "command" raw-args)))
+                                      (else (list (cons "input" raw-args)))
+                                ) ;cond
+                              ) ;let
+                             ) ;
+                             (else '())
+                       ) ;cond
+                     ) ;args
+                    ) ;
+                (cons name args)
+              ) ;let*
+            ) ;and
+          ) ;let*
+        ) ;or
+      ) ;and
+    ) ;define
+
+    (define (%maybe-extract-text-tool-call! stream-state on-event)
+      (let* ((blocks (openai-stream-state-blocks stream-state))
+             (last-text (openai-stream-state-last-text stream-state))
+             (last-reasoning (openai-stream-state-last-reasoning stream-state))
+             (tc (or (%parse-any-tool-call last-text) (%parse-any-tool-call last-reasoning)))
+            ) ;
+        (cond
+          (tc
+            (let* ((name (car tc))
+                   (args (cdr tc))
+                   (call-id "call_inline_1")
+                   (tc-blk (pi-tool-call-block call-id name args))
+                   (usage (openai-stream-state-usage stream-state))
+                  ) ;
+              (openai-stream-state-blocks-set! stream-state (list tc-blk))
+              (openai-stream-state-stop-reason-set! stream-state "toolUse")
+              (when (procedure? on-event)
+                (on-event (list (cons 'type "toolcall_start")
+                            (cons 'contentIndex 0)
+                            (cons 'id call-id)
+                            (cons 'toolName name)
+                            (cons 'usage usage)
+                          ) ;list
+                ) ;on-event
+              ) ;when
+              (when (procedure? on-event)
+                (on-event (list (cons 'type "toolcall_end")
+                            (cons 'contentIndex 0)
+                            (cons 'id call-id)
+                            (cons 'toolName name)
+                            (cons 'usage usage)
+                          ) ;list
+                ) ;on-event
+              ) ;when
+            ) ;let*
+          ) ;tc
+          ((and (null? blocks)
+             (string? last-reasoning)
+             (not (string-null? (string-trim-both last-reasoning)))
+           ) ;and
+           (let* ((clean-text (string-trim-both last-reasoning))
+                  (txt-blk (pi-text-block clean-text))
+                 ) ;
+             (openai-stream-state-blocks-set! stream-state (list txt-blk))
+             (openai-stream-state-last-text-set! stream-state clean-text)
+           ) ;let*
+          ) ;
+          (else #f)
+        ) ;cond
+      ) ;let*
+    ) ;define
+
     (define (finish-openai-stream stream-state on-event)
       (let ((tools-alist (openai-stream-state-tools stream-state))
             (blocks (openai-stream-state-blocks stream-state))
             (usage (openai-stream-state-usage stream-state))
            ) ;
-        (when (pair? tools-alist)
-          (for-each
-            (lambda (p)
-              (let* ((item (cdr p))
-                     (id (%openai-tool-state-id item))
-                     (name (%openai-tool-state-name item))
-                     (args-str (%openai-tool-state-args item))
-                     (args-json
-                       (catch #t
-                         (lambda () (if (string-null? args-str) '() (string->json args-str)))
-                         (lambda args '())
-                       ) ;catch
-                     ) ;args-json
-                     (tc-blk (pi-tool-call-block id name args-json))
-                     (cur-idx (length (openai-stream-state-blocks stream-state)))
-                    ) ;
-                (openai-stream-state-blocks-set! stream-state
-                  (append (openai-stream-state-blocks stream-state) (list tc-blk))
-                ) ;openai-stream-state-blocks-set!
-                (when (procedure? on-event)
-                  (on-event (list (cons 'type "toolcall_end")
-                              (cons 'contentIndex cur-idx)
-                              (cons 'id id)
-                              (cons 'toolName name)
-                              (cons 'usage usage)
-                            ) ;list
-                  ) ;on-event
-                ) ;when
-              ) ;let*
-            ) ;lambda
-            tools-alist
-          ) ;for-each
-          (openai-stream-state-stop-reason-set! stream-state "toolUse")
-          (openai-stream-state-tools-set! stream-state '())
-        ) ;when
+        (if (pair? tools-alist)
+          (begin
+            (for-each
+              (lambda (p)
+                (let* ((item (cdr p))
+                       (id (%openai-tool-state-id item))
+                       (name (%openai-tool-state-name item))
+                       (args-str (%openai-tool-state-args item))
+                       (args-json
+                         (catch #t
+                           (lambda () (if (string-null? args-str) '() (string->json args-str)))
+                           (lambda args '())
+                         ) ;catch
+                       ) ;args-json
+                       (tc-blk (pi-tool-call-block id name args-json))
+                       (cur-idx (length (openai-stream-state-blocks stream-state)))
+                      ) ;
+                  (openai-stream-state-blocks-set! stream-state
+                    (append (openai-stream-state-blocks stream-state) (list tc-blk))
+                  ) ;openai-stream-state-blocks-set!
+                  (when (procedure? on-event)
+                    (on-event (list (cons 'type "toolcall_end")
+                                (cons 'contentIndex cur-idx)
+                                (cons 'id id)
+                                (cons 'toolName name)
+                                (cons 'usage usage)
+                              ) ;list
+                    ) ;on-event
+                  ) ;when
+                ) ;let*
+              ) ;lambda
+              tools-alist
+            ) ;for-each
+            (openai-stream-state-stop-reason-set! stream-state "toolUse")
+            (openai-stream-state-tools-set! stream-state '())
+          ) ;begin
+          (%maybe-extract-text-tool-call! stream-state on-event)
+        ) ;if
       ) ;let
     ) ;define
 
@@ -234,9 +452,15 @@
           ) ;openai-stream-state-stop-reason-set!
         ) ;when
         (when (pair? delta)
-          (let ((content (%val "content" delta #f)) (raw-tc (%val "tool_calls" delta #f)))
+          (let ((content (%val "content" delta #f))
+                (reasoning (or (%val "reasoning" delta #f) (%val "reasoning_content" delta #f)))
+                (raw-tc (%val "tool_calls" delta #f))
+               ) ;
             (when (and (string? content) (not (string-null? content)))
               (append-openai-stream-text stream-state content on-event)
+            ) ;when
+            (when (and (string? reasoning) (not (string-null? reasoning)))
+              (append-openai-stream-reasoning stream-state reasoning on-event)
             ) ;when
             (when (or (vector? raw-tc) (list? raw-tc))
               (let ((tc-list (if (vector? raw-tc) (vector->list raw-tc) raw-tc)))

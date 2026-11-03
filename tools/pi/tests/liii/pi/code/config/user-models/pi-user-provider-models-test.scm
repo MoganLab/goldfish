@@ -40,4 +40,10 @@
   #t
 ) ;check
 
+;; ollama 无白名单时返回内置模型列表
+(let ((models (pi-user-provider-models (string-append FIXTURE "/full") "ollama")))
+  (check-true (pair? models))
+  (check (cdr (assoc "id" (car models))) => "qwen2.5-coder:latest")
+) ;let
+
 (check-report)

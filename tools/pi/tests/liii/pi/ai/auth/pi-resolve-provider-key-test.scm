@@ -44,4 +44,13 @@
 ;; 4. 未找到时返回 #f
 (check (pi-resolve-provider-key "unknown-provider" '() '()) => #f)
 
+;; 5. ollama 免密：当无环境变量且无 auth 配置时，回退到默认虚拟密钥 "ollama"
+(check (pi-resolve-provider-key "ollama" '() '()) => "ollama")
+(let ((env '(("OLLAMA_API_KEY" . "custom-ollama-key"))))
+  (check (pi-resolve-provider-key "ollama" '() env) => "custom-ollama-key")
+) ;let
+(let ((auth '(("ollama" . "auth-ollama-key"))))
+  (check (pi-resolve-provider-key "ollama" auth '()) => "auth-ollama-key")
+) ;let
+
 (check-report)

@@ -109,7 +109,7 @@
         ) ;plain
       ) ;text
      ) ;
-  (check (string-contains text "providers 3/6 on") => #t)
+  (check (string-contains text "providers 3/7 on") => #t)
   (check (string-contains text "kimi-coding") => #t)
   (check (string-contains text "k3.1-pro") => #t)
   (check (string-contains text "baseUrl") => #t)
@@ -118,7 +118,7 @@
   (check (string-contains text "● kimi-coding") => #t)
   (check (string-contains text "× deepseek") => #t)
   ;; 状态栏显示可用/总数
-  (check (string-contains text "3/6 providers") => #t)
+  (check (string-contains text "3/7 providers") => #t)
 ) ;let
 
 ;; 6. 光标移动改变预览内容：provider 索引 0（google）时不显示 k3.1-pro

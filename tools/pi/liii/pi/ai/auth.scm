@@ -148,6 +148,7 @@
              ) ;or
             ) ;
             ((string=? p-str "deepseek") (%env-var-non-empty "DEEPSEEK_API_KEY" opt-env))
+            ((string=? p-str "ollama") (%env-var-non-empty "OLLAMA_API_KEY" opt-env))
             ((string=? p-str "minimax-cn")
              (or (%env-var-non-empty "MINIMAX_CN_API_KEY" opt-env)
                (%env-var-non-empty "MINIMAX_API_KEY" opt-env)
@@ -196,6 +197,7 @@
             (or (%non-empty-auth-key pair)
               (%non-empty-auth-key alias-pair)
               (cond ((string=? p-str "deepseek") (%resolve-deepseek-fallback opt-env))
+                    ((string=? p-str "ollama") "ollama")
                     (else #f)
               ) ;cond
             ) ;or
