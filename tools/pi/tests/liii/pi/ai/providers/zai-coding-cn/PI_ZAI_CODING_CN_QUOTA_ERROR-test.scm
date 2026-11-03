@@ -16,12 +16,13 @@
 ;; 返回值
 ;; ----
 ;; pi-quota-limit? 或 #f
-;; 命中返回 record：kind 为 "five-hour"（1308）或 "weekly"（1310），
-;; code 为业务码，message 为官方消息原文。
+;; 命中返回 record：kind 为 "five-hour"（1308）、"weekly"（1310）或
+;; "model-permission"（1311），code 为业务码，message 为官方消息原文。
 ;;
 ;; 注意
 ;; ----
-;; 判定依据是 error.code：1308 为 5 小时额度窗口耗尽，1310 为每周/每月额度耗尽。
+;; 判定依据是 error.code：1308 为 5 小时额度窗口耗尽，1310 为每周/每月额度耗尽，
+;; 1311 为当前订阅套餐未开放该模型权限。
 ;; 1302（并发槽满）、1303/1305（短时频率）、1312（模型拥堵）都不是额度耗尽，
 ;; 返回 #f 让上层继续重试。
 
@@ -66,7 +67,21 @@
   (check (code limit) => "1308")
 ) ;let
 
-;; 3. 1302/1303/1305/1312 不是额度耗尽
+;; 3. 1311 -> model-permission（当前订阅套餐未开放该模型权限）
+;;
+;; 这类错误是永久性的：套餐不包含该模型，重试再多次也不会成功，
+;; 必须直接报错而不是退避重试。
+(let ((limit (PI_ZAI_CODING_CN_QUOTA_ERROR 429
+               "{\"error\":{\"code\":\"1311\",\"message\":\"当前订阅套餐暂未开放GLM-5.2-Highspeed权限\"}}"
+             ) ;PI_ZAI_CODING_CN_QUOTA_ERROR
+      ) ;limit
+     ) ;
+  (check (kind limit) => "model-permission")
+  (check (code limit) => "1311")
+  (check (msg limit) => "当前订阅套餐暂未开放GLM-5.2-Highspeed权限")
+) ;let
+
+;; 4. 1302/1303/1305/1312 不是额度耗尽
 (check-false (PI_ZAI_CODING_CN_QUOTA_ERROR 429
                "{\"error\":{\"code\":\"1302\",\"message\":\"当前并发数已达到上限\"}}"
              ) ;PI_ZAI_CODING_CN_QUOTA_ERROR
@@ -80,7 +95,7 @@
              ) ;PI_ZAI_CODING_CN_QUOTA_ERROR
 ) ;check-false
 
-;; 4. 非 {403,429} 状态码不判定
+;; 5. 非 {403,429} 状态码不判定
 (check-false (PI_ZAI_CODING_CN_QUOTA_ERROR 400
                "{\"error\":{\"code\":\"1310\",\"message\":\"x\"}}"
              ) ;PI_ZAI_CODING_CN_QUOTA_ERROR
@@ -90,7 +105,7 @@
              ) ;PI_ZAI_CODING_CN_QUOTA_ERROR
 ) ;check-false
 
-;; 5. 非 JSON / 无业务码 / 空体
+;; 6. 非 JSON / 无业务码 / 空体
 (check-false (PI_ZAI_CODING_CN_QUOTA_ERROR 429 "You have exceeded your quota"))
 (check-false (PI_ZAI_CODING_CN_QUOTA_ERROR 429 "{}"))
 (check-false (PI_ZAI_CODING_CN_QUOTA_ERROR 429 ""))

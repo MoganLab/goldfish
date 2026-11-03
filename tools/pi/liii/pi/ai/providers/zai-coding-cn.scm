@@ -23,17 +23,24 @@
 
     ;; 「额度耗尽」识别：智谱 / Z.AI GLM Coding Plan
     ;;
-    ;;   HTTP 403/429 且 error.code ∈ {1308, 1310}
+    ;;   HTTP 403/429 且 error.code ∈ {1308, 1310, 1311}
     ;;     1308 -> 5 小时额度窗口耗尽（five-hour）
     ;;     1310 -> 每周/每月额度耗尽（weekly）
+    ;;     1311 -> 当前订阅套餐未开放该模型权限（model-permission）
     ;;   1302（并发槽满）/1303、1305（短时频率）/1312（模型拥堵）不是额度耗尽，
     ;;   分别返回 #f 让上层继续重试。
+    ;;
+    ;; 1311 与额度耗尽同属「不可重试」：套餐里没有该模型，退避重试再多次也
+    ;; 不会成功（2026-11-02 实测 glm-5.2-highspeed：429 + 1311，
+    ;; 原文「当前订阅套餐暂未开放GLM-5.2-Highspeed权限」）。
     ;;
     ;; 返回值：((kind . ...) (code . ...) (message . 官方原文)) 或 #f
     (define (PI_ZAI_CODING_CN_QUOTA_ERROR status-code body-str)
       (pi-quota-error-result status-code
         body-str
-        '(("1308" . "five-hour") ("1310" . "weekly"))
+        '(("1308" . "five-hour")
+          ("1310" . "weekly")
+          ("1311" . "model-permission"))
       ) ;pi-quota-error-result
     ) ;define
 

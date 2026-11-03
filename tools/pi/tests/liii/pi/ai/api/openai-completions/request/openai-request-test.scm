@@ -35,7 +35,8 @@
 ;;
 ;; 注意
 ;; ----
-;; 可重试错误按 retry 配置退避重试；额度耗尽不重试（多账号时先换 key）。
+;; 可重试错误按 retry 配置退避重试；额度耗尽、套餐未开放模型权限都不重试
+;; （多账号时先换 key）。
 ;; 异常请求（非 200、网络错误）会连同响应体原文写入 ~/.gf/agent/logs。
 
 (import (scheme base)
@@ -81,8 +82,10 @@
 
 ;; 额度耗尽（HTTP 429）端到端测试
 ;;
-;; Z.AI Coding Plan 在额度耗尽时返回 429，区分 5 小时窗口额度与每周/每月额度。
-;; 这类错误属于账户级限额，重试无意义：pi 应当立即失败并给出额度类型与重置时间。
+;; Z.AI Coding Plan 在额度耗尽时返回 429，区分 5 小时窗口额度与每周/每月额度；
+;; 套餐未开放模型权限（error.code 1311）同样返回 429。
+;; 这类错误属于账户级限额或永久性拒绝，重试无意义：pi 应当立即失败并给出
+;; 额度类型与重置时间，或服务商官方原文。
 
 (define (find-stub-server)
   (let loop
@@ -174,6 +177,11 @@
   "{\"error\":{\"code\":\"1308\",\"message\":\"您已达到5小时使用上限，请在 5 小时后重试。\"}}"
 ) ;define
 
+;; 套餐未开放模型权限：永久性错误，重试无意义
+(define permission-body
+  "{\"error\":{\"code\":\"1311\",\"message\":\"当前订阅套餐暂未开放GLM-5.2-Highspeed权限\"}}"
+) ;define
+
 ;; 1. 流式请求：周额度耗尽 → 立即失败，提示额度类型与重置时间
 
 (define weekly-log (make-log-path))
@@ -218,11 +226,55 @@
   ) ;lambda
 ) ;with-stub
 
-;; 3. 额度耗尽属于确定性失败：不应触发任何重试（stub server 只收到 1 次请求）
+;; 3. 套餐未开放模型权限（1311）：流式与非流式都立即失败，给出官方原文
+
+(define permission-stream-log (make-log-path))
+
+(with-stub permission-stream-log
+  permission-body
+  (lambda (base-url)
+    (let ((resp (openai-request-stream (make-config base-url) (list (pi-user-message "ping")))
+          ) ;resp
+         ) ;
+      (check (pi-assistant-message-stop-reason resp) => "error")
+      (let ((msg (pi-assistant-message-error-message resp)))
+        (check-true (string-contains? msg "当前订阅套餐暂未开放GLM-5.2-Highspeed权限"))
+      ) ;let
+      resp
+    ) ;let
+  ) ;lambda
+) ;with-stub
+
+(define permission-log (make-log-path))
+
+(with-stub permission-log
+  permission-body
+  (lambda (base-url)
+    (let ((resp (openai-request (make-config base-url)
+                  (list (pi-user-message "ping"))
+                  #f
+                  '()
+                  10
+                ) ;openai-request
+          ) ;resp
+         ) ;
+      (check (pi-assistant-message-stop-reason resp) => "error")
+      (let ((msg (pi-assistant-message-error-message resp)))
+        (check-true (string-contains? msg "当前订阅套餐暂未开放GLM-5.2-Highspeed权限"))
+      ) ;let
+      resp
+    ) ;let
+  ) ;lambda
+) ;with-stub
+
+;; 4. 额度耗尽与套餐未开放模型权限都属于确定性失败：不应触发任何重试
+;;    （stub server 只收到 1 次请求）
 (check (count-lines weekly-log) => 1)
 (check (count-lines five-hour-log) => 1)
+(check (count-lines permission-stream-log) => 1)
+(check (count-lines permission-log) => 1)
 
-;; 4. 异常请求（429）以 ERROR 级别落盘，响应体原文原样保留
+;; 5. 异常请求（429）以 ERROR 级别落盘，响应体原文原样保留
 
 (define log-text (path-read-text *log-file*))
 
@@ -235,8 +287,15 @@
 (check-true (string-contains? log-text "您已达到5小时使用上限"))
 (check-true (string-contains? log-text "retryable=no"))
 
+;; 6. 套餐未开放模型权限同样落盘，并标记为不可重试、kind 为 model-permission
+
+(check-true (string-contains? log-text "limit=model-permission"))
+(check-true (string-contains? log-text "当前订阅套餐暂未开放GLM-5.2-Highspeed权限"))
+
 (catch #t (lambda () (remove weekly-log)) (lambda args #f))
 (catch #t (lambda () (remove five-hour-log)) (lambda args #f))
+(catch #t (lambda () (remove permission-stream-log)) (lambda args #f))
+(catch #t (lambda () (remove permission-log)) (lambda args #f))
 
 ;; 清理日志临时目录
 (pi-log-reset!)
