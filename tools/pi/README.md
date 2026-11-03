@@ -598,6 +598,13 @@ timeout 90 bin/gf pi -p --proxy socks5h://127.0.0.1:9 "hi"
 # 模型不存在或不属于该 provider（任务 034 起）：配置层直接报错，退出码 1，不发 HTTP
 timeout 120 bin/gf pi -p --model totally-fake-model "hi"
 # → Error: Unknown model "totally-fake-model": not found in any configured provider model catalog...
+
+# 服务商返回 HTTP 429 且属确定性失败：不做退避重试，直接报错，退出码 1
+# 智谱（zai-coding-cn）按 error.code 判定：
+#   1308 5 小时额度耗尽、1310 每周/每月额度耗尽、1311 当前订阅套餐未开放该模型权限
+# 1302 并发槽满、1303/1305 短时频率、1312 模型拥堵属瞬时故障，仍按配置退避重试
+# stderr 为 provider 前缀加服务商官方原文，例如：
+# → Error: zai-coding-cn: 当前订阅套餐暂未开放GLM-5.2-Highspeed权限
 ```
 
 ## 函数文档索引【可用】

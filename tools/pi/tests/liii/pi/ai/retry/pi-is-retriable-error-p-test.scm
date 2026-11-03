@@ -54,6 +54,15 @@
   #f
 ) ;check
 
+;; 套餐未开放模型权限（1311）：永久性错误，不可重试
+(check (pi-is-retriable-error? 429
+         "{\"error\":{\"code\":\"1311\",\"message\":\"当前订阅套餐暂未开放GLM-5.2-Highspeed权限\"}}"
+         "zai-coding-cn"
+       ) ;pi-is-retriable-error?
+  =>
+  #f
+) ;check
+
 ;; 并发槽满（1302）/ 短时频率压力（1303、1305）/ 模型拥堵（1312）都不是额度耗尽，应继续重试
 (check (pi-is-retriable-error? 429
          "{\"error\":{\"code\":\"1302\",\"message\":\"当前并发数已达到上限，请稍后重试\"}}"
