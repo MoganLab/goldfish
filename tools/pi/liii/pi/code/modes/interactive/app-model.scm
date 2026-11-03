@@ -7,14 +7,21 @@
 ;; /model 命令：选择器交互、精确引用切换、thinking 联动与持久化
 ;; （对齐上游 handleModelCommand + session.setModel）
 (define-library (liii pi code modes interactive app-model)
-  (export pi-app-model-command? pi-app-submit-model! pi-app-apply-model-ui!)
+  (export pi-app-model-command? pi-app-submit-model! pi-app-apply-model-ui!
+    pi-app-model-catalog
+  ) ;export
   (import (scheme base)
     (scheme char)
     (liii go)
     (liii string)
     (liii list)
+    (liii path)
     (liii tui)
+    (liii pi ai models)
     (liii pi ai thinking)
+    (liii pi code config)
+    (liii pi code config settings)
+    (liii pi code config user-catalog)
     (liii pi code modes interactive state)
     (liii pi code modes interactive render)
     (liii pi code modes interactive views)
@@ -24,6 +31,36 @@
     (liii pi code modes interactive model-selector)
   ) ;import
   (begin
+
+    ;; 重建模型目录快照（纯函数，供 /config 返回后刷新前台选择器与后台 worker 目录）：
+    ;; models: 按 models/providers.json 白名单装配并排序的可用模型列表
+    ;; default-model: settings.json 显式指定的 defaultProvider/defaultModel 对；
+    ;;                未设置或文件缺失时为 #f（不在选择器上错误标记默认模型）
+    (define (pi-app-model-catalog . opt-config-dir)
+      (let* ((config-dir (if (pair? opt-config-dir) (car opt-config-dir) (gf-get-config-dir))
+             ) ;config-dir
+             (dir-path (if (string? config-dir) (path config-dir) config-dir))
+             (dir-str (if (string? config-dir) config-dir (path->string config-dir)))
+             (models-store (pi-build-user-catalog dir-str))
+             (models (pi-usable-models models-store))
+             (raw-settings (pi-read-json-file (path-join dir-path "settings.json")))
+             (p (and (pair? raw-settings) (json-dict-ref raw-settings "defaultProvider" #f)))
+             (m (and (pair? raw-settings) (json-dict-ref raw-settings "defaultModel" #f)))
+             (default-model
+               (if
+                 (and (string? p)
+                   (not (string-null? (string-trim-both p)))
+                   (string? m)
+                   (not (string-null? (string-trim-both m)))
+                 ) ;and
+                 (list (cons 'provider p) (cons 'id m))
+                 #f
+               ) ;if
+             ) ;default-model
+            ) ;
+        (values models default-model)
+      ) ;let*
+    ) ;define
 
     (define (pi-app-model-command? text)
       (or (string=? text "/model") (string-starts? text "/model "))

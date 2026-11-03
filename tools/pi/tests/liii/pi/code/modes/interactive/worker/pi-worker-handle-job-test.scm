@@ -24,6 +24,8 @@
   (liii go)
   (liii shutil)
   (liii pi ai message)
+  (liii pi ai models)
+  (liii pi ai config record)
   (liii pi code cli args)
   (liii pi code config)
   (liii pi code core session-manager)
@@ -109,6 +111,55 @@
     (newline)
     (flush-output-port)
   ) ;let*
+) ;let*
+
+;; 3. 验证 reload_models 任务刷新 worker 侧的 models-store 与 settings
+(let* ((fixture-dir
+         (path->string
+           (path-absolute (path (if (file-exists? "tests/fixtures/user-config/config-tui")
+                                  "tests/fixtures/user-config/config-tui"
+                                  "tools/pi/tests/fixtures/user-config/config-tui"
+                                ) ;if
+                          ) ;path
+           ) ;path-absolute
+         ) ;path->string
+       ) ;fixture-dir
+       (parsed (parse-pi-args '()))
+       (initial-cfg (list (cons 'provider "my-provider")
+                      (cons 'model-id "my-model")
+                      (cons 'models-store '())
+                      (cons 'settings #f)
+                      (cons 'config-dir "/nonexistent-old-dir")
+                    ) ;list
+       ) ;initial-cfg
+       (box (vector #f))
+       (chan (make-chan 4))
+       (new-cfg (pi-worker-handle-job (list 'reload_models fixture-dir)
+                  parsed
+                  initial-cfg
+                  box
+                  chan
+                  #f
+                ) ;pi-worker-handle-job
+       ) ;new-cfg
+      ) ;
+  ;; 保留当前选择的 provider 与 model-id
+  (check (cdr (assoc 'provider new-cfg)) => "my-provider")
+  (check (cdr (assoc 'model-id new-cfg)) => "my-model")
+  ;; models-store 已更新为 fixture 目录下的配置（包含 custom-kimi、google、kimi-coding）
+  (let* ((store (cdr (assoc 'models-store new-cfg)))
+         (p-names (pi-catalog-provider-names store))
+        ) ;
+    (check-true (pair? p-names))
+    (check-true (and (member "custom-kimi" p-names) #t))
+    (check-true (and (member "kimi-coding" p-names) #t))
+  ) ;let*
+  ;; settings 已更新
+  (let ((settings (cdr (assoc 'settings new-cfg))))
+    (check-true (pi-settings? settings))
+    (check (pi-settings-default-provider settings) => "kimi-coding")
+    (check (pi-settings-default-model settings) => "k3.1-pro")
+  ) ;let
 ) ;let*
 
 (check-report)
