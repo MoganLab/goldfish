@@ -23,7 +23,8 @@
     %pi-app-thinking-card-set! pi-app-bash-jobs-chan %pi-app-bash-handler
     %pi-app-record-sink pi-app-session-name %pi-app-session-name-set!
     %pi-editor-top-border pi-app-provider %pi-app-provider-set! pi-app-model
-    %pi-app-model-set! pi-app-models %pi-app-default-model %pi-app-on-save-model
+    %pi-app-model-set! pi-app-models %pi-app-models-set! %pi-app-default-model
+    %pi-app-default-model-set! %pi-app-on-save-model
     %pi-app-supports-thinking?-set! %pi-app-available-thinking-levels-set!
     pi-app-resume-sessions %pi-app-resume-sessions-set! pi-app-no-session?
     pi-app-scroll-view pi-app-wheel-accelerator pi-app-steering-chan
@@ -100,8 +101,8 @@
       (provider pi-app-provider %pi-app-provider-set!)
       (model pi-app-model %pi-app-model-set!)
       ;; 可用模型列表与默认模型（settings），选择器数据源与 · default 标记
-      (models pi-app-models)
-      (default-model %pi-app-default-model)
+      (models pi-app-models %pi-app-models-set!)
+      (default-model %pi-app-default-model %pi-app-default-model-set!)
       ;; Ctrl+S 持久化回调 (lambda (provider model-id))
       (on-save-model %pi-app-on-save-model)
       ;; /resume 会话数据源：无参调用返回 (values current-sessions all-thunk)，

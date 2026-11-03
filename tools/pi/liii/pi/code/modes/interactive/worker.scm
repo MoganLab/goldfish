@@ -5,10 +5,9 @@
 ;;
 
 (define-library (liii pi code modes interactive worker)
-  ;; 注意：go worker 线程通过重新 import 库并求值 procedure-source 来执行，
-  ;; 只能看到各库的导出绑定，因此 worker 调用链上的内部函数必须全部导出
+  ;; worker 线程通过重新 import 库并求值 procedure-source 执行，调用链内部函数须全部导出
   (export make-tui-emit pi-tui-agent-worker pi-tui-run-worker pi-tui-send-event!
-    pi-cfg-with-thinking pi-cfg-with-model %worker-job-cfg
+    pi-cfg-with-thinking pi-cfg-with-model %worker-job-cfg %cfg-override
     pi-worker-ensure-session-file! pi-worker-handle-job %assistant-error-text
     %poll-one-injected %pi-worker-poll-cfg
   ) ;export
@@ -25,6 +24,7 @@
     (liii pi ai models route)
     (liii pi code cli args)
     (liii pi code config)
+    (liii pi code config user-catalog)
     (liii pi code core session-manager)
     (liii pi code core session-name)
     (liii pi code core session-stats)
@@ -36,9 +36,7 @@
   ) ;import
   (begin
 
-    ;; 轮询一条注入消息（steering / follow-up 通道共用）：
-    ;; 非阻塞拉取；拉到非空文本时先回发 user_message 事件同步主线程显示，
-    ;; 再返回单元素列表供 run-agent-loop 注入
+    ;; 轮询一条注入消息（steering / follow-up 通道共用）：非阻塞拉取并同步回发事件
     (define (%poll-one-injected chan event-chan)
       (let ((msg
               (and chan (catch #t (lambda () (chan-try-recv! chan #f)) (lambda args #f)))
@@ -54,13 +52,7 @@
       ) ;let
     ) ;define
 
-    ;; worker 运行期 cfg：注入 steering / follow-up 轮询回调
-    ;;
-    ;; run-agent-loop 只认 config 里的 get-steering-messages /
-    ;; get-follow-up-messages 两个回调：回调缺失时，运行中注入的消息
-    ;; 永远停留在通道里，既不会进入模型上下文，也不会驱动新一轮请求
-    ;; （表现为“busy 时回车只有第一条被真正处理”）。
-    ;; 同名键一律替换：多轮任务后 cfg 不会累积重复回调项。
+    ;; worker 运行期 cfg：注入 steering / follow-up 轮询回调，同名键一律替换
     (define %pi-worker-poll-keys '(get-steering-messages get-follow-up-messages))
 
     (define (%pi-worker-poll-cfg cfg steering-chan follow-up-chan event-chan)
@@ -96,8 +88,7 @@
       ) ;let
     ) ;define
 
-    ;; 覆盖 cfg 的模型相关项（会话内 /model 切换后下一条消息生效，对齐上游 setModel）：
-    ;; 重新解析 provider 凭证与 model 元数据，并按新模型重算 supports-thinking
+    ;; 覆盖 cfg 的模型相关项（会话内 /model 切换后下一条消息生效，对齐上游 setModel）
     (define (pi-cfg-with-model cfg provider model-id)
       (let* ((config-dir (pi-cfg-config-dir cfg))
              (models-store (cdr (or (assoc 'models-store cfg) (cons #f '()))))
@@ -109,25 +100,18 @@
             ) ;
         (%cfg-override cfg
           (list (cons 'provider provider)
-            ;; 协议标识随 provider 变化而更新，避免沿用旧 provider 的分发实现
             (cons 'provider-api (pi-cfg-provider-api cfg provider))
             (cons 'model-id model-id)
             (cons 'model-meta meta)
             (cons 'api-key api-key)
             (cons 'supports-thinking supports)
-            ;; provider 级代理随 provider 变化而重算
             (cons 'proxy-url (pi-cfg-provider-proxy cfg provider))
           ) ;list
         ) ;%cfg-override
       ) ;let*
     ) ;define
 
-    ;; job 载荷 → 任务 cfg：
-    ;; - (消息 thinking-level) 旧格式：仅覆盖 thinking（向后兼容）
-    ;; - (消息 thinking-level provider model-id)：再叠加 /model 切换
-    ;; 跨 provider 切换时重新执行 config augmenter（multikey 等扩展按新
-    ;; provider 重建密钥池与 request-key/rotate-key 钩子）；同 provider 内
-    ;; 切模型不重跑，避免每条消息都重建池而丢失 cooldown/LRU 状态。
+    ;; job 载荷 → 任务 cfg：跨 provider 切换时重新执行 config augmenter
     (define (%worker-job-cfg cfg job . opt-parsed)
       (let* ((base (pi-cfg-with-thinking cfg (cadr job)))
              (model-job? (and (> (length job) 3) (string? (list-ref job 2)) (string? (list-ref job 3)))
@@ -147,8 +131,7 @@
       ) ;let*
     ) ;define
 
-    ;; 在 (liii go) 的后台独立 worker 线程中运行，完全不阻塞前台终端编辑与打字；
-    ;; session-file（可选）为复用的会话文件，传入时消息始终携带既有上下文
+    ;; 在后台独立 worker 线程中运行，不阻塞前台终端编辑
     (define (pi-tui-run-worker parsed cfg user-text event-chan . opts)
       (let ((session-file (and (pair? opts) (car opts))))
         (catch #t
@@ -175,9 +158,7 @@
       ) ;let
     ) ;define
 
-    ;; 惰性解析并复用会话文件（对齐 pi 单 TUI 会话模型）：
-    ;; 首个任务（消息、bash 记录或会话命名）时创建/恢复会话文件，后续任务全部复用，
-    ;; 跨消息保持上下文连续；--no-session 时恒为 #f
+    ;; 惰性解析并复用会话文件，跨消息保持上下文连续；--no-session 时恒为 #f
     (define (pi-worker-ensure-session-file! parsed cfg sfile-box)
       (unless (vector-ref sfile-box 0)
         (let-values (((sf _sdir) (setup-session-file-with-name parsed cfg (path->string (path-cwd))))
@@ -188,20 +169,8 @@
       (vector-ref sfile-box 0)
     ) ;define
 
-    ;; 任务分发（对齐 pi 的会话事件处理）：
-    ;; - (bash_record 命令 输出 退出码)：! 命令结果写入会话文件，不触发 LLM
-    ;;   请求；agent 忙时在 jobs-chan 排队，结算后才落盘（对齐 pi 流式期间
-    ;;   pending、agent_end 冲洗的语义）
-    ;; - (session_name 名称)：更新会话显示名并写入 session_info，不触发 LLM
-    ;; - (session_state 类型 字段)：把模型/思考等级等状态条目写入会话文件，
-    ;;   --no-session 时会话文件为 #f，API 静默跳过
-    ;; - (session_resume 路径)：把 worker 的会话文件切换到所选 JSONL，
-    ;;   后续消息、bash 记录与命名均针对新会话文件
-    ;; - (消息 thinking-level)：正常 agent 任务，携带复用的会话文件
-    ;;
-    ;; opt-chans：(steering-chan follow-up-chan)，可选；用于把运行中注入
-    ;; 消息的轮询回调注入本轮任务的 cfg（见 %pi-worker-poll-cfg）。
-    ;; 每轮任务都在此处注入，保证 agent 上下文一定能消费注入消息。
+    ;; 任务分发（对齐 pi 的会话事件处理）：bash_record / session_stats / session_name /
+    ;; session_state / session_resume / reload_models / 普通消息任务
     (define (pi-worker-handle-job job parsed cfg sfile-box event-chan abort-chan
              . opt-chans
             ) ;
@@ -209,7 +178,6 @@
              (follow-up-chan
                (if (and (pair? opt-chans) (pair? (cdr opt-chans))) (cadr opt-chans) #f)
              ) ;follow-up-chan
-             ;; 运行期 cfg：注入 steering / follow-up 轮询回调
              (cfg (%pi-worker-poll-cfg cfg steering-chan follow-up-chan event-chan))
              (effective-cfg cfg)
             ) ;
@@ -294,32 +262,27 @@
           (catch #t
             (lambda ()
               (let* ((path (cadr job)) (normalized (if (string? path) path (path->string path))))
-                (cond
-                  ;; --no-session 模式：会话持久化已禁用，拒绝恢复（不切换、不建文件）
-                  ((pi-args-ref parsed 'no-session)
-                   (pi-tui-send-event! event-chan
-                     (list 'session_resume_error "Session persistence is disabled (--no-session)")
-                   ) ;pi-tui-send-event!
-                  ) ;
-                  ;; 目标文件不存在：保留原会话并报错，不创建任何新文件
-                  ((not (file-exists? normalized))
-                   (pi-tui-send-event! event-chan
-                     (list 'session_resume_error
-                       (string-append "Session file not found: " normalized)
-                     ) ;list
-                   ) ;pi-tui-send-event!
-                  ) ;
-                  (else (vector-set! sfile-box 0 normalized)
-                    ;; 随事件回传目标会话的投影状态（模型/思考等级），
-                    ;; 状态缺失时为 #f，前台据此保留当前值
-                    (pi-tui-send-event! event-chan
-                      (list 'session_resumed
-                        normalized
-                        (get-session-name normalized)
-                        (pi-session-state-of normalized)
-                      ) ;list
-                    ) ;pi-tui-send-event!
-                  ) ;else
+                (cond ((pi-args-ref parsed 'no-session)
+                       (pi-tui-send-event! event-chan
+                         (list 'session_resume_error "Session persistence is disabled (--no-session)")
+                       ) ;pi-tui-send-event!
+                      ) ;
+                      ((not (file-exists? normalized))
+                       (pi-tui-send-event! event-chan
+                         (list 'session_resume_error
+                           (string-append "Session file not found: " normalized)
+                         ) ;list
+                       ) ;pi-tui-send-event!
+                      ) ;
+                      (else (vector-set! sfile-box 0 normalized)
+                        (pi-tui-send-event! event-chan
+                          (list 'session_resumed
+                            normalized
+                            (get-session-name normalized)
+                            (pi-session-state-of normalized)
+                          ) ;list
+                        ) ;pi-tui-send-event!
+                      ) ;else
                 ) ;cond
               ) ;let*
             ) ;lambda
@@ -332,10 +295,27 @@
             ) ;lambda
           ) ;catch
          ) ;
-         (else
-           ;; 新任务开始前 arm abort 通道：排空上一轮残留信号并复位标志，
-           ;; 本轮任务期间流式回调 / turn 边界 / 工具边界经 pi-aborted? 探测
-           (pi-abort-arm-chan! abort-chan)
+         ((and (pair? job) (eq? (car job) 'reload_models))
+          (catch #t
+            (lambda ()
+              (let* ((dir
+                       (if (and (> (length job) 1) (cadr job)) (cadr job) (pi-cfg-config-dir cfg))
+                     ) ;dir
+                     (dir-str (if (string? dir) dir (path->string dir)))
+                     (new-store (pi-build-user-catalog dir-str))
+                     (new-settings (pi-load-settings dir))
+                    ) ;
+                (set! effective-cfg
+                  (%cfg-override cfg
+                    (list (cons 'models-store new-store) (cons 'settings new-settings))
+                  ) ;%cfg-override
+                ) ;set!
+              ) ;let*
+            ) ;lambda
+            (lambda (tag . args) #f)
+          ) ;catch
+         ) ;
+         (else (pi-abort-arm-chan! abort-chan)
            (let ((job-cfg (%worker-job-cfg cfg job parsed)))
              (set! effective-cfg job-cfg)
              (pi-tui-run-worker parsed
@@ -351,13 +331,7 @@
       ) ;let*
     ) ;define
 
-    ;; 顶层后台工作协程：并发循环消费 jobs-chan 任务并回传事件到 event-chan；
-    ;; jobs 包含用户消息 (text thinking-level [provider model-id])、
-    ;; bash 记录与 session_name 命名任务
-    ;; steering-chan / follow-up-chan（可选）：运行中注入消息通道，
-    ;; 由 run-agent-loop 在轮询点消费，消费时回发 user_message 事件同步显示
-    ;; 注意：go 绑定的 let 语法会“求值”绑定值，alist 会被当作函数调用而报错，
-    ;; 因此 parsed/cfg 不能跨 go 边界传入，必须在 worker 会话内自行解析
+    ;; 顶层后台工作协程：并发循环消费 jobs-chan 任务并回传事件到 event-chan
     (define* (pi-tui-agent-worker jobs-chan
                event-chan
                abort-chan
@@ -370,20 +344,12 @@
                     parsed
                   ) ;augment-pi-config
              ) ;cfg
-             ;; 会话文件盒：全生命周期复用同一文件（TUI 会话连续性）
              (sfile-box (vector initial-session-file))
             ) ;
-        ;; 重试与 multikey 换 key 日志共用 retry logger 通道，转为界面卡片
         (set-pi-retry-logger! (lambda (msg) (pi-tui-send-event! event-chan (list 'retry msg)))
         ) ;set-pi-retry-logger!
         (let loop
           ((current-cfg cfg))
-          ;; job 消息为 (text thinking-level [provider model-id])、bash_record 或 session_name：
-          ;; 会话内切换的 thinking 级别与 /model 模型均对下一条消息生效；
-          ;; 消息任务返回新的生效 cfg（含跨 provider 重增强后的密钥池），
-          ;; 作为下一轮基线，保证池状态跨消息连续。
-          ;; 通道关闭（eof）时结束循环：TUI 退出路径会关闭 jobs-chan，
-          ;; chan-recv! 此时返回 eof 对象（eof 为真值），必须显式排除
           (let ((job (chan-recv! jobs-chan)))
             (when (and job (not (eof-object? job)))
               (loop (pi-worker-handle-job job parsed current-cfg sfile-box
