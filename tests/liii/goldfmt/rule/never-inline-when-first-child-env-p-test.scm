@@ -1,9 +1,3 @@
-(import (liii check)
-  (liii goldfmt rule)
-) ;import
-
-(check-set-mode! 'report-failed)
-
 ;; never-inline-when-first-child-env?
 ;; 判断某个 tag 是否在第一个 child 是 env 时禁止单行输出。
 ;;
@@ -26,24 +20,14 @@
 ;; 该规则来自 `node-rules.json` 的 neverInlineWhenFirstChildEnv 字段。
 ;; 典型例子是函数形式的 define：`(define (f x) body)`。
 
-(check (never-inline-when-first-child-env? "define"
-       ) ;never-inline-when-first-child-env?
-  =>
-  #t
-) ;check
-(check (never-inline-when-first-child-env? "define-values"
-       ) ;never-inline-when-first-child-env?
-  =>
-  #t
-) ;check
-(check (never-inline-when-first-child-env? "+")
-  =>
-  #f
-) ;check
-(check (never-inline-when-first-child-env? "unknown-tag"
-       ) ;never-inline-when-first-child-env?
-  =>
-  #f
-) ;check
+(import (liii check) (liii goldfmt rule))
+
+(check-set-mode! 'report-failed)
+
+
+(check (never-inline-when-first-child-env? "define") => #t)
+(check (never-inline-when-first-child-env? "define-values") => #t)
+(check (never-inline-when-first-child-env? "+") => #f)
+(check (never-inline-when-first-child-env? "unknown-tag") => #f)
 
 (check-report)

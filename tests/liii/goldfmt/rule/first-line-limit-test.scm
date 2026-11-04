@@ -1,9 +1,3 @@
-(import (liii check)
-  (liii goldfmt rule)
-) ;import
-
-(check-set-mode! 'report-failed)
-
 ;; first-line-limit
 ;; 读取某个 tag 在第一行最多保留的 child 数量。
 ;;
@@ -26,12 +20,14 @@
 ;; 该规则来自 `node-rules.json` 的 firstLineLimit 字段。
 ;; 例如 begin 的值为 0，表示所有 child 都另起一行。
 
+(import (liii check) (liii goldfmt rule))
+
+(check-set-mode! 'report-failed)
+
+
 (check (first-line-limit "begin") => 0)
 (check (first-line-limit "do") => 2)
 (check (first-line-limit "+") => 1)
-(check (first-line-limit "unknown-tag")
-  =>
-  1
-) ;check
+(check (first-line-limit "unknown-tag") => 1)
 
 (check-report)
