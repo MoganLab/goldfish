@@ -153,7 +153,12 @@
       ) ;let*
     ) ;define
 
-    (define* (pi-app-run app (initial-msg "") (rest-msgs '()) (force-exit pi-app-force-exit))
+    (define* (pi-app-run app
+               (initial-msg "")
+               (rest-msgs '())
+               (force-exit pi-app-force-exit)
+               (clipboard-reader native-clipboard-text)
+             ) ;pi-app-run
       (let* ((term (pi-app-term app))
              (ed (pi-app-editor app))
              (q (pi-app-queue app))
@@ -189,6 +194,18 @@
                    (unless (string-null? (editor-text ed))
                      (editor-set-text! ed "")
                    ) ;unless
+                   (pi-app-render! app)
+                   (loop)
+                  ) ;
+                  ;; Ctrl+V：主动读取外部系统剪贴板，复用编辑器的
+                  ;; bracketed paste 处理（多行归一化、大段折叠与撤销）。
+                  ((and (not (pi-app-active-selector app)) (eq? k 'ctrl-v))
+                   (let ((text (clipboard-reader)))
+                     (if (and (string? text) (not (string-null? text)))
+                       (pi-app-handle-input! app (string-append "\x1b;[200~" text "\x1b;[201~"))
+                       #f
+                     ) ;if
+                   ) ;let
                    (pi-app-render! app)
                    (loop)
                   ) ;

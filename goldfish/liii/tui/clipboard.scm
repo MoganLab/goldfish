@@ -23,7 +23,7 @@
 
 (define-library (liii tui clipboard)
   (export osc52-sequence osc52-copy-sequence clipboard-copy!
-    native-clipboard-copy!
+    native-clipboard-copy! native-clipboard-text
   ) ;export
   (import (scheme base)
     (scheme write)
