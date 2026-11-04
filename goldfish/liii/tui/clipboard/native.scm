@@ -81,54 +81,51 @@
       ) ;catch
     ) ;define*
 
-    (define (native-clipboard-copy! text)
+    ;; 与读取方向相同：按当前图形环境选择命令，不依赖桌面工具是否存在。
+    (define (%linux-clipboard-copy-commands)
+      (append (if (getenv "WAYLAND_DISPLAY") '(("wl-copy")) '())
+        (if (getenv "DISPLAY")
+          '(("xclip" "-selection" "clipboard") ("xsel" "--clipboard" "--input"))
+          '()
+        ) ;if
+      ) ;append
+    ) ;define
+
+    (define (%clipboard-command-input command text)
+      (catch #t
+        (lambda ()
+          (zero? (run command :input text :timeout 5 :stdout 'discard :stderr 'discard))
+        ) ;lambda
+        (lambda _ #f)
+      ) ;catch
+    ) ;define
+
+    (define (%first-clipboard-copy commands text runner)
+      (cond ((null? commands) #f)
+            (else
+              (let ((copied? (catch #t (lambda () (runner (car commands) text)) (lambda _ #f))))
+                (if copied? #t (%first-clipboard-copy (cdr commands) text runner))
+              ) ;let
+            ) ;else
+      ) ;cond
+    ) ;define
+
+    ;; 测试可注入 runner：参数为 argv 列表与待复制文本，返回布尔值。
+    ;; 生产执行器通过标准输入发送文本，避免 shell 转义及参数长度限制。
+    (define* (native-clipboard-copy! text (runner %clipboard-command-input))
       (catch #t
         (lambda ()
           (cond ((os-windows?) (g_os_set_clipboard_text text))
-                ((os-macos?)
-                 (zero? (run "pbcopy" :input text :stdout 'discard :stderr 'discard))
-                ) ;
+                ((os-macos?) (runner '("pbcopy") text))
                 ((os-linux?)
-                 (or
-                   (and (getenv "WAYLAND_DISPLAY")
-                     (catch #t
-                       (lambda ()
-                         (zero? (run "wl-copy" :input text :stdout 'discard :stderr 'discard))
-                       ) ;lambda
-                       (lambda _ #f)
-                     ) ;catch
-                   ) ;and
-                   (catch #t
-                     (lambda ()
-                       (zero? (run '("xclip" "-selection" "clipboard")
-                                :input  text
-                                :stdout 'discard
-                                :stderr 'discard
-                              ) ;run
-                       ) ;zero?
-                     ) ;lambda
-                     (lambda _ #f)
-                   ) ;catch
-                   (catch #t
-                     (lambda ()
-                       (zero? (run '("xsel" "--clipboard" "--input")
-                                :input  text
-                                :stdout 'discard
-                                :stderr 'discard
-                              ) ;run
-                       ) ;zero?
-                     ) ;lambda
-                     (lambda _ #f)
-                   ) ;catch
-                   #f
-                 ) ;or
+                 (%first-clipboard-copy (%linux-clipboard-copy-commands) text runner)
                 ) ;
                 (else #f)
           ) ;cond
         ) ;lambda
         (lambda _ #f)
       ) ;catch
-    ) ;define
+    ) ;define*
 
   ) ;begin
 ) ;define-library

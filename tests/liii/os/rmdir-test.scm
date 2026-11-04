@@ -1,9 +1,3 @@
-(import (liii check) (liii os))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; rmdir
 ;; 删除空目录。
 ;;
@@ -21,7 +15,7 @@
 ;; boolean?
 ;; 成功返回 #t。
 ;;
-;; 错误
+;; 错误处理
 ;; ----
 ;; type-error
 ;; 当 path 不是字符串时抛出错误。
@@ -30,8 +24,12 @@
 ;; ----
 ;; 只能删除空目录，如果目录不为空会失败。
 
-
 ;; ; 基本功能测试
+
+(import (liii check) (liii os))
+
+(check-set-mode! 'report-failed)
+
 (let* ((temp-dir (os-temp-dir))
        (test-dir (string-append temp-dir (string (os-sep)) "test_rmdir_dir"))
       ) ;
@@ -49,10 +47,8 @@
   (check-false (file-exists? test-dir))
 ) ;let*
 
-
 ;; ; 错误测试
 (check-catch 'type-error (rmdir #\a))
 (check-catch 'type-error (rmdir 123))
-
 
 (check-report)

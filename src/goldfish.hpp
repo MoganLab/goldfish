@@ -267,28 +267,30 @@ f_get_environment_variable (s7_scheme* sc, s7_pointer args) {
   if (!s7_is_string (key_arg)) {
     return string_type_error (sc, "get-environment-variable: key must be a string", key_arg);
   }
-#ifdef _MSC_VER
-  std::string path_sep= ";";
-#else
-  std::string path_sep= ":";
-#endif
-  std::string          ret;
-  tb_size_t            size       = 0;
-  const char*          key        = s7_string (key_arg);
-  tb_environment_ref_t environment= tb_environment_init ();
-  if (environment) {
-    size= tb_environment_load (environment, key);
-    if (size >= 1) {
-      tb_for_all_if (tb_char_t const*, value, environment, value) { ret.append (value).append (path_sep); }
-    }
-  }
-  tb_environment_exit (environment);
-  if (size == 0) { // env key not found
+  const char* key= s7_string (key_arg);
+  /* tbox 会把值按路径分隔符拆分再重组，":0" 会被读成 "0"，
+   * 直接读原始环境变量保真 */
+#ifdef TB_CONFIG_OS_WINDOWS
+  DWORD size= GetEnvironmentVariableA (key, nullptr, 0);
+  if (size == 0) {
     return s7_make_boolean (sc, false);
   }
-  else {
-    return s7_make_string (sc, ret.substr (0, ret.size () - 1).c_str ());
+  {
+    std::string value (size, '\0');
+    DWORD       n= GetEnvironmentVariableA (key, value.data (), size);
+    if (n == 0 || n >= size) {
+      return s7_make_boolean (sc, false);
+    }
+    value.resize (n);
+    return s7_make_string (sc, value.c_str ());
   }
+#else
+  const char* value= getenv (key);
+  if (value == nullptr) {
+    return s7_make_boolean (sc, false);
+  }
+  return s7_make_string (sc, value);
+#endif
 }
 
 static s7_pointer

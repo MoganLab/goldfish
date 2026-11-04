@@ -1,9 +1,3 @@
-(import (liii check) (liii os))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; unsetenv
 ;; 删除环境变量。
 ;;
@@ -21,7 +15,7 @@
 ;; boolean?
 ;; 成功返回 #t。
 ;;
-;; 错误
+;; 错误处理
 ;; ----
 ;; type-error
 ;; 当 key 不是字符串时抛出错误。
@@ -30,21 +24,22 @@
 ;; ----
 ;; 删除指定的环境变量，如果变量不存在则不执行任何操作。
 
-
 ;; ; 基本功能测试
+
+(import (liii check) (liii os))
+
+(check-set-mode! 'report-failed)
+
 (check-true (putenv "TEST_VAR" "123"))
 (check (getenv "TEST_VAR") => "123")
 (check-true (unsetenv "TEST_VAR"))
 (check (getenv "TEST_VAR") => #f)
 
-
 ;; ; 测试删除不存在的变量
 (check-true (unsetenv "NONEXISTENT_VAR_12345"))
-
 
 ;; ; 错误测试
 (check-catch 'type-error (unsetenv #\a))
 (check-catch 'type-error (unsetenv 123))
-
 
 (check-report)

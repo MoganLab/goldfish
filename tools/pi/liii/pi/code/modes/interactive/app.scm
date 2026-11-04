@@ -332,6 +332,7 @@
                     (and hide-thinking #t)
                     on-save-hide-thinking
                     #f
+                    #f
                   ) ;%make-pi-app
              ) ;app
              (ed (%make-pi-editor app tl))

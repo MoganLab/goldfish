@@ -1,15 +1,13 @@
-(import (liii check) (liii os) (liii string))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; os-temp-dir
 ;; 返回系统临时目录的路径。
 ;;
 ;; 语法
 ;; ----
 ;; (os-temp-dir)
+;;
+;; 参数
+;; ----
+;; 无参数。
 ;;
 ;; 返回值
 ;; -----
@@ -21,20 +19,21 @@
 ;; 1. 在 Linux 系统上通常返回 "/tmp"
 ;; 2. 在 Windows 系统上通常返回类似 "C:\\Users\\...\\Temp" 的路径
 
-
 ;; ; 基本功能测试
+
+(import (liii check) (liii os) (liii string))
+
+(check-set-mode! 'report-failed)
+
 (when (os-windows?)
   (check (string-starts? (os-temp-dir) "C:") => #t)
 ) ;when
-
 
 (when (os-linux?)
   (check (os-temp-dir) => "/tmp")
 ) ;when
 
-
 ;; ; 验证返回值非空
 (check-false (string-null? (os-temp-dir)))
-
 
 (check-report)

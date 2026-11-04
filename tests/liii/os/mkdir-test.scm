@@ -1,9 +1,3 @@
-(import (liii check) (liii os))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; mkdir
 ;; 创建目录。
 ;;
@@ -21,7 +15,7 @@
 ;; boolean?
 ;; 成功返回 #t。
 ;;
-;; 错误
+;; 错误处理
 ;; ----
 ;; type-error
 ;; 当 path 不是字符串时抛出错误。
@@ -33,21 +27,26 @@
 ;; ----
 ;; 创建单个目录，如果父目录不存在会失败。
 
-
 ;; ; 基本功能测试
+
+(import (liii check) (liii os))
+
+(check-set-mode! 'report-failed)
+
 (when (not (os-windows?))
   ;; 测试创建已存在的目录会报错
   (check-catch 'file-exists-error (mkdir "/tmp"))
 
   ;; 测试创建新目录
-  (check (begin
-           (let ((test_dir "/tmp/test_124"))
-             (when (file-exists? test_dir)
-               (rmdir "/tmp/test_124")
-             ) ;when
-             (mkdir "/tmp/test_124")
-           ) ;let
-         ) ;begin
+  (check
+    (begin
+      (let ((test_dir "/tmp/test_124"))
+        (when (file-exists? test_dir)
+          (rmdir "/tmp/test_124")
+        ) ;when
+        (mkdir "/tmp/test_124")
+      ) ;let
+    ) ;begin
     =>
     #t
   ) ;check
@@ -58,10 +57,8 @@
   ) ;when
 ) ;when
 
-
 ;; ; 错误测试
 (check-catch 'type-error (mkdir #\a))
 (check-catch 'type-error (mkdir 123))
-
 
 (check-report)

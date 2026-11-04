@@ -1,9 +1,3 @@
-(import (liii check) (liii os) (liii sys))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; access
 ;; 检查文件的访问权限。
 ;;
@@ -25,7 +19,7 @@
 ;; boolean?
 ;; 如果有指定权限返回 #t，否则返回 #f。
 ;;
-;; 错误
+;; 错误处理
 ;; ----
 ;; type-error
 ;; 当 path 不是字符串时抛出错误。
@@ -34,19 +28,22 @@
 ;; ----
 ;; 检查当前进程对指定文件的访问权限。
 
-
 ;; ; 基本功能测试
-(when (and (os-linux?) (not (string=? "root" (getlogin))))
+
+(import (liii check) (liii os) (liii sys))
+
+(check-set-mode! 'report-failed)
+
+(when
+  (and (os-linux?) (not (string=? "root" (getlogin))))
   (check-true (access "/root" 'F_OK))
   (check-false (access "/root" 'R_OK))
   (check-false (access "/root" 'W_OK))
   (check-true (access (executable) 'X_OK))
 ) ;when
 
-
 ;; ; 错误测试
 (check-catch 'type-error (access #\a 'F_OK))
 (check-catch 'type-error (access 123 'F_OK))
-
 
 (check-report)

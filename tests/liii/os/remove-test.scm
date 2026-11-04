@@ -1,9 +1,3 @@
-(import (liii check) (liii os))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; remove
 ;; 删除文件。
 ;;
@@ -21,7 +15,7 @@
 ;; boolean?
 ;; 成功返回 #t。
 ;;
-;; 错误
+;; 错误处理
 ;; ----
 ;; type-error
 ;; 当 path 不是字符串时抛出错误。
@@ -32,8 +26,12 @@
 ;; value-error
 ;; 当尝试删除目录时抛出错误（提示使用 rmdir）。
 
-
 ;; ; 基本功能测试
+
+(import (liii check) (liii os))
+
+(check-set-mode! 'report-failed)
+
 (when (or (os-macos?) (os-linux?))
   ;; 测试 remove
   (let ((test-file (string-append (os-temp-dir) "/test_remove.txt")))
@@ -48,12 +46,10 @@
   ) ;let
 ) ;when
 
-
 ;; ; 错误测试
 (check-catch 'type-error (remove 123))
 (check-catch 'type-error (remove #\a))
 (check-catch 'file-not-found-error (remove "/nonexistent/file"))
-
 
 ;; ; 测试 remove 对目录的提示
 (let ((test-dir (string-append (os-temp-dir) (string (os-sep)) "test_dir")))
@@ -69,6 +65,5 @@
     (display* test-dir " failed to remove \n")
   ) ;when
 ) ;let
-
 
 (check-report)

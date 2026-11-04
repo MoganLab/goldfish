@@ -33,8 +33,12 @@
     pi-app-hide-thinking? %pi-app-hide-thinking?-set!
     %pi-app-on-save-hide-thinking pi-app-selection %pi-app-selection-set!
     pi-app-selection-set! pi-app-selection-clear! pi-app-selection-active?
+    pi-app-flash! pi-app-flash-message pi-app-flash-tick! pi-app-flash-clear!
   ) ;export
-  (import (scheme base) (liii pi code modes interactive selection))
+  (import (scheme base)
+    (liii date-time)
+    (liii pi code modes interactive selection)
+  ) ;import
   (begin
 
     ;; 编辑器顶边框：开启时占 1 行，渲染时光标行需跳过该行
@@ -50,7 +54,7 @@
         on-save-model tool-cards resume-sessions no-session? scroll-view
         wheel-accelerator steering-chan follow-up-chan steering-pending
         follow-up-pending thinking-card hide-thinking? on-save-hide-thinking
-        selection
+        selection flash
       ) ;%make-pi-app
       pi-app?
       (term pi-app-term)
@@ -129,6 +133,8 @@
       (on-save-hide-thinking %pi-app-on-save-hide-thinking)
       ;; 选区状态：包含起始锚点、当前焦点与激活标志（或 #f）
       (selection pi-app-selection %pi-app-selection-set!)
+      ;; 瞬态浮层提示（Flash）：包含 (message . expiry-monotonic-millis) 或 #f
+      (flash %pi-app-flash %pi-app-flash-set!)
     ) ;define-record-type
 
     (define %pi-app-term pi-app-term)
@@ -143,6 +149,35 @@
 
     (define (pi-app-selection-active? app)
       (and (pi-app-selection app) (selection-active? (pi-app-selection app)))
+    ) ;define
+
+    ;; 瞬态浮层提示（Flash）：包含 (message . expiry-monotonic-millis) 或 #f
+    (define* (pi-app-flash! app message (duration-ms 1000))
+      (%pi-app-flash-set! app
+        (cons message (+ (current-monotonic-millis) duration-ms))
+      ) ;%pi-app-flash-set!
+    ) ;define*
+
+    (define (pi-app-flash-clear! app)
+      (%pi-app-flash-set! app #f)
+    ) ;define
+
+    (define (pi-app-flash-message app)
+      (let ((f (%pi-app-flash app)))
+        (if (and (pair? f) (< (current-monotonic-millis) (cdr f))) (car f) #f)
+      ) ;let
+    ) ;define
+
+    (define (pi-app-flash-tick! app)
+      (let ((f (%pi-app-flash app)))
+        (if (and (pair? f) (>= (current-monotonic-millis) (cdr f)))
+          (begin
+            (%pi-app-flash-set! app #f)
+            #t
+          ) ;begin
+          #f
+        ) ;if
+      ) ;let
     ) ;define
 
   ) ;begin
