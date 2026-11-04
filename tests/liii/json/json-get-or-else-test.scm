@@ -1,7 +1,3 @@
-(import (liii check) (liii json) (liii base) (liii error))
-
-(check-set-mode! 'report-failed)
-
 ;; json-get-or-else
 ;; 在值为 JSON null 时返回默认值。
 ;;
@@ -26,13 +22,13 @@
 ;; ----
 ;; 仅对 JSON null 生效，不会把空列表 `()` 当作 null。
 ;;
-;; 示例
-;; ----
-;; (json-get-or-else 'null bob-j) => bob-j
-;;
 ;; 错误处理
 ;; ----
 ;; 无。
+
+(import (liii check) (liii json) (liii base) (liii error))
+
+(check-set-mode! 'report-failed)
 
 (define bob-j '((bob (age . 18) (sex . male) (name . "Bob"))))
 

@@ -1,7 +1,3 @@
-(import (liii check) (liii json) (liii base) (liii error))
-
-(check-set-mode! 'report-failed)
-
 ;; json-boolean?
 ;; 判断值是否为 JSON 布尔值。
 ;;
@@ -23,14 +19,13 @@
 ;; ----
 ;; 本库中的 JSON 布尔值使用 Scheme 的 `#t` 和 `#f` 表示。
 ;;
-;; 示例
-;; ----
-;; (json-boolean? #t) => #t
-;; (json-boolean? 0) => #f
-;;
 ;; 错误处理
 ;; ----
 ;; 无。
+
+(import (liii check) (liii json) (liii base) (liii error))
+
+(check-set-mode! 'report-failed)
 
 (check-true (json-boolean? #t))
 (check-true (json-boolean? #f))

@@ -1,7 +1,3 @@
-(import (liii check) (liii json) (liii base) (liii error))
-
-(check-set-mode! 'report-failed)
-
 ;; json-contains-key?
 ;; 检查 JSON 对象当前层级是否包含指定键。
 ;;
@@ -26,14 +22,13 @@
 ;; ----
 ;; 仅检查当前层级，不会递归搜索嵌套对象。
 ;;
-;; 示例
-;; ----
-;; (json-contains-key? j 'bob) => #t
-;; (json-contains-key? j 'age) => #f
-;;
 ;; 错误处理
 ;; ----
 ;; 无。
+
+(import (liii check) (liii json) (liii base) (liii error))
+
+(check-set-mode! 'report-failed)
 
 (let ((j '((bob (age . 18) (sex . male)))))
   (check-false (json-contains-key? j 'alice))

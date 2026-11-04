@@ -694,6 +694,17 @@ display_help () {
   cout << "                     Options:" << endl;
   cout << "                       --dry-run  Print formatted result to stdout" << endl;
   cout << "  check [options] [PATH...] Static code metrics check (line count and tree depth limits)" << endl;
+  cout << "  json [options] [INFILE] [OUTFILE] Validate, format, or process JSON" << endl;
+  cout << "                     Options:" << endl;
+  cout << "                       -i, --indent <N>  Set indent spaces (default: 2)" << endl;
+  cout << "                       --tab             Use tab for indentation" << endl;
+  cout << "                       -c, --compact     Compact JSON onto a single line" << endl;
+  cout << "                       -s, --sort-keys   Sort object keys alphabetically" << endl;
+  cout << "                       --ensure-ascii    Escape non-ASCII characters to \\uXXXX" << endl;
+  cout << "                       --no-ensure-ascii Direct UTF-8 output (default)" << endl;
+  cout << "                       --json-lines      Process JSON Lines (ndjson) line by line" << endl;
+  cout << "                       -v, --validate    Validate JSON only" << endl;
+  cout << "                       -h, --help        Show tool help" << endl;
   cout << "  source ORG/LIB     Print the exact source of ORG/LIB from current *load-path*" << endl;
   cout << "                     Reads the real library file, not tests/ or generated docs" << endl;
   cout << "                     Example: gf source liii/path" << endl;

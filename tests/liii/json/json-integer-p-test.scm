@@ -1,7 +1,3 @@
-(import (liii check) (liii json) (liii base) (liii error))
-
-(check-set-mode! 'report-failed)
-
 ;; json-integer?
 ;; 判断值是否为 JSON 整数。
 ;;
@@ -23,14 +19,13 @@
 ;; ----
 ;; `1.0` 不会被视为整数。
 ;;
-;; 示例
-;; ----
-;; (json-integer? 100) => #t
-;; (json-integer? 3.14) => #f
-;;
 ;; 错误处理
 ;; ----
 ;; 无。
+
+(import (liii check) (liii json) (liii base) (liii error))
+
+(check-set-mode! 'report-failed)
 
 (check-true (json-integer? 100))
 (check-true (json-integer? 0))

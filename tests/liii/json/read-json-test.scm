@@ -1,7 +1,3 @@
-(import (liii check) (liii json) (liii base) (liii error))
-
-(check-set-mode! 'report)
-
 ;; read-json
 ;; 从输入端口读取并解析下一个 JSON 实体。
 ;;
@@ -23,15 +19,15 @@
 ;; ----
 ;; 支持从端口连续流式读取多个 JSON 实体（如 JSONL/NDJSON 数据流）。
 ;;
-;; 示例
-;; ----
-;; (read-json (open-input-string "{\"a\": 1}")) => '(("a" . 1))
-;; (read-json (open-input-string "[1, 2, 3]")) => #(1 2 3)
-;;
 ;; 错误处理
 ;; ----
 ;; type-error 当 port 不是输入端口时。
 ;; parse-error 当输入流中存在非法 JSON 格式时。
+
+(import (liii check) (liii json) (liii base) (liii error))
+
+(check-set-mode! 'report)
+
 
 ;; 1. 基本对象与数组读取
 (check (read-json (open-input-string "{\"name\":\"goldfish\",\"version\":1}"))

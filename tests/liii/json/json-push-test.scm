@@ -1,7 +1,3 @@
-(import (liii check) (liii json) (liii base) (liii error))
-
-(check-set-mode! 'report-failed)
-
 ;; json-push
 ;; 在 JSON 中添加新的键值对或数组元素。
 ;;
@@ -30,13 +26,13 @@
 ;; ----
 ;; 对嵌套对象和嵌套数组都支持逐层进入后追加。
 ;;
-;; 示例
-;; ----
-;; (json-push '((person . ((name . "Alice")))) 'person 'city "Wonderland") => ...
-;;
 ;; 错误处理
 ;; ----
 ;; type-error 当 json 不是 JSON 对象或数组时。
+
+(import (liii check) (liii json) (liii base) (liii error))
+
+(check-set-mode! 'report-failed)
 
 (let* ((j0 '((person (name . "Alice") (age . 25))))
        (j1 (json-push j0 'person 'city "Wonderland"))
@@ -50,9 +46,10 @@
   (check (json-ref j1 "person" "city") => "Wonderland")
 ) ;let*
 
-(let* ((j0 '((person (name . "Alice")
-               (age . 25)
-               (address (city . "Oldland") (zip . "12345"))))
+(let* ((j0
+         '((person (name . "Alice")
+             (age . 25)
+             (address (city . "Oldland") (zip . "12345"))))
        ) ;j0
        (j1 (json-push j0 'person 'address 'street "Main St"))
       ) ;
@@ -107,7 +104,8 @@
 
 ;; 单键：对象前插
 (let ((j0 '((a . 1) (b . 2))))
-  (check (json-push j0 'c 3) => '((c . 3) (a . 1) (b . 2))))
+  (check (json-push j0 'c 3) => '((c . 3) (a . 1) (b . 2)))
+) ;let
 
 ;; 单键：数组（空数组、无匹配尾插、首匹配前插）
 (check (json-push '#() 0 'a) => #(a))
@@ -124,12 +122,15 @@
 
 ;; 多键：中间层不存在时静默不生效（json-set 普通键无匹配的历史语义）
 (let ((j0 '((a . 1))))
-  (check (json-push j0 'missing 'k 1) => '((a . 1))))
+  (check (json-push j0 'missing 'k 1) => '((a . 1)))
+) ;let
 
 ;; 多键：值已存在时返回新结构，原结构不变
 (let* ((j0 '((person (name . "Alice"))))
-       (j1 (json-push j0 'person 'city "Wonderland")))
+       (j1 (json-push j0 'person 'city "Wonderland"))
+      ) ;
   (check (json-ref j0 'person 'city) => '())
-  (check (json-ref j1 'person 'city) => "Wonderland"))
+  (check (json-ref j1 'person 'city) => "Wonderland")
+) ;let*
 
 (check-report)

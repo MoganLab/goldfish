@@ -1,7 +1,3 @@
-(import (liii check) (liii json) (liii base) (liii error))
-
-(check-set-mode! 'report-failed)
-
 ;; json-object?
 ;; 判断值是否为 JSON 对象。
 ;;
@@ -23,14 +19,13 @@
 ;; ----
 ;; 在 guenchi json 中，非空 alist 表示对象，空对象使用 `'(())` 表示。
 ;;
-;; 示例
-;; ----
-;; (json-object? '((name . "Alice"))) => #t
-;; (json-object? #(1 2)) => #f
-;;
 ;; 错误处理
 ;; ----
 ;; 无。
+
+(import (liii check) (liii json) (liii base) (liii error))
+
+(check-set-mode! 'report-failed)
 
 (check-true (json-object? '((name . "Alice"))))
 (check-true (json-object? '((a . 1) (b . 2))))

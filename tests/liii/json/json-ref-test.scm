@@ -1,7 +1,3 @@
-(import (liii check) (liii json) (liii base) (liii error))
-
-(check-set-mode! 'report-failed)
-
 ;; json-ref
 ;; 按键路径访问 JSON 对象或数组中的值。
 ;;
@@ -27,14 +23,13 @@
 ;; ----
 ;; 空列表 `()` 会被当作“未找到”透传，以支持安全导航。
 ;;
-;; 示例
-;; ----
-;; (json-ref bob-j 'bob 'age) => 18
-;; (json-ref bob-j 'alice) => '()
-;;
 ;; 错误处理
 ;; ----
 ;; type-error 当 json 不是 JSON 对象、数组或空列表时。
+
+(import (liii check) (liii json) (liii base) (liii error))
+
+(check-set-mode! 'report-failed)
 
 (define bob-j '((bob (age . 18) (sex . male) (name . "Bob"))))
 
@@ -63,7 +58,11 @@
 (check (json-ref '((a . false)) 'a) => #f)
 (check (json-ref '((a . null)) 'a) => 'null)
 (check (json-ref '((a . other)) 'a) => 'other)
-(check (json-ref '((a (b . true))) 'a 'b) => #t)
+(check
+  (json-ref '((a (b . true))) 'a 'b)
+  =>
+  #t
+) ;check
 (check (json-ref #(true false null) 0) => #t)
 (check (json-ref #(true false null) 1) => #f)
 (check (json-ref #(true false null) 2) => 'null)

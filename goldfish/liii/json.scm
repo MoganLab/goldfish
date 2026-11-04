@@ -41,8 +41,85 @@
     ;; json-string-escape 由 C++ 实现（src/liii_json.cpp 中的 g_json_string_escape）
     (define json-string-escape g_json_string_escape)
 
-    ;; json->string 由 C++ 实现（src/liii_json.cpp 中的 g_json->string）
-    (define json->string g_json->string)
+    ;; json->string 由 C++ 原语 g_json->string 驱动，支持可选关键字参数
+    (define (%json-validate-keyword-args caller allowed-kws rest)
+      (let loop
+        ((r rest))
+        (cond ((null? r) #t)
+              ((not (pair? (cdr r)))
+               (value-error (string-append (symbol->string caller)
+                              ": missing value for keyword argument "
+                              (object->string (car r))
+                            ) ;string-append
+               ) ;value-error
+              ) ;
+              ((not (keyword? (car r)))
+               (type-error (string-append (symbol->string caller)
+                             ": expected keyword argument, got "
+                             (object->string (car r))
+                           ) ;string-append
+               ) ;type-error
+              ) ;
+              ((not (memq (car r) allowed-kws))
+               (value-error (string-append (symbol->string caller)
+                              ": unrecognized keyword argument "
+                              (object->string (car r))
+                            ) ;string-append
+               ) ;value-error
+              ) ;
+              (else (loop (cddr r)))
+        ) ;cond
+      ) ;let
+    ) ;define
+
+    (define (%json-keyword-arg key rest default)
+      (let loop
+        ((r rest))
+        (cond ((null? r) default)
+              ((and (pair? (cdr r)) (eq? (car r) key)) (cadr r))
+              ((null? (cdr r)) default)
+              (else (loop (cddr r)))
+        ) ;cond
+      ) ;let
+    ) ;define
+
+    (define (json->string x . rest)
+      (if (null? rest)
+        (g_json->string x)
+        (begin
+          (%json-validate-keyword-args 'json->string
+            '(:indent :sort-keys :ensure-ascii :compact)
+            rest
+          ) ;%json-validate-keyword-args
+          (let* ((indent (%json-keyword-arg :indent rest #f))
+                 (sort-keys (%json-keyword-arg :sort-keys rest #f))
+                 (ensure-ascii (%json-keyword-arg :ensure-ascii rest #f))
+                 (compact (%json-keyword-arg :compact rest #f))
+                ) ;
+            (when (and (not (eq? indent #f)) (not (integer? indent)) (not (string? indent)))
+              (type-error "json->string: :indent must be a non-negative integer, string, or #f"
+                indent
+              ) ;type-error
+            ) ;when
+            (when (and (integer? indent) (< indent 0))
+              (value-error "json->string: :indent must be non-negative")
+            ) ;when
+            (unless (boolean? sort-keys)
+              (type-error "json->string: :sort-keys must be a boolean" sort-keys)
+            ) ;unless
+            (unless (boolean? ensure-ascii)
+              (type-error "json->string: :ensure-ascii must be a boolean" ensure-ascii)
+            ) ;unless
+            (unless (boolean? compact)
+              (type-error "json->string: :compact must be a boolean" compact)
+            ) ;unless
+            (let ((effective-indent (if compact #f indent)))
+              (g_json->string x effective-indent sort-keys ensure-ascii)
+            ) ;let
+          ) ;let*
+        ) ;begin
+      ) ;if
+    ) ;define
 
     ;; string->json 由 C++ 实现（src/liii_json.cpp 中的 g_string->json）
     (define string->json g_string->json)
@@ -50,8 +127,53 @@
     ;; read-json 由 C++ 实现（src/liii_json.cpp 中的 g_read_json）
     (define read-json g_read_json)
 
-    ;; write-json 由 C++ 实现（src/liii_json.cpp 中的 g_write_json）
-    (define write-json g_write_json)
+    ;; write-json 由 C++ 原语 g_write_json 驱动，支持可选端口及关键字参数
+    (define (write-json x . rest)
+      (let* ((has-port? (and (pair? rest) (output-port? (car rest))))
+             (port (if has-port? (car rest) (current-output-port)))
+             (opts (if has-port? (cdr rest) rest))
+            ) ;
+        (if
+          (and (pair? rest) (not has-port?) (not (keyword? (car rest))))
+          (type-error "write-json: port must be an output port" (car rest))
+          (if (null? opts)
+            (g_write_json x port)
+            (begin
+              (%json-validate-keyword-args 'write-json
+                '(:indent :sort-keys :ensure-ascii :compact)
+                opts
+              ) ;%json-validate-keyword-args
+              (let* ((indent (%json-keyword-arg :indent opts #f))
+                     (sort-keys (%json-keyword-arg :sort-keys opts #f))
+                     (ensure-ascii (%json-keyword-arg :ensure-ascii opts #f))
+                     (compact (%json-keyword-arg :compact opts #f))
+                    ) ;
+                (when (and (not (eq? indent #f)) (not (integer? indent)) (not (string? indent)))
+                  (type-error "write-json: :indent must be a non-negative integer, string, or #f"
+                    indent
+                  ) ;type-error
+                ) ;when
+                (when (and (integer? indent) (< indent 0))
+                  (value-error "write-json: :indent must be non-negative")
+                ) ;when
+                (unless (boolean? sort-keys)
+                  (type-error "write-json: :sort-keys must be a boolean" sort-keys)
+                ) ;unless
+                (unless (boolean? ensure-ascii)
+                  (type-error "write-json: :ensure-ascii must be a boolean" ensure-ascii)
+                ) ;unless
+                (unless (boolean? compact)
+                  (type-error "write-json: :compact must be a boolean" compact)
+                ) ;unless
+                (let ((effective-indent (if compact #f indent)))
+                  (g_write_json x port effective-indent sort-keys ensure-ascii)
+                ) ;let
+              ) ;let*
+            ) ;begin
+          ) ;if
+        ) ;if
+      ) ;let*
+    ) ;define
 
     ;; json-ref 由 C++ 实现（src/liii_json.cpp 中的 g_json_ref）
     (define json-ref g_json_ref)

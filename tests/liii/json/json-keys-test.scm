@@ -1,9 +1,3 @@
-(import (liii check) (liii json) (liii base) (liii error))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; json-keys
 ;; 获取 JSON 对象当前层级的所有键。
 ;;
@@ -25,13 +19,14 @@
 ;; ----
 ;; 空对象 `'(())` 会返回空列表。
 ;;
-;; 示例
-;; ----
-;; (json-keys '((bob . ((age . 18) (sex . male))))) => '(bob)
-;;
 ;; 错误处理
 ;; ----
 ;; 无。
+
+(import (liii check) (liii json) (liii base) (liii error))
+
+
+(check-set-mode! 'report-failed)
 
 
 (let ((j '((bob (age . 18) (sex . male)))))

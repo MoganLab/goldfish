@@ -1,7 +1,3 @@
-(import (liii check) (liii json) (liii base) (liii error))
-
-(check-set-mode! 'report-failed)
-
 ;; json-array?
 ;; 判断值是否为 JSON 数组。
 ;;
@@ -23,14 +19,13 @@
 ;; ----
 ;; 本库使用向量表示 JSON 数组。
 ;;
-;; 示例
-;; ----
-;; (json-array? #(1 2 3)) => #t
-;; (json-array? '(1 2 3)) => #f
-;;
 ;; 错误处理
 ;; ----
 ;; 无。
+
+(import (liii check) (liii json) (liii base) (liii error))
+
+(check-set-mode! 'report-failed)
 
 (check-true (json-array? #(1 2 3)))
 (check-true (json-array? #()))

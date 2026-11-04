@@ -1,7 +1,3 @@
-(import (liii check) (liii json) (liii base) (liii error))
-
-(check-set-mode! 'report)
-
 ;; string->json
 ;; 将 JSON 字符串解析为 Scheme 数据结构。
 ;;
@@ -23,15 +19,14 @@
 ;; ----
 ;; 支持宽松对象键语法，以及 Unicode 转义与代理对解析。
 ;;
-;; 示例
-;; ----
-;; (string->json "[1,2,3]") => #(1 2 3)
-;; (string->json "{a:{b:1,c:2}}") => '((a . ((b . 1) (c . 2))))
-;;
 ;; 错误处理
 ;; ----
 ;; parse-error 当字符串中存在非法转义或非法 Unicode 序列时。
 ;; read-error 当输入不完整时。
+
+(import (liii check) (liii json) (liii base) (liii error))
+
+(check-set-mode! 'report)
 
 (check (string->json "{\"name\":\"Bob\",\"age\":21}")
   =>
@@ -175,6 +170,9 @@
 (check (string->json "[\"don't\"]") => #("don't"))
 
 ;;; 超大整数回退
-(check-true (number? (string->json "10000000000000000000000000000000000000000000000000000000000000000000000000000000")))
+(check-true (number? (string->json "10000000000000000000000000000000000000000000000000000000000000000000000000000000"
+                     ) ;string->json
+            ) ;number?
+) ;check-true
 
 (check-report)

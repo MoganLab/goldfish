@@ -1,9 +1,3 @@
-(import (liii check) (liii json) (liii base) (liii error) (scheme char))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; json-reduce
 ;; 按键路径或谓词转换 JSON 中的值。
 ;;
@@ -33,13 +27,14 @@
 ;; ----
 ;; 对空列表和空向量会安全返回原值；多层路径模式会递归进入嵌套结构。
 ;;
-;; 示例
-;; ----
-;; (json-reduce '((name . "Alice")) 'name (lambda (k v) (string-upcase v))) => '((name . "ALICE"))
-;;
 ;; 错误处理
 ;; ----
 ;; type-error 当 json 不是 JSON 对象、数组或空列表时。
+
+(import (liii check) (liii json) (liii base) (liii error) (scheme char))
+
+
+(check-set-mode! 'report-failed)
 
 
 (let* ((j0 '((name . "Alice") (age . 25)))
@@ -66,7 +61,9 @@
 
 
 (let* ((j0 '((name . "Alice") (age . 25)))
-       (j1 (json-reduce j0 #t (lambda (k v) (if (string? v) (string-upcase v) v))))
+       (j1
+         (json-reduce j0 #t (lambda (k v) (if (string? v) (string-upcase v) v)))
+       ) ;j1
       ) ;
   (check (json-ref j1 'name) => "ALICE")
   (check (json-ref j1 'age) => 25)
@@ -79,8 +76,9 @@
 ) ;let*
 
 
-(let* ((j0 '((user (profile (contact (email . "alice@example.com")
-                              (phone . "123-456-7890")))))
+(let* ((j0
+         '((user (profile (contact (email . "alice@example.com")
+                            (phone . "123-456-7890")))))
        ) ;j0
        (j1 (json-reduce j0
              'user
@@ -98,15 +96,17 @@
 ) ;let*
 
 
-(let* ((j0 '((user (data (scores . #(85 90 78 92 88))
-                     (settings (notifications . #t) (theme . "dark")))))
+(let* ((j0
+         '((user (data (scores . #(85 90 78 92 88))
+                   (settings (notifications . #t) (theme . "dark")))))
        ) ;j0
-       (j1 (json-reduce j0
-             'user
-             'data
-             (lambda (k) (equal? k 'scores))
-             (lambda (k v) (vector-map (lambda (score) (+ score 5)) v))
-           ) ;json-reduce
+       (j1
+         (json-reduce j0
+           'user
+           'data
+           (lambda (k) (equal? k 'scores))
+           (lambda (k v) (vector-map (lambda (score) (+ score 5)) v))
+         ) ;json-reduce
        ) ;j1
       ) ;
   (check (json-ref j1 'user 'data 'scores) => #(90 95 83 97 93))
@@ -114,13 +114,16 @@
 ) ;let*
 
 
-(let* ((j0 '((user (profile (name . "Alice") (age . 25) (scores . #(85 90 78))))))
-       (j1 (json-reduce j0
-             'user
-             'profile
-             'scores
-             (lambda (k v) (vector-map (lambda (score) (+ score 5)) v))
-           ) ;json-reduce
+(let* ((j0
+         '((user (profile (name . "Alice") (age . 25) (scores . #(85 90 78)))))
+       ) ;j0
+       (j1
+         (json-reduce j0
+           'user
+           'profile
+           'scores
+           (lambda (k v) (vector-map (lambda (score) (+ score 5)) v))
+         ) ;json-reduce
        ) ;j1
       ) ;
   (check (json-ref j1 'user 'profile 'scores) => #(90 95 83))
@@ -138,9 +141,10 @@
 ) ;let
 
 
-(let ((json '((person (name . "Alice")
-                (age . 25)
-                (address (city . "Wonderland") (zip . "12345"))))
+(let ((json
+        '((person (name . "Alice")
+            (age . 25)
+            (address (city . "Wonderland") (zip . "12345"))))
       ) ;json
      ) ;
   (let ((updated-json (json-reduce json 'person 'address 'city (lambda (x y) (string-upcase y)))
@@ -202,10 +206,11 @@
 
 ;; 迭代期间列表被谓词修改变长时的越界保护（防止非法写 nil 导致 Crash）
 (let* ((j (list (cons 'a 1) (cons 'b 2)))
-       (res (json-reduce j
-              (lambda (k) (when (eq? k 'a) (set-cdr! (cdr j) (list (cons 'c 3)))) #f)
-              (lambda (k v) v)
-            ) ;json-reduce
+       (res
+         (json-reduce j
+           (lambda (k) (when (eq? k 'a) (set-cdr! (cdr j) (list (cons 'c 3)))) #f)
+           (lambda (k v) v)
+         ) ;json-reduce
        ) ;res
       ) ;
   (check-true (list? res))

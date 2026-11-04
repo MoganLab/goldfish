@@ -29,9 +29,11 @@
       (reverse enabled)
       (loop (cdr rest)
         (if (member (car rest)
-                '("vocabulary"
-                  ;; pattern 类关键字依赖正则引擎，无原生后端，按注解忽略
-                  "pattern" "patternProperties" "propertyNames")
+              '("vocabulary"
+                ;; pattern 类关键字依赖正则引擎，无原生后端，按注解忽略
+                "pattern"
+                "patternProperties"
+                "propertyNames")
             ) ;member
           enabled
           (cons (car rest) enabled)
@@ -50,8 +52,7 @@
 
 (define format-supported
   (append '("date" "date-time" "duration" "email" "idn-email" "ipv4" "ipv6")
-    '("json-pointer" "relative-json-pointer" "time" "uri"
-      "uri-reference")
+    '("json-pointer" "relative-json-pointer" "time" "uri" "uri-reference")
   ) ;append
 ) ;define
 
@@ -124,6 +125,7 @@
 
 ;; 依赖正则引擎的用例：pattern/patternProperties/propertyNames 按注解
 ;; 忽略（无原生正则后端，见偏差记录），这些用例逐例记为 skipped。
+
 (define regex-dependent-cases
   '(("additionalProperties" . "patternProperties are not additional properties")
     ("additionalProperties" . "matching the pattern is valid")
@@ -207,8 +209,10 @@
             (lambda (test)
               (cond ((not enabled?) (set! skipped (+ skipped 1)))
                     ((regex-dependent? name (object-ref test "description" ""))
-                     (set! skipped (+ skipped 1)))
-                    (else (record-test name schema test options)))
+                     (set! skipped (+ skipped 1))
+                    ) ;
+                    (else (record-test name schema test options))
+              ) ;cond
             ) ;lambda
             (vector->list tests)
           ) ;for-each

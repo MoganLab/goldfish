@@ -1,7 +1,3 @@
-(import (liii check) (liii json) (liii base) (liii error))
-
-(check-set-mode! 'report)
-
 ;; write-json
 ;; 将 Scheme-JSON 数据结构序列化写入指定输出端口。
 ;;
@@ -24,16 +20,15 @@
 ;; ----
 ;; 与 json->string 共享序列化规则。
 ;;
-;; 示例
-;; ----
-;; (let ((p (open-output-string)))
-;;   (write-json '(("a" . 1)) p)
-;;   (get-output-string p)) => "{\"a\":1}"
-;;
 ;; 错误处理
 ;; ----
 ;; type-error 当 port 不是输出端口或 json-value 包含不可序列化的过程对象时。
 ;; value-error 当输入不是合法的 JSON 数据结构时。
+
+(import (liii check) (liii json) (liii base) (liii error))
+
+(check-set-mode! 'report)
+
 
 ;; 1. 基本对象与数组写入字符串端口
 (let ((p (open-output-string)))
@@ -121,5 +116,46 @@
     (write-json '(("a")) p)
   ) ;let
 ) ;check-catch
+
+;; 9. 扩展选项测试 [1244]
+;; 9.1 带端口与 :indent
+(let ((p (open-output-string)))
+  (write-json '(("a" . 1) ("b" . 2)) p :indent 2)
+  (check (get-output-string p) => "{\n  \"a\": 1,\n  \"b\": 2\n}")
+) ;let
+
+;; 9.2 带端口与 :sort-keys
+(let ((p (open-output-string)))
+  (write-json '(("z" . 1) ("a" . 2)) p :sort-keys #t)
+  (check (get-output-string p) => "{\"a\":2,\"z\":1}")
+) ;let
+
+;; 9.3 带端口与 :ensure-ascii
+(let ((p (open-output-string)))
+  (write-json '(("name" . "小明")) p :ensure-ascii #t)
+  (check (get-output-string p) => "{\"name\":\"\\u5c0f\\u660e\"}")
+) ;let
+
+;; 9.4 默认端口与选项组合（不传 port）
+(let ((orig (current-output-port)) (p (open-output-string)))
+  (set-current-output-port p)
+  (write-json '(("z" . 1) ("a" . 2)) :sort-keys #t)
+  (set-current-output-port orig)
+  (check (get-output-string p) => "{\"a\":2,\"z\":1}")
+) ;let
+
+;; 9.5 默认端口与 :indent
+(let ((orig (current-output-port)) (p (open-output-string)))
+  (set-current-output-port p)
+  (write-json '(("a" . 1)) :indent 2)
+  (set-current-output-port orig)
+  (check (get-output-string p) => "{\n  \"a\": 1\n}")
+) ;let
+
+;; 9.6 选项错误检查
+(check-catch 'value-error (write-json '(()) :indent -1))
+(check-catch 'type-error (write-json '(()) :sort-keys "no"))
+(check-catch 'type-error (write-json '(()) :ensure-ascii 1))
+(check-catch 'value-error (write-json '(()) :bad-opt #t))
 
 (check-report)
