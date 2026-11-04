@@ -280,7 +280,10 @@
   (let ((root (vector-ref results 0)))
     (check (env? root) => #t)
     (check (env-tag-name root) => "quasiquote")
-    (check (env-value root) => '`(a ,@rest))
+    (check (env-value root)
+      =>
+      (list 'quasiquote (list 'a (list 'unquote-splicing 'rest)))
+    ) ;check
   ) ;let
 ) ;let
 
