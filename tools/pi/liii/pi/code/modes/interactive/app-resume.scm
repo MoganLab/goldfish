@@ -14,11 +14,13 @@
     pi-app-handle-resume-event!
   ) ;export
   (import (scheme base)
+    (scheme file)
     (liii go)
     (liii string)
     (liii list)
     (liii tui)
     (liii pi agent queue)
+    (liii pi code core session-stats)
     (liii pi code modes interactive state)
     (liii pi code modes interactive render)
     (liii pi code modes interactive views)
@@ -205,6 +207,12 @@
                ;; 未命名会话也要清空旧名称，避免 footer 显示陈旧会话名
                (%pi-app-session-name-set! app name)
                (pi-footer-set-session-name! (%pi-app-footer app) name)
+               (when (and (string? path) (file-exists? path))
+                 (let* ((st (pi-get-session-stats path)) (toks (pi-session-stats-tokens st)))
+                   (%pi-app-tokens-set! app toks)
+                   (pi-footer-set-token-stats! (%pi-app-footer app) toks #f)
+                 ) ;let*
+               ) ;when
                (let-values (((applied? note label) (%apply-resume-state! app state)))
                  ;; 提示卡片只保留一张：以会话名为主，匹配成功时附上实际模型
                  (if applied?
