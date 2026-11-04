@@ -33,7 +33,7 @@
   (check (cdr (assoc 'output usage)) => 45)
   (check (cdr (assoc 'cacheRead usage)) => 20)
   (check (cdr (assoc 'cacheWrite usage)) => 10)
-  (check (cdr (assoc 'totalTokens usage)) => 145)
+  (check (cdr (assoc 'totalTokens usage)) => 175)
 ) ;let*
 
 ;; 缺省字段补零
