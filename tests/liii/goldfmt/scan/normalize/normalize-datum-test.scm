@@ -44,7 +44,9 @@
 (check (normalize-datum #(1 2)) => #(1 2))
 
 ;; 测试：(*raw-string* ...) 转换为 raw-string-literal 记录
-(let ((r (normalize-datum '#"x")))
+;; 注意：不能直接写 '#"x" 字面量——按 srfi-267 语法，#"x 的分隔符是 x，
+;; reader 会吞掉后续源码直到闭合的 "x"，导致本文件 reader 错位而加载失败。
+(let ((r (normalize-datum '(*raw-string* "#\"x\"" "x"))))
   (check (raw-string-literal? r) => #t)
   (check (raw-string-literal-value r) => "x")
 ) ;let
