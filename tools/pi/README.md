@@ -269,6 +269,7 @@ agent 正在流式输出时结果延迟落盘，下一条消息才可见（对�
 | `Enter`（busy 时） | steering：插话注入当前运行中的任务（工具批次结束后、下次请求前生效） |
 | `Alt+Enter` | follow-up：排队到当前任务自然结束后再执行；空闲时等同 `Enter` |
 | `Ctrl+O` | 展开/折叠工具与 bash 输出 |
+| `Ctrl+V` | 读取外部系统剪贴板并粘贴到输入框（Linux 支持 Wayland/X11） |
 | `Shift+Tab` | 循环切换 thinking level |
 | 鼠标滚轮 | 上下滚动对话记录（单次滚轮 1 行，快速连续滚动自动加速，最多 6 行/次） |
 

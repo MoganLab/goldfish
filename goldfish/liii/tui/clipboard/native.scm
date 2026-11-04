@@ -22,9 +22,64 @@
 ;;
 
 (define-library (liii tui clipboard native)
-  (export native-clipboard-copy!)
-  (import (scheme base) (scheme process-context) (liii os) (liii subprocess))
+  (export native-clipboard-copy! native-clipboard-text)
+  (import (scheme base)
+    (scheme process-context)
+    (liii os)
+    (liii string)
+    (liii either)
+    (liii subprocess)
+  ) ;import
   (begin
+
+    (define (%clipboard-command-output command)
+      (catch #t
+        (lambda ()
+          (let ((result (run-either command :timeout 5 :stderr 'discard)))
+            (if (either-right? result) (to-right result) #f)
+          ) ;let
+        ) ;lambda
+        (lambda _ #f)
+      ) ;catch
+    ) ;define
+
+    (define (%first-clipboard-text commands runner)
+      (cond ((null? commands) #f)
+            (else
+              (let ((text (runner (car commands))))
+                (if (and (string? text) (not (string-null? text)))
+                  text
+                  (%first-clipboard-text (cdr commands) runner)
+                ) ;if
+              ) ;let
+            ) ;else
+      ) ;cond
+    ) ;define
+
+    ;; 测试可注入 runner：参数为 argv 列表，返回文本或 #f。
+    (define* (native-clipboard-text (runner %clipboard-command-output))
+      (catch #t
+        (lambda ()
+          (if (os-linux?)
+            (%first-clipboard-text
+              (append (if (getenv "WAYLAND_DISPLAY")
+                        '(("wl-paste" "--no-newline" "--type" "text"))
+                        '()
+                      ) ;if
+                (if (getenv "DISPLAY")
+                  '(("xclip" "-selection" "clipboard" "-out")
+                    ("xsel" "--clipboard" "--output"))
+                  '()
+                ) ;if
+              ) ;append
+              runner
+            ) ;%first-clipboard-text
+            #f
+          ) ;if
+        ) ;lambda
+        (lambda _ #f)
+      ) ;catch
+    ) ;define*
 
     (define (native-clipboard-copy! text)
       (catch #t
