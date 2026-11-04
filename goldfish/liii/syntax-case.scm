@@ -508,40 +508,17 @@
             ((and (identifier? (car expr))
                (eq? (identifier->symbol (car expr)) 'syntax-case)
              ) ;and
-             ;; 嵌套 syntax-case：递归处理其 sub-expr 与各 clause
-             (let* ((sub-expr (transform-output (cadr expr) vars ell?))
-                    (lits (caddr expr))
-                    (clauses (cdddr expr))
-                    (new-clauses
-                      (map
-                        (lambda (c)
-                          (let* ((p (car c))
-                                 (has-fender (= 3 (length c)))
-                                 (fender (if has-fender (cadr c) #t))
-                                 (b
-                                   (if has-fender (caddr c) (if (= 2 (length c)) (cadr c) (cons 'begin (cdr c))))
-                                 ) ;b
-                                ) ;
-                            (let*-values (((matcher inner-vars) (gen-matcher (%syntax-case-gen-sym "e") lits p '())))
-                              ;; 内层 pattern vars 优先于外层
-                              (let ((merged-vars (append inner-vars vars)))
-                                (if has-fender
-                                  (list p
-                                    (transform-output fender merged-vars ell?)
-                                    (transform-output b merged-vars ell?)
-                                  ) ;list
-                                  (list p (transform-output b merged-vars ell?))
-                                ) ;if
-                              ) ;let
-                            ) ;let*-values
-                          ) ;let*
-                        ) ;lambda
-                        clauses
-                      ) ;map
-                    ) ;new-clauses
-                   ) ;
-               `(syntax-case ,sub-expr ,lits ,@new-clauses)
-             ) ;let*
+             ;; 嵌套 syntax-case：当场完整展开为最终代码。
+             ;; 若此处仍返回 (syntax-case ...) 宏形式，后续二次展开时
+             ;; expand-clause 会重新生成一套 gensym，而 body 中的 pattern
+             ;; 变量已被替换为第一阶段的 gensym 名字，从而报 unbound variable
+             ;; （issue #1450）。
+             (%expand-syntax-case (transform-output (cadr expr) vars ell?)
+               (caddr expr)
+               (cdddr expr)
+               ell?
+               vars
+             ) ;%expand-syntax-case
             ) ;
             (else (cons (transform-output (car expr) vars ell?)
                     (transform-output (cdr expr) vars ell?)
@@ -550,7 +527,7 @@
       ) ;cond
     ) ;define
 
-    (define (expand-clause c e-var lit* ell? next-fail)
+    (define (expand-clause c e-var lit* ell? outer-vars next-fail)
       (let* ((pattern (car c))
              (has-fender (= 3 (length c)))
              (fender (if has-fender (cadr c) #t))
@@ -559,8 +536,11 @@
              ) ;output-expr
             ) ;
         (let*-values (((matcher vars) (gen-matcher e-var lit* pattern '())))
-          (let* ((transformed-output (transform-output output-expr vars ell?))
-                 (transformed-fender (if (eq? fender #t) #t (transform-output fender vars ell?)))
+          ;; 本层 pattern vars 优先于外层
+          (let* ((all-vars (append vars outer-vars))
+                 (transformed-output (transform-output output-expr all-vars ell?))
+                 (transformed-fender (if (eq? fender #t) #t (transform-output fender all-vars ell?))
+                 ) ;transformed-fender
                 ) ;
             `(let ((fail (lambda ,() ,next-fail)))
                ,(matcher (lambda ()
@@ -574,10 +554,8 @@
       ) ;let*
     ) ;define
 
-    (define-macro (syntax-case expr lit* . clauses)
-      (let ((e-var (%syntax-case-gen-sym "stx"))
-            (ell? (lambda (id) (ellipsis-identifier? id)))
-           ) ;
+    (define (%expand-syntax-case expr lit* clauses ell? outer-vars)
+      (let ((e-var (%syntax-case-gen-sym "stx")))
         (let loop
           ((cls (reverse clauses))
            (chain
@@ -588,10 +566,19 @@
           ) ;
           (if (null? cls)
             `(let ((,e-var ,expr)) ,chain)
-            (loop (cdr cls) (expand-clause (car cls) e-var lit* ell? chain))
+            (loop (cdr cls) (expand-clause (car cls) e-var lit* ell? outer-vars chain))
           ) ;if
         ) ;let
       ) ;let
+    ) ;define
+
+    (define-macro (syntax-case expr lit* . clauses)
+      (%expand-syntax-case expr
+        lit*
+        clauses
+        (lambda (id) (ellipsis-identifier? id))
+        '()
+      ) ;%expand-syntax-case
     ) ;define-macro
 
     (define-macro (syntax tmpl)
