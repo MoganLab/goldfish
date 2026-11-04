@@ -15,6 +15,7 @@
 //
 
 #include "s7.h"
+#include <algorithm>
 #include <cerrno>
 #include <cstdlib>
 #include <cstring>
@@ -44,14 +45,12 @@ json_type_error (s7_scheme* sc, const char* msg, s7_pointer arg) {
 }
 
 struct json_dump_options {
-  int         indent_spaces = -1;
-  std::string indent_str    = "";
-  bool        sort_keys     = false;
-  bool        ensure_ascii  = false;
+  int         indent_spaces= -1;
+  std::string indent_str   = "";
+  bool        sort_keys    = false;
+  bool        ensure_ascii = false;
 
-  bool has_indent () const {
-    return indent_spaces >= 0 || !indent_str.empty ();
-  }
+  bool has_indent () const { return indent_spaces >= 0 || !indent_str.empty (); }
 };
 
 static void
@@ -75,7 +74,7 @@ json_key_to_string (s7_scheme* sc, s7_pointer k) {
     return s7_symbol_name (k);
   }
   if (s7_is_number (k)) {
-    char* s= s7_number_to_string (sc, k, 10);
+    char*       s= s7_number_to_string (sc, k, 10);
     std::string res (s);
     free (s);
     return res;
@@ -402,12 +401,12 @@ json_write_value_rec (s7_scheme* sc, s7_pointer x, std::string& out, std::vector
 
     if (opts.sort_keys) {
       std::vector<s7_pointer> entries;
-      s7_pointer lst= x;
+      s7_pointer              lst= x;
       while (s7_is_pair (lst)) {
         entries.push_back (s7_car (lst));
         lst= s7_cdr (lst);
       }
-      std::stable_sort (entries.begin (), entries.end (), [&](s7_pointer a, s7_pointer b) {
+      std::stable_sort (entries.begin (), entries.end (), [&] (s7_pointer a, s7_pointer b) {
         s7_pointer ka= s7_is_pair (a) ? s7_car (a) : a;
         s7_pointer kb= s7_is_pair (b) ? s7_car (b) : b;
         return json_key_to_string (sc, ka) < json_key_to_string (sc, kb);
@@ -472,8 +471,7 @@ json_write_to_s7_string (s7_scheme* sc, s7_pointer x, const json_dump_options& o
     std::vector<s7_pointer> ancestors;
     ancestors.reserve (16);
     json_write_value_rec (sc, x, out, ancestors, opts, 0);
-  }
-  catch (const json_write_exception& e) {
+  } catch (const json_write_exception& e) {
     err= e;
     return NULL;
   }
@@ -514,8 +512,7 @@ f_json_to_string (s7_scheme* sc, s7_pointer args) {
       else {
         return s7_error (
             sc, s7_make_symbol (sc, "type-error"),
-            s7_list (sc, 2,
-                     s7_make_string (sc, "json->string: :indent must be a non-negative integer, string, or #f"),
+            s7_list (sc, 2, s7_make_string (sc, "json->string: :indent must be a non-negative integer, string, or #f"),
                      indent_arg));
       }
     }
@@ -524,9 +521,9 @@ f_json_to_string (s7_scheme* sc, s7_pointer args) {
       s7_pointer sort_keys_arg= s7_car (rest);
       if (sort_keys_arg != s7_unspecified (sc)) {
         if (!s7_is_boolean (sort_keys_arg)) {
-          return s7_error (sc, s7_make_symbol (sc, "type-error"),
-                           s7_list (sc, 2, s7_make_string (sc, "json->string: :sort-keys must be a boolean"),
-                                    sort_keys_arg));
+          return s7_error (
+              sc, s7_make_symbol (sc, "type-error"),
+              s7_list (sc, 2, s7_make_string (sc, "json->string: :sort-keys must be a boolean"), sort_keys_arg));
         }
         opts.sort_keys= s7_boolean (sc, sort_keys_arg);
       }
@@ -590,8 +587,7 @@ f_write_json (s7_scheme* sc, s7_pointer args) {
         else {
           return s7_error (
               sc, s7_make_symbol (sc, "type-error"),
-              s7_list (sc, 2,
-                       s7_make_string (sc, "write-json: :indent must be a non-negative integer, string, or #f"),
+              s7_list (sc, 2, s7_make_string (sc, "write-json: :indent must be a non-negative integer, string, or #f"),
                        indent_arg));
         }
       }
@@ -600,9 +596,9 @@ f_write_json (s7_scheme* sc, s7_pointer args) {
         s7_pointer sort_keys_arg= s7_car (rest);
         if (sort_keys_arg != s7_unspecified (sc)) {
           if (!s7_is_boolean (sort_keys_arg)) {
-            return s7_error (sc, s7_make_symbol (sc, "type-error"),
-                             s7_list (sc, 2, s7_make_string (sc, "write-json: :sort-keys must be a boolean"),
-                                      sort_keys_arg));
+            return s7_error (
+                sc, s7_make_symbol (sc, "type-error"),
+                s7_list (sc, 2, s7_make_string (sc, "write-json: :sort-keys must be a boolean"), sort_keys_arg));
           }
           opts.sort_keys= s7_boolean (sc, sort_keys_arg);
         }
@@ -632,16 +628,16 @@ f_write_json (s7_scheme* sc, s7_pointer args) {
 static void
 glue_json_to_string (s7_scheme* sc) {
   const char* name= "g_json->string";
-  const char* desc=
-      "(g_json->string data [indent] [sort-keys] [ensure-ascii]) => string, encode Scheme-form JSON data to a JSON string";
+  const char* desc= "(g_json->string data [indent] [sort-keys] [ensure-ascii]) => string, encode Scheme-form JSON data "
+                    "to a JSON string";
   s7_define_function (sc, name, f_json_to_string, 1, 3, false, desc);
 }
 
 static void
 glue_write_json (s7_scheme* sc) {
   const char* name= "g_write_json";
-  const char* desc=
-      "(g_write_json data [port] [indent] [sort-keys] [ensure-ascii]) => unspecified, serialize JSON data to an output port";
+  const char* desc= "(g_write_json data [port] [indent] [sort-keys] [ensure-ascii]) => unspecified, serialize JSON "
+                    "data to an output port";
   s7_define_function (sc, name, f_write_json, 1, 4, false, desc);
 }
 
