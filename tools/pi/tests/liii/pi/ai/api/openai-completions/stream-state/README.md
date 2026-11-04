@@ -37,6 +37,8 @@ gf doc liii/pi/ai/api/openai-completions/stream-state "openai-stream-state-block
 - `openai-stream-state-blocks-set!` - 设置 OpenAI 流状态中的消息块列表
 - `openai-stream-state-last-text` - 读取 OpenAI 流状态中当前正在累积的文本
 - `openai-stream-state-last-text-set!` - 设置 OpenAI 流状态中当前正在累积的文本
+- `openai-stream-state-last-reasoning` - 读取 OpenAI 流状态中当前正在累积的思考内容
+- `openai-stream-state-last-reasoning-set!` - 设置 OpenAI 流状态中当前正在累积的思考内容
 
 ### 用量与停止原因
 - `openai-stream-state-usage` - 读取 OpenAI 流状态中的用量统计
@@ -62,6 +64,7 @@ bin/gf test tools/pi/tests/liii/pi/ai/api/openai-completions/stream-state/
 - `openai-stream-state-p-test.scm` — `openai-stream-state?`：流状态记录判定
 - `openai-stream-state-blocks-test.scm` / `openai-stream-state-blocks-set-bang-test.scm` — 消息块列表读写
 - `openai-stream-state-last-text-test.scm` / `openai-stream-state-last-text-set-bang-test.scm` — 当前文本读写
+- `openai-stream-state-last-reasoning-test.scm` / `openai-stream-state-last-reasoning-set-bang-test.scm` — 思考内容读写
 - `openai-stream-state-usage-test.scm` / `openai-stream-state-usage-set-bang-test.scm` — 用量统计读写
 - `openai-stream-state-stop-reason-test.scm` / `openai-stream-state-stop-reason-set-bang-test.scm` — 停止原因读写
 - `openai-stream-state-error-message-test.scm` / `openai-stream-state-error-message-set-bang-test.scm` — 错误信息读写
