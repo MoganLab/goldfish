@@ -1,9 +1,3 @@
-(import (scheme base)
-  (liii check)
-  (liii pi code core session-stats))
-
-(check-set-mode! 'report-failed)
-
 ;; pi-session-stats-total-messages
 ;; 返回会话消息总条数。
 ;;
@@ -21,9 +15,12 @@
 ;; integer
 ;; 包括普通消息与 bashExecution 的消息总数。
 ;;
-;; 示例
-;; ----
-;; (pi-session-stats-total-messages stats) => 5
+
+(import (scheme base)
+  (liii check)
+  (liii pi code core session-stats))
+
+(check-set-mode! 'report-failed)
 
 (define (stats-with-total n)
   (make-pi-session-stats #f #f #f n 0 0 0 0

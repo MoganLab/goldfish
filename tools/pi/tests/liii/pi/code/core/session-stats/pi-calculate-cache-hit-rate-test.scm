@@ -1,10 +1,3 @@
-(import (scheme base)
-  (liii check)
-  (liii pi code core session-stats)
-) ;import
-
-(check-set-mode! 'report-failed)
-
 ;; pi-calculate-cache-hit-rate
 ;; 计算单轮请求或会话 token 统计的缓存命中率百分比。
 ;;
@@ -28,6 +21,14 @@
 ;; 命中率百分比（0.0 ~ 100.0）；若无缓存活动（cacheRead 与 cacheWrite 均为 0）或无 prompt 则返回 #f。
 
 ;; 完全命中（100%）：input=0, cache-read=1000, cache-write=0
+
+(import (scheme base)
+  (liii check)
+  (liii pi code core session-stats)
+) ;import
+
+(check-set-mode! 'report-failed)
+
 (check (pi-calculate-cache-hit-rate 0 1000 0) => 100.0)
 
 ;; 部分命中：input=200, cache-read=800, cache-write=0 -> prompt=1000, 80%

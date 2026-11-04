@@ -1,10 +1,3 @@
-(import (scheme base)
-  (liii check)
-  (liii pi code core session-stats)
-) ;import
-
-(check-set-mode! 'report-failed)
-
 ;; pi-format-token-count
 ;; 将 token 整数数量格式化为紧凑字符串（原样、k、M 缩写）
 ;;
@@ -23,6 +16,14 @@
 ;; 紧凑格式化后的字符串。
 
 ;; 小于 1000：原数字
+
+(import (scheme base)
+  (liii check)
+  (liii pi code core session-stats)
+) ;import
+
+(check-set-mode! 'report-failed)
+
 (check (pi-format-token-count 0) => "0")
 (check (pi-format-token-count 45) => "45")
 (check (pi-format-token-count 999) => "999")

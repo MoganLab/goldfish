@@ -1,9 +1,3 @@
-(import (scheme base)
-  (liii check)
-  (liii pi code core session-stats))
-
-(check-set-mode! 'report-failed)
-
 ;; pi-session-stats?
 ;; 判断对象是否为完整会话统计 record。
 ;;
@@ -21,9 +15,12 @@
 ;; boolean
 ;; 仅对 pi-session-stats record 返回 #t。
 ;;
-;; 示例
-;; ----
-;; (pi-session-stats? '()) => #f
+
+(import (scheme base)
+  (liii check)
+  (liii pi code core session-stats))
+
+(check-set-mode! 'report-failed)
 
 (let ((stats (make-pi-session-stats #f #f #f 0 0 0 0 0
                (make-pi-session-token-stats 0 0 0 0) 0)))

@@ -1,9 +1,3 @@
-(import (scheme base)
-  (liii check)
-  (liii pi code core session-stats))
-
-(check-set-mode! 'report-failed)
-
 ;; make-pi-session-stats
 ;; 构造会话消息、token 与费用的完整统计 record。
 ;;
@@ -32,10 +26,12 @@
 ;; ----
 ;; pi-session-stats
 ;; 完整的会话统计 record。
-;;
-;; 示例
-;; ----
-;; (pi-session-stats-total-messages stats) => 5
+
+(import (scheme base)
+  (liii check)
+  (liii pi code core session-stats))
+
+(check-set-mode! 'report-failed)
 
 (let* ((tokens (make-pi-session-token-stats 3000 500 1200 100))
        (stats (make-pi-session-stats "/tmp/session.jsonl" "session-1" "Demo"

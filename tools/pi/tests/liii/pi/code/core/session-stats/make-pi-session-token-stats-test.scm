@@ -1,9 +1,3 @@
-(import (scheme base)
-  (liii check)
-  (liii pi code core session-stats))
-
-(check-set-mode! 'report-failed)
-
 ;; make-pi-session-token-stats
 ;; 构造会话 token 分类统计 record。
 ;;
@@ -21,10 +15,12 @@
 ;; pi-session-token-stats
 ;; total 由四类 token 之和计算的统计 record。
 ;;
-;; 示例
-;; ----
-;; (pi-session-token-stats-total
-;;   (make-pi-session-token-stats 10 20 30 40)) => 100
+
+(import (scheme base)
+  (liii check)
+  (liii pi code core session-stats))
+
+(check-set-mode! 'report-failed)
 
 (let ((tokens (make-pi-session-token-stats 3000 500 1200 100)))
   (check-true (pi-session-token-stats? tokens))

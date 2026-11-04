@@ -1,3 +1,20 @@
+;; pi-get-session-stats
+;; 从指定会话文件读取所有条目并聚合生成会话统计 record。
+;;
+;; 语法
+;; ----
+;; (pi-get-session-stats file-path)
+;;
+;; 参数
+;; ----
+;; file-path : string 或 #f
+;; 会话文件路径，内存会话为 #f。
+;;
+;; 返回值
+;; ----
+;; pi-session-stats
+;; 会话统计 record。
+
 (import (scheme base)
   (scheme file)
   (liii check)

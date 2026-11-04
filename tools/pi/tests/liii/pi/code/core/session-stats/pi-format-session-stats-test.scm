@@ -1,14 +1,3 @@
-(import (scheme base)
-  (scheme file)
-  (liii check)
-  (liii path)
-  (liii pi code core session-manager)
-  (liii pi code core session-name)
-  (liii pi code core session-stats)
-) ;import
-
-(check-set-mode! 'report-failed)
-
 ;; pi-format-session-stats
 ;; 将 pi-get-session-stats 的统计 alist 格式化为可读的纯文本报告。
 ;;
@@ -27,9 +16,17 @@
 ;; 多行文本报告；大整数按三位分组，费用保留三位小数。
 ;; 没有缓存、名称或费用信息时省略相应附加内容。
 ;;
-;; 示例
-;; ----
-;; (pi-format-session-stats (pi-get-session-stats "session.jsonl"))
+
+(import (scheme base)
+  (scheme file)
+  (liii check)
+  (liii path)
+  (liii pi code core session-manager)
+  (liii pi code core session-name)
+  (liii pi code core session-stats)
+) ;import
+
+(check-set-mode! 'report-failed)
 
 (define SESSION-FILE
   (path->string (path-join (path-temp-dir) "pi-session-stats-test.jsonl"))

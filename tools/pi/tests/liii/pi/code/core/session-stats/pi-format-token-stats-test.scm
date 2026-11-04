@@ -1,10 +1,3 @@
-(import (scheme base)
-  (liii check)
-  (liii pi code core session-stats)
-) ;import
-
-(check-set-mode! 'report-failed)
-
 ;; pi-format-token-stats
 ;; 构建供 Footer 或终端状态栏展示的紧凑 Token 传输与缓存统计行。
 ;;
@@ -26,6 +19,14 @@
 ;; 紧凑统计字符串，形如「↑1.2k ↓45 R15k CH98.5%」。
 
 ;; 1. 首轮无缓存：仅展示传输量，不展示 CH 字段
+
+(import (scheme base)
+  (liii check)
+  (liii pi code core session-stats)
+) ;import
+
+(check-set-mode! 'report-failed)
+
 (let ((tokens (make-pi-session-token-stats 1200 45 0 0)))
   (check (pi-format-token-stats tokens) => "↑1.2k ↓45")
   (check (pi-format-token-stats tokens #f) => "↑1.2k ↓45"))

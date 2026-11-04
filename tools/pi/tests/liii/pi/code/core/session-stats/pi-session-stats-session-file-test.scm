@@ -1,9 +1,3 @@
-(import (scheme base)
-  (liii check)
-  (liii pi code core session-stats))
-
-(check-set-mode! 'report-failed)
-
 ;; pi-session-stats-session-file
 ;; 返回统计来源的会话文件路径。
 ;;
@@ -21,9 +15,12 @@
 ;; string 或 #f
 ;; 文件会话返回路径，内存会话返回 #f。
 ;;
-;; 示例
-;; ----
-;; (pi-session-stats-session-file stats) => "/tmp/session.jsonl"
+
+(import (scheme base)
+  (liii check)
+  (liii pi code core session-stats))
+
+(check-set-mode! 'report-failed)
 
 (let ((file-stats (make-pi-session-stats "/tmp/session.jsonl" #f #f 0 0 0 0 0
                     (make-pi-session-token-stats 0 0 0 0) 0))
