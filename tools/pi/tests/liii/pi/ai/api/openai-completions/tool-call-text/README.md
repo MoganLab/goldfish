@@ -39,4 +39,4 @@ bin/gf test tools/pi/tests/liii/pi/ai/api/openai-completions/tool-call-text/
 - `extract-openai-json-snippet-test.scm` — `extract-openai-json-snippet`：JSON 片段截取
 - `parse-openai-xml-tool-call-test.scm` — `parse-openai-xml-tool-call`：XML 形式解析
 - `parse-openai-text-tool-call-test.scm` — `parse-openai-text-tool-call`：XML / JSON 统一解析
-- `maybe-extract-openai-text-tool-call-test.scm` — `maybe-extract-openai-text-tool-call!`：流结束补齐
+- `maybe-extract-openai-text-tool-call-bang-test.scm` — `maybe-extract-openai-text-tool-call!`：流结束补齐
