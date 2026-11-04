@@ -23,6 +23,7 @@
     pi-session-stats-tool-calls pi-session-stats-tool-results
     pi-session-stats-tokens pi-session-stats-cost pi-format-token-count
     pi-calculate-cache-hit-rate pi-format-token-stats
+    pi-session-token-stats-add-usage!
   ) ;export
   (begin
 
@@ -89,20 +90,24 @@
       ) ;cond
     ) ;define
 
+    (define (pi-session-token-stats-add-usage! tokens usage)
+      (pi-session-token-stats-input-set! tokens
+        (+ (pi-session-token-stats-input tokens) (%ref usage 'input 0))
+      ) ;pi-session-token-stats-input-set!
+      (pi-session-token-stats-output-set! tokens
+        (+ (pi-session-token-stats-output tokens) (%ref usage 'output 0))
+      ) ;pi-session-token-stats-output-set!
+      (pi-session-token-stats-cache-read-set! tokens
+        (+ (pi-session-token-stats-cache-read tokens) (%ref usage 'cacheRead 0))
+      ) ;pi-session-token-stats-cache-read-set!
+      (pi-session-token-stats-cache-write-set! tokens
+        (+ (pi-session-token-stats-cache-write tokens) (%ref usage 'cacheWrite 0))
+      ) ;pi-session-token-stats-cache-write-set!
+    ) ;define
+
     (define (%add-usage! stats usage)
       (let ((tokens (pi-session-stats-tokens stats)))
-        (pi-session-token-stats-input-set! tokens
-          (+ (pi-session-token-stats-input tokens) (%ref usage 'input 0))
-        ) ;pi-session-token-stats-input-set!
-        (pi-session-token-stats-output-set! tokens
-          (+ (pi-session-token-stats-output tokens) (%ref usage 'output 0))
-        ) ;pi-session-token-stats-output-set!
-        (pi-session-token-stats-cache-read-set! tokens
-          (+ (pi-session-token-stats-cache-read tokens) (%ref usage 'cacheRead 0))
-        ) ;pi-session-token-stats-cache-read-set!
-        (pi-session-token-stats-cache-write-set! tokens
-          (+ (pi-session-token-stats-cache-write tokens) (%ref usage 'cacheWrite 0))
-        ) ;pi-session-token-stats-cache-write-set!
+        (pi-session-token-stats-add-usage! tokens usage)
         (pi-session-stats-cost-set! stats
           (+ (pi-session-stats-cost stats) (%ref (%ref usage 'cost '()) 'total 0.0))
         ) ;pi-session-stats-cost-set!
