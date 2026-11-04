@@ -1,9 +1,3 @@
-(import (liii check) (liii option))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; option-every
 ;; 检查 option 中的值是否满足谓词函数（全称量词）。
 ;;
@@ -23,6 +17,11 @@
 ;; 布尔值：
 ;; - #f 如果 option 为空
 ;; - (pred value) 的结果如果 option 非空
+
+(import (liii check) (liii option))
+
+
+(check-set-mode! 'report-failed)
 
 
 (let ((opt1 (option 42)) (opt2 (none)) (opt3 (option -5)))

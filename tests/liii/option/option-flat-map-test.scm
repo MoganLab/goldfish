@@ -1,9 +1,3 @@
-(import (liii check) (liii option))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; option-flat-map
 ;; 对 option 中的值应用返回 option 的映射函数。
 ;;
@@ -23,6 +17,11 @@
 ;; option 对象：
 ;; - 如果原 option 为空：返回空 option
 ;; - 如果原 option 非空：返回 (f value)
+
+(import (liii check) (liii option))
+
+
+(check-set-mode! 'report-failed)
 
 
 (let ((opt1 (option 42)) (opt2 (none)))

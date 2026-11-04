@@ -1,9 +1,3 @@
-(import (liii check) (liii option))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; option-get-or-else
 ;; 获取 option 中的值，如果为空则返回默认值。
 ;;
@@ -21,6 +15,11 @@
 ;; 返回值
 ;; -----
 ;; option 中的值（如果非空）或默认值（如果为空）。
+
+(import (liii check) (liii option))
+
+
+(check-set-mode! 'report-failed)
 
 
 (let ((opt1 (option 42)) (opt2 (none)))
