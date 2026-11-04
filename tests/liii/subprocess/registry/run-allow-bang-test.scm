@@ -1,5 +1,3 @@
-(import (liii check) (liii os) (liii subprocess))
-
 ;; run-allow!
 ;; 设置符号命令白名单。
 ;;
@@ -12,10 +10,20 @@
 ;; ----
 ;; symbol 或 symbol-list : 单个符号或符号列表。
 ;; 空列表表示取消白名单。
+;;
+;; 返回值
+;; ----
+;; 未定义
+;;
+;; 说明
+;; ----
+;; 仅白名单中的符号命令允许被执行；空列表表示取消白名单限制。
 
-(when (os-linux?)
+(import (liii check) (liii os) (liii subprocess))
+
+(when (or (os-linux?) (os-macos?))
   (run-set! 'echo-cmd "/bin/echo")
-  (run-set! 'true-cmd "/bin/true")
+  (run-set! 'true-cmd (if (os-macos?) "/usr/bin/true" "/bin/true"))
 
   (run-allow! 'echo-cmd)
   (check (zero? (run '(echo-cmd "hello"))) => #t)
