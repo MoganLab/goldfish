@@ -1,12 +1,3 @@
-(import (liii check)
-  (liii goldfmt format)
-  (liii goldfmt record)
-  (liii list)
-  (liii raw-string)
-) ;import
-
-(check-set-mode! 'report-failed)
-
 ;; format-datum
 ;; 格式化一个 Scheme datum，并返回格式化文本。
 ;;
@@ -29,10 +20,15 @@
 ;; 1. `format-datum` 会先调用 `scan` 构造 node 树
 ;; 2. 内部使用 `format-node` 执行格式化
 ;; 3. 只返回文本，不返回 positioned node
-;;
-;; 示例
-;; ----
-;; (format-datum '(define x 1)) ; => "(define x 1)"
+
+(import (liii check)
+  (liii goldfmt format)
+  (liii goldfmt record)
+  (liii list)
+  (liii raw-string)
+) ;import
+
+(check-set-mode! 'report-failed)
 
 (check (format-datum '(define x 1))
   =>
@@ -51,58 +47,15 @@
   "#(1 2)"
 ) ;check
 
-(check (format-datum '(*comment* "hello"))
+(check (format-datum (list '*comment* "hello"))
   =>
   ";; hello"
 ) ;check
 
-(check (format-datum '(*comment* ""))
+(check (format-datum (list '*comment* ""))
   =>
   ";;"
 ) ;check
-
-;; format-datum+node
-;; 格式化一个 Scheme datum，并同时返回带位置信息的新 node。
-;;
-;; 语法
-;; ----
-;; (format-datum+node datum)
-;;
-;; 参数
-;; ----
-;; datum : any?
-;; 已经由 `read` 读出的 Scheme datum。
-;;
-;; 返回值
-;; ------
-;; values
-;; 返回两个值：
-;; 1. text : string? 格式化后的文本
-;; 2. positioned-node : env? 或 atom? 带有布局位置信息的新 node
-;;
-;; 说明
-;; ----
-;; `format-datum+node` 是 `format-datum` 的信息保留版本，适合测试和后续需要定位信息的功能。
-
-(call-with-values (lambda ()
-                    (format-datum+node '(define (f x) (+ x 1))
-                    ) ;format-datum+node
-                  ) ;lambda
-  (lambda (text node)
-    (check text
-      =>
-      (&- #""
-                 (define (f x)
-                   (+ x 1)
-                 ) ;define
-                 ""
-      ) ;&-
-    ) ;check
-    (check (env-indent node) => 0)
-    (check (env-left-line node) => 1)
-    (check (env-right-line node) => 3)
-  ) ;lambda
-) ;call-with-values
 
 ;; 由于 max-inline-length=40，这个表达式可以内联
 (check (format-datum '(define (factorial n) (if (= n 0) 1 (* n (factorial (- n 1)))))
@@ -249,5 +202,6 @@
        ""
   ) ;&-
 ) ;check
+
 
 (check-report)

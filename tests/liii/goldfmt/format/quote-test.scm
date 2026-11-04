@@ -1,3 +1,26 @@
+;; quote 家族格式化
+;; 验证 quote / quasiquote / unquote / unquote-splicing 在格式化后的还原方式。
+;;
+;; 语法
+;; ----
+;; (format-string source)
+;;
+;; 参数
+;; ----
+;; source : string?
+;; 待格式化的源码文本。
+;;
+;; 返回值
+;; ----
+;; string?
+;; 格式化后的文本。
+;;
+;; 说明
+;; ----
+;; 1. quote 形式输出为 'x 形式
+;; 2. quasiquote / unquote / unquote-splicing 输出为 ` , ,@ 形式
+;; 3. 展开结果不会被还原成 reader 内部形式
+
 (import (liii check) (liii goldfmt format))
 
 (check-set-mode! 'report-failed)
