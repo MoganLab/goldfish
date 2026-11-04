@@ -4,7 +4,8 @@
 把 SSE chunk 分发到文本增量与工具调用参数增量，在流结束时组装完整的
 toolCall 块，并从错误响应中提取错误文本。
 
-流状态由 `(liii pi ai api openai-completions stream-state)` 提供。
+流状态由 `(liii pi ai api openai-completions stream-state)` 提供；
+正文里内联工具调用的兜底解析由 `(liii pi ai api openai-completions tool-call-text)` 提供。
 
 使用时导入：
 
