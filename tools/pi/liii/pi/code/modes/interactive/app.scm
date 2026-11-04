@@ -23,9 +23,10 @@
     pi-app-frame-lines pi-app-transcript-lines pi-app-wheel-accelerator
     pi-app-handle-mouse! pi-app-handle-mouse-events! pi-app-toggle-thinking!
     pi-app-hide-thinking? pi-app-selection pi-app-selection-set!
-    pi-app-selection-clear! pi-app-selection-active?
+    pi-app-selection-clear! pi-app-selection-active? pi-app-tokens
   ) ;export
   (import (scheme base)
+    (scheme file)
     (liii base)
     (liii go)
     (liii time)
@@ -34,6 +35,7 @@
     (liii list)
     (liii tui)
     (liii pi agent queue)
+    (liii pi code core session-stats)
     (liii pi code modes interactive state)
     (liii pi code modes interactive render)
     (liii pi code modes interactive thinking)
@@ -252,6 +254,7 @@
                (no-session? #f)
                (hide-thinking #f)
                (on-save-hide-thinking #f)
+               (tokens #f)
              ) ;make-pi-app
       (let* ((actual-term (or terminal (make-standard-terminal)))
              ;; 全屏模式：备用屏整帧渲染，内容不随终端滚动
@@ -268,6 +271,14 @@
              ) ;available-levels
              ;; 默认级别：settings.json 里的原始值（未配置时为 #f，由 medium 兜底）
              (default-level default-thinking-level)
+             (actual-tokens
+               (or tokens
+                 (if (and session-file (string? session-file) (file-exists? session-file))
+                   (pi-session-stats-tokens (pi-get-session-stats session-file))
+                   (make-pi-session-token-stats 0 0 0 0)
+                 ) ;if
+               ) ;or
+             ) ;actual-tokens
              (footer (make-pi-footer
                        :branch            branch
                        :provider          provider
@@ -333,10 +344,14 @@
                     on-save-hide-thinking
                     #f
                     #f
+                    actual-tokens
                   ) ;%make-pi-app
              ) ;app
              (ed (%make-pi-editor app tl))
             ) ;
+        (when (> (pi-session-token-stats-total actual-tokens) 0)
+          (pi-footer-set-token-stats! footer actual-tokens #f)
+        ) ;when
         ;; 对话记录（页眉 + 消息卡片）作为可滚动视口内容；
         ;; 待发送队列卡片与输入区、页脚一起构成底部 dock
         (container-add! doc header)

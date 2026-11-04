@@ -26,6 +26,7 @@
     (liii pi code modes interactive app-name)
     (liii pi code modes interactive app-resume)
     (liii pi code modes interactive app-session)
+    (liii pi code core session-stats)
     (liii pi code modes interactive common)
     (liii pi code modes interactive footer)
   ) ;import
@@ -326,6 +327,15 @@
             ((assistant_thinking_line) (%pi-app-handle-thinking-line! app (cadr ev)))
             ((assistant_thinking_end) (%pi-app-close-thinking-card! app))
             ((assistant_text) (pi-app-add-assistant-text! app (cadr ev)))
+            ((message_usage)
+             (let* ((usage (cadr ev))
+                    (tokens (pi-app-tokens app))
+                    (latest-rate (pi-calculate-cache-hit-rate usage))
+                   ) ;
+               (pi-session-token-stats-add-usage! tokens usage)
+               (pi-footer-set-token-stats! (%pi-app-footer app) tokens latest-rate)
+             ) ;let*
+            ) ;
             ((retry) (pi-app-add-retry-message! app (cadr ev)))
             ;; worker 消费了 steering / follow-up 注入消息：
             ;; 移除待处理显示并上屏正式用户卡片（对齐上游 message_start 双动作）
