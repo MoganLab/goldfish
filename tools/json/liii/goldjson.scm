@@ -199,10 +199,14 @@
       ) ;if
     ) ;define
 
-    (define (main)
-      (let* ((raw-args (command-line))
+    (define (main . opt-args)
+      (let* ((raw-args (if (null? opt-args) (command-line) opt-args))
              (idx (list-index (lambda (x) (string=? x "json")) raw-args))
-             (args (if idx (drop raw-args (+ idx 1)) (if (pair? raw-args) (cdr raw-args) '()))
+             (args
+               (if idx
+                 (drop raw-args (+ idx 1))
+                 (if (and (null? opt-args) (pair? raw-args)) (cdr raw-args) raw-args)
+               ) ;if
              ) ;args
             ) ;
         (run-goldjson args)
