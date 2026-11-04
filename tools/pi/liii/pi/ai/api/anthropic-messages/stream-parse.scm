@@ -241,7 +241,7 @@
                 (cons 'output out-tok)
                 (cons 'cacheRead c-read)
                 (cons 'cacheWrite c-write)
-                (cons 'totalTokens (+ in-tok out-tok))
+                (cons 'totalTokens (+ in-tok out-tok c-read c-write))
               ) ;list
             ) ;anthropic-stream-state-usage-set!
           ) ;let*

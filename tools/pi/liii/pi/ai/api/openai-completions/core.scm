@@ -40,15 +40,22 @@
     ) ;define
 
     (define (openai-map-usage usage-meta)
-      (let* ((in-tok (%val "prompt_tokens" usage-meta 0))
-             (out-tok (%val "completion_tokens" usage-meta 0))
-             (tot-tok (%val "total_tokens" usage-meta (+ in-tok out-tok)))
-             (c-read (%val "cached_tokens" usage-meta 0))
+      (let* ((prompt-tokens (%val "prompt_tokens" usage-meta 0))
+             (completion-tokens (%val "completion_tokens" usage-meta 0))
+             (details (%val "prompt_tokens_details" usage-meta '()))
+             (details-cached (%val "cached_tokens" details #f))
+             (hit-tokens (%val "prompt_cache_hit_tokens" usage-meta #f))
+             (top-cached (%val "cached_tokens" usage-meta #f))
+             (c-read (or details-cached hit-tokens top-cached 0))
+             (c-write (%val "cache_write_tokens" details 0))
+             (in-tok (max 0 (- prompt-tokens c-read c-write)))
+             (out-tok completion-tokens)
+             (tot-tok (+ in-tok out-tok c-read c-write))
             ) ;
         (list (cons 'input in-tok)
           (cons 'output out-tok)
           (cons 'cacheRead c-read)
-          (cons 'cacheWrite 0)
+          (cons 'cacheWrite c-write)
           (cons 'totalTokens tot-tok)
         ) ;list
       ) ;let*
