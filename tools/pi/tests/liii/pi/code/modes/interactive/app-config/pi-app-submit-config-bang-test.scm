@@ -56,7 +56,7 @@
 
 ;; 1. 执行 pi-app-submit-config! 会清空编辑器内容，并在按 q 退出配置后恢复渲染
 (let* ((vterm (make-virtual-terminal :width 80 :height 24))
-       (app (make-pi-app :terminal vterm))
+       (app (make-pi-app :terminal vterm :handler (lambda (a msg) #t)))
       ) ;
   (virtual-terminal-push-key! vterm 'q)
   (editor-set-text! (pi-app-editor app) "/config")
@@ -71,7 +71,13 @@
     (let* ((vterm (make-virtual-terminal :width 80 :height 24))
            (dummy-models '(((provider . "dummy") (id . "d1"))))
            (dummy-dm '((provider . "dummy") (id . "d1")))
-           (app (make-pi-app :terminal vterm :models dummy-models :default-model dummy-dm))
+           (app (make-pi-app
+                  :terminal      vterm
+                  :handler       (lambda (a msg) #t)
+                  :models        dummy-models
+                  :default-model dummy-dm
+                ) ;make-pi-app
+           ) ;app
           ) ;
       (virtual-terminal-push-key! vterm 'q)
       (pi-app-submit-config! app)
