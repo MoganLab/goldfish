@@ -15,8 +15,8 @@
 ;;
 
 (define-library (liii subprocess registry)
-  (export run-set! run-get run-allow! run-ban! run-unban! %check-symbol-command
-    %check-string-command %resolve-symbol-command
+  (export run-set! run-get run-allow! run-ban! run-unban! %check-string-command
+    %resolve-symbol-command
   ) ;export
   (import (scheme base) (liii error) (liii hash-table) (liii list) (liii path))
   (begin

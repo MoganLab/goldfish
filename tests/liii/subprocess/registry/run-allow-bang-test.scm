@@ -1,5 +1,3 @@
-(import (liii check) (liii os) (liii subprocess))
-
 ;; run-allow!
 ;; 设置符号命令白名单。
 ;;
@@ -12,6 +10,16 @@
 ;; ----
 ;; symbol 或 symbol-list : 单个符号或符号列表。
 ;; 空列表表示取消白名单。
+;;
+;; 返回值
+;; ----
+;; 未定义
+;;
+;; 说明
+;; ----
+;; 设置白名单后，只有在白名单中的符号命令允许执行。传入空列表则清空白名单限制。
+
+(import (liii check) (liii os) (liii subprocess))
 
 (when (os-linux?)
   (run-set! 'echo-cmd "/bin/echo")
