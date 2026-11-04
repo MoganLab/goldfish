@@ -1,7 +1,3 @@
-(import (liii check) (liii json) (liii base) (liii error))
-
-(check-set-mode! 'report-failed)
-
 ;; json-string?
 ;; 判断值是否为 JSON 字符串。
 ;;
@@ -23,14 +19,13 @@
 ;; ----
 ;; 符号不会被视为 JSON 字符串。
 ;;
-;; 示例
-;; ----
-;; (json-string? "hello") => #t
-;; (json-string? 'hello) => #f
-;;
 ;; 错误处理
 ;; ----
 ;; 无。
+
+(import (liii check) (liii json) (liii base) (liii error))
+
+(check-set-mode! 'report-failed)
 
 (check-true (json-string? "hello"))
 (check-true (json-string? ""))

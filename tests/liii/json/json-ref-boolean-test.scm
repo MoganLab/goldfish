@@ -1,7 +1,3 @@
-(import (liii check) (liii json) (liii base) (liii error))
-
-(check-set-mode! 'report-failed)
-
 ;; json-ref-boolean
 ;; 安全读取 JSON 中的布尔值。
 ;;
@@ -29,13 +25,13 @@
 ;; ----
 ;; 这是类型安全获取器，不会抛类型错误。
 ;;
-;; 示例
-;; ----
-;; (json-ref-boolean j0 'active #f) => #t
-;;
 ;; 错误处理
 ;; ----
 ;; 无。
+
+(import (liii check) (liii json) (liii base) (liii error))
+
+(check-set-mode! 'report-failed)
 
 (let* ((j0 '((active . #t) (verified . #f) (name . "Alice"))))
   (check (json-ref-boolean j0 'active #f) => #t)

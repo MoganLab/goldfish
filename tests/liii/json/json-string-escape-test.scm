@@ -1,7 +1,3 @@
-(import (liii check) (liii json) (liii base) (liii error) (liii unicode))
-
-(check-set-mode! 'report-failed)
-
 ;; json-string-escape
 ;; 将字符串转为 JSON 字符串字面量。
 ;;
@@ -23,14 +19,13 @@
 ;; ----
 ;; 对于较长且安全的 Base64 风格字符串，会走快速路径优化。
 ;;
-;; 示例
-;; ----
-;; (json-string-escape "hello") => "\"hello\""
-;; (json-string-escape "hello\\world") => "\"hello\\\\world\""
-;;
 ;; 错误处理
 ;; ----
 ;; 无。
+
+(import (liii check) (liii json) (liii base) (liii error) (liii unicode))
+
+(check-set-mode! 'report-failed)
 
 (check (json-string-escape "hello") => "\"hello\"")
 (check (json-string-escape "hello\"world") => "\"hello\\\"world\"")

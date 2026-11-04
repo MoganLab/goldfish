@@ -1,9 +1,3 @@
-(import (liii check) (liii json) (liii base) (liii error))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; json->string
 ;; 将 Scheme 形式的 JSON 数据编码为字符串。
 ;;
@@ -25,14 +19,14 @@
 ;; ----
 ;; 对象键名在部分情况下会输出为宽松格式，不总是强制带引号。
 ;;
-;; 示例
-;; ----
-;; (json->string #(1 2 3)) => "[1,2,3]"
-;; (json->string '((a . ((b . 1) (c . 2))))) => "{a:{b:1,c:2}}"
-;;
 ;; 错误处理
 ;; ----
 ;; value-error 当输入不是有效的 JSON 数据结构时。
+
+(import (liii check) (liii json) (liii base) (liii error))
+
+
+(check-set-mode! 'report-failed)
 
 
 (check (json->string #(1 2 3)) => "[1,2,3]")

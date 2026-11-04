@@ -1,7 +1,3 @@
-(import (liii check) (liii json) (liii base) (liii error))
-
-(check-set-mode! 'report-failed)
-
 ;; json-null?
 ;; 判断值是否为 JSON null。
 ;;
@@ -23,14 +19,13 @@
 ;; ----
 ;; JSON null 在本库中使用符号 `null` 表示。
 ;;
-;; 示例
-;; ----
-;; (json-null? 'null) => #t
-;; (json-null? '((name . "Alice"))) => #f
-;;
 ;; 错误处理
 ;; ----
 ;; 无。
+
+(import (liii check) (liii json) (liii base) (liii error))
+
+(check-set-mode! 'report-failed)
 
 (define bob-pp '((bob (age . 18) (sex . male) (name . "Bob") (empty . null))))
 

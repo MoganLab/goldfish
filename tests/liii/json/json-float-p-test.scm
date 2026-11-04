@@ -1,9 +1,3 @@
-(import (liii check) (liii json) (liii base) (liii error))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; json-float?
 ;; 判断值是否为 JSON 浮点数。
 ;;
@@ -25,14 +19,14 @@
 ;; ----
 ;; 整数不会被视为浮点数。
 ;;
-;; 示例
-;; ----
-;; (json-float? 3.14) => #t
-;; (json-float? 100) => #f
-;;
 ;; 错误处理
 ;; ----
 ;; 无。
+
+(import (liii check) (liii json) (liii base) (liii error))
+
+
+(check-set-mode! 'report-failed)
 
 
 (check-true (json-float? 3.14))

@@ -1,7 +1,3 @@
-(import (liii check) (liii json) (liii base) (liii error))
-
-(check-set-mode! 'report-failed)
-
 ;; json-number?
 ;; 判断值是否为 JSON 数字。
 ;;
@@ -23,14 +19,13 @@
 ;; ----
 ;; 同时覆盖整数和浮点数。
 ;;
-;; 示例
-;; ----
-;; (json-number? 123) => #t
-;; (json-number? "123") => #f
-;;
 ;; 错误处理
 ;; ----
 ;; 无。
+
+(import (liii check) (liii json) (liii base) (liii error))
+
+(check-set-mode! 'report-failed)
 
 (check-true (json-number? 123))
 (check-true (json-number? 3.14))

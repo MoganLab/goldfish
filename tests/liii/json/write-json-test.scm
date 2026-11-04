@@ -1,7 +1,3 @@
-(import (liii check) (liii json) (liii base) (liii error))
-
-(check-set-mode! 'report)
-
 ;; write-json
 ;; 将 Scheme-JSON 数据结构序列化写入指定输出端口。
 ;;
@@ -24,16 +20,15 @@
 ;; ----
 ;; 与 json->string 共享序列化规则。
 ;;
-;; 示例
-;; ----
-;; (let ((p (open-output-string)))
-;;   (write-json '(("a" . 1)) p)
-;;   (get-output-string p)) => "{\"a\":1}"
-;;
 ;; 错误处理
 ;; ----
 ;; type-error 当 port 不是输出端口或 json-value 包含不可序列化的过程对象时。
 ;; value-error 当输入不是合法的 JSON 数据结构时。
+
+(import (liii check) (liii json) (liii base) (liii error))
+
+(check-set-mode! 'report)
+
 
 ;; 1. 基本对象与数组写入字符串端口
 (let ((p (open-output-string)))

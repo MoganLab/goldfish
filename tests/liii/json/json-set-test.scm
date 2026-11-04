@@ -1,7 +1,3 @@
-(import (liii check) (liii json) (liii base) (liii error))
-
-(check-set-mode! 'report-failed)
-
 ;; json-set
 ;; 设置 JSON 路径上的值。
 ;;
@@ -30,13 +26,13 @@
 ;; ----
 ;; 不会原地修改原对象；对路径中最后一个参数支持函数式更新。
 ;;
-;; 示例
-;; ----
-;; (json-set '((age . 18)) 'age 19) => '((age . 19))
-;;
 ;; 错误处理
 ;; ----
 ;; type-error 当 json 不是 JSON 对象或数组时。
+
+(import (liii check) (liii json) (liii base) (liii error))
+
+(check-set-mode! 'report-failed)
 
 (let* ((j0 '((age . 18) (sex . male)))
        (j1 (json-set j0 'age 19))
@@ -71,9 +67,10 @@
   (check (json-ref j1 'person 'age) => 26)
 ) ;let*
 
-(let* ((j0 '((person (name . "Alice")
-               (age . 25)
-               (address (city . "Wonderland") (zip . "12345"))))
+(let* ((j0
+         '((person (name . "Alice")
+             (age . 25)
+             (address (city . "Wonderland") (zip . "12345"))))
        ) ;j0
        (j1 (json-set j0 'person 'address 'city "Newland"))
       ) ;
@@ -186,18 +183,27 @@
 ) ;let
 
 ;; 多键路径中间层为 '(()) 时原样返回（不深入递归）
-(check (json-set '((a (()))) 'a 'b 1) => '((a (()))))
+(check
+  (json-set '((a (()))) 'a 'b 1)
+  =>
+  '((a (())))
+) ;check
 
 ;; 键 #f 的历史怪癖：guenchi 实现落入 (if v ...) 无 else 分支，结果为 #<unspecified>
-(check (eq? (json-set '((a . 1)) #f 0) (if #f #f)) => #t)
+(check
+  (eq? (json-set '((a . 1)) #f 0) (if #f #f))
+  =>
+  #t
+) ;check
 (check-catch 'type-error (json-set #(1 2) #f 0))
 
 ;; 迭代期间列表被谓词修改变长时的越界保护（防止非法写 nil 导致 Crash）
 (let* ((j (list (cons 'a 1) (cons 'b 2)))
-       (res (json-set j
-              (lambda (k) (when (eq? k 'a) (set-cdr! (cdr j) (list (cons 'c 3)))) #f)
-              0
-            ) ;json-set
+       (res
+         (json-set j
+           (lambda (k) (when (eq? k 'a) (set-cdr! (cdr j) (list (cons 'c 3)))) #f)
+           0
+         ) ;json-set
        ) ;res
       ) ;
   (check-true (list? res))

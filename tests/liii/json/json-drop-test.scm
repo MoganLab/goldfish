@@ -1,7 +1,3 @@
-(import (liii check) (liii json) (liii base) (liii error))
-
-(check-set-mode! 'report-failed)
-
 ;; json-drop
 ;; 删除 JSON 中指定路径或满足谓词的元素。
 ;;
@@ -28,13 +24,13 @@
 ;; ----
 ;; 谓词模式只作用于当前层级；路径模式支持深层删除。
 ;;
-;; 示例
-;; ----
-;; (json-drop json 'address 'city) => ...
-;;
 ;; 错误处理
 ;; ----
 ;; type-error 当 json 不是 JSON 对象或数组时。
+
+(import (liii check) (liii json) (liii base) (liii error))
+
+(check-set-mode! 'report-failed)
 
 (let* ((json '((name . "Alice") (age . 25))))
   (let ((updated-json (json-drop json 'age)))
@@ -76,7 +72,9 @@
   (check (json-ref j1 'city) => "Wonderland")
 ) ;let*
 
-(let* ((j0 '((user (profile (name . "Alice") (age . 25) (scores . #(85 90 78))))))
+(let* ((j0
+         '((user (profile (name . "Alice") (age . 25) (scores . #(85 90 78)))))
+       ) ;j0
        (j1 (json-drop j0 'user 'profile 'scores))
       ) ;
   (check (json-ref j1 'user 'profile 'scores) => '())
@@ -85,7 +83,9 @@
 ) ;let*
 
 (let* ((j0 '((data . #(1 2 3 4 5))))
-       (j1 (json-drop j0 'data (lambda (k) (and (number? k) (even? k)))))
+       (j1
+         (json-drop j0 'data (lambda (k) (and (number? k) (even? k))))
+       ) ;j1
       ) ;
   (check (json-ref j1 'data) => #(2 4))
 ) ;let*
@@ -100,7 +100,9 @@
 ) ;let*
 
 (let* ((j0 '((a . 1) (b . 2) (c . 3)))
-       (j1 (json-drop j0 (lambda (k) (member k '(a c)))))
+       (j1
+         (json-drop j0 (lambda (k) (member k '(a c))))
+       ) ;j1
       ) ;
   (check (json-ref j1 'a) => '())
   (check (json-ref j1 'b) => 2)
@@ -157,15 +159,19 @@
 
 ;; 长列表 drop 测试（防 GC 回收中间未保护的 pair 导致 Use-After-Free）
 (let* ((len 500)
-       (alist (let loop
-                ((i 0) (acc '()))
-                (if (= i len)
-                  acc
-                  (loop (+ i 1)
-                    (cons (cons (string->symbol (string-append "k" (number->string i))) i) acc)
-                  ) ;loop
-                ) ;if
-              ) ;let
+       (alist
+         (let loop
+           ((i 0) (acc '()))
+           (if (= i len)
+             acc
+             (loop (+ i 1)
+               (cons
+                 (cons (string->symbol (string-append "k" (number->string i))) i)
+                 acc
+               ) ;cons
+             ) ;loop
+           ) ;if
+         ) ;let
        ) ;alist
        (res (json-drop alist (lambda (k) #f)))
       ) ;
@@ -181,8 +187,12 @@
 
 ;; 谓词抛异常：错误原样上传（回归：drop 内部跨 s7_call 不再持有 C++ RAII 容器，
 ;; 谓词 raise 的 longjmp 不会跳过 std::vector 析构，MSVC 下安全）
-(check-catch 'test-error (json-drop #(1 2 3) (lambda (i) (error 'test-error "boom"))))
-(check-catch 'test-error (json-drop '((a . 1) (b . 2)) (lambda (k) (error 'test-error "boom"))))
+(check-catch 'test-error
+  (json-drop #(1 2 3) (lambda (i) (error 'test-error "boom")))
+) ;check-catch
+(check-catch 'test-error
+  (json-drop '((a . 1) (b . 2)) (lambda (k) (error 'test-error "boom")))
+) ;check-catch
 
 ;; 谓词抛异常后再次正常调用，确认 GC 锚定链/bytevector 未残留坏状态
 (let ((res (json-drop '((a . 1) (b . 2) (c . 3)) (lambda (k) (eq? k 'b)))))
