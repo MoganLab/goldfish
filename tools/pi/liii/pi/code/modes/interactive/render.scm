@@ -67,6 +67,23 @@
       ) ;apply-card-bg
     ) ;define
 
+    ;; 在第 0 行右上角合成瞬态浮层提示（对齐上游 compositeFlashes）
+    (define (%composite-flash-line line flash-text width)
+      (let* ((label (string-append " " flash-text " ")) (label-w (display-width label)))
+        (if (or (<= width 0) (>= label-w width))
+          line
+          (let* ((start-col (- width label-w))
+                 (overlay (string-append "\x1b;[7m" label "\x1b;[27m"))
+                 (base-cut (truncate-to-width line start-col ""))
+                 (cut-w (display-width base-cut))
+                 (pad (make-string (max 0 (- start-col cut-w)) #\space))
+                ) ;
+            (string-append base-cut pad "\x1b;[0m" overlay "\x1b;[0m")
+          ) ;let*
+        ) ;if
+      ) ;let*
+    ) ;define
+
     ;; 计算整帧内容与光标位置：
     ;; 返回 (values frame-lines cursor)
     (define (pi-app-frame-lines app)
@@ -164,10 +181,19 @@
                  ) ;let*
                ) ;transcript-lines
                (frame (append transcript-lines dock-lines))
-               (rendered-frame (if (pi-app-selection-active? app)
-                                 (highlight-selection-lines frame (pi-app-selection app))
-                                 frame
-                               ) ;if
+               (rendered-frame
+                 (let* ((sel-frame (if (pi-app-selection-active? app)
+                                     (highlight-selection-lines frame (pi-app-selection app))
+                                     frame
+                                   ) ;if
+                        ) ;sel-frame
+                        (flash-msg (pi-app-flash-message app))
+                       ) ;
+                   (if (and flash-msg (pair? sel-frame))
+                     (cons (%composite-flash-line (car sel-frame) flash-msg w) (cdr sel-frame))
+                     sel-frame
+                   ) ;if
+                 ) ;let*
                ) ;rendered-frame
                (input-base (+ transcript-height (length pending-lines)))
                (cur-pos

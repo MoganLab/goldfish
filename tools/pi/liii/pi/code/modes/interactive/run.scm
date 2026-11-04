@@ -114,6 +114,7 @@
             (if (and (string? text) (> (string-length text) 0))
               (begin
                 (clipboard-copy! (pi-app-term app) text)
+                (pi-app-flash! app "Copied!")
                 #t
               ) ;begin
               #f
@@ -189,13 +190,22 @@
               (pi-app-poll-events! app)
               (let ((k (terminal-poll-key term)))
                 (cond
-                  ;; Ctrl+C：仅清空输入框，从不退出、也不中断正在跑的任务。
+                  ;; Ctrl+C：若有激活选区则优先复制到剪贴板，不清空输入框；
+                  ;; 无选区时仅清空输入框，从不退出、也不中断正在跑的任务。
                   ((and (not (pi-app-active-selector app)) (eq? k 'ctrl-c))
-                   (unless (string-null? (editor-text ed))
-                     (editor-set-text! ed "")
-                   ) ;unless
-                   (pi-app-render! app)
-                   (loop)
+                   (cond ((pi-app-selection-active? app)
+                          (when (pi-app-copy-selection! app)
+                            (pi-app-render! app)
+                          ) ;when
+                          (loop)
+                         ) ;
+                         (else (unless (string-null? (editor-text ed))
+                                 (editor-set-text! ed "")
+                               ) ;unless
+                           (pi-app-render! app)
+                           (loop)
+                         ) ;else
+                   ) ;cond
                   ) ;
                   ;; Ctrl+V：主动读取外部系统剪贴板，复用编辑器的
                   ;; bracketed paste 处理（多行归一化、大段折叠与撤销）。
@@ -331,6 +341,9 @@
                    ;; 空闲时只等用户按键，睡 50ms（键盘延迟无感，
                    ;; 每秒唤醒从 100 次降到 20 次，显著降低空闲 CPU 底噪）
                    (pi-app-working-tick! app)
+                   (when (pi-app-flash-tick! app)
+                     (pi-app-render! app)
+                   ) ;when
                    (sleep (if (pi-queue-busy? q) 0.01 0.05))
                    (loop)
                   ) ;
