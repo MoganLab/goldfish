@@ -1,12 +1,3 @@
-(import (liii check))
-(import (liii goldfmt scan literal))
-
-(check-set-mode! 'report-failed)
-
-(define (contains? pattern text)
-  (and (string-position pattern text) #t)
-) ;define
-
 ;; rewrite-reader-literals
 ;; 将源码文本中的 reader 字面量（raw string 与字符字面量）改写为
 ;; (*raw-string* ...) 与 (*char-literal* ...) 形式的普通 datum。
@@ -31,6 +22,16 @@
 ;;    (*raw-string* "字面量" "值")
 ;; 2. #\ 前缀的字符字面量被改写为 (*char-literal* "字面量" 字符)
 ;; 3. 字符串字面量与注释中的内容不会被误改写
+
+(import (liii check))
+(import (liii goldfmt scan literal))
+
+(check-set-mode! 'report-failed)
+
+(define (contains? pattern text)
+  (and (string-position pattern text) #t)
+) ;define
+
 
 ;; 测试：带定界符的 raw string 改写为 (*raw-string* ...) 形式
 (let ((result (rewrite-reader-literals "#\"CODE\"(+ 1 2) (+ 3 4)\"CODE\"")))

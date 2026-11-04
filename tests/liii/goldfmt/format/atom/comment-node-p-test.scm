@@ -1,8 +1,3 @@
-(import (liii check))
-(import (liii goldfmt format atom) (liii goldfmt record))
-
-(check-set-mode! 'report-failed)
-
 ;; comment-node?
 ;; 判断 node 是否为注释节点：tag-name 为 *comment* 且唯一子节点为字符串 atom。
 ;;
@@ -18,20 +13,21 @@
 ;; ------
 ;; boolean?
 
+(import (liii check))
+(import (liii goldfmt format atom) (liii goldfmt record))
+
+(check-set-mode! 'report-failed)
+
+
 ;; 测试：*comment* env 且子为字符串 atom 时为 #t
-(let ((node (make-env :tag-name "*comment*"
-              :children (vector (make-atom :value "note"))
-            ) ;make-env
-       ) ;node
+(let ((node (make-env :tag-name "*comment*" :children (vector (make-atom :value "note")))
+      ) ;node
      ) ;
   (check (comment-node? node) => #t)
 ) ;let
 
 ;; 测试：子为 number atom 时为 #f
-(let ((node (make-env :tag-name "*comment*"
-              :children (vector (make-atom :value 1))
-            ) ;make-env
-       ) ;node
+(let ((node (make-env :tag-name "*comment*" :children (vector (make-atom :value 1))))
      ) ;
   (check (comment-node? node) => #f)
 ) ;let

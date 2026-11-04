@@ -1,8 +1,3 @@
-(import (liii check))
-(import (liii goldfmt format atom))
-
-(check-set-mode! 'report-failed)
-
 ;; format-comment-content
 ;; 将注释内容格式化为 ;; 注释行：已有前导空格或分号的内容直接拼接，
 ;; 其余补一个空格。
@@ -18,6 +13,12 @@
 ;; 返回值
 ;; ------
 ;; string?
+
+(import (liii check))
+(import (liii goldfmt format atom))
+
+(check-set-mode! 'report-failed)
+
 
 ;; 测试：普通内容补空格
 (check (format-comment-content "note") => ";; note")

@@ -1,8 +1,3 @@
-(import (liii check))
-(import (liii goldfmt format writer) (liii goldfmt record) (liii goldfmt scan))
-
-(check-set-mode! 'report-failed)
-
 ;; emit-inline!
 ;; 将可内联节点写入 writer，返回带定位信息的新节点。
 ;;
@@ -10,30 +5,45 @@
 ;; ----
 ;; (emit-inline! node writer column)
 ;;
+;; 参数
+;; ----
+;; node : env? 或 atom?
+;; 待输出的节点。
+;;
+;; writer : vector?
+;; 由 `make-writer` 创建的 writer。
+;;
+;; column : integer?
+;; 节点的起始列。
+
 ;; 返回值
 ;; ------
 ;; atom? 或 env?
 
+(import (liii check))
+(import (liii goldfmt format writer) (liii goldfmt record) (liii goldfmt scan))
+
+(check-set-mode! 'report-failed)
+
+
 ;; 测试：atom 节点内联输出
-(let* ((w (make-writer 0))
-       (new-node (emit-inline! (make-atom :value 'x) w 0)))
+(let* ((w (make-writer 0)) (new-node (emit-inline! (make-atom :value 'x) w 0)))
   (check (writer-result w) => "x")
   (check (atom? new-node) => #t)
-) ;let
+) ;let*
 
 ;; 测试：短 env 内联输出为单行括号形式
-(let* ((w (make-writer 0))
-       (env (scan '(+ 1 2)))
-       (new-node (emit-inline! env w 0)))
+(let* ((w (make-writer 0)) (env (scan '(+ 1 2))) (new-node (emit-inline! env w 0)))
   (check (writer-result w) => "(+ 1 2)")
   (check (env? new-node) => #t)
-) ;let
+) ;let*
 
 ;; 测试：嵌套 env 内联输出
 (let* ((w (make-writer 0))
        (env (scan '(+ 1 (* 2 3))))
-       (new-node (emit-inline! env w 0)))
+       (new-node (emit-inline! env w 0))
+      ) ;
   (check (writer-result w) => "(+ 1 (* 2 3))")
-) ;let
+) ;let*
 
 (check-report)

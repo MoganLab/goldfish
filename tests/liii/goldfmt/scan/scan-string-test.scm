@@ -1,3 +1,25 @@
+;; scan-string
+;; 扫描一段 Scheme 源码文本，返回顶层表达式对应的 node 树。
+;;
+;; 语法
+;; ----
+;; (scan-string str)
+;;
+;; 参数
+;; ----
+;; str : string?
+;; 待扫描的源码文本。
+;;
+;; 返回值
+;; ----
+;; vector?
+;; node 树组成的向量，每个元素对应文本中的一个顶层表达式。
+;;
+;; 说明
+;; ----
+;; 1. 注释与空行不会出现在结果中
+;; 2. 文本中若包含 reader 字面量，会先做字面量改写再扫描
+
 (import (liii check))
 (import (liii goldfmt scan))
 (import (liii goldfmt record))
@@ -258,7 +280,10 @@
   (let ((root (vector-ref results 0)))
     (check (env? root) => #t)
     (check (env-tag-name root) => "quasiquote")
-    (check (env-value root) => '(quasiquote (a (unquote-splicing rest))))
+    (check (env-value root)
+      =>
+      (list 'quasiquote (list 'a (list 'unquote-splicing 'rest)))
+    ) ;check
   ) ;let
 ) ;let
 

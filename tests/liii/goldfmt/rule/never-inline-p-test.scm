@@ -1,9 +1,3 @@
-(import (liii check)
-  (liii goldfmt rule)
-) ;import
-
-(check-set-mode! 'report-failed)
-
 ;; never-inline?
 ;; 判断某个 tag 是否禁止单行输出。
 ;;
@@ -26,11 +20,13 @@
 ;; 该规则来自 `node-rules.json` 的 neverInline 字段。
 ;; `can-inline?` 会优先使用这个规则阻止 inline。
 
+(import (liii check) (liii goldfmt rule))
+
+(check-set-mode! 'report-failed)
+
+
 (check (never-inline? "begin") => #t)
 (check (never-inline? "+") => #f)
-(check (never-inline? "unknown-tag")
-  =>
-  #f
-) ;check
+(check (never-inline? "unknown-tag") => #f)
 
 (check-report)

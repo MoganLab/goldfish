@@ -1,10 +1,3 @@
-(import (liii check)
-  (liii goldfmt format)
-  (liii goldfmt scan)
-) ;import
-
-(check-set-mode! 'report-failed)
-
 ;; can-inline?
 ;; 判断一个 node 是否可以按单行形式输出。
 ;;
@@ -30,58 +23,31 @@
 ;; 4. neverInlineWhenFirstChildEnv 会在第一个 child 是 env 时禁止 inline
 ;; 5. 其他情况使用 `format-inline` 得到单行候选字符串，再和 max-inline-length 比较
 ;;
-;; 示例
-;; ----
-;; (can-inline? (scan '(+ x y)))           ; => #t
-;; (can-inline? (scan '(define (f x) x))) ; => #f
 
-(check (can-inline? (scan '(+ x y)))
-  =>
-  #t
-) ;check
+(import (liii check) (liii goldfmt format writer) (liii goldfmt scan))
+
+(check-set-mode! 'report-failed)
+
+
+(check (can-inline? (scan '(+ x y))) => #t)
 
 (check (can-inline? (scan 'x)) => #t)
 
-(check (can-inline? (scan "hello"))
-  =>
-  #t
-) ;check
+(check (can-inline? (scan "hello")) => #t)
 
-(check (can-inline? (scan '(*comment* "hello"))
-       ) ;can-inline?
-  =>
-  #t
-) ;check
+(check (can-inline? (scan (list '*comment* "hello"))) => #t)
 
-(check (can-inline? (scan '(*comment* "")))
-  =>
-  #t
-) ;check
+(check (can-inline? (scan (list '*comment* ""))) => #t)
 
 ;; max-inline-length 当前为 80：长度等于 80 时仍可单行。
-(check (can-inline? (scan '(+ aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa)
-                    ) ;scan
-       ) ;can-inline?
-  =>
-  #t
-) ;check
+(check (can-inline? (scan '(+ aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa))) => #t)
 
 ;; 未超过 max-inline-length 时仍可单行。
-(check (can-inline? (scan '(+ aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa)
-                    ) ;scan
-       ) ;can-inline?
-  =>
-  #t
-) ;check
+(check (can-inline? (scan '(+ aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa))) => #t)
 
-(check (can-inline? (scan '(unknown a b)))
-  =>
-  #t
-) ;check
+(check (can-inline? (scan '(unknown a b))) => #t)
 
-(check (can-inline? (scan '(unknown aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa)
-                    ) ;scan
-       ) ;can-inline?
+(check (can-inline? (scan '(unknown aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa)))
   =>
   #t
 ) ;check
@@ -101,50 +67,60 @@
   #f
 ) ;check
 
-(check (can-inline? (scan '(define x 1)))
-  =>
-  #t
-) ;check
+(check (can-inline? (scan '(define x 1))) => #t)
 
 ;; define 的第一个子节点是函数签名环境时，按规则强制跨行。
-(check (can-inline? (scan '(define (f x) x)))
+(check
+  (can-inline? (scan '(define (f x) x)))
   =>
   #f
 ) ;check
 
-(check (can-inline? (scan '(define-values (x) 1))
-       ) ;can-inline?
+(check
+  (can-inline? (scan '(define-values (x) 1)))
   =>
   #f
 ) ;check
 
 ;; begin 按规则不能单行。
-(check (can-inline? (scan '(begin x)))
-  =>
-  #f
-) ;check
+(check (can-inline? (scan '(begin x))) => #f)
 
 ;; 包含 comment 的普通 env 需要跨行处理，避免输出成 (begin ;; note x)。
-(check (can-inline? (scan '(begin (*comment* "note") x))
-       ) ;can-inline?
+(check
+  (can-inline? (scan (list 'begin (list '*comment* "note") 'x)))
   =>
   #f
 ) ;check
 
 ;; 第二个元素 tree-depth < 4，且总长度 <= 80 时可单行
-(check (can-inline? (scan '(foo (a (b (c 1))) x)))
+(check
+  (can-inline?
+    (scan
+      '(foo (a (b (c 1))) x)
+    ) ;scan
+  ) ;can-inline?
   =>
   #t
 ) ;check
 
 ;; 第二个元素 tree-depth >= 4 时，不可单行内联
-(check (can-inline? (scan '(foo (a (b (c (d 1)))) x)))
+(check
+  (can-inline?
+    (scan
+      '(foo (a (b (c (d 1)))) x)
+    ) ;scan
+  ) ;can-inline?
   =>
   #f
 ) ;check
 
 ;; 无 tag 列表不触发第二元素换行规则，总长短时仍可单行
-(check (can-inline? (scan '(((x)) (a (b (c (d 1)))))))
+(check
+  (can-inline?
+    (scan
+      '(((x)) (a (b (c (d 1)))))
+    ) ;scan
+  ) ;can-inline?
   =>
   #t
 ) ;check

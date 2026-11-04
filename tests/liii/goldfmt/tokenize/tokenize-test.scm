@@ -1,3 +1,24 @@
+;; tokenize
+;; 将源代码文本切分为 token 序列。
+;;
+;; 语法
+;; ----
+;; (tokenize content)
+;;
+;; 参数
+;; ----
+;; content : string?
+;; 待切分的源代码文本。
+;;
+;; 返回值
+;; ----
+;; list?
+;; token 列表，每个元素为 (类型 . 内容) 对，类型可以是 code、comment 或 newline。
+;;
+;; 说明
+;; ----
+;; 块注释 #| ... |# 会被剔除，双引号字符串与 #"..." 原始字符串内的内容按原样保留。
+
 (import (liii check) (liii goldfmt tokenize))
 
 (check-set-mode! 'report-failed)

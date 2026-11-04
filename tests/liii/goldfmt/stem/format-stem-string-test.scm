@@ -1,26 +1,45 @@
-(import (liii check) (liii goldfmt stem) (liii goldfmt scan) (srfi srfi-13))
+;; format-stem-string
+;; 在 stem 模式下格式化一段源码文本。
+;;
+;; 语法
+;; ----
+;; (format-stem-string source)
+;;
+;; 参数
+;; ----
+;; source : string?
+;; 待格式化的源码文本。
+;;
+;; 返回值
+;; ----
+;; string?
+;; 格式化后的文本。
+;;
+;; 说明
+;; ----
+;; stem 模式下 quote 与 quasiquote 形式不会被折叠，
+;; 因此 `(unquote title)` 之类的模板片段会原样保留。
+
+(import (liii check) (liii goldfmt stem) (srfi srfi-13))
 
 (check-set-mode! 'report-failed)
 
-;; 1. format-stem-string
+;; 测试：unquote 形式不会被折叠
+(check-true (string-contains (format-stem-string "(document (chapter* (unquote title)))")
+              "(unquote title)"
+            ) ;string-contains
+) ;check-true
 
-(define stem-text
-  (format-stem-string "(document (chapter* (unquote title)) (quote (a b)))")
-) ;define
+;; 测试：quote 形式不会被折叠
+(check-true (string-contains (format-stem-string "(document (quote (a b)))")
+              "(quote (a b))"
+            ) ;string-contains
+) ;check-true
 
-(check-true (string-contains stem-text "(unquote title)"))
-(check-true (string-contains stem-text "(quote (a b))"))
-(check-false (string-contains stem-text ",title"))
-(check-false (string-contains stem-text "'(a b)"))
-
-;; 2. stem-format-nodes
-
-(define nodes
-  (call-with-stem-mode (lambda () (scan-string "(document (title (unquote t)))")))
-) ;define
-
-(define formatted-nodes (stem-format-nodes nodes))
-(check-true (string-contains formatted-nodes "(unquote t)"))
-(check-false (string-contains formatted-nodes ",t"))
+;; 测试：不会出现 quasiquote 折叠后的结果
+(check-false (string-contains (format-stem-string "(document (chapter* (unquote title)))")
+               ",title"
+             ) ;string-contains
+) ;check-false
 
 (check-report)

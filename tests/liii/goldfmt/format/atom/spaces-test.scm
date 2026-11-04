@@ -1,8 +1,3 @@
-(import (liii check))
-(import (liii goldfmt format atom))
-
-(check-set-mode! 'report-failed)
-
 ;; spaces
 ;; 生成 n 个空格组成的字符串。
 ;;
@@ -18,6 +13,12 @@
 ;; ------
 ;; string?
 ;; n 小于等于 0 时返回空字符串。
+
+(import (liii check))
+(import (liii goldfmt format atom))
+
+(check-set-mode! 'report-failed)
+
 
 ;; 测试：n 为正数生成对应数量空格
 (check (spaces 3) => "   ")

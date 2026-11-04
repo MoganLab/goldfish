@@ -1,9 +1,3 @@
-(import (liii check)
-  (liii goldfmt rule)
-) ;import
-
-(check-set-mode! 'report-failed)
-
 ;; must-inline?
 ;; 判断某个 tag 是否必须单行输出。
 ;;
@@ -26,11 +20,13 @@
 ;; 该规则来自 `node-rules.json` 的 mustInline 字段。
 ;; `can-inline?` 会优先使用这个规则允许 inline。
 
+(import (liii check) (liii goldfmt rule))
+
+(check-set-mode! 'report-failed)
+
+
 (check (must-inline? "quote") => #f)
 (check (must-inline? "+") => #f)
-(check (must-inline? "unknown-tag")
-  =>
-  #f
-) ;check
+(check (must-inline? "unknown-tag") => #f)
 
 (check-report)

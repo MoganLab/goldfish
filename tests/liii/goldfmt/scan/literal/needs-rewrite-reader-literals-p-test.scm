@@ -1,8 +1,3 @@
-(import (liii check))
-(import (liii goldfmt scan literal))
-
-(check-set-mode! 'report-failed)
-
 ;; needs-rewrite-reader-literals?
 ;; 判断源码文本是否包含 reader 字面量（raw string 或字符字面量），
 ;; 从而决定 scan-string 是否需要先做字面量改写。
@@ -25,6 +20,12 @@
 ;; ----
 ;; 1. 这是一个快速预检，仅做字符级扫描
 ;; 2. 字符串与注释中的 #\" 也会被判为 #t（保守策略，正确性优先）
+
+(import (liii check))
+(import (liii goldfmt scan literal))
+
+(check-set-mode! 'report-failed)
+
 
 ;; 测试：包含 raw string 时返回 #t
 (check (needs-rewrite-reader-literals? "#\"hello\"") => #t)

@@ -1,10 +1,3 @@
-(import (liii check))
-(import (liii string) (liii goldfmt format walk) (liii goldfmt format writer) (liii goldfmt format atom) (liii goldfmt scan)
-  (liii goldfmt record)
-  (srfi srfi-13))
-
-(check-set-mode! 'report-failed)
-
 ;; walk!
 ;; 将节点树写入 writer 并返回带定位信息的新树，是排版的核心游走过程。
 ;;
@@ -12,9 +5,28 @@
 ;; ----
 ;; (walk! node writer column)
 ;;
+;; 参数
+;; ----
+;; node : env? 或 atom?
+;; 待输出的节点。
+;;
+;; writer : vector?
+;; 由 `make-writer` 创建的 writer。
+;;
+;; column : integer?
+;; 节点在当前行的起始列。
+;;
 ;; 返回值
 ;; ------
 ;; atom? 或 env?
+
+(import (liii check))
+(import (liii string) (liii goldfmt format walk) (liii goldfmt format writer) (liii goldfmt format atom) (liii goldfmt scan)
+  (liii goldfmt record)
+  (srfi srfi-13))
+
+(check-set-mode! 'report-failed)
+
 
 ;; 测试：atom 输出文本
 (let* ((w (make-writer 0))

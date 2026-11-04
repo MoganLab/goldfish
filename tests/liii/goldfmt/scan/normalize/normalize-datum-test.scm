@@ -1,9 +1,3 @@
-(import (liii check))
-(import (liii goldfmt scan normalize)
-        (liii goldfmt record))
-
-(check-set-mode! 'report-failed)
-
 ;; normalize-datum
 ;; 将 read 读出的原始 datum 归一化：还原 s7 内部形式（quasiquote 展开结果），
 ;; 转换 reader 字面量标记，处理 dotted tail。
@@ -29,6 +23,12 @@
 ;; 3. s7 的 quasiquote 内部形式还原为 (quasiquote ...) 形式
 ;; 4. 普通 datum 原样返回
 
+(import (liii check))
+(import (liii goldfmt scan normalize) (liii goldfmt record))
+
+(check-set-mode! 'report-failed)
+
+
 ;; 测试：普通 datum 原样返回
 (check (normalize-datum 42) => 42)
 (check (normalize-datum 'sym) => 'sym)
@@ -44,6 +44,8 @@
 (check (normalize-datum #(1 2)) => #(1 2))
 
 ;; 测试：(*raw-string* ...) 转换为 raw-string-literal 记录
+;; 注意：不能直接写 '#"x" 字面量——按 srfi-267 语法，#"x 的分隔符是 x，
+;; reader 会吞掉后续源码直到闭合的 "x"，导致本文件 reader 错位而加载失败。
 (let ((r (normalize-datum '(*raw-string* "#\"x\"" "x"))))
   (check (raw-string-literal? r) => #t)
   (check (raw-string-literal-value r) => "x")

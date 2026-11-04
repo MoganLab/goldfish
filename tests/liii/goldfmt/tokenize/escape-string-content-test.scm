@@ -1,3 +1,24 @@
+;; escape-string-content
+;; 对字符串内容进行转义处理。
+;;
+;; 语法
+;; ----
+;; (escape-string-content content)
+;;
+;; 参数
+;; ----
+;; content : string?
+;; 待转义的字符串内容。
+;;
+;; 返回值
+;; ----
+;; string?
+;; 转义后的字符串，反斜杠、双引号与换行符分别转义为 \\、\" 和 \n。
+;;
+;; 说明
+;; ----
+;; 回车符会被直接移除，其余字符原样保留。
+
 (import (liii check)
   (liii goldfmt tokenize)
 ) ;import

@@ -1,8 +1,3 @@
-(import (liii check))
-(import (liii goldfmt format atom) (liii goldfmt record))
-
-(check-set-mode! 'report-failed)
-
 ;; keyword-node-len
 ;; 计算 keyword atom 显示文本的长度。
 ;;
@@ -18,10 +13,16 @@
 ;; ------
 ;; integer?
 
+(import (liii check))
+(import (liii goldfmt format atom) (liii goldfmt record))
+
+(check-set-mode! 'report-failed)
+
+
 ;; 测试：keyword 文本长度
-(check (keyword-node-len (make-atom :value #:key)) => 4)
+(check (keyword-node-len (make-atom :value :key)) => 4)
 
 ;; 测试：长 keyword 文本长度
-(check (keyword-node-len (make-atom :value #:abcdef)) => 7)
+(check (keyword-node-len (make-atom :value :abcdef)) => 7)
 
 (check-report)

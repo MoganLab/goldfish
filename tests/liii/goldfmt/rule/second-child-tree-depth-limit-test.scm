@@ -1,9 +1,3 @@
-(import (liii check)
-  (liii goldfmt rule)
-) ;import
-
-(check-set-mode! 'report-failed)
-
 ;; second-child-tree-depth-limit
 ;; 读取某个 tag 在第二子节点树深度达到多少时触发整体换行/禁止 inline。
 ;;
@@ -25,6 +19,11 @@
 ;; ----
 ;; 该规则来自 `node-rules.json` 的 secondChildTreeDepthLimit 字段。
 ;; 未显式配置时默认为 4；如 select 配置为 3。
+
+(import (liii check) (liii goldfmt rule))
+
+(check-set-mode! 'report-failed)
+
 
 (check (second-child-tree-depth-limit "select") => 3)
 (check (second-child-tree-depth-limit "begin") => 4)

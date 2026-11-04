@@ -1,3 +1,26 @@
+;; stem 模式格式化
+;; 验证 stem 模式下 quote 家族的输出形式。
+;;
+;; 语法
+;; ----
+;; (format-string source)
+;;
+;; 参数
+;; ----
+;; source : string?
+;; 待格式化的源码文本。
+;;
+;; 返回值
+;; ----
+;; string?
+;; 格式化后的文本。
+;;
+;; 说明
+;; ----
+;; 1. stem 模式下 (quote x) 保持原样，不会转换为 'x
+;; 2. (quasiquote x) 同样保持原样
+;; 3. stem 模式通过 `call-with-stem-mode` 临时开启
+
 (import (liii check) (liii goldfmt scan) (liii goldfmt format))
 
 (check-set-mode! 'report-failed)

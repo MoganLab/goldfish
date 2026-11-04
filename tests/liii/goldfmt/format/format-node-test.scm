@@ -1,18 +1,3 @@
-(import (liii check)
-  (liii goldfmt format)
-  (liii goldfmt record)
-  (liii goldfmt scan)
-  (liii raw-string)
-) ;import
-
-(check-set-mode! 'report-failed)
-
-(define (format-node-text node column)
-  (call-with-values (lambda () (format-node node column))
-    (lambda (text new-node) text)
-  ) ;call-with-values
-) ;define
-
 ;; format-node
 ;; 从指定列开始格式化一个 node。
 ;;
@@ -42,11 +27,22 @@
 ;; 3. 位置信息写入返回的新 node 树
 ;; 4. 当 node 可以 inline 时输出单行，否则调用跨行 env 渲染流程
 ;;
-;; 示例
-;; ----
-;; (call-with-values
-;;   (lambda () (format-node (scan '(define x 1)) 0))
-;;   (lambda (text positioned-node) text))
+
+(import (liii check)
+  (liii goldfmt format)
+  (liii goldfmt record)
+  (liii goldfmt scan)
+  (liii raw-string)
+) ;import
+
+(check-set-mode! 'report-failed)
+
+(define (format-node-text node column)
+  (call-with-values (lambda () (format-node node column))
+    (lambda (text new-node) text)
+  ) ;call-with-values
+) ;define
+
 
 (check (format-node-text (scan '(define x 1))
          0
@@ -67,7 +63,7 @@
 ) ;call-with-values
 
 (call-with-values (lambda ()
-                    (format-node (scan '(*comment* "hello"))
+                    (format-node (scan (list '*comment* "hello"))
                       0
                     ) ;format-node
                   ) ;lambda
@@ -87,7 +83,7 @@
 ) ;call-with-values
 
 (call-with-values (lambda ()
-                    (format-node (scan '(*comment* "")) 2)
+                    (format-node (scan (list '*comment* "")) 2)
                   ) ;lambda
   (lambda (text node)
     (check text => ";;")

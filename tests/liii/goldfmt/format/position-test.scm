@@ -1,3 +1,30 @@
+;; format-node 位置信息
+;; 验证 formatter 返回的新 node 树是否正确记录布局位置。
+;;
+;; 语法
+;; ----
+;; (format-node node column)
+;;
+;; 参数
+;; ----
+;; node : env? 或 atom?
+;; 由 `scan` 生成的格式化节点。
+;;
+;; column : integer?
+;; 当前 node 在当前行开始输出的列号，从 0 开始计数。
+;;
+;; 返回值
+;; ----
+;; values
+;; 1. text : string? 格式化后的文本
+;; 2. positioned-node : env? 或 atom? 带有布局位置的新 node
+;;
+;; 说明
+;; ----
+;; 1. indent 为 node 左侧起始列，env 对应左括号所在列，atom 对应文本起始列
+;; 2. left-line 为 node 开始输出的行号，从 1 开始
+;; 3. right-line 为 node 完成输出的行号，从 1 开始
+
 (import (liii check)
   (liii goldfmt format)
   (liii goldfmt record)
@@ -11,29 +38,6 @@
   (vector-ref (env-children node) index)
 ) ;define
 
-;; format-node 位置信息
-;; 验证 formatter 返回的新 node 树是否正确记录布局位置。
-;;
-;; 语法
-;; ----
-;; (format-node node column)
-;;
-;; 返回值
-;; ------
-;; values
-;; 1. text : string? 格式化后的文本
-;; 2. positioned-node : env? 或 atom? 带有布局位置的新 node
-;;
-;; 位置信息
-;; --------
-;; indent : node 左侧起始列，env 对应左括号所在列，atom 对应文本起始列。
-;; left-line : node 开始输出的行号，从 1 开始。
-;; right-line : node 完成输出的行号，从 1 开始。
-;;
-;; 说明
-;; ----
-;; `format-node` 不修改原始 scan 结果。
-;; 原始 node 的 indent 仍为 -1，left-line/right-line 仍为 0。
 
 ;; atom：从非 0 列开始输出时，返回的新 atom 记录该列。
 (let ((node (scan 'answer)))

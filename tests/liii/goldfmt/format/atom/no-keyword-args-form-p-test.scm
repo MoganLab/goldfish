@@ -1,8 +1,3 @@
-(import (liii check))
-(import (liii goldfmt format atom))
-
-(check-set-mode! 'report-failed)
-
 ;; no-keyword-args-form?
 ;; 判断表单 tag 是否不携带 keyword 参数（define、import 等定义类表单）。
 ;;
@@ -17,6 +12,12 @@
 ;; 返回值
 ;; ------
 ;; boolean?
+
+(import (liii check))
+(import (liii goldfmt format atom))
+
+(check-set-mode! 'report-failed)
+
 
 ;; 测试：define 类表单为 #t
 (check (no-keyword-args-form? "define") => #t)

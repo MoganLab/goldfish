@@ -1,8 +1,3 @@
-(import (liii check))
-(import (liii goldfmt format reader) (liii goldfmt scan))
-
-(check-set-mode! 'report-failed)
-
 ;; format-reader-datum
 ;; 将 datum 按 reader 风格格式化为文本（零缩进）。
 ;; quote 家族还原为 ' ` , ,@ 前缀写法。
@@ -18,6 +13,12 @@
 ;; 返回值
 ;; ------
 ;; string?
+
+(import (liii check))
+(import (liii goldfmt format reader) (liii goldfmt scan))
+
+(check-set-mode! 'report-failed)
+
 
 ;; 测试：普通 list
 (check (format-reader-datum '(+ 1 2)) => "(+ 1 2)")

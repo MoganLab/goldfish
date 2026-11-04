@@ -1,3 +1,28 @@
+;; format-string
+;; 格式化 source string 中的所有 top-level datum。
+;;
+;; 语法
+;; ----
+;; (format-string source)
+;;
+;; 参数
+;; ----
+;; source : string?
+;; 待格式化的 Scheme 源码字符串。
+;;
+;; 返回值
+;; ------
+;; string?
+;; 返回格式化后的源码文本（始终以换行符结尾）。
+;;
+;; 说明
+;; ----
+;; 1. `format-string` 会从 source 中连续读取 datum，直到 EOF
+;; 2. 每个 top-level datum 分别调用 `format-datum`
+;; 3. 多个 top-level datum 的格式化结果用一个换行连接
+;; 4. 输出始终以换行符结尾（符合 POSIX 标准）
+;;
+
 (import (liii check)
   (liii goldfmt format)
   (liii goldfmt scan)
@@ -31,33 +56,6 @@
   (if (string-contains text pattern) #t #f)
 ) ;define
 
-;; format-string
-;; 格式化 source string 中的所有 top-level datum。
-;;
-;; 语法
-;; ----
-;; (format-string source)
-;;
-;; 参数
-;; ----
-;; source : string?
-;; 待格式化的 Scheme 源码字符串。
-;;
-;; 返回值
-;; ------
-;; string?
-;; 返回格式化后的源码文本（始终以换行符结尾）。
-;;
-;; 说明
-;; ----
-;; 1. `format-string` 会从 source 中连续读取 datum，直到 EOF
-;; 2. 每个 top-level datum 分别调用 `format-datum`
-;; 3. 多个 top-level datum 的格式化结果用一个换行连接
-;; 4. 输出始终以换行符结尾（符合 POSIX 标准）
-;;
-;; 示例
-;; ----
-;; (format-string "(define x 1) (define y 2)")
 
 (check (format-string "(define x 1)")
   =>
