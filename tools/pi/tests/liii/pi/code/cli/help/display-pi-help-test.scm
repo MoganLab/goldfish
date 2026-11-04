@@ -14,8 +14,11 @@
 ;; unspecified
 ;; 将帮助文本输出到当前输出端口。
 
-;; 先导入 (liii pi code cli) 避免宏展开期常量回收
-(import (liii pi code cli) (liii check) (liii string))
+(import (liii raw-string)
+  (liii pi code cli help)
+  (liii check)
+  (liii string)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -24,6 +27,5 @@
   (check-true (string-contains? out "--help"))
   (check-true (string-contains? out "--list-models"))
 ) ;let
-
 
 (check-report)

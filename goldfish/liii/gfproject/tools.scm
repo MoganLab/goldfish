@@ -18,6 +18,7 @@
   (import (scheme base)
     (scheme write)
     (liii base)
+    (liii error)
     (liii json)
     (liii list)
     (liii os)
@@ -46,16 +47,10 @@
   ) ;export
   (begin
 
-    ;; 将 s7 的错误 info 转换为可读字符串：info 是 (格式串 参数...) 列表时
-    ;; 完整格式化（替换 ~S/~A 等占位符），否则整体打印
+    ;; 将 s7 的错误 info 转换为可读字符串：完整格式化占位符、
+    ;; 附加错误发生位置（文件与行号）并追加缺失模块的 import 提示
     (define (gfproject-error->string info)
-      (if (and (pair? info) (string? (car info)))
-        (catch #t
-          (lambda () (apply format #f info))
-          (lambda (tag e) (format #f "~A" info))
-        ) ;catch
-        (format #f "~A" info)
-      ) ;if
+      (catch-error->string #f info)
     ) ;define
 
     (define (gfproject-expand-tools-dir dir)
@@ -182,7 +177,7 @@
     (define (gfproject--try-import import-spec)
       (catch #t
         (lambda () (eval `(import ,import-spec) (rootlet)) #f)
-        (lambda (tag info) (gfproject-error->string info))
+        (lambda (tag info) (catch-error->string tag info))
       ) ;catch
     ) ;define
 
@@ -198,7 +193,7 @@
                   (catch #t
                     (lambda () (main-proc))
                     (lambda (tag info)
-                      (display (string-append (gfproject-error->string info) "\n")
+                      (display (string-append (catch-error->string tag info) "\n")
                         (current-error-port)
                       ) ;display
                       1
