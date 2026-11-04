@@ -1,3 +1,24 @@
+;; tokens->string
+;; 将 token 序列还原为可读文本。
+;;
+;; 语法
+;; ----
+;; (tokens->string tokens)
+;;
+;; 参数
+;; ----
+;; tokens : list?
+;; token 列表，每个元素为 (类型 . 内容) 对。
+;;
+;; 返回值
+;; ----
+;; string?
+;; 还原后的文本，各 token 之间以换行符分隔。
+;;
+;; 说明
+;; ----
+;; comment 类型的 token 会还原为 (*comment* "...") 形式，newline 类型还原为 (*newline* n) 形式。
+
 (import (liii check)
   (liii string)
   (liii goldfmt tokenize)
