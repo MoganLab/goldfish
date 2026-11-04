@@ -1,9 +1,3 @@
-(import (liii check))
-(import (liii goldfmt scan))
-(import (liii goldfmt record))
-
-(check-set-mode! 'report-failed)
-
 ;; scan
 ;; 将 Scheme datum 扫描成 formatter 使用的 node 树。
 ;;
@@ -29,11 +23,13 @@
 ;; 3. list 的第一个元素是 symbol 时，它会成为 env 的 tag-name
 ;; 4. list 的第一个元素不是 symbol 时，env 的 tag-name 为空字符串
 ;; 5. scan 只负责结构转换，不负责格式化和位置信息
-;;
-;; 示例
-;; ----
-;; (scan '(define x 1)) ; => env，tag-name 为 "define"
-;; (scan 'x)            ; => atom，value 为 'x
+
+(import (liii check))
+(import (liii goldfmt scan normalize))
+(import (liii goldfmt record))
+
+(check-set-mode! 'report-failed)
+
 
 ;; 测试 atom 输入 - 符号
 (let ((result (scan 'x)))
@@ -90,15 +86,9 @@
 ;; 测试简单 list 输入
 (let ((result (scan '(define x 1))))
   (check (env? result) => #t)
-  (check (env-tag-name result)
-    =>
-    "define"
-  ) ;check
+  (check (env-tag-name result) => "define")
   (check (env-depth result) => 0)
-  (check (vector-length (env-children result))
-    =>
-    2
-  ) ;check
+  (check (vector-length (env-children result)) => 2)
 ) ;let
 
 ;; 测试嵌套结构
@@ -106,19 +96,11 @@
   (check (env? result) => #t)
   (check (env-tag-name result) => "if")
   (check (env-depth result) => 0)
-  (check (vector-length (env-children result))
-    =>
-    3
-  ) ;check
+  (check (vector-length (env-children result)) => 3)
   ;; 检查第一个子元素是嵌套的 env
-  (let ((first-child (vector-ref (env-children result) 0)
-        ) ;first-child
-       ) ;
+  (let ((first-child (vector-ref (env-children result) 0)))
     (check (env? first-child) => #t)
-    (check (env-tag-name first-child)
-      =>
-      "a"
-    ) ;check
+    (check (env-tag-name first-child) => "a")
     (check (env-depth first-child) => 1)
   ) ;let
 ) ;let
@@ -129,21 +111,12 @@
   (check (env-tag-name result) => "a")
   (check (env-depth result) => 0)
   ;; 检查第二层嵌套
-  (let ((first-child (vector-ref (env-children result) 0)
-        ) ;first-child
-       ) ;
+  (let ((first-child (vector-ref (env-children result) 0)))
     (check (env? first-child) => #t)
-    (check (env-tag-name first-child)
-      =>
-      "b"
-    ) ;check
+    (check (env-tag-name first-child) => "b")
     (check (env-depth first-child) => 1)
     ;; 检查第三层嵌套
-    (let ((grandchild (vector-ref (env-children first-child)
-                        0
-                      ) ;vector-ref
-          ) ;grandchild
-         ) ;
+    (let ((grandchild (vector-ref (env-children first-child) 0)))
       (check (env? grandchild) => #t)
       (check (env-tag-name grandchild) => "c")
       (check (env-depth grandchild) => 2)
@@ -156,14 +129,9 @@
   (check (env? result) => #t)
   (check (env-tag-name result) => "")
   (check (env-depth result) => 0)
-  (check (vector-length (env-children result))
-    =>
-    3
-  ) ;check
+  (check (vector-length (env-children result)) => 3)
   ;; 检查子元素
-  (let ((first-child (vector-ref (env-children result) 0)
-        ) ;first-child
-       ) ;
+  (let ((first-child (vector-ref (env-children result) 0)))
     (check (atom? first-child) => #t)
     (check (atom-value first-child) => 1)
     (check (atom-depth first-child) => 1)
@@ -176,14 +144,8 @@
   (check (env? result) => #t)
   (check (env-tag-name result) => "quote")
   (check (env-depth result) => 0)
-  (check (vector-length (env-children result))
-    =>
-    0
-  ) ;check
-  (check (env-value result)
-    =>
-    '(quote (1 2 3))
-  ) ;check
+  (check (vector-length (env-children result)) => 0)
+  (check (env-value result) => '(quote (1 2 3)))
 ) ;let
 
 ;; 测试 vector 输入 #(1 2 3)
@@ -212,33 +174,18 @@
   (check (env? result) => #t)
   (check (env-tag-name result) => "quote")
   (check (env-depth result) => 0)
-  (check (vector-length (env-children result))
-    =>
-    2
-  ) ;check
-  (check (env-value result)
-    =>
-    '(quote x y)
-  ) ;check
+  (check (vector-length (env-children result)) => 2)
+  (check (env-value result) => '(quote x y))
 ) ;let
 
 ;; 测试语法关键字 #_quote 作为 tag-name
 ;; quote 形式整个作为一个 env，没有 children
-(let ((result (scan '(#_quote x))))
+(let ((result (scan ''x)))
   (check (env? result) => #t)
-  (check (env-tag-name result)
-    =>
-    "#_quote"
-  ) ;check
+  (check (env-tag-name result) => "#_quote")
   (check (env-depth result) => 0)
-  (check (vector-length (env-children result))
-    =>
-    0
-  ) ;check
-  (check (env-value result)
-    =>
-    '(#_quote x)
-  ) ;check
+  (check (vector-length (env-children result)) => 0)
+  (check (env-value result) => ''x)
 ) ;let
 
 ;; 测试 let 表达式，绑定列表 ((x 1)) 的 tag-name 为空字符串
@@ -246,36 +193,21 @@
   (check (env? result) => #t)
   (check (env-tag-name result) => "let")
   (check (env-depth result) => 0)
-  (check (vector-length (env-children result))
-    =>
-    2
-  ) ;check
+  (check (vector-length (env-children result)) => 2)
   ;; 检查第一个子元素是绑定列表 ((x 1))
   ;; ((x 1)) 的第一个元素 (x 1) 是列表不是 symbol，所以 (x 1) 作为 child
-  (let ((bindings (vector-ref (env-children result) 0)
-        ) ;bindings
-       ) ;
+  (let ((bindings (vector-ref (env-children result) 0)))
     (check (env? bindings) => #t)
     (check (env-tag-name bindings) => "")
     (check (env-depth bindings) => 1)
-    (check (vector-length (env-children bindings))
-      =>
-      1
-    ) ;check
+    (check (vector-length (env-children bindings)) => 1)
     ;; 检查绑定 (x 1)
-    (let ((binding (vector-ref (env-children bindings) 0)
-          ) ;binding
-         ) ;
+    (let ((binding (vector-ref (env-children bindings) 0)))
       (check (env? binding) => #t)
       (check (env-tag-name binding) => "x")
       (check (env-depth binding) => 2)
-      (check (vector-length (env-children binding))
-        =>
-        1
-      ) ;check
-      (let ((value (vector-ref (env-children binding) 0)
-            ) ;value
-           ) ;
+      (check (vector-length (env-children binding)) => 1)
+      (let ((value (vector-ref (env-children binding) 0)))
         (check (atom? value) => #t)
         (check (atom-value value) => 1)
       ) ;let

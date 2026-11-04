@@ -1,8 +1,3 @@
-(import (liii check))
-(import (liii goldfmt format atom))
-
-(check-set-mode! 'report-failed)
-
 ;; write-to-string
 ;; 使用 write 语义将值转为字符串，不受 *s7* 'print-length 限制。
 ;;
@@ -13,10 +8,18 @@
 ;; 参数
 ;; ----
 ;; value : any?
+;; 待写出的值。
 ;;
 ;; 返回值
 ;; ------
 ;; string?
+;; 写出后的字符串。
+
+(import (liii check))
+(import (liii goldfmt scan normalize))
+
+(check-set-mode! 'report-failed)
+
 
 ;; 测试：字符串带引号写出
 (check (write-to-string "abc") => "\"abc\"")

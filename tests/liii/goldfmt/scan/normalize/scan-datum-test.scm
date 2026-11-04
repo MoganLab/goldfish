@@ -1,9 +1,3 @@
-(import (liii check))
-(import (liii goldfmt scan normalize)
-        (liii goldfmt record))
-
-(check-set-mode! 'report-failed)
-
 ;; scan-datum
 ;; 将归一化后的 datum 扫描为 formatter 使用的 node（atom 或 env）。
 ;;
@@ -27,6 +21,12 @@
 ;; ----
 ;; 1. 深度信息记录在 node 的 depth 字段
 ;; 2. 首元素为 symbol 的 list 生成带 tag-name 的 env
+
+(import (liii check))
+(import (liii goldfmt scan normalize) (liii goldfmt record))
+
+(check-set-mode! 'report-failed)
+
 
 ;; 测试：number 扫描为 atom
 (let ((node (scan-datum 42 0)))
