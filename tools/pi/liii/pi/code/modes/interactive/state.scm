@@ -34,6 +34,7 @@
     %pi-app-on-save-hide-thinking pi-app-selection %pi-app-selection-set!
     pi-app-selection-set! pi-app-selection-clear! pi-app-selection-active?
     pi-app-flash! pi-app-flash-message pi-app-flash-tick! pi-app-flash-clear!
+    pi-app-tokens %pi-app-tokens-set!
   ) ;export
   (import (scheme base)
     (liii date-time)
@@ -54,7 +55,7 @@
         on-save-model tool-cards resume-sessions no-session? scroll-view
         wheel-accelerator steering-chan follow-up-chan steering-pending
         follow-up-pending thinking-card hide-thinking? on-save-hide-thinking
-        selection flash
+        selection flash tokens
       ) ;%make-pi-app
       pi-app?
       (term pi-app-term)
@@ -135,6 +136,8 @@
       (selection pi-app-selection %pi-app-selection-set!)
       ;; 瞬态浮层提示（Flash）：包含 (message . expiry-monotonic-millis) 或 #f
       (flash %pi-app-flash %pi-app-flash-set!)
+      ;; 会话全局 Token 累计统计
+      (tokens pi-app-tokens %pi-app-tokens-set!)
     ) ;define-record-type
 
     (define %pi-app-term pi-app-term)

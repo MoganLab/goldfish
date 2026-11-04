@@ -42,6 +42,7 @@ gf doc <函数名>
 - `pi-session-token-stats-cache-read` - 获取读缓存 Token 数
 - `pi-session-token-stats-cache-write` - 获取写缓存 Token 数
 - `pi-session-token-stats-total` - 计算 Token 总数
+- `pi-session-token-stats-add-usage!` - 累加单次请求 usage 到 Token 统计 record
 - `pi-format-token-count` - 将 Token 数量格式化为紧凑字符串（k/M 缩写）
 - `pi-calculate-cache-hit-rate` - 计算缓存命中率百分比
 - `pi-format-token-stats` - 构建紧凑 Token 传输与缓存统计行（含 CHxx.x%）
