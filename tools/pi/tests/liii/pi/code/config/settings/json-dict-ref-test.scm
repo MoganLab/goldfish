@@ -19,7 +19,7 @@
 ;; any
 ;; 字段值；缺失时返回 default。
 
-(import (liii check) (liii pi code config))
+(import (liii check) (liii pi code config settings))
 
 (check-set-mode! 'report-failed)
 (let ((j '(("foo" . 1) (bar . 2))))

@@ -15,7 +15,7 @@
 ;; any | #f
 ;; 解析结果；文件不存在或解析失败时返回 #f。
 
-(import (liii check) (liii pi code config))
+(import (liii check) (liii pi code config settings))
 
 (check-set-mode! 'report-failed)
 (define test-file

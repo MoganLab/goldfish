@@ -24,7 +24,7 @@
   (liii list)
   (liii path)
   (liii shutil)
-  (liii pi code config)
+  (liii pi code config settings)
   (liii pi ai config record)
 ) ;import
 
