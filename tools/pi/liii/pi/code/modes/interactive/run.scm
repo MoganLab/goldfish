@@ -184,13 +184,25 @@
               (pi-app-poll-events! app)
               (let ((k (terminal-poll-key term)))
                 (cond
-                  ;; Ctrl+C：仅清空输入框，从不退出、也不中断正在跑的任务。
+                  ;; Ctrl+C：若当前存在激活选区，优先复制选区（兼容 Linux 终端将
+                  ;; Ctrl+Shift+C 编码为 \x03 的行为，以及选区激活时的 Ctrl+C 复制语义）；
+                  ;; 无选区时仅清空输入框，从不退出、也不中断正在跑的任务。
                   ((and (not (pi-app-active-selector app)) (eq? k 'ctrl-c))
-                   (unless (string-null? (editor-text ed))
-                     (editor-set-text! ed "")
-                   ) ;unless
-                   (pi-app-render! app)
-                   (loop)
+                   (if (pi-app-selection-active? app)
+                     (begin
+                       (when (pi-app-copy-selection! app)
+                         (pi-app-render! app)
+                       ) ;when
+                       (loop)
+                     ) ;begin
+                     (begin
+                       (unless (string-null? (editor-text ed))
+                         (editor-set-text! ed "")
+                       ) ;unless
+                       (pi-app-render! app)
+                       (loop)
+                     ) ;begin
+                   ) ;if
                   ) ;
                   ;; Ctrl+D：输入框严格为空时退出（EOF 语义）；
                   ;; 非空时不再吞掉按键，落到下方通用分支交给编辑器
@@ -302,7 +314,11 @@
                   ;; 按 ctrl+o 时：全局切换 bash/工具输出卡片的展开与折叠
                   ((eq? k 'ctrl-o) (pi-app-toggle-tool-output! app) (pi-app-render! app) (loop))
                   ;; 复制选区：Ctrl+Shift+C 快捷键响应
-                  ((or (eq? k 'shift-ctrl-c) (eq? k 'ctrl-shift-c) (eq? k 'shift-ctrl-C))
+                  ((or (eq? k 'shift-ctrl-c)
+                     (eq? k 'ctrl-shift-c)
+                     (eq? k 'shift-ctrl-C)
+                     (eq? k 'ctrl-C)
+                   ) ;or
                    (when (pi-app-copy-selection! app)
                      (pi-app-render! app)
                    ) ;when

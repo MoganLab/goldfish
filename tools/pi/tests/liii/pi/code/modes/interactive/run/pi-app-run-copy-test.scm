@@ -98,4 +98,79 @@
   ) ;let-values
 ) ;let*
 
+;; 测试 2：Linux 传统终端下 Ctrl+Shift+C 被识别为 'ctrl-c
+;; 验证当选区激活时，注入 'ctrl-c 会触发复制选区，且不清除当前输入框内容
+(let* ((submitted #f)
+       (vt (make-virtual-terminal :width 80 :height 24))
+       (app (make-pi-app
+              :terminal vt
+              :handler (lambda (a m) (set! submitted m) #t)
+            ) ;make-pi-app
+       ) ;app
+      ) ;
+  (pi-app-add-user-message! app "line 0 of chat content")
+  (pi-app-add-user-message! app "line 1 of chat content")
+  (pi-app-add-user-message! app "line 2 of chat content")
+  (pi-app-add-user-message! app "line 3 of chat content")
+  (pi-app-add-user-message! app "line 4 of chat content")
+  (pi-app-render! app)
+
+  (let-values (((frame _) (pi-app-frame-lines app)))
+    (let* ((sel-range (make-selection-range '(4 . 4) '(19 . 7) #t))
+           (expected-text (selection-extract-text frame sel-range))
+          ) ;
+      (check-true (> (string-length expected-text) 0))
+
+      ;; 激活选区
+      (pi-app-selection-set! app sel-range)
+
+      ;; 输入框预设文本
+      (editor-set-text! (pi-app-editor app) "keep this input text")
+
+      ;; 注入 'ctrl-c (模拟 Linux 终端按 Ctrl+Shift+C 发出的 0x03 键码)
+      (virtual-terminal-push-key! vt 'ctrl-c)
+      ;; 注入 'enter 提交输入框内容（提交后输入框清空）
+      (virtual-terminal-push-key! vt 'enter)
+      ;; 退出
+      (virtual-terminal-push-key! vt 'ctrl-d)
+
+      ;; 运行主循环
+      (check (pi-app-run app) => #t)
+
+      ;; 验证输入框文字未被 ctrl-c 清空，成功被 enter 提交
+      (check submitted => "keep this input text")
+
+      ;; 验证截获了包含 expected-text 的 OSC 52 复制指令
+      (let* ((raw (virtual-terminal-raw vt))
+             (osc-item
+               (find (lambda (s) (and (string? s) (string-contains s "\x1b;]52;c;"))) raw)
+             ) ;osc-item
+            ) ;
+        (check-true (string? osc-item))
+        (let* ((prefix "\x1b;]52;c;")
+               (body-start (string-length prefix))
+               (body-end (- (string-length osc-item) 1))
+               (b64 (substring osc-item body-start body-end))
+               (decoded (string-base64-decode b64))
+              ) ;
+          (check decoded => expected-text)
+        ) ;let*
+      ) ;let*
+    ) ;let*
+  ) ;let-values
+) ;let*
+
+;; 测试 3：无激活选区时，'ctrl-c 正常清空输入框
+(let* ((vt (make-virtual-terminal :width 80 :height 24))
+       (app (make-pi-app :terminal vt :handler (lambda (a m) #t)))
+      ) ;
+  (editor-set-text! (pi-app-editor app) "text to clear")
+  ;; 注入 'ctrl-c 清空输入框，再注入 'ctrl-d（输入框为空时触发退出）
+  (virtual-terminal-push-key! vt 'ctrl-c)
+  (virtual-terminal-push-key! vt 'ctrl-d)
+
+  (check (pi-app-run app) => #t)
+  (check (editor-text (pi-app-editor app)) => "")
+) ;let*
+
 (check-report)
