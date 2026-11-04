@@ -1,8 +1,3 @@
-(import (liii check))
-(import (liii goldfmt format writer))
-
-(check-set-mode! 'report-failed)
-
 ;; format-inline-atom-or-quote
 ;; 将 atom 或 quote 形式的值内联格式化为文本。
 ;;
@@ -14,9 +9,18 @@
 ;; ----
 ;; value : any?
 ;;
+;; value : any?
+;; 待格式化的值。
+
 ;; 返回值
 ;; ------
 ;; string?
+
+(import (liii check))
+(import (liii goldfmt format writer))
+
+(check-set-mode! 'report-failed)
+
 
 ;; 测试：symbol 值
 (check (format-inline-atom-or-quote 'abc) => "abc")
@@ -25,7 +29,10 @@
 (check (format-inline-atom-or-quote 42) => "42")
 
 ;; 测试：quote 形式还原为 '
-(check (format-inline-atom-or-quote (read (open-input-string "'(a b)"))) => "'(a b)")
+(check (format-inline-atom-or-quote (read (open-input-string "'(a b)")))
+  =>
+  "'(a b)"
+) ;check
 
 ;; 测试：普通 list
 (check (format-inline-atom-or-quote '(a b)) => "(a b)")
