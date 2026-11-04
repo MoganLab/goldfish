@@ -123,4 +123,26 @@
 (def-val-wrapped-target my-v-2 456)
 (check my-v-2 => 456)
 
+;; 12. 展开体中嵌套 syntax-case（issue #1450）
+;;    内层 pattern 变量不应引用已失效的第一阶段 gensym（%%sc-e1-*）
+(define-syntax nested-sc-macro
+  (lambda (x)
+    (syntax-case x ()
+      ((_ y)
+       (syntax-case (syntax->datum (syntax y)) ()
+         ((op a b) (syntax (op a b)))
+         (_ ''bad))))))
+
+(check (nested-sc-macro (+ 1 2)) => 3)
+
+;; 13. 展开体中嵌套 syntax-case 且引用外层 pattern 变量（issue #1450）
+(define-syntax nested-sc-outer-var
+  (lambda (x)
+    (syntax-case x ()
+      ((_ y)
+       (syntax-case '(extra) ()
+         ((w) (syntax (quote (y w)))))))))
+
+(check (nested-sc-outer-var 42) => '(42 extra))
+
 (check-report)
