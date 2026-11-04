@@ -28,7 +28,8 @@
 ;; 1. 验证更新应用持有的模型列表快照
 (let* ((initial-models '(((provider . "test") (id . "m1"))))
        (new-models '(((provider . "test") (id . "m2"))
-                     ((provider . "test2") (id . "m3"))))
+                     ((provider . "test2") (id . "m3")))
+       ) ;new-models
        (app (make-pi-app
               :terminal (make-virtual-terminal :width 80 :height 24)
               :models   initial-models
