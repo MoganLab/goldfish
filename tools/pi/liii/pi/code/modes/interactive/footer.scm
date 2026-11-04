@@ -8,7 +8,8 @@
   (export make-pi-footer pi-footer? format-cwd-for-footer pi-footer-model-label
     pi-footer-set-thinking-level! pi-footer-branch pi-footer-set-branch!
     pi-footer-set-session-name! pi-footer-set-model! pi-footer-set-message!
-    pi-footer-message
+    pi-footer-message pi-footer-stats pi-footer-set-stats!
+    pi-footer-set-token-stats!
   ) ;export
   (import (scheme base)
     (liii string)
@@ -18,6 +19,7 @@
     (liii format color)
     (liii tui text-width)
     (liii tui component)
+    (liii pi code core session-stats)
     (liii pi code modes interactive common)
   ) ;import
   (begin
@@ -58,7 +60,7 @@
       (branch pi-footer-state-branch pi-footer-state-branch-set!)
       (provider pi-footer-state-provider pi-footer-state-provider-set!)
       (model pi-footer-state-model pi-footer-state-model-set!)
-      (stats pi-footer-state-stats)
+      (stats pi-footer-state-stats pi-footer-state-stats-set!)
       (thinking-level pi-footer-state-thinking-level
         pi-footer-state-thinking-level-set!
       ) ;thinking-level
@@ -216,6 +218,34 @@
 
     (define (pi-footer-message comp)
       (pi-footer-state-message (%footer-state comp))
+    ) ;define
+
+    (define (pi-footer-stats comp)
+      (pi-footer-state-stats (%footer-state comp))
+    ) ;define
+
+    (define (pi-footer-set-stats! comp stats)
+      (pi-footer-state-stats-set! (%footer-state comp) stats)
+    ) ;define
+
+    (define (pi-footer-set-token-stats! comp tokens . rest)
+      (let* ((latest-hit-rate (if (pair? rest) (car rest) #f))
+             (context-info
+               (if (and (pair? rest) (pair? (cdr rest))) (cadr rest) "0.0%/1.0M (auto)")
+             ) ;context-info
+             (tok-str (pi-format-token-stats tokens latest-hit-rate))
+             (final-stats
+               (if (and (string? tok-str) (not (string-null? tok-str)))
+                 (if (and (string? context-info) (not (string-null? context-info)))
+                   (string-append tok-str " " context-info)
+                   tok-str
+                 ) ;if
+                 context-info
+               ) ;if
+             ) ;final-stats
+            ) ;
+        (pi-footer-set-stats! comp final-stats)
+      ) ;let*
     ) ;define
 
   ) ;begin
