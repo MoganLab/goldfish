@@ -1,9 +1,3 @@
-(import (liii check) (liii os) (scheme time))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; os-call
 ;; 执行系统命令。
 ;;
@@ -20,13 +14,22 @@
 ;; ----
 ;; 执行指定的系统命令并等待其完成。
 ;;
-;; 错误
+;; 返回值
+;; -----
+;; process-exit-status?
+;; 返回命令的退出状态对象（0 表示成功）。
+;;
+;; 错误处理
 ;; ----
 ;; type-error
 ;; 当 command 不是字符串时抛出错误。
 
-
 ;; ; 基本功能测试
+
+(import (liii check) (liii os) (scheme time))
+
+(check-set-mode! 'report-failed)
+
 (when (not (os-windows?))
   (let ((t1 (current-second)))
     (os-call "sleep 1")
@@ -35,7 +38,6 @@
     ) ;let
   ) ;let
 ) ;when
-
 
 ;; ; 参数类型测试
 ;; command 必须是 string?，传入其他类型应报 type-error
@@ -46,6 +48,5 @@
 (check-catch 'type-error (os-call (list "ls")))
 ;; C 层入口 g_os-call 走同一实现，同样需要类型检查
 (check-catch 'type-error (g_os-call 42))
-
 
 (check-report)

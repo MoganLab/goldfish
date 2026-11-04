@@ -1,15 +1,13 @@
-(import (liii check) (liii os) (liii string))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; getcwd
 ;; 获取当前工作目录。
 ;;
 ;; 语法
 ;; ----
 ;; (getcwd)
+;;
+;; 参数
+;; ----
+;; 无参数。
 ;;
 ;; 返回值
 ;; -----
@@ -20,9 +18,12 @@
 ;; ----
 ;; 返回进程当前的工作目录，返回值非空字符串。
 
-
 ;; ; 基本功能测试
-(check-false (string-null? (getcwd)))
 
+(import (liii check) (liii os) (liii string))
+
+(check-set-mode! 'report-failed)
+
+(check-false (string-null? (getcwd)))
 
 (check-report)

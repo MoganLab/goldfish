@@ -1,9 +1,3 @@
-(import (liii check) (liii os))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; chdir
 ;; 切换当前工作目录。
 ;;
@@ -21,7 +15,7 @@
 ;; boolean?
 ;; 成功返回 #t。
 ;;
-;; 错误
+;; 错误处理
 ;; ----
 ;; type-error
 ;; 当 path 不是字符串时抛出错误。
@@ -29,8 +23,12 @@
 ;; file-not-found-error
 ;; 当目录不存在时抛出错误。
 
-
 ;; ; 基本功能测试
+
+(import (liii check) (liii os))
+
+(check-set-mode! 'report-failed)
+
 (let* ((orig-dir (getcwd))
        (test-dir (string-append (os-temp-dir) (string (os-sep)) "test_chdir_dir"))
       ) ;
@@ -60,11 +58,9 @@
   (check-false (file-exists? test-dir))
 ) ;let*
 
-
 ;; ; 错误测试
 (check-catch 'type-error (chdir #\a))
 (check-catch 'type-error (chdir 123))
 (check-catch 'file-not-found-error (chdir "/nonexistent/directory"))
-
 
 (check-report)

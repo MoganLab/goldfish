@@ -1,9 +1,3 @@
-(import (liii check) (liii os))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; rename
 ;; 重命名文件或目录。
 ;;
@@ -24,7 +18,7 @@
 ;; boolean?
 ;; 成功返回 #t。
 ;;
-;; 错误
+;; 错误处理
 ;; ----
 ;; type-error
 ;; 当 src 或 dst 不是字符串时抛出错误。
@@ -34,13 +28,13 @@
 ;;
 ;; file-exists-error
 ;; 当目标文件已存在时抛出错误。
-;;
-;; 相关函数
-;; ----
-;; gf doc liii/path "path-rename"
-
 
 ;; ; 测试文件重命名
+
+(import (liii check) (liii os))
+
+(check-set-mode! 'report-failed)
+
 (let* ((temp-dir (os-temp-dir))
        (src-file (string-append temp-dir (string (os-sep)) "test_rename_src.txt"))
        (dst-file (string-append temp-dir (string (os-sep)) "test_rename_dst.txt"))
@@ -59,12 +53,10 @@
   (remove dst-file)
 ) ;let*
 
-
 ;; ; 测试 rename 错误情况
 (check-catch 'type-error (rename 123 "dst"))
 (check-catch 'type-error (rename "src" 123))
 (check-catch 'file-not-found-error (rename "/nonexistent/file.txt" "dst.txt"))
-
 
 ;; ; 测试目标文件已存在
 (let* ((temp-dir (os-temp-dir))
@@ -80,7 +72,6 @@
   (remove src-file)
   (remove dst-file)
 ) ;let*
-
 
 ;; ; 测试目录重命名
 (let* ((temp-dir (os-temp-dir))
@@ -107,13 +98,11 @@
   (rmdir dst-dir)
 ) ;let*
 
-
 ;; ; C 层入口 g_rename 参数类型测试（type-error 为 (liii error) 约定）
 ;; src/dst 必须是 string?，C++ 层需要类型守卫，
 ;; 避免把非字符串对象当作 C 字符串指针导致段错误 (devel/0144.md)
 (check-catch 'type-error (g_rename 1 2))
 (check-catch 'type-error (g_rename "src" 2))
 (check-catch 'type-error (g_rename 1 "dst"))
-
 
 (check-report)

@@ -1,9 +1,3 @@
-(import (liii check) (liii os) (liii uuid) (liii base) (liii vector))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; listdir
 ;; 列出目录中的内容。
 ;;
@@ -25,12 +19,15 @@
 ;; ----
 ;; 返回指定目录中的文件和子目录列表（不包括 . 和 ..）。
 
-
 ;; ; 基本功能测试
+
+(import (liii check) (liii os) (liii uuid) (liii base) (liii vector))
+
+(check-set-mode! 'report-failed)
+
 (when (not (os-windows?))
   (check (> (vector-length (listdir "/usr")) 0) => #t)
 ) ;when
-
 
 ;; ; 测试创建目录并列出
 (let* ((test-dir (string-append (os-temp-dir) (string (os-sep)) (uuid4)))
@@ -59,11 +56,9 @@
   (rmdir test-dir)
 ) ;let*
 
-
 (when (os-windows?)
   (check (> (vector-length (listdir "C:")) 0) => #t)
 ) ;when
-
 
 ;; ; C 层入口 g_listdir 参数类型测试
 ;; path 必须是 string?，C++ 层需要类型守卫，
@@ -74,7 +69,5 @@
 
 ;; ; 空字符串路径防越界读取回归测试 (devel/0145.md)
 (check (g_listdir "") => #())
-
-
 
 (check-report)

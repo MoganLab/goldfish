@@ -1,9 +1,3 @@
-(import (liii check) (liii os))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; putenv
 ;; 设置环境变量。
 ;;
@@ -24,13 +18,17 @@
 ;; boolean?
 ;; 成功返回 #t。
 ;;
-;; 错误
+;; 错误处理
 ;; ----
 ;; type-error
 ;; 当 key 或 value 不是字符串时抛出错误。
 
-
 ;; ; 基本功能测试
+
+(import (liii check) (liii os))
+
+(check-set-mode! 'report-failed)
+
 (check-true (putenv "TEST_VAR" "123"))
 (check-true (putenv "TEST_VAR" "456"))
 
@@ -40,12 +38,10 @@
 (check-true (putenv "TEST_VAR" "a:b:c"))
 (check (getenv "TEST_VAR") => "a:b:c")
 
-
 ;; ; 错误测试
 (check-catch 'type-error (putenv 123 "abc"))
 (check-catch 'type-error (putenv "ABC" 123))
 (check-catch 'type-error (putenv #\a "abc"))
 (check-catch 'type-error (putenv "ABC" #\a))
-
 
 (check-report)

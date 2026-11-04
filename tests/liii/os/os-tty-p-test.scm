@@ -1,7 +1,3 @@
-(import (liii check) (liii os))
-
-(check-set-mode! 'report-failed)
-
 ;; os-tty?
 ;; 检查文件描述符是否连接到终端。
 ;;
@@ -19,7 +15,7 @@
 ;; boolean?
 ;; 如果文件描述符关联到终端设备返回 #t，否则返回 #f。
 ;;
-;; 错误
+;; 错误处理
 ;; ----
 ;; type-error
 ;; 当 fd 不是整数时抛出错误。
@@ -28,6 +24,10 @@
 ;; ----
 ;; 底层调用 POSIX isatty 或 Windows _isatty。
 ;; 对于无效或已关闭的文件描述符（如负数），安全返回 #f，不引发异常。
+
+(import (liii check) (liii os))
+
+(check-set-mode! 'report-failed)
 
 ;; 基本返回值类型校验
 (check-true (boolean? (os-tty? 0)))
