@@ -115,6 +115,7 @@
                             (is-ds? "https://api.deepseek.com/anthropic")
                             (is-mm? "https://api.minimaxi.com/anthropic")
                             (is-zai? "https://open.bigmodel.cn/api/coding/paas/v4")
+                            ((string=? p-str "ollama") "http://localhost:11434/v1")
                             (else "https://generativelanguage.googleapis.com/v1beta")
                       ) ;cond
              ) ;def-url

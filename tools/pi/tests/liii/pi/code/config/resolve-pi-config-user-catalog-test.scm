@@ -182,4 +182,18 @@
   (check (cdr (assoc 'proxy-url cfg)) => "http://env-proxy:3128")
 ) ;let*
 
+;; 11. ollama 免密解析：无需配置 auth 亦可解析端点与模型
+(let* ((args (parse-pi-args '("--provider" "ollama")))
+       (env `(("PI_CODING_AGENT_DIR" . ,EMPTY-DIR)))
+       (cfg (resolve-pi-config args env))
+      ) ;
+  (check (cdr (assoc 'provider cfg)) => "ollama")
+  (check (cdr (assoc 'model-id cfg)) => "qwen2.5-coder:latest")
+  (check (cdr (assoc 'api-key cfg)) => "ollama")
+  (let ((meta (cdr (assoc 'model-meta cfg))))
+    (check (pi-model-metadata-matched? meta) => #t)
+    (check (pi-model-metadata-base-url meta) => "http://localhost:11434/v1")
+  ) ;let
+) ;let*
+
 (check-report)

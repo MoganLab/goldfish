@@ -82,6 +82,48 @@
       (or (pi-text-block? blk) (equal? (%val 'type blk "") "text"))
     ) ;define
 
+    (define (%normalize-json-keys-to-strings data)
+      (cond
+       ((pair? data)
+        (if (pair? (car data))
+          (map
+            (lambda (p)
+              (let* ((key (car p))
+                     (str-key (if (symbol? key) (symbol->string key) key))
+                     (val (cdr p))
+                    ) ;
+                (cons str-key (%normalize-json-keys-to-strings val))
+              ) ;let*
+            ) ;lambda
+            data
+          ) ;map
+          (let* ((key (car data)) (str-key (if (symbol? key) (symbol->string key) key)))
+            (cons str-key (%normalize-json-keys-to-strings (cdr data)))
+          ) ;let*
+        ) ;if
+       ) ;
+       ((vector? data)
+        (list->vector (map %normalize-json-keys-to-strings (vector->list data)))
+       ) ;
+       (else data)
+      ) ;cond
+    ) ;define
+
+    (define (%ensure-strict-json-string obj)
+      (cond
+       ((string? obj)
+        (let ((parsed (catch #t (lambda () (string->json obj)) (lambda _ #f))))
+          (if (and parsed (not (eof-object? parsed)))
+            (json->string (%normalize-json-keys-to-strings parsed))
+            obj
+          ) ;if
+        ) ;let
+       ) ;
+       ((pair? obj) (json->string (%normalize-json-keys-to-strings obj)))
+       (else (json->string obj))
+      ) ;cond
+    ) ;define
+
     (define (%assistant-block->tool-call blk)
       (and (or (pi-tool-call-block? blk) (equal? (%val 'type blk "") "toolCall"))
         (let* ((id (if (pi-tool-call-block? blk) (pi-tool-call-block-id blk) (%val 'id blk ""))
@@ -93,7 +135,7 @@
                            (%val 'arguments blk '())
                          ) ;if
                ) ;raw-args
-               (args-str (if (string? raw-args) raw-args (json->string raw-args)))
+               (args-str (%ensure-strict-json-string raw-args))
               ) ;
           (list (cons "id" id)
             (cons "type" "function")

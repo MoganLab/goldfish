@@ -52,7 +52,7 @@
 ;; 支持的 provider 列表
 (check PI_SUPPORTED_PROVIDERS
   =>
-  '("google" "kimi-coding" "deepseek" "minimax-cn" "zai-coding-cn")
+  '("google" "kimi-coding" "deepseek" "minimax-cn" "zai-coding-cn" "ollama")
 ) ;check
 
 (check-report)

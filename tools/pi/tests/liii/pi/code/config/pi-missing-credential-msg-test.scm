@@ -37,5 +37,13 @@
   =>
   "No credentials found for provider \"google\""
 ) ;check
+(check (pi-missing-credential-msg '((provider . "ollama") (api-key . #f)))
+  =>
+  #f
+) ;check
+(check (pi-missing-credential-msg '((provider . "ollama") (api-key . "")))
+  =>
+  #f
+) ;check
 
 (check-report)

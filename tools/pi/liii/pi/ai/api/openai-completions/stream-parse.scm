@@ -12,6 +12,7 @@
     (liii pi ai message)
     (liii pi ai api openai-completions core)
     (liii pi ai api openai-completions stream-state)
+    (liii pi ai api openai-completions tool-call-text)
   ) ;import
   (export append-openai-stream-text process-openai-tool-call-delta
     finish-openai-stream process-openai-chunk make-openai-stream-decoder
@@ -55,6 +56,17 @@
         ) ;lambda
         (lambda args #f)
       ) ;catch
+    ) ;define
+
+    (define (append-openai-stream-reasoning stream-state reasoning on-event)
+      (when (and (string? reasoning) (not (string-null? reasoning)))
+        (let* ((last-reasoning (openai-stream-state-last-reasoning stream-state))
+               (new-reasoning (if last-reasoning (string-append last-reasoning reasoning) reasoning)
+               ) ;new-reasoning
+              ) ;
+          (openai-stream-state-last-reasoning-set! stream-state new-reasoning)
+        ) ;let*
+      ) ;when
     ) ;define
 
     (define (append-openai-stream-text stream-state text on-event)
@@ -173,41 +185,44 @@
             (blocks (openai-stream-state-blocks stream-state))
             (usage (openai-stream-state-usage stream-state))
            ) ;
-        (when (pair? tools-alist)
-          (for-each
-            (lambda (p)
-              (let* ((item (cdr p))
-                     (id (%openai-tool-state-id item))
-                     (name (%openai-tool-state-name item))
-                     (args-str (%openai-tool-state-args item))
-                     (args-json
-                       (catch #t
-                         (lambda () (if (string-null? args-str) '() (string->json args-str)))
-                         (lambda args '())
-                       ) ;catch
-                     ) ;args-json
-                     (tc-blk (pi-tool-call-block id name args-json))
-                     (cur-idx (length (openai-stream-state-blocks stream-state)))
-                    ) ;
-                (openai-stream-state-blocks-set! stream-state
-                  (append (openai-stream-state-blocks stream-state) (list tc-blk))
-                ) ;openai-stream-state-blocks-set!
-                (when (procedure? on-event)
-                  (on-event (list (cons 'type "toolcall_end")
-                              (cons 'contentIndex cur-idx)
-                              (cons 'id id)
-                              (cons 'toolName name)
-                              (cons 'usage usage)
-                            ) ;list
-                  ) ;on-event
-                ) ;when
-              ) ;let*
-            ) ;lambda
-            tools-alist
-          ) ;for-each
-          (openai-stream-state-stop-reason-set! stream-state "toolUse")
-          (openai-stream-state-tools-set! stream-state '())
-        ) ;when
+        (if (pair? tools-alist)
+          (begin
+            (for-each
+              (lambda (p)
+                (let* ((item (cdr p))
+                       (id (%openai-tool-state-id item))
+                       (name (%openai-tool-state-name item))
+                       (args-str (%openai-tool-state-args item))
+                       (args-json
+                         (catch #t
+                           (lambda () (if (string-null? args-str) '() (string->json args-str)))
+                           (lambda args '())
+                         ) ;catch
+                       ) ;args-json
+                       (tc-blk (pi-tool-call-block id name args-json))
+                       (cur-idx (length (openai-stream-state-blocks stream-state)))
+                      ) ;
+                  (openai-stream-state-blocks-set! stream-state
+                    (append (openai-stream-state-blocks stream-state) (list tc-blk))
+                  ) ;openai-stream-state-blocks-set!
+                  (when (procedure? on-event)
+                    (on-event (list (cons 'type "toolcall_end")
+                                (cons 'contentIndex cur-idx)
+                                (cons 'id id)
+                                (cons 'toolName name)
+                                (cons 'usage usage)
+                              ) ;list
+                    ) ;on-event
+                  ) ;when
+                ) ;let*
+              ) ;lambda
+              tools-alist
+            ) ;for-each
+            (openai-stream-state-stop-reason-set! stream-state "toolUse")
+            (openai-stream-state-tools-set! stream-state '())
+          ) ;begin
+          (maybe-extract-openai-text-tool-call! stream-state on-event)
+        ) ;if
       ) ;let
     ) ;define
 
@@ -234,9 +249,15 @@
           ) ;openai-stream-state-stop-reason-set!
         ) ;when
         (when (pair? delta)
-          (let ((content (%val "content" delta #f)) (raw-tc (%val "tool_calls" delta #f)))
+          (let ((content (%val "content" delta #f))
+                (reasoning (or (%val "reasoning" delta #f) (%val "reasoning_content" delta #f)))
+                (raw-tc (%val "tool_calls" delta #f))
+               ) ;
             (when (and (string? content) (not (string-null? content)))
               (append-openai-stream-text stream-state content on-event)
+            ) ;when
+            (when (and (string? reasoning) (not (string-null? reasoning)))
+              (append-openai-stream-reasoning stream-state reasoning on-event)
             ) ;when
             (when (or (vector? raw-tc) (list? raw-tc))
               (let ((tc-list (if (vector? raw-tc) (vector->list raw-tc) raw-tc)))

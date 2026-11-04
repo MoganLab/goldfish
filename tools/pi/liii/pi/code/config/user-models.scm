@@ -51,14 +51,16 @@
       ) ;let*
     ) ;define
 
-    ;; 合成结果补齐 id 并去掉重复 id 字段
+    ;; 合成结果补齐 id 并去掉重复 id 字段（优先保留数据中已声明的 id）
     (define (%with-id m-id merged)
-      (cons (cons "id" m-id)
-        (filter
-          (lambda (f) (not (equal? (%field-key f) "id")))
-          merged
-        ) ;filter
-      ) ;cons
+      (let ((actual-id (or (pi-user-dict-ref merged "id" #f) m-id)))
+        (cons (cons "id" actual-id)
+          (filter
+            (lambda (f) (not (equal? (%field-key f) "id")))
+            merged
+          ) ;filter
+        ) ;cons
+      ) ;let
     ) ;define
 
     ;; ---------- 内置目录 ----------
@@ -82,33 +84,72 @@
 
     ;; ---------- 模型文件 ----------
 
-    ;; 判断模型是否存在于内置目录或模型文件中
+    ;; 判断模型是否存在于内置目录或模型文件中（ollama 允许本地任意模型）
     (define (pi-user-model-exists? config-dir p-id m-id)
       (and (string? p-id)
         (string? m-id)
-        (or (and (%find-builtin (%builtin-table p-id) m-id) #t)
+        (or (equal? p-id "ollama")
+          (and (%find-builtin (%builtin-table p-id) m-id) #t)
           (let* ((path-str (pi-user-config-path config-dir "models" p-id (string-append m-id ".json"))
                  ) ;path-str
                 ) ;
-            (and (file-exists? path-str) (pair? (pi-user-read-json path-str)))
+            (or (and (file-exists? path-str) (pair? (pi-user-read-json path-str)))
+              (and (pair? (%find-model-file-by-id config-dir p-id m-id)) #t)
+            ) ;or
           ) ;let*
         ) ;or
       ) ;and
     ) ;define
 
     ;; 读 models/<p>/<m>.json；缺失返回 #f，语法错告警后返回 #f
+    (define (%find-model-file-by-id config-dir p-id m-id)
+      (let* ((dir-str (pi-user-config-path config-dir "models" p-id))
+             (exists (file-exists? dir-str))
+             (entries
+               (and exists
+                 (catch #t (lambda () (vector->list (listdir dir-str))) (lambda args '()))
+               ) ;and
+             ) ;entries
+            ) ;
+        (if (not exists)
+          #f
+          (let loop
+            ((files
+               (filter
+                 (lambda (e) (and (string-ends? e ".json") (not (string=? e ".json"))))
+                 entries
+               ) ;filter
+             ) ;files
+            ) ;
+            (if (null? files)
+              #f
+              (let* ((f (car files))
+                     (p (pi-user-config-path config-dir "models" p-id f))
+                     (data (pi-user-read-json p))
+                    ) ;
+                (if (and (pair? data) (equal? (pi-user-dict-ref data "id" #f) m-id))
+                  data
+                  (loop (cdr files))
+                ) ;if
+              ) ;let*
+            ) ;if
+          ) ;let
+        ) ;if
+      ) ;let*
+    ) ;define
+
     (define (%model-file config-dir p-id m-id)
       (let* ((path-str (pi-user-config-path config-dir "models" p-id (string-append m-id ".json"))
              ) ;path-str
              (exists (file-exists? path-str))
-             (data (pi-user-read-json path-str))
+             (data (and exists (pi-user-read-json path-str)))
             ) ;
         (cond ((pair? data) data)
               (exists (pi-user-warn (string-append path-str ": JSON 解析失败，已忽略该模型")
                       ) ;pi-user-warn
                 #f
               ) ;exists
-              (else #f)
+              (else (%find-model-file-by-id config-dir p-id m-id))
         ) ;cond
       ) ;let*
     ) ;define
@@ -150,15 +191,33 @@
 
     ;; ---------- 两种模式 ----------
 
-    ;; 白名单模式：按白名单顺序逐个合成；查无此模型时告警忽略
-    (define (%whitelist-model config-dir p-id p-fields builtin m-id)
-      (let* ((file-entry (%model-file config-dir p-id m-id))
-             (base (or (%find-builtin builtin m-id) (and file-entry '()) (%warn-missing p-id m-id))
-             ) ;base
-             (merged (%compose-model p-fields base file-entry))
-            ) ;
-        (and merged (%with-id m-id merged))
-      ) ;let*
+    ;; 白名单模式：按白名单顺序逐个合成；查无此模型时告警忽略（支持字符串 id 或内联模型对象）
+    (define (%whitelist-model config-dir p-id p-fields builtin m-spec)
+      (cond
+       ((pair? m-spec)
+        (let* ((m-id (pi-user-dict-ref m-spec "id" ""))
+               (base (or (%find-builtin builtin m-id) '()))
+               (merged (%compose-model p-fields base m-spec))
+              ) ;
+          (and merged (%with-id m-id merged))
+        ) ;let*
+       ) ;
+       ((string? m-spec)
+        (let* ((m-id m-spec)
+               (file-entry (%model-file config-dir p-id m-id))
+               (base
+                 (or (%find-builtin builtin m-id)
+                   (and file-entry '())
+                   (if (or (equal? p-id "ollama") (null? builtin)) '() (%warn-missing p-id m-id))
+                 ) ;or
+               ) ;base
+               (merged (and base (%compose-model p-fields base file-entry)))
+              ) ;
+          (and merged (%with-id m-id merged))
+        ) ;let*
+       ) ;
+       (else #f)
+      ) ;cond
     ) ;define
 
     (define (%warn-missing p-id m-id)
@@ -170,11 +229,11 @@
     ) ;define
 
     (define (%whitelist-models config-dir p-id p-fields builtin wl)
-      (let ((valid (filter string? wl)))
+      (let ((valid (filter (lambda (x) (or (string? x) (pair? x))) wl)))
         (for-each
           (lambda (x)
-            (unless (string? x)
-              (pi-user-warn (string-append "models/" p-id ".json: models 白名单元素必须是字符串")
+            (unless (or (string? x) (pair? x))
+              (pi-user-warn (string-append "models/" p-id ".json: models 元素必须是字符串或对象")
               ) ;pi-user-warn
             ) ;unless
           ) ;lambda

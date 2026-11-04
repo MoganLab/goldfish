@@ -33,7 +33,7 @@
   ;; 白名单顺序在前
   (check (map car catalog)
     =>
-    '("google" "kimi-coding" "custom-kimi" "deepseek" "minimax-cn" "zai-coding-cn")
+    '("google" "kimi-coding" "custom-kimi" "deepseek" "minimax-cn" "ollama" "zai-coding-cn")
   ) ;check
   (check (cdr (assoc "enabled" google)) => #t)
   (check (cdr (assoc "enabled" deepseek)) => #f)

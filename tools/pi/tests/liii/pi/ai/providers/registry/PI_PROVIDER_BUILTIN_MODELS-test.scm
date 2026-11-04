@@ -19,7 +19,7 @@
 (check-set-mode! 'report-failed)
 
 (check-true (pair? PI_PROVIDER_BUILTIN_MODELS))
-(check (length PI_PROVIDER_BUILTIN_MODELS) => 5)
+(check (length PI_PROVIDER_BUILTIN_MODELS) => 6)
 
 (define (find-provider-models name)
   (let ((p (assoc name PI_PROVIDER_BUILTIN_MODELS)))
@@ -42,6 +42,7 @@
 (check (length (find-provider-models "google")) => 23)
 (check (length (find-provider-models "kimi-coding")) => 5)
 (check (length (find-provider-models "minimax-cn")) => 4)
+(check (length (find-provider-models "ollama")) => 3)
 (check (length (find-provider-models "zai-coding-cn")) => 10)
 
 ;; 验证关键模型存在
@@ -51,6 +52,7 @@
 (check-true (has-model? (find-provider-models "minimax-cn") "MiniMax-M3.1-Flash")
 ) ;check-true
 (check-true (has-model? (find-provider-models "minimax-cn") "MiniMax-M3"))
+(check-true (has-model? (find-provider-models "ollama") "qwen2.5-coder:latest"))
 (check-true (has-model? (find-provider-models "zai-coding-cn") "glm-5.3"))
 
 (check-report)

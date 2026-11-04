@@ -15,7 +15,7 @@
 ;; pi-settings
 ;; 全局设置 record；文件缺失或字段缺省时回退默认值。
 
-(import (liii check) (liii pi ai config record) (liii pi ai retry) (liii pi code config) (liii pi code core session-manager))
+(import (liii check) (liii pi ai config record) (liii pi ai retry) (liii pi code config settings) (liii pi code core session-manager))
 
 (check-set-mode! 'report-failed)
 (define fixture-dir

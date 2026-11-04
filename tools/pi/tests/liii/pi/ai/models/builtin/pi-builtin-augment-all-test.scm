@@ -20,14 +20,14 @@
 (check-set-mode! 'report-failed)
 
 (let* ((empty-store '()) (augmented (pi-builtin-augment-all empty-store)))
-  ;; 应该包含 6 个内置 provider（anthropic 已移除）
-  (check (length augmented) => 5)
+  ;; 应该包含 6 个内置 provider（anthropic 已移除，新增 ollama）
+  (check (length augmented) => 6)
   (check-false (pair? (assoc "anthropic" augmented)))
   (check-true (pair? (assoc "deepseek" augmented)))
   (check-true (pair? (assoc "google" augmented)))
   (check-true (pair? (assoc "kimi-coding" augmented)))
   (check-true (pair? (assoc "minimax-cn" augmented)))
-  (check-true (pair? (assoc "minimax-cn" augmented)))
+  (check-true (pair? (assoc "ollama" augmented)))
   (check-true (pair? (assoc "zai-coding-cn" augmented)))
 ) ;let*
 

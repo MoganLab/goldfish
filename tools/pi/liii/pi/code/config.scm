@@ -375,10 +375,12 @@
       (let ((provider (cdr (or (assoc 'provider cfg) '(#f . "google"))))
             (api-key (cdr (or (assoc 'api-key cfg) '(#f . #f))))
            ) ;
-        (if (or (not api-key) (and (string? api-key) (string-null? api-key)))
-          (string-append "No credentials found for provider \"" provider "\"")
-          #f
-        ) ;if
+        (cond ((equal? provider "ollama") #f)
+              ((or (not api-key) (and (string? api-key) (string-null? api-key)))
+               (string-append "No credentials found for provider \"" provider "\"")
+              ) ;
+              (else #f)
+        ) ;cond
       ) ;let
     ) ;define
 
