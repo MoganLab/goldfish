@@ -18,4 +18,20 @@ gf doc <函数名>
 
 ## 函数分类索引
 
-详见当前目录下的单元测试用例。
+### 组件构建与类型判定
+- `make-pi-footer` - 创建底部状态栏组件
+- `pi-footer?` - 判断是否为底部状态栏组件
+
+### 状态读取与设置
+- `format-cwd-for-footer` - 格式化工作目录显示
+- `pi-footer-model-label` - 组装模型与思考等级标签
+- `pi-footer-branch` - 获取当前显示分支名
+- `pi-footer-set-branch!` - 设置分支名
+- `pi-footer-set-session-name!` - 设置会话名称
+- `pi-footer-set-model!` - 设置模型与供应商
+- `pi-footer-set-thinking-level!` - 设置思考等级
+- `pi-footer-message` - 获取临时提示消息
+- `pi-footer-set-message!` - 设置临时提示消息
+- `pi-footer-stats` - 获取当前设置的统计字符串
+- `pi-footer-set-stats!` - 设置统计字符串
+- `pi-footer-set-token-stats!` - 根据累计 Token 与最新命中率设置统计行（含 CHxx.x%）
