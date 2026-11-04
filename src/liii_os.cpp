@@ -52,6 +52,16 @@
 #endif
 #endif
 
+#ifdef __linux__
+#include <chrono>
+#include <condition_variable>
+#include <cstring>
+#include <dlfcn.h>
+#include <fcntl.h>
+#include <mutex>
+#include <thread>
+#endif
+
 #define GOLDFISH_PATH_MAXN TB_PATH_MAXN
 
 namespace goldfish {
@@ -1104,15 +1114,411 @@ win32_set_clipboard_text (const char* utf8_text) {
 }
 #endif
 
+#ifdef __linux__
+// X11 自包含类型定义（无需依赖 X11/Xlib.h，方便无桌面/无开发包环境编译）
+typedef void*         X11_Display;
+typedef unsigned long X11_Window;
+typedef unsigned long X11_Atom;
+typedef unsigned long X11_Time;
+
+#define X11_CurrentTime 0L
+#define X11_None 0L
+#define X11_False 0
+#define X11_True 1
+#define X11_PropModeReplace 0
+#define X11_SelectionClear 29
+#define X11_SelectionRequest 30
+#define X11_SelectionNotify 31
+
+#define XA_ATOM_VAL 4
+#define XA_STRING_VAL 31
+
+typedef struct {
+  int           type;
+  unsigned long serial;
+  int           send_event;
+  X11_Display   display;
+  X11_Window    window;
+  X11_Atom      selection;
+  X11_Atom      target;
+  X11_Atom      property;
+  X11_Time      time;
+  X11_Window    requestor;
+} X11_SelectionRequestEvent;
+
+typedef struct {
+  int           type;
+  unsigned long serial;
+  int           send_event;
+  X11_Display   display;
+  X11_Window    requestor;
+  X11_Atom      selection;
+  X11_Atom      target;
+  X11_Atom      property;
+  X11_Time      time;
+} X11_SelectionEvent;
+
+typedef struct {
+  int           type;
+  unsigned long serial;
+  int           send_event;
+  X11_Display   display;
+  X11_Window    window;
+  X11_Atom      selection;
+  X11_Time      time;
+} X11_SelectionClearEvent;
+
+typedef union {
+  int                       type;
+  X11_SelectionRequestEvent xselectionrequest;
+  X11_SelectionEvent        xselection;
+  X11_SelectionClearEvent   xselectionclear;
+  long                      pad[24];
+} X11_Event;
+
+typedef X11_Display (*fn_XOpenDisplay) (const char*);
+typedef int (*fn_XCloseDisplay) (X11_Display);
+typedef X11_Window (*fn_XDefaultRootWindow) (X11_Display);
+typedef X11_Window (*fn_XCreateSimpleWindow) (X11_Display, X11_Window, int, int, unsigned int, unsigned int,
+                                              unsigned int, unsigned long, unsigned long);
+typedef int (*fn_XDestroyWindow) (X11_Display, X11_Window);
+typedef X11_Atom (*fn_XInternAtom) (X11_Display, const char*, int);
+typedef int (*fn_XSetSelectionOwner) (X11_Display, X11_Atom, X11_Window, X11_Time);
+typedef X11_Window (*fn_XGetSelectionOwner) (X11_Display, X11_Atom);
+typedef int (*fn_XChangeProperty) (X11_Display, X11_Window, X11_Atom, X11_Atom, int, int, const unsigned char*, int);
+typedef int (*fn_XSendEvent) (X11_Display, X11_Window, int, long, X11_Event*);
+typedef int (*fn_XFlush) (X11_Display);
+typedef int (*fn_XPending) (X11_Display);
+typedef int (*fn_XNextEvent) (X11_Display, X11_Event*);
+typedef int (*fn_XConnectionNumber) (X11_Display);
+typedef int (*fn_XSetErrorHandler) (int (*) (X11_Display*, void*));
+typedef int (*fn_XSetIOErrorHandler) (int (*) (X11_Display*));
+
+struct X11Functions {
+  void*                  lib_handle         = nullptr;
+  fn_XOpenDisplay        XOpenDisplay       = nullptr;
+  fn_XCloseDisplay       XCloseDisplay      = nullptr;
+  fn_XDefaultRootWindow  XDefaultRootWindow = nullptr;
+  fn_XCreateSimpleWindow XCreateSimpleWindow= nullptr;
+  fn_XDestroyWindow      XDestroyWindow     = nullptr;
+  fn_XInternAtom         XInternAtom        = nullptr;
+  fn_XSetSelectionOwner  XSetSelectionOwner = nullptr;
+  fn_XGetSelectionOwner  XGetSelectionOwner = nullptr;
+  fn_XChangeProperty     XChangeProperty    = nullptr;
+  fn_XSendEvent          XSendEvent         = nullptr;
+  fn_XFlush              XFlush             = nullptr;
+  fn_XPending            XPending           = nullptr;
+  fn_XNextEvent          XNextEvent         = nullptr;
+  fn_XConnectionNumber   XConnectionNumber  = nullptr;
+  fn_XSetErrorHandler    XSetErrorHandler   = nullptr;
+  fn_XSetIOErrorHandler  XSetIOErrorHandler = nullptr;
+};
+
+static bool
+load_x11 (X11Functions& x) {
+  if (x.lib_handle) {
+    return true;
+  }
+  void* h= dlopen ("libX11.so.6", RTLD_LAZY);
+  if (!h) {
+    h= dlopen ("libX11.so", RTLD_LAZY);
+  }
+  if (!h) {
+    return false;
+  }
+
+#define LOAD_SYM(name)                                                                                                 \
+  x.name= (fn_##name) dlsym (h, #name);                                                                                \
+  if (!x.name) {                                                                                                       \
+    dlclose (h);                                                                                                       \
+    return false;                                                                                                      \
+  }
+
+  LOAD_SYM (XOpenDisplay);
+  LOAD_SYM (XCloseDisplay);
+  LOAD_SYM (XDefaultRootWindow);
+  LOAD_SYM (XCreateSimpleWindow);
+  LOAD_SYM (XDestroyWindow);
+  LOAD_SYM (XInternAtom);
+  LOAD_SYM (XSetSelectionOwner);
+  LOAD_SYM (XGetSelectionOwner);
+  LOAD_SYM (XChangeProperty);
+  LOAD_SYM (XSendEvent);
+  LOAD_SYM (XFlush);
+  LOAD_SYM (XPending);
+  LOAD_SYM (XNextEvent);
+  LOAD_SYM (XConnectionNumber);
+#undef LOAD_SYM
+
+  x.XSetErrorHandler  = (fn_XSetErrorHandler) dlsym (h, "XSetErrorHandler");
+  x.XSetIOErrorHandler= (fn_XSetIOErrorHandler) dlsym (h, "XSetIOErrorHandler");
+
+  x.lib_handle= h;
+  return true;
+}
+
+class X11Clipboard {
+public:
+  static X11Clipboard& instance () {
+    static X11Clipboard inst;
+    return inst;
+  }
+
+  bool set_text (const char* text) {
+    if (!text) {
+      return false;
+    }
+    const char* disp_env= getenv ("DISPLAY");
+    if (!disp_env || !*disp_env) {
+      return false;
+    }
+
+    std::unique_lock<std::mutex> lock (mutex_);
+    if (!init_locked (disp_env, lock)) {
+      return false;
+    }
+
+    current_text_    = text;
+    has_pending_copy_= true;
+    copy_ack_        = false;
+    copy_success_    = false;
+
+    char b= 1;
+    (void) write (pipe_fds_[1], &b, 1);
+
+    cv_.wait_for (lock, std::chrono::milliseconds (500), [this] { return copy_ack_; });
+
+    return copy_success_;
+  }
+
+private:
+  X11Clipboard () {
+    pipe_fds_[0]= -1;
+    pipe_fds_[1]= -1;
+  }
+
+  ~X11Clipboard () {
+    std::unique_lock<std::mutex> lock (mutex_);
+    stop_locked ();
+  }
+
+  bool init_locked (const char* disp_env, std::unique_lock<std::mutex>& lock) {
+    if (started_) {
+      if (active_disp_ == disp_env && worker_alive_) {
+        return true;
+      }
+      stop_locked ();
+    }
+
+    if (!load_x11 (x11_)) {
+      return false;
+    }
+
+    if (pipe (pipe_fds_) != 0) {
+      return false;
+    }
+    (void) fcntl (pipe_fds_[0], F_SETFL, O_NONBLOCK);
+
+    active_disp_     = disp_env;
+    started_         = true;
+    init_ack_        = false;
+    init_success_    = false;
+    worker_alive_    = true;
+    stop_flag_       = false;
+    has_pending_copy_= false;
+
+    worker_= std::thread (&X11Clipboard::worker_loop, this);
+
+    cv_.wait_for (lock, std::chrono::milliseconds (1000), [this] { return init_ack_; });
+
+    if (!init_success_) {
+      stop_locked ();
+      return false;
+    }
+    return true;
+  }
+
+  void stop_locked () {
+    if (started_) {
+      stop_flag_= true;
+      if (pipe_fds_[1] >= 0) {
+        char b= 0;
+        (void) write (pipe_fds_[1], &b, 1);
+      }
+      if (worker_.joinable ()) {
+        worker_.join ();
+      }
+      if (pipe_fds_[0] >= 0) {
+        close (pipe_fds_[0]);
+        pipe_fds_[0]= -1;
+      }
+      if (pipe_fds_[1] >= 0) {
+        close (pipe_fds_[1]);
+        pipe_fds_[1]= -1;
+      }
+      started_     = false;
+      stop_flag_   = false;
+      worker_alive_= false;
+    }
+  }
+
+  static int null_error_handler (X11_Display*, void*) { return 0; }
+  static int null_io_error_handler (X11_Display*) { return 0; }
+
+  void worker_loop () {
+    if (x11_.XSetErrorHandler) {
+      x11_.XSetErrorHandler (null_error_handler);
+    }
+    if (x11_.XSetIOErrorHandler) {
+      x11_.XSetIOErrorHandler (null_io_error_handler);
+    }
+
+    X11_Display dpy= x11_.XOpenDisplay (active_disp_.c_str ());
+    if (!dpy) {
+      std::unique_lock<std::mutex> lock (mutex_);
+      init_ack_    = true;
+      init_success_= false;
+      worker_alive_= false;
+      cv_.notify_all ();
+      return;
+    }
+
+    X11_Window root= x11_.XDefaultRootWindow (dpy);
+    X11_Window win = x11_.XCreateSimpleWindow (dpy, root, -10, -10, 1, 1, 0, 0, 0);
+
+    X11_Atom a_CLIPBOARD  = x11_.XInternAtom (dpy, "CLIPBOARD", X11_False);
+    X11_Atom a_UTF8_STRING= x11_.XInternAtom (dpy, "UTF8_STRING", X11_False);
+    X11_Atom a_TARGETS    = x11_.XInternAtom (dpy, "TARGETS", X11_False);
+
+    {
+      std::unique_lock<std::mutex> lock (mutex_);
+      init_ack_    = true;
+      init_success_= true;
+      cv_.notify_all ();
+    }
+
+    int         x11_fd= x11_.XConnectionNumber (dpy);
+    std::string text_to_serve;
+
+    while (!stop_flag_) {
+      {
+        std::unique_lock<std::mutex> lock (mutex_);
+        if (has_pending_copy_) {
+          text_to_serve    = current_text_;
+          has_pending_copy_= false;
+          x11_.XSetSelectionOwner (dpy, a_CLIPBOARD, win, X11_CurrentTime);
+          X11_Window owner= x11_.XGetSelectionOwner (dpy, a_CLIPBOARD);
+          copy_success_   = (owner == win);
+          x11_.XFlush (dpy);
+          copy_ack_= true;
+          cv_.notify_all ();
+        }
+      }
+
+      struct pollfd pfd[2];
+      pfd[0].fd    = x11_fd;
+      pfd[0].events= POLLIN;
+      pfd[1].fd    = pipe_fds_[0];
+      pfd[1].events= POLLIN;
+
+      int ret= poll (pfd, 2, 100);
+      if (ret > 0) {
+        if (pfd[1].revents & POLLIN) {
+          char buf[32];
+          while (read (pipe_fds_[0], buf, sizeof (buf)) > 0) {
+          }
+          if (stop_flag_) {
+            break;
+          }
+        }
+      }
+
+      while (x11_.XPending (dpy) > 0) {
+        X11_Event ev;
+        x11_.XNextEvent (dpy, &ev);
+        if (ev.type == X11_SelectionRequest) {
+          X11_SelectionRequestEvent* req= &ev.xselectionrequest;
+          X11_Event                  notify;
+          memset (&notify, 0, sizeof (notify));
+          notify.type                = X11_SelectionNotify;
+          notify.xselection.display  = req->display;
+          notify.xselection.requestor= req->requestor;
+          notify.xselection.selection= req->selection;
+          notify.xselection.target   = req->target;
+          notify.xselection.time     = req->time;
+          notify.xselection.property = req->property;
+
+          X11_Atom target_prop= req->property;
+          if (target_prop == X11_None) {
+            target_prop= req->target;
+          }
+
+          if (req->selection == a_CLIPBOARD) {
+            if (req->target == a_TARGETS) {
+              X11_Atom targets[3]= {a_TARGETS, a_UTF8_STRING, (X11_Atom) XA_STRING_VAL};
+              x11_.XChangeProperty (dpy, req->requestor, target_prop, (X11_Atom) XA_ATOM_VAL, 32, X11_PropModeReplace,
+                                    (const unsigned char*) targets, 3);
+              notify.xselection.property= target_prop;
+            }
+            else if (req->target == a_UTF8_STRING || req->target == (X11_Atom) XA_STRING_VAL) {
+              x11_.XChangeProperty (dpy, req->requestor, target_prop, req->target, 8, X11_PropModeReplace,
+                                    (const unsigned char*) text_to_serve.data (), (int) text_to_serve.size ());
+              notify.xselection.property= target_prop;
+            }
+            else {
+              notify.xselection.property= X11_None;
+            }
+          }
+          else {
+            notify.xselection.property= X11_None;
+          }
+
+          x11_.XSendEvent (dpy, req->requestor, X11_False, 0, &notify);
+          x11_.XFlush (dpy);
+        }
+      }
+    }
+
+    x11_.XDestroyWindow (dpy, win);
+    x11_.XCloseDisplay (dpy);
+  }
+
+  std::mutex              mutex_;
+  std::condition_variable cv_;
+  std::thread             worker_;
+  std::string             current_text_;
+  std::string             active_disp_;
+  int                     pipe_fds_[2];
+  bool                    started_         = false;
+  bool                    stop_flag_       = false;
+  bool                    worker_alive_    = false;
+  bool                    init_ack_        = false;
+  bool                    init_success_    = false;
+  bool                    has_pending_copy_= false;
+  bool                    copy_ack_        = false;
+  bool                    copy_success_    = false;
+  X11Functions            x11_;
+};
+
+static bool
+linux_set_clipboard_text (const char* utf8_text) {
+  return X11Clipboard::instance ().set_text (utf8_text);
+}
+#endif
+
 static s7_pointer
 f_os_set_clipboard_text (s7_scheme* sc, s7_pointer args) {
   s7_pointer text_arg= s7_car (args);
   if (!s7_is_string (text_arg)) {
     return string_type_error (sc, "os-set-clipboard-text!: expected string", text_arg);
   }
-#ifdef TB_CONFIG_OS_WINDOWS
+#if defined(TB_CONFIG_OS_WINDOWS)
   const char* str= s7_string (text_arg);
   bool        ok = win32_set_clipboard_text (str);
+  return s7_make_boolean (sc, ok);
+#elif defined(__linux__)
+  const char* str= s7_string (text_arg);
+  bool        ok = linux_set_clipboard_text (str);
   return s7_make_boolean (sc, ok);
 #else
   return s7_make_boolean (sc, false);

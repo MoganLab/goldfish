@@ -3,6 +3,7 @@
     pathsep os-call mkdir chdir rmdir remove rename getenv putenv unsetenv
     getcwd listdir access getlogin getpid isdir os-tty? console-kbhit?
     console-getch console-raw-mode! console-raw-mode-state os-terminal-size
+    os-set-clipboard-text!
   ) ;export
   (import (scheme base)
     (scheme process-context)
@@ -193,6 +194,13 @@
 
     (define (os-terminal-size)
       (g_terminal_size)
+    ) ;define
+
+    (define (os-set-clipboard-text! text)
+      (if (not (string? text))
+        (type-error "os-set-clipboard-text!: text must be a string")
+        (g_os_set_clipboard_text text)
+      ) ;if
     ) ;define
 
   ) ;begin
