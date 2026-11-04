@@ -1,8 +1,3 @@
-(import (liii check))
-(import (liii string) (liii goldfmt format reader) (liii goldfmt format atom))
-
-(check-set-mode! 'report-failed)
-
 ;; format-reader-datum-at
 ;; 将 datum 按 reader 风格格式化为文本，从指定缩进列开始计量。
 ;;
@@ -19,15 +14,30 @@
 ;; ------
 ;; string?
 
+(import (liii check))
+(import (liii string) (liii goldfmt format reader) (liii goldfmt format atom))
+
+(check-set-mode! 'report-failed)
+
+
 ;; 测试：短 datum 内联不受缩进影响
 (check (format-reader-datum-at '(+ 1 2) 0) => "(+ 1 2)")
 
 ;; 测试：缩进导致长 list 换行
-(let ((text (format-reader-datum-at '(list aaaa bbbb cccc dddd eeee ffff gggg hhhh iiii jjjj kkkk aaaa bbbb cccc dddd eeee ffff gggg hhhh) 10)))
+(let ((text (format-reader-datum-at '(list aaaa bbbb cccc dddd eeee ffff gggg
+                                       hhhh iiii jjjj kkkk aaaa bbbb cccc dddd
+                                       eeee ffff gggg hhhh)
+              10
+            ) ;format-reader-datum-at
+      ) ;text
+     ) ;
   (check (string-contains? text "\n") => #t)
 ) ;let
 
 ;; 测试：quote 在缩进下仍带 '
-(check (format-reader-datum-at (read (open-input-string "'(a b)")) 5) => "'(a b)")
+(check (format-reader-datum-at (read (open-input-string "'(a b)")) 5)
+  =>
+  "'(a b)"
+) ;check
 
 (check-report)
