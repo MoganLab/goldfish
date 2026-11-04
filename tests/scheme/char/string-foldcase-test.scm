@@ -1,5 +1,3 @@
-(import (liii check) (scheme char))
-(check-set-mode! 'report-failed)
 ;; string-foldcase
 ;; 将字符串转换为大小写无关的折叠形式（通常为小写）。
 ;;
@@ -28,6 +26,9 @@
 ;; ------
 ;; type-error
 ;; 参数必须是字符串类型，否则会抛出异常
+
+(import (liii check) (scheme char))
+(check-set-mode! 'report-failed)
 ;; 基本功能测试
 (check (string-foldcase "HELLO") => "hello")
 (check (string-foldcase "hello") => "hello")
@@ -61,4 +62,5 @@
 ;; UTF-8 测试
 (check (string-foldcase "ABC中文") => "abc中文")
 (check (string-foldcase "RÉSUMÉ") => "résumé")
+
 (check-report)

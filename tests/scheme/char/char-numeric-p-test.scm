@@ -1,6 +1,3 @@
-(import (liii check) (scheme char))
-(check-set-mode! 'report-failed)
-
 ;; char-numeric?
 ;; 判断字符是否为数字。
 ;;
@@ -30,6 +27,10 @@
 ;; ------
 ;; type-error
 ;; 参数必须是字符类型，否则会抛出异常
+
+(import (liii check) (scheme char))
+(check-set-mode! 'report-failed)
+
 
 ;; ASCII 数字测试
 (check (char-numeric? #\x30) => #t)

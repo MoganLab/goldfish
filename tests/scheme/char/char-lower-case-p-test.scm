@@ -1,5 +1,3 @@
-(import (liii check) (scheme char))
-(check-set-mode! 'report-failed)
 ;; char-lower-case?
 ;; 判断字符是否为小写字母字符。
 ;;
@@ -27,6 +25,9 @@
 ;; ------
 ;; type-error
 ;; 参数必须是字符类型，否则会抛出异常
+
+(import (liii check) (scheme char))
+(check-set-mode! 'report-failed)
 ;; ASCII 小写字母测试
 (check (char-lower-case? #\a) => #t)
 (check (char-lower-case? #\b) => #t)

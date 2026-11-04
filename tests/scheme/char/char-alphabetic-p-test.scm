@@ -1,6 +1,3 @@
-(import (liii check) (scheme char))
-(check-set-mode! 'report-failed)
-
 ;; char-alphabetic?
 ;; 判断字符是否为字母字符。
 ;;
@@ -29,6 +26,10 @@
 ;; ------
 ;; type-error
 ;; 参数必须是字符类型，否则会抛出异常
+
+(import (liii check) (scheme char))
+(check-set-mode! 'report-failed)
+
 
 ;; ASCII 字母测试
 (check (char-alphabetic? #\x0041) => #t)
