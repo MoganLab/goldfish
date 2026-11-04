@@ -1,9 +1,3 @@
-(import (liii check)
-        (liii syntax-case)
-        (scheme base))
-
-(check-set-mode! 'report-failed)
-
 ;; with-syntax
 ;; 为局部表达式模式匹配绑定模式变量，以便在内部的 syntax 模板中引用。
 ;;
@@ -23,6 +17,12 @@
 ;; -----
 ;; any
 ;; 最后一个 body 表达式的求值结果。
+
+(import (liii check)
+        (liii syntax-case)
+        (scheme base))
+
+(check-set-mode! 'report-failed)
 
 ;; 1. 局部模式变量解构与计算
 (check (with-syntax (((a b) '(10 20)))

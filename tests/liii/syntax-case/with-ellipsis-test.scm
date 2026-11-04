@@ -1,9 +1,3 @@
-(import (liii check)
-        (liii syntax-case)
-        (scheme base))
-
-(check-set-mode! 'report-failed)
-
 ;; with-ellipsis
 ;; 在局部语法模板中指定自定义标识符作为省略号关键字（目前尚未实现，调用抛出 unimplemented 错误）。
 ;;
@@ -23,6 +17,12 @@
 ;; -----
 ;; any
 ;; 最后一个 body 表达式的求值结果。
+
+(import (liii check)
+        (liii syntax-case)
+        (scheme base))
+
+(check-set-mode! 'report-failed)
 
 ;; 1. 当前尚未支持自定义省略号，预期抛出 unimplemented 错误
 (check-catch 'unimplemented

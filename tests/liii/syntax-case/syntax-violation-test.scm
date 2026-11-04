@@ -1,9 +1,3 @@
-(import (liii check)
-        (liii syntax-case)
-        (scheme base))
-
-(check-set-mode! 'report-failed)
-
 ;; syntax-violation
 ;; 在宏展开或语法检查阶段抛出格式化的语法错误异常。
 ;;
@@ -28,6 +22,12 @@
 ;; 返回值
 ;; -----
 ;; 不返回，直接抛出 'syntax-error 异常。
+
+(import (liii check)
+        (liii syntax-case)
+        (scheme base))
+
+(check-set-mode! 'report-failed)
 
 ;; 1. 抛出基础语法错误
 (check-catch 'syntax-error

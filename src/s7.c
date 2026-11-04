@@ -9652,7 +9652,7 @@ s7_pointer s7_make_slot(s7_scheme *sc, s7_pointer let, s7_pointer symbol, s7_poi
 	  set_local_slot(symbol, slot);
 	}
       symbol_increment_ctr(symbol);
-      if (is_gensym(symbol))
+      if ((is_gensym(symbol)) && (in_heap(symbol)))
 	remove_gensym_from_heap(sc, symbol);
       return(slot);
     }

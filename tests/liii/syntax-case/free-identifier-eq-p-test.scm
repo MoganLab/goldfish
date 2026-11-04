@@ -1,9 +1,3 @@
-(import (liii check)
-        (liii syntax-case)
-        (scheme base))
-
-(check-set-mode! 'report-failed)
-
 ;; free-identifier=?
 ;; 判断两个标识符在各自绑定的使用环境中是否具有相同的有效词法/顶层绑定。
 ;;
@@ -23,6 +17,12 @@
 ;; -----
 ;; boolean
 ;; 若两者具有相同绑定则返回 #t，否则返回 #f。
+
+(import (liii check)
+        (liii syntax-case)
+        (scheme base))
+
+(check-set-mode! 'report-failed)
 
 ;; 1. 相同符号标识符
 (check-true (free-identifier=? 'a 'a))
