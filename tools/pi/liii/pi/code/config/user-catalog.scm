@@ -161,23 +161,21 @@
              (slash? (and (string? m) (string-contains? m "/")))
              (parts (if slash? (string-split m "/") '()))
              (first-part (and slash? (pair? parts) (car parts)))
-             (first-is-provider?
-               (and first-part
-                    (or (assoc first-part PI_PROVIDERS)
-                        (member first-part PI_SUPPORTED_PROVIDERS))))
-             (eff-p
-               (cond
-                 (first-is-provider? first-part)
-                 (p p)
-                 (else "google")))
+             (first-is-provider? (and first-part
+                                   (or (assoc first-part PI_PROVIDERS) (member first-part PI_SUPPORTED_PROVIDERS))
+                                 ) ;and
+             ) ;first-is-provider?
+             (eff-p (cond (first-is-provider? first-part) (p p) (else "google")))
              (eff-m
-               (cond
-                 ((not m) "gemini-3.8-flash")
-                 (first-is-provider?
-                  (substring m (+ (string-length first-part) 1) (string-length m)))
-                 ((and p (string-starts? m (string-append p "/")))
-                  (substring m (+ (string-length p) 1) (string-length m)))
-                 (else m)))
+               (cond ((not m) "gemini-3.8-flash")
+                     (first-is-provider? (substring m (+ (string-length first-part) 1) (string-length m))
+                     ) ;first-is-provider?
+                     ((and p (string-starts? m (string-append p "/")))
+                      (substring m (+ (string-length p) 1) (string-length m))
+                     ) ;
+                     (else m)
+               ) ;cond
+             ) ;eff-m
             ) ;
         (values eff-p eff-m)
       ) ;let*

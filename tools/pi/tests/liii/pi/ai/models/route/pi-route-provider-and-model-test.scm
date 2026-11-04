@@ -300,9 +300,11 @@
 ;; 9.3 验证 minimax-cn 在未指定 model 时正确路由到默认模型 MiniMax-M3.1-Flash（无外部 models.json 纯内置环境）
 (check-route "minimax-cn" "MiniMax-M3.1-Flash" "minimax-cn" #f)
 
-;; 9.4 验证 ollama 路由支持
+;; 9.4 验证 ollama 路由支持（含带斜杠的本地动态加载模型）
 (check-route "ollama" "qwen2.5-coder:latest" "ollama" #f)
 (check-route "ollama" "qwen2.5-coder:latest" #f "ollama/qwen2.5-coder:latest")
 (check-route "ollama" "qwen2.5-coder:latest" "ollama" "qwen2.5-coder:latest")
+(check-route "ollama" "rafw007/qwen35-claude-coder:9b" #f "ollama/rafw007/qwen35-claude-coder:9b")
+(check-route "ollama" "rafw007/qwen35-claude-coder:9b" "ollama" "rafw007/qwen35-claude-coder:9b")
 
 (check-report)

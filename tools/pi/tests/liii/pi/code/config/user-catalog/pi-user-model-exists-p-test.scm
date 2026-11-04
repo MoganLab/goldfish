@@ -40,4 +40,9 @@
   #f
 ) ;check
 
+(check (pi-user-model-exists? (string-append FIXTURE "/full") "ollama" "rafw007/qwen35-claude-coder:9b")
+  =>
+  #t
+) ;check
+
 (check-report)

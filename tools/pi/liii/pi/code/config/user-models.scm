@@ -84,11 +84,12 @@
 
     ;; ---------- 模型文件 ----------
 
-    ;; 判断模型是否存在于内置目录或模型文件中
+    ;; 判断模型是否存在于内置目录或模型文件中（ollama 允许本地任意模型）
     (define (pi-user-model-exists? config-dir p-id m-id)
       (and (string? p-id)
         (string? m-id)
-        (or (and (%find-builtin (%builtin-table p-id) m-id) #t)
+        (or (equal? p-id "ollama")
+          (and (%find-builtin (%builtin-table p-id) m-id) #t)
           (let* ((path-str (pi-user-config-path config-dir "models" p-id (string-append m-id ".json"))
                  ) ;path-str
                 ) ;

@@ -48,4 +48,10 @@
   #f
 ) ;check
 
+;; ollama 本地动态模型始终为 #t
+(check (pi-user-model-exists? (string-append FIXTURE "/full") "ollama" "rafw007/qwen35-claude-coder:9b")
+  =>
+  #t
+) ;check
+
 (check-report)

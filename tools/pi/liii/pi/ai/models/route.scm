@@ -62,11 +62,14 @@
 
     ;; 模型可用性判定：以传入的模型目录为准（内置目录已由上层合并进目录）。
     ;; 不再回退到内置目录，否则 providers.json / models 白名单会形同虚设。
+    ;; 本地 ollama 服务由本地动态加载模型，允许任意模型 id。
     (define (pi-provider-has-model? provider model-id models-store)
       (let* ((p-str (if (symbol? provider) (symbol->string provider) provider))
              (store-models (%get-provider-models models-store p-str))
             ) ;
-        (and (%find-model-in-list store-models model-id) #t)
+        (or (equal? p-str "ollama")
+          (and (%find-model-in-list store-models model-id) #t)
+        ) ;or
       ) ;let*
     ) ;define
 
