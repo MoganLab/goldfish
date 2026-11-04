@@ -1,9 +1,3 @@
-(import (scheme base)
-  (liii check)
-  (liii pi code core session-stats))
-
-(check-set-mode! 'report-failed)
-
 ;; pi-session-token-stats?
 ;; 判断对象是否为会话 token 统计 record。
 ;;
@@ -21,9 +15,12 @@
 ;; boolean
 ;; 仅对 pi-session-token-stats record 返回 #t。
 ;;
-;; 示例
-;; ----
-;; (pi-session-token-stats? '()) => #f
+
+(import (scheme base)
+  (liii check)
+  (liii pi code core session-stats))
+
+(check-set-mode! 'report-failed)
 
 (check-true (pi-session-token-stats? (make-pi-session-token-stats 0 0 0 0)))
 (check-false (pi-session-token-stats? #f))

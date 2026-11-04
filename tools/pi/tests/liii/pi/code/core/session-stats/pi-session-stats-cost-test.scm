@@ -1,9 +1,3 @@
-(import (scheme base)
-  (liii check)
-  (liii pi code core session-stats))
-
-(check-set-mode! 'report-failed)
-
 ;; pi-session-stats-cost
 ;; 返回会话累计费用。
 ;;
@@ -21,9 +15,12 @@
 ;; number
 ;; 所有助手消息费用的总和。
 ;;
-;; 示例
-;; ----
-;; (pi-session-stats-cost stats) => 0.5
+
+(import (scheme base)
+  (liii check)
+  (liii pi code core session-stats))
+
+(check-set-mode! 'report-failed)
 
 (let ((paid (make-pi-session-stats #f #f #f 0 0 0 0 0
               (make-pi-session-token-stats 0 0 0 0) 0.5))

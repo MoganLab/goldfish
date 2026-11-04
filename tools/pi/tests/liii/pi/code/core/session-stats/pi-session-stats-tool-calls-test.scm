@@ -1,9 +1,3 @@
-(import (scheme base)
-  (liii check)
-  (liii pi code core session-stats))
-
-(check-set-mode! 'report-failed)
-
 ;; pi-session-stats-tool-calls
 ;; 返回助手消息中的工具调用数量。
 ;;
@@ -21,9 +15,12 @@
 ;; integer
 ;; toolCall 内容块的总数量。
 ;;
-;; 示例
-;; ----
-;; (pi-session-stats-tool-calls stats) => 2
+
+(import (scheme base)
+  (liii check)
+  (liii pi code core session-stats))
+
+(check-set-mode! 'report-failed)
 
 (let ((stats (make-pi-session-stats #f #f #f 2 0 2 2 0
                (make-pi-session-token-stats 0 0 0 0) 0)))

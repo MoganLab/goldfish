@@ -21,7 +21,8 @@
     pi-session-stats-session-name pi-session-stats-total-messages
     pi-session-stats-user-messages pi-session-stats-assistant-messages
     pi-session-stats-tool-calls pi-session-stats-tool-results
-    pi-session-stats-tokens pi-session-stats-cost
+    pi-session-stats-tokens pi-session-stats-cost pi-format-token-count
+    pi-calculate-cache-hit-rate pi-format-token-stats
   ) ;export
   (begin
 
@@ -216,6 +217,98 @@
              ) ;fraction
             ) ;
         (string-append (if negative? "-" "") (number->string integer-part) fraction)
+      ) ;let*
+    ) ;define
+
+    (define (pi-format-token-count count)
+      (let ((c (inexact->exact (round (or count 0)))))
+        (cond ((< c 1000) (number->string c))
+              ((< c 10000) (string-append (%fixed (/ c 1000.0) 1) "k"))
+              ((< c 1000000)
+               (string-append
+                 (number->string (inexact->exact (round (/ c 1000.0))))
+                 "k"
+               ) ;string-append
+              ) ;
+              (else (string-append (%fixed (/ c 1000000.0) 1) "M"))
+        ) ;cond
+      ) ;let
+    ) ;define
+
+    (define (pi-calculate-cache-hit-rate . args)
+      (let* ((triplet
+               (cond ((null? args) '(0 0 0))
+                     ((= (length args) 1)
+                      (let ((arg (car args)))
+                        (cond ((pi-session-token-stats? arg)
+                               (list (pi-session-token-stats-input arg)
+                                 (pi-session-token-stats-cache-read arg)
+                                 (pi-session-token-stats-cache-write arg)
+                               ) ;list
+                              ) ;
+                              ((pair? arg)
+                               (list (%ref arg 'input 0) (%ref arg 'cacheRead 0) (%ref arg 'cacheWrite 0))
+                              ) ;
+                              (else '(0 0 0))
+                        ) ;cond
+                      ) ;let
+                     ) ;
+                     ((>= (length args) 3) (list (car args) (cadr args) (caddr args)))
+                     (else '(0 0 0))
+               ) ;cond
+             ) ;triplet
+             (in (car triplet))
+             (c-read (cadr triplet))
+             (c-write (caddr triplet))
+             (prompt-tokens (+ in c-read c-write))
+            ) ;
+        (if (and (> prompt-tokens 0) (> (+ c-read c-write) 0))
+          (* 100.0 (/ c-read prompt-tokens))
+          #f
+        ) ;if
+      ) ;let*
+    ) ;define
+
+    (define (pi-format-token-stats tokens . rest)
+      (let* ((latest-hit-rate (if (pair? rest) (car rest) #f))
+             (in (if (pi-session-token-stats? tokens)
+                   (pi-session-token-stats-input tokens)
+                   (%ref tokens 'input 0)
+                 ) ;if
+             ) ;in
+             (out (if (pi-session-token-stats? tokens)
+                    (pi-session-token-stats-output tokens)
+                    (%ref tokens 'output 0)
+                  ) ;if
+             ) ;out
+             (c-read (if (pi-session-token-stats? tokens)
+                       (pi-session-token-stats-cache-read tokens)
+                       (%ref tokens 'cacheRead 0)
+                     ) ;if
+             ) ;c-read
+             (c-write (if (pi-session-token-stats? tokens)
+                        (pi-session-token-stats-cache-write tokens)
+                        (%ref tokens 'cacheWrite 0)
+                      ) ;if
+             ) ;c-write
+             (parts '())
+            ) ;
+        (when (> in 0)
+          (set! parts (cons (string-append "↑" (pi-format-token-count in)) parts))
+        ) ;when
+        (when (> out 0)
+          (set! parts (cons (string-append "↓" (pi-format-token-count out)) parts))
+        ) ;when
+        (when (> c-read 0)
+          (set! parts (cons (string-append "R" (pi-format-token-count c-read)) parts))
+        ) ;when
+        (when (> c-write 0)
+          (set! parts (cons (string-append "W" (pi-format-token-count c-write)) parts))
+        ) ;when
+        (when (and (or (> c-read 0) (> c-write 0)) (number? latest-hit-rate))
+          (set! parts (cons (string-append "CH" (%fixed latest-hit-rate 1) "%") parts))
+        ) ;when
+        (string-join (reverse parts) " ")
       ) ;let*
     ) ;define
 

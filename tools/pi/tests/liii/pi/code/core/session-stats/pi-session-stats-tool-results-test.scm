@@ -1,9 +1,3 @@
-(import (scheme base)
-  (liii check)
-  (liii pi code core session-stats))
-
-(check-set-mode! 'report-failed)
-
 ;; pi-session-stats-tool-results
 ;; 返回工具结果消息数量。
 ;;
@@ -21,9 +15,12 @@
 ;; integer
 ;; role 为 toolResult 的消息数量。
 ;;
-;; 示例
-;; ----
-;; (pi-session-stats-tool-results stats) => 1
+
+(import (scheme base)
+  (liii check)
+  (liii pi code core session-stats))
+
+(check-set-mode! 'report-failed)
 
 (let ((stats (make-pi-session-stats #f #f #f 1 0 0 0 1
                (make-pi-session-token-stats 0 0 0 0) 0)))
