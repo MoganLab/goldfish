@@ -271,6 +271,29 @@ is_quote_form (s7_scheme* sc, s7_pointer p) {
 }
 
 static bool
+is_define_form (s7_scheme* sc, s7_pointer p) {
+  p= synclo_expr (sc, p);
+  if (s7_is_symbol (p)) {
+    const char* name= s7_symbol_name (p);
+    return (strcmp (name, "define") == 0 || strcmp (name, "define*") == 0 ||
+            strcmp (name, "define-macro") == 0 || strcmp (name, "define-macro*") == 0 ||
+            strcmp (name, "define-bacro") == 0 || strcmp (name, "define-bacro*") == 0 ||
+            strcmp (name, "define-values") == 0 || strcmp (name, "define-syntax") == 0);
+  }
+  if (s7_is_syntax (p)) {
+    char* str = s7_object_to_c_string (sc, p);
+    bool  is_d= (str && (strcmp (str, "define") == 0 || strcmp (str, "#_define") == 0 ||
+                         strcmp (str, "define*") == 0 || strcmp (str, "define-macro") == 0 ||
+                         strcmp (str, "define-macro*") == 0 || strcmp (str, "define-bacro") == 0 ||
+                         strcmp (str, "define-bacro*") == 0 || strcmp (str, "define-values") == 0 ||
+                         strcmp (str, "define-syntax") == 0));
+    if (str) free (str);
+    return is_d;
+  }
+  return false;
+}
+
+static bool
 is_auxiliary_syntax (const char* name) {
   return (strcmp (name, "=>") == 0 || strcmp (name, "else") == 0 || strcmp (name, "_") == 0 ||
           strcmp (name, "...") == 0);
@@ -336,6 +359,19 @@ resolve_ast (s7_scheme* sc, s7_pointer x, s7_pointer def_env, synclo_rename_entr
       s7_gc_protect_via_stack (sc, stripped_kdr);
       s7_pointer res= (resolved_kar == kar && stripped_kdr == cdr_x) ? x : s7_cons (sc, resolved_kar, stripped_kdr);
       s7_gc_unprotect_via_stack (sc, stripped_kdr);
+      s7_gc_unprotect_via_stack (sc, resolved_kar);
+      return res;
+    }
+    if (is_define_form (sc, kar) && s7_is_pair (cdr_x)) {
+      s7_pointer resolved_kar= resolve_ast (sc, kar, def_env, memo_head);
+      s7_gc_protect_via_stack (sc, resolved_kar);
+      s7_pointer stripped_target= strip_synclos (sc, s7_car (cdr_x));
+      s7_gc_protect_via_stack (sc, stripped_target);
+      s7_pointer resolved_body= resolve_ast (sc, s7_cdr (cdr_x), def_env, memo_head);
+      s7_gc_protect_via_stack (sc, resolved_body);
+      s7_pointer res= s7_cons (sc, resolved_kar, s7_cons (sc, stripped_target, resolved_body));
+      s7_gc_unprotect_via_stack (sc, resolved_body);
+      s7_gc_unprotect_via_stack (sc, stripped_target);
       s7_gc_unprotect_via_stack (sc, resolved_kar);
       return res;
     }

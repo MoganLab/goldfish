@@ -1,9 +1,3 @@
-(import (liii check)
-        (liii syntax-case)
-        (scheme base))
-
-(check-set-mode! 'report-failed)
-
 ;; syntax
 ;; 构建带有词法上下文信息的语法对象模板。
 ;;
@@ -20,6 +14,12 @@
 ;; -----
 ;; syntax / any
 ;; 展开并保留词法上下文的语法对象。
+
+(import (liii check)
+        (liii syntax-case)
+        (scheme base))
+
+(check-set-mode! 'report-failed)
 
 ;; 1. 基础语法模板与常数
 (check (syntax (+ 1 2)) => '(+ 1 2))

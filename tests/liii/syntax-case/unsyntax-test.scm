@@ -1,9 +1,3 @@
-(import (liii check)
-        (liii syntax-case)
-        (scheme base))
-
-(check-set-mode! 'report-failed)
-
 ;; unsyntax
 ;; 在 quasisyntax 准引用语法模板内部求值表达式，并将结果嵌入模板。
 ;;
@@ -20,6 +14,12 @@
 ;; -----
 ;; any
 ;; 表达式的计算结果。
+
+(import (liii check)
+        (liii syntax-case)
+        (scheme base))
+
+(check-set-mode! 'report-failed)
 
 ;; 1. 基本求值嵌入
 (check (quasisyntax (foo (unsyntax 100))) => '(foo 100))

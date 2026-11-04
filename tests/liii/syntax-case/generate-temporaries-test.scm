@@ -1,9 +1,3 @@
-(import (liii check)
-        (liii syntax-case)
-        (scheme base))
-
-(check-set-mode! 'report-failed)
-
 ;; generate-temporaries
 ;; 为输入列表中的每个元素生成一个新的、互不冲突的唯一临时标识符。
 ;;
@@ -20,6 +14,12 @@
 ;; -----
 ;; list of identifier
 ;; 与 l 长度相同的新临时标识符列表。
+
+(import (liii check)
+        (liii syntax-case)
+        (scheme base))
+
+(check-set-mode! 'report-failed)
 
 ;; 1. 生成指定长度的临时变量列表
 (let ((temps (generate-temporaries '(a b c))))

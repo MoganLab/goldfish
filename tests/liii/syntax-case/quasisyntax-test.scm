@@ -1,9 +1,3 @@
-(import (liii check)
-        (liii syntax-case)
-        (scheme base))
-
-(check-set-mode! 'report-failed)
-
 ;; quasisyntax
 ;; 构建准引用语法模板，允许在模板内部通过 unsyntax 与 unsyntax-splicing 插入计算值。
 ;;
@@ -20,6 +14,12 @@
 ;; -----
 ;; syntax / any
 ;; 经 unsyntax 求值替换后的语法对象。
+
+(import (liii check)
+        (liii syntax-case)
+        (scheme base))
+
+(check-set-mode! 'report-failed)
 
 ;; 1. 基础常数与字面量
 (check (quasisyntax (+ 1 2)) => '(+ 1 2))

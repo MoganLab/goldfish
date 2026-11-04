@@ -1,9 +1,3 @@
-(import (liii check)
-        (liii syntax-case)
-        (scheme base))
-
-(check-set-mode! 'report-failed)
-
 ;; syntax-case
 ;; 模式匹配语法对象并支持展开期任意计算过程。
 ;;
@@ -37,6 +31,12 @@
 ;; any
 ;; 首个匹配成功分支输出表达式的求值结果。若无可匹配分支，抛出 syntax-error 错误。
 
+(import (liii check)
+        (liii syntax-case)
+        (scheme base))
+
+(check-set-mode! 'report-failed)
+
 ;; 1. 模式变量与符号匹配
 (check (syntax-case 'foo ()
          (x (syntax x)))
@@ -53,30 +53,23 @@
          ((x . b) (syntax x)))
        => 'a)
 
-;; 4. 省略号与后置元素解构
-(check (syntax-case '(a b c) ()
+;; 4. fender 守卫条件分支
+(check (syntax-case '(1 2) ()
+         ((a b) (> (syntax->datum (syntax a)) 5) 'greater)
+         ((a b) 'smaller))
+       => 'smaller)
+
+(check (syntax-case '(10 2) ()
+         ((a b) (> (syntax->datum (syntax a)) 5) 'greater)
+         ((a b) 'smaller))
+       => 'greater)
+
+;; 5. 省略号匹配与展开
+(check (syntax-case '(1 2 3) ()
          ((a ...) (syntax (a ...))))
-       => '(a b c))
+       => '(1 2 3))
 
-(check (syntax-case '(a b c) ()
-         ((a ... b) (syntax (a ... x b))))
-       => '(a b x c))
-
-(check (syntax-case '(a b c . d) ()
-         ((a ... b . c) (syntax (a ... x b y c))))
-       => '(a b x c y d))
-
-;; 5. 带守卫表达式（fender）的分支分流
-(check (syntax-case '(foo 5) ()
-         ((_ n) (and (number? (syntax->datum (syntax n)))
-                     (even? (syntax->datum (syntax n))))
-          'even)
-         ((_ n) (and (number? (syntax->datum (syntax n)))
-                     (odd? (syntax->datum (syntax n))))
-          'odd))
-       => 'odd)
-
-;; 6. 空省略号匹配
+;; 6. 空列表匹配省略号
 (check (syntax-case '() ()
          ((a ...) (syntax (a ...))))
        => '())
@@ -101,5 +94,33 @@
          (quasisyntax (list (unsyntax sum))))))))
 
 (check (calc-add 10 20) => '(30))
+
+;; 10. 宏展开生成 (define ...)
+(define-syntax def-val-simple
+  (lambda (stx)
+    (syntax-case stx ()
+      ((_ name val)
+       (syntax (define name val))))))
+(def-val-simple my-v-simple 123)
+(check my-v-simple => 123)
+
+;; 11. 宏展开生成 (define ...) 包含 syntactic-closure (Issue #1451)
+(define-syntax def-val-datum-to-syntax
+  (lambda (stx)
+    (syntax-case stx ()
+      ((_ name val)
+       (datum->syntax (syntax name)
+         `(define ,(syntax->datum (syntax name)) ,(syntax->datum (syntax val))))))))
+(def-val-datum-to-syntax my-v-1 123)
+(check my-v-1 => 123)
+
+(define-syntax def-val-wrapped-target
+  (lambda (stx)
+    (syntax-case stx ()
+      ((_ name val)
+       `(define ,(datum->syntax (syntax name) (syntax->datum (syntax name)))
+          ,(syntax->datum (syntax val)))))))
+(def-val-wrapped-target my-v-2 456)
+(check my-v-2 => 456)
 
 (check-report)

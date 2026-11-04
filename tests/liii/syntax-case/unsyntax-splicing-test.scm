@@ -1,9 +1,3 @@
-(import (liii check)
-        (liii syntax-case)
-        (scheme base))
-
-(check-set-mode! 'report-failed)
-
 ;; unsyntax-splicing
 ;; 在 quasisyntax 准引用语法模板内部求值表达式，并将求值得到的列表元素平铺拼接嵌入模板。
 ;;
@@ -20,6 +14,12 @@
 ;; -----
 ;; list
 ;; 解包后的元素序列。
+
+(import (liii check)
+        (liii syntax-case)
+        (scheme base))
+
+(check-set-mode! 'report-failed)
 
 ;; 1. 列表解包嵌入
 (check (quasisyntax (list 0 (unsyntax-splicing (list 1 2 3)) 4))
