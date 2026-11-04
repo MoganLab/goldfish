@@ -10,6 +10,7 @@
     (liii raw-string)
     (liii string)
     (liii list)
+    (liii error)
     (liii sys)
     (liii path)
     (liii pi code cli args)
@@ -259,14 +260,6 @@
       ) ;if
     ) ;define
 
-    (define (%format-catch-error err-type info)
-      (cond
-       ((and (pair? info) (string? (car info))) (car info))
-       ((and (pair? info) (pair? (car info)) (string? (caar info))) (caar info))
-       (else (object->string (cons err-type info)))
-      ) ;cond
-    ) ;define
-
     (define (%cli-error-use-color?)
       (let ((force-color (get-environment-variable "FORCE_COLOR")))
         (cond
@@ -365,7 +358,7 @@
           ) ;let
         ) ;lambda
         (lambda (err-type . info)
-          (%display-cli-error (%format-catch-error err-type info))
+          (%display-cli-error (catch-error->string err-type info))
           1
         ) ;lambda
       ) ;catch

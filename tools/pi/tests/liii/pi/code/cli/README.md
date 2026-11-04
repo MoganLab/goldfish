@@ -21,5 +21,4 @@ gf doc liii/pi/code/cli "函数名"
 - `run-goldpi` - 运行 Goldfish Scheme Pi CLI 入口，run-pi 的别名
 
 ### 二、辅助与交互输入
-- `display-pi-help` - 输出 Pi 命令行工具的使用帮助信息
 - `read-all-stdin` - 从标准输入读取全部内容并修剪两端空白字符
