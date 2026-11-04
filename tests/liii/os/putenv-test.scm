@@ -34,6 +34,12 @@
 (check-true (putenv "TEST_VAR" "123"))
 (check-true (putenv "TEST_VAR" "456"))
 
+;; ; 值中含路径分隔符时不被拆分（如 X11 的 DISPLAY=":0"）
+(check-true (putenv "TEST_VAR" ":0"))
+(check (getenv "TEST_VAR") => ":0")
+(check-true (putenv "TEST_VAR" "a:b:c"))
+(check (getenv "TEST_VAR") => "a:b:c")
+
 
 ;; ; 错误测试
 (check-catch 'type-error (putenv 123 "abc"))

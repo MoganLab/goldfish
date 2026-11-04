@@ -223,7 +223,13 @@ f_set_environment_variable (s7_scheme* sc, s7_pointer args) {
   }
   const char* key  = s7_string (key_arg);
   const char* value= s7_string (value_arg);
-  return s7_make_boolean (sc, tb_environment_set (key, value));
+  /* tbox 的 tb_environment_set 会按路径分隔符拆分 value（":0" 被拆成 "0"），
+   * 破坏 DISPLAY 等含分隔符的值，这里直接用系统 setenv 保真 */
+#ifdef TB_CONFIG_OS_WINDOWS
+  return s7_make_boolean (sc, SetEnvironmentVariable (key, value));
+#else
+  return s7_make_boolean (sc, setenv (key, value, 1) == 0);
+#endif
 }
 
 static void
