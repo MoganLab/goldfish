@@ -71,7 +71,7 @@
 (let ((doc-path (function-doc-path "liii/option" "option=?")))
   (check-true (string? doc-path))
   (check-true (path-file? doc-path))
-  (check (path-name doc-path) => "option-equal-p-test.scm")
+  (check (path-name doc-path) => "option-eq-p-test.scm")
 ) ;let
 
 (let ((doc-path (function-doc-path "liii/fxmapping" "alist->fxmapping")))
