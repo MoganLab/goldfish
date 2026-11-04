@@ -1,8 +1,3 @@
-(import (liii check))
-(import (liii goldfmt format atom) (liii goldfmt record))
-
-(check-set-mode! 'report-failed)
-
 ;; child-separator
 ;; 计算父节点第 child-index 个子节点之前应输出的分隔符：
 ;; 匿名列表首子无分隔符，其余为单个空格。
@@ -20,6 +15,12 @@
 ;; ------
 ;; string?
 ;; "" 或 " "。
+
+(import (liii check))
+(import (liii goldfmt format atom) (liii goldfmt record))
+
+(check-set-mode! 'report-failed)
+
 
 ;; 测试：匿名 env 的第 0 个子节点分隔符为空
 (check (child-separator (make-env :tag-name "") 0) => "")

@@ -1,8 +1,3 @@
-(import (liii check))
-(import (liii goldfmt format atom))
-
-(check-set-mode! 'report-failed)
-
 ;; make-newlines
 ;; 将换行标记数量转换为实际的换行符串：n 个空行对应 n-1 个换行符。
 ;;
@@ -19,6 +14,12 @@
 ;; ------
 ;; string?
 ;; n 小于等于 1 时返回空字符串，否则 n-1 个换行符。
+
+(import (liii check))
+(import (liii goldfmt format atom))
+
+(check-set-mode! 'report-failed)
+
 
 ;; 测试：n 为 1 返回空字符串（无额外空行）
 (check (make-newlines 1) => "")

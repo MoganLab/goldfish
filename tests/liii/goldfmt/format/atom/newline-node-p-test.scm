@@ -1,8 +1,3 @@
-(import (liii check))
-(import (liii goldfmt format atom) (liii goldfmt record))
-
-(check-set-mode! 'report-failed)
-
 ;; newline-node?
 ;; 判断 node 是否为换行标记节点：tag-name 为 *newline* 且唯一子节点为数字 atom。
 ;;
@@ -18,20 +13,21 @@
 ;; ------
 ;; boolean?
 
+(import (liii check))
+(import (liii goldfmt format atom) (liii goldfmt record))
+
+(check-set-mode! 'report-failed)
+
+
 ;; 测试：*newline* env 且子为数字 atom 时为 #t
-(let ((node (make-env :tag-name "*newline*"
-              :children (vector (make-atom :value 2))
-            ) ;make-env
-       ) ;node
+(let ((node (make-env :tag-name "*newline*" :children (vector (make-atom :value 2))))
      ) ;
   (check (newline-node? node) => #t)
 ) ;let
 
 ;; 测试：子为字符串 atom 时为 #f
-(let ((node (make-env :tag-name "*newline*"
-              :children (vector (make-atom :value "x"))
-            ) ;make-env
-       ) ;node
+(let ((node (make-env :tag-name "*newline*" :children (vector (make-atom :value "x")))
+      ) ;node
      ) ;
   (check (newline-node? node) => #f)
 ) ;let

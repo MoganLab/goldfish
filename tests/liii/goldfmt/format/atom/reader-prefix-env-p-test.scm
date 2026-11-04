@@ -1,8 +1,3 @@
-(import (liii check))
-(import (liii goldfmt format atom) (liii goldfmt record) (liii goldfmt scan))
-
-(check-set-mode! 'report-failed)
-
 ;; reader-prefix-env?
 ;; 判断 node 是否为 reader 前缀表达式节点（tag 为 quasiquote、
 ;; unquote 或 unquote-splicing），stem-mode 下恒为 #f。
@@ -19,6 +14,12 @@
 ;; ------
 ;; boolean?
 
+(import (liii check))
+(import (liii goldfmt format atom) (liii goldfmt record) (liii goldfmt scan))
+
+(check-set-mode! 'report-failed)
+
+
 ;; 测试：quasiquote 为 #t
 (check (reader-prefix-env? (make-env :tag-name "quasiquote")) => #t)
 
@@ -32,9 +33,11 @@
 (check (reader-prefix-env? (make-env :tag-name "quote")) => #f)
 
 ;; 测试：stem-mode 下恒为 #f
-(check (call-with-stem-mode
-         (lambda () (reader-prefix-env? (make-env :tag-name "quasiquote"))))
-  => #f
+(check
+  (call-with-stem-mode (lambda () (reader-prefix-env? (make-env :tag-name "quasiquote")))
+  ) ;call-with-stem-mode
+  =>
+  #f
 ) ;check
 
 (check-report)

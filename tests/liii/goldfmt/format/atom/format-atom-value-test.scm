@@ -1,8 +1,3 @@
-(import (liii check))
-(import (liii goldfmt format atom) (liii goldfmt record))
-
-(check-set-mode! 'report-failed)
-
 ;; format-atom-value
 ;; 将原子值格式化为显示文本：raw string 与字符字面量保留源码形式，
 ;; symbol 与 number 转字符串，其余用 write 语义。
@@ -18,6 +13,12 @@
 ;; 返回值
 ;; ------
 ;; string?
+
+(import (liii check))
+(import (liii goldfmt format atom) (liii goldfmt record))
+
+(check-set-mode! 'report-failed)
+
 
 ;; 测试：symbol 转为名字符串
 (check (format-atom-value 'abc) => "abc")
