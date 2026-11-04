@@ -143,7 +143,11 @@
                       (content (pi-message-field msg 'content '()))
                       (text (pi-content-text content))
                       (err-text (%assistant-error-text msg))
+                      (usage (pi-message-field msg 'usage '()))
                      ) ;
+                 (when (and (equal? role "assistant") (pair? usage))
+                   (pi-tui-send-event! event-chan (list 'message_usage usage))
+                 ) ;when
                  (when
                    (and (equal? role "assistant") (not (string-null? (string-trim-both text))))
                    (pi-tui-send-event! event-chan (list 'assistant_text text))
