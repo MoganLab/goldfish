@@ -12,6 +12,7 @@
     (liii pi ai config types)
     (liii pi ai config record)
     (liii pi ai models builtin)
+    (liii pi ai providers registry)
   ) ;import
   (export pi-provider-default-model pi-provider-has-model?
     pi-find-model-provider pi-route-provider-and-model pi-ensure-catalog-meta
