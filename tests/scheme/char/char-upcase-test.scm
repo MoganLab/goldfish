@@ -1,5 +1,3 @@
-(import (liii check) (scheme char))
-(check-set-mode! 'report-failed)
 ;; char-upcase
 ;; 将字符转换为大写形式。
 ;;
@@ -30,6 +28,9 @@
 ;; type-error
 ;; 参数必须是字符类型，否则会抛出异常
 ;;
+
+(import (liii check) (scheme char))
+(check-set-mode! 'report-failed)
 ;; Basic Latin (ASCII)
 (check (char-upcase #\a) => #\A)
 (check (char-upcase #\z) => #\Z)

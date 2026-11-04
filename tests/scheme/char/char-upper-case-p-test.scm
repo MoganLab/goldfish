@@ -1,3 +1,34 @@
+;; char-upper-case?
+;; 判断字符是否为大写字母字符。
+;;
+;; 语法
+;; ----
+;; (char-upper-case? char) -> boolean?
+;;
+;; 参数
+;; ----
+;; char : character
+;; 要判断的字符
+;;
+;; 返回值
+;; ------
+;; boolean?
+;; 如果字符是大写字母则返回 #t，否则返回 #f
+;;
+;; 注意
+;; ----
+;; - 对于大写字母字符（A-Z 及 Unicode 大写字母），返回 #t
+;; - 对于小写字母、数字、符号和空白字符，返回 #f
+;; - 与 Chez Scheme 的 Unicode 字符属性行为保持一致
+;;
+;; 错误处理
+;; ------
+;; type-error
+;; 参数必须是字符类型，否则会抛出异常
+;;
+;; wrong-number-of-args
+;; 参数数量不为 1 时抛出异常
+
 (import (liii check) (scheme char))
 (check-set-mode! 'report-failed)
 

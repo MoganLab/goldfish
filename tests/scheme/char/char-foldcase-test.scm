@@ -1,5 +1,3 @@
-(import (liii check) (scheme char))
-(check-set-mode! 'report-failed)
 ;; char-foldcase
 ;; 执行字符的大小写折叠
 ;;
@@ -27,6 +25,9 @@
 ;; ------
 ;; type-error
 ;; 参数必须是字符类型，否则会抛出异常
+
+(import (liii check) (scheme char))
+(check-set-mode! 'report-failed)
 
 ;; 基本 ASCII 测试
 (check (char-foldcase #\A) => #\a)
@@ -90,4 +91,5 @@
 (check-catch 'type-error (char-foldcase "A"))
 (check-catch 'type-error (char-foldcase 65))
 (check-catch 'type-error (char-foldcase 'A))
+
 (check-report)

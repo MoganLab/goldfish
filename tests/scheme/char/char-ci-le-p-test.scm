@@ -1,5 +1,3 @@
-(import (liii check) (scheme char))
-(check-set-mode! 'report-failed)
 ;; char-ci<=?
 ;; 按大小写不敏感的方式比较字符是否小于等于。
 ;;
@@ -31,6 +29,9 @@
 ;;
 ;; wrong-number-of-args
 ;; 至少需要两个参数，否则会抛出异常
+
+(import (liii check) (scheme char))
+(check-set-mode! 'report-failed)
 ;; 基本功能测试
 (check (char-ci<=? #\a #\B) => #t)
 (check (char-ci<=? #\A #\b) => #t)
@@ -63,7 +64,7 @@
 (check (char-ci<=? #\space #\newline) => #f)
 (check (char-ci<=? #\tab #\tab) => #t)
 (check (char-ci<=? #\@ #\newline) => #f)
-(check (char-ci<=? #\! #\") => #t)
+(check (char-ci<=? #\! #\x22) => #t)
 (check (char-ci<=? #\! #\!) => #t)
 (check (char-ci<=? #\0 #\A) => #t)
 (check (char-ci<=? #\9 #\z) => #t)
@@ -76,4 +77,5 @@
 (check (char-ci<=? #\A #\中) => #t)
 (check (char-ci<=? #\中 #\A) => #f)
 (check (char-ci<=? #\中 #\中) => #t)
+
 (check-report)

@@ -1,5 +1,3 @@
-(import (liii check) (scheme char))
-(check-set-mode! 'report-failed)
 ;; string-ci>?
 ;; 按大小写不敏感的方式比较字符串的字典序是否递减。
 ;;
@@ -21,6 +19,9 @@
 ;; ------
 ;; type-error
 ;; 所有参数必须是字符串类型，否则会抛出异常
+
+(import (liii check) (scheme char))
+(check-set-mode! 'report-failed)
 ;; 基本功能测试
 (check (string-ci>? "def" "abc") => #t)
 (check (string-ci>? "DEF" "abc") => #t)
@@ -59,4 +60,5 @@
 (check-catch 'type-error (string-ci>? "hello" 'symbol))
 (check-catch 'wrong-number-of-args (string-ci>?))
 (check-catch 'wrong-number-of-args (string-ci>? "hello"))
+
 (check-report)

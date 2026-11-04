@@ -1,5 +1,3 @@
-(import (liii check) (scheme char))
-(check-set-mode! 'report-failed)
 ;; char-ci<?
 ;; 按大小写不敏感的方式比较字符是否小于。
 ;;
@@ -31,6 +29,9 @@
 ;;
 ;; wrong-number-of-args
 ;; 至少需要两个参数，否则会抛出异常
+
+(import (liii check) (scheme char))
+(check-set-mode! 'report-failed)
 ;; 基本功能测试
 (check (char-ci<? #\a #\B) => #t)
 (check (char-ci<? #\A #\b) => #t)
@@ -80,4 +81,5 @@
 (check (char-ci<? #\A #\中) => #t)
 (check (char-ci<? #\中 #\A) => #f)
 (check (char-ci<? #\中 #\中) => #f)
+
 (check-report)

@@ -1,6 +1,3 @@
-(import (liii check) (scheme char))
-(check-set-mode! 'report-failed)
-
 ;; char-whitespace?
 ;; 判断字符是否为空白字符。
 ;;
@@ -29,6 +26,10 @@
 ;; ------
 ;; type-error
 ;; 参数必须是字符类型，否则会抛出异常
+
+(import (liii check) (scheme char))
+(check-set-mode! 'report-failed)
+
 
 ;; 标准空白测试
 (check (char-whitespace? #\space) => #t)

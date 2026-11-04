@@ -1,5 +1,3 @@
-(import (liii check) (scheme char))
-(check-set-mode! 'report-failed)
 ;; string-downcase
 ;; 将字符串转换为小写形式。
 ;;
@@ -24,7 +22,7 @@
 ;; - 非字母字符保持不变
 ;; - 支持 Unicode 字符的大小写转换（如 `É` → `é`）
 ;;
-;; 相关函数
+;; 说明
 ;; ----
 ;; (liii ascii) 中的 ascii-downcase — 仅处理 ASCII 字母的大小写转换，支持字符、整数和字符串参数。
 ;;   字符串参数必须是纯 ASCII 字符串，否则会抛出 value-error。
@@ -33,6 +31,9 @@
 ;; ------
 ;; type-error
 ;; 参数必须是字符串类型，否则会抛出异常
+
+(import (liii check) (scheme char))
+(check-set-mode! 'report-failed)
 ;; 基本功能测试
 (check (string-downcase "HELLO") => "hello")
 (check (string-downcase "hello") => "hello")
@@ -62,4 +63,5 @@
 ;; UTF-8 测试
 (check (string-downcase "ABC中文") => "abc中文")
 (check (string-downcase "RÉSUMÉ") => "résumé")
+
 (check-report)
