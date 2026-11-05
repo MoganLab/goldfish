@@ -1,10 +1,3 @@
-(import (liii check))
-(import (scheme let))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; openlet?
 ;; 判断 let 是否被 openlet 标记为 "open"。
 ;;
@@ -30,6 +23,13 @@
 
 
 ;; 新建的 inlet 不是 openlet
+
+(import (liii check))
+(import (scheme let))
+
+
+(check-set-mode! 'report-failed)
+
 (check (openlet? (inlet 'a 1)) => #f)
 
 
@@ -38,7 +38,11 @@
 
 
 ;; coverlet 撤销后不再是 openlet
-(check (openlet? (coverlet (openlet (inlet 'a 1)))) => #f)
+(check
+  (openlet? (coverlet (openlet (inlet 'a 1))))
+  =>
+  #f
+) ;check
 
 
 ;; rootlet 不是 openlet

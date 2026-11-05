@@ -1,10 +1,3 @@
-(import (liii check))
-(import (scheme let))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; let?
 ;; 判断对象是否为 let（环境对象）。
 ;;
@@ -30,6 +23,13 @@
 
 
 ;; curlet 返回的对象是 let
+
+(import (liii check))
+(import (scheme let))
+
+
+(check-set-mode! 'report-failed)
+
 (check (let? (curlet)) => #t)
 
 

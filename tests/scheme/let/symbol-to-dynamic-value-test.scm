@@ -1,10 +1,3 @@
-(import (liii check))
-(import (scheme let))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; symbol->dynamic-value
 ;; 返回符号的动态绑定值。
 ;;
@@ -31,6 +24,13 @@
 
 
 ;; 未绑定的符号返回 #<undefined>
+
+(import (liii check))
+(import (scheme let))
+
+
+(check-set-mode! 'report-failed)
+
 (check (undefined? (symbol->dynamic-value 'nonexistent-xyz)) => #t)
 
 

@@ -1,10 +1,3 @@
-(import (liii check))
-(import (scheme let))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; symbol->value
 ;; 返回符号在指定环境（默认 curlet）中的绑定值。
 ;;
@@ -35,6 +28,13 @@
 
 
 ;; 内建符号 + 的值
+
+(import (liii check))
+(import (scheme let))
+
+
+(check-set-mode! 'report-failed)
+
 (check (symbol->value '+) => +)
 
 

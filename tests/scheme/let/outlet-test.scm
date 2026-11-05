@@ -1,10 +1,3 @@
-(import (liii check))
-(import (scheme let))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; outlet
 ;; 返回给定 let 的外层（父）环境。
 ;;
@@ -30,6 +23,13 @@
 
 
 ;; rootlet 的 outlet 是 rootlet 自身
+
+(import (liii check))
+(import (scheme let))
+
+
+(check-set-mode! 'report-failed)
+
 (check (eq? (outlet (rootlet)) (rootlet)) => #t)
 
 
@@ -42,16 +42,24 @@
 
 
 ;; sublet 创建的环境，其 outlet 指向父 let
-(check (let ((parent (inlet 'a 1)))
-         (eq? (outlet (sublet parent 'b 2)) parent)
-       ) ;let
+(check
+  (let ((parent (inlet 'a 1)))
+    (eq? (outlet (sublet parent 'b 2)) parent)
+  ) ;let
   =>
   #t
 ) ;check
 
 
 ;; outlet 链最终到达 rootlet
-(check (eq? (outlet (outlet (sublet (inlet 'a 1) 'b 2))) (rootlet)) => #t)
+(check
+  (eq?
+    (outlet (outlet (sublet (inlet 'a 1) 'b 2)))
+    (rootlet)
+  ) ;eq?
+  =>
+  #t
+) ;check
 
 
 (check-report)

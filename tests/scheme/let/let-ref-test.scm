@@ -1,10 +1,3 @@
-(import (liii check))
-(import (scheme let))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; let-ref
 ;; 返回 let 中指定符号的绑定值。
 ;;
@@ -34,6 +27,13 @@
 
 
 ;; 从 inlet 中获取绑定
+
+(import (liii check))
+(import (scheme let))
+
+
+(check-set-mode! 'report-failed)
+
 (check (let-ref (inlet 'a 42) 'a) => 42)
 
 
@@ -50,7 +50,13 @@
 
 
 ;; let-ref 只查直接绑定，不递归 outlet
-(check (let ((parent (inlet 'a 1))) (let-ref (sublet parent 'b 2) 'a)) => 1)
+(check
+  (let ((parent (inlet 'a 1)))
+    (let-ref (sublet parent 'b 2) 'a)
+  ) ;let
+  =>
+  1
+) ;check
 
 
 ;; 从 rootlet 中获取内建函数 +
