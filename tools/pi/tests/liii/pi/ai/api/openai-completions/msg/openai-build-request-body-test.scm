@@ -3,7 +3,7 @@
 ;;
 ;; 语法
 ;; ----
-;; (openai-build-request-body model-id messages stream? tool-decls max-tokens)
+;; (openai-build-request-body model-id messages stream? tool-decls max-tokens (prompt-cache-key #f))
 ;;
 ;; 参数
 ;; ----
@@ -17,6 +17,9 @@
 ;; 工具声明列表；为空时省略 tools 字段。
 ;; max-tokens : integer | #f
 ;; 最大输出 token 数；非正数或 #f 时省略。
+;; prompt-cache-key : (or string? #f)
+;; 可选，OpenAI 官方端点的 prompt_cache_key，同会话路由到同一缓存分片；
+;; 非字符串时省略。
 ;;
 ;; 返回值
 ;; ----
@@ -42,5 +45,17 @@
   (check (cdr (assoc "model" body)) => "kimi-for-coding")
   (check (assoc "stream" body) => #f)
   (check (assoc "tools" body) => #f))
+
+;; prompt-cache-key：传入非空字符串时写入 prompt_cache_key 字段
+(let* ((msgs (vector '(("role" . "user") ("content" . "hi"))))
+       (body (openai-build-request-body "gpt-5.2" msgs #t '() 4096 "sess-abc")))
+  (check (cdr (assoc "prompt_cache_key" body)) => "sess-abc"))
+
+;; prompt-cache-key：缺省或 #f 时省略 prompt_cache_key 字段
+(let* ((msgs (vector '(("role" . "user") ("content" . "hi"))))
+       (body (openai-build-request-body "gpt-5.2" msgs #t '() 4096)))
+  (check (assoc "prompt_cache_key" body) => #f)
+  (let ((body2 (openai-build-request-body "gpt-5.2" msgs #t '() 4096 #f)))
+    (check (assoc "prompt_cache_key" body2) => #f)))
 
 (check-report)

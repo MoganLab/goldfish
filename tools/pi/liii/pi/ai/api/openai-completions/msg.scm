@@ -14,9 +14,9 @@
     (liii pi ai tools types)
     (liii pi ai tools record)
   ) ;import
-  (export openai-build-tool-declarations
-    openai-build-messages
-    openai-build-request-body
+  (export openai-build-tool-declarations openai-build-messages
+    openai-build-request-body openai-clamp-prompt-cache-key
+    openai-resolve-prompt-cache-key
   ) ;export
   (begin
 
@@ -215,7 +215,35 @@
       ) ;let
     ) ;define
 
-    (define (openai-build-request-body model-id messages stream? tool-decls max-tokens)
+    ;; OpenAI prompt_cache_key 最大长度（对齐上游 OPENAI_PROMPT_CACHE_KEY_MAX_LENGTH）
+    (define %prompt-cache-key-max-length 64)
+
+    (define (openai-clamp-prompt-cache-key key)
+      (if (and (string? key) (> (string-length key) %prompt-cache-key-max-length))
+        (substring key 0 %prompt-cache-key-max-length)
+        key
+      ) ;if
+    ) ;define
+
+    ;; 仅 OpenAI 官方端点注入：第三方兼容端点对未知字段可能报错
+    (define (openai-resolve-prompt-cache-key base-url session-id)
+      (if (and (string? base-url)
+            (string-contains? base-url "api.openai.com")
+            (string? session-id)
+            (> (string-length session-id) 0)
+          ) ;and
+        (openai-clamp-prompt-cache-key session-id)
+        #f
+      ) ;if
+    ) ;define
+
+    (define* (openai-build-request-body model-id
+               messages
+               stream?
+               tool-decls
+               max-tokens
+               (prompt-cache-key #f)
+             ) ;openai-build-request-body
       (let* ((body (list (cons "model" model-id) (cons "messages" messages)))
              (body
                (if stream? (append body (list (cons "stream" #t))) body)
@@ -232,10 +260,16 @@
                  body
                ) ;if
              ) ;body
+             (body
+               (if (and (string? prompt-cache-key) (> (string-length prompt-cache-key) 0))
+                 (append body (list (cons "prompt_cache_key" prompt-cache-key)))
+                 body
+               ) ;if
+             ) ;body
             ) ;
         body
       ) ;let*
-    ) ;define
+    ) ;define*
 
   ) ;begin
 ) ;define-library

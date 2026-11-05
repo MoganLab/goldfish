@@ -1,5 +1,10 @@
 ;; pi-resolve-turn-system-prompt
-;; 解析当前轮次的系统提示词，支持动态函数求值及注入轮数与时间预算预警信息。
+;; 解析当前轮次的系统提示词：支持动态函数求值，仅在预算临界时附加静态告警块。
+;;
+;; 设计动机：系统提示词位于请求前缀的最前端，任何逐轮变化的内容（如轮数、
+;; 剩余秒数）都会击穿供应商的前缀缓存。因此非临界时对任意入参返回字节级
+;; 一致的 base；只有触发 <budget_warning>（剩余轮数 <= 3、剩余时间 < 60s
+;; 或 < 10%）时才拼接一次静态告警文本，进入临界区后重新稳定。
 ;;
 ;; 语法
 ;; ----
@@ -17,7 +22,7 @@
 ;;
 ;; 返回值
 ;; ----
-;; string?，解析并附加了预算状态的最终系统提示词字符串。
+;; string?，非临界时与 base 字节级一致；临界时为 base + 静态告警块。
 
 (import (liii check) (liii string) (liii pi agent loop))
 
@@ -37,31 +42,33 @@
   "base+2"
 ) ;check
 
-;; 2. 回合级预算注入：正常充裕预算（第 1 轮，总 200 轮，剩余 500 秒 / 600 秒）
-(let ((sp (pi-resolve-turn-system-prompt "base" '() 1 200 500.0 500.0 600)))
-  (check-true (string-contains? sp "base"))
-  (check-true (string-contains? sp "<current_turn_budget>"))
-  (check-true (string-contains? sp "Turn Status: Turn 1 (out of max 200, 199 remaining).")
-  ) ;check-true
-  (check-true (string-contains? sp
-                "Time Status: 500 seconds remaining before session timeout."
-              ) ;string-contains?
-  ) ;check-true
-  (check-false (string-contains? sp "<budget_warning>"))
+;; 2. 前缀缓存稳定性（核心）：非临界时，任意 turn/max-turns/deadline 入参
+;;    都必须返回与 base 字节级一致的系统提示词，不含任何预算状态文本
+(check (pi-resolve-turn-system-prompt "base" '() 0 200 #f #f 600) => "base")
+(check (pi-resolve-turn-system-prompt "base" '() 1 200 500.0 500.0 600) => "base")
+(check (pi-resolve-turn-system-prompt "base" '() 50 200 100.0 100.0 600) => "base")
+(check (pi-resolve-turn-system-prompt "base" '() 10 0 #f #f #f) => "base")
+(let ((sp (pi-resolve-turn-system-prompt "base" '() 5 200 300.0 300.0 600)))
+  (check-false (string-contains? sp "<current_turn_budget>"))
+  (check-false (string-contains? sp "Turn Status"))
+  (check-false (string-contains? sp "Time Status"))
 ) ;let
 
-;; 3. 轮次临界预警：剩余轮次 <= 3（第 198 轮 / 200 轮）
+;; 3. turn 为 #f（非 Agent 循环调用）时直接返回 base
+(check (pi-resolve-turn-system-prompt "base" '() #f 200 100.0 100.0 600) => "base")
+
+;; 4. 轮次临界预警：剩余轮次 <= 3 时拼接静态告警块，且无动态数字
 (let ((sp (pi-resolve-turn-system-prompt "base" '() 198 200 400.0 400.0 600)))
-  (check-true (string-contains? sp "Turn Status: Turn 198 (out of max 200, 2 remaining).")
-  ) ;check-true
   (check-true (string-contains? sp "<budget_warning>"))
   (check-true (string-contains? sp
                 "WARNING: Approaching maximum turn limit (<= 3 turns left)."
               ) ;string-contains?
   ) ;check-true
+  (check-false (string-contains? sp "Turn Status"))
+  (check-false (string-contains? sp "Time Status"))
 ) ;let
 
-;; 4. 时间临界预警：剩余时间不足 60 秒或 < 10%（例如 45 秒）
+;; 5. 时间临界预警：剩余时间不足 60 秒或 < 10% 时拼接静态告警块
 (let ((sp (pi-resolve-turn-system-prompt "base" '() 5 200 45.0 45.0 600)))
   (check-true (string-contains? sp "<budget_warning>"))
   (check-true (string-contains? sp
@@ -70,21 +77,19 @@
   ) ;check-true
 ) ;let
 
-;; 5. 双重临界危机预警：轮次与时间双重不足
+;; 6. 双重临界危机预警：轮次与时间双重不足
 (let ((sp (pi-resolve-turn-system-prompt "base" '() 199 200 30.0 30.0 600)))
-  (check-true (string-contains? sp "<budget_warning>"))
-  (check-true (string-contains? sp
-                "CRITICAL BUDGET WARNING: You are nearly out of turns AND time!"
-              ) ;string-contains?
-  ) ;check-true
+  (check-true (string-contains? sp "CRITICAL BUDGET WARNING"))
 ) ;let
 
-;; 6. 无限轮次与无时间死线
-(let ((sp (pi-resolve-turn-system-prompt "base" '() 10 0 #f #f #f)))
-  (check-true (string-contains? sp "Turn Status: Turn 10 (unlimited turns)."))
-  (check-true (string-contains? sp "Time Status: Unlimited (no session timeout).")
-  ) ;check-true
-  (check-false (string-contains? sp "<budget_warning>"))
-) ;let
+;; 7. 临界区内逐轮稳定：告警文本为静态字符串，相邻两轮输出一致，
+;;    前缀缓存最多在进入临界区时断一次
+(check
+  (string=? (pi-resolve-turn-system-prompt "base" '() 198 200 100.0 100.0 600)
+    (pi-resolve-turn-system-prompt "base" '() 199 200 100.0 100.0 600)
+  ) ;string=?
+  =>
+  #t
+) ;check
 
 (check-report)
