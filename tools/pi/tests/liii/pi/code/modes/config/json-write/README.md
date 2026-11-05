@@ -11,5 +11,7 @@ bin/gf test tools/pi/tests/liii/pi/code/modes/config/json-write/
 
 ## 测试文件索引
 
-- `pi-config-json-pretty-test.scm` — JSON 序列化
 - `pi-config-apply-writes-test.scm` — 配置写入计划落盘
+
+注：`pi-config-json-pretty` 为纯转发导出，其单元测试位于实现库
+`tests/liii/pi/code/config/json-write/pi-config-json-pretty-test.scm`。
