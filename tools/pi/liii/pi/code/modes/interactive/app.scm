@@ -72,7 +72,7 @@
           ) ;begin
           (let ((now (current-monotonic-millis)))
             (cond ((not (working-last-tick ind))
-                   ;; busy 首拍：无论从何种路径进入 busy，都从 ⠋ 起始
+                   ;; busy 首拍：整帧渲染（布局可能变化，需完整重算），从 ⠋ 起始
                    (working-reset! ind)
                    (working-last-tick-set! ind now)
                    (pi-app-render! app)
@@ -81,7 +81,30 @@
                   ((>= (- now (working-last-tick ind)) %working-frame-interval-ms)
                    (working-advance! ind)
                    (working-last-tick-set! ind now)
-                   (pi-app-render! app)
+                   ;; 轻量路径：busy 期间布局不变（每拍仅 spinner 帧变化），
+                   ;; 基于上帧仅替换 Working 边框行，避免每拍重算整帧
+                   ;; （长会话整帧重算成本可达 ~16ms，导致空闲 CPU ~20%）。
+                   ;; 回退条件：选择器激活（编辑器行被替换，行定位不适用）
+                   ;; 或尚无缓存帧（首次 busy 前未渲染过）
+                   (let ((row (and (not (pi-app-active-selector app)) (%pi-app-working-border-row app)))
+                         (cached (pi-app-rendered-frame app))
+                        ) ;
+                     (if (and row cached)
+                       (let* ((frame (car cached))
+                              (w (car (terminal-size (pi-app-term app))))
+                              (color (pi-thinking-border-color (pi-app-thinking-level app)))
+                              (new-line (working-border-line ind w color))
+                              (new-frame (append (take frame row) (list new-line) (drop frame (+ row 1))))
+                             ) ;
+                         (alt-screen-render! (pi-app-screen app) new-frame (cdr cached))
+                         ;; 缓存归一化后的帧（与 buffer 上帧同源），供下一拍
+                         (%pi-app-rendered-frame-set! app
+                           (cons (alt-screen-lines (pi-app-screen app)) (cdr cached))
+                         ) ;%pi-app-rendered-frame-set!
+                       ) ;let*
+                       (pi-app-render! app)
+                     ) ;if
+                   ) ;let
                    #t
                   ) ;
                   (else #f)
@@ -349,6 +372,8 @@
                     #f
                     #f
                     actual-tokens
+                    #f
+                    #f
                   ) ;%make-pi-app
              ) ;app
              (ed (%make-pi-editor app tl))

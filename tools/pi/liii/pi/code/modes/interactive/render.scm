@@ -16,8 +16,9 @@
 ;; transcript 占据剩余空间（grow），dock 固定在底部。
 (define-library (liii pi code modes interactive render)
   (export pi-app-render! pi-app-frame-lines pi-app-transcript-lines
-    pi-app-scroll-up! pi-app-scroll-down! pi-app-scroll-top!
-    pi-app-scroll-bottom! pi-app-scroll-line-up! pi-app-scroll-line-down!
+    %pi-app-working-border-row pi-app-scroll-up! pi-app-scroll-down!
+    pi-app-scroll-top! pi-app-scroll-bottom! pi-app-scroll-line-up!
+    pi-app-scroll-line-down!
   ) ;export
   (import (scheme base)
     (liii string)
@@ -224,6 +225,8 @@
                  ) ;if
                ) ;cur-pos
               ) ;
+          ;; 记录 dock 长度：供轻量 tick 推导 Working 边框行
+          (%pi-app-dock-length-set! app (length dock-lines))
           (values rendered-frame cur-pos)
         ) ;let*
       ) ;let*
@@ -243,10 +246,44 @@
       ) ;let*
     ) ;define
 
+    ;; 在缓存帧中定位 Working 边框行（编辑器上边框，busy 时承载 spinner）。
+    ;; 行号推导（确定性，无内容猜测）：
+    ;;   dock 布局 = pending + editor + menu + footer（footer 最后，菜单在 editor 之后）
+    ;;   边框行是 editor 区域的首行，其行号 = 帧长 - dock 长 + pending 行数。
+    ;;   pending 行数 = busy 时各排队卡片 + 可选 ESC 提示行 + 可选队首卡片。
+    ;; 返回 #f 表示缓存无效，调用方应回退整帧渲染。
+    (define (%pi-app-working-border-row app)
+      (let ((cached (pi-app-rendered-frame app)) (dock (pi-app-dock-length app)))
+        (if (or (not cached) (not dock))
+          #f
+          (let* ((frame (car cached))
+                 (n (length frame))
+                 (q (pi-app-queue app))
+                 (steer (%pi-app-steering-pending app))
+                 (fu (%pi-app-follow-up-pending app))
+                 (items (pi-queue-items q))
+                 (pending-len
+                   (+ (length steer)
+                     (length fu)
+                     (if (or (pair? steer) (pair? fu)) 1 0)
+                     (if (pair? items) 1 0)
+                   ) ;+
+                 ) ;pending-len
+                 (border-y (+ (- n dock) pending-len))
+                ) ;
+            (and (>= border-y 0) (< border-y n) border-y)
+          ) ;let*
+        ) ;if
+      ) ;let
+    ) ;define
+
     (define (pi-app-render! app)
       (let ((screen (pi-app-screen app)))
         (let-values (((frame cur-pos) (pi-app-frame-lines app)))
           (alt-screen-render! screen frame cur-pos)
+          ;; 缓存归一化后的帧（与 buffer 上帧同源）：
+          ;; Working 动画轻量 tick 基于此构造新帧，保证逐行 eq? 命中快速路径
+          (%pi-app-rendered-frame-set! app (cons (alt-screen-lines screen) cur-pos))
         ) ;let-values
       ) ;let
     ) ;define

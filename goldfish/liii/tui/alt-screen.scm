@@ -28,8 +28,8 @@
 ;;     （滚动视口）裁剪，渲染时按绝对行号定位并只重绘变化的行。
 (define-library (liii tui alt-screen)
   (export make-alt-screen alt-screen? alt-screen-terminal alt-screen-lines
-    alt-screen-render! alt-screen-clear! alt-screen-invalidate!
-    alt-screen-refresh!
+    alt-screen-render! alt-screen-normalize alt-screen-clear!
+    alt-screen-invalidate! alt-screen-refresh!
   ) ;export
   (import (scheme base)
     (scheme write)
@@ -122,55 +122,126 @@
     ;; 光标定位与可见性切换必须纳入 sync 块（对齐上游 tui-alt-screen.ts
     ;; doRender 的 BEGIN..END 顺序）：行更新会把物理光标推到行首，
     ;; 定位序列若落在 sync 块外，IME pre-edit（跟随硬件光标）会闪烁。
+    ;; 对外暴露帧归一化：pi-app-render! 用它缓存归一化帧，
+    ;; 保证 Working 动画轻量 tick 构造的新帧与 buffer 上帧同源（逐行 eq? 命中）。
+    (define (alt-screen-normalize screen lines)
+      (%check-alt-screen screen "alt-screen-normalize")
+      (%alt-frame (%alt-screen-terminal screen) lines)
+    ) ;define
+
+    ;; 至多一行变化检测：返回变化行号列表（按帧序），或 #f 表示不适用快速路径
+    ;; （行数不一致或超过一行变化）。逐行先 eq?（共享对象），再 string=? 兜底。
+    (define (%single-line-changes old-lines new-lines)
+      (let loop
+        ((a old-lines) (b new-lines) (y 0) (changed '()))
+        (cond
+         ((and (null? a) (null? b)) (if (<= (length changed) 1) (reverse changed) #f))
+         ((or (null? a) (null? b)) #f)
+         ((eq? (car a) (car b)) (loop (cdr a) (cdr b) (+ y 1) changed))
+         ((string=? (car a) (car b)) (loop (cdr a) (cdr b) (+ y 1) changed))
+         (else (loop (cdr a) (cdr b) (+ y 1) (cons y changed)))
+        ) ;cond
+      ) ;let
+    ) ;define
+
     (define (alt-screen-render! screen lines . opt-cursor)
       (%check-alt-screen screen "alt-screen-render!")
       (let* ((term (%alt-screen-terminal screen))
              (buf (%alt-screen-buffer screen))
-             (frame (%alt-frame term lines))
-             (old-lines (screen-buffer-lines buf))
-             (dirty? (screen-buffer-dirty? buf))
-             (diff-ops (if dirty? (screen-dirty-diff old-lines frame) (screen-diff old-lines frame))
-             ) ;diff-ops
-             (w (car (terminal-size term)))
-             (has-changes? (screen-diff-has-changes? diff-ops))
              (cur (and (pair? opt-cursor) (car opt-cursor)))
-             ;; 光标定位/可见性是否需要输出：位置变化、可见性翻转或行更新
-             ;; 推过光标时才发序列（行更新会移动物理光标，state 随之失效）
-             (cursor-output?
-               (or has-changes?
-                 (and cur
-                   (or
-                     (not (= (car cur) (car (terminal-cursor term))))
-                     (not (= (cdr cur) (cadr (terminal-cursor term))))
-                   ) ;or
-                 ) ;and
-                 (and (not cur) (terminal-cursor-visible? term))
-               ) ;or
-             ) ;cursor-output?
+             (cursor-same?
+               (and cur
+                 (= (car cur) (car (terminal-cursor term)))
+                 (= (cdr cur) (cadr (terminal-cursor term)))
+               ) ;and
+             ) ;cursor-same?
+             (old-lines (screen-buffer-lines buf))
+             ;; 快速路径检测：至多一行变化（Working 动画轻量 tick 等场景，
+             ;; 其余行与上帧共享同一字符串对象）。跳过全帧归一化与字符串 diff，
+             ;; 仅归一化并输出该行，避免每拍 ~1.7ms 的全帧扫描。
+             (changes (and (not (screen-buffer-dirty? buf)) (%single-line-changes old-lines lines))
+             ) ;changes
             ) ;
-        (when (or has-changes? cursor-output?)
-          (terminal-begin-sync! term)
-        ) ;when
-        (when has-changes?
-          (for-each (lambda (op) (%render-op! term op w)) diff-ops)
-        ) ;when
-        (screen-buffer-commit! buf frame)
-        ;; 光标定位但保持隐藏（对齐上游 tui-alt-screen.ts：
-        ;; 硬件光标仅用于 IME 候选窗定位，输入区光标由软件反显方块绘制，
-        ;; 视觉形状不随终端默认光标（Windows beam / Linux block）变化）
-        (when cursor-output?
-          (when cur
-            (terminal-set-cursor! term (car cur) (cdr cur))
-          ) ;when
-          (when (terminal-cursor-visible? term)
-            (terminal-hide-cursor! term)
-          ) ;when
-        ) ;when
-        (when (or has-changes? cursor-output?)
-          (terminal-end-sync! term)
-        ) ;when
-        (terminal-flush term)
-        #t
+        (if (and changes (not (null? changes)))
+          ;; 单行变化：归一化该行并输出，其余行保持；commit 归一化后的完整帧
+          ;; （与原路径一致，保证下次比较同源）
+          (let* ((w (car (terminal-size term)))
+                 (y (car changes))
+                 (new-line (truncate-to-width (list-ref lines y) w ""))
+                 (new-frame (append (take old-lines y) (list new-line) (drop old-lines (+ y 1))))
+                 (cursor-out? (or (not cursor-same?) (and (not cur) (terminal-cursor-visible? term)))
+                 ) ;cursor-out?
+                ) ;
+            (terminal-begin-sync! term)
+            (terminal-set-cursor! term 0 y)
+            (terminal-clear-line-to-end term)
+            (terminal-write term new-line)
+            (screen-buffer-commit! buf new-frame)
+            (when cursor-out?
+              (when cur
+                (terminal-set-cursor! term (car cur) (cdr cur))
+              ) ;when
+              (when (terminal-cursor-visible? term)
+                (terminal-hide-cursor! term)
+              ) ;when
+            ) ;when
+            (terminal-end-sync! term)
+            (terminal-flush term)
+            #t
+          ) ;let*
+          (if (and changes (null? changes) cur cursor-same?)
+            ;; 全部行未变且光标位置未变：仅 commit（保持 buffer 同步），无输出
+            (begin
+              (screen-buffer-commit! buf lines)
+              (terminal-flush term)
+              #t
+            ) ;begin
+            ;; 原路径：全帧归一化 + 字符串 diff
+            (let* ((frame (%alt-frame term lines))
+                   (old-lines (screen-buffer-lines buf))
+                   (dirty? (screen-buffer-dirty? buf))
+                   (diff-ops (if dirty? (screen-dirty-diff old-lines frame) (screen-diff old-lines frame))
+                   ) ;diff-ops
+                   (w (car (terminal-size term)))
+                   (has-changes? (screen-diff-has-changes? diff-ops))
+                   (cursor-output?
+                     (or has-changes?
+                       (and cur
+                         (or
+                           (not (= (car cur) (car (terminal-cursor term))))
+                           (not (= (cdr cur) (cadr (terminal-cursor term))))
+                         ) ;or
+                       ) ;and
+                       (and (not cur) (terminal-cursor-visible? term))
+                     ) ;or
+                   ) ;cursor-output?
+                  ) ;
+              (when (or has-changes? cursor-output?)
+                (terminal-begin-sync! term)
+              ) ;when
+              (when has-changes?
+                (for-each (lambda (op) (%render-op! term op w)) diff-ops)
+              ) ;when
+              (screen-buffer-commit! buf frame)
+              ;; 光标定位但保持隐藏（对齐上游 tui-alt-screen.ts：
+              ;; 硬件光标仅用于 IME 候选窗定位，输入区光标由软件反显方块绘制，
+              ;; 视觉形状不随终端默认光标（Windows beam / Linux block）变化）
+              (when cursor-output?
+                (when cur
+                  (terminal-set-cursor! term (car cur) (cdr cur))
+                ) ;when
+                (when (terminal-cursor-visible? term)
+                  (terminal-hide-cursor! term)
+                ) ;when
+              ) ;when
+              (when (or has-changes? cursor-output?)
+                (terminal-end-sync! term)
+              ) ;when
+              (terminal-flush term)
+              #t
+            ) ;let*
+          ) ;if
+        ) ;if
       ) ;let*
     ) ;define
 

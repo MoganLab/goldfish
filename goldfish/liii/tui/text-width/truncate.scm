@@ -77,6 +77,19 @@
       ) ;let
     ) ;define
 
+    ;; 纯 ASCII 且不含 ESC（无 ANSI 序列）：字节数即显示宽度，无需 UTF-8 扫描
+    (define (%ascii-no-esc? str)
+      (let ((bv (string->byte-vector str)) (len (string-length str)))
+        (let loop
+          ((i 0))
+          (cond ((>= i len) #t)
+                ((let ((b (bytevector-u8-ref bv i))) (or (> b 127) (= b 27))) #f)
+                (else (loop (+ i 1)))
+          ) ;cond
+        ) ;let
+      ) ;let
+    ) ;define
+
     (define (truncate-to-width str width . args)
       (unless (string? str)
         (type-error "truncate-to-width: str must be a string")
@@ -93,6 +106,11 @@
         (let ((w (inexact->exact (floor width))))
           (cond ((<= w 0) "")
                 ((string=? str "") "")
+                ;; 快速路径：纯 ASCII 且不含 ESC（无 ANSI）时，字节数即显示宽度；
+                ;; 长度 ≤ w 直接返回原串，跳过逐字节 UTF-8 宽度扫描。
+                ;; TUI 帧归一化（alt-screen）每帧每行都会调用本函数，
+                ;; 绝大多数行为纯文本/含 ANSI 的 ASCII，此路径可避免每帧数 ms 的开销。
+                ((and (<= (string-length str) w) (%ascii-no-esc? str)) str)
                 ((<= (display-width str) w) str)
                 (else
                   (let ((target-w (- w (display-width ellipsis))))
