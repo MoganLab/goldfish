@@ -462,4 +462,10 @@
   "(select\n ((chan-recv! ready-ch)\n  =>\n  (lambda (v) (display \"got ready: \") (display v) (newline))\n ) ;\n ((chan-recv! not-ready-ch)\n  =>\n  (lambda (v) (display \"got notReady: \") (display v) (newline))\n ) ;\n (else (display \"default: no case ready\\n\"))\n) ;select\n"
 ) ;check
 
+;; 回归测试 issue #1463：含 #\" 字符字面量的源码格式化后空行保留
+(check (format-string "(check (digit-value #\\\") => #f)\n\n(check-report)\n")
+  =>
+  "(check (digit-value #\\\") => #f)\n\n(check-report)\n"
+) ;check
+
 (check-report)

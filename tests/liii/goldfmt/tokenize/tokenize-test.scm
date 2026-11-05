@@ -17,7 +17,8 @@
 ;;
 ;; 说明
 ;; ----
-;; 块注释 #| ... |# 会被剔除，双引号字符串与 #"..." 原始字符串内的内容按原样保留。
+;; 块注释 #| ... |# 会被剔除，双引号字符串与 #"..." 原始字符串内的内容按原样保留，
+;; 字符字面量 #\X（含 #\"、#\; 、#\space、#\x22 等）整体跳过，不触发字符串/注释状态。
 
 (import (liii check) (liii goldfmt tokenize))
 
@@ -248,6 +249,39 @@
   (check (cdar tokens) => "(define s \"a\\\"b;;not-comment\")")
   (check (caadr tokens) => 'code)
   (check (cdadr tokens) => "(define y 2)")
+) ;let
+
+;; 测试 tokenize：字符字面量 #\" 不应被误判为字符串起始符吞掉后续空行（issue #1463）
+(let ((tokens (tokenize "(check (digit-value #\\\") => #f)\n\n(check-report)\n")))
+  (check (length tokens) => 3)
+  (check (caar tokens) => 'code)
+  (check (cdar tokens) => "(check (digit-value #\\\") => #f)")
+  (check (caadr tokens) => 'newline)
+  (check (cdadr tokens) => 1)
+  (check (caaddr tokens) => 'code)
+  (check (cdaddr tokens) => "(check-report)")
+) ;let
+
+;; 测试 tokenize：命名与十六进制字符字面量整体跳过（issue #1463）
+(let ((tokens (tokenize "(a #\\space #\\x22 #\\newline)\n\n(b)")))
+  (check (length tokens) => 3)
+  (check (cdar tokens) => "(a #\\space #\\x22 #\\newline)")
+  (check (caadr tokens) => 'newline)
+  (check (cdadr tokens) => 1)
+) ;let
+
+;; 测试 tokenize：分隔符字符字面量 #\; #\( #\| 不触发注释/字符串状态（issue #1463）
+(let ((tokens (tokenize (string-append "(a " "#\\;" " #\\(" " #\\|" " )\n\n(b)"))))
+  (check (length tokens) => 3)
+  (check (cdar tokens) => "(a #\\; #\\( #\\| )")
+  (check (caadr tokens) => 'newline)
+) ;let
+
+;; 测试 tokenize：反斜杠字符字面量 #\\ 不进入转义状态（issue #1463）
+(let ((tokens (tokenize "(a #\\\\)\n\n(b)")))
+  (check (length tokens) => 3)
+  (check (cdar tokens) => "(a #\\\\)")
+  (check (caadr tokens) => 'newline)
 ) ;let
 
 (check-report)

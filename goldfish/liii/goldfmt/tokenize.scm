@@ -71,6 +71,26 @@
           (set! chunk-start next-pos)
           (set! line-chunks '())
         ) ;define
+        (define (char-literal-name-char? ch)
+          (or (and (char>=? ch #\a) (char<=? ch #\z))
+            (and (char>=? ch #\A) (char<=? ch #\Z))
+            (and (char>=? ch #\0) (char<=? ch #\9))
+          ) ;or
+        ) ;define
+        (define (char-literal-end pos)
+          ;; pos 指向 #\ 之后的第一个字符；命名/十六进制字面量（#\space、#\x22）
+          ;; 持续扫描到分隔符，单字符字面量（#\a、#\"、#\(）只跳过一个字符
+          (if (and (< pos len) (char-literal-name-char? (string-ref content pos)))
+            (let name-loop
+              ((p (+ pos 1)))
+              (if (and (< p len) (char-literal-name-char? (string-ref content p)))
+                (name-loop (+ p 1))
+                p
+              ) ;if
+            ) ;let
+            (+ pos 1)
+          ) ;if
+        ) ;define
         (define (process-char i)
           (if (>= i len)
             (let ((current-line (get-current-line i)))
@@ -150,6 +170,10 @@
                     ) ;when
                     (set! in-block-comment #t)
                     (process-char (+ i 2))
+                   ) ;
+                   ((and (char=? c #\#) (char=? next-c #\\))
+                    ;; 字符字面量 #\X：整体跳过，避免其中的 " 被误判为字符串起始符
+                    (process-char (char-literal-end (+ i 3)))
                    ) ;
                    ((and (char=? c #\#) (char=? next-c #\"))
                     (let ((delim-end (string-index content #\" (+ i 2))))
