@@ -1,3 +1,20 @@
+;; apply-edits
+;; 将一组 edit 应用于原始 source，返回修正后的源码文本。
+;; 编辑按位置从后往前应用，因此前面的编辑不会影响后面编辑的原始 offset。
+;;
+;; 语法
+;; ----
+;; (apply-edits source edits)
+;;
+;; 参数
+;; ----
+;; source : string? 原始源码文本
+;; edits : list? edit 记录列表
+;;
+;; 返回值
+;; ------
+;; string? 应用全部 edit 之后的源码文本
+
 (import (liii check) (liii goldfix edit) (liii goldfix record))
 
 (check-set-mode! 'report-failed)
