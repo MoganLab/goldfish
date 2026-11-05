@@ -1,7 +1,3 @@
-(import (liii check) (liii path) (liii os))
-
-(check-set-mode! 'report-failed)
-
 ;; path-join
 ;; 拼接路径。
 ;;
@@ -24,6 +20,10 @@
 ;; 描述
 ;; ----
 ;; path-join 是 rich-path 中 :/ 的函数式版本。
+
+(import (liii check) (liii path) (liii os))
+
+(check-set-mode! 'report-failed)
 
 (let ((sep (string (os-sep))))
   ;; path-join 测试

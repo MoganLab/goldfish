@@ -1,7 +1,3 @@
-(import (liii check) (liii path) (liii os))
-
-(check-set-mode! 'report-failed)
-
 ;; path-starts-with?
 ;; 判断给定路径是否以另一路径开头（即是否为其本身或后代路径）。
 ;;
@@ -26,6 +22,11 @@
 ;; 本函数为纯路径运算，不访问文件系统，因此不要求参数所表示的路径真实存在。
 
 ;; 基本功能测试
+
+(import (liii check) (liii path) (liii os))
+
+(check-set-mode! 'report-failed)
+
 (check (path-starts-with? "/usr/share" "/usr") => #t)
 (check (path-starts-with? "/usr/share/doc" "/usr") => #t)
 (check (path-starts-with? "/usr" "/usr") => #t)

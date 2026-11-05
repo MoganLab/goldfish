@@ -1,7 +1,3 @@
-(import (liii check) (liii path) (liii os))
-
-(check-set-mode! 'report-failed)
-
 ;; path-relative-to
 ;; 计算 path 相对于 base 的相对路径(对齐 pathlib.relative_to)。
 ;;
@@ -9,10 +5,21 @@
 ;; ----
 ;; (path-relative-to path-value base) -> path-value
 ;;
+;; 参数
+;; ----
+;; path-value : path?
+;; 待计算的输入路径。
+;; base : path?
+;; 作为参照的基准路径。
+;;
 ;; 返回值
 ;; ------
 ;; path-value
 ;; 若 path 不在 base 之下(段前缀不匹配 / anchor 不同),抛错。
+
+(import (liii check) (liii path) (liii os))
+
+(check-set-mode! 'report-failed)
 
 (when (not (os-windows?))
   ;; 简单前缀
@@ -25,16 +32,18 @@
   (check (path->string (path-relative-to (path "a/b/c") (path "a/b"))) => "c")
 
   ;; 不相对时报错(不同子树)
-  (check (guard (ex (else 'caught))
-           (path->string (path-relative-to (path "/x/y") (path "/a")))
-         ) ;guard
+  (check
+    (guard (ex (else 'caught))
+      (path->string (path-relative-to (path "/x/y") (path "/a")))
+    ) ;guard
     =>
     'caught
   ) ;check
   ;; anchor 不同:绝对 vs 相对
-  (check (guard (ex (else 'caught))
-           (path->string (path-relative-to (path "/a/b") (path "a")))
-         ) ;guard
+  (check
+    (guard (ex (else 'caught))
+      (path->string (path-relative-to (path "/a/b") (path "a")))
+    ) ;guard
     =>
     'caught
   ) ;check
@@ -57,16 +66,18 @@
     "a\\b"
   ) ;check
   ;; 不同 drive 报错(pathlib ValueError)
-  (check (guard (ex (else 'caught))
-           (path->string (path-relative-to (path "C:\\a") (path "D:\\")))
-         ) ;guard
+  (check
+    (guard (ex (else 'caught))
+      (path->string (path-relative-to (path "C:\\a") (path "D:\\")))
+    ) ;guard
     =>
     'caught
   ) ;check
   ;; drive-absolute vs drive-relative(C:\ vs C:)anchor 不同(root 不同)报错
-  (check (guard (ex (else 'caught))
-           (path->string (path-relative-to (path "C:\\a") (path "C:")))
-         ) ;guard
+  (check
+    (guard (ex (else 'caught))
+      (path->string (path-relative-to (path "C:\\a") (path "C:")))
+    ) ;guard
     =>
     'caught
   ) ;check
@@ -77,16 +88,18 @@
     "a\\b"
   ) ;check
   ;; 不同 UNC anchor 报错
-  (check (guard (ex (else 'caught))
-           (path->string (path-relative-to (path "\\\\srv1\\sh\\a") (path "\\\\srv2\\sh")))
-         ) ;guard
+  (check
+    (guard (ex (else 'caught))
+      (path->string (path-relative-to (path "\\\\srv1\\sh\\a") (path "\\\\srv2\\sh")))
+    ) ;guard
     =>
     'caught
   ) ;check
   ;; UNC vs drive 报错
-  (check (guard (ex (else 'caught))
-           (path->string (path-relative-to (path "\\\\srv\\sh\\a") (path "C:\\")))
-         ) ;guard
+  (check
+    (guard (ex (else 'caught))
+      (path->string (path-relative-to (path "\\\\srv\\sh\\a") (path "C:\\")))
+    ) ;guard
     =>
     'caught
   ) ;check
