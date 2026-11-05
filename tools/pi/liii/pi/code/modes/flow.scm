@@ -254,7 +254,7 @@
                 ) ;when
                 (vector-set! state 0 next-msgs)
                 (vector-set! state 1 (length next-msgs))
-                (let* ((compaction (pi-make-compaction-option parsed cfg sfile state timeout))
+                (let* ((compaction (pi-make-compaction-option parsed cfg sfile state timeout emit))
                        (res-msgs (run-agent-loop-with-timeout cfg
                                    next-msgs
                                    (%system-prompt-for cfg parsed)
@@ -316,7 +316,7 @@
                 (when emit
                   (emit 'session cwd)
                 ) ;when
-                (let* ((compaction (pi-make-compaction-option parsed cfg sfile state timeout))
+                (let* ((compaction (pi-make-compaction-option parsed cfg sfile state timeout emit))
                        (res-msgs (run-agent-loop-with-timeout cfg
                                    init-msgs
                                    (%system-prompt-for cfg parsed)

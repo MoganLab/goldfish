@@ -20,7 +20,8 @@
     ;; TUI footer 右下角显示实际生效的供应商与模型：与后台 worker 内的解析同源同输入
     ;; （纯本地文件读取，无网络开销），配置解析失败时回退到 CLI 原始参数；
     ;; 返回 (provider model-id thinking-level supports-thinking default-thinking-level
-    ;;         config-dir models default-model hide-thinking model-thinking-levels)
+    ;;         config-dir models default-model hide-thinking model-thinking-levels
+    ;;         context-window)
     ;; default-thinking-level 为 settings.json 里的原始值（未配置时为 #f，
     ;; 由默认级别 medium 兜底）；model-thinking-levels 为 per-model 覆盖表
     ;; 供 make-pi-app 使用（models 为已激活模型列表，供 /model 选择器）
@@ -50,6 +51,12 @@
                          ) ;list
                        ) ;and
                      ) ;default-model
+                     ;; 当前模型的上下文窗口：页脚左下角上下文占比的容量分母
+                     (context-window
+                       (let ((meta (cdr (or (assoc 'model-meta cfg) '(#f)))))
+                         (if (pi-model-metadata? meta) (pi-model-metadata-context-window meta) #f)
+                       ) ;let
+                     ) ;context-window
                     ) ;
                 (list provider
                   model-id
@@ -62,6 +69,7 @@
                   ;; Ctrl+T 思考块隐藏态：从与上游共用的 settings.json 恢复
                   (and settings (pi-settings-hide-thinking-block settings) #t)
                   model-thinking-levels
+                  context-window
                 ) ;list
               ) ;let*
             ) ;let-values
@@ -80,6 +88,7 @@
             #f
             #f
             '()
+            #f
           ) ;list
         ) ;lambda
       ) ;catch

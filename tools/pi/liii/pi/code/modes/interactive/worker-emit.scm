@@ -88,8 +88,13 @@
     ) ;define
 
     ;; 将 agent 会话事件翻译为 TUI 卡片事件并投递到 event-chan（生产与测试共用）
-    (define (make-tui-emit event-chan)
-      (let ((call-args-map '()) (thinking-line-buffer ""))
+    ;; context-window：当前模型的上下文窗口 Token 数，
+    ;; 随 message_usage 事件投递给前端用于换算上下文占比
+    (define (make-tui-emit event-chan . opt-window)
+      (let ((context-window (if (pair? opt-window) (car opt-window) #f))
+            (call-args-map '())
+            (thinking-line-buffer "")
+           ) ;
         (lambda (event-type . args)
           (cond
             ;; provider 流式 thinking：跨增量缓冲，完整行立即投递；块结束冲出残余行
@@ -146,7 +151,7 @@
                       (usage (pi-message-field msg 'usage '()))
                      ) ;
                  (when (and (equal? role "assistant") (pair? usage))
-                   (pi-tui-send-event! event-chan (list 'message_usage usage))
+                   (pi-tui-send-event! event-chan (list 'message_usage usage context-window))
                  ) ;when
                  (when
                    (and (equal? role "assistant") (not (string-null? (string-trim-both text))))
@@ -159,6 +164,10 @@
                  ) ;when
                ) ;let*
              ) ;when
+            ) ;
+            ;; 上下文重建（自动压缩）：通知前端占比转为未知
+            ((eq? event-type 'compaction)
+             (pi-tui-send-event! event-chan (list 'compaction))
             ) ;
             ;; 重试提示，转为卡片而非污染终端
             ((eq? event-type 'retry)

@@ -27,6 +27,7 @@
     (liii pi code modes interactive app-resume)
     (liii pi code modes interactive app-session)
     (liii pi code core session-stats)
+    (liii pi code core context-usage)
     (liii pi code modes interactive common)
     (liii pi code modes interactive footer)
   ) ;import
@@ -329,13 +330,20 @@
             ((assistant_text) (pi-app-add-assistant-text! app (cadr ev)))
             ((message_usage)
              (let* ((usage (cadr ev))
+                    ;; 事件负载第三项为当前模型的上下文窗口（缺省 #f）
+                    (window (if (> (length ev) 2) (caddr ev) #f))
                     (tokens (pi-app-tokens app))
                     (latest-rate (pi-calculate-cache-hit-rate usage))
+                    (context-tokens (pi-calculate-context-tokens usage))
+                    (context (make-pi-context-usage (pi-context-percent context-tokens window) window #t)
+                    ) ;context
                    ) ;
                (pi-session-token-stats-add-usage! tokens usage)
-               (pi-footer-set-token-stats! (%pi-app-footer app) tokens latest-rate)
+               (pi-footer-set-token-stats! (%pi-app-footer app) tokens latest-rate context)
              ) ;let*
             ) ;
+            ;; 自动压缩后上下文已重建，占比未知（显示 "?"，对齐上游）
+            ((compaction) (pi-footer-set-context-unknown! (%pi-app-footer app)))
             ((retry) (pi-app-add-retry-message! app (cadr ev)))
             ;; worker 消费了 steering / follow-up 注入消息：
             ;; 移除待处理显示并上屏正式用户卡片（对齐上游 message_start 双动作）
