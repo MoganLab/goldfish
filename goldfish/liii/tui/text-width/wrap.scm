@@ -30,6 +30,7 @@
     (liii string)
     (liii unicode)
     (liii tui text-width core)
+    (liii tui text-width sgr)
   ) ;import
   (begin
 
@@ -41,12 +42,6 @@
       (text %wrap-token-text)
     ) ;define-record-type
 
-    (define (%string-ends-with-reset? str)
-      (let ((len (string-length str)))
-        (and (>= len 4) (string=? (substring str (- len 4) len) "\x1b;[0m"))
-      ) ;let
-    ) ;define
-
     (define (%trim-rev-line rev-line)
       (let loop
         ((rest rev-line))
@@ -57,14 +52,12 @@
       ) ;let
     ) ;define
 
+    ;; 收尾：去掉行尾空格后追加选择性复位（不再发 \x1b[0m 全重置）
     (define (%close-line cur-line active-ansi)
       (let* ((trimmed (%trim-rev-line cur-line))
              (raw (apply string-append (reverse trimmed)))
             ) ;
-        (if (and (not (string=? active-ansi "")) (not (%string-ends-with-reset? raw)))
-          (string-append raw "\x1b;[0m")
-          raw
-        ) ;if
+        (string-append raw (%sgr-selective-reset active-ansi))
       ) ;let*
     ) ;define
 
