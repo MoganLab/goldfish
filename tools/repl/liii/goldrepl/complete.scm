@@ -16,10 +16,10 @@
 
 (define-library (liii goldrepl complete)
   (import (scheme base) (scheme char) (liii base) (liii list) (liii string))
-  (export *repl-symbols* %repl-symbol-char? %repl-update-symbol-cache!
-    %repl-invalidate-symbol-cache! %repl-symbol-name? %repl-completions
-    %repl-word-at %repl-replace-word %repl-string-common-prefix
-    %repl-common-prefix
+  (export *repl-symbols* %repl-symbols-list %repl-symbol-char?
+    %repl-update-symbol-cache! %repl-invalidate-symbol-cache! %repl-symbol-name?
+    %repl-completions %repl-word-at %repl-replace-word
+    %repl-string-common-prefix %repl-common-prefix
   ) ;export
   (begin
 
@@ -41,6 +41,13 @@
 
     (define (%repl-invalidate-symbol-cache!)
       (set! *repl-symbol-cache-valid?* #f)
+    ) ;define
+
+    (define (%repl-symbols-list)
+      ;; ; 返回当前的符号缓存列表，缓存失效时先重建。
+      ;; ; 注意：导入库拿到的变量是导入时刻的快照，跨库读取必须走这个函数。
+      (%repl-maybe-update-symbol-cache!)
+      *repl-symbols*
     ) ;define
 
     (define (%repl-entry-doc val)

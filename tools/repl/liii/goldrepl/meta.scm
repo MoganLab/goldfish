@@ -58,7 +58,7 @@
       (if (or (not arg) (string-null? arg))
         (list (string-append (%repl-styled "bold" "Usage:") " ,apropos <substring>"))
         (let ((found
-                (filter (lambda (entry) (string-contains (car entry) arg)) *repl-symbols*)
+                (filter (lambda (entry) (string-contains (car entry) arg)) (%repl-symbols-list))
               ) ;found
              ) ;
           (if (null? found)
