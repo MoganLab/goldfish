@@ -17,6 +17,7 @@
     (liii pi ai tools record)
     (liii pi ai limits)
     (liii pi ai api anthropic-messages input)
+    (liii pi ai api anthropic-messages cache)
   ) ;import
   (export anthropic-map-stop-reason anthropic-map-usage
     anthropic-build-tool-declarations anthropic-build-messages
@@ -175,12 +176,15 @@
       ) ;let
     ) ;define
 
+    ;; prompt caching 三断点（system 块 / 最后一个 tool / 末条 user 消息末块）
+    ;; 的构造实现在 (liii pi ai api anthropic-messages cache)
+
     (define (anthropic-build-request-body model-id messages system-prompt
               tool-decls max-tokens
             ) ;anthropic-build-request-body
       (let* ((b (list (cons "model" model-id)
                   (cons "max_tokens" (or max-tokens 8192))
-                  (cons "messages" messages)
+                  (cons "messages" (anthropic-messages-add-cache-control messages))
                 ) ;list
              ) ;b
              (b
@@ -188,13 +192,18 @@
                  (and (string? system-prompt)
                    (not (string-null? (string-trim-both system-prompt)))
                  ) ;and
-                 (append b (list (cons "system" system-prompt)))
+                 (append b (list (cons "system" (anthropic-system-blocks system-prompt))))
                  b
                ) ;if
              ) ;b
             ) ;
         (if (and (pair? tool-decls) (> (length tool-decls) 0))
-          (append b (list (cons "tools" (list->vector tool-decls))))
+          (append b
+            (list (cons "tools"
+                    (list->vector (anthropic-tool-decls-add-cache-control tool-decls))
+                  ) ;cons
+            ) ;list
+          ) ;append
           b
         ) ;if
       ) ;let*

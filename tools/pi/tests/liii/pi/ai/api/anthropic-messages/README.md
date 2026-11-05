@@ -4,6 +4,7 @@
 汇总并重新导出各子库的公开函数：
 
 - `(liii pi ai api anthropic-messages core)` — 响应字段映射、请求体组装与响应解析
+- `(liii pi ai api anthropic-messages cache)` — prompt caching 断点构造（system 块 / 末 tool / 末条消息）
 - `(liii pi ai api anthropic-messages input)` — 工具参数归一化与解析
 - `(liii pi ai api anthropic-messages request)` — 端点构造与非流式请求
 - `(liii pi ai api anthropic-messages stream)` — 流式请求
