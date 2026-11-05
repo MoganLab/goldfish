@@ -12,6 +12,19 @@
 ;;   - idle：不渲染并复位 spinner（原语义）
 ;;   - 尚无缓存帧时（如手工 set-busy! 后未渲染）：回退整帧渲染
 ;;   - 选择器激活时：回退整帧渲染（编辑器行被选择器替换，行定位不适用）
+;;
+;; 语法
+;; ----
+;; (pi-app-working-tick-partial-render-test)
+;;
+;; 参数
+;; ----
+;; 无
+;;
+;; 返回值
+;; ------
+;; any
+;; 测试用例无返回值；执行结果由 (check-report) 汇总输出。
 
 (import (scheme base)
         (liii check)
@@ -30,6 +43,19 @@
         (liii pi code modes interactive working))
 
 (check-set-mode! 'report)
+
+;; 性能测量取多轮最小值：测试运行器默认并行执行多个用例，
+;; 单轮测量会被其它用例的 CPU 争用放大，最小值更接近真实单跑成本
+(define (best-of-3 measure)
+  (let loop ((i 0) (best #f))
+    (if (< i 3)
+      (let ((v (measure)))
+        (loop (+ i 1) (if (or (not best) (< v best)) v best))
+      )
+      best
+    ) ;if
+  ) ;let
+) ;define
 
 ;; 1. 语义正确性：busy 首拍后强制到期，帧内容与「每拍整帧」一致
 (let* ((vterm (make-virtual-terminal :width 100 :height 40))
@@ -66,19 +92,26 @@
   ;; 首拍（整帧）
   (pi-app-working-tick! app)
   ;; 后续 199 拍：每拍都强制到期并推进帧，模拟真实 80ms 节拍
-  (let ((t0 (current-monotonic-millis))
-        (c0 (thread-time-ns)))
-    (let loop ((i 0))
-      (when (< i 199)
-        (working-last-tick-set! (pi-app-working app)
-          (- (current-monotonic-millis) 80))
-        (pi-app-working-tick! app)
-        (loop (+ i 1))))
-    (let* ((cpu-ms (quotient (- (thread-time-ns) c0) 1000000))
-           (wall (- (current-monotonic-millis) t0))
-           (per-tick-us (quotient (- (thread-time-ns) c0) (* 199 1000))))
-      (format #t "199 拍轻量 tick：CPU ~ams（墙钟 ~ams），平均 ~aμs/拍~%"
-        cpu-ms wall per-tick-us)
+  (let ((measure-ticks
+          (lambda ()
+            (let ((c0 (thread-time-ns)))
+              (let loop ((i 0))
+                (when (< i 199)
+                  (working-last-tick-set! (pi-app-working app)
+                    (- (current-monotonic-millis) 80))
+                  (pi-app-working-tick! app)
+                  (loop (+ i 1))
+                ) ;when
+              ) ;let
+              (quotient (- (thread-time-ns) c0) (* 199 1000))
+            ) ;let
+          ) ;lambda
+         )
+        ) ;
+    (let* ((t0 (current-monotonic-millis))
+           (per-tick-us (best-of-3 measure-ticks))
+           (wall (- (current-monotonic-millis) t0)))
+      (format #t "199 拍轻量 tick：墙钟 ~ams，平均 ~aμs/拍~%" wall per-tick-us)
       ;; 护栏：轻量 tick 平均应 < 1500μs/拍（原路径 ~3800μs，优化后 ~1100μs；
       ;; 后续 P1 优化 alt-screen-render! 的调用开销后可进一步收紧）
       (check-true (< per-tick-us 1500)))))

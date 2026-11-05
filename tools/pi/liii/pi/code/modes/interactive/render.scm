@@ -16,9 +16,9 @@
 ;; transcript 占据剩余空间（grow），dock 固定在底部。
 (define-library (liii pi code modes interactive render)
   (export pi-app-render! pi-app-frame-lines pi-app-transcript-lines
-    %pi-app-working-border-row pi-app-scroll-up! pi-app-scroll-down!
-    pi-app-scroll-top! pi-app-scroll-bottom! pi-app-scroll-line-up!
-    pi-app-scroll-line-down!
+    %pi-app-working-border-row %pi-app-render-working-border! pi-app-scroll-up!
+    pi-app-scroll-down! pi-app-scroll-top! pi-app-scroll-bottom!
+    pi-app-scroll-line-up! pi-app-scroll-line-down!
   ) ;export
   (import (scheme base)
     (liii string)
@@ -286,6 +286,38 @@
           (%pi-app-rendered-frame-set! app (cons (alt-screen-lines screen) cur-pos))
         ) ;let-values
       ) ;let
+    ) ;define
+
+    ;; 轻量 tick 渲染：仅替换缓存帧中的 Working 边框行，不重算整帧布局。
+    ;; busy 期间布局不变（每拍仅 spinner 帧变化），逐行 eq? 命中快速路径，
+    ;; 避免每拍重算整帧（长会话整帧重算成本可达 ~16ms）。
+    ;; 选择器激活时编辑器行被选择器替换，行定位不适用，返回 #f 由调用方回退整帧渲染。
+    ;; 返回 #t 表示已按轻量路径渲染；#f 表示不可用（调用方应回退整帧渲染）。
+    (define (%pi-app-render-working-border! app)
+      (if (pi-app-active-selector app)
+        #f
+        (let ((row (%pi-app-working-border-row app)) (cached (pi-app-rendered-frame app)))
+          (if (or (not row) (not cached))
+            #f
+            (%render-working-border! app row (car cached) (cdr cached))
+          ) ;if
+        ) ;let
+      ) ;if
+    ) ;define
+
+    ;; 用新的 Working 边框行替换缓存帧的对应行，并提交到备用屏
+    (define (%render-working-border! app row frame cursor)
+      (let* ((w (car (terminal-size (pi-app-term app))))
+             (color (pi-thinking-border-color (pi-app-thinking-level app)))
+             (new-line (working-border-line (pi-app-working app) w color))
+             (new-frame (append (take frame row) (list new-line) (drop frame (+ row 1))))
+             (screen (pi-app-screen app))
+            ) ;
+        (alt-screen-render! screen new-frame cursor)
+        ;; 缓存归一化后的帧（与 buffer 上帧同源），供下一拍
+        (%pi-app-rendered-frame-set! app (cons (alt-screen-lines screen) cursor))
+        #t
+      ) ;let*
     ) ;define
 
     ;; 全屏模式下的对话记录滚动：

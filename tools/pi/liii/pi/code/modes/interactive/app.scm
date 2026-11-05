@@ -86,26 +86,7 @@
                    ;; （长会话整帧重算成本可达 ~16ms，导致空闲 CPU ~20%）。
                    ;; 回退条件：选择器激活（编辑器行被替换，行定位不适用）
                    ;; 或尚无缓存帧（首次 busy 前未渲染过）
-                   (let ((row (and (not (pi-app-active-selector app)) (%pi-app-working-border-row app)))
-                         (cached (pi-app-rendered-frame app))
-                        ) ;
-                     (if (and row cached)
-                       (let* ((frame (car cached))
-                              (w (car (terminal-size (pi-app-term app))))
-                              (color (pi-thinking-border-color (pi-app-thinking-level app)))
-                              (new-line (working-border-line ind w color))
-                              (new-frame (append (take frame row) (list new-line) (drop frame (+ row 1))))
-                             ) ;
-                         (alt-screen-render! (pi-app-screen app) new-frame (cdr cached))
-                         ;; 缓存归一化后的帧（与 buffer 上帧同源），供下一拍
-                         (%pi-app-rendered-frame-set! app
-                           (cons (alt-screen-lines (pi-app-screen app)) (cdr cached))
-                         ) ;%pi-app-rendered-frame-set!
-                       ) ;let*
-                       (pi-app-render! app)
-                     ) ;if
-                   ) ;let
-                   #t
+                   (if (%pi-app-render-working-border! app) #t (begin (pi-app-render! app) #t))
                   ) ;
                   (else #f)
             ) ;cond
