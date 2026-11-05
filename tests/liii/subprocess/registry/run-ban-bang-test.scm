@@ -1,5 +1,3 @@
-(import (liii check) (liii os) (liii subprocess))
-
 ;; run-ban!
 ;; 显式禁止某个符号命令或字符串命令。
 ;;
@@ -11,6 +9,10 @@
 ;; ----
 ;; symbol : symbol
 ;;
+;; 返回值
+;; ------
+;; 未定义
+;;
 ;; 说明
 ;; ----
 ;; - 'rm 默认已被禁止。
@@ -18,6 +20,10 @@
 ;; - 对于字符串命令，如果命令以被禁止的符号名称开头（后跟空格或结束），
 ;;   同样会报 value-error。
 ;; - 使用 (run-unban! symbol) 可以取消禁止。
+
+(import (liii check) (liii os) (liii subprocess))
+
+(check-set-mode! 'report-failed)
 
 (when (or (os-linux?) (os-macos?))
   ;; 符号命令禁止与取消

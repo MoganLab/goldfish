@@ -1,5 +1,3 @@
-(import (liii check) (liii os) (liii subprocess))
-
 ;; run-set!
 ;; 为符号命令注册解析方式。
 ;;
@@ -16,9 +14,17 @@
 ;; 字符串或 path 对象表示外部可执行文件路径；
 ;; lambda 表示自定义命令。
 ;;
+;; 返回值
+;; ------
+;; 未定义
+;;
 ;; 说明
 ;; ----
 ;; 注册表是全局的，作用域覆盖所有后续的 run / run-either 调用。
+
+(import (liii check) (liii os) (liii subprocess))
+
+(check-set-mode! 'report-failed)
 
 (when (or (os-linux?) (os-macos?))
   (run-set! 'echo-cmd "/bin/echo")
