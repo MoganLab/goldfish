@@ -9,7 +9,7 @@
   (export make-tui-emit pi-tui-agent-worker pi-tui-run-worker pi-tui-send-event!
     pi-cfg-with-thinking pi-cfg-with-model %worker-job-cfg %cfg-override
     pi-worker-ensure-session-file! pi-worker-handle-job %assistant-error-text
-    %poll-one-injected %pi-worker-poll-cfg
+    %poll-one-injected %pi-worker-poll-cfg %worker-cfg-with-session-id
   ) ;export
   (import (scheme base)
     (scheme write)
@@ -131,13 +131,28 @@
       ) ;let*
     ) ;define
 
+    ;; 会话标识附加到 cfg：请求层（OpenAI 官方端点）用作 prompt_cache_key，
+    ;; 同一会话的请求路由到同一缓存分片，提升前缀缓存命中率
+    (define (%worker-cfg-with-session-id cfg session-file)
+      (if (string? session-file)
+        (append
+          (filter
+            (lambda (kv) (not (eq? (car kv) 'session-id)))
+            cfg
+          ) ;filter
+          (list (cons 'session-id session-file))
+        ) ;append
+        cfg
+      ) ;if
+    ) ;define
+
     ;; 在后台独立 worker 线程中运行，不阻塞前台终端编辑
     (define (pi-tui-run-worker parsed cfg user-text event-chan . opts)
       (let ((session-file (and (pair? opts) (car opts))))
         (catch #t
           (lambda ()
             (run-session-flow parsed
-              cfg
+              (%worker-cfg-with-session-id cfg session-file)
               user-text
               (make-tui-emit event-chan)
               (lambda (res-msgs) #t)

@@ -292,8 +292,17 @@
              ) ;tool-resolver
              (tool-decls (openai-build-tool-declarations-from-names eff-tool-names tool-resolver)
              ) ;tool-decls
+             (prompt-cache-key
+               (openai-resolve-prompt-cache-key base-url
+                 (let ((p (assoc 'session-id config)))
+                   (and p (cdr p))
+                 ) ;let
+               ) ;openai-resolve-prompt-cache-key
+             ) ;prompt-cache-key
              (openai-msgs (openai-build-messages messages system-instruction))
-             (req-body (openai-build-request-body model-id openai-msgs #t tool-decls max-tokens)
+             (req-body (openai-build-request-body model-id openai-msgs #t
+                         tool-decls max-tokens prompt-cache-key
+                       ) ;openai-build-request-body
              ) ;req-body
              (req-json-str (json->string req-body))
              (proxy-alist (openai-build-proxy-alist proxy-url))

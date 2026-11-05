@@ -19,6 +19,7 @@
     make-openai-stream-decoder extract-openai-stream-error-message
     openai-build-tool-declarations-from-names openai-request
     openai-build-endpoint openai-build-headers openai-build-proxy-alist
-    openai-request-stream
+    openai-request-stream openai-clamp-prompt-cache-key
+    openai-resolve-prompt-cache-key
   ) ;export
 ) ;define-library
