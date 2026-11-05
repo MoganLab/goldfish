@@ -3,7 +3,7 @@
 `(liii goldrepl meta)` 提供 REPL 的元命令能力：列出可用的元命令、按子串搜索符号、
 描述符号的类型与签名，并分发以逗号开头的元命令输入。
 
-使用时导入：
+使用时导入（load-path 需包含 `tools/repl`）：
 
 ```scheme
 (import (liii goldrepl meta))
@@ -11,11 +11,12 @@
 
 ## 查看函数文档
 
-使用以下命令查看模块导览与函数文档：
-
 ```bash
-bin/gf doc liii/goldrepl/meta
-bin/gf doc liii/goldrepl/meta %repl-handle-meta
+# 查看模块导览（load-path 需包含 tools/repl）
+gf doc liii/goldrepl/meta
+
+# 查看具体函数的文档
+gf doc liii/goldrepl/meta "%repl-handle-meta"
 ```
 
 ## 函数分类索引

@@ -13,7 +13,7 @@
 - `(liii goldrepl render)` - 界面渲染
 - `(liii goldrepl loop)` - 主循环
 
-使用时导入：
+使用时导入（load-path 需包含 `tools/repl`）：
 
 ```scheme
 (import (liii goldrepl))
@@ -21,11 +21,12 @@
 
 ## 查看函数文档
 
-使用以下命令查看模块导览与函数文档：
-
 ```bash
-bin/gf doc liii/goldrepl
-bin/gf doc liii/goldrepl main
+# 查看模块导览（load-path 需包含 tools/repl）
+gf doc liii/goldrepl
+
+# 查看具体函数的文档
+gf doc liii/goldrepl "main"
 ```
 
 ## 函数分类索引

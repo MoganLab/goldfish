@@ -3,7 +3,7 @@
 `(liii goldrepl complete)` 提供 REPL 的符号补全能力：维护全局符号缓存、按前缀筛选补全候选、
 计算光标处的当前词并就地替换，同时提供候选词之间的最长公共前缀计算。
 
-使用时导入：
+使用时导入（load-path 需包含 `tools/repl`）：
 
 ```scheme
 (import (liii goldrepl complete))
@@ -11,11 +11,12 @@
 
 ## 查看函数文档
 
-使用以下命令查看模块导览与函数文档：
-
 ```bash
-bin/gf doc liii/goldrepl/complete
-bin/gf doc liii/goldrepl/complete %repl-completions
+# 查看模块导览（load-path 需包含 tools/repl）
+gf doc liii/goldrepl/complete
+
+# 查看具体函数的文档
+gf doc liii/goldrepl/complete "%repl-completions"
 ```
 
 ## 函数分类索引

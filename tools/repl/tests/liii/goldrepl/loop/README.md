@@ -3,7 +3,7 @@
 `(liii goldrepl loop)` 提供 REPL 的主循环能力：处理求值与补全交互、提交代码与元命令、
 预加载 REPL 模式、排版补全菜单，并在退出时清理终端与保存历史。
 
-使用时导入：
+使用时导入（load-path 需包含 `tools/repl`）：
 
 ```scheme
 (import (liii goldrepl loop))
@@ -11,11 +11,12 @@
 
 ## 查看函数文档
 
-使用以下命令查看模块导览与函数文档：
-
 ```bash
-bin/gf doc liii/goldrepl/loop
-bin/gf doc liii/goldrepl/loop %repl-submit-code!
+# 查看模块导览（load-path 需包含 tools/repl）
+gf doc liii/goldrepl/loop
+
+# 查看具体函数的文档
+gf doc liii/goldrepl/loop "%repl-submit-code!"
 ```
 
 ## 函数分类索引

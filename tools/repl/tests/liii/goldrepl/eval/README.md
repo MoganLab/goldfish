@@ -3,7 +3,7 @@
 `(liii goldrepl eval)` 提供 REPL 的求值能力：统计输入文本中未闭合的括号、在根环境中求值并捕获
 标准输出与错误输出，同时把求值结果注册为带序号的会话变量。
 
-使用时导入：
+使用时导入（load-path 需包含 `tools/repl`）：
 
 ```scheme
 (import (liii goldrepl eval))
@@ -11,11 +11,12 @@
 
 ## 查看函数文档
 
-使用以下命令查看模块导览与函数文档：
-
 ```bash
-bin/gf doc liii/goldrepl/eval
-bin/gf doc liii/goldrepl/eval %repl-eval
+# 查看模块导览（load-path 需包含 tools/repl）
+gf doc liii/goldrepl/eval
+
+# 查看具体函数的文档
+gf doc liii/goldrepl/eval "%repl-eval"
 ```
 
 ## 函数分类索引

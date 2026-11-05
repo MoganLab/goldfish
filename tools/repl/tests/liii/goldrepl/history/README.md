@@ -3,7 +3,7 @@
 `(liii goldrepl history)` 提供 REPL 的历史记录能力：定位历史文件位置、对历史条目做转义与反转义、
 解析历史文件内容，并把历史记录载入或保存到磁盘。
 
-使用时导入：
+使用时导入（load-path 需包含 `tools/repl`）：
 
 ```scheme
 (import (liii goldrepl history))
@@ -11,11 +11,12 @@
 
 ## 查看函数文档
 
-使用以下命令查看模块导览与函数文档：
-
 ```bash
-bin/gf doc liii/goldrepl/history
-bin/gf doc liii/goldrepl/history %repl-load-history!
+# 查看模块导览（load-path 需包含 tools/repl）
+gf doc liii/goldrepl/history
+
+# 查看具体函数的文档
+gf doc liii/goldrepl/history "%repl-load-history!"
 ```
 
 ## 函数分类索引

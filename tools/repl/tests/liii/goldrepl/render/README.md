@@ -3,7 +3,7 @@
 `(liii goldrepl render)` 提供 REPL 的界面渲染能力：生成横幅与提示符、把输入行渲染成带高亮的文本行、
 刷新屏幕，并把求值输出、错误输出与求值结果整理成输出行。
 
-使用时导入：
+使用时导入（load-path 需包含 `tools/repl`）：
 
 ```scheme
 (import (liii goldrepl render))
@@ -11,11 +11,12 @@
 
 ## 查看函数文档
 
-使用以下命令查看模块导览与函数文档：
-
 ```bash
-bin/gf doc liii/goldrepl/render
-bin/gf doc liii/goldrepl/render %repl-banner-lines
+# 查看模块导览（load-path 需包含 tools/repl）
+gf doc liii/goldrepl/render
+
+# 查看具体函数的文档
+gf doc liii/goldrepl/render "%repl-banner-lines"
 ```
 
 ## 函数分类索引
