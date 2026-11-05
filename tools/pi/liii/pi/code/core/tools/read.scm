@@ -8,11 +8,15 @@
 
 (define-library (liii pi code core tools read)
   (import (scheme base)
+    (scheme char)
     (scheme process-context)
     (liii string)
     (liii list)
     (liii path)
     (liii os)
+    (liii base64)
+    (liii pi ai message)
+    (liii pi ai tools record)
     (liii pi code core tools truncate)
   ) ;import
   (export pi-read-schema pi-execute-read pi-arg-ref pi-resolve-path pi-abs-path
@@ -91,6 +95,9 @@
 
     (define (pi-read-schema)
       (list (cons "type" "object")
+        (cons "description"
+          "Read the contents of a file. Supports text files and images (jpg, png, gif, webp, bmp). Images are sent as attachments. For text files, output is truncated to 2000 lines or 50KB (whichever is hit first). Use offset/limit for large files. When you need the full file, continue with offset until complete."
+        ) ;cons
         (cons "properties"
           (list (cons "path"
                   (list (cons "type" "string")
@@ -122,6 +129,102 @@
               (else (loop (cddr rest)))
         ) ;cond
       ) ;let
+    ) ;define
+
+    (define* (%bytevector-starts-with? bv prefix (offset 0))
+      (let ((plen (bytevector-length prefix)) (blen (bytevector-length bv)))
+        (and (>= blen (+ offset plen))
+          (let loop
+            ((i 0))
+            (if (= i plen)
+              #t
+              (if (= (bytevector-u8-ref bv (+ offset i)) (bytevector-u8-ref prefix i))
+                (loop (+ i 1))
+                #f
+              ) ;if
+            ) ;if
+          ) ;let
+        ) ;and
+      ) ;let
+    ) ;define*
+
+    (define* (%read-file-header-bytes path-str (n 32))
+      (catch #t
+        (lambda ()
+          (let ((p (open-input-file path-str)))
+            (let loop
+              ((i 0) (acc (make-bytevector n 0)))
+              (if (= i n)
+                (begin
+                  (close-input-port p)
+                  acc
+                ) ;begin
+                (let ((b (read-byte p)))
+                  (if (eof-object? b)
+                    (begin
+                      (close-input-port p)
+                      (bytevector-copy acc 0 i)
+                    ) ;begin
+                    (begin
+                      (bytevector-u8-set! acc i b)
+                      (loop (+ i 1) acc)
+                    ) ;begin
+                  ) ;if
+                ) ;let
+              ) ;if
+            ) ;let
+          ) ;let
+        ) ;lambda
+        (lambda _ #u8())
+      ) ;catch
+    ) ;define*
+
+    (define (%detect-image-mime-type abs-path)
+      (let ((header (%read-file-header-bytes abs-path 32)))
+        (cond ((%bytevector-starts-with? header #u8(137 80 78 71 13 10 26 10)) "image/png")
+              ((%bytevector-starts-with? header #u8(255 216 255)) "image/jpeg")
+              ((or (%bytevector-starts-with? header #u8(71 73 70 56 55 97))
+                 (%bytevector-starts-with? header #u8(71 73 70 56 57 97))
+               ) ;or
+               "image/gif"
+              ) ;
+              ((and (%bytevector-starts-with? header #u8(82 73 70 70))
+                 (%bytevector-starts-with? header #u8(87 69 66 80) 8)
+               ) ;and
+               "image/webp"
+              ) ;
+              ((%bytevector-starts-with? header #u8(66 77)) "image/bmp")
+              (else
+                (let ((ext (string-downcase (path-suffix (path abs-path)))))
+                  (cond ((string=? ext ".png") "image/png")
+                        ((or (string=? ext ".jpg") (string=? ext ".jpeg")) "image/jpeg")
+                        ((string=? ext ".gif") "image/gif")
+                        ((string=? ext ".webp") "image/webp")
+                        ((string=? ext ".bmp") "image/bmp")
+                        (else #f)
+                  ) ;cond
+                ) ;let
+              ) ;else
+        ) ;cond
+      ) ;let
+    ) ;define
+
+    (define (%model-supports-images? model)
+      (if (not (pair? model))
+        #t
+        (let ((input
+                (or (and (assoc "input" model) (cdr (assoc "input" model)))
+                  (and (assoc 'input model) (cdr (assoc 'input model)))
+                  #f
+                ) ;or
+              ) ;input
+             ) ;
+          (cond ((vector? input) (member "image" (vector->list input)))
+                ((pair? input) (member "image" input))
+                (else #t)
+          ) ;cond
+        ) ;let
+      ) ;if
     ) ;define
 
     (define (%slice-lines lines start count)
@@ -182,6 +285,62 @@
       ) ;let*
     ) ;define
 
+    (define (%execute-read-image abs-path opts mime)
+      (let* ((bytes (path-read-bytes (path abs-path)))
+             (b64 (utf8->string (bytevector-base64-encode bytes)))
+             (opt-model (pi-keyword-value :model opts #f))
+             (opt-cfg (pi-keyword-value :config opts #f))
+             (model
+               (or opt-model
+                 (and (pair? opt-cfg)
+                   (or (and (assoc 'model-meta opt-cfg) (cdr (assoc 'model-meta opt-cfg)))
+                     (and (assoc 'model opt-cfg) (cdr (assoc 'model opt-cfg)))
+                   ) ;or
+                 ) ;and
+               ) ;or
+             ) ;model
+             (non-vision-note
+               (if (and model (not (%model-supports-images? model)))
+                 "\n[Current model does not support images. The image will be omitted from this request.]"
+                 ""
+               ) ;if
+             ) ;non-vision-note
+             (text-msg (string-append "Read image file [" mime "]" non-vision-note))
+             (text-blk (pi-text-block text-msg))
+             (img-blk (pi-image-block b64 mime))
+            ) ;
+        (pi-tool-result (list text-blk img-blk) #f)
+      ) ;let*
+    ) ;define
+
+    (define (%execute-read-text abs-path raw-path offset limit)
+      (let* ((file-text (path-read-text (path abs-path)))
+             (all-lines (pi-split-lines file-text))
+             (total-lines (length all-lines))
+             (start-line (if offset (max 0 (- offset 1)) 0))
+             (start-display (+ start-line 1))
+            ) ;
+        (when (and offset (>= start-line total-lines))
+          (error 'error
+            (string-append "Offset "
+              (number->string offset)
+              " is beyond end of file ("
+              (number->string total-lines)
+              " lines total)"
+            ) ;string-append
+          ) ;error
+        ) ;when
+        (let* ((user-lines (if limit (min limit (- total-lines start-line)) #f))
+               (count (if limit user-lines (- total-lines start-line)))
+               (selected (%slice-lines all-lines start-line count))
+               (selected-text (string-join selected "\n"))
+               (truncation (pi-truncate-head selected-text))
+              ) ;
+          (%format-read-output truncation raw-path start-display total-lines user-lines)
+        ) ;let*
+      ) ;let*
+    ) ;define
+
     (define (pi-execute-read args . opts)
       (let* ((timed-out? (pi-keyword-value :timed-out? opts #f))
              (cwd (pi-keyword-value :cwd opts (getcwd)))
@@ -205,31 +364,12 @@
           (when (path-dir? (path abs-path))
             (error 'error (string-append "Not a file: " raw-path))
           ) ;when
-          (let* ((file-text (path-read-text (path abs-path)))
-                 (all-lines (pi-split-lines file-text))
-                 (total-lines (length all-lines))
-                 (start-line (if offset (max 0 (- offset 1)) 0))
-                 (start-display (+ start-line 1))
-                ) ;
-            (when (and offset (>= start-line total-lines))
-              (error 'error
-                (string-append "Offset "
-                  (number->string offset)
-                  " is beyond end of file ("
-                  (number->string total-lines)
-                  " lines total)"
-                ) ;string-append
-              ) ;error
-            ) ;when
-            (let* ((user-lines (if limit (min limit (- total-lines start-line)) #f))
-                   (count (if limit user-lines (- total-lines start-line)))
-                   (selected (%slice-lines all-lines start-line count))
-                   (selected-text (string-join selected "\n"))
-                   (truncation (pi-truncate-head selected-text))
-                  ) ;
-              (%format-read-output truncation raw-path start-display total-lines user-lines)
-            ) ;let*
-          ) ;let*
+          (let ((mime (%detect-image-mime-type abs-path)))
+            (if mime
+              (%execute-read-image abs-path opts mime)
+              (%execute-read-text abs-path raw-path offset limit)
+            ) ;if
+          ) ;let
         ) ;let
       ) ;let*
     ) ;define

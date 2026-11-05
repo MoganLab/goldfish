@@ -20,4 +20,5 @@ gf doc native-clipboard-copy!
 
 ### 原生剪贴板
 - `native-clipboard-copy!` - 调用操作系统原生剪贴板工具写入文本
-- `native-clipboard-text` - 在 Linux 上通过 wl-paste/xclip/xsel 读取外部剪贴板文本
+- `native-clipboard-text` - 跨平台读取外部剪贴板文本
+- `native-clipboard-image-path` - 跨平台从外部系统剪贴板读取图片并保存为临时路径

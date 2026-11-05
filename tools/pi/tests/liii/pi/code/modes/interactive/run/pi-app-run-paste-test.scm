@@ -84,4 +84,28 @@
   (list "" #f)
 ) ;for-each
 
+;; 4. 当外部剪贴板包含图片时，Ctrl+V 优先将图片路径插入输入框
+(let* ((submitted #f)
+       (image-reads 0)
+       (vt (make-virtual-terminal :width 80 :height 24))
+       (app (make-pi-app :terminal vt :handler (lambda (a m) (set! submitted m))))
+      ) ;
+  (virtual-terminal-push-key! vt 'ctrl-v)
+  (virtual-terminal-push-key! vt 'enter)
+  (virtual-terminal-push-key! vt 'ctrl-d)
+  (check
+    (pi-app-run app
+      ""
+      '()
+      (lambda () #f)
+      (lambda () "text-fallback")
+      (lambda () (set! image-reads (+ image-reads 1)) "/tmp/pi-clipboard-123.png")
+    ) ;pi-app-run
+    =>
+    #t
+  ) ;check
+  (check image-reads => 1)
+  (check submitted => "/tmp/pi-clipboard-123.png")
+) ;let*
+
 (check-report)

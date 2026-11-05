@@ -19,6 +19,8 @@
     pi-thinking-block-thinking-signature %make-pi-tool-call-block
     pi-tool-call-block? pi-tool-call-block-id pi-tool-call-block-name
     pi-tool-call-block-arguments pi-tool-call-block-thought-signature
+    %make-pi-image-block pi-image-block? pi-image-block-data
+    pi-image-block-mime-type
   ) ;export
   (begin
 
@@ -69,6 +71,13 @@
       (name pi-tool-call-block-name)
       (arguments pi-tool-call-block-arguments)
       (thought-signature pi-tool-call-block-thought-signature)
+    ) ;define-record-type
+
+    (define-record-type <pi-image-block>
+      (%make-pi-image-block data mime-type)
+      pi-image-block?
+      (data pi-image-block-data)
+      (mime-type pi-image-block-mime-type)
     ) ;define-record-type
 
   ) ;begin

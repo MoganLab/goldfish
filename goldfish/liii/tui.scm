@@ -76,7 +76,7 @@
     select-list? select-list-items select-list-selected-item
     select-list-selected-index select-list-set-selected-index! osc52-sequence
     osc52-copy-sequence clipboard-copy! native-clipboard-copy!
-    native-clipboard-text
+    native-clipboard-text native-clipboard-image-path
   ) ;export
   (import (liii tui component)
     (liii tui text-width)

@@ -88,4 +88,31 @@
   (check (cdr (assoc "role" (vector-ref vec 0))) => "assistant")
   (check (cdr (assoc "content" (vector-ref vec 0))) => "ok"))
 
+;; 当历史消息包含带图片块的 toolResult 时，正确转换为 tool 文本消息 + 附加 user image_url 消息
+(let* ((messages (list (pi-user-message "read dot.png")
+                       (pi-assistant-message
+                         (list (pi-tool-call-block "call_img_1" "read" '(("path" . "dot.png")))))
+                       (pi-tool-result-message "call_img_1" "read"
+                         (list (pi-text-block "Read image file [image/png]")
+                               (pi-image-block "aGVsbG8=" "image/png"))
+                         #f)))
+       (vec (openai-build-messages messages #f)))
+  ;; user + assistant + tool + user (image_url) = 4 条
+  (check (vector-length vec) => 4)
+  (let ((u1 (vector-ref vec 0))
+        (a1 (vector-ref vec 1))
+        (t1 (vector-ref vec 2))
+        (u2 (vector-ref vec 3)))
+    (check (cdr (assoc "role" t1)) => "tool")
+    (check (cdr (assoc "tool_call_id" t1)) => "call_img_1")
+    (check (cdr (assoc "content" t1)) => "Read image file [image/png]")
+    (check (cdr (assoc "role" u2)) => "user")
+    (let ((c (cdr (assoc "content" u2))))
+      (check-true (vector? c))
+      (check (vector-length c) => 1)
+      (let* ((img-item (vector-ref c 0))
+             (img-obj (cdr (assoc "image_url" img-item))))
+        (check (cdr (assoc "type" img-item)) => "image_url")
+        (check (cdr (assoc "url" img-obj)) => "data:image/png;base64,aGVsbG8=")))))
+
 (check-report)
