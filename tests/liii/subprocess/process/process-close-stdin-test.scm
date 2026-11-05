@@ -1,7 +1,3 @@
-(import (liii check) (liii subprocess))
-
-(check-set-mode! 'report-failed)
-
 ;; process-close-stdin
 ;; 关闭子进程的标准输入管道（向子进程传递 EOF）。
 ;;
@@ -18,13 +14,17 @@
 ;; ----
 ;; 未定义
 
+(import (liii check) (liii subprocess))
+
+(check-set-mode! 'report-failed)
+
 (let* ((child-code (string-append "import sys\n"
                      "data = sys.stdin.read()\n"
                      "print('len:' + str(len(data)), flush=True)\n"
                    ) ;string-append
        ) ;child-code
        (proc
-         (process-spawn `(,"python3" ,"-c" ,child-code) :stdin 'pipe :stdout 'pipe)
+         (process-spawn `("python3" "-c" ,child-code) :stdin 'pipe :stdout 'pipe)
        ) ;proc
       ) ;
   (process-write proc "test1234")

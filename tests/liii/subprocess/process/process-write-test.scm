@@ -1,7 +1,3 @@
-(import (liii check) (liii subprocess))
-
-(check-set-mode! 'report-failed)
-
 ;; process-write
 ;; 向子进程的标准输入写入字符串。
 ;;
@@ -21,13 +17,17 @@
 ;; ----
 ;; 未定义
 
+(import (liii check) (liii subprocess))
+
+(check-set-mode! 'report-failed)
+
 (let* ((child-code (string-append "import sys\n"
                      "line = sys.stdin.readline().strip()\n"
                      "print('got:' + line, flush=True)\n"
                    ) ;string-append
        ) ;child-code
        (proc
-         (process-spawn `(,"python3" ,"-c" ,child-code) :stdin 'pipe :stdout 'pipe)
+         (process-spawn `("python3" "-c" ,child-code) :stdin 'pipe :stdout 'pipe)
        ) ;proc
       ) ;
   (process-write proc "hello\n")

@@ -1,7 +1,3 @@
-(import (liii check) (liii subprocess))
-
-(check-set-mode! 'report-failed)
-
 ;; process-wait
 ;; 阻塞等待子进程退出，可指定超时时间。
 ;;
@@ -22,6 +18,10 @@
 ;; ----
 ;; integer 或 #f
 ;; 若进程退出则返回退出码整数；若在指定毫秒内未退出则返回 #f。
+
+(import (liii check) (liii subprocess))
+
+(check-set-mode! 'report-failed)
 
 ;; 正常退出并返回退出码
 (let ((proc (process-spawn '("python3" "-c" "import sys; sys.exit(42)"))))

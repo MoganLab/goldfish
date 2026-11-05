@@ -1,7 +1,3 @@
-(import (liii check) (liii subprocess))
-
-(check-set-mode! 'report-failed)
-
 ;; process-kill
 ;; 强制杀死子进程。
 ;;
@@ -22,6 +18,10 @@
 ;; ----
 ;; POSIX 平台上向子进程发送 SIGKILL 信号；
 ;; Windows 平台上调用 TerminateProcess 强行终止子进程。
+
+(import (liii check) (liii subprocess))
+
+(check-set-mode! 'report-failed)
 
 (let ((proc (process-spawn '("python3" "-c" "import time; time.sleep(10)"))))
   (check (process-alive? proc) => #t)

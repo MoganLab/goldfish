@@ -1,12 +1,3 @@
-(import (liii check) (liii either) (liii os) (liii string) (liii subprocess))
-
-(check-set-mode! 'report-failed)
-
-;; 提取 run-either 结果的 stdout（无论 Left/Right）
-(define (run-either-stdout res)
-  (if (either-right? res) (to-right res) (process-error-stdout (to-left res)))
-) ;define
-
 ;; process-kill-tree
 ;; 级联终止指定进程及其所有派生子孙进程。
 ;;
@@ -34,6 +25,16 @@
 ;; POSIX 平台上基于独立进程组（Process Group）通过广播信号实现整组清理；
 ;; Windows 平台上基于 Job Object 机制级联关闭或 taskkill /F /T /PID 强杀。
 ;; 若传入已经退出的进程对象或不存在的有效 PID，优雅返回 #t。
+
+(import (liii check) (liii either) (liii os) (liii string) (liii subprocess))
+
+(check-set-mode! 'report-failed)
+
+;; 提取 run-either 结果的 stdout（无论 Left/Right）
+
+(define (run-either-stdout res)
+  (if (either-right? res) (to-right res) (process-error-stdout (to-left res)))
+) ;define
 
 ;; 测试项4：已退出进程或非法 PID 的防御性健壮处理
 (let ((proc (process-spawn '("python3" "-c" "import sys; sys.exit(0)"))))

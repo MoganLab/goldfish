@@ -1,7 +1,3 @@
-(import (liii check) (liii subprocess))
-
-(check-set-mode! 'report-failed)
-
 ;; process-read
 ;; 从子进程的标准输出或标准错误读取数据块。
 ;;
@@ -24,13 +20,17 @@
 ;; string 或 eof-object
 ;; 读取到的字符串；当流关闭且无更多数据时返回 EOF 对象。
 
+(import (liii check) (liii subprocess))
+
+(check-set-mode! 'report-failed)
+
 (let* ((child-code (string-append "import sys\n"
                      "sys.stdout.write('chunk-data')\n"
                      "sys.stdout.flush()\n"
                    ) ;string-append
        ) ;child-code
        (proc
-         (process-spawn `(,"python3" ,"-c" ,child-code) :stdout 'pipe)
+         (process-spawn `("python3" "-c" ,child-code) :stdout 'pipe)
        ) ;proc
       ) ;
   (let ((data (process-read proc :max-bytes 1024 :stream 'stdout)))
@@ -59,7 +59,7 @@
                    ) ;string-append
        ) ;child-code
        (proc
-         (process-spawn `(,"python3" ,"-c" ,child-code) :stdout 'pipe)
+         (process-spawn `("python3" "-c" ,child-code) :stdout 'pipe)
        ) ;proc
       ) ;
   (let loop
@@ -94,17 +94,18 @@
 ;; 必须读到全部输出。修复前 Windows 分支存在竞态：Peek 无数据时若恰好检测
 ;; 到进程已退出则直接置 EOF，退出瞬间 flush 的数据被丢弃（CI 偶发
 ;; pi-json-e2e 段 anthropic 空输出的根因）
-(let* ((child-code (string-append "import sys\n"
-                   "sys.stdout.write('flush-at-exit')\n"
-                 ) ;string-append
+(let* ((child-code (string-append "import sys\n" "sys.stdout.write('flush-at-exit')\n")
        ) ;child-code
-      ) ;let*
-  (let loop ((i 0))
+      ) ;
+  (let loop
+    ((i 0))
     (if (< i 20)
-      (let* ((proc (process-spawn `(,"python3" ,"-c" ,child-code) :stdout 'pipe))
+      (let* ((proc
+               (process-spawn `("python3" "-c" ,child-code) :stdout 'pipe)
+             ) ;proc
              (code (process-wait proc 5000))
              (data (process-read proc :max-bytes 65536 :stream 'stdout))
-            ) ;let*
+            ) ;
         (check code => 0)
         (check data => "flush-at-exit")
         (process-close proc)
@@ -116,26 +117,25 @@
 
 ;; 读写交错场景：父进程持续轮询读，子进程短暂存活后打印并退出，
 ;; 轮询窗口内数据不得丢失
-(let* ((child-code (string-append "import sys\n"
-                   "sys.stdout.write('quick-exit-data')\n"
-                 ) ;string-append
+(let* ((child-code (string-append "import sys\n" "sys.stdout.write('quick-exit-data')\n")
        ) ;child-code
-      ) ;let*
-  (let loop ((i 0))
+      ) ;
+  (let loop
+    ((i 0))
     (if (< i 20)
-      (let* ((proc (process-spawn `(,"python3" ,"-c" ,child-code) :stdout 'pipe))
+      (let* ((proc
+               (process-spawn `("python3" "-c" ,child-code) :stdout 'pipe)
+             ) ;proc
              (acc
-               (let inner ((acc ""))
+               (let inner
+                 ((acc ""))
                  (let ((chunk (process-read proc :max-bytes 65536 :stream 'stdout)))
-                   (if (eof-object? chunk)
-                     acc
-                     (inner (string-append acc chunk))
-                   ) ;if
+                   (if (eof-object? chunk) acc (inner (string-append acc chunk)))
                  ) ;let
                ) ;let
              ) ;acc
              (code (process-wait proc 5000))
-            ) ;let*
+            ) ;
         (check code => 0)
         (check acc => "quick-exit-data")
         (process-close proc)
