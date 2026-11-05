@@ -76,7 +76,7 @@
 (check (digit-value #\\) => #f)
 (check (digit-value #\:) => #f)
 (check (digit-value #\;) => #f)
-(check (digit-value #\x22) => #f)
+(check (digit-value #\") => #f)
 (check (digit-value #\') => #f)
 (check (digit-value #\<) => #f)
 (check (digit-value #\>) => #f)

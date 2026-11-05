@@ -64,7 +64,7 @@
 (check (char-ci<=? #\space #\newline) => #f)
 (check (char-ci<=? #\tab #\tab) => #t)
 (check (char-ci<=? #\@ #\newline) => #f)
-(check (char-ci<=? #\! #\x22) => #t)
+(check (char-ci<=? #\! #\") => #t)
 (check (char-ci<=? #\! #\!) => #t)
 (check (char-ci<=? #\0 #\A) => #t)
 (check (char-ci<=? #\9 #\z) => #t)
