@@ -156,7 +156,7 @@ private:
     s7_scheme*  worker_sc= s7_init ();
     std::string lib_dir  = get_goldfish_lib_dir ();
     if (!lib_dir.empty ()) {
-      s7_add_to_load_path (worker_sc, lib_dir.c_str ());
+      add_goldfish_load_paths (worker_sc, lib_dir.c_str ());
     }
     glue_for_community_edition (worker_sc);
     if (!lib_dir.empty ()) {

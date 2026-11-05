@@ -1,6 +1,19 @@
 (import (liii list) (liii check) (liii os) (liii path))
 (check-set-mode! 'report-failed)
 
+;; 默认库搜索路径覆盖语言层、标准库层和当前项目根目录。
+(let* ((goldfish-dir (((rootlet) 'g_goldfish-library-dir)))
+       (installed-library (path->string (path-join (path goldfish-dir) "library")))
+       (source-library
+         (path->string (path-join (path-parent (path goldfish-dir)) "library"))
+       ) ;path->string
+       (library-dir (if (path-dir? installed-library) installed-library source-library))
+      ) ;
+  (check-true (member "." *load-path*))
+  (check-true (member goldfish-dir *load-path*))
+  (check-true (member library-dir *load-path*))
+) ;let*
+
 ;; [1147] boot.scm 统一调低 s7 堆增长阈值：
 ;; s7 默认 gc-resize-heap-fraction 为 0.8（堆占用超过 20% 即翻倍，且堆只增
 ;; 不减），大量库 import 的瞬时峰值会把堆推到数倍于活跃集的大小，RSS 虚高

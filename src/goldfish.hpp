@@ -1206,11 +1206,25 @@ read_text_file_exact (const fs::path& path) {
   return buffer.str ();
 }
 
+void
+add_goldfish_load_paths (s7_scheme* sc, const char* gf_lib) {
+  s7_add_to_load_path (sc, ".");
+  s7_add_to_load_path (sc, gf_lib);
+  fs::path installed_library= fs::path (gf_lib) / "library";
+  fs::path source_library   = fs::path (gf_lib).parent_path () / "library";
+  if (fs::is_directory (installed_library)) {
+    s7_add_to_load_path (sc, installed_library.string ().c_str ());
+  }
+  else if (fs::is_directory (source_library)) {
+    s7_add_to_load_path (sc, source_library.string ().c_str ());
+  }
+}
+
 s7_scheme*
 init_goldfish_scheme (const char* gf_lib) {
   set_goldfish_lib_dir (gf_lib);
   s7_scheme* sc= s7_init ();
-  s7_add_to_load_path (sc, gf_lib);
+  add_goldfish_load_paths (sc, gf_lib);
 
   if (!tb_init (tb_null, tb_null)) exit (-1);
 
