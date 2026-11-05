@@ -1,7 +1,3 @@
-(import (liii check) (liii subprocess) (liii time))
-
-(check-set-mode! 'report-failed)
-
 ;; process-idle-seconds
 ;; 返回自子进程上次产生 stdout/stderr 输出（或初始启动）以来经过的空闲秒数。
 ;;
@@ -19,13 +15,17 @@
 ;; real
 ;; 自上次活动以来的空闲秒数（大于或等于 0 的非负实数）。
 
+(import (liii check) (liii subprocess) (liii time))
+
+(check-set-mode! 'report-failed)
+
 (let* ((child-code (string-append "import sys, time\n" "time.sleep(0.3)\n"
                      "print('hello', flush=True)\n" "time.sleep(0.3)\n"
                      "print('world', flush=True)\n"
                    ) ;string-append
        ) ;child-code
        (proc
-         (process-spawn `(,"python3" ,"-c" ,child-code) :stdout 'pipe)
+         (process-spawn `("python3" "-c" ,child-code) :stdout 'pipe)
        ) ;proc
       ) ;
   ;; 输出间隔期间，空闲时间单调递增

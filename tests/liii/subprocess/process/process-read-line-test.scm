@@ -1,7 +1,3 @@
-(import (liii check) (liii subprocess))
-
-(check-set-mode! 'report-failed)
-
 ;; process-read-line
 ;; 从子进程的标准输出或标准错误读取一行文本。
 ;;
@@ -23,13 +19,17 @@
 ;; string 或 eof-object
 ;; 包含单行内容的字符串（不含末尾换行符）；当到达文件末尾时返回 EOF 对象。
 
+(import (liii check) (liii subprocess))
+
+(check-set-mode! 'report-failed)
+
 (let* ((child-code (string-append "import sys\n"
                      "print('line 1', flush=True)\n"
                      "print('line 2', flush=True)\n"
                    ) ;string-append
        ) ;child-code
        (proc
-         (process-spawn `(,"python3" ,"-c" ,child-code) :stdout 'pipe)
+         (process-spawn `("python3" "-c" ,child-code) :stdout 'pipe)
        ) ;proc
       ) ;
   (check (process-read-line proc :stream 'stdout) => "line 1")

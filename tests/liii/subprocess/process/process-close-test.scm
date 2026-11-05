@@ -1,7 +1,3 @@
-(import (liii check) (liii subprocess) (liii string))
-
-(check-set-mode! 'report-failed)
-
 ;; process-close
 ;; 关闭子进程相关的文件句柄和资源。
 ;;
@@ -21,6 +17,10 @@
 ;; 说明
 ;; ----
 ;; 释放与该进程相关的管道、句柄等底层系统资源。
+
+(import (liii check) (liii subprocess) (liii string))
+
+(check-set-mode! 'report-failed)
 
 (let ((proc (process-spawn '("python3" "-c" "import sys; sys.exit(0)"))))
   (process-wait proc 2000)

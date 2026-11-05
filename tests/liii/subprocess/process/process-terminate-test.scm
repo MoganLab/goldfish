@@ -1,7 +1,3 @@
-(import (liii check) (liii subprocess))
-
-(check-set-mode! 'report-failed)
-
 ;; process-terminate
 ;; 优雅终止子进程。
 ;;
@@ -22,6 +18,10 @@
 ;; ----
 ;; POSIX 平台上向子进程发送 SIGTERM 信号；
 ;; Windows 平台上发送 CTRL_BREAK 或执行 TerminateProcess。
+
+(import (liii check) (liii subprocess))
+
+(check-set-mode! 'report-failed)
 
 (let ((proc (process-spawn '("python3" "-c" "import time; time.sleep(10)"))))
   (check (process-alive? proc) => #t)

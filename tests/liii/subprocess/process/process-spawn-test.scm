@@ -1,7 +1,3 @@
-(import (liii check) (liii subprocess) (liii os))
-
-(check-set-mode! 'report-failed)
-
 ;; process-spawn
 ;; 异步派生子进程，并返回一个子进程对象。
 ;;
@@ -26,6 +22,10 @@
 ;; ----
 ;; process
 ;; 新创建的子进程对象。
+
+(import (liii check) (liii subprocess) (liii os))
+
+(check-set-mode! 'report-failed)
 
 ;; 异步派生并等待进程
 (let ((proc (process-spawn '("python3" "-c" "import sys; sys.exit(0)"))))

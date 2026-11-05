@@ -1,7 +1,3 @@
-(import (liii check) (liii subprocess))
-
-(check-set-mode! 'report-failed)
-
 ;; process-last-activity-time
 ;; 返回子进程最后一次产生 stdout/stderr 输出或初始启动时的单调时钟时间戳（秒）。
 ;;
@@ -19,13 +15,17 @@
 ;; real
 ;; 单调时钟时间戳（秒，大于 0 的实数）。
 
+(import (liii check) (liii subprocess))
+
+(check-set-mode! 'report-failed)
+
 (let* ((child-code (string-append "import sys, time\n" "time.sleep(0.2)\n"
                      "print('step1', flush=True)\n" "time.sleep(0.2)\n"
                      "print('step2', flush=True)\n"
                    ) ;string-append
        ) ;child-code
        (proc
-         (process-spawn `(,"python3" ,"-c" ,child-code) :stdout 'pipe)
+         (process-spawn `("python3" "-c" ,child-code) :stdout 'pipe)
        ) ;proc
        (t0 (process-last-activity-time proc))
       ) ;

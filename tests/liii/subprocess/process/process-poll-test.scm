@@ -1,7 +1,3 @@
-(import (liii check) (liii subprocess))
-
-(check-set-mode! 'report-failed)
-
 ;; process-poll
 ;; 非阻塞轮询子进程的状态。
 ;;
@@ -18,6 +14,10 @@
 ;; ----
 ;; integer 或 #f
 ;; 若进程仍在运行返回 #f；若进程已结束返回其退出码（integer）。
+
+(import (liii check) (liii subprocess))
+
+(check-set-mode! 'report-failed)
 
 (let ((proc (process-spawn '("python3"
                              "-c"

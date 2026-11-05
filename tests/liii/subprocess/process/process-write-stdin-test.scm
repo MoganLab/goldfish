@@ -1,7 +1,3 @@
-(import (liii check) (liii os) (liii subprocess) (scheme base))
-
-(check-set-mode! 'report-failed)
-
 ;; process-write-stdin
 ;; 向子进程的标准输入写入字符串或字节序列。
 ;;
@@ -22,9 +18,13 @@
 ;; integer
 ;; 成功写入的字节数。
 ;;
-;; 异常
-;; ----
+;; 错误处理
+;; --------
 ;; type-error : proc 不是 process 对象，或者 data 既不是 string 也不是 bytevector。
+
+(import (liii check) (liii os) (liii subprocess) (scheme base))
+
+(check-set-mode! 'report-failed)
 
 ;; 写入字符串并返回写入字节数
 (let* ((child-code (string-append "import sys\n"
@@ -33,7 +33,7 @@
                    ) ;string-append
        ) ;child-code
        (proc
-         (process-spawn `(,"python3" ,"-c" ,child-code) :stdin 'pipe :stdout 'pipe)
+         (process-spawn `("python3" "-c" ,child-code) :stdin 'pipe :stdout 'pipe)
        ) ;proc
       ) ;
   (check (process-write-stdin proc "hello\n") => 6)
@@ -50,7 +50,7 @@
                    ) ;string-append
        ) ;child-code
        (proc
-         (process-spawn `(,"python3" ,"-c" ,child-code) :stdin 'pipe :stdout 'pipe)
+         (process-spawn `("python3" "-c" ,child-code) :stdin 'pipe :stdout 'pipe)
        ) ;proc
        (data (string->utf8 "scheme-bytevector\n"))
       ) ;
@@ -82,7 +82,7 @@
                       ) ;string-append
          ) ;filter-code
          (proc
-           (process-spawn `(,"python3" ,"-c" ,filter-code) :stdin 'pipe :stdout 'pipe)
+           (process-spawn `("python3" "-c" ,filter-code) :stdin 'pipe :stdout 'pipe)
          ) ;proc
         ) ;
     (check (process-write-stdin proc "line 1 foo\n") => 11)

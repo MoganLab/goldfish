@@ -1,7 +1,3 @@
-(import (liii check) (liii subprocess))
-
-(check-set-mode! 'report-failed)
-
 ;; process?
 ;; 判断给定对象是否为子进程对象。
 ;;
@@ -18,11 +14,10 @@
 ;; ----
 ;; boolean
 ;; 如果是子进程对象返回 #t，否则返回 #f。
-;;
-;; 示例
-;; ----
-;; (process? 42) => #f
-;; (process? "not-a-proc") => #f
+
+(import (liii check) (liii subprocess))
+
+(check-set-mode! 'report-failed)
 
 ;; 非进程对象返回 #f
 (check (process? 42) => #f)

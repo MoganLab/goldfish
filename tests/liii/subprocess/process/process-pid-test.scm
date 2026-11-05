@@ -1,7 +1,3 @@
-(import (liii check) (liii subprocess))
-
-(check-set-mode! 'report-failed)
-
 ;; process-pid
 ;; 获取子进程的操作系统进程 ID (PID)。
 ;; 在进程退出或调用 process-close 之后，该函数仍返回该子进程原有的 PID。
@@ -19,6 +15,10 @@
 ;; ----
 ;; integer
 ;; 子进程的进程标识符 PID（大于 0 的整数）。
+
+(import (liii check) (liii subprocess))
+
+(check-set-mode! 'report-failed)
 
 (let* ((proc (process-spawn '("python3" "-c" "import sys; sys.exit(0)")))
        (pid (process-pid proc))
