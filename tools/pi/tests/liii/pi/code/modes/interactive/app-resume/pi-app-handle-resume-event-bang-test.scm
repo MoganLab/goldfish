@@ -53,7 +53,8 @@
   (pi-app-handle-resume-event! app (list 'session_resumed file "ResumedDemo" #f))
   (check (pi-session-token-stats-cache-read (pi-app-tokens app)) => 900)
   (check (pi-session-token-stats-input (pi-app-tokens app)) => 100)
-  (check (pi-footer-stats (%pi-app-footer app)) => "↑100 ↓20 R900 0.0%/1.0M (auto)")
+  ;; 恢复的会话按最后一条 assistant usage 换算上下文占比（1020/1000000）
+  (check (pi-footer-stats (%pi-app-footer app)) => "↑100 ↓20 R900 0.1%/1.0M (auto)")
   (delete-file file)
 ) ;let*
 

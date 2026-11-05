@@ -21,6 +21,7 @@
     (liii tui)
     (liii pi agent queue)
     (liii pi code core session-stats)
+    (liii pi code core context-usage)
     (liii pi code modes interactive state)
     (liii pi code modes interactive render)
     (liii pi code modes interactive views)
@@ -210,7 +211,12 @@
                (when (and (string? path) (file-exists? path))
                  (let* ((st (pi-get-session-stats path)) (toks (pi-session-stats-tokens st)))
                    (%pi-app-tokens-set! app toks)
-                   (pi-footer-set-token-stats! (%pi-app-footer app) toks #f)
+                   ;; 恢复的会话：按最后一条 assistant usage 换算上下文占比
+                   (pi-footer-set-token-stats! (%pi-app-footer app)
+                     toks
+                     #f
+                     (pi-session-context-usage path (pi-footer-context-window (%pi-app-footer app)))
+                   ) ;pi-footer-set-token-stats!
                  ) ;let*
                ) ;when
                (let-values (((applied? note label) (%apply-resume-state! app state)))

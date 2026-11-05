@@ -20,6 +20,7 @@
     (liii path)
     (liii pi abort)
     (liii pi ai auth)
+    (liii pi ai config record)
     (liii pi ai models meta)
     (liii pi ai models route)
     (liii pi code cli args)
@@ -146,6 +147,21 @@
       ) ;if
     ) ;define
 
+    ;; 从 cfg 读取当前模型的上下文窗口 Token 数：
+    ;; model-meta 可能是 pi-model-metadata record，也可能是 alist
+    (define (%cfg-context-window cfg)
+      (let ((meta (cdr (or (assoc 'model-meta cfg) '(#f . #f)))))
+        (cond ((pi-model-metadata? meta) (pi-model-metadata-context-window meta))
+              ((pair? meta)
+               (let ((pair (assoc 'context-window meta)))
+                 (if pair (cdr pair) #f)
+               ) ;let
+              ) ;
+              (else #f)
+        ) ;cond
+      ) ;let
+    ) ;define
+
     ;; 在后台独立 worker 线程中运行，不阻塞前台终端编辑
     (define (pi-tui-run-worker parsed cfg user-text event-chan . opts)
       (let ((session-file (and (pair? opts) (car opts))))
@@ -154,7 +170,7 @@
             (run-session-flow parsed
               (%worker-cfg-with-session-id cfg session-file)
               user-text
-              (make-tui-emit event-chan)
+              (make-tui-emit event-chan (%cfg-context-window cfg))
               (lambda (res-msgs) #t)
               session-file
               '()

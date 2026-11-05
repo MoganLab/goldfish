@@ -36,6 +36,7 @@
     (liii tui)
     (liii pi agent queue)
     (liii pi code core session-stats)
+    (liii pi code core context-usage)
     (liii pi code modes interactive state)
     (liii pi code modes interactive render)
     (liii pi code modes interactive thinking)
@@ -255,6 +256,7 @@
                (hide-thinking #f)
                (on-save-hide-thinking #f)
                (tokens #f)
+               (context-window #f)
              ) ;make-pi-app
       (let* ((actual-term (or terminal (make-standard-terminal)))
              ;; 全屏模式：备用屏整帧渲染，内容不随终端滚动
@@ -286,6 +288,8 @@
                        :thinking-level    tl
                        :supports-thinking supports-thinking
                        :session-name      session-name
+                       ;; 上下文窗口：页脚左下角上下文占比的容量分母
+                       :context-window context-window
                      ) ;make-pi-footer
              ) ;footer
              (queue (make-pi-message-queue))
@@ -350,7 +354,12 @@
              (ed (%make-pi-editor app tl))
             ) ;
         (when (> (pi-session-token-stats-total actual-tokens) 0)
-          (pi-footer-set-token-stats! footer actual-tokens #f)
+          ;; 恢复的会话：按最后一条 assistant usage 换算上下文占比
+          (pi-footer-set-token-stats! footer
+            actual-tokens
+            #f
+            (pi-session-context-usage session-file (pi-footer-context-window footer))
+          ) ;pi-footer-set-token-stats!
         ) ;when
         ;; 对话记录（页眉 + 消息卡片）作为可滚动视口内容；
         ;; 待发送队列卡片与输入区、页脚一起构成底部 dock

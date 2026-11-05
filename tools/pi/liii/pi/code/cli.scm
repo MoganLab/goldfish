@@ -184,6 +184,8 @@
                  :hide-thinking (list-ref info 8)
                  :on-save-hide-thinking
                  (lambda (hide) (pi-save-hide-thinking-block! (list-ref info 5) hide))
+                 ;; 上下文窗口：页脚左下角上下文占比的容量分母
+                 :context-window (list-ref info 10)
                  :on-save-model
                  (lambda (provider model-id)
                    (pi-save-default-model! (list-ref info 5) provider model-id)
