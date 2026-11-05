@@ -1,9 +1,21 @@
+;; fix-string
+;; 根据可信缩进修正缺失或多余的右括号，只返回修正后的源码。
+;;
+;; 语法
+;; ----
+;; (fix-string source)
+;;
+;; 参数
+;; ----
+;; source : string? 源码文本
+;;
+;; 返回值
+;; ------
+;; string? 修正后的源码文本
+
 (import (liii check) (liii goldfix) (liii raw-string))
 
 (check-set-mode! 'report-failed)
-
-;; fix-string
-;; 根据可信缩进修正缺失或多余的右括号。
 
 (check (fix-string "(define x 1)") => "(define x 1)")
 
