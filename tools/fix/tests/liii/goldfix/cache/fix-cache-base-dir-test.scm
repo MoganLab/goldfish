@@ -22,9 +22,10 @@
 (check (string? (fix-cache-base-dir)) => #t)
 
 ;; 测试：路径以 .cache/goldfish/fix/<版本号> 结尾
-(check (string-ends? (fix-cache-base-dir)
-         (string-append ".cache/goldfish/fix/" (version))
-       ) ;string-ends?
+(check
+  (string-ends? (path-as-posix (path (fix-cache-base-dir)))
+    (string-append ".cache/goldfish/fix/" (version))
+  ) ;string-ends?
   =>
   #t
 ) ;check
