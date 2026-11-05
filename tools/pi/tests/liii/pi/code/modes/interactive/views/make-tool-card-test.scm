@@ -323,4 +323,17 @@
   ) ;let
 ) ;let*
 
+;; 命令、路径和自定义工具文本在卡片边界净化，不改变底层参数状态。
+(let* ((card (make-tool-card "read" '((path . "before\x1b;cafter")) 'success))
+       (plain (map strip-ansi (component-render card 80)))
+      ) ;
+  (check-true (string-contains? (string-join plain "\n") "read beforeafter"))
+) ;let*
+(let* ((card (make-tool-card "custom" "x\x1b;[?1000ly" 'success))
+       (plain (string-join (map strip-ansi (component-render card 80)) "\n"))
+      ) ;
+  (check-true (string-contains? plain "custom x"))
+  (check-false (string-contains? plain "1000l"))
+) ;let*
+
 (check-report)

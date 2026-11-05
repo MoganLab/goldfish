@@ -92,4 +92,9 @@
   (check (string-trim-both (strip-ansi (cadr content))) => "bbbb")
 ) ;let*
 
+;; 用户输入上屏时清理控制序列，TUI 自身背景样式不受影响。
+(let ((plain (map strip-ansi (component-render (make-user-card "before\x1b;cafter") 40))))
+  (check-true (string-contains? (string-join plain "\n") "beforeafter"))
+) ;let
+
 (check-report)

@@ -8,7 +8,7 @@
 ;; 清理命令输出中会导致显示错乱或宽度计算崩溃的字符。
 ;; 注意：本实现工作在字节层（与 (liii tui text-width core) 一致）。
 (define-library (liii pi code utils shell)
-  (export sanitize-binary-output)
+  (export sanitize-binary-output sanitize-display-text)
   (import (scheme base)
     (liii base)
     (liii error)
@@ -164,6 +164,12 @@
           ) ;if
         ) ;let
       ) ;let*
+    ) ;define
+
+    ;; 清理来自模型、用户、工具或文件内容的不可信显示文本。
+    ;; 仅用于尚未添加 TUI 自身样式的文本；保留 \t、\n、\r，调用方按需处理。
+    (define (sanitize-display-text str)
+      (sanitize-binary-output (strip-ansi str))
     ) ;define
 
     (define (sanitize-binary-output str)

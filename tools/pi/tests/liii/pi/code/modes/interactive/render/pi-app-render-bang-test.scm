@@ -145,4 +145,14 @@
   ) ;let
 ) ;let*
 
+;; 助手正文同样不能经最终渲染向终端泄漏鼠标控制序列。
+(let* ((vterm (make-virtual-terminal :width 80 :height 40))
+       (app (make-pi-app :terminal vterm :handler (lambda (app msg) #t)))
+       (injected (string-append "before" (string (integer->char 27)) "[?1000lafter"))
+      ) ;
+  (pi-app-add-assistant-text! app injected)
+  (pi-app-render! app)
+  (check-false (string-contains? (string-join (virtual-terminal-raw vterm) "") injected))
+) ;let*
+
 (check-report)
