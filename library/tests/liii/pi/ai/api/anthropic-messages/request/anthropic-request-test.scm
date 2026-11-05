@@ -45,9 +45,12 @@
 ) ;define
 
 (define stub-server-file
-  (if (file-exists? "tools/pi/tests/stub_gemini_server.py")
-    "tools/pi/tests/stub_gemini_server.py"
-    "tests/stub_gemini_server.py"
+  (if (file-exists? "../tools/pi/tests/stub_gemini_server.py")
+    "../tools/pi/tests/stub_gemini_server.py"
+    (if (file-exists? "tools/pi/tests/stub_gemini_server.py")
+      "tools/pi/tests/stub_gemini_server.py"
+      "tests/stub_gemini_server.py"
+    ) ;if
   ) ;if
 ) ;define
 

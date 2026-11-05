@@ -17,6 +17,8 @@
 ;; list
 ;; Anthropic API 的 tool 声明列表，解析失败的工具会被过滤。
 
+(set! *load-path* (append (list "../tools/pi" ".") *load-path*))
+
 (import (liii check)
   (liii pi ai api anthropic-messages request)
   (liii pi code core tools)

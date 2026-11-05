@@ -17,6 +17,8 @@
 ;; list
 ;; OpenAI 格式的 tools 声明列表。
 
+(set! *load-path* (append (list "../tools/pi" ".") *load-path*))
+
 (import (liii check) (liii pi ai event) (liii pi ai api openai-completions) (liii pi code core tools))
 
 (check-set-mode! 'report-failed)

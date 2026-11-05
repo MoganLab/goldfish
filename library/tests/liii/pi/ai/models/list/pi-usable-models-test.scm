@@ -23,6 +23,8 @@
 ;; 与 gf pi config 三列视图、--list-models 的 ●（已激活）判定一致；
 ;; 有无凭证不影响列表（缺凭证报错仍在请求期由 config.scm 的 api-key 解析报出）。
 
+(set! *load-path* (append (list "../tools/pi" ".") *load-path*))
+
 (import (scheme base)
   (scheme file)
   (srfi srfi-1)

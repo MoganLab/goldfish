@@ -53,7 +53,7 @@
     "tools/pi/tests/stub_gemini_server.py"
     (if (file-exists? "tests/stub_gemini_server.py")
       "tests/stub_gemini_server.py"
-      "../../tools/pi/tests/stub_gemini_server.py"
+      "../tools/pi/tests/stub_gemini_server.py"
     ) ;if
   ) ;if
 ) ;define
