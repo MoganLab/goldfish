@@ -17,6 +17,10 @@
 
 (check-set-mode! 'report-failed)
 
+;; 双引号字符：gf fmt 的分词器暂不支持 #\x 字符字面量，故由整数构造
+
+(define double-quote (integer->char 34))
+
 ;; 测试：空白字符也是分隔符
 (check (delimiter-char? #\space) => #t)
 (check (delimiter-char? #\newline) => #t)
@@ -25,8 +29,11 @@
 (check (delimiter-char? #\() => #t)
 (check (delimiter-char? #\)) => #t)
 (check (delimiter-char? #\;) => #t)
-(check (delimiter-char? #\") => #t)
+(check (delimiter-char? double-quote) => #t)
+
+;; 测试：普通字符不是分隔符
 (check (delimiter-char? #\a) => #f)
 (check (delimiter-char? #\#) => #f)
 (check (delimiter-char? #\|) => #f)
+
 (check-report)
