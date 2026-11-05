@@ -26,6 +26,7 @@ gf doc make-alt-screen
 
 ### 渲染与重绘控制
 - `alt-screen-render!` - 渲染文本帧并更新光标
+- `alt-screen-normalize` - 归一化帧内容（按宽度裁剪、按高度补齐）
 - `alt-screen-clear!` - 清除终端屏幕与帧缓存
 - `alt-screen-invalidate!` - 使缓存失效以强制重绘
 - `alt-screen-refresh!` - 全量重绘当前帧
