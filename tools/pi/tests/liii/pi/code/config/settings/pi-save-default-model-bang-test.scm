@@ -24,6 +24,7 @@
   (liii check)
   (liii json)
   (liii list)
+  (liii string)
   (liii path)
   (liii shutil)
   (liii pi code config settings)
@@ -49,6 +50,9 @@
   (check (cdr (assoc "defaultModel" json)) => "claude-haiku-4-5")
   (check (cdr (assoc "defaultThinkingLevel" json)) => "off")
   (check (cdr (assoc "enabled" (cdr (assoc "compaction" json)))) => 'false)
+  ;; 写盘为格式化 JSON（多行、2 空格缩进），不再是单行
+  (check (string-contains (path-read-text SETTINGS) "\n  \"defaultProvider\": \"anthropic\",") => #t)
+  (check (string-contains (path-read-text SETTINGS) "\n  \"defaultThinkingLevel\": \"off\",") => #t)
 ) ;let
 
 ;; 再次保存替换旧值而不是添加重复键。

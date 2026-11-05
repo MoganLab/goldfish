@@ -22,6 +22,7 @@
   (liii check)
   (liii json)
   (liii list)
+  (liii string)
   (liii path)
   (liii shutil)
   (liii pi code config settings)
@@ -47,6 +48,9 @@
   (check (cdr (assoc "defaultProvider" json)) => "google")
   (check (cdr (assoc "enabled" (cdr (assoc "compaction" json)))) => 'false)
   (check (pi-settings-default-thinking-level (pi-load-settings AGENT-DIR)) => "high")
+  ;; 写盘为格式化 JSON（多行、2 空格缩进），不再是单行
+  (check (string-contains (path-read-text SETTINGS) "\n  \"defaultThinkingLevel\": \"high\",") => #t)
+  (check (string-contains (path-read-text SETTINGS) "\n  \"defaultProvider\": \"google\",") => #t)
 ) ;let
 
 ;; 再次保存替换旧值而不是添加重复键。

@@ -342,10 +342,10 @@
 
 ;; ---------- JSON 序列化 ----------
 
-;; 14. 2 空格缩进、保序、数组内联
-(check (pi-config-json-pretty (vector "a" "b")) => "[\"a\", \"b\"]")
+;; 14. 2 空格缩进、保序、数组逐元素展开
+(check (pi-config-json-pretty (vector "a" "b")) => "[\n  \"a\",\n  \"b\"\n]")
 (check (pi-config-json-pretty (list (cons "k" (vector "a"))))
-  => "{\n  \"k\": [\"a\"]\n}"
+  => "{\n  \"k\": [\n    \"a\"\n  ]\n}"
 ) ;check
 (check (pi-config-json-pretty (list (cons "n" #t) (cons "m" 1)))
   => "{\n  \"n\": true,\n  \"m\": 1\n}"
