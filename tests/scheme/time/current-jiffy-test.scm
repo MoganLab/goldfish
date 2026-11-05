@@ -1,9 +1,3 @@
-(import (liii check) (scheme time))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; current-jiffy
 ;; 获取当前时间的 jiffy 计数。
 ;;
@@ -27,8 +21,6 @@
 ;; 3. 主要用于高精度时间测量和性能分析
 ;; 4. 与 current-second 的关系：current-jiffy = (round (* current-second 1000000))
 ;;
-;; 示例
-;; ----
 ;; (let ((start (current-jiffy)))
 ;;   (do-some-work)
 ;;   (let ((end (current-jiffy)))
@@ -38,6 +30,10 @@
 ;; ----
 ;; 无
 
+(import (liii check) (scheme time))
+
+
+(check-set-mode! 'report-failed)
 
 (let ((j1 (current-jiffy)))
   (check (integer? j1) => #t)
