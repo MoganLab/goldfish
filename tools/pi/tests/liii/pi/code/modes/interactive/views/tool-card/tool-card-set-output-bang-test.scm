@@ -20,7 +20,7 @@
   (liii check)
   (liii string)
   (liii tui)
-  (liii pi code modes interactive views)
+  (liii pi code modes interactive views tool-card)
 ) ;import
 
 (check-set-mode! 'report-failed)
