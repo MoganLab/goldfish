@@ -49,8 +49,18 @@
       ) ;let
     ) ;define
 
-    (define (run-goldsource)
-      (let ((parsed (parse-source-args (argv))))
+    ;; args 为显式的参数列表（字符串列表），供单元测试直接驱动；
+    ;; 未给出时从进程命令行 (argv) 解析。
+    (define* (run-goldsource (args #f))
+      (let* ((full-args
+               (cond ((not args) (argv))
+                     ((and (pair? args) (string=? (car args) "source")) (cons "gf" args))
+                     ((and (pair? args) (member "source" args)) args)
+                     (else (cons "gf" (cons "source" args)))
+               ) ;cond
+             ) ;full-args
+             (parsed (parse-source-args full-args))
+            ) ;
         (case (car parsed)
               ((help) (display-usage) 0)
               ((library)
@@ -69,8 +79,8 @@
               ) ;
               (else (display-usage) 1)
         ) ;case
-      ) ;let
-    ) ;define
+      ) ;let*
+    ) ;define*
 
   ) ;begin
 ) ;define-library
