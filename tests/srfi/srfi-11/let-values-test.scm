@@ -28,7 +28,7 @@
 ;; 所有 <expression> 先在当前环境中求值，然后并行绑定到各 <formals> 变量上。
 
 (import (liii check))
-(import (scheme base))
+(import (srfi srfi-11))
 
 (check-set-mode! 'report-failed)
 
