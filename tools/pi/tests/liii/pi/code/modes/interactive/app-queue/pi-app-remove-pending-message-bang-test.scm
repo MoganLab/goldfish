@@ -21,7 +21,7 @@
   (liii tui)
   (liii pi code modes interactive app)
   (liii pi code modes interactive state)
-  (liii pi code modes interactive app-events)
+  (liii pi code modes interactive app-queue)
 ) ;import
 
 (check-set-mode! 'report-failed)
