@@ -1,5 +1,3 @@
-(import (liii check) (scheme inexact))
-(check-set-mode! 'report-failed)
 ;; log
 ;; 计算对数函数。单个参数时计算自然对数(log base e)，两个参数时计算以第二个参数为底的对数。
 ;;
@@ -36,6 +34,10 @@
 ;; wrong-number-of-args
 ;; 当参数数量不为1或2个时抛出错误。
 ;; log 基本自然对数测试
+
+(import (liii check) (scheme inexact))
+(check-set-mode! 'report-failed)
+
 (check (log 1) => 0.0)
 (check (log (exp 1)) => 1.0)
 (check (log 2) => 0.6931471805599453)
@@ -65,4 +67,5 @@
 (check-catch 'type-error (log "a"))
 (check-catch 'wrong-number-of-args (log))
 (check-catch 'wrong-number-of-args (log 12 4 5))
+
 (check-report)

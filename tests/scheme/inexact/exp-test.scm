@@ -1,5 +1,3 @@
-(import (liii check) (scheme inexact) (liii os))
-(check-set-mode! 'report-failed)
 ;; exp
 ;; 计算指数函数 e^n。
 ;;
@@ -30,6 +28,10 @@
 ;; wrong-number-of-args
 ;; 当参数数量不为1时抛出错误。
 ;; exp 基本测试
+
+(import (liii check) (scheme inexact) (liii os))
+(check-set-mode! 'report-failed)
+
 (check (exp 0) => 1)
 (check (exp 1) => 2.718281828459045)
 (check (exp -1) => 0.36787944117144233)
@@ -45,4 +47,5 @@
 ) ;when
 (check-catch 'type-error (exp "hello"))
 (check-catch 'wrong-number-of-args (exp))
+
 (check-report)

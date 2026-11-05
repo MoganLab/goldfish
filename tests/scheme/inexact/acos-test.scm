@@ -1,5 +1,3 @@
-(import (liii check) (scheme inexact))
-(check-set-mode! 'report-failed)
 ;; acos
 ;; 计算给定值的反余弦值。
 ;;
@@ -24,8 +22,6 @@
 ;; 3. 当|x| > 1时，返回复数值
 ;; 4. 返回值精确度与输入值类型保持一致
 ;;
-;; 示例
-;; ----
 ;; (acos 0) => 1.5707963267948966 (π/2)
 ;; (acos 1) => 0.0
 ;; (acos -1) => 3.141592653589793 (π)
@@ -37,6 +33,10 @@
 ;; wrong-number-of-args
 ;; 当参数数量不为1时抛出错误。
 ;; acos 基本测试
+
+(import (liii check) (scheme inexact))
+(check-set-mode! 'report-failed)
+
 (check (acos 0) => 1.5707963267948966)
 (check (acos 1) => 0)
 (check (acos -1) => 3.141592653589793)
@@ -55,4 +55,5 @@
 (check-catch 'type-error (acos "hello"))
 (check-catch 'wrong-number-of-args (acos))
 (check-catch 'wrong-number-of-args (acos 1 2))
+
 (check-report)

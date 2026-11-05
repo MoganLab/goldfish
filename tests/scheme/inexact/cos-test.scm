@@ -1,5 +1,3 @@
-(import (liii check) (scheme inexact) (liii os))
-(check-set-mode! 'report-failed)
 ;; cos
 ;; 计算给定角度的余弦值。
 ;;
@@ -31,6 +29,10 @@
 ;; wrong-number-of-args
 ;; 当参数数量不为1时抛出错误。
 ;; cos 基本测试
+
+(import (liii check) (scheme inexact) (liii os))
+(check-set-mode! 'report-failed)
+
 (check (cos 0) => 1)
 (check (cos (/ pi 2)) => 6.123233995736766e-17)
 (check (cos pi) => -1.0)
@@ -52,4 +54,5 @@
 (check-catch 'type-error (cos "hello"))
 (check-catch 'wrong-number-of-args (cos))
 (check-catch 'wrong-number-of-args (cos 1 2))
+
 (check-report)

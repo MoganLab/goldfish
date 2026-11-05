@@ -1,5 +1,3 @@
-(import (liii check) (scheme inexact))
-(check-set-mode! 'report-failed)
 ;; sqrt
 ;; 计算给定数值的平方根。
 ;;
@@ -27,8 +25,6 @@
 ;;    - 如果输入为不精确值，则返回不精确值
 ;;    - 如果输入为负数，由于结果为复数，总是返回不精确值
 ;;
-;; 示例
-;; ----
 ;; (sqrt 9) => 3
 ;; (sqrt 25.0) => 5.0
 ;; (sqrt 2) => 1.4142135623730951 (近似值)
@@ -45,10 +41,18 @@
 ;; wrong-number-of-args
 ;; 当参数数量不为1时抛出错误。
 ;; sqrt 基本测试
+
+(import (liii check) (scheme inexact))
+(check-set-mode! 'report-failed)
+
 (check (sqrt 9) => 3)
 (check (sqrt 25.0) => 5.0)
 (check (sqrt 9/4) => 3/2)
-(check (< (abs (- (sqrt 2.0) 1.4142135623730951)) 1e-10) => #t)
+(check
+  (< (abs (- (sqrt 2.0) 1.4142135623730951)) 1e-10)
+  =>
+  #t
+) ;check
 ;; sqrt 负数测试
 (check (sqrt -1.0) => 0.0+1.0i)
 (check (sqrt -1) => 0.0+1.0i)
@@ -73,4 +77,5 @@
 (check-catch 'type-error (sqrt 'symbol))
 (check-catch 'wrong-number-of-args (sqrt))
 (check-catch 'wrong-number-of-args (sqrt 1 2))
+
 (check-report)

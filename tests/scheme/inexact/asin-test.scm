@@ -1,5 +1,3 @@
-(import (liii check) (scheme inexact))
-(check-set-mode! 'report-failed)
 ;; asin
 ;; 计算给定值的反正弦值。
 ;;
@@ -24,8 +22,6 @@
 ;; 3. 当|x| > 1时，返回复数值
 ;; 4. 返回值精确度与输入值类型保持一致
 ;;
-;; 示例
-;; ----
 ;; (asin 0) => 0.0
 ;; (asin 1) => 1.5707963267948966 (π/2)
 ;; (asin -1) => -1.5707963267948966 (-π/2)
@@ -37,6 +33,10 @@
 ;; wrong-number-of-args
 ;; 当参数数量不为1时抛出错误。
 ;; asin 基本测试
+
+(import (liii check) (scheme inexact))
+(check-set-mode! 'report-failed)
+
 (check (asin 0) => 0)
 (check (asin 1) => 1.5707963267948966)
 (check (asin -1) => -1.5707963267948966)
@@ -51,4 +51,5 @@
 (check-catch 'type-error (asin "hello"))
 (check-catch 'wrong-number-of-args (asin))
 (check-catch 'wrong-number-of-args (asin 1 2))
+
 (check-report)

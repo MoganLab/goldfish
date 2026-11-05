@@ -1,5 +1,3 @@
-(import (liii check) (scheme inexact))
-(check-set-mode! 'report-failed)
 ;; infinite?
 ;; 判断一个数值是否无限。
 ;;
@@ -21,6 +19,10 @@
 ;; 错误处理
 ;; ------
 ;; 无错误情况，非数值将返回 #f。
+
+(import (liii check) (scheme inexact))
+(check-set-mode! 'report-failed)
+
 (check (infinite? 0) => #f)
 (check (infinite? 0.0) => #f)
 (check (infinite? 1/2) => #f)
@@ -53,4 +55,5 @@
 (check (infinite? 'symbol) => #f)
 (check (infinite? '(+inf.0)) => #f)
 (check (infinite? '#(+inf.0)) => #f)
+
 (check-report)

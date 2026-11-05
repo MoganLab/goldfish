@@ -1,5 +1,3 @@
-(import (liii check) (scheme inexact) (liii os))
-(check-set-mode! 'report-failed)
 ;; atan
 ;; 计算给定值的反正切值，或计算两个值之比值的反正切值。
 ;;
@@ -36,6 +34,10 @@
 ;; wrong-number-of-args
 ;; 当参数数量不为1或2个时抛出错误。
 ;; atan 基本单参数测试
+
+(import (liii check) (scheme inexact) (liii os))
+(check-set-mode! 'report-failed)
+
 (check (atan 0) => 0)
 (check (atan 1) => 0.7853981633974483)
 (check (atan -1) => -0.7853981633974483)
@@ -68,4 +70,5 @@
 (check-catch 'wrong-number-of-args (atan))
 (check-catch 'wrong-number-of-args (atan 1 2 3))
 (check-catch 'type-error (atan 1 "hello"))
+
 (check-report)

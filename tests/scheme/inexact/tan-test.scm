@@ -1,5 +1,3 @@
-(import (liii check) (scheme inexact))
-(check-set-mode! 'report-failed)
 ;; tan
 ;; 计算给定角度的正切值。
 ;;
@@ -31,6 +29,10 @@
 ;; wrong-number-of-args
 ;; 当参数数量不为1时抛出错误。
 ;; tan 基本测试
+
+(import (liii check) (scheme inexact))
+(check-set-mode! 'report-failed)
+
 (check (tan 0) => 0)
 ;; 特殊角度测试
 (check (tan (/ pi 3)) => 1.7320508075688767)
@@ -40,4 +42,5 @@
 (check-catch 'type-error (tan "hello"))
 (check-catch 'wrong-number-of-args (tan))
 (check-catch 'wrong-number-of-args (tan 1 2))
+
 (check-report)
