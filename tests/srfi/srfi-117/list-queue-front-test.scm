@@ -1,4 +1,25 @@
-(import (liii check) (liii queue))
+;; list-queue-front
+;; 取出队列头部的元素，但不移除它。
+;;
+;; 语法
+;; ----
+;; (list-queue-front list-queue)
+;;
+;; 参数
+;; ----
+;; list-queue : list-queue?
+;; 目标队列。
+;;
+;; 返回值
+;; ------
+;; any
+;; 队列第一个元素。
+;;
+;; 错误处理
+;; --------
+;; 对空队列调用会抛出 type-error。
+
+(import (liii check) (srfi srfi-117))
 
 
 (check-set-mode! 'report-failed)

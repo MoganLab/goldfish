@@ -1,4 +1,21 @@
-(import (liii check) (liii queue))
+;; list-queue-append
+;; 依次拼接若干队列，返回一个全新的队列。
+;;
+;; 语法
+;; ----
+;; (list-queue-append . list-queues)
+;;
+;; 参数
+;; ----
+;; list-queues : (list-queue? ...)
+;; 待拼接的队列，元素按参数顺序进入结果队列。
+;;
+;; 返回值
+;; ------
+;; list-queue?
+;; 拼接结果，是一个新队列，原队列不受影响。
+
+(import (liii check) (srfi srfi-117))
 
 
 (check-set-mode! 'report-failed)

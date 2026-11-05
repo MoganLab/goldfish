@@ -1,4 +1,25 @@
-(import (liii check) (liii queue))
+;; list-queue-list
+;; 以列表形式返回队列中的全部元素。
+;;
+;; 语法
+;; ----
+;; (list-queue-list list-queue)
+;;
+;; 参数
+;; ----
+;; list-queue : list-queue?
+;; 目标队列。
+;;
+;; 返回值
+;; ------
+;; list?
+;; 与队列元素顺序一致的列表。
+;;
+;; 注意
+;; ----
+;; 返回的列表与队列内部结构共享，向队尾追加元素可能反映到已取出的列表上。
+
+(import (liii check) (srfi srfi-117))
 
 
 (check-set-mode! 'report-failed)

@@ -1,4 +1,21 @@
-(import (liii check) (liii queue))
+;; list-queue-copy
+;; 复制一个队列，副本与原队列互不影响。
+;;
+;; 语法
+;; ----
+;; (list-queue-copy list-queue)
+;;
+;; 参数
+;; ----
+;; list-queue : list-queue?
+;; 待复制的队列。
+;;
+;; 返回值
+;; ------
+;; list-queue?
+;; 元素相同的新队列；对副本的两端增删不会影响原队列。
+
+(import (liii check) (srfi srfi-117))
 
 
 (check-set-mode! 'report-failed)

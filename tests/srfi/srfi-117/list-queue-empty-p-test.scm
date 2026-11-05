@@ -1,4 +1,21 @@
-(import (liii check) (liii queue))
+;; list-queue-empty?
+;; 判断队列是否为空队列。
+;;
+;; 语法
+;; ----
+;; (list-queue-empty? list-queue)
+;;
+;; 参数
+;; ----
+;; list-queue : list-queue?
+;; 待判断的队列。
+;;
+;; 返回值
+;; ------
+;; boolean?
+;; 队列中没有任何元素时返回 #t，否则返回 #f。
+
+(import (liii check) (srfi srfi-117))
 
 
 (check-set-mode! 'report-failed)

@@ -1,4 +1,24 @@
-(import (liii check) (liii queue))
+;; list-queue-map!
+;; 用一元过程原地改写队列中的每个元素。
+;;
+;; 语法
+;; ----
+;; (list-queue-map! proc list-queue)
+;;
+;; 参数
+;; ----
+;; proc : procedure?
+;; 一元过程，作用于队列的每个元素。
+;;
+;; list-queue : list-queue?
+;; 目标队列。
+;;
+;; 返回值
+;; ------
+;; unspecified
+;; 返回值未定义，效果为队列元素被原地替换。
+
+(import (liii check) (srfi srfi-117))
 
 
 (check-set-mode! 'report-failed)

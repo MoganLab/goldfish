@@ -1,4 +1,27 @@
-(import (liii check) (liii queue))
+;; list-queue-set-list!
+;; 用给定列表替换队列的全部内容。
+;;
+;; 语法
+;; ----
+;; (list-queue-set-list! list-queue first . rest)
+;;
+;; 参数
+;; ----
+;; list-queue : list-queue?
+;; 目标队列。
+;;
+;; first : list?
+;; 新的元素列表。
+;;
+;; rest : (last)
+;; 可选参数。last 为 first 的最后一个点对，用于省略一次遍历。
+;;
+;; 返回值
+;; ------
+;; unspecified
+;; 返回值未定义，效果为队列的内容被替换。
+
+(import (liii check) (srfi srfi-117))
 
 
 (check-set-mode! 'report-failed)

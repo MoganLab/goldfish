@@ -1,4 +1,24 @@
-(import (liii check) (liii queue))
+;; list-queue-add-front!
+;; 向队列头部插入元素，原地修改队列。
+;;
+;; 语法
+;; ----
+;; (list-queue-add-front! list-queue elem)
+;;
+;; 参数
+;; ----
+;; list-queue : list-queue?
+;; 目标队列。
+;;
+;; elem : any
+;; 待插入的元素。
+;;
+;; 返回值
+;; ------
+;; unspecified
+;; 返回值未定义，效果为队列被原地修改。
+
+(import (liii check) (srfi srfi-117))
 
 
 (check-set-mode! 'report-failed)

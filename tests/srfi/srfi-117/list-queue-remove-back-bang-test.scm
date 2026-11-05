@@ -1,4 +1,25 @@
-(import (liii check) (liii queue))
+;; list-queue-remove-back!
+;; 移除并返回队列尾部的元素。
+;;
+;; 语法
+;; ----
+;; (list-queue-remove-back! list-queue)
+;;
+;; 参数
+;; ----
+;; list-queue : list-queue?
+;; 目标队列。
+;;
+;; 返回值
+;; ------
+;; any
+;; 被移除的队尾元素。
+;;
+;; 错误处理
+;; --------
+;; 对空队列调用会抛出 type-error。
+
+(import (liii check) (srfi srfi-117))
 
 
 (check-set-mode! 'report-failed)
