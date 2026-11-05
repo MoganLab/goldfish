@@ -1,6 +1,3 @@
-(import (liii check) (scheme write))
-(check-set-mode! 'report-failed)
-
 ;; write-string
 ;; 将字符串按 display 风格（不带引号）写入输出端口。
 ;;
@@ -35,6 +32,9 @@
 ;; 1. `write-string` 输出字符串内容本身，不带双引号（与 `display` 风格一致）。
 ;; 2. 可以通过 start 和 end 只输出字符串的一个区间。
 
+(import (liii check) (scheme write))
+(check-set-mode! 'report-failed)
+
 (define (capture-output thunk)
   (let ((port (open-output-string)))
     (thunk port)
@@ -44,13 +44,22 @@
 
 (check-true (procedure? write-string))
 
-(check (capture-output (lambda (port) (write-string "goldfish" port))) => "goldfish")
+(check (capture-output (lambda (port) (write-string "goldfish" port)))
+  =>
+  "goldfish"
+) ;check
 
 ;; 输出不带双引号，与 write 不同
 (check (capture-output (lambda (port) (write-string "a\"b" port))) => "a\"b")
 
 ;; start 和 end 指定输出区间：[start, end)
-(check (capture-output (lambda (port) (write-string "goldfish" port 4))) => "fish")
-(check (capture-output (lambda (port) (write-string "goldfish" port 0 4))) => "gold")
+(check (capture-output (lambda (port) (write-string "goldfish" port 4)))
+  =>
+  "fish"
+) ;check
+(check (capture-output (lambda (port) (write-string "goldfish" port 0 4)))
+  =>
+  "gold"
+) ;check
 
 (check-report)
