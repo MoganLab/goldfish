@@ -48,7 +48,10 @@
 
 ;; path 分支展开
 (run-set! 'my-path (path "/bin/true"))
-(check (%resolve-symbol-command 'my-path '()) => '("/bin/true"))
+(check (%resolve-symbol-command 'my-path '())
+  =>
+  (list (path->string (path "/bin/true")))
+) ;check
 
 ;; 未注册符号 fallback
 (check (%resolve-symbol-command 'unknown-cmd '("foo" "bar"))
