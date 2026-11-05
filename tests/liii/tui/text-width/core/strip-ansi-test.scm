@@ -69,6 +69,24 @@
   "alinkb"
 ) ;check
 
+;; RIS（ESC c，完整终端重置）必须连同终结字节一起删除，不能留下 c。
+(check (strip-ansi "\x1b;cdone") => "done")
+
+;; 单字节 ESC 序列：与上游 ansi-regex 兼容，不能泄漏终结字节。
+(check (strip-ansi "\x1b;7saved\x1b;8restored") => "savedrestored")
+(check (strip-ansi "\x1b;(0x") => "x")
+(check (strip-ansi "\x1b;\\ok") => "ok")
+
+;; 私有参数 CSI：SGR 鼠标报告及终端能力应答必须整体剥离。
+(check (strip-ansi "\x1b;[<35;59;1Mstep 1") => "step 1")
+(check (strip-ansi "a\x1b;[<0;10;20mb") => "ab")
+(check (strip-ansi "a\x1b;[>0;276;0cb") => "ab")
+(check (strip-ansi "a\x1b;[=5hb") => "ab")
+
+;; ESC= / ESC> 是键盘模式切换，后面的数字是普通文本，不能一并吞掉。
+(check (strip-ansi "\x1b;[?1h\x1b;=123 tests passed") => "123 tests passed")
+(check (strip-ansi "\x1b;[?1l\x1b;>42 files") => "42 files")
+
 ;; 不完整 OSC（无终结符）：保守保留原文，等待后续块补全
 (check (strip-ansi "\x1b;]0;tit") => "\x1b;]0;tit")
 

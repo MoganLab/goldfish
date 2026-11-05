@@ -85,6 +85,12 @@
 (check (sanitize-binary-output "a\x0b;b\x0c;c") => "abc")  ; VT / FF
 (check (sanitize-binary-output "a\x0e;b\x1f;c") => "abc")  ; SO .. US
 (check (sanitize-binary-output "a\x1b;b") => "ab")          ; ESC（裸 ESC 无 [ 或 ]）
+(check (sanitize-binary-output "a\x1b;cdone") => "adone")  ; RIS：ESC 与 c 一并删除
+(check (sanitize-binary-output "a\x7f;b") => "ab")          ; DEL
+(check (sanitize-binary-output (string-append "a" (utf8->string #u8(194 155)) "[31mb"))
+  =>
+  "ab"
+) ;check                                                         ; C1 CSI 及其载荷
 
 ;; 删除 U+FFF9..U+FFFB
 (check (sanitize-binary-output (string-append "a" (utf8->string #u8(239 191 185)) "b")) => "ab")
