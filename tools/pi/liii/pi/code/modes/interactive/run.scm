@@ -12,6 +12,7 @@
     (liii go)
     (liii time)
     (liii date-time)
+    (liii list)
     (liii string)
     (liii tui)
     (liii tui clipboard)
