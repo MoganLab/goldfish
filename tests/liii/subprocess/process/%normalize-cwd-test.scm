@@ -37,8 +37,10 @@
 (check (%normalize-cwd 'spawn ".") => ".")
 
 ;; path 对象转换为 string
-(check (%normalize-cwd 'spawn (path "/tmp")) => "/tmp")
 (check (%normalize-cwd 'spawn (path ".")) => ".")
+(let ((p (path "my-dir")))
+  (check (%normalize-cwd 'spawn p) => (path->string p))
+) ;let
 
 ;; 其他非法类型抛出 type-error
 (check-catch 'type-error (%normalize-cwd 'spawn 123))

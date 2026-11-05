@@ -56,14 +56,12 @@
 ) ;check
 
 ;; path 对象转换为 string
-(check (%normalize-stream-spec 'spawn
-         :stderr (path "/tmp/err.log")
-         '(:pipe :null)
-         :null
-       ) ;%normalize-stream-spec
-  =>
-  "/tmp/err.log"
-) ;check
+(let ((p (path "err.log")))
+  (check (%normalize-stream-spec 'spawn :stderr p '(:pipe :null) :null)
+    =>
+    (path->string p)
+  ) ;check
+) ;let
 
 ;; symbol 在 allowed-symbols 列表中时直接返回
 (check (%normalize-stream-spec 'spawn :stdin :pipe '(:pipe :inherit :null) :inherit)
