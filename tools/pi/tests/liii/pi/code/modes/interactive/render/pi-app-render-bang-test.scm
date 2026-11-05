@@ -26,6 +26,7 @@
   (liii string)
   (liii tui)
   (liii pi code modes interactive app)
+  (liii go)
   (liii list)
 ) ;import
 
@@ -125,6 +126,23 @@
     =>
     (utf8-make-string 10 #\─)
   ) ;check
+) ;let*
+
+;; 非 Bash 工具结果进入最终屏幕前必须剥离控制序列。
+(let* ((vterm (make-virtual-terminal :width 80 :height 40))
+       (app (make-pi-app :terminal vterm :handler (lambda (app msg) #t)))
+       (injected (string-append "before" (string (integer->char 27)) "[?1000lafter"))
+      ) ;
+  (pi-app-add-tool-result! app "read" '((path . "probe.log")) 'error injected)
+  (pi-app-render! app)
+  (let ((raw (string-join (virtual-terminal-raw vterm) ""))
+        (plain
+          (string-join (map strip-ansi (alt-screen-lines (pi-app-screen app))) "\n")
+        ) ;plain
+       ) ;
+    (check-false (string-contains? raw injected))
+    (check-true (string-contains? plain "beforeafter"))
+  ) ;let
 ) ;let*
 
 (check-report)
