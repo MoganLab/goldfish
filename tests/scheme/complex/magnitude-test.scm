@@ -1,5 +1,3 @@
-(import (liii check) (scheme complex))
-(check-set-mode! 'report-failed)
 ;; magnitude
 ;; 返回复数的模。
 ;;
@@ -20,11 +18,8 @@
 ;; `magnitude` 对实数等价于 `abs`，对复数返回欧几里得模长。
 ;;
 ;; 数学定义
-;; ------
 ;; 如果 z = x + yi，则 magnitude(z) = sqrt(x² + y²)。
 ;;
-;; 示例
-;; ----
 ;; (magnitude 3+4i) => 5
 ;; (magnitude -3) => 3
 ;; (magnitude 0) => 0
@@ -32,6 +27,10 @@
 ;; 错误处理
 ;; --------
 ;; type-error 当参数不是数值类型时抛出错误。
+
+(import (liii check) (scheme complex))
+(check-set-mode! 'report-failed)
+
 ;; Test magnitude with complex numbers
 (check (magnitude 3.0+4.0i) => 5.0)
 ;; Test magnitude with real numbers
@@ -40,4 +39,5 @@
 (check (magnitude 0) => 0)
 ;; Error handling
 (check-catch 'type-error (magnitude "x"))
+
 (check-report)

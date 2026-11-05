@@ -1,5 +1,3 @@
-(import (liii check) (scheme complex))
-(check-set-mode! 'report-failed)
 ;; imag-part
 ;; 返回复数的虚部。
 ;;
@@ -21,12 +19,9 @@
 ;; 对于复数，返回其虚部。
 ;;
 ;; 数学定义
-;; ------
 ;; 如果 z = x + yi，其中 x 和 y 是实数，i 是虚数单位，则：
 ;; imag-part(z) = y
 ;;
-;; 示例
-;; ----
 ;; (imag-part 5) => 0
 ;; (imag-part 3.14) => 0.0
 ;; (imag-part (make-rectangular 3 4)) => 4
@@ -34,6 +29,10 @@
 ;; 错误处理
 ;; --------
 ;; type-error 当参数不是数值类型时抛出错误。
+
+(import (liii check) (scheme complex))
+(check-set-mode! 'report-failed)
+
 ;; Test imag-part with complex numbers
 (check (imag-part (make-rectangular 3 4)) => 4.0)
 (check (imag-part (make-rectangular -3 4)) => 4.0)
@@ -53,4 +52,5 @@
 (check (imag-part -7.0-8.0i) => -8.0)
 (check (imag-part 0.0+9.0i) => 9.0)
 (check (imag-part 10.0) => 0.0)
+
 (check-report)

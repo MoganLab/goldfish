@@ -1,5 +1,3 @@
-(import (liii check) (scheme complex))
-(check-set-mode! 'report-failed)
 ;; make-polar
 ;; 按极坐标构造复数。
 ;;
@@ -22,11 +20,8 @@
 ;; `(complex (* magnitude (cos angle)) (* magnitude (sin angle)))`。
 ;;
 ;; 数学定义
-;; ------
 ;; z = magnitude * (cos(angle) + i*sin(angle))
 ;;
-;; 示例
-;; ----
 ;; (make-polar 2 0) 的实部为 2，虚部为 0
 ;; (make-polar 1 π/2) 的实部接近 0，虚部接近 1
 ;;
@@ -34,6 +29,10 @@
 ;; --------
 ;; type-error 当参数不是实数类型时抛出错误。
 ;; wrong-number-of-args 当参数个数错误时抛出错误。
+
+(import (liii check) (scheme complex))
+(check-set-mode! 'report-failed)
+
 ;; Test make-polar
 (check (real-part (make-polar 2 0)) => 2.0)
 (check (imag-part (make-polar 2 0)) => 0.0)
@@ -44,4 +43,5 @@
 (check-catch 'type-error (make-polar "x" 1))
 (check-catch 'type-error (make-polar 1 "x"))
 (check-catch 'wrong-number-of-args (make-polar 1))
+
 (check-report)
