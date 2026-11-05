@@ -1,9 +1,3 @@
-(import (liii check)
-        (liii string)
-        (liii pi code utils shell))
-
-(check-set-mode! 'report-failed)
-
 ;; sanitize-binary-output
 ;; 清理命令输出中会导致显示错乱或宽度计算崩溃的字符。
 ;;
@@ -32,6 +26,12 @@
 ;; 错误处理
 ;; ----
 ;; type-error 当 str 不是字符串时。
+
+(import (liii check)
+        (liii string)
+        (liii pi code utils shell))
+
+(check-set-mode! 'report-failed)
 
 ;; 非法 UTF-8 序列：bash 命令输出可能含截断的多字节序列（如被截断的“好”
 ;; 只剩 e5 a5）或二进制垃圾；与上游 JS TextDecoder 一致，替换为 U+FFFD
