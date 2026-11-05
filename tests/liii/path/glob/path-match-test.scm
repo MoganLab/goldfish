@@ -1,7 +1,3 @@
-(import (liii check) (liii path) (liii os))
-
-(check-set-mode! 'report-failed)
-
 ;; path-match
 ;; glob 模式匹配路径末段(对齐 pathlib.PurePath.match 的末段语义)。
 ;;
@@ -17,6 +13,10 @@
 ;; 返回值
 ;; ------
 ;; boolean?
+
+(import (liii check) (liii path) (liii os))
+
+(check-set-mode! 'report-failed)
 
 (when (not (os-windows?))
   (check-true (path-match (path "foo.txt") "*.txt"))
