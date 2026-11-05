@@ -34,32 +34,32 @@
       (if (pair? m) (%val "role" m "") "")
     ) ;define
 
+    ;; 提取字符串起始连续数字构成的数值，未匹配返回 #f
+    (define (%extract-leading-digits s)
+      (let dl
+        ((i 0))
+        (cond
+         ((and (< i (string-length s)) (char-numeric? (string-ref s i))) (dl (+ i 1)))
+         ((> i 0) (string->number (substring s 0 i)))
+         (else #f)
+        ) ;cond
+      ) ;let
+    ) ;define
+
     ;; ---- Gemini 模型版本判定（对齐上游 requiresToolCallId 的 gemini 部分） ----
     ;; gemini-3-* / gemini-3.1-* / gemini-live-3-* 等主版本 >= 3 的模型
     ;; 要求显式 toolCall id 且 id 须匹配 [a-zA-Z0-9_-]（<= 64 字符）
     (define (%gemini-major-version model-id)
       (let* ((s (if (string? model-id) (string-downcase model-id) ""))
-             (prefices '("gemini-" "gemini-live-"))
+             (prefices '("gemini-live-" "gemini-"))
             ) ;
         (let loop
           ((ps prefices))
           (cond ((null? ps) #f)
-                ((and (>= (string-length s) (string-length (car ps)))
-                   (string=? (substring s 0 (string-length (car ps))) (car ps))
-                 ) ;and
-                 (let* ((rest (substring s (string-length (car ps)) (string-length s)))
-                        (digits
-                          (let dl
-                            ((i 0))
-                            (if (and (< i (string-length rest)) (char-numeric? (string-ref rest i)))
-                              (dl (+ i 1))
-                              i
-                            ) ;if
-                          ) ;let
-                        ) ;digits
-                       ) ;
-                   (if (> digits 0) (string->number (substring rest 0 digits)) #f)
-                 ) ;let*
+                ((string-starts? s (car ps))
+                 (let ((rest (substring s (string-length (car ps)) (string-length s))))
+                   (%extract-leading-digits rest)
+                 ) ;let
                 ) ;
                 (else (loop (cdr ps)))
           ) ;cond
@@ -80,97 +80,89 @@
       ) ;let
     ) ;define
 
+    (define (%char-legal-for-id? c)
+      (or (char-alphabetic? c) (char-numeric? c) (char=? c #\_) (char=? c #\-))
+    ) ;define
+
     ;; id 字符归一化：非法字符 → _，超 64 截断（对齐上游）
     (define (%normalize-tool-call-id id)
       (if (not (string? id))
         "tool_call_0"
-        (let ((res
-                (list->string
-                  (map
-                    (lambda (c)
-                      (if (or (char-alphabetic? c) (char-numeric? c) (char=? c #\_) (char=? c #\-))
-                        c
-                        #\_
-                      ) ;if
-                    ) ;lambda
-                    (string->list id)
-                  ) ;map
-                ) ;list->string
-              ) ;res
-             ) ;
+        (let* ((chars
+                 (map (lambda (c) (if (%char-legal-for-id? c) c #\_)) (string->list id))
+               ) ;chars
+               (res (list->string chars))
+              ) ;
           (if (> (string-length res) 64) (substring res 0 64) res)
-        ) ;let
+        ) ;let*
+      ) ;if
+    ) ;define
+
+    (define (%replace-kv alist key new-val)
+      (map
+        (lambda (e) (if (equal? (car e) key) (cons key new-val) e))
+        alist
+      ) ;map
+    ) ;define
+
+    ;; 归一化单个 toolCall block 并返回 (values new-block new-id-entry-or-#f)
+    (define (%normalize-one-block blk)
+      (if (and (pair? blk) (equal? (%val "type" blk "") "toolCall"))
+        (let* ((old-id (%val "id" blk "")) (new-id (%normalize-tool-call-id old-id)))
+          (values (%replace-kv blk "id" new-id) (cons old-id new-id))
+        ) ;let*
+        (values blk #f)
+      ) ;if
+    ) ;define
+
+    ;; 归一化 assistant 消息中的 toolCall 块，返回 (values new-blocks new-id-map)
+    (define (%normalize-assistant-blocks blocks id-map)
+      (let loop
+        ((rest blocks) (acc '()) (m id-map))
+        (if (null? rest)
+          (values (reverse acc) m)
+          (let-values (((new-blk id-entry) (%normalize-one-block (car rest))))
+            (loop (cdr rest) (cons new-blk acc) (if id-entry (cons id-entry m) m))
+          ) ;let-values
+        ) ;if
+      ) ;let
+    ) ;define
+
+    ;; 处理 assistant 消息：若 error/aborted 则丢弃；若需要则归一化 toolCall id
+    (define (%transform-assistant msg normalize? id-map)
+      (let ((stop (%val "stopReason" msg "")))
+        (cond ((or (equal? stop "error") (equal? stop "aborted")) (values #f id-map))
+              ((not normalize?) (values msg id-map))
+              (else
+                (let ((content (%val "content" msg '())))
+                  (let-values (((new-blocks new-map) (%normalize-assistant-blocks content id-map)))
+                    (values (%replace-kv msg "content" new-blocks) new-map)
+                  ) ;let-values
+                ) ;let
+              ) ;else
+        ) ;cond
+      ) ;let
+    ) ;define
+
+    ;; 处理 toolResult 消息：按 id-map 替换 toolCallId
+    (define (%transform-tool-result msg normalize? id-map)
+      (if (not normalize?)
+        (values msg id-map)
+        (let* ((old-id (%val "toolCallId" msg "")) (hit (assoc old-id id-map)))
+          (if hit
+            (values (%replace-kv msg "toolCallId" (cdr hit)) id-map)
+            (values msg id-map)
+          ) ;if
+        ) ;let*
       ) ;if
     ) ;define
 
     ;; ---- 第一遍：error/aborted 过滤 + toolCall id 归一化 ----
-    ;; 返回两个值：转换后消息列表、id 映射 alist（旧 id . 新 id）
-    ;; id 映射后者覆盖前者（与上游 Map 语义一致）
     (define (%transform-one msg normalize? id-map)
-      ;; 返回 (values new-msg-or-#f new-id-map)
       (let ((role (%msg-role msg)))
-        (cond
-         ((equal? role "assistant")
-          (let ((stop (%val "stopReason" msg "")))
-            (if (or (equal? stop "error") (equal? stop "aborted"))
-              (values #f id-map)
-              (let ((content (%val "content" msg '())))
-                (if (not normalize?)
-                  (values msg id-map)
-                  (let loop
-                    ((blks content) (acc '()) (m id-map))
-                    (if (null? blks)
-                      (let ((new-msg
-                              (map
-                                (lambda (e) (if (equal? (car e) "content") (cons "content" (reverse acc)) e))
-                                msg
-                              ) ;map
-                            ) ;new-msg
-                           ) ;
-                        (values new-msg m)
-                      ) ;let
-                      (let ((blk (car blks)))
-                        (if (and (pair? blk) (equal? (%val "type" blk "") "toolCall"))
-                          (let* ((old-id (%val "id" blk "")) (new-id (%normalize-tool-call-id old-id)))
-                            (loop (cdr blks)
-                              (cons
-                                (map
-                                  (lambda (e) (if (equal? (car e) "id") (cons "id" new-id) e))
-                                  blk
-                                ) ;map
-                                acc
-                              ) ;cons
-                              (cons (cons old-id new-id) m)
-                            ) ;loop
-                          ) ;let*
-                          (loop (cdr blks) (cons blk acc) m)
-                        ) ;if
-                      ) ;let
-                    ) ;if
-                  ) ;let
-                ) ;if
-              ) ;let
-            ) ;if
-          ) ;let
-         ) ;
-         ((equal? role "toolResult")
-          (if (not normalize?)
-            (values msg id-map)
-            (let* ((old-id (%val "toolCallId" msg "")) (hit (assoc old-id id-map)))
-              (if hit
-                (values
-                  (map
-                    (lambda (e) (if (equal? (car e) "toolCallId") (cons "toolCallId" (cdr hit)) e))
-                    msg
-                  ) ;map
-                  id-map
-                ) ;values
-                (values msg id-map)
-              ) ;if
-            ) ;let*
-          ) ;if
-         ) ;
-         (else (values msg id-map))
+        (cond ((equal? role "assistant") (%transform-assistant msg normalize? id-map))
+              ((equal? role "toolResult") (%transform-tool-result msg normalize? id-map))
+              (else (values msg id-map))
         ) ;cond
       ) ;let
     ) ;define
@@ -209,38 +201,36 @@
       ) ;if
     ) ;define
 
+    ;; 冲刷 pending 中尚未被 answered 的 toolCall
+    (define (%flush-pending pending answered acc)
+      (let loop
+        ((ps pending) (a acc))
+        (if (null? ps)
+          a
+          (let* ((tc (car ps)) (id (%val "id" tc "")))
+            (if (member id answered)
+              (loop (cdr ps) a)
+              (let ((synth (%make-synthetic-tool-result id (%val "name" tc ""))))
+                (loop (cdr ps) (cons synth a))
+              ) ;let
+            ) ;if
+          ) ;let*
+        ) ;if
+      ) ;let
+    ) ;define
+
     ;; pending: 待回应 toolCall 块列表（按出现顺序）；answered: 已出现的 toolCallId
     (define (%orphan-pass messages)
       (let loop
         ((rest messages) (acc '()) (pending '()) (answered '()))
-        ;; 冲刷 pending：为每个未回应调用追加合成结果
-        (define (flush acc pending answered)
-          (let f
-            ((ps pending) (a acc) (ans answered))
-            (if (null? ps)
-              (values a ans)
-              (let ((tc (car ps)))
-                (if (member (%val "id" tc "") ans)
-                  (f (cdr ps) a ans)
-                  (f (cdr ps)
-                    (cons (%make-synthetic-tool-result (%val "id" tc "") (%val "name" tc "")) a)
-                    ans
-                  ) ;f
-                ) ;if
-              ) ;let
-            ) ;if
-          ) ;let
-        ) ;define
         (if (null? rest)
-          (let-values (((a ans) (flush acc pending answered)))
-            (reverse a)
-          ) ;let-values
+          (reverse (%flush-pending pending answered acc))
           (let* ((msg (car rest)) (role (%msg-role msg)))
             (cond
              ((equal? role "assistant")
-              (let-values (((a ans) (flush acc pending answered)))
-                (loop (cdr rest) (cons msg a) (%assistant-tool-calls msg) '())
-              ) ;let-values
+              (let ((flushed (%flush-pending pending answered acc)))
+                (loop (cdr rest) (cons msg flushed) (%assistant-tool-calls msg) '())
+              ) ;let
              ) ;
              ((equal? role "toolResult")
               (loop (cdr rest)
@@ -250,9 +240,9 @@
               ) ;loop
              ) ;
              ((equal? role "user")
-              (let-values (((a ans) (flush acc pending answered)))
-                (loop (cdr rest) (cons msg a) '() '())
-              ) ;let-values
+              (let ((flushed (%flush-pending pending answered acc)))
+                (loop (cdr rest) (cons msg flushed) '() '())
+              ) ;let
              ) ;
              (else (loop (cdr rest) (cons msg acc) pending answered))
             ) ;cond
