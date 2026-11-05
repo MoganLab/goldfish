@@ -53,33 +53,6 @@
       ) ;let
     ) ;define
 
-    ;; 单遍复制需要保留的字节到 keep，返回实际保留长度 j
-    (define (%copy-clean-bytes! bv len keep)
-      (let loop
-        ((i 0) (j 0))
-        (if (>= i len)
-          j
-          (let ((b (bytevector-u8-ref bv i)))
-            (cond
-              ;; U+FFF9..U+FFFB：EF BF B9/BA/BB 三字节整体删除
-              ((and (< (+ i 2) len)
-                 (= b 239)
-                 (= (bytevector-u8-ref bv (+ i 1)) 191)
-                 (let ((c (bytevector-u8-ref bv (+ i 2))))
-                   (and (>= c 185) (<= c 187))
-                 ) ;let
-               ) ;and
-               (loop (+ i 3) j)
-              ) ;
-              ;; 其余 C0 控制字符（保留 \t \n \r）
-              ((and (< b 32) (not (= b 9)) (not (= b 10)) (not (= b 13))) (loop (+ i 1) j))
-              (else (bytevector-u8-set! keep j b) (loop (+ i 1) (+ j 1)))
-            ) ;cond
-          ) ;let
-        ) ;if
-      ) ;let
-    ) ;define
-
     ;; 快速路径：无字节需要删除时直接返回原串，避免分配重建
     ;; （渲染层每帧都会调用，纯文本输出不能付出重建代价）
     ;;
