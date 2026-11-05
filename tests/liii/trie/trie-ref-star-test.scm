@@ -1,9 +1,3 @@
-(import (liii check) (liii trie))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; trie-ref*
 ;; 从 trie 中查询键对应的直接子节点。
 ;;
@@ -28,10 +22,12 @@
 ;; ----
 ;; 这是一个内部辅助函数，用于访问 trie 的直接子节点。
 ;;
-;; 示例
-;; ----
 ;; (trie-ref* trie #\h) => 子 trie 或 #f
 
+(import (liii check) (liii trie))
+
+
+(check-set-mode! 'report-failed)
 
 (let ((trie (make-trie)))
   (check-false (trie-ref* trie (string->list "hey")))

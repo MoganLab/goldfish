@@ -1,9 +1,3 @@
-(import (liii check) (liii trie))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; trie-ref
 ;; 从 trie 中查询键对应的值。
 ;;
@@ -27,12 +21,14 @@
 ;; any?
 ;; 返回键对应的值，如果不存在则返回默认值。
 ;;
-;; 示例
-;; ----
 ;; (trie-ref trie (string->list "hello")) => 'world
 ;; (trie-ref trie (string->list "nonexistent")) => #f
 ;; (trie-ref trie (string->list "nonexistent") 'default) => 'default
 
+(import (liii check) (liii trie))
+
+
+(check-set-mode! 'report-failed)
 
 (let ((trie (make-trie)))
   (check-false (trie-ref trie (string->list "hey")))

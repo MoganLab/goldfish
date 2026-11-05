@@ -1,9 +1,3 @@
-(import (liii check) (liii trie))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; make-trie
 ;; 创建一个新的 trie 数据结构。
 ;;
@@ -11,16 +5,22 @@
 ;; ----
 ;; (make-trie)
 ;;
+;; 参数
+;; ----
+;; 无参数。
+;;
 ;; 返回值
 ;; ----
 ;; trie
 ;; 返回一个新的空 trie 结构。
 ;;
-;; 示例
-;; ----
 ;; (make-trie) => 新的 trie 结构
 ;; (trie? (make-trie)) => #t
 
+(import (liii check) (liii trie))
+
+
+(check-set-mode! 'report-failed)
 
 (check-true (trie? (make-trie)))
 
