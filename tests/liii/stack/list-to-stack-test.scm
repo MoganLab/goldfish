@@ -1,6 +1,3 @@
-(import (liii check) (liii stack))
-
-
 ;; list->stack
 ;; 从列表创建栈。
 ;;
@@ -27,6 +24,8 @@
 ;; 错误处理
 ;; ----
 ;; type-error 当参数不是列表时
+
+(import (liii check) (liii stack))
 
 
 (let ((s (list->stack '())))

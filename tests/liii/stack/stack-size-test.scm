@@ -1,6 +1,3 @@
-(import (liii check) (liii stack))
-
-
 ;; stack-size
 ;; 获取栈中元素个数。
 ;;
@@ -26,6 +23,8 @@
 ;; 错误处理
 ;; ----
 ;; type-error 当参数不是栈时
+
+(import (liii check) (liii stack))
 
 
 (let ((s (make-stack)))

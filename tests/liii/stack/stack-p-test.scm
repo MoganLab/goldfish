@@ -1,6 +1,3 @@
-(import (liii check) (liii stack))
-
-
 ;; stack?
 ;; 检查对象是否为栈。
 ;;
@@ -23,6 +20,8 @@
 ;; stack? 是一个谓词函数，用于判断任意对象是否为栈类型。
 ;; 只有使用 make-stack、stack 或 list->stack 创建的对象返回 #t。
 ;; 列表、向量等其他集合类型返回 #f。
+
+(import (liii check) (liii stack))
 
 
 (let ((s (make-stack)))

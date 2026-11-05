@@ -1,6 +1,3 @@
-(import (liii check) (liii stack))
-
-
 ;; stack-top
 ;; 获取栈顶元素。
 ;;
@@ -28,6 +25,8 @@
 ;; ----
 ;; type-error 当参数不是栈时
 ;; value-error 当栈为空时
+
+(import (liii check) (liii stack))
 
 
 (let ((s (stack 1)))
