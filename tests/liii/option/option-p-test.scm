@@ -1,9 +1,3 @@
-(import (liii check) (liii option))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; option?
 ;; 判断值是否为 option 类型。
 ;;
@@ -25,6 +19,11 @@
 ;; 说明
 ;; ----
 ;; 通过检查值的内部表示（cdr 是否为 'N 或 'S）来判断是否为 option。
+
+(import (liii check) (liii option))
+
+
+(check-set-mode! 'report-failed)
 
 
 (let ((opt1 (option 42)) (opt2 (none)))

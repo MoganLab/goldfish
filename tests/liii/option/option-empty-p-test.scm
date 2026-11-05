@@ -1,9 +1,3 @@
-(import (liii check) (liii option))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; option-empty?
 ;; 判断 option 是否为空（none）。
 ;;
@@ -21,6 +15,11 @@
 ;; 布尔值：
 ;; - #t 表示 option 为空
 ;; - #f 表示 option 包含值
+
+(import (liii check) (liii option))
+
+
+(check-set-mode! 'report-failed)
 
 
 (let ((opt1 (option 42)) (opt2 (none)))

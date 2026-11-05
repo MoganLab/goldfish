@@ -1,9 +1,3 @@
-(import (liii check) (liii option))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; option-or-else
 ;; 如果当前 option 为空，则返回备选的 option。
 ;;
@@ -21,6 +15,11 @@
 ;; 返回值
 ;; -----
 ;; 当前 option（如果非空）或备选 option（如果当前为空）。
+
+(import (liii check) (liii option))
+
+
+(check-set-mode! 'report-failed)
 
 
 (let ((opt1 (option 42)) (opt2 (option 0)) (opt3 (none)))

@@ -1,9 +1,3 @@
-(import (liii check) (liii option))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; option-for-each
 ;; 对 option 中的值执行副作用操作。
 ;;
@@ -25,6 +19,11 @@
 ;; 说明
 ;; ----
 ;; 如果 option 为空，则不执行任何操作。
+
+(import (liii check) (liii option))
+
+
+(check-set-mode! 'report-failed)
 
 
 (let ((opt1 (option 42)) (opt2 (none)) (result '()))

@@ -1,9 +1,3 @@
-(import (liii check) (liii option))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; option=?
 ;; 比较两个 option 是否相等。
 ;;
@@ -23,6 +17,11 @@
 ;; 布尔值：
 ;; - #t 如果两个 option 都为空，或都包含相等的值（使用 equal? 比较）
 ;; - #f 否则
+
+(import (liii check) (liii option))
+
+
+(check-set-mode! 'report-failed)
 
 
 (let ((opt1 (option 42))

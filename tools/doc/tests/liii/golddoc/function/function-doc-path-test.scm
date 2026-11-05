@@ -1,11 +1,3 @@
-;; 添加 tools/doc 到 load path，以便导入 (liii golddoc)
-;; 注意：假设运行测试时工作目录是项目根目录
-(set! *load-path* (cons "tools/doc" *load-path*))
-
-(import (liii check) (liii golddoc) (liii path) (liii string))
-
-(check-set-mode! 'report-failed)
-
 ;; function-doc-path
 ;; 根据库查询字符串和导出名，定位对应叶子测试文档文件。
 ;;
@@ -31,6 +23,14 @@
 ;; 该函数在当前 *load-path* 中查找可见库，再将导出名按统一规则
 ;; 转换为测试文件 stem，并定位：
 ;; `tests/<group>/<library>/<stem>-test.scm`
+
+;; 添加 tools/doc 到 load path，以便导入 (liii golddoc)
+;; 注意：假设运行测试时工作目录是项目根目录
+(set! *load-path* (cons "tools/doc" *load-path*))
+
+(import (liii check) (liii golddoc) (liii path) (liii string))
+
+(check-set-mode! 'report-failed)
 
 (let ((doc-path (function-doc-path "liii/string" "string-split")))
   (check-true (string? doc-path))
@@ -71,7 +71,7 @@
 (let ((doc-path (function-doc-path "liii/option" "option=?")))
   (check-true (string? doc-path))
   (check-true (path-file? doc-path))
-  (check (path-name doc-path) => "option-equal-p-test.scm")
+  (check (path-name doc-path) => "option-eq-p-test.scm")
 ) ;let
 
 (let ((doc-path (function-doc-path "liii/fxmapping" "alist->fxmapping")))

@@ -1,9 +1,3 @@
-(import (liii check) (liii option))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; option
 ;; 创建包含值的 option 对象。
 ;;
@@ -19,6 +13,11 @@
 ;; 返回值
 ;; -----
 ;; 包含值的 option 对象，内部表示为 (cons value 'S)。
+
+(import (liii check) (liii option))
+
+
+(check-set-mode! 'report-failed)
 
 
 (let ((opt1 (option 42)) (opt2 (option "hello")) (opt3 (none)))
