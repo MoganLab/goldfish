@@ -162,7 +162,7 @@
     ) ;define
 
     (define (resolve-no-crlf-files parser cfg)
-      "为 no-crlf 规则解析目标文件：全仓时按配置 suffix/path 限定，\n显式 PATH 与 --changed-since 时按用户指定范围并按 suffix 过滤。"
+      "为 no-crlf 规则解析目标文件：全仓时按配置 suffix/path 限定，\n显式 PATH 与 --changed-since 时按用户指定范围（仅保留存在的文件）并按 suffix 过滤。"
       (let* ((suffixes (check-rule-suffixes cfg "no-crlf"))
              (since (parser 'changed-since))
              (positionals (parser :positionals))
@@ -170,9 +170,12 @@
         (cond
           (since
             (filter (lambda (f) (file-suffix-in? f suffixes))
+              ;; 必须过滤掉已删除的文件，否则 check-no-crlf 会去读不存在的路径
               (if (null? positionals)
-                (changed-files-since since)
-                (apply append (map (lambda (p) (changed-files-since since p)) positionals))
+                (changed-existing-files-since since)
+                (apply append
+                  (map (lambda (p) (changed-existing-files-since since p)) positionals)
+                ) ;apply
               ) ;if
             ) ;filter
           ) ;since
