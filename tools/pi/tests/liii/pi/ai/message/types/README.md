@@ -12,3 +12,4 @@
 
 - `<pi-user-message>` - 用户消息
 - `<pi-assistant-message>` - 助手消息
+- `<pi-image-block>` - 图片内容块

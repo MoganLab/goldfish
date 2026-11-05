@@ -39,4 +39,6 @@ gf doc pi-user-message
 - `pi-thinking-block-type` - 获取思考块类型
 - `pi-tool-call-block` - 构造工具调用块
 - `pi-tool-call-block-type` - 获取工具调用块类型
+- `pi-image-block` - 构造图片块
+- `pi-image-block-type` - 获取图片块类型
 - `pi-bash-execution->user-text` - 构造 Bash 执行结果注入文本

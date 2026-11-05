@@ -1,11 +1,25 @@
-(import (liii check)
-  (liii pi ai message)
-) ;import
-
-(check-set-mode! 'report-failed)
-
 ;; pi-image-block
 ;; 构造图片内容块并验证访问器、类型判定与序列化。
+;;
+;; 语法
+;; ----
+;; (pi-image-block data mime-type)
+;;
+;; 参数
+;; ----
+;; data : string?
+;; 图片 Base64 编码数据。
+;; mime-type : string?
+;; 图片 MIME 类型。
+;;
+;; 返回值
+;; ----
+;; pi-image-block?
+;; 构造好的图片内容块实例。
+
+(import (liii check) (liii pi ai message))
+
+(check-set-mode! 'report-failed)
 
 (let ((blk (pi-image-block "aGVsbG8=" "image/png")))
   (check-true (pi-image-block? blk))

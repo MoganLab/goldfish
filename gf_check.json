@@ -53,6 +53,16 @@
         "reason": "type-hint 规则测试 fixture 使用虚构库名"
       }
     ],
+    "unit-test": [
+      {
+        "path": "tools/pi/liii/pi/code/core/tools",
+        "reason": "工具核心库聚合重导出尚未完全拆分为单函数测试目录"
+      },
+      {
+        "path": "tools/pi/tests/liii/pi/code/core/tools",
+        "reason": "工具核心库聚合测试用例尚未完全拆分为单函数测试目录"
+      }
+    ],
     "no-glue": [
       "bench/",
       "goldfish/scheme/boot.scm",
