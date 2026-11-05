@@ -17,8 +17,8 @@
 (define-library (liii goldrepl complete)
   (import (scheme base) (scheme char) (liii base) (liii list) (liii string))
   (export *repl-symbols* %repl-symbols-list %repl-symbol-char?
-    %repl-update-symbol-cache! %repl-invalidate-symbol-cache!
-    %repl-symbol-name? %repl-completions %repl-word-at %repl-replace-word
+    %repl-update-symbol-cache! %repl-invalidate-symbol-cache! %repl-symbol-name?
+    %repl-completions %repl-word-at %repl-replace-word
     %repl-string-common-prefix %repl-common-prefix
   ) ;export
   (begin
