@@ -1,7 +1,3 @@
-(import (liii check) (liii path) (liii os))
-
-(check-set-mode! 'report-failed)
-
 ;; path-relative?
 ;; 判断路径是否为相对路径。
 ;;
@@ -20,6 +16,11 @@
 ;; 当路径为相对路径时返回 #t，否则返回 #f。
 
 ;; 基本相对路径测试
+
+(import (liii check) (liii path) (liii os))
+
+(check-set-mode! 'report-failed)
+
 (check-true (path-relative? (path)))
 (check-true (path-relative? (path "relative.txt")))
 (check-false (path-relative? (path-of-drive #\C)))

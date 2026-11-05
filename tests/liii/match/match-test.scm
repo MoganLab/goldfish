@@ -1,7 +1,3 @@
-(import (liii check) (liii match))
-
-(check-set-mode! 'report-failed)
-
 ;; match
 ;; 对表达式的求值结果进行模式匹配，并执行首个匹配成功分支的主体。
 ;;
@@ -32,6 +28,11 @@
 ;; 若无可匹配分支，抛出 'match-error 错误。
 
 ;; 1. 字面量与原子值匹配
+
+(import (liii check) (liii match))
+
+(check-set-mode! 'report-failed)
+
 (check (match 'any (_ 'ok)) => 'ok)
 (check (match 'ok (x x)) => 'ok)
 (check (match 28 (28 'ok)) => 'ok)
@@ -183,12 +184,12 @@
 ;; 14. 反引号模式匹配 (Quasiquote & Splicing)
 ;; 基础反引号与解引用
 (check
-  (match (list 1 2) (`(,1 ,x) x) (_ 'no))
+  (match (list 1 2) (`(1 ,x) x) (_ 'no))
   =>
   2
 ) ;check
 (check
-  (match '(1 "hello") (`(,1 ,s) s))
+  (match '(1 "hello") (`(1 ,s) s))
   =>
   "hello"
 ) ;check
@@ -222,17 +223,17 @@
 
 ;; 拼接解引用 (尾部拼接与全列表拼接)
 (check
-  (match (list 1 2 3) (`(,1 ,@x) x) (_ 'no))
+  (match (list 1 2 3) (`(1 ,@x) x) (_ 'no))
   =>
   '(2 3)
 ) ;check
 (check
-  (match '(1) (`(,1 ,@x) x))
+  (match '(1) (`(1 ,@x) x))
   =>
   '()
 ) ;check
 (check
-  (match '(1 2) (`(,1 ,@x) x))
+  (match '(1 2) (`(1 ,@x) x))
   =>
   '(2)
 ) ;check
@@ -249,80 +250,80 @@
 
 ;; 非尾部拼接解引用
 (check
-  (match '(1 2 3 4) (`(,1 ,@x ,4) x))
+  (match '(1 2 3 4) (`(1 ,@x 4) x))
   =>
   '(2 3)
 ) ;check
 (check
-  (match '(1 4) (`(,1 ,@x ,4) x))
+  (match '(1 4) (`(1 ,@x 4) x))
   =>
   '()
 ) ;check
 (check
-  (match '(1 2 3) (`(,@x ,3) x))
+  (match '(1 2 3) (`(,@x 3) x))
   =>
   '(1 2)
 ) ;check
 
 ;; 点对反引号 (Dotted Quasiquote)
 (check
-  (match '(1 . 2) (`(,1 . ,x) x))
+  (match '(1 . 2) (`(1 . ,x) x))
   =>
   2
 ) ;check
 (check
-  (match '(1 2 . 3) (`(,1 ,2 . ,x) x))
+  (match '(1 2 . 3) (`(1 2 . ,x) x))
   =>
   3
 ) ;check
 (check
-  (match '(1 2 3) (`(,1 ,2 . ,@x) x))
+  (match '(1 2 3) (`(1 2 . ,@x) x))
   =>
   '(3)
 ) ;check
 
 ;; 嵌套反引号列表
 (check
-  (match '(1 (2 3)) (`(,1 (,2 ,x)) x))
+  (match '(1 (2 3)) (`(1 (2 ,x)) x))
   =>
   3
 ) ;check
 (check
-  (match '(1 (2 3 4)) (`(,1 (,2 ,@x)) x))
+  (match '(1 (2 3 4)) (`(1 (2 ,@x)) x))
   =>
   '(3 4)
 ) ;check
 (check
-  (match '(1 (2 3)) (`(,1 ,x) x))
+  (match '(1 (2 3)) (`(1 ,x) x))
   =>
   '(2 3)
 ) ;check
 
 ;; 显式 quasiquote / unquote / unquote-splicing
 (check
-  (match '(1 2) (`(,1 ,x) x))
+  (match '(1 2) (`(1 ,x) x))
   =>
   2
 ) ;check
 (check
-  (match '(1 2 3) (`(,1 ,@x) x))
+  (match '(1 2 3) (`(1 ,@x) x))
   =>
   '(2 3)
 ) ;check
 
 ;; 逻辑组合 (or / and) 中的反引号模式
 (check
-  (match '(1 2) ((or `(,1 ,x) `(,2 ,x)) x))
+  (match '(1 2) ((or `(1 ,x) `(2 ,x)) x))
   =>
   2
 ) ;check
 (check
-  (match '(2 3) ((or `(,1 ,x) `(,2 ,x)) x))
+  (match '(2 3) ((or `(1 ,x) `(2 ,x)) x))
   =>
   3
 ) ;check
 (check
-  (match '(1 2) ((and `(,1 ,x) (? pair?)) x))
+  (match '(1 2) ((and `(1 ,x) (? pair?)) x))
   =>
   2
 ) ;check

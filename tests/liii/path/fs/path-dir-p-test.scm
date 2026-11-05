@@ -1,7 +1,3 @@
-(import (liii check) (liii path) (liii os))
-
-(check-set-mode! 'report-failed)
-
 ;; path-dir?
 ;; 判断给定路径是否为目录。
 ;;
@@ -26,6 +22,11 @@
 ;; ".." 上级目录返回 #t
 
 ;; 基本功能测试
+
+(import (liii check) (liii path) (liii os))
+
+(check-set-mode! 'report-failed)
+
 (check (path-dir? ".") => #t)
 (check (path-dir? (path ".")) => #t)
 (check (path-dir? "..") => #t)

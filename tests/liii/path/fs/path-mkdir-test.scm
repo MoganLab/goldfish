@@ -1,7 +1,3 @@
-(import (liii check) (liii path) (liii os) (liii string))
-
-(check-set-mode! 'report-failed)
-
 ;; path-mkdir
 ;; 创建目录(对齐 pathlib.Path.mkdir)。
 ;;
@@ -9,13 +5,27 @@
 ;; ----
 ;; (path-mkdir path-value :parents bool :exist-ok bool) 或 (path-mkdir p)
 ;;
+;; 参数
+;; ----
+;; path-value : path?
+;; 待创建的目录路径。
+;; :parents : boolean
+;; 是否递归创建中间目录，默认 #f。
+;; :exist-ok : boolean
+;; 目录已存在时是否静默返回，默认 #f。
+;;
 ;; 返回值
 ;; ------
 ;; 创建成功返回 #t。exist-ok=#f 且已存在时报错;parents=#t 递归创建中间目录。
 
-(let ((base (path-join (path-temp-dir)
-              (string-append "gf-mkdir-test-" (number->string (getpid)))
-            ) ;path-join
+(import (liii check) (liii path) (liii os) (liii string))
+
+(check-set-mode! 'report-failed)
+
+(let ((base
+        (path-join (path-temp-dir)
+          (string-append "gf-mkdir-test-" (number->string (getpid)))
+        ) ;path-join
       ) ;base
      ) ;
   ;; 清理:确保起始干净
@@ -24,11 +34,12 @@
   ) ;when
   (define (rmdir-rec d)
     (when (path-dir? d)
-      (for-each (lambda (e)
-                  (let ((full (path-join d e)))
-                    (if (path-dir? full) (rmdir-rec full) (remove (path->string full)))
-                  ) ;let
-                ) ;lambda
+      (for-each
+        (lambda (e)
+          (let ((full (path-join d e)))
+            (if (path-dir? full) (rmdir-rec full) (remove (path->string full)))
+          ) ;let
+        ) ;lambda
         (vector->list (path-list d))
       ) ;for-each
       (rmdir (path->string d))

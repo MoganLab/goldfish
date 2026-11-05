@@ -1,10 +1,3 @@
-(import (liii check))
-(import (scheme let))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; owlet
 ;; 返回当前的 outward let（模块环境）。
 ;; owlet 反映当前正在求值的模块/库的环境。
@@ -30,6 +23,13 @@
 
 
 ;; owlet 是一个 let
+
+(import (liii check))
+(import (scheme let))
+
+
+(check-set-mode! 'report-failed)
+
 (check (let? (owlet)) => #t)
 
 

@@ -1,10 +1,3 @@
-(import (liii check)
-  (liii os)
-  (liii path stat)
-) ;import
-
-(check-set-mode! 'report-failed)
-
 ;; path-stat?
 ;; 判断对象是否为 <path-stat> 记录对象。
 ;;
@@ -21,6 +14,10 @@
 ;; -----
 ;; boolean
 ;; 当 obj 是 <path-stat> 记录时返回 #t，否则返回 #f。
+
+(import (liii check) (liii os) (liii path stat))
+
+(check-set-mode! 'report-failed)
 
 (let ((st (make-path-stat 10 1.0 2.0 3.0 0)))
   (check-true (path-stat? st))

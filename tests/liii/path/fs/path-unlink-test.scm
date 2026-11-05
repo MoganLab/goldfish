@@ -1,7 +1,3 @@
-(import (liii check) (liii path) (liii os))
-
-(check-set-mode! 'report-failed)
-
 ;; path-unlink
 ;; 删除文件。
 ;;
@@ -26,6 +22,11 @@
 ;; file-not-found-error 当文件不存在且 missing-ok 为 #f 时。
 
 ;; 文件删除测试
+
+(import (liii check) (liii path) (liii os))
+
+(check-set-mode! 'report-failed)
+
 (let* ((unlink-dir (path-join (path-temp-dir) "path-unlink-dir"))
        (unlink-file-a (path-join unlink-dir "child-a.txt"))
        (unlink-file-b (path-join unlink-dir "child-b.txt"))

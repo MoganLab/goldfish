@@ -1,5 +1,3 @@
-(import (liii check) (scheme complex))
-(check-set-mode! 'report-failed)
 ;; angle
 ;; 返回复数的辐角。
 ;;
@@ -20,11 +18,8 @@
 ;; `angle` 返回复数在复平面中的方向角；对实数按符号返回 0 或 π。
 ;;
 ;; 数学定义
-;; ------
 ;; 如果 z = x + yi，则 angle(z) = atan2(y, x)。
 ;;
-;; 示例
-;; ----
 ;; (angle 1) => 0
 ;; (angle -1) => π
 ;; (angle 1+1i) ≈ 0.785398...
@@ -32,6 +27,10 @@
 ;; 错误处理
 ;; --------
 ;; type-error 当参数不是数值类型时抛出错误。
+
+(import (liii check) (scheme complex))
+(check-set-mode! 'report-failed)
+
 ;; Test angle with real numbers
 (check (angle 1) => 0)
 (check (angle -1) => 3.141592653589793)
@@ -40,4 +39,5 @@
 (check (< (angle 1.0+1.0i) 0.79) => #t)
 ;; Error handling
 (check-catch 'type-error (angle "x"))
+
 (check-report)

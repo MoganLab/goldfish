@@ -1,5 +1,3 @@
-(import (liii check) (scheme base) (scheme eval) (srfi srfi-8))
-(check-set-mode! 'report-failed)
 ;; environment
 ;; 创建一个由若干 import set 组成的求值环境。
 ;;
@@ -23,8 +21,6 @@
 ;; 对应库的导出项，并支持 `only`、`except`、`prefix`、`rename` 这些 import set
 ;; 变换形式。
 ;;
-;; 示例
-;; ----
 ;; (environment '(scheme base))
 ;; (environment '(only (scheme base) square))
 ;; (environment '(rename (scheme base) (square sqr)))
@@ -33,19 +29,37 @@
 ;; --------
 ;; type-error
 ;; import-set 不是列表时抛出错误。
+
+(import (liii check) (scheme base) (scheme eval) (srfi srfi-8))
+(check-set-mode! 'report-failed)
+
 (check-true (let? (environment)))
 (check-true (let? (environment '(scheme base))))
-(check (eval '(square 3) (environment '(only (scheme base) square))) => 9)
-(check (eval '(square 3) (environment '(except (scheme base) vector-copy)))
+(check
+  (eval '(square 3) (environment '(only (scheme base) square)))
   =>
   9
 ) ;check
-(check (eval '(base-square 3) (environment '(prefix (scheme base) base-))) => 9)
-(check (eval '(sqr 3) (environment '(rename (scheme base) (square sqr)))) => 9)
+(check
+  (eval '(square 3) (environment '(except (scheme base) vector-copy)))
+  =>
+  9
+) ;check
+(check
+  (eval '(base-square 3) (environment '(prefix (scheme base) base-)))
+  =>
+  9
+) ;check
+(check
+  (eval '(sqr 3) (environment '(rename (scheme base) (square sqr))))
+  =>
+  9
+) ;check
 (check (eval '(receive (a b) (values 1 2) (+ a b))
          (environment '(scheme base) '(srfi srfi-8))
        ) ;eval
   =>
   3
 ) ;check
+
 (check-report)

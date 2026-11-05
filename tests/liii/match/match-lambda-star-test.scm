@@ -1,7 +1,3 @@
-(import (liii check) (liii match))
-
-(check-set-mode! 'report-failed)
-
 ;; match-lambda*
 ;; 创建一个接受任意数量参数的过程，并将整个参数列表与给定的模式子句依次进行匹配。
 ;;
@@ -10,7 +6,6 @@
 ;; (match-lambda* (pattern body ...) ...)
 ;;
 ;; 等价于
-;; ------
 ;; (lambda expr (match expr (pattern body ...) ...))
 ;;
 ;; 参数
@@ -27,6 +22,11 @@
 ;; 一个接受任意数量实参的过程。
 
 ;; 基础测试 - 双参数解构
+
+(import (liii check) (liii match))
+
+(check-set-mode! 'report-failed)
+
 (check
  ((match-lambda* ((x y) (+ x y))) 10 20)
  =>

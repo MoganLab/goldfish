@@ -1,7 +1,3 @@
-(import (liii check) (liii path) (liii os))
-
-(check-set-mode! 'report-failed)
-
 ;; path-from-string
 ;; 从字符串构造路径值，与 path 函数等价。
 ;;
@@ -19,9 +15,11 @@
 ;; path-value
 ;; 返回对应的路径值。
 ;;
-;; 示例
-;; ----
 ;; (path->string (path-from-string "archive.tar.gz")) => "archive.tar.gz"
+
+(import (liii check) (liii path) (liii os))
+
+(check-set-mode! 'report-failed)
 
 (check (path->string (path-from-string "archive.tar.gz")) => "archive.tar.gz")
 

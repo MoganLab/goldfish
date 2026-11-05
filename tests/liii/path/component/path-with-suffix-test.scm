@@ -1,18 +1,24 @@
-(import (liii check) (liii path) (liii os))
-
-(check-set-mode! 'report-failed)
-
 ;; path-with-suffix
 ;; 替换末段的后缀(对齐 pathlib with_suffix)。
 ;;
 ;; 语法
 ;; ----
 ;; (path-with-suffix path-value ext)
-;; ext: 后缀字符串(含前导 ".")或 "" 去后缀
+;;
+;; 参数
+;; ----
+;; path-value : path?
+;; 输入路径。
+;; ext : string?
+;; 后缀字符串（含前导 "."）或 "" 去后缀。
 ;;
 ;; 返回值
 ;; ------
 ;; path-value
+
+(import (liii check) (liii path) (liii os))
+
+(check-set-mode! 'report-failed)
 
 (when (not (os-windows?))
   (check (path->string (path-with-suffix (path "a.txt") ".md")) => "a.md")

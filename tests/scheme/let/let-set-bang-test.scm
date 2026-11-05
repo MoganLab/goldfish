@@ -1,10 +1,3 @@
-(import (liii check))
-(import (scheme let))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; let-set!
 ;; 设置 let 中指定符号的绑定值（就地修改）。
 ;;
@@ -36,38 +29,62 @@
 
 
 ;; let-set! 更新已有绑定
-(check (let ((e (inlet 'a 1))) (let-set! e 'a 99) (let-ref e 'a)) => 99)
+
+(import (liii check))
+(import (scheme let))
+
+
+(check-set-mode! 'report-failed)
+
+(check
+  (let ((e (inlet 'a 1)))
+    (let-set! e 'a 99)
+    (let-ref e 'a)
+  ) ;let
+  =>
+  99
+) ;check
 
 
 ;; let-set! 设置新值后，原值被覆盖
-(check (let ((e (inlet 'a 1 'b 2))) (let-set! e 'a 100) (let-ref e 'b)) => 2)
+(check
+  (let ((e (inlet 'a 1 'b 2)))
+    (let-set! e 'a 100)
+    (let-ref e 'b)
+  ) ;let
+  =>
+  2
+) ;check
 
 
 ;; let-set! 可设置字符串值
-(check (let ((e (inlet 'name "old")))
-         (let-set! e 'name "new")
-         (let-ref e 'name)
-       ) ;let
+(check
+  (let ((e (inlet 'name "old")))
+    (let-set! e 'name "new")
+    (let-ref e 'name)
+  ) ;let
   =>
   "new"
 ) ;check
 
 
 ;; let-set! 可设置列表值
-(check (let ((e (inlet 'items (list 1 2))))
-         (let-set! e 'items (list 1 2 3))
-         (let-ref e 'items)
-       ) ;let
+(check
+  (let ((e (inlet 'items (list 1 2))))
+    (let-set! e 'items (list 1 2 3))
+    (let-ref e 'items)
+  ) ;let
   =>
   (list 1 2 3)
 ) ;check
 
 
 ;; let-set! 可设置 #f / #t
-(check (let ((e (inlet 'flag #t)))
-         (let-set! e 'flag #f)
-         (let-ref e 'flag)
-       ) ;let
+(check
+  (let ((e (inlet 'flag #t)))
+    (let-set! e 'flag #f)
+    (let-ref e 'flag)
+  ) ;let
   =>
   #f
 ) ;check

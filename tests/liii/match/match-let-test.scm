@@ -1,7 +1,3 @@
-(import (liii check) (liii match))
-
-(check-set-mode! 'report-failed)
-
 ;; match-let
 ;; 并行匹配并绑定变量，类似于 let，但在绑定位置支持任意模式解构。
 ;; 亦支持命名循环（named let）形式。
@@ -31,6 +27,11 @@
 ;; 最后一个 body 表达式的求值结果。
 
 ;; 基础多变量并行解构
+
+(import (liii check) (liii match))
+
+(check-set-mode! 'report-failed)
+
 (check
   (match-let (((x y) '(1 2)) ((z) '(3))) (+ x y z))
   =>

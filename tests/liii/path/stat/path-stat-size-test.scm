@@ -1,11 +1,3 @@
-(import (liii check)
-  (liii os)
-  (liii path stat)
-  (scheme file)
-) ;import
-
-(check-set-mode! 'report-failed)
-
 ;; path-stat-size
 ;; 获取 <path-stat> 记录中的文件大小（字节数）。
 ;;
@@ -22,6 +14,10 @@
 ;; -----
 ;; integer
 ;; 文件大小字节数。
+
+(import (liii check) (liii os) (liii path stat) (scheme file))
+
+(check-set-mode! 'report-failed)
 
 (let ((st (make-path-stat 1024 1.0 2.0 3.0 0)))
   (check (path-stat-size st) => 1024)

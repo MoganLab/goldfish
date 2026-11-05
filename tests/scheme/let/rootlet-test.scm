@@ -1,10 +1,3 @@
-(import (liii check))
-(import (scheme let))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; rootlet
 ;; 返回全局根环境（rootlet）。所有内建函数和全局绑定都位于此处。
 ;;
@@ -28,6 +21,13 @@
 
 
 ;; rootlet 是一个 let
+
+(import (liii check))
+(import (scheme let))
+
+
+(check-set-mode! 'report-failed)
+
 (check (let? (rootlet)) => #t)
 
 

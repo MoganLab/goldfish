@@ -1,7 +1,3 @@
-(import (liii check) (liii tree))
-
-(check-set-mode! 'report-failed)
-
 ;; tree-set-memq
 ;; 检查列表形式的一组符号中是否有任何符号存在于树结构中。
 ;;
@@ -28,6 +24,11 @@
 ;; 它是 memq 的批量版本，内部使用符号集合进行快速查找。
 
 ;; 基本测试
+
+(import (liii check) (liii tree))
+
+(check-set-mode! 'report-failed)
+
 (check (tree-set-memq '(a b) '(a c d)) => #t)
 (check (tree-set-memq '(a b) '(c d e)) => #f)
 

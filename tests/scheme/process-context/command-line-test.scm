@@ -1,6 +1,24 @@
-(import (scheme base)
-        (scheme process-context)
-        (liii check))
+;; command-line
+;; 返回当前程序的命令行参数列表。
+;;
+;; 语法
+;; ----
+;; (command-line)
+;;
+;; 参数
+;; ----
+;; 无。
+;;
+;; 返回值
+;; ----
+;; list of string
+;; 第一个元素为程序名，其后依次为传给程序的参数。
+;;
+;; 描述
+;; ----
+;; 参数均为合法 UTF-8 字符串；Windows 下 ANSI 代码页参数会被转换。
+
+(import (scheme base) (scheme process-context) (liii check))
 
 (check-set-mode! 'report-failed)
 
@@ -15,8 +33,8 @@
 ;; 手工验证方法（Windows 中文系统，修复前失败、修复后通过）：
 ;;   bin/gf tests/scheme/process-context/command-line-test.scm 用一句话回答
 (for-each
-  (lambda (arg)
-    (check (bytevector? (string->utf8 arg)) => #t))
-  (command-line))
+  (lambda (arg) (check (bytevector? (string->utf8 arg)) => #t))
+  (command-line)
+) ;for-each
 
 (check-report)

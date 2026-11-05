@@ -1,9 +1,3 @@
-(import (liii check) (liii trie))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; trie-insert!
 ;; 向 trie 中插入键值对。
 ;;
@@ -30,11 +24,13 @@
 ;; ----
 ;; 如果键已存在，会覆盖原有值。
 ;;
-;; 示例
-;; ----
 ;; (trie-insert! trie (string->list "hello") 'world)
 ;; (trie-ref trie (string->list "hello")) => 'world
 
+(import (liii check) (liii trie))
+
+
+(check-set-mode! 'report-failed)
 
 (let ((trie (make-trie)))
   (trie-insert! trie (string->list "hello") 'world)

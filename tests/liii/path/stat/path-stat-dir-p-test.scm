@@ -1,10 +1,3 @@
-(import (liii check)
-  (liii os)
-  (liii path stat)
-) ;import
-
-(check-set-mode! 'report-failed)
-
 ;; path-stat-dir?
 ;; 基于 <path-stat> 元数据判断是否为目录。
 ;;
@@ -22,8 +15,12 @@
 ;; boolean
 ;; 当模式位指示为目录时返回 #t，否则返回 #f。
 
-(let ((custom-dir (make-path-stat 10 0 0 0 16384)) ; S_IFDIR
-      (custom-file (make-path-stat 10 0 0 0 32768)) ; S_IFREG
+(import (liii check) (liii os) (liii path stat))
+
+(check-set-mode! 'report-failed)
+
+(let ((custom-dir (make-path-stat 10 0 0 0 16384))
+      (custom-file (make-path-stat 10 0 0 0 32768))
      ) ;
   (check-true (path-stat-dir? custom-dir))
   (check-false (path-stat-dir? custom-file))

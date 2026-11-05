@@ -1,9 +1,3 @@
-(import (liii check) (liii sort) (liii trie))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; trie->list
 ;; 将 trie 转换为列表表示。
 ;;
@@ -21,10 +15,12 @@
 ;; list?
 ;; 返回 trie 的列表表示，第一个元素是子节点列表，第二个是节点值。
 ;;
-;; 示例
-;; ----
 ;; (trie->list trie) => '(((#\h ...)) root-value)
 
+(import (liii check) (liii sort) (liii trie))
+
+
+(check-set-mode! 'report-failed)
 
 (let ((trie (make-trie)))
   (check (trie->list trie) => '(()))

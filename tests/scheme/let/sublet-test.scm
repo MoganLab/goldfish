@@ -1,10 +1,3 @@
-(import (liii check))
-(import (scheme let))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; sublet
 ;; 在已有 let 的环境内创建一个新的子 let，并初始化若干绑定。
 ;;
@@ -37,6 +30,13 @@
 
 
 ;; sublet 返回一个 let
+
+(import (liii check))
+(import (scheme let))
+
+
+(check-set-mode! 'report-failed)
+
 (check (let? (sublet (inlet 'a 1))) => #t)
 
 
@@ -45,9 +45,10 @@
 
 
 ;; sublet 新 let 的 outlet 指向父 let
-(check (let ((parent (inlet 'a 1)))
-         (eq? (outlet (sublet parent 'b 2)) parent)
-       ) ;let
+(check
+  (let ((parent (inlet 'a 1)))
+    (eq? (outlet (sublet parent 'b 2)) parent)
+  ) ;let
   =>
   #t
 ) ;check
@@ -115,28 +116,53 @@
 
 
 ;; 方法覆盖：Dog.speak 返回 "woof"
-(check (let ((d (make-dog "Rex"))) ((d :speak) d)) => "woof")
+(check
+  (let ((d (make-dog "Rex")))
+    ((d :speak) d)
+  ) ;let
+  =>
+  "woof"
+) ;check
 
 
 ;; 方法覆盖：Cat.speak 返回 "meow"
-(check (let ((c (make-cat "Whiskers"))) ((c :speak) c)) => "meow")
+(check
+  (let ((c (make-cat "Whiskers")))
+    ((c :speak) c)
+  ) ;let
+  =>
+  "meow"
+) ;check
 
 
 ;; 未覆盖的方法继承自基类：Animal.speak 返回 "some sound"
-(check (let ((a (make-animal "generic"))) ((a :speak) a)) => "some sound")
+(check
+  (let ((a (make-animal "generic")))
+    ((a :speak) a)
+  ) ;let
+  =>
+  "some sound"
+) ;check
 
 
 ;; 字段访问也用 keyword
-(check (let ((d (make-dog "Rex"))) (d :name)) => "Rex")
+(check
+  (let ((d (make-dog "Rex")))
+    (d :name)
+  ) ;let
+  =>
+  "Rex"
+) ;check
 
 
 ;; is-a 检查：Dog 实例既是 dog 也是 animal
-(check (let ((d (make-dog "Rex")))
-         (list (subclass-of? d dog-class)
-           (subclass-of? d animal-class)
-           (subclass-of? d cat-class)
-         ) ;list
-       ) ;let
+(check
+  (let ((d (make-dog "Rex")))
+    (list (subclass-of? d dog-class)
+      (subclass-of? d animal-class)
+      (subclass-of? d cat-class)
+    ) ;list
+  ) ;let
   =>
   '(#t #t #f)
 ) ;check

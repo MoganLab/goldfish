@@ -1,9 +1,3 @@
-(import (liii check) (scheme time))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; jiffies-per-second
 ;; 获取每秒钟的 jiffy 数量。
 ;;
@@ -27,8 +21,6 @@
 ;; 3. 主要用于将 jiffy 时间间隔转换为秒数
 ;; 4. 与 current-jiffy 配合使用，可以计算精确的时间间隔
 ;;
-;; 示例
-;; ----
 ;; (let ((start (current-jiffy)))
 ;;   (do-some-work)
 ;;   (let ((end (current-jiffy)))
@@ -39,6 +31,10 @@
 ;; ----
 ;; 无
 
+(import (liii check) (scheme time))
+
+
+(check-set-mode! 'report-failed)
 
 (check (jiffies-per-second) => 1000000)
 (check (integer? (jiffies-per-second)) => #t)

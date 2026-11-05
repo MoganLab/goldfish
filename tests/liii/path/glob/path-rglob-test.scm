@@ -1,12 +1,3 @@
-(import (liii check)
-  (liii list)
-  (liii path)
-  (liii os)
-  (scheme file)
-) ;import
-
-(check-set-mode! 'report-failed)
-
 ;; path-rglob
 ;; 全目录树递归通配检索，返回包含匹配项的 <path> 记录列表。
 ;;
@@ -32,14 +23,15 @@
 ;; file-not-found-error 当 path 路径不存在时。
 ;; not-a-directory-error 当 path 存在但不是目录时。
 
+(import (liii check) (liii list) (liii path) (liii os) (scheme file))
+
+(check-set-mode! 'report-failed)
+
 (define (clean-dir dir)
   (when (path-exists? dir)
     (for-each
       (lambda (item)
-        (if (path-dir? item)
-          (clean-dir item)
-          (delete-file (path->string item))
-        ) ;if
+        (if (path-dir? item) (clean-dir item) (delete-file (path->string item)))
       ) ;lambda
       (path-list-path dir)
     ) ;for-each
@@ -114,12 +106,8 @@
   (check-catch 'file-not-found-error
     (path-rglob (path "no-such-path-rglob-1053-xyz") "*")
   ) ;check-catch
-  (check-catch 'not-a-directory-error
-    (path-rglob f-txt "*")
-  ) ;check-catch
-  (check-catch 'not-a-directory-error
-    (path-rglob (path->string f-txt) "*")
-  ) ;check-catch
+  (check-catch 'not-a-directory-error (path-rglob f-txt "*"))
+  (check-catch 'not-a-directory-error (path-rglob (path->string f-txt) "*"))
   (check-catch 'type-error (path-rglob 123 "*"))
   (check-catch 'type-error (path-rglob test-dir 456))
   (check-catch 'type-error (path-rglob '(invalid) "*"))

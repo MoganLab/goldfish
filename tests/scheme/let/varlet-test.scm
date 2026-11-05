@@ -1,10 +1,3 @@
-(import (liii check))
-(import (scheme let))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; varlet
 ;; 将若干绑定添加到 target-let，并返回 target-let 自身。
 ;;
@@ -41,29 +34,64 @@
 
 
 ;; varlet 把绑定添加到 target-let，并返回同一对象
-(check (let ((e (inlet 'a 1))) (eq? (varlet e 'b 2) e)) => #t)
+
+(import (liii check))
+(import (scheme let))
+
+
+(check-set-mode! 'report-failed)
+
+(check
+  (let ((e (inlet 'a 1)))
+    (eq? (varlet e 'b 2) e)
+  ) ;let
+  =>
+  #t
+) ;check
 
 
 ;; varlet 添加的绑定可通过 let-ref 访问
-(check (let ((e (inlet 'a 1))) (varlet e 'b 99) (let-ref e 'b)) => 99)
+(check
+  (let ((e (inlet 'a 1)))
+    (varlet e 'b 99)
+    (let-ref e 'b)
+  ) ;let
+  =>
+  99
+) ;check
 
 
 ;; varlet 保留原有绑定
-(check (let ((e (inlet 'a 1))) (varlet e 'b 2) (let-ref e 'a)) => 1)
+(check
+  (let ((e (inlet 'a 1)))
+    (varlet e 'b 2)
+    (let-ref e 'a)
+  ) ;let
+  =>
+  1
+) ;check
 
 
 ;; varlet 合并另一个 let 的所有绑定
-(check (let ((target (inlet 'a 1)) (source (inlet 'b 2 'c 3)))
-         (varlet target source)
-         (length target)
-       ) ;let
+(check
+  (let ((target (inlet 'a 1)) (source (inlet 'b 2 'c 3)))
+    (varlet target source)
+    (length target)
+  ) ;let
   =>
   3
 ) ;check
 
 
 ;; varlet 接受点对形式 (symbol . value)
-(check (let ((e (inlet))) (varlet e (cons 'x 99)) (let-ref e 'x)) => 99)
+(check
+  (let ((e (inlet)))
+    (varlet e (cons 'x 99))
+    (let-ref e 'x)
+  ) ;let
+  =>
+  99
+) ;check
 
 
 (check-report)

@@ -1,5 +1,3 @@
-(import (liii check) (scheme complex))
-(check-set-mode! 'report-failed)
 ;; real-part
 ;; 返回复数的实部。
 ;;
@@ -21,12 +19,9 @@
 ;; 对于复数，返回其实部。
 ;;
 ;; 数学定义
-;; ------
 ;; 如果 z = x + yi，其中 x 和 y 是实数，i 是虚数单位，则：
 ;; real-part(z) = x
 ;;
-;; 示例
-;; ----
 ;; (real-part 5) => 5
 ;; (real-part 3.14) => 3.14
 ;; (real-part (make-rectangular 3 4)) => 3
@@ -34,6 +29,10 @@
 ;; 错误处理
 ;; --------
 ;; type-error 当参数不是数值类型时抛出错误。
+
+(import (liii check) (scheme complex))
+(check-set-mode! 'report-failed)
+
 ;; Test real-part with complex numbers
 (check (real-part (make-rectangular 3 4)) => 3.0)
 (check (real-part (make-rectangular -3 4)) => -3.0)
@@ -53,4 +52,5 @@
 (check (real-part -7.0-8.0i) => -7.0)
 (check (real-part 0.0+9.0i) => 0.0)
 (check (real-part 10.0) => 10.0)
+
 (check-report)

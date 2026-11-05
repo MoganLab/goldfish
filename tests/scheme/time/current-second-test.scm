@@ -1,9 +1,3 @@
-(import (liii check) (scheme time))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; current-second
 ;; 获取当前时间，以秒为单位。
 ;;
@@ -27,8 +21,6 @@
 ;; 3. 精度取决于系统实现，通常为秒级精度
 ;; 4. 主要用于时间测量和时间戳生成
 ;;
-;; 示例
-;; ----
 ;; (let ((start (current-second)))
 ;;   (sleep 1)
 ;;   (let ((end (current-second)))
@@ -38,6 +30,10 @@
 ;; ----
 ;; 无
 
+(import (liii check) (scheme time))
+
+
+(check-set-mode! 'report-failed)
 
 (let ((t1 (current-second)))
   (check (number? t1) => #t)

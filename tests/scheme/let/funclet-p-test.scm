@@ -1,10 +1,3 @@
-(import (liii check))
-(import (scheme let))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; funclet?
 ;; 判断对象是否为 funclet（函数闭包环境）。
 ;;
@@ -30,6 +23,13 @@
 
 
 ;; 普通 inlet 不是 funclet
+
+(import (liii check))
+(import (scheme let))
+
+
+(check-set-mode! 'report-failed)
+
 (check (funclet? (inlet 'a 1)) => #f)
 
 
@@ -50,7 +50,11 @@
 
 
 ;; 无闭包变量的 lambda，其 funclet 退化为 rootlet，不是 funclet
-(check (funclet? (funclet (lambda (x) x))) => #f)
+(check
+  (funclet? (funclet (lambda (x) x)))
+  =>
+  #f
+) ;check
 
 
 ;; C 函数的 funclet 是 rootlet，不是 funclet

@@ -1,5 +1,3 @@
-(import (liii check) (scheme inexact))
-(check-set-mode! 'report-failed)
 ;; nan?
 ;; 判断一个数值是否为 NaN（Not a Number）。
 ;;
@@ -29,6 +27,10 @@
 ;; ------
 ;; 无错误情况，非数值将返回 #f。
 ;; nan? 基本测试
+
+(import (liii check) (scheme inexact))
+(check-set-mode! 'report-failed)
+
 (check (nan? +nan.0) => #t)
 (check (nan? +nan.0) => #t)
 (check (nan? +nan.0+5.0i) => #t)
@@ -65,4 +67,5 @@
 (check (nan? '()) => #f)
 (check (nan? '(1 2 3)) => #f)
 (check (nan? #\a) => #f)
+
 (check-report)

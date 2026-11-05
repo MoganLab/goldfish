@@ -1,7 +1,3 @@
-(import (liii check) (liii path) (liii error) (liii os))
-
-(check-set-mode! 'report-failed)
-
 ;; path-write-bytes
 ;; 写入二进制文件内容。
 ;;
@@ -23,6 +19,11 @@
 ;; type-error 当 data 不是 bytevector 时。
 
 ;; 基本写入测试
+
+(import (liii check) (liii path) (liii error) (liii os))
+
+(check-set-mode! 'report-failed)
+
 (let ((write-file (path-join (path-temp-dir) "path-write-bytes-basic.bin")))
   (when (path-exists? write-file)
     (delete-file (path->string write-file))

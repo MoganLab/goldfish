@@ -1,7 +1,3 @@
-(import (liii check) (liii path) (liii os))
-
-(check-set-mode! 'report-failed)
-
 ;; path-read-lines
 ;; 按行读取文本文件，返回行字符串列表。
 ;;
@@ -33,6 +29,11 @@
 ;; file-error 当路径为目录时。
 
 ;; 测试项1：默认按行读取与 keepends 换行保留测试
+
+(import (liii check) (liii path) (liii os))
+
+(check-set-mode! 'report-failed)
+
 (let ((test-file (path-join (path-temp-dir) "path-read-lines-basic.txt")))
   (when (path-exists? test-file)
     (delete-file (path->string test-file))

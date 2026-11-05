@@ -1,7 +1,3 @@
-(import (liii check) (liii path) (liii string) (liii os) (liii vector))
-
-(check-set-mode! 'report-failed)
-
 ;; path-list
 ;; 列出目录中的文件名。
 ;;
@@ -24,6 +20,11 @@
 ;; path-list 返回字符串向量，每个元素是目录中的文件名。
 
 ;; 目录列举测试
+
+(import (liii check) (liii path) (liii string) (liii os) (liii vector))
+
+(check-set-mode! 'report-failed)
+
 (let* ((list-dir (path-join (path-temp-dir) "path-list-dir"))
        (list-file-a (path-join list-dir "child-a.txt"))
        (list-file-b (path-join list-dir "child-b.txt"))

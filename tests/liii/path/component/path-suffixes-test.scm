@@ -1,7 +1,3 @@
-(import (liii check) (liii path) (liii os))
-
-(check-set-mode! 'report-failed)
-
 ;; path-suffixes
 ;; 获取末段的所有后缀(对齐 pathlib .suffixes)。
 ;;
@@ -20,6 +16,11 @@
 ;; 隐藏文件(.bashrc)、无后缀文件返回 #()。
 
 ;; 多后缀
+
+(import (liii check) (liii path) (liii os))
+
+(check-set-mode! 'report-failed)
+
 (check (path-suffixes (path "archive.tar.gz")) => #(".tar" ".gz"))
 ;; 单后缀
 (check (path-suffixes (path "demo.txt")) => #(".txt"))

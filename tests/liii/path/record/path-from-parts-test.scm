@@ -1,7 +1,3 @@
-(import (liii check) (liii path) (liii os))
-
-(check-set-mode! 'report-failed)
-
 ;; path-from-parts
 ;; 从路径各部分构造路径值。
 ;;
@@ -19,9 +15,11 @@
 ;; path-value
 ;; 返回组合后的路径值。
 ;;
-;; 示例
-;; ----
 ;; (path->string (path-from-parts #("/" "tmp" "demo.txt"))) => "/tmp/demo.txt"
+
+(import (liii check) (liii path) (liii os))
+
+(check-set-mode! 'report-failed)
 
 (when (not (os-windows?))
   (check (path->string (path-from-parts #("/" "tmp" "demo.txt")))
@@ -56,7 +54,8 @@
     "\\tmp\\demo.txt"
   ) ;check
   ;; round-trip:path-parts 输出可被 path-from-parts 重建
-  (check (path-parts (path-from-parts (path-parts (path "C:\\tmp\\demo.txt"))))
+  (check
+    (path-parts (path-from-parts (path-parts (path "C:\\tmp\\demo.txt"))))
     =>
     #("C:\\" "tmp" "demo.txt")
   ) ;check

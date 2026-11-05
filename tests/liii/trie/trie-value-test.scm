@@ -1,9 +1,3 @@
-(import (liii check) (liii trie))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; trie-value
 ;; 获取 trie 节点的值列表。
 ;;
@@ -21,11 +15,13 @@
 ;; list?
 ;; 返回该节点存储的值列表，空节点返回空列表。
 ;;
-;; 示例
-;; ----
 ;; (trie-value trie) => '(root-value)
 ;; (trie-value (make-trie)) => '()
 
+(import (liii check) (liii trie))
+
+
+(check-set-mode! 'report-failed)
 
 (let ((trie (make-trie)))
   (check (trie-value trie) => '())

@@ -1,7 +1,3 @@
-(import (liii check) (liii path) (liii os))
-
-(check-set-mode! 'report-failed)
-
 ;; path-rmdir
 ;; 删除空目录。
 ;;
@@ -20,6 +16,11 @@
 ;; 返回 #t 表示删除成功。
 
 ;; 目录删除测试
+
+(import (liii check) (liii path) (liii os))
+
+(check-set-mode! 'report-failed)
+
 (let* ((rmdir-test-dir (path-join (path-temp-dir) "path-rmdir-test"))
        (file-in-dir (path-join rmdir-test-dir "file.txt"))
       ) ;

@@ -1,7 +1,3 @@
-(import (liii check) (liii path) (liii os))
-
-(check-set-mode! 'report-failed)
-
 ;; path-read-text
 ;; 读取文本文件内容。
 ;;
@@ -25,6 +21,11 @@
 ;; file-error 当路径为目录时。
 
 ;; 基本文本读写测试
+
+(import (liii check) (liii path) (liii os))
+
+(check-set-mode! 'report-failed)
+
 (let ((text-file (path-join (path-temp-dir) "path-read-text-basic.txt")))
   (when (path-exists? text-file)
     (delete-file (path->string text-file))

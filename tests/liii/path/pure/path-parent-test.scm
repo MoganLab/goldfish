@@ -1,7 +1,3 @@
-(import (liii check) (liii path) (liii os))
-
-(check-set-mode! 'report-failed)
-
 ;; path-parent
 ;; 获取父路径。
 ;;
@@ -23,6 +19,10 @@
 ;; ----
 ;; path-parent 是 rich-path 中 :parent 的函数式版本。
 
+(import (liii check) (liii path) (liii os))
+
+(check-set-mode! 'report-failed)
+
 (let ((sep (string (os-sep))))
   ;; path-parent 测试(对齐 pathlib.parent,不含末尾分隔符)
   (check (path->string (path-parent (path "tmp/demo.txt"))) => "tmp")
@@ -42,7 +42,11 @@
     ;; 绝对路径去末段,不含尾斜杠
     (check (path->string (path-parent (path "/tmp/demo.txt"))) => "/tmp")
     ;; 逐级回溯到根
-    (check (path->string (path-parent (path-parent (path "/tmp/demo.txt")))) => "/")
+    (check
+      (path->string (path-parent (path-parent (path "/tmp/demo.txt"))))
+      =>
+      "/"
+    ) ;check
     ;; 单段绝对路径 /a 的 parent 是根
     (check (path->string (path-parent (path "/a"))) => "/")
   ) ;when

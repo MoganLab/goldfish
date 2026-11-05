@@ -1,7 +1,3 @@
-(import (liii check) (liii list) (liii path) (liii os) (scheme file))
-
-(check-set-mode! 'report-failed)
-
 ;; path-glob
 ;; 单层目录通配检索，返回包含匹配项的 <path> 记录列表。
 ;;
@@ -26,6 +22,10 @@
 ;; type-error 当 path 非 string 且非 path?，或 pattern 非 string 时。
 ;; file-not-found-error 当 path 路径不存在时。
 ;; not-a-directory-error 当 path 存在但不是目录时。
+
+(import (liii check) (liii list) (liii path) (liii os) (scheme file))
+
+(check-set-mode! 'report-failed)
 
 (define (clean-dir dir)
   (when (path-exists? dir)

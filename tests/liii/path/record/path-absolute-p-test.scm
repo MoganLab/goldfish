@@ -1,7 +1,3 @@
-(import (liii check) (liii path) (liii os))
-
-(check-set-mode! 'report-failed)
-
 ;; path-absolute?
 ;; 判断路径是否为绝对路径。
 ;;
@@ -24,6 +20,11 @@
 ;; 只根据路径值自身的结构判断，不要求路径实际存在。
 
 ;; 基本绝对/相对路径测试
+
+(import (liii check) (liii path) (liii os))
+
+(check-set-mode! 'report-failed)
+
 (check-false (path-absolute? (path)))
 (check-false (path-absolute? (path "")))
 (check-false (path-absolute? (path "relative.txt")))

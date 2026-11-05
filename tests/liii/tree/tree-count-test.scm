@@ -1,7 +1,3 @@
-(import (liii check) (liii tree))
-
-(check-set-mode! 'report-failed)
-
 ;; tree-count
 ;; 统计对象在树结构（嵌套列表）中出现的次数。
 ;;
@@ -32,12 +28,25 @@
 ;; 它会深入搜索所有嵌套的子列表。
 
 ;; 基本功能测试
+
+(import (liii check) (liii tree))
+
+(check-set-mode! 'report-failed)
+
 (check (tree-count 'a '(a b a c a d)) => 3)
 (check (tree-count 'x '(a b c)) => 0)
 
 ;; 嵌套列表测试
-(check (tree-count 'a '(a (b a) (c (a d)))) => 3)
-(check (tree-count 'b '((a b) (c (b d)))) => 2)
+(check
+  (tree-count 'a '(a (b a) (c (a d))))
+  =>
+  3
+) ;check
+(check
+  (tree-count 'b '((a b) (c (b d))))
+  =>
+  2
+) ;check
 
 ;; max-count 参数测试
 (check (tree-count 'a '(a b a c a d a e) 3) => 3)
@@ -48,7 +57,11 @@
 (check (tree-count 'a '()) => 0)
 
 ;; 复杂嵌套测试
-(check (tree-count 1 '(1 (2 1) (3 (4 1)))) => 3)
+(check
+  (tree-count 1 '(1 (2 1) (3 (4 1))))
+  =>
+  3
+) ;check
 ;; 空列表测试：'(() a (b ())) 中有 4 个空列表：
 ;; 1. 第一个元素 ()
 ;; 2. (b ()) 中的 ()

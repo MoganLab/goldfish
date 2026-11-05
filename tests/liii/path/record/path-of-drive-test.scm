@@ -1,7 +1,3 @@
-(import (liii check) (liii path) (liii error) (liii os))
-
-(check-set-mode! 'report-failed)
-
 ;; path-of-drive
 ;; 根据驱动器字符构造 Windows 风格的路径。
 ;;
@@ -18,12 +14,14 @@
 ;; ----
 ;; path-value
 ;; 返回对应驱动器的根路径，如 C:\\\n;;
-;; 示例
-;; ----
 ;; (path->string (path-of-drive #\\C)) 返回 "C:\\\n;;
 ;; 错误处理
 ;; ----
 ;; type-error 当传入非字符参数时。
+
+(import (liii check) (liii path) (liii error) (liii os))
+
+(check-set-mode! 'report-failed)
 
 (check (path->string (path-of-drive #\C)) => "C:\\")
 (check (path-type (path-of-drive #\C)) => 'windows)

@@ -1,7 +1,3 @@
-(import (liii check) (liii match))
-
-(check-set-mode! 'report-failed)
-
 ;; match-let*
 ;; 顺序匹配并绑定变量，类似于 let*，后续绑定可在其模式或表达式中引用先前的绑定。
 ;;
@@ -26,6 +22,11 @@
 ;; 最后一个 body 表达式的求值结果。
 
 ;; 基础顺序依赖解构
+
+(import (liii check) (liii match))
+
+(check-set-mode! 'report-failed)
+
 (check
   (match-let*
    ((x 1) ((y) (list (+ x 1))))

@@ -1,10 +1,3 @@
-(import (liii check))
-(import (scheme let))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; funclet
 ;; 返回过程的闭包环境（funclet）。
 ;;
@@ -31,6 +24,13 @@
 
 
 ;; funclet 返回 let
+
+(import (liii check))
+(import (scheme let))
+
+
+(check-set-mode! 'report-failed)
+
 (check (let? (funclet car)) => #t)
 
 

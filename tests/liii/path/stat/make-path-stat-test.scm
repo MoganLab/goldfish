@@ -1,9 +1,3 @@
-(import (liii check)
-  (liii path stat)
-) ;import
-
-(check-set-mode! 'report-failed)
-
 ;; make-path-stat
 ;; 构造一个 <path-stat> 元数据记录对象。
 ;;
@@ -28,6 +22,10 @@
 ;; -----
 ;; <path-stat>
 ;; 构造出的元数据记录对象。
+
+(import (liii check) (liii path stat))
+
+(check-set-mode! 'report-failed)
 
 (let ((st (make-path-stat 42 100.5 200.5 300.5 33188)))
   (check-true (path-stat? st))

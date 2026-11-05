@@ -1,7 +1,3 @@
-(import (liii check) (liii path) (liii os))
-
-(check-set-mode! 'report-failed)
-
 ;; path->string
 ;; 将路径值转换为字符串。
 ;;
@@ -18,6 +14,10 @@
 ;; ----
 ;; string
 ;; 返回路径的字符串表示。
+
+(import (liii check) (liii path) (liii os))
+
+(check-set-mode! 'report-failed)
 
 (check (path->string (path)) => ".")
 (check (path->string (path "")) => ".")

@@ -1,13 +1,14 @@
-(import (liii check) (liii path) (liii os))
-
-(check-set-mode! 'report-failed)
-
 ;; path-touch
 ;; 创建或更新时间戳文件。
 ;;
 ;; 语法
 ;; ----
 ;; (path-touch path) → boolean
+;;
+;; 参数
+;; ----
+;; path : path?
+;; 待创建或更新时间戳的路径。
 ;;
 ;; 返回值
 ;; -----
@@ -19,6 +20,11 @@
 ;; path-touch 不会自动创建父目录。如果父目录不存在，返回 #f。
 
 ;; 创建新空文件测试
+
+(import (liii check) (liii path) (liii os))
+
+(check-set-mode! 'report-failed)
+
 (let ((touch-file (path-join (path-temp-dir) "path-touch-basic.txt")))
   (when (path-exists? touch-file)
     (delete-file (path->string touch-file))

@@ -1,7 +1,3 @@
-(import (liii check) (liii path) (liii os))
-
-(check-set-mode! 'report-failed)
-
 ;; path-getsize
 ;; 获取文件或目录的大小（字节数）。
 ;;
@@ -24,6 +20,11 @@
 ;; file-not-found-error 当路径不存在时。
 
 ;; 系统路径大小测试
+
+(import (liii check) (liii path) (liii os))
+
+(check-set-mode! 'report-failed)
+
 (check-true (> (path-getsize (path "/")) 0))
 
 (when (not (os-windows?))

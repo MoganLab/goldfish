@@ -1,7 +1,3 @@
-(import (liii check) (liii path) (liii os))
-
-(check-set-mode! 'report-failed)
-
 ;; path-type
 ;; 获取路径类型。
 ;;
@@ -18,6 +14,10 @@
 ;; ----
 ;; symbol
 ;; 返回 'posix 或 'windows。
+
+(import (liii check) (liii path) (liii os))
+
+(check-set-mode! 'report-failed)
 
 (check (path-type (path)) => 'posix)
 (when (not (os-windows?))

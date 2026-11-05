@@ -1,10 +1,3 @@
-(import (liii check)
-  (liii os)
-  (liii path stat)
-) ;import
-
-(check-set-mode! 'report-failed)
-
 ;; path-stat-mode
 ;; 获取 <path-stat> 记录中的文件类型与权限位（st_mode）。
 ;;
@@ -21,6 +14,10 @@
 ;; -----
 ;; integer
 ;; 文件模式与权限位数值。
+
+(import (liii check) (liii os) (liii path stat))
+
+(check-set-mode! 'report-failed)
 
 (let ((st (make-path-stat 0 0 0 0 33188)))
   (check (path-stat-mode st) => 33188)

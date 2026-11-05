@@ -1,10 +1,3 @@
-(import (liii check))
-(import (scheme let))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; let->list
 ;; 将 let 的所有直接绑定转换为点对列表。
 ;;
@@ -30,6 +23,13 @@
 
 
 ;; 空 inlet 转换为空列表
+
+(import (liii check))
+(import (scheme let))
+
+
+(check-set-mode! 'report-failed)
+
 (check (let->list (inlet)) => (list))
 
 
@@ -50,10 +50,11 @@
 
 
 ;; let-set! 后 let->list 反映新值
-(check (let ((e (inlet 'a 1)))
-         (let-set! e 'a 99)
-         (let->list e)
-       ) ;let
+(check
+  (let ((e (inlet 'a 1)))
+    (let-set! e 'a 99)
+    (let->list e)
+  ) ;let
   =>
   (list (cons 'a 99))
 ) ;check

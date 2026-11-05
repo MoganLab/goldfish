@@ -1,10 +1,3 @@
-(import (liii check))
-(import (scheme let))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; unlet
 ;; 返回一个 let，该 let 反映所有预定义（内建）函数的原始绑定。
 ;;
@@ -30,6 +23,13 @@
 
 
 ;; unlet 返回一个 let
+
+(import (liii check))
+(import (scheme let))
+
+
+(check-set-mode! 'report-failed)
+
 (check (let? (unlet)) => #t)
 
 
@@ -38,10 +38,11 @@
 
 
 ;; 在遮蔽内建函数后，通过 with-let (unlet) 可访问原始版本
-(check (let ()
-         (set! map (lambda args 'shadowed))
-         (with-let (unlet) (map (lambda (x) (* x 10)) (list 1 2 3)))
-       ) ;let
+(check
+  (let ()
+    (set! map (lambda args 'shadowed))
+    (with-let (unlet) (map (lambda (x) (* x 10)) (list 1 2 3)))
+  ) ;let
   =>
   (list 10 20 30)
 ) ;check

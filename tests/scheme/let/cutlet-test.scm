@@ -1,10 +1,3 @@
-(import (liii check))
-(import (scheme let))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; cutlet
 ;; 从 let 中移除指定的符号绑定（就地修改），返回该 let。
 ;;
@@ -32,19 +25,53 @@
 
 
 ;; cutlet 移除指定符号
-(check (let ((e (inlet 'a 1 'b 2 'c 3))) (cutlet e 'b) (length e)) => 2)
+
+(import (liii check))
+(import (scheme let))
+
+
+(check-set-mode! 'report-failed)
+
+(check
+  (let ((e (inlet 'a 1 'b 2 'c 3)))
+    (cutlet e 'b)
+    (length e)
+  ) ;let
+  =>
+  2
+) ;check
 
 
 ;; cutlet 返回的就是传入的 let（eq? 为 #t）
-(check (let ((e (inlet 'a 1))) (eq? (cutlet e 'a) e)) => #t)
+(check
+  (let ((e (inlet 'a 1)))
+    (eq? (cutlet e 'a) e)
+  ) ;let
+  =>
+  #t
+) ;check
 
 
 ;; cutlet 一次移除多个符号
-(check (let ((e (inlet 'a 1 'b 2 'c 3))) (cutlet e 'a 'c) (length e)) => 1)
+(check
+  (let ((e (inlet 'a 1 'b 2 'c 3)))
+    (cutlet e 'a 'c)
+    (length e)
+  ) ;let
+  =>
+  1
+) ;check
 
 
 ;; cutlet 后剩余的绑定仍可访问
-(check (let ((e (inlet 'a 1 'b 2 'c 3))) (cutlet e 'b) (let-ref e 'a)) => 1)
+(check
+  (let ((e (inlet 'a 1 'b 2 'c 3)))
+    (cutlet e 'b)
+    (let-ref e 'a)
+  ) ;let
+  =>
+  1
+) ;check
 
 
 (check-report)

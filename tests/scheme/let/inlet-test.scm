@@ -1,11 +1,3 @@
-(import (liii check))
-(import (scheme let))
-(import (liii json))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; inlet
 ;; 创建一个新的 let（环境对象），可带初始绑定。
 ;;
@@ -38,8 +30,6 @@
 ;; 关键性质：set! 只改绑定值，不创建新对象——对象身份（eq?）恒定不变。
 ;; 因此 inlet 适合做需要就地更新、身份稳定的数据载体（如 data class）。
 ;;
-;; 示例
-;; ----
 ;; (define p (inlet :name "Bob" :age 25))
 ;; (define alias p)
 ;; (set! (p :age) 26)        ; 改 :age 绑定
@@ -48,10 +38,19 @@
 
 
 ;; inlet 是可变环境：set! 改绑定值，但对象身份不变（核心不变式）
-(check (let* ((p (inlet :name "Bob" :age 25)) (alias p))
-         (set! (p :age) 26)
-         (list (eq? p alias) (alias :age))
-       ) ;let*
+
+(import (liii check))
+(import (scheme let))
+(import (liii json))
+
+
+(check-set-mode! 'report-failed)
+
+(check
+  (let* ((p (inlet :name "Bob" :age 25)) (alias p))
+    (set! (p :age) 26)
+    (list (eq? p alias) (alias :age))
+  ) ;let*
   =>
   '(#t 26)
 ) ;check
@@ -107,7 +106,14 @@
 (check (begin (set! (p1 :age) 26) (p1 :age)) => 26)
 
 ;; 复合操作：age + 1
-(check (begin (set! (p1 :age) (+ (p1 :age) 1)) (p1 :age)) => 27)
+(check
+  (begin
+    (set! (p1 :age) (+ (p1 :age) 1))
+    (p1 :age)
+  ) ;begin
+  =>
+  27
+) ;check
 
 
 ;; ---- 顶层函数封装 -------------------------------------------------
@@ -157,33 +163,37 @@
 
 
 ;; 字段访问
-(check (let ((p (make-person "Bob" 25)))
-         (list (p :name) (p :age))
-       ) ;let
+(check
+  (let ((p (make-person "Bob" 25)))
+    (list (p :name) (p :age))
+  ) ;let
   =>
   '("Bob" 25)
 ) ;check
 
 ;; 序列化：person -> alist -> JSON 字符串
-(check (let ((p (make-person "Bob" 25)))
-         (person->json p)
-       ) ;let
+(check
+  (let ((p (make-person "Bob" 25)))
+    (person->json p)
+  ) ;let
   =>
   '(("name" . "Bob") ("age" . 25))
 ) ;check
 
 ;; 反序列化：JSON 字符串 -> person
-(check (let ((p (string->person "{\"name\":\"Alice\",\"age\":30}")))
-         (list (p :name) (p :age))
-       ) ;let
+(check
+  (let ((p (string->person "{\"name\":\"Alice\",\"age\":30}")))
+    (list (p :name) (p :age))
+  ) ;let
   =>
   '("Alice" 30)
 ) ;check
 
 ;; 完整往返：JSON -> person -> JSON
-(check (let ((p (string->person "{\"name\":\"Alice\",\"age\":30}")))
-         (json->string (person->json p))
-       ) ;let
+(check
+  (let ((p (string->person "{\"name\":\"Alice\",\"age\":30}")))
+    (json->string (person->json p))
+  ) ;let
   =>
   "{\"name\":\"Alice\",\"age\":30}"
 ) ;check

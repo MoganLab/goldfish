@@ -1,7 +1,3 @@
-(import (liii check) (liii path) (liii os))
-
-(check-set-mode! 'report-failed)
-
 ;; path-stem
 ;; 获取文件名主名（不含最后扩展名）。
 ;;
@@ -22,6 +18,10 @@
 ;; 描述
 ;; ----
 ;; 对于多后缀文件，只去除最后一个扩展名。
+
+(import (liii check) (liii path) (liii os))
+
+(check-set-mode! 'report-failed)
 
 (check (path-stem (path "file.txt")) => "file")
 (check (path-stem (path "archive.tar.gz")) => "archive.tar")

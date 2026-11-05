@@ -1,10 +1,3 @@
-(import (liii check)
-  (liii os)
-  (liii path stat)
-) ;import
-
-(check-set-mode! 'report-failed)
-
 ;; path-stat-atime
 ;; 获取 <path-stat> 记录中的最后访问时间（Unix 时间戳，单位秒）。
 ;;
@@ -21,6 +14,10 @@
 ;; -----
 ;; real
 ;; 访问时间戳（秒）。
+
+(import (liii check) (liii os) (liii path stat))
+
+(check-set-mode! 'report-failed)
 
 (let ((st (make-path-stat 0 0 98765.432 0 0)))
   (check (path-stat-atime st) => 98765.432)

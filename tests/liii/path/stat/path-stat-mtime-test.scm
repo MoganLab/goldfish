@@ -1,12 +1,3 @@
-(import (liii check)
-  (liii os)
-  (liii path stat)
-  (liii time)
-  (scheme file)
-) ;import
-
-(check-set-mode! 'report-failed)
-
 ;; path-stat-mtime
 ;; 获取 <path-stat> 记录中的最后修改时间（Unix 时间戳，单位秒）。
 ;;
@@ -23,6 +14,10 @@
 ;; -----
 ;; real
 ;; 修改时间戳（秒）。
+
+(import (liii check) (liii os) (liii path stat) (liii time) (scheme file))
+
+(check-set-mode! 'report-failed)
 
 (let ((st (make-path-stat 0 12345.678 0 0 0)))
   (check (path-stat-mtime st) => 12345.678)

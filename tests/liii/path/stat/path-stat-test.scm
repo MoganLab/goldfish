@@ -1,11 +1,3 @@
-(import (liii check)
-  (liii os)
-  (liii path stat)
-  (scheme file)
-) ;import
-
-(check-set-mode! 'report-failed)
-
 ;; path-stat
 ;; 获取文件或目录的元数据记录对象（包含 size、mtime、atime、ctime、mode）。
 ;;
@@ -29,6 +21,11 @@
 ;; type-error 当参数不是字符串时。
 
 ;; 测试常规文件
+
+(import (liii check) (liii os) (liii path stat) (scheme file))
+
+(check-set-mode! 'report-failed)
+
 (let ((test-file (string-append (os-temp-dir) "/path-stat-test-1050.txt")))
   (when (file-exists? test-file)
     (delete-file test-file)
