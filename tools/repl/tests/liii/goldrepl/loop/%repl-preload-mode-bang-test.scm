@@ -19,19 +19,29 @@
 
 (check-set-mode! 'report-failed)
 
-;; liii 模式会预加载额外的模块，不会抛出异常
-(check (catch #t (lambda () (%repl-preload-mode! "liii") #t) (lambda (t i) #f))
-  =>
-  #t
-) ;check
+;; 判断符号是否已经绑定到根环境中
 
-;; default 模式与 liii 模式一致
-(check (catch #t (lambda () (%repl-preload-mode! "default") #t) (lambda (t i) #f))
-  =>
-  #t
-) ;check
+(define (rootlet-has? name)
+  (catch #t
+    (lambda ()
+      (eval-string (string-append "(if (procedure? " name ") #t #f)") (rootlet))
+    ) ;lambda
+    (lambda (t i) #f)
+  ) ;catch
+) ;define
 
-;; 其它模式不做预加载，同样不会抛出异常
+;; liii 模式会把 (liii error) 等模块导入根环境
+(check (rootlet-has? "type-error?") => #f)
+
+(%repl-preload-mode! "liii")
+
+;; 预加载之后，(liii error) 的导出在根环境中可见
+(check (rootlet-has? "type-error?") => #t)
+
+;; default 模式与 liii 模式一致，同样会预加载模块
+(check (rootlet-has? "type-error?") => #t)
+
+;; 其它模式不做预加载，不会抛出异常
 (check (catch #t (lambda () (%repl-preload-mode! "r7rs") #t) (lambda (t i) #f))
   =>
   #t
