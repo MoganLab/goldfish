@@ -15,7 +15,7 @@
 ;; boolean?
 ;; 处于展开状态返回 #t，折叠状态返回 #f。
 
-(import (scheme base) (liii check) (liii pi code modes interactive views))
+(import (scheme base) (liii check) (liii pi code modes interactive views tool-card))
 
 (check-set-mode! 'report-failed)
 

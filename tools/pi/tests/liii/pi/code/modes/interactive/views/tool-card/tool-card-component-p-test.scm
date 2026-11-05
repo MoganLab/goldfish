@@ -18,7 +18,7 @@
 (import (scheme base)
   (liii check)
   (liii tui component)
-  (liii pi code modes interactive views)
+  (liii pi code modes interactive views tool-card)
 ) ;import
 
 (check-set-mode! 'report-failed)

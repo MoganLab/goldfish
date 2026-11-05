@@ -16,7 +16,7 @@
 ;; ----
 ;; unspecified
 
-(import (scheme base) (liii check) (liii pi code modes interactive views))
+(import (scheme base) (liii check) (liii pi code modes interactive views tool-card))
 
 (check-set-mode! 'report-failed)
 

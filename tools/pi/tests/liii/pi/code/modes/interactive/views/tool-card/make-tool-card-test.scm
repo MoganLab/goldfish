@@ -20,7 +20,7 @@
   (liii list)
   (liii string)
   (liii tui)
-  (liii pi code modes interactive views)
+  (liii pi code modes interactive views tool-card)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -131,6 +131,52 @@
       (check-true (string-contains? expanded-joined "(content)"))
     ) ;let
   ) ;let
+) ;let*
+
+;; bash 卡片标题按分段着色（对齐上游 pi renderCall）：
+;; 命令为粗体标题色 toolTitle，超时提示为 muted 且不加粗
+(let* ((card (make-tool-card "bash"
+               '(("command" . "sleep 5") ("timeout" . 30))
+               'pending
+             ) ;make-tool-card
+       ) ;card
+       (w 60)
+       (title (cadr (component-render card w)))
+      ) ;
+  (check (string-contains? title "$ sleep 5") => #t)
+  (check (string-contains? title "(timeout 30s)") => #t)
+  ;; 命令段：粗体 + 标题色
+  (check (string-contains? title "\x1b;[1m\x1b;[38;2;222;224;225m$ sleep 5") => #t)
+  (check (string-contains? title "$ sleep 5\x1b;[22m\x1b;[39m") => #t)
+  ;; 超时提示段：muted 前景，不带粗体
+  (check (string-contains? title "\x1b;[38;2;157;165;169m (timeout 30s)") => #t)
+  (check (string-contains? title "(timeout 30s)\x1b;[39m") => #t)
+  ;; 标题行内不得出现 \x1b[0m 全重置（否则清掉卡片背景色）
+  (check (= (length (string-split title "\x1b;[0m")) 2) => #t)
+) ;let*
+
+;; 无 timeout 参数时标题只有命令段，不出现 muted 提示
+(let* ((card (make-tool-card "bash" '(("command" . "ls -la")) 'pending))
+       (title (cadr (component-render card 60)))
+      ) ;
+  (check (string-contains? title "$ ls -la") => #t)
+  (check-false (string-contains? title "timeout"))
+  (check (string-contains? title "\x1b;[1m\x1b;[38;2;222;224;225m$ ls -la") => #t)
+) ;let*
+
+;; 命令含换行时标题拆成多行渲染，背景仍然铺满（不塌成一行）
+(let* ((card (make-tool-card "bash"
+               '(("command" . "printf a\nprintf b"))
+               'success
+               "ab"
+             ) ;make-tool-card
+       ) ;card
+       (lines (component-render card 60))
+       (plain (string-join (map strip-ansi lines) "\n"))
+      ) ;
+  (check (string-contains? plain "printf a") => #t)
+  (check (string-contains? plain "printf b") => #t)
+  (check (string-contains? plain "$ printf a") => #t)
 ) ;let*
 
 ;; bash 输出内空行的背景铺满整行宽度
