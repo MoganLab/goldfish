@@ -1,6 +1,3 @@
-(import (liii check) (liii stack))
-
-
 ;; make-stack
 ;; 创建一个新的栈。
 ;;
@@ -27,6 +24,8 @@
 ;; 错误处理
 ;; ----
 ;; type-error 当传入的参数不是列表时
+
+(import (liii check) (liii stack))
 
 
 (let ((s (make-stack)))

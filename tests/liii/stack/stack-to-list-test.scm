@@ -1,6 +1,3 @@
-(import (liii check) (liii stack))
-
-
 ;; stack->list
 ;; 将栈转换为列表。
 ;;
@@ -27,6 +24,8 @@
 ;; 错误处理
 ;; ----
 ;; type-error 当参数不是栈时
+
+(import (liii check) (liii stack))
 
 
 (let ((s (make-stack)))

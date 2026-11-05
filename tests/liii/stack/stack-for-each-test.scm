@@ -1,6 +1,3 @@
-(import (liii check) (liii stack))
-
-
 ;; stack-for-each
 ;; 遍历栈中每个元素，执行副作用操作。
 ;;
@@ -31,6 +28,8 @@
 ;; ----
 ;; type-error 当 proc 不是过程时
 ;; type-error 当 s 不是栈时
+
+(import (liii check) (liii stack))
 
 
 (let ((s (make-stack)) (count 0))

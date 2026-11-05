@@ -1,6 +1,3 @@
-(import (liii check) (liii stack))
-
-
 ;; stack-map!
 ;; 对栈中每个元素应用函数，修改原栈。
 ;;
@@ -31,6 +28,8 @@
 ;; ----
 ;; type-error 当 proc 不是过程时
 ;; type-error 当 s 不是栈时
+
+(import (liii check) (liii stack))
 
 
 (let ((s (make-stack)))

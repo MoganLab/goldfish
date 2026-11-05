@@ -1,6 +1,3 @@
-(import (liii check) (liii stack))
-
-
 ;; stack
 ;; 使用指定元素创建一个新栈。
 ;;
@@ -23,6 +20,8 @@
 ;; stack 是一个变参构造函数，可以直接传入任意数量的元素。
 ;; 第一个传入的元素成为栈顶，与 make-stack 的列表参数行为一致。
 ;; 无参数调用时创建一个空栈。
+
+(import (liii check) (liii stack))
 
 
 (let ((s (stack)))

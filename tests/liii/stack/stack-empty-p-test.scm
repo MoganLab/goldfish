@@ -1,6 +1,3 @@
-(import (liii check) (liii stack))
-
-
 ;; stack-empty?
 ;; 检查栈是否为空。
 ;;
@@ -26,6 +23,8 @@
 ;; 错误处理
 ;; ----
 ;; type-error 当参数不是栈时
+
+(import (liii check) (liii stack))
 
 
 (let ((s (make-stack)))

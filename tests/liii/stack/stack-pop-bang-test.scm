@@ -1,6 +1,3 @@
-(import (liii check) (liii stack))
-
-
 ;; stack-pop!
 ;; 从栈顶弹出元素。
 ;;
@@ -29,6 +26,8 @@
 ;; ----
 ;; type-error 当参数不是栈时
 ;; stack-pop! 当栈为空时
+
+(import (liii check) (liii stack))
 
 
 (let ((s (stack 1 2 3)))

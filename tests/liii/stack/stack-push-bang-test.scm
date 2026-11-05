@@ -1,6 +1,3 @@
-(import (liii check) (liii stack))
-
-
 ;; stack-push!
 ;; 将元素压入栈顶。
 ;;
@@ -30,6 +27,8 @@
 ;; 错误处理
 ;; ----
 ;; type-error 当第一个参数不是栈时
+
+(import (liii check) (liii stack))
 
 
 (let ((s (make-stack)))
