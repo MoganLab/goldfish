@@ -834,7 +834,9 @@ class StubHandler(http.server.BaseHTTPRequestHandler):
                 sys_inst_text = " ".join(p.get("text", "") for p in parts if isinstance(p, dict))
             else:
                 sys_inst_text = str(sys_inst)
-            if "project_context" in sys_inst_text and "CLAUDE.md" in sys_inst_text:
+            if "project_context" in sys_inst_text and "AGENTS.md" in sys_inst_text:
+                reply = "Project context verified: AGENTS.md is present"
+            elif "project_context" in sys_inst_text and "CLAUDE.md" in sys_inst_text:
                 reply = "Project context verified: CLAUDE.md is present"
             else:
                 reply = "Project context missing"

@@ -137,7 +137,9 @@
                  (out (cadr res))
                 ) ;
             (check code => 0)
-            (check-true (string-contains? out "Project context verified: CLAUDE.md is present")
+            (check-true (or (string-contains? out "Project context verified: AGENTS.md is present")
+                          (string-contains? out "Project context verified: CLAUDE.md is present")
+                        ) ;or
             ) ;check-true
           ) ;let*
 
