@@ -2857,9 +2857,9 @@ void init_types(void)
 #define PAIR_FILE_MASK                 ((1 << PAIR_FILE_BITS) - 1)
 #define PAIR_POSITION_MASK             ((1 << PAIR_POSITION_BITS) - 1)
 
-#define port_location(Port)            (((port_line_number(Port) & PAIR_LINE_MASK) << PAIR_LINE_OFFSET) | \
-                                        ((port_file_number(Port) & PAIR_FILE_MASK) << PAIR_FILE_OFFSET) | \
-                                        ((port_position(Port) & PAIR_POSITION_MASK) << PAIR_POSITION_OFFSET))
+#define port_location(Port)            ((((s7_uint)port_line_number(Port) & PAIR_LINE_MASK) << PAIR_LINE_OFFSET) | \
+                                        (((s7_uint)port_file_number(Port) & PAIR_FILE_MASK) << PAIR_FILE_OFFSET) | \
+                                        (((s7_uint)port_position(Port) & PAIR_POSITION_MASK) << PAIR_POSITION_OFFSET))
 
 #define location_to_line(Loc)          ((Loc >> PAIR_LINE_OFFSET) & PAIR_LINE_MASK)
 #define location_to_file(Loc)          ((Loc >> PAIR_FILE_OFFSET) & PAIR_FILE_MASK)
@@ -18199,7 +18199,7 @@ void s7i_port_set_filename(s7_scheme *sc, s7_pointer port, const char *name, s7_
 
 
 /* -------------------------------- open-input-file -------------------------------- */
-static int32_t remember_file_name(s7_scheme *sc, const char *file)
+int32_t s7i_remember_file_name(s7_scheme *sc, const char *file)
 {
   for (int32_t i = 0; i <= sc->file_names_top; i++)
     if (safe_strcmp(file, string_value(sc->file_names[i])))
@@ -18369,7 +18369,7 @@ static void init_standard_ports(s7_scheme *sc)
   port = alloc_standard_output_port(sc);
   port_filename_length(port) = 8;
   port_set_filename(sc, port, "*stdout*", 8);
-  port_file_number(port) = remember_file_name(sc, port_filename(port)); /* these numbers need to be correct for the evaluator (*function* data) */
+  port_file_number(port) = s7i_remember_file_name(sc, port_filename(port)); /* these numbers need to be correct for the evaluator (*function* data) */
   port_file(port) = stdout;
   port_port(port)->pf = &stdout_functions;
   sc->standard_output = port;
@@ -18378,7 +18378,7 @@ static void init_standard_ports(s7_scheme *sc)
   port = alloc_standard_output_port(sc);
   port_filename_length(port) = 8;
   port_set_filename(sc, port, "*stderr*", 8);
-  port_file_number(port) = remember_file_name(sc, port_filename(port));
+  port_file_number(port) = s7i_remember_file_name(sc, port_filename(port));
   port_file(port) = stderr;
   port_port(port)->pf = &stderr_functions;
   sc->standard_error = port;
@@ -18392,7 +18392,7 @@ static void init_standard_ports(s7_scheme *sc)
   port_set_string_or_function(port, sc->nil);
   port_filename_length(port) = 7;
   port_set_filename(sc, port, "*stdin*", 7);
-  port_file_number(port) = remember_file_name(sc, port_filename(port));
+  port_file_number(port) = s7i_remember_file_name(sc, port_filename(port));
   port_line_number(port) = 0;
   port_file(port) = stdin;
   port_data_block(port) = NULL;
@@ -19201,7 +19201,6 @@ static s7_pointer load_file_1(s7_scheme *sc, const char *filename)
       if (hook_has_functions(sc->load_hook))
 	s7_apply_function(sc, sc->load_hook, set_plist_1(sc, s7_make_string(sc, (local_file_name) ? local_file_name : filename)));
       port = read_file(sc, fp, (local_file_name) ? local_file_name : filename, -1, "load"); /* -1 = read entire file into string, this is currently not tweakable */
-      port_file_number(port) = remember_file_name(sc, (local_file_name) ? local_file_name : filename);
       if (local_file_name) free(local_file_name);
       set_loader_port(port);
       if ((is_string_port(port)) &&
@@ -74134,6 +74133,7 @@ static s7_pointer eval(s7_scheme *sc, opcode_t first_op)
       goto TOP_NO_POP;
 
     BEGIN:
+      set_current_code(sc, car(sc->code));
       if (is_pair(cdr(sc->code)))
 	{
 	  set_current_code(sc, sc->code);
@@ -75760,6 +75760,9 @@ static s7_pointer eval(s7_scheme *sc, opcode_t first_op)
 	READ_LIST:
 	case OP_READ_LIST:       /* sc->args is sc->nil at first */
 	  sc->args = cons(sc, sc->value, sc->args);
+	  if ((current_input_port(sc) != sc->standard_input) &&
+	      ((!is_pair(sc->args)) || (!has_location(sc->args))))
+	    pair_set_current_input_location(sc, sc->args);
 
 	READ_NEXT:
 	case OP_READ_NEXT:       /* this is 75% of the token calls, so expanding it saves lots of time */
