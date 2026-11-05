@@ -1,7 +1,3 @@
-(import (liii check) (liii path) (liii os))
-
-(check-set-mode! 'report-failed)
-
 ;; path-parts
 ;; 获取路径的各个部分。
 ;;
@@ -18,6 +14,10 @@
 ;; ----
 ;; vector
 ;; 返回包含路径各部分的字符串向量。
+
+(import (liii check) (liii path) (liii os))
+
+(check-set-mode! 'report-failed)
 
 (check (path-parts (path)) => #())
 (when (not (os-windows?))

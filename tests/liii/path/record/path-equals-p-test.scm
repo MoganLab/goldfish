@@ -1,7 +1,3 @@
-(import (liii check) (liii path) (liii os))
-
-(check-set-mode! 'report-failed)
-
 ;; path-equals?
 ;; 判断两个路径是否相等（忽略大小写比较）。
 ;;
@@ -22,6 +18,10 @@
 ;; 注意
 ;; ----
 ;; 在 Windows 上路径比较不区分大小写。
+
+(import (liii check) (liii path) (liii os))
+
+(check-set-mode! 'report-failed)
 
 (check-true (path-equals? (copy (path-of-drive #\d)) (path-of-drive #\D)))
 (check-true (path-equals? (path "tmp/demo.txt") "tmp/demo.txt"))

@@ -1,7 +1,3 @@
-(import (liii check) (liii path) (liii os))
-
-(check-set-mode! 'report-failed)
-
 ;; path
 ;; 构造路径值。
 ;;
@@ -23,11 +19,13 @@
 ;; ----
 ;; 如果传入 path-value，会返回其副本。
 ;;
-;; 示例
-;; ----
 ;; (path->string (path)) => "."
 ;; (path->string (path "")) => "."
 ;; (path->string (path "tmp/demo.txt")) => "tmp/demo.txt"
+
+(import (liii check) (liii path) (liii os))
+
+(check-set-mode! 'report-failed)
 
 (check (path->string (path)) => ".")
 (check (path->string (path "")) => ".")

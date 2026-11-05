@@ -1,7 +1,3 @@
-(import (liii check) (liii path) (liii os))
-
-(check-set-mode! 'report-failed)
-
 ;; path=?
 ;; 判断两个路径值是否相等。
 ;;
@@ -18,6 +14,10 @@
 ;; ----
 ;; boolean
 ;; 当两个路径值相等时返回 #t，否则返回 #f。
+
+(import (liii check) (liii path) (liii os))
+
+(check-set-mode! 'report-failed)
 
 (check-true (path=? (path "tmp/demo.txt") (copy (path "tmp/demo.txt"))))
 

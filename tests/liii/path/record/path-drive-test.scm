@@ -1,7 +1,3 @@
-(import (liii check) (liii path) (liii os))
-
-(check-set-mode! 'report-failed)
-
 ;; path-drive
 ;; 获取路径的驱动器字母。
 ;;
@@ -20,6 +16,10 @@
 ;; 返回驱动器字母，如 "C:" (带冒号, 对齐 pathlib.PurePath.drive)；
 ;; UNC 路径返回 "\\server\share" 整体 anchor (无冒号)；
 ;; 非 Windows 路径、Windows 相对路径 / current-drive root 返回空字符串。
+
+(import (liii check) (liii path) (liii os))
+
+(check-set-mode! 'report-failed)
 
 (check (path-drive (path "/")) => "")
 (check (path-drive (path "/a")) => "")

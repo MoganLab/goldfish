@@ -1,7 +1,3 @@
-(import (liii check) (liii path) (liii os))
-
-(check-set-mode! 'report-failed)
-
 ;; path-root
 ;; 字符串访问器,对齐 pathlib.PurePath.root。
 ;;
@@ -21,6 +17,11 @@
 ;; 无根: ""
 
 ;; posix: root 字段为 #\/ 时返回 "/",否则 ""
+
+(import (liii check) (liii path) (liii os))
+
+(check-set-mode! 'report-failed)
+
 (when (not (os-windows?))
   (check (path-root (path "/a")) => "/")
   (check (path-root (path "/a/b")) => "/")
