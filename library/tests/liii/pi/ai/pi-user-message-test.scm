@@ -1,3 +1,22 @@
+;; pi-user-message
+;; 构造 user 角色的消息对象。
+;;
+;; 语法
+;; ----
+;; (pi-user-message content [timestamp])
+;;
+;; 参数
+;; ----
+;; content : string | vector | list
+;; 用户消息内容。
+;; timestamp : number，可选
+;; 消息时间戳；省略时使用当前时间。
+;;
+;; 返回值
+;; ----
+;; pi-user-message
+;; 包含 content 和 timestamp 的 user 角色消息。
+
 (import (liii check) (liii pi ai event) (liii pi ai message))
 
 (check-set-mode! 'report-failed)

@@ -1,3 +1,24 @@
+;; pi-bash-execution->user-text
+;; 将 Bash 命令、输出和退出码转换为注入用户消息的文本。
+;;
+;; 语法
+;; ----
+;; (pi-bash-execution->user-text command output exit-code)
+;;
+;; 参数
+;; ----
+;; command : string
+;; 已执行的 Bash 命令。
+;; output : string
+;; 命令产生的输出文本。
+;; exit-code : integer | #f
+;; 命令退出码；#f 表示退出码未知。
+;;
+;; 返回值
+;; ----
+;; string
+;; 包含命令、输出及可选退出码说明的文本。
+
 (import (scheme base)
         (liii check)
         (liii string)

@@ -1,3 +1,20 @@
+;; pi-abort-arm-chan!
+;; 绑定中止信号通道，并排空通道中的残留信号。
+;;
+;; 语法
+;; ----
+;; (pi-abort-arm-chan! chan)
+;;
+;; 参数
+;; ----
+;; chan : channel
+;; 用于接收 abort 信号的通道。
+;;
+;; 返回值
+;; ----
+;; 未指定
+;; 绑定新的通道并复位中止状态。
+
 (import (scheme base)
   (liii go)
   (liii check)

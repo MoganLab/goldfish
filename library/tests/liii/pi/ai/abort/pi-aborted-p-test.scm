@@ -1,3 +1,19 @@
+;; pi-aborted?
+;; 非阻塞检查当前会话是否已收到中止信号。
+;;
+;; 语法
+;; ----
+;; (pi-aborted?)
+;;
+;; 参数
+;; ----
+;; 无
+;;
+;; 返回值
+;; ----
+;; boolean
+;; 已收到中止信号时返回 #t，否则返回 #f。
+
 (import (scheme base)
   (liii go)
   (liii check)

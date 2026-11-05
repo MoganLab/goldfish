@@ -1,3 +1,26 @@
+;; pi-tool-result-message
+;; 验证 vector 形式的工具结果在各协议消息转换中保留文本内容。
+;;
+;; 语法
+;; ----
+;; (pi-tool-result-message tool-call-id tool-name content [is-error])
+;;
+;; 参数
+;; ----
+;; tool-call-id : string
+;; 工具调用标识。
+;; tool-name : string
+;; 工具名称。
+;; content : vector | list
+;; 工具结果内容块。
+;; is-error : boolean，可选
+;; 是否表示工具执行失败。
+;;
+;; 返回值
+;; ----
+;; pi-tool-result-message
+;; 可由 Anthropic、OpenAI 和 Gemini 协议转换器处理的消息。
+
 (import (liii check)
         (liii pi ai api anthropic-messages) (liii pi ai event) (liii pi ai api google-generative-ai) (liii pi ai api openai-completions) (liii pi ai message))
 

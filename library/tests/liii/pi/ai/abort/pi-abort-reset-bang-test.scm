@@ -1,3 +1,19 @@
+;; pi-abort-reset!
+;; 解除中止信号通道绑定并清除已缓存的中止状态。
+;;
+;; 语法
+;; ----
+;; (pi-abort-reset!)
+;;
+;; 参数
+;; ----
+;; 无
+;;
+;; 返回值
+;; ----
+;; 未指定
+;; 重置后 pi-aborted? 在未收到新信号时返回 #f。
+
 (import (scheme base)
   (liii go)
   (liii check)
