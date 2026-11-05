@@ -26,13 +26,22 @@
 (define test-file "tests/scheme/file/test-open-input.txt")
 ;; 创建测试文件
 (with-output-to-file test-file
-  (lambda () (display "line1\n") (display "line2"))
+  (lambda () (display "(line1 line2)\n") (display "line3"))
 ) ;with-output-to-file
+;; 测试 open-input-file
+;; 文件端口必须记录真实文件名，供 pair-filename、异常定位和 stack trace 使用。
+;; 不能让 file-number 保持为 0，否则 pair-filename 会错误返回 *stdout* 等无关文件。
+(let* ((port (open-input-file test-file))
+       (form (read port)))
+  (check (pair-filename form) => test-file)
+  (check (pair-line-number form) => 1)
+  (close-port port)
+) ;let*
 ;; 测试 open-input-file
 (let ((port (open-input-file test-file)))
   (check-true (input-port? port))
-  (check (read-line port) => "line1")
-  (check (read-line port) => "line2")
+  (check (read-line port) => "(line1 line2)")
+  (check (read-line port) => "line3")
   (close-port port)
 ) ;let
 ;; 测试中文文件名

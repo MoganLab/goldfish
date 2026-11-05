@@ -483,7 +483,7 @@ s7_pointer read_file(s7_scheme *sc, FILE *fp, const char *name, s7_int max_size,
   port_filename_length(port) = s7i_safe_strlen(name);
   s7i_port_set_filename(sc, port, name, port_filename_length(port));
   port_line_number(port) = 1;  /* first line is numbered 1 */
-  port_file_number(port) = 0;
+  port_file_number(port) = s7i_remember_file_name(sc, name);
   add_input_port(sc, port);
 
 #if MS_WINDOWS
