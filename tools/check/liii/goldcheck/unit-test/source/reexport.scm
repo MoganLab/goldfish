@@ -176,8 +176,34 @@
       ) ;let*
     ) ;define
 
+    ;; 直接在 C 层实现的导出名（s7 内置函数/宏，如 (scheme file) 的
+    ;; open-input-file）绑定在 rootlet 顶层环境中，不属于重导出，
+    ;; 其单元测试允许留在当前库目录。
+    (define (c-implemented-name? name)
+      (catch #t
+        (lambda () (defined? (string->symbol name) (rootlet)))
+        (lambda args #f)
+      ) ;catch
+    ) ;define
+
+    (define (filter-out-c-implemented entries)
+      (let loop
+        ((rem entries) (acc '()))
+        (if (null? rem)
+          (reverse acc)
+          (let ((entry (car rem)))
+            (if (c-implemented-name? (car entry))
+              (loop (cdr rem) acc)
+              (loop (cdr rem) (cons entry acc))
+            ) ;if
+          ) ;let
+        ) ;if
+      ) ;let
+    ) ;define
+
     (define (check-in-reexported-entries source-path stem rel-path)
-      (let* ((reexported (extract-library-reexported-entries source-path))
+      (let* ((reexported (filter-out-c-implemented (extract-library-reexported-entries source-path))
+             ) ;reexported
              (match
                (let rloop
                  ((rem reexported))
@@ -279,7 +305,9 @@
       (let ((source-path (find-lib-src-fn parent)))
         (if (not source-path)
           '()
-          (let ((reexported (extract-library-reexported-entries source-path)))
+          (let ((reexported (filter-out-c-implemented (extract-library-reexported-entries source-path))
+                ) ;reexported
+               ) ;
             (let loop
               ((rem reexported) (viols '()))
               (if (null? rem)
