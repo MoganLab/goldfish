@@ -1,4 +1,24 @@
-(import (liii check) (liii queue))
+;; list-queue-map
+;; 用一元过程逐个映射队列元素，返回新的队列。
+;;
+;; 语法
+;; ----
+;; (list-queue-map proc list-queue)
+;;
+;; 参数
+;; ----
+;; proc : procedure?
+;; 一元过程，作用于队列的每个元素。
+;;
+;; list-queue : list-queue?
+;; 源队列。
+;;
+;; 返回值
+;; ------
+;; list-queue?
+;; 映射结果构成的新队列，源队列不受影响。
+
+(import (liii check) (srfi srfi-117))
 
 
 (check-set-mode! 'report-failed)

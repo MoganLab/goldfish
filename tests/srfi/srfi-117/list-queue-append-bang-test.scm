@@ -1,4 +1,22 @@
-(import (liii check) (liii queue))
+;; list-queue-append!
+;; 就地拼接若干队列，结果写入第一个队列。
+;;
+;; 语法
+;; ----
+;; (list-queue-append! . queues)
+;;
+;; 参数
+;; ----
+;; queues : (list-queue? ...)
+;; 待拼接的队列，其元素按参数顺序串接。
+;;
+;; 返回值
+;; ------
+;; list-queue?
+;; 无参数时返回一个新空队列；只有一个参数时原样返回该队列；
+;; 否则返回被原地修改后的第一个队列。
+
+(import (liii check) (srfi srfi-117))
 
 
 (check-set-mode! 'report-failed)

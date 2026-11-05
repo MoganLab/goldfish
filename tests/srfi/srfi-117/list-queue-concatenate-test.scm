@@ -1,4 +1,21 @@
-(import (liii check) (liii queue))
+;; list-queue-concatenate
+;; 拼接一个队列列表，返回新的队列。
+;;
+;; 语法
+;; ----
+;; (list-queue-concatenate list-queues)
+;;
+;; 参数
+;; ----
+;; list-queues : (list list-queue?)
+;; 队列组成的列表，元素按列表顺序进入结果队列。
+;;
+;; 返回值
+;; ------
+;; list-queue?
+;; 拼接结果，是一个新队列，原队列不受影响。
+
+(import (liii check) (srfi srfi-117))
 
 
 (check-set-mode! 'report-failed)

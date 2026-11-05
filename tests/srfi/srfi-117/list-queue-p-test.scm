@@ -1,4 +1,21 @@
-(import (liii check) (liii queue))
+;; list-queue?
+;; 判断给定对象是否为列表双端队列。
+;;
+;; 语法
+;; ----
+;; (list-queue? obj)
+;;
+;; 参数
+;; ----
+;; obj : any
+;; 待判断的对象。
+;;
+;; 返回值
+;; ------
+;; boolean?
+;; obj 是由 make-list-queue / list-queue 等构造的队列时返回 #t，否则返回 #f。
+
+(import (liii check) (srfi srfi-117))
 
 
 (check-set-mode! 'report-failed)

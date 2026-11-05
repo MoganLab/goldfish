@@ -1,4 +1,21 @@
-(import (liii check) (liii queue))
+;; list-queue
+;; 由任意多个对象构造双端队列。
+;;
+;; 语法
+;; ----
+;; (list-queue . objs)
+;;
+;; 参数
+;; ----
+;; objs : any
+;; 作为队列元素的任意对象，顺序即为队列中的顺序。
+;;
+;; 返回值
+;; ------
+;; list-queue?
+;; 由 objs 按给定顺序构成的新队列。
+
+(import (liii check) (srfi srfi-117))
 
 
 (check-set-mode! 'report-failed)
