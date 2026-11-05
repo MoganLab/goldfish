@@ -54,6 +54,8 @@
     pi-thinking-block-thinking-signature pi-tool-call-block pi-tool-call-block?
     pi-tool-call-block-type pi-tool-call-block-id pi-tool-call-block-name
     pi-tool-call-block-arguments pi-tool-call-block-thought-signature
+    pi-image-block pi-image-block? pi-image-block-type pi-image-block-data
+    pi-image-block-mime-type
   ) ;export
   (begin
 

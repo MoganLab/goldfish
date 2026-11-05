@@ -111,4 +111,30 @@
 ;; 空消息列表
 (check (vector-length (gemini-build-contents '())) => 0)
 
+;; toolResult 包含图片块时，在 functionResponse 中正确封装 inlineData 结构
+(let* ((msgs (list (pi-user-message "read logo.png")
+                   (pi-assistant-message
+                     (list (pi-tool-call-block "c_img" "read" '(("path" . "logo.png")))))
+                   (pi-tool-result-message "c_img" "read"
+                     (list (pi-text-block "Read image file [image/png]")
+                           (pi-image-block "aGVsbG8=" "image/png"))
+                     #f)))
+       (contents (gemini-build-contents msgs)))
+  (check (vector-length contents) => 3)
+  (check (cdr (assoc "role" (vector-ref contents 0))) => "user")
+  (check (cdr (assoc "role" (vector-ref contents 1))) => "model")
+  (let* ((turn (vector-ref contents 2))
+         (parts (cdr (assoc "parts" turn))))
+    (check (cdr (assoc "role" turn)) => "user")
+    (check (vector-length parts) => 1)
+    (let* ((fr (cdr (assoc "functionResponse" (vector-ref parts 0))))
+           (fr-parts (cdr (assoc "parts" fr))))
+      (check (cdr (assoc "name" fr)) => "read")
+      (check (cdr (assoc "id" fr)) => "c_img")
+      (check-true (vector? fr-parts))
+      (check (vector-length fr-parts) => 1)
+      (let ((inline (cdr (assoc "inlineData" (vector-ref fr-parts 0)))))
+        (check (cdr (assoc "mimeType" inline)) => "image/png")
+        (check (cdr (assoc "data" inline)) => "aGVsbG8=")))))
+
 (check-report)

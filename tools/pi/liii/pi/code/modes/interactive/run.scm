@@ -108,21 +108,20 @@
     ) ;define*
 
     (define (pi-app-copy-selection! app)
-      (if (pi-app-selection-active? app)
+      (and (pi-app-selection-active? app)
         (let-values (((frame _) (pi-app-frame-lines app)))
           (let ((text (selection-extract-text frame (pi-app-selection app))))
-            (if (and (string? text) (> (string-length text) 0))
+            (and (string? text)
+              (> (string-length text) 0)
               (begin
                 (clipboard-copy! (pi-app-term app) text)
                 (pi-app-flash! app "Copied!")
                 #t
               ) ;begin
-              #f
-            ) ;if
+            ) ;and
           ) ;let
         ) ;let-values
-        #f
-      ) ;if
+      ) ;and
     ) ;define
 
     ;; force-exit：宽限期后仍未结算时的强制退出钩子。
@@ -135,18 +134,17 @@
 
     ;; 撤回排队消息到编辑器：排队内容在前、编辑器当前内容在后，\n\n 连接
     (define (%pi-app-restore-to-editor! app)
-      (define (join-nonempty parts)
-        (let loop
-          ((rest parts) (acc '()))
-          (cond ((null? rest) (string-join (reverse acc) "\n\n"))
-                ((string-null? (car rest)) (loop (cdr rest) acc))
-                (else (loop (cdr rest) (cons (car rest) acc)))
-          ) ;cond
-        ) ;let
-      ) ;define
       (let* ((ed (pi-app-editor app))
              (restored (pi-app-restore-queues! app))
-             (combined (join-nonempty (list (string-join restored "\n\n") (editor-text ed))))
+             (combined
+               (string-join
+                 (filter
+                   (lambda (s) (and (string? s) (not (string-null? s))))
+                   (list (string-join restored "\n\n") (editor-text ed))
+                 ) ;filter
+                 "\n\n"
+               ) ;string-join
+             ) ;combined
             ) ;
         (unless (string-null? combined)
           (editor-set-text! ed combined)
@@ -154,11 +152,20 @@
       ) ;let*
     ) ;define
 
+    (define (%pi-app-handle-paste! app clipboard-reader clipboard-image-reader)
+      (let ((content (or (clipboard-image-reader) (clipboard-reader))))
+        (when (and (string? content) (not (string-null? content)))
+          (pi-app-handle-input! app (string-append "\x1b;[200~" content "\x1b;[201~"))
+        ) ;when
+      ) ;let
+    ) ;define
+
     (define* (pi-app-run app
                (initial-msg "")
                (rest-msgs '())
                (force-exit pi-app-force-exit)
                (clipboard-reader native-clipboard-text)
+               (clipboard-image-reader native-clipboard-image-path)
              ) ;pi-app-run
       (let* ((term (pi-app-term app))
              (ed (pi-app-editor app))
@@ -207,15 +214,10 @@
                          ) ;else
                    ) ;cond
                   ) ;
-                  ;; Ctrl+V：主动读取外部系统剪贴板，复用编辑器的
-                  ;; bracketed paste 处理（多行归一化、大段折叠与撤销）。
+                  ;; Ctrl+V：优先尝试读取外部剪贴板图片（图片转临时文件路径并粘贴）；
+                  ;; 无图片时读取文本，复用编辑器的 bracketed paste 处理
                   ((and (not (pi-app-active-selector app)) (eq? k 'ctrl-v))
-                   (let ((text (clipboard-reader)))
-                     (if (and (string? text) (not (string-null? text)))
-                       (pi-app-handle-input! app (string-append "\x1b;[200~" text "\x1b;[201~"))
-                       #f
-                     ) ;if
-                   ) ;let
+                   (%pi-app-handle-paste! app clipboard-reader clipboard-image-reader)
                    (pi-app-render! app)
                    (loop)
                   ) ;
@@ -363,11 +365,10 @@
               (catch #t (lambda () (terminal-mouse-mode! term #f)) (lambda (tag . args) #f))
               (catch #t (lambda () (terminal-exit-alt-screen! term)) (lambda (tag . args) #f))
               (pi-app-print-transcript! app)
-              (terminal-write term "\x1b;[?2004l")
+              (terminal-write term "\x1b;[?2004l\r\n")
               (terminal-set-paste-mode! #f)
               (terminal-show-cursor! term)
               (terminal-exit-raw-mode! term)
-              (terminal-write term "\r\n")
               (terminal-flush term)
               ;; 3. 关闭任务通道，后台 worker 收到 eof 后退出，
               ;;    避免进程退出时后台线程仍在阻塞 recv 导致崩溃

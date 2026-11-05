@@ -1,4 +1,11 @@
-(import (liii check) (liii string) (liii path) (liii pi code core tools read) (liii pi code core tools))
+(import (liii check)
+  (liii string)
+  (liii path)
+  (liii base64)
+  (liii pi ai message)
+  (liii pi code core tools read)
+  (liii pi code core tools)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -192,5 +199,133 @@
 (check-catch 'error (pi-execute-read '(("path" . "tests"))))
 (check-catch 'error
   (pi-execute-read (list (cons "path" legacy-test-file)) :timed-out? #t))
+
+;; 图片读取测试：PNG, JPEG, GIF, WebP, BMP 与 Base64 编码保真
+(let* ((png-path (%tmp-file "pi-test-img.png"))
+       (png-bytes #u8(#x89 #x50 #x4e #x47 #x0d #x0a #x1a #x0a 0 0 0 13 73 72 68 82))
+      ) ;
+  (path-write-bytes (path png-path) png-bytes)
+  (let ((res (pi-execute-read (list (cons "path" png-path)))))
+    (check-true (pi-tool-result? res))
+    (check-false (pi-tool-result-is-error res))
+    (let* ((content (vector->list (pi-tool-result-content res)))
+           (text-blk (car content))
+           (img-blk (cadr content))
+          ) ;
+      (check (length content) => 2)
+      (check-true (pi-text-block? text-blk))
+      (check (pi-text-block-text text-blk) => "Read image file [image/png]")
+      (check-true (pi-image-block? img-blk))
+      (check (pi-image-block-mime-type img-blk) => "image/png")
+      (check (bytevector-base64-decode (string->utf8 (pi-image-block-data img-blk)))
+        =>
+        png-bytes
+      ) ;check
+    ) ;let*
+  ) ;let
+  (delete-file png-path)
+) ;let*
+
+;; JPEG 文件读取
+(let* ((jpg-path (%tmp-file "pi-test-img.jpg"))
+       (jpg-bytes #u8(#xff #xd8 #xff #xe0 0 16 74 70 73 70))
+      ) ;
+  (path-write-bytes (path jpg-path) jpg-bytes)
+  (let* ((res (pi-execute-read (list (cons "path" jpg-path))))
+         (content (vector->list (pi-tool-result-content res)))
+         (text-blk (car content))
+         (img-blk (cadr content))
+        ) ;
+    (check (pi-text-block-text text-blk) => "Read image file [image/jpeg]")
+    (check (pi-image-block-mime-type img-blk) => "image/jpeg")
+    (check (bytevector-base64-decode (string->utf8 (pi-image-block-data img-blk)))
+      =>
+      jpg-bytes
+    ) ;check
+  ) ;let*
+  (delete-file jpg-path)
+) ;let*
+
+;; GIF 文件读取
+(let* ((gif-path (%tmp-file "pi-test-img.gif"))
+       (gif-bytes #u8(#x47 #x49 #x46 #x38 #x39 #x61 1 0 1 0))
+      ) ;
+  (path-write-bytes (path gif-path) gif-bytes)
+  (let* ((res (pi-execute-read (list (cons "path" gif-path))))
+         (content (vector->list (pi-tool-result-content res)))
+         (text-blk (car content))
+         (img-blk (cadr content))
+        ) ;
+    (check (pi-text-block-text text-blk) => "Read image file [image/gif]")
+    (check (pi-image-block-mime-type img-blk) => "image/gif")
+  ) ;let*
+  (delete-file gif-path)
+) ;let*
+
+;; WebP 文件读取
+(let* ((webp-path (%tmp-file "pi-test-img.webp"))
+       (webp-bytes #u8(#x52 #x49 #x46 #x46 0 0 0 0 #x57 #x45 #x42 #x50 0 0 0 0))
+      ) ;
+  (path-write-bytes (path webp-path) webp-bytes)
+  (let* ((res (pi-execute-read (list (cons "path" webp-path))))
+         (content (vector->list (pi-tool-result-content res)))
+         (text-blk (car content))
+         (img-blk (cadr content))
+        ) ;
+    (check (pi-text-block-text text-blk) => "Read image file [image/webp]")
+    (check (pi-image-block-mime-type img-blk) => "image/webp")
+  ) ;let*
+  (delete-file webp-path)
+) ;let*
+
+;; BMP 文件读取
+(let* ((bmp-path (%tmp-file "pi-test-img.bmp"))
+       (bmp-bytes #u8(#x42 #x4d 0 0 0 0 0 0 0 0))
+      ) ;
+  (path-write-bytes (path bmp-path) bmp-bytes)
+  (let* ((res (pi-execute-read (list (cons "path" bmp-path))))
+         (content (vector->list (pi-tool-result-content res)))
+         (text-blk (car content))
+         (img-blk (cadr content))
+        ) ;
+    (check (pi-text-block-text text-blk) => "Read image file [image/bmp]")
+    (check (pi-image-block-mime-type img-blk) => "image/bmp")
+  ) ;let*
+  (delete-file bmp-path)
+) ;let*
+
+;; 魔数未命中但扩展名为 .png 的回退检测
+(let* ((ext-path (%tmp-file "pi-fallback.png"))
+       (ext-bytes #u8(1 2 3 4 5))
+      ) ;
+  (path-write-bytes (path ext-path) ext-bytes)
+  (let* ((res (pi-execute-read (list (cons "path" ext-path))))
+         (content (vector->list (pi-tool-result-content res)))
+         (text-blk (car content))
+         (img-blk (cadr content))
+        ) ;
+    (check (pi-text-block-text text-blk) => "Read image file [image/png]")
+    (check (pi-image-block-mime-type img-blk) => "image/png")
+  ) ;let*
+  (delete-file ext-path)
+) ;let*
+
+;; 不支持视觉的模型：文本块追加降级提示
+(let* ((png-path (%tmp-file "pi-test-non-vision.png"))
+       (png-bytes #u8(#x89 #x50 #x4e #x47 #x0d #x0a #x1a #x0a 0 0 0 0))
+       (non-vision-model '((name . "text-model") (input . #("text"))))
+      ) ;
+  (path-write-bytes (path png-path) png-bytes)
+  (let* ((res (pi-execute-read (list (cons "path" png-path)) :model non-vision-model))
+         (content (vector->list (pi-tool-result-content res)))
+         (text-blk (car content))
+        ) ;
+    (check-true (string-contains? (pi-text-block-text text-blk)
+                  "[Current model does not support images. The image will be omitted from this request.]"
+                ) ;string-contains?
+    ) ;check-true
+  ) ;let*
+  (delete-file png-path)
+) ;let*
 
 (check-report)

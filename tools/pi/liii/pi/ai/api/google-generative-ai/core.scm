@@ -124,6 +124,22 @@
       ) ;let
     ) ;define
 
+    (define (%is-image-block? b)
+      (or (pi-image-block? b) (equal? (%val 'type b "") "image"))
+    ) ;define
+
+    (define (%image-block->gemini-part b)
+      (let ((mime (if (pi-image-block? b)
+                    (pi-image-block-mime-type b)
+                    (%val 'mimeType b (%val 'media_type b "image/png"))
+                  ) ;if
+            ) ;mime
+            (data (if (pi-image-block? b) (pi-image-block-data b) (%val 'data b "")))
+           ) ;
+        (list (cons "inlineData" (list (cons "mimeType" mime) (cons "data" data))))
+      ) ;let
+    ) ;define
+
     (define (%extract-user-text-content content)
       (cond ((string? content) content)
             ((or (vector? content) (pair? content))
@@ -140,36 +156,63 @@
       ) ;cond
     ) ;define
 
-    (define (%build-single-content msg)
-      (let ((role (%val 'role msg "")) (content (%val 'content msg '())))
-        (cond
-         ((equal? role "user")
+    (define (%user-block->gemini-part b)
+      (if (%is-image-block? b)
+        (%image-block->gemini-part b)
+        (let ((t (if (pi-text-block? b) (pi-text-block-text b) (%val 'text b ""))))
+          (list (cons "text" t))
+        ) ;let
+      ) ;if
+    ) ;define
+
+    (define (%build-user-turn content)
+      (let* ((raw-blks
+               (cond ((vector? content) (vector->list content))
+                     ((pair? content) content)
+                     ((string? content) (list (list (cons "type" "text") (cons "text" content))))
+                     (else '())
+               ) ;cond
+             ) ;raw-blks
+             (has-img? (any %is-image-block? raw-blks))
+            ) ;
+        (if has-img?
+          (let ((parts (map %user-block->gemini-part raw-blks)))
+            (list (cons "role" "user") (cons "parts" (list->vector parts)))
+          ) ;let
           (let ((text-content (%extract-user-text-content content)))
             (list (cons "role" "user")
               (cons "parts" (vector (list (cons "text" text-content))))
             ) ;list
           ) ;let
-         ) ;
-         ((equal? role "assistant")
-          (let* ((blks (cond ((vector? content) (vector->list content))
-                             ((list? content) content)
-                             (else '())
-                       ) ;cond
-                 ) ;blks
-                 (parts
-                   (filter
-                     (lambda (p) (and p (not (null? p))))
-                     (map %assistant-block->part blks)
-                   ) ;filter
-                 ) ;parts
-                ) ;
-            (if (null? parts)
-              #f
-              (list (cons "role" "model") (cons "parts" (list->vector parts)))
-            ) ;if
-          ) ;let*
-         ) ;
-         (else #f)
+        ) ;if
+      ) ;let*
+    ) ;define
+
+    (define (%build-assistant-turn content)
+      (let* ((blks (cond ((vector? content) (vector->list content))
+                         ((list? content) content)
+                         (else '())
+                   ) ;cond
+             ) ;blks
+             (parts
+               (filter
+                 (lambda (p) (and p (not (null? p))))
+                 (map %assistant-block->part blks)
+               ) ;filter
+             ) ;parts
+            ) ;
+        (if (null? parts)
+          #f
+          (list (cons "role" "model") (cons "parts" (list->vector parts)))
+        ) ;if
+      ) ;let*
+    ) ;define
+
+    (define (%build-single-content msg)
+      (let ((role (%val 'role msg "")) (content (%val 'content msg '())))
+        (cond ((equal? role "user") (%build-user-turn content))
+              ((equal? role "assistant") (%build-assistant-turn content))
+              (else #f)
         ) ;cond
       ) ;let
     ) ;define
@@ -189,16 +232,55 @@
     ) ;define
 
     (define (%tool-result->function-response msg)
-      (let* ((tool-name (%val 'toolName msg ""))
-             (tool-id (%val 'toolCallId msg ""))
-             (is-err? (%val 'isError msg #f))
-             (text (%tool-result-text (%val 'content msg '())))
-             (resp-obj (if is-err? (list (cons "error" text)) (list (cons "output" text))))
+      (let* ((tool-name (if (pi-tool-result-message? msg)
+                          (pi-tool-result-message-tool-name msg)
+                          (%val 'toolName msg "")
+                        ) ;if
+             ) ;tool-name
+             (tool-id (if (pi-tool-result-message? msg)
+                        (pi-tool-result-message-tool-call-id msg)
+                        (%val 'toolCallId msg "")
+                      ) ;if
+             ) ;tool-id
+             (is-err? (if (pi-tool-result-message? msg)
+                        (pi-tool-result-message-is-error msg)
+                        (%val 'isError msg #f)
+                      ) ;if
+             ) ;is-err?
+             (raw-c (if (pi-tool-result-message? msg)
+                      (pi-tool-result-message-content msg)
+                      (%val 'content msg '())
+                    ) ;if
+             ) ;raw-c
+             (c-list
+               (cond ((vector? raw-c) (vector->list raw-c))
+                     ((pair? raw-c) raw-c)
+                     ((string? raw-c) (list (pi-text-block raw-c)))
+                     (else '())
+               ) ;cond
+             ) ;c-list
+             (text (%tool-result-text raw-c))
+             (img-blks (filter %is-image-block? c-list))
+             (image-parts (map %image-block->gemini-part img-blks))
+             (resp-text
+               (cond
+                ((not (string-null? (string-trim-both text))) text)
+                ((pair? img-blks) "(see attached image)")
+                (else "")
+               ) ;cond
+             ) ;resp-text
+             (resp-obj (if is-err? (list (cons "error" resp-text)) (list (cons "output" resp-text)))
+             ) ;resp-obj
+             (fc (list (cons "name" tool-name) (cons "response" resp-obj) (cons "id" tool-id))
+             ) ;fc
+             (fc
+               (if (pair? image-parts)
+                 (append fc (list (cons "parts" (list->vector image-parts))))
+                 fc
+               ) ;if
+             ) ;fc
             ) ;
-        (list (cons "functionResponse"
-                (list (cons "name" tool-name) (cons "response" resp-obj) (cons "id" tool-id))
-              ) ;cons
-        ) ;list
+        (list (cons "functionResponse" fc))
       ) ;let*
     ) ;define
 

@@ -96,6 +96,26 @@
       (if (string? blk) blk (%val 'text blk ""))
     ) ;define
 
+    (define (%is-image-block? b)
+      (or (pi-image-block? b) (equal? (%val 'type b "") "image"))
+    ) ;define
+
+    (define (%image-block->anthropic-item b)
+      (let ((mime (if (pi-image-block? b)
+                    (pi-image-block-mime-type b)
+                    (%val 'mimeType b (%val 'media_type b "image/png"))
+                  ) ;if
+            ) ;mime
+            (data (if (pi-image-block? b) (pi-image-block-data b) (%val 'data b "")))
+           ) ;
+        (list (cons "type" "image")
+          (cons "source"
+            (list (cons "type" "base64") (cons "media_type" mime) (cons "data" data))
+          ) ;cons
+        ) ;list
+      ) ;let
+    ) ;define
+
     (define (%tool-result-text content)
       (cond ((string? content) content)
             ((and (vector? content) (> (vector-length content) 0))
@@ -107,15 +127,71 @@
     ) ;define
 
     (define (%tool-result->anthropic-blk msg)
-      (let ((text (%tool-result-text (%val 'content msg "")))
-            (is-err? (%val 'isError msg #f))
-           ) ;
-        (list (cons "type" "tool_result")
-          (cons "tool_use_id" (%val 'toolCallId msg ""))
-          (cons "content" text)
-          (cons "is_error" (if is-err? #t #f))
-        ) ;list
-      ) ;let
+      (let* ((raw-c (if (pi-tool-result-message? msg)
+                      (pi-tool-result-message-content msg)
+                      (%val 'content msg '())
+                    ) ;if
+             ) ;raw-c
+             (c-list
+               (cond ((vector? raw-c) (vector->list raw-c))
+                     ((pair? raw-c) raw-c)
+                     ((string? raw-c) (list (pi-text-block raw-c)))
+                     (else '())
+               ) ;cond
+             ) ;c-list
+             (call-id (if (pi-tool-result-message? msg)
+                        (pi-tool-result-message-tool-call-id msg)
+                        (%val 'toolCallId msg "")
+                      ) ;if
+             ) ;call-id
+             (is-err? (if (pi-tool-result-message? msg)
+                        (pi-tool-result-message-is-error msg)
+                        (%val 'isError msg #f)
+                      ) ;if
+             ) ;is-err?
+             (img-blks (filter %is-image-block? c-list))
+            ) ;
+        (if (pair? img-blks)
+          (let* ((converted-blks
+                   (map
+                     (lambda (b)
+                       (if (%is-image-block? b)
+                         (%image-block->anthropic-item b)
+                         (list (cons "type" "text")
+                           (cons "text" (if (pi-text-block? b) (pi-text-block-text b) (%val 'text b "")))
+                         ) ;list
+                       ) ;if
+                     ) ;lambda
+                     c-list
+                   ) ;map
+                 ) ;converted-blks
+                 (has-text?
+                   (any (lambda (b) (equal? (%val 'type b "") "text")) converted-blks)
+                 ) ;has-text?
+                 (final-blks
+                   (if has-text?
+                     converted-blks
+                     (cons (list (cons "type" "text") (cons "text" "(see attached image)"))
+                       converted-blks
+                     ) ;cons
+                   ) ;if
+                 ) ;final-blks
+                ) ;
+            (list (cons "type" "tool_result")
+              (cons "tool_use_id" call-id)
+              (cons "content" (list->vector final-blks))
+              (cons "is_error" (if is-err? #t #f))
+            ) ;list
+          ) ;let*
+          (let ((text (%tool-result-text raw-c)))
+            (list (cons "type" "tool_result")
+              (cons "tool_use_id" call-id)
+              (cons "content" text)
+              (cons "is_error" (if is-err? #t #f))
+            ) ;list
+          ) ;let
+        ) ;if
+      ) ;let*
     ) ;define
 
     (define (%take-tool-results rest acc)

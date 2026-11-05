@@ -26,7 +26,8 @@
     pi-thinking-block-thinking-signature pi-tool-call-block pi-tool-call-block?
     pi-tool-call-block-type pi-tool-call-block-id pi-tool-call-block-name
     pi-tool-call-block-arguments pi-tool-call-block-thought-signature
-    pi-bash-execution->user-text
+    pi-image-block pi-image-block? pi-image-block-type pi-image-block-data
+    pi-image-block-mime-type pi-bash-execution->user-text
   ) ;export
   (begin
 
@@ -66,15 +67,23 @@
     (define (pi-tool-call-block-type blk)
       "toolCall"
     ) ;define
+    (define (pi-image-block-type blk)
+      "image"
+    ) ;define
 
     (define (pi-block? x)
-      (or (pi-text-block? x) (pi-thinking-block? x) (pi-tool-call-block? x))
+      (or (pi-text-block? x)
+        (pi-thinking-block? x)
+        (pi-tool-call-block? x)
+        (pi-image-block? x)
+      ) ;or
     ) ;define
 
     (define (pi-block-type blk)
       (cond ((pi-text-block? blk) (pi-text-block-type blk))
             ((pi-thinking-block? blk) (pi-thinking-block-type blk))
             ((pi-tool-call-block? blk) (pi-tool-call-block-type blk))
+            ((pi-image-block? blk) (pi-image-block-type blk))
             ((pair? blk)
              (let ((p (or (assoc "type" blk) (assoc 'type blk))))
                (if p (cdr p) #f)
@@ -110,6 +119,12 @@
                    ) ;
                (if sig (append base (list (cons "thoughtSignature" sig))) base)
              ) ;let*
+            ) ;
+            ((pi-image-block? blk)
+             (list (cons "type" "image")
+               (cons "data" (pi-image-block-data blk))
+               (cons "mimeType" (pi-image-block-mime-type blk))
+             ) ;list
             ) ;
             (else '())
       ) ;cond
@@ -227,6 +242,10 @@
     (define* (pi-tool-call-block id name arguments (thought-signature #f))
       (%make-pi-tool-call-block id name arguments thought-signature)
     ) ;define*
+
+    (define (pi-image-block data mime-type)
+      (%make-pi-image-block data mime-type)
+    ) ;define
 
     ;; 将 bashExecution 消息转为注入 LLM 上下文的 user 消息文本
     ;; （对齐 pi 的 bashExecutionToText）：

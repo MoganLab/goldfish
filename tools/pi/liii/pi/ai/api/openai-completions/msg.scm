@@ -82,6 +82,44 @@
       (or (pi-text-block? blk) (equal? (%val 'type blk "") "text"))
     ) ;define
 
+    (define (%is-image-block? b)
+      (or (pi-image-block? b) (equal? (%val 'type b "") "image"))
+    ) ;define
+
+    (define (%image-block->openai-item b)
+      (let ((mime (if (pi-image-block? b)
+                    (pi-image-block-mime-type b)
+                    (%val 'mimeType b (%val 'media_type b "image/png"))
+                  ) ;if
+            ) ;mime
+            (data (if (pi-image-block? b) (pi-image-block-data b) (%val 'data b "")))
+           ) ;
+        (list (cons "type" "image_url")
+          (cons "image_url"
+            (list (cons "url" (string-append "data:" mime ";base64," data)))
+          ) ;cons
+        ) ;list
+      ) ;let
+    ) ;define
+
+    (define (%model-supports-images? model)
+      (if (not (pair? model))
+        #t
+        (let ((input
+                (or (and (assoc "input" model) (cdr (assoc "input" model)))
+                  (and (assoc 'input model) (cdr (assoc 'input model)))
+                  #f
+                ) ;or
+              ) ;input
+             ) ;
+          (cond ((vector? input) (member "image" (vector->list input)))
+                ((pair? input) (member "image" input))
+                (else #t)
+          ) ;cond
+        ) ;let
+      ) ;if
+    ) ;define
+
     (define (%normalize-json-keys-to-strings data)
       (cond
        ((pair? data)
@@ -179,41 +217,120 @@
           ) ;list
          ) ;
          ((equal? role "assistant") (%convert-assistant-msg msg))
-         ((equal? role "toolResult")
-          (let ((call-id (if (pi-tool-result-message? msg)
-                           (pi-tool-result-message-tool-call-id msg)
-                           (%val 'toolCallId msg "")
-                         ) ;if
-                ) ;call-id
-                (text (if (pi-tool-result-message? msg)
-                        (%msg-text-content (pi-tool-result-message-content msg))
-                        (%msg-text-content (%val 'content msg ""))
-                      ) ;if
-                ) ;text
-               ) ;
-            (list (cons "role" "tool") (cons "tool_call_id" call-id) (cons "content" text))
-          ) ;let
-         ) ;
          (else #f)
         ) ;cond
       ) ;let
     ) ;define
 
-    (define (openai-build-messages messages system-instruction)
-      (let ((converted (filter (lambda (msg) msg) (map %convert-message messages))))
-        (list->vector
-          (if
-            (and (string? system-instruction)
-              (not (string-null? (string-trim-both system-instruction)))
-            ) ;and
-            (cons (list (cons "role" "system") (cons "content" system-instruction))
-              converted
-            ) ;cons
-            converted
-          ) ;if
-        ) ;list->vector
+    (define (%convert-one-tool-result tmsg opt-model)
+      (let* ((raw-c (if (pi-tool-result-message? tmsg)
+                      (pi-tool-result-message-content tmsg)
+                      (%val 'content tmsg '())
+                    ) ;if
+             ) ;raw-c
+             (c-list
+               (cond ((vector? raw-c) (vector->list raw-c))
+                     ((pair? raw-c) raw-c)
+                     ((string? raw-c) (list (pi-text-block raw-c)))
+                     (else '())
+               ) ;cond
+             ) ;c-list
+             (call-id (if (pi-tool-result-message? tmsg)
+                        (pi-tool-result-message-tool-call-id tmsg)
+                        (%val 'toolCallId tmsg "")
+                      ) ;if
+             ) ;call-id
+             (text-blks
+               (filter
+                 (lambda (b) (or (pi-text-block? b) (equal? (%val 'type b "") "text")))
+                 c-list
+               ) ;filter
+             ) ;text-blks
+             (img-blks (filter %is-image-block? c-list))
+             (text-res (%msg-text-content text-blks))
+             (eff-text
+               (cond
+                ((not (string-null? (string-trim-both text-res))) text-res)
+                ((pair? img-blks) "(see attached image)")
+                (else "")
+               ) ;cond
+             ) ;eff-text
+             (tool-obj (list (cons "role" "tool")
+                         (cons "tool_call_id" call-id)
+                         (cons "content" eff-text)
+                       ) ;list
+             ) ;tool-obj
+             (img-items (if (or (not opt-model) (%model-supports-images? opt-model))
+                          (map %image-block->openai-item img-blks)
+                          '()
+                        ) ;if
+             ) ;img-items
+            ) ;
+        (values tool-obj img-items)
+      ) ;let*
+    ) ;define
+
+    (define (%collect-consecutive-tool-results cur-rest opt-model)
+      (let tool-loop
+        ((rest cur-rest) (tool-msgs '()) (images '()))
+        (if
+          (and (pair? rest) (equal? (%val 'role (car rest) "") "toolResult"))
+          (let-values (((tool-obj img-items) (%convert-one-tool-result (car rest) opt-model)))
+            (tool-loop (cdr rest) (cons tool-obj tool-msgs) (append images img-items))
+          ) ;let-values
+          (values rest (reverse tool-msgs) images)
+        ) ;if
       ) ;let
     ) ;define
+
+    (define (%append-tool-turn acc out-tool-msgs images)
+      (let ((base (append (reverse out-tool-msgs) acc)))
+        (if (pair? images)
+          (cons (list (cons "role" "user") (cons "content" (list->vector images))) base)
+          base
+        ) ;if
+      ) ;let
+    ) ;define
+
+    (define (%prepend-system-instruction msgs sys-inst)
+      (if
+        (and (string? sys-inst) (not (string-null? (string-trim-both sys-inst))))
+        (cons (list (cons "role" "system") (cons "content" sys-inst)) msgs)
+        msgs
+      ) ;if
+    ) ;define
+
+    (define* (openai-build-messages messages system-instruction (opt-model #f))
+      (let loop
+        ((rest messages) (acc '()))
+        (if (null? rest)
+          (list->vector (%prepend-system-instruction (reverse acc) system-instruction))
+          (let* ((msg (car rest)) (role (%val 'role msg "")))
+            (cond
+             ((equal? role "toolResult")
+              (let-values (((rem-rest out-tool-msgs images)
+                            (%collect-consecutive-tool-results rest opt-model)
+                           ) ;
+                          ) ;
+                (loop rem-rest (%append-tool-turn acc out-tool-msgs images))
+              ) ;let-values
+             ) ;
+             ((equal? role "user")
+              (let ((converted (%convert-message msg)))
+                (loop (cdr rest) (if converted (cons converted acc) acc))
+              ) ;let
+             ) ;
+             ((equal? role "assistant")
+              (let ((converted (%convert-message msg)))
+                (loop (cdr rest) (if converted (cons converted acc) acc))
+              ) ;let
+             ) ;
+             (else (loop (cdr rest) acc))
+            ) ;cond
+          ) ;let*
+        ) ;if
+      ) ;let
+    ) ;define*
 
     ;; OpenAI prompt_cache_key 最大长度（对齐上游 OPENAI_PROMPT_CACHE_KEY_MAX_LENGTH）
     (define %prompt-cache-key-max-length 64)
@@ -244,31 +361,27 @@
                max-tokens
                (prompt-cache-key #f)
              ) ;openai-build-request-body
-      (let* ((body (list (cons "model" model-id) (cons "messages" messages)))
-             (body
-               (if stream? (append body (list (cons "stream" #t))) body)
-             ) ;body
-             (body
-               (if (and (integer? max-tokens) (> max-tokens 0))
-                 (append body (list (cons "max_tokens" max-tokens)))
-                 body
-               ) ;if
-             ) ;body
-             (body
-               (if (and (pair? tool-decls) (> (length tool-decls) 0))
-                 (append body (list (cons "tools" (list->vector tool-decls))))
-                 body
-               ) ;if
-             ) ;body
-             (body
-               (if (and (string? prompt-cache-key) (> (string-length prompt-cache-key) 0))
-                 (append body (list (cons "prompt_cache_key" prompt-cache-key)))
-                 body
-               ) ;if
-             ) ;body
-            ) ;
-        body
-      ) ;let*
+      (let loop
+        ((pairs
+           (list (and stream? (cons "stream" #t))
+             (and (integer? max-tokens) (> max-tokens 0) (cons "max_tokens" max-tokens))
+             (and (pair? tool-decls)
+               (> (length tool-decls) 0)
+               (cons "tools" (list->vector tool-decls))
+             ) ;and
+             (and (string? prompt-cache-key)
+               (> (string-length prompt-cache-key) 0)
+               (cons "prompt_cache_key" prompt-cache-key)
+             ) ;and
+           ) ;list
+         ) ;pairs
+         (acc (list (cons "model" model-id) (cons "messages" messages)))
+        ) ;
+        (cond ((null? pairs) acc)
+              ((car pairs) (loop (cdr pairs) (append acc (list (car pairs)))))
+              (else (loop (cdr pairs) acc))
+        ) ;cond
+      ) ;let
     ) ;define*
 
   ) ;begin
