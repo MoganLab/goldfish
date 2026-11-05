@@ -1,7 +1,3 @@
-(import (liii check) (liii tree))
-
-(check-set-mode! 'report-failed)
-
 ;; tree-cyclic?
 ;; 检查树结构是否有循环。
 ;;
@@ -20,6 +16,11 @@
 ;; 如果树有循环返回 #t，否则返回 #f。
 
 ;; 非循环树
+
+(import (liii check) (liii tree))
+
+(check-set-mode! 'report-failed)
+
 (check (tree-cyclic? '(a b c)) => #f)
 (check (tree-cyclic? '(a (b c))) => #f)
 (check (tree-cyclic? '()) => #f)

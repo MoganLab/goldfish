@@ -1,7 +1,3 @@
-(import (liii check) (liii tree))
-
-(check-set-mode! 'report-failed)
-
 ;; tree-depth
 ;; 计算树结构（嵌套列表）的最大嵌套深度。
 ;;
@@ -29,11 +25,15 @@
 ;; - 若树结构中包含环（循环引用），将抛出 value-error 错误。
 ;;
 ;; 错误
-;; ----
 ;; value-error
 ;; 当传入存在循环引用的树结构时抛出。
 
 ;; 1. 叶子节点：原子与空列表（深度 0）
+
+(import (liii check) (liii tree))
+
+(check-set-mode! 'report-failed)
+
 (check (tree-depth 1) => 0)
 (check (tree-depth 'a) => 0)
 (check (tree-depth "string") => 0)
@@ -55,15 +55,39 @@
 (check (tree-depth '(1 () (2 ()))) => 2)
 
 ;; 4. 多层与非对称嵌套（深度 >= 3）
-(check (tree-depth '(((())))) => 3)
-(check (tree-depth '(((1)))) => 3)
-(check (tree-depth '(1 (2 (3)))) => 3)
-(check (tree-depth '((1 2) (3 (4 (5))))) => 4)
-(check (tree-depth '((a) ((b) (((c)))))) => 5)
+(check
+  (tree-depth '(((()))))
+  =>
+  3
+) ;check
+(check
+  (tree-depth '(((1))))
+  =>
+  3
+) ;check
+(check
+  (tree-depth '(1 (2 (3))))
+  =>
+  3
+) ;check
+(check
+  (tree-depth
+    '((1 2) (3 (4 (5))))
+  ) ;tree-depth
+  =>
+  4
+) ;check
+(check
+  (tree-depth
+    '((a) ((b) (((c)))))
+  ) ;tree-depth
+  =>
+  5
+) ;check
 
 ;; 5. 点对结构（pair）
 (check (tree-depth '(1 . 2)) => 1)
-(check (tree-depth '(1 . (2 . 3))) => 1)
+(check (tree-depth '(1 2 . 3)) => 1)
 (check (tree-depth '((1 . 2) . 3)) => 2)
 
 ;; 6. 带 quote 的形式（quote 作为字面量语法糖不额外增加嵌套深度）
@@ -72,18 +96,29 @@
 (check (tree-depth '(a 'b)) => 1)
 (check (tree-depth '(a 'b 'c)) => 1)
 (check (tree-depth '(assoc 'default options)) => 1)
-(check (tree-depth '((found (assoc 'default options)))) => 3)
+(check
+  (tree-depth '((found (assoc 'default options))))
+  =>
+  3
+) ;check
 (check (tree-depth '(quote (1 2 3))) => 1)
-(check (tree-depth '(quote ((1 2) (3 (4 (5)))))) => 4)
+(check
+  (tree-depth
+    '(quote ((1 2) (3 (4 (5)))))
+  ) ;tree-depth
+  =>
+  4
+) ;check
 
 ;; 7. 环状结构异常检测
 (let ((cyclic-list (list 1 2)))
   (set-cdr! (cdr cyclic-list) cyclic-list)
-  (check-catch 'value-error (tree-depth cyclic-list)))
+  (check-catch 'value-error (tree-depth cyclic-list))
+) ;let
 
-(let* ((inner (list 1))
-       (outer (list inner 2)))
+(let* ((inner (list 1)) (outer (list inner 2)))
   (set-cdr! inner outer)
-  (check-catch 'value-error (tree-depth outer)))
+  (check-catch 'value-error (tree-depth outer))
+) ;let*
 
 (check-report)

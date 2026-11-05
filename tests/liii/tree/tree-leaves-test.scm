@@ -1,7 +1,3 @@
-(import (liii check) (liii tree))
-
-(check-set-mode! 'report-failed)
-
 ;; tree-leaves
 ;; 返回树结构中的叶子节点数量。
 ;;
@@ -20,16 +16,33 @@
 ;; 树的叶子节点数。
 
 ;; 简单列表
+
+(import (liii check) (liii tree))
+
+(check-set-mode! 'report-failed)
+
 (check (tree-leaves '(a b c)) => 3)
 (check (tree-leaves '()) => 0)
 
 ;; 嵌套列表
 (check (tree-leaves '(a (b c))) => 3)
 (check (tree-leaves '((a b) (c d))) => 4)
-(check (tree-leaves '(a (b (c d)))) => 4)
+(check
+  (tree-leaves '(a (b (c d))))
+  =>
+  4
+) ;check
 
 ;; 更深嵌套
-(check (tree-leaves '(((a)))) => 1)
-(check (tree-leaves '((a b) ((c d) e))) => 5)
+(check
+  (tree-leaves '(((a))))
+  =>
+  1
+) ;check
+(check
+  (tree-leaves '((a b) ((c d) e)))
+  =>
+  5
+) ;check
 
 (check-report)
