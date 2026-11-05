@@ -23,7 +23,7 @@
     pi-tool-result-message-tool-call-id pi-tool-result-message-tool-name
     pi-tool-result-message-content pi-tool-result-message-is-error
     pi-tool-result-message-timestamp pi-text-block pi-text-block?
-    pi-text-block-type pi-text-block-text pi-thinking-block pi-thinking-block?
+    pi-text-block-type pi-text-block-text pi-text-block-signature pi-thinking-block pi-thinking-block?
     pi-thinking-block-type pi-thinking-block-thinking
     pi-thinking-block-thinking-signature pi-tool-call-block pi-tool-call-block?
     pi-tool-call-block-type pi-tool-call-block-id pi-tool-call-block-name

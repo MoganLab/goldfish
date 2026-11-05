@@ -93,19 +93,84 @@
       ) ;let
     ) ;define*
 
-    (define (%assistant-block->part blk)
+    ;; thought signature 须为 base64（TYPE_BYTES）：长度 4 倍数且仅含
+    ;; [A-Za-z0-9+/] 与至多两个末尾 =（对齐上游 isValidThoughtSignature）
+    (define (gemini-valid-thought-signature? sig)
+      (and (string? sig)
+        (not (string-null? sig))
+        (zero? (modulo (string-length sig) 4))
+        (let loop ((i 0))
+          (cond ((>= i (string-length sig)) #t)
+                (else
+                  (let ((c (string-ref sig i)))
+                    (cond ((or (char-alphabetic? c) (char-numeric? c) (char=? c #\+) (char=? c #\/))
+                           (loop (+ i 1))
+                          ) ;
+                          ((char=? c #\=)
+                           ;; = 只允许出现在最后两位
+                           (and (>= i (- (string-length sig) 2))
+                             (loop (+ i 1))
+                           ) ;and
+                          ) ;
+                          (else #f)
+                    ) ;cond
+                  ) ;let
+                ) ;else
+          ) ;cond
+        ) ;let
+      ) ;and
+    ) ;define
+
+    ;; 同 provider+model 且签名合法时才回放（对齐上游 resolveThoughtSignature）
+    (define (%resolve-thought-signature same-model? sig)
+      (if (and same-model? (gemini-valid-thought-signature? sig)) sig #f)
+    ) ;define
+
+    (define (%assistant-block->part blk same-model?)
       (let ((btype (%val 'type blk "")))
         (cond
          ((equal? btype "text")
-          (let ((t (%val 'text blk "")))
-            (if (or (not (string? t)) (string-null? (string-trim-both t)))
+          (let* ((t (%val 'text blk ""))
+                 (sig (%resolve-thought-signature same-model?
+                        (%val 'textSignature blk (%val 'text-signature blk #f))
+                      ) ;%resolve-thought-signature
+                 ) ;sig
+                ) ;
+            ;; 空文本但带签名的块保留（Gemini 3 要求签名回显）
+            (if (or (not (string? t)) (and (string-null? (string-trim-both t)) (not sig)))
               #f
-              (list (cons "text" t))
+              (if sig
+                (list (cons "thoughtSignature" sig) (cons "text" t))
+                (list (cons "text" t))
+              ) ;if
             ) ;if
-          ) ;let
+          ) ;let*
+         ) ;
+         ((equal? btype "thinking")
+          (let* ((th (%val 'thinking blk ""))
+                 (sig (%resolve-thought-signature same-model?
+                        (%val 'thinkingSignature blk (%val 'thinking-signature blk #f))
+                      ) ;%resolve-thought-signature
+                 ) ;sig
+                 (empty? (or (not (string? th)) (string-null? (string-trim-both th))))
+                ) ;
+            (cond
+             (same-model?
+              (if (and empty? (not sig))
+                #f
+                (let ((base (list (cons "thought" #t) (cons "text" th))))
+                  (if sig (cons (cons "thoughtSignature" sig) base) base)
+                ) ;let
+              ) ;if
+             ) ;
+             ;; 跨模型：thinking 降级为纯文本，不回传签名
+             (empty? #f)
+             (else (list (cons "text" th)))
+            ) ;cond
+          ) ;let*
          ) ;
          ((equal? btype "toolCall")
-          (let* ((ts (%val 'thoughtSignature blk #f))
+          (let* ((ts (%resolve-thought-signature same-model? (%val 'thoughtSignature blk #f)))
                  (fc-obj (list (cons "name" (%val 'name blk ""))
                            (cons "args" (%val 'arguments blk '()))
                            (cons "id" (%val 'id blk ""))
@@ -113,10 +178,7 @@
                  ) ;fc-obj
                  (part (list (cons "functionCall" fc-obj)))
                 ) ;
-            (if (and (string? ts) (not (string-null? ts)))
-              (cons (cons "thoughtSignature" ts) part)
-              part
-            ) ;if
+            (if ts (cons (cons "thoughtSignature" ts) part) part)
           ) ;let*
          ) ;
          (else #f)
@@ -188,7 +250,7 @@
       ) ;let*
     ) ;define
 
-    (define (%build-assistant-turn content)
+    (define (%build-assistant-turn content same-model?)
       (let* ((blks (cond ((vector? content) (vector->list content))
                          ((list? content) content)
                          (else '())
@@ -197,7 +259,7 @@
              (parts
                (filter
                  (lambda (p) (and p (not (null? p))))
-                 (map %assistant-block->part blks)
+                 (map (lambda (b) (%assistant-block->part (if (pi-block? b) (pi-block->alist b) b) same-model?)) blks)
                ) ;filter
              ) ;parts
             ) ;
@@ -208,11 +270,24 @@
       ) ;let*
     ) ;define
 
-    (define (%build-single-content msg)
+    (define (%build-single-content msg model-id)
       (let ((role (%val 'role msg "")) (content (%val 'content msg '())))
-        (cond ((equal? role "user") (%build-user-turn content))
-              ((equal? role "assistant") (%build-assistant-turn content))
-              (else #f)
+        (cond
+         ((equal? role "user") (%build-user-turn content))
+         ((equal? role "assistant")
+          (let* ((msg-model (%val 'model msg #f))
+                 ;; 同 provider+model 才回放签名（对齐上游 isSameProviderAndModel）。
+                 ;; record 消息无 model 字段，视为同模型（record 由本进程构造）
+                 (same-model?
+                   (and (string? model-id)
+                     (or (not msg-model) (equal? msg-model model-id))
+                   ) ;and
+                 ) ;same-model?
+                ) ;
+            (%build-assistant-turn content same-model?)
+          ) ;let*
+         ) ;
+         (else #f)
         ) ;cond
       ) ;let
     ) ;define
@@ -294,7 +369,7 @@
       ) ;if
     ) ;define
 
-    (define (gemini-build-contents messages)
+    (define* (gemini-build-contents messages (model-id #f))
       (let loop
         ((rest messages) (acc '()))
         (if (null? rest)
@@ -307,14 +382,14 @@
                            ) ;
                 (loop rem-rest (cons merged-turn acc))
               ) ;let*-values
-              (let ((c (%build-single-content msg)))
+              (let ((c (%build-single-content msg model-id)))
                 (loop (cdr rest) (if c (cons c acc) acc))
               ) ;let
             ) ;if
           ) ;let*
         ) ;if
       ) ;let
-    ) ;define
+    ) ;define*
 
     (define (gemini-build-request-body contents sys-inst tool-decls)
       (let* ((req (list (cons "contents" contents)))

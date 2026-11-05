@@ -137,4 +137,190 @@
         (check (cdr (assoc "mimeType" inline)) => "image/png")
         (check (cdr (assoc "data" inline)) => "aGVsbG8=")))))
 
+;; ============ thinking 块与 thought signature 回放 ============
+
+(define (mk-assistant-model blocks . rest)
+  (let ((model-id (if (pair? rest) (car rest) "gemini-3-flash-preview")))
+    (list (cons "role" "assistant")
+      (cons "model" model-id)
+      (cons "provider" "google")
+      (cons "content" blocks)
+      (cons "stopReason" "stop")
+    ) ;list
+  ) ;let
+) ;define
+
+(define (part-of content idx)
+  (vector-ref (cdr (assoc "parts" content)) idx)
+) ;define
+
+;; T1 thinking 块回放为 {thought: true, text, thoughtSignature}
+(let* ((msgs (list (mk-assistant-model
+               (list (list (cons "type" "thinking")
+                       (cons "thinking" "reasoning...")
+                       (cons "thinkingSignature" "QUJD")
+                     ) ;list
+               ) ;list
+             ) ;mk-assistant-model
+           ) ;list
+       ) ;msgs
+       (contents (gemini-build-contents msgs "gemini-3-flash-preview"))
+       (part (part-of (vector-ref contents 0) 0))
+      ) ;
+  (check (cdr (assoc "thought" part)) => #t)
+  (check (cdr (assoc "text" part)) => "reasoning...")
+  (check (cdr (assoc "thoughtSignature" part)) => "QUJD")
+) ;let*
+
+;; T2 text 块携带 textSignature 回放
+(let* ((msgs (list (mk-assistant-model
+               (list (list (cons "type" "text")
+                       (cons "text" "visible")
+                       (cons "textSignature" "REVG")
+                     ) ;list
+               ) ;list
+             ) ;mk-assistant-model
+           ) ;list
+       ) ;msgs
+       (contents (gemini-build-contents msgs "gemini-3-flash-preview"))
+       (part (part-of (vector-ref contents 0) 0))
+      ) ;
+  (check (cdr (assoc "text" part)) => "visible")
+  (check (cdr (assoc "thoughtSignature" part)) => "REVG")
+) ;let*
+
+;; T3 空文本但带签名的块保留（Gemini 3 要求）
+(let* ((msgs (list (mk-assistant-model
+               (list (list (cons "type" "text") (cons "text" "") (cons "textSignature" "QUJD")))
+             ) ;mk-assistant-model
+           ) ;list
+       ) ;msgs
+       (contents (gemini-build-contents msgs "gemini-3-flash-preview"))
+      ) ;
+  (check (vector-length contents) => 1)
+  (check (cdr (assoc "thoughtSignature" (part-of (vector-ref contents 0) 0))) => "QUJD")
+) ;let*
+
+;; T4 空文本且无签名 → 丢弃
+(let* ((msgs (list (mk-assistant-model (list (list (cons "type" "text") (cons "text" ""))))))
+       (contents (gemini-build-contents msgs "gemini-3-flash-preview"))
+      ) ;
+  (check (vector-length contents) => 0)
+) ;let*
+
+;; T5 空 thinking 但带签名 → 保留
+(let* ((msgs (list (mk-assistant-model
+               (list (list (cons "type" "thinking") (cons "thinking" "") (cons "thinkingSignature" "QUJD")))
+             ) ;mk-assistant-model
+           ) ;list
+       ) ;msgs
+       (contents (gemini-build-contents msgs "gemini-3-flash-preview"))
+      ) ;
+  (check (vector-length contents) => 1)
+  (check (cdr (assoc "thought" (part-of (vector-ref contents 0) 0))) => #t)
+) ;let*
+
+;; T6 跨模型：thinking 降级为纯文本，不带 thought 标记与签名
+(let* ((msgs (list (mk-assistant-model
+               (list (list (cons "type" "thinking")
+                       (cons "thinking" "old reasoning")
+                       (cons "thinkingSignature" "QUJD")
+                     ) ;list
+               ) ;list
+               "gemini-2.5-flash"
+             ) ;mk-assistant-model
+           ) ;list
+       ) ;msgs
+       (contents (gemini-build-contents msgs "gemini-3-flash-preview"))
+       (part (part-of (vector-ref contents 0) 0))
+      ) ;
+  (check (assoc "thought" part) => #f)
+  (check (assoc "thoughtSignature" part) => #f)
+  (check (cdr (assoc "text" part)) => "old reasoning")
+) ;let*
+
+;; T7 跨模型：text 块签名不回传
+(let* ((msgs (list (mk-assistant-model
+               (list (list (cons "type" "text") (cons "text" "hi") (cons "textSignature" "QUJD")))
+               "gemini-2.5-flash"
+             ) ;mk-assistant-model
+           ) ;list
+       ) ;msgs
+       (contents (gemini-build-contents msgs "gemini-3-flash-preview"))
+      ) ;
+  (check (assoc "thoughtSignature" (part-of (vector-ref contents 0) 0)) => #f)
+) ;let*
+
+;; T8 跨模型：toolCall 的 thoughtSignature 不回传
+(let* ((msgs (list (mk-assistant-model
+               (list (list (cons "type" "toolCall")
+                       (cons "id" "c1")
+                       (cons "name" "read")
+                       (cons "arguments" '())
+                       (cons "thoughtSignature" "QUJD")
+                     ) ;list
+               ) ;list
+               "gemini-2.5-flash"
+             ) ;mk-assistant-model
+           ) ;list
+       ) ;msgs
+       (contents (gemini-build-contents msgs "gemini-3-flash-preview"))
+      ) ;
+  (check (assoc "thoughtSignature" (part-of (vector-ref contents 0) 0)) => #f)
+) ;let*
+
+;; T9 非 base64 签名不回传（长度非 4 倍数）
+(let* ((msgs (list (mk-assistant-model
+               (list (list (cons "type" "thinking")
+                       (cons "thinking" "r")
+                       (cons "thinkingSignature" "abc")
+                     ) ;list
+               ) ;list
+             ) ;mk-assistant-model
+           ) ;list
+       ) ;msgs
+       (contents (gemini-build-contents msgs "gemini-3-flash-preview"))
+      ) ;
+  (check (assoc "thoughtSignature" (part-of (vector-ref contents 0) 0)) => #f)
+) ;let*
+
+;; T10 非 base64 字符的签名不回传
+(let* ((msgs (list (mk-assistant-model
+               (list (list (cons "type" "thinking")
+                       (cons "thinking" "r")
+                       (cons "thinkingSignature" "ab!!")
+                     ) ;list
+               ) ;list
+             ) ;mk-assistant-model
+           ) ;list
+       ) ;msgs
+       (contents (gemini-build-contents msgs "gemini-3-flash-preview"))
+      ) ;
+  (check (assoc "thoughtSignature" (part-of (vector-ref contents 0) 0)) => #f)
+) ;let*
+
+;; T11 record 形态的 thinking 块回放
+(let* ((msgs (list (pi-assistant-message (list (pi-thinking-block "think" "QUJD")))))
+       (contents (gemini-build-contents msgs "gemini-3-flash-preview"))
+       (part (part-of (vector-ref contents 0) 0))
+      ) ;
+  (check (cdr (assoc "thought" part)) => #t)
+  (check (cdr (assoc "text" part)) => "think")
+  (check (cdr (assoc "thoughtSignature" part)) => "QUJD")
+) ;let*
+
+;; T12 不带 model-id 参数（旧调用）：签名不回放（保守）
+(let* ((msgs (list (mk-assistant-model
+               (list (list (cons "type" "thinking") (cons "thinking" "r") (cons "thinkingSignature" "QUJD")))
+             ) ;mk-assistant-model
+           ) ;list
+       ) ;msgs
+       (contents (gemini-build-contents msgs))
+      ) ;
+  ;; 旧调用无 model 上下文：thinking 块按跨模型降级为纯文本
+  (check (assoc "thought" (part-of (vector-ref contents 0) 0)) => #f)
+  (check (assoc "thoughtSignature" (part-of (vector-ref contents 0) 0)) => #f)
+) ;let*
+
+
 (check-report)

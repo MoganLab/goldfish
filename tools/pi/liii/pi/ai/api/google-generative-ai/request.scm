@@ -238,7 +238,7 @@
                             ) ;if
              ) ;tool-resolver
              (tool-decls (gemini-build-tool-declarations eff-tool-names tool-resolver))
-             (contents (gemini-build-contents messages))
+             (contents (gemini-build-contents messages model-id))
              (raw-req-body (gemini-build-request-body contents system-instruction tool-decls)
              ) ;raw-req-body
              (thinking-lvl (cdr (or (assoc 'thinking-level config) '(#f . #f))))

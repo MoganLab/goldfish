@@ -92,6 +92,7 @@
                ) ;
             (gemini-stream-state-last-text-set! stream-state #f)
             (gemini-stream-state-current-active-type-set! stream-state #f)
+            (gemini-stream-state-text-signature-set! stream-state #f)
             (when (procedure? on-event)
               (on-event (list (cons 'type "text_end")
                           (cons 'contentIndex cur-idx)
