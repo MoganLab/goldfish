@@ -12,6 +12,8 @@
     (liii sse)
     (liii pi ai message)
     (liii pi ai api google-generative-ai core)
+    (liii pi ai api google-generative-ai usage)
+    (liii pi ai api google-generative-ai tool-call-id)
     (liii pi ai api google-generative-ai stream-state)
     (liii pi ai api google-generative-ai thinking)
   ) ;import

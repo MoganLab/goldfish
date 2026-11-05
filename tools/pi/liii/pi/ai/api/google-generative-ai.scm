@@ -9,6 +9,8 @@
 (define-library (liii pi ai api google-generative-ai)
   (import (scheme base)
     (liii pi ai api google-generative-ai core)
+    (liii pi ai api google-generative-ai usage)
+    (liii pi ai api google-generative-ai tool-call-id)
     (liii pi ai api google-generative-ai request)
     (liii pi ai api google-generative-ai stream)
     (liii pi ai api google-generative-ai stream-parse)

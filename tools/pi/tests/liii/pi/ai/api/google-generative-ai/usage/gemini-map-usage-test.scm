@@ -18,7 +18,7 @@
 ;; 内部 usage alist，包含 input、output、cacheRead、cacheWrite 与 totalTokens。
 
 (import (liii check)
-  (liii pi ai api google-generative-ai core)
+  (liii pi ai api google-generative-ai usage)
 ) ;import
 
 (check-set-mode! 'report-failed)
