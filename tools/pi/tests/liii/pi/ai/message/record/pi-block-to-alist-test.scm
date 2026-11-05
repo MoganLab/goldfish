@@ -26,3 +26,15 @@
 ) ;let*
 
 (check-report)
+
+;; 带签名的 text 块：alist 含 textSignature
+(let* ((b (pi-text-block "txt" "QUJD")) (al (pi-block->alist b)))
+  (check (cdr (assoc "textSignature" al)) => "QUJD")
+) ;let*
+
+;; 不带签名的 text 块：无 textSignature 键
+(let* ((al (pi-block->alist (pi-text-block "txt"))))
+  (check (assoc "textSignature" al) => #f)
+) ;let*
+
+(check-report)

@@ -21,6 +21,8 @@
     (liii pi ai message)
     (liii pi ai keyring)
     (liii pi ai api google-generative-ai core)
+    (liii pi ai api google-generative-ai usage)
+    (liii pi ai api google-generative-ai tool-call-id)
     (liii pi ai api google-generative-ai stream-parse)
     (liii pi ai api google-generative-ai thinking)
   ) ;import
@@ -238,7 +240,7 @@
                             ) ;if
              ) ;tool-resolver
              (tool-decls (gemini-build-tool-declarations eff-tool-names tool-resolver))
-             (contents (gemini-build-contents messages))
+             (contents (gemini-build-contents messages model-id))
              (raw-req-body (gemini-build-request-body contents system-instruction tool-decls)
              ) ;raw-req-body
              (thinking-lvl (cdr (or (assoc 'thinking-level config) '(#f . #f))))

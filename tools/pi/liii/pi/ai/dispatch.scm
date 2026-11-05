@@ -10,6 +10,7 @@
     (liii pi ai api google-generative-ai)
     (liii pi ai api openai-completions)
     (liii pi ai providers registry)
+    (liii pi ai transcript)
   ) ;import
   (export pi-request-provider-stream)
   (begin
@@ -25,14 +26,19 @@
              ) ;cfg-api
              (api (or cfg-api (pi-provider-api provider)))
             ) ;
-        (cond ((string=? api "anthropic-messages")
-               (anthropic-request-stream config msgs sys-prompt tools on-ev timeout)
-              ) ;
-              ((string=? api "openai-completions")
-               (openai-request-stream config msgs sys-prompt tools on-ev timeout)
-              ) ;
-              (else (gemini-request-stream config msgs sys-prompt tools on-ev timeout))
-        ) ;cond
+        ;; 请求前转录规范化（对齐上游 transformMessages）：跳过 error/aborted
+        ;; 消息、补孤儿 toolCall 的合成结果、按需归一化 toolCallId，保证请求
+        ;; 前缀跨轮稳定。仅作用于请求构建，不改会话持久化。
+        (let ((norm-msgs (pi-normalize-transcript msgs config)))
+          (cond ((string=? api "anthropic-messages")
+                 (anthropic-request-stream config norm-msgs sys-prompt tools on-ev timeout)
+                ) ;
+                ((string=? api "openai-completions")
+                 (openai-request-stream config norm-msgs sys-prompt tools on-ev timeout)
+                ) ;
+                (else (gemini-request-stream config norm-msgs sys-prompt tools on-ev timeout))
+          ) ;cond
+        ) ;let
       ) ;let*
     ) ;define
 

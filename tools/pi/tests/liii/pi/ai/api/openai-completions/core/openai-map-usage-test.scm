@@ -94,3 +94,19 @@
   (check (cdr (assoc 'totalTokens u)) => 0))
 
 (check-report)
+
+;; 7. reasoning 字段：completion_tokens_details.reasoning_tokens 单列
+(let* ((raw '(("prompt_tokens" . 100)
+              ("completion_tokens" . 50)
+              ("completion_tokens_details" . (("reasoning_tokens" . 30)))))
+       (u (openai-map-usage raw)))
+  (check (cdr (assoc 'reasoning u)) => 30)
+  (check (cdr (assoc 'output u)) => 50)
+) ;let*
+
+;; 8. 无 reasoning details 时 reasoning 为 0
+(let ((u (openai-map-usage '(("prompt_tokens" . 10) ("completion_tokens" . 5)))))
+  (check (cdr (assoc 'reasoning u)) => 0)
+) ;let
+
+(check-report)

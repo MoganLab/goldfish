@@ -12,6 +12,8 @@
     (liii sse)
     (liii pi ai message)
     (liii pi ai api google-generative-ai core)
+    (liii pi ai api google-generative-ai usage)
+    (liii pi ai api google-generative-ai tool-call-id)
     (liii pi ai api google-generative-ai stream-state)
     (liii pi ai api google-generative-ai thinking)
   ) ;import
@@ -76,18 +78,26 @@
     ) ;define
 
     (define (append-text-block blocks last-text t cur-idx usage stream-state on-event)
+      ;; 文本块签名已在 process-stream-part 中写入 stream-state
+      ;; （gemini-stream-state-text-signature），此处构造块时携带
       (if (string-null? t)
         #t
         (if (not (string? last-text))
           (begin
             (gemini-stream-state-blocks-set! stream-state
-              (append blocks (list (pi-text-block t)))
+              (append blocks
+                (list (pi-text-block t (gemini-stream-state-text-signature stream-state)))
+              ) ;append
             ) ;gemini-stream-state-blocks-set!
             (gemini-stream-state-last-text-set! stream-state t)
             (emit-text-start-and-delta on-event cur-idx t usage)
           ) ;begin
           (let* ((new-t (string-append last-text t))
-                 (upd-blocks (append (drop-right blocks 1) (list (pi-text-block new-t))))
+                 (upd-blocks
+                   (append (drop-right blocks 1)
+                     (list (pi-text-block new-t (gemini-stream-state-text-signature stream-state)))
+                   ) ;append
+                 ) ;upd-blocks
                 ) ;
             (gemini-stream-state-blocks-set! stream-state upd-blocks)
             (gemini-stream-state-last-text-set! stream-state new-t)
@@ -171,6 +181,11 @@
                   (gemini-stream-stop-active-block! stream-state on-event)
                 ) ;when
                 (gemini-stream-state-current-active-type-set! stream-state "text")
+                ;; 累积 text 签名（对齐上游 retainThoughtSignature）：
+                ;; 同一文本块内新签名非空则覆盖，否则保留；进入新块前已重置
+                (when (and (string? part-ts) (not (string-null? part-ts)))
+                  (gemini-stream-state-text-signature-set! stream-state part-ts)
+                ) ;when
                 (let* ((blocks (gemini-stream-state-blocks stream-state))
                        (last-text (gemini-stream-state-last-text stream-state))
                        (cur-idx (if (string? last-text) (- (length blocks) 1) (length blocks)))

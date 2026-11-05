@@ -74,3 +74,38 @@
 ) ;let*
 
 (check-report)
+
+;; 文本块签名累积与回放
+(let* ((stream-state (make-gemini-stream-state '() #f '() '() "STOP" #f "" ""))
+       (emit (lambda (ev) #t))
+      ) ;
+  ;; 第一个 text part 带签名，第二个 text part 不带签名（同一块累积）
+  (process-stream-part '(("text" . "Hello") ("thoughtSignature" . "QUJD")) stream-state emit)
+  (process-stream-part '(("text" . " world")) stream-state emit)
+  (let ((blk (car (gemini-stream-state-blocks stream-state))))
+    (check (pi-text-block-text blk) => "Hello world")
+    (check (pi-text-block-signature blk) => "QUJD")
+  ) ;let
+) ;let*
+
+;; 后续 part 带新签名时覆盖（retainThoughtSignature 语义）
+(let* ((stream-state (make-gemini-stream-state '() #f '() '() "STOP" #f "" ""))
+       (emit (lambda (ev) #t))
+      ) ;
+  (process-stream-part '(("text" . "a") ("thoughtSignature" . "QUJD")) stream-state emit)
+  (process-stream-part '(("text" . "b") ("thoughtSignature" . "REVG")) stream-state emit)
+  (let ((blk (car (gemini-stream-state-blocks stream-state))))
+    (check (pi-text-block-text blk) => "ab")
+    (check (pi-text-block-signature blk) => "REVG")
+  ) ;let
+) ;let*
+
+;; 无签名文本块：签名为 #f
+(let* ((stream-state (make-gemini-stream-state '() #f '() '() "STOP" #f "" ""))
+       (emit (lambda (ev) #t))
+      ) ;
+  (process-stream-part '(("text" . "plain")) stream-state emit)
+  (check (pi-text-block-signature (car (gemini-stream-state-blocks stream-state))) => #f)
+) ;let*
+
+(check-report)

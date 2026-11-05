@@ -10,6 +10,7 @@
     (liii string)
     (liii pi ai message)
     (liii pi ai api google-generative-ai core)
+    (liii pi ai api google-generative-ai usage)
     (liii pi ai api google-generative-ai stream-parse)
     (liii pi ai api google-generative-ai stream-state)
     (liii pi ai api google-generative-ai thinking)

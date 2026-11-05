@@ -17,12 +17,13 @@
     gemini-stream-state-thinking-text gemini-stream-state-thinking-text-set!
     gemini-stream-state-thinking-signature
     gemini-stream-state-thinking-signature-set!
+    gemini-stream-state-text-signature gemini-stream-state-text-signature-set!
   ) ;export
   (begin
 
     (define-record-type <gemini-stream-state>
       (%make-gemini-stream-state blocks last-text usage tool-calls finish-reason
-        active-type thinking-text thinking-signature
+        active-type thinking-text thinking-signature text-signature
       ) ;%make-gemini-stream-state
       %gemini-stream-state?
       (blocks gemini-stream-state-record-blocks
@@ -47,15 +48,25 @@
       (thinking-signature gemini-stream-state-record-thinking-signature
         gemini-stream-state-record-thinking-signature-set!
       ) ;thinking-signature
+      (text-signature gemini-stream-state-record-text-signature
+        gemini-stream-state-record-text-signature-set!
+      ) ;text-signature
     ) ;define-record-type
 
-    (define (make-gemini-stream-state blocks last-text usage tool-calls
-              finish-reason active-type thinking-text thinking-signature
-            ) ;make-gemini-stream-state
+    (define* (make-gemini-stream-state blocks
+               last-text
+               usage
+               tool-calls
+               finish-reason
+               active-type
+               thinking-text
+               thinking-signature
+               (text-signature #f)
+             ) ;make-gemini-stream-state
       (%make-gemini-stream-state blocks last-text usage tool-calls finish-reason
-        active-type thinking-text thinking-signature
+        active-type thinking-text thinking-signature text-signature
       ) ;%make-gemini-stream-state
-    ) ;define
+    ) ;define*
 
     (define (gemini-stream-state? state)
       (%gemini-stream-state? state)
@@ -170,6 +181,22 @@
       (if (gemini-stream-state? state)
         (gemini-stream-state-record-thinking-signature-set! state value)
         (vector-set! state 7 value)
+      ) ;if
+    ) ;define
+
+    (define (gemini-stream-state-text-signature state)
+      (if (gemini-stream-state? state)
+        (gemini-stream-state-record-text-signature state)
+        (and (>= (vector-length state) 9) (vector-ref state 8))
+      ) ;if
+    ) ;define
+
+    (define (gemini-stream-state-text-signature-set! state value)
+      (if (gemini-stream-state? state)
+        (gemini-stream-state-record-text-signature-set! state value)
+        (when (>= (vector-length state) 9)
+          (vector-set! state 8 value)
+        ) ;when
       ) ;if
     ) ;define
 

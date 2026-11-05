@@ -16,7 +16,7 @@
 ;; 规范化后的工具调用 id。
 
 (import (liii check)
-  (liii pi ai api google-generative-ai core)
+  (liii pi ai api google-generative-ai tool-call-id)
 ) ;import
 
 (check-set-mode! 'report-failed)

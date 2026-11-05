@@ -13,74 +13,10 @@
     (liii error)
     (liii pi ai message)
     (liii pi ai event)
+    (liii pi ai api google-generative-ai thought-signature)
   ) ;import
-  (export gemini-map-finish-reason gemini-map-usage
-    gemini-normalize-tool-call-id gemini-generate-tool-call-id
-    gemini-build-contents gemini-build-request-body
-  ) ;export
+  (export gemini-build-contents gemini-build-request-body)
   (begin
-
-    (define (gemini-map-finish-reason finish-reason has-function-call?)
-      (cond ((or (equal? finish-reason "STOP") (eq? finish-reason 'STOP))
-             (if has-function-call? "toolUse" "stop")
-            ) ;
-            ((or (equal? finish-reason "MAX_TOKENS") (eq? finish-reason 'MAX_TOKENS))
-             "length"
-            ) ;
-            (else "error")
-      ) ;cond
-    ) ;define
-
-    (define (%usage-field usage-meta key sym-key)
-      (if (not (pair? usage-meta))
-        0
-        (let ((pair (or (assoc key usage-meta) (assoc sym-key usage-meta))))
-          (if pair (cdr pair) 0)
-        ) ;let
-      ) ;if
-    ) ;define
-
-    (define (gemini-map-usage usage-meta)
-      (let* ((prompt-tokens (%usage-field usage-meta "promptTokenCount" 'promptTokenCount))
-             (cand-tokens (%usage-field usage-meta "candidatesTokenCount" 'candidatesTokenCount)
-             ) ;cand-tokens
-             (thought-tokens (%usage-field usage-meta "thoughtsTokenCount" 'thoughtsTokenCount)
-             ) ;thought-tokens
-             (cached-tokens (%usage-field usage-meta "cachedContentTokenCount" 'cachedContentTokenCount)
-             ) ;cached-tokens
-             (total-tokens (%usage-field usage-meta "totalTokenCount" 'totalTokenCount))
-             (in-tokens (- prompt-tokens cached-tokens))
-             (out-tokens (+ cand-tokens thought-tokens))
-            ) ;
-        (list (cons 'input in-tokens)
-          (cons 'output out-tokens)
-          (cons 'cacheRead cached-tokens)
-          (cons 'cacheWrite 0)
-          (cons 'totalTokens total-tokens)
-        ) ;list
-      ) ;let*
-    ) ;define
-
-    (define (%map-char c)
-      (if (or (char-alphabetic? c) (char-numeric? c) (char=? c #\_) (char=? c #\-))
-        c
-        #\_
-      ) ;if
-    ) ;define
-
-    (define (gemini-normalize-tool-call-id id)
-      (if (not (string? id))
-        "tool_call_0"
-        (let ((res (list->string (map %map-char (string->list id)))))
-          (if (> (string-length res) 64) (substring res 0 64) res)
-        ) ;let
-      ) ;if
-    ) ;define
-
-    (define* (gemini-generate-tool-call-id (name "call") (timestamp 0) (counter 1))
-      (gemini-normalize-tool-call-id (string-append name "_" (number->string timestamp) "_" (number->string counter))
-      ) ;gemini-normalize-tool-call-id
-    ) ;define*
 
     (define* (%val key obj (default-val #f))
       (let ((p
@@ -92,37 +28,6 @@
         (if (pair? p) (cdr p) default-val)
       ) ;let
     ) ;define*
-
-    (define (%assistant-block->part blk)
-      (let ((btype (%val 'type blk "")))
-        (cond
-         ((equal? btype "text")
-          (let ((t (%val 'text blk "")))
-            (if (or (not (string? t)) (string-null? (string-trim-both t)))
-              #f
-              (list (cons "text" t))
-            ) ;if
-          ) ;let
-         ) ;
-         ((equal? btype "toolCall")
-          (let* ((ts (%val 'thoughtSignature blk #f))
-                 (fc-obj (list (cons "name" (%val 'name blk ""))
-                           (cons "args" (%val 'arguments blk '()))
-                           (cons "id" (%val 'id blk ""))
-                         ) ;list
-                 ) ;fc-obj
-                 (part (list (cons "functionCall" fc-obj)))
-                ) ;
-            (if (and (string? ts) (not (string-null? ts)))
-              (cons (cons "thoughtSignature" ts) part)
-              part
-            ) ;if
-          ) ;let*
-         ) ;
-         (else #f)
-        ) ;cond
-      ) ;let
-    ) ;define
 
     (define (%is-image-block? b)
       (or (pi-image-block? b) (equal? (%val 'type b "") "image"))
@@ -188,7 +93,7 @@
       ) ;let*
     ) ;define
 
-    (define (%build-assistant-turn content)
+    (define (%build-assistant-turn content same-model?)
       (let* ((blks (cond ((vector? content) (vector->list content))
                          ((list? content) content)
                          (else '())
@@ -197,7 +102,7 @@
              (parts
                (filter
                  (lambda (p) (and p (not (null? p))))
-                 (map %assistant-block->part blks)
+                 (map (lambda (b) (gemini-assistant-block->part b same-model?)) blks)
                ) ;filter
              ) ;parts
             ) ;
@@ -208,10 +113,19 @@
       ) ;let*
     ) ;define
 
-    (define (%build-single-content msg)
+    (define (%build-single-content msg model-id)
       (let ((role (%val 'role msg "")) (content (%val 'content msg '())))
         (cond ((equal? role "user") (%build-user-turn content))
-              ((equal? role "assistant") (%build-assistant-turn content))
+              ((equal? role "assistant")
+               (let* ((msg-model (%val 'model msg #f))
+                      ;; 同 provider+model 才回放签名（对齐上游 isSameProviderAndModel）。
+                      ;; record 消息无 model 字段，视为同模型（record 由本进程构造）
+                      (same-model? (and (string? model-id) (or (not msg-model) (equal? msg-model model-id)))
+                      ) ;same-model?
+                     ) ;
+                 (%build-assistant-turn content same-model?)
+               ) ;let*
+              ) ;
               (else #f)
         ) ;cond
       ) ;let
@@ -294,7 +208,7 @@
       ) ;if
     ) ;define
 
-    (define (gemini-build-contents messages)
+    (define* (gemini-build-contents messages (model-id #f))
       (let loop
         ((rest messages) (acc '()))
         (if (null? rest)
@@ -307,14 +221,14 @@
                            ) ;
                 (loop rem-rest (cons merged-turn acc))
               ) ;let*-values
-              (let ((c (%build-single-content msg)))
+              (let ((c (%build-single-content msg model-id)))
                 (loop (cdr rest) (if c (cons c acc) acc))
               ) ;let
             ) ;if
           ) ;let*
         ) ;if
       ) ;let
-    ) ;define
+    ) ;define*
 
     (define (gemini-build-request-body contents sys-inst tool-decls)
       (let* ((req (list (cons "contents" contents)))

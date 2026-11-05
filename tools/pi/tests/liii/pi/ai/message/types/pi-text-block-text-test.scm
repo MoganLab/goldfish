@@ -19,7 +19,7 @@
 
 (check-set-mode! 'report-failed)
 
-(let* ((obj-a (%make-pi-text-block "Hello")) (obj-b (%make-pi-text-block "World")))
+(let* ((obj-a (%make-pi-text-block "Hello" #f)) (obj-b (%make-pi-text-block "World" #f)))
   (check (pi-text-block-text obj-a) => "Hello")
   (check (pi-text-block-text obj-b) => "World")
 ) ;let*

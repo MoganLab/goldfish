@@ -18,7 +18,7 @@
 ;; 标准 stopReason，可取 stop、length、toolUse 或 error。
 
 (import (liii check)
-  (liii pi ai api google-generative-ai core)
+  (liii pi ai api google-generative-ai usage)
 ) ;import
 
 (check-set-mode! 'report-failed)

@@ -19,7 +19,7 @@
 
 (check-set-mode! 'report-failed)
 
-(let ((obj (%make-pi-text-block "Hello")))
+(let ((obj (%make-pi-text-block "Hello" #f)))
   (check-true (pi-text-block? obj))
 ) ;let
 (check-false (pi-text-block? '()))

@@ -21,13 +21,14 @@
     pi-tool-result-message-tool-call-id pi-tool-result-message-tool-name
     pi-tool-result-message-content pi-tool-result-message-is-error
     pi-tool-result-message-timestamp pi-text-block pi-text-block?
-    pi-text-block-type pi-text-block-text pi-thinking-block pi-thinking-block?
-    pi-thinking-block-type pi-thinking-block-thinking
-    pi-thinking-block-thinking-signature pi-tool-call-block pi-tool-call-block?
-    pi-tool-call-block-type pi-tool-call-block-id pi-tool-call-block-name
-    pi-tool-call-block-arguments pi-tool-call-block-thought-signature
-    pi-image-block pi-image-block? pi-image-block-type pi-image-block-data
-    pi-image-block-mime-type pi-bash-execution->user-text
+    pi-text-block-type pi-text-block-text pi-text-block-signature
+    pi-thinking-block pi-thinking-block? pi-thinking-block-type
+    pi-thinking-block-thinking pi-thinking-block-thinking-signature
+    pi-tool-call-block pi-tool-call-block? pi-tool-call-block-type
+    pi-tool-call-block-id pi-tool-call-block-name pi-tool-call-block-arguments
+    pi-tool-call-block-thought-signature pi-image-block pi-image-block?
+    pi-image-block-type pi-image-block-data pi-image-block-mime-type
+    pi-bash-execution->user-text
   ) ;export
   (begin
 
@@ -96,7 +97,11 @@
     (define (pi-block->alist blk)
       (cond ((pair? blk) blk)
             ((pi-text-block? blk)
-             (list (cons "type" "text") (cons "text" (pi-text-block-text blk)))
+             (let* ((sig (pi-text-block-signature blk))
+                    (base (list (cons "type" "text") (cons "text" (pi-text-block-text blk))))
+                   ) ;
+               (if sig (append base (list (cons "textSignature" sig))) base)
+             ) ;let*
             ) ;
             ((pi-thinking-block? blk)
              (let* ((sig (pi-thinking-block-thinking-signature blk))
@@ -231,9 +236,9 @@
       ) ;%make-pi-tool-result-message
     ) ;define*
 
-    (define (pi-text-block text)
-      (%make-pi-text-block text)
-    ) ;define
+    (define* (pi-text-block text (signature #f))
+      (%make-pi-text-block text signature)
+    ) ;define*
 
     (define* (pi-thinking-block thinking (thought-signature #f))
       (%make-pi-thinking-block thinking thought-signature)
