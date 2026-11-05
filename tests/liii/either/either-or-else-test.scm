@@ -1,7 +1,3 @@
-(import (liii check) (liii error) (liii either))
-
-(check-set-mode! 'report-failed)
-
 ;; either-or-else
 ;; 提供 Either 级别的备选方案。
 ;;
@@ -26,13 +22,13 @@
 ;; ----
 ;; 该函数返回的是 Either，而不是其中包裹的值。
 ;;
-;; 示例
-;; ----
-;; (to-right (either-or-else (from-left 0) (from-right 2))) => 2
-;;
 ;; 错误处理
 ;; ----
 ;; type-error 当 either 不是 Either 时
+
+(import (liii check) (liii error) (liii either))
+
+(check-set-mode! 'report-failed)
 
 (let ((main (from-right 1)) (backup (from-right 2)) (fail (from-left 0)))
   (check (to-right (either-or-else main backup)) => 1)

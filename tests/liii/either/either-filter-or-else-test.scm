@@ -1,7 +1,3 @@
-(import (liii check) (liii error) (liii either))
-
-(check-set-mode! 'report-failed)
-
 ;; either-filter-or-else
 ;; 对 Right 值做条件过滤，不满足条件时转换为 Left。
 ;;
@@ -29,13 +25,13 @@
 ;; ----
 ;; Left 值不会触发 pred。
 ;;
-;; 示例
-;; ----
-;; (to-left (either-filter-or-else even? "err" (from-right 11))) => "err"
-;;
 ;; 错误处理
 ;; ----
 ;; type-error 当 pred 不是过程或 either 不是 Either 时
+
+(import (liii check) (liii error) (liii either))
+
+(check-set-mode! 'report-failed)
 
 (let ((r10 (from-right 10)) (r11 (from-right 11)) (l (from-left "orig")))
   (check (to-right (either-filter-or-else even? "err" r10)) => 10)

@@ -1,7 +1,3 @@
-(import (liii check) (liii error) (liii either))
-
-(check-set-mode! 'report-failed)
-
 ;; either-flat-map
 ;; 对 Right 值执行返回 Either 的过程，并避免产生嵌套 Either。
 ;;
@@ -26,13 +22,13 @@
 ;; ----
 ;; 对 Left 具有短路特性，不会执行 proc。
 ;;
-;; 示例
-;; ----
-;; (to-right (either-flat-map (lambda (x) (from-right (* x 2))) (from-right 5))) => 10
-;;
 ;; 错误处理
 ;; ----
 ;; type-error 当 proc 不是过程或 either 不是 Either 时
+
+(import (liii check) (liii error) (liii either))
+
+(check-set-mode! 'report-failed)
 
 (let ((left-val (from-left "error")) (right-val (from-right 5)))
   (check (to-left (either-flat-map (lambda (x) (from-right (* x 2))) left-val))

@@ -1,7 +1,3 @@
-(import (liii check) (liii error) (liii either))
-
-(check-set-mode! 'report-failed)
-
 ;; from-right
 ;; 创建 Right 值，通常代表成功或有效数据。
 ;;
@@ -23,13 +19,13 @@
 ;; ----
 ;; 本文件只验证构造结果本身，不覆盖提取函数行为。
 ;;
-;; 示例
-;; ----
-;; (from-right 100) => 一个 Right 状态的 Either 值
-;;
 ;; 错误处理
 ;; ----
 ;; 无
+
+(import (liii check) (liii error) (liii either))
+
+(check-set-mode! 'report-failed)
 
 (let ((v (from-right "success data")))
   (check-true (pair? v))

@@ -1,7 +1,3 @@
-(import (liii check) (liii error) (liii either))
-
-(check-set-mode! 'report-failed)
-
 ;; either-any
 ;; 对 Either 做存在量词判断。
 ;;
@@ -26,14 +22,13 @@
 ;; ----
 ;; Left 的返回值体现“无元素可满足条件”。
 ;;
-;; 示例
-;; ----
-;; (either-any even? (from-right 10)) => #t
-;; (either-any even? (from-left "error")) => #f
-;;
 ;; 错误处理
 ;; ----
 ;; type-error 当 pred 不是过程或 either 不是 Either 时
+
+(import (liii check) (liii error) (liii either))
+
+(check-set-mode! 'report-failed)
 
 (check-true (either-any even? (from-right 10)))
 (check-false (either-any even? (from-right 11)))

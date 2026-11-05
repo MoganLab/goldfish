@@ -1,7 +1,3 @@
-(import (liii check) (liii error) (liii either))
-
-(check-set-mode! 'report-failed)
-
 ;; either-map
 ;; 对 Right 值应用映射函数，对 Left 值保持原样。
 ;;
@@ -26,13 +22,13 @@
 ;; ----
 ;; 对 Left 进行映射时具有短路特性，不会执行 proc。
 ;;
-;; 示例
-;; ----
-;; (to-right (either-map (lambda (x) (* x 2)) (from-right 5))) => 10
-;;
 ;; 错误处理
 ;; ----
 ;; type-error 当 proc 不是过程或 either 不是 Either 时
+
+(import (liii check) (liii error) (liii either))
+
+(check-set-mode! 'report-failed)
 
 (let ((left-val (from-left "error")) (right-val (from-right 5)))
   (check (to-left (either-map (lambda (x) (* x 2)) left-val)) => "error")
