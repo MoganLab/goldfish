@@ -4,7 +4,7 @@
 ;; Licensed under the MIT License
 ;;
 
-(define-library (liii pi abort)
+(define-library (liii pi ai abort)
   ;; 会话级中止信号注册点（参考上游 pi 的 AbortController/signal 语义）：
   ;; TUI 主线程按 ESC 后向 abort-chan 发送 'abort，worker 会话在
   ;; 流式回调 / turn 边界 / 工具边界等检查点调用 pi-aborted? 探测。

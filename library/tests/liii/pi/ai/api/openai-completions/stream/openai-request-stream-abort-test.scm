@@ -33,15 +33,12 @@
 ;; ----
 ;; 用户中止信号触发后，HTTP 下载被立即截断，已到达的部分内容被保留。
 
-(set! *load-path*
-  (append (list "tools/pi" ".") *load-path*))
-
 (import (scheme base)
   (liii go)
   (liii check)
   (liii string)
   (liii subprocess)
-  (liii pi abort)
+  (liii pi ai abort)
   (liii pi ai message)
   (liii pi ai api openai-completions)
 ) ;import

@@ -18,7 +18,7 @@
     (liii list)
     (liii string)
     (liii path)
-    (liii pi abort)
+    (liii pi ai abort)
     (liii pi ai auth)
     (liii pi ai config record)
     (liii pi ai models meta)

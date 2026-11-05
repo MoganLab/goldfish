@@ -10,7 +10,7 @@
   (import (scheme base)
     (liii string)
     (liii list)
-    (liii pi abort)
+    (liii pi ai abort)
     (liii pi ai message)
     (liii pi ai time)
     (liii pi ai dispatch)

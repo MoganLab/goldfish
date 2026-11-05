@@ -1,7 +1,7 @@
 (import (scheme base)
   (liii go)
   (liii check)
-  (liii pi abort)
+  (liii pi ai abort)
 ) ;import
 
 (check-set-mode! 'report-failed)
