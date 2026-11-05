@@ -157,9 +157,11 @@
       ) ;if
     ) ;define
 
-    (define (main)
+    ;; args 为显式的参数列表（字符串列表），供单元测试直接驱动；
+    ;; 未给出时从进程命令行 (argv) 解析。
+    (define* (main (args #f))
       (let ((parser (make-fix-arg-parser)))
-        (parser :parse-argv (argv))
+        (if args (parser :parse-args args) (parser :parse-argv (argv)))
         (let* ((help-flag (parser 'help))
                (dry-run (parser 'dry-run))
                (extensions (parse-extensions (parser 'extension)))
@@ -181,7 +183,7 @@
           ) ;cond
         ) ;let*
       ) ;let
-    ) ;define
+    ) ;define*
 
   ) ;begin
 ) ;define-library
