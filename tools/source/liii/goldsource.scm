@@ -25,9 +25,9 @@
   ) ;export
   (begin
 
-    (define (main)
-      (run-goldsource)
-    ) ;define
+    ;; args 为显式的参数列表（字符串列表），供单元测试直接驱动；
+    ;; 未给出时从进程命令行 (argv) 解析。
+    (define* (main (args #f)) (run-goldsource args))
 
   ) ;begin
 ) ;define-library
