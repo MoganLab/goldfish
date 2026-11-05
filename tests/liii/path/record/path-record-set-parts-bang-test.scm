@@ -17,14 +17,18 @@
 ;; unspecified
 ;; 原地修改，返回值未定义。
 
-(import (liii check) (liii path) (liii path record))
+(import (liii check) (liii path) (liii path record) (liii os))
 
 (check-set-mode! 'report-failed)
 
 (let ((p (path "/a/b")))
   (path-record-set-parts! p #("x" "y"))
   (check (path-record-parts p) => #("x" "y"))
-  (check (path->string p) => "/x/y")
+  ;; path->string 按记录的 type 输出分隔符
+  (if (os-windows?)
+    (check (path->string p) => "\\x\\y")
+    (check (path->string p) => "/x/y")
+  ) ;if
 ) ;let
 
 (check-report)

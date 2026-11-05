@@ -22,21 +22,33 @@
 ;; 替换后 Windows drive/anchor 保留（如 C:\a\b.txt → C:\a\c.md）；
 ;; 空路径（parts 为空或仅 "."）直接返回单段 new-name 的相对路径。
 
-(import (liii check) (liii path) (liii path component))
+(import (liii check) (liii path) (liii path component) (liii os))
 
 (check-set-mode! 'report-failed)
 
-(check (path->string (replace-last-segment (path "/a/b.txt") "c.md"))
-  =>
-  "/a/c.md"
-) ;check
+;; 带根锚点的用例：分隔符按平台输出
+(when (not (os-windows?))
+  (check (path->string (replace-last-segment (path "/a/b.txt") "c.md"))
+    =>
+    "/a/c.md"
+  ) ;check
+  ;; 保留根锚点
+  (check (path->string (replace-last-segment (path "/b.txt") "z")) => "/z")
+) ;when
+
+(when (os-windows?)
+  (check (path->string (replace-last-segment (path "C:\\a\\b.txt") "c.md"))
+    =>
+    "C:\\a\\c.md"
+  ) ;check
+  ;; 保留根锚点
+  (check (path->string (replace-last-segment (path "\\b.txt") "z")) => "\\z")
+) ;when
+
 (check (path->string (replace-last-segment (path "b.txt") "c.md")) => "c.md")
 
 ;; 空路径返回单段相对路径
 (check (path->string (replace-last-segment (path "") "x")) => "x")
 (check (path->string (replace-last-segment (path ".") "x")) => "x")
-
-;; 保留根锚点
-(check (path->string (replace-last-segment (path "/b.txt") "z")) => "/z")
 
 (check-report)
