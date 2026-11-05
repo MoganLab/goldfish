@@ -40,8 +40,10 @@
 ) ;check
 
 ;; 3. 注册 path
-(run-set! 'my-path (path "/usr/bin/env"))
-(check (%resolve-symbol-command 'my-path '()) => '("/usr/bin/env"))
+(let ((p (path "/usr/bin/env")))
+  (run-set! 'my-path p)
+  (check (%resolve-symbol-command 'my-path '()) => (list (path->string p)))
+) ;let
 
 ;; 4. 未注册符号
 (check (%resolve-symbol-command 'unknown-cmd '()) => '("unknown-cmd"))
