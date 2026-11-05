@@ -83,3 +83,53 @@
 ) ;let
 
 (check-report)
+
+;; 扩充的 google 价目：cacheRead 非零（修复缓存节省统计失真）
+(let ((c (pi-model-cost "google" "gemini-3-flash-preview" '())))
+  (check (cdr (assoc 'input c)) => 0.5)
+  (check (cdr (assoc 'output c)) => 3.0)
+  (check (cdr (assoc 'cacheRead c)) => 0.05)
+) ;let
+
+(let ((c (pi-model-cost "google" "gemini-3.1-pro-preview" '())))
+  (check (cdr (assoc 'input c)) => 2.0)
+  (check (cdr (assoc 'output c)) => 12.0)
+  (check (cdr (assoc 'cacheRead c)) => 0.2)
+  (check-true (pair? (cdr (assoc 'tiers c))))
+) ;let
+
+(let ((c (pi-model-cost "google" "gemini-3.1-flash-lite" '())))
+  (check (cdr (assoc 'input c)) => 0.25)
+  (check (cdr (assoc 'output c)) => 1.5)
+  (check (cdr (assoc 'cacheRead c)) => 0.025)
+) ;let
+
+(let ((c (pi-model-cost "google" "gemini-3.5-flash" '())))
+  (check (cdr (assoc 'input c)) => 1.5)
+  (check (cdr (assoc 'output c)) => 9.0)
+  (check (cdr (assoc 'cacheRead c)) => 0.15)
+) ;let
+
+(let ((c (pi-model-cost "google" "gemini-3.5-flash-lite" '())))
+  (check (cdr (assoc 'input c)) => 0.3)
+  (check (cdr (assoc 'output c)) => 2.5)
+  (check (cdr (assoc 'cacheRead c)) => 0.03)
+) ;let
+
+(let ((c (pi-model-cost "google" "gemini-3.6-flash" '())))
+  (check (cdr (assoc 'input c)) => 0.75)
+  (check (cdr (assoc 'cacheRead c)) => 0.075)
+) ;let
+
+(let ((c (pi-model-cost "google" "gemini-3.7-flash" '())))
+  (check (cdr (assoc 'input c)) => 0.75)
+  (check (cdr (assoc 'cacheRead c)) => 0.075)
+) ;let
+
+(let ((c (pi-model-cost "google" "gemini-4-argon" '())))
+  (check (cdr (assoc 'input c)) => 2.0)
+  (check (cdr (assoc 'output c)) => 10.0)
+  (check (cdr (assoc 'cacheRead c)) => 0.1)
+) ;let
+
+(check-report)

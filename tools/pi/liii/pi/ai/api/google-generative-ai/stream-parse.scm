@@ -83,7 +83,9 @@
         (if (not (string? last-text))
           (begin
             (gemini-stream-state-blocks-set! stream-state
-              (append blocks (list (pi-text-block t (gemini-stream-state-text-signature stream-state))))
+              (append blocks
+                (list (pi-text-block t (gemini-stream-state-text-signature stream-state)))
+              ) ;append
             ) ;gemini-stream-state-blocks-set!
             (gemini-stream-state-last-text-set! stream-state t)
             (emit-text-start-and-delta on-event cur-idx t usage)

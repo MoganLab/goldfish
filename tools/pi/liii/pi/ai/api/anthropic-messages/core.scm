@@ -53,11 +53,15 @@
              (out-tok (%val "output_tokens" usage-meta 0))
              (c-read (%val "cache_read_input_tokens" usage-meta 0))
              (c-write (%val "cache_creation_input_tokens" usage-meta 0))
+             ;; reasoning 为 output 的子集（output_tokens 已含 thinking_tokens）
+             (reasoning-tok (%val "thinking_tokens" (%val "output_tokens_details" usage-meta '()) 0)
+             ) ;reasoning-tok
             ) ;
         (list (cons 'input in-tok)
           (cons 'output out-tok)
           (cons 'cacheRead c-read)
           (cons 'cacheWrite c-write)
+          (cons 'reasoning reasoning-tok)
           (cons 'totalTokens (+ in-tok out-tok c-read c-write))
         ) ;list
       ) ;let*

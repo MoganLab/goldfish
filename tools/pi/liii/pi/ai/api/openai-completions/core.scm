@@ -51,11 +51,15 @@
              (in-tok (max 0 (- prompt-tokens c-read c-write)))
              (out-tok completion-tokens)
              (tot-tok (+ in-tok out-tok c-read c-write))
+             ;; reasoning 为 output 的子集（completion_tokens 已含 reasoning_tokens）
+             (reasoning-tok (%val "reasoning_tokens" (%val "completion_tokens_details" usage-meta '()) 0)
+             ) ;reasoning-tok
             ) ;
         (list (cons 'input in-tok)
           (cons 'output out-tok)
           (cons 'cacheRead c-read)
           (cons 'cacheWrite c-write)
+          (cons 'reasoning reasoning-tok)
           (cons 'totalTokens tot-tok)
         ) ;list
       ) ;let*

@@ -52,3 +52,16 @@
 ) ;let*
 
 (check-report)
+
+;; reasoning 字段：output_tokens_details.thinking_tokens 单列（output 的子集）
+(let ((usage (anthropic-map-usage '(("input_tokens" . 100)
+                                    ("output_tokens" . 45)
+                                    ("output_tokens_details" . (("thinking_tokens" . 12)))))))
+  (check (cdr (assoc 'reasoning usage)) => 12)
+  (check (cdr (assoc 'output usage)) => 45)
+) ;let
+
+;; 无 thinking details 时 reasoning 为 0
+(check (cdr (assoc 'reasoning (anthropic-map-usage '(("input_tokens" . 7))))) => 0)
+
+(check-report)

@@ -53,8 +53,14 @@
       ) ;text-signature
     ) ;define-record-type
 
-    (define* (make-gemini-stream-state blocks last-text usage tool-calls
-               finish-reason active-type thinking-text thinking-signature
+    (define* (make-gemini-stream-state blocks
+               last-text
+               usage
+               tool-calls
+               finish-reason
+               active-type
+               thinking-text
+               thinking-signature
                (text-signature #f)
              ) ;make-gemini-stream-state
       (%make-gemini-stream-state blocks last-text usage tool-calls finish-reason
@@ -188,7 +194,9 @@
     (define (gemini-stream-state-text-signature-set! state value)
       (if (gemini-stream-state? state)
         (gemini-stream-state-record-text-signature-set! state value)
-        (when (>= (vector-length state) 9) (vector-set! state 8 value))
+        (when (>= (vector-length state) 9)
+          (vector-set! state 8 value)
+        ) ;when
       ) ;if
     ) ;define
 

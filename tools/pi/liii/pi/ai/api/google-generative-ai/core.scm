@@ -56,6 +56,7 @@
           (cons 'output out-tokens)
           (cons 'cacheRead cached-tokens)
           (cons 'cacheWrite 0)
+          (cons 'reasoning thought-tokens)
           (cons 'totalTokens total-tokens)
         ) ;list
       ) ;let*
@@ -99,7 +100,8 @@
       (and (string? sig)
         (not (string-null? sig))
         (zero? (modulo (string-length sig) 4))
-        (let loop ((i 0))
+        (let loop
+          ((i 0))
           (cond ((>= i (string-length sig)) #t)
                 (else
                   (let ((c (string-ref sig i)))
@@ -108,9 +110,7 @@
                           ) ;
                           ((char=? c #\=)
                            ;; = 只允许出现在最后两位
-                           (and (>= i (- (string-length sig) 2))
-                             (loop (+ i 1))
-                           ) ;and
+                           (and (>= i (- (string-length sig) 2)) (loop (+ i 1)))
                           ) ;
                           (else #f)
                     ) ;cond
@@ -137,7 +137,8 @@
                  ) ;sig
                 ) ;
             ;; 空文本但带签名的块保留（Gemini 3 要求签名回显）
-            (if (or (not (string? t)) (and (string-null? (string-trim-both t)) (not sig)))
+            (if
+              (or (not (string? t)) (and (string-null? (string-trim-both t)) (not sig)))
               #f
               (if sig
                 (list (cons "thoughtSignature" sig) (cons "text" t))
@@ -155,17 +156,17 @@
                  (empty? (or (not (string? th)) (string-null? (string-trim-both th))))
                 ) ;
             (cond
-             (same-model?
-              (if (and empty? (not sig))
-                #f
-                (let ((base (list (cons "thought" #t) (cons "text" th))))
-                  (if sig (cons (cons "thoughtSignature" sig) base) base)
-                ) ;let
-              ) ;if
-             ) ;
-             ;; 跨模型：thinking 降级为纯文本，不回传签名
-             (empty? #f)
-             (else (list (cons "text" th)))
+              (same-model?
+                (if (and empty? (not sig))
+                  #f
+                  (let ((base (list (cons "thought" #t) (cons "text" th))))
+                    (if sig (cons (cons "thoughtSignature" sig) base) base)
+                  ) ;let
+                ) ;if
+              ) ;same-model?
+              ;; 跨模型：thinking 降级为纯文本，不回传签名
+              (empty? #f)
+              (else (list (cons "text" th)))
             ) ;cond
           ) ;let*
          ) ;
