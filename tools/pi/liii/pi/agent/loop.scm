@@ -167,15 +167,15 @@
                (deadline-sec #f)
                (session-timeout #f)
              ) ;pi-resolve-turn-system-prompt
+      ;; 系统提示词位于请求前缀最前端：非临界时必须与 base 字节级一致，
+      ;; 只有预算临界时才拼接一次静态告警块，避免逐轮变化击穿前缀缓存
       (let ((base (if (procedure? system-prompt) (system-prompt tool-calls) system-prompt))
            ) ;
         (if (number? turn)
-          (let ((budget-status (pi-format-turn-budget-status turn max-turns
-                                 remaining-sec deadline-sec session-timeout
-                               ) ;pi-format-turn-budget-status
-                ) ;budget-status
+          (let ((warning (pi-budget-warning turn max-turns remaining-sec deadline-sec session-timeout)
+                ) ;warning
                ) ;
-            (string-append base "\n\n" budget-status)
+            (if (string? warning) (string-append base "\n\n" warning) base)
           ) ;let
           base
         ) ;if
