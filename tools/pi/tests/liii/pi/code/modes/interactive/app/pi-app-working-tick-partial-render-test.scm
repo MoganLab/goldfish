@@ -83,7 +83,9 @@
             (check (list-ref second-frame i) => (list-ref first-frame i)))
           (loop (+ i 1)))))))
 
-;; 2. 性能：busy 200 拍连续 tick（真实 80ms 节拍）期间不整帧重算
+;; 2. 性能：busy 后续拍（真实 80ms 节拍）不整帧重算
+;;    绝对耗时随机器性能与 CI 并行负载浮动数倍（Windows runner 上曾超本机 3 倍），
+;;    因此护栏改为相对判据：与同一进程实测的整帧成本相比必须明显更便宜
 (let* ((vterm (make-virtual-terminal :width 100 :height 40))
        (app (make-pi-app :terminal vterm :handler (lambda (a m) #t)))
        (q (pi-app-queue app)))
@@ -92,29 +94,51 @@
   ;; 首拍（整帧）
   (pi-app-working-tick! app)
   ;; 后续 199 拍：每拍都强制到期并推进帧，模拟真实 80ms 节拍
-  (let ((measure-ticks
-          (lambda ()
-            (let ((c0 (thread-time-ns)))
-              (let loop ((i 0))
-                (when (< i 199)
-                  (working-last-tick-set! (pi-app-working app)
-                    (- (current-monotonic-millis) 80))
-                  (pi-app-working-tick! app)
-                  (loop (+ i 1))
-                ) ;when
-              ) ;let
-              (quotient (- (thread-time-ns) c0) (* 199 1000))
-            ) ;let
-          ) ;lambda
-         )
-        ) ;
-    (let* ((t0 (current-monotonic-millis))
-           (per-tick-us (best-of-3 measure-ticks))
+  (let ((n 199))
+    (let* ((measure-ticks
+             (lambda ()
+               (let ((c0 (thread-time-ns)))
+                 (let loop ((i 0))
+                   (when (< i n)
+                     (working-last-tick-set! (pi-app-working app)
+                       (- (current-monotonic-millis) 80))
+                     (pi-app-working-tick! app)
+                     (loop (+ i 1))
+                   ) ;when
+                 ) ;let
+                 (quotient (- (thread-time-ns) c0) (* n 1000))
+               ) ;let
+             ) ;lambda
+            )
+           ;; 对照组：同一 app 的整帧渲染成本（即优化前的每拍路径）
+           (measure-frames
+             (lambda ()
+               (let ((c0 (thread-time-ns)))
+                 (let loop ((i 0))
+                   (when (< i n)
+                     (pi-app-render! app)
+                     (loop (+ i 1))
+                   ) ;when
+                 ) ;let
+                 (quotient (- (thread-time-ns) c0) (* n 1000))
+               ) ;let
+             ) ;lambda
+            )
+           (t0 (current-monotonic-millis))
+           (tick-a (best-of-3 measure-ticks))
+           (frame-us (best-of-3 measure-frames))
+           ;; 交错复测：整帧测量之后再测一次轻量拍，抵消机器整体快慢漂移
+           (tick-b (best-of-3 measure-ticks))
+           (tick-us (min tick-a tick-b))
            (wall (- (current-monotonic-millis) t0)))
-      (format #t "199 拍轻量 tick：墙钟 ~ams，平均 ~aμs/拍~%" wall per-tick-us)
-      ;; 护栏：轻量 tick 平均应 < 1500μs/拍（原路径 ~3800μs，优化后 ~1100μs；
-      ;; 后续 P1 优化 alt-screen-render! 的调用开销后可进一步收紧）
-      (check-true (< per-tick-us 1500)))))
+      (format #t "~a 拍轻量 tick：墙钟 ~ams，轻量 ~aμs/拍（同轮整帧 ~aμs/帧）~%"
+        n wall tick-us frame-us)
+      ;; 护栏 1：轻量拍须明显便宜于整帧（< 80%）；
+      ;; 若退化为每拍整帧重算，比值回到 ~1.0，本断言即失败
+      (check-true (< (* tick-us 5) (* frame-us 4)))
+      ;; 护栏 2：绝对上限只拦数量级灾难（如拍内出现阻塞 IO），
+      ;; 取 80ms 节拍的 1/4，对机器差异保持宽容
+      (check-true (< tick-us 20000)))))
 
 ;; 3. idle 语义保持：tick 返回 #f，不渲染，spinner 复位
 (let* ((vterm (make-virtual-terminal :width 100 :height 40))
