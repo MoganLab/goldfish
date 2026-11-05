@@ -6,6 +6,7 @@ on:
     paths:
       - 'goldfish/**'
       - 'json/**'
+      - 'library/**'
       - 'src/**'
       - 'tests/**'
       - 'tools/**'
@@ -17,6 +18,7 @@ on:
     paths:
       - 'goldfish/**'
       - 'json/**'
+      - 'library/**'
       - 'src/**'
       - 'tests/**'
       - 'tools/**'
@@ -46,6 +48,8 @@ jobs:
         run: xmake config --yes -vD
       - name: build
         run: xmake build --yes -vD goldfish
+      - name: test library
+        run: bin/gf test library/tests/
       - name: test tools/fmt
         run: bin/gf test tools/fmt/tests
       - name: test tools/check

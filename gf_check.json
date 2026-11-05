@@ -55,12 +55,56 @@
     ],
     "unit-test": [
       {
+        "path": "tests/scheme/",
+        "reason": "现有语言测试正向 goldfish/tests/ 迁移，迁移前保留旧测试布局与文档规范"
+      },
+      {
         "path": "tools/pi/liii/pi/code/core/tools",
         "reason": "工具核心库聚合重导出尚未完全拆分为单函数测试目录"
       },
       {
         "path": "tools/pi/tests/liii/pi/code/core/tools",
         "reason": "工具核心库聚合测试用例尚未完全拆分为单函数测试目录"
+      },
+      {
+        "path": "tools/pi/tests/liii/pi-cli-e2e-test.scm",
+        "reason": "CLI 端到端集成测试，覆盖多轮请求与退出码，不适用单函数文档规范"
+      },
+      {
+        "path": "tools/pi/tests/liii/pi-json-e2e-test.scm",
+        "reason": "JSON 协议端到端集成测试，不适用单函数文档规范"
+      },
+      {
+        "path": "tools/pi/tests/liii/pi-multikey-e2e-test.scm",
+        "reason": "多 API Key 端到端集成测试，不适用单函数文档规范"
+      },
+      {
+        "path": "tools/pi/tests/liii/pi-agent-test.scm",
+        "reason": "Agent 工作流聚合测试，跨多个库函数，不适用单函数文档规范"
+      },
+      {
+        "path": "tools/pi/tests/liii/pi-interactive-agent-test.scm",
+        "reason": "交互式 Agent 聚合测试，跨多个库函数，不适用单函数文档规范"
+      },
+      {
+        "path": "tools/pi/tests/liii/pi-queue-test.scm",
+        "reason": "消息队列状态机聚合测试，尚未按单函数拆分为单函数测试目录"
+      },
+      {
+        "path": "tools/pi/tests/liii/pi-app-queue-test.scm",
+        "reason": "应用层队列聚合测试，跨多个库函数，不适用单函数文档规范"
+      },
+      {
+        "path": "tools/pi/tests/liii/pi-app-thinking-test.scm",
+        "reason": "应用层思考级别聚合测试，跨多个库函数，不适用单函数文档规范"
+      },
+      {
+        "path": "tools/pi/tests/liii/pi-import-leak-test.scm",
+        "reason": "库导入泄漏回归测试，不针对单一函数，不适用单函数文档规范"
+      },
+      {
+        "path": "tools/pi/tests/liii/pi/code/core/prompt/",
+        "reason": "项目上下文测试覆盖库聚合导出与 CLI 注入行为，尚未按单函数规范补齐文档与导览"
       }
     ],
     "no-glue": [

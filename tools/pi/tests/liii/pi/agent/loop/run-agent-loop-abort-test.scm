@@ -22,7 +22,7 @@
   (liii go)
   (liii list)
   (liii check)
-  (liii pi abort)
+  (liii pi ai abort)
   (liii pi agent loop)
   (liii pi ai message)
 ) ;import

@@ -88,6 +88,7 @@ target ("goldfish") do
     if is_plat("wasm") then
         -- preload goldfish stdlib in `bin/goldfish.data`
         add_ldflags("--preload-file goldfish@/goldfish")
+        add_ldflags("--preload-file library@/goldfish/library")
     end
     if is_plat("windows") then
         add_syslinks("psapi")
@@ -175,6 +176,7 @@ target ("goldfish") do
     add_installfiles("$(projectdir)/goldfish/(srfi/**.scm)", {prefixdir = "share/goldfish"})
     add_installfiles("$(projectdir)/goldfish/(liii/**.scm)", {prefixdir = "share/goldfish"})
     add_installfiles("$(projectdir)/goldfish/(hint/**.scm)", {prefixdir = "share/goldfish"})
+    add_installfiles("$(projectdir)/(library/**)", {prefixdir = "share/goldfish"})
     add_installfiles("$(projectdir)/gfproject.json", {prefixdir = "share/goldfish"})
     add_installfiles("$(projectdir)/node-rules.json", {prefixdir = "share/goldfish"})
     add_installfiles("$(projectdir)/(tools/**)", {prefixdir = "share/goldfish"})
@@ -199,6 +201,7 @@ target("goldfish_repl_wasm")
         add_defines("S7_DEBUGGING")
     end
     add_ldflags("--preload-file goldfish@/goldfish")
+    add_ldflags("--preload-file library@/goldfish/library")
     -- 导出 REPL 相关函数
     add_ldflags("-sEXPORTED_FUNCTIONS=['_eval_string','_get_out','_get_err','_malloc','_free']", {force = true})
     add_ldflags("-sEXPORTED_RUNTIME_METHODS=['UTF8ToString','allocateUTF8']", {force = true})
@@ -229,6 +232,7 @@ xpack ("goldfish")
     add_sourcefiles("xmake.lua")
     add_sourcefiles("(src/**)")
     add_sourcefiles("(goldfish/**)")
+    add_sourcefiles("(library/**)")
     add_sourcefiles("(tests/**)")
     add_sourcefiles("(tools/**)")
     add_sourcefiles("(3rdparty/**)")

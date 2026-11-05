@@ -12,6 +12,7 @@ on:
     paths:
       - "src/**"
       - "goldfish/**"
+      - "library/**"
       - "tests/**"
       - "tools/**"
       - ".clang-format"
@@ -26,6 +27,7 @@ on:
     paths:
       - "src/**"
       - "goldfish/**"
+      - "library/**"
       - "tests/**"
       - "tools/**"
       - ".clang-format"
