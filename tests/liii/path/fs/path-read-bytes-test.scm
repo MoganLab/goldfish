@@ -1,7 +1,3 @@
-(import (liii check) (liii path) (liii os))
-
-(check-set-mode! 'report-failed)
-
 ;; path-read-bytes
 ;; 以 bytevector 形式从文件中读取二进制数据。
 ;;
@@ -25,6 +21,11 @@
 ;; file-error 当路径为目录时。
 
 ;; 基本二进制文件测试
+
+(import (liii check) (liii path) (liii os))
+
+(check-set-mode! 'report-failed)
+
 (let ((binary-file (path-join (path-temp-dir) "path-read-bytes-basic.dat")))
   (when (path-exists? binary-file)
     (delete-file (path->string binary-file))

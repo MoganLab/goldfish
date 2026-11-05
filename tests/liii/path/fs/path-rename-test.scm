@@ -1,7 +1,3 @@
-(import (liii check) (liii path) (liii os))
-
-(check-set-mode! 'report-failed)
-
 ;; path-rename
 ;; 重命名文件或目录。
 ;;
@@ -27,13 +23,15 @@
 ;; 如果目标文件已存在，抛出 file-exists-error。
 ;;
 ;; 注意(有意偏离 pathlib)
-;; ----
 ;; pathlib.Path.rename 在目标已存在时为覆盖语义(POSIX rename(2) 覆盖、Windows 3.12+ 也覆盖)。
 ;; goldfish 的 path-rename 选择更安全的不覆盖策略:目标已存在即报 file-exists-error,既不覆盖也不移动。
 ;;
 ;; 相关函数
-;; ----
 ;; gf doc liii/os "rename"
+
+(import (liii check) (liii path) (liii os))
+
+(check-set-mode! 'report-failed)
 
 (let* ((temp-dir (path-temp-dir))
        (src-file (path-join temp-dir "rename-test-src.txt"))

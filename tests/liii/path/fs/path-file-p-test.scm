@@ -1,7 +1,3 @@
-(import (liii check) (liii path) (liii os))
-
-(check-set-mode! 'report-failed)
-
 ;; path-file?
 ;; 判断给定路径是否为文件。
 ;;
@@ -20,6 +16,11 @@
 ;; 当路径存在且为文件时返回 #t，否则返回 #f。
 
 ;; 基本功能测试
+
+(import (liii check) (liii path) (liii os))
+
+(check-set-mode! 'report-failed)
+
 (check (path-file? ".") => #f)
 (check (path-file? "..") => #f)
 (check (path-file? "") => #f)

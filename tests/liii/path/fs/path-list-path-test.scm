@@ -1,16 +1,3 @@
-(import (liii check) (liii path) (liii string) (liii os))
-
-(check-set-mode! 'report-failed)
-
-;; 辅助函数
-
-(define (string-list-contains? target xs)
-  (cond ((null? xs) #f)
-        ((string=? target (car xs)) #t)
-        (else (string-list-contains? target (cdr xs)))
-  ) ;cond
-) ;define
-
 ;; path-list-path
 ;; 列出目录中的路径值。
 ;;
@@ -32,7 +19,16 @@
 ;; ----
 ;; path-list-path 返回路径值向量，与 path-list 不同，返回的是路径值而非字符串。
 
-;; 辅助函数
+(import (liii check) (liii path) (liii string) (liii os))
+
+(check-set-mode! 'report-failed)
+
+(define (string-list-contains? target xs)
+  (cond ((null? xs) #f)
+        ((string=? target (car xs)) #t)
+        (else (string-list-contains? target (cdr xs)))
+  ) ;cond
+) ;define
 
 (define (path-vector->string-list xs)
   (vector->list (vector-map path->string xs))

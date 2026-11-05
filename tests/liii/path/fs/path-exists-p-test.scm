@@ -1,7 +1,3 @@
-(import (liii check) (liii path) (liii os))
-
-(check-set-mode! 'report-failed)
-
 ;; path-exists?
 ;; 判断给定路径是否存在。
 ;;
@@ -20,6 +16,11 @@
 ;; 当路径存在时返回 #t，路径不存在时返回 #f。
 
 ;; 基本功能测试
+
+(import (liii check) (liii path) (liii os))
+
+(check-set-mode! 'report-failed)
+
 (check-true (path-exists? "."))
 (check-true (path-exists? ".."))
 (check-true (path-exists? (path ".")))

@@ -1,7 +1,3 @@
-(import (liii check) (liii path) (liii os))
-
-(check-set-mode! 'report-failed)
-
 ;; path-copy
 ;; 将文件复制到目标路径。
 ;;
@@ -20,6 +16,10 @@
 ;; ------
 ;; boolean
 ;; 复制成功返回 #t，失败返回 #f。
+
+(import (liii check) (liii path) (liii os))
+
+(check-set-mode! 'report-failed)
 
 (let ((src "tests/liii/path/path-copy-src.txt")
       (dst "tests/liii/path/path-copy-dst.txt")

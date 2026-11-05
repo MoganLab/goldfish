@@ -1,7 +1,3 @@
-(import (liii check) (liii path) (liii error) (liii os))
-
-(check-set-mode! 'report-failed)
-
 ;; path-write-text
 ;; 写入文本文件内容。
 ;;
@@ -25,6 +21,11 @@
 ;; type-error 当 content 不是字符串时。
 
 ;; 基本写入测试
+
+(import (liii check) (liii path) (liii error) (liii os))
+
+(check-set-mode! 'report-failed)
+
 (let ((write-file (path-join (path-temp-dir) "path-write-text-basic.txt")))
   (when (path-exists? write-file)
     (delete-file (path->string write-file))

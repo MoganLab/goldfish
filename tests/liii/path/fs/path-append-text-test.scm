@@ -1,7 +1,3 @@
-(import (liii check) (liii path))
-
-(check-set-mode! 'report-failed)
-
 ;; path-append-text
 ;; 追加文本到文件。
 ;;
@@ -21,6 +17,11 @@
 ;; unspecified
 
 ;; 追加文本测试
+
+(import (liii check) (liii path))
+
+(check-set-mode! 'report-failed)
+
 (let ((append-file (path-join (path-temp-dir) "path-append-text.txt")))
   (when (path-exists? append-file)
     (delete-file (path->string append-file))
