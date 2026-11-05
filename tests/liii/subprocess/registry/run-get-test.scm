@@ -1,5 +1,3 @@
-(import (liii check) (liii os) (liii path) (liii subprocess))
-
 ;; run-get
 ;; 查询符号命令的注册值。
 ;;
@@ -16,7 +14,11 @@
 ;; path 对象、lambda 或 #f。
 ;; 未注册时返回 #f。
 
-(when (os-linux?)
+(import (liii check) (liii os) (liii path) (liii subprocess))
+
+(check-set-mode! 'report-failed)
+
+(when (or (os-linux?) (os-macos?))
   (run-set! 'ls "/bin/ls")
   (check (path? (run-get 'ls)) => #t)
   (check (run-get 'not-exist) => #f)

@@ -1,7 +1,3 @@
-(import (liii check) (liii os) (liii subprocess))
-
-(check-set-mode! 'report-failed)
-
 ;; run-unban!
 ;; 取消对某个符号命令的禁止。
 ;;
@@ -22,6 +18,10 @@
 ;; ----
 ;; - 用于解除由 run-ban! 或默认设置的命令禁止。
 ;; - 解除后，该命令可以再次正常执行。
+
+(import (liii check) (liii os) (liii subprocess))
+
+(check-set-mode! 'report-failed)
 
 (when (or (os-linux?) (os-macos?))
   (run-set! 'unban-echo "/bin/echo")
