@@ -1,7 +1,3 @@
-(import (liii check) (liii match))
-
-(check-set-mode! 'report-failed)
-
 ;; match-letrec
 ;; 递归匹配并绑定变量，类似于 letrec，在所有表达式中都能访问所有绑定的变量（常用于定义互相递归的过程）。
 ;;
@@ -26,6 +22,11 @@
 ;; 最后一个 body 表达式的求值结果。
 
 ;; 互相递归函数解构绑定
+
+(import (liii check) (liii match))
+
+(check-set-mode! 'report-failed)
+
 (check
   (match-letrec
    (((even? odd?)
