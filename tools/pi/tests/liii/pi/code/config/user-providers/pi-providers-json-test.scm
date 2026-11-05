@@ -13,7 +13,7 @@
 ;; 返回值
 ;; ----
 ;; string
-;; JSON 数组文本，末尾带换行。
+;; 多行 JSON 数组文本（逐元素展开、2 空格缩进），末尾带换行。
 
 (import (liii check) (liii pi code config user-providers))
 
@@ -21,7 +21,7 @@
 
 (check (pi-providers-json '("google" "kimi-coding"))
   =>
-  "[\"google\", \"kimi-coding\"]\n"
+  "[\n  \"google\",\n  \"kimi-coding\"\n]\n"
 ) ;check
 
 (check (pi-providers-json '()) => "[]\n")

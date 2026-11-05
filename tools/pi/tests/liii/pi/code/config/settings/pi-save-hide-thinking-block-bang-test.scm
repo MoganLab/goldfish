@@ -21,6 +21,7 @@
   (scheme file)
   (liii check)
   (liii json)
+  (liii string)
   (liii path)
   (liii shutil)
   (liii pi code config settings)
@@ -49,6 +50,9 @@
   (check (cdr (assoc "defaultThinkingLevel" json)) => "off")
   (check (cdr (assoc "enabled" (cdr (assoc "compaction" json)))) => 'false)
   (check (pi-settings-hide-thinking-block (pi-load-settings AGENT-DIR)) => #t)
+  ;; 写盘为格式化 JSON（多行、2 空格缩进），不再是单行
+  (check (string-contains (path-read-text SETTINGS) "\n  \"hideThinkingBlock\": true,") => #t)
+  (check (string-contains (path-read-text SETTINGS) "\n  \"defaultProvider\": \"google\",") => #t)
 ) ;let
 
 ;; 显示：替换为 false 而不是添加重复键

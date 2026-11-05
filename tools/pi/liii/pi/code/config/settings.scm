@@ -14,6 +14,7 @@
     (liii json)
     (liii pi ai config types)
     (liii pi ai config record)
+    (liii pi code config json-write)
     (liii pi code core compaction tokens)
   ) ;import
   (export json-dict-ref pi-read-json-file pi-load-settings
@@ -138,7 +139,7 @@
              ) ;updated
             ) ;
         (path-mkdir config-dir :parents #t :exist-ok #t)
-        (path-write-text filepath (string-append (json->string updated) "\n"))
+        (path-write-text filepath (string-append (pi-config-json-pretty updated) "\n"))
         level
       ) ;let*
     ) ;define
@@ -164,7 +165,7 @@
              ) ;updated
             ) ;
         (path-mkdir config-dir :parents #t :exist-ok #t)
-        (path-write-text filepath (string-append (json->string updated) "\n"))
+        (path-write-text filepath (string-append (pi-config-json-pretty updated) "\n"))
         (list provider model-id)
       ) ;let*
     ) ;define
@@ -189,7 +190,7 @@
              ) ;updated
             ) ;
         (path-mkdir config-dir :parents #t :exist-ok #t)
-        (path-write-text filepath (string-append (json->string updated) "\n"))
+        (path-write-text filepath (string-append (pi-config-json-pretty updated) "\n"))
         (and hide #t)
       ) ;let*
     ) ;define
