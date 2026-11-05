@@ -1,7 +1,3 @@
-(import (liii check) (liii error) (liii either))
-
-(check-set-mode! 'report-failed)
-
 ;; either-for-each
 ;; 对 Right 值执行副作用函数，对 Left 值不做任何操作。
 ;;
@@ -26,13 +22,13 @@
 ;; ----
 ;; 对 Left 值调用时不会执行 proc。
 ;;
-;; 示例
-;; ----
-;; (either-for-each display (from-right 5)) => 对 5 执行 display
-;;
 ;; 错误处理
 ;; ----
 ;; type-error 当 proc 不是过程或 either 不是 Either 时
+
+(import (liii check) (liii error) (liii either))
+
+(check-set-mode! 'report-failed)
 
 (let ((counter 0) (left-val (from-left "error")) (right-val (from-right 5)))
   (either-for-each (lambda (x) (set! counter (+ counter x))) left-val)

@@ -1,7 +1,3 @@
-(import (liii check) (liii error) (liii either))
-
-(check-set-mode! 'report-failed)
-
 ;; either-every
 ;; 对 Either 做全称量词判断。
 ;;
@@ -26,14 +22,13 @@
 ;; ----
 ;; Left 的返回值体现空真性。
 ;;
-;; 示例
-;; ----
-;; (either-every even? (from-right 10)) => #t
-;; (either-every even? (from-left "error")) => #t
-;;
 ;; 错误处理
 ;; ----
 ;; type-error 当 pred 不是过程或 either 不是 Either 时
+
+(import (liii check) (liii error) (liii either))
+
+(check-set-mode! 'report-failed)
 
 (check-true (either-every even? (from-right 10)))
 (check-false (either-every even? (from-right 11)))

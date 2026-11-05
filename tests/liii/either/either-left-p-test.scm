@@ -1,7 +1,3 @@
-(import (liii check) (liii either))
-
-(check-set-mode! 'report-failed)
-
 ;; either-left?
 ;; 判断 Either 值是否为 Left。
 ;;
@@ -23,14 +19,13 @@
 ;; ----
 ;; 非 Either 值返回 #f。
 ;;
-;; 示例
-;; ----
-;; (either-left? (from-left "error")) => #t
-;; (either-left? (from-right 1)) => #f
-;;
 ;; 错误处理
 ;; ----
 ;; 无
+
+(import (liii check) (liii either))
+
+(check-set-mode! 'report-failed)
 
 (let ((left-val (from-left "error")) (right-val (from-right "success")))
   (check-true (either-left? left-val))

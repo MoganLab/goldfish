@@ -1,7 +1,3 @@
-(import (liii check) (liii error) (liii either))
-
-(check-set-mode! 'report-failed)
-
 ;; either-contains?
 ;; 判断 Right 中是否包含指定值。
 ;;
@@ -26,14 +22,13 @@
 ;; ----
 ;; Left 总是返回 #f。
 ;;
-;; 示例
-;; ----
-;; (either-contains? (from-right 10) 10) => #t
-;; (either-contains? (from-left 10) 10) => #f
-;;
 ;; 错误处理
 ;; ----
 ;; type-error 当 either 不是 Either 时
+
+(import (liii check) (liii error) (liii either))
+
+(check-set-mode! 'report-failed)
 
 (check-true (either-contains? (from-right 10) 10))
 (check-false (either-contains? (from-right 11) 10))

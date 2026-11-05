@@ -1,7 +1,3 @@
-(import (liii check) (liii error) (liii either))
-
-(check-set-mode! 'report-failed)
-
 ;; to-right
 ;; 从 Right 状态的 Either 中提取内部值。
 ;;
@@ -23,14 +19,14 @@
 ;; ----
 ;; 对非 Either 或 Left 调用时会报错。
 ;;
-;; 示例
-;; ----
-;; (to-right (from-right 100)) => 100
-;;
 ;; 错误处理
 ;; ----
 ;; type-error 当输入不是 Either 时
 ;; value-error 当输入是 Left 时
+
+(import (liii check) (liii error) (liii either))
+
+(check-set-mode! 'report-failed)
 
 (check (to-right (from-right "success data")) => "success data")
 (check (to-right (from-right 100)) => 100)

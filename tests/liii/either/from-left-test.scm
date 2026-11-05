@@ -1,7 +1,3 @@
-(import (liii check) (liii error) (liii either))
-
-(check-set-mode! 'report-failed)
-
 ;; from-left
 ;; 创建 Left 值，通常代表错误或异常情况。
 ;;
@@ -23,13 +19,13 @@
 ;; ----
 ;; 本文件只验证构造结果本身，不覆盖提取函数行为。
 ;;
-;; 示例
-;; ----
-;; (from-left "error") => 一个 Left 状态的 Either 值
-;;
 ;; 错误处理
 ;; ----
 ;; 无
+
+(import (liii check) (liii error) (liii either))
+
+(check-set-mode! 'report-failed)
 
 (let ((v (from-left "error message")))
   (check-true (pair? v))
