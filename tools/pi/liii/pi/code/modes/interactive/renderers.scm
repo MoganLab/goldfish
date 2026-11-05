@@ -300,16 +300,17 @@
       ) ;let*
     ) ;define
 
-    ;; 渲染层对齐上游 getTextOutput + Text：剥 ANSI/OSC、删控制字符与 \r，
-    ;; TAB 展开为定宽 3 空格；展开态全文 wrap，折叠态仅尾部处理（见上）
+    (define (%clean-tool-display-text raw)
+      (string-replace (string-replace (sanitize-binary-output (strip-ansi raw)) "\r" "")
+        "\t"
+        "   "
+      ) ;string-replace
+    ) ;define
+
+    ;; Bash：展开态全文 wrap，折叠态仅尾部处理
     (define (format-bash-tool-result-lines result width expanded?)
       (let* ((raw (string-trim-both (extract-result-text result)))
-             (clean
-               (string-replace (string-replace (sanitize-binary-output (strip-ansi raw)) "\r" "")
-                 "\t"
-                 "   "
-               ) ;string-replace
-             ) ;clean
+             (clean (%clean-tool-display-text raw))
              (w (max 1 width))
             ) ;
         (cond ((string-null? clean) '())
@@ -376,7 +377,7 @@
     (define* (format-tool-result-lines name result (max-lines 5) (expanded? #f))
       (if (or (not result) (and (string? result) (string-null? result)))
         '()
-        (let* ((res-str (extract-result-text result))
+        (let* ((res-str (%clean-tool-display-text (extract-result-text result)))
                (res-trimmed (string-trim-right res-str #\newline))
               ) ;
           (cond ((string-null? res-trimmed) '())

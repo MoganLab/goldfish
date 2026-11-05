@@ -2,7 +2,7 @@
 ;;
 ;; 用法：在 tmux 会话内运行
 ;;   tmux set -g mouse on
-;;   bin/gf tests/liii/tui/mouse/tmux-wheel-demo.scm
+;;   bin/gf tests/liii/tui/mouse/wheel-demo.scm
 ;; 然后滚动鼠标滚轮（或 tmux send-keys -t <session> -M WheelUpPane），
 ;; 屏幕实时打印事件：wheel-up=向上翻，wheel-down=向下翻。
 ;; 按 q 或 Ctrl+C 退出。

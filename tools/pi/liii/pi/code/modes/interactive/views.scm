@@ -19,6 +19,7 @@
     (liii tui mouse)
     (liii tui text-width)
     (liii pi code modes interactive renderers)
+    (liii pi code utils shell)
     (liii pi code modes interactive views assistant)
     (liii pi code modes interactive views cache)
     (liii pi code modes interactive views theme)
@@ -27,9 +28,7 @@
   ) ;import
   (begin
 
-    ;; 用户提问卡片组件 (make-user-card text)
-    ;; 对齐 pi UserMessageComponent：Markdown(paddingX=1, paddingY=1) + userMessageBg/userMessageText，
-    ;; 上下各一行带背景的空 padding 行，正文 1 空格缩进，无前缀符号；
+    ;; 用户提问卡片：对齐 pi UserMessageComponent，正文 1 空格缩进；
     ;; 超宽行按内容宽度折行（左右各留 1 空格），避免 alt-screen 截断吞掉内容
     (define (%render-user-card text width)
       (if (<= width 0)
@@ -245,7 +244,7 @@
              (bg (%tool-bg status))
              (content-width (max 1 (- width 2)))
              (segs (format-tool-call-segments tool-name args))
-             (plain (format-tool-call tool-name args))
+             (plain (apply string-append (map cdr segs)))
              (title-rows
                (if (<= (display-width plain) content-width)
                  (list (apply-card-bg (string-append " " (%style-segments segs)) width bg ""))

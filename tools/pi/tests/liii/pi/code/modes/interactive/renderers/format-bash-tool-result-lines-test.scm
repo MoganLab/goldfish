@@ -84,4 +84,7 @@
   ) ;check
 ) ;let*
 
+;; RIS 清理不能只删除 ESC 而把终结字节 c 留在正文中。
+(check (format-bash-tool-result-lines "before\x1b;cafter" 80 #f) => '("beforeafter"))
+
 (check-report)

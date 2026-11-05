@@ -14,6 +14,7 @@
     (liii pi code modes interactive views cache)
     (liii pi code modes interactive views theme)
     (liii pi code modes interactive views wrap)
+    (liii pi code utils shell)
   ) ;import
   (begin
 
@@ -64,7 +65,7 @@
     ) ;define
 
     (define* (make-thinking-card first-line (hidden #f))
-      (let* ((st (%make-thinking-card (list first-line)
+      (let* ((st (%make-thinking-card (list (sanitize-display-text first-line))
                    (and hidden #t)
                    (%make-render-cache #f '())
                  ) ;%make-thinking-card
@@ -79,7 +80,9 @@
 
     (define (thinking-card-append-line! card line)
       (let ((st (component-data card)))
-        (%thinking-card-lines-set! st (append (%thinking-card-lines st) (list line)))
+        (%thinking-card-lines-set! st
+          (append (%thinking-card-lines st) (list (sanitize-display-text line)))
+        ) ;%thinking-card-lines-set!
       ) ;let
     ) ;define
 

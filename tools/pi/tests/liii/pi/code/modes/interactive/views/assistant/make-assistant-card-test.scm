@@ -103,6 +103,13 @@
   (check lines => '("hi" ""))
 ) ;let*
 
+;; 模型正文是不可信显示文本：RIS 和关闭鼠标序列不得透传到终端。
+(check (component-render (make-assistant-card "before\x1b;cafter") 40) => '("beforeafter" ""))
+(check (component-render (make-assistant-card "before\x1b;[?1000lafter") 40)
+  =>
+  '("beforeafter" "")
+) ;check
+
 ;; 零宽及负宽终端不渲染
 (let ((card (make-assistant-card "hello")))
   (check (component-render card 0) => '())

@@ -25,7 +25,10 @@ gf doc display-width
 
 ### ANSI 转义序列处理
 - `strip-ansi` - 剔除字符串中的 ANSI 转义序列
-- `%match-ansi` - 匹配 ANSI 转义序列（CSI 或 OSC）
+- `%match-ansi` - 匹配 ANSI 转义序列（CSI、OSC、字符串序列及短 ESC 序列）
 - `%match-ansi-csi` - 匹配 ANSI CSI 转义序列
 - `%match-ansi-osc` - 匹配 ANSI OSC 转义序列
 - `%is-sgr-reset?` - 判断字符串是否为 ANSI SGR 重置序列
+
+`strip-ansi` 同时支持 RIS（`ESC c`）、键盘模式等短 ESC 序列，以及带私有参数的
+SGR 鼠标报告。不完整 CSI/OSC 保留给后续流式输入补全。

@@ -16,6 +16,7 @@
 
 (import (scheme base)
   (liii check)
+  (liii os)
   (liii list)
   (liii string)
   (liii tui)
@@ -67,5 +68,25 @@
     (check (%count-frames (virtual-terminal-raw vterm)) => 2)
   ) ;let
 ) ;let*
+
+;; 可选真实终端验收入口，正常单元测试不进入此分支。
+;; 在 tmux 中运行：
+;;   PI_WHEEL_DEMO=1 bin/gf -I tools/pi tools/pi/tests/liii/pi/code/modes/interactive/run/pi-app-run-wheel-merge-test.scm
+;; 用实际鼠标滚轮滚动对话，Ctrl+D 退出；输入框不应出现上下方向键效果。
+(if (getenv "PI_WHEEL_DEMO")
+  (let ((app (make-pi-app :handler (lambda (a msg) #t))))
+    (do ((i 0 (+ i 1)))
+      ((= i 20))
+      (pi-app-add-user-message! app (string-append "message " (number->string i)))
+    ) ;do
+    (pi-app-add-tool-result! app
+      "read"
+      '((path . "ris-demo"))
+      'error
+      "RIS was removed: before\x1b;cafter"
+    ) ;pi-app-add-tool-result!
+    (pi-app-run app)
+  ) ;let
+) ;if
 
 (check-report)

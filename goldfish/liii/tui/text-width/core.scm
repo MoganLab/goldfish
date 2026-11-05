@@ -50,6 +50,82 @@
       ) ;if
     ) ;define
 
+    ;; ESC 引导的双字节序列：覆盖 ECMA-48 的 Fe/Fs/Fp/nF 终结字节。
+    ;; 包括 RIS（ESC c）、保存/恢复光标（ESC 7/8）、键盘模式（ESC =/>）
+    ;; 及字符串终结符（ESC \）。终结字节本身也必须消费，不能只删除 ESC。
+    ;; 普通字母（如 ESC b）不是合法 Fe 序列，不能误吞后续文本。
+    (define (%match-ansi-esc bv i len)
+      (if
+        (and (< (+ i 1) len)
+          (= (bytevector-u8-ref bv i) 27)
+          (let ((b (bytevector-u8-ref bv (+ i 1))))
+            (or (and (>= b 48) (<= b 63))
+              (and (>= b 32) (<= b 47) (< (+ i 2) len) (>= (bytevector-u8-ref bv (+ i 2)) 48))
+              ;; [ ] P ^ _ X 是 CSI 或字符串序列的引导符，由前面的
+              ;; 专用匹配器处理；不完整时不能当作独立短 ESC 序列。
+              (and (>= b 64) (<= b 95) (not (memv b '(80 88 91 93 94 95))))
+              (memv b '(99 102 103 104 105 106 107 108 109 110 113 114 115 116
+                        117 121))
+            ) ;or
+          ) ;let
+        ) ;and
+        (let ((b (bytevector-u8-ref bv (+ i 1))))
+          (if (and (>= b 32) (<= b 47)) (min len (+ i 3)) (+ i 2))
+        ) ;let
+        #f
+      ) ;if
+    ) ;define
+
+    ;; DCS/SOS/PM/APC 字符串序列：与 OSC 一样等待 BEL、ESC \ 或 C1 ST。
+    (define (%match-ansi-string bv i len)
+      (if
+        (and (< (+ i 1) len)
+          (= (bytevector-u8-ref bv i) 27)
+          (memv (bytevector-u8-ref bv (+ i 1)) '(80 88 94 95))
+        ) ;and
+        (let loop
+          ((j (+ i 2)))
+          (if (>= j len)
+            #f
+            (let ((b (bytevector-u8-ref bv j)))
+              (cond ((= b 7) (+ j 1))
+                    ((and (= b 27) (< (+ j 1) len) (= (bytevector-u8-ref bv (+ j 1)) 92)) (+ j 2))
+                    ((= b 156) (+ j 1))
+                    ((and (= b 194) (< (+ j 1) len) (= (bytevector-u8-ref bv (+ j 1)) 156)) (+ j 2))
+                    (else (loop (+ j 1)))
+              ) ;cond
+            ) ;let
+          ) ;if
+        ) ;let
+        #f
+      ) ;if
+    ) ;define
+
+    ;; 单字节 C1 CSI（U+009B，UTF-8 C2 9B）。
+    (define (%match-ansi-c1-csi bv i len)
+      (if
+        (and (< (+ i 1) len)
+          (= (bytevector-u8-ref bv i) 194)
+          (= (bytevector-u8-ref bv (+ i 1)) 155)
+        ) ;and
+        (let loop
+          ((j (+ i 2)) (prefix? #t))
+          (if (>= j len)
+            #f
+            (let ((b (bytevector-u8-ref bv j)))
+              (cond
+               ((and prefix? (memv b '(40 41 91 93))) (loop (+ j 1) #t))
+               ((and (>= b 48) (<= b 63)) (loop (+ j 1) #f))
+               ((and (>= b 64) (<= b 126)) (+ j 1))
+               (else #f)
+              ) ;cond
+            ) ;let
+          ) ;if
+        ) ;let
+        #f
+      ) ;if
+    ) ;define
+
     ;; OSC 序列：ESC ] ... ST，ST ∈ { BEL(0x07)，ESC \(27 92)，C1 ST(0x9C) }
     ;; 对齐上游 ansi-regex：OSC 到第一个终结符为止。
     ;; 无终结符（不完整 OSC）返回 #f：保守不剥，等待流式后续块补全
@@ -67,6 +143,7 @@
               (cond ((= b 7) (+ j 1))
                     ((and (= b 27) (< (+ j 1) len) (= (bytevector-u8-ref bv (+ j 1)) 92)) (+ j 2))
                     ((= b 156) (+ j 1))
+                    ((and (= b 194) (< (+ j 1) len) (= (bytevector-u8-ref bv (+ j 1)) 156)) (+ j 2))
                     (else (loop (+ j 1)))
               ) ;cond
             ) ;let
@@ -76,9 +153,15 @@
       ) ;if
     ) ;define
 
-    ;; 任意 ANSI 转义序列（CSI 或 OSC）的结束位置，均不匹配时返回 #f
+    ;; 任意 ANSI 转义序列（CSI、OSC 或短 ESC 序列）的结束位置，
+    ;; 均不匹配时返回 #f。CSI/OSC 优先于短 ESC，保证其载荷不被逐字节输出。
     (define (%match-ansi bv i len)
-      (or (%match-ansi-csi bv i len) (%match-ansi-osc bv i len))
+      (or (%match-ansi-csi bv i len)
+        (%match-ansi-osc bv i len)
+        (%match-ansi-string bv i len)
+        (%match-ansi-c1-csi bv i len)
+        (%match-ansi-esc bv i len)
+      ) ;or
     ) ;define
 
     (define (%codepoint-width cp)
@@ -137,6 +220,38 @@
       ) ;let
     ) ;define
 
+    (define (%bv-next-c1-csi bv start len)
+      (let loop
+        ((i start))
+        (cond ((>= (+ i 1) len) #f)
+              ((and (= (bytevector-u8-ref bv i) 194) (= (bytevector-u8-ref bv (+ i 1)) 155))
+               i
+              ) ;
+              (else (loop (+ i 1)))
+        ) ;cond
+      ) ;let
+    ) ;define
+
+    (define (%bv-next-ansi-start bv start len)
+      (let ((esc (%bv-next-esc bv start len)) (c1 (%bv-next-c1-csi bv start len)))
+        (if (and esc c1) (min esc c1) (or esc c1 len))
+      ) ;let
+    ) ;define
+
+    (define (%strip-ansi-loop bv len i acc)
+      (if (>= i len)
+        (apply string-append (reverse acc))
+        (let ((ansi-end (%match-ansi bv i len)))
+          (if ansi-end
+            (%strip-ansi-loop bv len ansi-end acc)
+            (let* ((next (%bv-next-ansi-start bv (+ i 1) len)) (chunk (%clean-segment bv i next)))
+              (%strip-ansi-loop bv len next (cons chunk acc))
+            ) ;let*
+          ) ;if
+        ) ;let
+      ) ;if
+    ) ;define
+
     ;; 段内文本：整段复制并把非法 UTF-8 字节替换为 U+FFFD
     (define (%clean-segment bv start end)
       (utf8-replace-invalid (byte-vector->string (bytevector-copy bv start end)))
@@ -155,23 +270,7 @@
         (let* ((bv (string->byte-vector str)) (len (bytevector-length bv)))
           (if (not (%bv-contains-esc? bv len))
             (utf8-replace-invalid str)
-            (let loop
-              ((i 0) (acc '()))
-              (if (>= i len)
-                (apply string-append (reverse acc))
-                (let ((ansi-end (%match-ansi bv i len)))
-                  (if ansi-end
-                    (loop ansi-end acc)
-                    (let* ((esc (%bv-next-esc bv (+ i 1) len))
-                           (end (if esc esc len))
-                           (chunk (%clean-segment bv i end))
-                          ) ;
-                      (loop end (cons chunk acc))
-                    ) ;let*
-                  ) ;if
-                ) ;let
-              ) ;if
-            ) ;let
+            (%strip-ansi-loop bv len 0 '())
           ) ;if
         ) ;let*
       ) ;if

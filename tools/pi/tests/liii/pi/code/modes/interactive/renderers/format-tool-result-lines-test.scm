@@ -78,4 +78,15 @@
 ;; 展开态空结果与折叠态一致返回空表
 (check (format-tool-result-lines "read" "" :expanded? #t) => '())
 
+;; 所有工具输出都按上游 getTextOutput 清理：RIS、关闭鼠标和颜色序列
+;; 不得进入卡片渲染，避免不可信工具结果改变宿主终端状态。
+(check (format-tool-result-lines "read" "before\x1b;cafter" :expanded? #t) => '("beforeafter"))
+(check (format-tool-result-lines "grep" "before\x1b;[?1000lafter") => '("beforeafter"))
+(check (format-tool-result-lines "custom" "\x1b;[31mred\x1b;[0m\x01;\x7f;")
+  =>
+  '("red")
+) ;check
+;; 与 Bash 显示管线一致：TAB 展开为三空格，CR 删除。
+(check (format-tool-result-lines "read" "a\tb\r\n") => '("a   b"))
+
 (check-report)

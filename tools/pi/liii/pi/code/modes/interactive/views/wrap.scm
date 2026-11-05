@@ -10,7 +10,11 @@
 ;; 中文等宽字符按字符宽度逐字折行。
 (define-library (liii pi code modes interactive views wrap)
   (export %card-content-width %card-body-lines)
-  (import (scheme base) (liii list) (liii tui text-width))
+  (import (scheme base)
+    (liii list)
+    (liii tui text-width)
+    (liii pi code utils shell)
+  ) ;import
   (begin
 
     ;; 卡片正文可用宽度：终端宽度减去左右留白，至少保留 1 列
@@ -25,7 +29,9 @@
     ;;   （可加前缀、背景色或 ANSI 样式）。
     (define (%card-body-lines text width left-pad right-pad style-fn)
       (append-map style-fn
-        (wrap-text text (%card-content-width width left-pad right-pad))
+        (wrap-text (sanitize-display-text text)
+          (%card-content-width width left-pad right-pad)
+        ) ;wrap-text
       ) ;append-map
     ) ;define
 

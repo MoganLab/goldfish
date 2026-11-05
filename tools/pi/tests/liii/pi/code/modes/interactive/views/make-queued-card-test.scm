@@ -36,4 +36,9 @@
   (check-false (eq? lines (component-render queued-card 20)))
 ) ;let*
 
+(check (map strip-ansi (component-render (make-queued-card "before\x1b;cafter") 80))
+  =>
+  '("  ↳ [Queued: beforeafter]")
+) ;check
+
 (check-report)
