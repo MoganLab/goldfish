@@ -1,10 +1,3 @@
-(import (liii check)
-  (liii os)
-  (liii path stat)
-) ;import
-
-(check-set-mode! 'report-failed)
-
 ;; path-stat-ctime
 ;; 获取 <path-stat> 记录中的元数据改变或创建时间（Unix 时间戳，单位秒）。
 ;;
@@ -21,6 +14,10 @@
 ;; -----
 ;; real
 ;; 状态改变或创建时间戳（秒）。
+
+(import (liii check) (liii os) (liii path stat))
+
+(check-set-mode! 'report-failed)
 
 (let ((st (make-path-stat 0 0 0 54321.123 0)))
   (check (path-stat-ctime st) => 54321.123)

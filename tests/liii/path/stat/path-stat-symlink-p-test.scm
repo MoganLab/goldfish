@@ -1,11 +1,3 @@
-(import (liii check)
-  (liii os)
-  (liii path stat)
-  (scheme file)
-) ;import
-
-(check-set-mode! 'report-failed)
-
 ;; path-stat-symlink?
 ;; 基于 <path-stat> 元数据判断是否为符号链接。
 ;;
@@ -23,8 +15,12 @@
 ;; boolean
 ;; 当模式位指示为符号链接时返回 #t，否则返回 #f。
 
-(let ((custom-link (make-path-stat 10 0 0 0 40960)) ; S_IFLNK
-      (custom-file (make-path-stat 10 0 0 0 32768)) ; S_IFREG
+(import (liii check) (liii os) (liii path stat) (scheme file))
+
+(check-set-mode! 'report-failed)
+
+(let ((custom-link (make-path-stat 10 0 0 0 40960))
+      (custom-file (make-path-stat 10 0 0 0 32768))
      ) ;
   (check-true (path-stat-symlink? custom-link))
   (check-false (path-stat-symlink? custom-file))
