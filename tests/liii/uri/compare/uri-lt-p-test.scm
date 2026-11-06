@@ -1,9 +1,3 @@
-(import (liii check) (liii uri record) (liii uri compare))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; uri<?
 ;; 检查第一个 URI 是否小于第二个（字典序）。
 ;;
@@ -11,11 +5,19 @@
 ;; ----
 ;; (uri<? uri1 uri2)
 ;;
+;; 参数
+;; ----
+;; uri1、uri2 : uri?
+;;   要比较的两个 URI 对象。
+;;
 ;; 返回值
 ;; ----
 ;; boolean?
 ;;   如果 uri1 < uri2 返回 #t，否则返回 #f。
 
+(import (liii check) (liii uri record) (liii uri compare))
+
+(check-set-mode! 'report-failed)
 
 ;; 不同 scheme (http < https)
 
