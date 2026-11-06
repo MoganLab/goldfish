@@ -1,9 +1,3 @@
-(import (liii random) (liii check))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; random-source-make-integers
 ;; 从随机源创建整数生成器。
 ;;
@@ -21,15 +15,16 @@
 ;; procedure
 ;; 返回一个过程 (lambda (n) ...)，生成 [0, n-1] 的随机整数。
 ;;
-;; 示例
-;; ----
-;; (let* ((s (make-random-source))
-;;        (rand-int (random-source-make-integers s)))
-;;   (rand-int 100))  => 0~99 之间的随机整数
-;;
 ;; 错误处理
 ;; ----
 ;; type-error 当 s 不是随机源时抛出。
+
+(import (srfi srfi-27) (liii check))
+
+
+(check-set-mode! 'report-failed)
+
+
 
 
 (let* ((s (make-random-source)) (rand-int (random-source-make-integers s)))

@@ -1,9 +1,3 @@
-(import (liii random) (liii check))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; random-real
 ;; 生成 (0, 1) 范围内的随机实数。
 ;;
@@ -11,18 +5,25 @@
 ;; ----
 ;; (random-real)
 ;;
+;; 参数
+;; ----
+;; 无
+;;
 ;; 返回值
 ;; ----
 ;; real
 ;; 返回 (0, 1) 范围内的随机实数，不包含 0 和 1。
 ;;
-;; 示例
-;; ----
-;; (random-real)  => (0, 1) 之间的随机实数，如 0.34567
-;;
 ;; 注意
 ;; ----
 ;; 多次调用返回不同的值（概率极高）。
+
+(import (srfi srfi-27) (liii check))
+
+
+(check-set-mode! 'report-failed)
+
+
 
 
 (let ((r (random-real)))

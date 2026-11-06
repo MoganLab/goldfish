@@ -1,9 +1,3 @@
-(import (liii random) (liii check))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; random-integer
 ;; 生成 [0, n-1] 范围内的随机整数。
 ;;
@@ -21,14 +15,16 @@
 ;; integer
 ;; 返回 [0, n-1] 范围内的随机整数。
 ;;
-;; 示例
-;; ----
-;; (random-integer 10)   => 0~9 之间的随机整数
-;; (random-integer 100)  => 0~99 之间的随机整数
-;;
 ;; 错误处理
 ;; ----
 ;; type-error 当 n 不是正整数时抛出。
+
+(import (srfi srfi-27) (liii check))
+
+
+(check-set-mode! 'report-failed)
+
+
 
 
 (let ((r (random-integer 10)))

@@ -1,9 +1,3 @@
-(import (liii random) (liii check))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; make-random-source
 ;; 创建一个新的随机源。
 ;;
@@ -11,18 +5,25 @@
 ;; ----
 ;; (make-random-source)
 ;;
+;; 参数
+;; ----
+;; 无
+;;
 ;; 返回值
 ;; ----
 ;; random-source
 ;; 返回一个新的独立随机源对象。
 ;;
-;; 示例
-;; ----
-;; (make-random-source)  => 新的随机源
-;;
 ;; 注意
 ;; ----
 ;; 多个随机源是独立的，互不影响。
+
+(import (srfi srfi-27) (liii check))
+
+
+(check-set-mode! 'report-failed)
+
+
 
 
 (let ((s1 (make-random-source)) (s2 (make-random-source)))

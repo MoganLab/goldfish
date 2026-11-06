@@ -1,9 +1,3 @@
-(import (liii random) (liii check))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; random-source-pseudo-randomize!
 ;; 使用索引 (i, j) 确定性地设置随机源状态。
 ;;
@@ -24,15 +18,16 @@
 ;; undefined
 ;; 副作用：修改 s 的状态。
 ;;
-;; 示例
-;; ----
-;; (let ((s (make-random-source)))
-;;   (random-source-pseudo-randomize! s 5 10)
-;;   s)  ; s 现在处于确定状态
-;;
 ;; 注意
 ;; ----
 ;; 相同的索引对总是产生相同的状态。
+
+(import (srfi srfi-27) (liii check))
+
+
+(check-set-mode! 'report-failed)
+
+
 
 
 (let ((s1 (make-random-source)) (s2 (make-random-source)))

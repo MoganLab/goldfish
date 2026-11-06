@@ -1,9 +1,3 @@
-(import (liii random) (liii check))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; random-source-state-set!
 ;; 设置随机源的状态。
 ;;
@@ -19,14 +13,20 @@
 ;; state : list
 ;; 状态列表，格式为 (random-source-state seed carry)。
 ;;
-;; 示例
+;; 返回值
 ;; ----
-;; (let ((s (make-random-source)))
-;;   (random-source-state-set! s '(random-source-state 123 456)))
+;; unspecified
 ;;
 ;; 错误处理
 ;; ----
 ;; type-error 当 s 不是随机源或 state 格式无效时抛出。
+
+(import (srfi srfi-27) (liii check))
+
+
+(check-set-mode! 'report-failed)
+
+
 
 
 (let ((s (make-random-source)))
@@ -50,12 +50,8 @@
 
 (let ((s (make-random-source)))
   (check-catch 'type-error (random-source-state-set! s 'invalid-state))
-  (check-catch 'type-error
-    (random-source-state-set! s '(not-the-right-tag 0 0))
-  ) ;check-catch
-  (check-catch 'type-error
-    (random-source-state-set! s '(random-source-state))
-  ) ;check-catch
+  (check-catch 'type-error (random-source-state-set! s '(not-the-right-tag 0 0)))
+  (check-catch 'type-error (random-source-state-set! s '(random-source-state)))
 ) ;let
 
 
