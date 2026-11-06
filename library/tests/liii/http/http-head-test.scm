@@ -1,25 +1,3 @@
-(import (liii check) (liii http) (liii os))
-
-(check-set-mode! 'report-failed)
-
-;; 公开接口 http-head 参数类型测试 (devel/0149.md)
-(check-catch 'type-error (http-head 42))
-(check-catch 'type-error (http-head #\a))
-(check-catch 'type-error (http-head 'invalid))
-(check-catch 'type-error (http-head "http://x/" :timeout "5"))
-(check-catch 'type-error (http-head "http://x/" :timeout 'fast))
-(check-catch 'type-error (http-head "http://x/" :timeout #t))
-(check-catch 'value-error (http-head "http://x/" :timeout 0))
-(check-catch 'value-error (http-head "http://x/" :timeout -1))
-
-;; 环境检查：需要设置 GOLDFISH_TEST_HTTP 环境变量才执行测试
-(let ((env (getenv "GOLDFISH_TEST_HTTP")))
-  (when (not env)
-    (check-report)
-    (exit 0)
-  ) ;when
-) ;let
-
 ;; http-head
 ;; 发送 HTTP HEAD 请求，返回响应对象。
 ;;
@@ -49,6 +27,28 @@
 ;; ----
 ;; HEAD 请求与 GET 类似，但服务器不返回响应体。适合检查资源是否存在、
 ;; 获取元数据（如 Content-Length、Last-Modified）而不下载完整内容。
+
+(import (liii check) (liii http) (liii os))
+
+(check-set-mode! 'report-failed)
+
+;; 公开接口 http-head 参数类型测试 (devel/0149.md)
+(check-catch 'type-error (http-head 42))
+(check-catch 'type-error (http-head #\a))
+(check-catch 'type-error (http-head 'invalid))
+(check-catch 'type-error (http-head "http://x/" :timeout "5"))
+(check-catch 'type-error (http-head "http://x/" :timeout 'fast))
+(check-catch 'type-error (http-head "http://x/" :timeout #t))
+(check-catch 'value-error (http-head "http://x/" :timeout 0))
+(check-catch 'value-error (http-head "http://x/" :timeout -1))
+
+;; 环境检查：需要设置 GOLDFISH_TEST_HTTP 环境变量才执行测试
+(let ((env (getenv "GOLDFISH_TEST_HTTP")))
+  (when (not env)
+    (check-report)
+    (exit 0)
+  ) ;when
+) ;let
 
 (let ((r (http-head "https://httpbin.org")))
   (check (r 'status-code) => 200)

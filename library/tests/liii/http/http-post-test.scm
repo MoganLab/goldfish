@@ -1,8 +1,61 @@
+;; http-post
+;; 发送 HTTP POST 请求，返回响应对象。
+;;
+;; 语法
+;; ----
+;; (http-post url :params params :data data :headers headers :proxy proxy
+;;            :files files :output-file output-file :stream stream
+;;            :callback callback :timeout timeout :idle-timeout idle-timeout)
+;;
+;; 参数
+;; ----
+;; url         : string          - 请求的目标 URL
+;; params      : alist (可选)    - 查询参数列表
+;; data        : string/alist (可选) - 原始请求体；若配合 files 使用，则表示 multipart 文本字段
+;; headers     : alist (可选)    - 请求头列表
+;; proxy       : alist (可选)    - 代理配置
+;; files       : alist (可选)    - 文件上传配置，触发 multipart/form-data
+;; output-file : string (可选)   - stream 模式下将响应体按 chunk 写入本地文件
+;; stream      : boolean (可选)  - 启用简单流式模式
+;; callback    : procedure (可选)- 按 chunk 处理响应体 (lambda (chunk) ...)
+;; timeout     : real? | integer? | #f (可选) - 总时长超时（秒）：整个请求的最长等待时间，到点必中止
+;; idle-timeout: real? | integer? | #f (可选) - 空闲超时（秒）：连续 N 秒无有效数据传输则中止，不限制总时长
+;;
+;; 返回值
+;; ----
+;; response-object（哈希表，包含 status-code, url, elapsed, text, reason, headers, error-code 等字段）。
+;;
+;; files 参数结构如下：
+;; 简单文件：
+;;   '(("upload" . "./upload.txt"))
+;;
+;; 完整文件描述：
+;;   '(("upload" . ((file . "./upload.txt")
+;;                  (filename . "fixture.txt")
+;;                  (content-type . "text/plain"))))
+;;
+;; 描述
+;; ----
+;; POST 请求用于向服务器提交数据。
+;; 1. 当 files 为空时，data 按原有语义作为原始请求体处理
+;; 2. 当 files 非空时，http-post 自动切换为 multipart/form-data
+;;    - data 需为 alist，用作普通表单字段
+;;    - files 用作文件字段
+;; 3. 当 :stream 为 #t 时，按 chunk 处理响应体
+;; 4. 文件上传由 http-post 本身处理，不再提供单独的 multipart POST API
+;; 5. 当 data 非空且未指定 headers 时，默认 Content-Type 为 text/plain。
+;;
+;; timeout 与 idle-timeout 的区别：
+;; 1. :timeout 是总时长超时，限制整个请求（含连接阶段）的最长等待时间，到点必中止
+;; 2. :idle-timeout 是空闲超时，仅在传输停死（连续 N 秒传输速度低于 1 B/s）时中止，不限制总时长
+;; 3. 两者可搭配使用：timeout 兜底总时长，idle-timeout 快速发现挂死且不惩罚慢而健康的传输
+
 (import (liii check)
   (liii http)
   (liii string)
   (liii json)
   (liii os)
+  (scheme file)
   (scheme time)
 ) ;import
 
@@ -64,6 +117,13 @@
   ) ;when
 ) ;let
 
+;; 在当前目录创建上传夹具文件，避免依赖测试运行目录下的资源文件
+
+(define upload-fixture "http-post-upload-fixture.txt")
+(call-with-output-file upload-fixture
+  (lambda (port) (display "Goldfish multipart upload fixture.\n" port))
+) ;call-with-output-file
+
 ;; 不可达网络地址短超时熔断
 (let* ((t0 (current-second))
        (r (http-post "http://10.255.255.1" :data "payload" :timeout 0.5 :idle-timeout 1)
@@ -79,59 +139,6 @@
 ) ;let*
 
 
-
-;; http-post
-;; 发送 HTTP POST 请求，返回响应对象。
-;;
-;; 语法
-;; ----
-;; (http-post url :params params :data data :headers headers :proxy proxy
-;;            :files files :output-file output-file :stream stream
-;;            :callback callback :timeout timeout :idle-timeout idle-timeout)
-;;
-;; 参数
-;; ----
-;; url         : string          - 请求的目标 URL
-;; params      : alist (可选)    - 查询参数列表
-;; data        : string/alist (可选) - 原始请求体；若配合 files 使用，则表示 multipart 文本字段
-;; headers     : alist (可选)    - 请求头列表
-;; proxy       : alist (可选)    - 代理配置
-;; files       : alist (可选)    - 文件上传配置，触发 multipart/form-data
-;; output-file : string (可选)   - stream 模式下将响应体按 chunk 写入本地文件
-;; stream      : boolean (可选)  - 启用简单流式模式
-;; callback    : procedure (可选)- 按 chunk 处理响应体 (lambda (chunk) ...)
-;; timeout     : real? | integer? | #f (可选) - 总时长超时（秒）：整个请求的最长等待时间，到点必中止
-;; idle-timeout: real? | integer? | #f (可选) - 空闲超时（秒）：连续 N 秒无有效数据传输则中止，不限制总时长
-;;
-;; 返回值
-;; ----
-;; response-object（哈希表，包含 status-code, url, elapsed, text, reason, headers, error-code 等字段）。
-;;
-;; files 结构
-;; ----
-;; 简单文件：
-;;   '(("upload" . "tests/resources/http-upload.txt"))
-;;
-;; 完整文件描述：
-;;   '(("upload" . ((file . "tests/resources/http-upload.txt")
-;;                  (filename . "fixture.txt")
-;;                  (content-type . "text/plain"))))
-;;
-;; 描述
-;; ----
-;; POST 请求用于向服务器提交数据。
-;; 1. 当 files 为空时，data 按原有语义作为原始请求体处理
-;; 2. 当 files 非空时，http-post 自动切换为 multipart/form-data
-;;    - data 需为 alist，用作普通表单字段
-;;    - files 用作文件字段
-;; 3. 当 :stream 为 #t 时，按 chunk 处理响应体
-;; 4. 文件上传由 http-post 本身处理，不再提供单独的 multipart POST API
-;; 5. 当 data 非空且未指定 headers 时，默认 Content-Type 为 text/plain。
-;;
-;; timeout 与 idle-timeout 的区别：
-;; 1. :timeout 是总时长超时，限制整个请求（含连接阶段）的最长等待时间，到点必中止
-;; 2. :idle-timeout 是空闲超时，仅在传输停死（连续 N 秒传输速度低于 1 B/s）时中止，不限制总时长
-;; 3. 两者可搭配使用：timeout 兜底总时长，idle-timeout 快速发现挂死且不惩罚慢而健康的传输
 
 (define simpletex-api-key "你的api-key")
 
@@ -215,8 +222,8 @@
          (http-post "https://httpbin.org/post"
            :data '(("meta" . "multipart-value"))
            :files
-           '(("upload"
-              (file . "tests/resources/http-upload.txt")
+           `(("upload"
+              (file . ,upload-fixture)
               (filename . "fixture.txt")
               (content-type . "text/plain")))
            :params '(("kind" . "multipart"))
@@ -242,8 +249,8 @@
             :stream #t
             :data   '(("meta" . "multipart-value"))
             :files
-            '(("upload"
-               (file . "tests/resources/http-upload.txt")
+            `(("upload"
+               (file . ,upload-fixture)
                (filename . "fixture.txt")
                (content-type . "text/plain")))
             :params '(("kind" . "multipart-stream"))
@@ -271,7 +278,7 @@
 (check-catch 'type-error
   (http-post "https://httpbin.org/post"
     :data    '(("meta" . "invalid-header-test"))
-    :files   '(("upload" . "tests/resources/http-upload.txt"))
+    :files   `(("upload" . ,upload-fixture))
     :headers '(("token" . #f))
   ) ;http-post
 ) ;check-catch
@@ -279,7 +286,7 @@
 (check-catch 'type-error
   (http-post "https://httpbin.org/post"
     :data  "raw body is not allowed with files"
-    :files '(("upload" . "tests/resources/http-upload.txt"))
+    :files `(("upload" . ,upload-fixture))
   ) ;http-post
 ) ;check-catch
 

@@ -1,20 +1,13 @@
-(import (liii check) (liii http-async) (liii time) (liii os))
-
-(check-set-mode! 'report-failed)
-
-;; 环境检查
-(let ((env (getenv "GOLDFISH_TEST_HTTP")))
-  (when (not env)
-    (exit 0)
-  ) ;when
-) ;let
-
 ;; http-poll
 ;; 轮询并执行已完成的异步 HTTP 请求回调。
 ;;
 ;; 语法
 ;; ----
 ;; (http-poll)
+;;
+;; 参数
+;; ----
+;; 无参数
 ;;
 ;; 返回值
 ;; ----
@@ -27,6 +20,17 @@
 ;; 或在事件循环中定期检查请求完成状态。
 ;;
 ;; 与 http-wait-all 不同，http-poll 不会等待，只处理当前已完成的请求。
+
+(import (liii check) (liii http-async) (liii time) (liii os))
+
+(check-set-mode! 'report-failed)
+
+;; 环境检查
+(let ((env (getenv "GOLDFISH_TEST_HTTP")))
+  (when (not env)
+    (exit 0)
+  ) ;when
+) ;let
 
 (let ((poll-count 0))
   (http-async-get "https://httpbin.org/get"
