@@ -25,7 +25,7 @@
 ;; curlet 返回一个 let
 
 (import (liii check))
-(import (scheme let))
+(import (liii let))
 
 
 (check-set-mode! 'report-failed)

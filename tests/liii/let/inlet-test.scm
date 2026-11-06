@@ -40,7 +40,7 @@
 ;; inlet 是可变环境：set! 改绑定值，但对象身份不变（核心不变式）
 
 (import (liii check))
-(import (scheme let))
+(import (liii let))
 (import (liii json))
 
 

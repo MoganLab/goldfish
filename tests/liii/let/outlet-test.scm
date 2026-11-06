@@ -25,7 +25,7 @@
 ;; rootlet 的 outlet 是 rootlet 自身
 
 (import (liii check))
-(import (scheme let))
+(import (liii let))
 
 
 (check-set-mode! 'report-failed)

@@ -22,7 +22,7 @@
 ;; （构造/谓词/访问/修改）性能一致，差异只在宏展开耗时
 ;; —— 每个使用 define-record-type 的库在加载时都要支付一次展开开销。
 
-(import (liii timeit) (scheme base) (scheme let))
+(import (liii timeit) (scheme base) (liii let))
 
 (define (bench name stmt number)
   (let ((elapsed (timeit stmt '() number)))

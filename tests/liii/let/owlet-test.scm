@@ -25,7 +25,7 @@
 ;; owlet 是一个 let
 
 (import (liii check))
-(import (scheme let))
+(import (liii let))
 
 
 (check-set-mode! 'report-failed)

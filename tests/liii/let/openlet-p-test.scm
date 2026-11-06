@@ -25,7 +25,7 @@
 ;; 新建的 inlet 不是 openlet
 
 (import (liii check))
-(import (scheme let))
+(import (liii let))
 
 
 (check-set-mode! 'report-failed)

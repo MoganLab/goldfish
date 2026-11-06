@@ -37,7 +37,7 @@
 ;; openlet 返回传入的 let（eq? 为 #t）
 
 (import (liii check))
-(import (scheme let))
+(import (liii let))
 
 
 (check-set-mode! 'report-failed)

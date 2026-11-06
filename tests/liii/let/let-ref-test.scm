@@ -29,7 +29,7 @@
 ;; 从 inlet 中获取绑定
 
 (import (liii check))
-(import (scheme let))
+(import (liii let))
 
 
 (check-set-mode! 'report-failed)
