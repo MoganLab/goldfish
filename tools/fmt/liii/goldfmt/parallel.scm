@@ -17,8 +17,6 @@
 ;; gf fmt 的共享并发设施：底层复用 (liii goldtool parallel)。
 ;; 保留 fmt 历史接口名（set-fmt-jobs! / fmt-jobs）以兼容现有调用方。
 
-(set! *load-path* (append (list "../common" "tools/common") *load-path*))
-
 (define-library (liii goldfmt parallel)
   (import (scheme base) (liii goldtool parallel))
   (export pool-for-each run-one-task offenders-from count-status

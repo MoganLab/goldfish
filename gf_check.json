@@ -61,6 +61,14 @@
         "reason": "(liii date-time) 总聚合入口测试，跨全部子库验证导出接口协同，不适用单函数文档规范"
       },
       {
+        "path": "tools/fmt/tests/liii/goldfmt/",
+        "reason": "gf fmt 工具测试仍按场景（T1/T2 等）组织为聚合用例，尚未拆分为单函数测试目录"
+      },
+      {
+        "path": "tools/test/tests/liii/goldtest/",
+        "reason": "gf test 工具测试仍为聚合用例，尚未拆分为单函数测试目录"
+      },
+      {
         "path": "tests/goldfish/scheme/",
         "reason": "现有语言测试正向 goldfish/tests/ 迁移，迁移前保留旧测试布局与文档规范"
       },

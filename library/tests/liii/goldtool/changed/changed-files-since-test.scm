@@ -1,20 +1,22 @@
+;; changed-files-since
+;; 列出相对某个版本（rev）已变更的文件路径，变更集合由 git diff 计算。
+;; 可选传入路径作用域，仅返回该作用域下的变更文件。
 ;;
-;; Copyright (C) 2026 The Goldfish Scheme Authors
+;; 语法
+;; ----
+;; (changed-files-since since . maybe-path)
 ;;
-;; Licensed under the Apache License, Version 2.0 (the "License");
-;; you may not use this file except in compliance with the License.
-;; You may obtain a copy of the License at
+;; 参数
+;; ----
+;; since : string?
+;; 比较基准的 git 版本号或分支名。
+;; maybe-path : string? (可选)
+;; 路径作用域，限定只返回该路径下的变更文件。
 ;;
-;; http://www.apache.org/licenses/LICENSE-2.0
-;;
-;; Unless required by applicable law or agreed to in writing, software
-;; distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-;; WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-;; License for the specific language governing permissions and limitations
-;; under the License.
-;;
-
-(set! *load-path* (cons "tools/common" *load-path*))
+;; 返回值
+;; ------
+;; list of string?
+;; 变更文件的相对路径列表；无变更时返回空列表。
 
 (import (liii check) (liii goldtool changed) (liii list) (liii os) (liii path))
 
@@ -85,14 +87,8 @@
       (check (contains? "untracked.scm" files) => #f)
     ) ;let
 
-    (let ((files (changed-scheme-files-since "HEAD")))
-      (check (contains? "a.scm" files) => #t)
-      (check (contains? "b.txt" files) => #f)
-      (check (contains? "sub/c.scm" files) => #t)
-      (check (contains? "untracked.scm" files) => #f)
-    ) ;let
-
-    (check (changed-scheme-files-since "HEAD" "sub") => '("sub/c.scm"))
+    ;; 限定路径作用域时，只返回该作用域下的变更文件
+    (check (changed-files-since "HEAD" "sub") => '("sub/c.scm"))
 
     ;; 测试传入 #f 和自定义 extensions
     (let ((files (changed-scheme-files-since "HEAD" #f '(".scm"))))
@@ -104,7 +100,7 @@
     ;; 创建 .sld 文件并测试只匹配 .sld
     (path-write-text (path "d.sld") "(define-library (d))\n")
     (must "git add d.sld")
-    (must "git commit -q -m 'add d.sld'")
+    (must "git commit -q -m \"add d.sld\"")
     (path-write-text (path "d.sld") "(define-library (d2))\n")
 
     (let ((files (changed-scheme-files-since "HEAD" #f '(".sld"))))
