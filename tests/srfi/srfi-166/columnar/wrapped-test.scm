@@ -1,35 +1,41 @@
-(import (liii check)
-        (srfi srfi-166 base)
-        (srfi srfi-166 columnar))
-
-(check-set-mode! 'report-failed)
-
 ;; wrapped
-;; 自动折行格式化组合子。根据当前 width 限制自动折行单词序列。
+;; 按单词边界自动折行组合子。
 ;;
 ;; 语法
 ;; ----
-;; (wrapped fmt ...)
-;; (wrapped/char fmt ...)
-;; (justified fmt ...)
+;; (wrapped . ls)
 ;;
-;; 示例
+;; 参数
 ;; ----
-;; (show #f (with ((width 8)) (wrapped "hello world"))) => "hello\nworld"
+;; ls : format?
+;; 零个或多个格式化对象。
 ;;
-;; 另见
+;; 返回值
 ;; ----
-;; (liii format columnar) 同名再导出本函数，日常使用更推荐导入该库：
-;;   (import (liii format columnar))
-;;   (show #f (with ((width 8)) (wrapped "hello world")))
+;; format?
+;; 每行不超过 width 列、按单词换行的格式化组合子。
+;;
+;; 说明
+;; ----
+;; 先用状态变量 word-separator? 切分词，再交给 wrapped/list
+;; 排版；首行从当前列号起算，因此行首空白会被丢弃。
+;; `(liii format columnar)` 以 Goldfish 命名重导出本函数。
+
+(import (liii check) (srfi srfi-166 base) (srfi srfi-166 columnar))
+
+(check-set-mode! 'report-failed)
 
 (check (show #f (wrapped "foo")) => "foo")
 (check (show #f (wrapped "    ")) => "")
-(check (show #f (with ((width 8)) (wrapped "hello world"))) => "hello\nworld")
-
-(check (show #f
-             (with ((width 10))
-               (justified "The quick brown fox jumped over the lazy dog")))
-       => "The  quick\nbrown  fox\njumped\nover   the\nlazy dog\n")
+(check
+  (show #f (with ((width 8)) (wrapped "hello world")))
+  =>
+  "hello\nworld"
+) ;check
+(check
+  (show #f (with ((width 8)) (wrapped "abcdefg hi")))
+  =>
+  "abcdefg\nhi"
+) ;check
 
 (check-report)
