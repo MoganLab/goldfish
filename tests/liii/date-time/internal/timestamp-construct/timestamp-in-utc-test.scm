@@ -24,11 +24,11 @@
 
 (check-set-mode! 'report-failed)
 
-(define ts (make-timestamp 2021 1 1 12 0 0 (tz-timezone "Asia/Shanghai")))
+(define ts (make-timestamp 2021 1 1 12 0 0 (tz-timezone "America/New_York")))
 
 (define utc (timestamp-in-utc ts))
 
-(check (list (timestamp-hour utc) (timestamp-day utc)) => '(4 1))
+(check (list (timestamp-hour utc) (timestamp-day utc)) => '(17 1))
 (check (timestamp-timezone-offset utc) => (make-time-delta 0 0 0 0 0 0 0))
 
 (check-report)
