@@ -1,9 +1,3 @@
-(import (liii check) (liii uri record) (liii uri convert))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; uri->human-string
 ;; 将 URI 转换为人类可读的字符串（隐藏敏感信息）。
 ;;
@@ -11,11 +5,19 @@
 ;; ----
 ;; (uri->human-string uri-obj)
 ;;
+;; 参数
+;; ----
+;; uri-obj : uri?
+;;   要转换的 URI 对象。
+;;
 ;; 返回值
 ;; ----
 ;; string?
 ;;   返回人类可读的 URI 字符串（不含密码等敏感信息）。
 
+(import (liii check) (liii uri record) (liii uri convert))
+
+(check-set-mode! 'report-failed)
 
 ;; 简单 URI
 
