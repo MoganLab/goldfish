@@ -3,7 +3,7 @@
 ;;
 ;; 语法
 ;; ----
-;; bin/gf tests/liii/json/e2e-string-to-json-memory-leak-test.scm
+;; bin/gf test library/tests/liii/json/e2e-string-to-json-memory-leak-test.scm
 ;;
 ;; 参数
 ;; ----
