@@ -19,7 +19,7 @@
   (liii check)
   (liii tui)
   (liii pi code modes interactive app)
-  (liii pi code modes interactive run)
+  (liii pi code modes interactive app-mouse)
   (liii pi code modes interactive state)
   (liii pi code modes interactive selection)
 ) ;import
