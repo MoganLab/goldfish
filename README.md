@@ -22,7 +22,7 @@ Just like S7 Scheme, [src/goldfish.hpp](src/goldfish.hpp) and [src/goldfish.cpp]
 | ------------------------------------------------- | ------------------------------------ | ---------------------------------------------------------------- |
 | [(liii base)](goldfish/liii/base.scm)             | Basic routines                       | `and-let*`, `receive`, `eval-string`                              |
 | [(liii error)](goldfish/liii/error.scm)           | Python like Errors                   | `os-error` to raise `'os-error` just like OSError in Python      |
-| [(liii check)](goldfish/liii/check.scm)           | Test framework based on SRFI-78      | `check`, `check-catch`                                           |
+| [(liii check)](library/liii/check.scm)           | Test framework based on SRFI-78      | `check`, `check-catch`                                           |
 | [(liii match)](goldfish/liii/match.scm)           | Pattern matching                     | `match`, `match-lambda`                                           |
 | [(liii list)](goldfish/liii/list.scm)             | List Library                         | `first`, `filter`, `fold`                                         |
 | [(liii bitwise)](goldfish/liii/bitwise.scm)       | Bitwise Library                      | `bitwise-and`, `bitwise-or`                                      |
