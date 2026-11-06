@@ -121,16 +121,24 @@
       (let* ((pref (and (pair? opt-pref) (car opt-pref)))
              (pref-str (and (string? pref) (not (string-null? pref)) pref))
              (names (%catalog-provider-names models-store))
-             (exact (find (lambda (p) (%provider-contains-model? p model-id models-store)) names)
-             ) ;exact
+             (candidates
+               (filter (lambda (p) (%provider-contains-model? p model-id models-store)) names)
+             ) ;candidates
             ) ;
         (cond
           ;; 1. preferred-provider 命中优先
-          ((and pref-str (%provider-contains-model? pref-str model-id models-store))
+          ((and pref-str (member pref-str candidates))
            pref-str
           ) ;
-          ;; 2. 否则按目录顺序取首个显式包含该模型的 provider
-          (else exact)
+          ;; 2. 唯一命中或未命中
+          ((null? candidates) #f)
+          ((null? (cdr candidates)) (car candidates))
+          ;; 3. 多个候选时按已知优先级列表 PI_SUPPORTED_PROVIDERS 决出首选
+          (else
+            (or (find (lambda (p) (member p candidates)) PI_SUPPORTED_PROVIDERS)
+              (car candidates)
+            ) ;or
+          ) ;else
         ) ;cond
       ) ;let*
     ) ;define
