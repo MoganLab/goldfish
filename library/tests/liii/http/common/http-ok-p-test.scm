@@ -27,7 +27,7 @@
 ;; http-error
 ;;   当状态码为 4xx 或 5xx 时抛出，包含状态码、原因和 URL。
 
-(import (liii check) (liii http-common) (liii http) (liii os))
+(import (liii check) (liii http common) (liii http) (liii os))
 
 (check-set-mode! 'report-failed)
 

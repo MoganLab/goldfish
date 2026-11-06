@@ -21,7 +21,7 @@
 ;;
 ;; 与 http-wait-all 不同，http-poll 不会等待，只处理当前已完成的请求。
 
-(import (liii check) (liii http-async) (liii time) (liii os))
+(import (liii check) (liii http async) (liii time) (liii os))
 
 (check-set-mode! 'report-failed)
 
