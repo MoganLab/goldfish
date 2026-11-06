@@ -1,7 +1,3 @@
-(import (liii check) (liii raw-string))
-
-(check-set-mode! 'report-failed)
-
 ;; #"..."
 ;; 读取 SRFI-267 风格的 raw string 字面量。
 ;;
@@ -31,6 +27,11 @@
 ;; 错误处理
 ;; ----
 ;; 非法字面量格式时由 reader 层报错。
+
+(import (liii check) (liii raw-string))
+
+(check-set-mode! 'report-failed)
+
 
 (check #"""" => "")
 (check #"" "" => " ")
@@ -98,4 +99,5 @@ string""
 ) ;check
 (check #"tag with space"hello"tag with space" => "hello")
 (check #"(())"value"(())" => "value")
+
 (check-report)

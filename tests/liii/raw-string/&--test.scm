@@ -1,7 +1,3 @@
-(import (liii check) (liii raw-string))
-
-(check-set-mode! 'report-failed)
-
 ;; &-
 ;; 对多行 raw string 字面量执行去缩进。
 ;;
@@ -28,6 +24,11 @@
 ;; ----
 ;; value-error
 ;; raw string 不是从 opening delimiter 后的新行开始，或缩进不满足规则时抛出。
+
+(import (liii check) (liii raw-string))
+
+(check-set-mode! 'report-failed)
+
 
 (check (&- #""
   多行
@@ -127,4 +128,5 @@
   ""
   ) ;&-
 ) ;check-catch
+
 (check-report)
