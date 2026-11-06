@@ -210,6 +210,40 @@
   0
 ) ;check
 
+;; const 与 enum 的相等判定遵循 JSON 语义：
+;; 数字按数值比较，布尔与数字严格区分，对象按无序映射比较。
+
+(check
+  (length
+    (validate-basic "const"
+      '(("a" . 1) ("b" . 2))
+      '(("a" . 1) ("b" . 2))
+      '(("const" ("b" . 2) ("a" . 1)))
+      '()
+      '()
+    ) ;validate-basic
+  ) ;length
+  =>
+  0
+) ;check
+(check
+  (length (validate-basic "enum"
+            #(#(#(1 #t)))
+            #(#(1 #t))
+            '(("enum" . #(#(#(1 #t)))))
+            '()
+            '()
+          ) ;validate-basic
+  ) ;length
+  =>
+  0
+) ;check
+(check
+  (length (validate-basic "enum" #(#(0 1)) #t '(("enum" . #(#(0 1)))) '() '()))
+  =>
+  1
+) ;check
+
 ;; 错误对象携带关键字与路径信息。
 
 (define error

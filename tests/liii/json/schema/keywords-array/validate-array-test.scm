@@ -75,230 +75,66 @@
   ) ;and
 ) ;define
 
+
 (define (reset-calls!)
   (set! calls '())
 ) ;define
 
+;; count-errors 统计单个关键字产生的错误数量。
+
+(define (count-errors keyword value instance schema)
+  (length (validate-array #f keyword value instance schema '() '() #f descend valid?)
+  ) ;length
+) ;define
+
 ;; 非数组实例不产生错误。
 
-(check
-  (length (validate-array #f
-            "minItems"
-            1
-            "x"
-            '(("minItems" . 1))
-            '()
-            '()
-            #f
-            descend
-            valid?
-          ) ;validate-array
-  ) ;length
-  =>
-  0
-) ;check
+(check (count-errors "minItems" 1 "x" '(("minItems" . 1))) => 0)
 
 ;; minItems 与 maxItems。
 
-(check
-  (length (validate-array #f
-            "minItems"
-            2
-            #(1 2)
-            '(("minItems" . 2))
-            '()
-            '()
-            #f
-            descend
-            valid?
-          ) ;validate-array
-  ) ;length
-  =>
-  0
-) ;check
-(check
-  (length (validate-array #f
-            "minItems"
-            2
-            #(1)
-            '(("minItems" . 2))
-            '()
-            '()
-            #f
-            descend
-            valid?
-          ) ;validate-array
-  ) ;length
-  =>
-  1
-) ;check
-(check
-  (length (validate-array #f
-            "maxItems"
-            2
-            #(1 2)
-            '(("maxItems" . 2))
-            '()
-            '()
-            #f
-            descend
-            valid?
-          ) ;validate-array
-  ) ;length
-  =>
-  0
-) ;check
-(check
-  (length (validate-array #f
-            "maxItems"
-            2
-            #(1 2 3)
-            '(("maxItems" . 2))
-            '()
-            '()
-            #f
-            descend
-            valid?
-          ) ;validate-array
-  ) ;length
-  =>
-  1
-) ;check
+(check (count-errors "minItems" 2 #(1 2) '(("minItems" . 2))) => 0)
+(check (count-errors "minItems" 2 #(1) '(("minItems" . 2))) => 1)
+(check (count-errors "maxItems" 2 #(1 2) '(("maxItems" . 2))) => 0)
+(check (count-errors "maxItems" 2 #(1 2 3) '(("maxItems" . 2))) => 1)
 
 ;; uniqueItems 按 JSON 语义比较元素。
 
-(check
-  (length (validate-array #f
-            "uniqueItems"
-            #t
-            #(1 2)
-            '(("uniqueItems" . #t))
-            '()
-            '()
-            #f
-            descend
-            valid?
-          ) ;validate-array
-  ) ;length
+(check (count-errors "uniqueItems" #t #(1 2) '(("uniqueItems" . #t))) => 0)
+(check (count-errors "uniqueItems" #t #(1 1) '(("uniqueItems" . #t))) => 1)
+(check (count-errors "uniqueItems" #t #(1 1.0) '(("uniqueItems" . #t))) => 1)
+(check (count-errors "uniqueItems" #f #(1 1) '(("uniqueItems" . #f))) => 0)
+
+;; uniqueItems 区分嵌套的布尔与数字，也区分对象键的顺序。
+
+(check (count-errors "uniqueItems" #t #(#t 1 #f 0) '(("uniqueItems" . #t)))
   =>
   0
 ) ;check
-(check
-  (length (validate-array #f
-            "uniqueItems"
-            #t
-            #(1 1)
-            '(("uniqueItems" . #t))
-            '()
-            '()
-            #f
-            descend
-            valid?
-          ) ;validate-array
-  ) ;length
-  =>
-  1
-) ;check
-(check
-  (length (validate-array #f
-            "uniqueItems"
-            #t
-            #(1 1.0)
-            '(("uniqueItems" . #t))
-            '()
-            '()
-            #f
-            descend
-            valid?
-          ) ;validate-array
-  ) ;length
-  =>
-  1
-) ;check
-(check
-  (length (validate-array #f
-            "uniqueItems"
-            #f
-            #(1 1)
-            '(("uniqueItems" . #f))
-            '()
-            '()
-            #f
-            descend
-            valid?
-          ) ;validate-array
-  ) ;length
-  =>
-  0
-) ;check
+(check (count-errors "uniqueItems" #t #(#(1 #t)) '(("uniqueItems" . #t))) => 0)
 
 ;; contains 统计满足子 Schema 的元素个数。
 
-(check
-  (length (validate-array #f
-            "contains"
-            1
-            #(1 2 3)
-            '(("contains" . 1))
-            '()
-            '()
-            #f
-            descend
-            valid?
-          ) ;validate-array
-  ) ;length
-  =>
-  0
-) ;check
-(check
-  (length (validate-array #f
-            "contains"
-            1
-            #(2 3)
-            '(("contains" . 1))
-            '()
-            '()
-            #f
-            descend
-            valid?
-          ) ;validate-array
-  ) ;length
-  =>
-  1
-) ;check
-(check
-  (length (validate-array #f
-            "contains"
-            1
-            #(1 2 3)
-            '(("contains" . 1) ("minContains" . 2))
-            '()
-            '()
-            #f
-            descend
-            valid?
-          ) ;validate-array
-  ) ;length
+(check (count-errors "contains" 1 #(1 2 3) '(("contains" . 1))) => 0)
+(check (count-errors "contains" 1 #(2 3) '(("contains" . 1))) => 1)
+(check (count-errors "contains" 1 #(1 2 3) '(("contains" . 1)
+                                             ("minContains" . 2)))
   =>
   1
 ) ;check
 
 ;; prefixItems 按位置下钻，路径带上元素下标。
 
+(define type-integer '(("type" . "integer")))
+
+(define prefix-schema
+  '(("prefixItems" . #((("type" . "integer")) (("type" . "string")))))
+) ;define
+
 (reset-calls!)
-(check
-  (length (validate-array #f
-            "prefixItems"
-            #((("type" . "integer")) (("type" . "string")))
-            #(1 2)
-            '(("prefixItems" . #((("type" . "integer")) (("type" . "string")))))
-            '()
-            '()
-            #f
-            descend
-            valid?
-          ) ;validate-array
-  ) ;length
+(check (count-errors "prefixItems"
+         #((("type" . "integer")) (("type" . "string"))) #(1 2) prefix-schema
+       ) ;count-errors
   =>
   0
 ) ;check
@@ -309,63 +145,27 @@
 
 ;; items 从 prefixItems 之后的位置开始下钻。
 
+(define items-schema
+  '(("prefixItems" . #((("type" . "integer"))))
+    ("items" . #((("type" . "integer")))))
+) ;define
+
 (reset-calls!)
-(check
-  (length (validate-array #f
-            "items"
-            '(("type" . "integer"))
-            #(1 2 3)
-            '(("prefixItems" . #(("type" . "integer")))
-              ("items" . #(("type" . "integer"))))
-            '()
-            '()
-            #f
-            descend
-            valid?
-          ) ;validate-array
-  ) ;length
-  =>
-  0
-) ;check
+(check (count-errors "items" type-integer #(1 2 3) items-schema) => 0)
 (check (length calls) => 2)
 (check (car (car calls)) => 3)
 (check (caddr (car calls)) => '(2))
 
 ;; unevaluatedItems 只处理未被 prefixItems 覆盖的位置。
 
+(define prefix-only-schema '(("prefixItems" . #((("type" . "integer"))))))
+
 (reset-calls!)
-(check
-  (length (validate-array #f
-            "unevaluatedItems"
-            #f
-            #(1 2)
-            '(("prefixItems" . #(("type" . "integer"))))
-            '()
-            '()
-            #f
-            descend
-            valid?
-          ) ;validate-array
-  ) ;length
-  =>
-  1
-) ;check
+(check (count-errors "unevaluatedItems" #f #(1 2) prefix-only-schema) => 1)
 (check (length calls) => 0)
 
 (reset-calls!)
-(check
-  (length (validate-array #f
-            "unevaluatedItems"
-            '(("type" . "integer"))
-            #(1 2)
-            '(("prefixItems" . #(("type" . "integer"))))
-            '()
-            '()
-            #f
-            descend
-            valid?
-          ) ;validate-array
-  ) ;length
+(check (count-errors "unevaluatedItems" type-integer #(1 2) prefix-only-schema)
   =>
   0
 ) ;check
