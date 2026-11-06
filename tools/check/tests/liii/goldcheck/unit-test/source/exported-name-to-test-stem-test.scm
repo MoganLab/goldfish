@@ -20,6 +20,7 @@
 ;; 特殊字符转换规则：
 ;; 1. 纯运算符：+ -> plus, - -> minus, * -> star, / -> slash, = -> eq, < -> lt 等
 ;; 2. 尾缀转换：? -> -p, ! -> -bang, -> -> -to 或 -to-, / -> -slash 或 -slash- 等
+;; 3. Windows 非法字符：: -> -colon
 
 (import (scheme base) (liii check) (liii goldcheck unit-test source))
 
@@ -42,5 +43,6 @@
 (check (exported-name->test-stem "string->utf8") => "string-to-utf8")
 (check (exported-name->test-stem "char=?") => "char-eq-p")
 (check (exported-name->test-stem "truncate/") => "truncate-slash")
+(check (exported-name->test-stem "tz-month-week-day:month") => "tz-month-week-day-colon-month")
 
 (check-report)
