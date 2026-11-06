@@ -1,9 +1,3 @@
-(import (liii random) (liii check))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; random-source-state-ref
 ;; 获取随机源的当前状态。
 ;;
@@ -21,14 +15,16 @@
 ;; list
 ;; 返回形式为 (random-source-state seed carry) 的列表。
 ;;
-;; 示例
-;; ----
-;; (random-source-state-ref (make-random-source))
-;;   => (random-source-state 0 1675393560)
-;;
 ;; 错误处理
 ;; ----
 ;; type-error 当 s 不是随机源时抛出。
+
+(import (srfi srfi-27) (liii check))
+
+
+(check-set-mode! 'report-failed)
+
+
 
 
 (let ((s (make-random-source)))

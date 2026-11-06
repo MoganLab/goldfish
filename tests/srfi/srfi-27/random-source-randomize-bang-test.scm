@@ -1,9 +1,3 @@
-(import (liii random) (liii check))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; random-source-randomize!
 ;; 使用当前时间随机化随机源的状态。
 ;;
@@ -21,15 +15,16 @@
 ;; undefined
 ;; 副作用：修改 s 的状态。
 ;;
-;; 示例
-;; ----
-;; (let ((s (make-random-source)))
-;;   (random-source-randomize! s)
-;;   s)  ; s 现在处于随机状态
-;;
 ;; 错误处理
 ;; ----
 ;; type-error 当 s 不是随机源时抛出。
+
+(import (srfi srfi-27) (liii check))
+
+
+(check-set-mode! 'report-failed)
+
+
 
 
 (let ((s (make-random-source)))

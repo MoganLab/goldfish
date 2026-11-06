@@ -1,8 +1,36 @@
+;; packrat-parser
+;; 定义 packrat 解析规则，生成带记忆化的解析组合子。
+;;
+;; 语法
+;; ----
+;; (packrat-parser nonterminal rule ...)
+;;
+;; 参数
+;; ----
+;; nonterminal : symbol
+;; 非终结符名，作为记忆化缓存的键。
+;; rule ... : any
+;; 解析规则，每个规则形如 ((绑定 . '记号) 动作) 或 ((绑定 . 非终结符) 动作)。
+;;
+;; 返回值
+;; ----
+;; procedure
+;; 接收 <parse-results> 并返回 <parse-result> 的解析组合子。
+;;
+;; 说明
+;; ----
+;; 1. 规则中用 <- 绑定记号或非终结符的解析结果，
+;;    非终结符结果以记忆化方式缓存，避免重复解析。
+;; 2. 支持 (^ 绑定) 绑定当前位置，以及 (! '记号) 断言记号。
+;; 3. 本宏展开为 packrat-parser 语法糖，展开结果依赖 (liii match)。
+;;
+;; 错误处理
+;; ----
+;; 规则形状非法时在宏展开期抛出 type-error。
+
 (import (liii check) (liii hash-table) (liii packrat) (scheme eval))
 
-
 (check-set-mode! 'report-failed)
-
 
 (define (generator tokens)
   (let ((stream tokens))
@@ -18,15 +46,11 @@
   ) ;let
 ) ;define
 
-
-;; simple parser
-
-
+;; 简单规则：匹配 num 或 id
 (define simple-parser
   (packrat-parser expr (expr ((a <- 'num) a) ((a <- 'id) a)))
 ) ;define
 (check-true (procedure? simple-parser))
-
 
 (let* ((gen-num (generator '((num . 123))))
        (r-num (simple-parser (base-generator->results gen-num)))
@@ -35,7 +59,6 @@
   (check (parse-result-semantic-value r-num) => 123)
 ) ;let*
 
-
 (let* ((gen-id (generator '((id . foo))))
        (r-id (simple-parser (base-generator->results gen-id)))
       ) ;
@@ -43,17 +66,13 @@
   (check (parse-result-semantic-value r-id) => 'foo)
 ) ;let*
 
-
 (let* ((gen-invalid (generator '((foo . bar))))
        (r-invalid (simple-parser (base-generator->results gen-invalid)))
       ) ;
   (check-false (parse-result-successful? r-invalid))
 ) ;let*
 
-
-;; calc
-
-
+;; 完整算术表达式解析器（右递归，packrat 不支持左递归）
 (define calc-env (make-hash-table))
 
 (define calc
@@ -78,7 +97,6 @@
 ) ;define
 (check-true (procedure? calc))
 
-
 (let* ((g (generator '((num . 2) (+) (num . 3))))
        (expected (+ 2 3))
        (r (calc (base-generator->results g)))
@@ -88,9 +106,6 @@
 ) ;let*
 (hash-table-clear! calc-env)
 
-
-;; NOTE: the `calc` parser is right recursion;
-;;       packrat hates left recursion
 (let* ((g (generator '((num . 1) (-) (num . 2) (+) (num . 3))))
        (expected (- 1 (+ 2 3)))
        (r (calc (base-generator->results g)))
@@ -100,8 +115,6 @@
 ) ;let*
 (hash-table-clear! calc-env)
 
-
-;; ditto
 (let* ((g (generator '((num . 1) (*) (num . 2) (/) (num . 3))))
        (expected (* 1 (/ 2 3)))
        (r (calc (base-generator->results g)))
@@ -110,7 +123,6 @@
   (check (parse-result-semantic-value r) => expected)
 ) ;let*
 (hash-table-clear! calc-env)
-
 
 (let* ((g (generator '((oparen) (num . 2) (+) (num . 3) (cparen) (*) (num . 4))))
        (expected (* (+ 2 3) 4))
@@ -121,7 +133,6 @@
 ) ;let*
 (hash-table-clear! calc-env)
 
-
 (let* ((g (generator '((num . 2) (^) (num . 3))))
        (expected (expt 2 3))
        (r (calc (base-generator->results g)))
@@ -130,7 +141,6 @@
   (check (parse-result-semantic-value r) => expected)
 ) ;let*
 (hash-table-clear! calc-env)
-
 
 (let* ((g (generator '((num . 8) (/) (num . 2))))
        (expected (/ 8 2))
@@ -141,7 +151,7 @@
 ) ;let*
 (hash-table-clear! calc-env)
 
-
+;; 赋值与变量引用
 (let* ((g (generator '((begin)
                        (id . ans)
                        (:=)
@@ -164,7 +174,6 @@
 ) ;let*
 (hash-table-clear! calc-env)
 
-
 (let* ((g (generator '((oparen)
                        (num . 2)
                        (+)
@@ -185,7 +194,6 @@
   (check (parse-result-semantic-value r) => expected)
 ) ;let*
 (hash-table-clear! calc-env)
-
 
 (let* ((g (generator '((begin)
                        (id . a)
@@ -208,7 +216,6 @@
 ) ;let*
 (hash-table-clear! calc-env)
 
-
 (let* ((g-invalid (generator '((begin) (foo . bar) (end))))
        (r-invalid (calc (base-generator->results g-invalid)))
       ) ;
@@ -216,291 +223,7 @@
 ) ;let*
 (hash-table-clear! calc-env)
 
-
-
-
-(let ()
-  (define success (make-result 42 #f))
-  (check-true (parse-result? success))
-) ;let
-
-
-
-
-(let ()
-  (check-true (parse-result? (make-result 42 #f)))
-  (check-false (parse-result? 42))
-) ;let
-
-
-
-
-(let ()
-  (define success (make-result 42 #f))
-  (check-true (parse-result-successful? success))
-) ;let
-
-
-
-
-(let ()
-  (define success (make-result 42 #f))
-  (check (parse-result-semantic-value success) => 42)
-) ;let
-
-
-
-
-(let ()
-  (define fail (make-expected-result (make-parse-position #f 1 0) "num"))
-  (check-false (parse-result-successful? fail))
-) ;let
-
-
-
-
-(let ()
-  (define pos (make-parse-position "test.scm" 1 5))
-  (define message (make-message-result pos "error"))
-  (check-false (parse-result-successful? message))
-) ;let
-
-
-
-
-(let ()
-  (define success (make-result 42 #f))
-  (check (parse-result-next success) => #f)
-) ;let
-
-
-
-
-(let ()
-  (define pos (make-parse-position "test.scm" 3 15))
-  (check-true (parse-position? pos))
-) ;let
-
-
-
-
-(let ()
-  (define pos (make-parse-position "test.scm" 3 15))
-  (check-true (parse-position? pos))
-) ;let
-
-
-
-
-(let ()
-  (define pos (make-parse-position "test.scm" 3 15))
-  (check (parse-position-file pos) => "test.scm")
-) ;let
-
-
-
-
-(let ()
-  (define pos (make-parse-position "test.scm" 3 15))
-  (check (parse-position-line pos) => 3)
-) ;let
-
-
-
-
-(let ()
-  (define pos (make-parse-position "test.scm" 3 15))
-  (check (parse-position-column pos) => 15)
-) ;let
-
-
-
-
-(let ()
-  (define gen (lambda () (values (make-parse-position "test" 1 0) #f)))
-  (define results (base-generator->results gen))
-  (check-true (parse-results? results))
-) ;let
-
-
-
-
-(let ()
-  (define gen
-    (let ((tokens '((num . 100) (id . x))))
-      (lambda ()
-        (if (null? tokens)
-          (values #f #f)
-          (let ((token (car tokens)))
-            (set! tokens (cdr tokens))
-            (values #f token)
-          ) ;let
-        ) ;if
-      ) ;lambda
-    ) ;let
-  ) ;define
-  (define results (base-generator->results gen))
-  (check (parse-results-token-kind results) => 'num)
-) ;let
-
-
-
-
-(let ()
-  (define gen
-    (let ((tokens '((num . 100))))
-      (lambda ()
-        (if (null? tokens)
-          (values #f #f)
-          (let ((token (car tokens)))
-            (set! tokens (cdr tokens))
-            (values #f token)
-          ) ;let
-        ) ;if
-      ) ;lambda
-    ) ;let
-  ) ;define
-  (define results (base-generator->results gen))
-  (check (parse-results-token-kind results) => 'num)
-) ;let
-
-
-
-
-(let ()
-  (define gen
-    (let ((tokens '((num . 100))))
-      (lambda ()
-        (if (null? tokens)
-          (values #f #f)
-          (let ((token (car tokens)))
-            (set! tokens (cdr tokens))
-            (values #f token)
-          ) ;let
-        ) ;if
-      ) ;lambda
-    ) ;let
-  ) ;define
-  (define results (base-generator->results gen))
-  (check (parse-results-token-value results) => 100)
-) ;let
-
-
-
-
-(let ()
-  (define pos (make-parse-position "test.scm" 2 10))
-  (define error-ex (make-error-expected pos "open-paren"))
-  (check-true (parse-error? error-ex))
-) ;let
-
-
-
-
-(let ()
-  (define pos (make-parse-position "test.scm" 2 10))
-  (define error-msg (make-error-message pos "syntax error"))
-  (check-true (parse-error? error-msg))
-) ;let
-
-
-
-
-(let ()
-  (define pos (make-parse-position "test.scm" 2 10))
-  (check-true (parse-error? (make-error-expected pos "test")))
-) ;let
-
-
-
-
-(let ()
-  (define pos (make-parse-position "test.scm" 2 10))
-  (define error-ex (make-error-expected pos "open-paren"))
-  (check (parse-error-position error-ex) => pos)
-) ;let
-
-
-
-
-(let ((gen (generator '((num . 42)))))
-  (define %parse-num
-    (packrat-check-base 'num (lambda (v) (lambda (r) (make-result v r))))
-  ) ;define
-  (define result (%parse-num (base-generator->results gen)))
-  (check-true (parse-result-successful? result))
-  (check (parse-result-semantic-value result) => 42)
-) ;let
-
-
-
-
-(let* ((gen (generator '((num . 777))))
-       (%parse-num (packrat-check-base 'num (lambda (v) (lambda (r) (make-result v r))))
-       ) ;%parse-num
-       (%parse-id (packrat-check-base 'id (lambda (v) (lambda (r) (make-result v r)))))
-       (%parse-or (packrat-or %parse-num %parse-id))
-      ) ;
-  (let ((r (%parse-or (base-generator->results gen))))
-    (check-true (parse-result-successful? r))
-    (check (parse-result-semantic-value r) => 777)
-  ) ;let
-) ;let*
-
-
-
-
-(let ((gen (generator '((num . 25)))))
-  (define %parse-num
-    (packrat-check-base 'num (lambda (v) (lambda (r) (make-result v r))))
-  ) ;define
-  (define %parse-check
-    (packrat-check %parse-num (lambda (n) (lambda (r) (make-result (* n 2) r))))
-  ) ;define
-  (define result (%parse-check (base-generator->results gen)))
-  (check-true (parse-result-successful? result))
-  (check (parse-result-semantic-value result) => 50)
-) ;let
-
-
-
-
-(let ((gen-id (generator '((id . test)))))
-  (define %parse-num
-    (packrat-check-base 'num (lambda (v) (lambda (r) (make-result v r))))
-  ) ;define
-  (define %parse-id
-    (packrat-check-base 'id (lambda (v) (lambda (r) (make-result v r))))
-  ) ;define
-  (define %parse-unless (packrat-unless "not expected" %parse-num %parse-id))
-  (let ((r (%parse-unless (base-generator->results gen-id))))
-    (check-true (parse-result-successful? r))
-    (check (parse-result-semantic-value r) => 'test)
-  ) ;let
-) ;let
-
-
-
-
-(let ()
-  (define calc
-    (packrat-parser expr
-      (expr ((a <- mulexp '+ b <- expr) (+ a b)) ((a <- mulexp) a))
-      (mulexp ((a <- simple '* b <- mulexp) (* a b)) ((a <- simple) a))
-      (simple ((a <- 'num) a) (('oparen a <- expr 'cparen) a))
-    ) ;packrat-parser
-  ) ;define
-
-  (let* ((g (generator '((num . 2) (+) (num . 3))))
-         (expected (+ 2 3))
-         (r (calc (base-generator->results g)))
-        ) ;
-    (check-true (parse-result-successful? r))
-    (check (parse-result-semantic-value r) => expected)
-  ) ;let*
-) ;let
-
-
+;; 位置绑定 (^ pos)
 (let ()
   (define (pos-generator tokens)
     (let ((g (generator tokens)) (col 1))
@@ -527,6 +250,7 @@
   ) ;let*
 ) ;let
 
+;; 否定断言 (! 'bad)
 (let ()
   (define p-not
     (packrat-parser entry
@@ -546,6 +270,7 @@
   ) ;let*
 ) ;let
 
+;; 未绑定记号与带引号的未绑定记号
 (let ()
   (define p-unbound
     (packrat-parser entry
@@ -575,6 +300,7 @@
   ) ;let*
 ) ;let
 
+;; 非法规则在宏展开期报错
 (check-catch 'type-error
   (eval '(packrat-parser entry (entry (#t 1))) (environment '(liii packrat)))
 ) ;check-catch

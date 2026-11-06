@@ -1,6 +1,3 @@
-(import (liii check) (liii han-zi))
-
-
 ;; han-zi->number
 ;; 将单个汉字字符映射为非负整数，三种风格一视同仁。
 ;;
@@ -18,12 +15,9 @@
 ;; integer | #f
 ;; 对应的数值，若字符不在支持范围内则返回 #f。
 ;;
-;; 示例
-;; ----
-;; (han-zi->number #\一) => 1
-;; (han-zi->number #\壹) => 1
-;; (han-zi->number #\兆) => #f
 
+(import (liii check) (liii han-zi))
+(check-set-mode! 'report-failed)
 
 ;; 通用风格
 (check (han-zi->number #\零) => 0)

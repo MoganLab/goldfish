@@ -1,9 +1,3 @@
-(import (liii random) (liii check))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; random-source?
 ;; 检查对象是否为随机源。
 ;;
@@ -21,11 +15,13 @@
 ;; boolean
 ;; 当 obj 是随机源时返回 #t，否则返回 #f。
 ;;
-;; 示例
-;; ----
-;; (random-source? (make-random-source))  => #t
-;; (random-source? 'not-a-source)         => #f
-;; (random-source? default-random-source) => #t
+
+(import (srfi srfi-27) (liii check))
+
+
+(check-set-mode! 'report-failed)
+
+
 
 
 (let ((s (make-random-source)))

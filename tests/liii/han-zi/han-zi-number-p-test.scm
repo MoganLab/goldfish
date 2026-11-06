@@ -1,6 +1,3 @@
-(import (liii check) (liii han-zi))
-
-
 ;; han-zi-number?
 ;; 判断单个字符是否属于本模块管辖范围内的数字汉字。
 ;;
@@ -18,12 +15,9 @@
 ;; boolean
 ;; 若是数字汉字则返回 #t，否则返回 #f。
 ;;
-;; 示例
-;; ----
-;; (han-zi-number? #\一) => #t
-;; (han-zi-number? #\兆) => #f
-;; (han-zi-number? #\中) => #f
 
+(import (liii check) (liii han-zi))
+(check-set-mode! 'report-failed)
 
 ;; 通用风格数字汉字
 (check-true (han-zi-number? #\零))

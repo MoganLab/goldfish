@@ -1,9 +1,3 @@
-(import (liii random) (liii check))
-
-
-(check-set-mode! 'report-failed)
-
-
 ;; random-source-make-reals
 ;; 从随机源创建实数生成器。
 ;;
@@ -25,15 +19,16 @@
 ;; procedure
 ;; 返回一个无参数过程，生成 (0, 1) 的随机实数。
 ;;
-;; 示例
-;; ----
-;; (let* ((s (make-random-source))
-;;        (rand-real (random-source-make-reals s)))
-;;   (rand-real))  => (0, 1) 之间的随机实数
-;;
 ;; 错误处理
 ;; ----
 ;; type-error 当 s 不是随机源或 unit 无效时抛出。
+
+(import (srfi srfi-27) (liii check))
+
+
+(check-set-mode! 'report-failed)
+
+
 
 
 (let* ((s (make-random-source)) (rand-real (random-source-make-reals s)))
