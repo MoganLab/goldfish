@@ -1,7 +1,3 @@
-(import (liii check) (liii fxmapping))
-
-(check-set-mode! 'report-failed)
-
 ;; fxmapping-any?
 ;; 检查是否存在满足谓词的键值对。
 ;;
@@ -21,6 +17,11 @@
 ;; -----
 ;; 如果存在满足 pred 的键值对，返回 #t；否则返回 #f。
 ;;
+
+(import (liii check) (liii fxmapping))
+
+(check-set-mode! 'report-failed)
+
 (check-true (fxmapping-any? (lambda (k v) (> k 5)) (fxmapping 3 'a 7 'b 10 'c)))
 (check-false (fxmapping-any? (lambda (k v) (> k 100)) (fxmapping 3 'a 7 'b)))
 

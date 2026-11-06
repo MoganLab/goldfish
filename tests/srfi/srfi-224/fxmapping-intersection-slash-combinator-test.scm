@@ -1,7 +1,3 @@
-(import (liii check) (liii fxmapping))
-
-(check-set-mode! 'report-failed)
-
 ;; fxmapping-intersection/combinator
 ;; 交集操作，使用自定义合并函数处理重复键。
 ;;
@@ -22,6 +18,11 @@
 ;; 返回只包含在所有映射中都存在的键的新 fxmapping。
 ;; 对于重复键，使用 combiner 合并值。
 ;;
+
+(import (liii check) (liii fxmapping))
+
+(check-set-mode! 'report-failed)
+
 (let ((intersection (fxmapping-intersection/combinator (lambda (k v1 v2) (+ v1 v2))
                       (fxmapping 0 10 1 20 2 30)
                       (fxmapping 1 5 2 15 3 40)

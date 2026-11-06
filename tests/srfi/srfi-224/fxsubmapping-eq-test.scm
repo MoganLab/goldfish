@@ -1,7 +1,3 @@
-(import (liii check) (liii fxmapping))
-
-(check-set-mode! 'report-failed)
-
 ;; fxsubmapping=
 ;; 获取指定键的子映射。
 ;;
@@ -22,6 +18,11 @@
 ;; 如果 key 存在于 fxmap 中，返回只包含该键值对的映射；
 ;; 否则返回空映射。
 ;;
+
+(import (liii check) (liii fxmapping))
+
+(check-set-mode! 'report-failed)
+
 (check (fxmapping-ref (fxsubmapping= (fxmapping 0 'a 1 'b) 0) 0 (lambda () #f))
   =>
   'a

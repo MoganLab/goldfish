@@ -1,7 +1,3 @@
-(import (liii check) (liii fxmapping))
-
-(check-set-mode! 'report-failed)
-
 ;; fxmapping-partition
 ;; 按谓词分割映射。
 ;;
@@ -21,6 +17,11 @@
 ;; -----
 ;; 返回两个值：满足 pred 的键值对组成的新映射，和不满足的组成的新映射。
 ;;
+
+(import (liii check) (liii fxmapping))
+
+(check-set-mode! 'report-failed)
+
 (let-values (((yes no)
               (fxmapping-partition (lambda (k v) (> k 5)) (fxmapping 3 'a 7 'b 10 'c))
              ) ;

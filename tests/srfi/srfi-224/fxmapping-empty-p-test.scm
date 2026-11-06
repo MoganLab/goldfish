@@ -1,7 +1,3 @@
-(import (liii check) (liii fxmapping))
-
-(check-set-mode! 'report-failed)
-
 ;; fxmapping-empty?
 ;; 检查映射是否为空。
 ;;
@@ -18,6 +14,11 @@
 ;; -----
 ;; 如果 fxmap 不包含任何键值对，返回 #t；否则返回 #f。
 ;;
+
+(import (liii check) (liii fxmapping))
+
+(check-set-mode! 'report-failed)
+
 (check-true (fxmapping-empty? (fxmapping)))
 (check-false (fxmapping-empty? (fxmapping 0 'a)))
 

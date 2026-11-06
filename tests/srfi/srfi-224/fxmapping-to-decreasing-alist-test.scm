@@ -1,7 +1,3 @@
-(import (liii check) (liii fxmapping))
-
-(check-set-mode! 'report-failed)
-
 ;; fxmapping->decreasing-alist
 ;; 转换为关联列表（降序）。
 ;;
@@ -18,6 +14,11 @@
 ;; -----
 ;; 返回按键降序排列的关联列表。
 ;;
+
+(import (liii check) (liii fxmapping))
+
+(check-set-mode! 'report-failed)
+
 (check (fxmapping->decreasing-alist (fxmapping 0 'a 1 'b))
   =>
   '((1 . b) (0 . a))

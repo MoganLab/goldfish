@@ -1,7 +1,3 @@
-(import (liii check) (liii fxmapping))
-
-(check-set-mode! 'report-failed)
-
 ;; fxmapping-min
 ;; 获取键最小的键值对。
 ;;
@@ -18,6 +14,11 @@
 ;; -----
 ;; 返回两个值：最小的键和关联的值。
 ;;
+
+(import (liii check) (liii fxmapping))
+
+(check-set-mode! 'report-failed)
+
 (let-values (((k v) (fxmapping-min (fxmapping 0 'a 1 'b 2 'c))))
   (check k => 0)
   (check v => 'a)

@@ -1,7 +1,3 @@
-(import (liii check) (liii fxmapping))
-
-(check-set-mode! 'report-failed)
-
 ;; fxmapping-filter
 ;; 过滤满足谓词的键值对。
 ;;
@@ -21,6 +17,11 @@
 ;; -----
 ;; 返回只包含满足 pred 的键值对的新 fxmapping。
 ;;
+
+(import (liii check) (liii fxmapping))
+
+(check-set-mode! 'report-failed)
+
 (let ((filtered (fxmapping-filter (lambda (k v) (> k 5)) (fxmapping 3 'a 7 'b 10 'c)))
      ) ;
   (check-false (fxmapping-contains? filtered 3))

@@ -1,7 +1,3 @@
-(import (liii check) (liii fxmapping))
-
-(check-set-mode! 'report-failed)
-
 ;; fxmapping-map
 ;; 映射函数转换所有值。
 ;;
@@ -21,17 +17,24 @@
 ;; -----
 ;; 返回新的 fxmapping，所有值都经过 proc 转换。
 ;;
-(check (fxmapping-ref (fxmapping-map (lambda (k v) (* v 10)) (fxmapping 0 1 1 2 2 3))
-         0
-         (lambda () 'not-found)
-       ) ;fxmapping-ref
+
+(import (liii check) (liii fxmapping))
+
+(check-set-mode! 'report-failed)
+
+(check
+  (fxmapping-ref (fxmapping-map (lambda (k v) (* v 10)) (fxmapping 0 1 1 2 2 3))
+    0
+    (lambda () 'not-found)
+  ) ;fxmapping-ref
   =>
   10
 ) ;check
-(check (fxmapping-ref (fxmapping-map (lambda (k v) (* v 10)) (fxmapping 0 1 1 2 2 3))
-         1
-         (lambda () 'not-found)
-       ) ;fxmapping-ref
+(check
+  (fxmapping-ref (fxmapping-map (lambda (k v) (* v 10)) (fxmapping 0 1 1 2 2 3))
+    1
+    (lambda () 'not-found)
+  ) ;fxmapping-ref
   =>
   20
 ) ;check

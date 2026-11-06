@@ -1,7 +1,3 @@
-(import (liii check) (liii fxmapping))
-
-(check-set-mode! 'report-failed)
-
 ;; alist->fxmapping
 ;; 从关联列表（alist）创建整数映射。
 ;;
@@ -19,11 +15,18 @@
 ;; 返回包含 alist 中所有键值对的新 fxmapping。
 ;; 如果存在重复键，后面的值会覆盖前面的值。
 ;;
-(check (fxmapping-ref (alist->fxmapping '((0 . a) (1 . b))) 0 (lambda () 'not-found))
+
+(import (liii check) (liii fxmapping))
+
+(check-set-mode! 'report-failed)
+
+(check
+  (fxmapping-ref (alist->fxmapping '((0 . a) (1 . b))) 0 (lambda () 'not-found))
   =>
   'a
 ) ;check
-(check (fxmapping-ref (alist->fxmapping '((0 . a) (1 . b))) 1 (lambda () 'not-found))
+(check
+  (fxmapping-ref (alist->fxmapping '((0 . a) (1 . b))) 1 (lambda () 'not-found))
   =>
   'b
 ) ;check

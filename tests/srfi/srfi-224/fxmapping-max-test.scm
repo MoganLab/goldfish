@@ -1,7 +1,3 @@
-(import (liii check) (liii fxmapping))
-
-(check-set-mode! 'report-failed)
-
 ;; fxmapping-max
 ;; 获取键最大的键值对。
 ;;
@@ -18,6 +14,11 @@
 ;; -----
 ;; 返回两个值：最大的键和关联的值。
 ;;
+
+(import (liii check) (liii fxmapping))
+
+(check-set-mode! 'report-failed)
+
 (let-values (((k v) (fxmapping-max (fxmapping 0 'a 1 'b 2 'c))))
   (check k => 2)
   (check v => 'c)

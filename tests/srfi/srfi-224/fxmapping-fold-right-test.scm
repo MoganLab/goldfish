@@ -1,7 +1,3 @@
-(import (liii check) (liii fxmapping))
-
-(check-set-mode! 'report-failed)
-
 ;; fxmapping-fold-right
 ;; 右折叠遍历映射（按键降序）。
 ;;
@@ -24,6 +20,11 @@
 ;; -----
 ;; 返回最终累积值。
 ;;
+
+(import (liii check) (liii fxmapping))
+
+(check-set-mode! 'report-failed)
+
 (check (fxmapping-fold-right (lambda (k v acc) (cons k acc))
          '()
          (fxmapping 0 'a 1 'b 2 'c)

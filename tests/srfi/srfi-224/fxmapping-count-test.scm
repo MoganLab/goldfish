@@ -1,7 +1,3 @@
-(import (liii check) (liii fxmapping))
-
-(check-set-mode! 'report-failed)
-
 ;; fxmapping-count
 ;; 统计满足谓词的键值对数量。
 ;;
@@ -21,6 +17,11 @@
 ;; -----
 ;; 返回满足 pred 的键值对数量。
 ;;
+
+(import (liii check) (liii fxmapping))
+
+(check-set-mode! 'report-failed)
+
 (check (fxmapping-count (lambda (k v) (> k 5)) (fxmapping 3 'a 7 'b 10 'c))
   =>
   2

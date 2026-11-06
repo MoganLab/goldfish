@@ -1,7 +1,3 @@
-(import (liii check) (liii fxmapping))
-
-(check-set-mode! 'report-failed)
-
 ;; fxmapping-disjoint?
 ;; 检查两个映射是否不相交（没有共同键）。
 ;;
@@ -18,6 +14,11 @@
 ;; -----
 ;; 如果两个映射没有共同键，返回 #t；否则返回 #f。
 ;;
+
+(import (liii check) (liii fxmapping))
+
+(check-set-mode! 'report-failed)
+
 (check-true (fxmapping-disjoint? (fxmapping 0 'a) (fxmapping 1 'b)))
 (check-false (fxmapping-disjoint? (fxmapping 0 'a) (fxmapping 0 'b)))
 (check-true (fxmapping-disjoint? (fxmapping 0 'a 1 'b) (fxmapping 2 'c 3 'd)))

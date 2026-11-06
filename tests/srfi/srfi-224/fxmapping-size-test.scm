@@ -1,7 +1,3 @@
-(import (liii check) (liii fxmapping))
-
-(check-set-mode! 'report-failed)
-
 ;; fxmapping-size
 ;; 获取映射的大小（键值对数量）。
 ;;
@@ -18,6 +14,11 @@
 ;; -----
 ;; 返回 fxmap 中键值对的数量。
 ;;
+
+(import (liii check) (liii fxmapping))
+
+(check-set-mode! 'report-failed)
+
 (check (fxmapping-size (fxmapping)) => 0)
 (check (fxmapping-size (fxmapping 0 'a)) => 1)
 (check (fxmapping-size (fxmapping 0 'a 1 'b 2 'c)) => 3)

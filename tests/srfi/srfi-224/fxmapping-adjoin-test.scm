@@ -1,7 +1,3 @@
-(import (liii check) (liii fxmapping))
-
-(check-set-mode! 'report-failed)
-
 ;; fxmapping-adjoin
 ;; 添加键值对到映射，不覆盖已存在的键。
 ;;
@@ -25,6 +21,11 @@
 ;; 返回新的 fxmapping，包含原映射的所有键值对以及新增的键值对。
 ;; 如果键已存在，保留原值。
 ;;
+
+(import (liii check) (liii fxmapping))
+
+(check-set-mode! 'report-failed)
+
 (check (fxmapping-ref (fxmapping-adjoin (fxmapping 0 'a) 1 'b)
          1
          (lambda () 'not-found)

@@ -1,7 +1,3 @@
-(import (liii check) (liii fxmapping))
-
-(check-set-mode! 'report-failed)
-
 ;; fxmapping-find
 ;; 查找满足谓词的第一个键值对。
 ;;
@@ -29,6 +25,11 @@
 ;; 如果找到满足 pred 的键值对，返回 success 的结果（默认为两个值：key 和 value）；
 ;; 否则返回 failure 的结果。
 ;;
+
+(import (liii check) (liii fxmapping))
+
+(check-set-mode! 'report-failed)
+
 (let-values (((k v)
               (fxmapping-find (lambda (k v) (> k 5))
                 (fxmapping 3 'a 7 'b 10 'c)

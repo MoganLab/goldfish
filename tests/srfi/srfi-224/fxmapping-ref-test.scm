@@ -1,7 +1,3 @@
-(import (liii check) (liii fxmapping))
-
-(check-set-mode! 'report-failed)
-
 ;; fxmapping-ref
 ;; 获取指定键关联的值。
 ;;
@@ -31,6 +27,11 @@
 ;; 如果键不存在且提供了 failure，返回 failure 的结果；
 ;; 否则抛出错误。
 ;;
+
+(import (liii check) (liii fxmapping))
+
+(check-set-mode! 'report-failed)
+
 (check (fxmapping-ref (fxmapping 0 'a 1 'b) 0 (lambda () 'not-found)) => 'a)
 (check (fxmapping-ref (fxmapping 0 'a 1 'b) 1 (lambda () 'not-found)) => 'b)
 (check (fxmapping-ref (fxmapping 0 'a 1 'b) 2 (lambda () 'not-found))

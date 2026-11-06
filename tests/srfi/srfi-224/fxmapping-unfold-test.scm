@@ -1,7 +1,3 @@
-(import (liii check) (liii fxmapping))
-
-(check-set-mode! 'report-failed)
-
 ;; fxmapping-unfold
 ;; 使用 unfold 模式创建整数映射。
 ;;
@@ -27,25 +23,34 @@
 ;; -----
 ;; 返回生成的 fxmapping。
 ;;
-(check (fxmapping-ref (fxmapping-unfold (lambda (n) (> n 3))
-                        (lambda (n) (values n (* n 10)))
-                        (lambda (n) (+ n 1))
-                        0
-                      ) ;fxmapping-unfold
-         2
-         (lambda () 'not-found)
-       ) ;fxmapping-ref
+
+(import (liii check) (liii fxmapping))
+
+(check-set-mode! 'report-failed)
+
+(check
+  (fxmapping-ref
+    (fxmapping-unfold (lambda (n) (> n 3))
+      (lambda (n) (values n (* n 10)))
+      (lambda (n) (+ n 1))
+      0
+    ) ;fxmapping-unfold
+    2
+    (lambda () 'not-found)
+  ) ;fxmapping-ref
   =>
   20
 ) ;check
-(check (fxmapping-ref (fxmapping-unfold (lambda (n) (> n 3))
-                        (lambda (n) (values n (* n 10)))
-                        (lambda (n) (+ n 1))
-                        0
-                      ) ;fxmapping-unfold
-         5
-         (lambda () #f)
-       ) ;fxmapping-ref
+(check
+  (fxmapping-ref
+    (fxmapping-unfold (lambda (n) (> n 3))
+      (lambda (n) (values n (* n 10)))
+      (lambda (n) (+ n 1))
+      0
+    ) ;fxmapping-unfold
+    5
+    (lambda () #f)
+  ) ;fxmapping-ref
   =>
   #f
 ) ;check

@@ -1,7 +1,3 @@
-(import (liii check) (liii fxmapping))
-
-(check-set-mode! 'report-failed)
-
 ;; fxmapping-intersection
 ;; 交集操作。
 ;;
@@ -19,6 +15,11 @@
 ;; 返回只包含在所有映射中都存在的键的新 fxmapping。
 ;; 对于重复键，后面的映射的值优先。
 ;;
+
+(import (liii check) (liii fxmapping))
+
+(check-set-mode! 'report-failed)
+
 (let ((intersection (fxmapping-intersection (fxmapping 0 'a 1 'b 2 'c) (fxmapping 1 'B 2 'C 3 'd))
       ) ;intersection
      ) ;

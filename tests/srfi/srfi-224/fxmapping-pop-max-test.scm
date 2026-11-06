@@ -1,7 +1,3 @@
-(import (liii check) (liii fxmapping))
-
-(check-set-mode! 'report-failed)
-
 ;; fxmapping-pop-max
 ;; 弹出键最大的键值对。
 ;;
@@ -18,6 +14,11 @@
 ;; -----
 ;; 返回三个值：最大的键、关联的值、以及不包含该键值对的新映射。
 ;;
+
+(import (liii check) (liii fxmapping))
+
+(check-set-mode! 'report-failed)
+
 (let-values (((k v m) (fxmapping-pop-max (fxmapping 0 'a 1 'b))))
   (check k => 1)
   (check v => 'b)

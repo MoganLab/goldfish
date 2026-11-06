@@ -1,7 +1,3 @@
-(import (liii check) (liii fxmapping))
-
-(check-set-mode! 'report-failed)
-
 ;; fxmapping-delete-all
 ;; 删除多个键。
 ;;
@@ -21,6 +17,11 @@
 ;; -----
 ;; 返回新的 fxmapping，不包含 keys 中的任何键。
 ;;
+
+(import (liii check) (liii fxmapping))
+
+(check-set-mode! 'report-failed)
+
 (check-false (fxmapping-contains? (fxmapping-delete-all (fxmapping 0 'a 1 'b 2 'c) '(0
                                                                                      2)) 0)
 ) ;check-false

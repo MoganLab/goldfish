@@ -1,7 +1,3 @@
-(import (liii check) (liii fxmapping))
-
-(check-set-mode! 'report-failed)
-
 ;; fxmapping-every?
 ;; 检查是否所有键值对都满足谓词。
 ;;
@@ -21,6 +17,11 @@
 ;; -----
 ;; 如果所有键值对都满足 pred，返回 #t；否则返回 #f。
 ;;
+
+(import (liii check) (liii fxmapping))
+
+(check-set-mode! 'report-failed)
+
 (check-true (fxmapping-every? (lambda (k v) (> k 0)) (fxmapping 1 'a 2 'b 3 'c))
 ) ;check-true
 (check-false (fxmapping-every? (lambda (k v) (> k 0)) (fxmapping 0 'a 1 'b)))

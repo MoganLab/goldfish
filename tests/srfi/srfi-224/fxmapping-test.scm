@@ -1,7 +1,3 @@
-(import (liii check) (liii fxmapping))
-
-(check-set-mode! 'report-failed)
-
 ;; fxmapping
 ;; 创建一个新的整数映射（fxmapping）。
 ;;
@@ -21,6 +17,11 @@
 ;; -----
 ;; 返回包含指定键值对的新 fxmapping。
 ;;
+
+(import (liii check) (liii fxmapping))
+
+(check-set-mode! 'report-failed)
+
 (check-true (fxmapping? (fxmapping 0 'a 1 'b)))
 (check (fxmapping-ref (fxmapping 0 'a 1 'b) 0 (lambda () 'not-found)) => 'a)
 (check (fxmapping-ref (fxmapping 0 'a 1 'b) 1 (lambda () 'not-found)) => 'b)

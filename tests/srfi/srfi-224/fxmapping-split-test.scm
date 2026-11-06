@@ -1,7 +1,3 @@
-(import (liii check) (liii fxmapping))
-
-(check-set-mode! 'report-failed)
-
 ;; fxmapping-split
 ;; 按键分割映射。
 ;;
@@ -21,6 +17,11 @@
 ;; -----
 ;; 返回两个值：键小于 key 的映射，和键大于等于 key 的映射。
 ;;
+
+(import (liii check) (liii fxmapping))
+
+(check-set-mode! 'report-failed)
+
 (let-values (((low high) (fxmapping-split (fxmapping 0 'a 1 'b 2 'c 3 'd) 2)))
   (check-true (fxmapping-contains? low 0))
   (check-true (fxmapping-contains? low 1))

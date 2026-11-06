@@ -1,7 +1,3 @@
-(import (liii check) (liii fxmapping))
-
-(check-set-mode! 'report-failed)
-
 ;; fxmapping-for-each
 ;; 遍历所有键值对执行副作用操作。
 ;;
@@ -21,8 +17,14 @@
 ;; -----
 ;; 未指定返回值（用于副作用）。
 ;;
+
+(import (liii check) (liii fxmapping))
+
+(check-set-mode! 'report-failed)
+
 (let ((result '()))
-  (fxmapping-for-each (lambda (k v) (set! result (cons (cons k v) result)))
+  (fxmapping-for-each
+    (lambda (k v) (set! result (cons (cons k v) result)))
     (fxmapping 0 'a 1 'b 2 'c)
   ) ;fxmapping-for-each
   (check (length result) => 3)

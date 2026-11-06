@@ -1,7 +1,3 @@
-(import (liii check) (liii fxmapping))
-
-(check-set-mode! 'report-failed)
-
 ;; fxmapping-difference
 ;; 差集操作。
 ;;
@@ -21,6 +17,11 @@
 ;; -----
 ;; 返回 fxmap1 中不包含在 fxmap2... 中的键的新 fxmapping。
 ;;
+
+(import (liii check) (liii fxmapping))
+
+(check-set-mode! 'report-failed)
+
 (let ((diff (fxmapping-difference (fxmapping 0 'a 1 'b 2 'c) (fxmapping 1 'x 3 'y))))
   (check-true (fxmapping-contains? diff 0))
   (check-false (fxmapping-contains? diff 1))

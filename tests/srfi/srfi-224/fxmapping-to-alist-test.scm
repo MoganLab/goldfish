@@ -1,7 +1,3 @@
-(import (liii check) (liii fxmapping))
-
-(check-set-mode! 'report-failed)
-
 ;; fxmapping->alist
 ;; 转换为关联列表（升序）。
 ;;
@@ -18,6 +14,11 @@
 ;; -----
 ;; 返回按键升序排列的关联列表 ((key . value) ...)。
 ;;
+
+(import (liii check) (liii fxmapping))
+
+(check-set-mode! 'report-failed)
+
 (check (fxmapping->alist (fxmapping 0 'a 1 'b)) => '((0 . a) (1 . b)))
 (check (fxmapping->alist (fxmapping)) => '())
 

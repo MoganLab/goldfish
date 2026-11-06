@@ -1,7 +1,3 @@
-(import (liii check) (liii fxmapping))
-
-(check-set-mode! 'report-failed)
-
 ;; fxmapping<=?
 ;; 检查映射1是否为映射2的子集（非真子集）。
 ;;
@@ -21,6 +17,11 @@
 ;; -----
 ;; 如果 fxmap1 是 fxmap2 的子集（可以相等），返回 #t；否则返回 #f。
 ;;
+
+(import (liii check) (liii fxmapping))
+
+(check-set-mode! 'report-failed)
+
 (check-true (fxmapping<=? eqv? (fxmapping) (fxmapping 0 'a)))
 (check-true (fxmapping<=? eqv? (fxmapping 0 'a) (fxmapping 0 'a)))
 (check-true (fxmapping<=? eqv? (fxmapping 0 'a) (fxmapping 0 'a 1 'b)))

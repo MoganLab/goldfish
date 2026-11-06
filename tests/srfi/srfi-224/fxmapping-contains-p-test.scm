@@ -1,7 +1,3 @@
-(import (liii check) (liii fxmapping))
-
-(check-set-mode! 'report-failed)
-
 ;; fxmapping-contains?
 ;; 检查映射是否包含指定键。
 ;;
@@ -21,6 +17,11 @@
 ;; -----
 ;; 如果 fxmap 包含 key，返回 #t；否则返回 #f。
 ;;
+
+(import (liii check) (liii fxmapping))
+
+(check-set-mode! 'report-failed)
+
 (check-true (fxmapping-contains? (fxmapping 0 'a 1 'b) 0))
 (check-true (fxmapping-contains? (fxmapping 0 'a 1 'b) 1))
 (check-false (fxmapping-contains? (fxmapping 0 'a 1 'b) 2))

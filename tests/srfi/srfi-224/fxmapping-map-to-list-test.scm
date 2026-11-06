@@ -1,7 +1,3 @@
-(import (liii check) (liii fxmapping))
-
-(check-set-mode! 'report-failed)
-
 ;; fxmapping-map->list
 ;; 映射并转换为列表。
 ;;
@@ -21,6 +17,11 @@
 ;; -----
 ;; 返回 proc 应用于所有键值对的结果列表（按键降序）。
 ;;
+
+(import (liii check) (liii fxmapping))
+
+(check-set-mode! 'report-failed)
+
 (check (fxmapping-map->list (lambda (k v) (cons k v)) (fxmapping 0 'a 1 'b))
   =>
   '((0 . a) (1 . b))
