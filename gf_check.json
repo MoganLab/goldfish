@@ -164,7 +164,7 @@
         "reason": "Packrat 语法解析引擎核心实现"
       },
       {
-        "path": "goldfish/liii/uri/record.scm",
+        "path": "library/liii/uri/record.scm",
         "reason": "URI 规范解析与记录模型"
       },
       {
@@ -246,7 +246,7 @@
         "reason": "日志框架格式化与分发逻辑"
       },
       {
-        "path": "goldfish/liii/uri/record.scm",
+        "path": "library/liii/uri/record.scm",
         "reason": "URI 规范解析与记录模型"
       },
       {
