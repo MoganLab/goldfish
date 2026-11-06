@@ -1,6 +1,3 @@
-(import (liii check) (liii ascii))
-
-
 ;; ascii-right-paren?
 ;; 判断是否为 ASCII 右括号。
 ;;
@@ -22,14 +19,13 @@
 ;; ----
 ;; 支持字符和整数码点两种输入。
 ;;
-;; 示例
-;; ----
-;; (ascii-right-paren? #\)) => #t
-;; (ascii-right-paren? #x28) => #f
-;;
 ;; 错误处理
 ;; ----
 ;; 类型或范围不匹配时返回 #f
+
+(import (liii check) (liii ascii))
+
+
 
 
 (check-true (ascii-right-paren? #\)))

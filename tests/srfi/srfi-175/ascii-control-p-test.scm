@@ -1,0 +1,37 @@
+;; ascii-control?
+;; 判断是否为 ASCII 控制字符。
+;;
+;; 语法
+;; ----
+;; (ascii-control? x)
+;;
+;; 参数
+;; ----
+;; x : char? | integer?
+;; 要判断的字符或码点。
+;;
+;; 返回值
+;; ----
+;; boolean
+;; 如果x位于 ASCII 控制字符范围内则返回#t，否则返回#f。
+;;
+;; 注意
+;; ----
+;; 覆盖 #x00-#x1f 以及 #x7f 边界。
+;;
+;; 错误处理
+;; ----
+;; 类型或范围不匹配时返回 #f
+
+(import (liii check) (liii ascii))
+
+
+
+
+(check-true (ascii-control? 0))
+(check-true (ascii-control? 31))
+(check-true (ascii-control? 127))
+(check-false (ascii-control? 32))
+
+
+(check-report)
