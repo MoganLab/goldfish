@@ -1,7 +1,3 @@
-(import (liii check) (liii subprocess))
-
-(check-set-mode! 'report-failed)
-
 ;; run-streaming
 ;; 以流式回调方式执行命令并逐行处理子进程输出。
 ;;
@@ -29,6 +25,10 @@
 ;; integer
 ;; 子进程退出码，0 表示正常退出。
 
+(import (liii check) (liii subprocess))
+
+(check-set-mode! 'report-failed)
+
 (let* ((lines '())
        (child-code (string-append "import sys\n" "print('alpha', flush=True)\n"
                      "print('beta', flush=True)\n"
@@ -36,7 +36,7 @@
                    ) ;string-append
        ) ;child-code
        (exit-code
-         (run-streaming `(,"python3" ,"-c" ,child-code)
+         (run-streaming `("python3" "-c" ,child-code)
            :on-stdout (lambda (line) (set! lines (cons line lines)))
          ) ;run-streaming
        ) ;exit-code
@@ -65,7 +65,7 @@
                    ) ;string-append
        ) ;child-code
        (code
-         (run-streaming `(,"python3" ,"-c" ,child-code)
+         (run-streaming `("python3" "-c" ,child-code)
            :on-stdout (lambda (l) (set! stdout-lines (cons l stdout-lines)))
            :on-stderr (lambda (l) (set! stderr-lines (cons l stderr-lines)))
          ) ;run-streaming
@@ -84,7 +84,7 @@
                    ) ;string-append
        ) ;child-code
        (ret
-         (run-streaming `(,"python3" ,"-c" ,child-code)
+         (run-streaming `("python3" "-c" ,child-code)
            :on-stdout    (lambda (l) (set! lines (cons l lines)))
            :timeout      10
            :idle-timeout 0.6
@@ -114,7 +114,7 @@
                    ) ;string-append
        ) ;child-code
        (ret
-         (run-streaming `(,"python3" ,"-c" ,child-code)
+         (run-streaming `("python3" "-c" ,child-code)
            :on-idle
            (lambda (proc idle-secs) (set! idle-calls (cons idle-secs idle-calls)))
            :idle-timeout 2.0
