@@ -1,7 +1,3 @@
-(import (liii check) (liii json schema budget))
-
-(check-set-mode! 'report-failed)
-
 ;; resource-budget-from-options
 ;; 按选项表创建资源预算。
 ;;
@@ -24,13 +20,14 @@
 ;; 缺省上限为深度 1000、步数 1000000、引用 100000；
 ;; 该函数不校验选项取值，校验请使用 validate-budget-options!。
 ;;
-;; 示例
-;; ----
-;; (budget-max-depth (resource-budget-from-options '((max-depth . 10)))) => 10
-;;
 ;; 错误处理
 ;; ----
 ;; 无。
+
+(import (liii check) (liii json schema budget))
+
+(check-set-mode! 'report-failed)
+
 
 (define budget
   (resource-budget-from-options '((max-depth . 10)

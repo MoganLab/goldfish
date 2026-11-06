@@ -1,7 +1,3 @@
-(import (liii check) (liii json schema budget))
-
-(check-set-mode! 'report-failed)
-
 ;; budget-depth
 ;; 读取资源预算当前的求值深度。
 ;;
@@ -23,13 +19,14 @@
 ;; ----
 ;; 深度由 enter-budget-depth! 增加、leave-budget-depth! 减少。
 ;;
-;; 示例
-;; ----
-;; (budget-depth (make-resource-budget 10 100 1000)) => 0
-;;
 ;; 错误处理
 ;; ----
 ;; 无。
+
+(import (liii check) (liii json schema budget))
+
+(check-set-mode! 'report-failed)
+
 
 (define budget (make-resource-budget 10 100 1000))
 

@@ -1,7 +1,3 @@
-(import (liii check) (liii json schema budget))
-
-(check-set-mode! 'report-failed)
-
 ;; enter-budget-depth!
 ;; 进入一层求值深度并返回新的深度。
 ;;
@@ -24,13 +20,14 @@
 ;; 深度超过 max-depth 上限时立即抛出 json-schema-budget-exceeded，
 ;; 不会等到本次校验结束。
 ;;
-;; 示例
-;; ----
-;; (enter-budget-depth! budget) => 1
-;;
 ;; 错误处理
 ;; ----
 ;; json-schema-budget-exceeded 当深度超过上限时。
+
+(import (liii check) (liii json schema budget))
+
+(check-set-mode! 'report-failed)
+
 
 (define budget (make-resource-budget 10 100 1000))
 

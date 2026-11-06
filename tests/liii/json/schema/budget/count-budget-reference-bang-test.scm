@@ -1,7 +1,3 @@
-(import (liii check) (liii json schema budget))
-
-(check-set-mode! 'report-failed)
-
 ;; count-budget-reference!
 ;; 累加一次引用解析并返回新的引用次数。
 ;;
@@ -24,13 +20,14 @@
 ;; 次数超过 max-references 上限时抛出 json-schema-budget-exceeded，
 ;; 用于阻止递归引用造成的无限展开。
 ;;
-;; 示例
-;; ----
-;; (count-budget-reference! budget) => 1
-;;
 ;; 错误处理
 ;; ----
 ;; json-schema-budget-exceeded 当引用次数超过上限时。
+
+(import (liii check) (liii json schema budget))
+
+(check-set-mode! 'report-failed)
+
 
 (define budget (make-resource-budget 100 100 2))
 

@@ -1,7 +1,3 @@
-(import (liii check) (liii json schema budget))
-
-(check-set-mode! 'report-failed)
-
 ;; resource-budget?
 ;; 判断对象是否为资源预算。
 ;;
@@ -23,13 +19,14 @@
 ;; ----
 ;; 预算记录是长度为 6 的向量。
 ;;
-;; 示例
-;; ----
-;; (resource-budget? (make-resource-budget 10 100 1000)) => #t
-;;
 ;; 错误处理
 ;; ----
 ;; 无。
+
+(import (liii check) (liii json schema budget))
+
+(check-set-mode! 'report-failed)
+
 
 (check-true (resource-budget? (make-resource-budget 10 100 1000)))
 (check-false (resource-budget? 'not-a-budget))

@@ -1,7 +1,3 @@
-(import (liii check) (liii json schema budget))
-
-(check-set-mode! 'report-failed)
-
 ;; count-budget-step!
 ;; 累加一次 Schema 节点评估并返回新的步数。
 ;;
@@ -23,13 +19,14 @@
 ;; ----
 ;; 步数超过 max-steps 上限时抛出 json-schema-budget-exceeded。
 ;;
-;; 示例
-;; ----
-;; (count-budget-step! budget) => 1
-;;
 ;; 错误处理
 ;; ----
 ;; json-schema-budget-exceeded 当步数超过上限时。
+
+(import (liii check) (liii json schema budget))
+
+(check-set-mode! 'report-failed)
+
 
 (define budget (make-resource-budget 100 2 100))
 

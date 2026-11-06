@@ -1,7 +1,3 @@
-(import (liii check) (liii json schema budget))
-
-(check-set-mode! 'report-failed)
-
 ;; reset-resource-budget!
 ;; 复位资源预算的计数器，保留上限。
 ;;
@@ -24,13 +20,14 @@
 ;; 深度、步数与引用三个计数器都被清零，上限保持不变；
 ;; 复位后预算可以重新接受完整额度。
 ;;
-;; 示例
-;; ----
-;; (reset-resource-budget! budget)
-;;
 ;; 错误处理
 ;; ----
 ;; 无。
+
+(import (liii check) (liii json schema budget))
+
+(check-set-mode! 'report-failed)
+
 
 (define budget (make-resource-budget 2 100 100))
 

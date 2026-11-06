@@ -1,7 +1,3 @@
-(import (liii check) (liii json schema budget))
-
-(check-set-mode! 'report-failed)
-
 ;; budget-max-depth
 ;; 读取资源预算允许的最大求值深度。
 ;;
@@ -23,13 +19,14 @@
 ;; ----
 ;; 该上限在预算创建时确定，复位计数器不会改变它。
 ;;
-;; 示例
-;; ----
-;; (budget-max-depth (make-resource-budget 10 100 1000)) => 10
-;;
 ;; 错误处理
 ;; ----
 ;; 无。
+
+(import (liii check) (liii json schema budget))
+
+(check-set-mode! 'report-failed)
+
 
 (define budget (make-resource-budget 10 100 1000))
 
