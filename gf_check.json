@@ -176,7 +176,7 @@
         "reason": "Scheme 标准字符分类核心实现"
       },
       {
-        "path": "tests/liii/goldfmt/format/format-string-test.scm",
+        "path": "library/tests/liii/goldfmt/format/format-string-test.scm",
         "reason": "排版引擎字符串测试集包含大量长代码片段"
       },
       {
@@ -206,7 +206,7 @@
         "reason": "性能基准测试脚本包含大量展开测试数据与循环"
       },
       {
-        "path": "goldfish/liii/goldfmt/tokenize.scm",
+        "path": "library/liii/goldfmt/tokenize.scm",
         "reason": "排版词法分析器分词引擎"
       },
       {
