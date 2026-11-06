@@ -8,13 +8,13 @@
 ;; http://www.apache.org/licenses/LICENSE-2.0
 ;;
 ;; Unless required by applicable law or agreed to in writing, software
-;; distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-;; WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-;; License for the specific language governing permissions and limitations
-;; under the License.
+;; distributed under the License is distributed on an "AS IS" BASIS,
+;; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+;; See the License for the specific language governing permissions and
+;; limitations under the License.
 ;;
 
-;; Copyright (C) Lars T Hansen (1999). All Rights Reserved.
+;; Copyright (C) Lars Tansen (1999). All Rights Reserved.
 ;;
 ;; Permission is hereby granted, free of charge, to any person obtaining
 ;; a copy of this software and associated documentation files (the
@@ -24,108 +24,26 @@
 ;; permit persons to whom the Software is furnished to do so, subject to
 ;; the following conditions:
 ;;
-;; The above copyright notice and this permission notice shall be
-;; included in all copies or substantial portions of the Software.
+;; The above copyright notice and this permission notice shall be included
+;; in all copies or substantial portions of the Software.
 ;;
-;; THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-;; EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-;; MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-;; NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
-;; LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-;; OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
-;; WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+;; THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+;; OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+;; MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+;; IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+;; CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+;; TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+;; SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ;;
-;; Based on the reference implementation of SRFI 11 written by Lars T Hansen
+;; Based on the reference implementation of SRFI 11 written by Lars Tansen
 ;; (placed in the public domain).
 
+;; (srfi srfi-11) 是 R7RS (scheme base) 中 let-values / let*-values 的兼容入口。
+;;
+;; SRFI-11 "binding let" 的两个宏已被 R7RS-small 收进 (scheme base)，实现也随
+;; 之迁入 (scheme base)；本库仅重导出这两个宏，保留原有 import 路径可用。
+
 (define-library (srfi srfi-11)
+  (import (scheme base))
   (export let-values let*-values)
-  (begin
-
-    (define-syntax let-values
-      (syntax-rules ()
-        ((let-values () ?body0 ?body1 ...) (begin ?body0 ?body1 ...))
-
-        ((let-values ((?formals ?expr))
-           ?body0
-           ?body1
-           ...
-         ) ;let-values
-         (call-with-values (lambda () ?expr) (lambda ?formals ?body0 ?body1 ...))
-        ) ;
-
-        ((let-values (?binding0 ?binding1 ?binding2 ...)
-           ?body0
-           ?body1
-           ...
-         ) ;let-values
-         (let-values "eval"
-           (?binding0 ?binding1 ?binding2 ...)
-           ()
-           ()
-           (begin
-             ?body0
-             ?body1
-             ...
-           ) ;begin
-         ) ;let-values
-        ) ;
-
-        ((let-values "eval"
-           ()
-           (?formal ...)
-           (?t ...)
-           ?body
-         ) ;let-values
-         (let-values "apply"
-           (?formal ...)
-           (?t ...)
-           ?body
-         ) ;let-values
-        ) ;
-
-        ((let-values "eval"
-           ((?f ?e) . ?more)
-           (?formal ...)
-           (?t ...)
-           ?body
-         ) ;let-values
-         (call-with-values (lambda () ?e)
-           (lambda t (let-values "eval" ?more (?formal ... ?f) (?t ... t) ?body))
-         ) ;call-with-values
-        ) ;
-
-        ((let-values "apply" () () ?body) ?body)
-
-        ((let-values "apply"
-           (?f . ?f-more)
-           (?t . ?t-more)
-           ?body
-         ) ;let-values
-         (apply (lambda ?f (let-values "apply" ?f-more ?t-more ?body)) ?t)
-        ) ;
-      ) ;syntax-rules
-    ) ;define-syntax
-
-    (define-syntax let*-values
-      (syntax-rules ()
-        ((let*-values () ?body0 ?body1 ...) (begin ?body0 ?body1 ...))
-
-        ((let*-values (?binding0 ?binding1 ...)
-           ?body0
-           ?body1
-           ...
-         ) ;let*-values
-         (let-values (?binding0)
-           (let*-values (?binding1 ...)
-             ?body0
-             ?body1
-             ...
-           ) ;let*-values
-         ) ;let-values
-        ) ;
-      ) ;syntax-rules
-    ) ;define-syntax
-
-  ) ;begin
 ) ;define-library

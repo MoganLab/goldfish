@@ -1,23 +1,7 @@
 # (srfi srfi-11) 模块函数分类索引
 
-`(srfi srfi-11)` 提供 `let-values` 与 `let*-values` 语法，
-用于将多值表达式的返回结果绑定到变量，
-是处理 `values` 多值返回的基础设施。
-
-## 常见用法示例
-
-```scheme
-(import (srfi srfi-11))
-
-;; 示例1：并行绑定多值结果
-(let-values (((q r) (floor/ 7 2)))
-  (list q r))                    ; => (3 1)
-
-;; 示例2：顺序依赖绑定
-(let*-values (((a) (values 1))
-              ((b) (values (+ a 1))))
-  b)                             ; => 2
-```
+`(srfi srfi-11)` 是 SRFI-11 "binding let" 的兼容入口，重导出 `let-values` 与
+`let*-values` 两个多值绑定宏。
 
 ## 查看函数文档
 
@@ -39,3 +23,9 @@ gf doc srfi/srfi-11 "函数名"
 
 - `let-values` - 并行绑定多值表达式的返回结果到变量
 - `let*-values` - 顺序依赖绑定多值表达式的返回结果
+
+## 说明
+
+R7RS-small 已将这两个宏收进 `(scheme base)`，实现也随之内联到 `(scheme base)`，
+本库仅重导出以保留原有 import 路径可用；按函数拆分的单元测试统一放在其实现库
+`tests/scheme/base/` 目录。

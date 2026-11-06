@@ -15,7 +15,6 @@
 ;;
 
 (define-library (scheme base)
-  (import (srfi srfi-11))
   (export let-values
     let*-values
     define-syntax
@@ -228,6 +227,99 @@
     file-error?
   ) ;export
   (begin
+
+    ;; R7RS 4.2.2: (let-values (<formals> <expr>) ...) 与
+    ;; (let*-values (<formals> <expr>) ...) 把多值表达式的结果绑定到形参。
+    ;;
+    ;; 实现取自 SRFI-11 参考实现：
+    ;;   Copyright (C) Lars Tansen (1999). All Rights Reserved.
+    ;;   基于 Lars Tansen 编写、置于公共领域的 SRFI 11 参考实现。
+    ;; 该版权头保留在 goldfish/srfi/srfi-11.scm 中；实现直接内联到
+    ;; (scheme base)，避免 (scheme base) 反向依赖 (srfi srfi-11)。
+    (define-syntax let-values
+      (syntax-rules ()
+        ((let-values () ?body0 ?body1 ...) (begin ?body0 ?body1 ...))
+
+        ((let-values ((?formals ?expr))
+           ?body0
+           ?body1
+           ...
+         ) ;let-values
+         (call-with-values (lambda () ?expr) (lambda ?formals ?body0 ?body1 ...))
+        ) ;
+
+        ((let-values (?binding0 ?binding1 ?binding2 ...)
+           ?body0
+           ?body1
+           ...
+         ) ;let-values
+         (let-values "eval"
+           (?binding0 ?binding1 ?binding2 ...)
+           ()
+           ()
+           (begin
+             ?body0
+             ?body1
+             ...
+           ) ;begin
+         ) ;let-values
+        ) ;
+
+        ((let-values "eval"
+           ()
+           (?formal ...)
+           (?t ...)
+           ?body
+         ) ;let-values
+         (let-values "apply"
+           (?formal ...)
+           (?t ...)
+           ?body
+         ) ;let-values
+        ) ;
+
+        ((let-values "eval"
+           ((?f ?e) . ?more)
+           (?formal ...)
+           (?t ...)
+           ?body
+         ) ;let-values
+         (call-with-values (lambda () ?e)
+           (lambda t (let-values "eval" ?more (?formal ... ?f) (?t ... t) ?body))
+         ) ;call-with-values
+        ) ;
+
+        ((let-values "apply" () () ?body) ?body)
+
+        ((let-values "apply"
+           (?f . ?f-more)
+           (?t . ?t-more)
+           ?body
+         ) ;let-values
+         (apply (lambda ?f (let-values "apply" ?f-more ?t-more ?body)) ?t)
+        ) ;
+      ) ;syntax-rules
+    ) ;define-syntax
+
+    (define-syntax let*-values
+      (syntax-rules ()
+        ((let*-values () ?body0 ?body1 ...) (begin ?body0 ?body1 ...))
+
+        ((let*-values (?binding0 ?binding1 ...)
+           ?body0
+           ?body1
+           ...
+         ) ;let*-values
+         (let-values (?binding0)
+           (let*-values (?binding1 ...)
+             ?body0
+             ?body1
+             ...
+           ) ;let*-values
+         ) ;let-values
+        ) ;
+      ) ;syntax-rules
+    ) ;define-syntax
 
     ;; R7RS 6.4: (list? obj) 仅当 obj 是有限完全列表时返回 #t
     ;; 点对结尾（improper list）和循环列表都不是有限完全列表，返回 #f
