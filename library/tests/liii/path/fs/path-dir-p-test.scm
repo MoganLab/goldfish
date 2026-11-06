@@ -23,7 +23,7 @@
 
 ;; 基本功能测试
 
-(import (liii check) (liii path) (liii os))
+(import (liii check) (liii path) (liii os) (liii string))
 
 (check-set-mode! 'report-failed)
 
@@ -55,9 +55,21 @@
   (check (path-dir? "C:/") => #t)
   (check (path-dir? "C:/Windows") => #t)
   (check (path-dir? "C:/Program Files") => #t)
-  ;; 使用正斜杠的相对路径测试
-  (check (path-dir? "tests/liii/path") => #t)
-  (check (path-dir? "goldfish/liii") => #t)
+  ;; 使用正斜杠/反斜杠的相对路径测试（基于临时目录，不依赖仓库布局）
+  (let* ((base
+           (path-join (path-temp-dir)
+             (string-append "gf-path-dir-p-test-" (number->string (getpid)))
+           ) ;path-join
+         ) ;base
+         (sub (path-join base "sub"))
+        ) ;
+    (path-mkdir base)
+    (path-mkdir sub)
+    (check (path-dir? (string-append (path->string base) "/sub")) => #t)
+    (check (path-dir? (string-append (path->string base) "\\sub")) => #t)
+    (path-rmdir sub)
+    (path-rmdir base)
+  ) ;let*
   ;; 不存在目录测试
   (check (path-dir? "C:/no_such_dir/") => #f)
   (check (path-dir? "Z:/definitely/not/exist") => #f)
