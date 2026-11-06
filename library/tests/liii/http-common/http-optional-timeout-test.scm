@@ -1,7 +1,3 @@
-(import (liii check) (liii http-common))
-
-(check-set-mode! 'report-failed)
-
 ;; http-optional-timeout
 ;; 校验并返回可选的 HTTP 请求超时时间（秒）。
 ;;
@@ -28,6 +24,11 @@
 ;;   当 value 为小于等于 0 的数字时抛出。
 
 ;; 值为 #f 时返回 #f
+
+(import (liii check) (liii http-common))
+
+(check-set-mode! 'report-failed)
+
 (check (http-optional-timeout "test" "timeout" #f) => #f)
 
 ;; 合法正整数

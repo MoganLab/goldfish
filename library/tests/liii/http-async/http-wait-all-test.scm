@@ -1,14 +1,3 @@
-(import (liii check) (liii http-async) (liii os))
-
-(check-set-mode! 'report-failed)
-
-;; 环境检查
-(let ((env (getenv "GOLDFISH_TEST_HTTP")))
-  (when (not env)
-    (exit 0)
-  ) ;when
-) ;let
-
 ;; http-wait-all
 ;; 等待所有异步 HTTP 请求完成。
 ;;
@@ -32,6 +21,17 @@
 ;; 注意
 ;; ----
 ;; 如果没有活跃的异步请求，http-wait-all 立即返回。
+
+(import (liii check) (liii http-async) (liii os))
+
+(check-set-mode! 'report-failed)
+
+;; 环境检查
+(let ((env (getenv "GOLDFISH_TEST_HTTP")))
+  (when (not env)
+    (exit 0)
+  ) ;when
+) ;let
 
 (let ((completed #f))
   (http-async-get "https://httpbin.org/get"

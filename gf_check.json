@@ -245,7 +245,7 @@
         "reason": "URI 规范解析与记录模型"
       },
       {
-        "path": "goldfish/liii/http.scm",
+        "path": "library/liii/http.scm",
         "reason": "HTTP 客户端核心协议实现"
       },
       {

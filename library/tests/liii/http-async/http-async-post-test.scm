@@ -1,14 +1,3 @@
-(import (liii check) (liii http-async) (liii string) (liii os))
-
-(check-set-mode! 'report-failed)
-
-;; 环境检查
-(let ((env (getenv "GOLDFISH_TEST_HTTP")))
-  (when (not env)
-    (exit 0)
-  ) ;when
-) ;let
-
 ;; http-async-post
 ;; 异步发送 HTTP POST 请求，通过回调函数处理响应。
 ;;
@@ -35,6 +24,18 @@
 ;; 异步 POST 请求立即返回，不阻塞。请求完成后调用 callback。
 
 ;; 测试异步 POST 请求
+
+(import (liii check) (liii http-async) (liii string) (liii os))
+
+(check-set-mode! 'report-failed)
+
+;; 环境检查
+(let ((env (getenv "GOLDFISH_TEST_HTTP")))
+  (when (not env)
+    (exit 0)
+  ) ;when
+) ;let
+
 (let ((post-completed #f) (post-response #f))
   (http-async-post "https://httpbin.org/post"
     (lambda (response) (set! post-completed #t) (set! post-response response))

@@ -1,14 +1,3 @@
-(import (liii check) (liii http-common) (liii http) (liii os))
-
-(check-set-mode! 'report-failed)
-
-;; 环境检查
-(let ((env (getenv "GOLDFISH_TEST_HTTP")))
-  (when (not env)
-    (exit 0)
-  ) ;when
-) ;let
-
 ;; http-ok?
 ;; 检查 HTTP 响应是否成功（状态码 2xx）。
 ;;
@@ -37,6 +26,17 @@
 ;; ----
 ;; http-error
 ;;   当状态码为 4xx 或 5xx 时抛出，包含状态码、原因和 URL。
+
+(import (liii check) (liii http-common) (liii http) (liii os))
+
+(check-set-mode! 'report-failed)
+
+;; 环境检查
+(let ((env (getenv "GOLDFISH_TEST_HTTP")))
+  (when (not env)
+    (exit 0)
+  ) ;when
+) ;let
 
 (let ((r (http-head "https://httpbin.org")))
   (check-true (http-ok? r))

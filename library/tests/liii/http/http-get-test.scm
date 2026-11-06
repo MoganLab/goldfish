@@ -1,3 +1,40 @@
+;; http-get
+;; 发送 HTTP GET 请求，返回响应对象。
+;;
+;; 语法
+;; ----
+;; (http-get url :params params :headers headers :proxy proxy
+;;           :output-file output-file :stream stream :callback callback
+;;           :timeout timeout :idle-timeout idle-timeout)
+;;
+;; 参数
+;; ----
+;; url         : string          - 请求的目标 URL
+;; params      : alist (可选)    - 查询参数列表，如 '(("key" . "value"))
+;; headers     : alist (可选)    - 请求头列表
+;; proxy       : alist (可选)    - 代理配置
+;; output-file : string (可选)   - stream 模式下将响应体按 chunk 写入本地文件
+;; stream      : boolean (可选)  - 启用简单流式模式
+;; callback    : procedure (可选)- 按 chunk 处理响应体 (lambda (chunk) ...)
+;; timeout     : real? | integer? | #f (可选) - 总时长超时（秒）：整个请求的最长等待时间，到点必中止
+;; idle-timeout: real? | integer? | #f (可选) - 空闲超时（秒）：连续 N 秒无有效数据传输则中止，不限制总时长
+;;
+;; 返回值
+;; ----
+;; response-object（哈希表，包含 status-code, url, elapsed, text, reason, headers, error-code 等字段）。
+;;
+;; 描述
+;; ----
+;; GET 请求用于从服务器获取资源。查询参数会自动编码并附加到 URL。
+;; 当 :stream 为 #t 时，会在 Scheme 层按 chunk 处理响应体，并在请求完成后返回 response-object。
+;;
+;; timeout 与 idle-timeout 的区别：
+;; 1. :timeout 是总时长超时，限制整个请求（含连接阶段）的最长等待时间，到点必中止
+;; 2. :idle-timeout 是空闲超时，仅在传输停死（连续 N 秒传输速度低于 1 B/s）时中止，不限制总时长
+;; 3. 两者可搭配使用：timeout 兜底总时长，idle-timeout 快速发现挂死且不惩罚慢而健康的传输
+
+;; 基本 GET 请求
+
 (import (liii check)
   (liii http)
   (liii string)
@@ -85,42 +122,6 @@
 
 
 
-;; http-get
-;; 发送 HTTP GET 请求，返回响应对象。
-;;
-;; 语法
-;; ----
-;; (http-get url :params params :headers headers :proxy proxy
-;;           :output-file output-file :stream stream :callback callback
-;;           :timeout timeout :idle-timeout idle-timeout)
-;;
-;; 参数
-;; ----
-;; url         : string          - 请求的目标 URL
-;; params      : alist (可选)    - 查询参数列表，如 '(("key" . "value"))
-;; headers     : alist (可选)    - 请求头列表
-;; proxy       : alist (可选)    - 代理配置
-;; output-file : string (可选)   - stream 模式下将响应体按 chunk 写入本地文件
-;; stream      : boolean (可选)  - 启用简单流式模式
-;; callback    : procedure (可选)- 按 chunk 处理响应体 (lambda (chunk) ...)
-;; timeout     : real? | integer? | #f (可选) - 总时长超时（秒）：整个请求的最长等待时间，到点必中止
-;; idle-timeout: real? | integer? | #f (可选) - 空闲超时（秒）：连续 N 秒无有效数据传输则中止，不限制总时长
-;;
-;; 返回值
-;; ----
-;; response-object（哈希表，包含 status-code, url, elapsed, text, reason, headers, error-code 等字段）。
-;;
-;; 描述
-;; ----
-;; GET 请求用于从服务器获取资源。查询参数会自动编码并附加到 URL。
-;; 当 :stream 为 #t 时，会在 Scheme 层按 chunk 处理响应体，并在请求完成后返回 response-object。
-;;
-;; timeout 与 idle-timeout 的区别：
-;; 1. :timeout 是总时长超时，限制整个请求（含连接阶段）的最长等待时间，到点必中止
-;; 2. :idle-timeout 是空闲超时，仅在传输停死（连续 N 秒传输速度低于 1 B/s）时中止，不限制总时长
-;; 3. 两者可搭配使用：timeout 兜底总时长，idle-timeout 快速发现挂死且不惩罚慢而健康的传输
-
-;; 基本 GET 请求
 (let ((r (http-get "https://httpbin.org")))
   (check (r 'status-code) => 200)
   (check-true (> (string-length (r 'text)) 0))

@@ -1,14 +1,3 @@
-(import (liii check) (liii http-async) (liii string) (scheme time) (liii os))
-
-(check-set-mode! 'report-failed)
-
-;; 环境检查
-(let ((env (getenv "GOLDFISH_TEST_HTTP")))
-  (when (not env)
-    (exit 0)
-  ) ;when
-) ;let
-
 ;; http-async-get
 ;; 异步发送 HTTP GET 请求，通过回调函数处理响应。
 ;;
@@ -35,6 +24,18 @@
 ;; 多个异步请求可并发执行。
 
 ;; 测试异步 GET 请求
+
+(import (liii check) (liii http-async) (liii string) (scheme time) (liii os))
+
+(check-set-mode! 'report-failed)
+
+;; 环境检查
+(let ((env (getenv "GOLDFISH_TEST_HTTP")))
+  (when (not env)
+    (exit 0)
+  ) ;when
+) ;let
+
 (let ((async-completed #f) (async-response #f))
   (http-async-get "https://httpbin.org/get"
     (lambda (response) (set! async-completed #t) (set! async-response response))
