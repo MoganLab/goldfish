@@ -1,3 +1,24 @@
+;; build-initial-prompt
+;; 由 stdin 内容与文件参数构建初始提示消息列表。
+;;
+;; 语法
+;; ----
+;; (build-initial-prompt stdin-text file-blocks messages) -> list
+;;
+;; 参数
+;; ----
+;; stdin-text : string | #f
+;; 非交互模式下的标准输入内容。
+;; file-blocks : list
+;; 文件参数渲染后的内容块。
+;; messages : list
+;; 命令行位置消息列表。
+;;
+;; 返回值
+;; ------
+;; list
+;; 初始提示消息列表。
+
 (import (liii check) (liii pi code cli args) (liii pi code core prompt))
 
 (check-set-mode! 'report-failed)

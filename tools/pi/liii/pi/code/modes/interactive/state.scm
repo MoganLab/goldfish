@@ -36,6 +36,7 @@
     pi-app-flash! pi-app-flash-message pi-app-flash-tick! pi-app-flash-clear!
     pi-app-tokens %pi-app-tokens-set! pi-app-rendered-frame
     %pi-app-rendered-frame-set! pi-app-dock-length %pi-app-dock-length-set!
+    pi-app-skills pi-app-enable-skill-commands?
   ) ;export
   (import (scheme base)
     (liii date-time)
@@ -56,7 +57,8 @@
         on-save-model tool-cards resume-sessions no-session? scroll-view
         wheel-accelerator steering-chan follow-up-chan steering-pending
         follow-up-pending thinking-card hide-thinking? on-save-hide-thinking
-        selection flash tokens rendered-frame dock-length
+        selection flash tokens rendered-frame dock-length skills
+        enable-skill-commands
       ) ;%make-pi-app
       pi-app?
       (term pi-app-term)
@@ -146,6 +148,9 @@
       ;; 上帧底部 dock 行数（pending + editor + menu + footer）：
       ;; 轻量 tick 据此从帧尾推导 Working 边框行（帧长 - dock 长 + pending 行数）
       (dock-length pi-app-dock-length %pi-app-dock-length-set!)
+      ;; 智能体技能集合与命令启用状态
+      (skills pi-app-skills)
+      (enable-skill-commands pi-app-enable-skill-commands?)
     ) ;define-record-type
 
     (define %pi-app-term pi-app-term)

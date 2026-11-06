@@ -261,6 +261,8 @@
                (on-save-hide-thinking #f)
                (tokens #f)
                (context-window #f)
+               (skills '())
+               (enable-skill-commands #t)
              ) ;make-pi-app
       (let* ((actual-term (or terminal (make-standard-terminal)))
              ;; 全屏模式：备用屏整帧渲染，内容不随终端滚动
@@ -355,6 +357,8 @@
                     actual-tokens
                     #f
                     #f
+                    skills
+                    (and enable-skill-commands #t)
                   ) ;%make-pi-app
              ) ;app
              (ed (%make-pi-editor app tl))

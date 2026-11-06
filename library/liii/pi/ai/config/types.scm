@@ -13,6 +13,7 @@
     pi-settings-default-model pi-settings-default-thinking-level
     pi-settings-http-proxy pi-settings-retry pi-settings-default-tools
     pi-settings-session-dir pi-settings-hide-thinking-block
+    pi-settings-enable-skill-commands
     pi-settings-model-thinking-levels %make-pi-credential pi-credential?
     pi-credential-provider pi-credential-key pi-credential-type
     %make-pi-model-metadata pi-model-metadata? pi-model-metadata-id
@@ -37,7 +38,7 @@
     (define-record-type <pi-settings>
       (%make-pi-settings default-provider default-model default-thinking-level
         http-proxy retry default-tools session-dir hide-thinking-block
-        model-thinking-levels
+        model-thinking-levels enable-skill-commands
       ) ;%make-pi-settings
       pi-settings?
       (default-provider pi-settings-default-provider)
@@ -49,6 +50,7 @@
       (session-dir pi-settings-session-dir)
       (hide-thinking-block pi-settings-hide-thinking-block)
       (model-thinking-levels pi-settings-model-thinking-levels)
+      (enable-skill-commands pi-settings-enable-skill-commands)
     ) ;define-record-type
 
     (define-record-type <pi-credential>

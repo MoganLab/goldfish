@@ -24,6 +24,7 @@
     (liii pi code modes interactive app-bash)
     (liii pi code modes interactive app-events)
     (liii pi code modes interactive render)
+    (liii pi code core skills format)
   ) ;import
   (begin
 
@@ -33,9 +34,14 @@
 
     ;; bash 模式边框联动（对齐 pi onChange + updateEditorBorderColor）：
     ;; 文本（去前导空白后）以 ! 开头 → 绿色；否则恢复当前 thinking 级别颜色
+    ;; 测试会以 mock app 调用本函数，pi-app? 防御不可省略
     (define (%pi-app-editor-on-change app ed text)
       (let ((bash? (%starts-with-char? (string-trim-left text) #\!))
-            (matches (pi-slash-command-matches text))
+            (matches (pi-slash-command-matches text
+                       (if (pi-app? app) (pi-app-skills app) '())
+                       (if (pi-app? app) (pi-app-enable-skill-commands? app) #t)
+                     ) ;pi-slash-command-matches
+            ) ;matches
            ) ;
         (%pi-app-slash-command-menu-set! app
           (and matches (make-pi-slash-command-menu matches))
@@ -55,7 +61,14 @@
     ;; 空闲 → 等待队列（现有调度）；busy → steering（默认，回车）
     ;; 或 follow-up（:mode 'follow-up，alt+enter）注入运行中/下一轮任务
     (define* (pi-app-submit! app text (mode 'auto))
-      (let ((clean (string-trim text)))
+      (let* ((clean-text (string-trim text))
+             ;; /skill: 展开与菜单展示共用 enable-skill-commands 门控
+             (clean (if (and (pi-app-enable-skill-commands? app) (string-starts? clean-text "/skill:"))
+                      (expand-skill-command clean-text (pi-app-skills app))
+                      clean-text
+                    ) ;if
+             ) ;clean
+            ) ;
         (unless (string-null? clean)
           (cond ((pi-app-model-command? clean) (pi-app-submit-model! app clean))
                 ((pi-app-thinking-command? clean) (pi-app-submit-thinking! app clean))
@@ -106,7 +119,7 @@
                 ) ;else
           ) ;cond
         ) ;unless
-      ) ;let
+      ) ;let*
     ) ;define*
 
   ) ;begin

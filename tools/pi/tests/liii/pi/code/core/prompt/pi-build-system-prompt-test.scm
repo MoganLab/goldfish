@@ -1,3 +1,25 @@
+;; pi-build-system-prompt
+;; 组装系统提示词：preamble、工具、规则与追加区段的拼接与 override 静默。
+;;
+;; 语法
+;; ----
+;; (pi-build-system-prompt tools cwd project-context ...) -> string
+;;
+;; 参数
+;; ----
+;; tools : list
+;; 生效工具列表。
+;; cwd : string
+;; 工作目录。
+;; project-context : string | #f
+;; 项目上下文。
+;; 其余可选参数见函数签名（override、追加区段、技能等）。
+;;
+;; 返回值
+;; ------
+;; string
+;; 组装后的系统提示词。
+
 (import (liii check)
   (liii string)
   (liii json)

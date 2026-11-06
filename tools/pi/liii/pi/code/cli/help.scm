@@ -49,6 +49,9 @@
                 --system-prompt <text>     Override system prompt
                 --append-system-prompt <text>
                                            Append system prompt section
+                --skill <path>             Add a skill directory or SKILL.md path (repeatable)
+                --skills <path>            Alias for --skill
+                --no-skills                Disable skill loading entirely
             -h, --help                     Show this help message
 
           Retry:

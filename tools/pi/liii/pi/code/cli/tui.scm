@@ -64,6 +64,8 @@
           (and settings (pi-settings-hide-thinking-block settings) #t)
           model-thinking-levels
           context-window
+          ;; Agent Skills：/skill: 命令开关（默认开启）
+          (if settings (pi-settings-enable-skill-commands settings) #t)
         ) ;list
       ) ;let*
     ) ;define
@@ -96,6 +98,7 @@
             #f
             '()
             #f
+            #t
           ) ;list
         ) ;lambda
       ) ;catch

@@ -104,6 +104,9 @@
                         (when (tool-card-component? child)
                           (tool-card-set-expanded! child next)
                         ) ;when
+                        (when (skill-card-component? child)
+                          (skill-card-set-expanded! child next)
+                        ) ;when
                       ) ;lambda
               (container-children (%pi-app-chat app))
             ) ;for-each
