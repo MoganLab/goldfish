@@ -50,12 +50,8 @@
 
 (let ((s (make-random-source)))
   (check-catch 'type-error (random-source-state-set! s 'invalid-state))
-  (check-catch 'type-error
-    (random-source-state-set! s '(not-the-right-tag 0 0))
-  ) ;check-catch
-  (check-catch 'type-error
-    (random-source-state-set! s '(random-source-state))
-  ) ;check-catch
+  (check-catch 'type-error (random-source-state-set! s '(not-the-right-tag 0 0)))
+  (check-catch 'type-error (random-source-state-set! s '(random-source-state)))
 ) ;let
 
 

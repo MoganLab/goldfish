@@ -30,7 +30,7 @@
        (results (base-generator->results gen))
        (%parse-num
          (packrat-check-base 'num (lambda (v) (lambda (r) (make-result v r))))
-       ) ;define
+       ) ;%parse-num
        (result (%parse-num results))
       ) ;
   (check-true (parse-result-successful? result))
@@ -42,7 +42,7 @@
        (results (base-generator->results gen))
        (%parse-num
          (packrat-check-base 'num (lambda (v) (lambda (r) (make-result v r))))
-       ) ;define
+       ) ;%parse-num
        (result (%parse-num results))
       ) ;
   (check-false (parse-result-successful? result))

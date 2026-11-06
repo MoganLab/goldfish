@@ -20,7 +20,11 @@
 (check-set-mode! 'report-failed)
 
 (check-true (parse-result-successful? (make-result 42 #f)))
-(check-false (parse-result-successful? (make-expected-result (make-parse-position #f 1 0) "num")))
-(check-false (parse-result-successful? (make-message-result (make-parse-position #f 1 0) "err")))
+(check-false (parse-result-successful? (make-expected-result (make-parse-position #f 1 0) "num")
+             ) ;parse-result-successful?
+) ;check-false
+(check-false (parse-result-successful? (make-message-result (make-parse-position #f 1 0) "err")
+             ) ;parse-result-successful?
+) ;check-false
 
 (check-report)

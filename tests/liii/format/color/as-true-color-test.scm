@@ -35,25 +35,33 @@
 ;; type-error
 ;; RGB 列表长度不为 3、分量超出 0~255、hex 字符串非法时抛出。
 
-(import (liii check)
-        (liii format base)
-        (liii format color))
+(import (liii check) (liii format base) (liii format color))
 
 (check-set-mode! 'report-failed)
 
 ;; RGB 列表形式
 (check (show #f (as-true-color '(138 190 183) "gf"))
-       => "\x1b[38;2;138;190;183mgf\x1b[39m")
+  =>
+  "\x1b;[38;2;138;190;183mgf\x1b;[39m"
+) ;check
 (check (show #f (as-true-color '(138 190 183) "g" "f"))
-       => "\x1b[38;2;138;190;183mgf\x1b[39m")
+  =>
+  "\x1b;[38;2;138;190;183mgf\x1b;[39m"
+) ;check
 
 ;; hex 字符串形式：带 # / 不带 # / 大写
 (check (show #f (as-true-color "#8abeb7" "gf"))
-       => "\x1b[38;2;138;190;183mgf\x1b[39m")
+  =>
+  "\x1b;[38;2;138;190;183mgf\x1b;[39m"
+) ;check
 (check (show #f (as-true-color "8abeb7" "gf"))
-       => "\x1b[38;2;138;190;183mgf\x1b[39m")
+  =>
+  "\x1b;[38;2;138;190;183mgf\x1b;[39m"
+) ;check
 (check (show #f (as-true-color "#8ABEB7" "gf"))
-       => "\x1b[38;2;138;190;183mgf\x1b[39m")
+  =>
+  "\x1b;[38;2;138;190;183mgf\x1b;[39m"
+) ;check
 
 ;; 错误用例
 ;; 散参不完整：r g b 必须齐全

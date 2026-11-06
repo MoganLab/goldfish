@@ -35,19 +35,21 @@
 ;; type-error
 ;; RGB 列表长度不为 3、分量超出 0~255、hex 字符串非法时抛出。
 
-(import (liii check)
-        (liii format base)
-        (liii format color))
+(import (liii check) (liii format base) (liii format color))
 
 (check-set-mode! 'report-failed)
 
 ;; RGB 列表形式
 (check (show #f (on-true-color '(10 20 30) "bg"))
-       => "\x1b[48;2;10;20;30mbg\x1b[49m")
+  =>
+  "\x1b;[48;2;10;20;30mbg\x1b;[49m"
+) ;check
 
 ;; hex 字符串形式
 (check (show #f (on-true-color "#0a141e" "bg"))
-       => "\x1b[48;2;10;20;30mbg\x1b[49m")
+  =>
+  "\x1b;[48;2;10;20;30mbg\x1b;[49m"
+) ;check
 
 ;; 错误用例
 (check-catch 'type-error (on-true-color 10 20 "bg"))

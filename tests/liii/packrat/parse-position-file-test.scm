@@ -19,7 +19,10 @@
 
 (check-set-mode! 'report-failed)
 
-(check (parse-position-file (make-parse-position "test.scm" 3 15)) => "test.scm")
+(check (parse-position-file (make-parse-position "test.scm" 3 15))
+  =>
+  "test.scm"
+) ;check
 (check-false (parse-position-file (make-parse-position #f 1 0)))
 
 (check-report)

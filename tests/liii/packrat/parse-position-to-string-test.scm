@@ -19,7 +19,10 @@
 
 (check-set-mode! 'report-failed)
 
-(check (parse-position->string (make-parse-position "test.scm" 3 15)) => "test.scm:3:15")
+(check (parse-position->string (make-parse-position "test.scm" 3 15))
+  =>
+  "test.scm:3:15"
+) ;check
 (check (parse-position->string (top-parse-position "a.scm")) => "a.scm:1:0")
 
 ;; 位置未知

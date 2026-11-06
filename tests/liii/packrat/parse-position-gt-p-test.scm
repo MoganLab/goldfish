@@ -27,15 +27,30 @@
 (check-set-mode! 'report-failed)
 
 ;; 行号比较
-(check (parse-position>? (make-parse-position "f" 2 0) (make-parse-position "f" 1 0)) => #t)
-(check (parse-position>? (make-parse-position "f" 1 0) (make-parse-position "f" 2 0)) => #f)
+(check (parse-position>? (make-parse-position "f" 2 0) (make-parse-position "f" 1 0))
+  =>
+  #t
+) ;check
+(check (parse-position>? (make-parse-position "f" 1 0) (make-parse-position "f" 2 0))
+  =>
+  #f
+) ;check
 
 ;; 行号相同时比较列号
-(check (parse-position>? (make-parse-position "f" 1 5) (make-parse-position "f" 1 0)) => #t)
-(check (parse-position>? (make-parse-position "f" 1 0) (make-parse-position "f" 1 5)) => #f)
+(check (parse-position>? (make-parse-position "f" 1 5) (make-parse-position "f" 1 0))
+  =>
+  #t
+) ;check
+(check (parse-position>? (make-parse-position "f" 1 0) (make-parse-position "f" 1 5))
+  =>
+  #f
+) ;check
 
 ;; 相同位置不算靠后
-(check (parse-position>? (make-parse-position "f" 1 0) (make-parse-position "f" 1 0)) => #f)
+(check (parse-position>? (make-parse-position "f" 1 0) (make-parse-position "f" 1 0))
+  =>
+  #f
+) ;check
 
 ;; #f 处理
 (check (parse-position>? #f (make-parse-position "f" 1 0)) => #f)

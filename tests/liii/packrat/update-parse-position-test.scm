@@ -29,10 +29,18 @@
 (check-set-mode! 'report-failed)
 
 ;; 普通字符：列号加一
-(check (parse-position-column (update-parse-position (make-parse-position "f" 1 0) #\a)) => 1)
+(check (parse-position-column (update-parse-position (make-parse-position "f" 1 0) #\a)
+       ) ;parse-position-column
+  =>
+  1
+) ;check
 
 ;; 回车：列号归零
-(check (parse-position-column (update-parse-position (make-parse-position "f" 1 5) #\return)) => 0)
+(check (parse-position-column (update-parse-position (make-parse-position "f" 1 5) #\return)
+       ) ;parse-position-column
+  =>
+  0
+) ;check
 
 ;; 换行：行号加一、列号归零
 (let ((pos (update-parse-position (make-parse-position "f" 1 5) #\newline)))
@@ -41,8 +49,16 @@
 ) ;let
 
 ;; 制表符：推进到下一个 8 的倍数
-(check (parse-position-column (update-parse-position (make-parse-position "f" 1 0) #\tab)) => 8)
-(check (parse-position-column (update-parse-position (make-parse-position "f" 1 3) #\tab)) => 8)
+(check (parse-position-column (update-parse-position (make-parse-position "f" 1 0) #\tab)
+       ) ;parse-position-column
+  =>
+  8
+) ;check
+(check (parse-position-column (update-parse-position (make-parse-position "f" 1 3) #\tab)
+       ) ;parse-position-column
+  =>
+  8
+) ;check
 
 ;; 位置未知时保持 #f
 (check-false (update-parse-position #f #\a))

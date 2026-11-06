@@ -32,7 +32,9 @@
     (check-false (parse-results-base results))
     ;; 通过 results->result 命中缓存
     (check (results->result results 'expr (lambda () (make-result 0 #f)))
-      => (make-result 42 #f))
+      =>
+      (make-result 42 #f)
+    ) ;check
   ) ;let
 ) ;let
 

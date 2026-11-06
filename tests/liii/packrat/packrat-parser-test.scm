@@ -47,6 +47,7 @@
 ) ;define
 
 ;; 简单规则：匹配 num 或 id
+
 (define simple-parser
   (packrat-parser expr (expr ((a <- 'num) a) ((a <- 'id) a)))
 ) ;define
@@ -73,6 +74,7 @@
 ) ;let*
 
 ;; 完整算术表达式解析器（右递归，packrat 不支持左递归）
+
 (define calc-env (make-hash-table))
 
 (define calc
@@ -239,12 +241,13 @@
   ) ;define
   (define p-pos
     (packrat-parser entry
-      (entry ((pos <- ^ x <- 'num) (list (parse-position-line pos) (parse-position-column pos) x)))
+      (entry ((pos <- ^ x <- 'num)
+              (list (parse-position-line pos) (parse-position-column pos) x)
+             ) ;
+      ) ;entry
     ) ;packrat-parser
   ) ;define
-  (let* ((g (pos-generator '((num . 42))))
-         (r (p-pos (base-generator->results g)))
-        ) ;
+  (let* ((g (pos-generator '((num . 42)))) (r (p-pos (base-generator->results g))))
     (check-true (parse-result-successful? r))
     (check (parse-result-semantic-value r) => '(1 1 42))
   ) ;let*
@@ -252,14 +255,8 @@
 
 ;; 否定断言 (! 'bad)
 (let ()
-  (define p-not
-    (packrat-parser entry
-      (entry (((! 'bad) x <- 'id) x))
-    ) ;packrat-parser
-  ) ;define
-  (let* ((g1 (generator '((id . foo))))
-         (r1 (p-not (base-generator->results g1)))
-        ) ;
+  (define p-not (packrat-parser entry (entry (((! 'bad) x <- 'id) x))))
+  (let* ((g1 (generator '((id . foo)))) (r1 (p-not (base-generator->results g1))))
     (check-true (parse-result-successful? r1))
     (check (parse-result-semantic-value r1) => 'foo)
   ) ;let*
@@ -273,10 +270,7 @@
 ;; 未绑定记号与带引号的未绑定记号
 (let ()
   (define p-unbound
-    (packrat-parser entry
-      (entry ((skip x <- 'num) x))
-      (skip (('tag) 'done))
-    ) ;packrat-parser
+    (packrat-parser entry (entry ((skip x <- 'num) x)) (skip (('tag) 'done)))
   ) ;define
   (let* ((g (generator '((tag . #t) (num . 99))))
          (r (p-unbound (base-generator->results g)))
@@ -287,11 +281,7 @@
 ) ;let
 
 (let ()
-  (define p-quote-unbound
-    (packrat-parser entry
-      (entry (('tag x <- 'num) x))
-    ) ;packrat-parser
-  ) ;define
+  (define p-quote-unbound (packrat-parser entry (entry (('tag x <- 'num) x))))
   (let* ((g (generator '((tag . #t) (num . 88))))
          (r (p-quote-unbound (base-generator->results g)))
         ) ;

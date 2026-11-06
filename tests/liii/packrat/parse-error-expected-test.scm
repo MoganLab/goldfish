@@ -20,7 +20,10 @@
 (check-set-mode! 'report-failed)
 
 (let ((pos (make-parse-position "test.scm" 2 10)))
-  (check (parse-error-expected (make-error-expected pos "open-paren")) => '("open-paren"))
+  (check (parse-error-expected (make-error-expected pos "open-paren"))
+    =>
+    '("open-paren")
+  ) ;check
   (check (parse-error-expected (make-error-message pos "syntax error")) => '())
 ) ;let
 
