@@ -16,7 +16,8 @@
 ;; transcript 占据剩余空间（grow），dock 固定在底部。
 (define-library (liii pi code modes interactive render)
   (export pi-app-render! pi-app-frame-lines pi-app-transcript-lines
-    %pi-app-working-border-row %pi-app-render-working-border! pi-app-scroll-up!
+    %pi-app-working-border-row %pi-app-render-working-border!
+    %pi-app-handle-resize! pi-app-scroll-up!
     pi-app-scroll-down! pi-app-scroll-top! pi-app-scroll-bottom!
     pi-app-scroll-line-up! pi-app-scroll-line-down!
   ) ;export
@@ -275,6 +276,16 @@
           ) ;let*
         ) ;if
       ) ;let
+    ) ;define
+
+    ;; 终端缩放检测：主循环每轮开头调用。resize 后终端会对备用屏内容做
+    ;; reflow，增量 diff 无法再保证屏幕干净；而空闲轮询里没有任何事件触发
+    ;; 渲染，界面会停留在旧布局。尺寸状态由 <alt-screen> 记录自身维护，
+    ;; 检测到变化时库内已整屏失效，这里只需按新尺寸重新布局重绘。
+    (define (%pi-app-handle-resize! app)
+      (when (alt-screen-resize-check! (pi-app-screen app))
+        (pi-app-render! app)
+      ) ;when
     ) ;define
 
     (define (pi-app-render! app)

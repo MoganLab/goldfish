@@ -20,6 +20,7 @@
     (liii pi code modes interactive state)
     (liii pi code modes interactive selection)
     (liii pi code modes interactive app)
+    (liii pi code modes interactive render)
     (liii pi code modes interactive app-events)
     (liii pi code modes interactive app-thinking)
     (liii pi code modes interactive common)
@@ -194,8 +195,9 @@
             (pi-app-submit-initial! app initial-msg rest-msgs)
             (let loop
               ()
-              ;; 优先轮询来自后台 Worker 的事件流上屏
+              ;; 优先轮询来自后台 Worker 的事件流上屏；随后检测终端缩放
               (pi-app-poll-events! app)
+              (%pi-app-handle-resize! app)
               (let ((k (terminal-poll-key term)))
                 (cond
                   ;; Ctrl+C：若有激活选区则优先复制到剪贴板，不清空输入框；
