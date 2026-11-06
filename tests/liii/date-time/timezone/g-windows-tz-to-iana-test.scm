@@ -1,7 +1,3 @@
-(import (liii check))
-
-(check-set-mode! 'report-failed)
-
 ;; g_windows_tz_to_iana
 ;; CLDR 标准的 Windows 时区名到 IANA 时区名的映射（内部函数）。
 ;; 用于 Windows 平台将 GetDynamicTimeZoneInformation 得到的系统时区名
@@ -18,15 +14,19 @@
 ;; 返回值
 ;; ----
 ;; string? 对应的 IANA 时区名；未知时区名返回 #f。
-;;
-;; 示例
-;; ----
-;; (g_windows_tz_to_iana "China Standard Time") => "Asia/Shanghai"
+
+(import (liii check))
+
+(check-set-mode! 'report-failed)
+
 
 (check (g_windows_tz_to_iana "China Standard Time") => "Asia/Shanghai")
 (check (g_windows_tz_to_iana "Tokyo Standard Time") => "Asia/Tokyo")
 (check (g_windows_tz_to_iana "Eastern Standard Time") => "America/New_York")
-(check (g_windows_tz_to_iana "Central Europe Standard Time") => "Europe/Budapest")
+(check (g_windows_tz_to_iana "Central Europe Standard Time")
+  =>
+  "Europe/Budapest"
+) ;check
 (check (g_windows_tz_to_iana "GMT Standard Time") => "Europe/London")
 (check (g_windows_tz_to_iana "UTC") => "Etc/UTC")
 (check (g_windows_tz_to_iana "Dateline Standard Time") => "Etc/GMT+12")

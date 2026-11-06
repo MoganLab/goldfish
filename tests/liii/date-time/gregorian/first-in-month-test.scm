@@ -1,8 +1,3 @@
-(import (liii check)
-        (liii date-time gregorian))
-
-(check-set-mode! 'report-failed)
-
 ;; first-in-month
 ;; 获取某年某月中第一个指定的星期几对应的日期号（day of month）。
 ;;
@@ -20,17 +15,17 @@
 ;; ----
 ;; integer? 当月中对应的日（1-7）。
 ;;
-;; 示例
-;; ----
-;; (first-in-month 2025 10 1) => 6
-;; (first-in-month 2025 10 3) => 1
-;;
 ;; 错误处理
 ;; --------
 ;; type-error 当参数不是合法整数或超出范围时抛出错误。
 
 ;; 2025年10月1日是周三 (3)
 ;; 第一个周一 (1) 是 10月6日
+
+(import (liii check) (liii date-time gregorian))
+
+(check-set-mode! 'report-failed)
+
 (check (first-in-month 2025 10 1) => 6)
 ;; 第一个周三 (3) 是 10月1日
 (check (first-in-month 2025 10 3) => 1)

@@ -1,8 +1,3 @@
-(import (liii check)
-        (liii date-time date))
-
-(check-set-mode! 'report-failed)
-
 ;; date->iso-8601
 ;; 将日期对象转换为 ISO-8601 格式的字符串（YYYY-MM-DD）。
 ;;
@@ -18,13 +13,14 @@
 ;; ----
 ;; string? 形如 "2020-01-01" 的字符串。
 ;;
-;; 示例
-;; ----
-;; (date->iso-8601 (make-date 2020 1 1)) => "2020-01-01"
-;;
 ;; 错误处理
 ;; --------
 ;; type-error 当参数不是日期对象时抛出错误。
+
+(import (liii check) (liii date-time date))
+
+(check-set-mode! 'report-failed)
+
 
 (check (date->iso-8601 (make-date 2020 1 1)) => "2020-01-01")
 (check (date->iso-8601 (make-date 2020 11 12)) => "2020-11-12")

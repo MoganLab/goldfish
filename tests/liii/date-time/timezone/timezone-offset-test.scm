@@ -1,9 +1,3 @@
-(import (liii check)
-        (liii date-time timezone)
-        (liii date-time time-delta))
-
-(check-set-mode! 'report-failed)
-
 ;; timezone-offset
 ;; 查询时区在指定 UTC 时刻的偏移。
 ;;
@@ -20,11 +14,11 @@
 ;; 返回值
 ;; ----
 ;; time-delta? 该时刻的 UTC 偏移。
-;;
-;; 示例
-;; ----
-;; (time-delta=? (timezone-offset (utc-offset-timezone (hours-delta 8)))
-;;               (hours-delta 8)) => #t
+
+(import (liii check) (liii date-time timezone) (liii date-time time-delta))
+
+(check-set-mode! 'report-failed)
+
 
 (define ny (tz-timezone "America/New_York"))
 
@@ -35,19 +29,22 @@
 
 ;; UTC 时区任意时刻偏移为 0
 (check-true (time-delta=? (timezone-offset (utc-timezone) 0) (seconds-delta 0)))
-(check-true (time-delta=? (timezone-offset (utc-timezone) 1752537600) (seconds-delta 0)))
+(check-true (time-delta=? (timezone-offset (utc-timezone) 1752537600) (seconds-delta 0))
+) ;check-true
 
 ;; 固定偏移时区
 (check-true
-  (time-delta=?
-    (timezone-offset (utc-offset-timezone (hours-delta 8)) 0)
-    (hours-delta 8)))
+  (time-delta=? (timezone-offset (utc-offset-timezone (hours-delta 8)) 0)
+    (hours-delta 8)
+  ) ;time-delta=?
+) ;check-true
 
 ;; 判断东八区的惯用法
 (check-true
-  (time-delta=?
-    (timezone-offset (utc-offset-timezone (hours-delta 8)))
-    (hours-delta 8)))
+  (time-delta=? (timezone-offset (utc-offset-timezone (hours-delta 8)))
+    (hours-delta 8)
+  ) ;time-delta=?
+) ;check-true
 
 ;; 省略 posix-time 时取当前时刻，返回值类型为 time-delta
 (check-true (time-delta? (timezone-offset ny)))

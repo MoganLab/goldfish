@@ -1,9 +1,3 @@
-(import (liii check)
-        (liii date-time timezone)
-        (liii date-time time-delta))
-
-(check-set-mode! 'report-failed)
-
 ;; timezone-dst?
 ;; 查询时区在指定 UTC 时刻是否处于夏令时（DST）。
 ;;
@@ -20,10 +14,11 @@
 ;; 返回值
 ;; ----
 ;; boolean? 该时刻处于夏令时为 #t。
-;;
-;; 示例
-;; ----
-;; (timezone-dst? (tz-timezone "America/New_York") 1752537600) => #t
+
+(import (liii check) (liii date-time timezone) (liii date-time time-delta))
+
+(check-set-mode! 'report-failed)
+
 
 (define ny (tz-timezone "America/New_York"))
 

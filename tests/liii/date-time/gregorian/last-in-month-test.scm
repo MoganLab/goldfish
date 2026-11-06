@@ -1,8 +1,3 @@
-(import (liii check)
-        (liii date-time gregorian))
-
-(check-set-mode! 'report-failed)
-
 ;; last-in-month
 ;; 获取某年某月中最后一个指定的星期几对应的日期号（day of month）。
 ;;
@@ -20,17 +15,17 @@
 ;; ----
 ;; integer? 当月中对应的日。
 ;;
-;; 示例
-;; ----
-;; (last-in-month 2025 10 5) => 31
-;; (last-in-month 2025 10 1) => 27
-;;
 ;; 错误处理
 ;; --------
 ;; type-error 当参数不是合法整数或超出范围时抛出错误。
 
 ;; 2025年10月有 31 天，31日是周五 (5)
 ;; 最后一个周五 (5) 是 10月31日
+
+(import (liii check) (liii date-time gregorian))
+
+(check-set-mode! 'report-failed)
+
 (check (last-in-month 2025 10 5) => 31)
 ;; 最后一个周一 (1) 是 10月27日
 (check (last-in-month 2025 10 1) => 27)

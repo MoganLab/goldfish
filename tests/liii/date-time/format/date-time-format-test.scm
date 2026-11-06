@@ -1,15 +1,3 @@
-(import (liii check)
-  (liii date-time date)
-  (liii date-time clock-time)
-  (liii date-time moment)
-  (liii date-time time-delta)
-  (liii date-time timezone)
-  (liii date-time timestamp)
-  (liii date-time format)
-) ;import
-
-(check-set-mode! 'report-failed)
-
 ;; date-time-format
 ;; 将日期时间对象按格式字符串格式化为字符串，格式说明符与 Python datetime.strftime 对齐。
 ;;
@@ -26,15 +14,23 @@
 ;; ----
 ;; string
 ;;
-;; 示例
-;; ----
-;; (date-time-format (make-timestamp 2024 5 9 14 30 5 (utc-timezone)))
-;; => "2024-05-09 14:30:05"
-;;
 ;; 错误处理
 ;; --------
 ;; type-error 当参数类型不匹配时抛出错误
 ;; value-error 当格式字符串未闭合或遇到非法转义符时抛出错误
+
+(import (liii check)
+  (liii date-time date)
+  (liii date-time clock-time)
+  (liii date-time moment)
+  (liii date-time time-delta)
+  (liii date-time timezone)
+  (liii date-time timestamp)
+  (liii date-time format)
+) ;import
+
+(check-set-mode! 'report-failed)
+
 
 (define ts (make-timestamp 2024 5 9 14 30 5 (utc-timezone)))
 

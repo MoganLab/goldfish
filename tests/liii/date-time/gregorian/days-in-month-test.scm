@@ -1,8 +1,3 @@
-(import (liii check)
-        (liii date-time gregorian))
-
-(check-set-mode! 'report-failed)
-
 ;; days-in-month
 ;; 获取公历某年某月的天数。
 ;;
@@ -19,14 +14,14 @@
 ;; ----
 ;; integer? 该月天数（28, 29, 30 或 31）。
 ;;
-;; 示例
-;; ----
-;; (days-in-month 2020 2) => 29
-;; (days-in-month 2021 2) => 28
-;;
 ;; 错误处理
 ;; --------
 ;; type-error 当参数不是整数或月份超出 1-12 范围时抛出错误。
+
+(import (liii check) (liii date-time gregorian))
+
+(check-set-mode! 'report-failed)
+
 
 (check (days-in-month 2020 2) => 29)
 (check (days-in-month 2021 2) => 28)
