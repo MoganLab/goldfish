@@ -38,15 +38,4 @@
   (check (cdr (assoc "x-opencode-session" headers)) => "sess-42")
 ) ;let
 
-;; openai-opencode-extra-headers 自动生成或复用 session
-(let ((hdrs (openai-opencode-extra-headers "https://opencode.ai/zen/go/v1" "opencode" "custom-session")))
-  (check (cdr (assoc "x-opencode-session" hdrs)) => "custom-session")
-) ;let
-(let ((hdrs (openai-opencode-extra-headers "https://opencode.ai/zen/go/v1" "opencode" #f)))
-  (check-true (string? (cdr (assoc "x-opencode-session" hdrs))))
-) ;let
-(let ((hdrs (openai-opencode-extra-headers "https://api.kimi.com/coding/v1" "kimi-coding" #f)))
-  (check hdrs => '())
-) ;let
-
 (check-report)

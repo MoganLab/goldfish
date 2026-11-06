@@ -26,7 +26,6 @@
   ) ;import
   (export openai-build-tool-declarations-from-names openai-request
     openai-build-endpoint openai-build-headers openai-build-proxy-alist
-    openai-opencode-extra-headers
   ) ;export
   (begin
 
@@ -73,7 +72,7 @@
       ) ;let
     ) ;define*
 
-    (define (openai-opencode-extra-headers url provider session-id)
+    (define (%opencode-extra-headers url provider session-id)
       (if (or (and (string? url) (string-contains? url "opencode.ai"))
             (and (string? provider)
               (or (string=? provider "opencode")
@@ -199,7 +198,7 @@
              ) ;
           (let loop
             ((attempt 1) (api-key (pi-request-api-key config)))
-            (let* ((extra-hdrs (openai-opencode-extra-headers url provider session-id))
+            (let* ((extra-hdrs (%opencode-extra-headers url provider session-id))
                    (headers (openai-build-headers api-key extra-hdrs))
                    (resp (%post-openai url req-json-str headers proxy-alist timeout))
                    (status (or (%resp-field resp 'status-code) 0))
