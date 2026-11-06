@@ -17,66 +17,91 @@
 ;; uri?
 ;;   返回归一化后的新 URI，原 URI 不变。
 
-(import (liii check) (liii uri) (liii uri compare) (liii uri convert)
-  (liii uri transform))
+(import (liii check)
+  (liii uri)
+  (liii uri compare)
+  (liii uri convert)
+  (liii uri transform)
+) ;import
 
 (check-set-mode! 'report-failed)
 
 ;; 空 path 归一化为 "/"
 
 (check (uri->string (uri-normalize (make-uri "https://api.anthropic.com")))
-  => "https://api.anthropic.com/")
+  =>
+  "https://api.anthropic.com/"
+) ;check
 
 
 ;; 显式默认端口 443 被移除
 
 (check (uri->string (uri-normalize (make-uri "https://example.com:443/v1")))
-  => "https://example.com/v1")
+  =>
+  "https://example.com/v1"
+) ;check
 
 
 ;; 显式默认端口 80 被移除
 
 (check (uri->string (uri-normalize (make-uri "http://example.com:80/a")))
-  => "http://example.com/a")
+  =>
+  "http://example.com/a"
+) ;check
 
 
 ;; 非默认端口保留
 
 (check (uri->string (uri-normalize (make-uri "https://example.com:8443/a")))
-  => "https://example.com:8443/a")
+  =>
+  "https://example.com:8443/a"
+) ;check
 
 
 ;; 已归一化的 URI 保持不变
 
 (check (uri->string (uri-normalize (make-uri "https://example.com/a")))
-  => "https://example.com/a")
+  =>
+  "https://example.com/a"
+) ;check
 
 
 ;; 非网络协议（mailto 等）不做 path 归一化
 
 (check (uri->string (uri-normalize (make-uri "mailto:bob@example.com")))
-  => "mailto:bob@example.com")
+  =>
+  "mailto:bob@example.com"
+) ;check
 
 
 ;; 与 uri=? 配合使用：空 path 与 "/" 视为等价
 
 (check (uri=? (uri-normalize (make-uri "https://api.minimax.io"))
-            (uri-normalize (make-uri "https://api.minimax.io/")))
-  => #t)
+         (uri-normalize (make-uri "https://api.minimax.io/"))
+       ) ;uri=?
+  =>
+  #t
+) ;check
 
 
 ;; 与 uri=? 配合使用：默认端口与无端口视为等价
 
 (check (uri=? (uri-normalize (make-uri "https://api.deepseek.com"))
-            (uri-normalize (make-uri "https://api.deepseek.com:443")))
-  => #t)
+         (uri-normalize (make-uri "https://api.deepseek.com:443"))
+       ) ;uri=?
+  =>
+  #t
+) ;check
 
 
 ;; path 不同则不等价
 
 (check (uri=? (uri-normalize (make-uri "https://api.kimi.com/coding"))
-            (uri-normalize (make-uri "https://api.kimi.com/coding/v1")))
-  => #f)
+         (uri-normalize (make-uri "https://api.kimi.com/coding/v1"))
+       ) ;uri=?
+  =>
+  #f
+) ;check
 
 
 (check-report)

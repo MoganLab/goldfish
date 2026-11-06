@@ -22,7 +22,9 @@
 (check-set-mode! 'report-failed)
 
 ;; 更新现有查询参数
+
 (define u1 (make-uri-raw "https" "api.com" "/search" '(("page" . "1")) #f))
+
 (define u2
   (uri-update-query u1 (lambda (query) (append query '(("limit" . "10")))))
 ) ;define
@@ -30,16 +32,17 @@
 (check (uri-path u2) => "/search")
 
 ;; 可以替换或清空查询参数
+
 (define u3 (uri-update-query u1 (lambda (query) '())))
 (check (uri-query u3) => '())
 (check (uri-query u1) => '(("page" . "1")))
 
 ;; 保留其他 URI 组件
+
 (define u4
-  (uri-update-query
-    (make-uri-raw "https" "user@example.com:8443" "/v1" '() "section")
+  (uri-update-query (make-uri-raw "https" "user@example.com:8443" "/v1" '() "section")
     (lambda (query) '(("key" . "value")))
-  ) ;lambda
+  ) ;uri-update-query
 ) ;define
 (check (uri-scheme u4) => "https")
 (check (uri-user u4) => "user")
